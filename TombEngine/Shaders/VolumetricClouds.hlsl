@@ -386,6 +386,22 @@ float HeightGradient(float heightFrac, float bShift, float tShift)
 }
 
 // ===========================================================================
+// Dissolve mask (transform-preset driven)
+// ===========================================================================
+
+// Per-cluster timing offset mask [0,1].
+// Feature size = 1/0.0001 = 10000 world units: large enough that the noise
+// is nearly constant inside a single cluster (no internal holes), but small
+// enough that 3-6 distinct timing zones exist across the visible cloud field.
+float DissolveMask(float3 skyPos)
+{
+    float3 dissolveCoord = skyPos * 0.0001f;
+    float n1 = PerlinNoise3D(dissolveCoord + float3(100.0f, 0.0f, 200.0f));
+    float n2 = PerlinNoise3D(dissolveCoord * 1.7f + float3(47.0f, 0.0f, 83.0f));
+    return n1 * 0.6f + n2 * 0.4f;  // [0, 1]
+}
+
+// ===========================================================================
 // Cloud density sampling
 // ===========================================================================
 
@@ -831,6 +847,32 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         if (dens <= 0.0001f)
             return 0.0f;
 
+        // --- Transform-preset dissolve ---
+        // Two independent mechanisms:
+        //   1. Cluster delay: spatial noise shifts when each cluster STARTS dissolving.
+        //      clusterDelay in [0, maxDelay] → cluster begins at phase=clusterDelay,
+        //      finishes at phase=clusterDelay+(1-maxDelay). At phase=1 all clusters done.
+        //   2. Edge-first within cluster: localPhase drives a density threshold so
+        //      low-density edges vanish before dense cores — independent of cluster timing.
+        if (DissolvePhase > 0.001f)
+        {
+            const float maxDelay  = 0.55f; // Fraction of duration used for staggering.
+            float clusterDelay    = DissolveMask(skyPos) * maxDelay;
+            float localPhase      = saturate((DissolvePhase - clusterDelay) / (1.0f - maxDelay));
+
+            if (localPhase > 0.0001f)
+            {
+                // cloudStr: 0=thin edge, 1=dense core. Edges dissolve first.
+                float cloudStr  = 1.0f - exp(-dens * 8.0f);
+                float threshold = lerp(-0.1f, 1.1f, localPhase);
+                float edgeW     = 0.08f;
+                dens *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
+
+                if (dens <= 0.0001f)
+                    return 0.0f;
+            }
+        }
+
         // AltoHorizonWidth zenith cap (disabled in bleed pass — bleed clouds must be
         // visible from near-horizontal rays that point toward the mountains).
         if (AltoHorizonWidth > 0.001f && CloudIsBleedPass < 0.001f)
@@ -1187,6 +1229,25 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
     float baseMinVisible = lerp(0.015f, 0.10f, saturate((Absorption - 0.5f) * 0.4f));
     float minVisible	 = lerp(baseMinVisible, max(baseMinVisible, 0.12f), distLOD2);
     finalDensity		*= saturate(finalDensity / max(minVisible, 0.0001f));
+
+    // --- Transform-preset dissolve ---
+    if (DissolvePhase > 0.001f)
+    {
+        const float maxDelay = 0.55f;
+        float clusterDelay   = DissolveMask(skyPos) * maxDelay;
+        float localPhase     = saturate((DissolvePhase - clusterDelay) / (1.0f - maxDelay));
+
+        if (localPhase > 0.0001f)
+        {
+            float cloudStr  = 1.0f - exp(-finalDensity * 8.0f);
+            float threshold = lerp(-0.1f, 1.1f, localPhase);
+            float edgeW     = 0.08f;
+            finalDensity *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
+
+            if (finalDensity <= 0.0001f)
+                return 0.0f;
+        }
+    }
 
     // --- Wind-directional drift-out dissolution ---
     if (DriftOutProgress > 0.001f)

@@ -165,6 +165,10 @@ namespace TEN::Renderer::VolumetricCloud
 		// 0 = normal rendering, 1 = fully dissolved.
 		float DriftOutProgress = 0.0f;
 
+		// Transform dissolve phase [0,1]. Set by TransformPresets (DissolveToClear).
+		// 0 = no dissolve (shader dissolve logic skipped), 1 = fully dissolved.
+		float DissolvePhase = 0.0f;
+
 		// Quality
 		CloudQualityPreset Quality  = CloudQualityPreset::Medium;
 		float JitterStrength        = 1.0f;

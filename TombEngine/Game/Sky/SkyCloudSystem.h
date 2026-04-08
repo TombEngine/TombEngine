@@ -166,6 +166,11 @@ namespace TEN::Sky
 
 		CloudQualityPreset Quality = CloudQualityPreset::Medium;
 
+		// Transform dissolve phase [0,1]. Set only by TransformPresets (DissolveToClear).
+		// 0 = no dissolve (normal rendering), 1 = fully dissolved.
+		// NOT interpolated by Lerp — set directly by UpdateTransition.
+		float DissolvePhase = 0.0f;
+
 		// Convert to/from the renderer's CloudRenderSettings.
 		CloudRenderSettings ToRenderSettings() const;
 		static VolumetricCloudLayerSnapshot FromRenderSettings(const CloudRenderSettings& src);
@@ -217,6 +222,17 @@ namespace TEN::Sky
 	// ====================================================================
 
 	// Per-entry in a probabilistic next-preset list.
+	// ====================================================================
+	// Transform type — behavioral presets that modify the current state
+	// instead of defining a target state to interpolate toward.
+	// ====================================================================
+
+	enum class TransformType
+	{
+		None,              // Regular preset: interpolate toward target state.
+		DissolveToClear    // Keep source attributes, dissolve existing clouds to clear sky.
+	};
+
 	// Used when nextPreset is defined as a table in Lua instead of a single string.
 	struct NextPresetCandidate
 	{
@@ -233,6 +249,10 @@ namespace TEN::Sky
 		WeatherPresetType Type        = WeatherPresetType::ClearSky;
 		std::string       Name        = "ClearSky";
 		SkyCloudSnapshot  TargetState = {};
+
+		// Transform behavior: when not None, the preset modifies the current state
+		// rather than interpolating toward its own TargetState.
+		TransformType Transform = TransformType::None;
 
 		// Transition defaults (seconds).
 		float DefaultTransitionDuration = 30.0f;

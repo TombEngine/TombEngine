@@ -94,7 +94,7 @@ namespace TEN::Renderer::ConstantBuffers
 		float   AltoZenithBias;   // [-1,1]  cloud distribution bias
 		float   AltoHorizonWidth; // [0,1]  0=wide (to near horizon), 1=zenith-only cap
 		float   AltoBleedDepth;  // [0,100] bleed clouds depth (0.01*val*CloudBottomHeight)
-		float   AltoHtPad5;
+		float   DissolvePhase;   // [0,1] Transform dissolve progress. 0 = off, 1 = fully dissolved.
 		//--
 		// Row 16 — Altocumulus sky-height modulation (continued)
 		float   AltoHeightBlendPower;   // [0.25,4]  exponent on the skyHeight ramp

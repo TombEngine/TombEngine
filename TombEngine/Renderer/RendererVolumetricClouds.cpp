@@ -248,7 +248,7 @@ namespace TEN::Renderer
 		_stVolumetricCloud.AltoZenithBias        = settings.AltoZenithBias;
 		_stVolumetricCloud.AltoHorizonWidth      = settings.AltoHorizonWidth;
 		_stVolumetricCloud.AltoBleedDepth        = settings.AltoBleedDepth;
-		_stVolumetricCloud.AltoHtPad5 = 0.0f;
+		_stVolumetricCloud.DissolvePhase          = settings.DissolvePhase;
 		_stVolumetricCloud.AltoHeightBlendPower  = settings.AltoHeightBlendPower;
 
 		// Sun elevation for cloud day/night lighting.

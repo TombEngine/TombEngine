@@ -55,6 +55,8 @@ namespace TEN::Sky
 		}
 	}
 
+	static SkyCloudSnapshot BuildDissolveToClearTarget(const SkyCloudSnapshot& current);
+
 	// ====================================================================
 	// VolumetricCloudLayerSnapshot
 	// ====================================================================
@@ -125,6 +127,9 @@ namespace TEN::Sky
 		s.BlendThresholdHighWidth = BlendThresholdHighWidth;
 		s.BlendThresholdLow       = BlendThresholdLow;
 
+		// Transform dissolve
+		s.DissolvePhase = DissolvePhase;
+
 		return s;
 	}
 
@@ -188,6 +193,9 @@ namespace TEN::Sky
 		snap.BlendThresholdHigh      = src.BlendThresholdHigh;
 		snap.BlendThresholdHighWidth = src.BlendThresholdHighWidth;
 		snap.BlendThresholdLow       = src.BlendThresholdLow;
+
+		// Transform dissolve
+		snap.DissolvePhase = src.DissolvePhase;
 
 		return snap;
 	}
@@ -297,6 +305,10 @@ namespace TEN::Sky
 
 		// Quality: snap at halfway.
 		result.Quality = (t < 0.5f) ? a.Quality : b.Quality;
+
+		// DissolvePhase: NOT interpolated. Set directly by UpdateTransition
+		// for DissolveToClear transforms; always 0 for normal transitions.
+		result.DissolvePhase = 0.0f;
 
 		return result;
 	}
@@ -536,41 +548,23 @@ namespace TEN::Sky
 		}
 
 		// ----- FewToClearSky -----
-		// Partial coverage: distinct cloud groups at varying heights.
-		// Uses CloudB only (AltocumulusMid).
+		// Transform preset: dissolves existing clouds to clear sky.
+		// The TargetState cloud values are NOT used during transitions — the
+		// DissolveToClear transform copies the current (source) state and zeroes
+		// density parameters so existing clouds fade out naturally while wind,
+		// colors, and other appearance settings are preserved.
+		// Layers dissolve with staggered timing (higher clouds first).
 		{
 			WeatherPresetDefinition def;
 			def.Type = WeatherPresetType::FewToClearSky;
 			def.Name = "FewToClearSky";
+			def.Transform = TransformType::DissolveToClear;
 			def.DefaultTransitionDuration = 45.0f;
 
-			auto& b = def.TargetState.CloudB;
-			b.Enabled           = true;
-			b.Category          = CloudCategory::AltocumulusMid;
-			b.BottomHeight      = 3500.0f;
-			b.Thickness         = 1400.0f;
-			b.WindDirectionX    = 1.0f;
-			b.WindDirectionY    = 0.0f;
-			b.WindSpeed         = 0.35f;
-			b.EvolutionSpeed    = 2.5f;
-			b.HorizonFade       = 0.0f;
-			b.DistanceFade      = 0.5f;
-			b.AltoBillowStrength = 0.5f;
-			b.AltoCovSoftWidth   = 0.15f;
-			b.AltoAbsorption     = 0.8f;
-			b.AltoCloudSize      = 0.45f;
-			b.AltoCloudAmount    = 0.62f;
-			b.AltoCloudBrightness = 1.0f;
-			b.AltoCloudColorR    = 1.0f;
-			b.AltoCloudColorG    = 1.0f;
-			b.AltoCloudColorB    = 1.0f;
-			b.AltoCloudColorDarkR = 0.55f;
-			b.AltoCloudColorDarkG = 0.55f;
-			b.AltoCloudColorDarkB = 0.65f;
-			b.AltoFbmLacunarity  = 3.2f;
-			b.AltoFbmGain        = 0.45f;
-			b.AltoThickness      = 3000.0f;
-			b.AltoBottomSoftness = 0.65f;
+			// TargetState is clear sky (used only by SetPresetImmediate).
+			// Both layers disabled — no cloud content.
+			def.TargetState.CloudA.Enabled = false;
+			def.TargetState.CloudB.Enabled = false;
 
 			_presets[def.Type] = def;
 		}
@@ -1445,6 +1439,16 @@ namespace TEN::Sky
 			// Transition complete.
 			tr.Progress = 1.0f;
 			_currentState  = tr.TargetSnapshot;
+
+			auto targetIt = _presets.find(tr.Target);
+			if (targetIt != _presets.end() && targetIt->second.Transform == TransformType::DissolveToClear)
+			{
+				_currentState.CloudA.Enabled = false;
+				_currentState.CloudB.Enabled = false;
+				_currentState.CloudA.DissolvePhase = 0.0f;
+				_currentState.CloudB.DissolvePhase = 0.0f;
+			}
+
 			_currentPreset = tr.Target;
 			tr.Active = false;
 
@@ -1495,6 +1499,18 @@ namespace TEN::Sky
 		// Skip per-layer if an independent layer transition is running (it takes priority).
 		if (!_manualOverrideCloudA && !_layerTransitionA.Active) _currentState.CloudA = blended.CloudA;
 		if (!_manualOverrideCloudB && !_layerTransitionB.Active) _currentState.CloudB = blended.CloudB;
+
+		// --- Shader dissolve phase injection ---
+		// When the target is a DissolveToClear transform, drive DissolvePhase from the
+		// per-layer eased progress. This is NOT part of Lerp — it's set directly here.
+		auto targetIt = _presets.find(tr.Target);
+		if (targetIt != _presets.end() && targetIt->second.Transform == TransformType::DissolveToClear)
+		{
+			if (!_manualOverrideCloudA && !_layerTransitionA.Active)
+				_currentState.CloudA.DissolvePhase = highT;
+			if (!_manualOverrideCloudB && !_layerTransitionB.Active)
+				_currentState.CloudB.DissolvePhase = lowT;
+		}
 	}
 
 	void SkyCloudSystem::SetPresetImmediate(WeatherPresetType preset)
@@ -1513,11 +1529,37 @@ namespace TEN::Sky
 		_currentPreset = preset;
 		_layerAPreset  = preset;
 		_layerBPreset  = preset;
-		_currentState = it->second.TargetState;
+
+		if (it->second.Transform == TransformType::DissolveToClear)
+		{
+			_currentState.CloudA.Enabled = false;
+			_currentState.CloudB.Enabled = false;
+			_currentState.CloudA.DissolvePhase = 0.0f;
+			_currentState.CloudB.DissolvePhase = 0.0f;
+		}
+		else
+			_currentState = it->second.TargetState;
 
 		// Auto-chain or drift-out: check dwell / NextPreset for the new active preset.
 		const auto& def = it->second;
 		StartNextPresetDwell(def);
+	}
+
+	// Helper: build a dissolve-to-clear target snapshot from the current state.
+	// Copies all visual attributes but zeroes density-contributing parameters
+	// so the existing Lerp naturally dissolves clouds while preserving wind,
+	// colors, and other appearance settings.
+	static SkyCloudSnapshot BuildDissolveToClearTarget(const SkyCloudSnapshot& current)
+	{
+		SkyCloudSnapshot target = current;
+
+		// The visual dissolve is driven entirely by DissolvePhase on the GPU.
+		// All cloud parameters, including Enabled/Coverage, stay at their source
+		// values during the blend so the generic Lerp path does not fade the layer.
+		// The layer is switched off explicitly when the transition completes.
+		target.CloudA.DissolvePhase = 0.0f;
+		target.CloudB.DissolvePhase = 0.0f;
+		return target;
 	}
 
 	void SkyCloudSystem::TransitionToPreset(WeatherPresetType preset, float durationSeconds,
@@ -1548,7 +1590,26 @@ namespace TEN::Sky
 		tr.Source            = _currentPreset;
 		tr.Target            = preset;
 		tr.SourceSnapshot    = _currentState;
-		tr.TargetSnapshot    = def.TargetState;
+
+		// Transform presets override the target snapshot construction.
+		if (def.Transform == TransformType::DissolveToClear)
+		{
+			// DissolveToClear: keep all source attributes and let the shader-side
+			// dissolve mask remove cloud mass over time. Only the final enabled state
+			// changes so the layer is off after the transition completes.
+			tr.TargetSnapshot = BuildDissolveToClearTarget(_currentState);
+
+			// Stagger layers so they don't dissolve simultaneously:
+			// higher clouds (A) dissolve faster, lower clouds (B) use full duration.
+			bool bothActive = _currentState.CloudA.Enabled && _currentState.CloudB.Enabled;
+			effA = bothActive ? (durationSeconds * 0.6f) : durationSeconds;
+			effB = durationSeconds;
+		}
+		else
+		{
+			tr.TargetSnapshot = def.TargetState;
+		}
+
 		tr.DurationA         = std::max(effA, 0.1f);
 		tr.DurationB         = std::max(effB, 0.1f);
 		tr.Duration          = std::max(tr.DurationA, tr.DurationB);
@@ -1578,7 +1639,23 @@ namespace TEN::Sky
 		tr.Source            = _currentPreset;
 		tr.Target            = preset;
 		tr.SourceSnapshot    = _currentState;
-		tr.TargetSnapshot    = it->second.TargetState;
+
+		// Transform presets override the target snapshot construction.
+		if (it->second.Transform == TransformType::DissolveToClear)
+		{
+			tr.TargetSnapshot = BuildDissolveToClearTarget(_currentState);
+
+			// Stagger layers: higher clouds dissolve faster.
+			bool bothActive = _currentState.CloudA.Enabled && _currentState.CloudB.Enabled;
+			float baseDur   = std::max(durationASeconds, durationBSeconds);
+			durationASeconds = bothActive ? (baseDur * 0.6f) : baseDur;
+			durationBSeconds = baseDur;
+		}
+		else
+		{
+			tr.TargetSnapshot = it->second.TargetState;
+		}
+
 		tr.DurationA         = std::max(durationASeconds, 0.1f);
 		tr.DurationB         = std::max(durationBSeconds, 0.1f);
 		tr.Duration          = std::max(tr.DurationA, tr.DurationB);
@@ -1592,6 +1669,9 @@ namespace TEN::Sky
 	{
 		// Freeze the current blended state and stop transitioning.
 		_transition.Active = false;
+		// Clear shader dissolve phase — no residual dissolve effect.
+		_currentState.CloudA.DissolvePhase = 0.0f;
+		_currentState.CloudB.DissolvePhase = 0.0f;
 		// Also cancel any pending dwell / drift-out that might fire from the interrupted target.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
@@ -1608,6 +1688,9 @@ namespace TEN::Sky
 		// Per-layer independent transitions.
 		_layerTransitionA.Active = false;
 		_layerTransitionB.Active = false;
+		// Clear shader dissolve phase — no residual dissolve effect.
+		_currentState.CloudA.DissolvePhase = 0.0f;
+		_currentState.CloudB.DissolvePhase = 0.0f;
 		// Preset dwell timer.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
@@ -1636,6 +1719,14 @@ namespace TEN::Sky
 		{
 			layerTr.Progress = 1.0f;
 			current          = layerTr.Target;
+
+			auto targetIt = _presets.find(layerTr.TargetPreset);
+			if (targetIt != _presets.end() && targetIt->second.Transform == TransformType::DissolveToClear)
+			{
+				current.Enabled = false;
+				current.DissolvePhase = 0.0f;
+			}
+
 			layerTr.Active   = false;
 			return true;
 		}
@@ -1644,6 +1735,11 @@ namespace TEN::Sky
 		float easedT = ApplyEasing(rawT, layerTr.Curve);
 		layerTr.Progress = easedT;
 		current = VolumetricCloudLayerSnapshot::Lerp(layerTr.Source, layerTr.Target, easedT);
+
+		auto targetIt = _presets.find(layerTr.TargetPreset);
+		if (targetIt != _presets.end() && targetIt->second.Transform == TransformType::DissolveToClear)
+			current.DissolvePhase = easedT;
+
 		return false;
 	}
 
@@ -1663,7 +1759,18 @@ namespace TEN::Sky
 		tr.Active       = true;
 		tr.TargetPreset = preset;
 		tr.Source   = _currentState.CloudA;
-		tr.Target   = it->second.TargetState.CloudA;
+
+		// Transform preset: keep the current layer attributes and let DissolvePhase
+		// drive the visual breakup. Only the final enabled state changes.
+		if (it->second.Transform == TransformType::DissolveToClear && _currentState.CloudA.Enabled)
+		{
+			tr.Target = _currentState.CloudA;
+		}
+		else
+		{
+			tr.Target = it->second.TargetState.CloudA;
+		}
+
 		tr.Duration = std::max(durationSeconds, 0.1f);
 		tr.Elapsed  = 0.0f;
 		tr.Progress = 0.0f;
@@ -1686,7 +1793,18 @@ namespace TEN::Sky
 		tr.Active       = true;
 		tr.TargetPreset = preset;
 		tr.Source   = _currentState.CloudB;
-		tr.Target   = it->second.TargetState.CloudB;
+
+		// Transform preset: keep the current layer attributes and let DissolvePhase
+		// drive the visual breakup. Only the final enabled state changes.
+		if (it->second.Transform == TransformType::DissolveToClear && _currentState.CloudB.Enabled)
+		{
+			tr.Target = _currentState.CloudB;
+		}
+		else
+		{
+			tr.Target = it->second.TargetState.CloudB;
+		}
+
 		tr.Duration = std::max(durationSeconds, 0.1f);
 		tr.Elapsed  = 0.0f;
 		tr.Progress = 0.0f;
@@ -1702,7 +1820,17 @@ namespace TEN::Sky
 		_manualOverrideCloudA    = false;
 		_layerTransitionA.Active = false;
 		_layerAPreset            = preset;
-		_currentState.CloudA     = it->second.TargetState.CloudA;
+
+		if (it->second.Transform == TransformType::DissolveToClear)
+		{
+			_currentState.CloudA.Enabled = false;
+			_currentState.CloudA.DissolvePhase = 0.0f;
+		}
+		else
+		{
+			_currentState.CloudA = it->second.TargetState.CloudA;
+		}
+
 		StartLayerDwell(preset, _layerDwellA, true);
 	}
 
@@ -1715,7 +1843,17 @@ namespace TEN::Sky
 		_manualOverrideCloudB    = false;
 		_layerTransitionB.Active = false;
 		_layerBPreset            = preset;
-		_currentState.CloudB     = it->second.TargetState.CloudB;
+
+		if (it->second.Transform == TransformType::DissolveToClear)
+		{
+			_currentState.CloudB.Enabled = false;
+			_currentState.CloudB.DissolvePhase = 0.0f;
+		}
+		else
+		{
+			_currentState.CloudB = it->second.TargetState.CloudB;
+		}
+
 		StartLayerDwell(preset, _layerDwellB, false);
 	}
 
