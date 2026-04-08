@@ -1,277 +1,315 @@
 #include "framework.h"
 #include "Specific/Input/Bindings.h"
 
-#include "Specific/Input/InputAction.h"
-#include "Specific/Input/Keys.h"
+#include "Specific/Input/Action.h"
+#include "Specific/Input/Event.h"
+#include "Specific/trutils.h"
+
+using namespace TEN::Utils;
 
 namespace TEN::Input
 {
-	BindingManager g_Bindings;
-
-	const BindingProfile DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE =
+	static const auto RAW_KEYBOARD_BINDING_PROFILE = BindingProfile
 	{
-		{ In::Forward,		  OIS::KC_UP },
-		{ In::Back,			  OIS::KC_DOWN },
-		{ In::Left,			  OIS::KC_LEFT },
-		{ In::Right,		  OIS::KC_RIGHT },
-		{ In::StepLeft,		  OIS::KC_DELETE },
-		{ In::StepRight,	  OIS::KC_PGDOWN },
-		{ In::Action,		  OIS::KC_RCONTROL },
-		{ In::Walk,			  OIS::KC_RSHIFT },
-		{ In::Sprint,		  OIS::KC_SLASH },
-		{ In::Crouch,		  OIS::KC_PERIOD },
-		{ In::Jump,			  OIS::KC_RMENU },
-		{ In::Roll,			  OIS::KC_END },
-		{ In::Draw,			  OIS::KC_SPACE },
-		{ In::Look,			  OIS::KC_NUMPAD0 },
-
-		{ In::Accelerate,	  OIS::KC_RCONTROL },
-		{ In::Reverse,		  OIS::KC_DOWN },
-		{ In::Faster,		  OIS::KC_SLASH },
-		{ In::Slower,		  OIS::KC_RSHIFT },
-		{ In::Brake,		  OIS::KC_RMENU },
-		{ In::Fire,			  OIS::KC_SPACE },
-
-		{ In::Flare,		  OIS::KC_COMMA },
-		{ In::SmallMedipack,  OIS::KC_MINUS },
-		{ In::LargeMedipack,  OIS::KC_EQUALS },
-		{ In::PreviousWeapon, OIS::KC_LBRACKET },
-		{ In::NextWeapon,	  OIS::KC_RBRACKET },
-		{ In::Weapon1,		  OIS::KC_1 },
-		{ In::Weapon2,		  OIS::KC_2 },
-		{ In::Weapon3,		  OIS::KC_3 },
-		{ In::Weapon4,		  OIS::KC_4 },
-		{ In::Weapon5,		  OIS::KC_5 },
-		{ In::Weapon6,		  OIS::KC_6 },
-		{ In::Weapon7,		  OIS::KC_7 },
-		{ In::Weapon8,		  OIS::KC_8 },
-		{ In::Weapon9,		  OIS::KC_9 },
-		{ In::Weapon10,		  OIS::KC_0 },
-
-		{ In::Select,		  OIS::KC_RETURN },
-		{ In::Deselect,		  OIS::KC_ESCAPE },
-		{ In::Pause,		  OIS::KC_P },
-		{ In::Inventory,	  OIS::KC_ESCAPE },
-		{ In::Save,			  OIS::KC_F5 },
-		{ In::Load,			  OIS::KC_F6 }
+		{ In::A,            { EventId::A } },
+		{ In::B,            { EventId::B } },
+		{ In::C,            { EventId::C } },
+		{ In::D,            { EventId::D } },
+		{ In::E,            { EventId::E } },
+		{ In::F,            { EventId::F } },
+		{ In::G,            { EventId::G } },
+		{ In::H,            { EventId::H } },
+		{ In::I,            { EventId::I } },
+		{ In::J,            { EventId::J } },
+		{ In::K,            { EventId::K } },
+		{ In::L,            { EventId::L } },
+		{ In::M,            { EventId::M } },
+		{ In::N,            { EventId::N } },
+		{ In::O,            { EventId::O } },
+		{ In::P,            { EventId::P } },
+		{ In::Q,            { EventId::Q } },
+		{ In::R,            { EventId::R } },
+		{ In::S,            { EventId::S } },
+		{ In::T,            { EventId::T } },
+		{ In::U,            { EventId::U } },
+		{ In::V,            { EventId::V } },
+		{ In::W,            { EventId::W } },
+		{ In::X,            { EventId::X } },
+		{ In::Y,            { EventId::Y } },
+		{ In::Z,            { EventId::Z } },
+		{ In::Num1,         { EventId::Row1, EventId::Pad1 } },
+		{ In::Num2,         { EventId::Row2, EventId::Pad2 } },
+		{ In::Num3,         { EventId::Row3, EventId::Pad3 } },
+		{ In::Num4,         { EventId::Row4, EventId::Pad4 } },
+		{ In::Num5,         { EventId::Row5, EventId::Pad5 } },
+		{ In::Num6,         { EventId::Row6, EventId::Pad6 } },
+		{ In::Num7,         { EventId::Row7, EventId::Pad7 } },
+		{ In::Num8,         { EventId::Row8, EventId::Pad8 } },
+		{ In::Num9,         { EventId::Row9, EventId::Pad9 } },
+		{ In::Num0,         { EventId::Row0, EventId::Pad0 } },
+		{ In::Return,       { EventId::Return, EventId::PadEnter } },
+		{ In::Escape,       { EventId::Escape } },
+		{ In::Backspace,    { EventId::Backspace } },
+		{ In::Tab,          { EventId::Tab } },
+		{ In::Space,        { EventId::Space } },
+		{ In::Home,         { EventId::Home } },
+		{ In::End,          { EventId::End } },
+		{ In::Delete,       { EventId::Delete } },
+		{ In::Minus,        { EventId::Minus, EventId::PadMinus } },
+		{ In::Equals,       { EventId::Equals, EventId::PadPlus } },
+		{ In::BracketLeft,  { EventId::BracketLeft } },
+		{ In::BracketRight, { EventId::BracketRight } },
+		{ In::Backslash,    { EventId::Backslash } },
+		{ In::Semicolon,    { EventId::Semicolon } },
+		{ In::Apostrophe,   { EventId::Apostrophe } },
+		{ In::Comma,        { EventId::Comma } },
+		{ In::Period,       { EventId::Period, EventId::PadPeriod } },
+		{ In::Slash,        { EventId::Slash, EventId::PadDivide } },
+		{ In::ArrowUp,      { EventId::Up } },
+		{ In::ArrowDown,    { EventId::Down } },
+		{ In::ArrowLeft,    { EventId::Left } },
+		{ In::ArrowRight,   { EventId::Right } },
+		{ In::Ctrl,         { EventId::Ctrl } },
+		{ In::Shift,        { EventId::Shift } },
+		{ In::Alt,          { EventId::Alt } }
 	};
 
-	const BindingProfile DEFAULT_GAMEPAD_BINDING_PROFILE =
+	static const auto RAW_MOUSE_BINDING_PROFILE = BindingProfile
 	{
-		{ In::Forward,		  XK_AXIS_X_NEG },
-		{ In::Back,			  XK_AXIS_X_POS },
-		{ In::Left,			  XK_AXIS_Y_NEG },
-		{ In::Right,		  XK_AXIS_Y_POS },
-		{ In::StepLeft,		  XK_L_STICK },
-		{ In::StepRight,	  XK_R_STICK },
-		{ In::Action,		  XK_A },
-		{ In::Walk,			  XK_R_SHIFT },
-		{ In::Sprint,		  XK_AXIS_R_TRIGGER_NEG },
-		{ In::Crouch,		  XK_AXIS_L_TRIGGER_NEG },
-		{ In::Jump,			  XK_X },
-		{ In::Roll,			  XK_B },
-		{ In::Draw,			  XK_Y },
-		{ In::Look,			  XK_L_SHIFT },
-
-		{ In::Accelerate,	  XK_A },
-		{ In::Reverse,		  XK_AXIS_X_POS },
-		{ In::Faster,		  XK_AXIS_R_TRIGGER_NEG },
-		{ In::Slower,		  XK_R_SHIFT },
-		{ In::Brake,		  XK_X },
-		{ In::Fire,			  XK_AXIS_L_TRIGGER_NEG },
-
-		{ In::Flare,		  XK_DPAD_DOWN },
-		{ In::SmallMedipack,  OIS::KC_MINUS },
-		{ In::LargeMedipack,  OIS::KC_EQUALS },
-		{ In::PreviousWeapon, OIS::KC_LBRACKET },
-		{ In::NextWeapon,	  OIS::KC_RBRACKET },
-		{ In::Weapon1,		  OIS::KC_1 },
-		{ In::Weapon2,		  OIS::KC_2 },
-		{ In::Weapon3,		  OIS::KC_3 },
-		{ In::Weapon4,		  OIS::KC_4 },
-		{ In::Weapon5,		  OIS::KC_5 },
-		{ In::Weapon6,		  OIS::KC_6 },
-		{ In::Weapon7,		  OIS::KC_7 },
-		{ In::Weapon8,		  OIS::KC_8 },
-		{ In::Weapon9,		  OIS::KC_9 },
-		{ In::Weapon10,		  OIS::KC_0 },
-
-		{ In::Select,		  OIS::KC_RETURN },
-		{ In::Deselect,		  XK_SELECT },
-		{ In::Pause,		  XK_START },
-		{ In::Inventory,	  XK_SELECT },
-		{ In::Save,			  OIS::KC_F5 },
-		{ In::Load,			  OIS::KC_F6 }
+		{ In::MouseClickLeft,   { EventId::MouseClickLeft } },
+		{ In::MouseClickMiddle, { EventId::MouseClickMiddle } },
+		{ In::MouseClickRight,  { EventId::MouseClickRight } },
+		{ In::MouseScrollUp,    { EventId::MouseScrollUp } },
+		{ In::MouseScrollDown,  { EventId::MouseScrollDown } },
+		{ In::MouseUp,          { EventId::MouseUp } },
+		{ In::MouseDown,        { EventId::MouseDown } },
+		{ In::MouseLeft,        { EventId::MouseLeft } },
+		{ In::MouseRight,       { EventId::MouseRight } }
 	};
 
-	const BindingProfile RAW_EVENT_BINDING_PROFILE
+	static const auto RAW_GAMEPAD_BINDING_PROFILE = BindingProfile
 	{
-		{ In::A,				OIS::KC_A },
-		{ In::B,				OIS::KC_B },
-		{ In::C,				OIS::KC_C },
-		{ In::D,				OIS::KC_D },
-		{ In::E,				OIS::KC_E },
-		{ In::F,				OIS::KC_F },
-		{ In::G,				OIS::KC_G },
-		{ In::H,				OIS::KC_H },
-		{ In::I,				OIS::KC_I },
-		{ In::J,				OIS::KC_J },
-		{ In::K,				OIS::KC_K },
-		{ In::L,				OIS::KC_L },
-		{ In::M,				OIS::KC_M },
-		{ In::N,				OIS::KC_N },
-		{ In::O,				OIS::KC_O },
-		{ In::P,				OIS::KC_P },
-		{ In::Q,				OIS::KC_Q },
-		{ In::R,				OIS::KC_R },
-		{ In::S,				OIS::KC_S },
-		{ In::T,				OIS::KC_T },
-		{ In::U,				OIS::KC_U },
-		{ In::V,				OIS::KC_V },
-		{ In::W,				OIS::KC_W },
-		{ In::X,				OIS::KC_X },
-		{ In::Y,				OIS::KC_Y },
-		{ In::Z,				OIS::KC_Z },
-		{ In::Num0,				OIS::KC_0 },
-		{ In::Num1,				OIS::KC_1 },
-		{ In::Num2,				OIS::KC_2 },
-		{ In::Num3,				OIS::KC_3 },
-		{ In::Num4,				OIS::KC_4 },
-		{ In::Num5,				OIS::KC_5 },
-		{ In::Num6,				OIS::KC_6 },
-		{ In::Num7,				OIS::KC_7 },
-		{ In::Num8,				OIS::KC_8 },
-		{ In::Num9,				OIS::KC_9 },
-		{ In::Minus,			OIS::KC_MINUS },
-		{ In::Equals,			OIS::KC_EQUALS },
-		{ In::Escape,			OIS::KC_ESCAPE },
-		{ In::Tab, 				OIS::KC_TAB },
-		{ In::Shift, 			OIS::KC_RSHIFT },
-		{ In::Ctrl, 			OIS::KC_RCONTROL },
-		{ In::Alt, 				OIS::KC_RMENU },
-		{ In::Space, 			OIS::KC_SPACE },
-		{ In::Home,				OIS::KC_HOME },
-		{ In::End,				OIS::KC_END },
-		{ In::Delete,			OIS::KC_DELETE },
-		{ In::Return,			OIS::KC_RETURN },
-		{ In::Backspace, 		OIS::KC_BACK },
-		{ In::BracketLeft, 		OIS::KC_LBRACKET },
-		{ In::BracketRight,		OIS::KC_RBRACKET },
-		{ In::Backslash, 		OIS::KC_BACKSLASH },
-		{ In::Semicolon, 		OIS::KC_SEMICOLON },
-		{ In::Apostrophe, 		OIS::KC_APOSTROPHE },
-		{ In::Comma, 			OIS::KC_COMMA },
-		{ In::Period, 			OIS::KC_PERIOD },
-		{ In::Slash, 			OIS::KC_SLASH },
-		{ In::ArrowUp, 			OIS::KC_UP },
-		{ In::ArrowDown, 		OIS::KC_DOWN },
-		{ In::ArrowLeft, 		OIS::KC_LEFT },
-		{ In::ArrowRight, 		OIS::KC_RIGHT },
-
-		{ In::MouseClickLeft,	MK_LCLICK },
-		{ In::MouseClickMiddle, MK_MCLICK },
-		{ In::MouseClickRight,	MK_RCLICK },
-		{ In::MouseScrollUp,	MK_AXIS_Z_NEG },
-		{ In::MouseScrollDown,	MK_AXIS_Z_POS }
+		{ In::GamepadNorth,           { EventId::GamepadNorth } },
+		{ In::GamepadSouth,           { EventId::GamepadSouth } },
+		{ In::GamepadEast,            { EventId::GamepadEast } },
+		{ In::GamepadWest,            { EventId::GamepadWest } },
+		{ In::GamepadStart,           { EventId::GamepadStart } },
+		{ In::GamepadSelect,          { EventId::GamepadSelect } },
+		{ In::GamepadShoulderLeft,    { EventId::GamepadShoulderLeft } },
+		{ In::GamepadShoulderRight,   { EventId::GamepadShoulderRight } },
+		{ In::GamepadTriggerLeft,     { EventId::GamepadTriggerLeft } },
+		{ In::GamepadTriggerRight,    { EventId::GamepadTriggerRight } },
+		{ In::GamepadDpadUp,          { EventId::GamepadDpadUp } },
+		{ In::GamepadDpadDown,        { EventId::GamepadDpadDown } },
+		{ In::GamepadDpadLeft,        { EventId::GamepadDpadLeft } },
+		{ In::GamepadDpadRight,       { EventId::GamepadDpadRight } },
+		{ In::GamepadStickLeftIn,     { EventId::GamepadStickLeft } },
+		{ In::GamepadStickLeftUp,     { EventId::GamepadStickLeftUp } },
+		{ In::GamepadStickLeftDown,   { EventId::GamepadStickLeftDown } },
+		{ In::GamepadStickLeftLeft,   { EventId::GamepadStickLeftLeft } },
+		{ In::GamepadStickLeftRight,  { EventId::GamepadStickLeftRight } },
+		{ In::GamepadStickRightIn,    { EventId::GamepadStickRight } },
+		{ In::GamepadStickRightUp,    { EventId::GamepadStickRightUp } },
+		{ In::GamepadStickRightDown,  { EventId::GamepadStickRightDown } },
+		{ In::GamepadStickRightLeft,  { EventId::GamepadStickRightLeft } },
+		{ In::GamepadStickRightRight, { EventId::GamepadStickRightRight } }
 	};
 
-	int BindingManager::GetBoundKeyID(BindingProfileID profileID, ActionID actionID) const
+	const BindingProfile DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE =
 	{
-		// Find binding profile.
-		auto profileIt = _bindings.find(profileID);
-		if (profileIt == _bindings.end())
-			return OIS::KC_UNASSIGNED;
+		{ In::Forward,        { EventId::Up } },
+		{ In::Back,           { EventId::Down } },
+		{ In::Left,           { EventId::Left } },
+		{ In::Right,          { EventId::Right } },
+		{ In::StepLeft,       { EventId::Delete } },
+		{ In::StepRight,      { EventId::PageDown } },
+		{ In::Action,         { EventId::Ctrl } },
+		{ In::Walk,           { EventId::Shift } },
+		{ In::Sprint,         { EventId::Slash } },
+		{ In::Crouch,         { EventId::Period } },
+		{ In::Jump,           { EventId::Alt } },
+		{ In::Roll,           { EventId::End } },
+		{ In::Draw,           { EventId::Space } },
+		{ In::Look,           { EventId::Pad0 } },
 
-		// Get binding profile.
-		const auto& [inputDeviceID, profile] = *profileIt;
+		{ In::Accelerate,     { EventId::Ctrl } },
+		{ In::Reverse,        { EventId::Down } },
+		{ In::Faster,         { EventId::Slash } },
+		{ In::Slower,         { EventId::Shift } },
+		{ In::Brake,          { EventId::Alt } },
+		{ In::Fire,           { EventId::Space } },
 
-		// Find key-action binding.
-		auto keyIt = profile.find(actionID);
-		if (keyIt == profile.end())
-			return OIS::KC_UNASSIGNED;
+		{ In::Flare,          { EventId::Comma } },
+		{ In::SmallMedipack,  { EventId::Minus } },
+		{ In::LargeMedipack,  { EventId::Equals } },
+		{ In::PreviousWeapon, { EventId::BracketLeft } },
+		{ In::NextWeapon,     { EventId::BracketRight } },
+		{ In::Weapon1,        { EventId::Row1 } },
+		{ In::Weapon2,        { EventId::Row2 } },
+		{ In::Weapon3,        { EventId::Row3 } },
+		{ In::Weapon4,        { EventId::Row4 } },
+		{ In::Weapon5,        { EventId::Row5 } },
+		{ In::Weapon6,        { EventId::Row6 } },
+		{ In::Weapon7,        { EventId::Row7 } },
+		{ In::Weapon8,        { EventId::Row8 } },
+		{ In::Weapon9,        { EventId::Row9 } },
+		{ In::Weapon10,       { EventId::Row0 } },
 
-		// Return key binding.
-		const auto& [keyActionID, keyID] = *keyIt;
-		return keyID;
+		{ In::Select,         { EventId::Return } },
+		{ In::Deselect,       { EventId::Escape } },
+		{ In::Pause,          { EventId::P } },
+		{ In::Inventory,      { EventId::Escape } },
+		{ In::Save,           { EventId::F5 } },
+		{ In::Load,           { EventId::F6 } }
+	};
+
+	const BindingProfile DEFAULT_USER_GAMEPAD_BINDING_PROFILE =
+	{
+		{ In::Forward,        { EventId::GamepadStickLeftUp } },
+		{ In::Back,           { EventId::GamepadStickLeftDown } },
+		{ In::Left,           { EventId::GamepadStickLeftLeft } },
+		{ In::Right,          { EventId::GamepadStickLeftRight } },
+		{ In::StepLeft,       { EventId::GamepadStickLeft } },
+		{ In::StepRight,      { EventId::GamepadStickRight } },
+		{ In::Action,         { EventId::GamepadSouth } },
+		{ In::Walk,           { EventId::GamepadShoulderRight } },
+		{ In::Sprint,         { EventId::GamepadTriggerRight } },
+		{ In::Crouch,         { EventId::GamepadTriggerLeft } },
+		{ In::Jump,           { EventId::GamepadWest } },
+		{ In::Roll,           { EventId::GamepadEast } },
+		{ In::Draw,           { EventId::GamepadNorth } },
+		{ In::Look,           { EventId::GamepadShoulderLeft } },
+
+		{ In::Accelerate,     { EventId::GamepadSouth } },
+		{ In::Reverse,        { EventId::GamepadStickLeftDown } },
+		{ In::Faster,         { EventId::GamepadTriggerRight } },
+		{ In::Slower,         { EventId::GamepadShoulderRight } },
+		{ In::Brake,          { EventId::GamepadWest } },
+		{ In::Fire,           { EventId::GamepadTriggerLeft } },
+
+		{ In::Flare,          { EventId::GamepadDpadDown } },
+		{ In::SmallMedipack,  { EventId::Minus } },
+		{ In::LargeMedipack,  { EventId::Equals } },
+		{ In::PreviousWeapon, { EventId::BracketLeft } },
+		{ In::NextWeapon,     { EventId::BracketRight } },
+		{ In::Weapon1,        { EventId::Row1 } },
+		{ In::Weapon2,        { EventId::Row2 } },
+		{ In::Weapon3,        { EventId::Row3 } },
+		{ In::Weapon4,        { EventId::Row4 } },
+		{ In::Weapon5,        { EventId::Row5 } },
+		{ In::Weapon6,        { EventId::Row6 } },
+		{ In::Weapon7,        { EventId::Row7 } },
+		{ In::Weapon8,        { EventId::Row8 } },
+		{ In::Weapon9,        { EventId::Row9 } },
+		{ In::Weapon10,       { EventId::Row0 } },
+
+		{ In::Select,         { EventId::Return } },
+		{ In::Deselect,       { EventId::GamepadSelect } },
+		{ In::Pause,          { EventId::GamepadStart } },
+		{ In::Inventory,      { EventId::GamepadSelect } },
+		{ In::Save,           { EventId::F5 } },
+		{ In::Load,           { EventId::F6 } }
+	};
+
+	const std::vector<BindingProfileId> CUSTOM_BINDING_PROFILE_IDS
+	{
+		BindingProfileId::CustomKeyboardMouse,
+		BindingProfileId::CustomGamepad
+	};
+
+	const std::vector<BindingProfileId> RAW_BINDING_PROFILE_IDS
+	{
+		BindingProfileId::RawKeyboard,
+		BindingProfileId::RawMouse,
+		BindingProfileId::RawGamepad
+	};
+
+	const std::string& BindingManager::GetBoundKeyName(ActionId actionId)
+	{
+		const auto& profile = GetProfile(BindingProfileId::CustomKeyboardMouse);
+
+		auto it = profile.find(actionId);
+		if (it != profile.end() && !it->second.empty())
+			return GetEventName(it->second.front());
+
+		static const std::string empty;
+		return empty;
 	}
 
-	const BindingProfile& BindingManager::GetBindingProfile(BindingProfileID profileID) const
+	const BindingProfile& BindingManager::GetProfile(BindingProfileId profileId) const
 	{
-		// Find binding profile.
-		auto profileIt = _bindings.find(profileID);
-		TENAssert(profileIt != _bindings.end(), "Attempted to get missing binding profile " + std::to_string((int)profileID) + ".");
-
-		// Return binding profile.
-		const auto& [keyProfileID, profile] = *profileIt;
-		return profile;
+		return _bindings[(int)profileId];
 	}
 
-	const std::string& BindingManager::GetBoundKeyName(ActionID actionID)
+	void BindingManager::SetProfile(BindingProfileId profileId, const BindingProfile& newProfile)
 	{
-		int defaultKeyID = GetBoundKeyID(BindingProfileID::Default, (ActionID)(actionID));
-		int userKeyID = GetBoundKeyID(BindingProfileID::Custom, (ActionID)(actionID));
-		int boundKey = userKeyID ? userKeyID : defaultKeyID;
-
-		return GetKeyName(boundKey);
-	}
-
-	void BindingManager::SetKeyBinding(BindingProfileID profileID, ActionID actionID, int keyID)
-	{
-		// Overwrite or add key-action binding.
-		_bindings[profileID][actionID] = keyID;
-	}
-
-	void BindingManager::SetBindingProfile(BindingProfileID profileID, const BindingProfile& bindingProfile)
-	{
-		// Overwrite or create binding profile.
-		_bindings[profileID] = bindingProfile;
-	}
-
-	void BindingManager::SetDefaultBindingProfile(BindingProfileID profileID)
-	{
-		// Reset binding profile defaults.
-		switch (profileID)
+		// Check if profile is customizable.
+		if (!Contains(CUSTOM_BINDING_PROFILE_IDS, profileId))
 		{
-			case BindingProfileID::Default:
-				_bindings[profileID] = DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
-				break;
-
-			case BindingProfileID::Custom:
-				_bindings[profileID] = DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
-				break;
-
-			default:
-				TENLog("Failed to reset defaults for binding profile " + std::to_string((int)profileID) + ".", LogLevel::Warning);
-				return;
+			TENLog(fmt::format("Attempted to set all bindings for non-customizable binding profile {}.", (int)profileId), Debug::LogLevel::Warning);
+			return;
 		}
+
+		// Set new bindings for profile.
+		_bindings[(int)profileId] = newProfile;
 	}
 
-	void BindingManager::SetConflict(ActionID actionID, bool value)
+	void BindingManager::SetBinding(BindingProfileId profileId, ActionId actionId, EventId eventId)
 	{
-		_conflicts[actionID] = value;
+		// Check if profile is customizable.
+		if (!Contains(CUSTOM_BINDING_PROFILE_IDS, profileId))
+		{
+			TENLog(fmt::format("Attempted to bind event {} to action {} in non-customizable binding profile {}.", (int)eventId, (int)actionId, (int)profileId),
+				LogLevel::Warning);
+			return;
+		}
+
+		// Get profile.
+		auto& profile = _bindings[(int)profileId];
+
+		// Swap binding if event is already bound to another action in same group.
+		bool hasSwap = false;
+		for (auto actionGroupId : USER_ACTION_GROUP_IDS)
+		{
+			// Check if action ID exists in current group.
+			const auto& actionIds = ACTION_ID_GROUPS[(int)actionGroupId];
+			if (!Contains(actionIds, actionId))
+				continue;
+
+			// Run through action IDs in group.
+			for (auto otherActionId : actionIds)
+			{
+				// Skip action to bind.
+				if (actionId == otherActionId)
+					continue;
+
+				// Swap if event is already bound.
+				auto& eventIds = profile.at(otherActionId);
+				if (Contains(eventIds, eventId))
+				{
+					std::swap(eventIds, profile[actionId]);
+					hasSwap = true;
+					break;
+				}
+			}
+
+			break;
+		}
+
+		// Add binding.
+		if (!hasSwap)
+			profile[actionId] = { eventId };
 	}
 
-	bool BindingManager::TestConflict(ActionID actionID)
+	void BindingManager::Initialize(const BindingProfile& customKeyboardMouseProfile, const BindingProfile& customGamepadProfile)
 	{
-		return _conflicts.at(actionID);
-	}
-
-	void BindingManager::Initialize()
-	{
-		// Initialize bindings.
 		_bindings =
 		{
-			{ BindingProfileID::Default, DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE },
-			{ BindingProfileID::Custom,	 DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE },
-			{ BindingProfileID::Raw,	 RAW_EVENT_BINDING_PROFILE }
+			customKeyboardMouseProfile,   // BindingProfileId::CustomKeyboardMouse
+			customGamepadProfile,         // BindingProfileId::CustomGamepad
+			RAW_KEYBOARD_BINDING_PROFILE, // BindingProfileId::RawKeyboard
+			RAW_KEYBOARD_BINDING_PROFILE, // BindingProfileId::RawMouse
+			RAW_KEYBOARD_BINDING_PROFILE  // BindingProfileId::RawGamepad
 		};
-
-		// Initialize conflicts.
-		_conflicts.reserve((int)ActionID::Count);
-		for (int i = 0; i < (int)ActionID::Count; i++)
-		{
-			auto actionID = (ActionID)i;
-			_conflicts.insert({ actionID, false });
-		}
 	}
 }

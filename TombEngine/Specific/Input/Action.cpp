@@ -1,11 +1,11 @@
 #include "framework.h"
-#include "Specific/Input/InputAction.h"
+#include "Specific/Input/Action.h"
 
-#include "Specific/clock.h"
+#include "Specific/Clock.h"
 
 namespace TEN::Input
 {
-	const std::vector<std::vector<ActionID>> ACTION_ID_GROUPS =
+	const std::vector<std::vector<ActionId>> ACTION_ID_GROUPS =
 	{
 		// General
 		{
@@ -77,30 +77,57 @@ namespace TEN::Input
 			In::MouseClickRight,
 			In::MouseScrollUp,
 			In::MouseScrollDown
+		},
+		// Gamepad
+		{
+			In::GamepadNorth,
+			In::GamepadSouth,
+			In::GamepadEast,
+			In::GamepadWest,
+			In::GamepadStart,
+			In::GamepadSelect,
+			In::GamepadShoulderLeft,
+			In::GamepadTriggerLeft,
+			In::GamepadShoulderRight,
+			In::GamepadTriggerRight,
+			In::GamepadDpadUp,
+			In::GamepadDpadDown,
+			In::GamepadDpadLeft,
+			In::GamepadDpadRight,
+			In::GamepadStickLeftIn,
+			In::GamepadStickLeftUp,
+			In::GamepadStickLeftDown,
+			In::GamepadStickLeftLeft,
+			In::GamepadStickLeftRight,
+			In::GamepadStickRightIn,
+			In::GamepadStickRightUp,
+			In::GamepadStickRightDown,
+			In::GamepadStickRightLeft,
+			In::GamepadStickRightRight
 		}
 	};
 
-	const std::vector<ActionGroupID> USER_ACTION_GROUP_IDS =
+	const std::vector<ActionGroupId> USER_ACTION_GROUP_IDS =
 	{
-		ActionGroupID::General,
-		ActionGroupID::Vehicle,
-		ActionGroupID::Quick,
-		ActionGroupID::Menu
+		ActionGroupId::General,
+		ActionGroupId::Vehicle,
+		ActionGroupId::Quick,
+		ActionGroupId::Menu
 	};
 
-	const std::vector<ActionGroupID> RAW_ACTION_GROUP_IDS =
+	const std::vector<ActionGroupId> RAW_ACTION_GROUP_IDS =
 	{
-		ActionGroupID::Keyboard,
-		ActionGroupID::Mouse,
-		//ActionGroupID::Gamepad
+		ActionGroupId::Keyboard,
+		ActionGroupId::Mouse,
+		ActionGroupId::Gamepad
 	};
 
-	Action::Action(ActionID actionID)
+	Action::Action(ActionId actionId)
 	{
-		_id = actionID;
+		_id = actionId;
 	}
 
-	ActionID Action::GetID() const
+	ActionId Action::GetId() const
 	{
 		return _id;
 	}
@@ -133,7 +160,7 @@ namespace TEN::Input
 		return (_value != 0.0f && _timeActive >= delayGameFrames);
 	}
 
-	// NOTE: To avoid stutter on second pulse, ensure `initialDelaySec` is multiple of `delaySec`.
+	// NOTE: To avoid stutter on second pulse, ensure `initialDelaySec` is a multiple of `delaySec`.
 	bool Action::IsPulsed(float delaySec, float initialDelaySec) const
 	{
 		if (IsClicked())

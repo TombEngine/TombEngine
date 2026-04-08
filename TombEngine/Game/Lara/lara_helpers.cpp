@@ -1,8 +1,6 @@
 #include "framework.h"
 #include "Game/Lara/lara_helpers.h"
 
-#include <OISKeyboard.h>
-
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
@@ -492,14 +490,14 @@ void HandlePlayerLookAround(ItemInfo& item, bool invertXAxis)
 	if ((IsHeld(In::Forward) || IsHeld(In::Back)) &&
 		(player.Control.Look.Mode == LookMode::Free || player.Control.Look.Mode == LookMode::Vertical))
 	{
-		axisCoeff.x = AxisMap[AxisID::Move].y;
+		axisCoeff.x = GetMoveAxis().y;
 	}
 
 	// Determine Y axis coefficient.
 	if ((IsHeld(In::Left) || IsHeld(In::Right)) &&
 		(player.Control.Look.Mode == LookMode::Free || player.Control.Look.Mode == LookMode::Horizontal))
 	{
-		axisCoeff.y = AxisMap[AxisID::Move].x;
+		axisCoeff.y = GetMoveAxis().x;
 	}
 
 	// Determine turn rate base values.
@@ -601,7 +599,7 @@ void HandlePlayerLean(ItemInfo* item, CollisionInfo* coll, short baseRate, short
 	if (!item->Animation.Velocity.z)
 		return;
 
-	float axisCoeff = AxisMap[AxisID::Move].x;
+	float axisCoeff = GetMoveAxis().x;
 	int sign = copysign(1, axisCoeff);
 	short maxAngleNormalized = maxAngle * axisCoeff;
 
@@ -622,7 +620,7 @@ void HandlePlayerCrawlFlex(ItemInfo& item)
 	if (item.Animation.Velocity.z == 0.0f)
 		return;
 
-	float axisCoeff = AxisMap[AxisID::Move].x;
+	float axisCoeff = GetMoveAxis().x;
 	int sign = copysign(1, axisCoeff);
 	short maxAngleNormalized = FLEX_ANGLE_MAX * axisCoeff;
 
@@ -803,12 +801,11 @@ void HandlePlayerFlyCheat(ItemInfo& item)
 	if (!g_GameFlow->IsFlyCheatEnabled())
 		return;
 
-	static bool dbFlyCheat = true;
-	if (KeyMap[OIS::KeyCode::KC_O] && dbFlyCheat)
+	if (IsClicked(In::O))
 	{
 		if (player.Context.Vehicle == NO_VALUE)
 		{
-			if (KeyMap[OIS::KeyCode::KC_LSHIFT] || KeyMap[OIS::KeyCode::KC_RSHIFT])
+			if (IsClicked(In::Shift))
 				GivePlayerItemsCheat(item);
 
 			GivePlayerWeaponsCheat(item);
@@ -835,7 +832,6 @@ void HandlePlayerFlyCheat(ItemInfo& item)
 			SayNo();
 		}
 	}
-	dbFlyCheat = !KeyMap[OIS::KeyCode::KC_O];
 }
 
 void HandlePlayerExtraAnim(ItemInfo& item)
@@ -1274,7 +1270,7 @@ void ModulateLaraTurnRateY(ItemInfo* item, short accelRate, short minTurnRate, s
 {
 	auto* lara = GetLaraInfo(item);
 
-	float axisCoeff = AxisMap[AxisID::Move].x;
+	float axisCoeff = GetMoveAxis().x;
 	if (item->Animation.IsAirborne)
 	{
 		int sign = std::copysign(1, axisCoeff);

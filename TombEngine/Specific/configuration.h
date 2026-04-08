@@ -54,9 +54,11 @@ struct GameConfiguration
 	bool EnableThumbstickCamera			= false;
 
 	// Input
-	int					  MouseSensitivity		= DEFAULT_MOUSE_SENSITIVITY;
+
+	int                   MouseSensitivity      = DEFAULT_MOUSE_SENSITIVITY;
 	MenuOptionLoopingMode MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
-	BindingProfile		  Bindings				= {};
+	BindingProfile        KeyboardMouseBindings = {};
+	BindingProfile        GamepadBindings       = {};
 
 	std::vector<Vector2i>	SupportedScreenResolutions	= {};
 	std::string				AdapterName					= {};

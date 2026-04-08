@@ -2,7 +2,7 @@
 
 namespace TEN::Input
 {
-	typedef enum class ActionID
+	typedef enum class ActionId
 	{
 		// General
 
@@ -73,21 +73,42 @@ namespace TEN::Input
 		MouseClickRight,
 		MouseScrollUp,
 		MouseScrollDown,
-		// TODO: Another time. There's some complexity involved. -- Sezz 2025.03.05
-		/*MouseScrollLeft,
-		MouseScrollRight,
 		MouseUp,
 		MouseDown,
 		MouseLeft,
-		MouseRight,*/
+		MouseRight,
 
-		// TODO: Can add raw gamepad actions too, however, we MUST ditch OIS in favour of SDL for it.
-		// It's a FAR better library which can also be used for window management. -- Sezz 2025.05.03
+		// Gamepad
+
+		GamepadNorth,
+		GamepadSouth,
+		GamepadEast,
+		GamepadWest,
+		GamepadStart,
+		GamepadSelect,
+		GamepadShoulderLeft,
+		GamepadShoulderRight,
+		GamepadTriggerLeft,
+		GamepadTriggerRight,
+		GamepadDpadUp,
+		GamepadDpadDown,
+		GamepadDpadLeft,
+		GamepadDpadRight,
+		GamepadStickLeftIn,
+		GamepadStickLeftUp,
+		GamepadStickLeftDown,
+		GamepadStickLeftLeft,
+		GamepadStickLeftRight,
+		GamepadStickRightIn,
+		GamepadStickRightUp,
+		GamepadStickRightDown,
+		GamepadStickRightLeft,
+		GamepadStickRightRight,
 
 		Count
 	} In;
 
-	enum class ActionGroupID
+	enum class ActionGroupId
 	{
 		General,
 		Vehicle,
@@ -96,36 +117,35 @@ namespace TEN::Input
 
 		Keyboard,
 		Mouse,
-		//Gamepad
+		Gamepad
 	};
 
-	extern const std::vector<std::vector<ActionID>> ACTION_ID_GROUPS;
-	extern const std::vector<ActionGroupID>			USER_ACTION_GROUP_IDS;
-	extern const std::vector<ActionGroupID>			RAW_ACTION_GROUP_IDS;
-
+	extern const std::vector<std::vector<ActionId>> ACTION_ID_GROUPS; // Index = `ActionGroupId`.
+	extern const std::vector<ActionGroupId>         USER_ACTION_GROUP_IDS;
+	extern const std::vector<ActionGroupId>         RAW_ACTION_GROUP_IDS;
 
 	class Action
 	{
 	private:
 		// Fields
 
-		ActionID	 _id 			 = In::Forward;
-		float		 _value			 = 0.0f;
-		float		 _prevValue		 = 0.0f;
-		unsigned int _timeActive	 = 0;			// Time in game frames.
-		unsigned int _prevTimeActive = 0;			// Time in game frames.
-		unsigned int _timeInactive	 = 0;			// Time in game frames.
+		ActionId     _id             = In::Forward;
+		float        _value          = 0.0f;
+		float        _prevValue      = 0.0f;
+		unsigned int _timeActive     = 0; // Time in game frames.
+		unsigned int _prevTimeActive = 0; // Time in game frames.
+		unsigned int _timeInactive   = 0; // Time in game frames.
 
 	public:
 		// Constructors
 
 		Action() = default;
-		Action(ActionID actionID);
+		Action(ActionId actionId);
 
 		// Getters
 
-		ActionID	 GetID() const;
-		float		 GetValue() const;
+		ActionId     GetId() const;
+		float        GetValue() const;
 		unsigned int GetTimeActive() const;
 		unsigned int GetTimeInactive() const;
 		

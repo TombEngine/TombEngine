@@ -9,6 +9,7 @@
 #include "Scripting/Internal/TEN/Input/AxisIDs.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Specific/Input/Input.h"
+using namespace TEN::Input;
 
 using namespace TEN::Input;
 
@@ -18,11 +19,11 @@ namespace TEN::Scripting::Input
 	// @tentable Input
 	// @pragma nostrip
 
-	static bool IsValidAction(int actionID)
+	static bool IsValidAction(int actionId)
 	{
-		if (actionID > (int)ActionID::Count)
+		if (actionId > (int)ActionId::Count)
 		{
-			ScriptAssertF(false, "Input action {} does not exist.", actionID);
+			ScriptAssertF(false, "Input action {} does not exist.", actionId);
 			return false;
 		}
 
@@ -34,23 +35,23 @@ namespace TEN::Scripting::Input
 	// but may return arbitrary values in the range 0 to 1 for analog key mappings
 	// (e.g. gamepad sticks, gamepad triggers, or mouse axes).
 	// @function GetAnalogKeyValue
-	// @tparam Input.ActionID actionID Action ID to query.
+	// @tparam Input.ActionID actionId Action ID to query.
 	// @treturn float Analog value in the range [0, 1].
-	static float GetAnalogKeyValue(int actionID)
+	static float GetAnalogKeyValue(int actionId)
 	{
-		if (!IsValidAction(actionID))
+		if (!IsValidAction(actionId))
 			return 0.0f;
 
-		return GetActionValue((ActionID)actionID);
+		return GetActionValue((ActionId)actionId);
 	}
 
 	/// Get the analog value of an axis.
 	// @function GetAnalogAxisValue
 	// @tparam Input.AxisID axis Axis ID to fetch.
 	// @treturn Vec2 Relative analog axis value with components in the range [-1, 1].
-	static Vec2 GetAnalogAxisValue(AxisID axisID)
+	static Vec2 GetAnalogAxisValue(AnalogAxisId axisID)
 	{
-		return Vec2(AxisMap[axisID]);
+		return Vec2(g_Input.GetAnalogAxis(axisID));
 	}
 
 	/// Get the display position of the cursor in percent.
@@ -68,81 +69,82 @@ namespace TEN::Scripting::Input
 
 	/// Check if an action key is being hit.
 	// @function IsKeyHit
-	// @tparam Input.ActionID actionID Action ID to check.
-	static bool IsKeyHit(int actionID)
+	// @tparam Input.ActionID actionId Action ID to check.
+	static bool IsKeyHit(int actionId)
 	{
-		if (!IsValidAction(actionID))
+		if (!IsValidAction(actionId))
 			return false;
 
-		return IsClicked((ActionID)actionID);
+		return IsClicked((ActionId)actionId);
 	}
 
 	/// Check if an action key is being held.
 	// @function IsKeyHeld
-	// @tparam Input.ActionID actionID Action ID to check.
+	// @tparam Input.ActionID actionId Action ID to check.
 	// @tparam[opt=0] float delaySec Delay time in seconds before a hold can be registered.
-	static bool IsKeyHeld(int actionID, TypeOrNil<float> delaySec)
+	static bool IsKeyHeld(int actionId, TypeOrNil<float> delaySec)
 	{
-		if (!IsValidAction(actionID))
+		if (!IsValidAction(actionId))
 			return false;
 
-		return IsHeld((ActionID)actionID, ValueOr<float>(delaySec, 0.0f));
+		return IsHeld((ActionId)actionId, ValueOr<float>(delaySec, 0.0f));
 	}
 
 	/// Check if an action key is being pulsed.
 	// Note that to avoid a stutter on the second pulse, `initialDelaySec` must be a multiple of `delaySec`.
 	// @function IsKeyPulsed
-	// @tparam Input.ActionID actionID Action ID to check.
+	// @tparam Input.ActionID actionId Action ID to check.
 	// @tparam float delaySec Delay time in seconds between pulses.
 	// @tparam[opt=0] float initialDelaySec Initial delay time in seconds on the first pulse.
-	static bool IsKeyPulsed(int actionID, float delaySec, TypeOrNil<float> initialDelaySec)
+	static bool IsKeyPulsed(int actionId, float delaySec, TypeOrNil<float> initialDelaySec)
 	{
-		if (!IsValidAction(actionID))
+		if (!IsValidAction(actionId))
 			return false;
 
-		return IsPulsed((ActionID)actionID, delaySec, ValueOr<float>(initialDelaySec, 0.0f));
+		return IsPulsed((ActionId)actionId, delaySec, ValueOr<float>(initialDelaySec, 0.0f));
 	}
 
 	/// Check if an action key is being released.
 	// @function IsKeyReleased
-	// @tparam Input.ActionID actionID Action ID to check.
+	// @tparam Input.ActionID actionId Action ID to check.
 	// @tparam[opt=infinity] float maxDelaySec Max delay time in seconds between hit and release within which a release can be registered.
-	static bool IsKeyReleased(int actionID, TypeOrNil<float> maxDelaySec)
+	static bool IsKeyReleased(int actionId, TypeOrNil<float> maxDelaySec)
 	{
-		if (!IsValidAction(actionID))
+		if (!IsValidAction(actionId))
 			return false;
 
-		return IsReleased((ActionID)actionID, ValueOr<float>(maxDelaySec, FLT_MAX));
+		return IsReleased((ActionId)actionId, ValueOr<float>(maxDelaySec, FLT_MAX));
 	}
 
 	/// Simulate an action key push.
 	// @function PushKey
-	// @tparam Input.ActionID actionID Action ID to push.
-	static void PushKey(int actionID)
+	// @tparam Input.ActionID actionId Action ID to push.
+	static void PushKey(int actionId)
 	{
-		if (!IsValidAction(actionID))
+		if (!IsValidAction(actionId))
 			return;
 
-		ActionQueueMap[(ActionID)actionID] = ActionQueueState::Update;
+		g_Input.SetActionQueue((ActionId)actionId, ActionQueueState::Update);
 	}
 
 	/// Clear an action key.
 	// @function ClearKey
-	// @tparam Input.ActionID actionID Action ID to clear.
-	static void ClearKey(int actionID)
+	// @tparam Input.ActionID actionId Action ID to clear.
+	static void ClearKey(int actionId)
 	{
-		if (!IsValidAction(actionID))
+		if (!IsValidAction(actionId))
 			return;
 
-		ActionQueueMap[(ActionID)actionID] = ActionQueueState::Clear;
+		g_Input.SetActionQueue((ActionId)actionId, ActionQueueState::Clear);
 	}
 
 	/// Clear all action keys.
 	// @function ClearAllKeys
 	static void ClearAllKeys()
 	{
-		for (auto& [keyActionID, queue] : ActionQueueMap)
-			queue = ActionQueueState::Clear;
+		// @inputme
+		//for (auto& [keyActionID, queue] : ActionQueueMap)
+		//	queue = ActionQueueState::Clear;
 	}
 
 	/// Vibrate the game controller if the function is available and the setting is on.
@@ -151,7 +153,7 @@ namespace TEN::Scripting::Input
 	// @tparam[opt=0.3] float time Vibration time in seconds.
 	static void Vibrate(float strength, sol::optional<float> time)
 	{
-		Rumble(strength, time.value_or(0.3f), RumbleMode::Both);
+		Rumble(strength, time.value_or(0.3f), RumbleMode::LowAndHigh);
 	}
 
 	/// Returns the name of the key that has been assigned to specified ActionID.
@@ -160,7 +162,7 @@ namespace TEN::Scripting::Input
 	// @treturn string Name of keyboard key that has been assigned to the ActionID.
 	static std::string GetActionBinding(int actionID)
 	{
-		return g_Bindings.GetBoundKeyName((ActionID)actionID);
+		return g_Bindings.GetBoundKeyName((ActionId)actionID);
 	}
 
 	/// Returns the time for which a key has been held.
@@ -172,7 +174,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return false;
 
-		return GetActionTimeActive((ActionID)actionID);
+		return GetActionTimeActive((ActionId)actionID);
 	}
 
 	void Register(sol::state* state, sol::table& parent)
@@ -204,6 +206,6 @@ namespace TEN::Scripting::Input
 
 		auto handler = LuaHandler(state);
 		handler.MakeReadOnlyTable(table, ScriptReserved_InputActionID, ACTION_IDS);
-		handler.MakeReadOnlyTable(table, ScriptReserved_InputAxisID, AXIS_IDS);
+		handler.MakeReadOnlyTable(table, ScriptReserved_InputAxisID, ANALOG_AXIS_IDS);
 	}
 }

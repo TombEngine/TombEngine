@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Game/Gui.h"
 
-#include <OISKeyboard.h>
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
@@ -125,7 +124,7 @@ namespace TEN::Gui
 		STRING_ACTIONS_LOAD
 	};
 
-	bool GuiController::GuiIsPulsed(ActionID actionID) const
+	bool GuiController::GuiIsPulsed(ActionId actionID) const
 	{
 		constexpr auto DELAY		 = 0.1f;
 		constexpr auto INITIAL_DELAY = 0.4f;
@@ -135,7 +134,7 @@ namespace TEN::Gui
 			return false;
 
 		// Pulse only directional inputs.
-		auto oppositeAction = std::optional<ActionID>(std::nullopt);
+		auto oppositeAction = std::optional<ActionId>(std::nullopt);
 		switch (actionID)
 		{
 		case In::Forward:
@@ -759,7 +758,7 @@ namespace TEN::Gui
 					else
 					{
 						g_Renderer.PrepareScene(); // Just for updating blink time.
-						UpdateInputActions();
+						g_Input.Update(*g_Platform->GetSDL3Window(), Vector2::Zero);
 					}
 
 					if (CurrentSettings.IgnoreInput)
@@ -769,17 +768,17 @@ namespace TEN::Gui
 					}
 					else
 					{
-						int selectedKeyID = 0;
-						for (selectedKeyID = 0; selectedKeyID < KEY_COUNT; selectedKeyID++)
+						auto selectedEventId = std::optional<EventId>(std::nullopt);
+						for (auto eventId : BINDABLE_EVENT_IDS)
 						{
-							if (KeyMap[selectedKeyID])
+							if (g_Input.GetRawEventState(eventId))
+							{
+								selectedEventId = eventId;
 								break;
+							}
 						}
 
-						if (selectedKeyID == KEY_COUNT)
-							selectedKeyID = 0;
-
-						if (selectedKeyID != OIS::KC_UNASSIGNED && !GetKeyName(selectedKeyID).empty())
+						if (selectedEventId.has_value() && !GetEventName(*selectedEventId).empty())
 						{
 							unsigned int baseIndex = 0;
 							switch (MenuToDisplay)
@@ -800,8 +799,8 @@ namespace TEN::Gui
 								break;
 							}
 
-							g_Bindings.SetKeyBinding(BindingProfileID::Custom, ActionID(baseIndex + SelectedOption), selectedKeyID);
-							DefaultConflict();
+							// TODO: Re-enable key rebinding with new input system.
+							//g_Bindings.SetEventBinding(BindingProfileId::CustomKeyboardMouse, ActionId(baseIndex + SelectedOption), *selectedEventId);
 
 							CurrentSettings.NewKeyWaitTimer = 0;
 							CurrentSettings.IgnoreInput = true;
@@ -893,13 +892,15 @@ namespace TEN::Gui
 
 				if (SelectedOption == (OptionCount - 1) || GuiIsDeselected()) // Apply.
 				{
-					CurrentSettings.Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
-					g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+					// TODO: Restore binding save/load with new input system.
+					//CurrentSettings.Configuration.KeyboardMouseBindings = g_Bindings.GetProfile(BindingProfileId::CustomKeyboardMouse);
+					//g_Configuration.KeyboardMouseBindings = g_Bindings.GetProfile(BindingProfileId::CustomKeyboardMouse);
 					SaveConfiguration();
 				}
 				else if (SelectedOption == OptionCount) // Cancel.
 				{
-					g_Bindings.SetBindingProfile(BindingProfileID::Custom, CurrentSettings.Configuration.Bindings);
+					// TODO: Restore binding revert with new input system.
+					//g_Bindings.SetProfile(BindingProfileId::CustomKeyboardMouse, CurrentSettings.Configuration.KeyboardMouseBindings);
 				}
 				else if (SelectedOption == (OptionCount - 2)) // Defaults.
 				{
@@ -1189,7 +1190,7 @@ namespace TEN::Gui
 		static const int numOptionsOptions	  = 2;
 
 		TimeInMenu++;
-		UpdateInputActions();
+		g_Input.Update(*g_Platform->GetSDL3Window(), Vector2::Zero);
 
 		switch (MenuToDisplay)
 		{
@@ -2227,7 +2228,7 @@ namespace TEN::Gui
 				{
 					// HACK.
 					ClearAllActions();
-					ActionMap[In::Flare].Update(1.0f);
+					//ActionMap[In::Flare].Update(1.0f); // TODO: Re-enable with new input system.
 
 					HandleWeapon(item);
 					ClearAllActions();
@@ -3319,7 +3320,7 @@ namespace TEN::Gui
 				SaveGame::Statistics.Game.TimeTaken++;
 				SaveGame::Statistics.Level.TimeTaken++;
 
-				UpdateInputActions();
+				g_Input.Update(*g_Platform->GetSDL3Window(), Vector2::Zero);
 
 				if (GuiIsDeselected() || IsClicked(In::Inventory))
 					exitLoop = true;

@@ -20,8 +20,8 @@
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
+#include "Specific/Input/Action.h"
 #include "Specific/Input/Input.h"
-#include "Specific/Input/InputAction.h"
 #include "Specific/level.h"
 
 using namespace TEN::Gui;
@@ -365,8 +365,8 @@ int LaraObject::GetAmmoType(TypeOrNil<LaraWeaponType> weaponType) const
 	const auto& player = GetLaraInfo(*_moveable);
 
 	auto weapon = ValueOr<LaraWeaponType>(weaponType, player.Control.Weapon.GunType);
-	auto ammoType = std::optional<PlayerAmmoType>(std::nullopt);
 
+	auto ammoType = std::optional<PlayerAmmoType>(std::nullopt);
 	switch (weapon)
 	{
 		case::LaraWeaponType::Pistol:
@@ -510,83 +510,64 @@ int LaraObject::GetAmmoCount() const
 	return (ammo.HasInfinite()) ? -1 : (int)ammo.GetCount();
 }
 
-/// Get player weapon mode type.
+/// Get player HK weapon mode type.
 // @function LaraObject:GetWeaponMode
-// @tparam[opt] Objects.WeaponType weaponType Weapon to retrieve weapon mode for. If omitted, the mode of the currently equipped weapon is returned. Only works for HK weapon currently.
-// @treturn Objects.WeaponMode Player weapon mode type.
-int LaraObject::GetWeaponMode(TypeOrNil<LaraWeaponType> weaponType) const
+// @treturn Objects.WeaponMode Player HK weapon mode type.
+int LaraObject::GetWeaponMode() const
 {
 	const auto& player = GetLaraInfo(*_moveable);
 
-	auto weapon = ValueOr<LaraWeaponType>(weaponType, player.Control.Weapon.GunType);
 	auto weaponMode = std::optional<PlayerWeaponMode>(std::nullopt);
+	auto weapon = player.Weapons[(int)LaraWeaponType::HK].WeaponMode;
 
 	switch (weapon)
 	{
-	case::LaraWeaponType::HK:
-		if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_1)
-		{
-			weaponMode = PlayerWeaponMode::Rapid;
-			break;
-		}
-		else if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_2)
-		{
-			weaponMode = PlayerWeaponMode::Burst;
-			break;
-		}
-		else if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_3)
-		{
-			weaponMode = PlayerWeaponMode::Sniper;
-			break;
-		}
+	case::LaraWeaponTypeCarried::WTYPE_AMMO_1:
+	{
+		weaponMode = PlayerWeaponMode::Rapid;
 		break;
-
+	}
+	case::LaraWeaponTypeCarried::WTYPE_AMMO_2:
+	{
+		weaponMode = PlayerWeaponMode::Burst;
+		break;
+	}
 	default:
+		weaponMode = PlayerWeaponMode::Sniper;
 		break;
 	}
 
 	if (!weaponMode.has_value())
 	{
-		TENLog("GetWeaponMode: no weapon mode is available for specified weapon.", LogLevel::Warning, LogConfig::All);
+		TENLog("GetWeaponMode() error; no weapon mode type.", LogLevel::Warning, LogConfig::All);
 		weaponMode = PlayerWeaponMode::None;
 	}
 
 	return static_cast<int>(weaponMode.value());
 }
 
-/// Set player weapon mode type.
+/// Set player HK weapon mode type.
 // @function LaraObject:SetWeaponMode
-// @tparam Objects.WeaponType weaponType Weapon to set weapon mode for. Only works for HK weapon currently.
-// @tparam Objects.WeaponMode weaponMode Player weapon mode type.
-void LaraObject::SetWeaponMode(LaraWeaponType weaponType, PlayerWeaponMode weaponMode)
+// @tparam Objects.WeaponMode weaponMode Player HK weapon mode type.
+void LaraObject::SetWeaponMode(PlayerWeaponMode weaponMode)
 {
 	auto& player = GetLaraInfo(*_moveable);
 
-	switch (weaponType)
+	switch (weaponMode)
 	{
-	case::LaraWeaponType::HK:
-		switch (weaponMode)
-		{
-		case PlayerWeaponMode::Rapid:
-			player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_1;
-			break;
+	case PlayerWeaponMode::Rapid:
+		player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_1;
+		break;
 
-		case PlayerWeaponMode::Burst:
-			player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_2;
-			break;
+	case PlayerWeaponMode::Burst:
+		player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_2;
+		break;
 
-		case PlayerWeaponMode::Sniper:
-			player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_3;
-			break;
-
-		default:
-			TENLog("SetWeaponMode: unsupported weapon mode for HK weapon type.", LogLevel::Warning, LogConfig::All);
-			break;
-		}
+	case PlayerWeaponMode::Sniper:
+		player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_3;
 		break;
 
 	default:
-		TENLog("SetWeaponMode: no weapon mode supported for weapon type.", LogLevel::Warning, LogConfig::All);
 		break;
 	}
 }
@@ -717,7 +698,7 @@ void LaraObject::SetWaterSkinStatus(int amount, TypeOrNil<bool> flag)
 //	   Rotation(-10, -30, -10), Rotation(10, 30, 10), TEN.Input.ActionID.ACTION)
 void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 						  const TypeOrNil<Vec3>& offset, const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
-						  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<ActionID> actionID,
+						  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<ActionId> actionID,
 							TypeOrNil<GAME_OBJECT_ID> objectID, const TypeOrNil<InteractionType> interactionType) const
 {
 	auto convertedOffset = ValueOr<Vec3>(offset, Vec3(0.0f, 0.0f, BLOCK(0.305f))).ToVector3i();
@@ -726,7 +707,7 @@ void LaraObject::Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 	auto convertedRotConstraintMin = ValueOr<Rotation>(rotConstraintMin, Rotation(-10.0f, -40.0f, -10.0f)).ToEulerAngles();
 	auto convertedRotConstraintMax = ValueOr<Rotation>(rotConstraintMax, Rotation(10.0f, 40.0f, 10.0f)).ToEulerAngles();
 	int convertedAnimNumber = ValueOr<int>(animNumber, LA_BUTTON_SMALL_PUSH);
-	auto convertedActionID = ValueOr<ActionID>(actionID, In::Action);
+	auto convertedActionID = ValueOr<ActionId>(actionID, In::Action);
 	auto convertedObjectID = ValueOr<GAME_OBJECT_ID>(objectID, ID_NO_OBJECT);
 	auto convertedIcon = ValueOr<InteractionType>(interactionType, InteractionType::Undefined);
 

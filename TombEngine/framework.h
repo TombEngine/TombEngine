@@ -62,14 +62,6 @@
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
-// OIS
-#include <OISException.h>
-#include <OISForceFeedback.h>
-#include <OISInputManager.h>
-#include <OISJoyStick.h>
-#include <OISKeyboard.h>
-#include <OISMouse.h>
-
 // SDL3
 #include <SDL3/SDL.h>
 

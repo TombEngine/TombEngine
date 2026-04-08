@@ -1,18 +1,18 @@
 #pragma once
 
-#include "Specific/Input/InputAction.h"
+#include "Specific/Input/Action.h"
 
 using namespace TEN::Input;
 
 namespace TEN::Scripting::Input
 {
 	/// Constants for action key IDs.
-	// Contains mapped action IDs, raw keyboard input IDs, and raw mouse input IDs.
+	// Contains mapped game key IDs, raw keyboard key IDs, raw mouse key IDs, and raw gamepad key IDs.
 	// To be used with @{Input.IsKeyHit}, @{Input.IsKeyHeld}, and other similar functions.
 	// @enum Input.ActionID
 	// @pragma nostrip
 
-	static const auto ACTION_IDS = std::unordered_map<std::string, ActionID>
+	static const auto ACTION_IDS = std::unordered_map<std::string, ActionId>
 	{
 		/// Forward action.
 		// @mem FORWARD
@@ -70,27 +70,27 @@ namespace TEN::Scripting::Input
 		// @mem LOOK
 		{ "LOOK", In::Look },
 
-		/// Accelerate action.
+		/// Vehicle accelerate action.
 		// @mem ACCELERATE
 		{ "ACCELERATE", In::Accelerate },
 
-		/// Reverse action.
+		/// Vehicle reverse action.
 		// @mem REVERSE
 		{ "REVERSE", In::Reverse },
 
-		/// Faster action.
+		/// Vehicle faster action.
 		// @mem FASTER
 		{ "FASTER", In::Faster },
 
-		/// Slower action.
+		/// Vehicle slower action.
 		// @mem SLOWER
 		{ "SLOWER", In::Slower },
 
-		/// Brake action.
+		/// Vehicle brake action.
 		// @mem BRAKE
 		{ "BRAKE", In::Brake },
 
-		/// Fire action.
+		/// Vehicle fire action.
 		// @mem FIRE
 		{ "FIRE", In::Fire },
 
@@ -440,6 +440,118 @@ namespace TEN::Scripting::Input
 
 		/// Mouse scroll down.
 		// @mem MOUSE_SCROLL_DOWN
-		{ "MOUSE_SCROLL_DOWN", In::MouseScrollDown }
+		{ "MOUSE_SCROLL_DOWN", In::MouseScrollDown },
+
+		/// Mouse move up.
+		// @mem MOUSE_UP
+		{ "MOUSE_UP", In::MouseUp },
+
+		/// Mouse move down.
+		// @mem MOUSE_DOWN
+		{ "MOUSE_DOWN", In::MouseDown },
+
+		/// Mouse move left.
+		// @mem MOUSE_LEFT
+		{ "MOUSE_LEFT", In::MouseLeft },
+
+		/// Mouse move right.
+		// @mem MOUSE_RIGHT
+		{ "MOUSE_RIGHT", In::MouseRight },
+
+		/// Gamepad north button.
+		// @mem GAMEPAD_NORTH
+		{ "GAMEPAD_NORTH", In::GamepadNorth },
+
+		/// Gamepad south button.
+		// @mem GAMEPAD_SOUTH
+		{ "GAMEPAD_SOUTH", In::GamepadSouth },
+
+		/// Gamepad east button.
+		// @mem GAMEPAD_EAST
+		{ "GAMEPAD_EAST", In::GamepadEast },
+
+		/// Gamepad west button.
+		// @mem GAMEPAD_WEST
+		{ "GAMEPAD_WEST", In::GamepadWest },
+
+		/// Gamepad start button.
+		// @mem GAMEPAD_START
+		{ "GAMEPAD_START", In::GamepadStart },
+
+		/// Gamepad select button.
+		// @mem GAMEPAD_SELECT
+		{ "GAMEPAD_SELECT", In::GamepadSelect },
+
+		/// Gamepad left shoulder button.
+		// @mem GAMEPAD_SHOULDER_LEFT
+		{ "GAMEPAD_SHOULDER_LEFT", In::GamepadShoulderLeft },
+
+		/// Gamepad right shoulder button.
+		// @mem GAMEPAD_SHOULDER_RIGHT
+		{ "GAMEPAD_SHOULDER_RIGHT", In::GamepadShoulderRight },
+
+		/// Gamepad left triggeer button.
+		// @mem GAMEPAD_TRIGGER_LEFT
+		{ "GAMEPAD_TRIGGER_LEFT", In::GamepadTriggerLeft },
+
+		/// Gamepad right triggeer button.
+		// @mem GAMEPAD_TRIGGER_RIGHT
+		{ "GAMEPAD_TRIGGER_RIGHT", In::GamepadTriggerRight },
+
+		/// Gamepad D-Pad up button.
+		// @mem GAMEPAD_DPAD_UP
+		{ "GAMEPAD_DPAD_UP", In::GamepadDpadUp },
+
+		/// Gamepad D-Pad down button.
+		// @mem GAMEPAD_DPAD_DOWN
+		{ "GAMEPAD_DPAD_DOWN", In::GamepadDpadDown },
+
+		/// Gamepad D-Pad left button.
+		// @mem GAMEPAD_DPAD_LEFT
+		{ "GAMEPAD_DPAD_LEFT", In::GamepadDpadLeft },
+
+		/// Gamepad D-Pad right button.
+		// @mem GAMEPAD_DPAD_RIGHT
+		{ "GAMEPAD_DPAD_RIGHT", In::GamepadDpadRight },
+
+		/// Gamepad left analog stick button.
+		// @mem GAMEPAD_STICK_LEFT_IN
+		{ "GAMEPAD_STICK_LEFT_IN", In::GamepadStickLeftIn },
+
+		/// Gamepad left analog stick tilt up.
+		// @mem GAMEPAD_STICK_LEFT_UP
+		{ "GAMEPAD_STICK_LEFT_UP", In::GamepadStickLeftUp },
+
+		/// Gamepad left analog stick tilt down.
+		// @mem GAMEPAD_STICK_LEFT_DOWN
+		{ "GAMEPAD_STICK_LEFT_DOWN", In::GamepadStickLeftDown },
+
+		/// Gamepad left analog stick tilt left.
+		// @mem GAMEPAD_STICK_LEFT_LEFT
+		{ "GAMEPAD_STICK_LEFT_LEFT", In::GamepadStickLeftLeft },
+
+		/// Gamepad left analog stick tilt right.
+		// @mem GAMEPAD_STICK_LEFT_RIGHT
+		{ "GAMEPAD_STICK_LEFT_RIGHT", In::GamepadStickLeftRight },
+
+		/// Gamepad right analog stick button.
+		// @mem GAMEPAD_STICK_RIGHT_IN
+		{ "GAMEPAD_STICK_RIGHT_IN", In::GamepadStickRightIn },
+
+		/// Gamepad right analog stick tilt up.
+		// @mem GAMEPAD_STICK_LEFT_UP
+		{ "GAMEPAD_STICK_RIGHT_UP", In::GamepadStickRightUp },
+
+		/// Gamepad right analog stick tilt down.
+		// @mem GAMEPAD_STICK_RIGHT_DOWN
+		{ "GAMEPAD_STICK_RIGHT_DOWN", In::GamepadStickRightDown },
+
+		/// Gamepad right analog stick tilt left.
+		// @mem GAMEPAD_STICK_RIGHT_LEFT
+		{ "GAMEPAD_STICK_RIGHT_LEFT", In::GamepadStickRightLeft },
+
+		/// Gamepad right analog stick tilt right.
+		// @mem GAMEPAD_STICK_RIGHT_RIGHT
+		{ "GAMEPAD_STICK_RIGHT_RIGHT", In::GamepadStickRightRight }
 	};
 }

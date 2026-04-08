@@ -4,7 +4,7 @@
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
-#include "Game/control/los.h"
+#include "Game/control/Los.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/weather.h"
@@ -111,8 +111,8 @@ void DoThumbstickCamera()
 
 	// Only read axis values if overall magnitude is above threshold.
 	auto axisCoeff = Vector2::Zero;
-	if (AxisMap[AxisID::Camera].Length() > MANUAL_ROTATION_THRESHOLD)
-		axisCoeff = AxisMap[AxisID::Camera] * MANUAL_ROTATION_SPEED;
+	if (GetCameraAxis().Length() > MANUAL_ROTATION_THRESHOLD)
+		axisCoeff = GetCameraAxis() * MANUAL_ROTATION_SPEED;
 	
 	// Accumulate extra angles to gradually rotate camera around Lara over time.
 	Camera.extraAngle += ANGLE(axisCoeff.x);
@@ -1535,7 +1535,7 @@ void ItemsCollideCamera()
 		{
 			DrawDebugBox(
 				bounds.ToBoundingOrientedBox(item->Pose),
-				Vector4(1.0f, 0.0f, 0.0f, 1.0f), RendererDebugPage::CollisionStats);
+				Color(1.0f, 0.0f, 0.0f, 1.0f), RendererDebugPage::CollisionStats);
 		}
 	}
 
@@ -1561,7 +1561,7 @@ void ItemsCollideCamera()
 		{
 			DrawDebugBox(
 				bounds.ToBoundingOrientedBox(mesh->Pose),
-				Vector4(1.0f, 0.0f, 0.0f, 1.0f), RendererDebugPage::CollisionStats);
+				Color(1.0f, 0.0f, 0.0f, 1.0f), RendererDebugPage::CollisionStats);
 		}
 	}
 

@@ -105,9 +105,11 @@ void InitDefaultConfiguration()
 	g_Configuration.MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
 
 	g_Configuration.SupportedScreenResolutions = GetAllSupportedScreenResolutions();
-	g_Configuration.AdapterName = g_Renderer.GetDefaultAdapterName();
+	g_Configuration.AdapterName = {};
 
 	g_Configuration.SupportedSoundDevices = Sound_ListDevices();
+
+	g_Configuration.KeyboardMouseBindings = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
 }
 
 bool LoadConfiguration()
@@ -147,7 +149,7 @@ bool LoadConfiguration()
 
 		if (section == "Graphics")
 		{
-			if (key == "ScreenWidth")             
+			if (key == "ScreenWidth")
 			{
 				g_Configuration.ScreenWidth = ToInt(val, g_Configuration.ScreenWidth);
 			}
@@ -260,26 +262,26 @@ bool LoadConfiguration()
 			{
 				foundInput = true;
 
-				int actionId = ToInt(key.substr(5), NO_VALUE);
-				int keyId = ToInt(val, NO_VALUE);
-				if (actionId >= 0 && keyId >= 0)
-				{
-					g_Configuration.Bindings.insert({ (ActionID)actionId, keyId });
-					g_Bindings.SetKeyBinding(BindingProfileID::Custom, (ActionID)actionId, keyId);
-				}
+				// @inputme
+				//int actionId = ToInt(key.substr(5), NO_VALUE);
+				//int eventId = ToInt(val, NO_VALUE);
+				//if (actionId >= 0 && eventId >= 0)
+				//{
+				//	g_Configuration.KeyboardMouseBindings.insert({ (ActionId)actionId, eventId });
+				//	g_Bindings.SetEventBinding(BindingProfileId::Custom, (ActionId)actionId, eventId);
+				//}
 			}
 		}
 	}
 
-	if (!foundInput)
-		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Default);
+	// @inputme
+	//if (!foundInput)
+	g_Configuration.KeyboardMouseBindings = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;// g_Bindings.GetProfile(BindingProfileId::CustomKeyboardMouse);
 
 	g_Configuration.EnableSound = g_Configuration.SoundDevice > 0;
 
 	SetVolumeTracks(g_Configuration.MusicVolume);
 	SetVolumeFX(g_Configuration.SfxVolume);
-
-	DefaultConflict();
 
 	return true;
 }
@@ -322,14 +324,15 @@ bool SaveConfiguration()
 	ss << "MouseSensitivity=" << g_Configuration.MouseSensitivity << "\n";
 	ss << "MenuOptionLoopingMode=" << (int)g_Configuration.MenuOptionLoopingMode << "\n";
 
-	if (g_Configuration.Bindings.empty())
-		g_Configuration.Bindings = DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
+	// @inputme
+	//if (g_Configuration.KeyboardMouseBindings.empty())
+		g_Configuration.KeyboardMouseBindings = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
 
-	for (const auto& kv : g_Configuration.Bindings)
-	{
-		ss << "bind." << (int)kv.first << "=" << (int)kv.second << "\n";
-	}
-	ss << "\n";
+	//for (const auto& kv : g_Configuration.KeyboardMouseBindings)
+	//{
+	//	ss << "bind." << (int)kv.first << "=" << (int)kv.second << "\n";
+	//}
+	//ss << "\n";
 
 	auto path = GetConfigFilePath();
 	return WriteAllText(path, ss.str());

@@ -4,7 +4,7 @@
 #include "Math/Math.h"
 #include "Specific/clock.h"
 #include "Specific/configuration.h"
-#include "Specific/Input/InputAction.h"
+#include "Specific/Input/Action.h"
 
 struct ItemInfo;
 
@@ -121,7 +121,7 @@ namespace TEN::Gui
 	{
 	private:
 		// Input inquirers
-		bool GuiIsPulsed(ActionID actionID) const;
+		bool GuiIsPulsed(ActionId actionId) const;
 		bool GuiIsSelected(bool onClicked = true) const;
 		bool GuiIsDeselected() const;
 		bool CanSelect() const;

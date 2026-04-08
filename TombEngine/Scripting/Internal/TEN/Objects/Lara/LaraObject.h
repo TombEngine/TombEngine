@@ -33,8 +33,8 @@ public:
 	int GetAmmoType(TypeOrNil<LaraWeaponType> weaponType) const;
 	void SetAmmoType(PlayerAmmoType ammoType);
 	int GetAmmoCount() const;
-	int GetWeaponMode(TypeOrNil<LaraWeaponType> weaponType) const;
-	void SetWeaponMode(LaraWeaponType weaponType, PlayerWeaponMode weaponMode);
+	int GetWeaponMode() const;
+	void SetWeaponMode(PlayerWeaponMode weaponMode);
 
 	void UndrawWeapon();
 	void DiscardTorch();
@@ -47,8 +47,8 @@ public:
 
 	void Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 				  const TypeOrNil<Vec3>& offset, const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
-				  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<ActionID> actionID,
-				TypeOrNil<GAME_OBJECT_ID> objectID, const TypeOrNil<InteractionType> interactionType) const;
+				  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<ActionId> actionID,
+				  TypeOrNil<GAME_OBJECT_ID> objectID, const TypeOrNil<InteractionType> interactionType) const;
 	bool TestInteraction(const Moveable& mov,
 						 const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
 						 const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax) const;
