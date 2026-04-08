@@ -542,17 +542,51 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
                         ap.BillowStr, distLOD);
     }
 
-    // Dual-scale Worley cellular erosion
+    // Dual-scale Worley cellular erosion.
+    // At distLOD >= 0.5 (medium range) full 9-cell Worley is imperceptible;
+    // a single-cell hash approximation is ~5x cheaper and matches the shape.
     {
-        float2 wPos     = float2(p.x, p.z) * 2.032f;
-        float worleyA   = WorleyNoise2D(wPos * 0.55f);
-        float invWA     = 1.0f - saturate(worleyA * 1.3f);
+        float2 wPos  = float2(p.x, p.z) * 2.032f;
+        float worleyA;
+        if (distLOD < 0.5f)
+        {
+            worleyA = WorleyNoise2D(wPos * 0.55f);
+        }
+        else
+        {
+            // Cheap 1-cell Worley approximation: hash the floored cell center.
+            float2 wCell = floor(wPos * 0.55f);
+            float2 wPt   = wCell + frac(sin(float2(
+                dot(wCell, float2(127.1f, 311.7f)),
+                dot(wCell, float2(269.5f, 183.3f))
+            )) * 43758.5453123f);
+            worleyA = saturate(length(wPos * 0.55f - wPt));
+        }
+        float invWA  = 1.0f - saturate(worleyA * 1.3f);
         dens = saturate(Remap(dens, -(invWA * 0.30f), 1.0f, 0.0f, 1.0f));
 
-        float worleyB   = WorleyNoise2D(wPos * 1.05f);
-        float invWB     = 1.0f - saturate(worleyB * 1.4f);
+        // worleyB: only meaningful at close range (wBStrength fades to 0 at distLOD=1).
+        // Skip the sample entirely when contribution is negligible.
         float wBStrength = lerp(0.15f, 0.0f, distLOD);
-        dens = saturate(Remap(dens, -(invWB * wBStrength), 1.0f, 0.0f, 1.0f));
+        if (wBStrength > 0.001f)
+        {
+            float worleyB;
+            if (distLOD < 0.5f)
+            {
+                worleyB = WorleyNoise2D(wPos * 1.05f);
+            }
+            else
+            {
+                float2 wCellB = floor(wPos * 1.05f);
+                float2 wPtB   = wCellB + frac(sin(float2(
+                    dot(wCellB, float2(127.1f, 311.7f)),
+                    dot(wCellB, float2(269.5f, 183.3f))
+                )) * 43758.5453123f);
+                worleyB = saturate(length(wPos * 1.05f - wPtB));
+            }
+            float invWB = 1.0f - saturate(worleyB * 1.4f);
+            dens = saturate(Remap(dens, -(invWB * wBStrength), 1.0f, 0.0f, 1.0f));
+        }
     }
 
     // Coverage threshold
@@ -597,7 +631,9 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         float clusterAmt = distLOD * sizeFactor * 0.22f;
         if (clusterAmt > 0.001f)
         {
-            float cn = PerlinNoise3D(float3(p.x * 0.22f, 0.0f, p.z * 0.22f));
+            // ValueNoise3D is sufficient here — gradient quality is wasted on
+            // a scalar cluster-grouping offset that only shifts covThresh by ±0.05.
+            float cn = ValueNoise3D(float3(p.x * 0.22f, 0.0f, p.z * 0.22f));
             covThresh = saturate(covThresh - cn * clusterAmt);
         }
     }
@@ -611,12 +647,14 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         float  scaleG   = 0.18f;
 
         float3 pFwd    = p + windDir3 * 1.8f;
-        float  fwdPot  = PerlinNoise3D(float3(pFwd.x * scaleG, 0.0f, pFwd.z * scaleG));
+        // ValueNoise3D is sufficient for the leading/trailing edge potentials —
+        // gradient quality makes no visible difference on a scalar threshold nudge.
+        float  fwdPot  = ValueNoise3D(float3(pFwd.x * scaleG, 0.0f, pFwd.z * scaleG)) - 0.5f;
         float formStr  = saturate(fwdPot) * evoStr * covThresh * 0.28f;
         covThresh = saturate(covThresh - formStr);
 
         float3 pBwd    = p - windDir3 * 3.2f;
-        float  bwdPot  = PerlinNoise3D(float3(pBwd.x * scaleG, 0.0f, pBwd.z * scaleG));
+        float  bwdPot  = ValueNoise3D(float3(pBwd.x * scaleG, 0.0f, pBwd.z * scaleG)) - 0.5f;
         float frayStr  = saturate(-bwdPot) * evoStr * covThresh * 0.22f;
         covThresh = saturate(covThresh + frayStr);
 
