@@ -3397,7 +3397,7 @@ namespace TEN::Gui
 		if (GuiIsDeselected())
 		{
 			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-			SetInventoryMode(InventoryMode::None);
+			SetInventoryMode(InventoryMode::InGame);
 		}
 	}
 
