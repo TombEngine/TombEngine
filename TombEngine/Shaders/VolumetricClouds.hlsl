@@ -2526,6 +2526,22 @@ float3 GetViewRayDir(float2 uv)
 
 float4 PS(VSOutput input) : SV_TARGET
 {
+    // --- Temporal checkerboard: reuse previous frame for skipped pixels ---
+    // Every other pixel (alternating each frame) skips the full raymarch and
+    // returns the previous frame's result from the same screen position.
+    // Clouds are at sky distance (no parallax), so the prev-frame value at
+    // the same UV is an excellent match. The bilateral composite smooths any
+    // sub-pixel differences from camera rotation.
+    // TemporalEnabled == 2: warmup complete, checkerboard skip active.
+    // Values 0 and 1 always do a full raymarch (0=disabled, 1=warmup, filling prev-frame RT).
+    if (TemporalEnabled == 2)
+    {
+        int2 px = (int2)input.Position.xy;
+        bool skip = (((px.x + px.y) + (int)FrameIndex) & 1) != 0;
+        if (skip)
+            return CloudTexture.Sample(LinearSamp, input.UV);
+    }
+
     float3 rayOrigin = CamPositionWS.xyz;
     float3 rayDir	= GetViewRayDir(input.UV);
 

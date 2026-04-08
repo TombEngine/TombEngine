@@ -203,6 +203,7 @@ namespace TEN::Renderer
 		ConstantBuffers::CVolumetricCloudBuffer _stVolumetricCloud;
 		ConstantBuffer<ConstantBuffers::CVolumetricCloudBuffer> _cbVolumetricCloud;
 		RenderTarget2D _cloudRenderTarget;
+		RenderTarget2D _cloudPrevFrameRT;              // Previous frame's cloud result for temporal checkerboard
 		RenderTarget2D _cloudOcclusionTarget;
 		RenderTarget2D _scenePreCloudBackup;          // Full-res copy of scene before cloud composite
 

@@ -57,6 +57,15 @@ namespace TEN::Renderer
 			false,   // not typeless
 			DXGI_FORMAT_UNKNOWN);  // no depth
 
+		// Previous frame's cloud result for temporal checkerboard reprojection.
+		// Same size/format as the main cloud RT; holds last frame's fully-resolved
+		// half-res cloud image so the shader can reuse it for skipped checkerboard pixels.
+		_cloudPrevFrameRT = RenderTarget2D(
+			_device.Get(), w, h,
+			DXGI_FORMAT_R16G16B16A16_FLOAT,
+			false,
+			DXGI_FORMAT_UNKNOWN);
+
 		// 1x1 target for lens flare occlusion transmittance readback.
 		_cloudOcclusionTarget = RenderTarget2D(
 			_device.Get(), 1, 1,
@@ -208,7 +217,15 @@ namespace TEN::Renderer
 		_stVolumetricCloud.CloudRenderSize    = Vector2(w, h);
 		_stVolumetricCloud.InvCloudRenderSize = Vector2(1.0f / w, 1.0f / h);
 
-		_stVolumetricCloud.TemporalEnabled = q.TemporalReprojection ? 1 : 0;
+		// TemporalEnabled encoding:
+		//   0 = temporal off (always raymarch every pixel)
+		//   1 = temporal on, warmup active (copy prev-frame RT but no skip yet)
+		//   2 = temporal on, warmup done (checkerboard skip active)
+		// The first 2 frames must be full renders so _cloudPrevFrameRT is populated
+		// with a complete image before skipped pixels start reading from it.
+		_stVolumetricCloud.TemporalEnabled = q.TemporalReprojection
+		                                   ? (_cloudState.FrameCounter > 1 ? 2 : 1)
+		                                   : 0;
 		_stVolumetricCloud.FrameIndex      = (float)(_cloudState.FrameCounter % 256);
 
 		// Earth radius for spherical shell curvature.
@@ -458,6 +475,11 @@ namespace TEN::Renderer
 		UpdateVolumetricCloudBuffer(*activeSettings, _cloudState, renderView);
 
 		// --- Pass 1: Render clouds to half-res target ---
+		// Temporal checkerboard: save the current cloud RT as the previous frame
+		// before clearing, so the shader can reuse skipped pixels from last frame.
+		if (_cloudState.ActiveQuality.TemporalReprojection)
+			_context->CopyResource(_cloudPrevFrameRT.Texture.Get(), _cloudRenderTarget.Texture.Get());
+
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		_context->ClearRenderTargetView(_cloudRenderTarget.RenderTargetView.Get(), clearColor);
 		_context->OMSetRenderTargets(1, _cloudRenderTarget.RenderTargetView.GetAddressOf(), nullptr);
@@ -480,6 +502,13 @@ namespace TEN::Renderer
 			_context->PSSetConstantBuffers(10, 1, atmoSkyBuf);
 		}
 
+		// Bind previous frame cloud RT as t1 for temporal checkerboard reuse.
+		if (_cloudState.ActiveQuality.TemporalReprojection)
+		{
+			BindRenderTargetAsTexture(TextureRegister::NormalMap, &_cloudPrevFrameRT,
+				SamplerStateRegister::LinearClamp);
+		}
+
 		// Bind fullscreen triangle.
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
@@ -495,6 +524,13 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::VolumetricClouds);
 		DrawTriangles(3, 0);
+
+		// Unbind previous-frame cloud RT from t1 before composite pass.
+		if (_cloudState.ActiveQuality.TemporalReprojection)
+		{
+			ID3D11ShaderResourceView* nullSRV = nullptr;
+			_context->PSSetShaderResources((UINT)TextureRegister::NormalMap, 1, &nullSRV);
+		}
 
 		// --- Pass 2: Composite clouds over scene ---
 		// Restore full-res viewport.
