@@ -702,6 +702,66 @@ namespace TEN::Sky
 		auto& state = g_SkyCloudSystem.GetMutableCurrentState();
 
 		// ----------------------------------------------------------------
+		// Performance Diagnostics — live shader CB values every frame.
+		// Use this to identify what changes at the moment of an FPS spike.
+		// ----------------------------------------------------------------
+		if (ImGui::CollapsingHeader("Performance Diagnostics", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+
+			const auto& io  = ImGui::GetIO();
+			const auto& cb  = g_Renderer.GetVolumetricCloudCB();
+
+			float fps = io.Framerate;
+			float ms  = io.DeltaTime * 1000.0f;
+			ImGui::TextColored(fps < 15.0f ? ImVec4(1,0.3f,0.3f,1) : ImVec4(0.3f,1,0.3f,1),
+				"FPS: %.1f  (%.2f ms)", fps, ms);
+
+			ImGui::Separator();
+
+			// Render path
+			bool dualPath = g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive();
+			ImGui::Text("Render Path:  %s", dualPath ? "DualVolumetricClouds" : "DrawVolumetricClouds");
+			ImGui::Text("CloudA Active: %s   CloudB Active: %s",
+				g_SkyCloudSystem.IsCloudAActive() ? "YES" : "no",
+				g_SkyCloudSystem.IsCloudBActive() ? "YES" : "no");
+			ImGui::Text("FrameCounter A: %d   B: %d",
+				g_Renderer.GetCloudFrameCounterA(),
+				g_Renderer.GetCloudFrameCounterB());
+
+			ImGui::Separator();
+
+			// Temporal
+			const char* temporalStr =
+				(cb.TemporalEnabled == 0) ? "OFF" :
+				(cb.TemporalEnabled == 1) ? "WARMUP (all pixels)" :
+				                            "ACTIVE (checkerboard)";
+			ImGui::TextColored(cb.TemporalEnabled == 2 ? ImVec4(0.3f,1,0.3f,1) : ImVec4(1,0.8f,0.2f,1),
+				"TemporalEnabled: %d (%s)", cb.TemporalEnabled, temporalStr);
+			ImGui::Text("FrameIndex: %.0f   PrimarySteps: %d   ShadowSteps: %d",
+				cb.FrameIndex, cb.PrimaryStepCount, cb.ShadowStepCount);
+
+			ImGui::Separator();
+
+			// Morph/transition state
+			ImGui::TextColored(cb.MorphActive > 0.5f ? ImVec4(1,0.4f,0.4f,1) : ImVec4(0.7f,0.7f,0.7f,1),
+				"MorphActive: %.2f   DissolvePhase: %.3f   FormationPhase: %.3f",
+				cb.MorphActive, cb.DissolvePhase, cb.FormationPhase);
+
+			ImGui::Separator();
+
+			// Density parameters (most likely culprits for sudden GPU cost change)
+			ImGui::Text("AltoCloudAmount: %.3f   EvolutionSpeed: %.3f",
+				cb.AltoCloudAmount, cb.EvolutionSpeed);
+			ImGui::Text("AltoHorizonWidth: %.4f   DriftOutProgress: %.3f",
+				cb.AltoHorizonWidth, cb.DriftOutProgress);
+			ImGui::Text("AltoCloudSize: %.3f   AltoAbsorption: %.3f",
+				cb.AltoCloudSize, cb.AltoAbsorption);
+
+			ImGui::Unindent(8.0f);
+		}
+
+		// ----------------------------------------------------------------
 		// Weather State section
 		// ----------------------------------------------------------------
 		if (ImGui::CollapsingHeader("Weather State", ImGuiTreeNodeFlags_DefaultOpen))

@@ -67,6 +67,13 @@ namespace TEN::Renderer
 			false,
 			DXGI_FORMAT_UNKNOWN);
 
+		// Previous-frame RT for temporal checkerboard on layer B.
+		_cloudPrevFrameRTB = RenderTarget2D(
+			_device.Get(), w, h,
+			DXGI_FORMAT_R16G16B16A16_FLOAT,
+			false,
+			DXGI_FORMAT_UNKNOWN);
+
 		_cloudOcclusionTargetB = RenderTarget2D(
 			_device.Get(), 1, 1,
 			DXGI_FORMAT_R16_FLOAT,
@@ -80,20 +87,22 @@ namespace TEN::Renderer
 
 	void Renderer::DrawDualVolumetricClouds(RenderView& renderView)
 	{
-		// Always clear both targets first. This prevents stale cloud data from a
-		// previously active layer (e.g. altocumulus on B, then switched to clear sky)
-		// from being read by the GodRay shader as if clouds were still present.
-		// DrawSingleVolumetricCloudLayer will re-clear and overwrite when it renders.
+		// For active layers DrawSingleVolumetricCloudLayer handles its own clear AFTER
+		// it copies the current RT to the prevFrameRT — order matters for temporal reprojection.
+		// Pre-clearing before DrawSingle would make prevFrameRT = black → temporal pixels read black.
+		// For INACTIVE layers we still clear here so the GodRay shader never reads stale cloud data.
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		_context->ClearRenderTargetView(_cloudRenderTarget.RenderTargetView.Get(),  clearColor);
-		_context->ClearRenderTargetView(_cloudRenderTargetB.RenderTargetView.Get(), clearColor);
 
 		// Draw Cloud Layer A (higher / thinner — composited first = behind).
 		if (g_SkyCloudSystem.IsCloudAActive())
 		{
 			auto settingsA = g_SkyCloudSystem.GetCloudARenderSettings();
 			DrawSingleVolumetricCloudLayer(
-				settingsA, _cloudState, _cloudRenderTarget, renderView);
+				settingsA, _cloudState, _cloudRenderTarget, renderView, &_cloudPrevFrameRT);
+		}
+		else
+		{
+			_context->ClearRenderTargetView(_cloudRenderTarget.RenderTargetView.Get(), clearColor);
 		}
 
 		// Draw Cloud Layer B (lower / denser — composited second = in front).
@@ -101,7 +110,11 @@ namespace TEN::Renderer
 		{
 			auto settingsB = g_SkyCloudSystem.GetCloudBRenderSettings();
 			DrawSingleVolumetricCloudLayer(
-				settingsB, _cloudStateB, _cloudRenderTargetB, renderView);
+				settingsB, _cloudStateB, _cloudRenderTargetB, renderView, &_cloudPrevFrameRTB);
+		}
+		else
+		{
+			_context->ClearRenderTargetView(_cloudRenderTargetB.RenderTargetView.Get(), clearColor);
 		}
 
 		// Update lens flare occlusion for both layers.
@@ -117,6 +130,7 @@ namespace TEN::Renderer
 		CloudRuntimeState& state,
 		RenderTarget2D& renderTarget,
 		RenderView& renderView,
+		RenderTarget2D* prevFrameRT,
 		bool advanceState)
 	{
 		// CloudType 1 = AltocumulusMid (volumetric), CloudType 2 = Aurora (rendered by separate pass — no cloud geometry).
@@ -168,6 +182,11 @@ namespace TEN::Renderer
 		UpdateVolumetricCloudBuffer(settings, state, renderView);
 
 		// --- Pass 1: Render to half-res target ---
+		// Temporal checkerboard: copy current RT to prevFrameRT before clearing,
+		// so the shader can read last frame's result for skipped checkerboard pixels.
+		if (prevFrameRT && state.ActiveQuality.TemporalReprojection)
+			_context->CopyResource(prevFrameRT->Texture.Get(), renderTarget.Texture.Get());
+
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		_context->ClearRenderTargetView(renderTarget.RenderTargetView.Get(), clearColor);
 		_context->OMSetRenderTargets(1, renderTarget.RenderTargetView.GetAddressOf(), nullptr);
@@ -188,6 +207,13 @@ namespace TEN::Renderer
 			_context->PSSetConstantBuffers(10, 1, atmoSkyBuf);
 		}
 
+		// Bind previous-frame RT as t1 for temporal pixel reuse.
+		if (prevFrameRT && state.ActiveQuality.TemporalReprojection)
+		{
+			BindRenderTargetAsTexture(TextureRegister::NormalMap, prevFrameRT,
+				SamplerStateRegister::LinearClamp);
+		}
+
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
 		SetDepthState(DepthState::None);
@@ -202,6 +228,13 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::VolumetricClouds);
 		DrawTriangles(3, 0);
+
+		// Unbind t1 (prev-frame RT) before composite pass.
+		if (prevFrameRT && state.ActiveQuality.TemporalReprojection)
+		{
+			ID3D11ShaderResourceView* nullSRV = nullptr;
+			_context->PSSetShaderResources((UINT)TextureRegister::NormalMap, 1, &nullSRV);
+		}
 
 		// --- Pass 2: Composite over scene ---
 		_context->RSSetViewports(1, &renderView.Viewport);

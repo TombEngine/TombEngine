@@ -231,6 +231,7 @@ namespace TEN::Renderer
 
 		// Dual volumetric cloud layer B (layer A reuses the members above).
 		RenderTarget2D _cloudRenderTargetB;
+		RenderTarget2D _cloudPrevFrameRTB;   // Layer B previous-frame RT for temporal checkerboard
 		RenderTarget2D _cloudOcclusionTargetB;
 		VolumetricCloud::CloudRuntimeState _cloudStateB;
 
@@ -523,6 +524,11 @@ namespace TEN::Renderer
 	public:
 		float GetCloudLensFlareOcclusion() const;
 
+		// Diagnostic getters — used by the ImGui debug overlay to display live CB values.
+		const ConstantBuffers::CVolumetricCloudBuffer& GetVolumetricCloudCB() const { return _stVolumetricCloud; }
+		int GetCloudFrameCounterA() const { return _cloudState.FrameCounter; }
+		int GetCloudFrameCounterB() const { return _cloudStateB.FrameCounter; }
+
 		// Dual volumetric cloud layers (new layered system).
 		void InitializeDualVolumetricClouds();
 		void ResizeDualCloudTargets();
@@ -532,6 +538,7 @@ namespace TEN::Renderer
 			VolumetricCloud::CloudRuntimeState& state,
 			RenderTarget2D& renderTarget,
 			RenderView& renderView,
+			RenderTarget2D* prevFrameRT = nullptr,
 			bool advanceState = true);
 		void UpdateDualCloudLensFlareOcclusion(RenderView& renderView);
 		float ComputeSingleLayerOcclusion(

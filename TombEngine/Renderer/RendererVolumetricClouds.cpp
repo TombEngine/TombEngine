@@ -91,7 +91,10 @@ namespace TEN::Renderer
 	                                             const CloudRuntimeState& runtimeState,
 	                                             RenderView& view)
 	{
-		auto& q = _cloudState.ActiveQuality;
+		// Use runtimeState.ActiveQuality (not _cloudState) so each layer's own quality
+		// settings are applied — fixes CloudB always reading CloudA's quality which
+		// caused TemporalEnabled/FrameIndex to always use CloudA's FrameCounter (= 0).
+		const auto& q = runtimeState.ActiveQuality;
 
 		_stVolumetricCloud.CloudBottomHeight = settings.CloudBottomHeight;
 		_stVolumetricCloud.CloudTopHeight    = settings.CloudBottomHeight + settings.CloudThickness;
@@ -209,7 +212,7 @@ namespace TEN::Renderer
 		_stVolumetricCloud.PrimaryStepCount   = q.PrimaryStepCount;
 		_stVolumetricCloud.ShadowStepCount    = q.ShadowStepCount;
 		_stVolumetricCloud.DetailNoiseEnabled  = q.DetailNoiseEnabled ? 1 : 0;
-		_stVolumetricCloud.DebugView          = (int)_cloudState.DebugView;
+		_stVolumetricCloud.DebugView          = (int)runtimeState.DebugView;
 
 		float scale = q.RenderResolutionScale;
 		float w = (float)std::max(1, (int)(_screenWidth * scale));
@@ -221,12 +224,13 @@ namespace TEN::Renderer
 		//   0 = temporal off (always raymarch every pixel)
 		//   1 = temporal on, warmup active (copy prev-frame RT but no skip yet)
 		//   2 = temporal on, warmup done (checkerboard skip active)
-		// The first 2 frames must be full renders so _cloudPrevFrameRT is populated
-		// with a complete image before skipped pixels start reading from it.
+		// Use runtimeState (not _cloudState) so each layer tracks its own frame counter.
+		// Previously hardcoded to _cloudState caused CloudB to always read FrameCounter=0
+		// (CloudA inactive) → TemporalEnabled stuck at 1 (WARMUP) every frame → Prio 4 dead.
 		_stVolumetricCloud.TemporalEnabled = q.TemporalReprojection
-		                                   ? (_cloudState.FrameCounter > 1 ? 2 : 1)
+		                                   ? (runtimeState.FrameCounter > 1 ? 2 : 1)
 		                                   : 0;
-		_stVolumetricCloud.FrameIndex      = (float)(_cloudState.FrameCounter % 256);
+		_stVolumetricCloud.FrameIndex      = (float)(runtimeState.FrameCounter % 256);
 
 		// Earth radius for spherical shell curvature.
 		// Using a moderate value that gives visible curvature at cloud altitudes.
