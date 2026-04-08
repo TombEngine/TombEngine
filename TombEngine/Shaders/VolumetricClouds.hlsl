@@ -759,7 +759,20 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
             srcParams.ZenithBias   = MorphSrcZenithBias;
             srcParams.EvolutionSpd = MorphSrcEvolutionSpd;
 
-            float srcDens = EvalAltoDensityCore(skyPos, heightFrac, skyH, distLOD, distLOD2, srcParams);
+            // Source clouds are dissolving — coarse shape fidelity only.
+            // Boost distLOD toward 1.0 so existing LOD guards suppress the
+            // expensive paths (High+Mid curl bands, full 9-cell Worley, fine FBM
+            // octaves) without any new code paths.  At distLOD=0 (near) srcLOD
+            // becomes 0.5 → High curl+Worley already degraded.  At distLOD=0.5+
+            // srcLOD hits 1.0 → only Low curl and 1-cell hash Worley remain.
+            //
+            // Ramp the boost in after 25% dissolve so that at transition-start
+            // (DissolvePhase=0) srcLOD == distLOD — identical curl evaluation to
+            // the pre-transition frame, preventing a visible shape jump on frame 1.
+            float lodBoost = saturate((DissolvePhase - 0.25f) / 0.75f) * 0.5f;
+            float srcLOD  = min(distLOD + lodBoost, 1.0f);
+            float srcLOD2 = srcLOD * srcLOD;
+            float srcDens = EvalAltoDensityCore(skyPos, heightFrac, skyH, srcLOD, srcLOD2, srcParams);
 
             // Dissolve source density (edges vanish first, cluster-staggered).
             if (DissolvePhase > 0.001f && srcDens > 0.0001f)
