@@ -236,9 +236,6 @@ namespace TEN::Renderer::VolumetricCloud
 
 	inline CloudQualityParams GetQualityParams(CloudQualityPreset preset)
 	{
-		// Always use High quality regardless of the configured preset.
-		preset = CloudQualityPreset::High;
-
 		switch (preset)
 		{
 		case CloudQualityPreset::Low:

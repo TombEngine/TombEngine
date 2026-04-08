@@ -280,7 +280,15 @@ float FBMLowFreqBillow(float3 p, float lod)
 // Lacunarity and gain are configurable (reference: 2.6434, 0.5).
 // Distance LOD progressively reduces fine octaves with a minimum floor on
 // oct2/oct3 to ensure frequency diversity at all distances.
-float FBMAlto5(float3 p, float lacunarity, float gain, float billowBlend, float lod)
+//
+// advect: wind/evo translation in the same pre-scaled space as p.
+//   This offset is added identically to every octave and does NOT accumulate
+//   the lacunarity factor. Without this separation the wind displacement is
+//   scaled by lacunarity^oct per octave, so octave 4 moves ~49x faster in
+//   feature-space than octave 0 — causing the high-gain frayed edges to
+//   flicker every frame the cloud translates. By keeping advect constant,
+//   all octaves translate as one coherent mass through space.
+float FBMAlto5(float3 p, float3 advect, float lacunarity, float gain, float billowBlend, float lod)
 {
     float v  = 0.0f;
     float a  = 0.5f;
@@ -300,7 +308,11 @@ float FBMAlto5(float3 p, float lacunarity, float gain, float billowBlend, float 
         else if (oct == 3) octWeight = max(saturate(1.0f - lod * 1.5f), 0.15f);
         else               octWeight = saturate(1.0f - lod * 2.0f);
 
-        float pN   = PerlinNoise3D(s);
+        // advect is added AFTER scaling — the wind/evo displacement is the
+        // same absolute offset in noise-space for every octave.  's' (the
+        // spatial-structure coordinate) still scales normally so each octave
+        // sees a different level of detail in the cloud morphology.
+        float pN   = PerlinNoise3D(s + advect);
         float valN = pN;
         float bilN = abs(pN * 2.0f - 1.0f); // Perlin billow = abs(snoise) equivalent
 
@@ -424,6 +436,28 @@ struct AltoDensityParams
 float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
                           float distLOD, float distLOD2, AltoDensityParams ap)
 {
+    // --- Cheap early-outs before curl/FBM ---
+    // AltoHorizonWidth zenith cap: pixels clearly outside the active sky zone
+    // always produce zero density. Skip all expensive work for those rays.
+    if (AltoHorizonWidth > 0.001f && CloudIsBleedPass < 0.001f &&
+        skyH < (AltoHorizonWidth * 0.90f - 0.09f))
+        return 0.0f;
+
+    // DriftOutProgress: skip pixels that are fully suppressed by the upwind
+    // dissolution boundary. The soft zone is 0.4 wide; use boundary+0.4 so
+    // we only early-out pixels that are completely past the transition.
+    if (DriftOutProgress > 0.001f)
+    {
+        float2 wDir2D = (dot(WindDirection, WindDirection) > 0.001f)
+                       ? normalize(WindDirection) : float2(1.0f, 0.0f);
+        float windProjSky  = dot(skyPos.xz, wDir2D);
+        float fieldExtent  = max(CloudBottomHeight * 4.0f, 1.0f);
+        float normalizedProj = windProjSky / fieldExtent;
+        float boundary = lerp(-1.5f, 1.5f, DriftOutProgress);
+        if (normalizedProj > boundary + 0.4f)
+            return 0.0f;
+    }
+
     // --- Sky-height redistribution (bias-based) ---
     float horizonEdge = saturate(HorizonFade * 0.10f + DistanceFade * 0.06f);
     static const float zenithEdge = 0.65f;
@@ -467,7 +501,9 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         p.z += cLow.y * 0.16f * curlDamp;
     }
 
-    // Mid Frequency Band
+    // Mid Frequency Band (skipped at far range: displacement 0.06 is imperceptible
+    // at distLOD >= 0.75 where distant clouds lack fine screen-space detail anyway).
+    if (distLOD < 0.75f)
     {
         float tMid  = flowTime * 0.75f * heightFlow;
         float3 pMid = float3(p.x, 0.0f, p.z) * 0.80f
@@ -479,7 +515,9 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         p.z += cMid.y * 0.06f * curlDamp;
     }
 
-    // High Frequency Band
+    // High Frequency Band (skipped at medium range: displacement 0.025 contributes
+    // sub-pixel detail at distLOD >= 0.50 — no visible difference when removed).
+    if (distLOD < 0.50f)
     {
         float tHigh  = flowTime * 1.80f * heightFlow;
         float3 pHigh = float3(p.x, 0.0f, p.z) * 1.60f
@@ -491,9 +529,18 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         p.z += cHigh.y * 0.025f * curlDamp;
     }
 
-    // FBM evaluation
-    float dens = FBMAlto5(p * 2.032f, ap.FbmLac, ap.FbmGain,
-                          ap.BillowStr, distLOD);
+    // FBM evaluation.
+    // p contains both the spatial structure (skyPos * baseScale + curl) and the
+    // advection (windOfs + evoOfs). To prevent wind from being amplified per
+    // octave inside FBMAlto5 (which would make fine octaves flicker), we pass
+    // the advection component separately so it stays constant across all octaves.
+    float dens;
+    {
+        float3 p_advect = (windOfs + evoOfs) * 2.032f;
+        float3 p_shape  = p * 2.032f - p_advect;
+        dens = FBMAlto5(p_shape, p_advect, ap.FbmLac, ap.FbmGain,
+                        ap.BillowStr, distLOD);
+    }
 
     // Dual-scale Worley cellular erosion
     {
@@ -952,8 +999,15 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
 
         // Reference: float dens = fbm_clouds(p * 2.032, 2.6434, .5, .5);
         // 5 octaves of abs(snoise(p)) billow FBM.
-        float dens = FBMAlto5(p * 2.032f, AltoFbmLacunarity, AltoFbmGain,
-                              AltoBillowStrength, distLOD);
+        // Advection separated so wind/evo translation is constant across all octaves
+        // (see FBMAlto5 comment for the flickering rationale).
+        float dens;
+        {
+            float3 p_advect = (windOfs + evoOfs) * 2.032f;
+            float3 p_shape  = p * 2.032f - p_advect;
+            dens = FBMAlto5(p_shape, p_advect, AltoFbmLacunarity, AltoFbmGain,
+                            AltoBillowStrength, distLOD);
+        }
 
         // Dual-scale Worley cellular erosion (Guerrilla "Horizon Zero Dawn", Siggraph 2015).
         // Two scales are needed because a single scale only shapes ONE frequency of cloud:
@@ -1969,12 +2023,12 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
     // Guarantee stepSize ??? effThickness/24 so that transition zones in tall
     // clouds are sampled densely enough to avoid visible layered march slabs.
     float minStepsF	  = ceil(maxDist / max(effThickness / 24.0f, 1.0f));
-    int   effectiveSteps = clamp((int)max((float)PrimaryStepCount, minStepsF), 1, 64);
+    int   effectiveSteps = clamp((int)max((float)PrimaryStepCount, minStepsF), 1, 32);
     // Low-absorption boost: when absorption is very small, each sample carries
     // little extinction and stochastic sampling noise is more visible.
     // Increase effective steps in that regime to average out point noise.
     float lowAbsStepBoost = lerp(2.0f, 1.0f, saturate((effAbsorption - 0.2f) * 2.5f));
-    effectiveSteps		= clamp((int)ceil((float)effectiveSteps * lowAbsStepBoost), 1, 64);
+    effectiveSteps		= clamp((int)ceil((float)effectiveSteps * lowAbsStepBoost), 1, 32);
     float stepSize	   = maxDist / (float)effectiveSteps;
     float thickBandGuard = saturate((effThickness - 2600.0f) / 2200.0f);
 
