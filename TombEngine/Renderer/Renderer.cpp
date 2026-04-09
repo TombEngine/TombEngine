@@ -68,6 +68,8 @@ namespace TEN::Renderer
 		_staticTextures.clear();
 		_spritesTextures.clear();
 		_animatedTextures.clear();
+
+		_videoSprite = {};
 	}
 
 	void Renderer::Lock()
