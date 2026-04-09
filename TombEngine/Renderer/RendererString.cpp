@@ -199,7 +199,7 @@ namespace TEN::Renderer
 		float shadowOffset = 1.5f / (REFERENCE_FONT_SIZE / _gameFont->GetLineSpacing());
 		auto shadowColor = (Vector4)g_GameFlow->GetSettings()->UI.ShadowTextColor;
 
-		_spriteBatch->Begin(SpriteSortingMode::Deferred, BlendMode::AlphaBlend);
+		_spriteBatch->Begin();
 
 		for (const auto& rString : _stringsToDraw)
 		{

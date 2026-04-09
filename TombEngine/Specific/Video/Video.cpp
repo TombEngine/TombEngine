@@ -286,6 +286,10 @@ namespace TEN::Video
 			return false;
 		}
 
+		// Disable audio decoding entirely when playing in silent mode.
+		if (_silent)
+			libvlc_media_add_option(media, ":no-audio");
+
 		// VLC requires to initialize media. Load into player and release right away.
 		_player = libvlc_media_player_new_from_media(_vlcInstance, media);
 		libvlc_media_release(media);
@@ -296,7 +300,7 @@ namespace TEN::Video
 			return false;
 		}
 
-		// Route sound data to BASS, if video is not played in silent mode.
+		// Route sound data to BASS when not in silent mode.
 		if (!_silent)
 		{
 			libvlc_audio_set_format_callbacks(_player, OnAudioSetup, nullptr);

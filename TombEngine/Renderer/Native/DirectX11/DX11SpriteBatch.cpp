@@ -31,6 +31,12 @@ namespace TEN::Renderer::Native::DirectX11
 		return srv;
 	}
 
+	void DX11SpriteBatch::Begin()
+	{
+		// Match DXTK SpriteBatch::Begin() defaults: Deferred sorting, premultiplied alpha blend.
+		_spriteBatch->Begin();
+	}
+
 	void DX11SpriteBatch::Begin(SpriteSortingMode sortingMode, BlendMode blendMode)
 	{
 		SpriteSortMode mode;

@@ -45,8 +45,10 @@ namespace TEN::Renderer::Graphics
 		auto lock = std::lock_guard(_mutex);
 		_usage[category] += bytes;
 
+#if _DEBUG
 		if (!debugInfo.empty())
 			TENLog("[VRAM] " + debugInfo, LogLevel::Info, LogConfig::Debug);
+#endif
 	}
 
 	void VRAMTracker::Remove(VRAMCategory category, int bytes)
