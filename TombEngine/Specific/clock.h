@@ -15,9 +15,9 @@ private:
 	double _frameTime    = 0.0;
 	bool   _locked       = false;
 
-	Uint64 _lastCounter    = 0;
-	Uint64 _currentCounter = 0;
-	Uint64 _frequency      = 0; 
+	unsigned long long _lastCounter    = 0;
+	unsigned long long _currentCounter = 0;
+	unsigned long long _frequency      = 0; 
 
 public:
 	void Init();

@@ -76,14 +76,14 @@ namespace TEN::Renderer::Native::DirectX11
 			if (messageCount > 0)
 			{
 				result += " D3D11 debug messages:";
-				auto maxMessages = std::min(messageCount, static_cast<UINT64>(5));
+				auto maxMessages = std::min<unsigned long long>(messageCount, 5);
 
-				for (UINT64 i = messageCount - maxMessages; i < messageCount; i++)
+				for (auto i = messageCount - maxMessages; i < messageCount; i++)
 				{
 					SIZE_T messageLength = 0;
 					infoQueue->GetMessage(i, nullptr, &messageLength);
 
-					auto messageData = std::vector<byte>(messageLength);
+					auto messageData = std::vector<unsigned char>(messageLength);
 					auto* message = reinterpret_cast<D3D11_MESSAGE*>(messageData.data());
 					infoQueue->GetMessage(i, message, &messageLength);
 
