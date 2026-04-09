@@ -477,8 +477,8 @@ Flow.DefineWeatherPreset("Cirrustratus", {
 Flow.DefineWeatherPreset("CirrocumulusLots", {
 	duration = {6,9},--{300, 560},
 	nextPresetA  = {CirrocumulusFew = {0.2, 0.6, 40}, AltocumulusHigh = {0.5, 0.0, 25}, Cirrustratus = {0.5, 0.4, 25}},	  
-        --transformPreset = "CloudsTransformation",
-	--transformDuration = 35,
+        transformPreset = "CloudsTransformation",
+	transformDuration = 35,
 		cloudB = {
 		enabled        = true,
 		coverage		= 1.0,

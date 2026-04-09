@@ -220,6 +220,12 @@ namespace TEN::Renderer::VolumetricCloud
 		// Current packed quality params
 		CloudQualityParams ActiveQuality = {};
 
+		// Previous frame's camera forward direction for rotation-change detection.
+		// When the camera has rotated since last frame, temporal checkerboard is
+		// disabled (TemporalEnabled forced to 0) so every pixel is freshly
+		// raymarched — avoids stale-UV swimming and rectangular seam artifacts.
+		Vector3 PrevCameraForward = Vector3(0.0f, 0.0f, 1.0f);
+
 		// Lens flare occlusion
 		LensFlareCloudOcclusionState FlareOcclusion = {};
 

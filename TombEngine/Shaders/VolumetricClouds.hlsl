@@ -294,6 +294,14 @@ float FBMAlto5(float3 p, float3 advect, float lacunarity, float gain, float bill
     float a  = 0.5f;
     float3 s = p;
 
+    // High-gain shimmer guard: when gain > 0.5 the fine octaves (3,4) carry
+    // enough amplitude that the curl-noise deformation + evolution motion
+    // causes per-frame density fluctuations visible as a "water surface"
+    // distortion. Progressively suppress fine octaves as gain exceeds 0.5
+    // to keep the total high-frequency energy bounded.
+    // gain=0.5 → extraDamp34=1.0 (no change). gain=0.8 → ≈0.5. gain=1.0 → ≈0.33.
+    float highGainExcess = saturate((gain - 0.5f) * 3.33f); // 0 at gain≤0.5, 1 at gain≥0.8
+
     [unroll]
     for (int oct = 0; oct < 5; oct++)
     {
@@ -305,8 +313,8 @@ float FBMAlto5(float3 p, float3 advect, float lacunarity, float gain, float bill
         float octWeight;
         if      (oct <= 1) octWeight = 1.0f;
         else if (oct == 2) octWeight = max(saturate(1.0f - lod),        0.35f);
-        else if (oct == 3) octWeight = max(saturate(1.0f - lod * 1.5f), 0.15f);
-        else               octWeight = saturate(1.0f - lod * 2.0f);
+        else if (oct == 3) octWeight = max(saturate(1.0f - lod * 1.5f), 0.15f) * lerp(1.0f, 0.5f, highGainExcess);
+        else               octWeight = saturate(1.0f - lod * 2.0f) * lerp(1.0f, 0.3f, highGainExcess);
 
         // advect is added AFTER scaling — the wind/evo displacement is the
         // same absolute offset in noise-space for every octave.  's' (the
@@ -1010,6 +1018,15 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         // increases formation cycling without twisting clouds into knots.
         // At ES=0 → curlDamp=1.0 (full).  At ES=1 → 0.75.  At ES=5 → 0.55.
         float curlDamp = lerp(1.0f, 0.55f, saturate(EvolutionSpeed * 0.25f));
+
+        // High FBMGain makes fine octaves disproportionately strong. Those octaves
+        // are very sensitive to small position shifts from curl-noise deformation,
+        // producing a visible "water surface" ripple pattern across the whole sky.
+        // Reduce curl amplitude when gain is high to keep deformation below the
+        // perceptual threshold of the dominant fine-octave wavelength.
+        // gain=0.5 (default) → gainDamp=1.0 (no change). gain=0.8 → gainDamp≈0.55.
+        float gainDamp = lerp(1.0f, 0.4f, saturate((AltoFbmGain - 0.5f) * 3.33f));
+        curlDamp *= gainDamp;
 
         // --- Low Frequency Band: large-scale formation morphing ---
         // Slowest evolution, largest spatial scale (0.41× base).
@@ -2577,12 +2594,16 @@ float3 GetViewRayDir(float2 uv)
 
 float4 PS(VSOutput input) : SV_TARGET
 {
-    // --- Temporal checkerboard: reuse previous frame for skipped pixels ---
+    // --- Temporal checkerboard ---
     // Every other pixel (alternating each frame) skips the full raymarch and
     // returns the previous frame's result from the same screen position.
-    // Clouds are at sky distance (no parallax), so the prev-frame value at
-    // the same UV is an excellent match. The bilateral composite smooths any
-    // sub-pixel differences from camera rotation.
+    // Clouds are at sky distance (no translation parallax).
+    //
+    // Camera-rotation guard (CPU-side): when the camera has rotated since last
+    // frame, TemporalEnabled is forced to 0 by the renderer so ALL pixels are
+    // freshly raymarched. This avoids stale-UV smearing and rectangular seam
+    // artifacts that arise when same-UV data shows a different sky direction.
+    //
     // TemporalEnabled == 2: warmup complete, checkerboard skip active.
     // Values 0 and 1 always do a full raymarch (0=disabled, 1=warmup, filling prev-frame RT).
     if (TemporalEnabled == 2)

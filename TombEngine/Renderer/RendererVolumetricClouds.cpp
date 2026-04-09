@@ -409,6 +409,18 @@ namespace TEN::Renderer
 		_stVolumetricCloud.MorphActive          = settings.MorphActive;
 		_stVolumetricCloud.MorphPad0            = 0.0f;
 
+		// Rotation-aware temporal: if the camera has rotated significantly since
+		// last frame, force a full re-raymarch this frame so every pixel is fresh.
+		// Stale same-UV data would show clouds from the wrong sky direction —
+		// visible as watery smearing or a rectangular seam artifact.
+		// cos(0.5°) ≈ 0.99996 — any rotation larger than half a degree disables skip.
+		{
+			float camDot = view.Camera.WorldDirection.Dot(runtimeState.PrevCameraForward);
+			bool cameraStationary = (camDot > 0.99996f);
+			if (!cameraStationary)
+				_stVolumetricCloud.TemporalEnabled = 0;
+		}
+
 		// Project the global lens flare's world position to screen UV so PSCloudOcclusion
 		// can sample the cloud render target around the sun's actual screen position.
 		_stVolumetricCloud.SunScreenUV = Vector2(-1.0f, -1.0f); // default: no sun / off-screen
@@ -477,6 +489,9 @@ namespace TEN::Renderer
 
 		// Update constant buffer.
 		UpdateVolumetricCloudBuffer(*activeSettings, _cloudState, renderView);
+
+		// Store current camera forward for next frame's rotation-change detection.
+		_cloudState.PrevCameraForward = renderView.Camera.WorldDirection;
 
 		// --- Pass 1: Render clouds to half-res target ---
 		// Temporal checkerboard: save the current cloud RT as the previous frame
