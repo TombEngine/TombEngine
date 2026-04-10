@@ -159,7 +159,8 @@ void Renderer::UpdateLaraAnimations(bool force)
 	else
 	{
 		// While handling weapon, extra rotation may be applied to arms.
-		if (gunType == LaraWeaponType::Pistol || gunType == LaraWeaponType::Uzi)
+		if (gunType == LaraWeaponType::Pistol || gunType == LaraWeaponType::Uzi ||
+			(gunType == LaraWeaponType::Revolver && g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Revolver - 1].DoubleHanded))
 		{
 			playerObject.LinearizedBones[LM_LINARM]->ExtraRotation *= Lara.LeftArm.Orientation.ToQuaternion();
 			playerObject.LinearizedBones[LM_RINARM]->ExtraRotation *= Lara.RightArm.Orientation.ToQuaternion();
@@ -214,10 +215,11 @@ void Renderer::UpdateLaraAnimations(bool force)
 		default:
 		{
 			// Left arm.
-			bool movingModifier = !(gunType == LaraWeaponType::Revolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.LeftArm.FrameNumber;
-			bool sideJumpModifier = !(gunType == LaraWeaponType::Revolver && IsSideJumpState(LaraItem->Animation.ActiveState));
+			bool isDoubleHandedRevolver = (gunType == LaraWeaponType::Revolver && g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Revolver - 1].DoubleHanded);
+			bool movingModifier = !(gunType == LaraWeaponType::Revolver && !isDoubleHandedRevolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.LeftArm.FrameNumber;
+			bool sideJumpModifier = !(gunType == LaraWeaponType::Revolver && !isDoubleHandedRevolver && IsSideJumpState(LaraItem->Animation.ActiveState));
 
-			// HACK: Revolver is a special case because its right/left arm orientations aren't symmetrical and get messed up while moving.
+			// HACK: Single-handed revolver is a special case because its right/left arm orientations aren't symmetrical and get messed up while moving.
 			bool transformLeftUpperArm = (IsCrouching(LaraItem) || Lara.LeftArm.Locked || movingModifier) && sideJumpModifier;
 
 			auto leftFrameNumber = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
@@ -240,7 +242,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 			UpdateAnimation(&rItem, playerObject, interpDataLeft, mask);
 
 			// Right arm.
-			movingModifier = !(gunType == LaraWeaponType::Revolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.RightArm.FrameNumber;
+			movingModifier = !(gunType == LaraWeaponType::Revolver && !isDoubleHandedRevolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.RightArm.FrameNumber;
 
 			// HACK: Same as above, but for right arm.
 			bool transformRightUpperArm = IsCrouching(LaraItem) || Lara.RightArm.Locked || movingModifier;

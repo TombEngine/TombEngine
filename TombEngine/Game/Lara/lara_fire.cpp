@@ -358,8 +358,18 @@ void InitializeNewWeapon(ItemInfo& laraItem)
 
 		break;
 
-	case LaraWeaponType::Shotgun:
 	case LaraWeaponType::Revolver:
+		if (player.Control.HandStatus != HandStatus::Free)
+		{
+			if (g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Revolver - 1].DoubleHanded)
+				DrawPistolMeshes(laraItem, LaraWeaponType::Revolver);
+			else
+				DrawShotgunMeshes(laraItem, LaraWeaponType::Revolver);
+		}
+
+		break;
+
+	case LaraWeaponType::Shotgun:
 	case LaraWeaponType::HK:
 	case LaraWeaponType::GrenadeLauncher:
 	case LaraWeaponType::HarpoonGun:
@@ -759,13 +769,21 @@ void HandleWeapon(ItemInfo& laraItem)
 			HandlePistols(laraItem, player.Control.Weapon.GunType);
 			break;
 
+		case LaraWeaponType::Revolver:
+			if (g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Revolver - 1].DoubleHanded)
+				HandlePistols(laraItem, LaraWeaponType::Revolver);
+			else
+				RifleHandler(laraItem, LaraWeaponType::Revolver);
+
+			LasersightWeaponHandler(laraItem, LaraWeaponType::Revolver);
+			break;
+
 		case LaraWeaponType::Shotgun:
 		case LaraWeaponType::Crossbow:
 		case LaraWeaponType::HK:
 		case LaraWeaponType::GrenadeLauncher:
 		case LaraWeaponType::RocketLauncher:
 		case LaraWeaponType::HarpoonGun:
-		case LaraWeaponType::Revolver:
 			RifleHandler(laraItem, player.Control.Weapon.GunType);
 			LasersightWeaponHandler(laraItem, player.Control.Weapon.GunType);
 			break;

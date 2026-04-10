@@ -42,13 +42,21 @@ static WeaponAnimData GetWeaponAnimData(LaraWeaponType weaponType)
 		{ LaraWeaponType::Uzi, WeaponAnimData{ ID_UZI_ANIM, 4, 5, 13, 24 } }
 	};
 	
-	bool isDoubleHanded = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].DoubleHanded;
-
-	if (weaponType == LaraWeaponType::Revolver && isDoubleHanded)
-		weaponType = LaraWeaponType::Pistol;
-
 	auto it = ANIM_DATA_MAP.find(weaponType);
-	return ((it != ANIM_DATA_MAP.end()) ? it->second : ANIM_DATA_MAP.at(LaraWeaponType::None));
+	auto data = (it != ANIM_DATA_MAP.end()) ? it->second : ANIM_DATA_MAP.at(LaraWeaponType::None);
+
+	// When revolver is double-handed, use pistol frame numbers but keep revolver animation object.
+	if (weaponType == LaraWeaponType::Revolver &&
+		g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Revolver - 1].DoubleHanded)
+	{
+		const auto& pistolData = ANIM_DATA_MAP.at(LaraWeaponType::Pistol);
+		data.Draw1Anim2 = pistolData.Draw1Anim2;
+		data.Draw1Anim  = pistolData.Draw1Anim;
+		data.Draw2Anim  = pistolData.Draw2Anim;
+		data.RecoilAnim = pistolData.RecoilAnim;
+	}
+
+	return data;
 }
 
 static void SetArmInfo(const ItemInfo& laraItem, ArmInfo& arm, int frame)
@@ -271,21 +279,27 @@ static int AnimateWeaponUndraw(ItemInfo& laraItem, LaraWeaponType weaponType, bo
 void HandlePistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 {
 	auto& lara = *GetLaraInfo(&laraItem);
-	auto& weapon = Weapons[(int)weaponType];
+
+	bool isDoubleHanded = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].DoubleHanded;
+
+	// When double-handed, use pistol weapon info for targeting and aiming
+	// so behavior is identical to native pistols.
+	auto& weapon = (isDoubleHanded && weaponType != LaraWeaponType::Pistol && weaponType != LaraWeaponType::Uzi)
+		? Weapons[(int)LaraWeaponType::Pistol]
+		: Weapons[(int)weaponType];
 
 	FindNewTarget(laraItem, weapon);
 	if (IsHeld(In::Action))
 		LaraTargetInfo(laraItem, weapon);
 
-	bool isDoubleHanded = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].DoubleHanded;
-
 	if (isDoubleHanded)
-		AimWeapon(laraItem, lara.LeftArm, weapon);
-
-	AimWeapon(laraItem, lara.RightArm, weapon);
-
-	if (!isDoubleHanded)
 	{
+		AimWeapon(laraItem, lara.LeftArm, weapon);
+		AimWeapon(laraItem, lara.RightArm, weapon);
+	}
+	else
+	{
+		AimWeapon(laraItem, lara.RightArm, weapon);
 		lara.LeftArm.Orientation = lara.RightArm.Orientation;
 		lara.LeftArm.Locked = lara.RightArm.Locked;
 	}
