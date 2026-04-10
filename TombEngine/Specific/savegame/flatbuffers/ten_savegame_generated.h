@@ -5067,8 +5067,10 @@ inline flatbuffers::Offset<Lara> CreateLara(
     const TEN::Save::EulerAngles *target_arm_orient = 0,
     int32_t target_entity_number = 0,
     flatbuffers::Offset<TEN::Save::TorchData> torch = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>>> weapons = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>>> weapons = 0,
+    flatbuffers::Offset<TEN::Save::PlayerSkinData> skin = 0) {
   LaraBuilder builder_(_fbb);
+  builder_.add_skin(skin);
   builder_.add_weapons(weapons);
   builder_.add_torch(torch);
   builder_.add_target_entity_number(target_entity_number);
@@ -5120,7 +5122,8 @@ inline flatbuffers::Offset<Lara> CreateLaraDirect(
     const TEN::Save::EulerAngles *target_arm_orient = 0,
     int32_t target_entity_number = 0,
     flatbuffers::Offset<TEN::Save::TorchData> torch = 0,
-    const std::vector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>> *weapons = nullptr) {
+    const std::vector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>> *weapons = nullptr,
+    flatbuffers::Offset<TEN::Save::PlayerSkinData> skin = 0) {
   auto weapons__ = weapons ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>>(*weapons) : 0;
   return TEN::Save::CreateLara(
       _fbb,
@@ -5144,7 +5147,8 @@ inline flatbuffers::Offset<Lara> CreateLaraDirect(
       target_arm_orient,
       target_entity_number,
       torch,
-      weapons__);
+      weapons__,
+      skin);
 }
 
 flatbuffers::Offset<Lara> CreateLara(flatbuffers::FlatBufferBuilder &_fbb, const LaraT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -10989,6 +10993,41 @@ inline flatbuffers::Offset<CollisionInfoData> CreateCollisionInfoData(flatbuffer
       _last_bridge_item_pose);
 }
 
+inline PlayerSkinDataT *PlayerSkinData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PlayerSkinDataT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PlayerSkinData::UnPackTo(PlayerSkinDataT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = skin(); _o->skin = _e; }
+  { auto _e = skin_joints(); _o->skin_joints = _e; }
+  { auto _e = hair_primary(); _o->hair_primary = _e; }
+  { auto _e = hair_secondary(); _o->hair_secondary = _e; }
+}
+
+inline flatbuffers::Offset<PlayerSkinData> PlayerSkinData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PlayerSkinDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePlayerSkinData(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PlayerSkinData> CreatePlayerSkinData(flatbuffers::FlatBufferBuilder &_fbb, const PlayerSkinDataT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PlayerSkinDataT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _skin = _o->skin;
+  auto _skin_joints = _o->skin_joints;
+  auto _hair_primary = _o->hair_primary;
+  auto _hair_secondary = _o->hair_secondary;
+  return TEN::Save::CreatePlayerSkinData(
+      _fbb,
+      _skin,
+      _skin_joints,
+      _hair_primary,
+      _hair_secondary);
+}
+
 inline LaraT *Lara::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::make_unique<LaraT>();
   UnPackTo(_o.get(), _resolver);
@@ -11019,6 +11058,7 @@ inline void Lara::UnPackTo(LaraT *_o, const flatbuffers::resolver_function_t *_r
   { auto _e = target_entity_number(); _o->target_entity_number = _e; }
   { auto _e = torch(); if (_e) _o->torch = std::unique_ptr<TEN::Save::TorchDataT>(_e->UnPack(_resolver)); }
   { auto _e = weapons(); if (_e) { _o->weapons.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->weapons[_i] = std::unique_ptr<TEN::Save::CarriedWeaponInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = skin(); if (_e) _o->skin = std::unique_ptr<TEN::Save::PlayerSkinDataT>(_e->UnPack(_resolver)); }
 }
 
 inline flatbuffers::Offset<Lara> Lara::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LaraT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -11050,6 +11090,7 @@ inline flatbuffers::Offset<Lara> CreateLara(flatbuffers::FlatBufferBuilder &_fbb
   auto _target_entity_number = _o->target_entity_number;
   auto _torch = _o->torch ? CreateTorchData(_fbb, _o->torch.get(), _rehasher) : 0;
   auto _weapons = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>> (_o->weapons.size(), [](size_t i, _VectorArgs *__va) { return CreateCarriedWeaponInfo(*__va->__fbb, __va->__o->weapons[i].get(), __va->__rehasher); }, &_va );
+  auto _skin = _o->skin ? CreatePlayerSkinData(_fbb, _o->skin.get(), _rehasher) : 0;
   return TEN::Save::CreateLara(
       _fbb,
       _context,
@@ -11072,7 +11113,8 @@ inline flatbuffers::Offset<Lara> CreateLara(flatbuffers::FlatBufferBuilder &_fbb
       _target_arm_orient,
       _target_entity_number,
       _torch,
-      _weapons);
+      _weapons,
+      _skin);
 }
 
 inline CameraT *Camera::UnPack(const flatbuffers::resolver_function_t *_resolver) const {

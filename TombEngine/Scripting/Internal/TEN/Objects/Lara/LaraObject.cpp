@@ -712,7 +712,7 @@ void LaraObject::SetWaterSkinStatus(int amount, TypeOrNil<bool> flag)
 // @tparam[opt] int hair2 Object ID of the replacement secondary hair object.
 // @usage
 // Lara:SetSkin(TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT, TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT_JOINTS, nil, nil)
-void LaraObject::SetSkin(TypeOrNil<int> skin, TypeOrNil<int> skinJoints, TypeOrNil<int> hair1, TypeOrNil<int> hair2)
+void LaraObject::SetSkin(TypeOrNil<GAME_OBJECT_ID> skin, TypeOrNil<GAME_OBJECT_ID> skinJoints, TypeOrNil<GAME_OBJECT_ID> hair1, TypeOrNil<GAME_OBJECT_ID> hair2)
 {
 	if (g_GameFlow->GetSettings()->Graphics.Skinning)
 	{
@@ -737,30 +737,14 @@ void LaraObject::SetSkin(TypeOrNil<int> skin, TypeOrNil<int> skinJoints, TypeOrN
 		field = (GAME_OBJECT_ID)id;
 	};
 
-	if (skin.has_value())
-		trySetSkinField(lara->Skin.Skin, skin.value(), "skin");
-
-	if (skinJoints.has_value())
-		trySetSkinField(lara->Skin.SkinJoints, skinJoints.value(), "skinJoints");
-
-	if (hair1.has_value())
-	{
-		auto prevHair = lara->Skin.HairPrimary;
-		trySetSkinField(lara->Skin.HairPrimary, hair1.value(), "hair1");
-		hairChanged = (lara->Skin.HairPrimary != prevHair);
-	}
-
-	if (hair2.has_value())
-	{
-		auto prevHair = lara->Skin.HairSecondary;
-		trySetSkinField(lara->Skin.HairSecondary, hair2.value(), "hair2");
-		hairChanged = hairChanged || (lara->Skin.HairSecondary != prevHair);
-	}
+	lara->Skin.Skin = ValueOr<GAME_OBJECT_ID>(skin, ID_LARA_SKIN);
+	lara->Skin.SkinJoints = ValueOr<GAME_OBJECT_ID>(skinJoints, ID_LARA_SKIN_JOINTS);
+	lara->Skin.HairPrimary = ValueOr<GAME_OBJECT_ID>(hair1, ID_HAIR_PRIMARY);
+	lara->Skin.HairSecondary = ValueOr<GAME_OBJECT_ID>(hair2, ID_HAIR_SECONDARY);
 
 	InitializeLaraMeshes(_moveable);
-
-	if (hairChanged)
-		TEN::Effects::Hair::HairEffect.Initialize();
+	TEN::Effects::Hair::HairEffect.Initialize();
+		
 }
 
 /// Align the player with a moveable object for interaction.
