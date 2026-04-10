@@ -2346,6 +2346,9 @@ static void ParsePlayer(const Save::SaveGame* s)
 
 	HairEffect.Initialize();
 
+	g_Renderer.UpdatePlayerSkinVertices(Lara.Skin.Skin, Lara.Skin.SkinJoints,
+		Lara.Skin.HairPrimary, Lara.Skin.HairSecondary);
+
 	// Rope
 	if (Lara.Control.Rope.Ptr >= 0)
 	{

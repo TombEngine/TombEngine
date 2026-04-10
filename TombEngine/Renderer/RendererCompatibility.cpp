@@ -1204,4 +1204,220 @@ namespace TEN::Renderer
 
 		return mesh;
 	}
+
+	// Re-run vertex matching for player skin joints and hair objects at runtime, then re-upload the vertex buffer.
+	void Renderer::UpdatePlayerSkinVertices(GAME_OBJECT_ID skinID, GAME_OBJECT_ID skinJointsID, GAME_OBJECT_ID hairPrimaryID, GAME_OBJECT_ID hairSecondaryID)
+	{
+		if (!_moveableObjects[skinID].has_value() || !_moveableObjects[skinJointsID].has_value())
+			return;
+
+		auto& jointsMoveable = _moveableObjects[skinJointsID].value();
+		auto& skinMoveable = _moveableObjects[skinID].has_value() ? _moveableObjects[skinID].value() : GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
+		auto* jointsObj = &Objects[skinJointsID];
+
+		// Process skin joints: match each joint mesh vertex to the corresponding skin mesh vertex.
+		for (int j = 1; j < jointsObj->nmeshes; j++)
+		{
+			const auto* jointMesh = jointsMoveable.ObjectMeshes[j];
+			const auto* jointBone = jointsMoveable.LinearizedBones[j];
+
+			int bonesToCheck[2] = { jointBone->Parent->Index, j };
+
+			for (int b1 = 0; b1 < jointMesh->Buckets.size(); b1++)
+			{
+				const auto* jointBucket = &jointMesh->Buckets[b1];
+
+				for (int v1 = 0; v1 < jointBucket->NumVertices; v1++)
+				{
+					auto* jointVertex = &_moveablesVertices[jointBucket->StartVertex + v1];
+
+					bool isDone = false;
+
+					for (int k = 0; k < 2; k++)
+					{
+						const auto* skinMesh = skinMoveable.ObjectMeshes[bonesToCheck[k]];
+						const auto* skinBone = skinMoveable.LinearizedBones[bonesToCheck[k]];
+
+						for (int b2 = 0; b2 < skinMesh->Buckets.size(); b2++)
+						{
+							const auto* skinBucket = &skinMesh->Buckets[b2];
+							for (int v2 = 0; v2 < skinBucket->NumVertices; v2++)
+							{
+								auto* skinVertex = &_moveablesVertices[skinBucket->StartVertex + v2];
+
+								int x1 = _moveablesVertices[jointBucket->StartVertex + v1].Position.x + jointBone->GlobalTranslation.x;
+								int y1 = _moveablesVertices[jointBucket->StartVertex + v1].Position.y + jointBone->GlobalTranslation.y;
+								int z1 = _moveablesVertices[jointBucket->StartVertex + v1].Position.z + jointBone->GlobalTranslation.z;
+
+								int x2 = _moveablesVertices[skinBucket->StartVertex + v2].Position.x + skinBone->GlobalTranslation.x;
+								int y2 = _moveablesVertices[skinBucket->StartVertex + v2].Position.y + skinBone->GlobalTranslation.y;
+								int z2 = _moveablesVertices[skinBucket->StartVertex + v2].Position.z + skinBone->GlobalTranslation.z;
+
+								if (abs(x1 - x2) < 2 && abs(y1 - y2) < 2 && abs(z1 - z2) < 2)
+								{
+									jointVertex->BoneIndex[0] = bonesToCheck[k];
+									jointVertex->Position = skinVertex->Position;
+									jointVertex->Normal = skinVertex->Normal;
+
+									isDone = true;
+									break;
+								}
+							}
+
+							if (isDone)
+								break;
+						}
+
+						if (isDone)
+							break;
+					}
+
+					if (!isDone)
+					{
+						jointVertex->BoneIndex[0] = j;
+						jointVertex->BoneWeight[0] = 0.5f * UCHAR_MAX;
+						jointVertex->BoneIndex[1] = jointBone->Parent->Index;
+						jointVertex->BoneWeight[1] = 0.5f * UCHAR_MAX;
+					}
+				}
+			}
+		}
+
+		// Process hair objects.
+		bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
+		const auto& settings = g_GameFlow->GetSettings()->Hair;
+		GAME_OBJECT_ID hairIDs[2] = { hairPrimaryID, hairSecondaryID };
+
+		for (int h = 0; h < 2; h++)
+		{
+			auto hairID = hairIDs[h];
+			if (!_moveableObjects[hairID].has_value())
+				continue;
+
+			auto* hairObj = &Objects[hairID];
+			if (!hairObj->loaded)
+				continue;
+
+			bool isSecond = isYoung && (h == 1);
+			auto& hairMoveable = _moveableObjects[hairID].value();
+
+			// Flatten skinned hairmesh vertices.
+			if (hairObj->skinIndex != NO_VALUE)
+			{
+				const auto* hairMesh = GetMesh(hairObj->skinIndex);
+
+				for (const auto& bucket : hairMesh->Buckets)
+				{
+					for (int v = 0; v < bucket.NumVertices; v++)
+					{
+						auto& vertex = _moveablesVertices[bucket.StartVertex + v];
+
+						for (int w = 0; w < 4; w++)
+						{
+							if (vertex.BoneWeight[w] == 0)
+								continue;
+
+							auto offset = Vector3::Zero;
+
+							for (int b = 1; b < vertex.BoneIndex[w]; b++)
+								offset += GetJointOffset(hairID, b, true);
+
+							vertex.Position += offset * (vertex.BoneWeight[w] / (float)UCHAR_MAX);
+						}
+					}
+				}
+			}
+
+			for (int j = 0; j < hairObj->nmeshes; j++)
+			{
+				const auto* currentMesh = hairMoveable.ObjectMeshes[j];
+				const auto* currentBone = hairMoveable.LinearizedBones[j];
+
+				for (const auto& currentBucket : currentMesh->Buckets)
+				{
+					for (int v1 = 0; v1 < currentBucket.NumVertices; v1++)
+					{
+						auto* currentVertex = &_moveablesVertices[currentBucket.StartVertex + v1];
+						currentVertex->BoneIndex[0] = j + 1;
+
+						// Link mesh 0 to root mesh.
+						if (j == 0)
+						{
+							const auto& vertices0 = isYoung ? settings[(int)PlayerHairType::YoungLeft].Indices :
+															   settings[(int)PlayerHairType::Normal].Indices;
+
+							const auto& vertices1 = isYoung ? settings[(int)PlayerHairType::YoungRight].Indices :
+															   settings[(int)PlayerHairType::Normal].Indices;
+
+							int rootMesh = HairUnit::GetRootMeshID(isSecond ? 1 : 0);
+
+							const auto* parentMesh = skinMoveable.ObjectMeshes[rootMesh];
+							const auto* parentBone = skinMoveable.LinearizedBones[rootMesh];
+
+							int currentOriginalIndex = GetOriginalIndex(currentVertex->AnimationFrameOffsetIndexHash);
+
+							if ((!isSecond && currentOriginalIndex >= vertices0.size()) ||
+								 (isSecond && currentOriginalIndex >= vertices1.size()))
+							{
+								continue;
+							}
+
+							for (int b2 = 0; b2 < parentMesh->Buckets.size(); b2++)
+							{
+								const auto* parentBucket = &parentMesh->Buckets[b2];
+								for (int v2 = 0; v2 < parentBucket->NumVertices; v2++)
+								{
+									const auto* parentVertex = &_moveablesVertices[parentBucket->StartVertex + v2];
+
+									int parentOriginalIndex = GetOriginalIndex(parentVertex->AnimationFrameOffsetIndexHash);
+
+									if ((parentOriginalIndex == vertices1[currentOriginalIndex] &&  isSecond) ||
+										(parentOriginalIndex == vertices0[currentOriginalIndex] && !isSecond))
+									{
+										currentVertex->BoneIndex[0] = 0;
+										currentVertex->Position = parentVertex->Position;
+										currentVertex->Normal = parentVertex->Normal;
+									}
+								}
+							}
+						}
+						// Link meshes > 0 to parent meshes.
+						else
+						{
+							const auto* parentMesh = hairMoveable.ObjectMeshes[j - 1];
+							const auto* parentBone = hairMoveable.LinearizedBones[j - 1];
+
+							for (int b2 = 0; b2 < parentMesh->Buckets.size(); b2++)
+							{
+								const auto* parentBucket = &parentMesh->Buckets[b2];
+								for (int v2 = 0; v2 < parentBucket->NumVertices; v2++)
+								{
+									auto* parentVertex = &_moveablesVertices[parentBucket->StartVertex + v2];
+
+									int x1 = _moveablesVertices[currentBucket.StartVertex + v1].Position.x + currentBone->GlobalTranslation.x;
+									int y1 = _moveablesVertices[currentBucket.StartVertex + v1].Position.y + currentBone->GlobalTranslation.y;
+									int z1 = _moveablesVertices[currentBucket.StartVertex + v1].Position.z + currentBone->GlobalTranslation.z;
+
+									int x2 = _moveablesVertices[parentBucket->StartVertex + v2].Position.x + parentBone->GlobalTranslation.x;
+									int y2 = _moveablesVertices[parentBucket->StartVertex + v2].Position.y + parentBone->GlobalTranslation.y;
+									int z2 = _moveablesVertices[parentBucket->StartVertex + v2].Position.z + parentBone->GlobalTranslation.z;
+
+									if (abs(x1 - x2) == 0 && abs(y1 - y2) == 0 && abs(z1 - z2) == 0)
+									{
+										currentVertex->BoneIndex[0] = j;
+										currentVertex->Position = parentVertex->Position;
+										currentVertex->Normal = parentVertex->Normal;
+										break;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Re-upload modified vertex data to the GPU.
+		_moveablesVertexBuffer.Update(_context.Get(), _moveablesVertices.data(), 0, (int)_moveablesVertices.size());
+	}
 }

@@ -16,6 +16,7 @@
 #include "Game/Lara/lara_two_guns.h"
 #include "Game/Setup.h"
 #include "Objects/Generic/Object/burning_torch.h"
+#include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/TEN/Input/ActionIDs.h"
@@ -745,6 +746,8 @@ void LaraObject::SetSkin(TypeOrNil<GAME_OBJECT_ID> skin, TypeOrNil<GAME_OBJECT_I
 	InitializeLaraMeshes(_moveable);
 	TEN::Effects::Hair::HairEffect.Initialize();
 		
+	g_Renderer.UpdatePlayerSkinVertices(lara->Skin.Skin, lara->Skin.SkinJoints,
+		lara->Skin.HairPrimary, lara->Skin.HairSecondary);
 }
 
 /// Align the player with a moveable object for interaction.

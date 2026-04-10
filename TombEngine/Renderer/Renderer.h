@@ -751,6 +751,7 @@ namespace TEN::Renderer
 		void RenderFullScreenTexture(ID3D11ShaderResourceView* texture, float aspect);
 		void UpdateVideoTexture(Texture2D* texture);
 		void UpdateProgress(float value);
+		void UpdatePlayerSkinVertices(GAME_OBJECT_ID skinID, GAME_OBJECT_ID skinJointsID, GAME_OBJECT_ID hairPrimaryID, GAME_OBJECT_ID hairSecondaryID);
 		void ToggleFullScreen(bool force = false);
 		void SetFullScreen();
 		bool IsFullsScreen();
