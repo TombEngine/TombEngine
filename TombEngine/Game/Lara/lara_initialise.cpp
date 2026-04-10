@@ -69,10 +69,11 @@ void InitializeLara(bool restore)
 	}
 	else
 	{
-		Lara.Skin.Skin          = ID_LARA_SKIN;
-		Lara.Skin.SkinJoints    = ID_LARA_SKIN_JOINTS;
-		Lara.Skin.HairPrimary   = ID_HAIR_PRIMARY;
-		Lara.Skin.HairSecondary = ID_HAIR_SECONDARY;
+		Lara.Skin.Skin				= ID_LARA_SKIN;
+		Lara.Skin.SkinJoints		= ID_LARA_SKIN_JOINTS;
+		Lara.Skin.SkinScream		= ID_LARA_SCREAM;
+		Lara.Skin.HairPrimary		= ID_HAIR_PRIMARY;
+		Lara.Skin.HairSecondary		= ID_HAIR_SECONDARY;
 	}
 
 	LaraItem->Data = &Lara;
@@ -117,7 +118,7 @@ void InitializeLara(bool restore)
 	g_Hud.StatusBars.Initialize(*LaraItem);
 }
 
-void InitializeLaraMeshes(ItemInfo* item)
+void InitializeLaraMeshes(ItemInfo* item, bool clearHolsters)
 {
 	auto& player = GetLaraInfo(*item);
 
@@ -130,9 +131,12 @@ void InitializeLaraMeshes(ItemInfo* item)
 	for (int i = 0; i < NUM_LARA_MESHES; i++)
 		item->Model.MeshIndex[i] = item->Model.BaseMesh + i;
 
-	player.Control.Weapon.HolsterInfo.LeftHolster =
-	player.Control.Weapon.HolsterInfo.RightHolster = 
-	player.Control.Weapon.HolsterInfo.BackHolster = HolsterSlot::Empty;
+	if (clearHolsters)
+	{
+		player.Control.Weapon.HolsterInfo.LeftHolster =
+		player.Control.Weapon.HolsterInfo.RightHolster =
+		player.Control.Weapon.HolsterInfo.BackHolster = HolsterSlot::Empty;
+	}
 }
 
 void InitializeLaraAnims(ItemInfo* item)

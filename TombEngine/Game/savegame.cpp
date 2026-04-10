@@ -593,6 +593,7 @@ const std::vector<byte> SaveGame::Build()
 	Save::PlayerSkinDataBuilder skinData{ fbb };
 	skinData.add_skin((int)Lara.Skin.Skin);
 	skinData.add_skin_joints((int)Lara.Skin.SkinJoints);
+	skinData.add_skin_scream((int)Lara.Skin.SkinScream);
 	skinData.add_hair_primary((int)Lara.Skin.HairPrimary);
 	skinData.add_hair_secondary((int)Lara.Skin.HairSecondary);
 	auto skinDataOffset = skinData.Finish();
@@ -2333,15 +2334,17 @@ static void ParsePlayer(const Save::SaveGame* s)
 	{
 		Lara.Skin.Skin          = (GAME_OBJECT_ID)s->lara()->skin()->skin();
 		Lara.Skin.SkinJoints    = (GAME_OBJECT_ID)s->lara()->skin()->skin_joints();
+		Lara.Skin.SkinScream	= (GAME_OBJECT_ID)s->lara()->skin()->skin_scream();
 		Lara.Skin.HairPrimary   = (GAME_OBJECT_ID)s->lara()->skin()->hair_primary();
 		Lara.Skin.HairSecondary = (GAME_OBJECT_ID)s->lara()->skin()->hair_secondary();
 	}
 	else
 	{
-		Lara.Skin.Skin          = ID_LARA_SKIN;
-		Lara.Skin.SkinJoints    = ID_LARA_SKIN_JOINTS;
-		Lara.Skin.HairPrimary   = ID_HAIR_PRIMARY;
-		Lara.Skin.HairSecondary = ID_HAIR_SECONDARY;
+		Lara.Skin.Skin				= ID_LARA_SKIN;
+		Lara.Skin.SkinJoints		= ID_LARA_SKIN_JOINTS;
+		Lara.Skin.SkinScream		= ID_LARA_SCREAM;
+		Lara.Skin.HairPrimary		= ID_HAIR_PRIMARY;
+		Lara.Skin.HairSecondary		= ID_HAIR_SECONDARY;
 	}
 
 	HairEffect.Initialize();

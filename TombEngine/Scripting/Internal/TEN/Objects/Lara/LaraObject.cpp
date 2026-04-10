@@ -709,41 +709,30 @@ void LaraObject::SetWaterSkinStatus(int amount, TypeOrNil<bool> flag)
 // @function LaraObject:SetSkin
 // @tparam[opt] int skin Object ID of the replacement skin mesh.
 // @tparam[opt] int skinJoints Object ID of the replacement skin joints mesh.
+// // @tparam[opt] int skinScream Object ID of the replacement scream head.
 // @tparam[opt] int hair1 Object ID of the replacement primary hair object.
 // @tparam[opt] int hair2 Object ID of the replacement secondary hair object.
 // @usage
 // Lara:SetSkin(TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT, TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT_JOINTS, nil, nil)
-void LaraObject::SetSkin(TypeOrNil<GAME_OBJECT_ID> skin, TypeOrNil<GAME_OBJECT_ID> skinJoints, TypeOrNil<GAME_OBJECT_ID> hair1, TypeOrNil<GAME_OBJECT_ID> hair2)
+void LaraObject::SetSkin(TypeOrNil<GAME_OBJECT_ID> skin, TypeOrNil<GAME_OBJECT_ID> skinJoints, TypeOrNil<GAME_OBJECT_ID> skinScream, TypeOrNil<GAME_OBJECT_ID> hair1, TypeOrNil<GAME_OBJECT_ID> hair2)
 {
-	if (g_GameFlow->GetSettings()->Graphics.Skinning)
+	auto skinMode = g_Renderer.GetPlayerSkinningMode();
+
+	if (skinMode == SkinningMode::Full)
 	{
-		TENLog("SetSkin: skin swapping is not supported in GPU skinning mode.", LogLevel::Warning);
+		TENLog("SetSkin: Skin swapping is not supported if skinning is being used. Please use Moveable:SwapSkinnedMesh().", LogLevel::Warning);
 		return;
 	}
 
 	auto* lara = GetLaraInfo(_moveable);
-	bool hairChanged = false;
-
-	auto trySetSkinField = [](GAME_OBJECT_ID& field, int id, const char* fieldName)
-	{
-		if (id == 0)
-			return;
-
-		if (!Objects[id].loaded)
-		{
-			TENLog(std::string("SetSkin: object not loaded for ") + fieldName + ".", LogLevel::Warning);
-			return;
-		}
-
-		field = (GAME_OBJECT_ID)id;
-	};
 
 	lara->Skin.Skin = ValueOr<GAME_OBJECT_ID>(skin, ID_LARA_SKIN);
 	lara->Skin.SkinJoints = ValueOr<GAME_OBJECT_ID>(skinJoints, ID_LARA_SKIN_JOINTS);
+	lara->Skin.SkinScream = ValueOr<GAME_OBJECT_ID>(skinScream, ID_LARA_SCREAM);
 	lara->Skin.HairPrimary = ValueOr<GAME_OBJECT_ID>(hair1, ID_HAIR_PRIMARY);
 	lara->Skin.HairSecondary = ValueOr<GAME_OBJECT_ID>(hair2, ID_HAIR_SECONDARY);
 
-	InitializeLaraMeshes(_moveable);
+	InitializeLaraMeshes(_moveable, false);
 	TEN::Effects::Hair::HairEffect.Initialize();
 		
 	g_Renderer.UpdatePlayerSkinVertices(lara->Skin.Skin, lara->Skin.SkinJoints,

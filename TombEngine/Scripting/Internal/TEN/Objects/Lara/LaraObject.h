@@ -44,7 +44,7 @@ public:
 
 	int GetWaterSkinStatus(TypeOrNil<bool> flag) const;
 	void SetWaterSkinStatus(int amount, TypeOrNil<bool> flag);	
-	void SetSkin(TypeOrNil<GAME_OBJECT_ID> skin, TypeOrNil<GAME_OBJECT_ID> skinJoints, TypeOrNil<GAME_OBJECT_ID> hair1, TypeOrNil<GAME_OBJECT_ID> hair2);
+	void SetSkin(TypeOrNil<GAME_OBJECT_ID> skin, TypeOrNil<GAME_OBJECT_ID> skinJoints, TypeOrNil<GAME_OBJECT_ID> skinScream, TypeOrNil<GAME_OBJECT_ID> hair1, TypeOrNil<GAME_OBJECT_ID> hair2);
 	void Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 				  const TypeOrNil<Vec3>& offset, const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
 				  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<ActionID> actionID,

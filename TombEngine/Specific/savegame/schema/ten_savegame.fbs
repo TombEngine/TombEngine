@@ -337,6 +337,7 @@ table CollisionInfoData {
 table PlayerSkinData {
 	skin: int32;
 	skin_joints: int32;
+	skin_scream: int32;
 	hair_primary: int32;
 	hair_secondary: int32;
 }
