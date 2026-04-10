@@ -277,8 +277,18 @@ void HandlePistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 	if (IsHeld(In::Action))
 		LaraTargetInfo(laraItem, weapon);
 
-	AimWeapon(laraItem, lara.LeftArm, weapon);
+	bool isDoubleHanded = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].DoubleHanded;
+
+	if (isDoubleHanded)
+		AimWeapon(laraItem, lara.LeftArm, weapon);
+
 	AimWeapon(laraItem, lara.RightArm, weapon);
+
+	if (!isDoubleHanded)
+	{
+		lara.LeftArm.Orientation = lara.RightArm.Orientation;
+		lara.LeftArm.Locked = lara.RightArm.Locked;
+	}
 
 	if (lara.LeftArm.Locked && !lara.RightArm.Locked)
 	{
@@ -322,12 +332,9 @@ void HandlePistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 
 void AnimatePistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 {
-	bool isDoubleHanded = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].DoubleHanded;
-
 	bool hasFired = false;
 	AnimateWeapon(laraItem, weaponType, hasFired, true);
-	if (isDoubleHanded)
-		AnimateWeapon(laraItem, weaponType, hasFired, false);
+	AnimateWeapon(laraItem, weaponType, hasFired, false);
 
 	// If either weapon has fired, rumble gamepad.
 	if (hasFired)
