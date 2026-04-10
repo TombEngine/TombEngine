@@ -28,6 +28,7 @@ namespace TEN::Renderer
 	{
 		TENLog("Preparing renderer...", LogLevel::Info);
 
+		_skinVertexBackups.clear();
 		_lastBlendMode = BlendMode::Unknown;
 		_lastCullMode = CullMode::Unknown;
 		_lastDepthState = DepthState::Unknown;
@@ -776,6 +777,7 @@ namespace TEN::Renderer
 					// Fix player skin joints and hair units.
 					if (MoveablesIds[i] == ID_LARA_SKIN_JOINTS)
 					{
+						BackupObjectVertices(ID_LARA_SKIN_JOINTS);
 						isSkinPresent = true;
 						int bonesToCheck[2] = { 0, 0 };
 
@@ -855,6 +857,7 @@ namespace TEN::Renderer
 					}
 					else if ((MoveablesIds[i] == ID_HAIR_PRIMARY || MoveablesIds[i] == ID_HAIR_SECONDARY) && isSkinPresent)
 					{
+						BackupObjectVertices((GAME_OBJECT_ID)MoveablesIds[i]);
 						bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
 						bool isSecond = isYoung && MoveablesIds[i] == ID_HAIR_SECONDARY;
 						const auto& skinObj = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
@@ -1211,8 +1214,18 @@ namespace TEN::Renderer
 		if (!_moveableObjects[skinID].has_value() || !_moveableObjects[skinJointsID].has_value())
 			return;
 
+		// Restore original vertex data for objects that were previously processed.
+		RestoreObjectVertices(skinJointsID);
+		RestoreObjectVertices(hairPrimaryID);
+		RestoreObjectVertices(hairSecondaryID);
+
+		// Backup original vertex data for objects being processed for the first time.
+		BackupObjectVertices(skinJointsID);
+		BackupObjectVertices(hairPrimaryID);
+		BackupObjectVertices(hairSecondaryID);
+
 		auto& jointsMoveable = _moveableObjects[skinJointsID].value();
-		auto& skinMoveable = _moveableObjects[skinID].has_value() ? _moveableObjects[skinID].value() : GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
+		auto& skinMoveable = _moveableObjects[skinID].value();
 		auto* jointsObj = &Objects[skinJointsID];
 
 		// Process skin joints: match each joint mesh vertex to the corresponding skin mesh vertex.
@@ -1419,5 +1432,71 @@ namespace TEN::Renderer
 
 		// Re-upload modified vertex data to the GPU.
 		_moveablesVertexBuffer.Update(_context.Get(), _moveablesVertices.data(), 0, (int)_moveablesVertices.size());
+	}
+
+	void Renderer::BackupObjectVertices(GAME_OBJECT_ID objectID)
+	{
+		if (_skinVertexBackups.count((int)objectID))
+			return;
+
+		if (!_moveableObjects[objectID].has_value())
+			return;
+
+		auto& moveable = _moveableObjects[objectID].value();
+		auto& backup = _skinVertexBackups[(int)objectID];
+
+		for (auto* mesh : moveable.ObjectMeshes)
+		{
+			for (auto& bucket : mesh->Buckets)
+			{
+				for (int v = 0; v < bucket.NumVertices; v++)
+					backup.push_back(_moveablesVertices[bucket.StartVertex + v]);
+			}
+		}
+
+		auto* obj = &Objects[objectID];
+		if (obj->skinIndex != NO_VALUE)
+		{
+			auto* skinMesh = GetMesh(obj->skinIndex);
+			for (auto& bucket : skinMesh->Buckets)
+			{
+				for (int v = 0; v < bucket.NumVertices; v++)
+					backup.push_back(_moveablesVertices[bucket.StartVertex + v]);
+			}
+		}
+	}
+
+	void Renderer::RestoreObjectVertices(GAME_OBJECT_ID objectID)
+	{
+		auto it = _skinVertexBackups.find((int)objectID);
+		if (it == _skinVertexBackups.end())
+			return;
+
+		if (!_moveableObjects[objectID].has_value())
+			return;
+
+		auto& moveable = _moveableObjects[objectID].value();
+		auto& backup = it->second;
+		int idx = 0;
+
+		for (auto* mesh : moveable.ObjectMeshes)
+		{
+			for (auto& bucket : mesh->Buckets)
+			{
+				for (int v = 0; v < bucket.NumVertices; v++)
+					_moveablesVertices[bucket.StartVertex + v] = backup[idx++];
+			}
+		}
+
+		auto* obj = &Objects[objectID];
+		if (obj->skinIndex != NO_VALUE)
+		{
+			auto* skinMesh = GetMesh(obj->skinIndex);
+			for (auto& bucket : skinMesh->Buckets)
+			{
+				for (int v = 0; v < bucket.NumVertices; v++)
+					_moveablesVertices[bucket.StartVertex + v] = backup[idx++];
+			}
+		}
 	}
 }

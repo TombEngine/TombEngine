@@ -232,6 +232,7 @@ namespace TEN::Renderer
 		std::vector<int> _roomsIndices;
 		std::vector<Vertex> _moveablesVertices;
 		std::vector<int> _moveablesIndices;
+		std::unordered_map<int, std::vector<Vertex>> _skinVertexBackups;
 		std::vector<Vertex> _staticsVertices;
 		std::vector<int> _staticsIndices;
 
@@ -556,6 +557,8 @@ namespace TEN::Renderer
 		Matrix GetWorldMatrixForSprite(const RendererSpriteToDraw& sprite, RenderView& view);
 		RendererObject& GetRendererObject(GAME_OBJECT_ID id);
 		RendererMesh* GetMesh(int meshIndex);
+		void BackupObjectVertices(GAME_OBJECT_ID objectID);
+		void RestoreObjectVertices(GAME_OBJECT_ID objectID);
 		Vector4 GetPortalRect(Vector4 v, Vector4 vp);
 		bool SphereBoxIntersection(BoundingBox box, Vector3 sphereCentre, float sphereRadius);
 		void InitializeSpriteQuad();
