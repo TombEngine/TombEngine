@@ -593,7 +593,7 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         // FBM gain and coverage variation are low and the cellular term becomes more
         // visible. The full 3x3 neighborhood keeps the distance field continuous.
     {
-        float2 wPos  = float2(p.x, p.z) * ap.FbmScale;
+        float2 wPos  = float2(p.x, p.z) * 2.032f;
             float worleyA = WorleyNoise2D(wPos * 0.40f);
         float invWA  = 1.0f - saturate(worleyA * 1.3f);
         dens = saturate(Remap(dens, -(invWA * 0.30f), 1.0f, 0.0f, 1.0f));
@@ -1137,7 +1137,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         // gaps between puffs. Applied BEFORE the coverage smoothstep so the shapes are
         // carved before the threshold cut.
         {
-            float2 wPos     = float2(p.x, p.z) * AltoFbmScale;
+            float2 wPos     = float2(p.x, p.z) * 2.032f;
             float worleyA   = WorleyNoise2D(wPos * 0.55f);
             float invWA     = 1.0f - saturate(worleyA * 1.3f);
             dens = saturate(Remap(dens, -(invWA * 0.30f), 1.0f, 0.0f, 1.0f));
