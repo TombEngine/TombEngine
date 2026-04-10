@@ -62,6 +62,19 @@ void InitializeLara(bool restore)
 
 	ZeroMemory(&Lara, sizeof(LaraInfo));
 
+	// Initialize or restore skin defaults.
+	if (restore)
+	{
+		Lara.Skin = PlayerBackup.Skin;
+	}
+	else
+	{
+		Lara.Skin.Skin          = ID_LARA_SKIN;
+		Lara.Skin.SkinJoints    = ID_LARA_SKIN_JOINTS;
+		Lara.Skin.HairPrimary   = ID_HAIR_PRIMARY;
+		Lara.Skin.HairSecondary = ID_HAIR_SECONDARY;
+	}
+
 	LaraItem->Data = &Lara;
 	LaraItem->Collidable = false;
 	
@@ -109,7 +122,7 @@ void InitializeLaraMeshes(ItemInfo* item)
 	auto& player = GetLaraInfo(*item);
 
 	// Override base mesh and mesh indices to player skin if it exists.
-	auto& obj = Objects[(Objects[ID_LARA_SKIN].loaded ? ID_LARA_SKIN : ID_LARA)];
+	auto& obj = Objects[(Objects[player.Skin.Skin].loaded ? player.Skin.Skin : ID_LARA)];
 
 	item->Model.BaseMesh = obj.meshIndex;
 	item->Model.SkinIndex = obj.skinIndex;

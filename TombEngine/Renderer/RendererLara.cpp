@@ -441,10 +441,10 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 
 void Renderer::DrawLaraJoints(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass)
 {
-	if (!_moveableObjects[ID_LARA_SKIN_JOINTS].has_value())
+	if (!_moveableObjects[Lara.Skin.SkinJoints].has_value())
 		return;
 
-	RendererObject& laraSkinJoints = *_moveableObjects[ID_LARA_SKIN_JOINTS];
+	RendererObject& laraSkinJoints = *_moveableObjects[Lara.Skin.SkinJoints];
 
 	for (int k = 1; k < laraSkinJoints.ObjectMeshes.size(); k++)
 	{

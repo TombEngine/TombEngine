@@ -3,16 +3,20 @@
 
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
+#include "Game/effects/Hair.h"
 #include "Game/Gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/effects/item_fx.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/lara_initialise.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara_one_gun.h"
 #include "Game/Lara/lara_two_guns.h"
+#include "Game/Setup.h"
 #include "Objects/Generic/Object/burning_torch.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/TEN/Input/ActionIDs.h"
 #include "Scripting/Internal/TEN/Objects/Lara/AmmoTypes.h"
@@ -698,6 +702,67 @@ void LaraObject::SetWaterSkinStatus(int amount, TypeOrNil<bool> flag)
 		inventory.SmallWaterskin = amount;
 }
 
+/// Swap the player's skin, skin joints, and hair objects.
+// Only available in classic (non-GPU) skinning mode. Pass 0 or nil for any parameter to leave it unchanged.
+// The provided object IDs must correspond to objects loaded in the current level.
+// @function LaraObject:SetSkin
+// @tparam[opt] int skin Object ID of the replacement skin mesh.
+// @tparam[opt] int skinJoints Object ID of the replacement skin joints mesh.
+// @tparam[opt] int hair1 Object ID of the replacement primary hair object.
+// @tparam[opt] int hair2 Object ID of the replacement secondary hair object.
+// @usage
+// Lara:SetSkin(TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT, TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT_JOINTS, nil, nil)
+void LaraObject::SetSkin(TypeOrNil<int> skin, TypeOrNil<int> skinJoints, TypeOrNil<int> hair1, TypeOrNil<int> hair2)
+{
+	if (g_GameFlow->GetSettings()->Graphics.Skinning)
+	{
+		TENLog("SetSkin: skin swapping is not supported in GPU skinning mode.", LogLevel::Warning);
+		return;
+	}
+
+	auto* lara = GetLaraInfo(_moveable);
+	bool hairChanged = false;
+
+	auto trySetSkinField = [](GAME_OBJECT_ID& field, int id, const char* fieldName)
+	{
+		if (id == 0)
+			return;
+
+		if (!Objects[id].loaded)
+		{
+			TENLog(std::string("SetSkin: object not loaded for ") + fieldName + ".", LogLevel::Warning);
+			return;
+		}
+
+		field = (GAME_OBJECT_ID)id;
+	};
+
+	if (skin.has_value())
+		trySetSkinField(lara->Skin.Skin, skin.value(), "skin");
+
+	if (skinJoints.has_value())
+		trySetSkinField(lara->Skin.SkinJoints, skinJoints.value(), "skinJoints");
+
+	if (hair1.has_value())
+	{
+		auto prevHair = lara->Skin.HairPrimary;
+		trySetSkinField(lara->Skin.HairPrimary, hair1.value(), "hair1");
+		hairChanged = (lara->Skin.HairPrimary != prevHair);
+	}
+
+	if (hair2.has_value())
+	{
+		auto prevHair = lara->Skin.HairSecondary;
+		trySetSkinField(lara->Skin.HairSecondary, hair2.value(), "hair2");
+		hairChanged = hairChanged || (lara->Skin.HairSecondary != prevHair);
+	}
+
+	InitializeLaraMeshes(_moveable);
+
+	if (hairChanged)
+		TEN::Effects::Hair::HairEffect.Initialize();
+}
+
 /// Align the player with a moveable object for interaction.
 // @function LaraObject:Interact
 // @tparam Objects.Moveable mov Moveable object to align the player with.
@@ -879,6 +944,7 @@ void LaraObject::Register(sol::table& parent)
 		ScriptReserved_GetWaterStatus, & LaraObject::GetWaterStatus,
 		ScriptReserved_GetWaterSkinStatus, & LaraObject::GetWaterSkinStatus,
 		ScriptReserved_SetWaterSkinStatus, & LaraObject::SetWaterSkinStatus,
+		ScriptReserved_SetSkin, &LaraObject::SetSkin,
 		ScriptReserved_PlayerInteract, &LaraObject::Interact,
 		ScriptReserved_PlayerTestInteraction, &LaraObject::TestInteraction,
 
