@@ -407,11 +407,11 @@ namespace TEN::Renderer
 		_stVolumetricCloud.MorphSrcEvolutionSpd = settings.MorphSrcEvolutionSpd;
 		_stVolumetricCloud.MorphSrcHorizonWidth = settings.MorphSrcHorizonWidth;
 		_stVolumetricCloud.MorphActive          = settings.MorphActive;
-		_stVolumetricCloud.MorphPad0            = 0.0f;
+		_stVolumetricCloud.AltoFbmScale         = settings.AltoFbmScale;
 		_stVolumetricCloud.UpsampleSpatialSigma2 = settings.UpsampleSpatialSigma2;
 		_stVolumetricCloud.TemporalAlphaLow      = settings.TemporalAlphaLow;
 		_stVolumetricCloud.TemporalAlphaHigh     = settings.TemporalAlphaHigh;
-		_stVolumetricCloud.QualityPad0           = 0.0f;
+		_stVolumetricCloud.AltoJitterAbsCap      = settings.AltoJitterAbsCap;
 
 		// Temporal-disable guards: force a full per-pixel raymarch when the sky
 		// content would otherwise differ significantly between even and odd frames,

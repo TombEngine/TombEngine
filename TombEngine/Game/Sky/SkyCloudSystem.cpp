@@ -156,10 +156,12 @@ namespace TEN::Sky
 		s.MorphSrcHorizonWidth = MorphSrcHorizonWidth;
 
 		// Edge quality tuning
+		s.AltoFbmScale          = AltoFbmScale;
 		s.JitterStrength        = JitterStrength;
 		s.UpsampleSpatialSigma2 = UpsampleSpatialSigma2;
 		s.TemporalAlphaLow      = TemporalAlphaLow;
 		s.TemporalAlphaHigh     = TemporalAlphaHigh;
+		s.AltoJitterAbsCap      = AltoJitterAbsCap;
 
 		return s;
 	}
@@ -243,10 +245,12 @@ namespace TEN::Sky
 		snap.MorphSrcHorizonWidth = src.MorphSrcHorizonWidth;
 
 		// Edge quality tuning
+		snap.AltoFbmScale          = src.AltoFbmScale;
 		snap.JitterStrength        = src.JitterStrength;
 		snap.UpsampleSpatialSigma2 = src.UpsampleSpatialSigma2;
 		snap.TemporalAlphaLow      = src.TemporalAlphaLow;
 		snap.TemporalAlphaHigh     = src.TemporalAlphaHigh;
+		snap.AltoJitterAbsCap      = src.AltoJitterAbsCap;
 
 		return snap;
 	}

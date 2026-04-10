@@ -187,10 +187,12 @@ namespace TEN::Renderer::VolumetricCloud
 
 		// Quality
 		CloudQualityPreset Quality       = CloudQualityPreset::Medium;
+		float AltoFbmScale               = 2.032f; // FBM input pre-scale (2.032=reference); lower=coarser
 		float JitterStrength             = 0.3f;
 		float UpsampleSpatialSigma2      = 2.0f;   // bilateral upsampler spatial spread (2*sigma^2)
 		float TemporalAlphaLow           = 0.05f;  // below this alpha: temporal reuse OK (clear sky)
 		float TemporalAlphaHigh          = 0.95f;  // above this alpha: temporal reuse OK (cloud core)
+		float AltoJitterAbsCap           = 5.0f;   // absorption cap used only for jitter amplitude
 
 		// Override for direct light direction (if no lens flare is set).
 		// If all zero, derive from existing lens flare orientation.

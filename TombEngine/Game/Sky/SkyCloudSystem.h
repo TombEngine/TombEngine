@@ -165,10 +165,12 @@ namespace TEN::Sky
 		float LightningBoltThicknessScale = 1.0f; // [0.1,5]   bolt radius multiplier
 
 		CloudQualityPreset Quality = CloudQualityPreset::Medium;
+		float AltoFbmScale               = 2.032f; // [0.5,4]  FBM input pre-scale; lower = coarser pattern
 		float JitterStrength             = 0.3f;   // [0,1]    ray start jitter
 		float UpsampleSpatialSigma2      = 0.75f;  // [0.5,8]  2*sigma^2 for bilateral upsampler
 		float TemporalAlphaLow           = 0.05f;  // [0,0.3]  below this alpha: temporal reuse OK
 		float TemporalAlphaHigh          = 0.95f;  // [0.7,1]  above this alpha: temporal reuse OK
+		float AltoJitterAbsCap           = 5.0f;   // [0.1,10] absorption cap used only for jitter amplitude
 
 		// Transform dissolve phase [0,1]. Set only by TransformPresets (CloudMorph).
 		// 0 = no dissolve (normal rendering), 1 = fully dissolved.

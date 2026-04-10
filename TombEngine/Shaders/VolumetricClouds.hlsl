@@ -304,6 +304,7 @@ float FBMAlto5(float3 p, float3 p_stable, float3 advect, float lacunarity, float
     float a          = 0.5f;
     float3 s         = p;
     float3 s_stable  = p_stable;
+    float fineGainFade = saturate((gain - 0.38f) * 3.0f);
 
     [unroll]
     for (int oct = 0; oct < 5; oct++)
@@ -318,6 +319,13 @@ float FBMAlto5(float3 p, float3 p_stable, float3 advect, float lacunarity, float
         else if (oct == 2) octWeight = max(saturate(1.0f - lod),        0.35f);
         else if (oct == 3) octWeight = max(saturate(1.0f - lod * 1.5f), 0.15f);
         else               octWeight = saturate(1.0f - lod * 2.0f);
+
+        // High FBM gain amplifies the finest Alto octaves into moving micro-detail.
+        // Dampen only octaves 3-4 so the large cloud masses remain unchanged.
+        if (oct == 3)
+            octWeight *= lerp(1.0f, 0.60f, fineGainFade);
+        else if (oct == 4)
+            octWeight *= lerp(1.0f, 0.25f, fineGainFade);
 
         // Fine octaves (3-4) use the stable (pre-curl) position to avoid
         // flickering at thin cloud edges. Coarse octaves use the curl-deformed
@@ -444,6 +452,7 @@ struct AltoDensityParams
     float CovSoftWidth;  // AltoCovSoftWidth   — coverage soft-threshold width
     float FbmLac;        // AltoFbmLacunarity  — FBM frequency ratio
     float FbmGain;       // AltoFbmGain        — FBM amplitude scaling
+    float FbmScale;      // AltoFbmScale       — FBM input pre-scale (2.032=reference)
     float BottomSoft;    // AltoBottomSoftness  — organic bottom shaping
     float ZenithBias;    // AltoZenithBias     — sky-height distribution bias
     float EvolutionSpd;  // EvolutionSpeed     — formation cycling rate
@@ -567,9 +576,9 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     // from differential octave advection speeds).
     float dens;
     {
-        float3 p_advect      = (windOfs + evoOfs) * 2.032f;
-        float3 p_shape       = p             * 2.032f - p_advect;
-        float3 p_shape_stable = p_before_curl * 2.032f - p_advect;
+        float3 p_advect      = (windOfs + evoOfs) * ap.FbmScale;
+        float3 p_shape       = p             * ap.FbmScale - p_advect;
+        float3 p_shape_stable = p_before_curl * ap.FbmScale - p_advect;
         dens = FBMAlto5(p_shape, p_shape_stable, p_advect, ap.FbmLac, ap.FbmGain,
                         ap.BillowStr, distLOD);
     }
@@ -584,7 +593,7 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         // FBM gain and coverage variation are low and the cellular term becomes more
         // visible. The full 3x3 neighborhood keeps the distance field continuous.
     {
-        float2 wPos  = float2(p.x, p.z) * 2.032f;
+        float2 wPos  = float2(p.x, p.z) * ap.FbmScale;
             float worleyA = WorleyNoise2D(wPos * 0.40f);
         float invWA  = 1.0f - saturate(worleyA * 1.3f);
         dens = saturate(Remap(dens, -(invWA * 0.30f), 1.0f, 0.0f, 1.0f));
@@ -783,6 +792,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         mainParams.CovSoftWidth = AltoCovSoftWidth;
         mainParams.FbmLac       = AltoFbmLacunarity;
         mainParams.FbmGain      = AltoFbmGain;
+        mainParams.FbmScale     = AltoFbmScale;
         mainParams.BottomSoft   = AltoBottomSoftness;
         mainParams.ZenithBias   = AltoZenithBias;
         mainParams.EvolutionSpd = EvolutionSpeed;
@@ -802,6 +812,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
             srcParams.CovSoftWidth = MorphSrcCovSoftWidth;
             srcParams.FbmLac       = MorphSrcFbmLac;
             srcParams.FbmGain      = MorphSrcFbmGain;
+            srcParams.FbmScale     = AltoFbmScale;  // no morph-src slot; use same scale for both
             srcParams.BottomSoft   = MorphSrcBottomSoft;
             srcParams.ZenithBias   = MorphSrcZenithBias;
             srcParams.EvolutionSpd = MorphSrcEvolutionSpd;
@@ -1101,8 +1112,8 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         // (see FBMAlto5 comment for the flickering rationale).
         float dens;
         {
-            float3 p_advect = (windOfs + evoOfs) * 2.032f;
-            float3 p_shape  = p * 2.032f - p_advect;
+            float3 p_advect = (windOfs + evoOfs) * AltoFbmScale;
+            float3 p_shape  = p * AltoFbmScale - p_advect;
             dens = FBMAlto5(p_shape, p_advect, AltoFbmLacunarity, AltoFbmGain,
                             AltoBillowStrength, distLOD);
         }
@@ -1126,7 +1137,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         // gaps between puffs. Applied BEFORE the coverage smoothstep so the shapes are
         // carved before the threshold cut.
         {
-            float2 wPos     = float2(p.x, p.z) * 2.032f;
+            float2 wPos     = float2(p.x, p.z) * AltoFbmScale;
             float worleyA   = WorleyNoise2D(wPos * 0.55f);
             float invWA     = 1.0f - saturate(worleyA * 1.3f);
             dens = saturate(Remap(dens, -(invWA * 0.30f), 1.0f, 0.0f, 1.0f));
@@ -1885,8 +1896,7 @@ float LightTransmittance(float3 pos, float heightFrac)
     for (int shadowStep = 0; shadowStep < ShadowStepCount; shadowStep++)
     {
         lightPos += lightStep;
-        float lh = HeightFraction(lightPos.y,
-                   CamPositionWS.y - CloudBottomHeight, CloudThickness);
+        float lh = HeightFraction(lightPos.y, CamPositionWS.y - CloudBottomHeight, CloudThickness);
 
         if (lh < 0.0f || lh > 1.0f)
             break;
@@ -1930,7 +1940,7 @@ float LightTransmittance(float3 pos, float heightFrac)
 // Simple blue-noise-like jitter anchored to the cloud field
 // ===========================================================================
 
-float ScreenJitter(float2 cloudPos)
+float ScreenJitter(float2 cloudPos, float jitterScale)
 {
     // 2D hash (no directional correlation) in cloud space.
     // Screen-space jitter leaves a fixed grain pattern behind moving cloud
@@ -1959,7 +1969,7 @@ float ScreenJitter(float2 cloudPos)
     // Spatial component: symmetric around the base phase instead of only pushing
     // samples forward. That avoids biasing the whole ray toward one side of the
     // step interval and keeps JitterStrength=0 perfectly clean.
-    float spatialJitter = (rawJitter - 0.5f) * JitterStrength * jitterAbsDamp;
+    float spatialJitter = (rawJitter - 0.5f) * JitterStrength * jitterAbsDamp * jitterScale;
 
     return frac(basePhase + spatialJitter + 1.0f);
 }
@@ -2159,8 +2169,27 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
     float2 cloudAdvection = WindDirection * (WindSpeed + EvolutionSpeed * (CloudTime * 0.05f + WindSpeed * 0.15f));
     float2 jitterCloudPos = entrySkyXZ * 0.001f + cloudAdvection;
 
+    // Dampen jitter where it is most visible as shimmer: high-FBM Alto clouds
+    // and distant cloud regions. These areas already contain plenty of visual
+    // detail, so aggressive stochastic offsets read as glitter/noise instead of
+    // useful anti-banding.
+    float horizDistEntry = length(entrySkyXZ);
+    float lodNearJ = max(CloudBottomHeight * 1.0f, 1.0f);
+    float lodFarJ  = max(CloudBottomHeight * 6.0f, lodNearJ + 1.0f);
+    float jitterDistLOD = saturate((horizDistEntry - lodNearJ) / (lodFarJ - lodNearJ));
+    float jitterDistDamp = lerp(1.0f, 0.22f, jitterDistLOD * jitterDistLOD);
+    float jitterFbmDamp = 1.0f;
+    if (CloudType == 1)
+    {
+        // At high AltoFbmGain the silhouette already contains plenty of internal
+        // variation. Additional stochastic start jitter mostly reads as shimmer,
+        // including near the zenith where distance-based damping is weak.
+        jitterFbmDamp = lerp(1.0f, 0.20f, saturate((AltoFbmGain - 0.30f) * 2.0f));
+    }
+    float jitterScale = jitterDistDamp * jitterFbmDamp;
+
     // Per-pixel start jitter: uniform [0,1] (see ScreenJitter comments).
-    float jitter = ScreenJitter(jitterCloudPos);
+    float jitter = ScreenJitter(jitterCloudPos, jitterScale);
     float t = tRange.x + stepSize * jitter;
 
     // Secondary cloud-space hash for per-step sub-jitter decorrelation.
@@ -2228,7 +2257,25 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
         // adjacent steps never accidentally re-align into coherent horizontal slabs.
         // Amplitude ??0.35 * stepSize keeps samples within each step's sub-domain.
         float subJitterMin = lerp(0.22f, 0.55f, thickBandGuard);
-        float subJitterAmp = lerp(subJitterMin, 0.7f, saturate((effAbsorption - 0.2f) * 2.5f));
+        // For Alto: use AltoJitterAbsCap directly as a virtual absorption for jitter
+        // amplitude — completely decoupled from actual AltoAbsorption so the user can
+        // suppress shimmer without softening the cloud density/shading.
+        // For other cloud types: keep using actual absorption so banding-suppression
+        // still scales correctly.
+        float jitterAbs    = (CloudType == 1) ? AltoJitterAbsCap : effAbsorption;
+        float subJitterAmp = lerp(subJitterMin, 0.7f, saturate((jitterAbs - 0.2f) * 2.5f))
+                           * jitterScale;
+
+        // The start-jitter is enough to break up march planes. The additional
+        // per-step sub-jitter is what tends to read as glitter/noisy crawling
+        // on Alto silhouettes, especially when FBM gain is high or the cloud is
+        // far away. Keep only a small fraction of it in those cases.
+        if (CloudType == 1)
+        {
+            float subFbmDamp  = lerp(0.28f, 0.04f, saturate((AltoFbmGain - 0.30f) * 2.2f));
+            float subDistDamp = lerp(1.0f, 0.18f, jitterDistLOD * jitterDistLOD);
+            subJitterAmp *= subFbmDamp * subDistDamp;
+        }
         float subOff	 = (frac(rawJitter2 + (float)step * 0.61803398875f) - 0.5f) * stepSize * subJitterAmp;
         float3 samplePos = rayOrigin + rayDir * (t + subOff);
         float  heightFrac = HeightFraction(samplePos.y,

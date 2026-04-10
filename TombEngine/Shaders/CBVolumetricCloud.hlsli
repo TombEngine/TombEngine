@@ -161,11 +161,11 @@ cbuffer CBVolumetricCloud : register(b9)
     float MorphSrcEvolutionSpd;  // Source preset EvolutionSpeed
     float MorphSrcHorizonWidth;  // Source preset AltoHorizonWidth
     float MorphActive;           // 0 = normal, 1 = dual-density morph active
-    float MorphPad0;
+    float AltoFbmScale;          // [0.5,4]   FBM input pre-scale (2.032=reference); lower=coarser pattern
     //--
     // Row 29 — Edge quality tuning
     float UpsampleSpatialSigma2;  // [0.5,8]  2*sigma^2 for bilateral upsampler spatial kernel
     float TemporalAlphaLow;       // [0,0.2]  below this alpha: temporal reuse OK (clear sky)
     float TemporalAlphaHigh;      // [0.8,1]  above this alpha: temporal reuse OK (cloud core)
-    float QualityPad0;
+    float AltoJitterAbsCap;       // [0,inf]  absorption cap used only for jitter amplitude (independent of actual cloud opacity)
 };

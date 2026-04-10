@@ -135,7 +135,9 @@ namespace TEN::Sky
 		params.push_back({"Light Bolt Length", &snap.LightningBoltLengthScale,    0.1f, 5.0f, 0.05f, "%.2f", def(&VolumetricCloudLayerSnapshot::LightningBoltLengthScale)});
 		params.push_back({"Light Bolt Thick",  &snap.LightningBoltThicknessScale, 0.001f, 5.0f, 0.05f, "%.3f", def(&VolumetricCloudLayerSnapshot::LightningBoltThicknessScale)});
 		// --- Edge quality tuning ---
+		params.push_back({"FBM Scale",         &snap.AltoFbmScale,               0.5f,   4.0f, 0.02f, "%.3f", def(&VolumetricCloudLayerSnapshot::AltoFbmScale)});
 		params.push_back({"Jitter Strength",   &snap.JitterStrength,              0.0f,   1.0f, 0.01f, "%.3f", def(&VolumetricCloudLayerSnapshot::JitterStrength)});
+		params.push_back({"Jitter Abs Cap",    &snap.AltoJitterAbsCap,            0.1f,  10.0f, 0.05f, "%.2f", def(&VolumetricCloudLayerSnapshot::AltoJitterAbsCap)});
 		params.push_back({"Upsamp Sigma2",     &snap.UpsampleSpatialSigma2,       0.5f,   8.0f, 0.05f, "%.2f", def(&VolumetricCloudLayerSnapshot::UpsampleSpatialSigma2)});
 		params.push_back({"Temporal A Low",    &snap.TemporalAlphaLow,            0.0f,   0.3f, 0.005f,"%.3f", def(&VolumetricCloudLayerSnapshot::TemporalAlphaLow)});
 		params.push_back({"Temporal A High",   &snap.TemporalAlphaHigh,           0.7f,   1.0f, 0.005f,"%.3f", def(&VolumetricCloudLayerSnapshot::TemporalAlphaHigh)});
