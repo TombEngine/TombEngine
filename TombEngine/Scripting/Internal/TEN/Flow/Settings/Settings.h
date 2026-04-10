@@ -159,13 +159,13 @@ namespace TEN::Scripting
 		int			FlashRange	  = 12;
 		int			FlashDuration = 0;
 
-		bool DoubleHanded		 = false;
 		bool Smoke				 = false;
 		bool Shell				 = false;
 		bool MuzzleFlash		 = true;
 		bool MuzzleGlow			 = true;
 		bool ColorizeMuzzleFlash = false;
 		Vec3 MuzzleOffset = {};
+		bool DoubleHanded = false;
 
 		static void Register(sol::table& parent);
 	};
