@@ -102,7 +102,7 @@ namespace TEN::Sky
 		// --- Altocumulus-specific parameters (meaningful only when Category == AltocumulusMid) ---
 		params.push_back({"Alto Billow Str",  &snap.AltoBillowStrength, 0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoBillowStrength)});
 		params.push_back({"Alto Cov Soft W",  &snap.AltoCovSoftWidth,   0.0f,    0.25f,    0.005f,   "%.4f",     def(&VolumetricCloudLayerSnapshot::AltoCovSoftWidth)});
-		params.push_back({"Alto Absorption", &snap.AltoAbsorption,      0.1f,    5.0f,     0.05f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoAbsorption)});
+		params.push_back({"Alto Absorption", &snap.AltoAbsorption,      0.0f,    5.0f,     0.05f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoAbsorption)});
 		params.push_back({"Alto Cloud Size",  &snap.AltoCloudSize,      0.2f,    5.0f,     0.05f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoCloudSize)});
 		params.push_back({"Alto Cloud Amount",&snap.AltoCloudAmount,     0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoCloudAmount)});
 		params.push_back({"Alto Brightness",  &snap.AltoCloudBrightness, 0.1f,   4.0f,     0.05f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoCloudBrightness)});
@@ -134,6 +134,11 @@ namespace TEN::Sky
 		params.push_back({"Light Ambient",     &snap.LightningAmbientContrib,    0.0f, 1.0f, 0.01f, "%.3f", def(&VolumetricCloudLayerSnapshot::LightningAmbientContrib)});
 		params.push_back({"Light Bolt Length", &snap.LightningBoltLengthScale,    0.1f, 5.0f, 0.05f, "%.2f", def(&VolumetricCloudLayerSnapshot::LightningBoltLengthScale)});
 		params.push_back({"Light Bolt Thick",  &snap.LightningBoltThicknessScale, 0.001f, 5.0f, 0.05f, "%.3f", def(&VolumetricCloudLayerSnapshot::LightningBoltThicknessScale)});
+		// --- Edge quality tuning ---
+		params.push_back({"Jitter Strength",   &snap.JitterStrength,              0.0f,   1.0f, 0.01f, "%.3f", def(&VolumetricCloudLayerSnapshot::JitterStrength)});
+		params.push_back({"Upsamp Sigma2",     &snap.UpsampleSpatialSigma2,       0.5f,   8.0f, 0.05f, "%.2f", def(&VolumetricCloudLayerSnapshot::UpsampleSpatialSigma2)});
+		params.push_back({"Temporal A Low",    &snap.TemporalAlphaLow,            0.0f,   0.3f, 0.005f,"%.3f", def(&VolumetricCloudLayerSnapshot::TemporalAlphaLow)});
+		params.push_back({"Temporal A High",   &snap.TemporalAlphaHigh,           0.7f,   1.0f, 0.005f,"%.3f", def(&VolumetricCloudLayerSnapshot::TemporalAlphaHigh)});
 
 		return params;
 	}

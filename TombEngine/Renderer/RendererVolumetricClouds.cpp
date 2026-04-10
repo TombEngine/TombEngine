@@ -408,16 +408,50 @@ namespace TEN::Renderer
 		_stVolumetricCloud.MorphSrcHorizonWidth = settings.MorphSrcHorizonWidth;
 		_stVolumetricCloud.MorphActive          = settings.MorphActive;
 		_stVolumetricCloud.MorphPad0            = 0.0f;
+		_stVolumetricCloud.UpsampleSpatialSigma2 = settings.UpsampleSpatialSigma2;
+		_stVolumetricCloud.TemporalAlphaLow      = settings.TemporalAlphaLow;
+		_stVolumetricCloud.TemporalAlphaHigh     = settings.TemporalAlphaHigh;
+		_stVolumetricCloud.QualityPad0           = 0.0f;
 
-		// Rotation-aware temporal: if the camera has rotated significantly since
-		// last frame, force a full re-raymarch this frame so every pixel is fresh.
-		// Stale same-UV data would show clouds from the wrong sky direction —
-		// visible as watery smearing or a rectangular seam artifact.
-		// cos(0.5°) ≈ 0.99996 — any rotation larger than half a degree disables skip.
+		// Temporal-disable guards: force a full per-pixel raymarch when the sky
+		// content would otherwise differ significantly between even and odd frames,
+		// which produces a visible checkerboard / watery shimmering artifact.
+		//
+		// Guard 1 — camera rotation.
+		// cos(0.5°) ≈ 0.99996: any rotation larger than half a degree is rejected.
 		{
 			float camDot = view.Camera.WorldDirection.Dot(runtimeState.PrevCameraForward);
-			bool cameraStationary = (camDot > 0.99996f);
-			if (!cameraStationary)
+			if (camDot <= 0.99996f)
+				_stVolumetricCloud.TemporalEnabled = 0;
+		}
+
+		// Guard 2 — cloud advection speed.
+		// wind offset and evolution each translate the noise-space sample position.
+		// Adjacent checkerboard pixels show the cloud at two different moments in
+		// time.  For thin cloud features (altocumulus Schraffuren) even a small
+		// per-frame shift causes them to appear at two slightly different
+		// screen-space positions → visible hatching / watery shimmer in motion.
+		//
+		// Threshold derivation:
+		//   noiseDisplace = windDeltaPerFrame * 2.032
+		//   FBM oct-3 wavelength ≈ 1 / lacunarity³ ≈ 1/18.5 = 0.054 noise units.
+		//   A per-frame shift of 0.010 noise units = 18.5 % of oct-3 wavelength —
+		//   enough to move a thin cloud edge by nearly a full half-res pixel and
+		//   produce a clearly visible double-image when blended with the previous
+		//   frame's stale pixels.
+		//   At 60 fps: threshold 0.010 → disable Temporal for WindSpeed > ~0.30.
+		//   At 30 fps: same threshold → disable for WindSpeed > ~0.15.
+		//   Previous threshold (0.05) only caught WindSpeed > 1.47 — far too lenient
+		//   for typical altocumulus presets that run at wind 0.3–0.6.
+		{
+			float deltaWind = runtimeState.WindAccumOffset - runtimeState.PrevWindAccumOffset;
+			float deltaEvo  = runtimeState.AccumulatedTime  - runtimeState.PrevAccumulatedTime;
+			// windOfs  = WindDirection * WindAccumOffset   → noise shift = deltaWind * 2.032
+			// evoOfs   = evoDir * EvolutionSpd * (Time*0.05 + WindSpeed*0.15)
+			//           ≈ evoDir * EvolutionSpd * deltaEvo * 0.05  (dominant term)
+			float noiseDisplace = std::abs(deltaWind) * 2.032f
+			                    + std::abs(deltaEvo)  * settings.EvolutionSpeed * 0.05f * 2.032f;
+			if (noiseDisplace > 0.010f)
 				_stVolumetricCloud.TemporalEnabled = 0;
 		}
 
@@ -490,8 +524,10 @@ namespace TEN::Renderer
 		// Update constant buffer.
 		UpdateVolumetricCloudBuffer(*activeSettings, _cloudState, renderView);
 
-		// Store current camera forward for next frame's rotation-change detection.
-		_cloudState.PrevCameraForward = renderView.Camera.WorldDirection;
+		// Store current values for next frame's temporal-disable guards.
+		_cloudState.PrevCameraForward   = renderView.Camera.WorldDirection;
+		_cloudState.PrevAccumulatedTime = _cloudState.AccumulatedTime;
+		_cloudState.PrevWindAccumOffset = _cloudState.WindAccumOffset;
 
 		// --- Pass 1: Render clouds to half-res target ---
 		// Temporal checkerboard: save the current cloud RT as the previous frame

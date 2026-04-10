@@ -162,4 +162,10 @@ cbuffer CBVolumetricCloud : register(b9)
     float MorphSrcHorizonWidth;  // Source preset AltoHorizonWidth
     float MorphActive;           // 0 = normal, 1 = dual-density morph active
     float MorphPad0;
+    //--
+    // Row 29 — Edge quality tuning
+    float UpsampleSpatialSigma2;  // [0.5,8]  2*sigma^2 for bilateral upsampler spatial kernel
+    float TemporalAlphaLow;       // [0,0.2]  below this alpha: temporal reuse OK (clear sky)
+    float TemporalAlphaHigh;      // [0.8,1]  above this alpha: temporal reuse OK (cloud core)
+    float QualityPad0;
 };

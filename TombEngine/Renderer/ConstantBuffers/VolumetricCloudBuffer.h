@@ -72,7 +72,7 @@ namespace TEN::Renderer::ConstantBuffers
 		// Row 11 — Altocumulus-specific appearance parameters (only used when CloudType == 2)
 		float AltoBillowStrength;  // [0,1]      blend toward billow (abs-value) FBM noise
 		float AltoCovSoftWidth;    // [0,0.25]   self-referential coverage soft-threshold width
-		float AltoAbsorption;      // [0.1,5.0]  absorption coefficient for Altocumulus
+		float AltoAbsorption;      // [0.0,5.0]  absorption coefficient for Altocumulus
 		float AltoCloudSize;       // [0.2,5.0]  feature scale multiplier
 		//--
 		// Row 12 — Altocumulus extended parameters
@@ -169,5 +169,11 @@ namespace TEN::Renderer::ConstantBuffers
 		float MorphSrcHorizonWidth;  // Source preset AltoHorizonWidth
 		float MorphActive;           // 0 = normal rendering, 1 = dual-density morph active
 		float MorphPad0;
+		//--
+		// Row 29 — Edge quality tuning
+		float UpsampleSpatialSigma2;  // [0.5,8]  2*sigma^2 for bilateral upsampler spatial kernel
+		float TemporalAlphaLow;       // [0,0.2]  below this alpha: temporal reuse OK (clear sky)
+		float TemporalAlphaHigh;      // [0.8,1]  above this alpha: temporal reuse OK (cloud core)
+		float QualityPad0;
 	};
 }

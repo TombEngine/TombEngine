@@ -118,7 +118,7 @@ namespace TEN::Renderer::VolumetricCloud
 		// Altocumulus-specific appearance tuning (only meaningful for CloudType == 2 / AltocumulusMid)
 		float AltoBillowStrength = 0.75f;  // [0,1]      blend toward billow (abs-value) FBM noise
 		float AltoCovSoftWidth   = 0.08f;  // [0,0.25]   self-referential coverage soft-threshold width
-		float AltoAbsorption      = 1.0f;   // [0.1,5.0] absorption coefficient
+		float AltoAbsorption      = 1.0f;   // [0.0,5.0] absorption coefficient
 		float AltoCloudSize      = 1.0f;   // [0.2,5.0]  feature scale multiplier
 		float AltoCloudAmount    = 0.6875f;// [0.0,1.0]  coverage/fill control
 		float AltoCloudBrightness = 1.0f;  // [0.1,4.0]  brightness multiplier
@@ -186,8 +186,11 @@ namespace TEN::Renderer::VolumetricCloud
 		float MorphSrcHorizonWidth = 0.0f;
 
 		// Quality
-		CloudQualityPreset Quality  = CloudQualityPreset::Medium;
-		float JitterStrength        = 1.0f;
+		CloudQualityPreset Quality       = CloudQualityPreset::Medium;
+		float JitterStrength             = 0.3f;
+		float UpsampleSpatialSigma2      = 2.0f;   // bilateral upsampler spatial spread (2*sigma^2)
+		float TemporalAlphaLow           = 0.05f;  // below this alpha: temporal reuse OK (clear sky)
+		float TemporalAlphaHigh          = 0.95f;  // above this alpha: temporal reuse OK (cloud core)
 
 		// Override for direct light direction (if no lens flare is set).
 		// If all zero, derive from existing lens flare orientation.
@@ -220,11 +223,18 @@ namespace TEN::Renderer::VolumetricCloud
 		// Current packed quality params
 		CloudQualityParams ActiveQuality = {};
 
-		// Previous frame's camera forward direction for rotation-change detection.
-		// When the camera has rotated since last frame, temporal checkerboard is
-		// disabled (TemporalEnabled forced to 0) so every pixel is freshly
-		// raymarched — avoids stale-UV swimming and rectangular seam artifacts.
-		Vector3 PrevCameraForward = Vector3(0.0f, 0.0f, 1.0f);
+		// Previous-frame values for temporal-disable guards.
+		//
+		// Camera rotation: if the camera has rotated since last frame, temporal is
+		// disabled so every pixel is freshly raymarched — avoids stale-UV swimming.
+		//
+		// Cloud motion: AccumulatedTime and WindAccumOffset are compared to their
+		// previous values to approximate the noise-space displacement per frame.
+		// If the displacement exceeds ~0.05 noise units the checkerboard becomes
+		// visible (adjacent pixels show the cloud at two distinct moments in time).
+		Vector3 PrevCameraForward      = Vector3(0.0f, 0.0f, 1.0f);
+		float   PrevAccumulatedTime    = 0.0f;
+		float   PrevWindAccumOffset    = 0.0f;
 
 		// Lens flare occlusion
 		LensFlareCloudOcclusionState FlareOcclusion = {};
@@ -257,10 +267,10 @@ namespace TEN::Renderer::VolumetricCloud
 
 		case CloudQualityPreset::High:
 			return CloudQualityParams{
-				/*PrimaryStepCount=*/    24,
+				/*PrimaryStepCount=*/    32,
 				/*ShadowStepCount=*/     6,
 				/*OcclusionSampleSteps=*/8,
-				/*RenderResolutionScale=*/0.5f,
+				/*RenderResolutionScale=*/0.75f,
 				/*DetailNoiseEnabled=*/  true,
 				/*TemporalReprojection=*/true,
 				/*BlueNoiseJitter=*/     true

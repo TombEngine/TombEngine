@@ -118,7 +118,7 @@ namespace TEN::Sky
 		// Altocumulus-specific appearance tuning (only meaningful for Category == AltocumulusMid)
 		float AltoBillowStrength = 0.75f;  // [0,1]      blend toward billow (abs-value) FBM
 		float AltoCovSoftWidth   = 0.08f;  // [0,0.25]   self-referential coverage soft-threshold
-		float AltoAbsorption      = 1.0f;   // [0.1,5.0] absorption coefficient
+		float AltoAbsorption      = 1.0f;   // [0.0,5.0] absorption coefficient
 		float AltoCloudSize      = 1.0f;   // [0.2,5.0]  feature scale (1=default, <1=bigger, >1=smaller)
 		float AltoCloudAmount    = 0.6875f;// [0.0,1.0]  coverage/fill (0=sparse, 1=overcast)
 		float AltoCloudBrightness = 1.0f;  // [0.1,4.0]  brightness multiplier
@@ -165,6 +165,10 @@ namespace TEN::Sky
 		float LightningBoltThicknessScale = 1.0f; // [0.1,5]   bolt radius multiplier
 
 		CloudQualityPreset Quality = CloudQualityPreset::Medium;
+		float JitterStrength             = 0.3f;   // [0,1]    ray start jitter
+		float UpsampleSpatialSigma2      = 0.75f;  // [0.5,8]  2*sigma^2 for bilateral upsampler
+		float TemporalAlphaLow           = 0.05f;  // [0,0.3]  below this alpha: temporal reuse OK
+		float TemporalAlphaHigh          = 0.95f;  // [0.7,1]  above this alpha: temporal reuse OK
 
 		// Transform dissolve phase [0,1]. Set only by TransformPresets (CloudMorph).
 		// 0 = no dissolve (normal rendering), 1 = fully dissolved.
