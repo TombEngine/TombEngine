@@ -1927,13 +1927,17 @@ float LightTransmittance(float3 pos, float heightFrac)
 }
 
 // ===========================================================================
-// Simple blue-noise-like jitter from screen position + frame
+// Simple blue-noise-like jitter anchored to the cloud field
 // ===========================================================================
 
-float ScreenJitter(float2 screenPos)
+float ScreenJitter(float2 cloudPos)
 {
-    // 2D hash (no directional correlation).
-    float2 hp = frac(screenPos * float2(443.897f, 441.423f));
+    // 2D hash (no directional correlation) in cloud space.
+    // Screen-space jitter leaves a fixed grain pattern behind moving cloud
+    // edges, which reads as a blurry residue that slowly dissolves. Cloud-space
+    // jitter advects with the cloud body instead, so any grain moves with the
+    // wind/evolution rather than remaining stuck to the screen.
+    float2 hp = frac(cloudPos * float2(443.897f, 441.423f));
     hp += dot(hp, hp.yx + 19.19f);
     float rawJitter = frac(hp.x * hp.y);
 
@@ -2148,14 +2152,22 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
     float stepSize	   = maxDist / (float)effectiveSteps;
     float thickBandGuard = saturate((effThickness - 2600.0f) / 2200.0f);
 
+    // Anchor jitter to the cloud-field entry position instead of the screen.
+    // This keeps the pattern moving with the cloud rather than staying fixed
+    // in view-space and smearing behind moving silhouettes.
+    float2 entrySkyXZ   = rayDir.xz * tRange.x;
+    float2 cloudAdvection = WindDirection * (WindSpeed + EvolutionSpeed * (CloudTime * 0.05f + WindSpeed * 0.15f));
+    float2 jitterCloudPos = entrySkyXZ * 0.001f + cloudAdvection;
+
     // Per-pixel start jitter: uniform [0,1] (see ScreenJitter comments).
-    float jitter = ScreenJitter(screenPos);
+    float jitter = ScreenJitter(jitterCloudPos);
     float t = tRange.x + stepSize * jitter;
 
-    // Secondary per-pixel hash for per-step sub-jitter decorrelation.
-    // Different seed from ScreenJitter to avoid start/sub correlation.
-    float3 magic2	 = float3(0.19881f, 0.04679f, 41.731f);
-    float  rawJitter2 = frac(magic2.z * frac(dot(screenPos * 0.81f + float2(1.3f, 2.7f), magic2.xy)));
+    // Secondary cloud-space hash for per-step sub-jitter decorrelation.
+    // Different transform from ScreenJitter to avoid start/sub correlation.
+    float2 hp2 = frac((jitterCloudPos + float2(1.3f, 2.7f)) * float2(317.113f, 271.197f));
+    hp2 += dot(hp2, hp2.yx + 27.17f);
+    float rawJitter2 = frac(hp2.x * hp2.y);
 
     // Phase function for light scattering.
     float cosTheta = dot(rayDir, normalize(CloudLightDirection));
