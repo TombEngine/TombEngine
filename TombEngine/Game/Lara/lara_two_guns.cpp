@@ -42,6 +42,11 @@ static WeaponAnimData GetWeaponAnimData(LaraWeaponType weaponType)
 		{ LaraWeaponType::Uzi, WeaponAnimData{ ID_UZI_ANIM, 4, 5, 13, 24 } }
 	};
 	
+	bool isDoubleHanded = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].DoubleHanded;
+
+	if (weaponType == LaraWeaponType::Revolver && isDoubleHanded)
+		weaponType = LaraWeaponType::Pistol;
+
 	auto it = ANIM_DATA_MAP.find(weaponType);
 	return ((it != ANIM_DATA_MAP.end()) ? it->second : ANIM_DATA_MAP.at(LaraWeaponType::None));
 }
