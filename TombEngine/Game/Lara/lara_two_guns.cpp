@@ -123,18 +123,18 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 			// Shoot weapon.
 			if (IsHeld(In::Action))
 			{
-				// HACK: Special case for revolver.
-				bool canShoot = (weaponType == LaraWeaponType::Revolver) ? isRightWeapon : true;
+				bool isDoubleHanded = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].DoubleHanded;
+				bool canShoot = isDoubleHanded ? true : isRightWeapon;
 				if (canShoot)
 				{
 					auto armOrient = EulerAngles::Identity;
 
-					if (weaponType == LaraWeaponType::Revolver)
+					if (!isDoubleHanded)
 					{
 						// Allow free targeting while standing still and no target present.
 						auto additionalOrient = (player.TargetEntity || laraItem.Animation.ActiveState != LS_IDLE) ? EulerAngles::Identity : player.ExtraTorsoRot;
 
-						// HACK: Revolver, a right weapon, uses the left arm's orientation.
+						// Single-handed weapon uses the left arm's orientation for aiming.
 						armOrient = EulerAngles(
 							additionalOrient.x + player.LeftArm.Orientation.x,
 							additionalOrient.y + player.LeftArm.Orientation.y + laraItem.Pose.Orientation.y,
@@ -317,9 +317,12 @@ void HandlePistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 
 void AnimatePistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 {
+	bool isDoubleHanded = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].DoubleHanded;
+
 	bool hasFired = false;
 	AnimateWeapon(laraItem, weaponType, hasFired, true);
-	AnimateWeapon(laraItem, weaponType, hasFired, false);
+	if (isDoubleHanded)
+		AnimateWeapon(laraItem, weaponType, hasFired, false);
 
 	// If either weapon has fired, rumble gamepad.
 	if (hasFired)
@@ -384,14 +387,15 @@ void UndrawPistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 void DrawPistolMeshes(ItemInfo& laraItem, LaraWeaponType weaponType)
 {
 	auto& player = GetLaraInfo(laraItem);
+	bool isDoubleHanded = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].DoubleHanded;
 
-	if (weaponType != LaraWeaponType::Revolver)
+	if (isDoubleHanded)
 		player.Control.Weapon.HolsterInfo.LeftHolster = HolsterSlot::Empty;
 
 	player.Control.Weapon.HolsterInfo.RightHolster = HolsterSlot::Empty;
 
 	laraItem.Model.MeshIndex[LM_RHAND] = Objects[GetWeaponObjectMeshID(laraItem, weaponType)].meshIndex + LM_RHAND;
-	if (weaponType != LaraWeaponType::Revolver)
+	if (isDoubleHanded)
 		laraItem.Model.MeshIndex[LM_LHAND] = Objects[GetWeaponObjectMeshID(laraItem, weaponType)].meshIndex + LM_LHAND;
 }
 
@@ -400,8 +404,8 @@ void UndrawPistolMesh(ItemInfo& laraItem, LaraWeaponType weaponType, bool isRigh
 	auto& player = GetLaraInfo(laraItem);
 	auto& holster = isRightWeapon ? player.Control.Weapon.HolsterInfo.RightHolster : player.Control.Weapon.HolsterInfo.LeftHolster;
 
-	// HACK: Special case for revolver.
-	if (!isRightWeapon && weaponType == LaraWeaponType::Revolver)
+	bool isDoubleHanded = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].DoubleHanded;
+	if (!isRightWeapon && !isDoubleHanded)
 		return;
 
 	int jointIndex = isRightWeapon ? LM_RHAND : LM_LHAND;

@@ -159,6 +159,7 @@ namespace TEN::Scripting
 		int			FlashRange	  = 12;
 		int			FlashDuration = 0;
 
+		bool DoubleHanded		 = false;
 		bool Smoke				 = false;
 		bool Shell				 = false;
 		bool MuzzleFlash		 = true;

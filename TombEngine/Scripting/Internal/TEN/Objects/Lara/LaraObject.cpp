@@ -699,6 +699,9 @@ void LaraObject::SetWaterSkinStatus(int amount, TypeOrNil<bool> flag)
 }
 
 /// Align the player with a moveable object for interaction.
+}
+
+/// Align the player with a moveable object for interaction.
 // @function LaraObject:Interact
 // @tparam Objects.Moveable mov Moveable object to align the player with.
 // @tparam[opt=197 (BUTTON_PUSH)] int animNumber The animation to play after alignment is complete.
