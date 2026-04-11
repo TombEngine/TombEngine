@@ -8,6 +8,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Lua API changes
 * Added `Moveable:SetOnLoop` method.
 * Added callbacks for item pickup and vehicle enter/leave events.
+* Added `Logic.HasCallback` method.
 * Renamed `ENTER`, `INSIDE` and `LEAVE` event types to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
 
 ## [Version 1.11.1]
