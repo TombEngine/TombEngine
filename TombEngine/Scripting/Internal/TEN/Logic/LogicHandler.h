@@ -189,6 +189,6 @@ public:
 	void OnUseItem(short itemNumber, GAME_OBJECT_ID item) override;
 	void OnPickup(short itemNumber, bool post) override;
 	void OnVehicleEnter(short itemNumber, bool post) override;
-	void OnVehicleExit(short itemNumber, bool post) override;
+	void OnVehicleLeave(short itemNumber, bool post) override;
 	void OnFreeze() override;
 };

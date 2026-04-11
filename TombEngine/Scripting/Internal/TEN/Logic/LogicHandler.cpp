@@ -993,16 +993,16 @@ void LogicHandler::OnPickup(short itemNumber, bool post)
 
 void LogicHandler::OnVehicleEnter(short itemNumber, bool post)
 {
-	PerformMoveableCallbacks(LevelFuncCallbackPoint::EnterVehicle, CallbackPoint::PreEnterVehicle, CallbackPoint::PostEnterVehicle, itemNumber, post);
+	PerformMoveableCallbacks(LevelFuncCallbackPoint::VehicleEnter, CallbackPoint::PreVehicleEnter, CallbackPoint::PostVehicleEnter, itemNumber, post);
 	if (post)
 		HandleAllGlobalEvents(EventType::VehicleEnter, (Activator)itemNumber);
 }
 
-void LogicHandler::OnVehicleExit(short itemNumber, bool post)
+void LogicHandler::OnVehicleLeave(short itemNumber, bool post)
 {
-	PerformMoveableCallbacks(LevelFuncCallbackPoint::ExitVehicle, CallbackPoint::PreExitVehicle, CallbackPoint::PostExitVehicle, itemNumber, post);
+	PerformMoveableCallbacks(LevelFuncCallbackPoint::VehicleLeave, CallbackPoint::PreVehicleLeave, CallbackPoint::PostVehicleLeave, itemNumber, post);
 	if (post)
-		HandleAllGlobalEvents(EventType::VehicleExit, (Activator)itemNumber);
+		HandleAllGlobalEvents(EventType::VehicleLeave, (Activator)itemNumber);
 }
 
 void LogicHandler::OnFreeze()

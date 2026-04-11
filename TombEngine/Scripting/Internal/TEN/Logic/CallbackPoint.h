@@ -24,8 +24,8 @@ namespace TEN::Scripting
 		End,
 		UseItem,
 		Pickup,
-		EnterVehicle,
-		ExitVehicle,
+		VehicleEnter,
+		VehicleLeave,
 		Freeze,
 
 		Count
@@ -47,10 +47,10 @@ namespace TEN::Scripting
 		PostUseItem,
 		PrePickup,
 		PostPickup,
-		PreEnterVehicle,
-		PostEnterVehicle,
-		PreExitVehicle,
-		PostExitVehicle,
+		PreVehicleEnter,
+		PostVehicleEnter,
+		PreVehicleLeave,
+		PostVehicleLeave,
 		PreFreeze,
 		PostFreeze,
 
@@ -66,8 +66,8 @@ namespace TEN::Scripting
 		{ LevelFuncCallbackPoint::End, ScriptReserved_OnEnd },
 		{ LevelFuncCallbackPoint::UseItem, ScriptReserved_OnUseItem },
 		{ LevelFuncCallbackPoint::Pickup, ScriptReserved_OnPickup },
-		{ LevelFuncCallbackPoint::EnterVehicle, ScriptReserved_OnEnterVehicle },
-		{ LevelFuncCallbackPoint::ExitVehicle, ScriptReserved_OnExitVehicle },
+		{ LevelFuncCallbackPoint::VehicleEnter, ScriptReserved_OnVehicleEnter },
+		{ LevelFuncCallbackPoint::VehicleLeave, ScriptReserved_OnVehicleLeave },
 		{ LevelFuncCallbackPoint::Freeze, ScriptReserved_OnFreeze }
 	};
 
@@ -133,20 +133,20 @@ namespace TEN::Scripting
 		{ ScriptReserved_PostPickup, CallbackPoint::PostPickup },
 
 		/// Will be called immediately before a vehicle mount is committed.
-		// @mem PRE_ENTER_VEHICLE
-		{ ScriptReserved_PreEnterVehicle, CallbackPoint::PreEnterVehicle },
+		// @mem PRE_VEHICLE_ENTER
+		{ ScriptReserved_PreVehicleEnter, CallbackPoint::PreVehicleEnter },
 
 		/// Will be called immediately after player is assigned to a vehicle.
-		// @mem POST_ENTER_VEHICLE
-		{ ScriptReserved_PostEnterVehicle, CallbackPoint::PostEnterVehicle },
+		// @mem POST_VEHICLE_ENTER
+		{ ScriptReserved_PostVehicleEnter, CallbackPoint::PostVehicleEnter },
 
 		/// Will be called immediately before a vehicle dismount is committed.
-		// @mem PRE_EXIT_VEHICLE
-		{ ScriptReserved_PreExitVehicle, CallbackPoint::PreExitVehicle },
+		// @mem PRE_VEHICLE_LEAVE
+		{ ScriptReserved_PreVehicleLeave, CallbackPoint::PreVehicleLeave },
 
 		/// Will be called immediately after player leaves a vehicle.
-		// @mem POST_EXIT_VEHICLE
-		{ ScriptReserved_PostExitVehicle, CallbackPoint::PostExitVehicle },
+		// @mem POST_VEHICLE_LEAVE
+		{ ScriptReserved_PostVehicleLeave, CallbackPoint::PostVehicleLeave },
 
 		/// Will be called immediately before LevelFuncs.OnFreeze.
 		// @mem PRE_FREEZE
@@ -172,10 +172,10 @@ namespace TEN::Scripting
 		{ "POSTUSEITEM", CallbackPoint::PostUseItem },
 		{ "PREPICKUP", CallbackPoint::PrePickup },
 		{ "POSTPICKUP", CallbackPoint::PostPickup },
-		{ "PREENTERVEHICLE", CallbackPoint::PreEnterVehicle },
-		{ "POSTENTERVEHICLE", CallbackPoint::PostEnterVehicle },
-		{ "PREEXITVEHICLE", CallbackPoint::PreExitVehicle },
-		{ "POSTEXITVEHICLE", CallbackPoint::PostExitVehicle },
+		{ "PREVEHICLEENTER", CallbackPoint::PreVehicleEnter },
+		{ "POSTVEHICLEENTER", CallbackPoint::PostVehicleEnter },
+		{ "PREVEHICLELEAVE", CallbackPoint::PreVehicleLeave },
+		{ "POSTVEHICLELEAVE", CallbackPoint::PostVehicleLeave },
 		{ "PREFREEZE", CallbackPoint::PreFreeze },
 		{ "POSTFREEZE", CallbackPoint::PostFreeze }
 	};

@@ -87,10 +87,10 @@ static constexpr char ScriptReserved_PreUseItem[]		= "PRE_USE_ITEM";
 static constexpr char ScriptReserved_PostUseItem[]		= "POST_USE_ITEM";
 static constexpr char ScriptReserved_PrePickup[]		= "PRE_PICKUP";
 static constexpr char ScriptReserved_PostPickup[]		= "POST_PICKUP";
-static constexpr char ScriptReserved_PreEnterVehicle[]	= "PRE_ENTER_VEHICLE";
-static constexpr char ScriptReserved_PostEnterVehicle[]	= "POST_ENTER_VEHICLE";
-static constexpr char ScriptReserved_PreExitVehicle[]	= "PRE_EXIT_VEHICLE";
-static constexpr char ScriptReserved_PostExitVehicle[]	= "POST_EXIT_VEHICLE";
+static constexpr char ScriptReserved_PreVehicleEnter[]	= "PRE_VEHICLE_ENTER";
+static constexpr char ScriptReserved_PostVehicleEnter[]	= "POST_VEHICLE_ENTER";
+static constexpr char ScriptReserved_PreVehicleLeave[]	= "PRE_VEHICLE_LEAVE";
+static constexpr char ScriptReserved_PostVehicleLeave[]	= "POST_VEHICLE_LEAVE";
 static constexpr char ScriptReserved_PreFreeze[]		= "PRE_FREEZE";
 static constexpr char ScriptReserved_PostFreeze[]		= "POST_FREEZE";
 
@@ -102,21 +102,24 @@ static constexpr char ScriptReserved_OnSave[]			= "OnSave";
 static constexpr char ScriptReserved_OnEnd[]			= "OnEnd";
 static constexpr char ScriptReserved_OnUseItem[]		= "OnUseItem";
 static constexpr char ScriptReserved_OnPickup[]			= "OnPickup";
-static constexpr char ScriptReserved_OnEnterVehicle[]	= "OnEnterVehicle";
-static constexpr char ScriptReserved_OnExitVehicle[]	= "OnExitVehicle";
+static constexpr char ScriptReserved_OnVehicleEnter[]	= "OnVehicleEnter";
+static constexpr char ScriptReserved_OnVehicleLeave[]	= "OnVehicleLeave";
 static constexpr char ScriptReserved_OnFreeze[]			= "OnFreeze";
 
 // Event types (volume events + global events)
-static constexpr char ScriptReserved_EventOnEnter[]		= "ENTER";
-static constexpr char ScriptReserved_EventOnInside[]	= "INSIDE";
-static constexpr char ScriptReserved_EventOnLeave[]		= "LEAVE";
-static constexpr char ScriptReserved_EventOnStart[]		= "START";
-static constexpr char ScriptReserved_EventOnLoad[]		= "LOAD";
-static constexpr char ScriptReserved_EventOnLoop[]		= "LOOP";
-static constexpr char ScriptReserved_EventOnSave[]		= "SAVE";
-static constexpr char ScriptReserved_EventOnEnd[]		= "END";
-static constexpr char ScriptReserved_EventOnUseItem[]	= "USE_ITEM";
-static constexpr char ScriptReserved_EventOnFreeze[]	= "FREEZE";
+static constexpr char ScriptReserved_EventOnVolumeEnter[]	= "VOLUME_ENTER";
+static constexpr char ScriptReserved_EventOnVolumeInside[]	= "VOLUME_INSIDE";
+static constexpr char ScriptReserved_EventOnVolumeLeave[]	= "VOLUME_LEAVE";
+static constexpr char ScriptReserved_EventOnStart[]			= "START";
+static constexpr char ScriptReserved_EventOnLoad[]			= "LOAD";
+static constexpr char ScriptReserved_EventOnLoop[]			= "LOOP";
+static constexpr char ScriptReserved_EventOnSave[]			= "SAVE";
+static constexpr char ScriptReserved_EventOnEnd[]			= "END";
+static constexpr char ScriptReserved_EventOnUseItem[]		= "USE_ITEM";
+static constexpr char ScriptReserved_EventOnPickup[]		= "PICKUP";
+static constexpr char ScriptReserved_EventOnVehicleEnter[]	= "VEHICLE_ENTER";
+static constexpr char ScriptReserved_EventOnVehicleLeave[]	= "VEHICLE_LEAVE";
+static constexpr char ScriptReserved_EventOnFreeze[]		= "FREEZE";
 
 // Member functions
 static constexpr char ScriptReserved_New[]					= "New";
