@@ -13,6 +13,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Lua API changes
 * Fixed `Timer` class not working correctly with single frame intervals.
 * Fixed alpha value being ignored for `Flow.Settings.UI.shadowTextColor` parameter.
+* Added `Flow.Settings.doubleHanded` parameter for Pistols, Uzis and Revolver to allow single or dual weapons.
 
 ## [Version 1.11]
 
