@@ -383,35 +383,31 @@ float3 CombineLights(float3 ambient, float3 vertex, float3 tex, float3 pos, floa
 
 	for (int i = 0; i < numLights; i++)
 	{
-		// Create a copy of the light with modulated color (PSX-style x2 modulation).
-		ShaderLight light = lights[i];
-		light.Color.xyz = ModulateColor(lights[i].Color.xyz);
-
 		if (lightTypeMask & LT_MASK_SUN)
 		{
 			float isSun = step(0.5f, float(lights[i].Type == LT_SUN));
-			diffuse += isSun * DoDirectionalLight(pos, normal, light);
-			spec += isSun * DoSpecularSun(normal, light, sheen, specular, roughness);
+			diffuse += isSun * DoDirectionalLight(pos, normal, lights[i]);
+			spec += isSun * DoSpecularSun(normal, lights[i], sheen, specular, roughness);
 		}
 
 		if (lightTypeMask & LT_MASK_POINT)
 		{
 			float isPoint = step(0.5f, float(lights[i].Type == LT_POINT));
-			diffuse += isPoint * DoPointLight(pos, normal, light);
-			spec += isPoint * DoSpecularPoint(pos, normal, light, sheen, specular, roughness);
+			diffuse += isPoint * DoPointLight(pos, normal, lights[i]);
+			spec += isPoint * DoSpecularPoint(pos, normal, lights[i], sheen, specular, roughness);
 		}
 
 		if (lightTypeMask & LT_MASK_SPOT)
 		{
 			float isSpot = step(0.5f, float(lights[i].Type == LT_SPOT));
-			diffuse += isSpot * DoSpotLight(pos, normal, light);
-			spec += isSpot * DoSpecularSpot(pos, normal, light, sheen, specular, roughness);
+			diffuse += isSpot * DoSpotLight(pos, normal, lights[i]);
+			spec += isSpot * DoSpecularSpot(pos, normal, lights[i], sheen, specular, roughness);
 		}
 
 		if (lightTypeMask & LT_MASK_SHADOW)
 		{
 			float isShadow = step(0.5f, float(lights[i].Type == LT_SHADOW));
-			shadow += isShadow * DoShadowLight(pos, normal, light);
+			shadow += isShadow * DoShadowLight(pos, normal, lights[i]);
 		}
 	}
 

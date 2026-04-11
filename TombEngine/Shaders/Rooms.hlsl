@@ -9,7 +9,7 @@
 #include "./ShaderLight.hlsli"
 #include "./Materials.hlsli"
 
-#define ROOM_LIGHT_COEFF 0.7f
+#define ROOM_LIGHT_COEFF 1.4f
 
 struct PixelShaderInput
 {
@@ -126,14 +126,10 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 	for (int i = 0; i < numLights; i++)
 	{
-		// Create a copy of the light with modulated color (PSX-style ×2 modulation)
-		ShaderLight light = RoomLights[i];
-		light.Color.xyz = ModulateColor(RoomLights[i].Color.xyz);
-
 		if (onlyPointLights)
 		{
-			lighting += DoPointLight(input.WorldPosition, normal, light) * ROOM_LIGHT_COEFF;
-			lighting += DoSpecularPoint(input.WorldPosition, normal, light, 0.0f, specular, roughness);
+			lighting += DoPointLight(input.WorldPosition, normal, RoomLights[i]) * ROOM_LIGHT_COEFF;
+			lighting += DoSpecularPoint(input.WorldPosition, normal, RoomLights[i], 0.0f, specular, roughness);
 		}
 		else
 		{
@@ -144,7 +140,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 			float3 pointLight = float3(0.0f, 0.0f, 0.0f);
 			float3 spotLight  = float3(0.0f, 0.0f, 0.0f);
-			DoPointAndSpotLight(input.WorldPosition, normal, light, specular, roughness, pointLight, spotLight);
+			DoPointAndSpotLight(input.WorldPosition, normal, RoomLights[i], specular, roughness, pointLight, spotLight);
 
 			lighting += pointLight * isPoint * ROOM_LIGHT_COEFF + spotLight * isSpot * ROOM_LIGHT_COEFF;
 		}
