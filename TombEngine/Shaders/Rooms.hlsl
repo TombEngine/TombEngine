@@ -9,7 +9,8 @@
 #include "./ShaderLight.hlsli"
 #include "./Materials.hlsli"
 
-#define ROOM_LIGHT_COEFF 1.4f
+// This value is here for historic reasons, dynamic lights were 0.3 less powerful for rooms
+#define ROOM_LIGHT_COEFF 0.7f
 
 struct PixelShaderInput
 {
@@ -142,8 +143,8 @@ PixelShaderOutput PS(PixelShaderInput input)
 			float3 spotLight  = float3(0.0f, 0.0f, 0.0f);
 			DoPointAndSpotLight(input.WorldPosition, normal, RoomLights[i], specular, roughness, pointLight, spotLight);
 
-			lighting += pointLight * isPoint * ROOM_LIGHT_COEFF + spotLight * isSpot * ROOM_LIGHT_COEFF;
-		}
+            lighting += pointLight * isPoint * ROOM_LIGHT_COEFF * 2.0f + spotLight * isSpot * ROOM_LIGHT_COEFF * 2.0f;
+        }
 	}
 
 	// Decals
