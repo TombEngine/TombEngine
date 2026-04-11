@@ -110,6 +110,7 @@ namespace TEN::Sky
 		float WindDirectionY  = 0.0f;
 		float WindSpeed       = 0.003f;
 		float EvolutionSpeed  = 0.15f;
+		float CurlWarpStrength = 1.0f;  // [0,2] curl domain-warp amplitude multiplier (0 = no warp)
 
 		float HorizonFade     = 1.0f;   // Fade near horizon, 0 = none, 1 = full
 		float DistanceFade    = 1.0f;   // Distance-based fade factor

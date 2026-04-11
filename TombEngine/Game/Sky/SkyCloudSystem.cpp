@@ -157,6 +157,7 @@ namespace TEN::Sky
 
 		// Edge quality tuning
 		s.AltoFbmScale          = AltoFbmScale;
+		s.CurlWarpStrength      = CurlWarpStrength;
 		s.JitterStrength        = JitterStrength;
 		s.UpsampleSpatialSigma2 = UpsampleSpatialSigma2;
 		s.TemporalAlphaLow      = TemporalAlphaLow;
@@ -246,6 +247,7 @@ namespace TEN::Sky
 
 		// Edge quality tuning
 		snap.AltoFbmScale          = src.AltoFbmScale;
+		snap.CurlWarpStrength      = src.CurlWarpStrength;
 		snap.JitterStrength        = src.JitterStrength;
 		snap.UpsampleSpatialSigma2 = src.UpsampleSpatialSigma2;
 		snap.TemporalAlphaLow      = src.TemporalAlphaLow;
@@ -312,6 +314,8 @@ namespace TEN::Sky
 		result.WindDirectionY  = LerpFloat(a.WindDirectionY, b.WindDirectionY, t);
 		result.WindSpeed       = LerpFloat(a.WindSpeed, b.WindSpeed, t);
 		result.EvolutionSpeed  = LerpFloat(a.EvolutionSpeed, b.EvolutionSpeed, t);
+		result.CurlWarpStrength = LerpFloat(a.CurlWarpStrength, b.CurlWarpStrength, t);
+		result.AltoFbmScale    = LerpFloat(a.AltoFbmScale,    b.AltoFbmScale,    t);
 		result.HorizonFade        = LerpFloat(a.HorizonFade,        b.HorizonFade,        t);
 		result.DistanceFade       = LerpFloat(a.DistanceFade,       b.DistanceFade,       t);
 		result.HorizonMeshBleed   = LerpFloat(a.HorizonMeshBleed,   b.HorizonMeshBleed,   t);
@@ -1676,6 +1680,14 @@ namespace TEN::Sky
 		dst.AltoHorizonWidth    = src.AltoHorizonWidth;
 		dst.AltoBleedDepth      = src.AltoBleedDepth;
 		dst.AltoHorizonGradientFade = src.AltoHorizonGradientFade;
+		// CurlWarpStrength scales curl displacement of p.x/p.z in EvalAltoDensityCore —
+		// a global CB variable shared by both source and target evaluations. Snapping to
+		// target at t=0 deforms the source clouds with the wrong amplitude → position jump.
+		dst.CurlWarpStrength    = src.CurlWarpStrength;
+		// AltoFbmScale is assigned to AltoDensityParams.FbmScale for BOTH evaluations
+		// (srcParams.FbmScale = AltoFbmScale; line in shader). If presets differ here,
+		// the source cloud frequency jumps immediately at transition start.
+		dst.AltoFbmScale        = src.AltoFbmScale;
 		// Lightning
 		dst.LightningEnabled           = src.LightningEnabled;
 		dst.LightningStrikeFreq        = src.LightningStrikeFreq;

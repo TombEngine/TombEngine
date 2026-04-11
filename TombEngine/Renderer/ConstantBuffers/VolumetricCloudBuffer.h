@@ -175,5 +175,11 @@ namespace TEN::Renderer::ConstantBuffers
 		float TemporalAlphaLow;       // [0,0.2]  below this alpha: temporal reuse OK (clear sky)
 		float TemporalAlphaHigh;      // [0.8,1]  above this alpha: temporal reuse OK (cloud core)
 		float AltoJitterAbsCap;       // [0.1,10] absorption cap used only for jitter amplitude
+		//--
+		// Row 30 — Curl warp amplitude
+		float CurlWarpStrength;       // [0,2] curl domain-warp amplitude multiplier (0 = no warp)
+		float Row30Pad0;
+		float Row30Pad1;
+		float Row30Pad2;
 	};
 }

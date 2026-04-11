@@ -408,6 +408,7 @@ namespace TEN::Renderer
 		_stVolumetricCloud.MorphSrcHorizonWidth = settings.MorphSrcHorizonWidth;
 		_stVolumetricCloud.MorphActive          = settings.MorphActive;
 		_stVolumetricCloud.AltoFbmScale         = settings.AltoFbmScale;
+		_stVolumetricCloud.CurlWarpStrength     = settings.CurlWarpStrength;
 		_stVolumetricCloud.UpsampleSpatialSigma2 = settings.UpsampleSpatialSigma2;
 		_stVolumetricCloud.TemporalAlphaLow      = settings.TemporalAlphaLow;
 		_stVolumetricCloud.TemporalAlphaHigh     = settings.TemporalAlphaHigh;

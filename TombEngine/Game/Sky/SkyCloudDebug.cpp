@@ -96,6 +96,7 @@ namespace TEN::Sky
 		params.push_back({"Wind Dir Y",       &snap.WindDirectionY,    -1.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::WindDirectionY)});
 		params.push_back({"Wind Speed",       &snap.WindSpeed,          0.0f,    8.0f,     0.001f,   "%.4f",     def(&VolumetricCloudLayerSnapshot::WindSpeed)});
 		params.push_back({"Evolution Speed",  &snap.EvolutionSpeed,     0.0f,    5.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::EvolutionSpeed)});
+		params.push_back({"Curl Warp Str",    &snap.CurlWarpStrength,   0.0f,    2.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::CurlWarpStrength)});
 		params.push_back({"Horizon Fade",     &snap.HorizonFade,        0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::HorizonFade)});
 		params.push_back({"Distance Fade",    &snap.DistanceFade,       0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::DistanceFade)});
 		params.push_back({"Horizon Mesh Bleed", &snap.HorizonMeshBleed,  0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::HorizonMeshBleed)});
@@ -577,6 +578,116 @@ namespace TEN::Sky
 	// Draw a cloud layer section with all parameter sliders.
 	// ====================================================================
 
+	// ====================================================================
+	// Build a Lua snippet string from a snapshot, ready to copy.
+	//
+	// For "liveA"/"defA" idPrefixes it wraps in Flow.SetVolumetricCloudLayerA({})
+	// or outputs as cloudA = {} for preset editor sections.
+	// ====================================================================
+
+	static std::string BuildCloudLayerLua(const VolumetricCloudLayerSnapshot& snap, const char* idPrefix)
+	{
+		bool isLayerA = (strchr(idPrefix, 'A') != nullptr);
+		bool isPreset = (strncmp(idPrefix, "def", 3) == 0);
+
+		std::ostringstream ss;
+
+		if (isPreset)
+			ss << (isLayerA ? "cloudA = {\n" : "cloudB = {\n");
+		else
+			ss << (isLayerA ? "Flow.SetVolumetricCloudLayerA({\n" : "Flow.SetVolumetricCloudLayerB({\n");
+
+		// Helpers: field writes with aligned columns.
+		char vbuf[64];
+		auto fld = [&](const char* key, const char* fmt, float val)
+		{
+			snprintf(vbuf, sizeof(vbuf), fmt, val);
+			ss << "    " << std::left << std::setw(32) << (std::string(key) + " ") << "= " << vbuf << ",\n";
+		};
+		auto ifld = [&](const char* key, float val)
+		{
+			snprintf(vbuf, sizeof(vbuf), "%.0f", val);
+			ss << "    " << std::left << std::setw(32) << (std::string(key) + " ") << "= " << vbuf << ",\n";
+		};
+		auto bfld = [&](const char* key, bool val)
+		{
+			ss << "    " << std::left << std::setw(32) << (std::string(key) + " ") << "= " << (val ? "true" : "false") << ",\n";
+		};
+		auto sfld = [&](const char* key, const char* val)
+		{
+			ss << "    " << std::left << std::setw(32) << (std::string(key) + " ") << "= \"" << val << "\",\n";
+		};
+
+		bfld("enabled",                         snap.Enabled);
+		sfld("category",                         CloudCategoryToString(snap.Category));
+		fld( "coverage",              "%.4f",    snap.Coverage);
+		fld( "density",               "%.4f",    snap.Density);
+		ifld("bottomHeight",                     snap.BottomHeight);
+		ifld("horizonWidth",                     snap.Thickness);
+		fld( "altoHorizonWidth",      "%.4f",    snap.AltoHorizonWidth);
+		fld( "windDirectionX",        "%.4f",    snap.WindDirectionX);
+		fld( "windDirectionY",        "%.4f",    snap.WindDirectionY);
+		fld( "windSpeed",             "%.4f",    snap.WindSpeed);
+		fld( "evolutionSpeed",        "%.4f",    snap.EvolutionSpeed);
+		fld( "curlWarpStrength",      "%.4f",    snap.CurlWarpStrength);
+		fld( "horizonFade",           "%.4f",    snap.HorizonFade);
+		fld( "distanceFade",          "%.4f",    snap.DistanceFade);
+		fld( "horizonMeshBleed",      "%.4f",    snap.HorizonMeshBleed);
+		ss << "    -- Altocumulus-specific\n";
+		fld( "altoBillowStrength",    "%.4f",    snap.AltoBillowStrength);
+		fld( "altoCovSoftWidth",      "%.4f",    snap.AltoCovSoftWidth);
+		fld( "altoAbsorption",        "%.4f",    snap.AltoAbsorption);
+		fld( "altoCloudSize",         "%.4f",    snap.AltoCloudSize);
+		fld( "altoCloudAmount",       "%.4f",    snap.AltoCloudAmount);
+		fld( "altoCloudBrightness",   "%.4f",    snap.AltoCloudBrightness);
+		fld( "altoCloudColorR",       "%.4f",    snap.AltoCloudColorR);
+		fld( "altoCloudColorG",       "%.4f",    snap.AltoCloudColorG);
+		fld( "altoCloudColorB",       "%.4f",    snap.AltoCloudColorB);
+		fld( "altoCloudColorDarkR",   "%.4f",    snap.AltoCloudColorDarkR);
+		fld( "altoCloudColorDarkG",   "%.4f",    snap.AltoCloudColorDarkG);
+		fld( "altoCloudColorDarkB",   "%.4f",    snap.AltoCloudColorDarkB);
+		fld( "altoFbmLacunarity",     "%.4f",    snap.AltoFbmLacunarity);
+		fld( "altoFbmGain",           "%.4f",    snap.AltoFbmGain);
+		ifld("altoThickness",                    snap.AltoThickness);
+		fld( "altoBottomSoftness",    "%.4f",    snap.AltoBottomSoftness);
+		fld( "altoZenithBias",        "%.4f",    snap.AltoZenithBias);
+		fld( "altoHeightBlendPower",  "%.4f",    snap.AltoHeightBlendPower);
+		fld( "altoBleedDepth",        "%.4f",    snap.AltoBleedDepth);
+		fld( "altoHorizonGradientFade","%.4f",   snap.AltoHorizonGradientFade);
+		ss << "    -- Composite blend\n";
+		fld( "blendThresholdHigh",    "%.4f",    snap.BlendThresholdHigh);
+		fld( "blendThresholdHighWidth","%.4f",   snap.BlendThresholdHighWidth);
+		fld( "blendThresholdLow",     "%.4f",    snap.BlendThresholdLow);
+		ss << "    -- Lightning\n";
+		bfld("lightningEnabled",                 snap.LightningEnabled);
+		fld( "lightningStrikeFreq",   "%.4f",    snap.LightningStrikeFreq);
+		fld( "lightningInternalFreq", "%.4f",    snap.LightningInternalFreq);
+		fld( "lightningSpeed",        "%.4f",    snap.LightningSpeed);
+		fld( "lightningInternalSpeed","%.4f",    snap.LightningInternalSpeed);
+		fld( "lightningGlowIntensity","%.4f",    snap.LightningGlowIntensity);
+		fld( "lightningFlashIntensity","%.4f",   snap.LightningFlashIntensity);
+		fld( "lightningBoltColorR",   "%.4f",    snap.LightningBoltColorR);
+		fld( "lightningBoltColorG",   "%.4f",    snap.LightningBoltColorG);
+		fld( "lightningBoltColorB",   "%.4f",    snap.LightningBoltColorB);
+		fld( "lightningAmbientContrib","%.4f",   snap.LightningAmbientContrib);
+		fld( "lightningBoltLengthScale","%.4f",  snap.LightningBoltLengthScale);
+		fld( "lightningBoltThicknessScale","%.4f",snap.LightningBoltThicknessScale);
+		ss << "    -- Technical tuning\n";
+		fld( "altoFbmScale",          "%.4f",    snap.AltoFbmScale);
+		fld( "jitterStrength",        "%.4f",    snap.JitterStrength);
+		fld( "altoJitterAbsCap",      "%.4f",    snap.AltoJitterAbsCap);
+		fld( "upsampleSpatialSigma2", "%.4f",    snap.UpsampleSpatialSigma2);
+		fld( "temporalAlphaLow",      "%.4f",    snap.TemporalAlphaLow);
+		fld( "temporalAlphaHigh",     "%.4f",    snap.TemporalAlphaHigh);
+
+		if (isPreset)
+			ss << "}\n";
+		else
+			ss << "})\n";
+
+		return ss.str();
+	}
+
 	static bool DrawLayerSection(
 		const char* title,
 		const char* idPrefix,
@@ -693,6 +804,19 @@ namespace TEN::Sky
 			}
 			ImGui::SameLine();
 			ImGui::TextDisabled("(revert to preset defaults)");
+		}
+
+		// Copy Lua button — copies all current values as a ready-to-paste Lua snippet.
+		{
+			ImGui::Separator();
+			char copyId[64];
+			snprintf(copyId, sizeof(copyId), "Copy Lua to Clipboard##%s", idPrefix);
+			if (ImGui::Button(copyId))
+				ImGui::SetClipboardText(BuildCloudLayerLua(snap, idPrefix).c_str());
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip(
+					"Copies all current values as a Lua table to the clipboard.\n"
+					"Paste into Flow.SetVolumetricCloudLayerA/B or DefineWeatherPreset cloudA/cloudB.");
 		}
 
 		ImGui::Unindent(8.0f);

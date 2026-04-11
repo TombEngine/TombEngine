@@ -47,6 +47,8 @@ namespace TEN::Scripting
 		snap.EvolutionSpeed  = std::max(  tf("evolutionSpeed",  0.15   ), 0.0f);
 		snap.HorizonFade     = std::clamp(tf("horizonFade",      1.0   ), 0.0f, 1.0f);
 		snap.DistanceFade    = std::clamp(tf("distanceFade",     1.0   ), 0.0f, 1.0f);
+		snap.HorizonMeshBleed     = std::clamp(tf("horizonMeshBleed",  0.0   ), 0.0f, 1.0f);
+		snap.AltoHorizonWidth     = std::clamp(tf("altoHorizonWidth",  0.0   ), 0.0f, 1.0f);
 
 		// Altocumulus-specific fields (only meaningful for category == "AltocumulusMid").
 		snap.AltoBillowStrength  = std::clamp(tf("altoBillowStrength",  0.75  ), 0.0f, 1.0f);
@@ -85,11 +87,22 @@ namespace TEN::Scripting
 		snap.LightningBoltColorB     = std::clamp(tf("lightningBoltColorB",     1.0  ), 0.0f,  1.0f);
 		snap.LightningFlashIntensity = std::clamp(tf("lightningFlashIntensity", 4.0  ), 0.5f, 15.0f);
 		snap.LightningAmbientContrib = std::clamp(tf("lightningAmbientContrib", 0.15 ), 0.0f,  1.0f);
+		snap.LightningBoltLengthScale    = std::clamp(tf("lightningBoltLengthScale",    1.0  ), 0.1f, 5.0f);
+		snap.LightningBoltThicknessScale = std::clamp(tf("lightningBoltThicknessScale", 1.0  ), 0.1f, 5.0f);
 
 		// Composite blend thresholds (AltocumulusMid only, optional).
 		snap.BlendThresholdHigh      = std::clamp(tf("blendThresholdHigh",      0.85 ), 0.0f, 1.0f);
 		snap.BlendThresholdHighWidth = std::clamp(tf("blendThresholdHighWidth", 0.05 ), 0.005f, 0.4f);
 		snap.BlendThresholdLow       = std::clamp(tf("blendThresholdLow",       0.106), 0.0f, 1.0f);
+
+		// Technical tuning (rendering quality, jitter, temporal).
+		snap.AltoFbmScale            = std::clamp(tf("altoFbmScale",            2.032 ), 0.5f,  4.0f);
+		snap.CurlWarpStrength        = std::clamp(tf("curlWarpStrength",        1.0   ), 0.0f,  2.0f);
+		snap.JitterStrength          = std::clamp(tf("jitterStrength",          0.3   ), 0.0f,  1.0f);
+		snap.AltoJitterAbsCap        = std::clamp(tf("altoJitterAbsCap",        5.0   ), 0.1f, 10.0f);
+		snap.UpsampleSpatialSigma2   = std::clamp(tf("upsampleSpatialSigma2",   0.75  ), 0.5f,  8.0f);
+		snap.TemporalAlphaLow        = std::clamp(tf("temporalAlphaLow",        0.05  ), 0.0f,  0.3f);
+		snap.TemporalAlphaHigh       = std::clamp(tf("temporalAlphaHigh",       0.95  ), 0.7f,  1.0f);
 
 		// Quality string -> enum.
 		std::string qualStr = table.get_or("quality", std::string("Medium"));

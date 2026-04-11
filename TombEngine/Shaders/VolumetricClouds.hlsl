@@ -528,44 +528,52 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     float2 windBias = WindDirection * flowTime * 0.03f;
     float curlDamp = lerp(0.85f, 0.40f, saturate(ap.EvolutionSpd * 0.25f));
 
-    // Low Frequency Band
+    // Curl warp: only executed when CurlWarpStrength > 0. At exactly 0.0 the entire
+    // domain-warp is bypassed so clouds are shaped purely by FBM/Worley (no organic
+    // deformation). CurlWarpStrength linearly scales all three displacement bands.
+    if (CurlWarpStrength > 0.001f)
     {
-        float tLow  = flowTime * 0.35f * heightFlow;
-        float3 pLow = float3(p.x, 0.0f, p.z) * 0.41f
-                    + float3(3.17f + windBias.x + tLow * 0.7f,
-                             0.0f,
-                             7.63f + windBias.y + tLow * 0.5f);
-        float2 cLow = CurlNoise2D(pLow, 0.15f);
-        p.x += cLow.x * 0.11f * curlDamp;
-        p.z += cLow.y * 0.11f * curlDamp;
-    }
+        float curlAmp = curlDamp * CurlWarpStrength;
 
-    // Mid Frequency Band (skipped at far range: displacement 0.06 is imperceptible
-    // at distLOD >= 0.75 where distant clouds lack fine screen-space detail anyway).
-    if (distLOD < 0.75f)
-    {
-        float tMid  = flowTime * 0.75f * heightFlow;
-        float3 pMid = float3(p.x, 0.0f, p.z) * 0.80f
-                    + float3(0.59f + tMid * 0.9f,
-                             0.0f,
-                             2.44f + tMid * 0.6f);
-        float2 cMid = CurlNoise2D(pMid, 0.10f);
-        p.x += cMid.x * 0.04f * curlDamp;
-        p.z += cMid.y * 0.04f * curlDamp;
-    }
+        // Low Frequency Band
+        {
+            float tLow  = flowTime * 0.35f * heightFlow;
+            float3 pLow = float3(p.x, 0.0f, p.z) * 0.41f
+                        + float3(3.17f + windBias.x + tLow * 0.7f,
+                                 0.0f,
+                                 7.63f + windBias.y + tLow * 0.5f);
+            float2 cLow = CurlNoise2D(pLow, 0.15f);
+            p.x += cLow.x * 0.11f * curlAmp;
+            p.z += cLow.y * 0.11f * curlAmp;
+        }
 
-    // High Frequency Band (skipped at medium range: displacement 0.025 contributes
-    // sub-pixel detail at distLOD >= 0.50 — no visible difference when removed).
-    if (distLOD < 0.50f)
-    {
-        float tHigh  = flowTime * 1.80f * heightFlow;
-        float3 pHigh = float3(p.x, 0.0f, p.z) * 1.60f
-                     + float3(5.33f + tHigh * 1.2f,
-                              0.0f,
-                              1.88f + tHigh * 0.8f);
-        float2 cHigh = CurlNoise2D(pHigh, 0.06f);
-        p.x += cHigh.x * 0.015f * curlDamp;
-        p.z += cHigh.y * 0.015f * curlDamp;
+        // Mid Frequency Band (skipped at far range: displacement 0.06 is imperceptible
+        // at distLOD >= 0.75 where distant clouds lack fine screen-space detail anyway).
+        if (distLOD < 0.75f)
+        {
+            float tMid  = flowTime * 0.75f * heightFlow;
+            float3 pMid = float3(p.x, 0.0f, p.z) * 0.80f
+                        + float3(0.59f + tMid * 0.9f,
+                                 0.0f,
+                                 2.44f + tMid * 0.6f);
+            float2 cMid = CurlNoise2D(pMid, 0.10f);
+            p.x += cMid.x * 0.04f * curlAmp;
+            p.z += cMid.y * 0.04f * curlAmp;
+        }
+
+        // High Frequency Band (skipped at medium range: displacement 0.025 contributes
+        // sub-pixel detail at distLOD >= 0.50 — no visible difference when removed).
+        if (distLOD < 0.50f)
+        {
+            float tHigh  = flowTime * 1.80f * heightFlow;
+            float3 pHigh = float3(p.x, 0.0f, p.z) * 1.60f
+                         + float3(5.33f + tHigh * 1.2f,
+                                  0.0f,
+                                  1.88f + tHigh * 0.8f);
+            float2 cHigh = CurlNoise2D(pHigh, 0.06f);
+            p.x += cHigh.x * 0.015f * curlAmp;
+            p.z += cHigh.y * 0.015f * curlAmp;
+        }
     }
 
     // FBM evaluation.
