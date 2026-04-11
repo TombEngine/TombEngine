@@ -378,19 +378,19 @@ namespace TEN::Collision::Point
 			_waterTopHeight = sector->GetSurfaceHeight(_position, false);
 			return *_waterTopHeight;
 		}
-		else if (sector->GetNextRoomNumber(_position, true).has_value())
+		else
 		{
 			while (sector->GetNextRoomNumber(_position, true).has_value())
 			{
 				room = &g_Level.Rooms[sector->GetNextRoomNumber(_position, true).value_or(sector->RoomNumber)];
 				if (TestEnvironment(ENV_FLAG_WATER, room) || TestEnvironment(ENV_FLAG_SWAMP, room))
-					break;
+				{
+					_waterTopHeight = sector->GetSurfaceHeight(_position, true);
+					return *_waterTopHeight;
+				}
 
 				sector = Room::GetSector(room, _position.x - room->Position.x, _position.z - room->Position.z);
 			}
-
-			_waterTopHeight = sector->GetSurfaceHeight(_position, true);
-			return *_waterTopHeight;
 		}
 
 		_waterTopHeight = NO_HEIGHT;
