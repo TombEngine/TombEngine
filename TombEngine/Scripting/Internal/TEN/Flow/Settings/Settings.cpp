@@ -256,7 +256,11 @@ namespace TEN::Scripting
 
 		/// Enable target occlusion by moveables and static meshes.
 		// @tfield[opt=true] bool targetObjectOcclusion If enabled, player won't be able to target enemies through moveables and static meshes.
-		"targetObjectOcclusion", &GameplaySettings::TargetObjectOcclusion);
+		"targetObjectOcclusion", &GameplaySettings::TargetObjectOcclusion,
+
+		/// Enable dual targeting for double-handed weapons.
+		// @tfield[opt=true] bool dualTarget If enabled, each arm of a double-handed weapon can independently target a separate enemy.
+		"dualTarget", &GameplaySettings::DualTarget);
 	}
 
 	/// Graphics

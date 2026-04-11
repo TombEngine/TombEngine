@@ -526,6 +526,7 @@ static void ClearPlayerTargets(ItemInfo& playerItem)
 	auto& player = GetLaraInfo(playerItem);
 
 	player.TargetEntity = nullptr;
+	player.SecondaryTargetEntity = nullptr;
 	player.TargetList.fill(nullptr);
 	player.LastTargets.fill(nullptr);
 }
@@ -848,6 +849,12 @@ void AimWeapon(ItemInfo& laraItem, ArmInfo& arm, const WeaponInfo& weaponInfo)
 	const auto& player = *GetLaraInfo(&laraItem);
 
 	auto targetArmOrient = arm.Locked ? player.TargetArmOrient : EulerAngles::Identity;
+	arm.Orientation.InterpolateConstant(targetArmOrient, weaponInfo.AimSpeed);
+}
+
+void AimWeapon(ItemInfo& laraItem, ArmInfo& arm, const WeaponInfo& weaponInfo, const EulerAngles& targetOrient)
+{
+	auto targetArmOrient = arm.Locked ? targetOrient : EulerAngles::Identity;
 	arm.Orientation.InterpolateConstant(targetArmOrient, weaponInfo.AimSpeed);
 }
 
