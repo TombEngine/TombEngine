@@ -165,7 +165,9 @@ void Renderer::UpdateLaraAnimations(bool force)
 			playerObject.LinearizedBones[LM_LINARM]->ExtraRotation *= Lara.LeftArm.Orientation.ToQuaternion();
 			playerObject.LinearizedBones[LM_RINARM]->ExtraRotation *= Lara.RightArm.Orientation.ToQuaternion();
 		}
-		else if (gunType == LaraWeaponType::Revolver)
+		else if (gunType == LaraWeaponType::Revolver || 
+			(gunType == LaraWeaponType::Pistol && !g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Pistol - 1].DoubleHanded ) ||
+			(gunType == LaraWeaponType::Uzi && !g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Uzi - 1].DoubleHanded))
 		{
 			playerObject.LinearizedBones[LM_LINARM]->ExtraRotation =
 			playerObject.LinearizedBones[LM_RINARM]->ExtraRotation *= Lara.LeftArm.Orientation.ToQuaternion();
