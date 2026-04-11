@@ -218,8 +218,13 @@ void Renderer::UpdateLaraAnimations(bool force)
 		{
 			// Left arm.
 			bool isDoubleHandedRevolver = (gunType == LaraWeaponType::Revolver && g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Revolver - 1].DoubleHanded);
-			bool movingModifier = !(gunType == LaraWeaponType::Revolver && !isDoubleHandedRevolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.LeftArm.FrameNumber;
-			bool sideJumpModifier = !(gunType == LaraWeaponType::Revolver && !isDoubleHandedRevolver && IsSideJumpState(LaraItem->Animation.ActiveState));
+			bool isDoubleHandedPistol = (gunType == LaraWeaponType::Pistol && g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Pistol - 1].DoubleHanded);
+			bool isDoubleHandedUzi = (gunType == LaraWeaponType::Uzi && g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Uzi - 1].DoubleHanded);
+			bool isSingleHandedGun = (gunType == LaraWeaponType::Revolver && !isDoubleHandedRevolver) ||
+				(gunType == LaraWeaponType::Pistol && !isDoubleHandedPistol) ||
+				(gunType == LaraWeaponType::Uzi && !isDoubleHandedUzi);
+			bool movingModifier = !(isSingleHandedGun && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.LeftArm.FrameNumber;
+			bool sideJumpModifier = !(isSingleHandedGun && IsSideJumpState(LaraItem->Animation.ActiveState));
 
 			// HACK: Single-handed revolver is a special case because its right/left arm orientations aren't symmetrical and get messed up while moving.
 			bool transformLeftUpperArm = (IsCrouching(LaraItem) || Lara.LeftArm.Locked || movingModifier) && sideJumpModifier;
@@ -244,7 +249,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 			UpdateAnimation(&rItem, playerObject, interpDataLeft, mask);
 
 			// Right arm.
-			movingModifier = !(gunType == LaraWeaponType::Revolver && !isDoubleHandedRevolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.RightArm.FrameNumber;
+			movingModifier = !(isSingleHandedGun && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.RightArm.FrameNumber;
 
 			// HACK: Same as above, but for right arm.
 			bool transformRightUpperArm = IsCrouching(LaraItem) || Lara.RightArm.Locked || movingModifier;
