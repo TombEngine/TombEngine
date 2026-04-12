@@ -137,7 +137,7 @@ const ObjectCollisionBounds MSBounds =
 int NumRPickups;
 short RPickups[16];
 
-static void DispatchPickupCallback(short itemNumber)
+static void DispatchPrePickupCallback(short itemNumber)
 {
 	if (itemNumber != NO_VALUE)
 		g_GameScript->OnPickup(itemNumber, false);
@@ -466,7 +466,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 						laraItem->Animation.FrameNumber = 0;
 						lara->Control.IsMoving = false;
 						lara->Control.HandStatus = HandStatus::Busy;
-						DispatchPickupCallback(itemNumber);
+						DispatchPrePickupCallback(itemNumber);
 					}
 
 					lara->Context.InteractedItem = itemNumber;
@@ -549,7 +549,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 			laraItem->Animation.AnimNumber = LA_HOLESWITCH_ACTIVATE;
 			laraItem->Animation.ActiveState = LS_HOLE;
 			resetAnimation = true;
-			DispatchPickupCallback(itemNumber);
+			DispatchPrePickupCallback(itemNumber);
 		}
 
 		lara->Context.InteractedItem = itemNumber;
@@ -607,7 +607,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 			AddActiveItem(itemNumber);
 			AnimateItem(item);
 			resetAnimation = true;
-			DispatchPickupCallback(itemNumber);
+			DispatchPrePickupCallback(itemNumber);
 		}
 
 		lara->Context.InteractedItem = itemNumber;
@@ -664,7 +664,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 				}
 
 				resetAnimation = true;
-				DispatchPickupCallback(itemNumber);
+				DispatchPrePickupCallback(itemNumber);
 			}
 
 			lara->Context.InteractedItem = itemNumber;
@@ -702,7 +702,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 			item->Status = ITEM_ACTIVE;
 			AddActiveItem(itemNumber);
 			resetAnimation = true;
-			DispatchPickupCallback(itemNumber);
+			DispatchPrePickupCallback(itemNumber);
 		}
 
 		lara->Context.InteractedItem = itemNumber;
@@ -741,12 +741,12 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 				laraItem->Animation.ActiveState = LS_PICKUP_FLARE;
 				lara->Context.InteractedItem = itemNumber;
 				resetAnimation = true;
-				DispatchPickupCallback(itemNumber);
+				DispatchPrePickupCallback(itemNumber);
 				break;
 			}
 
 			laraItem->Animation.TargetState = LS_PICKUP;
-			DispatchPickupCallback(itemNumber);
+			DispatchPrePickupCallback(itemNumber);
 		}
 		else
 		{
@@ -766,7 +766,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 				else
 				{
 					laraItem->Animation.TargetState = LS_PICKUP;
-					DispatchPickupCallback(itemNumber);
+					DispatchPrePickupCallback(itemNumber);
 				}
 				lara->Context.InteractedItem = itemNumber;
 				break;
@@ -785,7 +785,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 					laraItem->Animation.ActiveState = LS_PICKUP_FLARE;
 					lara->Context.InteractedItem = itemNumber;
 					resetAnimation = true;
-					DispatchPickupCallback(itemNumber);
+					DispatchPrePickupCallback(itemNumber);
 					break;
 				}
 				else
@@ -793,7 +793,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 					// HACK: Because of MoveLaraPosition(), we can't properly dispatch. Must be fixed later.
 					laraItem->Animation.AnimNumber = LA_PICKUP;
 					laraItem->Animation.ActiveState = LS_PICKUP;
-					DispatchPickupCallback(itemNumber);
+					DispatchPrePickupCallback(itemNumber);
 				}
 			}
 		}

@@ -71,7 +71,7 @@ private:
 
 	void PerformConsoleInput();
 	void PerformMoveableCallbacks(CallbackPoint point, short itemNumber);
-	void PerformMoveableCallbacks(LevelFuncCallbackPoint callback, CallbackPoint prePoint, CallbackPoint postPoint, short itemNumber, bool post);
+	void PerformMoveableCallbacks(LevelFuncCallbackPoint callback, CallbackPoint prePoint, CallbackPoint postPoint, short itemNumber, bool postLoop);
 
 	std::string GetRequestedPath() const;
 
@@ -187,8 +187,8 @@ public:
 	void OnSave() override;
 	void OnEnd(GameStatus reason) override;
 	void OnUseItem(short itemNumber, GAME_OBJECT_ID item) override;
-	void OnPickup(short itemNumber, bool post) override;
-	void OnVehicleEnter(short itemNumber, bool post) override;
-	void OnVehicleLeave(short itemNumber, bool post) override;
+	void OnPickup(short itemNumber, bool postLoop) override;
+	void OnVehicleEnter(short itemNumber, bool postLoop) override;
+	void OnVehicleLeave(short itemNumber, bool postLoop) override;
 	void OnFreeze() override;
 };

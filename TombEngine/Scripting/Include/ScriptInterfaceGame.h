@@ -61,9 +61,9 @@ public:
 	virtual void OnSave() = 0;
 	virtual void OnEnd(GameStatus reason) = 0;
 	virtual void OnUseItem(short itemNumber, GAME_OBJECT_ID objectNumber) = 0;
-	virtual void OnPickup(short itemNumber, bool post) = 0;
-	virtual void OnVehicleEnter(short itemNumber, bool post) = 0;
-	virtual void OnVehicleLeave(short itemNumber, bool post) = 0;
+	virtual void OnPickup(short itemNumber, bool postLoop) = 0;
+	virtual void OnVehicleEnter(short itemNumber, bool postLoop) = 0;
+	virtual void OnVehicleLeave(short itemNumber, bool postLoop) = 0;
 	virtual void OnFreeze() = 0;
 
 	virtual void AddConsoleInput(const std::string& input) = 0;

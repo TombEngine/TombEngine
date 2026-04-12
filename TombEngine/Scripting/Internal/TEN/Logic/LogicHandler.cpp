@@ -890,16 +890,16 @@ void LogicHandler::PerformMoveableCallbacks(CallbackPoint point, short itemNumbe
 	_lastCallbackPoint = std::nullopt;
 }
 
-void LogicHandler::PerformMoveableCallbacks(LevelFuncCallbackPoint callback, CallbackPoint prePoint, CallbackPoint postPoint, short itemNumber, bool post)
+void LogicHandler::PerformMoveableCallbacks(LevelFuncCallbackPoint callback, CallbackPoint prePoint, CallbackPoint postPoint, short itemNumber, bool postLoop)
 {
-	if (!post)
+	if (itemNumber == NO_VALUE)
+		return;
+
+	if (!postLoop)
 	{
 		PerformMoveableCallbacks(prePoint, itemNumber);
 		return;
 	}
-
-	if (itemNumber == NO_VALUE)
-		return;
 
 	PerformLevelFuncCallback(callback, std::make_unique<Moveable>(itemNumber));
 	PerformMoveableCallbacks(postPoint, itemNumber);
@@ -984,24 +984,24 @@ void LogicHandler::OnUseItem(short itemNumber, GAME_OBJECT_ID objectNumber)
 	HandleAllGlobalEvents(EventType::UseItem, (Activator)itemNumber);
 }
 
-void LogicHandler::OnPickup(short itemNumber, bool post)
+void LogicHandler::OnPickup(short itemNumber, bool postLoop)
 {
-	PerformMoveableCallbacks(LevelFuncCallbackPoint::Pickup, CallbackPoint::PrePickup, CallbackPoint::PostPickup, itemNumber, post);
-	if (post)
+	PerformMoveableCallbacks(LevelFuncCallbackPoint::Pickup, CallbackPoint::PrePickup, CallbackPoint::PostPickup, itemNumber, postLoop);
+	if (postLoop)
 		HandleAllGlobalEvents(EventType::Pickup, (Activator)itemNumber);
 }
 
-void LogicHandler::OnVehicleEnter(short itemNumber, bool post)
+void LogicHandler::OnVehicleEnter(short itemNumber, bool postLoop)
 {
-	PerformMoveableCallbacks(LevelFuncCallbackPoint::VehicleEnter, CallbackPoint::PreVehicleEnter, CallbackPoint::PostVehicleEnter, itemNumber, post);
-	if (post)
+	PerformMoveableCallbacks(LevelFuncCallbackPoint::VehicleEnter, CallbackPoint::PreVehicleEnter, CallbackPoint::PostVehicleEnter, itemNumber, postLoop);
+	if (postLoop)
 		HandleAllGlobalEvents(EventType::VehicleEnter, (Activator)itemNumber);
 }
 
-void LogicHandler::OnVehicleLeave(short itemNumber, bool post)
+void LogicHandler::OnVehicleLeave(short itemNumber, bool postLoop)
 {
-	PerformMoveableCallbacks(LevelFuncCallbackPoint::VehicleLeave, CallbackPoint::PreVehicleLeave, CallbackPoint::PostVehicleLeave, itemNumber, post);
-	if (post)
+	PerformMoveableCallbacks(LevelFuncCallbackPoint::VehicleLeave, CallbackPoint::PreVehicleLeave, CallbackPoint::PostVehicleLeave, itemNumber, postLoop);
+	if (postLoop)
 		HandleAllGlobalEvents(EventType::VehicleLeave, (Activator)itemNumber);
 }
 
