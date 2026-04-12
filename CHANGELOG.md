@@ -8,6 +8,17 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Lua API changes
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
 
+## [Version 1.11.1]
+
+### Bug fixes
+* Fixed draw key not always opening doors in fly mode.
+* Fixed TEETH_SPIKES with OCB 1 damaging player in fly mode.
+* Fixed YETI misaligning with Lara during kill animation.
+
+### Lua API changes
+* Fixed `Timer` class not working correctly with single frame intervals.
+* Fixed alpha value being ignored for `Flow.Settings.UI.shadowTextColor` parameter.
+
 ## [Version 1.11]
 
 ### New features
@@ -24,7 +35,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed pushables being ignored by other collidable objects after savegame reload.
 * Fixed pushables not updating their properties while changing OCB on the fly.
 * Fixed sector box flags being reset after savegame reload.
-* Fixed incorrect BIG_RAT, CLOCKWORK_BEETLE, SCUBA_DIVER, HORSEMAN, MONK1/2 and MERCENARY_UZI behaviour.
+* Fixed incorrect BIG_RAT, CLOCKWORK_BEETLE, COBRA, SCUBA_DIVER, HORSEMAN, MONK1/2 and MERCENARY_UZI behaviour.
 * Fixed CIVVY crashing the game.
 * Fixed missing SHARK final attack animation.
 * Fixed SEARCH_OBJECT4 not always collecting pickup items.
@@ -35,10 +46,15 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed occasional wrong LASER_BEAM collision.
 * Fixed several BADDY1/2 issues.
 * Fixed original issue with BADDY1/2 with rolling out animation ignoring player on a distance larger than 1 block.
+* Fixed explosion effect crash and OCB calculation for WINGED_MUMMY. 
+  [For further information] (https://tombengine.com/asset/enemy/winged-mutant-mummy/)
+* Fixed TR3 bosses not dropping items when killed.
+* Fixed corrupted targeting at Lara in water rooms for some shooting creatures.
 * Fixed teleporting upwards after corner shimmy when another ledge is above.
 * Fixed submerging into the floor when picking up items under low-placed static meshes.
 * Fixed asymmetrically placed plinth pickups (OCB 3 and 4) and allow plinth pickups without static mesh underneath.
 * Fixed broken hardcoded camera when using the TURN_SWITCH.
+* Fixed animation bug when Lara dies in a hanging state.
 * Fixed weapon unholstering animation when selecting a weapon from the inventory for the first time.
 * Fixed original issue with incorrect arm orientation with unholstered weapons.
 * Fixed original issue with aiming stutter with targets nearly out of sight.
@@ -46,6 +62,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed ricochet sparks not being visible at longer distances.
 * Fixed blood particles not being visible for stationary enemies.
 * Fixed water resurfacing threshold. The player will now resurface when half of the head is above the surface.
+* Fixed Lara visibility not restoring after breaking out from a flyby sequence.
 * Fixed animated textures appearing incorrectly when also alpha blended faces were involved.
 * Fixed random textures appearing on enemy gunflashes.
 * Fixed flickering pickup summary item count in high FPS mode.
@@ -74,6 +91,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added overloads for `TEN.Util.PercentToScreen(Vec2(x, y))` and `TEN.Util.ScreenToPercent(Vec2(x, y))`.
 * Added special tables `LevelVars`, `GameVars` and `LevelFunc` to the documentation.
 * Added `Logic.CallbackPoint`, `Logic.EventType` and `Logic.EndReason` enums to the documentation.
+* Improved `EventSequence` handling and stability.
+* Improved `Timer` class timestep handling.
 * Fixed `yOffset` argument in `Flow.InventoryItem` constructor giving inconsistent results with different screen resolutions.
 * Fixed `Effects.EmitLight` crashing the game if called with zero or near-zero light radius.
 * Fixed `View.SetCineBars` not working correctly.

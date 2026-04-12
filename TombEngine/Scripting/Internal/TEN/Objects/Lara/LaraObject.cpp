@@ -365,8 +365,8 @@ int LaraObject::GetAmmoType(TypeOrNil<LaraWeaponType> weaponType) const
 	const auto& player = GetLaraInfo(*_moveable);
 
 	auto weapon = ValueOr<LaraWeaponType>(weaponType, player.Control.Weapon.GunType);
-
 	auto ammoType = std::optional<PlayerAmmoType>(std::nullopt);
+
 	switch (weapon)
 	{
 		case::LaraWeaponType::Pistol:
@@ -510,32 +510,35 @@ int LaraObject::GetAmmoCount() const
 	return (ammo.HasInfinite()) ? -1 : (int)ammo.GetCount();
 }
 
-/// Get player HK weapon mode type.
+/// Get player weapon mode type.
 // @function LaraObject:GetWeaponMode
-// @treturn Objects.WeaponMode Player HK weapon mode type.
-int LaraObject::GetWeaponMode() const
+// @tparam[opt] Objects.WeaponType weaponType Weapon to retrieve weapon mode for. If omitted, the mode of the currently equipped weapon is returned. Only works for HK weapon currently.
+// @treturn Objects.WeaponMode Player weapon mode type.
+int LaraObject::GetWeaponMode(TypeOrNil<LaraWeaponType> weaponType) const
 {
 	const auto& player = GetLaraInfo(*_moveable);
 
+	auto weapon = ValueOr<LaraWeaponType>(weaponType, player.Control.Weapon.GunType);
 	auto weaponMode = std::optional<PlayerWeaponMode>(std::nullopt);
-	
-	switch (player.Control.Weapon.GunType)
-	{
 
+	switch (weapon)
+	{
 	case::LaraWeaponType::HK:
 		if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_1)
 		{
 			weaponMode = PlayerWeaponMode::Rapid;
+			break;
 		}
 		else if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_2)
 		{
 			weaponMode = PlayerWeaponMode::Burst;
+			break;
 		}
-		else
+		else if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_3)
 		{
 			weaponMode = PlayerWeaponMode::Sniper;
+			break;
 		}
-
 		break;
 
 	default:
@@ -544,35 +547,46 @@ int LaraObject::GetWeaponMode() const
 
 	if (!weaponMode.has_value())
 	{
-		TENLog("GetWeaponMode() error; no weapon mode type.", LogLevel::Warning, LogConfig::All);
+		TENLog("GetWeaponMode: no weapon mode is available for specified weapon.", LogLevel::Warning, LogConfig::All);
 		weaponMode = PlayerWeaponMode::None;
 	}
 
 	return static_cast<int>(weaponMode.value());
 }
 
-/// Set player HK weapon mode type.
+/// Set player weapon mode type.
 // @function LaraObject:SetWeaponMode
-// @tparam Objects.WeaponMode weaponMode Player HK weapon mode type.
-void LaraObject::SetWeaponMode(PlayerWeaponMode weaponMode)
+// @tparam Objects.WeaponType weaponType Weapon to set weapon mode for. Only works for HK weapon currently.
+// @tparam Objects.WeaponMode weaponMode Player weapon mode type.
+void LaraObject::SetWeaponMode(LaraWeaponType weaponType, PlayerWeaponMode weaponMode)
 {
 	auto& player = GetLaraInfo(*_moveable);
 
-	switch (weaponMode)
+	switch (weaponType)
 	{
-	case PlayerWeaponMode::Rapid:
-		player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_1;
-		break;
+	case::LaraWeaponType::HK:
+		switch (weaponMode)
+		{
+		case PlayerWeaponMode::Rapid:
+			player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_1;
+			break;
 
-	case PlayerWeaponMode::Burst:
-		player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_2;
-		break;
+		case PlayerWeaponMode::Burst:
+			player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_2;
+			break;
 
-	case PlayerWeaponMode::Sniper:
-		player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_3;
+		case PlayerWeaponMode::Sniper:
+			player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_3;
+			break;
+
+		default:
+			TENLog("SetWeaponMode: unsupported weapon mode for HK weapon type.", LogLevel::Warning, LogConfig::All);
+			break;
+		}
 		break;
 
 	default:
+		TENLog("SetWeaponMode: no weapon mode supported for weapon type.", LogLevel::Warning, LogConfig::All);
 		break;
 	}
 }
