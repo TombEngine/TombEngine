@@ -12,6 +12,7 @@
 #include "Game/Setup.h"
 #include "Objects/TR4/Entity/tr4_ahmet.h"
 #include "Objects/Generic/Switches/generic_switch.h"
+#include "Objects/objectslist.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
@@ -59,21 +60,17 @@ void ScalesControl(short itemNumber)
 			short itemNos[8];
 			int sw = GetSwitchTrigger(item, itemNos, 0);
 
-			if (sw > 0)
+			for (int i = sw - 1; i >= 0; i--)
 			{
-				while (g_Level.Items[itemNos[sw]].ObjectNumber == ID_FLAME_EMITTER2)
-				{
-					if (--sw <= 0)
-						break;
-				}
-
-				g_Level.Items[itemNos[sw]].Flags = 1024;
+				if (g_Level.Items[itemNos[i]].ObjectNumber != ID_FLAME_EMITTER2)
+					g_Level.Items[itemNos[i]].Flags = 1024;
 			}
 
 			item->Animation.TargetState = 1;
 		}
 
 		AnimateItem(item);
+		return;
 	}
 
 	int flags = 0;

@@ -711,6 +711,14 @@ namespace TEN::Entities
 			obj->SetHitEffect(true);
 		}
 
+		obj = &Objects[ID_SCALES];
+		if (obj->loaded)
+		{
+			obj->control = ScalesControl;
+			obj->collision = ScalesCollision;
+			obj->SetHitEffect(true);
+		}
+
 		obj = &Objects[ID_STATUE_PLINTH];
 		if (obj->loaded)
 		{
