@@ -6,21 +6,26 @@
 #include "Game/control/control.h"
 #include "Game/effects/Drip.h"
 #include "Game/effects/tomb4fx.h"
+#include "Game/Gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Game/Lara/lara_helpers.h"
 #include "Game/Setup.h"
 #include "Objects/TR4/Entity/tr4_ahmet.h"
 #include "Objects/Generic/Switches/generic_switch.h"
 #include "Objects/objectslist.h"
 #include "Sound/sound.h"
+#include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
+using namespace TEN::Gui;
 using namespace TEN::Hud;
+using namespace TEN::Input;
 
 ObjectCollisionBounds ScalesBounds =
 {
@@ -93,13 +98,75 @@ void ScalesControl(short itemNumber)
 
 void ScalesCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 {
-	ItemInfo* item = &g_Level.Items[itemNumber];
+	auto* item = &g_Level.Items[itemNumber];
+	auto* laraInfo = GetLaraInfo(laraItem);
 
 	g_Hud.InteractionHighlighter.Test(*laraItem, *item);
 
+	// ----------------------------------------------------------------
+	// Idle: open inventory to a filled waterskin, or handle the choice.
+	// ----------------------------------------------------------------
+	bool isPlayerIdle = (laraItem->Animation.ActiveState == LS_IDLE &&
+		laraItem->Animation.AnimNumber == LA_STAND_IDLE &&
+		laraInfo->Control.HandStatus == HandStatus::Free);
+
+	if ((IsHeld(In::Action) || g_Gui.GetInventoryItemChosen() != NO_VALUE) && isPlayerIdle &&
+		TestBoundsCollide(item, laraItem, LARA_RADIUS))
+	{
+		int chosen = g_Gui.GetInventoryItemChosen();
+
+		if (chosen == NO_VALUE)
+		{
+			// Open inventory to the first filled waterskin.
+			GAME_OBJECT_ID filledSkin = (GAME_OBJECT_ID)NO_VALUE;
+			if (laraInfo->Inventory.SmallWaterskin > 1)
+				filledSkin = GAME_OBJECT_ID(ID_WATERSKIN1_EMPTY + laraInfo->Inventory.SmallWaterskin - 1);
+			else if (laraInfo->Inventory.BigWaterskin > 1)
+				filledSkin = GAME_OBJECT_ID(ID_WATERSKIN2_EMPTY + laraInfo->Inventory.BigWaterskin - 1);
+
+			if (filledSkin != (GAME_OBJECT_ID)NO_VALUE)
+				g_Gui.SetEnterInventory(filledSkin);
+			else if (IsClicked(In::Action))
+				SayNo();
+
+			return;
+		}
+
+		// Validate that the chosen item is a filled waterskin.
+		bool validChoice = (chosen >= ID_WATERSKIN1_1 && chosen <= ID_WATERSKIN1_3) ||
+		                   (chosen >= ID_WATERSKIN2_1 && chosen <= ID_WATERSKIN2_5);
+
+		g_Gui.SetInventoryItemChosen(NO_VALUE);
+
+		if (!validChoice)
+			return;
+
+		// Consume waterskin and record water amount for scale comparison.
+		int waterAmount = 0;
+		if (chosen >= ID_WATERSKIN1_1 && chosen <= ID_WATERSKIN1_3)
+		{
+			waterAmount = laraInfo->Inventory.SmallWaterskin - 1;
+			laraInfo->Inventory.SmallWaterskin = 1;
+		}
+		else
+		{
+			waterAmount = laraInfo->Inventory.BigWaterskin - 1;
+			laraInfo->Inventory.BigWaterskin = 1;
+		}
+
+		laraItem->ItemFlags[3] = waterAmount;
+		laraItem->Animation.AnimNumber = LA_WATERSKIN_POUR_HIGH;
+		laraItem->Animation.FrameNumber = 0;
+		laraItem->Animation.ActiveState = LS_MISC_CONTROL;
+		item->Animation.ActiveState = 1;
+		return;
+	}
+
 	if (TestBoundsCollide(item, laraItem, LARA_RADIUS))
 	{
-		if (laraItem->Animation.AnimNumber != LA_WATERSKIN_POUR_LOW && laraItem->Animation.AnimNumber != LA_WATERSKIN_POUR_HIGH || item->Animation.ActiveState != 1)
+		if (laraItem->Animation.AnimNumber != LA_WATERSKIN_POUR_LOW &&
+			laraItem->Animation.AnimNumber != LA_WATERSKIN_POUR_HIGH ||
+			item->Animation.ActiveState != 1)
 		{
 			GlobalCollisionBounds.X1 = 640;
 			GlobalCollisionBounds.X2 = 1280;
@@ -132,38 +199,33 @@ void ScalesCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 
 			if (TestLaraPosition(ScalesBounds, item, laraItem))
 			{
-				laraItem->Animation.AnimNumber = LA_WATERSKIN_POUR_HIGH;
-				laraItem->Animation.FrameNumber = 0;
-				item->Pose.Orientation.y = rotY;
-			}
-			else if (laraItem->Animation.FrameNumber == 51)
-			{
-				SoundEffect(SFX_TR4_POUR_WATER, &laraItem->Pose);
-				item->Pose.Orientation.y = rotY;
-			}
-			else if (laraItem->Animation.FrameNumber == 74)
-			{
-				AddActiveItem(itemNumber);
-				item->Status = ITEM_ACTIVE;
+				if (laraItem->Animation.AnimNumber == LA_WATERSKIN_POUR_LOW)
+				{
+					laraItem->Animation.AnimNumber = LA_WATERSKIN_POUR_HIGH;
+					laraItem->Animation.FrameNumber = 0;
+				}
+				else if (laraItem->Animation.FrameNumber == 51)
+				{
+					SoundEffect(SFX_TR4_POUR_WATER, &laraItem->Pose);
+				}
+				else if (laraItem->Animation.FrameNumber == 74)
+				{
+					AddActiveItem(itemNumber);
+					item->Status = ITEM_ACTIVE;
 
-				if (laraItem->ItemFlags[3] < item->TriggerFlags)
-				{
-					item->Animation.TargetState = 4;
-					item->Pose.Orientation.y = rotY;
+					if (laraItem->ItemFlags[3] < item->TriggerFlags)
+						item->Animation.TargetState = 4;
+					else if (laraItem->ItemFlags[3] == item->TriggerFlags)
+						item->Animation.TargetState = 2;
+					else
+						item->Animation.TargetState = 3;
 				}
-				else if (laraItem->ItemFlags[3] == item->TriggerFlags)
-				{
-					item->Animation.TargetState = 2;
-					item->Pose.Orientation.y = rotY;
-				}
-				else
-					item->Animation.TargetState = 3;
 			}
-			else
-				item->Pose.Orientation.y = rotY;
+
+			item->Pose.Orientation.y = rotY;
 		}
 	}
-	
+
 	if ((laraItem->Animation.AnimNumber == LA_WATERSKIN_POUR_LOW  && (laraItem->Animation.FrameNumber >= 44 && laraItem->Animation.FrameNumber <= 72)) ||
 		(laraItem->Animation.AnimNumber == LA_WATERSKIN_POUR_HIGH && (laraItem->Animation.FrameNumber >= 51 && laraItem->Animation.FrameNumber <= 74)))
 	{
@@ -174,10 +236,5 @@ void ScalesCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 		float gravity = Random::GenerateFloat(32.0f, 64.0f);
 
 		SpawnDrip(pos, laraItem->RoomNumber, velocity, life, gravity);
-
-		// TODO: Generate colours.
-		/*drip->r = Random::GenerateFloat(24, 40);
-		drip->g = Random::GenerateFloat(24, 60);
-		drip->b = Random::GenerateFloat(24, 72);*/
 	}
 }

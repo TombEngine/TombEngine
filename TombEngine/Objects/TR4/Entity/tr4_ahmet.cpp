@@ -379,7 +379,13 @@ namespace TEN::Entities::TR4
 
 	bool RespawnAhmet(short itemNumber)
 	{
+		if (itemNumber == NO_VALUE)
+			return false;
+
 		auto* item = &g_Level.Items[itemNumber];
+
+		if (item->ObjectNumber != ID_AHMET)
+			return false;
 
 		if (item->Animation.ActiveState != AHMET_STATE_DEATH || !TestLastFrame(*item))
 			return false;
@@ -390,9 +396,10 @@ namespace TEN::Entities::TR4
 		item->Pose.Position.y = (item->ItemFlags[1] * CLICK(1));
 		item->Pose.Position.z = (item->ItemFlags[2] * BLOCK(1)) + CLICK(2);
 
-		auto outsideRoom = IsRoomOutside(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
-		if (item->RoomNumber != outsideRoom)
-			ItemNewRoom(itemNumber, outsideRoom);
+		short roomNumber = item->RoomNumber;
+		GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &roomNumber);
+		if (item->RoomNumber != roomNumber)
+			ItemNewRoom(itemNumber, roomNumber);
 
 		SetAnimation(item, AHMET_ANIM_IDLE);
 		item->HitPoints = Objects[item->ObjectNumber].HitPoints;
