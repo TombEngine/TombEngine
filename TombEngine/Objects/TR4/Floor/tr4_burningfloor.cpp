@@ -10,6 +10,7 @@
 #include "Game/room.h"
 #include "Math/Math.h"
 #include "Objects/objectslist.h"
+#include "Sound/sound.h"
 #include "Specific/level.h"
 
 using namespace TEN::Effects::Environment;
@@ -104,7 +105,7 @@ void BurningFloorControl(short itemNumber)
 	// --- Precompute Y-rotation basis for offsetting fire positions ---
 	// Original TR4 fire offsets were authored for Y orientation of 90 degrees,
 	// so subtract that base angle to get the correct delta rotation.
-	short deltaY = item->Pose.Orientation.y - ANGLE(90.0f);
+	short deltaY = item->Pose.Orientation.y + ANGLE(90.0f);
 	float sinY = phd_sin(deltaY);
 	float cosY = phd_cos(deltaY);
 
@@ -119,6 +120,10 @@ void BurningFloorControl(short itemNumber)
 		if (!intensity)
 			continue;
 
+		// Convert intensity (1-255, higher = brighter) to fade (1-255, higher = more faded).
+		// The renderer treats fade=1 as fully visible and fade=255 as invisible.
+		short fade = 256 - intensity;
+
 		// Rotate offset by the object's current Y orientation.
 		int rotX = (int)(xoff * cosY - zoff * sinY);
 		int rotZ = (int)(xoff * sinY + zoff * cosY);
@@ -129,7 +134,7 @@ void BurningFloorControl(short itemNumber)
 			item->Pose.Position.z + rotZ,
 			item->RoomNumber,
 			FLOOR_FIRE_SIZES[sizeIdx],
-			intensity);
+			fade);
 	}
 
 	// --- Burn Lara if she steps into a deadly fire position ---
@@ -164,6 +169,10 @@ void BurningFloorControl(short itemNumber)
 		}
 	}
 
+
+	if (!item->ItemFlags[4])
+		SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
+
 	// --- Ramp-up phase: gradually increase fire intensities ---
 	if (item->ItemFlags[3] < 450)
 	{
@@ -195,8 +204,9 @@ void BurningFloorControl(short itemNumber)
 		if (item->ItemFlags[0] == 2 && item->ItemFlags[1] == 2 && item->ItemFlags[2] == 2)
 		{
 			// TriggerFlags specifies which flipmap group to trigger (0 = original group 0).
+			item->ItemFlags[4] = 1;
 			DoFlipMap(item->TriggerFlags);
-
+			SoundEffect(SFX_TR4_SMASH_ROCK, &item->Pose);
 			ExplodeItemNode(item, 0, 1, -24);
 			ExplodeItemNode(item, 1, 1, -24);
 			ExplodeItemNode(item, 2, 1, -24);
