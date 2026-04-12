@@ -99,16 +99,6 @@ float ValueNoise3D(float3 p)
     return lerp(n0, n1, u.z);
 }
 
-// Billow noise: absolute-value form of value noise.
-// Converts [0,1] range into a ridge-like [0,1] form peaked at 0, mirroring
-// abs(snoise()) from the reference volumetric cloud shader. The resulting FBM
-// produces rounded cauliflower-like bumps the defining basis for the
-// cotton-ball altocumulus cloud look of the reference shader.
-float BillowNoise3D(float3 p)
-{
-    return abs(ValueNoise3D(p) * 2.0f - 1.0f);
-}
-
 // Gradient hash: maps a 3D integer grid point to a pseudorandom unit gradient vector.
 // Used by PerlinNoise3D.
 float3 GradHash33(float3 p)
@@ -236,31 +226,6 @@ float FBMLowFreq(float3 p, float lod)
         v += a * octWeight * ValueNoise3D(s);
         s *= 2.37f;  // Lacunarity (non-power-of-2 avoids tiling artifacts)
         a *= 0.38f;  // Low persistence: each octave contributes much less than the previous
-    }
-    return v;
-}
-
-// Billow FBM 3-octave FBM using BillowNoise3D as basis function.
-// Lacunarity 2.032 matches the reference volumetric cloud shader (vs 2.37 for
-// regular FBM), giving less spectral compression and more distinct scale
-// separation. Gain 0.5 matches reference shader init_gain / gain = 0.5.
-// Distance LOD suppresses fine octaves at range, same as FBMLowFreq.
-float FBMLowFreqBillow(float3 p, float lod)
-{
-    float v  = 0.0f;
-    float a  = 0.5f;
-    float3 s = p;
-
-    [unroll]
-    for (int oct = 0; oct < 3; oct++)
-    {
-        float octWeight;
-        if	  (oct == 0) octWeight = 1.0f;
-        else if (oct == 1) octWeight = saturate(1.0f - lod);
-        else			   octWeight = saturate(1.0f - lod * 2.0f);
-        v += a * octWeight * BillowNoise3D(s);
-        s *= 2.032f;  // Reference shader lacunarity
-        a *= 0.5f;	// Reference shader gain
     }
     return v;
 }
@@ -439,6 +404,57 @@ float DissolveMask(float3 skyPos)
 }
 
 // ===========================================================================
+// Transform-preset dissolve / formation / drift-out helpers.
+// Shared by Alto (morph & non-morph) and standard cloud paths.
+// ===========================================================================
+
+// Cluster-staggered edge-first dissolve. Returns modified density.
+float ApplyDissolve(float density, float3 skyPos, float phase)
+{
+    if (phase <= 0.001f || density <= 0.0001f)
+        return density;
+    const float maxDelay = 0.55f;
+    float clusterDelay   = DissolveMask(skyPos) * maxDelay;
+    float localPhase     = saturate((phase - clusterDelay) / (1.0f - maxDelay));
+    if (localPhase <= 0.0001f)
+        return density;
+    float cloudStr  = 1.0f - exp(-density * 8.0f);
+    float threshold = lerp(-0.1f, 1.1f, localPhase);
+    float edgeW     = 0.08f;
+    return density * smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
+}
+
+// Cluster-staggered core-first formation (reverse dissolve). Returns modified density.
+float ApplyFormation(float density, float3 skyPos, float phase)
+{
+    if (phase <= 0.001f || phase >= 0.999f || density <= 0.0001f)
+        return density;
+    const float maxDelay = 0.55f;
+    float clusterDelay   = (1.0f - DissolveMask(skyPos)) * maxDelay;
+    float localPhase     = saturate((phase - clusterDelay) / (1.0f - maxDelay));
+    float cloudStr  = 1.0f - exp(-density * 8.0f);
+    float threshold = lerp(1.1f, -0.1f, localPhase);
+    float edgeW     = 0.08f;
+    return density * smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
+}
+
+// Wind-directional drift-out dissolution. Returns [0,1] suppression factor
+// (multiply with density). Returns 1.0 when DriftOutProgress <= 0.
+float DriftOutFactor(float2 skyPosXZ)
+{
+    if (DriftOutProgress <= 0.001f)
+        return 1.0f;
+    float2 windDir2D = (dot(WindDirection, WindDirection) > 0.001f)
+                     ? normalize(WindDirection) : float2(1.0f, 0.0f);
+    float windProjSky    = dot(skyPosXZ, windDir2D);
+    float fieldExtent    = max(CloudBottomHeight * 4.0f, 1.0f);
+    float normalizedProj = windProjSky / fieldExtent;
+    float boundary = lerp(-1.5f, 1.5f, DriftOutProgress);
+    float softness = 0.4f;
+    return 1.0f - smoothstep(boundary - softness, boundary + softness, normalizedProj);
+}
+
+// ===========================================================================
 // Parameterized Alto density evaluation for CloudMorph dual-density system.
 // Called once for normal rendering, twice during morph (target + source).
 // Only the density-shaping params vary; wind/time/fade are shared globals.
@@ -470,19 +486,9 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         return 0.0f;
 
     // DriftOutProgress: skip pixels that are fully suppressed by the upwind
-    // dissolution boundary. The soft zone is 0.4 wide; use boundary+0.4 so
-    // we only early-out pixels that are completely past the transition.
-    if (DriftOutProgress > 0.001f)
-    {
-        float2 wDir2D = (dot(WindDirection, WindDirection) > 0.001f)
-                       ? normalize(WindDirection) : float2(1.0f, 0.0f);
-        float windProjSky  = dot(skyPos.xz, wDir2D);
-        float fieldExtent  = max(CloudBottomHeight * 4.0f, 1.0f);
-        float normalizedProj = windProjSky / fieldExtent;
-        float boundary = lerp(-1.5f, 1.5f, DriftOutProgress);
-        if (normalizedProj > boundary + 0.4f)
-            return 0.0f;
-    }
+    // dissolution boundary (DriftOutFactor returns 0 for fully suppressed).
+    if (DriftOutProgress > 0.001f && DriftOutFactor(skyPos.xz) < 0.001f)
+        return 0.0f;
 
     // --- Sky-height redistribution (bias-based) ---
     float horizonEdge = saturate(HorizonFade * 0.10f + DistanceFade * 0.06f);
@@ -840,34 +846,8 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
             float srcLOD2 = srcLOD * srcLOD;
             float srcDens = EvalAltoDensityCore(skyPos, heightFrac, skyH, srcLOD, srcLOD2, srcParams);
 
-            // Dissolve source density (edges vanish first, cluster-staggered).
-            if (DissolvePhase > 0.001f && srcDens > 0.0001f)
-            {
-                const float maxDelay  = 0.55f;
-                float clusterDelay    = DissolveMask(skyPos) * maxDelay;
-                float localPhase      = saturate((DissolvePhase - clusterDelay) / (1.0f - maxDelay));
-
-                if (localPhase > 0.0001f)
-                {
-                    float cloudStr  = 1.0f - exp(-srcDens * 8.0f);
-                    float threshold = lerp(-0.1f, 1.1f, localPhase);
-                    float edgeW     = 0.08f;
-                    srcDens *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
-                }
-            }
-
-            // Form target density (cores appear first, cluster-staggered).
-            if (FormationPhase > 0.001f && FormationPhase < 0.999f && tgtDens > 0.0001f)
-            {
-                const float maxDelay  = 0.55f;
-                float clusterDelay    = (1.0f - DissolveMask(skyPos)) * maxDelay;
-                float localPhase      = saturate((FormationPhase - clusterDelay) / (1.0f - maxDelay));
-
-                float cloudStr  = 1.0f - exp(-tgtDens * 8.0f);
-                float threshold = lerp(1.1f, -0.1f, localPhase);
-                float edgeW     = 0.08f;
-                tgtDens *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
-            }
+            srcDens = ApplyDissolve(srcDens, skyPos, DissolvePhase);
+            tgtDens = ApplyFormation(tgtDens, skyPos, FormationPhase);
 
             // Combine: where source had cloud → dissolving, where target has cloud → forming.
             dens = srcDens + tgtDens;
@@ -877,42 +857,17 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         }
         else
         {
-            // --- Non-morph path: original dissolve/formation ---
+            // --- Non-morph path: dissolve/formation ---
             if (dens <= 0.0001f)
                 return 0.0f;
 
-            if (DissolvePhase > 0.001f)
-            {
-                const float maxDelay  = 0.55f;
-                float clusterDelay    = DissolveMask(skyPos) * maxDelay;
-                float localPhase      = saturate((DissolvePhase - clusterDelay) / (1.0f - maxDelay));
+            dens = ApplyDissolve(dens, skyPos, DissolvePhase);
+            if (dens <= 0.0001f)
+                return 0.0f;
 
-                if (localPhase > 0.0001f)
-                {
-                    float cloudStr  = 1.0f - exp(-dens * 8.0f);
-                    float threshold = lerp(-0.1f, 1.1f, localPhase);
-                    float edgeW     = 0.08f;
-                    dens *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
-
-                    if (dens <= 0.0001f)
-                        return 0.0f;
-                }
-            }
-
-            if (FormationPhase > 0.001f && FormationPhase < 0.999f)
-            {
-                const float maxDelay  = 0.55f;
-                float clusterDelay    = (1.0f - DissolveMask(skyPos)) * maxDelay;
-                float localPhase      = saturate((FormationPhase - clusterDelay) / (1.0f - maxDelay));
-
-                float cloudStr  = 1.0f - exp(-dens * 8.0f);
-                float threshold = lerp(1.1f, -0.1f, localPhase);
-                float edgeW     = 0.08f;
-                dens *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
-
-                if (dens <= 0.0001f)
-                    return 0.0f;
-            }
+            dens = ApplyFormation(dens, skyPos, FormationPhase);
+            if (dens <= 0.0001f)
+                return 0.0f;
         }
 
         // AltoHorizonWidth zenith cap (shared by morph and non-morph).
@@ -922,534 +877,10 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
             dens *= smoothstep(altoCapEdge - 0.08f, altoCapEdge + 0.08f, skyH);
         }
 
-        // Wind-directional drift-out dissolution.
-        if (DriftOutProgress > 0.001f)
-        {
-            float2 windDir2D = normalize(WindDirection);
-            float windProjSky = dot(skyPos.xz, windDir2D);
-            float fieldExtent = max(CloudBottomHeight * 4.0f, 1.0f);
-            float normalizedProj = windProjSky / fieldExtent;
-
-            float boundary = lerp(-1.5f, 1.5f, DriftOutProgress);
-            float softness = 0.4f;
-            float suppress = smoothstep(boundary - softness, boundary + softness, normalizedProj);
-            dens *= (1.0f - suppress);
-        }
+        dens *= DriftOutFactor(skyPos.xz);
 
         return dens;
     }
-
-#if 0  // OLD INLINE ALTO PATH — replaced by EvalAltoDensityCore above
-    // ===================================================================
-    // AltocumulusMid FULLY SELF-CONTAINED density path.
-    // Ported from reference shader. Uses ONLY Alto-specific CB parameters.
-    // Shared params used: CloudBottomHeight (slab position), DistanceFade,
-    // WindDirection/WindSpeed/CloudTime (animation infrastructure).
-    // Does NOT use: Coverage, CloudDensity, CloudThickness, Absorption,
-    // ShapeScale, DetailScale, WeatherScale, AmbientContrib, SilverliningStr,
-    // HeightGradient, or any other shared cloud-type parameters.
-    // ===================================================================
-    if (CloudType == 1)
-    {
-        // AltoCloudSize=1.0 ??? reference scale (pos*0.001). <1=bigger, >1=smaller.
-        // --- Sky-height redistribution (bias-based) ---
-        // biasFactor: Hermite ramp within the ACTIVE cloud zone [horizonEdge, zenithEdge].
-        //   skyH <= horizonEdge -> biasFactor = -1  (horizon plateau)
-        //   skyH >= zenithEdge  -> biasFactor = +1  (zenith plateau)
-        //   between             -> smooth S-curve transition
-        //
-        // horizonEdge: derived from HorizonFade and DistanceFade, which together define
-        // the outermost visible cloud boundary. The atmospheric horizon fade covers
-        // elevation [0, ~0.10] and DistanceFade fades the outermost (lowest-elevation)
-        // clouds first. Both parameters push the active boundary inward.
-        //   HorizonFade=0, DistanceFade=0 -> horizonEdge=0 (starts right at the horizon)
-        //   HorizonFade=1, DistanceFade=1 -> horizonEdge=0.16 (~9deg elevation)
-        //
-        // zenithEdge: a flat plateau so the 'zenith' is a broad zone, not a single point.
-        // 0.65 in skyH-space corresponds to ~40deg elevation above the horizon, giving a
-        // wide central dome that the bias can push clouds toward or away from.
-        float horizonEdge = saturate(HorizonFade * 0.10f + DistanceFade * 0.06f);
-        static const float zenithEdge = 0.65f;
-        float activeRange = max(zenithEdge - horizonEdge, 0.05f);
-        float biasFactor;
-        {
-            float t = saturate((skyH - horizonEdge) / activeRange);
-            float s = t * t * (3.0f - 2.0f * t); // smoothstep
-            biasFactor = s * 2.0f - 1.0f;         // remap [0,1] -> [-1,+1]
-        }
-
-        // Density redistribution via coverage threshold shift.
-        // AltoCloudAmount is the global base; bias shifts where clouds are denser/sparser.
-        // bias=0: effectiveAmount = AltoCloudAmount everywhere (uniform, no change).
-        // bias>0: denser near horizon, sparser near center.
-        // bias<0: sparser near horizon, denser near center.
-        //
-        // NOTE: sizeRatio / noise-space scaling is intentionally NOT used here.
-        // Sampling the noise field at a position-dependent zoom level creates a
-        // visible ring artifact at the point where the zoom crosses 1.0, because
-        // adjacent pixels suddenly sample from incompatible frequency levels.
-        // The visual "size" difference between horizon and center clouds already
-        // exists naturally through perspective (distant = small, close = large).
-        // All distribution effects are therefore expressed as threshold shifts
-        // (densityShift, covSoft) on the same uniformly-sampled noise field.
-        float densityShift = -AltoZenithBias * biasFactor * 0.4f;
-
-        float baseScale = 0.001f * AltoCloudSize;
-
-        // ===================================================================
-        // Continuous wind-driven flow with organic deformation.
-        //
-        // Two-layer movement model:
-        //   1. GLOBAL ADVECTION — the entire noise field drifts in WindDirection
-        //      at WindSpeed.  This is the primary "endless stream" that makes
-        //      clouds scroll across the sky.  WindSpeed is the pre-integrated
-        //      offset (∫speed·dt on CPU), so p simply adds windOfs.
-        //   2. LOCAL DEFORMATION — three curl-noise frequency bands warp the
-        //      sampling domain on top of the advected position.  The curl
-        //      lookups themselves evolve with time, so the warp pattern changes
-        //      continuously: new formations emerge on the upwind side while
-        //      existing masses reshape and eventually dissolve downwind.
-        //
-        // The combination produces the "endless river" look: clouds translate
-        // cohesively in the wind direction (global drift), while their internal
-        // structure mutates organically (curl deformation), so no two frames
-        // show the same cloud shape.
-        //
-        // Performance: identical cost to the previous static warp (6 ValueNoise3D
-        // calls for 3 curl passes).  The only extra ALU is the windOfs addition
-        // and the time offsets in the curl lookup coordinates.
-        // ===================================================================
-
-        // --- 1. Global advection: wind-directed translation ---
-        // Driven by WindSpeed (pre-integrated ∫rate·dt on CPU).
-        // Controls how fast clouds travel across the sky as visible objects.
-        float3 windOfs = float3(WindDirection.x, 0.0f, WindDirection.y) * WindSpeed;
-
-        // --- 2. Evolution-driven formation scrolling ---
-        // Continuously scrolls the noise sampling domain in WindDirection.
-        // This produces the "endless stream" — new formations emerge upwind,
-        // old ones dissolve downwind — even at very low physical wind speed.
-        //
-        // Two additive terms, both gated by EvolutionSpeed (ES=0 → no cycling):
-        //
-        //   TIME TERM:  CloudTime * ES * 0.05
-        //     Internal atmospheric dynamics — formations cycle by themselves
-        //     even in calm air, driven purely by EvolutionSpeed.
-        //     ES=0.15 → cycle every ~67s.  ES=1.0 → ~10s.  ES=5.0 → ~2s.
-        //
-        //   WIND TERM:  WindSpeed * ES * 0.15
-        //     Wind shear accelerates cycling: stronger wind breaks up existing
-        //     masses and sweeps in fresh ones faster.  WindSpeed is the
-        //     pre-integrated offset (∫rate·dt), so this term grows in lock-step
-        //     with real wind — faster wind = proportionally faster cycling.
-        //     Rate ratio at steady state: windRate * 0.15 / 0.05 = windRate * 3×
-        //     so at windRate=0.2 the wind term adds 60% on top of the time term.
-        //
-        //   ES=0 → evoOfs = 0, clouds scroll only from windOfs (static texture).
-        float3 evoDir = float3(WindDirection.x, 0.0f, WindDirection.y);
-        float3 evoOfs = evoDir * EvolutionSpeed
-                      * (CloudTime * 0.05f + WindSpeed * 0.15f);
-
-        float3 p = skyPos * baseScale + windOfs + evoOfs;
-
-        // --- 2. Organic deformation via time-evolving curl noise flow field ---
-        //
-        // flowTime drives the temporal evolution of the curl lookups.
-        // EvolutionSpeed controls exclusively the deformation rate:
-        //   EvolutionSpeed = 0   → flowTime = 0, no shape change → clouds scroll
-        //                          as a static texture driven purely by wind.
-        //   EvolutionSpeed = 0.15 → ~1 full curl cycle per 20s (clearly perceptible).
-        //   EvolutionSpeed = 5.0  → actively churning, formations build and dissolve fast.
-        // Factor 0.30: at EvolutionSpeed=0.15 and 60s → flowTime=2.7 (2.7 noise periods
-        // traversed → roughly one formation cycle per 22s, clearly visible).
-        float flowTime = CloudTime * EvolutionSpeed * 0.30f;
-
-        // Height-dependent deformation speed: lower boundary layer more turbulent.
-        float heightFlow = lerp(1.0f, 0.65f, saturate(heightFrac));
-
-        // Directional bias on the warp evolution: curl lookups drift preferentially
-        // along WindDirection — deformation pattern has the same heading as the global
-        // drift, so formations emerge from upwind and dissolve downwind.
-        float2 windBias = WindDirection * flowTime * 0.06f;
-
-        // Curl amplitude is damped at high EvolutionSpeed so fast evolution
-        // increases formation cycling without twisting clouds into knots.
-        // At ES=0 → curlDamp=1.0 (full).  At ES=1 → 0.75.  At ES=5 → 0.55.
-        float curlDamp = lerp(1.0f, 0.55f, saturate(EvolutionSpeed * 0.25f));
-
-        // --- Low Frequency Band: large-scale formation morphing ---
-        // Slowest evolution, largest spatial scale (0.41× base).
-        {
-            float tLow  = flowTime * 0.35f * heightFlow;
-            float3 pLow = float3(p.x, 0.0f, p.z) * 0.41f
-                        + float3(3.17f + windBias.x + tLow * 0.7f,
-                                 0.0f,
-                                 7.63f + windBias.y + tLow * 0.5f);
-            float2 cLow = CurlNoise2D(pLow, 0.15f);
-            p.x += cLow.x * 0.16f * curlDamp;
-            p.z += cLow.y * 0.16f * curlDamp;
-        }
-
-        // --- Mid Frequency Band: medium-scale streaming ---
-        {
-            float tMid  = flowTime * 0.75f * heightFlow;
-            float3 pMid = float3(p.x, 0.0f, p.z) * 0.80f
-                        + float3(0.59f + tMid * 0.9f,
-                                 0.0f,
-                                 2.44f + tMid * 0.6f);
-            float2 cMid = CurlNoise2D(pMid, 0.10f);
-            p.x += cMid.x * 0.06f * curlDamp;
-            p.z += cMid.y * 0.06f * curlDamp;
-        }
-
-        // --- High Frequency Band: fine turbulence at cloud edges ---
-        {
-            float tHigh  = flowTime * 1.80f * heightFlow;
-            float3 pHigh = float3(p.x, 0.0f, p.z) * 1.60f
-                         + float3(5.33f + tHigh * 1.2f,
-                                  0.0f,
-                                  1.88f + tHigh * 0.8f);
-            float2 cHigh = CurlNoise2D(pHigh, 0.06f);
-            p.x += cHigh.x * 0.025f * curlDamp;
-            p.z += cHigh.y * 0.025f * curlDamp;
-        }
-
-        // Reference: float dens = fbm_clouds(p * 2.032, 2.6434, .5, .5);
-        // 5 octaves of abs(snoise(p)) billow FBM.
-        // Advection separated so wind/evo translation is constant across all octaves
-        // (see FBMAlto5 comment for the flickering rationale).
-        float dens;
-        {
-            float3 p_advect = (windOfs + evoOfs) * AltoFbmScale;
-            float3 p_shape  = p * AltoFbmScale - p_advect;
-            dens = FBMAlto5(p_shape, p_advect, AltoFbmLacunarity, AltoFbmGain,
-                            AltoBillowStrength, distLOD);
-        }
-
-        // Dual-scale Worley cellular erosion (Guerrilla "Horizon Zero Dawn", Siggraph 2015).
-        // Two scales are needed because a single scale only shapes ONE frequency of cloud:
-        //
-        // Scale A (0.55x FBM) -> coarse puff cells: carves large cloud masses into
-        //   individual billowing mounds. Covers large-coverage regions well.
-        //
-        // Scale B (1.05x FBM) -> fine fragment cells: small cloud fragments near the
-        //   coverage threshold have very little density excess above covThresh, so the
-        //   coarse Worley barely touches them. A finer scale Worley erosion specifically
-        //   breaks those thin fragments into small rounded puffs instead of flat slabs.
-        //   Strength scales with distLOD: at distance the surviving FBM octaves are fewer
-        //   (even with the floor weights) so grid-aligned edges are relatively more
-        //   prominent -> a stronger Worley B compensates by increasing cellular erosion.
-        //
-        // Remap lower-bound shift: positive invWorley -> more density at cell centers
-        // (creates rounded mounds), near-zero invWorley at cell walls -> thin separating
-        // gaps between puffs. Applied BEFORE the coverage smoothstep so the shapes are
-        // carved before the threshold cut.
-        {
-            float2 wPos     = float2(p.x, p.z) * 2.032f;
-            float worleyA   = WorleyNoise2D(wPos * 0.55f);
-            float invWA     = 1.0f - saturate(worleyA * 1.3f);
-            dens = saturate(Remap(dens, -(invWA * 0.30f), 1.0f, 0.0f, 1.0f));
-
-            float worleyB   = WorleyNoise2D(wPos * 1.05f);
-            float invWB     = 1.0f - saturate(worleyB * 1.4f);
-            // Fine Worley erosion fades out toward the horizon: at distance the
-            // fine cellular gaps that separate nearby fragments become very small
-            // on screen and just look like scatter noise.  Reducing strength to
-            // zero at distLOD=1 lets adjacent fragments merge into coherent cloud
-            // masses rather than floating as isolated specks.  Coverage impact is
-            // offset by the horizThin threshold raise below.
-            float wBStrength = lerp(0.15f, 0.0f, distLOD);
-            dens = saturate(Remap(dens, -(invWB * wBStrength), 1.0f, 0.0f, 1.0f));
-        }
-
-        // Reference: dens *= smoothstep(cld_coverage, cld_coverage + .035, dens);
-        // Self-referential smoothstep: THE signature look of this shader.
-        // AltoCloudAmount controls fill: 0=sparse, 1=overcast.
-        // covThreshold = 1.0 - amount: higher amount -> lower threshold -> more clouds.
-        // Default amount=0.6875 -> thresh=0.3125 -> matches reference cld_coverage.
-        // AltoCloudAmount always controls global density; bias only shifts the spatial balance.
-        //
-        // Coarse cluster noise shared by both bias and coverage modulation.
-        // Scale 0.18x p -> each cluster spans ~5-6 cloud cells.
-        // p is flow-deformed, so clusters co-move with the clouds.
-        float clusterNoise = PerlinNoise3D(float3(p.x * 0.18f, 0.0f, p.z * 0.18f));
-
-        // Cluster-shaped bias modulation:
-        // Without this, densityShift is purely elevation-dependent (same value for every
-        // cloud at the same ring height), so clouds dissolve as a smooth uniform band.
-        // Scaled by abs(AltoZenithBias) so effect is zero at bias=0 (uniform-at-0 parity).
-        if (abs(AltoZenithBias) > 0.001f)
-        {
-            densityShift += clusterNoise * abs(AltoZenithBias) * 0.35f;
-        }
-
-        float effectiveAmount = saturate(AltoCloudAmount + densityShift);
-        float covThresh = saturate(1.0f - effectiveAmount);
-
-        // Cluster-shaped coverage modulation:
-        // AltoCloudAmount controls global fill but applies identically everywhere,
-        // making all clouds thin/dissolve as a uniform gradient rather than in groups.
-        // Shifting covThresh by clusterNoise creates spatial zones where clouds
-        // survive (cluster peaks) or dissolve (cluster gaps) independent of elevation.
-        // Factor peaks at intermediate coverage (sparse/medium) and shrinks toward
-        // zero at full overcast (covThresh~0, no room to group) via the covThresh
-        // multiplier — so heavy cloud presets are not fragmented into isolated puffs.
-        {
-            float clusterStrength = covThresh * 0.30f;
-            covThresh = saturate(covThresh - clusterNoise * clusterStrength);
-        }
-        // Edge-softness evolution: cloud edges widen where clouds are building/forming
-        // and tighten where they are dissipating/breaking apart.
-        // evoBias: +1 = this sky region is favored by the current distribution bias
-        //          -1 = unfavored     0 = neutral (bias == 0 or at mid-sky)
-        //  evoBias=+1 -> exp2(+0.5) ~ 1.41x covSoft -> diffuse, spread-out edges
-        //  evoBias=-1 -> exp2(-0.5) ~ 0.71x covSoft -> crisp, tight edges
-        //  evoBias= 0 -> exp2(0)    = 1.00x covSoft -> unchanged (bias=0 parity)
-        // Clamped to [0.3, 3.0] to prevent degenerate coverage response.
-        float evoBias = -AltoZenithBias * biasFactor;
-        float covSoft = max(AltoCovSoftWidth, 0.001f) * clamp(exp2(evoBias * 0.5f), 0.3f, 3.0f);
-        // Widen the coverage soft-threshold at distance so cloud masses that
-        // survived the horizThin cull have fuzzy, overlapping edges and read
-        // as large coherent clusters rather than sharp isolated puffs.
-        // Scale with sizeFactor so large-pattern presets (small AltoCloudSize)
-        // are unaffected — they naturally form big masses already.
-        {
-            float sizeFactor = saturate(AltoCloudSize - 0.5f);
-            covSoft *= lerp(1.0f, 2.5f, distLOD2 * sizeFactor);
-        }
-
-        // Evolution / pulsing: slowly oscillate the coverage threshold so cloud
-        // masses gently puff up and deflate over time.
-        // EvolutionSpeed=0 ??? static. Higher values ??? faster / stronger pulsing.
-        // A coarse spatial noise gives each region its own phase so puffing is
-        // locally independent (not a global in/out sync).
-        if (EvolutionSpeed > 0.001f)
-        {
-            float spatialPhase = ValueNoise3D(p * 0.4f) * 6.2832f;
-            float swellPhase   = CloudTime * EvolutionSpeed * 0.04f + spatialPhase;
-            float swellAmp	 = 0.08f * saturate(EvolutionSpeed * 0.5f + 0.1f);
-            // No distLOD damping: damping created a near/far coverage difference at
-            // AltoZenithBias=0 because near clouds expanded more during swell peaks.
-            // Evolution speed is already a global parameter; uniform swell amplitude
-            // keeps cloud "presence" consistent at all distances at bias=0.
-            covThresh = saturate(covThresh - sin(swellPhase) * swellAmp);
-        }
-
-        // --- Distance-based horizon thinning + cluster grouping ---
-        // Shared factor: no effect for large-pattern presets (AltoCloudSize <= 0.5),
-        // full effect for fine-pattern presets (AltoCloudSize >= 1.5).
-        {
-            float sizeFactor = saturate((AltoCloudSize - 0.5f) / 1.0f);
-
-            // 1. Base thinning: raises threshold globally at distance to kill the
-            //    weakest individual peaks (the small loose fragments).
-            float horizThin = distLOD * sizeFactor * 0.28f;
-            covThresh = saturate(covThresh + horizThin);
-
-            // 2. Cluster envelope: a coarse large-scale noise (~4x the cloud cell size)
-            //    modulates covThresh regionally — lower in cluster zones, higher in gaps.
-            //    This groups surviving clouds into broad cohesive masses instead of a
-            //    uniform scatter field.
-            //    p is flow-deformed so the clusters co-move with the clouds.
-            float clusterAmt = distLOD * sizeFactor * 0.22f;
-            if (clusterAmt > 0.001f)
-            {
-                // Sample at 0.22x the FBM base scale -> each cluster spans ~5 cloud cells.
-                float clusterNoise = PerlinNoise3D(float3(p.x * 0.22f, 0.0f, p.z * 0.22f));
-                // PerlinNoise3D is in [~-0.5, ~+0.5]:
-                //   positive region -> cluster zone (lower thresh) -> more/denser clouds
-                //   negative region -> gap zone   (raise thresh)  -> mostly clear
-                covThresh = saturate(covThresh - clusterNoise * clusterAmt);
-            }
-        }
-
-        // --- Wind-directional formation / dissolution ---
-        // Makes small isolated patches either merge with an oncoming cluster
-        // (formation on the leading/downwind edge) or dissolve (trailing edge fades).
-        //
-        // Mechanism: sample coarse density potential at p ± windDir * offset.
-        // windSlope = fwdPotential - bwdPotential
-        //   > 0  →  density growing in wind direction (LEADING edge)
-        //           → lower covThresh → encourage new patch to form / merge
-        //   < 0  →  density falling in wind direction (TRAILING edge)
-        //           → raise covThresh → dissolve the rear of the patch
-        //
-        // Isolation penalty: if a patch sits in a deep gap zone (clusterNoise
-        // strongly negative), no cluster is approaching to merge with it →
-        // raise its threshold so it fades rather than persisting as a lone speck.
-        //
-        // Both effects gate on EvolutionSpeed (ES=0 → fully disabled).
-        if (EvolutionSpeed > 0.001f)
-        {
-            float evoStr = saturate(EvolutionSpeed * 2.0f);  // [0,1], full at ES≥0.5
-
-            float3 windDir3 = float3(WindDirection.x, 0.0f, WindDirection.y);
-            float  scaleG   = 0.18f;
-
-            // --- Leading-edge formation ---
-            // Sample potential slightly ahead in wind direction (≈ 1 cloud radius).
-            // If there is dense sky ahead, lower covThresh here so a matching
-            // formation starts building in front of the existing cloud.
-            // Search distance 1.8: roughly one cloud-cell diameter at scaleG=0.18.
-            float3 pFwd    = p + windDir3 * 1.8f;
-            float  fwdPot  = PerlinNoise3D(float3(pFwd.x * scaleG, 0.0f, pFwd.z * scaleG));
-            // fwdPot ∈ [-0.5, +0.5]: positive = dense sky ahead → form here too.
-            float formStr  = saturate(fwdPot) * evoStr * covThresh * 0.28f;
-            covThresh = saturate(covThresh - formStr);
-
-            // --- Trailing-edge fraying ---
-            // Sample potential behind in wind direction (≈ 1–2 cloud radii).
-            // If sky behind is thinning/empty, raise covThresh there so the rear
-            // of the cloud frays and dissolves into smaller wisps.
-            // Asymmetric search (3.2 > 1.8): the trailing fringe dissolves over a
-            // longer distance than the leading buildup, which looks more natural.
-            float3 pBwd    = p - windDir3 * 3.2f;
-            float  bwdPot  = PerlinNoise3D(float3(pBwd.x * scaleG, 0.0f, pBwd.z * scaleG));
-            // bwdPot < 0 = gap zone behind → fray the current pixel.
-            float frayStr  = saturate(-bwdPot) * evoStr * covThresh * 0.22f;
-            covThresh = saturate(covThresh + frayStr);
-
-            // --- Isolation penalty ---
-            // Patches in deep gap zones (no cluster nearby) get an additional
-            // threshold raise so lone specks dissolve rather than persisting.
-            float isolationPenalty = saturate(-clusterNoise - 0.1f) * evoStr * 0.35f;
-            covThresh = saturate(covThresh + isolationPenalty * covThresh);
-        }
-
-        dens *= smoothstep(covThresh, covThresh + covSoft, dens);
-        // Height-dependent behavior is in illumination (exp(h)/1.95 + dark/bright blend).
-
-        // --- Organic bottom shaping ---
-        // AltoBottomSoftness [0,1]: 0 = flat slab bottom (no change),
-        // 1 = fully organic, irregular underside sculpted by coarse noise.
-        // Two-scale noise: coarse clusters set per-region depth, fine detail
-        // adds local variation within each cluster so different cloud groups
-        // clearly hang at different heights rather than all equally deep.
-        if (AltoBottomSoftness > 0.001f)
-        {
-            float3 basePos	= skyPos + (windOfs + evoOfs) / baseScale;
-            // Coarse scale: large cluster-level depth variation (~every few km).
-            float3 coarsePos  = basePos * 0.000045f;
-            // Fine scale: column-level detail within each cluster.
-            float3 detailPos  = basePos * 0.00012f;
-            float coarseNoise = ValueNoise3D(float3(coarsePos.x,  0.0f, coarsePos.z));
-            float detailNoise = ValueNoise3D(float3(detailPos.x,  0.0f, detailPos.z));
-
-            // Coarse dominates so whole cloud clusters are visibly deep or shallow.
-            float combinedNoise = saturate(coarseNoise * 0.65f + detailNoise * 0.35f);
-
-            // Per-column bottom threshold in heightFrac space [0=slab floor, 1=top].
-            // combinedNoise=0  deep (threshold near depthBase),
-            // combinedNoise=1  shallow (threshold raised by depthRange).
-            // depthBase > 0 ensures even the deepest clouds stay slightly above the
-            // hard slab floor  "raising the deepest point a little" as requested.
-            float depthBase  = 0.05f;
-            float depthRange = AltoBottomSoftness * 0.35f;
-            float threshold  = depthBase + combinedNoise * depthRange;
-
-            float fadeRange  = lerp(0.03f, 0.30f, AltoBottomSoftness);
-            float bottomFade = smoothstep(threshold, threshold + fadeRange, heightFrac);
-            dens *= bottomFade;
-        }
-
-        // --- Smooth crown (top fade) ---
-        // Without a top-fade the slab has a hard cutoff at heightFrac=1.0: when AltoThickness
-        // is large the iso-contours of the flat density field become visible as jigsaw edges.
-        // A smoothstep crown fade mirrors AltoBottomSoftness for the top, giving each cloud
-        // mass a naturally tapering, puffy upper boundary regardless of AltoThickness.
-        // Crown fade starts at 65% height and reaches zero at the slab top.
-        dens *= 1.0f - smoothstep(0.65f, 1.0f, heightFrac);
-
-        if (dens <= 0.0001f)
-            return 0.0f;
-
-        // --- Transform-preset dissolve ---
-        // Two independent mechanisms:
-        //   1. Cluster delay: spatial noise shifts when each cluster STARTS dissolving.
-        //      clusterDelay in [0, maxDelay] → cluster begins at phase=clusterDelay,
-        //      finishes at phase=clusterDelay+(1-maxDelay). At phase=1 all clusters done.
-        //   2. Edge-first within cluster: localPhase drives a density threshold so
-        //      low-density edges vanish before dense cores — independent of cluster timing.
-        if (DissolvePhase > 0.001f)
-        {
-            const float maxDelay  = 0.55f; // Fraction of duration used for staggering.
-            float clusterDelay    = DissolveMask(skyPos) * maxDelay;
-            float localPhase      = saturate((DissolvePhase - clusterDelay) / (1.0f - maxDelay));
-
-            if (localPhase > 0.0001f)
-            {
-                // cloudStr: 0=thin edge, 1=dense core. Edges dissolve first.
-                float cloudStr  = 1.0f - exp(-dens * 8.0f);
-                float threshold = lerp(-0.1f, 1.1f, localPhase);
-                float edgeW     = 0.08f;
-                dens *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
-
-                if (dens <= 0.0001f)
-                    return 0.0f;
-            }
-        }
-
-        // --- Transform-preset cloud formation (reverse dissolve) ---
-        // At FormationPhase=0 all density is suppressed (clouds not yet formed).
-        // At FormationPhase=1 density is fully restored. Dense cores appear first,
-        // thin edges fill in last. Clusters form at staggered times via inverted
-        // spatial delay (clusters that dissolve first also form last and vice versa).
-        if (FormationPhase > 0.001f && FormationPhase < 0.999f)
-        {
-            const float maxDelay  = 0.55f;
-            // Inverted delay: clusters with high mask form first (they dissolved last).
-            float clusterDelay    = (1.0f - DissolveMask(skyPos)) * maxDelay;
-            float localPhase      = saturate((FormationPhase - clusterDelay) / (1.0f - maxDelay));
-
-            // Reverse threshold: at localPhase=0 everything suppressed, at 1 everything kept.
-            float cloudStr  = 1.0f - exp(-dens * 8.0f);
-            float threshold = lerp(1.1f, -0.1f, localPhase); // sweeps down
-            float edgeW     = 0.08f;
-            dens *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
-
-            if (dens <= 0.0001f)
-                return 0.0f;
-        }
-
-        // AltoHorizonWidth zenith cap (disabled in bleed pass — bleed clouds must be
-        // visible from near-horizontal rays that point toward the mountains).
-        if (AltoHorizonWidth > 0.001f && CloudIsBleedPass < 0.001f)
-        {
-            float altoCapEdge = AltoHorizonWidth * 0.90f;
-            dens *= smoothstep(altoCapEdge - 0.08f, altoCapEdge + 0.08f, skyH);
-        }
-
-        // --- Wind-directional drift-out dissolution ---
-        // When DriftOutProgress > 0, a soft boundary sweeps from the upwind side
-        // (where new clouds would scroll in from) toward the downwind side.
-        // Upwind clouds dissolve first; downwind clouds linger and fade via
-        // the CPU-side coverage/density reduction over the drift-out duration.
-        //
-        // Cloud motion: p = skyPos*scale + windDir*accum  →  as accum grows,
-        // noise patterns move in -windDir in sky-space.  Therefore the +windDir
-        // side of the sky is "upwind" (source of new clouds).
-        if (DriftOutProgress > 0.001f)
-        {
-            float2 windDir2D = normalize(WindDirection);
-            // Project sky position onto wind axis: positive = upwind (cloud source).
-            float windProjSky = dot(skyPos.xz, windDir2D);
-            // Normalize to roughly [-1, +1] across the visible cloud field.
-            float fieldExtent = max(CloudBottomHeight * 4.0f, 1.0f);
-            float normalizedProj = windProjSky / fieldExtent;
-
-            // Boundary sweeps from far downwind (-1.5) toward far upwind (+1.5).
-            // At progress=0: boundary at -1.5 → nothing suppressed.
-            // At progress=1: boundary at +1.5 → everything suppressed.
-            float boundary = lerp(-1.5f, 1.5f, DriftOutProgress);
-            float softness = 0.4f;
-            // Suppress everything UPWIND of the boundary.
-            float suppress = smoothstep(boundary - softness, boundary + softness, normalizedProj);
-            dens *= (1.0f - suppress);
-        }
-
-        return dens;
-    }
-#endif  // OLD INLINE ALTO PATH
 
     // --- Coverage / Weather noise ---
     // Large-scale weather map controls where clouds exist.
@@ -1769,53 +1200,16 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
     float minVisible	 = lerp(baseMinVisible, max(baseMinVisible, 0.12f), distLOD2);
     finalDensity		*= saturate(finalDensity / max(minVisible, 0.0001f));
 
-    // --- Transform-preset dissolve ---
-    if (DissolvePhase > 0.001f)
-    {
-        const float maxDelay = 0.55f;
-        float clusterDelay   = DissolveMask(skyPos) * maxDelay;
-        float localPhase     = saturate((DissolvePhase - clusterDelay) / (1.0f - maxDelay));
+    // --- Transform-preset dissolve / formation / drift-out ---
+    finalDensity = ApplyDissolve(finalDensity, skyPos, DissolvePhase);
+    if (finalDensity <= 0.0001f)
+        return 0.0f;
 
-        if (localPhase > 0.0001f)
-        {
-            float cloudStr  = 1.0f - exp(-finalDensity * 8.0f);
-            float threshold = lerp(-0.1f, 1.1f, localPhase);
-            float edgeW     = 0.08f;
-            finalDensity *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
+    finalDensity = ApplyFormation(finalDensity, skyPos, FormationPhase);
+    if (finalDensity <= 0.0001f)
+        return 0.0f;
 
-            if (finalDensity <= 0.0001f)
-                return 0.0f;
-        }
-    }
-
-    // --- Transform-preset cloud formation (reverse dissolve) ---
-    if (FormationPhase > 0.001f && FormationPhase < 0.999f)
-    {
-        const float maxDelay = 0.55f;
-        float clusterDelay   = (1.0f - DissolveMask(skyPos)) * maxDelay;
-        float localPhase     = saturate((FormationPhase - clusterDelay) / (1.0f - maxDelay));
-
-        float cloudStr  = 1.0f - exp(-finalDensity * 8.0f);
-        float threshold = lerp(1.1f, -0.1f, localPhase);
-        float edgeW     = 0.08f;
-        finalDensity *= smoothstep(threshold - edgeW, threshold + edgeW, cloudStr);
-
-        if (finalDensity <= 0.0001f)
-            return 0.0f;
-    }
-
-    // --- Wind-directional drift-out dissolution ---
-    if (DriftOutProgress > 0.001f)
-    {
-        float2 windDir2D = normalize(WindDirection);
-        float windProjSky = dot(skyPos.xz, windDir2D);
-        float fieldExtent = max(CloudBottomHeight * 4.0f, 1.0f);
-        float normalizedProj = windProjSky / fieldExtent;
-        float boundary = lerp(-1.5f, 1.5f, DriftOutProgress);
-        float softness = 0.4f;
-        float suppress = smoothstep(boundary - softness, boundary + softness, normalizedProj);
-        finalDensity *= (1.0f - suppress);
-    }
+    finalDensity *= DriftOutFactor(skyPos.xz);
 
     return finalDensity;
 }
@@ -1980,55 +1374,6 @@ float ScreenJitter(float2 cloudPos, float jitterScale)
     float spatialJitter = (rawJitter - 0.5f) * JitterStrength * jitterAbsDamp * jitterScale;
 
     return frac(basePhase + spatialJitter + 1.0f);
-}
-
-// ===========================================================================
-// Helper: minimum distance from view ray (ro, rd) to a 3D line segment (A, B).
-// Used by the lightning bolt arc renderer.
-//
-// Based on the standard two-line closest-point formulation.
-// Returns a very large value for degenerate cases (segment too short, or
-// ray nearly parallel to segment pointing toward camera).
-// ===========================================================================
-float RayToSegmentMinDist(float3 ro, float3 rd, float3 A, float3 B)
-{
-    float3 AB = B - A;
-    float3 AO = ro - A;
-
-    float ABlenSq = dot(AB, AB);
-    if (ABlenSq < 0.01f)
-    {
-        // Degenerate: treat as point at A
-        float tRay = max(dot(A - ro, rd), 0.0f);
-        return length(ro + rd * tRay - A);
-    }
-
-    // a = dot(rd, rd) = 1 (rd is normalised)
-    float b = dot(rd, AB);
-    float c = ABlenSq;
-    float d = dot(rd, AO);
-    float e = dot(AB, AO);
-
-    float denom = c - b * b; // = |AB|^2 - (rd.AB)^2  >=0
-
-    float t, s;
-    if (denom < 0.01f)
-    {
-        // Nearly parallel � bolt pointing straight at camera; no visible arc
-        return 1e6f;
-    }
-    else
-    {
-        t = (b * e - c * d) / denom;
-        s = (e - b * d) / denom;
-    }
-
-    t = max(t, 0.0f);        // ray only goes forward
-    s = clamp(s, 0.0f, 1.0f); // clamp to segment endpoints
-
-    float3 P = ro + rd * t;
-    float3 Q = A + AB * s;
-    return length(P - Q);
 }
 
 // Correct 3D distance from view ray (ro, rd normalised) to a bolt segment [A,B].
@@ -2523,8 +1868,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                             }
                         }
 
-                        sampleLight += lightningContrib * LightningAmbientContrib;
-                        sampleLight += lightningContrib * (1.0f - LightningAmbientContrib);
+                        sampleLight += lightningContrib;
                     }
                 }
                 else
