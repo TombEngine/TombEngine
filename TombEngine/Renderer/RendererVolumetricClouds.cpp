@@ -15,6 +15,7 @@
 #include "Game/control/control.h"
 #include "Game/camera.h"
 #include "Renderer/VolumetricCloud/VolumetricCloud.h"
+#include "Renderer/VolumetricCloud/CloudNoiseTexture.h"
 #include "Renderer/ConstantBuffers/VolumetricCloudBuffer.h"
 #include "Renderer/Moon/MoonSettings.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -38,6 +39,9 @@ namespace TEN::Renderer
 
 		// Render targets are created/resized in ResizeVolumetricCloudTargets().
 		ResizeVolumetricCloudTargets();
+
+		// Generate tileable 3D/2D noise textures for the cloud shader.
+		_cloudNoiseTextures.Initialize(_device.Get());
 
 		// Initialize dual volumetric cloud layer B targets.
 		InitializeDualVolumetricClouds();
@@ -579,7 +583,14 @@ namespace TEN::Renderer
 			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
 		_shaders.Bind(Shader::VolumetricClouds);
+
+		// Bind pre-computed 3D/2D noise textures at t5, t6.
+		_cloudNoiseTextures.Bind(_context.Get());
+
 		DrawTriangles(3, 0);
+
+		// Unbind noise textures.
+		_cloudNoiseTextures.Unbind(_context.Get());
 
 		// Unbind previous-frame cloud RT from t1 before composite pass.
 		if (_cloudState.ActiveQuality.TemporalReprojection)
@@ -697,7 +708,13 @@ namespace TEN::Renderer
 			SamplerStateRegister::LinearClamp);
 
 		_shaders.Bind(Shader::VolumetricCloudOcclusion);
+
+		// Bind noise textures for occlusion raymarch.
+		_cloudNoiseTextures.Bind(_context.Get());
+
 		DrawTriangles(3, 0);
+
+		_cloudNoiseTextures.Unbind(_context.Get());
 
 		// Unbind t0 so the cloud RT isn't held as SRV while it may be reused.
 		ID3D11ShaderResourceView* nullSRV = nullptr;

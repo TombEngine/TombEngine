@@ -25,8 +25,13 @@ Texture2D SceneColorTexture : register(t0);  // Half-res cloud RGBA (from cloud 
 Texture2D CloudTexture      : register(t1);  // (unused in composite)
 Texture2D DepthTexture      : register(t2);  // Scene depth (for composite masking)
 Texture2D SceneBackgroundTex : register(t3); // Full-res scene before cloud composite
+
+// Pre-baked noise textures — replace per-sample procedural noise.
+Texture3D<float4> CloudNoise3D  : register(t5);  // 128^3 RGBA8: R=Perlin, G=Value, B=CurlX, A=CurlZ
+Texture2D<float2> CloudWorley2D : register(t6);  // 256^2 RG8:   R=Worley seed1, G=Worley seed2
+
 SamplerState PointSamp	  : register(s1);  // Point sampler
-SamplerState LinearSamp	 : register(s2);  // Linear sampler
+SamplerState LinearSamp	 : register(s2);  // Linear sampler (WRAP addressing — used for noise)
 
 // ---------------------------------------------------------------------------
 // Vertex shader fullscreen triangle (reads from vertex buffer like PostProcess)
@@ -195,6 +200,52 @@ float WorleyNoise2D(float2 p)
     return saturate(minDist); // [0, ~1.0]
 }
 
+// ===========================================================================
+// Texture-based noise wrappers (replaces procedural noise on the hot path).
+//
+// The 3D/2D textures are tileable with a period of NoiseTilePeriod noise
+// cells.  UV = noiseCoord * NoiseUVScale maps noise-space coordinates into
+// [0,1] UV space, and D3D11_TEXTURE_ADDRESS_WRAP makes them tile seamlessly.
+// ===========================================================================
+
+static const float NoiseTilePeriod = 16.0f;
+static const float NoiseUVScale    = 1.0f / NoiseTilePeriod;   // 0.0625
+static const float WorleyTilePeriod = 16.0f;
+static const float WorleyUVScale    = 1.0f / WorleyTilePeriod;  // 0.0625
+
+// Sample Perlin gradient noise from pre-baked 3D texture (channel R).
+float TexPerlin3D(float3 p)
+{
+    return CloudNoise3D.SampleLevel(LinearSamp, p * NoiseUVScale, 0).r;
+}
+
+// Sample value noise from pre-baked 3D texture (channel G).
+float TexValue3D(float3 p)
+{
+    return CloudNoise3D.SampleLevel(LinearSamp, p * NoiseUVScale, 0).g;
+}
+
+// Sample pre-computed curl vector from 3D texture (channels B,A).
+// Returns the 2D curl displacement in the XZ plane (divergence-free).
+// The texture stores (dN/dz, -dN/dx) remapped from [-1,1] to [0,1].
+float2 TexCurl2D(float3 p)
+{
+    float2 ba = CloudNoise3D.SampleLevel(LinearSamp, p * NoiseUVScale, 0).ba;
+    return ba * 2.0f - 1.0f;
+}
+
+// Sample Worley F1 distance from pre-baked 2D texture (channel R).
+float TexWorley2D(float2 p)
+{
+    return CloudWorley2D.SampleLevel(LinearSamp, p * WorleyUVScale, 0).r;
+}
+
+// Sample second Worley pattern from pre-baked 2D texture (channel G).
+float TexWorley2D_B(float2 p)
+{
+    return CloudWorley2D.SampleLevel(LinearSamp, p * WorleyUVScale, 0).g;
+}
+
 // Low-frequency FBM (3 octaves) " cloud shape.
 // Persistence reduced to 0.38 so higher octaves barely affect the silhouette;
 // only the first (dominant) octave drives large stable cloud masses.
@@ -223,7 +274,7 @@ float FBMLowFreq(float3 p, float lod)
         if	  (oct == 0) octWeight = 1.0f;
         else if (oct == 1) octWeight = saturate(1.0f - lod);
         else			   octWeight = saturate(1.0f - lod * 2.0f);
-        v += a * octWeight * ValueNoise3D(s);
+        v += a * octWeight * TexValue3D(s);
         s *= 2.37f;  // Lacunarity (non-power-of-2 avoids tiling artifacts)
         a *= 0.38f;  // Low persistence: each octave contributes much less than the previous
     }
@@ -301,7 +352,7 @@ float FBMAlto5(float3 p, float3 p_stable, float3 advect, float lacunarity, float
         // same absolute offset in noise-space for every octave.  's' (the
         // spatial-structure coordinate) still scales normally so each octave
         // sees a different level of detail in the cloud morphology.
-        float pN   = PerlinNoise3D(sUse + advect);
+        float pN   = TexPerlin3D(sUse + advect);
         float valN = pN;
         float bilN = abs(pN * 2.0f - 1.0f); // Perlin billow = abs(snoise) equivalent
 
@@ -334,7 +385,7 @@ float FBMAlto3(float3 p, float3 advect, float lacunarity, float gain, float bill
         if      (oct <= 1) octWeight = 1.0f;
         else               octWeight = max(saturate(1.0f - lod), 0.35f);
 
-        float pN   = PerlinNoise3D(s + advect);
+        float pN   = TexPerlin3D(s + advect);
         float valN = pN;
         float bilN = abs(pN * 2.0f - 1.0f);
 
@@ -366,7 +417,7 @@ float FBMDetail(float3 p, float lod)
         // oct=0 (coarser): fades to 0 at lod=1.
         // oct=1 (finer):   fades to 0 at lod=0.5 (2x faster).
         float octWeight = saturate(1.0f - lod * (1.0f + (float)oct));
-        v += a * octWeight * ValueNoise3D(s);
+        v += a * octWeight * TexValue3D(s);
         s *= 2.73f;
         a *= 0.35f;  // Persistence: lower second-octave weight reduces aliasing shimmer
     }
@@ -430,8 +481,8 @@ float HeightGradient(float heightFrac, float bShift, float tShift)
 float DissolveMask(float3 skyPos)
 {
     float3 dissolveCoord = skyPos * 0.0001f;
-    float n1 = PerlinNoise3D(dissolveCoord + float3(100.0f, 0.0f, 200.0f));
-    float n2 = PerlinNoise3D(dissolveCoord * 1.7f + float3(47.0f, 0.0f, 83.0f));
+    float n1 = TexPerlin3D(dissolveCoord + float3(100.0f, 0.0f, 200.0f));
+    float n2 = TexPerlin3D(dissolveCoord * 1.7f + float3(47.0f, 0.0f, 83.0f));
     return n1 * 0.6f + n2 * 0.4f;  // [0, 1]
 }
 
@@ -601,46 +652,48 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     // Curl warp: only executed when CurlWarpStrength > 0. At exactly 0.0 the entire
     // domain-warp is bypassed so clouds are shaped purely by FBM/Worley (no organic
     // deformation). CurlWarpStrength linearly scales all three displacement bands.
-    if (CurlWarpStrength > 0.001f)
+    //
+    // Performance: at distLOD >= 0.45 all three curl bands contribute sub-pixel
+    // displacements, so the entire curl warp block is skipped — saving 4-12
+    // ValueNoise3D calls per sample at medium-to-far range.
+    if (CurlWarpStrength > 0.001f && distLOD < 0.45f)
     {
         float curlAmp = curlDamp * CurlWarpStrength;
 
-        // Low Frequency Band
+        // Low Frequency Band — always evaluated when curl is active.
         {
             float tLow  = flowTime * 0.35f * heightFlow;
             float3 pLow = float3(p.x, 0.0f, p.z) * 0.41f
                         + float3(3.17f + windBias.x + tLow * 0.7f,
                                  0.0f,
                                  7.63f + windBias.y + tLow * 0.5f);
-            float2 cLow = CurlNoise2D(pLow, 0.15f);
+            float2 cLow = TexCurl2D(pLow);
             p.x += cLow.x * 0.11f * curlAmp;
             p.z += cLow.y * 0.11f * curlAmp;
         }
 
-        // Mid Frequency Band (skipped at far range: displacement 0.06 is imperceptible
-        // at distLOD >= 0.75 where distant clouds lack fine screen-space detail anyway).
-        if (distLOD < 0.75f)
+        // Mid Frequency Band (skipped at far range).
+        if (distLOD < 0.35f)
         {
             float tMid  = flowTime * 0.75f * heightFlow;
             float3 pMid = float3(p.x, 0.0f, p.z) * 0.80f
                         + float3(0.59f + tMid * 0.9f,
                                  0.0f,
                                  2.44f + tMid * 0.6f);
-            float2 cMid = CurlNoise2D(pMid, 0.10f);
+            float2 cMid = TexCurl2D(pMid);
             p.x += cMid.x * 0.04f * curlAmp;
             p.z += cMid.y * 0.04f * curlAmp;
         }
 
-        // High Frequency Band (skipped at medium range: displacement 0.025 contributes
-        // sub-pixel detail at distLOD >= 0.50 — no visible difference when removed).
-        if (distLOD < 0.50f)
+        // High Frequency Band (skipped at medium range).
+        if (distLOD < 0.25f)
         {
             float tHigh  = flowTime * 1.80f * heightFlow;
             float3 pHigh = float3(p.x, 0.0f, p.z) * 1.60f
                          + float3(5.33f + tHigh * 1.2f,
                                   0.0f,
                                   1.88f + tHigh * 0.8f);
-            float2 cHigh = CurlNoise2D(pHigh, 0.06f);
+            float2 cHigh = TexCurl2D(pHigh);
             p.x += cHigh.x * 0.015f * curlAmp;
             p.z += cHigh.y * 0.015f * curlAmp;
         }
@@ -652,13 +705,26 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     // The advection (windOfs + evoOfs) is kept separate and added identically
     // to every octave so all scales translate at the same rate (no flickering
     // from differential octave advection speeds).
+    //
+    // Distance LOD optimization: at medium+ range use the 3-octave FBMAlto3
+    // which saves 2 PerlinNoise3D calls per sample. Fine octaves (3-4) are
+    // already LOD-faded to near-zero weight at distLOD >= 0.4, so switching
+    // to FBMAlto3 removes negligible-weight work at no visual cost.
     float dens;
     {
-        float3 p_advect      = (windOfs + evoOfs) * ap.FbmScale;
-        float3 p_shape       = p             * ap.FbmScale - p_advect;
-        float3 p_shape_stable = p_before_curl * ap.FbmScale - p_advect;
-        dens = FBMAlto5(p_shape, p_shape_stable, p_advect, ap.FbmLac, ap.FbmGain,
-                        ap.BillowStr, distLOD);
+        float3 p_advect       = (windOfs + evoOfs) * ap.FbmScale;
+        float3 p_shape        = p              * ap.FbmScale - p_advect;
+        if (distLOD < 0.4f)
+        {
+            float3 p_shape_stable = p_before_curl * ap.FbmScale - p_advect;
+            dens = FBMAlto5(p_shape, p_shape_stable, p_advect, ap.FbmLac, ap.FbmGain,
+                            ap.BillowStr, distLOD);
+        }
+        else
+        {
+            dens = FBMAlto3(p_shape, p_advect, ap.FbmLac, ap.FbmGain,
+                            ap.BillowStr, distLOD);
+        }
     }
 
     // Dual-scale Worley cellular erosion.
@@ -672,7 +738,7 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         // visible. The full 3x3 neighborhood keeps the distance field continuous.
     {
         float2 wPos  = float2(p.x, p.z) * 2.032f;
-            float worleyA = WorleyNoise2D(wPos * 0.40f);
+            float worleyA = TexWorley2D(wPos * 0.40f);
         float invWA  = 1.0f - saturate(worleyA * 1.3f);
         dens = saturate(Remap(dens, -(invWA * 0.30f), 1.0f, 0.0f, 1.0f));
 
@@ -681,14 +747,14 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         float wBStrength = lerp(0.15f, 0.0f, distLOD);
         if (wBStrength > 0.001f)
         {
-                float worleyB = WorleyNoise2D(wPos * 0.75f);
+                float worleyB = TexWorley2D_B(wPos * 0.75f);
             float invWB = 1.0f - saturate(worleyB * 1.4f);
             dens = saturate(Remap(dens, -(invWB * wBStrength), 1.0f, 0.0f, 1.0f));
         }
     }
 
     // Coverage threshold
-    float clusterNoise = PerlinNoise3D(float3(p.x * 0.18f, 0.0f, p.z * 0.18f));
+    float clusterNoise = TexPerlin3D(float3(p.x * 0.18f, 0.0f, p.z * 0.18f));
 
     if (abs(ap.ZenithBias) > 0.001f)
     {
@@ -734,22 +800,11 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         covSoft *= lerp(1.0f, 2.5f, distLOD2 * sizeFactor);
     }
 
-    // Evolution / pulsing
-    if (ap.EvolutionSpd > 0.001f)
+    // Evolution / pulsing — skip at far distance where the subtle threshold
+    // oscillation is invisible (saves 1 ValueNoise3D).
+    if (ap.EvolutionSpd > 0.001f && distLOD < 0.6f)
     {
-        // Keep the puffing pattern spatially locked to the cloud field.
-        // The previous formulation added an explicit time phase on top of an
-        // already advected spatial phase:
-        //   swellPhase = time + phase(p)
-        // This made the coverage threshold at the cloud edge evolve with its
-        // own apparent motion on top of the cloud body's advection, so edges
-        // could look like they were moving faster than the rest of the cloud.
-        //
-        // New behavior: a global time wave modulates a spatial mask that is
-        // anchored to the pre-curl cloud coordinate. Regions still puff in and
-        // out differently, but the edge pattern no longer drifts relative to
-        // the underlying cloud mass.
-        float spatialMask = sin(ValueNoise3D(p_before_curl * 0.4f) * 6.2832f);
+        float spatialMask = sin(TexValue3D(p_before_curl * 0.4f) * 6.2832f);
         float swellWave   = sin(CloudTime * ap.EvolutionSpd * 0.04f);
         float swellAmp    = 0.08f * saturate(ap.EvolutionSpd * 0.5f + 0.1f);
         covThresh = saturate(covThresh - (spatialMask * swellWave) * swellAmp);
@@ -762,18 +817,19 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         float horizThin = distLOD * sizeFactor * 0.28f;
         covThresh = saturate(covThresh + horizThin);
 
+        // Cluster grouping: skip at far distance where the tiny offset
+        // (±0.05) is invisible — saves 1 ValueNoise3D.
         float clusterAmt = distLOD * sizeFactor * 0.22f;
-        if (clusterAmt > 0.001f)
+        if (clusterAmt > 0.001f && distLOD < 0.6f)
         {
-            // ValueNoise3D is sufficient here — gradient quality is wasted on
-            // a scalar cluster-grouping offset that only shifts covThresh by ±0.05.
-            float cn = ValueNoise3D(float3(p.x * 0.22f, 0.0f, p.z * 0.22f));
+            float cn = TexValue3D(float3(p.x * 0.22f, 0.0f, p.z * 0.22f));
             covThresh = saturate(covThresh - cn * clusterAmt);
         }
     }
 
-    // Wind-directional formation / dissolution
-    if (ap.EvolutionSpd > 0.001f)
+    // Wind-directional formation / dissolution — skip at far distance where
+    // leading/trailing edge offsets are invisible (saves 2 ValueNoise3D).
+    if (ap.EvolutionSpd > 0.001f && distLOD < 0.5f)
     {
         float evoStr = saturate(ap.EvolutionSpd * 2.0f);
 
@@ -781,14 +837,12 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         float  scaleG   = 0.18f;
 
         float3 pFwd    = p + windDir3 * 1.8f;
-        // ValueNoise3D is sufficient for the leading/trailing edge potentials —
-        // gradient quality makes no visible difference on a scalar threshold nudge.
-        float  fwdPot  = ValueNoise3D(float3(pFwd.x * scaleG, 0.0f, pFwd.z * scaleG)) - 0.5f;
+        float  fwdPot  = TexValue3D(float3(pFwd.x * scaleG, 0.0f, pFwd.z * scaleG)) - 0.5f;
         float formStr  = saturate(fwdPot) * evoStr * covThresh * 0.28f;
         covThresh = saturate(covThresh - formStr);
 
         float3 pBwd    = p - windDir3 * 3.2f;
-        float  bwdPot  = ValueNoise3D(float3(pBwd.x * scaleG, 0.0f, pBwd.z * scaleG)) - 0.5f;
+        float  bwdPot  = TexValue3D(float3(pBwd.x * scaleG, 0.0f, pBwd.z * scaleG)) - 0.5f;
         float frayStr  = saturate(-bwdPot) * evoStr * covThresh * 0.22f;
         covThresh = saturate(covThresh + frayStr);
 
@@ -798,14 +852,23 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
 
     dens *= smoothstep(covThresh, covThresh + covSoft, dens);
 
-    // Organic bottom shaping
+    // Organic bottom shaping — at far distance use only coarse noise
+    // (saves 1 ValueNoise3D at distLOD >= 0.5).
     if (ap.BottomSoft > 0.001f)
     {
         float3 basePos    = skyPos + (windOfs + evoOfs) / baseScale;
         float3 coarsePos  = basePos * 0.000045f;
-        float3 detailPos  = basePos * 0.00012f;
-        float coarseNoise = ValueNoise3D(float3(coarsePos.x,  0.0f, coarsePos.z));
-        float detailNoise = ValueNoise3D(float3(detailPos.x,  0.0f, detailPos.z));
+        float coarseNoise = TexValue3D(float3(coarsePos.x,  0.0f, coarsePos.z));
+        float detailNoise;
+        if (distLOD < 0.5f)
+        {
+            float3 detailPos = basePos * 0.00012f;
+            detailNoise = TexValue3D(float3(detailPos.x,  0.0f, detailPos.z));
+        }
+        else
+        {
+            detailNoise = coarseNoise; // reuse coarse at distance
+        }
 
         float combinedNoise = saturate(coarseNoise * 0.65f + detailNoise * 0.35f);
 
@@ -890,7 +953,7 @@ float EvalAltoDensityCoreLite(float3 skyPos, float heightFrac, float skyH,
                     + float3(3.17f + windBias.x + tLow * 0.7f,
                              0.0f,
                              7.63f + windBias.y + tLow * 0.5f);
-        float2 cLow = CurlNoise2D(pLow, 0.15f);
+        float2 cLow = TexCurl2D(pLow);
         p.x += cLow.x * 0.11f * curlAmp;
         p.z += cLow.y * 0.11f * curlAmp;
     }
@@ -907,13 +970,13 @@ float EvalAltoDensityCoreLite(float3 skyPos, float heightFrac, float skyH,
     // --- Single Worley cell only (skip worleyB entirely) ---
     {
         float2 wPos  = float2(p.x, p.z) * 2.032f;
-        float worleyA = WorleyNoise2D(wPos * 0.40f);
+        float worleyA = TexWorley2D(wPos * 0.40f);
         float invWA  = 1.0f - saturate(worleyA * 1.3f);
         dens = saturate(Remap(dens, -(invWA * 0.30f), 1.0f, 0.0f, 1.0f));
     }
 
     // --- Coverage threshold (simplified: no evolution, no wind-directional, no cluster grouping) ---
-    float clusterNoise = PerlinNoise3D(float3(p.x * 0.18f, 0.0f, p.z * 0.18f));
+    float clusterNoise = TexPerlin3D(float3(p.x * 0.18f, 0.0f, p.z * 0.18f));
 
     if (abs(ap.ZenithBias) > 0.001f)
         densityShift += clusterNoise * abs(ap.ZenithBias) * 0.35f;
@@ -947,7 +1010,7 @@ float EvalAltoDensityCoreLite(float3 skyPos, float heightFrac, float skyH,
     {
         float3 basePos    = skyPos + (windOfs + evoOfs) / baseScale;
         float3 coarsePos  = basePos * 0.000045f;
-        float coarseNoise = ValueNoise3D(float3(coarsePos.x, 0.0f, coarsePos.z));
+        float coarseNoise = TexValue3D(float3(coarsePos.x, 0.0f, coarsePos.z));
 
         float depthBase  = 0.05f;
         float depthRange = ap.BottomSoft * 0.35f;
@@ -1087,7 +1150,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
     // Large-scale weather map controls where clouds exist.
     float2 weatherUV = skyPos.xz * WeatherScale 
                       + WindDirection * WindSpeed * 0.3f;
-    float weatherNoise = ValueNoise3D(float3(weatherUV, 0.0f));
+    float weatherNoise = TexValue3D(float3(weatherUV, 0.0f));
 
     // Remap weather noise with coverage parameter.
     // Higher coverage -> more clouds, but always with variation.
@@ -1143,8 +1206,8 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
     //
     // Both use seed offsets (+7.3, +13.1) so bottom and top vary independently.
     float2 hgUV	= skyPos.xz * 0.000065f;
-    float  bNoise  = ValueNoise3D(float3(hgUV.x,		hgUV.y,		7.3f));
-    float  tNoise  = ValueNoise3D(float3(hgUV.x + 5.7f, hgUV.y + 3.2f, 13.1f));
+    float  bNoise  = TexValue3D(float3(hgUV.x,		hgUV.y,		7.3f));
+    float  tNoise  = TexValue3D(float3(hgUV.x + 5.7f, hgUV.y + 3.2f, 13.1f));
     float  bShift  = (bNoise - 0.5f) * 0.36f;   // [-0.18, +0.18]
     float  tShift  = (tNoise - 0.5f) * 0.24f;   // [-0.12, +0.12]
     float hGrad = HeightGradient(heightFrac, bShift, tShift);
@@ -1191,8 +1254,8 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
     // deformation works for any cloud scale setting.
     float2 driftUV   = skyPos.xz * 0.000115f;
     float  distAtt   = 1.0f - distLOD * 0.5f;
-    float  driftX	= ValueNoise3D(float3(driftUV.x,		 driftUV.y,		 heightFrac * 2.1f + 0.73f)) - 0.5f;
-    float  driftZ	= ValueNoise3D(float3(driftUV.x + 4.83f, driftUV.y + 2.31f, heightFrac * 2.1f		)) - 0.5f;
+    float  driftX	= TexValue3D(float3(driftUV.x,		 driftUV.y,		 heightFrac * 2.1f + 0.73f)) - 0.5f;
+    float  driftZ	= TexValue3D(float3(driftUV.x + 4.83f, driftUV.y + 2.31f, heightFrac * 2.1f		)) - 0.5f;
     float  driftAmt  = heightFrac * 2.8f * distAtt;
     float2 driftXZ   = float2(driftX, driftZ) * driftAmt;
 
@@ -1212,7 +1275,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
     // First octave of the shape noise: the smoothest, lowest-frequency
     // component. This alone defines the stable cloud silhouette.
     // Weight 0.5 matches oct=0's amplitude in FBMLowFreq.
-    float oct0Shape = 0.5f * ValueNoise3D(shapePos);
+    float oct0Shape = 0.5f * TexValue3D(shapePos);
 
     // --- Billowing: threshold modulation (no sampling displacement) ---
     // Billowing is achieved by slowly oscillating the remap lower threshold.
@@ -1226,7 +1289,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         // Phase noise sampled at much coarser scale than shape   one puff region
         // covers many cloud masses, giving a coherent swell without fragmentation.
         // Use the same Y-normalized position to keep billowing consistent.
-        float phaseNoise = ValueNoise3D(float3(skyPos.x, shapeY, skyPos.z) * effectiveShapeScale * 0.25f);
+        float phaseNoise = TexValue3D(float3(skyPos.x, shapeY, skyPos.z) * effectiveShapeScale * 0.25f);
         float swellPhase = CloudTime * EvolutionSpeed * 0.04f + phaseNoise * 6.2832f;
 
         // Max threshold shift: ??0.26 at EvolutionSpeed=1, ??0.42 at EvolutionSpeed=5.
@@ -1731,42 +1794,6 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
     float stepSize	   = maxDist / (float)effectiveSteps;
     float thickBandGuard = saturate((effThickness - 2600.0f) / 2200.0f);
 
-    // Anchor jitter to the cloud-field entry position instead of the screen.
-    // This keeps the pattern moving with the cloud rather than staying fixed
-    // in view-space and smearing behind moving silhouettes.
-    float2 entrySkyXZ   = rayDir.xz * tRange.x;
-    float2 cloudAdvection = WindDirection * (WindSpeed + EvolutionSpeed * (CloudTime * 0.05f + WindSpeed * 0.15f));
-    float2 jitterCloudPos = entrySkyXZ * 0.001f + cloudAdvection;
-
-    // Dampen jitter where it is most visible as shimmer: high-FBM Alto clouds
-    // and distant cloud regions. These areas already contain plenty of visual
-    // detail, so aggressive stochastic offsets read as glitter/noise instead of
-    // useful anti-banding.
-    float horizDistEntry = length(entrySkyXZ);
-    float lodNearJ = max(CloudBottomHeight * 1.0f, 1.0f);
-    float lodFarJ  = max(CloudBottomHeight * 6.0f, lodNearJ + 1.0f);
-    float jitterDistLOD = saturate((horizDistEntry - lodNearJ) / (lodFarJ - lodNearJ));
-    float jitterDistDamp = lerp(1.0f, 0.22f, jitterDistLOD * jitterDistLOD);
-    float jitterFbmDamp = 1.0f;
-    if (CloudType == 1)
-    {
-        // At high AltoFbmGain the silhouette already contains plenty of internal
-        // variation. Additional stochastic start jitter mostly reads as shimmer,
-        // including near the zenith where distance-based damping is weak.
-        jitterFbmDamp = lerp(1.0f, 0.20f, saturate((AltoFbmGain - 0.30f) * 2.0f));
-    }
-    float jitterScale = jitterDistDamp * jitterFbmDamp;
-
-    // Per-pixel start jitter: uniform [0,1] (see ScreenJitter comments).
-    float jitter = ScreenJitter(jitterCloudPos, jitterScale);
-    float t = tRange.x + stepSize * jitter;
-
-    // Secondary cloud-space hash for per-step sub-jitter decorrelation.
-    // Different transform from ScreenJitter to avoid start/sub correlation.
-    float2 hp2 = frac((jitterCloudPos + float2(1.3f, 2.7f)) * float2(317.113f, 271.197f));
-    hp2 += dot(hp2, hp2.yx + 27.17f);
-    float rawJitter2 = frac(hp2.x * hp2.y);
-
     // Phase function for light scattering.
     float cosTheta = dot(rayDir, normalize(CloudLightDirection));
     float phase = DualLobePhase(cosTheta);
@@ -1807,6 +1834,42 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
     // pour-down zone and get wind-streamed XZ offsets with a depth-based fade.
     float bleedFracLimit = (bleedExtent > 0.001f && effThickness > 0.001f)
                          ? (bleedExtent / effThickness) : 0.0f;
+
+    // Anchor jitter to the cloud-field entry position instead of the screen.
+    // This keeps the pattern moving with the cloud rather than staying fixed
+    // in view-space and smearing behind moving silhouettes.
+    float2 entrySkyXZ   = rayDir.xz * tRange.x;
+    float2 cloudAdvection = WindDirection * (WindSpeed + EvolutionSpeed * (CloudTime * 0.05f + WindSpeed * 0.15f));
+    float2 jitterCloudPos = entrySkyXZ * 0.001f + cloudAdvection;
+
+    // Dampen jitter where it is most visible as shimmer: high-FBM Alto clouds
+    // and distant cloud regions. These areas already contain plenty of visual
+    // detail, so aggressive stochastic offsets read as glitter/noise instead of
+    // useful anti-banding.
+    float horizDistEntry = length(entrySkyXZ);
+    float lodNearJ = max(CloudBottomHeight * 1.0f, 1.0f);
+    float lodFarJ  = max(CloudBottomHeight * 6.0f, lodNearJ + 1.0f);
+    float jitterDistLOD = saturate((horizDistEntry - lodNearJ) / (lodFarJ - lodNearJ));
+    float jitterDistDamp = lerp(1.0f, 0.22f, jitterDistLOD * jitterDistLOD);
+    float jitterFbmDamp = 1.0f;
+    if (CloudType == 1)
+    {
+        // At high AltoFbmGain the silhouette already contains plenty of internal
+        // variation. Additional stochastic start jitter mostly reads as shimmer,
+        // including near the zenith where distance-based damping is weak.
+        jitterFbmDamp = lerp(1.0f, 0.20f, saturate((AltoFbmGain - 0.30f) * 2.0f));
+    }
+    float jitterScale = jitterDistDamp * jitterFbmDamp;
+
+    // Per-pixel start jitter: uniform [0,1] (see ScreenJitter comments).
+    float jitter = ScreenJitter(jitterCloudPos, jitterScale);
+    float t = tRange.x + stepSize * jitter;
+
+    // Secondary cloud-space hash for per-step sub-jitter decorrelation.
+    // Different transform from ScreenJitter to avoid start/sub correlation.
+    float2 hp2 = frac((jitterCloudPos + float2(1.3f, 2.7f)) * float2(317.113f, 271.197f));
+    hp2 += dot(hp2, hp2.yx + 27.17f);
+    float rawJitter2 = frac(hp2.x * hp2.y);
 
     // Accumulation.
     float  transmittance = 1.0f;
@@ -2032,7 +2095,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                                 );
                             // Sample weather coverage at flash sky-position to suppress clear-sky flashes.
                             float2 flashWeatherUV = flashSkyXZ * WeatherScale + WindDirection * WindSpeed * 0.3f;
-                            float  flashCoverage = saturate(Remap(ValueNoise3D(float3(flashWeatherUV, 0.0f)),
+                            float  flashCoverage = saturate(Remap(TexValue3D(float3(flashWeatherUV, 0.0f)),
                                 1.0f - Coverage, 1.0f, 0.0f, 1.0f));
                             // GLSL flicker: size = sin(45*frac(t)) + 5 ??? radius [4,6] * 1% effThickness.
                             float flickerSize = sin(45.0f * frac(CloudTime)) + 5.0f;
@@ -2073,7 +2136,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                                     );
                                 // Suppress bolt in clear-sky regions.
                                 float2 boltWeatherUV = boltSkyXZ * WeatherScale + WindDirection * WindSpeed * 0.3f;
-                                float  boltCoverage = saturate(Remap(ValueNoise3D(float3(boltWeatherUV, 0.0f)),
+                                float  boltCoverage = saturate(Remap(TexValue3D(float3(boltWeatherUV, 0.0f)),
                                     1.0f - Coverage, 1.0f, 0.0f, 1.0f));
                                 float boltDist = length(samplePos - boltPos);
                                 float boltGlow = pow(saturate(boltRadius / max(boltDist, 0.001f)), 2.2f);
@@ -2174,7 +2237,7 @@ float4 DebugVisualization(float3 rayOrigin, float3 rayDir, float2 screenPos, flo
         float3 samplePos = rayOrigin + rayDir * (CloudBottomHeight + CloudThickness * 0.5f);
         float3 dbgSkyPos = samplePos - CamPositionWS.xyz;
         float2 wUV = dbgSkyPos.xz * WeatherScale + WindDirection * WindSpeed * 0.3f;
-        float wn = ValueNoise3D(float3(wUV, 0.0f));
+        float wn = TexValue3D(float3(wUV, 0.0f));
         float cm = Remap(wn, 1.0f - Coverage, 1.0f, 0.0f, 1.0f);
         return float4(cm.xxx, 1.0f);
     }

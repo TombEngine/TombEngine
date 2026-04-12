@@ -48,6 +48,7 @@
 #include "Renderer/GodRay/GodRaySettings.h"
 #include "Renderer/Moon/MoonSettings.h"
 #include "Renderer/VolumetricCloud/VolumetricCloud.h"
+#include "Renderer/VolumetricCloud/CloudNoiseTexture.h"
 #include "Renderer/Structures/RendererBone.h"
 #include "Renderer/Structures/RendererDoor.h"
 #include "Renderer/Structures/RendererStringToDraw.h"
@@ -202,6 +203,7 @@ namespace TEN::Renderer
 		// Volumetric clouds
 		ConstantBuffers::CVolumetricCloudBuffer _stVolumetricCloud;
 		ConstantBuffer<ConstantBuffers::CVolumetricCloudBuffer> _cbVolumetricCloud;
+		VolumetricCloud::CloudNoiseTextures _cloudNoiseTextures;
 		RenderTarget2D _cloudRenderTarget;
 		RenderTarget2D _cloudPrevFrameRT;              // Previous frame's cloud result for temporal checkerboard
 		RenderTarget2D _cloudOcclusionTarget;

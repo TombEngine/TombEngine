@@ -862,6 +862,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Structures\RendererStringToDraw.h" />
     <ClInclude Include="Renderer\Structures\RendererTriangle3D.h" />
     <ClInclude Include="Renderer\VolumetricCloud\VolumetricCloud.h" />
+    <ClInclude Include="Renderer\VolumetricCloud\CloudNoiseTexture.h" />
     <ClInclude Include="Renderer\GodRay\GodRaySettings.h" />
     <ClInclude Include="Scripting\Include\Flow\ScriptInterfaceFlowHandler.h" />
     <ClInclude Include="Scripting\Include\Objects\ScriptInterfaceObjectsHandler.h" />
@@ -1391,6 +1392,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Renderer\RendererVolumetricClouds.cpp" />
+    <ClCompile Include="Renderer\VolumetricCloud\CloudNoiseTexture.cpp" />
     <ClCompile Include="Renderer\RendererAtmosphericSky.cpp" />
     <ClCompile Include="Renderer\RendererGodRay.cpp" />
     <ClCompile Include="Renderer\RenderView.cpp" />

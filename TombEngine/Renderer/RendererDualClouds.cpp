@@ -227,7 +227,13 @@ namespace TEN::Renderer
 			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
 		_shaders.Bind(Shader::VolumetricClouds);
+
+		// Bind pre-computed noise textures at t5, t6.
+		_cloudNoiseTextures.Bind(_context.Get());
+
 		DrawTriangles(3, 0);
+
+		_cloudNoiseTextures.Unbind(_context.Get());
 
 		// Unbind t1 (prev-frame RT) before composite pass.
 		if (prevFrameRT && state.ActiveQuality.TemporalReprojection)
@@ -359,7 +365,12 @@ namespace TEN::Renderer
 			SamplerStateRegister::LinearClamp);
 
 		_shaders.Bind(Shader::VolumetricCloudOcclusion);
+
+		_cloudNoiseTextures.Bind(_context.Get());
+
 		DrawTriangles(3, 0);
+
+		_cloudNoiseTextures.Unbind(_context.Get());
 
 		// Unbind t0.
 		ID3D11ShaderResourceView* nullSRV = nullptr;
