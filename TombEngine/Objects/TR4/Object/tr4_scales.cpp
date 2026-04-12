@@ -80,28 +80,16 @@ void ScalesControl(short itemNumber)
 
 	if (item->Animation.ActiveState == 2)
 	{
-		// Correct water amount — fire the heavy trigger to activate the exit.
-		TestTriggers(item, true, item->Flags & IFLAG_ACTIVATION_MASK);
+		// Correct water amount.
 		RemoveActiveItem(itemNumber);
 		item->Status = ITEM_NOT_ACTIVE;
+		TestTriggers(item, true, -512);
 	}
 	else
 	{
-		// Wrong water amount — open Ahmet's cage via switch triggers.
-		short itemNos[8];
-		int sw = GetSwitchTrigger(item, itemNos, 0);
-		for (int i = 0; i < sw; i++)
-		{
-			auto& linkedItem = g_Level.Items[itemNos[i]];
-			if (linkedItem.ObjectNumber != ID_FLAME_EMITTER2)
-			{
-				linkedItem.Flags |= CODE_BITS;
-				AddActiveItem(itemNos[i]);
-				linkedItem.Status = ITEM_ACTIVE;
-			}
-		}
-
+		// Wrong water amount.
 		item->ItemFlags[1] = 1;
+		TestTriggers(item, true, -1024);
 	}
 	AnimateItem(item);
 }
@@ -111,7 +99,12 @@ void ScalesCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 	auto* item = &g_Level.Items[itemNumber];
 	auto* laraInfo = GetLaraInfo(laraItem);
 
-	g_Hud.InteractionHighlighter.Test(*laraItem, *item);
+	// Suppress highlighter once water has been poured (wrong: ItemFlags[1] = 1, correct: item deactivated).
+	// It reappears when the scale resets (ItemFlags[1] cleared back to 0).
+	bool waterPoured = (item->ItemFlags[1] != 0 || item->Status == ITEM_ACTIVE);
+
+	if (!waterPoured)
+		g_Hud.InteractionHighlighter.Test(*laraItem, *item);
 
 	// ----------------------------------------------------------------
 	// Idle: open inventory to a filled waterskin, or handle the choice.
@@ -120,7 +113,8 @@ void ScalesCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 		laraItem->Animation.AnimNumber == LA_STAND_IDLE &&
 		laraInfo->Control.HandStatus == HandStatus::Free);
 
-	if ((IsHeld(In::Action) || g_Gui.GetInventoryItemChosen() != NO_VALUE) && isPlayerIdle &&
+	if (!waterPoured &&
+		(IsHeld(In::Action) || g_Gui.GetInventoryItemChosen() != NO_VALUE) && isPlayerIdle &&
 		TestBoundsCollide(item, laraItem, LARA_RADIUS))
 	{
 		int chosen = g_Gui.GetInventoryItemChosen();
