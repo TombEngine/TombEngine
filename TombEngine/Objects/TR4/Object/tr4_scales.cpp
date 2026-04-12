@@ -78,21 +78,31 @@ void ScalesControl(short itemNumber)
 		return;
 	}
 
-	int flags = 0;
-
 	if (item->Animation.ActiveState == 2)
 	{
-		flags = -512;
+		// Correct water amount — fire the heavy trigger to activate the exit.
+		TestTriggers(item, true, item->Flags & IFLAG_ACTIVATION_MASK);
 		RemoveActiveItem(itemNumber);
 		item->Status = ITEM_NOT_ACTIVE;
 	}
 	else
 	{
-		flags = -1024;
+		// Wrong water amount — open Ahmet's cage via switch triggers.
+		short itemNos[8];
+		int sw = GetSwitchTrigger(item, itemNos, 0);
+		for (int i = 0; i < sw; i++)
+		{
+			auto& linkedItem = g_Level.Items[itemNos[i]];
+			if (linkedItem.ObjectNumber != ID_FLAME_EMITTER2)
+			{
+				linkedItem.Flags |= CODE_BITS;
+				AddActiveItem(itemNos[i]);
+				linkedItem.Status = ITEM_ACTIVE;
+			}
+		}
+
 		item->ItemFlags[1] = 1;
 	}
-
-	TestTriggers(item, true, flags);
 	AnimateItem(item);
 }
 
