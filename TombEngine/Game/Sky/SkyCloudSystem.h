@@ -168,7 +168,7 @@ namespace TEN::Sky
 		CloudQualityPreset Quality = CloudQualityPreset::Medium;
 		float AltoFbmScale               = 2.032f; // [0.5,4]  FBM input pre-scale; lower = coarser pattern
 		float JitterStrength             = 0.3f;   // [0,1]    ray start jitter
-		float UpsampleSpatialSigma2      = 3.5f;   // [0.5,8]  2*sigma^2 for bilateral 5x5 upsampler
+		float UpsampleSpatialSigma2      = 2.0f;   // [0.5,8]  2*sigma^2 for bilateral 5x5 upsampler
 		float TemporalAlphaLow           = 0.05f;  // [0,0.3]  below this alpha: temporal reuse OK
 		float TemporalAlphaHigh          = 0.95f;  // [0.7,1]  above this alpha: temporal reuse OK
 		float AltoJitterAbsCap           = 5.0f;   // [0.1,10] absorption cap used only for jitter amplitude

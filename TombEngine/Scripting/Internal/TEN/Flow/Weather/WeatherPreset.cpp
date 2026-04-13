@@ -100,7 +100,7 @@ namespace TEN::Scripting
 		snap.CurlWarpStrength        = std::clamp(tf("curlWarpStrength",        1.0   ), 0.0f,  2.0f);
 		snap.JitterStrength          = std::clamp(tf("jitterStrength",          0.3   ), 0.0f,  1.0f);
 		snap.AltoJitterAbsCap        = std::clamp(tf("altoJitterAbsCap",        5.0   ), 0.1f, 10.0f);
-		snap.UpsampleSpatialSigma2   = std::clamp(tf("upsampleSpatialSigma2",   0.75  ), 0.5f,  8.0f);
+		snap.UpsampleSpatialSigma2   = std::clamp(tf("upsampleSpatialSigma2",   0.75  ), 0.001f,  8.0f);
 		snap.TemporalAlphaLow        = std::clamp(tf("temporalAlphaLow",        0.05  ), 0.0f,  0.3f);
 		snap.TemporalAlphaHigh       = std::clamp(tf("temporalAlphaHigh",       0.95  ), 0.7f,  1.0f);
 
