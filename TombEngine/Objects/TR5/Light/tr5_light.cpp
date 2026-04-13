@@ -202,11 +202,11 @@ void ElectricalLightControl(short itemNumber)
 		(intensity * (lightPtr->Color.y / 2)) ,
 		(intensity * (lightPtr->Color.z / 2)));
 
-	// Set light mesh color. Model.Color max value is 2.0f.
+	// Set light mesh color.
 	item->Model.Color = Vector4(
-		((intensity / 2) * lightPtr->Color.x) / 96,
-		((intensity / 2) * lightPtr->Color.y) / 96,
-		((intensity / 2) * lightPtr->Color.z) / 96,
+		(intensity * lightPtr->Color.x) / 96,
+		(intensity * lightPtr->Color.y) / 96,
+		(intensity * lightPtr->Color.z) / 96,
 		1.0f);
 }
 
