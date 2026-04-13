@@ -432,20 +432,41 @@ namespace TEN::Renderer
 			float noiseDisplace = std::abs(deltaWind) * 2.032f
 			                    + std::abs(deltaEvo)  * settings.EvolutionSpeed * 0.05f * 2.032f;
 
+			// Camera rotation guard: when the camera rotates between frames, cloud pixels
+			// marked as "stable" (alpha >= TemporalAlphaHigh) skip the fresh raymarch and
+			// return only reprojected history.  For small rotations this is correct, but at
+			// larger angles newly-visible cloud patches blend in at only 5% per frame — the
+			// cloud appears frozen/stuck while the camera pans.
+			// Fix: ramp TemporalBlendFactor toward 1.0 proportionally to rotation speed,
+			// and hard-disable temporal skipping when the rotation is very large.
+			//
+			// camMotion = 1 - dot(prevFwd, currFwd):
+			//   ~0        = no rotation
+			//   ~0.000610 = 2 deg/frame  (120 deg/sec at 60 fps) — blend reaches 1.0
+			//   ~0.003810 = 5 deg/frame  (300 deg/sec at 60 fps) — hard disable
+			float camDot    = runtimeState.PrevCameraForward.Dot(view.Camera.WorldDirection);
+			camDot          = std::max(-1.0f, std::min(1.0f, camDot));
+			float camMotion = 1.0f - camDot;
+
+			constexpr float kCamRampEnd    = 0.000610f; // 1 - cos(2 deg)
+			constexpr float kCamHardThresh = 0.003810f; // 1 - cos(5 deg)
+
 			// Dynamic EMA blend factor: ramp from 0.05 (strong smoothing for static clouds)
-			// to 1.0 (full fresh) as cloud content advects from wind/evolution.
+			// to 1.0 (full fresh) as cloud content advects from wind/evolution or camera rotates.
 			// Without this ramp, the fixed 0.05 suppresses visible wind motion until the
 			// hard guard triggers at ~WindSpeed 2.9, causing an abrupt "frozen → snap" jump.
 			// kRampEnd ≈ WindSpeed 1.5 at 60 fps → smooth gradient across the full range.
 			const float kBaseBlend = 0.05f;
 			const float kRampEnd   = 0.05f;
+			float windEvoBoost = (1.0f - kBaseBlend) * (noiseDisplace / kRampEnd);
+			float camBoost     = (1.0f - kBaseBlend) * (camMotion / kCamRampEnd);
 			_stVolumetricCloud.TemporalBlendFactor = q.TemporalReprojection
-				? std::min(1.0f, kBaseBlend + (1.0f - kBaseBlend) * (noiseDisplace / kRampEnd))
+				? std::min(1.0f, kBaseBlend + std::max(windEvoBoost, camBoost))
 				: 1.0f;
 
-			// Hard guard: for extreme advection, also disable checkerboard skipping
-			// so every pixel gets a fresh raymarch this frame.
-			if (noiseDisplace > 0.10f)
+			// Hard guard: for extreme advection or fast camera snap, also disable
+			// checkerboard skipping so every pixel gets a fresh raymarch this frame.
+			if (noiseDisplace > 0.10f || camMotion > kCamHardThresh)
 				_stVolumetricCloud.TemporalEnabled = 0;
 		}
 
