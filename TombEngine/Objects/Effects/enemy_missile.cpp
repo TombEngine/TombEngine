@@ -28,8 +28,7 @@ namespace TEN::Entities::Effects
 {
 	void TriggerSethMissileFlame(short fxNumber, short xVel, short yVel, short zVel)
 	{
-		auto& fx = g_Level.Items[fxNumber];
-		auto& fxInfo = GetFXInfo(fx);
+		auto& fxInfo = GetFXInfo(g_Level.Items[fxNumber]);
 
 		auto& flame = *GetFreeParticle();
 
