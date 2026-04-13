@@ -585,9 +585,10 @@ static void FlipRooms(int roomNumber, RoomData& activeRoom, RoomData& flippedRoo
 {
 	RemoveRoomFlipItems(activeRoom);
 
-	// Save item and effect lists before swap
-	auto itemNumbers = std::move(flippedRoom.itemNumbers);
-	auto fxNumbers = std::move(flippedRoom.fxNumbers);
+	// Save active room's item and effect lists before swap so they stay
+	// associated with the physical location after the geometry flip.
+	auto itemNumbers = std::move(activeRoom.itemNumbers);
+	auto fxNumbers = std::move(activeRoom.fxNumbers);
 
 	// Swap rooms.
 	std::swap(activeRoom, flippedRoom);
