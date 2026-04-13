@@ -1787,6 +1787,16 @@ namespace TEN::Renderer
 			PrintDebugMessage("    Dot products: %d", _numDotProducts);
 			break;
 
+		case RendererDebugPage::GrassStats:
+			PrintDebugMessage("GRASS STATS");
+			PrintDebugMessage(" ");
+			PrintDebugMessage(("Total blades: " + std::to_string(_grassSystem.GetTotalBladeCount())).c_str());
+			PrintDebugMessage(("Visible tiles: " + std::to_string(_grassSystem.GetVisibleTileCount())).c_str());
+			PrintDebugMessage(("Visible blades: " + std::to_string(_grassSystem.GetVisibleBladeCount())).c_str());
+			PrintDebugMessage(("Draw calls: " + std::to_string(_numGrassDrawCalls)).c_str());
+			PrintDebugMessage(_grassSystem.IsEnabled() ? "Grass enabled: Yes" : "Grass enabled: No");
+			break;
+
 		case RendererDebugPage::WireframeMode:
 			PrintDebugMessage("WIREFRAME MODE");
 			break;

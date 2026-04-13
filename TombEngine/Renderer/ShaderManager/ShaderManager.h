@@ -68,6 +68,10 @@ namespace TEN::Renderer::Utils
 		Downscale,
 		GlowCombine,
 
+		// Grass
+
+		Grass,
+
 		Count
 	};
 

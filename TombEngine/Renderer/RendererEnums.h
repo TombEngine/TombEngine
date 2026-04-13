@@ -170,6 +170,7 @@ enum class RendererDebugPage
 	CollisionMeshStats,
 	PortalStats,
 	PathfindingStats,
+	GrassStats,
 	WireframeMode,
 
 	Count
@@ -199,7 +200,8 @@ enum class TextureRegister
 	ORSHMap = 10,
 	EmissiveMap = 11,
 	LegacyEnvironmentReflections = 12,
-	SkyboxEnvironmentReflections = 13
+	SkyboxEnvironmentReflections = 13,
+	GrassAtlas = 14
 };
 
 enum class SamplerStateRegister
@@ -224,10 +226,12 @@ enum class ConstantBufferRegister
 	AnimatedTextures = 6,
 	PostProcess = 7,
 	Sky = 8,
+	GrassSettings = 9,
 	Hud = 10,
 	HudBar = 11,
 	Blending = 12,
-	InstancedSprites = 13
+	InstancedSprites = 13,
+	GrassInstances = 13  // Shares slot with InstancedSprites (never active during grass draw).
 };
 
 enum class AlphaTestMode

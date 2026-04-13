@@ -55,6 +55,8 @@ namespace TEN::Renderer
 		for (auto& mesh : _meshes)
 			delete mesh;
 		_meshes.resize(0);
+
+		_grassSystem.Clear();
 	}
 
 	void Renderer::Lock()
