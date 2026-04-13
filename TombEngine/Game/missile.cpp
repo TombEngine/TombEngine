@@ -177,9 +177,6 @@ void ControlNatlaGun(short fxNumber)
 		fxNumber = CreateNewEffect(pointColl.GetRoomNumber(), ID_PROJ_BOMB, fx.Pose.Position);
 		if (fxNumber != NO_VALUE)
 		{
-			if (fxNumber == NO_VALUE)
-				return;
-
 			auto& fxNew = g_Level.Items[fxNumber];
 
 			fxNew.Pose.Position = pointColl.GetPosition();
