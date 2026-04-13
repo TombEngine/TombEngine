@@ -221,6 +221,15 @@ namespace TEN::Renderer::VolumetricCloud
 		float WindAccumOffset  = 0.0f;  // Pre-integrated wind offset — monotonically non-decreasing.
 		                                 // Prevents backwards cloud motion when WindSpeed transitions
 		                                 // to a lower value (avoids the CloudTime*WindSpeed artifact).
+		float EvoAccumOffset   = 0.0f;  // Pre-integrated evolution offset — monotonically non-decreasing.
+		                                 // Analogous to WindAccumOffset: accumulated as EvolutionSpeed*dt*0.05
+		                                 // so that when EvolutionSpeed transitions to a lower value (or zero)
+		                                 // the clouds don't drift backwards. Used in place of the old
+		                                 // ap.EvolutionSpd*(CloudTime*0.05+WindSpeed*0.15) evoOfs formula.
+		float FlowAccumOffset  = 0.0f;  // Pre-integrated flow time — monotonically non-decreasing.
+		                                 // Accumulated as EvolutionSpeed*dt*0.16 (same guard as EvoAccumOffset).
+		                                 // Prevents curl-warp and windBias from reversing when EvolutionSpeed
+		                                 // transitions to a lower value; replaces CloudTime*EvSpd*0.16 in shader.
 		int   FrameCounter     = 0;     // Monotonic frame counter for jitter cycling
 
 		// Current packed quality params
@@ -238,6 +247,7 @@ namespace TEN::Renderer::VolumetricCloud
 		Vector3 PrevCameraForward      = Vector3(0.0f, 0.0f, 1.0f);
 		float   PrevAccumulatedTime    = 0.0f;
 		float   PrevWindAccumOffset    = 0.0f;
+		float   PrevEvoAccumOffset     = 0.0f;
 
 		// Previous frame's ViewProjection matrix for temporal reprojection.
 		// Clouds are at infinite distance so only rotation matters; translation

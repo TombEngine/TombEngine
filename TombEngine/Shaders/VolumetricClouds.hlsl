@@ -624,9 +624,12 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     float3 windOfs = float3(WindDirection.x, 0.0f, WindDirection.y) * WindSpeed;
 
     // --- Evolution-driven formation scrolling ---
+    // EvoAccumOffset is pre-integrated in the renderer (like WindSpeed/WindAccumOffset),
+    // so it never decreases even when EvolutionSpeed transitions to a lower value.
+    // This prevents clouds from drifting against the wind during morph transitions
+    // where EvolutionSpeed drops (e.g. RainSnowOvercast→Altocumulus).
     float3 evoDir = float3(WindDirection.x, 0.0f, WindDirection.y);
-    float3 evoOfs = evoDir * ap.EvolutionSpd
-                  * (CloudTime * 0.05f + WindSpeed * 0.15f);
+    float3 evoOfs = evoDir * EvoAccumOffset;
 
     float3 p = skyPos * baseScale + windOfs + evoOfs;
 
@@ -644,7 +647,14 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     // EvolutionSpeed should make clouds breathe and reorganize, but not snake
     // strongly from side to side. Keep the advection/evolution offset above,
     // but damp the time-evolving curl field so the cloud body stays more stable.
-    float flowTime = CloudTime * ap.EvolutionSpd * 0.16f;
+    //
+    // FlowAccumOffset is pre-integrated in the renderer (like WindAccumOffset),
+    // so it is always monotonically non-decreasing. Using it instead of
+    // CloudTime*ap.EvolutionSpd*0.16 prevents the curl warp and windBias from
+    // reversing when EvolutionSpeed transitions to a lower value (e.g. 1.013→0
+    // on RainSnowOvercast→Altocumulus), which previously caused visible
+    // backwards cloud-feature drift.
+    float flowTime = FlowAccumOffset;
     float heightFlow = lerp(1.0f, 0.65f, saturate(heightFrac));
     float2 windBias = WindDirection * flowTime * 0.03f;
     float curlDamp = lerp(0.85f, 0.40f, saturate(ap.EvolutionSpd * 0.25f));
@@ -933,8 +943,7 @@ float EvalAltoDensityCoreLite(float3 skyPos, float heightFrac, float skyH,
     // --- Global advection ---
     float3 windOfs = float3(WindDirection.x, 0.0f, WindDirection.y) * WindSpeed;
     float3 evoDir = float3(WindDirection.x, 0.0f, WindDirection.y);
-    float3 evoOfs = evoDir * ap.EvolutionSpd
-                  * (CloudTime * 0.05f + WindSpeed * 0.15f);
+    float3 evoOfs = evoDir * EvoAccumOffset;
 
     float3 p = skyPos * baseScale + windOfs + evoOfs;
 
@@ -942,7 +951,7 @@ float EvalAltoDensityCoreLite(float3 skyPos, float heightFrac, float skyH,
     // Saves 8 ValueNoise3D calls (4 per skipped band).
     if (CurlWarpStrength > 0.001f)
     {
-        float flowTime = CloudTime * ap.EvolutionSpd * 0.16f;
+        float flowTime = FlowAccumOffset;  // Pre-integrated; see EvalAltoDensityCore comment.
         float heightFlow = lerp(1.0f, 0.65f, saturate(heightFrac));
         float2 windBias = WindDirection * flowTime * 0.03f;
         float curlDamp = lerp(0.85f, 0.40f, saturate(ap.EvolutionSpd * 0.25f));

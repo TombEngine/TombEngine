@@ -169,11 +169,11 @@ cbuffer CBVolumetricCloud : register(b9)
     float TemporalAlphaHigh;      // [0.8,1]  above this alpha: temporal reuse OK (cloud core)
     float AltoJitterAbsCap;       // [0,inf]  absorption cap used only for jitter amplitude (independent of actual cloud opacity)
     //--
-    // Row 30 — Curl warp amplitude + temporal blend
+    // Row 30 — Curl warp amplitude + temporal blend + pre-integrated offsets
     float CurlWarpStrength;       // [0,2] curl domain-warp amplitude multiplier (0 = no warp)
     float TemporalBlendFactor;    // [0.02,1] EMA blend factor for temporal accumulation (lower = smoother)
-    float CloudPad30_1;
-    float CloudPad30_2;
+    float EvoAccumOffset;         // Pre-integrated evolution offset — replaces ap.EvolutionSpd*(CloudTime*0.05+WindSpeed*0.15) in evoOfs
+    float FlowAccumOffset;        // Pre-integrated flow time — replaces CloudTime*ap.EvolutionSpd*0.16 in flowTime; prevents curl-warp/windBias reversing on EvolutionSpeed transitions
     //--
     // Rows 31-34 — Previous frame ViewProjection matrix for temporal reprojection.
     // Clouds are at infinite distance so only camera rotation matters.

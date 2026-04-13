@@ -176,11 +176,11 @@ namespace TEN::Renderer::ConstantBuffers
 		float TemporalAlphaHigh;      // [0.8,1]  above this alpha: temporal reuse OK (cloud core)
 		float AltoJitterAbsCap;       // [0.1,10] absorption cap used only for jitter amplitude
 		//--
-		// Row 30 — Curl warp amplitude + temporal blend
+		// Row 30 — Curl warp amplitude + temporal blend + pre-integrated offsets
 		float CurlWarpStrength;       // [0,2] curl domain-warp amplitude multiplier (0 = no warp)
 		float TemporalBlendFactor;    // [0.02,1] EMA blend factor for temporal accumulation (lower = smoother)
-		float Row30Pad1;
-		float Row30Pad2;
+		float EvoAccumOffset;        // Pre-integrated evolution offset (EvolutionSpeed*dt*0.05 accumulated). Used in evoOfs instead of EvolutionSpd*(CloudTime*0.05+WindSpeed*0.15) to prevent backwards drift on EvolutionSpeed transitions.
+		float FlowAccumOffset;       // Pre-integrated flow time (EvolutionSpeed*dt*0.16 accumulated). Used in flowTime instead of CloudTime*EvolutionSpd*0.16 to prevent curl-warp and windBias reversing when EvolutionSpeed transitions to a lower value.
 		//--
 		// Rows 31-34 — Previous frame ViewProjection matrix for temporal reprojection.
 		// Clouds are at infinite distance so only camera rotation matters.

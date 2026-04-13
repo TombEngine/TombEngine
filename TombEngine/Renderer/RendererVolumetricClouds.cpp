@@ -415,6 +415,8 @@ namespace TEN::Renderer
 		// On Low quality (DetailNoiseEnabled=false) curl warp is suppressed: it costs
 		// 1-3 extra texture fetches per march step and is not worth it at Low fidelity.
 		_stVolumetricCloud.CurlWarpStrength     = q.DetailNoiseEnabled ? settings.CurlWarpStrength : 0.0f;
+		_stVolumetricCloud.EvoAccumOffset        = runtimeState.EvoAccumOffset;
+		_stVolumetricCloud.FlowAccumOffset       = runtimeState.FlowAccumOffset;
 		_stVolumetricCloud.UpsampleSpatialSigma2 = settings.UpsampleSpatialSigma2;
 		_stVolumetricCloud.TemporalAlphaLow      = settings.TemporalAlphaLow;
 		_stVolumetricCloud.TemporalAlphaHigh     = settings.TemporalAlphaHigh;
@@ -430,9 +432,9 @@ namespace TEN::Renderer
 		// noiseDisplace approximates how far cloud UVs have shifted this frame.
 		{
 			float deltaWind     = runtimeState.WindAccumOffset - runtimeState.PrevWindAccumOffset;
-			float deltaEvo      = runtimeState.AccumulatedTime  - runtimeState.PrevAccumulatedTime;
+			float deltaEvo      = runtimeState.EvoAccumOffset  - runtimeState.PrevEvoAccumOffset;
 			float noiseDisplace = std::abs(deltaWind) * 2.032f
-			                    + std::abs(deltaEvo)  * settings.EvolutionSpeed * 0.05f * 2.032f;
+			                    + std::abs(deltaEvo)  * 2.032f;
 
 			// Camera rotation guard: when the camera rotates between frames, cloud pixels
 			// marked as "stable" (alpha >= TemporalAlphaHigh) skip the fresh raymarch and
@@ -531,11 +533,24 @@ namespace TEN::Renderer
 		// Update accumulated times — evolution time and wind offset are accumulated
 		// separately so each can be frozen independently, and so wind offset is
 		// always monotonically non-decreasing (prevents backwards cloud motion).
+		// EvoAccumOffset and FlowAccumOffset use the same pre-integration pattern as
+		// WindAccumOffset to prevent backwards cloud drift when EvolutionSpeed transitions
+		// to a lower value:
+		//   EvoAccumOffset  – drives evoOfs  (replaces EvSpd*(CloudTime*0.05+WindAccum*0.15))
+		//   FlowAccumOffset – drives flowTime (replaces CloudTime*EvSpd*0.16), which feeds
+		//                     windBias and curl tLow/tMid/tHigh; without pre-integration,
+		//                     decreasing EvolutionSpeed reverses curl warps and windBias
+		//                     → visual backwards drift of cloud features.
 		float dt = 1.0f / std::max(_refreshRate, 30);
 		if (!_cloudState.FreezeEvolution)
 			_cloudState.AccumulatedTime += dt;
 		if (!_cloudState.FreezeWind)
 			_cloudState.WindAccumOffset += activeSettings->WindSpeed * dt;
+		if (!_cloudState.FreezeEvolution)
+		{
+			_cloudState.EvoAccumOffset  += activeSettings->EvolutionSpeed * dt * 0.05f;
+			_cloudState.FlowAccumOffset += activeSettings->EvolutionSpeed * dt * 0.16f;
+		}
 		_cloudState.FrameCounter++;
 
 		// Update constant buffer.
@@ -545,6 +560,7 @@ namespace TEN::Renderer
 		_cloudState.PrevCameraForward   = renderView.Camera.WorldDirection;
 		_cloudState.PrevAccumulatedTime = _cloudState.AccumulatedTime;
 		_cloudState.PrevWindAccumOffset = _cloudState.WindAccumOffset;
+		_cloudState.PrevEvoAccumOffset  = _cloudState.EvoAccumOffset;
 		_cloudState.PrevViewProjection  = renderView.Camera.ViewProjection;
 
 		// --- Pass 1: Render clouds to half-res target ---

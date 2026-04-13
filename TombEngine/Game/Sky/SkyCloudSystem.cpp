@@ -1695,13 +1695,12 @@ namespace TEN::Sky
 		// (srcParams.FbmScale = AltoFbmScale; line in shader). If presets differ here,
 		// the source cloud frequency jumps immediately at transition start.
 		dst.AltoFbmScale        = src.AltoFbmScale;
-		// EvolutionSpeed controls flowTime and evoOfs in EvalAltoDensityCore for the
-		// TARGET evaluation (CB EvolutionSpeed = mainParams.EvolutionSpd). Snapping to
-		// the target's EvolutionSpeed on frame 1 makes the forming target clouds animate
-		// at the wrong rate from the start — if source is slow and target is fast, the
-		// target clouds appear to suddenly rush. Carry the source value so both evaluations
-		// start at the same effective rate; the Lerp interpolates it toward the target.
-		dst.EvolutionSpeed      = src.EvolutionSpeed;
+		// NOTE: EvolutionSpeed is intentionally NOT copied here.  evoOfs is now driven
+		// by the pre-integrated EvoAccumOffset (accumulated += EvolutionSpeed * dt * 0.05)
+		// which never decreases, so snapping EvolutionSpeed in the CB does not cause any
+		// backwards positional drift.  Letting EvolutionSpeed snap to the target value from
+		// frame 1 is correct: if the target has EvolutionSpeed=0 (e.g. Altocumulus), its
+		// clouds should be temporally static (flowTime=0) from the very first frame.
 		// Lightning
 		dst.LightningEnabled           = src.LightningEnabled;
 		dst.LightningStrikeFreq        = src.LightningStrikeFreq;
