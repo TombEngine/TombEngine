@@ -53,7 +53,7 @@ namespace TEN::Renderer::VolumetricCloud
 		int   PrimaryStepCount        = 12;
 		int   ShadowStepCount         = 4;
 		int   OcclusionSampleSteps    = 6;
-		float RenderResolutionScale   = 0.5f;    // 0.5 = half-res
+		float RenderResolutionScale   = 0.25f;   // 0.25 = quarter-res
 		bool  DetailNoiseEnabled      = true;
 		bool  TemporalReprojection    = true;
 		bool  BlueNoiseJitter         = true;
@@ -190,7 +190,7 @@ namespace TEN::Renderer::VolumetricCloud
 		float AltoFbmScale               = 2.032f; // FBM input pre-scale (2.032=reference); lower=coarser
 		float CurlWarpStrength           = 1.0f;   // [0,2] curl domain-warp amplitude multiplier (0 = no warp)
 		float JitterStrength             = 0.3f;
-		float UpsampleSpatialSigma2      = 2.0f;   // bilateral upsampler spatial spread (2*sigma^2)
+		float UpsampleSpatialSigma2      = 4.5f;   // bilateral upsampler spatial spread (2*sigma^2) — 5x5 kernel
 		float TemporalAlphaLow           = 0.05f;  // below this alpha: temporal reuse OK (clear sky)
 		float TemporalAlphaHigh          = 0.95f;  // above this alpha: temporal reuse OK (cloud core)
 		float AltoJitterAbsCap           = 5.0f;   // absorption cap used only for jitter amplitude
@@ -278,7 +278,7 @@ namespace TEN::Renderer::VolumetricCloud
 				/*PrimaryStepCount=*/    32,
 				/*ShadowStepCount=*/     6,
 				/*OcclusionSampleSteps=*/8,
-				/*RenderResolutionScale=*/0.75f,
+				/*RenderResolutionScale=*/0.5f,   // was 0.75 — now half-res (balanced)
 				/*DetailNoiseEnabled=*/  true,
 				/*TemporalReprojection=*/true,
 				/*BlueNoiseJitter=*/     true
@@ -290,7 +290,7 @@ namespace TEN::Renderer::VolumetricCloud
 				/*PrimaryStepCount=*/    12,
 				/*ShadowStepCount=*/     4,
 				/*OcclusionSampleSteps=*/6,
-				/*RenderResolutionScale=*/0.5f,
+				/*RenderResolutionScale=*/0.25f,  // was 0.5 — now quarter-res (4x fewer pixels)
 				/*DetailNoiseEnabled=*/  true,
 				/*TemporalReprojection=*/true,
 				/*BlueNoiseJitter=*/     true

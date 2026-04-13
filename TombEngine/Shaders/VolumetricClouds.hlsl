@@ -2720,18 +2720,14 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     float4 cCenter = SceneColorTexture.Sample(LinearSamp, uv);
     float  refAlpha = cCenter.a;
 
-    // 3x3 bilateral upsampling filter.
-    // The previous 4-tap bilateral with tight sigma (0.15) preserved per-pixel
-    // jitter-based opacity noise at the cloud silhouette: adjacent pixels with
-    // alpha 0.0 vs 0.04 (from jitter hit/miss) were NOT blended together
-    // because the sigma rejected their alpha difference. This preserved the
-    // structured dithering pattern in the upsampled output.
-    //
-    // Keep the 3x3 kernel, but tighten the spatial and bilateral sigmas.
-    // The previous values blurred cloud silhouettes too aggressively and made
-    // motion read as soft underwater smearing. These settings still blend out
-    // half-res stair-stepping, but preserve a crisper edge profile.
-    const float spatialSigma2   = UpsampleSpatialSigma2; // tunable via debug menu
+    // 5x5 bilateral upsampling filter.
+    // Quarter-res rendering (4x downscale per axis) needs a larger kernel to
+    // smooth out the coarser texel grid.  The 5x5 (25-tap) cross-bilateral
+    // filter still runs at full-res screen pixels but covers 5 cloud texels
+    // in each direction, producing smooth silhouettes even at 0.25x scale.
+    // At higher resolution scales (0.5, 0.75) the outer taps contribute less
+    // (spatialSigma2 naturally attenuates them) so quality degrades gracefully.
+    const float spatialSigma2   = UpsampleSpatialSigma2; // tunable via debug menu (scaled for 5x5)
     const float alphaSigma2RGB  = 0.1568f; // 2 * 0.28^2 (RGB bilateral sigma = 0.28)
     const float alphaSigma2Edge = 0.50f; // 2 * 0.50^2 (alpha bilateral sigma = 0.50)
 
@@ -2741,10 +2737,10 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     float  accumWeightA   = 0.0f;
 
     [unroll]
-    for (int oy = -1; oy <= 1; oy++)
+    for (int oy = -2; oy <= 2; oy++)
     {
         [unroll]
-        for (int ox = -1; ox <= 1; ox++)
+        for (int ox = -2; ox <= 2; ox++)
         {
             float2 offset = float2((float)ox, (float)oy);
             float4 tap = SceneColorTexture.Sample(LinearSamp, uv + offset * texelSize);
