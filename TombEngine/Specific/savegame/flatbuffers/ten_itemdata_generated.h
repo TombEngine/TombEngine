@@ -11,19 +11,15 @@ namespace Save {
 
 struct Short;
 struct ShortBuilder;
-struct ShortT;
 
 struct Int;
 struct IntBuilder;
-struct IntT;
 
 struct Float;
 struct FloatBuilder;
-struct FloatT;
 
 struct ShortArray;
 struct ShortArrayBuilder;
-struct ShortArrayT;
 
 struct EulerAngles;
 
@@ -39,137 +35,123 @@ struct Pose;
 
 struct BadBox;
 struct BadBoxBuilder;
-struct BadBoxT;
 
 struct CreatureTarget;
 struct CreatureTargetBuilder;
-struct CreatureTargetT;
 
 struct Creature;
 struct CreatureBuilder;
-struct CreatureT;
 
 struct LaserHead;
 struct LaserHeadBuilder;
-struct LaserHeadT;
 
 struct QuadBike;
 struct QuadBikeBuilder;
-struct QuadBikeT;
 
 struct BigGun;
 struct BigGunBuilder;
-struct BigGunT;
 
 struct Motorbike;
 struct MotorbikeBuilder;
-struct MotorbikeT;
 
 struct Jeep;
 struct JeepBuilder;
-struct JeepT;
 
 struct Kayak;
 struct KayakBuilder;
-struct KayakT;
 
 struct Door;
 struct DoorBuilder;
-struct DoorT;
 
 struct Skidoo;
 struct SkidooBuilder;
-struct SkidooT;
 
 struct UPV;
 struct UPVBuilder;
-struct UPVT;
 
 struct Motorboat;
 struct MotorboatBuilder;
-struct MotorboatT;
 
 struct Wraith;
 struct WraithBuilder;
-struct WraithT;
 
 struct Rubberboat;
 struct RubberboatBuilder;
-struct RubberboatT;
 
 struct Pushable;
 struct PushableBuilder;
-struct PushableT;
 
 struct Minecart;
 struct MinecartBuilder;
-struct MinecartT;
 
 struct LaraInfo;
 struct LaraInfoBuilder;
-struct LaraInfoT;
 
 struct ItemNumber;
 struct ItemNumberBuilder;
-struct ItemNumberT;
 
-enum class ItemData : uint8_t {
-  NONE = 0,
-  Int = 1,
-  Short = 2,
-  Float = 3,
-  ShortArray = 4,
-  ItemNumber = 5,
-  Creature = 6,
-  LaserHead = 7,
-  QuadBike = 8,
-  BigGun = 9,
-  Motorbike = 10,
-  Jeep = 11,
-  LaraInfo = 12,
-  Kayak = 13,
-  Door = 14,
-  Skidoo = 15,
-  UPV = 16,
-  Motorboat = 17,
-  Wraith = 18,
-  Rubberboat = 19,
-  Pushable = 20,
-  Minecart = 21,
-  MIN = NONE,
-  MAX = Minecart
+struct FXInfo;
+struct FXInfoBuilder;
+
+enum ItemData : uint8_t {
+  ItemData_NONE = 0,
+  ItemData_Int = 1,
+  ItemData_Short = 2,
+  ItemData_Float = 3,
+  ItemData_ShortArray = 4,
+  ItemData_ItemNumber = 5,
+  ItemData_Creature = 6,
+  ItemData_LaserHead = 7,
+  ItemData_QuadBike = 8,
+  ItemData_BigGun = 9,
+  ItemData_Motorbike = 10,
+  ItemData_Jeep = 11,
+  ItemData_LaraInfo = 12,
+  ItemData_Kayak = 13,
+  ItemData_Door = 14,
+  ItemData_Skidoo = 15,
+  ItemData_UPV = 16,
+  ItemData_Motorboat = 17,
+  ItemData_Wraith = 18,
+  ItemData_Rubberboat = 19,
+  ItemData_Pushable = 20,
+  ItemData_Minecart = 21,
+  ItemData_FXInfo = 22,
+  ItemData_MIN = ItemData_NONE,
+  ItemData_MAX = ItemData_FXInfo
 };
 
-inline const ItemData (&EnumValuesItemData())[22] {
+inline const ItemData (&EnumValuesItemData())[23] {
   static const ItemData values[] = {
-    ItemData::NONE,
-    ItemData::Int,
-    ItemData::Short,
-    ItemData::Float,
-    ItemData::ShortArray,
-    ItemData::ItemNumber,
-    ItemData::Creature,
-    ItemData::LaserHead,
-    ItemData::QuadBike,
-    ItemData::BigGun,
-    ItemData::Motorbike,
-    ItemData::Jeep,
-    ItemData::LaraInfo,
-    ItemData::Kayak,
-    ItemData::Door,
-    ItemData::Skidoo,
-    ItemData::UPV,
-    ItemData::Motorboat,
-    ItemData::Wraith,
-    ItemData::Rubberboat,
-    ItemData::Pushable,
-    ItemData::Minecart
+    ItemData_NONE,
+    ItemData_Int,
+    ItemData_Short,
+    ItemData_Float,
+    ItemData_ShortArray,
+    ItemData_ItemNumber,
+    ItemData_Creature,
+    ItemData_LaserHead,
+    ItemData_QuadBike,
+    ItemData_BigGun,
+    ItemData_Motorbike,
+    ItemData_Jeep,
+    ItemData_LaraInfo,
+    ItemData_Kayak,
+    ItemData_Door,
+    ItemData_Skidoo,
+    ItemData_UPV,
+    ItemData_Motorboat,
+    ItemData_Wraith,
+    ItemData_Rubberboat,
+    ItemData_Pushable,
+    ItemData_Minecart,
+    ItemData_FXInfo
   };
   return values;
 }
 
 inline const char * const *EnumNamesItemData() {
-  static const char * const names[23] = {
+  static const char * const names[24] = {
     "NONE",
     "Int",
     "Short",
@@ -192,305 +174,108 @@ inline const char * const *EnumNamesItemData() {
     "Rubberboat",
     "Pushable",
     "Minecart",
+    "FXInfo",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameItemData(ItemData e) {
-  if (flatbuffers::IsOutRange(e, ItemData::NONE, ItemData::Minecart)) return "";
+  if (flatbuffers::IsOutRange(e, ItemData_NONE, ItemData_FXInfo)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesItemData()[index];
 }
 
 template<typename T> struct ItemDataTraits {
-  static const ItemData enum_value = ItemData::NONE;
+  static const ItemData enum_value = ItemData_NONE;
 };
 
 template<> struct ItemDataTraits<TEN::Save::Int> {
-  static const ItemData enum_value = ItemData::Int;
+  static const ItemData enum_value = ItemData_Int;
 };
 
 template<> struct ItemDataTraits<TEN::Save::Short> {
-  static const ItemData enum_value = ItemData::Short;
+  static const ItemData enum_value = ItemData_Short;
 };
 
 template<> struct ItemDataTraits<TEN::Save::Float> {
-  static const ItemData enum_value = ItemData::Float;
+  static const ItemData enum_value = ItemData_Float;
 };
 
 template<> struct ItemDataTraits<TEN::Save::ShortArray> {
-  static const ItemData enum_value = ItemData::ShortArray;
+  static const ItemData enum_value = ItemData_ShortArray;
 };
 
 template<> struct ItemDataTraits<TEN::Save::ItemNumber> {
-  static const ItemData enum_value = ItemData::ItemNumber;
+  static const ItemData enum_value = ItemData_ItemNumber;
 };
 
 template<> struct ItemDataTraits<TEN::Save::Creature> {
-  static const ItemData enum_value = ItemData::Creature;
+  static const ItemData enum_value = ItemData_Creature;
 };
 
 template<> struct ItemDataTraits<TEN::Save::LaserHead> {
-  static const ItemData enum_value = ItemData::LaserHead;
+  static const ItemData enum_value = ItemData_LaserHead;
 };
 
 template<> struct ItemDataTraits<TEN::Save::QuadBike> {
-  static const ItemData enum_value = ItemData::QuadBike;
+  static const ItemData enum_value = ItemData_QuadBike;
 };
 
 template<> struct ItemDataTraits<TEN::Save::BigGun> {
-  static const ItemData enum_value = ItemData::BigGun;
+  static const ItemData enum_value = ItemData_BigGun;
 };
 
 template<> struct ItemDataTraits<TEN::Save::Motorbike> {
-  static const ItemData enum_value = ItemData::Motorbike;
+  static const ItemData enum_value = ItemData_Motorbike;
 };
 
 template<> struct ItemDataTraits<TEN::Save::Jeep> {
-  static const ItemData enum_value = ItemData::Jeep;
+  static const ItemData enum_value = ItemData_Jeep;
 };
 
 template<> struct ItemDataTraits<TEN::Save::LaraInfo> {
-  static const ItemData enum_value = ItemData::LaraInfo;
+  static const ItemData enum_value = ItemData_LaraInfo;
 };
 
 template<> struct ItemDataTraits<TEN::Save::Kayak> {
-  static const ItemData enum_value = ItemData::Kayak;
+  static const ItemData enum_value = ItemData_Kayak;
 };
 
 template<> struct ItemDataTraits<TEN::Save::Door> {
-  static const ItemData enum_value = ItemData::Door;
+  static const ItemData enum_value = ItemData_Door;
 };
 
 template<> struct ItemDataTraits<TEN::Save::Skidoo> {
-  static const ItemData enum_value = ItemData::Skidoo;
+  static const ItemData enum_value = ItemData_Skidoo;
 };
 
 template<> struct ItemDataTraits<TEN::Save::UPV> {
-  static const ItemData enum_value = ItemData::UPV;
+  static const ItemData enum_value = ItemData_UPV;
 };
 
 template<> struct ItemDataTraits<TEN::Save::Motorboat> {
-  static const ItemData enum_value = ItemData::Motorboat;
+  static const ItemData enum_value = ItemData_Motorboat;
 };
 
 template<> struct ItemDataTraits<TEN::Save::Wraith> {
-  static const ItemData enum_value = ItemData::Wraith;
+  static const ItemData enum_value = ItemData_Wraith;
 };
 
 template<> struct ItemDataTraits<TEN::Save::Rubberboat> {
-  static const ItemData enum_value = ItemData::Rubberboat;
+  static const ItemData enum_value = ItemData_Rubberboat;
 };
 
 template<> struct ItemDataTraits<TEN::Save::Pushable> {
-  static const ItemData enum_value = ItemData::Pushable;
+  static const ItemData enum_value = ItemData_Pushable;
 };
 
 template<> struct ItemDataTraits<TEN::Save::Minecart> {
-  static const ItemData enum_value = ItemData::Minecart;
+  static const ItemData enum_value = ItemData_Minecart;
 };
 
-struct ItemDataUnion {
-  ItemData type;
-  void *value;
-
-  ItemDataUnion() : type(ItemData::NONE), value(nullptr) {}
-  ItemDataUnion(ItemDataUnion&& u) FLATBUFFERS_NOEXCEPT :
-    type(ItemData::NONE), value(nullptr)
-    { std::swap(type, u.type); std::swap(value, u.value); }
-  ItemDataUnion(const ItemDataUnion &);
-  ItemDataUnion &operator=(const ItemDataUnion &u)
-    { ItemDataUnion t(u); std::swap(type, t.type); std::swap(value, t.value); return *this; }
-  ItemDataUnion &operator=(ItemDataUnion &&u) FLATBUFFERS_NOEXCEPT
-    { std::swap(type, u.type); std::swap(value, u.value); return *this; }
-  ~ItemDataUnion() { Reset(); }
-
-  void Reset();
-
-#ifndef FLATBUFFERS_CPP98_STL
-  template <typename T>
-  void Set(T&& val) {
-    using RT = typename std::remove_reference<T>::type;
-    Reset();
-    type = ItemDataTraits<typename RT::TableType>::enum_value;
-    if (type != ItemData::NONE) {
-      value = new RT(std::forward<T>(val));
-    }
-  }
-#endif  // FLATBUFFERS_CPP98_STL
-
-  static void *UnPack(const void *obj, ItemData type, const flatbuffers::resolver_function_t *resolver);
-  flatbuffers::Offset<void> Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher = nullptr) const;
-
-  TEN::Save::IntT *AsInt() {
-    return type == ItemData::Int ?
-      reinterpret_cast<TEN::Save::IntT *>(value) : nullptr;
-  }
-  const TEN::Save::IntT *AsInt() const {
-    return type == ItemData::Int ?
-      reinterpret_cast<const TEN::Save::IntT *>(value) : nullptr;
-  }
-  TEN::Save::ShortT *AsShort() {
-    return type == ItemData::Short ?
-      reinterpret_cast<TEN::Save::ShortT *>(value) : nullptr;
-  }
-  const TEN::Save::ShortT *AsShort() const {
-    return type == ItemData::Short ?
-      reinterpret_cast<const TEN::Save::ShortT *>(value) : nullptr;
-  }
-  TEN::Save::FloatT *AsFloat() {
-    return type == ItemData::Float ?
-      reinterpret_cast<TEN::Save::FloatT *>(value) : nullptr;
-  }
-  const TEN::Save::FloatT *AsFloat() const {
-    return type == ItemData::Float ?
-      reinterpret_cast<const TEN::Save::FloatT *>(value) : nullptr;
-  }
-  TEN::Save::ShortArrayT *AsShortArray() {
-    return type == ItemData::ShortArray ?
-      reinterpret_cast<TEN::Save::ShortArrayT *>(value) : nullptr;
-  }
-  const TEN::Save::ShortArrayT *AsShortArray() const {
-    return type == ItemData::ShortArray ?
-      reinterpret_cast<const TEN::Save::ShortArrayT *>(value) : nullptr;
-  }
-  TEN::Save::ItemNumberT *AsItemNumber() {
-    return type == ItemData::ItemNumber ?
-      reinterpret_cast<TEN::Save::ItemNumberT *>(value) : nullptr;
-  }
-  const TEN::Save::ItemNumberT *AsItemNumber() const {
-    return type == ItemData::ItemNumber ?
-      reinterpret_cast<const TEN::Save::ItemNumberT *>(value) : nullptr;
-  }
-  TEN::Save::CreatureT *AsCreature() {
-    return type == ItemData::Creature ?
-      reinterpret_cast<TEN::Save::CreatureT *>(value) : nullptr;
-  }
-  const TEN::Save::CreatureT *AsCreature() const {
-    return type == ItemData::Creature ?
-      reinterpret_cast<const TEN::Save::CreatureT *>(value) : nullptr;
-  }
-  TEN::Save::LaserHeadT *AsLaserHead() {
-    return type == ItemData::LaserHead ?
-      reinterpret_cast<TEN::Save::LaserHeadT *>(value) : nullptr;
-  }
-  const TEN::Save::LaserHeadT *AsLaserHead() const {
-    return type == ItemData::LaserHead ?
-      reinterpret_cast<const TEN::Save::LaserHeadT *>(value) : nullptr;
-  }
-  TEN::Save::QuadBikeT *AsQuadBike() {
-    return type == ItemData::QuadBike ?
-      reinterpret_cast<TEN::Save::QuadBikeT *>(value) : nullptr;
-  }
-  const TEN::Save::QuadBikeT *AsQuadBike() const {
-    return type == ItemData::QuadBike ?
-      reinterpret_cast<const TEN::Save::QuadBikeT *>(value) : nullptr;
-  }
-  TEN::Save::BigGunT *AsBigGun() {
-    return type == ItemData::BigGun ?
-      reinterpret_cast<TEN::Save::BigGunT *>(value) : nullptr;
-  }
-  const TEN::Save::BigGunT *AsBigGun() const {
-    return type == ItemData::BigGun ?
-      reinterpret_cast<const TEN::Save::BigGunT *>(value) : nullptr;
-  }
-  TEN::Save::MotorbikeT *AsMotorbike() {
-    return type == ItemData::Motorbike ?
-      reinterpret_cast<TEN::Save::MotorbikeT *>(value) : nullptr;
-  }
-  const TEN::Save::MotorbikeT *AsMotorbike() const {
-    return type == ItemData::Motorbike ?
-      reinterpret_cast<const TEN::Save::MotorbikeT *>(value) : nullptr;
-  }
-  TEN::Save::JeepT *AsJeep() {
-    return type == ItemData::Jeep ?
-      reinterpret_cast<TEN::Save::JeepT *>(value) : nullptr;
-  }
-  const TEN::Save::JeepT *AsJeep() const {
-    return type == ItemData::Jeep ?
-      reinterpret_cast<const TEN::Save::JeepT *>(value) : nullptr;
-  }
-  TEN::Save::LaraInfoT *AsLaraInfo() {
-    return type == ItemData::LaraInfo ?
-      reinterpret_cast<TEN::Save::LaraInfoT *>(value) : nullptr;
-  }
-  const TEN::Save::LaraInfoT *AsLaraInfo() const {
-    return type == ItemData::LaraInfo ?
-      reinterpret_cast<const TEN::Save::LaraInfoT *>(value) : nullptr;
-  }
-  TEN::Save::KayakT *AsKayak() {
-    return type == ItemData::Kayak ?
-      reinterpret_cast<TEN::Save::KayakT *>(value) : nullptr;
-  }
-  const TEN::Save::KayakT *AsKayak() const {
-    return type == ItemData::Kayak ?
-      reinterpret_cast<const TEN::Save::KayakT *>(value) : nullptr;
-  }
-  TEN::Save::DoorT *AsDoor() {
-    return type == ItemData::Door ?
-      reinterpret_cast<TEN::Save::DoorT *>(value) : nullptr;
-  }
-  const TEN::Save::DoorT *AsDoor() const {
-    return type == ItemData::Door ?
-      reinterpret_cast<const TEN::Save::DoorT *>(value) : nullptr;
-  }
-  TEN::Save::SkidooT *AsSkidoo() {
-    return type == ItemData::Skidoo ?
-      reinterpret_cast<TEN::Save::SkidooT *>(value) : nullptr;
-  }
-  const TEN::Save::SkidooT *AsSkidoo() const {
-    return type == ItemData::Skidoo ?
-      reinterpret_cast<const TEN::Save::SkidooT *>(value) : nullptr;
-  }
-  TEN::Save::UPVT *AsUPV() {
-    return type == ItemData::UPV ?
-      reinterpret_cast<TEN::Save::UPVT *>(value) : nullptr;
-  }
-  const TEN::Save::UPVT *AsUPV() const {
-    return type == ItemData::UPV ?
-      reinterpret_cast<const TEN::Save::UPVT *>(value) : nullptr;
-  }
-  TEN::Save::MotorboatT *AsMotorboat() {
-    return type == ItemData::Motorboat ?
-      reinterpret_cast<TEN::Save::MotorboatT *>(value) : nullptr;
-  }
-  const TEN::Save::MotorboatT *AsMotorboat() const {
-    return type == ItemData::Motorboat ?
-      reinterpret_cast<const TEN::Save::MotorboatT *>(value) : nullptr;
-  }
-  TEN::Save::WraithT *AsWraith() {
-    return type == ItemData::Wraith ?
-      reinterpret_cast<TEN::Save::WraithT *>(value) : nullptr;
-  }
-  const TEN::Save::WraithT *AsWraith() const {
-    return type == ItemData::Wraith ?
-      reinterpret_cast<const TEN::Save::WraithT *>(value) : nullptr;
-  }
-  TEN::Save::RubberboatT *AsRubberboat() {
-    return type == ItemData::Rubberboat ?
-      reinterpret_cast<TEN::Save::RubberboatT *>(value) : nullptr;
-  }
-  const TEN::Save::RubberboatT *AsRubberboat() const {
-    return type == ItemData::Rubberboat ?
-      reinterpret_cast<const TEN::Save::RubberboatT *>(value) : nullptr;
-  }
-  TEN::Save::PushableT *AsPushable() {
-    return type == ItemData::Pushable ?
-      reinterpret_cast<TEN::Save::PushableT *>(value) : nullptr;
-  }
-  const TEN::Save::PushableT *AsPushable() const {
-    return type == ItemData::Pushable ?
-      reinterpret_cast<const TEN::Save::PushableT *>(value) : nullptr;
-  }
-  TEN::Save::MinecartT *AsMinecart() {
-    return type == ItemData::Minecart ?
-      reinterpret_cast<TEN::Save::MinecartT *>(value) : nullptr;
-  }
-  const TEN::Save::MinecartT *AsMinecart() const {
-    return type == ItemData::Minecart ?
-      reinterpret_cast<const TEN::Save::MinecartT *>(value) : nullptr;
-  }
+template<> struct ItemDataTraits<TEN::Save::FXInfo> {
+  static const ItemData enum_value = ItemData_FXInfo;
 };
 
 bool VerifyItemData(flatbuffers::Verifier &verifier, const void *obj, ItemData type);
@@ -503,7 +288,6 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(2) EulerAngles FLATBUFFERS_FINAL_CLASS {
   int16_t z_;
 
  public:
-  struct Traits;
   EulerAngles()
       : x_(0),
         y_(0),
@@ -526,17 +310,12 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(2) EulerAngles FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(EulerAngles, 6);
 
-struct EulerAngles::Traits {
-  using type = EulerAngles;
-};
-
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vector2 FLATBUFFERS_FINAL_CLASS {
  private:
   float x_;
   float y_;
 
  public:
-  struct Traits;
   Vector2()
       : x_(0),
         y_(0) {
@@ -554,10 +333,6 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vector2 FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(Vector2, 8);
 
-struct Vector2::Traits {
-  using type = Vector2;
-};
-
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vector3 FLATBUFFERS_FINAL_CLASS {
  private:
   float x_;
@@ -565,7 +340,6 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vector3 FLATBUFFERS_FINAL_CLASS {
   float z_;
 
  public:
-  struct Traits;
   Vector3()
       : x_(0),
         y_(0),
@@ -588,10 +362,6 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vector3 FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(Vector3, 12);
 
-struct Vector3::Traits {
-  using type = Vector3;
-};
-
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vector4 FLATBUFFERS_FINAL_CLASS {
  private:
   float x_;
@@ -600,7 +370,6 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vector4 FLATBUFFERS_FINAL_CLASS {
   float w_;
 
  public:
-  struct Traits;
   Vector4()
       : x_(0),
         y_(0),
@@ -628,10 +397,6 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vector4 FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(Vector4, 16);
 
-struct Vector4::Traits {
-  using type = Vector4;
-};
-
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) GameVector FLATBUFFERS_FINAL_CLASS {
  private:
   int32_t x_;
@@ -640,7 +405,6 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) GameVector FLATBUFFERS_FINAL_CLASS {
   int32_t room_number_;
 
  public:
-  struct Traits;
   GameVector()
       : x_(0),
         y_(0),
@@ -668,10 +432,6 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) GameVector FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(GameVector, 16);
 
-struct GameVector::Traits {
-  using type = GameVector;
-};
-
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Pose FLATBUFFERS_FINAL_CLASS {
  private:
   TEN::Save::Vector3 position_;
@@ -680,7 +440,6 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Pose FLATBUFFERS_FINAL_CLASS {
   TEN::Save::Vector3 scale_;
 
  public:
-  struct Traits;
   Pose()
       : position_(),
         orientation_(),
@@ -707,19 +466,8 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Pose FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(Pose, 32);
 
-struct Pose::Traits {
-  using type = Pose;
-};
-
-struct ShortT : public flatbuffers::NativeTable {
-  typedef Short TableType;
-  int16_t scalar = 0;
-};
-
 struct Short FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef ShortT NativeTableType;
   typedef ShortBuilder Builder;
-  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_SCALAR = 4
   };
@@ -731,9 +479,6 @@ struct Short FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int16_t>(verifier, VT_SCALAR) &&
            verifier.EndTable();
   }
-  ShortT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ShortT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Short> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ShortT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct ShortBuilder {
@@ -762,22 +507,8 @@ inline flatbuffers::Offset<Short> CreateShort(
   return builder_.Finish();
 }
 
-struct Short::Traits {
-  using type = Short;
-  static auto constexpr Create = CreateShort;
-};
-
-flatbuffers::Offset<Short> CreateShort(flatbuffers::FlatBufferBuilder &_fbb, const ShortT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct IntT : public flatbuffers::NativeTable {
-  typedef Int TableType;
-  int32_t scalar = 0;
-};
-
 struct Int FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef IntT NativeTableType;
   typedef IntBuilder Builder;
-  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_SCALAR = 4
   };
@@ -789,9 +520,6 @@ struct Int FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_SCALAR) &&
            verifier.EndTable();
   }
-  IntT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(IntT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Int> Pack(flatbuffers::FlatBufferBuilder &_fbb, const IntT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct IntBuilder {
@@ -820,22 +548,8 @@ inline flatbuffers::Offset<Int> CreateInt(
   return builder_.Finish();
 }
 
-struct Int::Traits {
-  using type = Int;
-  static auto constexpr Create = CreateInt;
-};
-
-flatbuffers::Offset<Int> CreateInt(flatbuffers::FlatBufferBuilder &_fbb, const IntT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct FloatT : public flatbuffers::NativeTable {
-  typedef Float TableType;
-  double scalar = 0.0;
-};
-
 struct Float FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef FloatT NativeTableType;
   typedef FloatBuilder Builder;
-  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_SCALAR = 4
   };
@@ -847,9 +561,6 @@ struct Float FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<double>(verifier, VT_SCALAR) &&
            verifier.EndTable();
   }
-  FloatT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(FloatT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Float> Pack(flatbuffers::FlatBufferBuilder &_fbb, const FloatT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct FloatBuilder {
@@ -878,22 +589,8 @@ inline flatbuffers::Offset<Float> CreateFloat(
   return builder_.Finish();
 }
 
-struct Float::Traits {
-  using type = Float;
-  static auto constexpr Create = CreateFloat;
-};
-
-flatbuffers::Offset<Float> CreateFloat(flatbuffers::FlatBufferBuilder &_fbb, const FloatT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct ShortArrayT : public flatbuffers::NativeTable {
-  typedef ShortArray TableType;
-  std::vector<int16_t> arr{};
-};
-
 struct ShortArray FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef ShortArrayT NativeTableType;
   typedef ShortArrayBuilder Builder;
-  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ARR = 4
   };
@@ -906,9 +603,6 @@ struct ShortArray FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(arr()) &&
            verifier.EndTable();
   }
-  ShortArrayT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ShortArrayT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<ShortArray> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ShortArrayT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct ShortArrayBuilder {
@@ -937,11 +631,6 @@ inline flatbuffers::Offset<ShortArray> CreateShortArray(
   return builder_.Finish();
 }
 
-struct ShortArray::Traits {
-  using type = ShortArray;
-  static auto constexpr Create = CreateShortArray;
-};
-
 inline flatbuffers::Offset<ShortArray> CreateShortArrayDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const std::vector<int16_t> *arr = nullptr) {
@@ -951,19 +640,8 @@ inline flatbuffers::Offset<ShortArray> CreateShortArrayDirect(
       arr__);
 }
 
-flatbuffers::Offset<ShortArray> CreateShortArray(flatbuffers::FlatBufferBuilder &_fbb, const ShortArrayT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct BadBoxT : public flatbuffers::NativeTable {
-  typedef BadBox TableType;
-  bool valid = false;
-  int32_t box_number = 0;
-  int32_t count = 0;
-};
-
 struct BadBox FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef BadBoxT NativeTableType;
   typedef BadBoxBuilder Builder;
-  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_VALID = 4,
     VT_BOX_NUMBER = 6,
@@ -985,9 +663,6 @@ struct BadBox FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_COUNT) &&
            verifier.EndTable();
   }
-  BadBoxT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(BadBoxT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<BadBox> Pack(flatbuffers::FlatBufferBuilder &_fbb, const BadBoxT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct BadBoxBuilder {
@@ -1026,27 +701,8 @@ inline flatbuffers::Offset<BadBox> CreateBadBox(
   return builder_.Finish();
 }
 
-struct BadBox::Traits {
-  using type = BadBox;
-  static auto constexpr Create = CreateBadBox;
-};
-
-flatbuffers::Offset<BadBox> CreateBadBox(flatbuffers::FlatBufferBuilder &_fbb, const BadBoxT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct CreatureTargetT : public flatbuffers::NativeTable {
-  typedef CreatureTarget TableType;
-  int32_t object_number = 0;
-  int32_t room_number = 0;
-  int32_t box_number = 0;
-  int32_t flags = 0;
-  int32_t trigger_flags = 0;
-  std::unique_ptr<TEN::Save::Pose> position{};
-};
-
 struct CreatureTarget FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef CreatureTargetT NativeTableType;
   typedef CreatureTargetBuilder Builder;
-  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_OBJECT_NUMBER = 4,
     VT_ROOM_NUMBER = 6,
@@ -1083,9 +739,6 @@ struct CreatureTarget FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<TEN::Save::Pose>(verifier, VT_POSITION) &&
            verifier.EndTable();
   }
-  CreatureTargetT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(CreatureTargetT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<CreatureTarget> Pack(flatbuffers::FlatBufferBuilder &_fbb, const CreatureTargetT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct CreatureTargetBuilder {
@@ -1139,47 +792,8 @@ inline flatbuffers::Offset<CreatureTarget> CreateCreatureTarget(
   return builder_.Finish();
 }
 
-struct CreatureTarget::Traits {
-  using type = CreatureTarget;
-  static auto constexpr Create = CreateCreatureTarget;
-};
-
-flatbuffers::Offset<CreatureTarget> CreateCreatureTarget(flatbuffers::FlatBufferBuilder &_fbb, const CreatureTargetT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct CreatureT : public flatbuffers::NativeTable {
-  typedef Creature TableType;
-  int32_t fly_rate = 0;
-  int32_t maximum_turn = 0;
-  std::vector<int32_t> joint_rotation{};
-  bool head_left = false;
-  bool head_right = false;
-  bool patrol = false;
-  bool alerted = false;
-  bool reached_goal = false;
-  bool jump_ahead = false;
-  bool monkey_swing_ahead = false;
-  bool friendly = false;
-  bool poisoned = false;
-  bool hurt_by_lara = false;
-  int32_t tosspad = 0;
-  int32_t location_ai = 0;
-  int32_t weapon_delay1 = 0;
-  int32_t weapon_delay2 = 0;
-  int32_t mood = 0;
-  int32_t enemy = 0;
-  int32_t ai_target_number = 0;
-  int32_t flags = 0;
-  bool can_jump = false;
-  bool can_monkey = false;
-  bool is_jumping = false;
-  bool is_monkeying = false;
-  std::vector<std::unique_ptr<TEN::Save::BadBoxT>> bad_boxes{};
-};
-
 struct Creature FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef CreatureT NativeTableType;
   typedef CreatureBuilder Builder;
-  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_FLY_RATE = 4,
     VT_MAXIMUM_TURN = 6,
@@ -1319,9 +933,6 @@ struct Creature FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfTables(bad_boxes()) &&
            verifier.EndTable();
   }
-  CreatureT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(CreatureT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Creature> Pack(flatbuffers::FlatBufferBuilder &_fbb, const CreatureT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct CreatureBuilder {
@@ -1475,11 +1086,6 @@ inline flatbuffers::Offset<Creature> CreateCreature(
   return builder_.Finish();
 }
 
-struct Creature::Traits {
-  using type = Creature;
-  static auto constexpr Create = CreateCreature;
-};
-
 inline flatbuffers::Offset<Creature> CreateCreatureDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     int32_t fly_rate = 0,
@@ -1540,23 +1146,12 @@ inline flatbuffers::Offset<Creature> CreateCreatureDirect(
       bad_boxes__);
 }
 
-flatbuffers::Offset<Creature> CreateCreature(flatbuffers::FlatBufferBuilder &_fbb, const CreatureT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct LaserHeadT : public flatbuffers::NativeTable {
-  typedef LaserHead TableType;
-};
-
 struct LaserHead FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef LaserHeadT NativeTableType;
   typedef LaserHeadBuilder Builder;
-  struct Traits;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
-  LaserHeadT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(LaserHeadT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<LaserHead> Pack(flatbuffers::FlatBufferBuilder &_fbb, const LaserHeadT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct LaserHeadBuilder {
@@ -1580,37 +1175,8 @@ inline flatbuffers::Offset<LaserHead> CreateLaserHead(
   return builder_.Finish();
 }
 
-struct LaserHead::Traits {
-  using type = LaserHead;
-  static auto constexpr Create = CreateLaserHead;
-};
-
-flatbuffers::Offset<LaserHead> CreateLaserHead(flatbuffers::FlatBufferBuilder &_fbb, const LaserHeadT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct QuadBikeT : public flatbuffers::NativeTable {
-  typedef QuadBike TableType;
-  int32_t turn_rate = 0;
-  int32_t front_rot = 0;
-  int32_t rear_rot = 0;
-  int32_t momentum_angle = 0;
-  int32_t extra_rotation = 0;
-  int32_t velocity = 0;
-  int32_t left_vertical_velocity = 0;
-  int32_t right_vertical_velocity = 0;
-  int32_t revs = 0;
-  int32_t engine_revs = 0;
-  int32_t pitch = 0;
-  int32_t smoke_start = 0;
-  bool can_start_drift = false;
-  bool drift_starting = false;
-  bool no_dismount = false;
-  int32_t flags = 0;
-};
-
 struct QuadBike FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef QuadBikeT NativeTableType;
   typedef QuadBikeBuilder Builder;
-  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TURN_RATE = 4,
     VT_FRONT_ROT = 6,
@@ -1697,9 +1263,6 @@ struct QuadBike FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_FLAGS) &&
            verifier.EndTable();
   }
-  QuadBikeT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(QuadBikeT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<QuadBike> Pack(flatbuffers::FlatBufferBuilder &_fbb, const QuadBikeT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct QuadBikeBuilder {
@@ -1803,28 +1366,12 @@ inline flatbuffers::Offset<QuadBike> CreateQuadBike(
   return builder_.Finish();
 }
 
-struct QuadBike::Traits {
-  using type = QuadBike;
-  static auto constexpr Create = CreateQuadBike;
-};
-
-flatbuffers::Offset<QuadBike> CreateQuadBike(flatbuffers::FlatBufferBuilder &_fbb, const QuadBikeT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct BigGunT : public flatbuffers::NativeTable {
-  typedef BigGun TableType;
-};
-
 struct BigGun FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef BigGunT NativeTableType;
   typedef BigGunBuilder Builder;
-  struct Traits;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
-  BigGunT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(BigGunT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<BigGun> Pack(flatbuffers::FlatBufferBuilder &_fbb, const BigGunT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct BigGunBuilder {
@@ -1848,28 +1395,12 @@ inline flatbuffers::Offset<BigGun> CreateBigGun(
   return builder_.Finish();
 }
 
-struct BigGun::Traits {
-  using type = BigGun;
-  static auto constexpr Create = CreateBigGun;
-};
-
-flatbuffers::Offset<BigGun> CreateBigGun(flatbuffers::FlatBufferBuilder &_fbb, const BigGunT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct MotorbikeT : public flatbuffers::NativeTable {
-  typedef Motorbike TableType;
-};
-
 struct Motorbike FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef MotorbikeT NativeTableType;
   typedef MotorbikeBuilder Builder;
-  struct Traits;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
-  MotorbikeT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(MotorbikeT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Motorbike> Pack(flatbuffers::FlatBufferBuilder &_fbb, const MotorbikeT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct MotorbikeBuilder {
@@ -1893,28 +1424,12 @@ inline flatbuffers::Offset<Motorbike> CreateMotorbike(
   return builder_.Finish();
 }
 
-struct Motorbike::Traits {
-  using type = Motorbike;
-  static auto constexpr Create = CreateMotorbike;
-};
-
-flatbuffers::Offset<Motorbike> CreateMotorbike(flatbuffers::FlatBufferBuilder &_fbb, const MotorbikeT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct JeepT : public flatbuffers::NativeTable {
-  typedef Jeep TableType;
-};
-
 struct Jeep FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef JeepT NativeTableType;
   typedef JeepBuilder Builder;
-  struct Traits;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
-  JeepT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(JeepT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Jeep> Pack(flatbuffers::FlatBufferBuilder &_fbb, const JeepT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct JeepBuilder {
@@ -1938,33 +1453,8 @@ inline flatbuffers::Offset<Jeep> CreateJeep(
   return builder_.Finish();
 }
 
-struct Jeep::Traits {
-  using type = Jeep;
-  static auto constexpr Create = CreateJeep;
-};
-
-flatbuffers::Offset<Jeep> CreateJeep(flatbuffers::FlatBufferBuilder &_fbb, const JeepT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct KayakT : public flatbuffers::NativeTable {
-  typedef Kayak TableType;
-  int32_t turn_rate = 0;
-  int32_t velocity = 0;
-  int32_t front_vertical_velocity = 0;
-  int32_t left_vertical_velocity = 0;
-  int32_t right_vertical_velocity = 0;
-  int32_t left_right_count = 0;
-  int32_t water_height = 0;
-  std::unique_ptr<TEN::Save::Pose> old_pos{};
-  bool turn = false;
-  bool forward = false;
-  bool true_water = false;
-  int32_t flags = 0;
-};
-
 struct Kayak FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef KayakT NativeTableType;
   typedef KayakBuilder Builder;
-  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TURN_RATE = 4,
     VT_VELOCITY = 6,
@@ -2031,9 +1521,6 @@ struct Kayak FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_FLAGS) &&
            verifier.EndTable();
   }
-  KayakT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(KayakT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Kayak> Pack(flatbuffers::FlatBufferBuilder &_fbb, const KayakT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct KayakBuilder {
@@ -2117,28 +1604,12 @@ inline flatbuffers::Offset<Kayak> CreateKayak(
   return builder_.Finish();
 }
 
-struct Kayak::Traits {
-  using type = Kayak;
-  static auto constexpr Create = CreateKayak;
-};
-
-flatbuffers::Offset<Kayak> CreateKayak(flatbuffers::FlatBufferBuilder &_fbb, const KayakT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct DoorT : public flatbuffers::NativeTable {
-  typedef Door TableType;
-};
-
 struct Door FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef DoorT NativeTableType;
   typedef DoorBuilder Builder;
-  struct Traits;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
-  DoorT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(DoorT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Door> Pack(flatbuffers::FlatBufferBuilder &_fbb, const DoorT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct DoorBuilder {
@@ -2162,28 +1633,12 @@ inline flatbuffers::Offset<Door> CreateDoor(
   return builder_.Finish();
 }
 
-struct Door::Traits {
-  using type = Door;
-  static auto constexpr Create = CreateDoor;
-};
-
-flatbuffers::Offset<Door> CreateDoor(flatbuffers::FlatBufferBuilder &_fbb, const DoorT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct SkidooT : public flatbuffers::NativeTable {
-  typedef Skidoo TableType;
-};
-
 struct Skidoo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef SkidooT NativeTableType;
   typedef SkidooBuilder Builder;
-  struct Traits;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
-  SkidooT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(SkidooT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Skidoo> Pack(flatbuffers::FlatBufferBuilder &_fbb, const SkidooT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct SkidooBuilder {
@@ -2207,28 +1662,8 @@ inline flatbuffers::Offset<Skidoo> CreateSkidoo(
   return builder_.Finish();
 }
 
-struct Skidoo::Traits {
-  using type = Skidoo;
-  static auto constexpr Create = CreateSkidoo;
-};
-
-flatbuffers::Offset<Skidoo> CreateSkidoo(flatbuffers::FlatBufferBuilder &_fbb, const SkidooT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct UPVT : public flatbuffers::NativeTable {
-  typedef UPV TableType;
-  int32_t velocity = 0;
-  int32_t rot = 0;
-  int32_t x_rot = 0;
-  int32_t fan_rot = 0;
-  int32_t harpoon_timer = 0;
-  bool harpoon_left = false;
-  int32_t flags = 0;
-};
-
 struct UPV FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef UPVT NativeTableType;
   typedef UPVBuilder Builder;
-  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_VELOCITY = 4,
     VT_ROT = 6,
@@ -2270,9 +1705,6 @@ struct UPV FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_FLAGS) &&
            verifier.EndTable();
   }
-  UPVT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(UPVT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<UPV> Pack(flatbuffers::FlatBufferBuilder &_fbb, const UPVT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct UPVBuilder {
@@ -2331,28 +1763,12 @@ inline flatbuffers::Offset<UPV> CreateUPV(
   return builder_.Finish();
 }
 
-struct UPV::Traits {
-  using type = UPV;
-  static auto constexpr Create = CreateUPV;
-};
-
-flatbuffers::Offset<UPV> CreateUPV(flatbuffers::FlatBufferBuilder &_fbb, const UPVT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct MotorboatT : public flatbuffers::NativeTable {
-  typedef Motorboat TableType;
-};
-
 struct Motorboat FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef MotorboatT NativeTableType;
   typedef MotorboatBuilder Builder;
-  struct Traits;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
-  MotorboatT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(MotorboatT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Motorboat> Pack(flatbuffers::FlatBufferBuilder &_fbb, const MotorboatT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct MotorboatBuilder {
@@ -2376,28 +1792,12 @@ inline flatbuffers::Offset<Motorboat> CreateMotorboat(
   return builder_.Finish();
 }
 
-struct Motorboat::Traits {
-  using type = Motorboat;
-  static auto constexpr Create = CreateMotorboat;
-};
-
-flatbuffers::Offset<Motorboat> CreateMotorboat(flatbuffers::FlatBufferBuilder &_fbb, const MotorboatT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct WraithT : public flatbuffers::NativeTable {
-  typedef Wraith TableType;
-};
-
 struct Wraith FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef WraithT NativeTableType;
   typedef WraithBuilder Builder;
-  struct Traits;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
-  WraithT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(WraithT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Wraith> Pack(flatbuffers::FlatBufferBuilder &_fbb, const WraithT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct WraithBuilder {
@@ -2421,28 +1821,12 @@ inline flatbuffers::Offset<Wraith> CreateWraith(
   return builder_.Finish();
 }
 
-struct Wraith::Traits {
-  using type = Wraith;
-  static auto constexpr Create = CreateWraith;
-};
-
-flatbuffers::Offset<Wraith> CreateWraith(flatbuffers::FlatBufferBuilder &_fbb, const WraithT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct RubberboatT : public flatbuffers::NativeTable {
-  typedef Rubberboat TableType;
-};
-
 struct Rubberboat FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef RubberboatT NativeTableType;
   typedef RubberboatBuilder Builder;
-  struct Traits;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
-  RubberboatT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(RubberboatT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Rubberboat> Pack(flatbuffers::FlatBufferBuilder &_fbb, const RubberboatT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct RubberboatBuilder {
@@ -2466,44 +1850,8 @@ inline flatbuffers::Offset<Rubberboat> CreateRubberboat(
   return builder_.Finish();
 }
 
-struct Rubberboat::Traits {
-  using type = Rubberboat;
-  static auto constexpr Create = CreateRubberboat;
-};
-
-flatbuffers::Offset<Rubberboat> CreateRubberboat(flatbuffers::FlatBufferBuilder &_fbb, const RubberboatT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct PushableT : public flatbuffers::NativeTable {
-  typedef Pushable TableType;
-  int32_t previous_trigger_flags = 0;
-  int32_t pushable_behaviour_state = 0;
-  float pushable_gravity = 0.0f;
-  float pushable_water_force = 0.0f;
-  int32_t pushable_stack_limit = 0;
-  int32_t pushable_stack_upper = 0;
-  int32_t pushable_stack_lower = 0;
-  int32_t pushable_start_x = 0;
-  int32_t pushable_start_z = 0;
-  int32_t pushable_room_number = 0;
-  bool pushable_collider_flag = false;
-  bool pushable_north_pullable = false;
-  bool pushable_north_pushable = false;
-  bool pushable_north_climbable = false;
-  bool pushable_east_pullable = false;
-  bool pushable_east_pushable = false;
-  bool pushable_east_climbable = false;
-  bool pushable_south_pullable = false;
-  bool pushable_south_pushable = false;
-  bool pushable_south_climbable = false;
-  bool pushable_west_pullable = false;
-  bool pushable_west_pushable = false;
-  bool pushable_west_climbable = false;
-};
-
 struct Pushable FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef PushableT NativeTableType;
   typedef PushableBuilder Builder;
-  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_PREVIOUS_TRIGGER_FLAGS = 4,
     VT_PUSHABLE_BEHAVIOUR_STATE = 6,
@@ -2625,9 +1973,6 @@ struct Pushable FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_PUSHABLE_WEST_CLIMBABLE) &&
            verifier.EndTable();
   }
-  PushableT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(PushableT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Pushable> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PushableT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct PushableBuilder {
@@ -2766,32 +2111,8 @@ inline flatbuffers::Offset<Pushable> CreatePushable(
   return builder_.Finish();
 }
 
-struct Pushable::Traits {
-  using type = Pushable;
-  static auto constexpr Create = CreatePushable;
-};
-
-flatbuffers::Offset<Pushable> CreatePushable(flatbuffers::FlatBufferBuilder &_fbb, const PushableT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct MinecartT : public flatbuffers::NativeTable {
-  typedef Minecart TableType;
-  int32_t turn_rot = 0;
-  int32_t turn_x = 0;
-  int32_t turn_z = 0;
-  int32_t turn_len = 0;
-  int32_t velocity = 0;
-  int32_t vertical_velocity = 0;
-  int32_t gradient = 0;
-  int32_t stop_delay = 0;
-  int32_t floor_height_middle = 0;
-  int32_t floor_height_front = 0;
-  int32_t flags = 0;
-};
-
 struct Minecart FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef MinecartT NativeTableType;
   typedef MinecartBuilder Builder;
-  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TURN_ROT = 4,
     VT_TURN_X = 6,
@@ -2853,9 +2174,6 @@ struct Minecart FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_FLAGS) &&
            verifier.EndTable();
   }
-  MinecartT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(MinecartT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<Minecart> Pack(flatbuffers::FlatBufferBuilder &_fbb, const MinecartT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct MinecartBuilder {
@@ -2934,28 +2252,12 @@ inline flatbuffers::Offset<Minecart> CreateMinecart(
   return builder_.Finish();
 }
 
-struct Minecart::Traits {
-  using type = Minecart;
-  static auto constexpr Create = CreateMinecart;
-};
-
-flatbuffers::Offset<Minecart> CreateMinecart(flatbuffers::FlatBufferBuilder &_fbb, const MinecartT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct LaraInfoT : public flatbuffers::NativeTable {
-  typedef LaraInfo TableType;
-};
-
 struct LaraInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef LaraInfoT NativeTableType;
   typedef LaraInfoBuilder Builder;
-  struct Traits;
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            verifier.EndTable();
   }
-  LaraInfoT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(LaraInfoT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<LaraInfo> Pack(flatbuffers::FlatBufferBuilder &_fbb, const LaraInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct LaraInfoBuilder {
@@ -2979,22 +2281,8 @@ inline flatbuffers::Offset<LaraInfo> CreateLaraInfo(
   return builder_.Finish();
 }
 
-struct LaraInfo::Traits {
-  using type = LaraInfo;
-  static auto constexpr Create = CreateLaraInfo;
-};
-
-flatbuffers::Offset<LaraInfo> CreateLaraInfo(flatbuffers::FlatBufferBuilder &_fbb, const LaraInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-struct ItemNumberT : public flatbuffers::NativeTable {
-  typedef ItemNumber TableType;
-  int16_t num = 0;
-};
-
 struct ItemNumber FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  typedef ItemNumberT NativeTableType;
   typedef ItemNumberBuilder Builder;
-  struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NUM = 4
   };
@@ -3006,9 +2294,6 @@ struct ItemNumber FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int16_t>(verifier, VT_NUM) &&
            verifier.EndTable();
   }
-  ItemNumberT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  void UnPackTo(ItemNumberT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
-  static flatbuffers::Offset<ItemNumber> Pack(flatbuffers::FlatBufferBuilder &_fbb, const ItemNumberT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 };
 
 struct ItemNumberBuilder {
@@ -3037,956 +2322,158 @@ inline flatbuffers::Offset<ItemNumber> CreateItemNumber(
   return builder_.Finish();
 }
 
-struct ItemNumber::Traits {
-  using type = ItemNumber;
-  static auto constexpr Create = CreateItemNumber;
+struct FXInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef FXInfoBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_COUNTER = 4,
+    VT_FLAG1 = 6,
+    VT_FLAG2 = 8
+  };
+  int32_t counter() const {
+    return GetField<int32_t>(VT_COUNTER, 0);
+  }
+  int32_t flag1() const {
+    return GetField<int32_t>(VT_FLAG1, 0);
+  }
+  int32_t flag2() const {
+    return GetField<int32_t>(VT_FLAG2, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_COUNTER) &&
+           VerifyField<int32_t>(verifier, VT_FLAG1) &&
+           VerifyField<int32_t>(verifier, VT_FLAG2) &&
+           verifier.EndTable();
+  }
 };
 
-flatbuffers::Offset<ItemNumber> CreateItemNumber(flatbuffers::FlatBufferBuilder &_fbb, const ItemNumberT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
-
-inline ShortT *Short::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<ShortT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void Short::UnPackTo(ShortT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = scalar(); _o->scalar = _e; }
-}
-
-inline flatbuffers::Offset<Short> Short::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ShortT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateShort(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<Short> CreateShort(flatbuffers::FlatBufferBuilder &_fbb, const ShortT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ShortT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _scalar = _o->scalar;
-  return TEN::Save::CreateShort(
-      _fbb,
-      _scalar);
-}
-
-inline IntT *Int::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<IntT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void Int::UnPackTo(IntT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = scalar(); _o->scalar = _e; }
-}
-
-inline flatbuffers::Offset<Int> Int::Pack(flatbuffers::FlatBufferBuilder &_fbb, const IntT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateInt(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<Int> CreateInt(flatbuffers::FlatBufferBuilder &_fbb, const IntT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const IntT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _scalar = _o->scalar;
-  return TEN::Save::CreateInt(
-      _fbb,
-      _scalar);
-}
-
-inline FloatT *Float::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<FloatT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void Float::UnPackTo(FloatT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = scalar(); _o->scalar = _e; }
-}
-
-inline flatbuffers::Offset<Float> Float::Pack(flatbuffers::FlatBufferBuilder &_fbb, const FloatT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateFloat(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<Float> CreateFloat(flatbuffers::FlatBufferBuilder &_fbb, const FloatT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const FloatT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _scalar = _o->scalar;
-  return TEN::Save::CreateFloat(
-      _fbb,
-      _scalar);
-}
-
-inline ShortArrayT *ShortArray::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<ShortArrayT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void ShortArray::UnPackTo(ShortArrayT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = arr(); if (_e) { _o->arr.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->arr[_i] = _e->Get(_i); } } }
-}
-
-inline flatbuffers::Offset<ShortArray> ShortArray::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ShortArrayT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateShortArray(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<ShortArray> CreateShortArray(flatbuffers::FlatBufferBuilder &_fbb, const ShortArrayT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ShortArrayT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _arr = _fbb.CreateVector(_o->arr);
-  return TEN::Save::CreateShortArray(
-      _fbb,
-      _arr);
-}
-
-inline BadBoxT *BadBox::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<BadBoxT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void BadBox::UnPackTo(BadBoxT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = valid(); _o->valid = _e; }
-  { auto _e = box_number(); _o->box_number = _e; }
-  { auto _e = count(); _o->count = _e; }
-}
-
-inline flatbuffers::Offset<BadBox> BadBox::Pack(flatbuffers::FlatBufferBuilder &_fbb, const BadBoxT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateBadBox(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<BadBox> CreateBadBox(flatbuffers::FlatBufferBuilder &_fbb, const BadBoxT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const BadBoxT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _valid = _o->valid;
-  auto _box_number = _o->box_number;
-  auto _count = _o->count;
-  return TEN::Save::CreateBadBox(
-      _fbb,
-      _valid,
-      _box_number,
-      _count);
-}
-
-inline CreatureTargetT *CreatureTarget::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<CreatureTargetT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void CreatureTarget::UnPackTo(CreatureTargetT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = object_number(); _o->object_number = _e; }
-  { auto _e = room_number(); _o->room_number = _e; }
-  { auto _e = box_number(); _o->box_number = _e; }
-  { auto _e = flags(); _o->flags = _e; }
-  { auto _e = trigger_flags(); _o->trigger_flags = _e; }
-  { auto _e = position(); if (_e) _o->position = std::unique_ptr<TEN::Save::Pose>(new TEN::Save::Pose(*_e)); }
-}
-
-inline flatbuffers::Offset<CreatureTarget> CreatureTarget::Pack(flatbuffers::FlatBufferBuilder &_fbb, const CreatureTargetT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateCreatureTarget(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<CreatureTarget> CreateCreatureTarget(flatbuffers::FlatBufferBuilder &_fbb, const CreatureTargetT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const CreatureTargetT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _object_number = _o->object_number;
-  auto _room_number = _o->room_number;
-  auto _box_number = _o->box_number;
-  auto _flags = _o->flags;
-  auto _trigger_flags = _o->trigger_flags;
-  auto _position = _o->position ? _o->position.get() : 0;
-  return TEN::Save::CreateCreatureTarget(
-      _fbb,
-      _object_number,
-      _room_number,
-      _box_number,
-      _flags,
-      _trigger_flags,
-      _position);
-}
-
-inline CreatureT *Creature::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<CreatureT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void Creature::UnPackTo(CreatureT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = fly_rate(); _o->fly_rate = _e; }
-  { auto _e = maximum_turn(); _o->maximum_turn = _e; }
-  { auto _e = joint_rotation(); if (_e) { _o->joint_rotation.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->joint_rotation[_i] = _e->Get(_i); } } }
-  { auto _e = head_left(); _o->head_left = _e; }
-  { auto _e = head_right(); _o->head_right = _e; }
-  { auto _e = patrol(); _o->patrol = _e; }
-  { auto _e = alerted(); _o->alerted = _e; }
-  { auto _e = reached_goal(); _o->reached_goal = _e; }
-  { auto _e = jump_ahead(); _o->jump_ahead = _e; }
-  { auto _e = monkey_swing_ahead(); _o->monkey_swing_ahead = _e; }
-  { auto _e = friendly(); _o->friendly = _e; }
-  { auto _e = poisoned(); _o->poisoned = _e; }
-  { auto _e = hurt_by_lara(); _o->hurt_by_lara = _e; }
-  { auto _e = tosspad(); _o->tosspad = _e; }
-  { auto _e = location_ai(); _o->location_ai = _e; }
-  { auto _e = weapon_delay1(); _o->weapon_delay1 = _e; }
-  { auto _e = weapon_delay2(); _o->weapon_delay2 = _e; }
-  { auto _e = mood(); _o->mood = _e; }
-  { auto _e = enemy(); _o->enemy = _e; }
-  { auto _e = ai_target_number(); _o->ai_target_number = _e; }
-  { auto _e = flags(); _o->flags = _e; }
-  { auto _e = can_jump(); _o->can_jump = _e; }
-  { auto _e = can_monkey(); _o->can_monkey = _e; }
-  { auto _e = is_jumping(); _o->is_jumping = _e; }
-  { auto _e = is_monkeying(); _o->is_monkeying = _e; }
-  { auto _e = bad_boxes(); if (_e) { _o->bad_boxes.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->bad_boxes[_i] = std::unique_ptr<TEN::Save::BadBoxT>(_e->Get(_i)->UnPack(_resolver)); } } }
-}
-
-inline flatbuffers::Offset<Creature> Creature::Pack(flatbuffers::FlatBufferBuilder &_fbb, const CreatureT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateCreature(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<Creature> CreateCreature(flatbuffers::FlatBufferBuilder &_fbb, const CreatureT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const CreatureT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _fly_rate = _o->fly_rate;
-  auto _maximum_turn = _o->maximum_turn;
-  auto _joint_rotation = _fbb.CreateVector(_o->joint_rotation);
-  auto _head_left = _o->head_left;
-  auto _head_right = _o->head_right;
-  auto _patrol = _o->patrol;
-  auto _alerted = _o->alerted;
-  auto _reached_goal = _o->reached_goal;
-  auto _jump_ahead = _o->jump_ahead;
-  auto _monkey_swing_ahead = _o->monkey_swing_ahead;
-  auto _friendly = _o->friendly;
-  auto _poisoned = _o->poisoned;
-  auto _hurt_by_lara = _o->hurt_by_lara;
-  auto _tosspad = _o->tosspad;
-  auto _location_ai = _o->location_ai;
-  auto _weapon_delay1 = _o->weapon_delay1;
-  auto _weapon_delay2 = _o->weapon_delay2;
-  auto _mood = _o->mood;
-  auto _enemy = _o->enemy;
-  auto _ai_target_number = _o->ai_target_number;
-  auto _flags = _o->flags;
-  auto _can_jump = _o->can_jump;
-  auto _can_monkey = _o->can_monkey;
-  auto _is_jumping = _o->is_jumping;
-  auto _is_monkeying = _o->is_monkeying;
-  auto _bad_boxes = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::BadBox>> (_o->bad_boxes.size(), [](size_t i, _VectorArgs *__va) { return CreateBadBox(*__va->__fbb, __va->__o->bad_boxes[i].get(), __va->__rehasher); }, &_va );
-  return TEN::Save::CreateCreature(
-      _fbb,
-      _fly_rate,
-      _maximum_turn,
-      _joint_rotation,
-      _head_left,
-      _head_right,
-      _patrol,
-      _alerted,
-      _reached_goal,
-      _jump_ahead,
-      _monkey_swing_ahead,
-      _friendly,
-      _poisoned,
-      _hurt_by_lara,
-      _tosspad,
-      _location_ai,
-      _weapon_delay1,
-      _weapon_delay2,
-      _mood,
-      _enemy,
-      _ai_target_number,
-      _flags,
-      _can_jump,
-      _can_monkey,
-      _is_jumping,
-      _is_monkeying,
-      _bad_boxes);
-}
-
-inline LaserHeadT *LaserHead::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<LaserHeadT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void LaserHead::UnPackTo(LaserHeadT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-}
-
-inline flatbuffers::Offset<LaserHead> LaserHead::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LaserHeadT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateLaserHead(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<LaserHead> CreateLaserHead(flatbuffers::FlatBufferBuilder &_fbb, const LaserHeadT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const LaserHeadT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  return TEN::Save::CreateLaserHead(
-      _fbb);
-}
-
-inline QuadBikeT *QuadBike::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<QuadBikeT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void QuadBike::UnPackTo(QuadBikeT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = turn_rate(); _o->turn_rate = _e; }
-  { auto _e = front_rot(); _o->front_rot = _e; }
-  { auto _e = rear_rot(); _o->rear_rot = _e; }
-  { auto _e = momentum_angle(); _o->momentum_angle = _e; }
-  { auto _e = extra_rotation(); _o->extra_rotation = _e; }
-  { auto _e = velocity(); _o->velocity = _e; }
-  { auto _e = left_vertical_velocity(); _o->left_vertical_velocity = _e; }
-  { auto _e = right_vertical_velocity(); _o->right_vertical_velocity = _e; }
-  { auto _e = revs(); _o->revs = _e; }
-  { auto _e = engine_revs(); _o->engine_revs = _e; }
-  { auto _e = pitch(); _o->pitch = _e; }
-  { auto _e = smoke_start(); _o->smoke_start = _e; }
-  { auto _e = can_start_drift(); _o->can_start_drift = _e; }
-  { auto _e = drift_starting(); _o->drift_starting = _e; }
-  { auto _e = no_dismount(); _o->no_dismount = _e; }
-  { auto _e = flags(); _o->flags = _e; }
-}
-
-inline flatbuffers::Offset<QuadBike> QuadBike::Pack(flatbuffers::FlatBufferBuilder &_fbb, const QuadBikeT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateQuadBike(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<QuadBike> CreateQuadBike(flatbuffers::FlatBufferBuilder &_fbb, const QuadBikeT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const QuadBikeT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _turn_rate = _o->turn_rate;
-  auto _front_rot = _o->front_rot;
-  auto _rear_rot = _o->rear_rot;
-  auto _momentum_angle = _o->momentum_angle;
-  auto _extra_rotation = _o->extra_rotation;
-  auto _velocity = _o->velocity;
-  auto _left_vertical_velocity = _o->left_vertical_velocity;
-  auto _right_vertical_velocity = _o->right_vertical_velocity;
-  auto _revs = _o->revs;
-  auto _engine_revs = _o->engine_revs;
-  auto _pitch = _o->pitch;
-  auto _smoke_start = _o->smoke_start;
-  auto _can_start_drift = _o->can_start_drift;
-  auto _drift_starting = _o->drift_starting;
-  auto _no_dismount = _o->no_dismount;
-  auto _flags = _o->flags;
-  return TEN::Save::CreateQuadBike(
-      _fbb,
-      _turn_rate,
-      _front_rot,
-      _rear_rot,
-      _momentum_angle,
-      _extra_rotation,
-      _velocity,
-      _left_vertical_velocity,
-      _right_vertical_velocity,
-      _revs,
-      _engine_revs,
-      _pitch,
-      _smoke_start,
-      _can_start_drift,
-      _drift_starting,
-      _no_dismount,
-      _flags);
-}
-
-inline BigGunT *BigGun::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<BigGunT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void BigGun::UnPackTo(BigGunT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-}
-
-inline flatbuffers::Offset<BigGun> BigGun::Pack(flatbuffers::FlatBufferBuilder &_fbb, const BigGunT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateBigGun(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<BigGun> CreateBigGun(flatbuffers::FlatBufferBuilder &_fbb, const BigGunT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const BigGunT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  return TEN::Save::CreateBigGun(
-      _fbb);
-}
-
-inline MotorbikeT *Motorbike::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<MotorbikeT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void Motorbike::UnPackTo(MotorbikeT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-}
-
-inline flatbuffers::Offset<Motorbike> Motorbike::Pack(flatbuffers::FlatBufferBuilder &_fbb, const MotorbikeT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateMotorbike(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<Motorbike> CreateMotorbike(flatbuffers::FlatBufferBuilder &_fbb, const MotorbikeT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const MotorbikeT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  return TEN::Save::CreateMotorbike(
-      _fbb);
-}
-
-inline JeepT *Jeep::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<JeepT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void Jeep::UnPackTo(JeepT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-}
-
-inline flatbuffers::Offset<Jeep> Jeep::Pack(flatbuffers::FlatBufferBuilder &_fbb, const JeepT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateJeep(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<Jeep> CreateJeep(flatbuffers::FlatBufferBuilder &_fbb, const JeepT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const JeepT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  return TEN::Save::CreateJeep(
-      _fbb);
-}
-
-inline KayakT *Kayak::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<KayakT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void Kayak::UnPackTo(KayakT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = turn_rate(); _o->turn_rate = _e; }
-  { auto _e = velocity(); _o->velocity = _e; }
-  { auto _e = front_vertical_velocity(); _o->front_vertical_velocity = _e; }
-  { auto _e = left_vertical_velocity(); _o->left_vertical_velocity = _e; }
-  { auto _e = right_vertical_velocity(); _o->right_vertical_velocity = _e; }
-  { auto _e = left_right_count(); _o->left_right_count = _e; }
-  { auto _e = water_height(); _o->water_height = _e; }
-  { auto _e = old_pos(); if (_e) _o->old_pos = std::unique_ptr<TEN::Save::Pose>(new TEN::Save::Pose(*_e)); }
-  { auto _e = turn(); _o->turn = _e; }
-  { auto _e = forward(); _o->forward = _e; }
-  { auto _e = true_water(); _o->true_water = _e; }
-  { auto _e = flags(); _o->flags = _e; }
-}
-
-inline flatbuffers::Offset<Kayak> Kayak::Pack(flatbuffers::FlatBufferBuilder &_fbb, const KayakT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateKayak(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<Kayak> CreateKayak(flatbuffers::FlatBufferBuilder &_fbb, const KayakT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const KayakT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _turn_rate = _o->turn_rate;
-  auto _velocity = _o->velocity;
-  auto _front_vertical_velocity = _o->front_vertical_velocity;
-  auto _left_vertical_velocity = _o->left_vertical_velocity;
-  auto _right_vertical_velocity = _o->right_vertical_velocity;
-  auto _left_right_count = _o->left_right_count;
-  auto _water_height = _o->water_height;
-  auto _old_pos = _o->old_pos ? _o->old_pos.get() : 0;
-  auto _turn = _o->turn;
-  auto _forward = _o->forward;
-  auto _true_water = _o->true_water;
-  auto _flags = _o->flags;
-  return TEN::Save::CreateKayak(
-      _fbb,
-      _turn_rate,
-      _velocity,
-      _front_vertical_velocity,
-      _left_vertical_velocity,
-      _right_vertical_velocity,
-      _left_right_count,
-      _water_height,
-      _old_pos,
-      _turn,
-      _forward,
-      _true_water,
-      _flags);
-}
-
-inline DoorT *Door::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<DoorT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void Door::UnPackTo(DoorT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-}
-
-inline flatbuffers::Offset<Door> Door::Pack(flatbuffers::FlatBufferBuilder &_fbb, const DoorT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateDoor(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<Door> CreateDoor(flatbuffers::FlatBufferBuilder &_fbb, const DoorT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const DoorT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  return TEN::Save::CreateDoor(
-      _fbb);
-}
-
-inline SkidooT *Skidoo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<SkidooT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void Skidoo::UnPackTo(SkidooT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-}
-
-inline flatbuffers::Offset<Skidoo> Skidoo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SkidooT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateSkidoo(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<Skidoo> CreateSkidoo(flatbuffers::FlatBufferBuilder &_fbb, const SkidooT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const SkidooT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  return TEN::Save::CreateSkidoo(
-      _fbb);
-}
-
-inline UPVT *UPV::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<UPVT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void UPV::UnPackTo(UPVT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = velocity(); _o->velocity = _e; }
-  { auto _e = rot(); _o->rot = _e; }
-  { auto _e = x_rot(); _o->x_rot = _e; }
-  { auto _e = fan_rot(); _o->fan_rot = _e; }
-  { auto _e = harpoon_timer(); _o->harpoon_timer = _e; }
-  { auto _e = harpoon_left(); _o->harpoon_left = _e; }
-  { auto _e = flags(); _o->flags = _e; }
-}
-
-inline flatbuffers::Offset<UPV> UPV::Pack(flatbuffers::FlatBufferBuilder &_fbb, const UPVT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateUPV(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<UPV> CreateUPV(flatbuffers::FlatBufferBuilder &_fbb, const UPVT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const UPVT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _velocity = _o->velocity;
-  auto _rot = _o->rot;
-  auto _x_rot = _o->x_rot;
-  auto _fan_rot = _o->fan_rot;
-  auto _harpoon_timer = _o->harpoon_timer;
-  auto _harpoon_left = _o->harpoon_left;
-  auto _flags = _o->flags;
-  return TEN::Save::CreateUPV(
-      _fbb,
-      _velocity,
-      _rot,
-      _x_rot,
-      _fan_rot,
-      _harpoon_timer,
-      _harpoon_left,
-      _flags);
-}
-
-inline MotorboatT *Motorboat::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<MotorboatT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void Motorboat::UnPackTo(MotorboatT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-}
-
-inline flatbuffers::Offset<Motorboat> Motorboat::Pack(flatbuffers::FlatBufferBuilder &_fbb, const MotorboatT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateMotorboat(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<Motorboat> CreateMotorboat(flatbuffers::FlatBufferBuilder &_fbb, const MotorboatT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const MotorboatT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  return TEN::Save::CreateMotorboat(
-      _fbb);
-}
-
-inline WraithT *Wraith::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<WraithT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void Wraith::UnPackTo(WraithT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-}
-
-inline flatbuffers::Offset<Wraith> Wraith::Pack(flatbuffers::FlatBufferBuilder &_fbb, const WraithT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateWraith(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<Wraith> CreateWraith(flatbuffers::FlatBufferBuilder &_fbb, const WraithT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const WraithT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  return TEN::Save::CreateWraith(
-      _fbb);
-}
-
-inline RubberboatT *Rubberboat::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<RubberboatT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void Rubberboat::UnPackTo(RubberboatT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-}
-
-inline flatbuffers::Offset<Rubberboat> Rubberboat::Pack(flatbuffers::FlatBufferBuilder &_fbb, const RubberboatT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateRubberboat(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<Rubberboat> CreateRubberboat(flatbuffers::FlatBufferBuilder &_fbb, const RubberboatT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const RubberboatT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  return TEN::Save::CreateRubberboat(
-      _fbb);
-}
-
-inline PushableT *Pushable::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<PushableT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void Pushable::UnPackTo(PushableT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = previous_trigger_flags(); _o->previous_trigger_flags = _e; }
-  { auto _e = pushable_behaviour_state(); _o->pushable_behaviour_state = _e; }
-  { auto _e = pushable_gravity(); _o->pushable_gravity = _e; }
-  { auto _e = pushable_water_force(); _o->pushable_water_force = _e; }
-  { auto _e = pushable_stack_limit(); _o->pushable_stack_limit = _e; }
-  { auto _e = pushable_stack_upper(); _o->pushable_stack_upper = _e; }
-  { auto _e = pushable_stack_lower(); _o->pushable_stack_lower = _e; }
-  { auto _e = pushable_start_x(); _o->pushable_start_x = _e; }
-  { auto _e = pushable_start_z(); _o->pushable_start_z = _e; }
-  { auto _e = pushable_room_number(); _o->pushable_room_number = _e; }
-  { auto _e = pushable_collider_flag(); _o->pushable_collider_flag = _e; }
-  { auto _e = pushable_north_pullable(); _o->pushable_north_pullable = _e; }
-  { auto _e = pushable_north_pushable(); _o->pushable_north_pushable = _e; }
-  { auto _e = pushable_north_climbable(); _o->pushable_north_climbable = _e; }
-  { auto _e = pushable_east_pullable(); _o->pushable_east_pullable = _e; }
-  { auto _e = pushable_east_pushable(); _o->pushable_east_pushable = _e; }
-  { auto _e = pushable_east_climbable(); _o->pushable_east_climbable = _e; }
-  { auto _e = pushable_south_pullable(); _o->pushable_south_pullable = _e; }
-  { auto _e = pushable_south_pushable(); _o->pushable_south_pushable = _e; }
-  { auto _e = pushable_south_climbable(); _o->pushable_south_climbable = _e; }
-  { auto _e = pushable_west_pullable(); _o->pushable_west_pullable = _e; }
-  { auto _e = pushable_west_pushable(); _o->pushable_west_pushable = _e; }
-  { auto _e = pushable_west_climbable(); _o->pushable_west_climbable = _e; }
-}
-
-inline flatbuffers::Offset<Pushable> Pushable::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PushableT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreatePushable(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<Pushable> CreatePushable(flatbuffers::FlatBufferBuilder &_fbb, const PushableT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PushableT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _previous_trigger_flags = _o->previous_trigger_flags;
-  auto _pushable_behaviour_state = _o->pushable_behaviour_state;
-  auto _pushable_gravity = _o->pushable_gravity;
-  auto _pushable_water_force = _o->pushable_water_force;
-  auto _pushable_stack_limit = _o->pushable_stack_limit;
-  auto _pushable_stack_upper = _o->pushable_stack_upper;
-  auto _pushable_stack_lower = _o->pushable_stack_lower;
-  auto _pushable_start_x = _o->pushable_start_x;
-  auto _pushable_start_z = _o->pushable_start_z;
-  auto _pushable_room_number = _o->pushable_room_number;
-  auto _pushable_collider_flag = _o->pushable_collider_flag;
-  auto _pushable_north_pullable = _o->pushable_north_pullable;
-  auto _pushable_north_pushable = _o->pushable_north_pushable;
-  auto _pushable_north_climbable = _o->pushable_north_climbable;
-  auto _pushable_east_pullable = _o->pushable_east_pullable;
-  auto _pushable_east_pushable = _o->pushable_east_pushable;
-  auto _pushable_east_climbable = _o->pushable_east_climbable;
-  auto _pushable_south_pullable = _o->pushable_south_pullable;
-  auto _pushable_south_pushable = _o->pushable_south_pushable;
-  auto _pushable_south_climbable = _o->pushable_south_climbable;
-  auto _pushable_west_pullable = _o->pushable_west_pullable;
-  auto _pushable_west_pushable = _o->pushable_west_pushable;
-  auto _pushable_west_climbable = _o->pushable_west_climbable;
-  return TEN::Save::CreatePushable(
-      _fbb,
-      _previous_trigger_flags,
-      _pushable_behaviour_state,
-      _pushable_gravity,
-      _pushable_water_force,
-      _pushable_stack_limit,
-      _pushable_stack_upper,
-      _pushable_stack_lower,
-      _pushable_start_x,
-      _pushable_start_z,
-      _pushable_room_number,
-      _pushable_collider_flag,
-      _pushable_north_pullable,
-      _pushable_north_pushable,
-      _pushable_north_climbable,
-      _pushable_east_pullable,
-      _pushable_east_pushable,
-      _pushable_east_climbable,
-      _pushable_south_pullable,
-      _pushable_south_pushable,
-      _pushable_south_climbable,
-      _pushable_west_pullable,
-      _pushable_west_pushable,
-      _pushable_west_climbable);
-}
-
-inline MinecartT *Minecart::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<MinecartT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void Minecart::UnPackTo(MinecartT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = turn_rot(); _o->turn_rot = _e; }
-  { auto _e = turn_x(); _o->turn_x = _e; }
-  { auto _e = turn_z(); _o->turn_z = _e; }
-  { auto _e = turn_len(); _o->turn_len = _e; }
-  { auto _e = velocity(); _o->velocity = _e; }
-  { auto _e = vertical_velocity(); _o->vertical_velocity = _e; }
-  { auto _e = gradient(); _o->gradient = _e; }
-  { auto _e = stop_delay(); _o->stop_delay = _e; }
-  { auto _e = floor_height_middle(); _o->floor_height_middle = _e; }
-  { auto _e = floor_height_front(); _o->floor_height_front = _e; }
-  { auto _e = flags(); _o->flags = _e; }
-}
-
-inline flatbuffers::Offset<Minecart> Minecart::Pack(flatbuffers::FlatBufferBuilder &_fbb, const MinecartT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateMinecart(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<Minecart> CreateMinecart(flatbuffers::FlatBufferBuilder &_fbb, const MinecartT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const MinecartT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _turn_rot = _o->turn_rot;
-  auto _turn_x = _o->turn_x;
-  auto _turn_z = _o->turn_z;
-  auto _turn_len = _o->turn_len;
-  auto _velocity = _o->velocity;
-  auto _vertical_velocity = _o->vertical_velocity;
-  auto _gradient = _o->gradient;
-  auto _stop_delay = _o->stop_delay;
-  auto _floor_height_middle = _o->floor_height_middle;
-  auto _floor_height_front = _o->floor_height_front;
-  auto _flags = _o->flags;
-  return TEN::Save::CreateMinecart(
-      _fbb,
-      _turn_rot,
-      _turn_x,
-      _turn_z,
-      _turn_len,
-      _velocity,
-      _vertical_velocity,
-      _gradient,
-      _stop_delay,
-      _floor_height_middle,
-      _floor_height_front,
-      _flags);
-}
-
-inline LaraInfoT *LaraInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<LaraInfoT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void LaraInfo::UnPackTo(LaraInfoT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-}
-
-inline flatbuffers::Offset<LaraInfo> LaraInfo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LaraInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateLaraInfo(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<LaraInfo> CreateLaraInfo(flatbuffers::FlatBufferBuilder &_fbb, const LaraInfoT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const LaraInfoT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  return TEN::Save::CreateLaraInfo(
-      _fbb);
-}
-
-inline ItemNumberT *ItemNumber::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
-  auto _o = std::make_unique<ItemNumberT>();
-  UnPackTo(_o.get(), _resolver);
-  return _o.release();
-}
-
-inline void ItemNumber::UnPackTo(ItemNumberT *_o, const flatbuffers::resolver_function_t *_resolver) const {
-  (void)_o;
-  (void)_resolver;
-  { auto _e = num(); _o->num = _e; }
-}
-
-inline flatbuffers::Offset<ItemNumber> ItemNumber::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ItemNumberT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
-  return CreateItemNumber(_fbb, _o, _rehasher);
-}
-
-inline flatbuffers::Offset<ItemNumber> CreateItemNumber(flatbuffers::FlatBufferBuilder &_fbb, const ItemNumberT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
-  (void)_rehasher;
-  (void)_o;
-  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ItemNumberT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
-  auto _num = _o->num;
-  return TEN::Save::CreateItemNumber(
-      _fbb,
-      _num);
+struct FXInfoBuilder {
+  typedef FXInfo Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_counter(int32_t counter) {
+    fbb_.AddElement<int32_t>(FXInfo::VT_COUNTER, counter, 0);
+  }
+  void add_flag1(int32_t flag1) {
+    fbb_.AddElement<int32_t>(FXInfo::VT_FLAG1, flag1, 0);
+  }
+  void add_flag2(int32_t flag2) {
+    fbb_.AddElement<int32_t>(FXInfo::VT_FLAG2, flag2, 0);
+  }
+  explicit FXInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<FXInfo> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<FXInfo>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<FXInfo> CreateFXInfo(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t counter = 0,
+    int32_t flag1 = 0,
+    int32_t flag2 = 0) {
+  FXInfoBuilder builder_(_fbb);
+  builder_.add_flag2(flag2);
+  builder_.add_flag1(flag1);
+  builder_.add_counter(counter);
+  return builder_.Finish();
 }
 
 inline bool VerifyItemData(flatbuffers::Verifier &verifier, const void *obj, ItemData type) {
   switch (type) {
-    case ItemData::NONE: {
+    case ItemData_NONE: {
       return true;
     }
-    case ItemData::Int: {
+    case ItemData_Int: {
       auto ptr = reinterpret_cast<const TEN::Save::Int *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::Short: {
+    case ItemData_Short: {
       auto ptr = reinterpret_cast<const TEN::Save::Short *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::Float: {
+    case ItemData_Float: {
       auto ptr = reinterpret_cast<const TEN::Save::Float *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::ShortArray: {
+    case ItemData_ShortArray: {
       auto ptr = reinterpret_cast<const TEN::Save::ShortArray *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::ItemNumber: {
+    case ItemData_ItemNumber: {
       auto ptr = reinterpret_cast<const TEN::Save::ItemNumber *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::Creature: {
+    case ItemData_Creature: {
       auto ptr = reinterpret_cast<const TEN::Save::Creature *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::LaserHead: {
+    case ItemData_LaserHead: {
       auto ptr = reinterpret_cast<const TEN::Save::LaserHead *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::QuadBike: {
+    case ItemData_QuadBike: {
       auto ptr = reinterpret_cast<const TEN::Save::QuadBike *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::BigGun: {
+    case ItemData_BigGun: {
       auto ptr = reinterpret_cast<const TEN::Save::BigGun *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::Motorbike: {
+    case ItemData_Motorbike: {
       auto ptr = reinterpret_cast<const TEN::Save::Motorbike *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::Jeep: {
+    case ItemData_Jeep: {
       auto ptr = reinterpret_cast<const TEN::Save::Jeep *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::LaraInfo: {
+    case ItemData_LaraInfo: {
       auto ptr = reinterpret_cast<const TEN::Save::LaraInfo *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::Kayak: {
+    case ItemData_Kayak: {
       auto ptr = reinterpret_cast<const TEN::Save::Kayak *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::Door: {
+    case ItemData_Door: {
       auto ptr = reinterpret_cast<const TEN::Save::Door *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::Skidoo: {
+    case ItemData_Skidoo: {
       auto ptr = reinterpret_cast<const TEN::Save::Skidoo *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::UPV: {
+    case ItemData_UPV: {
       auto ptr = reinterpret_cast<const TEN::Save::UPV *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::Motorboat: {
+    case ItemData_Motorboat: {
       auto ptr = reinterpret_cast<const TEN::Save::Motorboat *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::Wraith: {
+    case ItemData_Wraith: {
       auto ptr = reinterpret_cast<const TEN::Save::Wraith *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::Rubberboat: {
+    case ItemData_Rubberboat: {
       auto ptr = reinterpret_cast<const TEN::Save::Rubberboat *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::Pushable: {
+    case ItemData_Pushable: {
       auto ptr = reinterpret_cast<const TEN::Save::Pushable *>(obj);
       return verifier.VerifyTable(ptr);
     }
-    case ItemData::Minecart: {
+    case ItemData_Minecart: {
       auto ptr = reinterpret_cast<const TEN::Save::Minecart *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ItemData_FXInfo: {
+      auto ptr = reinterpret_cast<const TEN::Save::FXInfo *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;
@@ -4003,390 +2490,6 @@ inline bool VerifyItemDataVector(flatbuffers::Verifier &verifier, const flatbuff
     }
   }
   return true;
-}
-
-inline void *ItemDataUnion::UnPack(const void *obj, ItemData type, const flatbuffers::resolver_function_t *resolver) {
-  switch (type) {
-    case ItemData::Int: {
-      auto ptr = reinterpret_cast<const TEN::Save::Int *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::Short: {
-      auto ptr = reinterpret_cast<const TEN::Save::Short *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::Float: {
-      auto ptr = reinterpret_cast<const TEN::Save::Float *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::ShortArray: {
-      auto ptr = reinterpret_cast<const TEN::Save::ShortArray *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::ItemNumber: {
-      auto ptr = reinterpret_cast<const TEN::Save::ItemNumber *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::Creature: {
-      auto ptr = reinterpret_cast<const TEN::Save::Creature *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::LaserHead: {
-      auto ptr = reinterpret_cast<const TEN::Save::LaserHead *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::QuadBike: {
-      auto ptr = reinterpret_cast<const TEN::Save::QuadBike *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::BigGun: {
-      auto ptr = reinterpret_cast<const TEN::Save::BigGun *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::Motorbike: {
-      auto ptr = reinterpret_cast<const TEN::Save::Motorbike *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::Jeep: {
-      auto ptr = reinterpret_cast<const TEN::Save::Jeep *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::LaraInfo: {
-      auto ptr = reinterpret_cast<const TEN::Save::LaraInfo *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::Kayak: {
-      auto ptr = reinterpret_cast<const TEN::Save::Kayak *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::Door: {
-      auto ptr = reinterpret_cast<const TEN::Save::Door *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::Skidoo: {
-      auto ptr = reinterpret_cast<const TEN::Save::Skidoo *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::UPV: {
-      auto ptr = reinterpret_cast<const TEN::Save::UPV *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::Motorboat: {
-      auto ptr = reinterpret_cast<const TEN::Save::Motorboat *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::Wraith: {
-      auto ptr = reinterpret_cast<const TEN::Save::Wraith *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::Rubberboat: {
-      auto ptr = reinterpret_cast<const TEN::Save::Rubberboat *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::Pushable: {
-      auto ptr = reinterpret_cast<const TEN::Save::Pushable *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    case ItemData::Minecart: {
-      auto ptr = reinterpret_cast<const TEN::Save::Minecart *>(obj);
-      return ptr->UnPack(resolver);
-    }
-    default: return nullptr;
-  }
-}
-
-inline flatbuffers::Offset<void> ItemDataUnion::Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher) const {
-  switch (type) {
-    case ItemData::Int: {
-      auto ptr = reinterpret_cast<const TEN::Save::IntT *>(value);
-      return CreateInt(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::Short: {
-      auto ptr = reinterpret_cast<const TEN::Save::ShortT *>(value);
-      return CreateShort(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::Float: {
-      auto ptr = reinterpret_cast<const TEN::Save::FloatT *>(value);
-      return CreateFloat(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::ShortArray: {
-      auto ptr = reinterpret_cast<const TEN::Save::ShortArrayT *>(value);
-      return CreateShortArray(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::ItemNumber: {
-      auto ptr = reinterpret_cast<const TEN::Save::ItemNumberT *>(value);
-      return CreateItemNumber(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::Creature: {
-      auto ptr = reinterpret_cast<const TEN::Save::CreatureT *>(value);
-      return CreateCreature(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::LaserHead: {
-      auto ptr = reinterpret_cast<const TEN::Save::LaserHeadT *>(value);
-      return CreateLaserHead(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::QuadBike: {
-      auto ptr = reinterpret_cast<const TEN::Save::QuadBikeT *>(value);
-      return CreateQuadBike(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::BigGun: {
-      auto ptr = reinterpret_cast<const TEN::Save::BigGunT *>(value);
-      return CreateBigGun(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::Motorbike: {
-      auto ptr = reinterpret_cast<const TEN::Save::MotorbikeT *>(value);
-      return CreateMotorbike(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::Jeep: {
-      auto ptr = reinterpret_cast<const TEN::Save::JeepT *>(value);
-      return CreateJeep(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::LaraInfo: {
-      auto ptr = reinterpret_cast<const TEN::Save::LaraInfoT *>(value);
-      return CreateLaraInfo(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::Kayak: {
-      auto ptr = reinterpret_cast<const TEN::Save::KayakT *>(value);
-      return CreateKayak(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::Door: {
-      auto ptr = reinterpret_cast<const TEN::Save::DoorT *>(value);
-      return CreateDoor(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::Skidoo: {
-      auto ptr = reinterpret_cast<const TEN::Save::SkidooT *>(value);
-      return CreateSkidoo(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::UPV: {
-      auto ptr = reinterpret_cast<const TEN::Save::UPVT *>(value);
-      return CreateUPV(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::Motorboat: {
-      auto ptr = reinterpret_cast<const TEN::Save::MotorboatT *>(value);
-      return CreateMotorboat(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::Wraith: {
-      auto ptr = reinterpret_cast<const TEN::Save::WraithT *>(value);
-      return CreateWraith(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::Rubberboat: {
-      auto ptr = reinterpret_cast<const TEN::Save::RubberboatT *>(value);
-      return CreateRubberboat(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::Pushable: {
-      auto ptr = reinterpret_cast<const TEN::Save::PushableT *>(value);
-      return CreatePushable(_fbb, ptr, _rehasher).Union();
-    }
-    case ItemData::Minecart: {
-      auto ptr = reinterpret_cast<const TEN::Save::MinecartT *>(value);
-      return CreateMinecart(_fbb, ptr, _rehasher).Union();
-    }
-    default: return 0;
-  }
-}
-
-inline ItemDataUnion::ItemDataUnion(const ItemDataUnion &u) : type(u.type), value(nullptr) {
-  switch (type) {
-    case ItemData::Int: {
-      value = new TEN::Save::IntT(*reinterpret_cast<TEN::Save::IntT *>(u.value));
-      break;
-    }
-    case ItemData::Short: {
-      value = new TEN::Save::ShortT(*reinterpret_cast<TEN::Save::ShortT *>(u.value));
-      break;
-    }
-    case ItemData::Float: {
-      value = new TEN::Save::FloatT(*reinterpret_cast<TEN::Save::FloatT *>(u.value));
-      break;
-    }
-    case ItemData::ShortArray: {
-      value = new TEN::Save::ShortArrayT(*reinterpret_cast<TEN::Save::ShortArrayT *>(u.value));
-      break;
-    }
-    case ItemData::ItemNumber: {
-      value = new TEN::Save::ItemNumberT(*reinterpret_cast<TEN::Save::ItemNumberT *>(u.value));
-      break;
-    }
-    case ItemData::Creature: {
-      FLATBUFFERS_ASSERT(false);  // TEN::Save::CreatureT not copyable.
-      break;
-    }
-    case ItemData::LaserHead: {
-      value = new TEN::Save::LaserHeadT(*reinterpret_cast<TEN::Save::LaserHeadT *>(u.value));
-      break;
-    }
-    case ItemData::QuadBike: {
-      value = new TEN::Save::QuadBikeT(*reinterpret_cast<TEN::Save::QuadBikeT *>(u.value));
-      break;
-    }
-    case ItemData::BigGun: {
-      value = new TEN::Save::BigGunT(*reinterpret_cast<TEN::Save::BigGunT *>(u.value));
-      break;
-    }
-    case ItemData::Motorbike: {
-      value = new TEN::Save::MotorbikeT(*reinterpret_cast<TEN::Save::MotorbikeT *>(u.value));
-      break;
-    }
-    case ItemData::Jeep: {
-      value = new TEN::Save::JeepT(*reinterpret_cast<TEN::Save::JeepT *>(u.value));
-      break;
-    }
-    case ItemData::LaraInfo: {
-      value = new TEN::Save::LaraInfoT(*reinterpret_cast<TEN::Save::LaraInfoT *>(u.value));
-      break;
-    }
-    case ItemData::Kayak: {
-      FLATBUFFERS_ASSERT(false);  // TEN::Save::KayakT not copyable.
-      break;
-    }
-    case ItemData::Door: {
-      value = new TEN::Save::DoorT(*reinterpret_cast<TEN::Save::DoorT *>(u.value));
-      break;
-    }
-    case ItemData::Skidoo: {
-      value = new TEN::Save::SkidooT(*reinterpret_cast<TEN::Save::SkidooT *>(u.value));
-      break;
-    }
-    case ItemData::UPV: {
-      value = new TEN::Save::UPVT(*reinterpret_cast<TEN::Save::UPVT *>(u.value));
-      break;
-    }
-    case ItemData::Motorboat: {
-      value = new TEN::Save::MotorboatT(*reinterpret_cast<TEN::Save::MotorboatT *>(u.value));
-      break;
-    }
-    case ItemData::Wraith: {
-      value = new TEN::Save::WraithT(*reinterpret_cast<TEN::Save::WraithT *>(u.value));
-      break;
-    }
-    case ItemData::Rubberboat: {
-      value = new TEN::Save::RubberboatT(*reinterpret_cast<TEN::Save::RubberboatT *>(u.value));
-      break;
-    }
-    case ItemData::Pushable: {
-      value = new TEN::Save::PushableT(*reinterpret_cast<TEN::Save::PushableT *>(u.value));
-      break;
-    }
-    case ItemData::Minecart: {
-      value = new TEN::Save::MinecartT(*reinterpret_cast<TEN::Save::MinecartT *>(u.value));
-      break;
-    }
-    default:
-      break;
-  }
-}
-
-inline void ItemDataUnion::Reset() {
-  switch (type) {
-    case ItemData::Int: {
-      auto ptr = reinterpret_cast<TEN::Save::IntT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::Short: {
-      auto ptr = reinterpret_cast<TEN::Save::ShortT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::Float: {
-      auto ptr = reinterpret_cast<TEN::Save::FloatT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::ShortArray: {
-      auto ptr = reinterpret_cast<TEN::Save::ShortArrayT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::ItemNumber: {
-      auto ptr = reinterpret_cast<TEN::Save::ItemNumberT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::Creature: {
-      auto ptr = reinterpret_cast<TEN::Save::CreatureT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::LaserHead: {
-      auto ptr = reinterpret_cast<TEN::Save::LaserHeadT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::QuadBike: {
-      auto ptr = reinterpret_cast<TEN::Save::QuadBikeT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::BigGun: {
-      auto ptr = reinterpret_cast<TEN::Save::BigGunT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::Motorbike: {
-      auto ptr = reinterpret_cast<TEN::Save::MotorbikeT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::Jeep: {
-      auto ptr = reinterpret_cast<TEN::Save::JeepT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::LaraInfo: {
-      auto ptr = reinterpret_cast<TEN::Save::LaraInfoT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::Kayak: {
-      auto ptr = reinterpret_cast<TEN::Save::KayakT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::Door: {
-      auto ptr = reinterpret_cast<TEN::Save::DoorT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::Skidoo: {
-      auto ptr = reinterpret_cast<TEN::Save::SkidooT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::UPV: {
-      auto ptr = reinterpret_cast<TEN::Save::UPVT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::Motorboat: {
-      auto ptr = reinterpret_cast<TEN::Save::MotorboatT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::Wraith: {
-      auto ptr = reinterpret_cast<TEN::Save::WraithT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::Rubberboat: {
-      auto ptr = reinterpret_cast<TEN::Save::RubberboatT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::Pushable: {
-      auto ptr = reinterpret_cast<TEN::Save::PushableT *>(value);
-      delete ptr;
-      break;
-    }
-    case ItemData::Minecart: {
-      auto ptr = reinterpret_cast<TEN::Save::MinecartT *>(value);
-      delete ptr;
-      break;
-    }
-    default: break;
-  }
-  value = nullptr;
-  type = ItemData::NONE;
 }
 
 }  // namespace Save

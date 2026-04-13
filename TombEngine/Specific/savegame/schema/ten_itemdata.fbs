@@ -241,6 +241,12 @@ table ItemNumber {
     num: short;
 }
 
+table FXInfo {
+    counter: int32;
+    flag1: int32;
+    flag2: int32;
+}
+
 union ItemData {
     Int,
     Short,
@@ -262,5 +268,6 @@ union ItemData {
     Wraith,
     Rubberboat,
     Pushable,
-    Minecart
+    Minecart,
+    FXInfo
 }
