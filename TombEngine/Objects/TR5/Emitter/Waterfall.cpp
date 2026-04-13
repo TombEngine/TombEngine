@@ -81,8 +81,8 @@ namespace TEN::Effects::WaterfallEmitter
         float waterfallWidth = std::max(CLICK(float(item.TriggerFlags)), WATERFALL_DEFAULT_WIDTH);
         auto vel = item.Pose.Orientation.ToDirection() * BLOCK(customVel);
 
-        auto startColor = (item.Model.Color / 4) * SCHAR_MAX;
-        auto endColor = (item.Model.Color / 8) * UCHAR_MAX;
+        auto startColor = (item.Model.Color / 4) * UCHAR_MAX;
+        auto endColor = (item.Model.Color / 4) * UCHAR_MAX;
 
         auto lastOffset = Vector3(FLT_MAX);
         auto lastTargetPos = Vector3::Zero;
