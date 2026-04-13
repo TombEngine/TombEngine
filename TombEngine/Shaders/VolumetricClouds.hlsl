@@ -1098,14 +1098,12 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
             srcParams.ZenithBias   = MorphSrcZenithBias;
             srcParams.EvolutionSpd = MorphSrcEvolutionSpd;
 
-            // Source clouds are dissolving — use EvalAltoDensityCoreLite which
-            // cuts ~55% of per-sample cost: only Low curl band, 3-octave FBM,
-            // single Worley, no evolution/wind features. The visual difference
-            // is imperceptible on clouds that are already being dissolved.
-            float lodBoost = saturate((DissolvePhase - 0.25f) / 0.75f) * 0.5f;
-            float srcLOD  = min(distLOD + lodBoost, 1.0f);
-            float srcLOD2 = srcLOD * srcLOD;
-            float srcDens = EvalAltoDensityCoreLite(skyPos, heightFrac, skyH, srcLOD, srcLOD2, srcParams);
+            // Source density uses the same full EvalAltoDensityCore as the
+            // pre-transition frame. EvalAltoDensityCoreLite produces a different
+            // cloud shape (different curl deformation, fewer FBM octaves) which
+            // causes a visible jump whenever the switch would occur — regardless
+            // of threshold. Organic morph requires identical evaluation throughout.
+            float srcDens = EvalAltoDensityCore(skyPos, heightFrac, skyH, distLOD, distLOD2, srcParams);
 
             // Cache DissolveMask once — used by both dissolve and formation.
             // Saves 4 PerlinNoise3D calls per sample (2 per DissolveMask invocation).
@@ -2332,45 +2330,58 @@ float3 GetViewRayDir(float2 uv)
 
 float4 PS(VSOutput input) : SV_TARGET
 {
-    // --- Temporal checkerboard ---
-    // Every other pixel (alternating each frame) skips the full raymarch and
-    // returns the previous frame's result from the same screen position.
-    // Clouds are at sky distance (no translation parallax).
+    // --- Full temporal reprojection ---
+    // Instead of same-UV checkerboard reuse, reproject the previous frame's
+    // history to the current camera orientation.  Clouds are at infinite
+    // distance (sky dome) so only camera rotation causes UV motion; the
+    // reprojection projects a sky-distance point through PrevViewProjection.
     //
-    // Camera-rotation guard (CPU-side): when the camera has rotated since last
-    // frame, TemporalEnabled is forced to 0 by the renderer so ALL pixels are
-    // freshly raymarched. This avoids stale-UV smearing and rectangular seam
-    // artifacts that arise when same-UV data shows a different sky direction.
+    // Checkerboard skip: 50% of pixels per frame.  Skipped pixels return
+    // reprojected history directly.  Active pixels do a full raymarch and
+    // then EMA-blend with reprojected history for noise reduction.
     //
-    // TemporalEnabled == 2: warmup complete, checkerboard skip active.
-    // Values 0 and 1 always do a full raymarch (0=disabled, 1=warmup, filling prev-frame RT).
+    // TemporalEnabled == 2: warmup complete, reprojection active.
+    // Values 0 and 1 always do a full raymarch (0=disabled, 1=warmup).
+    float4 reprojectedHistory = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    bool   hasValidHistory    = false;
+
     if (TemporalEnabled == 2)
     {
-        int2 px = (int2)input.Position.xy;
-        bool skip = (((px.x + px.y) + (int)FrameIndex) & 1) != 0;
-        if (skip)
-        {
-            float4 prevCloud = CloudTexture.Sample(LinearSamp, input.UV);
+        // Reproject current pixel's sky direction through previous frame's VP.
+        float3 worldDir = GetViewRayDir(input.UV);
+        float3 skyPoint = CamPositionWS.xyz + worldDir * 1000000.0f;
+        float4 prevClip = mul(float4(skyPoint, 1.0f), PrevViewProjection);
 
-            // Reuse only stable regions from the previous frame.
-            //
-            // The visible "water shimmer" / hatching is concentrated in the
-            // half-transparent silhouette band, where the cloud edge moves a
-            // little between frames. Reusing that stale alpha at the same UV
-            // creates a double image: one set of pixels still shows the old edge,
-            // the other set shows the newly raymarched edge.
-            //
-            // For clear sky (alpha ~0) and deep cloud interior (alpha ~1), the
-            // same-UV reuse is stable and still gives the temporal performance win.
-            // For the mid-alpha band, force a fresh raymarch this frame.
-            bool stableTemporalRegion = (prevCloud.a <= TemporalAlphaLow || prevCloud.a >= TemporalAlphaHigh);
-            if (stableTemporalRegion)
-                return prevCloud;
+        if (prevClip.w > 0.001f)
+        {
+            float2 prevNDC = prevClip.xy / prevClip.w;
+            float2 prevUV  = prevNDC * float2(0.5f, -0.5f) + 0.5f;
+
+            if (all(prevUV > 0.002f) && all(prevUV < 0.998f))
+            {
+                reprojectedHistory = CloudTexture.Sample(LinearSamp, prevUV);
+                hasValidHistory = true;
+
+                // Checkerboard skip: every other pixel reuses reprojected history.
+                int2 px   = (int2)input.Position.xy;
+                bool skip = (((px.x + px.y) + (int)FrameIndex) & 1) != 0;
+                if (skip)
+                {
+                    // Stability check: reuse only clear sky or solid cloud interior.
+                    // Mid-alpha silhouette band is forced to fresh raymarch because
+                    // cloud edges shift between frames from wind/evolution advection
+                    // (which reprojection does not correct — it only handles camera motion).
+                    bool stable = (reprojectedHistory.a <= TemporalAlphaLow ||
+                                   reprojectedHistory.a >= TemporalAlphaHigh);
+                    if (stable)
+                        return reprojectedHistory;
+                }
+            }
         }
     }
 
     float3 rayOrigin = CamPositionWS.xyz;
-    float3 rayDir	= GetViewRayDir(input.UV);
+    float3 rayDir    = GetViewRayDir(input.UV);
 
     // In TEN Y-down: upward rays have rayDir.y < 0.
     // Discard downward-looking rays (into the ground).
@@ -2378,6 +2389,17 @@ float4 PS(VSOutput input) : SV_TARGET
         return float4(0.0f, 0.0f, 0.0f, 0.0f);
 
     float4 cloudResult = RaymarchClouds(rayOrigin, rayDir, input.Position.xy);
+
+    // --- EMA temporal accumulation ---
+    // Blend fresh raymarch with reprojected history for noise reduction.
+    // TemporalBlendFactor (0.05) controls convergence speed: each frame,
+    // 5% of the pixel comes from the fresh raymarch, 95% from accumulated
+    // history. Over ~20 frames the result converges to the true value.
+    // Lightning is an impulsive effect and already baked into cloudResult;
+    // the EMA naturally fades it over the accumulation window which matches
+    // the visual duration of a lightning flash.
+    if (hasValidHistory)
+        cloudResult = lerp(reprojectedHistory, cloudResult, TemporalBlendFactor);
 
     // --- Lightning bolt arc rendering (AltocumulusMid only) ---
     // Fully tied to the cloud flash: uses identical flashCycle + hash as the raymarcher.

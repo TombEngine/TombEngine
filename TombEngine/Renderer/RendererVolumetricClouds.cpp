@@ -418,45 +418,34 @@ namespace TEN::Renderer
 		_stVolumetricCloud.TemporalAlphaHigh     = settings.TemporalAlphaHigh;
 		_stVolumetricCloud.AltoJitterAbsCap      = settings.AltoJitterAbsCap;
 
-		// Temporal-disable guards: force a full per-pixel raymarch when the sky
-		// content would otherwise differ significantly between even and odd frames,
-		// which produces a visible checkerboard / watery shimmering artifact.
-		//
-		// Guard 1 — camera rotation.
-		// cos(0.5°) ≈ 0.99996: any rotation larger than half a degree is rejected.
-		{
-			float camDot = view.Camera.WorldDirection.Dot(runtimeState.PrevCameraForward);
-			if (camDot <= 0.99996f)
-				_stVolumetricCloud.TemporalEnabled = 0;
-		}
+		// Previous frame's ViewProjection for temporal reprojection.
+		// Clouds are at infinite distance so only camera rotation matters;
+		// the translation component is negligible at sky-dome scale (1e6 units).
+		_stVolumetricCloud.PrevViewProjection = runtimeState.PrevViewProjection;
 
-		// Guard 2 — cloud advection speed.
-		// wind offset and evolution each translate the noise-space sample position.
-		// Adjacent checkerboard pixels show the cloud at two different moments in
-		// time.  For thin cloud features (altocumulus Schraffuren) even a small
-		// per-frame shift causes them to appear at two slightly different
-		// screen-space positions → visible hatching / watery shimmer in motion.
-		//
-		// Threshold derivation:
-		//   noiseDisplace = windDeltaPerFrame * 2.032
-		//   FBM oct-3 wavelength ≈ 1 / lacunarity³ ≈ 1/18.5 = 0.054 noise units.
-		//   A per-frame shift of 0.010 noise units = 18.5 % of oct-3 wavelength —
-		//   enough to move a thin cloud edge by nearly a full half-res pixel and
-		//   produce a clearly visible double-image when blended with the previous
-		//   frame's stale pixels.
-		//   At 60 fps: threshold 0.010 → disable Temporal for WindSpeed > ~0.30.
-		//   At 30 fps: same threshold → disable for WindSpeed > ~0.15.
-		//   Previous threshold (0.05) only caught WindSpeed > 1.47 — far too lenient
-		//   for typical altocumulus presets that run at wind 0.3–0.6.
+		// Compute per-frame cloud-noise displacement to drive both the EMA blend
+		// factor and the hard temporal-disable guard.
+		// noiseDisplace approximates how far cloud UVs have shifted this frame.
 		{
-			float deltaWind = runtimeState.WindAccumOffset - runtimeState.PrevWindAccumOffset;
-			float deltaEvo  = runtimeState.AccumulatedTime  - runtimeState.PrevAccumulatedTime;
-			// windOfs  = WindDirection * WindAccumOffset   → noise shift = deltaWind * 2.032
-			// evoOfs   = evoDir * EvolutionSpd * (Time*0.05 + WindSpeed*0.15)
-			//           ≈ evoDir * EvolutionSpd * deltaEvo * 0.05  (dominant term)
+			float deltaWind     = runtimeState.WindAccumOffset - runtimeState.PrevWindAccumOffset;
+			float deltaEvo      = runtimeState.AccumulatedTime  - runtimeState.PrevAccumulatedTime;
 			float noiseDisplace = std::abs(deltaWind) * 2.032f
 			                    + std::abs(deltaEvo)  * settings.EvolutionSpeed * 0.05f * 2.032f;
-			if (noiseDisplace > 0.010f)
+
+			// Dynamic EMA blend factor: ramp from 0.05 (strong smoothing for static clouds)
+			// to 1.0 (full fresh) as cloud content advects from wind/evolution.
+			// Without this ramp, the fixed 0.05 suppresses visible wind motion until the
+			// hard guard triggers at ~WindSpeed 2.9, causing an abrupt "frozen → snap" jump.
+			// kRampEnd ≈ WindSpeed 1.5 at 60 fps → smooth gradient across the full range.
+			const float kBaseBlend = 0.05f;
+			const float kRampEnd   = 0.05f;
+			_stVolumetricCloud.TemporalBlendFactor = q.TemporalReprojection
+				? std::min(1.0f, kBaseBlend + (1.0f - kBaseBlend) * (noiseDisplace / kRampEnd))
+				: 1.0f;
+
+			// Hard guard: for extreme advection, also disable checkerboard skipping
+			// so every pixel gets a fresh raymarch this frame.
+			if (noiseDisplace > 0.10f)
 				_stVolumetricCloud.TemporalEnabled = 0;
 		}
 
@@ -533,6 +522,7 @@ namespace TEN::Renderer
 		_cloudState.PrevCameraForward   = renderView.Camera.WorldDirection;
 		_cloudState.PrevAccumulatedTime = _cloudState.AccumulatedTime;
 		_cloudState.PrevWindAccumOffset = _cloudState.WindAccumOffset;
+		_cloudState.PrevViewProjection  = renderView.Camera.ViewProjection;
 
 		// --- Pass 1: Render clouds to half-res target ---
 		// Temporal checkerboard: save the current cloud RT as the previous frame

@@ -365,6 +365,13 @@ namespace TEN::Sky
 		// Quality: snap at halfway.
 		result.Quality = (t < 0.5f) ? a.Quality : b.Quality;
 
+		// Edge quality tuning: interpolated so transitions don't snap jitter/temporal params.
+		result.JitterStrength        = LerpFloat(a.JitterStrength,        b.JitterStrength,        t);
+		result.UpsampleSpatialSigma2 = LerpFloat(a.UpsampleSpatialSigma2, b.UpsampleSpatialSigma2, t);
+		result.TemporalAlphaLow      = LerpFloat(a.TemporalAlphaLow,      b.TemporalAlphaLow,      t);
+		result.TemporalAlphaHigh     = LerpFloat(a.TemporalAlphaHigh,     b.TemporalAlphaHigh,     t);
+		result.AltoJitterAbsCap      = LerpFloat(a.AltoJitterAbsCap,      b.AltoJitterAbsCap,      t);
+
 		// DissolvePhase: NOT interpolated. Set directly by UpdateTransition
 		// for CloudMorph transforms; always 0 for normal transitions.
 		result.DissolvePhase = 0.0f;

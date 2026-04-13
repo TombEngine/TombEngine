@@ -176,10 +176,15 @@ namespace TEN::Renderer::ConstantBuffers
 		float TemporalAlphaHigh;      // [0.8,1]  above this alpha: temporal reuse OK (cloud core)
 		float AltoJitterAbsCap;       // [0.1,10] absorption cap used only for jitter amplitude
 		//--
-		// Row 30 — Curl warp amplitude
+		// Row 30 — Curl warp amplitude + temporal blend
 		float CurlWarpStrength;       // [0,2] curl domain-warp amplitude multiplier (0 = no warp)
-		float Row30Pad0;
+		float TemporalBlendFactor;    // [0.02,1] EMA blend factor for temporal accumulation (lower = smoother)
 		float Row30Pad1;
 		float Row30Pad2;
+		//--
+		// Rows 31-34 — Previous frame ViewProjection matrix for temporal reprojection.
+		// Clouds are at infinite distance so only camera rotation matters.
+		// Used to reproject history buffer UVs when the camera has rotated.
+		Matrix PrevViewProjection;
 	};
 }

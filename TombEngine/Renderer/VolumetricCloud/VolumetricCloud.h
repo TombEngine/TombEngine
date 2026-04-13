@@ -239,6 +239,11 @@ namespace TEN::Renderer::VolumetricCloud
 		float   PrevAccumulatedTime    = 0.0f;
 		float   PrevWindAccumOffset    = 0.0f;
 
+		// Previous frame's ViewProjection matrix for temporal reprojection.
+		// Clouds are at infinite distance so only rotation matters; translation
+		// is negligible at sky-dome scale (1e6 world units).
+		Matrix  PrevViewProjection     = Matrix::Identity;
+
 		// Lens flare occlusion
 		LensFlareCloudOcclusionState FlareOcclusion = {};
 

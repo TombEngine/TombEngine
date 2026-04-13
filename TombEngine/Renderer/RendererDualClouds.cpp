@@ -181,6 +181,16 @@ namespace TEN::Renderer
 		// Fill constant buffer.
 		UpdateVolumetricCloudBuffer(settings, state, renderView);
 
+		// Store current values for next frame's temporal reprojection.
+		// (Must be AFTER UpdateVolumetricCloudBuffer which reads the Prev* values.)
+		if (advanceState)
+		{
+			state.PrevCameraForward   = renderView.Camera.WorldDirection;
+			state.PrevAccumulatedTime = state.AccumulatedTime;
+			state.PrevWindAccumOffset = state.WindAccumOffset;
+			state.PrevViewProjection  = renderView.Camera.ViewProjection;
+		}
+
 		// --- Pass 1: Render to half-res target ---
 		// Temporal checkerboard: copy current RT to prevFrameRT before clearing,
 		// so the shader can read last frame's result for skipped checkerboard pixels.

@@ -169,9 +169,14 @@ cbuffer CBVolumetricCloud : register(b9)
     float TemporalAlphaHigh;      // [0.8,1]  above this alpha: temporal reuse OK (cloud core)
     float AltoJitterAbsCap;       // [0,inf]  absorption cap used only for jitter amplitude (independent of actual cloud opacity)
     //--
-    // Row 30 — Curl warp amplitude
+    // Row 30 — Curl warp amplitude + temporal blend
     float CurlWarpStrength;       // [0,2] curl domain-warp amplitude multiplier (0 = no warp)
-    float CloudPad30_0;
+    float TemporalBlendFactor;    // [0.02,1] EMA blend factor for temporal accumulation (lower = smoother)
     float CloudPad30_1;
     float CloudPad30_2;
+    //--
+    // Rows 31-34 — Previous frame ViewProjection matrix for temporal reprojection.
+    // Clouds are at infinite distance so only camera rotation matters.
+    // Used to reproject history buffer UVs when the camera has rotated.
+    float4x4 PrevViewProjection;
 };
