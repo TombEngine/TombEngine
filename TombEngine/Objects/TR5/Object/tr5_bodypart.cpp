@@ -237,6 +237,7 @@ void ControlBodyPart(short fxNumber)
 			{
 				BodyPartExplode(fx);
 				KillItem(fxNumber);
+				return;
 			}
 		}
 

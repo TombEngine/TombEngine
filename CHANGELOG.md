@@ -3,6 +3,17 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
+## [Version 1.11.1]
+
+### Bug fixes
+* Fixed draw key not always opening doors in fly mode.
+* Fixed TEETH_SPIKES with OCB 1 damaging player in fly mode.
+* Fixed YETI misaligning with Lara during kill animation.
+
+### Lua API changes
+* Fixed `Timer` class not working correctly with single frame intervals.
+* Fixed alpha value being ignored for `Flow.Settings.UI.shadowTextColor` parameter.
+
 ## [Version 1.11]
 
 ### New features
@@ -30,8 +41,10 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed occasional wrong LASER_BEAM collision.
 * Fixed several BADDY1/2 issues.
 * Fixed original issue with BADDY1/2 with rolling out animation ignoring player on a distance larger than 1 block.
-* Fixed OCB calculation for WINGED_MUMMY. 
+* Fixed explosion effect crash and OCB calculation for WINGED_MUMMY. 
   [For further information] (https://tombengine.com/asset/enemy/winged-mutant-mummy/)
+* Fixed TR3 bosses not dropping items when killed.
+* Fixed corrupted targeting at Lara in water rooms for some shooting creatures.
 * Fixed teleporting upwards after corner shimmy when another ledge is above.
 * Fixed submerging into the floor when picking up items under low-placed static meshes.
 * Fixed asymmetrically placed plinth pickups (OCB 3 and 4) and allow plinth pickups without static mesh underneath.
@@ -45,6 +58,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed ricochet sparks not being visible at longer distances.
 * Fixed blood particles not being visible for stationary enemies.
 * Fixed water resurfacing threshold. The player will now resurface when half of the head is above the surface.
+* Fixed Lara visibility not restoring after breaking out from a flyby sequence.
 * Fixed animated textures appearing incorrectly when also alpha blended faces were involved.
 * Fixed random textures appearing on enemy gunflashes.
 * Fixed flickering pickup summary item count in high FPS mode.
@@ -73,6 +87,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added overloads for `TEN.Util.PercentToScreen(Vec2(x, y))` and `TEN.Util.ScreenToPercent(Vec2(x, y))`.
 * Added special tables `LevelVars`, `GameVars` and `LevelFunc` to the documentation.
 * Added `Logic.CallbackPoint`, `Logic.EventType` and `Logic.EndReason` enums to the documentation.
+* Improved `EventSequence` handling and stability.
+* Improved `Timer` class timestep handling.
 * Fixed `yOffset` argument in `Flow.InventoryItem` constructor giving inconsistent results with different screen resolutions.
 * Fixed `Effects.EmitLight` crashing the game if called with zero or near-zero light radius.
 * Fixed `View.SetCineBars` not working correctly.
