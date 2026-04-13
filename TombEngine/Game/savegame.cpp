@@ -682,7 +682,7 @@ const std::vector<byte> SaveGame::Build()
 		flatbuffers::Offset<Save::UPV> upvOffset;
 		flatbuffers::Offset<Save::Kayak> kayakOffset;
 		flatbuffers::Offset<Save::Pushable> pushableOffset;
-		flatbuffers::Offset<Save::FXInfo> fxInfoOffset;
+		flatbuffers::Offset<Save::ItemFXInfo> fxInfoOffset;
 
 		flatbuffers::Offset<Save::Short> shortOffset;
 		flatbuffers::Offset<Save::Int> intOffset;
@@ -853,7 +853,7 @@ const std::vector<byte> SaveGame::Build()
 		else if (itemToSerialize.Data.is<FXInfo>())
 		{
 			auto* fx = (FXInfo*)itemToSerialize.Data;
-			Save::FXInfoBuilder fxBuilder{ fbb };
+			Save::ItemFXInfoBuilder fxBuilder{ fbb };
 			fxBuilder.add_counter(fx->Counter);
 			fxBuilder.add_flag1(fx->Flag1);
 			fxBuilder.add_flag2(fx->Flag2);
@@ -947,7 +947,7 @@ const std::vector<byte> SaveGame::Build()
 		}
 		else if (itemToSerialize.Data.is<FXInfo>())
 		{
-			serializedItem.add_data_type(Save::ItemData::FXInfo);
+			serializedItem.add_data_type(Save::ItemData::ItemFXInfo);
 			serializedItem.add_data(fxInfoOffset.Union());
 		}
 		else if (itemToSerialize.Data.is<short>())
@@ -3144,7 +3144,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		else if (item->Data.is<FXInfo>())
 		{
 			auto* fx = (FXInfo*)item->Data;
-			auto* savedFX = (Save::FXInfo*)savedItem->data();
+			auto* savedFX = (Save::ItemFXInfo*)savedItem->data();
 
 			fx->Counter = savedFX->counter();
 			fx->Flag1 = savedFX->flag1();

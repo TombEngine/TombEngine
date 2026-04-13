@@ -241,7 +241,7 @@ table ItemNumber {
     num: short;
 }
 
-table FXInfo {
+table ItemFXInfo {
     counter: int32;
     flag1: int32;
     flag2: int32;
@@ -269,5 +269,5 @@ union ItemData {
     Rubberboat,
     Pushable,
     Minecart,
-    FXInfo
+    ItemFXInfo
 }
