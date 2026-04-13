@@ -386,28 +386,28 @@ float3 CombineLights(float3 ambient, float3 vertex, float3 tex, float3 pos, floa
 		if (lightTypeMask & LT_MASK_SUN)
 		{
 			float isSun = step(0.5f, float(lights[i].Type == LT_SUN));
-			diffuse += isSun * DoDirectionalLight(pos, normal, lights[i]);
-			spec += isSun * DoSpecularSun(normal, lights[i], sheen, specular, roughness);
+			diffuse += isSun * ModulateColor(DoDirectionalLight(pos, normal, lights[i]));
+			spec += isSun * ModulateColor(DoSpecularSun(normal, lights[i], sheen, specular, roughness));
 		}
 
 		if (lightTypeMask & LT_MASK_POINT)
 		{
 			float isPoint = step(0.5f, float(lights[i].Type == LT_POINT));
-			diffuse += isPoint * DoPointLight(pos, normal, lights[i]);
-			spec += isPoint * DoSpecularPoint(pos, normal, lights[i], sheen, specular, roughness);
+			diffuse += isPoint * ModulateColor(DoPointLight(pos, normal, lights[i]));
+			spec += isPoint * ModulateColor(DoSpecularPoint(pos, normal, lights[i], sheen, specular, roughness));
 		}
 
 		if (lightTypeMask & LT_MASK_SPOT)
 		{
 			float isSpot = step(0.5f, float(lights[i].Type == LT_SPOT));
-			diffuse += isSpot * DoSpotLight(pos, normal, lights[i]);
-			spec += isSpot * DoSpecularSpot(pos, normal, lights[i], sheen, specular, roughness);
+			diffuse += isSpot * ModulateColor(DoSpotLight(pos, normal, lights[i]));
+			spec += isSpot * ModulateColor(DoSpecularSpot(pos, normal, lights[i], sheen, specular, roughness));
 		}
 
 		if (lightTypeMask & LT_MASK_SHADOW)
 		{
 			float isShadow = step(0.5f, float(lights[i].Type == LT_SHADOW));
-			shadow += isShadow * DoShadowLight(pos, normal, lights[i]);
+			shadow += isShadow * ModulateColor(DoShadowLight(pos, normal, lights[i]));
 		}
 	}
 

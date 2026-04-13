@@ -129,8 +129,8 @@ PixelShaderOutput PS(PixelShaderInput input)
 	{
 		if (onlyPointLights)
 		{
-			lighting += DoPointLight(input.WorldPosition, normal, RoomLights[i]) * ROOM_LIGHT_COEFF;
-			lighting += DoSpecularPoint(input.WorldPosition, normal, RoomLights[i], 0.0f, specular, roughness);
+			lighting += ModulateColor(DoPointLight(input.WorldPosition, normal, RoomLights[i])) * ROOM_LIGHT_COEFF;
+			lighting += ModulateColor(DoSpecularPoint(input.WorldPosition, normal, RoomLights[i], 0.0f, specular, roughness));
 		}
 		else
 		{
@@ -143,8 +143,8 @@ PixelShaderOutput PS(PixelShaderInput input)
 			float3 spotLight  = float3(0.0f, 0.0f, 0.0f);
 			DoPointAndSpotLight(input.WorldPosition, normal, RoomLights[i], specular, roughness, pointLight, spotLight);
 
-            lighting += pointLight * isPoint * ROOM_LIGHT_COEFF * 2.0f + spotLight * isSpot * ROOM_LIGHT_COEFF * 2.0f;
-        }
+			lighting += ModulateColor(pointLight) * isPoint * ROOM_LIGHT_COEFF + ModulateColor(spotLight) * isSpot * ROOM_LIGHT_COEFF;
+		}
 	}
 
 	// Decals
