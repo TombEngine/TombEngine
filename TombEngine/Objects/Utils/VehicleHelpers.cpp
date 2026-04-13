@@ -153,10 +153,13 @@ namespace TEN::Entities::Vehicles
 				return VehicleMountType::None;
 			}
 
-			g_GameScript->OnVehicleEnter(vehicleItem->Index, false);
-
 			// Re-evaluate mount type after the callback which may have intercepted the input (e.g. for vehicle keys check).
-			if (mountType != VehicleMountType::LevelStart && lara->Control.HandStatus != HandStatus::Free)
+			auto oldHandStatus = lara->Control.HandStatus;
+			g_GameScript->OnVehicleEnter(vehicleItem->Index, false);
+			bool mountCanceled = (mountType != VehicleMountType::LevelStart && lara->Control.HandStatus != HandStatus::Free);
+			lara->Control.HandStatus = oldHandStatus;
+			
+			if (mountCanceled)
 				return VehicleMountType::None;
 
 			return mountType;
