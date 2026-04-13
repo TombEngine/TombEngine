@@ -59,7 +59,9 @@ enum AIObjectType
 	MODIFY	  = 1 << 3,
 	FOLLOW	  = 1 << 4,
 	PATROL2	  = 1 << 5,
-	ALL_AIOBJ = GUARD | AMBUSH | PATROL1 | MODIFY | FOLLOW | PATROL2
+	X1        = 1 << 6,
+	X2        = 1 << 7,
+	ALL_AIOBJ = GUARD | AMBUSH | PATROL1 | MODIFY | FOLLOW | PATROL2 | X1 | X2
 };
 
 struct EntityAnimationData
@@ -147,14 +149,15 @@ struct ItemInfo
 	BitField TouchBits = BitField::Default; // TouchFlags
 	BitField MeshBits  = BitField::Default; // MeshFlags
 
+	// NOTE: if any AI_obj is below a item (and is intelligent), ItemFlags[3] is used to store the AI ocb.
 	std::array<short, ITEM_FLAG_COUNT> ItemFlags = {};
 	unsigned short Flags		= 0; // ItemFlags enum
 	short		   TriggerFlags = 0;
 
 	// TODO: Move to CreatureInfo?
-	unsigned char AIBits	  = 0; // AIObjectFlags enum.
-	short		  AfterDeath  = 0;
-	short		  CarriedItem = 0;
+	short AIBits	  = 0; // AIObjectFlags enum.
+	short AfterDeath  = 0;
+	short CarriedItem = 0;
 
 	// Getters
 

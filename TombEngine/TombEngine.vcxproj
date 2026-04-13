@@ -678,7 +678,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\TR4\Entity\tr4_small_scorpion.h" />
     <ClInclude Include="Objects\TR4\Entity\tr4_sphinx.h" />
     <ClInclude Include="Objects\TR4\Entity\tr4_troops.h" />
-    <ClInclude Include="Objects\TR4\Entity\tr4_von_croy.h" />
+    <ClInclude Include="Objects\TR4\Entity\VonCroy.h" />
     <ClInclude Include="Objects\TR4\Entity\tr4_wild_boar.h" />
     <ClInclude Include="Objects\TR4\Floor\tr4_burningfloor.h" />
     <ClInclude Include="Objects\TR4\Object\FireRope.h" />
@@ -1247,7 +1247,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\TR4\Entity\tr4_small_scorpion.cpp" />
     <ClCompile Include="Objects\TR4\Entity\tr4_sphinx.cpp" />
     <ClCompile Include="Objects\TR4\Entity\tr4_troops.cpp" />
-    <ClCompile Include="Objects\TR4\Entity\tr4_von_croy.cpp" />
+    <ClCompile Include="Objects\TR4\Entity\VonCroy.cpp" />
     <ClCompile Include="Objects\TR4\Entity\tr4_wild_boar.cpp" />
     <ClCompile Include="Objects\TR4\Entity\Wraith.cpp" />
     <ClCompile Include="Objects\TR4\Floor\tr4_burningfloor.cpp" />

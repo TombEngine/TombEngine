@@ -12,7 +12,8 @@ struct LOTInfo;
 enum class JumpDistance
 {
 	Block1,
-	Block2
+	Block2,
+	Block3
 };
 
 enum class PathfindingMode
@@ -154,7 +155,7 @@ void CreatureHealth(ItemInfo* item);
 void AdjustStopperFlag(ItemInfo* item, int direction);
 void InitializeItemBoxData();
 
-bool CanCreatureJump(ItemInfo& item, JumpDistance jumpDistType);
+bool CanCreatureJump(ItemInfo& item, JumpDistance jumpDistType, float stepDistance = BLOCK(0.92f));
 
 void DrawLaraPathfinding(int boxIndex);
 void DrawItemPathfinding(int itemNumber);

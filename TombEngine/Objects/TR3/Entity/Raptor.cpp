@@ -24,6 +24,7 @@ namespace TEN::Entities::Creatures::TR3
 	constexpr auto RAPTOR_BITE_ATTACK_RANGE = SQUARE(BLOCK(0.6f));
 	constexpr auto RAPTOR_JUMP_ATTACK_RANGE = SQUARE(BLOCK(1.5f));
 	constexpr auto RAPTOR_RUN_ATTACK_RANGE	= SQUARE(BLOCK(1.5f));
+	constexpr auto RAPTOR_JUMP_RANGE        = BLOCK(0.92f);
 
 	constexpr auto RAPTOR_ROAR_CHANCE		   = 1.0f / 256;
 	constexpr auto RAPTOR_SWITCH_TARGET_CHANCE = 1.0f / 128;
@@ -111,8 +112,8 @@ namespace TEN::Entities::Creatures::TR3
 			creature.LOT.CanJump = false;
 		}
 
-		bool canJump1block = (canJump && CanCreatureJump(item, JumpDistance::Block1));
-		bool canJump2blocks = (canJump && !canJump1block && CanCreatureJump(item, JumpDistance::Block2));
+		bool canJump1block  = (canJump &&                   CanCreatureJump(item, JumpDistance::Block1, RAPTOR_JUMP_RANGE));
+		bool canJump2blocks = (canJump && !canJump1block && CanCreatureJump(item, JumpDistance::Block2, RAPTOR_JUMP_RANGE));
 
 		// Require Idle state.
 		if (item.HitPoints <= 0 && item.Animation.ActiveState == RAPTOR_STATE_IDLE)

@@ -3359,18 +3359,17 @@ void InitializeItemBoxData()
 	}
 }
 
-bool CanCreatureJump(ItemInfo& item, JumpDistance jumpDistType)
+bool CanCreatureJump(ItemInfo& item, JumpDistance jumpDistType, float stepDistance)
 {
 	const auto& creature = *GetCreatureInfo(&item);
 	if (creature.Enemy == nullptr)
 		return false;
 
-	float stepDist = BLOCK(0.92f);
-
 	int vPos = item.Pose.Position.y;
-	auto pointCollA = GetPointCollision(item, item.Pose.Orientation.y, stepDist);
-	auto pointCollB = GetPointCollision(item, item.Pose.Orientation.y, stepDist * 2);
-	auto pointCollC = GetPointCollision(item, item.Pose.Orientation.y, stepDist * 3);
+	auto pointCollA = GetPointCollision(item, item.Pose.Orientation.y, stepDistance * 1);
+	auto pointCollB = GetPointCollision(item, item.Pose.Orientation.y, stepDistance * 2);
+	auto pointCollC = GetPointCollision(item, item.Pose.Orientation.y, stepDistance * 3);
+	auto pointCollD = GetPointCollision(item, item.Pose.Orientation.y, stepDistance * 4);
 
 	switch (jumpDistType)
 	{
@@ -3397,6 +3396,23 @@ bool CanCreatureJump(ItemInfo& item, JumpDistance jumpDistType)
 			pointCollA.GetSector().PathfindingBoxID == NO_VALUE ||
 			pointCollB.GetSector().PathfindingBoxID == NO_VALUE ||
 			pointCollC.GetSector().PathfindingBoxID == NO_VALUE)
+		{
+			return false;
+		}
+
+		break;
+
+	case JumpDistance::Block3:
+		if (item.BoxNumber == creature.Enemy->BoxNumber ||
+			vPos >= (pointCollA.GetFloorHeight() - STEPUP_HEIGHT) ||
+			vPos >= (pointCollB.GetFloorHeight() - STEPUP_HEIGHT) ||
+			vPos >= (pointCollC.GetFloorHeight() - STEPUP_HEIGHT) ||
+			vPos >= (pointCollD.GetFloorHeight() + CLICK(1)) ||
+			vPos <= (pointCollD.GetFloorHeight() - CLICK(1)) ||
+			pointCollA.GetSector().PathfindingBoxID == NO_VALUE ||
+			pointCollB.GetSector().PathfindingBoxID == NO_VALUE ||
+			pointCollC.GetSector().PathfindingBoxID == NO_VALUE ||
+			pointCollD.GetSector().PathfindingBoxID == NO_VALUE)
 		{
 			return false;
 		}

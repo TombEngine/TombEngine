@@ -193,3 +193,4 @@ void InitPushableObject(ObjectInfo* object, int objectNumber)
 		object->SetHitEffect(true);
 	}
 }
+

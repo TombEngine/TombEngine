@@ -38,7 +38,7 @@
 #include "Objects/TR4/Entity/tr4_baboon.h" // OK
 #include "Objects/TR4/Entity/tr4_mutant.h" // OK
 #include "Objects/TR4/Entity/tr4_big_beetle.h" // OFF
-#include "Objects/TR4/Entity/tr4_von_croy.h"
+#include "Objects/TR4/Entity/VonCroy.h"
 #include "Objects/TR4/Entity/tr4_hammerhead.h"
 #include "Objects/TR4/Entity/tr4_dog.h"
 #include "Objects/TR4/Entity/tr4_setha.h"
@@ -663,14 +663,17 @@ namespace TEN::Entities
 			obj->Initialize = InitializeVonCroy;
 			obj->control = VonCroyControl;
 			obj->collision = CreatureCollision;
+			obj->radius = 128;
 			obj->pivotLength = 0;
 			obj->shadowType = ShadowMode::All;
-			obj->HitPoints = 15;
+			obj->HitPoints = NOT_TARGETABLE;
 			obj->explodableMeshbits = 0x200000;
 			obj->intelligent = true;
+			obj->meshSwapSlot = ID_MESHSWAP_VON_CROY;
 			obj->LotType = LotType::HumanPlusJumpAndMonkey;
 			obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
 			obj->SetBoneRotationFlags(20, ROT_X | ROT_Y);
+			obj->SetHitEffect(HitEffect::Smoke); // Von croy is immortal, doing smoke will let the player know he is not killable.
 		}
 	}
 

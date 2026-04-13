@@ -742,7 +742,7 @@ void Moveable::SetColor(const ScriptColor& color)
 // @treturn table A table of AI bits.
 aiBitsType Moveable::GetAIBits() const
 {
-	static_assert(63 == ALL_AIOBJ);
+	static_assert(255 == ALL_AIOBJ);
 
 	aiBitsArray ret{};
 	for (size_t i = 0; i < ret.size(); ++i)
