@@ -480,10 +480,3 @@ void Renderer::DrawLaraHolsters(RendererItem* itemToDraw, RendererRoom* room, Re
 		DrawMesh(itemToDraw, mesh, RendererObjectType::Moveable, LM_TORSO, false, view, rendererPass);
 	}
 }
-
-SkinningMode Renderer::GetPlayerSkinningMode()
-{
-	auto* item = &_items[LaraItem->Index];
-	auto& laraObj = *_moveableObjects[ID_LARA];
-	return GetSkinningMode(laraObj, item->SkinIndex);
-}

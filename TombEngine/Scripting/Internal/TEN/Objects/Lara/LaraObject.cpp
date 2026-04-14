@@ -709,32 +709,94 @@ void LaraObject::SetWaterSkinStatus(int amount, TypeOrNil<bool> flag)
 // @function LaraObject:SetSkin
 // @tparam[opt] int skin Object ID of the replacement skin mesh.
 // @tparam[opt] int skinJoints Object ID of the replacement skin joints mesh.
-// // @tparam[opt] int skinScream Object ID of the replacement scream head.
+// @tparam[opt] int skinScream Object ID of the replacement scream head.
 // @tparam[opt] int hair1 Object ID of the replacement primary hair object.
 // @tparam[opt] int hair2 Object ID of the replacement secondary hair object.
 // @usage
 // Lara:SetSkin(TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT, TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT_JOINTS, nil, nil)
-void LaraObject::SetSkin(TypeOrNil<GAME_OBJECT_ID> skin, TypeOrNil<GAME_OBJECT_ID> skinJoints, TypeOrNil<GAME_OBJECT_ID> skinScream, TypeOrNil<GAME_OBJECT_ID> hair1, TypeOrNil<GAME_OBJECT_ID> hair2)
+void LaraObject::SetSkin(sol::optional<int> skin, sol::optional<int> skinJoints, sol::optional<int> skinScream, sol::optional<int> hair1, sol::optional<int> hair2)
 {
-	auto skinMode = g_Renderer.GetPlayerSkinningMode();
 
-	if (skinMode == SkinningMode::Full)
+	auto isValidObjectID = [](int id) -> bool
 	{
-		TENLog("SetSkin: Skin swapping is not supported if skinning is being used. Please use Moveable:SwapSkinnedMesh().", LogLevel::Warning);
-		return;
-	}
+		return (id > NO_VALUE && id < ID_NUMBER_OBJECTS && Objects[id].loaded);
+	};
 
 	auto* lara = GetLaraInfo(_moveable);
 
-	lara->Skin.Skin = ValueOr<GAME_OBJECT_ID>(skin, ID_LARA_SKIN);
-	lara->Skin.SkinJoints = ValueOr<GAME_OBJECT_ID>(skinJoints, ID_LARA_SKIN_JOINTS);
-	lara->Skin.SkinScream = ValueOr<GAME_OBJECT_ID>(skinScream, ID_LARA_SCREAM);
-	lara->Skin.HairPrimary = ValueOr<GAME_OBJECT_ID>(hair1, ID_HAIR_PRIMARY);
-	lara->Skin.HairSecondary = ValueOr<GAME_OBJECT_ID>(hair2, ID_HAIR_SECONDARY);
+	bool changed = false;
+
+	if (skin.has_value())
+	{
+		if (!isValidObjectID(skin.value()))
+		{
+			TENLog("SetSkin: skin object ID " + std::to_string(skin.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+		}
+		else
+		{
+			lara->Skin.Skin = (GAME_OBJECT_ID)skin.value();
+			changed = true;
+		}
+	}
+
+	if (skinJoints.has_value())
+	{
+		if (!isValidObjectID(skinJoints.value()))
+		{
+			TENLog("SetSkin: skinJoints object ID " + std::to_string(skinJoints.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+		}
+		else
+		{
+			lara->Skin.SkinJoints = (GAME_OBJECT_ID)skinJoints.value();
+			changed = true;
+		}
+	}
+
+	if (skinScream.has_value())
+	{
+		if (!isValidObjectID(skinScream.value()))
+		{
+			TENLog("SetSkin: skinScream object ID " + std::to_string(skinScream.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+		}
+		else
+		{
+			lara->Skin.SkinScream = (GAME_OBJECT_ID)skinScream.value();
+			changed = true;
+		}
+	}
+
+	if (hair1.has_value())
+	{
+		if (!isValidObjectID(hair1.value()))
+		{
+			TENLog("SetSkin: hair1 object ID " + std::to_string(hair1.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+		}
+		else
+		{
+			lara->Skin.HairPrimary = (GAME_OBJECT_ID)hair1.value();
+			changed = true;
+		}
+	}
+
+	if (hair2.has_value())
+	{
+		if (!isValidObjectID(hair2.value()))
+		{
+			TENLog("SetSkin: hair2 object ID " + std::to_string(hair2.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+		}
+		else
+		{
+			lara->Skin.HairSecondary = (GAME_OBJECT_ID)hair2.value();
+			changed = true;
+		}
+	}
+
+	if (!changed)
+		return;
 
 	InitializeLaraMeshes(_moveable, false);
 	TEN::Effects::Hair::HairEffect.Initialize();
-		
+
 	g_Renderer.UpdatePlayerSkinVertices(lara->Skin.Skin, lara->Skin.SkinJoints,
 		lara->Skin.HairPrimary, lara->Skin.HairSecondary);
 }
