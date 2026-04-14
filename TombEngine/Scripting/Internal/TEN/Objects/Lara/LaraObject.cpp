@@ -714,7 +714,7 @@ void LaraObject::SetWaterSkinStatus(int amount, TypeOrNil<bool> flag)
 // @tparam[opt] int hair2 Object ID of the replacement secondary hair object.
 // @usage
 // Lara:SetSkin(TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT, TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT_JOINTS, nil, nil)
-void LaraObject::SetSkin(sol::optional<int> skin, sol::optional<int> skinJoints, sol::optional<int> skinScream, sol::optional<int> hair1, sol::optional<int> hair2)
+void LaraObject::SetSkin(sol::optional<GAME_OBJECT_ID> skin, sol::optional<GAME_OBJECT_ID> skinJoints, sol::optional<GAME_OBJECT_ID> skinScream, sol::optional<GAME_OBJECT_ID> hair1, sol::optional<GAME_OBJECT_ID> hair2)
 {
 
 	auto isValidObjectID = [](int id) -> bool
@@ -734,7 +734,7 @@ void LaraObject::SetSkin(sol::optional<int> skin, sol::optional<int> skinJoints,
 		}
 		else
 		{
-			lara->Skin.Skin = (GAME_OBJECT_ID)skin.value();
+			lara->Skin.Skin = skin.value();
 			changed = true;
 		}
 	}
@@ -747,7 +747,7 @@ void LaraObject::SetSkin(sol::optional<int> skin, sol::optional<int> skinJoints,
 		}
 		else
 		{
-			lara->Skin.SkinJoints = (GAME_OBJECT_ID)skinJoints.value();
+			lara->Skin.SkinJoints = skinJoints.value();
 			changed = true;
 		}
 	}
@@ -760,7 +760,7 @@ void LaraObject::SetSkin(sol::optional<int> skin, sol::optional<int> skinJoints,
 		}
 		else
 		{
-			lara->Skin.SkinScream = (GAME_OBJECT_ID)skinScream.value();
+			lara->Skin.SkinScream = skinScream.value();
 			changed = true;
 		}
 	}
@@ -773,7 +773,7 @@ void LaraObject::SetSkin(sol::optional<int> skin, sol::optional<int> skinJoints,
 		}
 		else
 		{
-			lara->Skin.HairPrimary = (GAME_OBJECT_ID)hair1.value();
+			lara->Skin.HairPrimary = hair1.value();
 			changed = true;
 		}
 	}
@@ -786,7 +786,7 @@ void LaraObject::SetSkin(sol::optional<int> skin, sol::optional<int> skinJoints,
 		}
 		else
 		{
-			lara->Skin.HairSecondary = (GAME_OBJECT_ID)hair2.value();
+			lara->Skin.HairSecondary = hair2.value();
 			changed = true;
 		}
 	}
