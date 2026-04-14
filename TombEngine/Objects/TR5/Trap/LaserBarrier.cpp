@@ -135,7 +135,7 @@ namespace TEN::Entities::Traps
 			barrier.Color.w += 0.02f;
 
 		// TODO: Weird.
-		if (item.Model.Color.w > 8.0f)
+		if (item.Model.Color.w >= 1.0f)
 		{
 			barrier.Color.w = 0.8f;
 			item.Model.Color.w = 0.8f;
