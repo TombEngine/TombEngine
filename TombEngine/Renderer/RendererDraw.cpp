@@ -2136,7 +2136,7 @@ namespace TEN::Renderer
 
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].World = (rotation * translation);
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = weather.SkyColor(s);
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = Vector4::One;
+					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = NEUTRAL_COLOR;
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = 0;
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].NumLights = 0;
 					_stInstancedStaticMeshBuffer.StaticMeshes[0].ApplyFogBulbs = s == 0 ? 1 : 0;
@@ -2158,8 +2158,8 @@ namespace TEN::Renderer
 				const auto& moveableObj = *_moveableObjects[ID_HORIZON]; // FIXME: Replace with same function as in the main pipeline!
 
 				_stInstancedStaticMeshBuffer.StaticMeshes[0].World = Matrix::CreateTranslation(LaraItem->Pose.Position.ToVector3());
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = Vector4::One;
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = Vector4::One;
+				_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = NEUTRAL_COLOR;
+				_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = NEUTRAL_COLOR;
 				_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = 0;
 				_stInstancedStaticMeshBuffer.StaticMeshes[0].NumLights = 0;
 				_stInstancedStaticMeshBuffer.StaticMeshes[0].ApplyFogBulbs = 1;
