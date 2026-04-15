@@ -108,7 +108,8 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 
     if (sprite.RenderType == 2)
     {
-        output = DoLaserBeamEffect(input.Position, output, input.UV, FADE_FACTOR, Frame);
+        float4 rawOutput = Texture.Sample(Sampler, input.UV) * input.Color;
+        output = DoLaserBeamEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
     }
 
 	output.xyz *= 1.0f - Luma(input.FogBulbs.xyz);
