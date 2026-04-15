@@ -100,6 +100,9 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 		float fade = (sceneDepth - particleDepth) * 1024.0f;
 		output.w = min(output.w, fade);
 	}
+
+	float4 rawOutput = Texture.Sample(Sampler, input.UV) * input.Color;
+	output = float4(ModulateColor(rawOutput.rgb), rawOutput.a);
 	
     if (sprite.RenderType == 1)
     {
@@ -108,8 +111,7 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 
     if (sprite.RenderType == 2)
     {
-        float4 rawOutput = Texture.Sample(Sampler, input.UV) * input.Color;
-        output = DoLaserBeamEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
+		output = DoLaserBeamEffect(input.Position, output, input.UV, FADE_FACTOR, Frame);
     }
 
 	output.xyz *= 1.0f - Luma(input.FogBulbs.xyz);

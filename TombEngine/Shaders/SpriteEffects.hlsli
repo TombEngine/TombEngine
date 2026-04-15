@@ -13,7 +13,7 @@ float4 DoLaserBarrierEffect(float3 input, float4 output, float2 uv, float faceFa
 	noiseTexture *= uv.x / uv.y;
 	float noiseValue = FractalNoise(noiseTexture * 8.0f - timeUniform);
 
-	float4 color = output * 1.2;
+	float4 color = output;
 	float gradL = smoothstep(0.0, 1.0, uv.x);
 	float gradR = smoothstep(1.0, 0.0, uv.x);
 	float gradT = smoothstep(0.0, 0.25, uv.y);

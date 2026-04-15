@@ -72,6 +72,8 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 		output.w = min(output.w, fade);
 	}
 
+	output = float4(ModulateColor(output.rgb) output.a);
+
 	if (RenderType == 1)
 	{
 		output = DoLaserBarrierEffect(input.Position, output, input.UV, FADE_FACTOR, Frame);
@@ -79,7 +81,7 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 
 	if (RenderType == 2)
 	{
-		output = DoLaserBeamEffect(input.Position, float4(ModulateColor(output.rgb), output.a), input.UV, FADE_FACTOR, Frame);
+		output = DoLaserBeamEffect(input.Position, output, input.UV, FADE_FACTOR, Frame);
 	}
 
 	output.xyz *= 1.0f - Luma(input.FogBulbs.xyz);
