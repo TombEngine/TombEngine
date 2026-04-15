@@ -703,23 +703,24 @@ void LaraObject::SetWaterSkinStatus(int amount, TypeOrNil<bool> flag)
 		inventory.SmallWaterskin = amount;
 }
 
-/// Get the player's skin, skin joints, and hair objects.
+/// Get the player's skin, skin joints, scream hear and hair objects.
 // @function LaraObject:GetSkin
-// @treturn table Lua table with skin, skin joints, scream, hair1 and hair 2.
+// @treturn table Array table: {skin, skinJoints, skinScream, hair1, hair2}.
 // @usage
-// Lara:GetSkin(TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT, TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT_JOINTS, nil, nil)
+// local s = Lara:GetSkin()
+// print(s[1], s[2], s[3], s[4], s[5])
 sol::table LaraObject::GetSkin(sol::this_state s)
 {
 	sol::state_view lua(s);
 	auto* lara = GetLaraInfo(_moveable);
 
-	return lua.create_table_with(
-		lara->Skin.Skin,
-		lara->Skin.SkinJoints,
-		lara->Skin.SkinScream,
-		lara->Skin.HairPrimary,
-		lara->Skin.HairSecondary
-	);
+	auto t = lua.create_table();
+	t.add(lara->Skin.Skin);
+	t.add(lara->Skin.SkinJoints);
+	t.add(lara->Skin.SkinScream);
+	t.add(lara->Skin.HairPrimary);
+	t.add(lara->Skin.HairSecondary);
+	return t;
 }
 
 /// Swap the player's skin, skin joints, and hair objects.
