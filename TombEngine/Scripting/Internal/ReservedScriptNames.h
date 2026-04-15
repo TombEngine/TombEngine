@@ -140,6 +140,7 @@ static constexpr char ScriptReserved_GetVehicle[]			= "GetVehicle";
 static constexpr char ScriptReserved_GetTarget[]			= "GetTarget";
 static constexpr char ScriptReserved_GetWaterSkinStatus[]	= "GetWaterSkinStatus";
 static constexpr char ScriptReserved_SetWaterSkinStatus[]	= "SetWaterSkinStatus";
+static constexpr char ScriptReserved_GetSkin[]				= "GetSkin";
 static constexpr char ScriptReserved_SetSkin[]				= "SetSkin";
 static constexpr char ScriptReserved_GetScale[]				= "GetScale";
 static constexpr char ScriptReserved_SetScale[]				= "SetScale";

@@ -703,6 +703,25 @@ void LaraObject::SetWaterSkinStatus(int amount, TypeOrNil<bool> flag)
 		inventory.SmallWaterskin = amount;
 }
 
+/// Get the player's skin, skin joints, and hair objects.
+// @function LaraObject:GetSkin
+// @treturn table Lua table with skin, skin joints, scream, hair1 and hair 2.
+// @usage
+// Lara:GetSkin(TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT, TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT_JOINTS, nil, nil)
+sol::table LaraObject::GetSkin(sol::this_state s)
+{
+	sol::state_view lua(s);
+	auto* lara = GetLaraInfo(_moveable);
+
+	return lua.create_table_with(
+		lara->Skin.Skin,
+		lara->Skin.SkinJoints,
+		lara->Skin.SkinScream,
+		lara->Skin.HairPrimary,
+		lara->Skin.HairSecondary
+	);
+}
+
 /// Swap the player's skin, skin joints, and hair objects.
 // Only available in classic (non-GPU) skinning mode. Pass 0 or nil for any parameter to leave it unchanged.
 // The provided object IDs must correspond to objects loaded in the current level.
@@ -982,6 +1001,7 @@ void LaraObject::Register(sol::table& parent)
 		ScriptReserved_GetWaterStatus, & LaraObject::GetWaterStatus,
 		ScriptReserved_GetWaterSkinStatus, & LaraObject::GetWaterSkinStatus,
 		ScriptReserved_SetWaterSkinStatus, & LaraObject::SetWaterSkinStatus,
+		ScriptReserved_GetSkin, & LaraObject::GetSkin,
 		ScriptReserved_SetSkin, &LaraObject::SetSkin,
 		ScriptReserved_PlayerInteract, &LaraObject::Interact,
 		ScriptReserved_PlayerTestInteraction, &LaraObject::TestInteraction,
