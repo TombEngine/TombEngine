@@ -2425,6 +2425,14 @@ namespace TEN::Gui
 					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[3].c_str());
 					n++;
 				}
+
+				// Promote Use or Equip to the first slot and keep all other options in their original order.
+				auto optionsEnd = std::begin(CurrentOptions) + n;
+				auto primaryOption = std::find_if(std::begin(CurrentOptions), optionsEnd,
+					[](const auto& option) { return option.Type == MenuType::Use || option.Type == MenuType::Equip; });
+
+				if (primaryOption != optionsEnd)
+					std::rotate(std::begin(CurrentOptions), primaryOption, primaryOption + 1);
 			}
 			else
 			{
