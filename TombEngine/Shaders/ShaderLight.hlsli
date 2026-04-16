@@ -342,7 +342,7 @@ float4 DoFogBulbsForVertex(float3 pos)
 	for (int i = 0; i < NumFogBulbs; i++)
 	{
 		float fogFactor = DoFogBulb(pos, FogBulbs[i]);
-		float3 fogColor = FogBulbs[i].Color.xyz * fogFactor;
+		float3 fogColor = ModulateColor(FogBulbs[i].Color.xyz) * fogFactor;
 
 		fog.xyz += fogColor;
 		fog.w += fogFactor;
@@ -360,7 +360,7 @@ float4 DoFogBulbsForSky(float3 pos)
 	for (int i = 0; i < NumFogBulbs; i++)
 	{
 		float fogFactor = DoFogBulbForSky(pos, FogBulbs[i]);
-		float3 fogColor = FogBulbs[i].Color.xyz * fogFactor;
+		float3 fogColor = ModulateColor(FogBulbs[i].Color.xyz) * fogFactor;
 
 		fog.xyz += fogColor;
 		fog.w += fogFactor;
