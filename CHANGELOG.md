@@ -7,6 +7,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Bug fixes
 * Fixed empty inventory screen after exiting examine mode.
+* Fixed USE not being first in the inventory if multiple itemActions have been allocated.
 
 ### Lua API changes
 * Fixed incorrect error message when using `Moveable:SetFrame` with a frame number equal to the end frame.
