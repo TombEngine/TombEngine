@@ -39,6 +39,7 @@ namespace TEN::Effects::WaterfallEmitter
     constexpr auto WATERFALL_SPLASH_SPRITE_ID = 0;
     constexpr auto WATERFALL_STREAM_1_SPRITE_ID = 1;
     constexpr auto WATERFALL_STREAM_2_SPRITE_ID = 2;
+    constexpr auto WATERFALL_COLOR_SCALE = 6.0f;
 
     void InitializeWaterfall(short itemNumber)
     {
@@ -81,7 +82,7 @@ namespace TEN::Effects::WaterfallEmitter
         float waterfallWidth = std::max(CLICK(float(item.TriggerFlags)), WATERFALL_DEFAULT_WIDTH);
         auto vel = item.Pose.Orientation.ToDirection() * BLOCK(customVel);
 
-        auto startColor = (item.Model.Color / 4) * UCHAR_MAX;
+        auto startColor = (item.Model.Color / WATERFALL_COLOR_SCALE) * UCHAR_MAX;
 
         auto lastOffset = Vector3(FLT_MAX);
         auto lastTargetPos = Vector3::Zero;
