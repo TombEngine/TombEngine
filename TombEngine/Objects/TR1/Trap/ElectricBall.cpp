@@ -120,16 +120,6 @@ namespace TEN::Entities::Traps
 		smoke.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF;
 	}
 
-	auto chargeChannel = [](float value, float step)
-		{
-			constexpr auto OVERBRIGHT_MAX = 8.0f;
-
-			float normalizedValue = std::clamp(value / OVERBRIGHT_MAX, 0.0f, 1.0f);
-			normalizedValue = std::min(normalizedValue + (step / OVERBRIGHT_MAX), 1.0f);
-
-			return normalizedValue * OVERBRIGHT_MAX;
-		};
-
 	void InitializeElectricBall(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
@@ -197,6 +187,16 @@ namespace TEN::Entities::Traps
 	{
 		constexpr auto SPAWN_RADIUS		 = BLOCK(0.30f);
 		constexpr auto RAYGUN_SMOKE_LIFE = 16.0f;
+
+		auto chargeChannel = [](float value, float step)
+		{
+			constexpr auto OVERBRIGHT_MAX = 8.0f;
+
+			float normalizedValue = std::clamp(value / OVERBRIGHT_MAX, 0.0f, 1.0f);
+			normalizedValue = std::min(normalizedValue + (step / OVERBRIGHT_MAX), 1.0f);
+
+			return normalizedValue * OVERBRIGHT_MAX;
+		};
 
 		auto offset = Vector3::Zero;
 		auto origin = GameVector(GetJointPosition(&item, bite), item.RoomNumber);
