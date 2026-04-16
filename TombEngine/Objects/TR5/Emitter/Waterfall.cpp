@@ -39,7 +39,7 @@ namespace TEN::Effects::WaterfallEmitter
     constexpr auto WATERFALL_SPLASH_SPRITE_ID = 0;
     constexpr auto WATERFALL_STREAM_1_SPRITE_ID = 1;
     constexpr auto WATERFALL_STREAM_2_SPRITE_ID = 2;
-    constexpr auto WATERFALL_COLOR_SCALE = 6.0f;
+    constexpr auto WATERFALL_COLOR_SCALE = 8;
 
     void InitializeWaterfall(short itemNumber)
     {
