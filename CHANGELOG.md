@@ -7,7 +7,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Bug fixes
 * Fixed empty inventory screen after exiting examine mode.
-* Fixed USE not being first in the inventory if multiple itemActions have been allocated.
+* Fixed USE not being first in the inventory if multiple item actions have been allocated.
+* Fixed regular spark sprite distance while moving with flare in hand.
 
 ### Lua API changes
 * Fixed incorrect error message when using `Moveable:SetFrame` with a frame number equal to the end frame.

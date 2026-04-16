@@ -77,7 +77,12 @@ void TriggerChaffEffects(ItemInfo& item, const Vector3i& pos, const Vector3i& ve
 		const auto& settings = g_GameFlow->GetSettings()->Flare;
 
 		if (settings.Sparks)
-			TriggerChaffSparkles(pos, vel, settings.Color, age, item);
+		{
+			auto sparkPos = pos;
+			if (item.IsLara())
+				sparkPos -= item.Pose.Orientation.ToDirection() * Random::GenerateFloat(0, speed);
+			TriggerChaffSparkles(sparkPos, vel, settings.Color, age, item);
+		}
 
 		if (!settings.Smoke)
 			continue;
