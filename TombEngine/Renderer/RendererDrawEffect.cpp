@@ -417,8 +417,8 @@ namespace TEN::Renderer
 	{
 		for (const auto& fire : Fires)
 		{
-			auto oldFade = fire.PrevFade == 1 ? 1.0f : (float)(255 - fire.PrevFade) / 255.0f;
-			auto fade = fire.fade == 1 ? 1.0f : (float)(255 - fire.fade) / 255.0f;
+			auto oldFade = fire.PrevFade == 1 ? 1.0f : (float)(UCHAR_MAX - fire.PrevFade) / (float)UCHAR_MAX;
+			auto fade = fire.fade == 1 ? 1.0f : (float)(UCHAR_MAX - fire.fade) / (float)UCHAR_MAX;
 			fade = Lerp(oldFade, fade, GetInterpolationFactor());
 
 			for (int i = 0; i < MAX_SPARKS_FIRE; i++) 
@@ -429,14 +429,14 @@ namespace TEN::Renderer
 					// Calculate original flame color.
 					auto color = Vector4::Lerp(
 						Vector4(
-							spark->PrevColor.x / 255.0f * fade,
-							spark->PrevColor.y / 255.0f * fade,
-							spark->PrevColor.z / 255.0f * fade,
+							spark->PrevColor.x / (float)UCHAR_MAX * fade,
+							spark->PrevColor.y / (float)UCHAR_MAX * fade,
+							spark->PrevColor.z / (float)UCHAR_MAX * fade,
 							1.0f),
 						Vector4(
-							spark->color.x / 255.0f * fade,
-							spark->color.y / 255.0f * fade,
-							spark->color.z / 255.0f * fade,
+							spark->color.x / (float)UCHAR_MAX * fade,
+							spark->color.y / (float)UCHAR_MAX * fade,
+							spark->color.z / (float)UCHAR_MAX * fade,
 							1.0f),
 						GetInterpolationFactor());
 

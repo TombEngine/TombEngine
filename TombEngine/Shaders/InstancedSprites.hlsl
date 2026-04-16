@@ -102,7 +102,7 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 	}
 
 	float4 rawOutput = Texture.Sample(Sampler, input.UV) * input.Color;
-	output = float4(ModulateColor(rawOutput.rgb), rawOutput.a);
+	output = float4(rawOutput.rgb * Brightness, rawOutput.a);
 	
     if (sprite.RenderType == 1)
     {
