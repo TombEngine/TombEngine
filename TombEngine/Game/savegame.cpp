@@ -57,6 +57,7 @@ using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
 using namespace TEN::Renderer;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 using namespace TEN::Video;
 
@@ -1307,10 +1308,10 @@ const std::vector<byte> SaveGame::Build()
 
 	// Flyby cameras
 	std::vector<flatbuffers::Offset<Save::FlyByCamera>> flybyCameras;
-	for (int i = 0; i < (int)SpotCam.size(); i++)
+	for (int i = 0; i < (int)g_Level.SpotCams.size(); i++)
 	{
 		Save::FlyByCameraBuilder flyby{ fbb };
-		flyby.add_flags(SpotCam[i].flags);
+		flyby.add_flags(g_Level.SpotCams[i].Flags);
 		flybyCameras.push_back(flyby.Finish());
 	}
 	auto flybyCamerasOffset = fbb.CreateVector(flybyCameras);
@@ -2742,8 +2743,8 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	// Flyby cameras 
 	for (int i = 0; i < s->flyby_cameras()->size(); i++)
 	{
-		if (i < (int)SpotCam.size())
-			SpotCam[i].flags = s->flyby_cameras()->Get(i)->flags();
+		if (i < (int)g_Level.SpotCams.size())
+			g_Level.SpotCams[i].Flags = s->flyby_cameras()->Get(i)->flags();
 	}
 
 	// Items
