@@ -79,6 +79,8 @@ public:
 
 	virtual void GetVariables(std::vector<SavedVar>& vars) = 0;
 	virtual void SetVariables(const std::vector<SavedVar>& vars, bool onlyLevelVars) = 0;
+	virtual void GetGlobalVariables(std::vector<SavedVar>& vars) = 0;
+	virtual void SetGlobalVariables(const std::vector<SavedVar>& vars) = 0;
 
 	virtual void GetCallbackStrings(CallbackStringLists& callbackLists) const = 0;
 	virtual void SetCallbackStrings(const CallbackStringLists& callbackLists) = 0;

@@ -77,6 +77,10 @@ private:
 
 	void ResetLevelTables();
 	void ResetGameTables();
+	void ResetGlobalTables();
+
+	void SerializeScriptTable(const sol::table& tab, std::vector<SavedVar>& vars);
+	std::unordered_map<unsigned int, sol::table> DeserializeScriptVars(const std::vector<SavedVar>& vars);
 
 public:	
 	LogicHandler(sol::state* lua, sol::table& parent);
@@ -175,6 +179,8 @@ public:
 
 	void GetVariables(std::vector<SavedVar>& vars) override;
 	void SetVariables(const std::vector<SavedVar>& vars, bool onlyLevelVars) override;
+	void GetGlobalVariables(std::vector<SavedVar>& vars) override;
+	void SetGlobalVariables(const std::vector<SavedVar>& vars) override;
 	void ResetVariables();
 
 	void SetCallbackStrings(const CallbackStringLists& callbackLists) override;

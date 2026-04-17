@@ -25,11 +25,13 @@
 #include "Objects/TR3/Vehicles/kayak.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/level.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Switches;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 
 int TriggerTimer;
@@ -431,7 +433,6 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 	int flip = NO_VALUE;
 	int newEffect = NO_VALUE;
 	int keyResult = 0;
-	int spotCamIndex = 0;
 
 	auto data = GetTriggerIndex(floor, x, y, z);
 
@@ -696,28 +697,24 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 			if (triggerType == TRIGGER_TYPES::ANTIPAD ||
 				triggerType == TRIGGER_TYPES::ANTITRIGGER ||
 				triggerType == TRIGGER_TYPES::HEAVYANTITRIGGER)
-				UseSpotCam = false;
-			else
 			{
-				spotCamIndex = 0;
-				if (SpotCamRemap[value] != 0)
-				{
-					for (int i = 0; i < SpotCamRemap[value]; i++)
-					{
-						spotCamIndex += CameraCnt[i];
-					}
-				}
+				UseSpotCam = false;
+			}
+			else if (HasSpotCamSequence(value))
+			{
+				int spotCamIndex = GetSequenceFirstCameraIndex(value);
 
-				if (!(SpotCam[spotCamIndex].flags & SCF_CAMERA_ONE_SHOT))
+				if (spotCamIndex != NO_VALUE && !(g_Level.SpotCams[spotCamIndex].Flags & SCF_CAMERA_ONE_SHOT))
 				{
 					if (trigger & ONESHOT)
-						SpotCam[spotCamIndex].flags |= SCF_CAMERA_ONE_SHOT;
+						g_Level.SpotCams[spotCamIndex].Flags |= SCF_CAMERA_ONE_SHOT;
 
 					if (!UseSpotCam || CurrentLevel == 0)
 					{
 						UseSpotCam = true;
 						if (LastSpotCamSequence != value)
 							TrackCameraInit = false;
+
 						InitializeSpotCam(value);
 					}
 				}
