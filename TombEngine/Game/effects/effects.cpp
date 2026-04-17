@@ -2053,10 +2053,12 @@ void SpawnPlayerWaterSurfaceEffects(const ItemInfo& item, int waterHeight, int w
 
 FXInfo& GetFXInfo(ItemInfo& fx)
 {
-	return (FXInfo&)(fx.Data);
+	TENAssert(fx.Data.is<FXInfo>(), "GetFXInfo called on item without FXInfo data.");
+	return static_cast<FXInfo&>(fx.Data);
 }
 
 const FXInfo& GetFXInfo(const ItemInfo& fx)
 {
-	return (FXInfo&)(fx.Data);
+	TENAssert(fx.Data.is<FXInfo>(), "GetFXInfo called on item without FXInfo data.");
+	return static_cast<FXInfo&>(const_cast<ItemData&>(fx.Data));
 }

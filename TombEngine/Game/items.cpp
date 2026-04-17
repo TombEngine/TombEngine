@@ -525,7 +525,7 @@ void InitializeItemArray(int totalItem)
 	g_Level.Items.resize(totalItem);
 	
 	ActiveItems.clear();
-	ActiveItems.reserve(256);
+	ActiveItems.reserve(totalItem);
 
 	for (int i = 0; i < totalItem; i++)
 		g_Level.Items[i].Index = i;
