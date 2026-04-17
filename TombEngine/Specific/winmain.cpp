@@ -654,6 +654,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		g_GameScript->ShortenTENCalls();
 		g_GameFlow->SetGameDir(gameDir);
 		g_GameFlow->LoadFlowScript();
+
+		// Load global variables from external file.
+		SaveGame::LoadGlobalVars();
 	}
 	catch (TENScriptException const& e)
 	{

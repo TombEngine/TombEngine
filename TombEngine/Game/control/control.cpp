@@ -74,6 +74,7 @@ using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Explosion;
+using namespace TEN::Effects::Fireflies;
 using namespace TEN::Effects::Footprint;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Effects::Ripple;
@@ -82,6 +83,7 @@ using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Splash;
 using namespace TEN::Effects::Streamer;
 using namespace TEN::Entities::Creatures::TR3;
+using namespace TEN::Entities::Effects;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::Traps;
@@ -92,9 +94,7 @@ using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
 using namespace TEN::Renderer;
-using namespace TEN::Entities::Creatures::TR3;
-using namespace TEN::Entities::Effects;
-using namespace TEN::Effects::Fireflies;
+using namespace TEN::SpotCam;
 using namespace TEN::Video;
 
 constexpr auto DEATH_NO_INPUT_TIMEOUT = 10 * FPS;
@@ -639,6 +639,9 @@ void DeInitializeScripting(int levelIndex, GameStatus reason)
 	// If level index is 0, it means we are in a title level and game variables should be cleared.
 	if (levelIndex == 0)
 		g_GameScript->ResetScripts(true);
+
+	// Always save global variables on any script deinit event.
+	SaveGame::SaveGlobalVars();
 }
 
 void InitializeOrLoadGame(bool loadGame)
