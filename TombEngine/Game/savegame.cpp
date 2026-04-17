@@ -3218,7 +3218,7 @@ bool SaveGame::LoadGlobalVars()
 		auto file = std::ifstream();
 		file.open(filename, std::ios_base::binary | std::ios_base::ate);
 
-		if (!file.is_open())
+		if (!file.is_open() || !file.good())
 		{
 			TENLog("Failed to open global variables file.", LogLevel::Error);
 			return false;
