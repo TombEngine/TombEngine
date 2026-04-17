@@ -5,6 +5,7 @@
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/room.h"
+#include "Game/spotcam.h"
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
 #include "Specific/IO/ChunkId.h"
@@ -16,6 +17,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Control::Volumes;
+using namespace TEN::SpotCam;
 
 struct ChunkId;
 struct LEB128;
@@ -155,6 +157,7 @@ struct LevelData
 	// Misc.
 
 	std::vector<LevelCameraInfo> Cameras   = {};
+	std::vector<SpotCamInfo>	 SpotCams  = {};
 	std::vector<EventSet>		 GlobalEventSets = {};
 	std::vector<EventSet>		 VolumeEventSets = {};
 	std::vector<int>			 LoopedEventSetIndices = {};

@@ -89,6 +89,29 @@ namespace TEN::Math
 		return EaseInOutSine(0.0f, 1.0f, alpha);
 	}
 
+	float Spline(float alpha, const float* knots, int knotCount)
+	{
+		if (!knots || knotCount < 4)
+			return 0.0f;
+
+		alpha = std::clamp(alpha, 0.0f, 1.0f);
+
+		int segmentCount = knotCount - 3;
+
+		int segmentIndex = (int)(alpha * segmentCount);
+		segmentIndex = std::min(segmentIndex, segmentCount - 1);
+
+		const float* knot = &knots[segmentIndex];
+		float segmentPos = alpha * segmentCount - (float)segmentIndex;
+
+		float cCube   = (-knot[0] + 3.0f * knot[1] - 3.0f * knot[2] + knot[3]) * 0.5f;
+		float cQuad   = knot[0] - 2.5f * knot[1] + 2.0f * knot[2] - 0.5f * knot[3];
+		float cLinear = (knot[2] - knot[0]) * 0.5f;
+		float cConst  = knot[1];
+
+		return segmentPos * (segmentPos * (segmentPos * cCube + cQuad) + cLinear) + cConst;
+	}
+
 	float Luma(const Vector3& color)
 	{
 		constexpr auto RED_COEFF   = 0.2126f;
