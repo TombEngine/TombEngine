@@ -2014,14 +2014,14 @@ namespace TEN::Renderer
 		// SMAA: RT -> ..., ... -> RT
 		ApplyAntialiasing(&_renderTarget, view);
 
+		// Now we can apply the color grade, lens flare, cinematic bars and post process effects
+		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT
+		DrawPostprocess(renderTarget, view, renderMode);
+
 		// Draw text and 2D HUD
 		ClearDrawPhaseDisplaySprites();
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
 			g_Hud.Draw2D(*LaraItem);
-
-		// Now we can apply the color grade, lens flare, cinematic bars and post process effects
-		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT
-		DrawPostprocess(renderTarget, view, renderMode);
 
 		_doingFullscreenPass = false;
 
