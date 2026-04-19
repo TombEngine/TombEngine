@@ -106,9 +106,7 @@ float4 PSFinalPass(PixelShaderInput input) : SV_TARGET
         output.w = 1.0f;
     }
 
-	// Don't use ModulateColor here to avoid double brightness multiplication.
-	output.xyz = saturate(output.xyz * Tint * GAMMA_MULTIPLIER);
-
+	output.xyz = saturate(ModulateColor(output.xyz * Tint) * Brightness);
     return output;
 }
 

@@ -8,7 +8,7 @@
 
 float3 ModulateColor(float3 color)
 {
-    return (color * Brightness * GAMMA_MULTIPLIER);
+    return (color * GAMMA_MULTIPLIER);
 }
 
 static float RoughnessToExpMul(float roughness)
