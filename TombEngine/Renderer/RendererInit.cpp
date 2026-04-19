@@ -350,7 +350,7 @@ namespace TEN::Renderer
 		quadVertices[3].UV = Vector2(1, 0);
 		quadVertices[3].Color = VectorColorToRGBA(NEUTRAL_COLOR);
 		quadVertices[3].Effects = 1 << INDEX_IN_POLY_VERTEX_SHIFT;
-		
+
 		//Bottom Right
 		quadVertices[2].Position = Vector3(0.5, -0.5, 0);
 		normal = Vector3(1, -1, 1);

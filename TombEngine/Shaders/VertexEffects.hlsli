@@ -57,8 +57,6 @@ float3 Glow(float3 color, uint effect, float wibble)
     float glow = DecodeGlow(effect);
 
     float shouldGlow = step(0.0f, glow);
-    // Halved to compensate for the ModulateColor (× 2) applied in the pixel shader;
-    // otherwise glow intensity would be doubled relative to the base color range.
     float intensity = glow * lerp(-0.5f, 1.0f, wibble * 0.5f + 0.5f) * 0.5f;
     float3 glowEffect = float3(intensity, intensity, intensity) * shouldGlow;
 
