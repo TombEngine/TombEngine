@@ -85,8 +85,6 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     l.Intensity = 0.3f;
     l.Type = LT_SUN;
     l.Direction = normalize(float3(-1.0f, -0.707f, -0.5f));
-
-    // Modulate light color (PSX-style ×2 modulation)
     l.Color.xyz = ModulateColor(AmbientLight.xyz);
 
     float3 lighting = DoDirectionalLight(pos, normal, l);
@@ -99,5 +97,6 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     
     output.Emissive = float4(emissive, 1.0f);
 	
+	output.Color.xyz = GammaCorrection(output.Color.xyz);
     return output;
 }

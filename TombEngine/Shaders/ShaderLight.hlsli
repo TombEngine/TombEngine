@@ -11,6 +11,11 @@ float3 ModulateColor(float3 color)
     return (color * COLOR_MODULATION_SCALE);
 }
 
+float3 GammaCorrection(float3 color)
+{
+	return saturate(pow(color, 1.0f / Gamma));
+}
+
 static float RoughnessToExpMul(float roughness)
 {
     float r = saturate(roughness);
