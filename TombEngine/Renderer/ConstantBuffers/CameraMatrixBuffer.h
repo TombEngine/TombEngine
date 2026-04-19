@@ -47,7 +47,7 @@ namespace TEN::Renderer::ConstantBuffers
 		int RefreshRate;
 		int NumFogBulbs;
 		float InterpolatedFrame;
-		float Brightness;
+		float Gamma;
 		//--
 		ShaderFogBulb FogBulbs[MAX_FOG_BULBS_DRAW];
 	};

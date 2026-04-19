@@ -106,7 +106,7 @@ float4 PSFinalPass(PixelShaderInput input) : SV_TARGET
         output.w = 1.0f;
     }
 
-	output.xyz = pow(saturate(ModulateColor(output.xyz * Tint)), 1.0f / Brightness);
+	output.xyz = pow(saturate(ModulateColor(output.xyz * Tint)), 1.0f / Gamma);
     return output;
 }
 

@@ -78,7 +78,7 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 
 float4 PS(PixelShaderInput input) : SV_TARGET
 {
-    float4 output = Texture.Sample(Sampler, input.UV) * input.Color * Brightness;
+    float4 output = Texture.Sample(Sampler, input.UV) * input.Color;
 
     InstancedSprite sprite = Sprites[input.InstanceID];
 	

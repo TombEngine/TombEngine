@@ -1905,14 +1905,14 @@ namespace TEN::Renderer
 		ResetScissor();
 
 		// Camera constant buffer contains matrices, camera position, fog values, and other things shared for all shaders.
-		CCameraMatrixBuffer cameraConstantBuffer;
+		auto cameraConstantBuffer = CCameraMatrixBuffer{};
 		view.FillConstantBuffer(cameraConstantBuffer);
 		cameraConstantBuffer.Frame = GlobalCounter;
 		cameraConstantBuffer.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
 		cameraConstantBuffer.RefreshRate = _refreshRate;
 		cameraConstantBuffer.CameraUnderwater = g_Level.Rooms[cameraConstantBuffer.RoomNumber].flags & ENV_FLAG_WATER;
 		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(_gameCamera.Camera.WorldPosition, _gameCamera.Camera.WorldPosition + Vector3(0, -1024, 0), Vector3::UnitX);
-		cameraConstantBuffer.Brightness = g_Configuration.Gamma;
+		cameraConstantBuffer.Gamma = g_Configuration.Gamma;
 
 		if (level.GetFogMaxDistance() > 0)
 		{
@@ -2095,7 +2095,7 @@ namespace TEN::Renderer
 
 		auto view = RenderView(&Camera, 0, PI / 2.0f, 32, DEFAULT_FAR_VIEW, ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE);
 
-		CCameraMatrixBuffer cameraConstantBuffer;
+		auto cameraConstantBuffer = CCameraMatrixBuffer{};
 		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(position, position + Vector3(0, 0, 1024), -Vector3::UnitY);
 		cameraConstantBuffer.Hemisphere = hemisphere;
 		view.FillConstantBuffer(cameraConstantBuffer);
@@ -3020,7 +3020,7 @@ namespace TEN::Renderer
 
 		auto view = RenderView(_gameCamera.Camera.WorldPosition, Vector3::UnitX, Vector3::UnitY, ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, 0, 32, DEFAULT_FAR_VIEW, PI / 2.0f);
 
-		CCameraMatrixBuffer cameraConstantBuffer;
+		auto cameraConstantBuffer = CCameraMatrixBuffer{};
 		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(_gameCamera.Camera.WorldPosition, _gameCamera.Camera.WorldPosition + Vector3(0, -1024, 0), Vector3::UnitX);
 		cameraConstantBuffer.Hemisphere = -1;
 		cameraConstantBuffer.Frame = GlobalCounter;
