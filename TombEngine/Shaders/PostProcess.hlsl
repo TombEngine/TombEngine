@@ -2,6 +2,7 @@
 #include "./CBCamera.hlsli"
 #include "./Materials.hlsli"
 #include "./Math.hlsli"
+#include "./ShaderLight.hlsli"
 
 #define MAX_BLUR_RADIUS 100
 #define USE_FAST_BILINEAR_BLUR 1
@@ -105,7 +106,8 @@ float4 PSFinalPass(PixelShaderInput input) : SV_TARGET
         output.w = 1.0f;
     }
 
-	output.xyz = output.xyz * Tint;
+	// Don't use ModulateColor here to avoid double brightness multiplication.
+	output.xyz = saturate(output.xyz * Tint * GAMMA_MULTIPLIER);
 
     return output;
 }

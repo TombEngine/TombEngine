@@ -191,7 +191,7 @@ bool SaveConfiguration()
 		SetDWORDRegKey(graphicsKey, REGKEY_ANTIALIASING_MODE, (DWORD)g_Configuration.AntialiasingMode) != ERROR_SUCCESS ||
 		SetBoolRegKey(graphicsKey, REGKEY_AMBIENT_OCCLUSION, g_Configuration.EnableAmbientOcclusion) != ERROR_SUCCESS ||
 		SetBoolRegKey(graphicsKey, REGKEY_HIGH_FRAMERATE, g_Configuration.EnableHighFramerate) != ERROR_SUCCESS ||
-		SetDWORDRegKey(graphicsKey, REGKEY_GAMMA, (int)(g_Configuration.Gamma * 10.0f)) != ERROR_SUCCESS)
+		SetDWORDRegKey(graphicsKey, REGKEY_GAMMA, (int)(RoundToStep(g_Configuration.Gamma, 0.1f) * 10.0f)) != ERROR_SUCCESS)
 	{
 		RegCloseKey(rootKey);
 		RegCloseKey(graphicsKey);
@@ -534,7 +534,7 @@ bool LoadConfiguration()
 	g_Configuration.ShadowMapSize = shadowMapSize;
 	g_Configuration.EnableAmbientOcclusion = enableAmbientOcclusion;
 	g_Configuration.EnableHighFramerate = enableHighFramerate;
-	g_Configuration.Gamma = (float)std::clamp(gammaCorrection / 10.0f, GAMMA_MIN, GAMMA_MAX);
+	g_Configuration.Gamma = std::clamp(RoundToStep((float)gammaCorrection / 10.0f, 0.1f), GAMMA_MIN, GAMMA_MAX);
 
 	g_Configuration.EnableSound = enableSound;
 	g_Configuration.EnableReverb = enableReverb;

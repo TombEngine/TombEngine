@@ -4,9 +4,11 @@
 #include "./CBCamera.hlsli"
 #include "./Math.hlsli"
 
+#define GAMMA_MULTIPLIER 2.0f
+
 float3 ModulateColor(float3 color)
 {
-    return (color * Brightness * 2.0f);
+    return (color * Brightness * GAMMA_MULTIPLIER);
 }
 
 static float RoughnessToExpMul(float roughness)
