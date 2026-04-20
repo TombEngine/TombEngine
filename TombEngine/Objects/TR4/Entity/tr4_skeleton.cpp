@@ -159,7 +159,7 @@ namespace TEN::Entities::TR4
 		fx->fallspeed = -(GetRandomControl() / 1024);
 		fx->frameNumber = Objects[103].meshIndex;
 		fx->objectNumber = ID_BODY_PART;
-		fx->color = Vector4::One;
+		fx->color = NEUTRAL_COLOR;
 		fx->flag2 = 0x601;
 
 		auto* spark = GetFreeParticle();
