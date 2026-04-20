@@ -4,7 +4,6 @@
 
 #include "Renderer/Native/DirectX11/DX11ErrorHelper.h"
 
-#include <codecvt>
 #include <iomanip>
 #include <locale>
 #include <sstream>
@@ -112,16 +111,6 @@ namespace TEN::Renderer::Native::DirectX11
 		if (FAILED(res))
 		{
 			std::string message = info + std::system_category().message(res);
-			TENLog(message, LogLevel::Error);
-			throw std::runtime_error("An error occured!");
-		}
-	}
-
-	void throwIfFailed(const HRESULT& res, const std::wstring& info)
-	{
-		if (FAILED(res))
-		{
-			std::string message = (std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>{}.to_bytes(info)) + std::system_category().message(res);
 			TENLog(message, LogLevel::Error);
 			throw std::runtime_error("An error occured!");
 		}

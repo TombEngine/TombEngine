@@ -14,7 +14,7 @@ namespace TEN::Video
 	VideoHandler g_VideoPlayer = {};
 
 	static const std::string			  VIDEO_PATH	   = "FMV/";
-	static const std::wstring			  VIDEO_PLUGIN_CACHE_PATH = L"plugins/plugins.dat";
+	static const std::string			  VIDEO_PLUGIN_CACHE_PATH = "plugins/plugins.dat";
 	static const std::vector<std::string> VIDEO_EXTENSIONS = { ".mp4", ".avi", ".mkv", ".mov" };
 
 	int VideoHandler::GetPosition() const

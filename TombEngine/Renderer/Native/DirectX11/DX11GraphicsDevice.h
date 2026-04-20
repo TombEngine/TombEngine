@@ -121,7 +121,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) override;
 
-		std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::wstring name) override;
+		std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::string name) override;
 		void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data) override;
 		void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) override;
 
@@ -161,13 +161,13 @@ namespace TEN::Renderer::Native::DirectX11
 		void Present() override;
 		void ClearState() override;
 
-		std::unique_ptr<ISpriteFont> InitializeSpriteFont(std::wstring fontPath) override;
+		std::unique_ptr<ISpriteFont> InitializeSpriteFont(std::string fontPath) override;
 		std::unique_ptr<ISpriteBatch> InitializeSpriteBatch() override;
 		std::unique_ptr<IPrimitiveBatch> InitializePrimitiveBatch() override;
 
 		Vector3 Unproject(Vector3 position, Matrix projection, Matrix view, Matrix world) override;
 
-		void SaveScreenshot(IRenderTarget2D* renderTarget, std::wstring path) override;
+		void SaveScreenshot(IRenderTarget2D* renderTarget, std::string path) override;
 
 		void Flush() override;
 		void UnbindAllRenderTargets() override;

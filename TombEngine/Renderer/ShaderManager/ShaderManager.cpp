@@ -159,18 +159,17 @@ namespace TEN::Renderer::Utils
 	std::unique_ptr<IShader> ShaderManager::LoadOrCompile(const std::string& fileName, const std::string& funcName, ShaderType type, std::map<std::string, std::string> defines, bool forceRecompile)
 	{
 		// Define paths for native (uncompiled) shaders and compiled shaders.
-		auto shaderPath = GetAssetPath(L"Shaders/");
-		auto compiledShaderPath = shaderPath + L"Bin/" + ToWString(TEN_VERSION_STRING) + L"/";
-		auto wideFileName = ToWString(fileName);
+		auto shaderPath = GetAssetPath("Shaders/");
+		auto compiledShaderPath = shaderPath + "Bin/" + TEN_VERSION_STRING + "/";
 
 		// Ensure the /Bin subdirectory exists.
 		std::filesystem::create_directories(compiledShaderPath);
 
 		ShaderCompileRequest request;
 		request.BinaryDirectory = compiledShaderPath;
-		request.FileName = wideFileName;
+		request.FileName = fileName;
 		request.CompileIndex = _compileCounter;
-		request.EntryPoint = TEN::Utils::ToWString(funcName);
+		request.EntryPoint = funcName;
 		request.ForceRecompile = forceRecompile;
 		request.Macros = defines;
 		request.SourceDirectory = shaderPath;

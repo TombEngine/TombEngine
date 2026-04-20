@@ -356,17 +356,17 @@ namespace TEN::Renderer
 	void Renderer::InitializeCommonTextures()
 	{
 		// Initialize font.
-		auto fontPath = GetAssetPath(L"Textures/Font.spritefont");
+		auto fontPath = GetAssetPath("Textures/Font.spritefont");
 		if (!std::filesystem::is_regular_file(fontPath))
-			throw std::runtime_error("Font not found; path " + TEN::Utils::ToString(fontPath) + " is missing.");
-		     
+			throw std::runtime_error("Font not found; path " + fontPath + " is missing.");
+
 		_gameFont = _graphicsDevice->InitializeSpriteFont(fontPath);
 
 		// Initialize common textures.
-		_logo = SetTextureOrDefault(GetAssetPath(L"Textures/Logo.png"));
-		_loadingBarBorder = SetTextureOrDefault(GetAssetPath(L"Textures/LoadingBarBorder.png"));
-		_loadingBarInner = SetTextureOrDefault(GetAssetPath(L"Textures/LoadingBarInner.png"));
-		_whiteTexture = SetTextureOrDefault(GetAssetPath(L"Textures/WhiteSprite.png"));
+		_logo = SetTextureOrDefault(GetAssetPath("Textures/Logo.png"));
+		_loadingBarBorder = SetTextureOrDefault(GetAssetPath("Textures/LoadingBarBorder.png"));
+		_loadingBarInner = SetTextureOrDefault(GetAssetPath("Textures/LoadingBarInner.png"));
+		_whiteTexture = SetTextureOrDefault(GetAssetPath("Textures/WhiteSprite.png"));
 
 		_whiteSprite.Height = _whiteTexture->GetHeight();
 		_whiteSprite.Width = _whiteTexture->GetWidth();
