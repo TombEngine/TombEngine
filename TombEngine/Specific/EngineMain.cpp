@@ -352,6 +352,9 @@ int main(int argc, char* argv[])
 		g_GameScript->ShortenTENCalls();
 		g_GameFlow->SetGameDir(GameDirectory);
 		g_GameFlow->LoadFlowScript();
+
+		// Load global variables from external file.
+		SaveGame::LoadGlobalVars();
 	}
 	catch (TENScriptException const& ex)
 	{

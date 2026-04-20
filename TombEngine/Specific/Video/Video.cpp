@@ -172,7 +172,7 @@ namespace TEN::Video
 
 		std::vector<const char*> vlcArgs;
 		vlcArgs.push_back("--vout=vdummy");		 // Use dummy video output (headless); --vout=none breaks VLC 4.0 decoder device.
-		vlcArgs.push_back("--aout=amem");		 // Route audio to memory callbacks (BASS) instead of system output.
+		vlcArgs.push_back("--aout=adummy");		 // Default to silent; libvlc_audio_set_callbacks overrides to amem per-player when audio is needed.
 		vlcArgs.push_back("--no-video-title");	 // Disable video title display.
 		vlcArgs.push_back("--no-media-library"); // Disable media library to increase loading speed.
 
@@ -285,10 +285,6 @@ namespace TEN::Video
 			TENLog("Failed to create media from path: " + _fileName, LogLevel::Error);
 			return false;
 		}
-
-		// Disable audio decoding entirely when playing in silent mode.
-		if (_silent)
-			libvlc_media_add_option(media, ":no-audio");
 
 		// VLC requires to initialize media. Load into player and release right away.
 		_player = libvlc_media_player_new_from_media(_vlcInstance, media);

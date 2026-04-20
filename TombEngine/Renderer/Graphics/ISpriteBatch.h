@@ -13,7 +13,6 @@ namespace TEN::Renderer::Graphics
     public:
         virtual ~ISpriteBatch() = default;
 
-        virtual void Begin() = 0;
         virtual void Begin(SpriteSortingMode sortingMode, BlendMode blendMode) = 0;
         virtual void End() = 0;
         virtual void Draw(ITextureBase* texture, RendererRectangle area, Vector4 color) = 0;

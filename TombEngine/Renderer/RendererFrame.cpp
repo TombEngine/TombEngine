@@ -23,6 +23,7 @@ using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Entities::Effects;
 using namespace TEN::Math;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 
 namespace TEN::Renderer

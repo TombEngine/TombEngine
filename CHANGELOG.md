@@ -3,6 +3,17 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
+## [Version 2.0]
+
+### New features
+* Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
+
+### Bug fixes
+* Fixed flyby camera jitter by converting the spline type to floating-point.
+
+### Lua API changes
+* Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
+
 ## [Version 1.11.1]
 
 ### Bug fixes

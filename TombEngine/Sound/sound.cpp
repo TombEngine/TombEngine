@@ -715,6 +715,9 @@ static void CALLBACK Sound_FinishOneshotTrack(HSYNC handle, DWORD channel, DWORD
 
 void Sound_VideoPlayCallback(void* data, const void* samples, unsigned count, int64_t pts)
 {
+	if (!g_Configuration.EnableSound)
+		return;
+
 	if (!BASS_ChannelIsActive(BASS_Video))
 	{
 		BASS_ChannelPlay(BASS_Video, false);
@@ -1176,10 +1179,13 @@ void Sound_Reset()
 	}
 
 	// BASS_3D_Mixdown uses STREAMPROC_DEVICE_3D which is bound to the device it was
-	// created on. Free the old streams and recreate them on the new device.
-	BASS_StreamFree(BASS_3D_Mixdown);
-	BASS_StreamFree(BASS_Video);
+	// created on. Recreate streams on the new device before freeing the old ones,
+	// so BASS_Video is never an invalid handle (VLC callbacks may fire from another thread).
+	auto oldMixdown = BASS_3D_Mixdown;
+	auto oldVideo = BASS_Video;
 	Sound_CreateMixdownStreams();
+	BASS_StreamFree(oldMixdown);
+	BASS_StreamFree(oldVideo);
 
 	// Free previous device.
 	BASS_SetDevice(prevSoundDevice);

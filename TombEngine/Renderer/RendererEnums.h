@@ -106,7 +106,8 @@ enum class BlendMode
 	Screen = 9,
 	Lighten = 10,
 	AlphaBlend = 11,
-	FastAlphaBlend = 12
+	FastAlphaBlend = 12,
+	PremultipliedAlphaBlend = 13
 };
 
 enum class SkinningMode

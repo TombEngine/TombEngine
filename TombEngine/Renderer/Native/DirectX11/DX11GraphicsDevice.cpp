@@ -135,15 +135,16 @@ namespace TEN::Renderer::Native::DirectX11
 	{
 		switch (blendMode)
 		{
+		default:
+		case BlendMode::Opaque:
+			_context->OMSetBlendState(_renderStates->Opaque(), nullptr, 0xFFFFFFFF);
+			break;
+
 		case BlendMode::AlphaBlend:
 			_context->OMSetBlendState(_renderStates->NonPremultiplied(), nullptr, 0xFFFFFFFF);
 			break;
 
 		case BlendMode::AlphaTest:
-			_context->OMSetBlendState(_renderStates->Opaque(), nullptr, 0xFFFFFFFF);
-			break;
-
-		case BlendMode::Opaque:
 			_context->OMSetBlendState(_renderStates->Opaque(), nullptr, 0xFFFFFFFF);
 			break;
 
@@ -165,6 +166,10 @@ namespace TEN::Renderer::Native::DirectX11
 
 		case BlendMode::Exclude:
 			_context->OMSetBlendState(_excludeBlendState.Get(), nullptr, 0xFFFFFFFF);
+			break;
+
+		case BlendMode::PremultipliedAlphaBlend:
+			_context->OMSetBlendState(_renderStates->AlphaBlend(), nullptr, 0xFFFFFFFF);
 			break;
 		}
 	}

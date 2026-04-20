@@ -34,6 +34,7 @@ using TEN::Renderer::g_Renderer;
 
 using namespace TEN::Entities::Doors;
 using namespace TEN::Input;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 
 constexpr auto DUMMY_LEVEL_NAME = "dummy.ten";
@@ -605,10 +606,27 @@ void LoadCameras()
 	int numSpotcams = ReadCount();
 	TENLog("Flyby camera count: " + std::to_string(numSpotcams), LogLevel::Info);
 
-	// TODO: Read properly!
-	SpotCam.resize(numSpotcams);
-	if (numSpotcams != 0)
-		ReadBytes(SpotCam.data(), numSpotcams * sizeof(SPOTCAM));
+	g_Level.SpotCams.resize(numSpotcams);
+	for (int i = 0; i < numSpotcams; i++)
+	{
+		auto& cam = g_Level.SpotCams[i];
+		cam.Position.x = ReadInt32();
+		cam.Position.y = ReadInt32();
+		cam.Position.z = ReadInt32();
+		cam.Target.x   = ReadInt32();
+		cam.Target.y   = ReadInt32();
+		cam.Target.z   = ReadInt32();
+
+		cam.Sequence   = ReadInt32();
+		cam.Camera     = ReadInt32();
+
+		cam.FOV        = ReadInt16();
+		cam.Roll       = ReadInt16();
+		cam.Timer      = ReadInt16();
+		cam.Speed      = ReadInt16();
+		cam.Flags      = ReadInt16();
+		cam.RoomNumber = ReadInt32();
+	}
 
 	int sinkCount = ReadCount();
 	TENLog("Sink count: " + std::to_string(sinkCount), LogLevel::Info);
