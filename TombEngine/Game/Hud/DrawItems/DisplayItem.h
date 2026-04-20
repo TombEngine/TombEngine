@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Math/Constants.h"
 #include "Objects/game_object_ids.h"
 #include "Specific/Structures/BitField.h"
 
@@ -25,7 +26,7 @@ namespace TEN::Hud
 		Vector3                              _position         = Vector3::Zero;
 		EulerAngles                          _orientation      = EulerAngles::Identity;
 		Vector3                              _scale            = Vector3::Zero;
-		Color                                _color            = Vector4::One;
+		Color                                _color            = NEUTRAL_COLOR;
 		BitField                             _meshBits         = BitField::Default;
 		std::unordered_map<int, EulerAngles> _meshOrientations = {};
 
@@ -36,7 +37,7 @@ namespace TEN::Hud
 		Vector3                              _prevPosition         = Vector3::Zero;
 		EulerAngles                          _prevOrientation      = EulerAngles::Identity;
 		Vector3                              _prevScale            = Vector3::Zero;
-		Color                                _prevColor            = Vector4::One;
+		Color                                _prevColor            = NEUTRAL_COLOR;
 		std::unordered_map<int, EulerAngles> _prevMeshOrientations = {};
 
 	public:

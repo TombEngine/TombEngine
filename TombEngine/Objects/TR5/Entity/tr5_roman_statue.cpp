@@ -95,7 +95,7 @@ namespace TEN::Entities::Creatures::TR5
 				fx->speed = 1;
 				fx->fallspeed = 0;
 				fx->objectNumber = ID_BODY_PART;
-				fx->color = Vector4::One;
+				fx->color = NEUTRAL_COLOR;
 				fx->flag2 = 9729;
 				fx->frameNumber = Objects[ID_BUBBLES].meshIndex + (GetRandomControl() & 7);
 				fx->counter = 0;

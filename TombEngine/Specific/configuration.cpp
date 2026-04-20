@@ -86,6 +86,7 @@ void InitDefaultConfiguration()
 	g_Configuration.AntialiasingMode = AntialiasingMode::Medium;
 	g_Configuration.EnableAmbientOcclusion = true;
 	g_Configuration.EnableHighFramerate = true;
+	g_Configuration.Gamma = 1.0f;
 
 	g_Configuration.SoundDevice = 1;
 	g_Configuration.EnableSound = true;
@@ -147,120 +148,124 @@ bool LoadConfiguration()
 
 		if (section == "Graphics")
 		{
-			if (key == "ScreenWidth")             
+			if (key == OPTION_SCREEN_WIDTH)
 			{
 				g_Configuration.ScreenWidth = ToInt(val, g_Configuration.ScreenWidth);
 			}
-			else if (key == "ScreenHeight")
+			else if (key == OPTION_SCREEN_HEIGHT)
 			{
 				g_Configuration.ScreenHeight = ToInt(val, g_Configuration.ScreenHeight);
 			}
-			else if (key == "EnableWindowedMode")
+			else if (key == OPTION_ENABLE_WINDOWED_MODE)
 			{
 				g_Configuration.EnableWindowedMode = ToBool(val, g_Configuration.EnableWindowedMode);
 			}
-			else if (key == "ShadowsMode")
+			else if (key == OPTION_SHADOWS)
 			{
 				g_Configuration.ShadowType = (ShadowMode)ToInt(val, (int)g_Configuration.ShadowType);
 			}
-			else if (key == "ShadowMapSize")
+			else if (key == OPTION_SHADOW_MAP_SIZE)
 			{
 				g_Configuration.ShadowMapSize = ToInt(val, g_Configuration.ShadowMapSize);
 			}
-			else if (key == "ShadowBlobsMax")
+			else if (key == OPTION_SHADOW_BLOBS_MAX)
 			{
 				g_Configuration.ShadowBlobsMax = ToInt(val, g_Configuration.ShadowBlobsMax);
 			}
-			else if (key == "EnableCaustics")
+			else if (key == OPTION_ENABLE_CAUSTICS)
 			{
 				g_Configuration.EnableCaustics = ToBool(val, g_Configuration.EnableCaustics);
 			}
-			else if (key == "EnableDecals")
+			else if (key == OPTION_ENABLE_DECALS)
 			{
 				g_Configuration.EnableDecals = ToBool(val, g_Configuration.EnableDecals);
 			}
-			else if (key == "AntialiasingMode")
+			else if (key == OPTION_ANTIALIASING_MODE)
 			{
 				g_Configuration.AntialiasingMode = (AntialiasingMode)ToInt(val, (int)g_Configuration.AntialiasingMode);
 			}
-			else if (key == "AmbientOcclusion")
+			else if (key == OPTION_AMBIENT_OCCLUSION)
 			{
 				g_Configuration.EnableAmbientOcclusion = ToBool(val, g_Configuration.EnableAmbientOcclusion);
 			}
-			else if (key == "EnableHighFramerate")
+			else if (key == OPTION_HIGH_FRAMERATE)
 			{
 				g_Configuration.EnableHighFramerate = ToBool(val, g_Configuration.EnableHighFramerate);
 			}
-			else if (key == "AdapterName")
+			else if (key == OPTION_GAMMA)
+			{
+				g_Configuration.Gamma = ToFloat(val, g_Configuration.Gamma);
+			}
+			else if (key == OPTION_ADAPTER_NAME)
 			{
 				g_Configuration.AdapterName = val;
 			}
 		}
 		else if (section == "Sound")
 		{
-			if (key == "SoundDevice")      
+			if (key == OPTION_SOUND_DEVICE)
 			{
 				g_Configuration.SoundDevice = ToInt(val, g_Configuration.SoundDevice);
 			}
-			else if (key == "EnableReverb")
+			else if (key == OPTION_ENABLE_REVERB)
 			{
 				g_Configuration.EnableReverb = ToBool(val, g_Configuration.EnableReverb);
 			}
-			else if (key == "MusicVolume")
+			else if (key == OPTION_MUSIC_VOLUME)
 			{
 				g_Configuration.MusicVolume = ToInt(val, g_Configuration.MusicVolume);
 			}
-			else if (key == "SfxVolume")
+			else if (key == OPTION_SFX_VOLUME)
 			{
 				g_Configuration.SfxVolume = ToInt(val, g_Configuration.SfxVolume);
 			}
 		}
 		else if (section == "Gameplay")
 		{
-			if (key == "EnableSubtitles")
+			if (key == OPTION_ENABLE_SUBTITLES)
 			{
 				g_Configuration.EnableSubtitles = ToBool(val, g_Configuration.EnableSubtitles);
 			}
-			else if (key == "EnableAutoMonkeySwingJump")
+			else if (key == OPTION_ENABLE_AUTO_MONKEY_JUMP)
 			{
 				g_Configuration.EnableAutoMonkeySwingJump = ToBool(val, g_Configuration.EnableAutoMonkeySwingJump);
 			}
-			else if (key == "EnableAutoTargeting")
+			else if (key == OPTION_ENABLE_AUTO_TARGETING)
 			{
 				g_Configuration.EnableAutoTargeting = ToBool(val, g_Configuration.EnableAutoTargeting);
 			}
-			else if (key == "EnableTargetHighlighter")
+			else if (key == OPTION_ENABLE_TARGET_HIGHLIGHTER)
 			{
 				g_Configuration.EnableTargetHighlighter = ToBool(val, g_Configuration.EnableTargetHighlighter);
 			}
-			else if (key == "EnableInteractionHighlighter")
+			else if (key == OPTION_ENABLE_INTERACTION_HIGHLIGHTER)
 			{
 				g_Configuration.EnableInteractionHighlighter = ToBool(val, g_Configuration.EnableInteractionHighlighter);
 			}
-			else if (key == "EnableRumble")
+			else if (key == OPTION_ENABLE_RUMBLE)
 			{
 				g_Configuration.EnableRumble = ToBool(val, g_Configuration.EnableRumble);
 			}
-			else if (key == "EnableThumbstickCamera")
+			else if (key == OPTION_ENABLE_THUMBSTICK_CAMERA)
 			{
 				g_Configuration.EnableThumbstickCamera = ToBool(val, g_Configuration.EnableThumbstickCamera);
 			}
 		}
 		else if (section == "Input")
 		{
-			if (key == "MouseSensitivity")
+			if (key == OPTION_MOUSE_SENSITIVITY)
 			{
 				g_Configuration.MouseSensitivity = ToInt(val, g_Configuration.MouseSensitivity);
 			}
-			else if (key == "MenuOptionLoopingMode")
+			else if (key == OPTION_MENU_OPTION_LOOPING_MODE)
 			{
 				g_Configuration.MenuOptionLoopingMode = (MenuOptionLoopingMode)ToInt(val, (int)g_Configuration.MenuOptionLoopingMode);
 			}
-			else if (StartsWith(key, "bind."))
+			else if (StartsWith(key, OPTION_BIND_PREFIX))
 			{
 				foundInput = true;
 
-				int actionId = ToInt(key.substr(5), NO_VALUE);
+				int actionId = ToInt(key.substr(std::string_view(OPTION_BIND_PREFIX).size()), NO_VALUE);
 				int keyId = ToInt(val, NO_VALUE);
 				if (actionId >= 0 && keyId >= 0)
 				{
@@ -289,45 +294,46 @@ bool SaveConfiguration()
 	std::ostringstream ss;
 
 	ss << "[Graphics]\n";
-	ss << "ScreenWidth=" << g_Configuration.ScreenWidth << "\n";
-	ss << "ScreenHeight=" << g_Configuration.ScreenHeight << "\n";
-	ss << "EnableWindowedMode=" << (g_Configuration.EnableWindowedMode ? 1 : 0) << "\n";
-	ss << "ShadowsMode=" << (int)g_Configuration.ShadowType << "\n";
-	ss << "ShadowMapSize=" << g_Configuration.ShadowMapSize << "\n";
-	ss << "ShadowBlobsMax=" << g_Configuration.ShadowBlobsMax << "\n";
-	ss << "EnableCaustics=" << (g_Configuration.EnableCaustics ? 1 : 0) << "\n";
-	ss << "EnableDecals=" << (g_Configuration.EnableDecals ? 1 : 0) << "\n";
-	ss << "AntialiasingMode=" << (int)g_Configuration.AntialiasingMode << "\n";
-	ss << "AmbientOcclusion=" << (g_Configuration.EnableAmbientOcclusion ? 1 : 0) << "\n";
-	ss << "EnableHighFramerate=" << (g_Configuration.EnableHighFramerate ? 1 : 0) << "\n";
-	ss << "AdapterName=" << g_Configuration.AdapterName << "\n\n";
+	ss << OPTION_SCREEN_WIDTH << "=" << g_Configuration.ScreenWidth << "\n";
+	ss << OPTION_SCREEN_HEIGHT << "=" << g_Configuration.ScreenHeight << "\n";
+	ss << OPTION_ENABLE_WINDOWED_MODE << "=" << (g_Configuration.EnableWindowedMode ? 1 : 0) << "\n";
+	ss << OPTION_SHADOWS << "=" << (int)g_Configuration.ShadowType << "\n";
+	ss << OPTION_SHADOW_MAP_SIZE << "=" << g_Configuration.ShadowMapSize << "\n";
+	ss << OPTION_SHADOW_BLOBS_MAX << "=" << g_Configuration.ShadowBlobsMax << "\n";
+	ss << OPTION_ENABLE_CAUSTICS << "=" << (g_Configuration.EnableCaustics ? 1 : 0) << "\n";
+	ss << OPTION_ENABLE_DECALS << "=" << (g_Configuration.EnableDecals ? 1 : 0) << "\n";
+	ss << OPTION_ANTIALIASING_MODE << "=" << (int)g_Configuration.AntialiasingMode << "\n";
+	ss << OPTION_AMBIENT_OCCLUSION << "=" << (g_Configuration.EnableAmbientOcclusion ? 1 : 0) << "\n";
+	ss << OPTION_HIGH_FRAMERATE << "=" << (g_Configuration.EnableHighFramerate ? 1 : 0) << "\n";
+	ss << OPTION_GAMMA << "=" << g_Configuration.Gamma << "\n";
+	ss << OPTION_ADAPTER_NAME << "=" << g_Configuration.AdapterName << "\n\n";
 
 	ss << "[Sound]\n";
-	ss << "SoundDevice=" << g_Configuration.SoundDevice << "\n";
-	ss << "EnableSound=" << (g_Configuration.EnableSound ? 1 : 0) << "\n";
-	ss << "EnableReverb=" << (g_Configuration.EnableReverb ? 1 : 0) << "\n";
-	ss << "MusicVolume=" << g_Configuration.MusicVolume << "\n";
-	ss << "SfxVolume=" << g_Configuration.SfxVolume << "\n\n";
+	ss << OPTION_SOUND_DEVICE << "=" << g_Configuration.SoundDevice << "\n";
+	ss << OPTION_ENABLE_SOUND << "=" << (g_Configuration.EnableSound ? 1 : 0) << "\n";
+	ss << OPTION_ENABLE_REVERB << "=" << (g_Configuration.EnableReverb ? 1 : 0) << "\n";
+	ss << OPTION_MUSIC_VOLUME << "=" << g_Configuration.MusicVolume << "\n";
+	ss << OPTION_SFX_VOLUME << "=" << g_Configuration.SfxVolume << "\n\n";
 
 	ss << "[Gameplay]\n";
-	ss << "EnableSubtitles=" << (g_Configuration.EnableSubtitles ? 1 : 0) << "\n";
-	ss << "EnableAutoMonkeySwingJump=" << (g_Configuration.EnableAutoMonkeySwingJump ? 1 : 0) << "\n";
-	ss << "EnableAutoTargeting=" << (g_Configuration.EnableAutoTargeting ? 1 : 0) << "\n";
-	ss << "EnableTargetHighlighter=" << (g_Configuration.EnableTargetHighlighter ? 1 : 0) << "\n";
-	ss << "EnableInteractionHighlighter=" << (g_Configuration.EnableInteractionHighlighter ? 1 : 0) << "\n";
-	ss << "EnableRumble=" << (g_Configuration.EnableRumble ? 1 : 0) << "\n";
-	ss << "EnableThumbstickCamera=" << (g_Configuration.EnableThumbstickCamera ? 1 : 0) << "\n\n";
+	ss << OPTION_ENABLE_SUBTITLES << "=" << (g_Configuration.EnableSubtitles ? 1 : 0) << "\n";
+	ss << OPTION_ENABLE_AUTO_MONKEY_JUMP << "=" << (g_Configuration.EnableAutoMonkeySwingJump ? 1 : 0) << "\n";
+	ss << OPTION_ENABLE_AUTO_TARGETING << "=" << (g_Configuration.EnableAutoTargeting ? 1 : 0) << "\n";
+	ss << OPTION_ENABLE_TARGET_HIGHLIGHTER << "=" << (g_Configuration.EnableTargetHighlighter ? 1 : 0) << "\n";
+	ss << OPTION_ENABLE_INTERACTION_HIGHLIGHTER << "=" << (g_Configuration.EnableInteractionHighlighter ? 1 : 0) << "\n";
+	ss << OPTION_ENABLE_RUMBLE << "=" << (g_Configuration.EnableRumble ? 1 : 0) << "\n";
+	ss << OPTION_ENABLE_THUMBSTICK_CAMERA << "=" << (g_Configuration.EnableThumbstickCamera ? 1 : 0) << "\n\n";
 
 	ss << "[Input]\n";
-	ss << "MouseSensitivity=" << g_Configuration.MouseSensitivity << "\n";
-	ss << "MenuOptionLoopingMode=" << (int)g_Configuration.MenuOptionLoopingMode << "\n";
+	ss << OPTION_MOUSE_SENSITIVITY << "=" << g_Configuration.MouseSensitivity << "\n";
+	ss << OPTION_MENU_OPTION_LOOPING_MODE << "=" << (int)g_Configuration.MenuOptionLoopingMode << "\n";
 
 	if (g_Configuration.Bindings.empty())
 		g_Configuration.Bindings = DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
 
 	for (const auto& kv : g_Configuration.Bindings)
 	{
-		ss << "bind." << (int)kv.first << "=" << (int)kv.second << "\n";
+		ss << OPTION_BIND_PREFIX << (int)kv.first << "=" << (int)kv.second << "\n";
 	}
 	ss << "\n";
 

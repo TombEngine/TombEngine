@@ -17,9 +17,9 @@ namespace TEN::Effects::Light
 		g_Renderer.AddDynamicSpotLight(pos, dir, radius, falloff, dist, color, castShadows, hash);
 	}
 
-	void SpawnDynamicLight(int x, int y, int z, short falloff, byte r, byte g, byte b)
+	void SpawnDynamicLight(int x, int y, int z, short falloff, unsigned char r, unsigned char g, unsigned char b)
 	{
-		g_Renderer.AddDynamicPointLight(Vector3(x, y, z), float(falloff * UCHAR_MAX), Color(r / (float)CHAR_MAX, g / (float)CHAR_MAX, b / (float)CHAR_MAX), false);
+		g_Renderer.AddDynamicPointLight(Vector3(x, y, z), float(falloff * UCHAR_MAX), Color(r / (float)UCHAR_MAX, g / (float)UCHAR_MAX, b / (float)UCHAR_MAX), false);
 	}
 
 	void SpawnDynamicFogBulb(const Vector3& pos, short radius, short density, const Color& color, int hash)

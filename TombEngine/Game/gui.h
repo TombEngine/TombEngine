@@ -134,6 +134,7 @@ namespace TEN::Gui
 		int SelectedSaveSlot;
 
 		int TimeInMenu = NO_VALUE;
+		float BackupGamma = 1.0f;
 		SettingsData CurrentSettings;
 
 		// Inventory variables
