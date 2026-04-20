@@ -822,7 +822,7 @@ namespace TEN::Renderer::Native::DirectX11
 					auto srcTime = std::filesystem::last_write_time(srcFileNameWithExt);
 					if (srcTime < csoTime)
 					{
-						std::ifstream ifs(csoFileName, std::ios::binary);
+						std::ifstream ifs(std::filesystem::path{csoFileName}, std::ios::binary);
 						if (ifs)
 						{
 							ifs.seekg(0, std::ios::end);
@@ -869,7 +869,7 @@ namespace TEN::Renderer::Native::DirectX11
 						throwIfFailed(hr);
 					}
 
-					std::ofstream ofs(csoFileName, std::ios::binary);
+					std::ofstream ofs(std::filesystem::path{csoFileName}, std::ios::binary);
 					if (ofs)
 					{
 						ofs.write((const char*)(*outBlob)->GetBufferPointer(), (*outBlob)->GetBufferSize());

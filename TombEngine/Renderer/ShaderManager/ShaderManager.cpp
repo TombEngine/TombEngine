@@ -211,7 +211,7 @@ namespace TEN::Renderer::Utils
 				// Load compiled shader if it exists and is up-to-date.
 				if (srcTime < csoTime)
 				{
-					auto csoFile = std::ifstream(csoFileName, std::ios::binary);
+					auto csoFile = std::ifstream(std::filesystem::path{csoFileName}, std::ios::binary);
 
 					if (csoFile.is_open())
 					{
@@ -267,7 +267,7 @@ namespace TEN::Renderer::Utils
 			}
 
 			// Save compiled shader to .cso file.
-			auto outCsoFile = std::ofstream(csoFileName, std::ios::binary);
+			auto outCsoFile = std::ofstream(std::filesystem::path{csoFileName}, std::ios::binary);
 			if (outCsoFile.is_open())
 			{
 				outCsoFile.write((const char*)(bytecode->GetBufferPointer()), bytecode->GetBufferSize());

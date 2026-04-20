@@ -64,7 +64,7 @@ using namespace TEN::Video;
 namespace Save = TEN::Save;
 
 constexpr auto SAVEGAME_MAX_SLOT    = 99;
-constexpr auto SAVEGAME_PATH	    = "Save//";
+constexpr auto SAVEGAME_PATH	    = "Save/";
 constexpr auto SAVEGAME_FILE_MASK   = "savegame.";
 constexpr auto GLOBAL_VARS_FILENAME = "savegame.global";
 
@@ -1884,7 +1884,7 @@ bool SaveGame::Save(int slot)
 		std::filesystem::create_directory(FullSaveDirectory);
 
 	std::ofstream fileOut{};
-	fileOut.open(filename, std::ios_base::binary | std::ios_base::out);
+	fileOut.open(std::filesystem::path{filename}, std::ios_base::binary | std::ios_base::out);
 
 	// Write current level save data.
 	auto currentLevelState = SaveGame::Build();
@@ -1924,7 +1924,7 @@ bool SaveGame::Load(int slot)
 	auto file = std::ifstream();
 	try
 	{
-		file.open(fileName, std::ios_base::app | std::ios_base::binary);
+		file.open(std::filesystem::path{fileName}, std::ios_base::app | std::ios_base::binary);
 
 		int size = 0;
 		file.read(reinterpret_cast<char*>(&size), sizeof(size));
@@ -3093,7 +3093,7 @@ bool SaveGame::LoadHeader(int slot, SaveGameHeader* header)
 	auto fileName = GetSavegameFilename(slot);
 
 	std::ifstream file;
-	file.open(fileName, std::ios_base::app | std::ios_base::binary);
+	file.open(std::filesystem::path{fileName}, std::ios_base::app | std::ios_base::binary);
 
 	file.seekg(0, std::ios::end);
 	size_t length = file.tellg();
@@ -3175,7 +3175,7 @@ bool SaveGame::SaveGlobalVars()
 		auto filename = FullSaveDirectory + GLOBAL_VARS_FILENAME;
 
 		std::ofstream fileOut{};
-		fileOut.open(filename, std::ios_base::binary | std::ios_base::out);
+		fileOut.open(std::filesystem::path{filename}, std::ios_base::binary | std::ios_base::out);
 
 		if (!fileOut.is_open())
 		{
@@ -3217,7 +3217,7 @@ bool SaveGame::LoadGlobalVars()
 	try
 	{
 		auto file = std::ifstream();
-		file.open(filename, std::ios_base::binary | std::ios_base::ate);
+		file.open(std::filesystem::path{filename}, std::ios_base::binary | std::ios_base::ate);
 
 		if (!file.is_open() || !file.good())
 		{

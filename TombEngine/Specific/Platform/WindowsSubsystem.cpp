@@ -491,7 +491,7 @@ namespace TEN::Platform
 			if (!dir.empty())
 				std::filesystem::create_directories(dir);
 
-			auto outFile = std::ofstream(levelPath, std::ios::binary);
+			auto outFile = std::ofstream(std::filesystem::path{levelPath}, std::ios::binary);
 			if (!outFile)
 				throw std::ios_base::failure("Failed to create title level file.");
 
