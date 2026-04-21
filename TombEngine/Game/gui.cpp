@@ -34,6 +34,7 @@ using namespace TEN::Animation;
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Input;
 using namespace TEN::Renderer;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 using namespace TEN::Video;
 
@@ -489,6 +490,7 @@ namespace TEN::Gui
 			Antialiasing,
 			AmbientOcclusion,
 			HighFramerate,
+			Gamma,
 			Save,
 			Cancel,
 
@@ -559,6 +561,19 @@ namespace TEN::Gui
 				CurrentSettings.Configuration.EnableHighFramerate = !CurrentSettings.Configuration.EnableHighFramerate;
 				break;
 
+			case DisplaySettingsOption::Gamma:
+				if (CurrentSettings.Configuration.Gamma > GAMMA_MIN)
+				{
+					CurrentSettings.Configuration.Gamma -= GAMMA_STEP;
+					if (CurrentSettings.Configuration.Gamma < GAMMA_MIN)
+						CurrentSettings.Configuration.Gamma = GAMMA_MIN;
+					
+					g_Configuration.Gamma = CurrentSettings.Configuration.Gamma;
+					g_Renderer.SetGraphicsSettingsChanged();
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				}
+				break;
+
 			}
 		}
 
@@ -622,6 +637,19 @@ namespace TEN::Gui
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableHighFramerate = !CurrentSettings.Configuration.EnableHighFramerate;
 				break;
+
+			case DisplaySettingsOption::Gamma:
+				if (CurrentSettings.Configuration.Gamma < GAMMA_MAX)
+				{
+					CurrentSettings.Configuration.Gamma += GAMMA_STEP;
+					if (CurrentSettings.Configuration.Gamma > GAMMA_MAX)
+						CurrentSettings.Configuration.Gamma = GAMMA_MAX;
+
+					g_Configuration.Gamma = CurrentSettings.Configuration.Gamma;
+					g_Renderer.SetGraphicsSettingsChanged();
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				}
+				break;
 			}
 		}
 
@@ -663,6 +691,8 @@ namespace TEN::Gui
 			}
 			else if (SelectedOption == DisplaySettingsOption::Cancel)
 			{
+				g_Configuration.Gamma = BackupGamma;
+				g_Renderer.SetGraphicsSettingsChanged();
 				MenuToDisplay = Menu::Options;
 				SelectedOption = 0;
 			}
@@ -901,6 +931,7 @@ namespace TEN::Gui
 	void GuiController::BackupOptions()
 	{
 		CurrentSettings.Configuration = g_Configuration;
+		BackupGamma = g_Configuration.Gamma;
 	}
 
 	void GuiController::HandleOptionsInput()

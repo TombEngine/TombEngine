@@ -27,6 +27,7 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Objects/Effects/Fireflies.h"
 #include "Objects/TR5/Trap/LaserBarrier.h"
 #include "Objects/TR5/Trap/LaserBeam.h"
 #include "Objects/Utils/object_helper.h"
@@ -35,7 +36,6 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/level.h"
 #include "Structures/RendererSpriteBucket.h"
-#include "Objects/Effects/Fireflies.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Effects::Blood;
@@ -417,8 +417,8 @@ namespace TEN::Renderer
 	{
 		for (const auto& fire : Fires)
 		{
-			auto oldFade = fire.PrevFade == 1 ? 1.0f : (float)(255 - fire.PrevFade) / 255.0f;
-			auto fade = fire.fade == 1 ? 1.0f : (float)(255 - fire.fade) / 255.0f;
+			auto oldFade = fire.PrevFade == 1 ? 1.0f : (float)(UCHAR_MAX - fire.PrevFade) / (float)UCHAR_MAX;
+			auto fade = fire.fade == 1 ? 1.0f : (float)(UCHAR_MAX - fire.fade) / (float)UCHAR_MAX;
 			fade = Lerp(oldFade, fade, GetInterpolationFactor());
 
 			for (int i = 0; i < MAX_SPARKS_FIRE; i++) 
@@ -429,22 +429,23 @@ namespace TEN::Renderer
 					// Calculate original flame color.
 					auto color = Vector4::Lerp(
 						Vector4(
-							spark->PrevColor.x / 255.0f * fade,
-							spark->PrevColor.y / 255.0f * fade,
-							spark->PrevColor.z / 255.0f * fade,
+							spark->PrevColor.x / (float)UCHAR_MAX * fade,
+							spark->PrevColor.y / (float)UCHAR_MAX * fade,
+							spark->PrevColor.z / (float)UCHAR_MAX * fade,
 							1.0f),
 						Vector4(
-							spark->color.x / 255.0f * fade,
-							spark->color.y / 255.0f * fade,
-							spark->color.z / 255.0f * fade,
+							spark->color.x / (float)UCHAR_MAX * fade,
+							spark->color.y / (float)UCHAR_MAX * fade,
+							spark->color.z / (float)UCHAR_MAX * fade,
 							1.0f),
 						GetInterpolationFactor());
 
 					// Influence flame color with object color via chroma modulation.
-					if (fire.color != Vector4::One)
+					if (fire.color != NEUTRAL_COLOR)
 					{
 						auto color3 = Vector3(color.x, color.y, color.z);
 						color = Vector4::Lerp(color, fire.color * Luma(color3), Chroma(color3) * 1.5f);
+						color.w = 1.0f;
 					}
 
 					AddSpriteBillboard(
@@ -1251,7 +1252,7 @@ namespace TEN::Renderer
 		auto* itemPtr = &_items[LaraItem->Index];
 
 		// Divide gunflash tint by 2 because tinting uses multiplication and additive color which doesn't look good with overbright color values.
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = settings.ColorizeMuzzleFlash ? ((Vector4)settings.FlashColor / 2) : Vector4::One;
+		_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = settings.ColorizeMuzzleFlash ? settings.FlashColor : NEUTRAL_COLOR;
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = room.AmbientLight;
 		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)LightMode::Static;
 		BindInstancedStaticLights(itemPtr->LightsToDraw, 0);
@@ -1658,19 +1659,19 @@ namespace TEN::Renderer
 					vtx0.Position = Vector3::Transform(deb.mesh.Positions[0], matrix);
 					vtx0.UV = deb.mesh.TextureCoordinates[0];
 					vtx0.Normal = PackVector3(deb.mesh.Normals[0]);
-					vtx0.Color = VectorColorToRGBA_TempToVector4(deb.mesh.Colors[0]);
+					vtx0.Color = VectorColorToRGBA(deb.mesh.Colors[0]);
 
 					Vertex vtx1;
 					vtx1.Position = Vector3::Transform(deb.mesh.Positions[1], matrix);
 					vtx1.UV = deb.mesh.TextureCoordinates[1];
 					vtx1.Normal = PackVector3(deb.mesh.Normals[1]);
-					vtx1.Color = VectorColorToRGBA_TempToVector4(deb.mesh.Colors[1]);
+					vtx1.Color = VectorColorToRGBA(deb.mesh.Colors[1]);
 
 					Vertex vtx2;
 					vtx2.Position = Vector3::Transform(deb.mesh.Positions[2], matrix);
 					vtx2.UV = deb.mesh.TextureCoordinates[2];
 					vtx2.Normal = PackVector3(deb.mesh.Normals[2]);
-					vtx2.Color = VectorColorToRGBA_TempToVector4(deb.mesh.Colors[2]);
+					vtx2.Color = VectorColorToRGBA(deb.mesh.Colors[2]);
 
 					_primitiveBatch->DrawTriangle(vtx0, vtx1, vtx2);
 

@@ -49,7 +49,7 @@ namespace TEN::Renderer
 
 	// Vertical menu positioning templates
 	constexpr auto MenuVerticalControls = 30;
-	constexpr auto MenuVerticalDisplaySettings = 130;
+	constexpr auto MenuVerticalDisplaySettings = 110;
 	constexpr auto MenuVerticalOtherSettings = 50;
 	constexpr auto MenuVerticalBottomCenter = 400;
 	constexpr auto MenuVerticalStatisticsTitle = 150;
@@ -223,14 +223,19 @@ namespace TEN::Renderer
 			// Enable high framerate
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_HIGH_FRAMERATE), optionColor, SF(titleOption == 7));
 			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableHighFramerate), plainColor, SF(titleOption == 7));
+			GetNextLinePosition(&y);
+
+			// Gamma correction
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_GAMMA), optionColor, SF(titleOption == 8));
+			AddString(MenuRightSideEntry, y, fmt::format("{:.1f}", g_Gui.GetCurrentSettings().Configuration.Gamma).c_str(), plainColor, SF(titleOption == 8));
 			GetNextBlockPosition(&y);
 
 			// Apply
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 8));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 9));
 			GetNextLinePosition(&y);
 
 			// Cancel
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 9));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 10));
 			break;
 
 		case Menu::OtherSettings:
@@ -534,22 +539,19 @@ namespace TEN::Renderer
 		auto alignment = g_GameFlow->GetSettings()->UI.TitleMenuAlignment.has_value() ? (1 << (int)g_GameFlow->GetSettings()->UI.TitleMenuAlignment.value()) : 0;
 		auto scale = g_GameFlow->GetSettings()->UI.TitleMenuScale;
 
-		// HACK: fix for Monty's color range slippage. Should be removed after merging color range fix PR.
-		auto plainRawColor = Vector4(plainColor.GetR(), plainColor.GetG(), plainColor.GetB(), UCHAR_MAX) / (float)UCHAR_MAX;
-
 		switch (menu)
 		{
 		case Menu::Title:
 
 			// New game
-			AddString(g_GameFlow->GetString(STRING_NEW_GAME), menuPos.ToVector2(), plainRawColor, scale, SF(titleOption == selectedOption) | alignment);
+			AddString(g_GameFlow->GetString(STRING_NEW_GAME), menuPos.ToVector2(), plainColor, scale, SF(titleOption == selectedOption) | alignment);
 			GetNextLinePosition(&menuPos.y, scale);
 			selectedOption++;
 
 			// Home Level
 			if (g_GameFlow->IsHomeLevelEnabled())
 			{
-				AddString(g_GameFlow->GetString(STRING_HOME_LEVEL), menuPos.ToVector2(), plainRawColor, scale, SF(titleOption == selectedOption) | alignment);
+				AddString(g_GameFlow->GetString(STRING_HOME_LEVEL), menuPos.ToVector2(), plainColor, scale, SF(titleOption == selectedOption) | alignment);
 				GetNextLinePosition(&menuPos.y, scale);
 				selectedOption++;
 			}
@@ -557,18 +559,18 @@ namespace TEN::Renderer
 			// Load game
 			if (g_GameFlow->IsLoadSaveEnabled())
 			{
-				AddString(g_GameFlow->GetString(STRING_LOAD_GAME), menuPos.ToVector2(), plainRawColor, scale, SF(titleOption == selectedOption) | alignment);
+				AddString(g_GameFlow->GetString(STRING_LOAD_GAME), menuPos.ToVector2(), plainColor, scale, SF(titleOption == selectedOption) | alignment);
 				GetNextLinePosition(&menuPos.y, scale);
 				selectedOption++;
 			}
 
 			// Options
-			AddString(g_GameFlow->GetString(STRING_OPTIONS), menuPos.ToVector2(), plainRawColor, scale, SF(titleOption == selectedOption) | alignment);
+			AddString(g_GameFlow->GetString(STRING_OPTIONS), menuPos.ToVector2(), plainColor, scale, SF(titleOption == selectedOption) | alignment);
 			GetNextLinePosition(&menuPos.y, scale);
 			selectedOption++;
 
 			// Exit game
-			AddString(g_GameFlow->GetString(STRING_EXIT_GAME), menuPos.ToVector2(), plainRawColor, scale, SF(titleOption == selectedOption) | alignment);
+			AddString(g_GameFlow->GetString(STRING_EXIT_GAME), menuPos.ToVector2(), plainColor, scale, SF(titleOption == selectedOption) | alignment);
 			break;
 
 		case Menu::LoadGame:
@@ -851,7 +853,8 @@ namespace TEN::Renderer
 		}
 
 		auto pos = _viewportToolkit.Unproject(Vector3(pos2D.x, pos2D.y, 1.0f), projMatrix, viewMatrix, Matrix::Identity);
-		auto color = Vector4(1.0f, 1.0f, 1.0f, opacity);
+		auto color = NEUTRAL_COLOR;
+		color.w = opacity;
 
 		// Set vertex buffer.
 		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
@@ -865,7 +868,9 @@ namespace TEN::Renderer
 		hudCamera.ViewProjection = viewMatrix * projMatrix;
 		hudCamera.Frame = GlobalCounter;
 		hudCamera.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
+		hudCamera.Gamma = g_Configuration.Gamma;
 		UpdateConstantBuffer(hudCamera, _cbCameraMatrices);
+		BindConstantBufferPS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 
 		_shaders.Bind(Shader::Inventory);
@@ -1037,7 +1042,9 @@ namespace TEN::Renderer
 		auto hudCamera = CCameraMatrixBuffer{};
 		hudCamera.CamDirectionWS = -Vector4::UnitZ;
 		hudCamera.ViewProjection = viewMatrix * projMatrix;
+		hudCamera.Gamma = g_Configuration.Gamma;
 		_cbCameraMatrices.UpdateData(hudCamera, _context.Get());
+		BindConstantBufferPS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 
 		_shaders.Bind(Shader::Inventory);

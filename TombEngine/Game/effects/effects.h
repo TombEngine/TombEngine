@@ -21,7 +21,7 @@ constexpr auto MAX_DYNAMICS = 64;
 constexpr auto MAX_PARTICLES		 = 8192;
 constexpr auto MAX_PARTICLE_DYNAMICS = 8;
 
-constexpr auto CREATURE_GUNFLASH_COLOR = Vector4(1.0f, 0.5f, 0.1f, 1.0f);
+constexpr auto CREATURE_GUNFLASH_COLOR = Vector4(0.5f, 0.25f, 0.05f, 1.0f);
 
 extern int Wibble;
 

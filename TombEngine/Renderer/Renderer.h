@@ -356,7 +356,7 @@ namespace TEN::Renderer
 
 		PostProcessMode _postProcessMode = PostProcessMode::None;
 		float _postProcessStrength = 1.0f;
-		Vector3 _postProcessTint = Vector3::One;
+		Vector3 _postProcessTint = (Vector3)NEUTRAL_COLOR;
 
 		VertexBuffer<PostProcessVertex> _fullscreenTriangleVertexBuffer;
 		ComPtr<ID3D11InputLayout> _fullscreenTriangleInputLayout = nullptr;

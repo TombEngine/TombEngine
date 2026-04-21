@@ -555,7 +555,7 @@ short CreateNewEffect(short roomNumber)
 		room->fxNumber = fxNumber;
 
 		fx->speed = 0;
-		fx->color = Vector4::One;
+		fx->color = NEUTRAL_COLOR;
 		fx->fallspeed = 0;
 		fx->frameNumber = 0;
 		fx->counter = 0;
@@ -769,7 +769,7 @@ short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID)
 		newItem.ObjectNumber = objectID;
 		newItem.RoomNumber = item.RoomNumber;
 		newItem.Pose = item.Pose;
-		newItem.Model.Color = Vector4::One;
+		newItem.Model.Color = NEUTRAL_COLOR;
 
 		InitializeItem(itemNumber);
 
