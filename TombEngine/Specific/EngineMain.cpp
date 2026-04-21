@@ -469,6 +469,14 @@ int main(int argc, char* argv[])
 				HandleWindowFocusLost(sdlWindow);
 				break;
 
+			case SDL_EVENT_GAMEPAD_ADDED:
+				g_Input.ConnectGamepad(event.gdevice.which);
+				break;
+
+			case SDL_EVENT_GAMEPAD_REMOVED:
+				g_Input.DisconnectGamepad(event.gdevice.which);
+				break;
+
 			default:
 				break;
 			}

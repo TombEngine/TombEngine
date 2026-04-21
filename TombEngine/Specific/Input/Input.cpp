@@ -103,8 +103,18 @@ namespace TEN::Input
 		// Initialize bindings.
 		_bindings.Initialize(g_Configuration.KeyboardMouseBindings, g_Configuration.GamepadBindings);
 
-		// TODO: Connect it first.
-		if (IsUsingGamepad())
+		// Connect the first gamepad already present at startup, if any.
+		int count = 0;
+		auto* ids = SDL_GetGamepads(&count);
+		if (ids != nullptr)
+		{
+			if (count > 0)
+				ConnectGamepad(ids[0]);
+
+			SDL_free(ids);
+		}
+
+		if (IsGamepadConnected())
 		{
 			g_Configuration.EnableRumble           =
 			g_Configuration.EnableThumbstickCamera = true;
@@ -217,8 +227,8 @@ namespace TEN::Input
 			return;
 		}
 
-		_gamepad = {};
 		SDL_CloseGamepad(_gamepad.Device);
+		_gamepad = {};
 
 		TENLog("Gamepad disconnected.");
 	}
