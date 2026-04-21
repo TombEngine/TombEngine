@@ -18,6 +18,7 @@
 #include "Objects/Generic/Object/burning_torch.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/TEN/Input/ActionIDs.h"
 #include "Scripting/Internal/TEN/Objects/Lara/AmmoTypes.h"
@@ -713,13 +714,17 @@ sol::table LaraObject::GetSkin(sol::this_state s)
 {
 	sol::state_view lua(s);
 	auto* lara = GetLaraInfo(_moveable);
+	bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
 
 	auto t = lua.create_table();
 	t.add(lara->Skin.Skin);
 	t.add(lara->Skin.SkinJoints);
 	t.add(lara->Skin.SkinScream);
 	t.add(lara->Skin.HairPrimary);
-	t.add(lara->Skin.HairSecondary);
+	
+	if (isYoung)
+		t.add(lara->Skin.HairSecondary);
+
 	return t;
 }
 
