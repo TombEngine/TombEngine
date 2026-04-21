@@ -74,6 +74,7 @@ local strings =
 	examine = { "Examine" },
 	exit_game = { "Exit Game" },
 	exit_to_title = { "Exit to Title" },
+	gamma = { "Gamma Correction" },
 	general_actions = { "General Actions" },
 	high = { "High" },
 	high_framerate = { "High Framerate" },

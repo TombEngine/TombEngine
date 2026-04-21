@@ -3,6 +3,30 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
+## [Version 2.0]
+
+### New features
+* Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
+* Added gamma correction setting.
+ 
+### Bug fixes
+* Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
+* Fixed flyby camera jitter by converting the spline type to floating-point.
+
+### Lua API changes
+* Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
+
+## [Version 1.11.1]
+
+### Bug fixes
+* Fixed draw key not always opening doors in fly mode.
+* Fixed TEETH_SPIKES with OCB 1 damaging player in fly mode.
+* Fixed YETI misaligning with Lara during kill animation.
+
+### Lua API changes
+* Fixed `Timer` class not working correctly with single frame intervals.
+* Fixed alpha value being ignored for `Flow.Settings.UI.shadowTextColor` parameter.
+
 ## [Version 1.11]
 
 ### New features

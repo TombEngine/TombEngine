@@ -190,7 +190,8 @@ bool SaveConfiguration()
 		SetBoolRegKey(graphicsKey, REGKEY_ENABLE_DECALS, g_Configuration.EnableDecals) != ERROR_SUCCESS ||
 		SetDWORDRegKey(graphicsKey, REGKEY_ANTIALIASING_MODE, (DWORD)g_Configuration.AntialiasingMode) != ERROR_SUCCESS ||
 		SetBoolRegKey(graphicsKey, REGKEY_AMBIENT_OCCLUSION, g_Configuration.EnableAmbientOcclusion) != ERROR_SUCCESS ||
-		SetBoolRegKey(graphicsKey, REGKEY_HIGH_FRAMERATE, g_Configuration.EnableHighFramerate) != ERROR_SUCCESS)
+		SetBoolRegKey(graphicsKey, REGKEY_HIGH_FRAMERATE, g_Configuration.EnableHighFramerate) != ERROR_SUCCESS ||
+		SetDWORDRegKey(graphicsKey, REGKEY_GAMMA, (int)(RoundToStep(g_Configuration.Gamma, GAMMA_STEP) * 10.0f)) != ERROR_SUCCESS)
 	{
 		RegCloseKey(rootKey);
 		RegCloseKey(graphicsKey);
@@ -379,6 +380,7 @@ bool LoadConfiguration()
 	DWORD antialiasingMode = 1;
 	bool enableAmbientOcclusion = false;
 	bool enableHighFramerate = false;
+	DWORD gammaCorrection = 10;
 
 	// Load Graphics keys.
 	if (GetDWORDRegKey(graphicsKey, REGKEY_SCREEN_WIDTH, &screenWidth, 0) != ERROR_SUCCESS ||
@@ -391,7 +393,8 @@ bool LoadConfiguration()
 		GetBoolRegKey(graphicsKey, REGKEY_ENABLE_DECALS, &enableDecals, true) != ERROR_SUCCESS ||
 		GetDWORDRegKey(graphicsKey, REGKEY_ANTIALIASING_MODE, &antialiasingMode, true) != ERROR_SUCCESS ||
 		GetBoolRegKey(graphicsKey, REGKEY_AMBIENT_OCCLUSION, &enableAmbientOcclusion, false) != ERROR_SUCCESS ||
-		GetBoolRegKey(graphicsKey, REGKEY_HIGH_FRAMERATE, &enableHighFramerate, false) != ERROR_SUCCESS)
+		GetBoolRegKey(graphicsKey, REGKEY_HIGH_FRAMERATE, &enableHighFramerate, false) != ERROR_SUCCESS ||
+		GetDWORDRegKey(graphicsKey, REGKEY_GAMMA, &gammaCorrection, 10) != ERROR_SUCCESS)
 	{
 		RegCloseKey(rootKey);
 		RegCloseKey(graphicsKey);
@@ -531,6 +534,7 @@ bool LoadConfiguration()
 	g_Configuration.ShadowMapSize = shadowMapSize;
 	g_Configuration.EnableAmbientOcclusion = enableAmbientOcclusion;
 	g_Configuration.EnableHighFramerate = enableHighFramerate;
+	g_Configuration.Gamma = std::clamp(RoundToStep((float)gammaCorrection / 10.0f, GAMMA_STEP), GAMMA_MIN, GAMMA_MAX);
 
 	g_Configuration.EnableSound = enableSound;
 	g_Configuration.EnableReverb = enableReverb;

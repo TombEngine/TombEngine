@@ -14,6 +14,7 @@
 
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Math;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 using TEN::Renderer::g_Renderer;
 

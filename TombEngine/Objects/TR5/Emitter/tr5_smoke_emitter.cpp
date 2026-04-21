@@ -85,9 +85,9 @@ namespace TEN::Effects::SmokeEmitter
 		}
 		else
 		{
-			unsigned char r = std::clamp(item.Model.Color.x / 2, 0.0f, 1.0f) * UCHAR_MAX;
-			unsigned char g = std::clamp(item.Model.Color.y / 2, 0.0f, 1.0f) * UCHAR_MAX;
-			unsigned char b = std::clamp(item.Model.Color.z / 2, 0.0f, 1.0f) * UCHAR_MAX;
+			unsigned char r = std::clamp(item.Model.Color.x, 0.0f, 1.0f) * UCHAR_MAX;
+			unsigned char g = std::clamp(item.Model.Color.y, 0.0f, 1.0f) * UCHAR_MAX;
+			unsigned char b = std::clamp(item.Model.Color.z, 0.0f, 1.0f) * UCHAR_MAX;
 
 			part.sR = r / 3;
 			part.sG = g / 3;
@@ -181,9 +181,9 @@ namespace TEN::Effects::SmokeEmitter
 		}
 		else
 		{
-			unsigned char r = std::clamp(item.Model.Color.x / 2.0f, 0.0f, 1.0f) * UCHAR_MAX;
-			unsigned char g = std::clamp(item.Model.Color.y / 2.0f, 0.0f, 1.0f) * UCHAR_MAX;
-			unsigned char b = std::clamp(item.Model.Color.z / 2.0f, 0.0f, 1.0f) * UCHAR_MAX;
+			unsigned char r = std::clamp(item.Model.Color.x, 0.0f, 1.0f) * UCHAR_MAX;
+			unsigned char g = std::clamp(item.Model.Color.y, 0.0f, 1.0f) * UCHAR_MAX;
+			unsigned char b = std::clamp(item.Model.Color.z, 0.0f, 1.0f) * UCHAR_MAX;
 
 			part.dR = r;
 			part.dG = g;

@@ -149,7 +149,7 @@ namespace TEN::Entities::Creatures::TR5
 		SoundEffect(SFX_TR5_UNDERWATER_TORPEDO, &torpedoItem->Pose, SoundEnvironment::Always);
 
 		torpedoItem->ObjectNumber = ID_TORPEDO;
-		torpedoItem->Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+		torpedoItem->Model.Color = NEUTRAL_COLOR;
 
 		auto pos1 = Vector3i::Zero;
 		auto pos2 = Vector3i::Zero;
