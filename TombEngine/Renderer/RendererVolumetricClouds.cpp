@@ -107,12 +107,12 @@ namespace TEN::Renderer
 		_stVolumetricCloud.CloudThickness    = settings.CloudThickness;
 		_stVolumetricCloud.Coverage          = settings.Coverage;
 
-		_stVolumetricCloud.Density           = settings.Density;
-		_stVolumetricCloud.ShapeScale        = settings.Noise.ShapeScale;
-		_stVolumetricCloud.DetailScale       = settings.Noise.DetailScale;
-		_stVolumetricCloud.DetailStrength    = settings.Noise.DetailStrength;
+		_stVolumetricCloud.CloudDensity  = 0.0f;  // No-op for AltocumulusMid.
+		_stVolumetricCloud.ShapeScale    = 0.0f;
+		_stVolumetricCloud.DetailScale   = 0.0f;
+		_stVolumetricCloud.DetailStrength = 0.0f;
 
-		_stVolumetricCloud.WeatherScale      = settings.Noise.WeatherScale;
+		_stVolumetricCloud.WeatherScale      = 0.00002f; // Default; used for lightning coverage suppression.
 		_stVolumetricCloud.Absorption        = settings.Absorption;
 		_stVolumetricCloud.AmbientContrib    = settings.AmbientContrib;
 		_stVolumetricCloud.SilverliningStr   = settings.SilverliningStr;

@@ -102,7 +102,6 @@ namespace TEN::Sky
 		CloudCategory Category = CloudCategory::None;
 
 		float Coverage        = 0.0f;    // [0, 1]
-		float Density         = 0.0f;
 		float BottomHeight    = 1536.0f; // World units above camera
 		float Thickness       = 2500.0f;
 

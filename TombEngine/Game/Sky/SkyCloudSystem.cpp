@@ -78,14 +78,11 @@ namespace TEN::Sky
 		s.Enabled         = Enabled;
 		s.Mode            = Enabled ? CloudLayerMode::Volumetric : CloudLayerMode::LegacyBitmap;
 		s.Coverage        = Coverage;
-		s.Density         = Density;
+		s.Density         = 1.0f;      // No-op for AltocumulusMid; kept for Lua API compatibility.
 		s.CloudBottomHeight = BottomHeight;
 		s.CloudThickness  = Thickness;
 		s.EvolutionSpeed  = EvolutionSpeed;
-		s.Noise.ShapeScale    = 0.00008f;  // Default � unused (no standard cloud types left).
-		s.Noise.DetailScale   = 0.0008f;
-		s.Noise.DetailStrength = 0.35f;
-		s.Absorption      = 1.1f;          // Default � unused (Alto has AltoAbsorption).
+		s.Absorption      = 1.1f;          // Default — unused (Alto has AltoAbsorption).
 		s.AmbientContrib  = 0.35f;
 		s.SilverliningStr = 0.4f;
 		s.HorizonFade     = HorizonFade;
@@ -172,7 +169,6 @@ namespace TEN::Sky
 		snap.Enabled       = src.Enabled;
 		snap.Category      = static_cast<CloudCategory>(src.CloudType);
 		snap.Coverage      = src.Coverage;
-		snap.Density       = src.Density;
 		snap.BottomHeight  = src.CloudBottomHeight;
 		snap.Thickness     = src.CloudThickness;
 		snap.EvolutionSpeed = src.EvolutionSpeed;
@@ -302,7 +298,6 @@ namespace TEN::Sky
 		// Category: snap at halfway.
 		result.Category = (t < 0.5f) ? a.Category : b.Category;
 
-		result.Density         = LerpFloat(a.Density, b.Density, t);
 		result.BottomHeight    = LerpFloat(a.BottomHeight, b.BottomHeight, t);
 		result.Thickness       = LerpFloat(a.Thickness, b.Thickness, t);
 		result.EvolutionSpeed  = LerpFloat(a.EvolutionSpeed, b.EvolutionSpeed, t);
@@ -838,7 +833,6 @@ namespace TEN::Sky
 			a.Enabled       = true;
 			a.Category      = CloudCategory::AltocumulusMid;
 			a.Coverage      = 0.85f;
-			a.Density       = 0.75f;
 			a.BottomHeight  = 1800.0f;
 			a.Thickness     = 2200.0f;
 			a.EvolutionSpeed = 0.1f;
@@ -902,7 +896,6 @@ namespace TEN::Sky
 			a.Enabled       = true;
 			a.Category      = CloudCategory::Aurora;
 			a.Coverage      = 0.65f;
-			a.Density       = 0.7f;
 			a.BottomHeight  = 1200.0f;
 			a.Thickness     = 2000.0f;
 			a.EvolutionSpeed = 0.1f;
@@ -2388,7 +2381,6 @@ namespace TEN::Sky
 		// Reduce density-contributing parameters toward zero.
 		float fade = 1.0f - state.Progress;
 		current.Coverage        = state.StartSnapshot.Coverage        * fade;
-		current.Density         = state.StartSnapshot.Density         * fade;
 		current.AltoCloudAmount = state.StartSnapshot.AltoCloudAmount * fade;
 
 		// Slow down evolution so no new micro-formation appears.
@@ -2402,7 +2394,6 @@ namespace TEN::Sky
 			state.Active    = false;
 			current.Enabled = false;
 			current.Coverage        = 0.0f;
-			current.Density         = 0.0f;
 			current.AltoCloudAmount = 0.0f;
 		}
 	}

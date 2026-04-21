@@ -89,7 +89,6 @@ namespace TEN::Sky
 
 		//                Label               Ptr                       Min      Max       Step       Fmt         Default
 		params.push_back({"Coverage",         &snap.Coverage,           0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::Coverage)});
-		params.push_back({"Density",          &snap.Density,            0.0f,    10.0f,    0.1f,     "%.2f",     def(&VolumetricCloudLayerSnapshot::Density)});
 		params.push_back({"Bottom Height",    &snap.BottomHeight,       100.0f,  200000.0f, 100.0f,  "%.0f",     def(&VolumetricCloudLayerSnapshot::BottomHeight)});
 		params.push_back({"Horizon Width",    &snap.AltoHorizonWidth,   0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoHorizonWidth)});
 		params.push_back({"Evolution Speed",  &snap.EvolutionSpeed,     0.0f,    5.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::EvolutionSpeed)});
@@ -618,7 +617,6 @@ namespace TEN::Sky
 		bfld("enabled",                         snap.Enabled);
 		sfld("category",                         CloudCategoryToString(snap.Category));
 		fld( "coverage",              "%.4f",    snap.Coverage);
-		fld( "density",               "%.4f",    snap.Density);
 		ifld("bottomHeight",                     snap.BottomHeight);
 		ifld("horizonWidth",                     snap.Thickness);
 		fld( "altoHorizonWidth",      "%.4f",    snap.AltoHorizonWidth);
@@ -1834,7 +1832,7 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 				elev = std::sin(pitch);
 			}
 
-			// Cloud coverage: use render settings Coverage (scene-wide), not sun-point transmittance.
+			// Cloud coverage proxy: use Coverage (overall cloud layer transparency [0,1]).
 			float coverage = 0.0f;
 			if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
 			{

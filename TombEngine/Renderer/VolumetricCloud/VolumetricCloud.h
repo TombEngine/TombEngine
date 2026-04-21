@@ -66,7 +66,7 @@ namespace TEN::Renderer::VolumetricCloud
 	};
 
 	// ========================================================================
-	// Cloud noise parameters (procedural only — no 3D textures)
+	// Cloud noise parameters (only relevant for non-AltocumulusMid types)
 	// ========================================================================
 
 	struct CloudNoiseParams
@@ -87,8 +87,8 @@ namespace TEN::Renderer::VolumetricCloud
 		CloudLayerMode Mode               = CloudLayerMode::LegacyBitmap;
 
 		// Atmosphere
-		float Coverage          = 0.55f;   // [0,1] — global cloud coverage
-		float Density           = 0.8f;    // Density multiplier
+		float Coverage          = 0.55f;   // [0,1] — cloud coverage (used for transitions; not read by shader for AltocumulusMid)
+		float Density           = 0.8f;    // No-op for AltocumulusMid (shader ignores for this cloud type)
 		float CloudBottomHeight = 1536.0f; // World units above camera (matches TEN sky layer offset)
 		float CloudThickness    = 2500.0f; // Vertical extent of cloud slab
 
@@ -97,7 +97,7 @@ namespace TEN::Renderer::VolumetricCloud
 		float   WindSpeed       = 0.003f;
 		float   EvolutionSpeed  = 0.15f;
 
-		// Noise
+		// Noise (no-op for AltocumulusMid — kept for Lua API compatibility)
 		CloudNoiseParams Noise = {};
 
 		// Lighting

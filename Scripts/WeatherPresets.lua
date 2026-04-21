@@ -1,4 +1,4 @@
---Weather presets --
+﻿--Weather presets --
 -- ohne die ist die sonne zwischen den wolken nicht sichtbar
 
 Flow.DefineWeatherPreset("ClearSky", 
@@ -8,7 +8,7 @@ Flow.DefineWeatherPreset("ClearSky",
 	--nextPresetB  = {ClearSkyLow = {1.0, 1.0, 1}},	
     cloudA = {
 		enabled        = false,
-		coverage		= 0.0,
+		coverage        = 0.0,
         category       = "AltocumulusMid",
 		quality = "Medium",
         bottomHeight         = 2500,
@@ -37,9 +37,9 @@ Flow.DefineWeatherPreset("ClearSky",
     },
 	    cloudB = {
         enabled        = false,
+        coverage        = 0.0,
 category             = "AltocumulusMid",
 quality = "Medium",
-coverage		= 0.0,
         bottomHeight         = 2127,
 		horizonWidth		 = 3252,
 		evolutionSpeed       = 1.276,
@@ -71,9 +71,8 @@ Flow.DefineWeatherPreset("Altocumulus", {
 	--nextPresetB = {ClearSkyLow = {1.0, 50}},
 cloudB = {
     enabled                         = true,
+    coverage        = 1.0,
     category                        = "AltocumulusMid",
-    coverage                        = 1.0000,
-    density                         = 0.8000,
     bottomHeight                    = 2127,
     horizonWidth                    = 3252,
     altoHorizonWidth                = 0.0000,
@@ -136,7 +135,7 @@ Flow.DefineWeatherPreset("CirrocumulusClear", {
 	--nextPresetB = {ClearSkyHigh = {1.0, 50}},
     cloudB = {
 		enabled        = true,
-		coverage		= 0.0,
+		coverage        = 1.0,
         category       = "AltocumulusMid",
 		quality = "Medium",
         bottomHeight         = 1536,
@@ -172,9 +171,9 @@ Flow.DefineWeatherPreset("RainSnowOvercast", {
 	--nextPresetB = {Altocumulus = {1.0, 50}},
     cloudB = {
         enabled              = true,
+        coverage        = 1.0,
         category             = "AltocumulusMid",
 		quality = "Medium",
-		coverage		= 1.0,
         bottomHeight         = 4061,
 		horizonWidth		 = 1000,
         evolutionSpeed       = 1.276,
@@ -211,7 +210,7 @@ Flow.DefineWeatherPreset("StormBuildUp",
 	--nextPresetB = { ClearSkyLow = {0.3, 60}, StormTransformation = {0.7, 90}},
 	    cloudB = {
 		enabled        		 = true,
-		coverage		= 1.0,
+		coverage        = 1.0,
         category       		 = "AltocumulusMid",
 		quality = "Medium",
        	bottomHeight         = 2663,
@@ -249,7 +248,7 @@ Flow.DefineWeatherPreset("StormBuildUpHigh", --funktioniert noch nicht
 	--nextPresetB = { ClearSkyLow = {0.3, 60}, StormTransformation = {0.7, 90}},
 	    cloudB = {
 		enabled        		 = true,
-		coverage		= 1.0,
+		coverage        = 1.0,
         category       		 = "AltocumulusMid",
 		quality = "Medium",
        	bottomHeight         = 2663,
@@ -299,7 +298,7 @@ Flow.DefineWeatherPreset("Thunderstorm", {
 	--nextPresetB = {Altocumulus = {0.7, 60}, RainSnowOvercast = {0.3, 90}},
     cloudB = {
 		enabled        = true,
-		coverage		= 1.0,
+		coverage        = 1.0,
         category       = "AltocumulusMid",
 		quality = "Medium",
         bottomHeight         = 2663,
@@ -356,9 +355,9 @@ Flow.DefineWeatherPreset("ClearSkyLow", {
 	--nextPresetB  = {StormBuildUp = {0.3, 0.0, 40}, AltocumulusHigh = {0.3, 0.3, 25}, ClearSkyLow = {0.4, 0.7, 25}},	
     cloudB = {
         enabled        = true,
+        coverage        = 1.0,
 		category             = "AltocumulusMid",
 		quality = "Medium",
-		coverage		= 0.0,
         bottomHeight         = 2127,
 		horizonWidth		 = 3252,
        evolutionSpeed       = 1.276,
@@ -393,7 +392,7 @@ Flow.DefineWeatherPreset("Cirrustratus", {
 	cloudA = 
 	{
 		enabled        = true,
-		coverage		= 0.450,
+		coverage        = 1.0,
         category       = "AltocumulusMid",
 		quality = "Medium",
         bottomHeight         = 2500,
@@ -425,7 +424,7 @@ Flow.DefineWeatherPreset("Cirrustratus", {
 	 cloudB = 
 	{
 		enabled        		 = false,
-		coverage		= 1.0,
+		coverage        = 0.0,
         category       		 = "AltocumulusMid",
 		quality = "Medium",
        	bottomHeight         = 11028,
@@ -459,9 +458,8 @@ Flow.DefineWeatherPreset("CirrocumulusLots", {
 	nextPresetA  = {CirrocumulusFew = {0.2, 0.6, 40}, AltocumulusHigh = {0.5, 0.0, 25}, Cirrustratus = {0.5, 0.4, 25}},	  
 		cloudB = {
     enabled                         = true,
+    coverage        = 1.0,
     category                        = "AltocumulusMid",
-    coverage                        = 1.0000,
-    density                         = 0.8000,
     bottomHeight                    = 1536,
     horizonWidth                    = 1,
     altoHorizonWidth                = 0.0900,
@@ -525,9 +523,8 @@ Flow.DefineWeatherPreset("CirrocumulusFew", {
 	--nextPresetA  = {FewToClearSky = {0.2, 0.6, 40}, StormBuildUpHigh = {0.5, 0.0, 90}, CirrocumulusLots = {0.3, 0.2, 50}, AuroraBorealis = {0.0, 0.2, 50}},	  
 	cloudB = {
     enabled                         = true,
+    coverage        = 1.0,
     category                        = "AltocumulusMid",
-    coverage                        = 1.0000,
-    density                         = 0.8000,
     bottomHeight                    = 1536,
     horizonWidth                    = 1,
     altoHorizonWidth                = 0.0000,
@@ -589,6 +586,7 @@ Flow.DefineWeatherPreset("CloudsTransformation", {
 	duration = 30,--{300, 560},
     cloudB = {
 	enabled        = true,
+	coverage        = 1.0,
 	category       = "AltocumulusMid",
 	quality = "Medium",
     }

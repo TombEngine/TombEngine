@@ -16,14 +16,14 @@ namespace TEN::Renderer::ConstantBuffers
 		float CloudThickness;
 		float Coverage;
 		//--
-		// Row 1
-		float Density;
+		// Row 1 (generic cloud type only — not reached for AltocumulusMid)
+		float CloudDensity;
 		float ShapeScale;
 		float DetailScale;
 		float DetailStrength;
 		//--
 		// Row 2
-		float WeatherScale;
+		float WeatherScale;  // used for lightning suppression UV in AltocumulusMid path
 		float Absorption;
 		float AmbientContrib;
 		float SilverliningStr;

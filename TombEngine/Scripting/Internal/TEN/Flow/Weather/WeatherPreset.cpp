@@ -30,8 +30,7 @@ namespace TEN::Scripting
 		};
 
 		snap.Enabled         = table.get_or("enabled", true);
-		snap.Coverage        = std::clamp(tf("coverage",        0.55 ), 0.0f, 1.0f);
-		snap.Density         = std::max(  tf("density",          0.8  ), 0.0f);
+		snap.Coverage        = std::clamp(tf("coverage",        1.0  ), 0.0f, 1.0f);
 		snap.BottomHeight    =            tf("bottomHeight",   1536.0  );
 		// "horizonWidth" controls the cloud slab's vertical extent (CloudThickness),
 		// which determines how far toward the horizon clouds are visible.
