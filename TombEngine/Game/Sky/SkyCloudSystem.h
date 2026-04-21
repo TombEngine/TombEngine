@@ -332,6 +332,9 @@ namespace TEN::Sky
 		std::string NextPresetB         = "";
 		float       NextPresetBDuration = 30.0f;
 		std::vector<NextPresetCandidate> NextPresetBCandidates;
+
+		// When false, god rays are suppressed for this preset (e.g. heavy overcast, thunderstorm).
+		bool GodRaysEnabled = true;
 	};
 
 	// ====================================================================

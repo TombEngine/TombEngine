@@ -846,7 +846,7 @@ namespace TEN::Sky
 
 			// Render path
 			bool dualPath = g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive();
-			ImGui::Text("Render Path:  %s", dualPath ? "DualVolumetricClouds" : "DrawVolumetricClouds");
+			ImGui::Text("Render Path:  %s", dualPath ? "DualVolumetricClouds" : "inactive");
 			ImGui::Text("CloudA Active: %s   CloudB Active: %s",
 				g_SkyCloudSystem.IsCloudAActive() ? "YES" : "no",
 				g_SkyCloudSystem.IsCloudBActive() ? "YES" : "no");

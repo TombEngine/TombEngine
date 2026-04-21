@@ -3321,8 +3321,6 @@ namespace TEN::Renderer
 		{
 			if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
 				DrawDualVolumetricClouds(renderView);
-			else
-				DrawVolumetricClouds(renderView);
 
 			// Cloud passes restore _renderTarget + full viewport on cleanup,
 			// but rebind the depth-stencil that this function owns explicitly.

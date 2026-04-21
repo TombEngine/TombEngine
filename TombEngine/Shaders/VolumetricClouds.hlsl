@@ -2379,6 +2379,36 @@ float4 PS(VSOutput input) : SV_TARGET
                 // Checkerboard skip: every other pixel reuses reprojected history.
                 int2 px   = (int2)input.Position.xy;
                 bool skip = (((px.x + px.y) + (int)FrameIndex) & 1) != 0;
+
+                // Lightning override: during an active flash or bolt, disable the
+                // checkerboard skip to prevent a 1x1 dither pattern on lightning.
+                if (skip && LightningEnabled != 0 && CloudType == 1)
+                {
+                    float flashCycleCheck = floor(CloudTime * LightningInternalSpeed);
+                    float flashRandCheck  = frac(sin(flashCycleCheck * 127.1f + 311.7f) * 43758.5453f);
+                    if (flashRandCheck < LightningInternalFreq)
+                    {
+                        skip = false;
+                    }
+                    else
+                    {
+                        float boltTimeCheck = CloudTime * LightningSpeed;
+                        [unroll]
+                        for (int bci = 0; bci < 3; bci++)
+                        {
+                            float boltOffC = (float)bci * 0.33333f;
+                            float boltCycC = floor(boltTimeCheck + boltOffC);
+                            float boltRndC = frac(sin(boltCycC * (311.7f + (float)bci * 83.5f) + 127.1f) * 43758.5453f);
+                            if (boltRndC < LightningStrikeFreq)
+                            {
+                                float boltFrcC = frac(boltTimeCheck + boltOffC);
+                                if (exp(-boltFrcC * 6.0f) > 0.05f)
+                                    skip = false;
+                            }
+                        }
+                    }
+                }
+
                 if (skip)
                 {
                     // Stability check: reuse only clear sky or solid cloud interior.

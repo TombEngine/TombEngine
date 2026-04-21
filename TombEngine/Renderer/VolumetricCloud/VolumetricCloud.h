@@ -57,6 +57,12 @@ namespace TEN::Renderer::VolumetricCloud
 		bool  DetailNoiseEnabled      = true;
 		bool  TemporalReprojection    = true;
 		bool  BlueNoiseJitter         = true;
+		// Base EMA blend factor for temporal accumulation when the camera is still.
+		// Lower = more temporal smoothing (less noise, blurrier edges).
+		// Higher = faster convergence (sharper edges, more per-frame noise).
+		// At quarter-res (Medium) a higher value is needed because the large texel
+		// size already blurs detail — aggressive temporal EMA makes it far worse.
+		float TemporalBaseBlend       = 0.15f;
 	};
 
 	// ========================================================================
@@ -260,6 +266,10 @@ namespace TEN::Renderer::VolumetricCloud
 		// Previous cloud type — used to detect preset switches for temporal invalidation.
 		int PrevCloudType = -1;
 
+		// Lightning thunder tracking.
+		float LightningPrevFlashCycle  = -1.0f; // Flash cycle at previous frame; -1 = not initialized.
+		float LightningThunderCountdown = -1.0f; // Seconds until next thunder sound; -1 = none pending.
+
 		// Debug
 		CloudDebugView DebugView   = CloudDebugView::None;
 		bool FreezeEvolution       = false;
@@ -283,7 +293,8 @@ namespace TEN::Renderer::VolumetricCloud
 				/*RenderResolutionScale=*/0.25f,
 				/*DetailNoiseEnabled=*/  false,
 				/*TemporalReprojection=*/false,
-				/*BlueNoiseJitter=*/     true
+				/*BlueNoiseJitter=*/     true,
+				/*TemporalBaseBlend=*/   0.30f  // Temporal disabled — value unused
 			};
 
 		case CloudQualityPreset::High:
@@ -294,7 +305,8 @@ namespace TEN::Renderer::VolumetricCloud
 				/*RenderResolutionScale=*/0.5f,   // was 0.75 — now half-res (balanced)
 				/*DetailNoiseEnabled=*/  true,
 				/*TemporalReprojection=*/true,
-				/*BlueNoiseJitter=*/     true
+				/*BlueNoiseJitter=*/     true,
+				/*TemporalBaseBlend=*/   0.10f  // Half-res: moderate smoothing still appropriate
 			};
 
 		case CloudQualityPreset::Medium:
@@ -306,7 +318,8 @@ namespace TEN::Renderer::VolumetricCloud
 				/*RenderResolutionScale=*/0.25f,  // was 0.5 — now quarter-res (4x fewer pixels)
 				/*DetailNoiseEnabled=*/  true,
 				/*TemporalReprojection=*/true,
-				/*BlueNoiseJitter=*/     true
+				/*BlueNoiseJitter=*/     true,
+				/*TemporalBaseBlend=*/   0.20f  // Quarter-res: higher blend avoids heavy temporal blur
 			};
 		}
 	}

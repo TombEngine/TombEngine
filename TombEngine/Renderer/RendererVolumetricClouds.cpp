@@ -21,6 +21,8 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
+#include "Sound/sound.h"
+#include "Sound/sound_effects.h"
 #include "Specific/level.h"
 
 using namespace TEN::Renderer::VolumetricCloud;
@@ -455,12 +457,14 @@ namespace TEN::Renderer
 			constexpr float kCamRampEnd    = 0.000610f; // 1 - cos(2 deg)
 			constexpr float kCamHardThresh = 0.003810f; // 1 - cos(5 deg)
 
-			// Dynamic EMA blend factor: ramp from 0.05 (strong smoothing for static clouds)
-			// to 1.0 (full fresh) as cloud content advects from wind/evolution or camera rotates.
-			// Without this ramp, the fixed 0.05 suppresses visible wind motion until the
-			// hard guard triggers at ~WindSpeed 2.9, causing an abrupt "frozen → snap" jump.
-			// kRampEnd ≈ WindSpeed 1.5 at 60 fps → smooth gradient across the full range.
-			const float kBaseBlend = 0.05f;
+			// Dynamic EMA blend factor: ramp from the quality-preset base (strong smoothing for
+			// static clouds) to 1.0 (full fresh) as cloud content advects or camera rotates.
+			// Without this ramp, the fixed base blend suppresses visible wind motion until the
+			// hard guard triggers, causing an abrupt "frozen -> snap" jump.
+			// kRampEnd ~= WindSpeed 1.5 at 60 fps -> smooth gradient across the full range.
+			// TemporalBaseBlend is quality-dependent: higher at lower resolutions to prevent
+			// excessive temporal blur that makes clouds look washed out on a still camera.
+			const float kBaseBlend = q.TemporalBaseBlend;
 			const float kRampEnd   = 0.05f;
 			float windEvoBoost = (1.0f - kBaseBlend) * (noiseDisplace / kRampEnd);
 			float camBoost     = (1.0f - kBaseBlend) * (camMotion / kCamRampEnd);
@@ -502,184 +506,64 @@ namespace TEN::Renderer
 	// Main cloud drawing
 	// ========================================================================
 
-	void Renderer::DrawVolumetricClouds(RenderView& renderView)
+	// Reproduces the HLSL hash: frac(sin(x) * 43758.5453).
+	static float LightningHash(float x)
 	{
-		// Check if any cloud layer uses volumetric mode.
-		const CloudRenderSettings* activeSettings = GetActiveVolumetricCloudSettings();
-		if (!activeSettings || !activeSettings->Enabled)
+		float v = std::sin(x) * 43758.5453f;
+		return v - std::floor(v);
+	}
+
+	// Checks if a bolt fires for the current flash cycle and, if so, schedules a
+	// thunder sound delayed by the estimated horizontal distance to the strike.
+	void Renderer::UpdateLightningThunder(const CloudRenderSettings& settings, CloudRuntimeState& state, float dt)
+	{
+		// Tick down any pending thunder sound.
+		if (state.LightningThunderCountdown >= 0.0f)
+		{
+			state.LightningThunderCountdown -= dt;
+			if (state.LightningThunderCountdown <= 0.0f)
+			{
+				SoundEffect(SFX_TR4_THUNDER_RUMBLE, nullptr);
+				state.LightningThunderCountdown = -1.0f;
+			}
+		}
+
+		float flashCycle = std::floor(state.AccumulatedTime * settings.LightningInternalSpeed);
+
+		// Initialize on first run to avoid spurious thunder on game start.
+		if (state.LightningPrevFlashCycle < 0.0f)
+		{
+			state.LightningPrevFlashCycle = flashCycle;
+			return;
+		}
+
+		if (flashCycle == state.LightningPrevFlashCycle)
 			return;
 
-		// Quick early-out: coverage is zero means perfectly clear sky.
-		// AltocumulusMid (CloudType==1) uses its own AltoCloudAmount, not shared Coverage.
-		// Aurora (CloudType==2) is rendered by a separate pass — skip here.
-		if (activeSettings->CloudType == 2)
-			return;
-		bool isAlto = (activeSettings->CloudType == 1);
-		if (!isAlto && activeSettings->Coverage < 0.001f)
+		state.LightningPrevFlashCycle = flashCycle;
+
+		// Check if this cycle fires a visible bolt (identical conditions to the shader).
+		float flashRand = LightningHash(flashCycle * 127.1f + 311.7f);
+		if (flashRand >= settings.LightningInternalFreq)
 			return;
 
-		// Resolve quality params — resize render target if the resolution scale changed.
-		auto newQuality = GetQualityParams(activeSettings->Quality);
-		if (newQuality.RenderResolutionScale != _cloudState.ActiveQuality.RenderResolutionScale)
-		{
-			_cloudState.ActiveQuality = newQuality;
-			ResizeVolumetricCloudTargets();
-		}
-		else
-		{
-			_cloudState.ActiveQuality = newQuality;
-		}
+		float boltGateRand = LightningHash(flashCycle * 179.3f + 43.7f);
+		if (boltGateRand >= settings.LightningStrikeFreq)
+			return;
 
-		// Update accumulated times — evolution time and wind offset are accumulated
-		// separately so each can be frozen independently, and so wind offset is
-		// always monotonically non-decreasing (prevents backwards cloud motion).
-		// EvoAccumOffset and FlowAccumOffset use the same pre-integration pattern as
-		// WindAccumOffset to prevent backwards cloud drift when EvolutionSpeed transitions
-		// to a lower value:
-		//   EvoAccumOffset  – drives evoOfs  (replaces EvSpd*(CloudTime*0.05+WindAccum*0.15))
-		//   FlowAccumOffset – drives flowTime (replaces CloudTime*EvSpd*0.16), which feeds
-		//                     windBias and curl tLow/tMid/tHigh; without pre-integration,
-		//                     decreasing EvolutionSpeed reverses curl warps and windBias
-		//                     → visual backwards drift of cloud features.
-		float dt = 1.0f / std::max(_refreshRate, 30);
-		if (!_cloudState.FreezeEvolution)
-			_cloudState.AccumulatedTime += dt;
-		if (!_cloudState.FreezeWind)
-			_cloudState.WindAccumOffset += activeSettings->WindSpeed * dt;
-		if (!_cloudState.FreezeEvolution)
-		{
-			_cloudState.EvoAccumOffset  += activeSettings->EvolutionSpeed * dt * 0.05f;
-			_cloudState.FlowAccumOffset += activeSettings->EvolutionSpeed * dt * 0.16f;
-		}
-		_cloudState.FrameCounter++;
+		// Compute bolt sky-space XZ position (camera-relative, identical to shader).
+		float altoExtentXZ = std::max(settings.CloudBottomHeight * 0.8f, 25000.0f);
+		float boltSkyX = (LightningHash(flashCycle * 73.1f + 1.3f) - 0.5f) * altoExtentXZ;
+		float boltSkyZ = (LightningHash(flashCycle * 53.3f + 3.7f) - 0.5f) * altoExtentXZ;
 
-		// Update constant buffer.
-		UpdateVolumetricCloudBuffer(*activeSettings, _cloudState, renderView);
+		float boltDist     = std::sqrt(boltSkyX * boltSkyX + boltSkyZ * boltSkyZ);
+		float maxDist      = altoExtentXZ * 0.5f * 1.41421356f;
+		float boltDistNorm = std::min(boltDist / std::max(maxDist, 1.0f), 1.0f);
 
-		// Store current values for next frame's temporal-disable guards.
-		_cloudState.PrevCameraForward   = renderView.Camera.WorldDirection;
-		_cloudState.PrevAccumulatedTime = _cloudState.AccumulatedTime;
-		_cloudState.PrevWindAccumOffset = _cloudState.WindAccumOffset;
-		_cloudState.PrevEvoAccumOffset  = _cloudState.EvoAccumOffset;
-		_cloudState.PrevViewProjection  = renderView.Camera.ViewProjection;
-
-		// --- Pass 1: Render clouds to half-res target ---
-		// Temporal checkerboard: save the current cloud RT as the previous frame
-		// before clearing, so the shader can reuse skipped pixels from last frame.
-		if (_cloudState.ActiveQuality.TemporalReprojection)
-			_context->CopyResource(_cloudPrevFrameRT.Texture.Get(), _cloudRenderTarget.Texture.Get());
-
-		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		_context->ClearRenderTargetView(_cloudRenderTarget.RenderTargetView.Get(), clearColor);
-		_context->OMSetRenderTargets(1, _cloudRenderTarget.RenderTargetView.GetAddressOf(), nullptr);
-
-		// Set viewport to cloud render resolution.
-		D3D11_VIEWPORT cloudViewport = {};
-		cloudViewport.Width    = _stVolumetricCloud.CloudRenderSize.x;
-		cloudViewport.Height   = _stVolumetricCloud.CloudRenderSize.y;
-		cloudViewport.MinDepth = 0.0f;
-		cloudViewport.MaxDepth = 1.0f;
-		_context->RSSetViewports(1, &cloudViewport);
-
-		// Bind cloud constant buffer to b9.
-		BindConstantBufferPS(ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
-		BindConstantBufferVS(ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
-
-		if (_atmosphericSkySettings.Enabled)
-		{
-			auto* atmoSkyBuf = _cbAtmosphericSky.get();
-			_context->PSSetConstantBuffers(10, 1, atmoSkyBuf);
-		}
-
-		// Bind previous frame cloud RT as t1 for temporal checkerboard reuse.
-		if (_cloudState.ActiveQuality.TemporalReprojection)
-		{
-			BindRenderTargetAsTexture(TextureRegister::NormalMap, &_cloudPrevFrameRT,
-				SamplerStateRegister::LinearClamp);
-		}
-
-		// Bind fullscreen triangle.
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
-		SetDepthState(DepthState::None);
-
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
-
-		unsigned int stride = sizeof(PostProcessVertex);
-		unsigned int offset = 0;
-		_context->IASetVertexBuffers(0, 1,
-			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-
-		_shaders.Bind(Shader::VolumetricClouds);
-
-		// Bind pre-computed 3D/2D noise textures at t5, t6.
-		_cloudNoiseTextures.Bind(_context.Get());
-
-		DrawTriangles(3, 0);
-
-		// Unbind noise textures.
-		_cloudNoiseTextures.Unbind(_context.Get());
-
-		// Unbind previous-frame cloud RT from t1 before composite pass.
-		if (_cloudState.ActiveQuality.TemporalReprojection)
-		{
-			ID3D11ShaderResourceView* nullSRV = nullptr;
-			_context->PSSetShaderResources((UINT)TextureRegister::NormalMap, 1, &nullSRV);
-		}
-
-		// --- Pass 2: Composite clouds over scene ---
-		// Restore full-res viewport.
-		_context->RSSetViewports(1, &renderView.Viewport);
-
-		// Copy the current scene (sky/stars/horizon) to backup RT so the
-		// composite shader can read the background for hybrid blending.
-		_context->CopyResource(_scenePreCloudBackup.Texture.Get(),
-			_renderTarget.Texture.Get());
-
-		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(),
-			_renderTarget.DepthStencilView.Get());
-
-		// Opaque blend — the shader computes the final composited color itself
-		// using hybrid screen/alpha blending with the background texture.
-		SetBlendMode(BlendMode::Opaque);
-
-		// Bind atmospheric sky CB so the composite shader can fade thin cloud
-		// edges toward the actual sky tint instead of a dark residual color.
-		if (_atmosphericSkySettings.Enabled)
-		{
-			auto* atmoSkyBuf = _cbAtmosphericSky.get();
-			_context->PSSetConstantBuffers(10, 1, atmoSkyBuf);
-		}
-
-		// Bind cloud render result as texture (t0).
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_cloudRenderTarget,
-			SamplerStateRegister::LinearClamp);
-
-		// Bind scene backup as texture (t3 = ShadowMap slot, safe during cloud pass).
-		BindRenderTargetAsTexture(TextureRegister::ShadowMap, &_scenePreCloudBackup,
-			SamplerStateRegister::LinearClamp);
-
-		_shaders.Bind(Shader::VolumetricCloudComposite);
-		DrawTriangles(3, 0);
-
-		// --- Cleanup: restore all IA and pipeline state changed by the cloud pass ---
-		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-		// Unbind cloud RT and scene backup SRVs.
-		ID3D11ShaderResourceView* nullSRVs[4] = { nullptr, nullptr, nullptr, nullptr };
-		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 4, nullSRVs);
-
-		// Reset render states.
-		SetBlendMode(BlendMode::Opaque);
-		SetDepthState(DepthState::Write);
-		SetCullMode(CullMode::CounterClockwise);
-
-		// Restore full-res viewport and main render target.
-		_context->RSSetViewports(1, &renderView.Viewport);
-		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(),
-			_renderTarget.DepthStencilView.Get());
+		// Schedule thunder: 1 second for a nearby strike, up to 8 seconds for a distant one.
+		// Only one thunder event is pending at a time; further bolts are silently skipped.
+		if (state.LightningThunderCountdown < 0.0f)
+			state.LightningThunderCountdown = 1.0f + boltDistNorm * 7.0f;
 	}
 
 	// ========================================================================

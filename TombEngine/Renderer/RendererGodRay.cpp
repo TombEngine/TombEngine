@@ -310,6 +310,14 @@ namespace TEN::Renderer
 				return;
 		}
 
+		// Suppress god rays for presets that have heavy overcast (no visible sun).
+		{
+			auto currentPreset = g_SkyCloudSystem.GetCurrentPreset();
+			auto* presetDef    = g_SkyCloudSystem.GetPresetDefinition(currentPreset);
+			if (presetDef && !presetDef->GodRaysEnabled)
+				return;
+		}
+
 		// Require volumetric clouds to provide the occlusion mask.
 		// Aurora-category layers are pure light effects, not cloud geometry — exclude them
 		// so they contribute neither an occlusion mask nor auto-strength for god rays.

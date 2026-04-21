@@ -520,8 +520,8 @@ namespace TEN::Renderer
 		void UpdateVolumetricCloudBuffer(const VolumetricCloud::CloudRenderSettings& settings,
 		                                 const VolumetricCloud::CloudRuntimeState& runtimeState,
 		                                 RenderView& view);
-		void DrawVolumetricClouds(RenderView& renderView);
 		void UpdateCloudLensFlareOcclusion(RenderView& renderView);
+		void UpdateLightningThunder(const VolumetricCloud::CloudRenderSettings& settings, VolumetricCloud::CloudRuntimeState& state, float dt);
 		const VolumetricCloud::CloudRenderSettings* GetActiveVolumetricCloudSettings() const;
 	public:
 		float GetCloudLensFlareOcclusion() const;

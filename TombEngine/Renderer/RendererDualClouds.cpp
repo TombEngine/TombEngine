@@ -33,6 +33,8 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
+#include "Sound/sound.h"
+#include "Sound/sound_effects.h"
 #include "Specific/level.h"
 
 using namespace TEN::Renderer::VolumetricCloud;
@@ -212,6 +214,9 @@ namespace TEN::Renderer
 			if (!state.FreezeWind)
 				state.WindAccumOffset += settings.WindSpeed * dt;
 			state.FrameCounter++;
+
+			if (settings.LightningEnabled && settings.CloudType == 1)
+				UpdateLightningThunder(settings, state, dt);
 		}
 
 		// Fill constant buffer.

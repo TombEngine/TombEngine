@@ -634,6 +634,8 @@ namespace TEN::Sky
 			b.BlendThresholdHigh  = 1.0f;
 			b.BlendThresholdLow   = 0.004f;
 
+			def.GodRaysEnabled = false;
+
 			_presets[def.Type] = def;
 		}
 
@@ -742,6 +744,8 @@ namespace TEN::Sky
 			b.LightningBoltThicknessScale = 1.732f;
 			b.BlendThresholdHigh  = 1.0f;
 			b.BlendThresholdLow   = 0.004f;
+
+			def.GodRaysEnabled = false;
 
 			_presets[def.Type] = def;
 		}
