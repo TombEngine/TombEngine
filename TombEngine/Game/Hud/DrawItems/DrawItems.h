@@ -14,11 +14,12 @@ namespace TEN::Hud
 		// Constants
 
 		static constexpr int DRAW_ITEM_COUNT_MAX = 128;
+		static constexpr auto AMBIENT_COLOR = Vector4(0.5f, 0.5f, 0.25f, 1.0f);
 
 		// Fields
 
 		std::vector<DisplayItem> _displayItems = {};
-		Vector4                  _ambientLight = Vector4(1.0f, 1.0f, 0.5f, 1.0f);
+		Vector4                  _ambientLight = AMBIENT_COLOR;
 		
 		float _fov = ANGLE(80.0f);
 		float _prevFov = ANGLE(80.0f);

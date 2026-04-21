@@ -135,7 +135,7 @@ namespace TEN::Hud
 
 	unsigned int DrawItemsController::AddItem(GAME_OBJECT_ID objectID, const Vector3& pos, const EulerAngles& orient, const Vector3& scale, int meshBits)
 	{
-		// If at capacity, don’t add new item.
+		// If at capacity, don't add new item.
 		if (_displayItems.size() >= DRAW_ITEM_COUNT_MAX)
 			return 0;
 
@@ -228,7 +228,7 @@ namespace TEN::Hud
 		_cameraPosition = Vector3(0.0f, 0.0f, -BLOCK(1));
 		_targetPosition = Vector3::Zero;
 		_fov = ANGLE(80.0f);
-		_ambientLight = Vector4(1.0f, 1.0f, 0.5f, 1.0f);
+		_ambientLight = AMBIENT_COLOR;
 	}
 
 	void DrawItemsController::StoreCameraInterpolationData()

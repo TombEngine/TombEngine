@@ -12,6 +12,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Entities::Switches;
+using namespace TEN::SpotCam;
 
 void InitializeRaisingCog(short itemNumber)
 {

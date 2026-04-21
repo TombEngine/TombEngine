@@ -879,9 +879,10 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\ItemActions.h" />
     <ClInclude Include="Scripting\Internal\TEN\Logic\CallbackPoint.h" />
     <ClInclude Include="Scripting\Internal\TEN\Logic\EventType.h" />
-    <ClInclude Include="Scripting\Internal\TEN\Logic\GameVars.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Logic\Vars\2_GameVars.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Logic\Vars\1_GlobalVars.h" />
     <ClInclude Include="Scripting\Internal\TEN\Logic\LevelEndReason.h" />
-    <ClInclude Include="Scripting\Internal\TEN\Logic\LevelVars.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Logic\Vars\3_LevelVars.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Lara\WaterStatuses.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Lara\WeaponModes.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Lara\HandStatuses.h" />
