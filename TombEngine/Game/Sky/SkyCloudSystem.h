@@ -53,23 +53,22 @@ namespace TEN::Sky
 
 	enum class WeatherPresetType
 	{
+		// Full weather presets (configure Layer B and optionally Layer A).
 		ClearSky,
-		ClearSkyHigh,          // Clear sky with faint high-altitude wisps.
-		ClearSkyLow,           // Clear sky with thin horizon haze layer.
-		CirrocumulusClear,     // Open sky with very few scattered cirrocumulus patches.
 		CirrocumulusLots,      // Dense rippled mackerel-sky cirrocumulus.
 		CirrocumulusFew,       // Sparse patches of rippled cirrocumulus.
 		Cirrustratus,          // Thin translucent veil of cirrus covering the sky.
-		StormBuildUpHigh,
 		CloudsTransformation,
 		Overcast,
 		Altocumulus,
-		AltocumulusHigh,       // Altocumulus pushed to higher altitude, thinner.
-		AuroraBorealis,
 		RainSnowOvercast,
 		StormBuildUp,
-		StormTransformation,   // Bridge preset: rapid shift to full thunderstorm.
 		Thunderstorm,
+
+		// Layer A-specific presets (only configure Cloud Layer A).
+		Nothing,               // Layer A disabled — no aurora, no water surface.
+		Aurora,                // Aurora borealis effect on Layer A.
+		ReservedWaterSurface,  // Reserved: future water surface effect on Layer A.
 
 		Count
 	};
@@ -270,9 +269,10 @@ namespace TEN::Sky
 
 	struct WeatherPresetDefinition
 	{
-		WeatherPresetType Type        = WeatherPresetType::ClearSky;
-		std::string       Name        = "ClearSky";
-		SkyCloudSnapshot  TargetState = {};
+		WeatherPresetType Type          = WeatherPresetType::ClearSky;
+		std::string       Name          = "ClearSky";
+		bool              IsLayerAPreset = false; // If true, only configures Cloud Layer A.
+		SkyCloudSnapshot  TargetState  = {};
 
 		// Transform behavior: when not None, the preset modifies the current state
 		// rather than interpolating toward its own TargetState.
@@ -318,13 +318,6 @@ namespace TEN::Sky
 		// Each entry carries its own transition duration so different follow-ups can have
 		// different transition speeds.
 		std::vector<NextPresetCandidate> NextPresetCandidates;
-
-		// Layer-A-only auto-chain: only CloudA transitions to the target preset's CloudA snapshot.
-		// Does NOT change CloudB or _currentPreset — layers stay independent.
-		// nextPresetA = "PresetName"  or  nextPresetA = { PresetName = {weight, duration}, ... }
-		std::string NextPresetA         = "";
-		float       NextPresetADuration = 30.0f;
-		std::vector<NextPresetCandidate> NextPresetACandidates;
 
 		// Layer-B-only auto-chain: only CloudB transitions to the target preset's CloudB snapshot.
 		// nextPresetB = "PresetName"  or  nextPresetB = { PresetName = {weight, duration}, ... }
@@ -433,11 +426,8 @@ namespace TEN::Sky
 		void SetLayerBPresetImmediate(WeatherPresetType preset);
 		void InterruptLayerATransition();
 		void InterruptLayerBTransition();
-		void PauseLayerADwell();
 		void PauseLayerBDwell();
-		void ResumeLayerADwell();
 		void ResumeLayerBDwell();
-		bool IsLayerADwellPaused() const;
 		bool IsLayerBDwellPaused() const;
 
 		// Progress queries for per-layer transitions.
@@ -497,6 +487,8 @@ namespace TEN::Sky
 		const WeatherPresetDefinition* GetPresetDefinition(WeatherPresetType type) const;
 		WeatherPresetDefinition*       GetMutablePresetDefinition(WeatherPresetType type);
 		std::vector<WeatherPresetType> GetAllPresetTypes() const;
+		std::vector<WeatherPresetType> GetLayerAPresetTypes() const;
+		std::vector<WeatherPresetType> GetLayerBPresetTypes() const;
 		void OverridePreset(WeatherPresetType type, const WeatherPresetDefinition& def);
 		static CloudCategory CategoryFromString(const std::string& name);
 		static const char* PresetTypeToString(WeatherPresetType type);
@@ -535,11 +527,8 @@ namespace TEN::Sky
 			// Dwell timer (how long until next-preset chain fires).
 			float DwellElapsed = 0.0f;
 			float DwellTarget  = -1.0f; // < 0 = no dwell pending.
-			float LayerADwellElapsed = 0.0f;
-			float LayerADwellTarget  = -1.0f;
 			float LayerBDwellElapsed = 0.0f;
 			float LayerBDwellTarget  = -1.0f;
-			bool  LayerADwellPaused  = false;
 			bool  LayerBDwellPaused  = false;
 		};
 
@@ -583,7 +572,7 @@ namespace TEN::Sky
 		// _nextPresetDwellTarget < 0 means no dwell is pending.
 		float _nextPresetDwellElapsed = 0.0f;
 		float _nextPresetDwellTarget  = -1.0f;
-		LayerDwellState _layerDwellA;
+
 		LayerDwellState _layerDwellB;
 		std::mt19937 _dwellRNG; // separate RNG for dwell randomization
 
@@ -607,8 +596,8 @@ namespace TEN::Sky
 		float ResolveNextPresetDwell(const WeatherPresetDefinition& def);
 		void  UpdatePresetDwell(float deltaTime);
 		void  StartNextPresetDwell(const WeatherPresetDefinition& def);
-		void  StartLayerDwell(WeatherPresetType preset, LayerDwellState& dwellState, bool isLayerA);
-		void  UpdateLayerDwell(float deltaTime, LayerDwellState& dwellState, WeatherPresetType preset, bool isLayerA);
+		void  StartLayerDwell(WeatherPresetType preset, LayerDwellState& dwellState);
+		void  UpdateLayerDwell(float deltaTime, LayerDwellState& dwellState, WeatherPresetType preset);
 		void  FireNextPresetChains(const WeatherPresetDefinition& def);
 		const NextPresetCandidate* PickNextPresetCandidate(const std::vector<NextPresetCandidate>& candidates);
 		void  StartDriftOut(DriftOutState& state, const VolumetricCloudLayerSnapshot& current);

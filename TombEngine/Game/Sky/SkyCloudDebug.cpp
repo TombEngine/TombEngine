@@ -942,11 +942,6 @@ namespace TEN::Sky
 					SkyCloudSystem::PresetTypeToString(info.LayerAPreset),
 					CloudCategoryToString(info.CloudACategory),
 					info.CloudAEnabled ? "ON" : "OFF");
-			if (info.LayerADwellTarget >= 0.0f)
-				ImGui::TextDisabled("  A Dwell: %.1fs / %.1fs", info.LayerADwellElapsed, info.LayerADwellTarget);
-			else if (info.LayerATransitioning)
-				ImGui::TextDisabled("  A Dwell: -- (starts after transition)");
-
 			// Cloud B — show active preset and transition target.
 			if (info.LayerBTransitioning)
 				ImGui::Text("Cloud B: %s  -> %s  [%s]  (%.0f%%)",
@@ -1051,13 +1046,19 @@ namespace TEN::Sky
 			ImGui::TextDisabled("Select different presets for Layer A and Layer B independently.");
 			ImGui::Separator();
 
-			auto presetTypesL = g_SkyCloudSystem.GetAllPresetTypes();
+			auto presetTypesL = g_SkyCloudSystem.GetLayerAPresetTypes();
 			std::vector<const char*> presetNamesL;
 			presetNamesL.reserve(presetTypesL.size());
 			for (auto t : presetTypesL)
 				presetNamesL.push_back(SkyCloudSystem::PresetTypeToString(t));
 
-			if (!presetNamesL.empty())
+			auto presetTypesB = g_SkyCloudSystem.GetLayerBPresetTypes();
+			std::vector<const char*> presetNamesB;
+			presetNamesB.reserve(presetTypesB.size());
+			for (auto t : presetTypesB)
+				presetNamesB.push_back(SkyCloudSystem::PresetTypeToString(t));
+
+			if (!presetNamesL.empty() && !presetNamesB.empty())
 			{
 				// --- Layer A ---
 				ImGui::TextUnformatted("Cloud Layer A");
@@ -1079,19 +1080,6 @@ namespace TEN::Sky
 				ImGui::SameLine();
 				if (ImGui::Button("Transition##layerA"))
 					g_SkyCloudSystem.TransitionLayerAToPreset(typeA, layerADur);
-				ImGui::SameLine();
-				{
-					bool hasLayerADwell = (info.LayerADwellTarget >= 0.0f);
-					ImGui::BeginDisabled(!hasLayerADwell);
-					if (ImGui::Button(info.LayerADwellPaused ? "Resume Dwell##layerA" : "Pause Dwell##layerA"))
-					{
-						if (info.LayerADwellPaused)
-							g_SkyCloudSystem.ResumeLayerADwell();
-						else
-							g_SkyCloudSystem.PauseLayerADwell();
-					}
-					ImGui::EndDisabled();
-				}
 				if (g_SkyCloudSystem.IsLayerATransitioning())
 				{
 					ImGui::SameLine();
@@ -1109,16 +1097,16 @@ namespace TEN::Sky
 				ImGui::Indent(8.0f);
 
 				static int layerBPresetIdx = 0;
-				if (layerBPresetIdx >= static_cast<int>(presetNamesL.size())) layerBPresetIdx = 0;
+				if (layerBPresetIdx >= static_cast<int>(presetNamesB.size())) layerBPresetIdx = 0;
 				ImGui::SetNextItemWidth(160.0f);
-				ImGui::Combo("Preset##layerB", &layerBPresetIdx, presetNamesL.data(), static_cast<int>(presetNamesL.size()));
+				ImGui::Combo("Preset##layerB", &layerBPresetIdx, presetNamesB.data(), static_cast<int>(presetNamesB.size()));
 
 				static float layerBDur = 30.0f;
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(80.0f);
 				ImGui::DragFloat("s##layerBDur", &layerBDur, 1.0f, 1.0f, 300.0f, "%.0f s");
 
-				WeatherPresetType typeB = presetTypesL[layerBPresetIdx];
+				WeatherPresetType typeB = presetTypesB[layerBPresetIdx];
 				if (ImGui::Button("Apply Immediately##layerB"))
 					g_SkyCloudSystem.SetLayerBPresetImmediate(typeB);
 				ImGui::SameLine();

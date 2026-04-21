@@ -139,12 +139,10 @@ namespace TEN::Scripting
 		///
 		/// @function Flow.SetWeatherPreset
 		/// @tparam string presetName Name of the weather preset.
-		/// Valid values: "ClearSky", "ClearSkyHigh", "ClearSkyLow",
-		/// "CirrocumulusClear", "CirrocumulusLots", "CirrocumulusFew",
-		/// "Cirrustratus", "StormBuildUpHigh", "CloudsTransformation",
-		/// "Overcast", "Altocumulus", "AltocumulusHigh", "AuroraBorealis",
-		/// "RainSnowOvercast", "StormBuildUp", "StormTransformation",
-		/// "Thunderstorm", "Random"
+		/// Valid values: "ClearSky", "CirrocumulusLots", "CirrocumulusFew",
+		/// "Cirrustratus", "CloudsTransformation", "Overcast", "Altocumulus",
+		/// "RainSnowOvercast", "StormBuildUp", "Thunderstorm",
+		/// "Nothing", "Aurora", "ReservedWaterSurface", "Random"
 		parent.set_function("SetWeatherPreset",
 			[](const std::string& presetName)
 			{
@@ -384,11 +382,6 @@ namespace TEN::Scripting
 				(double)def.NextPresetTransitionDuration), 0.1f);
 			def.NextPresetTransitionDurationA = (float)definition.get_or("nextTransitionDurationA", -1.0);
 			def.NextPresetTransitionDurationB = (float)definition.get_or("nextTransitionDurationB", -1.0);
-
-			// nextPresetA — Layer-A-only chain (only CloudA transitions; CloudB/preset unchanged).
-			ParseNextPresetField("nextPresetA", def.NextPresetA, def.NextPresetACandidates);
-			def.NextPresetADuration = std::max(tf(definition, "nextTransitionDurationA_chain",
-				(double)def.NextPresetADuration), 0.1f);
 
 			// nextPresetB — Layer-B-only chain (only CloudB transitions; CloudA/preset unchanged).
 			ParseNextPresetField("nextPresetB", def.NextPresetB, def.NextPresetBCandidates);

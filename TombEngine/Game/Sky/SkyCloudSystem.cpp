@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // SkyCloudSystem.cpp � Layered Sky & Cloud Weather System Implementation
 // ============================================================================
 
@@ -463,7 +463,6 @@ namespace TEN::Sky
 		_cloudBTransmittance  = 1.0f;
 		_nextPresetDwellElapsed = 0.0f;
 		_nextPresetDwellTarget  = -1.0f;
-		_layerDwellA = {};
 		_layerDwellB = {};
 		_driftOutA = {};
 		_driftOutB = {};
@@ -520,11 +519,8 @@ namespace TEN::Sky
 			def.Name = "ClearSky";
 			def.DefaultTransitionDuration = 60.0f;
 			def.NextPresetDwellDuration   = 1.0f;
-			def.NextPresetACandidates = {
-				{ "ClearSkyHigh", 1.0f, 1.0f, 1.0f }
-			};
 			def.NextPresetBCandidates = {
-				{ "ClearSkyLow", 1.0f, 1.0f, 1.0f }
+				{ "Altocumulus", 1.0f, 1.0f, 1.0f }
 			};
 
 			auto& a = def.TargetState.CloudA;
@@ -744,83 +740,6 @@ namespace TEN::Sky
 
 			_presets[def.Type] = def;
 		}
-	
-		// ----- StormBuildUpHigh -----
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::StormBuildUpHigh;
-			def.Name = "StormBuildUpHigh";
-			def.DefaultTransitionDuration  = 40.0f;
-			def.NextPresetDwellDurationMin = 6.0f;
-			def.NextPresetDwellDurationMax = 9.0f;
-			def.NextPresetACandidates = {
-				{ "ClearSkyHigh", 1.0f, -1.0f, 50.0f }
-			};
-			def.NextPresetBCandidates = {
-				{ "ClearSkyLow",          0.3f, -1.0f, 60.0f },
-				{ "StormTransformation",  0.7f, -1.0f, 90.0f }
-			};
-
-			auto& a = def.TargetState.CloudA;
-			a.Enabled             = true;
-			a.Category            = CloudCategory::AltocumulusMid;
-			a.Coverage            = 1.0f;
-			a.BottomHeight        = 1536.0f;
-			a.EvolutionSpeed      = 0.043f;
-			a.HorizonFade         = 0.0f;
-			a.DistanceFade        = 0.0f;
-			a.AltoBillowStrength  = 0.0f;
-			a.AltoCovSoftWidth    = 0.25f;
-			a.AltoAbsorption      = 0.1f;
-			a.AltoCloudSize       = 1.621f;
-			a.AltoCloudAmount     = 0.384f;
-			a.AltoCloudBrightness = 0.769f;
-			a.AltoCloudColorR     = 1.0f;
-			a.AltoCloudColorG     = 1.0f;
-			a.AltoCloudColorB     = 1.0f;
-			a.AltoCloudColorDarkR = 0.0f;
-			a.AltoCloudColorDarkG = 0.0f;
-			a.AltoCloudColorDarkB = 0.0f;
-			a.AltoFbmLacunarity   = 4.0f;
-			a.AltoFbmGain         = 0.587f;
-			a.AltoThickness       = 1004.0f;
-			a.AltoBottomSoftness  = 0.941f;
-			a.AltoZenithBias      = 0.161f;
-			a.AltoHeightBlendPower = 1.0f;
-			a.BlendThresholdHigh  = 0.038f;
-			a.BlendThresholdLow   = 0.0f;
-
-			auto& b = def.TargetState.CloudB;
-			b.Enabled             = true;
-			b.Category            = CloudCategory::AltocumulusMid;
-			b.Coverage            = 1.0f;
-			b.BottomHeight        = 2663.0f;
-			b.EvolutionSpeed      = 4.034f;
-			b.HorizonFade         = 0.787f;
-			b.DistanceFade        = 0.205f;
-			b.AltoBillowStrength  = 0.0f;
-			b.AltoCovSoftWidth    = 0.2281f;
-			b.AltoAbsorption      = 0.528f;
-			b.AltoCloudSize       = 0.225f;
-			b.AltoCloudAmount     = 0.117f;
-			b.AltoCloudBrightness = 0.971f;
-			b.AltoCloudColorR     = 1.0f;
-			b.AltoCloudColorG     = 1.0f;
-			b.AltoCloudColorB     = 1.0f;
-			b.AltoCloudColorDarkR = 0.585f;
-			b.AltoCloudColorDarkG = 0.636f;
-			b.AltoCloudColorDarkB = 0.76f;
-			b.AltoFbmLacunarity   = 4.0f;
-			b.AltoFbmGain         = 0.506f;
-			b.AltoThickness       = 3356.0f;
-			b.AltoBottomSoftness  = 0.224f;
-			b.AltoZenithBias      = 1.0f;
-			b.AltoHeightBlendPower = 1.772f;
-			b.BlendThresholdHigh  = 1.0f;
-			b.BlendThresholdLow   = 0.004f;
-
-			_presets[def.Type] = def;
-		}
 
 		// ----- Overcast -----
 		{
@@ -849,7 +768,7 @@ namespace TEN::Sky
 			def.NextPresetDwellDurationMin = 6.0f;
 			def.NextPresetDwellDurationMax = 9.0f;
 			def.NextPresetBCandidates = {
-				{ "ClearSkyLow", 1.0f, -1.0f, 50.0f }
+				{ "ClearSky", 1.0f, -1.0f, 50.0f }
 			};
 
 			auto& b = def.TargetState.CloudB;
@@ -885,11 +804,12 @@ namespace TEN::Sky
 			_presets[def.Type] = def;
 		}
 
-		// ----- Aurora Borealis -----
+		// ----- Aurora -----
 		{
 			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::AuroraBorealis;
-			def.Name = "AuroraBorealis";
+			def.Type           = WeatherPresetType::Aurora;
+			def.Name           = "Aurora";
+			def.IsLayerAPreset = true;
 			def.DefaultTransitionDuration = 50.0f;
 
 			auto& a = def.TargetState.CloudA;
@@ -914,12 +834,9 @@ namespace TEN::Sky
 			def.HighLayerLeadFraction      = 0.2f;
 			def.NextPresetDwellDurationMin = 6.0f;
 			def.NextPresetDwellDurationMax = 9.0f;
-			def.NextPresetACandidates = {
-				{ "ClearSkyHigh", 1.0f, -1.0f, 50.0f }
-			};
 			def.NextPresetBCandidates = {
-				{ "ClearSkyLow",         0.3f, -1.0f, 60.0f },
-				{ "StormTransformation", 0.7f, -1.0f, 90.0f }
+				{ "ClearSky",     0.3f, -1.0f, 60.0f },
+				{ "Thunderstorm", 0.7f, -1.0f, 90.0f }
 			};
 
 			auto& a = def.TargetState.CloudA;
@@ -981,268 +898,6 @@ namespace TEN::Sky
 			_presets[def.Type] = def;
 		}
 
-		// ----- AltocumulusHigh -----
-		// Altocumulus pushed to higher altitude � lighter, thinner, more broken.
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::AltocumulusHigh;
-			def.Name = "AltocumulusHigh";
-			def.DefaultTransitionDuration  = 45.0f;
-			def.NextPresetDwellDurationMin = 6.0f;
-			def.NextPresetDwellDurationMax = 9.0f;
-			def.NextPresetACandidates = {
-				{ "StormBuildUpHigh", 0.5f, 0.0f,  90.0f },
-				{ "AltocumulusHigh",  0.5f, 0.7f,  40.0f }
-			};
-			def.NextPresetBCandidates = {
-				{ "RainSnowOvercast", 0.4f, 0.3f, 40.0f },
-				{ "AltocumulusHigh",  0.6f, 0.7f, 40.0f }
-			};
-
-			auto& b = def.TargetState.CloudB;
-			b.Enabled             = true;
-			b.Category            = CloudCategory::AltocumulusMid;
-			b.Coverage            = 1.0f;
-			b.BottomHeight        = 2127.0f;
-			b.Thickness           = 3252.0f;
-			b.EvolutionSpeed      = 5.0f;
-			b.HorizonFade         = 1.0f;
-			b.DistanceFade        = 0.0f;
-			b.AltoBillowStrength  = 1.0f;
-			b.AltoCovSoftWidth    = 0.25f;
-			b.AltoAbsorption      = 0.1f;
-			b.AltoCloudSize       = 0.509f;
-			b.AltoCloudAmount     = 0.640f;
-			b.AltoCloudBrightness = 1.034f;
-			b.AltoCloudColorR     = 1.0f;
-			b.AltoCloudColorG     = 1.0f;
-			b.AltoCloudColorB     = 1.0f;
-			b.AltoCloudColorDarkR = 0.55f;
-			b.AltoCloudColorDarkG = 0.55f;
-			b.AltoCloudColorDarkB = 0.65f;
-			b.AltoFbmLacunarity   = 4.0f;
-			b.AltoFbmGain         = 0.5f;
-			b.AltoThickness       = 1480.0f;
-			b.AltoBottomSoftness  = 1.0f;
-			b.AltoZenithBias      = 0.0f;
-			b.AltoHeightBlendPower = 1.0f;
-			b.BlendThresholdHigh  = 1.0f;
-			b.BlendThresholdLow   = 0.004f;
-
-			_presets[def.Type] = def;
-		}
-		// ----- ClearSkyHigh -----
-		// Clear sky with a few faint high-altitude cloudlets.
-		// Cloud A disabled but carries tuned values for cross-fade use.
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::ClearSkyHigh;
-			def.Name = "ClearSkyHigh";
-			def.DefaultTransitionDuration  = 30.0f;
-			def.NextPresetDwellDurationMin = 6.0f;
-			def.NextPresetDwellDurationMax = 9.0f;
-			def.NextPresetACandidates = {
-				{ "CirrocumulusFew",  0.2f, 0.3f, 40.0f },
-				{ "AuroraBorealis",   0.0f, 0.3f, 25.0f },
-				{ "Cirrustratus",     0.3f, 0.3f, 70.0f }
-			};
-
-			auto& a = def.TargetState.CloudA;
-			a.Enabled             = false;
-			a.Category            = CloudCategory::AltocumulusMid;
-			a.Coverage            = 0.0f;
-			a.BottomHeight        = 2500.0f;
-			a.EvolutionSpeed      = 4.532f;
-			a.HorizonFade         = 1.0f;
-			a.DistanceFade        = 0.0f;
-			a.AltoBillowStrength  = 0.458f;
-			a.AltoCovSoftWidth    = 0.165f;
-			a.AltoAbsorption      = 0.1f;
-			a.AltoCloudSize       = 0.412f;
-			a.AltoCloudAmount     = 0.451f;
-			a.AltoCloudBrightness = 0.769f;
-			a.AltoCloudColorR     = 1.0f;
-			a.AltoCloudColorG     = 1.0f;
-			a.AltoCloudColorB     = 1.0f;
-			a.AltoCloudColorDarkR = 0.693f;
-			a.AltoCloudColorDarkG = 0.693f;
-			a.AltoCloudColorDarkB = 0.873f;
-			a.AltoFbmLacunarity   = 4.0f;
-			a.AltoFbmGain         = 0.587f;
-			a.AltoThickness       = 5000.0f;
-			a.AltoBottomSoftness  = 0.153f;
-			a.AltoZenithBias      = 1.0f;
-			a.AltoHeightBlendPower = 1.564f;
-			a.BlendThresholdHigh  = 0.038f;
-			a.BlendThresholdLow   = 0.0f;
-
-			_presets[def.Type] = def;
-		}
-
-		// ----- ClearSkyLow -----
-		// Clear sky with a thin horizon haze band (Cloud B, visually invisible at coverage 0).
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::ClearSkyLow;
-			def.Name = "ClearSkyLow";
-			def.DefaultTransitionDuration  = 30.0f;
-			def.NextPresetDwellDurationMin = 6.0f;
-			def.NextPresetDwellDurationMax = 9.0f;
-			def.NextPresetBCandidates = {
-				{ "StormBuildUp",    0.3f, 0.0f, 40.0f },
-				{ "AltocumulusHigh", 0.3f, 0.3f, 25.0f },
-				{ "ClearSkyLow",     0.4f, 0.7f, 25.0f }
-			};
-
-			auto& b = def.TargetState.CloudB;
-			b.Enabled             = true;
-			b.Category            = CloudCategory::AltocumulusMid;
-			b.Coverage            = 0.0f;
-			b.BottomHeight        = 2127.0f;
-			b.Thickness           = 3252.0f;
-			b.EvolutionSpeed      = 5.0f;
-			b.HorizonFade         = 1.0f;
-			b.DistanceFade        = 0.0f;
-			b.AltoBillowStrength  = 1.0f;
-			b.AltoCovSoftWidth    = 0.25f;
-			b.AltoAbsorption      = 0.1f;
-			b.AltoCloudSize       = 0.509f;
-			b.AltoCloudAmount     = 0.0f;
-			b.AltoCloudBrightness = 1.034f;
-			b.AltoCloudColorR     = 1.0f;
-			b.AltoCloudColorG     = 1.0f;
-			b.AltoCloudColorB     = 1.0f;
-			b.AltoCloudColorDarkR = 0.55f;
-			b.AltoCloudColorDarkG = 0.55f;
-			b.AltoCloudColorDarkB = 0.65f;
-			b.AltoFbmLacunarity   = 4.0f;
-			b.AltoFbmGain         = 0.687f;
-			b.AltoThickness       = 1480.0f;
-			b.AltoBottomSoftness  = 1.0f;
-			b.AltoZenithBias      = 0.0f;
-			b.AltoHeightBlendPower = 1.0f;
-			b.BlendThresholdHigh  = 0.038f;
-			b.BlendThresholdLow   = 0.0f;
-
-			_presets[def.Type] = def;
-		}
-
-		// ----- CirrocumulusClear -----
-		// Open sky with near-zero coverage cloudlets; chains to ClearSkyHigh via layer B.
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::CirrocumulusClear;
-			def.Name = "CirrocumulusClear";
-			def.DefaultTransitionDuration = 1.0f;
-			def.NextPresetDwellDuration   = 1.0f;
-			def.NextPresetBCandidates = {
-				{ "ClearSkyHigh", 1.0f, -1.0f, 50.0f }
-			};
-
-			auto& a = def.TargetState.CloudA;
-			a.Enabled             = true;
-			a.Category            = CloudCategory::AltocumulusMid;
-			a.Coverage            = 0.0f;
-			a.BottomHeight        = 1536.0f;
-			a.EvolutionSpeed      = 3.043f;
-			a.HorizonFade         = 0.0f;
-			a.DistanceFade        = 0.0f;
-			a.AltoBillowStrength  = 0.0f;
-			a.AltoCovSoftWidth    = 0.25f;
-			a.AltoAbsorption      = 0.1f;
-			a.AltoCloudSize       = 1.621f;
-			a.AltoCloudAmount     = 0.356f;
-			a.AltoCloudBrightness = 1.0f;
-			a.AltoCloudColorR     = 1.0f;
-			a.AltoCloudColorG     = 1.0f;
-			a.AltoCloudColorB     = 1.0f;
-			a.AltoCloudColorDarkR = 0.693f;
-			a.AltoCloudColorDarkG = 0.693f;
-			a.AltoCloudColorDarkB = 0.873f;
-			a.AltoFbmLacunarity   = 4.0f;
-			a.AltoFbmGain         = 0.5f;
-			a.AltoThickness       = 1004.0f;
-			a.AltoBottomSoftness  = 0.941f;
-			a.AltoZenithBias      = 0.161f;
-			a.AltoHeightBlendPower = 1.0f;
-			a.BlendThresholdHigh  = 0.034f;
-			a.BlendThresholdLow   = 0.004f;
-
-			_presets[def.Type] = def;
-		}
-
-		// ----- StormTransformation -----
-		// Near-instant bridge preset: holds briefly then chains CloudB to Thunderstorm.
-		{
-			WeatherPresetDefinition def;
-			def.Type = WeatherPresetType::StormTransformation;
-			def.Name = "StormTransformation";
-			def.DefaultTransitionDuration = 1.0f;
-			def.NextPresetDwellDuration   = 1.0f;
-			def.NextPresetBCandidates = {
-				{ "Thunderstorm", 1.0f, -1.0f, 50.0f }
-			};
-
-			auto& a = def.TargetState.CloudA;
-			a.Enabled             = true;
-			a.Category            = CloudCategory::AltocumulusMid;
-			a.Coverage            = 0.45f;
-			a.BottomHeight        = 2500.0f;
-			a.EvolutionSpeed      = 4.532f;
-			a.HorizonFade         = 1.0f;
-			a.DistanceFade        = 0.0f;
-			a.AltoBillowStrength  = 0.458f;
-			a.AltoCovSoftWidth    = 0.165f;
-			a.AltoAbsorption      = 0.1f;
-			a.AltoCloudSize       = 0.412f;
-			a.AltoCloudAmount     = 0.451f;
-			a.AltoCloudBrightness = 0.769f;
-			a.AltoCloudColorR     = 1.0f;
-			a.AltoCloudColorG     = 1.0f;
-			a.AltoCloudColorB     = 1.0f;
-			a.AltoCloudColorDarkR = 0.693f;
-			a.AltoCloudColorDarkG = 0.693f;
-			a.AltoCloudColorDarkB = 0.873f;
-			a.AltoFbmLacunarity   = 4.0f;
-			a.AltoFbmGain         = 0.853f;
-			a.AltoThickness       = 5000.0f;
-			a.AltoBottomSoftness  = 0.153f;
-			a.AltoZenithBias      = 0.0f;
-			a.AltoHeightBlendPower = 1.0f;
-
-			auto& b = def.TargetState.CloudB;
-			b.Enabled             = true;
-			b.Category            = CloudCategory::AltocumulusMid;
-			b.Coverage            = 1.0f;
-			b.BottomHeight        = 2663.0f;
-			b.EvolutionSpeed      = 5.0f;
-			b.HorizonFade         = 0.724f;
-			b.DistanceFade        = 0.0f;
-			b.AltoBillowStrength  = 0.0f;
-			b.AltoCovSoftWidth    = 0.25f;
-			b.AltoAbsorption      = 0.1f;
-			b.AltoCloudSize       = 0.536f;
-			b.AltoCloudAmount     = 0.594f;
-			b.AltoCloudBrightness = 0.401f;
-			b.AltoCloudColorR     = 1.0f;
-			b.AltoCloudColorG     = 1.0f;
-			b.AltoCloudColorB     = 1.0f;
-			b.AltoCloudColorDarkR = 0.13f;
-			b.AltoCloudColorDarkG = 0.13f;
-			b.AltoCloudColorDarkB = 0.172f;
-			b.AltoFbmLacunarity   = 4.0f;
-			b.AltoFbmGain         = 1.0f;
-			b.AltoThickness       = 5000.0f;
-			b.AltoBottomSoftness  = 0.745f;
-			b.AltoZenithBias      = 0.2f;
-			b.AltoHeightBlendPower = 2.637f;
-			b.BlendThresholdHigh      = 0.55f;
-			b.BlendThresholdHighWidth = 0.3941f;
-			b.BlendThresholdLow       = 0.004f;
-
-			_presets[def.Type] = def;
-		}
-
 		// ----- Cirrustratus -----
 		// Partially cloudy sky (Cloud A) with an optional high disabled layer (Cloud B).
 		{
@@ -1252,12 +907,6 @@ namespace TEN::Sky
 			def.DefaultTransitionDuration  = 30.0f;
 			def.NextPresetDwellDurationMin = 6.0f;
 			def.NextPresetDwellDurationMax = 9.0f;
-			def.NextPresetACandidates = {
-				{ "ClearSkyHigh",   0.5f, 0.3f, 40.0f },
-				{ "AuroraBorealis", 0.0f, 0.3f, 25.0f },
-				{ "Cirrustratus",   0.5f, 0.7f, 25.0f }
-			};
-
 			auto& a = def.TargetState.CloudA;
 			a.Enabled             = true;
 			a.Category            = CloudCategory::AltocumulusMid;
@@ -1327,12 +976,6 @@ namespace TEN::Sky
 			def.DefaultTransitionDuration  = 45.0f;
 			def.NextPresetDwellDurationMin = 6.0f;
 			def.NextPresetDwellDurationMax = 9.0f;
-			def.NextPresetACandidates = {
-				{ "CirrocumulusFew",  0.2f, 0.6f, 40.0f },
-				{ "AltocumulusHigh",  0.5f, 0.0f, 25.0f },
-				{ "Cirrustratus",     0.5f, 0.4f, 25.0f }
-			};
-
 			auto& a = def.TargetState.CloudA;
 			a.Enabled             = true;
 			a.Category            = CloudCategory::AltocumulusMid;
@@ -1375,13 +1018,6 @@ namespace TEN::Sky
 			def.DefaultTransitionDuration  = 30.0f;
 			def.NextPresetDwellDurationMin = 6.0f;
 			def.NextPresetDwellDurationMax = 9.0f;
-			def.NextPresetACandidates = {
-				{ "ClearSkyHigh",     0.2f, 0.6f, 40.0f },
-				{ "StormBuildUpHigh", 0.5f, 0.0f, 90.0f },
-				{ "CirrocumulusLots", 0.3f, 0.2f, 50.0f },
-				{ "AuroraBorealis",   0.0f, 0.2f, 50.0f }
-			};
-
 			auto& a = def.TargetState.CloudA;
 			a.Enabled             = true;
 			a.Category            = CloudCategory::AltocumulusMid;
@@ -1415,6 +1051,36 @@ namespace TEN::Sky
 
 			_presets[def.Type] = def;
 		}
+
+		// ----- Nothing -----
+		// Layer A placeholder: cloud A is disabled. No aurora, no water surface.
+		{
+			WeatherPresetDefinition def;
+			def.Type           = WeatherPresetType::Nothing;
+			def.Name           = "Nothing";
+			def.IsLayerAPreset = true;
+			def.DefaultTransitionDuration = 30.0f;
+
+			def.TargetState.CloudA.Enabled  = false;
+			def.TargetState.CloudA.Category = CloudCategory::None;
+
+			_presets[def.Type] = def;
+		}
+
+		// ----- ReservedWaterSurface -----
+		// Reserved Layer A preset for a future water surface effect.
+		{
+			WeatherPresetDefinition def;
+			def.Type           = WeatherPresetType::ReservedWaterSurface;
+			def.Name           = "ReservedWaterSurface";
+			def.IsLayerAPreset = true;
+			def.DefaultTransitionDuration = 30.0f;
+
+			def.TargetState.CloudA.Enabled  = false;
+			def.TargetState.CloudA.Category = CloudCategory::None;
+
+			_presets[def.Type] = def;
+		}
 	}
 
 	// ====================================================================
@@ -1431,23 +1097,16 @@ namespace TEN::Sky
 		// Per-layer independent transitions � run last so they take priority over
 		// any CloudA/B values written by the full-preset transition above.
 		if (!_manualOverrideCloudA && _layerTransitionA.Active)
-		{
-			if (UpdateLayerTransition(deltaTime, _layerTransitionA, _currentState.CloudA))
-				StartLayerDwell(_layerAPreset, _layerDwellA, true);
-		}
-		else
-		{
-			UpdateLayerDwell(deltaTime, _layerDwellA, _layerAPreset, true);
-		}
+			UpdateLayerTransition(deltaTime, _layerTransitionA, _currentState.CloudA);
 
 		if (!_manualOverrideCloudB && _layerTransitionB.Active)
 		{
 			if (UpdateLayerTransition(deltaTime, _layerTransitionB, _currentState.CloudB))
-				StartLayerDwell(_layerBPreset, _layerDwellB, false);
+				StartLayerDwell(_layerBPreset, _layerDwellB);
 		}
 		else
 		{
-			UpdateLayerDwell(deltaTime, _layerDwellB, _layerBPreset, false);
+			UpdateLayerDwell(deltaTime, _layerDwellB, _layerBPreset);
 		}
 
 		// Drift-out: wind-directional dissolution when dwell expired with no NextPreset.
@@ -1564,7 +1223,6 @@ namespace TEN::Sky
 
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
-		_layerDwellA = {};
 		_layerDwellB = {};
 		_transition.Active      = false;
 		_driftOutA.Active       = false;
@@ -1594,7 +1252,7 @@ namespace TEN::Sky
 	}
 
 	// Helper: copy all fields that should smoothly interpolate during a CloudMorph transition.
-	// This includes appearance (color, brightness, blend thresholds, lightning) AND all
+	// This includes appearance (color, brightness, coverage, blend thresholds, lightning) AND all
 	// geometry/positional params that are global CB variables in the shader and thus affect
 	// BOTH source and target density evaluations simultaneously.
 	//
@@ -1606,6 +1264,9 @@ namespace TEN::Sky
 	static void CopyMorphAppearance(VolumetricCloudLayerSnapshot& dst,
 	                                const VolumetricCloudLayerSnapshot& src)
 	{
+		// Global layer opacity: smoothly lerp so presets with different Coverage values
+		// don't snap on the first frame of the morph.
+		dst.Coverage            = src.Coverage;
 		// Cloud color and brightness
 		dst.AltoCloudColorR     = src.AltoCloudColorR;
 		dst.AltoCloudColorG     = src.AltoCloudColorG;
@@ -1769,7 +1430,6 @@ namespace TEN::Sky
 		// and silently block the morph from writing to CloudA/CloudB.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
-		_layerDwellA = {};
 		_layerDwellB = {};
 		_driftOutA.Active = false;
 		_driftOutB.Active = false;
@@ -1834,7 +1494,6 @@ namespace TEN::Sky
 		// and silently block the morph from writing to CloudA/CloudB.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
-		_layerDwellA = {};
 		_layerDwellB = {};
 		_driftOutA.Active = false;
 		_driftOutB.Active = false;
@@ -1893,7 +1552,6 @@ namespace TEN::Sky
 		// Also cancel any pending dwell / drift-out that might fire from the interrupted target.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
-		_layerDwellA = {};
 		_layerDwellB = {};
 		_driftOutA.Active = false;
 		_driftOutB.Active = false;
@@ -1916,7 +1574,6 @@ namespace TEN::Sky
 		// Preset dwell timer.
 		_nextPresetDwellTarget  = -1.0f;
 		_nextPresetDwellElapsed = 0.0f;
-		_layerDwellA = {};
 		_layerDwellB = {};
 		// Drift-out dissolve.
 		_driftOutA.Active = false;
@@ -1980,7 +1637,6 @@ namespace TEN::Sky
 		_manualOverrideCloudA = false;
 
 		_layerAPreset = preset;
-		_layerDwellA  = {};
 		auto& tr  = _layerTransitionA;
 		tr.Active       = true;
 		tr.TargetPreset = preset;
@@ -2051,7 +1707,6 @@ namespace TEN::Sky
 			_currentState.CloudA = it->second.TargetState.CloudA;
 		}
 
-		StartLayerDwell(preset, _layerDwellA, true);
 	}
 
 	void SkyCloudSystem::SetLayerBPresetImmediate(WeatherPresetType preset)
@@ -2075,13 +1730,12 @@ namespace TEN::Sky
 			_currentState.CloudB = it->second.TargetState.CloudB;
 		}
 
-		StartLayerDwell(preset, _layerDwellB, false);
+		StartLayerDwell(preset, _layerDwellB);
 	}
 
 	void SkyCloudSystem::InterruptLayerATransition()
 	{
 		_layerTransitionA.Active = false;
-		_layerDwellA = {};
 	}
 
 	void SkyCloudSystem::InterruptLayerBTransition()
@@ -2090,21 +1744,10 @@ namespace TEN::Sky
 		_layerDwellB = {};
 	}
 
-	void SkyCloudSystem::PauseLayerADwell()
-	{
-		if (_layerDwellA.Target >= 0.0f)
-			_layerDwellA.Paused = true;
-	}
-
 	void SkyCloudSystem::PauseLayerBDwell()
 	{
 		if (_layerDwellB.Target >= 0.0f)
 			_layerDwellB.Paused = true;
-	}
-
-	void SkyCloudSystem::ResumeLayerADwell()
-	{
-		_layerDwellA.Paused = false;
 	}
 
 	void SkyCloudSystem::ResumeLayerBDwell()
@@ -2112,7 +1755,6 @@ namespace TEN::Sky
 		_layerDwellB.Paused = false;
 	}
 
-	bool SkyCloudSystem::IsLayerADwellPaused() const { return _layerDwellA.Paused; }
 	bool SkyCloudSystem::IsLayerBDwellPaused() const { return _layerDwellB.Paused; }
 
 	bool SkyCloudSystem::IsLayerATransitioning() const { return _layerTransitionA.Active; }
@@ -2218,18 +1860,6 @@ namespace TEN::Sky
 			anyChainFired = true;
 		}
 
-		// --- A-only chain (independent CloudA layer transition) ---
-		if (const auto* ca = PickNextPresetCandidate(def.NextPresetACandidates))
-		{
-			TransitionLayerAToPreset(StringToPresetType(ca->Name), ca->TransitionDuration);
-			anyChainFired = true;
-		}
-		else if (!def.NextPresetA.empty())
-		{
-			TransitionLayerAToPreset(StringToPresetType(def.NextPresetA), def.NextPresetADuration);
-			anyChainFired = true;
-		}
-
 		// --- B-only chain (independent CloudB layer transition) ---
 		if (const auto* cb = PickNextPresetCandidate(def.NextPresetBCandidates))
 		{
@@ -2265,7 +1895,7 @@ namespace TEN::Sky
 		_nextPresetDwellElapsed = 0.0f;
 	}
 
-	void SkyCloudSystem::StartLayerDwell(WeatherPresetType preset, LayerDwellState& dwellState, bool isLayerA)
+	void SkyCloudSystem::StartLayerDwell(WeatherPresetType preset, LayerDwellState& dwellState)
 	{
 		dwellState = {};
 
@@ -2280,27 +1910,17 @@ namespace TEN::Sky
 
 		if (dwell == 0.0f)
 		{
-			if (isLayerA)
-			{
-				if (const auto* candidate = PickNextPresetCandidate(def.NextPresetACandidates))
-					TransitionLayerAToPreset(StringToPresetType(candidate->Name), candidate->TransitionDuration);
-				else if (!def.NextPresetA.empty())
-					TransitionLayerAToPreset(StringToPresetType(def.NextPresetA), def.NextPresetADuration);
-			}
-			else
-			{
-				if (const auto* candidate = PickNextPresetCandidate(def.NextPresetBCandidates))
-					TransitionLayerBToPreset(StringToPresetType(candidate->Name), candidate->TransitionDuration);
-				else if (!def.NextPresetB.empty())
-					TransitionLayerBToPreset(StringToPresetType(def.NextPresetB), def.NextPresetBDuration);
-			}
+			if (const auto* candidate = PickNextPresetCandidate(def.NextPresetBCandidates))
+				TransitionLayerBToPreset(StringToPresetType(candidate->Name), candidate->TransitionDuration);
+			else if (!def.NextPresetB.empty())
+				TransitionLayerBToPreset(StringToPresetType(def.NextPresetB), def.NextPresetBDuration);
 			return;
 		}
 
 		dwellState.Target = dwell;
 	}
 
-	void SkyCloudSystem::UpdateLayerDwell(float deltaTime, LayerDwellState& dwellState, WeatherPresetType preset, bool isLayerA)
+	void SkyCloudSystem::UpdateLayerDwell(float deltaTime, LayerDwellState& dwellState, WeatherPresetType preset)
 	{
 		if (dwellState.Target < 0.0f)
 			return;
@@ -2318,20 +1938,10 @@ namespace TEN::Sky
 			return;
 
 		const auto& def = it->second;
-		if (isLayerA)
-		{
-			if (const auto* candidate = PickNextPresetCandidate(def.NextPresetACandidates))
-				TransitionLayerAToPreset(StringToPresetType(candidate->Name), candidate->TransitionDuration);
-			else if (!def.NextPresetA.empty())
-				TransitionLayerAToPreset(StringToPresetType(def.NextPresetA), def.NextPresetADuration);
-		}
-		else
-		{
-			if (const auto* candidate = PickNextPresetCandidate(def.NextPresetBCandidates))
-				TransitionLayerBToPreset(StringToPresetType(candidate->Name), candidate->TransitionDuration);
-			else if (!def.NextPresetB.empty())
-				TransitionLayerBToPreset(StringToPresetType(def.NextPresetB), def.NextPresetBDuration);
-		}
+		if (const auto* candidate = PickNextPresetCandidate(def.NextPresetBCandidates))
+			TransitionLayerBToPreset(StringToPresetType(candidate->Name), candidate->TransitionDuration);
+		else if (!def.NextPresetB.empty())
+			TransitionLayerBToPreset(StringToPresetType(def.NextPresetB), def.NextPresetBDuration);
 	}
 
 	void SkyCloudSystem::UpdatePresetDwell(float deltaTime)
@@ -2588,6 +2198,30 @@ namespace TEN::Sky
 		return types;
 	}
 
+	std::vector<WeatherPresetType> SkyCloudSystem::GetLayerAPresetTypes() const
+	{
+		std::vector<WeatherPresetType> types;
+		for (const auto& [type, def] : _presets)
+		{
+			if (def.IsLayerAPreset)
+				types.push_back(type);
+		}
+		std::sort(types.begin(), types.end());
+		return types;
+	}
+
+	std::vector<WeatherPresetType> SkyCloudSystem::GetLayerBPresetTypes() const
+	{
+		std::vector<WeatherPresetType> types;
+		for (const auto& [type, def] : _presets)
+		{
+			if (!def.IsLayerAPreset)
+				types.push_back(type);
+		}
+		std::sort(types.begin(), types.end());
+		return types;
+	}
+
 	void SkyCloudSystem::OverridePreset(WeatherPresetType type, const WeatherPresetDefinition& def)
 	{
 		_presets[type] = def;
@@ -2605,22 +2239,18 @@ namespace TEN::Sky
 		switch (type)
 		{
 		case WeatherPresetType::ClearSky:              return "ClearSky";
-		case WeatherPresetType::ClearSkyHigh:          return "ClearSkyHigh";
-		case WeatherPresetType::ClearSkyLow:           return "ClearSkyLow";
-		case WeatherPresetType::CirrocumulusClear:     return "CirrocumulusClear";
 		case WeatherPresetType::CirrocumulusLots:      return "CirrocumulusLots";
 		case WeatherPresetType::CirrocumulusFew:       return "CirrocumulusFew";
 		case WeatherPresetType::Cirrustratus:          return "Cirrustratus";
-		case WeatherPresetType::StormBuildUpHigh:      return "StormBuildUpHigh";
-		case WeatherPresetType::CloudsTransformation:         return "CloudsTransformation";
+		case WeatherPresetType::CloudsTransformation:  return "CloudsTransformation";
 		case WeatherPresetType::Overcast:              return "Overcast";
 		case WeatherPresetType::Altocumulus:           return "Altocumulus";
-		case WeatherPresetType::AltocumulusHigh:       return "AltocumulusHigh";
-		case WeatherPresetType::AuroraBorealis:        return "AuroraBorealis";
 		case WeatherPresetType::RainSnowOvercast:      return "RainSnowOvercast";
 		case WeatherPresetType::StormBuildUp:          return "StormBuildUp";
-		case WeatherPresetType::StormTransformation:   return "StormTransformation";
 		case WeatherPresetType::Thunderstorm:          return "Thunderstorm";
+		case WeatherPresetType::Nothing:               return "Nothing";
+		case WeatherPresetType::Aurora:                return "Aurora";
+		case WeatherPresetType::ReservedWaterSurface:  return "ReservedWaterSurface";
 		default:                                       return "Unknown";
 		}
 	}
@@ -2629,22 +2259,18 @@ namespace TEN::Sky
 	{
 		static const std::unordered_map<std::string, WeatherPresetType> map = {
 			{ "ClearSky",              WeatherPresetType::ClearSky },
-			{ "ClearSkyHigh",          WeatherPresetType::ClearSkyHigh },
-			{ "ClearSkyLow",           WeatherPresetType::ClearSkyLow },
-			{ "CirrocumulusClear",     WeatherPresetType::CirrocumulusClear },
 			{ "CirrocumulusLots",      WeatherPresetType::CirrocumulusLots },
 			{ "CirrocumulusFew",       WeatherPresetType::CirrocumulusFew },
 			{ "Cirrustratus",          WeatherPresetType::Cirrustratus },
-			{ "StormBuildUpHigh",      WeatherPresetType::StormBuildUpHigh },
-			{ "CloudsTransformation",          WeatherPresetType::CloudsTransformation },
+			{ "CloudsTransformation",  WeatherPresetType::CloudsTransformation },
 			{ "Overcast",              WeatherPresetType::Overcast },
 			{ "Altocumulus",           WeatherPresetType::Altocumulus },
-			{ "AltocumulusHigh",       WeatherPresetType::AltocumulusHigh },
-			{ "AuroraBorealis",        WeatherPresetType::AuroraBorealis },
 			{ "RainSnowOvercast",      WeatherPresetType::RainSnowOvercast },
 			{ "StormBuildUp",          WeatherPresetType::StormBuildUp },
-			{ "StormTransformation",   WeatherPresetType::StormTransformation },
 			{ "Thunderstorm",          WeatherPresetType::Thunderstorm },
+			{ "Nothing",               WeatherPresetType::Nothing },
+			{ "Aurora",                WeatherPresetType::Aurora },
+			{ "ReservedWaterSurface",  WeatherPresetType::ReservedWaterSurface },
 		};
 
 		auto it = map.find(name);
@@ -2686,11 +2312,8 @@ namespace TEN::Sky
 		info.LayerBTargetPreset       = _layerTransitionB.Active ? _layerTransitionB.TargetPreset : _layerBPreset;
 		info.DwellElapsed             = _nextPresetDwellElapsed;
 		info.DwellTarget              = _nextPresetDwellTarget;
-		info.LayerADwellElapsed       = _layerDwellA.Elapsed;
-		info.LayerADwellTarget        = _layerDwellA.Target;
 		info.LayerBDwellElapsed       = _layerDwellB.Elapsed;
 		info.LayerBDwellTarget        = _layerDwellB.Target;
-		info.LayerADwellPaused        = _layerDwellA.Paused;
 		info.LayerBDwellPaused        = _layerDwellB.Paused;
 		return info;
 	}

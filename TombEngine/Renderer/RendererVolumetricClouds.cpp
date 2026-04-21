@@ -429,8 +429,8 @@ namespace TEN::Renderer
 		// the translation component is negligible at sky-dome scale (1e6 units).
 		_stVolumetricCloud.PrevViewProjection = runtimeState.PrevViewProjection;
 
-		// Compute per-frame cloud-noise displacement to drive both the EMA blend
-		// factor and the hard temporal-disable guard.
+		// Compute per-frame cloud-noise displacement to drive the EMA blend factor
+		// and the hard temporal-disable guard.
 		// noiseDisplace approximates how far cloud UVs have shifted this frame.
 		{
 			float deltaWind     = runtimeState.WindAccumOffset - runtimeState.PrevWindAccumOffset;
@@ -438,43 +438,47 @@ namespace TEN::Renderer
 			float noiseDisplace = std::abs(deltaWind) * 2.032f
 			                    + std::abs(deltaEvo)  * 2.032f;
 
-			// Camera rotation guard: when the camera rotates between frames, cloud pixels
-			// marked as "stable" (alpha >= TemporalAlphaHigh) skip the fresh raymarch and
-			// return only reprojected history.  For small rotations this is correct, but at
-			// larger angles newly-visible cloud patches blend in at only 5% per frame — the
-			// cloud appears frozen/stuck while the camera pans.
-			// Fix: ramp TemporalBlendFactor toward 1.0 proportionally to rotation speed,
-			// and hard-disable temporal skipping when the rotation is very large.
+			// Camera rotation:
+			// The shader reprojects temporal history through PrevViewProjection so it
+			// correctly handles any camera rotation without stale-UV artifacts.  We
+			// therefore do NOT hard-disable temporal on camera rotation.
+			//
+			// We do raise TemporalBlendFactor slightly so that newly-exposed sky regions
+			// (frustum edges that were off-screen last frame, where hasValidHistory=false)
+			// refresh a bit faster.  However, the boost is capped well below 1.0:
+			// reaching 1.0 would produce raw unaccumulated raymarcher output which has a
+			// bimodal alpha distribution (pixels either fully hit a cloud or fully miss it).
+			// For semi-transparent presets like Cirrustratus, that bimodal output looks
+			// dense/opaque — the opposite of the intended transparent veil.  The temporal
+			// EMA is what creates the smooth veil by averaging stochastic samples over time.
 			//
 			// camMotion = 1 - dot(prevFwd, currFwd):
-			//   ~0        = no rotation
-			//   ~0.000610 = 2 deg/frame  (120 deg/sec at 60 fps) — blend reaches 1.0
-			//   ~0.003810 = 5 deg/frame  (300 deg/sec at 60 fps) — hard disable
+			//   ~0.000610 = 2 deg/frame (120 deg/sec at 60 fps)
 			float camDot    = runtimeState.PrevCameraForward.Dot(view.Camera.WorldDirection);
 			camDot          = std::max(-1.0f, std::min(1.0f, camDot));
 			float camMotion = 1.0f - camDot;
 
-			constexpr float kCamRampEnd    = 0.000610f; // 1 - cos(2 deg)
-			constexpr float kCamHardThresh = 0.003810f; // 1 - cos(5 deg)
+			constexpr float kCamRampEnd  = 0.000610f; // 1 - cos(2 deg)
+			// Max blend factor allowed from camera rotation alone.
+			// Keep below 1.0 to preserve temporal smoothing for semi-transparent clouds.
+			constexpr float kCamBlendMax = 0.65f;
 
-			// Dynamic EMA blend factor: ramp from the quality-preset base (strong smoothing for
-			// static clouds) to 1.0 (full fresh) as cloud content advects or camera rotates.
-			// Without this ramp, the fixed base blend suppresses visible wind motion until the
-			// hard guard triggers, causing an abrupt "frozen -> snap" jump.
-			// kRampEnd ~= WindSpeed 1.5 at 60 fps -> smooth gradient across the full range.
-			// TemporalBaseBlend is quality-dependent: higher at lower resolutions to prevent
-			// excessive temporal blur that makes clouds look washed out on a still camera.
+			// Dynamic EMA blend factor: ramp from the quality-preset base (strong smoothing
+			// for static clouds) toward 1.0 as wind/evolution advects cloud content.
+			// Camera rotation contributes a smaller, capped boost so temporal history is
+			// never fully discarded just because the camera moved.
 			const float kBaseBlend = q.TemporalBaseBlend;
 			const float kRampEnd   = 0.05f;
 			float windEvoBoost = (1.0f - kBaseBlend) * (noiseDisplace / kRampEnd);
-			float camBoost     = (1.0f - kBaseBlend) * (camMotion / kCamRampEnd);
+			float camBoost     = (kCamBlendMax - kBaseBlend) * std::min(1.0f, camMotion / kCamRampEnd);
 			_stVolumetricCloud.TemporalBlendFactor = q.TemporalReprojection
 				? std::min(1.0f, kBaseBlend + std::max(windEvoBoost, camBoost))
 				: 1.0f;
 
-			// Hard guard: for extreme advection or fast camera snap, also disable
-			// checkerboard skipping so every pixel gets a fresh raymarch this frame.
-			if (noiseDisplace > 0.10f || camMotion > kCamHardThresh)
+			// Hard guard: disable temporal only when wind/evolution has displaced cloud
+			// noise-space UVs so far that the reprojected history no longer matches.
+			// Camera rotation is intentionally excluded here — PrevViewProjection handles it.
+			if (noiseDisplace > 0.10f)
 				_stVolumetricCloud.TemporalEnabled = 0;
 		}
 
