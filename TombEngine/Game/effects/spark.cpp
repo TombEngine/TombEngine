@@ -74,7 +74,7 @@ namespace TEN::Effects::Spark
 		v += Vector3(GenerateFloat(-64, 64), GenerateFloat(-64, 64), GenerateFloat(-64, 64));
 		v.Normalize(v);
 		s.velocity = v *GenerateFloat(17,24);
-		s.sourceColor = Color(1.0f, 1.0f, 1.0f);
+		s.sourceColor = NEUTRAL_COLOR;
 		s.destinationColor = color;
 		s.active = true;
 	}

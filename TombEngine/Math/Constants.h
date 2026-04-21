@@ -22,6 +22,13 @@
 	constexpr auto BOX_EDGE_COUNT	= 12;
 	constexpr auto BOX_FACE_COUNT	= 6;
 
+	// Graphics constants
+
+	constexpr auto NEUTRAL_COLOR = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	constexpr auto GAMMA_MIN     = 0.5f;
+	constexpr auto GAMMA_MAX     = 1.5f;
+	constexpr auto GAMMA_STEP    = 0.1f;
+
 	// World constants
 
 	constexpr auto BLOCK_UNIT = 1024;

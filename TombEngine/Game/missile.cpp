@@ -198,7 +198,7 @@ short ShardGun(int x, int y, int z, short velocity, short yRot, short roomNumber
 		fx.speed = velocity;
 		fx.frameNumber = 0;
 		fx.objectNumber = ID_PROJ_SHARD;
-		fx.color = Vector4::One;
+		fx.color = NEUTRAL_COLOR;
 	}
 
 	return fxNumber;
@@ -216,7 +216,7 @@ short BombGun(int x, int y, int z, short velocity, short yRot, short roomNumber)
 		fx.speed = velocity;
 		fx.frameNumber = 0;
 		fx.objectNumber = ID_PROJ_BOMB;
-		fx.color = Vector4::One;
+		fx.color = NEUTRAL_COLOR;
 	}
 
 	return fxNumber;
@@ -234,7 +234,7 @@ short HarpoonGun(int x, int y, int z, short velocity, short yRot, short roomNumb
 		fx.speed = velocity;
 		fx.frameNumber = 0;
 		fx.objectNumber = ID_SCUBA_HARPOON;
-		fx.color = Vector4::One;
+		fx.color = NEUTRAL_COLOR;
 	}
 
 	return fxNumber;

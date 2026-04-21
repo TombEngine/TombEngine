@@ -9,6 +9,7 @@
 #include "./ShaderLight.hlsli"
 #include "./Materials.hlsli"
 
+// This value is here for historic reasons, dynamic lights were 0.3 less powerful for rooms
 #define ROOM_LIGHT_COEFF 0.7f
 
 struct PixelShaderInput
@@ -69,7 +70,7 @@ PixelShaderInput VS(VertexShaderInput input)
 	
 	output.Position = screenPos;
     output.Normal = input.Normal.xyz;
-	output.Color = float4(col, input.Color.w);
+    output.Color = float4(col, input.Color.w);
 	output.PositionCopy = screenPos;
     output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	output.WorldPosition = pos;
@@ -115,7 +116,7 @@ PixelShaderOutput PS(PixelShaderInput input)
     float occlusion = CalculateOcclusion(GetSamplePosition(input.PositionCopy), output.Color.w);
     occlusion *= ambientOcclusion;
 
-	float3 lighting = input.Color.xyz;
+    float3 lighting = ModulateColor(input.Color.xyz);
 	
 	// Shadows
 	lighting = DoShadow(input.WorldPosition, normal, lighting, -2.5f);
@@ -128,9 +129,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 	{
 		if (onlyPointLights)
 		{
-            lighting += DoPointLight(input.WorldPosition, normal, RoomLights[i]) * ROOM_LIGHT_COEFF;
-            lighting += DoSpecularPoint(input.WorldPosition, normal, RoomLights[i], 0.0f, specular, roughness);
-        }
+			lighting += ModulateColor(DoPointLight(input.WorldPosition, normal, RoomLights[i])) * ROOM_LIGHT_COEFF;
+			lighting += ModulateColor(DoSpecularPoint(input.WorldPosition, normal, RoomLights[i], 0.0f, specular, roughness));
+		}
 		else
 		{
 			// Room dynamic lights can only be spot or point, so we use simplified function for that.
@@ -141,8 +142,8 @@ PixelShaderOutput PS(PixelShaderInput input)
 			float3 pointLight = float3(0.0f, 0.0f, 0.0f);
 			float3 spotLight  = float3(0.0f, 0.0f, 0.0f);
 			DoPointAndSpotLight(input.WorldPosition, normal, RoomLights[i], specular, roughness, pointLight, spotLight);
-			
-			lighting += pointLight * isPoint * ROOM_LIGHT_COEFF + spotLight  * isSpot * ROOM_LIGHT_COEFF;
+
+			lighting += ModulateColor(pointLight) * isPoint * ROOM_LIGHT_COEFF + ModulateColor(spotLight) * isSpot * ROOM_LIGHT_COEFF;
 		}
 	}
 

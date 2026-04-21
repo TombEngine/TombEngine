@@ -129,7 +129,7 @@ namespace TEN::Entities::Creatures::TR5
 			fx.speed = BLOCK(0.25f);
 
 		fx.fallspeed = 0;
-		fx.color = Vector4::One;
+		fx.color = NEUTRAL_COLOR;
 		fx.counter = 0;
 		fx.flag1 = 2;
 		fx.flag2 = 0x2000;

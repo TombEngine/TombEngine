@@ -141,14 +141,7 @@ LogicHandler::LogicHandler(sol::state* lua, sol::table& parent) : _handler{ lua 
 	LevelFunc::Register(tableLogic);
 
 	ResetScripts(true);
-}
-
-void LogicHandler::ResetGameTables() 
-{
-	auto state = _handler.GetState();
-	MakeSpecialTable(state, ScriptReserved_GameVars, &GetVariable, &SetVariable);
-
-	(*state)[ScriptReserved_GameVars][ScriptReserved_Engine] = sol::table(*state, sol::create);
+	ResetGlobalTables();
 }
 
 /*** Register a function as a callback.
@@ -301,6 +294,22 @@ void LogicHandler::ResetLevelTables()
 	(*state)[ScriptReserved_LevelVars][ScriptReserved_Engine] = sol::table{ *state, sol::create };
 }
 
+void LogicHandler::ResetGameTables()
+{
+	auto state = _handler.GetState();
+	MakeSpecialTable(state, ScriptReserved_GameVars, &GetVariable, &SetVariable);
+
+	(*state)[ScriptReserved_GameVars][ScriptReserved_Engine] = sol::table(*state, sol::create);
+}
+
+void LogicHandler::ResetGlobalTables()
+{
+	auto state = _handler.GetState();
+	MakeSpecialTable(state, ScriptReserved_GlobalVars, &GetVariable, &SetVariable);
+
+	(*state)[ScriptReserved_GlobalVars][ScriptReserved_Engine] = sol::table(*state, sol::create);
+}
+
 sol::object LogicHandler::GetLevelFuncsMember(sol::table tab, const std::string& name)
 {
 	auto partName = tab.raw_get<std::string>(strKey);
@@ -441,102 +450,6 @@ void LogicHandler::FreeLevelScripts()
 	_handler.GetState()->collect_garbage();
 }
 
-// Used when loading.
-void LogicHandler::SetVariables(const std::vector<SavedVar>& vars, bool onlyLevelVars)
-{
-	if (!onlyLevelVars)
-		ResetGameTables();
-
-	ResetLevelTables();
-
-	auto solTables = std::unordered_map<unsigned int, sol::table>{};
-
-	for(int i = 0; i < vars.size(); ++i)
-	{
-		if (std::holds_alternative<IndexTable>(vars[i]))
-		{
-			solTables.try_emplace(i, *_handler.GetState(), sol::create);
-			auto indexTab = std::get<IndexTable>(vars[i]);
-			for (auto& [first, second] : indexTab)
-			{
-				// if we're wanting to reference a table, make sure that table exists
-				// create it if need be
-				if (std::holds_alternative<IndexTable>(vars[second]))
-				{
-					solTables.try_emplace(second, *_handler.GetState(), sol::create);
-					solTables[i][vars[first]] = solTables[second];
-				}
-				else if (std::holds_alternative<double>(vars[second]))
-				{
-					double theNum = std::get<double>(vars[second]);
-					// If this is representable as an integer use an integer.
-					// This is to ensure something saved as 1 is not loaded as 1.0
-					// which would be confusing for the user.
-					// todo: should we throw a warning if the user tries to save or load a value
-					// outside of these bounds? - squidshire 30/04/2022
-					if (std::trunc(theNum) == theNum && theNum <= INT64_MAX && theNum >= INT64_MIN)
-					{
-						solTables[i][vars[first]] = (int64_t)theNum;
-					}
-					else
-					{
-						solTables[i][vars[first]] = vars[second];
-					}
-				}
-				else if (vars[second].index() == (int)SavedVarType::Vec2)
-				{
-					auto vec2 = Vec2(std::get<(int)SavedVarType::Vec2>(vars[second]));
-					solTables[i][vars[first]] = vec2;
-				}
-				else if (vars[second].index() == int(SavedVarType::Vec3))
-				{
-					auto vec3 = Vec3(std::get<int(SavedVarType::Vec3)>(vars[second]));
-					solTables[i][vars[first]] = vec3;
-				}
-				else if (vars[second].index() == int(SavedVarType::Rotation))
-				{
-					auto vec3 = Rotation(std::get<int(SavedVarType::Rotation)>(vars[second]));
-					solTables[i][vars[first]] = vec3;
-				}
-				else if (vars[second].index() == int(SavedVarType::Time))
-				{
-					auto time = Time(std::get<int(SavedVarType::Time)>(vars[second]));
-					solTables[i][vars[first]] = time;
-				}
-				else if (vars[second].index() == int(SavedVarType::Color))
-				{
-					auto color = D3DCOLOR(std::get<int(SavedVarType::Color)>(vars[second]));
-					solTables[i][vars[first]] = ScriptColor{color};
-				}
-				else if (std::holds_alternative<FuncName>(vars[second]))
-				{
-					LevelFunc levelFunc;
-					levelFunc.m_funcName = std::get<FuncName>(vars[second]).name;
-					levelFunc.m_handler = this;
-					solTables[i][vars[first]] = levelFunc;
-				}
-				else
-				{
-					solTables[i][vars[first]] = vars[second];
-				}
-			}
-		}
-	}
-	
-	auto rootTable = solTables[0];
-
-	sol::table levelVars = rootTable[ScriptReserved_LevelVars];
-	for (auto& [first, second] : levelVars)
-		(*_handler.GetState())[ScriptReserved_LevelVars][first] = second;
-
-	if (onlyLevelVars)
-		return;
-
-	sol::table gameVars = rootTable[ScriptReserved_GameVars];
-	for (auto& [first, second] : gameVars)
-		(*_handler.GetState())[ScriptReserved_GameVars][first] = second;
-}
-
 template<SavedVarType TypeEnum, typename TypeTo, typename TypeFrom, typename MapType>
 int Handle(TypeFrom& var, MapType& varsMap, size_t& numVars, std::vector<SavedVar>& vars)
 {
@@ -603,13 +516,8 @@ std::string LogicHandler::GetRequestedPath() const
 	return path;
 }
 
-// Used when saving.
-void LogicHandler::GetVariables(std::vector<SavedVar>& vars)
+void LogicHandler::SerializeScriptTable(const sol::table& tab, std::vector<SavedVar>& vars)
 {
-	auto tab = sol::table(*_handler.GetState(), sol::create);
-	tab[ScriptReserved_LevelVars] = (*_handler.GetState())[ScriptReserved_LevelVars];
-	tab[ScriptReserved_GameVars] = (*_handler.GetState())[ScriptReserved_GameVars];
-
 	auto varsMap = std::unordered_map<void const*, unsigned int>{};
 	auto numMap = std::unordered_map<double, unsigned int>{};
 	auto boolMap = std::unordered_map<bool, unsigned int>{};
@@ -668,7 +576,7 @@ void LogicHandler::GetVariables(std::vector<SavedVar>& vars)
 	{
 		auto [first, second] = varsMap.insert(std::make_pair(obj.pointer(), (int)varCount));
 
-		if(second)
+		if (second)
 		{
 			++varCount;
 			auto id = first->second;
@@ -679,9 +587,8 @@ void LogicHandler::GetVariables(std::vector<SavedVar>& vars)
 			{
 				bool validKey = true;
 				unsigned int keyIndex = 0;
-				std::variant<std::string, unsigned int> key{unsigned int(0)};
+				std::variant<std::string, unsigned int> key{ unsigned int(0) };
 
-				// Strings and numbers can be keys AND values.
 				switch (first.get_type())
 				{
 				case sol::type::string:
@@ -784,6 +691,152 @@ void LogicHandler::GetVariables(std::vector<SavedVar>& vars)
 	};
 
 	populate(tab);
+}
+
+std::unordered_map<unsigned int, sol::table> LogicHandler::DeserializeScriptVars(const std::vector<SavedVar>& vars)
+{
+	auto solTables = std::unordered_map<unsigned int, sol::table>{};
+
+	for (int i = 0; i < vars.size(); ++i)
+	{
+		if (std::holds_alternative<IndexTable>(vars[i]))
+		{
+			solTables.try_emplace(i, *_handler.GetState(), sol::create);
+			auto indexTab = std::get<IndexTable>(vars[i]);
+
+			for (auto& [first, second] : indexTab)
+			{
+				if (first >= vars.size() || second >= vars.size())
+				{
+					TENLog("Corrupted save data: variable index out of range. Skipping entry.", LogLevel::Warning);
+					continue;
+				}
+
+				if (std::holds_alternative<IndexTable>(vars[second]))
+				{
+					solTables.try_emplace(second, *_handler.GetState(), sol::create);
+					solTables[i][vars[first]] = solTables[second];
+				}
+				else if (std::holds_alternative<double>(vars[second]))
+				{
+					double theNum = std::get<double>(vars[second]);
+					if (std::trunc(theNum) == theNum && theNum <= INT64_MAX && theNum >= INT64_MIN)
+					{
+						solTables[i][vars[first]] = (int64_t)theNum;
+					}
+					else
+					{
+						solTables[i][vars[first]] = vars[second];
+					}
+				}
+				else if (vars[second].index() == (int)SavedVarType::Vec2)
+				{
+					auto vec2 = Vec2(std::get<(int)SavedVarType::Vec2>(vars[second]));
+					solTables[i][vars[first]] = vec2;
+				}
+				else if (vars[second].index() == int(SavedVarType::Vec3))
+				{
+					auto vec3 = Vec3(std::get<int(SavedVarType::Vec3)>(vars[second]));
+					solTables[i][vars[first]] = vec3;
+				}
+				else if (vars[second].index() == int(SavedVarType::Rotation))
+				{
+					auto vec3 = Rotation(std::get<int(SavedVarType::Rotation)>(vars[second]));
+					solTables[i][vars[first]] = vec3;
+				}
+				else if (vars[second].index() == int(SavedVarType::Time))
+				{
+					auto time = Time(std::get<int(SavedVarType::Time)>(vars[second]));
+					solTables[i][vars[first]] = time;
+				}
+				else if (vars[second].index() == int(SavedVarType::Color))
+				{
+					auto color = D3DCOLOR(std::get<int(SavedVarType::Color)>(vars[second]));
+					solTables[i][vars[first]] = ScriptColor{ color };
+				}
+				else if (std::holds_alternative<FuncName>(vars[second]))
+				{
+					LevelFunc levelFunc;
+					levelFunc.m_funcName = std::get<FuncName>(vars[second]).name;
+					levelFunc.m_handler = this;
+					solTables[i][vars[first]] = levelFunc;
+				}
+				else
+				{
+					solTables[i][vars[first]] = vars[second];
+				}
+			}
+		}
+	}
+
+	return solTables;
+}
+
+// Used when saving.
+void LogicHandler::GetVariables(std::vector<SavedVar>& vars)
+{
+	auto tab = sol::table(*_handler.GetState(), sol::create);
+	tab[ScriptReserved_LevelVars] = (*_handler.GetState())[ScriptReserved_LevelVars];
+	tab[ScriptReserved_GameVars] = (*_handler.GetState())[ScriptReserved_GameVars];
+
+	SerializeScriptTable(tab, vars);
+}
+
+// Used when loading.
+void LogicHandler::SetVariables(const std::vector<SavedVar>& vars, bool onlyLevelVars)
+{
+	if (!onlyLevelVars)
+		ResetGameTables();
+
+	ResetLevelTables();
+
+	auto solTables = DeserializeScriptVars(vars);
+
+	if (solTables.empty())
+		return;
+
+	auto rootTable = solTables[0];
+
+	sol::table levelVars = rootTable[ScriptReserved_LevelVars];
+	for (auto& [first, second] : levelVars)
+		(*_handler.GetState())[ScriptReserved_LevelVars][first] = second;
+
+	if (onlyLevelVars)
+		return;
+
+	sol::table gameVars = rootTable[ScriptReserved_GameVars];
+	for (auto& [first, second] : gameVars)
+		(*_handler.GetState())[ScriptReserved_GameVars][first] = second;
+}
+
+// Used when saving global vars to external file.
+void LogicHandler::GetGlobalVariables(std::vector<SavedVar>& vars)
+{
+	auto tab = sol::table(*_handler.GetState(), sol::create);
+	tab[ScriptReserved_GlobalVars] = (*_handler.GetState())[ScriptReserved_GlobalVars];
+
+	SerializeScriptTable(tab, vars);
+}
+
+// Used when loading global vars from external file.
+void LogicHandler::SetGlobalVariables(const std::vector<SavedVar>& vars)
+{
+	ResetGlobalTables();
+
+	auto solTables = DeserializeScriptVars(vars);
+
+	if (solTables.empty())
+		return;
+
+	auto rootTable = solTables[0];
+
+	sol::object globalVarsObj = rootTable[ScriptReserved_GlobalVars];
+	if (globalVarsObj.valid() && globalVarsObj.is<sol::table>())
+	{
+		sol::table globalVars = globalVarsObj;
+		for (auto& [first, second] : globalVars)
+			(*_handler.GetState())[ScriptReserved_GlobalVars][first] = second;
+	}
 }
 
 void LogicHandler::GetCallbackStrings(	
