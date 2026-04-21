@@ -24,6 +24,7 @@ namespace TEN::Math
 	float EaseOutSine(float alpha);
 	float EaseInOutSine(float value0, float value1, float alpha);
 	float EaseInOutSine(float alpha);
+	float Spline(float alpha, const float* knots, int knotCount);
 
 	// Color
 
