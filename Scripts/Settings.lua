@@ -190,3 +190,8 @@ local settings = Flow.Settings.new()
 	settings.Weapons[WeaponType.HARPOON_GUN].pickupCount = 10
 	
 Flow.SetSettings(settings)
+
+-- Global cloud wind: single authoritative wind direction and speed for all
+-- AltocumulusMid cloud layers. Overrides windDirectionX/Y/windSpeed in every
+-- weather preset so wind stays constant across all transitions.
+Flow.SetCloudWind(1.0, 0.0, 0.2704)

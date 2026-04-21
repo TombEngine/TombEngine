@@ -41,9 +41,6 @@ namespace TEN::Scripting
 				table.get_or("thickness", 2500.0));
 			snap.Thickness = std::max(static_cast<float>(hw), 1.0f);
 		}
-		snap.WindDirectionX  =            tf("windDirectionX",    1.0  );
-		snap.WindDirectionY  =            tf("windDirectionY",    0.0  );
-		snap.WindSpeed       = std::max(  tf("windSpeed",       0.003  ), 0.0f);
 		snap.EvolutionSpeed  = std::max(  tf("evolutionSpeed",  0.15   ), 0.0f);
 		snap.HorizonFade     = std::clamp(tf("horizonFade",      1.0   ), 0.0f, 1.0f);
 		snap.DistanceFade    = std::clamp(tf("distanceFade",     1.0   ), 0.0f, 1.0f);
@@ -309,15 +306,9 @@ namespace TEN::Scripting
 			def.HighLayerLeadFraction = std::clamp(tf(definition, "highLayerLeadFraction",
 					(double)def.HighLayerLeadFraction), 0.0f, 1.0f);
 
-			// Transform preset: enables CloudMorph behavior for transitions TO this preset.
-			// transformPreset = "CloudsTransformation" → dissolve old + form new clouds.
-			{
-				sol::optional<std::string> tp = definition["transformPreset"];
-				if (tp.has_value() && tp.value() == "CloudsTransformation")
-					def.Transform = TransformType::CloudMorph;
-			}
-			// Transform duration override: if set, CloudMorph uses this duration.
-			def.TransformDuration = (float)definition.get_or("transformDuration", (double)def.TransformDuration);
+			// All AltocumulusMid presets use CloudMorph by default.
+			// Transform duration is set globally via level.volumetricClouds.transformDuration in Gameflow.lua.
+			def.Transform = TransformType::CloudMorph;
 
 			// ----------------------------------------------------------------
 			// Auto-chain helpers: parses a Lua key that can be either
@@ -487,6 +478,21 @@ namespace TEN::Scripting
 			[]() -> float
 			{
 				return g_Renderer.GetAuroraPresetFadeDuration();
+			});
+
+		/// Set a global wind direction and speed for all volumetric cloud layers.
+		/// When set, this overrides the per-preset wind values so wind stays constant
+		/// across all preset transitions.
+		/// Call this once in Settings.lua to define a global constant wind for the level.
+		///
+		/// @function Flow.SetCloudWind
+		/// @tparam float directionX Normalised X component of wind direction (1 = East).
+		/// @tparam float directionY Normalised Y component of wind direction (1 = South).
+		/// @tparam float speed Wind speed.
+		parent.set_function("SetCloudWind",
+			[](float dirX, float dirY, float speed)
+			{
+				g_SkyCloudSystem.SetGlobalWind(dirX, dirY, speed);
 			});
 	}
 }

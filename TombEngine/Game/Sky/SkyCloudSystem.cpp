@@ -81,8 +81,6 @@ namespace TEN::Sky
 		s.Density         = Density;
 		s.CloudBottomHeight = BottomHeight;
 		s.CloudThickness  = Thickness;
-		s.WindDirection   = Vector2(WindDirectionX, WindDirectionY);
-		s.WindSpeed       = WindSpeed;
 		s.EvolutionSpeed  = EvolutionSpeed;
 		s.Noise.ShapeScale    = 0.00008f;  // Default � unused (no standard cloud types left).
 		s.Noise.DetailScale   = 0.0008f;
@@ -177,9 +175,6 @@ namespace TEN::Sky
 		snap.Density       = src.Density;
 		snap.BottomHeight  = src.CloudBottomHeight;
 		snap.Thickness     = src.CloudThickness;
-		snap.WindDirectionX = src.WindDirection.x;
-		snap.WindDirectionY = src.WindDirection.y;
-		snap.WindSpeed     = src.WindSpeed;
 		snap.EvolutionSpeed = src.EvolutionSpeed;
 		snap.HorizonFade     = src.HorizonFade;
 		snap.DistanceFade    = src.DistanceFade;
@@ -310,9 +305,6 @@ namespace TEN::Sky
 		result.Density         = LerpFloat(a.Density, b.Density, t);
 		result.BottomHeight    = LerpFloat(a.BottomHeight, b.BottomHeight, t);
 		result.Thickness       = LerpFloat(a.Thickness, b.Thickness, t);
-		result.WindDirectionX  = LerpFloat(a.WindDirectionX, b.WindDirectionX, t);
-		result.WindDirectionY  = LerpFloat(a.WindDirectionY, b.WindDirectionY, t);
-		result.WindSpeed       = LerpFloat(a.WindSpeed, b.WindSpeed, t);
 		result.EvolutionSpeed  = LerpFloat(a.EvolutionSpeed, b.EvolutionSpeed, t);
 		result.CurlWarpStrength = LerpFloat(a.CurlWarpStrength, b.CurlWarpStrength, t);
 		result.AltoFbmScale    = LerpFloat(a.AltoFbmScale,    b.AltoFbmScale,    t);
@@ -482,12 +474,39 @@ namespace TEN::Sky
 		_driftOutB = {};
 		_dwellRNG.seed(std::random_device{}());
 
-		// Apply weather config from Gameflow.lua (level.weatherPreset).
+		// Apply weather config from Gameflow.lua (level.weatherPreset, level.volumetricClouds).
 		auto* level = dynamic_cast<Level*>(g_GameFlow->GetLevel(CurrentLevel));
 		if (level)
 		{
 			if (level->WeatherPreset.has_value())
 				SetPresetImmediate(StringToPresetType(level->WeatherPreset.value()));
+
+			// Per-level wind override: apply whichever fields the level script provided.
+			// Speed < 0 means "keep global"; direction uses global if not explicitly overridden
+			// (the struct initialises to the same defaults as SetGlobalWind in Settings.lua).
+			const auto& vc = level->VolClouds;
+			float dirX  = _globalWindSet ? _globalWindDirX  : vc.WindDirectionX;
+			float dirZ  = _globalWindSet ? _globalWindDirY  : vc.WindDirectionZ;
+			float speed = _globalWindSet ? _globalWindSpeed : 0.003f;
+			if (vc.WindDirectionX != 1.0f || vc.WindDirectionZ != 0.0f)
+			{
+				dirX = vc.WindDirectionX;
+				dirZ = vc.WindDirectionZ;
+			}
+			if (vc.Speed >= 0.0f)
+				speed = vc.Speed;
+			if (vc.Speed >= 0.0f || vc.WindDirectionX != 1.0f || vc.WindDirectionZ != 0.0f)
+				SetGlobalWind(dirX, dirZ, speed);
+
+			// Apply per-level CloudMorph transform duration to all presets that use it.
+			if (vc.TransformDuration >= 0.0f)
+			{
+				for (auto& [type, def] : _presets)
+				{
+					if (def.Transform == TransformType::CloudMorph)
+						def.TransformDuration = vc.TransformDuration;
+				}
+			}
 		}
 	}
 
@@ -518,9 +537,6 @@ namespace TEN::Sky
 			a.Category            = CloudCategory::AltocumulusMid;
 			a.Coverage            = 0.0f;
 			a.BottomHeight        = 2500.0f;
-			a.WindDirectionX      = 1.0f;
-			a.WindDirectionY      = 0.0f;
-			a.WindSpeed           = 0.1678f;
 			a.EvolutionSpeed      = 4.532f;
 			a.HorizonFade         = 1.0f;
 			a.DistanceFade        = 0.0f;
@@ -549,9 +565,6 @@ namespace TEN::Sky
 			b.Coverage            = 0.0f;
 			b.BottomHeight        = 2127.0f;
 			b.Thickness           = 3252.0f;
-			b.WindDirectionX      = 1.0f;
-			b.WindDirectionY      = 0.0f;
-			b.WindSpeed           = 0.2423f;
 			b.EvolutionSpeed      = 5.0f;
 			b.HorizonFade         = 1.0f;
 			b.DistanceFade        = 0.0f;
@@ -597,9 +610,6 @@ namespace TEN::Sky
 			b.Coverage            = 1.0f;
 			b.BottomHeight        = 4061.0f;
 			b.Thickness           = 1000.0f;
-			b.WindDirectionX      = 1.0f;
-			b.WindDirectionY      = 0.0f;
-			b.WindSpeed           = 0.6288f;
 			b.EvolutionSpeed      = 5.0f;
 			b.HorizonFade         = 1.0f;
 			b.DistanceFade        = 0.0f;
@@ -668,9 +678,6 @@ namespace TEN::Sky
 			a.Coverage            = 0.0f;
 			a.BottomHeight        = 23136.0f;
 			a.Thickness           = 100.0f;
-			a.WindDirectionX      = 1.0f;
-			a.WindDirectionY      = 0.0f;
-			a.WindSpeed           = 0.1501f;
 			a.EvolutionSpeed      = 5.0f;
 			a.HorizonFade         = 0.0f;
 			a.DistanceFade        = 0.637f;
@@ -699,9 +706,6 @@ namespace TEN::Sky
 			b.Coverage            = 1.0f;
 			b.BottomHeight        = 2663.0f;
 			b.Thickness           = 100.0f;
-			b.WindDirectionX      = 1.0f;
-			b.WindDirectionY      = 0.0f;
-			b.WindSpeed           = 0.6288f;
 			b.EvolutionSpeed      = 5.0f;
 			b.HorizonFade         = 0.724f;
 			b.DistanceFade        = 0.0f;
@@ -763,9 +767,6 @@ namespace TEN::Sky
 			a.Category            = CloudCategory::AltocumulusMid;
 			a.Coverage            = 1.0f;
 			a.BottomHeight        = 1536.0f;
-			a.WindDirectionX      = 1.0f;
-			a.WindDirectionY      = 0.0f;
-			a.WindSpeed           = 0.6464f;
 			a.EvolutionSpeed      = 0.043f;
 			a.HorizonFade         = 0.0f;
 			a.DistanceFade        = 0.0f;
@@ -795,9 +796,6 @@ namespace TEN::Sky
 			b.Category            = CloudCategory::AltocumulusMid;
 			b.Coverage            = 1.0f;
 			b.BottomHeight        = 2663.0f;
-			b.WindDirectionX      = 1.0f;
-			b.WindDirectionY      = 0.0f;
-			b.WindSpeed           = 0.2236f;
 			b.EvolutionSpeed      = 4.034f;
 			b.HorizonFade         = 0.787f;
 			b.DistanceFade        = 0.205f;
@@ -839,7 +837,6 @@ namespace TEN::Sky
 			a.Density       = 0.75f;
 			a.BottomHeight  = 1800.0f;
 			a.Thickness     = 2200.0f;
-			a.WindSpeed     = 0.003f;
 			a.EvolutionSpeed = 0.1f;
 
 			_presets[def.Type] = def;
@@ -863,9 +860,6 @@ namespace TEN::Sky
 			b.Coverage            = 1.0f;
 			b.BottomHeight        = 2127.0f;
 			b.Thickness           = 3252.0f;
-			b.WindDirectionX      = 1.0f;
-			b.WindDirectionY      = 0.0f;
-			b.WindSpeed           = 0.2423f;
 			b.EvolutionSpeed      = 5.0f;
 			b.HorizonFade         = 1.0f;
 			b.DistanceFade        = 0.0f;
@@ -907,7 +901,6 @@ namespace TEN::Sky
 			a.Density       = 0.7f;
 			a.BottomHeight  = 1200.0f;
 			a.Thickness     = 2000.0f;
-			a.WindSpeed     = 0.004f;
 			a.EvolutionSpeed = 0.1f;
 
 			_presets[def.Type] = def;
@@ -937,9 +930,6 @@ namespace TEN::Sky
 			a.Category            = CloudCategory::AltocumulusMid;
 			a.Coverage            = 0.45f;
 			a.BottomHeight        = 2500.0f;
-			a.WindDirectionX      = 1.0f;
-			a.WindDirectionY      = 0.0f;
-			a.WindSpeed           = 0.1678f;
 			a.EvolutionSpeed      = 4.532f;
 			a.HorizonFade         = 1.0f;
 			a.DistanceFade        = 0.0f;
@@ -967,9 +957,6 @@ namespace TEN::Sky
 			b.Category            = CloudCategory::AltocumulusMid;
 			b.Coverage            = 1.0f;
 			b.BottomHeight        = 2663.0f;
-			b.WindDirectionX      = 1.0f;
-			b.WindDirectionY      = 0.0f;
-			b.WindSpeed           = 0.2236f;
 			b.EvolutionSpeed      = 4.034f;
 			b.HorizonFade         = 0.787f;
 			b.DistanceFade        = 0.205f;
@@ -1021,9 +1008,6 @@ namespace TEN::Sky
 			b.Coverage            = 1.0f;
 			b.BottomHeight        = 2127.0f;
 			b.Thickness           = 3252.0f;
-			b.WindDirectionX      = 1.0f;
-			b.WindDirectionY      = 0.0f;
-			b.WindSpeed           = 0.2423f;
 			b.EvolutionSpeed      = 5.0f;
 			b.HorizonFade         = 1.0f;
 			b.DistanceFade        = 0.0f;
@@ -1071,9 +1055,6 @@ namespace TEN::Sky
 			a.Category            = CloudCategory::AltocumulusMid;
 			a.Coverage            = 0.0f;
 			a.BottomHeight        = 2500.0f;
-			a.WindDirectionX      = 1.0f;
-			a.WindDirectionY      = 0.0f;
-			a.WindSpeed           = 0.1678f;
 			a.EvolutionSpeed      = 4.532f;
 			a.HorizonFade         = 1.0f;
 			a.DistanceFade        = 0.0f;
@@ -1122,9 +1103,6 @@ namespace TEN::Sky
 			b.Coverage            = 0.0f;
 			b.BottomHeight        = 2127.0f;
 			b.Thickness           = 3252.0f;
-			b.WindDirectionX      = 1.0f;
-			b.WindDirectionY      = 0.0f;
-			b.WindSpeed           = 0.2423f;
 			b.EvolutionSpeed      = 5.0f;
 			b.HorizonFade         = 1.0f;
 			b.DistanceFade        = 0.0f;
@@ -1169,9 +1147,6 @@ namespace TEN::Sky
 			a.Category            = CloudCategory::AltocumulusMid;
 			a.Coverage            = 0.0f;
 			a.BottomHeight        = 1536.0f;
-			a.WindDirectionX      = 1.0f;
-			a.WindDirectionY      = 0.0f;
-			a.WindSpeed           = 0.6464f;
 			a.EvolutionSpeed      = 3.043f;
 			a.HorizonFade         = 0.0f;
 			a.DistanceFade        = 0.0f;
@@ -1216,9 +1191,6 @@ namespace TEN::Sky
 			a.Category            = CloudCategory::AltocumulusMid;
 			a.Coverage            = 0.45f;
 			a.BottomHeight        = 2500.0f;
-			a.WindDirectionX      = 1.0f;
-			a.WindDirectionY      = 0.0f;
-			a.WindSpeed           = 0.1678f;
 			a.EvolutionSpeed      = 4.532f;
 			a.HorizonFade         = 1.0f;
 			a.DistanceFade        = 0.0f;
@@ -1246,9 +1218,6 @@ namespace TEN::Sky
 			b.Category            = CloudCategory::AltocumulusMid;
 			b.Coverage            = 1.0f;
 			b.BottomHeight        = 2663.0f;
-			b.WindDirectionX      = 1.0f;
-			b.WindDirectionY      = 0.0f;
-			b.WindSpeed           = 0.6288f;
 			b.EvolutionSpeed      = 5.0f;
 			b.HorizonFade         = 0.724f;
 			b.DistanceFade        = 0.0f;
@@ -1297,9 +1266,6 @@ namespace TEN::Sky
 			a.Category            = CloudCategory::AltocumulusMid;
 			a.Coverage            = 0.45f;
 			a.BottomHeight        = 2500.0f;
-			a.WindDirectionX      = 1.0f;
-			a.WindDirectionY      = 0.0f;
-			a.WindSpeed           = 0.1678f;
 			a.EvolutionSpeed      = 4.532f;
 			a.HorizonFade         = 1.0f;
 			a.DistanceFade        = 0.0f;
@@ -1330,9 +1296,6 @@ namespace TEN::Sky
 			b.Coverage            = 1.0f;
 			b.BottomHeight        = 11028.0f;
 			b.AltoHorizonWidth    = 0.184f;
-			b.WindDirectionX      = 1.0f;
-			b.WindDirectionY      = 0.0f;
-			b.WindSpeed           = 0.3075f;
 			b.EvolutionSpeed      = 5.0f;
 			b.HorizonFade         = 0.836f;
 			b.DistanceFade        = 0.278f;
@@ -1379,9 +1342,6 @@ namespace TEN::Sky
 			a.Coverage            = 1.0f;
 			a.BottomHeight        = 1536.0f;
 			a.AltoHorizonWidth    = 0.031f;
-			a.WindDirectionX      = 1.0f;
-			a.WindDirectionY      = 0.0f;
-			a.WindSpeed           = 0.6464f;
 			a.EvolutionSpeed      = 3.043f;
 			a.HorizonFade         = 1.0f;
 			a.DistanceFade        = 0.0f;
@@ -1431,9 +1391,6 @@ namespace TEN::Sky
 			a.Coverage            = 1.0f;
 			a.BottomHeight        = 1536.0f;
 			a.AltoHorizonWidth    = 0.0052f;
-			a.WindDirectionX      = 1.0f;
-			a.WindDirectionY      = 0.0f;
-			a.WindSpeed           = 0.2140f;
 			a.EvolutionSpeed      = 5.0f;
 			a.HorizonFade         = 1.0f;
 			a.DistanceFade        = 0.0f;
@@ -1672,13 +1629,8 @@ namespace TEN::Sky
 		//   HorizonFade/DistanceFade — global thresholds inside EvalAltoDensityCore.
 		//   AltoHeightBlendPower — modifies skyH passed to EvalAltoDensityCore.
 		//   AltoHorizonWidth — global zenith-cap applied to the combined morph density.
-		//   WindDirection   — multiplied with WindAccumOffset; direction snap causes position jump.
-		//   WindSpeed       — drift rate; smooth transition prevents abrupt speed change.
 		dst.BottomHeight        = src.BottomHeight;
 		dst.Thickness           = src.Thickness;
-		dst.WindDirectionX      = src.WindDirectionX;
-		dst.WindDirectionY      = src.WindDirectionY;
-		dst.WindSpeed           = src.WindSpeed;
 		dst.HorizonFade         = src.HorizonFade;
 		dst.DistanceFade        = src.DistanceFade;
 		dst.HorizonMeshBleed    = src.HorizonMeshBleed;
@@ -2526,10 +2478,23 @@ namespace TEN::Sky
 		return _currentState;
 	}
 
+	void SkyCloudSystem::SetGlobalWind(float dirX, float dirY, float speed)
+	{
+		_globalWindDirX  = dirX;
+		_globalWindDirY  = dirY;
+		_globalWindSpeed = std::max(speed, 0.0f);
+		_globalWindSet   = true;
+	}
+
 	CloudRenderSettings SkyCloudSystem::GetCloudARenderSettings() const
 	{
 		auto s = _currentState.CloudA.ToRenderSettings();
 		s.DriftOutProgress = _driftOutA.Active ? _driftOutA.Progress : 0.0f;
+		if (_globalWindSet)
+		{
+			s.WindDirection = Vector2(_globalWindDirX, _globalWindDirY);
+			s.WindSpeed     = _globalWindSpeed;
+		}
 		return s;
 	}
 
@@ -2537,6 +2502,11 @@ namespace TEN::Sky
 	{
 		auto s = _currentState.CloudB.ToRenderSettings();
 		s.DriftOutProgress = _driftOutB.Active ? _driftOutB.Progress : 0.0f;
+		if (_globalWindSet)
+		{
+			s.WindDirection = Vector2(_globalWindDirX, _globalWindDirY);
+			s.WindSpeed     = _globalWindSpeed;
+		}
 		return s;
 	}
 

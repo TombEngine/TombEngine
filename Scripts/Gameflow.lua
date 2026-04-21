@@ -51,6 +51,16 @@ title.levelFile = "Data\\title.ten"
 title.scriptFile = "Scripts\\Levels\\title.lua"
 title.loadScreenFile = "Screens\\main.png"
 
+-- Per-level volumetric cloud wind override (applies to all weather presets in this level).
+-- speed          : cloud wind speed (>= 0; typical range 0.10 - 0.65). Negative = use global.
+-- windDirectionX : X component of 2D wind direction (-1.0 - 1.0).
+-- windDirectionZ : Z component of 2D wind direction (-1.0 - 1.0).
+-- transformDuration : CloudMorph transition duration in seconds (>= 0). Negative = use per-preset default.
+title.volumetricClouds.speed             = 0.2704
+title.volumetricClouds.windDirectionX    = 1.0
+title.volumetricClouds.windDirectionZ    = 0.0
+title.volumetricClouds.transformDuration = 35
+
 Flow.AddLevel(title)
 
 --------------------------------------------------

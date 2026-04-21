@@ -815,7 +815,12 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     if (ap.EvolutionSpd > 0.001f && distLOD < 0.6f)
     {
         float spatialMask = sin(TexValue3D(p_before_curl * 0.4f) * 6.2832f);
-        float swellWave   = sin(CloudTime * ap.EvolutionSpd * 0.04f);
+        // FlowAccumOffset * 0.25 = integral(EvSpd * dt * 0.04) — pre-integrated
+        // equivalent of CloudTime * ap.EvolutionSpd * 0.04. Using CloudTime directly
+        // causes the swell argument to decrease when EvolutionSpd lerps to a lower
+        // value (CloudTime is large, so the product shrinks fast) — sin() then
+        // oscillates backwards, visually pulling cloud coverage in reverse.
+        float swellWave   = sin(FlowAccumOffset * 0.25f);
         float swellAmp    = 0.08f * saturate(ap.EvolutionSpd * 0.5f + 0.1f);
         covThresh = saturate(covThresh - (spatialMask * swellWave) * swellAmp);
     }

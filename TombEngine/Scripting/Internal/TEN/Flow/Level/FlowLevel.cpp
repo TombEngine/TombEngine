@@ -112,6 +112,11 @@ void Level::Register(sol::table& parent)
 //@mem weatherStrength
 		"weatherStrength", &Level::WeatherStrength,
 
+/// (@{Flow.VolumetricClouds}) Per-level volumetric cloud wind settings.
+// Overrides the global wind set by Flow.SetCloudWind() in Settings.lua for this level only.
+//@mem volumetricClouds
+		"volumetricClouds", &Level::VolClouds,
+
 /// (bool) Choose if weather should be clustered or not.
 // You can set it to `false` globally or in specific regions of your level where clusters can slip through paper-thin walls.
 //@mem weatherClustering

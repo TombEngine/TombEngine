@@ -106,9 +106,6 @@ namespace TEN::Sky
 		float BottomHeight    = 1536.0f; // World units above camera
 		float Thickness       = 2500.0f;
 
-		float WindDirectionX  = 1.0f;
-		float WindDirectionY  = 0.0f;
-		float WindSpeed       = 0.003f;
 		float EvolutionSpeed  = 0.15f;
 		float CurlWarpStrength = 1.0f;  // [0,2] curl domain-warp amplitude multiplier (0 = no warp)
 
@@ -477,6 +474,12 @@ namespace TEN::Sky
 		float GetCloudADriftOutProgress() const;
 		float GetCloudBDriftOutProgress() const;
 
+		// --- Global wind ---
+		// Applies the active wind direction and speed to all cloud layers.
+		// Wind is always driven by level.volumetricClouds (Gameflow.lua) or
+		// Flow.SetCloudWind() (Settings.lua) and stays constant across all preset transitions.
+		void SetGlobalWind(float dirX, float dirY, float speed);
+
 		// --- Night blend ---
 		// Called by the renderer each frame with the current moon/starfield visibility [0..1].
 		// Controls day-vs-night weight blending in probabilistic next-preset chains.
@@ -581,6 +584,14 @@ namespace TEN::Sky
 		LayerDwellState _layerDwellA;
 		LayerDwellState _layerDwellB;
 		std::mt19937 _dwellRNG; // separate RNG for dwell randomization
+
+		// Global wind override — when IsSet is true, overrides per-preset wind in
+		// GetCloudARenderSettings() and GetCloudBRenderSettings() so all layers use
+		// a single wind value regardless of which preset is active or transitioning.
+		float _globalWindDirX  = 1.0f;
+		float _globalWindDirY  = 0.0f;
+		float _globalWindSpeed = 0.003f;
+		bool  _globalWindSet   = false;
 
 		// Night blend factor [0 = full day, 1 = full night].
 		// Set each frame by the renderer via SetNightBlend().

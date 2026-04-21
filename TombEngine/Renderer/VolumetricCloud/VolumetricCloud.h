@@ -257,6 +257,9 @@ namespace TEN::Renderer::VolumetricCloud
 		// Lens flare occlusion
 		LensFlareCloudOcclusionState FlareOcclusion = {};
 
+		// Previous cloud type — used to detect preset switches for temporal invalidation.
+		int PrevCloudType = -1;
+
 		// Debug
 		CloudDebugView DebugView   = CloudDebugView::None;
 		bool FreezeEvolution       = false;

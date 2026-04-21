@@ -6,6 +6,7 @@
 #include "Scripting/Internal/TEN/Flow/LensFlare/LensFlare.h"
 #include "Scripting/Internal/TEN/Flow/SkyLayer/SkyLayer.h"
 #include "Scripting/Internal/TEN/Flow/VolumetricCloudLayer/VolumetricCloudLayer.h"
+#include "Scripting/Internal/TEN/Flow/VolumetricClouds/VolumetricClouds.h"
 #include "Scripting/Internal/TEN/Flow/Starfield/Starfield.h"
 #include "Scripting/Internal/TEN/Flow/Fog/Fog.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
@@ -28,6 +29,7 @@ struct Level : public ScriptInterfaceLevel
 
 	// New weather preset system.
 	std::optional<std::string>              WeatherPreset; // e.g. "CloudsTransformation"
+	TEN::Scripting::VolumetricClouds        VolClouds = {}; // per-level wind override
 	TEN::Scripting::Horizon Horizon1 = {};
 	TEN::Scripting::Horizon Horizon2 = {};
 	TEN::Scripting::LensFlare LensFlare = {};

@@ -103,6 +103,10 @@ namespace TEN::Renderer
 		else
 		{
 			_context->ClearRenderTargetView(_cloudRenderTarget.RenderTargetView.Get(), clearColor);
+			// Reset temporal state so when the layer becomes active again it starts with
+			// fresh history (TemporalEnabled = warmup) rather than stale old-preset data.
+			_cloudState.FrameCounter = 0;
+			_cloudState.PrevCloudType = -1;
 		}
 
 		// Draw Cloud Layer B (lower / denser — composited second = in front).
@@ -115,6 +119,10 @@ namespace TEN::Renderer
 		else
 		{
 			_context->ClearRenderTargetView(_cloudRenderTargetB.RenderTargetView.Get(), clearColor);
+			// Reset temporal state so when the layer becomes active again it starts with
+			// fresh history (TemporalEnabled = warmup) rather than stale old-preset data.
+			_cloudStateB.FrameCounter = 0;
+			_cloudStateB.PrevCloudType = -1;
 		}
 
 		// Update lens flare occlusion for both layers.
@@ -148,7 +156,9 @@ namespace TEN::Renderer
 		if (newQuality.RenderResolutionScale != state.ActiveQuality.RenderResolutionScale)
 		{
 			state.ActiveQuality = newQuality;
-			// Resize this layer's target.
+			// Resize both the main render target and the prev-frame history target.
+			// Without resizing prevFrameRT, CopyResource fails silently (dimension mismatch)
+			// and prevFrameRT stays all-zeros → skip-pixels always return black → clouds invisible.
 			float scale = newQuality.RenderResolutionScale;
 			int w = std::max(1, (int)(_screenWidth * scale));
 			int h = std::max(1, (int)(_screenHeight * scale));
@@ -157,11 +167,37 @@ namespace TEN::Renderer
 				DXGI_FORMAT_R16G16B16A16_FLOAT,
 				false,
 				DXGI_FORMAT_UNKNOWN);
+			if (prevFrameRT)
+			{
+				*prevFrameRT = RenderTarget2D(
+					_device.Get(), w, h,
+					DXGI_FORMAT_R16G16B16A16_FLOAT,
+					false,
+					DXGI_FORMAT_UNKNOWN);
+			}
+			// Reset FrameCounter so temporal starts in warmup (all pixels raymarched fresh).
+			state.FrameCounter = 0;
 		}
 		else
 		{
 			state.ActiveQuality = newQuality;
 		}
+
+		// Invalidate temporal history when the cloud type changes (e.g. preset switch).
+		// When CloudType changes, prevFrameRT holds clouds from a different cloud type.
+		// Without invalidation, the stale history bleeds through via EMA — most visible
+		// as ghost clouds at incorrect screen positions when the camera rotates (reprojection
+		// maps old UV positions to new directions via PrevViewProjection).
+		if (state.PrevCloudType >= 0 && state.PrevCloudType != settings.CloudType)
+		{
+			state.FrameCounter = 0;
+			if (prevFrameRT)
+			{
+				float clearTemporal[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+				_context->ClearRenderTargetView(prevFrameRT->RenderTargetView.Get(), clearTemporal);
+			}
+		}
+		state.PrevCloudType = settings.CloudType;
 
 		// Update times — evolution time and wind offset accumulated separately.
 		// Wind offset is monotonically non-decreasing to prevent backwards motion

@@ -92,9 +92,6 @@ namespace TEN::Sky
 		params.push_back({"Density",          &snap.Density,            0.0f,    10.0f,    0.1f,     "%.2f",     def(&VolumetricCloudLayerSnapshot::Density)});
 		params.push_back({"Bottom Height",    &snap.BottomHeight,       100.0f,  200000.0f, 100.0f,  "%.0f",     def(&VolumetricCloudLayerSnapshot::BottomHeight)});
 		params.push_back({"Horizon Width",    &snap.AltoHorizonWidth,   0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::AltoHorizonWidth)});
-		params.push_back({"Wind Dir X",       &snap.WindDirectionX,    -1.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::WindDirectionX)});
-		params.push_back({"Wind Dir Y",       &snap.WindDirectionY,    -1.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::WindDirectionY)});
-		params.push_back({"Wind Speed",       &snap.WindSpeed,          0.0f,    8.0f,     0.001f,   "%.4f",     def(&VolumetricCloudLayerSnapshot::WindSpeed)});
 		params.push_back({"Evolution Speed",  &snap.EvolutionSpeed,     0.0f,    5.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::EvolutionSpeed)});
 		params.push_back({"Curl Warp Str",    &snap.CurlWarpStrength,   0.0f,    2.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::CurlWarpStrength)});
 		params.push_back({"Horizon Fade",     &snap.HorizonFade,        0.0f,    1.0f,     0.01f,    "%.3f",     def(&VolumetricCloudLayerSnapshot::HorizonFade)});
@@ -625,9 +622,6 @@ namespace TEN::Sky
 		ifld("bottomHeight",                     snap.BottomHeight);
 		ifld("horizonWidth",                     snap.Thickness);
 		fld( "altoHorizonWidth",      "%.4f",    snap.AltoHorizonWidth);
-		fld( "windDirectionX",        "%.4f",    snap.WindDirectionX);
-		fld( "windDirectionY",        "%.4f",    snap.WindDirectionY);
-		fld( "windSpeed",             "%.4f",    snap.WindSpeed);
 		fld( "evolutionSpeed",        "%.4f",    snap.EvolutionSpeed);
 		fld( "curlWarpStrength",      "%.4f",    snap.CurlWarpStrength);
 		fld( "horizonFade",           "%.4f",    snap.HorizonFade);
