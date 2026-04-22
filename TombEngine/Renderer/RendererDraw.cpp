@@ -3185,6 +3185,19 @@ namespace TEN::Renderer
 				_context->PSSetConstantBuffers(10, 1, atmoSkyBuf);
 			}
 
+			// Bind cloud render targets for per-pixel star/meteor occlusion (slots t10, t11).
+			// The shader samples cloud alpha at each sprite's screen position; null bindings
+			// return (0,0,0,0) so sprites are unaffected when no clouds are present.
+			// Uses previous frame's cloud RT (stars are drawn before cloud compositing).
+			{
+				ID3D11ShaderResourceView* cloudSRVs[2] =
+				{
+					_cloudRenderTarget.ShaderResourceView.Get(),
+					_cloudRenderTargetB.ShaderResourceView.Get()
+				};
+				_context->PSSetShaderResources(10, 2, cloudSRVs);
+			}
+
 			// Set up vertex buffer and parameters.
 			unsigned int stride = sizeof(Vertex);
 			unsigned int offset = 0;
@@ -3285,7 +3298,7 @@ namespace TEN::Renderer
 							meteor.Color.x,
 							meteor.Color.y,
 							meteor.Color.z,
-							Lerp(meteor.PrevFade, meteor.Fade, GetInterpolationFactor()));
+							Lerp(meteor.PrevFade, meteor.Fade, GetInterpolationFactor()) * starfieldAlphaScale);
 						_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1;
 						_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = 0;
 
@@ -3312,6 +3325,12 @@ namespace TEN::Renderer
 			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 			SetCullMode(CullMode::CounterClockwise);
+
+			// Unbind cloud render targets from star occlusion slots.
+			{
+				ID3D11ShaderResourceView* nullSRVs[2] = { nullptr, nullptr };
+				_context->PSSetShaderResources(10, 2, nullSRVs);
+			}
 		}
 
 		// Composite volumetric clouds BEFORE the horizon mesh so that opaque horizon geometry

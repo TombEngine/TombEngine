@@ -45,6 +45,11 @@ SamplerState Sampler : register(s0);
 Texture2D DepthTexture : register(t6);
 SamplerState DepthSampler : register(s6);
 
+// Cloud render targets for per-pixel star occlusion.
+// Only bound during the star draw call; null bindings return (0,0,0,0) — no occlusion.
+Texture2D CloudRenderTargetA : register(t10);
+Texture2D CloudRenderTargetB : register(t11);
+
 PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
 	PixelShaderInput output;
@@ -112,6 +117,19 @@ float4 PS(PixelShaderInput input) : SV_TARGET
         float3 viewDir = normalize(mul(float4(vPos.xyz, 0.0f), InverseView).xyz);
         if (dot(viewDir, normalize(AtmoMoonDirection)) > AtmoMoonDiskCosRadius)
             discard;
+    }
+
+    // Per-pixel cloud occlusion: sample cloud render targets at this pixel's screen position.
+    // CloudRenderTargetA/B are only bound during the star/meteor draw call.
+    // Null bindings return (0,0,0,0), so cloudCoverage = 0 and no attenuation is applied.
+    {
+        float2 screenUV = float2(
+            input.PositionCopy.x / input.PositionCopy.w *  0.5f + 0.5f,
+            input.PositionCopy.y / input.PositionCopy.w * -0.5f + 0.5f);
+        float covA = CloudRenderTargetA.Sample(Sampler, screenUV).a;
+        float covB = CloudRenderTargetB.Sample(Sampler, screenUV).a;
+        float cloudCoverage = saturate(covA + covB - covA * covB);
+        output.a *= (1.0f - cloudCoverage);
     }
 	
     if (sprite.IsSoftParticle == 1)
