@@ -1635,14 +1635,17 @@ float ScreenJitter(float2 cloudPos, float jitterScale)
 
     // Base phase: sample at the center of each step interval by default.
     // This minimizes visible march planes compared to edge-aligned sampling.
+    //
+    // We deliberately do NOT alternate basePhase per FrameIndex even when
+    // temporal is enabled.  Edge pixels (alpha in [TemporalAlphaLow, High])
+    // bypass the checkerboard reuse and do a fresh raymarch every frame; if
+    // basePhase swung between 0.25 and 0.75 frame-to-frame, those edge pixels
+    // would sample at different sub-step positions each frame, producing
+    // alpha oscillation that EMA blending only partially hides — visible as
+    // shimmer at thin altocumulus borders.  A fixed 0.5 phase combined with
+    // the per-pixel spatialJitter below keeps march planes randomized in
+    // space while remaining temporally stable.
     float basePhase = 0.5f;
-
-    // Temporal checkerboard: use two complementary CENTERED phases instead of
-    // 0.0/0.5. 0.25 and 0.75 keep both sets away from interval boundaries,
-    // which reduces visible horizontal slabs while still doubling the effective
-    // phase density after compositing neighboring pixels.
-    if (TemporalEnabled >= 1)
-        basePhase = ((int(FrameIndex) & 1) != 0) ? 0.75f : 0.25f;
 
     // Spatial component: symmetric around the base phase instead of only pushing
     // samples forward. That avoids biasing the whole ray toward one side of the

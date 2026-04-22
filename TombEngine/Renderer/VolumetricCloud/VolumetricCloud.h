@@ -58,10 +58,9 @@ namespace TEN::Renderer::VolumetricCloud
 		bool  TemporalReprojection    = true;
 		bool  BlueNoiseJitter         = true;
 		// Base EMA blend factor for temporal accumulation when the camera is still.
-		// Lower = more temporal smoothing (less noise, blurrier edges).
-		// Higher = faster convergence (sharper edges, more per-frame noise).
-		// At quarter-res (Medium) a higher value is needed because the large texel
-		// size already blurs detail — aggressive temporal EMA makes it far worse.
+		// Lower = more temporal smoothing (less per-frame noise at edges, more ghosting).
+		// Higher = faster convergence (sharper edges, more per-frame noise/flickering).
+		// windEvoBoost in the renderer ramps this up dynamically when clouds move.
 		float TemporalBaseBlend       = 0.15f;
 	};
 
@@ -319,7 +318,8 @@ namespace TEN::Renderer::VolumetricCloud
 				/*DetailNoiseEnabled=*/  true,
 				/*TemporalReprojection=*/true,
 				/*BlueNoiseJitter=*/     true,
-				/*TemporalBaseBlend=*/   0.20f  // Quarter-res: higher blend avoids heavy temporal blur
+				/*TemporalBaseBlend=*/   0.10f  // Quarter-res: low EMA blend reduces per-frame noise at thin edges;
+				                               // windEvoBoost ramps this up dynamically when clouds are moving.
 			};
 		}
 	}

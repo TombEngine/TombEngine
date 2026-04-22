@@ -420,8 +420,20 @@ namespace TEN::Renderer
 		_stVolumetricCloud.EvoAccumOffset        = runtimeState.EvoAccumOffset;
 		_stVolumetricCloud.FlowAccumOffset       = runtimeState.FlowAccumOffset;
 		_stVolumetricCloud.UpsampleSpatialSigma2 = settings.UpsampleSpatialSigma2;
-		_stVolumetricCloud.TemporalAlphaLow      = settings.TemporalAlphaLow;
-		_stVolumetricCloud.TemporalAlphaHigh     = settings.TemporalAlphaHigh;
+		// Quality-dependent widening of the temporal stability bands.
+		// Edge pixels with alpha in [Low, High] bypass checkerboard reuse and do
+		// a fresh raymarch every frame.  At Low/Medium the per-step count is small,
+		// so cloud-space jitter and per-frame Evo/Flow advection produce visible
+		// alpha variance at thin cloud borders.  Widening the bands pushes more
+		// borderline pixels into the reuse path; motion still refreshes them
+		// because windEvoBoost ramps the EMA blend factor automatically.
+		float alphaBandShrink = 0.0f;
+		if (q.PrimaryStepCount <= 12)
+			alphaBandShrink = 0.10f; // Medium: 0.05/0.95 -> 0.15/0.85
+		else if (q.PrimaryStepCount <= 8)
+			alphaBandShrink = 0.15f; // Low: even wider
+		_stVolumetricCloud.TemporalAlphaLow      = settings.TemporalAlphaLow + alphaBandShrink;
+		_stVolumetricCloud.TemporalAlphaHigh     = settings.TemporalAlphaHigh - alphaBandShrink;
 		_stVolumetricCloud.AltoJitterAbsCap      = settings.AltoJitterAbsCap;
 
 		// Previous frame's ViewProjection for temporal reprojection.
@@ -452,6 +464,12 @@ namespace TEN::Renderer
 			// dense/opaque — the opposite of the intended transparent veil.  The temporal
 			// EMA is what creates the smooth veil by averaging stochastic samples over time.
 			//
+			// Keep the cap small: PrevViewProjection already corrects existing pixels,
+			// so the boost only needs to handle the thin frustum-edge band of newly
+			// visible pixels. A larger cap would re-introduce flicker on edge pixels
+			// (alpha in [Low, High]) that bypass checkerboard reuse and re-evaluate
+			// fresh every frame during rotation.
+			//
 			// camMotion = 1 - dot(prevFwd, currFwd):
 			//   ~0.000610 = 2 deg/frame (120 deg/sec at 60 fps)
 			float camDot    = runtimeState.PrevCameraForward.Dot(view.Camera.WorldDirection);
@@ -460,8 +478,9 @@ namespace TEN::Renderer
 
 			constexpr float kCamRampEnd  = 0.000610f; // 1 - cos(2 deg)
 			// Max blend factor allowed from camera rotation alone.
-			// Keep below 1.0 to preserve temporal smoothing for semi-transparent clouds.
-			constexpr float kCamBlendMax = 0.65f;
+			// Lowered from 0.65 to 0.25 — reprojection handles the bulk of rotation;
+			// only the small frustum-edge band needs faster refresh.
+			constexpr float kCamBlendMax = 0.25f;
 
 			// Dynamic EMA blend factor: ramp from the quality-preset base (strong smoothing
 			// for static clouds) toward 1.0 as wind/evolution advects cloud content.
@@ -471,8 +490,18 @@ namespace TEN::Renderer
 			const float kRampEnd   = 0.05f;
 			float windEvoBoost = (1.0f - kBaseBlend) * (noiseDisplace / kRampEnd);
 			float camBoost     = (kCamBlendMax - kBaseBlend) * std::min(1.0f, camMotion / kCamRampEnd);
+
+			// During CloudMorph transitions per-step variance is much higher
+			// (dual density evaluation + reduced step count + per-frame Dissolve/
+			// FormationPhase sweep). Suppress the dynamic boosts and force strong
+			// EMA smoothing so the morph reads as a stable cross-fade instead of
+			// a flickering grain pattern.
+			float blend = kBaseBlend + std::max(windEvoBoost, camBoost);
+			if (settings.MorphActive > 0.5f)
+				blend = std::min(blend, kBaseBlend);
+
 			_stVolumetricCloud.TemporalBlendFactor = q.TemporalReprojection
-				? std::min(1.0f, kBaseBlend + std::max(windEvoBoost, camBoost))
+				? std::min(1.0f, blend)
 				: 1.0f;
 
 			// Hard guard: disable temporal only when wind/evolution has displaced cloud
