@@ -254,6 +254,14 @@ namespace TEN::Renderer::VolumetricCloud
 		float   PrevWindAccumOffset    = 0.0f;
 		float   PrevEvoAccumOffset     = 0.0f;
 
+		// Previous-frame morph phase values. During CloudMorph the on-screen
+		// content evolves continuously (Dissolve/Formation phase ramps every
+		// frame), so feeding the per-frame phase delta into the EMA blend factor
+		// makes temporal accumulation track the morph instead of averaging
+		// successive morph stages together (which reads as blur / smear).
+		float   PrevDissolvePhase      = 0.0f;
+		float   PrevFormationPhase     = 0.0f;
+
 		// Previous frame's ViewProjection matrix for temporal reprojection.
 		// Clouds are at infinite distance so only rotation matters; translation
 		// is negligible at sky-dome scale (1e6 world units).

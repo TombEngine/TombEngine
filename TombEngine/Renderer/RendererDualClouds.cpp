@@ -190,7 +190,18 @@ namespace TEN::Renderer
 		// Without invalidation, the stale history bleeds through via EMA — most visible
 		// as ghost clouds at incorrect screen positions when the camera rotates (reprojection
 		// maps old UV positions to new directions via PrevViewProjection).
-		if (state.PrevCloudType >= 0 && state.PrevCloudType != settings.CloudType)
+		//
+		// EXCEPTION: during a CloudMorph transition (MorphActive > 0.5) the shader
+		// evaluates BOTH source and target densities simultaneously, so the visible
+		// content evolves continuously even though settings.CloudType has already
+		// switched to the target. Resetting temporal history here would disable EMA
+		// smoothing for the entire morph, exposing the raw raymarcher's per-frame
+		// noise (visible as flickering and horizontal march-plane banding).
+		// Keep the history alive — it stays valid because the on-screen result is a
+		// smooth blend of the same source clouds plus a gradually-forming target.
+		if (state.PrevCloudType >= 0
+			&& state.PrevCloudType != settings.CloudType
+			&& settings.MorphActive <= 0.5f)
 		{
 			state.FrameCounter = 0;
 			if (prevFrameRT)
@@ -226,10 +237,13 @@ namespace TEN::Renderer
 		// (Must be AFTER UpdateVolumetricCloudBuffer which reads the Prev* values.)
 		if (advanceState)
 		{
-			state.PrevCameraForward   = renderView.Camera.WorldDirection;
-			state.PrevAccumulatedTime = state.AccumulatedTime;
-			state.PrevWindAccumOffset = state.WindAccumOffset;
-			state.PrevViewProjection  = renderView.Camera.ViewProjection;
+			state.PrevCameraForward    = renderView.Camera.WorldDirection;
+			state.PrevAccumulatedTime  = state.AccumulatedTime;
+			state.PrevWindAccumOffset  = state.WindAccumOffset;
+			state.PrevEvoAccumOffset   = state.EvoAccumOffset;
+			state.PrevDissolvePhase    = settings.DissolvePhase;
+			state.PrevFormationPhase   = settings.FormationPhase;
+			state.PrevViewProjection   = renderView.Camera.ViewProjection;
 		}
 
 		// --- Pass 1: Render to half-res target ---

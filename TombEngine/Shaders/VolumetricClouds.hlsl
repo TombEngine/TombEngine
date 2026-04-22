@@ -1793,16 +1793,17 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
     effectiveSteps		= clamp((int)ceil((float)effectiveSteps * lowAbsStepBoost), 1, stepCap);
 
     // CloudMorph step reduction: during morph transitions, each step evaluates
-    // density TWICE (target + source). Reduce step count by ~35% to compensate,
-    // keeping total per-pixel work closer to non-morph levels.
-    // The visual impact is minimal because:
-    //   - Both source (dissolving) and target (forming) have inherently reduced detail
-    //   - Stochastic jitter already provides sub-step randomization
-    //   - The transition state is dynamic and less scrutinized than steady state
-    // PrimaryStepCount is the floor to never go below user-specified minimum.
-    if (CloudType == 1 && MorphActive > 0.5f)
+    // density TWICE (target + source). A 35% step reduction was used previously
+    // to keep per-pixel cost closer to non-morph levels. That is REMOVED here
+    // because the larger step size made horizontal march planes plainly visible
+    // (read as "stacked cloud slabs") at low/medium quality. Keeping full step
+    // count during morph eliminates that banding; the temporary cost increase
+    // is acceptable because morphs are short-lived transition events.
+    // (Reduction kept only at very high step counts where the gain is negligible
+    //  and the visual cost is invisible.)
+    if (CloudType == 1 && MorphActive > 0.5f && PrimaryStepCount >= 24)
     {
-        int morphSteps = max((int)((float)effectiveSteps * 0.65f), PrimaryStepCount);
+        int morphSteps = max((int)((float)effectiveSteps * 0.85f), PrimaryStepCount);
         effectiveSteps = min(effectiveSteps, morphSteps);
     }
 

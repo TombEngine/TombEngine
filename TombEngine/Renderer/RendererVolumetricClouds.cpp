@@ -447,8 +447,19 @@ namespace TEN::Renderer
 		{
 			float deltaWind     = runtimeState.WindAccumOffset - runtimeState.PrevWindAccumOffset;
 			float deltaEvo      = runtimeState.EvoAccumOffset  - runtimeState.PrevEvoAccumOffset;
+			// CloudMorph progression also evolves the on-screen result every frame.
+			// Treating it as motion (analogous to wind) lets the EMA TRACK the morph
+			// progression instead of averaging successive morph stages together
+			// (which would smear the cross-fade into blur — the "newly-revealed
+			// pixels look sharper than the rest" artifact during morphs).
+			float deltaDissolve  = settings.DissolvePhase  - runtimeState.PrevDissolvePhase;
+			float deltaFormation = settings.FormationPhase - runtimeState.PrevFormationPhase;
+			float morphDisplace  = (settings.MorphActive > 0.5f)
+			                     ? (std::abs(deltaDissolve) + std::abs(deltaFormation)) * 1.0f
+			                     : 0.0f;
 			float noiseDisplace = std::abs(deltaWind) * 2.032f
-			                    + std::abs(deltaEvo)  * 2.032f;
+			                    + std::abs(deltaEvo)  * 2.032f
+			                    + morphDisplace;
 
 			// Camera rotation:
 			// The shader reprojects temporal history through PrevViewProjection so it
@@ -491,14 +502,14 @@ namespace TEN::Renderer
 			float windEvoBoost = (1.0f - kBaseBlend) * (noiseDisplace / kRampEnd);
 			float camBoost     = (kCamBlendMax - kBaseBlend) * std::min(1.0f, camMotion / kCamRampEnd);
 
-			// During CloudMorph transitions per-step variance is much higher
-			// (dual density evaluation + reduced step count + per-frame Dissolve/
-			// FormationPhase sweep). Suppress the dynamic boosts and force strong
-			// EMA smoothing so the morph reads as a stable cross-fade instead of
-			// a flickering grain pattern.
+			// Note on CloudMorph: morphDisplace above feeds into noiseDisplace,
+			// which drives windEvoBoost. This makes the EMA blend factor ramp up
+			// during morph so accumulation tracks the morph progression — without
+			// it, the EMA would average together multiple morph stages and the
+			// result would visibly blur (sharp edges only at frustum-edge regions
+			// freshly revealed by camera rotation, then smoothed back into blur).
+
 			float blend = kBaseBlend + std::max(windEvoBoost, camBoost);
-			if (settings.MorphActive > 0.5f)
-				blend = std::min(blend, kBaseBlend);
 
 			_stVolumetricCloud.TemporalBlendFactor = q.TemporalReprojection
 				? std::min(1.0f, blend)
