@@ -244,7 +244,7 @@ namespace TEN::Entities::Creatures::TR1
 		else
 			CreatureAnimation(itemNumber, angle, 0);
 
-		//Avoid stucking at platforms on water surface.
+		// Avoid getting stuck at platforms on the water surface.
 		if (item->Animation.ActiveState == BIG_RAT_STATE_SWIM)
 		{
 			if (item->ItemFlags[0] > 0)
