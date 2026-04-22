@@ -190,8 +190,6 @@ namespace TEN::Renderer::VolumetricCloud
 		float MorphSrcEvolutionSpd = 0.15f;
 		float MorphSrcHorizonWidth = 0.0f;
 
-		// Quality
-		CloudQualityPreset Quality       = CloudQualityPreset::Medium;
 		float AltoFbmScale               = 2.032f; // FBM input pre-scale (2.032=reference); lower=coarser
 		float CurlWarpStrength           = 1.0f;   // [0,2] curl domain-warp amplitude multiplier (0 = no warp)
 		float JitterStrength             = 0.3f;

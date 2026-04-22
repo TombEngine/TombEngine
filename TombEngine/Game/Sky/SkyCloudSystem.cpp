@@ -88,7 +88,6 @@ namespace TEN::Sky
 		s.HorizonFade     = HorizonFade;
 		s.DistanceFade    = DistanceFade;
 		s.HorizonMeshBleed = HorizonMeshBleed;
-		s.Quality         = Quality;
 		s.CloudType       = static_cast<int>(Category);
 		s.AltoBillowStrength = AltoBillowStrength;
 		s.AltoCovSoftWidth   = AltoCovSoftWidth;
@@ -175,7 +174,6 @@ namespace TEN::Sky
 		snap.HorizonFade     = src.HorizonFade;
 		snap.DistanceFade    = src.DistanceFade;
 		snap.HorizonMeshBleed = src.HorizonMeshBleed;
-		snap.Quality         = src.Quality;
 		snap.AltoBillowStrength = src.AltoBillowStrength;
 		snap.AltoCovSoftWidth   = src.AltoCovSoftWidth;
 		snap.AltoAbsorption      = src.AltoAbsorption;
@@ -349,9 +347,6 @@ namespace TEN::Sky
 		result.BlendThresholdHighWidth = LerpFloat(a.BlendThresholdHighWidth, b.BlendThresholdHighWidth, t);
 		result.BlendThresholdLow       = LerpFloat(a.BlendThresholdLow,       b.BlendThresholdLow,       t);
 
-		// Quality: snap at halfway.
-		result.Quality = (t < 0.5f) ? a.Quality : b.Quality;
-
 		// Edge quality tuning: interpolated so transitions don't snap jitter/temporal params.
 		result.JitterStrength        = LerpFloat(a.JitterStrength,        b.JitterStrength,        t);
 		result.UpsampleSpatialSigma2 = LerpFloat(a.UpsampleSpatialSigma2, b.UpsampleSpatialSigma2, t);
@@ -501,6 +496,14 @@ namespace TEN::Sky
 						def.TransformDuration = vc.TransformDuration;
 				}
 			}
+
+			// Apply global rendering quality from level.volumetricClouds.quality.
+			if (vc.Quality == "Low")
+				_globalQuality = CloudQualityPreset::Low;
+			else if (vc.Quality == "High")
+				_globalQuality = CloudQualityPreset::High;
+			else
+				_globalQuality = CloudQualityPreset::Medium;
 		}
 	}
 
@@ -2089,6 +2092,11 @@ namespace TEN::Sky
 		_globalWindDirY  = dirY;
 		_globalWindSpeed = std::max(speed, 0.0f);
 		_globalWindSet   = true;
+	}
+
+	CloudQualityPreset SkyCloudSystem::GetGlobalQuality() const
+	{
+		return _globalQuality;
 	}
 
 	CloudRenderSettings SkyCloudSystem::GetCloudARenderSettings() const

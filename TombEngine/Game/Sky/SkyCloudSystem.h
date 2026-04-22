@@ -160,7 +160,6 @@ namespace TEN::Sky
 		float LightningBoltLengthScale    = 1.0f; // [0.1,5]   bolt length multiplier
 		float LightningBoltThicknessScale = 1.0f; // [0.1,5]   bolt radius multiplier
 
-		CloudQualityPreset Quality = CloudQualityPreset::Medium;
 		float AltoFbmScale               = 2.032f; // [0.5,4]  FBM input pre-scale; lower = coarser pattern
 		float JitterStrength             = 0.3f;   // [0,1]    ray start jitter
 		float UpsampleSpatialSigma2      = 2.0f;   // [0.5,8]  2*sigma^2 for bilateral 5x5 upsampler
@@ -472,6 +471,11 @@ namespace TEN::Sky
 		// Flow.SetCloudWind() (Settings.lua) and stays constant across all preset transitions.
 		void SetGlobalWind(float dirX, float dirY, float speed);
 
+		// --- Global rendering quality ---
+		// Set via level.volumetricClouds.quality in Gameflow.lua.
+		// Applies to all volumetric cloud layers regardless of which preset is active.
+		CloudQualityPreset GetGlobalQuality() const;
+
 		// --- Night blend ---
 		// Called by the renderer each frame with the current moon/starfield visibility [0..1].
 		// Controls day-vs-night weight blending in probabilistic next-preset chains.
@@ -583,6 +587,9 @@ namespace TEN::Sky
 		float _globalWindDirY  = 0.0f;
 		float _globalWindSpeed = 0.003f;
 		bool  _globalWindSet   = false;
+
+		// Global rendering quality — set from level.volumetricClouds.quality at level load.
+		CloudQualityPreset _globalQuality = CloudQualityPreset::Medium;
 
 		// Night blend factor [0 = full day, 1 = full night].
 		// Set each frame by the renderer via SetNightBlend().

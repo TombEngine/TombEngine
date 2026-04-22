@@ -40,7 +40,12 @@ namespace TEN::Scripting
 			// Overrides the per-preset transform duration for all presets.
 			// Omit or set to a negative value to use per-preset defaults.
 			// @mem transformDuration
-			"transformDuration", &VolumetricClouds::TransformDuration
+			"transformDuration", &VolumetricClouds::TransformDuration,
+
+			/// (string) Global rendering quality for all cloud presets: "Low", "Medium", or "High". Default: "Medium".
+			// Applies to all volumetric cloud layers, regardless of which preset is active.
+			// @mem quality
+			"quality", &VolumetricClouds::Quality
 		);
 	}
 }

@@ -100,15 +100,6 @@ namespace TEN::Scripting
 		snap.TemporalAlphaLow        = std::clamp(tf("temporalAlphaLow",        0.05  ), 0.0f,  0.3f);
 		snap.TemporalAlphaHigh       = std::clamp(tf("temporalAlphaHigh",       0.95  ), 0.7f,  1.0f);
 
-		// Quality string -> enum.
-		std::string qualStr = table.get_or("quality", std::string("Medium"));
-		if (qualStr == "Low")
-			snap.Quality = CloudQualityPreset::Low;
-		else if (qualStr == "High")
-			snap.Quality = CloudQualityPreset::High;
-		else
-			snap.Quality = CloudQualityPreset::Medium;
-
 		// Cloud category string -> enum.
 		std::string catStr = table.get_or("category", std::string("None"));
 		snap.Category = SkyCloudSystem::CategoryFromString(catStr);

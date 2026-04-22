@@ -84,10 +84,6 @@ namespace TEN::Scripting
 			// @mem silverlining
 			"silverlining", sol::property(&VolumetricCloudLayer::GetSilverlining, &VolumetricCloudLayer::SetSilverlining),
 
-			/// (string) Quality preset: "Low", "Medium", or "High". Default: "Medium".
-			// @mem quality
-			"quality", sol::property(&VolumetricCloudLayer::GetQuality, &VolumetricCloudLayer::SetQuality),
-
 			/*** Create a VolumetricCloudLayer pre-configured from a named weather preset.
 			@function fromPreset
 			@tparam string presetName Preset name: "ClearSky", "Cirrus", "Thunderstorm", etc.
@@ -108,7 +104,7 @@ namespace TEN::Scripting
 	@function VolumetricCloudLayer
 	@tparam[opt] table settings Optional settings table with fields: coverage, density, windSpeed,
 	    bottomHeight, thickness, evolutionSpeed, shapeScale, detailScale, detailStrength,
-	    absorption, ambient, silverlining, quality.
+	    absorption, ambient, silverlining.
 	@treturn VolumetricCloudLayer A volumetric cloud layer object.
 	*/
 	VolumetricCloudLayer::VolumetricCloudLayer(sol::table settingsTable)
@@ -163,8 +159,6 @@ namespace TEN::Scripting
 			SetAmbient(*val);
 		if (auto val = table.get<sol::optional<float>>("silverlining"))
 			SetSilverlining(*val);
-		if (auto val = table.get<sol::optional<std::string>>("quality"))
-			SetQuality(*val);
 
 		// Wind direction: accept table {x, y} or Vec2.
 		if (auto vecOpt = table.get<sol::optional<sol::table>>("windDirection"))
@@ -179,15 +173,6 @@ namespace TEN::Scripting
 				Settings.WindDirection.y = y / len;
 			}
 		}
-	}
-
-	CloudQualityPreset VolumetricCloudLayer::ParseQualityString(const std::string& str)
-	{
-		if (str == "Low" || str == "low")
-			return CloudQualityPreset::Low;
-		if (str == "High" || str == "high")
-			return CloudQualityPreset::High;
-		return CloudQualityPreset::Medium;
 	}
 
 	// -----------------------------------------------------------------------
@@ -207,16 +192,6 @@ namespace TEN::Scripting
 	float VolumetricCloudLayer::GetAbsorption() const { return Settings.Absorption; }
 	float VolumetricCloudLayer::GetAmbient() const { return Settings.AmbientContrib; }
 	float VolumetricCloudLayer::GetSilverlining() const { return Settings.SilverliningStr; }
-
-	std::string VolumetricCloudLayer::GetQuality() const
-	{
-		switch (Settings.Quality)
-		{
-		case CloudQualityPreset::Low:  return "Low";
-		case CloudQualityPreset::High: return "High";
-		default:                       return "Medium";
-		}
-	}
 
 	// -----------------------------------------------------------------------
 	// Setters (with validation / clamping)
@@ -281,10 +256,5 @@ namespace TEN::Scripting
 	void VolumetricCloudLayer::SetSilverlining(float val)
 	{
 		Settings.SilverliningStr = std::clamp(val, 0.0f, 1.0f);
-	}
-
-	void VolumetricCloudLayer::SetQuality(const std::string& preset)
-	{
-		Settings.Quality = ParseQualityString(preset);
 	}
 }

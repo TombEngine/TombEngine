@@ -42,7 +42,6 @@ namespace TEN::Scripting
 		float       GetAbsorption() const;
 		float       GetAmbient() const;
 		float       GetSilverlining() const;
-		std::string GetQuality() const;
 
 		// Setters.
 		void SetCoverage(float val);
@@ -57,10 +56,8 @@ namespace TEN::Scripting
 		void SetAbsorption(float val);
 		void SetAmbient(float val);
 		void SetSilverlining(float val);
-		void SetQuality(const std::string& preset);
 
 	private:
 		void ParseSettingsTable(sol::table table);
-		static CloudQualityPreset ParseQualityString(const std::string& str);
 	};
 }

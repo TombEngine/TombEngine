@@ -154,7 +154,7 @@ namespace TEN::Renderer
 			return;
 
 		// Resolve quality params.
-		auto newQuality = GetQualityParams(settings.Quality);
+		auto newQuality = GetQualityParams(g_SkyCloudSystem.GetGlobalQuality());
 		if (newQuality.RenderResolutionScale != state.ActiveQuality.RenderResolutionScale)
 		{
 			state.ActiveQuality = newQuality;
