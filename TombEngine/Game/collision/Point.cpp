@@ -182,9 +182,10 @@ namespace TEN::Collision::Point
 
 		// Set water surface height.
 		bool isBelow = !TestEnvironment(ENV_FLAG_WATER, room);
-		while (sector->GetNextRoomNumber(_position, isBelow).has_value())
+		auto nextRoom = sector->GetNextRoomNumber(_position, isBelow);
+		while (nextRoom.has_value())
 		{
-			room = &g_Level.Rooms[sector->GetNextRoomNumber(_position, isBelow).value_or(sector->RoomNumber)];
+			room = &g_Level.Rooms[nextRoom.value_or(sector->RoomNumber)];
 			if (isBelow == TestEnvironment(ENV_FLAG_WATER, room))
 			{
 				_waterSurfaceHeight = sector->GetSurfaceHeight(_position.x, _position.z, isBelow);
@@ -192,6 +193,7 @@ namespace TEN::Collision::Point
 			}
 
 			sector = Room::GetSector(room, _position.x - room->Position.x, _position.z - room->Position.z);
+			nextRoom = sector->GetNextRoomNumber(_position, isBelow);
 		}
 
 		_waterSurfaceHeight = NO_HEIGHT;
@@ -253,25 +255,26 @@ namespace TEN::Collision::Point
 				roomNumber = adjoiningRoomNumber;
 				room = &g_Level.Rooms[adjoiningRoomNumber];
 			}
-		} 
+		}
 		while (adjoiningRoomNumber != NO_VALUE);
 
 		// Set water bottom height.
 		if (TestEnvironment(ENV_FLAG_WATER, room) || TestEnvironment(ENV_FLAG_SWAMP, room))
 		{
-			while (sector->GetNextRoomNumber(_position, false).value_or(NO_VALUE) != NO_VALUE)
+			auto nextRoom = sector->GetNextRoomNumber(_position, false);
+			while (nextRoom.has_value())
 			{
-				room = &g_Level.Rooms[sector->GetNextRoomNumber(_position, false).value_or(sector->RoomNumber)];
+				room = &g_Level.Rooms[nextRoom.value_or(sector->RoomNumber)];
 				if (!TestEnvironment(ENV_FLAG_WATER, room) && !TestEnvironment(ENV_FLAG_SWAMP, room))
 				{
 					int waterHeight = sector->GetSurfaceHeight(_position.x, _position.z, false);
 					int floorHeight = GetPointCollision(_position, sector->RoomNumber).GetBottomSector().GetSurfaceHeight(_position.x, _position.z, true);
-					
 					_waterBottomHeight = floorHeight - waterHeight;
 					return *_waterBottomHeight;
 				}
 
 				sector = Room::GetSector(room, _position.x - room->Position.x, _position.z - room->Position.z);
+				nextRoom = sector->GetNextRoomNumber(_position, false);
 			}
 
 			_waterBottomHeight = DEEP_WATER;
@@ -279,19 +282,21 @@ namespace TEN::Collision::Point
 		}
 		else
 		{
-			while (sector->GetNextRoomNumber(_position, true).value_or(NO_VALUE) != NO_VALUE)
+			auto nextRoom = sector->GetNextRoomNumber(_position, true);
+			while (nextRoom.has_value())
 			{
-				room = &g_Level.Rooms[sector->GetNextRoomNumber(_position, true).value_or(sector->RoomNumber)];
+				room = &g_Level.Rooms[nextRoom.value_or(sector->RoomNumber)];
+				
 				if (TestEnvironment(ENV_FLAG_WATER, room) || TestEnvironment(ENV_FLAG_SWAMP, room))
 				{
 					int waterHeight = sector->GetSurfaceHeight(_position.x, _position.z, true);
 					sector = GetFloor(_position.x, _position.y, _position.z, &roomNumber);
-					
 					_waterBottomHeight = GetPointCollision(_position, sector->RoomNumber).GetFloorHeight() - waterHeight;
 					return *_waterBottomHeight;
 				}
 
 				sector = Room::GetSector(room, _position.x - room->Position.x, _position.z - room->Position.z);
+				nextRoom = sector->GetNextRoomNumber(_position, true);
 			}
 
 			_waterBottomHeight = NO_HEIGHT;
@@ -307,7 +312,6 @@ namespace TEN::Collision::Point
 		FloorInfo* sector = nullptr;
 		auto* room = &g_Level.Rooms[_roomNumber];
 		int roomNumber = _roomNumber;
-
 		int adjoiningRoomNumber = NO_VALUE;
 		do
 		{
@@ -349,7 +353,6 @@ namespace TEN::Collision::Point
 
 			sector = &room->Sectors[z + (x * room->ZSize)];
 			adjoiningRoomNumber = sector->SidePortalRoomNumber;
-
 			if (adjoiningRoomNumber != NO_VALUE)
 			{
 				roomNumber = adjoiningRoomNumber;
@@ -366,13 +369,15 @@ namespace TEN::Collision::Point
 
 		if (TestEnvironment(ENV_FLAG_WATER, room) || TestEnvironment(ENV_FLAG_SWAMP, room))
 		{
-			while (sector->GetNextRoomNumber(_position, false).has_value())
+			auto nextRoom = sector->GetNextRoomNumber(_position, false);
+			while (nextRoom.has_value())
 			{
-				room = &g_Level.Rooms[sector->GetNextRoomNumber(_position, false).value_or(sector->RoomNumber)];
+				room = &g_Level.Rooms[nextRoom.value_or(sector->RoomNumber)];
 				if (!TestEnvironment(ENV_FLAG_WATER, room) && !TestEnvironment(ENV_FLAG_SWAMP, room))
 					break;
 
 				sector = Room::GetSector(room, _position.x - room->Position.x, _position.z - room->Position.z);
+				nextRoom = sector->GetNextRoomNumber(_position, false);
 			}
 
 			_waterTopHeight = sector->GetSurfaceHeight(_position, false);
@@ -380,9 +385,10 @@ namespace TEN::Collision::Point
 		}
 		else
 		{
-			while (sector->GetNextRoomNumber(_position, true).has_value())
+			auto nextRoom = sector->GetNextRoomNumber(_position, true);
+			while (nextRoom.has_value())
 			{
-				room = &g_Level.Rooms[sector->GetNextRoomNumber(_position, true).value_or(sector->RoomNumber)];
+				room = &g_Level.Rooms[nextRoom.value_or(sector->RoomNumber)];
 				if (TestEnvironment(ENV_FLAG_WATER, room) || TestEnvironment(ENV_FLAG_SWAMP, room))
 				{
 					_waterTopHeight = sector->GetSurfaceHeight(_position, true);
@@ -390,6 +396,7 @@ namespace TEN::Collision::Point
 				}
 
 				sector = Room::GetSector(room, _position.x - room->Position.x, _position.z - room->Position.z);
+				nextRoom = sector->GetNextRoomNumber(_position, true);
 			}
 		}
 
@@ -400,7 +407,7 @@ namespace TEN::Collision::Point
 	bool PointCollisionData::IsWall()
 	{
 		return (GetFloorHeight() == NO_HEIGHT || GetCeilingHeight() == NO_HEIGHT ||
-				GetFloorHeight() <= GetCeilingHeight());
+			GetFloorHeight() <= GetCeilingHeight());
 	}
 
 	bool PointCollisionData::IsSteepFloor()
@@ -409,7 +416,6 @@ namespace TEN::Collision::Point
 		short steepSlopeAngle = (GetFloorBridgeItemNumber() != NO_VALUE) ?
 			DEFAULT_STEEP_FLOOR_SLOPE_ANGLE :
 			GetBottomSector().GetSurfaceSteepSlopeAngle(_position.x, _position.z, true);
-		
 		return (abs(slopeAngle) >= steepSlopeAngle);
 	}
 
@@ -419,7 +425,6 @@ namespace TEN::Collision::Point
 		short steepSlopeAngle = (GetCeilingBridgeItemNumber() != NO_VALUE) ?
 			DEFAULT_STEEP_CEILING_SLOPE_ANGLE :
 			GetTopSector().GetSurfaceSteepSlopeAngle(_position.x, _position.z, false);
-		
 		return (abs(slopeAngle) >= steepSlopeAngle);
 	}
 
@@ -427,7 +432,7 @@ namespace TEN::Collision::Point
 	{
 		return GetBottomSector().IsSurfaceDiagonalStep(true);
 	}
-	
+
 	bool PointCollisionData::IsDiagonalCeilingStep()
 	{
 		return GetTopSector().IsSurfaceDiagonalStep(false);
@@ -450,7 +455,7 @@ namespace TEN::Collision::Point
 		float splitAngle = GetBottomSector().FloorSurface.SplitAngle;
 		return (IsDiagonalFloorStep() && splitAngle == SectorSurfaceData::SPLIT_ANGLE_1);
 	}
-	
+
 	bool PointCollisionData::IsFlippedDiagonalCeilingSplit()
 	{
 		float splitAngle = GetTopSector().CeilingSurface.SplitAngle;
@@ -504,7 +509,6 @@ namespace TEN::Collision::Point
 		// Conduct L-shaped room traversal.
 		short probeRoomNumber = GetRoomVector(location, Vector3i(pos.x, probePos.y, pos.z)).RoomNumber;
 		GetFloor(probePos.x, probePos.y, probePos.z, &probeRoomNumber);
-
 		return probeRoomNumber;
 	}
 
@@ -512,7 +516,6 @@ namespace TEN::Collision::Point
 	{
 		short tempRoomNumber = roomNumber;
 		const auto& sector = *GetFloor(pos.x, pos.y, pos.z, &tempRoomNumber);
-
 		return RoomVector(sector.RoomNumber, pos.y);
 	}
 
@@ -525,7 +528,6 @@ namespace TEN::Collision::Point
 
 		short tempRoomNumber = item.RoomNumber;
 		const auto& sector = *GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &tempRoomNumber);
-
 		return RoomVector(sector.RoomNumber, item.Pose.Position.y);
 	}
 
@@ -534,7 +536,6 @@ namespace TEN::Collision::Point
 		// HACK: Ensure room number is correct if position extends to another room.
 		// Accounts for some calls to this function which directly pass offset position instead of using dedicated probe overloads.
 		GetFloor(pos.x, pos.y, pos.z, (short*)&roomNumber);
-
 		return PointCollisionData(pos, roomNumber);
 	}
 
@@ -546,7 +547,6 @@ namespace TEN::Collision::Point
 		// Calculate probe position.
 		auto probePos = Geometry::TranslatePoint(pos, dir, dist);
 		short probeRoomNumber = GetProbeRoomNumber(pos, location, probePos);
-
 		return PointCollisionData(probePos, probeRoomNumber);
 	}
 
@@ -558,7 +558,6 @@ namespace TEN::Collision::Point
 		// Calculate probe position.
 		auto probePos = pos + offset;
 		short probeRoomNumber = GetProbeRoomNumber(pos, location, probePos);
-
 		return PointCollisionData(probePos, probeRoomNumber);
 	}
 
@@ -570,7 +569,6 @@ namespace TEN::Collision::Point
 		// Calculate probe position.
 		auto probePos = Geometry::TranslatePoint(pos, headingAngle, forward, down, right, axis);
 		short probeRoomNumber = GetProbeRoomNumber(pos, location, probePos);
-
 		return PointCollisionData(probePos, probeRoomNumber);
 	}
 
@@ -587,7 +585,6 @@ namespace TEN::Collision::Point
 		// Calculate probe position.
 		auto probePos = Geometry::TranslatePoint(item.Pose.Position, dir, dist);
 		short probeRoomNumber = GetProbeRoomNumber(item.Pose.Position, location, probePos);
-
 		return PointCollisionData(probePos, probeRoomNumber);
 	}
 
@@ -599,7 +596,6 @@ namespace TEN::Collision::Point
 		// Calculate probe position.
 		auto probePos = Geometry::TranslatePoint(item.Pose.Position, headingAngle, forward, down, right, axis);
 		short probeRoomNumber = GetProbeRoomNumber(item.Pose.Position, location, probePos);
-
 		return PointCollisionData(probePos, probeRoomNumber);
 	}
 }
