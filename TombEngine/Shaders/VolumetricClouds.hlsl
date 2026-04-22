@@ -628,7 +628,15 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     // so it never decreases even when EvolutionSpeed transitions to a lower value.
     // This prevents clouds from drifting against the wind during morph transitions
     // where EvolutionSpeed drops (e.g. RainSnowOvercast→Altocumulus).
-    float3 evoDir = float3(WindDirection.x, 0.0f, WindDirection.y);
+    //
+    // Direction is PERPENDICULAR to wind (rotated 90°) so that EvolutionSpeed
+    // does NOT add to the visible wind-direction speed. Otherwise, on a preset
+    // transition that ramps EvSpd from 0 to >0 (e.g. Altocumulus→Thunderstorm),
+    // the cloud field appears to suddenly accelerate in wind direction
+    // ("time-lapse"), and on the reverse transition it appears to drift
+    // against the wind as the curl-warp untwists. With a perpendicular evoDir,
+    // wind-direction speed stays = global WindSpeed regardless of EvSpd.
+    float3 evoDir = float3(-WindDirection.y, 0.0f, WindDirection.x);
     float3 evoOfs = evoDir * EvoAccumOffset;
 
     float3 p = skyPos * baseScale + windOfs + evoOfs;
@@ -722,11 +730,27 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     // to FBMAlto3 removes negligible-weight work at no visual cost.
     float dens;
     {
-        float3 p_advect       = (windOfs + evoOfs) * ap.FbmScale;
-        float3 p_shape        = p              * ap.FbmScale - p_advect;
+        // Wind+evo advection in FBM space, with FbmScale baked into the time
+        // integral on the CPU. This prevents the visible time-lapse on AltoFbmScale
+        // changes between presets: applying the *current* FbmScale to already-
+        // accumulated WindAccumOffset retroactively rescales all past wind motion
+        // in FBM space, which on a 60s+ accumulator looks like the cloud field
+        // sweeping fast through the noise during the transition.
+        // Evo direction is perpendicular to wind so EvolutionSpeed transitions
+        // do not add to perceived wind-direction speed.
+        float3 windAdvect = float3(WindDirection.x, 0.0f, WindDirection.y) * WindAccumOffsetScaled;
+        float3 evoAdvect  = float3(-WindDirection.y, 0.0f, WindDirection.x) * EvoAccumOffsetScaled;
+        float3 p_advect   = windAdvect + evoAdvect;
+
+        // p_shape rebuilt from skyPos + curl-only delta so wind+evo terms cancel
+        // exactly regardless of FbmScale changes (instead of via p*FbmScale-p_advect
+        // which leaves a (windOfs+evoOfs)*FbmScale residual whenever the new
+        // FbmScale-scaled accumulator and the old (per-frame FbmScale*accum) diverge).
+        float3 curlDelta = p - p_before_curl;
+        float3 p_shape   = (skyPos * baseScale + curlDelta) * ap.FbmScale;
         if (distLOD < 0.4f)
         {
-            float3 p_shape_stable = p_before_curl * ap.FbmScale - p_advect;
+            float3 p_shape_stable = skyPos * baseScale * ap.FbmScale;
             dens = FBMAlto5(p_shape, p_shape_stable, p_advect, ap.FbmLac, ap.FbmGain,
                             ap.BillowStr, distLOD);
         }
@@ -947,10 +971,16 @@ float EvalAltoDensityCoreLite(float3 skyPos, float heightFrac, float skyH,
 
     // --- Global advection ---
     float3 windOfs = float3(WindDirection.x, 0.0f, WindDirection.y) * WindSpeed;
-    float3 evoDir = float3(WindDirection.x, 0.0f, WindDirection.y);
+    // Evolution drift is perpendicular to wind so it does not add to perceived
+    // wind-direction speed during EvolutionSpeed transitions. See EvalAltoDensityCore.
+    float3 evoDir = float3(-WindDirection.y, 0.0f, WindDirection.x);
     float3 evoOfs = evoDir * EvoAccumOffset;
 
     float3 p = skyPos * baseScale + windOfs + evoOfs;
+
+    // Save pre-curl position so the FBM block can reconstruct curl-only delta
+    // (needed for the FbmScale-aware p_advect refactor; see EvalAltoDensityCore).
+    float3 p_before_curl = p;
 
     // --- Curl noise: LOW BAND ONLY (skip Mid and High entirely) ---
     // Saves 8 ValueNoise3D calls (4 per skipped band).
@@ -975,8 +1005,13 @@ float EvalAltoDensityCoreLite(float3 skyPos, float heightFrac, float skyH,
     // --- FBMAlto3 (3 octaves instead of 5) ---
     float dens;
     {
-        float3 p_advect = (windOfs + evoOfs) * ap.FbmScale;
-        float3 p_shape  = p * ap.FbmScale - p_advect;
+        // Pre-integrated FbmScale-aware advection (see EvalAltoDensityCore for rationale).
+        float3 windAdvect = float3(WindDirection.x, 0.0f, WindDirection.y) * WindAccumOffsetScaled;
+        float3 evoAdvect  = float3(-WindDirection.y, 0.0f, WindDirection.x) * EvoAccumOffsetScaled;
+        float3 p_advect   = windAdvect + evoAdvect;
+
+        float3 curlDelta = p - p_before_curl;
+        float3 p_shape   = (skyPos * baseScale + curlDelta) * ap.FbmScale;
         dens = FBMAlto3(p_shape, p_advect, ap.FbmLac, ap.FbmGain,
                         ap.BillowStr, distLOD);
     }
@@ -1302,7 +1337,9 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         // covers many cloud masses, giving a coherent swell without fragmentation.
         // Use the same Y-normalized position to keep billowing consistent.
         float phaseNoise = TexValue3D(float3(skyPos.x, shapeY, skyPos.z) * effectiveShapeScale * 0.25f);
-        float swellPhase = CloudTime * EvolutionSpeed * 0.04f + phaseNoise * 6.2832f;
+        // Pre-integrated form: EvoAccumOffset == integral(EvSpd * dt * 0.05);
+        // multiplier 0.8 = 0.04/0.05 to preserve original swell rate.
+        float swellPhase = EvoAccumOffset * 0.8f + phaseNoise * 6.2832f;
 
         // Max threshold shift: ??0.26 at EvolutionSpeed=1, ??0.42 at EvolutionSpeed=5.
         // Clamped so clouds never fully vanish or fully merge.
@@ -1402,11 +1439,16 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
         // No Y-drift: vertical wobble was the primary source of edge warping.
         // Apply proportional drift (0.45x): keeps interior erosion patterns
         // consistent with the shape drift so eroded pockets also evolve with height.
+        // Pre-integrated form: EvoAccumOffset == integral(EvSpd * dt * 0.05);
+        // original used CloudTime * EvSpd (factor 1.0), so multiply by 20 = 1.0/0.05
+        // to keep the historical detail-drift rate identical at steady state.
+        // Direction is perpendicular to wind so EvolutionSpeed transitions do
+        // not add to perceived wind-direction speed (see EvalAltoDensityCore).
         float3 detailPos = float3(skyPos.x * DetailScale * noiseScale.x + driftXZ.x * 0.45f,
                                   shapeY   * DetailScale * noiseScale.y,
                                   skyPos.z * DetailScale * noiseScale.z + driftXZ.y * 0.45f)
-                          + float3(WindDirection.x, 0.0f, WindDirection.y) 
-                            * CloudTime * EvolutionSpeed;
+                          + float3(-WindDirection.y, 0.0f, WindDirection.x) 
+                            * EvoAccumOffset * 20.0f;
         // Pass distLOD: at medium/far distance FBMDetail progressively mutes its
         // octaves, so detail returns 0 at lod=1 without needing a separate branch.
         float detail = FBMDetail(detailPos, distLOD);
@@ -1855,7 +1897,12 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
     // This keeps the pattern moving with the cloud rather than staying fixed
     // in view-space and smearing behind moving silhouettes.
     float2 entrySkyXZ   = rayDir.xz * tRange.x;
-    float2 cloudAdvection = WindDirection * (WindSpeed + EvolutionSpeed * (CloudTime * 0.05f + WindSpeed * 0.15f));
+    // Pre-integrated form: replaces EvolutionSpeed * CloudTime * 0.05 with
+    // EvoAccumOffset (== integral(EvSpd * dt * 0.05)) so the jitter anchor
+    // does not jump time-lapse-fast when EvolutionSpeed changes between presets.
+    // The EvolutionSpeed * WindSpeed * 0.15 term is constant-per-frame (no time)
+    // so it is safe to keep using the current EvolutionSpeed value.
+    float2 cloudAdvection = WindDirection * (WindSpeed + EvoAccumOffset + EvolutionSpeed * WindSpeed * 0.15f);
     float2 jitterCloudPos = entrySkyXZ * 0.001f + cloudAdvection;
 
     // Dampen jitter where it is most visible as shimmer: high-FBM Alto clouds

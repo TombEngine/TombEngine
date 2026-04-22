@@ -182,7 +182,19 @@ namespace TEN::Renderer::ConstantBuffers
 		float EvoAccumOffset;        // Pre-integrated evolution offset (EvolutionSpeed*dt*0.05 accumulated). Used in evoOfs instead of EvolutionSpd*(CloudTime*0.05+WindSpeed*0.15) to prevent backwards drift on EvolutionSpeed transitions.
 		float FlowAccumOffset;       // Pre-integrated flow time (EvolutionSpeed*dt*0.16 accumulated). Used in flowTime instead of CloudTime*EvolutionSpd*0.16 to prevent curl-warp and windBias reversing when EvolutionSpeed transitions to a lower value.
 		//--
-		// Rows 31-34 — Previous frame ViewProjection matrix for temporal reprojection.
+		// Row 31 — Pre-integrated FbmScale-aware advection offsets.
+		// Used by Alto FBM p_advect to prevent time-lapse during AltoFbmScale transitions.
+		// AltoFbmScale acts as a multiplier on (windOfs+evoOfs) inside the FBM input space;
+		// since the offsets are already accumulated over time, applying the *current* FbmScale
+		// retroactively rescales all past wind+evo motion in FBM space whenever AltoFbmScale
+		// changes (e.g. preset transitions), causing the cloud field to scroll fast = time-lapse.
+		// These accumulators bake AltoFbmScale into the integral so changes only affect future frames.
+		float WindAccumOffsetScaled; // Integral of WindSpeed * AltoFbmScale * dt
+		float EvoAccumOffsetScaled;  // Integral of EvolutionSpeed * AltoFbmScale * dt * 0.05
+		float _PadRow31_0;
+		float _PadRow31_1;
+		//--
+		// Rows 32-35 — Previous frame ViewProjection matrix for temporal reprojection.
 		// Clouds are at infinite distance so only camera rotation matters.
 		// Used to reproject history buffer UVs when the camera has rotated.
 		Matrix PrevViewProjection;

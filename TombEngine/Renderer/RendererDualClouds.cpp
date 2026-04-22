@@ -224,6 +224,35 @@ namespace TEN::Renderer
 				state.AccumulatedTime += dt;
 			if (!state.FreezeWind)
 				state.WindAccumOffset += settings.WindSpeed * dt;
+
+			// Pre-integrate EvolutionSpeed * dt so that on-screen cloud advection
+			// stays continuous when EvolutionSpeed changes between presets. Using
+			// CloudTime * EvolutionSpeed_now directly causes a time-lapse jump on
+			// transitions (e.g. Altocumulus EvSpd=0 -> Thunderstorm EvSpd=1.276):
+			// the product retroactively rescales all elapsed time at the new rate.
+			// With pre-integration, past frames keep their own contribution and
+			// only future frames advance at the new rate.
+			// Scaling factors (0.05 and 0.16) match the historical multipliers in
+			// the shader (CloudTime * EvSpd * 0.05/0.16) so visible motion speed
+			// is unchanged at steady state.
+			if (!state.FreezeEvolution)
+			{
+				state.EvoAccumOffset  += settings.EvolutionSpeed * dt * 0.05f;
+				state.FlowAccumOffset += settings.EvolutionSpeed * dt * 0.16f;
+			}
+
+			// Pre-integrate (WindSpeed * AltoFbmScale * dt) and (EvolutionSpeed *
+			// AltoFbmScale * dt * 0.05) so AltoFbmScale changes between presets do
+			// not retroactively rescale all accumulated past wind+evo motion in FBM
+			// space (which reads as time-lapse during transitions where AltoFbmScale
+			// differs significantly between source and target presets).
+			// FbmScale is clamped to a sensible minimum so the integral never freezes.
+			float fbmScaleSafe = std::max(settings.AltoFbmScale, 0.001f);
+			if (!state.FreezeWind)
+				state.WindAccumOffsetScaled += settings.WindSpeed * fbmScaleSafe * dt;
+			if (!state.FreezeEvolution)
+				state.EvoAccumOffsetScaled += settings.EvolutionSpeed * fbmScaleSafe * dt * 0.05f;
+
 			state.FrameCounter++;
 
 			if (settings.LightningEnabled && settings.CloudType == 1)

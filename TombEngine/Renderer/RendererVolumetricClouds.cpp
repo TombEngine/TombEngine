@@ -419,6 +419,10 @@ namespace TEN::Renderer
 		_stVolumetricCloud.CurlWarpStrength     = q.DetailNoiseEnabled ? settings.CurlWarpStrength : 0.0f;
 		_stVolumetricCloud.EvoAccumOffset        = runtimeState.EvoAccumOffset;
 		_stVolumetricCloud.FlowAccumOffset       = runtimeState.FlowAccumOffset;
+		_stVolumetricCloud.WindAccumOffsetScaled = runtimeState.FreezeWind      ? 0.0f : runtimeState.WindAccumOffsetScaled;
+		_stVolumetricCloud.EvoAccumOffsetScaled  = runtimeState.FreezeEvolution ? 0.0f : runtimeState.EvoAccumOffsetScaled;
+		_stVolumetricCloud._PadRow31_0           = 0.0f;
+		_stVolumetricCloud._PadRow31_1           = 0.0f;
 		_stVolumetricCloud.UpsampleSpatialSigma2 = settings.UpsampleSpatialSigma2;
 		// Quality-dependent widening of the temporal stability bands.
 		// Edge pixels with alpha in [Low, High] bypass checkerboard reuse and do

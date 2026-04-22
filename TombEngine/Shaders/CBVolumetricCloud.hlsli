@@ -175,7 +175,13 @@ cbuffer CBVolumetricCloud : register(b9)
     float EvoAccumOffset;         // Pre-integrated evolution offset — replaces ap.EvolutionSpd*(CloudTime*0.05+WindSpeed*0.15) in evoOfs
     float FlowAccumOffset;        // Pre-integrated flow time — replaces CloudTime*ap.EvolutionSpd*0.16 in flowTime; prevents curl-warp/windBias reversing on EvolutionSpeed transitions
     //--
-    // Rows 31-34 — Previous frame ViewProjection matrix for temporal reprojection.
+    // Row 31 — Pre-integrated FbmScale-aware advection (prevents time-lapse on AltoFbmScale transitions).
+    float WindAccumOffsetScaled;  // Integral of WindSpeed * AltoFbmScale * dt
+    float EvoAccumOffsetScaled;   // Integral of EvolutionSpeed * AltoFbmScale * dt * 0.05
+    float _PadRow31_0;
+    float _PadRow31_1;
+    //--
+    // Rows 32-35 — Previous frame ViewProjection matrix for temporal reprojection.
     // Clouds are at infinite distance so only camera rotation matters.
     // Used to reproject history buffer UVs when the camera has rotated.
     float4x4 PrevViewProjection;

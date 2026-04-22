@@ -235,6 +235,11 @@ namespace TEN::Renderer::VolumetricCloud
 		                                 // Accumulated as EvolutionSpeed*dt*0.16 (same guard as EvoAccumOffset).
 		                                 // Prevents curl-warp and windBias from reversing when EvolutionSpeed
 		                                 // transitions to a lower value; replaces CloudTime*EvSpd*0.16 in shader.
+		float WindAccumOffsetScaled = 0.0f; // Pre-integrated WindSpeed * AltoFbmScale * dt — used in Alto FBM p_advect.
+		                                     // Bakes AltoFbmScale into the integral so on-the-fly FbmScale changes
+		                                     // (preset transitions) only affect future frames, not the rescaling of
+		                                     // all accumulated past motion (which would read as time-lapse).
+		float EvoAccumOffsetScaled  = 0.0f; // Pre-integrated EvolutionSpeed * AltoFbmScale * dt * 0.05 — analogous.
 		int   FrameCounter     = 0;     // Monotonic frame counter for jitter cycling
 
 		// Current packed quality params
