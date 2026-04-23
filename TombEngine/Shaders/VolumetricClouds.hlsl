@@ -770,19 +770,9 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         // In motion this shows up as strong moire / watery shimmer, especially when
         // FBM gain and coverage variation are low and the cellular term becomes more
         // visible. The full 3x3 neighborhood keeps the distance field continuous.
-        //
-        // Y-shift: TexWorley2D / TexPerlin3D were sampled with y=0, so the
-        // resulting cellular pattern was perfectly extruded vertically through the
-        // slab. On dense / large-feature presets this produced visible "stacked
-        // sheet" silhouettes and wave-like undulations across the cloud body.
-        // Mapping heightFrac onto the second coordinate gives each height-slice
-        // a slightly different cell layout while staying smooth in Y, so cloud
-        // features still read as coherent volumetric bodies, just no longer
-        // perfectly extruded.
     {
         float2 wPos  = float2(p.x, p.z) * 2.032f;
-        float  hY    = heightFrac;
-            float worleyA = TexWorley2D(wPos * 0.40f + float2(0.0f, hY * 0.18f));
+            float worleyA = TexWorley2D(wPos * 0.40f);
         float invWA  = 1.0f - saturate(worleyA * 1.3f);
         dens = saturate(Remap(dens, -(invWA * 0.30f), 1.0f, 0.0f, 1.0f));
 
@@ -791,18 +781,14 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
         float wBStrength = lerp(0.15f, 0.0f, distLOD);
         if (wBStrength > 0.001f)
         {
-                float worleyB = TexWorley2D_B(wPos * 0.75f + float2(0.0f, hY * 0.30f));
+                float worleyB = TexWorley2D_B(wPos * 0.75f);
             float invWB = 1.0f - saturate(worleyB * 1.4f);
             dens = saturate(Remap(dens, -(invWB * wBStrength), 1.0f, 0.0f, 1.0f));
         }
     }
 
     // Coverage threshold
-    // Cluster noise was previously sampled with y=0, making the per-cluster
-    // density bias identical at every height-slice. With heightFrac mapped onto
-    // the Y coordinate the cluster boundaries shift gently with height, breaking
-    // the visible vertical "sheet" layering on dense presets.
-    float clusterNoise = TexPerlin3D(float3(p.x * 0.18f, heightFrac * 0.35f, p.z * 0.18f));
+    float clusterNoise = TexPerlin3D(float3(p.x * 0.18f, 0.0f, p.z * 0.18f));
 
     if (abs(ap.ZenithBias) > 0.001f)
     {
@@ -1033,14 +1019,13 @@ float EvalAltoDensityCoreLite(float3 skyPos, float heightFrac, float skyH,
     // --- Single Worley cell only (skip worleyB entirely) ---
     {
         float2 wPos  = float2(p.x, p.z) * 2.032f;
-        float  hY    = heightFrac;
-        float worleyA = TexWorley2D(wPos * 0.40f + float2(0.0f, hY * 0.18f));
+        float worleyA = TexWorley2D(wPos * 0.40f);
         float invWA  = 1.0f - saturate(worleyA * 1.3f);
         dens = saturate(Remap(dens, -(invWA * 0.30f), 1.0f, 0.0f, 1.0f));
     }
 
     // --- Coverage threshold (simplified: no evolution, no wind-directional, no cluster grouping) ---
-    float clusterNoise = TexPerlin3D(float3(p.x * 0.18f, heightFrac * 0.35f, p.z * 0.18f));
+    float clusterNoise = TexPerlin3D(float3(p.x * 0.18f, 0.0f, p.z * 0.18f));
 
     if (abs(ap.ZenithBias) > 0.001f)
         densityShift += clusterNoise * abs(ap.ZenithBias) * 0.35f;
@@ -1686,9 +1671,11 @@ float ScreenJitter(float2 cloudPos, float jitterScale)
     hp += dot(hp, hp.yx + 19.19f);
     float rawJitter = frac(hp.x * hp.y);
 
-    float thickBandGuard = saturate((CloudThickness - 2600.0f) / 2200.0f);
+    float jitterThickness = (CloudType == 1) ? AltoThickness : CloudThickness;
+    float jitterAbsorption = (CloudType == 1) ? AltoAbsorption : Absorption;
+    float thickBandGuard = saturate((jitterThickness - 2600.0f) / 2200.0f);
     float jitterMin	  = lerp(0.35f, 0.85f, thickBandGuard);
-    float jitterAbsDamp  = lerp(jitterMin, 1.0f, saturate((Absorption - 0.2f) * 2.5f));
+    float jitterAbsDamp  = lerp(jitterMin, 1.0f, saturate((jitterAbsorption - 0.2f) * 2.5f));
 
     // Base phase: sample at the center of each step interval by default.
     // This minimizes visible march planes compared to edge-aligned sampling.
@@ -1837,8 +1824,8 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
     float targetStepWorld  = lerp(refThickness / 32.0f, refThickness / 56.0f, altoStepBoost);
     float minStepsF	  = ceil(maxDist / max(targetStepWorld, 1.0f));
 
-    int   baseStepCap      = min(PrimaryStepCount * 4, 64);
-    int   boostedStepCap   = min(PrimaryStepCount * 6, 96);
+    int   baseStepCap      = min(PrimaryStepCount * 4, (CloudType == 1) ? 128 : 64);
+    int   boostedStepCap   = min(PrimaryStepCount * 6, (CloudType == 1) ? 192 : 96);
     int   stepCap          = (CloudType == 1)
                            ? (int)lerp((float)baseStepCap, (float)boostedStepCap, altoStepBoost)
                            : baseStepCap;
@@ -2058,25 +2045,7 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
                     // warm tint (the warm lerp only applies after color is finalized).
                     float sampleOptDepth = density * effAbsorption * stepSize;
                     float thinEdge = 1.0f - smoothstep(0.02f, 0.18f, sampleOptDepth);
-
-                    // Perturb heightFrac for the dark-base color/illum gradient so
-                    // its isolines are no longer perfectly horizontal slices through
-                    // the slab. Without this, every XZ point at the same height
-                    // produces the exact same dark/bright shade — visible as
-                    // horizontal "color stacked layers" on dense and especially
-                    // distant clouds (where the FBM detail that would naturally
-                    // hide the gradient is LOD-faded out).
-                    //
-                    // Two-octave value noise on XZ at cloud-feature scale
-                    // (matches AltoCloudSize so the perturbation pattern aligns
-                    // with the cloud bodies rather than the cell grid). Amplitude
-                    // 0.18 keeps the overall dark→bright gradient direction intact.
-                    float2 colorPerturbXZ = samplePos.xz * (0.00018f / max(AltoCloudSize, 0.05f));
-                    float colorNoise = TexValue3D(float3(colorPerturbXZ.x, 0.0f, colorPerturbXZ.y));
-                    float colorNoise2 = TexValue3D(float3(colorPerturbXZ.x * 2.3f + 11.0f, 0.0f, colorPerturbXZ.y * 2.3f - 7.0f));
-                    float heightFracColor = saturate(heightFrac + (colorNoise * 0.65f + colorNoise2 * 0.35f - 0.5f) * 0.18f);
-
-                    float heightSoft = smoothstep(0.08f, 0.82f, heightFracColor);
+                    float heightSoft = smoothstep(0.08f, 0.82f, heightFrac);
                     float heightBlend = saturate(lerp(heightSoft, 1.0f, thinEdge * 0.55f));
                     float3 cloudColor = lerp(AltoCloudColorDark, AltoCloudColor, heightBlend);
                     float  heightIllum = lerp(0.72f, 1.0f, heightSoft);
