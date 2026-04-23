@@ -726,35 +726,8 @@ namespace TEN::Renderer
 
 	const CloudRenderSettings* Renderer::GetActiveVolumetricCloudSettings() const
 	{
-		// Pull settings from level script.
-		// Check if either layer has been set to volumetric mode.
-		auto* levelPtr = dynamic_cast<const Level*>(g_GameFlow->GetLevel(CurrentLevel));
-		if (!levelPtr)
-			return nullptr;
-
-		// Check layer 1 first (primary cloud layer).
-		if (levelPtr->HasVolumetricCloudLayer(0))
-		{
-			auto* vlayer = levelPtr->GetVolumetricCloudLayer(0);
-			if (vlayer && vlayer->Settings.Enabled)
-			{
-				// Copy settings to the mutable cache for renderer use.
-				const_cast<Renderer*>(this)->_volumetricCloudSettings = vlayer->Settings;
-				return &_volumetricCloudSettings;
-			}
-		}
-
-		// Check layer 2 as fallback.
-		if (levelPtr->HasVolumetricCloudLayer(1))
-		{
-			auto* vlayer = levelPtr->GetVolumetricCloudLayer(1);
-			if (vlayer && vlayer->Settings.Enabled)
-			{
-				const_cast<Renderer*>(this)->_volumetricCloudSettings = vlayer->Settings;
-				return &_volumetricCloudSettings;
-			}
-		}
-
+		// Legacy single-layer Lua path removed; cloud rendering now flows exclusively
+		// through g_SkyCloudSystem (level.dynamicSky.Clouds in Gameflow.lua).
 		return nullptr;
 	}
 }

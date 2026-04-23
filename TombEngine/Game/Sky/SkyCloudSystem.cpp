@@ -7,10 +7,14 @@
 
 #include <algorithm>
 #include "Game/control/control.h"
+#include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include <cmath>
 #include <numeric>
+
+using namespace TEN::Renderer;
+using namespace TEN::Renderer::Aurora;
 
 namespace TEN::Sky
 {
@@ -461,49 +465,136 @@ namespace TEN::Sky
 		_layerDwellB = {};
 		_driftOutA = {};
 		_driftOutB = {};
+		_dynamicSkyAuroraForced = false;
 		_dwellRNG.seed(std::random_device{}());
 
-		// Apply weather config from Gameflow.lua (level.weatherPreset, level.volumetricClouds).
+		// Apply weather config from Gameflow.lua (level.dynamicSky.*).
 		auto* level = dynamic_cast<Level*>(g_GameFlow->GetLevel(CurrentLevel));
 		if (level)
 		{
-			if (level->WeatherPreset.has_value())
-				SetPresetImmediate(StringToPresetType(level->WeatherPreset.value()));
+			const auto& dyn    = level->DynamicSky;
+			const auto& clouds = dyn.Clouds;
+			const auto& aurora = dyn.Aurora;
 
-			// Per-level wind override: apply whichever fields the level script provided.
-			// Speed < 0 means "keep global"; direction uses global if not explicitly overridden
-			// (the struct initialises to the same defaults as SetGlobalWind in Settings.lua).
-			const auto& vc = level->VolClouds;
-			float dirX  = _globalWindSet ? _globalWindDirX  : vc.WindDirectionX;
-			float dirZ  = _globalWindSet ? _globalWindDirY  : vc.WindDirectionZ;
-			float speed = _globalWindSet ? _globalWindSpeed : 0.003f;
-			if (vc.WindDirectionX != 1.0f || vc.WindDirectionZ != 0.0f)
-			{
-				dirX = vc.WindDirectionX;
-				dirZ = vc.WindDirectionZ;
-			}
-			if (vc.Speed >= 0.0f)
-				speed = vc.Speed;
-			if (vc.Speed >= 0.0f || vc.WindDirectionX != 1.0f || vc.WindDirectionZ != 0.0f)
-				SetGlobalWind(dirX, dirZ, speed);
+			// --- Atmospheric sky dome ---
+			auto& atmo = g_Renderer.GetAtmosphericSkySettings();
+			atmo.Enabled = dyn.RealisticSkyDome;
 
-			// Apply per-level CloudMorph transform duration to all presets that use it.
-			if (vc.TransformDuration >= 0.0f)
+			atmo.HorizonColorR = std::clamp(dyn.BlackVoidColor.GetR() / 255.0f, 0.0f, 1.0f);
+			atmo.HorizonColorG = std::clamp(dyn.BlackVoidColor.GetG() / 255.0f, 0.0f, 1.0f);
+			atmo.HorizonColorB = std::clamp(dyn.BlackVoidColor.GetB() / 255.0f, 0.0f, 1.0f);
+
+			float horizonRise = std::clamp(dyn.HorizonBottomFade, 0.0f, 1.0f);
+			atmo.HorizonGradientRise[0] = horizonRise;
+			atmo.HorizonGradientRise[1] = horizonRise;
+
+			// --- Aurora ---
+			auto& auroraSettings = g_Renderer.GetAuroraSettings();
+			auroraSettings.Enabled = aurora.Enabled;
+			_dynamicSkyAuroraForced = aurora.Enabled;
+			if (aurora.Enabled)
 			{
-				for (auto& [type, def] : _presets)
+				static const std::pair<const char*, AuroraColorPreset> AURORA_COLOR_NAMES[] =
 				{
-					if (def.Transform == TransformType::CloudMorph)
-						def.TransformDuration = vc.TransformDuration;
+					{ "GreenClassic",        AuroraColorPreset::GreenClassic        },
+					{ "GreenPurple",         AuroraColorPreset::GreenPurple         },
+					{ "GreenRedTips",        AuroraColorPreset::GreenRedTips        },
+					{ "BluePurple",          AuroraColorPreset::BluePurple          },
+					{ "StrongMulticolor",    AuroraColorPreset::StrongMulticolor    },
+					{ "TurquoiseBluePurple", AuroraColorPreset::TurquoiseBluePurple }
+				};
+				for (const auto& kv : AURORA_COLOR_NAMES)
+				{
+					if (aurora.Color == kv.first)
+					{
+						auroraSettings.ColorPreset = (int)kv.second;
+						break;
+					}
+				}
+
+				// Aurora effect implies disabling legacy bitmap sky layer 1.
+				level->Layer1.Enabled = false;
+			}
+
+			// --- Volumetric clouds ---
+			if (clouds.Enabled)
+			{
+				// Cloud effect implies disabling legacy bitmap sky layer 1.
+				level->Layer1.Enabled = false;
+
+				// Per-level quality override.
+				if (!clouds.Quality.empty())
+				{
+					if (clouds.Quality == "Low")
+						SetGlobalQuality(CloudQualityPreset::Low);
+					else if (clouds.Quality == "Medium")
+						SetGlobalQuality(CloudQualityPreset::Medium);
+					else if (clouds.Quality == "High")
+						SetGlobalQuality(CloudQualityPreset::High);
+				}
+
+				if (!clouds.StartPreset.empty())
+					SetPresetImmediate(StringToPresetType(clouds.StartPreset));
+
+				// Per-level wind override.
+				float dirX  = _globalWindSet ? _globalWindDirX  : clouds.WindDirectionX;
+				float dirZ  = _globalWindSet ? _globalWindDirY  : clouds.WindDirectionZ;
+				float speed = _globalWindSet ? _globalWindSpeed : 0.003f;
+				if (clouds.WindDirectionX != 1.0f || clouds.WindDirectionZ != 0.0f)
+				{
+					dirX = clouds.WindDirectionX;
+					dirZ = clouds.WindDirectionZ;
+				}
+				if (clouds.WindSpeed >= 0.0f)
+					speed = clouds.WindSpeed;
+				if (clouds.WindSpeed >= 0.0f || clouds.WindDirectionX != 1.0f || clouds.WindDirectionZ != 0.0f)
+					SetGlobalWind(dirX, dirZ, speed);
+
+				// Per-level CloudMorph transform duration override.
+				if (clouds.TransformDuration >= 0.0f)
+				{
+					for (auto& [type, def] : _presets)
+					{
+						if (def.Transform == TransformType::CloudMorph)
+							def.TransformDuration = clouds.TransformDuration;
+					}
+				}
+
+				// changePresets: build a random rotation table among the listed presets.
+				// Each entry: { name, duration, percent }.
+				// duration = how long the preset stays before chaining (dwell).
+				// percent  = relative weight when picking the next preset.
+				if (!clouds.ChangePresets.empty())
+				{
+					for (const auto& src : clouds.ChangePresets)
+					{
+						auto srcType = StringToPresetType(src.Name);
+						auto* srcDef = GetMutablePresetDefinition(srcType);
+						if (srcDef == nullptr)
+							continue;
+
+						srcDef->NextPresetDwellDuration    = std::max(src.Duration, 0.0f);
+						srcDef->NextPresetDwellDurationMin = -1.0f;
+						srcDef->NextPresetDwellDurationMax = -1.0f;
+						srcDef->NextPresetCandidates.clear();
+						srcDef->NextPreset = "";
+
+						for (const auto& tgt : clouds.ChangePresets)
+						{
+							if (tgt.Name == src.Name || tgt.Percent <= 0.0f)
+								continue;
+
+							NextPresetCandidate cand;
+							cand.Name               = tgt.Name;
+							cand.Weight             = std::max(tgt.Percent, 0.0f);
+							cand.WeightNight        = -1.0f;
+							cand.TransitionDuration = (clouds.TransformDuration >= 0.0f)
+								? clouds.TransformDuration : srcDef->DefaultTransitionDuration;
+							srcDef->NextPresetCandidates.push_back(std::move(cand));
+						}
+					}
 				}
 			}
-
-			// Apply global rendering quality from level.volumetricClouds.quality.
-			if (vc.Quality == "Low")
-				_globalQuality = CloudQualityPreset::Low;
-			else if (vc.Quality == "High")
-				_globalQuality = CloudQualityPreset::High;
-			else
-				_globalQuality = CloudQualityPreset::Medium;
 		}
 	}
 
@@ -2099,6 +2190,11 @@ namespace TEN::Sky
 		return _globalQuality;
 	}
 
+	void SkyCloudSystem::SetGlobalQuality(CloudQualityPreset preset)
+	{
+		_globalQuality = preset;
+	}
+
 	CloudRenderSettings SkyCloudSystem::GetCloudARenderSettings() const
 	{
 		auto s = _currentState.CloudA.ToRenderSettings();
@@ -2135,6 +2231,11 @@ namespace TEN::Sky
 
 	bool SkyCloudSystem::IsAuroraPresetActive() const
 	{
+		// Forced on by level.dynamicSky.Aurora.enabled — stays visible regardless
+		// of cloud layer category (so Layer B clouds don't suppress night aurora).
+		if (_dynamicSkyAuroraForced)
+			return true;
+
 		// Aurora is active if any volumetric cloud layer has the Aurora category and is enabled.
 		if (_currentState.CloudA.Enabled && _currentState.CloudA.Category == CloudCategory::Aurora)
 			return true;

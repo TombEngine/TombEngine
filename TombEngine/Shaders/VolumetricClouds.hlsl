@@ -921,7 +921,10 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     }
 
     // Crown fade
-    dens *= 1.0f - smoothstep(0.65f, 1.0f, heightFrac);
+    // Start earlier and finish earlier than the old 0.65->1.0 ramp so the rounded
+    // top blends into the side silhouette instead of creating a visible "cap seam".
+    // These bounds match the existing AltocumulusMid HeightGradient top envelope.
+    dens *= 1.0f - smoothstep(0.58f, 0.90f, heightFrac);
 
     return dens;
 }
@@ -1071,7 +1074,7 @@ float EvalAltoDensityCoreLite(float3 skyPos, float heightFrac, float skyH,
     }
 
     // Crown fade
-    dens *= 1.0f - smoothstep(0.65f, 1.0f, heightFrac);
+    dens *= 1.0f - smoothstep(0.58f, 0.90f, heightFrac);
 
     return dens;
 }
@@ -2364,7 +2367,7 @@ float HorizonAtmosphericFade(float3 rayDir)
     // Elevation in [0,1]: 0 = horizontal, 1 = overhead.
     float elevation = saturate(-rayDir.y);
 
-    // Soft fade band from 0?deg to ~17?deg above the horizon.
+    // Soft fade band from 0 deg to ~17 deg above the horizon.
     float fade = smoothstep(0.0f, 0.10f, elevation);
 
     // sqrt push: makes the lower half of the transition feel gentle and

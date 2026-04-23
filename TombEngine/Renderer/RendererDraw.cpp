@@ -3118,11 +3118,6 @@ namespace TEN::Renderer
 			if (Vector3(Weather.SkyColor(layer)) == Vector3::Zero)
 				continue;
 
-			// Skip legacy bitmap rendering if this layer uses volumetric clouds.
-			auto* levelPtr = dynamic_cast<const Level*>(g_GameFlow->GetLevel(CurrentLevel));
-			if (levelPtr && levelPtr->HasVolumetricCloudLayer(layer))
-				continue;
-
 			for (int i = 0; i < 2; i++)
 			{
 
@@ -3524,9 +3519,9 @@ namespace TEN::Renderer
 					return;
 
 				// Lerp cloud shape parameters toward bleed-optimised values as AltoBleedDepth increases:
-				//   AltoZenithBias    : current value → -1.0  (push distribution toward zenith/top so
+				//   AltoZenithBias    : current value -> -1.0  (push distribution toward zenith/top so
 				//                       clouds flood downward from above rather than pooling at horizon)
-				//   AltoHeightBlendPower: current value → 1.470 (soften the height ramp for a wider curtain)
+				//   AltoHeightBlendPower: current value -> 1.470 (soften the height ramp for a wider curtain)
 				settings.AltoZenithBias       = settings.AltoZenithBias       + ((-1.0f)  - settings.AltoZenithBias)       * altoBleedIntensity;
 				settings.AltoHeightBlendPower = settings.AltoHeightBlendPower + (1.470f   - settings.AltoHeightBlendPower) * altoBleedIntensity;
 

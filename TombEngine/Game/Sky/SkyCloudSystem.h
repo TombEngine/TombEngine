@@ -472,9 +472,10 @@ namespace TEN::Sky
 		void SetGlobalWind(float dirX, float dirY, float speed);
 
 		// --- Global rendering quality ---
-		// Set via level.volumetricClouds.quality in Gameflow.lua.
+		// Set via level.dynamicSky.Clouds.quality in Gameflow.lua.
 		// Applies to all volumetric cloud layers regardless of which preset is active.
 		CloudQualityPreset GetGlobalQuality() const;
+		void SetGlobalQuality(CloudQualityPreset preset);
 
 		// --- Night blend ---
 		// Called by the renderer each frame with the current moon/starfield visibility [0..1].
@@ -590,6 +591,11 @@ namespace TEN::Sky
 
 		// Global rendering quality — set from level.volumetricClouds.quality at level load.
 		CloudQualityPreset _globalQuality = CloudQualityPreset::Medium;
+
+		// Aurora forced on by level.dynamicSky.Aurora.enabled in Gameflow.lua.
+		// When true, aurora visibility is independent of cloud layer category and
+		// remains visible at night regardless of which volumetric preset is active.
+		bool _dynamicSkyAuroraForced = false;
 
 		// Night blend factor [0 = full day, 1 = full night].
 		// Set each frame by the renderer via SetNightBlend().

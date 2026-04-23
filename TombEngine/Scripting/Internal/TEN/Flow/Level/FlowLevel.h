@@ -2,11 +2,10 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include "Scripting/Internal/TEN/Flow/DynamicSky/DynamicSky.h"
 #include "Scripting/Internal/TEN/Flow/Horizon/Horizon.h"
 #include "Scripting/Internal/TEN/Flow/LensFlare/LensFlare.h"
 #include "Scripting/Internal/TEN/Flow/SkyLayer/SkyLayer.h"
-#include "Scripting/Internal/TEN/Flow/VolumetricCloudLayer/VolumetricCloudLayer.h"
-#include "Scripting/Internal/TEN/Flow/VolumetricClouds/VolumetricClouds.h"
 #include "Scripting/Internal/TEN/Flow/Starfield/Starfield.h"
 #include "Scripting/Internal/TEN/Flow/Fog/Fog.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
@@ -23,13 +22,8 @@ struct Level : public ScriptInterfaceLevel
 	SkyLayer Layer1 = {};
 	SkyLayer Layer2 = {};
 
-	// Optional volumetric cloud layers (set when level scripts assign VolumetricCloudLayer).
-	std::optional<TEN::Scripting::VolumetricCloudLayer> VolumetricLayer1;
-	std::optional<TEN::Scripting::VolumetricCloudLayer> VolumetricLayer2;
-
-	// New weather preset system.
-	std::optional<std::string>              WeatherPreset; // e.g. "CloudsTransformation"
-	TEN::Scripting::VolumetricClouds        VolClouds = {}; // per-level wind override
+	// Dynamic sky container: atmospheric sky dome, aurora and volumetric clouds.
+	TEN::Scripting::DynamicSky DynamicSky = {};
 	TEN::Scripting::Horizon Horizon1 = {};
 	TEN::Scripting::Horizon Horizon2 = {};
 	TEN::Scripting::LensFlare LensFlare = {};
@@ -103,8 +97,4 @@ struct Level : public ScriptInterfaceLevel
 	// Utility
 	const SkyLayer& GetSkyLayer(int index) const;
 	const TEN::Scripting::Horizon& GetHorizon(int index) const;
-
-	// Volumetric clouds
-	bool HasVolumetricCloudLayer(int index) const;
-	const TEN::Scripting::VolumetricCloudLayer* GetVolumetricCloudLayer(int index) const;
 };

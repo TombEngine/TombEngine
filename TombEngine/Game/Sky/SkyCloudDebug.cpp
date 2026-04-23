@@ -211,18 +211,35 @@ namespace TEN::Sky
 	// Draw a cloud category combo box.
 	// ====================================================================
 
-	static bool DrawCategoryCombo(const char* label, CloudCategory& category)
+	static bool DrawCategoryCombo(const char* label, CloudCategory& category, bool isLayerA)
 	{
-		static const char* names[] = {
-			"None", "AltocumulusMid", "Aurora"
-		};
-		int current = static_cast<int>(category);
+		// Layer A is reserved for Aurora (and reserved water surface in the future).
+		// Layer B handles all volumetric cloud categories.
+		static const char* namesA[] = { "None", "Aurora" };
+		static const char* namesB[] = { "None", "AltocumulusMid", "Aurora" };
+
 		bool changed = false;
-		if (ImGui::Combo(label, &current, names, IM_ARRAYSIZE(names)))
+
+		if (isLayerA)
 		{
-			category = static_cast<CloudCategory>(current);
-			changed = true;
+			// Map snap.Category (full enum) to the reduced 2-entry combo.
+			int current = (category == CloudCategory::Aurora) ? 1 : 0;
+			if (ImGui::Combo(label, &current, namesA, IM_ARRAYSIZE(namesA)))
+			{
+				category = (current == 1) ? CloudCategory::Aurora : CloudCategory::None;
+				changed = true;
+			}
 		}
+		else
+		{
+			int current = (int)category;
+			if (ImGui::Combo(label, &current, namesB, IM_ARRAYSIZE(namesB)))
+			{
+				category = (CloudCategory)current;
+				changed = true;
+			}
+		}
+
 		return changed;
 	}
 
@@ -693,12 +710,18 @@ namespace TEN::Sky
 
 		ImGui::Indent(8.0f);
 
+		bool isLayerA = (idPrefix != nullptr && strchr(idPrefix, 'A') != nullptr);
+
+		// Layer A is reserved for Aurora; sanitize stale volumetric category data.
+		if (isLayerA && snap.Category == CloudCategory::AltocumulusMid)
+			snap.Category = CloudCategory::None;
+
 		// Enabled toggle.
 		if (ImGui::Checkbox("Enabled", &snap.Enabled))
 			changed = true;
 
 		// Category combo.
-		if (DrawCategoryCombo("Category", snap.Category))
+		if (DrawCategoryCombo("Category", snap.Category, isLayerA))
 			changed = true;
 
 		// For Aurora category, show aurora controls instead of volumetric cloud controls.
@@ -1617,7 +1640,7 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 				level->Horizon1.SetTransparency(alpha);
 
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 80.0f);
-			ImGui::SliderFloat("Horizon Rise##h1", &atmoSettings.HorizonGradientRise[0], 0.0f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Horizon Bottom Fade##h1", &atmoSettings.HorizonGradientRise[0], 0.0f, 1.0f, "%.3f");
 		}
 
 		ImGui::Separator();
@@ -1634,7 +1657,7 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 				level->Horizon2.SetTransparency(alpha);
 
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 80.0f);
-			ImGui::SliderFloat("Horizon Rise##h2", &atmoSettings.HorizonGradientRise[1], 0.0f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Horizon Bottom Fade##h2", &atmoSettings.HorizonGradientRise[1], 0.0f, 1.0f, "%.3f");
 		}
 
 		ImGui::Unindent(8.0f);
@@ -1652,7 +1675,7 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 		auto& settings = g_Renderer.GetAtmosphericSkySettings();
 		auto* levelPtr = dynamic_cast<Level*>(g_GameFlow->GetLevel(CurrentLevel));
 
-		ImGui::Checkbox("Enabled", &settings.Enabled);
+		ImGui::Checkbox("Realistic Skydome (Atmospheric)", &settings.Enabled);
 		ImGui::Separator();
 
 		DrawHorizonSection(levelPtr);
@@ -1764,19 +1787,19 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 		}
 
 		// --- Horizon ground color ---
-		if (ImGui::CollapsingHeader("Horizon Ground Color", ImGuiTreeNodeFlags_DefaultOpen))
+		if (ImGui::CollapsingHeader("Black Void Color", ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			ImGui::TextDisabled("Color for the lower horizon band (replaces black).");
+			ImGui::TextDisabled("Color of the lower horizon void (level.dynamicSky.blackvoidcolor).");
 			float horizonCol[3] = { settings.HorizonColorR, settings.HorizonColorG, settings.HorizonColorB };
-			if (ImGui::ColorEdit3("Horizon Color", horizonCol))
+			if (ImGui::ColorEdit3("Black Void Color", horizonCol))
 			{
 				settings.HorizonColorR = horizonCol[0];
 				settings.HorizonColorG = horizonCol[1];
 				settings.HorizonColorB = horizonCol[2];
 			}
-			ImGui::SliderFloat("Horizon Color R", &settings.HorizonColorR, 0.0f, 1.0f, "%.3f");
-			ImGui::SliderFloat("Horizon Color G", &settings.HorizonColorG, 0.0f, 1.0f, "%.3f");
-			ImGui::SliderFloat("Horizon Color B", &settings.HorizonColorB, 0.0f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Black Void R", &settings.HorizonColorR, 0.0f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Black Void G", &settings.HorizonColorG, 0.0f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Black Void B", &settings.HorizonColorB, 0.0f, 1.0f, "%.3f");
 		}
 
 		// --- Reset button ---
@@ -1829,21 +1852,6 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 				float covB = g_SkyCloudSystem.IsCloudBActive()
 					? g_SkyCloudSystem.GetCloudBRenderSettings().Coverage : 0.0f;
 				coverage = std::max(covA, covB);
-			}
-			else
-			{
-				if (levelPtr && levelPtr->HasVolumetricCloudLayer(0))
-				{
-					auto* vlayer = levelPtr->GetVolumetricCloudLayer(0);
-					if (vlayer && vlayer->Settings.Enabled)
-						coverage = vlayer->Settings.Coverage;
-				}
-				else if (levelPtr && levelPtr->HasVolumetricCloudLayer(1))
-				{
-					auto* vlayer = levelPtr->GetVolumetricCloudLayer(1);
-					if (vlayer && vlayer->Settings.Enabled)
-						coverage = vlayer->Settings.Coverage;
-				}
 			}
 
 			float elevFactor     = std::max(1.0f - elev * 0.6f, 0.3f);
