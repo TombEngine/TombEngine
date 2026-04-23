@@ -1824,8 +1824,12 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
     float targetStepWorld  = lerp(refThickness / 32.0f, refThickness / 56.0f, altoStepBoost);
     float minStepsF	  = ceil(maxDist / max(targetStepWorld, 1.0f));
 
-    int   baseStepCap      = min(PrimaryStepCount * 4, (CloudType == 1) ? 128 : 64);
-    int   boostedStepCap   = min(PrimaryStepCount * 6, (CloudType == 1) ? 192 : 96);
+    // AltocumulusMid now uses absolute caps independent of PrimaryStepCount.
+    // Low/Medium are already much cheaper via lower render resolution and
+    // reduced feature set; tying the cap to PrimaryStepCount reintroduced the
+    // same horizontal slab banding at lower qualities even after High was fixed.
+    int   baseStepCap      = (CloudType == 1) ? 128 : min(PrimaryStepCount * 4, 64);
+    int   boostedStepCap   = (CloudType == 1) ? 192 : min(PrimaryStepCount * 6, 96);
     int   stepCap          = (CloudType == 1)
                            ? (int)lerp((float)baseStepCap, (float)boostedStepCap, altoStepBoost)
                            : baseStepCap;
