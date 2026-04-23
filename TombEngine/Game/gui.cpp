@@ -463,6 +463,34 @@ namespace TEN::Gui
 		// Copy configuration to a temporary object
 		BackupOptions();
 
+		// Rebuild the supported resolution list from the system so any previously-injected
+		// custom entry from a prior windowed resize is discarded, then re-inject the current
+		// size if it isn't part of the system modes (typical after a free window drag).
+		g_Configuration.SupportedScreenResolutions = GetAllSupportedScreenResolutions();
+
+		auto currentSize = Vector2i(CurrentSettings.Configuration.ScreenWidth, CurrentSettings.Configuration.ScreenHeight);
+		if (currentSize.x > 0 && currentSize.y > 0)
+		{
+			auto cmp = [](const Vector2i& a, const Vector2i& b)
+			{
+				return (a.x == b.x) ? (a.y < b.y) : (a.x < b.x);
+			};
+
+			bool alreadyListed = std::any_of(
+				g_Configuration.SupportedScreenResolutions.begin(),
+				g_Configuration.SupportedScreenResolutions.end(),
+				[&](const Vector2i& r) { return r.x == currentSize.x && r.y == currentSize.y; });
+
+			if (!alreadyListed)
+			{
+				auto insertPos = std::upper_bound(
+					g_Configuration.SupportedScreenResolutions.begin(),
+					g_Configuration.SupportedScreenResolutions.end(),
+					currentSize, cmp);
+				g_Configuration.SupportedScreenResolutions.insert(insertPos, currentSize);
+			}
+		}
+
 		// Get current display mode
 		CurrentSettings.SelectedScreenResolution = 0;
 		for (int i = 0; i < g_Configuration.SupportedScreenResolutions.size(); i++)

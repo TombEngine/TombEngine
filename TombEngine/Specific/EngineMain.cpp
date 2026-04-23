@@ -35,6 +35,11 @@ bool ResetClock;
 std::unique_ptr<ISubsystem> g_Platform;
 std::string GameDirectory;
 
+// Pending window resize in windowed mode, produced by the SDL event loop and consumed by the game thread before rendering.
+static std::atomic<int>  s_PendingResizeWidth{ 0 };
+static std::atomic<int>  s_PendingResizeHeight{ 0 };
+static std::atomic<bool> s_PendingResize{ false };
+
 bool ArgEquals(const char* incomingArg, const std::string& name)
 {
 	if (!incomingArg)
@@ -471,6 +476,24 @@ int main(int argc, char* argv[])
 				HandleWindowFocusLost(sdlWindow);
 				break;
 
+			case SDL_EVENT_WINDOW_RESIZED:
+			case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+			{
+				if (!g_Configuration.EnableWindowedMode)
+					break;
+
+				int w = 0;
+				int h = 0;
+				SDL_GetWindowSizeInPixels(sdlWindow, &w, &h);
+				if (w <= 0 || h <= 0)
+					break;
+
+				s_PendingResizeWidth.store(w, std::memory_order_relaxed);
+				s_PendingResizeHeight.store(h, std::memory_order_relaxed);
+				s_PendingResize.store(true, std::memory_order_release);
+				break;
+			}
+
 			default:
 				break;
 			}
@@ -491,6 +514,28 @@ int main(int argc, char* argv[])
 	EngineClose();
 
 	exit(EXIT_SUCCESS);
+}
+
+void ApplyPendingWindowResize()
+{
+	if (!s_PendingResize.exchange(false, std::memory_order_acquire))
+		return;
+
+	if (!g_Configuration.EnableWindowedMode)
+		return;
+
+	int w = s_PendingResizeWidth.load(std::memory_order_relaxed);
+	int h = s_PendingResizeHeight.load(std::memory_order_relaxed);
+
+	if (w <= 0 || h <= 0)
+		return;
+
+	if (w == g_Configuration.ScreenWidth && h == g_Configuration.ScreenHeight)
+		return;
+
+	g_Configuration.ScreenWidth = w;
+	g_Configuration.ScreenHeight = h;
+	g_Renderer.ChangeScreenResolution(w, h, true, /*resyncWindow*/ false);
 }
 
 void EngineClose()

@@ -770,15 +770,17 @@ namespace TEN::Renderer::Native::DirectX11
 		DXGI_MODE_DESC modes[1024];
 		throwIfFailed(output->GetDisplayModeList(scd.BufferDesc.Format, 0, &numModes, modes));
 
-		DXGI_MODE_DESC* mode = &modes[0];
+		// Only call ResizeTarget when the requested size matches one of the display modes
+		// (i.e. fullscreen-style mode switch). For arbitrary windowed sizes coming from a
+		// user resize, skip it — the subsequent swap chain recreation handles the size.
 		for (unsigned int i = 0; i < numModes; i++)
 		{
-			mode = &modes[i];
-			if (mode->Width == width && mode->Height == height)
+			if (modes[i].Width == width && modes[i].Height == height)
+			{
+				throwIfFailed(_swapChain->ResizeTarget(&modes[i]));
 				break;
+			}
 		}
-
-		throwIfFailed(_swapChain->ResizeTarget(mode));
 
 		_screenWidth = width;
 		_screenHeight = height;

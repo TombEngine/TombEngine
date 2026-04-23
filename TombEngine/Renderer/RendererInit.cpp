@@ -286,7 +286,7 @@ namespace TEN::Renderer
 		_skyIndexBuffer = _graphicsDevice->CreateIndexBuffer(SKY_INDICES_COUNT, indices.data());
 	}
 
-	void Renderer::InitializeScreen(int w, int h, bool reset)
+	void Renderer::InitializeScreen(int w, int h, bool reset, bool resyncWindow)
 	{
 		// Cleanup resources
 		SAFE_DELETE(_backBuffer);
@@ -338,8 +338,66 @@ namespace TEN::Renderer
 		_viewport = { 0, 0, w, h, 0.0f, 1.0f };
 		_shadowMapViewport = { 0, 0, g_Configuration.ShadowMapSize, g_Configuration.ShadowMapSize, 0.0f, 1.0f };
 
+		// Rebuild the HUD orthographic projection so elements drawn in the logical 4:3
+		// DISPLAY_SPACE_RES canvas keep their aspect ratio. Without this the canvas stretches
+		// non-uniformly to the back buffer and the bars look squashed on non-4:3 windows.
+		{
+			float windowAspect = (h > 0) ? ((float)w / (float)h) : 1.0f;
+			float targetAspect = DISPLAY_SPACE_RES.x / DISPLAY_SPACE_RES.y;
+			float left   = 0.0f;
+			float right  = DISPLAY_SPACE_RES.x;
+			float bottom = 0.0f;
+			float top    = DISPLAY_SPACE_RES.y;
+
+			if (windowAspect >= targetAspect)
+			{
+				float orthoW = DISPLAY_SPACE_RES.y * windowAspect;
+				float center = DISPLAY_SPACE_RES.x * 0.5f;
+				left  = center - orthoW * 0.5f;
+				right = center + orthoW * 0.5f;
+			}
+			else
+			{
+				float orthoH = DISPLAY_SPACE_RES.x / windowAspect;
+				float center = DISPLAY_SPACE_RES.y * 0.5f;
+				bottom = center - orthoH * 0.5f;
+				top    = center + orthoH * 0.5f;
+			}
+
+			_stHUD.Projection = Matrix::CreateOrthographicOffCenter(left, right, bottom, top, 0.0f, 1.0f);
+
+			// During the very first InitializeScreen() call, _cbHUD is still uninitialized
+			// (it's created later in Renderer::Initialize). Skip the upload then — the buffer
+			// is uploaded from Renderer::Initialize itself once it exists.
+			if (_cbHUD)
+				UpdateConstantBuffer(&_stHUD, _cbHUD.get());
+		}
+
+		// Keep cached render views in sync with the new screen size. Gameplay rebuilds these
+		// via UpdateCameraMatrices() every frame, but title/pause paths reuse the last values
+		// and otherwise would blit the scene through a stale viewport after a window resize.
+		for (auto* view : { &_gameCamera, &_oldGameCamera, &_currentGameCamera })
+		{
+			view->Viewport.X = 0;
+			view->Viewport.Y = 0;
+			view->Viewport.Width = w;
+			view->Viewport.Height = h;
+
+			view->Camera.ViewSize = { (float)w, (float)h };
+			view->Camera.InvViewSize = { 1.0f / w, 1.0f / h };
+			view->Camera.Projection = Matrix::CreatePerspectiveFieldOfView(
+				view->Camera.FOV, (float)w / (float)h,
+				view->Camera.NearPlane, view->Camera.FarPlane);
+			view->Camera.ViewProjection = view->Camera.View * view->Camera.Projection;
+			view->Camera.Frustum.Update(view->Camera.View, view->Camera.Projection);
+		}
+
 		InitializeSMAA();
-		SetFullScreen();
+
+		// Skip when the resize came from a user window drag: the window is already at the
+		// target size and SetFullScreen() would recenter/raise the window mid-drag.
+		if (resyncWindow)
+			SetFullScreen();
 	}
 
 	void Renderer::InitializeSMAA()

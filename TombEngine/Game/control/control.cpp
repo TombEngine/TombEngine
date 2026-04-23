@@ -124,6 +124,8 @@ int ControlPhaseTime;
 
 void DrawPhase(bool isTitle, float interpolationFactor)
 {
+	ApplyPendingWindowResize();
+
 	if (isTitle)
 	{
 		g_Renderer.RenderTitle(interpolationFactor);
