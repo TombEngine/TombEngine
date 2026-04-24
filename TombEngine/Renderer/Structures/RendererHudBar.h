@@ -1,8 +1,7 @@
 #pragma once
 #include <SimpleMath.h>
 #include "Renderer/RendererEnums.h"
-#include "Renderer/Graphics/IndexBuffer.h"
-#include "Renderer/Graphics/VertexBuffer.h"
+#include "Renderer/Graphics/IGraphicsDevice.h"
 #include "Math/Utils.h"
 
 namespace TEN::Renderer::Structures
@@ -17,10 +16,10 @@ namespace TEN::Renderer::Structures
 		static constexpr auto COLOR_COUNT = 5;
 		static constexpr auto SIZE_DEFAULT = Vector2(150.0f, 10.0f);
 
-		VertexBuffer<Vertex> VertexBufferBorder;
-		IndexBuffer	 IndexBufferBorder;
-		VertexBuffer<Vertex> InnerVertexBuffer;
-		IndexBuffer	 InnerIndexBuffer;
+		std::unique_ptr<IVertexBuffer> VertexBufferBorder;
+		std::unique_ptr<IIndexBuffer>  IndexBufferBorder;
+		std::unique_ptr<IVertexBuffer> InnerVertexBuffer;
+		std::unique_ptr<IIndexBuffer>  InnerIndexBuffer;
 
 		/*
 			Initializes status bar for rendering. Coordinates are set in screen space.
@@ -31,7 +30,7 @@ namespace TEN::Renderer::Structures
 			| /   \ |
 			3-------4
 		*/
-		RendererHudBar(ID3D11Device* devicePtr, const Vector2& pos, const Vector2& size, int borderSize, std::array<Vector4, COLOR_COUNT> colors)
+		RendererHudBar(IGraphicsDevice* devicePtr, const Vector2& pos, const Vector2& size, int borderSize, std::array<Vector4, COLOR_COUNT> colors)
 		{
 			constexpr auto VERTEX_COUNT = 5;
 			constexpr auto UV_COUNT = 5;
@@ -155,23 +154,23 @@ namespace TEN::Renderer::Structures
 			for (int i = 0; i < VERTEX_COUNT; i++)
 			{
 				vertices[i].Position = barVertices[i];
-				vertices[i].Color = VectorColorToRGBA_TempToVector4(colors[i]);
+				vertices[i].Color = VectorColorToRGBA(colors[i]);
 				vertices[i].UV = barUVs[i];
 			}
 
-			InnerVertexBuffer = VertexBuffer<Vertex>(devicePtr, (int)vertices.size(), &vertices[0]);
-			InnerIndexBuffer = IndexBuffer(devicePtr, (int)barIndices.size(), barIndices.data());
+			InnerVertexBuffer = devicePtr->CreateVertexBuffer((int)vertices.size(), sizeof(Vertex), vertices.data());
+			InnerIndexBuffer = devicePtr->CreateIndexBuffer((int)barIndices.size(), barIndices.data());
 
 			auto borderVertices = std::array<Vertex, barBorderVertices.size()>{};
 			for (int i = 0; i < barBorderVertices.size(); i++)
 			{
 				borderVertices[i].Position = barBorderVertices[i];
-				borderVertices[i].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
+				borderVertices[i].Color = VectorColorToRGBA(Vector4::One);
 				borderVertices[i].UV = barBorderUVs[i];
 			}
 
-			VertexBufferBorder = VertexBuffer<Vertex>(devicePtr, (int)borderVertices.size(), &borderVertices[0]);
-			IndexBufferBorder = IndexBuffer(devicePtr, (int)barBorderIndices.size(), barBorderIndices.data());
+			VertexBufferBorder = devicePtr->CreateVertexBuffer((int)borderVertices.size(), sizeof(Vertex), borderVertices.data());
+			IndexBufferBorder = devicePtr->CreateIndexBuffer((int)barBorderIndices.size(), barBorderIndices.data());
 		}
 	};
 }

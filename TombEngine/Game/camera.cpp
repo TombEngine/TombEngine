@@ -31,6 +31,7 @@ using namespace TEN::Effects::Environment;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::SpotCam;
 using TEN::Renderer::g_Renderer;
 
 constexpr auto PARTICLE_FADE_THRESHOLD = BLOCK(14);
@@ -1591,7 +1592,7 @@ void UpdateCamera()
 	if (UseSpotCam)
 	{
 		// Draw flyby cameras.
-		CalculateSpotCameras();
+		CalculateSpotCam();
 	}
 	else
 	{

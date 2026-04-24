@@ -2,7 +2,6 @@
 #include "Game/Gui.h"
 
 #include <OISKeyboard.h>
-
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
@@ -25,15 +24,16 @@
 #include "Specific/Input/Input.h"
 #include "Specific/clock.h"
 #include "Specific/configuration.h"
+#include "Specific/EngineMain.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 #include "Specific/Video/Video.h"
-#include "Specific/winmain.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Input;
 using namespace TEN::Renderer;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 using namespace TEN::Video;
 
@@ -477,6 +477,22 @@ namespace TEN::Gui
 		}
 	}
 
+	void GuiController::FillOtherOptions()
+	{
+		BackupOptions();
+
+		CurrentSettings.SelectedSoundDevice = 0;
+
+		for (int i = 0; i < g_Configuration.SupportedSoundDevices.size(); i++)
+		{
+			if (g_Configuration.SupportedSoundDevices[i].Index == CurrentSettings.Configuration.SoundDevice)
+			{
+				CurrentSettings.SelectedSoundDevice = i;
+				break;
+			}
+		}
+	}
+
 	void GuiController::HandleDisplaySettingsInput(bool fromPauseMenu)
 	{
 		enum DisplaySettingsOption
@@ -489,6 +505,7 @@ namespace TEN::Gui
 			Antialiasing,
 			AmbientOcclusion,
 			HighFramerate,
+			Gamma,
 			Save,
 			Cancel,
 
@@ -559,6 +576,19 @@ namespace TEN::Gui
 				CurrentSettings.Configuration.EnableHighFramerate = !CurrentSettings.Configuration.EnableHighFramerate;
 				break;
 
+			case DisplaySettingsOption::Gamma:
+				if (CurrentSettings.Configuration.Gamma > GAMMA_MIN)
+				{
+					CurrentSettings.Configuration.Gamma -= GAMMA_STEP;
+					if (CurrentSettings.Configuration.Gamma < GAMMA_MIN)
+						CurrentSettings.Configuration.Gamma = GAMMA_MIN;
+					
+					g_Configuration.Gamma = CurrentSettings.Configuration.Gamma;
+					g_Renderer.SetGraphicsSettingsChanged();
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				}
+				break;
+
 			}
 		}
 
@@ -622,6 +652,19 @@ namespace TEN::Gui
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableHighFramerate = !CurrentSettings.Configuration.EnableHighFramerate;
 				break;
+
+			case DisplaySettingsOption::Gamma:
+				if (CurrentSettings.Configuration.Gamma < GAMMA_MAX)
+				{
+					CurrentSettings.Configuration.Gamma += GAMMA_STEP;
+					if (CurrentSettings.Configuration.Gamma > GAMMA_MAX)
+						CurrentSettings.Configuration.Gamma = GAMMA_MAX;
+
+					g_Configuration.Gamma = CurrentSettings.Configuration.Gamma;
+					g_Renderer.SetGraphicsSettingsChanged();
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				}
+				break;
 			}
 		}
 
@@ -663,6 +706,8 @@ namespace TEN::Gui
 			}
 			else if (SelectedOption == DisplaySettingsOption::Cancel)
 			{
+				g_Configuration.Gamma = BackupGamma;
+				g_Renderer.SetGraphicsSettingsChanged();
 				MenuToDisplay = Menu::Options;
 				SelectedOption = 0;
 			}
@@ -901,6 +946,7 @@ namespace TEN::Gui
 	void GuiController::BackupOptions()
 	{
 		CurrentSettings.Configuration = g_Configuration;
+		BackupGamma = g_Configuration.Gamma;
 	}
 
 	void GuiController::HandleOptionsInput()
@@ -921,7 +967,7 @@ namespace TEN::Gui
 			break;
 
 		case OptionsOption::OtherSettings:
-			BackupOptions();
+			FillOtherOptions();
 			MenuToDisplay = Menu::OtherSettings;
 			SelectedOption = 0;
 			break;
@@ -938,6 +984,7 @@ namespace TEN::Gui
 	{
 		enum OtherSettingsOption
 		{
+			SoundDevice,
 			Reverb,
 			MusicVolume,
 			SfxVolume,
@@ -1004,6 +1051,20 @@ namespace TEN::Gui
 				CurrentSettings.Configuration.EnableThumbstickCamera = !CurrentSettings.Configuration.EnableThumbstickCamera;
 				break;
 			}
+		}
+
+		if (GuiIsPulsed(In::Left) && SelectedOption == OtherSettingsOption::SoundDevice)
+		{
+			SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+			if (CurrentSettings.SelectedSoundDevice > 0)
+				CurrentSettings.SelectedSoundDevice--;
+		}
+
+		if (GuiIsPulsed(In::Right) && SelectedOption == OtherSettingsOption::SoundDevice)
+		{
+			SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+			if (CurrentSettings.SelectedSoundDevice < g_Configuration.SupportedSoundDevices.size() - 1)
+				CurrentSettings.SelectedSoundDevice++;
 		}
 
 		bool isVolumeAdjusted = false;
@@ -1105,6 +1166,13 @@ namespace TEN::Gui
 			{
 				// Was rumble setting changed?
 				bool indicateRumble = CurrentSettings.Configuration.EnableRumble && !g_Configuration.EnableRumble;
+				
+				// Save the new sound device
+				int oldSoundDeviceIndex = CurrentSettings.Configuration.SoundDevice;
+				int newSoundDeviceIndex = g_Configuration.SupportedSoundDevices[CurrentSettings.SelectedSoundDevice].Index;
+				bool reinitSoundSystem = oldSoundDeviceIndex != newSoundDeviceIndex || newSoundDeviceIndex == 0;
+				CurrentSettings.Configuration.SoundDevice = newSoundDeviceIndex;
+				CurrentSettings.Configuration.EnableSound = newSoundDeviceIndex > 0;
 
 				// Save the configuration.
 				g_Configuration = CurrentSettings.Configuration;
@@ -1113,6 +1181,13 @@ namespace TEN::Gui
 				// Rumble if setting was changed.
 				if (indicateRumble)
 					Rumble(0.5f);
+
+				// Reset the sound system
+				if (reinitSoundSystem)
+					Sound_Reset();
+		
+				MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
+				SelectedOption = 1;
 			}
 			else if (SelectedOption == OtherSettingsOption::Cancel)
 			{
@@ -1222,7 +1297,7 @@ namespace TEN::Gui
 
 				case PauseMenuOption::ExitToTitle:
 					SetInventoryMode(InventoryMode::None);
-					App.ResetClock = true;
+					ResetClock = true;
 					return InventoryResult::ExitToTitle;
 					break;
 				}
@@ -3179,7 +3254,7 @@ namespace TEN::Gui
 		{
 			if (ThreadEnded)
 			{
-				App.ResetClock = true;
+				ResetClock = true;
 				return false;
 			}
 
@@ -3230,7 +3305,7 @@ namespace TEN::Gui
 			ResumeAllSounds(SoundPauseMode::Pause);
 		}
 
-		App.ResetClock = true;
+		ResetClock = true;
 
 		return doExitToTitle;
 	}
@@ -3262,7 +3337,7 @@ namespace TEN::Gui
 		{
 			if (ThreadEnded)
 			{
-				App.ResetClock = true;
+				ResetClock = true;
 				return false;
 			}
 
@@ -3374,7 +3449,7 @@ namespace TEN::Gui
 		player.Inventory.IsBusy = player.Inventory.OldBusy;
 		SetInventoryMode(InventoryMode::None);
 
-		App.ResetClock = true;
+		ResetClock = true;
 
 		return doLoad;
 	}

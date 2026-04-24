@@ -40,8 +40,8 @@ struct ShaderLight
 	float In;
 	float Out;
 	float InRange;
-	float OutRange;
-	float Padding;
+    float OutRange;
+    int ShaderLight_Padding0;
 };
 
 struct ShaderFogBulb
@@ -52,15 +52,18 @@ struct ShaderFogBulb
 	float SquaredRadius;
 	float3 FogBulbToCameraVector;
 	float SquaredCameraToFogBulbDistance;
-	float4 Padding2;
+    float4 ShaderFogBulb_Padding0;
 };
 
 struct ShaderDecal
 {
 	float3 Position;
 	unsigned int Pattern;
+	//----------
 	float Radius;
-	float Opacity;
+    float Opacity;
+    int ShaderDecal_Padding0;
+    int ShaderDecal_Padding1;
 };
 
 float Luma(float3 color)

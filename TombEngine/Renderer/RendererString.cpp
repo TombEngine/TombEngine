@@ -19,7 +19,7 @@ namespace TEN::Renderer
 		AddString(string, pos, color, scale, FLAGS);
 	}
 
-	void Renderer::AddString(int x, int y, const std::string& string, D3DCOLOR color, int flags)
+	void Renderer::AddString(int x, int y, const std::string& string, unsigned int color, int flags)
 	{
 		AddString(string, Vector2(x, y), Color(color), 1.0f, flags);
 	}
@@ -164,7 +164,7 @@ namespace TEN::Renderer
 				else
 				{
 					// Calculate indentation to account for string scaling.
-					auto indent = line.empty() ? 0 : _gameFont->FindGlyph(line.at(0))->XAdvance * rString.Scale;
+					auto indent = line.empty() ? 0 : _gameFont->FindGlyph(line.at(0)).XAdvance * rString.Scale;
 
 					rString.Position.x = pos.x * factor.x + indent;
 					rString.PrevPosition.x = prevPos.x * factor.x + indent;
@@ -197,13 +197,13 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::AlphaBlend);
 
 		float shadowOffset = 1.5f / (REFERENCE_FONT_SIZE / _gameFont->GetLineSpacing());
-		auto shadowColor = (Vector3)g_GameFlow->GetSettings()->UI.ShadowTextColor;
+		auto shadowColor = (Vector4)g_GameFlow->GetSettings()->UI.ShadowTextColor;
 
-		_spriteBatch->Begin();
+		_spriteBatch->Begin(SpriteSortingMode::Deferred, BlendMode::PremultipliedAlphaBlend);
 
 		for (const auto& rString : _stringsToDraw)
 		{
-			auto drawPos = Vector2::Lerp(rString.PrevPosition, rString.Position, GetInterpolationFactor());
+			auto drawPos = Vector2::Lerp(rString.PrevPosition, rString.Position, GetInterpolationFactor(true));
 
 			// Draw shadow.
 			if (rString.Flags & (int)PrintStringFlags::Outline)
@@ -211,8 +211,8 @@ namespace TEN::Renderer
 				_gameFont->DrawString(
 					_spriteBatch.get(), rString.String.c_str(),
 					Vector2(drawPos.x + shadowOffset * rString.Scale, drawPos.y + shadowOffset * rString.Scale),
-					Vector4(shadowColor.x, shadowColor.y, shadowColor.z, rString.Color.w) * ScreenFadeCurrent,
-					0.0f, Vector4::Zero, rString.Scale);
+					(shadowColor * rString.Color.w * shadowColor.w) * ScreenFadeCurrent,
+					0.0f, Vector2::Zero, rString.Scale);
 			}
 
 			// Draw string.
@@ -220,7 +220,7 @@ namespace TEN::Renderer
 				_spriteBatch.get(), rString.String.c_str(),
 				Vector2(drawPos.x, drawPos.y),
 				(rString.Color * rString.Color.w) * ScreenFadeCurrent,
-				0.0f, Vector4::Zero, rString.Scale);
+				0.0f, Vector2::Zero, rString.Scale);
 		}
 
 		_spriteBatch->End();
