@@ -111,6 +111,7 @@ void InitDefaultConfiguration()
 	g_Configuration.SupportedSoundDevices = Sound_ListDevices();
 
 	g_Configuration.KeyboardMouseBindings = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
+	g_Configuration.GamepadBindings       = DEFAULT_USER_GAMEPAD_BINDING_PROFILE;
 }
 
 bool LoadConfiguration()
@@ -127,7 +128,30 @@ bool LoadConfiguration()
 
 	InitDefaultConfiguration();
 
-	bool foundInput = false;
+	// First binding-line per profile clears the defaults so a partially-saved file still
+	// reflects the user's choice (no leftover default events for unmentioned actions).
+	bool kbmBindingsLoaded = false;
+	bool padBindingsLoaded = false;
+
+	auto parseEventList = [](const std::string& csv)
+	{
+		auto events = std::vector<EventId>{};
+		size_t start = 0;
+		while (start <= csv.size())
+		{
+			size_t comma = csv.find(',', start);
+			auto token = Trim(csv.substr(start, comma == std::string::npos ? std::string::npos : comma - start));
+			if (!token.empty())
+			{
+				int rawEvent = ToInt(token, NO_VALUE);
+				if (rawEvent >= 0)
+					events.push_back((EventId)rawEvent);
+			}
+			if (comma == std::string::npos) break;
+			start = comma + 1;
+		}
+		return events;
+	};
 
 	while (std::getline(in, line))
 	{
@@ -263,24 +287,34 @@ bool LoadConfiguration()
 			{
 				g_Configuration.MenuOptionLoopingMode = (MenuOptionLoopingMode)ToInt(val, (int)g_Configuration.MenuOptionLoopingMode);
 			}
-			else if (StartsWith(key, OPTION_BIND_PREFIX))
+			else if (StartsWith(key, OPTION_BIND_KBM_PREFIX))
 			{
-				foundInput = true;
+				int rawAction = ToInt(key.substr(std::string_view(OPTION_BIND_KBM_PREFIX).size()), NO_VALUE);
+				if (rawAction < 0)
+					continue;
 
-				int actionId = ToInt(key.substr(std::string_view(OPTION_BIND_PREFIX).size()), NO_VALUE);
-				int keyId = ToInt(val, NO_VALUE);
-				if (actionId >= 0 && keyId >= 0)
+				if (!kbmBindingsLoaded)
 				{
-					g_Configuration.Bindings.insert({ (ActionID)actionId, keyId });
-					g_Bindings.SetKeyBinding(BindingProfileID::Custom, (ActionID)actionId, keyId);
+					g_Configuration.KeyboardMouseBindings.clear();
+					kbmBindingsLoaded = true;
 				}
+				g_Configuration.KeyboardMouseBindings[(ActionId)rawAction] = parseEventList(val);
+			}
+			else if (StartsWith(key, OPTION_BIND_PAD_PREFIX))
+			{
+				int rawAction = ToInt(key.substr(std::string_view(OPTION_BIND_PAD_PREFIX).size()), NO_VALUE);
+				if (rawAction < 0)
+					continue;
+
+				if (!padBindingsLoaded)
+				{
+					g_Configuration.GamepadBindings.clear();
+					padBindingsLoaded = true;
+				}
+				g_Configuration.GamepadBindings[(ActionId)rawAction] = parseEventList(val);
 			}
 		}
 	}
-
-	// @inputme
-	//if (!foundInput)
-	g_Configuration.KeyboardMouseBindings = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;// g_Bindings.GetProfile(BindingProfileId::CustomKeyboardMouse);
 
 	g_Configuration.EnableSound = g_Configuration.SoundDevice > 0;
 
@@ -329,14 +363,22 @@ bool SaveConfiguration()
 	ss << OPTION_MOUSE_SENSITIVITY << "=" << g_Configuration.MouseSensitivity << "\n";
 	ss << OPTION_MENU_OPTION_LOOPING_MODE << "=" << (int)g_Configuration.MenuOptionLoopingMode << "\n";
 
-	// @inputme
-	//if (g_Configuration.KeyboardMouseBindings.empty())
-		g_Configuration.KeyboardMouseBindings = DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE;
-
-	for (const auto& kv : g_Configuration.Bindings)
+	auto writeProfile = [&](const char* prefix, const BindingProfile& profile)
 	{
-		ss << OPTION_BIND_PREFIX << (int)kv.first << "=" << (int)kv.second << "\n";
-	}
+		for (const auto& [actionId, eventIds] : profile)
+		{
+			ss << prefix << (int)actionId << "=";
+			for (size_t i = 0; i < eventIds.size(); ++i)
+			{
+				if (i > 0)
+					ss << ",";
+				ss << (int)eventIds[i];
+			}
+			ss << "\n";
+		}
+	};
+	writeProfile(OPTION_BIND_KBM_PREFIX, g_Configuration.KeyboardMouseBindings);
+	writeProfile(OPTION_BIND_PAD_PREFIX, g_Configuration.GamepadBindings);
 	ss << "\n";
 
 	auto path = GetConfigFilePath();

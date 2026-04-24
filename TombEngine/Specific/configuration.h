@@ -46,7 +46,8 @@ constexpr auto OPTION_ENABLE_THUMBSTICK_CAMERA			= "EnableThumbstickCamera";
 
 constexpr auto OPTION_MOUSE_SENSITIVITY		   = "MouseSensitivity";
 constexpr auto OPTION_MENU_OPTION_LOOPING_MODE = "MenuOptionLoopingMode";
-constexpr auto OPTION_BIND_PREFIX			   = "bind.";
+constexpr auto OPTION_BIND_KBM_PREFIX		   = "kbmbind.";
+constexpr auto OPTION_BIND_PAD_PREFIX		   = "padbind.";
 
 enum class MenuOptionLoopingMode
 {
