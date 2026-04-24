@@ -190,7 +190,7 @@ namespace TEN::Platform
 
 		constexpr unsigned int PROCESS_SYSTEM_DPI_AWARE = 1;
 
-		typedef HRESULT(WINAPI* SetDpiAwarenessProc)(UINT);
+		typedef HRESULT(WINAPI* SetDpiAwarenessProc)(unsigned int);
 
 		_hInstance = GetModuleHandle(nullptr);
 

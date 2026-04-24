@@ -18,7 +18,7 @@ namespace TEN::Renderer::Native::DirectX11
 		desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		throwIfFailed(device->CreateBuffer(&desc, nullptr, _buffer.GetAddressOf()), device,
 			"CreateBuffer for ConstantBuffer (" + std::to_string(size) + " bytes):");
-		_buffer->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)name.size(), name.c_str());
+		_buffer->SetPrivateData(WKPDID_D3DDebugObjectName, (unsigned int)name.size(), name.c_str());
 	}
 
 	void DX11ConstantBuffer::UpdateData(void* data, ID3D11DeviceContext* ctx) 
