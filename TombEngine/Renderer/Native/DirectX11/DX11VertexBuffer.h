@@ -3,10 +3,10 @@
 #ifdef SDL_PLATFORM_WIN32
 
 #include <d3d11.h>
+#include <wrl/client.h>
 #include "Renderer/Graphics/Vertices/Vertex.h"
 #include "Renderer/Graphics/IVertexBuffer.h"
 #include "Renderer/Graphics/VRAMAllocation.h"
-#include <wrl/client.h>
 #include "Specific/fast_vector.h"
 
 using namespace TEN::Renderer::Graphics::Vertices;

@@ -229,7 +229,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType)
 	{
-		ID3D11ShaderResourceView* d3dShaderResourceView = GetD3D11ShaderResourceView(texture);
+		auto* d3dShaderResourceView = GetD3D11ShaderResourceView(texture);
 
 		_context->PSSetShaderResources((unsigned int)registerType, 1, &d3dShaderResourceView);
 
@@ -275,27 +275,27 @@ namespace TEN::Renderer::Native::DirectX11
 		switch (shaderStage)
 		{
 		case ShaderStage::VertexShader:
-			_context->VSSetConstantBuffers(static_cast<unsigned int>(constantBufferType), 1, &d3dBuffer);
+			_context->VSSetConstantBuffers((unsigned int)constantBufferType, 1, &d3dBuffer);
 			break;
 
 		case ShaderStage::GeometryShader:
-			_context->GSSetConstantBuffers(static_cast<unsigned int>(constantBufferType), 1, &d3dBuffer);
+			_context->GSSetConstantBuffers((unsigned int)constantBufferType, 1, &d3dBuffer);
 			break;
 
 		case ShaderStage::PixelShader:
-			_context->PSSetConstantBuffers(static_cast<unsigned int>(constantBufferType), 1, &d3dBuffer);
+			_context->PSSetConstantBuffers((unsigned int)constantBufferType, 1, &d3dBuffer);
 			break;
 
 		case ShaderStage::ComputeShader:
-			_context->CSSetConstantBuffers(static_cast<unsigned int>(constantBufferType), 1, &d3dBuffer);
+			_context->CSSetConstantBuffers((unsigned int)constantBufferType, 1, &d3dBuffer);
 			break;
 
 		case ShaderStage::HullShader:
-			_context->HSSetConstantBuffers(static_cast<unsigned int>(constantBufferType), 1, &d3dBuffer);
+			_context->HSSetConstantBuffers((unsigned int)constantBufferType, 1, &d3dBuffer);
 			break;
 
 		case ShaderStage::DomainShader:
-			_context->DSSetConstantBuffers(static_cast<unsigned int>(constantBufferType), 1, &d3dBuffer);
+			_context->DSSetConstantBuffers((unsigned int)constantBufferType, 1, &d3dBuffer);
 			break;
 
 		default:

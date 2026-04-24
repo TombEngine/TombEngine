@@ -153,28 +153,23 @@ namespace TEN::Renderer
 
 		static constexpr Vector3 forwardVectors[6] =
 		{
-			//+X (right)
-			Vector3(-1, 0,0),
-			//-X (left)
-			Vector3(1, 0, 0),
-			//-Y (up)
-			Vector3(0, -1, 0),
-			//+Y (down)
-			Vector3(0, 1, 0),
-			//+Z (forward)
-			Vector3(0, 0, 1),
-			//-Z (backward)
-			Vector3(0, 0, -1),
+			
+			Vector3(-1,  0,  0), // +X (right)
+			Vector3( 1 , 0,  0), // -X (left)
+			Vector3( 0, -1,  0), // -Y (up)
+			Vector3( 0,  1,  0), // +Y (down)
+			Vector3( 0,  0,  1), // +Z (forward)
+			Vector3( 0,  0, -1), // -Z (backward)
 		};
 
 		static constexpr Vector3 upVectors[6] =
 		{
-			Vector3(0,-1,0),
-			Vector3(0,-1,0),
-			Vector3(0,0,-1),
-			Vector3(0,0,1),
-			Vector3(0,-1,0),
-			Vector3(0,-1,0),
+			Vector3(0, -1,  0),
+			Vector3(0, -1,  0),
+			Vector3(0,  0, -1),
+			Vector3(0,  0,  1),
+			Vector3(0, -1,  0),
+			Vector3(0, -1,  0),
 		};
 
 		for (int step = 0; step < 6; step++)

@@ -998,7 +998,7 @@ namespace TEN::Renderer
 		if (!item.GetVisible())
 			return;
 
-		float alpha = GetInterpolationFactor();
+		float alpha = GetInterpolationFactor(true);
 		auto color = item.GetInterpolatedColor(alpha);
 
 		if (color.A() <= EPSILON)
@@ -1015,7 +1015,7 @@ namespace TEN::Renderer
 
 		float aspectRatio = (float)(_graphicsDevice->GetScreenWidth()) / _graphicsDevice->GetScreenHeight();
 
-		auto viewMatrix = Matrix::CreateLookAt(g_DrawItems.GetInterpolatedCameraPosition(alpha), g_DrawItems.GetInterpolatedCameraTargetPosition(alpha), Vector3::Up);
+		auto viewMatrix = Matrix::CreateLookAt(g_DrawItems.GetInterpolatedCameraPosition(alpha), g_DrawItems.GetInterpolatedCameraTargetPosition(alpha), Vector3::Down);
 		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(g_DrawItems.GetInterpolatedFov(alpha), aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
 
 		auto& moveableObject = _moveableObjects[objectNumber];
@@ -1388,6 +1388,8 @@ namespace TEN::Renderer
 
 	void Renderer::RenderFreezeMode(float interpFactor, bool staticBackground)
 	{
+		_interpolationFactor = interpFactor;
+
 		if (staticBackground)
 		{
 			// Set basic render states.

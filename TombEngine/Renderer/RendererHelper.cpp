@@ -647,7 +647,7 @@ namespace TEN::Renderer
 
 	std::optional<Vector2> Renderer::ProjectDisplayItemPointToScreen(const Vector3& worldPos) const
 	{
-		float t = GetInterpolationFactor();
+		float t = GetInterpolationFactor(true);
 
 		Matrix viewMatrix = Matrix::CreateLookAt(
 			g_DrawItems.GetInterpolatedCameraPosition(t),
@@ -658,7 +658,7 @@ namespace TEN::Renderer
 		float aspectRatio = (float)_graphicsDevice->GetScreenWidth() / _graphicsDevice->GetScreenHeight();
 
 		Matrix projMatrix = Matrix::CreatePerspectiveFieldOfView(
-			CurrentFOV,
+			g_DrawItems.GetInterpolatedFov(t),
 			aspectRatio,
 			DISPLAY_ITEM_NEAR_PLANE,
 			DISPLAY_ITEM_FAR_PLANE
@@ -685,7 +685,7 @@ namespace TEN::Renderer
 
 	std::optional<std::pair<Vector2, Vector2>> Renderer::GetDisplayItemBounds(const DisplayItem& item) const
 	{
-		float alpha = GetInterpolationFactor();
+		float alpha = GetInterpolationFactor(true);
 
 		// World transforms.
 		auto pos    = item.GetInterpolatedPosition(alpha);

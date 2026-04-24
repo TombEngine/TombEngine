@@ -222,12 +222,12 @@ namespace TEN::Hud
 		{
 			_prevCameraPosition = Vector3(0.0f, 0.0f, -BLOCK(1));
 			_prevTargetPosition = Vector3::Zero;
-			_prevFov = ANGLE(80.0f);
+			_prevFov = DEG_TO_RAD(25.0f);
 		}
 
 		_cameraPosition = Vector3(0.0f, 0.0f, -BLOCK(1));
 		_targetPosition = Vector3::Zero;
-		_fov = ANGLE(80.0f);
+		_fov = DEG_TO_RAD(25.0f);
 		_ambientLight = AMBIENT_COLOR;
 	}
 
