@@ -1,5 +1,6 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/Graphics/Pipelines.h"
 #include "Renderer/Graphics/VRAMTracker.h"
 
 #include "Game/Animation/Animation.h"
@@ -1270,10 +1271,8 @@ namespace TEN::Renderer
 
 	void Renderer::RenderInventoryScene(IRenderSurface2D* renderTarget, ITextureBase* background, float backgroundFade)
 	{
-		// Set basic render states
-		SetBlendMode(BlendMode::Opaque, true);
-		SetDepthState(DepthState::Write, true);
-		SetCullMode(CullMode::CounterClockwise, true);
+		// One-shot pipeline for inventory rendering: opaque 3D with depth write.
+		BindPipeline(Graphics::Pipelines::Opaque(Shader::Inventory, _vertexInputLayout.get()));
 
 		// Bind and clear render target
 		std::vector<IRenderTarget2D*> renderTargets;
@@ -1286,7 +1285,7 @@ namespace TEN::Renderer
 		_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), Colors::Black);
 		_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
 		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-		
+
 		if (background != nullptr)
 			DrawFullScreenImage(background, backgroundFade, _renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 
@@ -1295,12 +1294,7 @@ namespace TEN::Renderer
 
 		// Set vertex buffer.
 		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
-
-		// Set shaders.
-		_shaders.Bind(Shader::Inventory);
 
 		if (CurrentLevel == 0)
 		{

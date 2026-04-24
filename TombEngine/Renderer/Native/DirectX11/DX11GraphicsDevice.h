@@ -68,6 +68,20 @@ namespace TEN::Renderer::Native::DirectX11
 		RenderPipelineState _cachedPipeline = { BlendMode::Unknown, DepthState::Unknown, CullMode::Unknown,
 												PrimitiveType::TriangleList, Shader::None, nullptr };
 
+		// Resource-binding cache. D3D11 happily accepts re-binding the same buffer or texture
+		// with no error, but every call still crosses the user-mode runtime and costs nontrivial
+		// CPU time. Skipping same-value binds is pure win on the CPU side and observable on
+		// draw-heavy frames. All entries are cleared on ClearState.
+		IVertexBuffer* _cachedVertexBuffer = nullptr;
+		IIndexBuffer*  _cachedIndexBuffer  = nullptr;
+		static constexpr int MAX_TEX_SLOTS = 16;
+		static constexpr int MAX_CB_SLOTS  = 16;
+		ITextureBase*       _cachedTextures[MAX_TEX_SLOTS] = {};
+		SamplerStateRegister _cachedSamplers[MAX_TEX_SLOTS] = {};
+		IConstantBuffer*    _cachedCBsVS[MAX_CB_SLOTS] = {};
+		IConstantBuffer*    _cachedCBsGS[MAX_CB_SLOTS] = {};
+		IConstantBuffer*    _cachedCBsPS[MAX_CB_SLOTS] = {};
+
 		inline ID3D11DeviceContext* GetDeviceContext() { return _context.Get(); }
 
 		std::vector<D3D_SHADER_MACRO> ToD3DMacros(const std::map<std::string, std::string>& m)

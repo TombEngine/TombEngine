@@ -12,6 +12,7 @@
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 #include "Objects/Utils/object_helper.h"
+#include "Renderer/Graphics/Pipelines.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -123,18 +124,16 @@ namespace TEN::Renderer
 			return;
 
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
-		
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+
+		// Hud2D preset: opaque blend, no depth, no cull, triangle list, vertex layout.
+		// Shader is None in the PSO because the HUD uses a split VS/PS pair (Hud + HudDTexture)
+		// bound separately — SDL_GPU will need these merged into single programs later.
+		BindPipeline(Graphics::Pipelines::Hud2D(Shader::None, _vertexInputLayout.get(), BlendMode::Opaque));
 		_graphicsDevice->BindVertexBuffer(bar.VertexBufferBorder.get());
 		_graphicsDevice->BindIndexBuffer(bar.IndexBufferBorder.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		
+
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudDTexture);
-
-		SetBlendMode(BlendMode::Opaque);
-		SetDepthState(DepthState::None);
-		SetCullMode(CullMode::None);
 
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, _cbHUD.get());
 
@@ -153,12 +152,12 @@ namespace TEN::Renderer
 
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
 
-		
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		// Same Hud2D pipeline as above — all state is cached so this BindPipeline is a no-op
+		// except for the intent-declaration. VB/IB and PS change per-half (border → inner).
+		BindPipeline(Graphics::Pipelines::Hud2D(Shader::None, _vertexInputLayout.get(), BlendMode::Opaque));
 		_graphicsDevice->BindVertexBuffer(bar.InnerVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(bar.InnerIndexBuffer.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		
+
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudBarColor);
 
@@ -184,18 +183,13 @@ namespace TEN::Renderer
 			return;
 
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
-	
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);	
+
+		BindPipeline(Graphics::Pipelines::Hud2D(Shader::None, _vertexInputLayout.get(), BlendMode::Opaque));
 		_graphicsDevice->BindVertexBuffer(g_LoadingBar->VertexBufferBorder.get());
 		_graphicsDevice->BindIndexBuffer(g_LoadingBar->IndexBufferBorder.get());
 
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudDTexture);
-
-		SetBlendMode(BlendMode::Opaque);
-		SetDepthState(DepthState::None);
-		SetCullMode(CullMode::None);
 
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, _cbHUD.get());
 		BindTexture(TextureRegister::Hud, _loadingBarBorder.get(), SamplerStateRegister::LinearClamp);
@@ -210,8 +204,7 @@ namespace TEN::Renderer
 
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
 
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		BindPipeline(Graphics::Pipelines::Hud2D(Shader::None, _vertexInputLayout.get(), BlendMode::Opaque));
 		_graphicsDevice->BindVertexBuffer(g_LoadingBar->InnerVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(g_LoadingBar->InnerIndexBuffer.get());
 
