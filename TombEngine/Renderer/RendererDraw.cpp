@@ -415,14 +415,10 @@ namespace TEN::Renderer
 
 	void Renderer::DrawLines2D()
 	{
-		SetBlendMode(BlendMode::Opaque);
-		SetDepthState(DepthState::Read);
-		SetCullMode(CullMode::None);
+		BindPipeline({ BlendMode::Opaque, DepthState::Read, CullMode::None,
+					   PrimitiveType::LineList, Shader::Solid, _vertexInputLayout.get() });
 
-		_shaders.Bind(Shader::Solid);
 		auto worldMatrix = Matrix::CreateOrthographicOffCenter(0, _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), 0, _viewport.MinDepth, _viewport.MaxDepth);
-
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::LineList);
 
 		_primitiveBatch->Begin();
 
@@ -1146,12 +1142,9 @@ namespace TEN::Renderer
 
 	void Renderer::DrawLines3D(RenderView& view)
 	{
-		SetBlendMode(BlendMode::Additive);
-		SetCullMode(CullMode::None);
+		BindPipeline({ BlendMode::Additive, DepthState::Read, CullMode::None,
+					   PrimitiveType::LineList, Shader::Solid, _vertexInputLayout.get() });
 
-		_shaders.Bind(Shader::Solid);
-
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::LineList);
 		_primitiveBatch->Begin();
 
 		for (const auto& line : _lines3DToDraw)
@@ -1178,13 +1171,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawTriangles3D(RenderView& view)
 	{
-		SetBlendMode(BlendMode::Additive);
-		SetCullMode(CullMode::None);
-
-		_shaders.Bind(Shader::Solid);
-
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		BindPipeline({ BlendMode::Additive, DepthState::Read, CullMode::None,
+					   PrimitiveType::TriangleList, Shader::Solid, _vertexInputLayout.get() });
 
 		_primitiveBatch->Begin();
 
