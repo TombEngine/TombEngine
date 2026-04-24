@@ -1862,19 +1862,14 @@ namespace TEN::Renderer
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Sky, _cbSky.get());
 
-		// Reset GPU state.
-		SetBlendMode(BlendMode::Opaque, true);
-		SetDepthState(DepthState::Write, true);
-		SetCullMode(CullMode::CounterClockwise, true);
+		// Reset GPU state via the Opaque baseline PSO. Device cache was invalidated by the
+		// previous frame's ClearState, so this issues all five underlying D3D11 calls.
+		BindPipeline(Graphics::Pipelines::Opaque(Shader::None, _vertexInputLayout.get()));
 
 		BindMaterial(0, true);
 
 		_stAnimated.Animated = 0;
 		UpdateConstantBuffer(&_stAnimated, _cbAnimated.get());
-
-		// Set up vertex parameters.
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 
 		// Draw skybox to paraboloid
 		DrawHorizonAndSkyForReflections(view);
@@ -2299,9 +2294,7 @@ namespace TEN::Renderer
 		if (texture == nullptr)
 			return;
 
-		// Set basic render states.
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
+		BindPipeline(Graphics::Pipelines::Opaque(Shader::None, _vertexInputLayout.get()));
 
 		// Clear screen
 		_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
