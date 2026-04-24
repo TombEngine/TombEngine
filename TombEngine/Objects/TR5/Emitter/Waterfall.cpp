@@ -39,6 +39,7 @@ namespace TEN::Effects::WaterfallEmitter
     constexpr auto WATERFALL_SPLASH_SPRITE_ID = 0;
     constexpr auto WATERFALL_STREAM_1_SPRITE_ID = 1;
     constexpr auto WATERFALL_STREAM_2_SPRITE_ID = 2;
+    constexpr auto WATERFALL_COLOR_SCALE = 4;
 
     void InitializeWaterfall(short itemNumber)
     {
@@ -81,8 +82,7 @@ namespace TEN::Effects::WaterfallEmitter
         float waterfallWidth = std::max(CLICK(float(item.TriggerFlags)), WATERFALL_DEFAULT_WIDTH);
         auto vel = item.Pose.Orientation.ToDirection() * BLOCK(customVel);
 
-        auto startColor = (item.Model.Color / 4) * SCHAR_MAX;
-        auto endColor = (item.Model.Color / 8) * UCHAR_MAX;
+        auto startColor = (item.Model.Color / WATERFALL_COLOR_SCALE) * UCHAR_MAX;
 
         auto lastOffset = Vector3(FLT_MAX);
         auto lastTargetPos = Vector3::Zero;
@@ -191,9 +191,9 @@ namespace TEN::Effects::WaterfallEmitter
             part.sR = std::clamp((int)startColor.x + colorOffset, 0, UCHAR_MAX);
             part.sG = std::clamp((int)startColor.y + colorOffset, 0, UCHAR_MAX);
             part.sB = std::clamp((int)startColor.z + colorOffset, 0, UCHAR_MAX);
-            part.dR = std::clamp((int)endColor.x + colorOffset, 0, UCHAR_MAX);
-            part.dG = std::clamp((int)endColor.y + colorOffset, 0, UCHAR_MAX);
-            part.dB = std::clamp((int)endColor.z + colorOffset, 0, UCHAR_MAX);
+            part.dR = std::clamp((int)startColor.x + colorOffset, 0, UCHAR_MAX);
+            part.dG = std::clamp((int)startColor.y + colorOffset, 0, UCHAR_MAX);
+            part.dB = std::clamp((int)startColor.z + colorOffset, 0, UCHAR_MAX);
 
             part.roomNumber = part.roomNumber;
             part.colFadeSpeed = 2;
@@ -217,7 +217,6 @@ namespace TEN::Effects::WaterfallEmitter
         auto colorOffset = Vector3i(40.0f, 40.0f, 40.0f);
 
         auto startColor = (Vector3i(color.x, color.y, color.z) + colorOffset);
-        auto endColor = (Vector3i(color.x, color.y, color.z) + colorOffset);
 
         part.on = true;
 
@@ -241,9 +240,9 @@ namespace TEN::Effects::WaterfallEmitter
         part.sR = std::clamp((int)startColor.x + colorVariation, 0, UCHAR_MAX);
         part.sG = std::clamp((int)startColor.y + colorVariation, 0, UCHAR_MAX);
         part.sB = std::clamp((int)startColor.z + colorVariation, 0, UCHAR_MAX);
-        part.dR = std::clamp((int)endColor.x + colorVariation, 0, UCHAR_MAX);
-        part.dG = std::clamp((int)endColor.y + colorVariation, 0, UCHAR_MAX);
-        part.dB = std::clamp((int)endColor.z + colorVariation, 0, UCHAR_MAX);
+        part.dR = std::clamp((int)startColor.x + colorVariation, 0, UCHAR_MAX);
+        part.dG = std::clamp((int)startColor.y + colorVariation, 0, UCHAR_MAX);
+        part.dB = std::clamp((int)startColor.z + colorVariation, 0, UCHAR_MAX);
 
         part.colFadeSpeed = 1;
         part.blendMode = BlendMode::Additive;

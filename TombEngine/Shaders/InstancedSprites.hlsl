@@ -1,5 +1,4 @@
 #include "./CBCamera.hlsli"
-#include "./CBAtmosphericSky.hlsli"
 #include "./Blending.hlsli"
 #include "./VertexInput.hlsli"
 #include "./Math.hlsli"
@@ -45,11 +44,6 @@ SamplerState Sampler : register(s0);
 Texture2D DepthTexture : register(t6);
 SamplerState DepthSampler : register(s6);
 
-// Cloud render targets for per-pixel star occlusion.
-// Only bound during the star draw call; null bindings return (0,0,0,0) — no occlusion.
-Texture2D CloudRenderTargetA : register(t10);
-Texture2D CloudRenderTargetB : register(t11);
-
 PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
 	PixelShaderInput output;
@@ -72,7 +66,7 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
     int polyIndex = DecodeIndexInPoly(input.Effects);
 
 	output.PositionCopy = output.Position;
-    output.Color = lerp(sprite.Color, input.Color, saturate((float) sprite.PerVertexColor));
+    output.Color = lerp(sprite.Color, input.Color, saturate((float)sprite.PerVertexColor));
     output.UV = float2(sprite.UV[0][polyIndex], sprite.UV[1][polyIndex]);
 	output.InstanceID  = InstanceID;
 
@@ -82,55 +76,11 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 	return output;
 }
 
-// TODO: From NVIDIA SDK, check if it can be useful instead of linear ramp
-float Contrast(float Input, float ContrastPower)
-{
-#if 1
-	//piecewise contrast function
-	bool IsAboveHalf = Input > 0.5;
-	float ToRaise = saturate(2 * (IsAboveHalf ? 1 - Input : Input));
-	float Output = 0.5 * pow(ToRaise, ContrastPower);
-	Output = IsAboveHalf ? 1 - Output : Output;
-	return Output;
-#else
-	// another solution to create a kind of contrast function
-	return 1.0 - exp2(-2 * pow(2.0 * saturate(Input), ContrastPower));
-#endif
-}
-
 float4 PS(PixelShaderInput input) : SV_TARGET
 {
-	float4 output = Texture.Sample(Sampler, input.UV) * input.Color;
+    float4 output = Texture.Sample(Sampler, input.UV) * input.Color;
 
     InstancedSprite sprite = Sprites[input.InstanceID];
-
-    // Moon disk occlusion: discard star/meteor pixels that fall inside the moon.
-    // Reconstruct world-space view direction from clip-space position.
-    // PositionCopy is the VS clip-space output (before rasterizer), so
-    // PositionCopy.y/w > 0 already means "top of screen" — NO Y flip is needed
-    // (unlike the atmosphere shader which starts from UV space where y=0 is top).
-    if (AtmoMoonEnabled > 0.5f && AtmoMoonVisibility > 0.01f)
-    {
-        float2 ndc    = input.PositionCopy.xy / input.PositionCopy.w;
-        float4 vPos   = mul(float4(ndc.x, ndc.y, 1.0f, 1.0f), InverseProjection);
-        vPos.xyz     /= vPos.w;
-        float3 viewDir = normalize(mul(float4(vPos.xyz, 0.0f), InverseView).xyz);
-        if (dot(viewDir, normalize(AtmoMoonDirection)) > AtmoMoonDiskCosRadius)
-            discard;
-    }
-
-    // Per-pixel cloud occlusion: sample cloud render targets at this pixel's screen position.
-    // CloudRenderTargetA/B are only bound during the star/meteor draw call.
-    // Null bindings return (0,0,0,0), so cloudCoverage = 0 and no attenuation is applied.
-    {
-        float2 screenUV = float2(
-            input.PositionCopy.x / input.PositionCopy.w *  0.5f + 0.5f,
-            input.PositionCopy.y / input.PositionCopy.w * -0.5f + 0.5f);
-        float covA = CloudRenderTargetA.Sample(Sampler, screenUV).a;
-        float covB = CloudRenderTargetB.Sample(Sampler, screenUV).a;
-        float cloudCoverage = saturate(covA + covB - covA * covB);
-        output.a *= (1.0f - cloudCoverage);
-    }
 	
     if (sprite.IsSoftParticle == 1)
 	{
@@ -150,15 +100,17 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 		float fade = (sceneDepth - particleDepth) * 1024.0f;
 		output.w = min(output.w, fade);
 	}
-	
+
     if (sprite.RenderType == 1)
     {
-        output = DoLaserBarrierEffect(input.Position, output, input.UV, FADE_FACTOR, Frame);
+        float4 rawOutput = Texture.Sample(Sampler, input.UV) * input.Color;
+        output = DoLaserBarrierEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
     }
 
     if (sprite.RenderType == 2)
     {
-        output = DoLaserBeamEffect(input.Position, output, input.UV, FADE_FACTOR, Frame);
+        float4 rawOutput = Texture.Sample(Sampler, input.UV) * input.Color;
+        output = DoLaserBeamEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
     }
 
 	output.xyz *= 1.0f - Luma(input.FogBulbs.xyz);

@@ -203,7 +203,7 @@ namespace TEN::Renderer
 
 		for (const auto& rString : _stringsToDraw)
 		{
-			auto drawPos = Vector2::Lerp(rString.PrevPosition, rString.Position, GetInterpolationFactor());
+			auto drawPos = Vector2::Lerp(rString.PrevPosition, rString.Position, GetInterpolationFactor(true));
 
 			// Draw shadow.
 			if (rString.Flags & (int)PrintStringFlags::Outline)

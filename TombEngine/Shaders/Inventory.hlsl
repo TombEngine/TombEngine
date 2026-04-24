@@ -60,7 +60,7 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     PixelShaderOutput output;
     
     float4 tex = Texture.Sample(Sampler, input.UV);
-    float3 baseColor = tex.xyz * Color.xyz;
+    float3 baseColor = tex.xyz * ModulateColor(Color.xyz);
     float3 pos = normalize(input.WorldPosition);
 
     output.Color = float4(baseColor, tex.w * Color.w);
@@ -80,22 +80,23 @@ PixelShaderOutput PS(PixelShaderInput input) : SV_TARGET
     
     // Material effects
     output.Color.xyz = CalculateReflections(input.WorldPosition, output.Color.xyz, normal, specular);
-	
+
     ShaderLight l;
-    l.Color = float3(AmbientLight.xyz);
     l.Intensity = 0.3f;
     l.Type = LT_SUN;
     l.Direction = normalize(float3(-1.0f, -0.707f, -0.5f));
+    l.Color.xyz = ModulateColor(AmbientLight.xyz);
 
     float3 lighting = DoDirectionalLight(pos, normal, l);
-    lighting += DoSpecularSun(normal, l, input.Sheen, specular, roughness);;
+    lighting += DoSpecularSun(normal, l, input.Sheen, specular, roughness);
     lighting += emissive;
-    
+
      // Emissive material
     output.Color.xyz += lighting * output.Color.a;
     output.Color.xyz = saturate(output.Color.xyz);
     
     output.Emissive = float4(emissive, 1.0f);
 	
+	output.Color.xyz = GammaCorrection(output.Color.xyz);
     return output;
 }

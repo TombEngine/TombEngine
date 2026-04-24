@@ -841,9 +841,6 @@ namespace TEN::Renderer
 			item->AmbientLight.y = Lerp(prev.y, next.y, item->LightFade);
 			item->AmbientLight.z = Lerp(prev.z, next.z, item->LightFade);
 		}
-
-		// Multiply calculated ambient light by object tint
-		item->AmbientLight *= nativeItem->Model.Color;
 	}
 
 	void Renderer::CollectDecalsForRoom(short roomNumber, RenderView& renderView)

@@ -2,6 +2,7 @@
 #include "./CBCamera.hlsli"
 #include "./Materials.hlsli"
 #include "./Math.hlsli"
+#include "./ShaderLight.hlsli"
 
 #define MAX_BLUR_RADIUS 100
 #define USE_FAST_BILINEAR_BLUR 1
@@ -105,15 +106,12 @@ float4 PSFinalPass(PixelShaderInput input) : SV_TARGET
         output.w = 1.0f;
     }
 
-	output.xyz = output.xyz * Tint;
-
+	output.xyz = GammaCorrection(ModulateColor(output.xyz * Tint));
     return output;
 }
 
 float3 LensFlare(float2 uv, float2 pos)
 {
-	float intensity = 0.5f;
-
 	float2 main = uv - pos;
 	float2 uvd = uv * length(uv);
 
@@ -170,11 +168,11 @@ float3 LensFlare(float2 uv, float2 pos)
     float glare = exp(-pow(anamorphicOffset.x * anamorphicScaleX, 2.0f) - pow(anamorphicOffset.y * anamorphicScaleY, 2.0f));
     float3 anamorphicGlare = float3(glare * 0.6f, glare * 0.5f, glare * 1.0f) * 0.05f;
 
-    // Combine the effects and adjust intensity
+    // Combine the effects
     float3 c = saturate(sunflare) * 0.5f + lensflare + anamorphicGlare;
     c = c * 1.3f - float3(length(uvd) * 0.05f, length(uvd) * 0.05f, length(uvd) * 0.05f);
 
-    return c * intensity;
+    return c;
 }
 
 float3 LensFlareColorCorrection(float3 color, float factor,float factor2) 
