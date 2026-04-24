@@ -213,8 +213,23 @@ namespace TEN::Effects::Environment
 
 		WindAngle = (WindAngle + ((WindDAngle - WindAngle) >> 3)) & 0x1FFE;
 
-		WindX = WindCurrent * phd_sin(WindAngle << 3);
-		WindZ = WindCurrent * phd_cos(WindAngle << 3);
+		// Random walk gives a fluctuating component around zero.
+		float flucX = WindCurrent * phd_sin(WindAngle << 3);
+		float flucZ = WindCurrent * phd_cos(WindAngle << 3);
+
+		// Scale fluctuation by base wind strength so a calm sky (base == 0)
+		// produces no perceptible wind on particles or hair.
+		float baseMag = std::sqrt(BaseWindX * BaseWindX + BaseWindZ * BaseWindZ);
+		float flucScale = std::min(1.0f, baseMag / MAX_BASE_WIND_STRENGTH);
+
+		WindX = (int)(BaseWindX + flucX * flucScale);
+		WindZ = (int)(BaseWindZ + flucZ * flucScale);
+	}
+
+	void EnvironmentController::SetBaseWind(float x, float z)
+	{
+		BaseWindX = std::clamp(x, -MAX_BASE_WIND_STRENGTH, MAX_BASE_WIND_STRENGTH);
+		BaseWindZ = std::clamp(z, -MAX_BASE_WIND_STRENGTH, MAX_BASE_WIND_STRENGTH);
 	}
 
 	void EnvironmentController::UpdateFlash(const ScriptInterfaceLevel& level)

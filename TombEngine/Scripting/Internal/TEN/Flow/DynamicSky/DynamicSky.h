@@ -34,9 +34,6 @@ namespace TEN::Scripting
 	{
 		bool        Enabled           = false;
 		std::string StartPreset       = "";    // Initial weather preset for the level.
-		float       WindSpeed         = -1.0f; // < 0 = use global.
-		float       WindDirectionX    = 1.0f;
-		float       WindDirectionZ    = 0.0f;
 		float       TransformDuration = -1.0f; // < 0 = per-preset default.
 		std::string Quality           = "";    // "Low" / "Medium" / "High"; empty = keep current.
 

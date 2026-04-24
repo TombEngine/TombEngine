@@ -283,7 +283,7 @@ namespace TEN::Effects::Hair
 		{
 			// Let wind affect position.
 			if (TestEnvironment(ENV_FLAG_WIND, pointColl.GetRoomNumber()))
-				segment.Position += Weather.Wind() * 2;
+				segment.Position += Weather.Wind() * 3;
 
 			// Apply gravity.
 			segment.Position.y += g_GameFlow->GetSettings()->Physics.Gravity * HAIR_GRAVITY_COEFF;

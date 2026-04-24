@@ -93,9 +93,6 @@ test.dynamicSky.Aurora.color   = "GreenClassic"
 test.dynamicSky.Clouds.enabled           = true
 test.dynamicSky.Clouds.startPreset       = "Altocumulus"
 test.dynamicSky.Clouds.quality           = "Medium"   -- "Low", "Medium", or "High"
-test.dynamicSky.Clouds.windSpeed         = 0.3
-test.dynamicSky.Clouds.windDirectionX    = 1.0
-test.dynamicSky.Clouds.windDirectionZ    = 0.0
 test.dynamicSky.Clouds.transformDuration = 60
 
 -- Random preset rotation. duration = wie lange ein Preset bleibt,

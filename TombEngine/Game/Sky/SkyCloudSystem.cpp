@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include "Game/control/control.h"
+#include "Game/effects/weather.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
@@ -536,19 +537,11 @@ namespace TEN::Sky
 				if (!clouds.StartPreset.empty())
 					SetPresetImmediate(StringToPresetType(clouds.StartPreset));
 
-				// Per-level wind override.
-				float dirX  = _globalWindSet ? _globalWindDirX  : clouds.WindDirectionX;
-				float dirZ  = _globalWindSet ? _globalWindDirY  : clouds.WindDirectionZ;
-				float speed = _globalWindSet ? _globalWindSpeed : 0.003f;
-				if (clouds.WindDirectionX != 1.0f || clouds.WindDirectionZ != 0.0f)
-				{
-					dirX = clouds.WindDirectionX;
-					dirZ = clouds.WindDirectionZ;
-				}
-				if (clouds.WindSpeed >= 0.0f)
-					speed = clouds.WindSpeed;
-				if (clouds.WindSpeed >= 0.0f || clouds.WindDirectionX != 1.0f || clouds.WindDirectionZ != 0.0f)
-					SetGlobalWind(dirX, dirZ, speed);
+				// Per-level wind override via level.windSpeed / windDirectionX / windDirectionZ.
+				// A negative windSpeed means "no override" — keep whatever was set globally
+				// from Settings.lua via Flow.SetCloudWind().
+				if (level->WindSpeed >= 0.0f)
+					SetGlobalWind(level->WindDirectionX, level->WindDirectionZ, level->WindSpeed);
 
 				// Per-level CloudMorph transform duration override.
 				if (clouds.TransformDuration >= 0.0f)
@@ -2179,10 +2172,31 @@ namespace TEN::Sky
 
 	void SkyCloudSystem::SetGlobalWind(float dirX, float dirY, float speed)
 	{
-		_globalWindDirX  = dirX;
-		_globalWindDirY  = dirY;
-		_globalWindSpeed = std::max(speed, 0.0f);
-		_globalWindSet   = true;
+		// Backwards compatibility: the legacy Lua API took a normalized direction
+		// and a cloud speed in the range [0..8]. Translate that into the engine-
+		// wide base wind vector so the same speed value that drove clouds before
+		// still produces an identical drift rate. Speed 8 = full wind strength.
+		constexpr float LUA_SPEED_MAX = 8.0f;
+		float magnitude = (LUA_SPEED_MAX > 0.0f)
+			? std::clamp(speed / LUA_SPEED_MAX, 0.0f, 1.0f) *
+			  TEN::Effects::Environment::EnvironmentController::MAX_BASE_WIND_STRENGTH
+			: 0.0f;
+
+		// Normalize the supplied direction in case the script passed a
+		// non-unit vector.
+		float dirLen = std::sqrt(dirX * dirX + dirY * dirY);
+		if (dirLen > 0.0001f)
+		{
+			dirX /= dirLen;
+			dirY /= dirLen;
+		}
+		else
+		{
+			dirX = 0.0f;
+			dirY = 0.0f;
+		}
+
+		TEN::Effects::Environment::Weather.SetBaseWind(dirX * magnitude, dirY * magnitude);
 	}
 
 	CloudQualityPreset SkyCloudSystem::GetGlobalQuality() const
@@ -2199,11 +2213,7 @@ namespace TEN::Sky
 	{
 		auto s = _currentState.CloudA.ToRenderSettings();
 		s.DriftOutProgress = _driftOutA.Active ? _driftOutA.Progress : 0.0f;
-		if (_globalWindSet)
-		{
-			s.WindDirection = Vector2(_globalWindDirX, _globalWindDirY);
-			s.WindSpeed     = _globalWindSpeed;
-		}
+		ApplyGlobalWindToRenderSettings(s);
 		return s;
 	}
 
@@ -2211,12 +2221,40 @@ namespace TEN::Sky
 	{
 		auto s = _currentState.CloudB.ToRenderSettings();
 		s.DriftOutProgress = _driftOutB.Active ? _driftOutB.Progress : 0.0f;
-		if (_globalWindSet)
-		{
-			s.WindDirection = Vector2(_globalWindDirX, _globalWindDirY);
-			s.WindSpeed     = _globalWindSpeed;
-		}
+		ApplyGlobalWindToRenderSettings(s);
 		return s;
+	}
+
+	void SkyCloudSystem::ApplyGlobalWindToRenderSettings(CloudRenderSettings& s) const
+	{
+		// Always derive cloud wind from the engine-wide base wind so that any
+		// wind change (Lua or debug menu) immediately drives the clouds without
+		// touching per-preset values. The base wind has no random fluctuation,
+		// so cloud motion stays constant regardless of how particles or hair
+		// are gusting.
+		auto baseWind = TEN::Effects::Environment::Weather.BaseWind();
+		float magnitude = std::sqrt(baseWind.x * baseWind.x + baseWind.z * baseWind.z);
+
+		const float MAX_WIND = TEN::Effects::Environment::EnvironmentController::MAX_BASE_WIND_STRENGTH;
+
+		// Map magnitude [0..MAX] to cloud world-space speed [0..CLOUD_SPEED_MAX].
+		// CLOUD_SPEED_MAX matches the historical Lua windSpeed maximum of 8.0 so
+		// that a full-strength widget point produces the same drift speed that
+		// windSpeed = 8 did in the old Gameflow.lua API.
+		constexpr float CLOUD_SPEED_MAX = 8.0f;
+		float speed = (MAX_WIND > 0.0f) ? (magnitude / MAX_WIND) * CLOUD_SPEED_MAX : 0.0f;
+
+		if (magnitude > 0.0001f)
+		{
+			// Negate direction: in the engine +Z points South, so the widget's
+			// convention (up = North = +Z) must be flipped for the cloud shader.
+			s.WindDirection = Vector2(-baseWind.x / magnitude, -baseWind.z / magnitude);
+			s.WindSpeed     = speed;
+		}
+		else
+		{
+			s.WindSpeed = 0.0f;
+		}
 	}
 
 	bool SkyCloudSystem::IsCloudAActive() const

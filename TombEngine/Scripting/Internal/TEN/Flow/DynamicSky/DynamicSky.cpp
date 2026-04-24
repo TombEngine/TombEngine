@@ -20,9 +20,6 @@ Use it from Gameflow.lua via:
 
     level.dynamicSky.Clouds.enabled           = true
     level.dynamicSky.Clouds.startPreset       = "Thunderstorm"
-    level.dynamicSky.Clouds.windSpeed         = 0.27
-    level.dynamicSky.Clouds.windDirectionX    = 1.0
-    level.dynamicSky.Clouds.windDirectionZ    = 0.0
     level.dynamicSky.Clouds.transformDuration = 35
     level.dynamicSky.Clouds.changePresets     = {
         ClearSky    = { duration = 30, percent = 50 },
@@ -115,18 +112,6 @@ namespace TEN::Scripting
 			// Same names accepted by Flow.SetWeatherPreset / Flow.TransitionWeather.
 			// @mem startPreset
 			"startPreset", &DynamicSkyClouds::StartPreset,
-
-			/// (float) Cloud wind speed for this level. Range 0.0 - 8.0. Negative = global.
-			// @mem windSpeed
-			"windSpeed", &DynamicSkyClouds::WindSpeed,
-
-			/// (float) X component of the wind direction vector. Range -1.0 - 1.0.
-			// @mem windDirectionX
-			"windDirectionX", &DynamicSkyClouds::WindDirectionX,
-
-			/// (float) Z component of the wind direction vector. Range -1.0 - 1.0.
-			// @mem windDirectionZ
-			"windDirectionZ", &DynamicSkyClouds::WindDirectionZ,
 
 			/// (float) CloudMorph transition duration in seconds for this level.
 			// Negative = per-preset default.

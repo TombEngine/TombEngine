@@ -28,6 +28,7 @@
 
 #include "Game/control/control.h"
 #include "Game/Effects/LensFlareDebug.h"
+#include "Game/effects/weather.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/Aurora/AuroraSettings.h"
 #include "Renderer/GodRay/GodRaySettings.h"
@@ -1910,6 +1911,192 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 	}
 
 	// ====================================================================
+	// Wind Direction Widget — circular control similar to the moon widget.
+	// X axis = East/West (right = East, left = West).
+	// Y axis = North/South (up = North, down = South).
+	// Distance from center = wind strength [0..1].
+	// ====================================================================
+
+	static constexpr float WIND_WIDGET_SIZE  = 220.0f;
+	static constexpr float WIND_POINT_RADIUS = 7.0f;
+	static constexpr float WIND_HIT_RADIUS   = 12.0f;
+
+	// Returns true while dragging or when the value changed this frame.
+	static bool DrawWindWidget(float& outNormX, float& outNormZ)
+	{
+		bool changed = false;
+		float halfSize = WIND_WIDGET_SIZE * 0.5f;
+		float radius   = halfSize - 6.0f;
+
+		ImVec2 canvasPos = ImGui::GetCursorScreenPos();
+		ImVec2 center    = ImVec2(canvasPos.x + halfSize, canvasPos.y + halfSize);
+
+		ImGui::InvisibleButton("##windWidget", ImVec2(WIND_WIDGET_SIZE, WIND_WIDGET_SIZE));
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+		// Background.
+		drawList->AddRectFilled(canvasPos,
+			ImVec2(canvasPos.x + WIND_WIDGET_SIZE, canvasPos.y + WIND_WIDGET_SIZE),
+			IM_COL32(20, 25, 35, 255));
+		drawList->AddRect(canvasPos,
+			ImVec2(canvasPos.x + WIND_WIDGET_SIZE, canvasPos.y + WIND_WIDGET_SIZE),
+			IM_COL32(70, 80, 110, 255));
+
+		// Concentric strength rings (25 / 50 / 75 / 100 %).
+		drawList->AddCircle(center, radius * 0.25f, IM_COL32(60, 70, 90, 180), 64, 1.0f);
+		drawList->AddCircle(center, radius * 0.50f, IM_COL32(60, 70, 90, 180), 64, 1.0f);
+		drawList->AddCircle(center, radius * 0.75f, IM_COL32(60, 70, 90, 180), 64, 1.0f);
+		drawList->AddCircle(center, radius,         IM_COL32(80, 100, 140, 220), 64, 1.5f);
+
+		// Crosshairs.
+		drawList->AddLine(ImVec2(center.x - radius, center.y), ImVec2(center.x + radius, center.y), IM_COL32(50, 55, 75, 160));
+		drawList->AddLine(ImVec2(center.x, center.y - radius), ImVec2(center.x, center.y + radius), IM_COL32(50, 55, 75, 160));
+
+		// Compass labels.
+		drawList->AddText(ImVec2(center.x - 5, canvasPos.y + 2),                                IM_COL32(180, 190, 220, 220), "N");
+		drawList->AddText(ImVec2(center.x - 5, canvasPos.y + WIND_WIDGET_SIZE - 16),            IM_COL32(180, 190, 220, 220), "S");
+		drawList->AddText(ImVec2(canvasPos.x + 4, center.y - 8),                                 IM_COL32(180, 190, 220, 220), "W");
+		drawList->AddText(ImVec2(canvasPos.x + WIND_WIDGET_SIZE - 12, center.y - 8),             IM_COL32(180, 190, 220, 220), "E");
+		drawList->AddCircle(center, 3.0f, IM_COL32(120, 130, 160, 200), 16, 1.0f);
+
+		// Map current normalized vector (range [-1..1]) to screen.
+		// Widget convention: up == -Z (North), right == +X (East).
+		ImVec2 screenPoint = ImVec2(
+			center.x + outNormX * radius,
+			center.y - outNormZ * radius);
+
+		// Interaction.
+		static bool windDragging = false;
+		ImVec2 mousePos = ImGui::GetIO().MousePos;
+		bool   mouseDown = ImGui::GetIO().MouseDown[0];
+
+		float distToPoint = std::sqrt(
+			(mousePos.x - screenPoint.x) * (mousePos.x - screenPoint.x) +
+			(mousePos.y - screenPoint.y) * (mousePos.y - screenPoint.y));
+		float distToCenter = std::sqrt(
+			(mousePos.x - center.x) * (mousePos.x - center.x) +
+			(mousePos.y - center.y) * (mousePos.y - center.y));
+
+		if (ImGui::IsItemActive() && mouseDown)
+		{
+			if (!windDragging && (distToPoint < WIND_HIT_RADIUS || distToCenter <= radius))
+				windDragging = true;
+		}
+		else
+		{
+			windDragging = false;
+		}
+
+		if (windDragging)
+		{
+			float nx = (mousePos.x - center.x) / radius;
+			float nz = -(mousePos.y - center.y) / radius;
+
+			float len = std::sqrt(nx * nx + nz * nz);
+			if (len > 1.0f)
+			{
+				nx /= len;
+				nz /= len;
+			}
+
+			outNormX = nx;
+			outNormZ = nz;
+			changed = true;
+
+			screenPoint = ImVec2(
+				center.x + outNormX * radius,
+				center.y - outNormZ * radius);
+		}
+
+		// Wind point glow.
+		drawList->AddCircleFilled(screenPoint, WIND_POINT_RADIUS + 3.0f, IM_COL32(180, 220, 255, 60));
+		drawList->AddCircleFilled(screenPoint, WIND_POINT_RADIUS,        IM_COL32(220, 235, 255, 255));
+		drawList->AddCircle(screenPoint, WIND_POINT_RADIUS,              IM_COL32(255, 255, 255, 255), 0, 1.5f);
+		if (windDragging)
+			drawList->AddCircle(screenPoint, WIND_POINT_RADIUS + 5.0f, IM_COL32(180, 220, 255, 180), 0, 2.0f);
+
+		return changed;
+	}
+
+	// ====================================================================
+	// Wind debug content
+	// ====================================================================
+
+	static void DrawWindTabContent()
+	{
+		using namespace TEN::Effects::Environment;
+
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		ImGui::TextWrapped(
+			"Drag the point inside the circle to set the steady wind direction "
+			"and strength. Up = North, Right = East. The center is calm (no wind).");
+		ImGui::Spacing();
+
+		// Pull current base wind and convert to normalized [-1..1] coordinates.
+		auto currentWind = Weather.BaseWind();
+		const float MAX_WIND = EnvironmentController::MAX_BASE_WIND_STRENGTH;
+		float normX = std::clamp(currentWind.x / MAX_WIND, -1.0f, 1.0f);
+		float normZ = std::clamp(currentWind.z / MAX_WIND, -1.0f, 1.0f);
+
+		// Layout: widget on the left, info panel on the right.
+		ImGui::BeginGroup();
+		bool changed = DrawWindWidget(normX, normZ);
+		ImGui::EndGroup();
+
+		ImGui::SameLine();
+		ImGui::BeginGroup();
+
+		float magnitude = std::sqrt(normX * normX + normZ * normZ);
+		float strengthPct = magnitude * 100.0f;
+
+		// Compass bearing (0 deg = North, 90 deg = East).
+		float bearing = 0.0f;
+		const char* compass = "Calm";
+		if (magnitude > 0.001f)
+		{
+			bearing = std::atan2(normX, -normZ) * (180.0f / 3.14159265f);
+			if (bearing < 0.0f)
+				bearing += 360.0f;
+
+			static const char* DIRS[] = {
+				"N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+				"S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
+			};
+			int idx = (int)((bearing + 11.25f) / 22.5f) & 0xF;
+			compass = DIRS[idx];
+		}
+
+		ImGui::Text("Direction: %s", compass);
+		ImGui::Text("Bearing:   %.1f deg", bearing);
+		ImGui::Text("Strength:  %.1f %%", strengthPct);
+		ImGui::Spacing();
+		ImGui::Text("Vector X:  %+.3f", normX * MAX_WIND);
+		ImGui::Text("Vector Z:  %+.3f", normZ * MAX_WIND);
+
+		ImGui::Spacing();
+		if (ImGui::Button("Calm (no wind)"))
+		{
+			normX   = 0.0f;
+			normZ   = 0.0f;
+			changed = true;
+		}
+
+		ImGui::EndGroup();
+
+		if (changed)
+			Weather.SetBaseWind(normX * MAX_WIND, normZ * MAX_WIND);
+
+		ImGui::Spacing();
+		ImGui::Separator();
+		ImGui::TextWrapped(
+			"This wind drives Lara's ponytail, particles, and the AltocumulusMid "
+			"cloud layer. Particles and hair add a randomised gust on top, but the "
+			"clouds always move with the steady value shown above.");
+	}
+
+	// ====================================================================
 
 	void DrawSkyDebugWindow()
 	{
@@ -1947,6 +2134,12 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 			if (ImGui::BeginTabItem("God Rays"))
 			{
 				DrawGodRayTabContent();
+				ImGui::EndTabItem();
+			}
+
+			if (ImGui::BeginTabItem("Wind"))
+			{
+				DrawWindTabContent();
 				ImGui::EndTabItem();
 			}
 

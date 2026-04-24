@@ -35,6 +35,13 @@ struct Level : public ScriptInterfaceLevel
 	bool		Storm				= false;
 	bool		Rumble				= false;
 
+	// Steady wind for this level. WindSpeed <= 0 means no override (keeps
+	// any wind set globally from Settings.lua via Flow.SetCloudWind).
+	// WindSpeed range 0..8 maps to cloud drift and particle / hair movement.
+	float		WindSpeed			= -1.0f;
+	float		WindDirectionX		= 1.0f;
+	float		WindDirectionZ		= 0.0f;
+
 	LaraType Type = LaraType::Normal;
 	int LevelSecrets = 0;
 	std::vector<InventoryItem> InventoryObjects = {};

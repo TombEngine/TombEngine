@@ -466,9 +466,10 @@ namespace TEN::Sky
 		float GetCloudBDriftOutProgress() const;
 
 		// --- Global wind ---
-		// Applies the active wind direction and speed to all cloud layers.
-		// Wind is always driven by level.volumetricClouds (Gameflow.lua) or
-		// Flow.SetCloudWind() (Settings.lua) and stays constant across all preset transitions.
+		// Backwards-compatibility wrapper for Flow.SetCloudWind(). Translates a
+		// (direction, speed) tuple into the engine-wide base wind vector
+		// (TEN::Effects::Environment::Weather), which then drives every
+		// volumetric cloud layer through GetCloudA/BRenderSettings().
 		void SetGlobalWind(float dirX, float dirY, float speed);
 
 		// --- Global rendering quality ---
@@ -549,6 +550,10 @@ namespace TEN::Sky
 		bool UpdateLayerTransition(float deltaTime, LayerTransitionState& layerTr,
 		                          VolumetricCloudLayerSnapshot& current);
 
+		// Apply the engine-wide base wind (TEN::Effects::Environment::Weather)
+		// to a CloudRenderSettings instance. Used by both layer accessors.
+		void ApplyGlobalWindToRenderSettings(CloudRenderSettings& s) const;
+
 		// --- Data ---
 		std::unordered_map<WeatherPresetType, WeatherPresetDefinition> _presets;
 		SkyCloudSnapshot       _currentState;
@@ -580,14 +585,6 @@ namespace TEN::Sky
 
 		LayerDwellState _layerDwellB;
 		std::mt19937 _dwellRNG; // separate RNG for dwell randomization
-
-		// Global wind override — when IsSet is true, overrides per-preset wind in
-		// GetCloudARenderSettings() and GetCloudBRenderSettings() so all layers use
-		// a single wind value regardless of which preset is active or transitioning.
-		float _globalWindDirX  = 1.0f;
-		float _globalWindDirY  = 0.0f;
-		float _globalWindSpeed = 0.003f;
-		bool  _globalWindSet   = false;
 
 		// Global rendering quality — set from level.volumetricClouds.quality at level load.
 		CloudQualityPreset _globalQuality = CloudQualityPreset::Medium;
