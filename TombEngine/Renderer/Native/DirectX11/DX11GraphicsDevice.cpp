@@ -31,9 +31,6 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::BindVertexBuffer(IVertexBuffer* vertexBuffer)
 	{
-		if (_cachedVertexBuffer == vertexBuffer)
-			return;
-
 		auto nativeVertexBuffer = static_cast<DX11VertexBuffer*>(vertexBuffer);
 
 		unsigned int stride = nativeVertexBuffer->GetStride();
@@ -42,8 +39,6 @@ namespace TEN::Renderer::Native::DirectX11
 		auto d3dBuffer = nativeVertexBuffer->GetD3D11Buffer();
 
 		_context->IASetVertexBuffers(0, 1, &d3dBuffer, &stride, &offset);
-
-		_cachedVertexBuffer = vertexBuffer;
 	}
 
 	std::unique_ptr<IIndexBuffer> DX11GraphicsDevice::CreateIndexBuffer(int numIndices, int* indices)
@@ -59,15 +54,10 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::BindIndexBuffer(IIndexBuffer* indexBuffer)
 	{
-		if (_cachedIndexBuffer == indexBuffer)
-			return;
-
 		auto nativeIndexBuffer = static_cast<DX11IndexBuffer*>(indexBuffer);
 		auto d3dBuffer = nativeIndexBuffer->GetD3D11Buffer();
 
 		_context->IASetIndexBuffer(d3dBuffer, DXGI_FORMAT_R32_UINT, 0);
-
-		_cachedIndexBuffer = indexBuffer;
 	}
 
 	std::unique_ptr<IRenderSurface2D> DX11GraphicsDevice::CreateRenderSurface2D(int width, int height, SurfaceFormat colorFormat, bool isTypeless, DepthFormat depthFormat)
@@ -266,15 +256,9 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType)
 	{
-		unsigned int slot = (unsigned int)registerType;
-		if (slot < MAX_TEX_SLOTS
-			&& _cachedTextures[slot] == texture
-			&& _cachedSamplers[slot] == samplerType)
-			return;
-
 		auto* d3dShaderResourceView = GetD3D11ShaderResourceView(texture);
 
-		_context->PSSetShaderResources(slot, 1, &d3dShaderResourceView);
+		_context->PSSetShaderResources((unsigned int)registerType, 1, &d3dShaderResourceView);
 
 		ID3D11SamplerState* d3dSamplerState = nullptr;
 		switch (samplerType)
@@ -307,69 +291,43 @@ namespace TEN::Renderer::Native::DirectX11
 			return;
 		}
 
-		_context->PSSetSamplers(slot, 1, &d3dSamplerState);
-
-		if (slot < MAX_TEX_SLOTS)
-		{
-			_cachedTextures[slot] = texture;
-			_cachedSamplers[slot] = samplerType;
-		}
+		_context->PSSetSamplers((unsigned int)registerType, 1, &d3dSamplerState);
 	}
 
 	void DX11GraphicsDevice::BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer)
 	{
-		unsigned int slot = (unsigned int)constantBufferType;
-
-		IConstantBuffer** cache = nullptr;
-		if (slot < MAX_CB_SLOTS)
-		{
-			switch (shaderStage)
-			{
-			case ShaderStage::VertexShader:   cache = &_cachedCBsVS[slot]; break;
-			case ShaderStage::GeometryShader: cache = &_cachedCBsGS[slot]; break;
-			case ShaderStage::PixelShader:    cache = &_cachedCBsPS[slot]; break;
-			default: break; // Compute/Hull/Domain aren't cached — rarely used here.
-			}
-		}
-
-		if (cache != nullptr && *cache == buffer)
-			return;
-
 		auto nativeConstantBuffer = static_cast<DX11ConstantBuffer*>(buffer);
 		auto d3dBuffer = nativeConstantBuffer->GetD3D11Buffer();
 
 		switch (shaderStage)
 		{
 		case ShaderStage::VertexShader:
-			_context->VSSetConstantBuffers(slot, 1, &d3dBuffer);
+			_context->VSSetConstantBuffers((unsigned int)constantBufferType, 1, &d3dBuffer);
 			break;
 
 		case ShaderStage::GeometryShader:
-			_context->GSSetConstantBuffers(slot, 1, &d3dBuffer);
+			_context->GSSetConstantBuffers((unsigned int)constantBufferType, 1, &d3dBuffer);
 			break;
 
 		case ShaderStage::PixelShader:
-			_context->PSSetConstantBuffers(slot, 1, &d3dBuffer);
+			_context->PSSetConstantBuffers((unsigned int)constantBufferType, 1, &d3dBuffer);
 			break;
 
 		case ShaderStage::ComputeShader:
-			_context->CSSetConstantBuffers(slot, 1, &d3dBuffer);
+			_context->CSSetConstantBuffers((unsigned int)constantBufferType, 1, &d3dBuffer);
 			break;
 
 		case ShaderStage::HullShader:
-			_context->HSSetConstantBuffers(slot, 1, &d3dBuffer);
+			_context->HSSetConstantBuffers((unsigned int)constantBufferType, 1, &d3dBuffer);
 			break;
 
 		case ShaderStage::DomainShader:
-			_context->DSSetConstantBuffers(slot, 1, &d3dBuffer);
+			_context->DSSetConstantBuffers((unsigned int)constantBufferType, 1, &d3dBuffer);
 			break;
 
 		default:
 			break;
 		}
-
-		if (cache != nullptr)
-			*cache = buffer;
 	}
 
 	std::unique_ptr<IConstantBuffer> DX11GraphicsDevice::CreateConstantBuffer(int size, std::wstring name)
@@ -440,10 +398,6 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 
 		_context->OMSetRenderTargets(1, &d3dRenderTargetView, d3dDepthStencilView);
-
-		// D3D11 silently unbinds an SRV if the resource behind it is now being written as RT.
-		// Invalidate our texture cache so the next BindTexture actually issues the call.
-		for (int i = 0; i < MAX_TEX_SLOTS; ++i) _cachedTextures[i] = nullptr;
 	}
 
 	void DX11GraphicsDevice::BindRenderTarget(IRenderTargetBinding renderTarget, IDepthTargetBinding depthTarget)
@@ -459,8 +413,6 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 
 		_context->OMSetRenderTargets(1, &d3dRenderTargetView, d3dDepthStencilView);
-
-		for (int i = 0; i < MAX_TEX_SLOTS; ++i) _cachedTextures[i] = nullptr;
 	}
 
 	void DX11GraphicsDevice::BindRenderTargets(std::vector<IRenderTarget2D*> renderTargets, IDepthTarget* depthTarget)
@@ -482,8 +434,6 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 
 		_context->OMSetRenderTargets((int)d3dRenderTargetViews.size(), d3dRenderTargetViews.data(), d3dDepthStencilView);
-
-		for (int i = 0; i < MAX_TEX_SLOTS; ++i) _cachedTextures[i] = nullptr;
 	}
 
 	void DX11GraphicsDevice::BindRenderTargets(std::vector<IRenderTargetBinding> renderTargets, IDepthTargetBinding depthTarget)
@@ -505,8 +455,6 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 
 		_context->OMSetRenderTargets((int)d3dRenderTargetViews.size(), d3dRenderTargetViews.data(), d3dDepthStencilView);
-
-		for (int i = 0; i < MAX_TEX_SLOTS; ++i) _cachedTextures[i] = nullptr;
 	}
 
 	void DX11GraphicsDevice::SetViewport(RendererViewport viewport)
@@ -1059,23 +1007,10 @@ namespace TEN::Renderer::Native::DirectX11
 	{
 		_context->ClearState();
 
-		// Anything D3D11 remembered is gone, so invalidate our cache too — the next Set*/
-		// BindPipeline has to apply everything, not assume the cached state matches reality.
+		// Anything D3D11 remembered is gone, so invalidate the pipeline cache too — the next
+		// Set*/BindPipeline has to apply everything, not assume the cache matches reality.
 		_cachedPipeline = { BlendMode::Unknown, DepthState::Unknown, CullMode::Unknown,
 							PrimitiveType::TriangleList, Shader::None, nullptr };
-		_cachedVertexBuffer = nullptr;
-		_cachedIndexBuffer  = nullptr;
-		for (int i = 0; i < MAX_TEX_SLOTS; ++i)
-		{
-			_cachedTextures[i] = nullptr;
-			_cachedSamplers[i] = SamplerStateRegister::None;
-		}
-		for (int i = 0; i < MAX_CB_SLOTS; ++i)
-		{
-			_cachedCBsVS[i] = nullptr;
-			_cachedCBsGS[i] = nullptr;
-			_cachedCBsPS[i] = nullptr;
-		}
 	}
 
 	std::unique_ptr<ISpriteFont> DX11GraphicsDevice::InitializeSpriteFont(std::wstring fontPath)
@@ -1114,8 +1049,6 @@ namespace TEN::Renderer::Native::DirectX11
 	{
 		ID3D11RenderTargetView* nullViews[] = { nullptr };
 		_context->OMSetRenderTargets(0, nullViews, NULL);
-
-		for (int i = 0; i < MAX_TEX_SLOTS; ++i) _cachedTextures[i] = nullptr;
 	}
 
 	void DX11GraphicsDevice::UpdateTexture2D(ITexture2D* texture, std::vector<char> data)
