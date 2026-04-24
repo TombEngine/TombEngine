@@ -584,7 +584,7 @@ namespace TEN::Input
 	{
 		constexpr auto  START_EVENT_ID = EventId::GamepadSouth;
 		constexpr int   AXIS_COUNT     = 2;
-		constexpr float AXIS_DEADZONE  = ((float)SHRT_MAX / 8.0f) / (float)SHRT_MAX;
+		constexpr float AXIS_DEADZONE  = ((float)SHRT_MAX / 4.0f) / (float)SHRT_MAX;
 
 		int eventIdx = (int)START_EVENT_ID;
 
