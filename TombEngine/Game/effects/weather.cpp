@@ -479,22 +479,22 @@ namespace TEN::Effects::Environment
 			{
 			case WeatherType::Snow:
 
-				if (part.Velocity.x < (WindX << 2))
-				{
-					part.Velocity.x += Random::GenerateFloat(0.5f, 2.5f);
-				}
-				else if (part.Velocity.x > (WindX << 2))
-				{
-					part.Velocity.x -= Random::GenerateFloat(0.5f, 2.5f);
-				}
+if (part.Velocity.x < (WindX << 3))
+			{
+				part.Velocity.x += Random::GenerateFloat(1.0f, 4.0f);
+			}
+			else if (part.Velocity.x > (WindX << 3))
+			{
+				part.Velocity.x -= Random::GenerateFloat(1.0f, 4.0f);
+			}
 
-				if (part.Velocity.z < (WindZ << 2))
-				{
-					part.Velocity.z += Random::GenerateFloat(0.5f, 2.5f);
-				}
-				else if (part.Velocity.z > (WindZ << 2))
-				{
-					part.Velocity.z -= Random::GenerateFloat(0.5f, 2.5f);
+				if (part.Velocity.z < (WindZ << 3))
+			{
+				part.Velocity.z += Random::GenerateFloat(1.0f, 4.0f);
+			}
+				else if (part.Velocity.z > (WindZ << 3))
+			{
+				part.Velocity.z -= Random::GenerateFloat(1.0f, 4.0f);
 				}
 
 				if (part.Velocity.y < part.Size / 2)
@@ -503,39 +503,37 @@ namespace TEN::Effects::Environment
 				break;
 
 			case WeatherType::Rain:
+			{
+				// Use steady base wind (x12) as target so direction is always symmetric
+				// and compass-accurate regardless of the random-walk fluctuation.
+				// At full wind (BaseWindX = 9) horizontal target = 108 units/frame vs
+				// ~96 vertical effective -- just past 45 deg for average drops.
+				int rainTargetX = (int)(BaseWindX * 12.0f);
+				int rainTargetZ = (int)(BaseWindZ * 12.0f);
 
-				auto random = Random::GenerateInt();
-				if ((random & 3) != 3)
+				if (part.Velocity.x < rainTargetX)
 				{
-					part.Velocity.x += (float)((random & 3) - 1);
-					if (part.Velocity.x < -4)
-					{
-						part.Velocity.x = -4;
-					}
-					else if (part.Velocity.x > 4)
-					{
-						part.Velocity.x = 4;
-					}
+					part.Velocity.x += Random::GenerateFloat(4.0f, 12.0f);
+				}
+				else if (part.Velocity.x > rainTargetX)
+				{
+					part.Velocity.x -= Random::GenerateFloat(4.0f, 12.0f);
 				}
 
-				random = (random >> 2) & 3;
-				if (random != 3)
+				if (part.Velocity.z < rainTargetZ)
 				{
-					part.Velocity.z += random - 1;
-					if (part.Velocity.z < -4)
-					{
-						part.Velocity.z = -4;
-					}
-					else if (part.Velocity.z > 4)
-					{
-						part.Velocity.z = 4;
-					}
+					part.Velocity.z += Random::GenerateFloat(4.0f, 12.0f);
+				}
+				else if (part.Velocity.z > rainTargetZ)
+				{
+					part.Velocity.z -= Random::GenerateFloat(4.0f, 12.0f);
 				}
 
 				if (part.Velocity.y < part.Size * 2 * std::clamp(level.GetWeatherStrength(), 0.6f, 1.0f))
 					part.Velocity.y += part.Size / 5.0f;
 
 				break;
+			}
 			}
 		}
 	}
@@ -664,8 +662,20 @@ namespace TEN::Effects::Environment
 					break;
 				}
 
-				part.Velocity.x = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
-				part.Velocity.z = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
+				// Align initial horizontal velocity with the steady base wind so that
+				// freshly spawned particles immediately drift in the correct direction.
+				float windMag = std::sqrt(BaseWindX * BaseWindX + BaseWindZ * BaseWindZ);
+				float initH = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
+				if (windMag > 0.0f)
+				{
+					part.Velocity.x = (BaseWindX / windMag) * initH;
+					part.Velocity.z = (BaseWindZ / windMag) * initH;
+				}
+				else
+				{
+					part.Velocity.x = initH;
+					part.Velocity.z = initH;
+				}
 
 				part.UniqueID = (int)Particles.size();
 				part.Type = level.GetWeatherType();
