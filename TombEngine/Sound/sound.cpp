@@ -54,11 +54,11 @@ std::vector<SubtitleItem*> Subtitles;
 constexpr int LegacyLoopingTrackMin = 98;
 constexpr int LegacyLoopingTrackMax = 111;
 
+static bool BASSInitialized = false;
 static int SecretSoundIndex = 5;
 static int GlobalMusicVolume;
 static int GlobalFXVolume;
-static bool BASS_Initialized = false;
-static int  CurrentReverbType = NO_VALUE;
+static int CurrentReverbType = NO_VALUE;
 
 static Vector3 oldMikePos = Vector3::Zero;
 
@@ -1072,7 +1072,7 @@ void Sound_Init(const std::string& gameDirectory)
 	if (Sound_CheckBASSError("Initializing BASS sound device", true))
 		return;
 
-	BASS_Initialized = true;
+	BASSInitialized = true;
 
 	// Initialize BASS_FX plugin.
 	BASS_FX_GetVersion();
@@ -1090,19 +1090,19 @@ void Sound_Init(const std::string& gameDirectory)
 // Must be called on engine quit.
 void Sound_DeInit()
 {
-	if (!BASS_Initialized)
+	if (!BASSInitialized)
 		return;
 
 	TENLog("Shutting down BASS...", LogLevel::Info);
 	BASS_Free();
-	BASS_Initialized = false;
+	BASSInitialized = false;
 
 	g_Platform->ReleaseAudioCodecs();
 }
 
 void Sound_Reset()
 {
-	if (!BASS_Initialized)
+	if (!BASSInitialized)
 		return;
 
 	if (!g_Configuration.EnableSound)

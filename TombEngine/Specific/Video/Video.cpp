@@ -426,13 +426,6 @@ namespace TEN::Video
 
 		auto state = libvlc_media_player_get_state(_player);
 
-		static auto lastLoggedState = libvlc_NothingSpecial;
-		if (state != lastLoggedState)
-		{
-			TENLog("VLC state: " + std::to_string((int)state), LogLevel::Info);
-			lastLoggedState = state;
-		}
-
 		// If player is just opening or buffering, always return early and wait for process to end.
 		if (state == libvlc_Opening || state == libvlc_Buffering)
 			return;
@@ -442,8 +435,7 @@ namespace TEN::Video
 			libvlc_media_player_play(_player);
 
 		// If user pressed a key to break out from video, video has finished playback, or VLC failed, stop and delete it.
-		if (interruptPlayback || state == libvlc_Error ||
-			state == libvlc_Stopping || state == libvlc_Stopped)
+		if (interruptPlayback || state == libvlc_Error || state == libvlc_Stopping || state == libvlc_Stopped)
 		{
 			Stop();
 			ClearAction(In::Pause); // HACK: Otherwise pause key won't work after video ends.
@@ -551,13 +543,6 @@ namespace TEN::Video
 		auto* player = static_cast<VideoHandler*>(data);
 		player->_needRender = true;
 
-		static bool firstFrame = true;
-		if (firstFrame)
-		{
-			TENLog("VLC first frame decoded", LogLevel::Info);
-			firstFrame = false;
-		}
-
 		if (player->_playbackMode == VideoPlaybackMode::Exclusive)
 			player->_updateInput = true;
 	}
@@ -606,8 +591,6 @@ namespace TEN::Video
 
 	unsigned int VideoHandler::OnVideoSetup(void** data, char* chroma, unsigned* width, unsigned* height, unsigned* pitches, unsigned* lines)
 	{
-		TENLog("VLC OnVideoSetup: " + std::to_string(*width) + "x" + std::to_string(*height), LogLevel::Info);
-
 		strncpy(chroma, "BGRA", 4);
 
 		*pitches = *width * 4;

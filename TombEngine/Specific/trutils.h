@@ -19,6 +19,7 @@ namespace TEN::Utils
 	std::string  Trim(std::string string);
 	bool         StartsWith(const std::string& string, const char* pref);
 	int          ToInt(const std::string& string, int fallback);
+	float        ToFloat(const std::string& string, float fallback);
 	bool         ToBool(const std::string& string, bool fallback);
 
 	std::vector<std::wstring> SplitString(const std::wstring& string);

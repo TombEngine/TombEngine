@@ -246,19 +246,11 @@ int main(int argc, char* argv[])
 	g_Platform = CreatePlatformSubsystem();
 	g_Platform->Initialize();
 	g_Platform->CheckPrerequisites();
-	
-	// Initialize SDL3.
-	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS))
-	{
-		// Handle error.
-		return 1;
-	}
 
 	// Process command line arguments.
 	auto levelFile = std::string();
 	auto gameDir = std::string();
 
-	// Parse command line arguments.
 	for (int i = 1; i < argc; ++i)
 	{
 		auto arg = std::string(argv[i]);
@@ -284,6 +276,20 @@ int main(int argc, char* argv[])
 	// Construct asset directory.
 	GameDirectory = ConstructAssetDirectory(gameDir);
 
+	// Initialize logging as early as possible so any later failure is captured.
+	InitTENLog(GameDirectory);
+	g_Platform->InstallCrashHandler();
+
+	// Initialize SDL3.
+	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS))
+	{
+		auto error = std::string("Failed to initialize SDL: ") + SDL_GetError();
+		TENLog(error, LogLevel::Error);
+		g_Platform->ShowErrorMessage(error);
+		ShutdownTENLog();
+		return 1;
+	}
+
 	// Hide console window if mode isn't debug.
 #if !_DEBUG
 	if (!DebugMode)
@@ -299,10 +305,6 @@ int main(int argc, char* argv[])
 
 		g_Platform->ConfigureConsole();
 	}
-
-	// Initialize logging.
-	InitTENLog(GameDirectory);
-	g_Platform->InstallCrashHandler();
 
 	auto windowName = std::string("Starting Tomb Engine");
 

@@ -54,8 +54,8 @@ namespace TEN::Renderer::Native::DirectX11
 		if (SUCCEEDED(res))
 		{
 			void* dataPtr = (mappedResource.pData);
-			auto* src = static_cast<std::byte*>(data) + startVertex * _stride;
-			std::memcpy(dataPtr, src, static_cast<size_t>(count) * _stride);
+			auto* src = (unsigned char*)data + startVertex * _stride;
+			std::memcpy(dataPtr, src, (size_t)count * _stride);
 			context->Unmap(_buffer.Get(), 0);
 			return true;
 		}

@@ -130,6 +130,18 @@ namespace TEN::Utils
 		}
 	}
 
+	float ToFloat(const std::string& string, float fallback)
+	{
+		try
+		{
+			return std::stof(string);
+		}
+		catch (...)
+		{
+			return fallback;
+		}
+	}
+
 	bool ToBool(const std::string& string, bool fallback)
 	{
 		if (string == "1" || string == "true" || string == "True" || string == "TRUE")

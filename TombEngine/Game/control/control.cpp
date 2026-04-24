@@ -583,7 +583,7 @@ void CleanUp()
 	g_Renderer.ClearScene();
 	g_Renderer.SetPostProcessMode(PostProcessMode::None);
 	g_Renderer.SetPostProcessStrength(1.0f);
-	g_Renderer.SetPostProcessTint(Vector3::One);
+	g_Renderer.SetPostProcessTint((Vector3)NEUTRAL_COLOR);
 
 	// Reset Itemcamera
 	ClearObjCamera();

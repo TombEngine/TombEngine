@@ -3,11 +3,11 @@
 #ifdef SDL_PLATFORM_WIN32
 
 #include <d3d11.h>
+#include <memory>
+#include <SpriteFont.h>
+#include <wrl/client.h>
 #include "Renderer/Native/DirectX11/DX11SpriteBatch.h"
 #include "Renderer/Graphics/ISpriteFont.h"
-#include <wrl/client.h>
-#include <SpriteFont.h>
-#include <memory>
 
 namespace TEN::Renderer::Native::DirectX11
 {

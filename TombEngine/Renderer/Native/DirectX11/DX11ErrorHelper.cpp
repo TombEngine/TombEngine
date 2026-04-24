@@ -46,7 +46,7 @@ namespace TEN::Renderer::Native::DirectX11
 		{
 			auto oss = std::ostringstream();
 			oss << "HRESULT 0x" << std::uppercase << std::hex << std::setfill('0') << std::setw(8)
-				<< static_cast<unsigned long>(hr) << ": " << std::system_category().message(hr);
+				<< (unsigned long)hr << ": " << std::system_category().message(hr);
 			return oss.str();
 		}
 		}
