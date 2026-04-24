@@ -18,6 +18,7 @@ local Stats = {}
 
 local statisticsType = false
 local endStatistics = false
+local endLevel = nil
 
 local LEVEL_HEADER_POS = TEN.Vec2(50, 36)
 local HEADER_TEXT_POS = TEN.Vec2(22.4, 43)
@@ -159,10 +160,14 @@ function Stats.IsEndStatisticsEnabled()
     return endStatistics == true
 end
 
-function Stats.SetEndStatistics(value)
+function Stats.SetEndStatistics(value, level)
     endStatistics = value
+    endLevel = level
 end
 
+function Stats.GetEndLevel()
+    return endLevel
+end
 
 function Stats.UpdateIngameTime()
     if Settings.Statistics.progressTime then
