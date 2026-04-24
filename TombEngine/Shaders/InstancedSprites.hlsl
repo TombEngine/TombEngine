@@ -88,6 +88,10 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 
     InstancedSprite sprite = Sprites[input.InstanceID];
 
+    // Sky-object-only effects (RenderType == 3: stars and meteors).
+    if (sprite.RenderType == 3)
+    {
+
     // Moon disk occlusion: discard star/meteor pixels that fall inside the moon.
     // Reconstruct world-space view direction from clip-space position.
     // PositionCopy is the VS clip-space output (before rasterizer), so
@@ -115,6 +119,7 @@ float4 PS(PixelShaderInput input) : SV_TARGET
         float cloudCoverage = saturate(covA + covB - covA * covB);
         output.a *= (1.0f - cloudCoverage);
     }
+    } // RenderType == 3
 	
     if (sprite.IsSoftParticle == 1)
 	{
