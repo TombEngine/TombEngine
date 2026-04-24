@@ -465,6 +465,12 @@ namespace TEN::Renderer
 		void SetCullMode(CullMode cullMode, bool force = false);
 		void SetAlphaTest(AlphaTestMode mode, float threshold, bool force = false);
 		void SetScissor(RendererRectangle rectangle);
+
+		// One-shot pipeline bind: blend+depth+cull+topology+input layout+shader. Replaces
+		// clusters of SetBlendMode/SetDepthState/SetCullMode/SetInputLayout/SetPrimitiveType/
+		// _shaders.Bind at the call site. Each lower-level piece is still gated by the
+		// device-level cache, so repeated BindPipeline with the same state is ~free.
+		void BindPipeline(const TEN::Renderer::Graphics::RenderPipelineState& state);
 		bool SetupBlendModeAndAlphaTest(BlendMode blendMode, RendererPass rendererPass, int drawPass);
 		void SortAndPrepareSprites(RenderView& view);
 		void SortTransparentFaces(RenderView& view);

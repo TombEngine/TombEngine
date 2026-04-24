@@ -2,6 +2,9 @@
 #include "Renderer/Renderer.h"
 
 #include "Game/spotcam.h"
+#include "Renderer/Graphics/Pipelines.h"
+
+using namespace TEN::Renderer::Graphics;
 
 namespace TEN::Renderer
 {
@@ -9,11 +12,10 @@ namespace TEN::Renderer
 	{
 		_doingFullscreenPass = true;
 
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
-		SetDepthState(DepthState::Write);
+		BindPipeline(Pipelines::PostProcess(Shader::PostProcess, _fullScreenVertexInputLayout.get()));
 		_graphicsDevice->SetViewport(view.Viewport);
 		_graphicsDevice->SetScissor(view.Viewport);
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		float screenFadeFactor = renderMode == SceneRenderMode::Full ? ScreenFadeCurrent : 1.0f;
 		float cinematicBarsHeight = renderMode == SceneRenderMode::Full ? CinematicBarsHeight : 0.0f;
@@ -24,12 +26,6 @@ namespace TEN::Renderer
 		_stPostProcessBuffer.EffectStrength = _postProcessStrength;
 		_stPostProcessBuffer.Tint = _postProcessTint;
 		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
-
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
-		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
-
-		_shaders.Bind(Shader::PostProcess);
 
 		// *** START OF POST-PROCESSING CHAIN ***
 		
@@ -146,22 +142,11 @@ namespace TEN::Renderer
 
 	void Renderer::CopyRenderTarget(IRenderSurface2D* source, IRenderSurface2D* dest, RenderView& view)
 	{
-		SetBlendMode(BlendMode::Opaque, true);
-		SetCullMode(CullMode::CounterClockwise, true);
-		SetDepthState(DepthState::Write, true);
+		BindPipeline(Pipelines::PostProcess(Shader::PostProcess, _fullScreenVertexInputLayout.get()));
 		_graphicsDevice->SetViewport(view.Viewport);
 		_graphicsDevice->SetScissor(view.Viewport);
-
-		// Common vertex shader to all fullscreen effects
-		_shaders.Bind(Shader::PostProcess);
-
-		// We draw a fullscreen triangle
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
-
 		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
-		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 		_graphicsDevice->ClearRenderTarget2D(dest->GetRenderTarget(), Colors::Black);
 		_graphicsDevice->BindRenderTarget(dest->GetRenderTarget(), nullptr);
 
@@ -175,16 +160,7 @@ namespace TEN::Renderer
 		_graphicsDevice->SetViewport(viewport);
 		_graphicsDevice->SetScissor(viewport);
 
-		SetBlendMode(BlendMode::Opaque, true);
-		SetCullMode(CullMode::CounterClockwise, true);
-		SetDepthState(DepthState::Write, true);
-
-		// Common vertex shader to all fullscreen effects
-		_shaders.Bind(Shader::PostProcess);
-
-		// We draw a fullscreen triangle
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		BindPipeline(Pipelines::PostProcess(Shader::PostProcess, _fullScreenVertexInputLayout.get()));
 		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		_graphicsDevice->ClearRenderTarget2D(dest->GetRenderTarget(), Colors::Transparent);
@@ -199,21 +175,14 @@ namespace TEN::Renderer
 
 	void Renderer::ApplyGlow(IRenderSurface2D* renderTarget, RenderView& view)
 	{
-		SetBlendMode(BlendMode::Opaque, true);
-		SetCullMode(CullMode::CounterClockwise, true);
-		SetDepthState(DepthState::Write, true);
-
 		RendererViewport viewport = { 0, 0, (int)( _graphicsDevice->GetScreenWidth() / GLOW_DOWNSCALE_FACTOR), (int)( _graphicsDevice->GetScreenHeight() / GLOW_DOWNSCALE_FACTOR), 0.0f, 1.0f };
 		_graphicsDevice->SetViewport(viewport);
 		_graphicsDevice->SetScissor(viewport);
 
-		_shaders.Bind(Shader::PostProcess);
+		BindPipeline(Pipelines::PostProcess(Shader::PostProcess, _fullScreenVertexInputLayout.get()));
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		_stPostProcessBuffer.ViewportSize = Vector2i( _graphicsDevice->GetScreenWidth(),  _graphicsDevice->GetScreenHeight());
-
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
-		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		// Downscale 
 		_shaders.Bind(Shader::Downscale);

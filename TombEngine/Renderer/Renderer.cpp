@@ -315,15 +315,41 @@ namespace TEN::Renderer
 			BindTexture(TextureRegister::SkyboxEnvironmentReflections, _skyboxRenderTarget->GetRenderTarget(), SamplerStateRegister::AnisotropicClamp);
 	}
 
+	void Renderer::BindPipeline(const TEN::Renderer::Graphics::RenderPipelineState& state)
+	{
+		// Legacy SetBlendMode auto-picks a DepthState from the BlendMode, which a PSO-based
+		// caller doesn't want — the PSO already specifies depth explicitly. So we bypass
+		// that helper and only keep what it also did: update _stBlending for shaders that
+		// read the current blend mode.
+		if (state.Blend != _lastBlendMode)
+		{
+			_stBlending.BlendMode = static_cast<unsigned int>(state.Blend);
+			UpdateConstantBuffer(&_stBlending, _cbBlending.get());
+			_lastBlendMode = state.Blend;
+		}
+
+		// Respect wireframe debug override for cull mode (same rule as Renderer::SetCullMode).
+		auto effectiveState = state;
+		if (_debugPage == RendererDebugPage::WireframeMode && !_doingFullscreenPass)
+			effectiveState.Cull = CullMode::Wireframe;
+
+		_graphicsDevice->BindPipeline(effectiveState);
+		_lastDepthState = effectiveState.Depth;
+		_lastCullMode   = effectiveState.Cull;
+
+		if (state.ShaderId != Shader::None)
+			_shaders.Bind(state.ShaderId);
+	}
+
 	void Renderer::SetBlendMode(BlendMode blendMode, bool force)
-	{	
+	{
 		if (blendMode != _lastBlendMode || force)
 		{
 			_graphicsDevice->SetBlendMode(blendMode);
 
 			_stBlending.BlendMode = static_cast<unsigned int>(blendMode);
 			UpdateConstantBuffer(&_stBlending, _cbBlending.get());
-			
+
 			_lastBlendMode = blendMode;
 		}
 

@@ -133,6 +133,9 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::SetBlendMode(BlendMode blendMode)
 	{
+		if (_cachedPipeline.Blend == blendMode)
+			return;
+
 		switch (blendMode)
 		{
 		default:
@@ -172,10 +175,15 @@ namespace TEN::Renderer::Native::DirectX11
 			_context->OMSetBlendState(_renderStates->AlphaBlend(), nullptr, 0xFFFFFFFF);
 			break;
 		}
+
+		_cachedPipeline.Blend = blendMode;
 	}
 
 	void DX11GraphicsDevice::SetDepthState(DepthState depthState)
 	{
+		if (_cachedPipeline.Depth == depthState)
+			return;
+
 		switch (depthState)
 		{
 		case DepthState::Read:
@@ -189,12 +197,16 @@ namespace TEN::Renderer::Native::DirectX11
 		case DepthState::None:
 			_context->OMSetDepthStencilState(_renderStates->DepthNone(), 0xFFFFFFFF);
 			break;
-
 		}
+
+		_cachedPipeline.Depth = depthState;
 	}
 
 	void DX11GraphicsDevice::SetCullMode(CullMode cullMode)
 	{
+		if (_cachedPipeline.Cull == cullMode)
+			return;
+
 		switch (cullMode)
 		{
 		case CullMode::None:
@@ -212,8 +224,23 @@ namespace TEN::Renderer::Native::DirectX11
 		case CullMode::Wireframe:
 			_context->RSSetState(_renderStates->Wireframe());
 			break;
-
 		}
+
+		_cachedPipeline.Cull = cullMode;
+	}
+
+	void DX11GraphicsDevice::BindPipeline(const RenderPipelineState& state)
+	{
+		// Each Set*/SetInputLayout already short-circuits internally; we just route through.
+		// The net effect is one pipeline change → N gated device calls, of which only the
+		// differing fields actually hit D3D11. The SDL_GPU backend will override this entire
+		// method to look up (or lazy-create) a baked SDL_GPUGraphicsPipeline from the cache.
+		SetBlendMode(state.Blend);
+		SetDepthState(state.Depth);
+		SetCullMode(state.Cull);
+		SetPrimitiveType(state.Topology);
+		if (state.InputLayout != nullptr)
+			SetInputLayout(state.InputLayout);
 	}
 
 	void DX11GraphicsDevice::SetScissor(RendererRectangle rectangle)
@@ -456,8 +483,13 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::SetInputLayout(IInputLayout* inputLayout)
 	{
+		if (_cachedPipeline.InputLayout == inputLayout)
+			return;
+
 		auto nativeInputLayout = static_cast<DX11InputLayout*>(inputLayout);
 		_context->IASetInputLayout(nativeInputLayout->GetD3D11InputLayout());
+
+		_cachedPipeline.InputLayout = inputLayout;
 	}
 
 	std::unique_ptr<IInputLayout> DX11GraphicsDevice::CreateInputLayout(std::vector<RendererInputLayoutField> fields, IShader* shader)
@@ -468,10 +500,13 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::SetPrimitiveType(PrimitiveType primitiveType)
 	{
+		if (_cachedPipeline.Topology == primitiveType)
+			return;
+
 		switch (primitiveType)
 		{
 		case PrimitiveType::TriangleList:
-			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); 
+			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			break;
 
 		case PrimitiveType::TriangleStrip:
@@ -482,6 +517,8 @@ namespace TEN::Renderer::Native::DirectX11
 			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 			break;
 		}
+
+		_cachedPipeline.Topology = primitiveType;
 	}
 
 	void DX11GraphicsDevice::Initialize()
@@ -969,6 +1006,11 @@ namespace TEN::Renderer::Native::DirectX11
 	void DX11GraphicsDevice::ClearState()
 	{
 		_context->ClearState();
+
+		// Anything D3D11 remembered is gone, so invalidate our cache too — the next Set*/
+		// BindPipeline has to apply everything, not assume the cached state matches reality.
+		_cachedPipeline = { BlendMode::Unknown, DepthState::Unknown, CullMode::Unknown,
+							PrimitiveType::TriangleList, Shader::None, nullptr };
 	}
 
 	std::unique_ptr<ISpriteFont> DX11GraphicsDevice::InitializeSpriteFont(std::wstring fontPath)

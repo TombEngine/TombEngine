@@ -18,6 +18,7 @@
 #include "Renderer/Graphics/ISpriteFont.h"
 #include "Renderer/RendererEnums.h"
 #include "Renderer/Graphics/AdapterInfo.h"
+#include "Renderer/Graphics/RenderPipelineState.h"
 #include "Renderer/Structures/RendererRectangle.h"
 #include "Renderer/Structures/RendererInputLayout.h"
 #include "Renderer/Structures/RendererViewport.h"
@@ -55,6 +56,13 @@ namespace TEN::Renderer::Graphics
 		virtual void SetCullMode(CullMode cullMode) = 0;
 		virtual void SetScissor(RendererRectangle rectangle) = 0;
 		virtual void SetScissor(RendererViewport viewport) = 0;
+
+		// Binds a full pipeline state in one call. DX11 applies each piece through the
+		// gated Set*/BindShader methods; a future SDL_GPU backend overrides this to cache
+		// and bind an SDL_GPUGraphicsPipeline. Callers that already own the state pieces
+		// (e.g. legacy draws) can keep using the individual setters while migration is in
+		// progress — both paths hit the same device-level caches.
+		virtual void BindPipeline(const RenderPipelineState& state) = 0;
 
 		virtual void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) = 0;
 		

@@ -61,6 +61,13 @@ namespace TEN::Renderer::Native::DirectX11
 		int _refreshRate;
 		HWND _handle;
 
+		// Device-level pipeline state cache. Updated by each SetBlendMode/SetDepthState/SetCullMode/
+		// SetInputLayout/SetPrimitiveType/BindShader; BindPipeline uses it to skip unchanged fields.
+		// The Renderer layer has its own cache too — this one is a second line of defense for
+		// direct device callers and for BindPipeline's "diff and apply" strategy.
+		RenderPipelineState _cachedPipeline = { BlendMode::Unknown, DepthState::Unknown, CullMode::Unknown,
+												PrimitiveType::TriangleList, Shader::None, nullptr };
+
 		inline ID3D11DeviceContext* GetDeviceContext() { return _context.Get(); }
 
 		std::vector<D3D_SHADER_MACRO> ToD3DMacros(const std::map<std::string, std::string>& m)
@@ -118,6 +125,8 @@ namespace TEN::Renderer::Native::DirectX11
 		void SetCullMode(CullMode cullMode) override;
 		void SetScissor(RendererRectangle rectangle) override;
 		void SetScissor(RendererViewport viewport) override;
+
+		void BindPipeline(const RenderPipelineState& state) override;
 
 		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) override;
 

@@ -1,6 +1,8 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
+#include "Renderer/Graphics/Pipelines.h"
+
 using namespace TEN::Renderer::Graphics;
 
 namespace TEN::Renderer
@@ -25,18 +27,9 @@ namespace TEN::Renderer
 
 	void Renderer::ApplySMAA(IRenderSurface2D* renderTarget, RenderView& view)
 	{
-		SetBlendMode(BlendMode::Opaque, true);
-		SetCullMode(CullMode::CounterClockwise, true);
-		SetDepthState(DepthState::Write, true);
+		BindPipeline(Pipelines::PostProcess(Shader::PostProcess, _fullScreenVertexInputLayout.get()));
 		_graphicsDevice->SetViewport(view.Viewport);
 		_graphicsDevice->SetScissor(view.Viewport);
-
-		// Common vertex shader to all fullscreen effects
-		_shaders.Bind(Shader::PostProcess);
-
-		// We draw a fullscreen triangle
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
 		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		// Copy render target to SMAA scene target.
@@ -106,18 +99,9 @@ namespace TEN::Renderer
 
 	void Renderer::ApplyFXAA(IRenderSurface2D* renderTarget, RenderView& view)
 	{
-		SetBlendMode(BlendMode::Opaque, true);
-		SetCullMode(CullMode::CounterClockwise, true);
-		SetDepthState(DepthState::Write, true);
+		BindPipeline(Pipelines::PostProcess(Shader::PostProcess, _fullScreenVertexInputLayout.get()));
 		_graphicsDevice->SetViewport(view.Viewport);
 		_graphicsDevice->SetScissor(view.Viewport);
-
-		// Common vertex shader to all fullscreen effects
-		_shaders.Bind(Shader::PostProcess);
-
-		// We draw a fullscreen triangle
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
 		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		// Copy render target to temp render target.

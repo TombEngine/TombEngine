@@ -28,6 +28,7 @@
 #include "Objects/TR5/Emitter/tr5_rats_emitter.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/Graphics/Pipelines.h"
 #include "Renderer/Structures/RendererSortableObject.h"
 #include "Specific/configuration.h"
 #include "Specific/level.h"
@@ -2338,11 +2339,38 @@ namespace TEN::Renderer
 		RenderScene(_dumpScreenRenderTarget.get(), _gameCamera, renderMode);
 	}
 
+	// Baseline pipeline that DoRenderPass applies at the start of each render pass. Inner
+	// Draw* helpers may still rebind the shader or flip BlendMode per-bucket (e.g. the
+	// transparent sort emits its own blend switches); those changes go through the gated
+	// setters so only real deltas hit the GPU. Shader::None means "don't touch the shader
+	// at this level — the concrete draw picks one."
+	static TEN::Renderer::Graphics::RenderPipelineState MakePassBasePipeline(RendererPass pass, TEN::Renderer::Graphics::IInputLayout* layout)
+	{
+		using namespace TEN::Renderer::Graphics;
+		switch (pass)
+		{
+		case RendererPass::Additive:
+			return Pipelines::Additive(Shader::None, layout);
+		case RendererPass::Transparent:
+		case RendererPass::CollectTransparentFaces:
+			return Pipelines::Transparent(Shader::None, layout);
+		case RendererPass::ShadowMap:
+			return Pipelines::ShadowMap(Shader::None, layout);
+		case RendererPass::GunFlashes:
+			return Pipelines::Additive(Shader::None, layout);
+		case RendererPass::Opaque:
+		case RendererPass::GBuffer:
+		case RendererPass::RoomAmbient:
+		default:
+			return Pipelines::Opaque(Shader::None, layout);
+		}
+	}
+
 	void Renderer::DoRenderPass(RendererPass pass, RenderView& view, bool drawMirrors)
 	{
-		// Reset GPU state.
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
+		// Reset GPU state via the pass PSO: sets blend/depth/cull/topology/input layout in
+		// one call. Shader is left alone (None in the PSO) — picked by concrete draws.
+		BindPipeline(MakePassBasePipeline(pass, _vertexInputLayout.get()));
 
 		// Draw room geometry first if applicable for a given pass.
 		if (pass != RendererPass::Transparent && pass != RendererPass::GunFlashes)
@@ -2928,7 +2956,12 @@ namespace TEN::Renderer
 
 				bool bindRoomDataRequired = true;
 				bool bindTexturesAndMaterialsRequired = true;
-				
+
+				// TODO(P3): iterate room.Buckets through an index vector sorted by
+				// RendererBucket::SortKey() so draws that share (BlendMode, MaterialIndex,
+				// Texture) run back-to-back and the per-bucket state flips collapse. Wire it
+				// behind a runtime flag first and benchmark per scene; changing opaque draw
+				// order must keep the depth buffer resolving occlusion correctly.
 				for (int animated = 0; animated < 2; animated++)
 				{
 					for (const auto& bucket : room.Buckets)
