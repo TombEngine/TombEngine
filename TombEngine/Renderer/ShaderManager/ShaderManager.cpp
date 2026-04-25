@@ -98,7 +98,7 @@ namespace TEN::Renderer::Utils
 		Load(Shader::RoomsTransparent, "Rooms", "", ShaderType::Pixel, roomTransparent);
 		Load(Shader::RoomAmbient, "RoomAmbient", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::RoomAmbientSky, "RoomAmbient", "Sky", ShaderType::PixelAndVertex, {});
-		Load(Shader::Items, "Items", "", ShaderType::PixelAndVertex, {});
+		Load(Shader::Items, "Objects", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::Sky, "Sky", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::Solid, "Solid", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::Inventory, "Inventory", "", ShaderType::PixelAndVertex, {});
@@ -112,13 +112,18 @@ namespace TEN::Renderer::Utils
 		Load(Shader::HudDTexture, "HUD", "TexturedHUD", ShaderType::Pixel, {});
 		Load(Shader::HudBarColor, "HUD", "TexturedHUDBar", ShaderType::Pixel, {});
 
-		Load(Shader::InstancedStatics, "InstancedStatics", "", ShaderType::PixelAndVertex, {});
+		Load(Shader::InstancedStatics, "Objects", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::InstancedSprites, "InstancedSprites", "", ShaderType::PixelAndVertex, {});
 
 		Load(Shader::GBuffer, "GBuffer", "", ShaderType::Pixel, {});
 		Load(Shader::GBufferRooms, "GBuffer", "Rooms", ShaderType::Vertex, {});
-		Load(Shader::GBufferItems, "GBuffer", "Items", ShaderType::Vertex, {});
-		Load(Shader::GBufferInstancedStatics, "GBuffer", "InstancedStatics", ShaderType::Vertex, {});
+		// Both GBuffer enum values map to the same unified VSObjects entry — items draw with
+		// instance_count=1 (SV_InstanceID==0), statics with the actual InstanceID. The
+		// duplicate Load is kept so existing call sites (Bind(Shader::GBufferItems / ...))
+		// don't have to be touched yet; they end up pointing at byte-identical compiled VS.
+		// CreateShader prefixes "VS" to the funcName, so passing "Objects" → entry "VSObjects".
+		Load(Shader::GBufferItems, "GBuffer", "Objects", ShaderType::Vertex, {});
+		Load(Shader::GBufferInstancedStatics, "GBuffer", "Objects", ShaderType::Vertex, {});
 	}
 
 	void ShaderManager::LoadShaders(int width, int height, bool recompileAAShaders)

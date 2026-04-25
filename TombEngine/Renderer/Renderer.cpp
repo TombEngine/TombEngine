@@ -205,9 +205,9 @@ namespace TEN::Renderer
 		int lightTypeMask = 0;
 
 		for (int i = 0; i < lights.size(); i++)
-			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stInstancedStaticMeshBuffer.StaticMeshes[instanceID].Lights, i);
+			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stObjects.Objects[instanceID].Lights, i);
 
-		_stInstancedStaticMeshBuffer.StaticMeshes[instanceID].NumLights = (int)lights.size() | lightTypeMask;
+		_stObjects.Objects[instanceID].NumLights = (int)lights.size() | lightTypeMask;
 	}
 
 	void Renderer::BindMoveableLights(std::vector<RendererLight*>& lights, int roomNumber, int prevRoomNumber, float fade, bool shadow)
@@ -235,12 +235,12 @@ namespace TEN::Renderer
 			if (fadedCoeff == 0.0f)
 				continue;
 
-			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stItem.Lights, numLights);
-			_stItem.Lights[numLights].Intensity *= fadedCoeff;
+			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stObjects.Objects[0].Lights, numLights);
+			_stObjects.Objects[0].Lights[numLights].Intensity *= fadedCoeff;
 			numLights++;
 		}
 
-		_stItem.NumLights = numLights | lightTypeMask | (shadow ? SHADOWABLE_MASK : 0);
+		_stObjects.Objects[0].NumLights = numLights | lightTypeMask | (shadow ? SHADOWABLE_MASK : 0);
 	}
 
 	void Renderer::BindRoomDecals(const std::vector<RendererDecal>& decals)
@@ -326,7 +326,7 @@ namespace TEN::Renderer
 			
 			_lastBlendMode = blendMode;
 		}
-
+		
 		switch (blendMode)
 		{
 		case BlendMode::Opaque:
