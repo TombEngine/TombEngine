@@ -123,6 +123,12 @@ namespace TEN::Scripting
 			// @mem quality
 			"quality", &DynamicSkyClouds::Quality,
 
+			/// (float) Independent cloud layer wind speed. Range 0.0 - 8.0.
+			// Negative value (default) means speed is derived from the engine base wind.
+			// The cloud wind direction always follows level.windDirectionX / windDirectionZ.
+			// @mem windSpeed
+			"windSpeed", &DynamicSkyClouds::WindSpeed,
+
 			/// (table) Random weather rotation table.
 			// Each entry has a duration (seconds) and a percent (relative weight).
 			// @mem changePresets

@@ -36,6 +36,7 @@ namespace TEN::Scripting
 		std::string StartPreset       = "";    // Initial weather preset for the level.
 		float       TransformDuration = -1.0f; // < 0 = per-preset default.
 		std::string Quality           = "";    // "Low" / "Medium" / "High"; empty = keep current.
+		float       WindSpeed         = -1.0f; // < 0 = derive from base wind; 0.0 - 8.0 = override.
 
 		std::vector<DynamicSkyCloudChangeEntry> ChangePresets;
 

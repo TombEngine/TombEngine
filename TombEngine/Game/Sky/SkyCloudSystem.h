@@ -589,6 +589,11 @@ namespace TEN::Sky
 		// Global rendering quality — set from level.volumetricClouds.quality at level load.
 		CloudQualityPreset _globalQuality = CloudQualityPreset::Medium;
 
+		// Independent cloud wind speed override.
+		// Negative = derive speed from base wind magnitude like before.
+		// 0.0 - 8.0 = fixed speed set by level.dynamicSky.Clouds.windSpeed.
+		float _cloudWindSpeed = -1.0f;
+
 		// Aurora forced on by level.dynamicSky.Aurora.enabled in Gameflow.lua.
 		// When true, aurora visibility is independent of cloud layer category and
 		// remains visible at night regardless of which volumetric preset is active.
