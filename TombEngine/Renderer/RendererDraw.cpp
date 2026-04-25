@@ -3511,7 +3511,7 @@ namespace TEN::Renderer
 			{
 				if (!settings.Enabled)
 					return;
-				if (settings.CloudType != 2)
+				if (settings.CloudType != 1)
 					return;
 
 				// AltoBleedDepth [0,100] drives bleed opacity progressively: 0 = invisible, 100 = full.

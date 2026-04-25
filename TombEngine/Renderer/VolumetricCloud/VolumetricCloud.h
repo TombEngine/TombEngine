@@ -120,7 +120,7 @@ namespace TEN::Renderer::VolumetricCloud
 		// Cloud type (maps to CloudCategory enum)
 		int CloudType = 0;             // 0=None, 1=AltocumulusMid, 2=Aurora
 
-		// Altocumulus-specific appearance tuning (only meaningful for CloudType == 2 / AltocumulusMid)
+		// Altocumulus-specific appearance tuning (only meaningful for CloudType == 1 / AltocumulusMid)
 		float AltoBillowStrength = 0.75f;  // [0,1]      blend toward billow (abs-value) FBM noise
 		float AltoCovSoftWidth   = 0.08f;  // [0,0.25]   self-referential coverage soft-threshold width
 		float AltoAbsorption      = 1.0f;   // [0.0,5.0] absorption coefficient
@@ -138,7 +138,7 @@ namespace TEN::Renderer::VolumetricCloud
 		float AltoCloudColorDarkB = 0.65f; // [0,1]      dark/shadow color tint blue (slightly cool)
 		float AltoBottomSoftness  = 0.35f; // [0,1]      0=flat bottom, 1=organic underside
 
-		// Altocumulus sky-height redistribution (only meaningful for CloudType == 2)
+		// Altocumulus sky-height redistribution (only meaningful for CloudType == 1)
 		// 0 = uniform. (+) = more/larger toward horizon. (-) = more/larger toward zenith.
 		float AltoZenithBias       = 0.0f; // [-1,1]  cloud distribution bias
 		float AltoHeightBlendPower = 1.0f; // [0.25,4] exponent on the skyHeight ramp

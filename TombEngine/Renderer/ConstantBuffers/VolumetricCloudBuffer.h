@@ -69,7 +69,7 @@ namespace TEN::Renderer::ConstantBuffers
 		int   CloudType;      // Cloud category enum: 0=None, 1=AltocumulusMid, 2=Aurora
 		float CloudCompositeScale; // Composite alpha multiplier: 1.0 = normal, <1.0 = bleed-through pass.
 		//--
-		// Row 11 — Altocumulus-specific appearance parameters (only used when CloudType == 2)
+		// Row 11 — Altocumulus-specific appearance parameters (only used when CloudType == 1)
 		float AltoBillowStrength;  // [0,1]      blend toward billow (abs-value) FBM noise
 		float AltoCovSoftWidth;    // [0,0.25]   self-referential coverage soft-threshold width
 		float AltoAbsorption;      // [0.0,5.0]  absorption coefficient for Altocumulus
