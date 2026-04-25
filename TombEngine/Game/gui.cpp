@@ -748,7 +748,9 @@ namespace TEN::Gui
 
 		if (CurrentSettings.IgnoreInput)
 		{
-			if (NoAction())
+			// Only wait for keyboard/mouse to be released — gamepad analog drift over the
+			// deadzone would otherwise keep this stuck forever and lock menu navigation.
+			if (NoKeyboardOrMouseAction())
 				CurrentSettings.IgnoreInput = false;
 
 			return;
@@ -793,14 +795,20 @@ namespace TEN::Gui
 
 					if (CurrentSettings.IgnoreInput)
 					{
-						if (NoAction())
+						if (NoKeyboardOrMouseAction())
 							CurrentSettings.IgnoreInput = false;
 					}
 					else
 					{
+						// Only accept events from the device family that this menu actually
+						// rebinds. Without this filter a drifting analog stick fires
+						// GamepadStickLeftRight every frame and instantly hijacks any keyboard
+						// rebind attempt.
 						auto selectedEventId = std::optional<EventId>(std::nullopt);
 						for (auto eventId : BINDABLE_EVENT_IDS)
 						{
+							if (!IsKeyboardOrMouseEvent(eventId))
+								continue;
 							if (g_Input.GetRawEventState(eventId))
 							{
 								selectedEventId = eventId;
@@ -829,8 +837,7 @@ namespace TEN::Gui
 								break;
 							}
 
-							// TODO: Re-enable key rebinding with new input system.
-							//g_Bindings.SetEventBinding(BindingProfileId::CustomKeyboardMouse, ActionId(baseIndex + SelectedOption), *selectedEventId);
+							g_Bindings.SetBinding(BindingProfileId::CustomKeyboardMouse, ActionId(baseIndex + SelectedOption), *selectedEventId);
 
 							CurrentSettings.NewKeyWaitTimer = 0;
 							CurrentSettings.IgnoreInput = true;
@@ -922,15 +929,17 @@ namespace TEN::Gui
 
 				if (SelectedOption == (OptionCount - 1) || GuiIsDeselected()) // Apply.
 				{
-					// TODO: Restore binding save/load with new input system.
-					//CurrentSettings.Configuration.KeyboardMouseBindings = g_Bindings.GetProfile(BindingProfileId::CustomKeyboardMouse);
-					//g_Configuration.KeyboardMouseBindings = g_Bindings.GetProfile(BindingProfileId::CustomKeyboardMouse);
+					// Push the in-progress profile back into g_Configuration so SaveConfiguration
+					// writes the user's edits, and into the snapshot so a future Cancel reverts
+					// to the just-applied state rather than the pre-edit one.
+					CurrentSettings.Configuration.KeyboardMouseBindings = g_Bindings.GetProfile(BindingProfileId::CustomKeyboardMouse);
+					g_Configuration.KeyboardMouseBindings = CurrentSettings.Configuration.KeyboardMouseBindings;
 					SaveConfiguration();
 				}
 				else if (SelectedOption == OptionCount) // Cancel.
 				{
-					// TODO: Restore binding revert with new input system.
-					//g_Bindings.SetProfile(BindingProfileId::CustomKeyboardMouse, CurrentSettings.Configuration.KeyboardMouseBindings);
+					// Restore the snapshot taken on entering the menu (BackupOptions).
+					g_Bindings.SetProfile(BindingProfileId::CustomKeyboardMouse, CurrentSettings.Configuration.KeyboardMouseBindings);
 				}
 				else if (SelectedOption == (OptionCount - 2)) // Defaults.
 				{

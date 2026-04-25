@@ -100,8 +100,10 @@ namespace TEN::Input
 		for (int i = 0; i < (int)ActionId::Count; i++)
 			_actions[i] = Action((ActionId)i);
 
-		// Initialize bindings.
-		_bindings.Initialize(g_Configuration.KeyboardMouseBindings, g_Configuration.GamepadBindings);
+		// Initialize bindings on the shared g_Bindings instance — the menu and the input
+		// dispatch must read/write the same store, otherwise rebinds touch one and the
+		// game polls the other.
+		g_Bindings.Initialize(g_Configuration.KeyboardMouseBindings, g_Configuration.GamepadBindings);
 
 		// Connect the first gamepad already present at startup, if any.
 		int count = 0;
@@ -114,12 +116,11 @@ namespace TEN::Input
 			SDL_free(ids);
 		}
 
-		if (IsGamepadConnected())
-		{
-			g_Configuration.EnableRumble           =
-			g_Configuration.EnableThumbstickCamera = true;
-			SaveConfiguration();
-		}
+		// Note: don't auto-flip EnableRumble / EnableThumbstickCamera here. Originally this
+		// block forced both to true on every startup if a gamepad was present, which silently
+		// undid the user's choice in the settings menu and explained the "rumble setting
+		// doesn't stick" reports. Defaults are seeded in InitDefaultConfiguration; the user
+		// owns the toggle from then on.
 	}
 
 	void InputManager::Deinitialize()
@@ -322,7 +323,7 @@ namespace TEN::Input
 		auto updateUserActions = [&]()
 		{
 			// Get binding profiles.
-			const auto& customProfile = _bindings.GetProfile(_activeBindingProfileId);
+			const auto& customProfile = g_Bindings.GetProfile(_activeBindingProfileId);
 			const auto& defaultProfile = (_activeBindingProfileId == BindingProfileId::CustomKeyboardMouse) ?
 				DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE :
 				DEFAULT_USER_GAMEPAD_BINDING_PROFILE;
@@ -362,7 +363,7 @@ namespace TEN::Input
 		{
 			for (auto profileId : RAW_BINDING_PROFILE_IDS)
 			{
-				const auto& profile = _bindings.GetProfile(profileId);
+				const auto& profile = g_Bindings.GetProfile(profileId);
 				for (auto& [keyActionId, eventIds] : profile)
 				{
 					auto& action = _actions[(int)keyActionId];
@@ -822,15 +823,37 @@ namespace TEN::Input
 		return true;
 	}
 
+	// Same as NoAction but ignores the gamepad raw-action group. Used by the keyboard/mouse
+	// rebind dialog so a drifting analog stick (always over deadzone) can't keep IgnoreInput
+	// stuck and lock the user out of the menu.
+	bool NoKeyboardOrMouseAction()
+	{
+		for (auto actionGroupId : { ActionGroupId::Keyboard, ActionGroupId::Mouse })
+		{
+			const auto& actionGroup = ACTION_ID_GROUPS[(int)actionGroupId];
+			for (auto actionId : actionGroup)
+			{
+				if (IsHeld(actionId))
+					return false;
+			}
+		}
+
+		return true;
+	}
+
 	void ApplyDefaultBindings()
 	{
-		// @inputme
-		//_bindings.SetProfile(BindingProfileId::CustomKeyboardMouse, DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE);
-		//_bindings.SetProfile(BindingProfileId::CustomGamepad, DEFAULT_USER_GAMEPAD_BINDING_PROFILE);
+		g_Bindings.SetProfile(BindingProfileId::CustomKeyboardMouse, DEFAULT_USER_KEYBOARD_MOUSE_BINDING_PROFILE);
+		g_Bindings.SetProfile(BindingProfileId::CustomGamepad, DEFAULT_USER_GAMEPAD_BINDING_PROFILE);
 	}
 
 	void Rumble(float power, float durationSec, RumbleMode mode)
 	{
+		// Honor the user's "Enable Rumble" setting at the entry point so every game-side
+		// caller is gated uniformly without each having to check the flag.
+		if (!g_Configuration.EnableRumble)
+			return;
+
 		g_Input.SetRumble(mode, power, power, durationSec);
 	}
 

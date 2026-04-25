@@ -163,4 +163,17 @@ namespace TEN::Input
 	extern const std::vector<SDL_GamepadAxis>   VALID_GAMEPAD_TRIGGER_AXIS_CODES;
 
 	const std::string& GetEventName(EventId eventId);
+
+	// Device classification helpers — used by the rebind dialog so a drifting analog stick
+	// can't hijack a keyboard rebind and vice versa. Boundaries match the section comments
+	// in the EventId enum.
+	constexpr bool IsKeyboardOrMouseEvent(EventId id)
+	{
+		return id >= EventId::A && id <= EventId::MouseRight;
+	}
+
+	constexpr bool IsGamepadEvent(EventId id)
+	{
+		return id >= EventId::GamepadSouth && id <= EventId::GamepadTriggerRight;
+	}
 }

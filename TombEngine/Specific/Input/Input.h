@@ -86,7 +86,6 @@ namespace TEN::Input
 		DeviceStateData _deviceStates = {};
 
 		BindingProfileId			  _activeBindingProfileId = BindingProfileId::CustomKeyboardMouse;
-		BindingManager                _bindings               = BindingManager();
 		std::vector<Action>           _actions                = {}; // Index = `ActionId`.
 		std::vector<ActionQueueState> _actionQueues           = {}; // Index = `ActionId`.
 		std::vector<Vector2>          _analogAxes             = {}; // Index = `AnalogAxisId`.
@@ -170,6 +169,7 @@ namespace TEN::Input
 	bool IsWakeActionHeld();
 	bool IsOpticActionHeld();
 	bool NoAction();
+	bool NoKeyboardOrMouseAction();
 
 	// Utilities
 

@@ -373,8 +373,6 @@ int main(int argc, char* argv[])
 	if (!LoadConfiguration())
 		InitDefaultConfiguration();
 
-	g_Bindings.Initialize(g_Configuration.KeyboardMouseBindings, g_Configuration.GamepadBindings);
-
 	// Initialize main window.
 	int width = g_Configuration.ScreenWidth;
 	int height = g_Configuration.ScreenHeight;
