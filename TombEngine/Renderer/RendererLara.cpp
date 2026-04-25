@@ -393,7 +393,7 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 
 		_stObjects.Objects[0].World = Matrix::Identity;
 		_stObjects.Bones[0] = itemToDraw->InterpolatedAnimTransforms[HairUnit::GetRootMeshID(i)] * itemToDraw->InterpolatedWorld;
-		_stObjects.Skinned = (int)skinned;
+		_stObjects.Skinned = (int)(skinned ? SkinningMode::Full : SkinningMode::None);
 
 		ReflectMatrixOptionally(_stObjects.Bones[0]);
 
