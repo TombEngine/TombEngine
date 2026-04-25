@@ -314,6 +314,53 @@ namespace TEN::Renderer::Native::DirectX11
 		nativeConstantBuffer->UpdateData(data, _context.Get());
 	}
 
+	std::unique_ptr<IStructuredBuffer> DX11GraphicsDevice::CreateStructuredBuffer(int stride, int elementCount, std::wstring name)
+	{
+		return std::make_unique<DX11StructuredBuffer>(_device.Get(), stride, elementCount, name);
+	}
+
+	void DX11GraphicsDevice::UpdateStructuredBuffer(IStructuredBuffer* buffer, const void* data, int elementCount)
+	{
+		auto native = static_cast<DX11StructuredBuffer*>(buffer);
+		native->UpdateData(data, elementCount, _context.Get());
+	}
+
+	void DX11GraphicsDevice::BindStructuredBuffer(ShaderStage shaderStage, TextureRegister registerType, IStructuredBuffer* buffer)
+	{
+		auto native = static_cast<DX11StructuredBuffer*>(buffer);
+		auto srv = native->GetD3D11ShaderResourceView();
+
+		switch (shaderStage)
+		{
+		case ShaderStage::VertexShader:
+			_context->VSSetShaderResources((unsigned int)registerType, 1, &srv);
+			break;
+
+		case ShaderStage::PixelShader:
+			_context->PSSetShaderResources((unsigned int)registerType, 1, &srv);
+			break;
+
+		case ShaderStage::GeometryShader:
+			_context->GSSetShaderResources((unsigned int)registerType, 1, &srv);
+			break;
+
+		case ShaderStage::ComputeShader:
+			_context->CSSetShaderResources((unsigned int)registerType, 1, &srv);
+			break;
+
+		case ShaderStage::HullShader:
+			_context->HSSetShaderResources((unsigned int)registerType, 1, &srv);
+			break;
+
+		case ShaderStage::DomainShader:
+			_context->DSSetShaderResources((unsigned int)registerType, 1, &srv);
+			break;
+
+		default:
+			break;
+		}
+	}
+
 	void DX11GraphicsDevice::DrawIndexedTriangles(int count, int baseIndex, int baseVertex)
 	{
 		_context->DrawIndexed(count, baseIndex, baseVertex);

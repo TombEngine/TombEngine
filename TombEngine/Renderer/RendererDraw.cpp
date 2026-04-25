@@ -1865,7 +1865,6 @@ namespace TEN::Renderer
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::AnimatedTextures, _cbAnimated.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Sky, _cbSky.get());
@@ -1875,10 +1874,12 @@ namespace TEN::Renderer
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::AnimatedTextures, _cbAnimated.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Sky, _cbSky.get());
+
+		_graphicsDevice->BindStructuredBuffer(ShaderStage::VertexShader, TextureRegister::AnimatedFrames, _animatedFramesBuffer.get());
+		_graphicsDevice->BindStructuredBuffer(ShaderStage::PixelShader, TextureRegister::AnimatedFrames, _animatedFramesBuffer.get());
 
 		// Reset GPU state.
 		SetBlendMode(BlendMode::Opaque, true);
@@ -1887,8 +1888,8 @@ namespace TEN::Renderer
 
 		BindMaterial(0, true);
 
-		_stAnimated.Animated = 0;
-		UpdateConstantBuffer(&_stAnimated, _cbAnimated.get());
+		_stPerDraw.Animated = 0;
+		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
 		// Set up vertex parameters.
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
@@ -1897,8 +1898,8 @@ namespace TEN::Renderer
 		// Draw skybox to paraboloid
 		DrawHorizonAndSkyForReflections(view);
 
-		_stAnimated.Animated = 0;
-		UpdateConstantBuffer(&_stAnimated, _cbAnimated.get());
+		_stPerDraw.Animated = 0;
+		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
 		// Bind and clear render target.
 		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
@@ -2515,27 +2516,27 @@ namespace TEN::Renderer
 		auto minX = std::min(std::min(v1.UV.x, v2.UV.x), v3.UV.x);
 		auto maxX = std::max(std::max(v1.UV.x, v2.UV.x), v3.UV.x);
 		  
-		// Setup animated buffer
-		_stAnimated.Fps = speed;
-		_stAnimated.NumFrames = 1;
-		_stAnimated.Type = 1; // UVRotate
-		_stAnimated.Animated = 1;
-		_stAnimated.IsWaterfall = 1;
+		// Setup animated metadata in PerDraw and frames in the structured buffer.
+		_stPerDraw.AnimFps = speed;
+		_stPerDraw.NumAnimFrames = 1;
+		_stPerDraw.AnimType = 1; // UVRotate
+		_stPerDraw.Animated = 1;
+		_stPerDraw.IsWaterfall = 1;
+		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
 		// We need only top/bottom Y coordinate for UVRotate, but we pass whole
 		// rectangle anyway, in case later we may want to implement different UVRotate modes.
-		_stAnimated.Textures[0].TopLeft     = Vector2(minX, minY);
-		_stAnimated.Textures[0].TopRight    = Vector2(maxX, minY);
-		_stAnimated.Textures[0].BottomLeft  = Vector2(minX, maxY);
-		_stAnimated.Textures[0].BottomRight = Vector2(maxX, maxY);
-		
-		UpdateConstantBuffer(&_stAnimated, _cbAnimated.get());
+		_animatedFrames[0].TopLeft     = Vector2(minX, minY);
+		_animatedFrames[0].TopRight    = Vector2(maxX, minY);
+		_animatedFrames[0].BottomLeft  = Vector2(minX, maxY);
+		_animatedFrames[0].BottomRight = Vector2(maxX, maxY);
+		_graphicsDevice->UpdateStructuredBuffer(_animatedFramesBuffer.get(), _animatedFrames.data(), 1);
 
 		DrawAnimatingItem(item, view, rendererPass);
 
-		// Reset animated buffer after rendering just in case
-		_stAnimated.Fps = _stAnimated.NumFrames = _stAnimated.Type = 0;
-		UpdateConstantBuffer(&_stAnimated, _cbAnimated.get());
+		// Reset animated metadata after rendering just in case.
+		_stPerDraw.AnimFps = _stPerDraw.NumAnimFrames = _stPerDraw.AnimType = 0;
+		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 	}
 
 	void Renderer::DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass)
@@ -4114,55 +4115,61 @@ namespace TEN::Renderer
 	{
 		const auto& set = _animatedTextureSets[bucket.Texture];
 
-		_stAnimated.Animated = 1;
-		_stAnimated.IsWaterfall = 0;
-		_stAnimated.Type = (int)set.Type;
+		_stPerDraw.Animated = 1;
+		_stPerDraw.IsWaterfall = 0;
+		_stPerDraw.AnimType = (int)set.Type;
+
+		int frameCount = 0;
 
 		// Stream video texture, if video playback is active, otherwise show original texture.
 		if (set.Type == AnimatedTextureType::Video && _videoSprite.Texture && _videoSprite.Texture)
 		{
-			_stAnimated.Fps = 1;
-			_stAnimated.NumFrames = 1;
+			_stPerDraw.AnimFps = 1;
+			_stPerDraw.NumAnimFrames = 1;
 
 			// Use normalized UVs, because we are showing the whole video texture on a single face.
-			_stAnimated.Textures[0].TopLeft = set.Textures[0].NormalizedUV[0];
-			_stAnimated.Textures[0].TopRight = set.Textures[0].NormalizedUV[1]; 
-			_stAnimated.Textures[0].BottomRight = set.Textures[0].NormalizedUV[2];
-			_stAnimated.Textures[0].BottomLeft = set.Textures[0].NormalizedUV[3];
-		} 
+			_animatedFrames[0].TopLeft = set.Textures[0].NormalizedUV[0];
+			_animatedFrames[0].TopRight = set.Textures[0].NormalizedUV[1];
+			_animatedFrames[0].BottomRight = set.Textures[0].NormalizedUV[2];
+			_animatedFrames[0].BottomLeft = set.Textures[0].NormalizedUV[3];
+			frameCount = 1;
+		}
 		else if (set.Type == AnimatedTextureType::UVRotate)
 		{
-			_stAnimated.Fps = set.Fps;
-			_stAnimated.UVRotateDirection = set.UVRotateDirection;
-			_stAnimated.UvRotateSpeed = set.UVRotateSpeed; 
-			_stAnimated.NumFrames = 1; 
-			  
-			_stAnimated.Textures[0].TopLeft = set.Textures[0].UV[0];
-			_stAnimated.Textures[0].TopRight = set.Textures[0].UV[1];
-			_stAnimated.Textures[0].BottomRight = set.Textures[0].UV[2];
-			_stAnimated.Textures[0].BottomLeft = set.Textures[0].UV[3];
+			_stPerDraw.AnimFps = set.Fps;
+			_stPerDraw.UVRotateDirection = set.UVRotateDirection;
+			_stPerDraw.UVRotateSpeed = set.UVRotateSpeed;
+			_stPerDraw.NumAnimFrames = 1;
+
+			_animatedFrames[0].TopLeft = set.Textures[0].UV[0];
+			_animatedFrames[0].TopRight = set.Textures[0].UV[1];
+			_animatedFrames[0].BottomRight = set.Textures[0].UV[2];
+			_animatedFrames[0].BottomLeft = set.Textures[0].UV[3];
+			frameCount = 1;
 		}
 		else
 		{
-			_stAnimated.Fps = set.Fps;
-			_stAnimated.NumFrames = set.NumTextures;
-			
+			_stPerDraw.AnimFps = set.Fps;
+			_stPerDraw.NumAnimFrames = set.NumTextures;
+
 			for (unsigned char j = 0; j < set.NumTextures; j++)
 			{
-				if (j >= _stAnimated.Textures.size())
+				if (j >= _animatedFrames.size())
 				{
 					TENLog("Animated frame " + std::to_string(j) + " out of bounds. Too many frames in sequence.");
 					break;
 				}
 
-				_stAnimated.Textures[j].TopLeft = set.Textures[j].UV[0];
-				_stAnimated.Textures[j].TopRight = set.Textures[j].UV[1];
-				_stAnimated.Textures[j].BottomRight = set.Textures[j].UV[2];
-				_stAnimated.Textures[j].BottomLeft = set.Textures[j].UV[3];
+				_animatedFrames[j].TopLeft = set.Textures[j].UV[0];
+				_animatedFrames[j].TopRight = set.Textures[j].UV[1];
+				_animatedFrames[j].BottomRight = set.Textures[j].UV[2];
+				_animatedFrames[j].BottomLeft = set.Textures[j].UV[3];
 			}
+			frameCount = std::min<int>(set.NumTextures, (int)_animatedFrames.size());
 		}
 
-		UpdateConstantBuffer(&_stAnimated, _cbAnimated.get());
+		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+		_graphicsDevice->UpdateStructuredBuffer(_animatedFramesBuffer.get(), _animatedFrames.data(), frameCount);
 	}
 
 	void Renderer::BindBucketTextures(const RendererBucket& bucket, TextureSource textureSource, bool animated)

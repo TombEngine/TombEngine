@@ -15,6 +15,7 @@
 #include "Renderer/Native/DirectX11/DX11Texture2D.h"
 #include "Renderer/Native/DirectX11/DX11DepthTarget.h"
 #include "Renderer/Native/DirectX11/DX11ConstantBuffer.h"
+#include "Renderer/Native/DirectX11/DX11StructuredBuffer.h"
 #include "Renderer/Native/DirectX11/DX11InputLayout.h"
 #include "Renderer/Native/DirectX11/DX11Shader.h"
 #include "Renderer/Native/DirectX11/DX11SpriteBatch.h"
@@ -124,6 +125,10 @@ namespace TEN::Renderer::Native::DirectX11
 		std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::wstring name) override;
 		void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data) override;
 		void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) override;
+
+		std::unique_ptr<IStructuredBuffer> CreateStructuredBuffer(int stride, int elementCount, std::wstring name) override;
+		void UpdateStructuredBuffer(IStructuredBuffer* buffer, const void* data, int elementCount) override;
+		void BindStructuredBuffer(ShaderStage shaderStage, TextureRegister registerType, IStructuredBuffer* buffer) override;
 
 		void DrawIndexedTriangles(int count, int baseIndex, int baseVertex) override;
 		void DrawIndexedInstancedTriangles(int count, int instances, int baseIndex, int baseVertex) override;

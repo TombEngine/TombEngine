@@ -774,7 +774,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Physics\Objects\CollisionMesh.h" />
     <ClInclude Include="Physics\Objects\CollisionMeshDesc.h" />
     <ClInclude Include="Physics\Physics.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\AnimatedBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\CameraMatrixBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\HUDBarBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\HUDBuffer.h" />
@@ -803,6 +802,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Graphics\IRenderTargetCube.h" />
     <ClInclude Include="Renderer\Graphics\IShader.h" />
     <ClInclude Include="Renderer\Graphics\ISpriteBatch.h" />
+    <ClInclude Include="Renderer\Graphics\IStructuredBuffer.h" />
     <ClInclude Include="Renderer\Graphics\ISpriteFont.h" />
     <ClInclude Include="Renderer\Graphics\ITexture2D.h" />
     <ClInclude Include="Renderer\Graphics\ITextureBase.h" />
@@ -823,6 +823,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Native\DirectX11\DX11PrimitiveBatch.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11RenderTarget2D.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11Shader.h" />
+    <ClInclude Include="Renderer\Native\DirectX11\DX11StructuredBuffer.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11SpriteBatch.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11SpriteFont.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11Texture2D.h" />
@@ -844,6 +845,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\RenderView.h" />
     <ClInclude Include="Renderer\SMAA\AreaTex.h" />
     <ClInclude Include="Renderer\SMAA\SearchTex.h" />
+    <ClInclude Include="Renderer\Structures\AnimatedFrame.h" />
     <ClInclude Include="Renderer\Structures\RendererAnimatedTexture.h" />
     <ClInclude Include="Renderer\Structures\RendererAnimatedTextureSet.h" />
     <ClInclude Include="Renderer\Structures\RendererBone.h" />
@@ -1365,6 +1367,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\Graphics\VRAMAllocation.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11ErrorHelper.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11ConstantBuffer.cpp" />
+    <ClCompile Include="Renderer\Native\DirectX11\DX11StructuredBuffer.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11DepthTarget.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11GraphicsDevice.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11IndexBuffer.cpp" />
@@ -1469,9 +1472,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="Shaders\Blending.hlsli">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DeploymentContent>
       <FileType>Document</FileType>
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="Shaders\CBAnimatedTexture.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="Shaders\CBCamera.hlsli">

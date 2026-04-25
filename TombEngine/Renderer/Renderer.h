@@ -22,8 +22,8 @@
 #include "Renderer/ConstantBuffers/ShadowLightBuffer.h"
 #include "Renderer/ConstantBuffers/RoomBuffer.h"
 #include "Renderer/ConstantBuffers/ObjectsBuffer.h"
-#include "Renderer/ConstantBuffers/AnimatedBuffer.h"
 #include "Renderer/ConstantBuffers/CameraMatrixBuffer.h"
+#include "Renderer/Structures/AnimatedFrame.h"
 #include "Renderer/ConstantBuffers/PerDrawBuffer.h"
 #include "Renderer/ConstantBuffers/InstancedSpriteBuffer.h"
 #include "Renderer/ConstantBuffers/PostProcessBuffer.h"
@@ -123,8 +123,8 @@ namespace TEN::Renderer
 		std::unique_ptr<IConstantBuffer> _cbObjects;
 		CRoomBuffer _stRoom;
 		std::unique_ptr<IConstantBuffer> _cbRoom;
-		CAnimatedBuffer _stAnimated;
-		std::unique_ptr<IConstantBuffer> _cbAnimated;
+		std::array<AnimatedFrame, MAX_ANIMATED_FRAMES> _animatedFrames = {};
+		std::unique_ptr<IStructuredBuffer> _animatedFramesBuffer;
 		CShadowLightBuffer _stShadowMap;
 		std::unique_ptr<IConstantBuffer> _cbShadowMap;
 		CHUDBuffer _stHUD;
@@ -595,10 +595,10 @@ namespace TEN::Renderer
 
 		inline void TexturesAreNotAnimated()
 		{
-			if (_stAnimated.Animated == 0)
+			if (_stPerDraw.Animated == 0)
 				return;
-			_stAnimated.Animated = 0;
-			UpdateConstantBuffer(&_stAnimated, _cbAnimated.get());
+			_stPerDraw.Animated = 0;
+			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 		}
 
 		static inline bool IsWaterfall(short objectNumber)

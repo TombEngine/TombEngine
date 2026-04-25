@@ -208,7 +208,8 @@ enum class TextureRegister
 	ORSHMap = 10,
 	EmissiveMap = 11,
 	LegacyEnvironmentReflections = 12,
-	SkyboxEnvironmentReflections = 13
+	SkyboxEnvironmentReflections = 13,
+	AnimatedFrames = 14 // StructuredBuffer<AnimatedFrameUV> for per-draw animated UVs.
 };
 
 enum class SamplerStateRegister
@@ -230,7 +231,8 @@ enum class ConstantBufferRegister
 	InstancedStatics = 3, // Now holds the unified CBObjects (Bones + Skinned + Objects[N]).
 	ShadowLight = 4,
 	Room = 5,
-	AnimatedTextures = 6,
+	// Slot 6 is currently unused — was CBAnimatedTexture before frames moved to a structured
+	// buffer (t14) and metadata folded into PerDraw at b2.
 	PostProcess = 7,
 	Sky = 8,
 	Hud = 10,

@@ -9,6 +9,7 @@
 #include "Renderer/Graphics/IRenderTargetCube.h"
 #include "Renderer/Graphics/ITexture2D.h"
 #include "Renderer/Graphics/IConstantBuffer.h"
+#include "Renderer/Graphics/IStructuredBuffer.h"
 #include "Renderer/Graphics/IInputLayout.h"
 #include "Renderer/Graphics/IShader.h"
 #include "Renderer/Graphics/IDepthTarget.h"
@@ -61,6 +62,10 @@ namespace TEN::Renderer::Graphics
 		virtual std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::wstring name) = 0;
 		virtual void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data) = 0;
 		virtual void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) = 0;
+
+		virtual std::unique_ptr<IStructuredBuffer> CreateStructuredBuffer(int stride, int elementCount, std::wstring name) = 0;
+		virtual void UpdateStructuredBuffer(IStructuredBuffer* buffer, const void* data, int elementCount) = 0;
+		virtual void BindStructuredBuffer(ShaderStage shaderStage, TextureRegister registerType, IStructuredBuffer* buffer) = 0;
 		
 		virtual void DrawIndexedTriangles(int count, int baseIndex, int baseVertex) = 0;
 		virtual void DrawIndexedInstancedTriangles(int count, int instances, int baseIndex, int baseVertex) = 0;

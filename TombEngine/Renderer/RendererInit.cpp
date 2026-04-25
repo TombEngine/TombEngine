@@ -55,7 +55,8 @@ namespace TEN::Renderer
 		_cbSky = CreateConstantBuffer<CSkyBuffer>();
 		_cbShadowMap = CreateConstantBuffer<CShadowLightBuffer>();
 		_cbRoom = CreateConstantBuffer<CRoomBuffer>();
-		_cbAnimated = CreateConstantBuffer<CAnimatedBuffer>();
+		_animatedFramesBuffer = _graphicsDevice->CreateStructuredBuffer(
+			sizeof(AnimatedFrame), MAX_ANIMATED_FRAMES, L"AnimatedFramesBuffer");
 		_cbPostProcessBuffer = CreateConstantBuffer<CPostProcessBuffer>();
 		_cbPerDraw = CreateConstantBuffer<CPerDrawBuffer>();
 		_cbInstancedSpriteBuffer = CreateConstantBuffer<CInstancedSpriteBuffer>();
