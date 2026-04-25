@@ -1,18 +1,17 @@
 --Weather presets --
--- ohne die ist die sonne zwischen den wolken nicht sichtbar
 
 Flow.DefineWeatherPreset("ClearSky", 
 {
     cloudB = {
-     enabled        = true,
-category             = "AltocumulusMid",
-coverage		= 1.0,
+    enabled        = true,
+	category             = "AltocumulusMid",
+	coverage		= 1.0,
     altoCloudAmount                 = 0.0,
 	altoFbmGain                     = 0.0,
-	  distanceFade                    = 0.0000,
+	distanceFade                    = 0.0000,
     horizonMeshBleed                = 0.0000,
 	altoAbsorption                  = 0.0030,
-	    blendThresholdHigh              = 0.0000,
+	blendThresholdHigh              = 0.0000,
     blendThresholdHighWidth         = 0.4000,
     blendThresholdLow               = 0.0000,
 	    -- Technical tuning
@@ -25,9 +24,7 @@ coverage		= 1.0,
 })
 
 Flow.DefineWeatherPreset("Altocumulus", {
-	duration ={6,9},-- {60,250},9	
-	--nextPresetB = {ClearSkyLow = {1.0, 50}},
-cloudB = {
+	cloudB = {
     enabled                         = true,
     category                        = "AltocumulusMid",
     coverage                        = 1.0000,
@@ -160,10 +157,6 @@ Flow.DefineWeatherPreset("RainSnowOvercast", {
 
 Flow.DefineWeatherPreset("StormBuildUp", 
 {
-    highLayerLeadFraction = 0.2,
-	duration = {6,9},--{120,360},
-	--nextPresetA = {ClearSkyHigh = {1.0, 50}},
-	--nextPresetB = { ClearSkyLow = {0.3, 60}, StormTransformation = {0.7, 90}},
 	    cloudB = {
 		enabled        		 = true,
 		coverage		= 1.0,
@@ -205,10 +198,11 @@ Flow.DefineWeatherPreset("Thunderstorm", {
     enabled                         = true,
     category                        = "AltocumulusMid",
     coverage                        = 1.0000,
+    density                         = 0.8000,
     bottomHeight                    = 2127,
     horizonWidth                    = 100,
     altoHorizonWidth                = 0.0000,
-    evolutionSpeed                  = 0.1540,
+    evolutionSpeed                  = 0.2760,
     curlWarpStrength                = 1.0000,
     horizonFade                     = 0.7240,
     distanceFade                    = 0.0000,
@@ -218,7 +212,7 @@ Flow.DefineWeatherPreset("Thunderstorm", {
     altoCovSoftWidth                = 0.2500,
     altoAbsorption                  = 0.1000,
     altoCloudSize                   = 0.2240,
-    altoCloudAmount                 = 0.5030,
+    altoCloudAmount                 = 0.5940,
     altoCloudBrightness             = 0.4010,
     altoCloudColorR                 = 1.0000,
     altoCloudColorG                 = 1.0000,
@@ -227,7 +221,7 @@ Flow.DefineWeatherPreset("Thunderstorm", {
     altoCloudColorDarkG             = 0.1300,
     altoCloudColorDarkB             = 0.1720,
     altoFbmLacunarity               = 4.0000,
-    altoFbmGain                     = 0.8510,
+    altoFbmGain                     = 0.5910,
     altoThickness                   = 5000,
     altoBottomSoftness              = 0.7450,
     altoZenithBias                  = 0.0000,
@@ -241,7 +235,7 @@ Flow.DefineWeatherPreset("Thunderstorm", {
     -- Lightning
     lightningEnabled                = true,
     lightningStrikeFreq             = 1.0000,
-    lightningInternalFreq           = 0.0730,
+    lightningInternalFreq           = 0.1990,
     lightningSpeed                  = 1.2490,
     lightningInternalSpeed          = 3.1160,
     lightningGlowIntensity          = 5.0000,
@@ -253,10 +247,10 @@ Flow.DefineWeatherPreset("Thunderstorm", {
     lightningBoltLengthScale        = 1.6300,
     lightningBoltThicknessScale     = 0.6660,
     -- Technical tuning
-    altoFbmScale                    = 1.1270,
-    jitterStrength                  = 0.0000,
-    altoJitterAbsCap                = 0.1000,
-    upsampleSpatialSigma2           = 0.5000,
+    altoFbmScale                    = 2.0320,
+    jitterStrength                  = 0.3000,
+    altoJitterAbsCap                = 5.0000,
+    upsampleSpatialSigma2           = 0.7500,
     temporalAlphaLow                = 0.0500,
     temporalAlphaHigh               = 0.9500,
 	}
@@ -264,8 +258,7 @@ Flow.DefineWeatherPreset("Thunderstorm", {
 
 
 Flow.DefineWeatherPreset("Cirrustratus", {
-	duration = {6,9},--{300, 560},
-	--nextPresetB  = {ClearSkyHigh = {0.5, 0.3, 40}, AuroraBorealis = {0.0, 0.3, 25}, Cirrustratus = {0.5, 0.7, 25}},	  
+	duration = {6,9},--{300, 560},  
 	cloudB = 
 	{
     enabled                         = true,
@@ -330,8 +323,7 @@ Flow.DefineWeatherPreset("Cirrustratus", {
 })
 
 Flow.DefineWeatherPreset("CirrocumulusLots", {
-	duration = {6,9},--{300, 560},
-	nextPresetA  = {CirrocumulusFew = {0.2, 0.6, 40}, AltocumulusHigh = {0.5, 0.0, 25}, Cirrustratus = {0.5, 0.4, 25}},	  
+	duration = {6,9},--{300, 560},  
 		cloudB = {
 
     enabled                         = true,
