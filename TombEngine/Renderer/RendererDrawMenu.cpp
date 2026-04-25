@@ -61,9 +61,25 @@ namespace TEN::Renderer
 	constexpr auto UnitsToMeters = 419;
 
 	// Helper functions to jump caret to new line
-	inline void GetNextLinePosition(int* value, float scale = 1.0f) { *value += MenuVerticalLineSpacing * scale; }
-	inline void GetNextNarrowLinePosition(int* value) { *value += MenuVerticalNarrowLineSpacing; }
-	inline void GetNextBlockPosition(int* value) { *value += MenuVerticalBlockSpacing; }
+	// Read global UI text scale clamped to the same range as the renderer uses.
+	inline float GetMenuTextScale()
+	{
+		if (!g_GameFlow)
+			return 1.0f;
+
+		auto normalizedUiTextScale = std::clamp(g_GameFlow->GetSettings()->UI.TextScale, 0.0f, 1.0f);
+		return 0.5f + (normalizedUiTextScale * 0.5f);
+	}
+
+	// Extra vertical offset for scales above 1.0, based on reference font size so spacing tracks actual glyph growth.
+	inline int GetMenuLineOffset()
+	{
+		return (int)(REFERENCE_FONT_SIZE * std::max(0.0f, GetMenuTextScale() - 1.0f));
+	}
+
+	inline void GetNextLinePosition(int* value, float scale = 1.0f) { *value += (int)((MenuVerticalLineSpacing + GetMenuLineOffset()) * scale); }
+	inline void GetNextNarrowLinePosition(int* value) { *value += MenuVerticalNarrowLineSpacing + GetMenuLineOffset(); }
+	inline void GetNextBlockPosition(int* value) { *value += MenuVerticalBlockSpacing + GetMenuLineOffset(); }
 
 	// Helper functions to construct string flags
 	inline int SF(bool selected = false) { return (int)PrintStringFlags::Outline | (selected ? (int)PrintStringFlags::Blink : 0); }

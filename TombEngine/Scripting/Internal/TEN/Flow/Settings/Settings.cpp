@@ -517,15 +517,17 @@ namespace TEN::Scripting
 	// @section UI
 	// System-wide user interface settings.
 	// @usage
-	// -- Example of changing title menu position and header text color
+	// -- Example of changing title menu position, header text color, and global text scale
 	// -- In Settings.lua
 	// settings.UI.titleMenuPosition = TEN.Vec2(400, 300)
 	// settings.UI.headerTextColor = TEN.Color(255, 128, 0)
+	// settings.UI.textScale = 0.7
 	//
 	// -- In the title's lua file
 	// local settings = TEN.Flow.GetSettings()
 	// settings.UI.titleMenuPosition = TEN.Vec2(400, 300)
 	// settings.UI.headerTextColor = TEN.Color(255, 128, 0)
+	// settings.UI.textScale = 0.7
 	// TEN.Flow.SetSettings(settings)
 
 	void UISettings::Register(sol::table& parent)
@@ -553,6 +555,10 @@ namespace TEN::Scripting
 		/// Shadow text color.
 		// @tfield[opt=TEN.Color(0&#44; 0&#44; 0)] Color shadowTextColor A color used for drawing a shadow under any rendered text.
 		"shadowTextColor", &UISettings::ShadowTextColor,
+
+		/// Global UI text scale.
+		// @tfield[opt=1.0] float textScale UI text scale. Clamped to [0.0, 1.0].
+		"textScale", &UISettings::TextScale,
 
 		/// Title logo center point position.
 		// @tfield[opt=TEN.Vec2(50&#44; 20)] Vec2 titleLogoPosition Center point of a title level logo position.

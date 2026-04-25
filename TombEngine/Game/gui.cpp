@@ -2521,15 +2521,22 @@ namespace TEN::Gui
 				CurrentSelectedOption = *CurrentAmmoType;
 			}
 
-			int yPos = 310 - LINE_HEIGHT;
+			auto uiTextScale = 1.0f;
+			if (g_GameFlow)
+			{
+				auto normalizedUiTextScale = std::clamp(g_GameFlow->GetSettings()->UI.TextScale, 0.0f, 1.0f);
+				uiTextScale = 0.5f + (normalizedUiTextScale * 0.5f);
+			}
+			int scaledLineHeight = LINE_HEIGHT + (int)(REFERENCE_FONT_SIZE * std::max(0.0f, uiTextScale - 1.0f));
+			int yPos = 310 - scaledLineHeight;
 
 			if (n == 1)
 			{
-				yPos += LINE_HEIGHT;
+				yPos += scaledLineHeight;
 			}
 			else if (n == 2)
 			{
-				yPos += LINE_HEIGHT / 2;
+				yPos += scaledLineHeight / 2;
 			}
 
 			if (n > 0)
@@ -2541,12 +2548,12 @@ namespace TEN::Gui
 					if (i == CurrentSelectedOption)
 					{
 						g_Renderer.AddString(PHD_CENTER_X, yPos, optionString.c_str(), plainColor, (int)PrintStringFlags::Blink | (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
-						yPos += LINE_HEIGHT;
+						yPos += scaledLineHeight;
 					}
 					else
 					{
 						g_Renderer.AddString(PHD_CENTER_X, yPos, optionString.c_str(), plainColor, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
-						yPos += LINE_HEIGHT;
+						yPos += scaledLineHeight;
 					}
 				}
 			}

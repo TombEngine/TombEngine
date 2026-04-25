@@ -132,6 +132,7 @@ namespace TEN::Scripting
 		ScriptColor PlainTextColor		= ScriptColor(255, 255, 255);	// White
 		ScriptColor DisabledTextColor	= ScriptColor(128, 128, 128);	// Gray
 		ScriptColor ShadowTextColor		= ScriptColor(0, 0, 0);			// Black
+		float		TextScale			= 1.0f;
 
 		Vec2 TitleMenuPosition = Vec2(50, 66);
 		float TitleMenuScale = 1.0f;

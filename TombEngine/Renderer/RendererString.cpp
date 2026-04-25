@@ -47,9 +47,17 @@ namespace TEN::Renderer
 			auto screenRes = GetScreenResolution();
 			auto factor = Vector2(screenRes.x / DISPLAY_SPACE_RES.x, screenRes.y / DISPLAY_SPACE_RES.y);
 			float uiScale = (screenRes.x > screenRes.y) ? factor.y : factor.x;
+			float uiTextScale = 1.0f;
+
+			if (g_GameFlow)
+			{
+				auto normalizedUiTextScale = std::clamp(g_GameFlow->GetSettings()->UI.TextScale, 0.0f, 1.0f);
+				uiTextScale = 0.5f + (normalizedUiTextScale * 0.5f);
+			}
+
 			float fontSpacing = _gameFont->GetLineSpacing();
 			float fontScale = REFERENCE_FONT_SIZE / fontSpacing;
-			float stringScale = (uiScale * fontScale) * scale;
+			float stringScale = (uiScale * fontScale) * scale * uiTextScale;
 			float spaceWidth = Vector3(_gameFont->MeasureString(L" ")).x * stringScale;
 
 			std::vector<std::wstring> stringLines;

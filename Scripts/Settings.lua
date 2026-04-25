@@ -63,6 +63,7 @@ local settings = Flow.Settings.new()
 	settings.UI.plainTextColor = Color(255, 255, 255)
 	settings.UI.disabledTextColor = Color(128, 128, 128)
 	settings.UI.shadowTextColor = Color(0, 0, 0)
+	settings.UI.textScale = 1.0
 	settings.UI.titleLogoPosition = Vec2(50, 20)
 	settings.UI.titleLogoScale = 0.38
 	settings.UI.titleLogoColor = Color(255, 255, 255)
