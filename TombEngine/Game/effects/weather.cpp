@@ -478,56 +478,55 @@ namespace TEN::Effects::Environment
 			switch (part.Type)
 			{
 			case WeatherType::Snow:
-
-if (part.Velocity.x < (WindX << 3))
 			{
-				part.Velocity.x += Random::GenerateFloat(1.0f, 4.0f);
-			}
-			else if (part.Velocity.x > (WindX << 3))
-			{
-				part.Velocity.x -= Random::GenerateFloat(1.0f, 4.0f);
-			}
+				// Steer toward the fluctuating wind target. At full wind (WindX = 9),
+				// target = 72 and Velocity.y / 2 = ~26 → movement angle ~20 deg from horizontal.
+				if (part.Velocity.x < (WindX << 3))
+				{
+					part.Velocity.x += Random::GenerateFloat(3.0f, 8.0f);
+				}
+				else if (part.Velocity.x > (WindX << 3))
+				{
+					part.Velocity.x -= Random::GenerateFloat(3.0f, 8.0f);
+				}
 
 				if (part.Velocity.z < (WindZ << 3))
-			{
-				part.Velocity.z += Random::GenerateFloat(1.0f, 4.0f);
-			}
+				{
+					part.Velocity.z += Random::GenerateFloat(3.0f, 8.0f);
+				}
 				else if (part.Velocity.z > (WindZ << 3))
-			{
-				part.Velocity.z -= Random::GenerateFloat(1.0f, 4.0f);
+				{
+					part.Velocity.z -= Random::GenerateFloat(3.0f, 8.0f);
 				}
 
 				if (part.Velocity.y < part.Size / 2)
 					part.Velocity.y += part.Size / 5.0f;
 
 				break;
+			}
 
 			case WeatherType::Rain:
 			{
-				// Use steady base wind (x12) as target so direction is always symmetric
-				// and compass-accurate regardless of the random-walk fluctuation.
-				// At full wind (BaseWindX = 9) horizontal target = 108 units/frame vs
-				// ~96 vertical effective -- just past 45 deg for average drops.
-				int rainTargetX = (int)(BaseWindX * 12.0f);
-				int rainTargetZ = (int)(BaseWindZ * 12.0f);
+				// Use a quadratic curve for the target so the tilt effect builds
+				// slowly at low wind and only reaches near-horizontal at max wind.
+				// windFrac in [-1..1]; target = sign(frac) * frac^2 * MAX_TARGET.
+				// At full wind (BaseWindX = 9): target = 1080, angle ~= 10 deg from horizontal.
+				// At 50% wind (BaseWindX = 4.5): target = 270, angle ~= 35 deg from horizontal.
+				constexpr float RAIN_MAX_TARGET = 1080.0f;
+				float fracX = BaseWindX / MAX_BASE_WIND_STRENGTH;
+				float fracZ = BaseWindZ / MAX_BASE_WIND_STRENGTH;
+				int rainTargetX = (int)(fracX * std::abs(fracX) * RAIN_MAX_TARGET);
+				int rainTargetZ = (int)(fracZ * std::abs(fracZ) * RAIN_MAX_TARGET);
 
-				if (part.Velocity.x < rainTargetX)
-				{
-					part.Velocity.x += Random::GenerateFloat(4.0f, 12.0f);
-				}
-				else if (part.Velocity.x > rainTargetX)
-				{
-					part.Velocity.x -= Random::GenerateFloat(4.0f, 12.0f);
-				}
+				// Clamp step to distance so the particle never overshoots the target
+				// (eliminates zigzag at low wind where the target is near zero).
+				float deltaX = (float)rainTargetX - part.Velocity.x;
+				float stepX  = Random::GenerateFloat(60.0f, 100.0f);
+				part.Velocity.x += (deltaX >= 0.0f) ? std::min(deltaX, stepX) : std::max(deltaX, -stepX);
 
-				if (part.Velocity.z < rainTargetZ)
-				{
-					part.Velocity.z += Random::GenerateFloat(4.0f, 12.0f);
-				}
-				else if (part.Velocity.z > rainTargetZ)
-				{
-					part.Velocity.z -= Random::GenerateFloat(4.0f, 12.0f);
-				}
+				float deltaZ = (float)rainTargetZ - part.Velocity.z;
+				float stepZ  = Random::GenerateFloat(60.0f, 100.0f);
+				part.Velocity.z += (deltaZ >= 0.0f) ? std::min(deltaZ, stepZ) : std::max(deltaZ, -stepZ);
 
 				if (part.Velocity.y < part.Size * 2 * std::clamp(level.GetWeatherStrength(), 0.6f, 1.0f))
 					part.Velocity.y += part.Size / 5.0f;
@@ -662,10 +661,25 @@ if (part.Velocity.x < (WindX << 3))
 					break;
 				}
 
-				// Align initial horizontal velocity with the steady base wind so that
-				// freshly spawned particles immediately drift in the correct direction.
+				// Set initial horizontal velocity in wind direction, pre-seeded close
+				// to the per-type steady-state target so particles look wind-blown
+				// immediately after spawning.
 				float windMag = std::sqrt(BaseWindX * BaseWindX + BaseWindZ * BaseWindZ);
-				float initH = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
+				float windFrac = (MAX_BASE_WIND_STRENGTH > 0.0f)
+					? std::min(1.0f, windMag / MAX_BASE_WIND_STRENGTH)
+					: 0.0f;
+
+				float initH;
+				if (part.Type == WeatherType::Rain)
+				{
+					// Match the quadratic curve used in UpdateWeather.
+					initH = windFrac * windFrac * 970.0f + Random::GenerateFloat(5.0f, 15.0f);
+				}
+				else
+				{
+					initH = windFrac * 60.0f + Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
+				}
+
 				if (windMag > 0.0f)
 				{
 					part.Velocity.x = (BaseWindX / windMag) * initH;
@@ -673,8 +687,8 @@ if (part.Velocity.x < (WindX << 3))
 				}
 				else
 				{
-					part.Velocity.x = initH;
-					part.Velocity.z = initH;
+					part.Velocity.x = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
+					part.Velocity.z = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
 				}
 
 				part.UniqueID = (int)Particles.size();
