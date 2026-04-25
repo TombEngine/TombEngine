@@ -20,9 +20,9 @@ namespace TEN::Renderer::ConstantBuffers
 		int    BoneLightModes[MAX_BONES];
 		//--
 		int    Skinned;            // SkinningMode value (0=Static, 1=None, 2=Full, 3=Classic)
-		int    _padding0;
-		int    _padding1;
-		int    _padding2;
+		int    ObjectsBuffer_Padding0;
+		int    ObjectsBuffer_Padding1;
+		int    ObjectsBuffer_Padding2;
 		//--
 		ObjectData Objects[INSTANCED_STATIC_MESH_BUCKET_SIZE];
 	};

@@ -1821,8 +1821,8 @@ namespace TEN::Renderer
 		UpdateLaraAnimations(false);
 		UpdateItemAnimations(view);
 
-		_stBlending.AlphaTest = NO_VALUE;
-		_stBlending.AlphaThreshold = NO_VALUE;
+		_stPerDraw.AlphaTest = NO_VALUE;
+		_stPerDraw.AlphaThreshold = NO_VALUE;
 
 		CollectLightsForCamera();
 		RenderItemShadows(view);
@@ -1861,23 +1861,21 @@ namespace TEN::Renderer
 
 		// Bind constant buffers.
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Material, _cbMaterial.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PerDraw, _cbPerDraw.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Room, _cbRoom.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::AnimatedTextures, _cbAnimated.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Blending, _cbBlending.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Sky, _cbSky.get());
 
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Material, _cbMaterial.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PerDraw, _cbPerDraw.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Room, _cbRoom.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::AnimatedTextures, _cbAnimated.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Blending, _cbBlending.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Sky, _cbSky.get());

@@ -283,11 +283,11 @@ namespace TEN::Renderer
 		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasAmbientOcclusionMap) << 9;
 		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasEmissiveMap) << 10;
 
-		if (materialTypeAndFlags == _stMaterial.MaterialTypeAndFlags &&
-			g_Level.Materials[materialIndex].Parameters0 == _stMaterial.MaterialParameters0 &&
-			g_Level.Materials[materialIndex].Parameters1 == _stMaterial.MaterialParameters1 &&
-			g_Level.Materials[materialIndex].Parameters2 == _stMaterial.MaterialParameters2 &&
-			g_Level.Materials[materialIndex].Parameters3 == _stMaterial.MaterialParameters3 &&
+		if (materialTypeAndFlags == _stPerDraw.MaterialTypeAndFlags &&
+			g_Level.Materials[materialIndex].Parameters0 == _stPerDraw.MaterialParameters0 &&
+			g_Level.Materials[materialIndex].Parameters1 == _stPerDraw.MaterialParameters1 &&
+			g_Level.Materials[materialIndex].Parameters2 == _stPerDraw.MaterialParameters2 &&
+			g_Level.Materials[materialIndex].Parameters3 == _stPerDraw.MaterialParameters3 &&
 			!force)
 		{
 			return;
@@ -296,13 +296,13 @@ namespace TEN::Renderer
 		// TODO: in the future output from TE directly an optimized list
 		//if (materialIndex != _lastMaterialIndex || force)
 		{
-			_stMaterial.MaterialTypeAndFlags = materialTypeAndFlags;
-			_stMaterial.MaterialParameters0  = g_Level.Materials[materialIndex].Parameters0;
-			_stMaterial.MaterialParameters1  = g_Level.Materials[materialIndex].Parameters1;
-			_stMaterial.MaterialParameters2  = g_Level.Materials[materialIndex].Parameters2;
-			_stMaterial.MaterialParameters3  = g_Level.Materials[materialIndex].Parameters3;
+			_stPerDraw.MaterialTypeAndFlags = materialTypeAndFlags;
+			_stPerDraw.MaterialParameters0  = g_Level.Materials[materialIndex].Parameters0;
+			_stPerDraw.MaterialParameters1  = g_Level.Materials[materialIndex].Parameters1;
+			_stPerDraw.MaterialParameters2  = g_Level.Materials[materialIndex].Parameters2;
+			_stPerDraw.MaterialParameters3  = g_Level.Materials[materialIndex].Parameters3;
 
-			UpdateConstantBuffer(&_stMaterial, _cbMaterial.get());
+			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
 			_lastMaterialIndex = materialIndex;
 
@@ -321,8 +321,8 @@ namespace TEN::Renderer
 		{
 			_graphicsDevice->SetBlendMode(blendMode);
 
-			_stBlending.BlendMode = static_cast<unsigned int>(blendMode);
-			UpdateConstantBuffer(&_stBlending, _cbBlending.get());
+			_stPerDraw.BlendMode = static_cast<unsigned int>(blendMode);
+			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 			
 			_lastBlendMode = blendMode;
 		}
@@ -373,13 +373,13 @@ namespace TEN::Renderer
 
 	void Renderer::SetAlphaTest(AlphaTestMode mode, float threshold, bool force)
 	{
-		if (_stBlending.AlphaTest != (int)mode ||
-			_stBlending.AlphaThreshold != threshold ||
+		if (_stPerDraw.AlphaTest != (int)mode ||
+			_stPerDraw.AlphaThreshold != threshold ||
 			force)
 		{
-			_stBlending.AlphaTest = (int)mode;
-			_stBlending.AlphaThreshold = threshold;
-			UpdateConstantBuffer(&_stBlending, _cbBlending.get());
+			_stPerDraw.AlphaTest = (int)mode;
+			_stPerDraw.AlphaThreshold = threshold;
+			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 		}
 	}
 

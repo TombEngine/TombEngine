@@ -775,14 +775,13 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Physics\Objects\CollisionMeshDesc.h" />
     <ClInclude Include="Physics\Physics.h" />
     <ClInclude Include="Renderer\ConstantBuffers\AnimatedBuffer.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\BlendingBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\CameraMatrixBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\HUDBarBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\HUDBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\InstancedSpriteBuffer.h" />
-    <ClInclude Include="Renderer\ConstantBuffers\MaterialBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\ObjectData.h" />
     <ClInclude Include="Renderer\ConstantBuffers\ObjectsBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\PerDrawBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\PostProcessBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\RoomBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\ShaderDecal.h" />
@@ -1475,9 +1474,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="Shaders\CBAnimatedTexture.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="Shaders\CBBlending.hlsli">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
     <None Include="Shaders\CBCamera.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
@@ -1487,7 +1483,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="Shaders\Object.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="Shaders\CBMaterial.hlsli" />
+    <None Include="Shaders\CBPerDraw.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="Shaders\CBPostProcess.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>

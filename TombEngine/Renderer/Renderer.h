@@ -23,9 +23,8 @@
 #include "Renderer/ConstantBuffers/RoomBuffer.h"
 #include "Renderer/ConstantBuffers/ObjectsBuffer.h"
 #include "Renderer/ConstantBuffers/AnimatedBuffer.h"
-#include "Renderer/ConstantBuffers/BlendingBuffer.h"
 #include "Renderer/ConstantBuffers/CameraMatrixBuffer.h"
-#include "Renderer/ConstantBuffers/MaterialBuffer.h"
+#include "Renderer/ConstantBuffers/PerDrawBuffer.h"
 #include "Renderer/ConstantBuffers/InstancedSpriteBuffer.h"
 #include "Renderer/ConstantBuffers/PostProcessBuffer.h"
 #include "Renderer/ConstantBuffers/SMAABuffer.h"
@@ -136,14 +135,12 @@ namespace TEN::Renderer
 		std::unique_ptr<IConstantBuffer> _cbPostProcessBuffer;
 		CInstancedSpriteBuffer _stInstancedSpriteBuffer;
 		std::unique_ptr<IConstantBuffer> _cbInstancedSpriteBuffer;
-		CBlendingBuffer _stBlending;
-		std::unique_ptr<IConstantBuffer> _cbBlending;
+		CPerDrawBuffer _stPerDraw;
+		std::unique_ptr<IConstantBuffer> _cbPerDraw;
 		CSMAABuffer _stSMAABuffer;
 		std::unique_ptr<IConstantBuffer> _cbSMAABuffer;
 		CSkyBuffer _stSky;
 		std::unique_ptr<IConstantBuffer> _cbSky;
-		CMaterialBuffer _stMaterial;
-		std::unique_ptr<IConstantBuffer> _cbMaterial;
 
 		// Primitive batches
 

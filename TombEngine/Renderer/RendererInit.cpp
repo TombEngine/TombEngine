@@ -57,10 +57,9 @@ namespace TEN::Renderer
 		_cbRoom = CreateConstantBuffer<CRoomBuffer>();
 		_cbAnimated = CreateConstantBuffer<CAnimatedBuffer>();
 		_cbPostProcessBuffer = CreateConstantBuffer<CPostProcessBuffer>();
-		_cbBlending = CreateConstantBuffer<CBlendingBuffer>();
+		_cbPerDraw = CreateConstantBuffer<CPerDrawBuffer>();
 		_cbInstancedSpriteBuffer = CreateConstantBuffer<CInstancedSpriteBuffer>();
 		_cbSMAABuffer = CreateConstantBuffer<CSMAABuffer>();
-		_cbMaterial = CreateConstantBuffer<CMaterialBuffer>();
 
 		// Prepare HUD Constant buffer.
 		_cbHUDBar = CreateConstantBuffer<CHUDBarBuffer>();

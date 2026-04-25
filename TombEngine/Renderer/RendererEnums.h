@@ -226,7 +226,7 @@ enum class ConstantBufferRegister
 {
 	Camera = 0,
 	// Slot 1 is currently unused — was the per-item CB before items folded into CBObjects.
-	Material = 2,
+	PerDraw = 2, // Combined Material + Blending CB (was Material at b2 + Blending at b12).
 	InstancedStatics = 3, // Now holds the unified CBObjects (Bones + Skinned + Objects[N]).
 	ShadowLight = 4,
 	Room = 5,
@@ -235,7 +235,7 @@ enum class ConstantBufferRegister
 	Sky = 8,
 	Hud = 10,
 	HudBar = 11,
-	Blending = 12,
+	// Slot 12 is currently unused — was Blending before it merged into PerDraw at b2.
 	InstancedSprites = 13
 };
 
