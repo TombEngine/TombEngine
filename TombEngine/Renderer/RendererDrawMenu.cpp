@@ -1396,11 +1396,7 @@ namespace TEN::Renderer
 			SetBlendMode(BlendMode::Opaque);
 			SetCullMode(CullMode::CounterClockwise);
 
-			// Clear the offscreen scene RT, not the back buffer: the trailing ApplyGlow,
-			// ApplyAntialiasing and CopyRenderTarget(_renderTarget, _backBuffer) below all
-			// source from _renderTarget and overwrite the swapchain, so anything drawn
-			// directly on _backBuffer (display sprites, items, strings, custom Lua HUD)
-			// would be clobbered.
+			// Clear the offscreen scene render targets.
 			_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), Colors::Black);
 			_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
 			_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
