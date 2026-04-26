@@ -226,7 +226,8 @@ namespace TEN::Input
 
 	const std::string& BindingManager::GetBoundKeyName(ActionId actionId)
 	{
-		return {}; // TODO
+		static const std::string empty;
+		return empty; // TODO
 		//int defaultKeyID = GetBoundKeyId(BindingProfileId::Default, (ActionId)(actionId));
 		//int userKeyID = GetBoundKeyID(BindingProfileID::Custom, (ActionId)(actionId));
 		//int boundKey = userKeyID ? userKeyID : defaultKeyID;

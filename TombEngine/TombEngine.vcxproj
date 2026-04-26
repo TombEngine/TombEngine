@@ -1446,8 +1446,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Specific\Input\Bindings.cpp" />
     <ClCompile Include="Specific\Input\Event.cpp" />
     <ClCompile Include="Specific\Input\Input.cpp" />
-    <ClCompile Include="Specific\Input\InputAction.cpp" />
-    <ClCompile Include="Specific\Input\Keys.cpp" />
     <ClCompile Include="Specific\level.cpp" />
     <ClCompile Include="Specific\Parallel.cpp" />
     <ClCompile Include="Specific\Platform\LinuxSubsystem.cpp" />

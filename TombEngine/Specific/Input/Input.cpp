@@ -97,6 +97,11 @@ namespace TEN::Input
 			_actionQueues.push_back(ActionQueueState::None);
 		}
 
+		// Size device-state and analog-axis storage so the per-frame Read* loops can
+		// index into them by `EventId`/`AnalogAxisId` without bounds violations.
+		_deviceStates.Events.assign((size_t)EventId::Count, 0.0f);
+		_analogAxes.assign((size_t)AnalogAxisId::Count, Vector2::Zero);
+
 		// Initialize bindings.
 		_bindings.Initialize(g_Configuration.KeyboardMouseBindings, g_Configuration.GamepadBindings);
 
@@ -709,12 +714,12 @@ namespace TEN::Input
 
 		// Cycle pathfinding display with TAB when on pathfinding debug page.
 		static bool dbPathfindingCycle = true;
-		if (KeyMap[OIS::KC_TAB] && dbPathfindingCycle &&
+		if (GetRawEventState(EventId::Tab) && dbPathfindingCycle &&
 			g_Renderer.GetDebugPage() == RendererDebugPage::PathfindingStats)
 		{
 			CyclePathfindingDisplay();
 		}
-		dbPathfindingCycle = !KeyMap[OIS::KC_TAB];
+		dbPathfindingCycle = !GetRawEventState(EventId::Tab);
 
 		// Reload shaders.
 		static bool dbReloadShaders = true;
