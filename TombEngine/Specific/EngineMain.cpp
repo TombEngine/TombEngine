@@ -368,12 +368,11 @@ int main(int argc, char* argv[])
 	}
 
 	g_Renderer.Create();
+	g_Bindings.Initialize();
 
 	// Load configuration and optionally show setup dialog.
 	if (!LoadConfiguration())
 		InitDefaultConfiguration();
-
-	g_Bindings.Initialize();
 
 	// Initialize main window.
 	int width = g_Configuration.ScreenWidth;
