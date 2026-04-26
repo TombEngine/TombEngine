@@ -22,6 +22,8 @@ cbuffer CBAnimatedTexture : register(b6)
     float UVRotateDirection;
     float UVRotateSpeed;
     int IsWaterfall;
+    int CBAnimatedTexture_Padding0;
+
 }
 
 #endif

@@ -1,56 +1,52 @@
 #pragma once
+
 #include "Math/Math.h"
 #include "Specific/Input/Input.h"
 #include "Renderer/RendererEnums.h"
+#include "Sound/sound.h"
 
 using namespace TEN::Input;
 using namespace TEN::Math;
 
-// Directories
-
-constexpr auto REGKEY_ROOT	   = "Software\\TombEngine\\1.7.0";
-constexpr auto REGKEY_GRAPHICS = "Graphics";
-constexpr auto REGKEY_SOUND	   = "Sound";
-constexpr auto REGKEY_GAMEPLAY = "Gameplay";
-constexpr auto REGKEY_INPUT	   = "Input";
-
 // Graphics keys
 
-constexpr auto REGKEY_SCREEN_WIDTH		   = "ScreenWidth";
-constexpr auto REGKEY_SCREEN_HEIGHT		   = "ScreenHeight";
-constexpr auto REGKEY_ENABLE_WINDOWED_MODE = "EnableWindowedMode";
-constexpr auto REGKEY_GAMMA				   = "GammaCorrection";
-constexpr auto REGKEY_SHADOWS			   = "ShadowsMode";
-constexpr auto REGKEY_SHADOW_MAP_SIZE	   = "ShadowMapSize";
-constexpr auto REGKEY_SHADOW_BLOBS_MAX	   = "ShadowBlobsMax";
-constexpr auto REGKEY_ENABLE_CAUSTICS	   = "EnableCaustics";
-constexpr auto REGKEY_ENABLE_DECALS		   = "EnableDecals";
-constexpr auto REGKEY_ANTIALIASING_MODE	   = "AntialiasingMode";
-constexpr auto REGKEY_AMBIENT_OCCLUSION	   = "AmbientOcclusion";
-constexpr auto REGKEY_HIGH_FRAMERATE       = "EnableHighFramerate";
+constexpr auto OPTION_SCREEN_WIDTH		   = "ScreenWidth";
+constexpr auto OPTION_SCREEN_HEIGHT		   = "ScreenHeight";
+constexpr auto OPTION_ENABLE_WINDOWED_MODE = "EnableWindowedMode";
+constexpr auto OPTION_GAMMA				   = "GammaCorrection";
+constexpr auto OPTION_SHADOWS			   = "ShadowsMode";
+constexpr auto OPTION_SHADOW_MAP_SIZE	   = "ShadowMapSize";
+constexpr auto OPTION_SHADOW_BLOBS_MAX	   = "ShadowBlobsMax";
+constexpr auto OPTION_ENABLE_CAUSTICS	   = "EnableCaustics";
+constexpr auto OPTION_ENABLE_DECALS		   = "EnableDecals";
+constexpr auto OPTION_ANTIALIASING_MODE	   = "AntialiasingMode";
+constexpr auto OPTION_AMBIENT_OCCLUSION	   = "AmbientOcclusion";
+constexpr auto OPTION_HIGH_FRAMERATE       = "EnableHighFramerate";
+constexpr auto OPTION_ADAPTER_NAME         = "AdapterName";
 
 // Sound keys
 
-constexpr auto REGKEY_SOUND_DEVICE	= "SoundDevice";
-constexpr auto REGKEY_ENABLE_SOUND	= "EnableSound";
-constexpr auto REGKEY_ENABLE_REVERB = "EnableReverb";
-constexpr auto REGKEY_MUSIC_VOLUME	= "MusicVolume";
-constexpr auto REGKEY_SFX_VOLUME	= "SfxVolume";
+constexpr auto OPTION_SOUND_DEVICE	= "SoundDevice";
+constexpr auto OPTION_ENABLE_SOUND	= "EnableSound";
+constexpr auto OPTION_ENABLE_REVERB = "EnableReverb";
+constexpr auto OPTION_MUSIC_VOLUME	= "MusicVolume";
+constexpr auto OPTION_SFX_VOLUME	= "SfxVolume";
 
 // Gameplay keys
 
-constexpr auto REGKEY_ENABLE_SUBTITLES					= "EnableSubtitles";
-constexpr auto REGKEY_ENABLE_AUTO_MONKEY_JUMP			= "EnableAutoMonkeySwingJump";
-constexpr auto REGKEY_ENABLE_AUTO_TARGETING				= "EnableAutoTargeting";
-constexpr auto REGKEY_ENABLE_TARGET_HIGHLIGHTER			= "EnableTargetHighlighter";
-constexpr auto REGKEY_ENABLE_INTERACTION_HIGHLIGHTER	= "EnableInteractionHighlighter";
-constexpr auto REGKEY_ENABLE_RUMBLE						= "EnableRumble";
-constexpr auto REGKEY_ENABLE_THUMBSTICK_CAMERA			= "EnableThumbstickCamera";
+constexpr auto OPTION_ENABLE_SUBTITLES					= "EnableSubtitles";
+constexpr auto OPTION_ENABLE_AUTO_MONKEY_JUMP			= "EnableAutoMonkeySwingJump";
+constexpr auto OPTION_ENABLE_AUTO_TARGETING				= "EnableAutoTargeting";
+constexpr auto OPTION_ENABLE_TARGET_HIGHLIGHTER			= "EnableTargetHighlighter";
+constexpr auto OPTION_ENABLE_INTERACTION_HIGHLIGHTER	= "EnableInteractionHighlighter";
+constexpr auto OPTION_ENABLE_RUMBLE						= "EnableRumble";
+constexpr auto OPTION_ENABLE_THUMBSTICK_CAMERA			= "EnableThumbstickCamera";
 
 // Input keys
 
-constexpr auto REGKEY_MOUSE_SENSITIVITY		   = "MouseSensitivity";
-constexpr auto REGKEY_MENU_OPTION_LOOPING_MODE = "MenuOptionLoopingMode";
+constexpr auto OPTION_MOUSE_SENSITIVITY		   = "MouseSensitivity";
+constexpr auto OPTION_MENU_OPTION_LOOPING_MODE = "MenuOptionLoopingMode";
+constexpr auto OPTION_BIND_PREFIX			   = "bind.";
 
 enum class MenuOptionLoopingMode
 {
@@ -103,23 +99,14 @@ struct GameConfiguration
 	MenuOptionLoopingMode MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
 	BindingProfile		  Bindings				= {};
 
-	std::vector<Vector2i> SupportedScreenResolutions = {};
-	std::string			  AdapterName				 = {};
+	std::vector<Vector2i>	SupportedScreenResolutions	= {};
+	std::string				AdapterName					= {};
+	std::vector<BassDevice> SupportedSoundDevices				= {};
 };
 
-void LoadResolutionsInCombobox(HWND handle);
-void LoadSoundDevicesInCombobox(HWND handle);
-BOOL CALLBACK DialogProc(HWND handle, UINT msg, WPARAM wParam, LPARAM lParam);
-int	 SetupDialog();
 void InitDefaultConfiguration();
 bool LoadConfiguration();
 bool SaveConfiguration();
 void SaveAudioConfig();
-LONG GetDWORDRegKey(HKEY hKey, LPCSTR strValueName, DWORD* nValue, DWORD nDefaultValue);
-LONG GetBoolRegKey(HKEY hKey, LPCSTR strValueName, bool* bValue, bool bDefaultValue);
-LONG GetStringRegKey(HKEY hKey, LPCSTR strValueName, char** strValue, char* strDefaultValue);
-LONG SetDWORDRegKey(HKEY hKey, LPCSTR strValueName, DWORD nValue);
-LONG SetBoolRegKey(HKEY hKey, LPCSTR strValueName, bool bValue);
-LONG SetStringRegKey(HKEY hKey, LPCSTR strValueName, char* strValue);
 
 extern GameConfiguration g_Configuration;

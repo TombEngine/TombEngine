@@ -6,7 +6,7 @@
 
 namespace TEN::Renderer::ConstantBuffers
 {
-	struct CCameraMatrixBuffer
+	struct alignas(16) CCameraMatrixBuffer
 	{
 		Matrix ViewProjection;
 		//--

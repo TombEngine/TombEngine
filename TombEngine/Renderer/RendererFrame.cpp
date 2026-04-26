@@ -1,6 +1,5 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
-
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/Sphere.h"
@@ -66,10 +65,10 @@ namespace TEN::Renderer
 		for (auto* roomPtr : renderView.RoomsToDraw)
 		{
 			// Prepare real DX scissor test rectangle.
-			roomPtr->ClipBounds.Left = (roomPtr->ViewPort.x + 1.0f) * _screenWidth * 0.5f;
-			roomPtr->ClipBounds.Bottom = (1.0f - roomPtr->ViewPort.y) * _screenHeight * 0.5f;
-			roomPtr->ClipBounds.Right = (roomPtr->ViewPort.z + 1.0f) * _screenWidth * 0.5f;
-			roomPtr->ClipBounds.Top = (1.0f - roomPtr->ViewPort.w) * _screenHeight * 0.5f;
+			roomPtr->ClipBounds.Left = (roomPtr->ViewPort.x + 1.0f) * _graphicsDevice->GetScreenWidth() * 0.5f;
+			roomPtr->ClipBounds.Bottom = (1.0f - roomPtr->ViewPort.y) * _graphicsDevice->GetScreenHeight() * 0.5f;
+			roomPtr->ClipBounds.Right = (roomPtr->ViewPort.z + 1.0f) * _graphicsDevice->GetScreenWidth() * 0.5f;
+			roomPtr->ClipBounds.Top = (1.0f - roomPtr->ViewPort.w) * _graphicsDevice->GetScreenHeight() * 0.5f;
 
 			// Indicate that Lara object is found.
 			if (roomPtr->RoomNumber == LaraItem->RoomNumber)

@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Specific/level.h"
 
-#include <process.h>
 #include <lz4.h>
 
 #include "Game/Animation/Animation.h"
@@ -26,9 +25,9 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Sound/sound.h"
+#include "Specific/EngineMain.h"
 #include "Specific/Input/Input.h"
 #include "Specific/trutils.h"
-#include "Specific/winmain.h"
 
 using namespace TEN::Physics;
 using TEN::Renderer::g_Renderer;
@@ -1446,7 +1445,7 @@ bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompress
 	return totalDecompressed == totalUncompressedSize;
 }
 
-#ifdef _WIN64
+#if PLATFORM_64BIT
 long long GetRemainingSize(FILE* filePtr)
 {
 	auto current_position = _ftelli64(filePtr);
@@ -1486,7 +1485,7 @@ bool ReadCompressedBlock(FILE* filePtr, bool skip)
 	ReadFileEx(&uncompressedSize, 1, sizeof(long long), filePtr);
 	ReadFileEx(&compressedSize, 1, sizeof(long long), filePtr);
 
-#ifndef _WIN64
+#ifndef PLATFORM_64BIT
 	// Safeguard against incompatible block size.
 	if (uncompressedSize > INT_MAX || compressedSize > INT_MAX)
 		throw std::exception{ "Level data block exceeds 2 GB and can't be loaded by a 32-bit version of the engine." };
@@ -1590,7 +1589,7 @@ bool LoadLevel(const std::string& path, bool partial)
 			TENLog("Level compiler version: " + std::to_string(version[0]) + "." + std::to_string(version[1]) + "." + std::to_string(version[2]), LogLevel::Info);
 
 			// Check if level version is higher than engine version
-			auto assemblyVersion = TEN::Utils::GetProductOrFileVersion(true);
+			auto assemblyVersion = g_Platform->GetProductOrFileVersion(true);
 			for (int i = 0; i < assemblyVersion.size(); i++)
 			{
 				if (i >= 3)
@@ -1871,7 +1870,7 @@ bool LoadLevelFile(int levelIndex)
 		if (levelIndex == 0)
 		{
 			levelPath = assetDir + DUMMY_LEVEL_NAME;
-			GenerateDummyLevel(levelPath);
+			g_Platform->CreateDummyTitleLevel(levelPath);
 			TENLog("Title level file not found, using dummy level.", LogLevel::Info);
 			isDummyLevel = true;
 		}

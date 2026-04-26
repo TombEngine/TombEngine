@@ -274,7 +274,7 @@ namespace TEN::Entities::Creatures::TR5
 		item->Pose.Position.x += 486 * phd_sin(item->Pose.Orientation.y + ANGLE(90.0f));
 		item->Pose.Position.z += 486 * phd_cos(item->Pose.Orientation.y + ANGLE(90.0f));
 
-		ZeroMemory(&RomanStatueData, sizeof(RomanStatueInfo));
+		memset(&RomanStatueData, 0, sizeof(RomanStatueInfo));
 	}
 
 	void RomanStatueControl(short itemNumber)

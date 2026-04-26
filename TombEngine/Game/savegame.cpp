@@ -2156,38 +2156,38 @@ static void ParsePlayer(const Save::SaveGame* s)
 	// Restore current inventory item.
 	g_Gui.SetLastInventoryItem(s->last_inv_item());
 
-	ZeroMemory(&Lara, sizeof(LaraInfo));
+	memset(&Lara, 0, sizeof(LaraInfo));
 
 	// Player
-	ZeroMemory(Lara.Inventory.Puzzles, NUM_PUZZLES * sizeof(int));
+	memset(Lara.Inventory.Puzzles, 0, NUM_PUZZLES * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->puzzles()->size(); i++)
 		Lara.Inventory.Puzzles[i] = s->lara()->inventory()->puzzles()->Get(i);
 
-	ZeroMemory(Lara.Inventory.PuzzlesCombo, NUM_PUZZLES * 2 * sizeof(int));
+	memset(Lara.Inventory.PuzzlesCombo, 0, NUM_PUZZLES * 2 * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->puzzles_combo()->size(); i++)
 		Lara.Inventory.PuzzlesCombo[i] = s->lara()->inventory()->puzzles_combo()->Get(i);
 
-	ZeroMemory(Lara.Inventory.Keys, NUM_KEYS * sizeof(int));
+	memset(Lara.Inventory.Keys, 0, NUM_KEYS * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->keys()->size(); i++)
 		Lara.Inventory.Keys[i] = s->lara()->inventory()->keys()->Get(i);
 
-	ZeroMemory(Lara.Inventory.KeysCombo, NUM_KEYS * 2 * sizeof(int));
+	memset(Lara.Inventory.KeysCombo, 0, NUM_KEYS * 2 * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->keys_combo()->size(); i++)
 		Lara.Inventory.KeysCombo[i] = s->lara()->inventory()->keys_combo()->Get(i);
 
-	ZeroMemory(Lara.Inventory.Pickups, NUM_PICKUPS * sizeof(int));
+	memset(Lara.Inventory.Pickups, 0, NUM_PICKUPS * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->pickups()->size(); i++)
 		Lara.Inventory.Pickups[i] = s->lara()->inventory()->pickups()->Get(i);
 
-	ZeroMemory(Lara.Inventory.PickupsCombo, NUM_PICKUPS * 2 * sizeof(int));
+	memset(Lara.Inventory.PickupsCombo, 0, NUM_PICKUPS * 2 * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->pickups_combo()->size(); i++)
 		Lara.Inventory.PickupsCombo[i] = s->lara()->inventory()->pickups_combo()->Get(i);
 
-	ZeroMemory(Lara.Inventory.Examines, NUM_EXAMINES * sizeof(int));
+	memset(Lara.Inventory.Examines, 0, NUM_EXAMINES * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->examines()->size(); i++)
 		Lara.Inventory.Examines[i] = s->lara()->inventory()->examines()->Get(i);
 
-	ZeroMemory(Lara.Inventory.ExaminesCombo, NUM_EXAMINES * 2 * sizeof(int));
+	memset(Lara.Inventory.ExaminesCombo, 0, NUM_EXAMINES * 2 * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->examines_combo()->size(); i++)
 		Lara.Inventory.ExaminesCombo[i] = s->lara()->inventory()->examines_combo()->Get(i);
 
