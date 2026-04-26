@@ -772,17 +772,17 @@ namespace TEN::Renderer
 		if (!Objects[ID_BATS_EMITTER].loaded)
 			return;
 
-		auto& mesh = *GetMesh(Objects[ID_BATS_EMITTER].meshIndex + (GlobalCounter & 3));
-
 		if (rendererPass == RendererPass::CollectTransparentFaces)
 		{
-			for (const auto& bat : Bats)
+			auto& mesh = *GetMesh(Objects[ID_BATS_EMITTER].meshIndex + ((GlobalCounter + BatsAnimFrameOffset) & 3));
+
+			auto collectTransparentBat = [&](const BatData& bat)
 			{
 				if (!bat.On)
-					continue;
+					return;
 
 				if (IgnoreReflectionPassForRoom(bat.RoomNumber))
-					continue;
+					return;
 
 				for (auto& bucket : mesh.Buckets)
 				{
@@ -809,82 +809,103 @@ namespace TEN::Renderer
 						view.TransparentObjectsToDraw.push_back(object);
 					}
 				}
-			}
+			};
+
+			for (int i = 0; i < NUM_BATS; i++)
+				collectTransparentBat(Bats[i]);
+
+			for (int i = 0; i < NUM_BATS; i++)
+				collectTransparentBat(Tr3Bats[i]);
 		}
 		else
 		{
-			int batCount = 0;
-			for (int i = 0; i < NUM_BATS; i++)
+			auto& mesh = *GetMesh(Objects[ID_BATS_EMITTER].meshIndex + ((GlobalCounter + BatsAnimFrameOffset) & 3));
+
+			auto flushBats = [&](const auto& mesh, int batCount)
 			{
-				const auto& bat = Bats[i];
+				if (!batCount)
+					return;
 
-				if (IgnoreReflectionPassForRoom(bat.RoomNumber))
-					continue;
-
-				if (bat.On)
+				if (rendererPass == RendererPass::GBuffer)
 				{
-					auto& room = _rooms[bat.RoomNumber];
-
-					auto transformMatrix = Matrix::Lerp(bat.PrevTransform, bat.Transform, GetInterpolationFactor());
-
-					auto world = transformMatrix;
-					ReflectMatrixOptionally(world);
-
-					_stInstancedStaticMeshBuffer.StaticMeshes[batCount].World = world;
-					_stInstancedStaticMeshBuffer.StaticMeshes[batCount].Ambient = room.AmbientLight;
-					_stInstancedStaticMeshBuffer.StaticMeshes[batCount].Color = NEUTRAL_COLOR;
-					_stInstancedStaticMeshBuffer.StaticMeshes[batCount].LightMode = (int)mesh.LightMode;
-
-					if (rendererPass != RendererPass::GBuffer)
-						BindInstancedStaticLights(room.LightsToDraw, batCount);
-
-					batCount++;
+					_shaders.Bind(Shader::GBuffer);
+					_shaders.Bind(Shader::GBufferInstancedStatics);
+				}
+				else
+				{
+					_shaders.Bind(Shader::InstancedStatics);
 				}
 
-				if (batCount == INSTANCED_STATIC_MESH_BUCKET_SIZE ||
-					(i == (NUM_BATS - 1) && batCount > 0))
+				_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+				_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+
+				UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+
+				for (int animated = 0; animated < 2; animated++)
 				{
-					if (rendererPass == RendererPass::GBuffer)
+					for (const auto& bucket : mesh.Buckets)
 					{
-						_shaders.Bind(Shader::GBuffer);
-						_shaders.Bind(Shader::GBufferInstancedStatics);
-					}
-					else
-					{
-						_shaders.Bind(Shader::InstancedStatics);
-					}
+						if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+							continue;
 
-					_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+						BindBucketTextures(bucket, TextureSource::Moveables, animated);
+						BindMaterial(bucket.MaterialIndex, false);
 
-					UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
-
-					for (int animated = 0; animated < 2; animated++)
-					{
-						for (auto& bucket : mesh.Buckets)
+						int passCount = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
+						for (int p = 0; p < passCount; p++)
 						{
-							if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+							if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
 								continue;
 
-							BindBucketTextures(bucket, TextureSource::Moveables, animated);
-							BindMaterial(bucket.MaterialIndex, false);
+							DrawIndexedInstancedTriangles(bucket.NumIndices, batCount, bucket.StartIndex, 0);
 
-							int passCount = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
-							for (int p = 0; p < passCount; p++)
-							{
-								if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
-									continue;
-
-								DrawIndexedInstancedTriangles(bucket.NumIndices, batCount, bucket.StartIndex, 0);
-
-								_numMoveablesDrawCalls++;
-							}
+							_numMoveablesDrawCalls++;
 						}
 					}
-
-					batCount = 0;
 				}
-			}
+			};
+
+			auto addBat = [&](const BatData& bat, const auto& mesh, int* batCount)
+			{
+				if (!bat.On)
+					return;
+
+				if (IgnoreReflectionPassForRoom(bat.RoomNumber))
+					return;
+
+				auto& room = _rooms[bat.RoomNumber];
+
+				auto transformMatrix = Matrix::Lerp(bat.PrevTransform, bat.Transform, GetInterpolationFactor());
+
+				auto world = transformMatrix;
+				ReflectMatrixOptionally(world);
+
+				_stInstancedStaticMeshBuffer.StaticMeshes[*batCount].World = world;
+				_stInstancedStaticMeshBuffer.StaticMeshes[*batCount].Ambient = room.AmbientLight;
+				_stInstancedStaticMeshBuffer.StaticMeshes[*batCount].Color = NEUTRAL_COLOR;
+				_stInstancedStaticMeshBuffer.StaticMeshes[*batCount].LightMode = (int)mesh.LightMode;
+
+				if (rendererPass != RendererPass::GBuffer)
+					BindInstancedStaticLights(room.LightsToDraw, *batCount);
+
+				(*batCount)++;
+
+				if (*batCount == INSTANCED_STATIC_MESH_BUCKET_SIZE)
+				{
+					flushBats(mesh, *batCount);
+					*batCount = 0;
+				}
+			};
+
+			int batCount = 0;
+
+			for (int i = 0; i < NUM_BATS; i++)
+				addBat(Bats[i], mesh, &batCount);
+
+			for (int i = 0; i < NUM_BATS; i++)
+				addBat(Tr3Bats[i], mesh, &batCount);
+
+			flushBats(mesh, batCount);
 		}
 	}
 
