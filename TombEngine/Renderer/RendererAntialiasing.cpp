@@ -58,7 +58,7 @@ namespace TEN::Renderer
 		 
 		_stSMAABuffer.BlendFactor = 1.0f;
 		UpdateConstantBuffer(&_stSMAABuffer, _cbSMAABuffer.get());
-		BindConstantBufferPS(static_cast<ConstantBufferRegister>(13), _cbSMAABuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, static_cast<ConstantBufferRegister>(13), _cbSMAABuffer.get());
 
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), _SMAASceneRenderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), _SMAASceneSRGBRenderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);

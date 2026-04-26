@@ -3,6 +3,8 @@
 #ifdef SDL_PLATFORM_WIN32
 
 #include "Renderer/Native/DirectX11/DX11IndexBuffer.h"
+#include "Renderer/Native/DirectX11/DX11ErrorHelper.h"
+#include "Renderer/Native/DirectX11/DX11Utils.h"
 #include "Specific/trutils.h"
 
 namespace TEN::Renderer::Native::DirectX11
@@ -15,20 +17,28 @@ namespace TEN::Renderer::Native::DirectX11
 		desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
+		auto contextStr = "CreateBuffer for IndexBuffer (" + std::to_string(numIndices) +
+			" indices, " + BytesToMBString(desc.ByteWidth) + " MB):";
+
 		if (numIndices > 0 && indices)
 		{
 			D3D11_SUBRESOURCE_DATA initData = {};
 			initData.pSysMem = indices;
 			initData.SysMemPitch = sizeof(int) * numIndices;
 
-			throwIfFailed(device->CreateBuffer(&desc, &initData, &_buffer));
+			throwIfFailed(device->CreateBuffer(&desc, &initData, &_buffer), device, contextStr);
 		}
 		else
 		{
-			throwIfFailed(device->CreateBuffer(&desc, nullptr, &_buffer));
+			throwIfFailed(device->CreateBuffer(&desc, nullptr, &_buffer), device, contextStr);
 		}
 
 		_numIndices = numIndices;
+
+		int vramSize = desc.ByteWidth;
+		_vram = VRAMAllocation(VRAMCategory::IndexBuffer, vramSize,
+			"IndexBuffer allocated: " + std::to_string(numIndices) + " indices (" +
+			BytesToMBString(vramSize) + " MB)");
 	}
 
 	bool DX11IndexBuffer::Update(ID3D11DeviceContext* context, int* data, int startIndex, int count)
@@ -44,7 +54,7 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 		else
 		{
-			TENLog("Could not update constant buffer! " + std::to_string(res), LogLevel::Error);
+			TENLog("Could not update index buffer! " + std::to_string(res), LogLevel::Error);
 			return false;
 		}
 	}

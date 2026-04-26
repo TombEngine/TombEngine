@@ -5,13 +5,11 @@
 #include <d3d11.h>
 #include <memory>
 #include <wrl/client.h>
-#include "Renderer/RendererUtils.h"
 #include "Renderer/Graphics/IPrimitiveBatch.h"
 #include <PrimitiveBatch.h>
 
 namespace TEN::Renderer::Native::DirectX11
 {
-	using namespace TEN::Renderer::Utils;
 	using namespace TEN::Renderer::Graphics;
 	using namespace DirectX;
 
@@ -36,7 +34,7 @@ namespace TEN::Renderer::Native::DirectX11
 		void DrawLine(Vertex const& v1, Vertex const& v2) override { _primitiveBatch->DrawLine(v1, v2); }
 		void DrawTriangle(Vertex const& v1, Vertex const& v2, Vertex const& v3) override { _primitiveBatch->DrawTriangle(v1, v2, v3); }
 		void DrawQuad(Vertex const& v1, Vertex const& v2, Vertex const& v3, Vertex const& v4) override { _primitiveBatch->DrawQuad(v1, v2, v3, v4); }
-	}; 
+	};
 }
 
 #endif

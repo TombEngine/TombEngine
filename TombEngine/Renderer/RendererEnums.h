@@ -106,7 +106,8 @@ enum class BlendMode
 	Screen = 9,
 	Lighten = 10,
 	AlphaBlend = 11,
-	FastAlphaBlend = 12
+	FastAlphaBlend = 12,
+	PremultipliedAlphaBlend = 13
 };
 
 enum class SkinningMode
@@ -166,6 +167,7 @@ enum class RendererDebugPage
 {
 	None,
 	RendererStats,
+	MemoryStats,
 	DimensionStats,
 	PlayerStats,
 	InputStats,
@@ -416,6 +418,16 @@ enum class ShaderType
 	PixelAndVertex,
 	Compute,
 	Geometry
+};
+
+enum class ShaderStage
+{
+	VertexShader,
+	GeometryShader,
+	PixelShader,
+	ComputeShader,
+	HullShader,
+	DomainShader
 };
 
 enum class Shader

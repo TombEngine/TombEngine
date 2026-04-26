@@ -151,16 +151,16 @@ namespace TEN::Renderer::Utils
 
 		const auto& shaderObj = _shaders[shaderIndex];
 
-		_graphicsDevice->BindVertexShader(shaderObj.get(), forceNull);
-		_graphicsDevice->BindGeometryShader(shaderObj.get(), forceNull);
-		_graphicsDevice->BindPixelShader(shaderObj.get(), forceNull);
+		_graphicsDevice->BindShader(ShaderStage::VertexShader, shaderObj.get(), forceNull);
+		_graphicsDevice->BindShader(ShaderStage::GeometryShader, shaderObj.get(), forceNull);
+		_graphicsDevice->BindShader(ShaderStage::PixelShader, shaderObj.get(), forceNull);
 	}
 
 	std::unique_ptr<IShader> ShaderManager::LoadOrCompile(const std::string& fileName, const std::string& funcName, ShaderType type, std::map<std::string, std::string> defines, bool forceRecompile)
 	{
 		// Define paths for native (uncompiled) shaders and compiled shaders.
-		auto shaderPath = GetAssetPath(L"Shaders\\");
-		auto compiledShaderPath = shaderPath + L"Bin\\" + ToWString(TEN_VERSION_STRING) + L"\\";
+		auto shaderPath = GetAssetPath(L"Shaders/");
+		auto compiledShaderPath = shaderPath + L"Bin/" + ToWString(TEN_VERSION_STRING) + L"/";
 		auto wideFileName = ToWString(fileName);
 
 		// Ensure the /Bin subdirectory exists.
@@ -181,135 +181,12 @@ namespace TEN::Renderer::Utils
 		_compileCounter++;
 
 		return shader;
-
-		// Helper function to load or compile a shader.
-		/*auto loadOrCompileShader = [this, type, defines, forceRecompile, shaderPath, compiledShaderPath]
-			(const std::wstring& baseFileName, const std::string& shaderType, const std::string& functionName, const char* model, ComPtr<ID3D10Blob>& bytecode)
-		{
-			// Construct full paths using GetAssetPath.
-			auto prefix = ((_compileCounter < 10) ? L"0" : L"") + std::to_wstring(_compileCounter) + L"_";
-			auto csoFileName = compiledShaderPath + prefix + baseFileName + L"." + std::wstring(shaderType.begin(), shaderType.end()) + L".cso";
-			auto srcFileName = shaderPath + baseFileName;
-
-			// Try both .hlsl and .fx extensions for source shader.
-			auto srcFileNameWithExtension = srcFileName + L".hlsl";
-			if (!std::filesystem::exists(srcFileNameWithExtension))
-			{
-				srcFileNameWithExtension = srcFileName + L".fx";
-				if (!std::filesystem::exists(srcFileNameWithExtension))
-				{
-					TENLog("Shader source file not found: " + ToString(srcFileNameWithExtension), LogLevel::Error);
-					throw std::runtime_error("Shader source file not found.");
-				}
-			}
-
-			// Check modification dates of source and compiled files.
-			if (!forceRecompile && std::filesystem::exists(csoFileName))
-			{
-				auto csoTime = std::filesystem::last_write_time(csoFileName);
-				auto srcTime = std::filesystem::last_write_time(srcFileNameWithExtension);
-
-				// Load compiled shader if it exists and is up-to-date.
-				if (srcTime < csoTime)
-				{
-					auto csoFile = std::ifstream(csoFileName, std::ios::binary);
-
-					if (csoFile.is_open())
-					{
-						// Load compiled shader.
-						csoFile.seekg(0, std::ios::end);
-						auto fileSize = csoFile.tellg();
-						csoFile.seekg(0, std::ios::beg);
-
-						auto buffer = std::vector<char>(fileSize);
-						csoFile.read(buffer.data(), fileSize);
-						csoFile.close();
-
-						D3DCreateBlob(fileSize, &bytecode);
-						memcpy(bytecode->GetBufferPointer(), buffer.data(), fileSize);
-
-						return;
-					}
-				}
-			}
-
-			// Set up compilation flags according to build configuration.
-			unsigned int flags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
-			if constexpr (DEBUG_BUILD)
-			{
-				flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-			}
-			else
-			{
-				flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_IEEE_STRICTNESS;
-			}
-
-			auto trimmedFileName = std::filesystem::path(srcFileNameWithExtension).filename().string();
-			TENLog("Compiling shader: " + trimmedFileName, LogLevel::Info);
-
-			// Compile shader.
-			auto errors = ComPtr<ID3D10Blob>{};
-			HRESULT res = D3DCompileFromFile(srcFileNameWithExtension.c_str(), defines, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-											 (shaderType + functionName).c_str(), model, flags, 0, bytecode.GetAddressOf(), errors.GetAddressOf());
-
-			if (FAILED(res))
-			{
-				if (errors)
-				{
-					auto error = std::string((const char*)(errors->GetBufferPointer()));
-					TENLog(error, LogLevel::Error);
-					throw std::runtime_error(error);
-				}
-				else
-				{
-					TENLog("Error while compiling shader: " + trimmedFileName, LogLevel::Error);
-					throwIfFailed(res);
-				}
-			}
-
-			// Save compiled shader to .cso file.
-			auto outCsoFile = std::ofstream(csoFileName, std::ios::binary);
-			if (outCsoFile.is_open())
-			{
-				outCsoFile.write((const char*)(bytecode->GetBufferPointer()), bytecode->GetBufferSize());
-				outCsoFile.close();
-			}
-		};
-
-		// Load or compile and create pixel shader.
-		if (type == ShaderType::Pixel || type == ShaderType::PixelAndVertex)
-		{
-			loadOrCompileShader(wideFileName, "PS", funcName, "ps_5_0", rendererShader.Pixel.Blob);
-			throwIfFailed(_device->CreatePixelShader(rendererShader.Pixel.Blob->GetBufferPointer(), rendererShader.Pixel.Blob->GetBufferSize(),
-													 nullptr, rendererShader.Pixel.Shader.GetAddressOf()));
-		}
-
-		// Load or compile and create vertex shader.
-		if (type == ShaderType::Vertex || type == ShaderType::PixelAndVertex)
-		{
-			loadOrCompileShader(wideFileName, "VS", funcName, "vs_5_0", rendererShader.Vertex.Blob);
-			throwIfFailed(_device->CreateVertexShader(rendererShader.Vertex.Blob->GetBufferPointer(), rendererShader.Vertex.Blob->GetBufferSize(),
-													  nullptr, rendererShader.Vertex.Shader.GetAddressOf()));
-		}
-
-		// Load or compile and create compute shader.
-		if (type == ShaderType::Compute)
-		{
-			loadOrCompileShader(wideFileName, "CS", funcName, "cs_5_0", rendererShader.Compute.Blob);
-			throwIfFailed(_device->CreateComputeShader(rendererShader.Compute.Blob->GetBufferPointer(), rendererShader.Compute.Blob->GetBufferSize(),
-													   nullptr, rendererShader.Compute.Shader.GetAddressOf()));
-		}
-
-		// Increment compile counter.
-		_compileCounter++;
-
-		return rendererShader;*/
 	}
 
 	void ShaderManager::Load(Shader shader, const std::string& fileName, const std::string& funcName, ShaderType type, std::map<std::string, std::string> defines, bool forceRecompile)
 	{
 		Destroy(shader);
-		_shaders[(int)shader] = std::move(LoadOrCompile(fileName, funcName, type, defines, forceRecompile));
+		_shaders[(int)shader] = LoadOrCompile(fileName, funcName, type, defines, forceRecompile);
 	}
 
 	void ShaderManager::Destroy(Shader shader)

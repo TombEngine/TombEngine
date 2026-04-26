@@ -1,12 +1,10 @@
 #pragma once
 
 #include "Renderer/RendererEnums.h"
-#include "Renderer/RendererUtils.h"
 #include <string>
 #include <map>
 
 using namespace TEN::Renderer;
-using namespace TEN::Renderer::Utils;
 
 namespace TEN::Renderer::Graphics
 {

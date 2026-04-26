@@ -3,7 +3,6 @@
 #ifdef SDL_PLATFORM_WIN32
 
 #include <d3d11.h>
-#include "Renderer/RendererUtils.h"
 #include "Renderer/Graphics/IShader.h"
 #include "Game/debug/debug.h"
 #include <wrl/client.h>
@@ -11,7 +10,6 @@
 
 namespace TEN::Renderer::Native::DirectX11
 {
-	using namespace TEN::Renderer::Utils;
 	using namespace TEN::Renderer::Graphics;
 	using namespace TEN::Debug;
 

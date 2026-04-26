@@ -23,6 +23,7 @@ using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Entities::Effects;
 using namespace TEN::Math;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 
 namespace TEN::Renderer
@@ -444,7 +445,7 @@ namespace TEN::Renderer
 			if (item.Model.Color.w < EPSILON)
 				continue;
 
-			if (item.ObjectNumber == ID_LARA && (SpotcamOverlay || SpotcamDontDrawLara))
+			if (item.ObjectNumber == ID_LARA && UseSpotCam && (SpotcamOverlay || SpotcamDontDrawLara))
 				continue;
 
 			if (item.ObjectNumber == ID_LARA && CurrentLevel == 0 && !g_GameFlow->IsLaraInTitleEnabled())
@@ -839,9 +840,6 @@ namespace TEN::Renderer
 			item->AmbientLight.y = Lerp(prev.y, next.y, item->LightFade);
 			item->AmbientLight.z = Lerp(prev.z, next.z, item->LightFade);
 		}
-
-		// Multiply calculated ambient light by object tint
-		item->AmbientLight *= nativeItem->Model.Color;
 	}
 
 	void Renderer::CollectDecalsForRoom(short roomNumber, RenderView& renderView)

@@ -3,6 +3,8 @@
 #ifdef SDL_PLATFORM_WIN32
 
 #include "Renderer/Native/DirectX11/DX11DepthTarget.h"
+#include "Renderer/Native/DirectX11/DX11ErrorHelper.h"
+#include "Renderer/Native/DirectX11/DX11Utils.h"
 #include "Specific/trutils.h"
 
 namespace TEN::Renderer::Native::DirectX11
@@ -13,6 +15,8 @@ namespace TEN::Renderer::Native::DirectX11
 
 		_width = width;
 		_height = height;
+
+		auto sizeStr = std::to_string(width) + "x" + std::to_string(height) + " " + DXGIFormatToString(depthFormat);
 
 		// Texture
 		auto depthTexDesc = D3D11_TEXTURE2D_DESC{};
@@ -29,7 +33,7 @@ namespace TEN::Renderer::Native::DirectX11
 		depthTexDesc.MiscFlags = 0;
 
 		res = device->CreateTexture2D(&depthTexDesc, nullptr, &_depthStencilTexture);
-		throwIfFailed(res);
+		throwIfFailed(res, device, "CreateTexture2D for DepthTarget (" + sizeStr + "):");
 
 		// DSV
 		auto dsvDesc = D3D11_DEPTH_STENCIL_VIEW_DESC{};
@@ -40,8 +44,13 @@ namespace TEN::Renderer::Native::DirectX11
 
 		ComPtr<ID3D11DepthStencilView> dsv;
 		res = device->CreateDepthStencilView(_depthStencilTexture.Get(), &dsvDesc, &dsv);
-		throwIfFailed(res);
+		throwIfFailed(res, device, "CreateDSV for DepthTarget (" + sizeStr + "):");
 		_depthStencilViews.push_back(dsv);
+
+		int vramSize = ComputeTextureSize(width, height, 1, 1, depthFormat);
+		_vram = VRAMAllocation(VRAMCategory::RenderTarget, vramSize,
+			"DepthTarget allocated: " + sizeStr +
+			" (" + BytesToMBString(vramSize) + " MB)");
 	}
 
 	DX11DepthTarget::DX11DepthTarget(ID3D11Device* device, int width, int height, int count, DXGI_FORMAT depthFormat)
@@ -50,6 +59,9 @@ namespace TEN::Renderer::Native::DirectX11
 
 		_width = width;
 		_height = height;
+
+		auto sizeStr = std::to_string(width) + "x" + std::to_string(height) + "x" + std::to_string(count) +
+			" " + DXGIFormatToString(depthFormat);
 
 		// Texture
 		D3D11_TEXTURE2D_DESC depthTexDesc = {};
@@ -66,7 +78,7 @@ namespace TEN::Renderer::Native::DirectX11
 		depthTexDesc.MiscFlags = 0x0;
 
 		res = device->CreateTexture2D(&depthTexDesc, nullptr, _depthStencilTexture.GetAddressOf());
-		throwIfFailed(res);
+		throwIfFailed(res, device, "CreateTexture2D for DepthTarget array (" + sizeStr + "):");
 
 		// DSV
 		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
@@ -80,9 +92,15 @@ namespace TEN::Renderer::Native::DirectX11
 			ComPtr<ID3D11DepthStencilView> dsv;
 			dsvDesc.Texture2DArray.FirstArraySlice = D3D11CalcSubresource(0, i, 1);
 			res = device->CreateDepthStencilView(_depthStencilTexture.Get(), &dsvDesc, dsv.GetAddressOf());
-			throwIfFailed(res);
+			throwIfFailed(res, device,
+				"CreateDSV slice " + std::to_string(i) + " for DepthTarget array (" + sizeStr + "):");
 			_depthStencilViews.push_back(dsv);
 		}
+
+		int vramSize = ComputeTextureSize(width, height, count, 1, depthFormat);
+		_vram = VRAMAllocation(VRAMCategory::RenderTarget, vramSize,
+			"DepthTarget array allocated: " + sizeStr +
+			" (" + BytesToMBString(vramSize) + " MB)");
 	}
 }
 

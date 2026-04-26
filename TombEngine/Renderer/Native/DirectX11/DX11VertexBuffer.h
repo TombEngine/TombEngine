@@ -3,27 +3,27 @@
 #ifdef SDL_PLATFORM_WIN32
 
 #include <d3d11.h>
-#include "Renderer/RendererUtils.h"
+#include <wrl/client.h>
 #include "Renderer/Graphics/Vertices/Vertex.h"
 #include "Renderer/Graphics/IVertexBuffer.h"
-#include <wrl/client.h>
+#include "Renderer/Graphics/VRAMAllocation.h"
 #include "Specific/fast_vector.h"
 
 using namespace TEN::Renderer::Graphics::Vertices;
 
 namespace TEN::Renderer::Native::DirectX11
 {
-	using namespace TEN::Renderer::Utils;
 	using namespace TEN::Renderer::Graphics;
 
 	using Microsoft::WRL::ComPtr;
-	
+
 	class DX11VertexBuffer final : public IVertexBuffer
 	{
 	private:
 		int                  _numVertices;
 		ComPtr<ID3D11Buffer> _buffer;
 		int                  _stride;
+		VRAMAllocation       _vram;
 
 	public:
 		DX11VertexBuffer() = default;

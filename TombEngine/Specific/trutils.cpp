@@ -10,6 +10,11 @@ using TEN::Renderer::g_Renderer;
 
 namespace TEN::Utils
 {
+	float ToMegabytes(unsigned long long bytes)
+	{
+		return (float)bytes / (1024.0f * 1024.0f);
+	}
+
 	std::string ConstructAssetDirectory(std::string customDirectory)
 	{
 		static const int searchDepth = 2;
@@ -118,6 +123,18 @@ namespace TEN::Utils
 		try
 		{
 			return std::stoi(string);
+		}
+		catch (...)
+		{
+			return fallback;
+		}
+	}
+
+	float ToFloat(const std::string& string, float fallback)
+	{
+		try
+		{
+			return std::stof(string);
 		}
 		catch (...)
 		{
@@ -262,24 +279,4 @@ namespace TEN::Utils
             ((1.0f - ndc.y) * DISPLAY_SPACE_RES.y) / 2);
     }
 
-	std::wstring GetBinaryPath(bool includeExeName)
-	{
-		static const int MAX_PATH_LENGTH = 1024;
-		wchar_t fileName[MAX_PATH_LENGTH] = {};
-
-		if (!GetModuleFileNameW(nullptr, fileName, MAX_PATH_LENGTH))
-		{
-			TENLog("Can't get current assembly path", LogLevel::Error);
-			return std::wstring();
-		}
-
-		auto result = std::wstring(fileName);
-		std::replace(result.begin(), result.end(), '\\', '/');
-
-		if (includeExeName)
-			return result;
-
-		size_t pos = result.find_last_of(L"/");
-		return (pos != std::wstring::npos) ? result.substr(0, pos + 1) : std::wstring();
-	}
 }

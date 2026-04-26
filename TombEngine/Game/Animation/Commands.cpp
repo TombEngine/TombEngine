@@ -110,7 +110,7 @@ namespace TEN::Animation
 			{
 				// HACK: Must update assets before removing this exception for water creatures.
 				const auto& object = Objects[item.ObjectNumber];
-				soundEnv = object.waterCreature ? SoundEnvironment::Underwater : SoundEnvironment::ShallowWater;
+				soundEnv = object.WaterCreature() ? SoundEnvironment::Underwater : SoundEnvironment::ShallowWater;
 			}
 
 			break;

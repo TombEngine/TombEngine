@@ -32,6 +32,18 @@ constexpr auto SOUND_BGM_DAMP_COEFFICIENT    = 0.5f;
 constexpr auto SOUND_MIN_PARAM_MULTIPLIER    = 0.05f;
 constexpr auto SOUND_MAX_PARAM_MULTIPLIER    = 5.0f;
 
+#pragma pack(push, 1)
+struct WaveFormatPCM
+{
+    unsigned short FormatTag;
+	unsigned short Channels;
+	unsigned int SamplesPerSec;
+	unsigned int AverageBytesPerSec;
+	unsigned short BlockAlign;
+	unsigned short BitsPerSample;
+};
+#pragma pack(pop)
+
 enum class SoundPauseMode
 {
 	Global,
@@ -187,6 +199,7 @@ float GetSoundTrackLoudness(SoundTrackType type);
 std::optional<std::string> GetCurrentSubtitle();
 std::pair<std::string, QWORD> GetSoundTrackNameAndPosition(SoundTrackType type);
 
+// NOTE: DWORD here is BASS's own cross-platform type (uint32_t on Linux/macOS, unsigned long on Windows).
 static void CALLBACK Sound_FinishOneshotTrack(HSYNC handle, DWORD channel, DWORD data, void* userData);
 
 void Sound_VideoPlayCallback(void* opaque, const void* samples, unsigned count, int64_t pts);

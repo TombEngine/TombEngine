@@ -1,5 +1,4 @@
 #pragma once
-#include <wrl/client.h>
 #include <SimpleMath.h>
 #include "Math/Math.h"
 #include "Game/control/box.h"
@@ -87,6 +86,9 @@ namespace TEN::Renderer
 
 		std::unique_ptr<IInputLayout> _vertexInputLayout;
 		std::unique_ptr<IInputLayout> _fullScreenVertexInputLayout;
+
+		// Adapter info
+		AdapterInfo _adapterInfo = {};
 
 		// Render targets
 
@@ -265,7 +267,7 @@ namespace TEN::Renderer
 		int _numExecutedMaterialsUpdates = 0;
 		int _numRequestedMaterialsUpdates = 0;
 
-		float _currentLineHeight = 0.0f;;
+		float _currentLineHeight = 0.0f;
 
 		RendererDebugPage _debugPage = RendererDebugPage::None;
 
@@ -305,7 +307,7 @@ namespace TEN::Renderer
 
 		PostProcessMode _postProcessMode = PostProcessMode::None;
 		float _postProcessStrength = 1.0f;
-		Vector3 _postProcessTint = Vector3::One;
+		Vector3 _postProcessTint = (Vector3)NEUTRAL_COLOR;
 
 		std::unique_ptr<IVertexBuffer> _fullscreenTriangleVertexBuffer;
 
@@ -348,8 +350,7 @@ namespace TEN::Renderer
 		void BindMoveableLights(std::vector<RendererLight*>& lights, int roomNumber, int prevRoomNumber, float fade, bool shadow);
 		void BindRoomDecals(const std::vector<RendererDecal>& decals);
 		void BindRenderTargetAsTexture(TextureRegister registerType, IRenderTarget2D* target, SamplerStateRegister samplerType);
-		void BindConstantBufferVS(ConstantBufferRegister constantBufferType, IConstantBuffer* buffer);
-		void BindConstantBufferPS(ConstantBufferRegister constantBufferType, IConstantBuffer* buffer);
+		void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer);
 		void BindMaterial(int materialIndex, bool force);
 		void BuildHierarchy(RendererObject* obj);
 		void BuildHierarchyRecursive(RendererObject* obj, RendererBone* node, RendererBone* parentNode);
@@ -715,9 +716,10 @@ namespace TEN::Renderer
 		void AddDebugSphere(const Vector3& center, float radius, const Color& color, RendererDebugPage page = RendererDebugPage::None, bool isWireframe = true);
 		void AddDebugSphere(const BoundingSphere& sphere, const Color& color, RendererDebugPage page = RendererDebugPage::None, bool isWireframe = true);
 
-		void PrintDebugMessage(LPCSTR msg, va_list args);
-		void PrintDebugMessage(LPCSTR msg, ...);
+		void PrintDebugMessage(const char* msg, va_list args);
+		void PrintDebugMessage(const char* msg, ...);
 		void DrawDebugInfo(RenderView& view);
+		void DrawDebugRenderTargets(RenderView& view);
 		void SwitchDebugPage(bool goBack);
 		RendererDebugPage GetCurrentDebugPage();
 
@@ -733,6 +735,7 @@ namespace TEN::Renderer
 		void SetLoadingScreen(std::wstring& fileName);
 		std::unique_ptr<ITexture2D> SetTextureOrDefault(std::wstring path);
 		std::string GetDefaultAdapterName();
+		const AdapterInfo& GetAdapterInfo() const;
 		void SaveOldState();
 
 		float						GetFramerateMultiplier() const;

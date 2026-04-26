@@ -3,11 +3,6 @@
 // Used by Resources.rc
 //
 
-#define TEN_BUILD_NUMBER                0
-#define TEST_BUILD                      0
-#define TEN_MAJOR_VERSION               1
-#define TEN_REVISION_NUMBER             2
-#define TEN_MINOR_VERSION               10
 #define IDI_ICON1                       108
 #define IDR_TITLELEVEL                  109
 #define IDR_CRASHMSG                    110

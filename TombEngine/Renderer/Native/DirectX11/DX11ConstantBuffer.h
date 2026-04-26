@@ -6,7 +6,6 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 #include "Game/Debug/Debug.h"
-#include "Renderer/RendererUtils.h"
 
 namespace TEN::Renderer::Native::DirectX11
 {
@@ -14,7 +13,6 @@ namespace TEN::Renderer::Native::DirectX11
 
 	using namespace TEN::Debug;
 	using namespace TEN::Renderer::Graphics;
-	using namespace TEN::Renderer::Utils;
 
 	class DX11ConstantBuffer : public IConstantBuffer
 	{

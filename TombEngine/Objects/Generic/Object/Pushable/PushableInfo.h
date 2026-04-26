@@ -36,6 +36,8 @@ namespace TEN::Entities::Generic
 
 	struct PushableInfo
 	{
+		short PreviousTriggerFlags = 0;
+
 		PushableBehaviorState BehaviorState = PushableBehaviorState::Idle;
 		PushableSoundState	  SoundState	= PushableSoundState::None;
 		int AnimSetID = 0;

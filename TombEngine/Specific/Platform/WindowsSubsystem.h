@@ -28,8 +28,9 @@ namespace TEN::Platform
 	private:
 		// Fields
 
-		SDL_Window* _window    = nullptr;
-		HINSTANCE   _hInstance = nullptr;
+		SDL_Window* _window        = nullptr;
+		HINSTANCE   _hInstance     = nullptr;
+		HMODULE     _adpcmLibrary = nullptr;
 
 	public:
 		// Constructors
@@ -40,15 +41,12 @@ namespace TEN::Platform
 		// Getters
 
 		SDL_Window*                 GetSDL3Window();
+		std::wstring                GetBinaryPath(bool includeExeName) override;
 		std::vector<unsigned short> GetProductOrFileVersion(bool productVersion) override;
 
 		// Setters
 
 		void SetSDL3Window(SDL_Window* window);
-
-		// Enquirers
-
-		bool Is64Bit() override;
 
 		// Utilities
 
@@ -59,8 +57,12 @@ namespace TEN::Platform
 		void InstallCrashHandler() override;
 		bool CreateDummyTitleLevel(const std::string& levelPath) override;
 		void CheckPrerequisites() override;
+		void ConfigureConsole() override;
 		void HideConsole() override;
 		void ShowErrorMessage(const std::string& msg) override;
+
+		void InitialiseAudioCodecs() override;
+		void ReleaseAudioCodecs() override;
 
 	private:
 		// Helpers

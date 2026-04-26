@@ -3,6 +3,7 @@
 #ifdef SDL_PLATFORM_WIN32
 
 #include "Renderer/Native/DirectX11/DX11InputLayout.h"
+#include "Renderer/Native/DirectX11/DX11ErrorHelper.h"
 #include "Specific/trutils.h"
 
 namespace TEN::Renderer::Native::DirectX11
@@ -68,7 +69,7 @@ namespace TEN::Renderer::Native::DirectX11
 			elements.push_back(element);
 		}
 
-		Utils::throwIfFailed(device->CreateInputLayout(elements.data(), (int)elements.size(), shader->GetD3D10Blob()->GetBufferPointer(), shader->GetD3D10Blob()->GetBufferSize(), &_inputLayout));
+		throwIfFailed(device->CreateInputLayout(elements.data(), (int)elements.size(), shader->GetD3D10Blob()->GetBufferPointer(), shader->GetD3D10Blob()->GetBufferSize(), &_inputLayout));
 	}
 }
 

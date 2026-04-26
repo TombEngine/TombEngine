@@ -104,7 +104,7 @@ namespace TEN::Entities::TR4
 	{
 		if (Objects[ID_LITTLE_BEETLE].loaded)
 		{
-			ZeroMemory(BeetleSwarm, NUM_BEETLES * sizeof(BeetleData));
+			memset(BeetleSwarm, 0, NUM_BEETLES * sizeof(BeetleData));
 			NextBeetle = 0;
 			FlipEffect = NO_VALUE;
 		}

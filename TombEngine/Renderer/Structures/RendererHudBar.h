@@ -154,7 +154,7 @@ namespace TEN::Renderer::Structures
 			for (int i = 0; i < VERTEX_COUNT; i++)
 			{
 				vertices[i].Position = barVertices[i];
-				vertices[i].Color = VectorColorToRGBA_TempToVector4(colors[i]);
+				vertices[i].Color = VectorColorToRGBA(colors[i]);
 				vertices[i].UV = barUVs[i];
 			}
 
@@ -165,7 +165,7 @@ namespace TEN::Renderer::Structures
 			for (int i = 0; i < barBorderVertices.size(); i++)
 			{
 				borderVertices[i].Position = barBorderVertices[i];
-				borderVertices[i].Color = VectorColorToRGBA_TempToVector4(Vector4::One);
+				borderVertices[i].Color = VectorColorToRGBA(Vector4::One);
 				borderVertices[i].UV = barBorderUVs[i];
 			}
 

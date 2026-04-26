@@ -63,57 +63,6 @@ namespace TEN::Renderer::Native::DirectX11
 
 		inline ID3D11DeviceContext* GetDeviceContext() { return _context.Get(); }
 
-		inline DXGI_FORMAT GetDXGIFormat(SurfaceFormat format)
-		{
-			switch (format)
-			{
-			case SurfaceFormat::SF_RGBA8_Unorm:
-				return DXGI_FORMAT_R8G8B8A8_UNORM;
-			case SurfaceFormat::SF_RGBA8_Unorm_Srgb:
-				return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-			case SurfaceFormat::SF_R32_Float:
-				return DXGI_FORMAT_R32_FLOAT;
-			case SurfaceFormat::SF_RG8_Unorm:
-				return DXGI_FORMAT_R8G8_UNORM;
-			case SurfaceFormat::SF_R8_Unorm:
-				return DXGI_FORMAT_R8_UNORM;
-			case SurfaceFormat::SF_RGBA32_Float:
-				return DXGI_FORMAT_R32G32B32A32_FLOAT;
-			case SurfaceFormat::SF_BGRA8_Unorm:
-				return DXGI_FORMAT_B8G8R8A8_UNORM;
-			case SurfaceFormat::Unknown:
-			default:
-				return DXGI_FORMAT_UNKNOWN;
-			}
-		}
-
-		inline DXGI_FORMAT GetDXGIFormat(DepthFormat format)
-		{
-			switch (format)
-			{
-			case DepthFormat::Depth24Stencil8:
-				return DXGI_FORMAT_D24_UNORM_S8_UINT;
-			case DepthFormat::Depth32:
-				return DXGI_FORMAT_D32_FLOAT;
-			default:
-				return DXGI_FORMAT_D32_FLOAT;
-			}
-		}
-
-		inline unsigned int GetClearFlags(DepthStencilClearFlags flags)
-		{
-			switch (flags)
-			{
-			case DepthStencilClearFlags::Depth:
-				return D3D11_CLEAR_DEPTH;
-			case DepthStencilClearFlags::Stencil:
-				return D3D11_CLEAR_STENCIL;
-			case DepthStencilClearFlags::DepthAndStencil:
-			default:
-				return (D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL);
-			}
-		}
-
 		std::vector<D3D_SHADER_MACRO> ToD3DMacros(const std::map<std::string, std::string>& m)
 		{
 			std::vector<D3D_SHADER_MACRO> out;
@@ -160,12 +109,10 @@ namespace TEN::Renderer::Native::DirectX11
 
 		IRenderTargetCube* CreateRenderTargetCube(int size, SurfaceFormat colorFormat) override;
 
-		std::unique_ptr<ITexture2D> CreateTexture2D(int width, int height, byte* data) override;
-		std::unique_ptr<ITexture2D> CreateTexture2D(int width, int height, SurfaceFormat format, int pitch, const void* data) override;
-		std::unique_ptr<ITexture2D> CreateTexture2D(const std::string fileName) override;
-		std::unique_ptr<ITexture2D> CreateTexture2D(int dataSize, byte* data) override;
-		std::unique_ptr<ITexture2D> CreateTexture2D(int width, int height, SurfaceFormat format) override;
-
+		std::unique_ptr<ITexture2D> CreateTexture2D(int width, int height, SurfaceFormat format, void* data, bool isDynamic = false) override;
+		std::unique_ptr<ITexture2D> CreateTexture2DFromFile(const std::string fileName) override;
+		std::unique_ptr<ITexture2D> CreateTexture2DFromFileInMemory(int dataSize, unsigned char* data) override;
+		
 		void SetBlendMode(BlendMode blendMode) override;
 		void SetDepthState(DepthState depthState) override;
 		void SetCullMode(CullMode cullMode) override;
@@ -176,9 +123,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 		std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::wstring name) override;
 		void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data) override;
-		void BindConstantBufferVS(ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) override;
-		void BindConstantBufferGS(ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) override;
-		void BindConstantBufferPS(ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) override;
+		void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) override;
 
 		void DrawIndexedTriangles(int count, int baseIndex, int baseVertex) override;
 		void DrawIndexedInstancedTriangles(int count, int instances, int baseIndex, int baseVertex) override;
@@ -207,12 +152,11 @@ namespace TEN::Renderer::Native::DirectX11
 		void Initialize() override;
 		std::unique_ptr<IRenderSurface2D> InitializeSwapChain(int width, int height) override;
 		std::string GetDefaultAdapterName() override;
+		AdapterInfo GetAdapterInfo() override;
 		void ResizeSwapChain(int width, int height) override;
 
 		std::unique_ptr<IShader> CreateShader(ShaderCompileRequest& request) override;
-		void BindVertexShader(IShader* shader, bool forceNull) override;
-		void BindGeometryShader(IShader* shader, bool forceNull) override;
-		void BindPixelShader(IShader* shader, bool forceNull) override;
+		void BindShader(ShaderStage shaderStage, IShader* shader, bool forceNull) override;
 
 		void Present() override;
 		void ClearState() override;
@@ -228,7 +172,6 @@ namespace TEN::Renderer::Native::DirectX11
 		void Flush() override;
 		void UnbindAllRenderTargets() override;
 
-		std::unique_ptr<ITexture2D> CreateTexture2D() override;
 		void UpdateTexture2D(ITexture2D* texture, std::vector<char> data) override;
 
 		int GetRefreshRate() override;

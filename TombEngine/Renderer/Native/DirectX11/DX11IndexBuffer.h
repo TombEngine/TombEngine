@@ -5,15 +5,14 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 #include "Specific/fast_vector.h"
-#include "Renderer/RendererUtils.h"
 #include "Game/Debug/Debug.h"
 #include "Renderer/Graphics/IIndexBuffer.h"
+#include "Renderer/Graphics/VRAMAllocation.h"
 
 namespace TEN::Renderer::Native::DirectX11
 {
 	using Microsoft::WRL::ComPtr;
 
-	using namespace TEN::Renderer::Utils;
 	using namespace TEN::Renderer::Graphics;
 	using namespace TEN::Debug;
 
@@ -22,6 +21,7 @@ namespace TEN::Renderer::Native::DirectX11
 	private:
 		int _numIndices = 0;
 		ComPtr<ID3D11Buffer> _buffer;
+		VRAMAllocation _vram;
 
 	public:
 		DX11IndexBuffer() = default;

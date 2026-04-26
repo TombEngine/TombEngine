@@ -4,12 +4,11 @@
 
 #include <d3d11.h>
 #include <wrl/client.h>
-#include "Renderer/RendererUtils.h"
 #include "Renderer/Graphics/IDepthTarget.h"
+#include "Renderer/Graphics/VRAMAllocation.h"
 
 namespace TEN::Renderer::Native::DirectX11
 {
-	using namespace TEN::Renderer::Utils;
 	using namespace TEN::Renderer::Graphics;
 
 	using Microsoft::WRL::ComPtr;
@@ -23,6 +22,7 @@ namespace TEN::Renderer::Native::DirectX11
 		int                                         _height              = 0;
 		std::vector<ComPtr<ID3D11DepthStencilView>> _depthStencilViews   = {};
 		ComPtr<ID3D11Texture2D>	                    _depthStencilTexture = {};
+		VRAMAllocation                              _vram                = {};
 
 	public:
 		DX11DepthTarget() = default;

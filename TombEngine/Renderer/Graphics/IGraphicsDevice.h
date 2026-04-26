@@ -17,6 +17,7 @@
 #include "Renderer/Graphics/ISpriteBatch.h"
 #include "Renderer/Graphics/ISpriteFont.h"
 #include "Renderer/RendererEnums.h"
+#include "Renderer/Graphics/AdapterInfo.h"
 #include "Renderer/Structures/RendererRectangle.h"
 #include "Renderer/Structures/RendererInputLayout.h"
 #include "Renderer/Structures/RendererViewport.h"
@@ -44,12 +45,9 @@ namespace TEN::Renderer::Graphics
 
 		virtual IRenderTargetCube* CreateRenderTargetCube(int size, SurfaceFormat colorFormat) = 0;
 
-		virtual std::unique_ptr<ITexture2D> CreateTexture2D(int width, int height, byte* data) = 0;
-		virtual std::unique_ptr<ITexture2D> CreateTexture2D(int width, int height, SurfaceFormat format, int pitch, const void* data) = 0;
-		virtual std::unique_ptr<ITexture2D> CreateTexture2D(int width, int height, SurfaceFormat format) = 0;
-		virtual std::unique_ptr<ITexture2D> CreateTexture2D(const std::string fileName) = 0;
-		virtual std::unique_ptr<ITexture2D> CreateTexture2D(int dataSize, byte* data) = 0;
-		virtual std::unique_ptr<ITexture2D> CreateTexture2D() = 0;
+		virtual std::unique_ptr<ITexture2D> CreateTexture2D(int width, int height, SurfaceFormat format, void* data, bool isDynamic = false) = 0;
+		virtual std::unique_ptr<ITexture2D> CreateTexture2DFromFile(const std::string fileName) = 0;
+		virtual std::unique_ptr<ITexture2D> CreateTexture2DFromFileInMemory(int dataSize, unsigned char* data) = 0;
 		virtual void UpdateTexture2D(ITexture2D* texture, std::vector<char> data) = 0;
 
 		virtual void SetBlendMode(BlendMode blendMode) = 0;
@@ -62,10 +60,8 @@ namespace TEN::Renderer::Graphics
 		
 		virtual std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::wstring name) = 0;
 		virtual void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data) = 0;
-		virtual void BindConstantBufferVS(ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) = 0;
-		virtual void BindConstantBufferGS(ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) = 0;
-		virtual void BindConstantBufferPS(ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) = 0;
-
+		virtual void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) = 0;
+		
 		virtual void DrawIndexedTriangles(int count, int baseIndex, int baseVertex) = 0;
 		virtual void DrawIndexedInstancedTriangles(int count, int instances, int baseIndex, int baseVertex) = 0;
 		virtual void DrawInstancedTriangles(int count, int instances, int baseVertex) = 0;
@@ -92,12 +88,11 @@ namespace TEN::Renderer::Graphics
 		virtual void Initialize() = 0;
 		virtual std::unique_ptr<IRenderSurface2D> InitializeSwapChain(int width, int height) = 0;
 		virtual std::string GetDefaultAdapterName() = 0;
+		virtual AdapterInfo GetAdapterInfo() = 0;
 		virtual void ResizeSwapChain(int width, int height) = 0;
 
 		virtual std::unique_ptr<IShader> CreateShader(ShaderCompileRequest& request) = 0;
-		virtual void BindVertexShader(IShader* shader, bool forceNull) = 0;
-		virtual void BindGeometryShader(IShader* shader, bool forceNull) = 0;
-		virtual void BindPixelShader(IShader* shader, bool forceNull) = 0;
+		virtual void BindShader(ShaderStage shaderStage, IShader* shader, bool forceNull) = 0;
 
 		virtual void Present() = 0;
 		virtual void ClearState() = 0;

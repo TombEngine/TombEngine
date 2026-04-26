@@ -15,6 +15,7 @@
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/Ripple.h"
+#include "Game/effects/smoke.h"
 #include "Game/effects/Splash.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
@@ -29,6 +30,7 @@
 #include "Math/Math.h"
 #include "Objects/Generic/Object/objects.h"
 #include "Objects/Generic/Switches/generic_switch.h"
+#include "Objects/Generic/Switches/switch.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/Input/Input.h"
@@ -43,6 +45,7 @@ using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Items;
 using namespace TEN::Effects::Ripple;
+using namespace TEN::Effects::Smoke;
 using namespace TEN::Effects::Splash;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Input;
@@ -620,7 +623,7 @@ bool FireHarpoon(ItemInfo& laraItem, const std::optional<Pose>& pose)
 	auto& harpoonItem = g_Level.Items[itemNumber];
 
 	harpoonItem.ObjectNumber = ID_HARPOON;
-	harpoonItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	harpoonItem.Model.Color = NEUTRAL_COLOR;
 
 	if (!ammo.HasInfinite())
 		ammo--;
@@ -700,6 +703,10 @@ void HarpoonBoltControl(short itemNumber)
 		if (GlobalCounter & 1)
 			SpawnBubble(harpoonItem.Pose.Position.ToVector3(), harpoonItem.RoomNumber);
 	}
+	else if (harpoonItem.Pose.Orientation.x > -ANGLE(67.5f))
+	{
+		harpoonItem.Pose.Orientation.x -= ANGLE(1.0f);
+	}
 
 	auto prevPos = harpoonItem.Pose.Position;
 	harpoonItem.Pose.Translate(harpoonItem.Pose.Orientation, harpoonItem.Animation.Velocity.z);
@@ -722,7 +729,7 @@ bool FireGrenade(ItemInfo& laraItem)
 
 	auto& grenadeItem = g_Level.Items[itemNumber];
 		
-	grenadeItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	grenadeItem.Model.Color = NEUTRAL_COLOR;
 	grenadeItem.ObjectNumber = ID_GRENADE;
 	grenadeItem.RoomNumber = laraItem.RoomNumber;
 
@@ -805,7 +812,7 @@ void GrenadeControl(short itemNumber)
 {
 	auto& grenadeItem = g_Level.Items[itemNumber];
 
-	grenadeItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	grenadeItem.Model.Color = NEUTRAL_COLOR;
 
 	// Force grenade to explode if it was activated externally.
 	if ((grenadeItem.Flags & CODE_BITS) == CODE_BITS)
@@ -999,7 +1006,7 @@ void RocketControl(short itemNumber)
 		rocketItem.Pose.Orientation.z += short((rocketItem.Animation.Velocity.z / 4) + 7.0f) * ANGLE(1.0f);
 	}
 
-	rocketItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	rocketItem.Model.Color = NEUTRAL_COLOR;
 
 	// Calculate offset in rocket direction for fire and smoke sparks.
 	auto world = Matrix::CreateTranslation(0, 0, -64) *
@@ -1049,7 +1056,7 @@ bool FireCrossbow(ItemInfo& laraItem, const std::optional<Pose>& pose)
 
 	auto& boltItem = g_Level.Items[itemNumber];
 	boltItem.ObjectNumber = ID_CROSSBOW_BOLT;
-	boltItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	boltItem.Model.Color = NEUTRAL_COLOR;
 
 	if (!ammo.HasInfinite())
 		ammo--;
@@ -1431,7 +1438,7 @@ bool EmitFromProjectile(ItemInfo& projectile, ProjectileType type)
 
 		auto& grenadeItem = g_Level.Items[grenadeItemNumber];
 
-		grenadeItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+		grenadeItem.Model.Color = NEUTRAL_COLOR;
 		grenadeItem.ObjectNumber = ID_GRENADE;
 		grenadeItem.RoomNumber = projectile.RoomNumber;
 		grenadeItem.Pose.Position = Vector3i(
@@ -1645,7 +1652,7 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 
 			if ((currentObject.intelligent && currentObject.collision && itemPtr->Status == ITEM_ACTIVE) ||
 				itemPtr->IsLara() ||
-				(itemPtr->Flags & 0x40 && Objects[itemPtr->ObjectNumber].explodableMeshbits))
+				(itemPtr->Flags & IFLAG_SWITCH_ONESHOT && Objects[itemPtr->ObjectNumber].explodableMeshbits))
 			{
 				// If we collide with emitter, and there are no other objects around, 
 				// don't process further in early launch stages.
@@ -1692,8 +1699,13 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 					}
 				}
 			}
-			else if (itemPtr->ObjectNumber >= ID_SMASH_OBJECT1 &&
-					 itemPtr->ObjectNumber <= ID_SMASH_OBJECT8)
+			else if (itemPtr->ObjectNumber >= ID_SHOOT_SWITCH1 && itemPtr->ObjectNumber <= ID_SHOOT_SWITCH4)
+			{
+				doShatter = hasHit = true;
+				doExplosion = isExplosive;
+				ProcessShootSwitch(itemPtr);
+			}
+			else if (itemPtr->ObjectNumber >= ID_SMASH_OBJECT1 && itemPtr->ObjectNumber <= ID_SMASH_OBJECT8)
 			{
 				doShatter = hasHit = true;
 				doExplosion = isExplosive;

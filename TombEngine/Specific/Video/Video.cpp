@@ -168,11 +168,11 @@ namespace TEN::Video
 	{
 		TENLog("Initializing video player...", LogLevel::Info);
 
-		auto pluginCachePath = GetBinaryPath(false) + VIDEO_PLUGIN_CACHE_PATH;
+		auto pluginCachePath = g_Platform->GetBinaryPath(false) + VIDEO_PLUGIN_CACHE_PATH;
 
 		std::vector<const char*> vlcArgs;
-		vlcArgs.push_back("--vout=none");		 // Disable video output and title because rendering is done to a D3D texture.
-		vlcArgs.push_back("--aout=adummy");		 // Disable audio output because audio is routed to BASS.
+		vlcArgs.push_back("--vout=vdummy");		 // Use dummy video output (headless); --vout=none breaks VLC 4.0 decoder device.
+		vlcArgs.push_back("--aout=adummy");		 // Default to silent; libvlc_audio_set_callbacks overrides to amem per-player when audio is needed.
 		vlcArgs.push_back("--no-video-title");	 // Disable video title display.
 		vlcArgs.push_back("--no-media-library"); // Disable media library to increase loading speed.
 
@@ -296,7 +296,7 @@ namespace TEN::Video
 			return false;
 		}
 
-		// Route sound data to BASS, if video is not played in silent mode.
+		// Route sound data to BASS when not in silent mode.
 		if (!_silent)
 		{
 			libvlc_audio_set_format_callbacks(_player, OnAudioSetup, nullptr);
@@ -373,8 +373,15 @@ namespace TEN::Video
 		if (_deInitializing || _player == nullptr)
 			return false;
 
+		// Create GPU texture on main thread if not yet created (deferred from VLC callback).
+		if (_videoTexture == nullptr && _size != Vector2i::Zero)
+		{
+			TENLog("Creating video texture: " + std::to_string(_size.x) + "x" + std::to_string(_size.y), LogLevel::Info);
+			_videoTexture = _device->CreateTexture2D(_size.x, _size.y, SurfaceFormat::SF_BGRA8_Unorm, nullptr, true);
+		}
+
 		// Attempt to map and render texture only if callback has set frame to be rendered.
-		if (_needRender)
+		if (_needRender && _videoTexture != nullptr)
 		{
 			_device->UpdateTexture2D(_videoTexture.get(), _frameBuffer);
 
@@ -386,28 +393,6 @@ namespace TEN::Video
 			{
 				RenderBackground();
 			}
-
-			/*if (_videoTexture && SUCCEEDED(_d3dContext->Map(_videoTexture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource)))
-			{
-				// Copy framebuffer row by row, otherwise skewing may occur.
-				unsigned char* pData = reinterpret_cast<unsigned char*>(mappedResource.pData);
-				for (int row = 0; row < _size.y; row++)
-					memcpy(pData + row * mappedResource.RowPitch, _frameBuffer.data() + row * _size.x * 4, _size.x * 4);
-				_d3dContext->Unmap(_videoTexture, 0);
-
-				if (_playbackMode == VideoPlaybackMode::Exclusive)
-				{
-					RenderExclusive();
-				}
-				else if (_playbackMode == VideoPlaybackMode::Background)
-				{
-					RenderBackground();
-				}
-			}
-			else
-			{
-				TENLog("Failed to render video texture", LogLevel::Error);
-			}*/
 
 			_needRender = false;
 		}
@@ -441,7 +426,7 @@ namespace TEN::Video
 
 		auto state = libvlc_media_player_get_state(_player);
 
-		// If player is just opening, buffering, or stopping, always return early and wait for process to end.
+		// If player is just opening or buffering, always return early and wait for process to end.
 		if (state == libvlc_Opening || state == libvlc_Buffering)
 			return;
 
@@ -449,8 +434,8 @@ namespace TEN::Video
 		if (_looped && !interruptPlayback && (state == libvlc_Stopping || state == libvlc_Stopped))
 			libvlc_media_player_play(_player);
 
-		// If user pressed a key to break out from video or video has finished playback or in an error, stop and delete it.
-		if (interruptPlayback || state == libvlc_Error || (!_starting && state == libvlc_Stopped))
+		// If user pressed a key to break out from video, video has finished playback, or VLC failed, stop and delete it.
+		if (interruptPlayback || state == libvlc_Error || state == libvlc_Stopping || state == libvlc_Stopped)
 		{
 			Stop();
 			ClearAction(In::Pause); // HACK: Otherwise pause key won't work after video ends.
@@ -508,27 +493,23 @@ namespace TEN::Video
 
 	bool VideoHandler::InitializeVideoTexture()
 	{
-		if (_videoTexture != nullptr)
+		if (!_frameBuffer.empty())
 		{
 			TENLog("Video texture already exists", LogLevel::Error);
 			return false;
 		}
 
+		// Only allocate CPU buffer here (called from VLC thread).
+		// GPU texture creation is deferred to Update() on the main thread
+		// to avoid D3D11 context calls from non-main threads.
 		_frameBuffer.resize(_size.x * _size.y * 4);
-
-		_videoTexture = _device->CreateTexture2D(_size.x, _size.y, SurfaceFormat::SF_BGRA8_Unorm);
 
 		return true;
 	}
 
 	void VideoHandler::DeinitializeVideoTexture()
 	{
-		if (_videoTexture != nullptr)
-		{
-			_videoTexture.release();
-			_videoTexture = nullptr;
-		}
-
+		_videoTexture.reset();
 		_frameBuffer.clear();
 
 		_size = Vector2i::Zero;

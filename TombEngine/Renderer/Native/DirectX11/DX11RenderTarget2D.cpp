@@ -3,6 +3,8 @@
 #ifdef SDL_PLATFORM_WIN32
 
 #include "Renderer/Native/DirectX11/DX11RenderTarget2D.h"
+#include "Renderer/Native/DirectX11/DX11ErrorHelper.h"
+#include "Renderer/Native/DirectX11/DX11Utils.h"
 #include "Specific/trutils.h"
 
 namespace TEN::Renderer::Native::DirectX11
@@ -14,6 +16,8 @@ namespace TEN::Renderer::Native::DirectX11
 
 		_width = width;
 		_height = height;
+
+		auto sizeStr = std::to_string(width) + "x" + std::to_string(height) + " " + DXGIFormatToString(colorFormat);
 
 		// Texture.
 		auto desc = D3D11_TEXTURE2D_DESC{};
@@ -30,7 +34,7 @@ namespace TEN::Renderer::Native::DirectX11
 		desc.MiscFlags = 0;
 
 		res = device->CreateTexture2D(&desc, nullptr, _texture.GetAddressOf());
-		throwIfFailed(res);
+		throwIfFailed(res, device, "CreateTexture2D for RenderTarget (" + sizeStr + "):");
 
 		// Render target view.
 		auto renderTargetViewDesc = D3D11_RENDER_TARGET_VIEW_DESC{};
@@ -40,7 +44,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 		auto renderTargetView = ComPtr<ID3D11RenderTargetView>{};
 		res = device->CreateRenderTargetView(_texture.Get(), &renderTargetViewDesc, renderTargetView.GetAddressOf());
-		throwIfFailed(res);
+		throwIfFailed(res, device, "CreateRTV for RenderTarget (" + sizeStr + "):");
 		_renderTargetViews.push_back(renderTargetView); // copy -> AddRef (ok)
 
 		// Shader resource view.
@@ -52,7 +56,12 @@ namespace TEN::Renderer::Native::DirectX11
 
 		_shaderResourceView.Reset();
 		res = device->CreateShaderResourceView(_texture.Get(), &shaderResourceViewDesc, _shaderResourceView.GetAddressOf());
-		throwIfFailed(res);
+		throwIfFailed(res, device, "CreateSRV for RenderTarget (" + sizeStr + "):");
+
+		int vramSize = ComputeTextureSize(width, height, 1, 1, colorFormat);
+		_vram = VRAMAllocation(VRAMCategory::RenderTarget, vramSize,
+			"RenderTarget allocated: " + sizeStr +
+			" (" + BytesToMBString(vramSize) + " MB)");
 	}
 
 	// Used by SMAA because it needs to have two render targets with the same texture.
@@ -72,7 +81,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 		auto renderTargetView = ComPtr<ID3D11RenderTargetView>{};
 		res = device->CreateRenderTargetView(_texture.Get(), &renderTargetViewDesc, renderTargetView.GetAddressOf());
-		throwIfFailed(res);
+		throwIfFailed(res, device, "CreateRTV for SMAA RenderTarget (" + DXGIFormatToString(colorFormat) + "):");
 		_renderTargetViews.push_back(renderTargetView);
 
 		// Shader resource view.
@@ -84,7 +93,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 		_shaderResourceView.Reset();
 		res = device->CreateShaderResourceView(_texture.Get(), &shaderResourceViewDesc, _shaderResourceView.GetAddressOf());
-		throwIfFailed(res);
+		throwIfFailed(res, device, "CreateSRV for SMAA RenderTarget (" + DXGIFormatToString(colorFormat) + "):");
 	}
 
 	// Constructor for the backbuffer only.
@@ -110,7 +119,8 @@ namespace TEN::Renderer::Native::DirectX11
 
 		auto renderTargetView = ComPtr<ID3D11RenderTargetView>{};
 		res = device->CreateRenderTargetView(_texture.Get(), &rtvDesc, renderTargetView.GetAddressOf());
-		throwIfFailed(res);
+		throwIfFailed(res, device,
+			"CreateRTV for backbuffer (" + std::to_string(_width) + "x" + std::to_string(_height) + "):");
 		_renderTargetViews.push_back(renderTargetView);
 
 		// Shader resource view.
@@ -124,7 +134,8 @@ namespace TEN::Renderer::Native::DirectX11
 
 			_shaderResourceView.Reset();
 			res = device->CreateShaderResourceView(_texture.Get(), &shaderResourceViewDesc, _shaderResourceView.GetAddressOf());
-			throwIfFailed(res);
+			throwIfFailed(res, device,
+				"CreateSRV for backbuffer (" + std::to_string(_width) + "x" + std::to_string(_height) + "):");
 		}
 	}
 
@@ -135,6 +146,9 @@ namespace TEN::Renderer::Native::DirectX11
 
 		_width = width;
 		_height = height;
+
+		auto sizeStr = std::to_string(width) + "x" + std::to_string(height) + "x" + std::to_string(count) +
+			" " + DXGIFormatToString(colorFormat);
 
 		auto desc = D3D11_TEXTURE2D_DESC{};
 		desc.Width = width;
@@ -150,7 +164,7 @@ namespace TEN::Renderer::Native::DirectX11
 		desc.MiscFlags = 0x0;
 
 		res = device->CreateTexture2D(&desc, NULL, _texture.GetAddressOf());
-		throwIfFailed(res);
+		throwIfFailed(res, device, "CreateTexture2D for RenderTarget array (" + sizeStr + "):");
 
 		// Render target view.
 		auto viewDesc = D3D11_RENDER_TARGET_VIEW_DESC{};
@@ -163,7 +177,8 @@ namespace TEN::Renderer::Native::DirectX11
 			auto renderTargetView = ComPtr<ID3D11RenderTargetView>{};
 			viewDesc.Texture2DArray.FirstArraySlice = D3D11CalcSubresource(0, i, 1);
 			res = device->CreateRenderTargetView(_texture.Get(), &viewDesc, renderTargetView.GetAddressOf());
-			throwIfFailed(res);
+			throwIfFailed(res, device,
+				"CreateRTV slice " + std::to_string(i) + " for RenderTarget array (" + sizeStr + "):");
 			_renderTargetViews.push_back(renderTargetView);
 		}
 
@@ -177,7 +192,12 @@ namespace TEN::Renderer::Native::DirectX11
 		shaderDesc.Texture2DArray.FirstArraySlice = 0;
 
 		res = device->CreateShaderResourceView(_texture.Get(), &shaderDesc, _shaderResourceView.GetAddressOf());
-		throwIfFailed(res);
+		throwIfFailed(res, device, "CreateSRV for RenderTarget array (" + sizeStr + "):");
+
+		int vramSize = ComputeTextureSize(width, height, count, 1, colorFormat);
+		_vram = VRAMAllocation(VRAMCategory::RenderTarget, vramSize,
+			"RenderTarget array allocated: " + sizeStr +
+			" (" + BytesToMBString(vramSize) + " MB)");
 	}
 
 	DXGI_FORMAT DX11RenderTarget2D::MakeTypeless(DXGI_FORMAT format)

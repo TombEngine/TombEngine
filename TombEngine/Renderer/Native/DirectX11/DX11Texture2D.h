@@ -7,12 +7,11 @@
 #include <WICTextureLoader.h>
 #include <DDSTextureLoader.h>
 #include "Renderer/Native/DirectX11/DX11TextureBase.h"
-#include "Renderer/RendererUtils.h"
 #include "Renderer/Graphics/ITexture2D.h"
+#include "Renderer/Graphics/VRAMAllocation.h"
 
 namespace TEN::Renderer::Native::DirectX11
 {
-	using namespace TEN::Renderer::Utils;
 	using namespace TEN::Renderer::Graphics;
 	using namespace DirectX;
 
@@ -25,22 +24,21 @@ namespace TEN::Renderer::Native::DirectX11
 		int _height;
 		ComPtr<ID3D11Texture2D> _texture;
 		ComPtr<ID3D11ShaderResourceView> _shaderResourceView;
+		VRAMAllocation _vram;
 
 	public:
 		DX11Texture2D() = default;
 		~DX11Texture2D() = default;
-		
+
 		int GetWidth() override { return _width; }
 		int GetHeight() override { return _height; }
 		ID3D11ShaderResourceView* GetD3D11ShaderResourceView() const noexcept { return _shaderResourceView.Get(); }
 		ID3D11Texture2D* GetD3D11Texture() const noexcept { return _texture.Get(); }
 		bool IsValid() override { return _texture != nullptr; }
 
-		DX11Texture2D(ID3D11Device* device, int width, int height, byte* data);
-		DX11Texture2D(ID3D11Device* device, int width, int height, DXGI_FORMAT format);
-		DX11Texture2D(ID3D11Device* device, int width, int height, DXGI_FORMAT format, int pitch, const void* data);
+		DX11Texture2D(ID3D11Device* device, int width, int height, DXGI_FORMAT format, void* data, bool isDynamic = false);
 		DX11Texture2D(ID3D11Device* device, const std::wstring& fileName);
-		DX11Texture2D(ID3D11Device* device, byte* data, int length);
+		DX11Texture2D(ID3D11Device* device, int dataSize, unsigned char* data);
 	};
 }
 

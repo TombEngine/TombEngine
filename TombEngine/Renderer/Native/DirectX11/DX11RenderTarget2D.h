@@ -6,12 +6,12 @@
 #include <wrl/client.h>
 #include "Renderer/Native/DirectX11/DX11TextureBase.h"
 #include "Renderer/Native/DirectX11/DX11Texture2D.h"
-#include "Renderer/RendererUtils.h"
 #include "Renderer/Graphics/IRenderTarget2D.h"
+#include "Renderer/Graphics/VRAMAllocation.h"
 
 namespace TEN::Renderer::Native::DirectX11
 {
-	using namespace TEN::Renderer::Utils;
+	using namespace TEN::Renderer::Graphics;
 	using Microsoft::WRL::ComPtr;
 
 	// NOTE: Texture array is supported and so it's possible to have multiple views.
@@ -24,11 +24,12 @@ namespace TEN::Renderer::Native::DirectX11
 		ComPtr<ID3D11Texture2D>                     _texture            = {};
 		ComPtr<ID3D11ShaderResourceView>            _shaderResourceView = {};
 		std::vector<ComPtr<ID3D11RenderTargetView>> _renderTargetViews  = {};
+		VRAMAllocation                              _vram               = {};
 
 	public:
 		DX11RenderTarget2D() = default;
 		~DX11RenderTarget2D() = default;
-		
+
 		int                       GetWidth() override { return _width; }
 		int                       GetHeight() override { return _height; }
 		int                       GetArraySize() override { return (int)_renderTargetViews.size(); }

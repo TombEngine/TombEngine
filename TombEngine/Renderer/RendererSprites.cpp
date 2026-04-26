@@ -29,11 +29,7 @@ namespace TEN::Renderer
 		spr.Height = size.y;
 		spr.BlendMode = blendMode;
 		spr.SoftParticle = isSoftParticle;
-		spr.c1 = color;
-		spr.c2 = color;
-		spr.c3 = color;
-		spr.c4 = color;
-		spr.color = color;
+		spr.c1 = spr.c2 = spr.c3 = spr.c4 = spr.color = color;
 		spr.renderType = renderType;
 
 		view.SpritesToDraw.push_back(spr);
@@ -61,11 +57,7 @@ namespace TEN::Renderer
 		spr.BlendMode = blendMode;
 		spr.ConstrainAxis = constrainAxis;
 		spr.SoftParticle = isSoftParticle;
-		spr.c1 = color;
-		spr.c2 = color;
-		spr.c3 = color;
-		spr.c4 = color;
-		spr.color = color;
+		spr.c1 = spr.c2 = spr.c3 = spr.c4 = spr.color = color;
 		spr.renderType = renderType;
 
 		view.SpritesToDraw.push_back(spr);
@@ -93,11 +85,7 @@ namespace TEN::Renderer
 		spr.BlendMode = blendMode;
 		spr.LookAtAxis = lookAtAxis;
 		spr.SoftParticle = isSoftParticle;
-		spr.c1 = color;
-		spr.c2 = color;
-		spr.c3 = color;
-		spr.c4 = color;
-		spr.color = color;
+		spr.c1 = spr.c2 = spr.c3 = spr.c4 = spr.color = color;
 		spr.renderType = renderType;
 
 		view.SpritesToDraw.push_back(spr);
@@ -365,7 +353,7 @@ namespace TEN::Renderer
 				auto vertex0 = Vertex{};
 				vertex0.Position = rDrawSprite.vtx1;
 				vertex0.UV = rDrawSprite.Sprite->UV[0];
-				vertex0.Color = VectorColorToRGBA_TempToVector4(rDrawSprite.c1);
+				vertex0.Color = VectorColorToRGBA(rDrawSprite.c1);
 				vertex0.Effects = 0 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 				ReflectVectorOptionally(vertex0.Position);
@@ -373,7 +361,7 @@ namespace TEN::Renderer
 				auto vertex1 = Vertex{};
 				vertex1.Position = rDrawSprite.vtx2;
 				vertex1.UV = rDrawSprite.Sprite->UV[1];
-				vertex1.Color = VectorColorToRGBA_TempToVector4(rDrawSprite.c2);
+				vertex1.Color = VectorColorToRGBA(rDrawSprite.c2);
 				vertex1.Effects = 1 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 				ReflectVectorOptionally(vertex1.Position);
@@ -381,7 +369,7 @@ namespace TEN::Renderer
 				auto vertex2 = Vertex{};
 				vertex2.Position = rDrawSprite.vtx3;
 				vertex2.UV = rDrawSprite.Sprite->UV[2];
-				vertex2.Color = VectorColorToRGBA_TempToVector4(rDrawSprite.c3);
+				vertex2.Color = VectorColorToRGBA(rDrawSprite.c3);
 				vertex2.Effects = 2 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 				ReflectVectorOptionally(vertex2.Position);
@@ -389,7 +377,7 @@ namespace TEN::Renderer
 				auto vertex3 = Vertex{};
 				vertex3.Position = rDrawSprite.vtx4;
 				vertex3.UV = rDrawSprite.Sprite->UV[3];
-				vertex3.Color = VectorColorToRGBA_TempToVector4(rDrawSprite.c4);
+				vertex3.Color = VectorColorToRGBA(rDrawSprite.c4);
 				vertex3.Effects = 3 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 				ReflectVectorOptionally(vertex3.Position);
@@ -457,25 +445,25 @@ namespace TEN::Renderer
 			auto vertex0 = Vertex{};
 			vertex0.Position = object->Sprite->vtx1;
 			vertex0.UV = object->Sprite->Sprite->UV[0];
-			vertex0.Color = VectorColorToRGBA_TempToVector4(object->Sprite->c1);
+			vertex0.Color = VectorColorToRGBA(object->Sprite->c1);
 			vertex0.Effects = 0 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 			auto vertex1 = Vertex{};
 			vertex1.Position = object->Sprite->vtx2;
 			vertex1.UV = object->Sprite->Sprite->UV[1];
-			vertex1.Color = VectorColorToRGBA_TempToVector4(object->Sprite->c2);
+			vertex1.Color = VectorColorToRGBA(object->Sprite->c2);
 			vertex1.Effects = 1 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 			auto vertex2 = Vertex{};
 			vertex2.Position = object->Sprite->vtx3;
 			vertex2.UV = object->Sprite->Sprite->UV[2];
-			vertex2.Color = VectorColorToRGBA_TempToVector4(object->Sprite->c3);
+			vertex2.Color = VectorColorToRGBA(object->Sprite->c3);
 			vertex2.Effects = 2 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 			auto vertex3 = Vertex{};
 			vertex3.Position = object->Sprite->vtx4;
 			vertex3.UV = object->Sprite->Sprite->UV[3];
-			vertex3.Color = VectorColorToRGBA_TempToVector4(object->Sprite->c4);
+			vertex3.Color = VectorColorToRGBA(object->Sprite->c4);
 			vertex3.Effects = 3 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 			_spriteVertices.clear();

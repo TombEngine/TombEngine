@@ -3,6 +3,7 @@
 #ifdef SDL_PLATFORM_WIN32
 
 #include "Renderer/Native/DirectX11/DX11ConstantBuffer.h"
+#include "Renderer/Native/DirectX11/DX11ErrorHelper.h"
 #include "Specific/trutils.h"
 
 namespace TEN::Renderer::Native::DirectX11
@@ -15,7 +16,8 @@ namespace TEN::Renderer::Native::DirectX11
 		desc.Usage = D3D11_USAGE_DYNAMIC;
 		desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		Utils::throwIfFailed(device->CreateBuffer(&desc, nullptr, _buffer.GetAddressOf()));
+		throwIfFailed(device->CreateBuffer(&desc, nullptr, _buffer.GetAddressOf()), device,
+			"CreateBuffer for ConstantBuffer (" + std::to_string(size) + " bytes):");
 		_buffer->SetPrivateData(WKPDID_D3DDebugObjectName, 32, name.c_str());
 	}
 

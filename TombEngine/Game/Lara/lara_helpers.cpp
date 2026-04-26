@@ -836,6 +836,19 @@ void HandlePlayerFlyCheat(ItemInfo& item)
 	}
 }
 
+void HandlePlayerExtraAnim(ItemInfo& item)
+{
+	if (item.Animation.AnimObjectID != GAME_OBJECT_ID::ID_LARA_EXTRA_ANIMS)
+		return;
+
+	auto& anim = GetAnimData(item);
+	if (anim.NextAnimNumber != 0 || anim.NextFrameNumber != 0)
+		return;
+
+	if (TestLastFrame(item))
+		SetAnimation(item, LA_STAND_SOLID);
+}
+
 void HandlePlayerWetnessDrips(ItemInfo& item)
 {
 	auto& player = *GetLaraInfo(&item);

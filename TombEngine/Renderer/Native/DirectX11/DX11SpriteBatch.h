@@ -2,19 +2,17 @@
 
 #ifdef SDL_PLATFORM_WIN32
 
+#include <CommonStates.h>
 #include <d3d11.h>
-#include "Renderer/RendererUtils.h"
+#include <memory>
+#include <PrimitiveBatch.h>
+#include <SpriteFont.h>
+#include <wrl/client.h>
 #include "Renderer/Graphics/IGraphicsDevice.h"
 #include "Renderer/Native/DirectX11/DX11TextureBase.h"
-#include <wrl/client.h>
-#include <SpriteFont.h>
-#include <PrimitiveBatch.h>
-#include <CommonStates.h>
-#include <memory>
 
 namespace TEN::Renderer::Native::DirectX11
 {
-	using namespace TEN::Renderer::Utils;
 	using namespace TEN::Renderer::Graphics;
 	using namespace DirectX;
 

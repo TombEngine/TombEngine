@@ -33,3 +33,85 @@ public:
 		parent.new_usertype<LevelFunc>(ScriptReserved_LevelFunc, sol::no_constructor, sol::meta_function::call, &Call);
 	}
 };
+
+/// A hierarchical table system for organizing level-specific functions.
+// @specialtable LevelFuncs
+// This serves a few purposes: it holds the level callbacks (listed below) as well as
+// any trigger functions you might have specified.
+// 
+// For example, if you give a trigger a Lua name of "my_trigger" in Tomb Editor, you will have to implement it as a member
+// of this table:
+//	LevelFuncs.my_trigger = function()
+//		--implementation goes here
+//	end
+// You can organise functions into tables within the hierarchy:
+//	LevelFuncs.enemyFuncs = {}
+//
+//	LevelFuncs.enemyFuncs.makeBaddyRunAway = function()
+//		--implementation goes here
+//	end
+//
+//	LevelFuncs.enemyFuncs.makeBaddyUseMedkit = function()
+//		--implementation goes here
+//	end
+// 
+// <h2>Level Callbacks</h2>
+// The level's .lua file contains predefined functions, called callbacks, that will be called on specific events in the level. If you want to execute code or call other functions in these events, you'll need to place them inside these functions.
+// 
+// The functions are:
+// 
+// * __OnStart__ Will be called when a level is entered by completing a previous level or by selecting it in the menu. Will not be called when loaded from a saved game.
+// * __OnLoad__ Will be called when a level is loaded from a saved game.
+// * __OnLoop__ Will be called once per frame while the level is active.
+// * __OnSave__ Will be called when the game is saved while in the level.
+// * __OnEnd__ Will be called when leaving a level. This includes finishing it, exiting to the menu, or loading a save in a different level. It can take an @{Logic.EndReason}.
+// <br>For example:
+//	LevelFuncs.OnEnd = function(reason)
+//		if reason == TEN.Logic.EndReason.LEVEL_COMPLETE then
+//			--implementation goes here
+//		end
+//		if reason == TEN.Logic.EndReason.DEATH then
+//			print("death")
+//		end
+//	end
+// * __OnUseItem__ Will be called when the player uses an item from their inventory. It can take a @{Objects.ObjID}.
+// <br>For example:
+//	LevelFuncs.OnUseItem = function(itemID)
+//		if itemID == TEN.Objects.ObjID.SMALLMEDI_ITEM then
+//			--implementation goes here
+//		end
+//	end
+// * __OnFreeze__ Will be called when any of the Freeze modes are activated.
+//
+// <br>__The order of loading is as follows:__
+// 
+// 1. The level data itself is loaded.
+// 
+// 2. The level script itself is run (i.e. any code you put outside the `LevelFuncs` callbacks is executed).
+// 
+// 3. Save data is loaded, if saving from a saved game (will empty `LevelVars` and `GameVars` and repopulate them with what they contained when the game was saved).
+// 
+// 4. If loading from a save, OnLoad will be called. Otherwise, OnStart will be called.
+// 
+// 5. The control loop, in which OnLoop will be called once per frame, begins.
+//
+// <h2>Note:</h2>
+//
+// - LevelFuncs is created automatically. Never assign a value to LevelFuncs itself, as that will overwrite the entire table.<br>
+// For example, do NOT do this:
+// 	LevelFuncs = {} -- This will break everything!
+// or
+// 	LevelFuncs = LevelFuncs -- not needed, LevelFuncs already exists.
+//
+// - __*LevelFuncs.External*__ is for 'third-party' functions.<br>
+// For example, if you write a library providing LevelFuncs functions for other builders to use in their levels, put those functions in:
+//	LevelFuncs.External.YourLibraryNameHere = {}
+//	LevelFuncs.External.YourLibraryNameHere.yourFunction = function()
+//		--implementation goes here
+//	end
+//	LevelFuncs.External.YourLibraryNameHere.yourFunction2 = function()
+//		--implementation goes here
+//	end
+//
+// - __*LevelFuncs.Engine*__ is a reserved table used internally by TombEngine's libs. __Do not modify, overwrite, or add to it.__
+//

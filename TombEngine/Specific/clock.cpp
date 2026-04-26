@@ -36,7 +36,7 @@ void HighFramerateSynchronizer::Sync()
 	else
 	{
 		_currentCounter = SDL_GetPerformanceCounter();
-		Uint64 diff = _currentCounter - _lastCounter;
+		auto diff = _currentCounter - _lastCounter;
 		_lastCounter = _currentCounter;
 
 		_frameTime = (double)diff * 1000.0 / (double)_frequency;
@@ -78,36 +78,34 @@ void HighFramerateSynchronizer::Step()
 
 float HighFramerateSynchronizer::GetInterpolationFactor()
 {
-	return std::min(
-		static_cast<float>(_controlDelay / CONTROL_FRAME_TIME),
-		1.0f);
+	return std::min((float)(_controlDelay / CONTROL_FRAME_TIME), 1.0f);
 }
 
 int TimeSync()
 {
-	Uint64 counter = SDL_GetPerformanceCounter();
-	double dCounter = static_cast<double>(counter) / LdFreq;
+	auto counter = SDL_GetPerformanceCounter();
+	double dCounter = (double)counter / LdFreq;
 
-	long gameFrames = static_cast<long>(dCounter) - static_cast<long>(LdSync);
+	int gameFrames = (int)dCounter - (int)LdSync;
 	LdSync = dCounter;
 
-	return static_cast<int>(gameFrames);
+	return gameFrames;
 }
 
 bool TimeReset()
 {
-	Uint64 counter = SDL_GetPerformanceCounter();
-	LdSync = static_cast<double>(counter) / LdFreq;
+	auto counter = SDL_GetPerformanceCounter();
+	LdSync = (double)counter / LdFreq;
 	return true;
 }
 
 bool TimeInit()
 {
-	Uint64 freq = SDL_GetPerformanceFrequency();
+	auto freq = SDL_GetPerformanceFrequency();
 	if (!freq)
 		return false;
 
-	LdFreq = static_cast<double>(freq) / 60.0;
+	LdFreq = (double)freq / (double)(FPS * 2);
 	TimeReset();
 	return true;
 }

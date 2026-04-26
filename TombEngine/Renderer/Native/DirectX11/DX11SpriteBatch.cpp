@@ -76,6 +76,10 @@ namespace TEN::Renderer::Native::DirectX11
 			blendState = _renderStates->NonPremultiplied();
 			break;
 
+		case BlendMode::PremultipliedAlphaBlend:
+			blendState = _renderStates->AlphaBlend();
+			break;
+
 		default:
 			blendState = _renderStates->Opaque();
 			break;

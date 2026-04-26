@@ -455,6 +455,44 @@ namespace TEN::Animation
 		SetAnimation(item, item.ObjectNumber, animNumber, frameNumber);
 	}
 
+	void SetExtendedAnimation(ItemInfo& item, int rawAnimNumber)
+	{
+		constexpr int ANIM_NUMBER_MAX = 1000;
+
+		int nativeAnimCount = (int)Objects[item.ObjectNumber].Animations.size();
+		rawAnimNumber = std::abs(rawAnimNumber);
+
+		if (rawAnimNumber < nativeAnimCount)
+		{
+			SetAnimation(item, rawAnimNumber);
+			return;
+		}
+
+		int relativeAnimNumber = rawAnimNumber - nativeAnimCount;
+
+		if (Objects[GAME_OBJECT_ID::ID_LARA_EXTRA_ANIMS].loaded && Objects[GAME_OBJECT_ID::ID_LARA_EXTRA_ANIMS].Animations.size() > relativeAnimNumber)
+		{
+			SetAnimation(item, GAME_OBJECT_ID::ID_LARA_EXTRA_ANIMS, relativeAnimNumber);
+			return;
+		}
+
+		if (rawAnimNumber >= ANIM_NUMBER_MAX)
+		{
+			int objectNumber = rawAnimNumber / ANIM_NUMBER_MAX;
+			int animNumber = rawAnimNumber % ANIM_NUMBER_MAX;
+
+			if (objectNumber < GAME_OBJECT_ID::ID_NUMBER_OBJECTS && Objects[objectNumber].loaded && Objects[objectNumber].Animations.size() > animNumber)
+			{
+				SetAnimation(item, (GAME_OBJECT_ID)objectNumber, animNumber);
+				return;
+			}
+		}
+
+		TENLog(fmt::format("Can't set extended animation {} for {} from the external slot: animation data missing.", rawAnimNumber, item.Name), LogLevel::Warning);
+		SetAnimation(item, 0);
+		return;
+	}
+
 	void SetStateDispatch(ItemInfo& item, const StateDispatchData& dispatch)
 	{
 		item.Animation.AnimNumber = dispatch.NextAnimNumber;

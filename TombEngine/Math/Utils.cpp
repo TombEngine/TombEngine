@@ -89,6 +89,29 @@ namespace TEN::Math
 		return EaseInOutSine(0.0f, 1.0f, alpha);
 	}
 
+	float Spline(float alpha, const float* knots, int knotCount)
+	{
+		if (!knots || knotCount < 4)
+			return 0.0f;
+
+		alpha = std::clamp(alpha, 0.0f, 1.0f);
+
+		int segmentCount = knotCount - 3;
+
+		int segmentIndex = (int)(alpha * segmentCount);
+		segmentIndex = std::min(segmentIndex, segmentCount - 1);
+
+		const float* knot = &knots[segmentIndex];
+		float segmentPos = alpha * segmentCount - (float)segmentIndex;
+
+		float cCube   = (-knot[0] + 3.0f * knot[1] - 3.0f * knot[2] + knot[3]) * 0.5f;
+		float cQuad   = knot[0] - 2.5f * knot[1] + 2.0f * knot[2] - 0.5f * knot[3];
+		float cLinear = (knot[2] - knot[0]) * 0.5f;
+		float cConst  = knot[1];
+
+		return segmentPos * (segmentPos * (segmentPos * cCube + cQuad) + cLinear) + cConst;
+	}
+
 	float Luma(const Vector3& color)
 	{
 		constexpr auto RED_COEFF   = 0.2126f;
@@ -113,6 +136,47 @@ namespace TEN::Math
 		return normalizedChroma;
 	}
 
+	std::pair<std::array<int, 3>, std::array<int, 3>> GenerateColorShift(Vector3 mainColor, Vector3 additionalColor)
+	{
+		std::array<int, 3> colorS =
+		{
+			int(mainColor.x * UCHAR_MAX),
+			int(mainColor.y * UCHAR_MAX),
+			int(mainColor.z * UCHAR_MAX)
+		};
+
+		std::array<int, 3> colorD =
+		{
+			int(additionalColor.x * UCHAR_MAX),
+			int(additionalColor.y * UCHAR_MAX),
+			int(additionalColor.z * UCHAR_MAX)
+		};
+
+		// Determine weakest RGB component
+		int lowestS = *std::min_element(colorS.begin(), colorS.end());
+		int lowestD = *std::min_element(colorD.begin(), colorD.end());
+
+		constexpr auto CHROMA_SHIFT = 32;
+		constexpr auto LUMA_SHIFT = 0.5f;
+
+		for (int i = 0; i < 3; i++)
+		{
+			if (colorS[i] != lowestS)
+				colorS[i] += Random::GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT);
+
+			if (colorD[i] != lowestD)
+				colorD[i] += Random::GenerateInt(-CHROMA_SHIFT, CHROMA_SHIFT);
+
+			colorS[i] = int(colorS[i] * (1.0f + Random::GenerateFloat(-LUMA_SHIFT, 0)));
+			colorD[i] = int(colorD[i] * (1.0f + Random::GenerateFloat(-LUMA_SHIFT, 0)));
+
+			colorS[i] = std::clamp(colorS[i], 0, UCHAR_MAX);
+			colorD[i] = std::clamp(colorD[i], 0, UCHAR_MAX);
+		}
+
+		return { colorS, colorD };
+	}
+
 	Vector3 Screen(const Vector3& ambient, const Vector3& tint)
 	{
 		float luma = Luma(tint);
@@ -131,11 +195,8 @@ namespace TEN::Math
 		return Vector4(result.x, result.y, result.z, ambient.w * tint.w);
 	}
 
-	Vector4 VectorColorToRGBA_TempToVector4(Vector4 c)
+	unsigned int VectorColorToRGBA(Vector4 c)
 	{
-		return c;
-
-		/*
 		auto to8 = [](float v) -> unsigned int {
 			float x = std::clamp(v, 0.0f, 1.0f) * 255.0f;
 			return static_cast<unsigned int>(std::lround(x));
@@ -146,6 +207,6 @@ namespace TEN::Math
 		unsigned int B = to8(c.z);
 		unsigned int A = to8(c.w);
 
-		return (R) | (G << 8) | (B << 16) | (A << 24);*/
+		return (R) | (G << 8) | (B << 16) | (A << 24);
 	}
 }

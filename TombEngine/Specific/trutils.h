@@ -2,18 +2,9 @@
 
 namespace TEN::Utils
 {
-	// Misc. utilities
-
-	#define SAFE_DELETE(x)  \
-		if ((x) != nullptr) \
-			(x).reset();    \
-
-	#define ARGB_TO_UINT(a, r, g, b)                     \
-		((D3DCOLOR)((((unsigned int)(a) & 0xFF) << 24) | \
-					(((unsigned int)(r) & 0xFF) << 16) | \
-					(((unsigned int)(g) & 0xFF) << 8)  | \
-					(((unsigned int)(b) & 0xFF))))
-
+	// Memory utilities
+	float ToMegabytes(unsigned long long bytes);
+	
 	// String utilities
 
 	std::string ConstructAssetDirectory(std::string customDirectory);
@@ -28,6 +19,7 @@ namespace TEN::Utils
 	std::string  Trim(std::string string);
 	bool         StartsWith(const std::string& string, const char* pref);
 	int          ToInt(const std::string& string, int fallback);
+	float        ToFloat(const std::string& string, float fallback);
 	bool         ToBool(const std::string& string, bool fallback);
 
 	std::vector<std::wstring> SplitString(const std::wstring& string);
@@ -40,8 +32,6 @@ namespace TEN::Utils
 	Vector2 GetAspectCorrect2DPosition(const Vector2& pos);
 	Vector2 Convert2DPositionToNDC(const Vector2& pos);
 	Vector2 ConvertNDCTo2DPosition(const Vector2& ndc);
-
-	std::wstring GetBinaryPath(bool includeExeName);
 
 	template <typename TElement>
 	bool Contains(const std::vector<TElement>& vector, const TElement& element)
