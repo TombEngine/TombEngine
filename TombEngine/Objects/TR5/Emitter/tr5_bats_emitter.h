@@ -12,12 +12,12 @@ struct BatData
 	short Velocity;
 	short Counter;
 	short LaraTarget;
-	byte XTarget;
-	byte ZTarget;
+	short XTarget;
+	short ZTarget;
 
-	byte Flags;
-	
-	Matrix Transform	 = Matrix::Identity;
+	unsigned char Flags;
+
+	Matrix Transform	  = Matrix::Identity;
 	Matrix PrevTransform = Matrix::Identity;
 
 	void StoreInterpolationData()
@@ -27,10 +27,15 @@ struct BatData
 };
 
 extern int NextBat;
+extern int BatsAnimFrameOffset;
 extern BatData Bats[NUM_BATS];
+extern BatData Tr3Bats[NUM_BATS];
 
+void ClearBats();
 short GetNextBat();
 void InitializeLittleBats(short itemNumber);
 void LittleBatsControl(short itemNumber);
 void TriggerLittleBat(ItemInfo* item);
+void TriggerTr3Bats(ItemInfo* item);
+void UpdateTr3Bats();
 void UpdateBats();
