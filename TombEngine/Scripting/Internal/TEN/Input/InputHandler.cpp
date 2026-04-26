@@ -161,7 +161,7 @@ namespace TEN::Scripting::Input
 	// @treturn string Name of keyboard key that has been assigned to the ActionID.
 	static std::string GetActionBinding(int actionID)
 	{
-		return g_Bindings.GetBoundKeyName((ActionID)actionID);
+		return g_Bindings.GetBoundKeyName((ActionId)actionID);
 	}
 
 	/// Returns the time for which a key has been held.
@@ -173,7 +173,7 @@ namespace TEN::Scripting::Input
 		if (!IsValidAction(actionID))
 			return false;
 
-		return GetActionTimeActive((ActionID)actionID);
+		return GetActionTimeActive((ActionId)actionID);
 	}
 
 	void Register(sol::state* state, sol::table& parent)
