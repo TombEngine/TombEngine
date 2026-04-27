@@ -1078,7 +1078,7 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.MusicVolume < 0)
 						CurrentSettings.Configuration.MusicVolume = 0;
 
-					SetVolumeTracks(CurrentSettings.Configuration.MusicVolume);
+					SetAudioConfiguration(CurrentSettings.Configuration);
 				}
 
 				break;
@@ -1090,7 +1090,7 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.SfxVolume < 0)
 						CurrentSettings.Configuration.SfxVolume = 0;
 
-					SetVolumeFX(CurrentSettings.Configuration.SfxVolume);
+					SetAudioConfiguration(CurrentSettings.Configuration);
 					isVolumeAdjusted = IsPulsed(In::Left, 0.1f);
 				}
 
