@@ -1147,6 +1147,7 @@ namespace TEN::Renderer
 	{
 		SetBlendMode(BlendMode::Additive);
 		SetCullMode(CullMode::None);
+		SetDepthState(DepthState::Read);
 
 		_shaders.Bind(Shader::Solid);
 
@@ -1173,6 +1174,7 @@ namespace TEN::Renderer
 
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
+		SetDepthState(DepthState::Read);
 	}
 
 	void Renderer::DrawTriangles3D(RenderView& view)
@@ -1187,6 +1189,9 @@ namespace TEN::Renderer
 
 		_primitiveBatch->Begin();
 
+		auto cameraPos = view.Camera.WorldPosition;
+		constexpr auto DEBUG_OFFSET = 2.0f;
+
 		for (const auto& tri : _triangles3DToDraw)
 		{
 			auto rVertices = std::vector<Vertex>{};
@@ -1197,6 +1202,16 @@ namespace TEN::Renderer
 				auto rVertex = Vertex{};
 				rVertex.Position = vertex;
 				rVertex.Color = VectorColorToRGBA(tri.Color);
+
+				if (_debugPage == RendererDebugPage::CollisionMeshStats)
+				{
+					auto offset = cameraPos - vertex;
+					if (offset.LengthSquared() > EPSILON)
+					{
+						offset.Normalize();
+						rVertex.Position += offset * DEBUG_OFFSET;
+					}
+				}
 
 				rVertices.push_back(rVertex);
 			}
@@ -2710,6 +2725,7 @@ namespace TEN::Renderer
 
 				while (baseStaticIndex < staticsCount)
 				{
+					int batchStart = baseStaticIndex;
 					int instancesCount = 0;
 					int max = std::min(baseStaticIndex + bucketSize, staticsCount);
 
@@ -2774,7 +2790,24 @@ namespace TEN::Renderer
 									_numInstancedStaticsDrawCalls++;
 								}
 
-								bindTextureAndMaterialsRequired = true; 
+								bindTextureAndMaterialsRequired = true;
+
+								if (_debugPage == RendererDebugPage::CollisionMeshStats && rendererPass == RendererPass::Opaque)
+								{
+									if (!_debugNormalsCacheInitialized)
+										InitializeDebugNormalsCache();
+
+									for (int debugStaticIndex = batchStart; debugStaticIndex < max; debugStaticIndex++)
+									{
+										auto* debugStatic = statics[debugStaticIndex];
+										if (IgnoreReflectionPassForRoom(debugStatic->RoomNumber) || debugStatic->Color.w < ALPHA_BLEND_THRESHOLD)
+											continue;
+
+										auto debugWorld = debugStatic->World;
+										ReflectMatrixOptionally(debugWorld);
+										DrawDebugNormalsForBucket(bucket, _staticsVertices, _staticsIndices, _staticsNormalsCache, debugWorld, BLOCK(0.03f));
+									}
+								}
 							}
 						}
 					}
@@ -2976,6 +3009,22 @@ namespace TEN::Renderer
 
 						bindTexturesAndMaterialsRequired = true;
 					}
+				}
+			}
+
+			if (_debugPage == RendererDebugPage::CollisionMeshStats && rendererPass == RendererPass::Opaque)
+			{
+				if (!_debugNormalsCacheInitialized)
+					InitializeDebugNormalsCache();
+
+				for (int i = (int)view.RoomsToDraw.size() - 1; i >= 0; i--)
+				{
+					const auto& debugRoom = *view.RoomsToDraw[i];
+					auto worldMatrix = Matrix::Identity;
+					ReflectMatrixOptionally(worldMatrix);
+
+					for (const auto& debugBucket : debugRoom.Buckets)
+						DrawDebugNormalsForBucket(debugBucket, _roomsVertices, _roomsIndices, _roomsNormalsCache, worldMatrix, BLOCK(0.05f), &view.Camera.WorldPosition);
 				}
 			}
 
@@ -3448,6 +3497,26 @@ namespace TEN::Renderer
 						bindTextureAndMaterialsRequired = true;
 					}
 				}
+
+			}
+
+			if (_debugPage == RendererDebugPage::CollisionMeshStats &&
+				rendererPass == RendererPass::Opaque &&
+				!skinned &&
+				itemToDraw->ObjectID != ID_LARA &&
+				(type == RendererObjectType::Moveable ||
+				 type == RendererObjectType::HairPrimary ||
+				 type == RendererObjectType::HairSecondary))
+			{
+				if (!_debugNormalsCacheInitialized)
+					InitializeDebugNormalsCache();
+
+				auto worldMatrix = itemToDraw->InterpolatedAnimTransforms[boneIndex] * itemToDraw->InterpolatedWorld;
+				ReflectMatrixOptionally(worldMatrix);
+
+				float normalLength = (itemToDraw->ObjectID == ID_LARA) ? BLOCK(0.01f) : BLOCK(0.03f);
+				for (const auto& debugBucket : mesh->Buckets)
+					DrawDebugNormalsForBucket(debugBucket, _moveablesVertices, _moveablesIndices, _moveablesNormalsCache, worldMatrix, normalLength);
 			}
 		}
 	}
@@ -4163,6 +4232,18 @@ namespace TEN::Renderer
 			TexturesAreNotAnimated();
 		}
 
+		if (_debugPage == RendererDebugPage::CollisionMeshStats)
+		{
+			if (!_debugNormalsCacheInitialized)
+				InitializeDebugNormalsCache();
+
+			BindTexture(TextureRegister::ColorMap, _whiteTexture.get(), SamplerStateRegister::AnisotropicClamp);
+			BindTexture(TextureRegister::NormalMap, _defaultNormalTexture.get(), SamplerStateRegister::AnisotropicClamp);
+			BindTexture(TextureRegister::ORSHMap, _whiteTexture.get(), SamplerStateRegister::AnisotropicClamp);
+			BindTexture(TextureRegister::EmissiveMap, _blackTexture.get(), SamplerStateRegister::AnisotropicClamp);
+			return;
+		}
+
 		if (animated)
 		{
 			// If video texture is used, directly bind it as a color map, and optionally as an emissive map, if it was
@@ -4203,5 +4284,83 @@ namespace TEN::Renderer
 		BindTexture(TextureRegister::NormalMap, std::get<1>(atlas).get(), SamplerStateRegister::AnisotropicClamp);
 		BindTexture(TextureRegister::ORSHMap, std::get<2>(atlas).get(), SamplerStateRegister::AnisotropicClamp);
 		BindTexture(TextureRegister::EmissiveMap, std::get<3>(atlas).get(), SamplerStateRegister::AnisotropicClamp);
+	}
+
+	void Renderer::InitializeDebugNormalsCache()
+	{
+		if (_debugNormalsCacheInitialized)
+			return;
+
+		_moveablesNormalsCache.resize(_moveablesVertices.size());
+		for (int i = 0; i < (int)_moveablesVertices.size(); i++)
+			_moveablesNormalsCache[i] = UnpackVector3(_moveablesVertices[i].Normal);
+
+		_staticsNormalsCache.resize(_staticsVertices.size());
+		for (int i = 0; i < (int)_staticsVertices.size(); i++)
+			_staticsNormalsCache[i] = UnpackVector3(_staticsVertices[i].Normal);
+
+		_roomsNormalsCache.resize(_roomsVertices.size());
+		for (int i = 0; i < (int)_roomsVertices.size(); i++)
+			_roomsNormalsCache[i] = UnpackVector3(_roomsVertices[i].Normal);
+
+		_debugNormalsCacheInitialized = true;
+		TENLog("Debug normals cache initialized.", LogLevel::Info);
+	}
+
+	void Renderer::DrawDebugNormalsForBucket(const RendererBucket& bucket, const std::vector<Vertex>& vertices,
+		const std::vector<int>& indices, const std::vector<Vector3>& normalsCache, const Matrix& worldMatrix,
+		float normalLength, const Vector3* cameraPos)
+	{
+		constexpr auto NORMAL_COLOR = Color(0.0f, 1.0f, 0.0f, 1.0f);
+		constexpr auto DEBUG_OFFSET = 2.0f;
+
+		for (const auto& poly : bucket.Polygons)
+		{
+			int indexCount = (poly.Shape == 0) ? 6 : 3;
+			int vertexIndices[4] = {};
+			int uniqueVertexCount = 0;
+
+			for (int i = 0; i < indexCount; i++)
+			{
+				int vertexIndex = indices[poly.BaseIndex + i];
+				bool duplicate = false;
+
+				for (int j = 0; j < uniqueVertexCount; j++)
+				{
+					if (vertexIndices[j] == vertexIndex)
+					{
+						duplicate = true;
+						break;
+					}
+				}
+
+				if (!duplicate && uniqueVertexCount < 4)
+					vertexIndices[uniqueVertexCount++] = vertexIndex;
+			}
+
+			for (int i = 0; i < uniqueVertexCount; i++)
+			{
+				int vertexIndex = vertexIndices[i];
+				const auto& vertex = vertices[vertexIndex];
+				auto worldPos = Vector3::Transform(vertex.Position, worldMatrix);
+				auto worldNormal = Vector3::TransformNormal(normalsCache[vertexIndex], worldMatrix);
+
+				if (worldNormal.LengthSquared() <= EPSILON)
+					continue;
+
+				if (cameraPos != nullptr)
+				{
+					auto offset = *cameraPos - worldPos;
+					if (offset.LengthSquared() > EPSILON)
+					{
+						offset.Normalize();
+						worldPos += offset * DEBUG_OFFSET;
+					}
+				}
+
+				worldNormal.Normalize();
+				AddDebugLine(worldPos, worldPos + (worldNormal * normalLength), NORMAL_COLOR, RendererDebugPage::CollisionMeshStats);
+			}
+		}
 	}
 }
