@@ -1121,7 +1121,7 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.MusicVolume > VOLUME_MAX)
 						CurrentSettings.Configuration.MusicVolume = VOLUME_MAX;
 
-					SetAudioConfig(CurrentSettings.Configuration);
+					SetAudioConfiguration(CurrentSettings.Configuration);
 				}
 
 				break;
@@ -1133,7 +1133,7 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.SfxVolume > VOLUME_MAX)
 						CurrentSettings.Configuration.SfxVolume = VOLUME_MAX;
 
-					SetAudioConfig(CurrentSettings.Configuration);
+					SetAudioConfiguration(CurrentSettings.Configuration);
 					isVolumeAdjusted = IsPulsed(In::Right, 0.1f);
 				}
 
@@ -1189,7 +1189,7 @@ namespace TEN::Gui
 			}
 			else if (SelectedOption == OtherSettingsOption::Cancel)
 			{
-				SetAudioConfig(g_Configuration);
+				SetAudioConfiguration(g_Configuration);
 			}
 			else
 			{

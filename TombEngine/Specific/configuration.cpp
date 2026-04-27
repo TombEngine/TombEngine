@@ -63,7 +63,7 @@ static bool ReadAllText(const std::string& path, std::string& out)
 	return (read == out.size());
 }
 
-void SetAudioConfig(const GameConfiguration& config)
+void SetAudioConfiguration(const GameConfiguration& config)
 {
 	SetVolumeTracks(config.MusicVolume);
 	SetVolumeFX(config.SfxVolume);
@@ -281,7 +281,7 @@ bool LoadConfiguration()
 
 	g_Configuration.EnableSound = g_Configuration.SoundDevice > 0;
 
-	SetAudioConfig(g_Configuration);
+	SetAudioConfiguration(g_Configuration);
 	DefaultConflict();
 
 	return true;

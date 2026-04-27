@@ -107,6 +107,6 @@ struct GameConfiguration
 void InitDefaultConfiguration();
 bool LoadConfiguration();
 bool SaveConfiguration();
-void SetAudioConfig(const GameConfiguration& config);
+void SetAudioConfiguration(const GameConfiguration& config);
 
 extern GameConfiguration g_Configuration;

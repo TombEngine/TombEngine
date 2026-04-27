@@ -374,7 +374,7 @@ int main(int argc, char* argv[])
 	if (!LoadConfiguration())
 	{
 		InitDefaultConfiguration();
-		SetAudioConfig(g_Configuration);
+		SetAudioConfiguration(g_Configuration);
 	}
 
 	// Initialize main window.
