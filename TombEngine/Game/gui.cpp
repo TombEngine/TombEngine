@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Game/Gui.h"
 
-#include <OISKeyboard.h>
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
@@ -797,17 +796,17 @@ namespace TEN::Gui
 					}
 					else
 					{
-						int selectedKeyID = 0;
-						for (selectedKeyID = 0; selectedKeyID < KEY_COUNT; selectedKeyID++)
+						int selectedKeyID = KEY_UNASSIGNED;
+						for (int i = 0; i < KEY_COUNT; i++)
 						{
-							if (KeyMap[selectedKeyID])
+							if (KeyMap[i])
+							{
+								selectedKeyID = i;
 								break;
+							}
 						}
 
-						if (selectedKeyID == KEY_COUNT)
-							selectedKeyID = 0;
-
-						if (selectedKeyID != OIS::KC_UNASSIGNED && !GetKeyName(selectedKeyID).empty())
+						if (selectedKeyID != KEY_UNASSIGNED && !GetKeyName(selectedKeyID).empty())
 						{
 							unsigned int baseIndex = 0;
 							switch (MenuToDisplay)

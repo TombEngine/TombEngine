@@ -19,50 +19,83 @@ using namespace TEN::Math;
 using namespace TEN::Utils;
 using TEN::Renderer::g_Renderer;
 
-// Big TODO: Make an Input class and handle everything inside it.
-
 namespace TEN::Input
 {
-	constexpr auto AXIS_SCALE			 = 1.5f;
-	constexpr auto AXIS_DEADZONE		 = 8000;
-	constexpr auto AXIS_OFFSET			 = 0.2f;
-	constexpr auto MOUSE_AXIS_CONSTRAINT = 100.0f;
+	constexpr auto AXIS_SCALE    = 1.5f;
+	constexpr auto AXIS_OFFSET   = 0.2f;
+	constexpr auto AXIS_DEADZONE = 8000;
 
-	// Globals
+	// Globals.
+	RumbleData                                     RumbleInfo = {};
+	std::unordered_map<int, float>                 KeyMap;
+	std::unordered_map<ActionID, Action>           ActionMap;
+	std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;
+	std::unordered_map<AxisID, Vector2>            AxisMap;
 
-	RumbleData									   RumbleInfo = {};
-	std::unordered_map<int, float>				   KeyMap;			// Key = key ID, value = key value.
-	std::unordered_map<ActionID, Action>		   ActionMap;		// Key = action ID, value = action.
-	std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;	// Key = action ID, value = action queue state.
-	std::unordered_map<AxisID, Vector2>			   AxisMap;			// Key = axis ID, value = axis.
+	bool InputLocked = false;
 
-	bool InputLocked = false; // Disables control polling in case application is defocused.
+	// SDL3 gamepad state.
+	static SDL_Gamepad* ActiveGamepad   = nullptr;
+	static SDL_JoystickID ActiveGamepadId = 0;
+	static bool         ActiveGamepadHasRumble = false;
 
-	// OIS interfaces
+	// Mouse wheel deltas are event-only in SDL3, so accumulate them between frames.
+	static float MouseWheelAccumY = 0.0f;
 
-	static OIS::InputManager*  OisInputManager = nullptr;
-	static OIS::Keyboard*	   OisKeyboard	   = nullptr;
-	static OIS::Mouse*		   OisMouse		   = nullptr;
-	static OIS::JoyStick*	   OisGamepad	   = nullptr;
-	static OIS::ForceFeedback* OisRumble	   = nullptr;
-	static OIS::Effect*		   OisEffect	   = nullptr;
-
-	void InitializeEffect()
+	static void OpenFirstGamepad()
 	{
-		OisEffect = new OIS::Effect(OIS::Effect::ConstantForce, OIS::Effect::Constant);
-		OisEffect->direction = OIS::Effect::North;
-		OisEffect->trigger_button = 0;
-		OisEffect->trigger_interval = 0;
-		OisEffect->replay_length = OIS::Effect::OIS_INFINITE;
-		OisEffect->replay_delay = 0;
-		OisEffect->setNumAxes(1);
+		if (ActiveGamepad != nullptr)
+			return;
 
-		auto& pConstForce = *dynamic_cast<OIS::ConstantEffect*>(OisEffect->getForceEffect());
-		pConstForce.level = 0;
-		pConstForce.envelope.attackLength = 0;
-		pConstForce.envelope.attackLevel = 0;
-		pConstForce.envelope.fadeLength = 0;
-		pConstForce.envelope.fadeLevel = 0;
+		int count = 0;
+		SDL_JoystickID* gamepads = SDL_GetGamepads(&count);
+		if (gamepads == nullptr || count <= 0)
+		{
+			SDL_free(gamepads);
+			return;
+		}
+
+		ActiveGamepadId = gamepads[0];
+		ActiveGamepad = SDL_OpenGamepad(ActiveGamepadId);
+		SDL_free(gamepads);
+
+		if (ActiveGamepad == nullptr)
+		{
+			TENLog(std::string("Failed to open gamepad: ") + SDL_GetError(), LogLevel::Warning);
+			ActiveGamepadId = 0;
+			return;
+		}
+
+		const char* vendor = SDL_GetGamepadName(ActiveGamepad);
+		TENLog(std::string("Using '") + (vendor ? vendor : "unknown") + "' gamepad for input.", LogLevel::Info);
+
+		// SDL3 reports rumble support via SDL_GetGamepadProperties.
+		SDL_PropertiesID props = SDL_GetGamepadProperties(ActiveGamepad);
+		ActiveGamepadHasRumble = SDL_GetBooleanProperty(props, SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN, false);
+		if (ActiveGamepadHasRumble)
+			TENLog("Controller supports vibration.", LogLevel::Info);
+
+		// If the user is on default keyboard/mouse bindings and this is an Xbox-class controller,
+		// swap to gamepad defaults and enable rumble + thumbstick camera.
+		if (ApplyDefaultXInputBindings())
+		{
+			g_Configuration.EnableRumble = ActiveGamepadHasRumble;
+			g_Configuration.EnableThumbstickCamera = true;
+			SaveConfiguration();
+		}
+	}
+
+	static void CloseGamepadIfMatches(SDL_JoystickID id)
+	{
+		if (ActiveGamepad == nullptr || ActiveGamepadId != id)
+			return;
+
+		SDL_CloseGamepad(ActiveGamepad);
+		ActiveGamepad = nullptr;
+		ActiveGamepadId = 0;
+		ActiveGamepadHasRumble = false;
+
+		TENLog("Gamepad disconnected.", LogLevel::Info);
 	}
 
 	void InitializeInput()
@@ -70,12 +103,11 @@ namespace TEN::Input
 		TENLog("Initializing input system...", LogLevel::Info);
 
 		RumbleInfo = {};
+		MouseWheelAccumY = 0.0f;
 
-		// Initialize key map.
 		for (int i = 0; i < KEY_COUNT; i++)
 			KeyMap[i] = 0.0f;
 
-		// Initialize action and action queue maps.
 		for (int i = 0; i < (int)ActionID::Count; i++)
 		{
 			auto actionID = (ActionID)i;
@@ -83,122 +115,55 @@ namespace TEN::Input
 			ActionQueueMap[actionID] = ActionQueueState::None;
 		}
 
-		// Initialize axis map.
 		for (int i = 0; i < (int)AxisID::Count; i++)
 		{
 			auto axisID = (AxisID)i;
 			AxisMap[axisID] = Vector2::Zero;
 		}
 
-		try
+		// Make sure SDL gamepad subsystem is running. SDL_Init in EngineMain does not include it,
+		// so initialize it lazily here. SDL_INIT_GAMEPAD pulls in SDL_INIT_JOYSTICK + SDL_INIT_EVENTS.
+		if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD))
 		{
-			// HACK: OIS requires a native window handle and platform-specific configuration
-			// strings. This will be removed when OIS is replaced by SDL3 input.
-			auto paramList = OIS::ParamList{};
-			auto wnd = std::ostringstream{};
-
-			SDL_PropertiesID props = SDL_GetWindowProperties(g_Platform->GetSDL3Window());
-
-#ifdef SDL_PLATFORM_WIN32
-			void* nativeHandle = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
-			wnd << reinterpret_cast<uintptr_t>(nativeHandle);
-			paramList.insert(std::make_pair(std::string("WINDOW"), wnd.str()));
-			paramList.insert(std::make_pair(std::string("w32_keyboard"), std::string("DISCL_BACKGROUND")));
-			paramList.insert(std::make_pair(std::string("w32_keyboard"), std::string("DISCL_NONEXCLUSIVE")));
-			paramList.insert(std::make_pair(std::string("w32_mouse"), std::string("DISCL_BACKGROUND")));
-			paramList.insert(std::make_pair(std::string("w32_mouse"), std::string("DISCL_NONEXCLUSIVE")));
-#elif defined(SDL_PLATFORM_LINUX)
-			auto nativeHandle = SDL_GetNumberProperty(props, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0);
-			wnd << static_cast<uintptr_t>(nativeHandle);
-			paramList.insert(std::make_pair(std::string("WINDOW"), wnd.str()));
-			paramList.insert(std::make_pair(std::string("x11_keyboard_grab"), std::string("false")));
-			paramList.insert(std::make_pair(std::string("x11_mouse_grab"), std::string("false")));
-			paramList.insert(std::make_pair(std::string("x11_mouse_hide"), std::string("false")));
-#elif defined(SDL_PLATFORM_MACOS)
-			void* nativeHandle = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr);
-			wnd << reinterpret_cast<uintptr_t>(nativeHandle);
-			paramList.insert(std::make_pair(std::string("WINDOW"), wnd.str()));
-#endif
-
-			OisInputManager = OIS::InputManager::createInputSystem(paramList);
-			OisInputManager->enableAddOnFactory(OIS::InputManager::AddOn_All);
-
-			if (OisInputManager->getNumberOfDevices(OIS::OISKeyboard) == 0)
-			{
-				TENLog("Keyboard not found.", LogLevel::Warning);
-			}
-			else
-			{
-				OisKeyboard = (OIS::Keyboard*)OisInputManager->createInputObject(OIS::OISKeyboard, true);
-			}
-
-			if (OisInputManager->getNumberOfDevices(OIS::OISMouse) == 0)
-			{
-				TENLog("Mouse not found.", LogLevel::Warning);
-			}
-			else
-			{
-				OisMouse = (OIS::Mouse*)OisInputManager->createInputObject(OIS::OISMouse, true);
-			}
-		}
-		catch (OIS::Exception& ex)
-		{
-			TENLog("Exception occured during input system initialization: " + std::string(ex.eText), LogLevel::Error);
+			TENLog(std::string("Failed to initialize SDL gamepad subsystem: ") + SDL_GetError(), LogLevel::Warning);
+			return;
 		}
 
-		int deviceCount = OisInputManager->getNumberOfDevices(OIS::OISJoyStick);
-		if (deviceCount > 0)
-		{
-			TENLog("Found " + std::to_string(deviceCount) + " connected game controller" + ((deviceCount > 1) ? "s." : "."), LogLevel::Info);
-
-			try
-			{
-				OisGamepad = (OIS::JoyStick*)OisInputManager->createInputObject(OIS::OISJoyStick, true);
-				TENLog("Using '" + OisGamepad->vendor() + "' device for input.", LogLevel::Info);
-
-				// Try to initialize vibration interface.
-				OisRumble = (OIS::ForceFeedback*)OisGamepad->queryInterface(OIS::Interface::ForceFeedback);
-				if (OisRumble != nullptr)
-				{
-					TENLog("Controller supports vibration.", LogLevel::Info);
-					InitializeEffect();
-				}
-
-				// If controller is XInput and default bindings were successfully assigned, save configuration.
-				if (ApplyDefaultXInputBindings())
-				{
-					g_Configuration.EnableRumble = (OisRumble != nullptr);
-					g_Configuration.EnableThumbstickCamera = true;
-					SaveConfiguration();
-				}
-			}
-			catch (OIS::Exception& ex)
-			{
-				TENLog("Exception occured during game controller initialization: " + std::string(ex.eText), LogLevel::Error);
-			}
-		}
+		// Open whatever gamepad is connected at startup. Subsequent connections arrive via
+		// SDL_EVENT_GAMEPAD_ADDED through HandleSDLEvent.
+		OpenFirstGamepad();
 	}
 
 	void DeinitializeInput()
 	{
-		TENLog("Shutting down OIS...", LogLevel::Info);
+		TENLog("Shutting down input system...", LogLevel::Info);
 
-		if (OisKeyboard != nullptr)
-			OisInputManager->destroyInputObject(OisKeyboard);
-
-		if (OisMouse != nullptr)
-			OisInputManager->destroyInputObject(OisMouse);
-
-		if (OisGamepad != nullptr)
-			OisInputManager->destroyInputObject(OisGamepad);
-
-		if (OisEffect != nullptr)
+		if (ActiveGamepad != nullptr)
 		{
-			delete OisEffect;
-			OisEffect = nullptr;
+			SDL_CloseGamepad(ActiveGamepad);
+			ActiveGamepad = nullptr;
 		}
 
-		OIS::InputManager::destroyInputSystem(OisInputManager);
+		SDL_QuitSubSystem(SDL_INIT_GAMEPAD);
+	}
+
+	void HandleSDLEvent(const SDL_Event& event)
+	{
+		switch (event.type)
+		{
+		case SDL_EVENT_MOUSE_WHEEL:
+			MouseWheelAccumY += event.wheel.y;
+			break;
+
+		case SDL_EVENT_GAMEPAD_ADDED:
+			if (ActiveGamepad == nullptr)
+				OpenFirstGamepad();
+			break;
+
+		case SDL_EVENT_GAMEPAD_REMOVED:
+			CloseGamepadIfMatches(event.gdevice.which);
+			break;
+		}
 	}
 
 	void SetInputLockState(bool locked)
@@ -256,19 +221,15 @@ namespace TEN::Input
 		return false;
 	}
 
-	// Merge right and left Ctrl, Shift, and Alt keys.
+	// Merge left/right Ctrl, Shift, and Alt scancodes onto the right-hand variant
+	// so default bindings (which use the right-hand keys) match either side.
 	static int WrapSimilarKeys(int source)
 	{
 		switch (source)
 		{
-		case OIS::KC_LCONTROL:
-			return OIS::KC_RCONTROL;
-
-		case OIS::KC_LSHIFT:
-			return OIS::KC_RSHIFT;
-
-		case OIS::KC_LMENU:
-			return OIS::KC_RMENU;
+		case SDL_SCANCODE_LCTRL:  return SDL_SCANCODE_RCTRL;
+		case SDL_SCANCODE_LSHIFT: return SDL_SCANCODE_RSHIFT;
+		case SDL_SCANCODE_LALT:   return SDL_SCANCODE_RALT;
 		}
 
 		return source;
@@ -321,250 +282,139 @@ namespace TEN::Input
 
 	static void ReadKeyboard()
 	{
-		if (InputLocked || OisKeyboard == nullptr)
+		if (InputLocked)
 			return;
 
-		try
+		int numKeys = 0;
+		const bool* state = SDL_GetKeyboardState(&numKeys);
+		if (state == nullptr)
+			return;
+
+		int limit = std::min(numKeys, KEYBOARD_KEY_COUNT);
+		for (int sc = 0; sc < limit; sc++)
 		{
-			OisKeyboard->capture();
+			if (!state[sc])
+				continue;
 
-			// Poll keyboard keys.
-			for (int i = 0; i < KEYBOARD_KEY_COUNT; i++)
-			{
-				if (!OisKeyboard->isKeyDown((OIS::KeyCode)i))
-					continue;
+			int key = WrapSimilarKeys(sc);
+			KeyMap[key] = 1.0f;
 
-				int key = WrapSimilarKeys(i);
-				KeyMap[key] = 1.0f;
-
-				// Interpret discrete directional keypresses as analog axis values.
-				SetDiscreteAxisValues(key);
-			}
-		}
-		catch (OIS::Exception& ex)
-		{
-			TENLog("Unable to poll keyboard input: " + std::string(ex.eText), LogLevel::Warning);
+			SetDiscreteAxisValues(key);
 		}
 	}
 
 	static void ReadMouse()
 	{
-		if (InputLocked || OisMouse == nullptr)
+		if (InputLocked)
 			return;
 
-		try
+		// Buttons. SDL3 mouse mask uses SDL_BUTTON_LMASK/MMASK/RMASK/X1MASK/X2MASK.
+		float absX = 0.0f, absY = 0.0f;
+		auto mask = SDL_GetMouseState(&absX, &absY);
+
+		KeyMap[MK_LCLICK]   = (mask & SDL_BUTTON_LMASK)  ? 1.0f : 0.0f;
+		KeyMap[MK_RCLICK]   = (mask & SDL_BUTTON_RMASK)  ? 1.0f : 0.0f;
+		KeyMap[MK_MCLICK]   = (mask & SDL_BUTTON_MMASK)  ? 1.0f : 0.0f;
+		KeyMap[MK_BUTTON_4] = (mask & SDL_BUTTON_X1MASK) ? 1.0f : 0.0f;
+		KeyMap[MK_BUTTON_5] = (mask & SDL_BUTTON_X2MASK) ? 1.0f : 0.0f;
+		// Buttons 6-8 are not exposed by SDL3's basic state mask.
+
+		// Relative motion since last call.
+		float relX = 0.0f, relY = 0.0f;
+		SDL_GetRelativeMouseState(&relX, &relY);
+
+		// Axis-as-button slots.
+		if (relX < 0) KeyMap[MK_AXIS_X_NEG] = 1.0f;
+		if (relX > 0) KeyMap[MK_AXIS_X_POS] = 1.0f;
+		if (relY < 0) KeyMap[MK_AXIS_Y_NEG] = 1.0f;
+		if (relY > 0) KeyMap[MK_AXIS_Y_POS] = 1.0f;
+
+		// Mouse wheel: pop accumulator filled by HandleSDLEvent.
+		if (MouseWheelAccumY > 0)
+			KeyMap[MK_AXIS_Z_NEG] = 1.0f;
+		else if (MouseWheelAccumY < 0)
+			KeyMap[MK_AXIS_Z_POS] = 1.0f;
+		MouseWheelAccumY = 0.0f;
+
+		for (int slot = MK_AXIS_X_NEG; slot <= MK_AXIS_Z_POS; slot++)
 		{
-			OisMouse->capture();
-			auto& state = OisMouse->getMouseState();
-
-			// Update active area resolution.
-			auto screenRes = g_Renderer.GetScreenResolution();
-			state.width = screenRes.x;
-			state.height = screenRes.y;
-
-			// Poll mouse buttons.
-			for (int i = 0; i < MOUSE_BUTTON_COUNT; i++)
-				KeyMap[KEY_OFFSET_MOUSE + i] = state.buttonDown((OIS::MouseButtonID)i) ? 1.0f : 0.0f;
-
-			// Register multiple directional keypresses mapped to mouse axes.
-			int baseIndex = KEY_OFFSET_MOUSE + MOUSE_BUTTON_COUNT;
-			for (int pass = 0; pass < (MOUSE_AXIS_COUNT * 2); pass++)
-			{
-				switch (pass)
-				{
-				// Mouse X-
-				case 0:
-					if (state.X.rel >= 0)
-						continue;
-					break;
-
-				// Mouse X+
-				case 1:
-					if (state.X.rel <= 0)
-						continue;
-					break;
-
-				// Mouse Y-
-				case 2:
-					if (state.Y.rel >= 0)
-						continue;
-					break;
-
-				// Mouse Y+
-				case 3:
-					if (state.Y.rel <= 0)
-						continue;
-					break;
-
-				// Mouse Z-
-				case 4:
-					if (state.Z.rel >= 0)
-						continue;
-					break;
-
-				// Mouse Z+
-				case 5:
-					if (state.Z.rel <= 0)
-						continue;
-					break;
-				}
-
-				KeyMap[baseIndex + pass] = 1.0f;
-
-				// Interpret discrete directional keypresses as mouse axis values.
-				SetDiscreteAxisValues(baseIndex + pass);
-			}
-
-			// Normalize raw mouse axis values to range [-1.0f, 1.0f].
-			auto rawAxes = Vector2(state.X.rel, state.Y.rel);
-			auto normAxes = Vector2(
-				(((rawAxes.x - -DISPLAY_SPACE_RES.x) * 2.0f) / float(DISPLAY_SPACE_RES.x - -DISPLAY_SPACE_RES.x)) - 1.0f,
-				(((rawAxes.y - -DISPLAY_SPACE_RES.y) * 2.0f) / float(DISPLAY_SPACE_RES.y - -DISPLAY_SPACE_RES.y)) - 1.0f);
-
-			// Apply sensitivity.
-			float sensitivity = (g_Configuration.MouseSensitivity * 0.1f) + 0.4f;
-			normAxes *= sensitivity;
-
-			// Set mouse axis values.
-			AxisMap[AxisID::Mouse] = normAxes;
+			if (KeyMap[slot] != 0.0f)
+				SetDiscreteAxisValues(slot);
 		}
-		catch (OIS::Exception& ex)
-		{
-			TENLog("Unable to poll mouse input: " + std::string(ex.eText), LogLevel::Warning);
-		}
+
+		// Normalized [-1, 1] mouse axis with sensitivity, used as analog input.
+		auto rawAxes = Vector2(relX, relY);
+		auto normAxes = Vector2(
+			(((rawAxes.x - -DISPLAY_SPACE_RES.x) * 2.0f) / float(DISPLAY_SPACE_RES.x - -DISPLAY_SPACE_RES.x)) - 1.0f,
+			(((rawAxes.y - -DISPLAY_SPACE_RES.y) * 2.0f) / float(DISPLAY_SPACE_RES.y - -DISPLAY_SPACE_RES.y)) - 1.0f);
+
+		float sensitivity = (g_Configuration.MouseSensitivity * 0.1f) + 0.4f;
+		normAxes *= sensitivity;
+
+		AxisMap[AxisID::Mouse] = normAxes;
 	}
-	
+
 	static void ReadGamepad()
 	{
-		if (InputLocked || OisGamepad == nullptr)
+		if (InputLocked || ActiveGamepad == nullptr)
 			return;
 
-		try
+		// Buttons.
+		for (int b = 0; b < GAMEPAD_BUTTON_COUNT; b++)
 		{
-			OisGamepad->capture();
-			const auto& state = OisGamepad->getJoyStickState();
-
-			// Poll buttons.
-			for (int keyID = 0; keyID < state.mButtons.size(); keyID++)
-				KeyMap[KEY_OFFSET_GAMEPAD + keyID] = state.mButtons[keyID] ? 1.0f : 0.0f;
-
-			// Poll axes.
-			for (int axis = 0; axis < state.mAxes.size(); axis++)
-			{
-				// NOTE: Anything above 6 existing XBOX/PS controller axes not supported (2 sticks + 2 triggers).
-				if (axis >= GAMEPAD_AXIS_COUNT)
-					break;
-
-				// Filter out deadzone.
-				if (abs(state.mAxes[axis].abs) < AXIS_DEADZONE)
-					continue;
-
-				// Calculate raw normalized analog value (for camera).
-				float normalizedValue = float(state.mAxes[axis].abs + (state.mAxes[axis].abs > 0 ? -AXIS_DEADZONE : AXIS_DEADZONE)) /
-					float(SHRT_MAX - AXIS_DEADZONE);
-
-				// Calculate scaled analog value for movement.
-				// NOTE: [0.2f, 1.7f] range gives most organic rates.
-				float scaledValue = (abs(normalizedValue) * AXIS_SCALE) + AXIS_OFFSET;
-
-				// Calculate and reset discrete input slots.
-				int negKeyID = (KEY_OFFSET_GAMEPAD + GAMEPAD_BUTTON_COUNT) + (axis * 2);
-				int posKeyID = (KEY_OFFSET_GAMEPAD + GAMEPAD_BUTTON_COUNT) + (axis * 2) + 1;
-				KeyMap[negKeyID] = (normalizedValue > 0) ? abs(normalizedValue) : 0.0f;
-				KeyMap[posKeyID] = (normalizedValue < 0) ? abs(normalizedValue) : 0.0f;
-
-				// Determine discrete input registering based on analog value.
-				int usedKeyID = (normalizedValue > 0) ? negKeyID : posKeyID;
-
-				// Register analog input in certain direction.
-				// If axis is bound as directional controls, register axis as directional input.
-				// Otherwise, register as camera movement input (for future).
-				// NOTE: `abs()` operations are needed to avoid issues with inverted axes on different controllers.
-
-				if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Forward) == usedKeyID)
-				{
-					AxisMap[AxisID::Move].y = abs(scaledValue);
-				}
-				else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Back) == usedKeyID)
-				{
-					AxisMap[AxisID::Move].y = -abs(scaledValue);
-				}
-				else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Left)  == usedKeyID)
-				{
-					AxisMap[AxisID::Move].x = -abs(scaledValue);
-				}
-				else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Right) == usedKeyID)
-				{
-					AxisMap[AxisID::Move].x = abs(scaledValue);
-				}
-				else if (!TestBoundKey(usedKeyID))
-				{
-					if ((axis % 2) == 0)
-					{
-						AxisMap[AxisID::Camera].y = normalizedValue;
-					}
-					else
-					{
-						AxisMap[AxisID::Camera].x = normalizedValue;
-					}
-				}
-			}
-
-			// Poll POVs.
-			// NOTE: Controllers usually have one, but scan all just in case.
-			for (int pov = 0; pov < GAMEPAD_POV_AXIS_COUNT; pov++)
-			{
-				if (state.mPOV[pov].direction == OIS::Pov::Centered)
-					continue;
-
-				// Register multiple directional keypresses mapped to analog axes.
-				int baseKeyID = (KEY_OFFSET_GAMEPAD + GAMEPAD_BUTTON_COUNT) + (GAMEPAD_AXIS_COUNT * 2);
-				for (int pass = 0; pass < GAMEPAD_POV_AXIS_COUNT; pass++)
-				{
-					int keyID = (KEY_OFFSET_GAMEPAD + GAMEPAD_BUTTON_COUNT) + (GAMEPAD_AXIS_COUNT * 2);
-
-					switch (pass)
-					{
-					// D-Pad Up
-					case 0:
-						if ((state.mPOV[pov].direction & OIS::Pov::North) == 0)
-							continue;
-						break;
-
-					// D-Pad Down
-					case 1:
-						if ((state.mPOV[pov].direction & OIS::Pov::South) == 0)
-							continue;
-						break;
-
-					// D-Pad Left
-					case 2:
-						if ((state.mPOV[pov].direction & OIS::Pov::West) == 0)
-							continue;
-						break;
-
-					// D-Pad Right
-					case 3:
-						if ((state.mPOV[pov].direction & OIS::Pov::East) == 0)
-							continue;
-						break;
-					}
-
-					keyID += pass;
-					KeyMap[keyID] = 1.0f;
-					SetDiscreteAxisValues(keyID);
-				}
-			}
+			bool pressed = SDL_GetGamepadButton(ActiveGamepad, (SDL_GamepadButton)b);
+			KeyMap[KEY_OFFSET_GAMEPAD + b] = pressed ? 1.0f : 0.0f;
 		}
-		catch (OIS::Exception& ex)
+
+		// Axes.
+		for (int axis = 0; axis < GAMEPAD_AXIS_COUNT; axis++)
 		{
-			TENLog("Unable to poll game controller input: " + std::string(ex.eText), LogLevel::Warning);
+			Sint16 raw = SDL_GetGamepadAxis(ActiveGamepad, (SDL_GamepadAxis)axis);
+			if (std::abs((int)raw) < AXIS_DEADZONE)
+				continue;
+
+			float normalizedValue = float(raw + (raw > 0 ? -AXIS_DEADZONE : AXIS_DEADZONE)) /
+				float(SHRT_MAX - AXIS_DEADZONE);
+
+			float scaledValue = (std::abs(normalizedValue) * AXIS_SCALE) + AXIS_OFFSET;
+
+			int negKeyID = KEY_OFFSET_GAMEPAD_AXIS + (axis * 2);
+			int posKeyID = negKeyID + 1;
+			KeyMap[negKeyID] = (normalizedValue < 0) ? std::abs(normalizedValue) : 0.0f;
+			KeyMap[posKeyID] = (normalizedValue > 0) ? std::abs(normalizedValue) : 0.0f;
+
+			int usedKeyID = (normalizedValue < 0) ? negKeyID : posKeyID;
+
+			if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Forward) == usedKeyID)
+			{
+				AxisMap[AxisID::Move].y = std::abs(scaledValue);
+			}
+			else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Back) == usedKeyID)
+			{
+				AxisMap[AxisID::Move].y = -std::abs(scaledValue);
+			}
+			else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Left) == usedKeyID)
+			{
+				AxisMap[AxisID::Move].x = -std::abs(scaledValue);
+			}
+			else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Right) == usedKeyID)
+			{
+				AxisMap[AxisID::Move].x = std::abs(scaledValue);
+			}
+			else if (!TestBoundKey(usedKeyID))
+			{
+				// Camera fallback: even axes drive Y, odd axes drive X (matches develop behavior).
+				if ((axis % 2) == 0)
+					AxisMap[AxisID::Camera].y = normalizedValue;
+				else
+					AxisMap[AxisID::Camera].x = normalizedValue;
+			}
 		}
 	}
 
 	static float Key(ActionID actionID)
 	{
-		int keyID = OIS::KC_UNASSIGNED;
+		int keyID = KEY_UNASSIGNED;
 		for (int i = (int)BindingProfileID::Count - 1; i >= 0; i--)
 		{
 			auto profileID = (BindingProfileID)i;
@@ -572,6 +422,9 @@ namespace TEN::Input
 				continue;
 
 			int newKeyID = g_Bindings.GetBoundKeyID(profileID, actionID);
+			if (newKeyID == KEY_UNASSIGNED)
+				continue;
+
 			if (KeyMap[newKeyID] != 0.0f)
 			{
 				keyID = newKeyID;
@@ -579,12 +432,11 @@ namespace TEN::Input
 			}
 		}
 
-		return KeyMap[keyID];
+		return (keyID == KEY_UNASSIGNED) ? 0.0f : KeyMap[keyID];
 	}
 
 	void SolveActionCollisions()
 	{
-		// Block simultaneous Left+Right actions.
 		if (IsHeld(In::Left) && IsHeld(In::Right))
 		{
 			ClearAction(In::Left);
@@ -596,53 +448,57 @@ namespace TEN::Input
 	{
 		// Save screenshot.
 		static bool dbScreenshot = true;
-		if ((KeyMap[OIS::KC_SYSRQ] || KeyMap[OIS::KC_F12]) && dbScreenshot)
+		bool screenshotKey = KeyMap[SDL_SCANCODE_PRINTSCREEN] || KeyMap[SDL_SCANCODE_F12];
+		if (screenshotKey && dbScreenshot)
 			g_Renderer.SaveScreenshot();
-		dbScreenshot = !(KeyMap[OIS::KC_SYSRQ] || KeyMap[OIS::KC_F12]);
+		dbScreenshot = !screenshotKey;
 
 		// Toggle fullscreen.
 		static bool dbFullscreen = true;
-		if ((KeyMap[OIS::KC_LMENU] || KeyMap[OIS::KC_RMENU]) && KeyMap[OIS::KC_RETURN] && dbFullscreen)
+		bool altHeld = KeyMap[SDL_SCANCODE_LALT] || KeyMap[SDL_SCANCODE_RALT];
+		bool fullscreenKey = altHeld && KeyMap[SDL_SCANCODE_RETURN];
+		if (fullscreenKey && dbFullscreen)
 		{
 			g_Configuration.EnableWindowedMode = !g_Configuration.EnableWindowedMode;
 			SaveConfiguration();
 			g_Renderer.ToggleFullScreen();
 		}
-		dbFullscreen = !((KeyMap[OIS::KC_LMENU] || KeyMap[OIS::KC_RMENU]) && KeyMap[OIS::KC_RETURN]);
+		dbFullscreen = !fullscreenKey;
 
 		if (!DebugMode)
 			return;
 
 		// Switch debug page.
 		static bool dbDebugPage = true;
-		if ((KeyMap[OIS::KC_F10] || KeyMap[OIS::KC_F11]) && dbDebugPage)
-			g_Renderer.SwitchDebugPage(KeyMap[OIS::KC_F10]);
-		dbDebugPage = !(KeyMap[OIS::KC_F10] || KeyMap[OIS::KC_F11]);
+		bool debugPageKey = KeyMap[SDL_SCANCODE_F10] || KeyMap[SDL_SCANCODE_F11];
+		if (debugPageKey && dbDebugPage)
+			g_Renderer.SwitchDebugPage(KeyMap[SDL_SCANCODE_F10] != 0.0f);
+		dbDebugPage = !debugPageKey;
 
-		// Cycle pathfinding display with TAB when on pathfinding debug page.
+		// Cycle pathfinding display.
 		static bool dbPathfindingCycle = true;
-		if (KeyMap[OIS::KC_TAB] && dbPathfindingCycle &&
+		if (KeyMap[SDL_SCANCODE_TAB] && dbPathfindingCycle &&
 			g_Renderer.GetDebugPage() == RendererDebugPage::PathfindingStats)
 		{
 			CyclePathfindingDisplay();
 		}
-		dbPathfindingCycle = !KeyMap[OIS::KC_TAB];
+		dbPathfindingCycle = !KeyMap[SDL_SCANCODE_TAB];
 
 		// Reload shaders.
 		static bool dbReloadShaders = true;
-		if (KeyMap[OIS::KC_F9] && dbReloadShaders)
+		if (KeyMap[SDL_SCANCODE_F9] && dbReloadShaders)
 			g_Renderer.ReloadShaders();
-		dbReloadShaders = !KeyMap[OIS::KC_F9];
+		dbReloadShaders = !KeyMap[SDL_SCANCODE_F9];
 	}
 
 	static void UpdateRumble()
 	{
-		if (!OisRumble || !OisEffect || !RumbleInfo.Power)
+		if (ActiveGamepad == nullptr || !ActiveGamepadHasRumble || RumbleInfo.Power == 0.0f)
 			return;
 
 		RumbleInfo.Power -= RumbleInfo.FadeSpeed;
 
-		// Don't update effect too frequently if its value hasn't changed much.
+		// Avoid spamming rumble updates when the level hasn't changed much.
 		if (RumbleInfo.Power >= 0.2f && (RumbleInfo.LastPower - RumbleInfo.Power) < 0.1f)
 			return;
 
@@ -652,39 +508,35 @@ namespace TEN::Input
 			return;
 		}
 
-		try
+		// SDL_RumbleGamepad takes Uint16 amplitudes for low/high frequency motors and a duration in ms.
+		Uint16 lowFreq = 0, highFreq = 0;
+		Uint16 amplitude = (Uint16)std::clamp(RumbleInfo.Power * 0xFFFF, 0.0f, (float)0xFFFF);
+
+		switch (RumbleInfo.Mode)
 		{
-			auto& force = *dynamic_cast<OIS::ConstantEffect*>(OisEffect->getForceEffect());
-			force.level = RumbleInfo.Power * 10000;
+		case RumbleMode::Left:
+			lowFreq = amplitude;
+			break;
 
-			switch (RumbleInfo.Mode)
-			{
-			case RumbleMode::Left:
-				OisEffect->direction = OIS::Effect::EDirection::West;
-				break;
+		case RumbleMode::Right:
+			highFreq = amplitude;
+			break;
 
-			case RumbleMode::Right:
-				OisEffect->direction = OIS::Effect::EDirection::East;
-				break;
-
-			case RumbleMode::Both:
-				OisEffect->direction = OIS::Effect::EDirection::North;
-				break;
-			}
-
-			OisRumble->upload(OisEffect);
+		case RumbleMode::Both:
+		default:
+			lowFreq = amplitude;
+			highFreq = amplitude;
+			break;
 		}
-		catch (OIS::Exception& ex)
-		{
-			TENLog("Error updating vibration effect: " + std::string(ex.eText), LogLevel::Error);
-		}
+
+		if (!SDL_RumbleGamepad(ActiveGamepad, lowFreq, highFreq, 100))
+			TENLog(std::string("Rumble update failed: ") + SDL_GetError(), LogLevel::Warning);
 
 		RumbleInfo.LastPower = RumbleInfo.Power;
 	}
 
 	void UpdateInputActions(bool allowAsyncUpdate, bool applyQueue)
 	{
-		// Don't update input data during frameskip.
 		if (allowAsyncUpdate || !g_Synchronizer.Locked())
 		{
 			ClearInputData();
@@ -696,14 +548,12 @@ namespace TEN::Input
 
 		DefaultConflict();
 
-		// Update action map.
 		for (auto& [actionID, action] : ActionMap)
 			action.Update(Key(action.GetID()));
 
 		if (applyQueue)
 			ApplyActionQueue();
 
-		// Additional handling.
 		HandleHotkeyActions();
 		SolveActionCollisions();
 	}
@@ -730,21 +580,13 @@ namespace TEN::Input
 		RumbleInfo.FadeSpeed = power / (delaySec * FPS);
 		RumbleInfo.Power = power + RumbleInfo.FadeSpeed;
 		RumbleInfo.LastPower = RumbleInfo.Power;
+		RumbleInfo.Mode = mode;
 	}
 
 	void StopRumble()
 	{
-		if (!OisRumble || !OisEffect)
-			return;
-
-		try
-		{
-			OisRumble->remove(OisEffect);
-		}
-		catch (OIS::Exception& ex)
-		{
-			TENLog("Error when stopping vibration effect: " + std::string(ex.eText), LogLevel::Error);
-		}
+		if (ActiveGamepad != nullptr && ActiveGamepadHasRumble)
+			SDL_RumbleGamepad(ActiveGamepad, 0, 0, 0);
 
 		RumbleInfo = {};
 	}
@@ -762,47 +604,40 @@ namespace TEN::Input
 
 	bool ApplyDefaultXInputBindings()
 	{
-		if (!OisGamepad)
+		if (ActiveGamepad == nullptr)
 			return false;
 
+		// Only apply gamepad defaults if user hasn't customized any binding yet.
 		for (int i = 0; i < (int)ActionID::Count; i++)
 		{
 			auto actionID = (ActionID)i;
 
 			int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, actionID);
-			int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, actionID);
+			int userKeyID    = g_Bindings.GetBoundKeyID(BindingProfileID::Custom,  actionID);
 
-			if (userKeyID != OIS::KC_UNASSIGNED &&
-				userKeyID != defaultKeyID)
-			{
+			if (userKeyID != KEY_UNASSIGNED && userKeyID != defaultKeyID)
 				return false;
-			}
 		}
 
-		auto vendor = ToLower(OisGamepad->vendor());
-		if (vendor.find("xbox") != std::string::npos || vendor.find("xinput") != std::string::npos)
-		{
-			ApplyBindings(DEFAULT_GAMEPAD_BINDING_PROFILE);
-			g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+		// SDL_Gamepad always normalizes to Xbox-style layout, so apply gamepad defaults unconditionally
+		// (no need for the OIS-era vendor-name sniffing).
+		ApplyBindings(DEFAULT_GAMEPAD_BINDING_PROFILE);
+		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
 
-			// Additionally enable rumble and thumbstick camera.
-			g_Configuration.EnableRumble = true;
-			g_Configuration.EnableThumbstickCamera = true;
+		g_Configuration.EnableRumble = ActiveGamepadHasRumble;
+		g_Configuration.EnableThumbstickCamera = true;
 
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		return true;
 	}
 
 	Vector2 GetMouse2DPosition()
 	{
-		const auto& state = OisMouse->getMouseState();
+		float absX = 0.0f, absY = 0.0f;
+		SDL_GetMouseState(&absX, &absY);
 
-		auto areaRes = Vector2(state.width, state.height);
-		auto areaPos = Vector2(state.X.abs, state.Y.abs);
+		auto screenRes = g_Renderer.GetScreenResolution();
+		auto areaRes = Vector2((float)screenRes.x, (float)screenRes.y);
+		auto areaPos = Vector2(absX, absY);
 		return (DISPLAY_SPACE_RES * (areaPos / areaRes));
 	}
 
@@ -847,13 +682,11 @@ namespace TEN::Input
 		return ActionMap[actionID].GetValue();
 	}
 
-	// Time in game frames.
 	unsigned int GetActionTimeActive(ActionID actionID)
 	{
 		return ActionMap[actionID].GetTimeActive();
 	}
 
-	// Time in game frames.
 	unsigned int GetActionTimeInactive(ActionID actionID)
 	{
 		return ActionMap[actionID].GetTimeInactive();

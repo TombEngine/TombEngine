@@ -126,6 +126,8 @@ bool LoadConfiguration()
 	InitDefaultConfiguration();
 
 	bool foundInput = false;
+	int  inputVersion = 1; // Default: legacy (pre-SDL3) when the version line is absent.
+	std::vector<std::pair<int, int>> rawBindings; // Deferred so translation can happen after we know the version.
 
 	while (std::getline(in, line))
 	{
@@ -253,7 +255,11 @@ bool LoadConfiguration()
 		}
 		else if (section == "Input")
 		{
-			if (key == OPTION_MOUSE_SENSITIVITY)
+			if (key == OPTION_INPUT_VERSION)
+			{
+				inputVersion = ToInt(val, 1);
+			}
+			else if (key == OPTION_MOUSE_SENSITIVITY)
 			{
 				g_Configuration.MouseSensitivity = ToInt(val, g_Configuration.MouseSensitivity);
 			}
@@ -268,12 +274,26 @@ bool LoadConfiguration()
 				int actionId = ToInt(key.substr(std::string_view(OPTION_BIND_PREFIX).size()), NO_VALUE);
 				int keyId = ToInt(val, NO_VALUE);
 				if (actionId >= 0 && keyId >= 0)
-				{
-					g_Configuration.Bindings.insert({ (ActionID)actionId, keyId });
-					g_Bindings.SetKeyBinding(BindingProfileID::Custom, (ActionID)actionId, keyId);
-				}
+					rawBindings.emplace_back(actionId, keyId);
 			}
 		}
+	}
+
+	// Apply bindings, translating legacy (pre-SDL3) keyIDs if the file predates the input version bump.
+	bool needsMigration = (inputVersion < CURRENT_INPUT_VERSION) && !rawBindings.empty();
+	if (needsMigration)
+		TENLog("Migrating keyboard/mouse/gamepad bindings from pre-SDL3 config format.", LogLevel::Info);
+
+	for (auto [actionId, keyId] : rawBindings)
+	{
+		if (inputVersion < CURRENT_INPUT_VERSION)
+			keyId = TranslateLegacyOisKeyId(keyId);
+
+		if (keyId == KEY_UNASSIGNED)
+			continue;
+
+		g_Configuration.Bindings.insert({ (ActionID)actionId, keyId });
+		g_Bindings.SetKeyBinding(BindingProfileID::Custom, (ActionID)actionId, keyId);
 	}
 
 	if (!foundInput)
@@ -323,6 +343,7 @@ bool SaveConfiguration()
 	ss << OPTION_ENABLE_THUMBSTICK_CAMERA << "=" << (g_Configuration.EnableThumbstickCamera ? 1 : 0) << "\n\n";
 
 	ss << "[Input]\n";
+	ss << OPTION_INPUT_VERSION << "=" << CURRENT_INPUT_VERSION << "\n";
 	ss << OPTION_MOUSE_SENSITIVITY << "=" << g_Configuration.MouseSensitivity << "\n";
 	ss << OPTION_MENU_OPTION_LOOPING_MODE << "=" << (int)g_Configuration.MenuOptionLoopingMode << "\n";
 

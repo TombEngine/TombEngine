@@ -7,6 +7,7 @@
 #include "resource.h"
 #include "Sound/sound.h"
 #include "Specific/configuration.h"
+#include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/Parallel.h"
 #include "Specific/trutils.h"
@@ -474,6 +475,7 @@ int main(int argc, char* argv[])
 				break;
 
 			default:
+				TEN::Input::HandleSDLEvent(event);
 				break;
 			}
 		}

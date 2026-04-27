@@ -54,6 +54,7 @@ namespace TEN::Input
 
 	void InitializeInput();
 	void DeinitializeInput();
+	void HandleSDLEvent(const SDL_Event& event);
 	void SetInputLockState(bool locked);
 	void DefaultConflict();
 	void UpdateInputActions(bool allowAsyncUpdate = false, bool applyQueue = false);

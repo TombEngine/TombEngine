@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Game/Lara/lara_helpers.h"
 
-#include <OISKeyboard.h>
 
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Game/camera.h"
@@ -804,11 +803,11 @@ void HandlePlayerFlyCheat(ItemInfo& item)
 		return;
 
 	static bool dbFlyCheat = true;
-	if (KeyMap[OIS::KeyCode::KC_O] && dbFlyCheat)
+	if (KeyMap[SDL_SCANCODE_O] && dbFlyCheat)
 	{
 		if (player.Context.Vehicle == NO_VALUE)
 		{
-			if (KeyMap[OIS::KeyCode::KC_LSHIFT] || KeyMap[OIS::KeyCode::KC_RSHIFT])
+			if (KeyMap[SDL_SCANCODE_LSHIFT] || KeyMap[SDL_SCANCODE_RSHIFT])
 				GivePlayerItemsCheat(item);
 
 			GivePlayerWeaponsCheat(item);
@@ -835,7 +834,7 @@ void HandlePlayerFlyCheat(ItemInfo& item)
 			SayNo();
 		}
 	}
-	dbFlyCheat = !KeyMap[OIS::KeyCode::KC_O];
+	dbFlyCheat = !KeyMap[SDL_SCANCODE_O];
 }
 
 void HandlePlayerExtraAnim(ItemInfo& item)
