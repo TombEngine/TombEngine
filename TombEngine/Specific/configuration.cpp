@@ -279,30 +279,36 @@ bool LoadConfiguration()
 		}
 	}
 
-	// Apply bindings, translating legacy (pre-SDL3) keyIDs if the file predates the input version bump.
-	bool needsMigration = (inputVersion < CURRENT_INPUT_VERSION) && !rawBindings.empty();
-	if (needsMigration)
-		TENLog("Migrating keyboard/mouse/gamepad bindings from pre-SDL3 config format.", LogLevel::Info);
-
-	for (auto [actionId, keyId] : rawBindings)
+	// Pre-SDL3 configs used OIS-format keyIDs which are not portable to the new input layer.
+	// Discard those bindings; defaults already loaded by g_Bindings.Initialize() remain in place
+	// and will be persisted on the next SaveConfiguration() call.
+	bool legacyConfig = (inputVersion < CURRENT_INPUT_VERSION) && !rawBindings.empty();
+	if (legacyConfig)
 	{
-		if (inputVersion < CURRENT_INPUT_VERSION)
-			keyId = TranslateLegacyOisKeyId(keyId);
+		TENLog("Pre-SDL3 keyboard/gamepad bindings detected. Resetting to defaults.", LogLevel::Info);
+	}
+	else
+	{
+		for (auto [actionId, keyId] : rawBindings)
+		{
+			if (keyId == KEY_UNASSIGNED)
+				continue;
 
-		if (keyId == KEY_UNASSIGNED)
-			continue;
-
-		g_Configuration.Bindings.insert({ (ActionID)actionId, keyId });
-		g_Bindings.SetKeyBinding(BindingProfileID::Custom, (ActionID)actionId, keyId);
+			g_Configuration.Bindings.insert({ (ActionID)actionId, keyId });
+			g_Bindings.SetKeyBinding(BindingProfileID::Custom, (ActionID)actionId, keyId);
+		}
 	}
 
-	if (!foundInput)
+	if (!foundInput || legacyConfig)
 		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Default);
 
 	g_Configuration.EnableSound = g_Configuration.SoundDevice > 0;
 
 	SetAudioConfiguration(g_Configuration);
 	DefaultConflict();
+
+	if (legacyConfig)
+		SaveConfiguration();
 
 	return true;
 }

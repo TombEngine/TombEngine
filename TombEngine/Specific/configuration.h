@@ -49,8 +49,8 @@ constexpr auto OPTION_MENU_OPTION_LOOPING_MODE = "MenuOptionLoopingMode";
 constexpr auto OPTION_BIND_PREFIX			   = "bind.";
 
 // Bumped to 2 when input backend switched from OIS to SDL3.
-// Older configs (no version line, or value < CURRENT_INPUT_VERSION) have their
-// Bind_* keyIDs translated through Keys.cpp's legacy table on load.
+// Older configs (no version line, or value < CURRENT_INPUT_VERSION) discard
+// their bind.* entries on load and are rewritten with default keyboard/gamepad bindings.
 constexpr auto OPTION_INPUT_VERSION   = "Version";
 constexpr auto CURRENT_INPUT_VERSION  = 2;
 

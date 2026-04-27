@@ -84,8 +84,4 @@ namespace TEN::Input
 	};
 
 	const std::string& GetKeyName(int keyID);
-
-	// Translates an OIS-era integer keyID (legacy ten.conf format) into the
-	// current SDL3-based keyID, or KEY_UNASSIGNED if the source is unknown.
-	int TranslateLegacyOisKeyId(int legacyKeyId);
 }
