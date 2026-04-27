@@ -372,7 +372,10 @@ int main(int argc, char* argv[])
 
 	// Load configuration and optionally show setup dialog.
 	if (!LoadConfiguration())
+	{
 		InitDefaultConfiguration();
+		SetAudioConfig(g_Configuration);
+	}
 
 	// Initialize main window.
 	int width = g_Configuration.ScreenWidth;
