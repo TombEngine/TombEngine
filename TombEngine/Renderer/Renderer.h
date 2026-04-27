@@ -170,6 +170,8 @@ namespace TEN::Renderer
 		std::unique_ptr<ITexture2D> _logo;
 		std::unique_ptr<ITexture2D> _skyTexture;
 		std::unique_ptr<ITexture2D> _whiteTexture;
+		std::unique_ptr<ITexture2D> _blackTexture;
+		std::unique_ptr<ITexture2D> _defaultNormalTexture;
 		RendererSprite _whiteSprite;
 		std::unique_ptr<ITexture2D> _loadingBarBorder;
 		std::unique_ptr<ITexture2D> _loadingBarInner;
@@ -191,6 +193,10 @@ namespace TEN::Renderer
 		std::vector<int> _moveablesIndices;
 		std::vector<Vertex> _staticsVertices;
 		std::vector<int> _staticsIndices;
+		std::vector<Vector3> _moveablesNormalsCache;
+		std::vector<Vector3> _staticsNormalsCache;
+		std::vector<Vector3> _roomsNormalsCache;
+		bool _debugNormalsCacheInitialized = false;
 
 		// Rooms and collector
 
@@ -477,6 +483,10 @@ namespace TEN::Renderer
 		void CopyRenderTargetAndDownscale(IRenderSurface2D* source, IRenderSurface2D* dest, float factor, RenderView& view);
 		void BindBucketTextures(const RendererBucket& bucket, TextureSource textureSource, bool animated);
 		void BindAtlasTextures(const RendererBucket& bucket, TextureSource textureSource);
+		void InitializeDebugNormalsCache();
+		void DrawDebugNormalsForBucket(const RendererBucket& bucket, const std::vector<Vertex>& vertices,
+			const std::vector<int>& indices, const std::vector<Vector3>& normalsCache, const Matrix& worldMatrix,
+			float normalLength, const Vector3* cameraPos = nullptr);
 		void PackSpriteTextureCoordinates(int instanceId, RendererSprite* sprite);
 		void ApplyGlow(IRenderSurface2D* renderTarget, RenderView& view);
 
@@ -658,6 +668,17 @@ namespace TEN::Renderer
 		static inline int GetOriginalIndex(unsigned int v)
 		{
 			return ((v >> 8) & 0xFFFF);
+		}
+
+		static inline Vector3 UnpackVector3(unsigned int packed)
+		{
+			auto fromS8 = [](unsigned int byte) -> float
+			{
+				char signedByte = (char)(byte & 0xFF);
+				return (float)signedByte / (float)CHAR_MAX;
+			};
+
+			return Vector3(fromS8(packed >> 0), fromS8(packed >> 8), fromS8(packed >> 16));
 		}
 
 	public:
