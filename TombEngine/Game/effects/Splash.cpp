@@ -11,14 +11,15 @@ using namespace TEN::Effects::Drip;
 
 namespace TEN::Effects::Splash
 {
+	constexpr auto SPLASH_AUDIO_DRIP_COOLDOWN = 16; // Safeguard against stacked splash sound and drip spam.
+
 	int												  SplashCount;
+	int												  SplashAudioDripCount;
 	SplashEffectSetup								  SplashSetup;
 	std::array<SplashEffect, SPLASH_EFFECT_COUNT_MAX> SplashEffects;
 
-	void SetupSplash(const SplashEffectSetup* const setup, int room)
+	void SetupSplash(const SplashEffectSetup* const setup, int room, int setupCountMax)
 	{
-		constexpr auto SETUP_COUNT_MAX = 3;
-
 		int splashSetupCount = 0;
 		float splashVel = 0.0f;
 
@@ -83,20 +84,27 @@ namespace TEN::Effects::Splash
 				splashSetupCount++;
 			}
 
-			if (splashSetupCount == SETUP_COUNT_MAX)
+			if (splashSetupCount == setupCountMax)
 				break;
 		}
 
-		SpawnSplashDrips(Vector3(setup->Position.x, setup->Position.y - 15, setup->Position.z), room, 32);
+		if (SplashAudioDripCount == 0)
+		{
+			SpawnSplashDrips(Vector3(setup->Position.x, setup->Position.y - 15, setup->Position.z), room, 32);
 
-		auto soundPose = Pose(Vector3i(setup->Position));
-		SoundEffect(SFX_TR4_LARA_SPLASH, &soundPose);
+			auto soundPose = Pose(Vector3i(setup->Position));
+			SoundEffect(SFX_TR4_LARA_SPLASH, &soundPose);
+			SplashAudioDripCount = SPLASH_AUDIO_DRIP_COOLDOWN;
+		}
 	}
 
 	void UpdateSplashes()
 	{
 		if (SplashCount)
 			SplashCount--;
+
+		if (SplashAudioDripCount)
+			SplashAudioDripCount--;
 
 		for (auto& splash : SplashEffects)
 		{
@@ -132,6 +140,7 @@ namespace TEN::Effects::Splash
 	void ClearSplashes()
 	{
 		SplashCount = 0;
+		SplashAudioDripCount = 0;
 
 		for (auto& splash : SplashEffects)
 			splash = {};
