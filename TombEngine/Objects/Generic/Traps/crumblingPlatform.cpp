@@ -37,6 +37,10 @@ namespace TEN::Entities::Traps
 	constexpr auto CRUMBLING_PLATFORM_VELOCITY_ACCEL = 4.0f;
 
 	constexpr auto CRUMBLING_PLATFORM_DELAY = 1.2f;
+	constexpr auto CRUMBLING_PLATFORM_BUBBLE_SPAWN_CHANCE_MAX = 0.5f; // Higher bubble density near the water surface.
+	constexpr auto CRUMBLING_PLATFORM_BUBBLE_SPAWN_CHANCE_MIN = 0.1f; // Lower bubble density once the platform sinks deeper.
+	constexpr auto CRUMBLING_PLATFORM_BUBBLE_FULL_DENSITY_DEPTH = BLOCK(1.0f); // Depth threshold where bubble spawning switches from max to min density.
+	constexpr auto CRUMBLING_PLATFORM_SPLASH_SETUP_COUNT_MAX = 2; // Per-frame splash slot cap for crumbling platforms to reduce splash pool pressure.
 
 	enum CrumblingPlatformState
 	{
@@ -189,7 +193,6 @@ namespace TEN::Entities::Traps
 
 			// Update room number.
 			int probedRoomNumber = pointColl.GetRoomNumber();
-			auto spheres = item.GetSpheres();
 
 			if (item.RoomNumber != probedRoomNumber)
 			{
@@ -197,6 +200,7 @@ namespace TEN::Entities::Traps
 				if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, probedRoomNumber) &&
 					!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item.RoomNumber))
 				{
+					auto spheres = item.GetSpheres();
 					int waterHeight = GetPointCollision(item.Pose.Position, probedRoomNumber).GetWaterTopHeight();
 
 					for (const auto& sphere : spheres)
@@ -204,7 +208,7 @@ namespace TEN::Entities::Traps
 						SplashSetup.Position = Vector3(sphere.Center.x, (float)(waterHeight - 1), sphere.Center.z);
 						SplashSetup.SplashPower = GenerateFloat(fallVel * 0.5f, fallVel * 2.0f);
 						SplashSetup.InnerRadius = sphere.Radius;
-						SetupSplash(&SplashSetup, probedRoomNumber);
+						SetupSplash(&SplashSetup, probedRoomNumber, CRUMBLING_PLATFORM_SPLASH_SETUP_COUNT_MAX);
 					}
 				}
 
@@ -214,14 +218,25 @@ namespace TEN::Entities::Traps
 			// Spawn bubbles every frame while sinking underwater.
 			if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item.RoomNumber))
 			{
+				int waterHeight = GetPointCollision(item.Pose.Position, item.RoomNumber).GetWaterTopHeight();
+				float depth = (float)(item.Pose.Position.y - waterHeight);
+				float spawnChance = (depth <= CRUMBLING_PLATFORM_BUBBLE_FULL_DENSITY_DEPTH) ?
+					CRUMBLING_PLATFORM_BUBBLE_SPAWN_CHANCE_MAX :
+					CRUMBLING_PLATFORM_BUBBLE_SPAWN_CHANCE_MIN;
+
+				auto spheres = item.GetSpheres();
+
 				for (const auto& sphere : spheres)
 				{
-					if (Random::TestProbability(1 / 2.0f))
+					if (TestProbability(spawnChance))
+					{
 						SpawnBubble(
 							GeneratePointInSphere(sphere),
 							item.RoomNumber, GenerateInt(32, 256), GenerateInt(BLOCK(0.1f), BLOCK(0.25f)));
+					}
 				}
 			}
+
 		}
 
 		break;
