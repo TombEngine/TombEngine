@@ -114,22 +114,22 @@ float4 DoFogBulbsForPixel(float4 sourceColor, float4 fogColor)
 	return result;
 }
 
-float4 ApplyBlendModeColor(float4 sourceColor, float3 worldPosition, float4 positionCopy)
+float4 ApplyBlendModeColor(float4 sourceColor, float3 worldPosition, float4 positionCopy, float2 svPosition)
 {
 	if (BlendMode != BLENDMODE_DISTORTION)
 		return sourceColor;
 
-	float2 texCoord = 0.5f * (float2(positionCopy.x, -positionCopy.y) / positionCopy.w + 1.0f);
+	// Use exact SV_Position pixel coordinates to avoid sub-texel jitter from clip-space reprojection.
+	float2 texCoord = svPosition * InvViewSize;
 	float sceneDepth = DepthTexture.Sample(DepthSampler, saturate(texCoord)).x;
 	float pixelDepth = positionCopy.z / positionCopy.w;
 
 	sceneDepth = LinearizeDepth(sceneDepth, NearPlane, FarPlane);
 	pixelDepth = LinearizeDepth(pixelDepth, NearPlane, FarPlane);
 
-	if (pixelDepth - sceneDepth > 0.01f)
-		discard;
+	float depthOcclusion = 1.0f - smoothstep(0.001f, 0.05f, pixelDepth - sceneDepth);
 
-	float mask = saturate(Luma(sourceColor.xyz) * sourceColor.w);
+	float mask = saturate(Luma(sourceColor.xyz) * sourceColor.w) * depthOcclusion;
 	float seed = frac(dot(worldPosition, float3(0.1031f, 0.11369f, 0.13787f)));
 	return float4(mask, seed * mask, 0.0f, 0.0f);
 }
