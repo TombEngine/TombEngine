@@ -753,6 +753,16 @@ float4 PSAtmosphericSky(VSOutput input) : SV_TARGET
 }
 
 // ---------------------------------------------------------------------------
+// Shared texture input for cloud-coverage-based occlusion.
+// Bound to t0 (ColorMap) = _scenePreCloudBackup (copy of the composited scene
+// including cloud coverage written into the alpha channel by the volumetric
+// cloud compositor). Shared by both the Aurora pass and the Sun/Moon disc pass.
+// ---------------------------------------------------------------------------
+
+Texture2D SceneAfterClouds : register(t0);
+SamplerState SunMoonLinearSamp : register(s2);
+
+// ---------------------------------------------------------------------------
 // Aurora pass — separate additive fullscreen draw
 // ---------------------------------------------------------------------------
 // Allows aurora to be rendered independently of the sky dome, as an additive
@@ -768,8 +778,15 @@ float4 PSAurora(VSOutput input) : SV_TARGET
 {
     float3 viewDir = GetViewDirection(input.UV);
     float3 aurora = ComputeAurora(viewDir, input.Position.xy);
-    // Output additive color — alpha is unused in additive blend mode.
-    return float4(aurora, 1.0);
+
+    // Attenuate aurora by volumetric cloud coverage. The cloud compositor writes
+    // coverage into the alpha channel of _scenePreCloudBackup (bound to t0).
+    // Dense clouds progressively occlude the aurora, matching the behaviour of
+    // sun, moon, and stars which are all hidden by AltocumulusMid clouds.
+    float cloudCoverage = SceneAfterClouds.Sample(SunMoonLinearSamp, input.UV).a;
+    float auroraVisibility = 1.0f - smoothstep(0.1f, 0.9f, cloudCoverage);
+
+    return float4(aurora * auroraVisibility, 1.0f);
 }
 
 // ---------------------------------------------------------------------------
@@ -779,10 +796,6 @@ float4 PSAurora(VSOutput input) : SV_TARGET
 // This pass reads that alpha to mask the sun and moon discs so clouds naturally
 // occlude them — no blend-mode hacks needed.
 //
-// Bound to t0 (ColorMap) = _renderTarget (scene after cloud composite).
-
-Texture2D SceneAfterClouds : register(t0);
-SamplerState SunMoonLinearSamp : register(s2);
 
 VSOutput VSSunMoonDisc(VSInput input)
 {

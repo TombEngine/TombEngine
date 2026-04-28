@@ -513,6 +513,9 @@ namespace TEN::Sky
 					}
 				}
 
+				if (aurora.Speed >= 0.0f)
+					auroraSettings.Speed = aurora.Speed;
+
 				// Aurora effect implies disabling legacy bitmap sky layer 1.
 				level->Layer1.Enabled = false;
 			}

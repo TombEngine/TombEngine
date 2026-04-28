@@ -25,6 +25,7 @@ namespace TEN::Scripting
 	{
 		bool        Enabled = false;
 		std::string Color   = "GreenClassic"; // AuroraColorPreset name.
+		float       Speed   = -1.0f;          // < 0 = use engine default (0.679); 0.0 - 2.0 = override.
 
 		static void Register(sol::table& parent);
 	};

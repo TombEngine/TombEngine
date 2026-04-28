@@ -41,7 +41,7 @@ namespace TEN::Renderer::Aurora
 		float Brightness           = 1.5f;     // [0, 5]     Base brightness of aurora bands.
 		float Height               = 0.45f;    // [0.05, 1.0]  Sky-layer ceiling (fraction of hemisphere: 0 = horizon, 1 = zenith).
 		float Spread               = 0.6f;     // [0.1, 1]   Horizontal noise spread across the dome.
-		float Speed                = 0.3f;     // [0, 2]     Animation drift speed.
+		float Speed                = 0.679f;   // [0, 2]     Animation drift speed.
 
 		// --- Color ---
 		int   ColorPreset          = 0;        // [0, 5]     AuroraColorPreset index.

@@ -360,6 +360,17 @@ namespace TEN::Renderer
 		_context->PSSetConstantBuffers(10, 1, buf);
 		_context->VSSetConstantBuffers(10, 1, buf);
 
+		// Bind cloud coverage for aurora occlusion.
+		// When the atmospheric sky pass has run, DrawSunMoonDisc has already copied
+		// the composited scene (with cloud coverage in its alpha channel) into
+		// _scenePreCloudBackup. When the atmospheric sky is disabled, that copy has
+		// not been made yet, so we do it here before binding.
+		if (!_atmosphericSkySettings.Enabled)
+			_context->CopyResource(_scenePreCloudBackup.Texture.Get(), _renderTarget.Texture.Get());
+
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_scenePreCloudBackup,
+			SamplerStateRegister::LinearClamp);
+
 		// Render additively on top of whatever sky is below.
 		// DrawAurora is called before the horizon mesh draw loop, so opaque horizon
 		// geometry naturally overwrites aurora pixels — no depth test needed.
@@ -377,6 +388,10 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::Aurora);
 		DrawTriangles(3, 0);
+
+		// Unbind the SRV so _renderTarget can be bound as RT again without conflicts.
+		ID3D11ShaderResourceView* nullSRV = nullptr;
+		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 1, &nullSRV);
 
 		// Restore regular input layout.
 		_context->IASetInputLayout(_inputLayout.Get());

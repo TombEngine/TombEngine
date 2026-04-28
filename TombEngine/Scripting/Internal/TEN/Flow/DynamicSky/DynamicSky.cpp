@@ -156,7 +156,12 @@ namespace TEN::Scripting
 			// Valid: "GreenClassic", "GreenPurple", "GreenRedTips", "BluePurple",
 			// "StrongMulticolor", "TurquoiseBluePurple".
 			// @mem color
-			"color", &DynamicSkyAurora::Color
+			"color", &DynamicSkyAurora::Color,
+
+			/// (float) Aurora animation drift speed. Range 0.0 - 2.0.
+			// Negative value (default) keeps the engine default of 0.679.
+			// @mem speed
+			"speed", &DynamicSkyAurora::Speed
 		);
 	}
 
