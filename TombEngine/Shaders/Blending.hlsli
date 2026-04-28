@@ -24,7 +24,7 @@
 #define EIGHT_FIVE float3( 0.85f, 0.85f, 0.85f)
 #define BLENDING   0.707f
 
-#define DISTORTION_DEPTH_SCALE 5120.0f
+#define DISTORTION_DEPTH_SCALE 10240.0f
 
 Texture2D DepthTexture : register(t6);
 SamplerState DepthSampler : register(s6);
