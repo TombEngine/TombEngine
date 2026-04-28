@@ -11,6 +11,7 @@
 #define BLENDMODE_OPAQUE	  0
 #define BLENDMODE_ALPHATEST	  1
 #define BLENDMODE_ADDITIVE	  2
+#define BLENDMODE_DISTORTION 3
 #define BLENDMODE_NOZTEST	  4
 #define BLENDMODE_SUBTRACTIVE 5
 #define BLENDMODE_WIREFRAME	  6
@@ -49,6 +50,7 @@ float4 DoDistanceFogForPixel(float4 sourceColor, float4 fogColor, float value)
 	switch (BlendMode)
 	{
 		case BLENDMODE_ADDITIVE:
+		case BLENDMODE_DISTORTION:
 		case BLENDMODE_SCREEN:
 		case BLENDMODE_LIGHTEN:
 			fogColor.xyz *= Luma(sourceColor.xyz);
@@ -79,6 +81,7 @@ float4 DoFogBulbsForPixel(float4 sourceColor, float4 fogColor)
 	switch (BlendMode)
 	{
 		case BLENDMODE_ADDITIVE:
+		case BLENDMODE_DISTORTION:
 		case BLENDMODE_SCREEN:
 		case BLENDMODE_LIGHTEN:
 			fogColor.xyz *= Luma(sourceColor);
@@ -106,6 +109,16 @@ float4 DoFogBulbsForPixel(float4 sourceColor, float4 fogColor)
 	result.xyz += saturate(fogColor.xyz);
 
 	return result;
+}
+
+float4 ApplyBlendModeColor(float4 sourceColor, float3 worldPosition)
+{
+	if (BlendMode != BLENDMODE_DISTORTION)
+		return sourceColor;
+
+	float mask = saturate(Luma(sourceColor.xyz) * sourceColor.w);
+	float3 anchor = frac(worldPosition * float3(1.0f / 1024.0f, 1.0f / 768.0f, 1.0f / 1024.0f));
+	return float4(mask, anchor * mask);
 }
 
 #endif // BLENDINGSHADER

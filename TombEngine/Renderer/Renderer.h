@@ -95,6 +95,7 @@ namespace TEN::Renderer
 		std::unique_ptr<IRenderSurface2D> _normalsAndMaterialIndexRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _depthRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _emissiveAndRoughnessRenderTarget;
+		std::unique_ptr<IRenderSurface2D> _distortionRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _dumpScreenRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _renderTarget;
 		std::unique_ptr<IRenderSurface2D> _postProcessRenderTarget[2];
@@ -305,6 +306,7 @@ namespace TEN::Renderer
 
 		// Post-process
 
+		bool _hasDistortionMask = false;
 		PostProcessMode _postProcessMode = PostProcessMode::None;
 		float _postProcessStrength = 1.0f;
 		Vector3 _postProcessTint = (Vector3)NEUTRAL_COLOR;
@@ -343,6 +345,8 @@ namespace TEN::Renderer
 		void ApplySMAA(IRenderSurface2D* renderTarget, RenderView& view);
 		void ApplyFXAA(IRenderSurface2D* renderTarget, RenderView& view);
 		void ApplyAntialiasing(IRenderSurface2D* renderTarget, RenderView& view);
+		void ApplyDistortionViewport();
+		void ApplyDistortion(IRenderSurface2D* renderTarget, RenderView& view);
 		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType);
 		int  BindLight(RendererLight& light, ShaderLight* lights, int index);
 		void BindRoomLights(std::vector<RendererLight*>& lights);
@@ -580,6 +584,7 @@ namespace TEN::Renderer
 			return !(blendMode == BlendMode::Opaque ||
 				blendMode == BlendMode::AlphaTest ||
 				blendMode == BlendMode::Additive ||
+				blendMode == BlendMode::Distortion ||
 				blendMode == BlendMode::FastAlphaBlend);
 		}
 

@@ -40,6 +40,9 @@ SamplerState LegacyEnvironmentSampler : register(s4);
 Texture2D EmissiveAndSpecularTexture : register(t5);
 SamplerState EmissiveAndSpecularSampler : register(s5);
 
+Texture2D DistortionTexture : register(t14);
+SamplerState DistortionSampler : register(s14);
+
 PixelShaderInput VS(PostProcessVertexShaderInput input)
 {
     PixelShaderInput output;
@@ -85,6 +88,46 @@ float4 PSExclusion(PixelShaderInput input) : SV_Target
 	float3 output = lerp(color.rgb, exColor, EffectStrength);
 
 	return float4(output, color.a);
+}
+
+float4 PSDistortion(PixelShaderInput input) : SV_Target
+{
+    float4 distortionData = DistortionTexture.Sample(DistortionSampler, input.UV);
+    float mask = ModulateColor(distortionData.xyz).r;
+    float4 color = ColorTexture.Sample(ColorSampler, input.UV);
+
+    if (mask <= 0.001f)
+        return color;
+
+    float time = Frame * 0.005f;
+    float2 uv = input.UV;
+    float3 worldAnchor = distortionData.gba / mask;
+    float3 anchorAngle = worldAnchor * PI2;
+    float2 anchorPlane = float2(
+        cos(anchorAngle.x) + sin(anchorAngle.z * 0.5f),
+        sin(anchorAngle.y) + cos(anchorAngle.z * 0.5f));
+    float anchorPhase = anchorAngle.z;
+
+    float coarseNoise = SimplexNoise(float3(anchorPlane * 3.0f, time * 0.16f + anchorPhase * 0.2f));
+    float flowNoiseX  = SimplexNoise(float3(anchorPlane * 5.5f + float2(3.1f, -2.4f), time * 0.22f + anchorPhase * 0.15f));
+    float flowNoiseY  = SimplexNoise(float3(anchorPlane.yx * 5.0f + float2(-4.7f, 1.8f), time * 0.2f - anchorPhase * 0.12f));
+
+    float2 flow = float2(flowNoiseX, flowNoiseY) * 0.65f;
+
+    float2 wavePrimary = float2(
+        sin((anchorPlane.y + coarseNoise * 0.18f) * 14.0f + time * 0.9f + anchorPhase * 0.65f),
+        cos((anchorPlane.x - coarseNoise * 0.16f) * 13.0f - time * 0.8f + anchorPhase * 0.45f));
+
+    float2 waveSecondary = float2(
+        cos((anchorPlane.yx.x * 7.0f) - time * 0.35f + anchorPhase * 0.25f),
+        sin((anchorPlane.xy.y * 8.0f) + time * 0.3f - anchorPhase * 0.2f));
+
+    float2 wave = wavePrimary * 0.75f + waveSecondary * 0.25f;
+
+    float turbulence = 0.7f + 0.3f * coarseNoise;
+    float2 offset = (wave * 0.38f + flow) * (0.0009f + mask * 0.0055f) * mask * turbulence;
+
+    return ColorTexture.Sample(ColorSampler, saturate(uv + offset));
 }
 
 float4 PSFinalPass(PixelShaderInput input) : SV_TARGET

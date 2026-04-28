@@ -5,6 +5,42 @@
 
 namespace TEN::Renderer
 {
+	void Renderer::ApplyDistortion(IRenderSurface2D* renderTarget, RenderView& view)
+	{
+		if (!_hasDistortionMask)
+			return;
+
+		SetBlendMode(BlendMode::Opaque, true);
+		SetCullMode(CullMode::CounterClockwise, true);
+		SetDepthState(DepthState::Write, true);
+		_graphicsDevice->SetViewport(view.Viewport);
+		_graphicsDevice->SetScissor(view.Viewport);
+
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+
+		_shaders.Bind(Shader::PostProcess);
+
+		_graphicsDevice->ClearRenderTarget2D(_postProcessRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_postProcessRenderTarget[0]->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+
+		_graphicsDevice->ClearRenderTarget2D(_postProcessRenderTarget[1]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_postProcessRenderTarget[1]->GetRenderTarget(), nullptr);
+		_shaders.Bind(Shader::PostProcessDistortion);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::DistortionMap, _distortionRenderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+
+		_shaders.Bind(Shader::PostProcess);
+		_graphicsDevice->ClearRenderTarget2D(renderTarget->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[1]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+	}
+
 	void Renderer::DrawPostprocess(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode)
 	{
 		_doingFullscreenPass = true;

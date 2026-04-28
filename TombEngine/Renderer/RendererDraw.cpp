@@ -1975,9 +1975,12 @@ namespace TEN::Renderer
 
 		// Bind main render target again. Main depth buffer is already filled and avoids overdraw in following steps.
 		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+		_graphicsDevice->ClearRenderTarget2D(_distortionRenderTarget->GetRenderTarget(), Colors::Transparent);
+		_hasDistortionMask = false;
 
 		DoRenderPass(RendererPass::Opaque, view, true);
 		DoRenderPass(RendererPass::Additive, view, true);
+		DoRenderPass(RendererPass::Distortion, view, true);
 		DoRenderPass(RendererPass::CollectTransparentFaces, view, false);
 		SortTransparentFaces(view);
 
@@ -2008,6 +2011,7 @@ namespace TEN::Renderer
 		// Calculates glow
 		// GB-E -> GRT0, GRT0 -> GRT1, GRT1 -> GRT0, RT -> PPRT0, PPRT0 -> RT
 		ApplyGlow(_renderTarget.get(), view);
+		ApplyDistortion(_renderTarget.get(), view);
 
 		// Apply the antialiasing, now 3D geometry and 3D HUD are antialiased
 		// FXAA: RT -> PPRT0, PPRT0 -> RT
@@ -2344,6 +2348,9 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
 
+		if (pass == RendererPass::Distortion)
+			_graphicsDevice->BindRenderTarget(_distortionRenderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+
 		// Draw room geometry first if applicable for a given pass.
 		if (pass != RendererPass::Transparent && pass != RendererPass::GunFlashes)
 			DrawRooms(view, pass);
@@ -2364,6 +2371,9 @@ namespace TEN::Renderer
 
 			SetCullMode(CullMode::CounterClockwise);
 		}
+
+		if (pass == RendererPass::Distortion)
+			_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 	}
 
 	void Renderer::DrawObjects(RendererPass pass, RenderView& view, bool player, bool moveables, bool statics, bool sprites)
@@ -3509,7 +3519,18 @@ namespace TEN::Renderer
 				return false;
 			}
 
-			SetBlendMode(BlendMode::Additive);
+			SetBlendMode(blendMode);
+			SetAlphaTest(AlphaTestMode::None, 1.0f);
+			break;
+
+		case RendererPass::Distortion:
+			if (blendMode != BlendMode::Distortion)
+			{
+				return false;
+			}
+
+			_hasDistortionMask = true;
+			SetBlendMode(blendMode);
 			SetAlphaTest(AlphaTestMode::None, 1.0f);
 			break;
 

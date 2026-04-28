@@ -284,6 +284,10 @@ namespace TEN::Scripting
 		// @tfield[opt=true] bool ambientOcclusion If disabled, ambient occlusion setting will be forced to off, and corresponding menu entry in the Display Settings dialog will be grayed out.
 		"ambientOcclusion", &GraphicsSettings::AmbientOcclusion,
 
+		/// Enable flame heat haze overlays for fire particles and sparks.
+		// @tfield[opt=true] bool flameHeatHaze If enabled, flame particles and fire sparks will emit an additional distortion-only heat haze overlay.
+		"flameHeatHaze", &GraphicsSettings::FlameHeatHaze,
+
 		/// Enable skinning.
 		// @tfield[opt=true] bool skinning If enabled, skinning will be used for animated objects with skinned mesh. Disable to force classic TR workflow.
 		"skinning", &GraphicsSettings::Skinning);

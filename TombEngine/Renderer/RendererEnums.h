@@ -99,6 +99,7 @@ enum class BlendMode
 	Opaque = 0,
 	AlphaTest = 1,
 	Additive = 2,
+	Distortion = 3,
 	NoDepthTest = 4,
 	Subtractive = 5,
 	Wireframe = 6,
@@ -204,7 +205,8 @@ enum class TextureRegister
 	ORSHMap = 10,
 	EmissiveMap = 11,
 	LegacyEnvironmentReflections = 12,
-	SkyboxEnvironmentReflections = 13
+	SkyboxEnvironmentReflections = 13,
+	DistortionMap = 14
 };
 
 enum class SamplerStateRegister
@@ -259,6 +261,7 @@ enum class RendererPass
 	Transparent,
 	CollectTransparentFaces,
 	Additive,
+	Distortion,
 	GBuffer,
 	GunFlashes,
 	RoomAmbient
@@ -478,6 +481,7 @@ enum class Shader
 	PostProcessMonochrome,
 	PostProcessNegative,
 	PostProcessExclusion,
+	PostProcessDistortion,
 	PostProcessFinalPass,
 	PostProcessLensFlare,
 

@@ -65,6 +65,7 @@ namespace TEN::Scripting
 	struct GraphicsSettings
 	{
 		bool AmbientOcclusion = true;
+		bool FlameHeatHaze = true;
 		bool Skinning = true;
 
 		static void Register(sol::table& parent);

@@ -298,6 +298,7 @@ namespace TEN::Renderer
 		SAFE_DELETE(_depthRenderTarget);
 		SAFE_DELETE(_normalsAndMaterialIndexRenderTarget);
 		SAFE_DELETE(_emissiveAndRoughnessRenderTarget);
+		SAFE_DELETE(_distortionRenderTarget);
 		SAFE_DELETE(_SSAORenderTarget);
 		SAFE_DELETE(_SSAOBlurredRenderTarget);
 		SAFE_DELETE(_glowRenderTarget[0]);
@@ -323,6 +324,7 @@ namespace TEN::Renderer
 		_depthRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_R32_Float, false, DepthFormat::None);
 		_normalsAndMaterialIndexRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_emissiveAndRoughnessRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_distortionRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		
 		_SSAORenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_SSAOBlurredRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);

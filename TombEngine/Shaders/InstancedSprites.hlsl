@@ -18,8 +18,14 @@ struct PixelShaderInput
 	float4 Color: COLOR;
 	float4 PositionCopy: TEXCOORD2;
 	float4 FogBulbs : TEXCOORD3;
+	float3 DistortionAnchor : TEXCOORD4;
 	float DistanceFog : FOG;
 	uint InstanceID : SV_InstanceID;
+};
+
+struct PixelShaderOutput
+{
+	float4 Color : SV_TARGET0;
 };
 
 struct InstancedSprite
@@ -56,11 +62,13 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 	{
         worldPosition = mul(float4(input.Position, 1.0f), sprite.World);
         output.Position = mul(mul(float4(input.Position, 1.0f), sprite.World), ViewProjection);
+		output.DistortionAnchor = sprite.World[3].xyz;
     }
 	else
 	{
 		worldPosition = float4(input.Position, 1.0f);
 		output.Position = mul(float4(input.Position, 1.0f), ViewProjection);
+		output.DistortionAnchor = input.Position.xyz;
 	}
 	
     int polyIndex = DecodeIndexInPoly(input.Effects);
@@ -76,9 +84,10 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 	return output;
 }
 
-float4 PS(PixelShaderInput input) : SV_TARGET
+PixelShaderOutput PS(PixelShaderInput input)
 {
-    float4 output = Texture.Sample(Sampler, input.UV) * input.Color;
+	PixelShaderOutput output;
+	output.Color = Texture.Sample(Sampler, input.UV) * input.Color;
 
     InstancedSprite sprite = Sprites[input.InstanceID];
 	
@@ -98,25 +107,26 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 		}
 
 		float fade = (sceneDepth - particleDepth) * 1024.0f;
-		output.w = min(output.w, fade);
+		output.Color.w = min(output.Color.w, fade);
 	}
 
     if (sprite.RenderType == 1)
     {
         float4 rawOutput = Texture.Sample(Sampler, input.UV) * input.Color;
-        output = DoLaserBarrierEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
+		output.Color = DoLaserBarrierEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
     }
 
     if (sprite.RenderType == 2)
     {
         float4 rawOutput = Texture.Sample(Sampler, input.UV) * input.Color;
-        output = DoLaserBeamEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
+		output.Color = DoLaserBeamEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
     }
 
-	output.xyz *= 1.0f - Luma(input.FogBulbs.xyz);
-	output.xyz = saturate(output.xyz);
+	output.Color.xyz *= 1.0f - Luma(input.FogBulbs.xyz);
+	output.Color.xyz = saturate(output.Color.xyz);
 
-	output = DoDistanceFogForPixel(output, float4(0.0f, 0.0f, 0.0f, 0.0f), input.DistanceFog);
+	output.Color = DoDistanceFogForPixel(output.Color, float4(0.0f, 0.0f, 0.0f, 0.0f), input.DistanceFog);
+	output.Color = ApplyBlendModeColor(output.Color, input.DistortionAnchor);
 
 	return output;
 }
