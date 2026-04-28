@@ -30,10 +30,12 @@
 
 #include "./CBDustStorm.hlsli"
 
-// Depth target.
-Texture2D    DepthTexture : register(t0);
-SamplerState LinearSamp   : register(s3); // LinearClamp
-SamplerState PointSamp    : register(s1); // PointWrap
+// Linear depth target (R32_FLOAT). 0 = near plane, FarPlane = beyond far plane.
+Texture2D    DepthTexture      : register(t0);
+// Outdoor mask (R8_UNORM): 1.0 = outdoor pixel, 0.0 = indoor pixel.
+Texture2D    OutdoorMaskTexture : register(t1);
+SamplerState LinearSamp        : register(s3); // LinearClamp
+SamplerState PointSamp         : register(s1); // PointWrap
 
 // ---------------------------------------------------------------------------
 // Fullscreen-triangle vertex shader (same layout as God Ray / PostProcess).
@@ -170,12 +172,6 @@ float4 DustFog(float3 ro, float3 rd, float mt)
 
         float3 pos = ro + rd * d;
 
-		if (!IsPointInsideDustRoom(pos))
-		{
-			d *= growth;
-			continue;
-		}
-
         // Density at this sample.
         float rz = DustFogMap(pos, d);
 
@@ -231,24 +227,57 @@ float3 ReconstructWorldDir(float2 uv)
     return normalize(farWorld.xyz - DustCameraPos);
 }
 
-bool IsPointInsideDustRoom(float3 pos)
+float DustPortalBleed(float3 worldPos)
 {
-    int roomCount = (int)DustOutdoorRoomCount;
+    float bleed = 0.0f;
 
-    [loop]
-    for (int i = 0; i < DUST_STORM_MAX_OUTDOOR_ROOMS; i++)
+    [unroll]
+    for (int i = 0; i < 4; i++)
     {
-        if (i >= roomCount)
+        if (i >= DustNumBleedVolumes)
             break;
 
-        float3 boxMin = DustOutdoorRoomMins[i].xyz;
-        float3 boxMax = DustOutdoorRoomMaxs[i].xyz;
+        float3 delta = worldPos - DustBleedVolumeCenterAndStrength[i].xyz;
+        float3 local = float3(
+            dot(delta, DustBleedVolumeInvBasis0[i].xyz),
+            dot(delta, DustBleedVolumeInvBasis1[i].xyz),
+            dot(delta, DustBleedVolumeInvBasis2[i].xyz));
 
-        if (all(pos >= boxMin) && all(pos <= boxMax))
-            return true;
+        float height01 = saturate((local.y + 1.0f) * 0.5f);
+        float depthLimit = lerp(DustBleedTopDepthRatio, 1.0f, height01);
+
+        float fadeX = 1.0f - smoothstep(DustBleedEdgeFadeStart, 1.0f, abs(local.x));
+        float fadeY = 1.0f - smoothstep(DustBleedEdgeFadeStart, 1.0f, abs(local.y));
+        float fadeNear = smoothstep(-0.05f, 0.0f, local.z);
+        float fadeFar = 1.0f - smoothstep(
+            max(depthLimit * DustBleedDepthFadeStart, 0.001f),
+            max(depthLimit, 0.001f),
+            local.z);
+
+        float volumeFade = fadeX * fadeY * fadeNear * fadeFar * DustBleedVolumeCenterAndStrength[i].w;
+        bleed = max(bleed, volumeFade);
     }
 
-    return false;
+    return saturate(bleed);
+}
+
+float DustPortalBleedAlongRay(float3 rayOrigin, float3 rayDir, float maxDist)
+{
+    if (maxDist <= 1.0f)
+        return 0.0f;
+
+    float bleed = 0.0f;
+
+    [unroll]
+    for (int i = 1; i <= 12; i++)
+    {
+        float t = ((float)i - 0.5f) / 12.0f;
+        float sampleDist = maxDist * t;
+        float3 samplePos = rayOrigin + rayDir * sampleDist;
+        bleed = max(bleed, DustPortalBleed(samplePos));
+    }
+
+    return bleed;
 }
 
 // ---------------------------------------------------------------------------
@@ -256,25 +285,9 @@ bool IsPointInsideDustRoom(float3 pos)
 // SrcAlpha / InvSrcAlpha blending; rgb is premultiplied so we output (rgb, a).
 // ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// GustMultiplier - aperiodic [0,1] envelope driven by three incommensurable
-// sine waves. Most of the time near 0 (calm); occasional peaks are gusts.
-// ---------------------------------------------------------------------------
-float GustMultiplier(float t)
-{
-    // Three incommensurable frequencies produce a non-repeating beat pattern.
-    float g = sin(t * 0.31f) * sin(t * 0.53f + 1.3f) * sin(t * 0.19f + 2.7f);
-    // g in [-1,1]; remap to [0,1] then sharpen so peaks are distinct gusts.
-    g = saturate(g * 0.5f + 0.5f);
-    return pow(g, 2.5f);
-}
-
 float4 PSDustStorm(VSOutput input) : SV_TARGET
 {
     if (DustDensity * DustIntensityFade < 0.001f)
-        return float4(0.0f, 0.0f, 0.0f, 0.0f);
-
-    if (DustOutdoorRoomCount < 0.5f)
         return float4(0.0f, 0.0f, 0.0f, 0.0f);
 
     // The GBuffer depth target stores NDC depth (clip.z / clip.w, range 0..1).
@@ -291,14 +304,22 @@ float4 PSDustStorm(VSOutput input) : SV_TARGET
     float3 ro = DustCameraPos;
     float3 rd = ReconstructWorldDir(input.UV);
 
-    // In gust mode, modulate density by an aperiodic time function so the
-    // dust appears in organic bursts rather than as continuous fog.
-    float gustScale = 1.0f;
-    if (DustGustMode > 0.5f)
-        gustScale = GustMultiplier(DustTime);
-
     float4 dust = DustFog(ro, rd, marchEnd);
-    dust *= gustScale;
+
+    // Outdoor mask logic:
+    // - Camera outdoor: ignore per-pixel mask entirely.
+    // - Camera indoor: draw full dust on outdoor pixels and apply additional
+    //   world-space bleed volumes extruded from outdoor -> indoor portals.
+    if (!DustCameraIsOutdoor)
+    {
+        const float BLEED_STRENGTH = 0.70f;
+
+        float directOutdoor = OutdoorMaskTexture.SampleLevel(PointSamp, input.UV, 0).r;
+        float isSkyPixel    = (ndcDepth >= 0.9999f) ? 1.0f : 0.0f;
+
+        float portalBleed = DustPortalBleedAlongRay(ro, rd, marchEnd);
+        dust.a *= saturate(directOutdoor + isSkyPixel + portalBleed * BLEED_STRENGTH);
+    }
 
     // Distance-fog-aware tint: blend the accumulated color toward the engine
     // fog color near the far plane so the dust does not punch a hard edge

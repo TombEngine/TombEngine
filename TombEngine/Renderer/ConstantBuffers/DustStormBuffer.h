@@ -15,8 +15,6 @@ namespace TEN::Renderer::ConstantBuffers
 {
 	using namespace DirectX::SimpleMath;
 
-	constexpr auto DUST_STORM_MAX_OUTDOOR_ROOMS = 32;
-
 	struct alignas(16) CDustStormBuffer
 	{
 		// Row 0 - color and overall density
@@ -58,15 +56,31 @@ namespace TEN::Renderer::ConstantBuffers
 		float FogEndDistance;
 		float StepGrowth;       // Geometric step ratio (1.8 in reference).
 		float IntensityFade;    // [0,1] global fade (e.g. for level transitions).
-		float GustMode;         // 1.0 = gust mode, 0.0 = continuous fog.
+		int   CameraIsOutdoor;  // 1 when camera room has ENV_FLAG_SKYBOX; 0 otherwise.
 		//--
-		// Rows 9-12 - inverse view-projection for world-pos reconstruction
+		// Row 9 - screen-space wind direction (kept for padding / future use)
+		Vector2 WindScreenDir;
+		Vector2 _windScreenPad;
+		//--
+		// Rows 10-13 - inverse view-projection for world-pos reconstruction
 		Matrix InvViewProjection;
 		//--
-		// Outdoor room volumes visible in the current view.
-		Vector4 OutdoorRoomMins[DUST_STORM_MAX_OUTDOOR_ROOMS];
-		Vector4 OutdoorRoomMaxs[DUST_STORM_MAX_OUTDOOR_ROOMS];
-		float   OutdoorRoomCount;
-		Vector3 Pad1;
+		// Rows 14-17 - forward view-projection for world -> UV reprojection (bleed march)
+		Matrix ViewProjection;
+		//--
+		// Row 18 - world-space portal bleed parameters
+		float BleedTopDepthRatio;
+		float BleedEdgeFadeStart;
+		float BleedDepthFadeStart;
+		int   NumBleedVolumes;
+		//--
+		// Rows 19-22 - center.xyz + strength per bleed volume
+		Vector4 BleedVolumeCenterAndStrength[4];
+		// Rows 23-26 - inverse basis row 0 per bleed volume
+		Vector4 BleedVolumeInvBasis0[4];
+		// Rows 27-30 - inverse basis row 1 per bleed volume
+		Vector4 BleedVolumeInvBasis1[4];
+		// Rows 31-34 - inverse basis row 2 per bleed volume
+		Vector4 BleedVolumeInvBasis2[4];
 	};
 }

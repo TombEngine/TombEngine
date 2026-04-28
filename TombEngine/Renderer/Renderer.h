@@ -145,6 +145,7 @@ namespace TEN::Renderer
 		RenderTarget2D _normalsAndMaterialIndexRenderTarget;
 		RenderTarget2D _depthRenderTarget;
 		RenderTarget2D _emissiveAndRoughnessRenderTarget;
+		RenderTarget2D _outdoorMaskRenderTarget;
 		RenderTarget2D _backBuffer;
 		RenderTarget2D _dumpScreenRenderTarget;
 		RenderTarget2D _renderTarget;

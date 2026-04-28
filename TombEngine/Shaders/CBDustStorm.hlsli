@@ -6,8 +6,6 @@
 #ifndef CB_DUST_STORM_HLSLI
 #define CB_DUST_STORM_HLSLI
 
-#define DUST_STORM_MAX_OUTDOOR_ROOMS 32
-
 cbuffer CBDustStorm : register(b10)
 {
     // Row 0
@@ -49,15 +47,32 @@ cbuffer CBDustStorm : register(b10)
     float DustFogEndDistance;
     float DustStepGrowth;
     float DustIntensityFade;
-    float DustGustMode;      // 1 = gust mode (aperiodic density modulation), 0 = continuous.
+    int   DustCameraIsOutdoor; // 1 = camera in outdoor room; 0 = indoor.
     //--
-    // Rows 9-12
+    // Row 9
+    float2 DustWindScreenDir; // Kept for padding; world-space bleed march uses DustViewProjection.
+    float2 DustBleedPad;
+    //--
+    // Rows 10-13
     matrix DustInvViewProjection;
     //--
-    float4 DustOutdoorRoomMins[DUST_STORM_MAX_OUTDOOR_ROOMS];
-    float4 DustOutdoorRoomMaxs[DUST_STORM_MAX_OUTDOOR_ROOMS];
-    float  DustOutdoorRoomCount;
-    float3 DustPad1;
+    // Rows 14-17
+    matrix DustViewProjection; // Forward VP for world -> UV reprojection.
+    //--
+    // Row 18
+    float DustBleedTopDepthRatio;
+    float DustBleedEdgeFadeStart;
+    float DustBleedDepthFadeStart;
+    int   DustNumBleedVolumes;
+    //--
+    // Rows 19-22
+    float4 DustBleedVolumeCenterAndStrength[4];
+    // Rows 23-26
+    float4 DustBleedVolumeInvBasis0[4];
+    // Rows 27-30
+    float4 DustBleedVolumeInvBasis1[4];
+    // Rows 31-34
+    float4 DustBleedVolumeInvBasis2[4];
 };
 
 #endif // CB_DUST_STORM_HLSLI

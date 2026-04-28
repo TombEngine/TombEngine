@@ -32,6 +32,7 @@ struct PixelShaderOutput
 	float4 Normals: SV_TARGET0;
 	float Depth: SV_TARGET1;
     float4 Emissive : SV_Target2;
+    float OutdoorMask : SV_Target3;
 };
 
 float3 DecodeNormalMap(float4 n)
@@ -152,6 +153,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	output.Depth = color.w > 0.0f ? input.PositionCopy.z / input.PositionCopy.w : 0.0f;
     output.Emissive.xyz = DoDistanceFogForPixel(emissive, 0.0f, pow(input.DistanceFog, 2)).xyz;
     output.Emissive.w = specular;
+	output.OutdoorMask = (float)Outdoor;
 	
 	return output;
 }

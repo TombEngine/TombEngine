@@ -24,11 +24,6 @@ namespace TEN::Renderer::DustStorm
 		float ColorG    = 0.65f;
 		float ColorB    = 0.50f;
 
-		// Gust mode: when true the density is modulated by an aperiodic
-		// time function so the dust appears in organic gusts rather than
-		// as a continuous fog layer.
-		bool Gusts = false;
-
 		// Tuning (kept simple - exposed only if needed).
 		float WindSpeedScale = 1.0f;   // [0,4]   scales coupling to base wind strength.
 		float Turbulence     = 1.0f;   // [0,2]   noise intensity multiplier.

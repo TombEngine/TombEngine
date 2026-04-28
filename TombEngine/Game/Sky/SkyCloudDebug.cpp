@@ -2109,9 +2109,6 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 			ImGui::Checkbox("Enable Dust Storm", &dust.Enabled);
 
 			ImGui::BeginDisabled(!dust.Enabled);
-			ImGui::Checkbox("Gust Mode", &dust.Gusts);
-			ImGui::SameLine();
-			ImGui::TextDisabled("(animated bursts instead of continuous fog)");
 			ImGui::SliderFloat("Dust Density", &dust.Density, 0.0f, 2.0f, "%.2f");
 
 			ImGui::SliderFloat("Min Height", &dust.MinHeight, 0.0f, 1.0f, "%.2f");

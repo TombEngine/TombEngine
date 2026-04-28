@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 
 #include <algorithm>
 #include <chrono>
@@ -1951,7 +1951,7 @@ namespace TEN::Renderer
 
 		UpdateConstantBuffer(cameraConstantBuffer, _cbCameraMatrices);
 
-		ID3D11RenderTargetView* pRenderViewPtrs[3];
+		ID3D11RenderTargetView* pRenderViewPtrs[4];
 
 		// Draw horizon, sky, clouds (behind horizon mesh), and aurora.
 		// Cloud compositing now happens inside DrawHorizonAndSky, before the horizon mesh,
@@ -1976,11 +1976,13 @@ namespace TEN::Renderer
 		_context->ClearRenderTargetView(_normalsAndMaterialIndexRenderTarget.RenderTargetView.Get(), Colors::Transparent);
 		_context->ClearRenderTargetView(_depthRenderTarget.RenderTargetView.Get(), Colors::White);
 		_context->ClearRenderTargetView(_emissiveAndRoughnessRenderTarget.RenderTargetView.Get(), Colors::Transparent);
+		_context->ClearRenderTargetView(_outdoorMaskRenderTarget.RenderTargetView.Get(), Colors::Transparent);
 		
 		pRenderViewPtrs[0] = _normalsAndMaterialIndexRenderTarget.RenderTargetView.Get();
 		pRenderViewPtrs[1] = _depthRenderTarget.RenderTargetView.Get();
 		pRenderViewPtrs[2] = _emissiveAndRoughnessRenderTarget.RenderTargetView.Get();
-		_context->OMSetRenderTargets(3, &pRenderViewPtrs[0], _renderTarget.DepthStencilView.Get());
+		pRenderViewPtrs[3] = _outdoorMaskRenderTarget.RenderTargetView.Get();
+		_context->OMSetRenderTargets(4, &pRenderViewPtrs[0], _renderTarget.DepthStencilView.Get());
 
 		// Render G-Buffer pass.
 		DoRenderPass(RendererPass::GBuffer, view, true);
@@ -2247,6 +2249,7 @@ namespace TEN::Renderer
 			_stRoom.AmbientColor = room->AmbientLight;
 			_stRoom.NumRoomLights = 0;
 			_stRoom.Water = (nativeRoom->flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
+			_stRoom.Outdoor = (nativeRoom->flags & ENV_FLAG_SKYBOX) != 0 ? 1 : 0;
 			UpdateConstantBuffer(_stRoom, _cbRoom);
 
 			for (auto& bucket : room->Buckets)
@@ -2469,6 +2472,15 @@ namespace TEN::Renderer
 		{
 			if (IgnoreReflectionPassForRoom(room->RoomNumber))
 				continue;
+
+			// Keep the room outdoor flag in sync for the GBuffer pass so that
+			// items in outdoor rooms write Outdoor=1 into the mask RT.
+			if (rendererPass == RendererPass::GBuffer)
+			{
+				const auto& nativeRoom = g_Level.Rooms[room->RoomNumber];
+				_stRoom.Outdoor = (nativeRoom.flags & ENV_FLAG_SKYBOX) != 0 ? 1 : 0;
+				UpdateConstantBuffer(_stRoom, _cbRoom);
+			}
 
 			for (auto itemToDraw : room->ItemsToDraw)
 			{
@@ -2988,6 +3000,7 @@ namespace TEN::Renderer
 								}
 
 								_stRoom.Water = (nativeRoom.flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
+								_stRoom.Outdoor = (nativeRoom.flags & ENV_FLAG_SKYBOX) != 0 ? 1 : 0;
 								UpdateConstantBuffer(_stRoom, _cbRoom);
 
 								SetScissor(room.ClipBounds);
@@ -4124,6 +4137,7 @@ namespace TEN::Renderer
 		BindRoomLights(view.LightsToDraw);
 		_stRoom.NumRoomDecals = 0; // Don't draw decals on sorted faces to avoid slowdowns.
 		_stRoom.Water = (nativeRoom->flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
+		_stRoom.Outdoor = (nativeRoom->flags & ENV_FLAG_SKYBOX) != 0 ? 1 : 0;
 		UpdateConstantBuffer(_stRoom, _cbRoom);
 
 		SetScissor(objectInfo->Room->ClipBounds);

@@ -199,7 +199,8 @@ enum class TextureRegister
 	ORSHMap = 10,
 	EmissiveMap = 11,
 	LegacyEnvironmentReflections = 12,
-	SkyboxEnvironmentReflections = 13
+	SkyboxEnvironmentReflections = 13,
+	GBufferOutdoorMask = 14
 };
 
 enum class SamplerStateRegister

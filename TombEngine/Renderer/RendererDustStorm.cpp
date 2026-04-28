@@ -30,21 +30,125 @@ namespace TEN::Renderer
 	static constexpr float DUST_STORM_STEP_GROWTH      = 1.8f;
 	static constexpr float DUST_STORM_FOG_BLEND_START  = BLOCK(6.0f);
 	static constexpr float DUST_STORM_HEIGHT_COLUMN    = BLOCK(8.0f);
+	static constexpr float DUST_STORM_BLEED_WIND_REF   = 960.0f;
+	static constexpr float DUST_STORM_BLEED_BOTTOM_MAX = BLOCK(2.5f);
+	static constexpr float DUST_STORM_BLEED_TOP_RATIO  = 0.2f;
+	static constexpr int   DUST_STORM_MAX_BLEED_VOLUMES = 4;
 
 	void Renderer::InitializeDustStorm()
 	{
 		_cbDustStorm = ConstantBuffer<CDustStormBuffer>(_device.Get());
 	}
 
-	// Weather particles are spawned only in outside-table rooms that are marked
-	// windy (or underwater). Dust is not used underwater, so we mirror the windy
-	// outdoor subset here.
-	static bool IsDustStormRoom(const RoomData& room)
+	// Returns true if a room is currently considered "outdoor".
+	// Mirrors the rain / snow eligibility convention.
+	static bool IsRoomOutdoor(int roomIdx)
 	{
+		if (roomIdx < 0 || roomIdx >= (int)g_Level.Rooms.size())
+			return false;
+
+		const auto& room = g_Level.Rooms[roomIdx];
 		if (room.flags & (ENV_FLAG_WATER | ENV_FLAG_SWAMP))
 			return false;
 
-		return (room.flags & ENV_FLAG_WIND) != 0;
+		return (room.flags & ENV_FLAG_SKYBOX) != 0;
+	}
+
+	static bool IsCameraOutdoor(const RenderViewCamera& cam)
+	{
+		return IsRoomOutdoor(cam.RoomNumber);
+	}
+
+	static bool BuildDustBleedVolume(short indoorRoomNumber, const Structures::RendererDoor& door,
+		const Vector3& cameraPos, const Vector2& windXZ, float windFactor,
+		Vector4& centerAndStrength, Vector4& invBasis0, Vector4& invBasis1, Vector4& invBasis2)
+	{
+		if (!IsRoomOutdoor(door.RoomNumber) || windFactor <= 0.001f)
+			return false;
+
+		auto roomCenteri = GetRoomCenter(indoorRoomNumber);
+		Vector3 roomCenter((float)roomCenteri.x, (float)roomCenteri.y, (float)roomCenteri.z);
+
+		Vector3 vertices[4];
+		Vector3 portalCenter = Vector3::Zero;
+		for (int i = 0; i < 4; i++)
+		{
+			vertices[i] = Vector3(door.AbsoluteVertices[i].x, door.AbsoluteVertices[i].y, door.AbsoluteVertices[i].z);
+			portalCenter += vertices[i];
+		}
+		portalCenter *= 0.25f;
+
+		Vector2 toIndoor(roomCenter.x - portalCenter.x, roomCenter.z - portalCenter.z);
+		if (toIndoor.LengthSquared() < 1.0f)
+			toIndoor = Vector2(cameraPos.x - portalCenter.x, cameraPos.z - portalCenter.z);
+		if (toIndoor.LengthSquared() < 1.0f)
+			return false;
+
+		toIndoor.Normalize();
+		float inflow = std::clamp(windXZ.Dot(toIndoor), 0.0f, 1.0f);
+		if (inflow <= 0.1f)
+			return false;
+
+		Vector3 portalNormal = door.Normal;
+		if (portalNormal.LengthSquared() < 0.0001f)
+		{
+			auto edge0 = vertices[1] - vertices[0];
+			auto edge1 = vertices[3] - vertices[0];
+			portalNormal = edge0.Cross(edge1);
+		}
+		if (portalNormal.LengthSquared() < 0.0001f)
+			return false;
+		portalNormal.Normalize();
+
+		Vector3 worldDown(0.0f, 1.0f, 0.0f);
+		Vector3 downAxis = worldDown - portalNormal * worldDown.Dot(portalNormal);
+		if (downAxis.LengthSquared() < 0.0001f)
+			return false;
+		downAxis.Normalize();
+
+		Vector3 rightAxis = portalNormal.Cross(downAxis);
+		if (rightAxis.LengthSquared() < 0.0001f)
+			return false;
+		rightAxis.Normalize();
+
+		float halfWidth = 0.0f;
+		float halfHeight = 0.0f;
+		for (int i = 0; i < 4; i++)
+		{
+			auto delta = vertices[i] - portalCenter;
+			halfWidth = std::max(halfWidth, std::abs(delta.Dot(rightAxis)));
+			halfHeight = std::max(halfHeight, std::abs(delta.Dot(downAxis)));
+		}
+
+		if (halfWidth < 8.0f || halfHeight < 8.0f)
+			return false;
+
+		Vector3 windDir3D(windXZ.x, 0.0f, windXZ.y);
+		if (windDir3D.LengthSquared() < 0.0001f)
+			return false;
+		windDir3D.Normalize();
+
+		float bottomDepth = DUST_STORM_BLEED_BOTTOM_MAX * windFactor * inflow;
+		if (bottomDepth < BLOCK(0.25f))
+			return false;
+
+		Vector3 basisX = rightAxis * halfWidth;
+		Vector3 basisY = downAxis * halfHeight;
+		Vector3 basisZ = windDir3D * bottomDepth;
+
+		float det = basisX.Dot(basisY.Cross(basisZ));
+		if (std::abs(det) < 0.0001f)
+			return false;
+
+		Vector3 row0 = basisY.Cross(basisZ) / det;
+		Vector3 row1 = basisZ.Cross(basisX) / det;
+		Vector3 row2 = basisX.Cross(basisY) / det;
+
+		centerAndStrength = Vector4(portalCenter.x, portalCenter.y, portalCenter.z, inflow);
+		invBasis0 = Vector4(row0.x, row0.y, row0.z, 0.0f);
+		invBasis1 = Vector4(row1.x, row1.y, row1.z, 0.0f);
+		invBasis2 = Vector4(row2.x, row2.y, row2.z, 0.0f);
+		return true;
 	}
 
 	void Renderer::UpdateDustStormBuffer(RenderView& view)
@@ -121,42 +225,74 @@ namespace TEN::Renderer
 		_stDustStorm.FogColor          = Vector3(settings.ColorR, settings.ColorG, settings.ColorB) * 0.6f;
 		_stDustStorm.FogStartDistance  = DUST_STORM_FOG_BLEND_START;
 		_stDustStorm.FogEndDistance    = std::min(DUST_STORM_FAR_REACH, view.Camera.FarPlane);
-		_stDustStorm.IntensityFade = 1.0f;
-		_stDustStorm.GustMode      = settings.Gusts ? 1.0f : 0.0f;
+		_stDustStorm.IntensityFade     = 1.0f;
+		_stDustStorm.CameraIsOutdoor   = IsCameraOutdoor(view.Camera) ? 1 : 0;
+
+		// Screen-space wind direction for portal bleed: transform wind as a
+		// homogeneous direction (w=0) through VP, then take the XY clip-space
+		// components and normalize. Flip Y to convert from NDC (Y-up) to UV
+		// space (Y-down). This correctly tracks the camera orientation so the
+		// bleed angle matches the wind direction visible on screen.
+		{
+			Vector3 windWorld3(windXZ.x, 0.0f, windXZ.y);
+			windWorld3.Normalize();
+			Vector4 windClip = Vector4::Transform(Vector4(windWorld3.x, windWorld3.y, windWorld3.z, 0.0f), view.Camera.ViewProjection);
+			Vector2 windScreen(windClip.x, -windClip.y); // flip Y: NDC up = UV down
+			float windLen = windScreen.Length();
+			_stDustStorm.WindScreenDir = windLen > 0.001f ? windScreen / windLen : Vector2(1.0f, 0.0f);
+		}
 
 		// Inverse view-projection for ray reconstruction. HLSL uses row-major
 		// matrices (matches DirectXTK SimpleMath default).
 		Matrix invVP = view.Camera.ViewProjection.Invert();
 		_stDustStorm.InvViewProjection = invVP;
+		_stDustStorm.ViewProjection    = view.Camera.ViewProjection;
 
-		for (int i = 0; i < DUST_STORM_MAX_OUTDOOR_ROOMS; i++)
+		_stDustStorm.BleedTopDepthRatio = DUST_STORM_BLEED_TOP_RATIO;
+		_stDustStorm.BleedEdgeFadeStart = 0.75f;
+		_stDustStorm.BleedDepthFadeStart = 0.15f;
+		_stDustStorm.NumBleedVolumes = 0;
+
+		for (int i = 0; i < DUST_STORM_MAX_BLEED_VOLUMES; i++)
 		{
-			_stDustStorm.OutdoorRoomMins[i] = Vector4::Zero;
-			_stDustStorm.OutdoorRoomMaxs[i] = Vector4::Zero;
+			_stDustStorm.BleedVolumeCenterAndStrength[i] = Vector4::Zero;
+			_stDustStorm.BleedVolumeInvBasis0[i] = Vector4::Zero;
+			_stDustStorm.BleedVolumeInvBasis1[i] = Vector4::Zero;
+			_stDustStorm.BleedVolumeInvBasis2[i] = Vector4::Zero;
 		}
 
-		int outdoorRoomCount = 0;
-		for (const auto* room : view.RoomsToDraw)
+		if (!_stDustStorm.CameraIsOutdoor)
 		{
-			if (room == nullptr)
-				continue;
+			int roomNumber = view.Camera.RoomNumber;
+			float bleedWindFactor = std::clamp(_stDustStorm.WindSpeed / DUST_STORM_BLEED_WIND_REF, 0.0f, 1.0f);
 
-			const auto& nativeRoom = g_Level.Rooms[room->RoomNumber];
-			if (!IsDustStormRoom(nativeRoom))
-				continue;
+			if (roomNumber >= 0 && roomNumber < (int)_rooms.size() && bleedWindFactor > 0.001f)
+			{
+				for (const auto& door : _rooms[roomNumber].Doors)
+				{
+					if (_stDustStorm.NumBleedVolumes >= DUST_STORM_MAX_BLEED_VOLUMES)
+						break;
 
-			if (outdoorRoomCount >= DUST_STORM_MAX_OUTDOOR_ROOMS)
-				break;
+					Vector4 centerAndStrength = Vector4::Zero;
+					Vector4 invBasis0 = Vector4::Zero;
+					Vector4 invBasis1 = Vector4::Zero;
+					Vector4 invBasis2 = Vector4::Zero;
 
-			Vector3 roomMin = nativeRoom.Aabb.Center - nativeRoom.Aabb.Extents;
-			Vector3 roomMax = nativeRoom.Aabb.Center + nativeRoom.Aabb.Extents;
+					if (!BuildDustBleedVolume((short)roomNumber, door, view.Camera.WorldPosition,
+						windXZ, bleedWindFactor, centerAndStrength, invBasis0, invBasis1, invBasis2))
+					{
+						continue;
+					}
 
-			_stDustStorm.OutdoorRoomMins[outdoorRoomCount] = Vector4(roomMin.x, roomMin.y, roomMin.z, 0.0f);
-			_stDustStorm.OutdoorRoomMaxs[outdoorRoomCount] = Vector4(roomMax.x, roomMax.y, roomMax.z, 0.0f);
-			outdoorRoomCount++;
+					int volumeIndex = _stDustStorm.NumBleedVolumes;
+					_stDustStorm.BleedVolumeCenterAndStrength[volumeIndex] = centerAndStrength;
+					_stDustStorm.BleedVolumeInvBasis0[volumeIndex] = invBasis0;
+					_stDustStorm.BleedVolumeInvBasis1[volumeIndex] = invBasis1;
+					_stDustStorm.BleedVolumeInvBasis2[volumeIndex] = invBasis2;
+					_stDustStorm.NumBleedVolumes++;
+				}
+			}
 		}
-
-		_stDustStorm.OutdoorRoomCount = (float)outdoorRoomCount;
 
 		UpdateConstantBuffer(_stDustStorm, _cbDustStorm);
 	}
@@ -167,10 +303,24 @@ namespace TEN::Renderer
 			return;
 
 		UpdateDustStormBuffer(view);
-		if (_stDustStorm.OutdoorRoomCount <= 0.0f)
-			return;
 
+		// Bind CB to b10 (Hud slot - safe at this stage, see header).
+		auto* buf = _cbDustStorm.get();
+		_context->PSSetConstantBuffers(10, 1, buf);
+		_context->VSSetConstantBuffers(10, 1, buf);
+
+		// Bind linear depth as t0 and outdoor mask as t1.
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_depthRenderTarget,
+			SamplerStateRegister::PointWrap);
+		BindRenderTargetAsTexture(TextureRegister::NormalMap, &_outdoorMaskRenderTarget,
+			SamplerStateRegister::PointWrap);
+
+		// Render to the main render target with alpha blending.
+		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(),
+			_renderTarget.DepthStencilView.Get());
 		_context->RSSetViewports(1, &view.Viewport);
+
+		SetBlendMode(BlendMode::AlphaBlend);
 		SetCullMode(CullMode::CounterClockwise);
 		SetDepthState(DepthState::None);
 
@@ -182,19 +332,6 @@ namespace TEN::Renderer
 		_context->IASetVertexBuffers(0, 1,
 			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
 
-		// Bind CB to b10 (Hud slot - safe at this stage, see header).
-		auto* buf = _cbDustStorm.get();
-		_context->PSSetConstantBuffers(10, 1, buf);
-		_context->VSSetConstantBuffers(10, 1, buf);
-
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_depthRenderTarget,
-			SamplerStateRegister::PointWrap);
-
-		// Render to the main render target with alpha blending.
-		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(),
-			_renderTarget.DepthStencilView.Get());
-
-		SetBlendMode(BlendMode::AlphaBlend);
 		_shaders.Bind(Shader::DustStorm);
 		DrawTriangles(3, 0);
 
@@ -204,6 +341,7 @@ namespace TEN::Renderer
 
 		ID3D11ShaderResourceView* nullSRV = nullptr;
 		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 1, &nullSRV);
+		_context->PSSetShaderResources((UINT)TextureRegister::NormalMap, 1, &nullSRV);
 
 		SetBlendMode(BlendMode::Opaque);
 		SetDepthState(DepthState::Write);

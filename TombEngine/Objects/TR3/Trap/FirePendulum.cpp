@@ -124,6 +124,7 @@ namespace TEN::Entities::Traps
 
 	void ControlFirePendulum(short itemNumber)
 	{
+		return;
 		auto& item = g_Level.Items[itemNumber];
 
 		if (!TriggerActive(&item))
