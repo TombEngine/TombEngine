@@ -43,8 +43,10 @@
 #include "Renderer/ConstantBuffers/VolumetricCloudBuffer.h"
 #include "Renderer/ConstantBuffers/AtmosphericSkyBuffer.h"
 #include "Renderer/ConstantBuffers/GodRayBuffer.h"
+#include "Renderer/ConstantBuffers/DustStormBuffer.h"
 #include "Renderer/AtmosphericSky/AtmosphericSkySettings.h"
 #include "Renderer/Aurora/AuroraSettings.h"
+#include "Renderer/DustStorm/DustStormSettings.h"
 #include "Renderer/GodRay/GodRaySettings.h"
 #include "Renderer/Moon/MoonSettings.h"
 #include "Renderer/VolumetricCloud/VolumetricCloud.h"
@@ -230,6 +232,11 @@ namespace TEN::Renderer
 		ConstantBuffer<ConstantBuffers::CGodRayBuffer> _cbGodRay;
 		RenderTarget2D _godRayRenderTarget;
 		GodRay::GodRaySettings _godRaySettings;
+
+		// Volumetric dust storm
+		ConstantBuffers::CDustStormBuffer _stDustStorm;
+		ConstantBuffer<ConstantBuffers::CDustStormBuffer> _cbDustStorm;
+		DustStorm::DustStormSettings _dustStormSettings;
 
 		// Dual volumetric cloud layer B (layer A reuses the members above).
 		RenderTarget2D _cloudRenderTargetB;
@@ -512,6 +519,15 @@ namespace TEN::Renderer
 		GodRay::GodRaySettings& GetGodRaySettings() { return _godRaySettings; }
 		const GodRay::GodRaySettings& GetGodRaySettings() const { return _godRaySettings; }
 		const ConstantBuffers::CGodRayBuffer& GetGodRayBuffer() const { return _stGodRay; }
+	private:
+
+		// Volumetric dust storm
+		void InitializeDustStorm();
+		void UpdateDustStormBuffer(RenderView& view);
+		void DrawDustStorm(RenderView& view);
+	public:
+		DustStorm::DustStormSettings& GetDustStormSettings() { return _dustStormSettings; }
+		const DustStorm::DustStormSettings& GetDustStormSettings() const { return _dustStormSettings; }
 	private:
 
 		// Volumetric clouds

@@ -2094,6 +2094,51 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 			"This wind drives Lara's ponytail, particles, and the AltocumulusMid "
 			"cloud layer. Particles and hair add a randomised gust on top, but the "
 			"clouds always move with the steady value shown above.");
+
+		// ============================================================
+		// Volumetric Dust Storm controls.
+		// ============================================================
+		ImGui::Spacing();
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		auto& dust = g_Renderer.GetDustStormSettings();
+
+		if (ImGui::CollapsingHeader("Volumetric Dust Storm", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Checkbox("Enable Dust Storm", &dust.Enabled);
+
+			ImGui::BeginDisabled(!dust.Enabled);
+			ImGui::Checkbox("Gust Mode", &dust.Gusts);
+			ImGui::SameLine();
+			ImGui::TextDisabled("(animated bursts instead of continuous fog)");
+			ImGui::SliderFloat("Dust Density", &dust.Density, 0.0f, 2.0f, "%.2f");
+
+			ImGui::SliderFloat("Min Height", &dust.MinHeight, 0.0f, 1.0f, "%.2f");
+			ImGui::SliderFloat("Max Height", &dust.MaxHeight, 0.0f, 1.0f, "%.2f");
+			if (dust.MaxHeight < dust.MinHeight)
+				dust.MaxHeight = dust.MinHeight;
+
+			float color[3] = { dust.ColorR, dust.ColorG, dust.ColorB };
+			if (ImGui::ColorEdit3("Dust Color", color))
+			{
+				dust.ColorR = color[0];
+				dust.ColorG = color[1];
+				dust.ColorB = color[2];
+			}
+
+			ImGui::Spacing();
+			ImGui::TextDisabled("Tuning");
+			ImGui::SliderFloat("Wind Coupling", &dust.WindSpeedScale, 0.0f, 4.0f, "%.2f");
+			ImGui::SliderFloat("Turbulence",    &dust.Turbulence,     0.0f, 2.0f, "%.2f");
+			ImGui::SliderInt  ("Steps",         &dust.StepCount,      3,    12);
+			ImGui::EndDisabled();
+
+			ImGui::TextWrapped(
+				"The dust storm is a volumetric raymarched effect rendered after "
+				"the scene. It is only visible from outdoor rooms and follows the "
+				"steady wind set above.");
+		}
 	}
 
 	// ====================================================================

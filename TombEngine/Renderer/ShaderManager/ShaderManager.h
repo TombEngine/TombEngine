@@ -85,6 +85,10 @@ namespace TEN::Renderer::Utils
 		GodRay,
 		GodRayComposite,
 
+		// Volumetric dust storm
+
+		DustStorm,
+
 		Count
 	};
 

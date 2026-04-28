@@ -2006,6 +2006,11 @@ namespace TEN::Renderer
 		DoRenderPass(RendererPass::Transparent, view, true);
 		DoRenderPass(RendererPass::GunFlashes, view, true); // HACK: Gunflashes are drawn after everything because they are near camera.
 
+		// Volumetric dust storm: full-screen raymarched pass that uses the now-final
+		// depth buffer to clamp marching against scene geometry. Gated by camera-room
+		// outdoor flag to match rain / snow.
+		DrawDustStorm(view);
+
 		// Draw 3D debug lines and triangles.
 		DrawLines3D(view);
 		DrawTriangles3D(view);

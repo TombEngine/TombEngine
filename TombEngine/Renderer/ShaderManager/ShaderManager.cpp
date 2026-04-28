@@ -62,6 +62,9 @@ namespace TEN::Renderer::Utils
 		// God rays.
 		Load(Shader::GodRay, "GodRay", "GodRay", ShaderType::PixelAndVertex);
 		Load(Shader::GodRayComposite, "GodRay", "GodRayComposite", ShaderType::Pixel);
+
+		// Volumetric dust storm.
+		Load(Shader::DustStorm, "DustStorm", "DustStorm", ShaderType::PixelAndVertex);
 	}
 
 	void ShaderManager::LoadAAShaders(int width, int height, bool recompile)

@@ -800,6 +800,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\ConstantBuffers\VolumetricCloudBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\AtmosphericSkyBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\GodRayBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\DustStormBuffer.h" />
     <ClInclude Include="Renderer\AtmosphericSky\AtmosphericSkySettings.h" />
     <ClInclude Include="Renderer\Frustum.h" />
     <ClInclude Include="Renderer\Graphics\IndexBuffer.h" />
@@ -864,6 +865,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\VolumetricCloud\VolumetricCloud.h" />
     <ClInclude Include="Renderer\VolumetricCloud\CloudNoiseTexture.h" />
     <ClInclude Include="Renderer\GodRay\GodRaySettings.h" />
+    <ClInclude Include="Renderer\DustStorm\DustStormSettings.h" />
     <ClInclude Include="Scripting\Include\Flow\ScriptInterfaceFlowHandler.h" />
     <ClInclude Include="Scripting\Include\Objects\ScriptInterfaceObjectsHandler.h" />
     <ClInclude Include="Scripting\Include\ScriptInterfaceGame.h" />
@@ -1396,6 +1398,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\VolumetricCloud\CloudNoiseTexture.cpp" />
     <ClCompile Include="Renderer\RendererAtmosphericSky.cpp" />
     <ClCompile Include="Renderer\RendererGodRay.cpp" />
+    <ClCompile Include="Renderer\RendererDustStorm.cpp" />
     <ClCompile Include="Renderer\RenderView.cpp" />
     <ClCompile Include="Renderer\ShaderManager\ShaderManager.cpp" />
     <ClCompile Include="Scripting\Internal\LuaHandler.cpp" />
@@ -1505,6 +1508,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     </None>
     <None Include="Shaders\CBVolumetricCloud.hlsli" />
     <None Include="Shaders\CBGodRay.hlsli" />
+    <None Include="Shaders\CBDustStorm.hlsli" />
     <None Include="Shaders\Materials.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
@@ -1771,6 +1775,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="Shaders\VolumetricClouds.hlsl" />
     <None Include="Shaders\AtmosphericSkyDome.hlsl" />
     <None Include="Shaders\GodRay.hlsl" />
+    <None Include="Shaders\DustStorm.hlsl" />
     <None Include="Shaders\CBAtmosphericSky.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
