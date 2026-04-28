@@ -98,9 +98,9 @@ float4 PSDistortion(PixelShaderInput input) : SV_Target
     float4 color = ColorTexture.Sample(ColorSampler, input.UV);
     float2 distortionSize = max(float2(ViewportSize) * 0.5f, float2(1.0f, 1.0f));
     float2 snappedDistortionUV = (floor(input.UV * distortionSize) + 0.5f) / distortionSize;
-    float  rawMask             = DistortionTexture.Sample(DistortionSampler, input.UV).x;
+    float  rawMask = DistortionTexture.Sample(DistortionSampler, input.UV).x;
     float3 stableDistortionData = DistortionTexture.Sample(DistortionSampler, snappedDistortionUV).xyz;
-    float mask = rawMask * DISTORTION_MULTIPLIER;
+    float  mask = rawMask * DISTORTION_MULTIPLIER;
 
     mask *= smoothstep(0.0f, DISTORTION_MIN_VALUE * 6.0f, mask);
 
@@ -136,13 +136,11 @@ float4 PSDistortion(PixelShaderInput input) : SV_Target
     float coarseNoise = SimplexNoise(float3(anchorPlane * 3.0f, time * 0.16f + anchorPhase * 0.2f));
     float2 flow = float2(
         SimplexNoise(float3(anchorPlane    * 5.5f + float2( 3.1f, -2.4f), time * 0.22f + anchorPhase * 0.15f)),
-        SimplexNoise(float3(anchorPlane.yx * 5.0f + float2(-4.7f,  1.8f), time * 0.20f - anchorPhase * 0.12f))
-    ) * 0.65f;
+        SimplexNoise(float3(anchorPlane.yx * 5.0f + float2(-4.7f,  1.8f), time * 0.20f - anchorPhase * 0.12f))) * 0.65f;
 
     float2 wave = float2(
         sin((anchorPlane.y + coarseNoise * 0.18f) * 14.0f + time * 0.9f + anchorPhase * 0.65f),
-        cos((anchorPlane.x - coarseNoise * 0.16f) * 13.0f - time * 0.8f + anchorPhase * 0.45f)
-    );
+        cos((anchorPlane.x - coarseNoise * 0.16f) * 13.0f - time * 0.8f + anchorPhase * 0.45f));
 
     float turbulence = 0.7f + 0.3f * coarseNoise;
     float2 offset = (wave * 0.38f + flow) * (0.0009f + mask * 0.0055f) * mask * turbulence;
