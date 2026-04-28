@@ -469,7 +469,7 @@ namespace TEN::Renderer
 					AddSpriteBillboard(&_sprites[spark->def], position, color, orientation, scalar, size, BlendMode::Additive, true, view);
 
 					if (g_GameFlow->GetSettings()->Graphics.FlameHeatHaze)
-						AddSpriteBillboard(&_sprites[spark->def], position, color, orientation, scalar, size * 1.5f, BlendMode::Distortion, true, view);
+						AddSpriteBillboard(&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex], position, color, orientation, scalar, size * FLAME_HEAT_HAZE_SCALE, BlendMode::Distortion, true, view);
 				}
 			}
 		}
