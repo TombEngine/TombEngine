@@ -1,5 +1,6 @@
 #include "./CBPostProcess.hlsli"
 #include "./CBCamera.hlsli"
+#include "./Blending.hlsli"
 #include "./Materials.hlsli"
 #include "./Math.hlsli"
 #include "./ShaderLight.hlsli"
@@ -8,10 +9,9 @@
 #define USE_FAST_BILINEAR_BLUR 1
 #define DISTORTION_MULTIPLIER 1.5f
 #define DISTORTION_MIN_VALUE 0.001f
-#define DISTORTION_EDGE_FADE_MIN 0.004f
-#define DISTORTION_EDGE_FADE_MAX 0.02f
-#define DISTORTION_DISTANCE_FADE_START 32768.0f
-#define DISTORTION_DISTANCE_FADE_END 81920.0f
+#define DISTORTION_EDGE_FADE_MIN 0.001f
+#define DISTORTION_EDGE_FADE_MAX 0.1f
+#define DISTORTION_DISTANCE_FADE_START 1024.0f
 
 struct PostProcessVertexShaderInput
 {
@@ -98,9 +98,8 @@ float4 PSDistortion(PixelShaderInput input) : SV_Target
     float4 color = ColorTexture.Sample(ColorSampler, input.UV);
     float2 distortionSize = max(float2(ViewportSize) * 0.5f, float2(1.0f, 1.0f));
     float2 snappedDistortionUV = (floor(input.UV * distortionSize) + 0.5f) / distortionSize;
-    float2 distortionData = DistortionTexture.Sample(DistortionSampler, input.UV).xy;
-    float2 stableDistortionData = DistortionTexture.Sample(DistortionSampler, snappedDistortionUV).xy;
-    float rawMask = distortionData.x;
+    float  rawMask             = DistortionTexture.Sample(DistortionSampler, input.UV).x;
+    float3 stableDistortionData = DistortionTexture.Sample(DistortionSampler, snappedDistortionUV).xyz;
     float mask = rawMask * DISTORTION_MULTIPLIER;
 
     mask *= smoothstep(0.0f, DISTORTION_MIN_VALUE * 6.0f, mask);
@@ -108,21 +107,18 @@ float4 PSDistortion(PixelShaderInput input) : SV_Target
     if (mask <= DISTORTION_MIN_VALUE)
         return color;
 
-    float sceneDepth = DepthTexture.Sample(DepthSampler, input.UV).x;
-    float centerDepth = LinearizeDepth(sceneDepth, NearPlane, FarPlane);
-    float depthDelta = 0.0f;
-    float4 clipPosition = float4(input.UV.x * 2.0f - 1.0f, (1.0f - input.UV.y) * 2.0f - 1.0f, sceneDepth, 1.0f);
-    float4 viewPosition = mul(clipPosition, InverseProjection);
-    viewPosition.xyz /= viewPosition.w;
-    float viewDistance = length(viewPosition.xyz);
-
+    // Edge fade: suppress distortion at depth discontinuities (object silhouettes).
+    float centerDepth = LinearizeDepth(DepthTexture.Sample(DepthSampler, input.UV).x, NearPlane, FarPlane);
+    float depthDelta  = 0.0f;
     depthDelta = max(depthDelta, abs(centerDepth - LinearizeDepth(DepthTexture.Sample(DepthSampler, saturate(input.UV + float2(TexelSize.x, 0.0f))).x, NearPlane, FarPlane)));
     depthDelta = max(depthDelta, abs(centerDepth - LinearizeDepth(DepthTexture.Sample(DepthSampler, saturate(input.UV - float2(TexelSize.x, 0.0f))).x, NearPlane, FarPlane)));
     depthDelta = max(depthDelta, abs(centerDepth - LinearizeDepth(DepthTexture.Sample(DepthSampler, saturate(input.UV + float2(0.0f, TexelSize.y))).x, NearPlane, FarPlane)));
     depthDelta = max(depthDelta, abs(centerDepth - LinearizeDepth(DepthTexture.Sample(DepthSampler, saturate(input.UV - float2(0.0f, TexelSize.y))).x, NearPlane, FarPlane)));
-
     mask *= 1.0f - smoothstep(DISTORTION_EDGE_FADE_MIN, DISTORTION_EDGE_FADE_MAX, depthDelta);
-    mask *= 1.0f - smoothstep(DISTORTION_DISTANCE_FADE_START, DISTORTION_DISTANCE_FADE_END, viewDistance);
+
+    // Distance fade based on emitter world distance (stored in RT B channel), not scene background depth.
+    float emitterDist = (stableDistortionData.z / max(stableDistortionData.x, DISTORTION_MIN_VALUE)) * DISTORTION_DEPTH_SCALE;
+    mask *= 1.0f - smoothstep(DISTORTION_DISTANCE_FADE_START, DISTORTION_DEPTH_SCALE, emitterDist);
 
     if (mask <= DISTORTION_MIN_VALUE)
         return color;
@@ -130,28 +126,23 @@ float4 PSDistortion(PixelShaderInput input) : SV_Target
     float seed = stableDistortionData.y / max(stableDistortionData.x, DISTORTION_MIN_VALUE);
 
     float  time = Frame * 0.005f;
-    float2 uv = input.UV;
-	
+    float2 uv   = input.UV;
+
     float3 pseudoAnchor = frac(seed * float3(1.0f, 1.618034f, 2.414214f) + float3(0.0f, 0.37f, 0.73f));
     float3 anchorAngle  = pseudoAnchor * PI2;
     float2 anchorPlane  = float2(cos(anchorAngle.x) + sin(anchorAngle.z * 0.5f), sin(anchorAngle.y) + cos(anchorAngle.z * 0.5f));
     float  anchorPhase  = anchorAngle.z;
 
     float coarseNoise = SimplexNoise(float3(anchorPlane * 3.0f, time * 0.16f + anchorPhase * 0.2f));
-    float flowNoiseX  = SimplexNoise(float3(anchorPlane * 5.5f + float2(3.1f, -2.4f), time * 0.22f + anchorPhase * 0.15f));
-    float flowNoiseY  = SimplexNoise(float3(anchorPlane.yx * 5.0f + float2(-4.7f, 1.8f), time * 0.2f - anchorPhase * 0.12f));
+    float2 flow = float2(
+        SimplexNoise(float3(anchorPlane    * 5.5f + float2( 3.1f, -2.4f), time * 0.22f + anchorPhase * 0.15f)),
+        SimplexNoise(float3(anchorPlane.yx * 5.0f + float2(-4.7f,  1.8f), time * 0.20f - anchorPhase * 0.12f))
+    ) * 0.65f;
 
-    float2 flow = float2(flowNoiseX, flowNoiseY) * 0.65f;
-
-    float2 wavePrimary = float2(
+    float2 wave = float2(
         sin((anchorPlane.y + coarseNoise * 0.18f) * 14.0f + time * 0.9f + anchorPhase * 0.65f),
-        cos((anchorPlane.x - coarseNoise * 0.16f) * 13.0f - time * 0.8f + anchorPhase * 0.45f));
-
-    float2 waveSecondary = float2(
-        cos((anchorPlane.yx.x * 7.0f) - time * 0.35f + anchorPhase * 0.25f),
-        sin((anchorPlane.xy.y * 8.0f) + time * 0.3f - anchorPhase * 0.2f));
-
-    float2 wave = wavePrimary * 0.75f + waveSecondary * 0.25f;
+        cos((anchorPlane.x - coarseNoise * 0.16f) * 13.0f - time * 0.8f + anchorPhase * 0.45f)
+    );
 
     float turbulence = 0.7f + 0.3f * coarseNoise;
     float2 offset = (wave * 0.38f + flow) * (0.0009f + mask * 0.0055f) * mask * turbulence;

@@ -24,6 +24,8 @@
 #define EIGHT_FIVE float3( 0.85f, 0.85f, 0.85f)
 #define BLENDING   0.707f
 
+#define DISTORTION_DEPTH_SCALE 5120.0f
+
 Texture2D DepthTexture : register(t6);
 SamplerState DepthSampler : register(s6);
 
@@ -114,13 +116,18 @@ float4 DoFogBulbsForPixel(float4 sourceColor, float4 fogColor)
 	return result;
 }
 
+// Normalization scale for the emitter view-space depth stored in the B channel of the distortion RT.
+// IMPORTANT: this value must equal DISTORTION_DISTANCE_FADE_END defined in PostProcess.hlsl.
+// When changing the fade range, update both constants together.
+
 float4 ApplyBlendModeColor(float4 sourceColor, float3 worldPosition, float4 positionCopy, float2 svPosition)
 {
 	if (BlendMode != BLENDMODE_DISTORTION)
 		return sourceColor;
 
-	// Use exact SV_Position pixel coordinates to avoid sub-texel jitter from clip-space reprojection.
-	float2 texCoord = svPosition * InvViewSize;
+	// svPosition is in half-res pixel coordinates (distortion RT is half-res).
+	// Multiply by 2 * InvViewSize to correctly map to full-res depth texture UV.
+	float2 texCoord = svPosition * InvViewSize * 2.0f;
 	float sceneDepth = DepthTexture.Sample(DepthSampler, saturate(texCoord)).x;
 	float pixelDepth = positionCopy.z / positionCopy.w;
 
@@ -131,7 +138,9 @@ float4 ApplyBlendModeColor(float4 sourceColor, float3 worldPosition, float4 posi
 
 	float mask = saturate(Luma(sourceColor.xyz) * sourceColor.w) * depthOcclusion;
 	float seed = frac(dot(worldPosition, float3(0.1031f, 0.11369f, 0.13787f)));
-	return float4(mask, seed * mask, 0.0f, 0.0f);
+	// positionCopy.w is view-space depth in world units (same coordinate system as the fade constants).
+	float normalizedDepth = saturate(positionCopy.w / DISTORTION_DEPTH_SCALE);
+	return float4(mask, seed * mask, normalizedDepth * mask, 0.0f);
 }
 
 #endif // BLENDINGSHADER
