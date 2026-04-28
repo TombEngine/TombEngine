@@ -31,7 +31,7 @@ namespace TEN::Renderer
 	static constexpr float DUST_STORM_FOG_BLEND_START  = BLOCK(6.0f);
 	static constexpr float DUST_STORM_HEIGHT_COLUMN    = BLOCK(8.0f);
 	static constexpr float DUST_STORM_BLEED_WIND_REF   = 960.0f;
-	static constexpr float DUST_STORM_BLEED_BOTTOM_MAX = BLOCK(2.5f);
+	static constexpr float DUST_STORM_BLEED_BOTTOM_MAX = BLOCK(3.25f);
 	static constexpr float DUST_STORM_BLEED_TOP_RATIO  = 0.2f;
 	static constexpr int   DUST_STORM_MAX_BLEED_VOLUMES = 4;
 
