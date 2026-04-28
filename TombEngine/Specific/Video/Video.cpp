@@ -509,6 +509,11 @@ namespace TEN::Video
 
 	void VideoHandler::DeinitializeVideoTexture()
 	{
+		// Drop the renderer's raw pointer to the video texture before destroying it,
+		// otherwise _videoSprite.Texture becomes a dangling pointer and the next draw
+		// call dereferences a freed ITexture2D vtable.
+		g_Renderer.ClearVideoTexture();
+
 		_videoTexture.reset();
 		_frameBuffer.clear();
 

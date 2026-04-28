@@ -63,10 +63,10 @@ static bool ReadAllText(const std::string& path, std::string& out)
 	return (read == out.size());
 }
 
-void SaveAudioConfig()
+void SetAudioConfiguration(const GameConfiguration& config)
 {
-	SetVolumeTracks(g_Configuration.MusicVolume);
-	SetVolumeFX(g_Configuration.SfxVolume);
+	SetVolumeTracks(config.MusicVolume);
+	SetVolumeFX(config.SfxVolume);
 }
 
 void InitDefaultConfiguration()
@@ -91,8 +91,8 @@ void InitDefaultConfiguration()
 	g_Configuration.SoundDevice = 1;
 	g_Configuration.EnableSound = true;
 	g_Configuration.EnableReverb = true;
-	g_Configuration.MusicVolume = 100;
-	g_Configuration.SfxVolume = 100;
+	g_Configuration.MusicVolume = VOLUME_MAX;
+	g_Configuration.SfxVolume = VOLUME_MAX;
 
 	g_Configuration.EnableSubtitles = true;
 	g_Configuration.EnableAutoMonkeySwingJump = false;
@@ -281,9 +281,7 @@ bool LoadConfiguration()
 
 	g_Configuration.EnableSound = g_Configuration.SoundDevice > 0;
 
-	SetVolumeTracks(g_Configuration.MusicVolume);
-	SetVolumeFX(g_Configuration.SfxVolume);
-
+	SetAudioConfiguration(g_Configuration);
 	DefaultConflict();
 
 	return true;
