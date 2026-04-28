@@ -89,6 +89,11 @@ namespace TEN::Renderer
 		_videoSprite.Texture = texture;
 	}
 
+	void Renderer::ClearVideoTexture()
+	{
+		_videoSprite = {};
+	}
+
 	void Renderer::ReloadShaders(bool recompileAAShaders)
 	{
 		try
