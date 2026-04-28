@@ -545,6 +545,7 @@ void CleanUp()
 
 	// Resets lightning and wind parameters to avoid holding over previous weather to new level.
 	Weather.Clear();
+	g_Renderer.GetDustStormSettings() = {};
 
 	// Reset the layered sky/cloud/weather system to default state for the new level.
 	g_SkyCloudSystem.Initialize();
