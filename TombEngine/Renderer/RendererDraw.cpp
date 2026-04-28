@@ -2349,7 +2349,21 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise);
 
 		if (pass == RendererPass::Distortion)
-			_graphicsDevice->BindRenderTarget(_distortionRenderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+		{
+			RendererViewport distortionViewport =
+			{
+				0,
+				0,
+				(_graphicsDevice->GetScreenWidth() + 1) / 2,
+				(_graphicsDevice->GetScreenHeight() + 1) / 2,
+				0.0f,
+				1.0f
+			};
+
+			_graphicsDevice->BindRenderTarget(_distortionRenderTarget->GetRenderTarget(), nullptr);
+			_graphicsDevice->SetViewport(distortionViewport);
+			_graphicsDevice->SetScissor(distortionViewport);
+		}
 
 		// Draw room geometry first if applicable for a given pass.
 		if (pass != RendererPass::Transparent && pass != RendererPass::GunFlashes)
@@ -2373,7 +2387,11 @@ namespace TEN::Renderer
 		}
 
 		if (pass == RendererPass::Distortion)
+		{
 			_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+			_graphicsDevice->SetViewport(view.Viewport);
+			_graphicsDevice->SetScissor(view.Viewport);
+		}
 	}
 
 	void Renderer::DrawObjects(RendererPass pass, RenderView& view, bool player, bool moveables, bool statics, bool sprites)
@@ -2439,6 +2457,9 @@ namespace TEN::Renderer
 			{
 				_shaders.Bind(Shader::Items);
 			}
+
+			if (rendererPass == RendererPass::Distortion)
+				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
@@ -2697,6 +2718,9 @@ namespace TEN::Renderer
 			// Bind vertex and index buffer
 			_graphicsDevice->BindVertexBuffer(_staticsVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_staticsIndexBuffer.get());
+
+			if (rendererPass == RendererPass::Distortion)
+				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 			
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
@@ -2930,6 +2954,9 @@ namespace TEN::Renderer
 			{
 				BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAOBlurredRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 			}
+
+			if (rendererPass == RendererPass::Distortion)
+				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
 			for (int i = (int)view.RoomsToDraw.size() - 1; i >= 0; i--)
 			{

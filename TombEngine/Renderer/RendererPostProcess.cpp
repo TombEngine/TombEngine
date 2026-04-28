@@ -20,6 +20,10 @@ namespace TEN::Renderer
 		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
 		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
+		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
+		_stPostProcessBuffer.TexelSize = Vector2(1.0f / _graphicsDevice->GetScreenWidth(), 1.0f / _graphicsDevice->GetScreenHeight());
+		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
+
 		_shaders.Bind(Shader::PostProcess);
 
 		_graphicsDevice->ClearRenderTarget2D(_postProcessRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
@@ -31,6 +35,7 @@ namespace TEN::Renderer
 		_graphicsDevice->BindRenderTarget(_postProcessRenderTarget[1]->GetRenderTarget(), nullptr);
 		_shaders.Bind(Shader::PostProcessDistortion);
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 		BindRenderTargetAsTexture(TextureRegister::DistortionMap, _distortionRenderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
 

@@ -24,6 +24,9 @@
 #define EIGHT_FIVE float3( 0.85f, 0.85f, 0.85f)
 #define BLENDING   0.707f
 
+Texture2D DepthTexture : register(t6);
+SamplerState DepthSampler : register(s6);
+
 inline bool BlendModeSupportsSSAO()
 {
     return (BlendMode == BLENDMODE_OPAQUE || BlendMode == BLENDMODE_ALPHATEST || BlendMode == BLENDMODE_ALPHABLEND);
@@ -111,14 +114,24 @@ float4 DoFogBulbsForPixel(float4 sourceColor, float4 fogColor)
 	return result;
 }
 
-float4 ApplyBlendModeColor(float4 sourceColor, float3 worldPosition)
+float4 ApplyBlendModeColor(float4 sourceColor, float3 worldPosition, float4 positionCopy)
 {
 	if (BlendMode != BLENDMODE_DISTORTION)
 		return sourceColor;
 
+	float2 texCoord = 0.5f * (float2(positionCopy.x, -positionCopy.y) / positionCopy.w + 1.0f);
+	float sceneDepth = DepthTexture.Sample(DepthSampler, saturate(texCoord)).x;
+	float pixelDepth = positionCopy.z / positionCopy.w;
+
+	sceneDepth = LinearizeDepth(sceneDepth, NearPlane, FarPlane);
+	pixelDepth = LinearizeDepth(pixelDepth, NearPlane, FarPlane);
+
+	if (pixelDepth - sceneDepth > 0.01f)
+		discard;
+
 	float mask = saturate(Luma(sourceColor.xyz) * sourceColor.w);
-	float3 anchor = frac(worldPosition * float3(1.0f / 1024.0f, 1.0f / 768.0f, 1.0f / 1024.0f));
-	return float4(mask, anchor * mask);
+	float seed = frac(dot(worldPosition, float3(0.1031f, 0.11369f, 0.13787f)));
+	return float4(mask, seed * mask, 0.0f, 0.0f);
 }
 
 #endif // BLENDINGSHADER

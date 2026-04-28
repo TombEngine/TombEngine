@@ -47,9 +47,6 @@ cbuffer InstancedSpriteBuffer : register(b13)
 Texture2D Texture : register(t0);
 SamplerState Sampler : register(s0);
 
-Texture2D DepthTexture : register(t6);
-SamplerState DepthSampler : register(s6);
-
 PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
 	PixelShaderInput output;
@@ -126,7 +123,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	output.Color.xyz = saturate(output.Color.xyz);
 
 	output.Color = DoDistanceFogForPixel(output.Color, float4(0.0f, 0.0f, 0.0f, 0.0f), input.DistanceFog);
-	output.Color = ApplyBlendModeColor(output.Color, input.DistortionAnchor);
+	output.Color = ApplyBlendModeColor(output.Color, input.DistortionAnchor, input.PositionCopy);
 
 	return output;
 }

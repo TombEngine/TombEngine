@@ -324,7 +324,7 @@ namespace TEN::Renderer
 		_depthRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_R32_Float, false, DepthFormat::None);
 		_normalsAndMaterialIndexRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_emissiveAndRoughnessRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
-		_distortionRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_distortionRenderTarget = _graphicsDevice->CreateRenderSurface2D((w + 1) / 2, (h + 1) / 2, SurfaceFormat::SF_RG8_Unorm, false, DepthFormat::None);
 		
 		_SSAORenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_SSAOBlurredRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);

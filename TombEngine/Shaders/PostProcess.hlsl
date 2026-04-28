@@ -6,6 +6,8 @@
 
 #define MAX_BLUR_RADIUS 100
 #define USE_FAST_BILINEAR_BLUR 1
+#define DISTORTION_MULTIPLIER 1.5f
+#define DISTORTION_MIN_VALUE 0.001f
 
 struct PostProcessVertexShaderInput
 {
@@ -24,9 +26,6 @@ struct PixelShaderInput
 
 Texture2D ColorTexture : register(t0);
 SamplerState ColorSampler : register(s0);
-
-Texture2D DepthTexture : register(t1);
-SamplerState DepthSampler : register(s1);
 
 Texture2D NormalsTexture : register(t2);
 SamplerState NormalsSampler : register(s2);
@@ -92,21 +91,34 @@ float4 PSExclusion(PixelShaderInput input) : SV_Target
 
 float4 PSDistortion(PixelShaderInput input) : SV_Target
 {
-    float4 distortionData = DistortionTexture.Sample(DistortionSampler, input.UV);
-    float mask = ModulateColor(distortionData.xyz).r;
     float4 color = ColorTexture.Sample(ColorSampler, input.UV);
+    float2 distortionData = DistortionTexture.Sample(DistortionSampler, input.UV).xy;
+    float mask = distortionData.x * DISTORTION_MULTIPLIER;
+
+    if (mask <= DISTORTION_MIN_VALUE)
+        return color;
+
+    float seed = distortionData.y / max(mask, DISTORTION_MIN_VALUE);
+    float centerDepth = LinearizeDepth(DepthTexture.Sample(DepthSampler, input.UV).x, NearPlane, FarPlane);
+    float depthDelta = 0.0f;
+
+    depthDelta = max(depthDelta, abs(centerDepth - LinearizeDepth(DepthTexture.Sample(DepthSampler, saturate(input.UV + float2(TexelSize.x, 0.0f))).x, NearPlane, FarPlane)));
+    depthDelta = max(depthDelta, abs(centerDepth - LinearizeDepth(DepthTexture.Sample(DepthSampler, saturate(input.UV - float2(TexelSize.x, 0.0f))).x, NearPlane, FarPlane)));
+    depthDelta = max(depthDelta, abs(centerDepth - LinearizeDepth(DepthTexture.Sample(DepthSampler, saturate(input.UV + float2(0.0f, TexelSize.y))).x, NearPlane, FarPlane)));
+    depthDelta = max(depthDelta, abs(centerDepth - LinearizeDepth(DepthTexture.Sample(DepthSampler, saturate(input.UV - float2(0.0f, TexelSize.y))).x, NearPlane, FarPlane)));
+
+    mask *= 1.0f - smoothstep(0.0025f, 0.01f, depthDelta);
 
     if (mask <= 0.001f)
         return color;
 
-    float time = Frame * 0.005f;
+    float  time = Frame * 0.005f;
     float2 uv = input.UV;
-    float3 worldAnchor = distortionData.gba / mask;
-    float3 anchorAngle = worldAnchor * PI2;
-    float2 anchorPlane = float2(
-        cos(anchorAngle.x) + sin(anchorAngle.z * 0.5f),
-        sin(anchorAngle.y) + cos(anchorAngle.z * 0.5f));
-    float anchorPhase = anchorAngle.z;
+	
+    float3 pseudoAnchor = frac(seed * float3(1.0f, 1.618034f, 2.414214f) + float3(0.0f, 0.37f, 0.73f));
+    float3 anchorAngle  = pseudoAnchor * PI2;
+    float2 anchorPlane  = float2(cos(anchorAngle.x) + sin(anchorAngle.z * 0.5f), sin(anchorAngle.y) + cos(anchorAngle.z * 0.5f));
+    float  anchorPhase  = anchorAngle.z;
 
     float coarseNoise = SimplexNoise(float3(anchorPlane * 3.0f, time * 0.16f + anchorPhase * 0.2f));
     float flowNoiseX  = SimplexNoise(float3(anchorPlane * 5.5f + float2(3.1f, -2.4f), time * 0.22f + anchorPhase * 0.15f));
