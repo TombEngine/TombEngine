@@ -152,6 +152,7 @@ namespace TEN::Renderer
 		// Primitive batches
 
 		RendererViewport _viewport;
+		RendererViewport _distortionViewport;
 		RendererViewport _shadowMapViewport;
 
 		// Text
