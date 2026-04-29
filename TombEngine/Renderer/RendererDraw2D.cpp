@@ -132,9 +132,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudDTexture);
 
-		SetBlendMode(BlendMode::Opaque);
-		SetDepthState(DepthState::None);
-		SetCullMode(CullMode::None);
+		BindPipeline(Pipelines::HudNoDepth);
 
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, _cbHUD.get());
 
@@ -193,9 +191,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudDTexture);
 
-		SetBlendMode(BlendMode::Opaque);
-		SetDepthState(DepthState::None);
-		SetCullMode(CullMode::None);
+		BindPipeline(Pipelines::HudNoDepth);
 
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, _cbHUD.get());
 		BindTexture(TextureRegister::Hud, _loadingBarBorder.get(), SamplerStateRegister::LinearClamp);
