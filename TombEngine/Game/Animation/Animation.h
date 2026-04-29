@@ -64,7 +64,7 @@ namespace TEN::Animation
 	struct AnimData
 	{
 		using AnimCommandPtr = std::shared_ptr<IAnimCommand>;
-		
+
 		int          StateID           = 0;
 		int          EndFrameNumber    = 0;
 		int          NextAnimNumber    = 0;
@@ -83,6 +83,9 @@ namespace TEN::Animation
 		FixedMotionData GetFixedMotion(int frameNumber) const;
 		RootMotionData  GetRootMotion(int frameNumber) const;
 		RootMotionData  GetRootMotionCounteraction(int frameNumber) const;
+
+		bool HasRootTranslation() const;
+		bool HasRootRotation() const;
 	};
 
 	struct BoneMutator

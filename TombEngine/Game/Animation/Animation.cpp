@@ -41,9 +41,7 @@ namespace TEN::Animation
 	RootMotionData AnimData::GetRootMotion(int frameNumber) const
 	{
 		// Test for root motion flags.
-		bool hasTranslation = Flags & ((int)AnimFlags::RootMotionTranslationX | (int)AnimFlags::RootMotionTranslationY | (int)AnimFlags::RootMotionTranslationZ);
-		bool hasRot = Flags & ((int)AnimFlags::RootMotionRotationX | (int)AnimFlags::RootMotionRotationY | (int)AnimFlags::RootMotionRotationZ);
-		if (!hasTranslation && !hasRot)
+		if (!HasRootTranslation() && !HasRootRotation())
 			return {};
 
 		// Handle frame 0.
@@ -70,7 +68,7 @@ namespace TEN::Animation
 
 		// Compute relative translation.
 		auto translation = Vector3::Zero;
-		if (hasTranslation)
+		if (HasRootTranslation())
 		{
 			const auto& rootPos = Frames[frameNumber].RootPosition;
 			const auto& prevRootPos = Frames[frameNumber - 1].RootPosition;
@@ -84,7 +82,7 @@ namespace TEN::Animation
 
 		// Compute relative rotation.
 		auto rot = EulerAngles::Identity;
-		if (hasRot)
+		if (HasRootRotation())
 		{
 			const auto& rootOrient = EulerAngles(Frames[frameNumber].BoneOrientations.front());
 			const auto& prevRootOrient = EulerAngles(Frames[frameNumber - 1].BoneOrientations.front());
@@ -107,9 +105,7 @@ namespace TEN::Animation
 	RootMotionData AnimData::GetRootMotionCounteraction(int frameNumber) const
 	{
 		// Test for root motion flags.
-		bool hasTranslation = Flags & ((int)AnimFlags::RootMotionTranslationX | (int)AnimFlags::RootMotionTranslationY | (int)AnimFlags::RootMotionTranslationZ);
-		bool hasRot = Flags & ((int)AnimFlags::RootMotionRotationX | (int)AnimFlags::RootMotionRotationY | (int)AnimFlags::RootMotionRotationZ);
-		if (!hasTranslation && !hasRot)
+		if (!HasRootTranslation() && !HasRootRotation())
 			return {};
 
 		// Handle frame 0.
@@ -118,7 +114,7 @@ namespace TEN::Animation
 
 		// Get relative translation counteraction.
 		auto translation = Vector3::Zero;
-		if (hasTranslation)
+		if (HasRootTranslation())
 		{
 			const auto& rootPos = Frames[frameNumber].RootPosition;
 			const auto& baseRootPos = Frames.front().RootPosition;
@@ -132,7 +128,7 @@ namespace TEN::Animation
 
 		// Get relative rotation counteraction.
 		auto rot = EulerAngles::Identity;
-		if (hasRot)
+		if (HasRootRotation())
 		{
 			auto rootOrient = EulerAngles(Frames[frameNumber].BoneOrientations.front());
 			auto baseRootOrient = EulerAngles(Frames.front().BoneOrientations.front());
@@ -150,6 +146,16 @@ namespace TEN::Animation
 			translation,
 			rot
 		};
+	}
+
+	bool AnimData::HasRootTranslation() const
+	{
+		return (Flags & ((int)AnimFlags::RootMotionTranslationX | (int)AnimFlags::RootMotionTranslationY | (int)AnimFlags::RootMotionTranslationZ));
+	}
+
+	bool AnimData::HasRootRotation() const
+	{
+		return (Flags & ((int)AnimFlags::RootMotionRotationX | (int)AnimFlags::RootMotionRotationY | (int)AnimFlags::RootMotionRotationZ));
 	}
 
 	bool BoneMutator::IsEmpty() const

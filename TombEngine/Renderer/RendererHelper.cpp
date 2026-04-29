@@ -44,7 +44,7 @@ extern ScriptInterfaceFlowHandler *g_GameFlow;
 namespace TEN::Renderer
 {
 	void Renderer::UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation,
-								   const MoveableAnimBlendData* blend)
+								   const MoveableAnimBlendData* blend, const RootMotionData* rootMotionOffset)
 	{
 		static auto boneIndices = std::vector<int>{};
 		boneIndices.clear();
@@ -93,10 +93,13 @@ namespace TEN::Renderer
 				auto rootPos = frame.RootPosition;
 				auto rotMatrix = Matrix::CreateFromQuaternion(frame.BoneOrientations[bone->Index]);
 
+				// TODO: Address root motion rotation blending if any issues come up later. -- Sezz 2026.04.30
+
 				// Apply blending.
 				if (blend != nullptr)
 				{
-					rootPos = Vector3::Lerp(blend->RootPosition, rootPos, blendAlpha);
+					auto offset = (rootMotionOffset != nullptr) ? rootMotionOffset->Translation : Vector3::Zero;
+					rootPos = Vector3::Lerp(blend->RootPosition - offset, rootPos, blendAlpha);
 
 					auto quat = Quaternion::Slerp(blend->BoneOrientations[bone->Index], Quaternion::CreateFromRotationMatrix(rotMatrix), blendAlpha);
 					rotMatrix = Matrix::CreateFromQuaternion(quat);

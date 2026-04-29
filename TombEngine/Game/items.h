@@ -78,12 +78,12 @@ struct MoveableAnimBlendData
 
 struct MoveableAnimData
 {
-	GAME_OBJECT_ID AnimObjectID	 = GAME_OBJECT_ID::ID_NO_OBJECT;
-	int			   AnimNumber	 = 0;
-	int			   FrameNumber	 = 0;
-	int			   ActiveState	 = 0;
-	int			   TargetState	 = 0;
-	int			   RequiredState = NO_VALUE;
+	GAME_OBJECT_ID AnimObjectID  = GAME_OBJECT_ID::ID_NO_OBJECT;
+	int            AnimNumber    = 0;
+	int            FrameNumber   = 0;
+	int            ActiveState   = 0;
+	int            TargetState   = 0;
+	int            RequiredState = NO_VALUE;
 
 	// TODO: Have 3 velocity members:
 	// ControlVelocity:		 relative velocity derived from animation.

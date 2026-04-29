@@ -150,7 +150,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 			   MESH_BITS(LM_RSHIN) | MESH_BITS(LM_RFOOT) | MESH_BITS(LM_TORSO) | MESH_BITS(LM_HEAD);
 	
 	const auto& frame = GetFrame(*LaraItem);
-	UpdateAnimation(&rItem, playerObject, frame, mask, false, LaraItem->Animation.Blend.IsEnabled() ? &LaraItem->Animation.Blend : nullptr);
+	UpdateAnimation(&rItem, playerObject, frame, mask, false, LaraItem->Animation.Blend.IsEnabled() ? &LaraItem->Animation.Blend : nullptr, &rootMotionCounteract);
 
 	auto gunType = Lara.Control.Weapon.GunType;
 	auto handStatus = Lara.Control.HandStatus;
