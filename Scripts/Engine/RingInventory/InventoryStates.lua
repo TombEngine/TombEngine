@@ -630,9 +630,8 @@ local HandleStatisticsClose = function(state)
             InventoryStates.SetMode(InventoryStates.MODE.ITEM_SELECTED)
         else
             if Statistics.IsEndStatisticsEnabled() then
-                Statistics.SetEndStatistics(false, nil)
-                Flow.EndLevel(Statistics.GetEndLevel())
                 InventoryStates.SetMode(InventoryStates.MODE.INVENTORY_EXIT)
+                Statistics.SetEndStatistics(false)
             else
                 InventoryStates.SetMode(InventoryStates.MODE.INVENTORY)
             end
