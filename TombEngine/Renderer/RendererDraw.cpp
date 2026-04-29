@@ -3551,13 +3551,13 @@ namespace TEN::Renderer
 			}
 
 			if (blendMode == BlendMode::Opaque)
-			{ 
-				SetBlendMode(BlendMode::Opaque);
+			{
+				BindPipeline(Pipelines::OpaqueDefault);
 				SetAlphaTest(AlphaTestMode::None, 1.0f);
 			}
 			else
 			{
-				SetBlendMode(BlendMode::AlphaTest);
+				BindPipeline(Pipelines::AlphaTestDefault);
 				SetAlphaTest(AlphaTestMode::GreatherThan, FAST_ALPHA_BLEND_THRESHOLD);
 			}
 			break;
@@ -3571,19 +3571,19 @@ namespace TEN::Renderer
 
 			if (blendMode == BlendMode::Opaque)
 			{
-				SetBlendMode(BlendMode::Opaque);
+				BindPipeline(Pipelines::OpaqueDefault);
 				SetAlphaTest(AlphaTestMode::None, 1.0f);
 			}
 			else
 			{
 				if (drawPass == 0)
 				{
-					SetBlendMode(BlendMode::Opaque);
+					BindPipeline(Pipelines::OpaqueDefault);
 					SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 				}
 				else
 				{
-					SetBlendMode(BlendMode::AlphaBlend);
+					BindPipeline(Pipelines::AlphaBlend);
 					SetAlphaTest(AlphaTestMode::LessThan, ALPHA_TEST_THRESHOLD);
 				};
 			}
@@ -3595,7 +3595,7 @@ namespace TEN::Renderer
 				return false;
 			}
 
-			SetBlendMode(BlendMode::Additive);
+			BindPipeline(Pipelines::Additive);
 			SetAlphaTest(AlphaTestMode::None, 1.0f);
 			break;
 
