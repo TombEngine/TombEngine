@@ -129,7 +129,7 @@ float4 PSDistortion(PixelShaderInput input) : SV_Target
     float distanceFactor = saturate(emitterDist / DISTORTION_DISTANCE_FADE_START);
     float turbulenceScale = lerp(1.0f, 0.15f, distanceFactor * distanceFactor);
 
-    float time = Frame * 0.0005f;
+    float time = Frame * 0.5f;
 
     // Derive a per-emitter coordinate frame from the seed so each source looks unique.
     float2 anchor = float2(frac(seed * 1.618034f) * 4.0f - 2.0f, frac(seed * 2.414214f) * 4.0f - 2.0f);
