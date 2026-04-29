@@ -430,7 +430,6 @@ void UpdateSparks()
 			if (spark.flags & SP_EXPLOSION)
 				SetSpriteSequence(spark, ID_EXPLOSION_SPRITES);
 
-
 			if (spark.flags & SP_ANIMATED)
 			{
 				ParticleAnimType animationType = static_cast<ParticleAnimType>(spark.animationType);
@@ -1629,13 +1628,15 @@ void TriggerFireFlame(int x, int y, int z, FlameType type, bool haze, const Vect
 			spark->friction = 5;
 	}
 
+	spark->scalar = 2;
+	spark->flags = SP_EXPDEF | SP_DEF | SP_SCALE | SP_HAZE;
+
 	if (GetRandomControl() & 1)
 	{
 		spark->gravity = -16 - (GetRandomControl() & 0x1F);
 		spark->maxYvel = -16 - (GetRandomControl() & 7);
-		spark->flags = 538;
-
 		spark->rotAng = GetRandomControl() & 0xFFF;
+		spark->flags |= SP_ROTATE;
 
 		if (GetRandomControl() & 1)
 			spark->rotAdd = -16 - (GetRandomControl() & 0xF);
@@ -1644,12 +1645,9 @@ void TriggerFireFlame(int x, int y, int z, FlameType type, bool haze, const Vect
 	}
 	else
 	{
-		spark->flags = SP_EXPDEF | SP_DEF | SP_SCALE;
 		spark->gravity = -16 - (GetRandomControl() & 0x1F);
 		spark->maxYvel = -16 - (GetRandomControl() & 7);
 	}
-
-	spark->scalar = 2;
 
 	if (type != FlameType::Big)
 	{
@@ -1693,15 +1691,6 @@ void TriggerFireFlame(int x, int y, int z, FlameType type, bool haze, const Vect
 			spark->sLife = spark->life >> 2;
 		}
 	}
-
-	if (!haze || !g_GameFlow->GetSettings()->Graphics.FlameHeatHaze)
-		return;
-
-	auto* hazeSpark = GetFreeParticle();
-	memcpy(hazeSpark, spark, sizeof(Particle));
-	hazeSpark->blendMode = BlendMode::Distortion;
-	hazeSpark->sSize *= FLAME_HEAT_HAZE_SCALE;
-	hazeSpark->dSize *= FLAME_HEAT_HAZE_SCALE;
 }
 
 void TriggerMetalSparks(int x, int y, int z, int xv, int yv, int zv, const Vector3& color, int additional)

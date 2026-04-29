@@ -47,6 +47,7 @@ enum SpriteEnumFlag
 	SP_ANIMATED	  = (1 << 16),
 	SP_LIGHT	  = (1 << 17),
 	SP_SOUND	  = (1 << 18),
+	SP_HAZE		  = (1 << 19)
 };
 
 enum ParticleAnimType
