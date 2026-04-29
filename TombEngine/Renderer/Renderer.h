@@ -346,7 +346,6 @@ namespace TEN::Renderer
 		void ApplySMAA(IRenderSurface2D* renderTarget, RenderView& view);
 		void ApplyFXAA(IRenderSurface2D* renderTarget, RenderView& view);
 		void ApplyAntialiasing(IRenderSurface2D* renderTarget, RenderView& view);
-		void ApplyDistortionViewport();
 		void ApplyDistortion(IRenderSurface2D* renderTarget, RenderView& view);
 		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType);
 		int  BindLight(RendererLight& light, ShaderLight* lights, int index);

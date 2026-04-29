@@ -376,12 +376,6 @@ namespace TEN::Renderer
 		}
 	}
 
-	void Renderer::ApplyDistortionViewport()
-	{
-		_graphicsDevice->SetViewport(_distortionViewport);
-		_graphicsDevice->SetScissor(_distortionViewport);
-	}
-
 	void Renderer::SetAlphaTest(AlphaTestMode mode, float threshold, bool force)
 	{
 		if (_stBlending.AlphaTest != (int)mode ||

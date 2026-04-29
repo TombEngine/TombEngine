@@ -2351,7 +2351,8 @@ namespace TEN::Renderer
 		if (pass == RendererPass::Distortion)
 		{
 			_graphicsDevice->BindRenderTarget(_distortionRenderTarget->GetRenderTarget(), nullptr);
-			ApplyDistortionViewport();
+			_graphicsDevice->SetViewport(_distortionViewport);
+			_graphicsDevice->SetScissor(_distortionViewport);
 		}
 
 		// Draw room geometry first if applicable for a given pass.
