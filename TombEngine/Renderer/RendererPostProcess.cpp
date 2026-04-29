@@ -146,9 +146,7 @@ namespace TEN::Renderer
 
 	void Renderer::CopyRenderTarget(IRenderSurface2D* source, IRenderSurface2D* dest, RenderView& view)
 	{
-		SetBlendMode(BlendMode::Opaque, true);
-		SetCullMode(CullMode::CounterClockwise, true);
-		SetDepthState(DepthState::Write, true);
+		BindPipeline(Pipelines::FullscreenPass, true);
 		_graphicsDevice->SetViewport(view.Viewport);
 		_graphicsDevice->SetScissor(view.Viewport);
 
@@ -175,9 +173,7 @@ namespace TEN::Renderer
 		_graphicsDevice->SetViewport(viewport);
 		_graphicsDevice->SetScissor(viewport);
 
-		SetBlendMode(BlendMode::Opaque, true);
-		SetCullMode(CullMode::CounterClockwise, true);
-		SetDepthState(DepthState::Write, true);
+		BindPipeline(Pipelines::FullscreenPass, true);
 
 		// Common vertex shader to all fullscreen effects
 		_shaders.Bind(Shader::PostProcess);
@@ -199,9 +195,7 @@ namespace TEN::Renderer
 
 	void Renderer::ApplyGlow(IRenderSurface2D* renderTarget, RenderView& view)
 	{
-		SetBlendMode(BlendMode::Opaque, true);
-		SetCullMode(CullMode::CounterClockwise, true);
-		SetDepthState(DepthState::Write, true);
+		BindPipeline(Pipelines::FullscreenPass, true);
 
 		RendererViewport viewport = { 0, 0, (int)( _graphicsDevice->GetScreenWidth() / GLOW_DOWNSCALE_FACTOR), (int)( _graphicsDevice->GetScreenHeight() / GLOW_DOWNSCALE_FACTOR), 0.0f, 1.0f };
 		_graphicsDevice->SetViewport(viewport);

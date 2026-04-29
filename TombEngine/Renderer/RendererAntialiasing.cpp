@@ -25,9 +25,7 @@ namespace TEN::Renderer
 
 	void Renderer::ApplySMAA(IRenderSurface2D* renderTarget, RenderView& view)
 	{
-		SetBlendMode(BlendMode::Opaque, true);
-		SetCullMode(CullMode::CounterClockwise, true);
-		SetDepthState(DepthState::Write, true);
+		BindPipeline(Pipelines::FullscreenPass, true);
 		_graphicsDevice->SetViewport(view.Viewport);
 		_graphicsDevice->SetScissor(view.Viewport);
 
@@ -106,9 +104,7 @@ namespace TEN::Renderer
 
 	void Renderer::ApplyFXAA(IRenderSurface2D* renderTarget, RenderView& view)
 	{
-		SetBlendMode(BlendMode::Opaque, true);
-		SetCullMode(CullMode::CounterClockwise, true);
-		SetDepthState(DepthState::Write, true);
+		BindPipeline(Pipelines::FullscreenPass, true);
 		_graphicsDevice->SetViewport(view.Viewport);
 		_graphicsDevice->SetScissor(view.Viewport);
 
