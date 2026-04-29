@@ -1512,7 +1512,7 @@ void TriggerFlashSmoke(int x, int y, int z, short roomNumber)
 	spark->dSize = 2 * (spark->sSize + 4);
 }
 
-void TriggerFireFlame(int x, int y, int z, FlameType type, const Vector3& color1, const Vector3& color2)
+void TriggerFireFlame(int x, int y, int z, FlameType type, bool haze, const Vector3& color1, const Vector3& color2)
 {
 	int dx = LaraItem->Pose.Position.x - x;
 	int dz = LaraItem->Pose.Position.z - z;
@@ -1693,6 +1693,15 @@ void TriggerFireFlame(int x, int y, int z, FlameType type, const Vector3& color1
 			spark->sLife = spark->life >> 2;
 		}
 	}
+
+	if (!haze || !g_GameFlow->GetSettings()->Graphics.FlameHeatHaze)
+		return;
+
+	auto* hazeSpark = GetFreeParticle();
+	memcpy(hazeSpark, spark, sizeof(Particle));
+	hazeSpark->blendMode = BlendMode::Distortion;
+	hazeSpark->sSize *= FLAME_HEAT_HAZE_SCALE;
+	hazeSpark->dSize *= FLAME_HEAT_HAZE_SCALE;
 }
 
 void TriggerMetalSparks(int x, int y, int z, int xv, int yv, int zv, const Vector3& color, int additional)
@@ -1833,7 +1842,7 @@ void ProcessEffects(ItemInfo* item)
 			if (TestProbability(1 / 8.0f))			
 			{
 				TriggerFireFlame(
-					pos.x, pos.y, pos.z, TestProbability(1 / 10.0f) ? FlameType::Trail : FlameType::Medium,
+					pos.x, pos.y, pos.z, TestProbability(1 / 10.0f) ? FlameType::Trail : FlameType::Medium, false,
 					item->Effect.PrimaryEffectColor, item->Effect.SecondaryEffectColor);
 			}
 
@@ -1863,7 +1872,7 @@ void ProcessEffects(ItemInfo* item)
 			if (TestProbability(1 / 1.0f))
 			{
 				TriggerFireFlame(
-					pos.x, pos.y, pos.z, TestProbability(1 / 10.0f) ? FlameType::Medium : FlameType::Medium,
+					pos.x, pos.y, pos.z, TestProbability(1 / 10.0f) ? FlameType::Medium : FlameType::Medium, false,
 					Vector3(0.2f, 0.5f, 1.0f), Vector3(0.2f, 0.8f, 1.0f));
 			}
 
@@ -1873,7 +1882,7 @@ void ProcessEffects(ItemInfo* item)
 			if (TestProbability(1 / 1.0f))
 			{
 				TriggerFireFlame(
-					pos.x, pos.y, pos.z, TestProbability(1 / 10.0f) ? FlameType::Medium : FlameType::Medium,
+					pos.x, pos.y, pos.z, TestProbability(1 / 10.0f) ? FlameType::Medium : FlameType::Medium, false,
 					Vector3(1.0f, 0.5f, 0.2f), Vector3(0.6f, 0.1f, 0.0f));
 			}
 

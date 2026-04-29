@@ -17,11 +17,11 @@ constexpr auto SD_UWEXPLOSION = 2;
 
 constexpr auto MAX_NODE		= 23;
 constexpr auto MAX_DYNAMICS = 64;
-
 constexpr auto MAX_PARTICLES		 = 8192;
 constexpr auto MAX_PARTICLE_DYNAMICS = 8;
 
 constexpr auto CREATURE_GUNFLASH_COLOR = Vector4(0.5f, 0.25f, 0.05f, 1.0f);
+constexpr auto FLAME_HEAT_HAZE_SCALE = 2.5f;
 
 extern int Wibble;
 
@@ -280,7 +280,7 @@ void TriggerGlow(const GameVector& pos, const Vector3& color, int scale);
 void TriggerExplosionSparks(int x, int y, int z, int extraTrig, int dynamic, int uw, int roomNumber, const Vector3& mainColor = Vector3::Zero, const Vector3& secondColor = Vector3::Zero);
 void TriggerExplosionSmokeEnd(int x, int y, int z, int uw);
 void TriggerExplosionSmoke(int x, int y, int z, int uw);
-void TriggerFireFlame(int x, int y, int z, FlameType type, const Vector3& color1 = Vector3::Zero, const Vector3& color2 = Vector3::Zero);
+void TriggerFireFlame(int x, int y, int z, FlameType type, bool haze = false, const Vector3& color1 = Vector3::Zero, const Vector3& color2 = Vector3::Zero);
 void TriggerSuperJetFlame(ItemInfo* item, int yvel, int deadly);
 void TriggerLaraBlood();
 short DoBloodSplat(int x, int y, int z, short speed, short yRot, short roomNumber);

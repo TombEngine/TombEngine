@@ -63,7 +63,6 @@ extern std::array<DebrisFragment, MAX_DEBRIS> DebrisFragments;
 namespace TEN::Renderer 
 {
 	constexpr auto ELECTRICITY_RANGE_MAX = BLOCK(24);
-	constexpr auto FLAME_HEAT_HAZE_SCALE = 2.5f;
 		
 	void Renderer::PrepareLaserBarriers(RenderView& view)
 	{

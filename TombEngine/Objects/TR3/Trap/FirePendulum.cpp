@@ -173,7 +173,7 @@ namespace TEN::Entities::Traps
 
 		TriggerPendulumFlame(itemNumber, pos, color);
 		TriggerPendulumSpark(pos, angle, PENDULUM_FLAME_SPARK_LENGTH, PENDULUM_FLAME_SPARK_COUNT, color);
-		TriggerFireFlame(pos.x, pos.y, pos.z, FlameType::Trail, flameColor1, flameColor2);
+		TriggerFireFlame(pos.x, pos.y, pos.z, FlameType::Trail, true, flameColor1, flameColor2);
 	}
 
 	void CollideFirePendulum(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
