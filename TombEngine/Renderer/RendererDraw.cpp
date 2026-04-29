@@ -1895,8 +1895,10 @@ namespace TEN::Renderer
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 
-		// Draw skybox to paraboloid
+		// Draw skybox to paraboloid for reflections.
+		_graphicsDevice->BeginDebugEvent("Sky for Reflections");
 		DrawHorizonAndSkyForReflections(view);
+		_graphicsDevice->EndDebugEvent();
 
 		_stPerDraw.Animated = 0;
 		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
@@ -1998,7 +2000,11 @@ namespace TEN::Renderer
 
 		// Calculate ambient occlusion.
 		if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion)
+		{
+			_graphicsDevice->BeginDebugEvent("SSAO");
 			CalculateSSAO(view);
+			_graphicsDevice->EndDebugEvent();
+		}
 
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
@@ -2036,7 +2042,9 @@ namespace TEN::Renderer
 
 		// Copy current scene to the reflections render target for next frame.
 		// RT -> LRRT
+		_graphicsDevice->BeginDebugEvent("Reflections Copy");
 		CopyRenderTargetAndDownscale(_renderTarget.get(), _legacyReflectionsRenderTarget.get(), LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, view);
+		_graphicsDevice->EndDebugEvent();
 
 		// HUD 3D pass: keep color, clear depth so HUD draws on top of the scene.
 		{
@@ -2067,37 +2075,51 @@ namespace TEN::Renderer
 
 		_doingFullscreenPass = true;
 
-		// Calculates glow
+		// Glow ping-pong.
 		// GB-E -> GRT0, GRT0 -> GRT1, GRT1 -> GRT0, RT -> PPRT0, PPRT0 -> RT
+		_graphicsDevice->BeginDebugEvent("Glow");
 		ApplyGlow(_renderTarget.get(), view);
+		_graphicsDevice->EndDebugEvent();
 
-		// Apply the antialiasing, now 3D geometry and 3D HUD are antialiased
+		// Antialiasing (FXAA or SMAA), 3D geometry + 3D HUD now antialiased.
 		// FXAA: RT -> PPRT0, PPRT0 -> RT
 		// SMAA: RT -> ..., ... -> RT
+		_graphicsDevice->BeginDebugEvent("Antialiasing");
 		ApplyAntialiasing(_renderTarget.get(), view);
+		_graphicsDevice->EndDebugEvent();
 
-		// Draw text and 2D HUD
+		// 2D HUD.
 		ClearDrawPhaseDisplaySprites();
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
+		{
+			_graphicsDevice->BeginDebugEvent("HUD 2D");
 			g_Hud.Draw2D(*LaraItem);
+			_graphicsDevice->EndDebugEvent();
+		}
 
-		// Now we can apply the color grade, lens flare, cinematic bars and post process effects
+		// Postprocess: color grade, lens flare, cinematic bars.
 		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT
+		_graphicsDevice->BeginDebugEvent("Postprocess");
 		DrawPostprocess(renderTarget, view, renderMode);
+		_graphicsDevice->EndDebugEvent();
 
 		_doingFullscreenPass = false;
 
+		_graphicsDevice->BeginDebugEvent("Overlays");
 		DrawOverlays(view);
 		DrawLines2D();
+		_graphicsDevice->EndDebugEvent();
 
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
 		{
+			_graphicsDevice->BeginDebugEvent("Display Sprites + Strings");
 			CollectDisplaySprites(view);
 			DrawDisplaySprites(view, false);
 
 			DrawDebugRenderTargets(view);
 			DrawAllStrings();
 			DrawDisplaySprites(view, true);
+			_graphicsDevice->EndDebugEvent();
 		}
 
 		time2 = std::chrono::high_resolution_clock::now();
