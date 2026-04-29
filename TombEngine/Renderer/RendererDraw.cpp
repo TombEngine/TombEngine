@@ -1968,20 +1968,33 @@ namespace TEN::Renderer
 
 		EndRenderPass(); // Sky
 
-		// Build G-Buffer (normals + depth).
-		_graphicsDevice->ClearRenderTarget2D(_normalsAndMaterialIndexRenderTarget->GetRenderTarget(), Colors::Transparent);
-		_graphicsDevice->ClearRenderTarget2D(_depthRenderTarget->GetRenderTarget(), Colors::White);
-		_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
-		
-		std::vector<IRenderTarget2D*> gbuffer;
-		gbuffer.push_back(_normalsAndMaterialIndexRenderTarget->GetRenderTarget());
-		gbuffer.push_back(_depthRenderTarget->GetRenderTarget());
-		gbuffer.push_back(_emissiveAndRoughnessRenderTarget->GetRenderTarget());
+		// G-Buffer pass: 3 MRT (normals, depth, emissive/roughness), share main depth (Load to keep sky depth).
+		{
+			RenderPassDescriptor gbufferPass;
+			gbufferPass.Name = "GBuffer";
 
-		_graphicsDevice->BindRenderTargets(gbuffer, _renderTarget->GetDepthTarget());
+			ColorAttachmentDescriptor c0, c1, c2;
+			c0.RenderTarget = _normalsAndMaterialIndexRenderTarget->GetRenderTarget();
+			c0.LoadAction   = LoadAction::Clear;
+			c0.ClearColor   = Colors::Transparent;
+			c1.RenderTarget = _depthRenderTarget->GetRenderTarget();
+			c1.LoadAction   = LoadAction::Clear;
+			c1.ClearColor   = Colors::White;
+			c2.RenderTarget = _emissiveAndRoughnessRenderTarget->GetRenderTarget();
+			c2.LoadAction   = LoadAction::Clear;
+			c2.ClearColor   = Colors::Transparent;
+			gbufferPass.ColorAttachments = { c0, c1, c2 };
 
-		// Render G-Buffer pass.
+			gbufferPass.DepthAttachment.DepthTarget = _renderTarget->GetDepthTarget();
+			gbufferPass.DepthAttachment.LoadAction  = LoadAction::Load;
+			gbufferPass.Viewport = view.Viewport;
+
+			BeginRenderPass(gbufferPass);
+		}
+
 		DoRenderPass(RendererPass::GBuffer, view, true);
+
+		EndRenderPass(); // GBuffer
 
 		// Calculate ambient occlusion.
 		if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion)
