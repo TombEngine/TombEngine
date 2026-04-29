@@ -2003,11 +2003,22 @@ namespace TEN::Renderer
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-		_graphicsDevice->SetViewport(view.Viewport);
-		_graphicsDevice->SetScissor(view.Viewport);
+		// Opaque + Transparent pass: main RT, depth pre-filled by GBuffer, color contains sky.
+		{
+			RenderPassDescriptor opaquePass;
+			opaquePass.Name = "Opaque + Transparent";
 
-		// Bind main render target again. Main depth buffer is already filled and avoids overdraw in following steps.
-		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+			ColorAttachmentDescriptor color;
+			color.RenderTarget = _renderTarget->GetRenderTarget();
+			color.LoadAction   = LoadAction::Load;
+			opaquePass.ColorAttachments.push_back(color);
+
+			opaquePass.DepthAttachment.DepthTarget = _renderTarget->GetDepthTarget();
+			opaquePass.DepthAttachment.LoadAction  = LoadAction::Load;
+			opaquePass.Viewport = view.Viewport;
+
+			BeginRenderPass(opaquePass);
+		}
 
 		DoRenderPass(RendererPass::Opaque, view, true);
 		DoRenderPass(RendererPass::Additive, view, true);
@@ -2017,9 +2028,11 @@ namespace TEN::Renderer
 		DoRenderPass(RendererPass::Transparent, view, true);
 		DoRenderPass(RendererPass::GunFlashes, view, true); // HACK: Gunflashes are drawn after everything because they are near camera.
 
-		// Draw 3D debug lines and triangles.
+		// Draw 3D debug lines and triangles into the same opaque pass.
 		DrawLines3D(view);
 		DrawTriangles3D(view);
+
+		EndRenderPass(); // Opaque + Transparent
 
 		// Copy current scene to the reflections render target for the next frame
 		// RT -> LRRT
