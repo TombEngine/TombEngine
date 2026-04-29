@@ -1130,6 +1130,22 @@ void Sound_Reset()
 		newSoundDevice = NO_VALUE;
 	}
 
+	// When toggling back from "no sound device" to the same device that was previously active,
+	// BASS is still initialized — re-running BASS_Init would fail with BASS_ERROR_ALREADY and
+	// leave the paused soundtracks stuck. Just resume them instead of going through the
+	// reinit / migrate / free dance.
+	if (prevSoundDevice == newSoundDevice)
+	{
+		for (int i = 0; i < (int)SoundTrackType::Count; i++)
+		{
+			auto stream = SoundtrackSlot[i].Channel;
+			if (stream != NULL && BASS_ChannelIsActive(stream) == BASS_ACTIVE_PAUSED)
+				BASS_ChannelPlay(stream, false);
+		}
+		BASS_Apply3D();
+		return;
+	}
+
 	// Init new device.
 	BASS_Init(newSoundDevice, SOUND_SAMPLE_RATE, BASS_DEVICE_3D, nullptr, NULL);
 	if (Sound_CheckBASSError("Initializing BASS sound device", true))
