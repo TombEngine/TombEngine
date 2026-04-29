@@ -1901,15 +1901,25 @@ namespace TEN::Renderer
 		_stPerDraw.Animated = 0;
 		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
-		// Bind and clear render target.
-		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+		// Open the main scene pass: clear color + depth, set viewport.
+		// Sky is drawn here; depth carries through to GBuffer (Load) and Opaque/Transparent (Load).
+		{
+			RenderPassDescriptor skyPass;
+			skyPass.Name = "Sky";
 
-		_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), _debugPage == RendererDebugPage::WireframeMode ? Colors::DimGray : Colors::Black);
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+			ColorAttachmentDescriptor color;
+			color.RenderTarget = _renderTarget->GetRenderTarget();
+			color.LoadAction   = LoadAction::Clear;
+			color.ClearColor   = (_debugPage == RendererDebugPage::WireframeMode) ? Colors::DimGray : Colors::Black;
+			skyPass.ColorAttachments.push_back(color);
 
-		// Reset viewport and scissor.
-		_graphicsDevice->SetViewport(view.Viewport);
-		_graphicsDevice->SetScissor(view.Viewport);
+			skyPass.DepthAttachment.DepthTarget = _renderTarget->GetDepthTarget();
+			skyPass.DepthAttachment.LoadAction  = LoadAction::Clear;
+			skyPass.DepthAttachment.ClearFlags  = DepthStencilClearFlags::DepthAndStencil;
+			skyPass.Viewport = view.Viewport;
+
+			BeginRenderPass(skyPass);
+		}
 
 		// Camera constant buffer contains matrices, camera position, fog values, and other things shared for all shaders.
 		auto cameraConstantBuffer = CCameraMatrixBuffer{};
@@ -1955,6 +1965,8 @@ namespace TEN::Renderer
 
 		// Draw horizon and sky.
 		DrawHorizonAndSky(_renderTarget->GetDepthTarget(), view);
+
+		EndRenderPass(); // Sky
 
 		// Build G-Buffer (normals + depth).
 		_graphicsDevice->ClearRenderTarget2D(_normalsAndMaterialIndexRenderTarget->GetRenderTarget(), Colors::Transparent);
