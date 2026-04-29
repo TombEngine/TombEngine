@@ -8,10 +8,19 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### New features
 * Added animation blending support and blended transitions for hardcoded animation changes.
 * Added root motion support.
+* Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
+* Added gamma correction setting.
  
-## Lua API changes
+### Bug fixes
+* Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
+* Fixed flyby camera jitter by converting the spline type to floating-point.
+
+### Lua API changes
 * Added third argument to `Moveable:SetAnim` function to specify blend frame count.
 * Added `Flow.Settings.Animation.systemBlendDuration` setting to specify hardcoded animation blend durations.
+* Added ring inventory module.
+* Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
+* Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 
 ## [Version 1.11.1]
 

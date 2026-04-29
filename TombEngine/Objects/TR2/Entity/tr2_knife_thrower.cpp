@@ -86,7 +86,7 @@ namespace TEN::Entities::Creatures::TR2
 		fx.speed = vel;
 		fx.fallspeed = 0;
 		fx.flag2 = KNIFE_PROJECTILE_DAMAGE;
-		fx.color = Vector4::One;
+		fx.color = NEUTRAL_COLOR;
 
 		return fxNumber;
 	}

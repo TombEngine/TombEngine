@@ -28,5 +28,6 @@ namespace TEN::Renderer::ConstantBuffers
 		float UVRotateDirection;
 		float UvRotateSpeed;
 		int IsWaterfall;
+		int CAnimatedBuffer_Padding0;
 	};
 }

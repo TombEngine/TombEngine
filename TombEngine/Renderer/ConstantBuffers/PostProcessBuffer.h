@@ -26,7 +26,7 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		int NumLensFlares; 
 		float DownscaleFactor;
-		Vector2 Padding3;
+		Vector2 CPostProcessBuffer_Padding0;
 		//--
 		Vector2 TexelSize;
 		Vector2 BlurDirection;

@@ -1,10 +1,6 @@
 #include "framework.h"
 #include "Sound/sound.h"
 
-#include <filesystem>
-#include <regex>
-#include <srtparser.h>
-
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/gui.h"
@@ -16,7 +12,7 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 #include "Specific/Video/Video.h"
-#include "Specific/winmain.h"
+#include "Specific/EngineMain.h"
 
 using namespace TEN::Gui;
 using namespace TEN::Math;
@@ -33,8 +29,6 @@ HSAMPLE BASS_SamplePointer[SOUND_MAX_SAMPLES];
 HSTREAM BASS_3D_Mixdown;
 HSTREAM BASS_Video;
 HFX     BASS_FXHandler[(int)SoundFilter::Count];
-
-HMODULE ADPCMLibrary = NULL; // Temporary hack for unexpected ADPCM codec unload on Win11 systems.
 
 SoundEffectSlot SoundSlot[SOUND_MAX_CHANNELS];
 SoundTrackSlot  SoundtrackSlot[(int)SoundTrackType::Count];
@@ -60,9 +54,11 @@ std::vector<SubtitleItem*> Subtitles;
 constexpr int LegacyLoopingTrackMin = 98;
 constexpr int LegacyLoopingTrackMax = 111;
 
+static bool BASSInitialized = false;
 static int SecretSoundIndex = 5;
 static int GlobalMusicVolume;
 static int GlobalFXVolume;
+static int CurrentReverbType = NO_VALUE;
 
 static Vector3 oldMikePos = Vector3::Zero;
 
@@ -123,18 +119,18 @@ bool LoadSample(char* pointer, int compSize, int uncompSize, int index)
 	// Generate RIFF/WAV header to simplify loading sample data to stream. In case if RIFF/WAV header
 	// exists, stream could be completely created just by calling BASS_StreamCreateFile().
 	char* uncompBuffer = new char[finalLength];
-	ZeroMemory(uncompBuffer, finalLength);
+	memset(uncompBuffer, 0, finalLength);
 	memcpy(uncompBuffer, "RIFF\0\0\0\0WAVEfmt \20\0\0\0", 20);
 	memcpy(uncompBuffer + 36, "data\0\0\0\0", 8);
 
-	WAVEFORMATEX *wf = (WAVEFORMATEX*)(uncompBuffer + 20);
+	auto* wf = (WaveFormatPCM*)(uncompBuffer + 20);
 
-	wf->wFormatTag = 3;
-	wf->nChannels = info.chans;
-	wf->wBitsPerSample = 32;
-	wf->nSamplesPerSec = info.freq;
-	wf->nBlockAlign = wf->nChannels * wf->wBitsPerSample / 8;
-	wf->nAvgBytesPerSec = wf->nSamplesPerSec * wf->nBlockAlign;
+	wf->FormatTag = 3;
+	wf->Channels = info.chans;
+	wf->BitsPerSample = 32;
+	wf->SamplesPerSec = info.freq;
+	wf->BlockAlign = wf->Channels * wf->BitsPerSample / 8;
+	wf->AverageBytesPerSec = wf->SamplesPerSec * wf->BlockAlign;
 
 	// Copy raw PCM data from temporary sample buffer to actual buffer which will be used by engine.
 	BASS_SampleGetData(sample, uncompBuffer + 44);
@@ -142,20 +138,20 @@ bool LoadSample(char* pointer, int compSize, int uncompSize, int index)
 
 	// Cut off trailing silence from samples to prevent gaps in looped playback
 	int cleanLength = info.length;
-	for (DWORD i = 4; i < info.length; i += 4)
+	for (unsigned int i = 4; i < info.length; i += 4)
 	{
 		float *currentSample = reinterpret_cast<float*>(uncompBuffer + finalLength - i);
 		if (*currentSample > SOUND_32BIT_SILENCE_LEVEL || *currentSample < -SOUND_32BIT_SILENCE_LEVEL)
 		{
-			int alignment = i % wf->nBlockAlign;
+			int alignment = i % wf->BlockAlign;
 			cleanLength -= (i - alignment);
 			break;
 		}
 	}
 
 	// Put data size to header
-	*(DWORD*)(uncompBuffer + 4) = cleanLength + 44 - 8;
-	*(DWORD*)(uncompBuffer + 40) = cleanLength;
+	*(unsigned int*)(uncompBuffer + 4) = cleanLength + 44 - 8;
+	*(unsigned int*)(uncompBuffer + 40) = cleanLength;
 
 	// Create actual sample
 	BASS_SamplePointer[index] = BASS_SampleLoad(true, uncompBuffer, 0, cleanLength + 44, 65535, SOUND_SAMPLE_FLAGS | BASS_SAMPLE_3D);
@@ -210,7 +206,7 @@ bool SoundEffect(int soundID, Pose* pose, SoundEnvironment soundEnv, float pitch
 	}
 
 	// Assign common sample flags.
-	DWORD sampleFlags = SOUND_SAMPLE_FLAGS;
+	unsigned int sampleFlags = SOUND_SAMPLE_FLAGS;
 
 	// Test play chance.
 	if (sample.Randomness && ((GetRandomControl() & UCHAR_MAX) > sample.Randomness))
@@ -366,7 +362,10 @@ void ResumeAllSounds(SoundPauseMode mode)
 	if (mode == SoundPauseMode::Global)
 		BASS_Start();
 
-	if (g_Gui.GetInventoryMode() == InventoryMode::Pause || 
+	if (!g_Configuration.EnableSound)
+		return;
+
+	if (g_Gui.GetInventoryMode() == InventoryMode::Pause ||
 		g_Gui.GetInventoryMode() == InventoryMode::Statistics)
 	{
 		return;
@@ -402,7 +401,7 @@ void StopAllSounds()
 	for (int i = 0; i < SOUND_MAX_CHANNELS; i++)
 		Sound_FreeSlot(i, SOUND_XFADETIME_CUTSOUND);
 
-	ZeroMemory(SoundSlot, (sizeof(SoundEffectSlot) * SOUND_MAX_CHANNELS));
+	memset(SoundSlot, 0, sizeof(SoundEffectSlot) * SOUND_MAX_CHANNELS);
 }
 
 void FreeSamples()
@@ -502,8 +501,8 @@ void PlaySoundTrack(const std::string& track, SoundTrackType type, std::optional
 		return;
 
 	bool crossfade = false;
-	DWORD crossfadeTime = 0;
-	DWORD flags = BASS_STREAM_AUTOFREE | BASS_SAMPLE_FLOAT | BASS_ASYNCFILE;
+	unsigned int crossfadeTime = 0;
+	unsigned int flags = BASS_STREAM_AUTOFREE | BASS_SAMPLE_FLOAT | BASS_ASYNCFILE;
 
 	bool channelActive = BASS_ChannelIsActive(SoundtrackSlot[(int)type].Channel);
 	if (channelActive && SoundtrackSlot[(int)type].Track.compare(track) == 0)
@@ -707,6 +706,7 @@ std::pair<std::string, QWORD> GetSoundTrackNameAndPosition(SoundTrackType type)
 	return std::pair<std::string, QWORD>(path.string(), BASS_ChannelGetPosition(track.Channel, BASS_POS_BYTE));
 }
 
+// NOTE: DWORD here is BASS's own cross-platform type (uint32_t on Linux/macOS, unsigned long on Windows).
 static void CALLBACK Sound_FinishOneshotTrack(HSYNC handle, DWORD channel, DWORD data, void* userData)
 {
 	if (BASS_ChannelIsActive(SoundtrackSlot[(int)SoundTrackType::BGM].Channel))
@@ -715,6 +715,9 @@ static void CALLBACK Sound_FinishOneshotTrack(HSYNC handle, DWORD channel, DWORD
 
 void Sound_VideoPlayCallback(void* data, const void* samples, unsigned count, int64_t pts)
 {
+	if (!g_Configuration.EnableSound)
+		return;
+
 	if (!BASS_ChannelIsActive(BASS_Video))
 	{
 		BASS_ChannelPlay(BASS_Video, false);
@@ -922,14 +925,13 @@ void Sound_UpdateScene()
 
 	// Apply environmental effects
 
-	static int currentReverb = NO_VALUE;
 	auto roomReverb = g_Configuration.EnableReverb ? (int)g_Level.Rooms[Camera.pos.RoomNumber].reverbType : (int)ReverbType::Small;
 
-	if (currentReverb == NO_VALUE || roomReverb != currentReverb)
+	if (CurrentReverbType == NO_VALUE || roomReverb != CurrentReverbType)
 	{
-		currentReverb = roomReverb;
-		if (currentReverb < (int)ReverbType::Count)
-			BASS_FXSetParameters(BASS_FXHandler[(int)SoundFilter::Reverb], &BASS_ReverbTypes[(int)currentReverb]);
+		CurrentReverbType = roomReverb;
+		if (CurrentReverbType < (int)ReverbType::Count)
+			BASS_FXSetParameters(BASS_FXHandler[(int)SoundFilter::Reverb], &BASS_ReverbTypes[(int)CurrentReverbType]);
 	}
 
 	for (int i = 0; i < SOUND_MAX_CHANNELS; i++)
@@ -993,48 +995,9 @@ void Sound_UpdateScene()
 	BASS_Apply3D();
 }
 
-// Initialize BASS engine and also prepare all sound data.
-// Called once on engine start-up.
-void Sound_Init(const std::string& gameDirectory)
+// Create 3D mixdown and video streams on the current BASS device, and attach FX.
+static void Sound_CreateMixdownStreams()
 {
-	// Initialize and collect soundtrack paths.
-	FullAudioDirectory = gameDirectory + TRACKS_PATH;
-	EnumerateLegacyTracks();
-
-	if (!g_Configuration.EnableSound)
-		return;
-	
-	// HACK: Manually force-load ADPCM codec, because on Win11 systems it may suddenly unload otherwise.
-	ADPCMLibrary = LoadLibrary("msadp32.acm");
-
-	int soundDevice = g_Configuration.SoundDevice;
-
-	BASS_DEVICEINFO info;
-	if (!BASS_GetDeviceInfo(soundDevice, &info))
-	{
-		TENLog("Selected sound device is not available, using default", LogLevel::Warning);
-		soundDevice = NO_VALUE;
-	}
-
-	BASS_Init(soundDevice, SOUND_SAMPLE_RATE, BASS_DEVICE_3D, WindowsHandle, NULL);
-	if (Sound_CheckBASSError("Initializing BASS sound device", true))
-		return;
-
-	// Initialize BASS_FX plugin.
-	BASS_FX_GetVersion();
-	if (Sound_CheckBASSError("Initializing FX plugin", true))
-		return;
-
-	// Set 3D world parameters.
-	// Rolloff is lessened since we have own attenuation implementation.
-	BASS_Set3DFactors(SOUND_BASS_UNITS, 1.5f, 1.0f);	
-	BASS_SetConfig(BASS_CONFIG_3DALGORITHM, BASS_3DALG_FULL);
-
-	// Set minimum latency and 2 threads for updating.
-	// Most of modern PCs already have multi-core CPUs, so why not parallelize updating?
-	BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 2);
-	BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 10);
-
 	// Create 3D mixdown channel and make it play forever.
 	// For realtime mixer channels, we need minimum buffer latency. It shouldn't affect reliability.
 	BASS_SetConfig(BASS_CONFIG_BUFFER, 40);
@@ -1047,43 +1010,190 @@ void Sound_Init(const std::string& gameDirectory)
 	// Reset buffer back to normal value.
 	BASS_SetConfig(BASS_CONFIG_BUFFER, 300);
 
-	if (Sound_CheckBASSError("Starting 3D mixdown", true))
-		return;
+	Sound_CheckBASSError("Starting 3D mixdown", true);
 
-	// Initialize channels and tracks array
-	ZeroMemory(SoundSlot, (sizeof(SoundEffectSlot) * SOUND_MAX_CHANNELS));
-
-	// Attach reverb effect to 3D channel
- 	BASS_FXHandler[(int)SoundFilter::Reverb] = BASS_ChannelSetFX(BASS_3D_Mixdown, BASS_FX_BFX_FREEVERB, 0);
+	// Attach reverb effect to 3D channel.
+	BASS_FXHandler[(int)SoundFilter::Reverb] = BASS_ChannelSetFX(BASS_3D_Mixdown, BASS_FX_BFX_FREEVERB, 0);
 	BASS_FXSetParameters(BASS_FXHandler[(int)SoundFilter::Reverb], &BASS_ReverbTypes[(int)ReverbType::Outside]);
 
-	if (Sound_CheckBASSError("Attaching environmental FX", true))
-		return;
+	Sound_CheckBASSError("Attaching environmental FX", true);
 
-	// Apply slight compression to 3D channel
+	// Apply slight compression to 3D channel.
 	BASS_FXHandler[(int)SoundFilter::Compressor] = BASS_ChannelSetFX(BASS_3D_Mixdown, BASS_FX_BFX_COMPRESSOR2, 1);
 	auto comp = BASS_BFX_COMPRESSOR2{ 4.0f, -18.0f, 1.5f, 10.0f, 100.0f, -1 };
 	BASS_FXSetParameters(BASS_FXHandler[(int)SoundFilter::Compressor], &comp);
 
-	if (Sound_CheckBASSError("Attaching compressor", true))
+	Sound_CheckBASSError("Attaching compressor", true);
+
+	// Force reverb type re-evaluation on next frame.
+	CurrentReverbType = NO_VALUE;
+}
+
+// Configure per-device settings on the current BASS device.
+static void Sound_ApplyDeviceSettings()
+{
+	BASS_Set3DFactors(SOUND_BASS_UNITS, 1.5f, 1.0f);
+	BASS_SetConfig(BASS_CONFIG_3DALGORITHM, BASS_3DALG_FULL);
+	BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 2);
+	BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 10);
+}
+
+// Initialize BASS engine and also prepare all sound data.
+// Called once on engine start-up.
+void Sound_Init(const std::string& gameDirectory)
+{
+	// Initialize and collect soundtrack paths.
+	FullAudioDirectory = gameDirectory + TRACKS_PATH;
+	EnumerateLegacyTracks();
+
+	// List all found sound devices. First device is always a dummy null device
+	// so if the list returns 1 element that means that not sound devices are installed
+	// on the system.
+	auto foundDevices = Sound_ListDevices();
+	if (foundDevices.size() <= 1)
+	{
+		TENLog("No sound devices found. Disabling sounds.", LogLevel::Warning);
+		g_Configuration.EnableSound = false;
+		return;
+	}
+
+	g_Platform->InitialiseAudioCodecs();
+
+	int soundDevice = g_Configuration.SoundDevice;
+
+	BASS_DEVICEINFO info;
+	if (!BASS_GetDeviceInfo(soundDevice, &info))
+	{
+		TENLog("Selected sound device is not available, using default", LogLevel::Warning);
+		soundDevice = NO_VALUE;
+	}
+
+	BASS_Init(soundDevice, SOUND_SAMPLE_RATE, BASS_DEVICE_3D, nullptr, NULL);
+	if (Sound_CheckBASSError("Initializing BASS sound device", true))
 		return;
 
-	return;
+	BASSInitialized = true;
+
+	// Initialize BASS_FX plugin.
+	BASS_FX_GetVersion();
+	if (Sound_CheckBASSError("Initializing FX plugin", true))
+		return;
+
+	Sound_ApplyDeviceSettings();
+	Sound_CreateMixdownStreams();
+
+	// Initialize channels and tracks array.
+	memset(SoundSlot, 0, sizeof(SoundEffectSlot) * SOUND_MAX_CHANNELS);
 }
 
 // Stop all sounds and streams, if any, unplug all channels from the mixer and unload BASS engine.
 // Must be called on engine quit.
 void Sound_DeInit()
 {
-	if (!g_Configuration.EnableSound)
+	if (!BASSInitialized)
 		return;
 
 	TENLog("Shutting down BASS...", LogLevel::Info);
 	BASS_Free();
+	BASSInitialized = false;
 
-	// HACK: Manually unload previously loaded ADPCM codec.
-	if (ADPCMLibrary != NULL)
-		FreeLibrary(ADPCMLibrary);
+	g_Platform->ReleaseAudioCodecs();
+}
+
+void Sound_Reset()
+{
+	if (!BASSInitialized)
+		return;
+
+	if (!g_Configuration.EnableSound)
+	{
+		// "No sound device" selected. Stop SFX and pause soundtrack channels
+		// but keep BASS alive so all handles remain valid for when sound is re-enabled.
+		StopAllSounds();
+
+		for (int i = 0; i < (int)SoundTrackType::Count; i++)
+		{
+			if (SoundtrackSlot[i].Channel != NULL)
+				BASS_ChannelPause(SoundtrackSlot[i].Channel);
+		}
+
+		return;
+	}
+
+	int prevSoundDevice = BASS_GetDevice();
+	int newSoundDevice = g_Configuration.SoundDevice;
+
+	auto info = BASS_DEVICEINFO{};
+	if (!BASS_GetDeviceInfo(newSoundDevice, &info))
+	{
+		TENLog("Selected sound device is not available, using default", LogLevel::Warning);
+		newSoundDevice = NO_VALUE;
+	}
+
+	// Init new device.
+	BASS_Init(newSoundDevice, SOUND_SAMPLE_RATE, BASS_DEVICE_3D, nullptr, NULL);
+	if (Sound_CheckBASSError("Initializing BASS sound device", true))
+		return;
+
+	Sound_ApplyDeviceSettings();
+
+	// Move samples to new device.
+	for (int i = 0; i < SOUND_MAX_SAMPLES; i++)
+	{
+		auto sample = BASS_SamplePointer[i];
+		if (sample != NULL)
+		{
+			BASS_ChannelLock(sample, true);
+			BASS_ChannelSetDevice(sample, newSoundDevice);
+			BASS_ChannelLock(sample, false);
+		}
+	}
+
+	// Move currently-playing sample channels to new device.
+	// Moving an HSAMPLE only routes future channels to the new device; existing channels
+	// remain on the old device and would be invalidated when it's freed below.
+	for (int i = 0; i < SOUND_MAX_CHANNELS; i++)
+	{
+		auto channel = SoundSlot[i].Channel;
+		if (channel != NULL && BASS_ChannelIsActive(channel))
+		{
+			BASS_ChannelLock(channel, true);
+			BASS_ChannelSetDevice(channel, newSoundDevice);
+			BASS_ChannelLock(channel, false);
+		}
+	}
+
+	// Move soundtrack streams to new device and resume if they were paused.
+	for (int i = 0; i < (int)SoundTrackType::Count; i++)
+	{
+		auto stream = SoundtrackSlot[i].Channel;
+		if (stream != NULL)
+		{
+			BASS_ChannelLock(stream, true);
+			BASS_ChannelSetDevice(stream, newSoundDevice);
+			BASS_ChannelLock(stream, false);
+
+			if (BASS_ChannelIsActive(stream) == BASS_ACTIVE_PAUSED)
+				BASS_ChannelPlay(stream, false);
+		}
+	}
+
+	// BASS_3D_Mixdown uses STREAMPROC_DEVICE_3D which is bound to the device it was
+	// created on. Recreate streams on the new device before freeing the old ones,
+	// so BASS_Video is never an invalid handle (VLC callbacks may fire from another thread).
+	auto oldMixdown = BASS_3D_Mixdown;
+	auto oldVideo = BASS_Video;
+	Sound_CreateMixdownStreams();
+	BASS_StreamFree(oldMixdown);
+	BASS_StreamFree(oldVideo);
+
+	// Free previous device.
+	BASS_SetDevice(prevSoundDevice);
+	BASS_Free();
+
+	// Set new device and apply 3D changes.
+	BASS_SetDevice(newSoundDevice);
+	BASS_Apply3D();
 }
 
 const char* Sound_GetBassErrorString(int errorCode)
@@ -1205,4 +1315,28 @@ void PlaySoundSources()
 
 		SoundEffect(soundSource.SoundID, (Pose*)&soundSource.Position);
 	}
+}
+
+std::vector<BassDevice> Sound_ListDevices()
+{
+	auto out = std::vector<BassDevice>{};
+	auto info = BASS_DEVICEINFO{};
+
+	auto nullDevice = BassDevice{};
+	nullDevice.Index = 0;
+	nullDevice.Name = "No sound device";
+	out.push_back(nullDevice);
+
+	for (int i = 1; BASS_GetDeviceInfo(i, &info); i++) 
+	{
+		auto device = BassDevice{};
+		device.Index = i;
+		device.Name = info.name ? info.name : "";
+		device.IsDefault = (info.flags & BASS_DEVICE_DEFAULT) != 0;
+		device.IsEnabled = (info.flags & BASS_DEVICE_ENABLED) != 0;
+		device.IsInUse = (info.flags & BASS_DEVICE_INIT) != 0;
+		out.push_back(device);
+	}
+
+	return out;
 }

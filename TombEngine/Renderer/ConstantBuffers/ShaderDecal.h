@@ -9,7 +9,10 @@ namespace TEN::Renderer::ConstantBuffers
 	{
 		Vector3 Position;
 		int Pattern;
+		//----------
 		float Radius;
 		float Opacity;
+		int ShaderDecal_Padding0;
+		int ShaderDecal_Padding1;
 	};
 }

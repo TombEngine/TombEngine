@@ -1,7 +1,6 @@
 #include "framework.h"
 
 #include <codecvt>
-#include <filesystem>
 
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererEnums.h"
@@ -78,10 +77,12 @@ namespace TEN::Utils
 		}
 		catch (std::exception ex)
 		{
-			return std::string{}; // Use exe path if any error is encountered.
+			// Use .EXE path if any error is encountered.
+			return std::string{};
 		}
 
-		return std::string{}; // Use exe path if no any assets were found.
+		// Use .EXE path if no any assets were found.
+		return std::string{};
 	}
 
 	std::string ToUpper(std::string string)
@@ -94,6 +95,62 @@ namespace TEN::Utils
 	{
 		std::transform(string.begin(), string.end(), string.begin(), [](unsigned char c) { return std::tolower(c); });
 		return string;
+	}
+
+	std::string Trim(std::string string)
+	{
+		auto isNotSpace = [](unsigned char ch)
+		{
+			return !std::isspace(ch);
+		};
+
+		auto left = std::find_if(string.begin(), string.end(), isNotSpace);
+		string.erase(string.begin(), left);
+
+		auto right = std::find_if(string.rbegin(), string.rend(), isNotSpace).base();
+		string.erase(right, string.end());
+
+		return string;
+	}
+
+	bool StartsWith(const std::string& string, const char* pref)
+	{
+		return string.rfind(pref, 0) == 0;
+	}
+
+	int ToInt(const std::string& string, int fallback)
+	{
+		try
+		{
+			return std::stoi(string);
+		}
+		catch (...)
+		{
+			return fallback;
+		}
+	}
+
+	float ToFloat(const std::string& string, float fallback)
+	{
+		try
+		{
+			return std::stof(string);
+		}
+		catch (...)
+		{
+			return fallback;
+		}
+	}
+
+	bool ToBool(const std::string& string, bool fallback)
+	{
+		if (string == "1" || string == "true" || string == "True" || string == "TRUE")
+			return true;
+
+		if (string == "0" || string == "false" || string == "False" || string == "FALSE")
+			return false;
+
+		return fallback;
 	}
 
 	std::string ToString(const std::wstring& wString)
@@ -222,83 +279,4 @@ namespace TEN::Utils
             ((1.0f - ndc.y) * DISPLAY_SPACE_RES.y) / 2);
     }
 
-	std::wstring GetBinaryPath(bool includeExeName)
-	{
-		static const int MAX_PATH_LENGTH = 1024;
-		wchar_t fileName[MAX_PATH_LENGTH] = {};
-
-		if (!GetModuleFileNameW(nullptr, fileName, MAX_PATH_LENGTH))
-		{
-			TENLog("Can't get current assembly path", LogLevel::Error);
-			return std::wstring();
-		}
-
-		auto result = std::wstring(fileName);
-		std::replace(result.begin(), result.end(), '\\', '/');
-
-		if (includeExeName)
-			return result;
-
-		size_t pos = result.find_last_of(L"/");
-		return (pos != std::wstring::npos) ? result.substr(0, pos + 1) : std::wstring();
-	}
-
-	std::vector<unsigned short> GetProductOrFileVersion(bool productVersion)
-	{
-		auto fileName = GetBinaryPath(true);
-
-		DWORD dummy;
-		DWORD size = GetFileVersionInfoSizeW(fileName.data(), &dummy);
-
-		if (size == 0)
-		{
-			TENLog("GetFileVersionInfoSizeW failed", LogLevel::Error);
-			return {};
-		}
-
-		std::unique_ptr<unsigned char[]> buffer(new unsigned char[size]);
-
-		// Load version info.
-		if (!GetFileVersionInfoW(fileName.data(), 0, size, buffer.get()))
-		{
-			TENLog("GetFileVersionInfoW failed", LogLevel::Error);
-			return {};
-		}
-
-		VS_FIXEDFILEINFO* info;
-		unsigned int infoSize;
-
-		if (!VerQueryValueW(buffer.get(), L"\\", (void**)&info, &infoSize))
-		{
-			TENLog("VerQueryValueW failed", LogLevel::Error);
-			return {};
-		}
-
-		if (infoSize != sizeof(VS_FIXEDFILEINFO))
-		{
-			TENLog("VerQueryValueW returned wrong size for VS_FIXEDFILEINFO", LogLevel::Error);
-			return {};
-		}
-
-		if (productVersion)
-		{
-			return
-			{
-				HIWORD(info->dwProductVersionMS),
-				LOWORD(info->dwProductVersionMS),
-				HIWORD(info->dwProductVersionLS),
-				LOWORD(info->dwProductVersionLS)
-			};
-		}
-		else
-		{
-			return
-			{
-				HIWORD(info->dwFileVersionMS),
-				LOWORD(info->dwFileVersionMS),
-				HIWORD(info->dwFileVersionLS),
-				LOWORD(info->dwFileVersionLS)
-			};
-		}
-	}
 }

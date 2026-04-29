@@ -23,5 +23,7 @@ namespace TEN::Renderer::ConstantBuffers
 		//--
 		int NumLights;
 		int Skinned;
+		int CItemBuffer_Padding0;
+		int CItemBuffer_Padding1;
 	};
 }
