@@ -29,6 +29,11 @@
 	constexpr auto GAMMA_MAX     = 1.5f;
 	constexpr auto GAMMA_STEP    = 0.1f;
 
+	// Sound constants
+
+	constexpr auto VOLUME_MAX	= 100;
+	constexpr auto VOLUME_STEP	= VOLUME_MAX / 20;
+
 	// World constants
 
 	constexpr auto BLOCK_UNIT = 1024;

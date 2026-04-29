@@ -195,7 +195,7 @@ namespace TEN::Renderer
 			char filename[255];
 			sprintf(filename, "dump/room_%d.png", i);
 
-			std::ofstream outfile(filename, std::ios::out | std::ios::binary);
+			std::ofstream outfile(std::filesystem::path{filename}, std::ios::out | std::ios::binary);
 			outfile.write(reinterpret_cast<const char*>(texture->colorMapData.data()), texture->colorMapData.size());
 #endif
 		}
@@ -253,7 +253,7 @@ namespace TEN::Renderer
 			char filename[255];
 			sprintf(filename, "dump/moveable_%d.png", i);
 
-			std::ofstream outfile(filename, std::ios::out | std::ios::binary);
+			std::ofstream outfile(std::filesystem::path{filename}, std::ios::out | std::ios::binary);
 			outfile.write(reinterpret_cast<const char*>(texture->colorMapData.data()), texture->colorMapData.size());
 #endif
 		}
@@ -311,7 +311,7 @@ namespace TEN::Renderer
 			char filename[255];
 			sprintf(filename, "dump/static_%d.png", i);
 
-			std::ofstream outfile(filename, std::ios::out | std::ios::binary);
+			std::ofstream outfile(std::filesystem::path{filename}, std::ios::out | std::ios::binary);
 			outfile.write(reinterpret_cast<const char*>(texture->colorMapData.data()), texture->colorMapData.size());
 #endif
 		}

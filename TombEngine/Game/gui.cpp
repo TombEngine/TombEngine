@@ -44,8 +44,6 @@ namespace TEN::Gui
 	constexpr int PHD_CENTER_Y	  = DISPLAY_SPACE_RES.y / 2;
 	constexpr int OBJLIST_SPACING = PHD_CENTER_X / 2;
 
-	constexpr auto VOLUME_MAX			 = 100;
-	constexpr auto VOLUME_STEP			 = VOLUME_MAX / 20;
 	constexpr auto MOUSE_SENSITIVITY_MAX = 35;
 	constexpr auto MOUSE_SENSITIVITY_MIN = 1;
 	constexpr auto MOUSE_SMOOTHING_MAX	 = 5;
@@ -1080,7 +1078,7 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.MusicVolume < 0)
 						CurrentSettings.Configuration.MusicVolume = 0;
 
-					SetVolumeTracks(CurrentSettings.Configuration.MusicVolume);
+					SetAudioConfiguration(CurrentSettings.Configuration);
 				}
 
 				break;
@@ -1092,7 +1090,7 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.SfxVolume < 0)
 						CurrentSettings.Configuration.SfxVolume = 0;
 
-					SetVolumeFX(CurrentSettings.Configuration.SfxVolume);
+					SetAudioConfiguration(CurrentSettings.Configuration);
 					isVolumeAdjusted = IsPulsed(In::Left, 0.1f);
 				}
 
@@ -1123,7 +1121,7 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.MusicVolume > VOLUME_MAX)
 						CurrentSettings.Configuration.MusicVolume = VOLUME_MAX;
 
-					SetVolumeTracks(CurrentSettings.Configuration.MusicVolume);
+					SetAudioConfiguration(CurrentSettings.Configuration);
 				}
 
 				break;
@@ -1135,7 +1133,7 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.SfxVolume > VOLUME_MAX)
 						CurrentSettings.Configuration.SfxVolume = VOLUME_MAX;
 
-					SetVolumeFX(CurrentSettings.Configuration.SfxVolume);
+					SetAudioConfiguration(CurrentSettings.Configuration);
 					isVolumeAdjusted = IsPulsed(In::Right, 0.1f);
 				}
 
@@ -1191,8 +1189,7 @@ namespace TEN::Gui
 			}
 			else if (SelectedOption == OtherSettingsOption::Cancel)
 			{
-				SetVolumeTracks(g_Configuration.MusicVolume);
-				SetVolumeFX(g_Configuration.SfxVolume);
+				SetAudioConfiguration(g_Configuration);
 			}
 			else
 			{

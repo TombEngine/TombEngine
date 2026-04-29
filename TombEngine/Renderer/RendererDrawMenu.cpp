@@ -1206,7 +1206,7 @@ namespace TEN::Renderer
 	{
 		if (!g_DrawItems.IsEmpty())
 		{
-			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+			_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 			g_DrawItems.Draw();
 		}
 	}
@@ -1396,17 +1396,16 @@ namespace TEN::Renderer
 			SetBlendMode(BlendMode::Opaque);
 			SetCullMode(CullMode::CounterClockwise);
 
-			// Clear screen
-			_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
+			// Clear the offscreen scene render targets.
+			_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), Colors::Black);
 			_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
-			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+			_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
 			std::vector<IRenderTarget2D*> renderTargets;
-			renderTargets.push_back(_backBuffer->GetRenderTarget());
+			renderTargets.push_back(_renderTarget->GetRenderTarget());
 			renderTargets.push_back(_emissiveAndRoughnessRenderTarget->GetRenderTarget());
 
-			// Bind back buffer.
-			_graphicsDevice->BindRenderTargets(renderTargets, _backBuffer->GetDepthTarget());
+			_graphicsDevice->BindRenderTargets(renderTargets, _renderTarget->GetDepthTarget());
 			_graphicsDevice->SetViewport(_viewport);
 			_graphicsDevice->SetScissor(_viewport);
 

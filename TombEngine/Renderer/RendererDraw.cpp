@@ -4106,7 +4106,7 @@ namespace TEN::Renderer
 		_stAnimated.Type = (int)set.Type;
 
 		// Stream video texture, if video playback is active, otherwise show original texture.
-		if (set.Type == AnimatedTextureType::Video && _videoSprite.Texture && _videoSprite.Texture)
+		if (set.Type == AnimatedTextureType::Video && _videoSprite.Texture && _videoSprite.Texture->IsValid())
 		{
 			_stAnimated.Fps = 1;
 			_stAnimated.NumFrames = 1;
@@ -4170,7 +4170,7 @@ namespace TEN::Renderer
 
 			const auto& set = _animatedTextureSets[bucket.Texture];
 				
-			if (set.Type == AnimatedTextureType::Video && _videoSprite.Texture && _videoSprite.Texture)
+			if (set.Type == AnimatedTextureType::Video && _videoSprite.Texture && _videoSprite.Texture->IsValid())
 			{
 				BindTexture(TextureRegister::ColorMap, _videoSprite.Texture, SamplerStateRegister::AnisotropicClamp);
 

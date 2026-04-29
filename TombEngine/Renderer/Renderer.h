@@ -696,6 +696,7 @@ namespace TEN::Renderer
 		void RenderFreezeMode(float interpFactor, bool staticBackground);
 		void RenderFullScreenTexture(ITextureBase* texture, float aspect);
 		void UpdateVideoTexture(ITexture2D* texture);
+		void ClearVideoTexture();
 		void UpdateProgress(float value);
 		void ToggleFullScreen(bool force = false);
 		void SetFullScreen();
