@@ -754,6 +754,10 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 
 		throwIfFailed(res);
+
+		// Optional: GPU debug annotations (RenderDoc, PIX, NSight). Best-effort —
+		// if the runtime doesn't support it the calls become no-ops.
+		_context.As(&_userAnnotation);
 	}
 
 	std::string DX11GraphicsDevice::GetDefaultAdapterName()
@@ -1093,6 +1097,22 @@ namespace TEN::Renderer::Native::DirectX11
 	int DX11GraphicsDevice::GetScreenHeight()
 	{
 		return _screenHeight;
+	}
+
+	void DX11GraphicsDevice::BeginDebugEvent(const std::string& name)
+	{
+		if (_userAnnotation == nullptr)
+			return;
+
+		_userAnnotation->BeginEvent(TEN::Utils::ToWString(name).c_str());
+	}
+
+	void DX11GraphicsDevice::EndDebugEvent()
+	{
+		if (_userAnnotation == nullptr)
+			return;
+
+		_userAnnotation->EndEvent();
 	}
 }
 

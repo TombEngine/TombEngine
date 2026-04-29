@@ -4,6 +4,7 @@
 #ifdef SDL_PLATFORM_WIN32
 
 #include "Renderer/Graphics/IGraphicsDevice.h"
+#include <d3d11_1.h>
 #include <wrl/client.h>
 #include <CommonStates.h>
 #include <SpriteFont.h>
@@ -35,6 +36,7 @@ namespace TEN::Renderer::Native::DirectX11
 		ComPtr<ID3D11Device> _device = nullptr;
 		ComPtr<ID3D11DeviceContext> _context = nullptr;
 		ComPtr<IDXGISwapChain> _swapChain = nullptr;
+		ComPtr<ID3DUserDefinedAnnotation> _userAnnotation = nullptr;
 
 		std::unique_ptr<CommonStates> _renderStates = nullptr;
 
@@ -183,6 +185,9 @@ namespace TEN::Renderer::Native::DirectX11
 
 		int GetScreenWidth() override;
 		int GetScreenHeight() override;
+
+		void BeginDebugEvent(const std::string& name) override;
+		void EndDebugEvent() override;
 	};
 }
 

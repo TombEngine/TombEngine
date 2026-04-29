@@ -171,6 +171,11 @@ namespace TEN::Renderer::Graphics
 
 		virtual void EndRenderPass() {}
 
+		// Debug event API. Override in backends to emit GPU annotations
+		// (RenderDoc, PIX, NSight, etc.). Default: no-op.
+		virtual void BeginDebugEvent(const std::string& name) {}
+		virtual void EndDebugEvent() {}
+
 		virtual ~IGraphicsDevice() = default;
 	};
 }
