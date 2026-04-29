@@ -1036,9 +1036,7 @@ namespace TEN::Renderer
 			UpdateAnimation(nullptr, *moveableObject, interpData, UINT_MAX);
 		}
 
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
-		SetDepthState(DepthState::Write);
+		BindPipeline(Pipelines::OpaqueDefault);
 
 		// Set vertex buffer.
 		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
@@ -1271,9 +1269,7 @@ namespace TEN::Renderer
 	void Renderer::RenderInventoryScene(IRenderSurface2D* renderTarget, ITextureBase* background, float backgroundFade)
 	{
 		// Set basic render states
-		SetBlendMode(BlendMode::Opaque, true);
-		SetDepthState(DepthState::Write, true);
-		SetCullMode(CullMode::CounterClockwise, true);
+		BindPipeline(Pipelines::OpaqueDefault, true);
 
 		// Bind and clear render target
 		std::vector<IRenderTarget2D*> renderTargets;
@@ -1494,9 +1490,7 @@ namespace TEN::Renderer
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
 		// Reset GPU state.
-		SetBlendMode(BlendMode::Opaque, true);
-		SetDepthState(DepthState::Write, true);
-		SetCullMode(CullMode::CounterClockwise, true);
+		BindPipeline(Pipelines::OpaqueDefault, true);
 
 		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 0.5f);
 
