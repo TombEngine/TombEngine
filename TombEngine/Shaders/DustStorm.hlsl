@@ -247,14 +247,15 @@ float DustPortalBleed(float3 worldPos)
         float depthLimit = lerp(DustBleedTopDepthRatio, 1.0f, height01);
 
         float fadeX = 1.0f - smoothstep(DustBleedEdgeFadeStart, 1.0f, abs(local.x));
-        float fadeY = 1.0f - smoothstep(DustBleedEdgeFadeStart, 1.0f, abs(local.y));
+        float fadeTop = smoothstep(-1.0f, -DustBleedEdgeFadeStart, local.y);
+        float fadeBottom = 1.0f - smoothstep(1.0f, 1.0f + (1.0f - DustBleedEdgeFadeStart), local.y);
         float fadeNear = smoothstep(-0.05f, 0.0f, local.z);
         float fadeFar = 1.0f - smoothstep(
             max(depthLimit * DustBleedDepthFadeStart, 0.001f),
             max(depthLimit, 0.001f),
             local.z);
 
-        float volumeFade = fadeX * fadeY * fadeNear * fadeFar * DustBleedVolumeCenterAndStrength[i].w;
+        float volumeFade = fadeX * fadeTop * fadeBottom * fadeNear * fadeFar * DustBleedVolumeCenterAndStrength[i].w;
         bleed = max(bleed, volumeFade);
     }
 
