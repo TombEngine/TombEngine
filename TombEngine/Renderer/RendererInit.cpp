@@ -338,7 +338,7 @@ namespace TEN::Renderer
 
 		// Initialize viewport
 		_viewport = { 0, 0, w, h, 0.0f, 1.0f };
-		_distortionViewport = { 0, 0, (w + 1) / 2, (h + 1) / 2, 0.0f, 1.0f };
+		_distortionViewport = { 0, 0, (int)((w + 1) * 0.5f), (int)((h + 1) * 0.5f), 0.0f, 1.0f };
 		_shadowMapViewport = { 0, 0, g_Configuration.ShadowMapSize, g_Configuration.ShadowMapSize, 0.0f, 1.0f };
 
 		InitializeSMAA();

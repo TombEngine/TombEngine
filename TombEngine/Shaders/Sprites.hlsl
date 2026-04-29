@@ -29,9 +29,6 @@ struct PixelShaderInput
 Texture2D Texture : register(t0);
 SamplerState Sampler : register(s0);
 
-Texture2D DepthTexture : register(t6);
-SamplerState DepthSampler : register(s6);
-
 PixelShaderInput VS(VertexShaderInput input)
 {
 	PixelShaderInput output;

@@ -116,10 +116,6 @@ float4 DoFogBulbsForPixel(float4 sourceColor, float4 fogColor)
 	return result;
 }
 
-// Normalization scale for the emitter view-space depth stored in the B channel of the distortion RT.
-// IMPORTANT: this value must equal DISTORTION_DISTANCE_FADE_END defined in PostProcess.hlsl.
-// When changing the fade range, update both constants together.
-
 float4 ApplyBlendModeColor(float4 sourceColor, float3 worldPosition, float4 positionCopy, float2 svPosition)
 {
 	if (BlendMode != BLENDMODE_DISTORTION)
@@ -138,6 +134,7 @@ float4 ApplyBlendModeColor(float4 sourceColor, float3 worldPosition, float4 posi
 
 	float mask = saturate(Luma(sourceColor.xyz) * sourceColor.w) * depthOcclusion;
 	float seed = frac(dot(worldPosition, float3(0.1031f, 0.11369f, 0.13787f)));
+	
 	// positionCopy.w is view-space depth in world units (same coordinate system as the fade constants).
 	float normalizedDepth = saturate(positionCopy.w / DISTORTION_DEPTH_SCALE);
 	return float4(mask, seed * mask, normalizedDepth * mask, 0.0f);

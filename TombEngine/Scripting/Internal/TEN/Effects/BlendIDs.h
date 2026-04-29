@@ -5,7 +5,7 @@
 namespace TEN::Scripting::Effects
 {
 	/// Constants for blend mode IDs.
-	// All blending modes except `OPAQUE`, `ADDITIVE`, `DISTORTION` and `ALPHA_BLEND` will use depth sorting for applicable polygons.
+	// All blending modes except `OPAQUE`, `ADDITIVE`, `DISTORTION` and `ALPHA_TEST` will use depth sorting for applicable polygons.
 	// This may reduce engine performance, so it is preferable to minimize usage of other blending modes.
 	// @enum Effects.BlendID
 	// @pragma nostrip
