@@ -2034,13 +2034,27 @@ namespace TEN::Renderer
 
 		EndRenderPass(); // Opaque + Transparent
 
-		// Copy current scene to the reflections render target for the next frame
+		// Copy current scene to the reflections render target for next frame.
 		// RT -> LRRT
 		CopyRenderTargetAndDownscale(_renderTarget.get(), _legacyReflectionsRenderTarget.get(), LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, view);
-		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 
-		// Clear the depth buffer for drawing HUD on top
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		// HUD 3D pass: keep color, clear depth so HUD draws on top of the scene.
+		{
+			RenderPassDescriptor hud3DPass;
+			hud3DPass.Name = "HUD 3D";
+
+			ColorAttachmentDescriptor color;
+			color.RenderTarget = _renderTarget->GetRenderTarget();
+			color.LoadAction   = LoadAction::Load;
+			hud3DPass.ColorAttachments.push_back(color);
+
+			hud3DPass.DepthAttachment.DepthTarget = _renderTarget->GetDepthTarget();
+			hud3DPass.DepthAttachment.LoadAction  = LoadAction::Clear;
+			hud3DPass.DepthAttachment.ClearFlags  = DepthStencilClearFlags::DepthAndStencil;
+			hud3DPass.Viewport = view.Viewport;
+
+			BeginRenderPass(hud3DPass);
+		}
 
 		// Draw 3D HUD elements separately here because objects may use emissive materials and require glow.
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
@@ -2048,6 +2062,8 @@ namespace TEN::Renderer
 			g_Hud.Draw3D();
 			g_DrawItems.Draw();
 		}
+
+		EndRenderPass(); // HUD 3D
 
 		_doingFullscreenPass = true;
 
