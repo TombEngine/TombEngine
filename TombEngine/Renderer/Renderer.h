@@ -51,6 +51,7 @@
 #include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererStar.h"
 #include "Renderer/Graphics/IGraphicsDevice.h"
+#include "Renderer/Graphics/RenderPipelineState.h"
 
 using namespace TEN::Animation;
 
@@ -458,6 +459,9 @@ namespace TEN::Renderer
 		void SetDepthState(DepthState depthState, bool force = false);
 		void SetCullMode(CullMode cullMode, bool force = false);
 		void SetAlphaTest(AlphaTestMode mode, float threshold, bool force = false);
+		void BindPipeline(const RenderPipelineState& state, bool force = false);
+		void BeginRenderPass(const RenderPassDescriptor& desc);
+		void EndRenderPass();
 		void SetScissor(RendererRectangle rectangle);
 		bool SetupBlendModeAndAlphaTest(BlendMode blendMode, RendererPass rendererPass, int drawPass);
 		void SortAndPrepareSprites(RenderView& view);

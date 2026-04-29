@@ -388,6 +388,34 @@ namespace TEN::Renderer
 		}
 	}
 
+	void Renderer::BindPipeline(const RenderPipelineState& state, bool force)
+	{
+		// Don't reuse SetBlendMode here: it forces a depth state based on the
+		// blend mode, which would override the explicit Depth from the pipeline.
+		if (state.Blend != _lastBlendMode || force)
+		{
+			_graphicsDevice->SetBlendMode(state.Blend);
+			_stPerDraw.BlendMode = static_cast<unsigned int>(state.Blend);
+			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+			_lastBlendMode = state.Blend;
+		}
+
+		SetDepthState(state.Depth, force);
+		SetCullMode(state.Cull, force);
+	}
+
+	void Renderer::BeginRenderPass(const RenderPassDescriptor& desc)
+	{
+		_graphicsDevice->BeginDebugEvent(desc.Name);
+		_graphicsDevice->BeginRenderPass(desc);
+	}
+
+	void Renderer::EndRenderPass()
+	{
+		_graphicsDevice->EndRenderPass();
+		_graphicsDevice->EndDebugEvent();
+	}
+
 	void Renderer::SetScissor(RendererRectangle s)
 	{
 		_graphicsDevice->SetScissor(s);
