@@ -17,6 +17,7 @@
 #include "Renderer/Graphics/IPrimitiveBatch.h"
 #include "Renderer/Graphics/ISpriteBatch.h"
 #include "Renderer/Graphics/ISpriteFont.h"
+#include "Renderer/Graphics/RenderPassDescriptor.h"
 #include "Renderer/RendererEnums.h"
 #include "Renderer/Graphics/AdapterInfo.h"
 #include "Renderer/Structures/RendererRectangle.h"
@@ -118,6 +119,57 @@ namespace TEN::Renderer::Graphics
 
 		virtual int GetScreenWidth() = 0;
 		virtual int GetScreenHeight() = 0;
+
+		// Render pass API. Backends can override for native render-pass support;
+		// the default decomposes the descriptor into existing Bind/Clear/Set calls,
+		// so callers can adopt this API without forcing every backend to be updated.
+		virtual void BeginRenderPass(const RenderPassDescriptor& desc)
+		{
+			for (auto& ca : desc.ColorAttachments)
+			{
+				if (ca.RenderTarget != nullptr && ca.LoadAction == LoadAction::Clear)
+				{
+					if (ca.ArrayIndex != 0)
+						ClearRenderTarget2D(ca.RenderTarget, ca.ArrayIndex, ca.ClearColor);
+					else
+						ClearRenderTarget2D(ca.RenderTarget, ca.ClearColor);
+				}
+			}
+
+			if (desc.DepthAttachment.DepthTarget != nullptr && desc.DepthAttachment.LoadAction == LoadAction::Clear)
+			{
+				if (desc.DepthAttachment.ArrayIndex != 0)
+					ClearDepthStencil(desc.DepthAttachment.DepthTarget, desc.DepthAttachment.ArrayIndex,
+						desc.DepthAttachment.ClearFlags, desc.DepthAttachment.ClearDepth, desc.DepthAttachment.ClearStencil);
+				else
+					ClearDepthStencil(desc.DepthAttachment.DepthTarget,
+						desc.DepthAttachment.ClearFlags, desc.DepthAttachment.ClearDepth, desc.DepthAttachment.ClearStencil);
+			}
+
+			if (desc.ColorAttachments.size() == 1)
+			{
+				auto& ca = desc.ColorAttachments[0];
+				if (ca.ArrayIndex != 0)
+					BindRenderTarget(
+						IRenderTargetBinding(ca.RenderTarget, ca.ArrayIndex),
+						IDepthTargetBinding(desc.DepthAttachment.DepthTarget, desc.DepthAttachment.ArrayIndex));
+				else
+					BindRenderTarget(ca.RenderTarget, desc.DepthAttachment.DepthTarget);
+			}
+			else if (desc.ColorAttachments.size() > 1)
+			{
+				std::vector<IRenderTarget2D*> rts;
+				rts.reserve(desc.ColorAttachments.size());
+				for (auto& ca : desc.ColorAttachments)
+					rts.push_back(ca.RenderTarget);
+				BindRenderTargets(rts, desc.DepthAttachment.DepthTarget);
+			}
+
+			SetViewport(desc.Viewport);
+			SetScissor(desc.Viewport);
+		}
+
+		virtual void EndRenderPass() {}
 
 		virtual ~IGraphicsDevice() = default;
 	};
