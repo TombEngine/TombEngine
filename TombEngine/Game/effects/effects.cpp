@@ -1629,7 +1629,10 @@ void TriggerFireFlame(int x, int y, int z, FlameType type, bool haze, const Vect
 	}
 
 	spark->scalar = 2;
-	spark->flags = SP_EXPDEF | SP_DEF | SP_SCALE | SP_HAZE;
+	spark->flags = SP_EXPDEF | SP_DEF | SP_SCALE;
+
+	if (haze)
+		spark->flags |= SP_HAZE;
 
 	if (GetRandomControl() & 1)
 	{
