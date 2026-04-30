@@ -281,19 +281,31 @@ namespace TEN::Animation
 		}
 		else
 		{
-			// TODO: Y velocity from animation.
+			// Compute interpolation parameters.
+			auto prevVel = Vector3::Zero;
+			float velAlpha = 1.0f;
+			if (item.Animation.Blend.IsEnabled())
+			{
+				prevVel = item.Animation.Blend.Velocity;
+
+				float curveX = (item.Animation.Blend.FrameCount != 0) ? ((float)item.Animation.Blend.FrameNumber / (float)item.Animation.Blend.FrameCount) : 0.0f;
+				velAlpha = item.Animation.Blend.Curve.GetY(curveX);
+			}
+
+			// TODO: Also get Y velocity from animation. Needs changes in WT.
+			auto vel = Vector3::Lerp(prevVel, fixedMotion.Translation + rootMotion.Translation, velAlpha);
 			if (item.IsLara())
 			{
 				const auto& player = GetLaraInfo(item);
 
 				bool isInSwamp = (player.Control.WaterStatus == WaterStatus::Wade && TestEnvironment(ENV_FLAG_SWAMP, &item));
-				item.Animation.Velocity.x = (fixedMotion.Translation.x + rootMotion.Translation.x) * (isInSwamp ? 0.5f : 1.0f);
-				item.Animation.Velocity.z = (fixedMotion.Translation.z + rootMotion.Translation.z) * (isInSwamp ? 0.5f : 1.0f);
+				item.Animation.Velocity.x = vel.x * (isInSwamp ? 0.5f : 1.0f);
+				item.Animation.Velocity.z = vel.z * (isInSwamp ? 0.5f : 1.0f);
 			}
 			else
 			{
-				item.Animation.Velocity.x = fixedMotion.Translation.x + rootMotion.Translation.x;
-				item.Animation.Velocity.z = fixedMotion.Translation.z + rootMotion.Translation.z;
+				item.Animation.Velocity.x = vel.x;
+				item.Animation.Velocity.z = vel.z;
 			}
 		}
 

@@ -316,8 +316,11 @@ namespace TEN::Renderer
 				});
 		}
 
+		const auto& anim = GetAnimData(*nativeItem);
+		auto rootMotionCounteract = anim.GetRootMotionCounteraction(nativeItem->Animation.FrameNumber);
+
 		const auto& frame = GetFrame(*nativeItem);
-		UpdateAnimation(itemToDraw, moveableObj, frame, UINT_MAX, false, nativeItem->Animation.Blend.IsEnabled() ? &nativeItem->Animation.Blend : nullptr);
+		UpdateAnimation(itemToDraw, moveableObj, frame, UINT_MAX, false, nativeItem->Animation.Blend.IsEnabled() ? &nativeItem->Animation.Blend : nullptr, &rootMotionCounteract);
 	}
 
 	void Renderer::UpdateItemAnimations(RenderView& view)

@@ -239,6 +239,7 @@ void ItemInfo::SetAnimBlend(int frameCount, const BezierCurve2& curve)
 	Animation.Blend.FrameNumber = 0;
 	Animation.Blend.FrameCount = frameCount;
 	Animation.Blend.Curve = curve;
+	Animation.Blend.Velocity = Animation.Velocity;
 	Animation.Blend.RootPosition = rootPos + rootMotionCounteract.Translation;
 
 	for (int i = 0; i < object.nmeshes; i++)

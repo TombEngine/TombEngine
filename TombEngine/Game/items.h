@@ -70,6 +70,7 @@ struct MoveableAnimBlendData
 	int          FrameCount  = 0;
 	BezierCurve2 Curve       = {};
 
+	Vector3                                Velocity         = Vector3::Zero;
 	Vector3                                RootPosition     = Vector3::Zero;
 	std::array<Quaternion, BONE_COUNT_MAX> BoneOrientations = {};
 
