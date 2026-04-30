@@ -40,7 +40,6 @@ static const float2 DOF_DISC_OFFSETS[DOF_DISC_SAMPLES] =
 // ---------------------------------------------------------------------------
 
 // Returns a [0,1] circle-of-confusion for a given view-space depth.
-// Mode (DofParams.w): 0=None, 1=Full, 1=Front, 2=Back.
 float GetDOFCoC(float viewDepth)
 {
     float signedCoC = (viewDepth - DofParams.x) / max(DofParams.y, 1.0f);
@@ -53,7 +52,7 @@ float GetDOFCoC(float viewDepth)
     if (mode == 3) // Back: blur only pixels beyond focus.
 		return saturate(signedCoC);
 		
-	return 0;
+	return 0; // Other values: no DOF.
 }
 
 // ---------------------------------------------------------------------------

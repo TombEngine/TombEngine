@@ -322,6 +322,7 @@ namespace TEN::Renderer
 		_dumpScreenRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::Depth32);  
 		
 		_shadowMap = _graphicsDevice->CreateRenderSurface2D(g_Configuration.ShadowMapSize, g_Configuration.ShadowMapSize, 6, SurfaceFormat::SF_R32_Float, DepthFormat::Depth32);
+		_shadowMapViewport = { 0, 0, g_Configuration.ShadowMapSize, g_Configuration.ShadowMapSize, 0.0f, 1.0f };
 		
 		_depthRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_R32_Float, false, DepthFormat::None);
 		_normalsAndMaterialIndexRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
@@ -330,26 +331,24 @@ namespace TEN::Renderer
 		_SSAORenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_SSAOBlurredRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 
-		auto downscaledW = w / POSTPROCESS_DOWNSCALE_FACTOR;
-		auto downscaledH = h / POSTPROCESS_DOWNSCALE_FACTOR;
+		int downscaledW = (w + POSTPROCESS_DOWNSCALE_FACTOR - 1) / POSTPROCESS_DOWNSCALE_FACTOR;
+		int downscaledH = (h + POSTPROCESS_DOWNSCALE_FACTOR - 1) / POSTPROCESS_DOWNSCALE_FACTOR;
+		_distortionViewport = { 0, 0, downscaledW, downscaledH, 0.0f, 1.0f };
+		_dofViewport = { 0, 0, downscaledW, downscaledH, 0.0f, 1.0f };
 		_distortionRenderTarget = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_dofRenderTarget[0] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_dofRenderTarget[1] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_legacyReflectionsRenderTarget = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 
-		downscaledW = w / GLOW_DOWNSCALE_FACTOR;
-		downscaledH = h / GLOW_DOWNSCALE_FACTOR;
+		downscaledW = (w + GLOW_DOWNSCALE_FACTOR - 1) / GLOW_DOWNSCALE_FACTOR;
+		downscaledH = (h + GLOW_DOWNSCALE_FACTOR - 1) / GLOW_DOWNSCALE_FACTOR;
 		_glowRenderTarget[0] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_glowRenderTarget[1] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
-		
-		_legacyReflectionsRenderTarget = _graphicsDevice->CreateRenderSurface2D(w / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, h / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		
 		_skyboxRenderTarget = _graphicsDevice->CreateRenderSurface2D(ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, 2, SurfaceFormat::SF_RGBA8_Unorm, DepthFormat::Depth32);
 
 		// Initialize viewport
 		_viewport = { 0, 0, w, h, 0.0f, 1.0f };
-		_distortionViewport = { 0, 0, (int)((w + 1) * 0.5f), (int)((h + 1) * 0.5f), 0.0f, 1.0f };
-		_dofViewport = { 0, 0, (int)((w + 1) * 0.5f), (int)((h + 1) * 0.5f), 0.0f, 1.0f };
-		_shadowMapViewport = { 0, 0, g_Configuration.ShadowMapSize, g_Configuration.ShadowMapSize, 0.0f, 1.0f };
 
 		InitializeSMAA();
 		SetFullScreen();

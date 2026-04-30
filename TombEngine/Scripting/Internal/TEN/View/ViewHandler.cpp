@@ -223,7 +223,7 @@ namespace TEN::Scripting::View
 
 	static void SetDOF(DOFMode mode, TypeOrNil<float> distance, TypeOrNil<float> range, TypeOrNil<float> strength)
 	{
-		auto state = Renderer::DOFState{};
+		auto state = DOFState{};
 		state.Distance = std::max(0.0f, ValueOr<float>(distance, BLOCK(1.5f)));
 		state.Range    = std::max(0.0f, ValueOr<float>(range, BLOCK(2)));
 		state.Strength = std::clamp(ValueOr<float>(strength, 0.5f), 0.0f, 1.0f) * 8.0f;

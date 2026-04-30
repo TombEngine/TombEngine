@@ -69,7 +69,6 @@ constexpr auto MAX_SPRITES_DRAW = 512;
 constexpr auto MAX_LENS_FLARES_DRAW = 8;
 
 constexpr auto ROOM_AMBIENT_MAP_SIZE = 512;
-constexpr auto LEGACY_REFLECTIONS_DOWNSCALE_FACTOR = 2.0f;
 constexpr auto MAX_ROOM_AMBIENT_MAPS = 10;
 
 constexpr auto POSTPROCESS_DOWNSCALE_FACTOR = 2.0f;
