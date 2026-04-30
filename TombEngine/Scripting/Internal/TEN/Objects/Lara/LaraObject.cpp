@@ -704,7 +704,8 @@ void LaraObject::SetWaterSkinStatus(int amount, TypeOrNil<bool> flag)
 		inventory.SmallWaterskin = amount;
 }
 
-/// Get the player's skin, skin joints, scream hear and hair objects.
+/// Get the player's skin, skin joints, scream head and hair objects.
+// hair 2 is only returned if Young Lara is enabled in the settings.
 // @function LaraObject:GetSkin
 // @treturn table Array table: {skin, skinJoints, skinScream, hair1, hair2}.
 // @usage
@@ -728,8 +729,8 @@ sol::table LaraObject::GetSkin(sol::this_state s)
 	return t;
 }
 
-/// Swap the player's skin, skin joints, and hair objects.
-// Only available in classic (non-GPU) skinning mode. Pass 0 or nil for any parameter to leave it unchanged.
+/// Swap the skin, skin joints, scream head and hair objects.
+// Pass nil for any parameter to leave it unchanged.
 // The provided object IDs must correspond to objects loaded in the current level.
 // @function LaraObject:SetSkin
 // @tparam[opt] int skin Object ID of the replacement skin mesh.
@@ -738,7 +739,7 @@ sol::table LaraObject::GetSkin(sol::this_state s)
 // @tparam[opt] int hair1 Object ID of the replacement primary hair object.
 // @tparam[opt] int hair2 Object ID of the replacement secondary hair object.
 // @usage
-// Lara:SetSkin(TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT, TEN.Objects.ObjID.ID_LARA_SKIN_CATSUIT_JOINTS, nil, nil)
+// Lara:SetSkin(TEN.Objects.ObjID.ANIMATING18, TEN.Objects.ObjID.ANIMATING19, TEN.Objects.ObjID.ANIMATING20, nil, nil)
 void LaraObject::SetSkin(sol::optional<GAME_OBJECT_ID> skin, sol::optional<GAME_OBJECT_ID> skinJoints, sol::optional<GAME_OBJECT_ID> skinScream, sol::optional<GAME_OBJECT_ID> hair1, sol::optional<GAME_OBJECT_ID> hair2)
 {
 
