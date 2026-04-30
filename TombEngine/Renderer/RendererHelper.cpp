@@ -55,8 +55,7 @@ namespace TEN::Renderer
 		float blendAlpha = 0.0f;
 		if (blend != nullptr)
 		{
-			float curveX = (blend->FrameCount != 0) ? ((float)blend->FrameNumber / (float)blend->FrameCount) : 0.0f;
-			blendAlpha = blend->Curve.GetY(curveX);
+			blendAlpha = blend->GetAlpha();
 		}
 
 		// Run through bone hierarchy.

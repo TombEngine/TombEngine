@@ -42,6 +42,12 @@ using TEN::Renderer::g_Renderer;
 
 constexpr auto ITEM_DEATH_TIMEOUT = 4 * FPS;
 
+float MoveableAnimBlendData::GetAlpha() const
+{
+	float curveX = (FrameCount != 0) ? ((float)FrameNumber / (float)FrameCount) : 0.0f;
+	return Curve.GetY(curveX);
+}
+
 bool MoveableAnimBlendData::IsEnabled() const
 {
 	return (FrameCount != 0);

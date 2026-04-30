@@ -74,6 +74,8 @@ struct MoveableAnimBlendData
 	Vector3                                RootPosition     = Vector3::Zero;
 	std::array<Quaternion, BONE_COUNT_MAX> BoneOrientations = {};
 
+	float GetAlpha() const;
+
 	bool IsEnabled() const;
 };
 

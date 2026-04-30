@@ -287,9 +287,7 @@ namespace TEN::Animation
 			if (item.Animation.Blend.IsEnabled())
 			{
 				prevVel = item.Animation.Blend.Velocity;
-
-				float curveX = (item.Animation.Blend.FrameCount != 0) ? ((float)item.Animation.Blend.FrameNumber / (float)item.Animation.Blend.FrameCount) : 0.0f;
-				velAlpha = item.Animation.Blend.Curve.GetY(curveX);
+				velAlpha = item.Animation.Blend.GetAlpha();
 			}
 
 			// TODO: Also get Y velocity from animation. Needs changes in WT.
