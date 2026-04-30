@@ -301,6 +301,7 @@ namespace TEN::Renderer
 		SAFE_DELETE(_distortionRenderTarget);
 		SAFE_DELETE(_dofRenderTarget[0]);
 		SAFE_DELETE(_dofRenderTarget[1]);
+		SAFE_DELETE(_dofRenderTarget[2]);
 		SAFE_DELETE(_SSAORenderTarget);
 		SAFE_DELETE(_SSAOBlurredRenderTarget);
 		SAFE_DELETE(_glowRenderTarget[0]);
@@ -338,6 +339,7 @@ namespace TEN::Renderer
 		_distortionRenderTarget = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_dofRenderTarget[0] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_dofRenderTarget[1] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_dofRenderTarget[2] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_legacyReflectionsRenderTarget = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 
 		downscaledW = (w + GLOW_DOWNSCALE_FACTOR - 1) / GLOW_DOWNSCALE_FACTOR;

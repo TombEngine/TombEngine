@@ -97,7 +97,7 @@ namespace TEN::Renderer
 		std::unique_ptr<IRenderSurface2D> _depthRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _emissiveAndRoughnessRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _distortionRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _dofRenderTarget[2];
+		std::unique_ptr<IRenderSurface2D> _dofRenderTarget[3];
 		std::unique_ptr<IRenderSurface2D> _dumpScreenRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _renderTarget;
 		std::unique_ptr<IRenderSurface2D> _postProcessRenderTarget[2];

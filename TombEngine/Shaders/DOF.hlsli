@@ -1,4 +1,4 @@
-// Depth-of-field: structs, downsample+CoC, CoC dilation, bokeh blur, composite.
+// Depth-of-field: downsample with packed signed CoC, separate near/far blur, composite.
 // Should be included near the top of PostProcess.hlsl, after CB and texture declarations.
 //
 // DofParams layout (float4):
@@ -6,6 +6,10 @@
 //   y = focus range    (view-space units)
 //   z = bokeh strength (max radius in half-res pixels at CoC = 1)
 //   w = DOFMode:  0 = None, 1 = Full, 2 = Front, 3 = Back
+//
+// Downsample alpha encoding: 0.5 + 0.5 * clamp(signedCoC, -1, 1)
+//   signedCoC < 0 → foreground (near)  → nearCoC = saturate(2*(0.5 - A))
+//   signedCoC > 0 → background (far)   → farCoC  = saturate(2*(A - 0.5))
 
 // ---------------------------------------------------------------------------
 // Shared input structs (used by VS and all DOF/postprocess PS functions).
@@ -16,8 +20,9 @@
 // Constants and kernel.
 // ---------------------------------------------------------------------------
 
-#define DOF_COC_EPSILON  0.025f
-#define DOF_DISC_SAMPLES 12
+#define DOF_COC_EPSILON        0.025f
+#define DOF_DISC_SAMPLES       12
+#define DOF_DEPTH_REJECT_SCALE 3.0f  // rejection threshold relative to center CoC
 
 static const float2 DOF_DISC_OFFSETS[DOF_DISC_SAMPLES] =
 {
@@ -39,24 +44,34 @@ static const float2 DOF_DISC_OFFSETS[DOF_DISC_SAMPLES] =
 // Helpers.
 // ---------------------------------------------------------------------------
 
-// Returns a [0,1] circle-of-confusion for a given view-space depth.
-float GetDOFCoC(float viewDepth)
+// Returns the raw signed CoC (negative = near/foreground, positive = far/background).
+// Clamped to [-1, 1].
+float GetSignedCoC(float viewDepth)
 {
-    float signedCoC = (viewDepth - DofParams.x) / max(DofParams.y, 1.0f);
     int mode = (int)DofParams.w;
-	
-    if (mode == 1) // Full: blur on both sides.
-        return saturate(abs(signedCoC));
-    if (mode == 2) // Front: blur only pixels closer than focus.
-        return saturate(-signedCoC);
-    if (mode == 3) // Back: blur only pixels beyond focus.
-		return saturate(signedCoC);
-		
-	return 0; // Other values: no DOF.
+    if (mode == 0)
+        return 0.0f;
+
+    float signedCoC = (viewDepth - DofParams.x) / max(DofParams.y, 1.0f);
+    signedCoC = clamp(signedCoC, -1.0f, 1.0f);
+
+    if (mode == 2) // Front only: clamp so background has no CoC.
+        signedCoC = min(signedCoC, 0.0f);
+    else if (mode == 3) // Back only: clamp so foreground has no CoC.
+        signedCoC = max(signedCoC, 0.0f);
+
+    return signedCoC;
+}
+
+// Unpack packed CoC from downsample alpha to signed CoC.
+float UnpackSignedCoC(float packedAlpha)
+{
+    return (packedAlpha - 0.5f) * 2.0f;
 }
 
 // ---------------------------------------------------------------------------
-// Pass 1 — half-resolution downsample with CoC stored in alpha.
+// Pass 1 — half-resolution downsample with packed signed CoC in alpha.
+//   Alpha = 0.5 + 0.5 * signedCoC
 // ---------------------------------------------------------------------------
 
 float4 PSDOFDownsample(PixelShaderInput input) : SV_Target
@@ -86,84 +101,143 @@ float4 PSDOFDownsample(PixelShaderInput input) : SV_Target
     color     *= 0.25f;
     viewDepth *= 0.25f;
 
-    return float4(color, GetDOFCoC(viewDepth));
+    float signedCoC = GetSignedCoC(viewDepth);
+    float packedCoC = 0.5f + 0.5f * signedCoC;
+
+    return float4(color, packedCoC);
 }
 
 // ---------------------------------------------------------------------------
-// Pass 2 — 3x3 CoC dilation (max filter).
-// Expands foreground blur regions outward so near objects bleed correctly.
-// Color passes through unchanged; only the alpha (CoC) is dilated.
+// Pass 2 — far (background) blur at half resolution.
+// Reads from the undilated downsample RT; blurs pixels with positive CoC.
+// Depth rejection: samples with very different CoC are weighted down.
+// Output alpha = farCoC of center sample.
 // ---------------------------------------------------------------------------
 
-float4 PSDOFDilate(PixelShaderInput input) : SV_Target
+float4 PSDOFFarBlur(PixelShaderInput input) : SV_Target
 {
-    float4 center = ColorTexture.SampleLevel(ColorSampler, input.UV, 0);
-    float  maxCoC = center.a;
+    float4 center       = ColorTexture.SampleLevel(ColorSampler, input.UV, 0);
+    float  centerSigned = UnpackSignedCoC(center.a);
+    float  centerFarCoC = max(0.0f, centerSigned);
+    float  radius       = centerFarCoC * DofParams.z;
 
-    [unroll]
-    for (int dy = -1; dy <= 1; dy++)
-    {
-        [unroll]
-        for (int dx = -1; dx <= 1; dx++)
-        {
-            if (dx == 0 && dy == 0)
-                continue;
-            float2 offset = float2(dx, dy) * TexelSize;
-            float  tapCoC = ColorTexture.SampleLevel(ColorSampler, saturate(input.UV + offset), 0).a;
-            maxCoC = max(maxCoC, tapCoC);
-        }
-    }
-
-    return float4(center.rgb, maxCoC);
-}
-
-// ---------------------------------------------------------------------------
-// Pass 3 — single-pass Poisson disc bokeh blur at half resolution.
-// Reads from the dilated CoC buffer; radius driven by dilated center CoC.
-// Samples are weighted by their own CoC — no depth rejection.
-// ---------------------------------------------------------------------------
-
-float4 PSDOFBlur(PixelShaderInput input) : SV_Target
-{
-    float4 center = ColorTexture.SampleLevel(ColorSampler, input.UV, 0);
-
-    // Dilated CoC drives the disc radius.
-    float radius = center.a * DofParams.z;
     if (radius < 0.5f)
-        return center;
+        return float4(center.rgb, centerFarCoC);
 
-    float3 accumColor  = center.rgb;
-    float  accumWeight = 1.0f;
+    float3 accumColor  = center.rgb * centerFarCoC;
+    float  accumWeight = centerFarCoC;
+
+    float rejectThreshold = max(centerFarCoC * DOF_DEPTH_REJECT_SCALE, DOF_COC_EPSILON);
 
     [unroll]
     for (int i = 0; i < DOF_DISC_SAMPLES; i++)
     {
-        float2 offset = DOF_DISC_OFFSETS[i] * radius * TexelSize;
-        float4 tap    = ColorTexture.SampleLevel(ColorSampler, saturate(input.UV + offset), 0);
-        // Weight by sample's own CoC (no depth-based rejection).
-        // Small baseline prevents zero-CoC samples from being fully ignored.
-        float w = tap.a + 0.1f;
+        float2 offset    = DOF_DISC_OFFSETS[i] * radius * TexelSize;
+        float4 tap       = ColorTexture.SampleLevel(ColorSampler, saturate(input.UV + offset), 0);
+        float  tapSigned = UnpackSignedCoC(tap.a);
+        float  tapFarCoC = max(0.0f, tapSigned);
+
+        // Reject samples that are clearly not in the far-blur region.
+        float w = (abs(tapFarCoC - centerFarCoC) < rejectThreshold) ? (tapFarCoC + DOF_COC_EPSILON) : DOF_COC_EPSILON;
         accumColor  += tap.rgb * w;
         accumWeight += w;
     }
 
-    return float4(accumColor / accumWeight, center.a);
+    return float4(accumColor / max(accumWeight, DOF_COC_EPSILON), centerFarCoC);
 }
 
 // ---------------------------------------------------------------------------
-// Pass 4 — full-resolution composite.
+// Pass 3 — near CoC dilation (min-filter on packed alpha).
+// Expanding the near CoC outward ensures foreground object edges get the
+// same blur radius as the interior, preventing sharp silhouette lines.
+// Dilation radius scales with DofParams.z (bokeh strength) so stronger
+// blur settings also widen the edge coverage proportionally.
+// Color passes through from the center sample unchanged.
+// ---------------------------------------------------------------------------
+
+#define DOF_DILATE_SAMPLES 12
+
+// Reuse the bokeh disc offsets for the dilation neighbourhood.
+float4 PSDOFNearDilate(PixelShaderInput input) : SV_Target
+{
+    float4 center   = ColorTexture.SampleLevel(ColorSampler, input.UV, 0);
+    float  minAlpha = center.a;
+
+    // Scale dilation radius with bokeh strength; clamp so it stays reasonable.
+    float dilateRadius = clamp(DofParams.z * 2.0f, 1.0f, 16.0f);
+
+    [unroll]
+    for (int i = 0; i < DOF_DILATE_SAMPLES; i++)
+    {
+        float2 offset   = DOF_DISC_OFFSETS[i] * dilateRadius * TexelSize;
+        float  tapAlpha = ColorTexture.SampleLevel(ColorSampler, saturate(input.UV + offset), 0).a;
+        // Lower packed alpha = higher near CoC; min expands foreground blur outward.
+        minAlpha = min(minAlpha, tapAlpha);
+    }
+
+    return float4(center.rgb, minAlpha);
+}
+
+// ---------------------------------------------------------------------------
+// Pass 4 — near (foreground) blur at half resolution.
+// Reads from the dilated near-CoC RT; blurs pixels with negative CoC.
+// Depth rejection: samples with very different CoC are weighted down.
+// Output alpha = nearCoC of center sample.
+// ---------------------------------------------------------------------------
+
+float4 PSDOFNearBlur(PixelShaderInput input) : SV_Target
+{
+    float4 center        = ColorTexture.SampleLevel(ColorSampler, input.UV, 0);
+    float  centerSigned  = UnpackSignedCoC(center.a);
+    float  centerNearCoC = max(0.0f, -centerSigned);
+    float  radius        = centerNearCoC * DofParams.z;
+
+    if (radius < 0.5f)
+        return float4(center.rgb, centerNearCoC);
+
+    float3 accumColor  = center.rgb * centerNearCoC;
+    float  accumWeight = centerNearCoC;
+
+    float rejectThreshold = max(centerNearCoC * DOF_DEPTH_REJECT_SCALE, DOF_COC_EPSILON);
+
+    [unroll]
+    for (int i = 0; i < DOF_DISC_SAMPLES; i++)
+    {
+        float2 offset     = DOF_DISC_OFFSETS[i] * radius * TexelSize;
+        float4 tap        = ColorTexture.SampleLevel(ColorSampler, saturate(input.UV + offset), 0);
+        float  tapSigned  = UnpackSignedCoC(tap.a);
+        float  tapNearCoC = max(0.0f, -tapSigned);
+
+        float w = (abs(tapNearCoC - centerNearCoC) < rejectThreshold) ? (tapNearCoC + DOF_COC_EPSILON) : DOF_COC_EPSILON;
+        accumColor  += tap.rgb * w;
+        accumWeight += w;
+    }
+
+    return float4(accumColor / max(accumWeight, DOF_COC_EPSILON), centerNearCoC);
+}
+
+// ---------------------------------------------------------------------------
+// Pass 5 — full-resolution composite.
+// t0  (ColorTexture)      = sharp full-res image
+// t6  (DepthTexture)      = scene depth
+// t14 (DistortionTexture) = far blur (half-res, alpha = farCoC)
+// t2  (NormalsTexture)    = near blur (half-res, alpha = nearCoC)
+//
+// Composite order: sharp → apply far blur → apply near blur on top.
 // ---------------------------------------------------------------------------
 
 float4 PSDOFComposite(PixelShaderInput input) : SV_Target
 {
     float4 sharpColor = ColorTexture.Sample(ColorSampler, input.UV);
-    float  sceneDepth = DepthTexture.Sample(DepthSampler, input.UV).x;
-    float  viewDepth  = abs(ReconstructViewPosition(input.UV, sceneDepth, InverseProjection).z);
-    float  coc        = GetDOFCoC(viewDepth);
+    float4 farBlur    = DistortionTexture.Sample(DistortionSampler, input.UV);
+    float4 nearBlur   = NormalsTexture.Sample(NormalsSampler, input.UV);
 
-    if (coc < DOF_COC_EPSILON)
-        return sharpColor;
+    float farCoC  = saturate(farBlur.a);
+    float nearCoC = saturate(nearBlur.a);
 
-    float3 blurredColor = DistortionTexture.Sample(DistortionSampler, input.UV).rgb;
-    return float4(lerp(sharpColor.rgb, blurredColor, coc), sharpColor.a);
+    float3 result = sharpColor.rgb;
+    result = lerp(result, farBlur.rgb,  farCoC);
+    result = lerp(result, nearBlur.rgb, nearCoC);
+
+    return float4(result, sharpColor.a);
 }

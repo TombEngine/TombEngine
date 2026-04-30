@@ -35,7 +35,7 @@ namespace TEN::Renderer
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
 
-		// Half-resolution downsample + CoC generation → RT[0].
+		// Half-resolution downsample + packed signed CoC in alpha → RT[0].
 		_graphicsDevice->SetViewport(_dofViewport);
 		_graphicsDevice->SetScissor(_dofViewport);
 		_shaders.Bind(Shader::PostProcessDofDownsample);
@@ -45,21 +45,28 @@ namespace TEN::Renderer
 		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
 
-		// 3x3 CoC dilation — expands foreground blur regions outward → RT[1].
-		_shaders.Bind(Shader::PostProcessDofDilate);
+		// Far (background) blur — reads undilated RT[0], writes RT[1].
+		_shaders.Bind(Shader::PostProcessDofFarBlur);
 		_graphicsDevice->ClearRenderTarget2D(_dofRenderTarget[1]->GetRenderTarget(), Colors::Transparent);
 		_graphicsDevice->BindRenderTarget(_dofRenderTarget[1]->GetRenderTarget(), nullptr);
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, _dofRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
 
-		// Poisson disc bokeh blur (reads dilated RT[1]) → RT[0].
-		_shaders.Bind(Shader::PostProcessDofBlur);
-		_graphicsDevice->ClearRenderTarget2D(_dofRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
-		_graphicsDevice->BindRenderTarget(_dofRenderTarget[0]->GetRenderTarget(), nullptr);
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, _dofRenderTarget[1]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		// Near CoC dilation — 3x3 min-filter expands foreground CoC outward → RT[2].
+		_shaders.Bind(Shader::PostProcessDofNearDilate);
+		_graphicsDevice->ClearRenderTarget2D(_dofRenderTarget[2]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_dofRenderTarget[2]->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _dofRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
 
-		// Full-resolution composite (blurred = RT[0]).
+		// Near (foreground) blur — reads dilated RT[2], writes RT[0] (downsample no longer needed).
+		_shaders.Bind(Shader::PostProcessDofNearBlur);
+		_graphicsDevice->ClearRenderTarget2D(_dofRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_dofRenderTarget[0]->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _dofRenderTarget[2]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+
+		// Full-resolution composite: sharp + far blur (RT[1]) + near blur (RT[0]).
 		_graphicsDevice->SetViewport(view.Viewport);
 		_graphicsDevice->SetScissor(view.Viewport);
 		_shaders.Bind(Shader::PostProcessDofComposite);
@@ -67,7 +74,8 @@ namespace TEN::Renderer
 		_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
-		BindRenderTargetAsTexture(TextureRegister::DistortionMap, _dofRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::DistortionMap, _dofRenderTarget[1]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::CausticsMap, _dofRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
 	}
 
