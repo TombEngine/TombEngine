@@ -38,6 +38,10 @@ namespace TEN::Renderer::Utils
 		Load(Shader::PostProcessNegative, "PostProcess", "Negative", ShaderType::Pixel, {});
 		Load(Shader::PostProcessExclusion, "PostProcess", "Exclusion", ShaderType::Pixel, {});
 		Load(Shader::PostProcessDistortion, "PostProcess", "Distortion", ShaderType::Pixel, {});
+		Load(Shader::PostProcessDofDownsample, "PostProcess", "DOFDownsample", ShaderType::Pixel, {});
+		Load(Shader::PostProcessDofDilate, "PostProcess", "DOFDilate", ShaderType::Pixel, {});
+		Load(Shader::PostProcessDofBlur, "PostProcess", "DOFBlur", ShaderType::Pixel, {});
+		Load(Shader::PostProcessDofComposite, "PostProcess", "DOFComposite", ShaderType::Pixel, {});
 		Load(Shader::PostProcessFinalPass, "PostProcess", "FinalPass", ShaderType::Pixel, {});
 		Load(Shader::PostProcessLensFlare, "PostProcess", "LensFlare", ShaderType::Pixel, {});
 

@@ -13,10 +13,6 @@
 #include "Game/Setup.h"
 #include "Specific/level.h"
 #include "Specific/fast_vector.h"
-#include "Renderer/Frustum.h"
-#include "Renderer/RendererEnums.h"
-#include "Renderer/RenderView.h"
-#include "Renderer/Structures/RendererLight.h"
 #include "Renderer/ConstantBuffers/HUDBarBuffer.h"
 #include "Renderer/ConstantBuffers/HUDBuffer.h"
 #include "Renderer/ConstantBuffers/ShadowLightBuffer.h"
@@ -31,15 +27,20 @@
 #include "Renderer/ConstantBuffers/PostProcessBuffer.h"
 #include "Renderer/ConstantBuffers/SMAABuffer.h"
 #include "Renderer/ConstantBuffers/SkyBuffer.h"
+#include "Renderer/Frustum.h"
+#include "Renderer/Graphics/IGraphicsDevice.h"
+#include "Renderer/Graphics/Vertices/PostProcessVertex.h"
+#include "Renderer/RendererEnums.h"
+#include "Renderer/RenderView.h"
+#include "Renderer/ShaderManager/ShaderManager.h"
 #include "Renderer/Structures/RendererBone.h"
 #include "Renderer/Structures/RendererDoor.h"
+#include "Renderer/Structures/RendererDofMode.h"
 #include "Renderer/Structures/RendererStringToDraw.h"
 #include "Renderer/Structures/RendererRoom.h"
 #include "Renderer/Structures/RendererSprite.h"
 #include "Renderer/Structures/RendererAnimatedTexture.h"
 #include "Renderer/Structures/RendererAnimatedTextureSet.h"
-#include "Renderer/Graphics/Vertices/PostProcessVertex.h"
-#include "Renderer/ShaderManager/ShaderManager.h"
 #include "Renderer/Structures/RendererItem.h"
 #include "Renderer/Structures/RendererEffect.h"
 #include "Renderer/Structures/RendererLine3D.h"
@@ -47,12 +48,12 @@
 #include "Renderer/Structures/RendererMesh.h"
 #include "Renderer/Structures/RendererSpriteSequence.h"
 #include "Renderer/Structures/RendererSpriteBucket.h"
+#include "Renderer/Structures/RendererLight.h"
 #include "Renderer/Structures/RendererLine2D.h"
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Renderer/Structures/RendererRoomAmbientMap.h"
 #include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererStar.h"
-#include "Renderer/Graphics/IGraphicsDevice.h"
 
 using namespace TEN::Animation;
 
@@ -96,6 +97,7 @@ namespace TEN::Renderer
 		std::unique_ptr<IRenderSurface2D> _depthRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _emissiveAndRoughnessRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _distortionRenderTarget;
+		std::unique_ptr<IRenderSurface2D> _dofRenderTarget[2];
 		std::unique_ptr<IRenderSurface2D> _dumpScreenRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _renderTarget;
 		std::unique_ptr<IRenderSurface2D> _postProcessRenderTarget[2];
@@ -153,6 +155,7 @@ namespace TEN::Renderer
 
 		RendererViewport _viewport;
 		RendererViewport _distortionViewport;
+		RendererViewport _dofViewport;
 		RendererViewport _shadowMapViewport;
 
 		// Text
@@ -311,6 +314,7 @@ namespace TEN::Renderer
 		PostProcessMode _postProcessMode = PostProcessMode::None;
 		float _postProcessStrength = 1.0f;
 		Vector3 _postProcessTint = (Vector3)NEUTRAL_COLOR;
+		DOFState _dof;
 
 		std::unique_ptr<IVertexBuffer> _fullscreenTriangleVertexBuffer;
 
@@ -347,6 +351,7 @@ namespace TEN::Renderer
 		void ApplyFXAA(IRenderSurface2D* renderTarget, RenderView& view);
 		void ApplyAntialiasing(IRenderSurface2D* renderTarget, RenderView& view);
 		void ApplyDistortion(IRenderSurface2D* renderTarget, RenderView& view);
+		void ApplyDOF(IRenderSurface2D* renderTarget, RenderView& view);
 		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType);
 		int  BindLight(RendererLight& light, ShaderLight* lights, int index);
 		void BindRoomLights(std::vector<RendererLight*>& lights);
@@ -764,6 +769,8 @@ namespace TEN::Renderer
 		void			SetPostProcessStrength(float strength);
 		Vector3			GetPostProcessTint();
 		void			SetPostProcessTint(Vector3 color);
+		DOFState		GetDOF() const;
+		void			SetDOF(const DOFState& state);
 
 		void SetGraphicsSettingsChanged();
 

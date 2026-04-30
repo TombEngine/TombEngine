@@ -14,17 +14,17 @@
 
 struct PostProcessVertexShaderInput
 {
-    float3 Position: POSITION0;
-    float2 UV: TEXCOORD0;
-    float4 Color: COLOR0;
+    float3 Position : POSITION0;
+    float2 UV       : TEXCOORD0;
+    float4 Color    : COLOR0;
 };
 
 struct PixelShaderInput
 {
-    float4 Position: SV_POSITION;
-    float2 UV: TEXCOORD0;
-    float4 Color: COLOR0;
-    float4 PositionCopy: TEXCOORD1;
+    float4 Position     : SV_POSITION;
+    float2 UV           : TEXCOORD0;
+    float4 Color        : COLOR0;
+    float4 PositionCopy : TEXCOORD1;
 };
 
 Texture2D ColorTexture : register(t0);
@@ -44,6 +44,8 @@ SamplerState EmissiveAndSpecularSampler : register(s5);
 
 Texture2D DistortionTexture : register(t14);
 SamplerState DistortionSampler : register(s14);
+
+#include "./DOF.hlsli"
 
 PixelShaderInput VS(PostProcessVertexShaderInput input)
 {

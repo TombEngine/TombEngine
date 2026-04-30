@@ -72,6 +72,8 @@ constexpr auto ROOM_AMBIENT_MAP_SIZE = 512;
 constexpr auto LEGACY_REFLECTIONS_DOWNSCALE_FACTOR = 2.0f;
 constexpr auto MAX_ROOM_AMBIENT_MAPS = 10;
 
+constexpr auto POSTPROCESS_DOWNSCALE_FACTOR = 2.0f;
+
 constexpr auto GLOW_DOWNSCALE_FACTOR = 4.0f;
 constexpr auto GLOW_BLUR_SIGMA = 10.0f;
 constexpr auto GLOW_BLUR_RADIUS = 24.0f;
@@ -340,6 +342,14 @@ enum class PostProcessMode
 	Exclusion = 3
 };
 
+enum class DOFMode
+{
+	None = 0,
+	Full = 1,
+	Front = 2,
+	Back = 3
+};
+
 enum class MaterialShaderType
 {
 	Default = 0,
@@ -482,6 +492,10 @@ enum class Shader
 	PostProcessNegative,
 	PostProcessExclusion,
 	PostProcessDistortion,
+	PostProcessDofDownsample,
+	PostProcessDofDilate,
+	PostProcessDofBlur,
+	PostProcessDofComposite,
 	PostProcessFinalPass,
 	PostProcessLensFlare,
 

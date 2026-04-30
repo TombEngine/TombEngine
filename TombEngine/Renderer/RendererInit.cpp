@@ -299,6 +299,8 @@ namespace TEN::Renderer
 		SAFE_DELETE(_normalsAndMaterialIndexRenderTarget);
 		SAFE_DELETE(_emissiveAndRoughnessRenderTarget);
 		SAFE_DELETE(_distortionRenderTarget);
+		SAFE_DELETE(_dofRenderTarget[0]);
+		SAFE_DELETE(_dofRenderTarget[1]);
 		SAFE_DELETE(_SSAORenderTarget);
 		SAFE_DELETE(_SSAOBlurredRenderTarget);
 		SAFE_DELETE(_glowRenderTarget[0]);
@@ -324,13 +326,20 @@ namespace TEN::Renderer
 		_depthRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_R32_Float, false, DepthFormat::None);
 		_normalsAndMaterialIndexRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_emissiveAndRoughnessRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
-		_distortionRenderTarget = _graphicsDevice->CreateRenderSurface2D((w + 1) / 2, (h + 1) / 2, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
-		
+
 		_SSAORenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_SSAOBlurredRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
-		
-		_glowRenderTarget[0] = _graphicsDevice->CreateRenderSurface2D(w / GLOW_DOWNSCALE_FACTOR, h / GLOW_DOWNSCALE_FACTOR, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
-		_glowRenderTarget[1] = _graphicsDevice->CreateRenderSurface2D(w / GLOW_DOWNSCALE_FACTOR, h / GLOW_DOWNSCALE_FACTOR, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+
+		auto downscaledW = w / POSTPROCESS_DOWNSCALE_FACTOR;
+		auto downscaledH = h / POSTPROCESS_DOWNSCALE_FACTOR;
+		_distortionRenderTarget = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_dofRenderTarget[0] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_dofRenderTarget[1] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+
+		downscaledW = w / GLOW_DOWNSCALE_FACTOR;
+		downscaledH = h / GLOW_DOWNSCALE_FACTOR;
+		_glowRenderTarget[0] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_glowRenderTarget[1] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		
 		_legacyReflectionsRenderTarget = _graphicsDevice->CreateRenderSurface2D(w / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, h / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		
@@ -339,6 +348,7 @@ namespace TEN::Renderer
 		// Initialize viewport
 		_viewport = { 0, 0, w, h, 0.0f, 1.0f };
 		_distortionViewport = { 0, 0, (int)((w + 1) * 0.5f), (int)((h + 1) * 0.5f), 0.0f, 1.0f };
+		_dofViewport = { 0, 0, (int)((w + 1) * 0.5f), (int)((h + 1) * 0.5f), 0.0f, 1.0f };
 		_shadowMapViewport = { 0, 0, g_Configuration.ShadowMapSize, g_Configuration.ShadowMapSize, 0.0f, 1.0f };
 
 		InitializeSMAA();

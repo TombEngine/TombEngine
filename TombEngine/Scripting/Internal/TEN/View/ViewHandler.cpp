@@ -21,6 +21,7 @@
 #include "Scripting/Internal/TEN/View/DisplaySprite/ScriptDisplaySprite.h"
 #include "Scripting/Internal/TEN/View/ScaleModes.h"
 #include "Scripting/Internal/TEN/View/PostProcessEffects.h"
+#include "Scripting/Internal/TEN/View/DOFModes.h"
 #include "Specific/clock.h"
 #include "Specific/Video/Video.h"
 #include "Specific/trutils.h"
@@ -220,6 +221,16 @@ namespace TEN::Scripting::View
 		g_Renderer.SetPostProcessTint(vec);
 	}
 
+	static void SetDOF(TypeOrNil<DOFMode> mode, TypeOrNil<float> distance, TypeOrNil<float> range, TypeOrNil<float> strength)
+	{
+		auto state = Renderer::DOFState{};
+		state.Distance = std::max(0.0f, ValueOr<float>(distance, BLOCK(1.5f)));
+		state.Range    = std::max(0.0f, ValueOr<float>(range, BLOCK(2)));
+		state.Strength = std::clamp(ValueOr<float>(strength, 0.5f), 0.0f, 1.0f) * 8.0f;
+		state.Mode     = ValueOr<DOFMode>(mode, DOFMode::Full);
+		g_Renderer.SetDOF(state);
+	}
+
 	void Register(sol::state* state, sol::table& parent)
 	{
 		auto tableView = sol::table(state->lua_state(), sol::create);
@@ -295,6 +306,14 @@ namespace TEN::Scripting::View
 		//@function SetPostProcessTint
 		//@tparam Color tint value to use.
 		tableView.set_function(ScriptReserved_SetPostProcessTint, &SetPostProcessTint);
+
+		///Sets depth of field parameters.
+		//@function SetDOF
+		//@tparam[opt=View.DOFMode.FULL] View.DOFMode mode Specifies depth of field mode to use. Set to @{View.DOFMode.NONE} to disable depth of field.
+		//@tparam[opt=1536] float distance Focus distance in world units.
+		//@tparam[opt=2048] float range Width of the sharp focus region in world units.
+		//@tparam[opt=0.5] float strength Maximum bokeh radius (clamped to [0, 1]).
+		tableView.set_function(ScriptReserved_SetDOF, &SetDOF);
 
 		/// Play a video file. File should be placed in the `FMV` folder.
 		// @function PlayVideo
@@ -383,5 +402,6 @@ namespace TEN::Scripting::View
 		handler.MakeReadOnlyTable(tableView, ScriptReserved_AlignMode, ALIGN_MODES);
 		handler.MakeReadOnlyTable(tableView, ScriptReserved_ScaleMode, SCALE_MODES);
 		handler.MakeReadOnlyTable(tableView, ScriptReserved_PostProcessMode, POSTPROCESS_MODES);
+		handler.MakeReadOnlyTable(tableView, ScriptReserved_DOFMode, DOF_MODES);
 	}
 };

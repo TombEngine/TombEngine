@@ -2012,6 +2012,7 @@ namespace TEN::Renderer
 		// GB-E -> GRT0, GRT0 -> GRT1, GRT1 -> GRT0, RT -> PPRT0, PPRT0 -> RT
 		ApplyGlow(_renderTarget.get(), view);
 		ApplyDistortion(_renderTarget.get(), view);
+		ApplyDOF(_renderTarget.get(), view);
 
 		// Apply the antialiasing, now 3D geometry and 3D HUD are antialiased
 		// FXAA: RT -> PPRT0, PPRT0 -> RT

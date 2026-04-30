@@ -5,6 +5,72 @@
 
 namespace TEN::Renderer
 {
+	void Renderer::ApplyDOF(IRenderSurface2D* renderTarget, RenderView& view)
+	{
+		if ( _dof.Range <= EPSILON || _dof.Strength <= EPSILON || _dof.Mode == DOFMode::None)
+			return;
+
+		SetBlendMode(BlendMode::Opaque, true);
+		SetCullMode(CullMode::CounterClockwise, true);
+		SetDepthState(DepthState::Write, true);
+
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+
+		auto halfWidth = std::max(1, (int)_dofViewport.Width);
+		auto halfHeight = std::max(1, (int)_dofViewport.Height);
+
+		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
+		_stPostProcessBuffer.TexelSize = Vector2(1.0f / halfWidth, 1.0f / halfHeight);
+		_stPostProcessBuffer.DofParams = Vector4(_dof.Distance, _dof.Range, _dof.Strength, (float)_dof.Mode);
+		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
+
+		// Copy full-resolution scene for the final composite.
+		_graphicsDevice->SetViewport(view.Viewport);
+		_graphicsDevice->SetScissor(view.Viewport);
+		_shaders.Bind(Shader::PostProcess);
+		_graphicsDevice->ClearRenderTarget2D(_postProcessRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_postProcessRenderTarget[0]->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+
+		// Half-resolution downsample + CoC generation → RT[0].
+		_graphicsDevice->SetViewport(_dofViewport);
+		_graphicsDevice->SetScissor(_dofViewport);
+		_shaders.Bind(Shader::PostProcessDofDownsample);
+		_graphicsDevice->ClearRenderTarget2D(_dofRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_dofRenderTarget[0]->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
+		DrawTriangles(3, 0);
+
+		// 3x3 CoC dilation — expands foreground blur regions outward → RT[1].
+		_shaders.Bind(Shader::PostProcessDofDilate);
+		_graphicsDevice->ClearRenderTarget2D(_dofRenderTarget[1]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_dofRenderTarget[1]->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _dofRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+
+		// Poisson disc bokeh blur (reads dilated RT[1]) → RT[0].
+		_shaders.Bind(Shader::PostProcessDofBlur);
+		_graphicsDevice->ClearRenderTarget2D(_dofRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_dofRenderTarget[0]->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _dofRenderTarget[1]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+
+		// Full-resolution composite (blurred = RT[0]).
+		_graphicsDevice->SetViewport(view.Viewport);
+		_graphicsDevice->SetScissor(view.Viewport);
+		_shaders.Bind(Shader::PostProcessDofComposite);
+		_graphicsDevice->ClearRenderTarget2D(renderTarget->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
+		BindRenderTargetAsTexture(TextureRegister::DistortionMap, _dofRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+	}
+
 	void Renderer::ApplyDistortion(IRenderSurface2D* renderTarget, RenderView& view)
 	{
 		if (!_hasDistortionMask)
@@ -183,6 +249,19 @@ namespace TEN::Renderer
 	void Renderer::SetPostProcessTint(Vector3 tint)
 	{
 		_postProcessTint = tint;
+	}
+
+	DOFState Renderer::GetDOF() const 
+	{
+		return _dof;
+	}
+
+	void Renderer::SetDOF(const DOFState& state)
+	{
+		_dof.Distance = std::max(0.0f, state.Distance);
+		_dof.Range    = std::max(0.0f, state.Range);
+		_dof.Strength = std::clamp(state.Strength, 0.0f, 8.0f);
+		_dof.Mode     = state.Mode;
 	}
 
 	void Renderer::CopyRenderTarget(IRenderSurface2D* source, IRenderSurface2D* dest, RenderView& view)
