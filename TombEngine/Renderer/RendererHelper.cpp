@@ -1,10 +1,5 @@
 #include "framework.h"
-
-#include <algorithm>
-#include <ctime>
-#include <filesystem>
-#include <ScreenGrab.h>
-#include <wincodec.h>
+#include "Renderer/Renderer.h"
 
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Game/Animation/Animation.h"
@@ -29,7 +24,6 @@
 #include "Objects/TR4/Vehicles/motorbike_info.h"
 #include "Math/Math.h"
 #include "Renderer/RenderView.h"
-#include "Renderer/Renderer.h"
 #include "Specific/configuration.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
@@ -537,12 +531,12 @@ namespace TEN::Renderer
 
 	Vector2i Renderer::GetScreenResolution() const
 	{
-		return Vector2i(_screenWidth, _screenHeight);
+		return Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
 	}
 
 	int Renderer::GetScreenRefreshRate() const
 	{
-		return _refreshRate;
+		return _graphicsDevice->GetRefreshRate();
 	}
 
 	std::optional<Vector2> Renderer::Get2DPosition(const Vector3& pos) const
@@ -579,8 +573,8 @@ namespace TEN::Renderer
 
 	std::pair<Vector3, Vector3> Renderer::GetRay(const Vector2& pos) const
 	{
-		auto nearPoint = _viewportToolkit.Unproject(Vector3(pos.x, pos.y, 0.0f), _gameCamera.Camera.Projection, _gameCamera.Camera.View, Matrix::Identity);
-		auto farPoint  = _viewportToolkit.Unproject(Vector3(pos.x, pos.y, 1.0f), _gameCamera.Camera.Projection, _gameCamera.Camera.View, Matrix::Identity);
+		auto nearPoint = _graphicsDevice->Unproject(Vector3(pos.x, pos.y, 0.0f), _gameCamera.Camera.Projection, _gameCamera.Camera.View, Matrix::Identity);
+		auto farPoint  = _graphicsDevice->Unproject(Vector3(pos.x, pos.y, 1.0f), _gameCamera.Camera.Projection, _gameCamera.Camera.View, Matrix::Identity);
 
 		return std::pair<Vector3, Vector3>(nearPoint, farPoint);
 	}
@@ -647,13 +641,13 @@ namespace TEN::Renderer
 			std::filesystem::create_directory(screenPath);
 
 		screenPath += buffer;
-		SaveWICTextureToFile(_context.Get(), _backBuffer.Texture.Get(), GUID_ContainerFormatPng, TEN::Utils::ToWString(screenPath).c_str(),
-			&GUID_WICPixelFormat24bppBGR, nullptr, true);
+		
+		_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), TEN::Utils::ToWString(screenPath));
 	}
 
 	std::optional<Vector2> Renderer::ProjectDisplayItemPointToScreen(const Vector3& worldPos) const
 	{
-		float t = GetInterpolationFactor();
+		float t = GetInterpolationFactor(true);
 
 		Matrix viewMatrix = Matrix::CreateLookAt(
 			g_DrawItems.GetInterpolatedCameraPosition(t),
@@ -661,10 +655,10 @@ namespace TEN::Renderer
 			Vector3::Up
 		);
 
-		float aspectRatio = (float)_screenWidth / _screenHeight;
+		float aspectRatio = (float)_graphicsDevice->GetScreenWidth() / _graphicsDevice->GetScreenHeight();
 
 		Matrix projMatrix = Matrix::CreatePerspectiveFieldOfView(
-			CurrentFOV,
+			g_DrawItems.GetInterpolatedFov(t),
 			aspectRatio,
 			DISPLAY_ITEM_NEAR_PLANE,
 			DISPLAY_ITEM_FAR_PLANE
@@ -683,15 +677,15 @@ namespace TEN::Renderer
 		if (p.x < -1.0f || p.x > 1.0f || p.y < -1.0f || p.y > 1.0f)
 			return std::nullopt;
 
-		float screenX = (p.x + 1.0f) * _screenWidth * 0.5f;
-		float screenY = (1.0f - p.y) * _screenHeight * 0.5f;
+		float screenX = (p.x + 1.0f) * _graphicsDevice->GetScreenWidth() * 0.5f;
+		float screenY = (1.0f - p.y) * _graphicsDevice->GetScreenHeight() * 0.5f;
 
 		return Vector2(screenX, screenY);
 	}
 
 	std::optional<std::pair<Vector2, Vector2>> Renderer::GetDisplayItemBounds(const DisplayItem& item) const
 	{
-		float alpha = GetInterpolationFactor();
+		float alpha = GetInterpolationFactor(true);
 
 		// World transforms.
 		auto pos    = item.GetInterpolatedPosition(alpha);
@@ -757,7 +751,7 @@ namespace TEN::Renderer
 		float dist = (worldCenter - camPos).Length();
 
 		// Build view-projection matrix.
-		float aspectRatio = (float)_screenWidth / _screenHeight;
+		float aspectRatio = (float)_graphicsDevice->GetScreenWidth() / _graphicsDevice->GetScreenHeight();
 		auto viewMatrix = Matrix::CreateLookAt(camPos, camTarget, Vector3::Up);
 		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(CurrentFOV, aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
 		auto viewProj = viewMatrix * projMatrix;
@@ -780,8 +774,8 @@ namespace TEN::Renderer
 				float upDot = dir.Dot(camUp);
 				
 				// Convert to screen coordinates with large offset for off-screen.
-				float screenX = rightDot * _screenWidth * 2.0f + (_screenWidth * 0.5f);
-				float screenY = -upDot * _screenHeight * 2.0f + (_screenHeight * 0.5f);
+				float screenX = rightDot * _graphicsDevice->GetScreenWidth() * 2.0f + (_graphicsDevice->GetScreenWidth() * 0.5f);
+				float screenY = -upDot * _graphicsDevice->GetScreenHeight() * 2.0f + (_graphicsDevice->GetScreenHeight() * 0.5f);
 				
 				return Vector2(screenX, screenY);
 			}
@@ -792,8 +786,8 @@ namespace TEN::Renderer
 			pos.x = std::clamp(pos.x, -3.0f, 3.0f);
 			pos.y = std::clamp(pos.y, -3.0f, 3.0f);
 
-			float screenX = (pos.x + 1.0f) * _screenWidth * 0.5f;
-			float screenY = (1.0f - pos.y) * _screenHeight * 0.5f;
+			float screenX = (pos.x + 1.0f) * _graphicsDevice->GetScreenWidth() * 0.5f;
+			float screenY = (1.0f - pos.y) * _graphicsDevice->GetScreenHeight() * 0.5f;
 			return Vector2(screenX, screenY);
 		};
 
@@ -818,7 +812,7 @@ namespace TEN::Renderer
 		// Ensure reasonable minimum size based on screen-space estimation.
 		// Calculate expected pixel size based on FOV and distance.
 		float angularSize = 2.0f * atan(radiusMax / std::max(dist, 1.0f));
-		float expectedPixelHeight = (angularSize / CurrentFOV) * _screenHeight;
+		float expectedPixelHeight = (angularSize / CurrentFOV) * _graphicsDevice->GetScreenHeight();
 		float expectedPixelWidth = expectedPixelHeight * aspectRatio;
 
 		// Use the larger of projected size or estimated size.

@@ -119,7 +119,7 @@ static std::unique_ptr<Moveable> Create(GAME_OBJECT_ID objID, const std::string&
 
 		scriptMov->SetOcb(ValueOr<int>(ocb, 0));
 		scriptMov->SetAIBits(ValueOr<aiBitsType>(aiBits, aiBitsType{}));
-		scriptMov->SetColor(ScriptColor(Vector4::One));
+		scriptMov->SetColor(ScriptColor(NEUTRAL_COLOR));
 		mov.CarriedItem = NO_VALUE;
 
 		// call this when resetting name too?

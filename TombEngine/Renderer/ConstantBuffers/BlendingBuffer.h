@@ -7,5 +7,6 @@ namespace TEN::Renderer::ConstantBuffers
 		unsigned int BlendMode;
 		int AlphaTest;
 		float AlphaThreshold;
+		int CBlendingBuffer_Padding0;
 	};
 }

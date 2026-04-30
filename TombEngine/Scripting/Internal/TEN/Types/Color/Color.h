@@ -2,7 +2,7 @@
 
 #include "Specific/RGBAColor8Byte.h"
 
-typedef DWORD D3DCOLOR;
+typedef unsigned int D3DCOLOR;
 
 namespace sol { class state; }
 namespace sol { template <typename T> struct as_table_t; }
@@ -21,25 +21,25 @@ namespace TEN::Scripting::Types
 
 		// Constructors
 		ScriptColor();
-		ScriptColor(byte r, byte g, byte b);
-		ScriptColor(byte r, byte g, byte b, byte a);
+		ScriptColor(unsigned char r, unsigned char g, unsigned char b);
+		ScriptColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
 		ScriptColor(const Vector3& color);
 		ScriptColor(const Vector4& color);
 		ScriptColor(D3DCOLOR);
 
 		// Getters
 
-		byte GetR() const;
-		byte GetG() const;
-		byte GetB() const;
-		byte GetA() const;
+		unsigned char GetR() const;
+		unsigned char GetG() const;
+		unsigned char GetB() const;
+		unsigned char GetA() const;
 
 		// Setters
 
-		void SetR(byte value);
-		void SetG(byte value);
-		void SetB(byte value);
-		void SetA(byte value);
+		void SetR(unsigned char value);
+		void SetG(unsigned char value);
+		void SetB(unsigned char value);
+		void SetA(unsigned char value);
 
 		// Methods
 

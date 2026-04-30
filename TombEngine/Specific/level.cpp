@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Specific/level.h"
 
-#include <process.h>
 #include <lz4.h>
 
 #include "Game/Animation/Animation.h"
@@ -26,15 +25,16 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Sound/sound.h"
+#include "Specific/EngineMain.h"
 #include "Specific/Input/Input.h"
 #include "Specific/trutils.h"
-#include "Specific/winmain.h"
 
 using namespace TEN::Physics;
 using TEN::Renderer::g_Renderer;
 
 using namespace TEN::Entities::Doors;
 using namespace TEN::Input;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 
 constexpr auto DUMMY_LEVEL_NAME = "dummy.ten";
@@ -606,10 +606,27 @@ void LoadCameras()
 	int numSpotcams = ReadCount();
 	TENLog("Flyby camera count: " + std::to_string(numSpotcams), LogLevel::Info);
 
-	// TODO: Read properly!
-	SpotCam.resize(numSpotcams);
-	if (numSpotcams != 0)
-		ReadBytes(SpotCam.data(), numSpotcams * sizeof(SPOTCAM));
+	g_Level.SpotCams.resize(numSpotcams);
+	for (int i = 0; i < numSpotcams; i++)
+	{
+		auto& cam = g_Level.SpotCams[i];
+		cam.Position.x = ReadInt32();
+		cam.Position.y = ReadInt32();
+		cam.Position.z = ReadInt32();
+		cam.Target.x   = ReadInt32();
+		cam.Target.y   = ReadInt32();
+		cam.Target.z   = ReadInt32();
+
+		cam.Sequence   = ReadInt32();
+		cam.Camera     = ReadInt32();
+
+		cam.FOV        = ReadInt16();
+		cam.Roll       = ReadInt16();
+		cam.Timer      = ReadInt16();
+		cam.Speed      = ReadInt16();
+		cam.Flags      = ReadInt16();
+		cam.RoomNumber = ReadInt32();
+	}
 
 	int sinkCount = ReadCount();
 	TENLog("Sink count: " + std::to_string(sinkCount), LogLevel::Info);
@@ -1428,7 +1445,7 @@ bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompress
 	return totalDecompressed == totalUncompressedSize;
 }
 
-#ifdef _WIN64
+#if PLATFORM_64BIT
 long long GetRemainingSize(FILE* filePtr)
 {
 	auto current_position = _ftelli64(filePtr);
@@ -1468,7 +1485,7 @@ bool ReadCompressedBlock(FILE* filePtr, bool skip)
 	ReadFileEx(&uncompressedSize, 1, sizeof(long long), filePtr);
 	ReadFileEx(&compressedSize, 1, sizeof(long long), filePtr);
 
-#ifndef _WIN64
+#ifndef PLATFORM_64BIT
 	// Safeguard against incompatible block size.
 	if (uncompressedSize > INT_MAX || compressedSize > INT_MAX)
 		throw std::exception{ "Level data block exceeds 2 GB and can't be loaded by a 32-bit version of the engine." };
@@ -1572,7 +1589,7 @@ bool LoadLevel(const std::string& path, bool partial)
 			TENLog("Level compiler version: " + std::to_string(version[0]) + "." + std::to_string(version[1]) + "." + std::to_string(version[2]), LogLevel::Info);
 
 			// Check if level version is higher than engine version
-			auto assemblyVersion = TEN::Utils::GetProductOrFileVersion(true);
+			auto assemblyVersion = g_Platform->GetProductOrFileVersion(true);
 			for (int i = 0; i < assemblyVersion.size(); i++)
 			{
 				if (i >= 3)
@@ -1853,7 +1870,7 @@ bool LoadLevelFile(int levelIndex)
 		if (levelIndex == 0)
 		{
 			levelPath = assetDir + DUMMY_LEVEL_NAME;
-			GenerateDummyLevel(levelPath);
+			g_Platform->CreateDummyTitleLevel(levelPath);
 			TENLog("Title level file not found, using dummy level.", LogLevel::Info);
 			isDummyLevel = true;
 		}

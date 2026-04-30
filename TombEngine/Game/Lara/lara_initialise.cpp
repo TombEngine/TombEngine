@@ -60,7 +60,7 @@ void InitializeLara(bool restore)
 	if (LaraItem == nullptr || LaraItem->Index == NO_VALUE)
 		return;
 
-	ZeroMemory(&Lara, sizeof(LaraInfo));
+	memset(&Lara, 0, sizeof(LaraInfo));
 
 	LaraItem->Data = &Lara;
 	LaraItem->Collidable = false;
