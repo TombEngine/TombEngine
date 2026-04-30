@@ -30,49 +30,77 @@ namespace TEN::Entities::Doors
 		auto* doorItem = &g_Level.Items[itemNumber];
 		auto* door = &GetDoorObject(*doorItem);
 
-		if (CurrentSequence == 3)
+		if (doorItem->ItemFlags[0])
 		{
-			if (SequenceResults[Sequences[0]][Sequences[1]][Sequences[2]] == doorItem->TriggerFlags)
+			if (TriggerActive(doorItem))
 			{
-				if (doorItem->Animation.ActiveState == 1)
-					doorItem->Animation.TargetState = 1;
+				if (!doorItem->Animation.ActiveState)
+					doorItem->Animation.TargetState =  1;
 				else
-					doorItem->Animation.TargetState = 0;
-
-				TestTriggers(doorItem, true);
-			}
-
-			CurrentSequence = 4;
-		}
-
-		if (doorItem->Animation.ActiveState == doorItem->Animation.TargetState)
-		{
-			if (doorItem->Animation.ActiveState == 1)
-			{
-				if (!door->opened)
 				{
-					OpenThatDoor(&door->d1, door);
-					OpenThatDoor(&door->d2, door);
-					OpenThatDoor(&door->d1flip, door);
-					OpenThatDoor(&door->d2flip, door);
-					DisableDoorCollisionMesh(*doorItem);
-					door->opened = true;
-					doorItem->Flags |= 0x3E;
+					if (!door->opened)
+					{
+						OpenThatDoor(&door->d1, door);
+						OpenThatDoor(&door->d2, door);
+						OpenThatDoor(&door->d1flip, door);
+						OpenThatDoor(&door->d2flip, door);
+						door->opened = 1;
+					}
+
+					if (CurrentSequence == 3)
+					{
+						if (SequenceResults[Sequences[0]][Sequences[1]][Sequences[2]] == doorItem->TriggerFlags &&
+							!Sequences[0] && Sequences[1] == 1 && Sequences[2] == 2)
+						{
+							CurrentSequence = 4;
+							SequenceUsed[doorItem->TriggerFlags] = Sequences[1];
+						}
+					}
+					else if ((CurrentSequence == 1 || CurrentSequence == 2) && doorItem->TriggerFlags == 2)
+					{
+						doorItem->Flags &= ~(IFLAG_INVISIBLE | IFLAG_CLEAR_BODY);
+						doorItem->Animation.TargetState = 0;
+						doorItem->ItemFlags[0] = 0;
+					}
 				}
 			}
 			else
 			{
-				if (door->opened)
+				if (doorItem->Animation.ActiveState == 1)
+					doorItem->Animation.TargetState = 0;
+				else
 				{
-					ShutThatDoor(&door->d1, door);
-					ShutThatDoor(&door->d2, door);
-					ShutThatDoor(&door->d1flip, door);
-					ShutThatDoor(&door->d2flip, door);
-					EnableDoorCollisionMesh(*doorItem);
-					door->opened = false;
-					doorItem->Flags &= 0xC1;
+					if (CurrentSequence == 3 && SequenceResults[Sequences[0]][Sequences[1]][Sequences[2]] == doorItem->TriggerFlags)
+					{
+						CurrentSequence = 4;
+
+						if (doorItem->TriggerFlags != 2)
+							SequenceUsed[doorItem->TriggerFlags] = 1;
+					}
+
+					if (door->opened)
+					{
+						ShutThatDoor(&door->d1, door);
+						ShutThatDoor(&door->d2, door);
+						ShutThatDoor(&door->d1flip, door);
+						ShutThatDoor(&door->d2flip, door);
+						door->opened = 0;
+					}
 				}
 			}
+		}
+		else if (!doorItem->Animation.ActiveState && CurrentSequence == 3 && SequenceResults[Sequences[0]][Sequences[1]][Sequences[2]] == doorItem->TriggerFlags)
+		{
+			if (doorItem->TriggerFlags && doorItem->TriggerFlags != 2 && !SequenceUsed[0])
+			{
+				Sequences[1] = 0;
+				Sequences[0] = 1;
+				Sequences[2] = 2;
+				return;
+			}
+
+			doorItem->Animation.TargetState = 1;
+			doorItem->ItemFlags[0] = 1;
 		}
 
 		AnimateItem(doorItem);

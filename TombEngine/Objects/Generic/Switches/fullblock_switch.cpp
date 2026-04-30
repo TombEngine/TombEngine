@@ -30,7 +30,7 @@ namespace TEN::Entities::Switches
 			EulerAngles(ANGLE(10.0f), ANGLE(30.0f), ANGLE(10.0f))
 		)
 	};
-	const auto FullBlockSwitchPos = Vector3i::Zero;
+	const auto FullBlockSwitchPos = Vector3i(0, CLICK(1), 0);
 
 	byte SequenceUsed[6];
 	byte SequenceResults[3][3][3];
@@ -102,15 +102,17 @@ namespace TEN::Entities::Switches
 				switchItem->ItemFlags[0] = 0;
 				switchItem->Animation.TargetState = SWITCH_ON;
 				switchItem->Status = ITEM_NOT_ACTIVE;
-
-				if (++CurrentSequence >= 7)
+				CurrentSequence++;
+				
+				if (CurrentSequence >= 7)
 					CurrentSequence = 0;
 			}
 		}
 		else
 		{
 			switchItem->ItemFlags[0] = 1;
-			Sequences[CurrentSequence++] = switchItem->TriggerFlags;
+			Sequences[CurrentSequence] = switchItem->TriggerFlags;
+			CurrentSequence++;
 		}
 
 		AnimateItem(switchItem);
