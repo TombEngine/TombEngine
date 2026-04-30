@@ -50,6 +50,10 @@ table LevelData {
 	starfield_meteor_count: int32;
 	starfield_meteor_spawn_density: int32;
 	starfield_meteor_velocity: int32;
+
+	current_sequence: int32;
+    sequences: [int32];
+    sequence_used: [int32];
 }
 
 table Room {

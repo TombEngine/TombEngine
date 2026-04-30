@@ -37,6 +37,23 @@ namespace TEN::Entities::Switches
 	byte Sequences[3]; //Current Sequence
 	byte CurrentSequence; //Count of switches pressed in current sequence
 
+    void SetupFullBlockSwitch()
+    {
+        CurrentSequence = 0;
+        SequenceResults[0][1][2] = 0;
+        SequenceResults[0][2][1] = 1;
+        SequenceResults[1][0][2] = 2;
+        SequenceResults[1][2][0] = 3;
+        SequenceResults[2][0][1] = 4;
+        SequenceResults[2][1][0] = 5;
+        SequenceUsed[0] = 0;
+        SequenceUsed[1] = 0;
+        SequenceUsed[2] = 0;
+        SequenceUsed[3] = 0;
+        SequenceUsed[4] = 0;
+        SequenceUsed[5] = 0;
+    }
+
     void FullBlockSwitchCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
     {
         auto* laraInfo = GetLaraInfo(laraItem);
@@ -86,7 +103,7 @@ namespace TEN::Entities::Switches
         }
      }
 
-     // Shared control handler
+    // Shared control handler
      void FullBlockSwitchControl(short itemNumber, byte switchIndex)
      {
         auto* switchItem = &g_Level.Items[itemNumber];

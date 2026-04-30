@@ -256,17 +256,7 @@ void InitializeObjects()
 	// User defined objects
 	CustomObjects();
 
-	CurrentSequence = 0;
-	SequenceResults[0][1][2] = 0;
-	SequenceResults[0][2][1] = 1;
-	SequenceResults[1][0][2] = 2;
-	SequenceResults[1][2][0] = 3;
-	SequenceResults[2][0][1] = 4;
-	SequenceResults[2][1][0] = 5;
-	SequenceUsed[0] = 0;
-	SequenceUsed[1] = 0;
-	SequenceUsed[2] = 0;
-	SequenceUsed[3] = 0;
-	SequenceUsed[4] = 0;
-	SequenceUsed[5] = 0;
+	//Sequence Switches and Doors
+	SetupFullBlockSwitch();
+
 }

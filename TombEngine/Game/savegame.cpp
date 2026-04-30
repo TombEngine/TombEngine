@@ -1429,6 +1429,18 @@ const std::vector<byte> SaveGame::Build()
 	levelData.add_weather_strength(level->WeatherStrength);
 	levelData.add_weather_clustering(level->WeatherClustering);
 
+	//Sequence Switch Data
+	std::vector<int32_t> sequenceUsedVec(std::begin(SequenceUsed), std::end(SequenceUsed));
+	std::vector<int32_t> sequencesVec(std::begin(Sequences), std::end(Sequences));
+	int32_t currentSequenceVal = CurrentSequence;
+	
+	auto sequenceUsedOffset = fbb.CreateVector(sequenceUsedVec);
+	auto sequencesOffset = fbb.CreateVector(sequencesVec);
+
+	levelData.add_current_sequence(currentSequenceVal);
+	levelData.add_sequences(sequencesOffset);
+	levelData.add_sequence_used(sequenceUsedOffset);
+
 	auto levelDataOffset = levelData.Finish();
 
 	// Global event sets
@@ -3054,6 +3066,18 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			item->Data = savedData->scalar();
 		}
 	}
+
+	//Sequence Switch
+	if (s->level_data()->sequences() && s->level_data()->sequence_used()) 
+	{
+		for (int i = 0; i < s->level_data()->sequences()->size() && i < 3; ++i)
+			Sequences[i] = (byte)s->level_data()->sequences()->Get(i);
+
+		for (int i = 0; i < s->level_data()->sequence_used()->size() && i < 6; ++i)
+			SequenceUsed[i] = (byte)s->level_data()->sequence_used()->Get(i);
+	}
+
+	CurrentSequence = (byte)s->level_data()->current_sequence();
 }
 
 void SaveGame::Parse(const std::vector<byte>& buffer, bool hubMode)

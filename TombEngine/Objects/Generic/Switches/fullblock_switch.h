@@ -10,6 +10,7 @@ namespace TEN::Entities::Switches
 	extern byte Sequences[3];
 	extern byte CurrentSequence;
 
+	void SetupFullBlockSwitch();
 	void FullBlockSwitchControl(short itemNumber, byte switchIndex);
 	void FullBlockSwitch1Control(short itemNumber);
 	void FullBlockSwitch2Control(short itemNumber);
