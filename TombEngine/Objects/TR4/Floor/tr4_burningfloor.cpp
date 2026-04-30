@@ -19,7 +19,7 @@ using namespace TEN::Effects::Items;
 // 15 of the 16 fire spawn locations on the burning floor, relative to the item's origin.
 // Format: { xOffset, zOffset, sizeIndex }
 // sizeIndex: 0 = small (ItemFlags[0]), 1 = medium (ItemFlags[1]), 2 = large (ItemFlags[2])
-// NOTE: The original TR4 data contained 16 entries but only iterated 15; faithful port.
+// NOTE: The original TR4 data contained 16 entries but only iterated 15
 static constexpr int FLOOR_FIRES[16][3] =
 {
 	{  -96,  1216, 2 },
@@ -63,7 +63,6 @@ void BurningFloorControl(short itemNumber)
 	auto* item = &g_Level.Items[itemNumber];
 
 	// --- Phase 0: Wait for a stationary lit torch to ignite the floor ---
-	// ItemFlags[3] == 0 means not yet ignited.
 	if (!item->ItemFlags[3])
 	{
 		auto spheres = item->GetSpheres();
@@ -90,7 +89,7 @@ void BurningFloorControl(short itemNumber)
 				float dz   = sphere.Center.z - torch->Pose.Position.z;
 				float rSum = sphere.Radius + 32.0f;
 
-				if ((dx * dx + dy * dy + dz * dz) > (rSum * rSum))
+				if ((dx * dx + dy * dy + dz * dz) <= (rSum * rSum))
 				{
 					item->ItemFlags[3] = 1;
 					KillItem(torchNum);
@@ -103,8 +102,6 @@ void BurningFloorControl(short itemNumber)
 	}
 
 	// --- Precompute Y-rotation basis for offsetting fire positions ---
-	// Original TR4 fire offsets were authored for Y orientation of 90 degrees,
-	// so subtract that base angle to get the correct delta rotation.
 	short deltaY = item->Pose.Orientation.y + ANGLE(90.0f);
 	float sinY = phd_sin(deltaY);
 	float cosY = phd_cos(deltaY);
@@ -121,7 +118,6 @@ void BurningFloorControl(short itemNumber)
 			continue;
 
 		// Convert intensity (1-255, higher = brighter) to fade (1-255, higher = more faded).
-		// The renderer treats fade=1 as fully visible and fade=255 as invisible.
 		short fade = 256 - intensity;
 
 		// Rotate offset by the object's current Y orientation.
