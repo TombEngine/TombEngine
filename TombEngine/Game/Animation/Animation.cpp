@@ -283,15 +283,15 @@ namespace TEN::Animation
 		{
 			// Compute interpolation parameters.
 			auto prevVel = Vector3::Zero;
-			float velAlpha = 1.0f;
+			float blendAlpha = 1.0f;
 			if (item.Animation.Blend.IsEnabled())
 			{
 				prevVel = item.Animation.Blend.Velocity;
-				velAlpha = item.Animation.Blend.GetAlpha();
+				blendAlpha = item.Animation.Blend.GetAlpha();
 			}
 
 			// TODO: Also get Y velocity from animation. Needs changes in WT.
-			auto vel = Vector3::Lerp(prevVel, fixedMotion.Translation + rootMotion.Translation, velAlpha);
+			auto vel = Vector3::Lerp(prevVel, fixedMotion.Translation + rootMotion.Translation, blendAlpha);
 			if (item.IsLara())
 			{
 				const auto& player = GetLaraInfo(item);
