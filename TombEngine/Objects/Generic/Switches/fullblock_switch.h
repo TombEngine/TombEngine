@@ -10,7 +10,9 @@ namespace TEN::Entities::Switches
 	extern byte Sequences[3];
 	extern byte CurrentSequence;
 
-	void FullBlockSwitchControl(short itemNumber);
+	void FullBlockSwitchControl(short itemNumber, byte switchIndex);
+	void FullBlockSwitch1Control(short itemNumber);
+	void FullBlockSwitch2Control(short itemNumber);
+	void FullBlockSwitch3Control(short itemNumber);
 	void FullBlockSwitchCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll);
-	bool TriggerFullBlockSwitch(short itemNumber, short timer);
 }

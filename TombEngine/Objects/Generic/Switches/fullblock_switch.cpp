@@ -32,123 +32,108 @@ namespace TEN::Entities::Switches
 	};
 	const auto FullBlockSwitchPos = Vector3i(0, CLICK(1), 0);
 
-	byte SequenceUsed[6];
-	byte SequenceResults[3][3][3];
-	byte Sequences[3];
-	byte CurrentSequence;
+	byte SequenceUsed[6]; //Stores the current active sequence.
+	byte SequenceResults[3][3][3];  //Maps combination to a door ocb
+	byte Sequences[3]; //Current Sequence
+	byte CurrentSequence; //Count of switches pressed in current sequence
 
-	void FullBlockSwitchCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
-	{
-		auto* laraInfo = GetLaraInfo(laraItem);
-		auto* switchItem = &g_Level.Items[itemNumber];
+    void FullBlockSwitchCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
+    {
+        auto* laraInfo = GetLaraInfo(laraItem);
+        auto* switchItem = &g_Level.Items[itemNumber];
 
-		if (switchItem->Animation.ActiveState == SWITCH_ON)
-			g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem);
+        if (switchItem->Animation.ActiveState == SWITCH_ON)
+            g_Hud.InteractionHighlighter.Test(*laraItem, *switchItem);
 
-		if ((!IsHeld(In::Action) ||
-			laraItem->Animation.ActiveState != LS_IDLE ||
-			laraItem->Animation.AnimNumber != LA_STAND_IDLE ||
-			laraInfo->Control.HandStatus != HandStatus::Free ||
-			switchItem->Status ||
-			switchItem->Flags & ONESHOT ||
-			CurrentSequence >= 3) &&
-			(!laraInfo->Control.IsMoving || laraInfo->Context.InteractedItem !=itemNumber))
-		{
-			ObjectCollision(itemNumber, laraItem, coll);
-			return;
-		}
+        if ((!IsHeld(In::Action) ||
+            laraItem->Animation.ActiveState != LS_IDLE ||
+            laraItem->Animation.AnimNumber != LA_STAND_IDLE ||
+            laraInfo->Control.HandStatus != HandStatus::Free ||
+            switchItem->ItemFlags[0] == 1 ||
+            CurrentSequence >= 3) &&
+            (!laraInfo->Control.IsMoving || laraInfo->Context.InteractedItem != itemNumber))
+        {
+            ObjectCollision(itemNumber, laraItem, coll);
+            return;
+        }
 
-		if (TestLaraPosition(FullBlockSwitchBounds, switchItem, laraItem))
-		{
-			if (MoveLaraPosition(FullBlockSwitchPos, switchItem, laraItem))
-			{
-				if (switchItem->Animation.ActiveState == 1)
-				{
-					laraItem->Animation.ActiveState = LS_SWITCH_DOWN;
-					laraItem->Animation.AnimNumber = LA_BUTTON_GIANT_PUSH;
-					switchItem->Animation.TargetState = 0;
-				}
+        if (TestLaraPosition(FullBlockSwitchBounds, switchItem, laraItem))
+        {
+            if (MoveLaraPosition(FullBlockSwitchPos, switchItem, laraItem))
+            {
+                if (switchItem->Animation.ActiveState == SWITCH_ON)
+                {
+                    laraItem->Animation.ActiveState = LS_SWITCH_DOWN;
+                    laraItem->Animation.AnimNumber = LA_BUTTON_GIANT_PUSH;
+                    switchItem->Animation.TargetState = SWITCH_OFF;
+                }
+                laraItem->Animation.TargetState = LS_IDLE;
+                laraItem->Animation.FrameNumber = 0;
+                switchItem->Status = ITEM_ACTIVE;
+                AddActiveItem(itemNumber);
+                AnimateItem(switchItem);
+                ResetPlayerFlex(laraItem);
+                laraInfo->Control.IsMoving = false;
+                laraInfo->Control.HandStatus = HandStatus::Busy;
+            }
+            else
+                laraInfo->Context.InteractedItem = itemNumber;
+        }
+        else if (laraInfo->Control.IsMoving && laraInfo->Context.InteractedItem == itemNumber)
+        {
+            laraInfo->Control.IsMoving = false;
+            laraInfo->Control.HandStatus = HandStatus::Free;
+        }
+     }
 
-				laraItem->Animation.TargetState = LS_IDLE;
-				laraItem->Animation.FrameNumber = 0;
-				switchItem->Status = ITEM_ACTIVE;
+     // Shared control handler
+     void FullBlockSwitchControl(short itemNumber, byte switchIndex)
+     {
+        auto* switchItem = &g_Level.Items[itemNumber];
 
-				AddActiveItem(itemNumber);
-				AnimateItem(switchItem);
+        if (switchItem->Animation.AnimNumber != 2 ||
+            CurrentSequence >= 3 ||
+            switchItem->ItemFlags[0])
+        {
+            if (CurrentSequence >= 4)
+            {
+                switchItem->ItemFlags[0] = 0;
+                switchItem->Animation.TargetState = SWITCH_ON;
+                switchItem->Status = ITEM_NOT_ACTIVE;
+                CurrentSequence++;
 
-				ResetPlayerFlex(laraItem);
-				laraInfo->Control.IsMoving = false;
-				laraInfo->Control.HandStatus = HandStatus::Busy;
-			}
-			else
-				laraInfo->Context.InteractedItem = itemNumber;
-		}
-		else if (laraInfo->Control.IsMoving && laraInfo->Context.InteractedItem == itemNumber)
-		{
-			laraInfo->Control.IsMoving = false;
-			laraInfo->Control.HandStatus = HandStatus::Free;
-		}
-	}
+                if (CurrentSequence >= 7)
+                    CurrentSequence = 0;
+            }
+        }
+        else
+        {
+            switchItem->ItemFlags[0] = 1;
+            Sequences[CurrentSequence] = switchIndex;
+            CurrentSequence++;
 
-	bool TriggerFullBlockSwitch(short itemNumber, short timer)
-	{
-		auto& item = g_Level.Items[itemNumber];
+            if (CurrentSequence == 3 && SequenceUsed[SequenceResults[Sequences[0]][Sequences[1]][Sequences[2]]])
+                CurrentSequence++;
+        }
 
-		if (item.Status == ITEM_DEACTIVATED)
-		{
-			if (item.Animation.ActiveState == SWITCH_ON && timer <= 0)
-			{
-				RemoveActiveItem(itemNumber);
-				item.Status = ITEM_NOT_ACTIVE;
-				if (item.ItemFlags[0])
-					item.Flags |= ONESHOT;
-			}
-			else
-			{
-				item.Timer = timer;
-				item.Status = ITEM_ACTIVE;
-				if (timer != 1)
-					item.Timer = FPS * timer;
-			}
-			return true;
-		}
-		if (item.Status != ITEM_NOT_ACTIVE)
-		{
-			if (item.Flags & ONESHOT)
-				return true;
-		}
-		return false;
-	}
+        AnimateItem(switchItem);
+    }
 
-	void FullBlockSwitchControl(short itemNumber)
-	{
-		ItemInfo* switchItem = &g_Level.Items[itemNumber];
+    // Switch 1 - TriggerFlag 0
+    void FullBlockSwitch1Control(short itemNumber)
+    {
+        FullBlockSwitchControl(itemNumber, 0);
+    }
 
-		if (switchItem->Animation.AnimNumber != 2 ||
-			CurrentSequence >= 3 ||
-			switchItem->ItemFlags[0])
-		{
-			if (CurrentSequence >= 4)
-			{
-				switchItem->ItemFlags[0] = 0;
-				switchItem->Animation.TargetState = SWITCH_ON;
-				switchItem->Status = ITEM_NOT_ACTIVE;
-				CurrentSequence++;
-				
-				if (CurrentSequence >= 7)
-					CurrentSequence = 0;
-			}
-		}
-		else
-		{
-			switchItem->ItemFlags[0] = 1;
-			Sequences[CurrentSequence] = switchItem->TriggerFlags;
-			CurrentSequence++;
+    // Switch 2 - TriggerFlag 1
+    void FullBlockSwitch2Control(short itemNumber)
+    {
+        FullBlockSwitchControl(itemNumber, 1);
+    }
 
-			if (CurrentSequence == 3 && SequenceUsed[SequenceResults[Sequences[0]][Sequences[1]][Sequences[2]]])
-				CurrentSequence++;
-		}
-
-		AnimateItem(switchItem);
-	}
+    // Switch 3 - TriggerFlag 2
+    void FullBlockSwitch3Control(short itemNumber)
+    {
+        FullBlockSwitchControl(itemNumber, 2);
+    }
 }
