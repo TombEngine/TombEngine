@@ -18,6 +18,7 @@
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Game/spotcam.h"
+#include "Objects/Generic/Switches/fullblock_switch.h"
 #include "Objects/Generic/Switches/generic_switch.h"
 #include "Objects/Generic/Switches/pulley_switch.h"
 #include "Objects/Generic/puzzles_keys.h"
@@ -183,6 +184,12 @@ bool SwitchTrigger(short itemNumber, short timer)
 	// Handle pulley.
 	if (item.ObjectNumber == ID_PULLEY)
 		return TriggerPulley(itemNumber, timer);
+
+	// Handle sequence switches.
+	if (item.ObjectNumber == ID_SEQUENCE_SWITCH1 ||
+		item.ObjectNumber == ID_SEQUENCE_SWITCH2 ||
+		item.ObjectNumber == ID_SEQUENCE_SWITCH3)
+		return TriggerFullBlockSwitch(itemNumber, timer);
 
 	// Handle switches.
 	if (item.Status == ITEM_DEACTIVATED)

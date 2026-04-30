@@ -12,4 +12,5 @@ namespace TEN::Entities::Switches
 
 	void FullBlockSwitchControl(short itemNumber);
 	void FullBlockSwitchCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll);
+	bool TriggerFullBlockSwitch(short itemNumber, short timer);
 }

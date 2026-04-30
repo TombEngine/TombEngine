@@ -89,6 +89,36 @@ namespace TEN::Entities::Switches
 		}
 	}
 
+	bool TriggerFullBlockSwitch(short itemNumber, short timer)
+	{
+		auto& item = g_Level.Items[itemNumber];
+
+		if (item.Status == ITEM_DEACTIVATED)
+		{
+			if (item.Animation.ActiveState == SWITCH_ON && timer <= 0)
+			{
+				RemoveActiveItem(itemNumber);
+				item.Status = ITEM_NOT_ACTIVE;
+				if (item.ItemFlags[0])
+					item.Flags |= ONESHOT;
+			}
+			else
+			{
+				item.Timer = timer;
+				item.Status = ITEM_ACTIVE;
+				if (timer != 1)
+					item.Timer = FPS * timer;
+			}
+			return true;
+		}
+		if (item.Status != ITEM_NOT_ACTIVE)
+		{
+			if (item.Flags & ONESHOT)
+				return true;
+		}
+		return false;
+	}
+
 	void FullBlockSwitchControl(short itemNumber)
 	{
 		ItemInfo* switchItem = &g_Level.Items[itemNumber];
@@ -113,6 +143,9 @@ namespace TEN::Entities::Switches
 			switchItem->ItemFlags[0] = 1;
 			Sequences[CurrentSequence] = switchItem->TriggerFlags;
 			CurrentSequence++;
+
+			if (CurrentSequence == 3 && SequenceUsed[SequenceResults[Sequences[0]][Sequences[1]][Sequences[2]]])
+				CurrentSequence++;
 		}
 
 		AnimateItem(switchItem);
