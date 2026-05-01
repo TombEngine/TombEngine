@@ -1996,16 +1996,6 @@ namespace TEN::Renderer
 		CopyRenderTargetAndDownscale(_renderTarget.get(), _legacyReflectionsRenderTarget.get(), POSTPROCESS_DOWNSCALE_FACTOR, view);
 		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 
-		// Clear the depth buffer for drawing HUD on top
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-
-		// Draw 3D HUD elements separately here because objects may use emissive materials and require glow.
-		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
-		{
-			g_Hud.Draw3D();
-			g_DrawItems.Draw();
-		}
-
 		_doingFullscreenPass = true;
 
 		// Calculates glow
@@ -2013,6 +2003,17 @@ namespace TEN::Renderer
 		ApplyGlow(_renderTarget.get(), view);
 		ApplyDistortion(_renderTarget.get(), view);
 		ApplyDOF(_renderTarget.get(), view);
+
+		// Draw HUD-space object renders after DOF so they are not blurred by scene depth.
+		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
+		{
+			_doingFullscreenPass = false;
+			_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+			_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+			g_Hud.Draw3D();
+			g_DrawItems.Draw();
+			_doingFullscreenPass = true;
+		}
 
 		// Apply the antialiasing, now 3D geometry and 3D HUD are antialiased
 		// FXAA: RT -> PPRT0, PPRT0 -> RT
