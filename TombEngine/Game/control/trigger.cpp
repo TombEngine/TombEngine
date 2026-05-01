@@ -423,7 +423,7 @@ void Trigger(short const value, short const flags)
 
 void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bool heavy, int heavyFlags)
 {
-	if (g_GameFlow->CurrentFreezeMode != FreezeMode::None)
+	if (g_GameFlow->LastFreezeMode != FreezeMode::None)
 		return;
 
 	bool switchOff = false;
