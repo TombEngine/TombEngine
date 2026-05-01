@@ -42,8 +42,8 @@ SamplerState LegacyEnvironmentSampler : register(s4);
 Texture2D EmissiveAndSpecularTexture : register(t5);
 SamplerState EmissiveAndSpecularSampler : register(s5);
 
-Texture2D DistortionTexture : register(t14);
-SamplerState DistortionSampler : register(s14);
+Texture2D DistortionTexture : register(t15);
+SamplerState DistortionSampler : register(s15);
 
 #include "./DOF.hlsli"
 
