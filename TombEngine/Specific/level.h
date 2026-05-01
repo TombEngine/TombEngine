@@ -183,11 +183,6 @@ extern int LastLevelHash;
 
 inline std::future<bool> LevelLoadTask;
 
-size_t ReadFileEx(void* ptr, size_t size, size_t count, FILE* stream);
-FILE* FileOpen(const char* fileName);
-void FileClose(FILE* ptr);
-bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompressedSize);
-
 bool LoadLevelFile(int levelIndex);
 void FreeLevel(bool partial);
 

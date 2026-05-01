@@ -1,7 +1,7 @@
 #ifndef BLENDINGSHADER
 #define BLENDINGSHADER
 
-#include "./CBBlending.hlsli"
+#include "./CBPerDraw.hlsli"
 #include "./Math.hlsli"
 
 #define ALPHATEST_NONE			0

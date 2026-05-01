@@ -642,7 +642,7 @@ namespace TEN::Renderer
 
 		screenPath += buffer;
 		
-		_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), TEN::Utils::ToWString(screenPath));
+		_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), screenPath);
 	}
 
 	std::optional<Vector2> Renderer::ProjectDisplayItemPointToScreen(const Vector3& worldPos) const

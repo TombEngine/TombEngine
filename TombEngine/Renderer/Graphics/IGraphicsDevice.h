@@ -9,6 +9,7 @@
 #include "Renderer/Graphics/IRenderTargetCube.h"
 #include "Renderer/Graphics/ITexture2D.h"
 #include "Renderer/Graphics/IConstantBuffer.h"
+#include "Renderer/Graphics/IStructuredBuffer.h"
 #include "Renderer/Graphics/IInputLayout.h"
 #include "Renderer/Graphics/IShader.h"
 #include "Renderer/Graphics/IDepthTarget.h"
@@ -58,9 +59,13 @@ namespace TEN::Renderer::Graphics
 
 		virtual void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) = 0;
 		
-		virtual std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::wstring name) = 0;
+		virtual std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::string name) = 0;
 		virtual void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data) = 0;
 		virtual void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) = 0;
+
+		virtual std::unique_ptr<IStructuredBuffer> CreateStructuredBuffer(int stride, int elementCount, std::wstring name) = 0;
+		virtual void UpdateStructuredBuffer(IStructuredBuffer* buffer, const void* data, int elementCount) = 0;
+		virtual void BindStructuredBuffer(ShaderStage shaderStage, TextureRegister registerType, IStructuredBuffer* buffer) = 0;
 		
 		virtual void DrawIndexedTriangles(int count, int baseIndex, int baseVertex) = 0;
 		virtual void DrawIndexedInstancedTriangles(int count, int instances, int baseIndex, int baseVertex) = 0;
@@ -97,14 +102,14 @@ namespace TEN::Renderer::Graphics
 		virtual void Present() = 0;
 		virtual void ClearState() = 0;
 
-		virtual std::unique_ptr<ISpriteFont> InitializeSpriteFont(std::wstring fontPath) = 0;
+		virtual std::unique_ptr<ISpriteFont> InitializeSpriteFont(std::string fontPath) = 0;
 		virtual std::unique_ptr<ISpriteBatch> InitializeSpriteBatch() = 0;
 		virtual std::unique_ptr<IPrimitiveBatch> InitializePrimitiveBatch() = 0;
 
 		virtual void SetViewport(RendererViewport viewport) = 0;
 		virtual Vector3 Unproject(Vector3 position, Matrix projection, Matrix view, Matrix world) = 0;
 
-		virtual void SaveScreenshot(IRenderTarget2D* renderTarget, std::wstring path) = 0;
+		virtual void SaveScreenshot(IRenderTarget2D* renderTarget, std::string path) = 0;
 
 		virtual void Flush() = 0;
 		virtual void UnbindAllRenderTargets() = 0;
