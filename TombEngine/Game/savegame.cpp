@@ -1759,11 +1759,6 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_postprocess_mode((int)g_Renderer.GetPostProcessMode());
 	sgb.add_postprocess_strength(g_Renderer.GetPostProcessStrength());
 	sgb.add_postprocess_tint(&FromVector3(g_Renderer.GetPostProcessTint()));
-	auto dof = g_Renderer.GetDOF();
-	sgb.add_dof_distance(dof.Distance);
-	sgb.add_dof_range(dof.Range);
-	sgb.add_dof_strength(dof.Strength);
-	sgb.add_dof_mode((int)dof.Mode);
 	sgb.add_soundtracks(soundtrackOffset);
 	sgb.add_cd_flags(soundtrackMapOffset);
 	sgb.add_video(videoInfoOffset);
@@ -1788,6 +1783,12 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_flyby_cameras(flybyCamerasOffset);
 	sgb.add_global_event_sets(globalEventSetsOffset);
 	sgb.add_volume_event_sets(volumeEventSetsOffset);
+
+	auto dof = g_Renderer.GetDOF();
+	sgb.add_dof_distance(dof.Distance);
+	sgb.add_dof_range(dof.Range);
+	sgb.add_dof_strength(dof.Strength);
+	sgb.add_dof_mode((int)dof.Mode);
 
 	if (Lara.Control.Rope.Ptr != -1)
 	{
@@ -2400,11 +2401,14 @@ static void ParseEffects(const Save::SaveGame* s)
 	// Restore camera FOV.
 	AlterFOV(s->current_fov());
 
+	// Restore DOF.
+	DOFState dof = { (DOFMode)s->dof_mode(), s->dof_distance(), s->dof_range(), s->dof_strength() };
+	g_Renderer.SetDOF(dof);
+
 	// Restore postprocess effects.
 	g_Renderer.SetPostProcessMode((PostProcessMode)s->postprocess_mode());
 	g_Renderer.SetPostProcessStrength(s->postprocess_strength());
 	g_Renderer.SetPostProcessTint(ToVector3(s->postprocess_tint()));
-	g_Renderer.SetDOF({ s->dof_distance(), s->dof_range(), s->dof_strength(), (DOFMode)s->dof_mode() });
 
 	// Restore soundtracks.
 	for (int i = 0; i < s->soundtracks()->size(); i++)

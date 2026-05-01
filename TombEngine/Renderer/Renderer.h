@@ -314,7 +314,8 @@ namespace TEN::Renderer
 		PostProcessMode _postProcessMode = PostProcessMode::None;
 		float _postProcessStrength = 1.0f;
 		Vector3 _postProcessTint = (Vector3)NEUTRAL_COLOR;
-		DOFState _dof;
+		DOFState _currentDOF;
+		DOFState _lastDOF;
 
 		std::unique_ptr<IVertexBuffer> _fullscreenTriangleVertexBuffer;
 
@@ -770,7 +771,8 @@ namespace TEN::Renderer
 		Vector3			GetPostProcessTint();
 		void			SetPostProcessTint(Vector3 color);
 		DOFState		GetDOF() const;
-		void			SetDOF(const DOFState& state);
+		void			SetDOF(const DOFState& state, bool save = true);
+		void			RestoreDOF();
 
 		void SetGraphicsSettingsChanged();
 

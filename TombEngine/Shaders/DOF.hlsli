@@ -4,7 +4,7 @@
 // DofParams layout (float4):
 //   x = focus distance (view-space units)
 //   y = focus range    (view-space units)
-//   z = bokeh strength (max radius in half-res pixels at CoC = 1)
+//   z = normalized bokeh strength in [0, 1]
 //   w = DOFMode:  0 = None, 1 = Full, 2 = Front, 3 = Back
 //
 // Downsample alpha encoding: 0.5 + 0.5 * clamp(signedCoC, -1, 1)
@@ -23,6 +23,8 @@
 #define DOF_COC_EPSILON        0.025f
 #define DOF_DISC_SAMPLES       12
 #define DOF_DEPTH_REJECT_SCALE 3.0f  // rejection threshold relative to center CoC
+#define DOF_MAX_BOKEH_RADIUS   8.0f
+#define DOF_DILATE_SAMPLES     8
 
 static const float2 DOF_DISC_OFFSETS[DOF_DISC_SAMPLES] =
 {
@@ -67,6 +69,11 @@ float GetSignedCoC(float viewDepth)
 float UnpackSignedCoC(float packedAlpha)
 {
     return (packedAlpha - 0.5f) * 2.0f;
+}
+
+float GetBokehRadius(float coc)
+{
+    return coc * saturate(DofParams.z) * DOF_MAX_BOKEH_RADIUS;
 }
 
 // ---------------------------------------------------------------------------
@@ -119,7 +126,7 @@ float4 PSDOFFarBlur(PixelShaderInput input) : SV_Target
     float4 center       = ColorTexture.SampleLevel(ColorSampler, input.UV, 0);
     float  centerSigned = UnpackSignedCoC(center.a);
     float  centerFarCoC = max(0.0f, centerSigned);
-    float  radius       = centerFarCoC * DofParams.z;
+    float  radius       = GetBokehRadius(centerFarCoC);
 
     if (radius < 0.5f)
         return float4(center.rgb, centerFarCoC);
@@ -155,8 +162,6 @@ float4 PSDOFFarBlur(PixelShaderInput input) : SV_Target
 // Color passes through from the center sample unchanged.
 // ---------------------------------------------------------------------------
 
-#define DOF_DILATE_SAMPLES 12
-
 // Reuse the bokeh disc offsets for the dilation neighbourhood.
 float4 PSDOFNearDilate(PixelShaderInput input) : SV_Target
 {
@@ -164,7 +169,7 @@ float4 PSDOFNearDilate(PixelShaderInput input) : SV_Target
     float  minAlpha = center.a;
 
     // Scale dilation radius with bokeh strength; clamp so it stays reasonable.
-    float dilateRadius = clamp(DofParams.z * 2.0f, 1.0f, 16.0f);
+    float dilateRadius = clamp(saturate(DofParams.z) * DOF_MAX_BOKEH_RADIUS * 2.0f, 1.0f, 16.0f);
 
     [unroll]
     for (int i = 0; i < DOF_DILATE_SAMPLES; i++)
@@ -190,7 +195,7 @@ float4 PSDOFNearBlur(PixelShaderInput input) : SV_Target
     float4 center        = ColorTexture.SampleLevel(ColorSampler, input.UV, 0);
     float  centerSigned  = UnpackSignedCoC(center.a);
     float  centerNearCoC = max(0.0f, -centerSigned);
-    float  radius        = centerNearCoC * DofParams.z;
+    float  radius        = GetBokehRadius(centerNearCoC);
 
     if (radius < 0.5f)
         return float4(center.rgb, centerNearCoC);

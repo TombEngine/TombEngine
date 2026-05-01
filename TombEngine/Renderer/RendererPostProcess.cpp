@@ -7,7 +7,7 @@ namespace TEN::Renderer
 {
 	void Renderer::ApplyDOF(IRenderSurface2D* renderTarget, RenderView& view)
 	{
-		if ( _dof.Range <= EPSILON || _dof.Strength <= EPSILON || _dof.Mode == DOFMode::None)
+		if ( _currentDOF.Range <= EPSILON || _currentDOF.Strength <= EPSILON || _currentDOF.Mode == DOFMode::None)
 			return;
 
 		SetBlendMode(BlendMode::Opaque, true);
@@ -23,7 +23,7 @@ namespace TEN::Renderer
 
 		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
 		_stPostProcessBuffer.TexelSize = Vector2(1.0f / halfWidth, 1.0f / halfHeight);
-		_stPostProcessBuffer.DofParams = Vector4(_dof.Distance, _dof.Range, _dof.Strength, (float)_dof.Mode);
+		_stPostProcessBuffer.DofParams = Vector4(_currentDOF.Distance, _currentDOF.Range, _currentDOF.Strength, (float)_currentDOF.Mode);
 		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
 		// Copy full-resolution scene for the final composite.
@@ -261,15 +261,23 @@ namespace TEN::Renderer
 
 	DOFState Renderer::GetDOF() const 
 	{
-		return _dof;
+		return _lastDOF;
 	}
 
-	void Renderer::SetDOF(const DOFState& state)
+	void Renderer::SetDOF(const DOFState& state, bool save)
 	{
-		_dof.Distance = std::max(0.0f, state.Distance);
-		_dof.Range    = std::max(0.0f, state.Range);
-		_dof.Strength = std::clamp(state.Strength, 0.0f, 8.0f);
-		_dof.Mode     = state.Mode;
+		_currentDOF.Mode     = state.Mode;
+		_currentDOF.Distance = std::max(0.0f, state.Distance);
+		_currentDOF.Range    = std::max(0.0f, state.Range);
+		_currentDOF.Strength = std::clamp(state.Strength, 0.0f, 1.0f);
+
+		if (save)
+			_lastDOF = _currentDOF;
+	}
+
+	void Renderer::RestoreDOF()
+	{
+		_currentDOF = _lastDOF;
 	}
 
 	void Renderer::CopyRenderTarget(IRenderSurface2D* source, IRenderSurface2D* dest, RenderView& view)
