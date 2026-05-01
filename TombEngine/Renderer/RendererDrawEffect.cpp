@@ -608,7 +608,7 @@ namespace TEN::Renderer
 				AddSpriteBillboard(sprite, pos, color, orientation, particle.scalar, size, particle.blendMode, true, view);
 
 				bool hasHaze = particle.flags & (SP_FIRE | SP_HAZE);
-				if (g_GameFlow->GetSettings()->Graphics.FlameHeatHaze && particle.blendMode != BlendMode::Distortion && hasHaze)
+				if (g_GameFlow->GetSettings()->Graphics.FlameHeatHaze && hasHaze && particle.blendMode != BlendMode::Distortion)
 					AddSpriteBillboard(sprite, pos, color, orientation, particle.scalar, size * FLAME_HEAT_HAZE_SCALE, BlendMode::Distortion, true, view);
 			}
 			else
