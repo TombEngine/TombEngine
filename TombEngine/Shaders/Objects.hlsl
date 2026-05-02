@@ -168,7 +168,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	output.Color = DoDistanceFogForPixel(output.Color, FogColor, input.DistanceFog);
 	output.Color.w *= input.Color.w;
 	
-    output.Color = ApplyBlendModeColor(output.Color, input.WorldPosition, input.PositionCopy, input.Position.xy);
+    output.Color = ApplyBlendModeColor(output.Color, input.WorldPosition, normal, input.PositionCopy);
 
 	return output;
 }

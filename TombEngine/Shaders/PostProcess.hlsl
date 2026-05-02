@@ -7,10 +7,14 @@
 
 #define MAX_BLUR_RADIUS 100
 #define USE_FAST_BILINEAR_BLUR 1
-#define DISTORTION_MIN_VALUE 0.001f
-#define DISTORTION_EDGE_FADE_MIN 0.01f
-#define DISTORTION_EDGE_FADE_MAX 0.05f
-#define DISTORTION_DISTANCE_FADE_START 4096.0f
+#define DISTORTION_MIN_WEIGHT 0.001f
+#define DISTORTION_REFERENCE_DEPTH 64.0f
+#define DISTORTION_REFRACTION_PIXELS 56.0f
+#define DISTORTION_DEPTH_REJECT_MIN 32.0f
+#define DISTORTION_DEPTH_REJECT_SCALE 0.03f
+#define DISTORTION_EDGE_GUARD_PIXELS 2.0f
+#define DISTORTION_EDGE_FADE_RANGE 0.04f
+#define DISTORTION_NOISE_STRENGTH 0.07f
 
 struct PostProcessVertexShaderInput
 {
@@ -46,6 +50,12 @@ Texture2D DistortionTexture : register(t15);
 SamplerState DistortionSampler : register(s15);
 
 #include "./DOF.hlsli"
+
+float GetSceneViewDepth(float2 uv)
+{
+    float depth = DepthTexture.Sample(DepthSampler, uv).x;
+    return abs(ReconstructViewPosition(uv, depth, InverseProjection).z);
+}
 
 PixelShaderInput VS(PostProcessVertexShaderInput input)
 {
@@ -97,64 +107,50 @@ float4 PSExclusion(PixelShaderInput input) : SV_Target
 float4 PSDistortion(PixelShaderInput input) : SV_Target
 {
     float4 color = ColorTexture.Sample(ColorSampler, input.UV);
+	float4 distortionData = DistortionTexture.Sample(DistortionSampler, input.UV);
 
-    // Sample distortion mask at full-res and at snapped half-res for stable seed/distance.
-    float2 distortionSize      = max(float2(ViewportSize) * 0.5f, float2(1.0f, 1.0f));
-    float2 snappedDistortionUV = (floor(input.UV * distortionSize) + 0.5f) / distortionSize;
-    float  mask                = DistortionTexture.Sample(DistortionSampler, input.UV).x;
-    float3 stableData          = DistortionTexture.Sample(DistortionSampler, snappedDistortionUV).xyz;
+	// Decode split-channel signed direction: R/G = positive X/Y components, B/A = negative X/Y.
+	float2 netDir = float2(distortionData.r - distortionData.b, distortionData.g - distortionData.a);
+	float netLen = length(netDir);
 
-    mask *= smoothstep(0.0f, DISTORTION_MIN_VALUE * 6.0f, mask);
-    if (mask <= DISTORTION_MIN_VALUE)
-        return color;
+	if (netLen <= DISTORTION_MIN_WEIGHT)
+		return color;
 
-    // Edge fade: suppress distortion at depth discontinuities (object silhouettes).
-    float centerDepth = LinearizeDepth(DepthTexture.Sample(DepthSampler, input.UV).x, NearPlane, FarPlane);
-    float depthDelta  = 0.0f;
-    depthDelta = max(depthDelta, abs(centerDepth - LinearizeDepth(DepthTexture.Sample(DepthSampler, saturate(input.UV + float2(TexelSize.x, 0.0f))).x, NearPlane, FarPlane)));
-    depthDelta = max(depthDelta, abs(centerDepth - LinearizeDepth(DepthTexture.Sample(DepthSampler, saturate(input.UV - float2(TexelSize.x, 0.0f))).x, NearPlane, FarPlane)));
-    depthDelta = max(depthDelta, abs(centerDepth - LinearizeDepth(DepthTexture.Sample(DepthSampler, saturate(input.UV + float2(0.0f, TexelSize.y))).x, NearPlane, FarPlane)));
-    depthDelta = max(depthDelta, abs(centerDepth - LinearizeDepth(DepthTexture.Sample(DepthSampler, saturate(input.UV - float2(0.0f, TexelSize.y))).x, NearPlane, FarPlane)));
-    mask *= 1.0f - smoothstep(DISTORTION_EDGE_FADE_MIN, DISTORTION_EDGE_FADE_MAX, depthDelta);
+	// Smooth edge fade: distortion naturally tapers to zero near screen borders
+	// to prevent hard UV-clamp artifacts when the mask is bright near an edge.
+	float2 edgeUV = min(input.UV, 1.0f - input.UV);
+	float edgeFade = smoothstep(0.0f, DISTORTION_EDGE_FADE_RANGE, edgeUV.x) *
+	                 smoothstep(0.0f, DISTORTION_EDGE_FADE_RANGE, edgeUV.y);
+	float weight = netLen * edgeFade;
 
-    // Distance fade based on emitter view-space depth, not scene background.
-    float emitterDist = (stableData.z / max(stableData.x, DISTORTION_MIN_VALUE)) * DISTORTION_DEPTH_SCALE;
-    mask *= 1.0f - smoothstep(DISTORTION_DISTANCE_FADE_START, DISTORTION_DEPTH_SCALE, emitterDist);
+	if (weight <= DISTORTION_MIN_WEIGHT)
+		return color;
 
-    if (mask <= DISTORTION_MIN_VALUE)
-        return color;
+	float2 refractVector = netDir / netLen;
 
-    // Recover stable per-emitter seed.
-    float seed = stableData.y / max(stableData.x, DISTORTION_MIN_VALUE);
+	// Slight simplex noise for organic variation; does not overpower the surface-derived direction.
+	float noiseTime = Frame * 0.02f;
+	float noiseX = SimplexNoise(float3(input.UV * 3.5f, noiseTime));
+	float noiseY = SimplexNoise(float3(input.UV * 3.5f + 5.7f, noiseTime + 1.3f));
+	refractVector = SafeNormalize(float3(refractVector + float2(noiseX, noiseY) * DISTORTION_NOISE_STRENGTH, 0.0f)).xy;
 
-    // Reduce turbulence smoothly with distance so far emitters look calm.
-    float distanceFactor = saturate(emitterDist / DISTORTION_DISTANCE_FADE_START);
-    float turbulenceScale = lerp(1.0f, 0.15f, distanceFactor * distanceFactor);
+	// Perspective-correct scaling: distortion shrinks with distance.
+	float centerSceneDepth = GetSceneViewDepth(input.UV);
+	float perspectiveScale = rsqrt(max(centerSceneDepth, DISTORTION_REFERENCE_DEPTH) / DISTORTION_REFERENCE_DEPTH);
 
-    float time = Frame * 0.5f;
+	float2 offset = refractVector * (DISTORTION_REFRACTION_PIXELS * weight * perspectiveScale) * TexelSize;
+	float2 edgeGuard = TexelSize * DISTORTION_EDGE_GUARD_PIXELS;
+	float2 refractedUV = clamp(input.UV + offset, edgeGuard, 1.0f - edgeGuard);
 
-    // Derive a per-emitter coordinate frame from the seed so each source looks unique.
-    float2 anchor = float2(frac(seed * 1.618034f) * 4.0f - 2.0f, frac(seed * 2.414214f) * 4.0f - 2.0f);
-    float phase = frac(seed * 3.141593f) * PI2;
+	// Only reject samples that are in front of the distortion emitter (closer to camera).
+	// Samples behind the emitter (further away) are accepted — heat haze should distort the background.
+	float refractedSceneDepth = GetSceneViewDepth(refractedUV);
+	float depthTolerance = max(DISTORTION_DEPTH_REJECT_MIN, centerSceneDepth * DISTORTION_DEPTH_REJECT_SCALE);
 
-    // Two smooth noise samples offset by 90 degrees give a divergence-free (curl) flow field.
-    float3 p0 = float3(anchor + float2(0.0f,  0.0f), time * 0.12f + phase);
-    float3 p1 = float3(anchor + float2(3.7f, -2.3f), time * 0.12f + phase + PI * 0.5f);
+	if (refractedSceneDepth < centerSceneDepth - depthTolerance)
+		return color;
 
-    float nx0 = SimplexNoise(p0 * 1.8f);
-    float ny0 = SimplexNoise(p1 * 1.8f);
-
-    // Second octave: faster and subtler, adds organic micro-variation.
-    float nx1 = SimplexNoise(float3(anchor * 4.2f + float2( 1.1f, -0.8f), time * 0.28f + phase));
-    float ny1 = SimplexNoise(float3(anchor * 4.2f + float2(-0.9f,  1.4f), time * 0.28f + phase + PI * 0.5f));
-
-    float2 flow = float2(nx0 + nx1 * 0.35f, ny0 + ny1 * 0.35f);
-
-    // Scale: base displacement + mask-proportional strength, attenuated by distance.
-    float strength = (0.0012f + mask * 0.005f) * mask * turbulenceScale;
-    float2 offset  = flow * strength;
-
-    return ColorTexture.Sample(ColorSampler, saturate(input.UV + offset));
+	return ColorTexture.Sample(ColorSampler, refractedUV);
 }
 
 float4 PSFinalPass(PixelShaderInput input) : SV_TARGET

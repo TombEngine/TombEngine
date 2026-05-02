@@ -1,6 +1,7 @@
 #ifndef BLENDINGSHADER
 #define BLENDINGSHADER
 
+#include "./CBCamera.hlsli"
 #include "./CBPerDraw.hlsli"
 #include "./Math.hlsli"
 
@@ -116,28 +117,59 @@ float4 DoFogBulbsForPixel(float4 sourceColor, float4 fogColor)
 	return result;
 }
 
-float4 ApplyBlendModeColor(float4 sourceColor, float3 worldPosition, float4 positionCopy, float2 svPosition)
+// Encodes a distortion payload for additive RGBA8_Unorm accumulation.
+// surfaceNormal: actual surface normal for geometry, or camera-facing direction for sprites.
+// Split signed direction into positive/negative channels:
+//   R = max(0, dir.x), G = max(0, dir.y), B = max(0, -dir.x), A = max(0, -dir.y); all * strength.
+//   Decoder: netDir = float2(R - B, G - A); weight = length(netDir).
+inline float4 EncodeDistortionPayload(float4 sourceColor, float3 surfaceNormal, float4 positionCopy)
+{
+	float luma = saturate(Luma(sourceColor.xyz));
+	float strength = saturate(luma * sourceColor.w);
+
+	if (strength <= EPSILON)
+		return 0.0f;
+
+	float3 normalWS = SafeNormalize(surfaceNormal);
+	float3 normalVS = SafeNormalize(mul(float4(normalWS, 0.0f), View).xyz);
+
+	float2 gradient = float2(ddx(luma), ddy(luma));
+	float2 gradientDir = SafeNormalize(float3(gradient, 0.0f)).xy;
+	float2 projectedNormalDir = SafeNormalize(float3(normalVS.xy, 0.0f)).xy;
+
+	float orientationFactor = lerp(0.35f, 1.0f, saturate(length(normalVS.xy)));
+
+	float2 refractDir = projectedNormalDir;
+	if (dot(gradientDir, gradientDir) > EPSILON)
+		refractDir = SafeNormalize(float3(gradientDir + projectedNormalDir, 0.0f)).xy;
+
+	if (dot(refractDir, refractDir) <= EPSILON)
+		return 0.0f;
+
+	strength *= orientationFactor;
+
+	return float4(
+		max(0.0f,  refractDir.x) * strength,
+		max(0.0f,  refractDir.y) * strength,
+		max(0.0f, -refractDir.x) * strength,
+		max(0.0f, -refractDir.y) * strength);
+}
+
+float4 ApplyBlendModeColor(float4 sourceColor, float3 worldPosition, float3 surfaceNormal, float4 positionCopy)
 {
 	if (BlendMode != BLENDMODE_DISTORTION)
 		return sourceColor;
 
-	// svPosition is in half-res pixel coordinates (distortion RT is half-res).
-	// Multiply by 2 * InvViewSize to correctly map to full-res depth texture UV.
-	float2 texCoord = svPosition * InvViewSize * 2.0f;
-	float sceneDepth = DepthTexture.Sample(DepthSampler, saturate(texCoord)).x;
-	float pixelDepth = positionCopy.z / positionCopy.w;
+	return EncodeDistortionPayload(sourceColor, surfaceNormal, positionCopy);
+}
 
-	sceneDepth = LinearizeDepth(sceneDepth, NearPlane, FarPlane);
-	pixelDepth = LinearizeDepth(pixelDepth, NearPlane, FarPlane);
+float4 ApplyBlendModeColor(float4 sourceColor, float3 worldPosition, float4 positionCopy)
+{
+	if (BlendMode != BLENDMODE_DISTORTION)
+		return sourceColor;
 
-	float depthOcclusion = 1.0f - smoothstep(0.001f, 0.05f, pixelDepth - sceneDepth);
-
-	float mask = saturate(Luma(sourceColor.xyz) * sourceColor.w) * depthOcclusion;
-	float seed = frac(dot(worldPosition, float3(0.1031f, 0.11369f, 0.13787f)));
-	
-	// positionCopy.w is view-space depth in world units (same coordinate system as the fade constants).
-	float normalizedDepth = saturate(positionCopy.w / DISTORTION_DEPTH_SCALE);
-	return float4(mask, seed * mask, normalizedDepth * mask, 0.0f);
+	float3 cameraFacingNormal = SafeNormalize(CamPositionWS.xyz - worldPosition);
+	return EncodeDistortionPayload(sourceColor, cameraFacingNormal, positionCopy);
 }
 
 #endif // BLENDINGSHADER

@@ -470,6 +470,14 @@ inline float Gaussian(float x, float sigma)
     return exp(-(x * x) / (2.0 * sigma * sigma));
 }
 
+inline float2 SafeNormalize(float2 v)
+{
+	float l2 = dot(v, v);
+	float invLen = rsqrt(max(l2, EPSILON));
+	float mask = saturate(l2 / (l2 + EPSILON));
+	return v * invLen * mask;
+}
+
 inline float3 SafeNormalize(float3 v)
 {
     float l2 = dot(v, v);
