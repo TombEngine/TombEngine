@@ -116,58 +116,32 @@ float4 DoFogBulbsForPixel(float4 sourceColor, float4 fogColor)
 }
 
 // Encodes a distortion payload for additive RGBA8_Unorm accumulation.
-// surfaceNormal: actual surface normal for geometry, or camera-facing direction for sprites.
-// Split signed direction into positive/negative channels:
-//   R = max(0, dir.x), G = max(0, dir.y), B = max(0, -dir.x), A = max(0, -dir.y); all * strength.
-//   Decoder: netDir = float2(R - B, G - A); weight = length(netDir).
-inline float4 EncodeDistortionPayload(float4 sourceColor, float3 surfaceNormal, float4 positionCopy)
+inline float4 EncodeDistortionPayload(float4 sourceColor, float4 position, float emitterType)
 {
 	float luma = saturate(Luma(sourceColor.xyz));
 	float strength = saturate(luma * sourceColor.w);
 
 	if (strength <= EPSILON)
 		return 0.0f;
-
-	float3 normalWS = SafeNormalize(surfaceNormal);
-	float3 normalVS = SafeNormalize(mul(float4(normalWS, 0.0f), View).xyz);
-
-	float2 gradient = float2(ddx(luma), ddy(luma));
-	float2 gradientDir = SafeNormalize(float3(gradient, 0.0f)).xy;
-	float2 projectedNormalDir = SafeNormalize(float3(normalVS.xy, 0.0f)).xy;
-
-	float orientationFactor = lerp(0.35f, 1.0f, saturate(length(normalVS.xy)));
-
-	float2 refractDir = projectedNormalDir;
-	if (dot(gradientDir, gradientDir) > EPSILON)
-		refractDir = SafeNormalize(float3(gradientDir + projectedNormalDir, 0.0f)).xy;
-
-	if (dot(refractDir, refractDir) <= EPSILON)
-		return 0.0f;
-
-	strength *= orientationFactor;
+		
+	float emitterDepth = clamp(position.w, 0.0f, 65535.0f);
+	float distInt  = floor(emitterDepth);
+	float distHigh = floor(distInt / 256.0f) / 255.0f;
+	float distLow  = fmod(distInt, 256.0f)   / 255.0f;
 
 	return float4(
-		max(0.0f,  refractDir.x) * strength,
-		max(0.0f,  refractDir.y) * strength,
-		max(0.0f, -refractDir.x) * strength,
-		max(0.0f, -refractDir.y) * strength);
+		strength,
+		distHigh * strength,
+		distLow  * strength,
+		emitterType * strength);
 }
 
-float4 ApplyBlendModeColor(float4 sourceColor, float3 worldPosition, float3 surfaceNormal, float4 positionCopy)
+float4 ApplyBlendModeColor(float4 sourceColor, float4 position, bool billboard)
 {
 	if (BlendMode != BLENDMODE_DISTORTION)
 		return sourceColor;
 
-	return EncodeDistortionPayload(sourceColor, surfaceNormal, positionCopy);
-}
-
-float4 ApplyBlendModeColor(float4 sourceColor, float3 worldPosition, float4 positionCopy)
-{
-	if (BlendMode != BLENDMODE_DISTORTION)
-		return sourceColor;
-
-	float3 cameraFacingNormal = SafeNormalize(CamPositionWS.xyz - worldPosition);
-	return EncodeDistortionPayload(sourceColor, cameraFacingNormal, positionCopy);
+	return EncodeDistortionPayload(sourceColor, position, billboard ? 0.0f : 1.0f);
 }
 
 #endif // BLENDINGSHADER

@@ -123,7 +123,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 	output.Color.xyz = saturate(output.Color.xyz);
 
 	output.Color = DoDistanceFogForPixel(output.Color, float4(0.0f, 0.0f, 0.0f, 0.0f), input.DistanceFog);
-	output.Color = ApplyBlendModeColor(output.Color, input.DistortionAnchor, input.PositionCopy);
+	output.Color = ApplyBlendModeColor(output.Color, input.PositionCopy, true);
 
 	return output;
 }

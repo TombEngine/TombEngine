@@ -8,14 +8,17 @@
 #define MAX_BLUR_RADIUS 100
 #define USE_FAST_BILINEAR_BLUR 1
 #define DISTORTION_MIN_WEIGHT 0.001f
-#define DISTORTION_REFERENCE_DEPTH 64.0f
+#define DISTORTION_REFERENCE_DEPTH 1024.0f
 #define DISTORTION_REFRACTION_PIXELS 56.0f
 #define DISTORTION_DEPTH_REJECT_MIN 32.0f
-#define DISTORTION_DEPTH_REJECT_SCALE 0.03f
 #define DISTORTION_EDGE_GUARD_PIXELS 2.0f
 #define DISTORTION_EDGE_FADE_RANGE 0.04f
-#define DISTORTION_NOISE_STRENGTH 0.35f
-#define DISTORTION_NOISE_RESOLUTION 15.0f
+#define DISTORTION_NOISE_STRENGTH_SURFACE 0.15f
+#define DISTORTION_NOISE_STRENGTH_BILLBOARD 0.05f
+#define DISTORTION_NOISE_RESOLUTION_SURFACE 3.5f
+#define DISTORTION_NOISE_RESOLUTION_BILLBOARD 25.0f
+#define DISTORTION_DISTANCE_FADE_START 2048.0f
+#define DISTORTION_DEPTH_SCALE 8192.0f
 
 struct PostProcessVertexShaderInput
 {
@@ -110,45 +113,53 @@ float4 PSDistortion(PixelShaderInput input) : SV_Target
     float4 color = ColorTexture.Sample(ColorSampler, input.UV);
 	float4 distortionData = DistortionTexture.Sample(DistortionSampler, input.UV);
 
-	// Decode split-channel signed direction: R/G = positive X/Y components, B/A = negative X/Y.
-	float2 netDir = float2(distortionData.r - distortionData.b, distortionData.g - distortionData.a);
-	float netLen = length(netDir);
-
-	if (netLen <= DISTORTION_MIN_WEIGHT)
+	// x = accumulated luma strength; early-out if no distortion emitter covered this pixel.
+	float totalStrength = distortionData.x;
+	if (totalStrength <= DISTORTION_MIN_WEIGHT)
 		return color;
 
-	// Smooth edge fade: distortion naturally tapers to zero near screen borders
-	// to prevent hard UV-clamp artifacts when the mask is bright near an edge.
-	float2 edgeUV = min(input.UV, 1.0f - input.UV);
-	float edgeFade = smoothstep(0.0f, DISTORTION_EDGE_FADE_RANGE, edgeUV.x) *
-	                 smoothstep(0.0f, DISTORTION_EDGE_FADE_RANGE, edgeUV.y);
-	float weight = netLen * edgeFade;
+	// Reconstruct luma-weighted average emitter depth from packed 16-bit distance.
+	float distHigh = distortionData.y / totalStrength;
+	float distLow  = distortionData.z / totalStrength;
+	float emitterDist = distHigh * 255.0f * 256.0f + distLow * 255.0f;
 
+	// Reconstruct emitter type blend (0 = billboard, 1 = surface geometry).
+	float typeBlend = distortionData.w / totalStrength;
+	
+	// Reconstruct world-space linearized depth of the sampled pixel.
+	float centerDepth = GetSceneViewDepth(input.UV);
+	
+	// Don't distort pixels in occluding distorted surface.
+	if (centerDepth < emitterDist)
+		return color;
+
+	// Distance attenuation: fade out distortion beyond DISTORTION_DISTANCE_FADE_START.
+	float distFade = 1.0f - smoothstep(DISTORTION_DISTANCE_FADE_START, DISTORTION_DEPTH_SCALE, emitterDist);
+	float weight = totalStrength * distFade;
 	if (weight <= DISTORTION_MIN_WEIGHT)
 		return color;
 
-	float2 refractVector = netDir / netLen;
+	// Noise-only refraction direction: all emitters are camera-facing, direction is organic noise.
+	// Surface geometry uses 3x stronger noise for a more visible heat-haze effect.
+	float noiseStrength = lerp(DISTORTION_NOISE_STRENGTH_BILLBOARD, DISTORTION_NOISE_STRENGTH_SURFACE, typeBlend) * distFade;
+	float noiseScale = lerp(DISTORTION_NOISE_RESOLUTION_BILLBOARD, DISTORTION_NOISE_RESOLUTION_SURFACE, typeBlend) * distFade;
+	float noiseSpeed = lerp(0.25f, 0.05f, typeBlend);
+	float noiseTime = Frame * noiseSpeed;
+	float noiseX = SimplexNoise(float3(input.UV * noiseScale, noiseTime));
+	float noiseY = SimplexNoise(float3(input.UV * noiseScale + 5.7f, noiseTime + 1.3f));
+	float2 refractVector = SafeNormalize(float3(noiseX, noiseY, 0.0f)).xy;
 
-	// Slight simplex noise for organic variation; does not overpower the surface-derived direction.
-	float noiseTime = Frame * 0.05f;
-	float noiseX = SimplexNoise(float3(input.UV * DISTORTION_NOISE_RESOLUTION, noiseTime));
-	float noiseY = SimplexNoise(float3(input.UV * DISTORTION_NOISE_RESOLUTION + 5.7f, noiseTime + 1.3f));
-	refractVector = SafeNormalize(float3(refractVector + float2(noiseX, noiseY) * DISTORTION_NOISE_STRENGTH, 0.0f)).xy;
+	// Perspective-correct scaling: distortion shrinks with emitter distance.
+	float perspectiveScale = rsqrt(max(emitterDist, DISTORTION_REFERENCE_DEPTH) / DISTORTION_REFERENCE_DEPTH);
 
-	// Perspective-correct scaling: distortion shrinks with distance.
-	float centerSceneDepth = GetSceneViewDepth(input.UV);
-	float perspectiveScale = rsqrt(max(centerSceneDepth, DISTORTION_REFERENCE_DEPTH) / DISTORTION_REFERENCE_DEPTH);
-
-	float2 offset = refractVector * (DISTORTION_REFRACTION_PIXELS * weight * perspectiveScale) * TexelSize;
+	float2 offset = refractVector * (noiseStrength * DISTORTION_REFRACTION_PIXELS * weight * perspectiveScale) * TexelSize;
 	float2 edgeGuard = TexelSize * DISTORTION_EDGE_GUARD_PIXELS;
 	float2 refractedUV = clamp(input.UV + offset, edgeGuard, 1.0f - edgeGuard);
 
-	// Only reject samples that are in front of the distortion emitter (closer to camera).
-	// Samples behind the emitter (further away) are accepted — heat haze should distort the background.
+	// Depth-based rejection: if the destination pixel is closer to camera than the emitter,
+	// it is a foreground object occluding the distortion surface — skip distortion.
 	float refractedSceneDepth = GetSceneViewDepth(refractedUV);
-	float depthTolerance = max(DISTORTION_DEPTH_REJECT_MIN, centerSceneDepth * DISTORTION_DEPTH_REJECT_SCALE);
-
-	if (refractedSceneDepth < centerSceneDepth - depthTolerance)
+	if (refractedSceneDepth < emitterDist - DISTORTION_DEPTH_REJECT_MIN)
 		return color;
 
 	return ColorTexture.Sample(ColorSampler, refractedUV);
