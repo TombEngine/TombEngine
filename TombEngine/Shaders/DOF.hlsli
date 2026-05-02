@@ -129,7 +129,7 @@ float4 PSDOFFarBlur(PixelShaderInput input) : SV_Target
     float  radius       = GetBokehRadius(centerFarCoC);
 
     if (radius < 0.5f)
-        return float4(center.rgb, centerFarCoC);
+        return float4(center.rgb, 0.0f);
 
     float3 accumColor  = center.rgb * centerFarCoC;
     float  accumWeight = centerFarCoC;
@@ -198,7 +198,7 @@ float4 PSDOFNearBlur(PixelShaderInput input) : SV_Target
     float  radius        = GetBokehRadius(centerNearCoC);
 
     if (radius < 0.5f)
-        return float4(center.rgb, centerNearCoC);
+        return float4(center.rgb, 0.0f);
 
     float3 accumColor  = center.rgb * centerNearCoC;
     float  accumWeight = centerNearCoC;
