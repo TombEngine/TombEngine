@@ -14,7 +14,8 @@
 #define DISTORTION_DEPTH_REJECT_SCALE 0.03f
 #define DISTORTION_EDGE_GUARD_PIXELS 2.0f
 #define DISTORTION_EDGE_FADE_RANGE 0.04f
-#define DISTORTION_NOISE_STRENGTH 0.07f
+#define DISTORTION_NOISE_STRENGTH 0.35f
+#define DISTORTION_NOISE_RESOLUTION 15.0f
 
 struct PostProcessVertexShaderInput
 {
@@ -129,9 +130,9 @@ float4 PSDistortion(PixelShaderInput input) : SV_Target
 	float2 refractVector = netDir / netLen;
 
 	// Slight simplex noise for organic variation; does not overpower the surface-derived direction.
-	float noiseTime = Frame * 0.02f;
-	float noiseX = SimplexNoise(float3(input.UV * 3.5f, noiseTime));
-	float noiseY = SimplexNoise(float3(input.UV * 3.5f + 5.7f, noiseTime + 1.3f));
+	float noiseTime = Frame * 0.05f;
+	float noiseX = SimplexNoise(float3(input.UV * DISTORTION_NOISE_RESOLUTION, noiseTime));
+	float noiseY = SimplexNoise(float3(input.UV * DISTORTION_NOISE_RESOLUTION + 5.7f, noiseTime + 1.3f));
 	refractVector = SafeNormalize(float3(refractVector + float2(noiseX, noiseY) * DISTORTION_NOISE_STRENGTH, 0.0f)).xy;
 
 	// Perspective-correct scaling: distortion shrinks with distance.
