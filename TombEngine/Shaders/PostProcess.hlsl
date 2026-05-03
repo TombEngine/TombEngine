@@ -132,7 +132,7 @@ float4 PSDistortion(PixelShaderInput input) : SV_Target
     float emitterDist = distHigh * 255.0f * 256.0f + distLow * 255.0f;
 
     // Reconstruct emitter type blend (0 = billboard, 1 = surface geometry).
-    float typeBlend = distortionData.w / totalStrength;
+    float typeBlend = step(0.5f, distortionData.w / totalStrength);
     
     // Reconstruct world-space linearized depth of the sampled pixel and reject if in front of the distortion surface.
     float centerDepth = GetSceneViewDepth(input.UV);
