@@ -2346,9 +2346,15 @@ namespace TEN::Renderer
 		_graphicsDevice->Present();
 	}
 
-	void Renderer::DumpGameScene(SceneRenderMode renderMode)
+	void Renderer::DumpGameScene(SceneRenderMode renderMode, float blur)
 	{
+		if (blur > EPSILON)
+			SetDOF({ DOFMode::Full, 0, 0, blur }, false);
+
 		RenderScene(_dumpScreenRenderTarget.get(), _gameCamera, renderMode);
+
+		if (blur > EPSILON)
+			RestoreDOF();
 	}
 
 	void Renderer::DoRenderPass(RendererPass pass, RenderView& view, bool drawMirrors)

@@ -142,6 +142,8 @@ namespace TEN::Scripting
 		float TitleLogoScale = 0.38f;
 		ScriptColor TitleLogoColor = ScriptColor(255, 255, 255);
 
+		float MenuBackgroundBlur = 0.15f;
+
 		static void Register(sol::table& parent);
 	};
 

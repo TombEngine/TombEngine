@@ -7,7 +7,7 @@ namespace TEN::Renderer
 {
 	void Renderer::ApplyDOF(IRenderSurface2D* renderTarget, RenderView& view)
 	{
-		if ( _currentDOF.Range <= EPSILON || _currentDOF.Strength <= EPSILON || _currentDOF.Mode == DOFMode::None)
+		if (_currentDOF.Strength <= EPSILON || _currentDOF.Mode == DOFMode::None)
 			return;
 
 		SetBlendMode(BlendMode::Opaque, true);
@@ -267,7 +267,7 @@ namespace TEN::Renderer
 	void Renderer::SetDOF(const DOFState& state, bool save)
 	{
 		_currentDOF.Mode     = state.Mode;
-		_currentDOF.Distance = std::max(0.0f, state.Distance);
+		_currentDOF.Distance = state.Distance;
 		_currentDOF.Range    = std::max(0.0f, state.Range);
 		_currentDOF.Strength = std::clamp(state.Strength, 0.0f, 1.0f);
 

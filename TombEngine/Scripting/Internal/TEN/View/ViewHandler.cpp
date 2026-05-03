@@ -225,7 +225,7 @@ namespace TEN::Scripting::View
 		auto state = DOFState{};
 		state.Distance = ValueOr<float>(distance, BLOCK(1.5f));
 		state.Range    = ValueOr<float>(range, BLOCK(2));
-		state.Strength = ValueOr<float>(strength, 0.5f);
+		state.Strength = ValueOr<float>(strength, 0.2f);
 		state.Mode     = mode;
 		g_Renderer.SetDOF(state);
 	}
@@ -311,7 +311,7 @@ namespace TEN::Scripting::View
 		//@tparam View.DOFMode mode Specifies depth of field mode to use. Set to @{View.DOFMode.NONE} to disable depth of field.
 		//@tparam[opt=1536] float distance Focus distance in world units.
 		//@tparam[opt=2048] float range Width of the sharp focus region in world units.
-		//@tparam[opt=0.5] float strength Maximum bokeh radius (clamped to [0, 1]).
+		//@tparam[opt=0.2] float strength Maximum bokeh radius (clamped to [0, 1]).
 		tableView.set_function(ScriptReserved_SetDOF, &SetDOF);
 
 		/// Play a video file. File should be placed in the `FMV` folder.
