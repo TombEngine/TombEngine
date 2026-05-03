@@ -502,7 +502,7 @@ namespace TEN::Input
 		if (RumbleInfo.Power >= 0.2f && (RumbleInfo.LastPower - RumbleInfo.Power) < 0.1f)
 			return;
 
-		if (RumbleInfo.Power <= 0.0f)
+		if (RumbleInfo.Power <= EPSILON)
 		{
 			StopRumble();
 			return;
@@ -510,7 +510,7 @@ namespace TEN::Input
 
 		// SDL_RumbleGamepad takes Uint16 amplitudes for low/high frequency motors and a duration in ms.
 		Uint16 lowFreq = 0, highFreq = 0;
-		Uint16 amplitude = (Uint16)std::clamp(RumbleInfo.Power * 0xFFFF, 0.0f, (float)0xFFFF);
+		Uint16 amplitude = (Uint16)std::clamp(RumbleInfo.Power * USHRT_MAX, 0.0f, (float)USHRT_MAX);
 
 		switch (RumbleInfo.Mode)
 		{
