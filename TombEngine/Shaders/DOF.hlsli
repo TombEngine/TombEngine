@@ -12,17 +12,12 @@
 //   signedCoC > 0 → background (far)   → farCoC  = saturate(2*(A - 0.5))
 
 // ---------------------------------------------------------------------------
-// Shared input structs (used by VS and all DOF/postprocess PS functions).
-// ---------------------------------------------------------------------------
-
-
-// ---------------------------------------------------------------------------
 // Constants and kernel.
 // ---------------------------------------------------------------------------
 
 #define DOF_COC_EPSILON        0.025f
 #define DOF_DISC_SAMPLES       12
-#define DOF_DEPTH_REJECT_SCALE 3.0f  // rejection threshold relative to center CoC
+#define DOF_DEPTH_REJECT_SCALE 3.0f  // Rejection threshold relative to center CoC.
 #define DOF_MAX_BOKEH_RADIUS   8.0f
 #define DOF_DILATE_SAMPLES     8
 
@@ -47,7 +42,6 @@ static const float2 DOF_DISC_OFFSETS[DOF_DISC_SAMPLES] =
 // ---------------------------------------------------------------------------
 
 // Returns the raw signed CoC (negative = near/foreground, positive = far/background).
-// Clamped to [-1, 1].
 float GetSignedCoC(float viewDepth)
 {
     int mode = (int)DofParams.w;
@@ -55,7 +49,8 @@ float GetSignedCoC(float viewDepth)
         return 0.0f;
 
     float signedCoC = (viewDepth - DofParams.x) / max(DofParams.y, 1.0f);
-    signedCoC = clamp(signedCoC, -1.0f, 1.0f);
+	float expandedCoC = pow(abs(clamp(signedCoC, -1.0f, 1.0f)), 1.3f);
+	signedCoC = sign(signedCoC) * expandedCoC;
 
     if (mode == 2) // Front only: clamp so background has no CoC.
         signedCoC = min(signedCoC, 0.0f);
@@ -78,7 +73,7 @@ float GetBokehRadius(float coc)
 
 // ---------------------------------------------------------------------------
 // Pass 1 — half-resolution downsample with packed signed CoC in alpha.
-//   Alpha = 0.5 + 0.5 * signedCoC
+// Alpha = 0.5 + 0.5 * signedCoC
 // ---------------------------------------------------------------------------
 
 float4 PSDOFDownsample(PixelShaderInput input) : SV_Target
@@ -99,13 +94,13 @@ float4 PSDOFDownsample(PixelShaderInput input) : SV_Target
     for (int i = 0; i < 4; i++)
     {
         float2 sampleUV = saturate(input.UV + offsets[i] * fullTexel);
-        color    += ColorTexture.SampleLevel(ColorSampler, sampleUV, 0).rgb;
+        color += ColorTexture.SampleLevel(ColorSampler, sampleUV, 0).rgb;
 
         float sceneDepth = DepthTexture.Sample(DepthSampler, sampleUV).x;
         viewDepth += abs(ReconstructViewPosition(sampleUV, sceneDepth, InverseProjection).z);
     }
 
-    color     *= 0.25f;
+    color *= 0.25f;
     viewDepth *= 0.25f;
 
     float signedCoC = GetSignedCoC(viewDepth);
@@ -176,6 +171,7 @@ float4 PSDOFNearDilate(PixelShaderInput input) : SV_Target
     {
         float2 offset   = DOF_DISC_OFFSETS[i] * dilateRadius * TexelSize;
         float  tapAlpha = ColorTexture.SampleLevel(ColorSampler, saturate(input.UV + offset), 0).a;
+		
         // Lower packed alpha = higher near CoC; min expands foreground blur outward.
         minAlpha = min(minAlpha, tapAlpha);
     }

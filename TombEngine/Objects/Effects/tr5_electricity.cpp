@@ -120,7 +120,7 @@ void TriggerElectricitySparks(ItemInfo* item, int joint, int flame)
 	spark->flags = SP_NONE;
 
 	if (flame)
-		TriggerFireFlame(pos.x, pos.y, pos.z, FlameType::SmallFast, false, Vector3(0.2f, 0.5f, 1.0f), Vector3(0.2f, 0.8f, 1.0f));
+		TriggerFireFlame(pos.x, pos.y, pos.z, FlameType::SmallFast, Vector3(0.2f, 0.5f, 1.0f), Vector3(0.2f, 0.8f, 1.0f));
 }
 
 bool ElectricityWireCheckDeadlyBounds(Vector3i* pos, short delta)

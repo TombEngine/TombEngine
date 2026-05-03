@@ -1511,7 +1511,7 @@ void TriggerFlashSmoke(int x, int y, int z, short roomNumber)
 	spark->dSize = 2 * (spark->sSize + 4);
 }
 
-void TriggerFireFlame(int x, int y, int z, FlameType type, bool haze, const Vector3& color1, const Vector3& color2)
+void TriggerFireFlame(int x, int y, int z, FlameType type, const Vector3& color1, const Vector3& color2)
 {
 	int dx = LaraItem->Pose.Position.x - x;
 	int dz = LaraItem->Pose.Position.z - z;
@@ -1629,10 +1629,7 @@ void TriggerFireFlame(int x, int y, int z, FlameType type, bool haze, const Vect
 	}
 
 	spark->scalar = 2;
-	spark->flags = SP_EXPDEF | SP_DEF | SP_SCALE;
-
-	if (haze)
-		spark->flags |= SP_HAZE;
+	spark->flags = SP_EXPDEF | SP_DEF | SP_SCALE | SP_HAZE;
 
 	if (GetRandomControl() & 1)
 	{
@@ -1834,7 +1831,7 @@ void ProcessEffects(ItemInfo* item)
 			if (TestProbability(1 / 8.0f))			
 			{
 				TriggerFireFlame(
-					pos.x, pos.y, pos.z, TestProbability(1 / 10.0f) ? FlameType::Trail : FlameType::Medium, false,
+					pos.x, pos.y, pos.z, TestProbability(1 / 10.0f) ? FlameType::Trail : FlameType::Medium,
 					item->Effect.PrimaryEffectColor, item->Effect.SecondaryEffectColor);
 			}
 
@@ -1864,7 +1861,7 @@ void ProcessEffects(ItemInfo* item)
 			if (TestProbability(1 / 1.0f))
 			{
 				TriggerFireFlame(
-					pos.x, pos.y, pos.z, TestProbability(1 / 10.0f) ? FlameType::Medium : FlameType::Medium, false,
+					pos.x, pos.y, pos.z, TestProbability(1 / 10.0f) ? FlameType::Medium : FlameType::Medium,
 					Vector3(0.2f, 0.5f, 1.0f), Vector3(0.2f, 0.8f, 1.0f));
 			}
 
@@ -1874,7 +1871,7 @@ void ProcessEffects(ItemInfo* item)
 			if (TestProbability(1 / 1.0f))
 			{
 				TriggerFireFlame(
-					pos.x, pos.y, pos.z, TestProbability(1 / 10.0f) ? FlameType::Medium : FlameType::Medium, false,
+					pos.x, pos.y, pos.z, TestProbability(1 / 10.0f) ? FlameType::Medium : FlameType::Medium,
 					Vector3(1.0f, 0.5f, 0.2f), Vector3(0.6f, 0.1f, 0.0f));
 			}
 

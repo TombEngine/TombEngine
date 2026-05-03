@@ -1559,7 +1559,7 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 	// Fire trail and water collision for grenade fragments.
 	if (type == ProjectileType::Explosive && projectile.ItemFlags[3])
 	{
-		TriggerFireFlame(projectile.Pose.Position.x, projectile.Pose.Position.y, projectile.Pose.Position.z, FlameType::Medium, true);
+		TriggerFireFlame(projectile.Pose.Position.x, projectile.Pose.Position.y, projectile.Pose.Position.z, FlameType::Medium);
 		if (TestEnvironment(ENV_FLAG_WATER, projectile.RoomNumber))
 			hasHit = true;
 	}
