@@ -1,7 +1,5 @@
 #include "framework.h"
 
-#include <codecvt>
-
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererEnums.h"
 #include "Specific/trutils.h"
@@ -160,24 +158,63 @@ namespace TEN::Utils
 
 	std::string ToString(const wchar_t* wString)
 	{
-        auto converter = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>();
-		return converter.to_bytes(std::wstring(wString));
+#ifdef SDL_PLATFORM_WIN32
+		if (!wString || !*wString)
+			return {};
+
+		int len = WideCharToMultiByte(CP_UTF8, 0, wString, -1, nullptr, 0, nullptr, nullptr);
+		if (len <= 0)
+			return {};
+
+		auto result = std::string(len - 1, '\0');
+		WideCharToMultiByte(CP_UTF8, 0, wString, -1, result.data(), len, nullptr, nullptr);
+		return result;
+#else
+		if (!wString || !*wString)
+			return {};
+
+		auto state = std::mbstate_t{};
+		auto len = std::wcsrtombs(nullptr, &wString, 0, &state);
+		if (len == static_cast<std::size_t>(-1))
+			return {};
+
+		auto result = std::string(len, '\0');
+		std::wcsrtombs(result.data(), &wString, len + 1, &state);
+		return result;
+#endif
 	}
 
-    std::wstring ToWString(const std::string& string)
-    {
-        auto cString = string.c_str();
-        int size = MultiByteToWideChar(CP_UTF8, 0, cString, (int)string.size(), nullptr, 0);
-        auto wString = std::wstring(size, 0);
-        MultiByteToWideChar(CP_UTF8, 0, cString, (int)strlen(cString), &wString[0], size);
-        return wString;
-    }
+	std::wstring ToWString(const std::string& string)
+	{
+#ifdef SDL_PLATFORM_WIN32
+		auto cString = string.c_str();
+		int size = MultiByteToWideChar(CP_UTF8, 0, cString, (int)string.size(), nullptr, 0);
+		auto wString = std::wstring(size, 0);
+		MultiByteToWideChar(CP_UTF8, 0, cString, (int)string.size(), &wString[0], size);
+		return wString;
+#else
+		if (string.empty())
+			return {};
+
+		auto cString = string.c_str();
+		auto state = std::mbstate_t{};
+		auto len = std::mbsrtowcs(nullptr, &cString, 0, &state);
+		if (len == static_cast<std::size_t>(-1))
+			return {};
+
+		auto wString = std::wstring(len, L'\0');
+		cString = string.c_str();
+		std::mbsrtowcs(wString.data(), &cString, len + 1, &state);
+		return wString;
+#endif
+	}
 
 	std::wstring ToWString(const char* cString)
 	{
-		wchar_t buffer[UCHAR_MAX];
-		std::mbstowcs(buffer, cString, UCHAR_MAX);
-		return std::wstring(buffer);
+		if (!cString || !*cString)
+			return {};
+
+		return ToWString(std::string(cString));
 	}
 
 	std::string ReplaceNewLineSymbols(const std::string& string)
@@ -194,20 +231,20 @@ namespace TEN::Utils
 		return result;
 	}
 
-	std::vector<std::wstring> SplitString(const std::wstring& string)
+	std::vector<std::string> SplitString(const std::string& string)
 	{
-		auto strings = std::vector<std::wstring>{};
+		auto strings = std::vector<std::string>{};
 
 		// Exit early if string is single line.
-		if (string.find(L'\n') == std::wstring::npos)
+		if (string.find('\n') == std::string::npos)
 		{
 			strings.push_back(string);
 			return strings;
 		}
 
-		std::wstring::size_type pos = 0;
-		std::wstring::size_type prev = 0;
-		while ((pos = string.find(L'\n', prev)) != std::string::npos)
+		std::string::size_type pos = 0;
+		std::string::size_type prev = 0;
+		while ((pos = string.find('\n', prev)) != std::string::npos)
 		{
 			strings.push_back(string.substr(prev, pos - prev));
 			prev = pos + 1;
@@ -216,12 +253,12 @@ namespace TEN::Utils
 		strings.push_back(string.substr(prev));
 		return strings;
 	}
-	
-	std::vector<std::wstring> SplitWords(const std::wstring& input)
+
+	std::vector<std::string> SplitWords(const std::string& input)
 	{
-		std::vector<std::wstring> words;
-		std::wstringstream stream(input);
-		std::wstring word;
+		std::vector<std::string> words;
+		std::stringstream stream(input);
+		std::string word;
 
 		while (stream >> word)
 			words.push_back(word);

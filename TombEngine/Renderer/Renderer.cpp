@@ -89,6 +89,11 @@ namespace TEN::Renderer
 		_videoSprite.Texture = texture;
 	}
 
+	void Renderer::ClearVideoTexture()
+	{
+		_videoSprite = {};
+	}
+
 	void Renderer::ReloadShaders(bool recompileAAShaders)
 	{
 		try
@@ -205,9 +210,9 @@ namespace TEN::Renderer
 		int lightTypeMask = 0;
 
 		for (int i = 0; i < lights.size(); i++)
-			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stInstancedStaticMeshBuffer.StaticMeshes[instanceID].Lights, i);
+			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stObjects.Objects[instanceID].Lights, i);
 
-		_stInstancedStaticMeshBuffer.StaticMeshes[instanceID].NumLights = (int)lights.size() | lightTypeMask;
+		_stObjects.Objects[instanceID].NumLights = (int)lights.size() | lightTypeMask;
 	}
 
 	void Renderer::BindMoveableLights(std::vector<RendererLight*>& lights, int roomNumber, int prevRoomNumber, float fade, bool shadow)
@@ -235,12 +240,12 @@ namespace TEN::Renderer
 			if (fadedCoeff == 0.0f)
 				continue;
 
-			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stItem.Lights, numLights);
-			_stItem.Lights[numLights].Intensity *= fadedCoeff;
+			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stObjects.Objects[0].Lights, numLights);
+			_stObjects.Objects[0].Lights[numLights].Intensity *= fadedCoeff;
 			numLights++;
 		}
 
-		_stItem.NumLights = numLights | lightTypeMask | (shadow ? SHADOWABLE_MASK : 0);
+		_stObjects.Objects[0].NumLights = numLights | lightTypeMask | (shadow ? SHADOWABLE_MASK : 0);
 	}
 
 	void Renderer::BindRoomDecals(const std::vector<RendererDecal>& decals)
@@ -283,11 +288,11 @@ namespace TEN::Renderer
 		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasAmbientOcclusionMap) << 9;
 		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasEmissiveMap) << 10;
 
-		if (materialTypeAndFlags == _stMaterial.MaterialTypeAndFlags &&
-			g_Level.Materials[materialIndex].Parameters0 == _stMaterial.MaterialParameters0 &&
-			g_Level.Materials[materialIndex].Parameters1 == _stMaterial.MaterialParameters1 &&
-			g_Level.Materials[materialIndex].Parameters2 == _stMaterial.MaterialParameters2 &&
-			g_Level.Materials[materialIndex].Parameters3 == _stMaterial.MaterialParameters3 &&
+		if (materialTypeAndFlags == _stPerDraw.MaterialTypeAndFlags &&
+			g_Level.Materials[materialIndex].Parameters0 == _stPerDraw.MaterialParameters0 &&
+			g_Level.Materials[materialIndex].Parameters1 == _stPerDraw.MaterialParameters1 &&
+			g_Level.Materials[materialIndex].Parameters2 == _stPerDraw.MaterialParameters2 &&
+			g_Level.Materials[materialIndex].Parameters3 == _stPerDraw.MaterialParameters3 &&
 			!force)
 		{
 			return;
@@ -296,13 +301,13 @@ namespace TEN::Renderer
 		// TODO: in the future output from TE directly an optimized list
 		//if (materialIndex != _lastMaterialIndex || force)
 		{
-			_stMaterial.MaterialTypeAndFlags = materialTypeAndFlags;
-			_stMaterial.MaterialParameters0  = g_Level.Materials[materialIndex].Parameters0;
-			_stMaterial.MaterialParameters1  = g_Level.Materials[materialIndex].Parameters1;
-			_stMaterial.MaterialParameters2  = g_Level.Materials[materialIndex].Parameters2;
-			_stMaterial.MaterialParameters3  = g_Level.Materials[materialIndex].Parameters3;
+			_stPerDraw.MaterialTypeAndFlags = materialTypeAndFlags;
+			_stPerDraw.MaterialParameters0  = g_Level.Materials[materialIndex].Parameters0;
+			_stPerDraw.MaterialParameters1  = g_Level.Materials[materialIndex].Parameters1;
+			_stPerDraw.MaterialParameters2  = g_Level.Materials[materialIndex].Parameters2;
+			_stPerDraw.MaterialParameters3  = g_Level.Materials[materialIndex].Parameters3;
 
-			UpdateConstantBuffer(&_stMaterial, _cbMaterial.get());
+			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
 			_lastMaterialIndex = materialIndex;
 
@@ -321,12 +326,12 @@ namespace TEN::Renderer
 		{
 			_graphicsDevice->SetBlendMode(blendMode);
 
-			_stBlending.BlendMode = static_cast<unsigned int>(blendMode);
-			UpdateConstantBuffer(&_stBlending, _cbBlending.get());
+			_stPerDraw.BlendMode = static_cast<unsigned int>(blendMode);
+			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 			
 			_lastBlendMode = blendMode;
 		}
-
+		
 		switch (blendMode)
 		{
 		case BlendMode::Opaque:
@@ -373,13 +378,13 @@ namespace TEN::Renderer
 
 	void Renderer::SetAlphaTest(AlphaTestMode mode, float threshold, bool force)
 	{
-		if (_stBlending.AlphaTest != (int)mode ||
-			_stBlending.AlphaThreshold != threshold ||
+		if (_stPerDraw.AlphaTest != (int)mode ||
+			_stPerDraw.AlphaThreshold != threshold ||
 			force)
 		{
-			_stBlending.AlphaTest = (int)mode;
-			_stBlending.AlphaThreshold = threshold;
-			UpdateConstantBuffer(&_stBlending, _cbBlending.get());
+			_stPerDraw.AlphaTest = (int)mode;
+			_stPerDraw.AlphaThreshold = threshold;
+			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 		}
 	}
 
