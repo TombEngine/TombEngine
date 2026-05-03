@@ -18,7 +18,6 @@ struct PixelShaderInput
 	float4 Color: COLOR;
 	float4 PositionCopy: TEXCOORD2;
 	float4 FogBulbs : TEXCOORD3;
-	float3 DistortionAnchor : TEXCOORD4;
 	float DistanceFog : FOG;
 	uint InstanceID : SV_InstanceID;
 };
@@ -59,13 +58,11 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 	{
         worldPosition = mul(float4(input.Position, 1.0f), sprite.World);
         output.Position = mul(mul(float4(input.Position, 1.0f), sprite.World), ViewProjection);
-		output.DistortionAnchor = sprite.World[3].xyz;
     }
 	else
 	{
 		worldPosition = float4(input.Position, 1.0f);
 		output.Position = mul(float4(input.Position, 1.0f), ViewProjection);
-		output.DistortionAnchor = input.Position.xyz;
 	}
 	
     int polyIndex = DecodeIndexInPoly(input.Effects);

@@ -1999,18 +1999,17 @@ namespace TEN::Renderer
 		DrawLines3D(view);
 		DrawTriangles3D(view);
 
-		// Copy current scene to the reflections render target for the next frame
+		// Copy current scene to the reflections render target for the next frame.
 		// RT -> LRRT
 		CopyRenderTargetAndDownscale(_renderTarget.get(), _legacyReflectionsRenderTarget.get(), POSTPROCESS_DOWNSCALE_FACTOR, view);
 		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 
 		_doingFullscreenPass = true;
 
-		// Calculates glow
-		// GB-E -> GRT0, GRT0 -> GRT1, GRT1 -> GRT0, RT -> PPRT0, PPRT0 -> RT
-		ApplyGlow(_renderTarget.get(), view);
+		// Calculate full-screen effects.
 		ApplyDistortion(_renderTarget.get(), view);
 		ApplyDOF(_renderTarget.get(), view);
+		ApplyGlow(_renderTarget.get(), view);
 
 		// Draw HUD-space object renders after DOF so they are not blurred by scene depth.
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
