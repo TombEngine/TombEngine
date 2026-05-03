@@ -220,6 +220,12 @@ namespace TEN::Scripting::View
 		g_Renderer.SetPostProcessTint(vec);
 	}
 
+	static std::tuple<DOFMode, float, float, float> GetDOF()
+	{
+		auto state = g_Renderer.GetDOF();
+		return std::make_tuple(state.Mode, state.Distance, state.Range, state.Strength);
+	}
+
 	static void SetDOF(DOFMode mode, TypeOrNil<float> distance, TypeOrNil<float> range, TypeOrNil<float> strength)
 	{
 		auto state = DOFState{};
@@ -255,15 +261,32 @@ namespace TEN::Scripting::View
 		//@tparam[opt=1] float speed Speed in units per second. A value of 1 will make the animation take one second.
 		tableView.set_function(ScriptReserved_SetCineBars, &SetCineBars);
 
+		///Get field of view.
+		//@function GetFOV
+		//@treturn float Current FOV angle in degrees.
+		tableView.set_function(ScriptReserved_GetFOV, &GetFOV);
+
 		///Set field of view.
 		//@function SetFOV
 		//@tparam float angle Angle in degrees (clamped to [10, 170]).
 		tableView.set_function(ScriptReserved_SetFOV, &SetFOV);
 
-		///Get field of view.
-		//@function GetFOV
-		//@treturn float Current FOV angle in degrees.
-		tableView.set_function(ScriptReserved_GetFOV, &GetFOV);
+		///Get a set of 4 depth of field parameters.
+		//@function GetDOF
+		//@treturn View.DOFMode Current depth of field mode.
+		//@treturn float Current focus distance in world units.
+		//@treturn float Current sharp focus width in world units.
+		//@treturn float Current maximum bokeh radius.
+		//@usage local mode, distance, range, strength = View.GetDOF()
+		tableView.set_function(ScriptReserved_GetDOF, &GetDOF);
+
+		///Set depth of field parameters.
+		//@function SetDOF
+		//@tparam View.DOFMode mode Specifies depth of field mode to use. Set to @{View.DOFMode.NONE} to disable depth of field.
+		//@tparam[opt=1536] float distance Focus distance in world units.
+		//@tparam[opt=2048] float range Width of the sharp focus region in world units.
+		//@tparam[opt=0.2] float strength Maximum bokeh radius (clamped to [0, 1]).
+		tableView.set_function(ScriptReserved_SetDOF, &SetDOF);
 
 		///Shows the mode of the game camera.
 		//@function GetCameraType
@@ -305,14 +328,6 @@ namespace TEN::Scripting::View
 		//@function SetPostProcessTint
 		//@tparam Color tint value to use.
 		tableView.set_function(ScriptReserved_SetPostProcessTint, &SetPostProcessTint);
-
-		///Sets depth of field parameters.
-		//@function SetDOF
-		//@tparam View.DOFMode mode Specifies depth of field mode to use. Set to @{View.DOFMode.NONE} to disable depth of field.
-		//@tparam[opt=1536] float distance Focus distance in world units.
-		//@tparam[opt=2048] float range Width of the sharp focus region in world units.
-		//@tparam[opt=0.2] float strength Maximum bokeh radius (clamped to [0, 1]).
-		tableView.set_function(ScriptReserved_SetDOF, &SetDOF);
 
 		/// Play a video file. File should be placed in the `FMV` folder.
 		// @function PlayVideo

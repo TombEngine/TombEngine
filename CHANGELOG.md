@@ -17,7 +17,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Lua API changes
 * Added ring inventory module.
 * Added `GlobalVars` namespacefor globally persistent variables across game sessions, including the title level.
-* Added `View.SetDOF` function to toggle depth of field feature on or off.
+* Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
 * Added `Flow.Settings.Graphics.flameHeatHaze` option to toggle heat haze effects for flames.
 * Added `Flow.Settings.UI.menuBackgroundBlur` option to specify amount of blur for the inventory and pause backgrounds.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
