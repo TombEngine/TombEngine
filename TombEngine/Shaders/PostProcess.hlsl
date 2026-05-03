@@ -17,8 +17,12 @@
 
 #define DISTORTION_NOISE_STRENGTH_SURFACE 0.15f
 #define DISTORTION_NOISE_STRENGTH_BILLBOARD 0.035f
-#define DISTORTION_NOISE_RESOLUTION_SURFACE 3.5f
-#define DISTORTION_NOISE_RESOLUTION_BILLBOARD 25.0f
+#define DISTORTION_NOISE_SCALE_SURFACE 3.5f
+#define DISTORTION_NOISE_SCALE_BILLBOARD 25.0f
+#define DISTORTION_NOISE_SHIMMER_STRENGTH_SURFACE 0.35f
+#define DISTORTION_NOISE_SHIMMER_STRENGTH_BILLBOARD 0.8f
+#define DISTORTION_NOISE_SHIMMER_SCALE_SURFACE 40.0f
+#define DISTORTION_NOISE_SHIMMER_SCALE_BILLBOARD 65.0f
 #define DISTORTION_NOISE_SPEED_BILLBOARD 0.25f
 #define DISTORTION_NOISE_SPEED_SURFACE 0.05f
 #define DISTORTION_DISTANCE_FADE_START 4096.0f
@@ -142,9 +146,11 @@ float4 PSDistortion(PixelShaderInput input) : SV_Target
         return color;
 
     // Base noise parameters.
-    float noiseStrength = lerp(DISTORTION_NOISE_STRENGTH_BILLBOARD, DISTORTION_NOISE_STRENGTH_SURFACE, typeBlend) * distFade;
-    float noiseScale = lerp(DISTORTION_NOISE_RESOLUTION_BILLBOARD, DISTORTION_NOISE_RESOLUTION_SURFACE, typeBlend) * distFade;
-    float noiseSpeed = lerp(DISTORTION_NOISE_SPEED_BILLBOARD, DISTORTION_NOISE_SPEED_SURFACE, typeBlend) * Frame;
+    float noiseStrength   = lerp(DISTORTION_NOISE_STRENGTH_BILLBOARD, DISTORTION_NOISE_STRENGTH_SURFACE, typeBlend) * distFade;
+    float noiseScale      = lerp(DISTORTION_NOISE_SCALE_BILLBOARD, DISTORTION_NOISE_SCALE_SURFACE, typeBlend) * distFade;
+    float shimmerStremgth = lerp(DISTORTION_NOISE_SHIMMER_STRENGTH_BILLBOARD, DISTORTION_NOISE_SHIMMER_STRENGTH_SURFACE, typeBlend) * distFade;
+    float shimmerScale    = lerp(DISTORTION_NOISE_SHIMMER_SCALE_BILLBOARD, DISTORTION_NOISE_SHIMMER_SCALE_SURFACE, typeBlend) * distFade;
+    float noiseSpeed      = lerp(DISTORTION_NOISE_SPEED_BILLBOARD, DISTORTION_NOISE_SPEED_SURFACE, typeBlend) * Frame;
 
     // Base distortion noise.
     float noiseX = SimplexNoise(float3(input.UV * noiseScale, noiseSpeed));
@@ -152,15 +158,18 @@ float4 PSDistortion(PixelShaderInput input) : SV_Target
     float2 refractVector = float2(noiseX, noiseY) * 1.5f;
 
 	// Shimmer layer.
-    float shimmerTime = Frame * 0.1f;
-    float shimmer = SimplexNoise(float3(input.UV * noiseScale * 20.0f, shimmerTime));
+	float shimmerTime = noiseSpeed * 3.5f;
+	float shimmerX = SimplexNoise(float3(input.UV * shimmerScale * 1.7f, shimmerTime + 13.1f));
+	float shimmerY = SimplexNoise(float3(input.UV * shimmerScale * 2.3f, shimmerTime + 31.7f));
+	float2 shimmerVec = float2(shimmerX, shimmerY) * shimmerStremgth;
 
-    // Small symmetric modulation (like refractive index fluctuation)
-    float shimmerFade = 1.0f - smoothstep(DISTORTION_DISTANCE_FADE_START / 2.0f, DISTORTION_DISTANCE_FADE_END / 2.0f, emitterDist);
-    float shimmerFactor = 1.0f + shimmer * shimmerFade;
-    noiseStrength *= shimmerFactor;
+	// Distance-based fade.
+	float shimmerFade = 1.0f - smoothstep(DISTORTION_DISTANCE_FADE_START / 1.5f, DISTORTION_DISTANCE_FADE_END / 3.0f, emitterDist);
 
-    // Perspective-correct scaling
+	// Apply shimmer to distortion vector.
+	refractVector += shimmerVec * shimmerFade;
+
+    // Perspective-correct scaling.
     float perspectiveScale = rsqrt(max(emitterDist, DISTORTION_REFERENCE_DEPTH) / DISTORTION_REFERENCE_DEPTH);
 	
 	// Final offset + edge guard calculation.
