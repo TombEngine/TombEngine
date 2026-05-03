@@ -502,7 +502,10 @@ void PlaySoundTrack(const std::string& track, SoundTrackType type, std::optional
 
 	bool crossfade = false;
 	unsigned int crossfadeTime = 0;
-	unsigned int flags = BASS_STREAM_AUTOFREE | BASS_SAMPLE_FLOAT | BASS_ASYNCFILE;
+	// BASS_UNICODE makes BASS use path::value_type on the current platform:
+	// wchar_t* (UTF-16) on Windows, char* (UTF-8) on POSIX. This matches
+	// std::filesystem::path::c_str() so non-ASCII paths work everywhere.
+	unsigned int flags = BASS_UNICODE | BASS_STREAM_AUTOFREE | BASS_SAMPLE_FLOAT | BASS_ASYNCFILE;
 
 	bool channelActive = BASS_ChannelIsActive(SoundtrackSlot[(int)type].Channel);
 	if (channelActive && SoundtrackSlot[(int)type].Track.compare(track) == 0)

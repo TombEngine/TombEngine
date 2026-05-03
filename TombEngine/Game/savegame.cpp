@@ -13,6 +13,7 @@
 #include "Objects/Effects/Fireflies.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/effects.h"
+#include "Game/effects/Hair.h"
 #include "Game/effects/weather.h"
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
@@ -50,6 +51,7 @@ using namespace TEN::Collision::Floordata;
 using namespace TEN::Control::Volumes;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Fireflies;
+using namespace TEN::Effects::Hair;
 using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Creatures::TR3;
 using namespace TEN::Entities::Generic;
@@ -64,7 +66,7 @@ using namespace TEN::Video;
 namespace Save = TEN::Save;
 
 constexpr auto SAVEGAME_MAX_SLOT    = 99;
-constexpr auto SAVEGAME_PATH	    = "Save//";
+constexpr auto SAVEGAME_PATH	    = "Save/";
 constexpr auto SAVEGAME_FILE_MASK   = "savegame.";
 constexpr auto GLOBAL_VARS_FILENAME = "savegame.global";
 
@@ -786,6 +788,14 @@ const std::vector<byte> SaveGame::Build()
 	}
 	auto carriedWeaponsOffset = fbb.CreateVector(carriedWeapons);
 
+	Save::PlayerSkinDataBuilder skinData{ fbb };
+	skinData.add_skin((int)Lara.Skin.Skin);
+	skinData.add_skin_joints((int)Lara.Skin.SkinJoints);
+	skinData.add_skin_scream((int)Lara.Skin.SkinScream);
+	skinData.add_hair_primary((int)Lara.Skin.HairPrimary);
+	skinData.add_hair_secondary((int)Lara.Skin.HairSecondary);
+	auto skinDataOffset = skinData.Finish();
+
 	Save::LaraBuilder lara{ fbb };
 	lara.add_context(contextOffset);
 	lara.add_control(controlOffset);
@@ -808,6 +818,7 @@ const std::vector<byte> SaveGame::Build()
 	lara.add_target_entity_number(Lara.TargetEntity == nullptr ? -1 : Lara.TargetEntity->Index);
 	lara.add_torch(torchOffset);
 	lara.add_weapons(carriedWeaponsOffset);
+	lara.add_skin(skinDataOffset);
 	auto laraOffset = lara.Finish();
 
 	std::vector<flatbuffers::Offset<Save::Room>> rooms;
@@ -1884,7 +1895,7 @@ bool SaveGame::Save(int slot)
 		std::filesystem::create_directory(FullSaveDirectory);
 
 	std::ofstream fileOut{};
-	fileOut.open(filename, std::ios_base::binary | std::ios_base::out);
+	fileOut.open(std::filesystem::path{filename}, std::ios_base::binary | std::ios_base::out);
 
 	// Write current level save data.
 	auto currentLevelState = SaveGame::Build();
@@ -1924,7 +1935,7 @@ bool SaveGame::Load(int slot)
 	auto file = std::ifstream();
 	try
 	{
-		file.open(fileName, std::ios_base::app | std::ios_base::binary);
+		file.open(std::filesystem::path{fileName}, std::ios_base::app | std::ios_base::binary);
 
 		int size = 0;
 		file.read(reinterpret_cast<char*>(&size), sizeof(size));
@@ -2333,6 +2344,29 @@ static void ParsePlayer(const Save::SaveGame* s)
 		Lara.Weapons[i].SelectedAmmo = (WeaponAmmoType)info->selected_ammo();
 		Lara.Weapons[i].WeaponMode = (LaraWeaponTypeCarried)info->weapon_mode();
 	}
+
+	// Skin.
+	if (s->lara()->skin() != nullptr)
+	{
+		Lara.Skin.Skin          = (GAME_OBJECT_ID)s->lara()->skin()->skin();
+		Lara.Skin.SkinJoints    = (GAME_OBJECT_ID)s->lara()->skin()->skin_joints();
+		Lara.Skin.SkinScream	= (GAME_OBJECT_ID)s->lara()->skin()->skin_scream();
+		Lara.Skin.HairPrimary   = (GAME_OBJECT_ID)s->lara()->skin()->hair_primary();
+		Lara.Skin.HairSecondary = (GAME_OBJECT_ID)s->lara()->skin()->hair_secondary();
+	}
+	else
+	{
+		Lara.Skin.Skin				= ID_LARA_SKIN;
+		Lara.Skin.SkinJoints		= ID_LARA_SKIN_JOINTS;
+		Lara.Skin.SkinScream		= ID_LARA_SCREAM;
+		Lara.Skin.HairPrimary		= ID_HAIR_PRIMARY;
+		Lara.Skin.HairSecondary		= ID_HAIR_SECONDARY;
+	}
+
+	HairEffect.Initialize();
+
+	g_Renderer.UpdatePlayerSkinVertices(Lara.Skin.Skin, Lara.Skin.SkinJoints,
+		Lara.Skin.HairPrimary, Lara.Skin.HairSecondary);
 
 	// Rope
 	if (Lara.Control.Rope.Ptr >= 0)
@@ -3093,7 +3127,7 @@ bool SaveGame::LoadHeader(int slot, SaveGameHeader* header)
 	auto fileName = GetSavegameFilename(slot);
 
 	std::ifstream file;
-	file.open(fileName, std::ios_base::app | std::ios_base::binary);
+	file.open(std::filesystem::path{fileName}, std::ios_base::app | std::ios_base::binary);
 
 	file.seekg(0, std::ios::end);
 	size_t length = file.tellg();
@@ -3175,7 +3209,7 @@ bool SaveGame::SaveGlobalVars()
 		auto filename = FullSaveDirectory + GLOBAL_VARS_FILENAME;
 
 		std::ofstream fileOut{};
-		fileOut.open(filename, std::ios_base::binary | std::ios_base::out);
+		fileOut.open(std::filesystem::path{filename}, std::ios_base::binary | std::ios_base::out);
 
 		if (!fileOut.is_open())
 		{
@@ -3217,7 +3251,7 @@ bool SaveGame::LoadGlobalVars()
 	try
 	{
 		auto file = std::ifstream();
-		file.open(filename, std::ios_base::binary | std::ios_base::ate);
+		file.open(std::filesystem::path{filename}, std::ios_base::binary | std::ios_base::ate);
 
 		if (!file.is_open() || !file.good())
 		{

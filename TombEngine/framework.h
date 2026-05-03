@@ -21,7 +21,6 @@
 #include <array>
 #include <atomic>
 #include <cctype>
-#include <codecvt>
 #include <cstdint>
 #include <ctime>
 #include <chrono>

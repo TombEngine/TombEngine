@@ -21,12 +21,10 @@
 #include "Renderer/ConstantBuffers/HUDBuffer.h"
 #include "Renderer/ConstantBuffers/ShadowLightBuffer.h"
 #include "Renderer/ConstantBuffers/RoomBuffer.h"
-#include "Renderer/ConstantBuffers/ItemBuffer.h"
-#include "Renderer/ConstantBuffers/AnimatedBuffer.h"
-#include "Renderer/ConstantBuffers/BlendingBuffer.h"
+#include "Renderer/ConstantBuffers/ObjectsBuffer.h"
 #include "Renderer/ConstantBuffers/CameraMatrixBuffer.h"
-#include "Renderer/ConstantBuffers/MaterialBuffer.h"
-#include "Renderer/ConstantBuffers/InstancedStaticBuffer.h"
+#include "Renderer/Structures/AnimatedFrame.h"
+#include "Renderer/ConstantBuffers/PerDrawBuffer.h"
 #include "Renderer/ConstantBuffers/InstancedSpriteBuffer.h"
 #include "Renderer/ConstantBuffers/PostProcessBuffer.h"
 #include "Renderer/ConstantBuffers/SMAABuffer.h"
@@ -121,12 +119,12 @@ namespace TEN::Renderer
 		RenderView _oldGameCamera;
 		RenderView _currentGameCamera;
 		std::unique_ptr<IConstantBuffer> _cbCameraMatrices;
-		CItemBuffer _stItem;
-		std::unique_ptr<IConstantBuffer> _cbItem;
+		CObjectsBuffer _stObjects;
+		std::unique_ptr<IConstantBuffer> _cbObjects;
 		CRoomBuffer _stRoom;
 		std::unique_ptr<IConstantBuffer> _cbRoom;
-		CAnimatedBuffer _stAnimated;
-		std::unique_ptr<IConstantBuffer> _cbAnimated;
+		std::array<AnimatedFrame, MAX_ANIMATED_FRAMES> _animatedFrames = {};
+		std::unique_ptr<IStructuredBuffer> _animatedFramesBuffer;
 		CShadowLightBuffer _stShadowMap;
 		std::unique_ptr<IConstantBuffer> _cbShadowMap;
 		CHUDBuffer _stHUD;
@@ -137,16 +135,12 @@ namespace TEN::Renderer
 		std::unique_ptr<IConstantBuffer> _cbPostProcessBuffer;
 		CInstancedSpriteBuffer _stInstancedSpriteBuffer;
 		std::unique_ptr<IConstantBuffer> _cbInstancedSpriteBuffer;
-		CBlendingBuffer _stBlending;
-		std::unique_ptr<IConstantBuffer> _cbBlending;
-		CInstancedStaticMeshBuffer _stInstancedStaticMeshBuffer;
-		std::unique_ptr<IConstantBuffer> _cbInstancedStaticMeshBuffer;
+		CPerDrawBuffer _stPerDraw;
+		std::unique_ptr<IConstantBuffer> _cbPerDraw;
 		CSMAABuffer _stSMAABuffer;
 		std::unique_ptr<IConstantBuffer> _cbSMAABuffer;
 		CSkyBuffer _stSky;
 		std::unique_ptr<IConstantBuffer> _cbSky;
-		CMaterialBuffer _stMaterial;
-		std::unique_ptr<IConstantBuffer> _cbMaterial;
 
 		// Primitive batches
 
@@ -189,6 +183,7 @@ namespace TEN::Renderer
 		std::vector<int> _roomsIndices;
 		std::vector<Vertex> _moveablesVertices;
 		std::vector<int> _moveablesIndices;
+		std::unordered_map<int, std::vector<Vertex>> _skinVertexBackups;
 		std::vector<Vertex> _staticsVertices;
 		std::vector<int> _staticsIndices;
 
@@ -480,6 +475,9 @@ namespace TEN::Renderer
 		void PackSpriteTextureCoordinates(int instanceId, RendererSprite* sprite);
 		void ApplyGlow(IRenderSurface2D* renderTarget, RenderView& view);
 
+		void ProcessSkinJoints(RendererObject& jointsMoveable, RendererObject& skinMoveable, ObjectInfo& jointsObj);
+		void Renderer::ProcessHair(GAME_OBJECT_ID hairID, RendererObject& skinMoveable, bool isSecond);
+
 		void AddSpriteBillboard(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale,
 			Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 		void AddSpriteBillboardConstrained(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D,
@@ -503,6 +501,8 @@ namespace TEN::Renderer
 		Matrix GetWorldMatrixForSprite(const RendererSpriteToDraw& sprite, RenderView& view);
 		RendererObject& GetRendererObject(GAME_OBJECT_ID id);
 		RendererMesh* GetMesh(int meshIndex);
+		void BackupObjectVertices(GAME_OBJECT_ID objectID);
+		void RestoreObjectVertices(GAME_OBJECT_ID objectID);
 		Vector4 GetPortalRect(Vector4 v, Vector4 vp);
 		bool SphereBoxIntersection(BoundingBox box, Vector3 sphereCentre, float sphereRadius);
 		void InitializeSpriteQuad();
@@ -572,7 +572,7 @@ namespace TEN::Renderer
 		template <typename CBuff>
 		std::unique_ptr<IConstantBuffer> CreateConstantBuffer()
 		{
-			return std::move(_graphicsDevice->CreateConstantBuffer(sizeof(CBuff), L"")); //TEN::Utils::ToString( typeid(CBuff).name()
+			return std::move(_graphicsDevice->CreateConstantBuffer(sizeof(CBuff), "")); //typeid(CBuff).name()
 		}
 
 		static inline bool IsSortedBlendMode(BlendMode blendMode)
@@ -601,10 +601,10 @@ namespace TEN::Renderer
 
 		inline void TexturesAreNotAnimated()
 		{
-			if (_stAnimated.Animated == 0)
+			if (_stPerDraw.Animated == 0)
 				return;
-			_stAnimated.Animated = 0;
-			UpdateConstantBuffer(&_stAnimated, _cbAnimated.get());
+			_stPerDraw.Animated = 0;
+			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 		}
 
 		static inline bool IsWaterfall(short objectNumber)
@@ -696,7 +696,9 @@ namespace TEN::Renderer
 		void RenderFreezeMode(float interpFactor, bool staticBackground);
 		void RenderFullScreenTexture(ITextureBase* texture, float aspect);
 		void UpdateVideoTexture(ITexture2D* texture);
+		void ClearVideoTexture();
 		void UpdateProgress(float value);
+		void UpdatePlayerSkinVertices(GAME_OBJECT_ID skinID, GAME_OBJECT_ID skinJointsID, GAME_OBJECT_ID hairPrimaryID, GAME_OBJECT_ID hairSecondaryID);
 		void ToggleFullScreen(bool force = false);
 		void SetFullScreen();
 		bool IsFullsScreen();
@@ -732,8 +734,8 @@ namespace TEN::Renderer
 		SkinningMode GetSkinningMode(const RendererObject& obj, int skinIndex);
 		void DrawObjectIn2DSpace(int objectNumber, Vector2 pos2D, EulerAngles orient, float scale1, float opacity = 1.0f, int meshBits = NO_JOINT_BITS);
 		void DrawObjectIn3DSpace(const DisplayItem& item);
-		void SetLoadingScreen(std::wstring& fileName);
-		std::unique_ptr<ITexture2D> SetTextureOrDefault(std::wstring path);
+		void SetLoadingScreen(const std::string& fileName);
+		std::unique_ptr<ITexture2D> SetTextureOrDefault(std::string path);
 		std::string GetDefaultAdapterName();
 		const AdapterInfo& GetAdapterInfo() const;
 		void SaveOldState();
