@@ -3017,21 +3017,25 @@ namespace TEN::Renderer
 				if (!_debugNormalsCacheInitialized)
 					InitializeDebugNormalsCache();
 
+				auto worldMatrix = Matrix::Identity;
+				ReflectMatrixOptionally(worldMatrix);
+
 				for (int i = (int)view.RoomsToDraw.size() - 1; i >= 0; i--)
 				{
 					const auto& debugRoom = *view.RoomsToDraw[i];
-					auto worldMatrix = Matrix::Identity;
-					ReflectMatrixOptionally(worldMatrix);
 
 					for (const auto& debugBucket : debugRoom.Buckets)
-						DrawDebugNormalsForBucket(debugBucket, _roomsVertices, _roomsIndices, _roomsNormalsCache, worldMatrix, BLOCK(0.05f), &view.Camera.WorldPosition);
+					{
+						DrawDebugWireframeForBucket(debugBucket, _roomsVertices, _roomsIndices, worldMatrix, &view.Camera.WorldPosition);
+						DrawDebugNormalsForBucket(debugBucket, _roomsVertices, _roomsIndices, _roomsNormalsCache, worldMatrix, BLOCK(0.06f), &view.Camera.WorldPosition);
+					}
 				}
 			}
 
 			ResetScissor();
 		}
 	}
-	
+
 	void Renderer::DrawHorizonAndSkyForReflections(RenderView& renderView)
 	{
 		_graphicsDevice->ClearRenderTarget2D(_skyboxRenderTarget->GetRenderTarget(), 0, Colors::Black);
@@ -4234,9 +4238,6 @@ namespace TEN::Renderer
 
 		if (_debugPage == RendererDebugPage::CollisionMeshStats)
 		{
-			if (!_debugNormalsCacheInitialized)
-				InitializeDebugNormalsCache();
-
 			BindTexture(TextureRegister::ColorMap, _whiteTexture.get(), SamplerStateRegister::AnisotropicClamp);
 			BindTexture(TextureRegister::NormalMap, _defaultNormalTexture.get(), SamplerStateRegister::AnisotropicClamp);
 			BindTexture(TextureRegister::ORSHMap, _whiteTexture.get(), SamplerStateRegister::AnisotropicClamp);
@@ -4363,4 +4364,42 @@ namespace TEN::Renderer
 			}
 		}
 	}
+
+	void Renderer::DrawDebugWireframeForBucket(const RendererBucket& bucket, const std::vector<Vertex>& vertices,
+		const std::vector<int>& indices, const Matrix& worldMatrix, const Vector3* cameraPos)
+	{
+		constexpr auto WIREFRAME_COLOR = Color(0.0f, 0.1f, 0.0f, 1.0f);
+		constexpr auto DEBUG_OFFSET = 2.0f;
+
+		for (const auto& poly : bucket.Polygons)
+		{
+			int indexCount = (poly.Shape == 0) ? 6 : 3;
+
+			for (int i = 0; i < indexCount; i += 3)
+			{
+				auto triVertices = std::array<Vector3, 3>{};
+
+				for (int j = 0; j < (int)triVertices.size(); j++)
+				{
+					int vertexIndex = indices[poly.BaseIndex + i + j];
+					triVertices[j] = Vector3::Transform(vertices[vertexIndex].Position, worldMatrix);
+
+					if (cameraPos != nullptr)
+					{
+						auto offset = *cameraPos - triVertices[j];
+						if (offset.LengthSquared() > EPSILON)
+						{
+							offset.Normalize();
+							triVertices[j] += offset * DEBUG_OFFSET;
+						}
+					}
+				}
+
+				AddDebugLine(triVertices[0], triVertices[1], WIREFRAME_COLOR, RendererDebugPage::CollisionMeshStats);
+				AddDebugLine(triVertices[1], triVertices[2], WIREFRAME_COLOR, RendererDebugPage::CollisionMeshStats);
+				AddDebugLine(triVertices[2], triVertices[0], WIREFRAME_COLOR, RendererDebugPage::CollisionMeshStats);
+			}
+		}
+	}
+
 }
