@@ -459,7 +459,7 @@ float3 ComputeMoonGlow(float3 viewDir, float3 moonDir)
 // ---------------------------------------------------------------------------
 // Aurora Borealis — raymarched curtain aurora spanning the full sky dome
 // ---------------------------------------------------------------------------
-// Converted from a Shadertoy GLSL aurora shader to HLSL. Uses triangle-wave
+// Uses triangle-wave
 // noise with raymarching through horizontal planes to create curtain-like
 // aurora structures that drape across the entire sky, similar to AltocumulusMid
 // cloud coverage. Only the aurora effect is used (no stars / water reflection).
@@ -685,7 +685,7 @@ float3 ComputeAurora(float3 viewDir, float2 screenPos)
 }
 
 // ---------------------------------------------------------------------------
-// Tone mapping — Jodie-Reinhard (from reference shader)
+// Tone mapping
 // ---------------------------------------------------------------------------
 
 float3 JodieReinhardTonemap(float3 c)

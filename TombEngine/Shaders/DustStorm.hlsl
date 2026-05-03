@@ -1,9 +1,7 @@
 // ============================================================================
 // DustStorm.hlsl - Screen-space volumetric dust / sand storm.
 //
-// Adapted from the GLSL "Believable animated volumetric dust storm in 7
-// samples" Shadertoy (only the fog(), fogmap() and triNoise3d() functions are
-// ported - the scene SDF is intentionally dropped). The pass runs after all
+// The pass runs after all
 // opaque + transparent geometry; depth from the linear depth render target is
 // used both to clamp marching to the closest surface and to blend the dust
 // with the engine's distance fog.

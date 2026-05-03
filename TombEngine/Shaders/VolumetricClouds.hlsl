@@ -165,8 +165,7 @@ float PerlinNoise3D(float3 p)
 // Returns a divergence-free displacement vector in the XZ plane.
 // Because curl(F) has zero divergence, no flow convergence points exist,
 // so domain-warped iso-contours form smooth organic curves instead of
-// L/T/jigsaw corners. This is the standard AAA domain-warping technique
-// (Guerrilla Games, Frostbite, RDR2 cloud systems).
+// L/T/jigsaw corners.
 float2 CurlNoise2D(float3 p, float eps)
 {
     float nx0 = ValueNoise3D(p + float3( eps, 0.0f,  0.0f));
@@ -181,8 +180,7 @@ float2 CurlNoise2D(float3 p, float eps)
 // Returns the normalized minimum distance to the nearest random point in a
 // cell grid. Inverted (1 - worley) yields smooth rounded blobs - natural
 // cloud-puff shapes. Altocumulus is physically a cellular cloud type, so
-// Worley noise matches its real morphology (Andrew Schneider, Siggraph 2015:
-// "The Real-Time Volumetric Cloudscapes of Horizon Zero Dawn").
+// Worley noise matches its real morphology.
 float WorleyNoise2D(float2 p)
 {
     float2 ip = floor(p);
@@ -365,12 +363,12 @@ float FBMAlto5(float3 p, float3 p_stable, float3 advect, float lacunarity, float
 }
 
 // Lightweight 3-octave Perlin FBM for dissolving morph sources.
-// Uses only the first 3 octaves of FBMAlto5 â€” sufficient for the coarse
+// Uses only the first 3 octaves of FBMAlto5 sufficient for the coarse
 // shape of clouds that are fading out. Fine-detail octaves (3-4) contribute
 // imperceptible structure during dissolution and are skipped entirely.
 // Saves ~40% of per-sample FBM cost compared to FBMAlto5.
 //
-// Does NOT use the split curled/stable position â€” all 3 octaves use the same
+// Does NOT use the split curled/stable position all 3 octaves use the same
 // position since the fine-octave flickering fix is irrelevant for dissolving clouds.
 float FBMAlto3(float3 p, float3 advect, float lacunarity, float gain, float billowBlend, float lod)
 {
@@ -614,7 +612,7 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     // EvoAccumOffset is pre-integrated in the renderer (like WindSpeed/WindAccumOffset),
     // so it never decreases even when EvolutionSpeed transitions to a lower value.
     // This prevents clouds from drifting against the wind during morph transitions
-    // where EvolutionSpeed drops (e.g. RainSnowOvercastâ†’Altocumulus).
+    // where EvolutionSpeed drops (e.g. RainSnowOvercast Altocumulus).
     //
     // Direction is PERPENDICULAR to wind (rotated 90Â°) so that EvolutionSpeed
     // does NOT add to the visible wind-direction speed. Otherwise, on a preset
@@ -659,7 +657,7 @@ float EvalAltoDensityCore(float3 skyPos, float heightFrac, float skyH,
     // deformation). CurlWarpStrength linearly scales all three displacement bands.
     //
     // Performance: at distLOD >= 0.45 all three curl bands contribute sub-pixel
-    // displacements, so the entire curl warp block is skipped â€” saving 4-12
+    // displacements, so the entire curl warp block is skipped saving 4-12
     // ValueNoise3D calls per sample at medium-to-far range.
     if (CurlWarpStrength > 0.001f && distLOD < 0.45f)
     {
@@ -1184,7 +1182,7 @@ float CloudDensityAtWorldPos(float3 worldPos, float heightFrac, bool useDetail, 
 }
 
 // ===========================================================================
-// Cloud slab intersection   TEN uses Y-down coordinates
+// Cloud slab intersection
 // ===========================================================================
 
 // Intersect a ray with a flat horizontal cloud slab of given thickness.
@@ -1370,7 +1368,7 @@ float BoltSegDist(float3 ro, float3 rd, float3 A, float3 B)
     {
         // Nearly parallel: perpendicular distance from ray line to segment line.
         // cross(rd, rA) magnitude = |rA| * sin(angle between rd and rA) = distance
-        // from point A to the infinite ray line ï¿½  constant for all points along AB.
+        // from point A to the infinite ray line constant for all points along AB.
         return length(cross(rd, rA));
     }
 
