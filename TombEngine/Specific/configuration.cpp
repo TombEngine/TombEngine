@@ -255,11 +255,7 @@ bool LoadConfiguration()
 		}
 		else if (section == "Input")
 		{
-			if (key == OPTION_INPUT_VERSION)
-			{
-				inputVersion = ToInt(val, 1);
-			}
-			else if (key == OPTION_MOUSE_SENSITIVITY)
+			if (key == OPTION_MOUSE_SENSITIVITY)
 			{
 				g_Configuration.MouseSensitivity = ToInt(val, g_Configuration.MouseSensitivity);
 			}
@@ -279,36 +275,23 @@ bool LoadConfiguration()
 		}
 	}
 
-	// Pre-SDL3 configs used OIS-format keyIDs which are not portable to the new input layer.
-	// Discard those bindings; defaults already loaded by g_Bindings.Initialize() remain in place
-	// and will be persisted on the next SaveConfiguration() call.
-	bool legacyConfig = (inputVersion < CURRENT_INPUT_VERSION) && !rawBindings.empty();
-	if (legacyConfig)
+	for (auto [actionId, keyId] : rawBindings)
 	{
-		TENLog("Pre-SDL3 keyboard/gamepad bindings detected. Resetting to defaults.", LogLevel::Info);
-	}
-	else
-	{
-		for (auto [actionId, keyId] : rawBindings)
-		{
-			if (keyId == KEY_UNASSIGNED)
-				continue;
+		if (keyId == KEY_UNASSIGNED)
+			continue;
 
-			g_Configuration.Bindings.insert({ (ActionID)actionId, keyId });
-			g_Bindings.SetKeyBinding(BindingProfileID::Custom, (ActionID)actionId, keyId);
-		}
+		g_Configuration.Bindings.insert({ (ActionID)actionId, keyId });
+		g_Bindings.SetKeyBinding(BindingProfileID::Custom, (ActionID)actionId, keyId);
 	}
 
-	if (!foundInput || legacyConfig)
+	if (!foundInput)
 		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Default);
 
 	g_Configuration.EnableSound = g_Configuration.SoundDevice > 0;
 
 	SetAudioConfiguration(g_Configuration);
 	DefaultConflict();
-
-	if (legacyConfig)
-		SaveConfiguration();
+	SaveConfiguration();
 
 	return true;
 }
@@ -349,7 +332,6 @@ bool SaveConfiguration()
 	ss << OPTION_ENABLE_THUMBSTICK_CAMERA << "=" << (g_Configuration.EnableThumbstickCamera ? 1 : 0) << "\n\n";
 
 	ss << "[Input]\n";
-	ss << OPTION_INPUT_VERSION << "=" << CURRENT_INPUT_VERSION << "\n";
 	ss << OPTION_MOUSE_SENSITIVITY << "=" << g_Configuration.MouseSensitivity << "\n";
 	ss << OPTION_MENU_OPTION_LOOPING_MODE << "=" << (int)g_Configuration.MenuOptionLoopingMode << "\n";
 

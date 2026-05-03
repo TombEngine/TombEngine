@@ -29,7 +29,7 @@ unsigned int ThreadSuspendCount = 0;
 // Cooperative pause, it emulates Windows APIs for pausing and resuming the game but it's cross platform
 SDL_Mutex* GamePauseMutex = nullptr;
 SDL_Condition* GamePauseCond = nullptr;
-bool       GamePaused = false;
+bool GamePaused = false;
 
 // Global variables
 bool ResetClock;
@@ -87,7 +87,7 @@ int GetCurrentScreenRefreshRate()
 	if (mode->refresh_rate <= 0.0f)
 		return 0;
 
-	return static_cast<int>(mode->refresh_rate + 0.5f);
+	return (int)(mode->refresh_rate + 0.5f);
 }
 
 std::vector<Vector2i> GetAllSupportedScreenResolutions()
@@ -475,7 +475,7 @@ int main(int argc, char* argv[])
 				break;
 
 			default:
-				TEN::Input::HandleSDLEvent(event);
+				HandleSDLEvent(event);
 				break;
 			}
 		}
@@ -523,8 +523,6 @@ void EngineClose()
 	}
 
 	g_Platform->Shutdown();
-
 	SDL_Quit();
-
 	ShutdownTENLog();
 }
