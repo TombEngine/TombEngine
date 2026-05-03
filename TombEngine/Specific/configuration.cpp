@@ -54,7 +54,7 @@ static bool ReadAllText(const std::string& path, std::string& out)
 		return false;
 	}
 
-	out.resize(static_cast<size_t>(size));
+	out.resize((size_t)size);
 
 	size_t read = SDL_ReadIO(stream, out.data(), out.size());
 

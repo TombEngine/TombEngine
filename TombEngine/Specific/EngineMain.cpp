@@ -86,7 +86,7 @@ int GetCurrentScreenRefreshRate()
 	if (mode->refresh_rate <= 0.0f)
 		return 0;
 
-	return static_cast<int>(mode->refresh_rate + 0.5f);
+	return (int)(mode->refresh_rate + 0.5f);
 }
 
 std::vector<Vector2i> GetAllSupportedScreenResolutions()
