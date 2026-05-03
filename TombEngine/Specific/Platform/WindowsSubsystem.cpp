@@ -184,9 +184,13 @@ namespace TEN::Platform
 
 	void WindowsSubsystem::Initialize()
 	{
+		// Set UTF-8 locale so that std::filesystem::path and C library functions
+		// interpret char* as UTF-8 (required for non-ASCII paths on Windows).
+		setlocale(LC_ALL, ".UTF-8");
+
 		constexpr unsigned int PROCESS_SYSTEM_DPI_AWARE = 1;
 
-		typedef HRESULT(WINAPI* SetDpiAwarenessProc)(UINT);
+		typedef HRESULT(WINAPI* SetDpiAwarenessProc)(unsigned int);
 
 		_hInstance = GetModuleHandle(nullptr);
 
@@ -326,36 +330,37 @@ namespace TEN::Platform
 		CoUninitialize();
 	}
 
-	std::wstring WindowsSubsystem::GetBinaryPath(bool includeExeName)
+	std::string WindowsSubsystem::GetBinaryPath(bool includeExeName)
 	{
 		const char* basePath = SDL_GetBasePath();
 		if (basePath == nullptr)
 		{
 			TENLog("Can't get current assembly path", LogLevel::Error);
-			return std::wstring();
+			return std::string();
 		}
 
 		auto dirPath = std::filesystem::path(basePath);
-		auto result = dirPath.wstring();
-		std::replace(result.begin(), result.end(), L'\\', L'/');
+		auto result = dirPath.string();
+		std::replace(result.begin(), result.end(), '\\', '/');
 
 		if (!includeExeName)
 			return result;
 
 		// Append executable filename for the rare callers that need it.
 		static const int MAX_PATH_LENGTH = 1024;
-		wchar_t fileName[MAX_PATH_LENGTH] = {};
+		char fileName[MAX_PATH_LENGTH] = {};
 
-		if (!GetModuleFileNameW(nullptr, fileName, MAX_PATH_LENGTH))
+		if (!GetModuleFileNameA(nullptr, fileName, MAX_PATH_LENGTH))
 			return result;
 
-		auto exeName = std::filesystem::path(fileName).filename().wstring();
+		auto exeName = std::filesystem::path(fileName).filename().string();
 		return result + exeName;
 	}
 
 	std::vector<unsigned short> WindowsSubsystem::GetProductOrFileVersion(bool productVersion)
 	{
-		auto fileName = GetBinaryPath(true);
+		auto fileNameUtf8 = GetBinaryPath(true);
+		auto fileName = ToWString(fileNameUtf8);
 
 		DWORD dummy = 0;
 		DWORD size = GetFileVersionInfoSizeW(fileName.data(), &dummy);
@@ -486,7 +491,7 @@ namespace TEN::Platform
 			if (!dir.empty())
 				std::filesystem::create_directories(dir);
 
-			auto outFile = std::ofstream(levelPath, std::ios::binary);
+			auto outFile = std::ofstream(std::filesystem::path{levelPath}, std::ios::binary);
 			if (!outFile)
 				throw std::ios_base::failure("Failed to create title level file.");
 

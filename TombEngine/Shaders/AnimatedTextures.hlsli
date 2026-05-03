@@ -1,11 +1,22 @@
 #ifndef ANIMATEDTEXTURESSHADER
 #define ANIMATEDTEXTURESSHADER
 
-#include "./CBAnimatedTexture.hlsli"
+#include "./CBPerDraw.hlsli"
+#include "./CBCamera.hlsli"
 
 #define ANIM_TYPE_NORMAL   0
 #define ANIM_TYPE_UVROTATE 1
 #define ANIM_TYPE_VIDEO    2
+
+struct AnimatedFrameUV
+{
+    float2 TopLeft;
+    float2 TopRight;
+    float2 BottomRight;
+    float2 BottomLeft;
+};
+
+StructuredBuffer<AnimatedFrameUV> AnimFrames : register(t14);
 
 float2 CalculateUVRotate(float2 uv, unsigned int frame)
 {
@@ -21,14 +32,14 @@ float2 CalculateUVRotate(float2 uv, unsigned int frame)
     float2 uvSize = maxUV - minUV;
 
     float2 localUV = (uv - minUV) / uvSize;
-	
+
     float relPos = InterpolatedFrame * UVRotateSpeed / 30.0f;
-	
+
     float theta = radians(UVRotateDirection + 90.0f);
     float2 dir = float2(cos(theta), sin(theta));
-	
+
     float2 scrolledUV = uv + (-dir * relPos * uvSize);
-	
+
     scrolledUV = frac(scrolledUV);
     scrolledUV = clamp(scrolledUV, epsilon, 1.0f - epsilon);
 
@@ -45,11 +56,11 @@ float2 CalculateUVRotateForLegacyWaterfalls(float2 uv, unsigned int frame)
     {
         float step = uv.y - AnimFrames[frame].TopLeft.y;
         float vert = AnimFrames[frame].TopLeft.y + (step / 2);
-		
+
         float height = (AnimFrames[frame].BottomLeft.y - AnimFrames[frame].TopLeft.y) / 2;
         float relPos = 1.0f - (InterpolatedFrame % FPS) / (float) FPS;
         float newUV = vert + height * relPos;
-        
+
         return float2(uv.x, newUV);
     }
 }
@@ -89,7 +100,7 @@ float2 GetUVPossiblyAnimated(float2 input, int index, int frame)
 
     if (Animated && Type != ANIM_TYPE_UVROTATE)
         output = GetFrame(index, frame);
-		
+
     return output;
 }
 
@@ -111,10 +122,10 @@ float2 ConvertAnimUV(float2 input)
 float3 ConvertAnimNormal(float3 input)
 {
     float3 output = input;
-	
+
     if (Animated && Type == ANIM_TYPE_VIDEO)
         output = float3(0.5f, 0.5f, 1.0f);
-	
+
     return output;
 }
 
@@ -124,7 +135,7 @@ float4 ConvertAnimOSRH(float4 input)
 
     if (Animated && Type == ANIM_TYPE_VIDEO)
         output = float4(1.0f, 0.0f, 0.0f, 1.0f);
-	
+
     return output;
 }
 

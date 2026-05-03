@@ -12,7 +12,8 @@ namespace TEN::Platform
 {
 	void MacOSSubsystem::Initialize()
 	{
-		// No macOS-specific initialization required.
+		// Inherit UTF-8 locale from the environment (standard on macOS).
+		setlocale(LC_ALL, "");
 	}
 
 	void MacOSSubsystem::Tick()
@@ -35,7 +36,7 @@ namespace TEN::Platform
 		_window = window;
 	}
 
-	std::wstring MacOSSubsystem::GetBinaryPath(bool includeExeName)
+	std::string MacOSSubsystem::GetBinaryPath(bool includeExeName)
 	{
 		uint32_t bufSize = 0;
 		_NSGetExecutablePath(nullptr, &bufSize);
@@ -44,7 +45,7 @@ namespace TEN::Platform
 		if (_NSGetExecutablePath(buffer.data(), &bufSize) != 0)
 		{
 			TENLog("Can't get current assembly path", LogLevel::Error);
-			return std::wstring();
+			return std::string();
 		}
 
 		// Resolve symlinks via realpath.
@@ -52,18 +53,17 @@ namespace TEN::Platform
 		if (realpath(buffer.data(), resolved) == nullptr)
 		{
 			TENLog("Can't resolve assembly path", LogLevel::Error);
-			return std::wstring();
+			return std::string();
 		}
 
-		// Convert to wstring.
-		auto result = std::wstring(resolved, resolved + strlen(resolved));
-		std::replace(result.begin(), result.end(), L'\\', L'/');
+		auto result = std::string(resolved);
+		std::replace(result.begin(), result.end(), '\\', '/');
 
 		if (includeExeName)
 			return result;
 
-		size_t pos = result.find_last_of(L"/");
-		return (pos != std::wstring::npos) ? result.substr(0, pos + 1) : std::wstring();
+		size_t pos = result.find_last_of("/");
+		return (pos != std::string::npos) ? result.substr(0, pos + 1) : std::string();
 	}
 
 	std::vector<unsigned short> MacOSSubsystem::GetProductOrFileVersion(bool productVersion)
@@ -141,7 +141,7 @@ namespace TEN::Platform
 	{
 		// Look for dummy.ten next to the executable.
 		auto exePath = GetBinaryPath(false);
-		auto dummyPath = std::filesystem::path(exePath.begin(), exePath.end()) / "dummy.ten";
+		auto dummyPath = std::filesystem::path(exePath) / "dummy.ten";
 
 		if (!std::filesystem::is_regular_file(dummyPath))
 		{

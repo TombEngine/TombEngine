@@ -1218,6 +1218,8 @@ namespace TEN::Renderer
 		if (!Lara.RightArm.GunFlash && !Lara.LeftArm.GunFlash)
 			return false;
 
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
 		if (Lara.Control.Look.OpticRange > 0 && _currentMirror == nullptr)
 			return false;
 
@@ -1249,9 +1251,9 @@ namespace TEN::Renderer
 		auto* itemPtr = &_items[LaraItem->Index];
 
 		// Divide gunflash tint by 2 because tinting uses multiplication and additive color which doesn't look good with overbright color values.
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = settings.ColorizeMuzzleFlash ? settings.FlashColor : NEUTRAL_COLOR;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = room.AmbientLight;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)LightMode::Static;
+		_stObjects.Objects[0].Color = settings.ColorizeMuzzleFlash ? settings.FlashColor : NEUTRAL_COLOR;
+		_stObjects.Objects[0].AmbientLight = room.AmbientLight;
+		_stObjects.Objects[0].LightMode = (int)LightMode::Static;
 		BindInstancedStaticLights(itemPtr->LightsToDraw, 0);
 
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
@@ -1284,8 +1286,8 @@ namespace TEN::Renderer
 				worldMatrix = rotMatrix * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
 
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
-				UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+				_stObjects.Objects[0].World = worldMatrix;
+				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1302,8 +1304,8 @@ namespace TEN::Renderer
 				worldMatrix = rotMatrix * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
 
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
-				UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+				_stObjects.Objects[0].World = worldMatrix;
+				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1317,6 +1319,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawBaddyGunflashes(RenderView& view)
 	{
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
 		_shaders.Bind(Shader::InstancedStatics);
 
 		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
@@ -1337,9 +1341,9 @@ namespace TEN::Renderer
 				auto& creature = *GetCreatureInfo(&nativeItem);
 				const auto& rRoom = _rooms[nativeItem.RoomNumber];
 
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = CREATURE_GUNFLASH_COLOR;
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = rRoom.AmbientLight;
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)LightMode::Static;
+				_stObjects.Objects[0].Color = CREATURE_GUNFLASH_COLOR;
+				_stObjects.Objects[0].AmbientLight = rRoom.AmbientLight;
+				_stObjects.Objects[0].LightMode = (int)LightMode::Static;
 
 				BindInstancedStaticLights(rItemPtr->LightsToDraw, 0); // FIXME: Is it really needed for gunflashes? -- Lwmte, 15.07.22
 
@@ -1380,8 +1384,8 @@ namespace TEN::Renderer
 
 						ReflectMatrixOptionally(worldMatrix);
 
-						_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
-						UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+						_stObjects.Objects[0].World = worldMatrix;
+						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 						DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1423,8 +1427,8 @@ namespace TEN::Renderer
 
 						ReflectMatrixOptionally(worldMatrix);
 
-						_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
-						UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+						_stObjects.Objects[0].World = worldMatrix;
+						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 						DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1504,17 +1508,19 @@ namespace TEN::Renderer
 
 	void Renderer::DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass)
 	{
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
 		const auto& room = _rooms[effect->RoomNumber];
 
 		auto world = effect->InterpolatedWorld;
 		ReflectMatrixOptionally(world);
 
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = effect->Color;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = effect->AmbientLight;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)LightMode::Dynamic;
+		_stObjects.Objects[0].World = world;
+		_stObjects.Objects[0].Color = effect->Color;
+		_stObjects.Objects[0].AmbientLight = effect->AmbientLight;
+		_stObjects.Objects[0].LightMode = (int)LightMode::Dynamic;
 		BindInstancedStaticLights(effect->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 		auto& mesh = *effect->Mesh;
 		
@@ -1572,6 +1578,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawDebris(RenderView& view, RendererPass rendererPass)
 	{
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
 		TexturesAreNotAnimated();
 
 		bool activeDebrisExist = false;
@@ -1628,19 +1636,19 @@ namespace TEN::Renderer
 						BindTexture(TextureRegister::ColorMap, std::get<0>(_moveablesTextures[deb.mesh.tex]).get(), SamplerStateRegister::LinearClamp);
 					}
 
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].World = Matrix::Identity;
+					_stObjects.Objects[0].World = Matrix::Identity;
 
 					// Update only if parameters are actually changed to reduce overhead.
 					if (firstDebris ||
-						(_stInstancedStaticMeshBuffer.StaticMeshes[0].Color != deb.color ||
-						 _stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient != _rooms[deb.roomNumber].AmbientLight ||
-						 _stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode != (int)deb.lightMode))
+						(_stObjects.Objects[0].Color != deb.color ||
+						 _stObjects.Objects[0].AmbientLight != _rooms[deb.roomNumber].AmbientLight ||
+						 _stObjects.Objects[0].LightMode != (int)deb.lightMode))
 					{
-						_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = deb.color;
-						_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[deb.roomNumber].AmbientLight;
-						_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)deb.lightMode;
+						_stObjects.Objects[0].Color = deb.color;
+						_stObjects.Objects[0].AmbientLight = _rooms[deb.roomNumber].AmbientLight;
+						_stObjects.Objects[0].LightMode = (int)deb.lightMode;
 
-						UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 					}
 
 					auto matrix = Matrix::Lerp(deb.PrevTransform, deb.Transform, GetInterpolationFactor());
