@@ -153,37 +153,8 @@ namespace TEN::Renderer
 		if (settings.Coverage < 0.001f)
 			return;
 
-		// Resolve quality params.
-		auto newQuality = GetQualityParams(g_SkyCloudSystem.GetGlobalQuality());
-		if (newQuality.RenderResolutionScale != state.ActiveQuality.RenderResolutionScale)
-		{
-			state.ActiveQuality = newQuality;
-			// Resize both the main render target and the prev-frame history target.
-			// Without resizing prevFrameRT, CopyResource fails silently (dimension mismatch)
-			// and prevFrameRT stays all-zeros → skip-pixels always return black → clouds invisible.
-			float scale = newQuality.RenderResolutionScale;
-			int w = std::max(1, (int)(_screenWidth * scale));
-			int h = std::max(1, (int)(_screenHeight * scale));
-			renderTarget = RenderTarget2D(
-				_device.Get(), w, h,
-				DXGI_FORMAT_R16G16B16A16_FLOAT,
-				false,
-				DXGI_FORMAT_UNKNOWN);
-			if (prevFrameRT)
-			{
-				*prevFrameRT = RenderTarget2D(
-					_device.Get(), w, h,
-					DXGI_FORMAT_R16G16B16A16_FLOAT,
-					false,
-					DXGI_FORMAT_UNKNOWN);
-			}
-			// Reset FrameCounter so temporal starts in warmup (all pixels raymarched fresh).
-			state.FrameCounter = 0;
-		}
-		else
-		{
-			state.ActiveQuality = newQuality;
-		}
+		// Quality can only change at level load, so just cache it per-frame.
+		state.ActiveQuality = GetQualityParams(g_SkyCloudSystem.GetGlobalQuality());
 
 		// Invalidate temporal history when the cloud type changes (e.g. preset switch).
 		// When CloudType changes, prevFrameRT holds clouds from a different cloud type.
