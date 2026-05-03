@@ -487,6 +487,8 @@ namespace TEN::Renderer
 		void DrawDebugNormalsForBucket(const RendererBucket& bucket, const std::vector<Vertex>& vertices,
 			const std::vector<int>& indices, const std::vector<Vector3>& normalsCache, const Matrix& worldMatrix,
 			float normalLength, const Vector3* cameraPos = nullptr);
+		void DrawDebugWireframeForBucket(const RendererBucket& bucket, const std::vector<Vertex>& vertices,
+			const std::vector<int>& indices, const Matrix& worldMatrix, const Vector3* cameraPos = nullptr);
 		void PackSpriteTextureCoordinates(int instanceId, RendererSprite* sprite);
 		void ApplyGlow(IRenderSurface2D* renderTarget, RenderView& view);
 
