@@ -77,7 +77,7 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
     
     local playerHp = Lara:GetHP() > 0
     local isNotUsingBinoculars = TEN.View.GetCameraType() ~= CameraType.BINOCULARS
-    
+
     if (TEN.Input.IsKeyHit(TEN.Input.ActionID.INVENTORY) or TEN.Inventory.GetFocusedItem() ~= Constants.NO_VALUE) and 
        not inventoryOpen and 
        playerHp and 
@@ -129,6 +129,8 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
             TEN.View.SetPostProcessTint(COLOR_MAP.background)
         end
         
+        TEN.View.SetDOF(View.DOFMode.FULL, 0, 0, Flow.GetSettings().UI.menuBackgroundBlur)
+
         if inventoryDelay >= requiredDelay then
             TEN.View.DisplayItem.SetCameraPosition(Constants.CAMERA_START)
             TEN.View.DisplayItem.SetTargetPosition(Constants.TARGET_START)
@@ -146,6 +148,7 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
             TEN.View.SetPostProcessStrength(1)
             TEN.View.SetPostProcessTint(COLOR_MAP.itemSelected)
         end
+
         InventoryStates.SetInventoryClosed(false)
         inventoryRunning = false
     end

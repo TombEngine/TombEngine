@@ -82,8 +82,7 @@ function Inputs.Update(mode, timeInMenu)
                 TEN.Sound.PlaySound(SOUND_MAP.menuRotate)
             end
         elseif InputHelpers.GuiIsPulsed(TEN.Input.ActionID.BACK, timer) and selectedRingType < RING.COMBINE then
-            -- Add check for the options ring here to skip it if it is empty
-            local targetRing = math.min(RING.OPTIONS, selectedRingType + 1)
+               local targetRing = math.min(RING.OPTIONS, selectedRingType + 1)
             if targetRing ~= selectedRingType and not InventoryData.GetRing(targetRing):IsEmpty() then
                 InventoryStates.StartRingChange(targetRing, 1)
                 TEN.Sound.PlaySound(SOUND_MAP.menuRotate)

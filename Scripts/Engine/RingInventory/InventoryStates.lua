@@ -379,6 +379,7 @@ end
 
 local HandleInventoryOpening = function(state)
     TEN.View.SetPostProcessMode(View.PostProcessMode.NONE)
+    TEN.View.SetDOF(View.DOFMode.NONE)
     Text.Setup()
 
     if Save.IsQuickSaveEnabled() then
