@@ -58,7 +58,7 @@ namespace TEN::Scripting
 		bool TargetObjectOcclusion = true;
 		bool KillPoisonedEnemies = true;
 		bool EnableInventory = true;
-		bool DualTarget = true;
+		bool DualTarget = false;
 
 		static void Register(sol::table& parent);
 	};

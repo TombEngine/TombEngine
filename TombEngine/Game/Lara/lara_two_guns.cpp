@@ -374,8 +374,8 @@ void HandlePistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 			auto rightOrient = GetArmOrientToTarget(laraItem, lara.RightArm, *rightTarget, weapon);
 			auto leftOrient  = GetArmOrientToTarget(laraItem, lara.LeftArm,  *leftTarget,  weapon);
 
-			AimWeapon(laraItem, lara.RightArm, weapon, rightOrient);
-			AimWeapon(laraItem, lara.LeftArm,  weapon, leftOrient);
+			AimWeapon(lara.RightArm, weapon, rightOrient);
+			AimWeapon(lara.LeftArm,  weapon, leftOrient);
 		}
 		else
 		{

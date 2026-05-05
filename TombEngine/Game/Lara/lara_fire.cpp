@@ -336,6 +336,7 @@ void InitializeNewWeapon(ItemInfo& laraItem)
 	auto& player = *GetLaraInfo(&laraItem);
 
 	player.TargetEntity = nullptr;
+	player.SecondaryTargetEntity = nullptr;
 	player.LeftArm.AnimObjectID =
 	player.RightArm.AnimObjectID = GetWeaponObjectID(player.Control.Weapon.GunType);
 	player.LeftArm.AnimNumber =
@@ -852,7 +853,7 @@ void AimWeapon(ItemInfo& laraItem, ArmInfo& arm, const WeaponInfo& weaponInfo)
 	arm.Orientation.InterpolateConstant(targetArmOrient, weaponInfo.AimSpeed);
 }
 
-void AimWeapon(ItemInfo& laraItem, ArmInfo& arm, const WeaponInfo& weaponInfo, const EulerAngles& targetOrient)
+void AimWeapon(ArmInfo& arm, const WeaponInfo& weaponInfo, const EulerAngles& targetOrient)
 {
 	auto targetArmOrient = arm.Locked ? targetOrient : EulerAngles::Identity;
 	arm.Orientation.InterpolateConstant(targetArmOrient, weaponInfo.AimSpeed);
