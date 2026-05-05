@@ -1,8 +1,8 @@
 #include "framework.h"
-#include "Renderer/Structures/RendererSprite.h"
-
-#include "Renderer/Structures/RendererSpriteBucket.h"
 #include "Renderer/Renderer.h"
+
+#include "Renderer/Structures/RendererSprite.h"
+#include "Renderer/Structures/RendererSpriteBucket.h"
 #include "Specific/Parallel.h"
 
 using namespace TEN::Renderer::Structures;
@@ -262,9 +262,9 @@ namespace TEN::Renderer
 
 			if (!wasGpuSet)
 			{
-				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+				_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleStrip);
 
-				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, &_depthRenderTarget, SamplerStateRegister::PointWrap);
+				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
 				SetDepthState(DepthState::Read);
 				SetCullMode(CullMode::None);
@@ -272,9 +272,7 @@ namespace TEN::Renderer
 				_shaders.Bind(Shader::InstancedSprites);
 
 				// Set up vertex buffer and parameters.
-				unsigned int stride = sizeof(Vertex);
-				unsigned int offset = 0;
-				_context->IASetVertexBuffers(0, 1, _quadVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+				_graphicsDevice->BindVertexBuffer(_quadVertexBuffer.get());
 
 				wasGpuSet = true;
 			}
@@ -299,7 +297,7 @@ namespace TEN::Renderer
 			g_Parallel.AddTasks((int)spriteBucket.SpritesToDraw.size(), prepareSprites).wait();
 
 			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
-			UpdateConstantBuffer(_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer);;
+			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());;
 
 			// Draw sprites with instancing.
 			DrawInstancedTriangles(4, (int)spriteBucket.SpritesToDraw.size(), 0);
@@ -319,9 +317,9 @@ namespace TEN::Renderer
 
 			if (!wasGpuSet)
 			{
-				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 
-				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, &_depthRenderTarget, SamplerStateRegister::PointWrap);
+				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
 				SetDepthState(DepthState::Read);
 				SetCullMode(CullMode::None);
@@ -329,9 +327,7 @@ namespace TEN::Renderer
 				_shaders.Bind(Shader::InstancedSprites);
 
 				// Set up vertex buffer and parameters.
-				unsigned int stride = sizeof(Vertex);
-				unsigned int offset = 0;
-				_context->IASetVertexBuffers(0, 1, _spriteVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+				_graphicsDevice->BindVertexBuffer(_spriteVertexBuffer.get());
 
 				wasGpuSet = true;
 			}
@@ -346,7 +342,7 @@ namespace TEN::Renderer
 
 			PackSpriteTextureCoordinates(0, spriteBucket.Sprite);
 
-			UpdateConstantBuffer(_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer);
+			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
 
 			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
 
@@ -397,8 +393,8 @@ namespace TEN::Renderer
 
 				if (spritesToDraw == INSTANCED_SPRITES_BUCKET_SIZE || spritesToDraw == spriteBucket.SpritesToDraw.size())
 				{
-					_spriteVertexBuffer.Update(_context.Get(), _spriteVertices.data(), 0, spritesToDraw * 6);
-
+					_graphicsDevice->UpdateVertexBuffer(_spriteVertexBuffer.get(), 0, spritesToDraw * 6, _spriteVertices.data());
+			
 					DrawInstancedTriangles(spritesToDraw * 6, 1, 0);
 
 					_numInstancedSpritesDrawCalls++;
@@ -410,14 +406,14 @@ namespace TEN::Renderer
 		}
 
 		// Set up vertex parameters.
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 	}
 
 	void Renderer::DrawSingleSprite(RendererSortableObject* object, RendererObjectType lastObjectType, RenderView& view)
 	{
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleStrip);
 
-		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, &_depthRenderTarget, SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 
 		SetDepthState(DepthState::Read);
 		SetCullMode(CullMode::None);
@@ -435,17 +431,14 @@ namespace TEN::Renderer
 
 		PackSpriteTextureCoordinates(0, object->Sprite->Sprite);
 
-		UpdateConstantBuffer(_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer);;
+		UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());;
 
 		BindTexture(TextureRegister::ColorMap, object->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);
 		
 		// Set up vertex buffer and parameters.
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-
 		if (object->Sprite->Type != SpriteType::ThreeD)
 		{
-			_context->IASetVertexBuffers(0, 1, _quadVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+			_graphicsDevice->BindVertexBuffer(_quadVertexBuffer.get());
 		}
 		else
 		{
@@ -479,9 +472,8 @@ namespace TEN::Renderer
 			_spriteVertices.push_back(vertex3);
 			_spriteVertices.push_back(vertex2);
 
-			_spriteVertexBuffer.Update(_context.Get(), _spriteVertices.data(), 0, 4);
-
-			_context->IASetVertexBuffers(0, 1, _spriteVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+			_graphicsDevice->UpdateVertexBuffer(_spriteVertexBuffer.get(), 0, 4, _spriteVertices.data());
+			_graphicsDevice->BindVertexBuffer(_spriteVertexBuffer.get());
 		}
 
 		// Draw sprites with instancing.
@@ -490,24 +482,22 @@ namespace TEN::Renderer
 		_numSortedSpritesDrawCalls++;
 		_numSortedTriangles += 2;
 
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 	}
 
 	void Renderer::DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
 	{
 		if (lastObjectType != objectInfo->ObjectType)
 		{
-			unsigned int stride = sizeof(Vertex);
-			unsigned int offset = 0;
-
 			_shaders.Bind(Shader::InstancedSprites);
 
-			_context->IASetVertexBuffers(0, 1, _sortedPolygonsVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			_context->IASetInputLayout(_inputLayout.Get());
+			_graphicsDevice->BindVertexBuffer(_sortedPolygonsVertexBuffer.get());
+			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+
 		}
 
-		_sortedPolygonsVertexBuffer.Update(_context.Get(), _sortedPolygonsVertices.data(), 0, (int)_sortedPolygonsVertices.size());
+		_graphicsDevice->UpdateVertexBuffer(_sortedPolygonsVertexBuffer.get(), 0, (int)_sortedPolygonsVertices.size(), _sortedPolygonsVertices.data());
 
 		_stInstancedSpriteBuffer.Sprites[0].World = Matrix::Identity;
 		_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
@@ -516,7 +506,7 @@ namespace TEN::Renderer
 
 		PackSpriteTextureCoordinates(0, objectInfo->Sprite->Sprite);
 
-		UpdateConstantBuffer(_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer);;
+		UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());;
 
 		SetDepthState(DepthState::Read);
 		SetCullMode(CullMode::None);
@@ -524,7 +514,7 @@ namespace TEN::Renderer
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 		BindTexture(TextureRegister::ColorMap, objectInfo->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);
-		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, &_depthRenderTarget, SamplerStateRegister::PointWrap);
+		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
 		DrawInstancedTriangles((int)_sortedPolygonsVertices.size(), 1, 0);
 

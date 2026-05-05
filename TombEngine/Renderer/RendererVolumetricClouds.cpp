@@ -37,13 +37,13 @@ namespace TEN::Renderer
 	void Renderer::InitializeVolumetricClouds()
 	{
 		// Create the constant buffer.
-		_cbVolumetricCloud = ConstantBuffer<CVolumetricCloudBuffer>(_device.Get());
+		_cbVolumetricCloud = CreateConstantBuffer<CVolumetricCloudBuffer>();
 
 		// Render targets are created/resized in ResizeVolumetricCloudTargets().
 		ResizeVolumetricCloudTargets();
 
 		// Generate tileable 3D/2D noise textures for the cloud shader.
-		_cloudNoiseTextures.Initialize(_device.Get());
+		_cloudNoiseTextures.Initialize(_graphicsDevice.get());
 
 		// Initialize dual volumetric cloud layer B targets.
 		InitializeDualVolumetricClouds();
@@ -53,40 +53,44 @@ namespace TEN::Renderer
 	{
 		// Determine cloud render resolution based on current quality settings.
 		float scale = _cloudState.ActiveQuality.RenderResolutionScale;
-		int w = std::max(1, (int)(_screenWidth * scale));
-		int h = std::max(1, (int)(_screenHeight * scale));
+		int w = std::max(1, (int)(_graphicsDevice->GetScreenWidth() * scale));
+		int h = std::max(1, (int)(_graphicsDevice->GetScreenHeight() * scale));
 
 		// Half-res RGBA16F target for cloud color + opacity.
-		_cloudRenderTarget = RenderTarget2D(
-			_device.Get(), w, h,
-			DXGI_FORMAT_R16G16B16A16_FLOAT,
+		_cloudRenderTarget = _graphicsDevice->CreateRenderSurface2D(
+			w, h,
+			SurfaceFormat::SF_RGBA16_Float,
 			false,   // not typeless
-			DXGI_FORMAT_UNKNOWN);  // no depth
+			DepthFormat::None);  // no depth
 
 		// Previous frame's cloud result for temporal checkerboard reprojection.
 		// Same size/format as the main cloud RT; holds last frame's fully-resolved
 		// half-res cloud image so the shader can reuse it for skipped checkerboard pixels.
-		_cloudPrevFrameRT = RenderTarget2D(
-			_device.Get(), w, h,
-			DXGI_FORMAT_R16G16B16A16_FLOAT,
-			false,
-			DXGI_FORMAT_UNKNOWN);
+		_cloudPrevFrameRT = _graphicsDevice->CreateRenderSurface2D(
+			w, h,
+			SurfaceFormat::SF_RGBA16_Float,
+			false,   // not typeless
+			DepthFormat::None);  // no depth
 
 		// 1x1 target for lens flare occlusion transmittance readback.
-		_cloudOcclusionTarget = RenderTarget2D(
-			_device.Get(), 1, 1,
-			DXGI_FORMAT_R16_FLOAT,
+		_cloudOcclusionTarget = _graphicsDevice->CreateRenderSurface2D(
+			1, 1,
+			SurfaceFormat::SF_R16_Float,
 			false,
-			DXGI_FORMAT_UNKNOWN);
+			DepthFormat::None);
+
+		// Async readback buffer paired with the occlusion target.
+		_cloudOcclusionReadback = _graphicsDevice->CreateGpuReadbackBuffer(
+			1, 1, SurfaceFormat::SF_R16_Float);
 
 		// Full-res backup of the scene (sky) before cloud compositing.
 		// Needed so the cloud composite shader can read the background
 		// and compute hybrid screen/alpha blending in-shader.
-		_scenePreCloudBackup = RenderTarget2D(
-			_device.Get(), _screenWidth, _screenHeight,
-			DXGI_FORMAT_R8G8B8A8_UNORM,
+		_scenePreCloudBackup = _graphicsDevice->CreateRenderSurface2D(
+			_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(),
+			SurfaceFormat::SF_RGBA8_Unorm,
 			false,
-			DXGI_FORMAT_UNKNOWN);
+			DepthFormat::None);
 	}
 
 	// ========================================================================
@@ -221,8 +225,8 @@ namespace TEN::Renderer
 		_stVolumetricCloud.DebugView          = (int)runtimeState.DebugView;
 
 		float scale = q.RenderResolutionScale;
-		float w = (float)std::max(1, (int)(_screenWidth * scale));
-		float h = (float)std::max(1, (int)(_screenHeight * scale));
+		float w = (float)std::max(1, (int)(_graphicsDevice->GetScreenWidth() * scale));
+		float h = (float)std::max(1, (int)(_graphicsDevice->GetScreenHeight() * scale));
 		_stVolumetricCloud.CloudRenderSize    = Vector2(w, h);
 		_stVolumetricCloud.InvCloudRenderSize = Vector2(1.0f / w, 1.0f / h);
 
@@ -547,7 +551,7 @@ namespace TEN::Renderer
 				}
 			}
 		}
-		UpdateConstantBuffer(_stVolumetricCloud, _cbVolumetricCloud);
+		UpdateConstantBuffer(&_stVolumetricCloud, _cbVolumetricCloud.get());
 	}
 
 	// ========================================================================
@@ -620,99 +624,20 @@ namespace TEN::Renderer
 
 	void Renderer::UpdateCloudLensFlareOcclusion(RenderView& renderView)
 	{
+		// Legacy single-layer path. Delegates to the unified implementation;
+		// when GetActiveVolumetricCloudSettings() returns nullptr the call
+		// returns 1.0f (no occlusion) without touching the GPU.
 		const CloudRenderSettings* activeSettings = GetActiveVolumetricCloudSettings();
-		if (!activeSettings || !activeSettings->Enabled || activeSettings->Coverage < 0.001f)
+		if (activeSettings == nullptr)
 		{
 			_cloudState.FlareOcclusion.SmoothedTransmittance = 1.0f;
 			return;
 		}
 
-		// Only recalculate every few frames to save cost (light/camera don't change rapidly).
-		constexpr int OCCLUSION_UPDATE_INTERVAL = 3;
-		_cloudState.FlareOcclusion.CacheValidFrames++;
-
-		if (_cloudState.FlareOcclusion.CacheValidFrames < OCCLUSION_UPDATE_INTERVAL)
-			return;
-
-		_cloudState.FlareOcclusion.CacheValidFrames = 0;
-
-		// Render a single-pixel occlusion query.
-		float clearColor[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-		_context->ClearRenderTargetView(_cloudOcclusionTarget.RenderTargetView.Get(), clearColor);
-		_context->OMSetRenderTargets(1, _cloudOcclusionTarget.RenderTargetView.GetAddressOf(), nullptr);
-
-		D3D11_VIEWPORT occViewport = {};
-		occViewport.Width    = 1.0f;
-		occViewport.Height   = 1.0f;
-		occViewport.MinDepth = 0.0f;
-		occViewport.MaxDepth = 1.0f;
-		_context->RSSetViewports(1, &occViewport);
-
-		BindConstantBufferPS(ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
-		BindConstantBufferVS(ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
-
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
-		SetDepthState(DepthState::None);
-
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
-
-		unsigned int stride = sizeof(PostProcessVertex);
-		unsigned int offset = 0;
-		_context->IASetVertexBuffers(0, 1,
-			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-
-		// Bind the cloud half-res render target as t0 so PSCloudOcclusion can
-		// sample cloud alpha around the sun's projected screen position.
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_cloudRenderTarget,
-			SamplerStateRegister::LinearClamp);
-
-		_shaders.Bind(Shader::VolumetricCloudOcclusion);
-
-		// Bind noise textures for occlusion raymarch.
-		_cloudNoiseTextures.Bind(_context.Get());
-
-		DrawTriangles(3, 0);
-
-		_cloudNoiseTextures.Unbind(_context.Get());
-
-		// Unbind t0 so the cloud RT isn't held as SRV while it may be reused.
-		ID3D11ShaderResourceView* nullSRV = nullptr;
-		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 1, &nullSRV);
-
-		// Read back the transmittance value.
-		// Use a staging texture for GPU -> CPU readback.
-		D3D11_TEXTURE2D_DESC stagingDesc = {};
-		stagingDesc.Width              = 1;
-		stagingDesc.Height             = 1;
-		stagingDesc.MipLevels          = 1;
-		stagingDesc.ArraySize          = 1;
-		stagingDesc.Format             = DXGI_FORMAT_R16_FLOAT;
-		stagingDesc.SampleDesc.Count   = 1;
-		stagingDesc.Usage              = D3D11_USAGE_STAGING;
-		stagingDesc.CPUAccessFlags     = D3D11_CPU_ACCESS_READ;
-
-		ComPtr<ID3D11Texture2D> stagingTexture;
-		_device->CreateTexture2D(&stagingDesc, nullptr, stagingTexture.GetAddressOf());
-
-		_context->CopyResource(stagingTexture.Get(), _cloudOcclusionTarget.Texture.Get());
-
-		D3D11_MAPPED_SUBRESOURCE mapped;
-		if (SUCCEEDED(_context->Map(stagingTexture.Get(), 0, D3D11_MAP_READ, 0, &mapped)))
-		{
-			// Convert single R16_FLOAT half-precision value to float.
-			DirectX::PackedVector::HALF halfVal = *reinterpret_cast<DirectX::PackedVector::HALF*>(mapped.pData);
-			float transmittance = DirectX::PackedVector::XMConvertHalfToFloat(halfVal);
-			_cloudState.FlareOcclusion.CloudTransmittance = std::clamp(transmittance, 0.0f, 1.0f);
-			_context->Unmap(stagingTexture.Get(), 0);
-		}
-
-		// Temporal smoothing to avoid flicker.
-		constexpr float SMOOTH_FACTOR = 0.6f;
-		float prev = _cloudState.FlareOcclusion.SmoothedTransmittance;
-		float curr = _cloudState.FlareOcclusion.CloudTransmittance;
-		_cloudState.FlareOcclusion.SmoothedTransmittance = prev + (curr - prev) * SMOOTH_FACTOR;
+		_cloudState.FlareOcclusion.SmoothedTransmittance = ComputeSingleLayerOcclusion(
+			*activeSettings, _cloudState,
+			_cloudOcclusionTarget.get(), _cloudRenderTarget.get(),
+			_cloudOcclusionReadback.get(), renderView);
 	}
 
 	float Renderer::GetCloudLensFlareOcclusion() const

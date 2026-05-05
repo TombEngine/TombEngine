@@ -60,27 +60,32 @@ namespace TEN::Renderer
 
 		// Layer B target — same format, same resolution as layer A.
 		float scale = _cloudStateB.ActiveQuality.RenderResolutionScale;
-		int w = std::max(1, (int)(_screenWidth * scale));
-		int h = std::max(1, (int)(_screenHeight * scale));
+		int w = std::max(1, (int)(_graphicsDevice->GetScreenWidth() * scale));
+		int h = std::max(1, (int)(_graphicsDevice->GetScreenHeight() * scale));
 
-		_cloudRenderTargetB = RenderTarget2D(
-			_device.Get(), w, h,
-			DXGI_FORMAT_R16G16B16A16_FLOAT,
+		_cloudRenderTargetB = _graphicsDevice->CreateRenderSurface2D(
+			w, h,
+			SurfaceFormat::SF_RGBA16_Float,
 			false,
-			DXGI_FORMAT_UNKNOWN);
+			DepthFormat::None);
 
 		// Previous-frame RT for temporal checkerboard on layer B.
-		_cloudPrevFrameRTB = RenderTarget2D(
-			_device.Get(), w, h,
-			DXGI_FORMAT_R16G16B16A16_FLOAT,
+		_cloudPrevFrameRTB = _graphicsDevice->CreateRenderSurface2D(
+			w, h,
+			SurfaceFormat::SF_RGBA16_Float,
 			false,
-			DXGI_FORMAT_UNKNOWN);
+			DepthFormat::None);
 
-		_cloudOcclusionTargetB = RenderTarget2D(
-			_device.Get(), 1, 1,
-			DXGI_FORMAT_R16_FLOAT,
+		// 1x1 occlusion target for layer B (must match the source size of the
+		// async readback so CopyResource succeeds — DX11 requires identical dims).
+		_cloudOcclusionTargetB = _graphicsDevice->CreateRenderSurface2D(
+			1, 1,
+			SurfaceFormat::SF_R16_Float,
 			false,
-			DXGI_FORMAT_UNKNOWN);
+			DepthFormat::None);
+
+		_cloudOcclusionReadbackB = _graphicsDevice->CreateGpuReadbackBuffer(
+			1, 1, SurfaceFormat::SF_R16_Float);
 	}
 
 	// ========================================================================
@@ -93,18 +98,17 @@ namespace TEN::Renderer
 		// it copies the current RT to the prevFrameRT — order matters for temporal reprojection.
 		// Pre-clearing before DrawSingle would make prevFrameRT = black → temporal pixels read black.
 		// For INACTIVE layers we still clear here so the GodRay shader never reads stale cloud data.
-		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-
 		// Draw Cloud Layer A (higher / thinner — composited first = behind).
 		if (g_SkyCloudSystem.IsCloudAActive())
 		{
 			auto settingsA = g_SkyCloudSystem.GetCloudARenderSettings();
 			DrawSingleVolumetricCloudLayer(
-				settingsA, _cloudState, _cloudRenderTarget, renderView, &_cloudPrevFrameRT);
+				settingsA, _cloudState, _cloudRenderTarget.get(), renderView, _cloudPrevFrameRT.get());
 		}
 		else
 		{
-			_context->ClearRenderTargetView(_cloudRenderTarget.RenderTargetView.Get(), clearColor);
+			_graphicsDevice->ClearRenderTarget2D(_cloudRenderTarget->GetRenderTarget(), Colors::Transparent);
+
 			// Reset temporal state so when the layer becomes active again it starts with
 			// fresh history (TemporalEnabled = warmup) rather than stale old-preset data.
 			_cloudState.FrameCounter = 0;
@@ -116,11 +120,12 @@ namespace TEN::Renderer
 		{
 			auto settingsB = g_SkyCloudSystem.GetCloudBRenderSettings();
 			DrawSingleVolumetricCloudLayer(
-				settingsB, _cloudStateB, _cloudRenderTargetB, renderView, &_cloudPrevFrameRTB);
+				settingsB, _cloudStateB, _cloudRenderTargetB.get(), renderView, _cloudPrevFrameRTB.get());
 		}
 		else
 		{
-			_context->ClearRenderTargetView(_cloudRenderTargetB.RenderTargetView.Get(), clearColor);
+			_graphicsDevice->ClearRenderTarget2D(_cloudRenderTargetB->GetRenderTarget(), Colors::Transparent);
+			
 			// Reset temporal state so when the layer becomes active again it starts with
 			// fresh history (TemporalEnabled = warmup) rather than stale old-preset data.
 			_cloudStateB.FrameCounter = 0;
@@ -138,9 +143,9 @@ namespace TEN::Renderer
 	void Renderer::DrawSingleVolumetricCloudLayer(
 		const CloudRenderSettings& settings,
 		CloudRuntimeState& state,
-		RenderTarget2D& renderTarget,
+		IRenderSurface2D* renderTarget,
 		RenderView& renderView,
-		RenderTarget2D* prevFrameRT,
+		IRenderSurface2D* prevFrameRT,
 		bool advanceState)
 	{
 		// CloudType 1 = AltocumulusMid (volumetric), CloudType 2 = Aurora (rendered by separate pass — no cloud geometry).
@@ -177,8 +182,7 @@ namespace TEN::Renderer
 			state.FrameCounter = 0;
 			if (prevFrameRT)
 			{
-				float clearTemporal[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-				_context->ClearRenderTargetView(prevFrameRT->RenderTargetView.Get(), clearTemporal);
+				_graphicsDevice->ClearRenderTarget2D(prevFrameRT->GetRenderTarget(), Colors::Transparent);
 			}
 		}
 		state.PrevCloudType = settings.CloudType;
@@ -190,7 +194,7 @@ namespace TEN::Renderer
 		// advance twice per frame when the extra overlay pass is enabled.
 		if (advanceState)
 		{
-			float dt = 1.0f / std::max(_refreshRate, 30);
+			float dt = 1.0f / std::max(_graphicsDevice->GetRefreshRate(), 30);
 			if (!state.FreezeEvolution)
 				state.AccumulatedTime += dt;
 			if (!state.FreezeWind)
@@ -250,32 +254,31 @@ namespace TEN::Renderer
 		// Temporal checkerboard: copy current RT to prevFrameRT before clearing,
 		// so the shader can read last frame's result for skipped checkerboard pixels.
 		if (prevFrameRT && state.ActiveQuality.TemporalReprojection)
-			_context->CopyResource(prevFrameRT->Texture.Get(), renderTarget.Texture.Get());
+			_graphicsDevice->CopyTextureResource(renderTarget->GetRenderTarget(), prevFrameRT->GetRenderTarget());
+		
+		_graphicsDevice->ClearRenderTarget2D(renderTarget->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
 
-		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		_context->ClearRenderTargetView(renderTarget.RenderTargetView.Get(), clearColor);
-		_context->OMSetRenderTargets(1, renderTarget.RenderTargetView.GetAddressOf(), nullptr);
-
-		D3D11_VIEWPORT cloudViewport = {};
+		RendererViewport cloudViewport = {};
 		cloudViewport.Width    = _stVolumetricCloud.CloudRenderSize.x;
 		cloudViewport.Height   = _stVolumetricCloud.CloudRenderSize.y;
 		cloudViewport.MinDepth = 0.0f;
 		cloudViewport.MaxDepth = 1.0f;
-		_context->RSSetViewports(1, &cloudViewport);
+		_graphicsDevice->SetViewport(cloudViewport);
 
-		BindConstantBufferPS(ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
-		BindConstantBufferVS(ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
 
 		if (_atmosphericSkySettings.Enabled)
 		{
 			auto* atmoSkyBuf = _cbAtmosphericSky.get();
-			_context->PSSetConstantBuffers(10, 1, atmoSkyBuf);
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::AtmosphericSky, atmoSkyBuf);
 		}
 
 		// Bind previous-frame RT as t1 for temporal pixel reuse.
 		if (prevFrameRT && state.ActiveQuality.TemporalReprojection)
 		{
-			BindRenderTargetAsTexture(TextureRegister::NormalMap, prevFrameRT,
+			BindRenderTargetAsTexture(TextureRegister::NormalMap, prevFrameRT->GetRenderTarget(),
 				SamplerStateRegister::LinearClamp);
 		}
 
@@ -283,39 +286,30 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise);
 		SetDepthState(DepthState::None);
 
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
-
-		unsigned int stride = sizeof(PostProcessVertex);
-		unsigned int offset = 0;
-		_context->IASetVertexBuffers(0, 1,
-			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+		
 		_shaders.Bind(Shader::VolumetricClouds);
 
 		// Bind pre-computed noise textures at t5, t6.
-		_cloudNoiseTextures.Bind(_context.Get());
+		_cloudNoiseTextures.Bind(_graphicsDevice.get());
 
 		DrawTriangles(3, 0);
 
-		_cloudNoiseTextures.Unbind(_context.Get());
+		_cloudNoiseTextures.Unbind(_graphicsDevice.get());
 
 		// Unbind t1 (prev-frame RT) before composite pass.
 		if (prevFrameRT && state.ActiveQuality.TemporalReprojection)
-		{
-			ID3D11ShaderResourceView* nullSRV = nullptr;
-			_context->PSSetShaderResources((UINT)TextureRegister::NormalMap, 1, &nullSRV);
-		}
+			_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::NormalMap);
 
 		// --- Pass 2: Composite over scene ---
-		_context->RSSetViewports(1, &renderView.Viewport);
+		_graphicsDevice->SetViewport(renderView.Viewport);
 
 		// Copy scene to backup RT for hybrid in-shader blending.
-		_context->CopyResource(_scenePreCloudBackup.Texture.Get(),
-			_renderTarget.Texture.Get());
+		_graphicsDevice->CopyTextureResource(_renderTarget->GetRenderTarget(), _scenePreCloudBackup->GetRenderTarget());
 
-		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(),
-			_renderTarget.DepthStencilView.Get());
+		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 
 		// Opaque blend — the shader computes the final composited color itself.
 		SetBlendMode(BlendMode::Opaque);
@@ -325,33 +319,35 @@ namespace TEN::Renderer
 		if (_atmosphericSkySettings.Enabled)
 		{
 			auto* atmoSkyBuf = _cbAtmosphericSky.get();
-			_context->PSSetConstantBuffers(10, 1, atmoSkyBuf);
+			_graphicsDevice->BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::AtmosphericSky, atmoSkyBuf);
 		}
 
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, &renderTarget,
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget->GetRenderTarget(),
 			SamplerStateRegister::LinearClamp);
 
 		// Bind scene backup as texture (t3 = ShadowMap slot, safe during cloud pass).
-		BindRenderTargetAsTexture(TextureRegister::ShadowMap, &_scenePreCloudBackup,
+		BindRenderTargetAsTexture(TextureRegister::ShadowMap, _scenePreCloudBackup->GetRenderTarget(),
 			SamplerStateRegister::LinearClamp);
 
 		_shaders.Bind(Shader::VolumetricCloudComposite);
 		DrawTriangles(3, 0);
 
 		// --- Cleanup ---
-		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 
-		ID3D11ShaderResourceView* nullSRVs[4] = { nullptr, nullptr, nullptr, nullptr };
-		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 4, nullSRVs);
+		// Drop SRVs at slots 0..3 (ColorMap, NormalMap, CausticsMap, ShadowMap).
+		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::ColorMap);
+		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::NormalMap);
+		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::CausticsMap);
+		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::ShadowMap);
 
 		SetBlendMode(BlendMode::Opaque);
 		SetDepthState(DepthState::Write);
 		SetCullMode(CullMode::CounterClockwise);
 
-		_context->RSSetViewports(1, &renderView.Viewport);
-		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(),
-			_renderTarget.DepthStencilView.Get());
+		_graphicsDevice->SetViewport(renderView.Viewport);
+		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _depthRenderTarget->GetDepthTarget());
 	}
 
 	// ========================================================================
@@ -363,21 +359,24 @@ namespace TEN::Renderer
 		// Update layer A occlusion.
 		float transA = ComputeSingleLayerOcclusion(
 			g_SkyCloudSystem.GetCloudARenderSettings(),
-			_cloudState, _cloudOcclusionTarget, _cloudRenderTarget, renderView);
+			_cloudState, _cloudOcclusionTarget.get(), _cloudRenderTarget.get(),
+			_cloudOcclusionReadback.get(), renderView);
 		g_SkyCloudSystem.SetLayerTransmittance(0, transA);
 
 		// Update layer B occlusion.
 		float transB = ComputeSingleLayerOcclusion(
 			g_SkyCloudSystem.GetCloudBRenderSettings(),
-			_cloudStateB, _cloudOcclusionTargetB, _cloudRenderTargetB, renderView);
+			_cloudStateB, _cloudOcclusionTargetB.get(), _cloudRenderTargetB.get(),
+			_cloudOcclusionReadbackB.get(), renderView);
 		g_SkyCloudSystem.SetLayerTransmittance(1, transB);
 	}
 
 	float Renderer::ComputeSingleLayerOcclusion(
 		const CloudRenderSettings& settings,
 		CloudRuntimeState& state,
-		RenderTarget2D& occlusionTarget,
-		RenderTarget2D& cloudColorTarget,
+		IRenderSurface2D* occlusionTarget,
+		IRenderSurface2D* cloudColorTarget,
+		IGpuReadbackBuffer* readback,
 		RenderView& renderView)
 	{
 		bool occIsAlto = (settings.CloudType == 1);
@@ -385,7 +384,27 @@ namespace TEN::Renderer
 		if (!settings.Enabled || settings.CloudType == 2 || (!occIsAlto && settings.Coverage < 0.001f))
 			return 1.0f; // Fully visible (no clouds).
 
-		// Throttle updates.
+		// Drain any completed readback first — when ready, this updates
+		// CloudTransmittance with the value submitted ~2 throttled-updates ago.
+		if (readback != nullptr)
+		{
+			uint16_t halfBits = 0;
+			if (readback->TryRead(&halfBits, sizeof(halfBits)))
+			{
+				DirectX::PackedVector::HALF halfVal = halfBits;
+				float transmittance = DirectX::PackedVector::XMConvertHalfToFloat(halfVal);
+				state.FlareOcclusion.CloudTransmittance = std::clamp(transmittance, 0.0f, 1.0f);
+
+				// Temporal smoothing — only when we receive new data, so the
+				// visible value advances at the cadence of completed readbacks.
+				constexpr float SMOOTH_FACTOR = 0.6f;
+				float prev = state.FlareOcclusion.SmoothedTransmittance;
+				float curr = state.FlareOcclusion.CloudTransmittance;
+				state.FlareOcclusion.SmoothedTransmittance = prev + (curr - prev) * SMOOTH_FACTOR;
+			}
+		}
+
+		// Throttle the (expensive) occlusion render pass.
 		constexpr int OCCLUSION_UPDATE_INTERVAL = 3;
 		state.FlareOcclusion.CacheValidFrames++;
 
@@ -398,85 +417,51 @@ namespace TEN::Renderer
 		UpdateVolumetricCloudBuffer(settings, state, renderView);
 
 		// Render occlusion to 1x1 target.
-		float clearColor[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-		_context->ClearRenderTargetView(occlusionTarget.RenderTargetView.Get(), clearColor);
-		_context->OMSetRenderTargets(1, occlusionTarget.RenderTargetView.GetAddressOf(), nullptr);
+		_graphicsDevice->ClearRenderTarget2D(occlusionTarget->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(occlusionTarget->GetRenderTarget(), nullptr);
 
-		D3D11_VIEWPORT occViewport = {};
+		RendererViewport occViewport = {};
 		occViewport.Width    = 1.0f;
 		occViewport.Height   = 1.0f;
 		occViewport.MinDepth = 0.0f;
 		occViewport.MaxDepth = 1.0f;
-		_context->RSSetViewports(1, &occViewport);
+		_graphicsDevice->SetViewport(occViewport);
 
-		BindConstantBufferPS(ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
-		BindConstantBufferVS(ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
 
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
 		SetDepthState(DepthState::None);
 
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
-
-		unsigned int stride = sizeof(PostProcessVertex);
-		unsigned int offset = 0;
-		_context->IASetVertexBuffers(0, 1,
-			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		// Bind this layer's cloud half-res RT as t0 so PSCloudOcclusion can
 		// sample cloud alpha in the vicinity of the sun's projected screen position.
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, &cloudColorTarget,
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, cloudColorTarget->GetRenderTarget(),
 			SamplerStateRegister::LinearClamp);
 
 		_shaders.Bind(Shader::VolumetricCloudOcclusion);
 
-		_cloudNoiseTextures.Bind(_context.Get());
+		_cloudNoiseTextures.Bind(_graphicsDevice.get());
 
 		DrawTriangles(3, 0);
 
-		_cloudNoiseTextures.Unbind(_context.Get());
+		_cloudNoiseTextures.Unbind(_graphicsDevice.get());
 
-		// Unbind t0.
-		ID3D11ShaderResourceView* nullSRV = nullptr;
-		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 1, &nullSRV);
+		// Unbind t0 so the source RT isn't held as SRV while we copy from it.
+		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::ColorMap);
 
-		// Readback.
-		D3D11_TEXTURE2D_DESC stagingDesc = {};
-		stagingDesc.Width              = 1;
-		stagingDesc.Height             = 1;
-		stagingDesc.MipLevels          = 1;
-		stagingDesc.ArraySize          = 1;
-		stagingDesc.Format             = DXGI_FORMAT_R16_FLOAT;
-		stagingDesc.SampleDesc.Count   = 1;
-		stagingDesc.Usage              = D3D11_USAGE_STAGING;
-		stagingDesc.CPUAccessFlags     = D3D11_CPU_ACCESS_READ;
+		// Schedule async readback. Result will be available a few frames later
+		// via TryRead at the top of this function — never stalls the CPU.
+		if (readback != nullptr)
+			readback->SubmitCopy(occlusionTarget->GetRenderTarget());
 
-		ComPtr<ID3D11Texture2D> stagingTexture;
-		_device->CreateTexture2D(&stagingDesc, nullptr, stagingTexture.GetAddressOf());
-		_context->CopyResource(stagingTexture.Get(), occlusionTarget.Texture.Get());
-
-		D3D11_MAPPED_SUBRESOURCE mapped;
-		if (SUCCEEDED(_context->Map(stagingTexture.Get(), 0, D3D11_MAP_READ, 0, &mapped)))
-		{
-			DirectX::PackedVector::HALF halfVal =
-				*reinterpret_cast<DirectX::PackedVector::HALF*>(mapped.pData);
-			float transmittance = DirectX::PackedVector::XMConvertHalfToFloat(halfVal);
-			state.FlareOcclusion.CloudTransmittance = std::clamp(transmittance, 0.0f, 1.0f);
-			_context->Unmap(stagingTexture.Get(), 0);
-		}
-
-		// Temporal smoothing.
-		constexpr float SMOOTH_FACTOR = 0.6f;
-		float prev = state.FlareOcclusion.SmoothedTransmittance;
-		float curr = state.FlareOcclusion.CloudTransmittance;
-		state.FlareOcclusion.SmoothedTransmittance = prev + (curr - prev) * SMOOTH_FACTOR;
-
-		// Restore pipeline state.
-		_context->IASetInputLayout(_inputLayout.Get());
-		_context->RSSetViewports(1, &renderView.Viewport);
-		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(),
-			_renderTarget.DepthStencilView.Get());
+		// Restore pipeline state for the rest of the frame.
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->SetViewport(renderView.Viewport);
 
 		return state.FlareOcclusion.SmoothedTransmittance;
 	}

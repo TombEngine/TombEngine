@@ -40,16 +40,16 @@ namespace TEN::Renderer
 
 	void Renderer::InitializeGodRays()
 	{
-		_cbGodRay = ConstantBuffer<CGodRayBuffer>(_device.Get());
+		_cbGodRay = CreateConstantBuffer<CGodRayBuffer>();
 
-		int w = std::max(1, (int)(_screenWidth  * GOD_RAY_RESOLUTION_SCALE));
-		int h = std::max(1, (int)(_screenHeight * GOD_RAY_RESOLUTION_SCALE));
+		int w = std::max(1, (int)(_graphicsDevice->GetScreenWidth()  * GOD_RAY_RESOLUTION_SCALE));
+		int h = std::max(1, (int)(_graphicsDevice->GetScreenHeight() * GOD_RAY_RESOLUTION_SCALE));
 
-		_godRayRenderTarget = RenderTarget2D(
-			_device.Get(), w, h,
-			DXGI_FORMAT_R11G11B10_FLOAT,   // Lightweight HDR, no alpha needed.
+		_godRayRenderTarget = _graphicsDevice->CreateRenderSurface2D(
+			w, h, 
+			SurfaceFormat::SF_R11G11B10_Float,   // Lightweight HDR, no alpha needed.
 			false,
-			DXGI_FORMAT_UNKNOWN);          // No depth buffer.
+			DepthFormat::None);          // No depth buffer.
 	}
 
 	// ========================================================================
@@ -272,10 +272,10 @@ namespace TEN::Renderer
 		_stGodRay.SunColor      = rayColor;
 		_stGodRay.Softness      = raySoftness;
 
-		_stGodRay.ViewSize      = Vector2((float)_screenWidth, (float)_screenHeight);
-		_stGodRay.InvViewSize   = Vector2(1.0f / (float)_screenWidth, 1.0f / (float)_screenHeight);
+		_stGodRay.ViewSize      = Vector2((float)_graphicsDevice->GetScreenWidth(), (float)_graphicsDevice->GetScreenHeight());
+		_stGodRay.InvViewSize   = Vector2(1.0f / (float)_graphicsDevice->GetScreenWidth(), 1.0f / (float)_graphicsDevice->GetScreenHeight());
 
-		UpdateConstantBuffer(_stGodRay, _cbGodRay);
+		UpdateConstantBuffer(&_stGodRay, _cbGodRay.get());
 	}
 
 	// ========================================================================
@@ -350,30 +350,29 @@ namespace TEN::Renderer
 			return;
 
 		// --- Pass 1: Render god rays to half-res target ---
-		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		_context->ClearRenderTargetView(_godRayRenderTarget.RenderTargetView.Get(), clearColor);
-		_context->OMSetRenderTargets(1, _godRayRenderTarget.RenderTargetView.GetAddressOf(), nullptr);
+		_graphicsDevice->ClearRenderTarget2D(_godRayRenderTarget->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_godRayRenderTarget->GetRenderTarget(), nullptr);
 
-		int grW = std::max(1, (int)(_screenWidth  * GOD_RAY_RESOLUTION_SCALE));
-		int grH = std::max(1, (int)(_screenHeight * GOD_RAY_RESOLUTION_SCALE));
+		int grW = std::max(1, (int)(_graphicsDevice->GetScreenWidth()  * GOD_RAY_RESOLUTION_SCALE));
+		int grH = std::max(1, (int)(_graphicsDevice->GetScreenHeight() * GOD_RAY_RESOLUTION_SCALE));
 
-		D3D11_VIEWPORT godRayViewport = {};
+		RendererViewport godRayViewport = {};
 		godRayViewport.Width    = (float)grW;
 		godRayViewport.Height   = (float)grH;
 		godRayViewport.MinDepth = 0.0f;
 		godRayViewport.MaxDepth = 1.0f;
-		_context->RSSetViewports(1, &godRayViewport);
+		_graphicsDevice->SetViewport(godRayViewport);
 
 		// Bind god ray CB to b10 (reuses ATmosphericSky/Hud slot; safe at this pipeline stage).
 		auto* buf = _cbGodRay.get();
-		_context->PSSetConstantBuffers(10, 1, buf);
-		_context->VSSetConstantBuffers(10, 1, buf);
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::AtmosphericSky, buf);
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::AtmosphericSky, buf);
 
 		// Bind cloud render targets as t0 (layer A) and t1 (layer B).
 		// Both layers are sampled; the shader takes max(alphaA, alphaB) for the occlusion mask.
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_cloudRenderTarget,
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _cloudRenderTarget->GetRenderTarget(),
 			SamplerStateRegister::LinearClamp);
-		BindRenderTargetAsTexture(TextureRegister::NormalMap, &_cloudRenderTargetB,
+		BindRenderTargetAsTexture(TextureRegister::NormalMap, _cloudRenderTargetB->GetRenderTarget(),
 			SamplerStateRegister::LinearClamp);
 
 		// Set up fullscreen triangle rendering.
@@ -381,43 +380,36 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise);
 		SetDepthState(DepthState::None);
 
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
-
-		unsigned int stride = sizeof(PostProcessVertex);
-		unsigned int offset = 0;
-		_context->IASetVertexBuffers(0, 1,
-			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		_shaders.Bind(Shader::GodRay);
 		DrawTriangles(3, 0);
 
 		// --- Pass 2: Additively composite half-res god rays over the main scene ---
-		_context->RSSetViewports(1, &renderView.Viewport);
-		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(),
-			_renderTarget.DepthStencilView.Get());
+		_graphicsDevice->SetViewport(renderView.Viewport);
+		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 
 		SetBlendMode(BlendMode::Additive);
 
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_godRayRenderTarget,
-			SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _godRayRenderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 
 		_shaders.Bind(Shader::GodRayComposite);
 		DrawTriangles(3, 0);
 
 		// --- Cleanup ---
-		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 
-		ID3D11ShaderResourceView* nullSRVs[2] = { nullptr, nullptr };
-		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 2, nullSRVs);
+		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::ColorMap);
+		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::NormalMap);
 
 		SetBlendMode(BlendMode::Opaque);
 		SetDepthState(DepthState::Write);
 		SetCullMode(CullMode::CounterClockwise);
 
-		_context->RSSetViewports(1, &renderView.Viewport);
-		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(),
-			_renderTarget.DepthStencilView.Get());
+		_graphicsDevice->SetViewport(renderView.Viewport);
+		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 	}
 }

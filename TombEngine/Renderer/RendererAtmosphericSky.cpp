@@ -37,7 +37,7 @@ namespace TEN::Renderer
 
 	void Renderer::InitializeAtmosphericSky()
 	{
-		_cbAtmosphericSky = ConstantBuffer<CAtmosphericSkyBuffer>(_device.Get());
+		_cbAtmosphericSky = CreateConstantBuffer<CAtmosphericSkyBuffer>();
 	}
 
 	// ========================================================================
@@ -199,8 +199,8 @@ namespace TEN::Renderer
 		_stAtmosphericSky.TwilightOffset        = settings.TwilightOffset;
 		_stAtmosphericSky.NightBlendSpeed       = settings.NightBlendSpeed;
 
-		_stAtmosphericSky.ViewSize     = Vector2((float)_screenWidth, (float)_screenHeight);
-		_stAtmosphericSky.InvViewSize  = Vector2(1.0f / (float)_screenWidth, 1.0f / (float)_screenHeight);
+		_stAtmosphericSky.ViewSize     = Vector2((float)_graphicsDevice->GetScreenWidth(), (float)_graphicsDevice->GetScreenHeight());
+		_stAtmosphericSky.InvViewSize  = Vector2(1.0f / (float)_graphicsDevice->GetScreenWidth(), 1.0f / (float)_graphicsDevice->GetScreenHeight());
 
 		_stAtmosphericSky.SunElevationRampSpeed = settings.SunElevationRampSpeed;
 		_stAtmosphericSky.SunWarmInfluence      = settings.SunWarmInfluence;
@@ -295,7 +295,7 @@ namespace TEN::Renderer
 		_stAtmosphericSky.HorizonColorG = settings.HorizonColorG;
 		_stAtmosphericSky.HorizonColorB = settings.HorizonColorB;
 
-		UpdateConstantBuffer(_stAtmosphericSky, _cbAtmosphericSky);
+		UpdateConstantBuffer(&_stAtmosphericSky, _cbAtmosphericSky.get());
 	}
 
 	// ========================================================================
@@ -310,31 +310,27 @@ namespace TEN::Renderer
 		// Update constant buffer with current sun/sky state.
 		UpdateAtmosphericSkyBuffer(renderView);
 
-		// Bind atmospheric sky CB to register b10 (shared with HUD — different render pass).
+		// Bind atmospheric sky CB to register b12 (shared with HUD — different render pass).
 		auto* buf = _cbAtmosphericSky.get();
-		_context->PSSetConstantBuffers(10, 1, buf);
-		_context->VSSetConstantBuffers(10, 1, buf);
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::AtmosphericSky, buf);
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::AtmosphericSky, buf);
 
 		// Set up fullscreen triangle rendering.
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
 		SetDepthState(DepthState::None);
 
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
-
-		unsigned int stride = sizeof(PostProcessVertex);
-		unsigned int offset = 0;
-		_context->IASetVertexBuffers(0, 1,
-			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		// Bind and draw.
 		_shaders.Bind(Shader::AtmosphericSkyDome);
 		DrawTriangles(3, 0);
 
 		// Restore regular input layout.
-		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 	}
 
 	// ========================================================================
@@ -355,10 +351,10 @@ namespace TEN::Renderer
 		if (_stAtmosphericSky.AuroraVisibility < 0.001f)
 			return;
 
-		// Bind CB to b10 (same slot used by sky dome).
+		// Bind CB to b12 (same slot used by sky dome).
 		auto* buf = _cbAtmosphericSky.get();
-		_context->PSSetConstantBuffers(10, 1, buf);
-		_context->VSSetConstantBuffers(10, 1, buf);
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::AtmosphericSky, buf);
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::AtmosphericSky, buf);
 
 		// Bind cloud coverage for aurora occlusion.
 		// When the atmospheric sky pass has run, DrawSunMoonDisc has already copied
@@ -366,9 +362,9 @@ namespace TEN::Renderer
 		// _scenePreCloudBackup. When the atmospheric sky is disabled, that copy has
 		// not been made yet, so we do it here before binding.
 		if (!_atmosphericSkySettings.Enabled)
-			_context->CopyResource(_scenePreCloudBackup.Texture.Get(), _renderTarget.Texture.Get());
+			_graphicsDevice->CopyTextureResource(_renderTarget->GetRenderTarget(), _scenePreCloudBackup->GetRenderTarget());
 
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_scenePreCloudBackup,
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _scenePreCloudBackup->GetRenderTarget(),
 			SamplerStateRegister::LinearClamp);
 
 		// Render additively on top of whatever sky is below.
@@ -378,24 +374,19 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise);
 		SetDepthState(DepthState::None);
 
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
-
-		unsigned int stride = sizeof(PostProcessVertex);
-		unsigned int offset = 0;
-		_context->IASetVertexBuffers(0, 1,
-			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		_shaders.Bind(Shader::Aurora);
 		DrawTriangles(3, 0);
 
 		// Unbind the SRV so _renderTarget can be bound as RT again without conflicts.
-		ID3D11ShaderResourceView* nullSRV = nullptr;
-		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 1, &nullSRV);
+		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::ColorMap);
 
 		// Restore regular input layout.
-		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 	}
 
 	// ========================================================================
@@ -410,23 +401,21 @@ namespace TEN::Renderer
 		if (!_atmosphericSkySettings.Enabled)
 			return;
 
-		// Bind atmospheric sky CB to register b10.
+		// Bind atmospheric sky CB to register b12.
 		auto* buf = _cbAtmosphericSky.get();
-		_context->PSSetConstantBuffers(10, 1, buf);
-		_context->VSSetConstantBuffers(10, 1, buf);
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::AtmosphericSky, buf);
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::AtmosphericSky, buf);
 
 		// Copy current _renderTarget to _scenePreCloudBackup so we can read
 		// the scene (including cloud coverage alpha) as a texture input.
-		_context->CopyResource(_scenePreCloudBackup.Texture.Get(),
-			_renderTarget.Texture.Get());
+		_graphicsDevice->CopyTextureResource(_renderTarget->GetRenderTarget(), _scenePreCloudBackup->GetRenderTarget());
 
 		// Bind the copy as t0 (ColorMap) for the shader to read cloud coverage.
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_scenePreCloudBackup,
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _scenePreCloudBackup->GetRenderTarget(),
 			SamplerStateRegister::LinearClamp);
 
 		// Render target: _renderTarget (additive on top of the composited scene).
-		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(),
-			_renderTarget.DepthStencilView.Get());
+		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 
 		// Additive blend: sun/moon disc light is added on top.
 		SetBlendMode(BlendMode::Additive);
@@ -434,23 +423,18 @@ namespace TEN::Renderer
 		SetDepthState(DepthState::None);
 
 		// Fullscreen triangle rendering.
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
-
-		unsigned int stride = sizeof(PostProcessVertex);
-		unsigned int offset = 0;
-		_context->IASetVertexBuffers(0, 1,
-			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		_shaders.Bind(Shader::SunMoonDisc);
 		DrawTriangles(3, 0);
 
 		// Unbind the SRV so _renderTarget can be used as RT again.
-		ID3D11ShaderResourceView* nullSRV = nullptr;
-		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 1, &nullSRV);
+		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::ColorMap);
 
 		// Restore regular input layout.
-		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 	}
 }

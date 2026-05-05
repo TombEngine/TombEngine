@@ -871,10 +871,12 @@ bool FlowHandler::DoFlow()
 			loadFromSavegame = false;
 		}
 
+		bool exitGame = false;
+
 		switch (status)
 		{
 		case GameStatus::ExitGame:
-			DoTheGame = false;
+			exitGame = true;
 			break;
 
 		case GameStatus::ExitToTitle:
@@ -923,6 +925,9 @@ bool FlowHandler::DoFlow()
 			NextLevel = 0;
 			break;
 		}
+
+		if (exitGame)
+			break;
 	}
 
 	g_GameScript->ResetScripts(true);

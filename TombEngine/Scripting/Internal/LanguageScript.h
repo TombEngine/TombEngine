@@ -180,3 +180,5 @@
 #define STRING_MECHANICAL_SCARAB_2		"mechanical_scarab_2"
 #define STRING_VEHICLE_ACTIONS			"vehicle_actions"
 #define STRING_UNLIMITED				"unlimited"
+#define STRING_SOUND_DEVICE				"sound_device"
+#define STRING_NO_SOUND_DEVICE			"no_sound_device"

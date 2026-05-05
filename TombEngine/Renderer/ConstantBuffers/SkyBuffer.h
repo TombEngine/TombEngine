@@ -21,6 +21,8 @@ namespace TEN::Renderer::ConstantBuffers
 		float MeshWorldYRange;      // world-space Y extent: top - bottom (positive value)
 		//--
 		float HorizonGradientRise;  // [0,1] bottom-to-top alpha gradient on horizon mesh
-		float _pad0, _pad1, _pad2;
+		float CSkyBuffer_Padding0;
+		float CSkyBuffer_Padding1;
+		float CSkyBuffer_Padding2;
 	};
 }

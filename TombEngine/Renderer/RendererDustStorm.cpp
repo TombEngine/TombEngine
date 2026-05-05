@@ -37,7 +37,7 @@ namespace TEN::Renderer
 
 	void Renderer::InitializeDustStorm()
 	{
-		_cbDustStorm = ConstantBuffer<CDustStormBuffer>(_device.Get());
+		_cbDustStorm = CreateConstantBuffer<CDustStormBuffer>();
 	}
 
 	// Returns true if a room is currently considered "outdoor".
@@ -199,8 +199,8 @@ namespace TEN::Renderer
 		_stDustStorm.StepCount = (float)std::clamp(settings.StepCount, 3, 12);
 
 		// Camera and viewport.
-		_stDustStorm.ViewSize    = Vector2((float)_screenWidth, (float)_screenHeight);
-		_stDustStorm.InvViewSize = Vector2(1.0f / _screenWidth, 1.0f / _screenHeight);
+		_stDustStorm.ViewSize    = Vector2((float)_graphicsDevice->GetScreenWidth(), (float)_graphicsDevice->GetScreenHeight());
+		_stDustStorm.InvViewSize = Vector2(1.0f / _graphicsDevice->GetScreenWidth(), 1.0f / _graphicsDevice->GetScreenHeight());
 		_stDustStorm.CameraPos   = view.Camera.WorldPosition;
 		_stDustStorm.FarPlane    = view.Camera.FarPlane;
 
@@ -294,7 +294,7 @@ namespace TEN::Renderer
 			}
 		}
 
-		UpdateConstantBuffer(_stDustStorm, _cbDustStorm);
+		UpdateConstantBuffer(&_stDustStorm, _cbDustStorm.get());
 	}
 
 	void Renderer::DrawDustStorm(RenderView& view)
@@ -306,42 +306,36 @@ namespace TEN::Renderer
 
 		// Bind CB to b10 (Hud slot - safe at this stage, see header).
 		auto* buf = _cbDustStorm.get();
-		_context->PSSetConstantBuffers(10, 1, buf);
-		_context->VSSetConstantBuffers(10, 1, buf);
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
 
 		// Bind linear depth as t0 and outdoor mask as t1.
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_depthRenderTarget,
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _depthRenderTarget->GetRenderTarget(),
 			SamplerStateRegister::PointWrap);
-		BindRenderTargetAsTexture(TextureRegister::NormalMap, &_outdoorMaskRenderTarget,
+		BindRenderTargetAsTexture(TextureRegister::NormalMap, _outdoorMaskRenderTarget->GetRenderTarget(),
 			SamplerStateRegister::PointWrap);
 
 		// Render to the main render target with alpha blending.
-		_context->OMSetRenderTargets(1, _renderTarget.RenderTargetView.GetAddressOf(),
-			_renderTarget.DepthStencilView.Get());
-		_context->RSSetViewports(1, &view.Viewport);
+		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+		_graphicsDevice->SetViewport(view.Viewport);
 
 		SetBlendMode(BlendMode::AlphaBlend);
 		SetCullMode(CullMode::CounterClockwise);
 		SetDepthState(DepthState::None);
 
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
-
-		unsigned int stride = sizeof(PostProcessVertex);
-		unsigned int offset = 0;
-		_context->IASetVertexBuffers(0, 1,
-			_fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		_shaders.Bind(Shader::DustStorm);
 		DrawTriangles(3, 0);
 
 		// Cleanup.
-		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 
-		ID3D11ShaderResourceView* nullSRV = nullptr;
-		_context->PSSetShaderResources((UINT)TextureRegister::ColorMap, 1, &nullSRV);
-		_context->PSSetShaderResources((UINT)TextureRegister::NormalMap, 1, &nullSRV);
+		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::ColorMap);
+		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::NormalMap);
 
 		SetBlendMode(BlendMode::Opaque);
 		SetDepthState(DepthState::Write);

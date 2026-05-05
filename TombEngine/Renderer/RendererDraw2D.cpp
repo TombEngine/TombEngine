@@ -110,11 +110,11 @@ namespace TEN::Renderer
 			Vector4(0.0f, 0.18f, 0.38f, 1.0f)
 		};
 
-		g_AirBar = new RendererHudBar(_device.Get(), AIR_BAR_POS, RendererHudBar::SIZE_DEFAULT, 1, AIR_BAR_COLORS);
-		g_ExposureBar = new RendererHudBar(_device.Get(), EXPOSURE_BAR_POS, RendererHudBar::SIZE_DEFAULT, 1, EXPOSURE_BAR_COLORS);
-		g_HealthBar = new RendererHudBar(_device.Get(), HEALTH_BAR_POS, RendererHudBar::SIZE_DEFAULT, 1, HEALTH_BAR_COLORS);
-		g_StaminaBar = new RendererHudBar(_device.Get(), STAMINA_BAR_POS, RendererHudBar::SIZE_DEFAULT, 1, STAMINA_BAR_COLORS);
-		g_LoadingBar = new RendererHudBar(_device.Get(), LOADING_BAR_POS, RendererHudBar::SIZE_DEFAULT, 1, LOADING_BAR_COLORS);
+		g_AirBar = new RendererHudBar(_graphicsDevice.get(), AIR_BAR_POS, RendererHudBar::SIZE_DEFAULT, 1, AIR_BAR_COLORS);
+		g_ExposureBar = new RendererHudBar(_graphicsDevice.get(), EXPOSURE_BAR_POS, RendererHudBar::SIZE_DEFAULT, 1, EXPOSURE_BAR_COLORS);
+		g_HealthBar = new RendererHudBar(_graphicsDevice.get(), HEALTH_BAR_POS, RendererHudBar::SIZE_DEFAULT, 1, HEALTH_BAR_COLORS);
+		g_StaminaBar = new RendererHudBar(_graphicsDevice.get(), STAMINA_BAR_POS, RendererHudBar::SIZE_DEFAULT, 1, STAMINA_BAR_COLORS);
+		g_LoadingBar = new RendererHudBar(_graphicsDevice.get(), LOADING_BAR_POS, RendererHudBar::SIZE_DEFAULT, 1, LOADING_BAR_COLORS);
 	}
 
 	void Renderer::DrawBar(float percent, const RendererHudBar& bar, GAME_OBJECT_ID textureSlot, int frame, bool isPoisoned)
@@ -122,15 +122,12 @@ namespace TEN::Renderer
 		if (!CheckIfSlotExists(ID_BAR_BORDER_GRAPHICS, "Bar rendering"))
 			return;
 
-		unsigned int strides = sizeof(Vertex);
-		unsigned int offset = 0;
-	
-		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0xFF);
+		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
 		
-		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetVertexBuffers(0, 1, bar.VertexBufferBorder.Buffer.GetAddressOf(), &strides, &offset);
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetIndexBuffer(bar.IndexBufferBorder.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(bar.VertexBufferBorder.get());
+		_graphicsDevice->BindIndexBuffer(bar.IndexBufferBorder.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudDTexture);
@@ -139,27 +136,28 @@ namespace TEN::Renderer
 		SetDepthState(DepthState::None);
 		SetCullMode(CullMode::None);
 
-		BindConstantBufferVS(ConstantBufferRegister::Hud, _cbHUD.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, _cbHUD.get());
 
 		RendererSprite* borderSprite = &_sprites[Objects[ID_BAR_BORDER_GRAPHICS].meshIndex];
 		_stHUDBar.BarStartUV = borderSprite->UV[0];
-		_stHUDBar.BarScale = Vector2(borderSprite->Width / (float)borderSprite->Texture->Width, borderSprite->Height / (float)borderSprite->Texture->Height);
-		UpdateConstantBuffer(_stHUDBar, _cbHUDBar);
-		BindConstantBufferVS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
-		BindConstantBufferPS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
+		_stHUDBar.BarScale = Vector2(borderSprite->Width / (float)borderSprite->Texture->GetWidth(), borderSprite->Height / (float)borderSprite->Texture->GetHeight());
+		UpdateConstantBuffer(&_stHUDBar, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
 		 
 		BindTexture(TextureRegister::Hud, borderSprite->Texture, SamplerStateRegister::LinearClamp);
 
 		DrawIndexedTriangles(56, 0, 0);
 
-		_context->PSSetShaderResources(0, 1, _sprites[Objects[textureSlot].meshIndex].Texture->ShaderResourceView.GetAddressOf());
+		BindTexture(static_cast<TextureRegister>(0), _sprites[Objects[textureSlot].meshIndex].Texture, SamplerStateRegister::AnisotropicClamp);
 
-		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0xFF);
+		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
+
 		
-		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetVertexBuffers(0, 1, bar.InnerVertexBuffer.Buffer.GetAddressOf(), &strides, &offset);
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetIndexBuffer(bar.InnerIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(bar.InnerVertexBuffer.get());
+		_graphicsDevice->BindIndexBuffer(bar.InnerIndexBuffer.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudBarColor);
@@ -169,11 +167,11 @@ namespace TEN::Renderer
 		_stHUDBar.Frame = frame;	
 		RendererSprite* innerSprite = &_sprites[Objects[textureSlot].meshIndex];
 		_stHUDBar.BarStartUV = innerSprite->UV[0];
-		_stHUDBar.BarScale = Vector2(innerSprite->Width / (float)innerSprite->Texture->Width, innerSprite->Height / (float)innerSprite->Texture->Height);
-		UpdateConstantBuffer(_stHUDBar, _cbHUDBar);
+		_stHUDBar.BarScale = Vector2(innerSprite->Width / (float)innerSprite->Texture->GetWidth(), innerSprite->Height / (float)innerSprite->Texture->GetHeight());
+		UpdateConstantBuffer(&_stHUDBar, _cbHUDBar.get());
 
-		BindConstantBufferVS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
-		BindConstantBufferPS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
 		 
 		BindTexture(TextureRegister::Hud, innerSprite->Texture, SamplerStateRegister::LinearClamp);
 
@@ -185,16 +183,13 @@ namespace TEN::Renderer
 		if (!g_GameFlow->GetSettings()->Hud.LoadingBar)
 			return;
 
-		unsigned int strides = sizeof(Vertex);
-		unsigned int offset = 0;
-		
-		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0xFF);
+		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
 	
-		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetVertexBuffers(0, 1, g_LoadingBar->VertexBufferBorder.Buffer.GetAddressOf(), &strides, &offset);
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetIndexBuffer(g_LoadingBar->IndexBufferBorder.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-	
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);	
+		_graphicsDevice->BindVertexBuffer(g_LoadingBar->VertexBufferBorder.get());
+		_graphicsDevice->BindIndexBuffer(g_LoadingBar->IndexBufferBorder.get());
+
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudDTexture);
 
@@ -202,35 +197,35 @@ namespace TEN::Renderer
 		SetDepthState(DepthState::None);
 		SetCullMode(CullMode::None);
 
-		BindConstantBufferVS(ConstantBufferRegister::Hud, _cbHUD.get());
-		BindTexture(TextureRegister::Hud, &_loadingBarBorder, SamplerStateRegister::LinearClamp);
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, _cbHUD.get());
+		BindTexture(TextureRegister::Hud, _loadingBarBorder.get(), SamplerStateRegister::LinearClamp);
 
 		_stHUDBar.BarStartUV = Vector2::Zero;
 		_stHUDBar.BarScale = Vector2::One;
-		UpdateConstantBuffer(_stHUDBar, _cbHUDBar);
-		BindConstantBufferVS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
-		BindConstantBufferPS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
+		UpdateConstantBuffer(&_stHUDBar, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
 
 		DrawIndexedTriangles(56, 0, 0);
 
-		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0xFF);
-		
-		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetVertexBuffers(0, 1, g_LoadingBar->InnerVertexBuffer.Buffer.GetAddressOf(), &strides, &offset);
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetIndexBuffer(g_LoadingBar->InnerIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-	
+		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
+
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->BindVertexBuffer(g_LoadingBar->InnerVertexBuffer.get());
+		_graphicsDevice->BindIndexBuffer(g_LoadingBar->InnerIndexBuffer.get());
+
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudBarColor);
 		
 		_stHUDBar.Percent = percentage / 100.0f;
 		_stHUDBar.Poisoned = false;
 		_stHUDBar.Frame = 0; 
-		UpdateConstantBuffer(_stHUDBar, _cbHUDBar);
-		BindConstantBufferVS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
-		BindConstantBufferPS(ConstantBufferRegister::HudBar, _cbHUDBar.get());
+		UpdateConstantBuffer(&_stHUDBar, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
 
-		BindTexture(TextureRegister::Hud, &_loadingBarInner, SamplerStateRegister::LinearClamp);
+		BindTexture(TextureRegister::Hud, _loadingBarInner.get(), SamplerStateRegister::LinearClamp);
 
 		DrawIndexedTriangles(12, 0, 0);
 	}
@@ -253,7 +248,7 @@ namespace TEN::Renderer
 		if (flashColor != Vector3::Zero)
 		{
 			SetBlendMode(BlendMode::Additive);
-			DrawFullScreenQuad(_whiteTexture.ShaderResourceView.Get(), flashColor);
+			DrawFullScreenQuad(_whiteTexture.get(), flashColor);
 		}
 
 		if (CurrentLevel == 0)
@@ -277,29 +272,29 @@ namespace TEN::Renderer
 			// Draw the aiming point
 			Vertex vertices[4];
 
-			vertices[0].Position.x = -4.0f / _screenWidth;
-			vertices[0].Position.y = 4.0f / _screenHeight;
+			vertices[0].Position.x = -4.0f / _graphicsDevice->GetScreenWidth();
+			vertices[0].Position.y = 4.0f / _graphicsDevice->GetScreenHeight();
 			vertices[0].Position.z = 0.0f;
 			vertices[0].UV.x = 0.0f;
 			vertices[0].UV.y = 0.0f;
 			vertices[0].Color = VectorColorToRGBA(Vector4(1.0f, 0.0f, 0.0f, 1.0f));
 
-			vertices[1].Position.x = 4.0f / _screenWidth;
-			vertices[1].Position.y = 4.0f / _screenHeight;
+			vertices[1].Position.x = 4.0f / _graphicsDevice->GetScreenWidth();
+			vertices[1].Position.y = 4.0f / _graphicsDevice->GetScreenHeight();
 			vertices[1].Position.z = 0.0f;
 			vertices[1].UV.x = 1.0f;
 			vertices[1].UV.y = 0.0f;
 			vertices[1].Color = VectorColorToRGBA(Vector4(1.0f, 0.0f, 0.0f, 1.0f));
 
-			vertices[2].Position.x = 4.0f / _screenWidth;
-			vertices[2].Position.y = -4.0f / _screenHeight;
+			vertices[2].Position.x = 4.0f / _graphicsDevice->GetScreenWidth();
+			vertices[2].Position.y = -4.0f / _graphicsDevice->GetScreenHeight();
 			vertices[2].Position.z = 0.0f;
 			vertices[2].UV.x = 1.0f;
 			vertices[2].UV.y = 1.0f;
 			vertices[2].Color = VectorColorToRGBA(Vector4(1.0f, 0.0f, 0.0f, 1.0f));
 
-			vertices[3].Position.x = -4.0f / _screenWidth;
-			vertices[3].Position.y = -4.0f / _screenHeight;
+			vertices[3].Position.x = -4.0f / _graphicsDevice->GetScreenWidth();
+			vertices[3].Position.y = -4.0f / _graphicsDevice->GetScreenHeight();
 			vertices[3].Position.z = 0.0f;
 			vertices[3].UV.x = 0.0f;
 			vertices[3].UV.y = 1.0f;
@@ -307,8 +302,8 @@ namespace TEN::Renderer
 
 			_shaders.Bind(Shader::FullScreenQuad);
 
-			_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			_context->IASetInputLayout(_inputLayout.Get());
+			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
 			_primitiveBatch->Begin();
 			_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);
@@ -320,16 +315,15 @@ namespace TEN::Renderer
 		}
 	}
 
-	void Renderer::DrawFullScreenImage(ID3D11ShaderResourceView* texture, float fade, ID3D11RenderTargetView* target,
-		ID3D11DepthStencilView* depthTarget)
+	void Renderer::DrawFullScreenImage(ITextureBase* texture, float fade, IRenderTarget2D* target, IDepthTarget* depthTarget)
 	{
 		// Reset GPU state
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::None);
 
-		_context->OMSetRenderTargets(1, &target, depthTarget);
-		_context->RSSetViewports(1, &_viewport);
-		ResetScissor();
+		_graphicsDevice->BindRenderTarget(target, depthTarget);
+		_graphicsDevice->SetViewport(_viewport);
+		_graphicsDevice->SetScissor(_viewport);
 
 		DrawFullScreenQuad(texture, Vector3(fade), true);
 	}
@@ -341,7 +335,7 @@ namespace TEN::Renderer
 		if (renderView.DisplaySpritesToDraw.empty())
 			return;
 
-		Texture2D* texture2DPtr = nullptr;
+		ITexture2D* texture2DPtr = nullptr;
 		for (const auto& spriteToDraw : renderView.DisplaySpritesToDraw)
 		{
 			if ((spriteToDraw.Priority >= 0) == negativePriority)
@@ -351,8 +345,8 @@ namespace TEN::Renderer
 			{
 				_shaders.Bind(Shader::FullScreenQuad);
 
-				_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				_context->IASetInputLayout(_inputLayout.Get());
+				_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+				_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
 				_primitiveBatch->Begin();
 
@@ -411,7 +405,7 @@ namespace TEN::Renderer
 			_primitiveBatch->End();
 	}
 
-	void Renderer::DrawFullScreenQuad(ID3D11ShaderResourceView* texture, Vector3 color, bool fit, float customAspect)
+	void Renderer::DrawFullScreenQuad(ITextureBase* texture, Vector3 color, bool fit, float customAspect)
 	{
 		constexpr auto VERTEX_COUNT = 4;
 		constexpr auto UV_RANGE		= std::pair<Vector2, Vector2>(Vector2(0.0f), Vector2(1.0f));
@@ -421,14 +415,8 @@ namespace TEN::Renderer
 
 		if (fit)
 		{
-			ID3D11Texture2D* texture2DPtr;
-			texture->GetResource(reinterpret_cast<ID3D11Resource**>(&texture2DPtr));
-
-			auto desc = D3D11_TEXTURE2D_DESC();
-			texture2DPtr->GetDesc(&desc);
-
-			float screenAspect = float(_screenWidth) / float(_screenHeight);
-			float imageAspect  = customAspect == 0.0f ? float(desc.Width) / float(desc.Height) : customAspect;
+			float screenAspect = float(_graphicsDevice->GetScreenWidth()) / float(_graphicsDevice->GetScreenHeight());
+			float imageAspect  = customAspect == 0.0f ? float(texture->GetWidth()) / float(texture->GetHeight()) : customAspect;
 
 			if (screenAspect > imageAspect)
 			{
@@ -469,13 +457,10 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::FullScreenQuad);
 
-		_context->PSSetShaderResources(0, 1, &texture);
+		BindTexture(TextureRegister::ColorMap, texture, SamplerStateRegister::AnisotropicClamp);
 
-		auto* sampler = _renderStates->AnisotropicClamp();
-		_context->PSSetSamplers(0, 1, &sampler);
-
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_inputLayout.Get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
 		_primitiveBatch->Begin();
 		_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);
@@ -487,11 +472,11 @@ namespace TEN::Renderer
 		Vector2 uvStart = { 0.0f, 0.0f };
 		Vector2 uvEnd = { 1.0f, 1.0f };
 
-		ID3D11ShaderResourceView* texture = sprite->Texture->ShaderResourceView.Get();
+		ITexture2D* texture = sprite->Texture;
 
 		if (fit)
 		{
-			float screenAspect = float(_screenWidth) / float(_screenHeight);
+			float screenAspect = float(_graphicsDevice->GetScreenWidth()) / float(_graphicsDevice->GetScreenHeight());
 			float imageAspect = float(sprite->Width) / float(sprite->Height);
 
 			if (screenAspect > imageAspect)
@@ -508,7 +493,7 @@ namespace TEN::Renderer
 			}
 		}
 
-		auto scale = Vector2(sprite->Width / (float)sprite->Texture->Width, sprite->Height / (float)sprite->Texture->Height);
+		auto scale = Vector2(sprite->Width / (float)sprite->Texture->GetWidth(), sprite->Height / (float)sprite->Texture->GetHeight());
 		uvStart.x = uvStart.x * scale.x + sprite->UV[0].x;
 		uvStart.y = uvStart.y * scale.y + sprite->UV[0].y;
 		uvEnd.x = uvEnd.x * scale.x + sprite->UV[0].x;
@@ -546,12 +531,10 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::FullScreenQuad);
 
-		_context->PSSetShaderResources(0, 1, &texture);
-		auto* sampler = _renderStates->AnisotropicClamp();
-		_context->PSSetSamplers(0, 1, &sampler);
+		BindTexture(TextureRegister::ColorMap, texture, SamplerStateRegister::AnisotropicClamp);
 
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_inputLayout.Get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
 		_primitiveBatch->Begin();
 		_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);
@@ -589,7 +572,7 @@ namespace TEN::Renderer
 		for (const auto& displaySprite : DisplaySprites)
 		{
 			// If sprite is a video texture, bypass it if texture is inactive.
-			if (displaySprite.SpriteID == VIDEO_SPRITE_ID && (_videoSprite.Texture == nullptr || _videoSprite.Texture->Texture == nullptr))
+			if (displaySprite.SpriteID == VIDEO_SPRITE_ID && (_videoSprite.Texture == nullptr || !_videoSprite.Texture->IsValid()))
 				continue;
 
 			const auto& sprite = displaySprite.SpriteID == VIDEO_SPRITE_ID ? _videoSprite : _sprites[Objects[displaySprite.ObjectID].meshIndex + displaySprite.SpriteID];

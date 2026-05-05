@@ -5,7 +5,7 @@
 #ifndef CB_ATMOSPHERIC_SKY_HLSLI
 #define CB_ATMOSPHERIC_SKY_HLSLI
 
-cbuffer CBAtmosphericSky : register(b10)
+cbuffer CBAtmosphericSky : register(b12)
 {
     // Row 0 — Sun direction and elevation
     float3 AtmoSunDirection;        // Normalized world-space sun direction.
