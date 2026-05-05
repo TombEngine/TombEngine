@@ -3,7 +3,7 @@
 
 #include "./Blending.hlsli"
 #include "./CBCamera.hlsli"
-#include "./CBMaterial.hlsli"
+#include "./CBPerDraw.hlsli"
 
 #define MATERIAL_DEFAULT           0
 #define MATERIAL_REFLECTIVE        1

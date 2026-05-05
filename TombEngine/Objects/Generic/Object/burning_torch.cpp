@@ -79,18 +79,18 @@ namespace TEN::Entities::Generic
 
 	static Vector3 GetStartTorchColor(Vector3 sourceColor)
 	{
-		if (sourceColor == Vector3::One)
+		if (sourceColor == (Vector3)NEUTRAL_COLOR)
 			return Vector3(1.0f, Random::GenerateFloat(0.3f, 0.4f), 0.1f);
 
-		return sourceColor / 2.0f * Random::GenerateFloat(0.85f, 1.0f);
+		return sourceColor * Random::GenerateFloat(0.85f, 1.0f);
 	}
 
 	static Vector3 GetEndTorchColor(Vector3 sourceColor)
 	{
-		if (sourceColor == Vector3::One)
+		if (sourceColor == (Vector3)NEUTRAL_COLOR)
 			return Vector3(Random::GenerateFloat(-0.25f, -0.10f), Random::GenerateFloat(-0.45f, -0.25f), 0.1f);
 
-		return sourceColor / 2.0f * Random::GenerateFloat(0.35f, 0.45f);
+		return sourceColor * Random::GenerateFloat(0.35f, 0.45f);
 	}
 
 	void DoFlameTorch()

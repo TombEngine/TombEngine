@@ -99,7 +99,7 @@ namespace TEN::Entities::Traps
 				{
 					if (LaraItem->Animation.Velocity.y > 6.0f || item.ItemFlags[0] > 1024)
 					{
-						LaraItem->HitPoints = -1;
+						DoDamage(LaraItem, INT_MAX);
 						bloodCount = 20;
 					}
 				}

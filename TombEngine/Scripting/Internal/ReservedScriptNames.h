@@ -140,6 +140,8 @@ static constexpr char ScriptReserved_GetVehicle[]			= "GetVehicle";
 static constexpr char ScriptReserved_GetTarget[]			= "GetTarget";
 static constexpr char ScriptReserved_GetWaterSkinStatus[]	= "GetWaterSkinStatus";
 static constexpr char ScriptReserved_SetWaterSkinStatus[]	= "SetWaterSkinStatus";
+static constexpr char ScriptReserved_GetSkin[]				= "GetSkin";
+static constexpr char ScriptReserved_SetSkin[]				= "SetSkin";
 static constexpr char ScriptReserved_GetScale[]				= "GetScale";
 static constexpr char ScriptReserved_SetScale[]				= "SetScale";
 static constexpr char ScriptReserved_GetColor[]				= "GetColor";
@@ -451,6 +453,7 @@ static constexpr char ScriptReserved_FeatherMode[]				= "StreamerFeatherMode";
 
 static constexpr char ScriptReserved_LevelVars[]	= "LevelVars";
 static constexpr char ScriptReserved_GameVars[]		= "GameVars";
+static constexpr char ScriptReserved_GlobalVars[]	= "GlobalVars";
 static constexpr char ScriptReserved_LevelFuncs[]	= "LevelFuncs";
 static constexpr char ScriptReserved_Engine[]		= "Engine";
 static constexpr char ScriptReserved_External[]		= "External";

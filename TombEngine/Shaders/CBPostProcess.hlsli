@@ -24,7 +24,7 @@ cbuffer CBPostProcess : register(b7)
     //--
     int NumLensFlares;
     float DownscaleFactor;
-    float2 Padding3;
+    float2 CPostProcessBuffer_Padding0;
     //--
     float2 TexelSize; 
     float2 BlurDirection; 

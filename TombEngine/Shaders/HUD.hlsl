@@ -18,9 +18,11 @@ cbuffer HUDBarBuffer : register(b11)
 {
 	float2 BarStartUV;
 	float2 BarScale;
+	//------------
 	float Percent;
 	int Poisoned;
 	int Frame;
+    int HUDBarBuffer_Buffer0;
 };
 
 Texture2D Texture : register(t5);

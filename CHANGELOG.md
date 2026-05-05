@@ -3,9 +3,11 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
-## [Version 1.12]
+## [Version 2.0]
 
 ### New features
+* Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
+* Added gamma correction setting.
 * Added HEAVY_STAMPER (ID 459) object from TR3.
 * Added DRILL_BIT (ID 460) object from TR3.
 * Added SPIKED_FRAME (ID 461) object from TR3.
@@ -19,13 +21,25 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added MULTIPLE_BOULDERS (ID 469) object from TR2.
 * Added spark effect to SLAMMING_DOORS if OCB is above 0 and when the flipeffect "playsound" with the soundID SFX_TR1_SLAMDOOR_CLOSE = 1144 is played.
 * Removed FIRE_PENDULUM fxfog effect if OCB value is 0.
+ 
+### Bug fixes
+* Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
+* Fixed flyby camera jitter by converting the spline type to floating-point.
+
+### Lua API changes
+* Added ring inventory module.
+* Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
+* Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 
 ## [Version 1.11.1]
 
 ### Bug fixes
 * Fixed draw key not always opening doors in fly mode.
+* Fixed TEETH_SPIKES with OCB 1 damaging player in fly mode.
+* Fixed YETI misaligning with Lara during kill animation.
 
 ### Lua API changes
+* Added `Lara.SetSkin` to swap classic outfits.
 * Fixed `Timer` class not working correctly with single frame intervals.
 * Fixed alpha value being ignored for `Flow.Settings.UI.shadowTextColor` parameter.
 
