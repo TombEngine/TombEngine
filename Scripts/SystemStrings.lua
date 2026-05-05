@@ -110,6 +110,7 @@ local strings =
 	sfx_volume = { "SFX Volume" },
 	shadows = { "Shadows" },
 	sound = { "Sound" },
+	sound_device = { "Sound Output Device" },
 	statistics = { "Statistics" },
 	subtitles = { "Subtitles" },
 	target_highlighter = { "Target Highlighter" },

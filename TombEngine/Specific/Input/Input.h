@@ -52,7 +52,7 @@ namespace TEN::Input
 	extern std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;
 	extern std::unordered_map<AxisID, Vector2>			  AxisMap;
 
-	void InitializeInput(HWND handle);
+	void InitializeInput();
 	void DeinitializeInput();
 	void SetInputLockState(bool locked);
 	void DefaultConflict();

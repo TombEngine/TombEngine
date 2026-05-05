@@ -1,12 +1,15 @@
 #pragma once
-#include <SimpleMath.h>
 
 #include "Math/Math.h"
 
-using namespace DirectX::SimpleMath;
-
 #define SHAPE_RECTANGLE 0
 #define SHAPE_TRIANGLE	1
+
+// TODO: refactor AddString() functions for accepting XMVECTORF32 and define colors in TEN::Renderer::Colors namespace later in this file
+#define PRINTSTRING_COLOR_ORANGE ARGB_TO_UINT(255, 216, 117, 49)
+#define PRINTSTRING_COLOR_WHITE ARGB_TO_UINT(255, 255, 255, 255)
+#define PRINTSTRING_COLOR_BLACK ARGB_TO_UINT(255, 0, 0, 0)
+#define PRINTSTRING_COLOR_YELLOW ARGB_TO_UINT(255, 240, 220, 32)
 
 constexpr auto MAX_LINES_2D		= 256;
 constexpr auto MAX_LINES_3D		= 16384;
@@ -103,14 +106,19 @@ enum class BlendMode
 	Screen = 9,
 	Lighten = 10,
 	AlphaBlend = 11,
-	FastAlphaBlend = 12
+	FastAlphaBlend = 12,
+	PremultipliedAlphaBlend = 13
 };
 
 enum class SkinningMode
 {
-	None = 0,
-	Full = 1,
-	Classic = 2
+	// Values are uploaded directly as the Skinned scalar in CBObjects; the shader picks the
+	// VS world-transform path from this. Static is for instanced static meshes (no bones at
+	// all); the others are for moveables where every vertex carries a BoneIndex.
+	Static  = 0, // No bones — use the per-instance Object.World directly.
+	None    = 1, // Rigid moveable — apply Bones[BoneIndex[0]] without blending.
+	Full    = 2, // Modern skinning — blend bone matrices.
+	Classic = 3, // Legacy classic blend mode.
 };
 
 enum class CullMode
@@ -118,7 +126,8 @@ enum class CullMode
 	Unknown = -1,
 	None = 0,
 	Clockwise = 1,
-	CounterClockwise = 2
+	CounterClockwise = 2,
+	Wireframe = 3
 };
 
 enum class ShadowMode
@@ -199,7 +208,8 @@ enum class TextureRegister
 	ORSHMap = 10,
 	EmissiveMap = 11,
 	LegacyEnvironmentReflections = 12,
-	SkyboxEnvironmentReflections = 13
+	SkyboxEnvironmentReflections = 13,
+	AnimatedFrames = 14 // StructuredBuffer<AnimatedFrameUV> for per-draw animated UVs.
 };
 
 enum class SamplerStateRegister
@@ -216,17 +226,18 @@ enum class SamplerStateRegister
 enum class ConstantBufferRegister
 {
 	Camera = 0,
-	Item = 1,
-	Material = 2,
-	InstancedStatics = 3,
+	// Slot 1 is currently unused — was the per-item CB before items folded into CBObjects.
+	PerDraw = 2, // Combined Material + Blending CB (was Material at b2 + Blending at b12).
+	InstancedStatics = 3, // Now holds the unified CBObjects (Bones + Skinned + Objects[N]).
 	ShadowLight = 4,
 	Room = 5,
-	AnimatedTextures = 6,
+	// Slot 6 is currently unused — was CBAnimatedTexture before frames moved to a structured
+	// buffer (t14) and metadata folded into PerDraw at b2.
 	PostProcess = 7,
 	Sky = 8,
 	Hud = 10,
 	HudBar = 11,
-	Blending = 12,
+	// Slot 12 is currently unused — was Blending before it merged into PerDraw at b2.
 	InstancedSprites = 13
 };
 
@@ -338,3 +349,162 @@ enum class MaterialShaderType
 	Reflective = 1,
 	SkyboxReflective = 2
 };
+
+enum class SurfaceFormat
+{
+	Unknown,
+	SF_RGBA8_Unorm,
+	SF_RGBA8_Unorm_Srgb,
+	SF_RG8_Unorm,
+	SF_R8_Unorm,
+	SF_R32_Float,
+	SF_RGBA32_Float,
+	SF_BGRA8_Unorm
+};
+
+enum class DepthFormat
+{
+	None,
+	Depth24Stencil8,
+	Depth32
+};
+
+enum class VertexInputFormat
+{
+	VI_RGBA8_Unorm,
+	VI_RGBA8_Snorm,
+	VI_RGBA8_Uint,
+	VI_RG8_Unorm,
+	VI_R32_Float,
+	VI_R32_Uint,
+	VI_RG32_Float,
+	VI_RGB32_Float,
+	VI_RGBA32_Float
+};
+
+enum class InputLayout
+{
+	Vertex,
+	PostProcessVertex
+};
+
+enum class PrimitiveType
+{
+	TriangleList,
+	TriangleStrip,
+	LineList
+};
+
+enum class DepthStencilClearFlags
+{
+	Depth,
+	Stencil,
+	DepthAndStencil
+};
+
+enum class SpriteSortingMode
+{
+	BackToFront,
+	FrontToBack,
+	Deferred,
+	Immediate,
+	Texture
+};
+
+enum class VertexType
+{
+	Vertex,
+	PostProcessVertex
+};
+
+enum class ShaderType
+{
+	Pixel,
+	Vertex,
+	PixelAndVertex,
+	Compute,
+	Geometry
+};
+
+enum class ShaderStage
+{
+	VertexShader,
+	GeometryShader,
+	PixelShader,
+	ComputeShader,
+	HullShader,
+	DomainShader
+};
+
+enum class Shader
+{
+	// General
+
+	None,
+	Rooms,
+	RoomsTransparent,
+	RoomAmbient,
+	RoomAmbientSky,
+	Items,
+	InstancedStatics,
+	InstancedSprites,
+	Sky,
+	Solid,
+	Inventory,
+	FullScreenQuad,
+	ShadowMap,
+
+	// HUD
+
+	Hud,
+	HudColor,
+	HudDTexture,
+	HudBarColor,
+
+	// GBuffer
+
+	GBuffer,
+	GBufferRooms,
+	GBufferItems,
+	GBufferInstancedStatics,
+
+	// SMAA
+
+	SmaaEdgeDetection,
+	SmaaLumaEdgeDetection,
+	SmaaColorEdgeDetection,
+	SmaaDepthEdgeDetection,
+	SmaaBlendingWeightCalculation,
+	SmaaNeighborhoodBlending,
+	Fxaa,
+
+	// Post-process
+
+	PostProcess,
+	PostProcessMonochrome,
+	PostProcessNegative,
+	PostProcessExclusion,
+	PostProcessFinalPass,
+	PostProcessLensFlare,
+
+	// SSAO
+
+	Ssao,
+	SsaoBlur,
+
+	// Fullscreen effects
+
+	Blur,
+	Downscale,
+	GlowCombine,
+
+	Count
+};
+
+namespace TEN::Renderer::Colors
+{
+	XMGLOBALCONST XMVECTORF32 Transparent = { { { 0.f, 0.f, 0.f, 0.f } } };
+	XMGLOBALCONST XMVECTORF32 Black = { { { 0.f, 0.f, 0.f, 1.f } } };
+	XMGLOBALCONST XMVECTORF32 White = { { { 1.f, 1.f, 1.f, 1.f } } };
+	XMGLOBALCONST XMVECTORF32 DimGray = { { { 0.412f, 0.412f, 0.412f, 1.f } } };
+}

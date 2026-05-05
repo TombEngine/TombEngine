@@ -8,10 +8,6 @@
 #include "Game/spotcam.h"
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
-#include "Specific/IO/ChunkId.h"
-#include "Specific/IO/ChunkReader.h"
-#include "Specific/IO/LEB128.h"
-#include "Specific/IO/Streams.h"
 #include "Specific/LevelCameraInfo.h"
 #include "Specific/newtypes.h"
 
@@ -186,11 +182,6 @@ extern int SystemNameHash;
 extern int LastLevelHash;
 
 inline std::future<bool> LevelLoadTask;
-
-size_t ReadFileEx(void* ptr, size_t size, size_t count, FILE* stream);
-FILE* FileOpen(const char* fileName);
-void FileClose(FILE* ptr);
-bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompressedSize);
 
 bool LoadLevelFile(int levelIndex);
 void FreeLevel(bool partial);

@@ -13,5 +13,6 @@ namespace TEN::Renderer::ConstantBuffers
 		float Percent;
 		int Poisoned;
 		int Frame;
+		int CHUDBarBuffer_Padding0;
 	};
 }

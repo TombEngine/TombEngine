@@ -2,7 +2,6 @@
 #include "Game/Gui.h"
 
 #include <OISKeyboard.h>
-
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
@@ -25,10 +24,10 @@
 #include "Specific/Input/Input.h"
 #include "Specific/clock.h"
 #include "Specific/configuration.h"
+#include "Specific/EngineMain.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 #include "Specific/Video/Video.h"
-#include "Specific/winmain.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Effects::DisplaySprite;
@@ -45,8 +44,6 @@ namespace TEN::Gui
 	constexpr int PHD_CENTER_Y	  = DISPLAY_SPACE_RES.y / 2;
 	constexpr int OBJLIST_SPACING = PHD_CENTER_X / 2;
 
-	constexpr auto VOLUME_MAX			 = 100;
-	constexpr auto VOLUME_STEP			 = VOLUME_MAX / 20;
 	constexpr auto MOUSE_SENSITIVITY_MAX = 35;
 	constexpr auto MOUSE_SENSITIVITY_MIN = 1;
 	constexpr auto MOUSE_SMOOTHING_MAX	 = 5;
@@ -473,6 +470,22 @@ namespace TEN::Gui
 				screenResolution.y == CurrentSettings.Configuration.ScreenHeight)
 			{
 				CurrentSettings.SelectedScreenResolution = i;
+				break;
+			}
+		}
+	}
+
+	void GuiController::FillOtherOptions()
+	{
+		BackupOptions();
+
+		CurrentSettings.SelectedSoundDevice = 0;
+
+		for (int i = 0; i < g_Configuration.SupportedSoundDevices.size(); i++)
+		{
+			if (g_Configuration.SupportedSoundDevices[i].Index == CurrentSettings.Configuration.SoundDevice)
+			{
+				CurrentSettings.SelectedSoundDevice = i;
 				break;
 			}
 		}
@@ -952,7 +965,7 @@ namespace TEN::Gui
 			break;
 
 		case OptionsOption::OtherSettings:
-			BackupOptions();
+			FillOtherOptions();
 			MenuToDisplay = Menu::OtherSettings;
 			SelectedOption = 0;
 			break;
@@ -969,6 +982,7 @@ namespace TEN::Gui
 	{
 		enum OtherSettingsOption
 		{
+			SoundDevice,
 			Reverb,
 			MusicVolume,
 			SfxVolume,
@@ -1037,6 +1051,20 @@ namespace TEN::Gui
 			}
 		}
 
+		if (GuiIsPulsed(In::Left) && SelectedOption == OtherSettingsOption::SoundDevice)
+		{
+			SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+			if (CurrentSettings.SelectedSoundDevice > 0)
+				CurrentSettings.SelectedSoundDevice--;
+		}
+
+		if (GuiIsPulsed(In::Right) && SelectedOption == OtherSettingsOption::SoundDevice)
+		{
+			SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+			if (CurrentSettings.SelectedSoundDevice < g_Configuration.SupportedSoundDevices.size() - 1)
+				CurrentSettings.SelectedSoundDevice++;
+		}
+
 		bool isVolumeAdjusted = false;
 
 		if (IsPulsed(In::Left, 0.05f, 0.4f))
@@ -1050,7 +1078,7 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.MusicVolume < 0)
 						CurrentSettings.Configuration.MusicVolume = 0;
 
-					SetVolumeTracks(CurrentSettings.Configuration.MusicVolume);
+					SetAudioConfiguration(CurrentSettings.Configuration);
 				}
 
 				break;
@@ -1062,7 +1090,7 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.SfxVolume < 0)
 						CurrentSettings.Configuration.SfxVolume = 0;
 
-					SetVolumeFX(CurrentSettings.Configuration.SfxVolume);
+					SetAudioConfiguration(CurrentSettings.Configuration);
 					isVolumeAdjusted = IsPulsed(In::Left, 0.1f);
 				}
 
@@ -1093,7 +1121,7 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.MusicVolume > VOLUME_MAX)
 						CurrentSettings.Configuration.MusicVolume = VOLUME_MAX;
 
-					SetVolumeTracks(CurrentSettings.Configuration.MusicVolume);
+					SetAudioConfiguration(CurrentSettings.Configuration);
 				}
 
 				break;
@@ -1105,7 +1133,7 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.SfxVolume > VOLUME_MAX)
 						CurrentSettings.Configuration.SfxVolume = VOLUME_MAX;
 
-					SetVolumeFX(CurrentSettings.Configuration.SfxVolume);
+					SetAudioConfiguration(CurrentSettings.Configuration);
 					isVolumeAdjusted = IsPulsed(In::Right, 0.1f);
 				}
 
@@ -1136,6 +1164,13 @@ namespace TEN::Gui
 			{
 				// Was rumble setting changed?
 				bool indicateRumble = CurrentSettings.Configuration.EnableRumble && !g_Configuration.EnableRumble;
+				
+				// Save the new sound device
+				int oldSoundDeviceIndex = CurrentSettings.Configuration.SoundDevice;
+				int newSoundDeviceIndex = g_Configuration.SupportedSoundDevices[CurrentSettings.SelectedSoundDevice].Index;
+				bool reinitSoundSystem = oldSoundDeviceIndex != newSoundDeviceIndex || newSoundDeviceIndex == 0;
+				CurrentSettings.Configuration.SoundDevice = newSoundDeviceIndex;
+				CurrentSettings.Configuration.EnableSound = newSoundDeviceIndex > 0;
 
 				// Save the configuration.
 				g_Configuration = CurrentSettings.Configuration;
@@ -1144,11 +1179,17 @@ namespace TEN::Gui
 				// Rumble if setting was changed.
 				if (indicateRumble)
 					Rumble(0.5f);
+
+				// Reset the sound system
+				if (reinitSoundSystem)
+					Sound_Reset();
+		
+				MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
+				SelectedOption = 1;
 			}
 			else if (SelectedOption == OtherSettingsOption::Cancel)
 			{
-				SetVolumeTracks(g_Configuration.MusicVolume);
-				SetVolumeFX(g_Configuration.SfxVolume);
+				SetAudioConfiguration(g_Configuration);
 			}
 			else
 			{
@@ -1253,7 +1294,7 @@ namespace TEN::Gui
 
 				case PauseMenuOption::ExitToTitle:
 					SetInventoryMode(InventoryMode::None);
-					App.ResetClock = true;
+					ResetClock = true;
 					return InventoryResult::ExitToTitle;
 					break;
 				}
@@ -3210,7 +3251,7 @@ namespace TEN::Gui
 		{
 			if (ThreadEnded)
 			{
-				App.ResetClock = true;
+				ResetClock = true;
 				return false;
 			}
 
@@ -3261,7 +3302,7 @@ namespace TEN::Gui
 			ResumeAllSounds(SoundPauseMode::Pause);
 		}
 
-		App.ResetClock = true;
+		ResetClock = true;
 
 		return doExitToTitle;
 	}
@@ -3293,7 +3334,7 @@ namespace TEN::Gui
 		{
 			if (ThreadEnded)
 			{
-				App.ResetClock = true;
+				ResetClock = true;
 				return false;
 			}
 
@@ -3405,7 +3446,7 @@ namespace TEN::Gui
 		player.Inventory.IsBusy = player.Inventory.OldBusy;
 		SetInventoryMode(InventoryMode::None);
 
-		App.ResetClock = true;
+		ResetClock = true;
 
 		return doLoad;
 	}

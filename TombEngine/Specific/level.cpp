@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Specific/level.h"
 
-#include <process.h>
 #include <lz4.h>
 
 #include "Game/Animation/Animation.h"
@@ -26,9 +25,9 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Sound/sound.h"
+#include "Specific/EngineMain.h"
 #include "Specific/Input/Input.h"
 #include "Specific/trutils.h"
-#include "Specific/winmain.h"
 
 using namespace TEN::Physics;
 using TEN::Renderer::g_Renderer;
@@ -1254,12 +1253,11 @@ void FreeLevel(bool partial)
 	FreeSamples();
 }
 
-size_t ReadFileEx(void* ptr, size_t size, size_t count, FILE* stream)
+static void ReadBytes(std::ifstream& stream, void* dest, std::streamsize byteCount)
 {
-	_lock_file(stream);
-	size_t result = fread(ptr, size, count, stream);
-	_unlock_file(stream);
-	return result;
+	stream.read(reinterpret_cast<char*>(dest), byteCount);
+	if (!stream)
+		throw std::runtime_error("Unexpected end of level file or read error.");
 }
 
 void LoadSoundSources()
@@ -1405,18 +1403,7 @@ void LoadEventSets()
 	}
 }
 
-FILE* FileOpen(const char* fileName)
-{
-	FILE* ptr = fopen(fileName, "rb");
-	return ptr;
-}
-
-void FileClose(FILE* ptr)
-{
-	fclose(ptr);
-}
-
-bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompressedSize)
+static bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompressedSize)
 {
 	char* regionPtr = compressedRegion;
 
@@ -1446,69 +1433,49 @@ bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompress
 	return totalDecompressed == totalUncompressedSize;
 }
 
-#ifdef _WIN64
-long long GetRemainingSize(FILE* filePtr)
+static std::streamoff GetRemainingSize(std::ifstream& stream)
 {
-	auto current_position = _ftelli64(filePtr);
-
-	if (_fseeki64(filePtr, 0, SEEK_END) != 0)
+	auto current = stream.tellg();
+	if (current < 0)
 		return NO_VALUE;
 
-	auto size = _ftelli64(filePtr);
+	stream.seekg(0, std::ios::end);
+	auto end = stream.tellg();
 
-	if (_fseeki64(filePtr, current_position, SEEK_SET) != 0)
+	stream.seekg(current, std::ios::beg);
+	if (!stream)
 		return NO_VALUE;
 
-	return (size - current_position);
+	return static_cast<std::streamoff>(end - current);
 }
-#else
-long GetRemainingSize(FILE* filePtr)
-{
-	long current_position = ftell(filePtr);
 
-	if (fseek(filePtr, 0, SEEK_END) != 0)
-		return NO_VALUE;
-
-	long size = ftell(filePtr);
-
-	if (fseek(filePtr, current_position, SEEK_SET) != 0)
-		return NO_VALUE;
-
-	return (size - current_position);
-}
-#endif
-
-bool ReadCompressedBlock(FILE* filePtr, bool skip)
+static bool ReadCompressedBlock(std::ifstream& stream, bool skip)
 {
 	long long compressedSize = 0;
 	long long uncompressedSize = 0;
 
-	ReadFileEx(&uncompressedSize, 1, sizeof(long long), filePtr);
-	ReadFileEx(&compressedSize, 1, sizeof(long long), filePtr);
+	ReadBytes(stream, &uncompressedSize, sizeof(long long));
+	ReadBytes(stream, &compressedSize, sizeof(long long));
 
-#ifndef _WIN64
+#ifndef PLATFORM_64BIT
 	// Safeguard against incompatible block size.
 	if (uncompressedSize > INT_MAX || compressedSize > INT_MAX)
-		throw std::exception{ "Level data block exceeds 2 GB and can't be loaded by a 32-bit version of the engine." };
+		throw std::runtime_error("Level data block exceeds 2 GB and can't be loaded by a 32-bit version of the engine.");
 #endif
 
 	// Safeguard against changed file format.
-	auto remainingSize = GetRemainingSize(filePtr);
+	auto remainingSize = GetRemainingSize(stream);
 	if (uncompressedSize <= 0 || compressedSize <= 0 || compressedSize > remainingSize)
-		throw std::exception{ "Data block size is incorrect. Probably old level version?" };
+		throw std::runtime_error("Data block size is incorrect. Probably old level version?");
 
-	if (skip) 
+	if (skip)
 	{
-#ifdef _WIN64
-		_fseeki64(filePtr, compressedSize, SEEK_CUR);
-#else
-		fseek(filePtr, compressedSize, SEEK_CUR);
-#endif
+		stream.seekg(compressedSize, std::ios::cur);
 		return false;
 	}
 
 	auto compressedBuffer = (char*)malloc(compressedSize);
-	ReadFileEx(compressedBuffer, compressedSize, 1, filePtr);
+	ReadBytes(stream, compressedBuffer, compressedSize);
 	DataPtr = (char*)malloc(uncompressedSize);
 
 	if (!Decompress(DataPtr, compressedBuffer, uncompressedSize))
@@ -1516,7 +1483,7 @@ bool ReadCompressedBlock(FILE* filePtr, bool skip)
 		free(compressedBuffer);
 		free(DataPtr);
 		DataPtr = nullptr;
-		throw std::exception{ "LZ4 decompression failed." };
+		throw std::runtime_error("LZ4 decompression failed.");
 	}
 
 	free(compressedBuffer);
@@ -1546,15 +1513,14 @@ void UpdateProgress(float progress, bool skip = false)
 
 bool LoadLevel(const std::string& path, bool partial)
 {
-	FILE* filePtr = nullptr;
+	auto fsPath = std::filesystem::path(path);
+	auto stream = std::ifstream(fsPath, std::ios::binary);
 	bool loadedSuccessfully = false;
 
 	try
 	{
-		filePtr = FileOpen(path.c_str());
-
-		if (!filePtr)
-			throw std::exception{ (std::string{ "Unable to read level file: " } + path).c_str() };
+		if (!stream)
+			throw std::runtime_error("Unable to read level file: " + path);
 
 		char header[4];
 		unsigned char version[4];
@@ -1562,13 +1528,13 @@ bool LoadLevel(const std::string& path, bool partial)
 		int levelHash = 0;
 
 		// Read file header
-		ReadFileEx(&header, 1, 4, filePtr);
-		ReadFileEx(&version, 1, 4, filePtr);
-		ReadFileEx(&systemHash, 1, 4, filePtr);
-		ReadFileEx(&levelHash, 1, 4, filePtr);
+		ReadBytes(stream, &header, 4);
+		ReadBytes(stream, &version, 4);
+		ReadBytes(stream, &systemHash, 4);
+		ReadBytes(stream, &levelHash, 4);
 
 		// Check file header.
-		if (std::string(header) != "TEN")
+		if (std::string(header, 3) != "TEN")
 			throw std::invalid_argument("Level file header is not valid! Must be TEN. Probably old level version?");
 
 		// Check level file integrity to allow or disallow fast reload.
@@ -1582,7 +1548,7 @@ bool LoadLevel(const std::string& path, bool partial)
 		// Store information about last loaded level file.
 		LastLevelFilePath = path;
 		LastLevelHash = levelHash;
-		LastLevelTimestamp = std::filesystem::last_write_time(path);
+		LastLevelTimestamp = std::filesystem::last_write_time(fsPath);
 
 		// Only check version if this is not a dummy level, because dummy level is rarely updated.
 		if (path.find(DUMMY_LEVEL_NAME) == std::string_view::npos)
@@ -1590,7 +1556,7 @@ bool LoadLevel(const std::string& path, bool partial)
 			TENLog("Level compiler version: " + std::to_string(version[0]) + "." + std::to_string(version[1]) + "." + std::to_string(version[2]), LogLevel::Info);
 
 			// Check if level version is higher than engine version
-			auto assemblyVersion = TEN::Utils::GetProductOrFileVersion(true);
+			auto assemblyVersion = g_Platform->GetProductOrFileVersion(true);
 			for (int i = 0; i < assemblyVersion.size(); i++)
 			{
 				if (i >= 3)
@@ -1627,7 +1593,7 @@ bool LoadLevel(const std::string& path, bool partial)
 		UpdateProgress(0);
 
 		// Media block
-		if (ReadCompressedBlock(filePtr, partial))
+		if (ReadCompressedBlock(stream, partial))
 		{
 			LoadTextures();
 			UpdateProgress(30);
@@ -1639,7 +1605,7 @@ bool LoadLevel(const std::string& path, bool partial)
 		}
 
 		// Geometry block
-		if (ReadCompressedBlock(filePtr, partial))
+		if (ReadCompressedBlock(stream, partial))
 		{
 			LoadRooms();
 			UpdateProgress(50);
@@ -1659,7 +1625,7 @@ bool LoadLevel(const std::string& path, bool partial)
 		}
 
 		// Dynamic data block
-		if (ReadCompressedBlock(filePtr, false))
+		if (ReadCompressedBlock(stream, false))
 		{
 			LoadDynamicRoomData();
 			LoadItems();
@@ -1710,10 +1676,7 @@ bool LoadLevel(const std::string& path, bool partial)
 		SystemNameHash = 0;
 	}
 
-	// Now the entire level is decompressed, we can close it
-	FileClose(filePtr);
-	filePtr = nullptr;
-
+	// std::ifstream closes automatically on scope exit.
 	return loadedSuccessfully;
 }
 
@@ -1871,7 +1834,7 @@ bool LoadLevelFile(int levelIndex)
 		if (levelIndex == 0)
 		{
 			levelPath = assetDir + DUMMY_LEVEL_NAME;
-			GenerateDummyLevel(levelPath);
+			g_Platform->CreateDummyTitleLevel(levelPath);
 			TENLog("Title level file not found, using dummy level.", LogLevel::Info);
 			isDummyLevel = true;
 		}
@@ -1890,8 +1853,8 @@ bool LoadLevelFile(int levelIndex)
 						levelIndex == CurrentLevel && timestamp == LastLevelTimestamp && levelPath == LastLevelFilePath);
 
 	// If fast reload is in action, draw last game frame instead of loading screen.
-	auto loadingScreenPath = TEN::Utils::ToWString(assetDir + level.LoadScreenFileName);
-	g_Renderer.SetLoadingScreen(fastReload ? std::wstring{} : loadingScreenPath);
+	auto loadingScreenPath = assetDir + level.LoadScreenFileName;
+	g_Renderer.SetLoadingScreen(fastReload ? std::string{} : loadingScreenPath);
 
 	BackupLara();
 	StopAllSounds();

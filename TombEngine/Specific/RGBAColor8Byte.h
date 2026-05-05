@@ -1,6 +1,6 @@
 #pragma once
 
-typedef DWORD D3DCOLOR;
+typedef unsigned int D3DCOLOR;
 
 class RGBAColor8Byte
 {
