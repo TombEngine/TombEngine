@@ -164,7 +164,8 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 
 					auto* fireTarget = (!isRightWeapon && isDoubleHanded &&
 						g_GameFlow->GetSettings()->Gameplay.DualTarget &&
-						player.SecondaryTargetEntity != nullptr)
+						player.SecondaryTargetEntity != nullptr &&
+						player.LeftArm.Locked)
 						? player.SecondaryTargetEntity
 						: player.TargetEntity;
 
@@ -341,32 +342,69 @@ void HandlePistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 		: Weapons[(int)weaponType];
 
 	FindNewTarget(laraItem, weapon);
-	if (IsHeld(In::Action))
-		LaraTargetInfo(laraItem, weapon);
 
 	if (isDoubleHanded)
 	{
-		bool isDualTarget = g_GameFlow->GetSettings()->Gameplay.DualTarget &&
-			lara.TargetEntity != nullptr &&
-			lara.TargetList[1] != nullptr;
-
-		if (isDualTarget)
+		// Find a secondary target for dual-arm targeting.
+		ItemInfo* secondaryCandidate = nullptr;
+		if (g_GameFlow->GetSettings()->Gameplay.DualTarget && lara.TargetEntity != nullptr)
 		{
-			auto* rightTarget = lara.TargetEntity;
-			auto* leftTarget  = lara.TargetList[1];
+			// On a Look press, prefer the previous primary (LastTargets[0]) as the new secondary
+			// so cycling through 3+ enemies rotates all arms, not just one.
+			auto* preferred = IsClicked(In::Look) ? lara.LastTargets[0] : lara.SecondaryTargetEntity;
 
-			// Sort targets by horizontal angle to prevent arms from crossing.
-			// The more-rightward target always goes to the right arm.
-			auto origin = GameVector(laraItem.Pose.Position.x, GetJointPosition(&laraItem, LM_RHAND).y, laraItem.Pose.Position.z, laraItem.RoomNumber);
-			auto relYRight = (Geometry::GetOrientToPoint(origin.ToVector3(), GetTargetPoint(*rightTarget).ToVector3()) - laraItem.Pose.Orientation).y;
-			auto relYLeft  = (Geometry::GetOrientToPoint(origin.ToVector3(), GetTargetPoint(*leftTarget).ToVector3())  - laraItem.Pose.Orientation).y;
-
-			if (relYRight < relYLeft)
+			// Validate preferred: it must still be in the current TargetList and differ from the primary.
+			if (preferred != nullptr && preferred != lara.TargetEntity)
 			{
-				auto* temp = rightTarget;
-				rightTarget = leftTarget;
-				leftTarget = temp;
+				for (auto* candidate : lara.TargetList)
+				{
+					if (candidate == nullptr)
+					{
+						preferred = nullptr;
+						break;
+					}
+
+					if (candidate == preferred)
+						break;
+				}
 			}
+			else
+			{
+				preferred = nullptr;
+			}
+
+			if (preferred != nullptr)
+			{
+				secondaryCandidate = preferred;
+			}
+			else
+			{
+				// Fall back: first entry in TargetList that isn't the primary.
+				for (auto* candidate : lara.TargetList)
+				{
+					if (candidate == nullptr)
+						break;
+
+					if (candidate != lara.TargetEntity)
+					{
+						secondaryCandidate = candidate;
+						break;
+					}
+				}
+			}
+		}
+
+		if (secondaryCandidate != nullptr)
+		{
+			// Sort targets by horizontal angle each frame to prevent arms from crossing.
+			// LaraTargetInfo is intentionally skipped here -- it writes a shared aim state
+			// for both arms from a single target, which conflicts with per-arm targeting.
+			auto origin    = GameVector(laraItem.Pose.Position.x, GetJointPosition(&laraItem, LM_RHAND).y, laraItem.Pose.Position.z, laraItem.RoomNumber);
+			auto relYPrimary   = (Geometry::GetOrientToPoint(origin.ToVector3(), GetTargetPoint(*lara.TargetEntity).ToVector3())  - laraItem.Pose.Orientation).y;
+			auto relYSecondary = (Geometry::GetOrientToPoint(origin.ToVector3(), GetTargetPoint(*secondaryCandidate).ToVector3()) - laraItem.Pose.Orientation).y;
+
+			auto* rightTarget = (relYPrimary >= relYSecondary) ? lara.TargetEntity   : secondaryCandidate;
+			auto* leftTarget  = (relYPrimary >= relYSecondary) ? secondaryCandidate  : lara.TargetEntity;
 
 			lara.TargetEntity          = rightTarget;
 			lara.SecondaryTargetEntity = leftTarget;
@@ -380,6 +418,10 @@ void HandlePistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 		else
 		{
 			lara.SecondaryTargetEntity = nullptr;
+
+			if (IsHeld(In::Action))
+				LaraTargetInfo(laraItem, weapon);
+
 			AimWeapon(laraItem, lara.LeftArm, weapon);
 			AimWeapon(laraItem, lara.RightArm, weapon);
 		}
@@ -387,6 +429,10 @@ void HandlePistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 	else
 	{
 		lara.SecondaryTargetEntity = nullptr;
+
+		if (IsHeld(In::Action))
+			LaraTargetInfo(laraItem, weapon);
+
 		AimWeapon(laraItem, lara.RightArm, weapon);
 		lara.LeftArm.Orientation = lara.RightArm.Orientation;
 		lara.LeftArm.Locked = lara.RightArm.Locked;

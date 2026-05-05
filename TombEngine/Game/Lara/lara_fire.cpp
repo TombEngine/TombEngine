@@ -773,9 +773,14 @@ void HandleWeapon(ItemInfo& laraItem)
 
 		case LaraWeaponType::Revolver:
 			if (g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Revolver - 1].DoubleHanded)
-				HandlePistols(laraItem, LaraWeaponType::Revolver);
+			{
+				if (!player.Control.Look.IsUsingLasersight)
+					HandlePistols(laraItem, LaraWeaponType::Revolver);
+			}
 			else
+			{
 				RifleHandler(laraItem, LaraWeaponType::Revolver);
+			}
 
 			LasersightWeaponHandler(laraItem, LaraWeaponType::Revolver);
 			break;
