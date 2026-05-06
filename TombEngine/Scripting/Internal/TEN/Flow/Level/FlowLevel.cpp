@@ -122,15 +122,11 @@ This setting does not affect ability to use weapons or flares.
 //@mem windSpeed
 		"windSpeed", &Level::WindSpeed,
 
-/// (float) X component (East/West) of the wind direction vector.
-// +1 = East, -1 = West. Used together with windSpeed and windDirectionZ.
-//@mem windDirectionX
-		"windDirectionX", &Level::WindDirectionX,
-
-/// (float) Z component (North/South) of the wind direction vector.
-// +1 = South, -1 = North. Used together with windSpeed and windDirectionX.
-//@mem windDirectionZ
-		"windDirectionZ", &Level::WindDirectionZ,
+/// (Vec2) Wind direction vector for this level.
+// x: +1 = East, -1 = West. y: +1 = South, -1 = North.
+// Used together with windSpeed.
+//@mem windDirection
+		"windDirection", &Level::WindDirection,
 
 /// (int) The maximum draw distance for level.
 // Given in sectors (blocks). Must be at least 4.

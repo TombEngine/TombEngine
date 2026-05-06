@@ -540,11 +540,11 @@ namespace TEN::Sky
 				if (!clouds.StartPreset.empty())
 					SetPresetImmediate(StringToPresetType(clouds.StartPreset));
 
-				// Per-level wind override via level.windSpeed / windDirectionX / windDirectionZ.
+				// Per-level wind override via level.windSpeed / windDirection.
 				// A negative windSpeed means "no override" — keep whatever was set globally
 				// from Settings.lua via Flow.SetCloudWind().
 				if (level->WindSpeed >= 0.0f)
-					SetGlobalWind(level->WindDirectionX, level->WindDirectionZ, level->WindSpeed);
+					SetGlobalWind(level->WindDirection.x, level->WindDirection.y, level->WindSpeed);
 
 				// Per-level cloud wind speed override (independent from base wind magnitude).
 				// Negative = derive from base wind as usual.

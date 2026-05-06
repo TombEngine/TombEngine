@@ -10,6 +10,7 @@
 #include "Scripting/Internal/TEN/Flow/Fog/Fog.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/TEN/Flow/InventoryItem/InventoryItem.h"
+#include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 
 using namespace TEN::Scripting;
 
@@ -39,8 +40,7 @@ struct Level : public ScriptInterfaceLevel
 	// any wind set globally from Settings.lua via Flow.SetCloudWind).
 	// WindSpeed range 0..8 maps to cloud drift and particle / hair movement.
 	float		WindSpeed			= -1.0f;
-	float		WindDirectionX		= 1.0f;
-	float		WindDirectionZ		= 0.0f;
+	Vec2		WindDirection		= Vec2(1.0f, 0.0f);
 
 	LaraType Type = LaraType::Normal;
 	int LevelSecrets = 0;
