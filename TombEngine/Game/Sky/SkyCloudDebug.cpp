@@ -736,6 +736,14 @@ namespace TEN::Sky
 			return changed;
 		}
 
+		// Layer A only supports Aurora — hide all volumetric cloud parameters.
+		if (isLayerA)
+		{
+			ImGui::TextDisabled("(Layer A parameters are shown only when Aurora is active.)");
+			ImGui::Unindent(8.0f);
+			return changed;
+		}
+
 		// One-click pattern presets for requested cloud types.
 		if (snap.Category == CloudCategory::AltocumulusMid)
 		{

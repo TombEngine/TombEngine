@@ -24,6 +24,7 @@
 #include "Sound/sound.h"
 #include "Sound/sound_effects.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Renderer::VolumetricCloud;
 using namespace TEN::Renderer::ConstantBuffers;
@@ -55,6 +56,13 @@ namespace TEN::Renderer
 		float scale = _cloudState.ActiveQuality.RenderResolutionScale;
 		int w = std::max(1, (int)(_graphicsDevice->GetScreenWidth() * scale));
 		int h = std::max(1, (int)(_graphicsDevice->GetScreenHeight() * scale));
+
+		// Release previous targets/buffers before recreation.
+		SAFE_DELETE(_cloudRenderTarget);
+		SAFE_DELETE(_cloudPrevFrameRT);
+		SAFE_DELETE(_cloudOcclusionTarget);
+		SAFE_DELETE(_cloudOcclusionReadback);
+		SAFE_DELETE(_scenePreCloudBackup);
 
 		// Half-res RGBA16F target for cloud color + opacity.
 		_cloudRenderTarget = _graphicsDevice->CreateRenderSurface2D(

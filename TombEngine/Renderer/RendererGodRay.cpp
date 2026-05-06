@@ -21,6 +21,7 @@
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Sky;
 using namespace TEN::Renderer::ConstantBuffers;
@@ -44,6 +45,8 @@ namespace TEN::Renderer
 
 		int w = std::max(1, (int)(_graphicsDevice->GetScreenWidth()  * GOD_RAY_RESOLUTION_SCALE));
 		int h = std::max(1, (int)(_graphicsDevice->GetScreenHeight() * GOD_RAY_RESOLUTION_SCALE));
+
+		SAFE_DELETE(_godRayRenderTarget);
 
 		_godRayRenderTarget = _graphicsDevice->CreateRenderSurface2D(
 			w, h, 

@@ -36,6 +36,7 @@
 #include "Sound/sound.h"
 #include "Sound/sound_effects.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Renderer::VolumetricCloud;
 using namespace TEN::Renderer::ConstantBuffers;
@@ -62,6 +63,12 @@ namespace TEN::Renderer
 		float scale = _cloudStateB.ActiveQuality.RenderResolutionScale;
 		int w = std::max(1, (int)(_graphicsDevice->GetScreenWidth() * scale));
 		int h = std::max(1, (int)(_graphicsDevice->GetScreenHeight() * scale));
+
+		// Release previous Layer B targets/buffers before recreation.
+		SAFE_DELETE(_cloudRenderTargetB);
+		SAFE_DELETE(_cloudPrevFrameRTB);
+		SAFE_DELETE(_cloudOcclusionTargetB);
+		SAFE_DELETE(_cloudOcclusionReadbackB);
 
 		_cloudRenderTargetB = _graphicsDevice->CreateRenderSurface2D(
 			w, h,
