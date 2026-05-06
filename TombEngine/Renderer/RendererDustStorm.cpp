@@ -306,8 +306,8 @@ namespace TEN::Renderer
 
 		// Bind CB to b10 (Hud slot - safe at this stage, see header).
 		auto* buf = _cbDustStorm.get();
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Hud, buf);
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, buf);
 
 		// Bind linear depth as t0 and outdoor mask as t1.
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, _depthRenderTarget->GetRenderTarget(),
