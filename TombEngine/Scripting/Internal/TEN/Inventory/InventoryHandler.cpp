@@ -5,6 +5,8 @@
 #include "Game/Hud/Hud.h"
 #include "Game/Hud/DrawItems/DrawItems.h"
 #include "Game/Lara/lara.h"
+#include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/lara_initialise.h"
 #include "Game/pickup/pickup.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptUtil.h"
@@ -66,7 +68,23 @@ namespace TEN::Scripting::InventoryHandler
 		SetInventoryCount(objectID, count);
 	}
 
-	/// Get last item used in the player's inventory.
+	/// Try to use an item.
+	// For equippable or consumable items, standard game conditions will apply - for example, firearms can't be used underwater, and keys or puzzle items
+	// can only be used in close proximity to a corresponding key or puzzle hole.
+	// @function UseItem
+	//@tparam Objects.ObjID objectID Object ID to use. Must be present in the inventory.
+	static void UseItem(GAME_OBJECT_ID objectID)
+	{
+		if (!g_Gui.IsObjectInInventory(objectID))
+		{
+			TENLog(fmt::format("Item {} is not in the inventory and can't be used.", GetObjectName(objectID)), LogLevel::Warning);
+			return;
+		}
+
+		g_Gui.UseItem(*LaraItem, (int)objectID);
+	}
+
+	/// Get last item that was used in the player's inventory.
 	// This value will be valid only for a single frame after exiting inventory, after which Lara says "No".
 	// Therefore, this function must be preferably used either in OnLoop or OnUseItem events.
 	//@function GetUsedItem
@@ -76,18 +94,22 @@ namespace TEN::Scripting::InventoryHandler
 		return (GAME_OBJECT_ID)g_Gui.GetInventoryItemChosen();
 	}
 
-	/// Set last item used in the player's inventory.
-	// You will be able to specify only objects which already exist in the inventory.
+	/// Set last item that was used in the player's inventory.
 	// Will only be valid for the next frame. If not processed by the game, Lara will say "No".
 	//@function SetUsedItem
-	//@tparam Objects.ObjID objectID Object ID of the item to select from inventory.
+	//@tparam Objects.ObjID objectID Object ID of the item to select from inventory. Must be present in the inventory.
 	static void SetUsedItem(GAME_OBJECT_ID objectID)
 	{
-		if (g_Gui.IsObjectInInventory(objectID))
-			g_Gui.SetInventoryItemChosen(objectID);
+		if (!g_Gui.IsObjectInInventory(objectID))
+		{
+			TENLog(fmt::format("Item {} is not in the inventory and can't be set to be used.", GetObjectName(objectID)), LogLevel::Warning);
+			return;
+		}
+
+		g_Gui.SetInventoryItemChosen(objectID);
 	}
 
-	///Clear last item used in the player's inventory.
+	/// Clear last item used in the player's inventory.
 	// When this function is used in OnUseItem level function, it allows to override existing item functionality.
 	// For items without existing functionality, this function is needed to avoid Lara saying "No" after using it.
 	// @function ClearUsedItem
@@ -96,38 +118,57 @@ namespace TEN::Scripting::InventoryHandler
 		g_Gui.SetInventoryItemChosen(GAME_OBJECT_ID::ID_NO_OBJECT);
 	}
 
-	///Gets the item set to open custom inventory at. Used by Custom Inventory module.
-	// @function GetEnterInventory
+	/// Gets the item that is about to be focused in the inventory.
+	// Can be used to intercept inventory calls with a request to select a particular item.
+	// @function GetFocusedItem
 	// @treturn Objects.ObjID objectID Object ID of the item set.
-	static int GetEnterInventory()
+	static int GetFocusedItem()
 	{
 		return g_Gui.GetEnterInventory();
 	}
 
-	///Sets the item to open custom inventory at. Used by Custom Inventory module.
-	// @function SetEnterInventory
-	// @tparam Objects.ObjID objectID Object ID of the item to set.
-	static void SetEnterInventory(GAME_OBJECT_ID objectID)
+	/// Opens the inventory and focuses on the specified item, if it is available.
+	// @function SetFocusedItem
+	// @tparam Objects.ObjID objectID Object ID of the item to set. Must be present in the inventory.
+	static void SetFocusedItem(GAME_OBJECT_ID objectID)
 	{
+		if (!g_Gui.IsObjectInInventory(objectID) && objectID != NO_VALUE)
+		{
+			TENLog(fmt::format("Item {} is not in the inventory and can't be selected.", GetObjectName(objectID)), LogLevel::Warning);
+			return;
+		}
+
 		g_Gui.SetEnterInventory(objectID);
 	}
 
-	///Converts ObjectID to InventoryItem. Used by Custom Inventory module.
+	/// Converts object ID to inventory item ID. To be used by custom inventory module.
 	// @function ConvertObjectToInventoryItem
 	// @tparam Objects.ObjID objectID Object ID of the item to convert.
-	// @treturn int InventoryID of the object.
+	// @treturn int Inventory item ID of the object.
 	static int ConvertObjectToInventoryItem(int objectID)
 	{
 		return g_Gui.ConvertObjectToInventoryItem(objectID);
 	}
 
-	///Converts InventoryItem to ObjectID. Used by Custom Inventory module.
+	/// Converts inventory item ID to object ID. To be used by custom inventory module.
 	// @function ConvertInventoryItemToObject
-	// @tparam int inventoryID inventoryID to convert.
-	// @treturn Objects.ObjID objectID of the object.
+	// @tparam int inventoryID Inventory item ID to convert.
+	// @treturn Objects.ObjID Object ID of the item.
 	static int ConvertInventoryItemToObject(int objectNumber)
 	{
 		return g_Gui.ConvertInventoryItemToObject(objectNumber);
+	}
+
+	/// Resets inventory to a default state.
+	// Clears inventory item list and adds default set of items, including a compass, pistols, 3 flares, 3 small medipacks, and 1 large medipack.
+	// @function ResetToDefault
+	static void ResetToDefault()
+	{
+		auto& player = GetLaraInfo(*LaraItem);
+		player.Inventory = {};
+		player.Control.Weapon = {};
+		player.Weapons.fill({});
+		InitializeLaraDefaultInventory(*LaraItem);
 	}
 
 	void Register(sol::state* state, sol::table& parent)
@@ -142,9 +183,11 @@ namespace TEN::Scripting::InventoryHandler
 		tableInventory.set_function(ScriptReserved_SetUsedItem, &SetUsedItem);
 		tableInventory.set_function(ScriptReserved_GetUsedItem, &GetUsedItem);
 		tableInventory.set_function(ScriptReserved_ClearUsedItem, &ClearUsedItem);
+		tableInventory.set_function(ScriptReserved_UseItem, &UseItem);
 		tableInventory.set_function(ScriptReserved_ConvertObjectToInvItem, &ConvertObjectToInventoryItem);
 		tableInventory.set_function(ScriptReserved_ConvertInvItemToObject, &ConvertInventoryItemToObject);
-		tableInventory.set_function(ScriptReserved_GetOpenInv, &GetEnterInventory);
-		tableInventory.set_function(ScriptReserved_SetOpenInv, &SetEnterInventory);
+		tableInventory.set_function(ScriptReserved_GetFocusedItem, &GetFocusedItem);
+		tableInventory.set_function(ScriptReserved_SetFocusedItem, &SetFocusedItem);
+		tableInventory.set_function(ScriptReserved_ResetInventory, &ResetToDefault);
 	}
 }

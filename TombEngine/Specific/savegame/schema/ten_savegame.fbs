@@ -334,6 +334,14 @@ table CollisionInfoData {
 	last_bridge_item_pose: Pose;
 }
 
+table PlayerSkinData {
+	skin: int32;
+	skin_joints: int32;
+	skin_scream: int32;
+	hair_primary: int32;
+	hair_secondary: int32;
+}
+
 table Lara {
 	context: PlayerContextData;
 	control: LaraControlData;
@@ -356,6 +364,7 @@ table Lara {
 	target_entity_number: int32;
 	torch: TorchData;
 	weapons: [CarriedWeaponInfo];
+	skin: PlayerSkinData;
 }
 
 table Camera {
