@@ -1090,8 +1090,8 @@ void TriggerExplosionSmoke(int x, int y, int z, int uw)
 
 void TriggerSuperJetFlame(ItemInfo* item, int yvel, int deadly)
 {
-	long dx = LaraItem->Pose.Position.x - item->Pose.Position.x;
-	long dz = LaraItem->Pose.Position.z - item->Pose.Position.z;
+	int dx = LaraItem->Pose.Position.x - item->Pose.Position.x;
+	int dz = LaraItem->Pose.Position.z - item->Pose.Position.z;
 
 	if (dx >= -BLOCK(16) && dx <= BLOCK(16) &&
 		dz >= -BLOCK(16) && dz <= BLOCK(16))

@@ -2420,7 +2420,7 @@ namespace TEN::Gui
 			}
 
 			int n = 0;
-			unsigned long options;
+			unsigned long long options;
 			if (!AmmoActive)
 			{
 				options = InventoryObjectTable[invRing.CurrentObjectList[invRing.CurrentObjectInList].InventoryItem].Options;

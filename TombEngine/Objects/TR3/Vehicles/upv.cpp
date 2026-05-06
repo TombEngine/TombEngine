@@ -248,7 +248,7 @@ namespace TEN::Entities::Vehicles
 		upv.HarpoonLeft = !upv.HarpoonLeft;
 	}
 
-	static void TriggerUPVMist(long x, long y, long z, long velocity, short angle)
+	static void TriggerUPVMist(int x, int y, int z, int velocity, short angle)
 	{
 		auto* sptr = GetFreeParticle();
 
@@ -271,8 +271,8 @@ namespace TEN::Entities::Vehicles
 		sptr->x = x + ((GetRandomControl() & 15) - 8);
 		sptr->y = y + ((GetRandomControl() & 15) - 8);
 		sptr->z = z + ((GetRandomControl() & 15) - 8);
-		long zv = velocity * phd_cos(angle) / 4;
-		long xv = velocity * phd_sin(angle) / 4;
+		int zv = velocity * phd_cos(angle) / 4;
+		int xv = velocity * phd_sin(angle) / 4;
 		sptr->xVel = xv + ((GetRandomControl() & 127) - 64);
 		sptr->yVel = 0;
 		sptr->zVel = zv + ((GetRandomControl() & 127) - 64);
@@ -293,7 +293,7 @@ namespace TEN::Entities::Vehicles
 
 		sptr->scalar = 3;
 		sptr->gravity = sptr->maxYvel = 0;
-		long size = (GetRandomControl() & 7) + (velocity / 2) + 16;
+		int size = (GetRandomControl() & 7) + (velocity / 2) + 16;
 		sptr->size = sptr->sSize = size / 4;
 		sptr->dSize = size;
 	}

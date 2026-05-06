@@ -244,7 +244,7 @@ namespace TEN::Effects::Smoke
 		s.angularDrag = Random::GenerateFloat(0.87f, 0.99f);
 	}
 
-	void TriggerBreathSmoke(long x, long y, long z, short angle)
+	void TriggerBreathSmoke(int x, int y, int z, short angle)
 	{
 		auto& s = GetFreeSmokeParticle();
 		s = {};

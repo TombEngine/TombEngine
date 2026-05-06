@@ -312,8 +312,8 @@ namespace TEN::Entities::Vehicles
 			float sinY = phd_sin(rBoatItem->Pose.Orientation.y);
 			float cosY = phd_cos(rBoatItem->Pose.Orientation.y);
 
-			long front = (moved->z * cosY) + (moved->x * sinY);
-			long side = (moved->z * -sinY) + (moved->x * cosY);
+			int front = (moved->z * cosY) + (moved->x * sinY);
+			int side = (moved->z * -sinY) + (moved->x * cosY);
 
 			if (abs(front) > abs(side))
 			{
@@ -689,7 +689,7 @@ namespace TEN::Entities::Vehicles
 		}
 	}
 
-	static void TriggerRubberBoatMist(long x, long y, long z, long velocity, short angle, long snow)
+	static void TriggerRubberBoatMist(int x, int y, int z, int velocity, short angle, int snow)
 	{
 		auto* sptr = GetFreeParticle();
 
@@ -721,8 +721,8 @@ namespace TEN::Entities::Vehicles
 		sptr->x = x + ((GetRandomControl() & 15) - 8);
 		sptr->y = y + ((GetRandomControl() & 15) - 8);
 		sptr->z = z + ((GetRandomControl() & 15) - 8);
-		long zv = velocity * phd_cos(angle) / 4;
-		long xv = velocity * phd_sin(angle) / 4;
+		int zv = velocity * phd_cos(angle) / 4;
+		int xv = velocity * phd_sin(angle) / 4;
 		sptr->xVel = xv + ((GetRandomControl() & 127) - 64);
 		sptr->yVel = 0;
 		sptr->zVel = zv + ((GetRandomControl() & 127) - 64);
@@ -965,7 +965,7 @@ namespace TEN::Entities::Vehicles
 				pos.y = prop.y;
 				pos.z = prop.z;
 
-				long cnt = (GetRandomControl() & 3) + 3;
+				int cnt = (GetRandomControl() & 3) + 3;
 				for (;cnt>0;cnt--)
 					TriggerRubberBoatMist(prop.x, prop.y, prop.z, ((GetRandomControl() & 15) + 96) * 16, rBoatItem->Pose.Orientation.y + 0x4000 + GetRandomControl(), 1);
 			}

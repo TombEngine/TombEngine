@@ -774,7 +774,7 @@ namespace TEN::Entities::Vehicles
 		}
 	}
 
-	void SpeedboatSplash(ItemInfo* speedboatItem, long verticalVelocity, long water)
+	void SpeedboatSplash(ItemInfo* speedboatItem, int verticalVelocity, int water)
 	{
 		//OLD SPLASH
 		/*

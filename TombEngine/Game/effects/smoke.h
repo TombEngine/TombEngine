@@ -50,5 +50,5 @@ namespace TEN::Effects::Smoke
 	void SpawnGunSmokeParticles(const Vector3& pos, const Vector3& direction, int roomNumber, unsigned char initial, LaraWeaponType weaponType, int count);
 	void TriggerQuadExhaustSmoke(int x, int y, int z, short angle, int velocity, int moving);
 	void TriggerRocketSmoke(int x, int y, int z);
-	void TriggerBreathSmoke(long x, long y, long z, short angle);
+	void TriggerBreathSmoke(int x, int y, int z, short angle);
 }

@@ -1312,7 +1312,7 @@ void DoProjectileDynamics(short itemNumber, int x, int y, int z, int xv, int yv,
 
 		if (pointColl.IsSteepFloor() && prevPointColl.GetFloorHeight() < pointColl.GetFloorHeight())
 		{
-			int yAngle = (long)((unsigned short)item->Pose.Orientation.y);
+			int yAngle = (int)((unsigned short)item->Pose.Orientation.y);
 
 			if (floorTilt.x < 0)
 			{
@@ -1345,7 +1345,7 @@ void DoProjectileDynamics(short itemNumber, int x, int y, int z, int xv, int yv,
 		{
 			// Need to know which direction the wall is.
 
-			long xs;
+			int xs;
 
 			if ((x & (~WALL_MASK)) != (item->Pose.Position.x & (~WALL_MASK)) &&	// X crossed boundary?
 				(z & (~WALL_MASK)) != (item->Pose.Position.z & (~WALL_MASK)))	// Z crossed boundary as well?

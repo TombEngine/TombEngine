@@ -27,7 +27,7 @@ void PulseLightControl(short itemNumber)
 	{
 		item->ItemFlags[0] -= 1024;
 
-		long pulse = 256 * phd_sin(item->ItemFlags[0] + ((item->Pose.Position.y & 0x3FFF) * 4));
+		int pulse = 256 * phd_sin(item->ItemFlags[0] + ((item->Pose.Position.y & 0x3FFF) * 4));
 		pulse = abs(pulse);
 		if (pulse > 255)
 			pulse = 255;

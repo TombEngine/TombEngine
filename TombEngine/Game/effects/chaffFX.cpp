@@ -66,7 +66,7 @@ void TriggerChaffEffects(ItemInfo& item, const Vector3i& pos, const Vector3i& ve
 
 	for (int i = 0; i < numSparks; i++)
 	{
-		long dx, dz;
+		int dx, dz;
 
 		dx = item.Pose.Position.x - pos.x;
 		dz = item.Pose.Position.z - pos.z;

@@ -1026,9 +1026,9 @@ private:
 	bool		 IsInfinite = false;
 
 public:
-	static unsigned int Clamp(long value)
+	static unsigned int Clamp(long long value)
 	{
-		return std::clamp<unsigned int>(value, 0, UINT_MAX);
+		return std::clamp<long long>(value, 0LL, (long long)UINT_MAX);
 	}
 
 	bool HasInfinite() const
@@ -1107,14 +1107,14 @@ public:
 
 	Ammo& operator +=(unsigned int value)
 	{
-		long temp = Count + value;
+		long long temp = (long long)Count + value;
 		Count = Clamp(temp);
 		return *this;
 	}
 
 	Ammo& operator -=(unsigned int value)
 	{
-		long temp = Count - value;
+		long long temp = (long long)Count - value;
 		Count = Clamp(temp);
 		return *this;
 	}
