@@ -30,8 +30,14 @@ Texture2D SceneBackgroundTex : register(t3); // Full-res scene before cloud comp
 Texture3D<float4> CloudNoise3D  : register(t5);  // 128^3 RGBA8: R=Perlin, G=Value, B=CurlX, A=CurlZ
 Texture2D<float2> CloudWorley2D : register(t6);  // 256^2 RG8:   R=Worley seed1, G=Worley seed2
 
-SamplerState PointSamp	  : register(s1);  // Point sampler
-SamplerState LinearSamp	 : register(s2);  // Linear sampler (WRAP addressing â€” used for noise)
+// Per-texture samplers â€” engine binds samplers at the same slot as the texture
+// (see DX11GraphicsDevice::BindTexture). Each Texture* therefore has a matching
+// SamplerState declared at its own register so the correct address mode is used.
+SamplerState SceneColorSamp      : register(s0);  // SceneColorTexture (LinearClamp, half-res cloud RT)
+SamplerState CloudHistorySamp    : register(s1);  // CloudTexture (LinearClamp, prev-frame RT)
+SamplerState SceneBackgroundSamp : register(s3);  // SceneBackgroundTex (LinearClamp)
+SamplerState NoiseSamp3D         : register(s5);  // CloudNoise3D  (LinearWrap â€” MUST tile)
+SamplerState NoiseSamp2D         : register(s6);  // CloudWorley2D (LinearWrap â€” MUST tile)
 
 // ---------------------------------------------------------------------------
 // Vertex shader fullscreen triangle (reads from vertex buffer like PostProcess)
@@ -214,13 +220,13 @@ static const float WorleyUVScale    = 1.0f / WorleyTilePeriod;  // 0.0625
 // Sample Perlin gradient noise from pre-baked 3D texture (channel R).
 float TexPerlin3D(float3 p)
 {
-    return CloudNoise3D.SampleLevel(LinearSamp, p * NoiseUVScale, 0).r;
+    return CloudNoise3D.SampleLevel(NoiseSamp3D, p * NoiseUVScale, 0).r;
 }
 
 // Sample value noise from pre-baked 3D texture (channel G).
 float TexValue3D(float3 p)
 {
-    return CloudNoise3D.SampleLevel(LinearSamp, p * NoiseUVScale, 0).g;
+    return CloudNoise3D.SampleLevel(NoiseSamp3D, p * NoiseUVScale, 0).g;
 }
 
 // Sample pre-computed curl vector from 3D texture (channels B,A).
@@ -228,20 +234,20 @@ float TexValue3D(float3 p)
 // The texture stores (dN/dz, -dN/dx) remapped from [-1,1] to [0,1].
 float2 TexCurl2D(float3 p)
 {
-    float2 ba = CloudNoise3D.SampleLevel(LinearSamp, p * NoiseUVScale, 0).ba;
+    float2 ba = CloudNoise3D.SampleLevel(NoiseSamp3D, p * NoiseUVScale, 0).ba;
     return ba * 2.0f - 1.0f;
 }
 
 // Sample Worley F1 distance from pre-baked 2D texture (channel R).
 float TexWorley2D(float2 p)
 {
-    return CloudWorley2D.SampleLevel(LinearSamp, p * WorleyUVScale, 0).r;
+    return CloudWorley2D.SampleLevel(NoiseSamp2D, p * WorleyUVScale, 0).r;
 }
 
 // Sample second Worley pattern from pre-baked 2D texture (channel G).
 float TexWorley2D_B(float2 p)
 {
-    return CloudWorley2D.SampleLevel(LinearSamp, p * WorleyUVScale, 0).g;
+    return CloudWorley2D.SampleLevel(NoiseSamp2D, p * WorleyUVScale, 0).g;
 }
 
 // Low-frequency FBM (3 octaves) " cloud shape.
@@ -2000,7 +2006,7 @@ float4 PS(VSOutput input) : SV_TARGET
 
             if (all(prevUV > 0.002f) && all(prevUV < 0.998f))
             {
-                reprojectedHistory = CloudTexture.Sample(LinearSamp, prevUV);
+                reprojectedHistory = CloudTexture.Sample(CloudHistorySamp, prevUV);
                 hasValidHistory = true;
 
                 // Checkerboard skip: every other pixel reuses reprojected history.
@@ -2387,7 +2393,7 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     float2 uv = input.UV;
 
     // Centre sample   used as bilateral reference.
-    float4 cCenter = SceneColorTexture.Sample(LinearSamp, uv);
+    float4 cCenter = SceneColorTexture.Sample(SceneColorSamp, uv);
     float  refAlpha = cCenter.a;
 
     // 5x5 bilateral upsampling filter.
@@ -2413,7 +2419,7 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
         for (int ox = -2; ox <= 2; ox++)
         {
             float2 offset = float2((float)ox, (float)oy);
-            float4 tap = SceneColorTexture.Sample(LinearSamp, uv + offset * texelSize);
+            float4 tap = SceneColorTexture.Sample(SceneColorSamp, uv + offset * texelSize);
 
             // Spatial Gaussian weight.
             float spatialDist2 = float(ox * ox + oy * oy);
@@ -2486,7 +2492,7 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     // works correctly (bg is never near 1.0 from the sun) and no special
     // sun-disc masking is needed.
     // .a contains any previous cloud layer's coverage (for dual-layer accumulation).
-    float4 bgFull = SceneBackgroundTex.Sample(LinearSamp, uv);
+    float4 bgFull = SceneBackgroundTex.Sample(SceneBackgroundSamp, uv);
     float3 bg = bgFull.rgb;
 
     // Cloud presence (cloud exists here).
@@ -2749,15 +2755,15 @@ float4 PSCloudOcclusion(VSOutput input) : SV_TARGET
 
         // 9-tap pattern: center + 4 cardinal + 4 diagonal.
         float cloudAlpha = 0.0f;
-        cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV).a;
-        cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2( stepXY.x,  0.0f)).a;
-        cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2(-stepXY.x,  0.0f)).a;
-        cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2( 0.0f,  stepXY.y)).a;
-        cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2( 0.0f, -stepXY.y)).a;
-        cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2( diagXY.x,  diagXY.y)).a;
-        cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2(-diagXY.x,  diagXY.y)).a;
-        cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2( diagXY.x, -diagXY.y)).a;
-        cloudAlpha += SceneColorTexture.Sample(LinearSamp, SunScreenUV + float2(-diagXY.x, -diagXY.y)).a;
+        cloudAlpha += SceneColorTexture.Sample(SceneColorSamp, SunScreenUV).a;
+        cloudAlpha += SceneColorTexture.Sample(SceneColorSamp, SunScreenUV + float2( stepXY.x,  0.0f)).a;
+        cloudAlpha += SceneColorTexture.Sample(SceneColorSamp, SunScreenUV + float2(-stepXY.x,  0.0f)).a;
+        cloudAlpha += SceneColorTexture.Sample(SceneColorSamp, SunScreenUV + float2( 0.0f,  stepXY.y)).a;
+        cloudAlpha += SceneColorTexture.Sample(SceneColorSamp, SunScreenUV + float2( 0.0f, -stepXY.y)).a;
+        cloudAlpha += SceneColorTexture.Sample(SceneColorSamp, SunScreenUV + float2( diagXY.x,  diagXY.y)).a;
+        cloudAlpha += SceneColorTexture.Sample(SceneColorSamp, SunScreenUV + float2(-diagXY.x,  diagXY.y)).a;
+        cloudAlpha += SceneColorTexture.Sample(SceneColorSamp, SunScreenUV + float2( diagXY.x, -diagXY.y)).a;
+        cloudAlpha += SceneColorTexture.Sample(SceneColorSamp, SunScreenUV + float2(-diagXY.x, -diagXY.y)).a;
         cloudAlpha /= 9.0f;
 
         // Screen-space visibility: 1 = no cloud near sun, 0 = sun area fully covered.
