@@ -3,6 +3,7 @@
 #include "Game/effects/DisplaySprite.h"
 #include "Objects/game_object_ids.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
+#include "Scripting/Internal/TEN/View/DisplayAnchors/ScriptDisplayAnchors.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 
 using namespace TEN::Effects::DisplaySprite;
@@ -35,12 +36,13 @@ namespace TEN::Scripting::DisplaySprite
 		ScriptDisplaySprite(const Vec2& pos, float rot, const Vec2& scale);
 
 		// Getters
-		GAME_OBJECT_ID GetObjectID() const;
-		int			   GetSpriteID() const;
-		Vec2		   GetPosition() const;
-		float		   GetRotation() const;
-		Vec2		   GetScale() const;
-		ScriptColor	   GetColor() const;
+		GAME_OBJECT_ID		 GetObjectID() const;
+		int					 GetSpriteID() const;
+		Vec2				 GetPosition() const;
+		float				 GetRotation() const;
+		Vec2				 GetScale() const;
+		ScriptColor			 GetColor() const;
+		ScriptDisplayAnchors GetAnchors(sol::optional<DisplaySpriteAlignMode> alignModeOpt, sol::optional<DisplaySpriteScaleMode> scaleModeOpt) const;
 
 		// Setters
 		void SetObjectID(GAME_OBJECT_ID objectID);

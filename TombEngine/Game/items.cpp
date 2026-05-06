@@ -430,7 +430,7 @@ void ItemNewRoom(short itemNumber, short roomNumber)
 				room->itemNumber = item->NextItem;
 			else
 			{
-				for (short linkNumber = room->itemNumber; linkNumber != -1; linkNumber = g_Level.Items[linkNumber].NextItem)
+				for (short linkNumber = room->itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
 				{
 					if (g_Level.Items[linkNumber].NextItem == itemNumber)
 					{
@@ -464,7 +464,7 @@ void EffectNewRoom(short fxNumber, short roomNumber)
 			room->fxNumber = fx->nextFx;
 		else
 		{
-			for (short linkNumber = room->fxNumber; linkNumber != -1; linkNumber = EffectList[linkNumber].nextFx)
+			for (short linkNumber = room->fxNumber; linkNumber != NO_VALUE; linkNumber = EffectList[linkNumber].nextFx)
 			{
 				if (EffectList[linkNumber].nextFx == fxNumber)
 				{
@@ -555,7 +555,7 @@ short CreateNewEffect(short roomNumber)
 		room->fxNumber = fxNumber;
 
 		fx->speed = 0;
-		fx->color = Vector4::One;
+		fx->color = NEUTRAL_COLOR;
 		fx->fallspeed = 0;
 		fx->frameNumber = 0;
 		fx->counter = 0;
@@ -624,12 +624,37 @@ void RemoveActiveItem(short itemNumber, bool killed)
 	}
 }
 
+bool IsItemInRoom(short itemNumber, short roomNumber)
+{
+	const auto& room = g_Level.Rooms[roomNumber];
+
+	// Run through items in room.
+	int currentItemNumber = room.itemNumber;
+	while (currentItemNumber != NO_VALUE)
+	{
+		auto& item = g_Level.Items[currentItemNumber];
+
+		if (currentItemNumber == itemNumber)
+			return true;
+
+		// HACK: Prevent possible deadlocks.
+		if (currentItemNumber == item.NextItem)
+			break;
+
+		currentItemNumber = item.NextItem;
+	}
+
+	return false;
+}
+
 void InitializeItem(short itemNumber) 
 {
 	auto* item = &g_Level.Items[itemNumber];
 	const auto& object = Objects[item->ObjectNumber];
 
-	SetAnimation(item, 0);
+	if (!object.Animations.empty())
+		SetAnimation(item, 0);
+
 	item->Animation.RequiredState = NO_VALUE;
 	item->Animation.Velocity = Vector3::Zero;
 	item->Animation.AnimObjectID = item->ObjectNumber;
@@ -744,7 +769,7 @@ short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID)
 		newItem.ObjectNumber = objectID;
 		newItem.RoomNumber = item.RoomNumber;
 		newItem.Pose = item.Pose;
-		newItem.Model.Color = Vector4::One;
+		newItem.Model.Color = NEUTRAL_COLOR;
 
 		InitializeItem(itemNumber);
 
@@ -847,7 +872,7 @@ int FindItem(ItemInfo* item)
 		if (item == &g_Level.Items[i])
 			return i;
 
-	return -1;
+	return NO_VALUE;
 }
 
 void UpdateAllItems()
@@ -911,9 +936,10 @@ void UpdateAllEffects()
 bool UpdateItemRoom(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
+	auto yOffset = GameBoundingBox(item).GetCenter().y;
 
 	auto roomNumber = GetPointCollision(
-		Vector3i(item->Pose.Position.x, item->Pose.Position.y - CLICK(2), item->Pose.Position.z),
+		Vector3i(item->Pose.Position.x, item->Pose.Position.y + yOffset, item->Pose.Position.z),
 		item->RoomNumber).GetRoomNumber();
 
 	if (roomNumber != item->RoomNumber)
@@ -931,6 +957,11 @@ void DoDamage(ItemInfo* item, int damage, bool silent)
 
 	if (item->HitPoints <= 0)
 		return;
+
+	if (item->IsLara() && GetLaraInfo(*item).Control.WaterStatus == WaterStatus::FlyCheat)
+		return;
+	
+	const int oldHitPoints = item->HitPoints;
 
 	item->HitStatus = true;
 	item->HitPoints -= damage;
@@ -956,8 +987,9 @@ void DoDamage(ItemInfo* item, int damage, bool silent)
 				Rumble(power, 0.15f);
 			}
 
-			SaveGame::Statistics.Game.DamageTaken += damage;
-			SaveGame::Statistics.Level.DamageTaken += damage;
+			int damageDelta = std::max(0, oldHitPoints - item->HitPoints);
+			SaveGame::Statistics.Game.DamageTaken += damageDelta;
+			SaveGame::Statistics.Level.DamageTaken += damageDelta;
 		}
 
 		if (!silent && (GlobalCounter - lastHurtTime) > (FPS * 2 + Random::GenerateInt(0, FPS)))
@@ -1022,20 +1054,6 @@ void DefaultItemHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector
 	}
 
 	DoItemHit(&target, damage, isExplosive);
-}
-
-Vector3i GetNearestSectorCenter(const Vector3i& pos)
-{
-	constexpr int SECTOR_SIZE = 1024;
-
-	// Calculate the sector-aligned coordinates.
-	int x = (pos.x / SECTOR_SIZE) * SECTOR_SIZE + SECTOR_SIZE / 2;
-	int z = (pos.z / SECTOR_SIZE) * SECTOR_SIZE + SECTOR_SIZE / 2;
-
-	// Keep the y-coordinate unchanged.
-	int y = pos.y;
-
-	return Vector3i(x, y, z);
 }
 
 void SyncItemAnimation(ItemInfo& item0, const ItemInfo& item1)

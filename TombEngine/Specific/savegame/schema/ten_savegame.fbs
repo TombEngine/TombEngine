@@ -57,6 +57,7 @@ table Room {
 	name: string;
 	flags: int32;
 	reverb_type: int32;
+	block_stopper_flags: [bool];
 }
 
 table Item {
@@ -333,6 +334,14 @@ table CollisionInfoData {
 	last_bridge_item_pose: Pose;
 }
 
+table PlayerSkinData {
+	skin: int32;
+	skin_joints: int32;
+	skin_scream: int32;
+	hair_primary: int32;
+	hair_secondary: int32;
+}
+
 table Lara {
 	context: PlayerContextData;
 	control: LaraControlData;
@@ -355,6 +364,7 @@ table Lara {
 	target_entity_number: int32;
 	torch: TorchData;
 	weapons: [CarriedWeaponInfo];
+	skin: PlayerSkinData;
 }
 
 table Camera {
@@ -647,6 +657,7 @@ table SaveGame {
 	camera: Camera;
 	lara: Lara;
 	rooms: [Room];
+	box_flags: [int32];
 	items: [Item];
 	next_item_free: int32;
 	next_item_active: int32;

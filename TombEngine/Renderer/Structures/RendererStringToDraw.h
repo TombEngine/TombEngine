@@ -7,10 +7,10 @@ namespace TEN::Renderer::Structures
 
 	struct RendererStringToDraw
 	{
-		float X;
-		float Y;
+		Vector2 Position;
+		Vector2 PrevPosition;
 		int Flags;
-		std::wstring String;
+		std::string String;
 		Vector4 Color;
 		float Scale;
 	};

@@ -2,7 +2,6 @@
 #include "Objects/Generic/Switches/turn_switch.h"
 
 #include "Game/Animation/Animation.h"
-#include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/control.h"
@@ -82,9 +81,6 @@ namespace TEN::Entities::Switches
 					SetAnimation(switchItem, 4);
 					switchItem->ItemFlags[0] = TURN_SWITCH_ANTICLOCKWISE;
 
-					ForcedFixedCamera.x = switchItem->Pose.Position.x - BLOCK(1) * phd_sin(switchItem->Pose.Orientation.y);
-					ForcedFixedCamera.z = switchItem->Pose.Position.z - BLOCK(1) * phd_cos(switchItem->Pose.Orientation.y);
-
 					doSwitch = -1;
 				}
 				else
@@ -102,10 +98,6 @@ namespace TEN::Entities::Switches
 						SetAnimation(laraItem, LA_TURNSWITCH_GRAB_CLOCKWISE);
 
 						switchItem->ItemFlags[0] = TURN_SWITCH_CLOCKWISE;
-
-						ForcedFixedCamera.x = switchItem->Pose.Position.x + 1024 * phd_sin(switchItem->Pose.Orientation.y);
-						ForcedFixedCamera.z = switchItem->Pose.Position.z + 1024 * phd_cos(switchItem->Pose.Orientation.y);
-
 						doSwitch = 1;
 					}
 					else
@@ -131,11 +123,6 @@ namespace TEN::Entities::Switches
 			ResetPlayerFlex(laraItem);
 			laraInfo->Control.HandStatus = HandStatus::Busy;
 			laraItem->Animation.ActiveState = LA_REACH;
-
-			UseForcedFixedCamera = true;
-			ForcedFixedCamera.y = switchItem->Pose.Position.y - 2048;
-			ForcedFixedCamera.RoomNumber = switchItem->RoomNumber;
-			Camera.DisableInterpolation = true;
 
 			AddActiveItem(itemNumber);
 
@@ -259,8 +246,6 @@ namespace TEN::Entities::Switches
 			RemoveActiveItem(itemNumber);
 
 			Lara.Control.HandStatus = HandStatus::Free;
-			UseForcedFixedCamera = false;
-			Camera.DisableInterpolation = true;
 			switchItem->ItemFlags[1] = 2;
 		}
 	}

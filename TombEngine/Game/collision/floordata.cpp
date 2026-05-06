@@ -398,6 +398,15 @@ namespace TEN::Collision::Floordata
 			(round(scaledNormal.z) * 4)) * sign;
 	}
 
+	Vector3i GetNearestSectorCenter(const Vector3i& pos)
+	{
+		// Calculate sector-aligned position.
+		return Vector3i(
+			((pos.x / BLOCK(1)) * BLOCK(1)) + (BLOCK(1) / 2),
+			pos.y,
+			((pos.z / BLOCK(1)) * BLOCK(1)) + (BLOCK(1) / 2));
+	}
+
 	Vector2i GetSectorPoint(int x, int z)
 	{
 		constexpr auto HALF_BLOCK = (int)BLOCK(0.5f);
@@ -823,19 +832,9 @@ namespace TEN::Collision::Floordata
 
 	static void DrawSectorFlagLabel(const Vector3& pos, const std::string& string, const Vector4& color, float verticalOffset)
 	{
-		constexpr auto LABEL_SCALE = 0.8f;
 		constexpr auto HALF_BLOCK  = BLOCK(0.5f);
-
-		// Get 2D label position.
 		auto labelPos = pos + Vector3(HALF_BLOCK, 0.0f, HALF_BLOCK);
-		auto labelPos2D = g_Renderer.Get2DPosition(labelPos);
-
-		// Draw label.
-		if (labelPos2D.has_value())
-		{
-			*labelPos2D += Vector2(0.0f, verticalOffset);
-			DrawDebugString(string, *labelPos2D, color, LABEL_SCALE, RendererDebugPage::CollisionStats);
-		}
+		DrawDebugString(string, labelPos, color, RendererDebugPage::CollisionStats);
 	}
 
 	void DrawNearbySectorFlags(const ItemInfo& item)

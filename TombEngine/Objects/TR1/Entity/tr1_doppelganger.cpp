@@ -3,6 +3,7 @@
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
+#include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
 #include "Game/control/lot.h"
@@ -13,6 +14,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 
 namespace TEN::Entities::Creatures::TR1
@@ -133,9 +135,8 @@ namespace TEN::Entities::Creatures::TR1
 			{
 				if (item.Animation.AnimNumber != LA_FREEFALL_DEATH)
 				{
-					item.Pose.Position.x = pointColl.GetSector().Position.x + BLOCK(0.5f);
+					item.Pose.Position = GetNearestSectorCenter(item.Pose.Position);
 					item.Pose.Position.y = item.Floor;
-					item.Pose.Position.z = pointColl.GetSector().Position.y + BLOCK(0.5f);
 
 					TestTriggers(&item, true);
 

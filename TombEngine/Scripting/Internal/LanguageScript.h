@@ -63,6 +63,7 @@
 #define STRING_MUSIC_VOLUME				"music_volume"
 #define STRING_SFX_VOLUME				"sfx_volume"
 #define STRING_SCREEN_RESOLUTION		"screen_resolution"
+#define STRING_GAMMA					"gamma"
 #define STRING_SHADOWS					"shadows"
 #define STRING_SHADOWS_PLAYER			"player"
 #define STRING_SHADOWS_ALL				"all"
@@ -179,3 +180,5 @@
 #define STRING_MECHANICAL_SCARAB_2		"mechanical_scarab_2"
 #define STRING_VEHICLE_ACTIONS			"vehicle_actions"
 #define STRING_UNLIMITED				"unlimited"
+#define STRING_SOUND_DEVICE				"sound_device"
+#define STRING_NO_SOUND_DEVICE			"no_sound_device"

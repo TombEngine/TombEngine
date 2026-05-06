@@ -6,8 +6,8 @@
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
+#include "Scripting/Internal/TEN/Logic/CallbackPoint.h"
 
-enum class CallbackPoint;
 class LevelFunc;
 
 class LogicHandler : public ScriptInterfaceGame
@@ -92,6 +92,10 @@ private:
 
 	void ResetLevelTables();
 	void ResetGameTables();
+	void ResetGlobalTables();
+
+	void SerializeScriptTable(const sol::table& tab, std::vector<SavedVar>& vars);
+	std::unordered_map<unsigned int, sol::table> DeserializeScriptVars(const std::vector<SavedVar>& vars);
 
 public:	
 	LogicHandler(sol::state* lua, sol::table& parent);
@@ -111,6 +115,13 @@ public:
 	template <typename ... Ts> sol::protected_function_result CallLevelFuncByName(const std::string& name, Ts ... vs)
 	{
 		auto func = _levelFuncs_luaFunctions[name];
+
+		if (!func.valid())
+		{
+			TENLog("Could not find script function " + name, LogLevel::Warning);
+			return sol::protected_function_result();
+		}
+
 		auto funcResult = CallLevelFuncBase(func, vs...);
 
 		if (!funcResult.valid())
@@ -161,6 +172,8 @@ public:
 
 	void GetVariables(std::vector<SavedVar>& vars) override;
 	void SetVariables(const std::vector<SavedVar>& vars, bool onlyLevelVars) override;
+	void GetGlobalVariables(std::vector<SavedVar>& vars) override;
+	void SetGlobalVariables(const std::vector<SavedVar>& vars) override;
 	void ResetVariables();
 
 	void SetCallbackStrings(const std::vector<std::string>& preStart,

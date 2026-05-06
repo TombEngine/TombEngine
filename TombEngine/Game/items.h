@@ -41,7 +41,8 @@ enum ItemStatus
 
 enum ItemFlags
 {
-	IFLAG_TRIGGERED       = 1 << 5,
+	IFLAG_TRIGGERED		  = 1 << 5,
+	IFLAG_SWITCH_ONESHOT  = 1 << 6,
 	IFLAG_CLEAR_BODY	  = 1 << 7,
 	IFLAG_INVISIBLE		  = 1 << 8,
 	IFLAG_ACTIVATION_MASK = 0x1F << 9, // Bits 9-13 (IFLAG_CODEBITS)
@@ -209,6 +210,7 @@ public:
 bool TestState(int refState, const std::vector<int>& stateList);
 void EffectNewRoom(short fxNumber, short roomNumber);
 void ItemNewRoom(short itemNumber, short roomNumber);
+bool IsItemInRoom(short itemNumber, short roomNumber);
 void AddActiveItem(short itemNumber);
 short CreateItem();
 void RemoveAllItemsInRoom(short roomNumber, short objectNumber);
@@ -232,7 +234,5 @@ void DoDamage(ItemInfo* item, int damage, bool silent = false);
 void DoItemHit(ItemInfo* target, int damage, bool isExplosive, bool allowBurn = true);
 void DefaultItemHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector> pos, int damage, bool isExplosive, int jointIndex);
 short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID);
-
-Vector3i GetNearestSectorCenter(const Vector3i& pos);
 
 void SyncItemAnimation(ItemInfo& item0, const ItemInfo& item1);
