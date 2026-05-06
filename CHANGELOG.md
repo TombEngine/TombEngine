@@ -8,6 +8,14 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### New features
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
+* Added fan trap.
+* Added large fan trap.
+* Added falling spikes trap.
+* Added tunnel borer trap.
+* Added Airplane Propeller trap.
+* Added disk and disk shooter trap.
+* Added rotating knife disk trap.
+* Added falling sandbag trap.
  
 ### Bug fixes
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
