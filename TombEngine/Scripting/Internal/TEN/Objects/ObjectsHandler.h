@@ -65,7 +65,7 @@ private:
 		if (!ScriptAssertF(_nameMap.find(name) != _nameMap.end(), "{} name not found: {}", S, name))
 			return nullptr;
 
-		return std::make_unique<R>(std::get<R::IdentifierType>(_nameMap.at(name)));
+		return std::make_unique<R>(std::get<typename R::IdentifierType>(_nameMap.at(name)));
 	}
 
 	template <typename R>

@@ -5,10 +5,10 @@ struct ItemInfo;
 
 namespace TEN::Entities::Switches
 {
-	extern byte SequenceUsed[6];
-	extern byte SequenceResults[3][3][3];
-	extern byte Sequences[3];
-	extern byte CurrentSequence;
+	extern unsigned char SequenceUsed[6];
+	extern unsigned char SequenceResults[3][3][3];
+	extern unsigned char Sequences[3];
+	extern unsigned char CurrentSequence;
 
 	void FullBlockSwitchControl(short itemNumber);
 	void FullBlockSwitchCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll);

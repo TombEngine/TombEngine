@@ -3156,7 +3156,7 @@ namespace TEN::Renderer
 					_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1;
 					_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = 0;
 
-					// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+					// NOTE: Strange packing due to particular HLSL 16-byte alignment requirements.
 					_stInstancedSpriteBuffer.Sprites[i].UV[0].x = rDrawSprite.Sprite->UV[0].x;
 					_stInstancedSpriteBuffer.Sprites[i].UV[0].y = rDrawSprite.Sprite->UV[1].x;
 					_stInstancedSpriteBuffer.Sprites[i].UV[0].z = rDrawSprite.Sprite->UV[2].x;
@@ -3219,7 +3219,7 @@ namespace TEN::Renderer
 						_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1;
 						_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = 0;
 
-						// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+						// NOTE: Strange packing due to particular HLSL 16-byte alignment requirements.
 						_stInstancedSpriteBuffer.Sprites[i].UV[0].x = rDrawSprite.Sprite->UV[0].x;
 						_stInstancedSpriteBuffer.Sprites[i].UV[0].y = rDrawSprite.Sprite->UV[1].x;
 						_stInstancedSpriteBuffer.Sprites[i].UV[0].z = rDrawSprite.Sprite->UV[2].x;
@@ -3331,7 +3331,7 @@ namespace TEN::Renderer
 			_stInstancedSpriteBuffer.Sprites[0].IsBillboard = 1;
 			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = 0;
 
-			// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+			// NOTE: Strange packing due to particular HLSL 16-byte alignment requirements.
 			_stInstancedSpriteBuffer.Sprites[0].UV[0].x = rDrawSprite.Sprite->UV[0].x;
 			_stInstancedSpriteBuffer.Sprites[0].UV[0].y = rDrawSprite.Sprite->UV[1].x;
 			_stInstancedSpriteBuffer.Sprites[0].UV[0].z = rDrawSprite.Sprite->UV[2].x;

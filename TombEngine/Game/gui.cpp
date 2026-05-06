@@ -1447,7 +1447,7 @@ namespace TEN::Gui
 		const auto& invObject = InventoryObjectTable[ring.CurrentObjectList[ring.CurrentObjectInList].InventoryItem];
 
 		int number = 0;
-		unsigned __int64 options = invObject.Options;
+		unsigned long long options = invObject.Options;
 		AmmoSelectorFlag = 0;
 		NumAmmoSlots = 0;
 
@@ -1579,7 +1579,7 @@ namespace TEN::Gui
 
 	void GuiController::InsertObjectIntoList_v2(int objectNumber)
 	{
-		unsigned __int64 options = InventoryObjectTable[objectNumber].Options;
+		unsigned long long options = InventoryObjectTable[objectNumber].Options;
 
 		if (options & (OPT_COMBINABLE | OPT_ALWAYS_COMBINE))
 		{

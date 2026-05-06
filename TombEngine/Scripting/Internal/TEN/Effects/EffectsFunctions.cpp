@@ -91,10 +91,10 @@ namespace TEN::Scripting::Effects
 
 		// Multiply by two since a) lightning loses two "life" each frame, and b) it must be
 		// an even number to avoid overshooting a value of 0 and wrapping around.
-		byte byteLife = lifeInFrames * 2;
+		unsigned char byteLife = lifeInFrames * 2;
 
 		int amp = ValueOr<int>(amplitude, 20);
-		byte byteAmp = std::clamp(amp, 1, 255);
+		unsigned char byteAmp = std::clamp(amp, 1, 255);
 
 		bool isSmooth = ValueOr<bool>(smooth, false);
 		bool isDrift = ValueOr<bool>(endDrift, false);

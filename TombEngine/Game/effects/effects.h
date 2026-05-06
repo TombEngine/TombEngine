@@ -7,7 +7,7 @@
 
 using namespace TEN::Effects::Light;
 
-enum class LaraWeaponType;
+enum class LaraWeaponType : int;
 enum GAME_OBJECT_ID : short;
 struct CollisionInfo;
 struct ItemInfo;
@@ -190,10 +190,10 @@ struct Particle
 	int PrevY;
 	int PrevZ;
 	short PrevRotAng;
-	byte PrevR;
-	byte PrevG; 
-	byte PrevB;
-	byte PrevScalar;
+	unsigned char PrevR;
+	unsigned char PrevG; 
+	unsigned char PrevB;
+	unsigned char PrevScalar;
 
 	void StoreInterpolationData()
 	{
@@ -210,13 +210,13 @@ struct Particle
 
 struct ParticleDynamic
 {
-	byte On;
-	byte Falloff;
-	byte R;
-	byte G;
-	byte B;
-	byte Flags;
-	byte Pad[2];
+	unsigned char On;
+	unsigned char Falloff;
+	unsigned char R;
+	unsigned char G;
+	unsigned char B;
+	unsigned char Flags;
+	unsigned char Pad[2];
 };
 
 extern GameBoundingBox DeadlyBounds;

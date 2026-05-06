@@ -72,7 +72,7 @@ constexpr auto GLOBAL_VARS_FILENAME = "savegame.global";
 
 GameStats SaveGame::Statistics;
 SaveGameHeader SaveGame::Infos[SAVEGAME_MAX];
-std::map<int, std::vector<byte>> SaveGame::Hub;
+std::map<int, std::vector<unsigned char>> SaveGame::Hub;
 
 int SaveGame::LastSaveGame;
 std::string SaveGame::FullSaveDirectory;
@@ -451,7 +451,7 @@ void SaveGame::Init(const std::string& gameDirectory)
 	FullSaveDirectory = gameDirectory + SAVEGAME_PATH;
 }
 
-const std::vector<byte> SaveGame::Build()
+const std::vector<unsigned char> SaveGame::Build()
 {
 	ItemInfo itemToSerialize{};
 	FlatBufferBuilder fbb{};
@@ -1831,7 +1831,7 @@ const std::vector<byte> SaveGame::Build()
 	auto buffer = fbb.GetBufferPointer();
 	auto size   = fbb.GetSize();
 
-	auto result = std::vector<byte>(buffer, buffer + size);
+	auto result = std::vector<unsigned char>(buffer, buffer + size);
 	return result;
 }
 
@@ -1941,7 +1941,7 @@ bool SaveGame::Load(int slot)
 		file.read(reinterpret_cast<char*>(&size), sizeof(size));
 
 		// Read current level save data.
-		auto saveData = std::vector<byte>(size);
+		auto saveData = std::vector<unsigned char>(size);
 		file.read(reinterpret_cast<char*>(saveData.data()), size);
 
 		// Reset hub data, as it's about to be replaced with saved one.
@@ -1959,7 +1959,7 @@ bool SaveGame::Load(int slot)
 			file.read(reinterpret_cast<char*>(&index), sizeof(index));
 
 			file.read(reinterpret_cast<char*>(&size), sizeof(size));
-			auto hubBuffer = std::vector<byte>(size);
+			auto hubBuffer = std::vector<unsigned char>(size);
 			file.read(reinterpret_cast<char*>(hubBuffer.data()), size);
 
 			Hub[index] = hubBuffer;
@@ -3090,7 +3090,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	}
 }
 
-void SaveGame::Parse(const std::vector<byte>& buffer, bool hubMode)
+void SaveGame::Parse(const std::vector<unsigned char>& buffer, bool hubMode)
 {
 	if (!Save::VerifySaveGameBuffer(flatbuffers::Verifier(buffer.data(), buffer.size())))
 	{
@@ -3270,7 +3270,7 @@ bool SaveGame::LoadGlobalVars()
 
 		file.seekg(0, std::ios::beg);
 
-		auto buffer = std::vector<byte>(size);
+		auto buffer = std::vector<unsigned char>(size);
 		file.read(reinterpret_cast<char*>(buffer.data()), size);
 		file.close();
 

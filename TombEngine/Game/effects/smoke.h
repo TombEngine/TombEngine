@@ -1,6 +1,6 @@
 #pragma once
 
-enum class LaraWeaponType;
+enum class LaraWeaponType : int;
 struct ItemInfo;
 
 namespace TEN::Effects::Smoke
@@ -46,8 +46,8 @@ namespace TEN::Effects::Smoke
 	void UpdateSmokeParticles();
 	void DisableSmokeParticles();
 	void TriggerFlareSmoke(const Vector3& pos, const Vector3& direction, int life, int room);
-	void TriggerGunSmokeParticles(int x, int y, int z, int xv, int yv, int zv, byte initial, LaraWeaponType weaponType, byte count);
-	void SpawnGunSmokeParticles(const Vector3& pos, const Vector3& direction, int roomNumber, byte initial, LaraWeaponType weaponType, int count);
+	void TriggerGunSmokeParticles(int x, int y, int z, int xv, int yv, int zv, unsigned char initial, LaraWeaponType weaponType, unsigned char count);
+	void SpawnGunSmokeParticles(const Vector3& pos, const Vector3& direction, int roomNumber, unsigned char initial, LaraWeaponType weaponType, int count);
 	void TriggerQuadExhaustSmoke(int x, int y, int z, short angle, int velocity, int moving);
 	void TriggerRocketSmoke(int x, int y, int z);
 	void TriggerBreathSmoke(long x, long y, long z, short angle);

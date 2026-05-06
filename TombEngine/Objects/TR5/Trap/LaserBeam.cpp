@@ -222,7 +222,7 @@ namespace TEN::Entities::Traps
 			if (beam.IsLethal && playerItem->HitPoints > 0 && playerItem->Effect.Type != EffectType::Smoke)
 			{
 				ItemRedLaserBurn(playerItem, FPS * 2);
-				DoDamage(playerItem, MAXINT);
+				DoDamage(playerItem, INT_MAX);
 			}
 			else if (beam.IsHeavyActivator)
 			{

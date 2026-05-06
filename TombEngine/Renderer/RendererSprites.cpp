@@ -524,7 +524,7 @@ namespace TEN::Renderer
 
 	void Renderer::PackSpriteTextureCoordinates(int instanceId, RendererSprite* sprite)
 	{
-		// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+		// NOTE: Strange packing due to particular HLSL 16-byte alignment requirements.
 	
 		_stInstancedSpriteBuffer.Sprites[instanceId].UV[0].x = sprite->UV[0].x;
 		_stInstancedSpriteBuffer.Sprites[instanceId].UV[0].y = sprite->UV[1].x;

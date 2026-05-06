@@ -150,9 +150,9 @@ namespace TEN::Entities::TR4
 
 		auto* fx = &EffectList[fxNumber];
 
-		fx->pos.Position.x = (byte)GetRandomControl() + item->Pose.Position.x - 128;
+		fx->pos.Position.x = (unsigned char)GetRandomControl() + item->Pose.Position.x - 128;
 		fx->pos.Position.y = GetPointCollision(*item).GetFloorHeight();
-		fx->pos.Position.z = (byte)GetRandomControl() + item->Pose.Position.z - 128;
+		fx->pos.Position.z = (unsigned char)GetRandomControl() + item->Pose.Position.z - 128;
 		fx->roomNumber = item->RoomNumber;
 		fx->pos.Orientation.y = 2 * GetRandomControl();
 		fx->speed = GetRandomControl() / 2048;

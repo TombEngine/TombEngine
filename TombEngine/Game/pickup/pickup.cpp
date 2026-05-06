@@ -320,7 +320,7 @@ void DoPickup(ItemInfo* laraItem)
 		lara->Control.Weapon.GunType = LaraWeaponType::Flare;
 		InitializeNewWeapon(*laraItem);
 		lara->Control.HandStatus = HandStatus::Special;
-		lara->Flare.Life = int(pickupItem->Data) & 0x7FFF;
+		lara->Flare.Life = pickupItem->Data.is<int>() ? (int(pickupItem->Data) & 0x7FFF) : 0;
 		KillItem(pickupItemNumber);
 
 		if (laraItem->Animation.ActiveState == LA_UNDERWATER_PICKUP_FLARE)

@@ -26,10 +26,10 @@ struct TEXTURE
 {
 	int width;
 	int height;
-	std::vector<byte> colorMapData;
-	std::vector<byte> normalMapData;
-	std::vector<byte> ORSHMapData;
-	std::vector<byte> emissiveMapData;
+	std::vector<unsigned char> colorMapData;
+	std::vector<unsigned char> normalMapData;
+	std::vector<unsigned char> ORSHMapData;
+	std::vector<unsigned char> emissiveMapData;
 };
 
 struct ANIMATED_TEXTURES_FRAME

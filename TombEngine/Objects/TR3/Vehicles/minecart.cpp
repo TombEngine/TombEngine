@@ -235,8 +235,8 @@ namespace TEN::Entities::Vehicles
 			if (i)
 			{
 				float mult = Random::GenerateFloat(0.7f, 1.0f);
-				byte r = (byte)(mult * 190.0f);
-				byte g = (byte)(mult * 100.0f);
+				unsigned char r = (unsigned char)(mult * 190.0f);
+				unsigned char g = (unsigned char)(mult * 100.0f);
 				SpawnDynamicLight(pos.x, pos.y, pos.z, 2, r, g, 0);
 			}
 		}

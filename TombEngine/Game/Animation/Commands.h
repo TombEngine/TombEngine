@@ -26,7 +26,7 @@ namespace TEN::Animation
 		Underwater
 	};
 
-	class AnimCommand abstract
+	class AnimCommand
 	{
 	public:
 		virtual void Execute(ItemInfo& item, bool isFrameBased) const = 0;
