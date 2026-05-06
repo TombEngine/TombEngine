@@ -218,7 +218,6 @@ static void StartEntity(ObjectInfo* obj)
 		obj->pivotLength = 200;
 		obj->radius = 341;
 		obj->intelligent = true;
-		obj->waterCreature = true;
 		obj->LotType = LotType::Water;
 	}
 
@@ -236,13 +235,6 @@ static void StartEntity(ObjectInfo* obj)
 		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(13, ROT_Y);
 		obj->SetHitEffect();
-	}
-
-	obj = &Objects[ID_SCUBA_HARPOON];
-	if (obj->loaded)
-	{
-		obj->control = ScubaHarpoonControl;
-		obj->collision = ObjectCollision;
 	}
 
 	obj = &Objects[ID_FLAMETHROWER_BADDY];
