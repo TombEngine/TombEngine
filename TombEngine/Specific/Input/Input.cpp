@@ -3,7 +3,7 @@
 
 #include "Game/camera.h"
 #include "Game/control/box.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/items.h"
 #include "Game/savegame.h"
 #include "Math/Math.h"

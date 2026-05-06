@@ -2,7 +2,7 @@
 #include "Game/effects/Splash.h"
 
 #include "Game/collision/Point.h"
-#include "Game/effects/Drip.h"
+#include "Game/effects/drip.h"
 #include "Game/room.h"
 #include "Sound/sound.h"
 

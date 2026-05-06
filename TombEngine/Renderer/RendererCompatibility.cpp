@@ -7,7 +7,7 @@
 
 #include "Game/control/control.h"
 #include "Game/effects/Decal.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"

@@ -8,7 +8,7 @@
 #include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
 #include "Game/effects/debris.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"

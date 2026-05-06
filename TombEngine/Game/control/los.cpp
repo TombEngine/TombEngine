@@ -5,7 +5,7 @@
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/debris.h"
 #include "Game/items.h"

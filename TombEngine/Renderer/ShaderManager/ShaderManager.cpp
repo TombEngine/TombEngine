@@ -4,7 +4,7 @@
 #include "Renderer/RendererUtils.h"
 #include "Specific/configuration.h"
 #include "Specific/trutils.h"
-#include "Version.h"
+#include "version.h"
 
 using namespace TEN::Renderer::Structures;
 using namespace TEN::Utils;
@@ -117,11 +117,11 @@ namespace TEN::Renderer::Utils
 
 		Load(Shader::GBuffer, "GBuffer", "", ShaderType::Pixel, {});
 		Load(Shader::GBufferRooms, "GBuffer", "Rooms", ShaderType::Vertex, {});
-		// Both GBuffer enum values map to the same unified VSObjects entry — items draw with
+		// Both GBuffer enum values map to the same unified VSObjects entry â€” items draw with
 		// instance_count=1 (SV_InstanceID==0), statics with the actual InstanceID. The
 		// duplicate Load is kept so existing call sites (Bind(Shader::GBufferItems / ...))
 		// don't have to be touched yet; they end up pointing at byte-identical compiled VS.
-		// CreateShader prefixes "VS" to the funcName, so passing "Objects" → entry "VSObjects".
+		// CreateShader prefixes "VS" to the funcName, so passing "Objects" â†’ entry "VSObjects".
 		Load(Shader::GBufferItems, "GBuffer", "Objects", ShaderType::Vertex, {});
 		Load(Shader::GBufferInstancedStatics, "GBuffer", "Objects", ShaderType::Vertex, {});
 	}

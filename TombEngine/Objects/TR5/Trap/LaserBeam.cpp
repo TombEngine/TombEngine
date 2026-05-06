@@ -5,7 +5,7 @@
 #include "Game/collision/floordata.h"
 #include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
-#include "Game/control/Los.h"
+#include "Game/control/los.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/spark.h"

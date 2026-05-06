@@ -1,7 +1,7 @@
 #pragma once
 #include "Game/items.h"
 #include "Math/Math.h"
-#include "Specific/Clock.h"
+#include "Specific/clock.h"
 
 struct CollisionInfo;
 

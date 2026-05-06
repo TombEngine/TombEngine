@@ -13,7 +13,7 @@
 #include "Objects/Effects/Fireflies.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/effects.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Game/effects/weather.h"
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"

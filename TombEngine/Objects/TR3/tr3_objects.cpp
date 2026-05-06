@@ -37,7 +37,7 @@
 #include "Objects/Effects/Boss.h"
 
 // Objects
-#include "Objects/TR3/Object/Corpse.h"
+#include "Objects/TR3/Object/corpse.h"
 
 // Traps
 #include "Objects/TR3/Trap/ElectricCleaner.h"

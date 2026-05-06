@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Game/Debug/Debug.h"
+#include "Game/debug/debug.h"
 
 #include "Renderer/Renderer.h"
 

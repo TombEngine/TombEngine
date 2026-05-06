@@ -5,7 +5,7 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 #include "Specific/fast_vector.h"
-#include "Game/Debug/Debug.h"
+#include "Game/debug/debug.h"
 #include "Renderer/Graphics/IIndexBuffer.h"
 #include "Renderer/Graphics/VRAMAllocation.h"
 

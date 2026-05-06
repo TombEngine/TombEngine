@@ -9,7 +9,7 @@
 #include <sstream>
 #include <wrl/client.h>
 
-#include "Game/Debug/Debug.h"
+#include "Game/debug/debug.h"
 
 using namespace TEN::Debug;
 

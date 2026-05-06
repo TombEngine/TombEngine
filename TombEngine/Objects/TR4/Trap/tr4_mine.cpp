@@ -2,7 +2,7 @@
 #include "Objects/TR4/Trap/tr4_mine.h"
 
 #include "Game/collision/collide_item.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"

@@ -3,8 +3,8 @@
 
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
-#include "Game/effects/Hair.h"
-#include "Game/Gui.h"
+#include "Game/effects/hair.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/effects/item_fx.h"
 #include "Game/Lara/lara.h"

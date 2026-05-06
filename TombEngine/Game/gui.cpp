@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 
 #include <OISKeyboard.h>
 #include "Game/Animation/Animation.h"
