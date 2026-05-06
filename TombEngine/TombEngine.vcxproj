@@ -806,7 +806,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Graphics\IStructuredBuffer.h" />
     <ClInclude Include="Renderer\Graphics\ISpriteFont.h" />
     <ClInclude Include="Renderer\Graphics\ITexture2D.h" />
+    <ClInclude Include="Renderer\Graphics\ITexture3D.h" />
     <ClInclude Include="Renderer\Graphics\ITextureBase.h" />
+    <ClInclude Include="Renderer\Graphics\IGpuReadbackBuffer.h" />
     <ClInclude Include="Renderer\Graphics\IVertexBuffer.h" />
     <ClInclude Include="Renderer\Graphics\VRAMTracker.h" />
     <ClInclude Include="Renderer\Graphics\VRAMAllocation.h" />
@@ -828,7 +830,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Native\DirectX11\DX11SpriteBatch.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11SpriteFont.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11Texture2D.h" />
+    <ClInclude Include="Renderer\Native\DirectX11\DX11Texture3D.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11TextureBase.h" />
+    <ClInclude Include="Renderer\Native\DirectX11\DX11GpuReadbackBuffer.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11VertexBuffer.h" />
     <ClInclude Include="Renderer\Renderer.h" />
     <ClInclude Include="Renderer\RendererEnums.h" />
@@ -1379,6 +1383,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\Native\DirectX11\DX11SpriteBatch.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11SpriteFont.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11Texture2D.cpp" />
+    <ClCompile Include="Renderer\Native\DirectX11\DX11Texture3D.cpp" />
+    <ClCompile Include="Renderer\Native\DirectX11\DX11GpuReadbackBuffer.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11VertexBuffer.cpp" />
     <ClCompile Include="Renderer\Renderer.cpp" />
     <ClCompile Include="Renderer\RendererAntialiasing.cpp" />

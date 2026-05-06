@@ -16,6 +16,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Lua API changes
 * Added ring inventory module.
 * Added `Effects.ParticleGroup` class for managing particles via lua.
+* Added `Lara.SetSkin` to swap classic outfits.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 
@@ -27,7 +28,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed YETI misaligning with Lara during kill animation.
 
 ### Lua API changes
-* Added `Lara.SetSkin` to swap classic outfits.
 * Fixed `Timer` class not working correctly with single frame intervals.
 * Fixed alpha value being ignored for `Flow.Settings.UI.shadowTextColor` parameter.
 
