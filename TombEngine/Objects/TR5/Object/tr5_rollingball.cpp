@@ -24,6 +24,8 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Splash;
 
 constexpr auto ROLLING_BALL_MAX_VELOCITY = BLOCK(3);
+constexpr auto ROLLING_BARREL_ROLL_ANIMATION = 0;
+constexpr auto ROLLING_BARREL_STOP_ANIMATION = 1;
 
 void RollingBallCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 {
@@ -443,6 +445,31 @@ void ClassicRollingBallControl(short itemNum)
 			item->Animation.IsAirborne = false;
 			item->Animation.Velocity.y = 0;
 			item->Pose.Position.y = item->Floor;
+		}
+
+		// Rolling sound effect switch for rolling barrels and boulders.
+		switch (item->ObjectNumber)
+		{
+		case ID_ROLLING_BARRELS:
+			switch (item->Animation.AnimNumber)
+			{
+			case ROLLING_BARREL_ROLL_ANIMATION:
+				SoundEffect(SFX_TR2_ROLLING_BARREL_ROLL, &item->Pose);
+				break;
+
+			case ROLLING_BARREL_STOP_ANIMATION:
+				SoundEffect(SFX_TR2_ROLLING_BARREL_STOP, &item->Pose);
+				break;
+			}
+			break;
+
+		case ID_MULTIPLE_BOULDERS:
+			if (item->Animation.AnimNumber == 0)
+				SoundEffect(SFX_TR2_SNOWBALL_ROLL, &item->Pose);
+
+			if (item->Animation.FrameNumber == 0)
+				SoundEffect(SFX_TR2_SNOWBALL_STOP, &item->Pose);
+			break;
 		}
 
 		if (!item->Animation.IsAirborne && (item->TriggerFlags & 1) != 1) // Flag 1 = silent.
