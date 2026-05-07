@@ -511,6 +511,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Math\Objects\Vector2i.h" />
     <ClInclude Include="Math\Objects\Vector3i.h" />
     <ClInclude Include="Math\Random.h" />
+    <ClInclude Include="Math\SimpleMath.h" />
     <ClInclude Include="Math\Solvers.h" />
     <ClInclude Include="Math\Utils.h" />
     <ClInclude Include="Objects\Effects\Boss.h" />
