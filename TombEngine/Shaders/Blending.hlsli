@@ -1,7 +1,6 @@
 #ifndef BLENDINGSHADER
 #define BLENDINGSHADER
 
-#include "./CBCamera.hlsli"
 #include "./CBPerDraw.hlsli"
 #include "./Math.hlsli"
 

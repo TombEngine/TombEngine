@@ -22,11 +22,6 @@ struct PixelShaderInput
 	uint InstanceID : SV_InstanceID;
 };
 
-struct PixelShaderOutput
-{
-	float4 Color : SV_TARGET0;
-};
-
 struct InstancedSprite
 {
 	float4x4 World;
@@ -81,10 +76,9 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 	return output;
 }
 
-PixelShaderOutput PS(PixelShaderInput input)
+float4 PS(PixelShaderInput input) : SV_TARGET
 {
-	PixelShaderOutput output;
-	output.Color = Texture.Sample(Sampler, input.UV) * input.Color;
+	float4 output = Texture.Sample(Sampler, input.UV) * input.Color;
 
     InstancedSprite sprite = Sprites[input.InstanceID];
 	
@@ -104,26 +98,26 @@ PixelShaderOutput PS(PixelShaderInput input)
 		}
 
 		float fade = (sceneDepth - particleDepth) * 1024.0f;
-		output.Color.w = min(output.Color.w, fade);
+		output.w = min(output.w, fade);
 	}
 
     if (sprite.RenderType == 1)
     {
         float4 rawOutput = Texture.Sample(Sampler, input.UV) * input.Color;
-		output.Color = DoLaserBarrierEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
+		output = DoLaserBarrierEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
     }
 
     if (sprite.RenderType == 2)
     {
         float4 rawOutput = Texture.Sample(Sampler, input.UV) * input.Color;
-		output.Color = DoLaserBeamEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
+		output = DoLaserBeamEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
     }
 
-	output.Color.xyz *= 1.0f - Luma(input.FogBulbs.xyz);
-	output.Color.xyz = saturate(output.Color.xyz);
+	output.xyz *= 1.0f - Luma(input.FogBulbs.xyz);
+	output.xyz = saturate(output.xyz);
 
-	output.Color = DoDistanceFogForPixel(output.Color, float4(0.0f, 0.0f, 0.0f, 0.0f), input.DistanceFog);
-	output.Color = ApplyBlendModeColor(output.Color, input.PositionCopy, true);
+	output = DoDistanceFogForPixel(output, float4(0.0f, 0.0f, 0.0f, 0.0f), input.DistanceFog);
+	output = ApplyBlendModeColor(output, input.PositionCopy, true);
 
 	return output;
 }
