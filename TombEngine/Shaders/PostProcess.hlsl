@@ -58,6 +58,9 @@ SamplerState LegacyEnvironmentSampler : register(s4);
 Texture2D EmissiveAndSpecularTexture : register(t5);
 SamplerState EmissiveAndSpecularSampler : register(s5);
 
+Texture2D DepthTexture : register(t6);
+SamplerState DepthSampler : register(s6);
+
 Texture2D DistortionTexture : register(t15);
 SamplerState DistortionSampler : register(s15);
 

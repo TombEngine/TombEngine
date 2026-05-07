@@ -25,9 +25,6 @@
 #define EIGHT_FIVE float3( 0.85f, 0.85f, 0.85f)
 #define BLENDING   0.707f
 
-Texture2D DepthTexture : register(t6);
-SamplerState DepthSampler : register(s6);
-
 inline bool BlendModeSupportsSSAO()
 {
     return (BlendMode == BLENDMODE_OPAQUE || BlendMode == BLENDMODE_ALPHATEST || BlendMode == BLENDMODE_ALPHABLEND);

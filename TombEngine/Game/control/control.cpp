@@ -752,7 +752,7 @@ GameStatus DoGameLoop(int levelIndex)
 void EndGameLoop(int levelIndex, GameStatus reason)
 {
 	// Save last screenshot for loading screen.
-	g_Renderer.DumpGameScene(SceneRenderMode::NoHud, g_GameFlow->GetSettings()->UI.MenuBackgroundBlur);
+	g_Renderer.DumpGameScene(SceneRenderMode::Full);
 
 	if (reason == GameStatus::LevelComplete)
 		SaveGame::SaveHub(levelIndex);
