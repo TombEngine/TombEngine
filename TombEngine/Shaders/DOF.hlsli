@@ -221,7 +221,7 @@ float4 PSDOFNearBlur(PixelShaderInput input) : SV_Target
 // Pass 5 — full-resolution composite.
 // t0  (ColorTexture)      = sharp full-res image
 // t6  (DepthTexture)      = scene depth
-// t14 (DistortionTexture) = far blur (half-res, alpha = farCoC)
+// t15 (DistortionTexture) = far blur (half-res, alpha = farCoC)
 // t2  (NormalsTexture)    = near blur (half-res, alpha = nearCoC)
 //
 // Composite order: sharp → apply far blur → apply near blur on top.

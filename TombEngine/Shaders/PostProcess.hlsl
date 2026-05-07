@@ -151,7 +151,7 @@ float4 PSDistortion(PixelShaderInput input) : SV_Target
     // Base noise parameters.
     float noiseStrength   = lerp(DISTORTION_NOISE_STRENGTH_BILLBOARD, DISTORTION_NOISE_STRENGTH_SURFACE, typeBlend) * distFade;
     float noiseScale      = lerp(DISTORTION_NOISE_SCALE_BILLBOARD, DISTORTION_NOISE_SCALE_SURFACE, typeBlend) * distFade;
-    float shimmerStremgth = lerp(DISTORTION_NOISE_SHIMMER_STRENGTH_BILLBOARD, DISTORTION_NOISE_SHIMMER_STRENGTH_SURFACE, typeBlend) * distFade;
+    float shimmerStrength = lerp(DISTORTION_NOISE_SHIMMER_STRENGTH_BILLBOARD, DISTORTION_NOISE_SHIMMER_STRENGTH_SURFACE, typeBlend) * distFade;
     float shimmerScale    = lerp(DISTORTION_NOISE_SHIMMER_SCALE_BILLBOARD, DISTORTION_NOISE_SHIMMER_SCALE_SURFACE, typeBlend) * distFade;
     float noiseSpeed      = lerp(DISTORTION_NOISE_SPEED_BILLBOARD, DISTORTION_NOISE_SPEED_SURFACE, typeBlend) * Frame;
 
@@ -164,7 +164,7 @@ float4 PSDistortion(PixelShaderInput input) : SV_Target
 	float shimmerTime = noiseSpeed * 3.5f;
 	float shimmerX = SimplexNoise(float3(input.UV * shimmerScale * 1.7f, shimmerTime + 13.1f));
 	float shimmerY = SimplexNoise(float3(input.UV * shimmerScale * 2.3f, shimmerTime + 31.7f));
-	float2 shimmerVec = float2(shimmerX, shimmerY) * shimmerStremgth;
+	float2 shimmerVec = float2(shimmerX, shimmerY) * shimmerStrength;
 
 	// Distance-based fade.
 	float shimmerFade = 1.0f - smoothstep(DISTORTION_DISTANCE_FADE_START / 1.5f, DISTORTION_DISTANCE_FADE_END / 3.0f, emitterDist);

@@ -5,7 +5,7 @@
 #include "Specific/clock.h"
 
 class Pose;
-using namespace TEN::Renderer::Structures;
+using TEN::Renderer::Structures::DOFState;
 
 namespace TEN::SpotCam
 {

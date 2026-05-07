@@ -307,8 +307,8 @@ namespace TEN::Renderer
 
 	void Renderer::CopyRenderTargetAndDownscale(IRenderSurface2D* source, IRenderSurface2D* dest, float factor, RenderView& view)
 	{
-		int w = (_graphicsDevice->GetScreenWidth() + factor + 1) / factor;
-		int h = (_graphicsDevice->GetScreenHeight() + factor + 1) / factor;
+		int w = (_graphicsDevice->GetScreenWidth() + factor - 1) / factor;
+		int h = (_graphicsDevice->GetScreenHeight() + factor - 1) / factor;
 
 		RendererViewport viewport = { 0, 0, w, h, 0.0f, 1.0f };
 		_graphicsDevice->SetViewport(viewport);
