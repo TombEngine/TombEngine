@@ -8,7 +8,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### New features
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
-* Added DISK_SHOOTER (ID 424) object from TR2.
+* Added DISK_SHOOTER (ID 322) object from TR2.
 * Added HEAVY_STAMPER (ID 459) object from TR3.
 * Added DRILL_BIT (ID 460) object from TR3.
 * Added SPIKED_FRAME (ID 461) object from TR3.
