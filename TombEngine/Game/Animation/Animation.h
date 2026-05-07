@@ -107,6 +107,7 @@ namespace TEN::Animation
 	bool TestStateDispatch(const ItemInfo& item, int targetStateID = NO_VALUE);
 	bool TestLastFrame(const ItemInfo& item, int animNumber = NO_VALUE);
 	bool TestAnimFrameRange(const ItemInfo& item, int frameNumberLow, int frameNumberHigh);
+	bool IsSoundEffectCommandActive(const ItemInfo& item, int soundId);
 
 	// Getters
 

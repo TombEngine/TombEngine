@@ -145,8 +145,8 @@ namespace TEN::Effects::WaterfallEmitter
 
                     if (part.friction & 0x0F)
                     {
-                        velocity.x -= static_cast<int>(velocity.x) >> (part.friction & 0x0F);
-                        velocity.z -= static_cast<int>(velocity.z) >> (part.friction & 0x0F);
+                        velocity.x -= (int)velocity.x >> (part.friction & 0x0F);
+                        velocity.z -= (int)velocity.z >> (part.friction & 0x0F);
                     }
 
                     targetPos.x += velocity.x / (84 / stepSize);

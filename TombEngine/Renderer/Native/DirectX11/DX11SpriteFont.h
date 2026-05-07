@@ -27,20 +27,12 @@ namespace TEN::Renderer::Native::DirectX11
 		DX11SpriteFont();
 		~DX11SpriteFont() = default;
 
-		DX11SpriteFont(ID3D11Device* device, std::wstring fontPath);
+		DX11SpriteFont(ID3D11Device* device, std::string fontPath);
 
-		float GetLineSpacing();
-
-		Vector2 MeasureString(std::wstring str);
-		Vector2 MeasureString(wchar_t* str);
-
-		Glyph FindGlyph(char c);
-		Glyph FindGlyph(wchar_t c);
-
-		void DrawString(ISpriteBatch* spriteBatch, std::wstring text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale = 1);
-		void DrawString(ISpriteBatch* spriteBatch, wchar_t* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale = 1);
-		void DrawString(ISpriteBatch* spriteBatch, std::string text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale = 1);
-		void DrawString(ISpriteBatch* spriteBatch, char* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale = 1);
+		float GetLineSpacing() override;
+		Vector2 MeasureString(const std::string& str) override;
+		Glyph FindGlyph(char c) override;
+		void DrawString(ISpriteBatch* spriteBatch, const std::string& text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale = 1) override;
 	};
 }
 

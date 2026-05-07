@@ -2,9 +2,7 @@
 #include "Renderer/Renderer.h"
 
 #include <filesystem>
-#include <codecvt>
 
-#include "Specific/trutils.h"
 #include "Specific/EngineMain.h"
 
 namespace TEN::Renderer 
@@ -31,19 +29,18 @@ namespace TEN::Renderer
 		return _adapterInfo;
 	}
 
-	std::unique_ptr<ITexture2D> Renderer::SetTextureOrDefault(std::wstring path)
+	std::unique_ptr<ITexture2D> Renderer::SetTextureOrDefault(std::string path)
 	{
 		std::unique_ptr<ITexture2D> texture;
 
 		if (std::filesystem::is_regular_file(path))
 		{
-			texture = _graphicsDevice->CreateTexture2DFromFile(TEN::Utils::ToString(path));
+			texture = _graphicsDevice->CreateTexture2DFromFile(path);
 		}
 		else if (!path.empty()) // Loading default texture without path may be intentional.
 		{
 			texture = _graphicsDevice->CreateTexture2D(1, 1, SurfaceFormat::SF_RGBA8_Unorm, nullptr);
-			std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-			TENLog("Texture file not found: " + converter.to_bytes(path), LogLevel::Warning);
+			TENLog("Texture file not found: " + path, LogLevel::Warning);
 		}
 		else
 		{

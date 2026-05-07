@@ -748,7 +748,7 @@ aiBitsType Moveable::GetAIBits() const
 	for (size_t i = 0; i < ret.size(); ++i)
 	{
 		unsigned char isSet = _moveable->AIBits & (1 << i);
-		ret[i] = static_cast<int>( isSet > 0);
+		ret[i] = (int)(isSet > 0);
 	}
 
 	return ret;

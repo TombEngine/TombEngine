@@ -14,7 +14,7 @@ namespace TEN::Video
 	VideoHandler g_VideoPlayer = {};
 
 	static const std::string			  VIDEO_PATH	   = "FMV/";
-	static const std::wstring			  VIDEO_PLUGIN_CACHE_PATH = L"plugins/plugins.dat";
+	static const std::string			  VIDEO_PLUGIN_CACHE_PATH = "plugins/plugins.dat";
 	static const std::vector<std::string> VIDEO_EXTENSIONS = { ".mp4", ".avi", ".mkv", ".mov" };
 
 	int VideoHandler::GetPosition() const
@@ -186,7 +186,7 @@ namespace TEN::Video
 			vlcArgs.push_back("--reset-plugins-cache");
 		}
 
-		_vlcInstance = libvlc_new(static_cast<int>(vlcArgs.size()), vlcArgs.data());
+		_vlcInstance = libvlc_new((int)vlcArgs.size(), vlcArgs.data());
 
 #if _DEBUG
 		//libvlc_log_set(_vlcInstance, OnLog, nullptr);

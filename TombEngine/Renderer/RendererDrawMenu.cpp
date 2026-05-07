@@ -891,23 +891,23 @@ namespace TEN::Renderer
 
 		auto skinMode = GetSkinningMode(*moveableObject, object.skinIndex);
 
-		_stItem.Color = color;
-		_stItem.AmbientLight = g_DrawItems.GetAmbientLight();;
-		_stItem.Skinned = (int)skinMode;
+		_stObjects.Objects[0].Color = color;
+		_stObjects.Objects[0].AmbientLight = g_DrawItems.GetAmbientLight();;
+		_stObjects.Skinned = (int)skinMode;
 
 		if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
 		{
-			_stItem.World = worldMatrix;
+			_stObjects.Objects[0].World = worldMatrix;
 
 			// Calculate bones matrices for skinning
 			for (int m = 0; m < moveableObject->AnimationTransforms.size(); m++)
-				_stItem.BonesMatrices[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
+				_stObjects.Bones[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
 
-			_stItem.BoneLightModes[0] = (int)LightMode::Dynamic;
+			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stItem, _cbItem.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
 
 			// Draw the skin mesh.
 			const auto skinMesh = GetMesh(object.skinIndex);
@@ -935,7 +935,7 @@ namespace TEN::Renderer
 		}
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
-			_stItem.BonesMatrices[i] = Matrix::Identity;
+			_stObjects.Bones[i] = Matrix::Identity;
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
 		{
@@ -951,19 +951,19 @@ namespace TEN::Renderer
 
 			if (!object.Animations.empty())
 			{
-				_stItem.World = moveableObject->AnimationTransforms[i] * worldMatrix;
+				_stObjects.Objects[0].World = moveableObject->AnimationTransforms[i] * worldMatrix;
 			}
 			else
 			{
-				_stItem.World = moveableObject->BindPoseTransforms[i] * worldMatrix;
+				_stObjects.Objects[0].World = moveableObject->BindPoseTransforms[i] * worldMatrix;
 			}
 
-			_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
+			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stItem, _cbItem.get());
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
 
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
 
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
 
@@ -1059,23 +1059,23 @@ namespace TEN::Renderer
 
 		auto skinMode = GetSkinningMode(*moveableObject, object.skinIndex);
 
-		_stItem.Color = color;
-		_stItem.AmbientLight = g_DrawItems.GetAmbientLight();
-		_stItem.Skinned = (int)skinMode;
+		_stObjects.Objects[0].Color = color;
+		_stObjects.Objects[0].AmbientLight = g_DrawItems.GetAmbientLight();
+		_stObjects.Skinned = (int)skinMode;
 
 		if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
 		{
-			_stItem.World = worldMatrix;
+			_stObjects.Objects[0].World = worldMatrix;
 
 			// Calculate bones matrices for skinning.
 			for (int m = 0; m < moveableObject->AnimationTransforms.size(); m++)
-				_stItem.BonesMatrices[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
+				_stObjects.Bones[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
 
-			_stItem.BoneLightModes[0] = (int)LightMode::Dynamic;
+			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stItem, _cbItem.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
 
 			// Get skin mesh.
 			const auto* skinMesh = GetMesh(object.skinIndex);
@@ -1104,7 +1104,7 @@ namespace TEN::Renderer
 		}
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
-			_stItem.BonesMatrices[i] = Matrix::Identity;
+			_stObjects.Bones[i] = Matrix::Identity;
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
 		{
@@ -1119,18 +1119,18 @@ namespace TEN::Renderer
 
 			if (!object.Animations.empty())
 			{
-				_stItem.World = moveableObject->AnimationTransforms[i] * worldMatrix;
+				_stObjects.Objects[0].World = moveableObject->AnimationTransforms[i] * worldMatrix;
 			}
 			else
 			{
-				_stItem.World = moveableObject->BindPoseTransforms[i] * worldMatrix;
+				_stObjects.Objects[0].World = moveableObject->BindPoseTransforms[i] * worldMatrix;
 			}
 
-			_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
+			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stItem, _cbItem.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
 
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
 
@@ -1160,7 +1160,7 @@ namespace TEN::Renderer
 
 	void Renderer::RenderTitleImage()
 	{
-		auto texture = SetTextureOrDefault(TEN::Utils::ToWString(g_GameFlow->GetGameDir() + g_GameFlow->IntroImagePath.c_str()));
+		auto texture = SetTextureOrDefault(g_GameFlow->GetGameDir() + g_GameFlow->IntroImagePath.c_str());
 		if (texture == nullptr || !texture->IsValid())
 			return;
 
@@ -1372,7 +1372,7 @@ namespace TEN::Renderer
 		CopyRenderTarget(_renderTarget.get(), renderTarget, _gameCamera);
 	}
 
-	void Renderer::SetLoadingScreen(std::wstring& fileName)
+	void Renderer::SetLoadingScreen(const std::string& fileName)
 	{
 		_loadingScreenTexture = SetTextureOrDefault(fileName);
 	}

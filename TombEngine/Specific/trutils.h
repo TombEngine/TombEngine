@@ -22,8 +22,8 @@ namespace TEN::Utils
 	float        ToFloat(const std::string& string, float fallback);
 	bool         ToBool(const std::string& string, bool fallback);
 
-	std::vector<std::wstring> SplitString(const std::wstring& string);
-	std::vector<std::wstring> SplitWords(const std::wstring& input);
+	std::vector<std::string> SplitString(const std::string& string);
+	std::vector<std::string> SplitWords(const std::string& input);
 
 	int GetHash(const std::string& string);
 
