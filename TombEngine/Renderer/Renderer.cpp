@@ -326,7 +326,7 @@ namespace TEN::Renderer
 		{
 			_graphicsDevice->SetBlendMode(blendMode);
 
-			_stPerDraw.BlendMode = static_cast<unsigned int>(blendMode);
+			_stPerDraw.BlendMode = (unsigned int)blendMode;
 			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 			
 			_lastBlendMode = blendMode;

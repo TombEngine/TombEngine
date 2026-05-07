@@ -609,7 +609,7 @@ void LogicHandler::SerializeScriptTable(const sol::table& tab, std::vector<Saved
 					else
 					{
 						keyIndex = handleNum(data, numMap);
-						key = static_cast<unsigned int>(data);
+						key = (unsigned int)data;
 						_savedVarPath.push_back(key);
 					}
 				}
