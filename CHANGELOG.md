@@ -8,14 +8,28 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### New features
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
-* Added fan trap.
-* Added large fan trap.
-* Added falling spikes trap.
-* Added tunnel borer trap.
-* Added Airplane Propeller trap.
-* Added disk and disk shooter trap.
-* Added rotating knife disk trap.
-* Added falling sandbag trap.
+* Added DISK_SHOOTER (ID 424) object from TR2.
+* Added HEAVY_STAMPER (ID 459) object from TR3.
+* Added DRILL_BIT (ID 460) object from TR3.
+* Added SPIKED_FRAME (ID 461) object from TR3.
+* Added SWINGING_SANDBAG (ID 462) object from TR2.
+* Added SWINGING_BOX (ID 463) object from TR2.
+* Added OVERHEAD_PULLEY_HOOK (ID 464) object from TR2.
+* Added SWINGING_IRON_ANCHOR (ID 465) object from TR3.
+* Added SWINGING_SPIKE_BAG (ID 466) object from TR2.
+* Added CIRCULAR_SAW (ID 467) object from TR2.
+* Added ROLLING_BARRELS	(ID 468) object from TR2.
+* Added MULTIPLE_BOULDERS (ID 469) object from TR2.
+* Added FAN (ID 470) object from TR3.
+* Added LARGE_FAN (ID 471) object from TR2.
+* Added FALLING_SPIKES (ID 472) from TR2.
+* Added TUNNEL_BORER (ID 473) object from TR3.
+* Added AIRPLANE_PROPELLER (ID 474) from TR2.
+* Added ROTATING_KNIFE_DISK (ID 475) object from TR3.
+* Added UNDERWATER_MINE (ID 476) from TR2.
+* Added FALLING_SANDBAG (ID 477) from TR2.
+* Added spark effect to SLAMMING_DOORS if OCB is above 0 and when the flipeffect "playsound" with the soundID SFX_TR1_SLAMDOOR_CLOSE = 1144 is played.
+* Removed FIRE_PENDULUM fxfog effect if OCB value is 0.
  
 ### Bug fixes
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
@@ -45,8 +59,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Optimized pause and options menu handling and apply settings while exiting the menu instead of canceling them.
 * Added faster Xorshift32 random number generation method.
 * Added explosion decal effects to Atlantean enemy projectiles.
-* Added new debug page with memory usage statistics and more verbose logging for memory-related crashes.
-* Removed original limits for flyby camera and sequence count.
+* Optimized pause and options menu handling and apply settings while exiting the menu instead of canceling them.
 
 ### Bug fixes
 * Fixed incorrect handling of negative timer values in classic triggers.

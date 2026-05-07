@@ -74,8 +74,15 @@ namespace TEN::Animation
 		const SoundEffectEnvCondition _envCondition = SoundEffectEnvCondition::Always;
 
 	public:
-		SoundEffectCommand(int soundID, int frameNumber, SoundEffectEnvCondition envCond) : _soundID(soundID), _frameNumber(frameNumber), _envCondition(envCond) {};
+		SoundEffectCommand(int soundID, int frameNumber, SoundEffectEnvCondition envCond)
+			: _soundID(soundID), _frameNumber(frameNumber), _envCondition(envCond) {
+		};
+
 		void Execute(ItemInfo& item, bool isFrameBased) const override;
+
+		int GetSoundID() const { return _soundID; }
+		int GetFrameNumber() const { return _frameNumber; }
+
 	};
 
 	class FlipEffectCommand : public AnimCommand
