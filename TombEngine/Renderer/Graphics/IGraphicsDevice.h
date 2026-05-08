@@ -25,7 +25,7 @@
 #include "Renderer/Structures/RendererViewport.h"
 
 using namespace TEN::Renderer::Structures;
-using namespace DirectX;
+using namespace TEN::Math::Library;
 namespace TEN::Renderer::Graphics
 {
 	class IGraphicsDevice

@@ -8,16 +8,22 @@
 #include "Specific/EngineMain.h"
 #include "Specific/configuration.h"
 #include "Specific/trutils.h"
+#include <CommonStates.h>
+#include <SpriteFont.h>
+#include <PrimitiveBatch.h>
 #include <wincodec.h>
 #include <ScreenGrab.h>
 #include <ctime>
 
 extern GameConfiguration g_Configuration;
 
+using namespace DirectX;
 using namespace TEN::Renderer::Graphics;
 
 namespace TEN::Renderer::Native::DirectX11
 {
+	DX11GraphicsDevice::~DX11GraphicsDevice() = default;
+
 	std::unique_ptr<IVertexBuffer> DX11GraphicsDevice::CreateVertexBuffer(int numVertices, int vertexSize, void* data)
 	{
 		return std::make_unique<DX11VertexBuffer>(_device.Get(), numVertices, vertexSize, data);

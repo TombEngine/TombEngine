@@ -5,9 +5,6 @@
 
 #include "Renderer/Graphics/IGraphicsDevice.h"
 #include <wrl/client.h>
-#include <CommonStates.h>
-#include <SpriteFont.h>
-#include <PrimitiveBatch.h>
 #include "Renderer/Native/DirectX11/DX11IndexBuffer.h"
 #include "Renderer/Native/DirectX11/DX11VertexBuffer.h"
 #include "Renderer/Native/DirectX11/DX11RenderTarget2D.h"
@@ -23,6 +20,8 @@
 #include "Renderer/Native/DirectX11/DX11SpriteFont.h"
 #include "Renderer/Native/DirectX11/DX11GpuReadbackBuffer.h"
 
+namespace DirectX { class CommonStates; }
+
 using namespace TEN::Renderer::Graphics;
 using namespace TEN::Renderer::Structures;
 using namespace Microsoft::WRL;
@@ -36,7 +35,7 @@ namespace TEN::Renderer::Native::DirectX11
 		ComPtr<ID3D11DeviceContext> _context = nullptr;
 		ComPtr<IDXGISwapChain> _swapChain = nullptr;
 
-		std::unique_ptr<CommonStates> _renderStates = nullptr;
+		std::unique_ptr<DirectX::CommonStates> _renderStates = nullptr;
 
 		ComPtr <ID3D11SamplerState> _pointWrapSamplerState = nullptr;
 		ComPtr<ID3D11SamplerState> _shadowSampler;
@@ -98,7 +97,7 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 
 	public:
-		~DX11GraphicsDevice() = default;
+		~DX11GraphicsDevice();
 
 		std::unique_ptr<IVertexBuffer> CreateVertexBuffer(int numVertices, int vertexSize, void* data) override;
 		void UpdateVertexBuffer(IVertexBuffer* vertexBuffer, int startVertex, int count, void* data) override;

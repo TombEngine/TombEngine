@@ -12,7 +12,6 @@
 
 namespace TEN::Renderer::Structures
 {
-	using namespace DirectX;
 	using namespace TEN::Renderer::Graphics;
 
 	struct RendererRoom
