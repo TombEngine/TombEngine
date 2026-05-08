@@ -8,8 +8,7 @@
 #include "Specific/EngineMain.h"
 #include "Specific/configuration.h"
 #include "Specific/trutils.h"
-#include <wincodec.h>
-#include <ScreenGrab.h>
+#include <stb_image_write.h>
 #include <ctime>
 
 extern GameConfiguration g_Configuration;
@@ -1214,9 +1213,46 @@ namespace TEN::Renderer::Native::DirectX11
 	void DX11GraphicsDevice::SaveScreenshot(IRenderTarget2D* renderTarget, std::string path)
 	{
 		auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(renderTarget);
-		auto wPath = TEN::Utils::ToWString(path);
-		SaveWICTextureToFile(_context.Get(), nativeRenderTarget->GetD3D11Texture(), GUID_ContainerFormatPng, wPath.c_str(),
-			&GUID_WICPixelFormat24bppBGR, nullptr, true);
+		auto* srcTexture = nativeRenderTarget->GetD3D11Texture();
+		if (!srcTexture)
+			return;
+
+		D3D11_TEXTURE2D_DESC srcDesc;
+		srcTexture->GetDesc(&srcDesc);
+
+		// Create staging texture for CPU readback.
+		D3D11_TEXTURE2D_DESC stagingDesc = srcDesc;
+		stagingDesc.Usage          = D3D11_USAGE_STAGING;
+		stagingDesc.BindFlags      = 0;
+		stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		stagingDesc.MiscFlags      = 0;
+		stagingDesc.MipLevels      = 1;
+		stagingDesc.ArraySize      = 1;
+
+		ComPtr<ID3D11Texture2D> stagingTexture;
+		if (FAILED(_device->CreateTexture2D(&stagingDesc, nullptr, stagingTexture.GetAddressOf())))
+			return;
+
+		_context->CopyResource(stagingTexture.Get(), srcTexture);
+
+		D3D11_MAPPED_SUBRESOURCE mapped;
+		if (FAILED(_context->Map(stagingTexture.Get(), 0, D3D11_MAP_READ, 0, &mapped)))
+			return;
+
+		int w = (int)srcDesc.Width;
+		int h = (int)srcDesc.Height;
+		std::vector<unsigned char> pixels(w * h * 4);
+		for (int y = 0; y < h; y++)
+		{
+			auto* srcRow = reinterpret_cast<const unsigned char*>(
+				reinterpret_cast<const char*>(mapped.pData) + y * mapped.RowPitch);
+			auto* dstRow = pixels.data() + y * w * 4;
+			memcpy(dstRow, srcRow, w * 4);
+		}
+
+		_context->Unmap(stagingTexture.Get(), 0);
+
+		stbi_write_png(path.c_str(), w, h, 4, pixels.data(), w * 4);
 	}
 
 	Vector3 DX11GraphicsDevice::Unproject(Vector3 position, Matrix projection, Matrix view, Matrix world)
