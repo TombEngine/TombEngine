@@ -17,6 +17,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ring inventory module.
 * Added `Lara.SetSkin` to swap classic outfits.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
+* Added `drawRot` field to advanced particles to create particles with fixed orientation.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 
 ## [Version 1.11.1]
@@ -406,7 +407,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
   - You must use this version: <https://github.com/TombEngine/Resources/raw/refs/heads/main/Wad2%20Objects/Traps/TR1_Thor%20Hammer.wad2>
 * Added TR3 Moving Laser.
 * Added TR4 Statue Plinth.
-* Added draw rotation to advanced particles to create particles with fixed orientation.
 
 ### Lua API changes
 * Added diary module.
