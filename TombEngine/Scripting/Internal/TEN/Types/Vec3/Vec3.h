@@ -58,11 +58,23 @@ public:
 
 	// Converters
 
+	Vector2	   ToVector2() const;
 	Vector3	   ToVector3() const;
 	Vector3i   ToVector3i() const;
+	Vector4	   ToVector4() const;
 	GameVector ToGameVector() const;
 
 	// Operators
 
+	operator Vector2() const;
 	operator Vector3() const;
+	operator Vector4() const;
+
+	// Arithmetic with Vector3.
+	Vector3 operator+(const Vector3& v) const { return Vector3(x + v.x, y + v.y, z + v.z); }
+	Vector3 operator-(const Vector3& v) const { return Vector3(x - v.x, y - v.y, z - v.z); }
+	Vector3 operator*(const Vector3& v) const { return Vector3(x * v.x, y * v.y, z * v.z); }
+	Vector3 operator/(const Vector3& v) const { return Vector3(x / v.x, y / v.y, z / v.z); }
+	Vector3 operator*(float s) const { return Vector3(x * s, y * s, z * s); }
+	Vector3 operator/(float s) const { return Vector3(x / s, y / s, z / s); }
 };
