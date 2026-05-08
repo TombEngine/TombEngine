@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef HAS_DX11
+#ifdef SDL_PLATFORM_WIN32
 
 #include <d3d11.h>
 #include <wrl/client.h>

@@ -1,6 +1,6 @@
 #include "framework.h"
 
-#ifdef HAS_DX11
+#ifdef SDL_PLATFORM_WIN32
 
 #include "Renderer/Native/DirectX11/DX11SpriteFont.h"
 #include "Renderer/Native/DirectX11/DX11ErrorHelper.h"

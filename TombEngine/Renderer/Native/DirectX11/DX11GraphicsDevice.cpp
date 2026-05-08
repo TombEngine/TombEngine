@@ -424,13 +424,15 @@ namespace TEN::Renderer::Native::DirectX11
 	void DX11GraphicsDevice::ClearRenderTarget2D(IRenderTarget2D* renderTarget, Vector4 clearColor)
 	{
 		auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(renderTarget);
-		_context->ClearRenderTargetView(nativeRenderTarget->GetD3D11RenderTargetView(), clearColor);
+		float color[4] = { clearColor.x, clearColor.y, clearColor.z, clearColor.w };
+		_context->ClearRenderTargetView(nativeRenderTarget->GetD3D11RenderTargetView(), color);
 	}
 
 	void DX11GraphicsDevice::ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, Vector4 clearColor)
 	{
 		auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(renderTarget);
-		_context->ClearRenderTargetView(nativeRenderTarget->GetD3D11RenderTargetView(arrayIndex), clearColor);
+		float color[4] = { clearColor.x, clearColor.y, clearColor.z, clearColor.w };
+		_context->ClearRenderTargetView(nativeRenderTarget->GetD3D11RenderTargetView(arrayIndex), color);
 	}
 
 	void DX11GraphicsDevice::ClearDepthStencil(IDepthTarget* renderTarget, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil)
