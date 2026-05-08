@@ -22,6 +22,7 @@ using namespace TEN::Renderer::Graphics;
 
 namespace TEN::Renderer::Native::DirectX11
 {
+	DX11GraphicsDevice::DX11GraphicsDevice() = default;
 	DX11GraphicsDevice::~DX11GraphicsDevice() = default;
 
 	std::unique_ptr<IVertexBuffer> DX11GraphicsDevice::CreateVertexBuffer(int numVertices, int vertexSize, void* data)

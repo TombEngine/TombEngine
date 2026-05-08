@@ -97,6 +97,7 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 
 	public:
+		DX11GraphicsDevice();
 		~DX11GraphicsDevice();
 
 		std::unique_ptr<IVertexBuffer> CreateVertexBuffer(int numVertices, int vertexSize, void* data) override;
