@@ -1,11 +1,7 @@
 #pragma once
 #include <array>
-#include <SimpleMath.h>
-
 namespace TEN::Renderer::Structures
 {
-	using namespace DirectX::SimpleMath;
-
 	struct RendererTriangle3D
 	{
 	private:

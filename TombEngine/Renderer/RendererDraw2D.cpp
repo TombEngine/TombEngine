@@ -1,7 +1,4 @@
 #include "framework.h"
-
-#include <SimpleMath.h>
-
 #include "Game/camera.h"
 #include "Game/control/control.h"
 #include "Game/spotcam.h"
@@ -25,7 +22,6 @@ TEN::Renderer::RendererHudBar* g_LoadingBar;
 
 namespace TEN::Renderer
 {
-	using namespace DirectX::SimpleMath;
 	using namespace TEN::Renderer::Structures;
 	using namespace TEN::Effects::DisplaySprite;
 	using namespace TEN::Effects::Environment;
@@ -467,7 +463,7 @@ namespace TEN::Renderer
 		_primitiveBatch->End();
 	}
 
-	void Renderer::DrawFullScreenSprite(RendererSprite* sprite, DirectX::SimpleMath::Vector3 color, bool fit)
+	void Renderer::DrawFullScreenSprite(RendererSprite* sprite, TEN::Math::Library::Vector3 color, bool fit)
 	{
 		Vector2 uvStart = { 0.0f, 0.0f };
 		Vector2 uvEnd = { 1.0f, 1.0f };

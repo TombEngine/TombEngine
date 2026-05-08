@@ -5,7 +5,7 @@
 #define SHAPE_RECTANGLE 0
 #define SHAPE_TRIANGLE	1
 
-// TODO: refactor AddString() functions for accepting XMVECTORF32 and define colors in TEN::Renderer::Colors namespace later in this file
+// TODO: refactor AddString() functions for accepting Vector4 and define colors in TEN::Renderer::Colors namespace later in this file
 #define PRINTSTRING_COLOR_ORANGE ARGB_TO_UINT(255, 216, 117, 49)
 #define PRINTSTRING_COLOR_WHITE ARGB_TO_UINT(255, 255, 255, 255)
 #define PRINTSTRING_COLOR_BLACK ARGB_TO_UINT(255, 0, 0, 0)
@@ -506,8 +506,8 @@ enum class Shader
 
 namespace TEN::Renderer::Colors
 {
-	XMGLOBALCONST XMVECTORF32 Transparent = { { { 0.f, 0.f, 0.f, 0.f } } };
-	XMGLOBALCONST XMVECTORF32 Black = { { { 0.f, 0.f, 0.f, 1.f } } };
-	XMGLOBALCONST XMVECTORF32 White = { { { 1.f, 1.f, 1.f, 1.f } } };
-	XMGLOBALCONST XMVECTORF32 DimGray = { { { 0.412f, 0.412f, 0.412f, 1.f } } };
+	constexpr Vector4 Transparent(0.f, 0.f, 0.f, 0.f);
+	constexpr Vector4 Black(0.f, 0.f, 0.f, 1.f);
+	constexpr Vector4 White(1.f, 1.f, 1.f, 1.f);
+	constexpr Vector4 DimGray(0.412f, 0.412f, 0.412f, 1.f);
 }

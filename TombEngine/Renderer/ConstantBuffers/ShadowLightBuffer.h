@@ -1,11 +1,8 @@
 #pragma once
-#include <SimpleMath.h>
 #include "Renderer/ConstantBuffers/ShaderLight.h"
 
 namespace TEN::Renderer::ConstantBuffers
 {
-	using namespace DirectX::SimpleMath;
-
 	struct alignas(16) Sphere
 	{
 		Vector3 position;

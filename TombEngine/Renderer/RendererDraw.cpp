@@ -457,7 +457,7 @@ namespace TEN::Renderer
 	void Renderer::DrawSpiders(RenderView& view, RendererPass rendererPass)
 	{
 		_stObjects.Skinned = (int)SkinningMode::Static;
-		/*XMMATRIX world;
+		/*Matrix world;
 		UINT cPasses = 1;
 
 		if (Objects[ID_SPIDERS_EMITTER].loaded)

@@ -11,7 +11,6 @@ using namespace TEN::Math;
 
 namespace TEN::Effects::Explosion
 {
-	using namespace DirectX::SimpleMath;
 	using namespace TEN::Effects::Spark;
 
 	std::array<ExplosionParticle, 64> explosionParticles;

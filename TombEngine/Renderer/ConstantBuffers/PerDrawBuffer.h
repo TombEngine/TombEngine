@@ -1,11 +1,8 @@
 #pragma once
-#include <SimpleMath.h>
 #include <cstdint>
 
 namespace TEN::Renderer::ConstantBuffers
 {
-	using namespace DirectX::SimpleMath;
-
 	// Combined per-draw constant buffer (was CMaterialBuffer + CBlendingBuffer + CAnimatedBuffer
 	// metadata). All three updated at the same per-draw frequency, so folding them halves the
 	// Map/Unmap traffic on the hot draw path. The 256-entry animated frames array now lives in

@@ -1,10 +1,6 @@
 #pragma once
-#include <SimpleMath.h>
-
 namespace TEN::Renderer::Structures
 {
-	using namespace DirectX::SimpleMath;
-
 	// Layout matches HLSL StructuredBuffer<AnimatedFrameUV> in AnimatedTextures.hlsli.
 	struct AnimatedFrame
 	{

@@ -1,6 +1,4 @@
 #pragma once
-#include <SimpleMath.h>
-
 namespace TEN::Renderer::Graphics::Vertices
 {
 	struct Vertex 

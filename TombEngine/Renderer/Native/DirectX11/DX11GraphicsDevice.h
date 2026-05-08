@@ -8,7 +8,6 @@
 #include <CommonStates.h>
 #include <SpriteFont.h>
 #include <PrimitiveBatch.h>
-#include <SimpleMath.h>
 #include "Renderer/Native/DirectX11/DX11IndexBuffer.h"
 #include "Renderer/Native/DirectX11/DX11VertexBuffer.h"
 #include "Renderer/Native/DirectX11/DX11RenderTarget2D.h"
@@ -26,7 +25,6 @@
 
 using namespace TEN::Renderer::Graphics;
 using namespace TEN::Renderer::Structures;
-using namespace DirectX::SimpleMath;
 using namespace Microsoft::WRL;
 
 namespace TEN::Renderer::Native::DirectX11
@@ -143,9 +141,9 @@ namespace TEN::Renderer::Native::DirectX11
 		void DrawInstancedTriangles(int count, int instances, int baseVertex) override;
 		void DrawTriangles(int count, int baseVertex) override;
 
-		void ClearRenderTarget2D(IRenderTarget2D* renderTarget, XMVECTORF32 clearColor) override;
-		void ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, XMVECTORF32 clearColor) override;
-		//void ClearRenderTarget2DOfCube(IRenderTargetCube* textureCube, int index, XMVECTORF32 clearColor) override;
+		void ClearRenderTarget2D(IRenderTarget2D* renderTarget, Vector4 clearColor) override;
+		void ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, Vector4 clearColor) override;
+		//void ClearRenderTarget2DOfCube(IRenderTargetCube* textureCube, int index, Vector4 clearColor) override;
 
 		void ClearDepthStencil(IDepthTarget* renderTarget, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil) override;
 		void ClearDepthStencil(IDepthTarget* renderTarget, int arrayIndex, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil) override;
