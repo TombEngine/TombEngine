@@ -8,23 +8,16 @@
 #include "Specific/EngineMain.h"
 #include "Specific/configuration.h"
 #include "Specific/trutils.h"
-#include <CommonStates.h>
-#include <SpriteFont.h>
-#include <PrimitiveBatch.h>
 #include <wincodec.h>
 #include <ScreenGrab.h>
 #include <ctime>
 
 extern GameConfiguration g_Configuration;
 
-using namespace DirectX;
 using namespace TEN::Renderer::Graphics;
 
 namespace TEN::Renderer::Native::DirectX11
 {
-	DX11GraphicsDevice::DX11GraphicsDevice() = default;
-	DX11GraphicsDevice::~DX11GraphicsDevice() = default;
-
 	std::unique_ptr<IVertexBuffer> DX11GraphicsDevice::CreateVertexBuffer(int numVertices, int vertexSize, void* data)
 	{
 		return std::make_unique<DX11VertexBuffer>(_device.Get(), numVertices, vertexSize, data);
@@ -151,15 +144,15 @@ namespace TEN::Renderer::Native::DirectX11
 		{
 		default:
 		case BlendMode::Opaque:
-			_context->OMSetBlendState(_renderStates->Opaque(), nullptr, 0xFFFFFFFF);
+			_context->OMSetBlendState(_opaqueBlendState.Get(), nullptr, 0xFFFFFFFF);
 			break;
 
 		case BlendMode::AlphaBlend:
-			_context->OMSetBlendState(_renderStates->NonPremultiplied(), nullptr, 0xFFFFFFFF);
+			_context->OMSetBlendState(_nonPremultipliedBlendState.Get(), nullptr, 0xFFFFFFFF);
 			break;
 
 		case BlendMode::AlphaTest:
-			_context->OMSetBlendState(_renderStates->Opaque(), nullptr, 0xFFFFFFFF);
+			_context->OMSetBlendState(_opaqueBlendState.Get(), nullptr, 0xFFFFFFFF);
 			break;
 
 		case BlendMode::Subtractive:
@@ -167,7 +160,7 @@ namespace TEN::Renderer::Native::DirectX11
 			break;
 
 		case BlendMode::Additive:
-			_context->OMSetBlendState(_renderStates->Additive(), nullptr, 0xFFFFFFFF);
+			_context->OMSetBlendState(_additiveBlendState.Get(), nullptr, 0xFFFFFFFF);
 			break;
 
 		case BlendMode::Screen:
@@ -183,7 +176,7 @@ namespace TEN::Renderer::Native::DirectX11
 			break;
 
 		case BlendMode::PremultipliedAlphaBlend:
-			_context->OMSetBlendState(_renderStates->AlphaBlend(), nullptr, 0xFFFFFFFF);
+			_context->OMSetBlendState(_premultipliedAlphaBlendState.Get(), nullptr, 0xFFFFFFFF);
 			break;
 		}
 	}
@@ -193,15 +186,15 @@ namespace TEN::Renderer::Native::DirectX11
 		switch (depthState)
 		{
 		case DepthState::Read:
-			_context->OMSetDepthStencilState(_renderStates->DepthRead(), 0xFFFFFFFF);
+			_context->OMSetDepthStencilState(_depthReadState.Get(), 0xFFFFFFFF);
 			break;
 
 		case DepthState::Write:
-			_context->OMSetDepthStencilState(_renderStates->DepthDefault(), 0xFFFFFFFF);
+			_context->OMSetDepthStencilState(_depthDefaultState.Get(), 0xFFFFFFFF);
 			break;
 
 		case DepthState::None:
-			_context->OMSetDepthStencilState(_renderStates->DepthNone(), 0xFFFFFFFF);
+			_context->OMSetDepthStencilState(_depthNoneState.Get(), 0xFFFFFFFF);
 			break;
 
 		}
@@ -224,7 +217,7 @@ namespace TEN::Renderer::Native::DirectX11
 			break;
 
 		case CullMode::Wireframe:
-			_context->RSSetState(_renderStates->Wireframe());
+			_context->RSSetState(_wireframeRasterizerState.Get());
 			break;
 
 		}
@@ -251,19 +244,19 @@ namespace TEN::Renderer::Native::DirectX11
 		switch (samplerType)
 		{
 		case SamplerStateRegister::AnisotropicClamp:
-			d3dSamplerState = _renderStates->AnisotropicClamp();
+			d3dSamplerState = _anisotropicClampSampler.Get();
 			break;
 
 		case SamplerStateRegister::AnisotropicWrap:
-			d3dSamplerState = _renderStates->AnisotropicWrap();
+			d3dSamplerState = _anisotropicWrapSampler.Get();
 			break;
 
 		case SamplerStateRegister::LinearClamp:
-			d3dSamplerState = _renderStates->LinearClamp();
+			d3dSamplerState = _linearClampSampler.Get();
 			break;
 
 		case SamplerStateRegister::LinearWrap:
-			d3dSamplerState = _renderStates->LinearWrap();
+			d3dSamplerState = _linearWrapSampler.Get();
 			break;
 
 		case SamplerStateRegister::PointWrap:
@@ -608,7 +601,106 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::Initialize()
 	{
-		_renderStates = std::make_unique<CommonStates>(_device.Get());
+		// --- Standard blend states (replacing DXTK CommonStates) ---
+
+		D3D11_BLEND_DESC opaqueDesc = {};
+		opaqueDesc.RenderTarget[0].BlendEnable = FALSE;
+		opaqueDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		throwIfFailed(_device->CreateBlendState(&opaqueDesc, _opaqueBlendState.GetAddressOf()));
+
+		D3D11_BLEND_DESC additiveDesc = {};
+		additiveDesc.RenderTarget[0].BlendEnable = TRUE;
+		additiveDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		additiveDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+		additiveDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		additiveDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
+		additiveDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+		additiveDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		additiveDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		throwIfFailed(_device->CreateBlendState(&additiveDesc, _additiveBlendState.GetAddressOf()));
+
+		D3D11_BLEND_DESC nonPremultDesc = {};
+		nonPremultDesc.RenderTarget[0].BlendEnable = TRUE;
+		nonPremultDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		nonPremultDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+		nonPremultDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		nonPremultDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
+		nonPremultDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+		nonPremultDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		nonPremultDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		throwIfFailed(_device->CreateBlendState(&nonPremultDesc, _nonPremultipliedBlendState.GetAddressOf()));
+
+		D3D11_BLEND_DESC premultDesc = {};
+		premultDesc.RenderTarget[0].BlendEnable = TRUE;
+		premultDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+		premultDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+		premultDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		premultDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		premultDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+		premultDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		premultDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		throwIfFailed(_device->CreateBlendState(&premultDesc, _premultipliedAlphaBlendState.GetAddressOf()));
+
+		// --- Standard depth-stencil states (replacing DXTK CommonStates) ---
+
+		D3D11_DEPTH_STENCIL_DESC depthDefaultDesc = {};
+		depthDefaultDesc.DepthEnable = TRUE;
+		depthDefaultDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		depthDefaultDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+		throwIfFailed(_device->CreateDepthStencilState(&depthDefaultDesc, _depthDefaultState.GetAddressOf()));
+
+		D3D11_DEPTH_STENCIL_DESC depthReadDesc = {};
+		depthReadDesc.DepthEnable = TRUE;
+		depthReadDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		depthReadDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+		throwIfFailed(_device->CreateDepthStencilState(&depthReadDesc, _depthReadState.GetAddressOf()));
+
+		D3D11_DEPTH_STENCIL_DESC depthNoneDesc = {};
+		depthNoneDesc.DepthEnable = FALSE;
+		depthNoneDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		throwIfFailed(_device->CreateDepthStencilState(&depthNoneDesc, _depthNoneState.GetAddressOf()));
+
+		// --- Standard sampler states (replacing DXTK CommonStates) ---
+
+		D3D11_SAMPLER_DESC anisotropicClampDesc = {};
+		anisotropicClampDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+		anisotropicClampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		anisotropicClampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		anisotropicClampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		anisotropicClampDesc.MaxAnisotropy = D3D11_MAX_MAXANISOTROPY;
+		anisotropicClampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		anisotropicClampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		throwIfFailed(_device->CreateSamplerState(&anisotropicClampDesc, _anisotropicClampSampler.GetAddressOf()));
+
+		D3D11_SAMPLER_DESC anisotropicWrapDesc = {};
+		anisotropicWrapDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+		anisotropicWrapDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		anisotropicWrapDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+		anisotropicWrapDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		anisotropicWrapDesc.MaxAnisotropy = D3D11_MAX_MAXANISOTROPY;
+		anisotropicWrapDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		anisotropicWrapDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		throwIfFailed(_device->CreateSamplerState(&anisotropicWrapDesc, _anisotropicWrapSampler.GetAddressOf()));
+
+		D3D11_SAMPLER_DESC linearClampDesc = {};
+		linearClampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		linearClampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		linearClampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		linearClampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		linearClampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		linearClampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		throwIfFailed(_device->CreateSamplerState(&linearClampDesc, _linearClampSampler.GetAddressOf()));
+
+		D3D11_SAMPLER_DESC linearWrapDesc = {};
+		linearWrapDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		linearWrapDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		linearWrapDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+		linearWrapDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		linearWrapDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		linearWrapDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		throwIfFailed(_device->CreateSamplerState(&linearWrapDesc, _linearWrapSampler.GetAddressOf()));
+
+		// --- Custom blend states (project-specific) ---
 
 		D3D11_BLEND_DESC blendStateDesc{};
 		blendStateDesc.AlphaToCoverageEnable = false;
@@ -725,6 +817,14 @@ namespace TEN::Renderer::Native::DirectX11
 		rasterizerStateDesc.AntialiasedLineEnable = true;
 		rasterizerStateDesc.ScissorEnable = true;
 		throwIfFailed(_device->CreateRasterizerState(&rasterizerStateDesc, _cullNoneRasterizerState.GetAddressOf()));
+
+		rasterizerStateDesc.CullMode = D3D11_CULL_NONE;
+		rasterizerStateDesc.FillMode = D3D11_FILL_WIREFRAME;
+		rasterizerStateDesc.DepthClipEnable = true;
+		rasterizerStateDesc.MultisampleEnable = true;
+		rasterizerStateDesc.AntialiasedLineEnable = true;
+		rasterizerStateDesc.ScissorEnable = true;
+		throwIfFailed(_device->CreateRasterizerState(&rasterizerStateDesc, _wireframeRasterizerState.GetAddressOf()));
 
 		D3D11_SAMPLER_DESC samplerStateDesc = {};
 		samplerStateDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;

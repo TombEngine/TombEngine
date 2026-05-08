@@ -20,8 +20,6 @@
 #include "Renderer/Native/DirectX11/DX11SpriteFont.h"
 #include "Renderer/Native/DirectX11/DX11GpuReadbackBuffer.h"
 
-namespace DirectX { class CommonStates; }
-
 using namespace TEN::Renderer::Graphics;
 using namespace TEN::Renderer::Structures;
 using namespace Microsoft::WRL;
@@ -35,11 +33,11 @@ namespace TEN::Renderer::Native::DirectX11
 		ComPtr<ID3D11DeviceContext> _context = nullptr;
 		ComPtr<IDXGISwapChain> _swapChain = nullptr;
 
-		std::unique_ptr<DirectX::CommonStates> _renderStates = nullptr;
-
-		ComPtr <ID3D11SamplerState> _pointWrapSamplerState = nullptr;
-		ComPtr<ID3D11SamplerState> _shadowSampler;
-
+		// Blend states (replacing DXTK CommonStates).
+		ComPtr<ID3D11BlendState> _opaqueBlendState = nullptr;
+		ComPtr<ID3D11BlendState> _additiveBlendState = nullptr;
+		ComPtr<ID3D11BlendState> _nonPremultipliedBlendState = nullptr;
+		ComPtr<ID3D11BlendState> _premultipliedAlphaBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _subtractiveBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _screenBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _lightenBlendState = nullptr;
@@ -47,9 +45,24 @@ namespace TEN::Renderer::Native::DirectX11
 		ComPtr<ID3D11BlendState> _transparencyBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _finalTransparencyBlendState = nullptr;
 
+		// Depth-stencil states (replacing DXTK CommonStates).
+		ComPtr<ID3D11DepthStencilState> _depthDefaultState = nullptr;
+		ComPtr<ID3D11DepthStencilState> _depthReadState = nullptr;
+		ComPtr<ID3D11DepthStencilState> _depthNoneState = nullptr;
+
+		// Sampler states.
+		ComPtr<ID3D11SamplerState> _anisotropicClampSampler = nullptr;
+		ComPtr<ID3D11SamplerState> _anisotropicWrapSampler = nullptr;
+		ComPtr<ID3D11SamplerState> _linearClampSampler = nullptr;
+		ComPtr<ID3D11SamplerState> _linearWrapSampler = nullptr;
+		ComPtr<ID3D11SamplerState> _pointWrapSamplerState = nullptr;
+		ComPtr<ID3D11SamplerState> _shadowSampler;
+
+		// Rasterizer states.
 		ComPtr<ID3D11RasterizerState> _cullCounterClockwiseRasterizerState = nullptr;
 		ComPtr<ID3D11RasterizerState> _cullClockwiseRasterizerState = nullptr;
 		ComPtr<ID3D11RasterizerState> _cullNoneRasterizerState = nullptr;
+		ComPtr<ID3D11RasterizerState> _wireframeRasterizerState = nullptr;
 		
 		ComPtr<ID3D11InputLayout> _inputLayout = nullptr;
 		ComPtr<ID3D11InputLayout> _fullscreenTriangleInputLayout = nullptr;
@@ -97,8 +110,7 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 
 	public:
-		DX11GraphicsDevice();
-		~DX11GraphicsDevice();
+		~DX11GraphicsDevice() = default;
 
 		std::unique_ptr<IVertexBuffer> CreateVertexBuffer(int numVertices, int vertexSize, void* data) override;
 		void UpdateVertexBuffer(IVertexBuffer* vertexBuffer, int startVertex, int count, void* data) override;
