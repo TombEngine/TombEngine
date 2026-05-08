@@ -50,18 +50,17 @@ namespace TEN::Renderer
 		_vertexInputLayout = _graphicsDevice->CreateInputLayout(inputLayoutItems, (IShader*)roomShader);
 		
 		// Initialize constant buffers.
-		_cbCameraMatrices = CreateConstantBuffer<CItemBuffer>();
-		_cbItem = CreateConstantBuffer<CItemBuffer>();
+		_cbCameraMatrices = CreateConstantBuffer<CCameraMatrixBuffer>();
+		_cbObjects = CreateConstantBuffer<CObjectsBuffer>();
 		_cbSky = CreateConstantBuffer<CSkyBuffer>();
 		_cbShadowMap = CreateConstantBuffer<CShadowLightBuffer>();
 		_cbRoom = CreateConstantBuffer<CRoomBuffer>();
-		_cbAnimated = CreateConstantBuffer<CAnimatedBuffer>();
+		_animatedFramesBuffer = _graphicsDevice->CreateStructuredBuffer(
+			sizeof(AnimatedFrame), MAX_ANIMATED_FRAMES, L"AnimatedFramesBuffer");
 		_cbPostProcessBuffer = CreateConstantBuffer<CPostProcessBuffer>();
-		_cbBlending = CreateConstantBuffer<CBlendingBuffer>();
+		_cbPerDraw = CreateConstantBuffer<CPerDrawBuffer>();
 		_cbInstancedSpriteBuffer = CreateConstantBuffer<CInstancedSpriteBuffer>();
-		_cbInstancedStaticMeshBuffer = CreateConstantBuffer<CInstancedStaticMeshBuffer>();
 		_cbSMAABuffer = CreateConstantBuffer<CSMAABuffer>();
-		_cbMaterial = CreateConstantBuffer<CMaterialBuffer>();
 
 		// Prepare HUD Constant buffer.
 		_cbHUDBar = CreateConstantBuffer<CHUDBarBuffer>();
@@ -356,17 +355,17 @@ namespace TEN::Renderer
 	void Renderer::InitializeCommonTextures()
 	{
 		// Initialize font.
-		auto fontPath = GetAssetPath(L"Textures/Font.spritefont");
+		auto fontPath = GetAssetPath("Textures/Font.spritefont");
 		if (!std::filesystem::is_regular_file(fontPath))
-			throw std::runtime_error("Font not found; path " + TEN::Utils::ToString(fontPath) + " is missing.");
-		     
+			throw std::runtime_error("Font not found; path " + fontPath + " is missing.");
+
 		_gameFont = _graphicsDevice->InitializeSpriteFont(fontPath);
 
 		// Initialize common textures.
-		_logo = SetTextureOrDefault(GetAssetPath(L"Textures/Logo.png"));
-		_loadingBarBorder = SetTextureOrDefault(GetAssetPath(L"Textures/LoadingBarBorder.png"));
-		_loadingBarInner = SetTextureOrDefault(GetAssetPath(L"Textures/LoadingBarInner.png"));
-		_whiteTexture = SetTextureOrDefault(GetAssetPath(L"Textures/WhiteSprite.png"));
+		_logo = SetTextureOrDefault(GetAssetPath("Textures/Logo.png"));
+		_loadingBarBorder = SetTextureOrDefault(GetAssetPath("Textures/LoadingBarBorder.png"));
+		_loadingBarInner = SetTextureOrDefault(GetAssetPath("Textures/LoadingBarInner.png"));
+		_whiteTexture = SetTextureOrDefault(GetAssetPath("Textures/WhiteSprite.png"));
 
 		_whiteSprite.Height = _whiteTexture->GetHeight();
 		_whiteSprite.Width = _whiteTexture->GetWidth();

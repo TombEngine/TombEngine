@@ -81,8 +81,8 @@ struct GameConfiguration
 	int	 SoundDevice  = 0;
 	bool EnableSound  = false;
 	bool EnableReverb = false;
-	int	 MusicVolume  = 0;
-	int	 SfxVolume	  = 0;
+	int	 MusicVolume  = VOLUME_MAX;
+	int	 SfxVolume	  = VOLUME_MAX;
 
 	// Gameplay
 
@@ -107,6 +107,6 @@ struct GameConfiguration
 void InitDefaultConfiguration();
 bool LoadConfiguration();
 bool SaveConfiguration();
-void SaveAudioConfig();
+void SetAudioConfiguration(const GameConfiguration& config);
 
 extern GameConfiguration g_Configuration;
