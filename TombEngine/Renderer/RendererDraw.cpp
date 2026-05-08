@@ -215,22 +215,20 @@ namespace TEN::Renderer
 			auto& obj = GetRendererObject((GAME_OBJECT_ID)item->ObjectID);
 			auto skinMode = GetSkinningMode(obj, item->SkinIndex);
 
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
 
-			_stItem.World = item->InterpolatedWorld;
-			_stItem.Color = item->Color;
-			_stItem.AmbientLight = item->AmbientLight;
-			_stItem.Skinned = (int)skinMode;
+			_stObjects.Objects[0].World = item->InterpolatedWorld;
+			_stObjects.Objects[0].Color = item->Color;
+			_stObjects.Objects[0].AmbientLight = item->AmbientLight;
+			_stObjects.Skinned = (int)skinMode;
 
 			for (int k = 0; k < MAX_BONES; k++)
-				_stItem.BoneLightModes[k] = (int)LightMode::Static;
+				_stObjects.BoneLightModes[k] = (int)LightMode::Static;
 
 			if (skinMode == SkinningMode::Full)
 			{
 				for (int m = 0; m < obj.AnimationTransforms.size(); m++)
-					_stItem.BonesMatrices[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
-				UpdateConstantBuffer(&_stItem, _cbItem.get());
+					_stObjects.Bones[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 				auto* mesh = GetMesh(item->SkinIndex);
 
@@ -249,8 +247,8 @@ namespace TEN::Renderer
 				}
 			}
 
-			memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
-			UpdateConstantBuffer(&_stItem, _cbItem.get());
+			memcpy(_stObjects.Bones, item->InterpolatedAnimTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 			for (int k = 0; k < obj.ObjectMeshes.size(); k++)
 			{
@@ -295,6 +293,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawGunShells(RenderView& view, RendererPass rendererPass)
 	{
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
 		auto& room = _rooms[LaraItem->RoomNumber];
 		auto* item = &_items[LaraItem->Index];
 
@@ -330,10 +330,10 @@ namespace TEN::Renderer
 			worldMatrix = Matrix::Lerp(prevWorldMatrix, worldMatrix, GetInterpolationFactor());
 			ReflectMatrixOptionally(worldMatrix);
 
-			_stInstancedStaticMeshBuffer.StaticMeshes[gunShellCount].World = worldMatrix;
-			_stInstancedStaticMeshBuffer.StaticMeshes[gunShellCount].Ambient = room.AmbientLight;
-			_stInstancedStaticMeshBuffer.StaticMeshes[gunShellCount].Color = room.AmbientLight;
-			_stInstancedStaticMeshBuffer.StaticMeshes[gunShellCount].LightMode = (int)LightMode::Dynamic;
+			_stObjects.Objects[gunShellCount].World = worldMatrix;
+			_stObjects.Objects[gunShellCount].AmbientLight = room.AmbientLight;
+			_stObjects.Objects[gunShellCount].Color = room.AmbientLight;
+			_stObjects.Objects[gunShellCount].LightMode = (int)LightMode::Dynamic;
 			BindInstancedStaticLights(item->LightsToDraw, gunShellCount);
 
 			gunShellCount++;
@@ -351,7 +351,7 @@ namespace TEN::Renderer
 			SetBlendMode(BlendMode::Opaque);
 			SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
-			UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 			const auto& mesh = *moveableObject.ObjectMeshes[0];
 			for (const auto& bucket : mesh.Buckets)
@@ -456,6 +456,7 @@ namespace TEN::Renderer
 
 	void Renderer::DrawSpiders(RenderView& view, RendererPass rendererPass)
 	{
+		_stObjects.Skinned = (int)SkinningMode::Static;
 		/*XMMATRIX world;
 		UINT cPasses = 1;
 
@@ -524,6 +525,8 @@ namespace TEN::Renderer
 	{
 		if (!Objects[ID_RATS_EMITTER].loaded)
 			return;
+
+		_stObjects.Skinned = (int)SkinningMode::Static;
 
 		if (rendererPass == RendererPass::CollectTransparentFaces)
 		{
@@ -615,15 +618,15 @@ namespace TEN::Renderer
 						auto world = rat->Transform;
 						ReflectMatrixOptionally(world);
 
-						_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
-						_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = NEUTRAL_COLOR;
-						_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[rat->RoomNumber].AmbientLight;
-						_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
+						_stObjects.Objects[0].World = world;
+						_stObjects.Objects[0].Color = NEUTRAL_COLOR;
+						_stObjects.Objects[0].AmbientLight = _rooms[rat->RoomNumber].AmbientLight;
+						_stObjects.Objects[0].LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
 
 						if (rendererPass != RendererPass::GBuffer)
 							BindInstancedStaticLights(_rooms[rat->RoomNumber].LightsToDraw, 0);
 
-						UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 						for (int animated = 0; animated < 2; animated++)
 						{
@@ -658,6 +661,8 @@ namespace TEN::Renderer
 	{
 		if (!Objects[ID_FISH_EMITTER].loaded)
 			return;
+
+		_stObjects.Skinned = (int)SkinningMode::Static;
 
 		if (rendererPass == RendererPass::CollectTransparentFaces)
 		{
@@ -730,15 +735,15 @@ namespace TEN::Renderer
 
 					const auto& mesh = *GetMesh(Objects[ID_FISH_EMITTER].meshIndex + fish.MeshIndex);
 
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].World = Matrix::Lerp(fish.PrevTransform, fish.Transform, GetInterpolationFactor());
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = NEUTRAL_COLOR;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[fish.RoomNumber].AmbientLight;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
+					_stObjects.Objects[0].World = Matrix::Lerp(fish.PrevTransform, fish.Transform, GetInterpolationFactor());
+					_stObjects.Objects[0].Color = NEUTRAL_COLOR;
+					_stObjects.Objects[0].AmbientLight = _rooms[fish.RoomNumber].AmbientLight;
+					_stObjects.Objects[0].LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
 
 					if (rendererPass != RendererPass::GBuffer)
 						BindInstancedStaticLights(_rooms[fish.RoomNumber].LightsToDraw, 0);
 
-					UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -772,10 +777,12 @@ namespace TEN::Renderer
 		if (!Objects[ID_BATS_EMITTER].loaded)
 			return;
 
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
+		auto& mesh = *GetMesh(Objects[ID_BATS_EMITTER].meshIndex + ((GlobalCounter + BatsAnimFrameOffset) & 3));
+
 		if (rendererPass == RendererPass::CollectTransparentFaces)
 		{
-			auto& mesh = *GetMesh(Objects[ID_BATS_EMITTER].meshIndex + ((GlobalCounter + BatsAnimFrameOffset) & 3));
-
 			auto collectTransparentBat = [&](const BatData& bat)
 			{
 				if (!bat.On)
@@ -819,9 +826,9 @@ namespace TEN::Renderer
 		}
 		else
 		{
-			auto& mesh = *GetMesh(Objects[ID_BATS_EMITTER].meshIndex + ((GlobalCounter + BatsAnimFrameOffset) & 3));
+			int batCount = 0;
 
-			auto flushBats = [&](const auto& mesh, int batCount)
+			auto flushBats = [&]()
 			{
 				if (!batCount)
 					return;
@@ -839,11 +846,11 @@ namespace TEN::Renderer
 				_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 				_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
-				UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 				for (int animated = 0; animated < 2; animated++)
 				{
-					for (const auto& bucket : mesh.Buckets)
+					for (auto& bucket : mesh.Buckets)
 					{
 						if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
 							continue;
@@ -863,9 +870,11 @@ namespace TEN::Renderer
 						}
 					}
 				}
+
+				batCount = 0;
 			};
 
-			auto addBat = [&](const BatData& bat, const auto& mesh, int* batCount)
+			auto addBat = [&](const BatData& bat)
 			{
 				if (!bat.On)
 					return;
@@ -880,32 +889,27 @@ namespace TEN::Renderer
 				auto world = transformMatrix;
 				ReflectMatrixOptionally(world);
 
-				_stInstancedStaticMeshBuffer.StaticMeshes[*batCount].World = world;
-				_stInstancedStaticMeshBuffer.StaticMeshes[*batCount].Ambient = room.AmbientLight;
-				_stInstancedStaticMeshBuffer.StaticMeshes[*batCount].Color = NEUTRAL_COLOR;
-				_stInstancedStaticMeshBuffer.StaticMeshes[*batCount].LightMode = (int)mesh.LightMode;
+				_stObjects.Objects[batCount].World = world;
+				_stObjects.Objects[batCount].AmbientLight = room.AmbientLight;
+				_stObjects.Objects[batCount].Color = NEUTRAL_COLOR;
+				_stObjects.Objects[batCount].LightMode = (int)mesh.LightMode;
 
 				if (rendererPass != RendererPass::GBuffer)
-					BindInstancedStaticLights(room.LightsToDraw, *batCount);
+					BindInstancedStaticLights(room.LightsToDraw, batCount);
 
-				(*batCount)++;
+				batCount++;
 
-				if (*batCount == INSTANCED_STATIC_MESH_BUCKET_SIZE)
-				{
-					flushBats(mesh, *batCount);
-					*batCount = 0;
-				}
+				if (batCount == INSTANCED_STATIC_MESH_BUCKET_SIZE)
+					flushBats();
 			};
 
-			int batCount = 0;
+			for (int i = 0; i < NUM_BATS; i++)
+				addBat(Bats[i]);
 
 			for (int i = 0; i < NUM_BATS; i++)
-				addBat(Bats[i], mesh, &batCount);
+				addBat(Tr3Bats[i]);
 
-			for (int i = 0; i < NUM_BATS; i++)
-				addBat(Tr3Bats[i], mesh, &batCount);
-
-			flushBats(mesh, batCount);
+			flushBats();
 		}
 	}
 
@@ -913,6 +917,8 @@ namespace TEN::Renderer
 	{
 		if (!Objects[ID_LITTLE_BEETLE].loaded)
 			return;
+
+		_stObjects.Skinned = (int)SkinningMode::Static;
 
 		auto& mesh = *GetMesh(Objects[ID_LITTLE_BEETLE].meshIndex + ((Wibble >> 2) % 2));
 
@@ -973,10 +979,10 @@ namespace TEN::Renderer
 					auto world = transformMatrix;
 					ReflectMatrixOptionally(world);
 
-					_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].World = world;
-					_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].Ambient = room.AmbientLight;
-					_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].Color = NEUTRAL_COLOR;
-					_stInstancedStaticMeshBuffer.StaticMeshes[beetleCount].LightMode = (int)mesh.LightMode;
+					_stObjects.Objects[beetleCount].World = world;
+					_stObjects.Objects[beetleCount].AmbientLight = room.AmbientLight;
+					_stObjects.Objects[beetleCount].Color = NEUTRAL_COLOR;
+					_stObjects.Objects[beetleCount].LightMode = (int)mesh.LightMode;
 
 					if (rendererPass != RendererPass::GBuffer)
 					{
@@ -1006,7 +1012,7 @@ namespace TEN::Renderer
 					_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
-					UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -1041,6 +1047,8 @@ namespace TEN::Renderer
 	{
 		if (!Objects[ID_LOCUSTS].loaded)
 			return;
+
+		_stObjects.Skinned = (int)SkinningMode::Static;
 
 		if (rendererPass == RendererPass::CollectTransparentFaces)
 		{
@@ -1127,15 +1135,15 @@ namespace TEN::Renderer
 					auto world = Matrix::Lerp(locust.PrevTransform, locust.Transform, GetInterpolationFactor());
 					ReflectMatrixOptionally(world);
 
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = NEUTRAL_COLOR;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[locust.RoomNumber].AmbientLight;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
+					_stObjects.Objects[0].World = world;
+					_stObjects.Objects[0].Color = NEUTRAL_COLOR;
+					_stObjects.Objects[0].AmbientLight = _rooms[locust.RoomNumber].AmbientLight;
+					_stObjects.Objects[0].LightMode = (int)moveableObj.ObjectMeshes[0]->LightMode;
 
 					if (rendererPass != RendererPass::GBuffer)
 						BindInstancedStaticLights(_rooms[locust.RoomNumber].LightsToDraw, 0);
 
-					UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -1831,8 +1839,8 @@ namespace TEN::Renderer
 		UpdateLaraAnimations(false);
 		UpdateItemAnimations(view);
 
-		_stBlending.AlphaTest = NO_VALUE;
-		_stBlending.AlphaThreshold = NO_VALUE;
+		_stPerDraw.AlphaTest = NO_VALUE;
+		_stPerDraw.AlphaThreshold = NO_VALUE;
 
 		CollectLightsForCamera();
 		RenderItemShadows(view);
@@ -1871,28 +1879,25 @@ namespace TEN::Renderer
 
 		// Bind constant buffers.
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Material, _cbMaterial.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbInstancedStaticMeshBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PerDraw, _cbPerDraw.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::AnimatedTextures, _cbAnimated.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Blending, _cbBlending.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Sky, _cbSky.get());
 
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Material, _cbMaterial.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbInstancedStaticMeshBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PerDraw, _cbPerDraw.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::AnimatedTextures, _cbAnimated.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Blending, _cbBlending.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Sky, _cbSky.get());
+
+		_graphicsDevice->BindStructuredBuffer(ShaderStage::VertexShader, TextureRegister::AnimatedFrames, _animatedFramesBuffer.get());
+		_graphicsDevice->BindStructuredBuffer(ShaderStage::PixelShader, TextureRegister::AnimatedFrames, _animatedFramesBuffer.get());
 
 		// Reset GPU state.
 		SetBlendMode(BlendMode::Opaque, true);
@@ -1901,8 +1906,8 @@ namespace TEN::Renderer
 
 		BindMaterial(0, true);
 
-		_stAnimated.Animated = 0;
-		UpdateConstantBuffer(&_stAnimated, _cbAnimated.get());
+		_stPerDraw.Animated = 0;
+		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
 		// Set up vertex parameters.
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
@@ -1911,8 +1916,8 @@ namespace TEN::Renderer
 		// Draw skybox to paraboloid
 		DrawHorizonAndSkyForReflections(view);
 
-		_stAnimated.Animated = 0;
-		UpdateConstantBuffer(&_stAnimated, _cbAnimated.get());
+		_stPerDraw.Animated = 0;
+		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
 		// Bind and clear render target.
 		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
@@ -2154,14 +2159,14 @@ namespace TEN::Renderer
 						Camera.pos.y - 1536.0f, Camera.pos.z);
 					auto world = rotation * translation;
 
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].World = (rotation * translation);
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = weather.SkyColor(s);
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = NEUTRAL_COLOR;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = 0;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].NumLights = 0;
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].ApplyFogBulbs = s == 0 ? 1 : 0;
+					_stObjects.Objects[0].World = (rotation * translation);
+					_stObjects.Objects[0].Color = weather.SkyColor(s);
+					_stObjects.Objects[0].AmbientLight = NEUTRAL_COLOR;
+					_stObjects.Objects[0].LightMode = 0;
+					_stObjects.Objects[0].NumLights = 0;
+					_stObjects.Objects[0].ApplyFogBulbs = s == 0 ? 1 : 0;
 
-					UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
+					UpdateConstantBuffer(&_stObjects, _cbObjects);
 
 					DrawIndexedInstancedTriangles(SKY_INDICES_COUNT, 1, 0, 0);
 				}
@@ -2177,14 +2182,14 @@ namespace TEN::Renderer
 
 				const auto& moveableObj = *_moveableObjects[ID_HORIZON]; // FIXME: Replace with same function as in the main pipeline!
 
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].World = Matrix::CreateTranslation(LaraItem->Pose.Position.ToVector3());
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = NEUTRAL_COLOR;
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = NEUTRAL_COLOR;
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = 0;
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].NumLights = 0;
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].ApplyFogBulbs = 1;
+				_stObjects.Objects[0].World = Matrix::CreateTranslation(LaraItem->Pose.Position.ToVector3());
+				_stObjects.Objects[0].Color = NEUTRAL_COLOR;
+				_stObjects.Objects[0].AmbientLight = NEUTRAL_COLOR;
+				_stObjects.Objects[0].LightMode = 0;
+				_stObjects.Objects[0].NumLights = 0;
+				_stObjects.Objects[0].ApplyFogBulbs = 1;
 
-				UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
+				UpdateConstantBuffer(&_stObjects, _cbObjects);
 
 				for (const auto* mesh : moveableObj.ObjectMeshes)
 				{
@@ -2529,27 +2534,27 @@ namespace TEN::Renderer
 		auto minX = std::min(std::min(v1.UV.x, v2.UV.x), v3.UV.x);
 		auto maxX = std::max(std::max(v1.UV.x, v2.UV.x), v3.UV.x);
 		  
-		// Setup animated buffer
-		_stAnimated.Fps = speed;
-		_stAnimated.NumFrames = 1;
-		_stAnimated.Type = 1; // UVRotate
-		_stAnimated.Animated = 1;
-		_stAnimated.IsWaterfall = 1;
+		// Setup animated metadata in PerDraw and frames in the structured buffer.
+		_stPerDraw.AnimFps = speed;
+		_stPerDraw.NumAnimFrames = 1;
+		_stPerDraw.AnimType = 1; // UVRotate
+		_stPerDraw.Animated = 1;
+		_stPerDraw.IsWaterfall = 1;
+		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
 		// We need only top/bottom Y coordinate for UVRotate, but we pass whole
 		// rectangle anyway, in case later we may want to implement different UVRotate modes.
-		_stAnimated.Textures[0].TopLeft     = Vector2(minX, minY);
-		_stAnimated.Textures[0].TopRight    = Vector2(maxX, minY);
-		_stAnimated.Textures[0].BottomLeft  = Vector2(minX, maxY);
-		_stAnimated.Textures[0].BottomRight = Vector2(maxX, maxY);
-		
-		UpdateConstantBuffer(&_stAnimated, _cbAnimated.get());
+		_animatedFrames[0].TopLeft     = Vector2(minX, minY);
+		_animatedFrames[0].TopRight    = Vector2(maxX, minY);
+		_animatedFrames[0].BottomLeft  = Vector2(minX, maxY);
+		_animatedFrames[0].BottomRight = Vector2(maxX, maxY);
+		_graphicsDevice->UpdateStructuredBuffer(_animatedFramesBuffer.get(), _animatedFrames.data(), 1);
 
 		DrawAnimatingItem(item, view, rendererPass);
 
-		// Reset animated buffer after rendering just in case
-		_stAnimated.Fps = _stAnimated.NumFrames = _stAnimated.Type = 0;
-		UpdateConstantBuffer(&_stAnimated, _cbAnimated.get());
+		// Reset animated metadata after rendering just in case.
+		_stPerDraw.AnimFps = _stPerDraw.NumAnimFrames = _stPerDraw.AnimType = 0;
+		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 	}
 
 	void Renderer::DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass)
@@ -2563,15 +2568,15 @@ namespace TEN::Renderer
 		if (rendererPass != RendererPass::CollectTransparentFaces)
 		{
 			// Bind item main properties
-			_stItem.World = item->InterpolatedWorld;
-			ReflectMatrixOptionally(_stItem.World);
+			_stObjects.Objects[0].World = item->InterpolatedWorld;
+			ReflectMatrixOptionally(_stObjects.Objects[0].World);
 
-			_stItem.Color = item->Color;
-			_stItem.AmbientLight = item->AmbientLight;
-			_stItem.Skinned = (int)skinMode;
+			_stObjects.Objects[0].Color = item->Color;
+			_stObjects.Objects[0].AmbientLight = item->AmbientLight;
+			_stObjects.Skinned = (int)skinMode;
 
 			for (int k = 0; k < item->MeshIndex.size(); k++)
-				_stItem.BoneLightModes[k] = (int)GetMesh(item->MeshIndex[k])->LightMode;
+				_stObjects.BoneLightModes[k] = (int)GetMesh(item->MeshIndex[k])->LightMode;
 
 			bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
 			BindMoveableLights(item->LightsToDraw, item->RoomNumber, item->PrevRoomNumber, item->LightFade, acceptsShadows);
@@ -2579,14 +2584,14 @@ namespace TEN::Renderer
 			if (skinMode == SkinningMode::Full)
 			{
 				for (int m = 0; m < moveableObj.AnimationTransforms.size(); m++)
-					_stItem.BonesMatrices[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
-				UpdateConstantBuffer(&_stItem, _cbItem.get());
+					_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 				DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
 			}
 
-			memcpy(_stItem.BonesMatrices, item->InterpolatedAnimTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
-			UpdateConstantBuffer(&_stItem, _cbItem.get());
+			memcpy(_stObjects.Bones, item->InterpolatedAnimTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 		}
 
 		for (int k = 0; k < item->MeshIndex.size(); k++)
@@ -2603,6 +2608,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawStatics(RenderView& view, RendererPass rendererPass)
 	{
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
 		if (_staticTextures.size() == 0 || view.SortedStaticsToDraw.size() == 0)
 			return;
 		 
@@ -2748,10 +2755,10 @@ namespace TEN::Renderer
 						auto world = current->World;
 						ReflectMatrixOptionally(world);
 
-						_stInstancedStaticMeshBuffer.StaticMeshes[instancesCount].World = world;
-						_stInstancedStaticMeshBuffer.StaticMeshes[instancesCount].Color = current->Color;
-						_stInstancedStaticMeshBuffer.StaticMeshes[instancesCount].Ambient = room->AmbientLight;
-						_stInstancedStaticMeshBuffer.StaticMeshes[instancesCount].LightMode = (int)refMesh->LightMode;
+						_stObjects.Objects[instancesCount].World = world;
+						_stObjects.Objects[instancesCount].Color = current->Color;
+						_stObjects.Objects[instancesCount].AmbientLight = room->AmbientLight;
+						_stObjects.Objects[instancesCount].LightMode = (int)refMesh->LightMode;
 
 						if (rendererPass != RendererPass::GBuffer)
 							BindInstancedStaticLights(current->LightsToDraw, instancesCount);
@@ -2763,7 +2770,7 @@ namespace TEN::Renderer
 
 					if (instancesCount > 0)
 					{
-						UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 						bool bindTextureAndMaterialsRequired = true;
 
@@ -3851,31 +3858,31 @@ namespace TEN::Renderer
 
 		// Bind main item properties.
 		Matrix world = objectInfo->Item->InterpolatedWorld;
-		_stItem.World = world;
-		_stItem.Color = objectInfo->Item->Color;
-		_stItem.AmbientLight = objectInfo->Item->AmbientLight;
-		_stItem.Skinned = (int)(objectInfo->Skinned ? SkinningMode::Full : SkinningMode::None);
+		_stObjects.Objects[0].World = world;
+		_stObjects.Objects[0].Color = objectInfo->Item->Color;
+		_stObjects.Objects[0].AmbientLight = objectInfo->Item->AmbientLight;
+		_stObjects.Skinned = (int)(objectInfo->Skinned ? SkinningMode::Full : SkinningMode::None);
 
 		const auto& moveableObj = *_moveableObjects[objectInfo->Item->ObjectID];
 
 		if (objectInfo->Skinned)
 		{
 			for (int m = 0; m < moveableObj.BindPoseTransforms.size(); m++)
-				_stItem.BonesMatrices[m] = moveableObj.BindPoseTransforms[m] * objectInfo->Item->InterpolatedAnimTransforms[m];
+				_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * objectInfo->Item->InterpolatedAnimTransforms[m];
 		}
 		else
 		{
-			memcpy(_stItem.BonesMatrices, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
+			memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
 		}
 		
-		UpdateConstantBuffer(&_stItem, _cbItem.get());
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
-			_stItem.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
+			_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
 
 		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
 		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
-		UpdateConstantBuffer(&_stItem, _cbItem.get());
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
@@ -3891,6 +3898,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
 	{
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
 		if (lastObjectType != objectInfo->ObjectType)
 		{
 			_graphicsDevice->BindVertexBuffer(_staticsVertexBuffer.get());
@@ -3907,13 +3916,13 @@ namespace TEN::Renderer
 		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
 		auto world = objectInfo->Static->World;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
+		_stObjects.Objects[0].World = world;
 
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = objectInfo->Static->Color;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = objectInfo->Room->AmbientLight;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)GetStaticRendererObject(objectInfo->Static->ObjectNumber).ObjectMeshes[0]->LightMode;
+		_stObjects.Objects[0].Color = objectInfo->Static->Color;
+		_stObjects.Objects[0].AmbientLight = objectInfo->Room->AmbientLight;
+		_stObjects.Objects[0].LightMode = (int)GetStaticRendererObject(objectInfo->Static->ObjectNumber).ObjectMeshes[0]->LightMode;
 		BindInstancedStaticLights(objectInfo->Static->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
@@ -3929,6 +3938,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
 	{
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
 		if (lastObjectType != objectInfo->ObjectType)
 		{
 			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
@@ -3945,13 +3956,13 @@ namespace TEN::Renderer
 		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
 		auto world = objectInfo->World;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
+		_stObjects.Objects[0].World = world;
 
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = NEUTRAL_COLOR;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = objectInfo->Room->AmbientLight;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)objectInfo->LightMode;
+		_stObjects.Objects[0].Color = NEUTRAL_COLOR;
+		_stObjects.Objects[0].AmbientLight = objectInfo->Room->AmbientLight;
+		_stObjects.Objects[0].LightMode = (int)objectInfo->LightMode;
 		BindInstancedStaticLights(objectInfo->Room->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer.get());
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
@@ -3990,16 +4001,16 @@ namespace TEN::Renderer
 
 		// Bind main item properties.
 		Matrix world = objectInfo->Item->InterpolatedWorld;
-		_stItem.World = world;
-		_stItem.Color = objectInfo->Item->Color;
-		_stItem.AmbientLight = objectInfo->Item->AmbientLight;
-		_stItem.Skinned = (int)(objectInfo->Skinned ? SkinningMode::Full : SkinningMode::None);
+		_stObjects.Objects[0].World = world;
+		_stObjects.Objects[0].Color = objectInfo->Item->Color;
+		_stObjects.Objects[0].AmbientLight = objectInfo->Item->AmbientLight;
+		_stObjects.Skinned = (int)(objectInfo->Skinned ? SkinningMode::Full : SkinningMode::None);
 
 		const auto& moveableObj = *_moveableObjects[(int)GAME_OBJECT_ID::ID_HAIR_PRIMARY + index];
 
-		_stItem.World = Matrix::Identity;
-		_stItem.BonesMatrices[0] = objectInfo->Item->InterpolatedAnimTransforms[HairUnit::GetRootMeshID(index)] * objectInfo->Item->InterpolatedWorld;
-		ReflectMatrixOptionally(_stItem.BonesMatrices[0]);
+		_stObjects.Objects[0].World = Matrix::Identity;
+		_stObjects.Bones[0] = objectInfo->Item->InterpolatedAnimTransforms[HairUnit::GetRootMeshID(index)] * objectInfo->Item->InterpolatedWorld;
+		ReflectMatrixOptionally(_stObjects.Bones[0]);
 
 		bool forceValue = g_GameFlow->CurrentFreezeMode == FreezeMode::Player;
 
@@ -4010,18 +4021,18 @@ namespace TEN::Renderer
 
 			ReflectMatrixOptionally(worldMatrix);
 
-			_stItem.BonesMatrices[i + 1] = worldMatrix;
-			_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
+			_stObjects.Bones[i + 1] = worldMatrix;
+			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 		}
 
-		UpdateConstantBuffer(&_stItem, _cbItem.get());
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
-			_stItem.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
+			_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
 
 		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
 		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
-		UpdateConstantBuffer(&_stItem, _cbItem.get());
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
@@ -4122,55 +4133,61 @@ namespace TEN::Renderer
 	{
 		const auto& set = _animatedTextureSets[bucket.Texture];
 
-		_stAnimated.Animated = 1;
-		_stAnimated.IsWaterfall = 0;
-		_stAnimated.Type = (int)set.Type;
+		_stPerDraw.Animated = 1;
+		_stPerDraw.IsWaterfall = 0;
+		_stPerDraw.AnimType = (int)set.Type;
+
+		int frameCount = 0;
 
 		// Stream video texture, if video playback is active, otherwise show original texture.
-		if (set.Type == AnimatedTextureType::Video && _videoSprite.Texture && _videoSprite.Texture)
+		if (set.Type == AnimatedTextureType::Video && _videoSprite.Texture && _videoSprite.Texture->IsValid())
 		{
-			_stAnimated.Fps = 1;
-			_stAnimated.NumFrames = 1;
+			_stPerDraw.AnimFps = 1;
+			_stPerDraw.NumAnimFrames = 1;
 
 			// Use normalized UVs, because we are showing the whole video texture on a single face.
-			_stAnimated.Textures[0].TopLeft = set.Textures[0].NormalizedUV[0];
-			_stAnimated.Textures[0].TopRight = set.Textures[0].NormalizedUV[1]; 
-			_stAnimated.Textures[0].BottomRight = set.Textures[0].NormalizedUV[2];
-			_stAnimated.Textures[0].BottomLeft = set.Textures[0].NormalizedUV[3];
-		} 
+			_animatedFrames[0].TopLeft = set.Textures[0].NormalizedUV[0];
+			_animatedFrames[0].TopRight = set.Textures[0].NormalizedUV[1];
+			_animatedFrames[0].BottomRight = set.Textures[0].NormalizedUV[2];
+			_animatedFrames[0].BottomLeft = set.Textures[0].NormalizedUV[3];
+			frameCount = 1;
+		}
 		else if (set.Type == AnimatedTextureType::UVRotate)
 		{
-			_stAnimated.Fps = set.Fps;
-			_stAnimated.UVRotateDirection = set.UVRotateDirection;
-			_stAnimated.UvRotateSpeed = set.UVRotateSpeed; 
-			_stAnimated.NumFrames = 1; 
-			  
-			_stAnimated.Textures[0].TopLeft = set.Textures[0].UV[0];
-			_stAnimated.Textures[0].TopRight = set.Textures[0].UV[1];
-			_stAnimated.Textures[0].BottomRight = set.Textures[0].UV[2];
-			_stAnimated.Textures[0].BottomLeft = set.Textures[0].UV[3];
+			_stPerDraw.AnimFps = set.Fps;
+			_stPerDraw.UVRotateDirection = set.UVRotateDirection;
+			_stPerDraw.UVRotateSpeed = set.UVRotateSpeed;
+			_stPerDraw.NumAnimFrames = 1;
+
+			_animatedFrames[0].TopLeft = set.Textures[0].UV[0];
+			_animatedFrames[0].TopRight = set.Textures[0].UV[1];
+			_animatedFrames[0].BottomRight = set.Textures[0].UV[2];
+			_animatedFrames[0].BottomLeft = set.Textures[0].UV[3];
+			frameCount = 1;
 		}
 		else
 		{
-			_stAnimated.Fps = set.Fps;
-			_stAnimated.NumFrames = set.NumTextures;
-			
+			_stPerDraw.AnimFps = set.Fps;
+			_stPerDraw.NumAnimFrames = set.NumTextures;
+
 			for (unsigned char j = 0; j < set.NumTextures; j++)
 			{
-				if (j >= _stAnimated.Textures.size())
+				if (j >= _animatedFrames.size())
 				{
 					TENLog("Animated frame " + std::to_string(j) + " out of bounds. Too many frames in sequence.");
 					break;
 				}
 
-				_stAnimated.Textures[j].TopLeft = set.Textures[j].UV[0];
-				_stAnimated.Textures[j].TopRight = set.Textures[j].UV[1];
-				_stAnimated.Textures[j].BottomRight = set.Textures[j].UV[2];
-				_stAnimated.Textures[j].BottomLeft = set.Textures[j].UV[3];
+				_animatedFrames[j].TopLeft = set.Textures[j].UV[0];
+				_animatedFrames[j].TopRight = set.Textures[j].UV[1];
+				_animatedFrames[j].BottomRight = set.Textures[j].UV[2];
+				_animatedFrames[j].BottomLeft = set.Textures[j].UV[3];
 			}
+			frameCount = std::min<int>(set.NumTextures, (int)_animatedFrames.size());
 		}
 
-		UpdateConstantBuffer(&_stAnimated, _cbAnimated.get());
+		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+		_graphicsDevice->UpdateStructuredBuffer(_animatedFramesBuffer.get(), _animatedFrames.data(), frameCount);
 	}
 
 	void Renderer::BindBucketTextures(const RendererBucket& bucket, TextureSource textureSource, bool animated)
@@ -4191,7 +4208,7 @@ namespace TEN::Renderer
 
 			const auto& set = _animatedTextureSets[bucket.Texture];
 				
-			if (set.Type == AnimatedTextureType::Video && _videoSprite.Texture && _videoSprite.Texture)
+			if (set.Type == AnimatedTextureType::Video && _videoSprite.Texture && _videoSprite.Texture->IsValid())
 			{
 				BindTexture(TextureRegister::ColorMap, _videoSprite.Texture, SamplerStateRegister::AnisotropicClamp);
 
