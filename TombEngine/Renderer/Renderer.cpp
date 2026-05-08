@@ -1,21 +1,21 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
+
 #include "Game/camera.h"
 #include "Game/effects/tomb4fx.h"
 #include "Math/Math.h"
 #include "Renderer/Structures/RendererRectangle.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/RendererUtils.h"
-#include "Renderer/Graphics/RenderTargetCube.h"
-#include "Renderer/Graphics/VertexBuffer.h"
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/clock.h"
+#include "Specific/trutils.h"
 
 namespace TEN::Renderer
 {
 	using namespace TEN::Renderer::Structures;
-	using namespace Utils;
+	using namespace TEN::Utils;
 
 	Renderer g_Renderer;
 
@@ -55,6 +55,21 @@ namespace TEN::Renderer
 		for (auto& mesh : _meshes)
 			delete mesh;
 		_meshes.resize(0);
+
+		SAFE_DELETE(_roomsVertexBuffer);
+		SAFE_DELETE(_roomsIndexBuffer);
+		SAFE_DELETE(_moveablesVertexBuffer);
+		SAFE_DELETE(_moveablesIndexBuffer);
+		SAFE_DELETE(_staticsVertexBuffer);
+		SAFE_DELETE(_staticsIndexBuffer);
+
+		_roomTextures.clear();
+		_moveablesTextures.clear();
+		_staticTextures.clear();
+		_spritesTextures.clear();
+		_animatedTextures.clear();
+
+		_videoSprite = {};
 	}
 
 	void Renderer::Lock()
@@ -62,11 +77,11 @@ namespace TEN::Renderer
 		_isLocked = true;
 	}
 
-	void Renderer::UpdateVideoTexture(Texture2D* texture)
+	void Renderer::UpdateVideoTexture(ITexture2D* texture)
 	{
 		_videoSprite.X = _videoSprite.Y = 0;
-		_videoSprite.Width = texture->Width;
-		_videoSprite.Height = texture->Height;
+		_videoSprite.Width = texture->GetWidth();
+		_videoSprite.Height = texture->GetHeight();
 		_videoSprite.UV[0] = Vector2(0,0);
 		_videoSprite.UV[1] = Vector2(1,0);
 		_videoSprite.UV[2] = Vector2(1,1);
@@ -74,11 +89,16 @@ namespace TEN::Renderer
 		_videoSprite.Texture = texture;
 	}
 
+	void Renderer::ClearVideoTexture()
+	{
+		_videoSprite = {};
+	}
+
 	void Renderer::ReloadShaders(bool recompileAAShaders)
 	{
 		try
 		{
-			_shaders.LoadShaders(_screenWidth, _screenHeight, recompileAAShaders);
+			_shaders.LoadShaders(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), recompileAAShaders);
 		}
 		catch (const std::exception& e)
 		{
@@ -110,18 +130,6 @@ namespace TEN::Renderer
 		RenderLoadingScreen(value);
 	}
 
-	void Renderer::RenderToCubemap(const RenderTargetCube& dest, const Vector3& pos, int roomNumer)
-	{
-		for (int i = 0; i < 6; i++)
-		{
-			auto renderView = RenderView(pos, RenderTargetCube::forwardVectors[i], RenderTargetCube::upVectors[i],
-			                             dest.Resolution, dest.Resolution, Camera.pos.RoomNumber, 10, 20480,
-			                             90 * RADIAN);  
-			//RenderSimpleScene(dest.RenderTargetView[i].Get(), dest.DepthStencilView[i].Get(), renderView);
-			_context->ClearState();
-		}
-	}
-
 	float Renderer::CalculateFrameRate()
 	{
 		static int last_time = clock();
@@ -145,85 +153,19 @@ namespace TEN::Renderer
 		return fps;
 	}
 
-	void Renderer::BindTexture(TextureRegister registerType, TextureBase* texture, SamplerStateRegister samplerType)
+	void Renderer::BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType)
 	{
-		_context->PSSetShaderResources((UINT)registerType, 1, texture->ShaderResourceView.GetAddressOf());
-
-		if (g_GameFlow->IsPointFilterEnabled() && registerType == TextureRegister::ColorMap)
+		if (g_GameFlow->IsPointFilterEnabled() && samplerType != SamplerStateRegister::ShadowMap)
 		{
 			samplerType = SamplerStateRegister::PointWrap;
 		}
 
-		ID3D11SamplerState* samplerState = nullptr;
-		switch (samplerType)
-		{
-		case SamplerStateRegister::AnisotropicClamp:
-			samplerState = _renderStates->AnisotropicClamp();
-			break;
-
-		case SamplerStateRegister::AnisotropicWrap:
-			samplerState = _renderStates->AnisotropicWrap();
-			break;
-
-		case SamplerStateRegister::LinearClamp:
-			samplerState = _renderStates->LinearClamp();
-			break;
-
-		case SamplerStateRegister::LinearWrap:
-			samplerState = _renderStates->LinearWrap();
-			break;
-
-		case SamplerStateRegister::PointWrap:
-			samplerState = _pointWrapSamplerState.Get();
-			break;
-
-		case SamplerStateRegister::ShadowMap:
-			samplerState = _shadowSampler.Get();
-			break;
-
-		default:
-			return;
-		}
-
-		_context->PSSetSamplers((UINT)registerType, 1, &samplerState);
+		_graphicsDevice->BindTexture(registerType, texture, samplerType);
 	}
 
-	void Renderer::BindRenderTargetAsTexture(TextureRegister registerType, RenderTarget2D* target, SamplerStateRegister samplerType)
+	void Renderer::BindRenderTargetAsTexture(TextureRegister registerType, IRenderTarget2D* target, SamplerStateRegister samplerType)
 	{
-		_context->PSSetShaderResources((UINT)registerType, 1, target->ShaderResourceView.GetAddressOf());
-		  
-		ID3D11SamplerState* samplerState = nullptr;
-		switch (samplerType)
-		{
-		case SamplerStateRegister::AnisotropicClamp:
-			samplerState = _renderStates->AnisotropicClamp();
-			break;
-
-		case SamplerStateRegister::AnisotropicWrap:
-			samplerState = _renderStates->AnisotropicWrap();
-			break;
-
-		case SamplerStateRegister::LinearClamp:
-			samplerState = _renderStates->LinearClamp();
-			break;
-
-		case SamplerStateRegister::LinearWrap:
-			samplerState = _renderStates->LinearWrap();
-			break;
-
-		case SamplerStateRegister::PointWrap:
-			samplerState = _pointWrapSamplerState.Get();
-			break;
-
-		case SamplerStateRegister::ShadowMap:
-			samplerState = _shadowSampler.Get();
-			break;
-
-		default:
-			return;
-		}
-
-		_context->PSSetSamplers((UINT)registerType, 1, &samplerState);
+		_graphicsDevice->BindTexture(registerType, target, samplerType);
 	}
 
 	int Renderer::BindLight(RendererLight& light, ShaderLight* lights, int index)
@@ -268,9 +210,9 @@ namespace TEN::Renderer
 		int lightTypeMask = 0;
 
 		for (int i = 0; i < lights.size(); i++)
-			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stInstancedStaticMeshBuffer.StaticMeshes[instanceID].Lights, i);
+			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stObjects.Objects[instanceID].Lights, i);
 
-		_stInstancedStaticMeshBuffer.StaticMeshes[instanceID].NumLights = (int)lights.size() | lightTypeMask;
+		_stObjects.Objects[instanceID].NumLights = (int)lights.size() | lightTypeMask;
 	}
 
 	void Renderer::BindMoveableLights(std::vector<RendererLight*>& lights, int roomNumber, int prevRoomNumber, float fade, bool shadow)
@@ -298,12 +240,12 @@ namespace TEN::Renderer
 			if (fadedCoeff == 0.0f)
 				continue;
 
-			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stItem.Lights, numLights);
-			_stItem.Lights[numLights].Intensity *= fadedCoeff;
+			lightTypeMask = lightTypeMask | BindLight(*lights[i], _stObjects.Objects[0].Lights, numLights);
+			_stObjects.Objects[0].Lights[numLights].Intensity *= fadedCoeff;
 			numLights++;
 		}
 
-		_stItem.NumLights = numLights | lightTypeMask | (shadow ? SHADOWABLE_MASK : 0);
+		_stObjects.Objects[0].NumLights = numLights | lightTypeMask | (shadow ? SHADOWABLE_MASK : 0);
 	}
 
 	void Renderer::BindRoomDecals(const std::vector<RendererDecal>& decals)
@@ -330,14 +272,9 @@ namespace TEN::Renderer
 		_stRoom.NumRoomDecals = (int)decals.size();
 	}
 
-	void Renderer::BindConstantBufferVS(ConstantBufferRegister constantBufferType, ID3D11Buffer** buffer)
+	void Renderer::BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer)
 	{
-		_context->VSSetConstantBuffers(static_cast<UINT>(constantBufferType), 1, buffer);
-	}
-
-	void Renderer::BindConstantBufferPS(ConstantBufferRegister constantBufferType, ID3D11Buffer** buffer)
-	{
-		_context->PSSetConstantBuffers(static_cast<UINT>(constantBufferType), 1, buffer);
+		_graphicsDevice->BindConstantBuffer(shaderStage, constantBufferType, buffer);
 	}
 
 	void Renderer::BindMaterial(int materialIndex, bool force)
@@ -351,11 +288,11 @@ namespace TEN::Renderer
 		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasAmbientOcclusionMap) << 9;
 		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasEmissiveMap) << 10;
 
-		if (materialTypeAndFlags == _stMaterial.MaterialTypeAndFlags &&
-			g_Level.Materials[materialIndex].Parameters0 == _stMaterial.MaterialParameters0 &&
-			g_Level.Materials[materialIndex].Parameters1 == _stMaterial.MaterialParameters1 &&
-			g_Level.Materials[materialIndex].Parameters2 == _stMaterial.MaterialParameters2 &&
-			g_Level.Materials[materialIndex].Parameters3 == _stMaterial.MaterialParameters3 &&
+		if (materialTypeAndFlags == _stPerDraw.MaterialTypeAndFlags &&
+			g_Level.Materials[materialIndex].Parameters0 == _stPerDraw.MaterialParameters0 &&
+			g_Level.Materials[materialIndex].Parameters1 == _stPerDraw.MaterialParameters1 &&
+			g_Level.Materials[materialIndex].Parameters2 == _stPerDraw.MaterialParameters2 &&
+			g_Level.Materials[materialIndex].Parameters3 == _stPerDraw.MaterialParameters3 &&
 			!force)
 		{
 			return;
@@ -364,13 +301,13 @@ namespace TEN::Renderer
 		// TODO: in the future output from TE directly an optimized list
 		//if (materialIndex != _lastMaterialIndex || force)
 		{
-			_stMaterial.MaterialTypeAndFlags = materialTypeAndFlags;
-			_stMaterial.MaterialParameters0  = g_Level.Materials[materialIndex].Parameters0;
-			_stMaterial.MaterialParameters1  = g_Level.Materials[materialIndex].Parameters1;
-			_stMaterial.MaterialParameters2  = g_Level.Materials[materialIndex].Parameters2;
-			_stMaterial.MaterialParameters3  = g_Level.Materials[materialIndex].Parameters3;
+			_stPerDraw.MaterialTypeAndFlags = materialTypeAndFlags;
+			_stPerDraw.MaterialParameters0  = g_Level.Materials[materialIndex].Parameters0;
+			_stPerDraw.MaterialParameters1  = g_Level.Materials[materialIndex].Parameters1;
+			_stPerDraw.MaterialParameters2  = g_Level.Materials[materialIndex].Parameters2;
+			_stPerDraw.MaterialParameters3  = g_Level.Materials[materialIndex].Parameters3;
 
-			UpdateConstantBuffer(_stMaterial, _cbMaterial);
+			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
 			_lastMaterialIndex = materialIndex;
 
@@ -378,56 +315,23 @@ namespace TEN::Renderer
 		}
 
 		if (type == MaterialShaderType::Reflective)
-			BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, &_legacyReflectionsRenderTarget, SamplerStateRegister::AnisotropicClamp);
+			BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, _legacyReflectionsRenderTarget->GetRenderTarget(), SamplerStateRegister::AnisotropicClamp);
 		else if (type == MaterialShaderType::SkyboxReflective)
-			BindTexture(TextureRegister::SkyboxEnvironmentReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
+			BindTexture(TextureRegister::SkyboxEnvironmentReflections, _skyboxRenderTarget->GetRenderTarget(), SamplerStateRegister::AnisotropicClamp);
 	}
 
 	void Renderer::SetBlendMode(BlendMode blendMode, bool force)
-	{
+	{	
 		if (blendMode != _lastBlendMode || force)
 		{
-			switch (blendMode)
-			{
-			case BlendMode::AlphaBlend:
-				_context->OMSetBlendState(_renderStates->NonPremultiplied(), nullptr, 0xFFFFFFFF);
-				break;
+			_graphicsDevice->SetBlendMode(blendMode);
 
-			case BlendMode::AlphaTest:
-				_context->OMSetBlendState(_renderStates->Opaque(), nullptr, 0xFFFFFFFF);
-				break;
-
-			case BlendMode::Opaque:
-				_context->OMSetBlendState(_renderStates->Opaque(), nullptr, 0xFFFFFFFF);
-				break;
-
-			case BlendMode::Subtractive:
-				_context->OMSetBlendState(_subtractiveBlendState.Get(), nullptr, 0xFFFFFFFF);
-				break;
-
-			case BlendMode::Additive:
-				_context->OMSetBlendState(_renderStates->Additive(), nullptr, 0xFFFFFFFF);
-				break;
-
-			case BlendMode::Screen:
-				_context->OMSetBlendState(_screenBlendState.Get(), nullptr, 0xFFFFFFFF);
-				break;
-
-			case BlendMode::Lighten:
-				_context->OMSetBlendState(_lightenBlendState.Get(), nullptr, 0xFFFFFFFF);
-				break;
-
-			case BlendMode::Exclude:
-				_context->OMSetBlendState(_excludeBlendState.Get(), nullptr, 0xFFFFFFFF);
-				break;
-			}
-
-			_stBlending.BlendMode = static_cast<unsigned int>(blendMode);
-			UpdateConstantBuffer(_stBlending, _cbBlending);
+			_stPerDraw.BlendMode = static_cast<unsigned int>(blendMode);
+			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 			
 			_lastBlendMode = blendMode;
 		}
-
+		
 		switch (blendMode)
 		{
 		case BlendMode::Opaque:
@@ -445,22 +349,7 @@ namespace TEN::Renderer
 	{
 		if (depthState != _lastDepthState || force)
 		{
-			switch (depthState)
-			{
-			case DepthState::Read:
-				_context->OMSetDepthStencilState(_renderStates->DepthRead(), 0xFFFFFFFF);
-				break;
-
-			case DepthState::Write:
-				_context->OMSetDepthStencilState(_renderStates->DepthDefault(), 0xFFFFFFFF);
-				break;
-
-			case DepthState::None:
-				_context->OMSetDepthStencilState(_renderStates->DepthNone(), 0xFFFFFFFF);
-				break;
-
-			}
-
+			_graphicsDevice->SetDepthState(depthState);
 			_lastDepthState = depthState;
 		}
 	}
@@ -471,7 +360,7 @@ namespace TEN::Renderer
 		{
 			if (!_doingFullscreenPass)
 			{
-				_context->RSSetState(_renderStates->Wireframe());
+				_graphicsDevice->SetCullMode(CullMode::Wireframe);
 				return;
 			}
 			else
@@ -482,58 +371,37 @@ namespace TEN::Renderer
 
 		if (cullMode != _lastCullMode || force)
 		{
-			switch (cullMode)
-			{
-			case CullMode::None:
-				_context->RSSetState(_cullNoneRasterizerState.Get());
-				break;
-
-			case CullMode::CounterClockwise:
-				_context->RSSetState(_cullCounterClockwiseRasterizerState.Get());
-				break;
-
-			case CullMode::Clockwise:
-				_context->RSSetState(_cullClockwiseRasterizerState.Get());
-				break;
-			}
-
+			_graphicsDevice->SetCullMode(cullMode);
 			_lastCullMode = cullMode;
 		}
 	}
 
 	void Renderer::SetAlphaTest(AlphaTestMode mode, float threshold, bool force)
 	{
-		if (_stBlending.AlphaTest != (int)mode ||
-			_stBlending.AlphaThreshold != threshold ||
+		if (_stPerDraw.AlphaTest != (int)mode ||
+			_stPerDraw.AlphaThreshold != threshold ||
 			force)
 		{
-			_stBlending.AlphaTest = (int)mode;
-			_stBlending.AlphaThreshold = threshold;
-			UpdateConstantBuffer(_stBlending, _cbBlending);
-			BindConstantBufferPS(ConstantBufferRegister::Blending, _cbBlending.get());
+			_stPerDraw.AlphaTest = (int)mode;
+			_stPerDraw.AlphaThreshold = threshold;
+			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 		}
 	}
 
 	void Renderer::SetScissor(RendererRectangle s)
 	{
-		D3D11_RECT rects;
-		rects.left = s.Left;
-		rects.top = s.Top;
-		rects.right = s.Right;
-		rects.bottom = s.Bottom;
-
-		_context->RSSetScissorRects(1, &rects);
+		_graphicsDevice->SetScissor(s);
 	}
 
 	void Renderer::ResetScissor()
 	{
-		D3D11_RECT rects[1];
-		rects[0].left = 0;
-		rects[0].right = _screenWidth;
-		rects[0].top = 0;
-		rects[0].bottom = _screenHeight;
+		RendererRectangle s;
+		s.Left = 0;
+		s.Right = _graphicsDevice->GetScreenWidth();
+		s.Top = 0;
+		s.Bottom = _graphicsDevice->GetScreenHeight();
 
-		_context->RSSetScissorRects(1, rects);
+		_graphicsDevice->SetScissor(s);
 	}
 
 	void Renderer::SetGraphicsSettingsChanged()

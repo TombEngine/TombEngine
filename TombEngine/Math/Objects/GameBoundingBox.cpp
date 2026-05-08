@@ -42,6 +42,13 @@ using namespace TEN::Animation;
 	// TODO: Use reference, not pointer.
 	GameBoundingBox::GameBoundingBox(const ItemInfo* item)
 	{
+		// If object has no animations, return empty bounds.
+		if (Objects[item->ObjectNumber].Animations.empty())
+		{
+			*this = GameBoundingBox::Zero;
+			return;
+		}
+
 		auto frameData = GetFrameInterpData(*item);
 		if (frameData.Alpha == 0.0f)
 		{

@@ -13,9 +13,8 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Specific/trutils.h"
 
-using namespace TEN::Utils;
-
 using namespace TEN::Animation;
+using namespace TEN::Utils;
 
 namespace TEN::Control::Volumes
 {
@@ -139,6 +138,9 @@ namespace TEN::Control::Volumes
 			return;
 	
 		if (roomNumber == NO_VALUE)
+			return;
+
+		if (((Vector3)box.Extents).Length() <= EPSILON)
 			return;
 
 		for (int currentRoomIndex : g_Level.Rooms[roomNumber].NeighborRoomNumbers)

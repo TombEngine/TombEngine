@@ -126,6 +126,11 @@ private:
 		return rooms;
 	}
 
+	std::unique_ptr<Room> GetRoomByNumber(int roomNumber)
+	{
+		return std::make_unique<Room>(g_Level.Rooms[roomNumber]);
+	}
+
 	int GetIndexByName(std::string const& name) const override
 	{
 		if (_nameMap.find(name) == _nameMap.end())

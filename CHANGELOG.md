@@ -3,50 +3,112 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
+## [Version 2.0]
+
+### New features
+* Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
+* Added gamma correction setting.
+ 
+### Bug fixes
+* Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
+* Fixed flyby camera jitter by converting the spline type to floating-point.
+
+### Lua API changes
+* Added ring inventory module.
+* Added `Lara.SetSkin` to swap classic outfits.
+* Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
+* Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
+
+## [Version 1.11.1]
+
+### Bug fixes
+* Fixed draw key not always opening doors in fly mode.
+* Fixed TEETH_SPIKES with OCB 1 damaging player in fly mode.
+* Fixed YETI misaligning with Lara during kill animation.
+
+### Lua API changes
+* Fixed `Timer` class not working correctly with single frame intervals.
+* Fixed alpha value being ignored for `Flow.Settings.UI.shadowTextColor` parameter.
+
 ## [Version 1.11]
 
 ### New features
+* Overhauled enemy AI with weighted pathfinding, predictive targeting, penalty system, and collision avoidance.
+* Optimized pause and options menu handling and apply settings while exiting the menu instead of canceling them.
 * Added faster Xorshift32 random number generation method.
+* Added explosion decal effects to Atlantean enemy projectiles.
+* Added new debug page with memory usage statistics and more verbose logging for memory-related crashes.
+* Removed original limits for flyby camera and sequence count.
 
 ### Bug fixes
 * Fixed incorrect handling of negative timer values in classic triggers.
-* Fixed interaction highlighter not working for pushable climbable blocks.
+* Fixed interaction highlighter not working for pushable climbable blocks and underwater switches.
 * Fixed pushables being ignored by other collidable objects after savegame reload.
 * Fixed pushables not updating their properties while changing OCB on the fly.
 * Fixed sector box flags being reset after savegame reload.
-* Fixed several enemy AI issues.
-* Fixed incorrect CLOCKWORK_BEETLE, HORSEMAN, MONK1/2 and MERCENARY_UZI behaviour.
+* Fixed incorrect BIG_RAT, CLOCKWORK_BEETLE, COBRA, SCUBA_DIVER, HORSEMAN, MONK1/2 and MERCENARY_UZI behaviour.
 * Fixed CIVVY crashing the game.
+* Fixed missing SHARK final attack animation.
 * Fixed SEARCH_OBJECT4 not always collecting pickup items.
 * Fixed SHOOT_SWITCH objects not activated with projectile weapons.
 * Fixed incorrect HYDRA rotation on activation and keeping its shadow after destroying it.
 * Fixed potential issues with PUNA_BOSS, TONY_BOSS, FISH_SWARM and WRAITH objects on savegame reloading.
 * Fixed WRAITH not using effects near walls and occasional issues with room transitions.
+* Fixed occasional wrong LASER_BEAM collision.
+* Fixed several BADDY1/2 issues.
+* Fixed original issue with BADDY1/2 with rolling out animation ignoring player on a distance larger than 1 block.
+* Fixed explosion effect crash and OCB calculation for WINGED_MUMMY. 
+  [For further information] (https://tombengine.com/asset/enemy/winged-mutant-mummy/)
+* Fixed TR3 bosses not dropping items when killed.
+* Fixed corrupted targeting at Lara in water rooms for some shooting creatures.
+* Fixed teleporting upwards after corner shimmy when another ledge is above.
+* Fixed submerging into the floor when picking up items under low-placed static meshes.
+* Fixed asymmetrically placed plinth pickups (OCB 3 and 4) and allow plinth pickups without static mesh underneath.
 * Fixed broken hardcoded camera when using the TURN_SWITCH.
+* Fixed animation bug when Lara dies in a hanging state.
 * Fixed weapon unholstering animation when selecting a weapon from the inventory for the first time.
 * Fixed original issue with incorrect arm orientation with unholstered weapons.
 * Fixed original issue with aiming stutter with targets nearly out of sight.
 * Fixed incorrect super grenade projectile orientation.
+* Fixed ricochet sparks not being visible at longer distances.
+* Fixed blood particles not being visible for stationary enemies.
 * Fixed water resurfacing threshold. The player will now resurface when half of the head is above the surface.
+* Fixed Lara visibility not restoring after breaking out from a flyby sequence.
 * Fixed animated textures appearing incorrectly when also alpha blended faces were involved.
 * Fixed random textures appearing on enemy gunflashes.
-* Fixed flickering pickup highlighter item count in high FPS mode.
+* Fixed flickering pickup summary item count in high FPS mode.
+* Fixed flickering debug page information.
 * Fixed linear inventory not fading ammo and combine selectors.
+* Fixed crashes on certain GPUs with dynamic memory allocation.
+* Fixed loading of level files bigger than 2 GB (only for 64-bit systems).
 
 ### Lua API changes
-* Added new `View.DisplayItem` class that can be used to render 3D items on top of the viewport.
+* Added `Collision.Ray` class for raycasting to detect rooms, items, and static meshes.
+* Added `View.DisplayItem` class that can be used to render 3D items in 2D space.
+* Added `View.DisplayAnchors` primitive class and `View.DisplaySprite:GetAnchors` function.
 * Added `UI` section to `Flow.Settings` class with several options to customize main menu and system text.
+* Added several `Inventory` functions, including `Inventory.UseItem` and `Inventory.ResetToDefault`.
+* Added `Flow.GetGlobalGameTime` function.
 * Added `ambientOcclusion` parameter to `Flow.Settings.Graphics` to force-disable ambient occlusion option.
+* Added `killPoisonedEnemies` parameter to `Flow.Settings.Gameplay` to enable or disable killing enemies with poisoned ammo.
 * Added a safeguard against adding or removing callback functions within the same callback type.
-* Added a safeguard for `Moveable:Enable` method called for already destroyed moveables.
-* Added `DisplayStringOption.VERTICAL_BOTTOM` flag.
-* Added optional type argument for inventory item and interaction type for `LaraObject.Interact` function.
-* Added optional type argument for interaction type for `Object.ShowInteractionHighlight` function.
+* Added a safeguard for `Moveable:Enable` function called for already destroyed moveables.
+* Added `Moveable:HideInteractionHighlight` function.
+* Added `Strings.DisplayStringOption.VERTICAL_BOTTOM` flag.
+* Added optional type argument for inventory item and interaction type for `LaraObject:Interact` function.
+* Added optional type argument for interaction type for `Object:ShowInteractionHighlight` function.
 * Added `Vec3:Direction` function and `Vec3:Translate` overload.
 * Added direction vector constructor to `Rotation`.
+* Added overloads for `TEN.Util.PercentToScreen(Vec2(x, y))` and `TEN.Util.ScreenToPercent(Vec2(x, y))`.
+* Added special tables `LevelVars`, `GameVars` and `LevelFunc` to the documentation.
+* Added `Logic.CallbackPoint`, `Logic.EventType` and `Logic.EndReason` enums to the documentation.
+* Improved `EventSequence` handling and stability.
+* Improved `Timer` class timestep handling.
 * Fixed `yOffset` argument in `Flow.InventoryItem` constructor giving inconsistent results with different screen resolutions.
+* Fixed `Effects.EmitLight` crashing the game if called with zero or near-zero light radius.
+* Fixed `View.SetCineBars` not working correctly.
 
-## [Version 1.10.1]
+## [Version 1.10.1](https://github.com/TombEngine/TombEditorReleases/releases/tag/v1.10.1) - 2025-11-18
 
 ### New features
 * Added no shake mode for CLASSIC_ROLLINGBALL (OCB 1).

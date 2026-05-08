@@ -2,13 +2,16 @@
 #include "Specific/Input/Input.h"
 
 #include "Game/camera.h"
+#include "Game/control/box.h"
 #include "Game/Gui.h"
 #include "Game/items.h"
 #include "Game/savegame.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/EngineMain.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Gui;
@@ -62,7 +65,7 @@ namespace TEN::Input
 		pConstForce.envelope.fadeLevel = 0;
 	}
 
-	void InitializeInput(HWND handle)
+	void InitializeInput()
 	{
 		TENLog("Initializing input system...", LogLevel::Info);
 
@@ -89,15 +92,33 @@ namespace TEN::Input
 
 		try
 		{
-			// Use OIS::ParamList since default behaviour blocks WIN key and steals mouse.
+			// HACK: OIS requires a native window handle and platform-specific configuration
+			// strings. This will be removed when OIS is replaced by SDL3 input.
 			auto paramList = OIS::ParamList{};
 			auto wnd = std::ostringstream{};
-			wnd << (size_t)handle;
+
+			SDL_PropertiesID props = SDL_GetWindowProperties(g_Platform->GetSDL3Window());
+
+#ifdef SDL_PLATFORM_WIN32
+			void* nativeHandle = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+			wnd << reinterpret_cast<uintptr_t>(nativeHandle);
 			paramList.insert(std::make_pair(std::string("WINDOW"), wnd.str()));
 			paramList.insert(std::make_pair(std::string("w32_keyboard"), std::string("DISCL_BACKGROUND")));
 			paramList.insert(std::make_pair(std::string("w32_keyboard"), std::string("DISCL_NONEXCLUSIVE")));
 			paramList.insert(std::make_pair(std::string("w32_mouse"), std::string("DISCL_BACKGROUND")));
 			paramList.insert(std::make_pair(std::string("w32_mouse"), std::string("DISCL_NONEXCLUSIVE")));
+#elif defined(SDL_PLATFORM_LINUX)
+			auto nativeHandle = SDL_GetNumberProperty(props, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0);
+			wnd << static_cast<uintptr_t>(nativeHandle);
+			paramList.insert(std::make_pair(std::string("WINDOW"), wnd.str()));
+			paramList.insert(std::make_pair(std::string("x11_keyboard_grab"), std::string("false")));
+			paramList.insert(std::make_pair(std::string("x11_mouse_grab"), std::string("false")));
+			paramList.insert(std::make_pair(std::string("x11_mouse_hide"), std::string("false")));
+#elif defined(SDL_PLATFORM_MACOS)
+			void* nativeHandle = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr);
+			wnd << reinterpret_cast<uintptr_t>(nativeHandle);
+			paramList.insert(std::make_pair(std::string("WINDOW"), wnd.str()));
+#endif
 
 			OisInputManager = OIS::InputManager::createInputSystem(paramList);
 			OisInputManager->enableAddOnFactory(OIS::InputManager::AddOn_All);
@@ -597,6 +618,15 @@ namespace TEN::Input
 		if ((KeyMap[OIS::KC_F10] || KeyMap[OIS::KC_F11]) && dbDebugPage)
 			g_Renderer.SwitchDebugPage(KeyMap[OIS::KC_F10]);
 		dbDebugPage = !(KeyMap[OIS::KC_F10] || KeyMap[OIS::KC_F11]);
+
+		// Cycle pathfinding display with TAB when on pathfinding debug page.
+		static bool dbPathfindingCycle = true;
+		if (KeyMap[OIS::KC_TAB] && dbPathfindingCycle &&
+			g_Renderer.GetDebugPage() == RendererDebugPage::PathfindingStats)
+		{
+			CyclePathfindingDisplay();
+		}
+		dbPathfindingCycle = !KeyMap[OIS::KC_TAB];
 
 		// Reload shaders.
 		static bool dbReloadShaders = true;

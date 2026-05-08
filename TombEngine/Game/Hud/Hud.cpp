@@ -16,7 +16,7 @@ namespace TEN::Hud
 	bool HudController::CanDrawHud() const
 	{
 		// Avoid drawing in title level and during cutscenes.
-		return (CurrentLevel != 0 && CinematicBarsHeight <= EPSILON);
+		return (CurrentLevel != 0 && (CinematicBarsDestinationHeight == 0 || CinematicBarsHeight > CinematicBarsDestinationHeight));
 	}
 
 	void HudController::Update(const ItemInfo& playerItem)

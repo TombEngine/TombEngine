@@ -252,7 +252,7 @@ namespace TEN::Gui
 		INVENTORY_TABLE_SIZE
 	};
 	
-	enum ItemOptions : uint64_t
+	enum ItemOptions : unsigned long long
 	{
 		OPT_ALWAYS_COMBINE		   = (1 << 0),
 		OPT_EQUIP				   = (1 << 1),
@@ -354,6 +354,8 @@ namespace TEN::Gui
 
 	extern InventoryObject InventoryObjectTable[];
 	extern CombineList CombineTable[];
+
+	void ResetInventoryTablesToDefault();
 
 	void CombineRevolverLasersight(ItemInfo* item, bool flag);
 	void CombineCrossbowLasersight(ItemInfo* item, bool flag);

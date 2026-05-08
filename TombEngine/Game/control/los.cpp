@@ -387,7 +387,7 @@ static bool DoRayBox(const GameVector& origin, const GameVector& target, const G
 int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, StaticMesh** staticObj, GAME_OBJECT_ID priorityObjectID)
 {
 	ClosestItem = NO_LOS_ITEM;
-	ClosestDist = SQUARE(target->x - origin->x) + SQUARE(target->y - origin->y) + SQUARE(target->z - origin->z);
+	ClosestDist = (int)Vector3i::Distance(origin->ToVector3i(), target->ToVector3i());
 
 	for (int roomNumber : LosRoomNumbers)
 	{

@@ -1,11 +1,10 @@
 #pragma once
-#include <d3d11.h>
 #include <SimpleMath.h>
 #include "Math/Math.h"
 
 namespace TEN::Effects::Spark
 {
-	constexpr auto SPARK_RICOCHET_COLOR_DEFAULT = Vector4(1.0f, 1.0f, 0.0f, 1.0f);
+	constexpr auto SPARK_RICOCHET_COLOR_DEFAULT = Vector4(1.0f, 0.6f, 0.0f, 1.0f);
 
 	struct SparkParticle
 	{

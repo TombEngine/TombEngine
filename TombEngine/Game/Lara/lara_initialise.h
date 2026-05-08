@@ -4,7 +4,7 @@
 void BackupLara();
 void InitializeLara(bool restore);
 void InitializeLaraLoad(short itemNumber);
-void InitializeLaraMeshes(ItemInfo* item);
+void InitializeLaraMeshes(ItemInfo* item, bool clearHolsters = true);
 void InitializeLaraAnims(ItemInfo* item);
 void InitializeLaraStartPosition(ItemInfo& playerItem);
 void InitializeLaraLevelJump(ItemInfo* item, LaraInfo* playerBackup);

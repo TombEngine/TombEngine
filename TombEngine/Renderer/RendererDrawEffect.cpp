@@ -27,6 +27,7 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Objects/Effects/Fireflies.h"
 #include "Objects/TR5/Trap/LaserBarrier.h"
 #include "Objects/TR5/Trap/LaserBeam.h"
 #include "Objects/Utils/object_helper.h"
@@ -35,7 +36,6 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/level.h"
 #include "Structures/RendererSpriteBucket.h"
-#include "Objects/Effects/Fireflies.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Effects::Blood;
@@ -91,25 +91,41 @@ namespace TEN::Renderer
 			for (int i = 0; i < LaserBeamEffect::SUBDIVISION_COUNT; i++)
 			{
 				bool isLastSubdivision = (i == (LaserBeamEffect::SUBDIVISION_COUNT - 1));
+				auto& v1 = beam.Vertices[i];
+				auto& v2 = beam.Vertices[isLastSubdivision ? 0 : (i + 1)];
+				auto& v3 = beam.Vertices[LaserBeamEffect::SUBDIVISION_COUNT + (isLastSubdivision ? 0 : (i + 1))];
+				auto& v4 = beam.Vertices[LaserBeamEffect::SUBDIVISION_COUNT + i];
+				auto& beamColor = beam.Color;
 
-				auto color = Color::Lerp(beam.OldColor, beam.Color, GetInterpolationFactor());
+				// Make lerp only if beam is moving !
+				if (beam.IsDirty)
+				{
+					auto color = Color::Lerp(beam.OldColor, beamColor, GetInterpolationFactor());
 
-				AddColoredQuad(
-					Vector3::Lerp(beam.OldVertices[i], beam.Vertices[i], GetInterpolationFactor()),
-					Vector3::Lerp(
-						beam.OldVertices[isLastSubdivision ? 0 : (i + 1)], 
-						beam.Vertices[isLastSubdivision ? 0 : (i + 1)],
-						GetInterpolationFactor()),
-					Vector3::Lerp(
-						beam.OldVertices[LaserBeamEffect::SUBDIVISION_COUNT + (isLastSubdivision ? 0 : (i + 1))],
-						beam.Vertices[LaserBeamEffect::SUBDIVISION_COUNT + (isLastSubdivision ? 0 : (i + 1))],
-						GetInterpolationFactor()),
-					Vector3::Lerp(
-						beam.OldVertices[LaserBeamEffect::SUBDIVISION_COUNT + i],
-						beam.Vertices[LaserBeamEffect::SUBDIVISION_COUNT + i],
-						GetInterpolationFactor()),
-					color, color, color, color,
-					BlendMode::Additive, view, SpriteRenderType::LaserBeam);
+					AddColoredQuad(
+						Vector3::Lerp(beam.OldVertices[i], v1, GetInterpolationFactor()),
+						Vector3::Lerp(
+							beam.OldVertices[isLastSubdivision ? 0 : (i + 1)],
+							v2,
+							GetInterpolationFactor()),
+						Vector3::Lerp(
+							beam.OldVertices[LaserBeamEffect::SUBDIVISION_COUNT + (isLastSubdivision ? 0 : (i + 1))],
+							v3,
+							GetInterpolationFactor()),
+						Vector3::Lerp(
+							beam.OldVertices[LaserBeamEffect::SUBDIVISION_COUNT + i],
+							v4,
+							GetInterpolationFactor()),
+						color, color, color, color,
+						BlendMode::Additive, view, SpriteRenderType::LaserBeam);
+				}
+				else
+				{
+					AddColoredQuad(
+						v1, v2, v3, v4,
+						beamColor, beamColor, beamColor, beamColor,
+						BlendMode::Additive, view, SpriteRenderType::LaserBeam);
+				}
 			}
 		}
 	}
@@ -401,8 +417,8 @@ namespace TEN::Renderer
 	{
 		for (const auto& fire : Fires)
 		{
-			auto oldFade = fire.PrevFade == 1 ? 1.0f : (float)(255 - fire.PrevFade) / 255.0f;
-			auto fade = fire.fade == 1 ? 1.0f : (float)(255 - fire.fade) / 255.0f;
+			auto oldFade = fire.PrevFade == 1 ? 1.0f : (float)(UCHAR_MAX - fire.PrevFade) / (float)UCHAR_MAX;
+			auto fade = fire.fade == 1 ? 1.0f : (float)(UCHAR_MAX - fire.fade) / (float)UCHAR_MAX;
 			fade = Lerp(oldFade, fade, GetInterpolationFactor());
 
 			for (int i = 0; i < MAX_SPARKS_FIRE; i++) 
@@ -413,22 +429,23 @@ namespace TEN::Renderer
 					// Calculate original flame color.
 					auto color = Vector4::Lerp(
 						Vector4(
-							spark->PrevColor.x / 255.0f * fade,
-							spark->PrevColor.y / 255.0f * fade,
-							spark->PrevColor.z / 255.0f * fade,
+							spark->PrevColor.x / (float)UCHAR_MAX * fade,
+							spark->PrevColor.y / (float)UCHAR_MAX * fade,
+							spark->PrevColor.z / (float)UCHAR_MAX * fade,
 							1.0f),
 						Vector4(
-							spark->color.x / 255.0f * fade,
-							spark->color.y / 255.0f * fade,
-							spark->color.z / 255.0f * fade,
+							spark->color.x / (float)UCHAR_MAX * fade,
+							spark->color.y / (float)UCHAR_MAX * fade,
+							spark->color.z / (float)UCHAR_MAX * fade,
 							1.0f),
 						GetInterpolationFactor());
 
 					// Influence flame color with object color via chroma modulation.
-					if (fire.color != Vector4::One)
+					if (fire.color != NEUTRAL_COLOR)
 					{
 						auto color3 = Vector3(color.x, color.y, color.z);
 						color = Vector4::Lerp(color, fire.color * Luma(color3), Chroma(color3) * 1.5f);
+						color.w = 1.0f;
 					}
 
 					AddSpriteBillboard(
@@ -574,7 +591,7 @@ namespace TEN::Renderer
 				}
 				
 				// If sprite is a video texture, bypass it if texture is inactive.
-				if (particle.SpriteID == VIDEO_SPRITE_ID && (_videoSprite.Texture == nullptr || _videoSprite.Texture->Texture == nullptr))
+				if (particle.SpriteID == VIDEO_SPRITE_ID && (_videoSprite.Texture == nullptr || !_videoSprite.Texture->IsValid()))
 					continue;
 
 				// Disallow sprites out of bounds.
@@ -1215,6 +1232,8 @@ namespace TEN::Renderer
 		if (!Lara.RightArm.GunFlash && !Lara.LeftArm.GunFlash)
 			return false;
 
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
 		if (Lara.Control.Look.OpticRange > 0 && _currentMirror == nullptr)
 			return false;
 
@@ -1238,20 +1257,17 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::InstancedStatics);
 
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-
-		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		const auto& room = _rooms[LaraItem->RoomNumber];
 		auto* itemPtr = &_items[LaraItem->Index];
 
 		// Divide gunflash tint by 2 because tinting uses multiplication and additive color which doesn't look good with overbright color values.
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = settings.ColorizeMuzzleFlash ? ((Vector4)settings.FlashColor / 2) : Vector4::One;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = room.AmbientLight;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)LightMode::Static;
+		_stObjects.Objects[0].Color = settings.ColorizeMuzzleFlash ? settings.FlashColor : NEUTRAL_COLOR;
+		_stObjects.Objects[0].AmbientLight = room.AmbientLight;
+		_stObjects.Objects[0].LightMode = (int)LightMode::Static;
 		BindInstancedStaticLights(itemPtr->LightsToDraw, 0);
 
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
@@ -1279,13 +1295,13 @@ namespace TEN::Renderer
 
 			if (Lara.LeftArm.GunFlash)
 			{
-				worldMatrix = itemPtr->AnimTransforms[LM_LHAND] * itemPtr->World;
+				worldMatrix = itemPtr->InterpolatedAnimTransforms[LM_LHAND] * itemPtr->InterpolatedWorld;
 				worldMatrix = tMatrix * worldMatrix;
 				worldMatrix = rotMatrix * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
 
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
-				UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
+				_stObjects.Objects[0].World = worldMatrix;
+				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1297,13 +1313,13 @@ namespace TEN::Renderer
 
 			if (Lara.RightArm.GunFlash)
 			{
-				worldMatrix = itemPtr->AnimTransforms[LM_RHAND] * itemPtr->World;
+				worldMatrix = itemPtr->InterpolatedAnimTransforms[LM_RHAND] * itemPtr->InterpolatedWorld;
 				worldMatrix = tMatrix * worldMatrix;
 				worldMatrix = rotMatrix * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
 
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
-				UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
+				_stObjects.Objects[0].World = worldMatrix;
+				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1317,13 +1333,12 @@ namespace TEN::Renderer
 
 	void Renderer::DrawBaddyGunflashes(RenderView& view)
 	{
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
 		_shaders.Bind(Shader::InstancedStatics);
 
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-
-		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-		_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		for (auto* rRoomPtr : view.RoomsToDraw)
 		{
@@ -1340,9 +1355,9 @@ namespace TEN::Renderer
 				auto& creature = *GetCreatureInfo(&nativeItem);
 				const auto& rRoom = _rooms[nativeItem.RoomNumber];
 
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = Vector4::One;
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = rRoom.AmbientLight;
-				_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)LightMode::Static;
+				_stObjects.Objects[0].Color = CREATURE_GUNFLASH_COLOR;
+				_stObjects.Objects[0].AmbientLight = rRoom.AmbientLight;
+				_stObjects.Objects[0].LightMode = (int)LightMode::Static;
 
 				BindInstancedStaticLights(rItemPtr->LightsToDraw, 0); // FIXME: Is it really needed for gunflashes? -- Lwmte, 15.07.22
 
@@ -1372,7 +1387,7 @@ namespace TEN::Renderer
 						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
 						auto rotMatrixZ = Matrix::CreateRotationZ(TO_RAD(2 * GetRandomControl()));
 
-						auto worldMatrix = rItemPtr->AnimTransforms[creature.MuzzleFlash[0].Bite.BoneID] * rItemPtr->World;
+						auto worldMatrix = rItemPtr->InterpolatedAnimTransforms[creature.MuzzleFlash[0].Bite.BoneID] * rItemPtr->InterpolatedWorld;
 						worldMatrix = tMatrix * worldMatrix;
 
 						if (creature.MuzzleFlash[0].ApplyXRotation)
@@ -1383,8 +1398,8 @@ namespace TEN::Renderer
 
 						ReflectMatrixOptionally(worldMatrix);
 
-						_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
-						UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
+						_stObjects.Objects[0].World = worldMatrix;
+						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 						DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1415,7 +1430,7 @@ namespace TEN::Renderer
 						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
 						auto rotMatrixZ = Matrix::CreateRotationZ(TO_RAD(2 * GetRandomControl()));
 
-						auto worldMatrix = rItemPtr->AnimTransforms[creature.MuzzleFlash[1].Bite.BoneID] * rItemPtr->World;
+						auto worldMatrix = rItemPtr->InterpolatedAnimTransforms[creature.MuzzleFlash[1].Bite.BoneID] * rItemPtr->InterpolatedWorld;
 						worldMatrix = tMatrix * worldMatrix;
 
 						if (creature.MuzzleFlash[1].ApplyXRotation)
@@ -1426,8 +1441,8 @@ namespace TEN::Renderer
 
 						ReflectMatrixOptionally(worldMatrix);
 
-						_stInstancedStaticMeshBuffer.StaticMeshes[0].World = worldMatrix;
-						UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
+						_stObjects.Objects[0].World = worldMatrix;
+						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 						DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1521,17 +1536,19 @@ namespace TEN::Renderer
 
 	void Renderer::DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass)
 	{
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
 		const auto& room = _rooms[effect->RoomNumber];
 
 		auto world = effect->InterpolatedWorld;
 		ReflectMatrixOptionally(world);
 
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].World = world;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = effect->Color;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = effect->AmbientLight;
-		_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)LightMode::Dynamic;
+		_stObjects.Objects[0].World = world;
+		_stObjects.Objects[0].Color = effect->Color;
+		_stObjects.Objects[0].AmbientLight = effect->AmbientLight;
+		_stObjects.Objects[0].LightMode = (int)LightMode::Dynamic;
 		BindInstancedStaticLights(effect->LightsToDraw, 0);
-		UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 		auto& mesh = *effect->Mesh;
 		
@@ -1568,11 +1585,8 @@ namespace TEN::Renderer
 	{
 		_shaders.Bind(Shader::InstancedStatics);
 
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
-
-		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-		_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		for (auto* roomPtr : view.RoomsToDraw)
 		{
@@ -1592,6 +1606,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawDebris(RenderView& view, RendererPass rendererPass)
 	{
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
 		TexturesAreNotAnimated();
 
 		bool activeDebrisExist = false;
@@ -1637,30 +1653,30 @@ namespace TEN::Renderer
 
 					if (deb.mesh.Animated)
 					{
-						BindTexture(TextureRegister::ColorMap, &std::get<0>(_animatedTextures[deb.mesh.tex]), SamplerStateRegister::LinearClamp);
+						BindTexture(TextureRegister::ColorMap, std::get<0>(_animatedTextures[deb.mesh.tex]).get(), SamplerStateRegister::LinearClamp);
 					}
 					else if (deb.isStatic)
 					{
-						BindTexture(TextureRegister::ColorMap, &std::get<0>(_staticTextures[deb.mesh.tex]), SamplerStateRegister::LinearClamp);
+						BindTexture(TextureRegister::ColorMap, std::get<0>(_staticTextures[deb.mesh.tex]).get(), SamplerStateRegister::LinearClamp);
 					}
 					else
 					{
-						BindTexture(TextureRegister::ColorMap, &std::get<0>(_moveablesTextures[deb.mesh.tex]), SamplerStateRegister::LinearClamp);
+						BindTexture(TextureRegister::ColorMap, std::get<0>(_moveablesTextures[deb.mesh.tex]).get(), SamplerStateRegister::LinearClamp);
 					}
 
-					_stInstancedStaticMeshBuffer.StaticMeshes[0].World = Matrix::Identity;
+					_stObjects.Objects[0].World = Matrix::Identity;
 
 					// Update only if parameters are actually changed to reduce overhead.
 					if (firstDebris ||
-						(_stInstancedStaticMeshBuffer.StaticMeshes[0].Color != deb.color ||
-						 _stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient != _rooms[deb.roomNumber].AmbientLight ||
-						 _stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode != (int)deb.lightMode))
+						(_stObjects.Objects[0].Color != deb.color ||
+						 _stObjects.Objects[0].AmbientLight != _rooms[deb.roomNumber].AmbientLight ||
+						 _stObjects.Objects[0].LightMode != (int)deb.lightMode))
 					{
-						_stInstancedStaticMeshBuffer.StaticMeshes[0].Color = deb.color;
-						_stInstancedStaticMeshBuffer.StaticMeshes[0].Ambient = _rooms[deb.roomNumber].AmbientLight;
-						_stInstancedStaticMeshBuffer.StaticMeshes[0].LightMode = (int)deb.lightMode;
+						_stObjects.Objects[0].Color = deb.color;
+						_stObjects.Objects[0].AmbientLight = _rooms[deb.roomNumber].AmbientLight;
+						_stObjects.Objects[0].LightMode = (int)deb.lightMode;
 
-						UpdateConstantBuffer(_stInstancedStaticMeshBuffer, _cbInstancedStaticMeshBuffer);
+						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 					}
 
 					auto matrix = Matrix::Lerp(deb.PrevTransform, deb.Transform, GetInterpolationFactor());
@@ -1670,19 +1686,19 @@ namespace TEN::Renderer
 					vtx0.Position = Vector3::Transform(deb.mesh.Positions[0], matrix);
 					vtx0.UV = deb.mesh.TextureCoordinates[0];
 					vtx0.Normal = PackVector3(deb.mesh.Normals[0]);
-					vtx0.Color = VectorColorToRGBA_TempToVector4(deb.mesh.Colors[0]);
+					vtx0.Color = VectorColorToRGBA(deb.mesh.Colors[0]);
 
 					Vertex vtx1;
 					vtx1.Position = Vector3::Transform(deb.mesh.Positions[1], matrix);
 					vtx1.UV = deb.mesh.TextureCoordinates[1];
 					vtx1.Normal = PackVector3(deb.mesh.Normals[1]);
-					vtx1.Color = VectorColorToRGBA_TempToVector4(deb.mesh.Colors[1]);
+					vtx1.Color = VectorColorToRGBA(deb.mesh.Colors[1]);
 
 					Vertex vtx2;
 					vtx2.Position = Vector3::Transform(deb.mesh.Positions[2], matrix);
 					vtx2.UV = deb.mesh.TextureCoordinates[2];
 					vtx2.Normal = PackVector3(deb.mesh.Normals[2]);
-					vtx2.Color = VectorColorToRGBA_TempToVector4(deb.mesh.Colors[2]);
+					vtx2.Color = VectorColorToRGBA(deb.mesh.Colors[2]);
 
 					_primitiveBatch->DrawTriangle(vtx0, vtx1, vtx2);
 
@@ -1815,8 +1831,8 @@ namespace TEN::Renderer
 		}
 	}
 
-	Texture2D Renderer::CreateDefaultTexture(std::vector<unsigned char> color)
+	std::unique_ptr<ITexture2D> Renderer::CreateDefaultTexture(std::vector<unsigned char> color)
 	{
-		return Texture2D(_device.Get(), 1, 1, color.data());
+		return _graphicsDevice->CreateTexture2D(1, 1, SurfaceFormat::SF_RGBA8_Unorm, color.data());
 	}
 }
