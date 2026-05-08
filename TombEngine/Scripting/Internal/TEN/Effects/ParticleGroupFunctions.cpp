@@ -566,7 +566,7 @@ namespace TEN::Scripting::Effects::ParticleGroups
 		// @tfield float ageNormalized Current age as a normalized value between 0 and 1. Recalculated each frame; direct writes are ignored.
 		// @tfield int subIndex Current sprite or mesh sub-index within the object slot.
 		// @tfield Objects.ObjID objectID Object slot used to render this particle. Overrides the group default per particle.
-		// @tfield Vec3 orientation Current orientation in degrees along the X, Y, and Z axes. Applies to mesh particles only.
+		// @tfield Vec3 orientation Current orientation in degrees along the X, Y, and Z axes. For mesh particles, controls mesh rotation. For sprite particles, a non-zero orientation renders the sprite as a fixed sprite instead of a camera-facing sprite.
 		// @tfield float contactRadius Half-extent in world units used for AABB contact detection. Default is 128.
 		// @tfield bool touchingPlayer Read-only. True if the particle's contact radius overlaps Lara's deadly bounds.
 		// @tfield bool teleport Write-only control. Set to true to suppress interpolation after a large position, size, or rotation change.
