@@ -602,14 +602,18 @@ namespace TEN::Renderer
 				
 				if (particle.flags & SP_CONSTRAINED)
 				{
+					auto rot = Matrix::CreateFromYawPitchRoll(particle.constraint.y, particle.constraint.x, particle.constraint.z);
+					auto half = particle.size * (float)particle.scalar * (float)particle.scalar * 0.5f;
+					auto right = Vector3::Transform(Vector3(half, 0.0f, 0.0f), rot);
+					auto up = Vector3::Transform(Vector3(0.0f, half, 0.0f), rot);
 
-					AddSpriteBillboardRotated(
+					auto color = Color(particle.r / (float)UCHAR_MAX, particle.g / (float)UCHAR_MAX, particle.b / (float)UCHAR_MAX, 1.0f);
+					AddQuad(
 						sprite,
-						pos,
-						Color(particle.r / (float)UCHAR_MAX, particle.g / (float)UCHAR_MAX, particle.b / (float)UCHAR_MAX, 1.0f),
-						TO_RAD(particle.rotAng << 4),
-						particle.scalar,
-						Vector2(particle.size, particle.size), particle.blendMode, particle.constraint, true, view);
+						pos - right + up, pos + right + up,
+						pos + right - up, pos - right - up,
+						color, TO_RAD(particle.rotAng << 4), (float)particle.scalar,
+						Vector2(particle.size, particle.size), particle.blendMode, true, view);
 				}
 				else
 				{
@@ -1508,20 +1512,6 @@ namespace TEN::Renderer
 		{
 			auto translationMatrix = Matrix::CreateTranslation(spritePos);
 			auto rotMatrix = Matrix::CreateRotationZ(sprite.Rotation) * Matrix::CreateLookAt(Vector3::Zero, sprite.LookAtAxis, Vector3::UnitZ);
-			spriteMatrix = scaleMatrix * rotMatrix * translationMatrix;
-		}
-		break;
-
-		case SpriteType::RotatedBillboard:
-		{
-			auto translationMatrix = Matrix::CreateTranslation(spritePos);
-
-			auto rotX = Matrix::CreateRotationX(sprite.LookAtAxis.x);
-			auto rotY = Matrix::CreateRotationY(sprite.LookAtAxis.y);
-			auto rotZ = Matrix::CreateRotationZ(sprite.LookAtAxis.z);
-
-			auto rotMatrix = rotX * rotY * rotZ;
-
 			spriteMatrix = scaleMatrix * rotMatrix * translationMatrix;
 		}
 		break;
