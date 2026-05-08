@@ -1208,7 +1208,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 	std::unique_ptr<IPrimitiveBatch> DX11GraphicsDevice::InitializePrimitiveBatch()
 	{
-		return std::make_unique<DX11PrimitiveBatch>(_context.Get());
+		return std::make_unique<DX11PrimitiveBatch>(_device.Get(), _context.Get());
 	}
 
 	void DX11GraphicsDevice::SaveScreenshot(IRenderTarget2D* renderTarget, std::string path)
