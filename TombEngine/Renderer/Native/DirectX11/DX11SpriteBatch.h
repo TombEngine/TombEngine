@@ -38,6 +38,7 @@ namespace TEN::Renderer::Native::DirectX11
 		ComPtr<ID3D11BlendState>       _blendOpaque;
 		ComPtr<ID3D11BlendState>       _blendAlpha;
 		ComPtr<ID3D11BlendState>       _blendAdditive;
+		ComPtr<ID3D11BlendState>       _blendPremultipliedAlpha;
 		ComPtr<ID3D11RasterizerState>  _rasterizer;
 		ComPtr<ID3D11DepthStencilState> _depthOff;
 

@@ -128,6 +128,13 @@ namespace TEN::Renderer::Native::DirectX11
 		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
 		_device->CreateBlendState(&bd, _blendAdditive.GetAddressOf());
 
+		// Blend: premultiplied alpha (DXTKfont textures store color * alpha).
+		bd.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+		bd.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+		bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+		_device->CreateBlendState(&bd, _blendPremultipliedAlpha.GetAddressOf());
+
 		// Rasterizer: no culling, fill solid.
 		D3D11_RASTERIZER_DESC rd = {};
 		rd.FillMode = D3D11_FILL_SOLID;
@@ -280,6 +287,9 @@ namespace TEN::Renderer::Native::DirectX11
 			break;
 		case BlendMode::AlphaBlend:
 			_context->OMSetBlendState(_blendAlpha.Get(), blendFactor, 0xFFFFFFFF);
+			break;
+		case BlendMode::PremultipliedAlphaBlend:
+			_context->OMSetBlendState(_blendPremultipliedAlpha.Get(), blendFactor, 0xFFFFFFFF);
 			break;
 		default:
 			_context->OMSetBlendState(_blendOpaque.Get(), blendFactor, 0xFFFFFFFF);
