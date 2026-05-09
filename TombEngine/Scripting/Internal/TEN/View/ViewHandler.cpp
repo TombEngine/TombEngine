@@ -198,9 +198,9 @@ namespace TEN::Scripting::View
 		return (screenRes.x / screenRes.y);
 	}
 
-	static std::tuple<PostProcessMode, float> GetPostProcess()
+	static std::pair<PostProcessMode, float> GetPostProcess()
 	{
-		return std::make_tuple(g_Renderer.GetPostProcessMode(), g_Renderer.GetPostProcessStrength());
+		return std::pair(g_Renderer.GetPostProcessMode(), g_Renderer.GetPostProcessStrength());
 	}
 
 	static void SetPostProcess(PostProcessMode mode, TypeOrNil<float> strength)
