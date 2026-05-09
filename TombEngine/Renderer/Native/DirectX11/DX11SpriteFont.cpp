@@ -7,9 +7,10 @@
 
 namespace TEN::Renderer::Native::DirectX11
 {
-	DX11SpriteFont::DX11SpriteFont(ID3D11Device* device, std::wstring fontPath)
+	DX11SpriteFont::DX11SpriteFont(ID3D11Device* device, std::string fontPath)
 	{
-		_gameFont = std::make_unique<SpriteFont>(device, fontPath.c_str());
+		auto wFontPath = TEN::Utils::ToWString(fontPath);
+		_gameFont = std::make_unique<SpriteFont>(device, wFontPath.c_str());
 		_gameFont->SetDefaultCharacter(L' ');
 	}
 
@@ -18,14 +19,10 @@ namespace TEN::Renderer::Native::DirectX11
 		return _gameFont->GetLineSpacing();
 	}
 
-	Vector2 DX11SpriteFont::MeasureString(std::wstring str)
+	Vector2 DX11SpriteFont::MeasureString(const std::string& str)
 	{
-		return _gameFont->MeasureString(str.c_str());
-	}
-
-	Vector2 DX11SpriteFont::MeasureString(wchar_t* str)
-	{
-		return _gameFont->MeasureString(str);
+		auto wStr = TEN::Utils::ToWString(str);
+		return _gameFont->MeasureString(wStr.c_str());
 	}
 
 	Glyph DX11SpriteFont::FindGlyph(char c)
@@ -42,42 +39,11 @@ namespace TEN::Renderer::Native::DirectX11
 		return glyph;
 	}
 
-	Glyph DX11SpriteFont::FindGlyph(wchar_t c)
-	{
-		auto dxGlyph = _gameFont->FindGlyph(c);
-
-		Glyph glyph;
-
-		glyph.Character = dxGlyph->Character;
-		glyph.XAdvance = dxGlyph->XAdvance;
-		glyph.XOffset = dxGlyph->XOffset;
-		glyph.YOffset = dxGlyph->YOffset;
-
-		return glyph;
-	}
-
-	void DX11SpriteFont::DrawString(ISpriteBatch* spriteBatch, std::wstring text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
+	void DX11SpriteFont::DrawString(ISpriteBatch* spriteBatch, const std::string& text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
 	{
 		auto dxSpriteBatch = static_cast<DX11SpriteBatch*>(spriteBatch);
-		_gameFont->DrawString(dxSpriteBatch->GetNativeSpriteBatch(), text.c_str(), position, color, rotation, origin, scale);
-	}
-
-	void DX11SpriteFont::DrawString(ISpriteBatch* spriteBatch, wchar_t* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
-	{
-		auto dxSpriteBatch = static_cast<DX11SpriteBatch*>(spriteBatch);
-		_gameFont->DrawString(dxSpriteBatch->GetNativeSpriteBatch(), text, position, color, rotation, origin, scale);
-	}
-
-	void DX11SpriteFont::DrawString(ISpriteBatch* spriteBatch, std::string text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
-	{
-		auto dxSpriteBatch = static_cast<DX11SpriteBatch*>(spriteBatch);
-		_gameFont->DrawString(dxSpriteBatch->GetNativeSpriteBatch(), text.c_str(), position, color, rotation, origin, scale);
-	}
-
-	void DX11SpriteFont::DrawString(ISpriteBatch* spriteBatch, char* text, Vector2 position, Vector4 color, float rotation, Vector2 origin, float scale)
-	{
-		auto dxSpriteBatch = static_cast<DX11SpriteBatch*>(spriteBatch);
-		_gameFont->DrawString(dxSpriteBatch->GetNativeSpriteBatch(), text, position, color, rotation, origin, scale);
+		auto wText = TEN::Utils::ToWString(text);
+		_gameFont->DrawString(dxSpriteBatch->GetNativeSpriteBatch(), wText.c_str(), position, color, rotation, origin, scale);
 	}
 }
 

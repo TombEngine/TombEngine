@@ -19,7 +19,7 @@ namespace TEN::Platform
 		// Getters
 
 		virtual SDL_Window*                 GetSDL3Window() = 0;
-		virtual std::wstring                GetBinaryPath(bool includeExeName) = 0;
+		virtual std::string                 GetBinaryPath(bool includeExeName) = 0;
 		virtual std::vector<unsigned short> GetProductOrFileVersion(bool productVersion) = 0;
 
 		// Setters

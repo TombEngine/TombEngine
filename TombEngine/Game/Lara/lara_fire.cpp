@@ -733,7 +733,7 @@ void HandleWeapon(ItemInfo& laraItem)
 		}
 		else
 		{
-			laraItem.Model.MeshIndex[LM_HEAD] = Objects[ID_LARA_SCREAM].meshIndex + LM_HEAD;
+			laraItem.Model.MeshIndex[LM_HEAD] = Objects[Lara.Skin.SkinScream].meshIndex + LM_HEAD;
 		}
 
 		if (Camera.type != CameraType::Look &&

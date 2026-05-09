@@ -75,7 +75,7 @@ namespace TEN::Renderer::Native::DirectX11
 			" (" + BytesToMBString(vramSize) + " MB)");
 	}
 
-	DX11Texture2D::DX11Texture2D(ID3D11Device* device, const std::wstring& fileName)
+	DX11Texture2D::DX11Texture2D(ID3D11Device* device, const std::string& fileName)
 	{
 		HRESULT res;
 
@@ -83,8 +83,9 @@ namespace TEN::Renderer::Native::DirectX11
 		ID3D11DeviceContext* context = nullptr;
 		device->GetImmediateContext(&context);
 
-		res = CreateWICTextureFromFile(device, context, fileName.c_str(), resource.GetAddressOf(), _shaderResourceView.GetAddressOf(), (size_t)0);
-		throwIfFailed(res, L"Opening Texture file '" + fileName + L"': ");
+		auto wFileName = TEN::Utils::ToWString(fileName);
+		res = CreateWICTextureFromFile(device, context, wFileName.c_str(), resource.GetAddressOf(), _shaderResourceView.GetAddressOf(), (size_t)0);
+		throwIfFailed(res, "Opening Texture file '" + fileName + "': ");
 
 		res = resource->QueryInterface(_texture.GetAddressOf());
 		throwIfFailed(res, device, "QueryInterface for Texture2D from file:");
