@@ -183,6 +183,12 @@ Settings.Outfits =
       skin = { TEN.Objects.ObjID.ANIMATING14, TEN.Objects.ObjID.ANIMATING15,
                TEN.Objects.ObjID.ANIMATING16, TEN.Objects.ObjID.ANIMATING17 },
         meshVisible = "all",
+        onEnter = 
+        function()
+            local settings = TEN.Flow.GetSettings()
+            settings.Hair[1].offset = Vec3(-4, 3, -28)
+            TEN.Flow.SetSettings(settings)
+        end
     },
 
     { name = "Dark Raider",

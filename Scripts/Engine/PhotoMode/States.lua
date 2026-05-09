@@ -158,6 +158,8 @@ function States.CaptureSnapshot()
 
     snap.fov  = TEN.View.GetFOV()
     snap.roll = TEN.View.GetRoll()
+    snap.dofMode, snap.dofFocusDistance, snap.dofRange, snap.dofStrength = TEN.View.GetDOF()
+    snap.postProcessMode, snap.postProcessStrength, snap.postProcessTint = TEN.View.GetPostProcess()
 
     -- Holster state
     local left, right, back = Lara:GetHolsterWeapon()
@@ -251,14 +253,17 @@ function States.RestoreSnapshot()
         Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
     end)
 
-    TEN.View.SetFOV(snap.fov)
-    TEN.View.SetRoll(snap.roll)
+    --Reset Hair
+    pcall(function() Lara:ResetHair() end)
 
-    -- Reset post-process
+    -- Reset post-process and camera settings
     pcall(function()
-        TEN.View.SetPostProcessMode(Settings.Filters.presets[1].mode)
-        TEN.View.SetPostProcessStrength(1.0)
-        TEN.View.SetPostProcessTint(Settings.Filters.tints[1].color)
+        TEN.View.SetDOF(snap.dofMode, snap.dofFocusDistance, snap.dofRange, snap.dofStrength)
+        TEN.View.SetFOV(snap.fov)
+        TEN.View.SetRoll(snap.roll)
+        TEN.View.SetPostProcessMode(snap.postProcessMode)
+        TEN.View.SetPostProcessStrength(snap.postProcessStrength)
+        TEN.View.SetPostProcessTint(snap.postProcessTint)
     end)
 end
 

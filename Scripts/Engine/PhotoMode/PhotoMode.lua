@@ -127,6 +127,10 @@ local function ResetCurrentOutfit(state)
         end
     end
 
+    if snap.settings then
+        TEN.Flow.SetSettings(snap.settings)
+    end
+
     state.appliedSkin        = false
     state.appliedSkinnedMesh = false
     state.hiddenMeshes       = {}
@@ -847,9 +851,6 @@ function PhotoMode.Exit()
 
     -- Detach camera
     Camera.Detach()
-
-    -- Disable depth of field
-    pcall(function() TEN.View.SetDOF(TEN.View.DOFMode.NONE) end)
 
     -- Stop light
     pcall(function()
