@@ -6,6 +6,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## [Version 2.0]
 
 ### New features
+* Added heat haze for flame emitters and effects.
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
 * Added HEAVY_STAMPER (ID 459) object from TR3.
@@ -28,10 +29,14 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Lua API changes
 * Added ring inventory module.
-* Added `Lara.SetSkin` to swap classic outfits.
-* Added `View.SetPostProcess` and `View.GetPostProcess` to set/get post process mode and strength. This deprecates `View.SetPostProcessMode` and `View.SetPostProcessStrength`.
-* Added `View.GetPostProcessTint` to get currently set post process tint.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
+* Added `Flow.Settings.Graphics.flameHeatHaze` option to toggle heat haze effects for flames.
+* Added `Flow.Settings.UI.menuBackgroundBlur` option to specify amount of blur for the inventory and pause backgrounds.
+* Added `Lara.SetSkin` to swap classic outfits.
+* Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
+* Added `View.GetPostProcessTint` to get currently set post process tint.
+* Added `View.GetPostProcess` and `View.SetPostProcess` to set/get postprocess mode and strength.
+* Remove `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 
 ## [Version 1.11.1]

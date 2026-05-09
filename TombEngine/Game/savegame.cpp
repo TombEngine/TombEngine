@@ -1795,6 +1795,12 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_global_event_sets(globalEventSetsOffset);
 	sgb.add_volume_event_sets(volumeEventSetsOffset);
 
+	auto dof = g_Renderer.GetDOF();
+	sgb.add_dof_distance(dof.Distance);
+	sgb.add_dof_range(dof.Range);
+	sgb.add_dof_strength(dof.Strength);
+	sgb.add_dof_mode((int)dof.Mode);
+
 	if (Lara.Control.Rope.Ptr != -1)
 	{
 		sgb.add_rope(ropeOffset);
@@ -2428,6 +2434,10 @@ static void ParseEffects(const Save::SaveGame* s)
 {
 	// Restore camera FOV.
 	AlterFOV(s->current_fov());
+
+	// Restore DOF.
+	DOFState dof = { (DOFMode)s->dof_mode(), s->dof_distance(), s->dof_range(), s->dof_strength() };
+	g_Renderer.SetDOF(dof);
 
 	// Restore postprocess effects.
 	g_Renderer.SetPostProcessMode((PostProcessMode)s->postprocess_mode());
