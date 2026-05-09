@@ -198,6 +198,15 @@ namespace TEN::Scripting::View
 		return (screenRes.x / screenRes.y);
 	}
 
+	static std::tuple<PostProcessMode, float, ScriptColor> GetPostProcess()
+	{
+		return std::make_tuple(
+			g_Renderer.GetPostProcessMode(),
+			g_Renderer.GetPostProcessStrength(),
+			(ScriptColor)g_Renderer.GetPostProcessTint()
+		);
+	}
+
 	static void SetPostProcessMode(PostProcessMode mode)
 	{
 		g_Renderer.SetPostProcessMode(mode);
@@ -280,6 +289,13 @@ namespace TEN::Scripting::View
 		//@function GetCameraRoom
 		//@treturn Objects.Room Current room of the camera.
 		tableView.set_function(ScriptReserved_GetCameraRoom, &GetCameraRoom);
+
+		///Gets the post-process effect mode, strength and color.
+		//@function GetPostProcess
+		//@treturn View.PostProcessMode Current post process mode.
+		//@treturn float strength How strong the current effect is.
+		//@treturn Color Current tint value.
+		tableView.set_function(ScriptReserved_GetPostProcess, &GetPostProcess);
 
 		///Sets the post-process effect mode, like negative or monochrome.
 		//@function SetPostProcessMode
