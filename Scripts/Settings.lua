@@ -14,6 +14,12 @@ local settings = Flow.Settings.new()
 	settings.Camera.binocularLightColor = Color(192, 192, 96)
 	settings.Camera.lasersightLightColor = Color(255, 0, 0)
 	settings.Camera.objectCollision = true
+
+	settings.Effects.bloodColor = Color(255, 0, 0)
+	settings.Effects.bloodBlendMode = TEN.Effects.BlendID.ADDITIVE
+	settings.Effects.bloodSize = 1.0
+	settings.Effects.ricochetColor = Color(255, 153, 0)
+	settings.Effects.explosionShockwave = true
 	
 	settings.Flare.color = Color(128, 64, 0)
 	settings.Flare.offset = Vec3(0, 0, 41)
@@ -63,6 +69,7 @@ local settings = Flow.Settings.new()
 	settings.UI.plainTextColor = Color(255, 255, 255)
 	settings.UI.disabledTextColor = Color(128, 128, 128)
 	settings.UI.shadowTextColor = Color(0, 0, 0)
+	settings.UI.systemFontSize = 1.0
 	settings.UI.titleLogoPosition = Vec2(50, 20)
 	settings.UI.titleLogoScale = 0.38
 	settings.UI.titleLogoColor = Color(255, 255, 255)

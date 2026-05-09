@@ -62,6 +62,17 @@ namespace TEN::Scripting
 		static void Register(sol::table& parent);
 	};
 
+	struct EffectsSettings
+	{
+		ScriptColor			  BloodColor		 = ScriptColor(255, 0, 0);
+		BlendMode			  BloodBlendMode	 = BlendMode::Additive;
+		float				  BloodSize			 = 1.0f;
+		ScriptColor			  RicochetColor		 = ScriptColor(255, 153, 0);
+		bool				  ExplosionShockwave = true;
+
+		static void Register(sol::table& parent);
+	};
+
 	struct GraphicsSettings
 	{
 		bool AmbientOcclusion = true;
@@ -134,6 +145,8 @@ namespace TEN::Scripting
 		ScriptColor DisabledTextColor	= ScriptColor(128, 128, 128);	// Gray
 		ScriptColor ShadowTextColor		= ScriptColor(0, 0, 0);			// Black
 
+		float SystemFontSize = 1.0f;
+
 		Vec2 TitleMenuPosition = Vec2(50, 66);
 		float TitleMenuScale = 1.0f;
 		sol::optional<DisplayStringOptions>	TitleMenuAlignment = DisplayStringOptions::Center;
@@ -176,6 +189,7 @@ namespace TEN::Scripting
 	{
 		AnimSettings				Animations  = {};
 		CameraSettings				Camera	    = {};
+		EffectsSettings				Effects	    = {};
 		FlareSettings				Flare	    = {};
 		GameplaySettings			Gameplay    = {};
 		GraphicsSettings			Graphics    = {};

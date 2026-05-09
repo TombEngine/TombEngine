@@ -45,6 +45,7 @@ namespace TEN::Scripting
 	{
 		AnimSettings::Register(parent);
 		CameraSettings::Register(parent);
+		EffectsSettings::Register(parent);
 		FlareSettings::Register(parent);
 		GameplaySettings::Register(parent);
 		GraphicsSettings::Register(parent);
@@ -62,6 +63,7 @@ namespace TEN::Scripting
 			sol::meta_function::new_index, NewIndexErrorMaker(Settings, ScriptReserved_Settings),
 			ScriptReserved_AnimSettings, &Settings::Animations,
 			ScriptReserved_CameraSettings, &Settings::Camera,
+			ScriptReserved_EffectsSettings, &Settings::Effects,
 			ScriptReserved_FlareSettings, &Settings::Flare,
 			ScriptReserved_GameplaySettings, &Settings::Gameplay,
 			ScriptReserved_GraphicsSettings, &Settings::Graphics,
@@ -257,6 +259,43 @@ namespace TEN::Scripting
 		/// Enable target occlusion by moveables and static meshes.
 		// @tfield[opt=true] bool targetObjectOcclusion If enabled, player won't be able to target enemies through moveables and static meshes.
 		"targetObjectOcclusion", &GameplaySettings::TargetObjectOcclusion);
+	}
+
+	/// Effects
+	// @section Effects
+	// Settings for blood and generic impact visuals.
+	// @usage
+	// -- Example of changing blood appearance and disabling generic explosion shockwaves
+	// -- In Settings.lua
+	// settings.Effects.bloodColor = TEN.Color(32, 160, 32)
+	// settings.Effects.bloodBlendMode = TEN.Effects.BlendID.ALPHA_BLEND
+	// settings.Effects.explosionShockwave = false
+
+	void EffectsSettings::Register(sol::table& parent)
+	{
+		parent.create().new_usertype<EffectsSettings>(ScriptReserved_EffectsSettings, sol::constructors<EffectsSettings()>(),
+			sol::call_constructor, sol::constructors<EffectsSettings()>(),
+			sol::meta_function::new_index, NewIndexErrorMaker(EffectsSettings, ScriptReserved_EffectsSettings),
+
+		/// Blood particle color.
+		// @tfield[opt=TEN.Color(255&#44; 0&#44; 0)] Color bloodColor Base tint used for classic and underwater blood particles.
+		"bloodColor", &EffectsSettings::BloodColor,
+
+		/// Blood particle blend mode.
+		// @tfield[opt=TEN.Effects.BlendID.ADDITIVE] Effects.BlendID bloodBlendMode Blend mode used when drawing blood particles.
+		"bloodBlendMode", &EffectsSettings::BloodBlendMode,
+
+		/// Blood particle size multiplier.
+		// @tfield[opt=1.0] float bloodSize Scale multiplier applied to classic and underwater blood particles.
+		"bloodSize", &EffectsSettings::BloodSize,
+
+		/// Ricochet spark color.
+		// @tfield[opt=TEN.Color(255&#44; 153&#44; 0)] Color ricochetColor Default tint used by ricochet sparks.
+		"ricochetColor", &EffectsSettings::RicochetColor,
+
+		/// Explosion shockwave toggle.
+		// @tfield[opt=true] bool explosionShockwave Enables shockwave generation for generic explosion effects.
+		"explosionShockwave", &EffectsSettings::ExplosionShockwave);
 	}
 
 	/// Graphics
@@ -557,6 +596,10 @@ namespace TEN::Scripting
 		/// Shadow text color.
 		// @tfield[opt=TEN.Color(0&#44; 0&#44; 0)] Color shadowTextColor A color used for drawing a shadow under any rendered text.
 		"shadowTextColor", &UISettings::ShadowTextColor,
+
+		/// System font size. Used in all system non-scriptable menus, such as linear inventory, pause menu, title menu, etc.
+		// @tfield[opt=1.0] float systemFontSize Scale multiplier applied to legacy system-font text rendered via integer screen coordinates.
+		"systemFontSize", &UISettings::SystemFontSize,
 
 		/// Title logo center point position.
 		// @tfield[opt=TEN.Vec2(50&#44; 20)] Vec2 titleLogoPosition Center point of a title level logo position.

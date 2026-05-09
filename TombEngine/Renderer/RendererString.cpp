@@ -23,7 +23,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddString(int x, int y, const std::string& string, unsigned int color, int flags)
 	{
-		AddString(string, Vector2(x, y), Color(color), 1.0f, flags);
+		AddString(string, Vector2(x, y), Color(color), std::max(0.1f, g_GameFlow->GetSettings()->UI.SystemFontSize), flags);
 	}
 
 	void Renderer::AddString(const std::string& string, const Vector2& pos, const Color& color, float scale, int flags)
