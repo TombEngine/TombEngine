@@ -602,18 +602,12 @@ namespace TEN::Renderer
 				
 				if (particle.flags & SP_CONSTRAINED)
 				{
-					auto rot = Matrix::CreateFromYawPitchRoll(particle.constraint.y, particle.constraint.x, particle.constraint.z);
-					auto half = particle.size * (float)particle.scalar * (float)particle.scalar * 0.5f;
-					auto right = Vector3::Transform(Vector3(half, 0.0f, 0.0f), rot);
-					auto up = Vector3::Transform(Vector3(0.0f, half, 0.0f), rot);
-
-					auto color = Color(particle.r / (float)UCHAR_MAX, particle.g / (float)UCHAR_MAX, particle.b / (float)UCHAR_MAX, 1.0f);
 					AddQuad(
 						sprite,
-						pos - right + up, pos + right + up,
-						pos + right - up, pos - right - up,
-						color, TO_RAD(particle.rotAng << 4), (float)particle.scalar,
-						Vector2(particle.size, particle.size), particle.blendMode, true, view);
+						pos,
+						Color(particle.r / (float)UCHAR_MAX, particle.g / (float)UCHAR_MAX, particle.b / (float)UCHAR_MAX, 1.0f),
+						TO_RAD(particle.rotAng << 4), particle.scalar,
+						particle.size, particle.blendMode, particle.constraint, true, view);
 				}
 				else
 				{
