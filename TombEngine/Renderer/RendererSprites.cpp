@@ -132,6 +132,16 @@ namespace TEN::Renderer
 		view.SpritesToDraw.push_back(spr);
 	}
 
+	void Renderer::AddQuad(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale, float size, BlendMode blendMode, const Vector3& constraintAxis, bool isSoftParticle, RenderView& view, SpriteRenderType renderType)
+	{
+		auto rot = Matrix::CreateFromYawPitchRoll(constraintAxis.y, constraintAxis.x, constraintAxis.z);
+		auto half = size * (float)scale * (float)scale * 0.5f;
+		auto right = Vector3::Transform(Vector3(half, 0.0f, 0.0f), rot);
+		auto up = Vector3::Transform(Vector3(0.0f, half, 0.0f), rot);
+
+		AddQuad(sprite, pos - right + up, pos + right + up, pos + right - up, pos - right - up, color, orient2D, scale, Vector2(size, size), blendMode, true, view);
+	}
+
 	void Renderer::AddColoredQuad(const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
 		const Vector4& color, BlendMode blendMode, RenderView& view)
 	{

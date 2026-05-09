@@ -494,6 +494,9 @@ namespace TEN::Renderer
 		void AddQuad(RendererSprite* sprite, const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
 			const Vector4& color0, const Vector4& color1, const Vector4& color2, const Vector4& color3, float orient2D,
 			float scale, Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
+		void AddQuad(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D,
+			float scale, float size, BlendMode blendMode, const Vector3& constraintAxis,
+			bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 		void AddColoredQuad(const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
 			const Vector4& color, BlendMode blendMode, RenderView& view);
 		void AddColoredQuad(const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,

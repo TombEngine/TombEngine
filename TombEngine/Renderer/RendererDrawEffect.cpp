@@ -1847,18 +1847,12 @@ namespace TEN::Renderer
 
 				if (p.Orientation != Vector3::Zero)
 				{
-					auto half  = interpSize * 0.5f;
-					auto rot   = Matrix::CreateFromYawPitchRoll(p.Orientation.y, p.Orientation.x, p.Orientation.z);
-					auto right = Vector3::Transform(Vector3(half, 0.0f, 0.0f), rot);
-					auto up    = Vector3::Transform(Vector3(0.0f, half, 0.0f), rot);
-
 					AddQuad(
 						&_sprites[Objects[p.ObjectID].meshIndex + clampedSpriteIndex],
-						interpPos - right + up, interpPos + right + up,
-						interpPos + right - up, interpPos - right - up,
+						interpPos,
 						Vector4(p.ParticleColor.R(), p.ParticleColor.G(), p.ParticleColor.B(), p.ParticleColor.A()),
 						interpRotation, 1.0f,
-						Vector2(interpSize, interpSize), group.RenderBlendMode, true, view);
+						interpSize, group.RenderBlendMode, p.Orientation, true, view);
 				}
 				else
 				{
