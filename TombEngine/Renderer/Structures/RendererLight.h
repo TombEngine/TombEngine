@@ -1,11 +1,8 @@
 #pragma once
-#include <SimpleMath.h>
 #include "Renderer/RendererEnums.h"
 
 namespace TEN::Renderer::Structures
 {
-	using namespace DirectX::SimpleMath;
-
 	struct RendererLight
 	{
 		Vector3 Position;

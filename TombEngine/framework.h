@@ -55,11 +55,12 @@
 #include <bass.h>
 #include <bass_fx.h>
 
-// DXTK
-#include <SimpleMath.h>
+// SimpleMath (GLM compatibility layer)
+#include "Math/SimpleMath.h"
 
-using namespace DirectX;
-using namespace DirectX::SimpleMath;
+using namespace TEN::Math;
+using namespace TEN::Math::Library;
+using namespace TEN::Math::Collision;
 
 // OIS
 #include <OISException.h>

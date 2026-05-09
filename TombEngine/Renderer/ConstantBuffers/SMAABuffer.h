@@ -1,10 +1,6 @@
 #pragma once
-#include <SimpleMath.h>
-
 namespace TEN::Renderer::ConstantBuffers
 {
-	using namespace DirectX::SimpleMath;
-
 	struct alignas(16) CSMAABuffer
 	{
 		// Only required for temporal modes (SMAA T2x).

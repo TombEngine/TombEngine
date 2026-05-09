@@ -817,7 +817,7 @@ namespace TEN::Renderer
 			auto countStringPos = pickup.Position + COUNT_STRING_OFFSET;
 			auto countStringPrevPos = pickup.PrevPosition + COUNT_STRING_OFFSET;
 			
-			auto color = Color(g_GameFlow->GetSettings()->UI.PlainTextColor);
+			Color color = g_GameFlow->GetSettings()->UI.PlainTextColor;
 			color.w = opacity;
 
 			AddString(countString, countStringPos, countStringPrevPos, Vector2::Zero, color, pickup.StringScale, SF());

@@ -1,7 +1,5 @@
 #pragma once
 #include <array>
-#include <SimpleMath.h>
-
 namespace TEN::Effects::Explosion
 {
 	struct ExplosionParticle

@@ -1,12 +1,8 @@
 #pragma once
-
-#include <SimpleMath.h>
 #include "Renderer/ConstantBuffers/ObjectData.h"
 
 namespace TEN::Renderer::ConstantBuffers
 {
-	using namespace DirectX::SimpleMath;
-
 	constexpr int INSTANCED_STATIC_MESH_BUCKET_SIZE = 100;
 
 	// Single object constant buffer. Items draw with instance_count=1 and populate Objects[0]

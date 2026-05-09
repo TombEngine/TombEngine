@@ -303,7 +303,7 @@ void HandlePistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 	{
 		const auto& settings = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1];
 
-		auto color = Color(settings.FlashColor);
+		Color color = settings.FlashColor;
 		color += Color(Random::GenerateFloat(-0.2f, 0.2f));
 
 		auto basePos = GetJointPosition(&laraItem, (lara.LeftArm.GunFlash != 0) ? LM_LHAND : LM_RHAND).ToVector3();

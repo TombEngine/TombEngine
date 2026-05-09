@@ -1,11 +1,7 @@
 #pragma once
 
 #include "Renderer/Graphics/ISpriteBatch.h"
-#include <SimpleMath.h>
 #include <string>
-
-using namespace DirectX::SimpleMath;
-
 namespace TEN::Renderer::Graphics
 {
     struct Glyph

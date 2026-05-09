@@ -1343,7 +1343,7 @@ void RifleHandler(ItemInfo& laraItem, LaraWeaponType weaponType)
 	{
 		auto& settings = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1];
 		
-		auto color = Color(settings.FlashColor);
+		Color color = settings.FlashColor;
 		color += Color(Random::GenerateFloat(-0.2f, 0.2f));
 
 		if (weaponType == LaraWeaponType::Revolver)

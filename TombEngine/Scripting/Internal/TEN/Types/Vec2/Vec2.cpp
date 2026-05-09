@@ -252,6 +252,11 @@ Vector2 Vec2::ToVector2() const
 	return Vector2(x, y);
 }
 
+Vector3 Vec2::ToVector3() const
+{
+	return Vector3(x, y, 0);
+}
+
 /*Vector2i Vec2::ToVector2i() const
 {
 	return Vector2i(x, y);
@@ -260,4 +265,9 @@ Vector2 Vec2::ToVector2() const
 Vec2::operator Vector2() const
 {
 	return ToVector2();
-};
+}
+
+Vec2::operator Vector3() const
+{
+	return ToVector3();
+}

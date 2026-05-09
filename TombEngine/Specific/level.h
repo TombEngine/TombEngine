@@ -14,6 +14,7 @@
 using namespace TEN::Animation;
 using namespace TEN::Control::Volumes;
 using namespace TEN::SpotCam;
+using namespace TEN::Math::Library;
 
 struct ChunkId;
 struct LEB128;
@@ -112,7 +113,7 @@ struct MESH
 struct MirrorData
 {
 	int	   RoomNumber		= 0;
-	Plane  Plane			= SimpleMath::Plane();
+	Plane  Plane			= TEN::Math::Library::Plane();
 	Matrix ReflectionMatrix = Matrix::Identity;
 	
 	bool Enabled		  = false;

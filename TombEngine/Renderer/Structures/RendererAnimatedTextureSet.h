@@ -4,8 +4,6 @@
 
 namespace TEN::Renderer::Structures
 {
-	using namespace DirectX::SimpleMath;
-
 	enum class AnimatedTextureType
 	{
 		Frames,

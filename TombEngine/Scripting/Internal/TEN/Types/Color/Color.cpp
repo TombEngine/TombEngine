@@ -65,6 +65,11 @@ namespace TEN::Scripting::Types
 		SetA(a);
 	}
 
+	ScriptColor::ScriptColor(const Color& color) :
+		_color(color.ToVector4())
+	{
+	}
+
 	ScriptColor::ScriptColor(const Vector3& color) :
 		_color(color)
 	{
