@@ -160,12 +160,47 @@ namespace TEN::Renderer
 			samplerType = SamplerStateRegister::PointWrap;
 		}
 
+		// Skip redundant rebinds: a back-to-back draw using the same SRV/sampler on the
+		// same register doesn't need another PSSetShaderResources/PSSetSamplers call.
+		// Hot path on the sorted transparent pass.
+		const int slot = (int)registerType;
+		if (slot >= 0 && slot < TEXTURE_BINDING_CACHE_SIZE)
+		{
+			if (_lastBoundTextures[slot] == texture && _lastBoundSamplers[slot] == samplerType)
+				return;
+
+			_lastBoundTextures[slot] = texture;
+			_lastBoundSamplers[slot] = samplerType;
+		}
+
 		_graphicsDevice->BindTexture(registerType, texture, samplerType);
+	}
+
+	void Renderer::UnbindTexture(ShaderStage stage, TextureRegister registerType)
+	{
+		const int slot = (int)registerType;
+		if (slot >= 0 && slot < TEXTURE_BINDING_CACHE_SIZE)
+		{
+			_lastBoundTextures[slot] = nullptr;
+			_lastBoundSamplers[slot] = SamplerStateRegister::None;
+		}
+
+		_graphicsDevice->UnbindTexture(stage, registerType);
+	}
+
+	void Renderer::ResetTextureBindingCache()
+	{
+		for (int i = 0; i < TEXTURE_BINDING_CACHE_SIZE; ++i)
+		{
+			_lastBoundTextures[i] = nullptr;
+			_lastBoundSamplers[i] = SamplerStateRegister::None;
+		}
 	}
 
 	void Renderer::BindRenderTargetAsTexture(TextureRegister registerType, IRenderTarget2D* target, SamplerStateRegister samplerType)
 	{
-		_graphicsDevice->BindTexture(registerType, target, samplerType);
+		// Route through BindTexture so this binding goes through the same dedup cache.
+		BindTexture(registerType, target, samplerType);
 	}
 
 	int Renderer::BindLight(RendererLight& light, ShaderLight* lights, int index)

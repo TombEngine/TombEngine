@@ -291,6 +291,13 @@ namespace TEN::Renderer
 		CullMode _lastCullMode;
 		int _lastMaterialIndex;
 
+		// Texture binding cache: avoids redundant PSSetShaderResources / PSSetSamplers when
+		// consecutive draws use the same texture for the same register. Indexed by
+		// (int)TextureRegister; covers all PS texture slots.
+		static constexpr int TEXTURE_BINDING_CACHE_SIZE = 16;
+		ITextureBase*        _lastBoundTextures[TEXTURE_BINDING_CACHE_SIZE]   = {};
+		SamplerStateRegister _lastBoundSamplers[TEXTURE_BINDING_CACHE_SIZE]   = {};
+
 		std::vector<RendererSpriteBucket> _spriteBuckets;
 
 		// Antialiasing
@@ -339,6 +346,8 @@ namespace TEN::Renderer
 		void ApplyFXAA(IRenderSurface2D* renderTarget, RenderView& view);
 		void ApplyAntialiasing(IRenderSurface2D* renderTarget, RenderView& view);
 		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType);
+		void UnbindTexture(ShaderStage stage, TextureRegister registerType);
+		void ResetTextureBindingCache();
 		int  BindLight(RendererLight& light, ShaderLight* lights, int index);
 		void BindRoomLights(std::vector<RendererLight*>& lights);
 		void BindInstancedStaticLights(std::vector<RendererLight*>& lights, int instanceID);

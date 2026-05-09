@@ -1808,6 +1808,11 @@ namespace TEN::Renderer
 
 		ResetDebugVariables();
 
+		// Reset texture binding cache so the dedup logic starts from a known state every frame.
+		// DX11 may have invalidated SRVs at end of last frame (RTV-as-SRV hazard prevention),
+		// or external code may have changed bindings outside our wrapper.
+		ResetTextureBindingCache();
+
 		auto& level = *g_GameFlow->GetLevel(CurrentLevel);
 
 		// Prepare scene to draw.
@@ -3856,8 +3861,6 @@ namespace TEN::Renderer
 		{
 			memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
 		}
-		
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
 			_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
