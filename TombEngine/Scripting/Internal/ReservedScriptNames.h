@@ -376,8 +376,10 @@ static constexpr char ScriptReserved_GetCameraType[]				= "GetCameraType";
 static constexpr char ScriptReserved_GetCameraRoom[]				= "GetCameraRoom";
 
 static constexpr char ScriptReserved_GetPostProcess[]				= "GetPostProcess";
+static constexpr char ScriptReserved_SetPostProcess[]				= "SetPostProcess";
 static constexpr char ScriptReserved_SetPostProcessMode[]			= "SetPostProcessMode";
 static constexpr char ScriptReserved_SetPostProcessStrength[]		= "SetPostProcessStrength";
+static constexpr char ScriptReserved_GetPostProcessTint[]			= "GetPostProcessTint";
 static constexpr char ScriptReserved_SetPostProcessTint[]			= "SetPostProcessTint";
 
 static constexpr char ScriptReserved_GetCameraPosition[]			= "GetCameraPosition";

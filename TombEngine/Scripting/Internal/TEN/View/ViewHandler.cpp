@@ -203,6 +203,12 @@ namespace TEN::Scripting::View
 		return std::make_tuple(g_Renderer.GetPostProcessMode(), g_Renderer.GetPostProcessStrength(), (ScriptColor)g_Renderer.GetPostProcessTint());
 	}
 
+	static void SetPostProcess(PostProcessMode mode, TypeOrNil<float> strength)
+	{
+		g_Renderer.SetPostProcessMode(mode);
+		g_Renderer.SetPostProcessStrength(std::clamp((float)ValueOr<float>(strength, 1.0), 0.0f, 1.0f));
+	}
+
 	static void SetPostProcessMode(PostProcessMode mode)
 	{
 		g_Renderer.SetPostProcessMode(mode);
@@ -211,6 +217,11 @@ namespace TEN::Scripting::View
 	static void SetPostProcessStrength(TypeOrNil<float> strength)
 	{
 		g_Renderer.SetPostProcessStrength(std::clamp((float)ValueOr<float>(strength, 1.0), 0.0f, 1.0f));
+	}
+
+	static ScriptColor GetPostProcessTint()
+	{
+		return (ScriptColor)g_Renderer.GetPostProcessTint();
 	}
 
 	static void SetPostProcessTint(const ScriptColor& color)
@@ -286,22 +297,22 @@ namespace TEN::Scripting::View
 		//@treturn Objects.Room Current room of the camera.
 		tableView.set_function(ScriptReserved_GetCameraRoom, &GetCameraRoom);
 
-		///Gets the post-process effect mode, strength and color.
+		///Gets the post-process effect mode and strength.
 		//@function GetPostProcess
 		//@treturn View.PostProcessMode Current post process mode.
 		//@treturn float strength How strong the current effect is.
-		//@treturn Color Current tint value.
 		tableView.set_function(ScriptReserved_GetPostProcess, &GetPostProcess);
 
-		///Sets the post-process effect mode, like negative or monochrome.
-		//@function SetPostProcessMode
+		///Sets the post-process effect, like negative or monochrome.
+		//@function SetPostProcess
 		//@tparam View.PostProcessMode effect Effect type to set.
-		tableView.set_function(ScriptReserved_SetPostProcessMode, &SetPostProcessMode);
-
-		///Sets the post-process effect strength.
-		//@function SetPostProcessStrength
 		//@tparam[opt=1] float strength How strong the effect is.
-		tableView.set_function(ScriptReserved_SetPostProcessStrength, &SetPostProcessStrength);
+		tableView.set_function(ScriptReserved_SetPostProcess, &SetPostProcess);
+	
+		///Gets the post-process effect color.
+		//@function GetPostProcessTint
+		//@treturn Color Current tint value.
+		tableView.set_function(ScriptReserved_GetPostProcessTint, &GetPostProcessTint);
 
 		///Sets the post-process tint.
 		//@function SetPostProcessTint
@@ -379,6 +390,8 @@ namespace TEN::Scripting::View
 		tableView.set_function(ScriptReserved_GetAspectRatio, &GetAspectRatio);
 
 		// COMPATIBILITY
+		tableView.set_function("SetPostProcessMode", &SetPostProcessMode);
+		tableView.set_function("SetPostProcessStrength", &SetPostProcessStrength);
 		tableView.set_function("PlayFlyBy", &PlayFlyby);
 
 		// Register types.
