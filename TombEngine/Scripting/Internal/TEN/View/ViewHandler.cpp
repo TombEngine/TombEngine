@@ -200,11 +200,7 @@ namespace TEN::Scripting::View
 
 	static std::tuple<PostProcessMode, float, ScriptColor> GetPostProcess()
 	{
-		return std::make_tuple(
-			g_Renderer.GetPostProcessMode(),
-			g_Renderer.GetPostProcessStrength(),
-			(ScriptColor)g_Renderer.GetPostProcessTint()
-		);
+		return std::make_tuple(g_Renderer.GetPostProcessMode(), g_Renderer.GetPostProcessStrength(), (ScriptColor)g_Renderer.GetPostProcessTint());
 	}
 
 	static void SetPostProcessMode(PostProcessMode mode)
