@@ -44,6 +44,7 @@ namespace TEN::Renderer::Native::DirectX11
 		ComPtr<ID3D11SamplerState> _shadowSampler;
 
 		ComPtr<ID3D11BlendState> _subtractiveBlendState = nullptr;
+		ComPtr<ID3D11BlendState> _distortionBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _screenBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _lightenBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _excludeBlendState = nullptr;

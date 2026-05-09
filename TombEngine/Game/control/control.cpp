@@ -584,6 +584,7 @@ void CleanUp()
 	g_Renderer.SetPostProcessMode(PostProcessMode::None);
 	g_Renderer.SetPostProcessStrength(1.0f);
 	g_Renderer.SetPostProcessTint((Vector3)NEUTRAL_COLOR);
+	g_Renderer.SetDOF({});
 
 	// Reset Itemcamera
 	ClearObjCamera();
@@ -751,7 +752,7 @@ GameStatus DoGameLoop(int levelIndex)
 void EndGameLoop(int levelIndex, GameStatus reason)
 {
 	// Save last screenshot for loading screen.
-	g_Renderer.DumpGameScene();
+	g_Renderer.DumpGameScene(SceneRenderMode::Full);
 
 	if (reason == GameStatus::LevelComplete)
 		SaveGame::SaveHub(levelIndex);

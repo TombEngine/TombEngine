@@ -693,6 +693,10 @@ table SaveGame {
 	postprocess_mode: int32;
 	postprocess_strength: float;
 	postprocess_tint: Vector3;
+	dof_distance: float;
+	dof_range: float;
+	dof_strength: float;
+	dof_mode: int32;
 	rope: Rope;
 	pendulum: Pendulum;
 	alternate_pendulum: Pendulum;

@@ -5,7 +5,7 @@
 namespace TEN::Scripting::Effects
 {
 	/// Constants for blend mode IDs.
-	// All blending modes except `OPAQUE`, `ADDITIVE` and `ALPHA_BLEND` will use depth sorting for applicable polygons.
+	// All blending modes except `OPAQUE`, `ADDITIVE`, `DISTORTION` and `ALPHA_TEST` will use depth sorting for applicable polygons.
 	// This may reduce engine performance, so it is preferable to minimize usage of other blending modes.
 	// @enum Effects.BlendID
 	// @pragma nostrip
@@ -23,6 +23,10 @@ namespace TEN::Scripting::Effects
 		/// Standard additive blending.
 		// @mem ADDITIVE
 		{ "ADDITIVE", BlendMode::Additive },
+
+		/// Heat haze / distortion effect using luminance to drive optical displacement. Applied as a post-process pass.
+		// @mem DISTORTION
+		{ "DISTORTION", BlendMode::Distortion },
 
 		/// Subtractive blending, with brighter texture areas making everything darker behind them.
 		// @mem SUBTRACTIVE

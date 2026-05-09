@@ -1,9 +1,11 @@
 #pragma once
 
 #include "Math/Math.h"
+#include "Renderer/Structures/RendererDofMode.h"
 #include "Specific/clock.h"
 
 class Pose;
+using TEN::Renderer::Structures::DOFState;
 
 namespace TEN::SpotCam
 {
@@ -24,6 +26,7 @@ namespace TEN::SpotCam
 		short        Timer      = 0;
 		short        Speed      = 0;
 		short        Flags      = 0;
+		DOFState     DOF        = {};
 	};
 
 	enum SpotCamFlags
