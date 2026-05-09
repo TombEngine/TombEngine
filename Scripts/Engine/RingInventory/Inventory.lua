@@ -35,8 +35,38 @@ local inventorySetup = true
 local inventoryOpen = false
 local inventoryRunning = false
 
+local snap = {}
+
 LevelFuncs.Engine.RingInventory = LevelFuncs.Engine.RingInventory or {}
 
+-- ============================================================================
+-- VIEW SNAPSHOT FUNCTIONS
+-- ============================================================================
+function CaptureSnapshot()
+    snap.fov  = TEN.View.GetFOV()
+    snap.roll = TEN.View.GetRoll()
+    snap.dofMode, snap.dofFocusDistance, snap.dofRange, snap.dofStrength = TEN.View.GetDOF()
+    snap.postProcessMode, snap.postProcessStrength, snap.postProcessTint = TEN.View.GetPostProcess()
+end
+
+function RestoreSnapshot()
+    if not snap then return end
+
+    -- Reset post-process and camera settings
+    pcall(function()
+        TEN.View.SetDOF(snap.dofMode, snap.dofFocusDistance, snap.dofRange, snap.dofStrength)
+        TEN.View.SetFOV(snap.fov)
+        TEN.View.SetRoll(snap.roll)
+        if Settings.Background.enable ~= true then
+            TEN.View.SetPostProcessMode(snap.postProcessMode)
+            TEN.View.SetPostProcessStrength(snap.postProcessStrength)
+            TEN.View.SetPostProcessTint(snap.postProcessTint)
+        end
+    end)
+
+    snap = {}
+
+end
 -- ============================================================================
 -- MAIN FUNCTIONS
 -- ============================================================================
@@ -65,13 +95,9 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
         inventoryOpen = false
         InventoryStates.SetInventoryClosed(false)
         inventoryRunning = false
-        TEN.View.SetPostProcessMode(View.PostProcessMode.NONE)
-        TEN.View.SetPostProcessStrength(1)
-        TEN.View.SetPostProcessTint(COLOR_MAP.itemSelected)
         local settings = TEN.Flow.GetSettings()
         settings.Gameplay.enableInventory = false
         TEN.Flow.SetSettings(settings)
-        
         inventorySetup = false
     end
     
@@ -88,6 +114,7 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
             local savedItem = LevelVars.Engine.RingInventory.lastFocusedItem or Constants.NO_VALUE
             focusedItem = InventoryData.LoadFocusedItem(savedItem)
         end
+        CaptureSnapshot()
         InventoryData.SetOpenAtItem(focusedItem)
         inventoryDelay = 0
     end
@@ -99,6 +126,7 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
         inventoryOpen = true
         Save.SetQuickSaveStatus(true)
         Save.SetSaveMenu()
+        CaptureSnapshot()
         inventoryDelay = 0
     end
     
@@ -108,6 +136,7 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
         inventoryOpen = true
         Save.SetQuickSaveStatus(true)
         Save.SetLoadMenu()
+        CaptureSnapshot()
         inventoryDelay = 0
     end
 
@@ -115,6 +144,7 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
        not inventoryOpen and 
        isNotUsingBinoculars then
         inventoryOpen = true
+        CaptureSnapshot()
         inventoryDelay = 0
     end
     
@@ -143,12 +173,7 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
     end
     
     if InventoryStates.GetInventoryClosed() then
-        if Settings.Background.enable ~= true then
-            TEN.View.SetPostProcessMode(View.PostProcessMode.NONE)
-            TEN.View.SetPostProcessStrength(1)
-            TEN.View.SetPostProcessTint(COLOR_MAP.itemSelected)
-        end
-
+        RestoreSnapshot()
         InventoryStates.SetInventoryClosed(false)
         inventoryRunning = false
     end
