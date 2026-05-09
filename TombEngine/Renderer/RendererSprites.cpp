@@ -494,10 +494,7 @@ namespace TEN::Renderer
 			_graphicsDevice->BindVertexBuffer(_sortedPolygonsVertexBuffer.get());
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-
 		}
-
-		_graphicsDevice->UpdateVertexBuffer(_sortedPolygonsVertexBuffer.get(), 0, (int)_sortedPolygonsVertices.size(), _sortedPolygonsVertices.data());
 
 		_stInstancedSpriteBuffer.Sprites[0].World = Matrix::Identity;
 		_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
@@ -506,7 +503,7 @@ namespace TEN::Renderer
 
 		PackSpriteTextureCoordinates(0, objectInfo->Sprite->Sprite);
 
-		UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());;
+		UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
 
 		SetDepthState(DepthState::Read);
 		SetCullMode(CullMode::None);
@@ -516,10 +513,10 @@ namespace TEN::Renderer
 		BindTexture(TextureRegister::ColorMap, objectInfo->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);
 		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
-		DrawInstancedTriangles((int)_sortedPolygonsVertices.size(), 1, 0);
+		DrawInstancedTriangles(_sortedDrawVertexCount, 1, _sortedDrawStartVertex);
 
 		_numSortedSpritesDrawCalls++;
-		_numSortedTriangles += (int)_sortedPolygonsVertices.size() / 3;
+		_numSortedTriangles += _sortedDrawVertexCount / 3;
 	}
 
 	void Renderer::PackSpriteTextureCoordinates(int instanceId, RendererSprite* sprite)

@@ -3550,27 +3550,56 @@ namespace TEN::Renderer
 
 	void Renderer::DrawSortedFaces(RenderView& view)
 	{
-		// Track the last drawn object instance so back-to-back groups of the same
-		// item/static/room/hair don't redo their CB upload + light binding work.
+		if (view.TransparentObjectsToDraw.empty())
+			return;
+
+		// Two-pass design: pass 1 accumulates ALL mesh indices and ALL sprite vertices into
+		// the dynamic buffers in a single shot, then we do a single UpdateIndexBuffer +
+		// UpdateVertexBuffer + Bind, then pass 2 issues the actual draw calls using offsets
+		// into those buffers. This collapses what used to be N Map/Unmap/copy operations
+		// per frame into 2 (one per dynamic buffer).
+
+		struct SortedDrawEntry
+		{
+			int objectInfoIndex;     // index into view.TransparentObjectsToDraw for the group's first object
+			int startIndex;          // index buffer offset (mesh entries)
+			int indexCount;          // mesh: 6 or 3 per polygon, summed
+			int startVertex;         // vertex buffer offset (sprite entries)
+			int vertexCount;         // sprite: 6 verts per quad
+			bool sameAsLast;
+			int hairIndex;           // only for HairPrimary/Secondary
+		};
+
+		static thread_local std::vector<SortedDrawEntry> entries;
+		entries.clear();
+		entries.reserve(view.TransparentObjectsToDraw.size());
+
+		_sortedPolygonsVertices.clear();
+		_sortedPolygonsIndices.clear();
+
+		// Track last instance per category for the sameAsLast caching.
 		int lastItemNumber   = NO_VALUE;
 		int lastStaticKey    = NO_VALUE;
 		int lastRoomNumber   = NO_VALUE;
 		int lastHairKey      = NO_VALUE;
 		int lastMoveableAsStaticKey = NO_VALUE;
 
+		// ============================================================
+		// PASS 1: Accumulate indices/vertices and record per-group entries.
+		// ============================================================
 		for (int i = 0; i < view.TransparentObjectsToDraw.size(); i++)
 		{
 			auto* object = &view.TransparentObjectsToDraw[i];
-			auto lastObjectType = (i > 0 ? view.TransparentObjectsToDraw[i - 1].ObjectType : RendererObjectType::Unknown);
-
-			_sortedPolygonsVertices.clear();
-			_sortedPolygonsIndices.clear();
 
 			if (_currentMirror != nullptr && object->ObjectType == RendererObjectType::Room)
 				continue;
 
+			SortedDrawEntry entry = { i, 0, 0, 0, 0, false, 0 };
+			entry.objectInfoIndex = i;
+
 			if (object->ObjectType == RendererObjectType::Room)
 			{
+				int startIndex = (int)_sortedPolygonsIndices.size();
 				while (i < view.TransparentObjectsToDraw.size() &&
 					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
 					view.TransparentObjectsToDraw[i].Room->RoomNumber == object->Room->RoomNumber &&
@@ -3587,17 +3616,19 @@ namespace TEN::Renderer
 					i++;
 				}
 
-				bool sameAsLast = (object->Room->RoomNumber == lastRoomNumber);
+				entry.startIndex = startIndex;
+				entry.indexCount = (int)_sortedPolygonsIndices.size() - startIndex;
+				entry.sameAsLast = (object->Room->RoomNumber == lastRoomNumber);
 				lastRoomNumber = object->Room->RoomNumber;
-				DrawRoomSorted(object, lastObjectType, view, sameAsLast);
+				entries.push_back(entry);
 
 				if (i == view.TransparentObjectsToDraw.size())
-					return;
-
+					break;
 				i--;
 			}
 			else if (object->ObjectType == RendererObjectType::Moveable)
 			{
+				int startIndex = (int)_sortedPolygonsIndices.size();
 				while (i < view.TransparentObjectsToDraw.size() &&
 					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
 					view.TransparentObjectsToDraw[i].Item->ItemNumber == object->Item->ItemNumber &&
@@ -3615,18 +3646,20 @@ namespace TEN::Renderer
 					i++;
 				}
 
-				bool sameAsLast = (object->Item->ItemNumber == lastItemNumber);
+				entry.startIndex = startIndex;
+				entry.indexCount = (int)_sortedPolygonsIndices.size() - startIndex;
+				entry.sameAsLast = (object->Item->ItemNumber == lastItemNumber);
 				lastItemNumber = object->Item->ItemNumber;
-				DrawItemSorted(object, lastObjectType, view, sameAsLast);
+				entries.push_back(entry);
 
 				if (i == view.TransparentObjectsToDraw.size())
-					return;
-
+					break;
 				i--;
 			}
 			else if (object->ObjectType == RendererObjectType::HairPrimary ||
 					 object->ObjectType == RendererObjectType::HairSecondary)
 			{
+				int startIndex = (int)_sortedPolygonsIndices.size();
 				while (i < view.TransparentObjectsToDraw.size() &&
 					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
 					view.TransparentObjectsToDraw[i].Item->ItemNumber == object->Item->ItemNumber &&
@@ -3644,19 +3677,21 @@ namespace TEN::Renderer
 					i++;
 				}
 
-				int hairIndex = (object->ObjectType == RendererObjectType::HairPrimary) ? 0 : 1;
-				int hairKey = (object->Item->ItemNumber * 2) + hairIndex;
-				bool sameAsLast = (hairKey == lastHairKey);
+				entry.hairIndex = (object->ObjectType == RendererObjectType::HairPrimary) ? 0 : 1;
+				int hairKey = (object->Item->ItemNumber * 2) + entry.hairIndex;
+				entry.startIndex = startIndex;
+				entry.indexCount = (int)_sortedPolygonsIndices.size() - startIndex;
+				entry.sameAsLast = (hairKey == lastHairKey);
 				lastHairKey = hairKey;
-				DrawHairSorted(object, lastObjectType, view, hairIndex, sameAsLast);
+				entries.push_back(entry);
 
 				if (i == view.TransparentObjectsToDraw.size())
-					return;
-
+					break;
 				i--;
 			}
 			else if (object->ObjectType == RendererObjectType::Static)
 			{
+				int startIndex = (int)_sortedPolygonsIndices.size();
 				while (i < view.TransparentObjectsToDraw.size() &&
 					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
 					view.TransparentObjectsToDraw[i].Static->RoomNumber == object->Static->RoomNumber &&
@@ -3675,17 +3710,19 @@ namespace TEN::Renderer
 				}
 
 				int staticKey = (object->Static->RoomNumber << 16) | (object->Static->IndexInRoom & 0xFFFF);
-				bool sameAsLast = (staticKey == lastStaticKey);
+				entry.startIndex = startIndex;
+				entry.indexCount = (int)_sortedPolygonsIndices.size() - startIndex;
+				entry.sameAsLast = (staticKey == lastStaticKey);
 				lastStaticKey = staticKey;
-				DrawStaticSorted(object, lastObjectType, view, sameAsLast);
+				entries.push_back(entry);
 
 				if (i == view.TransparentObjectsToDraw.size())
-					return;
-
+					break;
 				i--;
 			}
 			else if (object->ObjectType == RendererObjectType::MoveableAsStatic)
 			{
+				int startIndex = (int)_sortedPolygonsIndices.size();
 				while (i < view.TransparentObjectsToDraw.size() &&
 					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
 					view.TransparentObjectsToDraw[i].Room->RoomNumber == object->Room->RoomNumber &&
@@ -3703,17 +3740,19 @@ namespace TEN::Renderer
 				}
 
 				int key = object->Room->RoomNumber;
-				bool sameAsLast = (key == lastMoveableAsStaticKey);
+				entry.startIndex = startIndex;
+				entry.indexCount = (int)_sortedPolygonsIndices.size() - startIndex;
+				entry.sameAsLast = (key == lastMoveableAsStaticKey);
 				lastMoveableAsStaticKey = key;
-				DrawMoveableAsStaticSorted(object, lastObjectType, view, sameAsLast);
+				entries.push_back(entry);
 
 				if (i == view.TransparentObjectsToDraw.size())
-					return;
-
+					break;
 				i--;
 			}
 			else if (object->ObjectType == RendererObjectType::Sprite)
-			{			
+			{
+				int startVertex = (int)_sortedPolygonsVertices.size();
 				while (i < view.TransparentObjectsToDraw.size() &&
 					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
 					view.TransparentObjectsToDraw[i].Sprite->Type == object->Sprite->Type &&
@@ -3794,14 +3833,79 @@ namespace TEN::Renderer
 					i++;
 				}
 
-				DrawSpriteSorted(object, lastObjectType, view);
+				entry.startVertex = startVertex;
+				entry.vertexCount = (int)_sortedPolygonsVertices.size() - startVertex;
+				entries.push_back(entry);
 
 				if (i == view.TransparentObjectsToDraw.size())
-				{
-					return;
-				}
-
+					break;
 				i--;
+			}
+		}
+
+		if (entries.empty())
+			return;
+
+		// ============================================================
+		// Single upload of the accumulated dynamic buffers.
+		// ============================================================
+		if (!_sortedPolygonsIndices.empty())
+		{
+			_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(),
+				(int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
+			_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
+		}
+		if (!_sortedPolygonsVertices.empty())
+		{
+			_graphicsDevice->UpdateVertexBuffer(_sortedPolygonsVertexBuffer.get(), 0,
+				(int)_sortedPolygonsVertices.size(), _sortedPolygonsVertices.data());
+		}
+
+		// ============================================================
+		// PASS 2: Issue draw calls reading from the offsets recorded above.
+		// ============================================================
+		for (size_t e = 0; e < entries.size(); e++)
+		{
+			const auto& en = entries[e];
+			auto* obj = &view.TransparentObjectsToDraw[en.objectInfoIndex];
+			auto lastObjectType = (e > 0
+				? view.TransparentObjectsToDraw[entries[e - 1].objectInfoIndex].ObjectType
+				: RendererObjectType::Unknown);
+
+			_sortedDrawStartIndex   = en.startIndex;
+			_sortedDrawIndexCount   = en.indexCount;
+			_sortedDrawStartVertex  = en.startVertex;
+			_sortedDrawVertexCount  = en.vertexCount;
+
+			switch (obj->ObjectType)
+			{
+			case RendererObjectType::Room:
+				DrawRoomSorted(obj, lastObjectType, view, en.sameAsLast);
+				break;
+
+			case RendererObjectType::Moveable:
+				DrawItemSorted(obj, lastObjectType, view, en.sameAsLast);
+				break;
+
+			case RendererObjectType::HairPrimary:
+			case RendererObjectType::HairSecondary:
+				DrawHairSorted(obj, lastObjectType, view, en.hairIndex, en.sameAsLast);
+				break;
+
+			case RendererObjectType::Static:
+				DrawStaticSorted(obj, lastObjectType, view, en.sameAsLast);
+				break;
+
+			case RendererObjectType::MoveableAsStatic:
+				DrawMoveableAsStaticSorted(obj, lastObjectType, view, en.sameAsLast);
+				break;
+
+			case RendererObjectType::Sprite:
+				DrawSpriteSorted(obj, lastObjectType, view);
+				break;
+
+			default:
+				break;
 			}
 		}
 	}
@@ -3820,8 +3924,6 @@ namespace TEN::Renderer
 			_shaders.Bind(Shader::Rooms);
 		}
 
-		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
-		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
 		// Per-room CB upload + lights are stable across consecutive groups of the same room.
 		if (!sameAsLast)
@@ -3844,10 +3946,10 @@ namespace TEN::Renderer
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Rooms, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
 
-		DrawIndexedTriangles((int)_sortedPolygonsIndices.size(), 0, 0);
+		DrawIndexedTriangles(_sortedDrawIndexCount, _sortedDrawStartIndex, 0);
 
 		_numSortedRoomsDrawCalls++;
-		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
+		_numSortedTriangles += _sortedDrawIndexCount / 3;
 
 		if (!sameAsLast)
 			ResetScissor();
@@ -3867,8 +3969,6 @@ namespace TEN::Renderer
 			_shaders.Bind(Shader::Items);
 		}
 
-		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
-		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
 		// Per-item CB upload + bones + lights are constant across all groups of the same item.
 		if (!sameAsLast)
@@ -3905,10 +4005,10 @@ namespace TEN::Renderer
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
 
-		DrawIndexedTriangles((int)_sortedPolygonsIndices.size(), 0, 0);
+		DrawIndexedTriangles(_sortedDrawIndexCount, _sortedDrawStartIndex, 0);
 
 		_numSortedMoveablesDrawCalls++;
-		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
+		_numSortedTriangles += _sortedDrawIndexCount / 3;
 	}
 
 	void Renderer::DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, bool sameAsLast)
@@ -3927,8 +4027,6 @@ namespace TEN::Renderer
 			_shaders.Bind(Shader::InstancedStatics);
 		}
 
-		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
-		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
 		// Per-static CB upload + lights are constant across consecutive groups of the same static.
 		if (!sameAsLast)
@@ -3949,10 +4047,10 @@ namespace TEN::Renderer
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Statics, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
 
-		DrawIndexedInstancedTriangles((int)_sortedPolygonsIndices.size(), 1, 0, 0);
+		DrawIndexedInstancedTriangles(_sortedDrawIndexCount, 1, _sortedDrawStartIndex, 0);
 
 		_numSortedStaticsDrawCalls++;
-		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
+		_numSortedTriangles += _sortedDrawIndexCount / 3;
 	}
 
 	void Renderer::DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, bool sameAsLast)
@@ -3971,8 +4069,6 @@ namespace TEN::Renderer
 			_shaders.Bind(Shader::InstancedStatics);
 		}
 
-		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
-		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
 		if (!sameAsLast)
 		{
@@ -3992,10 +4088,10 @@ namespace TEN::Renderer
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Statics, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
 
-		DrawIndexedInstancedTriangles((int)_sortedPolygonsIndices.size(), 1, 0, 0);
+		DrawIndexedInstancedTriangles(_sortedDrawIndexCount, 1, _sortedDrawStartIndex, 0);
 
 		_numSortedStaticsDrawCalls++;
-		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
+		_numSortedTriangles += _sortedDrawIndexCount / 3;
 	}
 
 	void Renderer::DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index, bool sameAsLast)
@@ -4018,8 +4114,6 @@ namespace TEN::Renderer
 			_shaders.Bind(Shader::Items);
 		}
 
-		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
-		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
 		// Hair segments and lights are constant for the same hair unit within the frame.
 		if (!sameAsLast)
@@ -4061,10 +4155,10 @@ namespace TEN::Renderer
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
 
-		DrawIndexedTriangles((int)_sortedPolygonsIndices.size(), 0, 0);
+		DrawIndexedTriangles(_sortedDrawIndexCount, _sortedDrawStartIndex, 0);
 
 		_numSortedMoveablesDrawCalls++;
-		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
+		_numSortedTriangles += _sortedDrawIndexCount / 3;
 	}
 
 	void Renderer::CalculateSSAO(RenderView& view)

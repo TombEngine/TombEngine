@@ -330,6 +330,14 @@ namespace TEN::Renderer
 		std::unique_ptr<IVertexBuffer> _sortedPolygonsVertexBuffer;
 		std::unique_ptr<IIndexBuffer> _sortedPolygonsIndexBuffer;
 
+		// Per-draw state set by the two-pass DrawSortedFaces flow before invoking Draw*Sorted.
+		// Allows reusing one big index/vertex buffer for the whole frame instead of re-uploading
+		// per group.
+		int _sortedDrawStartIndex   = 0;
+		int _sortedDrawIndexCount   = 0;
+		int _sortedDrawStartVertex  = 0;
+		int _sortedDrawVertexCount  = 0;
+
 		// High framerate
 
 		float _interpolationFactor = 0.0f;
