@@ -141,9 +141,7 @@ namespace TEN::Entities::TR4
 			return; 
 		}
 
-		// ----------------------------------------------------------------
 		// Water / Fire / Earth pour animation in progress — handle frames
-		// ----------------------------------------------------------------
 		if ((laraItem->Animation.AnimNumber == LA_WATERSKIN_POUR_LOW ||
 			laraItem->Animation.AnimNumber == LA_WATERSKIN_POUR_HIGH) &&
 			LaraItem->ItemFlags[2] == expectedMeshFlag)
@@ -194,9 +192,7 @@ namespace TEN::Entities::TR4
 			return;
 		}
 
-		// ----------------------------------------------------------------
 		// Fire element, step 2: light it with the torch
-		// ----------------------------------------------------------------
 		if (puzzleItem->TriggerFlags == 1 && puzzleItem->ItemFlags[0] >= 1 && puzzleItem->ItemFlags[0] <= 2)
 		{
 			// Torch-lighting animation completion.
@@ -247,9 +243,7 @@ namespace TEN::Entities::TR4
 			return;
 		}
 
-		// ----------------------------------------------------------------
 		// Check proximity and open the inventory to the correct item
-		// ----------------------------------------------------------------
 		bool isPlayerIdle = (laraItem->Animation.ActiveState == LS_IDLE &&
 			laraItem->Animation.AnimNumber == LA_STAND_IDLE &&
 			laraInfo->Control.HandStatus == HandStatus::Free);

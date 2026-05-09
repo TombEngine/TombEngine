@@ -106,9 +106,7 @@ void ScalesCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 	if (!waterPoured)
 		g_Hud.InteractionHighlighter.Test(*laraItem, *item);
 
-	// ----------------------------------------------------------------
-	// Idle: open inventory to a filled waterskin, or handle the choice.
-	// ----------------------------------------------------------------
+	// Idle: open inventory to a filled waterskin, or handle the choice
 	bool isPlayerIdle = (laraItem->Animation.ActiveState == LS_IDLE &&
 		laraItem->Animation.AnimNumber == LA_STAND_IDLE &&
 		laraInfo->Control.HandStatus == HandStatus::Free);

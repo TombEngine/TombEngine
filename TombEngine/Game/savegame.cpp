@@ -1441,9 +1441,9 @@ const std::vector<byte> SaveGame::Build()
 	levelData.add_weather_clustering(level->WeatherClustering);
 
 	//Sequence Switch Data
-	std::vector<int32_t> sequenceUsedVec(std::begin(SequenceUsed), std::end(SequenceUsed));
-	std::vector<int32_t> sequencesVec(std::begin(Sequences), std::end(Sequences));
-	int32_t currentSequenceVal = CurrentSequence;
+	std::vector<int> sequenceUsedVec(std::begin(SequenceUsed), std::end(SequenceUsed));
+	std::vector<int> sequencesVec(std::begin(Sequences), std::end(Sequences));
+	int currentSequenceVal = CurrentSequence;
 	
 	auto sequenceUsedOffset = fbb.CreateVector(sequenceUsedVec);
 	auto sequencesOffset = fbb.CreateVector(sequencesVec);

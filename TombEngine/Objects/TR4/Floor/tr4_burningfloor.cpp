@@ -62,7 +62,7 @@ void BurningFloorControl(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
 
-	// --- Phase 0: Wait for a stationary lit torch to ignite the floor ---
+	// Phase 0: Wait for a stationary lit torch to ignite the floor
 	if (!item->ItemFlags[3])
 	{
 		auto spheres = item->GetSpheres();
@@ -101,12 +101,12 @@ void BurningFloorControl(short itemNumber)
 		return;
 	}
 
-	// --- Precompute Y-rotation basis for offsetting fire positions ---
+	// Precompute Y-rotation basis for offsetting fire positions
 	short deltaY = item->Pose.Orientation.y + ANGLE(90.0f);
 	float sinY = phd_sin(deltaY);
 	float cosY = phd_cos(deltaY);
 
-	// --- Spawn floor fires at rotated offsets ---
+	// Spawn floor fires at rotated offsets ---
 	for (int i = 0; i < 15; i++) // NOTE: Original iterates only 15 of 16 entries.
 	{
 		int   xoff     = FLOOR_FIRES[i][0];
@@ -118,7 +118,7 @@ void BurningFloorControl(short itemNumber)
 			continue;
 
 		// Convert intensity (1-255, higher = brighter) to fade (1-255, higher = more faded).
-		short fade = 256 - intensity;
+		short fade = UCHAR_MAX + 1 - intensity;
 
 		// Rotate offset by the object's current Y orientation.
 		int rotX = (int)(xoff * cosY - zoff * sinY);
@@ -133,7 +133,7 @@ void BurningFloorControl(short itemNumber)
 			fade);
 	}
 
-	// --- Burn Lara if she steps into a deadly fire position ---
+	// Burn Lara if she steps into a deadly fire position
 	if (LaraItem->Effect.Type != EffectType::Fire)
 	{
 		for (int i = 0; i < 4; i++)
@@ -169,7 +169,7 @@ void BurningFloorControl(short itemNumber)
 	if (!item->ItemFlags[4])
 		SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
 
-	// --- Ramp-up phase: gradually increase fire intensities ---
+	// Ramp-up phase: gradually increase fire intensities
 	if (item->ItemFlags[3] < 450)
 	{
 		item->ItemFlags[0] += 4;
@@ -187,7 +187,7 @@ void BurningFloorControl(short itemNumber)
 		item->ItemFlags[3]++;
 		item->Animation.RequiredState = 127 - item->ItemFlags[3] / 6;
 	}
-	else // --- Wind-down phase: fade out fires and trigger the flipmap ---
+	else // Wind-down phase: fade out fires and trigger the flipmap
 	{
 		item->ItemFlags[0] -= 4;
 		item->ItemFlags[1] -= 3;
