@@ -8,12 +8,14 @@
 #include "Renderer/Graphics/IRenderTarget2D.h"
 #include "Renderer/Graphics/IRenderTargetCube.h"
 #include "Renderer/Graphics/ITexture2D.h"
+#include "Renderer/Graphics/ITexture3D.h"
 #include "Renderer/Graphics/IConstantBuffer.h"
 #include "Renderer/Graphics/IStructuredBuffer.h"
 #include "Renderer/Graphics/IInputLayout.h"
 #include "Renderer/Graphics/IShader.h"
 #include "Renderer/Graphics/IDepthTarget.h"
 #include "Renderer/Graphics/IRenderSurface2D.h"
+#include "Renderer/Graphics/IGpuReadbackBuffer.h"
 #include "Renderer/Graphics/IPrimitiveBatch.h"
 #include "Renderer/Graphics/ISpriteBatch.h"
 #include "Renderer/Graphics/ISpriteFont.h"
@@ -51,6 +53,8 @@ namespace TEN::Renderer::Graphics
 		virtual std::unique_ptr<ITexture2D> CreateTexture2DFromFileInMemory(int dataSize, unsigned char* data) = 0;
 		virtual void UpdateTexture2D(ITexture2D* texture, std::vector<char> data) = 0;
 
+		virtual std::unique_ptr<ITexture3D> CreateTexture3D(int width, int height, int depth, SurfaceFormat format, const void* data) = 0;
+
 		virtual void SetBlendMode(BlendMode blendMode) = 0;
 		virtual void SetDepthState(DepthState depthState) = 0;
 		virtual void SetCullMode(CullMode cullMode) = 0;
@@ -58,6 +62,12 @@ namespace TEN::Renderer::Graphics
 		virtual void SetScissor(RendererViewport viewport) = 0;
 
 		virtual void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) = 0;
+
+		// Clears the SRV bound at `registerType` for the given shader stage.
+		// Used to drop SRV bindings before re-binding the same resource as RTV/copy dest,
+		// which would otherwise trip D3D11 hazard warnings. On stateless backends
+		// (SDL_GPU/Vulkan) this is typically a no-op since bindings are scoped to a pass.
+		virtual void UnbindTexture(ShaderStage stage, TextureRegister registerType) = 0;
 		
 		virtual std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::string name) = 0;
 		virtual void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data) = 0;
@@ -83,6 +93,16 @@ namespace TEN::Renderer::Graphics
 		virtual void BindRenderTarget(IRenderTargetBinding renderTarget, IDepthTargetBinding depthTarget) = 0;
 		virtual void BindRenderTargets(std::vector<IRenderTarget2D*> renderTargets, IDepthTarget* depthTarget) = 0;
 		virtual void BindRenderTargets(std::vector<IRenderTargetBinding> renderTargets, IDepthTargetBinding depthTarget) = 0;
+
+		// GPU-side blit between two textures. Both must have the same dimensions and a
+		// compatible format. Maps to ID3D11DeviceContext::CopyResource on DX11; on
+		// SDL_GPU/Vulkan it becomes a copy pass / vkCmdCopyImage.
+		virtual void CopyTextureResource(ITexture2D* src, ITexture2D* dst) = 0;
+
+		// Creates an asynchronous GPU -> CPU readback buffer matching a texture of
+		// the given dimensions and format. Use SubmitCopy / TryRead to schedule
+		// copies and consume results without stalling the CPU.
+		virtual std::unique_ptr<IGpuReadbackBuffer> CreateGpuReadbackBuffer(int width, int height, SurfaceFormat format) = 0;
 
 		virtual void SetPrimitiveType(PrimitiveType primitiveType) = 0;
 

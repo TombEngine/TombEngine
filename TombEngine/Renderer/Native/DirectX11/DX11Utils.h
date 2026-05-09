@@ -216,6 +216,12 @@ namespace TEN::Renderer::Native::DirectX11
 			return DXGI_FORMAT_R32G32B32A32_FLOAT;
 		case SurfaceFormat::SF_BGRA8_Unorm:
 			return DXGI_FORMAT_B8G8R8A8_UNORM;
+		case SurfaceFormat::SF_R11G11B10_Float:
+			return DXGI_FORMAT_R11G11B10_FLOAT;
+		case SurfaceFormat::SF_RGBA16_Float:
+			return DXGI_FORMAT_R16G16B16A16_FLOAT;
+		case SurfaceFormat::SF_R16_Float:
+			return DXGI_FORMAT_R16_FLOAT;
 		case SurfaceFormat::Unknown:
 		default:
 			return DXGI_FORMAT_UNKNOWN;

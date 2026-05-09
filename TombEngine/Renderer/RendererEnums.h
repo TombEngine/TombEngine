@@ -359,7 +359,10 @@ enum class SurfaceFormat
 	SF_R8_Unorm,
 	SF_R32_Float,
 	SF_RGBA32_Float,
-	SF_BGRA8_Unorm
+	SF_BGRA8_Unorm,
+	SF_R11G11B10_Float,
+	SF_RGBA16_Float,
+	SF_R16_Float
 };
 
 enum class DepthFormat

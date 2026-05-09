@@ -433,8 +433,8 @@ void UpdateSparks()
 
 			if (spark.flags & SP_ANIMATED)
 			{
-				ParticleAnimType animationType = static_cast<ParticleAnimType>(spark.animationType);
-				GAME_OBJECT_ID spriteObject = static_cast<GAME_OBJECT_ID>(spark.SpriteSeqID);
+				auto animationType = (ParticleAnimType)spark.animationType;
+				auto spriteObject = (GAME_OBJECT_ID)spark.SpriteSeqID;
 				SetAdvancedSpriteSequence(spark, spriteObject,  animationType, spark.framerate);
 			}
 
