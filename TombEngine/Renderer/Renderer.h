@@ -414,12 +414,12 @@ namespace TEN::Renderer
 		void DrawDisplayItems();
 		void DrawSortedFaces(RenderView& view);
 		void DrawSingleSprite(RendererSortableObject* object, RendererObjectType lastObjectType, RenderView& view);
-		void DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawItemSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
+		void DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, bool sameAsLast = false);
+		void DrawItemSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, bool sameAsLast = false);
+		void DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, bool sameAsLast = false);
 		void DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index);
+		void DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, bool sameAsLast = false);
+		void DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index, bool sameAsLast = false);
 		void DrawLines2D();
 		void DrawLines3D(RenderView& view);
 		void DrawTriangles3D(RenderView& view);

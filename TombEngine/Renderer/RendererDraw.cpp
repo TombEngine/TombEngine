@@ -3550,6 +3550,14 @@ namespace TEN::Renderer
 
 	void Renderer::DrawSortedFaces(RenderView& view)
 	{
+		// Track the last drawn object instance so back-to-back groups of the same
+		// item/static/room/hair don't redo their CB upload + light binding work.
+		int lastItemNumber   = NO_VALUE;
+		int lastStaticKey    = NO_VALUE;
+		int lastRoomNumber   = NO_VALUE;
+		int lastHairKey      = NO_VALUE;
+		int lastMoveableAsStaticKey = NO_VALUE;
+
 		for (int i = 0; i < view.TransparentObjectsToDraw.size(); i++)
 		{
 			auto* object = &view.TransparentObjectsToDraw[i];
@@ -3579,7 +3587,9 @@ namespace TEN::Renderer
 					i++;
 				}
 
-				DrawRoomSorted(object, lastObjectType, view);
+				bool sameAsLast = (object->Room->RoomNumber == lastRoomNumber);
+				lastRoomNumber = object->Room->RoomNumber;
+				DrawRoomSorted(object, lastObjectType, view, sameAsLast);
 
 				if (i == view.TransparentObjectsToDraw.size())
 					return;
@@ -3605,7 +3615,9 @@ namespace TEN::Renderer
 					i++;
 				}
 
-				DrawItemSorted(object, lastObjectType, view);
+				bool sameAsLast = (object->Item->ItemNumber == lastItemNumber);
+				lastItemNumber = object->Item->ItemNumber;
+				DrawItemSorted(object, lastObjectType, view, sameAsLast);
 
 				if (i == view.TransparentObjectsToDraw.size())
 					return;
@@ -3632,7 +3644,11 @@ namespace TEN::Renderer
 					i++;
 				}
 
-				DrawHairSorted(object, lastObjectType, view, object->ObjectType == RendererObjectType::HairPrimary ? 0 : 1);
+				int hairIndex = (object->ObjectType == RendererObjectType::HairPrimary) ? 0 : 1;
+				int hairKey = (object->Item->ItemNumber * 2) + hairIndex;
+				bool sameAsLast = (hairKey == lastHairKey);
+				lastHairKey = hairKey;
+				DrawHairSorted(object, lastObjectType, view, hairIndex, sameAsLast);
 
 				if (i == view.TransparentObjectsToDraw.size())
 					return;
@@ -3658,7 +3674,10 @@ namespace TEN::Renderer
 					i++;
 				}
 
-				DrawStaticSorted(object, lastObjectType, view);
+				int staticKey = (object->Static->RoomNumber << 16) | (object->Static->IndexInRoom & 0xFFFF);
+				bool sameAsLast = (staticKey == lastStaticKey);
+				lastStaticKey = staticKey;
+				DrawStaticSorted(object, lastObjectType, view, sameAsLast);
 
 				if (i == view.TransparentObjectsToDraw.size())
 					return;
@@ -3683,7 +3702,10 @@ namespace TEN::Renderer
 					i++;
 				}
 
-				DrawMoveableAsStaticSorted(object, lastObjectType, view);
+				int key = object->Room->RoomNumber;
+				bool sameAsLast = (key == lastMoveableAsStaticKey);
+				lastMoveableAsStaticKey = key;
+				DrawMoveableAsStaticSorted(object, lastObjectType, view, sameAsLast);
 
 				if (i == view.TransparentObjectsToDraw.size())
 					return;
@@ -3784,7 +3806,7 @@ namespace TEN::Renderer
 		}
 	}
 
-	void Renderer::DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
+	void Renderer::DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, bool sameAsLast)
 	{
 		if (lastObjectType != objectInfo->ObjectType)
 		{
@@ -3797,20 +3819,24 @@ namespace TEN::Renderer
 
 			_shaders.Bind(Shader::Rooms);
 		}
-		
+
 		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
 		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
-		RoomData* nativeRoom = &g_Level.Rooms[objectInfo->Room->RoomNumber];
+		// Per-room CB upload + lights are stable across consecutive groups of the same room.
+		if (!sameAsLast)
+		{
+			RoomData* nativeRoom = &g_Level.Rooms[objectInfo->Room->RoomNumber];
 
-		_stRoom.Caustics =  int(g_Configuration.EnableCaustics && (nativeRoom->flags & ENV_FLAG_WATER) && !(nativeRoom->flags & ENV_FLAG_NOCAUSTICS));
-		_stRoom.AmbientColor = Vector3(objectInfo->Room->AmbientLight.x, objectInfo->Room->AmbientLight.y, objectInfo->Room->AmbientLight.z);
-		BindRoomLights(view.LightsToDraw);
-		_stRoom.NumRoomDecals = 0; // Don't draw decals on sorted faces to avoid slowdowns.
-		_stRoom.Water = (nativeRoom->flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
-		UpdateConstantBuffer(&_stRoom, _cbRoom.get());
+			_stRoom.Caustics =  int(g_Configuration.EnableCaustics && (nativeRoom->flags & ENV_FLAG_WATER) && !(nativeRoom->flags & ENV_FLAG_NOCAUSTICS));
+			_stRoom.AmbientColor = Vector3(objectInfo->Room->AmbientLight.x, objectInfo->Room->AmbientLight.y, objectInfo->Room->AmbientLight.z);
+			BindRoomLights(view.LightsToDraw);
+			_stRoom.NumRoomDecals = 0; // Don't draw decals on sorted faces to avoid slowdowns.
+			_stRoom.Water = (nativeRoom->flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
+			UpdateConstantBuffer(&_stRoom, _cbRoom.get());
 
-		SetScissor(objectInfo->Room->ClipBounds);
+			SetScissor(objectInfo->Room->ClipBounds);
+		}
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
@@ -3823,10 +3849,11 @@ namespace TEN::Renderer
 		_numSortedRoomsDrawCalls++;
 		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
 
-		ResetScissor();
+		if (!sameAsLast)
+			ResetScissor();
 	}
 
-	void Renderer::DrawItemSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
+	void Renderer::DrawItemSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, bool sameAsLast)
 	{
 		if (lastObjectType != objectInfo->ObjectType)
 		{
@@ -3839,35 +3866,38 @@ namespace TEN::Renderer
 
 			_shaders.Bind(Shader::Items);
 		}
-		
+
 		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
 		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
-		// Bind main item properties.
-		Matrix world = objectInfo->Item->InterpolatedWorld;
-		_stObjects.Objects[0].World = world;
-		_stObjects.Objects[0].Color = objectInfo->Item->Color;
-		_stObjects.Objects[0].AmbientLight = objectInfo->Item->AmbientLight;
-		_stObjects.Skinned = (int)(objectInfo->Skinned ? SkinningMode::Full : SkinningMode::None);
-
-		const auto& moveableObj = *_moveableObjects[objectInfo->Item->ObjectID];
-
-		if (objectInfo->Skinned)
+		// Per-item CB upload + bones + lights are constant across all groups of the same item.
+		if (!sameAsLast)
 		{
-			for (int m = 0; m < moveableObj.BindPoseTransforms.size(); m++)
-				_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * objectInfo->Item->InterpolatedAnimTransforms[m];
-		}
-		else
-		{
-			memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
-		}
+			Matrix world = objectInfo->Item->InterpolatedWorld;
+			_stObjects.Objects[0].World = world;
+			_stObjects.Objects[0].Color = objectInfo->Item->Color;
+			_stObjects.Objects[0].AmbientLight = objectInfo->Item->AmbientLight;
+			_stObjects.Skinned = (int)(objectInfo->Skinned ? SkinningMode::Full : SkinningMode::None);
 
-		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
-			_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
+			const auto& moveableObj = *_moveableObjects[objectInfo->Item->ObjectID];
 
-		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
-		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			if (objectInfo->Skinned)
+			{
+				for (int m = 0; m < moveableObj.BindPoseTransforms.size(); m++)
+					_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * objectInfo->Item->InterpolatedAnimTransforms[m];
+			}
+			else
+			{
+				memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
+			}
+
+			for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
+				_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
+
+			bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
+			BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+		}
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
@@ -3881,7 +3911,7 @@ namespace TEN::Renderer
 		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
 	}
 
-	void Renderer::DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
+	void Renderer::DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, bool sameAsLast)
 	{
 		_stObjects.Skinned = (int)SkinningMode::Static;
 
@@ -3896,18 +3926,22 @@ namespace TEN::Renderer
 
 			_shaders.Bind(Shader::InstancedStatics);
 		}
-		
+
 		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
 		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
-		auto world = objectInfo->Static->World;
-		_stObjects.Objects[0].World = world;
+		// Per-static CB upload + lights are constant across consecutive groups of the same static.
+		if (!sameAsLast)
+		{
+			auto world = objectInfo->Static->World;
+			_stObjects.Objects[0].World = world;
 
-		_stObjects.Objects[0].Color = objectInfo->Static->Color;
-		_stObjects.Objects[0].AmbientLight = objectInfo->Room->AmbientLight;
-		_stObjects.Objects[0].LightMode = (int)GetStaticRendererObject(objectInfo->Static->ObjectNumber).ObjectMeshes[0]->LightMode;
-		BindInstancedStaticLights(objectInfo->Static->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			_stObjects.Objects[0].Color = objectInfo->Static->Color;
+			_stObjects.Objects[0].AmbientLight = objectInfo->Room->AmbientLight;
+			_stObjects.Objects[0].LightMode = (int)GetStaticRendererObject(objectInfo->Static->ObjectNumber).ObjectMeshes[0]->LightMode;
+			BindInstancedStaticLights(objectInfo->Static->LightsToDraw, 0);
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+		}
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
@@ -3921,7 +3955,7 @@ namespace TEN::Renderer
 		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
 	}
 
-	void Renderer::DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
+	void Renderer::DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, bool sameAsLast)
 	{
 		_stObjects.Skinned = (int)SkinningMode::Static;
 
@@ -3940,14 +3974,17 @@ namespace TEN::Renderer
 		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
 		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
-		auto world = objectInfo->World;
-		_stObjects.Objects[0].World = world;
+		if (!sameAsLast)
+		{
+			auto world = objectInfo->World;
+			_stObjects.Objects[0].World = world;
 
-		_stObjects.Objects[0].Color = NEUTRAL_COLOR;
-		_stObjects.Objects[0].AmbientLight = objectInfo->Room->AmbientLight;
-		_stObjects.Objects[0].LightMode = (int)objectInfo->LightMode;
-		BindInstancedStaticLights(objectInfo->Room->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			_stObjects.Objects[0].Color = NEUTRAL_COLOR;
+			_stObjects.Objects[0].AmbientLight = objectInfo->Room->AmbientLight;
+			_stObjects.Objects[0].LightMode = (int)objectInfo->LightMode;
+			BindInstancedStaticLights(objectInfo->Room->LightsToDraw, 0);
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+		}
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
@@ -3961,7 +3998,7 @@ namespace TEN::Renderer
 		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
 	}
 
-	void Renderer::DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index)
+	void Renderer::DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index, bool sameAsLast)
 	{
 		if (index >= HairEffect.Units.size())
 		{
@@ -3984,40 +4021,39 @@ namespace TEN::Renderer
 		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
 		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
-		// Bind main item properties.
-		Matrix world = objectInfo->Item->InterpolatedWorld;
-		_stObjects.Objects[0].World = world;
-		_stObjects.Objects[0].Color = objectInfo->Item->Color;
-		_stObjects.Objects[0].AmbientLight = objectInfo->Item->AmbientLight;
-		_stObjects.Skinned = (int)(objectInfo->Skinned ? SkinningMode::Full : SkinningMode::None);
-
-		const auto& moveableObj = *_moveableObjects[(int)GAME_OBJECT_ID::ID_HAIR_PRIMARY + index];
-
-		_stObjects.Objects[0].World = Matrix::Identity;
-		_stObjects.Bones[0] = objectInfo->Item->InterpolatedAnimTransforms[HairUnit::GetRootMeshID(index)] * objectInfo->Item->InterpolatedWorld;
-		ReflectMatrixOptionally(_stObjects.Bones[0]);
-
-		bool forceValue = g_GameFlow->CurrentFreezeMode == FreezeMode::Player;
-
-		for (int i = 0; i < HairEffect.Units[index].Segments.size(); i++)
+		// Hair segments and lights are constant for the same hair unit within the frame.
+		if (!sameAsLast)
 		{
-			const auto& segment = HairEffect.Units[index].Segments[i];
-			auto worldMatrix = segment.GlobalTransform;
+			Matrix world = objectInfo->Item->InterpolatedWorld;
+			_stObjects.Objects[0].World = world;
+			_stObjects.Objects[0].Color = objectInfo->Item->Color;
+			_stObjects.Objects[0].AmbientLight = objectInfo->Item->AmbientLight;
+			_stObjects.Skinned = (int)(objectInfo->Skinned ? SkinningMode::Full : SkinningMode::None);
 
-			ReflectMatrixOptionally(worldMatrix);
+			const auto& moveableObj = *_moveableObjects[(int)GAME_OBJECT_ID::ID_HAIR_PRIMARY + index];
 
-			_stObjects.Bones[i + 1] = worldMatrix;
-			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
+			_stObjects.Objects[0].World = Matrix::Identity;
+			_stObjects.Bones[0] = objectInfo->Item->InterpolatedAnimTransforms[HairUnit::GetRootMeshID(index)] * objectInfo->Item->InterpolatedWorld;
+			ReflectMatrixOptionally(_stObjects.Bones[0]);
+
+			for (int i = 0; i < HairEffect.Units[index].Segments.size(); i++)
+			{
+				const auto& segment = HairEffect.Units[index].Segments[i];
+				auto worldMatrix = segment.GlobalTransform;
+
+				ReflectMatrixOptionally(worldMatrix);
+
+				_stObjects.Bones[i + 1] = worldMatrix;
+				_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
+			}
+
+			for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
+				_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
+
+			bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
+			BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 		}
-
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
-		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
-			_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
-
-		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
-		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
