@@ -379,6 +379,7 @@ end
 
 local HandleInventoryOpening = function(state)
     TEN.View.SetPostProcessMode(View.PostProcessMode.NONE)
+    TEN.View.SetPostProcessTint(COLOR_MAP.itemSelected)
     TEN.View.SetDOF(View.DOFMode.NONE)
     Text.Setup()
 
