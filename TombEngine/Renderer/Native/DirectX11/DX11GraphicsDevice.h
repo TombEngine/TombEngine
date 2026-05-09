@@ -13,6 +13,7 @@
 #include "Renderer/Native/DirectX11/DX11VertexBuffer.h"
 #include "Renderer/Native/DirectX11/DX11RenderTarget2D.h"
 #include "Renderer/Native/DirectX11/DX11Texture2D.h"
+#include "Renderer/Native/DirectX11/DX11Texture3D.h"
 #include "Renderer/Native/DirectX11/DX11DepthTarget.h"
 #include "Renderer/Native/DirectX11/DX11ConstantBuffer.h"
 #include "Renderer/Native/DirectX11/DX11StructuredBuffer.h"
@@ -21,6 +22,7 @@
 #include "Renderer/Native/DirectX11/DX11SpriteBatch.h"
 #include "Renderer/Native/DirectX11/DX11PrimitiveBatch.h"
 #include "Renderer/Native/DirectX11/DX11SpriteFont.h"
+#include "Renderer/Native/DirectX11/DX11GpuReadbackBuffer.h"
 
 using namespace TEN::Renderer::Graphics;
 using namespace TEN::Renderer::Structures;
@@ -42,6 +44,7 @@ namespace TEN::Renderer::Native::DirectX11
 		ComPtr<ID3D11SamplerState> _shadowSampler;
 
 		ComPtr<ID3D11BlendState> _subtractiveBlendState = nullptr;
+		ComPtr<ID3D11BlendState> _distortionBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _screenBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _lightenBlendState = nullptr;
 		ComPtr<ID3D11BlendState> _excludeBlendState = nullptr;
@@ -89,6 +92,10 @@ namespace TEN::Renderer::Native::DirectX11
 			{
 				srv = rt2D->GetD3D11ShaderResourceView();
 			}
+			else if (auto tex3D = dynamic_cast<DX11Texture3D*>(texture))
+			{
+				srv = tex3D->GetD3D11ShaderResourceView();
+			}
 
 			return srv;
 		}
@@ -113,6 +120,7 @@ namespace TEN::Renderer::Native::DirectX11
 		std::unique_ptr<ITexture2D> CreateTexture2D(int width, int height, SurfaceFormat format, void* data, bool isDynamic = false) override;
 		std::unique_ptr<ITexture2D> CreateTexture2DFromFile(const std::string fileName) override;
 		std::unique_ptr<ITexture2D> CreateTexture2DFromFileInMemory(int dataSize, unsigned char* data) override;
+		std::unique_ptr<ITexture3D> CreateTexture3D(int width, int height, int depth, SurfaceFormat format, const void* data) override;
 		
 		void SetBlendMode(BlendMode blendMode) override;
 		void SetDepthState(DepthState depthState) override;
@@ -121,6 +129,7 @@ namespace TEN::Renderer::Native::DirectX11
 		void SetScissor(RendererViewport viewport) override;
 
 		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) override;
+		void UnbindTexture(ShaderStage stage, TextureRegister registerType) override;
 
 		std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::string name) override;
 		void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data) override;
@@ -146,6 +155,10 @@ namespace TEN::Renderer::Native::DirectX11
 		void BindRenderTarget(IRenderTargetBinding renderTarget, IDepthTargetBinding depthTarget) override;
 		void BindRenderTargets(std::vector<IRenderTarget2D*> renderTargets, IDepthTarget* depthTarget) override;
 		void BindRenderTargets(std::vector<IRenderTargetBinding> renderTargets, IDepthTargetBinding depthTarget) override;
+
+		void CopyTextureResource(ITexture2D* src, ITexture2D* dst) override;
+
+		std::unique_ptr<IGpuReadbackBuffer> CreateGpuReadbackBuffer(int width, int height, SurfaceFormat format) override;
 
 		void SetViewport(RendererViewport viewport) override;
 		void SetPrimitiveType(PrimitiveType primitiveType) override;

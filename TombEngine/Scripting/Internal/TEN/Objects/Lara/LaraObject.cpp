@@ -308,7 +308,7 @@ bool LaraObject::GetLaserSight(LaraWeaponType weaponType) const
 	case LaraWeaponType::Revolver:
 	case LaraWeaponType::Crossbow:
 	case LaraWeaponType::HK:
-		return lara->Weapons[static_cast<int>(weaponType)].HasLasersight;
+		return lara->Weapons[(int)weaponType].HasLasersight;
 
 	default:
 		return false;
@@ -340,7 +340,7 @@ void LaraObject::SetLaserSight(LaraWeaponType weaponType, TypeOrNil<bool> activa
 		// Check if laser sight is already attached to any other weapon
 		for (LaraWeaponType type : { LaraWeaponType::Revolver, LaraWeaponType::Crossbow, LaraWeaponType::HK })
 		{
-			if (type != weaponType && lara->Weapons[static_cast<int>(type)].HasLasersight)
+			if (type != weaponType && lara->Weapons[(int)type].HasLasersight)
 			{
 				// Laser sight is already in use, do nothing
 				return;
@@ -348,7 +348,7 @@ void LaraObject::SetLaserSight(LaraWeaponType weaponType, TypeOrNil<bool> activa
 		}
 
 		// Attach laser sight
-		lara->Weapons[static_cast<int>(weaponType)].HasLasersight = convertedActivate;
+		lara->Weapons[(int)weaponType].HasLasersight = convertedActivate;
 
 		// Activate weapon if required
 		if (convertedActivate == false)
@@ -559,7 +559,7 @@ int LaraObject::GetWeaponMode(TypeOrNil<LaraWeaponType> weaponType) const
 		weaponMode = PlayerWeaponMode::None;
 	}
 
-	return static_cast<int>(weaponMode.value());
+	return (int)weaponMode.value();
 }
 
 /// Set player weapon mode type.
