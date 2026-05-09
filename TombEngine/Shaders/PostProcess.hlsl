@@ -44,31 +44,16 @@ struct PixelShaderInput
 };
 
 Texture2D ColorTexture : register(t0);
-SamplerState ColorSampler : register(s0);
-
-Texture2D NormalsTexture : register(t2);
-SamplerState NormalsSampler : register(s2);
-
-Texture2D GlowTexture : register(t3);
-SamplerState GlowSampler : register(s3);
-
-Texture2D LegacyEnvironmentTexture : register(t4);
-SamplerState LegacyEnvironmentSampler : register(s4);
-
-Texture2D EmissiveAndSpecularTexture : register(t5);
-SamplerState EmissiveAndSpecularSampler : register(s5);
-
 Texture2D DepthTexture : register(t6);
-SamplerState DepthSampler : register(s6);
-
+Texture2D GlowTexture : register(t11);
 Texture2D DistortionTexture : register(t15);
-SamplerState DistortionSampler : register(s15);
+Texture2D NearBlurTexture : register(t16);
+Texture2D FarBlurTexture : register(t17);
 
 #include "./DOF.hlsli"
-
 float GetSceneViewDepth(float2 uv)
 {
-    float depth = DepthTexture.Sample(DepthSampler, uv).x;
+    float depth = DepthTexture.Sample(PointWrapSampler, uv).x;
     return abs(ReconstructViewPosition(uv, depth, InverseProjection).z);
 }
 
@@ -83,16 +68,14 @@ PixelShaderInput VS(PostProcessVertexShaderInput input)
 
     return output;
 }
-
 float4 PS(PixelShaderInput input) : SV_Target
 {
-    return ColorTexture.Sample(ColorSampler, input.UV);
+    return ColorTexture.Sample(LinearClampSampler, input.UV);
 }
 
 float4 PSMonochrome(PixelShaderInput input) : SV_Target
 {
-    float4 color = ColorTexture.Sample(ColorSampler, input.UV);
-
+    float4 color = ColorTexture.Sample(LinearClampSampler, input.UV);
     float luma = Luma(color.rgb);
     float3 output = lerp(color.rgb, float3(luma, luma, luma), EffectStrength);
 
@@ -101,7 +84,7 @@ float4 PSMonochrome(PixelShaderInput input) : SV_Target
 
 float4 PSNegative(PixelShaderInput input) : SV_Target
 {
-	float4 color = ColorTexture.Sample(ColorSampler, input.UV);
+    float4 color = ColorTexture.Sample(LinearClampSampler, input.UV);
 
 	float luma = Luma(1.0f - color);
 	float3 output = lerp(color.rgb, float3(luma, luma, luma), EffectStrength);
@@ -111,7 +94,7 @@ float4 PSNegative(PixelShaderInput input) : SV_Target
 
 float4 PSExclusion(PixelShaderInput input) : SV_Target
 {
-	float4 color = ColorTexture.Sample(ColorSampler, input.UV);
+    float4 color = ColorTexture.Sample(LinearClampSampler, input.UV);
 
 	float3 exColor = color.xyz + (1.0f - color.xyz) - 2.0f * color.xyz * (1.0f - color.xyz);
 	float3 output = lerp(color.rgb, exColor, EffectStrength);
@@ -121,8 +104,8 @@ float4 PSExclusion(PixelShaderInput input) : SV_Target
 
 float4 PSDistortion(PixelShaderInput input) : SV_Target
 {
-    float4 color = ColorTexture.Sample(ColorSampler, input.UV);
-    float4 distortionData = DistortionTexture.Sample(DistortionSampler, input.UV);
+    float4 color = ColorTexture.Sample(LinearClampSampler, input.UV);
+    float4 distortionData = DistortionTexture.Sample(LinearClampSampler, input.UV);
 
     // x = accumulated luma strength; early-out if no distortion emitter covered this pixel.
     float totalStrength = distortionData.x;
@@ -160,8 +143,8 @@ float4 PSDistortion(PixelShaderInput input) : SV_Target
     float noiseY = SimplexNoise(float3(input.UV * noiseScale + 5.7f, noiseSpeed + 1.3f));
     float2 refractVector = float2(noiseX, noiseY) * 1.5f;
 
-	// Shimmer layer.
-	float shimmerTime = noiseSpeed * 3.5f;
+    // Shimmer layer.
+    float shimmerTime = noiseSpeed * 3.5f;
 	float shimmerX = SimplexNoise(float3(input.UV * shimmerScale * 1.7f, shimmerTime + 13.1f));
 	float shimmerY = SimplexNoise(float3(input.UV * shimmerScale * 2.3f, shimmerTime + 31.7f));
 	float2 shimmerVec = float2(shimmerX, shimmerY) * shimmerStrength;
@@ -185,12 +168,12 @@ float4 PSDistortion(PixelShaderInput input) : SV_Target
     if (refractedDepth - DISTORTION_DEPTH_REJECT_MIN < emitterDist)
         return color;
 
-    return ColorTexture.Sample(ColorSampler, refractedUV);
+    return ColorTexture.Sample(LinearClampSampler, refractedUV);
 }
 
 float4 PSFinalPass(PixelShaderInput input) : SV_TARGET
 {
-    float4 output = ColorTexture.Sample(ColorSampler, input.UV);
+    float4 output = ColorTexture.Sample(LinearClampSampler, input.UV);
 
     float3 colorMul = min(input.Color.xyz, 1.0f);
 
@@ -284,7 +267,7 @@ float3 LensFlareColorCorrection(float3 color, float factor,float factor2)
 
 float4 PSLensFlare(PixelShaderInput input) : SV_Target
 {
-	float4 color = ColorTexture.Sample(ColorSampler, input.UV);
+    float4 color = ColorTexture.Sample(LinearClampSampler, input.UV);
 	
 	float4 position = input.PositionCopy;
 	float3 totalLensFlareColor = float3(0.0f, 0.0f, 0.0f);
@@ -313,7 +296,7 @@ float4 PSBlurBilinear(PixelShaderInput input) : SV_Target
     int r = clamp(BlurRadius, 0, MAX_BLUR_RADIUS);
     
     float w0 = Gaussian(0.0, BlurSigma);
-    float4 color = ColorTexture.Sample(ColorSampler, input.UV) * w0;
+    float4 color = ColorTexture.Sample(LinearClampSampler, input.UV) * w0;
     float weightSum = w0;
 
     [unroll]
@@ -325,8 +308,8 @@ float4 PSBlurBilinear(PixelShaderInput input) : SV_Target
         float wk = Gaussian((float) k, BlurSigma);
 
         float2 off = BlurDirection * TexelSize * k;
-        float4 c1 = ColorTexture.Sample(ColorSampler, input.UV + off);
-        float4 c2 = ColorTexture.Sample(ColorSampler, input.UV - off);
+        float4 c1 = ColorTexture.Sample(LinearClampSampler, input.UV + off);
+        float4 c2 = ColorTexture.Sample(LinearClampSampler, input.UV - off);
 
         color += (c1 + c2) * wk;
         weightSum += 2.0 * wk;
@@ -350,7 +333,7 @@ float4 PSBlurFull(PixelShaderInput input) : SV_Target
 
         float w = Gaussian((float) k, BlurSigma);
         float2 off = BlurDirection * TexelSize * k;
-        color += ColorTexture.Sample(ColorSampler, input.UV + off) * w;
+        color += ColorTexture.Sample(LinearClampSampler, input.UV + off) * w;
         weightSum += w;
     }
 
@@ -380,19 +363,19 @@ float4 PSDownscale(PixelShaderInput input) : SV_Target
     float3 c = 0;
 
     // center
-    c += ColorTexture.SampleLevel(ColorSampler, input.UV, 0).rgb * wc;
+    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV, 0).rgb * wc;
 
     // N/S/E/W
-    c += ColorTexture.SampleLevel(ColorSampler, input.UV + dx, 0).rgb * w1;
-    c += ColorTexture.SampleLevel(ColorSampler, input.UV - dx, 0).rgb * w1;
-    c += ColorTexture.SampleLevel(ColorSampler, input.UV + dy, 0).rgb * w1;
-    c += ColorTexture.SampleLevel(ColorSampler, input.UV - dy, 0).rgb * w1;
+    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV + dx, 0).rgb * w1;
+    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV - dx, 0).rgb * w1;
+    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV + dy, 0).rgb * w1;
+    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV - dy, 0).rgb * w1;
 
     // diagonals
-    c += ColorTexture.SampleLevel(ColorSampler, input.UV + dx + dy, 0).rgb * wd;
-    c += ColorTexture.SampleLevel(ColorSampler, input.UV + dx - dy, 0).rgb * wd;
-    c += ColorTexture.SampleLevel(ColorSampler, input.UV - dx + dy, 0).rgb * wd;
-    c += ColorTexture.SampleLevel(ColorSampler, input.UV - dx - dy, 0).rgb * wd;
+    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV + dx + dy, 0).rgb * wd;
+    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV + dx - dy, 0).rgb * wd;
+    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV - dx + dy, 0).rgb * wd;
+    c += ColorTexture.SampleLevel(LinearClampSampler, input.UV - dx - dy, 0).rgb * wd;
 
     return float4(c, 1);
 }
@@ -404,11 +387,10 @@ float3 SoftAddBlend(float3 base, float3 add)
 
 float4 PSGlowCombine(PixelShaderInput input) : SV_Target
 {
-    float3 base = ColorTexture.Sample(ColorSampler, input.UV).rgb;
-    float3 glow = GlowTexture.Sample(GlowSampler, input.UV).rgb * GlowIntensity;
+    float3 base = ColorTexture.Sample(LinearClampSampler, input.UV).rgb;
+    float3 glow = GlowTexture.Sample(LinearClampSampler, input.UV).rgb * GlowIntensity;
 
-    float3 outc = (GlowSoftAdd != 0) ? SoftAddBlend(base, glow)
-                                 : saturate(base + glow);
+    float3 outc = (GlowSoftAdd != 0) ? SoftAddBlend(base, glow) : saturate(base + glow);
 
     return float4(outc, 1);
 }

@@ -212,7 +212,9 @@ enum class TextureRegister
 	LegacyEnvironmentReflections = 12,
 	SkyboxEnvironmentReflections = 13,
 	AnimatedFrames = 14, // StructuredBuffer<AnimatedFrameUV> for per-draw animated UVs.
-	DistortionMap = 15
+	DistortionMap = 15,
+	NearBlurMap = 16,
+	FarBlurMap = 17
 };
 
 enum class SamplerStateRegister
