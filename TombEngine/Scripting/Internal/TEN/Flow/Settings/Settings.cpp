@@ -597,9 +597,9 @@ namespace TEN::Scripting
 		// @tfield[opt=TEN.Color(0&#44; 0&#44; 0)] Color shadowTextColor A color used for drawing a shadow under any rendered text.
 		"shadowTextColor", &UISettings::ShadowTextColor,
 
-		/// System font size. Used in all system non-scriptable menus, such as linear inventory, pause menu, title menu, etc.
-		// @tfield[opt=1.0] float systemFontSize Scale multiplier applied to legacy system-font text rendered via integer screen coordinates.
-		"systemFontSize", &UISettings::SystemFontSize,
+		/// System text size. Used in all system menus, such as linear inventory, pause menu, settings menu, etc.
+		// @tfield[opt=1.0] float systemTextScale Scale multiplier applied to system menu text.
+		"systemTextScale", &UISettings::SystemTextScale,
 
 		/// Title logo center point position.
 		// @tfield[opt=TEN.Vec2(50&#44; 20)] Vec2 titleLogoPosition Center point of a title level logo position.
@@ -619,7 +619,7 @@ namespace TEN::Scripting
 		"titleMenuPosition", &UISettings::TitleMenuPosition,
 			
 		/// Title menu scale.
-		// @tfield[opt=1.0] float titleMenuScale Title level menu scale.
+		// @tfield[opt=1.0] float titleMenuScale Title level menu text scale.
 		"titleMenuScale", &UISettings::TitleMenuScale,
 
 		/// Title menu alignment.
