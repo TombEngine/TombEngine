@@ -31,10 +31,13 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ring inventory module.
 * Added photo mode module.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
-* Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
 * Added `Flow.Settings.Graphics.flameHeatHaze` option to toggle heat haze effects for flames.
 * Added `Flow.Settings.UI.menuBackgroundBlur` option to specify amount of blur for the inventory and pause backgrounds.
 * Added `Lara.SetSkin` to swap classic outfits.
+* Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
+* Added `View.GetPostProcessTint` to get currently set post process tint.
+* Added `View.GetPostProcess` and `View.SetPostProcess` to set/get postprocess mode and strength.
+* Remove `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 * Added `SetRoll` and `GetRoll` functions to `View`.
 
