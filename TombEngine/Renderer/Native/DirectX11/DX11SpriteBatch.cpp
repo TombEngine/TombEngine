@@ -69,6 +69,7 @@ namespace TEN::Renderer::Native::DirectX11
 			break;
 
 		case BlendMode::Additive:
+		case BlendMode::Distortion:
 			blendState = _renderStates->Additive();
 			break;
 

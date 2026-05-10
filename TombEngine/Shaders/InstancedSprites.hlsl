@@ -78,7 +78,7 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 
 float4 PS(PixelShaderInput input) : SV_TARGET
 {
-    float4 output = Texture.Sample(Sampler, input.UV) * input.Color;
+	float4 output = Texture.Sample(Sampler, input.UV) * input.Color;
 
     InstancedSprite sprite = Sprites[input.InstanceID];
 	
@@ -104,19 +104,20 @@ float4 PS(PixelShaderInput input) : SV_TARGET
     if (sprite.RenderType == 1)
     {
         float4 rawOutput = Texture.Sample(Sampler, input.UV) * input.Color;
-        output = DoLaserBarrierEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
+		output = DoLaserBarrierEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
     }
 
     if (sprite.RenderType == 2)
     {
         float4 rawOutput = Texture.Sample(Sampler, input.UV) * input.Color;
-        output = DoLaserBeamEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
+		output = DoLaserBeamEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
     }
 
 	output.xyz *= 1.0f - Luma(input.FogBulbs.xyz);
 	output.xyz = saturate(output.xyz);
 
 	output = DoDistanceFogForPixel(output, float4(0.0f, 0.0f, 0.0f, 0.0f), input.DistanceFog);
+	output = ApplyBlendModeColor(output, input.PositionCopy, true);
 
 	return output;
 }

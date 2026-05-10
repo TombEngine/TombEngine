@@ -1,5 +1,6 @@
 #include "./CBPostProcess.hlsli"
 #include "./CBCamera.hlsli"
+#include "./Blending.hlsli"
 #include "./Materials.hlsli"
 #include "./Math.hlsli"
 #include "./ShaderLight.hlsli"
@@ -7,26 +8,43 @@
 #define MAX_BLUR_RADIUS 100
 #define USE_FAST_BILINEAR_BLUR 1
 
+#define DISTORTION_MIN_WEIGHT 0.001f
+#define DISTORTION_REFERENCE_DEPTH 1024.0f
+#define DISTORTION_REFRACTION_PIXELS 56.0f
+#define DISTORTION_DEPTH_REJECT_MIN 64.0f
+#define DISTORTION_EDGE_GUARD_PIXELS 2.0f
+#define DISTORTION_EDGE_FADE_RANGE 0.04f
+
+#define DISTORTION_NOISE_STRENGTH_SURFACE 0.15f
+#define DISTORTION_NOISE_STRENGTH_BILLBOARD 0.035f
+#define DISTORTION_NOISE_SCALE_SURFACE 3.5f
+#define DISTORTION_NOISE_SCALE_BILLBOARD 25.0f
+#define DISTORTION_NOISE_SHIMMER_STRENGTH_SURFACE 0.35f
+#define DISTORTION_NOISE_SHIMMER_STRENGTH_BILLBOARD 0.8f
+#define DISTORTION_NOISE_SHIMMER_SCALE_SURFACE 40.0f
+#define DISTORTION_NOISE_SHIMMER_SCALE_BILLBOARD 65.0f
+#define DISTORTION_NOISE_SPEED_BILLBOARD 0.25f
+#define DISTORTION_NOISE_SPEED_SURFACE 0.05f
+#define DISTORTION_DISTANCE_FADE_START 4096.0f
+#define DISTORTION_DISTANCE_FADE_END 10240.0f
+
 struct PostProcessVertexShaderInput
 {
-    float3 Position: POSITION0;
-    float2 UV: TEXCOORD0;
-    float4 Color: COLOR0;
+    float3 Position : POSITION0;
+    float2 UV       : TEXCOORD0;
+    float4 Color    : COLOR0;
 };
 
 struct PixelShaderInput
 {
-    float4 Position: SV_POSITION;
-    float2 UV: TEXCOORD0;
-    float4 Color: COLOR0;
-    float4 PositionCopy: TEXCOORD1;
+    float4 Position     : SV_POSITION;
+    float2 UV           : TEXCOORD0;
+    float4 Color        : COLOR0;
+    float4 PositionCopy : TEXCOORD1;
 };
 
 Texture2D ColorTexture : register(t0);
 SamplerState ColorSampler : register(s0);
-
-Texture2D DepthTexture : register(t1);
-SamplerState DepthSampler : register(s1);
 
 Texture2D NormalsTexture : register(t2);
 SamplerState NormalsSampler : register(s2);
@@ -39,6 +57,20 @@ SamplerState LegacyEnvironmentSampler : register(s4);
 
 Texture2D EmissiveAndSpecularTexture : register(t5);
 SamplerState EmissiveAndSpecularSampler : register(s5);
+
+Texture2D DepthTexture : register(t6);
+SamplerState DepthSampler : register(s6);
+
+Texture2D DistortionTexture : register(t15);
+SamplerState DistortionSampler : register(s15);
+
+#include "./DOF.hlsli"
+
+float GetSceneViewDepth(float2 uv)
+{
+    float depth = DepthTexture.Sample(DepthSampler, uv).x;
+    return abs(ReconstructViewPosition(uv, depth, InverseProjection).z);
+}
 
 PixelShaderInput VS(PostProcessVertexShaderInput input)
 {
@@ -85,6 +117,75 @@ float4 PSExclusion(PixelShaderInput input) : SV_Target
 	float3 output = lerp(color.rgb, exColor, EffectStrength);
 
 	return float4(output, color.a);
+}
+
+float4 PSDistortion(PixelShaderInput input) : SV_Target
+{
+    float4 color = ColorTexture.Sample(ColorSampler, input.UV);
+    float4 distortionData = DistortionTexture.Sample(DistortionSampler, input.UV);
+
+    // x = accumulated luma strength; early-out if no distortion emitter covered this pixel.
+    float totalStrength = distortionData.x;
+    if (totalStrength <= DISTORTION_MIN_WEIGHT)
+        return color;
+
+    // Reconstruct luma-weighted average emitter depth from packed 16-bit distance.
+    float distHigh = distortionData.y / totalStrength;
+    float distLow  = distortionData.z / totalStrength;
+    float emitterDist = distHigh * 255.0f * 256.0f + distLow * 255.0f;
+
+    // Reconstruct emitter type blend (0 = billboard, 1 = surface geometry).
+    float typeBlend = step(0.5f, distortionData.w / totalStrength);
+    
+    // Reconstruct world-space linearized depth of the sampled pixel and reject if in front of the distortion surface.
+    float centerDepth = GetSceneViewDepth(input.UV);
+    if (centerDepth - DISTORTION_DEPTH_REJECT_MIN < emitterDist)
+        return color;
+
+    // Distance attenuation.
+    float distFade = 1.0f - smoothstep(DISTORTION_DISTANCE_FADE_START, DISTORTION_DISTANCE_FADE_END, emitterDist);
+    float weight = totalStrength * distFade;
+    if (weight <= DISTORTION_MIN_WEIGHT)
+        return color;
+
+    // Base noise parameters.
+    float noiseStrength   = lerp(DISTORTION_NOISE_STRENGTH_BILLBOARD, DISTORTION_NOISE_STRENGTH_SURFACE, typeBlend) * distFade;
+    float noiseScale      = lerp(DISTORTION_NOISE_SCALE_BILLBOARD, DISTORTION_NOISE_SCALE_SURFACE, typeBlend) * distFade;
+    float shimmerStrength = lerp(DISTORTION_NOISE_SHIMMER_STRENGTH_BILLBOARD, DISTORTION_NOISE_SHIMMER_STRENGTH_SURFACE, typeBlend) * distFade;
+    float shimmerScale    = lerp(DISTORTION_NOISE_SHIMMER_SCALE_BILLBOARD, DISTORTION_NOISE_SHIMMER_SCALE_SURFACE, typeBlend) * distFade;
+    float noiseSpeed      = lerp(DISTORTION_NOISE_SPEED_BILLBOARD, DISTORTION_NOISE_SPEED_SURFACE, typeBlend) * Frame;
+
+    // Base distortion noise.
+    float noiseX = SimplexNoise(float3(input.UV * noiseScale, noiseSpeed));
+    float noiseY = SimplexNoise(float3(input.UV * noiseScale + 5.7f, noiseSpeed + 1.3f));
+    float2 refractVector = float2(noiseX, noiseY) * 1.5f;
+
+	// Shimmer layer.
+	float shimmerTime = noiseSpeed * 3.5f;
+	float shimmerX = SimplexNoise(float3(input.UV * shimmerScale * 1.7f, shimmerTime + 13.1f));
+	float shimmerY = SimplexNoise(float3(input.UV * shimmerScale * 2.3f, shimmerTime + 31.7f));
+	float2 shimmerVec = float2(shimmerX, shimmerY) * shimmerStrength;
+
+	// Distance-based fade.
+	float shimmerFade = 1.0f - smoothstep(DISTORTION_DISTANCE_FADE_START / 1.5f, DISTORTION_DISTANCE_FADE_END / 3.0f, emitterDist);
+
+	// Apply shimmer to distortion vector.
+	refractVector += shimmerVec * shimmerFade;
+
+    // Perspective-correct scaling.
+    float perspectiveScale = rsqrt(max(emitterDist, DISTORTION_REFERENCE_DEPTH) / DISTORTION_REFERENCE_DEPTH);
+	
+	// Final offset + edge guard calculation.
+    float2 offset = refractVector * (noiseStrength * DISTORTION_REFRACTION_PIXELS * weight * perspectiveScale) * TexelSize;
+    float2 edgeGuard = TexelSize * DISTORTION_EDGE_GUARD_PIXELS;
+    float2 refractedUV = clamp(input.UV + offset, edgeGuard, 1.0f - edgeGuard);
+
+    // Depth-based rejection (prevent foreground distortion).
+    float refractedDepth = GetSceneViewDepth(refractedUV);
+    if (refractedDepth - DISTORTION_DEPTH_REJECT_MIN < emitterDist)
+        return color;
+
+    return ColorTexture.Sample(ColorSampler, refractedUV);
 }
 
 float4 PSFinalPass(PixelShaderInput input) : SV_TARGET

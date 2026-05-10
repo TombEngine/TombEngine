@@ -291,7 +291,7 @@ namespace TEN::Platform
 			{
 				// ShellExecute failed. Show more detailed error.
 				auto err = std::string("Failed to start browser to download runtimes. Error code: ");
-				err += std::to_string(static_cast<long>(reinterpret_cast<intptr_t>(hResult)));
+				err += std::to_string((long)(intptr_t)hResult);
 
 				SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", err.c_str(), nullptr);
 			}
