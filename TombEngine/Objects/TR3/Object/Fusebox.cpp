@@ -135,7 +135,6 @@ namespace TEN::Entities::TR3
 	{
 		auto& item = g_Level.Items[itemNumber];
 		auto pos = Vector3i(GameBoundingBox(ID_FUSEBOX).ToBoundingOrientedBox(item.Pose).Center);
-		//auto pos  = Vector3i(GameBoundingBox(&item).ToBoundingOrientedBox(item.Pose).Center);
 
 		// Already destroyed; run spark wind-down effects.
 		if (item.ItemFlags[FuseboxFlags::IsDestroyed] == 1)
