@@ -41,23 +41,6 @@ namespace TEN::Entities::TR3
 	// Yellow spark colour variation probability.
 	constexpr auto FUSEBOX_YELLOW_SPARK_PROBABILITY = 0.6f;
 
-	static Vector3i GetBoundingBoxCenter(const ItemInfo& item)
-	{
-		auto bounds = GameBoundingBox(&item);
-
-		int localX = (bounds.X1 + bounds.X2) / 2;
-		int localY = (bounds.Y1 + bounds.Y2) / 2;
-		int localZ = (bounds.Z1 + bounds.Z2) / 2;
-
-		float sinY = phd_sin(item.Pose.Orientation.y);
-		float cosY = phd_cos(item.Pose.Orientation.y);
-
-		return Vector3i(
-			item.Pose.Position.x + (int)(localX * cosY + localZ * sinY),
-			item.Pose.Position.y + localY,
-			item.Pose.Position.z + (int)(localZ * cosY - localX * sinY));
-	}
-
 	static void SpawnDestructionBlast(const ItemInfo& item, const Vector3i& pos)
 	{
 		// Blue-white sparks shooting outward up to 1 BLOCK distance.
@@ -151,7 +134,8 @@ namespace TEN::Entities::TR3
 	void ControlFusebox(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
-		auto  pos  = GetBoundingBoxCenter(item);
+		auto pos = Vector3i(GameBoundingBox(ID_FUSEBOX).ToBoundingOrientedBox(item.Pose).Center);
+		//auto pos  = Vector3i(GameBoundingBox(&item).ToBoundingOrientedBox(item.Pose).Center);
 
 		// Already destroyed; run spark wind-down effects.
 		if (item.ItemFlags[FuseboxFlags::IsDestroyed] == 1)
