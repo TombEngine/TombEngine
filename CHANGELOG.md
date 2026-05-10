@@ -3,10 +3,52 @@
 The dates are in European standard format where date is presented as **YYYY-MM-DD**.
 TombEngine releases are located in this repository (alongside with Tomb Editor): https://github.com/TombEngine/TombEditorReleases
 
+## [Version 2.0]
+
+### New features
+* Added heat haze for flame emitters and effects.
+* Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
+* Added gamma correction setting.
+* Added HEAVY_STAMPER (ID 459) object from TR3.
+* Added DRILL_BIT (ID 460) object from TR3.
+* Added SPIKED_FRAME (ID 461) object from TR3.
+* Added SWINGING_SANDBAG (ID 462) object from TR2.
+* Added SWINGING_BOX (ID 463) object from TR2.
+* Added OVERHEAD_PULLEY_HOOK (ID 464) object from TR2.
+* Added SWINGING_IRON_ANCHOR (ID 465) object from TR3.
+* Added SWINGING_SPIKE_BAG (ID 466) object from TR2.
+* Added CIRCULAR_SAW (ID 467) object from TR2.
+* Added ROLLING_BARRELS	 (ID 468) object from TR2.
+* Added MULTIPLE_BOULDERS (ID 469) object from TR2.
+* Added spark effect to SLAMMING_DOORS if OCB is above 0 and when the flipeffect "playsound" with the soundID SFX_TR1_SLAMDOOR_CLOSE = 1144 is played.
+* Removed FIRE_PENDULUM fxfog effect if OCB value is 0.
+ 
+### Bug fixes
+* Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
+* Fixed flyby camera jitter by converting the spline type to floating-point.
+
+### Lua API changes
+* Added ring inventory module.
+* Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
+* Added `Flow.Settings.Graphics.flameHeatHaze` option to toggle heat haze effects for flames.
+* Added `Flow.Settings.UI.menuBackgroundBlur` option to specify amount of blur for the inventory and pause backgrounds.
+* Added `Lara.SetSkin` to swap classic outfits.
+* Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
+* Added `View.GetPostProcessTint` to get currently set post process tint.
+* Added `View.GetPostProcess` and `View.SetPostProcess` to set/get postprocess mode and strength.
+* Remove `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
+* Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
+
 ## [Version 1.11.1]
+
+### Bug fixes
+* Fixed draw key not always opening doors in fly mode.
+* Fixed TEETH_SPIKES with OCB 1 damaging player in fly mode.
+* Fixed YETI misaligning with Lara during kill animation.
 
 ### Lua API changes
 * Fixed `Timer` class not working correctly with single frame intervals.
+* Fixed alpha value being ignored for `Flow.Settings.UI.shadowTextColor` parameter.
 
 ## [Version 1.11]
 
@@ -15,8 +57,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Optimized pause and options menu handling and apply settings while exiting the menu instead of canceling them.
 * Added faster Xorshift32 random number generation method.
 * Added explosion decal effects to Atlantean enemy projectiles.
-* Added new debug page with memory usage statistics and more verbose logging for memory-related crashes.
-* Removed original limits for flyby camera and sequence count.
+* Optimized pause and options menu handling and apply settings while exiting the menu instead of canceling them.
 
 ### Bug fixes
 * Fixed incorrect handling of negative timer values in classic triggers.

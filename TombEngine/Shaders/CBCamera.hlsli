@@ -44,7 +44,7 @@ cbuffer CBCamera : register(b0)
     int RefreshRate;
     int NumFogBulbs;
     float InterpolatedFrame;
-    float Padding2;
+    float Gamma;
 	//--
 	ShaderFogBulb FogBulbs[MAX_FOG_BULBS];
 };

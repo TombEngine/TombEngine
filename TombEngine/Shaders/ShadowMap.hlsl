@@ -1,5 +1,5 @@
 #include "./CBCamera.hlsli"
-#include "./CBItem.hlsli"
+#include "./CBObjects.hlsli"
 #include "./Blending.hlsli"
 #include "./Math.hlsli"
 #include "./VertexInput.hlsli"
@@ -17,10 +17,23 @@ SamplerState Sampler : register(s0);
 PixelShaderInput VS(VertexShaderInput input)
 {
 	PixelShaderInput output;
-	
-	// Blend and apply world matrix
-	float4x4 blended = Skinned ? BlendBoneMatrices(input, Bones, (Skinned == 2)) : Bones[input.BoneIndex[0]];
-	float4x4 world = mul(blended, World);
+
+	// Shadow caster is always a single moveable in Objects[0]; pick the world transform via
+	// the unified Skinned flag (0=Static, 1=Rigid, 2=Full, 3=Classic).
+	float4x4 world;
+	if (Skinned == 0)
+	{
+		world = Objects[0].World;
+	}
+	else if (Skinned == 1)
+	{
+		world = mul(Bones[input.BoneIndex[0]], Objects[0].World);
+	}
+	else
+	{
+		float4x4 blended = BlendBoneMatrices(input, Bones, Skinned == 3);
+		world = mul(blended, Objects[0].World);
+	}
 
 	output.Position = mul(mul(float4(input.Position, 1.0f), world), ViewProjection);
 	output.Depth = output.Position.z / output.Position.w;

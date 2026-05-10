@@ -6,7 +6,7 @@
 #include "Game/room.h"
 #include "Specific/level.h"
 
-typedef DWORD D3DCOLOR;
+typedef unsigned int D3DCOLOR;
 
 using VarSaveType = std::variant<bool, double, std::string>;
 using IndexTable = std::vector<std::pair<unsigned int, unsigned int>>;
@@ -75,6 +75,8 @@ public:
 
 	virtual void GetVariables(std::vector<SavedVar>& vars) = 0;
 	virtual void SetVariables(const std::vector<SavedVar>& vars, bool onlyLevelVars) = 0;
+	virtual void GetGlobalVariables(std::vector<SavedVar>& vars) = 0;
+	virtual void SetGlobalVariables(const std::vector<SavedVar>& vars) = 0;
 
 	virtual void GetCallbackStrings(
 		std::vector<std::string>& preStart,
