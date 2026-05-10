@@ -62,8 +62,9 @@ namespace TEN::Input
 	void ClearAllActions();
 	void Rumble(float power, float delaySec = 0.3f, RumbleMode mode = RumbleMode::Both);
 	void StopRumble();
-    void ApplyDefaultBindings();
-    bool ApplyDefaultXInputBindings();
+	void ApplyDefaultBindings();
+	bool ApplyDefaultGamepadBindings();
+	SDL_GamepadType GetActiveGamepadType();
 
 	Vector2 GetMouse2DPosition();
 

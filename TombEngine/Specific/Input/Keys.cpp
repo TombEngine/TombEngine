@@ -1,8 +1,29 @@
 #include "framework.h"
+#include "Specific/Input/Input.h"
 #include "Specific/Input/Keys.h"
 
 namespace TEN::Input
 {
+	enum class GamepadNameType
+	{
+		Xbox,
+		PlayStation,
+		Switch,
+		Count
+	};
+
+	using GamepadKeyNameSet = std::array<std::string, (int)GamepadNameType::Count>;
+
+	static GamepadKeyNameSet GamepadKeyNames(const char* xboxName, const char* playStationName = nullptr, const char* nintendoName = nullptr)
+	{
+		return
+		{
+			xboxName,
+			(playStationName != nullptr) ? playStationName : xboxName,
+			(nintendoName != nullptr) ? nintendoName : xboxName
+		};
+	}
+
 	static const auto KEY_NAME_MAP = std::unordered_map<int, std::string>
 	{
 		{ KEY_UNASSIGNED, "<None>" },
@@ -125,40 +146,64 @@ namespace TEN::Input
 		{ MK_AXIS_Y_POS, "Mouse Y+" },
 		{ MK_AXIS_Z_NEG, "Wheel Up" },
 		{ MK_AXIS_Z_POS, "Wheel Down" },
+	};
 
-		// Gamepad (Xbox-style nomenclature; SDL_Gamepad maps Nintendo/PlayStation pads to the same layout).
-		{ GK_SOUTH,        "A" },
-		{ GK_EAST,         "B" },
-		{ GK_WEST,         "X" },
-		{ GK_NORTH,        "Y" },
-		{ GK_BACK,         "Back" },
-		{ GK_GUIDE,        "Guide" },
-		{ GK_START,        "Start" },
-		{ GK_LSTICK,       "L Stick" },
-		{ GK_RSTICK,       "R Stick" },
-		{ GK_LSHOULDER,    "LB" },
-		{ GK_RSHOULDER,    "RB" },
-		{ GK_DPAD_UP,      "D-Pad Up" },
-		{ GK_DPAD_DOWN,    "D-Pad Down" },
-		{ GK_DPAD_LEFT,    "D-Pad Left" },
-		{ GK_DPAD_RIGHT,   "D-Pad Right" },
+	static const auto GAMEPAD_KEY_NAME_MAP = std::unordered_map<int, GamepadKeyNameSet>
+	{
+		{ GK_SOUTH,        GamepadKeyNames("A", "Cross", "B") },
+		{ GK_EAST,         GamepadKeyNames("B", "Circle", "A") },
+		{ GK_WEST,         GamepadKeyNames("X", "Square", "Y") },
+		{ GK_NORTH,        GamepadKeyNames("Y", "Triangle", "X") },
+		{ GK_BACK,         GamepadKeyNames("Back", "Create", "Minus") },
+		{ GK_GUIDE,        GamepadKeyNames("Guide", "PS", "Home") },
+		{ GK_START,        GamepadKeyNames("Start", "Options", "Plus") },
+		{ GK_LSTICK,       GamepadKeyNames("L Stick") },
+		{ GK_RSTICK,       GamepadKeyNames("R Stick") },
+		{ GK_LSHOULDER,    GamepadKeyNames("LB", "L1", "L") },
+		{ GK_RSHOULDER,    GamepadKeyNames("RB", "R1", "R") },
+		{ GK_DPAD_UP,      GamepadKeyNames("D-Pad Up") },
+		{ GK_DPAD_DOWN,    GamepadKeyNames("D-Pad Down") },
+		{ GK_DPAD_LEFT,    GamepadKeyNames("D-Pad Left") },
+		{ GK_DPAD_RIGHT,   GamepadKeyNames("D-Pad Right") },
 
-		{ GK_LSTICK_X_NEG, "L Stick X-" },
-		{ GK_LSTICK_X_POS, "L Stick X+" },
-		{ GK_LSTICK_Y_NEG, "L Stick Y-" },
-		{ GK_LSTICK_Y_POS, "L Stick Y+" },
-		{ GK_RSTICK_X_NEG, "R Stick X-" },
-		{ GK_RSTICK_X_POS, "R Stick X+" },
-		{ GK_RSTICK_Y_NEG, "R Stick Y-" },
-		{ GK_RSTICK_Y_POS, "R Stick Y+" },
-		{ GK_LTRIGGER_NEG, "LT" },
-		{ GK_LTRIGGER_POS, "LT" },
-		{ GK_RTRIGGER_NEG, "RT" },
-		{ GK_RTRIGGER_POS, "RT" }
+		{ GK_LSTICK_X_NEG, GamepadKeyNames("L Stick X-") },
+		{ GK_LSTICK_X_POS, GamepadKeyNames("L Stick X+") },
+		{ GK_LSTICK_Y_NEG, GamepadKeyNames("L Stick Y-") },
+		{ GK_LSTICK_Y_POS, GamepadKeyNames("L Stick Y+") },
+		{ GK_RSTICK_X_NEG, GamepadKeyNames("R Stick X-") },
+		{ GK_RSTICK_X_POS, GamepadKeyNames("R Stick X+") },
+		{ GK_RSTICK_Y_NEG, GamepadKeyNames("R Stick Y-") },
+		{ GK_RSTICK_Y_POS, GamepadKeyNames("R Stick Y+") },
+		{ GK_LTRIGGER_NEG, GamepadKeyNames("LT", "L2", "ZL") },
+		{ GK_LTRIGGER_POS, GamepadKeyNames("LT", "L2", "ZL") },
+		{ GK_RTRIGGER_NEG, GamepadKeyNames("RT", "R2", "ZR") },
+		{ GK_RTRIGGER_POS, GamepadKeyNames("RT", "R2", "ZR") }
 	};
 
 	const std::string& GetKeyName(int keyID)
 	{
+		auto gamepadIt = GAMEPAD_KEY_NAME_MAP.find(keyID);
+		if (gamepadIt != GAMEPAD_KEY_NAME_MAP.end())
+		{
+			auto gamepadKeyName = GamepadNameType::Xbox;
+
+			switch (GetActiveGamepadType())
+			{
+			case SDL_GAMEPAD_TYPE_PS3:
+			case SDL_GAMEPAD_TYPE_PS4:
+			case SDL_GAMEPAD_TYPE_PS5:
+				gamepadKeyName = GamepadNameType::PlayStation;
+				break;
+
+			case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_PRO:
+				gamepadKeyName = GamepadNameType::Switch;
+				break;
+			}
+
+			const auto& keyNames = gamepadIt->second;
+			return keyNames[(int)gamepadKeyName];
+		}
+
 		auto it = KEY_NAME_MAP.find(keyID);
 		if (it != KEY_NAME_MAP.end())
 			return it->second;

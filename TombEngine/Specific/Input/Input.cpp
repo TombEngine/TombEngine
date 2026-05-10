@@ -75,9 +75,10 @@ namespace TEN::Input
 		if (ActiveGamepadHasRumble)
 			TENLog("Controller supports vibration.", LogLevel::Info);
 
-		// If the user is on default keyboard/mouse bindings and this is an Xbox-class controller,
-		// swap to gamepad defaults and enable rumble + thumbstick camera.
-		if (ApplyDefaultXInputBindings())
+		// If the user is on default keyboard/mouse bindings and this controller matches
+		// a supported Xbox/PlayStation/Switch Pro style layout, swap to gamepad defaults
+		// and enable rumble + thumbstick camera.
+		if (ApplyDefaultGamepadBindings())
 		{
 			g_Configuration.EnableRumble = ActiveGamepadHasRumble;
 			g_Configuration.EnableThumbstickCamera = true;
@@ -169,6 +170,14 @@ namespace TEN::Input
 	void SetInputLockState(bool locked)
 	{
 		InputLocked = locked;
+	}
+
+	SDL_GamepadType GetActiveGamepadType()
+	{
+		if (ActiveGamepad == nullptr)
+			return SDL_GAMEPAD_TYPE_UNKNOWN;
+
+		return SDL_GetGamepadType(ActiveGamepad);
 	}
 
 	void ClearInputData()
@@ -409,9 +418,9 @@ namespace TEN::Input
 			{
 				// Camera fallback: even axes drive Y, odd axes drive X (matches develop behavior).
 				if ((axis % 2) == 0)
-					AxisMap[AxisID::Camera].y = normalizedValue;
-				else
 					AxisMap[AxisID::Camera].x = normalizedValue;
+				else
+					AxisMap[AxisID::Camera].y = normalizedValue;
 			}
 		}
 	}
@@ -603,10 +612,10 @@ namespace TEN::Input
 	void ApplyDefaultBindings()
 	{
 		ApplyBindings(DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE);
-		ApplyDefaultXInputBindings();
+		ApplyDefaultGamepadBindings();
 	}
 
-	bool ApplyDefaultXInputBindings()
+	bool ApplyDefaultGamepadBindings()
 	{
 		if (ActiveGamepad == nullptr)
 			return false;
@@ -623,8 +632,8 @@ namespace TEN::Input
 				return false;
 		}
 
-		// SDL_Gamepad always normalizes to Xbox-style layout, so apply gamepad defaults unconditionally
-		// (no need for the OIS-era vendor-name sniffing).
+		// Apply the shared SDL gamepad layout. Face-button labels differ by controller,
+		// but the underlying logical positions stay consistent across supported pads.
 		ApplyBindings(DEFAULT_GAMEPAD_BINDING_PROFILE);
 		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
 
