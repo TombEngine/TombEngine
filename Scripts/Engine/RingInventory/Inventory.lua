@@ -46,7 +46,8 @@ function CaptureSnapshot()
     snap.fov  = TEN.View.GetFOV()
     snap.roll = TEN.View.GetRoll()
     snap.dofMode, snap.dofFocusDistance, snap.dofRange, snap.dofStrength = TEN.View.GetDOF()
-    snap.postProcessMode, snap.postProcessStrength, snap.postProcessTint = TEN.View.GetPostProcess()
+    snap.postProcessMode, snap.postProcessStrength = TEN.View.GetPostProcess()
+    snap.postProcessTint = TEN.View.GetPostProcessTint()
 end
 
 function RestoreSnapshot()
@@ -58,8 +59,7 @@ function RestoreSnapshot()
         TEN.View.SetFOV(snap.fov)
         TEN.View.SetRoll(snap.roll)
         if Settings.Background.enable ~= true then
-            TEN.View.SetPostProcessMode(snap.postProcessMode)
-            TEN.View.SetPostProcessStrength(snap.postProcessStrength)
+            TEN.View.SetPostProcess(snap.postProcessMode, snap.postProcessStrength)
             TEN.View.SetPostProcessTint(snap.postProcessTint)
         end
     end)
@@ -154,8 +154,7 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
         inventoryDelay = inventoryDelay + 1
         
         if Settings.Background.enable ~= true then
-            TEN.View.SetPostProcessMode(View.PostProcessMode.MONOCHROME)
-            TEN.View.SetPostProcessStrength(COLOR_MAP.background.a / Constants.ALPHA_MAX)
+            TEN.View.SetPostProcess(View.PostProcessMode.MONOCHROME, COLOR_MAP.background.a / Constants.ALPHA_MAX)
             TEN.View.SetPostProcessTint(COLOR_MAP.background)
         end
         
