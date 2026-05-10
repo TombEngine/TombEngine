@@ -18,11 +18,12 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added SWINGING_IRON_ANCHOR (ID 465) object from TR3.
 * Added SWINGING_SPIKE_BAG (ID 466) object from TR2.
 * Added CIRCULAR_SAW (ID 467) object from TR2.
-* Added ROLLING_BARRELS	 (ID 468) object from TR2.
+* Added ROLLING_BARRELS (ID 468) object from TR2.
 * Added MULTIPLE_BOULDERS (ID 469) object from TR2.
 * Added spark effect to SLAMMING_DOORS if OCB is above 0 and when the flipeffect "playsound" with the soundID SFX_TR1_SLAMDOOR_CLOSE = 1144 is played.
+* Added hit sounds for TR1 enemies when shot.
 * Removed FIRE_PENDULUM fxfog effect if OCB value is 0.
- 
+
 ### Bug fixes
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
 * Fixed flyby camera jitter by converting the spline type to floating-point.
