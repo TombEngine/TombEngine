@@ -342,14 +342,14 @@ namespace TEN::Scripting::View
 		//@tparam[opt=1] float strength How strong the effect is.
 		tableView.set_function(ScriptReserved_SetPostProcess, &SetPostProcess);
 	
-		///Gets the post-process effect color.
+		///Gets the post-process tint.
 		//@function GetPostProcessTint
 		//@treturn Color Current tint value.
 		tableView.set_function(ScriptReserved_GetPostProcessTint, &GetPostProcessTint);
 
 		///Sets the post-process tint.
 		//@function SetPostProcessTint
-		//@tparam Color tint value to use.
+		//@tparam Color tint Tint value to use.
 		tableView.set_function(ScriptReserved_SetPostProcessTint, &SetPostProcessTint);
 
 		/// Play a video file. File should be placed in the `FMV` folder.
