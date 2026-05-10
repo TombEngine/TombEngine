@@ -363,7 +363,11 @@ namespace TEN::Input
 		for (int b = 0; b < GAMEPAD_BUTTON_COUNT; b++)
 		{
 			bool pressed = SDL_GetGamepadButton(ActiveGamepad, (SDL_GamepadButton)b);
-			KeyMap[KEY_OFFSET_GAMEPAD + b] = pressed ? 1.0f : 0.0f;
+			int keyID = KEY_OFFSET_GAMEPAD + b;
+			KeyMap[keyID] = pressed ? 1.0f : 0.0f;
+
+			if (pressed)
+				SetDiscreteAxisValues(keyID);
 		}
 
 		// Axes.
