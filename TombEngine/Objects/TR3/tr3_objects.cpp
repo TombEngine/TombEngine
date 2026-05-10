@@ -525,8 +525,6 @@ static void StartTrap(ObjectInfo* obj)
 		obj->Initialize = InitializeFusebox;
 		obj->control = ControlFusebox;
 		obj->collision = CollideFusebox;
-		obj->HitPoints = 1;
-		obj->SetHitEffect(true);
 	}
 
 	obj = &Objects[ID_WALL_MOUNTED_BLADE];

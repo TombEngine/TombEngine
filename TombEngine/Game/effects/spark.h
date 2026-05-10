@@ -1,5 +1,3 @@
-	// Custom fusebox blast spark effect (blue-white burst)
-	void TriggerFuseboxBlastSparks(const Vector3i& pos, int roomNumber);
 #pragma once
 #include <d3d11.h>
 #include <SimpleMath.h>
@@ -46,7 +44,6 @@ namespace TEN::Effects::Spark
 	void TriggerElectricSpark(const GameVector& pos, const EulerAngles& angle, int count);
 	void TriggerAttackSpark(const Vector3& basePos, const Vector3& color);
 	void SpawnCyborgSpark(const Vector3& pos);
-
-	// Custom fusebox spark effect (yellow and close-range blue/white)
+	void TriggerFuseboxBlastSparks(const Vector3i& pos, int roomNumber);
 	void TriggerFuseboxSparks(const Vector3i& pos, int roomNumber);
 }

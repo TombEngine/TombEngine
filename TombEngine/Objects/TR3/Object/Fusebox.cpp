@@ -143,8 +143,6 @@ namespace TEN::Entities::TR3
 	{
 		auto& item = g_Level.Items[itemNumber];
 
-		AddActiveItem(itemNumber);
-		item.Status                         = ITEM_ACTIVE;
 		item.ItemFlags[FuseboxFlags::IsDestroyed] = 0;
 		item.ItemFlags[FuseboxFlags::SparkTimer]  = 0;
 		item.ItemFlags[FuseboxFlags::FlashTimer]  = 0;
@@ -190,8 +188,8 @@ namespace TEN::Entities::TR3
 			return;
 		}
 
-		// Check if fusebox has been destroyed by gunfire.
-		if (item.HitPoints <= 0)
+		// Check if fusebox was just activated by gunfire (ProcessShootSwitch sets IFLAG_SWITCH_ONESHOT).
+		if (item.Flags & IFLAG_SWITCH_ONESHOT)
 		{
 			item.ItemFlags[FuseboxFlags::IsDestroyed] = 1;
 			item.ItemFlags[FuseboxFlags::SparkTimer]  = FUSEBOX_SPARK_DURATION;
@@ -200,9 +198,6 @@ namespace TEN::Entities::TR3
 			SetAnimation(item, item.ObjectNumber, 1);
 			SpawnDestructionBlast(item, pos);
 			SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, &item.Pose);
-
-			// Activate triggers placed under the fusebox, using this item as activator.
-			TestTriggers(&item, true, item.Flags & IFLAG_ACTIVATION_MASK);
 		}
 
 		AnimateItem(&item);

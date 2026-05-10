@@ -1,7 +1,7 @@
 #pragma once
 
 // This file is generated automatically, do not edit it.
-// Last generated on 29/03/2026.
+// Last generated on 10-05-2026.
 
 #include <unordered_map>
 #include <string>
@@ -1113,9 +1113,6 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	/// Object ID.
 	// @mem FIRE_PENDULUM
 	{ "FIRE_PENDULUM", ID_FIRE_PENDULUM },
-	/// Object ID.
-	// @mem FUSEBOX
-	{ "FUSEBOX", ID_FUSEBOX },
 	/// Pickup Object ID.
 	// @mem PUZZLE_ITEM1
 	{ "PUZZLE_ITEM1", ID_PUZZLE_ITEM1 },
@@ -1911,6 +1908,9 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	/// Object ID.
 	// @mem MINECART_SWITCH
 	{ "MINECART_SWITCH", ID_MINECART_SWITCH },
+	/// Object ID.
+	// @mem FUSEBOX
+	{ "FUSEBOX", ID_FUSEBOX },
 	/// Object ID.
 	// @mem DOOR_TYPE1
 	{ "DOOR_TYPE1", ID_DOOR_TYPE1 },
