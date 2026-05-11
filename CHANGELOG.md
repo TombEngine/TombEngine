@@ -10,17 +10,18 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added heat haze for flame emitters and effects.
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
-* Added [HEAVY_STAMPER](https://tombengine.com/asset/traps/heavy-stamper/) object from TR3.
-* Added [DRILL_BIT](https://tombengine.com/asset/traps/drill-bit/) object from TR3.
-* Added [SPIKED_FRAME](https://tombengine.com/asset/traps/spiked-frame/) object from TR3.
-* Added [SWINGING_SANDBAG](https://tombengine.com/asset/traps/swinging-sandbag/) object from TR2.
-* Added [SWINGING_BOX](https://tombengine.com/asset/traps/swinging-box/) object from TR2.
-* Added [OVERHEAD_PULLEY_HOOK](https://tombengine.com/asset/traps/overheard-pulley-hook/) object from TR2.
-* Added [SWINGING_IRON_ANCHOR](https://tombengine.com/asset/traps/swinging-iron-anchor/) object from TR3.
-* Added [SWINGING_SPIKE_BAG](https://tombengine.com/asset/traps/swinging-spike-bag/) object from TR2.
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
+* Added [DRILL_BIT](https://tombengine.com/asset/traps/drill-bit/) object from TR3.
+* Added [FUSEBOX_SWITCH](https://tombengine.com/asset/switches/fusebox-switch/) object from TR3.
+* Added [HEAVY_STAMPER](https://tombengine.com/asset/traps/heavy-stamper/) object from TR3.
+* Added [MULTIPLE_BOULDERS](https://tombengine.com/asset/traps/multiple-boulders/) object from TR2.
+* Added [OVERHEAD_PULLEY_HOOK](https://tombengine.com/asset/traps/overheard-pulley-hook/) object from TR2.
 * Added [ROLLING_BARRELS](https://tombengine.com/asset/traps/rolling-barrels/) object from TR2.
-* Added [MULTIPLE_BOULDERS](https://tombengine.com/asset/traps/multiple-boulders/) (ID 469) object from TR2.
+* Added [SPIKED_FRAME](https://tombengine.com/asset/traps/spiked-frame/) object from TR3.
+* Added [SWINGING_BOX](https://tombengine.com/asset/traps/swinging-box/) object from TR2.
+* Added [SWINGING_IRON_ANCHOR](https://tombengine.com/asset/traps/swinging-iron-anchor/) object from TR3.
+* Added [SWINGING_SANDBAG](https://tombengine.com/asset/traps/swinging-sandbag/) object from TR2.
+* Added [SWINGING_SPIKE_BAG](https://tombengine.com/asset/traps/swinging-spike-bag/) object from TR2.
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if OCB is above 0 and when the flipeffect "playsound" with the soundID SFX_TR1_SLAMDOOR_CLOSE = 1144 is played.
 * Added hit sounds for TR1 enemies when shot.
 * Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fxfog effect if OCB value is 0.
