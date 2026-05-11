@@ -458,8 +458,8 @@ namespace TEN::Renderer
 							fire.position.z + spark->position.z * fire.size / 2),
 						GetInterpolationFactor());
 
-					auto prevOrientation = spark->PrevRotAng << 4;
-					auto currentOrientation = spark->rotAng << 4;
+					short prevOrientation = spark->PrevRotAng << 4;
+					short currentOrientation = spark->rotAng << 4;
 					auto orientation = TO_RAD(prevOrientation + Geometry::GetShortestAngle(prevOrientation, currentOrientation) * GetInterpolationFactor());
 					auto scalar = Lerp(spark->PrevScalar, spark->scalar, GetInterpolationFactor());
 					auto size = Vector2::Lerp(
