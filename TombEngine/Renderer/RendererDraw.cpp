@@ -177,19 +177,11 @@ namespace TEN::Renderer
 			// Per-face shadow map pass. ClearShadowMap() at frame start already cleared
 			// every slice, so LoadAction::Load preserves any prior render this frame.
 			RenderPassDescriptor pass;
-			ColorAttachmentDescriptor color;
-			color.Target     = _shadowMap->GetRenderTarget();
-			color.ArrayIndex = step;
-			color.Load       = LoadAction::Load;
-			pass.ColorAttachments.push_back(color);
-
-			pass.DepthAttachment.Target     = _shadowMap->GetDepthTarget();
-			pass.DepthAttachment.ArrayIndex = step;
-			pass.DepthAttachment.Load       = LoadAction::Load;
-
-			pass.HasViewport = true;
-			pass.Viewport    = _shadowMapViewport;
-			pass.DebugLabel  = "Shadow Map Face";
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_shadowMap->GetRenderTarget(), step) };
+			pass.DepthAttachment  = DepthAttachmentDescriptor::Keep(_shadowMap->GetDepthTarget(), step);
+			pass.HasViewport      = true;
+			pass.Viewport         = _shadowMapViewport;
+			pass.DebugLabel       = "Shadow Map Face";
 			BeginRenderPass(pass);
 
 			if (shadowLightPos == item->Position)
@@ -1925,23 +1917,14 @@ namespace TEN::Renderer
 
 		// Main scene render pass: HDR color + depth/stencil, cleared each frame.
 		{
+			auto clearColor = _debugPage == RendererDebugPage::WireframeMode ? Colors::DimGray : Colors::Black;
+
 			RenderPassDescriptor pass;
-			ColorAttachmentDescriptor color;
-			color.Target     = _renderTarget->GetRenderTarget();
-			color.Load       = LoadAction::Clear;
-			color.Store      = StoreAction::Store;
-			color.ClearColor = _debugPage == RendererDebugPage::WireframeMode ? Colors::DimGray : Colors::Black;
-			pass.ColorAttachments.push_back(color);
-
-			pass.DepthAttachment.Target       = _renderTarget->GetDepthTarget();
-			pass.DepthAttachment.Load         = LoadAction::Clear;
-			pass.DepthAttachment.Store        = StoreAction::Store;
-			pass.DepthAttachment.ClearDepth   = 1.0f;
-			pass.DepthAttachment.ClearStencil = 0;
-
-			pass.HasViewport = true;
-			pass.Viewport    = view.Viewport;
-			pass.DebugLabel  = "Main Scene Begin";
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_renderTarget->GetRenderTarget(), clearColor) };
+			pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(_renderTarget->GetDepthTarget());
+			pass.HasViewport      = true;
+			pass.Viewport         = view.Viewport;
+			pass.DebugLabel       = "Main Scene Begin";
 			BeginRenderPass(pass);
 			EndRenderPass();
 		}
@@ -1995,20 +1978,15 @@ namespace TEN::Renderer
 		// sharing the main scene depth buffer. Depth is reused from the horizon/sky pass.
 		{
 			RenderPassDescriptor pass;
-			ColorAttachmentDescriptor a0, a1, a2;
-			a0.Target = _normalsAndMaterialIndexRenderTarget->GetRenderTarget();
-			a0.Load = LoadAction::Clear; a0.ClearColor = Colors::Transparent;
-			a1.Target = _depthRenderTarget->GetRenderTarget();
-			a1.Load = LoadAction::Clear; a1.ClearColor = Colors::White;
-			a2.Target = _emissiveAndRoughnessRenderTarget->GetRenderTarget();
-			a2.Load = LoadAction::Clear; a2.ClearColor = Colors::Transparent;
-			pass.ColorAttachments = { a0, a1, a2 };
-			pass.DepthAttachment.Target = _renderTarget->GetDepthTarget();
-			pass.DepthAttachment.Load   = LoadAction::Load;
-			pass.DepthAttachment.Store  = StoreAction::Store;
-			pass.HasViewport = true;
-			pass.Viewport    = view.Viewport;
-			pass.DebugLabel  = "G-Buffer";
+			pass.ColorAttachments = {
+				ColorAttachmentDescriptor::Clear(_normalsAndMaterialIndexRenderTarget->GetRenderTarget(), Colors::Transparent),
+				ColorAttachmentDescriptor::Clear(_depthRenderTarget->GetRenderTarget(),                   Colors::White),
+				ColorAttachmentDescriptor::Clear(_emissiveAndRoughnessRenderTarget->GetRenderTarget(),    Colors::Transparent),
+			};
+			pass.DepthAttachment = DepthAttachmentDescriptor::Keep(_renderTarget->GetDepthTarget());
+			pass.HasViewport     = true;
+			pass.Viewport        = view.Viewport;
+			pass.DebugLabel      = "G-Buffer";
 			BeginRenderPass(pass);
 		}
 
@@ -2025,17 +2003,11 @@ namespace TEN::Renderer
 		// Main scene opaque/transparent pass: color + existing depth (Load both).
 		{
 			RenderPassDescriptor pass;
-			ColorAttachmentDescriptor color;
-			color.Target = _renderTarget->GetRenderTarget();
-			color.Load   = LoadAction::Load;
-			color.Store  = StoreAction::Store;
-			pass.ColorAttachments.push_back(color);
-			pass.DepthAttachment.Target = _renderTarget->GetDepthTarget();
-			pass.DepthAttachment.Load   = LoadAction::Load;
-			pass.DepthAttachment.Store  = StoreAction::Store;
-			pass.HasViewport = true;
-			pass.Viewport    = view.Viewport;
-			pass.DebugLabel  = "Main Scene Opaque/Transparent";
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_renderTarget->GetRenderTarget()) };
+			pass.DepthAttachment  = DepthAttachmentDescriptor::Keep(_renderTarget->GetDepthTarget());
+			pass.HasViewport      = true;
+			pass.Viewport         = view.Viewport;
+			pass.DebugLabel       = "Main Scene Opaque/Transparent";
 			BeginRenderPass(pass);
 		}
 
@@ -2059,18 +2031,11 @@ namespace TEN::Renderer
 		// HUD/3D-overlay pass: keep color, reset depth so HUD geometry renders on top.
 		{
 			RenderPassDescriptor pass;
-			ColorAttachmentDescriptor color;
-			color.Target = _renderTarget->GetRenderTarget();
-			color.Load   = LoadAction::Load;
-			color.Store  = StoreAction::Store;
-			pass.ColorAttachments.push_back(color);
-			pass.DepthAttachment.Target       = _renderTarget->GetDepthTarget();
-			pass.DepthAttachment.Load         = LoadAction::Clear;
-			pass.DepthAttachment.ClearDepth   = 1.0f;
-			pass.DepthAttachment.ClearStencil = 0;
-			pass.HasViewport = true;
-			pass.Viewport    = view.Viewport;
-			pass.DebugLabel  = "HUD 3D";
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_renderTarget->GetRenderTarget()) };
+			pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(_renderTarget->GetDepthTarget());
+			pass.HasViewport      = true;
+			pass.Viewport         = view.Viewport;
+			pass.DebugLabel       = "HUD 3D";
 			BeginRenderPass(pass);
 			EndRenderPass();
 		}
@@ -2394,18 +2359,11 @@ namespace TEN::Renderer
 
 		{
 			RenderPassDescriptor pass;
-			ColorAttachmentDescriptor color;
-			color.Target     = _backBuffer->GetRenderTarget();
-			color.Load       = LoadAction::Clear;
-			color.ClearColor = Colors::Black;
-			pass.ColorAttachments.push_back(color);
-			pass.DepthAttachment.Target       = _backBuffer->GetDepthTarget();
-			pass.DepthAttachment.Load         = LoadAction::Clear;
-			pass.DepthAttachment.ClearDepth   = 1.0f;
-			pass.DepthAttachment.ClearStencil = 0;
-			pass.HasViewport = true;
-			pass.Viewport    = _viewport;
-			pass.DebugLabel  = "Back Buffer Composite";
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_backBuffer->GetRenderTarget(), Colors::Black) };
+			pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(_backBuffer->GetDepthTarget());
+			pass.HasViewport      = true;
+			pass.Viewport         = _viewport;
+			pass.DebugLabel       = "Back Buffer Composite";
 			BeginRenderPass(pass);
 		}
 
@@ -3083,22 +3041,11 @@ namespace TEN::Renderer
 
 		auto buildPass = [&](int arrayIndex, const char* label) {
 			RenderPassDescriptor pass;
-			ColorAttachmentDescriptor color;
-			color.Target     = _skyboxRenderTarget->GetRenderTarget();
-			color.ArrayIndex = arrayIndex;
-			color.Load       = LoadAction::Clear;
-			color.ClearColor = Colors::Black;
-			pass.ColorAttachments.push_back(color);
-
-			pass.DepthAttachment.Target       = _skyboxRenderTarget->GetDepthTarget();
-			pass.DepthAttachment.ArrayIndex   = arrayIndex;
-			pass.DepthAttachment.Load         = LoadAction::Clear;
-			pass.DepthAttachment.ClearDepth   = 1.0f;
-			pass.DepthAttachment.ClearStencil = 0;
-
-			pass.HasViewport = true;
-			pass.Viewport    = viewport;
-			pass.DebugLabel  = label;
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_skyboxRenderTarget->GetRenderTarget(), Colors::Black, arrayIndex) };
+			pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(_skyboxRenderTarget->GetDepthTarget(), 1.0f, 0, arrayIndex);
+			pass.HasViewport      = true;
+			pass.Viewport         = viewport;
+			pass.DebugLabel       = label;
 			BeginRenderPass(pass);
 		};
 
@@ -4212,17 +4159,14 @@ namespace TEN::Renderer
 		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
 		// === Pass 1: SSAO compute into _SSAORenderTarget ===
+		// Clear to white (no occlusion baseline) — the shader returns 1.0 for fragments
+		// that take the early-exit branch.
 		{
 			RenderPassDescriptor pass;
-			ColorAttachmentDescriptor color;
-			color.Target     = _SSAORenderTarget->GetRenderTarget();
-			color.Load       = LoadAction::Clear;
-			color.Store      = StoreAction::Store;
-			color.ClearColor = Vector4(1.0f, 1.0f, 1.0f, 1.0f); // White: no occlusion baseline.
-			pass.ColorAttachments.push_back(color);
-			pass.HasViewport = true;
-			pass.Viewport    = viewport;
-			pass.DebugLabel  = "SSAO";
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_SSAORenderTarget->GetRenderTarget(), Colors::White) };
+			pass.HasViewport      = true;
+			pass.Viewport         = viewport;
+			pass.DebugLabel       = "SSAO";
 			BeginRenderPass(pass);
 		}
 
@@ -4245,15 +4189,10 @@ namespace TEN::Renderer
 		// === Pass 2: bilateral blur into _SSAOBlurredRenderTarget ===
 		{
 			RenderPassDescriptor pass;
-			ColorAttachmentDescriptor color;
-			color.Target     = _SSAOBlurredRenderTarget->GetRenderTarget();
-			color.Load       = LoadAction::Clear;
-			color.Store      = StoreAction::Store;
-			color.ClearColor = Vector4(0.0f, 0.0f, 0.0f, 0.0f);
-			pass.ColorAttachments.push_back(color);
-			pass.HasViewport = true;
-			pass.Viewport    = viewport;
-			pass.DebugLabel  = "SSAO Blur";
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_SSAOBlurredRenderTarget->GetRenderTarget(), Colors::Transparent) };
+			pass.HasViewport      = true;
+			pass.Viewport         = viewport;
+			pass.DebugLabel       = "SSAO Blur";
 			BeginRenderPass(pass);
 		}
 

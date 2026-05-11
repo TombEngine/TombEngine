@@ -9,14 +9,10 @@ namespace TEN::Renderer
 	static void BuildFullscreenColorPass(RenderPassDescriptor& pass, IRenderTarget2D* target,
 		const XMVECTORF32& clearColor, const RendererViewport& viewport, const char* label)
 	{
-		ColorAttachmentDescriptor color;
-		color.Target     = target;
-		color.Load       = LoadAction::Clear;
-		color.ClearColor = clearColor;
-		pass.ColorAttachments.push_back(color);
-		pass.HasViewport = true;
-		pass.Viewport    = viewport;
-		pass.DebugLabel  = label;
+		pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(target, clearColor) };
+		pass.HasViewport      = true;
+		pass.Viewport         = viewport;
+		pass.DebugLabel       = label;
 	}
 
 	void Renderer::DrawPostprocess(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode)
@@ -127,20 +123,11 @@ namespace TEN::Renderer
 
 		{
 			RenderPassDescriptor pass;
-			ColorAttachmentDescriptor color;
-			color.Target     = renderTarget->GetRenderTarget();
-			color.Load       = LoadAction::Clear;
-			color.ClearColor = Colors::Black;
-			pass.ColorAttachments.push_back(color);
-
-			pass.DepthAttachment.Target       = renderTarget->GetDepthTarget();
-			pass.DepthAttachment.Load         = LoadAction::Clear;
-			pass.DepthAttachment.ClearDepth   = 1.0f;
-			pass.DepthAttachment.ClearStencil = 0;
-
-			pass.HasViewport = true;
-			pass.Viewport    = view.Viewport;
-			pass.DebugLabel  = "Postprocess Final";
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(renderTarget->GetRenderTarget(), Colors::Black) };
+			pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(renderTarget->GetDepthTarget());
+			pass.HasViewport      = true;
+			pass.Viewport         = view.Viewport;
+			pass.DebugLabel       = "Postprocess Final";
 			BeginRenderPass(pass);
 		}
 

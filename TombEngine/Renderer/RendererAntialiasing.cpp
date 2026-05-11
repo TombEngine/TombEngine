@@ -38,14 +38,10 @@ namespace TEN::Renderer
 
 		auto fullscreenPass = [&](IRenderTarget2D* target, const XMVECTORF32& clearColor, const char* label) {
 			RenderPassDescriptor pass;
-			ColorAttachmentDescriptor color;
-			color.Target     = target;
-			color.Load       = LoadAction::Clear;
-			color.ClearColor = clearColor;
-			pass.ColorAttachments.push_back(color);
-			pass.HasViewport = true;
-			pass.Viewport    = view.Viewport;
-			pass.DebugLabel  = label;
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(target, clearColor) };
+			pass.HasViewport      = true;
+			pass.Viewport         = view.Viewport;
+			pass.DebugLabel       = label;
 			BeginRenderPass(pass);
 		};
 
@@ -101,13 +97,10 @@ namespace TEN::Renderer
 		// 3) Neighborhood blending (writes back into the source target).
 		{
 			RenderPassDescriptor pass;
-			ColorAttachmentDescriptor color;
-			color.Target = renderTarget->GetRenderTarget();
-			color.Load   = LoadAction::Load;
-			pass.ColorAttachments.push_back(color);
-			pass.HasViewport = true;
-			pass.Viewport    = view.Viewport;
-			pass.DebugLabel  = "SMAA Neighborhood Blend";
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(renderTarget->GetRenderTarget()) };
+			pass.HasViewport      = true;
+			pass.Viewport         = view.Viewport;
+			pass.DebugLabel       = "SMAA Neighborhood Blend";
 			BeginRenderPass(pass);
 		}
 
@@ -142,14 +135,10 @@ namespace TEN::Renderer
 
 		auto fullscreenPass = [&](IRenderTarget2D* target, const XMVECTORF32& clearColor, const char* label) {
 			RenderPassDescriptor pass;
-			ColorAttachmentDescriptor color;
-			color.Target     = target;
-			color.Load       = LoadAction::Clear;
-			color.ClearColor = clearColor;
-			pass.ColorAttachments.push_back(color);
-			pass.HasViewport = true;
-			pass.Viewport    = view.Viewport;
-			pass.DebugLabel  = label;
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(target, clearColor) };
+			pass.HasViewport      = true;
+			pass.Viewport         = view.Viewport;
+			pass.DebugLabel       = label;
 			BeginRenderPass(pass);
 		};
 

@@ -37,6 +37,38 @@ namespace TEN::Renderer::Graphics
 		LoadAction       Load       = LoadAction::Load;
 		StoreAction      Store      = StoreAction::Store;
 		Vector4          ClearColor = Vector4(0, 0, 0, 0);
+
+		// Factory helpers — keep call sites readable when building a render pass.
+		// Two overloads on the clear-color type so call sites can pass either a Vector4
+		// or a DirectX::XMVECTORF32 constant (e.g. Colors::Black) without an explicit cast.
+		static ColorAttachmentDescriptor Clear(IRenderTarget2D* target, const Vector4& clearColor, int arrayIndex = 0)
+		{
+			ColorAttachmentDescriptor d;
+			d.Target     = target;
+			d.ArrayIndex = arrayIndex;
+			d.Load       = LoadAction::Clear;
+			d.ClearColor = clearColor;
+			return d;
+		}
+
+		static ColorAttachmentDescriptor Clear(IRenderTarget2D* target, const DirectX::XMVECTORF32& clearColor, int arrayIndex = 0)
+		{
+			ColorAttachmentDescriptor d;
+			d.Target     = target;
+			d.ArrayIndex = arrayIndex;
+			d.Load       = LoadAction::Clear;
+			d.ClearColor = clearColor;
+			return d;
+		}
+
+		static ColorAttachmentDescriptor Keep(IRenderTarget2D* target, int arrayIndex = 0)
+		{
+			ColorAttachmentDescriptor d;
+			d.Target     = target;
+			d.ArrayIndex = arrayIndex;
+			d.Load       = LoadAction::Load;
+			return d;
+		}
 	};
 
 	struct DepthAttachmentDescriptor
@@ -47,6 +79,26 @@ namespace TEN::Renderer::Graphics
 		StoreAction   Store        = StoreAction::Store;
 		float         ClearDepth   = 1.0f;
 		unsigned char ClearStencil = 0;
+
+		static DepthAttachmentDescriptor Clear(IDepthTarget* target, float clearDepth = 1.0f, unsigned char clearStencil = 0, int arrayIndex = 0)
+		{
+			DepthAttachmentDescriptor d;
+			d.Target       = target;
+			d.ArrayIndex   = arrayIndex;
+			d.Load         = LoadAction::Clear;
+			d.ClearDepth   = clearDepth;
+			d.ClearStencil = clearStencil;
+			return d;
+		}
+
+		static DepthAttachmentDescriptor Keep(IDepthTarget* target, int arrayIndex = 0)
+		{
+			DepthAttachmentDescriptor d;
+			d.Target     = target;
+			d.ArrayIndex = arrayIndex;
+			d.Load       = LoadAction::Load;
+			return d;
+		}
 	};
 
 	// Declarative description of a render pass: which attachments are bound, what their
