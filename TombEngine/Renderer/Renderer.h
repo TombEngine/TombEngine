@@ -298,6 +298,12 @@ namespace TEN::Renderer
 		ITextureBase*        _lastBoundTextures[TEXTURE_BINDING_CACHE_SIZE]   = {};
 		SamplerStateRegister _lastBoundSamplers[TEXTURE_BINDING_CACHE_SIZE]   = {};
 
+		// Pipeline state dedup: skip device calls when the bound vertex buffer,
+		// input layout, or primitive topology haven't changed.
+		IVertexBuffer* _lastBoundVertexBuffer    = nullptr;
+		IInputLayout*  _lastBoundInputLayout     = nullptr;
+		PrimitiveType  _lastBoundPrimitiveType   = (PrimitiveType)-1;
+
 		std::vector<RendererSpriteBucket> _spriteBuckets;
 
 		// Antialiasing
@@ -356,6 +362,13 @@ namespace TEN::Renderer
 		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType);
 		void UnbindTexture(ShaderStage stage, TextureRegister registerType);
 		void ResetTextureBindingCache();
+		void ResetPipelineCache();
+
+		// Pipeline state wrappers with dedup. Use these instead of the raw _graphicsDevice
+		// calls so that back-to-back binds with identical state become no-ops.
+		void BindVertexBuffer(IVertexBuffer* vertexBuffer);
+		void SetInputLayout(IInputLayout* inputLayout);
+		void SetPrimitiveType(PrimitiveType primitiveType);
 		int  BindLight(RendererLight& light, ShaderLight* lights, int index);
 		void BindRoomLights(std::vector<RendererLight*>& lights);
 		void BindInstancedStaticLights(std::vector<RendererLight*>& lights, int instanceID);

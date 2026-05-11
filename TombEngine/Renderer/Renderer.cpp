@@ -197,6 +197,38 @@ namespace TEN::Renderer
 		}
 	}
 
+	void Renderer::ResetPipelineCache()
+	{
+		_lastBoundVertexBuffer  = nullptr;
+		_lastBoundInputLayout   = nullptr;
+		_lastBoundPrimitiveType = (PrimitiveType)-1;
+		_shaders.ResetBindCache();
+	}
+
+	void Renderer::BindVertexBuffer(IVertexBuffer* vertexBuffer)
+	{
+		if (vertexBuffer == _lastBoundVertexBuffer)
+			return;
+		_lastBoundVertexBuffer = vertexBuffer;
+		_graphicsDevice->BindVertexBuffer(vertexBuffer);
+	}
+
+	void Renderer::SetInputLayout(IInputLayout* inputLayout)
+	{
+		if (inputLayout == _lastBoundInputLayout)
+			return;
+		_lastBoundInputLayout = inputLayout;
+		_graphicsDevice->SetInputLayout(inputLayout);
+	}
+
+	void Renderer::SetPrimitiveType(PrimitiveType primitiveType)
+	{
+		if (primitiveType == _lastBoundPrimitiveType)
+			return;
+		_lastBoundPrimitiveType = primitiveType;
+		_graphicsDevice->SetPrimitiveType(primitiveType);
+	}
+
 	void Renderer::BindRenderTargetAsTexture(TextureRegister registerType, IRenderTarget2D* target, SamplerStateRegister samplerType)
 	{
 		// Route through BindTexture so this binding goes through the same dedup cache.

@@ -154,6 +154,14 @@ namespace TEN::Renderer::Utils
 			return;
 		}
 
+		// Skip device-level rebind when the underlying compiled shader is binary-identical
+		// to the one already bound. Two enum values (e.g. Items + InstancedStatics) loaded
+		// from the same file+entry+defines share a group id.
+		int group = _shaderGroups[shaderIndex];
+		if (!forceNull && group == _lastBoundGroup)
+			return;
+		_lastBoundGroup = forceNull ? -1 : group;
+
 		const auto& shaderObj = _shaders[shaderIndex];
 
 		_graphicsDevice->BindShader(ShaderStage::VertexShader, shaderObj.get(), forceNull);
@@ -190,11 +198,41 @@ namespace TEN::Renderer::Utils
 	void ShaderManager::Load(Shader shader, const std::string& fileName, const std::string& funcName, ShaderType type, std::map<std::string, std::string> defines, bool forceRecompile)
 	{
 		Destroy(shader);
-		_shaders[(int)shader] = LoadOrCompile(fileName, funcName, type, defines, forceRecompile);
+		_shaders[(int)shader]      = LoadOrCompile(fileName, funcName, type, defines, forceRecompile);
+		_shaderGroups[(int)shader] = AssignShaderGroup(fileName, funcName, type, defines);
+		_lastBoundGroup            = -1; // Force rebind after a reload.
 	}
 
 	void ShaderManager::Destroy(Shader shader)
 	{
 		SAFE_DELETE(_shaders[(int)shader]);
+	}
+
+	int ShaderManager::AssignShaderGroup(const std::string& fileName, const std::string& funcName, ShaderType type, const std::map<std::string, std::string>& defines)
+	{
+		// Build a stable key. Defines are inserted alphabetically because std::map already iterates sorted.
+		std::string key;
+		key.reserve(64);
+		key.append(fileName);
+		key.push_back('|');
+		key.append(funcName);
+		key.push_back('|');
+		key.append(std::to_string((int)type));
+		key.push_back('|');
+		for (const auto& kv : defines)
+		{
+			key.append(kv.first);
+			key.push_back('=');
+			key.append(kv.second);
+			key.push_back(';');
+		}
+
+		auto it = _groupKeyToId.find(key);
+		if (it != _groupKeyToId.end())
+			return it->second;
+
+		int id = _nextGroupId++;
+		_groupKeyToId.emplace(std::move(key), id);
+		return id;
 	}
 }

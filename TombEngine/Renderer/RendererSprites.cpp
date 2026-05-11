@@ -262,7 +262,7 @@ namespace TEN::Renderer
 
 			if (!wasGpuSet)
 			{
-				_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleStrip);
+				SetPrimitiveType(PrimitiveType::TriangleStrip);
 
 				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
@@ -272,7 +272,7 @@ namespace TEN::Renderer
 				_shaders.Bind(Shader::InstancedSprites);
 
 				// Set up vertex buffer and parameters.
-				_graphicsDevice->BindVertexBuffer(_quadVertexBuffer.get());
+				BindVertexBuffer(_quadVertexBuffer.get());
 
 				wasGpuSet = true;
 			}
@@ -317,7 +317,7 @@ namespace TEN::Renderer
 
 			if (!wasGpuSet)
 			{
-				_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+				SetPrimitiveType(PrimitiveType::TriangleList);
 
 				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
@@ -327,7 +327,7 @@ namespace TEN::Renderer
 				_shaders.Bind(Shader::InstancedSprites);
 
 				// Set up vertex buffer and parameters.
-				_graphicsDevice->BindVertexBuffer(_spriteVertexBuffer.get());
+				BindVertexBuffer(_spriteVertexBuffer.get());
 
 				wasGpuSet = true;
 			}
@@ -406,12 +406,12 @@ namespace TEN::Renderer
 		}
 
 		// Set up vertex parameters.
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		SetPrimitiveType(PrimitiveType::TriangleList);
 	}
 
 	void Renderer::DrawSingleSprite(RendererSortableObject* object, RendererObjectType lastObjectType, RenderView& view)
 	{
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleStrip);
+		SetPrimitiveType(PrimitiveType::TriangleStrip);
 
 		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 
@@ -438,7 +438,7 @@ namespace TEN::Renderer
 		// Set up vertex buffer and parameters.
 		if (object->Sprite->Type != SpriteType::ThreeD)
 		{
-			_graphicsDevice->BindVertexBuffer(_quadVertexBuffer.get());
+			BindVertexBuffer(_quadVertexBuffer.get());
 		}
 		else
 		{
@@ -473,7 +473,7 @@ namespace TEN::Renderer
 			_spriteVertices.push_back(vertex2);
 
 			_graphicsDevice->UpdateVertexBuffer(_spriteVertexBuffer.get(), 0, 4, _spriteVertices.data());
-			_graphicsDevice->BindVertexBuffer(_spriteVertexBuffer.get());
+			BindVertexBuffer(_spriteVertexBuffer.get());
 		}
 
 		// Draw sprites with instancing.
@@ -482,7 +482,7 @@ namespace TEN::Renderer
 		_numSortedSpritesDrawCalls++;
 		_numSortedTriangles += 2;
 
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		SetPrimitiveType(PrimitiveType::TriangleList);
 	}
 
 	void Renderer::DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
@@ -491,9 +491,9 @@ namespace TEN::Renderer
 		{
 			_shaders.Bind(Shader::InstancedSprites);
 
-			_graphicsDevice->BindVertexBuffer(_sortedPolygonsVertexBuffer.get());
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+			BindVertexBuffer(_sortedPolygonsVertexBuffer.get());
+			SetPrimitiveType(PrimitiveType::TriangleList);
+			SetInputLayout(_vertexInputLayout.get());
 		}
 
 		_stInstancedSpriteBuffer.Sprites[0].World = Matrix::Identity;

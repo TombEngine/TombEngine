@@ -187,9 +187,9 @@ namespace TEN::Renderer
 			// Set shaders.
 			_shaders.Bind(Shader::ShadowMap);
 
-			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+			BindVertexBuffer(_moveablesVertexBuffer.get());
+			SetPrimitiveType(PrimitiveType::TriangleList);
+			SetInputLayout(_vertexInputLayout.get());
 			_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 			// Set texture.
@@ -345,7 +345,7 @@ namespace TEN::Renderer
 
 			_shaders.Bind(Shader::InstancedStatics);
 
-			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+			BindVertexBuffer(_moveablesVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 			SetBlendMode(BlendMode::Opaque);
@@ -421,7 +421,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::Solid);
 		auto worldMatrix = Matrix::CreateOrthographicOffCenter(0, _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), 0, _viewport.MinDepth, _viewport.MaxDepth);
 
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::LineList);
+		SetPrimitiveType(PrimitiveType::LineList);
 
 		_primitiveBatch->Begin();
 
@@ -601,7 +601,7 @@ namespace TEN::Renderer
 					_shaders.Bind(Shader::InstancedStatics);
 				}
 
-				_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+				BindVertexBuffer(_moveablesVertexBuffer.get());
 				_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 				RendererObject& moveableObj = *_moveableObjects[ID_RATS_EMITTER];
@@ -723,7 +723,7 @@ namespace TEN::Renderer
 					_shaders.Bind(Shader::InstancedStatics);
 				}
 
-				_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+				BindVertexBuffer(_moveablesVertexBuffer.get());
 				_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 				const auto& moveableObj = *_moveableObjects[ID_FISH_EMITTER];
@@ -861,7 +861,7 @@ namespace TEN::Renderer
 						_shaders.Bind(Shader::InstancedStatics);
 					}
 
-					_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+					BindVertexBuffer(_moveablesVertexBuffer.get());
 					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
@@ -991,7 +991,7 @@ namespace TEN::Renderer
 						_shaders.Bind(Shader::InstancedStatics);
 					}
 
-					_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+					BindVertexBuffer(_moveablesVertexBuffer.get());
 					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
@@ -1101,7 +1101,7 @@ namespace TEN::Renderer
 					_shaders.Bind(Shader::InstancedStatics);
 				}
 
-				_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+				BindVertexBuffer(_moveablesVertexBuffer.get());
 				_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 				auto* obj = &Objects[ID_LOCUSTS];
@@ -1161,7 +1161,7 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::Solid);
 
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::LineList);
+		SetPrimitiveType(PrimitiveType::LineList);
 		_primitiveBatch->Begin();
 
 		for (const auto& line : _lines3DToDraw)
@@ -1193,8 +1193,8 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::Solid);
 
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		SetPrimitiveType(PrimitiveType::TriangleList);
+		SetInputLayout(_vertexInputLayout.get());
 
 		_primitiveBatch->Begin();
 
@@ -1808,10 +1808,11 @@ namespace TEN::Renderer
 
 		ResetDebugVariables();
 
-		// Reset texture binding cache so the dedup logic starts from a known state every frame.
-		// DX11 may have invalidated SRVs at end of last frame (RTV-as-SRV hazard prevention),
-		// or external code may have changed bindings outside our wrapper.
+		// Reset texture/pipeline binding caches so the dedup logic starts from a known state
+		// every frame. DX11 may have invalidated SRVs at end of last frame (RTV-as-SRV hazard
+		// prevention), or external code may have changed bindings outside our wrapper.
 		ResetTextureBindingCache();
+		ResetPipelineCache();
 
 		auto& level = *g_GameFlow->GetLevel(CurrentLevel);
 
@@ -1897,8 +1898,8 @@ namespace TEN::Renderer
 		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
 		// Set up vertex parameters.
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		SetInputLayout(_vertexInputLayout.get());
+		SetPrimitiveType(PrimitiveType::TriangleList);
 
 		// Draw skybox to paraboloid
 		DrawHorizonAndSkyForReflections(view);
@@ -1980,8 +1981,8 @@ namespace TEN::Renderer
 		if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion)
 			CalculateSSAO(view);
 
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		SetPrimitiveType(PrimitiveType::TriangleList);
+		SetInputLayout(_vertexInputLayout.get());
 
 		_graphicsDevice->SetViewport(view.Viewport);
 		_graphicsDevice->SetScissor(view.Viewport);
@@ -2164,7 +2165,7 @@ namespace TEN::Renderer
 			// Draw horizon.
 			if (_moveableObjects[ID_HORIZON].has_value()) // FIXME: Replace with same function as in the main pipeline!
 			{
-				_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+				BindVertexBuffer(_moveablesVertexBuffer.get());
 				_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 				const auto& moveableObj = *_moveableObjects[ID_HORIZON]; // FIXME: Replace with same function as in the main pipeline!
@@ -2210,7 +2211,7 @@ namespace TEN::Renderer
 		unsigned int offset = 0;
 
 		// Bind vertex and index buffer.
-		_graphicsDevice->BindVertexBuffer(_roomsVertexBuffer.get());
+		BindVertexBuffer(_roomsVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(_roomsIndexBuffer.get());
 
 		for (int i = 0; i < _rooms.size(); i++)
@@ -2429,7 +2430,7 @@ namespace TEN::Renderer
 	{
 		if (rendererPass != RendererPass::CollectTransparentFaces)
 		{
-			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+			BindVertexBuffer(_moveablesVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 			// Set shaders.
@@ -2616,7 +2617,7 @@ namespace TEN::Renderer
 			// Bind vertex and index buffer
 			unsigned int stride = sizeof(Vertex);
 			unsigned int offset = 0;
-			_graphicsDevice->BindVertexBuffer(_staticsVertexBuffer.get());
+			BindVertexBuffer(_staticsVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_staticsIndexBuffer.get());;
 
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
@@ -2700,7 +2701,7 @@ namespace TEN::Renderer
 			}
 
 			// Bind vertex and index buffer
-			_graphicsDevice->BindVertexBuffer(_staticsVertexBuffer.get());
+			BindVertexBuffer(_staticsVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_staticsIndexBuffer.get());
 			
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
@@ -2893,7 +2894,7 @@ namespace TEN::Renderer
 			}
 
 			// Bind vertex and index buffer.
-			_graphicsDevice->BindVertexBuffer(_roomsVertexBuffer.get());
+			BindVertexBuffer(_roomsVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_roomsIndexBuffer.get());
 			   
 			if (rendererPass != RendererPass::GBuffer)
@@ -3080,7 +3081,7 @@ namespace TEN::Renderer
 		_shaders.Bind(reflectionPass ? Shader::RoomAmbientSky : Shader::Sky);
 		BindTexture(TextureRegister::ColorMap, _skyTexture.get(), SamplerStateRegister::AnisotropicClamp);
 
-		_graphicsDevice->BindVertexBuffer(_skyVertexBuffer.get());
+		BindVertexBuffer(_skyVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(_skyIndexBuffer.get());
 
 		SetBlendMode(BlendMode::Additive);
@@ -3119,11 +3120,11 @@ namespace TEN::Renderer
 			SetBlendMode(BlendMode::Additive);
 			SetCullMode(CullMode::None);
 
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleStrip);
+			SetPrimitiveType(PrimitiveType::TriangleStrip);
 
 			_shaders.Bind(Shader::InstancedSprites);
 
-			_graphicsDevice->BindVertexBuffer(_quadVertexBuffer.get());
+			BindVertexBuffer(_quadVertexBuffer.get());
 
 			BindTexture(TextureRegister::ColorMap, _sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LENS_FLARE_3].Texture, SamplerStateRegister::LinearClamp);
 
@@ -3244,7 +3245,7 @@ namespace TEN::Renderer
 				}
 			}
 
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+			SetPrimitiveType(PrimitiveType::TriangleList);
 
 			SetCullMode(CullMode::CounterClockwise);
 		}
@@ -3263,7 +3264,7 @@ namespace TEN::Renderer
 			SetDepthState(DepthState::None);
 			SetBlendMode(BlendMode::Opaque);
 
-			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+			BindVertexBuffer(_moveablesVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 			auto pos = Vector3::Lerp(levelPtr->GetHorizonPrevPosition(layer), levelPtr->GetHorizonPosition(layer), GetInterpolationFactor());
@@ -3313,12 +3314,12 @@ namespace TEN::Renderer
 			SetBlendMode(BlendMode::Additive);
 			SetCullMode(CullMode::None);
 
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleStrip);
+			SetPrimitiveType(PrimitiveType::TriangleStrip);
 
 			_shaders.Bind(Shader::InstancedSprites);
 
 			// Set up vertex buffer and parameters.
-			_graphicsDevice->BindVertexBuffer(_quadVertexBuffer.get());
+			BindVertexBuffer(_quadVertexBuffer.get());
 
 			auto rDrawSprite = RendererSpriteToDraw{};
 			rDrawSprite.Sprite = &_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + renderView.LensFlaresToDraw[0].SpriteID];
@@ -3353,7 +3354,7 @@ namespace TEN::Renderer
 			// Draw sprites with instancing.
 			DrawInstancedTriangles(4, 1, 0);
 
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+			SetPrimitiveType(PrimitiveType::TriangleList);
 		}
 
 		// Clear just the Z-buffer to start drawing on top of horizon.
@@ -3914,9 +3915,9 @@ namespace TEN::Renderer
 	{
 		if (lastObjectType != objectInfo->ObjectType)
 		{
-			_graphicsDevice->BindVertexBuffer(_roomsVertexBuffer.get());
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+			BindVertexBuffer(_roomsVertexBuffer.get());
+			SetPrimitiveType(PrimitiveType::TriangleList);
+			SetInputLayout(_vertexInputLayout.get());
 
 			SetDepthState(DepthState::Read);
 			SetCullMode(CullMode::CounterClockwise);
@@ -3959,9 +3960,9 @@ namespace TEN::Renderer
 	{
 		if (lastObjectType != objectInfo->ObjectType)
 		{
-			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+			BindVertexBuffer(_moveablesVertexBuffer.get());
+			SetPrimitiveType(PrimitiveType::TriangleList);
+			SetInputLayout(_vertexInputLayout.get());
 
 			SetDepthState(DepthState::Read);
 			SetCullMode(CullMode::CounterClockwise);
@@ -4017,9 +4018,9 @@ namespace TEN::Renderer
 
 		if (lastObjectType != objectInfo->ObjectType)
 		{
-			_graphicsDevice->BindVertexBuffer(_staticsVertexBuffer.get());
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+			BindVertexBuffer(_staticsVertexBuffer.get());
+			SetPrimitiveType(PrimitiveType::TriangleList);
+			SetInputLayout(_vertexInputLayout.get());
 
 			SetDepthState(DepthState::Read);
 			SetCullMode(CullMode::CounterClockwise);
@@ -4059,9 +4060,9 @@ namespace TEN::Renderer
 
 		if (lastObjectType != objectInfo->ObjectType)
 		{
-			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+			BindVertexBuffer(_moveablesVertexBuffer.get());
+			SetPrimitiveType(PrimitiveType::TriangleList);
+			SetInputLayout(_vertexInputLayout.get());
 
 			SetDepthState(DepthState::Read);
 			SetCullMode(CullMode::CounterClockwise);
@@ -4104,9 +4105,9 @@ namespace TEN::Renderer
 
 		if (lastObjectType != objectInfo->ObjectType)
 		{
-			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+			BindVertexBuffer(_moveablesVertexBuffer.get());
+			SetPrimitiveType(PrimitiveType::TriangleList);
+			SetInputLayout(_vertexInputLayout.get());
 
 			SetDepthState(DepthState::Read);
 			SetCullMode(CullMode::CounterClockwise);
@@ -4183,10 +4184,10 @@ namespace TEN::Renderer
 		_graphicsDevice->SetViewport(viewport);
 		_graphicsDevice->SetScissor(viewport);
 	
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		SetPrimitiveType(PrimitiveType::TriangleList);
+		SetInputLayout(_fullScreenVertexInputLayout.get());
 
-		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), _normalsAndMaterialIndexRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
