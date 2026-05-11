@@ -91,9 +91,9 @@ table.index { border: 1px #00007f; }
 table.index td { text-align: left; vertical-align: top; }
 
 #container {
-    margin-left: 1em;
-    margin-right: 1em;
     background-color: #f0f0f0;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 #product {
@@ -109,14 +109,146 @@ table.index td { text-align: left; vertical-align: top; }
 #main {
     background-color: #f0f0f0;
     border-left: 2px solid #cccccc;
-    display: flex
+    display: flex;
+    width: 100%;
 }
 
 #navigation {
+    box-sizing: border-box;
+    flex: 0 0 18em;
     width: 18em;
     vertical-align: top;
     background-color: #f0f0f0;
     overflow: visible;
+}
+
+#navigation .project-title {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0 1rem 0.5rem;
+}
+
+#navigation .project-title-link,
+#navigation .project-title-link:link,
+#navigation .project-title-link:visited {
+    align-items: center;
+    color: inherit;
+    display: inline-flex;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+#navigation .project-title-link:hover {
+    text-decoration: none;
+}
+
+#navigation .project-title-logo {
+    display: block;
+    flex: 0 0 auto;
+    height: 2rem;
+    width: auto;
+}
+
+#doc-search {
+    margin: 0 0.5rem 1rem 0.5rem;
+    position: relative;
+}
+
+#doc-search-input {
+    border: 1px solid #b8b8b8;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 0.95em;
+    padding: 0.45rem 0.6rem;
+    width: 100%;
+}
+
+#doc-search-input:focus {
+    border-color: #c8751d;
+    box-shadow: 0 0 0 2px rgba(200, 117, 29, 0.15);
+    outline: none;
+}
+
+#doc-search-popup {
+    background-color: #ffffff;
+    border: 1px solid #cccccc;
+    border-radius: 6px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+    font-family: inherit;
+    left: 0;
+    margin-top: 0.35rem;
+    max-width: calc(100vw - 3rem);
+    position: absolute;
+    top: 100%;
+    width: 36rem;
+    z-index: 40;
+}
+
+#doc-search-popup.doc-search-popup-hidden {
+    display: none;
+}
+
+#doc-search-summary {
+    border-bottom: 1px solid #ededed;
+    color: #606060;
+    font-size: 0.82em;
+    padding: 0.6rem 0.75rem;
+}
+
+#doc-search-results {
+    max-height: 26rem;
+    overflow-y: auto;
+}
+
+a.doc-search-result,
+a.doc-search-result:link,
+a.doc-search-result:visited {
+    border-bottom: 1px solid #f0f0f0;
+    color: #222222;
+    display: block;
+    font-weight: normal;
+    padding: 0.7rem 0.75rem;
+    text-decoration: none;
+}
+
+a.doc-search-result:last-child {
+    border-bottom: 0;
+}
+
+a.doc-search-result:hover,
+a.doc-search-result.doc-search-result-active {
+    background-color: #fff5e9;
+    text-decoration: none;
+}
+
+.doc-search-result-title {
+    color: #004080;
+    display: block;
+    font-size: 0.95em;
+    font-weight: bold;
+    margin-bottom: 0.15rem;
+}
+
+.doc-search-result-meta {
+    color: #7a7a7a;
+    display: block;
+    font-size: 0.78em;
+    font-weight: normal;
+    margin-bottom: 0.25rem;
+}
+
+.doc-search-result-excerpt {
+    color: #666666;
+    display: block;
+    font-size: 0.84em;
+    font-weight: normal;
+    line-height: 1.35;
+}
+
+.doc-search-result-highlight {
+    color: #2b2b2b;
+    font-weight: bold;
 }
 
 #navigation h2 {
@@ -139,7 +271,7 @@ table.index td { text-align: left; vertical-align: top; }
 #navigation li {
     text-indent: -1em;
     display: block;
-    margin: 3px 0px 0px 22px;
+    margin: 3px 0px 0px 0px;
 }
 
 #navigation li li a {
@@ -147,8 +279,10 @@ table.index td { text-align: left; vertical-align: top; }
 }
 
 #content {
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    min-width: 0;
     padding: 2em;
-    width: 900px;
     border-left: 2px solid #cccccc;
     border-right: 2px solid #cccccc;
     background-color: #ffffff;
@@ -173,12 +307,11 @@ table.index td { text-align: left; vertical-align: top; }
     }
 
     #container {
-        margin-left: 2%;
-        margin-right: 2%;
         background-color: #ffffff;
     }
 
     #content {
+        width: auto;
         padding: 1em;
         background-color: #ffffff;
     }

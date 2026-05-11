@@ -555,7 +555,7 @@ short CreateNewEffect(short roomNumber)
 		room->fxNumber = fxNumber;
 
 		fx->speed = 0;
-		fx->color = Vector4::One;
+		fx->color = NEUTRAL_COLOR;
 		fx->fallspeed = 0;
 		fx->frameNumber = 0;
 		fx->counter = 0;
@@ -769,7 +769,7 @@ short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID)
 		newItem.ObjectNumber = objectID;
 		newItem.RoomNumber = item.RoomNumber;
 		newItem.Pose = item.Pose;
-		newItem.Model.Color = Vector4::One;
+		newItem.Model.Color = NEUTRAL_COLOR;
 
 		InitializeItem(itemNumber);
 
@@ -958,6 +958,11 @@ void DoDamage(ItemInfo* item, int damage, bool silent)
 	if (item->HitPoints <= 0)
 		return;
 
+	if (item->IsLara() && GetLaraInfo(*item).Control.WaterStatus == WaterStatus::FlyCheat)
+		return;
+	
+	const int oldHitPoints = item->HitPoints;
+
 	item->HitStatus = true;
 	item->HitPoints -= damage;
 
@@ -982,8 +987,9 @@ void DoDamage(ItemInfo* item, int damage, bool silent)
 				Rumble(power, 0.15f);
 			}
 
-			SaveGame::Statistics.Game.DamageTaken += damage;
-			SaveGame::Statistics.Level.DamageTaken += damage;
+			int damageDelta = std::max(0, oldHitPoints - item->HitPoints);
+			SaveGame::Statistics.Game.DamageTaken += damageDelta;
+			SaveGame::Statistics.Level.DamageTaken += damageDelta;
 		}
 
 		if (!silent && (GlobalCounter - lastHurtTime) > (FPS * 2 + Random::GenerateInt(0, FPS)))

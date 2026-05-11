@@ -1,7 +1,7 @@
 #pragma once
 
 // This file is generated automatically, do not edit it.
-// Last generated on 14/02/2026.
+// Last generated on 11/05/2026.
 
 #include <unordered_map>
 #include <string>
@@ -1114,11 +1114,41 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	// @mem FIRE_PENDULUM
 	{ "FIRE_PENDULUM", ID_FIRE_PENDULUM },
 	/// Object ID.
+	// @mem HEAVY_STAMPER
+	{ "HEAVY_STAMPER", ID_HEAVY_STAMPER },
+	/// Object ID.
+	// @mem DRILL_BIT
+	{ "DRILL_BIT", ID_DRILL_BIT },
+	/// Object ID.
+	// @mem SPIKED_FRAME
+	{ "SPIKED_FRAME", ID_SPIKED_FRAME },
+	/// Object ID.
+	// @mem SWINGING_SANDBAG
+	{ "SWINGING_SANDBAG", ID_SWINGING_SANDBAG },
+	/// Object ID.
+	// @mem SWINGING_BOX
+	{ "SWINGING_BOX", ID_SWINGING_BOX },
+	/// Object ID.
+	// @mem OVERHEAD_PULLEY_HOOK
+	{ "OVERHEAD_PULLEY_HOOK", ID_OVERHEAD_PULLEY_HOOK },
+	/// Object ID.
+	// @mem SWINGING_IRON_ANCHOR
+	{ "SWINGING_IRON_ANCHOR", ID_SWINGING_IRON_ANCHOR },
+	/// Object ID.
+	// @mem SWINGING_SPIKE_BAG
+	{ "SWINGING_SPIKE_BAG", ID_SWINGING_SPIKE_BAG },
+	/// Object ID.
+	// @mem CIRCULAR_SAW
+	{ "CIRCULAR_SAW", ID_CIRCULAR_SAW },
+	/// Object ID.
+	// @mem ROLLING_BARRELS
+	{ "ROLLING_BARRELS", ID_ROLLING_BARRELS },
+	/// Object ID.
+	// @mem MULTIPLE_BOULDERS
+	{ "MULTIPLE_BOULDERS", ID_MULTIPLE_BOULDERS },
+	/// Object ID.
 	// @mem ELECTRIC_FIELD
 	{ "ELECTRIC_FIELD", ID_ELECTRIC_FIELD },
-	/// Object ID.
-	// @mem FUSEBOX
-	{ "FUSEBOX", ID_FUSEBOX },
 	/// Pickup Object ID.
 	// @mem PUZZLE_ITEM1
 	{ "PUZZLE_ITEM1", ID_PUZZLE_ITEM1 },
@@ -1914,6 +1944,9 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	/// Object ID.
 	// @mem MINECART_SWITCH
 	{ "MINECART_SWITCH", ID_MINECART_SWITCH },
+	/// Object ID.
+	// @mem FUSEBOX_SWITCH
+	{ "FUSEBOX_SWITCH", ID_FUSEBOX_SWITCH },
 	/// Object ID.
 	// @mem DOOR_TYPE1
 	{ "DOOR_TYPE1", ID_DOOR_TYPE1 },
@@ -2999,5 +3032,8 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	{ "RAIN_SPRITES", ID_RAIN_SPRITES },
 	/// Sprite Object ID.
 	// @mem INTERACTION_SPRITES
-	{ "INTERACTION_SPRITES", ID_INTERACTION_SPRITES }
+	{ "INTERACTION_SPRITES", ID_INTERACTION_SPRITES },
+	/// Sprite Object ID.
+	// @mem INVENTORY_SPRITES
+	{ "INVENTORY_SPRITES", ID_INVENTORY_SPRITES }
 };

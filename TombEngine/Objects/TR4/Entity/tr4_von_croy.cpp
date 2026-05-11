@@ -144,7 +144,7 @@ namespace TEN::Entities::TR4
 		SetAnimation(item, VON_CROY_ANIM_KNIFE_EQUIP_UNEQUIP);
 		item->SetMeshSwapFlags(VonCroyKnifeSwapJoints);
 
-		ZeroMemory(VonCroyPassedWaypoints, sizeof(VonCroyPassedWaypoints));
+		memset(VonCroyPassedWaypoints, 0, sizeof(VonCroyPassedWaypoints));
 	}
 
 	void VonCroyControl(short itemNumber)

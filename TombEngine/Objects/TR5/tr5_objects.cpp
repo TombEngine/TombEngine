@@ -1060,7 +1060,7 @@ void InitializeTR5Objects()
 
 void AllocTR5Objects()
 {
-	ZeroMemory(Bats, NUM_BATS * sizeof(BatData));
-	ZeroMemory(Spiders, NUM_SPIDERS * sizeof(SpiderData));
-	ZeroMemory(Rats, NUM_RATS * sizeof(RatData));
+	memset(Bats, 0, NUM_BATS * sizeof(BatData));
+	memset(Spiders, 0, NUM_SPIDERS * sizeof(SpiderData));
+	memset(Rats, 0, NUM_RATS * sizeof(RatData));
 }

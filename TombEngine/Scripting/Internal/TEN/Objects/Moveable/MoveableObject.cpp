@@ -119,7 +119,7 @@ static std::unique_ptr<Moveable> Create(GAME_OBJECT_ID objID, const std::string&
 
 		scriptMov->SetOcb(ValueOr<int>(ocb, 0));
 		scriptMov->SetAIBits(ValueOr<aiBitsType>(aiBits, aiBitsType{}));
-		scriptMov->SetColor(ScriptColor(Vector4::One));
+		scriptMov->SetColor(ScriptColor(NEUTRAL_COLOR));
 		mov.CarriedItem = NO_VALUE;
 
 		// call this when resetting name too?
@@ -748,7 +748,7 @@ aiBitsType Moveable::GetAIBits() const
 	for (size_t i = 0; i < ret.size(); ++i)
 	{
 		unsigned char isSet = _moveable->AIBits & (1 << i);
-		ret[i] = static_cast<int>( isSet > 0);
+		ret[i] = (int)(isSet > 0);
 	}
 
 	return ret;
