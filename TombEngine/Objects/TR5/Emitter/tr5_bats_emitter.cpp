@@ -35,7 +35,7 @@ void InitializeLittleBats(short itemNumber)
 		item->Pose.Position.x += CLICK(2);
 
 	if (Objects[ID_BATS_EMITTER].loaded)
-		memset(Bats, 0, NUM_BATS * sizeof(BatData));
+		ZeroMemory(Bats, NUM_BATS * sizeof(BatData));
 
 	//LOWORD(item) = sub_402F27(ebx0, Bats, 0, 1920);
 }
@@ -178,8 +178,8 @@ void UpdateBats()
 		{
 			short velocity = bat->Velocity * 128;
 
-			short xAngle = abs(angles.x - bat->Pose.Orientation.x) / 8;
-			short yAngle = abs(angles.y - bat->Pose.Orientation.y) / 8;
+			short xAngle = Geometry::GetShortestAngle(bat->Pose.Orientation.x, angles.x) / 8;
+			short yAngle = Geometry::GetShortestAngle(bat->Pose.Orientation.y, angles.y) / 8;
 
 			if (xAngle < -velocity)
 				xAngle = -velocity;
@@ -201,10 +201,12 @@ void UpdateBats()
 		bat->Pose.Position.y += bat->Velocity * phd_sin(-bat->Pose.Orientation.x);
 		bat->Pose.Position.z += sp * phd_cos(bat->Pose.Orientation.y);
 
-		if (!(i % 1) && ItemNearTarget(bat->Pose.Position, LaraItem, CLICK(1)))
+		if (ItemNearTarget(bat->Pose.Position, LaraItem, CLICK(1)))
 		{
 			TriggerBlood(bat->Pose.Position.x, bat->Pose.Position.y, bat->Pose.Position.z, 2 * GetRandomControl(), 2);
-			DoDamage(LaraItem, BAT_LARA_DAMAGE);
+
+			if (LaraItem->HitPoints > 0)
+				DoDamage(LaraItem, BAT_LARA_DAMAGE);
 		}
 
 		Matrix translation = Matrix::CreateTranslation(bat->Pose.Position.x, bat->Pose.Position.y, bat->Pose.Position.z);
@@ -217,6 +219,6 @@ void UpdateBats()
 		auto* bat = &Bats[minIndex];
 
 		if (!(GetRandomControl() & 4))
-			SoundEffect(SFX_TR4_BATS,&bat->Pose);
+			SoundEffect(SFX_TR4_BATS, &bat->Pose);
 	}
 }
