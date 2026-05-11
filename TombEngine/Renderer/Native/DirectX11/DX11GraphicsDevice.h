@@ -129,6 +129,9 @@ namespace TEN::Renderer::Native::DirectX11
 
 		void BindPipeline(const RenderPipelineState& pipeline) override;
 
+		void BeginRenderPass(const RenderPassDescriptor& pass) override;
+		void EndRenderPass() override;
+
 		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) override;
 		void UnbindTexture(ShaderStage stage, TextureRegister registerType) override;
 

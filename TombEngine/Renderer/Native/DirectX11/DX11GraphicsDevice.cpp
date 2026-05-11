@@ -153,6 +153,79 @@ namespace TEN::Renderer::Native::DirectX11
 		// wrapper because they require access to ShaderManager and the PerDraw CB.
 	}
 
+	void DX11GraphicsDevice::BeginRenderPass(const RenderPassDescriptor& pass)
+	{
+		// Collect RTVs.
+		ID3D11RenderTargetView* rtvs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
+		const int rtCount = std::min((int)pass.ColorAttachments.size(), (int)D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT);
+		for (int i = 0; i < rtCount; i++)
+		{
+			auto* native = static_cast<DX11RenderTarget2D*>(pass.ColorAttachments[i].Target);
+			rtvs[i] = native ? native->GetD3D11RenderTargetView(pass.ColorAttachments[i].ArrayIndex) : nullptr;
+		}
+
+		// Depth-stencil view.
+		ID3D11DepthStencilView* dsv = nullptr;
+		if (pass.DepthAttachment.Target != nullptr)
+		{
+			auto* nativeDepth = static_cast<DX11DepthTarget*>(pass.DepthAttachment.Target);
+			dsv = nativeDepth->GetD3D11DepthStencilView(pass.DepthAttachment.ArrayIndex);
+		}
+
+		_context->OMSetRenderTargets(rtCount, rtvs, dsv);
+
+		// Apply color load actions.
+		for (int i = 0; i < rtCount; i++)
+		{
+			if (pass.ColorAttachments[i].Load == LoadAction::Clear && rtvs[i] != nullptr)
+			{
+				const auto& cc = pass.ColorAttachments[i].ClearColor;
+				const float color[4] = { cc.x, cc.y, cc.z, cc.w };
+				_context->ClearRenderTargetView(rtvs[i], color);
+			}
+		}
+
+		// Apply depth load action.
+		if (dsv != nullptr && pass.DepthAttachment.Load == LoadAction::Clear)
+		{
+			_context->ClearDepthStencilView(dsv,
+				D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+				pass.DepthAttachment.ClearDepth,
+				pass.DepthAttachment.ClearStencil);
+		}
+
+		// Viewport.
+		if (pass.HasViewport)
+		{
+			D3D11_VIEWPORT vp = {};
+			vp.TopLeftX = pass.Viewport.X;
+			vp.TopLeftY = pass.Viewport.Y;
+			vp.Width    = (float)pass.Viewport.Width;
+			vp.Height   = (float)pass.Viewport.Height;
+			vp.MinDepth = pass.Viewport.MinDepth;
+			vp.MaxDepth = pass.Viewport.MaxDepth;
+			_context->RSSetViewports(1, &vp);
+		}
+
+		// Scissor.
+		if (pass.HasScissor)
+		{
+			D3D11_RECT rc = {};
+			rc.left   = pass.Scissor.Left;
+			rc.top    = pass.Scissor.Top;
+			rc.right  = pass.Scissor.Right;
+			rc.bottom = pass.Scissor.Bottom;
+			_context->RSSetScissorRects(1, &rc);
+		}
+	}
+
+	void DX11GraphicsDevice::EndRenderPass()
+	{
+		// No-op on DX11. The store actions (LoadAction/StoreAction::DontCare) are hints
+		// useful for Vulkan/Metal tilers; here the attachments are always retained.
+		// In future, MSAA resolve via StoreAction::Resolve would fire here.
+	}
+
 	void DX11GraphicsDevice::SetBlendMode(BlendMode blendMode)
 	{
 		switch (blendMode)

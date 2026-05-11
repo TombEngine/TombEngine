@@ -379,6 +379,12 @@ namespace TEN::Renderer
 		// topology + input layout + alpha test under a single hash, skipping the device
 		// call when the same PSO is already bound.
 		void BindPipeline(const RenderPipelineState& pipeline);
+
+		// Declarative render-pass scope. Routes through the device. After
+		// BeginRenderPass the texture binding cache is invalidated (DX11 may have
+		// detached SRVs that overlap the new RTV target).
+		void BeginRenderPass(const RenderPassDescriptor& pass);
+		void EndRenderPass();
 		int  BindLight(RendererLight& light, ShaderLight* lights, int index);
 		void BindRoomLights(std::vector<RendererLight*>& lights);
 		void BindInstancedStaticLights(std::vector<RendererLight*>& lights, int instanceID);

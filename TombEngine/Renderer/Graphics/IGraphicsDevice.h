@@ -9,6 +9,7 @@
 #include "Renderer/Graphics/IRenderTargetCube.h"
 #include "Renderer/Graphics/ITexture2D.h"
 #include "Renderer/Graphics/RenderPipelineState.h"
+#include "Renderer/Graphics/RenderPassDescriptor.h"
 #include "Renderer/Graphics/ITexture3D.h"
 #include "Renderer/Graphics/IConstantBuffer.h"
 #include "Renderer/Graphics/IStructuredBuffer.h"
@@ -67,6 +68,14 @@ namespace TEN::Renderer::Graphics
 		// creates a VkGraphicsPipeline keyed on the descriptor's hash and binds it.
 		// Resource bindings (textures, CBs, vertex/index buffers) are bound separately.
 		virtual void BindPipeline(const RenderPipelineState& pipeline) = 0;
+
+		// Declarative render pass scope. BeginRenderPass binds the listed attachments,
+		// applies their load actions (clear if requested) and sets the viewport/scissor.
+		// EndRenderPass closes the scope (resolve MSAA / discard etc. on modern APIs).
+		// On DX11 these map directly to OMSetRenderTargets + Clear* + RSSetViewports;
+		// on Vulkan they map to vkCmdBeginRenderPass / vkCmdEndRenderPass.
+		virtual void BeginRenderPass(const RenderPassDescriptor& pass) = 0;
+		virtual void EndRenderPass() = 0;
 
 		virtual void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) = 0;
 

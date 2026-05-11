@@ -803,6 +803,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Graphics\IConstantBuffer.h" />
     <ClInclude Include="Renderer\Graphics\IGraphicsDevice.h" />
     <ClInclude Include="Renderer\Graphics\Pipelines.h" />
+    <ClInclude Include="Renderer\Graphics\RenderPassDescriptor.h" />
     <ClInclude Include="Renderer\Graphics\RenderPipelineState.h" />
     <ClInclude Include="Renderer\Graphics\IIndexBuffer.h" />
     <ClInclude Include="Renderer\Graphics\IPrimitiveBatch.h" />

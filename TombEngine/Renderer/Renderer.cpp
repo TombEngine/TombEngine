@@ -229,6 +229,21 @@ namespace TEN::Renderer
 		SetAlphaTest(pipeline.AlphaTest, pipeline.AlphaThreshold);
 	}
 
+	void Renderer::BeginRenderPass(const RenderPassDescriptor& pass)
+	{
+		_graphicsDevice->BeginRenderPass(pass);
+
+		// Binding a target as RTV may unbind the same resource as SRV (DX11 hazard
+		// protection). Invalidate our texture-binding dedup so the next BindTexture for
+		// that slot doesn't short-circuit thinking the SRV is still live.
+		ResetTextureBindingCache();
+	}
+
+	void Renderer::EndRenderPass()
+	{
+		_graphicsDevice->EndRenderPass();
+	}
+
 	void Renderer::BindVertexBuffer(IVertexBuffer* vertexBuffer)
 	{
 		if (vertexBuffer == _lastBoundVertexBuffer)

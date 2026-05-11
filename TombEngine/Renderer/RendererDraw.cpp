@@ -4112,49 +4112,69 @@ namespace TEN::Renderer
 	{
 		_doingFullscreenPass = true;
 
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
-		SetDepthState(DepthState::Write);
-
-		// Common vertex shader to all full screen effects.
-		_shaders.Bind(Shader::PostProcess);
-
-		// SSAO pixel shader.
-		_shaders.Bind(Shader::Ssao);
-
-		_graphicsDevice->ClearRenderTarget2D(_SSAORenderTarget->GetRenderTarget(), Colors::White);
-		_graphicsDevice->BindRenderTarget(_SSAORenderTarget->GetRenderTarget(), nullptr);
-
-		// Must set correctly viewport because SSAO is done at 1/4 screen resolution.
+		// Fullscreen viewport at native resolution (SSAO target itself is full-size on this branch).
 		RendererViewport viewport = { 0, 0, _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), 0.0f, 1.0f };
-		_graphicsDevice->SetViewport(viewport);
-		_graphicsDevice->SetScissor(viewport);
-	
-		SetPrimitiveType(PrimitiveType::TriangleList);
-		SetInputLayout(_fullScreenVertexInputLayout.get());
 
 		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+
+		// Per-frame post-process CB upload (kernel + viewport metrics).
+		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
+		_stPostProcessBuffer.TexelSize    = Vector2(1.0f / _graphicsDevice->GetScreenWidth(), 1.0f / _graphicsDevice->GetScreenHeight());
+		memcpy(_stPostProcessBuffer.SSAOKernel, _SSAOKernel.data(), 16 * _SSAOKernel.size());
+		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
+
+		// === Pass 1: SSAO compute into _SSAORenderTarget ===
+		{
+			RenderPassDescriptor pass;
+			ColorAttachmentDescriptor color;
+			color.Target     = _SSAORenderTarget->GetRenderTarget();
+			color.Load       = LoadAction::Clear;
+			color.Store      = StoreAction::Store;
+			color.ClearColor = Vector4(1.0f, 1.0f, 1.0f, 1.0f); // White: no occlusion baseline.
+			pass.ColorAttachments.push_back(color);
+			pass.HasViewport = true;
+			pass.Viewport    = viewport;
+			pass.DebugLabel  = "SSAO";
+			BeginRenderPass(pass);
+		}
+
+		RenderPipelineState pso;
+		pso.ShaderId    = Shader::Ssao;
+		pso.Blend       = BlendMode::Opaque;
+		pso.Depth       = DepthState::Write;
+		pso.Cull        = CullMode::CounterClockwise;
+		pso.Topology    = PrimitiveType::TriangleList;
+		pso.InputLayout = _fullScreenVertexInputLayout.get();
+		BindPipeline(pso);
 
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), _normalsAndMaterialIndexRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 		BindTexture(static_cast<TextureRegister>(2), _SSAONoiseTexture.get(), SamplerStateRegister::PointWrap);
 
-		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
-		_stPostProcessBuffer.TexelSize = Vector2(1.0f / _graphicsDevice->GetScreenWidth(), 1.0f /  _graphicsDevice->GetScreenHeight());
-		memcpy(_stPostProcessBuffer.SSAOKernel, _SSAOKernel.data(), 16 * _SSAOKernel.size());
-		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
-
 		DrawTriangles(3, 0);
+		EndRenderPass();
 
-		// Blur step.
-		_shaders.Bind(Shader::SsaoBlur);
+		// === Pass 2: bilateral blur into _SSAOBlurredRenderTarget ===
+		{
+			RenderPassDescriptor pass;
+			ColorAttachmentDescriptor color;
+			color.Target     = _SSAOBlurredRenderTarget->GetRenderTarget();
+			color.Load       = LoadAction::Clear;
+			color.Store      = StoreAction::Store;
+			color.ClearColor = Vector4(0.0f, 0.0f, 0.0f, 0.0f);
+			pass.ColorAttachments.push_back(color);
+			pass.HasViewport = true;
+			pass.Viewport    = viewport;
+			pass.DebugLabel  = "SSAO Blur";
+			BeginRenderPass(pass);
+		}
 
-		_graphicsDevice->ClearRenderTarget2D(_SSAOBlurredRenderTarget->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->BindRenderTarget(_SSAOBlurredRenderTarget->GetRenderTarget(), nullptr);
+		pso.ShaderId = Shader::SsaoBlur;
+		BindPipeline(pso);
 
 		BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAORenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
- 
 		DrawTriangles(3, 0);
+		EndRenderPass();
 
 		_doingFullscreenPass = false;
 	}
