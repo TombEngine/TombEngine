@@ -523,7 +523,7 @@ static void StartTrap(ObjectInfo* obj)
 		obj->radius = 512;
 	}
 
-	obj = &Objects[ID_FUSEBOX];
+	obj = &Objects[ID_FUSEBOX_SWITCH];
 	if (obj->loaded)
 	{
 		obj->Initialize = InitializeFusebox;
