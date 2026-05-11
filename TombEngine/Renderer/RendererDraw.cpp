@@ -174,15 +174,29 @@ namespace TEN::Renderer
 
 		for (int step = 0; step < 6; step++)
 		{
-			// Bind render target.
-			BindRenderTarget(
-				IRenderTargetBinding(_shadowMap->GetRenderTarget(), step),
-				IDepthTargetBinding(_shadowMap->GetDepthTarget(), step));
-			_graphicsDevice->SetViewport(_shadowMapViewport);
-			_graphicsDevice->SetScissor(_shadowMapViewport);
+			// Per-face shadow map pass. ClearShadowMap() at frame start already cleared
+			// every slice, so LoadAction::Load preserves any prior render this frame.
+			RenderPassDescriptor pass;
+			ColorAttachmentDescriptor color;
+			color.Target     = _shadowMap->GetRenderTarget();
+			color.ArrayIndex = step;
+			color.Load       = LoadAction::Load;
+			pass.ColorAttachments.push_back(color);
+
+			pass.DepthAttachment.Target     = _shadowMap->GetDepthTarget();
+			pass.DepthAttachment.ArrayIndex = step;
+			pass.DepthAttachment.Load       = LoadAction::Load;
+
+			pass.HasViewport = true;
+			pass.Viewport    = _shadowMapViewport;
+			pass.DebugLabel  = "Shadow Map Face";
+			BeginRenderPass(pass);
 
 			if (shadowLightPos == item->Position)
+			{
+				EndRenderPass();
 				return;
+			}
 
 			// Set shaders.
 			_shaders.Bind(Shader::ShadowMap);
@@ -288,6 +302,8 @@ namespace TEN::Renderer
 				DrawLaraHolsters(item, &room, renderView, RendererPass::ShadowMap);
 				DrawLaraHair(item, &room, renderView, RendererPass::ShadowMap);
 			}
+
+			EndRenderPass();
 		}
 	}
 
