@@ -38,6 +38,10 @@ namespace TEN::Renderer::Native::DirectX11
 		ComPtr<ID3D11DeviceContext> _context = nullptr;
 		ComPtr<IDXGISwapChain> _swapChain = nullptr;
 
+		// RenderDoc / PIX / NSight debug annotations. Driven by RenderPassDescriptor::DebugLabel.
+		ComPtr<ID3DUserDefinedAnnotation> _annotation = nullptr;
+		bool _renderPassEventActive = false;
+
 		std::unique_ptr<CommonStates> _renderStates = nullptr;
 
 		ComPtr <ID3D11SamplerState> _pointWrapSamplerState = nullptr;

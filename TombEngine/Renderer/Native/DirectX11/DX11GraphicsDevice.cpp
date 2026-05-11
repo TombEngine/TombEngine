@@ -155,6 +155,24 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::BeginRenderPass(const RenderPassDescriptor& pass)
 	{
+		// Emit a RenderDoc/PIX/NSight debug event so captures show one entry per pass.
+		// If a prior pass's event is still open (caller forgot EndRenderPass), close it
+		// so events stay flat/peer like in the SDL_GPU/Vulkan back-ends.
+		if (_annotation)
+		{
+			if (_renderPassEventActive)
+			{
+				_annotation->EndEvent();
+				_renderPassEventActive = false;
+			}
+			if (!pass.DebugLabel.empty())
+			{
+				auto wLabel = TEN::Utils::ToWString(pass.DebugLabel);
+				_annotation->BeginEvent(wLabel.c_str());
+				_renderPassEventActive = true;
+			}
+		}
+
 		// Collect RTVs.
 		ID3D11RenderTargetView* rtvs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
 		const int rtCount = std::min((int)pass.ColorAttachments.size(), (int)D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT);
@@ -234,8 +252,15 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::EndRenderPass()
 	{
-		// No-op on DX11. The store actions (LoadAction/StoreAction::DontCare) are hints
-		// useful for Vulkan/Metal tilers; here the attachments are always retained.
+		// Close the active RenderDoc/PIX debug event so the capture matches Begin/End.
+		if (_annotation && _renderPassEventActive)
+		{
+			_annotation->EndEvent();
+			_renderPassEventActive = false;
+		}
+
+		// Otherwise a no-op on DX11. Store actions (LoadAction/StoreAction::DontCare) are
+		// hints useful for Vulkan/Metal tilers; here the attachments are always retained.
 		// In future, MSAA resolve via StoreAction::Resolve would fire here.
 	}
 
@@ -923,6 +948,10 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 
 		throwIfFailed(res);
+
+		// Query the annotation interface for RenderDoc/PIX/NSight debug events. Returns
+		// null silently if no graphics debugger is attached — guarded at every call site.
+		_context->QueryInterface(__uuidof(ID3DUserDefinedAnnotation), reinterpret_cast<void**>(_annotation.GetAddressOf()));
 	}
 
 	std::string DX11GraphicsDevice::GetDefaultAdapterName()
