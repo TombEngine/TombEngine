@@ -289,6 +289,14 @@ namespace TEN::Scripting
 		// @tfield[opt=1.0] float bloodSize Scale multiplier applied to classic and underwater blood particles.
 		"bloodSize", &EffectsSettings::BloodSize,
 
+		/// Ricochet particle count.
+		// @tfield[opt=8] int ricochetCount Maximum number of generated ricochet particles.
+		"ricochetCount", &EffectsSettings::RicochetCount,
+
+		// Ricochet sound effect.
+		// @tfield[opt=true] bool ricochetSound If enabled, ricochet effect will be accompanied by a sound effect. Disable for TR2-5 like behaviour.
+		"ricochetSound", &EffectsSettings::RicochetSound,
+
 		/// Ricochet spark color.
 		// @tfield[opt=TEN.Color(255&#44; 153&#44; 0)] Color ricochetColor Default tint used by ricochet sparks.
 		"ricochetColor", &EffectsSettings::RicochetColor,
@@ -629,7 +637,7 @@ namespace TEN::Scripting
 		"titleMenuAlignment", &UISettings::TitleMenuAlignment,
 
 		/// Amount of blur for the inventory and pause menu backgrounds.
-		// @tfield[opt=0.15f] float menuBackgroundBlur Specifies how much should the background be blurred when pause or inventory menu is open. Set to 0 to disable blurring.
+		// @tfield[opt=0.15] float menuBackgroundBlur Specifies how much should the background be blurred when pause or inventory menu is open. Set to 0 to disable blurring.
 		"menuBackgroundBlur", &UISettings::MenuBackgroundBlur);
 	}
 

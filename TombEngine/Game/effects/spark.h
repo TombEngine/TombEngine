@@ -38,7 +38,7 @@ namespace TEN::Effects::Spark
 	SparkParticle& GetFreeSparkParticle();
 
 	void TriggerFlareSparkParticles(const Vector3i& pos, const Vector3i& vel, const Color& color, int roomNumber);
-	void TriggerRicochetSpark(const GameVector& pos, short angle, int num, const Vector4& colorStart = Vector4::Zero);
+	void TriggerRicochetSpark(const GameVector& pos, short angle, int count, const Vector4& colorStart = Vector4::Zero);
 	void TriggerFrictionSpark(const GameVector& pos, const EulerAngles& angle, float length, int count);
 	void TriggerElectricSpark(const GameVector& pos, const EulerAngles& angle, int count);
 	void TriggerAttackSpark(const Vector3& basePos, const Vector3& color);

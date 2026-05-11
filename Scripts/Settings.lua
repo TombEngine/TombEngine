@@ -19,6 +19,8 @@ local settings = Flow.Settings.new()
 	settings.Effects.bloodBlendMode = TEN.Effects.BlendID.ADDITIVE
 	settings.Effects.bloodSize = 1.0
 	settings.Effects.ricochetColor = Color(255, 153, 0)
+	settings.Effects.ricochetCount = 8
+	settings.Effects.ricochetSound = true
 	settings.Effects.explosionShockwave = true
 	
 	settings.Flare.color = Color(128, 64, 0)
@@ -37,6 +39,7 @@ local settings = Flow.Settings.new()
 	settings.Gameplay.targetObjectOcclusion = true
 
 	settings.Graphics.ambientOcclusion = true
+	settings.Graphics.flameHeatHaze = true
 	settings.Graphics.skinning = true
 	
 	settings.Hud.statusBars = true
@@ -69,6 +72,7 @@ local settings = Flow.Settings.new()
 	settings.UI.plainTextColor = Color(255, 255, 255)
 	settings.UI.disabledTextColor = Color(128, 128, 128)
 	settings.UI.shadowTextColor = Color(0, 0, 0)
+	settings.UI.menuBackgroundBlur = 0.15
 	settings.UI.systemFontSize = 1.0
 	settings.UI.titleLogoPosition = Vec2(50, 20)
 	settings.UI.titleLogoScale = 0.38

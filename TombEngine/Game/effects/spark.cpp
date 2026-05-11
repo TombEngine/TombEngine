@@ -84,7 +84,7 @@ namespace TEN::Effects::Spark
 	{
 		constexpr auto DISTANCE_MULT_MAX = 3.0f;
 		constexpr auto DISTANCE_SCALE_THRESHOLD = BLOCK(DISTANCE_MULT_MAX);
-		auto resolvedColor = (colorStart == Vector4::Zero) ? (Vector4)g_GameFlow->GetSettings()->Effects.RicochetColor : colorStart;
+		auto finalColor = (colorStart == Vector4::Zero) ? (Vector4)g_GameFlow->GetSettings()->Effects.RicochetColor : colorStart;
 
 		// Make sparks bigger depending on a distance to imitate classic effect.
 		auto distanceMult = std::clamp(Vector3::Distance(pos.ToVector3(), Camera.pos.ToVector3()) / DISTANCE_SCALE_THRESHOLD, 1.0f, DISTANCE_MULT_MAX);
@@ -106,7 +106,7 @@ namespace TEN::Effects::Spark
 			v += Vector3(GenerateFloat(-64, 64), GenerateFloat(-64, 64), GenerateFloat(-64, 64));
 			v.Normalize(v);
 			s.velocity = v * GenerateFloat(17, 24);
-			s.sourceColor = resolvedColor;
+			s.sourceColor = finalColor;
 			s.destinationColor = Vector4::Zero;
 			s.active = true;
 		}
@@ -116,9 +116,9 @@ namespace TEN::Effects::Spark
 		sptr = {};
 		sptr.on = true;
 		sptr.dynamic = NO_VALUE;
-		sptr.sR = resolvedColor.x * 0.33f * UCHAR_MAX;
-		sptr.sG = resolvedColor.y * 0.33f * UCHAR_MAX;
-		sptr.sB = resolvedColor.z * 0.33f * UCHAR_MAX;
+		sptr.sR = finalColor.x * 0.33f * UCHAR_MAX;
+		sptr.sG = finalColor.y * 0.33f * UCHAR_MAX;
+		sptr.sB = finalColor.z * 0.33f * UCHAR_MAX;
 		sptr.dR = 0;
 		sptr.dG = 0;
 		sptr.dB = 0;

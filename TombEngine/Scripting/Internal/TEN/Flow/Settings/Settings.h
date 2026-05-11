@@ -64,11 +64,13 @@ namespace TEN::Scripting
 
 	struct EffectsSettings
 	{
-		ScriptColor			  BloodColor		 = ScriptColor(255, 0, 0);
-		BlendMode			  BloodBlendMode	 = BlendMode::Additive;
-		float				  BloodSize			 = 1.0f;
-		ScriptColor			  RicochetColor		 = ScriptColor(255, 153, 0);
-		bool				  ExplosionShockwave = true;
+		ScriptColor	BloodColor			= ScriptColor(255, 0, 0);
+		BlendMode	BloodBlendMode		= BlendMode::Additive;
+		float		BloodSize			= 1.0f;
+		ScriptColor	RicochetColor		= ScriptColor(255, 153, 0);
+		int			RicochetCount		= 8;
+		bool		RicochetSound		= true;
+		bool		ExplosionShockwave	= true;
 
 		static void Register(sol::table& parent);
 	};
