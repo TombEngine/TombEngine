@@ -1,4 +1,5 @@
 #include "./VertexInput.hlsli"
+#include "./Samplers.hlsli"
 
 struct PixelShaderInput
 {
@@ -8,7 +9,6 @@ struct PixelShaderInput
 };
 
 Texture2D Texture : register(t0);
-SamplerState Sampler : register(s0);
 
 PixelShaderInput VS(VertexShaderInput input)
 {
@@ -23,7 +23,7 @@ PixelShaderInput VS(VertexShaderInput input)
 
 float4 PS(PixelShaderInput input) : SV_TARGET
 {
-	float4 output = Texture.Sample(Sampler, input.UV);
+	float4 output = Texture.Sample(AnisotropicClampSampler, input.UV);
 	float4 colorMul = min(input.Color, 1.0f);
 	output = output * colorMul;
 
