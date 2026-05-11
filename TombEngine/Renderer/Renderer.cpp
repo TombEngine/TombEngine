@@ -207,21 +207,27 @@ namespace TEN::Renderer
 		_shaders.ResetBindCache();
 	}
 
+	void Renderer::ClearState()
+	{
+		_graphicsDevice->ClearState();
+		ResetTextureBindingCache();
+		ResetPipelineCache();
+	}
+
 	void Renderer::BindPipeline(const RenderPipelineState& pipeline)
 	{
-		uint64_t h = pipeline.Hash();
-		if (_hasBoundPipeline && h == _lastBoundPipelineHash)
-			return;
-		_lastBoundPipelineHash = h;
-		_hasBoundPipeline      = true;
-
-		// Shader first: ShaderManager has its own dedup keyed on the shader group, so
-		// pipelines that share a compiled binary (e.g. Items + InstancedStatics) won't
-		// trigger a device shader rebind even though their PSO hash differs by enum.
+		// Route every piece through the Renderer wrappers — they each have their own
+		// per-state dedup so back-to-back identical binds are cheap, AND state changed
+		// outside BindPipeline (e.g. a direct SetBlendMode call) doesn't silently get
+		// shadowed by a global pipeline hash dedup that thinks "nothing changed".
 		_shaders.Bind(pipeline.ShaderId);
 
-		// Fixed-function state: applied atomically by the device.
-		_graphicsDevice->BindPipeline(pipeline);
+		SetBlendMode(pipeline.Blend);
+		SetDepthState(pipeline.Depth);
+		SetCullMode(pipeline.Cull);
+		SetPrimitiveType(pipeline.Topology);
+		if (pipeline.InputLayout != nullptr)
+			SetInputLayout(pipeline.InputLayout);
 
 		// AlphaTest lives in the PerDraw constant buffer (it's emulated via clip() in HLSL,
 		// not a real fixed-function pipeline state). Route through SetAlphaTest so its own
@@ -272,6 +278,30 @@ namespace TEN::Renderer
 	{
 		// Route through BindTexture so this binding goes through the same dedup cache.
 		BindTexture(registerType, target, samplerType);
+	}
+
+	void Renderer::BindRenderTarget(IRenderTarget2D* renderTarget, IDepthTarget* depthTarget)
+	{
+		_graphicsDevice->BindRenderTarget(renderTarget, depthTarget);
+		ResetTextureBindingCache();
+	}
+
+	void Renderer::BindRenderTarget(IRenderTargetBinding renderTarget, IDepthTargetBinding depthTarget)
+	{
+		_graphicsDevice->BindRenderTarget(renderTarget, depthTarget);
+		ResetTextureBindingCache();
+	}
+
+	void Renderer::BindRenderTargets(std::vector<IRenderTarget2D*> renderTargets, IDepthTarget* depthTarget)
+	{
+		_graphicsDevice->BindRenderTargets(renderTargets, depthTarget);
+		ResetTextureBindingCache();
+	}
+
+	void Renderer::BindRenderTargets(std::vector<IRenderTargetBinding> renderTargets, IDepthTargetBinding depthTarget)
+	{
+		_graphicsDevice->BindRenderTargets(renderTargets, depthTarget);
+		ResetTextureBindingCache();
 	}
 
 	int Renderer::BindLight(RendererLight& light, ShaderLight* lights, int index)

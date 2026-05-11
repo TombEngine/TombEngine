@@ -207,7 +207,11 @@ namespace TEN::Renderer::Native::DirectX11
 			_context->RSSetViewports(1, &vp);
 		}
 
-		// Scissor.
+		// Scissor. When the pass doesn't specify an explicit scissor we fall back to the
+		// viewport bounds — otherwise the rasterizer keeps the previously bound scissor
+		// (e.g. a room ClipBounds set by an earlier DrawRooms), which silently clips a
+		// fullscreen pass (SSAO/post-process) to that subregion and leaves the rest of
+		// the attachment at its clear value.
 		if (pass.HasScissor)
 		{
 			D3D11_RECT rc = {};
@@ -215,6 +219,15 @@ namespace TEN::Renderer::Native::DirectX11
 			rc.top    = pass.Scissor.Top;
 			rc.right  = pass.Scissor.Right;
 			rc.bottom = pass.Scissor.Bottom;
+			_context->RSSetScissorRects(1, &rc);
+		}
+		else if (pass.HasViewport)
+		{
+			D3D11_RECT rc = {};
+			rc.left   = pass.Viewport.X;
+			rc.top    = pass.Viewport.Y;
+			rc.right  = pass.Viewport.X + pass.Viewport.Width;
+			rc.bottom = pass.Viewport.Y + pass.Viewport.Height;
 			_context->RSSetScissorRects(1, &rc);
 		}
 	}

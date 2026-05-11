@@ -868,9 +868,9 @@ namespace TEN::Renderer
 		color.w = opacity;
 
 		// Set vertex buffer.
-		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		BindVertexBuffer(_moveablesVertexBuffer.get());
+		SetPrimitiveType(PrimitiveType::TriangleList);
+		SetInputLayout(_vertexInputLayout.get());
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		// Set matrices.
@@ -1041,9 +1041,9 @@ namespace TEN::Renderer
 		SetDepthState(DepthState::Write);
 
 		// Set vertex buffer.
-		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		BindVertexBuffer(_moveablesVertexBuffer.get());
+		SetPrimitiveType(PrimitiveType::TriangleList);
+		SetInputLayout(_vertexInputLayout.get());
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		// Set shaders.
@@ -1290,13 +1290,13 @@ namespace TEN::Renderer
 		if (background != nullptr)
 			DrawFullScreenImage(background, backgroundFade, _renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 
-		_graphicsDevice->BindRenderTargets(renderTargets, _renderTarget->GetDepthTarget());
+		BindRenderTargets(renderTargets, _renderTarget->GetDepthTarget());
 		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
 		// Set vertex buffer.
-		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		BindVertexBuffer(_moveablesVertexBuffer.get());
+		SetPrimitiveType(PrimitiveType::TriangleList);
+		SetInputLayout(_vertexInputLayout.get());
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		// Set shaders.
@@ -1405,7 +1405,7 @@ namespace TEN::Renderer
 			renderTargets.push_back(_renderTarget->GetRenderTarget());
 			renderTargets.push_back(_emissiveAndRoughnessRenderTarget->GetRenderTarget());
 
-			_graphicsDevice->BindRenderTargets(renderTargets, _renderTarget->GetDepthTarget());
+			BindRenderTargets(renderTargets, _renderTarget->GetDepthTarget());
 			_graphicsDevice->SetViewport(_viewport);
 			_graphicsDevice->SetScissor(_viewport);
 
@@ -1437,7 +1437,7 @@ namespace TEN::Renderer
 
 		ClearScene();
 
-		_graphicsDevice->ClearState();
+		ClearState();
 		_graphicsDevice->Present();
 	}
 
@@ -1454,7 +1454,7 @@ namespace TEN::Renderer
 			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
 			// Bind back buffer.
-			_graphicsDevice->BindRenderTarget(_backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
+			BindRenderTarget(_backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
 			_graphicsDevice->SetViewport(_viewport);
 			_graphicsDevice->SetScissor(_viewport);
 
@@ -1472,7 +1472,7 @@ namespace TEN::Renderer
 				DrawLoadingBar(percentage);
 
 			_graphicsDevice->Present();
-			_graphicsDevice->ClearState();
+			ClearState();
 
 			Synchronize();
 			UpdateFadeScreenAndCinematicBars();

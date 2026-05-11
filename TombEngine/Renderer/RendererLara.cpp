@@ -320,7 +320,7 @@ void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
 	if (nativeItem->Flags & IFLAG_INVISIBLE)
 		return;
 
-	_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+	BindVertexBuffer(_moveablesVertexBuffer.get());
 	_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 	auto& laraObj = *_moveableObjects[ID_LARA];

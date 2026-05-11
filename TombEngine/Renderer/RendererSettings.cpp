@@ -11,7 +11,7 @@ namespace TEN::Renderer
 	{
 		_graphicsDevice->UnbindAllRenderTargets();
 		_graphicsDevice->Flush();
-		_graphicsDevice->ClearState();
+		ClearState();
 		_graphicsDevice->ResizeSwapChain(width, height);
 
 		_isWindowed = windowed;

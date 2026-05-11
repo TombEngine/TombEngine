@@ -1243,8 +1243,8 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::InstancedStatics);
 
-		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		BindVertexBuffer(_moveablesVertexBuffer.get());
+		SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		const auto& room = _rooms[LaraItem->RoomNumber];
@@ -1323,7 +1323,7 @@ namespace TEN::Renderer
 
 		_shaders.Bind(Shader::InstancedStatics);
 
-		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+		BindVertexBuffer(_moveablesVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		for (auto* rRoomPtr : view.RoomsToDraw)
@@ -1557,7 +1557,7 @@ namespace TEN::Renderer
 	{
 		_shaders.Bind(Shader::InstancedStatics);
 
-		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+		BindVertexBuffer(_moveablesVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		for (auto* roomPtr : view.RoomsToDraw)

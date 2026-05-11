@@ -35,13 +35,13 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::PostProcess);
 
 		// We draw a fullscreen triangle
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
-		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+		SetPrimitiveType(PrimitiveType::TriangleList);
+		SetInputLayout(_fullScreenVertexInputLayout.get());
+		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		// Copy render target to SMAA scene target.
 		_graphicsDevice->ClearRenderTarget2D(_SMAASceneRenderTarget->GetRenderTarget(), Colors::Transparent);
-		_graphicsDevice->BindRenderTarget(_SMAASceneRenderTarget->GetRenderTarget(), nullptr);
+		BindRenderTarget(_SMAASceneRenderTarget->GetRenderTarget(), nullptr);
 		
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
@@ -51,7 +51,7 @@ namespace TEN::Renderer
 		_graphicsDevice->ClearRenderTarget2D(_SMAABlendRenderTarget->GetRenderTarget(), Colors::Transparent);
 
 		SetCullMode(CullMode::CounterClockwise);
-		_graphicsDevice->BindRenderTarget(_SMAAEdgesRenderTarget->GetRenderTarget(), nullptr);
+		BindRenderTarget(_SMAAEdgesRenderTarget->GetRenderTarget(), nullptr);
 
 		_shaders.Bind(Shader::SmaaEdgeDetection);
 		_shaders.Bind(Shader::SmaaColorEdgeDetection);
@@ -70,7 +70,7 @@ namespace TEN::Renderer
 		DrawTriangles(3, 0);
 
 		// 2) Blend weights calculation.
-		_graphicsDevice->BindRenderTarget(_SMAABlendRenderTarget->GetRenderTarget(), nullptr);
+		BindRenderTarget(_SMAABlendRenderTarget->GetRenderTarget(), nullptr);
 		
 		_shaders.Bind(Shader::SmaaBlendingWeightCalculation);
 
@@ -87,7 +87,7 @@ namespace TEN::Renderer
 		DrawTriangles(3, 0);
 
 		// 3) Neighborhood blending.
-		_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
+		BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
 
 		_shaders.Bind(Shader::SmaaNeighborhoodBlending);
 
@@ -100,8 +100,8 @@ namespace TEN::Renderer
 
 		DrawTriangles(3, 0);
 
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		SetPrimitiveType(PrimitiveType::TriangleList);
+		SetInputLayout(_vertexInputLayout.get());
 	}
 
 	void Renderer::ApplyFXAA(IRenderSurface2D* renderTarget, RenderView& view)
@@ -116,20 +116,20 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::PostProcess);
 
 		// We draw a fullscreen triangle
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
-		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+		SetPrimitiveType(PrimitiveType::TriangleList);
+		SetInputLayout(_fullScreenVertexInputLayout.get());
+		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		// Copy render target to temp render target.
 		_graphicsDevice->ClearRenderTarget2D(_postProcessRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
-		_graphicsDevice->BindRenderTarget(_postProcessRenderTarget[0]->GetRenderTarget(), nullptr);
+		BindRenderTarget(_postProcessRenderTarget[0]->GetRenderTarget(), nullptr);
 
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
 
 		// Apply FXAA
 		_graphicsDevice->ClearRenderTarget2D(renderTarget->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
+		BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
 
 		_shaders.Bind(Shader::Fxaa);
 

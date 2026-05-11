@@ -124,10 +124,10 @@ namespace TEN::Renderer
 
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
 		
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->BindVertexBuffer(bar.VertexBufferBorder.get());
+		SetInputLayout(_vertexInputLayout.get());
+		BindVertexBuffer(bar.VertexBufferBorder.get());
 		_graphicsDevice->BindIndexBuffer(bar.IndexBufferBorder.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		SetPrimitiveType(PrimitiveType::TriangleList);
 		
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudDTexture);
@@ -154,10 +154,10 @@ namespace TEN::Renderer
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
 
 		
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->BindVertexBuffer(bar.InnerVertexBuffer.get());
+		SetInputLayout(_vertexInputLayout.get());
+		BindVertexBuffer(bar.InnerVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(bar.InnerIndexBuffer.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		SetPrimitiveType(PrimitiveType::TriangleList);
 		
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudBarColor);
@@ -185,9 +185,9 @@ namespace TEN::Renderer
 
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
 	
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);	
-		_graphicsDevice->BindVertexBuffer(g_LoadingBar->VertexBufferBorder.get());
+		SetInputLayout(_vertexInputLayout.get());
+		SetPrimitiveType(PrimitiveType::TriangleList);	
+		BindVertexBuffer(g_LoadingBar->VertexBufferBorder.get());
 		_graphicsDevice->BindIndexBuffer(g_LoadingBar->IndexBufferBorder.get());
 
 		_shaders.Bind(Shader::Hud);
@@ -210,9 +210,9 @@ namespace TEN::Renderer
 
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
 
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->BindVertexBuffer(g_LoadingBar->InnerVertexBuffer.get());
+		SetInputLayout(_vertexInputLayout.get());
+		SetPrimitiveType(PrimitiveType::TriangleList);
+		BindVertexBuffer(g_LoadingBar->InnerVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(g_LoadingBar->InnerIndexBuffer.get());
 
 		_shaders.Bind(Shader::Hud);
@@ -302,8 +302,8 @@ namespace TEN::Renderer
 
 			_shaders.Bind(Shader::FullScreenQuad);
 
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+			SetPrimitiveType(PrimitiveType::TriangleList);
+			SetInputLayout(_vertexInputLayout.get());
 
 			_primitiveBatch->Begin();
 			_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);
@@ -321,7 +321,7 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::None);
 
-		_graphicsDevice->BindRenderTarget(target, depthTarget);
+		BindRenderTarget(target, depthTarget);
 		_graphicsDevice->SetViewport(_viewport);
 		_graphicsDevice->SetScissor(_viewport);
 
@@ -345,8 +345,8 @@ namespace TEN::Renderer
 			{
 				_shaders.Bind(Shader::FullScreenQuad);
 
-				_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-				_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+				SetPrimitiveType(PrimitiveType::TriangleList);
+				SetInputLayout(_vertexInputLayout.get());
 
 				_primitiveBatch->Begin();
 
@@ -459,8 +459,8 @@ namespace TEN::Renderer
 
 		BindTexture(TextureRegister::ColorMap, texture, SamplerStateRegister::AnisotropicClamp);
 
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		SetPrimitiveType(PrimitiveType::TriangleList);
+		SetInputLayout(_vertexInputLayout.get());
 
 		_primitiveBatch->Begin();
 		_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);
@@ -533,8 +533,8 @@ namespace TEN::Renderer
 
 		BindTexture(TextureRegister::ColorMap, texture, SamplerStateRegister::AnisotropicClamp);
 
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		SetPrimitiveType(PrimitiveType::TriangleList);
+		SetInputLayout(_vertexInputLayout.get());
 
 		_primitiveBatch->Begin();
 		_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);

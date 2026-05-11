@@ -369,6 +369,13 @@ namespace TEN::Renderer
 		void ResetTextureBindingCache();
 		void ResetPipelineCache();
 
+		// Wrapper for _graphicsDevice->ClearState(): clears the DX11 device state AND
+		// invalidates our CPU-side dedup caches. Callers that issue a raw ClearState
+		// without the cache reset will starve the next frame's binds (a _shaders.Bind
+		// or BindPipeline returns early thinking it's still bound, but DX11 has unbound
+		// it) — which manifests as a black backbuffer and eventually a TDR.
+		void ClearState();
+
 		// Pipeline state wrappers with dedup. Use these instead of the raw _graphicsDevice
 		// calls so that back-to-back binds with identical state become no-ops.
 		void BindVertexBuffer(IVertexBuffer* vertexBuffer);
@@ -391,6 +398,15 @@ namespace TEN::Renderer
 		void BindMoveableLights(std::vector<RendererLight*>& lights, int roomNumber, int prevRoomNumber, float fade, bool shadow);
 		void BindRoomDecals(const std::vector<RendererDecal>& decals);
 		void BindRenderTargetAsTexture(TextureRegister registerType, IRenderTarget2D* target, SamplerStateRegister samplerType);
+
+		// Render-target binding wrappers. They forward to the device AND invalidate the
+		// texture binding cache, since DX11 auto-unbinds an SRV that is being promoted to
+		// RTV/DSV (hazard prevention). Without the cache reset a later BindTexture for the
+		// same slot would short-circuit thinking the SRV is still live.
+		void BindRenderTarget(IRenderTarget2D* renderTarget, IDepthTarget* depthTarget);
+		void BindRenderTarget(IRenderTargetBinding renderTarget, IDepthTargetBinding depthTarget);
+		void BindRenderTargets(std::vector<IRenderTarget2D*> renderTargets, IDepthTarget* depthTarget);
+		void BindRenderTargets(std::vector<IRenderTargetBinding> renderTargets, IDepthTargetBinding depthTarget);
 		void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer);
 		void BindMaterial(int materialIndex, bool force);
 		void BuildHierarchy(RendererObject* obj);
