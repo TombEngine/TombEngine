@@ -1907,15 +1907,32 @@ namespace TEN::Renderer
 		_stPerDraw.Animated = 0;
 		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
-		// Bind and clear render target.
-		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+		// Main scene render pass: HDR color + depth/stencil, cleared each frame.
+		{
+			RenderPassDescriptor pass;
+			ColorAttachmentDescriptor color;
+			color.Target     = _renderTarget->GetRenderTarget();
+			color.Load       = LoadAction::Clear;
+			color.Store      = StoreAction::Store;
+			color.ClearColor = _debugPage == RendererDebugPage::WireframeMode ? Colors::DimGray : Colors::Black;
+			pass.ColorAttachments.push_back(color);
 
-		_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), _debugPage == RendererDebugPage::WireframeMode ? Colors::DimGray : Colors::Black);
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+			pass.DepthAttachment.Target       = _renderTarget->GetDepthTarget();
+			pass.DepthAttachment.Load         = LoadAction::Clear;
+			pass.DepthAttachment.Store        = StoreAction::Store;
+			pass.DepthAttachment.ClearDepth   = 1.0f;
+			pass.DepthAttachment.ClearStencil = 0;
 
-		// Reset viewport and scissor.
-		_graphicsDevice->SetViewport(view.Viewport);
-		_graphicsDevice->SetScissor(view.Viewport);
+			pass.HasViewport = true;
+			pass.Viewport    = view.Viewport;
+			pass.HasScissor  = true;
+			pass.Scissor     = RendererRectangle(view.Viewport.X, view.Viewport.Y,
+				view.Viewport.X + view.Viewport.Width, view.Viewport.Y + view.Viewport.Height);
+
+			pass.DebugLabel = "Main Scene Begin";
+			BeginRenderPass(pass);
+			EndRenderPass();
+		}
 
 		// Camera constant buffer contains matrices, camera position, fog values, and other things shared for all shaders.
 		auto cameraConstantBuffer = CCameraMatrixBuffer{};
@@ -1962,33 +1979,58 @@ namespace TEN::Renderer
 		// Draw horizon and sky.
 		DrawHorizonAndSky(_renderTarget->GetDepthTarget(), view);
 
-		// Build G-Buffer (normals + depth).
-		_graphicsDevice->ClearRenderTarget2D(_normalsAndMaterialIndexRenderTarget->GetRenderTarget(), Colors::Transparent);
-		_graphicsDevice->ClearRenderTarget2D(_depthRenderTarget->GetRenderTarget(), Colors::White);
-		_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
-		
-		std::vector<IRenderTarget2D*> gbuffer;
-		gbuffer.push_back(_normalsAndMaterialIndexRenderTarget->GetRenderTarget());
-		gbuffer.push_back(_depthRenderTarget->GetRenderTarget());
-		gbuffer.push_back(_emissiveAndRoughnessRenderTarget->GetRenderTarget());
+		// G-Buffer pass: 3 color targets (normals/matIdx, depth, emissive/roughness) sharing
+		// the main scene depth buffer. Reading the depth buffer means we don't write to it
+		// again from G-Buffer geometry — the depth load action is therefore Load (not Clear).
+		{
+			RenderPassDescriptor pass;
+			ColorAttachmentDescriptor a0, a1, a2;
+			a0.Target = _normalsAndMaterialIndexRenderTarget->GetRenderTarget();
+			a0.Load = LoadAction::Clear; a0.ClearColor = Colors::Transparent;
+			a1.Target = _depthRenderTarget->GetRenderTarget();
+			a1.Load = LoadAction::Clear; a1.ClearColor = Colors::White;
+			a2.Target = _emissiveAndRoughnessRenderTarget->GetRenderTarget();
+			a2.Load = LoadAction::Clear; a2.ClearColor = Colors::Transparent;
+			pass.ColorAttachments = { a0, a1, a2 };
+			pass.DepthAttachment.Target = _renderTarget->GetDepthTarget();
+			pass.DepthAttachment.Load   = LoadAction::Load; // Reuse depth from horizon/sky pass.
+			pass.DepthAttachment.Store  = StoreAction::Store;
+			pass.HasViewport = true;
+			pass.Viewport    = view.Viewport;
+			pass.DebugLabel  = "G-Buffer";
+			BeginRenderPass(pass);
+		}
 
-		_graphicsDevice->BindRenderTargets(gbuffer, _renderTarget->GetDepthTarget());
-
-		// Render G-Buffer pass.
 		DoRenderPass(RendererPass::GBuffer, view, true);
+		EndRenderPass();
 
-		// Calculate ambient occlusion.
+		// Calculate ambient occlusion (has its own internal render passes).
 		if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion)
 			CalculateSSAO(view);
 
 		SetPrimitiveType(PrimitiveType::TriangleList);
 		SetInputLayout(_vertexInputLayout.get());
 
-		_graphicsDevice->SetViewport(view.Viewport);
-		_graphicsDevice->SetScissor(view.Viewport);
-
-		// Bind main render target again. Main depth buffer is already filled and avoids overdraw in following steps.
-		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+		// Main scene opaque pass: color + existing depth (already populated by horizon/sky
+		// and G-Buffer). Both are kept (LoadAction::Load).
+		{
+			RenderPassDescriptor pass;
+			ColorAttachmentDescriptor color;
+			color.Target = _renderTarget->GetRenderTarget();
+			color.Load   = LoadAction::Load;
+			color.Store  = StoreAction::Store;
+			pass.ColorAttachments.push_back(color);
+			pass.DepthAttachment.Target = _renderTarget->GetDepthTarget();
+			pass.DepthAttachment.Load   = LoadAction::Load;
+			pass.DepthAttachment.Store  = StoreAction::Store;
+			pass.HasViewport = true;
+			pass.Viewport    = view.Viewport;
+			pass.HasScissor  = true;
+			pass.Scissor     = RendererRectangle(view.Viewport.X, view.Viewport.Y,
+				view.Viewport.X + view.Viewport.Width, view.Viewport.Y + view.Viewport.Height);
+			pass.DebugLabel  = "Main Scene Opaque/Transparent";
+			BeginRenderPass(pass);
+		}
 
 		DoRenderPass(RendererPass::Opaque, view, true);
 		DoRenderPass(RendererPass::Additive, view, true);
@@ -2002,13 +2044,32 @@ namespace TEN::Renderer
 		DrawLines3D(view);
 		DrawTriangles3D(view);
 
-		// Copy current scene to the reflections render target for the next frame
-		// RT -> LRRT
-		CopyRenderTargetAndDownscale(_renderTarget.get(), _legacyReflectionsRenderTarget.get(), LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, view);
-		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+		EndRenderPass(); // Main Scene Opaque/Transparent.
 
-		// Clear the depth buffer for drawing HUD on top
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		// Copy current scene to the reflections render target for the next frame (RT -> LRRT).
+		// The helper internally rebinds its own render targets.
+		CopyRenderTargetAndDownscale(_renderTarget.get(), _legacyReflectionsRenderTarget.get(), LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, view);
+
+		// HUD/3D-overlay pass: keep color, reset depth so HUD geometry renders on top.
+		{
+			RenderPassDescriptor pass;
+			ColorAttachmentDescriptor color;
+			color.Target = _renderTarget->GetRenderTarget();
+			color.Load   = LoadAction::Load;
+			color.Store  = StoreAction::Store;
+			pass.ColorAttachments.push_back(color);
+			pass.DepthAttachment.Target       = _renderTarget->GetDepthTarget();
+			pass.DepthAttachment.Load         = LoadAction::Clear;
+			pass.DepthAttachment.ClearDepth   = 1.0f;
+			pass.DepthAttachment.ClearStencil = 0;
+			pass.HasViewport = true;
+			pass.Viewport    = view.Viewport;
+			pass.DebugLabel  = "HUD 3D";
+			BeginRenderPass(pass);
+			EndRenderPass();
+		}
+
+		// (Depth was cleared by the HUD 3D render pass above.)
 
 		// Draw 3D HUD elements separately here because objects may use emissive materials and require glow.
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
@@ -2328,18 +2389,31 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
 
-		// Clear screen
-		_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-
-		// Bind back buffer.
-		_graphicsDevice->BindRenderTarget(_backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
-		
-		_graphicsDevice->SetViewport(_viewport);
-		_graphicsDevice->SetScissor(_viewport);
+		// Back-buffer pass: cleared color + depth, fills with full-screen background.
+		{
+			RenderPassDescriptor pass;
+			ColorAttachmentDescriptor color;
+			color.Target     = _backBuffer->GetRenderTarget();
+			color.Load       = LoadAction::Clear;
+			color.ClearColor = Colors::Black;
+			pass.ColorAttachments.push_back(color);
+			pass.DepthAttachment.Target       = _backBuffer->GetDepthTarget();
+			pass.DepthAttachment.Load         = LoadAction::Clear;
+			pass.DepthAttachment.ClearDepth   = 1.0f;
+			pass.DepthAttachment.ClearStencil = 0;
+			pass.HasViewport = true;
+			pass.Viewport    = _viewport;
+			pass.HasScissor  = true;
+			pass.Scissor     = RendererRectangle(_viewport.X, _viewport.Y,
+				_viewport.X + _viewport.Width, _viewport.Y + _viewport.Height);
+			pass.DebugLabel  = "Back Buffer Composite";
+			BeginRenderPass(pass);
+		}
 
 		// Draw full screen background.
 		DrawFullScreenQuad(texture, Vector3::One, true, aspect);
+
+		EndRenderPass(); // Back Buffer Composite.
 
 		ClearScene();
 
@@ -3001,13 +3075,6 @@ namespace TEN::Renderer
 	
 	void Renderer::DrawHorizonAndSkyForReflections(RenderView& renderView)
 	{
-		_graphicsDevice->ClearRenderTarget2D(_skyboxRenderTarget->GetRenderTarget(), 0, Colors::Black);
-		_graphicsDevice->ClearDepthStencil(_skyboxRenderTarget->GetDepthTarget(), 0, DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-		_graphicsDevice->BindRenderTarget(
-			IRenderTargetBinding(_skyboxRenderTarget->GetRenderTarget(), 0),
-			IDepthTargetBinding(_skyboxRenderTarget->GetDepthTarget(), 0)
-		);
-
 		RendererViewport viewport;
 		viewport.X = 0;
 		viewport.Y = 0;
@@ -3016,37 +3083,56 @@ namespace TEN::Renderer
 		viewport.MinDepth = 0;
 		viewport.MaxDepth = 1;
 
-		_graphicsDevice->SetViewport(viewport);
-		_graphicsDevice->SetScissor(viewport);
+		auto buildPass = [&](int arrayIndex, const char* label) {
+			RenderPassDescriptor pass;
+			ColorAttachmentDescriptor color;
+			color.Target     = _skyboxRenderTarget->GetRenderTarget();
+			color.ArrayIndex = arrayIndex;
+			color.Load       = LoadAction::Clear;
+			color.ClearColor = Colors::Black;
+			pass.ColorAttachments.push_back(color);
+
+			pass.DepthAttachment.Target       = _skyboxRenderTarget->GetDepthTarget();
+			pass.DepthAttachment.ArrayIndex   = arrayIndex;
+			pass.DepthAttachment.Load         = LoadAction::Clear;
+			pass.DepthAttachment.ClearDepth   = 1.0f;
+			pass.DepthAttachment.ClearStencil = 0;
+
+			pass.HasViewport = true;
+			pass.Viewport    = viewport;
+			pass.HasScissor  = true;
+			pass.Scissor     = RendererRectangle(0, 0, ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE);
+
+			pass.DebugLabel  = label;
+			BeginRenderPass(pass);
+		};
 
 		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
 
 		auto view = RenderView(_gameCamera.Camera.WorldPosition, Vector3::UnitX, Vector3::UnitY, ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, 0, 32, DEFAULT_FAR_VIEW, PI / 2.0f);
 
 		auto cameraConstantBuffer = CCameraMatrixBuffer{};
 		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(_gameCamera.Camera.WorldPosition, _gameCamera.Camera.WorldPosition + Vector3(0, -1024, 0), Vector3::UnitX);
-		cameraConstantBuffer.Hemisphere = -1;
 		cameraConstantBuffer.Frame = GlobalCounter;
 		cameraConstantBuffer.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
 		cameraConstantBuffer.RefreshRate = _graphicsDevice->GetRefreshRate();
 		view.FillConstantBuffer(cameraConstantBuffer);
+
+		// Front hemisphere.
+		buildPass(0, "Skybox Reflection Front");
+		SetCullMode(CullMode::CounterClockwise);
+		cameraConstantBuffer.Hemisphere = -1;
 		UpdateConstantBuffer(&cameraConstantBuffer, _cbCameraMatrices.get());
-
 		DrawHorizonAndSky(_skyboxRenderTarget->GetDepthTarget(), view, 0, true);
+		EndRenderPass();
 
-		_graphicsDevice->ClearRenderTarget2D(_skyboxRenderTarget->GetRenderTarget(), 1, Colors::Black);
-		_graphicsDevice->ClearDepthStencil(_skyboxRenderTarget->GetDepthTarget(), 1, DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-		_graphicsDevice->BindRenderTarget(
-			IRenderTargetBinding(_skyboxRenderTarget->GetRenderTarget(), 1),
-			IDepthTargetBinding(_skyboxRenderTarget->GetDepthTarget(), 1)
-		);
+		// Back hemisphere.
+		buildPass(1, "Skybox Reflection Back");
 		SetCullMode(CullMode::Clockwise);
-
 		cameraConstantBuffer.Hemisphere = 1;
 		UpdateConstantBuffer(&cameraConstantBuffer, _cbCameraMatrices.get());
-
 		DrawHorizonAndSky(_skyboxRenderTarget->GetDepthTarget(), view, 1, true);
+		EndRenderPass();
 
 		SetCullMode(CullMode::CounterClockwise);
 	}
