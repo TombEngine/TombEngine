@@ -634,6 +634,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\TR3\Entity\tr3_tribesman.h" />
     <ClInclude Include="Objects\TR3\Entity\Winston.h" />
     <ClInclude Include="Objects\TR3\Object\Corpse.h" />
+    <ClInclude Include="Objects\TR3\Object\Fusebox.h" />
     <ClInclude Include="Objects\TR3\Trap\DrillBit.h" />
     <ClInclude Include="Objects\TR3\Trap\ElectricCleaner.h" />
     <ClInclude Include="Objects\TR3\Trap\FirePendulum.h" />
@@ -1137,6 +1138,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\Effects\Fireflies.cpp" />
     <ClCompile Include="Objects\Effects\flame_emitters.cpp" />
     <ClCompile Include="Objects\Effects\LensFlare.cpp" />
+    <ClCompile Include="Objects\TR3\Object\Fusebox.cpp" />
     <ClCompile Include="Objects\TR4\Entity\Locust.cpp" />
     <ClCompile Include="Objects\Effects\tr5_electricity.cpp" />
     <ClCompile Include="Objects\Generic\Doors\double_doors.cpp" />
