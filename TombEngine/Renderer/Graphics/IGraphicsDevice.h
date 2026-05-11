@@ -8,6 +8,7 @@
 #include "Renderer/Graphics/IRenderTarget2D.h"
 #include "Renderer/Graphics/IRenderTargetCube.h"
 #include "Renderer/Graphics/ITexture2D.h"
+#include "Renderer/Graphics/RenderPipelineState.h"
 #include "Renderer/Graphics/ITexture3D.h"
 #include "Renderer/Graphics/IConstantBuffer.h"
 #include "Renderer/Graphics/IStructuredBuffer.h"
@@ -60,6 +61,12 @@ namespace TEN::Renderer::Graphics
 		virtual void SetCullMode(CullMode cullMode) = 0;
 		virtual void SetScissor(RendererRectangle rectangle) = 0;
 		virtual void SetScissor(RendererViewport viewport) = 0;
+
+		// Atomic pipeline state apply. On DX11 maps to setting blend/depth/cull/topology/
+		// input-layout one by one (with internal dedup). On Vulkan, looks up or lazily
+		// creates a VkGraphicsPipeline keyed on the descriptor's hash and binds it.
+		// Resource bindings (textures, CBs, vertex/index buffers) are bound separately.
+		virtual void BindPipeline(const RenderPipelineState& pipeline) = 0;
 
 		virtual void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) = 0;
 

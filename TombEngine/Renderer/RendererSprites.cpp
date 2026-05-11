@@ -488,13 +488,9 @@ namespace TEN::Renderer
 	void Renderer::DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
 	{
 		if (lastObjectType != objectInfo->ObjectType)
-		{
-			_shaders.Bind(Shader::InstancedSprites);
-
 			BindVertexBuffer(_sortedPolygonsVertexBuffer.get());
-			SetPrimitiveType(PrimitiveType::TriangleList);
-			SetInputLayout(_vertexInputLayout.get());
-		}
+
+		BindPipeline(Pipelines::SortedSprite(_vertexInputLayout.get(), objectInfo->Sprite->BlendMode));
 
 		_stInstancedSpriteBuffer.Sprites[0].World = Matrix::Identity;
 		_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
@@ -504,11 +500,6 @@ namespace TEN::Renderer
 		PackSpriteTextureCoordinates(0, objectInfo->Sprite->Sprite);
 
 		UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
-
-		SetDepthState(DepthState::Read);
-		SetCullMode(CullMode::None);
-		SetBlendMode(objectInfo->Sprite->BlendMode);
-		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 		BindTexture(TextureRegister::ColorMap, objectInfo->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);
 		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);

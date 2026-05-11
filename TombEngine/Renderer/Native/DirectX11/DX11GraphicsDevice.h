@@ -127,6 +127,8 @@ namespace TEN::Renderer::Native::DirectX11
 		void SetScissor(RendererRectangle rectangle) override;
 		void SetScissor(RendererViewport viewport) override;
 
+		void BindPipeline(const RenderPipelineState& pipeline) override;
+
 		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) override;
 		void UnbindTexture(ShaderStage stage, TextureRegister registerType) override;
 

@@ -202,7 +202,31 @@ namespace TEN::Renderer
 		_lastBoundVertexBuffer  = nullptr;
 		_lastBoundInputLayout   = nullptr;
 		_lastBoundPrimitiveType = (PrimitiveType)-1;
+		_hasBoundPipeline       = false;
+		_lastBoundPipelineHash  = 0;
 		_shaders.ResetBindCache();
+	}
+
+	void Renderer::BindPipeline(const RenderPipelineState& pipeline)
+	{
+		uint64_t h = pipeline.Hash();
+		if (_hasBoundPipeline && h == _lastBoundPipelineHash)
+			return;
+		_lastBoundPipelineHash = h;
+		_hasBoundPipeline      = true;
+
+		// Shader first: ShaderManager has its own dedup keyed on the shader group, so
+		// pipelines that share a compiled binary (e.g. Items + InstancedStatics) won't
+		// trigger a device shader rebind even though their PSO hash differs by enum.
+		_shaders.Bind(pipeline.ShaderId);
+
+		// Fixed-function state: applied atomically by the device.
+		_graphicsDevice->BindPipeline(pipeline);
+
+		// AlphaTest lives in the PerDraw constant buffer (it's emulated via clip() in HLSL,
+		// not a real fixed-function pipeline state). Route through SetAlphaTest so its own
+		// dedup logic decides whether to actually upload the CB.
+		SetAlphaTest(pipeline.AlphaTest, pipeline.AlphaThreshold);
 	}
 
 	void Renderer::BindVertexBuffer(IVertexBuffer* vertexBuffer)

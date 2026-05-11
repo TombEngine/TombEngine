@@ -3914,17 +3914,10 @@ namespace TEN::Renderer
 	void Renderer::DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, bool sameAsLast)
 	{
 		if (lastObjectType != objectInfo->ObjectType)
-		{
 			BindVertexBuffer(_roomsVertexBuffer.get());
-			SetPrimitiveType(PrimitiveType::TriangleList);
-			SetInputLayout(_vertexInputLayout.get());
 
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
-
-			_shaders.Bind(Shader::Rooms);
-		}
-
+		// Atomic PSO bind (shader + blend + depth + cull + topology + input layout + alpha test).
+		BindPipeline(Pipelines::SortedRoom(_vertexInputLayout.get(), objectInfo->BlendMode));
 
 		// Per-room CB upload + lights are stable across consecutive groups of the same room.
 		if (!sameAsLast)
@@ -3941,9 +3934,6 @@ namespace TEN::Renderer
 			SetScissor(objectInfo->Room->ClipBounds);
 		}
 
-		SetBlendMode(objectInfo->BlendMode);
-		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
-
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Rooms, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
 
@@ -3959,17 +3949,9 @@ namespace TEN::Renderer
 	void Renderer::DrawItemSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, bool sameAsLast)
 	{
 		if (lastObjectType != objectInfo->ObjectType)
-		{
 			BindVertexBuffer(_moveablesVertexBuffer.get());
-			SetPrimitiveType(PrimitiveType::TriangleList);
-			SetInputLayout(_vertexInputLayout.get());
 
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
-
-			_shaders.Bind(Shader::Items);
-		}
-
+		BindPipeline(Pipelines::SortedItem(_vertexInputLayout.get(), objectInfo->BlendMode));
 
 		// Per-item CB upload + bones + lights are constant across all groups of the same item.
 		if (!sameAsLast)
@@ -4000,9 +3982,6 @@ namespace TEN::Renderer
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 		}
 
-		SetBlendMode(objectInfo->BlendMode);
-		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
-
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
 
@@ -4017,17 +3996,9 @@ namespace TEN::Renderer
 		_stObjects.Skinned = (int)SkinningMode::Static;
 
 		if (lastObjectType != objectInfo->ObjectType)
-		{
 			BindVertexBuffer(_staticsVertexBuffer.get());
-			SetPrimitiveType(PrimitiveType::TriangleList);
-			SetInputLayout(_vertexInputLayout.get());
 
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
-
-			_shaders.Bind(Shader::InstancedStatics);
-		}
-
+		BindPipeline(Pipelines::SortedStatic(_vertexInputLayout.get(), objectInfo->BlendMode));
 
 		// Per-static CB upload + lights are constant across consecutive groups of the same static.
 		if (!sameAsLast)
@@ -4041,9 +4012,6 @@ namespace TEN::Renderer
 			BindInstancedStaticLights(objectInfo->Static->LightsToDraw, 0);
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 		}
-
-		SetBlendMode(objectInfo->BlendMode);
-		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Statics, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
@@ -4059,17 +4027,9 @@ namespace TEN::Renderer
 		_stObjects.Skinned = (int)SkinningMode::Static;
 
 		if (lastObjectType != objectInfo->ObjectType)
-		{
 			BindVertexBuffer(_moveablesVertexBuffer.get());
-			SetPrimitiveType(PrimitiveType::TriangleList);
-			SetInputLayout(_vertexInputLayout.get());
 
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
-
-			_shaders.Bind(Shader::InstancedStatics);
-		}
-
+		BindPipeline(Pipelines::SortedMoveableAsStatic(_vertexInputLayout.get(), objectInfo->BlendMode));
 
 		if (!sameAsLast)
 		{
@@ -4082,9 +4042,6 @@ namespace TEN::Renderer
 			BindInstancedStaticLights(objectInfo->Room->LightsToDraw, 0);
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 		}
-
-		SetBlendMode(objectInfo->BlendMode);
-		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Statics, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
@@ -4104,17 +4061,9 @@ namespace TEN::Renderer
 		}
 
 		if (lastObjectType != objectInfo->ObjectType)
-		{
 			BindVertexBuffer(_moveablesVertexBuffer.get());
-			SetPrimitiveType(PrimitiveType::TriangleList);
-			SetInputLayout(_vertexInputLayout.get());
 
-			SetDepthState(DepthState::Read);
-			SetCullMode(CullMode::CounterClockwise);
-
-			_shaders.Bind(Shader::Items);
-		}
-
+		BindPipeline(Pipelines::SortedItem(_vertexInputLayout.get(), objectInfo->BlendMode));
 
 		// Hair segments and lights are constant for the same hair unit within the frame.
 		if (!sameAsLast)
@@ -4149,9 +4098,6 @@ namespace TEN::Renderer
 			BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 		}
-
-		SetBlendMode(objectInfo->BlendMode);
-		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
 
 		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);

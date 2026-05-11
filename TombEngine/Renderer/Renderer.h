@@ -51,6 +51,7 @@
 #include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererStar.h"
 #include "Renderer/Graphics/IGraphicsDevice.h"
+#include "Renderer/Graphics/Pipelines.h"
 
 using namespace TEN::Animation;
 
@@ -304,6 +305,10 @@ namespace TEN::Renderer
 		IInputLayout*  _lastBoundInputLayout     = nullptr;
 		PrimitiveType  _lastBoundPrimitiveType   = (PrimitiveType)-1;
 
+		// Atomic Pipeline State Object hash. Last one applied via BindPipeline().
+		uint64_t       _lastBoundPipelineHash    = 0;
+		bool           _hasBoundPipeline         = false;
+
 		std::vector<RendererSpriteBucket> _spriteBuckets;
 
 		// Antialiasing
@@ -369,6 +374,11 @@ namespace TEN::Renderer
 		void BindVertexBuffer(IVertexBuffer* vertexBuffer);
 		void SetInputLayout(IInputLayout* inputLayout);
 		void SetPrimitiveType(PrimitiveType primitiveType);
+
+		// Atomic Pipeline State Object binding. Bundles shader + blend + depth + cull +
+		// topology + input layout + alpha test under a single hash, skipping the device
+		// call when the same PSO is already bound.
+		void BindPipeline(const RenderPipelineState& pipeline);
 		int  BindLight(RendererLight& light, ShaderLight* lights, int index);
 		void BindRoomLights(std::vector<RendererLight*>& lights);
 		void BindInstancedStaticLights(std::vector<RendererLight*>& lights, int instanceID);

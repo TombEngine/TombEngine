@@ -138,6 +138,21 @@ namespace TEN::Renderer::Native::DirectX11
 		return texture;
 	}
 
+	void DX11GraphicsDevice::BindPipeline(const RenderPipelineState& pipeline)
+	{
+		// On DX11 there is no first-class PipelineStateObject; we apply each piece of
+		// fixed-function state in sequence. The Renderer-level wrapper does the hash dedup
+		// so this only runs when the pipeline genuinely changed.
+		SetBlendMode(pipeline.Blend);
+		SetDepthState(pipeline.Depth);
+		SetCullMode(pipeline.Cull);
+		SetPrimitiveType(pipeline.Topology);
+		if (pipeline.InputLayout != nullptr)
+			SetInputLayout(pipeline.InputLayout);
+		// Note: Shader binding and AlphaTest CB upload are owned by the Renderer-level
+		// wrapper because they require access to ShaderManager and the PerDraw CB.
+	}
+
 	void DX11GraphicsDevice::SetBlendMode(BlendMode blendMode)
 	{
 		switch (blendMode)
