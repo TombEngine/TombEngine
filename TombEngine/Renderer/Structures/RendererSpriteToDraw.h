@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <SimpleMath.h>
 #include "Renderer/Structures/RendererSprite.h"
 #include "Renderer/RendererEnums.h"
@@ -17,6 +18,7 @@ namespace TEN::Renderer::Structures
 		Vector3 vtx2;
 		Vector3 vtx3;
 		Vector3 vtx4;
+		std::array<Vector2, 4> CustomUV = {};
 		Vector4 c1;
 		Vector4 c2;
 		Vector4 c3;
@@ -29,6 +31,7 @@ namespace TEN::Renderer::Structures
 		Vector3 ConstrainAxis;
 		Vector3 LookAtAxis;
 		bool SoftParticle;
+		bool UseCustomUV = false;
 		SpriteRenderType renderType = SpriteRenderType::Default;
 	};
 }

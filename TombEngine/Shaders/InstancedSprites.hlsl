@@ -65,7 +65,7 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 
 	output.PositionCopy = output.Position;
     output.Color = lerp(sprite.Color, input.Color, saturate((float)sprite.PerVertexColor));
-    output.UV = float2(sprite.UV[0][polyIndex], sprite.UV[1][polyIndex]);
+    output.UV = sprite.PerVertexColor == 2 ? input.UV : float2(sprite.UV[0][polyIndex], sprite.UV[1][polyIndex]);
 	output.InstanceID  = InstanceID;
 
 	output.FogBulbs = DoFogBulbsForVertex(worldPosition);

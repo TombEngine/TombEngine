@@ -45,6 +45,7 @@
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/Generic/Switches/generic_switch.h"
 #include "Objects/TR3/Entity/FishSwarm.h"
+#include "Objects/TR3/Emitter/tr3_bats_emitter.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
 #include "Objects/TR4/Entity/Locust.h"
 #include "Objects/TR5/Emitter/tr5_bats_emitter.h"
@@ -87,6 +88,7 @@ using namespace TEN::Entities::Effects;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::Traps;
+using namespace TEN::Entities::TR3;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Control::Volumes;
@@ -212,6 +214,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateRats();
 	UpdateRipples();
 	UpdateBats();
+	UpdateTr3Bats();
 	UpdateSpiders();
 	UpdateSparkParticles();
 	UpdateSmokeParticles();

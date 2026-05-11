@@ -338,7 +338,7 @@ namespace TEN::Renderer
 			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = spriteBucket.IsSoftParticle ? 1.0f : 0.0f;
 			_stInstancedSpriteBuffer.Sprites[0].RenderType = (int)spriteBucket.RenderType;
 
-			_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
+			_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = spriteBucket.SpritesToDraw[0].UseCustomUV ? 2 : 1;
 			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = spriteBucket.IsSoftParticle ? 1.0f : 0.0f;
 
 			PackSpriteTextureCoordinates(0, spriteBucket.Sprite);
@@ -353,7 +353,7 @@ namespace TEN::Renderer
 			{
 				auto vertex0 = Vertex{};
 				vertex0.Position = rDrawSprite.vtx1;
-				vertex0.UV = rDrawSprite.Sprite->UV[0];
+				vertex0.UV = rDrawSprite.UseCustomUV ? rDrawSprite.CustomUV[0] : rDrawSprite.Sprite->UV[0];
 				vertex0.Color = VectorColorToRGBA(rDrawSprite.c1);
 				vertex0.Effects = 0 << INDEX_IN_POLY_VERTEX_SHIFT;
 
@@ -361,7 +361,7 @@ namespace TEN::Renderer
 
 				auto vertex1 = Vertex{};
 				vertex1.Position = rDrawSprite.vtx2;
-				vertex1.UV = rDrawSprite.Sprite->UV[1];
+				vertex1.UV = rDrawSprite.UseCustomUV ? rDrawSprite.CustomUV[1] : rDrawSprite.Sprite->UV[1];
 				vertex1.Color = VectorColorToRGBA(rDrawSprite.c2);
 				vertex1.Effects = 1 << INDEX_IN_POLY_VERTEX_SHIFT;
 
@@ -369,7 +369,7 @@ namespace TEN::Renderer
 
 				auto vertex2 = Vertex{};
 				vertex2.Position = rDrawSprite.vtx3;
-				vertex2.UV = rDrawSprite.Sprite->UV[2];
+				vertex2.UV = rDrawSprite.UseCustomUV ? rDrawSprite.CustomUV[2] : rDrawSprite.Sprite->UV[2];
 				vertex2.Color = VectorColorToRGBA(rDrawSprite.c3);
 				vertex2.Effects = 2 << INDEX_IN_POLY_VERTEX_SHIFT;
 
@@ -377,7 +377,7 @@ namespace TEN::Renderer
 
 				auto vertex3 = Vertex{};
 				vertex3.Position = rDrawSprite.vtx4;
-				vertex3.UV = rDrawSprite.Sprite->UV[3];
+				vertex3.UV = rDrawSprite.UseCustomUV ? rDrawSprite.CustomUV[3] : rDrawSprite.Sprite->UV[3];
 				vertex3.Color = VectorColorToRGBA(rDrawSprite.c4);
 				vertex3.Effects = 3 << INDEX_IN_POLY_VERTEX_SHIFT;
 
@@ -426,7 +426,7 @@ namespace TEN::Renderer
 		_stInstancedSpriteBuffer.Sprites[0].World = object->Sprite->Type != SpriteType::ThreeD ?
 			GetWorldMatrixForSprite(*object->Sprite, view) :
 			Matrix::Identity;
-		_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
+		_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = object->Sprite->Type != SpriteType::ThreeD ? 0 : (object->Sprite->UseCustomUV ? 2 : 1);
 		_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = object->Sprite->SoftParticle ? 1 : 0;
 		_stInstancedSpriteBuffer.Sprites[0].RenderType = (int)object->Sprite->renderType;
 
@@ -445,25 +445,25 @@ namespace TEN::Renderer
 		{
 			auto vertex0 = Vertex{};
 			vertex0.Position = object->Sprite->vtx1;
-			vertex0.UV = object->Sprite->Sprite->UV[0];
+			vertex0.UV = object->Sprite->UseCustomUV ? object->Sprite->CustomUV[0] : object->Sprite->Sprite->UV[0];
 			vertex0.Color = VectorColorToRGBA(object->Sprite->c1);
 			vertex0.Effects = 0 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 			auto vertex1 = Vertex{};
 			vertex1.Position = object->Sprite->vtx2;
-			vertex1.UV = object->Sprite->Sprite->UV[1];
+			vertex1.UV = object->Sprite->UseCustomUV ? object->Sprite->CustomUV[1] : object->Sprite->Sprite->UV[1];
 			vertex1.Color = VectorColorToRGBA(object->Sprite->c2);
 			vertex1.Effects = 1 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 			auto vertex2 = Vertex{};
 			vertex2.Position = object->Sprite->vtx3;
-			vertex2.UV = object->Sprite->Sprite->UV[2];
+			vertex2.UV = object->Sprite->UseCustomUV ? object->Sprite->CustomUV[2] : object->Sprite->Sprite->UV[2];
 			vertex2.Color = VectorColorToRGBA(object->Sprite->c3);
 			vertex2.Effects = 2 << INDEX_IN_POLY_VERTEX_SHIFT;
 
 			auto vertex3 = Vertex{};
 			vertex3.Position = object->Sprite->vtx4;
-			vertex3.UV = object->Sprite->Sprite->UV[3];
+			vertex3.UV = object->Sprite->UseCustomUV ? object->Sprite->CustomUV[3] : object->Sprite->Sprite->UV[3];
 			vertex3.Color = VectorColorToRGBA(object->Sprite->c4);
 			vertex3.Effects = 3 << INDEX_IN_POLY_VERTEX_SHIFT;
 
@@ -501,7 +501,7 @@ namespace TEN::Renderer
 		_graphicsDevice->UpdateVertexBuffer(_sortedPolygonsVertexBuffer.get(), 0, (int)_sortedPolygonsVertices.size(), _sortedPolygonsVertices.data());
 
 		_stInstancedSpriteBuffer.Sprites[0].World = Matrix::Identity;
-		_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
+		_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = objectInfo->Sprite->UseCustomUV ? 2 : 1;
 		_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = objectInfo->Sprite->SoftParticle ? 1 : 0;
 		_stInstancedSpriteBuffer.Sprites[0].RenderType = (int)objectInfo->Sprite->renderType;
 

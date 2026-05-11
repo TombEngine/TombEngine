@@ -428,6 +428,7 @@ namespace TEN::Renderer
 		void PrepareRopes(RenderView& view);
 		void DrawFishSwarm(RenderView& view, RendererPass rendererPass);
 		void DrawBats(RenderView& view, RendererPass rendererPass);
+		void PrepareTr3Bats(RenderView& view);
 		void DrawRats(RenderView& view, RendererPass rendererPass);
 		void DrawScarabs(RenderView& view, RendererPass rendererPass);
 		void DrawSpiders(RenderView& view, RendererPass rendererPass);

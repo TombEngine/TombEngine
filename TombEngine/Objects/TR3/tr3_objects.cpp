@@ -32,6 +32,7 @@
 #include "Objects/TR3/Entity/tr3_tiger.h"
 #include "Objects/TR3/Entity/tr3_trex.h"
 #include "Objects/TR3/Entity/tr3_tribesman.h"
+#include "Objects/TR3/Emitter/tr3_bats_emitter.h"
 
 // Effects
 #include "Objects/Effects/Boss.h"
@@ -501,6 +502,17 @@ static void StartObject(ObjectInfo* obj)
 	}
 }
 
+static void StartEmitter(ObjectInfo* obj)
+{
+	obj = &Objects[ID_TR3_BATS_EMITTER];
+	if (obj->loaded)
+	{
+		obj->Hidden = true;
+		obj->Initialize = InitializeTr3BatsEmitter;
+		obj->control = Tr3BatsEmitterControl;
+	}
+}
+
 static void StartTrap(ObjectInfo* obj)
 {
 	obj = &Objects[ID_TRAIN];
@@ -671,6 +683,7 @@ void InitializeTR3Objects()
 	ObjectInfo* objectPtr = nullptr;
 	StartEntity(objectPtr);
 	StartObject(objectPtr);
+	StartEmitter(objectPtr);
 	StartTrap(objectPtr);
 	StartVehicles(objectPtr);
 	StartProjectiles(objectPtr);

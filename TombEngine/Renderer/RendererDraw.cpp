@@ -22,10 +22,12 @@
 #include "Game/Setup.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/TR3/Entity/FishSwarm.h"
+#include "Objects/TR3/Emitter/tr3_bats_emitter.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
 #include "Objects/TR4/Entity/Locust.h"
 #include "Objects/TR5/Emitter/tr5_bats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_rats_emitter.h"
+#include "Objects/Utils/object_helper.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/Structures/RendererSortableObject.h"
@@ -892,6 +894,42 @@ namespace TEN::Renderer
 					batCount = 0;
 				}
 			}
+		}
+	}
+
+	void Renderer::PrepareTr3Bats(RenderView& view)
+	{
+		if (!Objects[ID_TR3_BATS_EMITTER].loaded)
+			return;
+
+		if (!CheckIfSlotExists(ID_MISC_SPRITES, "TR3 bats rendering"))
+			return;
+
+		int spriteIndex = Objects[ID_MISC_SPRITES].meshIndex + TEN::Entities::TR3::GetTr3BatSpriteId();
+
+		if (spriteIndex < 0 || spriteIndex >= (int)_sprites.size())
+			return;
+
+		auto* sprite = &_sprites[spriteIndex];
+		float interpolationFactor = GetInterpolationFactor();
+
+		view.SpritesToDraw.reserve(view.SpritesToDraw.size() + TEN::Entities::TR3::NUM_TR3_BATS * 3);
+
+		for (const auto& bat : TEN::Entities::TR3::Tr3Bats)
+		{
+			if (!bat.On)
+				continue;
+
+			if (IgnoreReflectionPassForRoom(bat.RoomNumber))
+				continue;
+
+			TEN::Entities::TR3::AddTr3BatSpritesToDraw(
+				view.SpritesToDraw,
+				sprite,
+				bat,
+				_rooms[bat.RoomNumber].AmbientLight,
+				view.Camera.ViewProjection,
+				interpolationFactor);
 		}
 	}
 
@@ -1851,6 +1889,7 @@ namespace TEN::Renderer
 		PrepareLaserBarriers(view);
 		PrepareSingleLaserBeam(view);
 		PrepareFireflies(view);
+		PrepareTr3Bats(view);
 
 		// Sprites grouped in buckets for instancing. Non-commutative sprites are collected at a later stage.
 		SortAndPrepareSprites(view);
@@ -3763,10 +3802,10 @@ namespace TEN::Renderer
 						p3t = Vector3(-0.5, -0.5, 0);
 					}
 
-					uv0 = spr->Sprite->UV[0];
-					uv1 = spr->Sprite->UV[1];
-					uv2 = spr->Sprite->UV[2];
-					uv3 = spr->Sprite->UV[3];
+					uv0 = spr->UseCustomUV ? spr->CustomUV[0] : spr->Sprite->UV[0];
+					uv1 = spr->UseCustomUV ? spr->CustomUV[1] : spr->Sprite->UV[1];
+					uv2 = spr->UseCustomUV ? spr->CustomUV[2] : spr->Sprite->UV[2];
+					uv3 = spr->UseCustomUV ? spr->CustomUV[3] : spr->Sprite->UV[3];
 
 					auto world = GetWorldMatrixForSprite(*currentObject->Sprite, view);
 					
