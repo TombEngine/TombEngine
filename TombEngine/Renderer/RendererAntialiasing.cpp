@@ -28,34 +28,44 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque, true);
 		SetCullMode(CullMode::CounterClockwise, true);
 		SetDepthState(DepthState::Write, true);
-		_graphicsDevice->SetViewport(view.Viewport);
-		_graphicsDevice->SetScissor(view.Viewport);
 
-		// Common vertex shader to all fullscreen effects
+		// Common VS for all fullscreen passes (Smaa* shaders are PS-only).
 		_shaders.Bind(Shader::PostProcess);
 
-		// We draw a fullscreen triangle
 		SetPrimitiveType(PrimitiveType::TriangleList);
 		SetInputLayout(_fullScreenVertexInputLayout.get());
 		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
-		// Copy render target to SMAA scene target.
-		_graphicsDevice->ClearRenderTarget2D(_SMAASceneRenderTarget->GetRenderTarget(), Colors::Transparent);
-		BindRenderTarget(_SMAASceneRenderTarget->GetRenderTarget(), nullptr);
-		
+		auto fullscreenPass = [&](IRenderTarget2D* target, const XMVECTORF32& clearColor, const char* label) {
+			RenderPassDescriptor pass;
+			ColorAttachmentDescriptor color;
+			color.Target     = target;
+			color.Load       = LoadAction::Clear;
+			color.ClearColor = clearColor;
+			pass.ColorAttachments.push_back(color);
+			pass.HasViewport = true;
+			pass.Viewport    = view.Viewport;
+			pass.DebugLabel  = label;
+			BeginRenderPass(pass);
+		};
+
+		// Copy scene to SMAA scene target.
+		fullscreenPass(_SMAASceneRenderTarget->GetRenderTarget(), Colors::Transparent, "SMAA Scene Copy");
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
+		EndRenderPass();
 
-		// 1) Edge detection using color method (also depth and luma available).
-		_graphicsDevice->ClearRenderTarget2D(_SMAAEdgesRenderTarget->GetRenderTarget(), Colors::Transparent);
-		_graphicsDevice->ClearRenderTarget2D(_SMAABlendRenderTarget->GetRenderTarget(), Colors::Transparent);
+		// Pre-clear blend RT (the edge-detection subpass needs a clean blend target).
+		fullscreenPass(_SMAABlendRenderTarget->GetRenderTarget(), Colors::Transparent, "SMAA Blend Pre-clear");
+		EndRenderPass();
 
+		// 1) Edge detection (color method).
+		fullscreenPass(_SMAAEdgesRenderTarget->GetRenderTarget(), Colors::Transparent, "SMAA Edge Detection");
 		SetCullMode(CullMode::CounterClockwise);
-		BindRenderTarget(_SMAAEdgesRenderTarget->GetRenderTarget(), nullptr);
 
 		_shaders.Bind(Shader::SmaaEdgeDetection);
 		_shaders.Bind(Shader::SmaaColorEdgeDetection);
-		 
+
 		_stSMAABuffer.BlendFactor = 1.0f;
 		UpdateConstantBuffer(&_stSMAABuffer, _cbSMAABuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, static_cast<ConstantBufferRegister>(13), _cbSMAABuffer.get());
@@ -68,10 +78,11 @@ namespace TEN::Renderer
 		BindTexture(static_cast<TextureRegister>(8), _SMAASearchTexture.get(), SamplerStateRegister::LinearClamp);
 
 		DrawTriangles(3, 0);
+		EndRenderPass();
 
-		// 2) Blend weights calculation.
-		BindRenderTarget(_SMAABlendRenderTarget->GetRenderTarget(), nullptr);
-		
+		// 2) Blend weight calculation.
+		fullscreenPass(_SMAABlendRenderTarget->GetRenderTarget(), Colors::Transparent, "SMAA Blend Weights");
+
 		_shaders.Bind(Shader::SmaaBlendingWeightCalculation);
 
 		_stSMAABuffer.SubsampleIndices = Vector4::Zero;
@@ -85,9 +96,20 @@ namespace TEN::Renderer
 		BindTexture(static_cast<TextureRegister>(8), _SMAASearchTexture.get(), SamplerStateRegister::LinearClamp);
 
 		DrawTriangles(3, 0);
+		EndRenderPass();
 
-		// 3) Neighborhood blending.
-		BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
+		// 3) Neighborhood blending (writes back into the source target).
+		{
+			RenderPassDescriptor pass;
+			ColorAttachmentDescriptor color;
+			color.Target = renderTarget->GetRenderTarget();
+			color.Load   = LoadAction::Load;
+			pass.ColorAttachments.push_back(color);
+			pass.HasViewport = true;
+			pass.Viewport    = view.Viewport;
+			pass.DebugLabel  = "SMAA Neighborhood Blend";
+			BeginRenderPass(pass);
+		}
 
 		_shaders.Bind(Shader::SmaaNeighborhoodBlending);
 
@@ -99,6 +121,7 @@ namespace TEN::Renderer
 		BindTexture(static_cast<TextureRegister>(8), _SMAASearchTexture.get(), SamplerStateRegister::LinearClamp);
 
 		DrawTriangles(3, 0);
+		EndRenderPass();
 
 		SetPrimitiveType(PrimitiveType::TriangleList);
 		SetInputLayout(_vertexInputLayout.get());
@@ -109,35 +132,44 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque, true);
 		SetCullMode(CullMode::CounterClockwise, true);
 		SetDepthState(DepthState::Write, true);
-		_graphicsDevice->SetViewport(view.Viewport);
-		_graphicsDevice->SetScissor(view.Viewport);
 
-		// Common vertex shader to all fullscreen effects
+		// Common VS for all fullscreen passes (Fxaa is PS-only).
 		_shaders.Bind(Shader::PostProcess);
 
-		// We draw a fullscreen triangle
 		SetPrimitiveType(PrimitiveType::TriangleList);
 		SetInputLayout(_fullScreenVertexInputLayout.get());
 		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
-		// Copy render target to temp render target.
-		_graphicsDevice->ClearRenderTarget2D(_postProcessRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
-		BindRenderTarget(_postProcessRenderTarget[0]->GetRenderTarget(), nullptr);
+		auto fullscreenPass = [&](IRenderTarget2D* target, const XMVECTORF32& clearColor, const char* label) {
+			RenderPassDescriptor pass;
+			ColorAttachmentDescriptor color;
+			color.Target     = target;
+			color.Load       = LoadAction::Clear;
+			color.ClearColor = clearColor;
+			pass.ColorAttachments.push_back(color);
+			pass.HasViewport = true;
+			pass.Viewport    = view.Viewport;
+			pass.DebugLabel  = label;
+			BeginRenderPass(pass);
+		};
 
+		// Copy scene to temp render target.
+		fullscreenPass(_postProcessRenderTarget[0]->GetRenderTarget(), Colors::Transparent, "FXAA Scene Copy");
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
+		EndRenderPass();
 
-		// Apply FXAA
-		_graphicsDevice->ClearRenderTarget2D(renderTarget->GetRenderTarget(), Colors::Black);
-		BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
+		// Apply FXAA back into the source target.
+		fullscreenPass(renderTarget->GetRenderTarget(), Colors::Black, "FXAA");
 
 		_shaders.Bind(Shader::Fxaa);
 
 		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
 		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
-		
+
 		BindTexture(TextureRegister::ColorMap, _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::AnisotropicClamp);
 
 		DrawTriangles(3, 0);
+		EndRenderPass();
 	}
 }
