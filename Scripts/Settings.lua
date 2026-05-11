@@ -9,6 +9,7 @@ local settings = Flow.Settings.new()
 	settings.Animations.crawlspaceSwandive = true
 	settings.Animations.sprintJump = false
 	settings.Animations.ledgeJumps = false
+	settings.Animations.invertBackflipTurn = true
 	settings.Animations.poseTimeout = 0
 	
 	settings.Camera.binocularLightColor = Color(192, 192, 96)

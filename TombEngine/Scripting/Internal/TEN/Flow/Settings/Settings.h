@@ -17,13 +17,14 @@ namespace TEN::Scripting
 	{
 		int PoseTimeout = 20; // AFK pose timeout.
 
-		bool SlideExtended	= false; // Extended slope sliding functionality (not ready yet).
-		bool SprintJump		= false; // Sprint jump.
-		bool CrawlspaceDive = true;	 // Dive into crawlspaces.
-		bool CrawlExtended	= true;	 // Extended crawl moveset.
-		bool CrouchRoll		= true;	 // Crouch roll.
-		bool OverhangClimb	= false; // Overhang functionality.
-		bool LedgeJumps		= false; // Jump up or back from a ledge.
+		bool SlideExtended		= false; // Extended slope sliding functionality (not ready yet).
+		bool SprintJump			= false; // Sprint jump.
+		bool CrawlspaceDive		= true;	 // Dive into crawlspaces.
+		bool CrawlExtended		= true;	 // Extended crawl moveset.
+		bool CrouchRoll			= true;	 // Crouch roll.
+		bool OverhangClimb		= false; // Overhang functionality.
+		bool LedgeJumps			= false; // Jump up or back from a ledge.
+		bool InvertBackflipTurn = true;  // Invert backwards jump directional controls.
 
 		static void Register(sol::table& parent);
 	};
