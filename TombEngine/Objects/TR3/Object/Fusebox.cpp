@@ -29,70 +29,12 @@ namespace TEN::Entities::TR3
 	};
 
 	// Spark effect parameters.
-	constexpr auto FUSEBOX_SPARK_DURATION    = 10 * FPS;
-	constexpr auto FUSEBOX_SPARK_COUNT       = 6;
-	constexpr auto FUSEBOX_SPARK_PROBABILITY = 0.6f;
+	constexpr auto FUSEBOX_SPARK_DURATION = 10 * FPS;
 
 	// Dynamic lighting parameters.
 	constexpr auto FUSEBOX_FLASH_DURATION  = FPS / 2;
 	constexpr auto FUSEBOX_FLASH_FALLOFF   = BLOCK(4);
 	constexpr auto FUSEBOX_FLICKER_FALLOFF = BLOCK(2);
-
-	// Yellow spark colour variation probability.
-	constexpr auto FUSEBOX_YELLOW_SPARK_PROBABILITY = 0.6f;
-
-	static void SpawnDestructionBlast(const ItemInfo& item, const Vector3i& pos)
-	{
-		// Blue-white sparks shooting outward up to 1 BLOCK distance.
-		TriggerFuseboxBlastSparks(pos, item.RoomNumber);
-
-		// Custom fusebox sparks (yellow and close-range blue/white).
-		TriggerFuseboxSparks(pos, item.RoomNumber);
-	}
-
-	static void SpawnContinuousSparks(const ItemInfo& item, const Vector3i& pos, float intensity)
-	{
-		if (!TestProbability(FUSEBOX_SPARK_PROBABILITY * intensity))
-			return;
-
-		int count = (int)(FUSEBOX_SPARK_COUNT * intensity);
-
-		for (int i = 0; i < count; i++)
-		{
-			auto& spark = GetFreeSparkParticle();
-			spark = {};
-
-			spark.age      = 0;
-			spark.life     = GenerateFloat(8.0f, 16.0f);
-			spark.friction = 1.0f;
-			spark.gravity  = 2.5f;
-			spark.height   = GenerateFloat(64.0f, 192.0f) * intensity;
-			spark.width    = GenerateFloat(8.0f, 16.0f);
-			spark.room     = item.RoomNumber;
-
-			spark.pos = Vector3(
-				(float)pos.x + GenerateFloat(-16.0f, 16.0f),
-				(float)pos.y + GenerateFloat(-16.0f, 16.0f),
-				(float)pos.z + GenerateFloat(-16.0f, 16.0f));
-
-			auto dir = Vector3(GenerateFloat(-1.0f, 1.0f), GenerateFloat(0.5f, 2.0f), GenerateFloat(-1.0f, 1.0f));
-			dir.Normalize(dir);
-			spark.velocity = dir * GenerateFloat(8.0f, 24.0f);
-
-			if (TestProbability(FUSEBOX_YELLOW_SPARK_PROBABILITY))
-			{
-				spark.sourceColor      = Vector4(1.0f, 1.0f, 0.8f, intensity);
-				spark.destinationColor = Vector4(1.0f, 0.5f, 0.0f, 0.0f);
-			}
-			else
-			{
-				spark.sourceColor      = Vector4(0.6f, 0.8f, 1.0f, intensity);
-				spark.destinationColor = Vector4(0.2f, 0.3f, 0.8f, 0.0f);
-			}
-
-			spark.active = true;
-		}
-	}
 
 	static void UpdateDynamicLight(const ItemInfo& item, const Vector3i& pos, int sparkTimer, int flashTimer)
 	{
@@ -152,7 +94,7 @@ namespace TEN::Entities::TR3
 			{
 				float intensity = (float)sparkTimer / FUSEBOX_SPARK_DURATION;
 
-				SpawnContinuousSparks(item, pos, intensity);
+				TriggerFuseboxContinuousSparks(pos, item.RoomNumber, intensity);
 				UpdateDynamicLight(item, pos, sparkTimer, flashTimer);
 
 				if (TestProbability(0.5f * intensity))
@@ -179,7 +121,7 @@ namespace TEN::Entities::TR3
 			item.ItemFlags[FuseboxFlags::FlashTimer]  = FUSEBOX_FLASH_DURATION;
 
 			SetAnimation(item, item.ObjectNumber, 1);
-			SpawnDestructionBlast(item, pos);
+			TriggerFuseboxDestructionBlast(pos, item.RoomNumber);
 			SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, &item.Pose);
 		}
 
