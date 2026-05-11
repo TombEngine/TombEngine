@@ -43,10 +43,9 @@ void ShootAtEnemy(Vector3i target, ItemInfo* item, int index)
 	if (Vector3i::Distance(item->Pose.Position, target) > TARGET_DEVIATION_THRESHOLD)
 		target = item->Pose.Position;
 
-	auto targetWithOffset = Vector3(
-		target.x,
-		target.y - (GameBoundingBox(item).GetHeight() * 0.75f),
-		target.z);
+	auto bounds = GameBoundingBox(item);
+	auto yOffset = bounds.Y2 - (bounds.GetHeight() * 0.75f);
+	auto targetWithOffset = Vector3(target.x, item->Pose.Position.y + yOffset, target.z);
 
 	// Apply slight random scatter.
 	auto randomOrient = EulerAngles(
@@ -199,7 +198,7 @@ short ShardGun(int x, int y, int z, short velocity, short yRot, short roomNumber
 		fx.speed = velocity;
 		fx.frameNumber = 0;
 		fx.objectNumber = ID_PROJ_SHARD;
-		fx.color = Vector4::One;
+		fx.color = NEUTRAL_COLOR;
 	}
 
 	return fxNumber;
@@ -217,7 +216,7 @@ short BombGun(int x, int y, int z, short velocity, short yRot, short roomNumber)
 		fx.speed = velocity;
 		fx.frameNumber = 0;
 		fx.objectNumber = ID_PROJ_BOMB;
-		fx.color = Vector4::One;
+		fx.color = NEUTRAL_COLOR;
 	}
 
 	return fxNumber;
@@ -235,7 +234,7 @@ short HarpoonGun(int x, int y, int z, short velocity, short yRot, short roomNumb
 		fx.speed = velocity;
 		fx.frameNumber = 0;
 		fx.objectNumber = ID_SCUBA_HARPOON;
-		fx.color = Vector4::One;
+		fx.color = NEUTRAL_COLOR;
 	}
 
 	return fxNumber;

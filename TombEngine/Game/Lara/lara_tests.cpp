@@ -280,7 +280,7 @@ bool TestLaraHangJump(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (!IsHeld(In::Action) || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
+	if (!IsHeld(In::Action) || item->HitPoints <= 0 || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
 		return false;
 
 	if (CanGrabMonkeySwing(*item, *coll))
@@ -345,7 +345,7 @@ bool TestLaraHangJumpUp(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (!IsHeld(In::Action) || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
+	if (!IsHeld(In::Action) || item->HitPoints <= 0 || lara->Control.HandStatus != HandStatus::Free || coll->HitStatic)
 		return false;
 
 	if (CanGrabMonkeySwing(*item, *coll))
@@ -565,6 +565,8 @@ bool TestLaraValidHangPosition(ItemInfo* item, CollisionInfo* coll)
 
 CornerType TestLaraHangCorner(ItemInfo* item, CollisionInfo* coll, float testAngle)
 {
+	constexpr int CORNER_TEST_OFFSET = 16;
+
 	auto* lara = GetLaraInfo(item);
 
 	// Lara isn't in stop state yet, bypass test
@@ -591,11 +593,10 @@ CornerType TestLaraHangCorner(ItemInfo* item, CollisionInfo* coll, float testAng
 
 		// Store next position
 		item->Pose = cornerResult.RealPositionResult;
-		lara->Context.NextCornerPos.Position = Vector3i(
-			item->Pose.Position.x,
-			GetPointCollision(*item, item->Pose.Orientation.y, coll->Setup.Radius + 16, -(coll->Setup.Height + CLICK(0.5f))).GetFloorHeight() + abs(bounds.Y1),
-			item->Pose.Position.z
-		);
+
+		int nextVerticalPos = GetPointCollision(*item, item->Pose.Orientation.y, coll->Setup.Radius + CORNER_TEST_OFFSET, -(coll->Setup.Height + CORNER_TEST_OFFSET)).GetFloorHeight() + abs(bounds.Y1);
+
+		lara->Context.NextCornerPos.Position = Vector3i(item->Pose.Position.x, nextVerticalPos, item->Pose.Position.z);
 		lara->Context.NextCornerPos.Orientation.y = item->Pose.Orientation.y;
 		lara->Control.MoveAngle = item->Pose.Orientation.y;
 
@@ -1396,7 +1397,7 @@ std::optional<VaultTestResult> TestLaraVault3StepsToCrouch(ItemInfo* item, Colli
 	{
 		int(-CLICK(2.5f)), int(-CLICK(3.5f)),
 		LARA_HEIGHT_CRAWL, LARA_HEIGHT,
-		int(CLICK(1)),
+		int(CLICK(1))
 	};
 
 	auto testResult = TestLaraVaultTolerance(item, coll, testSetup);

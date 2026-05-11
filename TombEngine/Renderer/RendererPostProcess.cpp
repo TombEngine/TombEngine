@@ -1,47 +1,158 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
+
 #include "Game/spotcam.h"
 
 namespace TEN::Renderer
 {
-	void Renderer::DrawPostprocess(RenderTarget2D* renderTarget, RenderView& view, SceneRenderMode renderMode)
+	void Renderer::ApplyDOF(IRenderSurface2D* renderTarget, RenderView& view)
+	{
+		if (_currentDOF.Strength <= EPSILON || _currentDOF.Mode == DOFMode::None)
+			return;
+
+		SetBlendMode(BlendMode::Opaque, true);
+		SetCullMode(CullMode::CounterClockwise, true);
+		SetDepthState(DepthState::Write, true);
+
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+
+		auto halfWidth = std::max(1, (int)_dofViewport.Width);
+		auto halfHeight = std::max(1, (int)_dofViewport.Height);
+
+		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
+		_stPostProcessBuffer.TexelSize = Vector2(1.0f / halfWidth, 1.0f / halfHeight);
+		_stPostProcessBuffer.DofParams = Vector4(_currentDOF.Distance, _currentDOF.Range, _currentDOF.Strength, (float)_currentDOF.Mode);
+		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
+
+		// Copy full-resolution scene for the final composite.
+		_graphicsDevice->SetViewport(view.Viewport);
+		_graphicsDevice->SetScissor(view.Viewport);
+		_shaders.Bind(Shader::PostProcess);
+		_graphicsDevice->ClearRenderTarget2D(_postProcessRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_postProcessRenderTarget[0]->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+
+		// Half-resolution downsample + packed signed CoC in alpha → RT[0].
+		_graphicsDevice->SetViewport(_dofViewport);
+		_graphicsDevice->SetScissor(_dofViewport);
+		_shaders.Bind(Shader::PostProcessDofDownsample);
+		_graphicsDevice->ClearRenderTarget2D(_dofRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_dofRenderTarget[0]->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
+		DrawTriangles(3, 0);
+
+		// Far (background) blur — reads undilated RT[0], writes RT[1].
+		_shaders.Bind(Shader::PostProcessDofFarBlur);
+		_graphicsDevice->ClearRenderTarget2D(_dofRenderTarget[1]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_dofRenderTarget[1]->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _dofRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+
+		// Near CoC dilation — 3x3 min-filter expands foreground CoC outward → RT[2].
+		_shaders.Bind(Shader::PostProcessDofNearDilate);
+		_graphicsDevice->ClearRenderTarget2D(_dofRenderTarget[2]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_dofRenderTarget[2]->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _dofRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+
+		// Near (foreground) blur — reads dilated RT[2], writes RT[0] (downsample no longer needed).
+		_shaders.Bind(Shader::PostProcessDofNearBlur);
+		_graphicsDevice->ClearRenderTarget2D(_dofRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_dofRenderTarget[0]->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _dofRenderTarget[2]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+
+		// Full-resolution composite: sharp + far blur (RT[1]) + near blur (RT[0]).
+		_graphicsDevice->SetViewport(view.Viewport);
+		_graphicsDevice->SetScissor(view.Viewport);
+		_shaders.Bind(Shader::PostProcessDofComposite);
+		_graphicsDevice->ClearRenderTarget2D(renderTarget->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
+		BindRenderTargetAsTexture(TextureRegister::DistortionMap, _dofRenderTarget[1]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::CausticsMap, _dofRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+	}
+
+	void Renderer::ApplyDistortion(IRenderSurface2D* renderTarget, RenderView& view)
+	{
+		if (!_hasDistortionMask)
+			return;
+
+		SetBlendMode(BlendMode::Opaque, true);
+		SetCullMode(CullMode::CounterClockwise, true);
+		SetDepthState(DepthState::Write, true);
+		_graphicsDevice->SetViewport(view.Viewport);
+		_graphicsDevice->SetScissor(view.Viewport);
+
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+
+		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
+		_stPostProcessBuffer.TexelSize = Vector2(1.0f / _graphicsDevice->GetScreenWidth(), 1.0f / _graphicsDevice->GetScreenHeight());
+		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
+
+		_shaders.Bind(Shader::PostProcess);
+
+		_graphicsDevice->ClearRenderTarget2D(_postProcessRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_postProcessRenderTarget[0]->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+
+		_graphicsDevice->ClearRenderTarget2D(_postProcessRenderTarget[1]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_postProcessRenderTarget[1]->GetRenderTarget(), nullptr);
+		_shaders.Bind(Shader::PostProcessDistortion);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
+		BindRenderTargetAsTexture(TextureRegister::DistortionMap, _distortionRenderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+
+		_shaders.Bind(Shader::PostProcess);
+		_graphicsDevice->ClearRenderTarget2D(renderTarget->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[1]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+	}
+
+	void Renderer::DrawPostprocess(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode)
 	{
 		_doingFullscreenPass = true;
 
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
 		SetDepthState(DepthState::Write);
-		_context->RSSetViewports(1, &view.Viewport);
-		ResetScissor();
+		_graphicsDevice->SetViewport(view.Viewport);
+		_graphicsDevice->SetScissor(view.Viewport);
 
 		float screenFadeFactor = renderMode == SceneRenderMode::Full ? ScreenFadeCurrent : 1.0f;
 		float cinematicBarsHeight = renderMode == SceneRenderMode::Full ? CinematicBarsHeight : 0.0f;
 
 		_stPostProcessBuffer.ScreenFadeFactor = screenFadeFactor;
 		_stPostProcessBuffer.CinematicBarsHeight = cinematicBarsHeight;
-		_stPostProcessBuffer.ViewportSize = Vector2i(_screenWidth, _screenHeight);
+		_stPostProcessBuffer.ViewportSize = Vector2i( _graphicsDevice->GetScreenWidth(),  _graphicsDevice->GetScreenHeight());
 		_stPostProcessBuffer.EffectStrength = _postProcessStrength;
 		_stPostProcessBuffer.Tint = _postProcessTint;
-		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
+		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
-
-		unsigned int stride = sizeof(PostProcessVertex);
-		unsigned int offset = 0;
-
-		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		_shaders.Bind(Shader::PostProcess);
 
 		// *** START OF POST-PROCESSING CHAIN ***
 		
 		// Copy render target to post process render target. --------------------------------------------------------------------
-		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		_context->ClearRenderTargetView(_postProcessRenderTarget[0].RenderTargetView.Get(), clearColor);
-		_context->OMSetRenderTargets(1, _postProcessRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);
+		_graphicsDevice->ClearRenderTarget2D(_postProcessRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_postProcessRenderTarget[0]->GetRenderTarget(), nullptr);
 
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_renderTarget, SamplerStateRegister::PointWrap);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _renderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
 
 		// Ping-pong between two post-process render targets.
@@ -53,8 +164,8 @@ namespace TEN::Renderer
 		
 		if (!view.LensFlaresToDraw.empty())
 		{
-			_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
-			_context->OMSetRenderTargets(1, _postProcessRenderTarget[destRenderTarget].RenderTargetView.GetAddressOf(), nullptr);
+			_graphicsDevice->ClearRenderTarget2D(_postProcessRenderTarget[destRenderTarget]->GetRenderTarget(), Colors::Transparent);
+			_graphicsDevice->BindRenderTarget(_postProcessRenderTarget[destRenderTarget]->GetRenderTarget(), nullptr);
 
 			_shaders.Bind(Shader::PostProcessLensFlare);
 
@@ -64,9 +175,9 @@ namespace TEN::Renderer
 				_stPostProcessBuffer.LensFlares[i].Color = view.LensFlaresToDraw[i].Color.ToVector3();
 			}
 			_stPostProcessBuffer.NumLensFlares = (int)view.LensFlaresToDraw.size();
-			UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
+			UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
-			BindRenderTargetAsTexture(TextureRegister::ColorMap, &_postProcessRenderTarget[currentRenderTarget], SamplerStateRegister::PointWrap);
+			BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[currentRenderTarget]->GetRenderTarget(), SamplerStateRegister::PointWrap);
 			DrawTriangles(3, 0);
 
 			destRenderTarget = (destRenderTarget) == 1 ? 0 : 1;
@@ -76,8 +187,8 @@ namespace TEN::Renderer
 		// Color scheme ----------------------------------------------------------------------------------------------------------
 		if (_postProcessMode != PostProcessMode::None && _postProcessStrength > EPSILON)
 		{
-			_context->ClearRenderTargetView(_postProcessRenderTarget[destRenderTarget].RenderTargetView.Get(), clearColor);
-			_context->OMSetRenderTargets(1, _postProcessRenderTarget[destRenderTarget].RenderTargetView.GetAddressOf(), nullptr);
+			_graphicsDevice->ClearRenderTarget2D(_postProcessRenderTarget[destRenderTarget]->GetRenderTarget(), Colors::Transparent);
+			_graphicsDevice->BindRenderTarget(_postProcessRenderTarget[destRenderTarget]->GetRenderTarget(), nullptr);
 
 			switch (_postProcessMode)
 			{
@@ -97,7 +208,7 @@ namespace TEN::Renderer
 				return;
 			}
 
-			BindRenderTargetAsTexture(TextureRegister::ColorMap, &_postProcessRenderTarget[currentRenderTarget], SamplerStateRegister::PointWrap);
+			BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[currentRenderTarget]->GetRenderTarget(), SamplerStateRegister::PointWrap);
 			DrawTriangles(3, 0);
 
 			destRenderTarget = (destRenderTarget == 1) ? 0 : 1;
@@ -107,11 +218,11 @@ namespace TEN::Renderer
 		// Final pass ----------------------------------------------------------------------------------------------------------
 		_shaders.Bind(Shader::PostProcessFinalPass);
 
-		_context->ClearRenderTargetView(renderTarget->RenderTargetView.Get(), Colors::Black);
-		_context->ClearDepthStencilView(renderTarget->DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-		_context->OMSetRenderTargets(1, renderTarget->RenderTargetView.GetAddressOf(), renderTarget->DepthStencilView.Get());
+		_graphicsDevice->ClearRenderTarget2D(renderTarget->GetRenderTarget(), Colors::Black);
+		_graphicsDevice->ClearDepthStencil(renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), renderTarget->GetDepthTarget());
 
-		BindTexture(TextureRegister::ColorMap, &_postProcessRenderTarget[currentRenderTarget], SamplerStateRegister::PointWrap);
+		BindTexture(TextureRegister::ColorMap, _postProcessRenderTarget[currentRenderTarget]->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
 		DrawTriangles(3, 0);
 
@@ -148,53 +259,60 @@ namespace TEN::Renderer
 		_postProcessTint = tint;
 	}
 
-	void Renderer::CopyRenderTarget(RenderTarget2D* source, RenderTarget2D* dest, RenderView& view)
+	DOFState Renderer::GetDOF() const 
+	{
+		return _lastDOF;
+	}
+
+	void Renderer::SetDOF(const DOFState& state, bool save)
+	{
+		_currentDOF.Mode     = state.Mode;
+		_currentDOF.Distance = state.Distance;
+		_currentDOF.Range    = std::max(0.0f, state.Range);
+		_currentDOF.Strength = std::clamp(state.Strength, 0.0f, 1.0f);
+
+		if (save)
+			_lastDOF = _currentDOF;
+	}
+
+	void Renderer::RestoreDOF()
+	{
+		_currentDOF = _lastDOF;
+	}
+
+	void Renderer::CopyRenderTarget(IRenderSurface2D* source, IRenderSurface2D* dest, RenderView& view)
 	{
 		SetBlendMode(BlendMode::Opaque, true);
 		SetCullMode(CullMode::CounterClockwise, true);
 		SetDepthState(DepthState::Write, true);
-		_context->RSSetViewports(1, &view.Viewport);
-		ResetScissor();
+		_graphicsDevice->SetViewport(view.Viewport);
+		_graphicsDevice->SetScissor(view.Viewport);
 
 		// Common vertex shader to all fullscreen effects
 		_shaders.Bind(Shader::PostProcess);
 
 		// We draw a fullscreen triangle
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
 
-		unsigned int stride = sizeof(PostProcessVertex);
-		unsigned int offset = 0;
-
-		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		_context->ClearRenderTargetView(dest->RenderTargetView.Get(), clearColor);
-		_context->OMSetRenderTargets(1, dest->RenderTargetView.GetAddressOf(), nullptr);
+		_graphicsDevice->ClearRenderTarget2D(dest->GetRenderTarget(), Colors::Black);
+		_graphicsDevice->BindRenderTarget(dest->GetRenderTarget(), nullptr);
 
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, source, SamplerStateRegister::PointWrap);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, source->GetRenderTarget(), SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
 	}
 
-	void Renderer::CopyRenderTargetAndDownscale(RenderTarget2D* source, RenderTarget2D* dest, float factor, RenderView& view)
+	void Renderer::CopyRenderTargetAndDownscale(IRenderSurface2D* source, IRenderSurface2D* dest, float factor, RenderView& view)
 	{
-		D3D11_VIEWPORT viewport;
-		viewport.TopLeftX = 0;
-		viewport.TopLeftY = 0;
-		viewport.Width = _screenWidth / factor;
-		viewport.Height = _screenHeight / factor;
-		viewport.MinDepth = 0;
-		viewport.MaxDepth = 1;
+		int w = (_graphicsDevice->GetScreenWidth() + factor - 1) / factor;
+		int h = (_graphicsDevice->GetScreenHeight() + factor - 1) / factor;
 
-		_context->RSSetViewports(1, &viewport);
-
-		D3D11_RECT rects[1];
-		rects[0].left = 0;
-		rects[0].right = viewport.Width;
-		rects[0].top = 0;
-		rects[0].bottom = viewport.Height;
-
-		_context->RSSetScissorRects(1, rects);
+		RendererViewport viewport = { 0, 0, w, h, 0.0f, 1.0f };
+		_graphicsDevice->SetViewport(viewport);
+		_graphicsDevice->SetScissor(viewport);
 
 		SetBlendMode(BlendMode::Opaque, true);
 		SetCullMode(CullMode::CounterClockwise, true);
@@ -204,120 +322,96 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::PostProcess);
 
 		// We draw a fullscreen triangle
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
-		unsigned int stride = sizeof(PostProcessVertex);
-		unsigned int offset = 0;
+		_graphicsDevice->ClearRenderTarget2D(dest->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(dest->GetRenderTarget(), nullptr);
 
-		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-
-		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		_context->ClearRenderTargetView(dest->RenderTargetView.Get(), clearColor);
-		_context->OMSetRenderTargets(1, dest->RenderTargetView.GetAddressOf(), nullptr);
-
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, source, SamplerStateRegister::PointWrap);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, source->GetRenderTarget(), SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
 
 		ResetScissor();
-		_context->RSSetViewports(1, &view.Viewport);
+		_graphicsDevice->SetViewport(view.Viewport);
 	}
 
-	void Renderer::ApplyGlow(RenderTarget2D* renderTarget, RenderView& view)
+	void Renderer::ApplyGlow(IRenderSurface2D* renderTarget, RenderView& view)
 	{
 		SetBlendMode(BlendMode::Opaque, true);
 		SetCullMode(CullMode::CounterClockwise, true);
 		SetDepthState(DepthState::Write, true);
 
-		D3D11_VIEWPORT viewport;
-		viewport.TopLeftX = 0;
-		viewport.TopLeftY = 0;
-		viewport.Width = _screenWidth / GLOW_DOWNSCALE_FACTOR;
-		viewport.Height = _screenHeight / GLOW_DOWNSCALE_FACTOR;
-		viewport.MinDepth = 0;
-		viewport.MaxDepth = 1;
-
-		_context->RSSetViewports(1, &viewport);
-
-		D3D11_RECT rects[1];
-		rects[0].left = 0;
-		rects[0].right = _screenWidth / GLOW_DOWNSCALE_FACTOR;
-		rects[0].top = 0;
-		rects[0].bottom = _screenHeight / GLOW_DOWNSCALE_FACTOR;
-
-		_context->RSSetScissorRects(1, rects);
+		RendererViewport viewport = { 0, 0, (int)( _graphicsDevice->GetScreenWidth() / GLOW_DOWNSCALE_FACTOR), (int)( _graphicsDevice->GetScreenHeight() / GLOW_DOWNSCALE_FACTOR), 0.0f, 1.0f };
+		_graphicsDevice->SetViewport(viewport);
+		_graphicsDevice->SetScissor(viewport);
 
 		_shaders.Bind(Shader::PostProcess);
 
-		_stPostProcessBuffer.ViewportSize = Vector2i(_screenWidth, _screenHeight);
+		_stPostProcessBuffer.ViewportSize = Vector2i( _graphicsDevice->GetScreenWidth(),  _graphicsDevice->GetScreenHeight());
 
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_fullscreenTriangleInputLayout.Get());
-
-		unsigned int stride = sizeof(PostProcessVertex);
-		unsigned int offset = 0;
-
-		_context->IASetVertexBuffers(0, 1, _fullscreenTriangleVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		// Downscale 
 		_shaders.Bind(Shader::Downscale);
 
 		_stPostProcessBuffer.DownscaleFactor = GLOW_DOWNSCALE_FACTOR;
-		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
+		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
-		float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-		_context->ClearRenderTargetView(_glowRenderTarget[0].RenderTargetView.Get(), clearColor);
-		_context->OMSetRenderTargets(1, _glowRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);
+		_graphicsDevice->ClearRenderTarget2D(_glowRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_glowRenderTarget[0]->GetRenderTarget(), nullptr);
 
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_emissiveAndRoughnessRenderTarget, SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _emissiveAndRoughnessRenderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
 
 		// Blur
 		_shaders.Bind(Shader::Blur);
 
-		_stPostProcessBuffer.TexelSize = Vector2(1.0f / (_screenWidth / GLOW_DOWNSCALE_FACTOR), 1.0f / (_screenHeight / GLOW_DOWNSCALE_FACTOR));
+		_stPostProcessBuffer.TexelSize = Vector2(1.0f / ( _graphicsDevice->GetScreenWidth() / GLOW_DOWNSCALE_FACTOR), 1.0f / ( _graphicsDevice->GetScreenHeight() / GLOW_DOWNSCALE_FACTOR));
 		_stPostProcessBuffer.BlurSigma = GLOW_BLUR_SIGMA;
 		_stPostProcessBuffer.BlurRadius = GLOW_BLUR_RADIUS;
 
 		// Horizontal blur
-		_context->ClearRenderTargetView(_glowRenderTarget[1].RenderTargetView.Get(), clearColor);
-		_context->OMSetRenderTargets(1, _glowRenderTarget[1].RenderTargetView.GetAddressOf(), nullptr);
+		_graphicsDevice->ClearRenderTarget2D(_glowRenderTarget[1]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_glowRenderTarget[1]->GetRenderTarget(), nullptr);
 
 		_stPostProcessBuffer.BlurDirection = Vector2(1.0f, 0.0f);
-		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
+		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_glowRenderTarget[0], SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _glowRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
 
 		// Vertical blur
 		_stPostProcessBuffer.BlurDirection = Vector2(0.0f, 1.0f);
-		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
+		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
-		_context->ClearRenderTargetView(_glowRenderTarget[0].RenderTargetView.Get(), clearColor);
-		_context->OMSetRenderTargets(1, _glowRenderTarget[0].RenderTargetView.GetAddressOf(), nullptr);
+		_graphicsDevice->ClearRenderTarget2D(_glowRenderTarget[0]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_glowRenderTarget[0]->GetRenderTarget(), nullptr);
 
-		BindRenderTargetAsTexture(TextureRegister::ColorMap, &_glowRenderTarget[1], SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _glowRenderTarget[1]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
 
 		// Reset viewport
-		_context->RSSetViewports(1, &view.Viewport);
-		ResetScissor();
+		_graphicsDevice->SetViewport(view.Viewport);
+		_graphicsDevice->SetScissor(view.Viewport);
 
 		// Copy render target to temp render target
-		CopyRenderTarget(renderTarget, &_postProcessRenderTarget[0], view);
+		CopyRenderTarget(renderTarget, _postProcessRenderTarget[0].get(), view);
 
 		// Combine glow
 		_shaders.Bind(Shader::GlowCombine);
 
 		_stPostProcessBuffer.GlowSoftAdd = 1;
 		_stPostProcessBuffer.GlowIntensity = 1.0f;
-		UpdateConstantBuffer(_stPostProcessBuffer, _cbPostProcessBuffer);
+		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
-		_context->ClearRenderTargetView(renderTarget->RenderTargetView.Get(), clearColor);
-		_context->OMSetRenderTargets(1, renderTarget->RenderTargetView.GetAddressOf(), nullptr);
+		_graphicsDevice->ClearRenderTarget2D(renderTarget->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
 
-		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), &_postProcessRenderTarget[0], SamplerStateRegister::LinearClamp);
-		BindRenderTargetAsTexture(static_cast<TextureRegister>(3), &_glowRenderTarget[0], SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(static_cast<TextureRegister>(3), _glowRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
 	}
 }

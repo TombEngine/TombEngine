@@ -140,6 +140,9 @@ namespace TEN::Control::Volumes
 		if (roomNumber == NO_VALUE)
 			return;
 
+		if (((Vector3)box.Extents).Length() <= EPSILON)
+			return;
+
 		for (int currentRoomIndex : g_Level.Rooms[roomNumber].NeighborRoomNumbers)
 		{
 			auto& room = g_Level.Rooms[currentRoomIndex];

@@ -238,7 +238,15 @@ enum GAME_OBJECT_ID : short
 	ID_SKATEBOARD_KID,
 	ID_WINSTON,
 	ID_SEAL_MUTANT,
-	
+	// 300 reserved for exisiting branch
+	// 301 reserved for exisiting branch
+	// 302 reserved for exisiting branch
+	// 303 reserved for exisiting branch
+	// 304 reserved for exisiting branch
+	// 305 reserved for exisiting branch
+	// 306 reserved for exisiting branch
+	// 307 reserved for exisiting branch
+	// 308 reserved for exisiting branch
 	ID_SPRINGBOARD = 320,
 	ID_ROLLING_SPINDLE,
 	ID_DISK_SHOOTER,
@@ -378,12 +386,27 @@ enum GAME_OBJECT_ID : short
 	ID_TURNING_WALL_BLADE,
 	ID_TURNING_CEILING_BLADE,
 	ID_FIRE_PENDULUM,
-	// 459 Reserved
-	// 460 Reserved
-	ID_WRECKINGBALL_ANCHOR = 461,
+	ID_HEAVY_STAMPER,
+	ID_DRILL_BIT,
+	ID_SPIKED_FRAME,
+	ID_SWINGING_SANDBAG,
+	ID_SWINGING_BOX,
+	ID_OVERHEAD_PULLEY_HOOK,
+	ID_SWINGING_IRON_ANCHOR,
+	ID_SWINGING_SPIKE_BAG,
+	ID_CIRCULAR_SAW,
+	ID_ROLLING_BARRELS,
+	ID_MULTIPLE_BOULDERS,
+	// 470 reserved for exisiting branch
+	// 471 reserved for exisiting branch
+	// 472 reserved for exisiting branch
+	// 473 reserved for exisiting branch
+	// 474 reserved for exisiting branch
+	// 475 reserved for exisiting branch
+	// 476 reserved for exisiting branch
+	// 477 reserved for exisiting branch
+	ID_WRECKINGBALL_ANCHOR = 478,
 	ID_WRECKINGBALL_CHAIN,
-
-
 	ID_PUZZLE_ITEM1 = 500,
 	ID_PUZZLE_ITEM2,
 	ID_PUZZLE_ITEM3,
@@ -1027,6 +1050,7 @@ enum GAME_OBJECT_ID : short
 	ID_SNOW_SPRITES,
 	ID_RAIN_SPRITES,
 	ID_INTERACTION_SPRITES,
+	ID_INVENTORY_SPRITES,
 
 	ID_NUMBER_OBJECTS = 1408 // Compatibility. Remove this constant when slot count is nearing 1408.
 };

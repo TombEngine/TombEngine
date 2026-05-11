@@ -11,6 +11,7 @@
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/EngineMain.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Gui;
@@ -64,7 +65,7 @@ namespace TEN::Input
 		pConstForce.envelope.fadeLevel = 0;
 	}
 
-	void InitializeInput(HWND handle)
+	void InitializeInput()
 	{
 		TENLog("Initializing input system...", LogLevel::Info);
 
@@ -91,15 +92,33 @@ namespace TEN::Input
 
 		try
 		{
-			// Use OIS::ParamList since default behaviour blocks WIN key and steals mouse.
+			// HACK: OIS requires a native window handle and platform-specific configuration
+			// strings. This will be removed when OIS is replaced by SDL3 input.
 			auto paramList = OIS::ParamList{};
 			auto wnd = std::ostringstream{};
-			wnd << (size_t)handle;
+
+			SDL_PropertiesID props = SDL_GetWindowProperties(g_Platform->GetSDL3Window());
+
+#ifdef SDL_PLATFORM_WIN32
+			void* nativeHandle = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+			wnd << reinterpret_cast<uintptr_t>(nativeHandle);
 			paramList.insert(std::make_pair(std::string("WINDOW"), wnd.str()));
 			paramList.insert(std::make_pair(std::string("w32_keyboard"), std::string("DISCL_BACKGROUND")));
 			paramList.insert(std::make_pair(std::string("w32_keyboard"), std::string("DISCL_NONEXCLUSIVE")));
 			paramList.insert(std::make_pair(std::string("w32_mouse"), std::string("DISCL_BACKGROUND")));
 			paramList.insert(std::make_pair(std::string("w32_mouse"), std::string("DISCL_NONEXCLUSIVE")));
+#elif defined(SDL_PLATFORM_LINUX)
+			auto nativeHandle = SDL_GetNumberProperty(props, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0);
+			wnd << static_cast<uintptr_t>(nativeHandle);
+			paramList.insert(std::make_pair(std::string("WINDOW"), wnd.str()));
+			paramList.insert(std::make_pair(std::string("x11_keyboard_grab"), std::string("false")));
+			paramList.insert(std::make_pair(std::string("x11_mouse_grab"), std::string("false")));
+			paramList.insert(std::make_pair(std::string("x11_mouse_hide"), std::string("false")));
+#elif defined(SDL_PLATFORM_MACOS)
+			void* nativeHandle = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr);
+			wnd << reinterpret_cast<uintptr_t>(nativeHandle);
+			paramList.insert(std::make_pair(std::string("WINDOW"), wnd.str()));
+#endif
 
 			OisInputManager = OIS::InputManager::createInputSystem(paramList);
 			OisInputManager->enableAddOnFactory(OIS::InputManager::AddOn_All);

@@ -15,6 +15,7 @@
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_tests.h"
+#include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Sound/sound.h"
@@ -80,7 +81,7 @@ namespace TEN::Entities::Effects
 			if (itemPtr->IsLara() && GetLaraInfo(item)->Control.WaterStatus == WaterStatus::FlyCheat)
 				continue;
 
-			if (item->Model.Color == Vector4::One)
+			if (item->Model.Color == NEUTRAL_COLOR)
 			{
 				ItemBurn(itemPtr, itemPtr->IsLara() ? NO_VALUE : FLAME_ITEM_BURN_TIMEOUT);
 			}
@@ -104,6 +105,10 @@ namespace TEN::Entities::Effects
 
 		if (active)
 		{
+			// Don't fade in active flames right at the level start.
+			if (SaveGame::Statistics.Level.TimeTaken.GetFrameCount() <= 1)
+				item->ItemFlags[3] = 0;
+
 			if (item->ItemFlags[3] > 0)
 			{
 				item->ItemFlags[3] -= 16;
@@ -127,10 +132,10 @@ namespace TEN::Entities::Effects
 
 	static Vector4 GetFlameColor(Vector4 sourceColor)
 	{
-		if (sourceColor == Vector4::One)
+		if (sourceColor == NEUTRAL_COLOR)
 			return Vector4(1.0f, Random::GenerateFloat(0.3f, 0.4f), 0.1f, 1.0f) * UCHAR_MAX;
 
-		return sourceColor / 2.0f * Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
+		return sourceColor * Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
 	}
 
 	void FlameEmitterControl(short itemNumber)

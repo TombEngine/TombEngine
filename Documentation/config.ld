@@ -1,4 +1,4 @@
-file = {"../TombEngine/Scripting/Internal", "../Scripts/Engine", exclude = {'../TombEngine/Scripting/Internal/TEN/View/DisplayItem/ScriptDisplayItem.cpp'}}
+file = {"../TombEngine/Scripting/Internal", "../Scripts/Engine"}
 new_type("mem", "Members", false)
 new_type("files", "Script Files", true)
 new_type("entityclass", "Entity classes", true)
@@ -13,8 +13,8 @@ new_type("luautil", "6 Lua utility modules", true)
 
 not_luadoc = true
 
-local version = "1.11"
-project = "&nbsp;TombEngine"
+local version = "2.0"
+project = "TombEngine"
 title = "TombEngine " .. version .. " Lua API"
 description = "TombEngine " .. version .. " scripting interface"
 full_description = [[Welcome to the TombEngine scripting API.

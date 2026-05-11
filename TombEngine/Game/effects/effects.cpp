@@ -430,11 +430,10 @@ void UpdateSparks()
 			if (spark.flags & SP_EXPLOSION)
 				SetSpriteSequence(spark, ID_EXPLOSION_SPRITES);
 
-
 			if (spark.flags & SP_ANIMATED)
 			{
-				ParticleAnimType animationType = static_cast<ParticleAnimType>(spark.animationType);
-				GAME_OBJECT_ID spriteObject = static_cast<GAME_OBJECT_ID>(spark.SpriteSeqID);
+				auto animationType = (ParticleAnimType)spark.animationType;
+				auto spriteObject = (GAME_OBJECT_ID)spark.SpriteSeqID;
 				SetAdvancedSpriteSequence(spark, spriteObject,  animationType, spark.framerate);
 			}
 
@@ -624,10 +623,9 @@ void TriggerGlow(const GameVector& pos, const Vector3& color, int scale)
 	part.xVel = part.yVel = part.zVel = 0;
 	part.gravity = part.friction = part.maxYvel = 0;
 
-	// Normalize color from Monty's range
-	part.sR = part.dR = std::clamp(color.x / 2.0f, 0.0f, 1.0f) * UCHAR_MAX;
-	part.sG = part.dG = std::clamp(color.y / 2.0f, 0.0f, 1.0f) * UCHAR_MAX;
-	part.sB = part.dB = std::clamp(color.z / 2.0f, 0.0f, 1.0f) * UCHAR_MAX;
+	part.sR = part.dR = std::clamp(color.x, 0.0f, 1.0f) * UCHAR_MAX;
+	part.sG = part.dG = std::clamp(color.y, 0.0f, 1.0f) * UCHAR_MAX;
+	part.sB = part.dB = std::clamp(color.z, 0.0f, 1.0f) * UCHAR_MAX;
 
 	part.life = part.sLife = 2;
 	part.colFadeSpeed = 1;
@@ -1097,7 +1095,7 @@ void TriggerSuperJetFlame(ItemInfo* item, int yvel, int deadly)
 		if (size < 512)
 			size = 512;
 
-		if (item->Model.Color == Vector4::One)
+		if (item->Model.Color == NEUTRAL_COLOR)
 		{
 			sptr->sR = sptr->sG = (GetRandomControl() & 0x1F) + 48;
 			sptr->sB = (GetRandomControl() & 0x3F) - 64;
@@ -1107,8 +1105,8 @@ void TriggerSuperJetFlame(ItemInfo* item, int yvel, int deadly)
 		}
 		else
 		{
-			auto colorD = item->Model.Color / 2.0f * UCHAR_MAX;
-			auto luma = Luma((Vector3)item->Model.Color / 2.0f) * 0.85f * UCHAR_MAX;
+			auto colorD = item->Model.Color * UCHAR_MAX;
+			auto luma = Luma((Vector3)item->Model.Color) * 0.85f * UCHAR_MAX;
 			auto colorS = Vector3(0.15f * colorD.x + luma,
 								  0.15f * colorD.y + luma,
 								  0.15f * colorD.z + luma);
@@ -1176,14 +1174,16 @@ void TriggerSuperJetFlame(ItemInfo* item, int yvel, int deadly)
 
 short DoBloodSplat(int x, int y, int z, short speed, short direction, short roomNumber)
 {
-	short probedRoomNumber = GetPointCollision(Vector3i(x, y, z), roomNumber).GetRoomNumber();
+	int intensity = Random::GenerateInt(10, 20);
+	int probedRoomNumber = GetPointCollision(Vector3i(x, y, z), roomNumber).GetRoomNumber();
+
 	if (TestEnvironment(ENV_FLAG_WATER, probedRoomNumber))
 	{
-		SpawnUnderwaterBlood(Vector3(x, y, z), probedRoomNumber, speed);
+		SpawnUnderwaterBlood(Vector3(x, y, z), probedRoomNumber, intensity);
 	}
 	else
 	{
-		TriggerBlood(x, y, z, direction >> 4, speed);
+		TriggerBlood(x, y, z, direction >> 4, intensity);
 	}
 
 	return 0;
@@ -1628,13 +1628,15 @@ void TriggerFireFlame(int x, int y, int z, FlameType type, const Vector3& color1
 			spark->friction = 5;
 	}
 
+	spark->scalar = 2;
+	spark->flags = SP_EXPDEF | SP_DEF | SP_SCALE | SP_HAZE;
+
 	if (GetRandomControl() & 1)
 	{
 		spark->gravity = -16 - (GetRandomControl() & 0x1F);
 		spark->maxYvel = -16 - (GetRandomControl() & 7);
-		spark->flags = 538;
-
 		spark->rotAng = GetRandomControl() & 0xFFF;
+		spark->flags |= SP_ROTATE;
 
 		if (GetRandomControl() & 1)
 			spark->rotAdd = -16 - (GetRandomControl() & 0xF);
@@ -1643,12 +1645,9 @@ void TriggerFireFlame(int x, int y, int z, FlameType type, const Vector3& color1
 	}
 	else
 	{
-		spark->flags = SP_EXPDEF | SP_DEF | SP_SCALE;
 		spark->gravity = -16 - (GetRandomControl() & 0x1F);
 		spark->maxYvel = -16 - (GetRandomControl() & 7);
 	}
-
-	spark->scalar = 2;
 
 	if (type != FlameType::Big)
 	{

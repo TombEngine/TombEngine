@@ -189,8 +189,7 @@ namespace TEN::Scripting::Util
 	// end
 	static sol::optional <std::unique_ptr<Moveable>> PickMoveable(const Vec2& screenPos)
 	{
-		auto realScreenPos = PercentToScreen(screenPos.x, screenPos.y);
-		auto ray = GetRayFrom2DPosition(Vector2(int(std::get<0>(realScreenPos)), int(std::get<1>(realScreenPos))));
+		auto ray = GetRayFrom2DPosition(PercentToScreen(screenPos));
 
 		auto vector = Vector3i::Zero;
 		int itemNumber = ObjectOnLOS2(&ray.first, &ray.second, &vector, nullptr);
@@ -216,8 +215,7 @@ namespace TEN::Scripting::Util
 	// end
 	static sol::optional <std::unique_ptr<Static>> PickStatic(const Vec2& screenPos)
 	{
-		auto realScreenPos = PercentToScreen(screenPos.x, screenPos.y);
-		auto ray = GetRayFrom2DPosition(Vector2((int)std::get<0>(realScreenPos), (int)std::get<1>(realScreenPos)));
+		auto ray = GetRayFrom2DPosition(PercentToScreen(screenPos));
 
 		StaticMesh* mesh = nullptr;
 		auto vector = Vector3i::Zero;
