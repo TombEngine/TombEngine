@@ -20,6 +20,7 @@ namespace TEN::Renderer::Native::DirectX11
 	private:
 		int                                         _width               = 0;
 		int                                         _height              = 0;
+		DepthFormat                                 _format              = DepthFormat::None;
 		std::vector<ComPtr<ID3D11DepthStencilView>> _depthStencilViews   = {};
 		ComPtr<ID3D11Texture2D>	                    _depthStencilTexture = {};
 		VRAMAllocation                              _vram                = {};
@@ -28,14 +29,15 @@ namespace TEN::Renderer::Native::DirectX11
 		DX11DepthTarget() = default;
 		~DX11DepthTarget() = default;
 
-		int GetArraySize() override { return (int)_depthStencilViews.size(); }
+		int         GetArraySize() override { return (int)_depthStencilViews.size(); }
+		DepthFormat GetFormat()    override { return _format; }
 
 		ID3D11DepthStencilView* GetD3D11DepthStencilView(int arrayIndex) const noexcept { return _depthStencilViews[arrayIndex].Get(); }
 		ID3D11DepthStencilView* GetD3D11DepthStencilView()               const noexcept { return GetD3D11DepthStencilView(0); }
 		ID3D11Texture2D*	    GetD3D11Texture()						 const noexcept { return _depthStencilTexture.Get(); }
 
-		DX11DepthTarget(ID3D11Device* device, int width, int height, DXGI_FORMAT depthFormat);
-		DX11DepthTarget(ID3D11Device* device, int width, int height, int count, DXGI_FORMAT depthFormat);
+		DX11DepthTarget(ID3D11Device* device, int width, int height, DepthFormat format, DXGI_FORMAT depthFormat);
+		DX11DepthTarget(ID3D11Device* device, int width, int height, int count, DepthFormat format, DXGI_FORMAT depthFormat);
 	};
 }
 

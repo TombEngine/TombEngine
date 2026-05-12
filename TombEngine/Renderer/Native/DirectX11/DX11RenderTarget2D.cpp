@@ -10,12 +10,13 @@
 namespace TEN::Renderer::Native::DirectX11
 {
 	// Default constructor.
-	DX11RenderTarget2D::DX11RenderTarget2D(ID3D11Device* device, int width, int height, DXGI_FORMAT colorFormat, bool isTypeless)
+	DX11RenderTarget2D::DX11RenderTarget2D(ID3D11Device* device, int width, int height, SurfaceFormat format, DXGI_FORMAT colorFormat, bool isTypeless)
 	{
 		HRESULT res;
 
-		_width = width;
+		_width  = width;
 		_height = height;
+		_format = format;
 
 		auto sizeStr = std::to_string(width) + "x" + std::to_string(height) + " " + DXGIFormatToString(colorFormat);
 
@@ -65,9 +66,11 @@ namespace TEN::Renderer::Native::DirectX11
 	}
 
 	// Used by SMAA because it needs to have two render targets with the same texture.
-	DX11RenderTarget2D::DX11RenderTarget2D(ID3D11Device* device, ID3D11Texture2D* texture, DXGI_FORMAT colorFormat)
+	DX11RenderTarget2D::DX11RenderTarget2D(ID3D11Device* device, ID3D11Texture2D* texture, SurfaceFormat format, DXGI_FORMAT colorFormat)
 	{
 		HRESULT res;
+
+		_format = format;
 
 		// Copy ComPtr from parent.
 		texture->AddRef();
@@ -109,8 +112,10 @@ namespace TEN::Renderer::Native::DirectX11
 		auto texDesc = D3D11_TEXTURE2D_DESC{};
 		_texture->GetDesc(&texDesc);
 
-		_width = texDesc.Width;
+		_width  = texDesc.Width;
 		_height = texDesc.Height;
+		// Swap chain is created as RGBA8 in DX11GraphicsDevice::InitializeSwapChain.
+		_format = SurfaceFormat::SF_RGBA8_Unorm;
 
 		D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 		rtvDesc.Format = texDesc.Format;
@@ -140,12 +145,13 @@ namespace TEN::Renderer::Native::DirectX11
 	}
 
 	// Texture array.
-	DX11RenderTarget2D::DX11RenderTarget2D(ID3D11Device* device, int width, int height, int count, DXGI_FORMAT colorFormat)
+	DX11RenderTarget2D::DX11RenderTarget2D(ID3D11Device* device, int width, int height, int count, SurfaceFormat format, DXGI_FORMAT colorFormat)
 	{
 		HRESULT res;
 
-		_width = width;
+		_width  = width;
 		_height = height;
+		_format = format;
 
 		auto sizeStr = std::to_string(width) + "x" + std::to_string(height) + "x" + std::to_string(count) +
 			" " + DXGIFormatToString(colorFormat);

@@ -21,6 +21,7 @@ namespace TEN::Renderer::Native::DirectX11
 	private:
 		int                                         _width              = 0;
 		int                                         _height             = 0;
+		SurfaceFormat                               _format             = SurfaceFormat::Unknown;
 		ComPtr<ID3D11Texture2D>                     _texture            = {};
 		ComPtr<ID3D11ShaderResourceView>            _shaderResourceView = {};
 		std::vector<ComPtr<ID3D11RenderTargetView>> _renderTargetViews  = {};
@@ -33,16 +34,17 @@ namespace TEN::Renderer::Native::DirectX11
 		int                       GetWidth() override { return _width; }
 		int                       GetHeight() override { return _height; }
 		int                       GetArraySize() override { return (int)_renderTargetViews.size(); }
+		SurfaceFormat             GetFormat() override { return _format; }
 		ID3D11RenderTargetView*   GetD3D11RenderTargetView(int arrayIndex) const noexcept { return _renderTargetViews[arrayIndex].Get(); }
 		ID3D11RenderTargetView*   GetD3D11RenderTargetView() const noexcept { return GetD3D11RenderTargetView(0); }
 		ID3D11ShaderResourceView* GetD3D11ShaderResourceView() const noexcept { return _shaderResourceView.Get(); }
 		ID3D11Texture2D*          GetD3D11Texture() const noexcept { return _texture.Get(); }
 		bool                      IsValid() override { return _texture != nullptr; }
 
-		DX11RenderTarget2D(ID3D11Device* device, int width, int height, DXGI_FORMAT colorFormat, bool isTypeless);
-		DX11RenderTarget2D(ID3D11Device* device, ID3D11Texture2D* texture, DXGI_FORMAT colorFormat);
+		DX11RenderTarget2D(ID3D11Device* device, int width, int height, SurfaceFormat format, DXGI_FORMAT colorFormat, bool isTypeless);
+		DX11RenderTarget2D(ID3D11Device* device, ID3D11Texture2D* texture, SurfaceFormat format, DXGI_FORMAT colorFormat);
 		DX11RenderTarget2D(ID3D11Device* device, ID3D11Texture2D* textureRaw);
-		DX11RenderTarget2D(ID3D11Device* device, int width, int height, int count, DXGI_FORMAT colorFormat);
+		DX11RenderTarget2D(ID3D11Device* device, int width, int height, int count, SurfaceFormat format, DXGI_FORMAT colorFormat);
 
 	private:
 		static DXGI_FORMAT MakeTypeless(DXGI_FORMAT format);

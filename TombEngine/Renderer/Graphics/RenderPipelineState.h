@@ -33,6 +33,12 @@ namespace TEN::Renderer::Graphics
 		AlphaTestMode AlphaTest      = AlphaTestMode::None;
 		float         AlphaThreshold = 0.0f;
 
+		// MSAA sample count. 1 = no multisampling. Required by Vulkan/SDL_GPU PSO since the
+		// pipeline must match the sample count of the render pass it's used with. DX11
+		// ignores this (it's a property of the texture) but the field is part of the hash
+		// so a future MSAA pass uses a distinct cached pipeline.
+		int SampleCount = 1;
+
 		// 64-bit hash combining all fields. Two equal hashes guarantee equal PSO,
 		// because we pack each enum into a fixed-width slot.
 		inline uint64_t Hash() const
@@ -47,11 +53,12 @@ namespace TEN::Renderer::Graphics
 			h |= (uint64_t)((uint8_t)(int)Topology)    << 48;
 			h |= (uint64_t)((uint8_t)(int)AlphaTest)   << 56;
 
-			// Mix in InputLayout pointer and AlphaThreshold via a secondary 64-bit value.
+			// Mix in InputLayout pointer, AlphaThreshold and SampleCount via a secondary 64-bit value.
 			uint64_t h2 = (uint64_t)(uintptr_t)InputLayout;
 			uint32_t at;
 			std::memcpy(&at, &AlphaThreshold, sizeof(at));
 			h2 ^= (uint64_t)at << 32;
+			h2 ^= (uint64_t)(uint8_t)SampleCount << 24;
 
 			// Splitmix-style combine.
 			h2 ^= h2 >> 33;
@@ -72,7 +79,8 @@ namespace TEN::Renderer::Graphics
 			       Topology       == o.Topology    &&
 			       InputLayout    == o.InputLayout &&
 			       AlphaTest      == o.AlphaTest   &&
-			       AlphaThreshold == o.AlphaThreshold;
+			       AlphaThreshold == o.AlphaThreshold &&
+			       SampleCount    == o.SampleCount;
 		}
 	};
 }

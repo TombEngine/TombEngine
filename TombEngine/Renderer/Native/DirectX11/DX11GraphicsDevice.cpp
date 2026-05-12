@@ -62,11 +62,11 @@ namespace TEN::Renderer::Native::DirectX11
 
 	std::unique_ptr<IRenderSurface2D> DX11GraphicsDevice::CreateRenderSurface2D(int width, int height, SurfaceFormat colorFormat, bool isTypeless, DepthFormat depthFormat)
 	{
-		auto nativeRenderTarget = std::make_unique<DX11RenderTarget2D>(_device.Get(), width, height, GetDXGIFormat(colorFormat), isTypeless);
+		auto nativeRenderTarget = std::make_unique<DX11RenderTarget2D>(_device.Get(), width, height, colorFormat, GetDXGIFormat(colorFormat), isTypeless);
 
 		std::unique_ptr<IDepthTarget> nativeDepthTarget = nullptr;
 		if (depthFormat != DepthFormat::None)
-			nativeDepthTarget = std::make_unique<DX11DepthTarget>(_device.Get(), width, height, GetDXGIFormat(depthFormat));
+			nativeDepthTarget = std::make_unique<DX11DepthTarget>(_device.Get(), width, height, depthFormat, GetDXGIFormat(depthFormat));
 
 		// Flush GPU command buffer to prevent TDR on Intel integrated GPUs.
 		_context->Flush();
@@ -78,11 +78,11 @@ namespace TEN::Renderer::Native::DirectX11
 
 	std::unique_ptr<IRenderSurface2D> DX11GraphicsDevice::CreateRenderSurface2D(int width, int height, int arraySize, SurfaceFormat colorFormat, DepthFormat depthFormat)
 	{
-		auto nativeRenderTarget = std::make_unique<DX11RenderTarget2D>(_device.Get(), width, height, arraySize, GetDXGIFormat(colorFormat));
+		auto nativeRenderTarget = std::make_unique<DX11RenderTarget2D>(_device.Get(), width, height, arraySize, colorFormat, GetDXGIFormat(colorFormat));
 
 		std::unique_ptr<IDepthTarget> nativeDepthTarget = nullptr;
 		if (depthFormat != DepthFormat::None)
-			nativeDepthTarget = std::make_unique<DX11DepthTarget>(_device.Get(), width, height, arraySize, GetDXGIFormat(depthFormat));
+			nativeDepthTarget = std::make_unique<DX11DepthTarget>(_device.Get(), width, height, arraySize, depthFormat, GetDXGIFormat(depthFormat));
 
 		_context->Flush();
 
@@ -96,7 +96,7 @@ namespace TEN::Renderer::Native::DirectX11
 		auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(parentRenderTarget->GetRenderTarget());
 
 		auto result = std::make_unique<IRenderSurface2D>(
-			std::move(std::make_unique<DX11RenderTarget2D>(_device.Get(), nativeRenderTarget->GetD3D11Texture(), GetDXGIFormat(colorFormat))),
+			std::move(std::make_unique<DX11RenderTarget2D>(_device.Get(), nativeRenderTarget->GetD3D11Texture(), colorFormat, GetDXGIFormat(colorFormat))),
 			nullptr
 		);
 
@@ -938,7 +938,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 		auto result = std::make_unique<IRenderSurface2D>(
 			std::move(std::make_unique<DX11RenderTarget2D>(_device.Get(), backBufferTexture)),
-			std::move(std::make_unique<DX11DepthTarget>(_device.Get(), width, height, DXGI_FORMAT_D32_FLOAT)));
+			std::move(std::make_unique<DX11DepthTarget>(_device.Get(), width, height, DepthFormat::Depth32, DXGI_FORMAT_D32_FLOAT)));
 
 		_context->Flush();
 

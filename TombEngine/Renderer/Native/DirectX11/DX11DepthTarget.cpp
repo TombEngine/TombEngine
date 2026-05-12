@@ -9,12 +9,13 @@
 
 namespace TEN::Renderer::Native::DirectX11
 {
-	DX11DepthTarget::DX11DepthTarget(ID3D11Device* device, int width, int height, DXGI_FORMAT depthFormat)
+	DX11DepthTarget::DX11DepthTarget(ID3D11Device* device, int width, int height, DepthFormat format, DXGI_FORMAT depthFormat)
 	{
 		HRESULT res;
 
-		_width = width;
+		_width  = width;
 		_height = height;
+		_format = format;
 
 		auto sizeStr = std::to_string(width) + "x" + std::to_string(height) + " " + DXGIFormatToString(depthFormat);
 
@@ -53,12 +54,13 @@ namespace TEN::Renderer::Native::DirectX11
 			" (" + BytesToMBString(vramSize) + " MB)");
 	}
 
-	DX11DepthTarget::DX11DepthTarget(ID3D11Device* device, int width, int height, int count, DXGI_FORMAT depthFormat)
+	DX11DepthTarget::DX11DepthTarget(ID3D11Device* device, int width, int height, int count, DepthFormat format, DXGI_FORMAT depthFormat)
 	{
 		HRESULT res;
 
-		_width = width;
+		_width  = width;
 		_height = height;
+		_format = format;
 
 		auto sizeStr = std::to_string(width) + "x" + std::to_string(height) + "x" + std::to_string(count) +
 			" " + DXGIFormatToString(depthFormat);

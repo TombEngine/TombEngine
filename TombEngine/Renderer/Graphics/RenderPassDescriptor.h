@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <SimpleMath.h>
@@ -118,5 +119,30 @@ namespace TEN::Renderer::Graphics
 		RendererRectangle Scissor     = {};
 
 		std::string       DebugLabel; // RenderDoc / PIX / Aftermath annotation.
+
+		// 64-bit format-only hash. Two passes with the same hash are PSO-compatible
+		// (same attachment formats and sample count) — used as part of the Vulkan/SDL_GPU
+		// PSO cache key, together with the RenderPipelineState hash and the shader id.
+		// DX11 doesn't need this but exposing it now keeps the interface stable.
+		inline uint64_t FormatHash() const
+		{
+			uint64_t h = 0;
+			for (auto& ca : ColorAttachments)
+			{
+				auto fmt = ca.Target != nullptr ? (uint8_t)(int)ca.Target->GetFormat() : 0;
+				h = (h << 5) ^ fmt;
+			}
+			auto dfmt = DepthAttachment.Target != nullptr ? (uint8_t)(int)DepthAttachment.Target->GetFormat() : 0;
+			h = (h << 5) ^ dfmt;
+			h = (h << 5) ^ (uint8_t)ColorAttachments.size();
+
+			// Splitmix finalize.
+			h ^= h >> 33;
+			h *= 0xff51afd7ed558ccdULL;
+			h ^= h >> 33;
+			h *= 0xc4ceb9fe1a85ec53ULL;
+			h ^= h >> 33;
+			return h;
+		}
 	};
 }
