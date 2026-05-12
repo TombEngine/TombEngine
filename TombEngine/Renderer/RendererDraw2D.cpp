@@ -122,7 +122,7 @@ namespace TEN::Renderer
 		if (!CheckIfSlotExists(ID_BAR_BORDER_GRAPHICS, "Bar rendering"))
 			return;
 
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
+		ClearDepthMidPass(0.0f, 0xFF);
 		
 		SetInputLayout(_vertexInputLayout.get());
 		BindVertexBuffer(bar.VertexBufferBorder.get());
@@ -151,7 +151,7 @@ namespace TEN::Renderer
 
 		BindTexture(static_cast<TextureRegister>(0), _sprites[Objects[textureSlot].meshIndex].Texture, SamplerStateRegister::AnisotropicClamp);
 
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
+		ClearDepthMidPass(0.0f, 0xFF);
 
 		
 		SetInputLayout(_vertexInputLayout.get());
@@ -183,7 +183,7 @@ namespace TEN::Renderer
 		if (!g_GameFlow->GetSettings()->Hud.LoadingBar)
 			return;
 
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
+		ClearDepthMidPass(0.0f, 0xFF);
 	
 		SetInputLayout(_vertexInputLayout.get());
 		SetPrimitiveType(PrimitiveType::TriangleList);	
@@ -208,7 +208,7 @@ namespace TEN::Renderer
 
 		DrawIndexedTriangles(56, 0, 0);
 
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
+		ClearDepthMidPass(0.0f, 0xFF);
 
 		SetInputLayout(_vertexInputLayout.get());
 		SetPrimitiveType(PrimitiveType::TriangleList);
@@ -317,15 +317,23 @@ namespace TEN::Renderer
 
 	void Renderer::DrawFullScreenImage(ITextureBase* texture, float fade, IRenderTarget2D* target, IDepthTarget* depthTarget)
 	{
-		// Reset GPU state
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::None);
 
-		BindRenderTarget(target, depthTarget);
-		_graphicsDevice->SetViewport(_viewport);
-		_graphicsDevice->SetScissor(_viewport);
+		{
+			RenderPassDescriptor pass;
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(target, Colors::Black) };
+			if (depthTarget != nullptr)
+				pass.DepthAttachment = DepthAttachmentDescriptor::Clear(depthTarget);
+			pass.HasViewport = true;
+			pass.Viewport    = _viewport;
+			pass.DebugLabel  = "Full Screen Image";
+			BeginRenderPass(pass);
+		}
 
 		DrawFullScreenQuad(texture, Vector3(fade), true);
+
+		EndRenderPass();
 	}
 
 	void Renderer::DrawDisplaySprites(RenderView& renderView, bool negativePriority)

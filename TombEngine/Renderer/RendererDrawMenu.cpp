@@ -1198,17 +1198,29 @@ namespace TEN::Renderer
 			Synchronize();
 
 			_graphicsDevice->Present();
-			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+			// Depth is cleared by the next DrawFullScreenImage pass's LoadOp.
 		}
 	}
 
 	void Renderer::DrawDisplayItems()
 	{
-		if (!g_DrawItems.IsEmpty())
+		if (g_DrawItems.IsEmpty())
+			return;
+
+		// Resets depth so display items draw on top of whatever's currently in the main RT.
 		{
-			_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-			g_DrawItems.Draw();
+			RenderPassDescriptor pass;
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_renderTarget->GetRenderTarget()) };
+			pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(_renderTarget->GetDepthTarget());
+			pass.HasViewport      = true;
+			pass.Viewport         = _viewport;
+			pass.DebugLabel       = "Display Items";
+			BeginRenderPass(pass);
 		}
+
+		g_DrawItems.Draw();
+
+		EndRenderPass();
 	}
 
 	void Renderer::DrawExamines()
@@ -1275,23 +1287,30 @@ namespace TEN::Renderer
 		SetDepthState(DepthState::Write, true);
 		SetCullMode(CullMode::CounterClockwise, true);
 
-		// Bind and clear render target
-		std::vector<IRenderTarget2D*> renderTargets;
-		renderTargets.push_back(_renderTarget->GetRenderTarget());
-		renderTargets.push_back(_emissiveAndRoughnessRenderTarget->GetRenderTarget());
-
-		_graphicsDevice->SetViewport(_viewport);
-		_graphicsDevice->SetScissor(_viewport);
-
-		_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-		
+		// Background image. DrawFullScreenImage opens its own pass on _renderTarget that
+		// clears color + depth, so we don't need a separate clear here for the single-RT case.
 		if (background != nullptr)
+		{
 			DrawFullScreenImage(background, backgroundFade, _renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+		}
 
-		BindRenderTargets(renderTargets, _renderTarget->GetDepthTarget());
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		// Inventory MRT pass: scene color + emissive, sharing the main depth buffer.
+		// Color attachments are cleared (background DrawFullScreenImage's result is gone
+		// when there's no background, otherwise we need it preserved → Load instead).
+		{
+			RenderPassDescriptor pass;
+			pass.ColorAttachments = {
+				background != nullptr
+					? ColorAttachmentDescriptor::Keep(_renderTarget->GetRenderTarget())
+					: ColorAttachmentDescriptor::Clear(_renderTarget->GetRenderTarget(), Colors::Black),
+				ColorAttachmentDescriptor::Clear(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent),
+			};
+			pass.DepthAttachment = DepthAttachmentDescriptor::Clear(_renderTarget->GetDepthTarget());
+			pass.HasViewport     = true;
+			pass.Viewport        = _viewport;
+			pass.DebugLabel      = "Inventory Scene";
+			BeginRenderPass(pass);
+		}
 
 		// Set vertex buffer.
 		BindVertexBuffer(_moveablesVertexBuffer.get());
@@ -1373,7 +1392,7 @@ namespace TEN::Renderer
 			}
 		}
 
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		EndRenderPass(); // Inventory Scene
 
 		ApplyGlow(_renderTarget.get(), _gameCamera);
 		ApplyAntialiasing(_renderTarget.get(), _gameCamera);
@@ -1392,25 +1411,26 @@ namespace TEN::Renderer
 
 		if (staticBackground)
 		{
-			// Set basic render states.
 			SetBlendMode(BlendMode::Opaque);
 			SetCullMode(CullMode::CounterClockwise);
 
-			// Clear the offscreen scene render targets.
-			_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), Colors::Black);
-			_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
-			_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+			// MRT pass: scene color + emissive sharing main depth. All three cleared.
+			{
+				RenderPassDescriptor pass;
+				pass.ColorAttachments = {
+					ColorAttachmentDescriptor::Clear(_renderTarget->GetRenderTarget(),                Colors::Black),
+					ColorAttachmentDescriptor::Clear(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent),
+				};
+				pass.DepthAttachment = DepthAttachmentDescriptor::Clear(_renderTarget->GetDepthTarget());
+				pass.HasViewport     = true;
+				pass.Viewport        = _viewport;
+				pass.DebugLabel      = "Freeze Mode Background";
+				BeginRenderPass(pass);
+			}
 
-			std::vector<IRenderTarget2D*> renderTargets;
-			renderTargets.push_back(_renderTarget->GetRenderTarget());
-			renderTargets.push_back(_emissiveAndRoughnessRenderTarget->GetRenderTarget());
-
-			BindRenderTargets(renderTargets, _renderTarget->GetDepthTarget());
-			_graphicsDevice->SetViewport(_viewport);
-			_graphicsDevice->SetScissor(_viewport);
-
-			// Draw full screen background.
 			DrawFullScreenQuad(_dumpScreenRenderTarget->GetRenderTarget(), Vector3::One);
+
+			EndRenderPass();
 		}
 		else
 		{
@@ -1443,20 +1463,20 @@ namespace TEN::Renderer
 
 	void Renderer::RenderLoadingScreen(float percentage)
 	{
-		// Set basic render states.
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
 
 		do
 		{
-			// Clear screen.
-			_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
-			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-
-			// Bind back buffer.
-			BindRenderTarget(_backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
-			_graphicsDevice->SetViewport(_viewport);
-			_graphicsDevice->SetScissor(_viewport);
+			{
+				RenderPassDescriptor pass;
+				pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_backBuffer->GetRenderTarget(), Colors::Black) };
+				pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(_backBuffer->GetDepthTarget());
+				pass.HasViewport      = true;
+				pass.Viewport         = _viewport;
+				pass.DebugLabel       = "Loading Screen";
+				BeginRenderPass(pass);
+			}
 
 			// Draw fullscreen background. If unavailable, draw last dumped game scene.
 			if (_loadingScreenTexture)
@@ -1470,6 +1490,8 @@ namespace TEN::Renderer
 
 			if (ScreenFadeCurrent && percentage > 0.0f && percentage < 100.0f)
 				DrawLoadingBar(percentage);
+
+			EndRenderPass();
 
 			_graphicsDevice->Present();
 			ClearState();
@@ -1490,10 +1512,9 @@ namespace TEN::Renderer
 			_graphicsSettingsChanged = false;
 		}
 
-		_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		// Backbuffer clear is handled by RenderInventoryScene's CopyRenderTarget at the
+		// end of the pipeline — no need to clear here.
 
-		// Reset GPU state.
 		SetBlendMode(BlendMode::Opaque, true);
 		SetDepthState(DepthState::Write, true);
 		SetCullMode(CullMode::CounterClockwise, true);
@@ -1511,9 +1532,7 @@ namespace TEN::Renderer
 		InterpolateCamera(interpFactor);
 		DumpGameScene();
 
-		_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
-		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-
+		// Backbuffer clear handled by RenderInventoryScene's CopyRenderTarget.
 		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 1.0f);
 		
 		_graphicsDevice->Present();
