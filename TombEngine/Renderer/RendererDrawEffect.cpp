@@ -1247,7 +1247,7 @@ namespace TEN::Renderer
 		BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 
 		BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+		BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		const auto& room = _rooms[LaraItem->RoomNumber];
 		auto* itemPtr = &_items[LaraItem->Index];
@@ -1326,7 +1326,7 @@ namespace TEN::Renderer
 		BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 
 		BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+		BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		for (auto* rRoomPtr : view.RoomsToDraw)
 		{
@@ -1560,7 +1560,7 @@ namespace TEN::Renderer
 		BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 
 		BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+		BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		for (auto* roomPtr : view.RoomsToDraw)
 		{

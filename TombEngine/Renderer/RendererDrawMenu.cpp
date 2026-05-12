@@ -871,7 +871,7 @@ namespace TEN::Renderer
 		BindVertexBuffer(_moveablesVertexBuffer.get());
 		SetPrimitiveType(PrimitiveType::TriangleList);
 		SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+		BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		// Set matrices.
 		auto hudCamera = CCameraMatrixBuffer{};
@@ -1044,7 +1044,7 @@ namespace TEN::Renderer
 		BindVertexBuffer(_moveablesVertexBuffer.get());
 		SetPrimitiveType(PrimitiveType::TriangleList);
 		SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+		BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		// Set shaders.
 		_shaders.Bind(Shader::Inventory);
@@ -1316,7 +1316,7 @@ namespace TEN::Renderer
 		BindVertexBuffer(_moveablesVertexBuffer.get());
 		SetPrimitiveType(PrimitiveType::TriangleList);
 		SetInputLayout(_vertexInputLayout.get());
-		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+		BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		// Set shaders.
 		_shaders.Bind(Shader::Inventory);

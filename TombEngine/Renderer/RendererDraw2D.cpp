@@ -126,7 +126,7 @@ namespace TEN::Renderer
 		
 		SetInputLayout(_vertexInputLayout.get());
 		BindVertexBuffer(bar.VertexBufferBorder.get());
-		_graphicsDevice->BindIndexBuffer(bar.IndexBufferBorder.get());
+		BindIndexBuffer(bar.IndexBufferBorder.get());
 		SetPrimitiveType(PrimitiveType::TriangleList);
 		
 		_shaders.Bind(Shader::Hud);
@@ -156,7 +156,7 @@ namespace TEN::Renderer
 		
 		SetInputLayout(_vertexInputLayout.get());
 		BindVertexBuffer(bar.InnerVertexBuffer.get());
-		_graphicsDevice->BindIndexBuffer(bar.InnerIndexBuffer.get());
+		BindIndexBuffer(bar.InnerIndexBuffer.get());
 		SetPrimitiveType(PrimitiveType::TriangleList);
 		
 		_shaders.Bind(Shader::Hud);
@@ -188,7 +188,7 @@ namespace TEN::Renderer
 		SetInputLayout(_vertexInputLayout.get());
 		SetPrimitiveType(PrimitiveType::TriangleList);	
 		BindVertexBuffer(g_LoadingBar->VertexBufferBorder.get());
-		_graphicsDevice->BindIndexBuffer(g_LoadingBar->IndexBufferBorder.get());
+		BindIndexBuffer(g_LoadingBar->IndexBufferBorder.get());
 
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudDTexture);
@@ -213,7 +213,7 @@ namespace TEN::Renderer
 		SetInputLayout(_vertexInputLayout.get());
 		SetPrimitiveType(PrimitiveType::TriangleList);
 		BindVertexBuffer(g_LoadingBar->InnerVertexBuffer.get());
-		_graphicsDevice->BindIndexBuffer(g_LoadingBar->InnerIndexBuffer.get());
+		BindIndexBuffer(g_LoadingBar->InnerIndexBuffer.get());
 
 		_shaders.Bind(Shader::Hud);
 		_shaders.Bind(Shader::HudBarColor);

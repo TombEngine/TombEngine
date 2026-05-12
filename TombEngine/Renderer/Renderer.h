@@ -312,15 +312,12 @@ namespace TEN::Renderer
 		ITextureBase*        _lastBoundTextures[TEXTURE_BINDING_CACHE_SIZE]   = {};
 		SamplerStateRegister _lastBoundSamplers[TEXTURE_BINDING_CACHE_SIZE]   = {};
 
-		// Pipeline state dedup: skip device calls when the bound vertex buffer,
+		// Pipeline state dedup: skip device calls when the bound vertex/index buffer,
 		// input layout, or primitive topology haven't changed.
 		IVertexBuffer* _lastBoundVertexBuffer    = nullptr;
+		IIndexBuffer*  _lastBoundIndexBuffer     = nullptr;
 		IInputLayout*  _lastBoundInputLayout     = nullptr;
 		PrimitiveType  _lastBoundPrimitiveType   = (PrimitiveType)-1;
-
-		// Atomic Pipeline State Object hash. Last one applied via BindPipeline().
-		uint64_t       _lastBoundPipelineHash    = 0;
-		bool           _hasBoundPipeline         = false;
 
 		// Render pass tracking — used by ClearDepthMidPass() to re-open the current pass
 		// with depth LoadAction::Clear, and (in the future) for asserts that catch draw
@@ -403,6 +400,7 @@ namespace TEN::Renderer
 		// Pipeline state wrappers with dedup. Use these instead of the raw _graphicsDevice
 		// calls so that back-to-back binds with identical state become no-ops.
 		void BindVertexBuffer(IVertexBuffer* vertexBuffer);
+		void BindIndexBuffer(IIndexBuffer* indexBuffer);
 		void SetInputLayout(IInputLayout* inputLayout);
 		void SetPrimitiveType(PrimitiveType primitiveType);
 

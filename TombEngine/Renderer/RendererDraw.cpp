@@ -205,7 +205,7 @@ namespace TEN::Renderer
 			BindPipeline(Pipelines::ShadowMap(_vertexInputLayout.get()));
 
 			BindVertexBuffer(_moveablesVertexBuffer.get());
-			_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+			BindIndexBuffer(_moveablesIndexBuffer.get());
 
 			// Set texture.
 			BindTexture(TextureRegister::ColorMap, std::get<0>(_moveablesTextures[0]).get(), SamplerStateRegister::AnisotropicClamp);
@@ -363,7 +363,7 @@ namespace TEN::Renderer
 			BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 
 			BindVertexBuffer(_moveablesVertexBuffer.get());
-			_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+			BindIndexBuffer(_moveablesIndexBuffer.get());
 
 			SetBlendMode(BlendMode::Opaque);
 			SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
@@ -613,7 +613,7 @@ namespace TEN::Renderer
 				}
 
 				BindVertexBuffer(_moveablesVertexBuffer.get());
-				_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+				BindIndexBuffer(_moveablesIndexBuffer.get());
 
 				RendererObject& moveableObj = *_moveableObjects[ID_RATS_EMITTER];
 
@@ -734,7 +734,7 @@ namespace TEN::Renderer
 				}
 
 				BindVertexBuffer(_moveablesVertexBuffer.get());
-				_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+				BindIndexBuffer(_moveablesIndexBuffer.get());
 
 				const auto& moveableObj = *_moveableObjects[ID_FISH_EMITTER];
 
@@ -867,7 +867,7 @@ namespace TEN::Renderer
 						BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 
 					BindVertexBuffer(_moveablesVertexBuffer.get());
-					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+					BindIndexBuffer(_moveablesIndexBuffer.get());
 
 					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
@@ -992,7 +992,7 @@ namespace TEN::Renderer
 						BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 
 					BindVertexBuffer(_moveablesVertexBuffer.get());
-					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+					BindIndexBuffer(_moveablesIndexBuffer.get());
 
 					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
@@ -1101,7 +1101,7 @@ namespace TEN::Renderer
 				}
 
 				BindVertexBuffer(_moveablesVertexBuffer.get());
-				_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+				BindIndexBuffer(_moveablesIndexBuffer.get());
 
 				auto* obj = &Objects[ID_LOCUSTS];
 				auto& moveableObj = *_moveableObjects[ID_LOCUSTS];
@@ -1969,20 +1969,51 @@ namespace TEN::Renderer
 
 	void Renderer::DoMainSceneOpaqueTransparentPass(RenderView& view)
 	{
-		// Reuses color + depth from previous passes (Load both).
-		RenderPassDescriptor pass;
-		pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_renderTarget->GetRenderTarget()) };
-		pass.DepthAttachment  = DepthAttachmentDescriptor::Keep(_renderTarget->GetDepthTarget());
-		pass.HasViewport      = true;
-		pass.Viewport         = view.Viewport;
-		pass.DebugLabel       = "Main Scene Opaque/Transparent";
-		BeginRenderPass(pass);
+		// ─ Opaque + Additive ─ on the main render target ─────────────────────────
+		{
+			RenderPassDescriptor pass;
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_renderTarget->GetRenderTarget()) };
+			pass.DepthAttachment  = DepthAttachmentDescriptor::Keep(_renderTarget->GetDepthTarget());
+			pass.HasViewport      = true;
+			pass.Viewport         = view.Viewport;
+			pass.DebugLabel       = "Main Scene Opaque";
+			BeginRenderPass(pass);
+		}
 
 		DoRenderPass(RendererPass::Opaque,                  view, true);
 		DoRenderPass(RendererPass::Additive,                view, true);
-		DoRenderPass(RendererPass::Distortion,              view, true);
 		DoRenderPass(RendererPass::CollectTransparentFaces, view, false);
 		SortTransparentFaces(view);
+
+		EndRenderPass();
+
+		// ─ Distortion ─ writes the downscaled distortion accumulator ────────────
+		// Splitting the main pass is required for Vulkan compatibility (no mid-pass
+		// render-target switch). _distortionRenderTarget is a different size from the
+		// main RT so it can't share an MRT.
+		{
+			RenderPassDescriptor pass;
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_distortionRenderTarget->GetRenderTarget()) };
+			pass.HasViewport      = true;
+			pass.Viewport         = _distortionViewport;
+			pass.DebugLabel       = "Distortion Mask";
+			BeginRenderPass(pass);
+		}
+
+		DoRenderPass(RendererPass::Distortion, view, true);
+
+		EndRenderPass();
+
+		// ─ Transparent + GunFlashes + 3D debug lines ─ back on the main RT ──────
+		{
+			RenderPassDescriptor pass;
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_renderTarget->GetRenderTarget()) };
+			pass.DepthAttachment  = DepthAttachmentDescriptor::Keep(_renderTarget->GetDepthTarget());
+			pass.HasViewport      = true;
+			pass.Viewport         = view.Viewport;
+			pass.DebugLabel       = "Main Scene Transparent";
+			BeginRenderPass(pass);
+		}
 
 		DoRenderPass(RendererPass::Transparent, view, true);
 		DoRenderPass(RendererPass::GunFlashes,  view, true); // HACK: drawn after everything because they're near camera.
@@ -2234,7 +2265,7 @@ namespace TEN::Renderer
 			if (_moveableObjects[ID_HORIZON].has_value()) // FIXME: Replace with same function as in the main pipeline!
 			{
 				BindVertexBuffer(_moveablesVertexBuffer.get());
-				_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+				BindIndexBuffer(_moveablesIndexBuffer.get());
 
 				const auto& moveableObj = *_moveableObjects[ID_HORIZON]; // FIXME: Replace with same function as in the main pipeline!
 
@@ -2280,7 +2311,7 @@ namespace TEN::Renderer
 
 		// Bind vertex and index buffer.
 		BindVertexBuffer(_roomsVertexBuffer.get());
-		_graphicsDevice->BindIndexBuffer(_roomsIndexBuffer.get());
+		BindIndexBuffer(_roomsIndexBuffer.get());
 
 		for (int i = 0; i < _rooms.size(); i++)
 		{
@@ -2432,13 +2463,6 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
 
-		if (pass == RendererPass::Distortion)
-		{
-			_graphicsDevice->BindRenderTarget(_distortionRenderTarget->GetRenderTarget(), nullptr);
-			_graphicsDevice->SetViewport(_distortionViewport);
-			_graphicsDevice->SetScissor(_distortionViewport);
-		}
-
 		// Draw room geometry first if applicable for a given pass.
 		if (pass != RendererPass::Transparent && pass != RendererPass::GunFlashes)
 			DrawRooms(view, pass);
@@ -2458,13 +2482,6 @@ namespace TEN::Renderer
 			}
 
 			SetCullMode(CullMode::CounterClockwise);
-		}
-
-		if (pass == RendererPass::Distortion)
-		{
-			_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
-			_graphicsDevice->SetViewport(view.Viewport);
-			_graphicsDevice->SetScissor(view.Viewport);
 		}
 	}
 
@@ -2525,7 +2542,7 @@ namespace TEN::Renderer
 				BindPipeline(Pipelines::Items(_vertexInputLayout.get()));
 
 			BindVertexBuffer(_moveablesVertexBuffer.get());
-			_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+			BindIndexBuffer(_moveablesIndexBuffer.get());
 
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
@@ -2701,7 +2718,7 @@ namespace TEN::Renderer
 			unsigned int stride = sizeof(Vertex);
 			unsigned int offset = 0;
 			BindVertexBuffer(_staticsVertexBuffer.get());
-			_graphicsDevice->BindIndexBuffer(_staticsIndexBuffer.get());;
+			BindIndexBuffer(_staticsIndexBuffer.get());;
 
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
@@ -2780,7 +2797,7 @@ namespace TEN::Renderer
 				BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 
 			BindVertexBuffer(_staticsVertexBuffer.get());
-			_graphicsDevice->BindIndexBuffer(_staticsIndexBuffer.get());
+			BindIndexBuffer(_staticsIndexBuffer.get());
 			
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
@@ -2971,7 +2988,7 @@ namespace TEN::Renderer
 				BindPipeline(Pipelines::Rooms(_vertexInputLayout.get()));
 
 			BindVertexBuffer(_roomsVertexBuffer.get());
-			_graphicsDevice->BindIndexBuffer(_roomsIndexBuffer.get());
+			BindIndexBuffer(_roomsIndexBuffer.get());
 			   
 			if (rendererPass != RendererPass::GBuffer)
 			{
@@ -3156,7 +3173,7 @@ namespace TEN::Renderer
 		BindTexture(TextureRegister::ColorMap, _skyTexture.get(), SamplerStateRegister::AnisotropicClamp);
 
 		BindVertexBuffer(_skyVertexBuffer.get());
-		_graphicsDevice->BindIndexBuffer(_skyIndexBuffer.get());
+		BindIndexBuffer(_skyIndexBuffer.get());
 
 		SetBlendMode(BlendMode::Additive);
 
@@ -3335,7 +3352,7 @@ namespace TEN::Renderer
 			SetBlendMode(BlendMode::Opaque);
 
 			BindVertexBuffer(_moveablesVertexBuffer.get());
-			_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+			BindIndexBuffer(_moveablesIndexBuffer.get());
 
 			auto pos = Vector3::Lerp(levelPtr->GetHorizonPrevPosition(layer), levelPtr->GetHorizonPosition(layer), GetInterpolationFactor());
 			auto orient = EulerAngles::Lerp(levelPtr->GetHorizonPrevOrientation(layer), levelPtr->GetHorizonOrientation(layer), GetInterpolationFactor());
@@ -3928,7 +3945,7 @@ namespace TEN::Renderer
 		{
 			_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(),
 				(int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
-			_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
+			BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 		}
 		if (!_sortedPolygonsVertices.empty())
 		{

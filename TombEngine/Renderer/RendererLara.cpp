@@ -321,7 +321,7 @@ void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
 		return;
 
 	BindVertexBuffer(_moveablesVertexBuffer.get());
-	_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+	BindIndexBuffer(_moveablesIndexBuffer.get());
 
 	auto& laraObj = *_moveableObjects[ID_LARA];
 	auto skinMode = GetSkinningMode(laraObj, item->SkinIndex);

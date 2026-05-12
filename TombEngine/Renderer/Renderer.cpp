@@ -200,10 +200,9 @@ namespace TEN::Renderer
 	void Renderer::ResetPipelineCache()
 	{
 		_lastBoundVertexBuffer  = nullptr;
+		_lastBoundIndexBuffer   = nullptr;
 		_lastBoundInputLayout   = nullptr;
 		_lastBoundPrimitiveType = (PrimitiveType)-1;
-		_hasBoundPipeline       = false;
-		_lastBoundPipelineHash  = 0;
 		_shaders.ResetBindCache();
 	}
 
@@ -296,6 +295,14 @@ namespace TEN::Renderer
 			return;
 		_lastBoundVertexBuffer = vertexBuffer;
 		_graphicsDevice->BindVertexBuffer(vertexBuffer);
+	}
+
+	void Renderer::BindIndexBuffer(IIndexBuffer* indexBuffer)
+	{
+		if (indexBuffer == _lastBoundIndexBuffer)
+			return;
+		_lastBoundIndexBuffer = indexBuffer;
+		_graphicsDevice->BindIndexBuffer(indexBuffer);
 	}
 
 	void Renderer::SetInputLayout(IInputLayout* inputLayout)
