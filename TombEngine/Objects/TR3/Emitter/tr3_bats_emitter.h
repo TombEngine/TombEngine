@@ -11,7 +11,8 @@ namespace TEN::Renderer::Structures
 
 namespace TEN::Entities::TR3
 {
-	constexpr auto NUM_TR3_BATS = 32;
+	constexpr auto NUM_TR3_BATS = 64;
+	constexpr auto TR3_BATS_PER_EMITTER = 32;
 
 	struct Tr3BatData
 	{
