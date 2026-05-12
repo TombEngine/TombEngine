@@ -1929,16 +1929,11 @@ namespace TEN::Renderer
 			EndRenderPass();
 		}
 
-		// Clear distortion pass data.
-		{
-			RenderPassDescriptor pass;
-			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_distortionRenderTarget->GetRenderTarget(), Colors::Transparent) };
-			pass.HasViewport      = true;
-			pass.Viewport         = view.Viewport;
-			pass.DebugLabel       = "Distortion Clear";
-			BeginRenderPass(pass);
-			EndRenderPass();
-		}
+		// Clear the distortion mask. We use a raw ClearRTV here instead of a render pass
+		// because the pass that follows (DrawHorizonAndSky) renders to the main render
+		// target that "Main Scene Begin" left bound — opening a pass on the distortion
+		// target would silently rebind the OM and the sky would land on the wrong RT.
+		_graphicsDevice->ClearRenderTarget2D(_distortionRenderTarget->GetRenderTarget(), Colors::Transparent);
 		_hasDistortionMask = false;
 
 		// Camera constant buffer contains matrices, camera position, fog values, and other things shared for all shaders.
