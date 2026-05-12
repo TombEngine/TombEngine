@@ -1603,6 +1603,7 @@ const std::vector<byte> SaveGame::Build()
 		batInfo.add_on(bat->On);
 		batInfo.add_room_number(bat->RoomNumber);
 		batInfo.add_pose(&FromPose(bat->Pose));
+		// TR3 bats don't use SwarmObjectInfo target, so pack wing offset and velocity into it.
 		batInfo.add_target((bat->WingYoff << 16) | bat->Velocity);
 
 		tr3Bats.push_back(batInfo.Finish());
@@ -2632,7 +2633,7 @@ static void ParseEffects(const Save::SaveGame* s)
 		bat->Pose = ToPose(*batInfo->pose());
 	}
 
-	for (int i = 0; i < s->tr3_bats()->size(); i++)
+	for (int i = 0; i < s->tr3_bats()->size() && i < NUM_TR3_BATS; i++)
 	{
 		auto* batInfo = s->tr3_bats()->Get(i);
 		auto* bat = &Tr3Bats[i];
