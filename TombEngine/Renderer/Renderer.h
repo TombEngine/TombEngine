@@ -771,6 +771,18 @@ namespace TEN::Renderer
 		void DumpGameScene(SceneRenderMode renderMode = SceneRenderMode::Full, float blur = 0.0f);
 		void RenderInventory();
 		void RenderScene(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode = SceneRenderMode::Full);
+
+		// RenderScene internal phases. Kept private — the public API stays RenderScene().
+	private:
+		void PrepareSceneEffects(RenderView& view);              // collect + animate + prepare particles & sprites
+		void BindFrameConstantBuffers();                         // CB + structured buffer slot bindings for the frame
+		void BuildAndUploadCameraConstantBuffer(RenderView& view);
+		void ClearDistortionMaskPass();                          // pass that resets _distortionRenderTarget
+		void DoMainSceneSkyPass(RenderView& view);               // clear color/depth + draw horizon + sky
+		void DoGBufferPass(RenderView& view);                    // MRT G-Buffer write
+		void DoMainSceneOpaqueTransparentPass(RenderView& view); // Opaque/Additive/Distortion/Transparent + 3D debug lines
+		void DoHud3DPass(RenderView& view);                      // depth-cleared HUD 3D + display items
+	public:
 		void PrepareScene();
 		void ClearScene();
 		void SaveScreenshot();

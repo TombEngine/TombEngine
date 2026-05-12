@@ -1820,39 +1820,22 @@ namespace TEN::Renderer
 		ClearShadowMap();
 	}
 
-	void Renderer::RenderScene(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode)
+	// ──────────────────────────────────────────────────────────────────────────────
+	// RenderScene phase helpers. RenderScene() below stitches them together; keep
+	// each helper self-contained and small enough to read as a single block.
+	// ──────────────────────────────────────────────────────────────────────────────
+
+	void Renderer::PrepareSceneEffects(RenderView& view)
 	{
-		using ns = std::chrono::nanoseconds;
-		using get_time = std::chrono::steady_clock;
-
-		ResetDebugVariables();
-
-		// Reset texture/pipeline binding caches so the dedup logic starts from a known state
-		// every frame. DX11 may have invalidated SRVs at end of last frame (RTV-as-SRV hazard
-		// prevention), or external code may have changed bindings outside our wrapper.
-		ResetTextureBindingCache();
-		ResetPipelineCache();
-
-		auto& level = *g_GameFlow->GetLevel(CurrentLevel);
-
-		// Prepare scene to draw.
-		auto time1 = std::chrono::high_resolution_clock::now();
-		CollectMirrors(view);
-		CollectRooms(view, false);
-		auto time = std::chrono::high_resolution_clock::now();
-		_timeRoomsCollector = (std::chrono::duration_cast<ns>(time - time1)).count() / 1000000;
-		time1 = time;
-
 		UpdateLaraAnimations(false);
 		UpdateItemAnimations(view);
 
-		_stPerDraw.AlphaTest = NO_VALUE;
+		_stPerDraw.AlphaTest      = NO_VALUE;
 		_stPerDraw.AlphaThreshold = NO_VALUE;
 
 		CollectLightsForCamera();
 		RenderItemShadows(view);
 
-		// Prepare all sprites for later.
 		PrepareFires(view);
 		PrepareSmokes(view);
 		PrepareSmokeParticles(view);
@@ -1877,235 +1860,283 @@ namespace TEN::Renderer
 		PrepareSingleLaserBeam(view);
 		PrepareFireflies(view);
 
-		// Sprites grouped in buckets for instancing. Non-commutative sprites are collected at a later stage.
+		// Sprites grouped in buckets for instancing.
+		// Non-commutative sprites are collected later in the transparent pass.
 		SortAndPrepareSprites(view);
+	}
+
+	void Renderer::BindFrameConstantBuffers()
+	{
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera,             _cbCameraMatrices.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PerDraw,            _cbPerDraw.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics,   _cbObjects.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::ShadowLight,        _cbShadowMap.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Room,               _cbRoom.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedSprites,   _cbInstancedSpriteBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PostProcess,        _cbPostProcessBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Sky,                _cbSky.get());
+
+		BindConstantBuffer(ShaderStage::PixelShader,  ConstantBufferRegister::Camera,             _cbCameraMatrices.get());
+		BindConstantBuffer(ShaderStage::PixelShader,  ConstantBufferRegister::PerDraw,            _cbPerDraw.get());
+		BindConstantBuffer(ShaderStage::PixelShader,  ConstantBufferRegister::InstancedStatics,   _cbObjects.get());
+		BindConstantBuffer(ShaderStage::PixelShader,  ConstantBufferRegister::ShadowLight,        _cbShadowMap.get());
+		BindConstantBuffer(ShaderStage::PixelShader,  ConstantBufferRegister::Room,               _cbRoom.get());
+		BindConstantBuffer(ShaderStage::PixelShader,  ConstantBufferRegister::InstancedSprites,   _cbInstancedSpriteBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader,  ConstantBufferRegister::PostProcess,        _cbPostProcessBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader,  ConstantBufferRegister::Sky,                _cbSky.get());
+
+		_graphicsDevice->BindStructuredBuffer(ShaderStage::VertexShader, TextureRegister::AnimatedFrames, _animatedFramesBuffer.get());
+		_graphicsDevice->BindStructuredBuffer(ShaderStage::PixelShader,  TextureRegister::AnimatedFrames, _animatedFramesBuffer.get());
+	}
+
+	void Renderer::BuildAndUploadCameraConstantBuffer(RenderView& view)
+	{
+		auto& level = *g_GameFlow->GetLevel(CurrentLevel);
+
+		auto cb = CCameraMatrixBuffer{};
+		view.FillConstantBuffer(cb);
+		cb.Frame              = GlobalCounter;
+		cb.InterpolatedFrame  = (float)GlobalCounter + GetInterpolationFactor();
+		cb.RefreshRate        = _graphicsDevice->GetRefreshRate();
+		cb.CameraUnderwater   = g_Level.Rooms[cb.RoomNumber].flags & ENV_FLAG_WATER;
+		cb.DualParaboloidView = Matrix::CreateLookAt(_gameCamera.Camera.WorldPosition, _gameCamera.Camera.WorldPosition + Vector3(0, -1024, 0), Vector3::UnitX);
+		cb.Gamma              = g_Configuration.Gamma;
+
+		if (level.GetFogMaxDistance() > 0)
+		{
+			auto fogColor = level.GetFogColor();
+			cb.FogColor       = Vector4(fogColor.GetR() / 255.0f, fogColor.GetG() / 255.0f, fogColor.GetB() / 255.0f, 1.0f);
+			cb.FogMinDistance = level.GetFogMinDistance();
+			cb.FogMaxDistance = level.GetFogMaxDistance();
+		}
+		else
+		{
+			cb.FogMaxDistance = 0.0f;
+			cb.FogColor       = Vector4::Zero;
+		}
+
+		cb.AmbientOcclusion         = (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion) ? 1 : 0;
+		cb.AmbientOcclusionExponent = 2;
+
+		cb.NumFogBulbs = (int)view.FogBulbsToDraw.size();
+		for (int i = 0; i < view.FogBulbsToDraw.size(); i++)
+		{
+			cb.FogBulbs[i].Position                          = view.FogBulbsToDraw[i].Position;
+			cb.FogBulbs[i].Density                           = view.FogBulbsToDraw[i].Density * (CLICK(1) / view.FogBulbsToDraw[i].Radius);
+			cb.FogBulbs[i].SquaredRadius                     = SQUARE(view.FogBulbsToDraw[i].Radius);
+			cb.FogBulbs[i].Color                             = view.FogBulbsToDraw[i].Color;
+			cb.FogBulbs[i].SquaredCameraToFogBulbDistance    = SQUARE(view.FogBulbsToDraw[i].Distance);
+			cb.FogBulbs[i].FogBulbToCameraVector             = view.FogBulbsToDraw[i].FogBulbToCameraVector;
+		}
+
+		cb.Hemisphere = 0;
+
+		UpdateConstantBuffer(&cb, _cbCameraMatrices.get());
+	}
+
+	void Renderer::ClearDistortionMaskPass()
+	{
+		// The distortion accumulator is downscaled — different size from _renderTarget, so it
+		// can't share a pass with the main scene as an MRT attachment.
+		RendererViewport viewport = {
+			0, 0,
+			_distortionRenderTarget->GetRenderTarget()->GetWidth(),
+			_distortionRenderTarget->GetRenderTarget()->GetHeight(),
+			0.0f, 1.0f
+		};
+
+		RenderPassDescriptor pass;
+		pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_distortionRenderTarget->GetRenderTarget(), Colors::Transparent) };
+		pass.HasViewport      = true;
+		pass.Viewport         = viewport;
+		pass.DebugLabel       = "Distortion Mask Clear";
+		BeginRenderPass(pass);
+		EndRenderPass();
+
+		_hasDistortionMask = false;
+	}
+
+	void Renderer::DoMainSceneSkyPass(RenderView& view)
+	{
+		// Clears HDR color + depth and draws the sky inside the same pass — all sky and
+		// horizon draws need an active render pass (Vulkan requirement). The sky → stars
+		// internal depth reset uses ClearDepthMidPass to re-open the pass with depth Clear.
+		auto clearColor = _debugPage == RendererDebugPage::WireframeMode ? Colors::DimGray : Colors::Black;
+
+		RenderPassDescriptor pass;
+		pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_renderTarget->GetRenderTarget(), clearColor) };
+		pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(_renderTarget->GetDepthTarget());
+		pass.HasViewport      = true;
+		pass.Viewport         = view.Viewport;
+		pass.DebugLabel       = "Main Scene Sky";
+		BeginRenderPass(pass);
+
+		DrawHorizonAndSky(_renderTarget->GetDepthTarget(), view);
+
+		EndRenderPass();
+	}
+
+	void Renderer::DoGBufferPass(RenderView& view)
+	{
+		// MRT: normals/matIdx + linear depth + emissive/roughness, sharing the main depth
+		// buffer (already populated by the sky pass — LoadAction::Load).
+		RenderPassDescriptor pass;
+		pass.ColorAttachments = {
+			ColorAttachmentDescriptor::Clear(_normalsAndMaterialIndexRenderTarget->GetRenderTarget(), Colors::Transparent),
+			ColorAttachmentDescriptor::Clear(_depthRenderTarget->GetRenderTarget(),                   Colors::White),
+			ColorAttachmentDescriptor::Clear(_emissiveAndRoughnessRenderTarget->GetRenderTarget(),    Colors::Transparent),
+		};
+		pass.DepthAttachment = DepthAttachmentDescriptor::Keep(_renderTarget->GetDepthTarget());
+		pass.HasViewport     = true;
+		pass.Viewport        = view.Viewport;
+		pass.DebugLabel      = "G-Buffer";
+		BeginRenderPass(pass);
+
+		DoRenderPass(RendererPass::GBuffer, view, true);
+
+		EndRenderPass();
+	}
+
+	void Renderer::DoMainSceneOpaqueTransparentPass(RenderView& view)
+	{
+		// Reuses color + depth from previous passes (Load both).
+		RenderPassDescriptor pass;
+		pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_renderTarget->GetRenderTarget()) };
+		pass.DepthAttachment  = DepthAttachmentDescriptor::Keep(_renderTarget->GetDepthTarget());
+		pass.HasViewport      = true;
+		pass.Viewport         = view.Viewport;
+		pass.DebugLabel       = "Main Scene Opaque/Transparent";
+		BeginRenderPass(pass);
+
+		DoRenderPass(RendererPass::Opaque,                  view, true);
+		DoRenderPass(RendererPass::Additive,                view, true);
+		DoRenderPass(RendererPass::Distortion,              view, true);
+		DoRenderPass(RendererPass::CollectTransparentFaces, view, false);
+		SortTransparentFaces(view);
+
+		DoRenderPass(RendererPass::Transparent, view, true);
+		DoRenderPass(RendererPass::GunFlashes,  view, true); // HACK: drawn after everything because they're near camera.
+
+		DrawLines3D(view);
+		DrawTriangles3D(view);
+
+		EndRenderPass();
+	}
+
+	void Renderer::DoHud3DPass(RenderView& view)
+	{
+		// LoadAction::Clear on depth gives HUD geometry a fresh depth buffer over the composed scene.
+		RenderPassDescriptor pass;
+		pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_renderTarget->GetRenderTarget()) };
+		pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(_renderTarget->GetDepthTarget());
+		pass.HasViewport      = true;
+		pass.Viewport         = view.Viewport;
+		pass.DebugLabel       = "HUD 3D";
+		BeginRenderPass(pass);
+
+		g_Hud.Draw3D();
+		g_DrawItems.Draw();
+
+		EndRenderPass();
+	}
+
+	void Renderer::RenderScene(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode)
+	{
+		using ns = std::chrono::nanoseconds;
+
+		ResetDebugVariables();
+
+		// Reset dedup caches: DX11 may have invalidated SRVs at end of last frame (RTV-as-SRV
+		// hazard prevention), or external code may have changed bindings outside our wrapper.
+		ResetTextureBindingCache();
+		ResetPipelineCache();
+
+		// ── 1. Scene preparation (CPU side) ──────────────────────────────────────
+		auto time1 = std::chrono::high_resolution_clock::now();
+		CollectMirrors(view);
+		CollectRooms(view, false);
+		auto time = std::chrono::high_resolution_clock::now();
+		_timeRoomsCollector = (std::chrono::duration_cast<ns>(time - time1)).count() / 1000000;
+		time1 = time;
+
+		PrepareSceneEffects(view);
 
 		auto time2 = std::chrono::high_resolution_clock::now();
 		_timeUpdate = (std::chrono::duration_cast<ns>(time2 - time1)).count() / 1000000;
 		time1 = time2;
 
-		// Bind constant buffers.
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PerDraw, _cbPerDraw.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Sky, _cbSky.get());
+		// ── 2. Constant buffer + structured buffer slot bindings ─────────────────
+		BindFrameConstantBuffers();
 
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PerDraw, _cbPerDraw.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Sky, _cbSky.get());
-
-		_graphicsDevice->BindStructuredBuffer(ShaderStage::VertexShader, TextureRegister::AnimatedFrames, _animatedFramesBuffer.get());
-		_graphicsDevice->BindStructuredBuffer(ShaderStage::PixelShader, TextureRegister::AnimatedFrames, _animatedFramesBuffer.get());
-
-		// Reset GPU state.
-		SetBlendMode(BlendMode::Opaque, true);
-		SetDepthState(DepthState::Write, true);
+		// ── 3. Initial GPU state for the frame ───────────────────────────────────
+		SetBlendMode(BlendMode::Opaque,        true);
+		SetDepthState(DepthState::Write,       true);
 		SetCullMode(CullMode::CounterClockwise, true);
-
 		BindMaterial(0, true);
 
 		_stPerDraw.Animated = 0;
 		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
-		// Set up vertex parameters.
 		SetInputLayout(_vertexInputLayout.get());
 		SetPrimitiveType(PrimitiveType::TriangleList);
 
-		// Draw skybox to paraboloid
+		// ── 4. Off-screen prep: skybox-reflection cube faces + distortion clear ──
 		DrawHorizonAndSkyForReflections(view);
 
 		_stPerDraw.Animated = 0;
 		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
-		// Distortion mask pass — clears the downscaled distortion accumulator. Runs first
-		// because its target is a different size from _renderTarget and can't be folded
-		// into the main scene pass as an MRT attachment.
-		{
-			RendererViewport distortionViewport = { 0, 0, _distortionRenderTarget->GetRenderTarget()->GetWidth(), _distortionRenderTarget->GetRenderTarget()->GetHeight(), 0.0f, 1.0f };
+		ClearDistortionMaskPass();
 
-			RenderPassDescriptor pass;
-			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_distortionRenderTarget->GetRenderTarget(), Colors::Transparent) };
-			pass.HasViewport      = true;
-			pass.Viewport         = distortionViewport;
-			pass.DebugLabel       = "Distortion Mask Clear";
-			BeginRenderPass(pass);
-			EndRenderPass();
-		}
-		_hasDistortionMask = false;
+		// ── 5. Camera CB (depends on FogBulbs collected by PrepareSceneEffects) ──
+		BuildAndUploadCameraConstantBuffer(view);
 
-		// Camera constant buffer contains matrices, camera position, fog values, and other things shared for all shaders.
-		auto cameraConstantBuffer = CCameraMatrixBuffer{};
-		view.FillConstantBuffer(cameraConstantBuffer);
-		cameraConstantBuffer.Frame = GlobalCounter;
-		cameraConstantBuffer.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
-		cameraConstantBuffer.RefreshRate = _graphicsDevice->GetRefreshRate();
-		cameraConstantBuffer.CameraUnderwater = g_Level.Rooms[cameraConstantBuffer.RoomNumber].flags & ENV_FLAG_WATER;
-		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(_gameCamera.Camera.WorldPosition, _gameCamera.Camera.WorldPosition + Vector3(0, -1024, 0), Vector3::UnitX);
-		cameraConstantBuffer.Gamma = g_Configuration.Gamma;
+		// ── 6. Main scene passes ─────────────────────────────────────────────────
+		DoMainSceneSkyPass(view);
+		DoGBufferPass(view);
 
-		if (level.GetFogMaxDistance() > 0)
-		{
-			auto fogColor = level.GetFogColor();
-			cameraConstantBuffer.FogColor = Vector4(fogColor.GetR() / 255.0f, fogColor.GetG() / 255.0f, fogColor.GetB() / 255.0f, 1.0f);
-			cameraConstantBuffer.FogMinDistance = level.GetFogMinDistance();
-			cameraConstantBuffer.FogMaxDistance = level.GetFogMaxDistance();
-		}
-		else
-		{
-			cameraConstantBuffer.FogMaxDistance = 0.0f;
-			cameraConstantBuffer.FogColor = Vector4::Zero;
-		}
-
-		cameraConstantBuffer.AmbientOcclusion = (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion) ? 1 : 0;
-		cameraConstantBuffer.AmbientOcclusionExponent = 2;
-
-		// Set fog bulbs.
-		cameraConstantBuffer.NumFogBulbs = (int)view.FogBulbsToDraw.size();
-		for (int i = 0; i < view.FogBulbsToDraw.size(); i++)
-		{
-			cameraConstantBuffer.FogBulbs[i].Position = view.FogBulbsToDraw[i].Position;
-			cameraConstantBuffer.FogBulbs[i].Density = view.FogBulbsToDraw[i].Density * (CLICK(1) / view.FogBulbsToDraw[i].Radius);
-			cameraConstantBuffer.FogBulbs[i].SquaredRadius = SQUARE(view.FogBulbsToDraw[i].Radius);
-			cameraConstantBuffer.FogBulbs[i].Color = view.FogBulbsToDraw[i].Color;
-			cameraConstantBuffer.FogBulbs[i].SquaredCameraToFogBulbDistance = SQUARE(view.FogBulbsToDraw[i].Distance);
-			cameraConstantBuffer.FogBulbs[i].FogBulbToCameraVector = view.FogBulbsToDraw[i].FogBulbToCameraVector;
-		}
-
-		cameraConstantBuffer.Hemisphere = 0;
-
-		UpdateConstantBuffer(&cameraConstantBuffer, _cbCameraMatrices.get());
-
-		// Main scene horizon/sky pass: clears HDR color + depth, then draws the sky.
-		// The pass stays open across DrawHorizonAndSky so all sky/horizon draws happen
-		// inside an active render pass (Vulkan requirement). Sky → stars internal depth
-		// reset goes through ClearDepthMidPass which re-opens the pass with LoadAction::Clear.
-		{
-			auto clearColor = _debugPage == RendererDebugPage::WireframeMode ? Colors::DimGray : Colors::Black;
-
-			RenderPassDescriptor pass;
-			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_renderTarget->GetRenderTarget(), clearColor) };
-			pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(_renderTarget->GetDepthTarget());
-			pass.HasViewport      = true;
-			pass.Viewport         = view.Viewport;
-			pass.DebugLabel       = "Main Scene Sky";
-			BeginRenderPass(pass);
-		}
-
-		DrawHorizonAndSky(_renderTarget->GetDepthTarget(), view);
-
-		EndRenderPass();
-
-		// G-Buffer pass: 3 color targets (normals/matIdx, linear depth, emissive/roughness)
-		// sharing the main scene depth buffer. Depth is reused from the horizon/sky pass.
-		{
-			RenderPassDescriptor pass;
-			pass.ColorAttachments = {
-				ColorAttachmentDescriptor::Clear(_normalsAndMaterialIndexRenderTarget->GetRenderTarget(), Colors::Transparent),
-				ColorAttachmentDescriptor::Clear(_depthRenderTarget->GetRenderTarget(),                   Colors::White),
-				ColorAttachmentDescriptor::Clear(_emissiveAndRoughnessRenderTarget->GetRenderTarget(),    Colors::Transparent),
-			};
-			pass.DepthAttachment = DepthAttachmentDescriptor::Keep(_renderTarget->GetDepthTarget());
-			pass.HasViewport     = true;
-			pass.Viewport        = view.Viewport;
-			pass.DebugLabel      = "G-Buffer";
-			BeginRenderPass(pass);
-		}
-
-		DoRenderPass(RendererPass::GBuffer, view, true);
-		EndRenderPass();
-
-		// Calculate ambient occlusion (has its own internal render passes).
 		if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion)
 			CalculateSSAO(view);
 
 		SetPrimitiveType(PrimitiveType::TriangleList);
 		SetInputLayout(_vertexInputLayout.get());
 
-		// Main scene opaque/transparent pass: color + existing depth (Load both).
-		{
-			RenderPassDescriptor pass;
-			pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_renderTarget->GetRenderTarget()) };
-			pass.DepthAttachment  = DepthAttachmentDescriptor::Keep(_renderTarget->GetDepthTarget());
-			pass.HasViewport      = true;
-			pass.Viewport         = view.Viewport;
-			pass.DebugLabel       = "Main Scene Opaque/Transparent";
-			BeginRenderPass(pass);
-		}
+		DoMainSceneOpaqueTransparentPass(view);
 
-		DoRenderPass(RendererPass::Opaque, view, true);
-		DoRenderPass(RendererPass::Additive, view, true);
-		DoRenderPass(RendererPass::Distortion, view, true);
-		DoRenderPass(RendererPass::CollectTransparentFaces, view, false);
-		SortTransparentFaces(view);
-
-		DoRenderPass(RendererPass::Transparent, view, true);
-		DoRenderPass(RendererPass::GunFlashes, view, true); // HACK: Gunflashes are drawn after everything because they are near camera.
-
-		// Draw 3D debug lines and triangles.
-		DrawLines3D(view);
-		DrawTriangles3D(view);
-
-		EndRenderPass();
-
-		// Copy current scene to the reflections render target for the next frame (RT -> LRRT).
+		// ── 7. Snapshot scene for next-frame reflections ─────────────────────────
 		CopyRenderTargetAndDownscale(_renderTarget.get(), _legacyReflectionsRenderTarget.get(), POSTPROCESS_DOWNSCALE_FACTOR, view);
 
+		// ── 8. Full-screen effects ───────────────────────────────────────────────
 		_doingFullscreenPass = true;
 
-		// Calculate full-screen effects.
 		ApplyDistortion(_renderTarget.get(), view);
 		ApplyDOF(_renderTarget.get(), view);
 		ApplyGlow(_renderTarget.get(), view);
 
-		// Draw HUD-space 3D renders after DOF so they aren't blurred by scene depth.
-		// The pass's LoadAction::Clear on depth gives the HUD a fresh depth buffer to
-		// render on top of the composed scene.
+		// HUD-space 3D after DOF so it isn't blurred by scene depth.
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
 		{
 			_doingFullscreenPass = false;
-
-			{
-				RenderPassDescriptor pass;
-				pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_renderTarget->GetRenderTarget()) };
-				pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(_renderTarget->GetDepthTarget());
-				pass.HasViewport      = true;
-				pass.Viewport         = view.Viewport;
-				pass.DebugLabel       = "HUD 3D";
-				BeginRenderPass(pass);
-			}
-
-			g_Hud.Draw3D();
-			g_DrawItems.Draw();
-
-			EndRenderPass();
+			DoHud3DPass(view);
 			_doingFullscreenPass = true;
 		}
 
-		// Apply the antialiasing, now 3D geometry and 3D HUD are antialiased
-		// FXAA: RT -> PPRT0, PPRT0 -> RT
-		// SMAA: RT -> ..., ... -> RT
+		// ── 9. Antialiasing (now 3D geometry and 3D HUD are anti-aliased) ────────
+		// FXAA: RT -> PPRT0 -> RT.   SMAA: RT -> SMAA chain -> RT.
 		ApplyAntialiasing(_renderTarget.get(), view);
 
-		// Draw text and 2D HUD
+		// ── 10. 2D HUD + post-process composite ──────────────────────────────────
 		ClearDrawPhaseDisplaySprites();
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
 			g_Hud.Draw2D(*LaraItem);
 
-		// Now we can apply the color grade, lens flare, cinematic bars and post process effects
-		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT
+		// Color grade, lens flare, cinematic bars, post-process effects.
+		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> backbuffer.
 		DrawPostprocess(renderTarget, view, renderMode);
 
 		_doingFullscreenPass = false;
 
+		// ── 11. Overlays + display sprites + debug strings ───────────────────────
 		DrawOverlays(view);
 		DrawLines2D();
 
@@ -2119,6 +2150,7 @@ namespace TEN::Renderer
 			DrawDisplaySprites(view, true);
 		}
 
+		// ── 12. Frame stats + end-of-frame cleanup ───────────────────────────────
 		time2 = std::chrono::high_resolution_clock::now();
 		_timeFrame = (std::chrono::duration_cast<ns>(time2 - time1)).count() / 1000000;
 		time1 = time2;
