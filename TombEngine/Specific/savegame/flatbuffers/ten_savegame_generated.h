@@ -8787,6 +8787,10 @@ struct SaveGameT : public flatbuffers::NativeTable {
   int32_t postprocess_mode = 0;
   float postprocess_strength = 0.0f;
   std::unique_ptr<TEN::Save::Vector3> postprocess_tint{};
+  float dof_distance = 0.0f;
+  float dof_range = 0.0f;
+  float dof_strength = 0.0f;
+  int32_t dof_mode = 0;
   std::unique_ptr<TEN::Save::RopeT> rope{};
   std::unique_ptr<TEN::Save::PendulumT> pendulum{};
   std::unique_ptr<TEN::Save::PendulumT> alternate_pendulum{};
@@ -8858,27 +8862,31 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_POSTPROCESS_MODE = 84,
     VT_POSTPROCESS_STRENGTH = 86,
     VT_POSTPROCESS_TINT = 88,
-    VT_ROPE = 90,
-    VT_PENDULUM = 92,
-    VT_ALTERNATE_PENDULUM = 94,
-    VT_VOLUMES = 96,
-    VT_GLOBAL_EVENT_SETS = 98,
-    VT_VOLUME_EVENT_SETS = 100,
-    VT_SCRIPT_VARS = 102,
-    VT_CALLBACKS_PRE_START = 104,
-    VT_CALLBACKS_POST_START = 106,
-    VT_CALLBACKS_PRE_END = 108,
-    VT_CALLBACKS_POST_END = 110,
-    VT_CALLBACKS_PRE_SAVE = 112,
-    VT_CALLBACKS_POST_SAVE = 114,
-    VT_CALLBACKS_PRE_LOAD = 116,
-    VT_CALLBACKS_POST_LOAD = 118,
-    VT_CALLBACKS_PRE_LOOP = 120,
-    VT_CALLBACKS_POST_LOOP = 122,
-    VT_CALLBACKS_PRE_USEITEM = 124,
-    VT_CALLBACKS_POST_USEITEM = 126,
-    VT_CALLBACKS_PRE_FREEZE = 128,
-    VT_CALLBACKS_POST_FREEZE = 130
+    VT_DOF_DISTANCE = 90,
+    VT_DOF_RANGE = 92,
+    VT_DOF_STRENGTH = 94,
+    VT_DOF_MODE = 96,
+    VT_ROPE = 98,
+    VT_PENDULUM = 100,
+    VT_ALTERNATE_PENDULUM = 102,
+    VT_VOLUMES = 104,
+    VT_GLOBAL_EVENT_SETS = 106,
+    VT_VOLUME_EVENT_SETS = 108,
+    VT_SCRIPT_VARS = 110,
+    VT_CALLBACKS_PRE_START = 112,
+    VT_CALLBACKS_POST_START = 114,
+    VT_CALLBACKS_PRE_END = 116,
+    VT_CALLBACKS_POST_END = 118,
+    VT_CALLBACKS_PRE_SAVE = 120,
+    VT_CALLBACKS_POST_SAVE = 122,
+    VT_CALLBACKS_PRE_LOAD = 124,
+    VT_CALLBACKS_POST_LOAD = 126,
+    VT_CALLBACKS_PRE_LOOP = 128,
+    VT_CALLBACKS_POST_LOOP = 130,
+    VT_CALLBACKS_PRE_USEITEM = 132,
+    VT_CALLBACKS_POST_USEITEM = 134,
+    VT_CALLBACKS_PRE_FREEZE = 136,
+    VT_CALLBACKS_POST_FREEZE = 138
   };
   const TEN::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Save::SaveGameHeader *>(VT_HEADER);
@@ -9008,6 +9016,18 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const TEN::Save::Vector3 *postprocess_tint() const {
     return GetStruct<const TEN::Save::Vector3 *>(VT_POSTPROCESS_TINT);
+  }
+  float dof_distance() const {
+    return GetField<float>(VT_DOF_DISTANCE, 0.0f);
+  }
+  float dof_range() const {
+    return GetField<float>(VT_DOF_RANGE, 0.0f);
+  }
+  float dof_strength() const {
+    return GetField<float>(VT_DOF_STRENGTH, 0.0f);
+  }
+  int32_t dof_mode() const {
+    return GetField<int32_t>(VT_DOF_MODE, 0);
   }
   const TEN::Save::Rope *rope() const {
     return GetPointer<const TEN::Save::Rope *>(VT_ROPE);
@@ -9164,6 +9184,10 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_POSTPROCESS_MODE) &&
            VerifyField<float>(verifier, VT_POSTPROCESS_STRENGTH) &&
            VerifyField<TEN::Save::Vector3>(verifier, VT_POSTPROCESS_TINT) &&
+           VerifyField<float>(verifier, VT_DOF_DISTANCE) &&
+           VerifyField<float>(verifier, VT_DOF_RANGE) &&
+           VerifyField<float>(verifier, VT_DOF_STRENGTH) &&
+           VerifyField<int32_t>(verifier, VT_DOF_MODE) &&
            VerifyOffset(verifier, VT_ROPE) &&
            verifier.VerifyTable(rope()) &&
            VerifyOffset(verifier, VT_PENDULUM) &&
@@ -9363,6 +9387,18 @@ struct SaveGameBuilder {
   void add_postprocess_tint(const TEN::Save::Vector3 *postprocess_tint) {
     fbb_.AddStruct(SaveGame::VT_POSTPROCESS_TINT, postprocess_tint);
   }
+  void add_dof_distance(float dof_distance) {
+    fbb_.AddElement<float>(SaveGame::VT_DOF_DISTANCE, dof_distance, 0.0f);
+  }
+  void add_dof_range(float dof_range) {
+    fbb_.AddElement<float>(SaveGame::VT_DOF_RANGE, dof_range, 0.0f);
+  }
+  void add_dof_strength(float dof_strength) {
+    fbb_.AddElement<float>(SaveGame::VT_DOF_STRENGTH, dof_strength, 0.0f);
+  }
+  void add_dof_mode(int32_t dof_mode) {
+    fbb_.AddElement<int32_t>(SaveGame::VT_DOF_MODE, dof_mode, 0);
+  }
   void add_rope(flatbuffers::Offset<TEN::Save::Rope> rope) {
     fbb_.AddOffset(SaveGame::VT_ROPE, rope);
   }
@@ -9482,6 +9518,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     int32_t postprocess_mode = 0,
     float postprocess_strength = 0.0f,
     const TEN::Save::Vector3 *postprocess_tint = 0,
+    float dof_distance = 0.0f,
+    float dof_range = 0.0f,
+    float dof_strength = 0.0f,
+    int32_t dof_mode = 0,
     flatbuffers::Offset<TEN::Save::Rope> rope = 0,
     flatbuffers::Offset<TEN::Save::Pendulum> pendulum = 0,
     flatbuffers::Offset<TEN::Save::Pendulum> alternate_pendulum = 0,
@@ -9525,6 +9565,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
   builder_.add_alternate_pendulum(alternate_pendulum);
   builder_.add_pendulum(pendulum);
   builder_.add_rope(rope);
+  builder_.add_dof_mode(dof_mode);
+  builder_.add_dof_strength(dof_strength);
+  builder_.add_dof_range(dof_range);
+  builder_.add_dof_distance(dof_distance);
   builder_.add_postprocess_tint(postprocess_tint);
   builder_.add_postprocess_strength(postprocess_strength);
   builder_.add_postprocess_mode(postprocess_mode);
@@ -9621,6 +9665,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     int32_t postprocess_mode = 0,
     float postprocess_strength = 0.0f,
     const TEN::Save::Vector3 *postprocess_tint = 0,
+    float dof_distance = 0.0f,
+    float dof_range = 0.0f,
+    float dof_strength = 0.0f,
+    int32_t dof_mode = 0,
     flatbuffers::Offset<TEN::Save::Rope> rope = 0,
     flatbuffers::Offset<TEN::Save::Pendulum> pendulum = 0,
     flatbuffers::Offset<TEN::Save::Pendulum> alternate_pendulum = 0,
@@ -9727,6 +9775,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       postprocess_mode,
       postprocess_strength,
       postprocess_tint,
+      dof_distance,
+      dof_range,
+      dof_strength,
+      dof_mode,
       rope,
       pendulum,
       alternate_pendulum,
@@ -12423,6 +12475,10 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = postprocess_mode(); _o->postprocess_mode = _e; }
   { auto _e = postprocess_strength(); _o->postprocess_strength = _e; }
   { auto _e = postprocess_tint(); if (_e) _o->postprocess_tint = std::unique_ptr<TEN::Save::Vector3>(new TEN::Save::Vector3(*_e)); }
+  { auto _e = dof_distance(); _o->dof_distance = _e; }
+  { auto _e = dof_range(); _o->dof_range = _e; }
+  { auto _e = dof_strength(); _o->dof_strength = _e; }
+  { auto _e = dof_mode(); _o->dof_mode = _e; }
   { auto _e = rope(); if (_e) _o->rope = std::unique_ptr<TEN::Save::RopeT>(_e->UnPack(_resolver)); }
   { auto _e = pendulum(); if (_e) _o->pendulum = std::unique_ptr<TEN::Save::PendulumT>(_e->UnPack(_resolver)); }
   { auto _e = alternate_pendulum(); if (_e) _o->alternate_pendulum = std::unique_ptr<TEN::Save::PendulumT>(_e->UnPack(_resolver)); }
@@ -12497,6 +12553,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _postprocess_mode = _o->postprocess_mode;
   auto _postprocess_strength = _o->postprocess_strength;
   auto _postprocess_tint = _o->postprocess_tint ? _o->postprocess_tint.get() : 0;
+  auto _dof_distance = _o->dof_distance;
+  auto _dof_range = _o->dof_range;
+  auto _dof_strength = _o->dof_strength;
+  auto _dof_mode = _o->dof_mode;
   auto _rope = _o->rope ? CreateRope(_fbb, _o->rope.get(), _rehasher) : 0;
   auto _pendulum = _o->pendulum ? CreatePendulum(_fbb, _o->pendulum.get(), _rehasher) : 0;
   auto _alternate_pendulum = _o->alternate_pendulum ? CreatePendulum(_fbb, _o->alternate_pendulum.get(), _rehasher) : 0;
@@ -12563,6 +12623,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _postprocess_mode,
       _postprocess_strength,
       _postprocess_tint,
+      _dof_distance,
+      _dof_range,
+      _dof_strength,
+      _dof_mode,
       _rope,
       _pendulum,
       _alternate_pendulum,

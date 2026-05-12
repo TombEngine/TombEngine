@@ -224,6 +224,7 @@ namespace TEN::Renderer
 
 			if (rDrawSprite.BlendMode != BlendMode::Opaque &&
 				rDrawSprite.BlendMode != BlendMode::Additive &&
+				rDrawSprite.BlendMode != BlendMode::Distortion &&
 				rDrawSprite.BlendMode != BlendMode::AlphaTest)
 			{
 				int distance = (rDrawSprite.pos - Camera.pos.ToVector3()).Length();

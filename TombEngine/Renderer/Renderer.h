@@ -13,10 +13,6 @@
 #include "Game/Setup.h"
 #include "Specific/level.h"
 #include "Specific/fast_vector.h"
-#include "Renderer/Frustum.h"
-#include "Renderer/RendererEnums.h"
-#include "Renderer/RenderView.h"
-#include "Renderer/Structures/RendererLight.h"
 #include "Renderer/ConstantBuffers/HUDBarBuffer.h"
 #include "Renderer/ConstantBuffers/HUDBuffer.h"
 #include "Renderer/ConstantBuffers/ShadowLightBuffer.h"
@@ -29,15 +25,20 @@
 #include "Renderer/ConstantBuffers/PostProcessBuffer.h"
 #include "Renderer/ConstantBuffers/SMAABuffer.h"
 #include "Renderer/ConstantBuffers/SkyBuffer.h"
+#include "Renderer/Frustum.h"
+#include "Renderer/Graphics/IGraphicsDevice.h"
+#include "Renderer/Graphics/Vertices/PostProcessVertex.h"
+#include "Renderer/RendererEnums.h"
+#include "Renderer/RenderView.h"
+#include "Renderer/ShaderManager/ShaderManager.h"
 #include "Renderer/Structures/RendererBone.h"
 #include "Renderer/Structures/RendererDoor.h"
+#include "Renderer/Structures/RendererDofMode.h"
 #include "Renderer/Structures/RendererStringToDraw.h"
 #include "Renderer/Structures/RendererRoom.h"
 #include "Renderer/Structures/RendererSprite.h"
 #include "Renderer/Structures/RendererAnimatedTexture.h"
 #include "Renderer/Structures/RendererAnimatedTextureSet.h"
-#include "Renderer/Graphics/Vertices/PostProcessVertex.h"
-#include "Renderer/ShaderManager/ShaderManager.h"
 #include "Renderer/Structures/RendererItem.h"
 #include "Renderer/Structures/RendererEffect.h"
 #include "Renderer/Structures/RendererLine3D.h"
@@ -45,6 +46,7 @@
 #include "Renderer/Structures/RendererMesh.h"
 #include "Renderer/Structures/RendererSpriteSequence.h"
 #include "Renderer/Structures/RendererSpriteBucket.h"
+#include "Renderer/Structures/RendererLight.h"
 #include "Renderer/Structures/RendererLine2D.h"
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Renderer/Structures/RendererRoomAmbientMap.h"
@@ -94,6 +96,8 @@ namespace TEN::Renderer
 		std::unique_ptr<IRenderSurface2D> _normalsAndMaterialIndexRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _depthRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _emissiveAndRoughnessRenderTarget;
+		std::unique_ptr<IRenderSurface2D> _distortionRenderTarget;
+		std::unique_ptr<IRenderSurface2D> _dofRenderTarget[3];
 		std::unique_ptr<IRenderSurface2D> _dumpScreenRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _renderTarget;
 		std::unique_ptr<IRenderSurface2D> _postProcessRenderTarget[2];
@@ -146,6 +150,8 @@ namespace TEN::Renderer
 		// Primitive batches
 
 		RendererViewport _viewport;
+		RendererViewport _distortionViewport;
+		RendererViewport _dofViewport;
 		RendererViewport _shadowMapViewport;
 
 		// Text
@@ -318,9 +324,12 @@ namespace TEN::Renderer
 
 		// Post-process
 
+		bool _hasDistortionMask = false;
 		PostProcessMode _postProcessMode = PostProcessMode::None;
 		float _postProcessStrength = 1.0f;
 		Vector3 _postProcessTint = (Vector3)NEUTRAL_COLOR;
+		DOFState _currentDOF;
+		DOFState _lastDOF;
 
 		std::unique_ptr<IVertexBuffer> _fullscreenTriangleVertexBuffer;
 
@@ -364,6 +373,8 @@ namespace TEN::Renderer
 		void ApplySMAA(IRenderSurface2D* renderTarget, RenderView& view);
 		void ApplyFXAA(IRenderSurface2D* renderTarget, RenderView& view);
 		void ApplyAntialiasing(IRenderSurface2D* renderTarget, RenderView& view);
+		void ApplyDistortion(IRenderSurface2D* renderTarget, RenderView& view);
+		void ApplyDOF(IRenderSurface2D* renderTarget, RenderView& view);
 		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType);
 		void UnbindTexture(ShaderStage stage, TextureRegister registerType);
 		void ResetTextureBindingCache();
@@ -642,6 +653,7 @@ namespace TEN::Renderer
 			return !(blendMode == BlendMode::Opaque ||
 				blendMode == BlendMode::AlphaTest ||
 				blendMode == BlendMode::Additive ||
+				blendMode == BlendMode::Distortion ||
 				blendMode == BlendMode::FastAlphaBlend);
 		}
 
@@ -737,7 +749,7 @@ namespace TEN::Renderer
 		bool PrepareDataForTheRenderer();
 		void UpdateCameraMatrices(CAMERA_INFO* cam, float farView);
 		void RenderSimpleSceneToParaboloid(IRenderTarget2D* renderTarget, Vector3 position, int hemisphere);
-		void DumpGameScene(SceneRenderMode renderMode = SceneRenderMode::Full);
+		void DumpGameScene(SceneRenderMode renderMode = SceneRenderMode::Full, float blur = 0.0f);
 		void RenderInventory();
 		void RenderScene(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode = SceneRenderMode::Full);
 		void PrepareScene();
@@ -822,6 +834,9 @@ namespace TEN::Renderer
 		void			SetPostProcessStrength(float strength);
 		Vector3			GetPostProcessTint();
 		void			SetPostProcessTint(Vector3 color);
+		DOFState		GetDOF() const;
+		void			SetDOF(const DOFState& state, bool save = true);
+		void			RestoreDOF();
 
 		void SetGraphicsSettingsChanged();
 

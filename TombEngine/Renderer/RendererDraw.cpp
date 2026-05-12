@@ -1929,6 +1929,18 @@ namespace TEN::Renderer
 			EndRenderPass();
 		}
 
+		// Clear distortion pass data.
+		{
+			RenderPassDescriptor pass;
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_distortionRenderTarget->GetRenderTarget(), Colors::Transparent) };
+			pass.HasViewport      = true;
+			pass.Viewport         = view.Viewport;
+			pass.DebugLabel       = "Distortion Clear";
+			BeginRenderPass(pass);
+			EndRenderPass();
+		}
+		_hasDistortionMask = false;
+
 		// Camera constant buffer contains matrices, camera position, fog values, and other things shared for all shaders.
 		auto cameraConstantBuffer = CCameraMatrixBuffer{};
 		view.FillConstantBuffer(cameraConstantBuffer);
@@ -2013,6 +2025,7 @@ namespace TEN::Renderer
 
 		DoRenderPass(RendererPass::Opaque, view, true);
 		DoRenderPass(RendererPass::Additive, view, true);
+		DoRenderPass(RendererPass::Distortion, view, true);
 		DoRenderPass(RendererPass::CollectTransparentFaces, view, false);
 		SortTransparentFaces(view);
 
@@ -2026,32 +2039,38 @@ namespace TEN::Renderer
 		EndRenderPass();
 
 		// Copy current scene to the reflections render target for the next frame (RT -> LRRT).
-		CopyRenderTargetAndDownscale(_renderTarget.get(), _legacyReflectionsRenderTarget.get(), LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, view);
-
-		// HUD/3D-overlay pass: keep color, reset depth so HUD geometry renders on top.
-		{
-			RenderPassDescriptor pass;
-			pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_renderTarget->GetRenderTarget()) };
-			pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(_renderTarget->GetDepthTarget());
-			pass.HasViewport      = true;
-			pass.Viewport         = view.Viewport;
-			pass.DebugLabel       = "HUD 3D";
-			BeginRenderPass(pass);
-			EndRenderPass();
-		}
-
-		// Draw 3D HUD elements separately here because objects may use emissive materials and require glow.
-		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
-		{
-			g_Hud.Draw3D();
-			g_DrawItems.Draw();
-		}
+		CopyRenderTargetAndDownscale(_renderTarget.get(), _legacyReflectionsRenderTarget.get(), POSTPROCESS_DOWNSCALE_FACTOR, view);
 
 		_doingFullscreenPass = true;
 
-		// Calculates glow
-		// GB-E -> GRT0, GRT0 -> GRT1, GRT1 -> GRT0, RT -> PPRT0, PPRT0 -> RT
+		// Calculate full-screen effects.
+		ApplyDistortion(_renderTarget.get(), view);
+		ApplyDOF(_renderTarget.get(), view);
 		ApplyGlow(_renderTarget.get(), view);
+
+		// Draw HUD-space 3D renders after DOF so they aren't blurred by scene depth.
+		// The pass's LoadAction::Clear on depth gives the HUD a fresh depth buffer to
+		// render on top of the composed scene.
+		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
+		{
+			_doingFullscreenPass = false;
+
+			{
+				RenderPassDescriptor pass;
+				pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_renderTarget->GetRenderTarget()) };
+				pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(_renderTarget->GetDepthTarget());
+				pass.HasViewport      = true;
+				pass.Viewport         = view.Viewport;
+				pass.DebugLabel       = "HUD 3D";
+				BeginRenderPass(pass);
+			}
+
+			g_Hud.Draw3D();
+			g_DrawItems.Draw();
+
+			EndRenderPass();
+			_doingFullscreenPass = true;
+		}
 
 		// Apply the antialiasing, now 3D geometry and 3D HUD are antialiased
 		// FXAA: RT -> PPRT0, PPRT0 -> RT
@@ -2377,9 +2396,15 @@ namespace TEN::Renderer
 		_graphicsDevice->Present();
 	}
 
-	void Renderer::DumpGameScene(SceneRenderMode renderMode)
+	void Renderer::DumpGameScene(SceneRenderMode renderMode, float blur)
 	{
+		if (blur > EPSILON)
+			SetDOF({ DOFMode::Full, 0, 0, blur }, false);
+
 		RenderScene(_dumpScreenRenderTarget.get(), _gameCamera, renderMode);
+
+		if (blur > EPSILON)
+			RestoreDOF();
 	}
 
 	void Renderer::DoRenderPass(RendererPass pass, RenderView& view, bool drawMirrors)
@@ -2387,6 +2412,13 @@ namespace TEN::Renderer
 		// Reset GPU state.
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
+
+		if (pass == RendererPass::Distortion)
+		{
+			_graphicsDevice->BindRenderTarget(_distortionRenderTarget->GetRenderTarget(), nullptr);
+			_graphicsDevice->SetViewport(_distortionViewport);
+			_graphicsDevice->SetScissor(_distortionViewport);
+		}
 
 		// Draw room geometry first if applicable for a given pass.
 		if (pass != RendererPass::Transparent && pass != RendererPass::GunFlashes)
@@ -2407,6 +2439,13 @@ namespace TEN::Renderer
 			}
 
 			SetCullMode(CullMode::CounterClockwise);
+		}
+
+		if (pass == RendererPass::Distortion)
+		{
+			_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+			_graphicsDevice->SetViewport(view.Viewport);
+			_graphicsDevice->SetScissor(view.Viewport);
 		}
 	}
 
@@ -3553,7 +3592,18 @@ namespace TEN::Renderer
 				return false;
 			}
 
-			SetBlendMode(BlendMode::Additive);
+			SetBlendMode(blendMode);
+			SetAlphaTest(AlphaTestMode::None, 1.0f);
+			break;
+
+		case RendererPass::Distortion:
+			if (blendMode != BlendMode::Distortion)
+			{
+				return false;
+			}
+
+			_hasDistortionMask = true;
+			SetBlendMode(blendMode);
 			SetAlphaTest(AlphaTestMode::None, 1.0f);
 			break;
 

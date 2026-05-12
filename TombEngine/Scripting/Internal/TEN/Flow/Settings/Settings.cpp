@@ -284,6 +284,10 @@ namespace TEN::Scripting
 		// @tfield[opt=true] bool ambientOcclusion If disabled, ambient occlusion setting will be forced to off, and corresponding menu entry in the Display Settings dialog will be grayed out.
 		"ambientOcclusion", &GraphicsSettings::AmbientOcclusion,
 
+		/// Enable flame heat haze overlays for fire particles and sparks.
+		// @tfield[opt=true] bool flameHeatHaze If enabled, flame particles and fire sparks will emit an additional distortion-only heat haze overlay.
+		"flameHeatHaze", &GraphicsSettings::FlameHeatHaze,
+
 		/// Enable skinning.
 		// @tfield[opt=true] bool skinning If enabled, skinning will be used for animated objects with skinned mesh. Disable to force classic TR workflow.
 		"skinning", &GraphicsSettings::Skinning);
@@ -579,7 +583,11 @@ namespace TEN::Scripting
 		// @tfield[opt=Strings.DisplayStringOption.CENTER] Strings.DisplayStringOption titleMenuAlignment Specifies menu alignment.
 		// Can be set to @{Strings.DisplayStringOption.CENTER} or @{Strings.DisplayStringOption.RIGHT}.
 		// If set to `nil`, or set to any other value, menu will be aligned to the left side of the screen.
-		"titleMenuAlignment", &UISettings::TitleMenuAlignment);
+		"titleMenuAlignment", &UISettings::TitleMenuAlignment,
+
+		/// Amount of blur for the inventory and pause menu backgrounds.
+		// @tfield[opt=0.15f] float menuBackgroundBlur Specifies how much should the background be blurred when pause or inventory menu is open. Set to 0 to disable blurring.
+		"menuBackgroundBlur", &UISettings::MenuBackgroundBlur);
 	}
 
 	/* @fieldtype { [WeaponType]: WeaponSettings } */

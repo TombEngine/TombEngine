@@ -100,19 +100,18 @@ namespace TEN::Entities::Traps
 		for (int i = 0; i < 2; i++)
 		{
 			auto sparkYAngle = item->Pose.Orientation.y + GenerateAngle(ANGLE(-30.0f), ANGLE(30.0f));
-			auto sparkColor = Vector4(2.0f, 1.0f, 0.2f, 1.0f);
 			auto pos = GetJointPosition(item, 2);
 			pos = Geometry::TranslatePoint(pos, item->Pose.Orientation.y, Vector3i(0, 270, 150));
 
-			TriggerSawSpark(pos, EulerAngles(Random::GenerateAngle(), sparkYAngle, 0), 3, sparkColor);
+			TriggerSawSpark(pos, EulerAngles(Random::GenerateAngle(), sparkYAngle, 0), 3, Vector4(1.0f, 0.5f, 0.1f, 1.0f));
 
 			if (!i)
 				continue;
 			
-				float mult = Random::GenerateFloat(0.7f, 1.0f);
-				auto r = (unsigned char)(mult * 190.0f);
-				auto g = (unsigned char)(mult * 100.0f);
-				SpawnDynamicLight(pos.x, pos.y, pos.z, 2, r, g, 0);			
+			float mult = Random::GenerateFloat(0.7f, 1.0f);
+			auto r = (unsigned char)(mult * 190.0f);
+			auto g = (unsigned char)(mult * 100.0f);
+			SpawnDynamicLight(pos.x, pos.y, pos.z, 2, r, g, 0);
 		}
 	}
 

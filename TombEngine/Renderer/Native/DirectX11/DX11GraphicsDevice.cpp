@@ -289,6 +289,10 @@ namespace TEN::Renderer::Native::DirectX11
 			_context->OMSetBlendState(_renderStates->Additive(), nullptr, 0xFFFFFFFF);
 			break;
 
+		case BlendMode::Distortion:
+			_context->OMSetBlendState(_distortionBlendState.Get(), nullptr, 0xFFFFFFFF);
+			break;
+
 		case BlendMode::Screen:
 			_context->OMSetBlendState(_screenBlendState.Get(), nullptr, 0xFFFFFFFF);
 			break;
@@ -397,7 +401,7 @@ namespace TEN::Renderer::Native::DirectX11
 			return;
 		}
 
-		_context->PSSetSamplers((unsigned int)registerType, 1, &d3dSamplerState);
+		_context->PSSetSamplers((unsigned int)samplerType, 1, &d3dSamplerState);
 	}
 
 	void DX11GraphicsDevice::UnbindTexture(ShaderStage stage, TextureRegister registerType)
@@ -741,6 +745,19 @@ namespace TEN::Renderer::Native::DirectX11
 		blendStateDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blendStateDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		throwIfFailed(_device->CreateBlendState(&blendStateDesc, _subtractiveBlendState.GetAddressOf()));
+
+		blendStateDesc = {};
+		blendStateDesc.AlphaToCoverageEnable = false;
+		blendStateDesc.IndependentBlendEnable = false;
+		blendStateDesc.RenderTarget[0].BlendEnable = true;
+		blendStateDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		blendStateDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		blendStateDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		throwIfFailed(_device->CreateBlendState(&blendStateDesc, _distortionBlendState.GetAddressOf()));
 
 		blendStateDesc.AlphaToCoverageEnable = false;
 		blendStateDesc.IndependentBlendEnable = false;

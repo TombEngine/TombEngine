@@ -15,6 +15,164 @@ namespace TEN::Renderer
 		pass.DebugLabel       = label;
 	}
 
+	void Renderer::ApplyDOF(IRenderSurface2D* renderTarget, RenderView& view)
+	{
+		if (_currentDOF.Strength <= EPSILON || _currentDOF.Mode == DOFMode::None)
+			return;
+
+		SetBlendMode(BlendMode::Opaque, true);
+		SetCullMode(CullMode::CounterClockwise, true);
+		SetDepthState(DepthState::Write, true);
+
+		// Common VS for all fullscreen passes — the DOF pixel shaders are PS-only.
+		_shaders.Bind(Shader::PostProcess);
+
+		SetPrimitiveType(PrimitiveType::TriangleList);
+		SetInputLayout(_fullScreenVertexInputLayout.get());
+		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+
+		auto halfWidth  = std::max(1, (int)_dofViewport.Width);
+		auto halfHeight = std::max(1, (int)_dofViewport.Height);
+
+		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
+		_stPostProcessBuffer.TexelSize    = Vector2(1.0f / halfWidth, 1.0f / halfHeight);
+		_stPostProcessBuffer.DofParams    = Vector4(_currentDOF.Distance, _currentDOF.Range, _currentDOF.Strength, (float)_currentDOF.Mode);
+		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
+
+		// Copy full-resolution scene to PPRT[0] for the final composite.
+		{
+			RenderPassDescriptor pass;
+			BuildFullscreenColorPass(pass, _postProcessRenderTarget[0]->GetRenderTarget(),
+				Colors::Transparent, view.Viewport, "DOF Scene Copy");
+			BeginRenderPass(pass);
+		}
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+		EndRenderPass();
+
+		// Half-resolution downsample + packed signed CoC in alpha → DofRT[0].
+		{
+			RenderPassDescriptor pass;
+			BuildFullscreenColorPass(pass, _dofRenderTarget[0]->GetRenderTarget(),
+				Colors::Transparent, _dofViewport, "DOF Downsample");
+			BeginRenderPass(pass);
+		}
+		_shaders.Bind(Shader::PostProcessDofDownsample);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap,        _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(),          SamplerStateRegister::PointWrap);
+		DrawTriangles(3, 0);
+		EndRenderPass();
+
+		// Far (background) blur — reads undilated DofRT[0], writes DofRT[1].
+		{
+			RenderPassDescriptor pass;
+			BuildFullscreenColorPass(pass, _dofRenderTarget[1]->GetRenderTarget(),
+				Colors::Transparent, _dofViewport, "DOF Far Blur");
+			BeginRenderPass(pass);
+		}
+		_shaders.Bind(Shader::PostProcessDofFarBlur);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _dofRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+		EndRenderPass();
+
+		// Near CoC dilation — 3x3 min-filter expands foreground CoC outward → DofRT[2].
+		{
+			RenderPassDescriptor pass;
+			BuildFullscreenColorPass(pass, _dofRenderTarget[2]->GetRenderTarget(),
+				Colors::Transparent, _dofViewport, "DOF Near Dilate");
+			BeginRenderPass(pass);
+		}
+		_shaders.Bind(Shader::PostProcessDofNearDilate);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _dofRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+		EndRenderPass();
+
+		// Near (foreground) blur — reads dilated DofRT[2], writes DofRT[0].
+		{
+			RenderPassDescriptor pass;
+			BuildFullscreenColorPass(pass, _dofRenderTarget[0]->GetRenderTarget(),
+				Colors::Transparent, _dofViewport, "DOF Near Blur");
+			BeginRenderPass(pass);
+		}
+		_shaders.Bind(Shader::PostProcessDofNearBlur);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _dofRenderTarget[2]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+		EndRenderPass();
+
+		// Full-resolution composite: sharp + far blur (DofRT[1]) + near blur (DofRT[0]).
+		{
+			RenderPassDescriptor pass;
+			BuildFullscreenColorPass(pass, renderTarget->GetRenderTarget(),
+				Colors::Transparent, view.Viewport, "DOF Composite");
+			BeginRenderPass(pass);
+		}
+		_shaders.Bind(Shader::PostProcessDofComposite);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap,        _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(),          SamplerStateRegister::PointWrap);
+		BindRenderTargetAsTexture(TextureRegister::NearBlurMap,     _dofRenderTarget[0]->GetRenderTarget(),         SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::FarBlurMap,      _dofRenderTarget[1]->GetRenderTarget(),         SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+		EndRenderPass();
+	}
+
+	void Renderer::ApplyDistortion(IRenderSurface2D* renderTarget, RenderView& view)
+	{
+		if (!_hasDistortionMask)
+			return;
+
+		SetBlendMode(BlendMode::Opaque, true);
+		SetCullMode(CullMode::CounterClockwise, true);
+		SetDepthState(DepthState::Write, true);
+
+		// Common VS for all fullscreen passes (PostProcessDistortion is PS-only).
+		_shaders.Bind(Shader::PostProcess);
+
+		SetPrimitiveType(PrimitiveType::TriangleList);
+		SetInputLayout(_fullScreenVertexInputLayout.get());
+		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+
+		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
+		_stPostProcessBuffer.TexelSize    = Vector2(1.0f / _graphicsDevice->GetScreenWidth(), 1.0f / _graphicsDevice->GetScreenHeight());
+		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
+
+		// Copy scene to PPRT[0].
+		{
+			RenderPassDescriptor pass;
+			BuildFullscreenColorPass(pass, _postProcessRenderTarget[0]->GetRenderTarget(),
+				Colors::Transparent, view.Viewport, "Distortion Scene Copy");
+			BeginRenderPass(pass);
+		}
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, renderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+		EndRenderPass();
+
+		// Apply distortion: PPRT[0] + depth + mask → PPRT[1].
+		{
+			RenderPassDescriptor pass;
+			BuildFullscreenColorPass(pass, _postProcessRenderTarget[1]->GetRenderTarget(),
+				Colors::Transparent, view.Viewport, "Distortion");
+			BeginRenderPass(pass);
+		}
+		_shaders.Bind(Shader::PostProcessDistortion);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap,        _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(),          SamplerStateRegister::PointWrap);
+		BindRenderTargetAsTexture(TextureRegister::DistortionMap,   _distortionRenderTarget->GetRenderTarget(),     SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+		EndRenderPass();
+
+		// Copy PPRT[1] back to renderTarget.
+		{
+			RenderPassDescriptor pass;
+			BuildFullscreenColorPass(pass, renderTarget->GetRenderTarget(),
+				Colors::Transparent, view.Viewport, "Distortion Copy Back");
+			BeginRenderPass(pass);
+		}
+		_shaders.Bind(Shader::PostProcess);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[1]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		DrawTriangles(3, 0);
+		EndRenderPass();
+	}
+
 	void Renderer::DrawPostprocess(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode)
 	{
 		_doingFullscreenPass = true;
@@ -26,11 +184,11 @@ namespace TEN::Renderer
 		float screenFadeFactor = renderMode == SceneRenderMode::Full ? ScreenFadeCurrent : 1.0f;
 		float cinematicBarsHeight = renderMode == SceneRenderMode::Full ? CinematicBarsHeight : 0.0f;
 
-		_stPostProcessBuffer.ScreenFadeFactor = screenFadeFactor;
+		_stPostProcessBuffer.ScreenFadeFactor    = screenFadeFactor;
 		_stPostProcessBuffer.CinematicBarsHeight = cinematicBarsHeight;
-		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
-		_stPostProcessBuffer.EffectStrength = _postProcessStrength;
-		_stPostProcessBuffer.Tint = _postProcessTint;
+		_stPostProcessBuffer.ViewportSize        = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
+		_stPostProcessBuffer.EffectStrength      = _postProcessStrength;
+		_stPostProcessBuffer.Tint                = _postProcessTint;
 		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
 		_shaders.Bind(Shader::PostProcess);
@@ -68,7 +226,7 @@ namespace TEN::Renderer
 			for (int i = 0; i < view.LensFlaresToDraw.size(); i++)
 			{
 				_stPostProcessBuffer.LensFlares[i].Position = view.LensFlaresToDraw[i].Position;
-				_stPostProcessBuffer.LensFlares[i].Color = view.LensFlaresToDraw[i].Color.ToVector3();
+				_stPostProcessBuffer.LensFlares[i].Color    = view.LensFlaresToDraw[i].Color.ToVector3();
 			}
 			_stPostProcessBuffer.NumLensFlares = (int)view.LensFlaresToDraw.size();
 			UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
@@ -168,6 +326,27 @@ namespace TEN::Renderer
 		_postProcessTint = tint;
 	}
 
+	DOFState Renderer::GetDOF() const
+	{
+		return _lastDOF;
+	}
+
+	void Renderer::SetDOF(const DOFState& state, bool save)
+	{
+		_currentDOF.Mode     = state.Mode;
+		_currentDOF.Distance = state.Distance;
+		_currentDOF.Range    = std::max(0.0f, state.Range);
+		_currentDOF.Strength = std::clamp(state.Strength, 0.0f, 1.0f);
+
+		if (save)
+			_lastDOF = _currentDOF;
+	}
+
+	void Renderer::RestoreDOF()
+	{
+		_currentDOF = _lastDOF;
+	}
+
 	void Renderer::CopyRenderTarget(IRenderSurface2D* source, IRenderSurface2D* dest, RenderView& view)
 	{
 		SetBlendMode(BlendMode::Opaque, true);
@@ -193,7 +372,9 @@ namespace TEN::Renderer
 
 	void Renderer::CopyRenderTargetAndDownscale(IRenderSurface2D* source, IRenderSurface2D* dest, float factor, RenderView& view)
 	{
-		RendererViewport viewport = { 0, 0, (int)(_graphicsDevice->GetScreenWidth() / factor), (int)(_graphicsDevice->GetScreenHeight() / factor), 0.0f, 1.0f };
+		int w = (_graphicsDevice->GetScreenWidth()  + (int)factor - 1) / (int)factor;
+		int h = (_graphicsDevice->GetScreenHeight() + (int)factor - 1) / (int)factor;
+		RendererViewport viewport = { 0, 0, w, h, 0.0f, 1.0f };
 
 		SetBlendMode(BlendMode::Opaque, true);
 		SetCullMode(CullMode::CounterClockwise, true);
@@ -251,8 +432,8 @@ namespace TEN::Renderer
 		// Blur.
 		_shaders.Bind(Shader::Blur);
 
-		_stPostProcessBuffer.TexelSize = Vector2(1.0f / (_graphicsDevice->GetScreenWidth() / GLOW_DOWNSCALE_FACTOR), 1.0f / (_graphicsDevice->GetScreenHeight() / GLOW_DOWNSCALE_FACTOR));
-		_stPostProcessBuffer.BlurSigma = GLOW_BLUR_SIGMA;
+		_stPostProcessBuffer.TexelSize  = Vector2(1.0f / (_graphicsDevice->GetScreenWidth() / GLOW_DOWNSCALE_FACTOR), 1.0f / (_graphicsDevice->GetScreenHeight() / GLOW_DOWNSCALE_FACTOR));
+		_stPostProcessBuffer.BlurSigma  = GLOW_BLUR_SIGMA;
 		_stPostProcessBuffer.BlurRadius = GLOW_BLUR_RADIUS;
 
 		// Horizontal blur: glow[0] -> glow[1].
@@ -291,7 +472,7 @@ namespace TEN::Renderer
 		// Combine glow back into renderTarget.
 		_shaders.Bind(Shader::GlowCombine);
 
-		_stPostProcessBuffer.GlowSoftAdd = 1;
+		_stPostProcessBuffer.GlowSoftAdd   = 1;
 		_stPostProcessBuffer.GlowIntensity = 1.0f;
 		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
@@ -302,8 +483,8 @@ namespace TEN::Renderer
 			BeginRenderPass(pass);
 		}
 
-		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
-		BindRenderTargetAsTexture(static_cast<TextureRegister>(3), _glowRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap,    _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::EmissiveMap, _glowRenderTarget[0]->GetRenderTarget(),        SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
 		EndRenderPass();
 	}
