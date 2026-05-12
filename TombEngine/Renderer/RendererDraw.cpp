@@ -2098,8 +2098,8 @@ namespace TEN::Renderer
 		if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion)
 			CalculateSSAO(view);
 
-		// (no manual SetPrimitiveType/SetInputLayout here: DoRenderPass(Opaque/...)
-		// inside DoMainSceneOpaqueTransparentPass will BindPipeline its own state.)
+		// No manual state reset here — DrawRooms/DrawItems open with BindPipeline which
+		// re-binds the scene shader + layout + topology atomically.
 		DoMainSceneOpaqueTransparentPass(view);
 
 		// ── 7. Snapshot scene for next-frame reflections ─────────────────────────
@@ -2548,19 +2548,14 @@ namespace TEN::Renderer
 	{
 		if (rendererPass != RendererPass::CollectTransparentFaces)
 		{
+			// Atomic PSO bind — see DrawRooms for the rationale.
+			if (rendererPass == RendererPass::GBuffer)
+				BindPipeline(Pipelines::GBufferItems(_vertexInputLayout.get()));
+			else
+				BindPipeline(Pipelines::Items(_vertexInputLayout.get()));
+
 			BindVertexBuffer(_moveablesVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
-
-			// Set shaders.
-			if (rendererPass == RendererPass::GBuffer)
-			{
-				_shaders.Bind(Shader::GBuffer);
-				_shaders.Bind(Shader::GBufferItems);
-			}
-			else
-			{
-				_shaders.Bind(Shader::Items);
-			}
 
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
@@ -2808,17 +2803,12 @@ namespace TEN::Renderer
 				}
 			}
 #else
+			// Atomic PSO bind — see DrawRooms for the rationale.
 			if (rendererPass == RendererPass::GBuffer)
-			{
-				_shaders.Bind(Shader::GBuffer);
-				_shaders.Bind(Shader::GBufferInstancedStatics);
-			}
+				BindPipeline(Pipelines::GBufferInstancedStatics(_vertexInputLayout.get()));
 			else
-			{
-				_shaders.Bind(Shader::InstancedStatics);
-			}
+				BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 
-			// Bind vertex and index buffer
 			BindVertexBuffer(_staticsVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_staticsIndexBuffer.get());
 			
@@ -3001,17 +2991,15 @@ namespace TEN::Renderer
 		}
 		else
 		{
+			// Atomic PSO bind: shader + topology + input layout + initial blend/depth/cull.
+			// Per-bucket blend/alpha-test variants come later through SetupBlendModeAndAlphaTest
+			// (DX11 immediate model). On Vulkan/SDL_GPU each unique state combination gets
+			// its own lazily-created PSO from the backend cache.
 			if (rendererPass == RendererPass::GBuffer)
-			{
-				_shaders.Bind(Shader::GBuffer);
-				_shaders.Bind(Shader::GBufferRooms);
-			}
+				BindPipeline(Pipelines::GBufferRooms(_vertexInputLayout.get()));
 			else
-			{
-				_shaders.Bind(Shader::Rooms);
-			}
+				BindPipeline(Pipelines::Rooms(_vertexInputLayout.get()));
 
-			// Bind vertex and index buffer.
 			BindVertexBuffer(_roomsVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_roomsIndexBuffer.get());
 			   

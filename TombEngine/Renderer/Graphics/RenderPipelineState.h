@@ -25,6 +25,12 @@ namespace TEN::Renderer::Graphics
 	struct RenderPipelineState
 	{
 		Shader        ShaderId       = Shader::None;
+		// Optional secondary shader bound before ShaderId. Use for patterns that combine
+		// a vertex-only and a pixel-only stage:
+		//   - G-Buffer:  VertexShaderId = GBufferRooms (VS-only),  ShaderId = GBuffer (PS-only)
+		//   - Fullscreen: VertexShaderId = PostProcess (VS+PS),    ShaderId = Ssao    (PS-only)
+		// When Shader::None, BindPipeline binds ShaderId as a single shader.
+		Shader        VertexShaderId = Shader::None;
 		BlendMode     Blend          = BlendMode::Opaque;
 		DepthState    Depth          = DepthState::Write;
 		CullMode      Cull           = CullMode::CounterClockwise;
@@ -45,9 +51,10 @@ namespace TEN::Renderer::Graphics
 		{
 			// Pack the enum bytes (each enum value is <256 in this codebase).
 			uint64_t h = 0;
-			h |= (uint64_t)((uint8_t)(int)ShaderId)    << 0;   // 16 bits is enough
-			h |= (uint64_t)((uint16_t)(int)ShaderId)   << 8;
-			h |= (uint64_t)((uint8_t)(int)Blend)       << 24;
+			h |= (uint64_t)((uint8_t)(int)ShaderId)       << 0;   // 16 bits is enough
+			h |= (uint64_t)((uint16_t)(int)ShaderId)      << 8;
+			h |= (uint64_t)((uint8_t)(int)VertexShaderId) << 16;
+			h |= (uint64_t)((uint8_t)(int)Blend)          << 24;
 			h |= (uint64_t)((uint8_t)(int)Depth)       << 32;
 			h |= (uint64_t)((uint8_t)(int)Cull)        << 40;
 			h |= (uint64_t)((uint8_t)(int)Topology)    << 48;
@@ -72,8 +79,9 @@ namespace TEN::Renderer::Graphics
 
 		inline bool operator==(const RenderPipelineState& o) const
 		{
-			return ShaderId       == o.ShaderId    &&
-			       Blend          == o.Blend       &&
+			return ShaderId       == o.ShaderId       &&
+			       VertexShaderId == o.VertexShaderId &&
+			       Blend          == o.Blend          &&
 			       Depth          == o.Depth       &&
 			       Cull           == o.Cull        &&
 			       Topology       == o.Topology    &&

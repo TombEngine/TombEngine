@@ -220,6 +220,13 @@ namespace TEN::Renderer
 		// per-state dedup so back-to-back identical binds are cheap, AND state changed
 		// outside BindPipeline (e.g. a direct SetBlendMode call) doesn't silently get
 		// shadowed by a global pipeline hash dedup that thinks "nothing changed".
+
+		// Shader binding: when VertexShaderId is set, bind it first (typically a VS-only
+		// or VS+PS shader) and then ShaderId (typically a PS-only shader that overrides
+		// the pixel stage). This covers both the G-Buffer pattern (VS-only + PS-only)
+		// and the fullscreen pattern (VS+PS + PS-only override).
+		if (pipeline.VertexShaderId != Shader::None)
+			_shaders.Bind(pipeline.VertexShaderId);
 		_shaders.Bind(pipeline.ShaderId);
 
 		SetBlendMode(pipeline.Blend);

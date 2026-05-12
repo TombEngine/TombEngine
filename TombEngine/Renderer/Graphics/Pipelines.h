@@ -13,6 +13,96 @@ namespace TEN::Renderer::Graphics
 	// InputLayout is a per-renderer pointer so it's passed in rather than baked here.
 	namespace Pipelines
 	{
+		// Opaque/AlphaTest room geometry. Per-bucket blend/alpha-test variations come
+		// later via SetBlendMode/SetAlphaTest inside the bucket loop (DX11 model). On
+		// Vulkan/SDL_GPU the backend lazy-creates a distinct PSO for each combination.
+		inline RenderPipelineState Rooms(IInputLayout* vertexInputLayout)
+		{
+			RenderPipelineState pso;
+			pso.ShaderId    = Shader::Rooms;
+			pso.Blend       = BlendMode::Opaque;
+			pso.Depth       = DepthState::Write;
+			pso.Cull        = CullMode::CounterClockwise;
+			pso.Topology    = PrimitiveType::TriangleList;
+			pso.InputLayout = vertexInputLayout;
+			pso.AlphaTest   = AlphaTestMode::None;
+			return pso;
+		}
+
+		// G-Buffer pass over room geometry. Pixel stage Shader::GBuffer (PS-only) +
+		// vertex stage Shader::GBufferRooms (VS-only).
+		inline RenderPipelineState GBufferRooms(IInputLayout* vertexInputLayout)
+		{
+			RenderPipelineState pso;
+			pso.VertexShaderId = Shader::GBufferRooms;
+			pso.ShaderId       = Shader::GBuffer;
+			pso.Blend          = BlendMode::Opaque;
+			pso.Depth          = DepthState::Write;
+			pso.Cull           = CullMode::CounterClockwise;
+			pso.Topology       = PrimitiveType::TriangleList;
+			pso.InputLayout    = vertexInputLayout;
+			pso.AlphaTest      = AlphaTestMode::None;
+			return pso;
+		}
+
+		// Moveable items, opaque/alpha-test pass.
+		inline RenderPipelineState Items(IInputLayout* vertexInputLayout)
+		{
+			RenderPipelineState pso;
+			pso.ShaderId    = Shader::Items;
+			pso.Blend       = BlendMode::Opaque;
+			pso.Depth       = DepthState::Write;
+			pso.Cull        = CullMode::CounterClockwise;
+			pso.Topology    = PrimitiveType::TriangleList;
+			pso.InputLayout = vertexInputLayout;
+			pso.AlphaTest   = AlphaTestMode::None;
+			return pso;
+		}
+
+		// G-Buffer pass for moveable items.
+		inline RenderPipelineState GBufferItems(IInputLayout* vertexInputLayout)
+		{
+			RenderPipelineState pso;
+			pso.VertexShaderId = Shader::GBufferItems;
+			pso.ShaderId       = Shader::GBuffer;
+			pso.Blend          = BlendMode::Opaque;
+			pso.Depth          = DepthState::Write;
+			pso.Cull           = CullMode::CounterClockwise;
+			pso.Topology       = PrimitiveType::TriangleList;
+			pso.InputLayout    = vertexInputLayout;
+			pso.AlphaTest      = AlphaTestMode::None;
+			return pso;
+		}
+
+		// Instanced static meshes.
+		inline RenderPipelineState InstancedStatics(IInputLayout* vertexInputLayout)
+		{
+			RenderPipelineState pso;
+			pso.ShaderId    = Shader::InstancedStatics;
+			pso.Blend       = BlendMode::Opaque;
+			pso.Depth       = DepthState::Write;
+			pso.Cull        = CullMode::CounterClockwise;
+			pso.Topology    = PrimitiveType::TriangleList;
+			pso.InputLayout = vertexInputLayout;
+			pso.AlphaTest   = AlphaTestMode::None;
+			return pso;
+		}
+
+		// G-Buffer pass for instanced statics.
+		inline RenderPipelineState GBufferInstancedStatics(IInputLayout* vertexInputLayout)
+		{
+			RenderPipelineState pso;
+			pso.VertexShaderId = Shader::GBufferInstancedStatics;
+			pso.ShaderId       = Shader::GBuffer;
+			pso.Blend          = BlendMode::Opaque;
+			pso.Depth          = DepthState::Write;
+			pso.Cull           = CullMode::CounterClockwise;
+			pso.Topology       = PrimitiveType::TriangleList;
+			pso.InputLayout    = vertexInputLayout;
+			pso.AlphaTest      = AlphaTestMode::None;
+			return pso;
+		}
+
 		// Sorted (back-to-front) transparent pass: room geometry.
 		inline RenderPipelineState SortedRoom(IInputLayout* vertexInputLayout, BlendMode blend)
 		{
