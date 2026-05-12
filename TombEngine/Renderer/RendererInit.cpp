@@ -87,7 +87,7 @@ namespace TEN::Renderer
 		_SMAAAreaTexture = _graphicsDevice->CreateTexture2D(AREATEX_WIDTH, AREATEX_HEIGHT, SurfaceFormat::SF_RG8_Unorm, (unsigned char*)areaTexBytes);
 		_SMAASearchTexture = _graphicsDevice->CreateTexture2D(SEARCHTEX_WIDTH, SEARCHTEX_HEIGHT, SurfaceFormat::SF_R8_Unorm, (unsigned char*)searchTexBytes);
 
-		CreateSSAONoiseTexture();
+		CreateHbaoNoiseTexture();
 		InitializePostProcess();
 		InitializeGameBars();
 		InitializeSpriteQuad();
@@ -140,41 +140,25 @@ namespace TEN::Renderer
 		_fullScreenVertexInputLayout = _graphicsDevice->CreateInputLayout(fields, (IShader*)ppShader);
 	}
 
-	void Renderer::CreateSSAONoiseTexture()
+	void Renderer::CreateHbaoNoiseTexture()
 	{
-		std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
+		// 4x4 noise tiled across the screen. The HBAO shader reads .x as a random rotation
+		// for the ray fan and .y as a per-pixel marching-step jitter.
+		std::uniform_real_distribution<float> randomFloats(0.0, 1.0);
 		std::default_random_engine generator;
-		for (unsigned int i = 0; i < 64; ++i)
-		{
-			Vector4 sample(
-				randomFloats(generator) * 2.0 - 1.0,
-				randomFloats(generator) * 2.0 - 1.0,
-				randomFloats(generator),
-				1.0f
-			);
-			sample.Normalize();
-			sample *= randomFloats(generator);
 
-			float scale = (float)i / 64.0;
-			scale = Lerp(0.1f, 1.0f, scale * scale);
-			sample *= scale;
-			sample.w = 1.0f;
-
-			_SSAOKernel.push_back(sample);
-		}
-
-		std::vector<Vector4> SSAONoise;
+		std::vector<Vector4> noise;
+		noise.reserve(16);
 		for (unsigned int i = 0; i < 16; i++)
 		{
-			Vector4 noise(
-				randomFloats(generator) * 2.0 - 1.0,
-				randomFloats(generator) * 2.0 - 1.0,
+			noise.emplace_back(
+				randomFloats(generator),
+				randomFloats(generator),
 				0.0f,
 				1.0f);
-			SSAONoise.push_back(noise);
 		}
 
-		_SSAONoiseTexture = _graphicsDevice->CreateTexture2D(4, 4, SurfaceFormat::SF_RGBA32_Float, SSAONoise.data());
+		_HbaoNoiseTexture = _graphicsDevice->CreateTexture2D(4, 4, SurfaceFormat::SF_RGBA32_Float, noise.data());
 	}
 
 	void Renderer::InitializeSpriteQuad()
@@ -301,8 +285,8 @@ namespace TEN::Renderer
 		SAFE_DELETE(_dofRenderTarget[0]);
 		SAFE_DELETE(_dofRenderTarget[1]);
 		SAFE_DELETE(_dofRenderTarget[2]);
-		SAFE_DELETE(_SSAORenderTarget);
-		SAFE_DELETE(_SSAOBlurredRenderTarget);
+		SAFE_DELETE(_HbaoRenderTarget);
+		SAFE_DELETE(_HbaoBlurredRenderTarget);
 		SAFE_DELETE(_glowRenderTarget[0]);
 		SAFE_DELETE(_glowRenderTarget[1]);
 		SAFE_DELETE(_legacyReflectionsRenderTarget);
@@ -328,8 +312,8 @@ namespace TEN::Renderer
 		_normalsAndMaterialIndexRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_emissiveAndRoughnessRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 
-		_SSAORenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
-		_SSAOBlurredRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_HbaoRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_HbaoBlurredRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 
 		int downscaledW = (w + POSTPROCESS_DOWNSCALE_FACTOR - 1) / POSTPROCESS_DOWNSCALE_FACTOR;
 		int downscaledH = (h + POSTPROCESS_DOWNSCALE_FACTOR - 1) / POSTPROCESS_DOWNSCALE_FACTOR;

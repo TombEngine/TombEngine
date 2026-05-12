@@ -228,7 +228,7 @@ namespace TEN::Renderer::Native::DirectX11
 		// Scissor. When the pass doesn't specify an explicit scissor we fall back to the
 		// viewport bounds — otherwise the rasterizer keeps the previously bound scissor
 		// (e.g. a room ClipBounds set by an earlier DrawRooms), which silently clips a
-		// fullscreen pass (SSAO/post-process) to that subregion and leaves the rest of
+		// fullscreen pass (HBAO/post-process) to that subregion and leaves the rest of
 		// the attachment at its clear value.
 		if (pass.HasScissor)
 		{

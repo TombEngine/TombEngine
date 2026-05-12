@@ -217,7 +217,7 @@ namespace TEN::Renderer
 			AddString(MenuRightSideEntry, y, g_GameFlow->GetString(antialiasMode), plainColor, SF(titleOption == 5));
 			GetNextLinePosition(&y);
 
-			// Enable SSAO
+			// Enable HBAO
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AMBIENT_OCCLUSION), optionColor, SF(titleOption == 6));
 			AddString(MenuRightSideEntry, y, Str_Enabled(g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Gui.GetCurrentSettings().Configuration.EnableAmbientOcclusion),
 				g_GameFlow->GetSettings()->Graphics.AmbientOcclusion ? plainColor : disabledColor, SF(titleOption == 6));
@@ -1571,7 +1571,7 @@ namespace TEN::Renderer
 		rect.Right = rect.Left + thumbWidth;
 		rect.Bottom = rect.Top + thumbWidth / aspectRatio;
 
-		_spriteBatch->Draw(_SSAOBlurredRenderTarget->GetRenderTarget(), rect, Vector4::One);
+		_spriteBatch->Draw(_HbaoBlurredRenderTarget->GetRenderTarget(), rect, Vector4::One);
 		thumbY += thumbWidth / aspectRatio;
 
 		if (g_Configuration.AntialiasingMode > AntialiasingMode::Low)

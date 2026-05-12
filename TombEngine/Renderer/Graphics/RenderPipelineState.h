@@ -28,7 +28,7 @@ namespace TEN::Renderer::Graphics
 		// Optional secondary shader bound before ShaderId. Use for patterns that combine
 		// a vertex-only and a pixel-only stage:
 		//   - G-Buffer:  VertexShaderId = GBufferRooms (VS-only),  ShaderId = GBuffer (PS-only)
-		//   - Fullscreen: VertexShaderId = PostProcess (VS+PS),    ShaderId = Ssao    (PS-only)
+		//   - Fullscreen: VertexShaderId = PostProcess (VS+PS),    ShaderId = Hbao    (PS-only)
 		// When Shader::None, BindPipeline binds ShaderId as a single shader.
 		Shader        VertexShaderId = Shader::None;
 		BlendMode     Blend          = BlendMode::Opaque;

@@ -1744,7 +1744,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\SSAO.hlsl">
+    <None Include="Shaders\HBAO.hlsl">
       <DeploymentContent>true</DeploymentContent>
     </None>
   </ItemGroup>

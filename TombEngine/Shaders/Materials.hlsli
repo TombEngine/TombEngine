@@ -24,7 +24,7 @@
 
 #include "./Samplers.hlsli"
 
-Texture2D SSAOTexture : register(t9);
+Texture2D AOTexture : register(t9);
 Texture2D ORSHTexture : register(t10);
 Texture2D EmissiveTexture : register(t11);
 Texture2D LegacyReflectionsTexture : register(t12);
@@ -181,10 +181,10 @@ float2 ParallaxOcclusionMapping(float3x3 TBN, float3 pos, float2 baseUV)
 
 float CalculateOcclusion(float2 samplePosition, float alpha)
 {
-    if (AmbientOcclusion == 0 || !BlendModeSupportsSSAO() || (MaterialTypeAndFlags & MATERIAL_FLAG_HEIGHTMAP))
+    if (AmbientOcclusion == 0 || !BlendModeSupportsAO() || (MaterialTypeAndFlags & MATERIAL_FLAG_HEIGHTMAP))
 		return 1.0f;
 		
-    float occlusion = pow(SSAOTexture.Sample(PointWrapSampler, samplePosition).x, AmbientOcclusionExponent);
+    float occlusion = pow(AOTexture.Sample(PointWrapSampler, samplePosition).x, AmbientOcclusionExponent);
 	
 	if (BlendMode == BLENDMODE_ALPHABLEND)
 		occlusion = lerp(occlusion, 1.0f, alpha);

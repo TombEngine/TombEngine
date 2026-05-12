@@ -108,8 +108,8 @@ namespace TEN::Renderer
 		std::unique_ptr<IRenderSurface2D> _tempRoomAmbientRenderTarget4;
 		std::unique_ptr<IRenderSurface2D> _shadowMap;
 		std::unique_ptr<IRenderSurface2D> _legacyReflectionsRenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SSAORenderTarget;
-		std::unique_ptr<IRenderSurface2D> _SSAOBlurredRenderTarget;
+		std::unique_ptr<IRenderSurface2D> _HbaoRenderTarget;
+		std::unique_ptr<IRenderSurface2D> _HbaoBlurredRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _SMAASceneRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _SMAASceneSRGBRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _SMAADepthRenderTarget;
@@ -345,10 +345,9 @@ namespace TEN::Renderer
 
 		bool _doingFullscreenPass = false;
 
-		// SSAO
+		// Ambient occlusion (HBAO)
 
-		std::unique_ptr<ITexture2D> _SSAONoiseTexture;
-		std::vector<Vector4> _SSAOKernel;
+		std::unique_ptr<ITexture2D> _HbaoNoiseTexture;
 
 		// Special effects
 		RendererMirror* _currentMirror = nullptr;
@@ -464,7 +463,7 @@ namespace TEN::Renderer
 		void CollectDecalsForRoom(short roomNumber, RenderView& renderView);
 		void CollectEffects(short roomNumber);
 		void ClearShadowMap();
-		void CalculateSSAO(RenderView& view);
+		void CalculateHbao(RenderView& view);
 		void UpdateItemAnimations(RenderView& view);
 		void InitializeScreen(int w, int h, bool reset);
 		void InitializeCommonTextures();
@@ -606,7 +605,7 @@ namespace TEN::Renderer
 		bool SphereBoxIntersection(BoundingBox box, Vector3 sphereCentre, float sphereRadius);
 		void InitializeSpriteQuad();
 		void InitializePostProcess();
-		void CreateSSAONoiseTexture();
+		void CreateHbaoNoiseTexture();
 		void InitializeSMAA();
 		void SetupAnimatedTextures(const RendererBucket& bucket);
 		std::unique_ptr<ITexture2D> CreateDefaultTexture(std::vector<unsigned char> color);

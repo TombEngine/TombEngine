@@ -206,7 +206,7 @@ enum class TextureRegister
 	GBufferDepthMap = 6,
 	EnvironmentMapFront = 7,
 	EnvironmentMapBack = 8,
-	SSAO = 9,
+	AO = 9,
 	ORSHMap = 10,
 	EmissiveMap = 11,
 	LegacyEnvironmentReflections = 12,
@@ -506,10 +506,10 @@ enum class Shader
 	PostProcessFinalPass,
 	PostProcessLensFlare,
 
-	// SSAO
+	// Ambient occlusion (HBAO)
 
-	Ssao,
-	SsaoBlur,
+	Hbao,
+	HbaoBlur,
 
 	// Fullscreen effects
 

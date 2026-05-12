@@ -24,7 +24,7 @@
 #define EIGHT_FIVE float3( 0.85f, 0.85f, 0.85f)
 #define BLENDING   0.707f
 
-inline bool BlendModeSupportsSSAO()
+inline bool BlendModeSupportsAO()
 {
     return (BlendMode == BLENDMODE_OPAQUE || BlendMode == BLENDMODE_ALPHATEST || BlendMode == BLENDMODE_ALPHABLEND);
 }

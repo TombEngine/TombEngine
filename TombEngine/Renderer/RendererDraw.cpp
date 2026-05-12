@@ -2097,7 +2097,7 @@ namespace TEN::Renderer
 		DoGBufferPass(view);
 
 		if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion)
-			CalculateSSAO(view);
+			CalculateHbao(view);
 
 		// No manual state reset here — DrawRooms/DrawItems open with BindPipeline which
 		// re-binds the scene shader + layout + topology atomically.
@@ -2546,7 +2546,7 @@ namespace TEN::Renderer
 
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
-				BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAOBlurredRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
+				BindRenderTargetAsTexture(TextureRegister::AO, _HbaoBlurredRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 			}
 		}
 
@@ -2722,7 +2722,7 @@ namespace TEN::Renderer
 
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
-				BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::PointWrap);
+				BindRenderTargetAsTexture(TextureRegister::AO, &_HbaoBlurredRenderTarget, SamplerStateRegister::PointWrap);
 			}
 			
 			BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
@@ -2801,7 +2801,7 @@ namespace TEN::Renderer
 			
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
-				BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAOBlurredRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
+				BindRenderTargetAsTexture(TextureRegister::AO, _HbaoBlurredRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 			}
 
 			for (auto it = view.SortedStaticsToDraw.begin(); it != view.SortedStaticsToDraw.end(); it++)
@@ -3027,7 +3027,7 @@ namespace TEN::Renderer
 
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
-				BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAOBlurredRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
+				BindRenderTargetAsTexture(TextureRegister::AO, _HbaoBlurredRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 			}
 
 			for (int i = (int)view.RoomsToDraw.size() - 1; i >= 0; i--)
@@ -4199,35 +4199,34 @@ namespace TEN::Renderer
 		_numSortedTriangles += _sortedDrawIndexCount / 3;
 	}
 
-	void Renderer::CalculateSSAO(RenderView& view)
+	void Renderer::CalculateHbao(RenderView& view)
 	{
 		_doingFullscreenPass = true;
 
-		// Fullscreen viewport at native resolution (SSAO target itself is full-size on this branch).
+		// Fullscreen viewport at native resolution (AO target itself is full-size on this branch).
 		RendererViewport viewport = { 0, 0, _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), 0.0f, 1.0f };
 
 		BindFullscreenQuadState();
 
-		// Per-frame post-process CB upload (kernel + viewport metrics).
+		// Per-frame post-process CB upload (viewport metrics only — HBAO needs no kernel).
 		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
 		_stPostProcessBuffer.TexelSize    = Vector2(1.0f / _graphicsDevice->GetScreenWidth(), 1.0f / _graphicsDevice->GetScreenHeight());
-		memcpy(_stPostProcessBuffer.SSAOKernel, _SSAOKernel.data(), 16 * _SSAOKernel.size());
 		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
-		// === Pass 1: SSAO compute into _SSAORenderTarget ===
+		// === Pass 1: HBAO compute into _HbaoRenderTarget ===
 		// Clear to white (no occlusion baseline) — the shader returns 1.0 for fragments
 		// that take the early-exit branch.
 		{
 			RenderPassDescriptor pass;
-			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_SSAORenderTarget->GetRenderTarget(), Colors::White) };
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_HbaoRenderTarget->GetRenderTarget(), Colors::White) };
 			pass.HasViewport      = true;
 			pass.Viewport         = viewport;
-			pass.DebugLabel       = "SSAO";
+			pass.DebugLabel       = "HBAO";
 			BeginRenderPass(pass);
 		}
 
 		RenderPipelineState pso;
-		pso.ShaderId    = Shader::Ssao;
+		pso.ShaderId    = Shader::Hbao;
 		pso.Blend       = BlendMode::Opaque;
 		pso.Depth       = DepthState::Write;
 		pso.Cull        = CullMode::CounterClockwise;
@@ -4237,25 +4236,25 @@ namespace TEN::Renderer
 
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), _normalsAndMaterialIndexRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
-		BindTexture(static_cast<TextureRegister>(2), _SSAONoiseTexture.get(), SamplerStateRegister::PointWrap);
+		BindTexture(static_cast<TextureRegister>(2), _HbaoNoiseTexture.get(), SamplerStateRegister::PointWrap);
 
 		DrawTriangles(3, 0);
 		EndRenderPass();
 
-		// === Pass 2: bilateral blur into _SSAOBlurredRenderTarget ===
+		// === Pass 2: bilateral blur into _HbaoBlurredRenderTarget ===
 		{
 			RenderPassDescriptor pass;
-			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_SSAOBlurredRenderTarget->GetRenderTarget(), Colors::Transparent) };
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_HbaoBlurredRenderTarget->GetRenderTarget(), Colors::Transparent) };
 			pass.HasViewport      = true;
 			pass.Viewport         = viewport;
-			pass.DebugLabel       = "SSAO Blur";
+			pass.DebugLabel       = "HBAO Blur";
 			BeginRenderPass(pass);
 		}
 
-		pso.ShaderId = Shader::SsaoBlur;
+		pso.ShaderId = Shader::HbaoBlur;
 		BindPipeline(pso);
 
-		BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAORenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
+		BindRenderTargetAsTexture(TextureRegister::AO, _HbaoRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 		DrawTriangles(3, 0);
 		EndRenderPass();
 
