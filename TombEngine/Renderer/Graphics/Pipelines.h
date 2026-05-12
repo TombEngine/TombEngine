@@ -103,6 +103,49 @@ namespace TEN::Renderer::Graphics
 			return pso;
 		}
 
+		// Shadow map pass — depth-only render of shadow casters into a cube/array slice.
+		inline RenderPipelineState ShadowMap(IInputLayout* vertexInputLayout)
+		{
+			RenderPipelineState pso;
+			pso.ShaderId    = Shader::ShadowMap;
+			pso.Blend       = BlendMode::Opaque;
+			pso.Depth       = DepthState::Write;
+			pso.Cull        = CullMode::CounterClockwise;
+			pso.Topology    = PrimitiveType::TriangleList;
+			pso.InputLayout = vertexInputLayout;
+			pso.AlphaTest      = AlphaTestMode::GreatherThan;
+			pso.AlphaThreshold = ALPHA_TEST_THRESHOLD;
+			return pso;
+		}
+
+		// Solid-color debug lines/triangles.
+		inline RenderPipelineState SolidDebug(IInputLayout* vertexInputLayout, PrimitiveType topology = PrimitiveType::LineList)
+		{
+			RenderPipelineState pso;
+			pso.ShaderId    = Shader::Solid;
+			pso.Blend       = BlendMode::Additive;
+			pso.Depth       = DepthState::Read;
+			pso.Cull        = CullMode::None;
+			pso.Topology    = topology;
+			pso.InputLayout = vertexInputLayout;
+			pso.AlphaTest   = AlphaTestMode::None;
+			return pso;
+		}
+
+		// Instanced sprite batch (stars, lens flares, lasers).
+		inline RenderPipelineState InstancedSprites(IInputLayout* vertexInputLayout, BlendMode blend = BlendMode::Additive, PrimitiveType topology = PrimitiveType::TriangleStrip)
+		{
+			RenderPipelineState pso;
+			pso.ShaderId    = Shader::InstancedSprites;
+			pso.Blend       = blend;
+			pso.Depth       = DepthState::Read;
+			pso.Cull        = CullMode::None;
+			pso.Topology    = topology;
+			pso.InputLayout = vertexInputLayout;
+			pso.AlphaTest   = AlphaTestMode::None;
+			return pso;
+		}
+
 		// Sorted (back-to-front) transparent pass: room geometry.
 		inline RenderPipelineState SortedRoom(IInputLayout* vertexInputLayout, BlendMode blend)
 		{

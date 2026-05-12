@@ -1244,10 +1244,9 @@ namespace TEN::Renderer
 		const auto& flashMoveable = *_moveableObjects[gunflash];
 		const auto& flashMesh = *flashMoveable.ObjectMeshes[0];
 
-		_shaders.Bind(Shader::InstancedStatics);
+		BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 
 		BindVertexBuffer(_moveablesVertexBuffer.get());
-		SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		const auto& room = _rooms[LaraItem->RoomNumber];
@@ -1324,7 +1323,7 @@ namespace TEN::Renderer
 	{
 		_stObjects.Skinned = (int)SkinningMode::Static;
 
-		_shaders.Bind(Shader::InstancedStatics);
+		BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 
 		BindVertexBuffer(_moveablesVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
@@ -1558,7 +1557,7 @@ namespace TEN::Renderer
 
 	void Renderer::DrawEffects(RenderView& view, RendererPass rendererPass)
 	{
-		_shaders.Bind(Shader::InstancedStatics);
+		BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 
 		BindVertexBuffer(_moveablesVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
@@ -1600,8 +1599,7 @@ namespace TEN::Renderer
 
 		if (activeDebrisExist)
 		{
-			_shaders.Bind(Shader::InstancedStatics);
-
+			BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 			SetCullMode(CullMode::None);
 
 			_primitiveBatch->Begin();

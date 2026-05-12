@@ -201,12 +201,10 @@ namespace TEN::Renderer
 				return;
 			}
 
-			// Set shaders.
-			_shaders.Bind(Shader::ShadowMap);
+			// Atomic PSO bind: shader + topology + input layout + alpha test threshold.
+			BindPipeline(Pipelines::ShadowMap(_vertexInputLayout.get()));
 
 			BindVertexBuffer(_moveablesVertexBuffer.get());
-			SetPrimitiveType(PrimitiveType::TriangleList);
-			SetInputLayout(_vertexInputLayout.get());
 			_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 			// Set texture.
@@ -227,7 +225,7 @@ namespace TEN::Renderer
 
 			_stShadowMap.LightViewProjections[step] = (view * projection);
 
-			SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
+			// AlphaTest is already part of the ShadowMap PSO (GreatherThan @ ALPHA_TEST_THRESHOLD).
 
 			auto& obj = GetRendererObject((GAME_OBJECT_ID)item->ObjectID);
 			auto skinMode = GetSkinningMode(obj, item->SkinIndex);
@@ -362,7 +360,7 @@ namespace TEN::Renderer
 		{
 			auto& moveableObject = *_moveableObjects[objectID];
 
-			_shaders.Bind(Shader::InstancedStatics);
+			BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 
 			BindVertexBuffer(_moveablesVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
@@ -612,12 +610,11 @@ namespace TEN::Renderer
 			{
 				if (rendererPass == RendererPass::GBuffer)
 				{
-					_shaders.Bind(Shader::GBuffer);
-					_shaders.Bind(Shader::GBufferInstancedStatics);
+					BindPipeline(Pipelines::GBufferInstancedStatics(_vertexInputLayout.get()));
 				}
 				else
 				{
-					_shaders.Bind(Shader::InstancedStatics);
+					BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 				}
 
 				BindVertexBuffer(_moveablesVertexBuffer.get());
@@ -734,12 +731,11 @@ namespace TEN::Renderer
 			{
 				if (rendererPass == RendererPass::GBuffer)
 				{
-					_shaders.Bind(Shader::GBuffer);
-					_shaders.Bind(Shader::GBufferInstancedStatics);
+					BindPipeline(Pipelines::GBufferInstancedStatics(_vertexInputLayout.get()));
 				}
 				else
 				{
-					_shaders.Bind(Shader::InstancedStatics);
+					BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 				}
 
 				BindVertexBuffer(_moveablesVertexBuffer.get());
@@ -871,14 +867,9 @@ namespace TEN::Renderer
 					(i == (NUM_BATS - 1) && batCount > 0))
 				{
 					if (rendererPass == RendererPass::GBuffer)
-					{
-						_shaders.Bind(Shader::GBuffer);
-						_shaders.Bind(Shader::GBufferInstancedStatics);
-					}
+						BindPipeline(Pipelines::GBufferInstancedStatics(_vertexInputLayout.get()));
 					else
-					{
-						_shaders.Bind(Shader::InstancedStatics);
-					}
+						BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 
 					BindVertexBuffer(_moveablesVertexBuffer.get());
 					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
@@ -1001,14 +992,9 @@ namespace TEN::Renderer
 					(i == TEN::Entities::TR4::NUM_BEETLES - 1 && beetleCount > 0))
 				{
 					if (rendererPass == RendererPass::GBuffer)
-					{
-						_shaders.Bind(Shader::GBuffer);
-						_shaders.Bind(Shader::GBufferInstancedStatics);
-					}
+						BindPipeline(Pipelines::GBufferInstancedStatics(_vertexInputLayout.get()));
 					else
-					{
-						_shaders.Bind(Shader::InstancedStatics);
-					}
+						BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 
 					BindVertexBuffer(_moveablesVertexBuffer.get());
 					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
@@ -1112,12 +1098,11 @@ namespace TEN::Renderer
 			{
 				if (rendererPass == RendererPass::GBuffer)
 				{
-					_shaders.Bind(Shader::GBuffer);
-					_shaders.Bind(Shader::GBufferInstancedStatics);
+					BindPipeline(Pipelines::GBufferInstancedStatics(_vertexInputLayout.get()));
 				}
 				else
 				{
-					_shaders.Bind(Shader::InstancedStatics);
+					BindPipeline(Pipelines::InstancedStatics(_vertexInputLayout.get()));
 				}
 
 				BindVertexBuffer(_moveablesVertexBuffer.get());
