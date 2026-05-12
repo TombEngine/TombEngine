@@ -19,13 +19,17 @@
 #define NUM_STEPS 4
 
 #define HBAO_RADIUS    64.0f  // World-space sphere of influence.
-#define HBAO_BIAS      0.10f  // Sin of minimum considered horizon angle (avoids self-occlusion).
-#define HBAO_INTENSITY 1.5f   // Final occlusion scale.
+#define HBAO_BIAS      0.15f  // Sin of minimum considered horizon angle (avoids self-occlusion).
+#define HBAO_INTENSITY 1.0f   // Final occlusion scale.
 #define HBAO_MAX_DIST  40960.0f
 
-#define SIGMA  3.0
-#define BSIGMA 0.3
-#define MSIZE  5
+// Bilateral blur: spatial Gaussian + depth-aware edge-stopping. The depth term rejects
+// neighbours across silhouette discontinuities (e.g. character vs background) which would
+// otherwise produce bright halos when the standard "value-aware" filter mixes the high-AO
+// (isolated geometry) and low-AO (surrounding surface) sides of the edge.
+#define BLUR_SIGMA       3.0f
+#define BLUR_DEPTH_SIGMA 0.002f  // NDC-z tolerance; ≈ 1% of typical scene depth.
+#define BLUR_SIZE        5
 
 struct PixelShaderInput
 {
@@ -121,45 +125,38 @@ float PS(PixelShaderInput input) : SV_Target
     return 1.0f - occlusion;
 }
 
-float normpdf(float x, float sigma)
-{
-    return 0.39894 * exp(-0.5 * x * x / (sigma * sigma)) / sigma;
-}
-
 float PSBlur(PixelShaderInput input) : SV_Target
 {
+    const int kernelHalf = (BLUR_SIZE - 1) / 2;
+    const float twoSpatialSigmaSq = 2.0f * BLUR_SIGMA * BLUR_SIGMA;
+    const float twoDepthSigmaSq   = 2.0f * BLUR_DEPTH_SIGMA * BLUR_DEPTH_SIGMA;
+
     float2 texelSize = TexelSize;
+    float baseDepth  = DepthTexture.Sample(PointWrapSampler, input.UV).x;
+
     float result = 0.0f;
+    float wSum   = 0.0f;
 
-    const int kernelSize = (MSIZE - 1) / 2;
-    float kernel[MSIZE];
-    float bZ = 0.0;
-
-    for (int j = 0; j <= kernelSize; j++)
+    [unroll]
+    for (int i = -kernelHalf; i <= kernelHalf; i++)
     {
-        kernel[kernelSize + j] = kernel[kernelSize - j] = normpdf(float(j), SIGMA);
-    }
-
-    float color;
-    float baseColor = AOTexture.Sample(PointWrapSampler, input.UV).x;
-    float gfactor;
-    float bfactor;
-    float bZnorm = 1.0 / normpdf(0.0, BSIGMA);
-
-    for (int i = -kernelSize; i <= kernelSize; i++)
-    {
-        for (int j = -kernelSize; j <= kernelSize; j++)
+        [unroll]
+        for (int j = -kernelHalf; j <= kernelHalf; j++)
         {
-            float2 offset = float2(i, j) * texelSize;
-            color = AOTexture.Sample(PointWrapSampler, input.UV + offset).x;
+            float2 sampleUV = input.UV + float2(i, j) * texelSize;
 
-            gfactor = kernel[kernelSize + j] * kernel[kernelSize + i];
-            bfactor = normpdf(color - baseColor, BSIGMA) * bZnorm * gfactor;
-            bZ += bfactor;
+            float ao         = AOTexture.Sample(PointWrapSampler, sampleUV).x;
+            float sampleDepth = DepthTexture.Sample(PointWrapSampler, sampleUV).x;
 
-            result += bfactor * color;
+            float spatialW = exp(-(i * i + j * j) / twoSpatialSigmaSq);
+            float depthDiff = sampleDepth - baseDepth;
+            float depthW   = exp(-(depthDiff * depthDiff) / twoDepthSigmaSq);
+
+            float w = spatialW * depthW;
+            result += ao * w;
+            wSum   += w;
         }
     }
 
-    return (result / bZ);
+    return result / max(wSum, 1e-5f);
 }
