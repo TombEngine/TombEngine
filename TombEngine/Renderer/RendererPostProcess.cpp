@@ -24,12 +24,7 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise, true);
 		SetDepthState(DepthState::Write, true);
 
-		// Common VS for all fullscreen passes — the DOF pixel shaders are PS-only.
-		_shaders.Bind(Shader::PostProcess);
-
-		SetPrimitiveType(PrimitiveType::TriangleList);
-		SetInputLayout(_fullScreenVertexInputLayout.get());
-		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+		BindFullscreenQuadState();
 
 		auto halfWidth  = std::max(1, (int)_dofViewport.Width);
 		auto halfHeight = std::max(1, (int)_dofViewport.Height);
@@ -124,12 +119,7 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise, true);
 		SetDepthState(DepthState::Write, true);
 
-		// Common VS for all fullscreen passes (PostProcessDistortion is PS-only).
-		_shaders.Bind(Shader::PostProcess);
-
-		SetPrimitiveType(PrimitiveType::TriangleList);
-		SetInputLayout(_fullScreenVertexInputLayout.get());
-		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+		BindFullscreenQuadState();
 
 		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
 		_stPostProcessBuffer.TexelSize    = Vector2(1.0f / _graphicsDevice->GetScreenWidth(), 1.0f / _graphicsDevice->GetScreenHeight());
@@ -191,11 +181,7 @@ namespace TEN::Renderer
 		_stPostProcessBuffer.Tint                = _postProcessTint;
 		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
-		_shaders.Bind(Shader::PostProcess);
-
-		SetPrimitiveType(PrimitiveType::TriangleList);
-		SetInputLayout(_fullScreenVertexInputLayout.get());
-		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+		BindFullscreenQuadState();
 
 		// Copy scene to post-process ping-pong target 0.
 		{
@@ -353,11 +339,7 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise, true);
 		SetDepthState(DepthState::Write, true);
 
-		_shaders.Bind(Shader::PostProcess);
-
-		SetPrimitiveType(PrimitiveType::TriangleList);
-		SetInputLayout(_fullScreenVertexInputLayout.get());
-		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+		BindFullscreenQuadState();
 
 		{
 			RenderPassDescriptor pass;
@@ -380,11 +362,7 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise, true);
 		SetDepthState(DepthState::Write, true);
 
-		_shaders.Bind(Shader::PostProcess);
-
-		SetPrimitiveType(PrimitiveType::TriangleList);
-		SetInputLayout(_fullScreenVertexInputLayout.get());
-		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+		BindFullscreenQuadState();
 
 		{
 			RenderPassDescriptor pass;
@@ -405,13 +383,9 @@ namespace TEN::Renderer
 
 		RendererViewport glowViewport = { 0, 0, (int)(_graphicsDevice->GetScreenWidth() / GLOW_DOWNSCALE_FACTOR), (int)(_graphicsDevice->GetScreenHeight() / GLOW_DOWNSCALE_FACTOR), 0.0f, 1.0f };
 
-		_shaders.Bind(Shader::PostProcess);
-
 		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
 
-		SetPrimitiveType(PrimitiveType::TriangleList);
-		SetInputLayout(_fullScreenVertexInputLayout.get());
-		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+		BindFullscreenQuadState();
 
 		// Downscale emissive into glow[0].
 		_shaders.Bind(Shader::Downscale);

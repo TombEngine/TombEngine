@@ -29,12 +29,7 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise, true);
 		SetDepthState(DepthState::Write, true);
 
-		// Common VS for all fullscreen passes (Smaa* shaders are PS-only).
-		_shaders.Bind(Shader::PostProcess);
-
-		SetPrimitiveType(PrimitiveType::TriangleList);
-		SetInputLayout(_fullScreenVertexInputLayout.get());
-		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+		BindFullscreenQuadState();
 
 		auto fullscreenPass = [&](IRenderTarget2D* target, const XMVECTORF32& clearColor, const char* label) {
 			RenderPassDescriptor pass;
@@ -126,12 +121,7 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise, true);
 		SetDepthState(DepthState::Write, true);
 
-		// Common VS for all fullscreen passes (Fxaa is PS-only).
-		_shaders.Bind(Shader::PostProcess);
-
-		SetPrimitiveType(PrimitiveType::TriangleList);
-		SetInputLayout(_fullScreenVertexInputLayout.get());
-		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+		BindFullscreenQuadState();
 
 		auto fullscreenPass = [&](IRenderTarget2D* target, const XMVECTORF32& clearColor, const char* label) {
 			RenderPassDescriptor pass;

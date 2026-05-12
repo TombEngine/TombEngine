@@ -417,6 +417,15 @@ namespace TEN::Renderer
 		void BeginRenderPass(const RenderPassDescriptor& pass);
 		void EndRenderPass();
 
+		// Setup for fullscreen-triangle post-process passes:
+		//   - PostProcess as shared VS (+ default PS — callers override the PS afterwards via
+		//     _shaders.Bind(Shader::SomePixelOnlyShader))
+		//   - TriangleList topology, fullscreen vertex layout, fullscreen triangle vertex buffer
+		// On Vulkan these end up baked into the lazily-created PSO for each pass; on DX11 they're
+		// individual state calls. Either way, calling this once at the top of a fullscreen-effect
+		// function captures the "fullscreen quad" state in one line.
+		void BindFullscreenQuadState();
+
 		// Close the current pass and re-open it with depth LoadAction::Clear / color
 		// LoadAction::Load. Use for sky→stars depth resets and similar patterns: Vulkan
 		// can't ClearDepthStencil mid-pass, so the only portable way is to split the pass.

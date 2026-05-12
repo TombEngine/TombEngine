@@ -2098,9 +2098,8 @@ namespace TEN::Renderer
 		if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion)
 			CalculateSSAO(view);
 
-		SetPrimitiveType(PrimitiveType::TriangleList);
-		SetInputLayout(_vertexInputLayout.get());
-
+		// (no manual SetPrimitiveType/SetInputLayout here: DoRenderPass(Opaque/...)
+		// inside DoMainSceneOpaqueTransparentPass will BindPipeline its own state.)
 		DoMainSceneOpaqueTransparentPass(view);
 
 		// ── 7. Snapshot scene for next-frame reflections ─────────────────────────
@@ -4246,14 +4245,7 @@ namespace TEN::Renderer
 		// Fullscreen viewport at native resolution (SSAO target itself is full-size on this branch).
 		RendererViewport viewport = { 0, 0, _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), 0.0f, 1.0f };
 
-		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
-
-		// Common VS for all fullscreen passes — Shader::Ssao / Shader::SsaoBlur are
-		// PS-only in the manager. Without this the VS bound by the previous pass (e.g.
-		// G-Buffer's VSRooms) stays active and the fullscreen triangle's POSITION+UV
-		// vertex layout is consumed by a VS that expects normals/tangents → no triangle
-		// is rasterized and the SSAO RT stays at its clear value.
-		_shaders.Bind(Shader::PostProcess);
+		BindFullscreenQuadState();
 
 		// Per-frame post-process CB upload (kernel + viewport metrics).
 		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());

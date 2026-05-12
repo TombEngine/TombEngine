@@ -174,10 +174,7 @@ black screen on the next frame.
 ### A) Fullscreen post-process pass
 
 ```cpp
-_shaders.Bind(Shader::PostProcess);             // shared VS
-SetPrimitiveType(PrimitiveType::TriangleList);
-SetInputLayout(_fullScreenVertexInputLayout.get());
-BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+BindFullscreenQuadState();                      // shared VS + TriangleList + fullscreen VB/IL
 
 {
     RenderPassDescriptor pass;

@@ -253,6 +253,14 @@ namespace TEN::Renderer
 		_renderPassActive = false;
 	}
 
+	void Renderer::BindFullscreenQuadState()
+	{
+		_shaders.Bind(Shader::PostProcess);
+		SetPrimitiveType(PrimitiveType::TriangleList);
+		SetInputLayout(_fullScreenVertexInputLayout.get());
+		BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+	}
+
 	void Renderer::ClearDepthMidPass(float depth, unsigned char stencil)
 	{
 		if (!_renderPassActive)
