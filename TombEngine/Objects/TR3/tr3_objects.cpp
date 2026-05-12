@@ -504,7 +504,7 @@ static void StartObject(ObjectInfo* obj)
 
 static void StartEmitter(ObjectInfo* obj)
 {
-	obj = &Objects[ID_TR3_BATS_EMITTER];
+	obj = &Objects[ID_BATS_EMITTER_TR3];
 	if (obj->loaded)
 	{
 		obj->Hidden = true;
