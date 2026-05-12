@@ -29,6 +29,7 @@
 #include "Objects/Generic/Switches/fullblock_switch.h"
 #include "Objects/Generic/puzzles_keys.h"
 #include "Objects/TR3/Entity/FishSwarm.h"
+#include "Objects/TR3/Emitter/tr3_bats_emitter.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
 #include "Objects/TR4/Entity/Locust.h"
 #include "Objects/TR5/Emitter/tr5_rats_emitter.h"
@@ -56,6 +57,7 @@ using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Creatures::TR3;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Switches;
+using namespace TEN::Entities::TR3;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
 using namespace TEN::Renderer;
@@ -1590,6 +1592,23 @@ const std::vector<byte> SaveGame::Build()
 	}
 	auto batsOffset = fbb.CreateVector(bats);
 
+	std::vector<flatbuffers::Offset<Save::SwarmObjectInfo>> tr3Bats;
+	for (int i = 0; i < NUM_TR3_BATS; i++)
+	{
+		auto* bat = &Tr3Bats[i];
+
+		Save::SwarmObjectInfoBuilder batInfo{ fbb };
+
+		batInfo.add_flags(bat->Counter);
+		batInfo.add_on(bat->On);
+		batInfo.add_room_number(bat->RoomNumber);
+		batInfo.add_pose(&FromPose(bat->Pose));
+		batInfo.add_target((bat->WingYoff << 16) | bat->Velocity);
+
+		tr3Bats.push_back(batInfo.Finish());
+	}
+	auto tr3BatsOffset = fbb.CreateVector(tr3Bats);
+
 	std::vector<flatbuffers::Offset<Save::SwarmObjectInfo>> spiders;
 	for (int i = 0; i < NUM_SPIDERS; i++)
 	{
@@ -1787,6 +1806,7 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_particles(particleOffset);
 	sgb.add_locusts(locustOffset);
 	sgb.add_bats(batsOffset);
+	sgb.add_tr3_bats(tr3BatsOffset);
 	sgb.add_rats(ratsOffset);
 	sgb.add_spiders(spidersOffset);
 	sgb.add_scarabs(scarabsOffset);
@@ -2610,6 +2630,21 @@ static void ParseEffects(const Save::SaveGame* s)
 		bat->Counter = batInfo->flags();
 		bat->RoomNumber = batInfo->room_number();
 		bat->Pose = ToPose(*batInfo->pose());
+	}
+
+	for (int i = 0; i < s->tr3_bats()->size(); i++)
+	{
+		auto* batInfo = s->tr3_bats()->Get(i);
+		auto* bat = &Tr3Bats[i];
+
+		bat->On = batInfo->on();
+		bat->Pose = ToPose(*batInfo->pose());
+		bat->PrevPosition = bat->Pose.Position;
+		bat->RoomNumber = batInfo->room_number();
+		bat->Counter = batInfo->flags();
+		bat->Velocity = batInfo->target() & 0xFFFF;
+		bat->WingYoff = batInfo->target() >> 16;
+		bat->PrevWingYoff = bat->WingYoff;
 	}
 
 	for (int i = 0; i < s->rats()->size(); i++)
