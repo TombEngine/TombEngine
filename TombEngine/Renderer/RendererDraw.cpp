@@ -899,7 +899,7 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareTr3Bats(RenderView& view)
 	{
-		if (!Objects[ID_TR3_BATS_EMITTER].loaded)
+		if (!Objects[ID_BATS_EMITTER_TR3].loaded)
 			return;
 
 		if (!CheckIfSlotExists(ID_MISC_SPRITES, "TR3 bats rendering"))
