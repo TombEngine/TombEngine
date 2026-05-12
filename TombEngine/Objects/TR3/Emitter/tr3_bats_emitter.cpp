@@ -54,6 +54,17 @@ namespace TEN::Entities::TR3
 		bat.PrevWingYoff = bat.WingYoff;
 	}
 
+	static Tr3BatData* GetFreeTr3Bat()
+	{
+		for (auto& bat : Tr3Bats)
+		{
+			if (!bat.On)
+				return &bat;
+		}
+
+		return nullptr;
+	}
+
 	void ClearTr3Bats()
 	{
 		for (auto& bat : Tr3Bats)
@@ -78,22 +89,25 @@ namespace TEN::Entities::TR3
 	{
 		short angle = ((item->Pose.Orientation.y >> 4) - 1024) & 0xFFF;
 
-		for (int i = 0; i < NUM_TR3_BATS; i++)
+		for (int i = 0; i < TR3_BATS_PER_EMITTER; i++)
 		{
-			auto& bat = Tr3Bats[i];
+			auto* bat = GetFreeTr3Bat();
 
-			bat.RoomNumber = item->RoomNumber;
-			bat.Pose.Position.x = (GetRandomControl() & 0x1FF) + item->Pose.Position.x - 256;
-			bat.Pose.Position.y = item->Pose.Position.y - (GetRandomControl() & 0xFF) + 256;
-			bat.Pose.Position.z = (GetRandomControl() & 0x1FF) + item->Pose.Position.z - 256;
-			bat.Pose.Orientation.x = 0;
-			bat.Pose.Orientation.y = (((GetRandomControl() & 0x7F) + angle - 64) & 0xFFF) << 4;
-			bat.Pose.Orientation.z = 0;
-			bat.Velocity = (GetRandomControl() & 0x1F) + TR3_BAT_SPEED_MIN;
-			bat.Counter = (GetRandomControl() & 7) + TR3_BAT_LIFE_MIN;
-			bat.WingYoff = GetRandomControl() & 0x3F;
-			bat.On = true;
-			ResetTr3BatInterpolationData(bat);
+			if (!bat)
+				return;
+
+			bat->RoomNumber = item->RoomNumber;
+			bat->Pose.Position.x = (GetRandomControl() & 0x1FF) + item->Pose.Position.x - 256;
+			bat->Pose.Position.y = item->Pose.Position.y - (GetRandomControl() & 0xFF) + 256;
+			bat->Pose.Position.z = (GetRandomControl() & 0x1FF) + item->Pose.Position.z - 256;
+			bat->Pose.Orientation.x = 0;
+			bat->Pose.Orientation.y = (((GetRandomControl() & 0x7F) + angle - 64) & 0xFFF) << 4;
+			bat->Pose.Orientation.z = 0;
+			bat->Velocity = (GetRandomControl() & 0x1F) + TR3_BAT_SPEED_MIN;
+			bat->Counter = (GetRandomControl() & 7) + TR3_BAT_LIFE_MIN;
+			bat->WingYoff = GetRandomControl() & 0x3F;
+			bat->On = true;
+			ResetTr3BatInterpolationData(*bat);
 		}
 	}
 
