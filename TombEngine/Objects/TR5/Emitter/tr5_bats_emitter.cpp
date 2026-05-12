@@ -35,7 +35,10 @@ void InitializeLittleBats(short itemNumber)
 		item->Pose.Position.x += CLICK(2);
 
 	if (Objects[ID_BATS_EMITTER].loaded)
-		ZeroMemory(Bats, NUM_BATS * sizeof(BatData));
+	{
+		for (auto& bat : Bats)
+			bat = {};
+	}
 
 	//LOWORD(item) = sub_402F27(ebx0, Bats, 0, 1920);
 }
