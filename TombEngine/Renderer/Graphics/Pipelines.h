@@ -118,12 +118,13 @@ namespace TEN::Renderer::Graphics
 			return pso;
 		}
 
-		// Solid-color debug lines/triangles.
-		inline RenderPipelineState SolidDebug(IInputLayout* vertexInputLayout, PrimitiveType topology = PrimitiveType::LineList)
+		// Solid-color debug lines/triangles. Both blend (Opaque for 2D HUD lines, Additive
+		// for 3D debug lines/triangles) and topology vary by caller.
+		inline RenderPipelineState SolidDebug(IInputLayout* vertexInputLayout, BlendMode blend = BlendMode::Additive, PrimitiveType topology = PrimitiveType::LineList)
 		{
 			RenderPipelineState pso;
 			pso.ShaderId    = Shader::Solid;
-			pso.Blend       = BlendMode::Additive;
+			pso.Blend       = blend;
 			pso.Depth       = DepthState::Read;
 			pso.Cull        = CullMode::None;
 			pso.Topology    = topology;

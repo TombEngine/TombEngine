@@ -431,14 +431,9 @@ namespace TEN::Renderer
 
 	void Renderer::DrawLines2D()
 	{
-		SetBlendMode(BlendMode::Opaque);
-		SetDepthState(DepthState::Read);
-		SetCullMode(CullMode::None);
+		BindPipeline(Pipelines::SolidDebug(_vertexInputLayout.get(), BlendMode::Opaque, PrimitiveType::LineList));
 
-		_shaders.Bind(Shader::Solid);
 		auto worldMatrix = Matrix::CreateOrthographicOffCenter(0, _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), 0, _viewport.MinDepth, _viewport.MaxDepth);
-
-		SetPrimitiveType(PrimitiveType::LineList);
 
 		_primitiveBatch->Begin();
 
@@ -1160,12 +1155,8 @@ namespace TEN::Renderer
 
 	void Renderer::DrawLines3D(RenderView& view)
 	{
-		SetBlendMode(BlendMode::Additive);
-		SetCullMode(CullMode::None);
+		BindPipeline(Pipelines::SolidDebug(_vertexInputLayout.get(), BlendMode::Additive, PrimitiveType::LineList));
 
-		_shaders.Bind(Shader::Solid);
-
-		SetPrimitiveType(PrimitiveType::LineList);
 		_primitiveBatch->Begin();
 
 		for (const auto& line : _lines3DToDraw)
@@ -1192,13 +1183,7 @@ namespace TEN::Renderer
 
 	void Renderer::DrawTriangles3D(RenderView& view)
 	{
-		SetBlendMode(BlendMode::Additive);
-		SetCullMode(CullMode::None);
-
-		_shaders.Bind(Shader::Solid);
-
-		SetPrimitiveType(PrimitiveType::TriangleList);
-		SetInputLayout(_vertexInputLayout.get());
+		BindPipeline(Pipelines::SolidDebug(_vertexInputLayout.get(), BlendMode::Additive, PrimitiveType::TriangleList));
 
 		_primitiveBatch->Begin();
 
@@ -3207,13 +3192,7 @@ namespace TEN::Renderer
 
 		if (Weather.GetStars().size() > 0 && !reflectionPass)
 		{
-			SetDepthState(DepthState::Read);
-			SetBlendMode(BlendMode::Additive);
-			SetCullMode(CullMode::None);
-
-			SetPrimitiveType(PrimitiveType::TriangleStrip);
-
-			_shaders.Bind(Shader::InstancedSprites);
+			BindPipeline(Pipelines::InstancedSprites(_vertexInputLayout.get(), BlendMode::Additive, PrimitiveType::TriangleStrip));
 
 			BindVertexBuffer(_quadVertexBuffer.get());
 
@@ -3401,15 +3380,7 @@ namespace TEN::Renderer
 		// Eventually draw the sun sprite.
 		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal && !reflectionPass)
 		{
-			SetDepthState(DepthState::Read);
-			SetBlendMode(BlendMode::Additive);
-			SetCullMode(CullMode::None);
-
-			SetPrimitiveType(PrimitiveType::TriangleStrip);
-
-			_shaders.Bind(Shader::InstancedSprites);
-
-			// Set up vertex buffer and parameters.
+			BindPipeline(Pipelines::InstancedSprites(_vertexInputLayout.get(), BlendMode::Additive, PrimitiveType::TriangleStrip));
 			BindVertexBuffer(_quadVertexBuffer.get());
 
 			auto rDrawSprite = RendererSpriteToDraw{};

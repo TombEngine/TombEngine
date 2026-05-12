@@ -263,16 +263,11 @@ namespace TEN::Renderer
 
 			if (!wasGpuSet)
 			{
-				SetPrimitiveType(PrimitiveType::TriangleStrip);
+				// SetupBlendModeAndAlphaTest above already set Blend/AlphaTest; this PSO
+				// captures shader + topology + input layout + Depth/Cull on top of it.
+				BindPipeline(Pipelines::InstancedSprites(_vertexInputLayout.get(), spriteBucket.BlendMode, PrimitiveType::TriangleStrip));
 
 				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
-
-				SetDepthState(DepthState::Read);
-				SetCullMode(CullMode::None);
-
-				_shaders.Bind(Shader::InstancedSprites);
-
-				// Set up vertex buffer and parameters.
 				BindVertexBuffer(_quadVertexBuffer.get());
 
 				wasGpuSet = true;
@@ -318,16 +313,9 @@ namespace TEN::Renderer
 
 			if (!wasGpuSet)
 			{
-				SetPrimitiveType(PrimitiveType::TriangleList);
+				BindPipeline(Pipelines::InstancedSprites(_vertexInputLayout.get(), spriteBucket.BlendMode, PrimitiveType::TriangleList));
 
 				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
-
-				SetDepthState(DepthState::Read);
-				SetCullMode(CullMode::None);
-
-				_shaders.Bind(Shader::InstancedSprites);
-
-				// Set up vertex buffer and parameters.
 				BindVertexBuffer(_spriteVertexBuffer.get());
 
 				wasGpuSet = true;
@@ -416,12 +404,8 @@ namespace TEN::Renderer
 
 		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 
-		SetDepthState(DepthState::Read);
-		SetCullMode(CullMode::None);
-		SetBlendMode(object->Sprite->BlendMode);
+		BindPipeline(Pipelines::InstancedSprites(_vertexInputLayout.get(), object->Sprite->BlendMode, PrimitiveType::TriangleList));
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
-
-		_shaders.Bind(Shader::InstancedSprites);
 
 		_stInstancedSpriteBuffer.Sprites[0].World = object->Sprite->Type != SpriteType::ThreeD ?
 			GetWorldMatrixForSprite(*object->Sprite, view) :
