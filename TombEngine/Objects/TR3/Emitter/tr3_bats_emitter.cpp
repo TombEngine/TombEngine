@@ -70,7 +70,7 @@ namespace TEN::Entities::TR3
 
 		item.TriggerFlags = 0;
 
-		if (Objects[ID_TR3_BATS_EMITTER].loaded)
+		if (Objects[ID_BATS_EMITTER_TR3].loaded)
 			ClearTr3Bats();
 	}
 
@@ -110,7 +110,7 @@ namespace TEN::Entities::TR3
 
 	void UpdateTr3Bats()
 	{
-		if (!Objects[ID_TR3_BATS_EMITTER].loaded)
+		if (!Objects[ID_BATS_EMITTER_TR3].loaded)
 			return;
 
 		for (int i = 0; i < NUM_TR3_BATS; i++)
