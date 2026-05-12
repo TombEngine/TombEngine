@@ -15,21 +15,69 @@ local ALPHA_MIN  = 0
 local ActionID   = TEN.Input.ActionID
 
 -- Acceleration thresholds for option left/right navigation (hold to repeat faster).
-local ACCEL_INITIAL_DELAY  = 0.25   -- seconds before first repeat
-local ACCEL_SLOW_REPEAT    = 0.15   -- repeat rate at the start of hold
-local ACCEL_MED_REPEAT     = 0.07   -- repeat rate after ACCEL_MED_TIME seconds held
-local ACCEL_FAST_REPEAT    = 0.03   -- repeat rate after ACCEL_FAST_TIME seconds held
-local ACCEL_MED_TIME       = 0.7    -- hold time to reach medium speed
-local ACCEL_FAST_TIME      = 1.5    -- hold time to reach fast speed
+local ACCEL_INITIAL_DELAY = 0.25   -- seconds after first press before repeating begins
+local ACCEL_SLOW_REPEAT   = 0.15   -- repeat interval at start of hold
+local ACCEL_MED_REPEAT    = 0.07   -- repeat interval after ACCEL_MED_TIME seconds held
+local ACCEL_FAST_REPEAT   = 0.03   -- repeat interval after ACCEL_FAST_TIME seconds held
+local ACCEL_MED_TIME      = 0.7    -- hold time to reach medium speed
+local ACCEL_FAST_TIME     = 1.5    -- hold time to reach fast speed
+
+-- Per-key last-fire timestamp (keyed by actionID).
+-- Using a stateful accumulator so rate changes are seamless.
+local _lastFireTime = {}
 
 local function IsOptionPulsed(actionID)
     local t = TEN.Input.GetActionTimeActive(actionID)
+
+    -- Key is not held; reset state.
+    if t <= 0 then
+        _lastFireTime[actionID] = nil
+        return false
+    end
+
+    -- Guard: opposite direction held suppresses this key.
+    if actionID == ActionID.LEFT  and TEN.Input.IsKeyHeld(ActionID.RIGHT) then return false end
+    if actionID == ActionID.RIGHT and TEN.Input.IsKeyHeld(ActionID.LEFT)  then return false end
+
+    local last = _lastFireTime[actionID]
+
+    -- Fire immediately on first press.
+    if last == nil then
+        _lastFireTime[actionID] = t
+        return true
+    end
+
+    -- Suppress repeats during initial delay.
+    if t < ACCEL_INITIAL_DELAY then
+        return false
+    end
+
+    -- Choose repeat rate from current hold time.
+    local rate
     if t > ACCEL_FAST_TIME then
-        return TEN.Input.IsKeyPulsed(actionID, ACCEL_INITIAL_DELAY, ACCEL_FAST_REPEAT)
+        rate = ACCEL_FAST_REPEAT
     elseif t > ACCEL_MED_TIME then
-        return TEN.Input.IsKeyPulsed(actionID, ACCEL_INITIAL_DELAY, ACCEL_MED_REPEAT)
+        rate = ACCEL_MED_REPEAT
     else
-        return TEN.Input.IsKeyPulsed(actionID, ACCEL_INITIAL_DELAY, ACCEL_SLOW_REPEAT)
+        rate = ACCEL_SLOW_REPEAT
+    end
+
+    if (t - last) >= rate then
+        _lastFireTime[actionID] = t
+        return true
+    end
+
+    return false
+end
+
+--- Route LEFT/RIGHT option navigation to the correct pulse function.
+-- Accelerated items (numeric ranges) use the hold-speed accumulator;
+-- discrete-list items use the standard GuiIsPulsed (single repeat).
+local function OptionPulsed(actionID, item, inputTimer)
+    if item and item.accelerated then
+        return IsOptionPulsed(actionID)
+    else
+        return InputHelpers.GuiIsPulsed(actionID, inputTimer)
     end
 end
 
@@ -554,6 +602,18 @@ function Menu:SetOptionIndexForItem(itemIndex, optionIndex)
     item.currentOption = Clamp(optionIndex, 1, maxOpt)
 end
 
+function Menu:SetOptionIndexForItemName(itemName, optionIndex)
+    local menu = Menus[self.name]
+    if not menu then return end
+    for _, item in ipairs(menu.items) do
+        if item.itemName == itemName then
+            local maxOpt = item.options and #item.options or 1
+            item.currentOption = Clamp(optionIndex, 1, maxOpt)
+            return
+        end
+    end
+end
+
 function Menu:SetCurrentItem(itemIndex)
     local menu = Menus[self.name]
     menu.currentItem = Clamp(itemIndex, 1, #menu.items)
@@ -567,6 +627,10 @@ local function HandleInput(menuName)
     local menu = Menus[menuName]
     local itemCount = #menu.items
     if itemCount == 0 then return end
+
+    -- Clear stale acceleration state when keys are released.
+    if TEN.Input.GetActionTimeActive(ActionID.LEFT)  <= 0 then _lastFireTime[ActionID.LEFT]  = nil end
+    if TEN.Input.GetActionTimeActive(ActionID.RIGHT) <= 0 then _lastFireTime[ActionID.RIGHT] = nil end
 
     local previousItem = menu.currentItem
 
@@ -602,8 +666,8 @@ local function HandleInput(menuName)
             PerformFunction(menu.itemChangeFunction)
         end
 
-    -- Navigate options: LEFT / RIGHT (with hold acceleration)
-    elseif IsOptionPulsed(ActionID.LEFT) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+    -- Navigate options: LEFT / RIGHT (accelerated for numeric ranges, standard pulse for discrete lists)
+    elseif OptionPulsed(ActionID.LEFT, menu.items[menu.currentItem], menu.inputTimer) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             PlaySound(menu.sounds and menu.sounds.menuSelect)
@@ -617,7 +681,7 @@ local function HandleInput(menuName)
             end
         end
 
-    elseif IsOptionPulsed(ActionID.RIGHT) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+    elseif OptionPulsed(ActionID.RIGHT, menu.items[menu.currentItem], menu.inputTimer) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             PlaySound(menu.sounds and menu.sounds.menuSelect)

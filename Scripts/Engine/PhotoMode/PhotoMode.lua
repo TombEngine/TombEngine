@@ -58,10 +58,54 @@ local FILTER_NAMES     = BuildNames(Settings.Filters.presets)
 local TINT_NAMES       = BuildNames(Settings.Filters.tints)
 local COLOR_NAMES      = BuildNames(Settings.Light.colorPresets)
 local ANIM_NAMES       = BuildNames(Settings.Animations)
-local OUTFIT_NAMES     = BuildNames(Settings.Outfits)
-local WEAPON_NAMES     = BuildNames(Settings.Weapons)
 local FRAME_NAMES      = BuildNames(Settings.Frames.presets)
 local EXPRESSION_NAMES = BuildNames(Settings.Expressions)
+
+-- Outfit and weapon name lists are built dynamically each entry to respect
+-- per-outfit unlock flags and live inventory checks.
+local _outfitMenuMap        = {}  -- [menuOptionIdx] -> real Settings.Outfits index
+local _outfitMenuMapReverse = {}  -- [real Settings.Outfits index] -> menuOptionIdx
+local _weaponMenuMap        = {}  -- [menuOptionIdx] -> real Settings.Weapons index
+local _weaponMenuMapReverse = {}  -- [real Settings.Weapons index] -> menuOptionIdx
+
+local function BuildFilteredOutfitNames()
+    _outfitMenuMap        = {}
+    _outfitMenuMapReverse = {}
+    local names = {}
+    for i, outfit in ipairs(Settings.Outfits) do
+        if outfit.unlocked ~= false then
+            local idx             = #names + 1
+            names[idx]            = outfit.name
+            _outfitMenuMap[idx]   = i
+            _outfitMenuMapReverse[i] = idx
+        end
+    end
+    return names
+end
+
+local function BuildFilteredWeaponNames()
+    _weaponMenuMap        = {}
+    _weaponMenuMapReverse = {}
+    local names = {}
+    for i, weapon in ipairs(Settings.Weapons) do
+        local show = false
+        if weapon.weaponType == TEN.Objects.WeaponType.NONE then
+            show = true  -- Default always shown.
+        elseif weapon.pickupObjID == nil then
+            show = true  -- No inventory check configured.
+        else
+            local ok, count = pcall(TEN.Inventory.GetItemCount, weapon.pickupObjID)
+            show = ok and count > 0
+        end
+        if show then
+            local idx             = #names + 1
+            names[idx]            = weapon.name
+            _weaponMenuMap[idx]   = i
+            _weaponMenuMapReverse[i] = idx
+        end
+    end
+    return names
+end
 
 -- ============================================================================
 -- LevelFuncs callbacks for menu option changes
@@ -279,6 +323,7 @@ local function ApplyExpression(state)
 end
 
 local function GetOrCreateSunglasses(state)
+    if Settings.Sunglasses.enabled == false then return nil end
     local name = Settings.Sunglasses.meshName
     if state.sunglassesMesh then return state.sunglassesMesh end
     if TEN.Objects.IsNameInUse(name) then
@@ -526,61 +571,64 @@ local function BuildAllMenus()
     LevelFuncs.Engine.PhotoMode.OnCameraAccept = function()
         local m = Menu.Get(MENU_CAMERA)
         if not m then return end
-        if m:GetCurrentItemIndex() == 5 then ResetCamera() end
+        local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
+        if name == "pm_reset" then ResetCamera() end
     end
 
     LevelFuncs.Engine.PhotoMode.OnCharacterAccept = function()
         local m = Menu.Get(MENU_CHARACTER)
         if not m then return end
-        if m:GetCurrentItemIndex() == 7 then
+        local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
+        if name == "pm_reset" then
             ResetCharacter()
-            m:SetOptionIndexForItem(1, state.animIndex)
-            m:SetOptionIndexForItem(2, state.outfitIndex)
-            m:SetOptionIndexForItem(3, state.weaponIndex)
-            m:SetOptionIndexForItem(4, state.expressionIndex)
-            m:SetOptionIndexForItem(5, BoolToIndex(state.sunglassesEnabled))
-            m:SetOptionIndexForItem(6, BoolToIndex(state.gunflashEnabled))
+            m:SetOptionIndexForItemName("pm_animation",  state.animIndex)
+            m:SetOptionIndexForItemName("pm_outfit",     _outfitMenuMapReverse[state.outfitIndex] or 1)
+            m:SetOptionIndexForItemName("pm_weapons",    _weaponMenuMapReverse[state.weaponIndex] or 1)
+            m:SetOptionIndexForItemName("pm_expression", state.expressionIndex)
+            m:SetOptionIndexForItemName("pm_sunglasses", BoolToIndex(state.sunglassesEnabled))
+            m:SetOptionIndexForItemName("pm_gunflash",   BoolToIndex(state.gunflashEnabled))
         end
     end
 
     LevelFuncs.Engine.PhotoMode.OnEffectsAccept = function()
         local m = Menu.Get(MENU_EFFECTS)
         if not m then return end
-        if m:GetCurrentItemIndex() == 11 then
+        local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
+        if name == "pm_reset" then
             ResetEffects()
-            m:SetOptionIndexForItem(1, ValueToOptionIndex(state.fov, cfg.Lens.minFOV, cfg.Lens.fovStep))
-            m:SetOptionIndexForItem(2, ValueToOptionIndex(state.roll, cfg.Lens.minRoll, cfg.Lens.rollStep))
-            m:SetOptionIndexForItem(3, state.filterIndex)
-            m:SetOptionIndexForItem(4, ValueToOptionIndex(state.filterStrength, 0, 0.05))
-            m:SetOptionIndexForItem(5, state.tintIndex)
-            m:SetOptionIndexForItem(6, state.frameIndex)
-            m:SetOptionIndexForItem(7, state.dofMode)
-            m:SetOptionIndexForItem(8, ValueToOptionIndex(state.dofFocusDistance, cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.focusDistanceStep))
-            m:SetOptionIndexForItem(9, ValueToOptionIndex(state.dofRange, cfg.DepthOfField.minRange, cfg.DepthOfField.rangeStep))
-            m:SetOptionIndexForItem(10, ValueToOptionIndex(state.dofStrength, cfg.DepthOfField.minStrength, cfg.DepthOfField.strengthStep))
+            m:SetOptionIndexForItemName("pm_fov",          ValueToOptionIndex(state.fov, cfg.Lens.minFOV, cfg.Lens.fovStep))
+            m:SetOptionIndexForItemName("pm_roll",         ValueToOptionIndex(state.roll, cfg.Lens.minRoll, cfg.Lens.rollStep))
+            m:SetOptionIndexForItemName("pm_preset",       state.filterIndex)
+            m:SetOptionIndexForItemName("pm_strength",     ValueToOptionIndex(state.filterStrength, 0, 0.05))
+            m:SetOptionIndexForItemName("pm_tint",         state.tintIndex)
+            m:SetOptionIndexForItemName("pm_frame_overlay",state.frameIndex)
+            m:SetOptionIndexForItemName("pm_dof_mode",     state.dofMode)
+            m:SetOptionIndexForItemName("pm_dof_focus",    ValueToOptionIndex(state.dofFocusDistance, cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.focusDistanceStep))
+            m:SetOptionIndexForItemName("pm_dof_range",    ValueToOptionIndex(state.dofRange,         cfg.DepthOfField.minRange,         cfg.DepthOfField.rangeStep))
+            m:SetOptionIndexForItemName("pm_dof_strength", ValueToOptionIndex(state.dofStrength,      cfg.DepthOfField.minStrength,      cfg.DepthOfField.strengthStep))
         end
     end
 
     LevelFuncs.Engine.PhotoMode.OnLightAccept = function()
         local m = Menu.Get(MENU_LIGHT)
         if not m then return end
-        local idx = m:GetCurrentItemIndex()
-        if idx == 5 then PlaceLightAtCamera()
-        elseif idx == 6 then PlaceLightAtLara()
-        elseif idx == 7 then
+        local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
+        if name == "pm_place_camera" then PlaceLightAtCamera()
+        elseif name == "pm_place_lara" then PlaceLightAtLara()
+        elseif name == "pm_reset" then
             ResetLight()
-            m:SetOptionIndexForItem(1, BoolToIndex(state.lightEnabled))
-            m:SetOptionIndexForItem(2, state.lightSource)
-            m:SetOptionIndexForItem(3, ValueToOptionIndex(state.lightRadius, cfg.Light.minRadius, cfg.Light.radiusStep))
-            m:SetOptionIndexForItem(4, BoolToIndex(state.lightShadows))
-            m:SetOptionIndexForItem(5, state.lightColorIndex)
+            m:SetOptionIndexForItemName("pm_enabled", BoolToIndex(state.lightEnabled))
+            m:SetOptionIndexForItemName("pm_source",  state.lightSource)
+            m:SetOptionIndexForItemName("pm_radius",  ValueToOptionIndex(state.lightRadius, cfg.Light.minRadius, cfg.Light.radiusStep))
+            m:SetOptionIndexForItemName("pm_color",   state.lightColorIndex)
         end
     end
 
     LevelFuncs.Engine.PhotoMode.OnUIAccept = function()
         local m = Menu.Get(MENU_UI)
         if not m then return end
-        if m:GetCurrentItemIndex() == 2 then PhotoMode.Exit() end
+        local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
+        if name == "pm_exit" then PhotoMode.Exit() end
     end
 
     -- ================================================================
@@ -590,34 +638,36 @@ local function BuildAllMenus()
     LevelFuncs.Engine.PhotoMode.OnCameraOptionChange = function()
         local m = Menu.Get(MENU_CAMERA)
         if not m then return end
-        local idx = m:GetCurrentItemIndex()
-        if idx == 1 then state.controlMode = m:GetCurrentOptionIndex()
-        elseif idx == 2 then state.moveSpeed = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Camera.minMoveSpeed, cfg.Camera.moveSpeedStep)
-        elseif idx == 3 then state.lookSpeed = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Camera.minLookSpeed, cfg.Camera.lookSpeedStep)
-        elseif idx == 4 then state.collisionOn = IndexToBool(m:GetCurrentOptionIndex())
+        local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
+        if     name == "pm_mode"           then state.controlMode         = m:GetCurrentOptionIndex()
+        elseif name == "pm_move_speed"     then state.moveSpeed           = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Camera.minMoveSpeed, cfg.Camera.moveSpeedStep)
+        elseif name == "pm_look_speed"     then state.lookSpeed           = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Camera.minLookSpeed, cfg.Camera.lookSpeedStep)
+        elseif name == "pm_collision"      then state.collisionOn         = IndexToBool(m:GetCurrentOptionIndex())
+        elseif name == "pm_limit_distance" then state.limitCameraDistance = IndexToBool(m:GetCurrentOptionIndex())
+        elseif name == "pm_max_distance"   then state.maxCameraDistance   = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Camera.minMaxDistance, cfg.Camera.distanceStep)
         end
     end
 
     LevelFuncs.Engine.PhotoMode.OnCharacterOptionChange = function()
         local m = Menu.Get(MENU_CHARACTER)
         if not m then return end
-        local idx = m:GetCurrentItemIndex()
-        if idx == 1 then
+        local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
+        if name == "pm_animation" then
             state.animIndex = m:GetCurrentOptionIndex()
             ApplyPosePreset(state)
-        elseif idx == 2 then
-            state.outfitIndex = m:GetCurrentOptionIndex()
+        elseif name == "pm_outfit" then
+            state.outfitIndex = _outfitMenuMap[m:GetCurrentOptionIndex()] or 1
             ApplyOutfit(state)
-        elseif idx == 3 then
-            state.weaponIndex = m:GetCurrentOptionIndex()
+        elseif name == "pm_weapons" then
+            state.weaponIndex = _weaponMenuMap[m:GetCurrentOptionIndex()] or 1
             ApplyWeapon(state)
-        elseif idx == 4 then
+        elseif name == "pm_expression" then
             state.expressionIndex = m:GetCurrentOptionIndex()
             ApplyExpression(state)
-        elseif idx == 5 then
+        elseif name == "pm_sunglasses" then
             state.sunglassesEnabled = IndexToBool(m:GetCurrentOptionIndex())
             ApplySunglasses(state)
-        elseif idx == 6 then
+        elseif name == "pm_gunflash" then
             state.gunflashEnabled = IndexToBool(m:GetCurrentOptionIndex())
         end
     end
@@ -625,34 +675,34 @@ local function BuildAllMenus()
     LevelFuncs.Engine.PhotoMode.OnEffectsOptionChange = function()
         local m = Menu.Get(MENU_EFFECTS)
         if not m then return end
-        local idx = m:GetCurrentItemIndex()
-        if idx == 1 then
+        local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
+        if name == "pm_fov" then
             state.fov = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Lens.minFOV, cfg.Lens.fovStep)
             ApplyFOV(state)
-        elseif idx == 2 then
+        elseif name == "pm_roll" then
             state.roll = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Lens.minRoll, cfg.Lens.rollStep)
             ApplyRoll(state)
-        elseif idx == 3 then
+        elseif name == "pm_preset" then
             state.filterIndex = m:GetCurrentOptionIndex()
             ApplyFilter(state)
-        elseif idx == 4 then
+        elseif name == "pm_strength" then
             state.filterStrength = OptionIndexToValue(m:GetCurrentOptionIndex(), 0, 0.05)
             ApplyFilterStrength(state)
-        elseif idx == 5 then
+        elseif name == "pm_tint" then
             state.tintIndex = m:GetCurrentOptionIndex()
             ApplyTint(state)
-        elseif idx == 6 then
+        elseif name == "pm_frame_overlay" then
             state.frameIndex = m:GetCurrentOptionIndex()
-        elseif idx == 7 then
+        elseif name == "pm_dof_mode" then
             state.dofMode = m:GetCurrentOptionIndex()
             ApplyDOF(state)
-        elseif idx == 8 then
+        elseif name == "pm_dof_focus" then
             state.dofFocusDistance = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.focusDistanceStep)
             ApplyDOF(state)
-        elseif idx == 9 then
+        elseif name == "pm_dof_range" then
             state.dofRange = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.DepthOfField.minRange, cfg.DepthOfField.rangeStep)
             ApplyDOF(state)
-        elseif idx == 10 then
+        elseif name == "pm_dof_strength" then
             state.dofStrength = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.DepthOfField.minStrength, cfg.DepthOfField.strengthStep)
             ApplyDOF(state)
         end
@@ -661,18 +711,19 @@ local function BuildAllMenus()
     LevelFuncs.Engine.PhotoMode.OnLightOptionChange = function()
         local m = Menu.Get(MENU_LIGHT)
         if not m then return end
-        local idx = m:GetCurrentItemIndex()
-        if idx == 1 then state.lightEnabled = IndexToBool(m:GetCurrentOptionIndex())
-        elseif idx == 2 then state.lightSource = m:GetCurrentOptionIndex()
-        elseif idx == 3 then state.lightRadius = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Light.minRadius, cfg.Light.radiusStep)
-        elseif idx == 4 then state.lightColorIndex = m:GetCurrentOptionIndex()
+        local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
+        if     name == "pm_enabled" then state.lightEnabled    = IndexToBool(m:GetCurrentOptionIndex())
+        elseif name == "pm_source"  then state.lightSource     = m:GetCurrentOptionIndex()
+        elseif name == "pm_radius"  then state.lightRadius     = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Light.minRadius, cfg.Light.radiusStep)
+        elseif name == "pm_color"   then state.lightColorIndex = m:GetCurrentOptionIndex()
         end
     end
 
     LevelFuncs.Engine.PhotoMode.OnUIOptionChange = function()
         local m = Menu.Get(MENU_UI)
         if not m then return end
-        if m:GetCurrentItemIndex() == 1 then
+        local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
+        if name == "pm_hide_ui" then
             state.hideUI = IndexToBool(m:GetCurrentOptionIndex())
         end
     end
@@ -685,48 +736,57 @@ local function BuildAllMenus()
     CreateMenu(MENU_CAMERA, {
         { itemName = "pm_mode",            options = CTRL_MODE_NAMES, currentOption = state.controlMode },
         { itemName = "pm_move_speed",      options = NumberRange(cfg.Camera.minMoveSpeed, cfg.Camera.maxMoveSpeed, cfg.Camera.moveSpeedStep),
-          currentOption = ValueToOptionIndex(state.moveSpeed, cfg.Camera.minMoveSpeed, cfg.Camera.moveSpeedStep) },
+          currentOption = ValueToOptionIndex(state.moveSpeed, cfg.Camera.minMoveSpeed, cfg.Camera.moveSpeedStep), accelerated = true },
         { itemName = "pm_look_speed",      options = NumberRange(cfg.Camera.minLookSpeed, cfg.Camera.maxLookSpeed, cfg.Camera.lookSpeedStep,
               function(v) return string.format("%.1f", v) end),
-          currentOption = ValueToOptionIndex(state.lookSpeed, cfg.Camera.minLookSpeed, cfg.Camera.lookSpeedStep) },
+          currentOption = ValueToOptionIndex(state.lookSpeed, cfg.Camera.minLookSpeed, cfg.Camera.lookSpeedStep), accelerated = true },
         { itemName = "pm_collision",       options = BoolOptions(), currentOption = BoolToIndex(state.collisionOn) },
+        { itemName = "pm_limit_distance",  options = BoolOptions(), currentOption = BoolToIndex(state.limitCameraDistance) },
+        { itemName = "pm_max_distance",    options = NumberRange(cfg.Camera.minMaxDistance, cfg.Camera.maxMaxDistance, cfg.Camera.distanceStep),
+          currentOption = ValueToOptionIndex(state.maxCameraDistance, cfg.Camera.minMaxDistance, cfg.Camera.distanceStep), accelerated = true },
         { itemName = "pm_reset",           options = { acceptString }, currentOption = 1 },
     }, "Engine.PhotoMode.OnCameraAccept", "Engine.PhotoMode.OnCameraOptionChange")
 
     -- ================================================================
     -- CHARACTER menu
     -- ================================================================
-    CreateMenu(MENU_CHARACTER, {
+    local outfitNames = BuildFilteredOutfitNames()
+    local weaponNames = BuildFilteredWeaponNames()
+    local characterItems = {
         { itemName = "pm_animation",  options = ANIM_NAMES,       currentOption = state.animIndex },
-        { itemName = "pm_outfit",     options = OUTFIT_NAMES,     currentOption = state.outfitIndex },
-        { itemName = "pm_weapons",    options = WEAPON_NAMES,     currentOption = state.weaponIndex },
+        { itemName = "pm_outfit",     options = outfitNames,      currentOption = _outfitMenuMapReverse[state.outfitIndex] or 1 },
+        { itemName = "pm_weapons",    options = weaponNames,      currentOption = _weaponMenuMapReverse[state.weaponIndex] or 1 },
         { itemName = "pm_expression", options = EXPRESSION_NAMES, currentOption = state.expressionIndex },
-        { itemName = "pm_sunglasses", options = BoolOptions(),     currentOption = BoolToIndex(state.sunglassesEnabled) },
-        { itemName = "pm_gunflash",   options = BoolOptions(),     currentOption = BoolToIndex(state.gunflashEnabled) },
-        { itemName = "pm_reset",      options = { acceptString }, currentOption = 1 },
-    }, "Engine.PhotoMode.OnCharacterAccept", "Engine.PhotoMode.OnCharacterOptionChange")
+    }
+    if Settings.Sunglasses.enabled ~= false then
+        characterItems[#characterItems + 1] = { itemName = "pm_sunglasses", options = BoolOptions(), currentOption = BoolToIndex(state.sunglassesEnabled) }
+    end
+    characterItems[#characterItems + 1] = { itemName = "pm_gunflash", options = BoolOptions(),    currentOption = BoolToIndex(state.gunflashEnabled) }
+    characterItems[#characterItems + 1] = { itemName = "pm_reset",    options = { acceptString }, currentOption = 1 }
+    CreateMenu(MENU_CHARACTER, characterItems,
+        "Engine.PhotoMode.OnCharacterAccept", "Engine.PhotoMode.OnCharacterOptionChange")
 
     -- ================================================================
     -- EFFECTS menu
     -- ================================================================
     CreateMenu(MENU_EFFECTS, {
         { itemName = "pm_fov",        options = NumberRange(cfg.Lens.minFOV, cfg.Lens.maxFOV, cfg.Lens.fovStep),
-          currentOption = ValueToOptionIndex(state.fov, cfg.Lens.minFOV, cfg.Lens.fovStep) },
+          currentOption = ValueToOptionIndex(state.fov, cfg.Lens.minFOV, cfg.Lens.fovStep), accelerated = true },
         { itemName = "pm_roll",       options = NumberRange(cfg.Lens.minRoll, cfg.Lens.maxRoll, cfg.Lens.rollStep),
-          currentOption = ValueToOptionIndex(state.roll, cfg.Lens.minRoll, cfg.Lens.rollStep) },
+          currentOption = ValueToOptionIndex(state.roll, cfg.Lens.minRoll, cfg.Lens.rollStep), accelerated = true },
         { itemName = "pm_preset",     options = FILTER_NAMES, currentOption = state.filterIndex },
         { itemName = "pm_strength",   options = NumberRange(0, 1.0, 0.05, function(v) return string.format("%.2f", v) end),
-          currentOption = ValueToOptionIndex(state.filterStrength, 0, 0.05) },
+          currentOption = ValueToOptionIndex(state.filterStrength, 0, 0.05), accelerated = true },
         { itemName = "pm_tint",       options = TINT_NAMES, currentOption = state.tintIndex },
         { itemName = "pm_frame_overlay",  options = FRAME_NAMES, currentOption = state.frameIndex },
         { itemName = "pm_dof_mode",        options = DOF_MODE_NAMES, currentOption = state.dofMode },
         { itemName = "pm_dof_focus",       options = NumberRange(cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.maxFocusDistance, cfg.DepthOfField.focusDistanceStep),
-          currentOption = ValueToOptionIndex(state.dofFocusDistance, cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.focusDistanceStep) },
+          currentOption = ValueToOptionIndex(state.dofFocusDistance, cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.focusDistanceStep), accelerated = true },
         { itemName = "pm_dof_range",       options = NumberRange(cfg.DepthOfField.minRange, cfg.DepthOfField.maxRange, cfg.DepthOfField.rangeStep),
-          currentOption = ValueToOptionIndex(state.dofRange, cfg.DepthOfField.minRange, cfg.DepthOfField.rangeStep) },
+          currentOption = ValueToOptionIndex(state.dofRange, cfg.DepthOfField.minRange, cfg.DepthOfField.rangeStep), accelerated = true },
         { itemName = "pm_dof_strength",    options = NumberRange(cfg.DepthOfField.minStrength, cfg.DepthOfField.maxStrength, cfg.DepthOfField.strengthStep,
               function(v) return string.format("%.2f", v) end),
-          currentOption = ValueToOptionIndex(state.dofStrength, cfg.DepthOfField.minStrength, cfg.DepthOfField.strengthStep) },
+          currentOption = ValueToOptionIndex(state.dofStrength, cfg.DepthOfField.minStrength, cfg.DepthOfField.strengthStep), accelerated = true },
         { itemName = "pm_reset",           options = { acceptString }, currentOption = 1 },
     }, "Engine.PhotoMode.OnEffectsAccept", "Engine.PhotoMode.OnEffectsOptionChange")
 
@@ -737,7 +797,7 @@ local function BuildAllMenus()
         { itemName = "pm_enabled",      options = BoolOptions(), currentOption = BoolToIndex(state.lightEnabled) },
         { itemName = "pm_source",       options = LIGHT_SRC_NAMES, currentOption = state.lightSource },
         { itemName = "pm_radius",       options = NumberRange(cfg.Light.minRadius, cfg.Light.maxRadius, cfg.Light.radiusStep),
-          currentOption = ValueToOptionIndex(state.lightRadius, cfg.Light.minRadius, cfg.Light.radiusStep) },
+          currentOption = ValueToOptionIndex(state.lightRadius, cfg.Light.minRadius, cfg.Light.radiusStep), accelerated = true },
         { itemName = "pm_color",        options = COLOR_NAMES, currentOption = state.lightColorIndex },
         { itemName = "pm_place_camera", options = { acceptString }, currentOption = 1 },
         { itemName = "pm_place_lara",   options = { acceptString }, currentOption = 1 },
@@ -879,6 +939,7 @@ function PhotoMode.Exit()
     States.SetActive(false)
     States.Get().snapshot = nil
     States.Get().entryHoldCount = 0
+    States.Get().timeInPhotoMode = 0
 
     TEN.Input.ClearAllKeys()
     TEN.Util.PrintLog("PhotoMode: Exited.", TEN.Util.LogLevel.INFO)
@@ -896,6 +957,37 @@ local HEADER_POS   = TEN.Vec2(50, 15)
 local HEADER_SCALE = 1.0
 
 -- ============================================================================
+-- Header Sprites
+-- ============================================================================
+
+local function DrawHeaderSprites(alpha)
+    local cfg = Settings.HeaderSprites
+    if not cfg or not cfg.spriteIDs or alpha < 1 then return end
+    local activeIdx  = Menu.GetActiveHeaderIndex()
+    local count      = #cfg.spriteIDs
+    local spacing    = cfg.spacing or 6
+    local totalWidth = (count - 1) * spacing
+    local posX       = cfg.position and cfg.position.x or 50
+    local posY       = cfg.position and cfg.position.y or 21
+    local startX     = posX - totalWidth / 2
+    for i, spriteID in ipairs(cfg.spriteIDs) do
+        local isActive  = (i == activeIdx)
+        local x         = startX + (i - 1) * spacing
+        local size      = isActive and (cfg.sizeActive   or TEN.Vec2(5, 5)) or (cfg.sizeInactive  or TEN.Vec2(4, 4))
+        local baseColor = isActive and (cfg.colorActive  or TEN.Color(255, 255, 255)) or (cfg.colorInactive or TEN.Color(100, 100, 100))
+        local color     = TEN.Color(baseColor.r, baseColor.g, baseColor.b, math.floor(alpha))
+        local ok, sprite = pcall(TEN.View.DisplaySprite,
+            cfg.objectID, spriteID, TEN.Vec2(x, posY), cfg.rotation or 0, size, color)
+        if ok and sprite then
+            sprite:Draw(cfg.layer or -4,
+                cfg.alignMode or TEN.View.AlignMode.CENTER,
+                cfg.scaleMode or TEN.View.ScaleMode.FIT,
+                cfg.blendMode or TEN.Effects.BlendID.ALPHA_BLEND)
+        end
+    end
+end
+
+-- ============================================================================
 -- Callbacks
 -- ============================================================================
 
@@ -908,10 +1000,10 @@ LevelFuncs.Engine.PhotoMode.OnLoop = function()
     end
 
     local state = States.Get()
-    local walkHeld = TEN.Input.IsKeyHeld(TEN.Input.ActionID.Q)
-    local invHeld  = TEN.Input.IsKeyHeld(TEN.Input.ActionID.INVENTORY)
+    local walkHeld = TEN.Input.IsKeyHeld(TEN.Input.ActionID.WALK)
+    local invHeld  = TEN.Input.IsKeyHeld(TEN.Input.ActionID.LOOK)
 
-    if walkHeld or invHeld then
+    if walkHeld and invHeld then
         state.entryHoldCount = state.entryHoldCount + 1
         if state.entryHoldCount >= Settings.Entry.holdFrames then
             state.entryHoldCount = 0
@@ -928,8 +1020,10 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
 
     local state = States.Get()
 
+    state.timeInPhotoMode = state.timeInPhotoMode + 1
+
     -- Toggle UI with LOOK key
-    if TEN.Input.IsKeyHit(TEN.Input.ActionID.LOOK) then
+    if TEN.Input.GetActionTimeActive(TEN.Input.ActionID.LOOK) < state.timeInPhotoMode and TEN.Input.IsKeyHit(TEN.Input.ActionID.LOOK) then
         state.hideUI = not state.hideUI
     end
 
@@ -978,6 +1072,7 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
                 headerAlpha = 0
             end
         end
+        DrawHeaderSprites(headerAlpha)
         Menu.DrawHeaders(HEADER_POS, HEADER_SCALE, headerAlpha)
         Menu.DrawActiveMenus()
 
@@ -999,6 +1094,17 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
             { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }
         )
         TEN.Strings.ShowString(helpStr, 1 / 30)
+    end
+end
+
+--- Unlock a named outfit so it appears in the photo mode outfit selector.
+-- @param name  The outfit name string as defined in Settings.Outfits.
+function PhotoMode.UnlockOutfit(name)
+    for _, outfit in ipairs(Settings.Outfits) do
+        if outfit.name == name then
+            outfit.unlocked = true
+            return
+        end
     end
 end
 

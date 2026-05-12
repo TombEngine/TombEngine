@@ -67,8 +67,11 @@ Settings.Camera =
     targetUp         = -256,
 
     -- Distance limit from Lara's entry position (snap.laraPos)
-    limitDistance = true,
-    maxDistance   = 4096,
+    defaultLimitDistance = false,
+    defaultMaxDistance   = 4096,
+    minMaxDistance       = 512,
+    maxMaxDistance       = 16384,
+    distanceStep         = 512,
 }
 
 -- ============================================================================
@@ -166,6 +169,8 @@ Settings.Outfits =
     --                    "all"         → keep all classic meshes visible.
     --                    { i, ... }    → keep only listed indices visible, hide the rest.
     -- onEnter:           Optional function() called after the outfit is applied.
+    -- unlocked:          true/nil = outfit is visible in the menu.
+    --                    false    = hidden until PhotoMode.UnlockOutfit(name) is called.
 
     { name = "Classic TR4",
       skin = { TEN.Objects.ObjID.ANIMATING1, TEN.Objects.ObjID.ANIMATING2,
@@ -214,6 +219,9 @@ Settings.Outfits =
     },
 }
 
+-- pickupObjID: optional ObjID for TEN.Inventory.GetItemCount(). When set, the
+--              weapon is only shown in the menu while the player carries that item.
+--              nil (default) means always show regardless of inventory.
 Settings.Weapons =
 {
     { name = "Default", objID = TEN.Objects.ObjID.LARA_SKIN, meshIndices = {}, weaponType = TEN.Objects.WeaponType.NONE, type = "none" },
@@ -357,7 +365,8 @@ Settings.DepthOfField =
 Settings.Sunglasses =
 {
     meshName   = "pm_Sunglasses",
-    objID      = TEN.Objects.ObjID.ACTOR1_SPEECH_HEAD1
+    objID      = TEN.Objects.ObjID.ACTOR1_SPEECH_HEAD1,
+    enabled    = true,    -- Set to false to hide the Sunglasses option entirely.
 }
 
 -- ============================================================================
@@ -366,7 +375,29 @@ Settings.Sunglasses =
 
 Settings.Entry =
 {
-    holdFrames = 15,  -- Walk + Inventory held for N frames to enter
+    holdFrames = 1,  -- Walk + Inventory held for N frames to enter
 }
+-- ============================================================================
+-- Header Sprites
+-- ============================================================================
+-- One sprite per header tab drawn below the header labels.
+-- Selected tab  = sizeActive  + colorActive  (fully highlighted).
+-- Other tabs    = sizeInactive + colorInactive (dimmed).
 
+Settings.HeaderSprites =
+{
+    objectID      = TEN.Objects.ObjID.DIARY_ENTRY_SPRITES, -- object that owns the sprites
+    spriteIDs     = { 0, 1, 2, 3, 4 },                    -- one sprite index per header tab
+    position      = TEN.Vec2(50, 21),                      -- center of the sprite row (percent)
+    spacing       = 6,                                     -- percent spacing between sprites
+    sizeActive    = TEN.Vec2(5, 5),                        -- size when selected
+    sizeInactive  = TEN.Vec2(4, 4),                        -- size when not selected
+    colorActive   = TEN.Color(255, 255, 255),
+    colorInactive = TEN.Color(100, 100, 100),
+    rotation  = 0,
+    alignMode = TEN.View.AlignMode.CENTER,
+    scaleMode = TEN.View.ScaleMode.FIT,
+    blendMode = TEN.Effects.BlendID.ALPHA_BLEND,
+    layer     = -4,
+}
 return Settings

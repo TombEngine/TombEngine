@@ -39,6 +39,7 @@ local State = {
     active         = false,
     entryHoldCount = 0,
     hideUI         = false,
+    timeInPhotoMode   = 0,
 
     -- Snapshot of Lara / view state captured on entry
     snapshot = nil,
@@ -54,6 +55,8 @@ local State = {
     moveSpeed         = Settings.Camera.defaultMoveSpeed,
     lookSpeed         = Settings.Camera.defaultLookSpeed,
     collisionOn       = true,
+    limitCameraDistance = Settings.Camera.defaultLimitDistance,
+    maxCameraDistance   = Settings.Camera.defaultMaxDistance,
 
     -- Lens
     fov  = Settings.Lens.defaultFOV,
@@ -276,6 +279,8 @@ function States.ResetToEntry()
     State.moveSpeed           = Settings.Camera.defaultMoveSpeed
     State.lookSpeed           = Settings.Camera.defaultLookSpeed
     State.collisionOn         = true
+    State.limitCameraDistance = Settings.Camera.defaultLimitDistance
+    State.maxCameraDistance   = Settings.Camera.defaultMaxDistance
     State.fov           = State.snapshot and State.snapshot.fov or Settings.Lens.defaultFOV
     State.roll          = Settings.Lens.defaultRoll
     State.animIndex     = 1
