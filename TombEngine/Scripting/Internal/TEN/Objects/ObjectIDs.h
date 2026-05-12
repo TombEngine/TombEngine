@@ -463,8 +463,8 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	// @mem CHEF
 	{ "CHEF", ID_CHEF },
 	/// Object ID.
-	// @mem TR3_BATS_EMITTER
-	{ "TR3_BATS_EMITTER", ID_TR3_BATS_EMITTER },
+	// @mem BATS_EMITTER_TR3
+	{ "BATS_EMITTER_TR3", ID_BATS_EMITTER_TR3},
 	/// Object ID.
 	// @mem KOLD
 	{ "KOLD", ID_KOLD },
