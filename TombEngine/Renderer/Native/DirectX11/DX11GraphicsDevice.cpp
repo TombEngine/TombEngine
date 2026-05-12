@@ -691,10 +691,10 @@ namespace TEN::Renderer::Native::DirectX11
 	void DX11GraphicsDevice::SetScissor(RendererViewport viewport)
 	{
 		D3D11_RECT rects[1];
-		rects[0].left = viewport.X;
-		rects[0].right = viewport.Width;
-		rects[0].top = viewport.Y;
-		rects[0].bottom = viewport.Height;
+		rects[0].left   = viewport.X;
+		rects[0].top    = viewport.Y;
+		rects[0].right  = viewport.X + viewport.Width;
+		rects[0].bottom = viewport.Y + viewport.Height;
 
 		_context->RSSetScissorRects(1, rects);
 	}

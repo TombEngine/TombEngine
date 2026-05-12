@@ -238,6 +238,8 @@ namespace TEN::Renderer
 	void Renderer::BeginRenderPass(const RenderPassDescriptor& pass)
 	{
 		_graphicsDevice->BeginRenderPass(pass);
+		_renderPassActive  = true;
+		_currentRenderPass = pass;
 
 		// Binding a target as RTV may unbind the same resource as SRV (DX11 hazard
 		// protection). Invalidate our texture-binding dedup so the next BindTexture for
@@ -248,6 +250,29 @@ namespace TEN::Renderer
 	void Renderer::EndRenderPass()
 	{
 		_graphicsDevice->EndRenderPass();
+		_renderPassActive = false;
+	}
+
+	void Renderer::ClearDepthMidPass(float depth, unsigned char stencil)
+	{
+		if (!_renderPassActive)
+			return;
+
+		// Re-open the current pass with depth LoadAction::Clear and every color attachment
+		// switched to LoadAction::Load. Vulkan/SDL_GPU require this split — DX11 doesn't,
+		// but going through the same code path keeps the engine portable.
+		auto pass = _currentRenderPass;
+		pass.DebugLabel = "Mid-Pass Depth Clear";
+
+		for (auto& ca : pass.ColorAttachments)
+			ca.Load = LoadAction::Load;
+
+		pass.DepthAttachment.Load         = LoadAction::Clear;
+		pass.DepthAttachment.ClearDepth   = depth;
+		pass.DepthAttachment.ClearStencil = stencil;
+
+		EndRenderPass();
+		BeginRenderPass(pass);
 	}
 
 	void Renderer::BindVertexBuffer(IVertexBuffer* vertexBuffer)

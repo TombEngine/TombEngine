@@ -154,6 +154,13 @@ namespace TEN::Renderer
 		RendererViewport _dofViewport;
 		RendererViewport _shadowMapViewport;
 
+		// One flag per cube face. ClearShadowMap() resets these to false; the first
+		// RenderShadowMap() this frame for each face opens its pass with LoadAction::Clear
+		// (white color + depth 1.0). Subsequent calls for the same face Load. Keeps the
+		// per-face clears Vulkan-compatible (LoadOp at pass start) without rebinding OMs
+		// outside a pass scope.
+		bool _shadowMapFacesCleared[6] = {};
+
 		// Text
 
 		std::unique_ptr<ISpriteFont> _gameFont;
@@ -315,6 +322,12 @@ namespace TEN::Renderer
 		uint64_t       _lastBoundPipelineHash    = 0;
 		bool           _hasBoundPipeline         = false;
 
+		// Render pass tracking — used by ClearDepthMidPass() to re-open the current pass
+		// with depth LoadAction::Clear, and (in the future) for asserts that catch draw
+		// calls issued outside a BeginRenderPass/EndRenderPass scope (required by Vulkan).
+		bool                 _renderPassActive    = false;
+		RenderPassDescriptor _currentRenderPass   = {};
+
 		std::vector<RendererSpriteBucket> _spriteBuckets;
 
 		// Antialiasing
@@ -403,6 +416,12 @@ namespace TEN::Renderer
 		// detached SRVs that overlap the new RTV target).
 		void BeginRenderPass(const RenderPassDescriptor& pass);
 		void EndRenderPass();
+
+		// Close the current pass and re-open it with depth LoadAction::Clear / color
+		// LoadAction::Load. Use for sky→stars depth resets and similar patterns: Vulkan
+		// can't ClearDepthStencil mid-pass, so the only portable way is to split the pass.
+		// DX11 simply replays the bind + ClearDSV with no extra cost.
+		void ClearDepthMidPass(float depth = 1.0f, unsigned char stencil = 0);
 		int  BindLight(RendererLight& light, ShaderLight* lights, int index);
 		void BindRoomLights(std::vector<RendererLight*>& lights);
 		void BindInstancedStaticLights(std::vector<RendererLight*>& lights, int instanceID);

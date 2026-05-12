@@ -118,11 +118,13 @@ namespace TEN::Renderer
 
 	void Renderer::ClearShadowMap()
 	{
-		for (int step = 0; step < _shadowMap->GetRenderTarget()->GetArraySize(); step++)
-		{
-			_graphicsDevice->ClearRenderTarget2D(_shadowMap->GetRenderTarget(), step, Colors::White);
-			_graphicsDevice->ClearDepthStencil(_shadowMap->GetDepthTarget(), step, DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-		}
+		// Mark every cube face as "needs clear". The actual clear is folded into the next
+		// RenderShadowMap() call for each face as a LoadAction::Clear on its render pass.
+		// Doing the clear via the load op keeps it Vulkan-compatible (no out-of-pass
+		// ClearRTV/ClearDSV) and avoids the OM rebinding that broke the video player
+		// previously, since called from end-of-frame contexts (Render, RenderFullScreenTexture).
+		for (auto& cleared : _shadowMapFacesCleared)
+			cleared = false;
 	}
 
 	void Renderer::RenderShadowMap(RendererItem* item, RenderView& renderView)
@@ -174,14 +176,23 @@ namespace TEN::Renderer
 
 		for (int step = 0; step < 6; step++)
 		{
-			// Per-face shadow map pass. ClearShadowMap() at frame start already cleared
-			// every slice, so LoadAction::Load preserves any prior render this frame.
+			// Per-face shadow map pass. The first time this face is rendered this frame
+			// the pass clears (LoadAction::Clear); subsequent calls preserve via Load.
 			RenderPassDescriptor pass;
-			pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_shadowMap->GetRenderTarget(), step) };
-			pass.DepthAttachment  = DepthAttachmentDescriptor::Keep(_shadowMap->GetDepthTarget(), step);
-			pass.HasViewport      = true;
-			pass.Viewport         = _shadowMapViewport;
-			pass.DebugLabel       = "Shadow Map Face";
+			if (_shadowMapFacesCleared[step])
+			{
+				pass.ColorAttachments = { ColorAttachmentDescriptor::Keep(_shadowMap->GetRenderTarget(), step) };
+				pass.DepthAttachment  = DepthAttachmentDescriptor::Keep(_shadowMap->GetDepthTarget(), step);
+			}
+			else
+			{
+				pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_shadowMap->GetRenderTarget(), Colors::White, step) };
+				pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(_shadowMap->GetDepthTarget(), 1.0f, 0, step);
+				_shadowMapFacesCleared[step] = true;
+			}
+			pass.HasViewport = true;
+			pass.Viewport    = _shadowMapViewport;
+			pass.DebugLabel  = "Shadow Map Face";
 			BeginRenderPass(pass);
 
 			if (shadowLightPos == item->Position)
@@ -1915,25 +1926,20 @@ namespace TEN::Renderer
 		_stPerDraw.Animated = 0;
 		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
-		// Main scene render pass: HDR color + depth/stencil, cleared each frame.
+		// Distortion mask pass — clears the downscaled distortion accumulator. Runs first
+		// because its target is a different size from _renderTarget and can't be folded
+		// into the main scene pass as an MRT attachment.
 		{
-			auto clearColor = _debugPage == RendererDebugPage::WireframeMode ? Colors::DimGray : Colors::Black;
+			RendererViewport distortionViewport = { 0, 0, _distortionRenderTarget->GetRenderTarget()->GetWidth(), _distortionRenderTarget->GetRenderTarget()->GetHeight(), 0.0f, 1.0f };
 
 			RenderPassDescriptor pass;
-			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_renderTarget->GetRenderTarget(), clearColor) };
-			pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(_renderTarget->GetDepthTarget());
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_distortionRenderTarget->GetRenderTarget(), Colors::Transparent) };
 			pass.HasViewport      = true;
-			pass.Viewport         = view.Viewport;
-			pass.DebugLabel       = "Main Scene Begin";
+			pass.Viewport         = distortionViewport;
+			pass.DebugLabel       = "Distortion Mask Clear";
 			BeginRenderPass(pass);
 			EndRenderPass();
 		}
-
-		// Clear the distortion mask. We use a raw ClearRTV here instead of a render pass
-		// because the pass that follows (DrawHorizonAndSky) renders to the main render
-		// target that "Main Scene Begin" left bound — opening a pass on the distortion
-		// target would silently rebind the OM and the sky would land on the wrong RT.
-		_graphicsDevice->ClearRenderTarget2D(_distortionRenderTarget->GetRenderTarget(), Colors::Transparent);
 		_hasDistortionMask = false;
 
 		// Camera constant buffer contains matrices, camera position, fog values, and other things shared for all shaders.
@@ -1978,8 +1984,25 @@ namespace TEN::Renderer
 
 		UpdateConstantBuffer(&cameraConstantBuffer, _cbCameraMatrices.get());
 
-		// Draw horizon and sky.
+		// Main scene horizon/sky pass: clears HDR color + depth, then draws the sky.
+		// The pass stays open across DrawHorizonAndSky so all sky/horizon draws happen
+		// inside an active render pass (Vulkan requirement). Sky → stars internal depth
+		// reset goes through ClearDepthMidPass which re-opens the pass with LoadAction::Clear.
+		{
+			auto clearColor = _debugPage == RendererDebugPage::WireframeMode ? Colors::DimGray : Colors::Black;
+
+			RenderPassDescriptor pass;
+			pass.ColorAttachments = { ColorAttachmentDescriptor::Clear(_renderTarget->GetRenderTarget(), clearColor) };
+			pass.DepthAttachment  = DepthAttachmentDescriptor::Clear(_renderTarget->GetDepthTarget());
+			pass.HasViewport      = true;
+			pass.Viewport         = view.Viewport;
+			pass.DebugLabel       = "Main Scene Sky";
+			BeginRenderPass(pass);
+		}
+
 		DrawHorizonAndSky(_renderTarget->GetDepthTarget(), view);
+
+		EndRenderPass();
 
 		// G-Buffer pass: 3 color targets (normals/matIdx, linear depth, emissive/roughness)
 		// sharing the main scene depth buffer. Depth is reused from the horizon/sky pass.
@@ -3174,7 +3197,9 @@ namespace TEN::Renderer
 			}
 		}
 
-		_graphicsDevice->ClearDepthStencil(depthTarget, arrayIndex, DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		// Reset depth before drawing stars/sun on top of the horizon. Splits the current
+		// render pass into two: Vulkan can't ClearDepthStencil mid-pass.
+		ClearDepthMidPass();
 
 		if (Weather.GetStars().size() > 0 && !reflectionPass)
 		{
@@ -3419,8 +3444,9 @@ namespace TEN::Renderer
 			SetPrimitiveType(PrimitiveType::TriangleList);
 		}
 
-		// Clear just the Z-buffer to start drawing on top of horizon.
-		_graphicsDevice->ClearDepthStencil(depthTarget, arrayIndex, DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		// Clear just the Z-buffer so the rest of the scene draws on top of the horizon.
+		// Splits the current render pass — required for Vulkan compatibility.
+		ClearDepthMidPass();
 	}
 
 	void Renderer::Render(float interpFactor)
