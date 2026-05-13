@@ -225,18 +225,19 @@ Settings.Outfits =
 Settings.Weapons =
 {
     { name = "Default", objID = TEN.Objects.ObjID.LARA_SKIN, meshIndices = {}, weaponType = TEN.Objects.WeaponType.NONE, type = "none" },
-    { name = "Pistols",  objID = TEN.Objects.ObjID.PISTOLS_ANIM, meshIndices = {10, 13}, weaponType = TEN.Objects.WeaponType.PISTOLS, type = "holsters" },
-    { name = "Pistols (Left)",  objID = TEN.Objects.ObjID.PISTOLS_ANIM, meshIndices = {13}, weaponType = TEN.Objects.WeaponType.PISTOLS, type = "left" },
-    { name = "Pistols (Right)",  objID = TEN.Objects.ObjID.PISTOLS_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.PISTOLS, type = "right" },
-    { name = "Shotgun",  objID = TEN.Objects.ObjID.SHOTGUN_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.SHOTGUN, type = "back" },
-    { name = "Uzis",  objID = TEN.Objects.ObjID.UZI_ANIM, meshIndices = {10, 13}, weaponType = TEN.Objects.WeaponType.UZIS, type = "holsters" },
-    { name = "Revolver",  objID = TEN.Objects.ObjID.REVOLVER_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.REVOLVER, type = "right" },
-    { name = "HK",  objID = TEN.Objects.ObjID.HK_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.HK, type = "back" },
-    { name = "Crossbow",  objID = TEN.Objects.ObjID.CROSSBOW_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.CROSSBOW, type = "back" },
-    { name = "Harpoon",  objID = TEN.Objects.ObjID.HARPOON_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.HARPOON_GUN, type = "back" },
-    { name = "Grenade Launcher",  objID = TEN.Objects.ObjID.GRENADE_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.GRENADE_LAUNCHER, type = "back" },
-    { name = "Rocket Launcher",  objID = TEN.Objects.ObjID.ROCKET_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.ROCKET_LAUNCHER, type = "back" },
-    { name = "Flare",  objID = TEN.Objects.ObjID.FLARE_ANIM, meshIndices = {13}, weaponType = TEN.Objects.WeaponType.FLARE, type = "none" },
+    { name = TEN.Flow.GetString("pistols"),  objID = TEN.Objects.ObjID.PISTOLS_ANIM, meshIndices = {10, 13}, weaponType = TEN.Objects.WeaponType.PISTOLS, pickupObjID = TEN.Objects.ObjID.PISTOLS_ITEM, type = "holsters" },
+    { name = TEN.Flow.GetString("pistols").."(Right)",  objID = TEN.Objects.ObjID.PISTOLS_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.NONE, pickupObjID = TEN.Objects.ObjID.PISTOLS_ITEM,type = "right" },
+    { name = TEN.Flow.GetString("pistols").."(Left)",  objID = TEN.Objects.ObjID.PISTOLS_ANIM, meshIndices = {13}, weaponType = TEN.Objects.WeaponType.NONE, pickupObjID = TEN.Objects.ObjID.PISTOLS_ITEM,type = "left" },
+    { name = TEN.Flow.GetString("shotgun"),  objID = TEN.Objects.ObjID.SHOTGUN_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.SHOTGUN, pickupObjID = TEN.Objects.ObjID.SHOTGUN_ITEM,type = "back" },
+    { name = TEN.Flow.GetString("uzis"),  objID = TEN.Objects.ObjID.UZI_ANIM, meshIndices = {10, 13}, weaponType = TEN.Objects.WeaponType.UZIS, pickupObjID = TEN.Objects.ObjID.UZI_ITEM,type = "holsters" },
+    { name = TEN.Flow.GetString("revolver"),  objID = TEN.Objects.ObjID.REVOLVER_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.REVOLVER, pickupObjID = TEN.Objects.ObjID.REVOLVER_ITEM,type = "right" },
+    { name = TEN.Flow.GetString("hk"),  objID = TEN.Objects.ObjID.HK_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.HK, pickupObjID = TEN.Objects.ObjID.HK_ITEM,type = "back" },
+    { name = TEN.Flow.GetString("crossbow"),  objID = TEN.Objects.ObjID.CROSSBOW_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.CROSSBOW, pickupObjID = TEN.Objects.ObjID.CROSSBOW_ITEM,type = "back" },
+    { name = TEN.Flow.GetString("harpoon_gun"),  objID = TEN.Objects.ObjID.HARPOON_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.HARPOON_GUN, pickupObjID = TEN.Objects.ObjID.HARPOON_ITEM,type = "back" },
+    { name = TEN.Flow.GetString("grenade_launcher"),  objID = TEN.Objects.ObjID.GRENADE_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.GRENADE_LAUNCHER, pickupObjID = TEN.Objects.ObjID.GRENADE_GUN_ITEM,type = "back" },
+    { name = TEN.Flow.GetString("rocket_launcher"),  objID = TEN.Objects.ObjID.ROCKET_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.ROCKET_LAUNCHER, pickupObjID = TEN.Objects.ObjID.ROCKET_LAUNCHER_ITEM,type = "back" },
+    { name = TEN.Flow.GetString("flares"),  objID = TEN.Objects.ObjID.FLARE_ANIM, meshIndices = {13}, weaponType = TEN.Objects.WeaponType.FLARE, pickupObjID = TEN.Objects.ObjID.FLARE_INV_ITEM, type = "none" },
+    { name = TEN.Flow.GetString("crowbar"),  objID = TEN.Objects.ObjID.LARA_CROWBAR_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.NONE, pickupObjID = TEN.Objects.ObjID.CROWBAR_ITEM,type = "none" },
 }
 
 Settings.Expressions =
@@ -252,7 +253,6 @@ Settings.Expressions =
 Settings.Animations =
 {
     { name = "Default",        objID = TEN.Objects.ObjID.LARA, animNumber = 0, frameNumber = 0 },
-    { name = "Waking Up", objID = TEN.Objects.ObjID.LARA_EXTRA_ANIMS, animNumber = 1, frameNumber = 149 },
     { name = "0",   objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 0,  frameNumber = 0 },
     { name = "1",   objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 1,  frameNumber = 0 },
     { name = "2",   objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 2,  frameNumber = 0 },
@@ -386,11 +386,11 @@ Settings.Entry =
 
 Settings.HeaderSprites =
 {
-    objectID      = TEN.Objects.ObjID.DIARY_ENTRY_SPRITES, -- object that owns the sprites
+    objectID      = TEN.Objects.ObjID.DIARY_SPRITES, -- object that owns the sprites
     spriteIDs     = { 0, 1, 2, 3, 4 },                    -- one sprite index per header tab
-    position      = TEN.Vec2(50, 21),                      -- center of the sprite row (percent)
+    position      = TEN.Vec2(16, 15),                      -- center of the sprite row (percent)
     spacing       = 6,                                     -- percent spacing between sprites
-    sizeActive    = TEN.Vec2(5, 5),                        -- size when selected
+    sizeActive    = TEN.Vec2(6, 6),                        -- size when selected
     sizeInactive  = TEN.Vec2(4, 4),                        -- size when not selected
     colorActive   = TEN.Color(255, 255, 255),
     colorInactive = TEN.Color(100, 100, 100),

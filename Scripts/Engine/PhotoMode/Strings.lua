@@ -5,17 +5,11 @@
 local strings =
 {
     -- Header tabs
-    pm_header_camera    = {"Camera"},
     pm_header_character = {"Character"},
-    pm_header_effects   = {"Effects"},
+    pm_header_effects   = {"Camera"},
+    pm_header_filters   = {"Filters"},
     pm_header_light     = {"Light"},
     pm_header_ui        = {"UI"},
-
-    -- Camera menu items
-    pm_mode             = {"Mode"},
-    pm_move_speed       = {"Move Speed"},
-    pm_look_speed       = {"Look Speed"},
-    pm_collision        = {"Collision"},
 
     -- Character menu items
     pm_animation      = {"Pose"},
@@ -61,7 +55,7 @@ local strings =
 
     -- Display strings
     pm_mode_prefix    = {"Mode: "},
-    pm_help           = {"StepL/R=Tab  Up/Down=Select  Left/Right=Adjust  Look=Hide UI  Inventory=Exit"},
+    pm_help           = {"StepL/R=Tab  Look=Hide UI  Inventory=Exit"},
 }
 
 TEN.Flow.SetStrings(strings)

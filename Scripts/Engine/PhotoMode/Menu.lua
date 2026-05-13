@@ -156,13 +156,14 @@ end
 -- ============================================================================
 
 --- Define all headers. Call once during setup.
--- @param headerList  Array of { name = "Camera", menuName = "pm_camera" }
+-- @param headerList  Array of { name = "Camera", menuName = "pm_camera", hideText = false }
 function Menu.SetHeaders(headerList)
     Headers = {}
     for i, h in ipairs(headerList) do
         Headers[i] = {
             name     = h.name,
             menuName = h.menuName,
+            hideText = h.hideText or false,
         }
     end
     ActiveHeader = 1
@@ -254,20 +255,23 @@ function Menu.DrawHeaders(position, scale, alpha)
     local startX = position.x - totalWidth / 2
 
     for i, header in ipairs(Headers) do
-        local x = startX + (i - 1) * spacing
-        local isActive = (i == ActiveHeader)
+        -- Skip drawing text for headers flagged as text-hidden
+        if not header.hideText then
+            local x = startX + (i - 1) * spacing
+            local isActive = (i == ActiveHeader)
 
-        local color = isActive and COLOR_MAP.headerText or COLOR_MAP.dimmed
-        local flags = isActive
-            and { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER, Strings.DisplayStringOption.BLINK }
-            or  { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }
+            local color = isActive and COLOR_MAP.headerText or COLOR_MAP.dimmed
+            local flags = isActive
+                and { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER, Strings.DisplayStringOption.BLINK }
+                or  { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }
 
-        local pos = TEN.Util.PercentToScreen(TEN.Vec2(x, position.y))
-        local string = TEN.Flow.GetString(header.name)
-        local displayText = isActive and ("[ " .. string .. " ]") or string
+            local pos = TEN.Util.PercentToScreen(TEN.Vec2(x, position.y))
+            local string = TEN.Flow.GetString(header.name)
+            local displayText = isActive and ("[ " .. string .. " ]") or string
 
-        local textObj = TEN.Strings.DisplayString(displayText, pos, scale or 1.0, ColorCombine(color, alpha), false, flags)
-        TEN.Strings.ShowString(textObj, 1 / 30)
+            local textObj = TEN.Strings.DisplayString(displayText, pos, scale or 1.0, ColorCombine(color, alpha), false, flags)
+            TEN.Strings.ShowString(textObj, 1 / 30)
+        end
     end
 end
 

@@ -15,6 +15,7 @@
 local Camera   = require("Engine.PhotoMode.Camera")
 local Frames   = require("Engine.PhotoMode.Frames")
 local Input    = require("Engine.PhotoMode.Input")
+local InputHelpers = require("Engine.RingInventory.InputHelpers")
 local Menu     = require("Engine.PhotoMode.Menu")
 local Settings = require("Engine.PhotoMode.Settings")
 local States   = require("Engine.PhotoMode.States")
@@ -27,6 +28,7 @@ local PhotoMode = {}
 -- Guards LevelFuncs registration to once per Lua session (resets on level/savegame reload).
 local _callbacksRegistered = false
 local _photoModeExited = false
+local _spriteAnim      = {}   -- per-sprite lerp state: { sizeW, sizeH, r, g, b }
 
 -- ============================================================================
 -- Helpers
@@ -41,6 +43,9 @@ local function Round(val, decimals)
     return math.floor(val * mult + 0.5) / mult
 end
 
+local function ColorCombine(color, alpha)
+    return TEN.Color(color.r, color.g, color.b, alpha)
+end
 -- ============================================================================
 -- Option name builders (for selector-type options)
 -- ============================================================================
@@ -52,7 +57,6 @@ local function BuildNames(list, key)
 end
 
 local DOF_MODE_NAMES   = BuildNames(Settings.DepthOfField.modes)
-local CTRL_MODE_NAMES  = States.ModeNames
 local LIGHT_SRC_NAMES  = Settings.Light.sourceNames
 local FILTER_NAMES     = BuildNames(Settings.Filters.presets)
 local TINT_NAMES       = BuildNames(Settings.Filters.tints)
@@ -496,11 +500,20 @@ end
 -- Each header maps to one menu. Menu items use ITEMS_AND_OPTIONS type so
 -- left/right changes values while forward/back navigates items.
 
-local MENU_CAMERA    = "pm_camera"
 local MENU_CHARACTER = "pm_character"
 local MENU_EFFECTS   = "pm_effects"
+local MENU_FILTERS   = "pm_filters"
 local MENU_LIGHT     = "pm_light"
 local MENU_UI        = "pm_ui"
+
+-- Maps the active header's menu name to the input control mode used when UI is hidden.
+local HEADER_CONTROL_MODE = {
+    [MENU_CHARACTER] = States.Mode.PLAYER,
+    [MENU_EFFECTS]   = States.Mode.CAMERA,
+    [MENU_FILTERS]   = States.Mode.CAMERA,
+    [MENU_LIGHT]     = States.Mode.LIGHT,
+    [MENU_UI]        = States.Mode.CAMERA,
+}
 
 local function NumberRange(min, max, step, format)
     local opts = {}
@@ -546,12 +559,16 @@ local function BuildAllMenus()
     -- ================================================================
     -- Helper to create and configure a menu
     -- ================================================================
-    local function CreateMenu(menuName, items, acceptFunc, optionChangeFunc)
+    local function CreateMenu(menuName, items, acceptFunc, optionChangeFunc, titleText)
         local menu = Menu.Create(menuName, "", items,
             acceptFunc, "Engine.PhotoMode.OnExit", Menu.Type.ITEMS_AND_OPTIONS)
-        menu:SetItemsPosition(Vec2(15, 25))
-        menu:SetOptionsPosition(Vec2(55, 25))
-        menu:SetTitle("", nil, 0)
+        menu:SetItemsPosition(Vec2(2, 23))
+        menu:SetItemsFont(nil, 0.6)
+        menu:SetOptionsFont(nil, 0.6)
+        menu:SetLineSpacing(3)
+        menu:SetOptionsPosition(Vec2(23, 23))
+        menu:SetTitle(titleText, nil, 0.6, nil, true)
+        menu:SetTitlePosition(Vec2(16, 19))
         menu:SetItemsTranslate(true)
         if optionChangeFunc then
             for _, item in ipairs(items) do
@@ -567,13 +584,6 @@ local function BuildAllMenus()
 
     if not _callbacksRegistered then
     _callbacksRegistered = true
-
-    LevelFuncs.Engine.PhotoMode.OnCameraAccept = function()
-        local m = Menu.Get(MENU_CAMERA)
-        if not m then return end
-        local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
-        if name == "pm_reset" then ResetCamera() end
-    end
 
     LevelFuncs.Engine.PhotoMode.OnCharacterAccept = function()
         local m = Menu.Get(MENU_CHARACTER)
@@ -598,14 +608,17 @@ local function BuildAllMenus()
             ResetEffects()
             m:SetOptionIndexForItemName("pm_fov",          ValueToOptionIndex(state.fov, cfg.Lens.minFOV, cfg.Lens.fovStep))
             m:SetOptionIndexForItemName("pm_roll",         ValueToOptionIndex(state.roll, cfg.Lens.minRoll, cfg.Lens.rollStep))
-            m:SetOptionIndexForItemName("pm_preset",       state.filterIndex)
-            m:SetOptionIndexForItemName("pm_strength",     ValueToOptionIndex(state.filterStrength, 0, 0.05))
-            m:SetOptionIndexForItemName("pm_tint",         state.tintIndex)
-            m:SetOptionIndexForItemName("pm_frame_overlay",state.frameIndex)
             m:SetOptionIndexForItemName("pm_dof_mode",     state.dofMode)
             m:SetOptionIndexForItemName("pm_dof_focus",    ValueToOptionIndex(state.dofFocusDistance, cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.focusDistanceStep))
             m:SetOptionIndexForItemName("pm_dof_range",    ValueToOptionIndex(state.dofRange,         cfg.DepthOfField.minRange,         cfg.DepthOfField.rangeStep))
             m:SetOptionIndexForItemName("pm_dof_strength", ValueToOptionIndex(state.dofStrength,      cfg.DepthOfField.minStrength,      cfg.DepthOfField.strengthStep))
+            local mf = Menu.Get(MENU_FILTERS)
+            if mf then
+                mf:SetOptionIndexForItemName("pm_preset",        state.filterIndex)
+                mf:SetOptionIndexForItemName("pm_strength",      ValueToOptionIndex(state.filterStrength, 0, 0.05))
+                mf:SetOptionIndexForItemName("pm_tint",          state.tintIndex)
+                mf:SetOptionIndexForItemName("pm_frame_overlay", state.frameIndex)
+            end
         end
     end
 
@@ -634,19 +647,6 @@ local function BuildAllMenus()
     -- ================================================================
     -- Option change callbacks (sync state when left/right changes value)
     -- ================================================================
-
-    LevelFuncs.Engine.PhotoMode.OnCameraOptionChange = function()
-        local m = Menu.Get(MENU_CAMERA)
-        if not m then return end
-        local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
-        if     name == "pm_mode"           then state.controlMode         = m:GetCurrentOptionIndex()
-        elseif name == "pm_move_speed"     then state.moveSpeed           = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Camera.minMoveSpeed, cfg.Camera.moveSpeedStep)
-        elseif name == "pm_look_speed"     then state.lookSpeed           = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Camera.minLookSpeed, cfg.Camera.lookSpeedStep)
-        elseif name == "pm_collision"      then state.collisionOn         = IndexToBool(m:GetCurrentOptionIndex())
-        elseif name == "pm_limit_distance" then state.limitCameraDistance = IndexToBool(m:GetCurrentOptionIndex())
-        elseif name == "pm_max_distance"   then state.maxCameraDistance   = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Camera.minMaxDistance, cfg.Camera.distanceStep)
-        end
-    end
 
     LevelFuncs.Engine.PhotoMode.OnCharacterOptionChange = function()
         local m = Menu.Get(MENU_CHARACTER)
@@ -682,17 +682,6 @@ local function BuildAllMenus()
         elseif name == "pm_roll" then
             state.roll = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Lens.minRoll, cfg.Lens.rollStep)
             ApplyRoll(state)
-        elseif name == "pm_preset" then
-            state.filterIndex = m:GetCurrentOptionIndex()
-            ApplyFilter(state)
-        elseif name == "pm_strength" then
-            state.filterStrength = OptionIndexToValue(m:GetCurrentOptionIndex(), 0, 0.05)
-            ApplyFilterStrength(state)
-        elseif name == "pm_tint" then
-            state.tintIndex = m:GetCurrentOptionIndex()
-            ApplyTint(state)
-        elseif name == "pm_frame_overlay" then
-            state.frameIndex = m:GetCurrentOptionIndex()
         elseif name == "pm_dof_mode" then
             state.dofMode = m:GetCurrentOptionIndex()
             ApplyDOF(state)
@@ -728,24 +717,47 @@ local function BuildAllMenus()
         end
     end
 
-    end -- _callbacksRegistered
+    LevelFuncs.Engine.PhotoMode.OnFiltersAccept = function()
+        local m = Menu.Get(MENU_FILTERS)
+        if not m then return end
+        local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
+        if name == "pm_reset" then
+            ResetEffects()
+            m:SetOptionIndexForItemName("pm_preset",        state.filterIndex)
+            m:SetOptionIndexForItemName("pm_strength",      ValueToOptionIndex(state.filterStrength, 0, 0.05))
+            m:SetOptionIndexForItemName("pm_tint",          state.tintIndex)
+            m:SetOptionIndexForItemName("pm_frame_overlay", state.frameIndex)
+            local me = Menu.Get(MENU_EFFECTS)
+            if me then
+                me:SetOptionIndexForItemName("pm_fov",          ValueToOptionIndex(state.fov, cfg.Lens.minFOV, cfg.Lens.fovStep))
+                me:SetOptionIndexForItemName("pm_roll",         ValueToOptionIndex(state.roll, cfg.Lens.minRoll, cfg.Lens.rollStep))
+                me:SetOptionIndexForItemName("pm_dof_mode",     state.dofMode)
+                me:SetOptionIndexForItemName("pm_dof_focus",    ValueToOptionIndex(state.dofFocusDistance, cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.focusDistanceStep))
+                me:SetOptionIndexForItemName("pm_dof_range",    ValueToOptionIndex(state.dofRange,         cfg.DepthOfField.minRange,         cfg.DepthOfField.rangeStep))
+                me:SetOptionIndexForItemName("pm_dof_strength", ValueToOptionIndex(state.dofStrength,      cfg.DepthOfField.minStrength,      cfg.DepthOfField.strengthStep))
+            end
+        end
+    end
 
-    -- ================================================================
-    -- CAMERA menu
-    -- ================================================================
-    CreateMenu(MENU_CAMERA, {
-        { itemName = "pm_mode",            options = CTRL_MODE_NAMES, currentOption = state.controlMode },
-        { itemName = "pm_move_speed",      options = NumberRange(cfg.Camera.minMoveSpeed, cfg.Camera.maxMoveSpeed, cfg.Camera.moveSpeedStep),
-          currentOption = ValueToOptionIndex(state.moveSpeed, cfg.Camera.minMoveSpeed, cfg.Camera.moveSpeedStep), accelerated = true },
-        { itemName = "pm_look_speed",      options = NumberRange(cfg.Camera.minLookSpeed, cfg.Camera.maxLookSpeed, cfg.Camera.lookSpeedStep,
-              function(v) return string.format("%.1f", v) end),
-          currentOption = ValueToOptionIndex(state.lookSpeed, cfg.Camera.minLookSpeed, cfg.Camera.lookSpeedStep), accelerated = true },
-        { itemName = "pm_collision",       options = BoolOptions(), currentOption = BoolToIndex(state.collisionOn) },
-        { itemName = "pm_limit_distance",  options = BoolOptions(), currentOption = BoolToIndex(state.limitCameraDistance) },
-        { itemName = "pm_max_distance",    options = NumberRange(cfg.Camera.minMaxDistance, cfg.Camera.maxMaxDistance, cfg.Camera.distanceStep),
-          currentOption = ValueToOptionIndex(state.maxCameraDistance, cfg.Camera.minMaxDistance, cfg.Camera.distanceStep), accelerated = true },
-        { itemName = "pm_reset",           options = { acceptString }, currentOption = 1 },
-    }, "Engine.PhotoMode.OnCameraAccept", "Engine.PhotoMode.OnCameraOptionChange")
+    LevelFuncs.Engine.PhotoMode.OnFiltersOptionChange = function()
+        local m = Menu.Get(MENU_FILTERS)
+        if not m then return end
+        local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
+        if name == "pm_preset" then
+            state.filterIndex = m:GetCurrentOptionIndex()
+            ApplyFilter(state)
+        elseif name == "pm_strength" then
+            state.filterStrength = OptionIndexToValue(m:GetCurrentOptionIndex(), 0, 0.05)
+            ApplyFilterStrength(state)
+        elseif name == "pm_tint" then
+            state.tintIndex = m:GetCurrentOptionIndex()
+            ApplyTint(state)
+        elseif name == "pm_frame_overlay" then
+            state.frameIndex = m:GetCurrentOptionIndex()
+        end
+    end
+
+    end -- _callbacksRegistered
 
     -- ================================================================
     -- CHARACTER menu
@@ -764,31 +776,38 @@ local function BuildAllMenus()
     characterItems[#characterItems + 1] = { itemName = "pm_gunflash", options = BoolOptions(),    currentOption = BoolToIndex(state.gunflashEnabled) }
     characterItems[#characterItems + 1] = { itemName = "pm_reset",    options = { acceptString }, currentOption = 1 }
     CreateMenu(MENU_CHARACTER, characterItems,
-        "Engine.PhotoMode.OnCharacterAccept", "Engine.PhotoMode.OnCharacterOptionChange")
+        "Engine.PhotoMode.OnCharacterAccept", "Engine.PhotoMode.OnCharacterOptionChange", "pm_header_character")
 
     -- ================================================================
-    -- EFFECTS menu
+    -- EFFECTS menu (Lens + Depth of Field)
     -- ================================================================
     CreateMenu(MENU_EFFECTS, {
-        { itemName = "pm_fov",        options = NumberRange(cfg.Lens.minFOV, cfg.Lens.maxFOV, cfg.Lens.fovStep),
+        { itemName = "pm_fov",         options = NumberRange(cfg.Lens.minFOV, cfg.Lens.maxFOV, cfg.Lens.fovStep),
           currentOption = ValueToOptionIndex(state.fov, cfg.Lens.minFOV, cfg.Lens.fovStep), accelerated = true },
-        { itemName = "pm_roll",       options = NumberRange(cfg.Lens.minRoll, cfg.Lens.maxRoll, cfg.Lens.rollStep),
+        { itemName = "pm_roll",        options = NumberRange(cfg.Lens.minRoll, cfg.Lens.maxRoll, cfg.Lens.rollStep),
           currentOption = ValueToOptionIndex(state.roll, cfg.Lens.minRoll, cfg.Lens.rollStep), accelerated = true },
-        { itemName = "pm_preset",     options = FILTER_NAMES, currentOption = state.filterIndex },
-        { itemName = "pm_strength",   options = NumberRange(0, 1.0, 0.05, function(v) return string.format("%.2f", v) end),
-          currentOption = ValueToOptionIndex(state.filterStrength, 0, 0.05), accelerated = true },
-        { itemName = "pm_tint",       options = TINT_NAMES, currentOption = state.tintIndex },
-        { itemName = "pm_frame_overlay",  options = FRAME_NAMES, currentOption = state.frameIndex },
-        { itemName = "pm_dof_mode",        options = DOF_MODE_NAMES, currentOption = state.dofMode },
-        { itemName = "pm_dof_focus",       options = NumberRange(cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.maxFocusDistance, cfg.DepthOfField.focusDistanceStep),
+        { itemName = "pm_dof_mode",    options = DOF_MODE_NAMES, currentOption = state.dofMode },
+        { itemName = "pm_dof_focus",   options = NumberRange(cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.maxFocusDistance, cfg.DepthOfField.focusDistanceStep),
           currentOption = ValueToOptionIndex(state.dofFocusDistance, cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.focusDistanceStep), accelerated = true },
-        { itemName = "pm_dof_range",       options = NumberRange(cfg.DepthOfField.minRange, cfg.DepthOfField.maxRange, cfg.DepthOfField.rangeStep),
+        { itemName = "pm_dof_range",   options = NumberRange(cfg.DepthOfField.minRange, cfg.DepthOfField.maxRange, cfg.DepthOfField.rangeStep),
           currentOption = ValueToOptionIndex(state.dofRange, cfg.DepthOfField.minRange, cfg.DepthOfField.rangeStep), accelerated = true },
-        { itemName = "pm_dof_strength",    options = NumberRange(cfg.DepthOfField.minStrength, cfg.DepthOfField.maxStrength, cfg.DepthOfField.strengthStep,
+        { itemName = "pm_dof_strength", options = NumberRange(cfg.DepthOfField.minStrength, cfg.DepthOfField.maxStrength, cfg.DepthOfField.strengthStep,
               function(v) return string.format("%.2f", v) end),
           currentOption = ValueToOptionIndex(state.dofStrength, cfg.DepthOfField.minStrength, cfg.DepthOfField.strengthStep), accelerated = true },
-        { itemName = "pm_reset",           options = { acceptString }, currentOption = 1 },
-    }, "Engine.PhotoMode.OnEffectsAccept", "Engine.PhotoMode.OnEffectsOptionChange")
+        { itemName = "pm_reset",       options = { acceptString }, currentOption = 1 },
+    }, "Engine.PhotoMode.OnEffectsAccept", "Engine.PhotoMode.OnEffectsOptionChange", "pm_header_effects")
+
+    -- ================================================================
+    -- FILTERS menu (Post-process + Frame)
+    -- ================================================================
+    CreateMenu(MENU_FILTERS, {
+        { itemName = "pm_preset",        options = FILTER_NAMES, currentOption = state.filterIndex },
+        { itemName = "pm_strength",      options = NumberRange(0, 1.0, 0.05, function(v) return string.format("%.2f", v) end),
+          currentOption = ValueToOptionIndex(state.filterStrength, 0, 0.05), accelerated = true },
+        { itemName = "pm_tint",          options = TINT_NAMES, currentOption = state.tintIndex },
+        { itemName = "pm_frame_overlay", options = FRAME_NAMES, currentOption = state.frameIndex },
+        { itemName = "pm_reset",         options = { acceptString }, currentOption = 1 },
+    }, "Engine.PhotoMode.OnFiltersAccept", "Engine.PhotoMode.OnFiltersOptionChange", "pm_header_filters")
 
     -- ================================================================
     -- LIGHT menu
@@ -802,7 +821,7 @@ local function BuildAllMenus()
         { itemName = "pm_place_camera", options = { acceptString }, currentOption = 1 },
         { itemName = "pm_place_lara",   options = { acceptString }, currentOption = 1 },
         { itemName = "pm_reset",        options = { acceptString }, currentOption = 1 },
-    }, "Engine.PhotoMode.OnLightAccept", "Engine.PhotoMode.OnLightOptionChange")
+    }, "Engine.PhotoMode.OnLightAccept", "Engine.PhotoMode.OnLightOptionChange", "pm_header_light")
 
     -- ================================================================
     -- UI menu
@@ -816,11 +835,11 @@ local function BuildAllMenus()
     -- Set up headers (STEP_LEFT / STEP_RIGHT to navigate)
     -- ================================================================
     Menu.SetHeaders({
-        { name = "pm_header_camera",    menuName = MENU_CAMERA },
-        { name = "pm_header_character", menuName = MENU_CHARACTER },
-        { name = "pm_header_effects",   menuName = MENU_EFFECTS },
-        { name = "pm_header_light",     menuName = MENU_LIGHT },
-        { name = "pm_header_ui",        menuName = MENU_UI },
+        { name = "",   menuName = MENU_EFFECTS, hideText = true },
+        { name = "", menuName = MENU_CHARACTER, hideText = true },
+        { name = "",     menuName = MENU_LIGHT, hideText = true },
+        { name = "",   menuName = MENU_FILTERS, hideText = true },
+        { name = "",        menuName = MENU_UI, hideText = true },
     })
 
     Menu.SetHeaderSpacing(15)
@@ -890,6 +909,9 @@ function PhotoMode.Enter()
     }
     state.lightPos = TEN.Vec3(camPos.x, camPos.y, camPos.z)
 
+    -- Reset sprite animation state so dots snap to correct positions on entry
+    _spriteAnim = {}
+
     -- Build menus
     BuildAllMenus()
 
@@ -899,7 +921,6 @@ function PhotoMode.Enter()
     -- Attach object camera
     Camera.Attach()
 
-    TEN.Input.ClearAllKeys()
     TEN.Util.PrintLog("PhotoMode: Entered.", TEN.Util.LogLevel.INFO)
 end
 
@@ -953,8 +974,9 @@ end
 -- Header drawing position
 -- ============================================================================
 
-local HEADER_POS   = TEN.Vec2(50, 15)
-local HEADER_SCALE = 1.0
+local HEADER_POS        = TEN.Vec2(50, 15)
+local HEADER_SCALE      = 1.0
+local SPRITE_ANIM_SPEED = 0.18  -- lerp factor per frame (higher = snappier)
 
 -- ============================================================================
 -- Header Sprites
@@ -970,12 +992,33 @@ local function DrawHeaderSprites(alpha)
     local posX       = cfg.position and cfg.position.x or 50
     local posY       = cfg.position and cfg.position.y or 21
     local startX     = posX - totalWidth / 2
+    local sizeA  = cfg.sizeActive    or TEN.Vec2(5, 5)
+    local sizeI  = cfg.sizeInactive  or TEN.Vec2(4, 4)
+    local colorA = cfg.colorActive   or TEN.Color(255, 255, 255)
+    local colorI = cfg.colorInactive or TEN.Color(100, 100, 100)
+    local spd = SPRITE_ANIM_SPEED
     for i, spriteID in ipairs(cfg.spriteIDs) do
-        local isActive  = (i == activeIdx)
-        local x         = startX + (i - 1) * spacing
-        local size      = isActive and (cfg.sizeActive   or TEN.Vec2(5, 5)) or (cfg.sizeInactive  or TEN.Vec2(4, 4))
-        local baseColor = isActive and (cfg.colorActive  or TEN.Color(255, 255, 255)) or (cfg.colorInactive or TEN.Color(100, 100, 100))
-        local color     = TEN.Color(baseColor.r, baseColor.g, baseColor.b, math.floor(alpha))
+        local isActive = (i == activeIdx)
+        local tW = isActive and sizeA.x  or sizeI.x
+        local tH = isActive and sizeA.y  or sizeI.y
+        local tR = isActive and colorA.r or colorI.r
+        local tG = isActive and colorA.g or colorI.g
+        local tB = isActive and colorA.b or colorI.b
+        -- Initialize on first use (snap to target, no pop)
+        local anim = _spriteAnim[i]
+        if not anim then
+            anim = { sizeW = tW, sizeH = tH, r = tR, g = tG, b = tB }
+            _spriteAnim[i] = anim
+        end
+        -- Lerp toward target
+        anim.sizeW = anim.sizeW + (tW - anim.sizeW) * spd
+        anim.sizeH = anim.sizeH + (tH - anim.sizeH) * spd
+        anim.r     = anim.r     + (tR - anim.r)     * spd
+        anim.g     = anim.g     + (tG - anim.g)     * spd
+        anim.b     = anim.b     + (tB - anim.b)     * spd
+        local x     = startX + (i - 1) * spacing
+        local size  = TEN.Vec2(anim.sizeW, anim.sizeH)
+        local color = TEN.Color(math.floor(anim.r), math.floor(anim.g), math.floor(anim.b), math.floor(alpha))
         local ok, sprite = pcall(TEN.View.DisplaySprite,
             cfg.objectID, spriteID, TEN.Vec2(x, posY), cfg.rotation or 0, size, color)
         if ok and sprite then
@@ -985,6 +1028,41 @@ local function DrawHeaderSprites(alpha)
                 cfg.blendMode or TEN.Effects.BlendID.ALPHA_BLEND)
         end
     end
+end
+
+local function DrawBackSprites(alpha)
+
+    local color = ColorCombine(Settings.ColorMap.neutral, math.floor(alpha))
+    local ok, sprite = pcall(TEN.View.DisplaySprite,
+        TEN.Objects.ObjID.DIARY_SPRITES, 5, TEN.Vec2(1, 11), 0, TEN.Vec2(30, 38.5), color)
+    if ok and sprite then
+        sprite:Draw(-4,
+            TEN.View.AlignMode.TOP_LEFT,
+            TEN.View.ScaleMode.STRETCH,
+            TEN.Effects.BlendID.ALPHA_BLEND)
+    end
+end
+
+local function DrawModeText(alpha)
+    local modeText = TEN.Flow.GetString("pm_mode_prefix") .. States.GetModeName()
+    local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(15, 46))
+    local modeStr  = TEN.Strings.DisplayString(
+        modeText, modePos, 0.6,
+        ColorCombine(Settings.ColorMap.neutral, alpha), false,
+        { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }
+    )
+    TEN.Strings.ShowString(modeStr, 1 / 30)
+end
+
+local function DrawHelpText(alpha)
+    -- Draw control hint at bottom
+    local helpPos  = TEN.Util.PercentToScreen(TEN.Vec2(50, 92))
+    local helpStr  = TEN.Strings.DisplayString(
+        "pm_help", helpPos, 0.65,
+        ColorCombine(Settings.ColorMap.neutral, alpha), true,
+        { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }
+    )
+    TEN.Strings.ShowString(helpStr, 1 / 30)
 end
 
 -- ============================================================================
@@ -1007,7 +1085,6 @@ LevelFuncs.Engine.PhotoMode.OnLoop = function()
         state.entryHoldCount = state.entryHoldCount + 1
         if state.entryHoldCount >= Settings.Entry.holdFrames then
             state.entryHoldCount = 0
-            TEN.Input.ClearAllKeys()
             PhotoMode.Enter()
         end
     else
@@ -1023,7 +1100,7 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
     state.timeInPhotoMode = state.timeInPhotoMode + 1
 
     -- Toggle UI with LOOK key
-    if TEN.Input.GetActionTimeActive(TEN.Input.ActionID.LOOK) < state.timeInPhotoMode and TEN.Input.IsKeyHit(TEN.Input.ActionID.LOOK) then
+    if InputHelpers.GuiIsPulsed(TEN.Input.ActionID.LOOK, state.timeInPhotoMode) then
         state.hideUI = not state.hideUI
     end
 
@@ -1034,8 +1111,12 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
         return
     end
 
+    -- Derive control mode from which header tab is active.
+    local activeMenu = Menu.GetActiveHeaderMenu()
+    state.controlMode = HEADER_CONTROL_MODE[activeMenu] or States.Mode.CAMERA
+
     if state.hideUI then
-        -- UI hidden: movement controls only
+        -- UI hidden: movement controls only (mode determined by active tab)
         Input.Update()
     else
         -- UI visible: menu handles input (includes header nav via STEP_LEFT/RIGHT)
@@ -1072,28 +1153,13 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
                 headerAlpha = 0
             end
         end
+        DrawBackSprites(headerAlpha)
         DrawHeaderSprites(headerAlpha)
+        DrawModeText(headerAlpha)
+        DrawHelpText(headerAlpha)
         Menu.DrawHeaders(HEADER_POS, HEADER_SCALE, headerAlpha)
         Menu.DrawActiveMenus()
 
-        -- Draw mode indicator at top
-        local modeText = TEN.Flow.GetString("pm_mode_prefix") .. States.GetModeName()
-        local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(50, 10))
-        local modeStr  = TEN.Strings.DisplayString(
-            modeText, modePos, 0.9,
-            Settings.ColorMap.dimmed, false,
-            { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }
-        )
-        TEN.Strings.ShowString(modeStr, 1 / 30)
-
-        -- Draw control hint at bottom
-        local helpPos  = TEN.Util.PercentToScreen(TEN.Vec2(50, 92))
-        local helpStr  = TEN.Strings.DisplayString(
-            "pm_help", helpPos, 0.65,
-            Settings.ColorMap.dimmed, true,
-            { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }
-        )
-        TEN.Strings.ShowString(helpStr, 1 / 30)
     end
 end
 
