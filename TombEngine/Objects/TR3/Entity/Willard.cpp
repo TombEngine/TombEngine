@@ -144,7 +144,8 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			if (!WillardAI.MissingSetupLogged)
 			{
-				TENLog("Willard AI path markers (AI_X1/AI_X2) were not found in current room.", LogLevel::Warning);
+				TENLog("Willard AI setup is incomplete in current room. Paths=" + std::to_string(WillardAI.PathCount) +
+					", junctions=" + std::to_string(WillardAI.JunctionCount) + ".", LogLevel::Warning);
 				WillardAI.MissingSetupLogged = true;
 			}
 
@@ -216,7 +217,10 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			if (!WillardAI.InvalidStateLogged)
 			{
-				TENLog("Willard AI path state is invalid; path tracking update was skipped.", LogLevel::Warning);
+				TENLog("Willard AI path state invalid in UpdateAIPath. PathCount=" + std::to_string(WillardAI.PathCount) +
+					", JunctionCount=" + std::to_string(WillardAI.JunctionCount) +
+					", ClosestAIPath=" + std::to_string(WillardAI.ClosestAIPath) +
+					", LaraAIPath=" + std::to_string(WillardAI.LaraAIPath) + ".", LogLevel::Warning);
 				WillardAI.InvalidStateLogged = true;
 			}
 
@@ -328,7 +332,9 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			if (!WillardAI.InvalidStateLogged)
 			{
-				TENLog("Willard AI path state is invalid; control fell back to default animation update.", LogLevel::Warning);
+				TENLog("Willard AI path state invalid in WillardControl. ClosestAIPath=" + std::to_string(WillardAI.ClosestAIPath) +
+					", LaraAIPath=" + std::to_string(WillardAI.LaraAIPath) +
+					", LaraJunction=" + std::to_string(WillardAI.LaraJunction) + ".", LogLevel::Warning);
 				WillardAI.InvalidStateLogged = true;
 			}
 
