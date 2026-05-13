@@ -106,3 +106,18 @@ float PSDepth(PixelShaderInput input) : SV_TARGET
     // SV_POSITION.z in PS is the rasterized NDC depth (matches GBuffer.Depth).
     return input.Position.z;
 }
+
+// Horizon mask entry: outputs a white (1,1,1,1) solid for opaque texels.
+// Used as a binary occlusion mask in the god ray radial blur pass so that
+// rays marching through opaque horizon mesh pixels are blocked, while rays
+// through alpha cutout regions or clear sky above pass through unaffected.
+float4 PSHorizonMask(PixelShaderInput input) : SV_TARGET
+{
+    if (Animated && Type == 1)
+        input.UV = CalculateUVRotate(input.UV, 0);
+
+    float4 color = Texture.Sample(Sampler, input.UV);
+    DoAlphaTest(color);
+
+    return float4(1.0f, 1.0f, 1.0f, 1.0f);
+}

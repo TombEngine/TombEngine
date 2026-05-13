@@ -118,6 +118,7 @@ namespace TEN::Renderer::Utils
 		Load(Shader::Items, "Objects", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::Sky, "Sky", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::SkyDepth, "Sky", "Depth", ShaderType::Pixel, {});
+		Load(Shader::SkyHorizonMask, "Sky", "HorizonMask", ShaderType::Pixel, {});
 		Load(Shader::Solid, "Solid", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::Inventory, "Inventory", "", ShaderType::PixelAndVertex, {});
 

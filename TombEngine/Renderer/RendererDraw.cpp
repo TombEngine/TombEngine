@@ -3652,6 +3652,58 @@ namespace TEN::Renderer
 			_graphicsDevice->ClearDepthStencil(depthTarget, arrayIndex, DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 	}
 
+	// Shared helper: iterates both enabled horizon mesh layers and draws all buckets.
+	// Binds VB/IB and fills the sky CB per layer. Callers are responsible for setting
+	// up the RT, viewport, shaders, and pipeline state before calling.
+	void Renderer::RenderHorizonMeshLayers(RenderView& renderView)
+	{
+		auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
+
+		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+
+		for (int layer = 0; layer < 2; layer++)
+		{
+			if (!levelPtr->GetHorizonEnabled(layer) || levelPtr->GetHorizonTransparency(layer) <= EPSILON)
+				continue;
+
+			if (!_moveableObjects[levelPtr->GetHorizonObjectID(layer)].has_value())
+				continue;
+
+			auto pos = Vector3::Lerp(levelPtr->GetHorizonPrevPosition(layer), levelPtr->GetHorizonPosition(layer), GetInterpolationFactor());
+			auto orient = EulerAngles::Lerp(levelPtr->GetHorizonPrevOrientation(layer), levelPtr->GetHorizonOrientation(layer), GetInterpolationFactor());
+			auto rotMatrix = orient.ToRotationMatrix();
+			auto translationMatrix = Matrix::CreateTranslation(pos);
+			auto cameraMatrix = Matrix::CreateTranslation(renderView.Camera.WorldPosition);
+
+			_stSky.World = rotMatrix * translationMatrix * cameraMatrix;
+			_stSky.Color = Color(1.0f, 1.0f, 1.0f, 1.0f);
+			_stSky.ApplyFogBulbs = 0;
+			_stSky.HorizonGradientFade = 0.0f;
+			_stSky.HorizonGradientRise = 0.0f;
+			_stSky.MeshWorldYMin = 0.0f;
+			_stSky.MeshWorldYRange = 1.0f;
+			UpdateConstantBuffer(&_stSky, _cbSky.get());
+
+			const auto& moveableObj = *_moveableObjects[levelPtr->GetHorizonObjectID(layer)];
+			for (auto* mesh : moveableObj.ObjectMeshes)
+			{
+				for (int animated = 0; animated < 2; animated++)
+				{
+					for (auto& bucket : mesh->Buckets)
+					{
+						if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+							continue;
+
+						BindBucketTextures(bucket, TextureSource::Moveables, animated);
+						SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
+						DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+					}
+				}
+			}
+		}
+	}
+
 	// Re-renders the horizon mesh into the GBuffer depth render target so that
 	// post-process effects (specifically the lens flare in PSLensFlare) can sample
 	// it and treat horizon-mesh pixels as occluders. The main scene depth-stencil
@@ -3691,53 +3743,8 @@ namespace TEN::Renderer
 
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
-		for (int layer = 0; layer < 2; layer++)
-		{
-			if (!levelPtr->GetHorizonEnabled(layer) || levelPtr->GetHorizonTransparency(layer) <= EPSILON)
-				continue;
-
-			if (!_moveableObjects[levelPtr->GetHorizonObjectID(layer)].has_value())
-				continue;
-
-			auto pos = Vector3::Lerp(levelPtr->GetHorizonPrevPosition(layer), levelPtr->GetHorizonPosition(layer), GetInterpolationFactor());
-			auto orient = EulerAngles::Lerp(levelPtr->GetHorizonPrevOrientation(layer), levelPtr->GetHorizonOrientation(layer), GetInterpolationFactor());
-			auto rotMatrix = orient.ToRotationMatrix();
-			auto translationMatrix = Matrix::CreateTranslation(pos);
-			auto cameraMatrix = Matrix::CreateTranslation(renderView.Camera.WorldPosition);
-
-			_stSky.World = rotMatrix * translationMatrix * cameraMatrix;
-			_stSky.Color = Color(1.0f, 1.0f, 1.0f, 1.0f);
-			_stSky.ApplyFogBulbs = 0;
-			_stSky.HorizonGradientFade = 0.0f;
-			_stSky.HorizonGradientRise = 0.0f;
-			_stSky.MeshWorldYMin = 0.0f;
-			_stSky.MeshWorldYRange = 1.0f;
-			UpdateConstantBuffer(&_stSky, _cbSky.get());
-
-			const auto& moveableObj = *_moveableObjects[levelPtr->GetHorizonObjectID(layer)];
-			for (auto* mesh : moveableObj.ObjectMeshes)
-			{
-				for (int animated = 0; animated < 2; animated++)
-				{
-					for (auto& bucket : mesh->Buckets)
-					{
-						if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
-							continue;
-
-						BindBucketTextures(bucket, TextureSource::Moveables, animated);
-
-						// Always alpha-test so transparent texels never write depth and
-						// don't falsely occlude the starburst through cutout regions.
-						SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
-
-						DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
-					}
-				}
-			}
-		}
+		RenderHorizonMeshLayers(renderView);
 
 		// Restore default depth state.
 		SetDepthState(DepthState::Write);

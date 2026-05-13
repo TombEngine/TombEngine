@@ -43,9 +43,11 @@ struct VSOutput
 // t0: Cloud render target layer A (half-res RGBA).  RGB = lit cloud colour.
 // t1: Cloud render target layer B (half-res RGBA).  RGB = lit cloud colour.
 //     Bound by RendererGodRay.cpp before the god ray pass.
-Texture2D    CloudTexture  : register(t0);
-Texture2D    CloudTextureB : register(t1);
-SamplerState LinearSamp    : register(s3);   // LinearClamp sampler
+// t2: Horizon mesh binary silhouette mask (R channel: 1=opaque, 0=sky).
+Texture2D    CloudTexture       : register(t0);
+Texture2D    CloudTextureB      : register(t1);
+Texture2D    HorizonMaskTexture : register(t2);
+SamplerState LinearSamp         : register(s3);   // LinearClamp sampler
 
 // ---------------------------------------------------------------------------
 // Vertex shader — fullscreen triangle
@@ -114,7 +116,10 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
     float4 sunCloudSampleB = CloudTextureB.SampleLevel(LinearSamp, sunUV, 0);
     float  sunCloudA       = sunCloudSampleA.a;
     float  sunCloudB       = sunCloudSampleB.a;
-    float  sunOcclusion    = saturate(max(sunCloudA, sunCloudB));
+    // Horizon mesh occlusion at the sun UV: if the sun sits behind the solid
+    // horizon, treat it as fully occluded (same effect as a dense cloud).
+    float  sunHorizonMask  = HorizonMaskTexture.SampleLevel(LinearSamp, sunUV, 0).r;
+    float  sunOcclusion    = saturate(max(sunCloudA, sunCloudB) + sunHorizonMask);
     // Dark-underside detection: alto second color produces low-luma RGB in the cloud RT.
     // Sample the dominant layer's color at the sun UV and compute luminance.
     // A presence gate (alpha > ~0.05) prevents empty/black sky from triggering the boost.
@@ -154,7 +159,10 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
         // Cloud opacity: 0 = clear sky gap (light passes), 1 = dense cloud (blocked).
         float cloudAlphaA  = CloudTexture.SampleLevel(LinearSamp, cuv, 0).a;
         float cloudAlphaB  = CloudTextureB.SampleLevel(LinearSamp, cuv, 0).a;
-        float cloudOpacity = saturate(max(cloudAlphaA, cloudAlphaB));
+        // Horizon mesh adds to cloud opacity: marching through solid horizon terrain
+        // blocks rays the same way a dense cloud would.
+        float horizonMask  = HorizonMaskTexture.SampleLevel(LinearSamp, cuv, 0).r;
+        float cloudOpacity = saturate(max(cloudAlphaA, cloudAlphaB) + horizonMask);
 
         // Sky gap: 1 in clear sky, 0 inside cloud bodies.
         // Apply a soft step so near-opaque cloud areas (cloudGap ~0.05-0.15) that occur

@@ -183,6 +183,7 @@ namespace TEN::Renderer
 		ConstantBuffers::CGodRayBuffer _stGodRay;
 		std::unique_ptr<IConstantBuffer> _cbGodRay;
 		std::unique_ptr<IRenderSurface2D> _godRayRenderTarget;
+		std::unique_ptr<IRenderSurface2D> _horizonMaskRenderTarget;
 		GodRay::GodRaySettings _godRaySettings;
 
 		// Volumetric dust storm
@@ -434,6 +435,8 @@ namespace TEN::Renderer
 		void DrawHorizonAndSky(IDepthTarget* depthTarget, RenderView& renderView, int arrayIndex = 0, bool reflectionPass = false);
 		void DrawHorizonAndSkyForReflections(RenderView& renderView);
 		void DrawHorizonDepth(RenderView& renderView);
+		void DrawHorizonMask(RenderView& renderView);
+		void RenderHorizonMeshLayers(RenderView& renderView);
 
 		// Atmospheric sky dome
 		void InitializeAtmosphericSky();

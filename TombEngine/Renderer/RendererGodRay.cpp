@@ -47,12 +47,21 @@ namespace TEN::Renderer
 		int h = std::max(1, (int)(_graphicsDevice->GetScreenHeight() * GOD_RAY_RESOLUTION_SCALE));
 
 		SAFE_DELETE(_godRayRenderTarget);
+		SAFE_DELETE(_horizonMaskRenderTarget);
 
 		_godRayRenderTarget = _graphicsDevice->CreateRenderSurface2D(
-			w, h, 
+			w, h,
 			SurfaceFormat::SF_R11G11B10_Float,   // Lightweight HDR, no alpha needed.
 			false,
-			DepthFormat::None);          // No depth buffer.
+			DepthFormat::None);
+
+		// Binary horizon silhouette mask (1=opaque horizon, 0=sky/transparent).
+		// Same resolution as the god ray RT so PSGodRay can sample it in the march loop.
+		_horizonMaskRenderTarget = _graphicsDevice->CreateRenderSurface2D(
+			w, h,
+			SurfaceFormat::SF_R11G11B10_Float,
+			false,
+			DepthFormat::None);
 	}
 
 	// ========================================================================
@@ -69,6 +78,61 @@ namespace TEN::Renderer
 		float coverageFactor = Saturate(cloudCoverage * 3.0f);
 
 		return elevFactor * coverageFactor;
+	}
+
+	// ========================================================================
+	// Horizon mask pass
+	// ========================================================================
+
+	// Renders the horizon mesh as a binary silhouette into the half-res horizon
+	// mask RT (1.0 = opaque horizon, 0.0 = sky/transparent). PSGodRay samples
+	// this texture alongside cloud alpha so rays marching through solid horizon
+	// pixels are attenuated, while rays in sky gaps or alpha-cut regions are not.
+	void Renderer::DrawHorizonMask(RenderView& renderView)
+	{
+		auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
+
+		_graphicsDevice->ClearRenderTarget2D(_horizonMaskRenderTarget->GetRenderTarget(), Colors::Transparent);
+
+		bool anyHorizonVisible = false;
+		for (int layer = 0; layer < 2; layer++)
+		{
+			if (levelPtr->GetHorizonEnabled(layer) && levelPtr->GetHorizonTransparency(layer) > EPSILON)
+			{
+				anyHorizonVisible = true;
+				break;
+			}
+		}
+
+		if (!anyHorizonVisible)
+			return;
+
+		int grW = std::max(1, (int)(_graphicsDevice->GetScreenWidth()  * GOD_RAY_RESOLUTION_SCALE));
+		int grH = std::max(1, (int)(_graphicsDevice->GetScreenHeight() * GOD_RAY_RESOLUTION_SCALE));
+
+		_graphicsDevice->BindRenderTarget(_horizonMaskRenderTarget->GetRenderTarget(), nullptr);
+
+		RendererViewport vp = {};
+		vp.Width    = (float)grW;
+		vp.Height   = (float)grH;
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		_graphicsDevice->SetViewport(vp);
+
+		SetCullMode(CullMode::CounterClockwise);
+		SetBlendMode(BlendMode::Opaque);
+		SetDepthState(DepthState::None);
+
+		// Sky VS for correct camera-relative projection, SkyHorizonMask PS for binary output.
+		_shaders.Bind(Shader::Sky);
+		_shaders.Bind(Shader::SkyHorizonMask);
+
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+
+		RenderHorizonMeshLayers(renderView);
+
+		SetDepthState(DepthState::Write);
 	}
 
 	// ========================================================================
@@ -352,6 +416,9 @@ namespace TEN::Renderer
 		if (_stGodRay.SunScreenPos.x < -5.0f)
 			return;
 
+		// Render horizon mesh silhouette for additional occlusion in PSGodRay.
+		DrawHorizonMask(renderView);
+
 		// --- Pass 1: Render god rays to half-res target ---
 		_graphicsDevice->ClearRenderTarget2D(_godRayRenderTarget->GetRenderTarget(), Colors::Transparent);
 		_graphicsDevice->BindRenderTarget(_godRayRenderTarget->GetRenderTarget(), nullptr);
@@ -376,6 +443,9 @@ namespace TEN::Renderer
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, _cloudRenderTarget->GetRenderTarget(),
 			SamplerStateRegister::LinearClamp);
 		BindRenderTargetAsTexture(TextureRegister::NormalMap, _cloudRenderTargetB->GetRenderTarget(),
+			SamplerStateRegister::LinearClamp);
+		// t2: horizon silhouette mask for additional ray occlusion.
+		BindRenderTargetAsTexture(TextureRegister::CausticsMap, _horizonMaskRenderTarget->GetRenderTarget(),
 			SamplerStateRegister::LinearClamp);
 
 		// Set up fullscreen triangle rendering.
@@ -407,6 +477,7 @@ namespace TEN::Renderer
 
 		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::ColorMap);
 		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::NormalMap);
+		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::CausticsMap);
 
 		SetBlendMode(BlendMode::Opaque);
 		SetDepthState(DepthState::Write);

@@ -455,6 +455,7 @@ enum class Shader
 	InstancedSprites,
 	Sky,
 	SkyDepth,
+	SkyHorizonMask,
 	Solid,
 	Inventory,
 	FullScreenQuad,
