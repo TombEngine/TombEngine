@@ -21,10 +21,7 @@ struct PixelShaderInput
 };
 
 Texture2D Texture : register(t0);
-SamplerState Sampler : register(s0);
-
 Texture2D NormalTexture : register(t1);
-SamplerState NormalTextureSampler : register(s1);
 
 struct PixelShaderOutput
 {
@@ -131,15 +128,15 @@ PixelShaderOutput PS(PixelShaderInput input)
         else
             input.UV = CalculateUVRotate(input.UV, 0);
 
-	float4 color = Texture.Sample(Sampler, input.UV);
+	float4 color = Texture.Sample(AnisotropicClampSampler, input.UV);
 
 	DoAlphaTest(color);
 	
-    float4 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV);
-    float specular = ORSHTexture.Sample(ORSHSampler, input.UV).z;
+	float4 emissive = EmissiveTexture.Sample(AnisotropicClampSampler, input.UV);
+	float specular = ORSHTexture.Sample(AnisotropicClampSampler, input.UV).z;
 	
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
-	float3 normal = DecodeNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
+	float3 normal = DecodeNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV));
 	normal = EncodeNormal(normalize(mul(mul(normal, TBN), (float3x3)View)));
 
 	output.Normals.xyz = normal;
