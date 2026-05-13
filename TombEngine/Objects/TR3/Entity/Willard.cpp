@@ -145,7 +145,7 @@ namespace TEN::Entities::Creatures::TR3
 			if (!WillardAI.MissingSetupLogged)
 			{
 				TENLog("Willard AI setup is incomplete in current room. Paths=" + std::to_string(WillardAI.PathCount) +
-					", junctions=" + std::to_string(WillardAI.JunctionCount) + ".", LogLevel::Warning);
+					", Junctions=" + std::to_string(WillardAI.JunctionCount) + ".", LogLevel::Warning);
 				WillardAI.MissingSetupLogged = true;
 			}
 
