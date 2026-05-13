@@ -186,7 +186,7 @@ namespace TEN::Entities::Creatures::TR3
 			{
 				int x = abs((WillardAI.AIPath[i].Position.x - WillardAI.AIJunction[junc].Position.x) >> 6);
 				int z = abs((WillardAI.AIPath[i].Position.z - WillardAI.AIJunction[junc].Position.z) >> 6);
-				int distance = x + (z >> 1);
+				int distance = (x > z) ? x + (z >> 1) : z + (x >> 1);
 
 				if (distance < bestDistance)
 				{
