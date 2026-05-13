@@ -81,6 +81,8 @@ namespace TEN::Entities::Creatures::TR3
 		int LaraJunction = NO_AI_PATH;
 		int Direction = 1;
 		int DesiredDirection = 1;
+		bool MissingSetupLogged = false;
+		bool InvalidStateLogged = false;
 		bool Initialized = false;
 	};
 
@@ -140,6 +142,12 @@ namespace TEN::Entities::Creatures::TR3
 
 		if (WillardAI.PathCount <= 0 || WillardAI.JunctionCount <= 0)
 		{
+			if (!WillardAI.MissingSetupLogged)
+			{
+				TENLog("Willard AI path markers (AI_X1/AI_X2) were not found in current room.", LogLevel::Warning);
+				WillardAI.MissingSetupLogged = true;
+			}
+
 			WillardAI.Initialized = true;
 			return;
 		}
@@ -206,6 +214,12 @@ namespace TEN::Entities::Creatures::TR3
 		if (WillardAI.PathCount <= 0 || WillardAI.JunctionCount <= 0 ||
 			WillardAI.ClosestAIPath == NO_AI_PATH || WillardAI.LaraAIPath == NO_AI_PATH)
 		{
+			if (!WillardAI.InvalidStateLogged)
+			{
+				TENLog("Willard AI path state is invalid; path tracking update was skipped.", LogLevel::Warning);
+				WillardAI.InvalidStateLogged = true;
+			}
+
 			return;
 		}
 
@@ -287,6 +301,8 @@ namespace TEN::Entities::Creatures::TR3
 		WillardAI.LaraJunction = NO_AI_PATH;
 		WillardAI.Direction = 1;
 		WillardAI.DesiredDirection = 1;
+		WillardAI.MissingSetupLogged = false;
+		WillardAI.InvalidStateLogged = false;
 		WillardAI.Initialized = false;
 		item.ItemFlags[1] = 0; // Death flag.
 	}
@@ -310,6 +326,12 @@ namespace TEN::Entities::Creatures::TR3
 			WillardAI.LaraAIPath == NO_AI_PATH ||
 			WillardAI.LaraJunction == NO_AI_PATH)
 		{
+			if (!WillardAI.InvalidStateLogged)
+			{
+				TENLog("Willard AI path state is invalid; control fell back to default animation update.", LogLevel::Warning);
+				WillardAI.InvalidStateLogged = true;
+			}
+
 			angle = CreatureTurn(&item, creature->MaxTurn);
 			CreatureAnimation(itemNumber, angle, 0);
 			return;
