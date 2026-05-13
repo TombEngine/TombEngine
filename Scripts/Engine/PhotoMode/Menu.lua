@@ -15,12 +15,12 @@ local ALPHA_MIN  = 0
 local ActionID   = TEN.Input.ActionID
 
 -- Acceleration thresholds for option left/right navigation (hold to repeat faster).
-local ACCEL_INITIAL_DELAY = 0.25   -- seconds after first press before repeating begins
+local ACCEL_INITIAL_DELAY = 1   -- seconds after first press before repeating begins
 local ACCEL_SLOW_REPEAT   = 0.15   -- repeat interval at start of hold
 local ACCEL_MED_REPEAT    = 0.07   -- repeat interval after ACCEL_MED_TIME seconds held
 local ACCEL_FAST_REPEAT   = 0.03   -- repeat interval after ACCEL_FAST_TIME seconds held
-local ACCEL_MED_TIME      = 0.7    -- hold time to reach medium speed
-local ACCEL_FAST_TIME     = 1.5    -- hold time to reach fast speed
+local ACCEL_MED_TIME      = 2    -- hold time to reach medium speed
+local ACCEL_FAST_TIME     = 3   -- hold time to reach fast speed
 
 -- Per-key last-fire timestamp (keyed by actionID).
 -- Using a stateful accumulator so rate changes are seamless.

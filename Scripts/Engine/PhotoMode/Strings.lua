@@ -4,6 +4,7 @@
 
 local strings =
 {
+    photo_mode = {"Photo Mode"},
     -- Header tabs
     pm_header_character = {"Character"},
     pm_header_effects   = {"Camera"},

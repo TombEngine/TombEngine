@@ -93,7 +93,7 @@ local function BuildFilteredWeaponNames()
     local names = {}
     for i, weapon in ipairs(Settings.Weapons) do
         local show = false
-        if weapon.weaponType == TEN.Objects.WeaponType.NONE then
+        if weapon.name == "Default" then
             show = true  -- Default always shown.
         elseif weapon.pickupObjID == nil then
             show = true  -- No inventory check configured.
@@ -530,7 +530,7 @@ local function NumberRange(min, max, step, format)
 end
 
 local function BoolOptions()
-    return { "OFF", "ON" }
+    return { "Off", "On" }
 end
 
 local function BoolToIndex(v)
@@ -606,6 +606,7 @@ local function BuildAllMenus()
         local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
         if name == "pm_reset" then
             ResetEffects()
+            ResetCamera()
             m:SetOptionIndexForItemName("pm_fov",          ValueToOptionIndex(state.fov, cfg.Lens.minFOV, cfg.Lens.fovStep))
             m:SetOptionIndexForItemName("pm_roll",         ValueToOptionIndex(state.roll, cfg.Lens.minRoll, cfg.Lens.rollStep))
             m:SetOptionIndexForItemName("pm_dof_mode",     state.dofMode)
@@ -829,7 +830,7 @@ local function BuildAllMenus()
     CreateMenu(MENU_UI, {
         { itemName = "pm_hide_ui", options = BoolOptions(), currentOption = BoolToIndex(state.hideUI) },
         { itemName = "pm_exit",    options = { acceptString }, currentOption = 1 },
-    }, "Engine.PhotoMode.OnUIAccept", "Engine.PhotoMode.OnUIOptionChange")
+    }, "Engine.PhotoMode.OnUIAccept", "Engine.PhotoMode.OnUIOptionChange", "pm_header_ui")
 
     -- ================================================================
     -- Set up headers (STEP_LEFT / STEP_RIGHT to navigate)
@@ -1034,7 +1035,7 @@ local function DrawBackSprites(alpha)
 
     local color = ColorCombine(Settings.ColorMap.neutral, math.floor(alpha))
     local ok, sprite = pcall(TEN.View.DisplaySprite,
-        TEN.Objects.ObjID.DIARY_SPRITES, 5, TEN.Vec2(1, 11), 0, TEN.Vec2(30, 38.5), color)
+        TEN.Objects.ObjID.DIARY_SPRITES, 5, TEN.Vec2(1.5, 11), 0, TEN.Vec2(29, 38.5), color)
     if ok and sprite then
         sprite:Draw(-4,
             TEN.View.AlignMode.TOP_LEFT,
@@ -1043,9 +1044,20 @@ local function DrawBackSprites(alpha)
     end
 end
 
+local function DrawTitle(alpha)
+    local modeText = TEN.Flow.GetString("photo_mode")
+    local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(16, 9))
+    local modeStr  = TEN.Strings.DisplayString(
+        modeText, modePos, 0.8,
+        ColorCombine(Settings.ColorMap.headerText, alpha), false,
+        { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER, Strings.DisplayStringOption.VERTICAL_CENTER }
+    )
+    TEN.Strings.ShowString(modeStr, 1 / 30)
+end
+
 local function DrawModeText(alpha)
     local modeText = TEN.Flow.GetString("pm_mode_prefix") .. States.GetModeName()
-    local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(15, 46))
+    local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(16, 46))
     local modeStr  = TEN.Strings.DisplayString(
         modeText, modePos, 0.6,
         ColorCombine(Settings.ColorMap.neutral, alpha), false,
@@ -1079,9 +1091,9 @@ LevelFuncs.Engine.PhotoMode.OnLoop = function()
 
     local state = States.Get()
     local walkHeld = TEN.Input.IsKeyHeld(TEN.Input.ActionID.WALK)
-    local invHeld  = TEN.Input.IsKeyHeld(TEN.Input.ActionID.LOOK)
+    local lookHeld  = TEN.Input.IsKeyHeld(TEN.Input.ActionID.LOOK)
 
-    if walkHeld and invHeld then
+    if walkHeld and lookHeld then
         state.entryHoldCount = state.entryHoldCount + 1
         if state.entryHoldCount >= Settings.Entry.holdFrames then
             state.entryHoldCount = 0
@@ -1157,6 +1169,7 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
         DrawHeaderSprites(headerAlpha)
         DrawModeText(headerAlpha)
         DrawHelpText(headerAlpha)
+        DrawTitle(headerAlpha)
         Menu.DrawHeaders(HEADER_POS, HEADER_SCALE, headerAlpha)
         Menu.DrawActiveMenus()
 

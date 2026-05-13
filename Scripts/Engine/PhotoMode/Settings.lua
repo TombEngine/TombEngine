@@ -91,6 +91,41 @@ Settings.Lens =
 }
 
 -- ============================================================================
+-- Depth of Field
+-- ============================================================================
+
+Settings.DepthOfField =
+{
+    -- Mode selector: index into modes table (1 = Off / NONE)
+    modes =
+    {
+        { name = "Off",   mode = TEN.View.DOFMode.NONE  },
+        { name = "Full",  mode = TEN.View.DOFMode.FULL  },
+        { name = "Front", mode = TEN.View.DOFMode.FRONT },
+        { name = "Back",  mode = TEN.View.DOFMode.BACK  },
+    },
+    defaultMode          = 1,     -- index into modes (1 = Off)
+
+    -- Focus distance: world units to the sharp focal plane
+    defaultFocusDistance = 1536,
+    minFocusDistance     = 64,
+    maxFocusDistance     = 8192,
+    focusDistanceStep    = 64,
+
+    -- Range: width of the sharp focus region in world units
+    defaultRange         = 2048,
+    minRange             = 64,
+    maxRange             = 8192,
+    rangeStep            = 64,
+
+    -- Strength: maximum bokeh radius (clamped to [0, 1])
+    defaultStrength      = 0.5,
+    minStrength          = 0.0,
+    maxStrength          = 1.0,
+    strengthStep         = 0.05,
+}
+
+-- ============================================================================
 -- Player
 -- ============================================================================
 
@@ -147,6 +182,32 @@ Settings.Filters =
         { name = "Magenta", color = TEN.Color(128,  40, 128) },
         { name = "Red",     color = TEN.Color(128,  40,  40) },
         { name = "Sepia",   color = TEN.Color(255, 200, 120) },
+    },
+}
+
+
+-- ============================================================================
+-- Frames (full-screen sprite overlays)
+-- ============================================================================
+
+Settings.Frames =
+{
+    objectID  = TEN.Objects.ObjID.DIARY_ENTRY_SPRITES,
+    position  = TEN.Vec2(50, 50),
+    rotation  = 0,
+    scale     = TEN.Vec2(100, 100),
+    alignMode = TEN.View.AlignMode.CENTER,
+    scaleMode = TEN.View.ScaleMode.STRETCH,
+    blendMode = TEN.Effects.BlendID.ALPHA_BLEND,
+    color     = TEN.Color(255, 255, 255),
+    alpha     = 255,
+    presets   =
+    {
+        { name = "None",    spriteID = -1 },
+        { name = "Cinematic Bars", spriteID = 0 },
+        { name = "Tomb Raider Logo", spriteID = 1 },
+        { name = "Polaroid", spriteID = 2 },
+        { name = "Recording", spriteID = 3 }
     },
 }
 
@@ -219,9 +280,6 @@ Settings.Outfits =
     },
 }
 
--- pickupObjID: optional ObjID for TEN.Inventory.GetItemCount(). When set, the
---              weapon is only shown in the menu while the player carries that item.
---              nil (default) means always show regardless of inventory.
 Settings.Weapons =
 {
     { name = "Default", objID = TEN.Objects.ObjID.LARA_SKIN, meshIndices = {}, weaponType = TEN.Objects.WeaponType.NONE, type = "none" },
@@ -237,7 +295,7 @@ Settings.Weapons =
     { name = TEN.Flow.GetString("grenade_launcher"),  objID = TEN.Objects.ObjID.GRENADE_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.GRENADE_LAUNCHER, pickupObjID = TEN.Objects.ObjID.GRENADE_GUN_ITEM,type = "back" },
     { name = TEN.Flow.GetString("rocket_launcher"),  objID = TEN.Objects.ObjID.ROCKET_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.ROCKET_LAUNCHER, pickupObjID = TEN.Objects.ObjID.ROCKET_LAUNCHER_ITEM,type = "back" },
     { name = TEN.Flow.GetString("flares"),  objID = TEN.Objects.ObjID.FLARE_ANIM, meshIndices = {13}, weaponType = TEN.Objects.WeaponType.FLARE, pickupObjID = TEN.Objects.ObjID.FLARE_INV_ITEM, type = "none" },
-    { name = TEN.Flow.GetString("crowbar"),  objID = TEN.Objects.ObjID.LARA_CROWBAR_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.NONE, pickupObjID = TEN.Objects.ObjID.CROWBAR_ITEM,type = "none" },
+    { name = TEN.Flow.GetString("crowbar"),  objID = TEN.Objects.ObjID.LARA_CROWBAR_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.NONE, pickupObjID = TEN.Objects.ObjID.CROWBAR_ITEM, type = "none" },
 }
 
 Settings.Expressions =
@@ -299,66 +357,6 @@ Settings.Animations =
 }
 
 -- ============================================================================
--- Frames (full-screen sprite overlays)
--- ============================================================================
-
-Settings.Frames =
-{
-    objectID  = TEN.Objects.ObjID.DIARY_ENTRY_SPRITES,
-    position  = TEN.Vec2(50, 50),
-    rotation  = 0,
-    scale     = TEN.Vec2(100, 100),
-    alignMode = TEN.View.AlignMode.CENTER,
-    scaleMode = TEN.View.ScaleMode.STRETCH,
-    blendMode = TEN.Effects.BlendID.ALPHA_BLEND,
-    color     = TEN.Color(255, 255, 255),
-    alpha     = 255,
-    presets   =
-    {
-        { name = "None",    spriteID = -1 },
-        { name = "Cinematic Bars", spriteID = 0 },
-        { name = "Tomb Raider Logo", spriteID = 1 },
-        { name = "Polaroid", spriteID = 2 },
-        { name = "Recording", spriteID = 3 }
-    },
-}
-
--- ============================================================================
--- Depth of Field
--- ============================================================================
-
-Settings.DepthOfField =
-{
-    -- Mode selector: index into modes table (1 = Off / NONE)
-    modes =
-    {
-        { name = "Off",   mode = TEN.View.DOFMode.NONE  },
-        { name = "Full",  mode = TEN.View.DOFMode.FULL  },
-        { name = "Front", mode = TEN.View.DOFMode.FRONT },
-        { name = "Back",  mode = TEN.View.DOFMode.BACK  },
-    },
-    defaultMode          = 1,     -- index into modes (1 = Off)
-
-    -- Focus distance: world units to the sharp focal plane
-    defaultFocusDistance = 1536,
-    minFocusDistance     = 64,
-    maxFocusDistance     = 8192,
-    focusDistanceStep    = 64,
-
-    -- Range: width of the sharp focus region in world units
-    defaultRange         = 2048,
-    minRange             = 64,
-    maxRange             = 8192,
-    rangeStep            = 64,
-
-    -- Strength: maximum bokeh radius (clamped to [0, 1])
-    defaultStrength      = 0.5,
-    minStrength          = 0.0,
-    maxStrength          = 1.0,
-    strengthStep         = 0.05,
-}
-
--- ============================================================================
 -- Sunglasses
 -- ============================================================================
 
@@ -366,7 +364,7 @@ Settings.Sunglasses =
 {
     meshName   = "pm_Sunglasses",
     objID      = TEN.Objects.ObjID.ACTOR1_SPEECH_HEAD1,
-    enabled    = true,    -- Set to false to hide the Sunglasses option entirely.
+    enabled    = false,    -- Set to false to hide the Sunglasses option entirely.
 }
 
 -- ============================================================================
