@@ -7,6 +7,7 @@
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/tomb4fx.h"
+#include "Objects/Effects/Boss.h"
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/Lara/lara.h"
@@ -17,34 +18,41 @@
 #include "Specific/level.h"
 #include "Objects/Effects/enemy_missile.h"
 
+
 using namespace TEN::Animation;
 using namespace TEN::Math;
+using namespace TEN::Effects::Boss;
 using namespace TEN::Entities::Effects;
 
 namespace TEN::Entities::Creatures::TR3
 {
-	constexpr auto WILLARD_BITE_DAMAGE		 = 220;
-	constexpr auto WILLARD_TOUCH_DAMAGE		 = 10;
-	constexpr auto WILLARD_HP_AFTER_KO		 = 200;
-	constexpr auto WILLARD_KO_TIME			 = 280;
-	constexpr auto WILLARD_PATH_DISTANCE	 = 1024;
+	constexpr auto WILLARD_BITE_DAMAGE				= 220;
+	constexpr auto WILLARD_TOUCH_DAMAGE				= 10;
+	constexpr auto WILLARD_HP_AFTER_KO				= 200;
+	constexpr auto WILLARD_KO_TIME					= 280;
+	constexpr auto WILLARD_PATH_DISTANCE			= 1024;
 
-	constexpr auto WILLARD_ATTACK_RANGE		 = SQUARE(BLOCK(1.5f));
-	constexpr auto WILLARD_LUNGE_RANGE		 = SQUARE(BLOCK(2));
-	constexpr auto WILLARD_FIRE_RANGE		 = SQUARE(BLOCK(4));
+	constexpr auto WILLARD_ATTACK_RANGE				= SQUARE(BLOCK(1.5f));
+	constexpr auto WILLARD_LUNGE_RANGE				= SQUARE(BLOCK(2));
+	constexpr auto WILLARD_FIRE_RANGE				= SQUARE(BLOCK(4));
 
-	constexpr auto WILLARD_TURN				 = ANGLE(5.0f);
-	constexpr auto WILLARD_ATTACK_TURN		 = ANGLE(2.0f);
+	constexpr auto WILLARD_TURN						= ANGLE(5.0f);
+	constexpr auto WILLARD_ATTACK_TURN				= ANGLE(2.0f);
+	constexpr auto WILLARD_TOUCH					= 0x900000;
 
-	constexpr auto WILLARD_TOUCH			 = 0x900000;
+
+	constexpr auto WILLARD_EXPLOSION_NUM_MAX		= 60;
+	constexpr auto WILLARD_SHOCKWAVE_COLOR			= Vector4(0.0f, 0.7f, 0.3f, 0.5f);
+	constexpr auto WILLARD_EXPLOSION_MAIN_COLOR		= Vector4(0.0f, 0.7f, 0.2f, 0.5f);
+	constexpr auto WILLARD_EXPLOSION_SECOND_COLOR	= Vector4(0.0f, 0.7f, 0.0f, 0.5f);
 
 	constexpr auto NO_AI_PATH = -1;
 	constexpr auto MAX_PATH_POINTS = 16;
 	constexpr auto MAX_JUNCTIONS = 4;
 
-	const auto WillardBiteLeft = CreatureBiteInfo(Vector3(19, -13, 3), 20);
-	const auto WillardBiteRight = CreatureBiteInfo(Vector3(19, -13, 3), 23);
-	const auto WillardBiteAttackJoints = std::vector<unsigned int>{ 20, 21, 22, 23 };
+	const auto WillardBiteLeft						= CreatureBiteInfo(Vector3(19, -13, 3), 20);
+	const auto WillardBiteRight						= CreatureBiteInfo(Vector3(19, -13, 3), 23);
+	const auto WillardBiteAttackJoints				= std::vector<unsigned int>{ 20, 21, 22, 23 };
 
 	enum WillardState
 	{
@@ -325,6 +333,7 @@ namespace TEN::Entities::Creatures::TR3
 		WillardAI.InvalidStateLogged = false;
 		WillardAI.Initialized = false;
 		item.ItemFlags[1] = 0; // Death flag.
+		item.ItemFlags[7] = 0;	// Explode count.
 	}
 
 	void WillardControl(short itemNumber)
@@ -441,9 +450,10 @@ namespace TEN::Entities::Creatures::TR3
 					item.Animation.FrameNumber = GetAnimData(item).EndFrameNumber - 2;
 					item.MeshBits.ClearAll();
 
-					// TODO: Trigger explosion effects.
+					if (item.ItemFlags[7] < 128)
+						item.ItemFlags[7]++;
 
-					CreatureDie(itemNumber, true);
+					ExplodeBoss(item, WILLARD_EXPLOSION_NUM_MAX, WILLARD_SHOCKWAVE_COLOR, WILLARD_EXPLOSION_MAIN_COLOR, WILLARD_EXPLOSION_SECOND_COLOR);
 					return;
 				}
 			}
