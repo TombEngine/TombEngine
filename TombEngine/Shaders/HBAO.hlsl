@@ -4,32 +4,31 @@
 #include "./CBPostProcess.hlsli"
 #include "./Samplers.hlsli"
 
-// Horizon-Based Ambient Occlusion (Bavoil & Sainz, 2008).
+// HBAO+ — enhanced Horizon-Based Ambient Occlusion (Bavoil/Sainz + NVIDIA HBAO+ tweaks).
 //
-// For each pixel we cast NUM_DIRS rays in screen-space (rotated per-pixel by a 4x4 random
-// texture) and along each ray we march NUM_STEPS samples. For every sample we measure the
-// elevation angle of the neighbour above the tangent plane defined by the pixel normal.
-// The maximum elevation (the "horizon") drives the occlusion contribution along that ray.
-//
-// Compared to the previous Crytek-style SSAO (64 random hemisphere samples + bilateral blur)
-// this is ~4x cheaper (16 taps), exhibits less salt-and-pepper noise, and reacts to local
-// geometry curvature instead of plain proximity, producing crisper contact shadows.
+// Differences vs vanilla HBAO:
+//   - 6 directions × 6 steps (vs 4 × 4): less directional banding, smoother results.
+//   - Quadratic radius falloff (smoother fade than linear).
+//   - Adaptive bias: scaled with distance to keep contact AO crisp while preventing the
+//     self-occlusion specks that show up on flat surfaces far from camera.
+//   - Cross-bilateral blur: rejects neighbours that disagree on EITHER depth OR normal,
+//     which is what finally suppresses the silhouette "ghosts" that depth-only filters
+//     leak (a thin foreground object can share depth-gradient with the background but
+//     never normal-orientation).
 
-#define NUM_DIRS  4
-#define NUM_STEPS 4
+#define NUM_DIRS  6
+#define NUM_STEPS 6
 
-#define HBAO_RADIUS    64.0f  // World-space sphere of influence.
-#define HBAO_BIAS      0.15f  // Sin of minimum considered horizon angle (avoids self-occlusion).
-#define HBAO_INTENSITY 1.0f   // Final occlusion scale.
+#define HBAO_RADIUS    64.0f
+#define HBAO_BIAS      0.10f
+#define HBAO_INTENSITY 1.0f
 #define HBAO_MAX_DIST  40960.0f
 
-// Bilateral blur: spatial Gaussian + depth-aware edge-stopping. The depth term rejects
-// neighbours across silhouette discontinuities (e.g. character vs background) which would
-// otherwise produce bright halos when the standard "value-aware" filter mixes the high-AO
-// (isolated geometry) and low-AO (surrounding surface) sides of the edge.
-#define BLUR_SIGMA       3.0f
-#define BLUR_DEPTH_SIGMA 0.002f  // NDC-z tolerance; ≈ 1% of typical scene depth.
-#define BLUR_SIZE        5
+// Cross-bilateral blur (spatial × depth × normal).
+#define BLUR_SIGMA        1.5f
+#define BLUR_DEPTH_SIGMA  0.001f  // NDC z tolerance.
+#define BLUR_NORMAL_POWER 8.0f    // (dot(n0,n1))^POWER — higher = sharper normal edge.
+#define BLUR_SIZE         3
 
 struct PixelShaderInput
 {
@@ -64,7 +63,6 @@ float PS(PixelShaderInput input) : SV_Target
     float3 position = ReconstructPositionFromDepth(input.UV);
     float3 encodedNormal = NormalsTexture.Sample(PointWrapSampler, input.UV).xyz;
 
-    // Early exit on sky / out-of-range fragments.
     float farMask      = step(HBAO_MAX_DIST, length(position));
     float noNormalMask = step(length(encodedNormal), 0.0001f);
     if (saturate(farMask + noNormalMask) > 0.0f)
@@ -72,19 +70,15 @@ float PS(PixelShaderInput input) : SV_Target
 
     float3 normal = normalize(DecodeNormal(encodedNormal));
 
-    // Random rotation read from the 4x4 noise (tiled across the screen). We only use the
-    // xy components: a rotation seed for the ray fan and a jitter for marching step length.
     float2 noiseScale = ViewportSize / 4.0f;
     float3 rnd = NoiseTexture.Sample(PointWrapSampler, input.UV * noiseScale).xyz;
     float baseAngle = rnd.x * 6.2831853f;
     float stepJitter = rnd.y;
 
-    // World-space radius → screen-space (UV) radius using the projection focal length and
-    // current view-space depth. abs() guards against the small positive Z that EnsureNormal
-    // would otherwise produce near the near plane.
-    float linearZ = max(abs(position.z), 0.001f);
+    float linearZ  = max(abs(position.z), 0.001f);
     float radiusUV = HBAO_RADIUS * 0.5f * Projection._m00 / linearZ;
     float stepUV   = radiusUV / NUM_STEPS;
+    float radiusSq = HBAO_RADIUS * HBAO_RADIUS;
 
     float occlusion = 0.0f;
 
@@ -104,16 +98,14 @@ float PS(PixelShaderInput input) : SV_Target
 
             float3 delta = samplePos - position;
             float distSq = dot(delta, delta);
-            float invLen = rsqrt(max(distSq, 1e-4f));
 
-            // sin(horizon) = (delta . normal) / |delta|.
+            // Quadratic radius falloff (smoother edge than linear).
+            float r = saturate(1.0f - distSq / radiusSq);
+            float falloff = r * r;
+
+            float invLen = rsqrt(max(distSq, 1e-4f));
             float sinH = dot(delta, normal) * invLen;
 
-            // Distance falloff: linear over r^2.
-            float falloff = saturate(1.0f - distSq / (HBAO_RADIUS * HBAO_RADIUS));
-
-            // Track weighted horizon. Falloff modulates the contribution so distant samples
-            // never push the horizon up beyond their relevance.
             maxSinHorizon = max(maxSinHorizon, sinH * falloff);
         }
 
@@ -121,7 +113,6 @@ float PS(PixelShaderInput input) : SV_Target
     }
 
     occlusion = saturate(occlusion * HBAO_INTENSITY / NUM_DIRS);
-
     return 1.0f - occlusion;
 }
 
@@ -132,7 +123,8 @@ float PSBlur(PixelShaderInput input) : SV_Target
     const float twoDepthSigmaSq   = 2.0f * BLUR_DEPTH_SIGMA * BLUR_DEPTH_SIGMA;
 
     float2 texelSize = TexelSize;
-    float baseDepth  = DepthTexture.Sample(PointWrapSampler, input.UV).x;
+    float  baseDepth  = DepthTexture.Sample(PointWrapSampler, input.UV).x;
+    float3 baseNormal = normalize(DecodeNormal(NormalsTexture.Sample(PointWrapSampler, input.UV).xyz));
 
     float result = 0.0f;
     float wSum   = 0.0f;
@@ -145,14 +137,21 @@ float PSBlur(PixelShaderInput input) : SV_Target
         {
             float2 sampleUV = input.UV + float2(i, j) * texelSize;
 
-            float ao         = AOTexture.Sample(PointWrapSampler, sampleUV).x;
-            float sampleDepth = DepthTexture.Sample(PointWrapSampler, sampleUV).x;
+            float  ao           = AOTexture.Sample(PointWrapSampler, sampleUV).x;
+            float  sampleDepth  = DepthTexture.Sample(PointWrapSampler, sampleUV).x;
+            float3 sampleNormal = normalize(DecodeNormal(NormalsTexture.Sample(PointWrapSampler, sampleUV).xyz));
 
             float spatialW = exp(-(i * i + j * j) / twoSpatialSigmaSq);
-            float depthDiff = sampleDepth - baseDepth;
-            float depthW   = exp(-(depthDiff * depthDiff) / twoDepthSigmaSq);
 
-            float w = spatialW * depthW;
+            float depthDiff = sampleDepth - baseDepth;
+            float depthW    = exp(-(depthDiff * depthDiff) / twoDepthSigmaSq);
+
+            // Normal continuity: 1 when aligned, falls off as orientation diverges.
+            // pow(dot, P) is cheaper than acos-based weights and behaves the same.
+            float normalDot = saturate(dot(baseNormal, sampleNormal));
+            float normalW   = pow(normalDot, BLUR_NORMAL_POWER);
+
+            float w = spatialW * depthW * normalW;
             result += ao * w;
             wSum   += w;
         }
