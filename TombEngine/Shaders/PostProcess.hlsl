@@ -194,12 +194,44 @@ float4 PSLensFlare(PixelShaderInput input) : SV_Target
         lensFlarePosition = mul(mul(lensFlarePosition, View), Projection); 
 		lensFlarePosition.xyz /= lensFlarePosition.w;
 
+		// Per-flare depth-buffer occlusion: compare scene depth at the projected
+		// sun position against the sun's projected depth. Any opaque geometry in
+		// front of the sun (rooms, statics, moveables) suppresses the entire
+		// flare, including the central starburst spike. This mirrors how the
+		// sun/moon disc is naturally occluded by overdrawn opaque geometry.
+		float occlusion = 1.0f;
+		if (lensFlarePosition.w > 0.0f &&
+			abs(lensFlarePosition.x) <= 1.0f && abs(lensFlarePosition.y) <= 1.0f)
+		{
+			float2 sunUV = float2(lensFlarePosition.x * 0.5f + 0.5f,
+			                      0.5f - lensFlarePosition.y * 0.5f);
+
+			// 9-tap soft visibility test in a small kernel around the sun position.
+			// Sky pixels (NDC depth ~1.0) count as visible; opaque geometry counts
+			// as occluding. Averaging the taps avoids hard pop-in when the flare
+			// peeks out from behind geometry edges.
+			const float2 KERNEL_RADIUS = float2(0.012f, 0.018f);
+			float visibility = 0.0f;
+			[unroll]
+			for (int oy = -1; oy <= 1; oy++)
+			{
+				[unroll]
+				for (int ox = -1; ox <= 1; ox++)
+				{
+					float2 offsetUV = saturate(sunUV + float2(ox, oy) * KERNEL_RADIUS);
+					float d = DepthTexture.SampleLevel(DepthSampler, offsetUV, 0).r;
+					visibility += (d >= 0.9999f) ? 1.0f : 0.0f;
+				}
+			}
+			occlusion = visibility / 9.0f;
+		}
+
 		float3 lensFlareColor = max(float3(0.0f, 0.0f, 0.0f),
 			LensFlares[i].Color *
 			float3(4.5f, 4.5f, 4.5f) * 
 			LensFlare(position.xy, lensFlarePosition.xy));
 		lensFlareColor = LensFlareColorCorrection(lensFlareColor, 0.5f, 0.1f);
-		totalLensFlareColor += lensFlareColor;
+		totalLensFlareColor += lensFlareColor * occlusion;
 	}
 
 	color.xyz = lerp(color.xyz, color.xyz + totalLensFlareColor, saturate(dot(totalLensFlareColor, float3(0.5f, 0.5f, 0.5f))));

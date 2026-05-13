@@ -117,6 +117,7 @@ namespace TEN::Renderer::Utils
 		Load(Shader::RoomAmbientSky, "RoomAmbient", "Sky", ShaderType::PixelAndVertex, {});
 		Load(Shader::Items, "Objects", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::Sky, "Sky", "", ShaderType::PixelAndVertex, {});
+		Load(Shader::SkyDepth, "Sky", "Depth", ShaderType::Pixel, {});
 		Load(Shader::Solid, "Solid", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::Inventory, "Inventory", "", ShaderType::PixelAndVertex, {});
 

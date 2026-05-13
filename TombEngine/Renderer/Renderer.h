@@ -433,6 +433,7 @@ namespace TEN::Renderer
 		void PrepareSingleLaserBeam(RenderView& view);
 		void DrawHorizonAndSky(IDepthTarget* depthTarget, RenderView& renderView, int arrayIndex = 0, bool reflectionPass = false);
 		void DrawHorizonAndSkyForReflections(RenderView& renderView);
+		void DrawHorizonDepth(RenderView& renderView);
 
 		// Atmospheric sky dome
 		void InitializeAtmosphericSky();

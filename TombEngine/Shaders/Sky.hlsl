@@ -90,3 +90,19 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 
 	return output;
 }
+
+// Depth-only entry: writes the horizon mesh's NDC depth into a single color RT
+// (R32F). Used to make the horizon mesh occlude post-process lens flares.
+// Alpha-tested texels are discarded so transparent texture regions do not write
+// horizon depth and falsely block the sun there.
+float PSDepth(PixelShaderInput input) : SV_TARGET
+{
+    if (Animated && Type == 1)
+        input.UV = CalculateUVRotate(input.UV, 0);
+
+    float4 color = Texture.Sample(Sampler, input.UV);
+    DoAlphaTest(color);
+
+    // SV_POSITION.z in PS is the rasterized NDC depth (matches GBuffer.Depth).
+    return input.Position.z;
+}

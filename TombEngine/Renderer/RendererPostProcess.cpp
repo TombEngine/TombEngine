@@ -52,6 +52,19 @@ namespace TEN::Renderer
 		
 		if (!view.LensFlaresToDraw.empty())
 		{
+			// Re-render horizon mesh into the GBuffer depth color RT so PSLensFlare
+			// can occlude flares behind mountain horizon geometry.
+			DrawHorizonDepth(view);
+
+			// Restore post-process pipeline state after the horizon-depth draw.
+			_shaders.Bind(Shader::PostProcess);
+			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+			_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+			_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+			SetBlendMode(BlendMode::Opaque);
+			SetCullMode(CullMode::CounterClockwise);
+			SetDepthState(DepthState::Write);
+
 			// Update cloud occlusion for lens flare attenuation (before setting up lens flare RT).
 			// If the new dual-layer system has active volumetric layers, use its combined
 			// transmittance; otherwise fall back to the legacy single-layer occlusion.
@@ -97,7 +110,15 @@ namespace TEN::Renderer
 			UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
 			BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[currentRenderTarget]->GetRenderTarget(), SamplerStateRegister::PointWrap);
+
+			// Bind GBuffer depth at slot t1 so PSLensFlare can occlude flares
+			// behind opaque scene geometry (rooms, statics, moveables).
+			BindRenderTargetAsTexture(TextureRegister::NormalMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
+
 			DrawTriangles(3, 0);
+
+			// Unbind depth SRV so the depth target can be safely re-bound elsewhere.
+			_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::NormalMap);
 
 			destRenderTarget = (destRenderTarget) == 1 ? 0 : 1;
 			currentRenderTarget = (currentRenderTarget == 1) ? 0 : 1;
