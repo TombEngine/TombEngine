@@ -293,6 +293,22 @@ namespace TEN::Entities::Creatures::TR3
 		}
 	}
 
+	static int GetPathDelta(int fromPath, int toPath, int pathCount)
+	{
+		if (pathCount <= 0)
+			return 0;
+
+		int delta = toPath - fromPath;
+		int halfCount = pathCount / 2;
+
+		if (delta > halfCount)
+			delta -= pathCount;
+		else if (delta < -halfCount)
+			delta += pathCount;
+
+		return delta;
+	}
+
 	void InitializeWillard(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
@@ -352,8 +368,21 @@ namespace TEN::Entities::Creatures::TR3
 		z = (WillardAI.AIPath[WillardAI.LaraAIPath].Position.z - LaraItem->Pose.Position.z) >> 6;
 		int laraToPathDist = SQUARE(x) + SQUARE(z);
 
-		bool inFireZone = (laraToJunctionDist < laraToPathDist) ||
-						  (item.Pose.Position.y > LaraItem->Pose.Position.y + BLOCK(2));
+		int junctionPath = NO_AI_PATH;
+		bool validJunctionPath = (WillardAI.LaraJunction >= 0 && WillardAI.LaraJunction < WillardAI.JunctionCount);
+		if (validJunctionPath)
+		{
+			junctionPath = WillardAI.JunctionIndex[WillardAI.LaraJunction];
+			validJunctionPath = (junctionPath >= 0 && junctionPath < WillardAI.PathCount);
+		}
+
+		bool laraAtJunctionPath = false;
+		if (validJunctionPath)
+			laraAtJunctionPath = abs(GetPathDelta(WillardAI.LaraAIPath, junctionPath, WillardAI.PathCount)) <= 1;
+
+		bool inFireZone = validJunctionPath && laraAtJunctionPath &&
+						  ((laraToJunctionDist < laraToPathDist) ||
+						   (item.Pose.Position.y > LaraItem->Pose.Position.y + BLOCK(2)));
 
 		x = WillardAI.AIJunction[WillardAI.LaraJunction].Position.x - item.Pose.Position.x;
 		z = WillardAI.AIJunction[WillardAI.LaraJunction].Position.z - item.Pose.Position.z;
@@ -475,7 +504,7 @@ namespace TEN::Entities::Creatures::TR3
 				{
 					item.Animation.TargetState = WILLARD_STATE_STOP;
 				}
-				else if (inFireZone && ai.ahead && willardToJunctionDist < WILLARD_FIRE_RANGE)
+				else if (inFireZone && willardToJunctionDist < WILLARD_FIRE_RANGE)
 				{
 					item.Animation.TargetState = WILLARD_STATE_STOP;
 				}
