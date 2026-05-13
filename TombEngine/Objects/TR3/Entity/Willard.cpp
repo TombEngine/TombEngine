@@ -74,6 +74,8 @@ namespace TEN::Entities::Creatures::TR3
 		Pose AIPath[MAX_PATH_POINTS];
 		Pose AIJunction[MAX_JUNCTIONS];
 		int JunctionIndex[MAX_JUNCTIONS];
+		int PathCount = 0;
+		int JunctionCount = 0;
 		int ClosestAIPath = NO_AI_PATH;
 		int LaraAIPath = NO_AI_PATH;
 		int LaraJunction = NO_AI_PATH;
@@ -109,31 +111,43 @@ namespace TEN::Entities::Creatures::TR3
 		if (WillardAI.Initialized)
 			return;
 
-		int pathCount = 0;
-		int junctionCount = 0;
+		WillardAI.PathCount = 0;
+		WillardAI.JunctionCount = 0;
+		WillardAI.ClosestAIPath = NO_AI_PATH;
+		WillardAI.LaraAIPath = NO_AI_PATH;
+		WillardAI.LaraJunction = NO_AI_PATH;
 
-		// Find all AI_X1 (path) and AI_X2 (junction) items in the room.
-		for (short linkNum = g_Level.Rooms[item->RoomNumber].itemNumber; linkNum != NO_VALUE; linkNum = g_Level.Items[linkNum].NextItem)
+		for (int i = 0; i < MAX_JUNCTIONS; i++)
+			WillardAI.JunctionIndex[i] = NO_AI_PATH;
+
+		// Find all AI_X1 (path) and AI_X2 (junction) objects in current room.
+		for (const auto& aiObject : g_Level.AIObjects)
 		{
-			auto& linkedItem = g_Level.Items[linkNum];
+			if (aiObject.roomNumber != item->RoomNumber)
+				continue;
 
-			if (linkedItem.ObjectNumber == ID_AI_X1 && pathCount < MAX_PATH_POINTS)
+			if (aiObject.objectNumber == ID_AI_X1 && WillardAI.PathCount < MAX_PATH_POINTS)
 			{
-				WillardAI.AIPath[pathCount] = linkedItem.Pose;
-				pathCount++;
+				WillardAI.AIPath[WillardAI.PathCount] = aiObject.pos;
+				WillardAI.PathCount++;
 			}
-			else if (linkedItem.ObjectNumber == ID_AI_X2 && junctionCount < MAX_JUNCTIONS)
+			else if (aiObject.objectNumber == ID_AI_X2 && WillardAI.JunctionCount < MAX_JUNCTIONS)
 			{
-				WillardAI.AIJunction[junctionCount] = linkedItem.Pose;
-				junctionCount++;
+				WillardAI.AIJunction[WillardAI.JunctionCount] = aiObject.pos;
+				WillardAI.JunctionCount++;
 			}
 		}
 
+		if (WillardAI.PathCount <= 0 || WillardAI.JunctionCount <= 0)
+		{
+			WillardAI.Initialized = true;
+			return;
+		}
+
 		// Find closest AI path point to Willard.
-		WillardAI.ClosestAIPath = -1;
 		int bestDistance = INT_MAX;
 
-		for (int i = 0; i < MAX_PATH_POINTS; i++)
+		for (int i = 0; i < WillardAI.PathCount; i++)
 		{
 			int x = (WillardAI.AIPath[i].Position.x - item->Pose.Position.x) >> 6;
 			int z = (WillardAI.AIPath[i].Position.z - item->Pose.Position.z) >> 6;
@@ -147,10 +161,9 @@ namespace TEN::Entities::Creatures::TR3
 		}
 
 		// Find closest AI path point to Lara.
-		WillardAI.LaraAIPath = -1;
 		bestDistance = INT_MAX;
 
-		for (int i = 0; i < MAX_PATH_POINTS; i++)
+		for (int i = 0; i < WillardAI.PathCount; i++)
 		{
 			int x = (WillardAI.AIPath[i].Position.x - LaraItem->Pose.Position.x) >> 6;
 			int z = (WillardAI.AIPath[i].Position.z - LaraItem->Pose.Position.z) >> 6;
@@ -164,16 +177,16 @@ namespace TEN::Entities::Creatures::TR3
 		}
 
 		// Find closest AI path point to each junction.
-		for (int junc = 0; junc < MAX_JUNCTIONS; junc++)
+		for (int junc = 0; junc < WillardAI.JunctionCount; junc++)
 		{
-			int pathNum = -1;
+			int pathNum = NO_AI_PATH;
 			bestDistance = INT_MAX;
 
-			for (int i = 0; i < MAX_PATH_POINTS; i++)
+			for (int i = 0; i < WillardAI.PathCount; i++)
 			{
 				int x = abs((WillardAI.AIPath[i].Position.x - WillardAI.AIJunction[junc].Position.x) >> 6);
 				int z = abs((WillardAI.AIPath[i].Position.z - WillardAI.AIJunction[junc].Position.z) >> 6);
-				int distance = (x > z) ? x + (z >> 1) : z + (x >> 1);
+				int distance = x + (z >> 1);
 
 				if (distance < bestDistance)
 				{
@@ -190,6 +203,12 @@ namespace TEN::Entities::Creatures::TR3
 
 	static void UpdateAIPath(ItemInfo* item)
 	{
+		if (WillardAI.PathCount <= 0 || WillardAI.JunctionCount <= 0 ||
+			WillardAI.ClosestAIPath == NO_AI_PATH || WillardAI.LaraAIPath == NO_AI_PATH)
+		{
+			return;
+		}
+
 		// Update closest path point to Willard.
 		int oldClosest = WillardAI.ClosestAIPath;
 		int bestDistance = INT_MAX;
@@ -198,9 +217,9 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			int pathNum;
 			if (i < 0)
-				pathNum = i + MAX_PATH_POINTS;
-			else if (i > MAX_PATH_POINTS - 1)
-				pathNum = i - MAX_PATH_POINTS;
+				pathNum = i + WillardAI.PathCount;
+			else if (i > WillardAI.PathCount - 1)
+				pathNum = i - WillardAI.PathCount;
 			else
 				pathNum = i;
 
@@ -223,9 +242,9 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			int pathNum;
 			if (i < 0)
-				pathNum = i + MAX_PATH_POINTS;
-			else if (i > MAX_PATH_POINTS - 1)
-				pathNum = i - MAX_PATH_POINTS;
+				pathNum = i + WillardAI.PathCount;
+			else if (i > WillardAI.PathCount - 1)
+				pathNum = i - WillardAI.PathCount;
 			else
 				pathNum = i;
 
@@ -242,7 +261,7 @@ namespace TEN::Entities::Creatures::TR3
 
 		// Find closest junction to Lara.
 		int bestJunctionDistance = INT_MAX;
-		for (int i = 0; i < MAX_JUNCTIONS; i++)
+		for (int i = 0; i < WillardAI.JunctionCount; i++)
 		{
 			int x = (WillardAI.AIJunction[i].Position.x - LaraItem->Pose.Position.x) >> 6;
 			int z = (WillardAI.AIJunction[i].Position.z - LaraItem->Pose.Position.z) >> 6;
@@ -261,7 +280,13 @@ namespace TEN::Entities::Creatures::TR3
 		auto& item = g_Level.Items[itemNumber];
 		InitializeCreature(itemNumber);
 
+		WillardAI.PathCount = 0;
+		WillardAI.JunctionCount = 0;
 		WillardAI.ClosestAIPath = NO_AI_PATH;
+		WillardAI.LaraAIPath = NO_AI_PATH;
+		WillardAI.LaraJunction = NO_AI_PATH;
+		WillardAI.Direction = 1;
+		WillardAI.DesiredDirection = 1;
 		WillardAI.Initialized = false;
 		item.ItemFlags[1] = 0; // Death flag.
 	}
@@ -280,6 +305,15 @@ namespace TEN::Entities::Creatures::TR3
 		// Initialize AI path system on first run.
 		InitializeWillardAI(&item);
 		UpdateAIPath(&item);
+
+		if (WillardAI.ClosestAIPath == NO_AI_PATH ||
+			WillardAI.LaraAIPath == NO_AI_PATH ||
+			WillardAI.LaraJunction == NO_AI_PATH)
+		{
+			angle = CreatureTurn(&item, creature->MaxTurn);
+			CreatureAnimation(itemNumber, angle, 0);
+			return;
+		}
 
 		// Check if Lara is in fire zone (closer to junction than path).
 		int x = (WillardAI.AIJunction[WillardAI.LaraJunction].Position.x - LaraItem->Pose.Position.x) >> 6;
