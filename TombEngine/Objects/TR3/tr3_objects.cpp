@@ -223,7 +223,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->pivotLength = 200;
 		obj->radius = 341;
 		obj->intelligent = true;
-		obj->LotType = LotType::Water;
+		obj->LotType = LotType::Water
 	}
 
 	obj = &Objects[ID_WILLARD];
@@ -491,6 +491,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->radius = 204;
 		obj->pivotLength = 0;
 		obj->intelligent = true;
+		obj->LotType = LotType::HumanPlusJump;
 		obj->SetBoneRotationFlags(0, ROT_X | ROT_Z); // Torso
 		obj->SetBoneRotationFlags(7, ROT_Y);		 // Head
 		obj->SetHitEffect();
@@ -507,6 +508,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->radius = 102;
 		obj->pivotLength = 0;
 		obj->intelligent = true;
+		obj->LotType = LotType::Human;
 		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(13, ROT_Y);
 		obj->SetHitEffect();
@@ -523,6 +525,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->radius = 102;
 		obj->pivotLength = 0;
 		obj->intelligent = true;
+		obj->LotType = LotType::Human;
 		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(13, ROT_Y);
 		obj->SetHitEffect();
@@ -539,6 +542,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->radius = 102;
 		obj->pivotLength = 0;
 		obj->intelligent = true;
+		obj->LotType = LotType::Human;
 		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(13, ROT_Y);
 		obj->SetHitEffect();
@@ -555,7 +559,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->radius = 102;
 		obj->pivotLength = 0;
 		obj->intelligent = true;
-		obj->LotType = LotType::Human;
+		obj->LotType = LotType::HumanPlusJump;
 		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(13, ROT_Y);
 		obj->SetHitEffect();
@@ -588,6 +592,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->radius = 102;
 		obj->pivotLength = 0;
 		obj->intelligent = true;
+		obj->LotType = LotType::Human;
 		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(13, ROT_Y);
 		obj->SetHitEffect();
