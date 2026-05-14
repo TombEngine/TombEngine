@@ -36,13 +36,13 @@ namespace TEN::Effects::Splash
 				splash.Position = setup->Position;
 				splash.life = 62;
 				splash.isRipple = false;
-				splash.InnerRadius = setup->InnerRadius;
+				splash.InnerRadius = setup->InnerRadius / 2;
 				splashVel = splashPower / 16;
 				splash.InnerRadialVel = splashVel;
-				splash.HeightSpeed = splashPower * 1.2f;
+				splash.HeightSpeed = splashPower * 1.0f;
 				splash.height = 0;
 				splash.HeightVel = -16;
-				splash.OuterRadius = setup->InnerRadius / 3;
+				splash.OuterRadius = setup->InnerRadius;
 				splash.outerRadialVel = splashVel * 1.5f;
 				splash.SpriteSeqStart = 8; // Splash texture.
 				splashSetupCount++;
