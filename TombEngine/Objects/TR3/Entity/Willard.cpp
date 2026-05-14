@@ -7,6 +7,7 @@
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/tomb4fx.h"
+#include "Objects/Effects/Boss.h"
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/Lara/lara.h"
@@ -17,34 +18,41 @@
 #include "Specific/level.h"
 #include "Objects/Effects/enemy_missile.h"
 
+
 using namespace TEN::Animation;
 using namespace TEN::Math;
+using namespace TEN::Effects::Boss;
 using namespace TEN::Entities::Effects;
 
 namespace TEN::Entities::Creatures::TR3
 {
-	constexpr auto WILLARD_BITE_DAMAGE		 = 220;
-	constexpr auto WILLARD_TOUCH_DAMAGE		 = 10;
-	constexpr auto WILLARD_HP_AFTER_KO		 = 200;
-	constexpr auto WILLARD_KO_TIME			 = 280;
-	constexpr auto WILLARD_PATH_DISTANCE	 = 1024;
+	constexpr auto WILLARD_BITE_DAMAGE				= 220;
+	constexpr auto WILLARD_TOUCH_DAMAGE				= 10;
+	constexpr auto WILLARD_HP_AFTER_KO				= 200;
+	constexpr auto WILLARD_KO_TIME					= 280;
+	constexpr auto WILLARD_PATH_DISTANCE			= 1024;
 
-	constexpr auto WILLARD_ATTACK_RANGE		 = SQUARE(BLOCK(1.5f));
-	constexpr auto WILLARD_LUNGE_RANGE		 = SQUARE(BLOCK(2));
-	constexpr auto WILLARD_FIRE_RANGE		 = SQUARE(BLOCK(4));
+	constexpr auto WILLARD_ATTACK_RANGE				= SQUARE(BLOCK(1.5f));
+	constexpr auto WILLARD_LUNGE_RANGE				= SQUARE(BLOCK(2));
+	constexpr auto WILLARD_FIRE_RANGE				= SQUARE(BLOCK(4));
 
-	constexpr auto WILLARD_TURN				 = ANGLE(5.0f);
-	constexpr auto WILLARD_ATTACK_TURN		 = ANGLE(2.0f);
+	constexpr auto WILLARD_TURN						= ANGLE(5.0f);
+	constexpr auto WILLARD_ATTACK_TURN				= ANGLE(2.0f);
+	constexpr auto WILLARD_TOUCH					= 0x900000;
 
-	constexpr auto WILLARD_TOUCH			 = 0x900000;
+
+	constexpr auto WILLARD_EXPLOSION_NUM_MAX		= 60;
+	constexpr auto WILLARD_SHOCKWAVE_COLOR			= Vector4(0.0f, 0.7f, 0.3f, 0.5f);
+	constexpr auto WILLARD_EXPLOSION_MAIN_COLOR		= Vector4(0.0f, 0.7f, 0.2f, 0.5f);
+	constexpr auto WILLARD_EXPLOSION_SECOND_COLOR	= Vector4(0.0f, 0.7f, 0.0f, 0.5f);
 
 	constexpr auto NO_AI_PATH = -1;
 	constexpr auto MAX_PATH_POINTS = 16;
 	constexpr auto MAX_JUNCTIONS = 4;
 
-	const auto WillardBiteLeft = CreatureBiteInfo(Vector3(19, -13, 3), 20);
-	const auto WillardBiteRight = CreatureBiteInfo(Vector3(19, -13, 3), 23);
-	const auto WillardBiteAttackJoints = std::vector<unsigned int>{ 20, 21, 22, 23 };
+	const auto WillardBiteLeft						= CreatureBiteInfo(Vector3(19, -13, 3), 20);
+	const auto WillardBiteRight						= CreatureBiteInfo(Vector3(19, -13, 3), 23);
+	const auto WillardBiteAttackJoints				= std::vector<unsigned int>{ 20, 21, 22, 23 };
 
 	enum WillardState
 	{
@@ -74,11 +82,15 @@ namespace TEN::Entities::Creatures::TR3
 		Pose AIPath[MAX_PATH_POINTS];
 		Pose AIJunction[MAX_JUNCTIONS];
 		int JunctionIndex[MAX_JUNCTIONS];
+		int PathCount = 0;
+		int JunctionCount = 0;
 		int ClosestAIPath = NO_AI_PATH;
 		int LaraAIPath = NO_AI_PATH;
 		int LaraJunction = NO_AI_PATH;
 		int Direction = 1;
 		int DesiredDirection = 1;
+		bool MissingSetupLogged = false;
+		bool InvalidStateLogged = false;
 		bool Initialized = false;
 	};
 
@@ -109,31 +121,50 @@ namespace TEN::Entities::Creatures::TR3
 		if (WillardAI.Initialized)
 			return;
 
-		int pathCount = 0;
-		int junctionCount = 0;
+		WillardAI.PathCount = 0;
+		WillardAI.JunctionCount = 0;
+		WillardAI.ClosestAIPath = NO_AI_PATH;
+		WillardAI.LaraAIPath = NO_AI_PATH;
+		WillardAI.LaraJunction = NO_AI_PATH;
 
-		// Find all AI_X1 (path) and AI_X2 (junction) items in the room.
-		for (short linkNum = g_Level.Rooms[item->RoomNumber].itemNumber; linkNum != NO_VALUE; linkNum = g_Level.Items[linkNum].NextItem)
+		for (int i = 0; i < MAX_JUNCTIONS; i++)
+			WillardAI.JunctionIndex[i] = NO_AI_PATH;
+
+		// Find all AI_X1 (path) and AI_X2 (junction) objects in current room.
+		for (const auto& aiObject : g_Level.AIObjects)
 		{
-			auto& linkedItem = g_Level.Items[linkNum];
+			if (aiObject.roomNumber != item->RoomNumber)
+				continue;
 
-			if (linkedItem.ObjectNumber == ID_AI_X1 && pathCount < MAX_PATH_POINTS)
+			if (aiObject.objectNumber == ID_AI_X1 && WillardAI.PathCount < MAX_PATH_POINTS)
 			{
-				WillardAI.AIPath[pathCount] = linkedItem.Pose;
-				pathCount++;
+				WillardAI.AIPath[WillardAI.PathCount] = aiObject.pos;
+				WillardAI.PathCount++;
 			}
-			else if (linkedItem.ObjectNumber == ID_AI_X2 && junctionCount < MAX_JUNCTIONS)
+			else if (aiObject.objectNumber == ID_AI_X2 && WillardAI.JunctionCount < MAX_JUNCTIONS)
 			{
-				WillardAI.AIJunction[junctionCount] = linkedItem.Pose;
-				junctionCount++;
+				WillardAI.AIJunction[WillardAI.JunctionCount] = aiObject.pos;
+				WillardAI.JunctionCount++;
 			}
 		}
 
+		if (WillardAI.PathCount <= 0 || WillardAI.JunctionCount <= 0)
+		{
+			if (!WillardAI.MissingSetupLogged)
+			{
+				TENLog("Willard AI setup is incomplete in current room. Paths=" + std::to_string(WillardAI.PathCount) +
+					", Junctions=" + std::to_string(WillardAI.JunctionCount) + ".", LogLevel::Warning);
+				WillardAI.MissingSetupLogged = true;
+			}
+
+			WillardAI.Initialized = true;
+			return;
+		}
+
 		// Find closest AI path point to Willard.
-		WillardAI.ClosestAIPath = -1;
 		int bestDistance = INT_MAX;
 
-		for (int i = 0; i < MAX_PATH_POINTS; i++)
+		for (int i = 0; i < WillardAI.PathCount; i++)
 		{
 			int x = (WillardAI.AIPath[i].Position.x - item->Pose.Position.x) >> 6;
 			int z = (WillardAI.AIPath[i].Position.z - item->Pose.Position.z) >> 6;
@@ -147,10 +178,9 @@ namespace TEN::Entities::Creatures::TR3
 		}
 
 		// Find closest AI path point to Lara.
-		WillardAI.LaraAIPath = -1;
 		bestDistance = INT_MAX;
 
-		for (int i = 0; i < MAX_PATH_POINTS; i++)
+		for (int i = 0; i < WillardAI.PathCount; i++)
 		{
 			int x = (WillardAI.AIPath[i].Position.x - LaraItem->Pose.Position.x) >> 6;
 			int z = (WillardAI.AIPath[i].Position.z - LaraItem->Pose.Position.z) >> 6;
@@ -164,12 +194,12 @@ namespace TEN::Entities::Creatures::TR3
 		}
 
 		// Find closest AI path point to each junction.
-		for (int junc = 0; junc < MAX_JUNCTIONS; junc++)
+		for (int junc = 0; junc < WillardAI.JunctionCount; junc++)
 		{
-			int pathNum = -1;
+			int pathNum = NO_AI_PATH;
 			bestDistance = INT_MAX;
 
-			for (int i = 0; i < MAX_PATH_POINTS; i++)
+			for (int i = 0; i < WillardAI.PathCount; i++)
 			{
 				int x = abs((WillardAI.AIPath[i].Position.x - WillardAI.AIJunction[junc].Position.x) >> 6);
 				int z = abs((WillardAI.AIPath[i].Position.z - WillardAI.AIJunction[junc].Position.z) >> 6);
@@ -190,6 +220,21 @@ namespace TEN::Entities::Creatures::TR3
 
 	static void UpdateAIPath(ItemInfo* item)
 	{
+		if (WillardAI.PathCount <= 0 || WillardAI.JunctionCount <= 0 ||
+			WillardAI.ClosestAIPath == NO_AI_PATH || WillardAI.LaraAIPath == NO_AI_PATH)
+		{
+			if (!WillardAI.InvalidStateLogged)
+			{
+				TENLog("Willard AI path state invalid in UpdateAIPath. PathCount=" + std::to_string(WillardAI.PathCount) +
+					", JunctionCount=" + std::to_string(WillardAI.JunctionCount) +
+					", ClosestAIPath=" + std::to_string(WillardAI.ClosestAIPath) +
+					", LaraAIPath=" + std::to_string(WillardAI.LaraAIPath) + ".", LogLevel::Warning);
+				WillardAI.InvalidStateLogged = true;
+			}
+
+			return;
+		}
+
 		// Update closest path point to Willard.
 		int oldClosest = WillardAI.ClosestAIPath;
 		int bestDistance = INT_MAX;
@@ -198,9 +243,9 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			int pathNum;
 			if (i < 0)
-				pathNum = i + MAX_PATH_POINTS;
-			else if (i > MAX_PATH_POINTS - 1)
-				pathNum = i - MAX_PATH_POINTS;
+				pathNum = i + WillardAI.PathCount;
+			else if (i > WillardAI.PathCount - 1)
+				pathNum = i - WillardAI.PathCount;
 			else
 				pathNum = i;
 
@@ -223,9 +268,9 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			int pathNum;
 			if (i < 0)
-				pathNum = i + MAX_PATH_POINTS;
-			else if (i > MAX_PATH_POINTS - 1)
-				pathNum = i - MAX_PATH_POINTS;
+				pathNum = i + WillardAI.PathCount;
+			else if (i > WillardAI.PathCount - 1)
+				pathNum = i - WillardAI.PathCount;
 			else
 				pathNum = i;
 
@@ -242,7 +287,7 @@ namespace TEN::Entities::Creatures::TR3
 
 		// Find closest junction to Lara.
 		int bestJunctionDistance = INT_MAX;
-		for (int i = 0; i < MAX_JUNCTIONS; i++)
+		for (int i = 0; i < WillardAI.JunctionCount; i++)
 		{
 			int x = (WillardAI.AIJunction[i].Position.x - LaraItem->Pose.Position.x) >> 6;
 			int z = (WillardAI.AIJunction[i].Position.z - LaraItem->Pose.Position.z) >> 6;
@@ -256,14 +301,39 @@ namespace TEN::Entities::Creatures::TR3
 		}
 	}
 
+	static int GetPathDelta(int fromPath, int toPath, int pathCount)
+	{
+		if (pathCount <= 0)
+			return 0;
+
+		int delta = toPath - fromPath;
+		int halfCount = pathCount / 2;
+
+		if (delta > halfCount)
+			delta -= pathCount;
+		else if (delta < -halfCount)
+			delta += pathCount;
+
+		return delta;
+	}
+
 	void InitializeWillard(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 		InitializeCreature(itemNumber);
 
+		WillardAI.PathCount = 0;
+		WillardAI.JunctionCount = 0;
 		WillardAI.ClosestAIPath = NO_AI_PATH;
+		WillardAI.LaraAIPath = NO_AI_PATH;
+		WillardAI.LaraJunction = NO_AI_PATH;
+		WillardAI.Direction = 1;
+		WillardAI.DesiredDirection = 1;
+		WillardAI.MissingSetupLogged = false;
+		WillardAI.InvalidStateLogged = false;
 		WillardAI.Initialized = false;
 		item.ItemFlags[1] = 0; // Death flag.
+		item.ItemFlags[7] = 0;	// Explode count.
 	}
 
 	void WillardControl(short itemNumber)
@@ -281,6 +351,23 @@ namespace TEN::Entities::Creatures::TR3
 		InitializeWillardAI(&item);
 		UpdateAIPath(&item);
 
+		if (WillardAI.ClosestAIPath == NO_AI_PATH ||
+			WillardAI.LaraAIPath == NO_AI_PATH ||
+			WillardAI.LaraJunction == NO_AI_PATH)
+		{
+			if (!WillardAI.InvalidStateLogged)
+			{
+				TENLog("Willard AI path state invalid in WillardControl. ClosestAIPath=" + std::to_string(WillardAI.ClosestAIPath) +
+					", LaraAIPath=" + std::to_string(WillardAI.LaraAIPath) +
+					", LaraJunction=" + std::to_string(WillardAI.LaraJunction) + ".", LogLevel::Warning);
+				WillardAI.InvalidStateLogged = true;
+			}
+
+			angle = CreatureTurn(&item, creature->MaxTurn);
+			CreatureAnimation(itemNumber, angle, 0);
+			return;
+		}
+
 		// Check if Lara is in fire zone (closer to junction than path).
 		int x = (WillardAI.AIJunction[WillardAI.LaraJunction].Position.x - LaraItem->Pose.Position.x) >> 6;
 		int z = (WillardAI.AIJunction[WillardAI.LaraJunction].Position.z - LaraItem->Pose.Position.z) >> 6;
@@ -290,8 +377,21 @@ namespace TEN::Entities::Creatures::TR3
 		z = (WillardAI.AIPath[WillardAI.LaraAIPath].Position.z - LaraItem->Pose.Position.z) >> 6;
 		int laraToPathDist = SQUARE(x) + SQUARE(z);
 
-		bool inFireZone = (laraToJunctionDist < laraToPathDist) ||
-						  (item.Pose.Position.y > LaraItem->Pose.Position.y + BLOCK(2));
+		int junctionPath = NO_AI_PATH;
+		bool validJunctionPath = (WillardAI.LaraJunction >= 0 && WillardAI.LaraJunction < WillardAI.JunctionCount);
+		if (validJunctionPath)
+		{
+			junctionPath = WillardAI.JunctionIndex[WillardAI.LaraJunction];
+			validJunctionPath = (junctionPath >= 0 && junctionPath < WillardAI.PathCount);
+		}
+
+		bool laraAtJunctionPath = false;
+		if (validJunctionPath)
+			laraAtJunctionPath = abs(GetPathDelta(WillardAI.LaraAIPath, junctionPath, WillardAI.PathCount)) <= 1;
+
+		bool inFireZone = validJunctionPath && laraAtJunctionPath &&
+						  ((laraToJunctionDist < laraToPathDist) ||
+						   (item.Pose.Position.y > LaraItem->Pose.Position.y + BLOCK(2)));
 
 		x = WillardAI.AIJunction[WillardAI.LaraJunction].Position.x - item.Pose.Position.x;
 		z = WillardAI.AIJunction[WillardAI.LaraJunction].Position.z - item.Pose.Position.z;
@@ -350,9 +450,10 @@ namespace TEN::Entities::Creatures::TR3
 					item.Animation.FrameNumber = GetAnimData(item).EndFrameNumber - 2;
 					item.MeshBits.ClearAll();
 
-					// TODO: Trigger explosion effects.
+					if (item.ItemFlags[7] < 128)
+						item.ItemFlags[7]++;
 
-					CreatureDie(itemNumber, true);
+					ExplodeBoss(item, WILLARD_EXPLOSION_NUM_MAX, WILLARD_SHOCKWAVE_COLOR, WILLARD_EXPLOSION_MAIN_COLOR, WILLARD_EXPLOSION_SECOND_COLOR);
 					return;
 				}
 			}
@@ -413,7 +514,7 @@ namespace TEN::Entities::Creatures::TR3
 				{
 					item.Animation.TargetState = WILLARD_STATE_STOP;
 				}
-				else if (inFireZone && ai.ahead && willardToJunctionDist < WILLARD_FIRE_RANGE)
+				else if (inFireZone && willardToJunctionDist < WILLARD_FIRE_RANGE)
 				{
 					item.Animation.TargetState = WILLARD_STATE_STOP;
 				}
