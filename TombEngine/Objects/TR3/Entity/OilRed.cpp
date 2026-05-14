@@ -23,21 +23,22 @@ namespace TEN::Entities::Creatures::TR3
 {
 	constexpr auto OILRED_SHOT_DAMAGE = 35;
 
-	constexpr auto OILRED_WALK_RANGE		= SQUARE(BLOCK(2));
-	constexpr auto OILRED_AWARE_DISTANCE	= SQUARE(BLOCK(1));
-	constexpr auto OILRED_FEELER_DISTANCE	= BLOCK(1);
+	constexpr auto OILRED_WALK_RANGE				= SQUARE(BLOCK(2));
+	constexpr auto OILRED_AWARE_DISTANCE			= SQUARE(BLOCK(1));
+	constexpr auto OILRED_FEELER_DISTANCE			= BLOCK(1);
 
-	constexpr auto OILRED_WALK_TURN_RATE_MAX = ANGLE(6.0f);
-	constexpr auto OILRED_RUN_TURN_RATE_MAX  = ANGLE(10.0f);
+	constexpr auto OILRED_WALK_TURN_RATE_MAX		= ANGLE(6.0f);
+	constexpr auto OILRED_RUN_TURN_RATE_MAX			= ANGLE(10.0f);
 
-	constexpr auto OILRED_DIE_ANIM			= 14;
-	constexpr auto OILRED_AIM1_ANIM			= 12;
-	constexpr auto OILRED_WT1_SHT1_ANIM		= 1;
-	constexpr auto OILRED_WALK_WAIT_ANIM	= 17;
-	constexpr auto OILRED_RUN_WAIT1_ANIM	= 27;
-	constexpr auto OILRED_RUN_WAIT2_ANIM	= 28;
-	constexpr auto OILRED_WLK_SHT4A_ANIM	= 18;
-	constexpr auto OILRED_WLK_SHT4B_ANIM	= 19;
+	constexpr auto OILRED_ONE_HAND_SHOOT_ANIM		= 1;
+	constexpr auto OILRED_ONE_HAND_AIM_ANIM			= 12;
+	constexpr auto OILRED_DIE_ANIM					= 14;
+	constexpr auto OILRED_WALK_TO_STOP_ANIM			= 17;
+	constexpr auto OILRED_WALK_SHOOT_RIGHT_ANIM		= 18;
+	constexpr auto OILRED_WALK_SHOOT_LEFT_ANIM		= 19;
+	constexpr auto OILRED_RUN_STOP_LEFT_ANIM		= 27;
+	constexpr auto OILRED_RUN_STOP_RIGHT_ANIM		= 28;
+	
 
 	constexpr auto OILRED_DEATH_SHOT_ANGLE = ANGLE(45.0f);
 
@@ -169,9 +170,9 @@ namespace TEN::Entities::Creatures::TR3
 				head = laraAI.angle;
 				creature->MaxTurn = 0;
 
-				if (item->Animation.AnimNumber == OILRED_WALK_WAIT_ANIM ||
-					item->Animation.AnimNumber == OILRED_RUN_WAIT1_ANIM ||
-					item->Animation.AnimNumber == OILRED_RUN_WAIT2_ANIM)
+				if (item->Animation.AnimNumber == OILRED_WALK_TO_STOP_ANIM ||
+					item->Animation.AnimNumber == OILRED_RUN_STOP_LEFT_ANIM ||
+					item->Animation.AnimNumber == OILRED_RUN_STOP_RIGHT_ANIM)
 				{
 					if (abs(ai.angle) < OILRED_RUN_TURN_RATE_MAX)
 						item->Pose.Orientation.y += ai.angle;
@@ -312,8 +313,8 @@ namespace TEN::Entities::Creatures::TR3
 					extraTorsoRot.x = ai.xAngle;
 				}
 
-				if ((item->Animation.AnimNumber == OILRED_AIM1_ANIM) ||
-					(item->Animation.AnimNumber == OILRED_WT1_SHT1_ANIM &&
+				if ((item->Animation.AnimNumber == OILRED_ONE_HAND_AIM_ANIM) ||
+					(item->Animation.AnimNumber == OILRED_ONE_HAND_SHOOT_ANIM &&
 					 item->Animation.FrameNumber == 10))
 				{
 					if (!ShotLara(item, &ai, OilRedGunBite, extraTorsoRot.y, OILRED_SHOT_DAMAGE))
@@ -403,9 +404,9 @@ namespace TEN::Entities::Creatures::TR3
 					extraTorsoRot.x = ai.xAngle;
 				}
 
-				if ((item->Animation.AnimNumber == OILRED_WLK_SHT4A_ANIM &&
+				if ((item->Animation.AnimNumber == OILRED_WALK_SHOOT_RIGHT_ANIM &&
 					 item->Animation.FrameNumber == 17) ||
-					(item->Animation.AnimNumber == OILRED_WLK_SHT4B_ANIM &&
+					(item->Animation.AnimNumber == OILRED_WALK_SHOOT_LEFT_ANIM &&
 					 item->Animation.FrameNumber == 6))
 				{
 					if (!ShotLara(item, &ai, OilRedGunBite, extraTorsoRot.y, OILRED_SHOT_DAMAGE))
