@@ -3358,6 +3358,13 @@ namespace TEN::Renderer
 
 		// Draw aurora BEFORE the horizon mesh so that opaque horizon geometry
 		// naturally overwrites it by draw order — no depth test needed.
+		// When the atmospheric sky dome is off, UpdateAtmosphericSkyBuffer has not
+		// run yet this frame, so call it here unconditionally to keep _auroraSettings
+		// current (avoids a chicken-and-egg where Enabled=false blocks the very call
+		// that would set it to true).
+		if (!_atmosphericSkySettings.Enabled && !reflectionPass)
+			UpdateAtmosphericSkyBuffer(renderView);
+
 		if (_auroraSettings.Enabled && !reflectionPass)
 		{
 			DrawAurora(renderView);
@@ -3566,6 +3573,13 @@ namespace TEN::Renderer
 		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal && !reflectionPass
 			&& !_atmosphericSkySettings.Enabled)
 		{
+			// Note: horizon mesh occlusion of the sun sprite is handled separately by
+			// DrawHorizonDepth() which writes mesh depth into the GBuffer depth color
+			// target for the lens flare post-process. We must NOT write the horizon
+			// dome depth into the main DSV here, because the dome covers the entire
+			// sky hemisphere with opaque sky-backdrop pixels, which would occlude the
+			// sun sprite at every pixel and make it invisible.
+
 			SetDepthState(DepthState::Read);
 			SetBlendMode(BlendMode::Additive);
 			SetCullMode(CullMode::None);
@@ -3613,12 +3627,17 @@ namespace TEN::Renderer
 					sunColor.w);
 			}
 
+			// Push the sun far away from the camera so its rasterised depth lies
+			// behind the horizon mesh just written to the main DSV. Width/Height
+			// scale by the same factor to preserve apparent screen size.
+			constexpr float SUN_DEPTH_PUSH = 30.0f;
+
 			rDrawSprite.Type = SpriteType::Billboard;
-			rDrawSprite.pos = renderView.Camera.WorldPosition + renderView.LensFlaresToDraw[0].Direction * BLOCK(1);
+			rDrawSprite.pos = renderView.Camera.WorldPosition + renderView.LensFlaresToDraw[0].Direction * BLOCK(1) * SUN_DEPTH_PUSH;
 			rDrawSprite.Rotation = 0.0f;
 			rDrawSprite.Scale = 1.0f;
-			rDrawSprite.Width  = SUN_SIZE * sunSizeScale;
-			rDrawSprite.Height = SUN_SIZE * sunSizeScale;
+			rDrawSprite.Width  = SUN_SIZE * sunSizeScale * SUN_DEPTH_PUSH;
+			rDrawSprite.Height = SUN_SIZE * sunSizeScale * SUN_DEPTH_PUSH;
 			rDrawSprite.color = sunColor;
 
 			_stInstancedSpriteBuffer.Sprites[0].World = GetWorldMatrixForSprite(rDrawSprite, renderView);

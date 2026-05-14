@@ -222,7 +222,7 @@ namespace TEN::Renderer
 		_stAtmosphericSky.MoonEnabled        = moon.Enabled ? 1.0f : 0.0f;
 		_stAtmosphericSky.MoonPhaseBrightness = phaseBrightness;
 		_stAtmosphericSky.MoonVisibility     = moonVisibility;
-		_stAtmosphericSky.MoonPad0           = 0.0f;
+		_stAtmosphericSky.AtmoSkyEnabled     = settings.Enabled ? 1.0f : 0.0f;
 
 		// --- Aurora CB fill ---
 		auto& aurora = _auroraSettings;
@@ -342,11 +342,6 @@ namespace TEN::Renderer
 		const auto& aurora = _auroraSettings;
 		if (!aurora.Enabled)
 			return;
-
-		// If the sky dome is disabled it won't have called UpdateAtmosphericSkyBuffer,
-		// so update the CB here to ensure aurora parameters are current.
-		if (!_atmosphericSkySettings.Enabled)
-			UpdateAtmosphericSkyBuffer(renderView);
 
 		if (_stAtmosphericSky.AuroraVisibility < 0.001f)
 			return;

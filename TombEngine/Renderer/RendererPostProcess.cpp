@@ -104,6 +104,12 @@ namespace TEN::Renderer
 					sunBelowFade = sunBelowFade * sunBelowFade * (3.0f - 2.0f * sunBelowFade);
 					flareColor *= sunBelowFade;
 				}
+
+				// Suppress procedural starburst spike + ghost lens artifacts when the
+				// scripted lens flare disabled them (e.g. moon-only night levels).
+				if (!view.LensFlaresToDraw[i].EffectsEnabled)
+					flareColor = Vector3::Zero;
+
 				_stPostProcessBuffer.LensFlares[i].Color = flareColor;
 			}
 			_stPostProcessBuffer.NumLensFlares = (int)view.LensFlaresToDraw.size();

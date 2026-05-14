@@ -78,6 +78,16 @@ void Level::Register(sol::table& parent)
 // @mem lensFlare
 		"lensFlare", &Level::LensFlare,
 
+/// (@{Flow.MoonLens}) Per-level moon position and enable state.
+// Use Flow.MoonLens(pitch, yaw) to enable the moon at a fixed sky position.
+// When omitted the moon is disabled for the level.
+//@mem moonLens
+		"moonLens", &Level::MoonLens,
+
+/// (@{Flow.DustStorm}) Per-level dust storm settings.
+//@mem dustStorm
+		"dustStorm", &Level::DustStorm,
+
 /// (@{Flow.Fog}) Global distance fog, with specified RGB color and distance.
 // If not provided, distance fog will not be visible.
 //@mem fog
@@ -308,6 +318,11 @@ EulerAngles Level::GetHorizonPrevOrientation(int index) const
 bool Level::GetLensFlareEnabled() const
 {
 	return LensFlare.GetEnabled();
+}
+
+bool Level::GetLensFlareEffects() const
+{
+	return LensFlare.GetEffects();
 }
 
 int Level::GetLensFlareSunSpriteID() const

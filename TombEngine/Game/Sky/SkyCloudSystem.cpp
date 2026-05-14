@@ -11,6 +11,7 @@
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
+#include "Scripting/Internal/TEN/Flow/DynamicSky/DynamicSky.h"
 #include <cmath>
 #include <numeric>
 
@@ -450,8 +451,23 @@ namespace TEN::Sky
 		return EasingCurve::SmoothStep;
 	}
 
+	void SkyCloudSystem::FinalizeBasePresets()
+	{
+		// Snapshot all presets as they exist after WeatherPresets.lua has run.
+		// This becomes the restore point used at every level load.
+		_basePresets = _presets;
+	}
+
 	void SkyCloudSystem::Initialize()
 	{
+		// Restore presets to the post-WeatherPresets.lua baseline so that
+		// per-level overrides from previous levels do not leak into this one.
+		// Falls back to engine defaults if FinalizeBasePresets() was never called.
+		if (!_basePresets.empty())
+			_presets = _basePresets;
+		else
+			InitializePresets();
+
 		_currentPreset = WeatherPresetType::ClearSky;
 		_currentState  = _presets[WeatherPresetType::ClearSky].TargetState;
 		_transition    = {};
@@ -567,7 +583,22 @@ namespace TEN::Sky
 				// Each entry: { name, duration, percent }.
 				// duration = how long the preset stays before chaining (dwell).
 				// percent  = relative weight when picking the next preset.
-				if (!clouds.ChangePresets.empty())
+				// When changePresets is not provided, strip every baked-in chain so
+				// the level stays on its startPreset without auto-cycling.
+				if (clouds.ChangePresets.empty())
+				{
+					for (auto& [type, def] : _presets)
+					{
+						def.NextPreset  = "";
+						def.NextPresetB = "";
+						def.NextPresetCandidates.clear();
+						def.NextPresetBCandidates.clear();
+						def.NextPresetDwellDuration    = -1.0f;
+						def.NextPresetDwellDurationMin = -1.0f;
+						def.NextPresetDwellDurationMax = -1.0f;
+					}
+				}
+				else
 				{
 					for (const auto& src : clouds.ChangePresets)
 					{
@@ -598,7 +629,117 @@ namespace TEN::Sky
 					}
 				}
 			}
+
+			// --- Per-level alto cloud color overrides ---
+			// Applied to every preset definition AND the current snapshot so that
+			// every preset transition shares the level's chosen color palette.
+			ApplyCloudColorOverrides(clouds);
+
+			// --- God rays ---
+			g_Renderer.GetGodRaySettings().Enabled = dyn.GodRays.Enabled;
+
+			// --- Moon (level.moonLens) ---
+			ApplyMoonLensOverride(level->MoonLens);
+
+			// --- Dust storm (level.dustStorm) ---
+			ApplyDustStormOverride(level->DustStorm);
 		}
+	}
+
+	// ====================================================================
+	// Per-level Lua override appliers
+	// ====================================================================
+
+	// Convert a ScriptColor (0..255 channels) to floating-point 0..1 RGB.
+	static void ScriptColorToFloatRGB(const TEN::Scripting::Types::ScriptColor& src,
+	                                  float& r, float& g, float& b)
+	{
+		r = std::clamp(src.GetR() / 255.0f, 0.0f, 1.0f);
+		g = std::clamp(src.GetG() / 255.0f, 0.0f, 1.0f);
+		b = std::clamp(src.GetB() / 255.0f, 0.0f, 1.0f);
+	}
+
+	static void ApplyAltoColorToLayer(VolumetricCloudLayerSnapshot& layer,
+	                                  bool hasColor, float r, float g, float b,
+	                                  bool hasDarkColor, float dr, float dg, float db)
+	{
+		if (hasColor)
+		{
+			layer.AltoCloudColorR = r;
+			layer.AltoCloudColorG = g;
+			layer.AltoCloudColorB = b;
+		}
+		if (hasDarkColor)
+		{
+			layer.AltoCloudColorDarkR = dr;
+			layer.AltoCloudColorDarkG = dg;
+			layer.AltoCloudColorDarkB = db;
+		}
+	}
+
+	void SkyCloudSystem::ApplyCloudColorOverrides(const TEN::Scripting::DynamicSkyClouds& clouds)
+	{
+		if (!clouds.HasColor && !clouds.HasDarkColor)
+			return;
+
+		float r = 0.0f, g = 0.0f, b = 0.0f;
+		float dr = 0.0f, dg = 0.0f, db = 0.0f;
+		if (clouds.HasColor)
+			ScriptColorToFloatRGB(clouds.Color, r, g, b);
+		if (clouds.HasDarkColor)
+			ScriptColorToFloatRGB(clouds.DarkColor, dr, dg, db);
+
+		// Apply to every preset's TargetState so all future transitions inherit them.
+		for (auto& [type, def] : _presets)
+		{
+			ApplyAltoColorToLayer(def.TargetState.CloudA,
+				clouds.HasColor, r, g, b, clouds.HasDarkColor, dr, dg, db);
+			ApplyAltoColorToLayer(def.TargetState.CloudB,
+				clouds.HasColor, r, g, b, clouds.HasDarkColor, dr, dg, db);
+		}
+
+		// Also apply to the active snapshot so the level starts with the new color
+		// (the snapshot was captured before this override ran).
+		ApplyAltoColorToLayer(_currentState.CloudA,
+			clouds.HasColor, r, g, b, clouds.HasDarkColor, dr, dg, db);
+		ApplyAltoColorToLayer(_currentState.CloudB,
+			clouds.HasColor, r, g, b, clouds.HasDarkColor, dr, dg, db);
+	}
+
+	void SkyCloudSystem::ApplyMoonLensOverride(const TEN::Scripting::MoonLens& moon)
+	{
+		auto& settings = g_Renderer.GetMoonSettings();
+
+		settings.Enabled = moon.GetEnabled();
+		if (!moon.GetEnabled())
+			return;
+
+		// Same convention as the lens flare sun: pitch in degrees from horizon
+		// (0 = horizon, 90 = zenith), yaw in degrees compass direction.
+		settings.Pitch = std::clamp(moon.GetPitch(), -10.0f, 90.0f);
+		settings.Yaw   = moon.GetYaw();
+	}
+
+	void SkyCloudSystem::ApplyDustStormOverride(const TEN::Scripting::LevelDustStorm& dust)
+	{
+		auto& settings = g_Renderer.GetDustStormSettings();
+
+		settings.Enabled = dust.Enabled;
+
+		if (dust.Density >= 0.0f)
+			settings.Density = std::clamp(dust.Density, 0.0f, 2.0f);
+
+		if (dust.MinHeight >= 0.0f)
+			settings.MinHeight = std::clamp(dust.MinHeight, 0.0f, 1.0f);
+
+		if (dust.MaxHeight >= 0.0f)
+			settings.MaxHeight = std::clamp(dust.MaxHeight, 0.0f, 1.0f);
+
+		if (dust.WindCoupling >= 0.0f)
+			settings.WindSpeedScale = std::clamp(dust.WindCoupling, 0.0f, 4.0f);
+
+		if (dust.HasColor)
+			ScriptColorToFloatRGB(dust.Color, settings.ColorR, settings.ColorG, settings.ColorB);
 	}
 
 	// ====================================================================
@@ -1073,35 +1214,35 @@ namespace TEN::Sky
 			def.DefaultTransitionDuration  = 45.0f;
 			def.NextPresetDwellDurationMin = 6.0f;
 			def.NextPresetDwellDurationMax = 9.0f;
-			auto& a = def.TargetState.CloudA;
-			a.Enabled             = true;
-			a.Category            = CloudCategory::AltocumulusMid;
-			a.Coverage            = 1.0f;
-			a.BottomHeight        = 1536.0f;
-			a.AltoHorizonWidth    = 0.031f;
-			a.EvolutionSpeed      = 3.043f;
-			a.HorizonFade         = 1.0f;
-			a.DistanceFade        = 0.0f;
-			a.AltoBillowStrength  = 0.0f;
-			a.AltoCovSoftWidth    = 0.25f;
-			a.AltoAbsorption      = 0.1f;
-			a.AltoCloudSize       = 1.637f;
-			a.AltoCloudAmount     = 0.36f;
-			a.AltoCloudBrightness = 1.0f;
-			a.AltoCloudColorR     = 1.0f;
-			a.AltoCloudColorG     = 1.0f;
-			a.AltoCloudColorB     = 1.0f;
-			a.AltoCloudColorDarkR = 0.693f;
-			a.AltoCloudColorDarkG = 0.693f;
-			a.AltoCloudColorDarkB = 0.873f;
-			a.AltoFbmLacunarity   = 4.0f;
-			a.AltoFbmGain         = 0.486f;
-			a.AltoThickness       = 344.0f;
-			a.AltoBottomSoftness  = 0.427f;
-			a.AltoZenithBias      = 0.0f;
-			a.AltoHeightBlendPower = 1.0f;
-			a.BlendThresholdHigh  = 0.053f;
-			a.BlendThresholdLow   = 0.0f;
+			auto& b = def.TargetState.CloudB;
+			b.Enabled             = true;
+			b.Category            = CloudCategory::AltocumulusMid;
+			b.Coverage            = 1.0f;
+			b.BottomHeight        = 1536.0f;
+			b.AltoHorizonWidth    = 0.031f;
+			b.EvolutionSpeed      = 3.043f;
+			b.HorizonFade         = 1.0f;
+			b.DistanceFade        = 0.0f;
+			b.AltoBillowStrength  = 0.0f;
+			b.AltoCovSoftWidth    = 0.25f;
+			b.AltoAbsorption      = 0.1f;
+			b.AltoCloudSize       = 1.637f;
+			b.AltoCloudAmount     = 0.36f;
+			b.AltoCloudBrightness = 1.0f;
+			b.AltoCloudColorR     = 1.0f;
+			b.AltoCloudColorG     = 1.0f;
+			b.AltoCloudColorB     = 1.0f;
+			b.AltoCloudColorDarkR = 0.693f;
+			b.AltoCloudColorDarkG = 0.693f;
+			b.AltoCloudColorDarkB = 0.873f;
+			b.AltoFbmLacunarity   = 4.0f;
+			b.AltoFbmGain         = 0.486f;
+			b.AltoThickness       = 344.0f;
+			b.AltoBottomSoftness  = 0.427f;
+			b.AltoZenithBias      = 0.0f;
+			b.AltoHeightBlendPower = 1.0f;
+			b.BlendThresholdHigh  = 0.053f;
+			b.BlendThresholdLow   = 0.0f;
 
 			_presets[def.Type] = def;
 		}
@@ -1115,36 +1256,36 @@ namespace TEN::Sky
 			def.DefaultTransitionDuration  = 30.0f;
 			def.NextPresetDwellDurationMin = 6.0f;
 			def.NextPresetDwellDurationMax = 9.0f;
-			auto& a = def.TargetState.CloudA;
-			a.Enabled             = true;
-			a.Category            = CloudCategory::AltocumulusMid;
-			a.Coverage            = 1.0f;
-			a.BottomHeight        = 1536.0f;
-			a.AltoHorizonWidth    = 0.0052f;
-			a.EvolutionSpeed      = 5.0f;
-			a.HorizonFade         = 1.0f;
-			a.DistanceFade        = 0.0f;
-			a.AltoBillowStrength  = 0.0f;
-			a.AltoCovSoftWidth    = 0.25f;
-			a.AltoAbsorption      = 0.1f;
-			a.AltoCloudSize       = 1.318f;
-			a.AltoCloudAmount     = 0.460f;
-			a.AltoCloudBrightness = 1.352f;
-			a.AltoCloudColorR     = 0.696f;
-			a.AltoCloudColorG     = 0.696f;
-			a.AltoCloudColorB     = 0.696f;
-			a.AltoCloudColorDarkR = 0.348f;
-			a.AltoCloudColorDarkG = 0.348f;
-			a.AltoCloudColorDarkB = 0.348f;
-			a.AltoFbmLacunarity   = 4.0f;
-			a.AltoFbmGain         = 0.322f;
-			a.AltoThickness       = 1164.0f;
-			a.AltoBottomSoftness  = 0.465f;
-			a.AltoZenithBias      = 0.269f;
-			a.AltoHeightBlendPower = 0.749f;
-			a.BlendThresholdHigh      = 0.020f;
-			a.BlendThresholdHighWidth = 0.005f;
-			a.BlendThresholdLow       = 0.0f;
+			auto& b = def.TargetState.CloudB;
+			b.Enabled             = true;
+			b.Category            = CloudCategory::AltocumulusMid;
+			b.Coverage            = 1.0f;
+			b.BottomHeight        = 1536.0f;
+			b.AltoHorizonWidth    = 0.0052f;
+			b.EvolutionSpeed      = 5.0f;
+			b.HorizonFade         = 1.0f;
+			b.DistanceFade        = 0.0f;
+			b.AltoBillowStrength  = 0.0f;
+			b.AltoCovSoftWidth    = 0.25f;
+			b.AltoAbsorption      = 0.1f;
+			b.AltoCloudSize       = 1.318f;
+			b.AltoCloudAmount     = 0.460f;
+			b.AltoCloudBrightness = 1.352f;
+			b.AltoCloudColorR     = 0.696f;
+			b.AltoCloudColorG     = 0.696f;
+			b.AltoCloudColorB     = 0.696f;
+			b.AltoCloudColorDarkR = 0.348f;
+			b.AltoCloudColorDarkG = 0.348f;
+			b.AltoCloudColorDarkB = 0.348f;
+			b.AltoFbmLacunarity   = 4.0f;
+			b.AltoFbmGain         = 0.322f;
+			b.AltoThickness       = 1164.0f;
+			b.AltoBottomSoftness  = 0.465f;
+			b.AltoZenithBias      = 0.269f;
+			b.AltoHeightBlendPower = 0.749f;
+			b.BlendThresholdHigh      = 0.020f;
+			b.BlendThresholdHighWidth = 0.005f;
+			b.BlendThresholdLow       = 0.0f;
 
 			_presets[def.Type] = def;
 		}

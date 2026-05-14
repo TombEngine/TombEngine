@@ -68,7 +68,7 @@ namespace TEN::Renderer::ConstantBuffers
 		float   MoonEnabled;           // 0 or 1.
 		float   MoonPhaseBrightness;   // [0,1] computed brightness from phase (full=1, new=0).
 		float   MoonVisibility;        // [0,1] computed visibility (fades in as sky darkens).
-		float   MoonPad0;
+		float   AtmoSkyEnabled;        // 0 = sky dome disabled (suppress sun disc in moon-only pass), 1 = enabled.
 
 		// Row 12 — Aurora core parameters
 		float   AuroraEnabled;         // 0 or 1.

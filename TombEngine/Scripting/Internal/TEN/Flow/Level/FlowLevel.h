@@ -28,7 +28,11 @@ struct Level : public ScriptInterfaceLevel
 	TEN::Scripting::Horizon Horizon1 = {};
 	TEN::Scripting::Horizon Horizon2 = {};
 	TEN::Scripting::LensFlare LensFlare = {};
+	TEN::Scripting::MoonLens  MoonLens  = {};
 	TEN::Scripting::Starfield Starfield = {};
+
+	// Per-level dust storm config (level.dustStorm).
+	TEN::Scripting::LevelDustStorm DustStorm = {};
 
 	WeatherType Weather				= WeatherType::None;
 	float		WeatherStrength		= 1.0f;
@@ -85,6 +89,7 @@ struct Level : public ScriptInterfaceLevel
 
 	// Lens flare getters
 	bool  GetLensFlareEnabled() const override;
+	bool  GetLensFlareEffects() const override;
 	int	  GetLensFlareSunSpriteID() const override;
 	short GetLensFlarePitch() const override;
 	short GetLensFlareYaw() const override;

@@ -31,6 +31,7 @@ namespace TEN::Scripting
 
 		int	 _sunSpriteID = SPRITE_TYPES::SPR_LENS_FLARE_3;
 		bool _isEnabled	  = false;
+		bool _effects	  = true; // Procedural starburst + ghost lens artifacts.
 
 		Rotation	_rotation = {};
 		ScriptColor _color	  = 0;
@@ -54,6 +55,7 @@ namespace TEN::Scripting
 		ScriptColor        GetColor() const;
 		ScriptColor        GetColorB() const;
 		bool		       GetEnabled() const;
+		bool		       GetEffects() const;
 		LensFlareColorMode GetColorMode() const;
 
 		// Setters
@@ -64,6 +66,7 @@ namespace TEN::Scripting
 		void SetColor(const ScriptColor& color);
 		void SetColorB(const ScriptColor& color);
 		void SetEnabled(bool value);
+		void SetEffects(bool value);
 		void SetColorMode(LensFlareColorMode mode);
 
 		// Evaluate the effective sun color for the current elevation.

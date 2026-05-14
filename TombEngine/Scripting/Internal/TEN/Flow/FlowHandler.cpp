@@ -8,6 +8,7 @@
 #include "Game/pickup/pickup_ammo.h"
 #include "Game/pickup/pickup_consumable.h"
 #include "Game/savegame.h"
+#include "Game/Sky/SkyCloudSystem.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
 #include "Scripting/Include/Strings/ScriptInterfaceStringsHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
@@ -367,6 +368,8 @@ Specify which translations in the strings table correspond to which languages.
 	Level::Register(tableFlow);
 	SkyLayer::Register(tableFlow);
 	DynamicSky::Register(tableFlow);
+	MoonLens::Register(tableFlow);
+	LevelDustStorm::Register(tableFlow);
 	InventoryItem::Register(tableFlow);
 	Settings::Register(tableFlow);
 	Fog::Register(tableFlow);
@@ -490,6 +493,7 @@ void FlowHandler::LoadFlowScript()
 
 	_handler.ExecuteScript(_gameDir + "Scripts/Gameflow.lua");
 	_handler.ExecuteScript(_gameDir + "Scripts/WeatherPresets.lua", true);
+	TEN::Sky::g_SkyCloudSystem.FinalizeBasePresets();
 	_handler.ExecuteScript(_gameDir + "Scripts/SystemStrings.lua", true);
 	_handler.ExecuteScript(_gameDir + "Scripts/Strings.lua", true);
 	_handler.ExecuteScript(_gameDir + "Scripts/Settings.lua", true);

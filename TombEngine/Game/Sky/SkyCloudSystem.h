@@ -31,6 +31,13 @@
 #include "Renderer/VolumetricCloud/VolumetricCloud.h"
 #include "Scripting/Internal/TEN/Flow/SkyLayer/SkyLayer.h"
 
+namespace TEN::Scripting
+{
+	struct DynamicSkyClouds;
+	class  MoonLens;
+	struct LevelDustStorm;
+}
+
 namespace TEN::Sky
 {
 	using namespace DirectX::SimpleMath;
@@ -399,6 +406,11 @@ namespace TEN::Sky
 
 		// --- Initialization ---
 		void Initialize();
+
+		// Call once after all engine Lua scripts (WeatherPresets.lua) have loaded.
+		// Saves the current preset map as the restore point used at every level load,
+		// making WeatherPresets.lua the single source of truth for preset parameters.
+		void FinalizeBasePresets();
 		void InitializePresets();
 
 		// --- Per-frame update (call from game loop) ---
@@ -554,8 +566,14 @@ namespace TEN::Sky
 		// to a CloudRenderSettings instance. Used by both layer accessors.
 		void ApplyGlobalWindToRenderSettings(CloudRenderSettings& s) const;
 
+		// --- Per-level override appliers (Lua-driven, called from Initialize) ---
+		void ApplyCloudColorOverrides(const TEN::Scripting::DynamicSkyClouds& clouds);
+		void ApplyMoonLensOverride(const TEN::Scripting::MoonLens& moon);
+		void ApplyDustStormOverride(const TEN::Scripting::LevelDustStorm& dust);
+
 		// --- Data ---
 		std::unordered_map<WeatherPresetType, WeatherPresetDefinition> _presets;
+		std::unordered_map<WeatherPresetType, WeatherPresetDefinition> _basePresets;
 		SkyCloudSnapshot       _currentState;
 		WeatherPresetType      _currentPreset  = WeatherPresetType::ClearSky;
 		WeatherTransitionState _transition;

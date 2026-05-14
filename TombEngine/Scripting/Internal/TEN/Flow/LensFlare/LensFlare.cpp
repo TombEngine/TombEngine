@@ -55,6 +55,12 @@ namespace TEN::Scripting
 			// @mem colorB
 			"colorB", sol::property(&LensFlare::GetColorB, &LensFlare::SetColorB),
 
+			/// (bool) Procedural lens flare effects (starburst spike + ghost lens artifacts).
+			// Default = true. Set to false to draw only the central sun sprite without the
+			// secondary screen-space glare, e.g. when using the sun sprite as a moon for night levels.
+			// @mem effects
+			"effects", sol::property(&LensFlare::GetEffects, &LensFlare::SetEffects),
+
 			// Compatibility.
 			"GetSunSpriteID", &LensFlare::GetSunSpriteID,
 			"GetPitch", &LensFlare::GetPitch,
@@ -145,6 +151,11 @@ namespace TEN::Scripting
 		return _isEnabled;
 	}
 
+	bool LensFlare::GetEffects() const
+	{
+		return _effects;
+	}
+
 	LensFlareColorMode LensFlare::GetColorMode() const
 	{
 		return _colorMode;
@@ -187,6 +198,11 @@ namespace TEN::Scripting
 	void LensFlare::SetEnabled(bool value)
 	{
 		_isEnabled = value;
+	}
+
+	void LensFlare::SetEffects(bool value)
+	{
+		_effects = value;
 	}
 
 	void LensFlare::SetColorMode(LensFlareColorMode mode)
