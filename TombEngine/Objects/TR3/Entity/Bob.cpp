@@ -19,34 +19,34 @@ using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR3
 {
-	constexpr auto BOB_HIT_DAMAGE   = 40;
-	constexpr auto BOB_SWIPE_DAMAGE = 50;
+	constexpr auto PRISONER_HIT_DAMAGE   = 40;
+	constexpr auto PRISONER_SWIPE_DAMAGE = 50;
 
-	constexpr auto BOB_ATTACK0_RANGE  = SQUARE(BLOCK(0.33f));
-	constexpr auto BOB_ATTACK1_RANGE  = SQUARE(BLOCK(0.66f));
-	constexpr auto BOB_ATTACK2_RANGE  = SQUARE(BLOCK(0.75f));
-	constexpr auto BOB_WALK_RANGE	  = SQUARE(BLOCK(1));
-	constexpr auto BOB_AWARE_DISTANCE = SQUARE(BLOCK(1));
-	constexpr auto BOB_HIT_RADIUS	  = CLICK(1);
+	constexpr auto PRISONER_ATTACK0_RANGE  = SQUARE(BLOCK(0.33f));
+	constexpr auto PRISONER_ATTACK1_RANGE  = SQUARE(BLOCK(0.66f));
+	constexpr auto PRISONER_ATTACK2_RANGE  = SQUARE(BLOCK(0.75f));
+	constexpr auto PRISONER_WALK_RANGE	  = SQUARE(BLOCK(1));
+	constexpr auto PRISONER_AWARE_DISTANCE = SQUARE(BLOCK(1));
+	constexpr auto PRISONER_HIT_RADIUS	  = CLICK(1);
 
-	constexpr auto BOB_WALK_TURN_RATE_MAX = ANGLE(7.0f);
-	constexpr auto BOB_RUN_TURN_RATE_MAX  = ANGLE(11.0f);
+	constexpr auto PRISONER_WALK_TURN_RATE_MAX = ANGLE(7.0f);
+	constexpr auto PRISONER_RUN_TURN_RATE_MAX  = ANGLE(11.0f);
 
-	constexpr auto BOB_DIE_ANIM    = 26;
-	constexpr auto BOB_STOP_ANIM   = 6;
-	constexpr auto BOB_CLIMB1_ANIM = 28;
-	constexpr auto BOB_CLIMB2_ANIM = 29;
-	constexpr auto BOB_CLIMB3_ANIM = 27;
-	constexpr auto BOB_FALL3_ANIM  = 30;
+	constexpr auto PRISONER_DIE_ANIM    = 26;
+	constexpr auto PRISONER_STOP_ANIM   = 6;
+	constexpr auto PRISONER_CLIMB1_ANIM = 28;
+	constexpr auto PRISONER_CLIMB2_ANIM = 29;
+	constexpr auto PRISONER_CLIMB3_ANIM = 27;
+	constexpr auto PRISONER_FALL3_ANIM  = 30;
 
-	constexpr auto BOB_VAULT_SHIFT = 260;
-	constexpr auto BOB_TOUCH = 0x2400;
+	constexpr auto PRISONER_VAULT_SHIFT = 260;
+	constexpr auto PRISONER_TOUCH = 0x2400;
 
-	const auto BobHitBite = CreatureBiteInfo(Vector3(10, 10, 11), 13);
-	const auto BobAttackJoints = std::vector<unsigned int>{ 13 };
+	const auto PrisonerHitBite = CreatureBiteInfo(Vector3(10, 10, 11), 13);
+	const auto PrisonerAttackJoints = std::vector<unsigned int>{ 13 };
 
-	// Bob doesn't attack these targets
-	const auto BobExcludedTargets = std::vector<GAME_OBJECT_ID>
+	// Prisoner doesn't attack these targets
+	const auto PrisonerExcludedTargets = std::vector<GAME_OBJECT_ID>
 	{
 		ID_LARA,
 		ID_CIVVY,
@@ -59,28 +59,28 @@ namespace TEN::Entities::Creatures::TR3
 		ID_PUNK
 	};
 
-	enum BobState
+	enum PrisonerState
 	{
-		BOB_STATE_EMPTY = 0,
-		BOB_STATE_STOP = 1,
-		BOB_STATE_WALK = 2,
-		BOB_STATE_PUNCH2 = 3,
-		BOB_STATE_AIM2 = 4,
-		BOB_STATE_WAIT = 5,
-		BOB_STATE_AIM1 = 6,
-		BOB_STATE_AIM0 = 7,
-		BOB_STATE_PUNCH1 = 8,
-		BOB_STATE_PUNCH0 = 9,
-		BOB_STATE_RUN = 10,
-		BOB_STATE_DEATH = 11,
-		BOB_STATE_CLIMB3 = 12,
-		BOB_STATE_CLIMB1 = 13,
-		BOB_STATE_CLIMB2 = 14,
-		BOB_STATE_FALL3 = 15
+		PRISONER_STATE_EMPTY = 0,
+		PRISONER_STATE_STOP = 1,
+		PRISONER_STATE_WALK = 2,
+		PRISONER_STATE_PUNCH2 = 3,
+		PRISONER_STATE_AIM2 = 4,
+		PRISONER_STATE_WAIT = 5,
+		PRISONER_STATE_AIM1 = 6,
+		PRISONER_STATE_AIM0 = 7,
+		PRISONER_STATE_PUNCH1 = 8,
+		PRISONER_STATE_PUNCH0 = 9,
+		PRISONER_STATE_RUN = 10,
+		PRISONER_STATE_DEATH = 11,
+		PRISONER_STATE_CLIMB3 = 12,
+		PRISONER_STATE_CLIMB1 = 13,
+		PRISONER_STATE_CLIMB2 = 14,
+		PRISONER_STATE_FALL3 = 15
 	};
 
-	// Find nearest enemy target for Bob (excludes Lara and other Bobs)
-	static ItemInfo* FindBobTarget(ItemInfo& item, const std::vector<GAME_OBJECT_ID>& excludedTargets)
+	// Find nearest enemy target for Prisoner (excludes Lara and other Prisoners)
+	static ItemInfo* FindPrisonerTarget(ItemInfo& item, const std::vector<GAME_OBJECT_ID>& excludedTargets)
 	{
 		float nearestDistance = FLT_MAX;
 		ItemInfo* result = nullptr;
@@ -128,15 +128,15 @@ namespace TEN::Entities::Creatures::TR3
 		return result;
 	}
 
-	void InitializeBob(short itemNumber)
+	void InitializePrisoner(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 
 		InitializeCreature(itemNumber);
-		SetAnimation(item, BOB_STOP_ANIM);
+		SetAnimation(item, PRISONER_STOP_ANIM);
 	}
 
-	void ControlBob(short itemNumber)
+	void ControlPrisoner(short itemNumber)
 	{
 		if (!CreatureActive(itemNumber))
 			return;
@@ -159,9 +159,9 @@ namespace TEN::Entities::Creatures::TR3
 
 		if (item->HitPoints <= 0)
 		{
-			if (item->Animation.ActiveState != BOB_STATE_DEATH)
+			if (item->Animation.ActiveState != PRISONER_STATE_DEATH)
 			{
-				SetAnimation(*item, BOB_DIE_ANIM);
+				SetAnimation(*item, PRISONER_DIE_ANIM);
 				creature->LOT.Step = CLICK(1);
 			}
 		}
@@ -178,11 +178,11 @@ namespace TEN::Entities::Creatures::TR3
 			}
 			else
 			{
-				// Find nearest enemy target (not Lara, not other Bobs)
-				creature->Enemy = FindBobTarget(*item, BobExcludedTargets);
+				// Find nearest enemy target (not Lara, not other Prisoners)
+				creature->Enemy = FindPrisonerTarget(*item, PrisonerExcludedTargets);
 			}
 
-			// Indestructible Bob with MODIFY flag
+			// Indestructible Prisoner with MODIFY flag
 			if (item->AIBits == MODIFY)
 				item->HitPoints = 200;
 
@@ -225,16 +225,16 @@ namespace TEN::Entities::Creatures::TR3
 
 			switch (item->Animation.ActiveState)
 			{
-			case BOB_STATE_WAIT:
-				if (creature->Alerted || item->Animation.TargetState == BOB_STATE_RUN)
+			case PRISONER_STATE_WAIT:
+				if (creature->Alerted || item->Animation.TargetState == PRISONER_STATE_RUN)
 				{
-					item->Animation.TargetState = BOB_STATE_STOP;
+					item->Animation.TargetState = PRISONER_STATE_STOP;
 					break;
 				}
 
 				[[fallthrough]];
 
-			case BOB_STATE_STOP:
+			case PRISONER_STATE_STOP:
 				creature->Flags = 0;
 				creature->MaxTurn = 0;
 				head = laraAI.angle;
@@ -244,22 +244,22 @@ namespace TEN::Entities::Creatures::TR3
 					head = AIGuard(creature);
 					if (Random::TestProbability(1 / 256.0f))
 					{
-						if (item->Animation.ActiveState == BOB_STATE_STOP)
-							item->Animation.TargetState = BOB_STATE_WAIT;
+						if (item->Animation.ActiveState == PRISONER_STATE_STOP)
+							item->Animation.TargetState = PRISONER_STATE_WAIT;
 						else
-							item->Animation.TargetState = BOB_STATE_STOP;
+							item->Animation.TargetState = PRISONER_STATE_STOP;
 					}
 				}
 				else if (item->AIBits & PATROL1)
 				{
-					item->Animation.TargetState = BOB_STATE_WALK;
+					item->Animation.TargetState = PRISONER_STATE_WALK;
 				}
 				else if (creature->Mood == MoodType::Escape)
 				{
 					if (Lara.TargetEntity != item && ai.ahead && !item->HitStatus)
-						item->Animation.TargetState = BOB_STATE_STOP;
+						item->Animation.TargetState = PRISONER_STATE_STOP;
 					else
-						item->Animation.TargetState = BOB_STATE_RUN;
+						item->Animation.TargetState = PRISONER_STATE_RUN;
 				}
 				else if (creature->Mood == MoodType::Bored ||
 					((item->AIBits & FOLLOW) && (creature->ReachedGoal || laraAI.distance > SQUARE(BLOCK(2)))))
@@ -267,162 +267,162 @@ namespace TEN::Entities::Creatures::TR3
 					if (item->Animation.RequiredState != NO_VALUE)
 						item->Animation.TargetState = item->Animation.RequiredState;
 					else if (ai.ahead)
-						item->Animation.TargetState = BOB_STATE_STOP;
+						item->Animation.TargetState = PRISONER_STATE_STOP;
 					else
-						item->Animation.TargetState = BOB_STATE_RUN;
+						item->Animation.TargetState = PRISONER_STATE_RUN;
 				}
-				else if (ai.bite && ai.distance < BOB_ATTACK0_RANGE)
+				else if (ai.bite && ai.distance < PRISONER_ATTACK0_RANGE)
 				{
-					item->Animation.TargetState = BOB_STATE_AIM0;
+					item->Animation.TargetState = PRISONER_STATE_AIM0;
 				}
-				else if (ai.bite && ai.distance < BOB_ATTACK1_RANGE)
+				else if (ai.bite && ai.distance < PRISONER_ATTACK1_RANGE)
 				{
-					item->Animation.TargetState = BOB_STATE_AIM1;
+					item->Animation.TargetState = PRISONER_STATE_AIM1;
 				}
-				else if (ai.bite && ai.distance < BOB_WALK_RANGE)
+				else if (ai.bite && ai.distance < PRISONER_WALK_RANGE)
 				{
-					item->Animation.TargetState = BOB_STATE_WALK;
+					item->Animation.TargetState = PRISONER_STATE_WALK;
 				}
 				else
 				{
-					item->Animation.TargetState = BOB_STATE_RUN;
+					item->Animation.TargetState = PRISONER_STATE_RUN;
 				}
 
 				break;
 
-			case BOB_STATE_WALK:
+			case PRISONER_STATE_WALK:
 				head = laraAI.angle;
-				creature->MaxTurn = BOB_WALK_TURN_RATE_MAX;
+				creature->MaxTurn = PRISONER_WALK_TURN_RATE_MAX;
 
 				if (item->AIBits & PATROL1)
 				{
-					item->Animation.TargetState = BOB_STATE_WALK;
+					item->Animation.TargetState = PRISONER_STATE_WALK;
 					head = 0;
 				}
 				else if (creature->Mood == MoodType::Escape)
 				{
-					item->Animation.TargetState = BOB_STATE_RUN;
+					item->Animation.TargetState = PRISONER_STATE_RUN;
 				}
 				else if (creature->Mood == MoodType::Bored)
 				{
 					if (Random::TestProbability(1 / 256.0f))
 					{
-						item->Animation.RequiredState = BOB_STATE_WAIT;
-						item->Animation.TargetState = BOB_STATE_STOP;
+						item->Animation.RequiredState = PRISONER_STATE_WAIT;
+						item->Animation.TargetState = PRISONER_STATE_STOP;
 					}
 				}
-				else if (ai.bite && ai.distance < BOB_ATTACK0_RANGE)
+				else if (ai.bite && ai.distance < PRISONER_ATTACK0_RANGE)
 				{
-					item->Animation.TargetState = BOB_STATE_STOP;
+					item->Animation.TargetState = PRISONER_STATE_STOP;
 				}
-				else if (ai.bite && ai.distance < BOB_ATTACK2_RANGE)
+				else if (ai.bite && ai.distance < PRISONER_ATTACK2_RANGE)
 				{
-					item->Animation.TargetState = BOB_STATE_AIM2;
+					item->Animation.TargetState = PRISONER_STATE_AIM2;
 				}
 				else
 				{
-					item->Animation.TargetState = BOB_STATE_RUN;
+					item->Animation.TargetState = PRISONER_STATE_RUN;
 				}
 
 				break;
 
-			case BOB_STATE_RUN:
+			case PRISONER_STATE_RUN:
 				if (ai.ahead)
 					head = ai.angle;
 
-				creature->MaxTurn = BOB_RUN_TURN_RATE_MAX;
+				creature->MaxTurn = PRISONER_RUN_TURN_RATE_MAX;
 				tilt = angle / 2;
 
 				if (item->AIBits & GUARD)
 				{
-					item->Animation.TargetState = BOB_STATE_STOP;
+					item->Animation.TargetState = PRISONER_STATE_STOP;
 				}
 				else if (creature->Mood == MoodType::Escape)
 				{
 					if (Lara.TargetEntity != item && ai.ahead)
-						item->Animation.TargetState = BOB_STATE_STOP;
+						item->Animation.TargetState = PRISONER_STATE_STOP;
 				}
 				else if ((item->AIBits & FOLLOW) && (creature->ReachedGoal || laraAI.distance > SQUARE(BLOCK(2))))
 				{
-					item->Animation.TargetState = BOB_STATE_STOP;
+					item->Animation.TargetState = PRISONER_STATE_STOP;
 				}
 				else if (creature->Mood == MoodType::Bored)
 				{
-					item->Animation.TargetState = BOB_STATE_WALK;
+					item->Animation.TargetState = PRISONER_STATE_WALK;
 				}
-				else if (ai.ahead && ai.distance < BOB_WALK_RANGE)
+				else if (ai.ahead && ai.distance < PRISONER_WALK_RANGE)
 				{
-					item->Animation.TargetState = BOB_STATE_WALK;
+					item->Animation.TargetState = PRISONER_STATE_WALK;
 				}
 
 				break;
 
-			case BOB_STATE_AIM0:
+			case PRISONER_STATE_AIM0:
 				if (ai.ahead)
 				{
 					extraTorsoRot.y = ai.angle;
 					extraTorsoRot.x = ai.xAngle;
 				}
 
-				creature->MaxTurn = BOB_WALK_TURN_RATE_MAX;
+				creature->MaxTurn = PRISONER_WALK_TURN_RATE_MAX;
 				creature->Flags = 0;
 
-				if (ai.bite && ai.distance < BOB_ATTACK0_RANGE)
-					item->Animation.TargetState = BOB_STATE_PUNCH0;
+				if (ai.bite && ai.distance < PRISONER_ATTACK0_RANGE)
+					item->Animation.TargetState = PRISONER_STATE_PUNCH0;
 				else
-					item->Animation.TargetState = BOB_STATE_STOP;
+					item->Animation.TargetState = PRISONER_STATE_STOP;
 
 				break;
 
-			case BOB_STATE_AIM1:
+			case PRISONER_STATE_AIM1:
 				if (ai.ahead)
 				{
 					extraTorsoRot.y = ai.angle;
 					extraTorsoRot.x = ai.xAngle;
 				}
 
-				creature->MaxTurn = BOB_WALK_TURN_RATE_MAX;
+				creature->MaxTurn = PRISONER_WALK_TURN_RATE_MAX;
 				creature->Flags = 0;
 
-				if (ai.ahead && ai.distance < BOB_ATTACK1_RANGE)
-					item->Animation.TargetState = BOB_STATE_PUNCH1;
+				if (ai.ahead && ai.distance < PRISONER_ATTACK1_RANGE)
+					item->Animation.TargetState = PRISONER_STATE_PUNCH1;
 				else
-					item->Animation.TargetState = BOB_STATE_STOP;
+					item->Animation.TargetState = PRISONER_STATE_STOP;
 
 				break;
 
-			case BOB_STATE_AIM2:
+			case PRISONER_STATE_AIM2:
 				if (ai.ahead)
 				{
 					extraTorsoRot.y = ai.angle;
 					extraTorsoRot.x = ai.xAngle;
 				}
 
-				creature->MaxTurn = BOB_WALK_TURN_RATE_MAX;
+				creature->MaxTurn = PRISONER_WALK_TURN_RATE_MAX;
 				creature->Flags = 0;
 
-				if (ai.bite && ai.distance < BOB_ATTACK2_RANGE)
-					item->Animation.TargetState = BOB_STATE_PUNCH2;
+				if (ai.bite && ai.distance < PRISONER_ATTACK2_RANGE)
+					item->Animation.TargetState = PRISONER_STATE_PUNCH2;
 				else
-					item->Animation.TargetState = BOB_STATE_WALK;
+					item->Animation.TargetState = PRISONER_STATE_WALK;
 
 				break;
 
-			case BOB_STATE_PUNCH0:
+			case PRISONER_STATE_PUNCH0:
 				if (ai.ahead)
 				{
 					extraTorsoRot.y = ai.angle;
 					extraTorsoRot.x = ai.xAngle;
 				}
 
-				creature->MaxTurn = BOB_WALK_TURN_RATE_MAX;
+				creature->MaxTurn = PRISONER_WALK_TURN_RATE_MAX;
 
 				if (enemy == LaraItem)
 				{
-					if (!creature->Flags && item->TouchBits.Test(BobAttackJoints))
+					if (!creature->Flags && item->TouchBits.Test(PrisonerAttackJoints))
 					{
-						DoDamage(creature->Enemy, BOB_HIT_DAMAGE);
-						CreatureEffect(item, BobHitBite, DoBloodSplat);
+						DoDamage(creature->Enemy, PRISONER_HIT_DAMAGE);
+						CreatureEffect(item, PrisonerHitBite, DoBloodSplat);
 						SoundEffect(SFX_TR4_LARA_THUD, &item->Pose);
 						creature->Flags = 1;
 					}
@@ -430,10 +430,10 @@ namespace TEN::Entities::Creatures::TR3
 				else if (!creature->Flags && enemy != nullptr)
 				{
 					float distance = Vector3i::Distance(item->Pose.Position, enemy->Pose.Position);
-					if (distance < BOB_HIT_RADIUS)
+					if (distance < PRISONER_HIT_RADIUS)
 					{
-						DoDamage(enemy, BOB_HIT_DAMAGE / 2);
-						CreatureEffect(item, BobHitBite, DoBloodSplat);
+						DoDamage(enemy, PRISONER_HIT_DAMAGE / 2);
+						CreatureEffect(item, PrisonerHitBite, DoBloodSplat);
 						SoundEffect(SFX_TR4_LARA_THUD, &item->Pose);
 						creature->Flags = 1;
 					}
@@ -441,21 +441,21 @@ namespace TEN::Entities::Creatures::TR3
 
 				break;
 
-			case BOB_STATE_PUNCH1:
+			case PRISONER_STATE_PUNCH1:
 				if (ai.ahead)
 				{
 					extraTorsoRot.y = ai.angle;
 					extraTorsoRot.x = ai.xAngle;
 				}
 
-				creature->MaxTurn = BOB_WALK_TURN_RATE_MAX;
+				creature->MaxTurn = PRISONER_WALK_TURN_RATE_MAX;
 
 				if (enemy == LaraItem)
 				{
-					if (!creature->Flags && item->TouchBits.Test(BobAttackJoints))
+					if (!creature->Flags && item->TouchBits.Test(PrisonerAttackJoints))
 					{
-						DoDamage(creature->Enemy, BOB_HIT_DAMAGE);
-						CreatureEffect(item, BobHitBite, DoBloodSplat);
+						DoDamage(creature->Enemy, PRISONER_HIT_DAMAGE);
+						CreatureEffect(item, PrisonerHitBite, DoBloodSplat);
 						SoundEffect(SFX_TR4_LARA_THUD, &item->Pose);
 						creature->Flags = 1;
 					}
@@ -463,35 +463,35 @@ namespace TEN::Entities::Creatures::TR3
 				else if (!creature->Flags && enemy != nullptr)
 				{
 					float distance = Vector3i::Distance(item->Pose.Position, enemy->Pose.Position);
-					if (distance < BOB_HIT_RADIUS)
+					if (distance < PRISONER_HIT_RADIUS)
 					{
-						DoDamage(enemy, BOB_HIT_DAMAGE / 2);
-						CreatureEffect(item, BobHitBite, DoBloodSplat);
+						DoDamage(enemy, PRISONER_HIT_DAMAGE / 2);
+						CreatureEffect(item, PrisonerHitBite, DoBloodSplat);
 						SoundEffect(SFX_TR4_LARA_THUD, &item->Pose);
 						creature->Flags = 1;
 					}
 				}
 
-				if (ai.ahead && ai.distance > BOB_ATTACK1_RANGE && ai.distance < BOB_ATTACK2_RANGE)
-					item->Animation.TargetState = BOB_STATE_PUNCH2;
+				if (ai.ahead && ai.distance > PRISONER_ATTACK1_RANGE && ai.distance < PRISONER_ATTACK2_RANGE)
+					item->Animation.TargetState = PRISONER_STATE_PUNCH2;
 
 				break;
 
-			case BOB_STATE_PUNCH2:
+			case PRISONER_STATE_PUNCH2:
 				if (ai.ahead)
 				{
 					extraTorsoRot.y = ai.angle;
 					extraTorsoRot.x = ai.xAngle;
 				}
 
-				creature->MaxTurn = BOB_WALK_TURN_RATE_MAX;
+				creature->MaxTurn = PRISONER_WALK_TURN_RATE_MAX;
 
 				if (enemy == LaraItem)
 				{
-					if (creature->Flags != 2 && item->TouchBits.Test(BobAttackJoints))
+					if (creature->Flags != 2 && item->TouchBits.Test(PrisonerAttackJoints))
 					{
-						DoDamage(creature->Enemy, BOB_SWIPE_DAMAGE);
-						CreatureEffect(item, BobHitBite, DoBloodSplat);
+						DoDamage(creature->Enemy, PRISONER_SWIPE_DAMAGE);
+						CreatureEffect(item, PrisonerHitBite, DoBloodSplat);
 						SoundEffect(SFX_TR4_LARA_THUD, &item->Pose);
 						creature->Flags = 2;
 					}
@@ -499,10 +499,10 @@ namespace TEN::Entities::Creatures::TR3
 				else if (creature->Flags != 2 && enemy != nullptr)
 				{
 					float distance = Vector3i::Distance(item->Pose.Position, enemy->Pose.Position);
-					if (distance < BOB_HIT_RADIUS)
+					if (distance < PRISONER_HIT_RADIUS)
 					{
-						DoDamage(enemy, BOB_SWIPE_DAMAGE / 2);
-						CreatureEffect(item, BobHitBite, DoBloodSplat);
+						DoDamage(enemy, PRISONER_SWIPE_DAMAGE / 2);
+						CreatureEffect(item, PrisonerHitBite, DoBloodSplat);
 						SoundEffect(SFX_TR4_LARA_THUD, &item->Pose);
 						creature->Flags = 2;
 					}
@@ -517,28 +517,28 @@ namespace TEN::Entities::Creatures::TR3
 		CreatureJoint(item, 1, extraTorsoRot.x);
 		CreatureJoint(item, 2, head);
 
-		if (item->Animation.ActiveState < BOB_STATE_DEATH)
+		if (item->Animation.ActiveState < PRISONER_STATE_DEATH)
 		{
-			switch (CreatureVault(itemNumber, angle, 2, BOB_VAULT_SHIFT))
+			switch (CreatureVault(itemNumber, angle, 2, PRISONER_VAULT_SHIFT))
 			{
 			case 2:
 				creature->MaxTurn = 0;
-				SetAnimation(*item, BOB_CLIMB1_ANIM);
+				SetAnimation(*item, PRISONER_CLIMB1_ANIM);
 				break;
 
 			case 3:
 				creature->MaxTurn = 0;
-				SetAnimation(*item, BOB_CLIMB2_ANIM);
+				SetAnimation(*item, PRISONER_CLIMB2_ANIM);
 				break;
 
 			case 4:
 				creature->MaxTurn = 0;
-				SetAnimation(*item, BOB_CLIMB3_ANIM);
+				SetAnimation(*item, PRISONER_CLIMB3_ANIM);
 				break;
 
 			case -4:
 				creature->MaxTurn = 0;
-				SetAnimation(*item, BOB_FALL3_ANIM);
+				SetAnimation(*item, PRISONER_FALL3_ANIM);
 				break;
 			}
 		}

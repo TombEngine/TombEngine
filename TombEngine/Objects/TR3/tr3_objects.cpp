@@ -602,8 +602,8 @@ static void StartEntity(ObjectInfo* obj)
 	obj = &Objects[ID_PRISONER];
 	if (obj->loaded)
 	{
-		obj->Initialize = InitializeBob;
-		obj->control = ControlBob;
+		obj->Initialize = InitializePrisoner;
+		obj->control = ControlPrisoner;
 		obj->collision = CreatureCollision;
 		obj->shadowType = ShadowMode::All;
 		obj->HitPoints = 34;
@@ -611,7 +611,6 @@ static void StartEntity(ObjectInfo* obj)
 		obj->pivotLength = 0;
 		obj->intelligent = true;
 		obj->LotType = LotType::Human;
-		
 		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(13, ROT_Y);
 		obj->SetHitEffect();
