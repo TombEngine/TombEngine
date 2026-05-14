@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Objects/TR3/Entity/Bob.h"
+#include "Objects/TR3/Entity/Prisoner.h"
 
 #include "Game/Animation/Animation.h"
 #include "Game/control/box.h"

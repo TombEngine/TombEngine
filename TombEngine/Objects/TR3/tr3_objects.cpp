@@ -26,7 +26,7 @@
 #include "Objects/TR3/Entity/Winston.h"
 #include "Objects/TR3/Entity/Punk.h"
 #include "Objects/TR3/Entity/SwatGun.h"
-#include "Objects/TR3/Entity/Bob.h"
+#include "Objects/TR3/Entity/Prisoner.h"
 #include "Objects/TR3/Entity/tr3_tony.h"
 #include "Objects/TR3/Entity/tr3_civvy.h"
 #include "Objects/TR3/Entity/tr3_claw_mutant.h"
