@@ -104,6 +104,15 @@ namespace TEN::Entities::Creatures::TR3
 		return SameZone(creature, target);
 	}
 
+	bool IsMonkeyPickupInSameBox(ItemInfo* item, CreatureInfo* creature)
+	{
+		auto* enemy = creature->Enemy;
+		if (enemy == nullptr)
+			return false;
+
+		return item->BoxNumber == enemy->BoxNumber;
+	}
+
 	void UpdateMonkeyPickupTarget(ItemInfo* item, CreatureInfo* creature)
 	{
 		if (item->CarriedItem != NO_VALUE)
@@ -461,9 +470,11 @@ namespace TEN::Entities::Creatures::TR3
 					if (Random::TestProbability(1 / 128.0f))
 						item->Animation.TargetState = MONKEY_STATE_SIT;
 				}
+				else if (IsMonkeyPickupInSameBox(item, creature))
+					item->Animation.TargetState = MONKEY_STATE_IDLE;
 				else if (AI.bite && AI.distance < pow(682, 2))
 					item->Animation.TargetState = MONKEY_STATE_IDLE;
-				
+
 				break;
 
 			case MONKEY_STATE_RUN_FORWARD:
