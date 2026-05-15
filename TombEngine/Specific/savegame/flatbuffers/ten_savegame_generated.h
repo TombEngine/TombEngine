@@ -105,6 +105,10 @@ struct CollisionInfoData;
 struct CollisionInfoDataBuilder;
 struct CollisionInfoDataT;
 
+struct PlayerSkinData;
+struct PlayerSkinDataBuilder;
+struct PlayerSkinDataT;
+
 struct Lara;
 struct LaraBuilder;
 struct LaraT;
@@ -4705,6 +4709,108 @@ struct CollisionInfoData::Traits {
 
 flatbuffers::Offset<CollisionInfoData> CreateCollisionInfoData(flatbuffers::FlatBufferBuilder &_fbb, const CollisionInfoDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct PlayerSkinDataT : public flatbuffers::NativeTable {
+  typedef PlayerSkinData TableType;
+  int32_t skin = 0;
+  int32_t skin_joints = 0;
+  int32_t skin_scream = 0;
+  int32_t hair_primary = 0;
+  int32_t hair_secondary = 0;
+};
+
+struct PlayerSkinData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PlayerSkinDataT NativeTableType;
+  typedef PlayerSkinDataBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_SKIN = 4,
+    VT_SKIN_JOINTS = 6,
+    VT_SKIN_SCREAM = 8,
+    VT_HAIR_PRIMARY = 10,
+    VT_HAIR_SECONDARY = 12
+  };
+  int32_t skin() const {
+    return GetField<int32_t>(VT_SKIN, 0);
+  }
+  int32_t skin_joints() const {
+    return GetField<int32_t>(VT_SKIN_JOINTS, 0);
+  }
+  int32_t skin_scream() const {
+    return GetField<int32_t>(VT_SKIN_SCREAM, 0);
+  }
+  int32_t hair_primary() const {
+    return GetField<int32_t>(VT_HAIR_PRIMARY, 0);
+  }
+  int32_t hair_secondary() const {
+    return GetField<int32_t>(VT_HAIR_SECONDARY, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_SKIN) &&
+           VerifyField<int32_t>(verifier, VT_SKIN_JOINTS) &&
+           VerifyField<int32_t>(verifier, VT_SKIN_SCREAM) &&
+           VerifyField<int32_t>(verifier, VT_HAIR_PRIMARY) &&
+           VerifyField<int32_t>(verifier, VT_HAIR_SECONDARY) &&
+           verifier.EndTable();
+  }
+  PlayerSkinDataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PlayerSkinDataT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PlayerSkinData> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PlayerSkinDataT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PlayerSkinDataBuilder {
+  typedef PlayerSkinData Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_skin(int32_t skin) {
+    fbb_.AddElement<int32_t>(PlayerSkinData::VT_SKIN, skin, 0);
+  }
+  void add_skin_joints(int32_t skin_joints) {
+    fbb_.AddElement<int32_t>(PlayerSkinData::VT_SKIN_JOINTS, skin_joints, 0);
+  }
+  void add_skin_scream(int32_t skin_scream) {
+    fbb_.AddElement<int32_t>(PlayerSkinData::VT_SKIN_SCREAM, skin_scream, 0);
+  }
+  void add_hair_primary(int32_t hair_primary) {
+    fbb_.AddElement<int32_t>(PlayerSkinData::VT_HAIR_PRIMARY, hair_primary, 0);
+  }
+  void add_hair_secondary(int32_t hair_secondary) {
+    fbb_.AddElement<int32_t>(PlayerSkinData::VT_HAIR_SECONDARY, hair_secondary, 0);
+  }
+  explicit PlayerSkinDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PlayerSkinData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PlayerSkinData>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PlayerSkinData> CreatePlayerSkinData(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t skin = 0,
+    int32_t skin_joints = 0,
+    int32_t skin_scream = 0,
+    int32_t hair_primary = 0,
+    int32_t hair_secondary = 0) {
+  PlayerSkinDataBuilder builder_(_fbb);
+  builder_.add_hair_secondary(hair_secondary);
+  builder_.add_hair_primary(hair_primary);
+  builder_.add_skin_scream(skin_scream);
+  builder_.add_skin_joints(skin_joints);
+  builder_.add_skin(skin);
+  return builder_.Finish();
+}
+
+struct PlayerSkinData::Traits {
+  using type = PlayerSkinData;
+  static auto constexpr Create = CreatePlayerSkinData;
+};
+
+flatbuffers::Offset<PlayerSkinData> CreatePlayerSkinData(flatbuffers::FlatBufferBuilder &_fbb, const PlayerSkinDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct LaraT : public flatbuffers::NativeTable {
   typedef Lara TableType;
   std::unique_ptr<TEN::Save::PlayerContextDataT> context{};
@@ -4728,6 +4834,7 @@ struct LaraT : public flatbuffers::NativeTable {
   int32_t target_entity_number = 0;
   std::unique_ptr<TEN::Save::TorchDataT> torch{};
   std::vector<std::unique_ptr<TEN::Save::CarriedWeaponInfoT>> weapons{};
+  std::unique_ptr<TEN::Save::PlayerSkinDataT> skin{};
 };
 
 struct Lara FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -4755,7 +4862,8 @@ struct Lara FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_TARGET_ARM_ORIENT = 38,
     VT_TARGET_ENTITY_NUMBER = 40,
     VT_TORCH = 42,
-    VT_WEAPONS = 44
+    VT_WEAPONS = 44,
+    VT_SKIN = 46
   };
   const TEN::Save::PlayerContextData *context() const {
     return GetPointer<const TEN::Save::PlayerContextData *>(VT_CONTEXT);
@@ -4820,6 +4928,9 @@ struct Lara FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>> *weapons() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>> *>(VT_WEAPONS);
   }
+  const TEN::Save::PlayerSkinData *skin() const {
+    return GetPointer<const TEN::Save::PlayerSkinData *>(VT_SKIN);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_CONTEXT) &&
@@ -4855,6 +4966,8 @@ struct Lara FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_WEAPONS) &&
            verifier.VerifyVector(weapons()) &&
            verifier.VerifyVectorOfTables(weapons()) &&
+           VerifyOffset(verifier, VT_SKIN) &&
+           verifier.VerifyTable(skin()) &&
            verifier.EndTable();
   }
   LaraT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -4929,6 +5042,9 @@ struct LaraBuilder {
   void add_weapons(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>>> weapons) {
     fbb_.AddOffset(Lara::VT_WEAPONS, weapons);
   }
+  void add_skin(flatbuffers::Offset<TEN::Save::PlayerSkinData> skin) {
+    fbb_.AddOffset(Lara::VT_SKIN, skin);
+  }
   explicit LaraBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -4962,8 +5078,10 @@ inline flatbuffers::Offset<Lara> CreateLara(
     const TEN::Save::EulerAngles *target_arm_orient = 0,
     int32_t target_entity_number = 0,
     flatbuffers::Offset<TEN::Save::TorchData> torch = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>>> weapons = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>>> weapons = 0,
+    flatbuffers::Offset<TEN::Save::PlayerSkinData> skin = 0) {
   LaraBuilder builder_(_fbb);
+  builder_.add_skin(skin);
   builder_.add_weapons(weapons);
   builder_.add_torch(torch);
   builder_.add_target_entity_number(target_entity_number);
@@ -5015,7 +5133,8 @@ inline flatbuffers::Offset<Lara> CreateLaraDirect(
     const TEN::Save::EulerAngles *target_arm_orient = 0,
     int32_t target_entity_number = 0,
     flatbuffers::Offset<TEN::Save::TorchData> torch = 0,
-    const std::vector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>> *weapons = nullptr) {
+    const std::vector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>> *weapons = nullptr,
+    flatbuffers::Offset<TEN::Save::PlayerSkinData> skin = 0) {
   auto weapons__ = weapons ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>>(*weapons) : 0;
   return TEN::Save::CreateLara(
       _fbb,
@@ -5039,7 +5158,8 @@ inline flatbuffers::Offset<Lara> CreateLaraDirect(
       target_arm_orient,
       target_entity_number,
       torch,
-      weapons__);
+      weapons__,
+      skin);
 }
 
 flatbuffers::Offset<Lara> CreateLara(flatbuffers::FlatBufferBuilder &_fbb, const LaraT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -8667,6 +8787,10 @@ struct SaveGameT : public flatbuffers::NativeTable {
   int32_t postprocess_mode = 0;
   float postprocess_strength = 0.0f;
   std::unique_ptr<TEN::Save::Vector3> postprocess_tint{};
+  float dof_distance = 0.0f;
+  float dof_range = 0.0f;
+  float dof_strength = 0.0f;
+  int32_t dof_mode = 0;
   std::unique_ptr<TEN::Save::RopeT> rope{};
   std::unique_ptr<TEN::Save::PendulumT> pendulum{};
   std::unique_ptr<TEN::Save::PendulumT> alternate_pendulum{};
@@ -8738,27 +8862,31 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_POSTPROCESS_MODE = 84,
     VT_POSTPROCESS_STRENGTH = 86,
     VT_POSTPROCESS_TINT = 88,
-    VT_ROPE = 90,
-    VT_PENDULUM = 92,
-    VT_ALTERNATE_PENDULUM = 94,
-    VT_VOLUMES = 96,
-    VT_GLOBAL_EVENT_SETS = 98,
-    VT_VOLUME_EVENT_SETS = 100,
-    VT_SCRIPT_VARS = 102,
-    VT_CALLBACKS_PRE_START = 104,
-    VT_CALLBACKS_POST_START = 106,
-    VT_CALLBACKS_PRE_END = 108,
-    VT_CALLBACKS_POST_END = 110,
-    VT_CALLBACKS_PRE_SAVE = 112,
-    VT_CALLBACKS_POST_SAVE = 114,
-    VT_CALLBACKS_PRE_LOAD = 116,
-    VT_CALLBACKS_POST_LOAD = 118,
-    VT_CALLBACKS_PRE_LOOP = 120,
-    VT_CALLBACKS_POST_LOOP = 122,
-    VT_CALLBACKS_PRE_USEITEM = 124,
-    VT_CALLBACKS_POST_USEITEM = 126,
-    VT_CALLBACKS_PRE_FREEZE = 128,
-    VT_CALLBACKS_POST_FREEZE = 130
+    VT_DOF_DISTANCE = 90,
+    VT_DOF_RANGE = 92,
+    VT_DOF_STRENGTH = 94,
+    VT_DOF_MODE = 96,
+    VT_ROPE = 98,
+    VT_PENDULUM = 100,
+    VT_ALTERNATE_PENDULUM = 102,
+    VT_VOLUMES = 104,
+    VT_GLOBAL_EVENT_SETS = 106,
+    VT_VOLUME_EVENT_SETS = 108,
+    VT_SCRIPT_VARS = 110,
+    VT_CALLBACKS_PRE_START = 112,
+    VT_CALLBACKS_POST_START = 114,
+    VT_CALLBACKS_PRE_END = 116,
+    VT_CALLBACKS_POST_END = 118,
+    VT_CALLBACKS_PRE_SAVE = 120,
+    VT_CALLBACKS_POST_SAVE = 122,
+    VT_CALLBACKS_PRE_LOAD = 124,
+    VT_CALLBACKS_POST_LOAD = 126,
+    VT_CALLBACKS_PRE_LOOP = 128,
+    VT_CALLBACKS_POST_LOOP = 130,
+    VT_CALLBACKS_PRE_USEITEM = 132,
+    VT_CALLBACKS_POST_USEITEM = 134,
+    VT_CALLBACKS_PRE_FREEZE = 136,
+    VT_CALLBACKS_POST_FREEZE = 138
   };
   const TEN::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Save::SaveGameHeader *>(VT_HEADER);
@@ -8888,6 +9016,18 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const TEN::Save::Vector3 *postprocess_tint() const {
     return GetStruct<const TEN::Save::Vector3 *>(VT_POSTPROCESS_TINT);
+  }
+  float dof_distance() const {
+    return GetField<float>(VT_DOF_DISTANCE, 0.0f);
+  }
+  float dof_range() const {
+    return GetField<float>(VT_DOF_RANGE, 0.0f);
+  }
+  float dof_strength() const {
+    return GetField<float>(VT_DOF_STRENGTH, 0.0f);
+  }
+  int32_t dof_mode() const {
+    return GetField<int32_t>(VT_DOF_MODE, 0);
   }
   const TEN::Save::Rope *rope() const {
     return GetPointer<const TEN::Save::Rope *>(VT_ROPE);
@@ -9044,6 +9184,10 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_POSTPROCESS_MODE) &&
            VerifyField<float>(verifier, VT_POSTPROCESS_STRENGTH) &&
            VerifyField<TEN::Save::Vector3>(verifier, VT_POSTPROCESS_TINT) &&
+           VerifyField<float>(verifier, VT_DOF_DISTANCE) &&
+           VerifyField<float>(verifier, VT_DOF_RANGE) &&
+           VerifyField<float>(verifier, VT_DOF_STRENGTH) &&
+           VerifyField<int32_t>(verifier, VT_DOF_MODE) &&
            VerifyOffset(verifier, VT_ROPE) &&
            verifier.VerifyTable(rope()) &&
            VerifyOffset(verifier, VT_PENDULUM) &&
@@ -9243,6 +9387,18 @@ struct SaveGameBuilder {
   void add_postprocess_tint(const TEN::Save::Vector3 *postprocess_tint) {
     fbb_.AddStruct(SaveGame::VT_POSTPROCESS_TINT, postprocess_tint);
   }
+  void add_dof_distance(float dof_distance) {
+    fbb_.AddElement<float>(SaveGame::VT_DOF_DISTANCE, dof_distance, 0.0f);
+  }
+  void add_dof_range(float dof_range) {
+    fbb_.AddElement<float>(SaveGame::VT_DOF_RANGE, dof_range, 0.0f);
+  }
+  void add_dof_strength(float dof_strength) {
+    fbb_.AddElement<float>(SaveGame::VT_DOF_STRENGTH, dof_strength, 0.0f);
+  }
+  void add_dof_mode(int32_t dof_mode) {
+    fbb_.AddElement<int32_t>(SaveGame::VT_DOF_MODE, dof_mode, 0);
+  }
   void add_rope(flatbuffers::Offset<TEN::Save::Rope> rope) {
     fbb_.AddOffset(SaveGame::VT_ROPE, rope);
   }
@@ -9362,6 +9518,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     int32_t postprocess_mode = 0,
     float postprocess_strength = 0.0f,
     const TEN::Save::Vector3 *postprocess_tint = 0,
+    float dof_distance = 0.0f,
+    float dof_range = 0.0f,
+    float dof_strength = 0.0f,
+    int32_t dof_mode = 0,
     flatbuffers::Offset<TEN::Save::Rope> rope = 0,
     flatbuffers::Offset<TEN::Save::Pendulum> pendulum = 0,
     flatbuffers::Offset<TEN::Save::Pendulum> alternate_pendulum = 0,
@@ -9405,6 +9565,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
   builder_.add_alternate_pendulum(alternate_pendulum);
   builder_.add_pendulum(pendulum);
   builder_.add_rope(rope);
+  builder_.add_dof_mode(dof_mode);
+  builder_.add_dof_strength(dof_strength);
+  builder_.add_dof_range(dof_range);
+  builder_.add_dof_distance(dof_distance);
   builder_.add_postprocess_tint(postprocess_tint);
   builder_.add_postprocess_strength(postprocess_strength);
   builder_.add_postprocess_mode(postprocess_mode);
@@ -9501,6 +9665,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     int32_t postprocess_mode = 0,
     float postprocess_strength = 0.0f,
     const TEN::Save::Vector3 *postprocess_tint = 0,
+    float dof_distance = 0.0f,
+    float dof_range = 0.0f,
+    float dof_strength = 0.0f,
+    int32_t dof_mode = 0,
     flatbuffers::Offset<TEN::Save::Rope> rope = 0,
     flatbuffers::Offset<TEN::Save::Pendulum> pendulum = 0,
     flatbuffers::Offset<TEN::Save::Pendulum> alternate_pendulum = 0,
@@ -9607,6 +9775,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       postprocess_mode,
       postprocess_strength,
       postprocess_tint,
+      dof_distance,
+      dof_range,
+      dof_strength,
+      dof_mode,
       rope,
       pendulum,
       alternate_pendulum,
@@ -10884,6 +11056,44 @@ inline flatbuffers::Offset<CollisionInfoData> CreateCollisionInfoData(flatbuffer
       _last_bridge_item_pose);
 }
 
+inline PlayerSkinDataT *PlayerSkinData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PlayerSkinDataT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PlayerSkinData::UnPackTo(PlayerSkinDataT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = skin(); _o->skin = _e; }
+  { auto _e = skin_joints(); _o->skin_joints = _e; }
+  { auto _e = skin_scream(); _o->skin_scream = _e; }
+  { auto _e = hair_primary(); _o->hair_primary = _e; }
+  { auto _e = hair_secondary(); _o->hair_secondary = _e; }
+}
+
+inline flatbuffers::Offset<PlayerSkinData> PlayerSkinData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PlayerSkinDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePlayerSkinData(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PlayerSkinData> CreatePlayerSkinData(flatbuffers::FlatBufferBuilder &_fbb, const PlayerSkinDataT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PlayerSkinDataT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _skin = _o->skin;
+  auto _skin_joints = _o->skin_joints;
+  auto _skin_scream = _o->skin_scream;
+  auto _hair_primary = _o->hair_primary;
+  auto _hair_secondary = _o->hair_secondary;
+  return TEN::Save::CreatePlayerSkinData(
+      _fbb,
+      _skin,
+      _skin_joints,
+      _skin_scream,
+      _hair_primary,
+      _hair_secondary);
+}
+
 inline LaraT *Lara::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::make_unique<LaraT>();
   UnPackTo(_o.get(), _resolver);
@@ -10914,6 +11124,7 @@ inline void Lara::UnPackTo(LaraT *_o, const flatbuffers::resolver_function_t *_r
   { auto _e = target_entity_number(); _o->target_entity_number = _e; }
   { auto _e = torch(); if (_e) _o->torch = std::unique_ptr<TEN::Save::TorchDataT>(_e->UnPack(_resolver)); }
   { auto _e = weapons(); if (_e) { _o->weapons.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->weapons[_i] = std::unique_ptr<TEN::Save::CarriedWeaponInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = skin(); if (_e) _o->skin = std::unique_ptr<TEN::Save::PlayerSkinDataT>(_e->UnPack(_resolver)); }
 }
 
 inline flatbuffers::Offset<Lara> Lara::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LaraT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -10945,6 +11156,7 @@ inline flatbuffers::Offset<Lara> CreateLara(flatbuffers::FlatBufferBuilder &_fbb
   auto _target_entity_number = _o->target_entity_number;
   auto _torch = _o->torch ? CreateTorchData(_fbb, _o->torch.get(), _rehasher) : 0;
   auto _weapons = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::CarriedWeaponInfo>> (_o->weapons.size(), [](size_t i, _VectorArgs *__va) { return CreateCarriedWeaponInfo(*__va->__fbb, __va->__o->weapons[i].get(), __va->__rehasher); }, &_va );
+  auto _skin = _o->skin ? CreatePlayerSkinData(_fbb, _o->skin.get(), _rehasher) : 0;
   return TEN::Save::CreateLara(
       _fbb,
       _context,
@@ -10967,7 +11179,8 @@ inline flatbuffers::Offset<Lara> CreateLara(flatbuffers::FlatBufferBuilder &_fbb
       _target_arm_orient,
       _target_entity_number,
       _torch,
-      _weapons);
+      _weapons,
+      _skin);
 }
 
 inline CameraT *Camera::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -12262,6 +12475,10 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = postprocess_mode(); _o->postprocess_mode = _e; }
   { auto _e = postprocess_strength(); _o->postprocess_strength = _e; }
   { auto _e = postprocess_tint(); if (_e) _o->postprocess_tint = std::unique_ptr<TEN::Save::Vector3>(new TEN::Save::Vector3(*_e)); }
+  { auto _e = dof_distance(); _o->dof_distance = _e; }
+  { auto _e = dof_range(); _o->dof_range = _e; }
+  { auto _e = dof_strength(); _o->dof_strength = _e; }
+  { auto _e = dof_mode(); _o->dof_mode = _e; }
   { auto _e = rope(); if (_e) _o->rope = std::unique_ptr<TEN::Save::RopeT>(_e->UnPack(_resolver)); }
   { auto _e = pendulum(); if (_e) _o->pendulum = std::unique_ptr<TEN::Save::PendulumT>(_e->UnPack(_resolver)); }
   { auto _e = alternate_pendulum(); if (_e) _o->alternate_pendulum = std::unique_ptr<TEN::Save::PendulumT>(_e->UnPack(_resolver)); }
@@ -12336,6 +12553,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _postprocess_mode = _o->postprocess_mode;
   auto _postprocess_strength = _o->postprocess_strength;
   auto _postprocess_tint = _o->postprocess_tint ? _o->postprocess_tint.get() : 0;
+  auto _dof_distance = _o->dof_distance;
+  auto _dof_range = _o->dof_range;
+  auto _dof_strength = _o->dof_strength;
+  auto _dof_mode = _o->dof_mode;
   auto _rope = _o->rope ? CreateRope(_fbb, _o->rope.get(), _rehasher) : 0;
   auto _pendulum = _o->pendulum ? CreatePendulum(_fbb, _o->pendulum.get(), _rehasher) : 0;
   auto _alternate_pendulum = _o->alternate_pendulum ? CreatePendulum(_fbb, _o->alternate_pendulum.get(), _rehasher) : 0;
@@ -12402,6 +12623,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _postprocess_mode,
       _postprocess_strength,
       _postprocess_tint,
+      _dof_distance,
+      _dof_range,
+      _dof_strength,
+      _dof_mode,
       _rope,
       _pendulum,
       _alternate_pendulum,

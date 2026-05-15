@@ -21,8 +21,8 @@ namespace TEN::Renderer::Structures
 
 		Quaternion BoneOrientations[MAX_BONES];
 
-		Vector4 Color = Vector4::One;
-		Vector4 AmbientLight = Vector4::One;
+		Vector4 Color = NEUTRAL_COLOR;
+		Vector4 AmbientLight = NEUTRAL_COLOR;
 
 		int				 SkinIndex	 = NO_VALUE;	
 		std::vector<int> MeshIndex	 = {};
