@@ -94,9 +94,9 @@ float4 PSDOFDownsample(PixelShaderInput input) : SV_Target
     for (int i = 0; i < 4; i++)
     {
         float2 sampleUV = saturate(input.UV + offsets[i] * fullTexel);
-        color += ColorTexture.SampleLevel(ColorSampler, sampleUV, 0).rgb;
+        color += ColorTexture.SampleLevel(LinearClampSampler, sampleUV, 0).rgb;
 
-        float sceneDepth = DepthTexture.Sample(DepthSampler, sampleUV).x;
+        float sceneDepth = DepthTexture.Sample(PointWrapSampler, sampleUV).x;
         viewDepth += abs(ReconstructViewPosition(sampleUV, sceneDepth, InverseProjection).z);
     }
 
@@ -118,7 +118,7 @@ float4 PSDOFDownsample(PixelShaderInput input) : SV_Target
 
 float4 PSDOFFarBlur(PixelShaderInput input) : SV_Target
 {
-    float4 center       = ColorTexture.SampleLevel(ColorSampler, input.UV, 0);
+    float4 center       = ColorTexture.SampleLevel(LinearClampSampler, input.UV, 0);
     float  centerSigned = UnpackSignedCoC(center.a);
     float  centerFarCoC = max(0.0f, centerSigned);
     float  radius       = GetBokehRadius(centerFarCoC);
@@ -135,7 +135,7 @@ float4 PSDOFFarBlur(PixelShaderInput input) : SV_Target
     for (int i = 0; i < DOF_DISC_SAMPLES; i++)
     {
         float2 offset    = DOF_DISC_OFFSETS[i] * radius * TexelSize;
-        float4 tap       = ColorTexture.SampleLevel(ColorSampler, saturate(input.UV + offset), 0);
+        float4 tap       = ColorTexture.SampleLevel(LinearClampSampler, saturate(input.UV + offset), 0);
         float  tapSigned = UnpackSignedCoC(tap.a);
         float  tapFarCoC = max(0.0f, tapSigned);
 
@@ -160,7 +160,7 @@ float4 PSDOFFarBlur(PixelShaderInput input) : SV_Target
 // Reuse the bokeh disc offsets for the dilation neighbourhood.
 float4 PSDOFNearDilate(PixelShaderInput input) : SV_Target
 {
-    float4 center   = ColorTexture.SampleLevel(ColorSampler, input.UV, 0);
+    float4 center   = ColorTexture.SampleLevel(LinearClampSampler, input.UV, 0);
     float  minAlpha = center.a;
 
     // Scale dilation radius with bokeh strength; clamp so it stays reasonable.
@@ -170,7 +170,7 @@ float4 PSDOFNearDilate(PixelShaderInput input) : SV_Target
     for (int i = 0; i < DOF_DILATE_SAMPLES; i++)
     {
         float2 offset   = DOF_DISC_OFFSETS[i] * dilateRadius * TexelSize;
-        float  tapAlpha = ColorTexture.SampleLevel(ColorSampler, saturate(input.UV + offset), 0).a;
+        float  tapAlpha = ColorTexture.SampleLevel(LinearClampSampler, saturate(input.UV + offset), 0).a;
 		
         // Lower packed alpha = higher near CoC; min expands foreground blur outward.
         minAlpha = min(minAlpha, tapAlpha);
@@ -188,7 +188,7 @@ float4 PSDOFNearDilate(PixelShaderInput input) : SV_Target
 
 float4 PSDOFNearBlur(PixelShaderInput input) : SV_Target
 {
-    float4 center        = ColorTexture.SampleLevel(ColorSampler, input.UV, 0);
+    float4 center        = ColorTexture.SampleLevel(LinearClampSampler, input.UV, 0);
     float  centerSigned  = UnpackSignedCoC(center.a);
     float  centerNearCoC = max(0.0f, -centerSigned);
     float  radius        = GetBokehRadius(centerNearCoC);
@@ -205,7 +205,7 @@ float4 PSDOFNearBlur(PixelShaderInput input) : SV_Target
     for (int i = 0; i < DOF_DISC_SAMPLES; i++)
     {
         float2 offset     = DOF_DISC_OFFSETS[i] * radius * TexelSize;
-        float4 tap        = ColorTexture.SampleLevel(ColorSampler, saturate(input.UV + offset), 0);
+        float4 tap        = ColorTexture.SampleLevel(LinearClampSampler, saturate(input.UV + offset), 0);
         float  tapSigned  = UnpackSignedCoC(tap.a);
         float  tapNearCoC = max(0.0f, -tapSigned);
 
@@ -219,19 +219,18 @@ float4 PSDOFNearBlur(PixelShaderInput input) : SV_Target
 
 // ---------------------------------------------------------------------------
 // Pass 5 — full-resolution composite.
-// t0  (ColorTexture)      = sharp full-res image
-// t6  (DepthTexture)      = scene depth
-// t15 (DistortionTexture) = far blur (half-res, alpha = farCoC)
-// t2  (NormalsTexture)    = near blur (half-res, alpha = nearCoC)
+// t0  (ColorTexture)    = sharp full-res image
+// t16 (NearBlurTexture) = far blur (half-res, alpha = farCoC)
+// t17 (FarBlurTexture)  = near blur (half-res, alpha = nearCoC)
 //
 // Composite order: sharp → apply far blur → apply near blur on top.
 // ---------------------------------------------------------------------------
 
 float4 PSDOFComposite(PixelShaderInput input) : SV_Target
 {
-    float4 sharpColor = ColorTexture.Sample(ColorSampler, input.UV);
-    float4 farBlur    = DistortionTexture.Sample(DistortionSampler, input.UV);
-    float4 nearBlur   = NormalsTexture.Sample(NormalsSampler, input.UV);
+    float4 sharpColor = ColorTexture.Sample(LinearClampSampler, input.UV);
+    float4 nearBlur   = NearBlurTexture.Sample(LinearClampSampler, input.UV);
+    float4 farBlur    = FarBlurTexture.Sample(LinearClampSampler, input.UV);
 
     float farCoC  = saturate(farBlur.a);
     float nearCoC = saturate(nearBlur.a);

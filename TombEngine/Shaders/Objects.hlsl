@@ -41,16 +41,9 @@ struct PixelShaderOutput
 };
 
 Texture2D Texture : register(t0);
-SamplerState Sampler : register(s0);
-
 Texture2D NormalTexture : register(t1);
-SamplerState NormalTextureSampler : register(s1);
-
 Texture2D AmbientMapFrontTexture : register(t7);
-SamplerState AmbientMapFrontSampler : register(s7);
-
 Texture2D AmbientMapBackTexture : register(t8);
-SamplerState AmbientMapBackSampler : register(s8);
 
 PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
@@ -110,18 +103,18 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
 	input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);
 
-	float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(ORSHSampler, input.UV));
+	float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(AnisotropicClampSampler, input.UV));
 	float ambientOcclusion = ORSH.x;
 	float roughness = ORSH.y;
 	float specular = ORSH.z;
 
-	float3 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV).xyz;
+	float3 emissive = EmissiveTexture.Sample(AnisotropicClampSampler, input.UV).xyz;
 
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
-	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV)));
+	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV)));
 	normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
 
-	float4 tex = Texture.Sample(Sampler, input.UV);
+	float4 tex = Texture.Sample(AnisotropicClampSampler, input.UV);
 	DoAlphaTest(tex);
 
 	// Material effects
