@@ -15,7 +15,7 @@
 local Camera   = require("Engine.PhotoMode.Camera")
 local Frames   = require("Engine.PhotoMode.Frames")
 local Input    = require("Engine.PhotoMode.Input")
-local InputHelpers = require("Engine.RingInventory.InputHelpers")
+local InputHelpers = require("Engine.PhotoMode.InputHelpers")
 local Menu     = require("Engine.PhotoMode.Menu")
 local Settings = require("Engine.PhotoMode.Settings")
 local States   = require("Engine.PhotoMode.States")
@@ -570,6 +570,8 @@ local function BuildAllMenus()
         menu:SetTitle(titleText, nil, 0.6, nil, true)
         menu:SetTitlePosition(Vec2(16, 19))
         menu:SetItemsTranslate(true)
+        menu:SetWrapAroundItems(false)
+        menu:SetWrapAroundOptions(false)
         if optionChangeFunc then
             for _, item in ipairs(items) do
                 item.onOptionChange = optionChangeFunc
@@ -1033,7 +1035,7 @@ end
 
 local function DrawBackSprites(alpha)
 
-    local color = ColorCombine(Settings.ColorMap.neutral, math.floor(alpha))
+    local color = ColorCombine(Settings.ColorMap.dimmed, math.floor(alpha))
     local ok, sprite = pcall(TEN.View.DisplaySprite,
         TEN.Objects.ObjID.DIARY_SPRITES, 5, TEN.Vec2(1.5, 11), 0, TEN.Vec2(29, 38.5), color)
     if ok and sprite then

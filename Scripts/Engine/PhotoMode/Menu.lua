@@ -5,7 +5,7 @@
 -- @module Engine.PhotoMode.Menu
 -- @local
 
-local InputHelpers = require("Engine.RingInventory.InputHelpers")
+local InputHelpers = require("Engine.PhotoMode.InputHelpers")
 local Settings     = require("Engine.PhotoMode.Settings")
 
 local COLOR_MAP  = Settings.ColorMap
@@ -13,73 +13,6 @@ local SOUND_MAP  = Settings.SoundMap
 local ALPHA_MAX  = 255
 local ALPHA_MIN  = 0
 local ActionID   = TEN.Input.ActionID
-
--- Acceleration thresholds for option left/right navigation (hold to repeat faster).
-local ACCEL_INITIAL_DELAY = 1   -- seconds after first press before repeating begins
-local ACCEL_SLOW_REPEAT   = 0.15   -- repeat interval at start of hold
-local ACCEL_MED_REPEAT    = 0.07   -- repeat interval after ACCEL_MED_TIME seconds held
-local ACCEL_FAST_REPEAT   = 0.03   -- repeat interval after ACCEL_FAST_TIME seconds held
-local ACCEL_MED_TIME      = 2    -- hold time to reach medium speed
-local ACCEL_FAST_TIME     = 3   -- hold time to reach fast speed
-
--- Per-key last-fire timestamp (keyed by actionID).
--- Using a stateful accumulator so rate changes are seamless.
-local _lastFireTime = {}
-
-local function IsOptionPulsed(actionID)
-    local t = TEN.Input.GetActionTimeActive(actionID)
-
-    -- Key is not held; reset state.
-    if t <= 0 then
-        _lastFireTime[actionID] = nil
-        return false
-    end
-
-    -- Guard: opposite direction held suppresses this key.
-    if actionID == ActionID.LEFT  and TEN.Input.IsKeyHeld(ActionID.RIGHT) then return false end
-    if actionID == ActionID.RIGHT and TEN.Input.IsKeyHeld(ActionID.LEFT)  then return false end
-
-    local last = _lastFireTime[actionID]
-
-    -- Fire immediately on first press.
-    if last == nil then
-        _lastFireTime[actionID] = t
-        return true
-    end
-
-    -- Suppress repeats during initial delay.
-    if t < ACCEL_INITIAL_DELAY then
-        return false
-    end
-
-    -- Choose repeat rate from current hold time.
-    local rate
-    if t > ACCEL_FAST_TIME then
-        rate = ACCEL_FAST_REPEAT
-    elseif t > ACCEL_MED_TIME then
-        rate = ACCEL_MED_REPEAT
-    else
-        rate = ACCEL_SLOW_REPEAT
-    end
-
-    if (t - last) >= rate then
-        _lastFireTime[actionID] = t
-        return true
-    end
-
-    return false
-end
-
---- Route LEFT/RIGHT option navigation to the correct pulse function.
--- Accelerated items (numeric ranges) use the hold-speed accumulator;
--- discrete-list items use the standard GuiIsPulsed (single repeat).
-local function OptionPulsed(actionID, item, inputTimer)
-    if item and item.accelerated then
-        return IsOptionPulsed(actionID)
-    else
-        return InputHelpers.GuiIsPulsed(actionID, inputTimer)
-    end
-end
 
 local Menu = {}
 Menu.__index = Menu
@@ -632,10 +565,6 @@ local function HandleInput(menuName)
     local itemCount = #menu.items
     if itemCount == 0 then return end
 
-    -- Clear stale acceleration state when keys are released.
-    if TEN.Input.GetActionTimeActive(ActionID.LEFT)  <= 0 then _lastFireTime[ActionID.LEFT]  = nil end
-    if TEN.Input.GetActionTimeActive(ActionID.RIGHT) <= 0 then _lastFireTime[ActionID.RIGHT] = nil end
-
     local previousItem = menu.currentItem
 
     -- Header navigation: STEP_LEFT / STEP_RIGHT
@@ -671,7 +600,7 @@ local function HandleInput(menuName)
         end
 
     -- Navigate options: LEFT / RIGHT (accelerated for numeric ranges, standard pulse for discrete lists)
-    elseif OptionPulsed(ActionID.LEFT, menu.items[menu.currentItem], menu.inputTimer) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+    elseif InputHelpers.GuiIsPulsed(ActionID.LEFT, menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             PlaySound(menu.sounds and menu.sounds.menuSelect)
@@ -685,7 +614,7 @@ local function HandleInput(menuName)
             end
         end
 
-    elseif OptionPulsed(ActionID.RIGHT, menu.items[menu.currentItem], menu.inputTimer) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+    elseif InputHelpers.GuiIsPulsed(ActionID.RIGHT, menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             PlaySound(menu.sounds and menu.sounds.menuSelect)

@@ -83,7 +83,7 @@ Settings.Lens =
     defaultFOV  = 90,
     minFOV      = 30,
     maxFOV      = 120,
-    fovStep     = 2,
+    fovStep     = 1,
     defaultRoll = 0,
     minRoll     = -180,
     maxRoll     = 180,
@@ -364,7 +364,7 @@ Settings.Sunglasses =
 {
     meshName   = "pm_Sunglasses",
     objID      = TEN.Objects.ObjID.ACTOR1_SPEECH_HEAD1,
-    enabled    = false,    -- Set to false to hide the Sunglasses option entirely.
+    enabled    = true,    -- Set to false to hide the Sunglasses option entirely.
 }
 
 -- ============================================================================
