@@ -6,6 +6,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## [Version 2.0]
 
 ### Bug fixes
+* Fixed MINECART_SWITCH object not working.
 * Fixed empty inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed regular spark sprite distance while moving with flare in hand.
