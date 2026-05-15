@@ -100,6 +100,8 @@ namespace TEN::Scripting
 		bool LoadingBar		= true;
 		bool Speedometer	= true;
 		bool PickupNotifier = true;
+		bool InteractionHighlighter = true;
+		bool TargetHighlighter = true;
 
 		static void Register(sol::table& parent);
 	};

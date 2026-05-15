@@ -415,7 +415,15 @@ namespace TEN::Scripting
 
 		/// Toggle pickup notifier visibility.
 		// @tfield[opt=true] bool pickupNotifier If disabled, pickup notifier will be invisible in game.
-		"pickupNotifier", &HudSettings::PickupNotifier);
+		"pickupNotifier", &HudSettings::PickupNotifier,
+
+		/// Toggle interaction highlighter visibility.
+		// @tfield[opt=true] bool interactionHighlighter If disabled, interaction highlighter won't be drawn and the corresponding menu entry is grayed out.
+		"interactionHighlighter", &HudSettings::InteractionHighlighter,
+
+		/// Toggle target highlighter visibility.
+		// @tfield[opt=true] bool targetHighlighter If disabled, target highlighter won't be drawn and the corresponding menu entry is grayed out.
+		"targetHighlighter", &HudSettings::TargetHighlighter);
 	}
 
 	/// Pathfinding
