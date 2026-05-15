@@ -147,7 +147,14 @@ end
 local function ApplyTint(state)
     local preset = Settings.Filters.tints[state.tintIndex]
     if preset then
-        TEN.View.SetPostProcessTint(preset.color)
+        local i = state.tintIntensity or 0
+        local c = preset.color
+        local blended = TEN.Color(
+            math.floor(128 + (c.r - 128) * i),
+            math.floor(128 + (c.g - 128) * i),
+            math.floor(128 + (c.b - 128) * i)
+        )
+        TEN.View.SetPostProcessTint(blended)
     end
 end
 
@@ -453,6 +460,7 @@ local function ResetEffects()
     state.filterIndex    = 1
     state.filterStrength = 1.0
     state.tintIndex      = 1
+    state.tintIntensity  = Settings.Filters.defaultTintIntensity
     ApplyFilter(state)
     ApplyFilterStrength(state)
     ApplyTint(state)
@@ -473,6 +481,7 @@ local function ResetLight()
         state.lightPos        = TEN.Vec3(state.entryLight.pos.x, state.entryLight.pos.y, state.entryLight.pos.z)
         state.lightRadius     = state.entryLight.radius
         state.lightShadows    = state.entryLight.shadows
+        state.lightIntensity   = state.entryLight.intensity
         state.lightColorIndex = state.entryLight.colorIndex
     end
 end
@@ -617,9 +626,10 @@ local function BuildAllMenus()
             m:SetOptionIndexForItemName("pm_dof_strength", ValueToOptionIndex(state.dofStrength,      cfg.DepthOfField.minStrength,      cfg.DepthOfField.strengthStep))
             local mf = Menu.Get(MENU_FILTERS)
             if mf then
-                mf:SetOptionIndexForItemName("pm_preset",        state.filterIndex)
+                mf:SetOptionIndexForItemName("pm_preset",         state.filterIndex)
                 mf:SetOptionIndexForItemName("pm_strength",      ValueToOptionIndex(state.filterStrength, 0, 0.05))
                 mf:SetOptionIndexForItemName("pm_tint",          state.tintIndex)
+                mf:SetOptionIndexForItemName("pm_tint_intensity", ValueToOptionIndex(state.tintIntensity, cfg.Filters.minTintIntensity, cfg.Filters.tintIntensityStep))
                 mf:SetOptionIndexForItemName("pm_frame_overlay", state.frameIndex)
             end
         end
@@ -629,14 +639,16 @@ local function BuildAllMenus()
         local m = Menu.Get(MENU_LIGHT)
         if not m then return end
         local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
-        if name == "pm_place_camera" then PlaceLightAtCamera()
-        elseif name == "pm_place_lara" then PlaceLightAtLara()
+        if name == "pm_place_light" then
+            local opt = m:GetCurrentOptionIndex()
+            if opt == 1 then PlaceLightAtCamera() else PlaceLightAtLara() end
         elseif name == "pm_reset" then
             ResetLight()
-            m:SetOptionIndexForItemName("pm_enabled", BoolToIndex(state.lightEnabled))
-            m:SetOptionIndexForItemName("pm_source",  state.lightSource)
-            m:SetOptionIndexForItemName("pm_radius",  ValueToOptionIndex(state.lightRadius, cfg.Light.minRadius, cfg.Light.radiusStep))
-            m:SetOptionIndexForItemName("pm_color",   state.lightColorIndex)
+            m:SetOptionIndexForItemName("pm_enabled",   BoolToIndex(state.lightEnabled))
+            m:SetOptionIndexForItemName("pm_source",    state.lightSource)
+            m:SetOptionIndexForItemName("pm_radius",    ValueToOptionIndex(state.lightRadius,    cfg.Light.minRadius,    cfg.Light.radiusStep))
+            m:SetOptionIndexForItemName("pm_intensity", ValueToOptionIndex(state.lightIntensity, cfg.Light.minIntensity, cfg.Light.intensityStep))
+            m:SetOptionIndexForItemName("pm_color",     state.lightColorIndex)
         end
     end
 
@@ -707,6 +719,7 @@ local function BuildAllMenus()
         if     name == "pm_enabled" then state.lightEnabled    = IndexToBool(m:GetCurrentOptionIndex())
         elseif name == "pm_source"  then state.lightSource     = m:GetCurrentOptionIndex()
         elseif name == "pm_radius"  then state.lightRadius     = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Light.minRadius, cfg.Light.radiusStep)
+        elseif name == "pm_intensity" then state.lightIntensity = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Light.minIntensity, cfg.Light.intensityStep)
         elseif name == "pm_color"   then state.lightColorIndex = m:GetCurrentOptionIndex()
         end
     end
@@ -729,6 +742,7 @@ local function BuildAllMenus()
             m:SetOptionIndexForItemName("pm_preset",        state.filterIndex)
             m:SetOptionIndexForItemName("pm_strength",      ValueToOptionIndex(state.filterStrength, 0, 0.05))
             m:SetOptionIndexForItemName("pm_tint",          state.tintIndex)
+            m:SetOptionIndexForItemName("pm_tint_intensity", ValueToOptionIndex(state.tintIntensity, cfg.Filters.minTintIntensity, cfg.Filters.tintIntensityStep))
             m:SetOptionIndexForItemName("pm_frame_overlay", state.frameIndex)
             local me = Menu.Get(MENU_EFFECTS)
             if me then
@@ -754,6 +768,9 @@ local function BuildAllMenus()
             ApplyFilterStrength(state)
         elseif name == "pm_tint" then
             state.tintIndex = m:GetCurrentOptionIndex()
+            ApplyTint(state)
+        elseif name == "pm_tint_intensity" then
+            state.tintIntensity = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Filters.minTintIntensity, cfg.Filters.tintIntensityStep)
             ApplyTint(state)
         elseif name == "pm_frame_overlay" then
             state.frameIndex = m:GetCurrentOptionIndex()
@@ -786,17 +803,17 @@ local function BuildAllMenus()
     -- ================================================================
     CreateMenu(MENU_EFFECTS, {
         { itemName = "pm_fov",         options = NumberRange(cfg.Lens.minFOV, cfg.Lens.maxFOV, cfg.Lens.fovStep),
-          currentOption = ValueToOptionIndex(state.fov, cfg.Lens.minFOV, cfg.Lens.fovStep), accelerated = true },
+          currentOption = ValueToOptionIndex(state.fov, cfg.Lens.minFOV, cfg.Lens.fovStep)},
         { itemName = "pm_roll",        options = NumberRange(cfg.Lens.minRoll, cfg.Lens.maxRoll, cfg.Lens.rollStep),
-          currentOption = ValueToOptionIndex(state.roll, cfg.Lens.minRoll, cfg.Lens.rollStep), accelerated = true },
+          currentOption = ValueToOptionIndex(state.roll, cfg.Lens.minRoll, cfg.Lens.rollStep)},
         { itemName = "pm_dof_mode",    options = DOF_MODE_NAMES, currentOption = state.dofMode },
         { itemName = "pm_dof_focus",   options = NumberRange(cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.maxFocusDistance, cfg.DepthOfField.focusDistanceStep),
-          currentOption = ValueToOptionIndex(state.dofFocusDistance, cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.focusDistanceStep), accelerated = true },
+          currentOption = ValueToOptionIndex(state.dofFocusDistance, cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.focusDistanceStep)},
         { itemName = "pm_dof_range",   options = NumberRange(cfg.DepthOfField.minRange, cfg.DepthOfField.maxRange, cfg.DepthOfField.rangeStep),
-          currentOption = ValueToOptionIndex(state.dofRange, cfg.DepthOfField.minRange, cfg.DepthOfField.rangeStep), accelerated = true },
+          currentOption = ValueToOptionIndex(state.dofRange, cfg.DepthOfField.minRange, cfg.DepthOfField.rangeStep)},
         { itemName = "pm_dof_strength", options = NumberRange(cfg.DepthOfField.minStrength, cfg.DepthOfField.maxStrength, cfg.DepthOfField.strengthStep,
               function(v) return string.format("%.2f", v) end),
-          currentOption = ValueToOptionIndex(state.dofStrength, cfg.DepthOfField.minStrength, cfg.DepthOfField.strengthStep), accelerated = true },
+          currentOption = ValueToOptionIndex(state.dofStrength, cfg.DepthOfField.minStrength, cfg.DepthOfField.strengthStep)},
         { itemName = "pm_reset",       options = { acceptString }, currentOption = 1 },
     }, "Engine.PhotoMode.OnEffectsAccept", "Engine.PhotoMode.OnEffectsOptionChange", "pm_header_effects")
 
@@ -806,8 +823,11 @@ local function BuildAllMenus()
     CreateMenu(MENU_FILTERS, {
         { itemName = "pm_preset",        options = FILTER_NAMES, currentOption = state.filterIndex },
         { itemName = "pm_strength",      options = NumberRange(0, 1.0, 0.05, function(v) return string.format("%.2f", v) end),
-          currentOption = ValueToOptionIndex(state.filterStrength, 0, 0.05), accelerated = true },
+          currentOption = ValueToOptionIndex(state.filterStrength, 0, 0.05)},
         { itemName = "pm_tint",          options = TINT_NAMES, currentOption = state.tintIndex },
+        { itemName = "pm_tint_intensity", options = NumberRange(cfg.Filters.minTintIntensity, cfg.Filters.maxTintIntensity, cfg.Filters.tintIntensityStep,
+              function(v) return string.format("%.2f", v) end),
+          currentOption = ValueToOptionIndex(state.tintIntensity, cfg.Filters.minTintIntensity, cfg.Filters.tintIntensityStep), accelerated = true },
         { itemName = "pm_frame_overlay", options = FRAME_NAMES, currentOption = state.frameIndex },
         { itemName = "pm_reset",         options = { acceptString }, currentOption = 1 },
     }, "Engine.PhotoMode.OnFiltersAccept", "Engine.PhotoMode.OnFiltersOptionChange", "pm_header_filters")
@@ -819,10 +839,12 @@ local function BuildAllMenus()
         { itemName = "pm_enabled",      options = BoolOptions(), currentOption = BoolToIndex(state.lightEnabled) },
         { itemName = "pm_source",       options = LIGHT_SRC_NAMES, currentOption = state.lightSource },
         { itemName = "pm_radius",       options = NumberRange(cfg.Light.minRadius, cfg.Light.maxRadius, cfg.Light.radiusStep),
-          currentOption = ValueToOptionIndex(state.lightRadius, cfg.Light.minRadius, cfg.Light.radiusStep), accelerated = true },
+          currentOption = ValueToOptionIndex(state.lightRadius, cfg.Light.minRadius, cfg.Light.radiusStep)},
         { itemName = "pm_color",        options = COLOR_NAMES, currentOption = state.lightColorIndex },
-        { itemName = "pm_place_camera", options = { acceptString }, currentOption = 1 },
-        { itemName = "pm_place_lara",   options = { acceptString }, currentOption = 1 },
+        { itemName = "pm_intensity",    options = NumberRange(cfg.Light.minIntensity, cfg.Light.maxIntensity, cfg.Light.intensityStep,
+              function(v) return string.format("%.1f", v) end),
+          currentOption = ValueToOptionIndex(state.lightIntensity, cfg.Light.minIntensity, cfg.Light.intensityStep), accelerated = true},
+        { itemName = "pm_place_light",  options = { "Camera", "Lara" }, currentOption = 1 },
         { itemName = "pm_reset",        options = { acceptString }, currentOption = 1 },
     }, "Engine.PhotoMode.OnLightAccept", "Engine.PhotoMode.OnLightOptionChange", "pm_header_light")
 
@@ -868,9 +890,15 @@ local function UpdateLightEmission()
     end
 
     local lightColor = Settings.Light.colorPresets[state.lightColorIndex].color
+    local i = state.lightIntensity
+    local modifiedColor = TEN.Color(
+        math.min(255, math.floor(lightColor.r * i)),
+        math.min(255, math.floor(lightColor.g * i)),
+        math.min(255, math.floor(lightColor.b * i))
+    )
 
     pcall(function()
-        TEN.Effects.EmitLight(lightPos, lightColor, state.lightRadius, state.lightShadows, Settings.Light.lightName)
+        TEN.Effects.EmitLight(lightPos, modifiedColor, state.lightRadius, state.lightShadows, Settings.Light.lightName)
     end)
 end
 
@@ -908,6 +936,7 @@ function PhotoMode.Enter()
         pos        = TEN.Vec3(camPos.x, camPos.y, camPos.z),
         radius     = state.lightRadius,
         shadows    = state.lightShadows,
+        intensity  = state.lightIntensity,
         colorIndex = state.lightColorIndex,
     }
     state.lightPos = TEN.Vec3(camPos.x, camPos.y, camPos.z)
@@ -1037,7 +1066,7 @@ local function DrawBackSprites(alpha)
 
     local color = ColorCombine(Settings.ColorMap.dimmed, math.floor(alpha))
     local ok, sprite = pcall(TEN.View.DisplaySprite,
-        TEN.Objects.ObjID.DIARY_SPRITES, 5, TEN.Vec2(1.5, 11), 0, TEN.Vec2(29, 38.5), color)
+        TEN.Objects.ObjID.PHOTOMODE_SPRITES, 5, TEN.Vec2(1.5, 11), 0, TEN.Vec2(29, 38.5), color)
     if ok and sprite then
         sprite:Draw(-4,
             TEN.View.AlignMode.TOP_LEFT,

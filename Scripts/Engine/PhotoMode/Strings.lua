@@ -28,6 +28,7 @@ local strings =
     pm_preset         = {"Filter Type"},
     pm_strength       = {"Filter Strength"},
     pm_tint           = {"Filter Tint"},
+    pm_tint_intensity = {"Tint Intensity"},
 
     -- Effects menu items (Frames)
     pm_frame_overlay  = {"Frame"},
@@ -43,8 +44,8 @@ local strings =
     pm_source         = {"Source"},
     pm_radius         = {"Radius"},
     pm_color          = {"Color"},
-    pm_place_camera   = {"Place at Camera"},
-    pm_place_lara     = {"Place at Lara"},
+    pm_intensity      = {"Intensity"},
+    pm_place_light    = {"Place Light At"},
 
     -- UI menu items
     pm_hide_ui        = {"Hide UI"},

@@ -1,7 +1,7 @@
 #pragma once
 
 // This file is generated automatically, do not edit it.
-// Last generated on 11/05/2026.
+// Last generated on 15-05-2026.
 
 #include <unordered_map>
 #include <string>
@@ -129,6 +129,9 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	/// Object ID.
 	// @mem HAIR_SECONDARY
 	{ "HAIR_SECONDARY", ID_HAIR_SECONDARY },
+	/// Object ID.
+	// @mem PHOTOMODE_ANIMS
+	{ "PHOTOMODE_ANIMS", ID_PHOTOMODE_ANIMS },
 	/// Object ID.
 	// @mem SNOWMOBILE_TRACKS
 	{ "SNOWMOBILE_TRACKS", ID_SNOWMOBILE_TRACKS },
@@ -3032,5 +3035,11 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	{ "INTERACTION_SPRITES", ID_INTERACTION_SPRITES },
 	/// Sprite Object ID.
 	// @mem INVENTORY_SPRITES
-	{ "INVENTORY_SPRITES", ID_INVENTORY_SPRITES }
+	{ "INVENTORY_SPRITES", ID_INVENTORY_SPRITES },
+	/// Sprite Object ID.
+	// @mem PHOTOMODE_SPRITES
+	{ "PHOTOMODE_SPRITES", ID_PHOTOMODE_SPRITES },
+	/// Object ID.
+	// @mem PHOTOMODE_FRAMES
+	{ "PHOTOMODE_FRAMES", ID_PHOTOMODE_FRAMES }
 };

@@ -141,10 +141,14 @@ Settings.Player =
 
 Settings.Light =
 {
-    defaultRadius  = 20,
+    defaultRadius  = 8,
     minRadius      = 1,
-    maxRadius      = 80,
+    maxRadius      = 20,
     radiusStep     = 1,
+    defaultIntensity = 0.5,
+    minIntensity     = 0.0,
+    maxIntensity     = 1.0,
+    intensityStep    = 0.05,
     defaultEnabled = false,
     lightName      = "PHOTO_MODE_LIGHT",
     colorPresets   =
@@ -183,6 +187,10 @@ Settings.Filters =
         { name = "Red",     color = TEN.Color(128,  40,  40) },
         { name = "Sepia",   color = TEN.Color(255, 200, 120) },
     },
+    defaultTintIntensity = 0.0,
+    minTintIntensity     = 0.0,
+    maxTintIntensity     = 1.0,
+    tintIntensityStep    = 0.05,
 }
 
 
@@ -192,7 +200,7 @@ Settings.Filters =
 
 Settings.Frames =
 {
-    objectID  = TEN.Objects.ObjID.DIARY_ENTRY_SPRITES,
+    objectID  = TEN.Objects.ObjID.PHOTOMODE_FRAMES,
     position  = TEN.Vec2(50, 50),
     rotation  = 0,
     scale     = TEN.Vec2(100, 100),
@@ -311,49 +319,49 @@ Settings.Expressions =
 Settings.Animations =
 {
     { name = "Default",        objID = TEN.Objects.ObjID.LARA, animNumber = 0, frameNumber = 0 },
-    { name = "0",   objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 0,  frameNumber = 0 },
-    { name = "1",   objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 1,  frameNumber = 0 },
-    { name = "2",   objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 2,  frameNumber = 0 },
-    { name = "3",   objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 3,  frameNumber = 0 },
-    { name = "4",   objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 4,  frameNumber = 0 },
-    { name = "5",   objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 5,  frameNumber = 0 },
-    { name = "6",   objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 6,  frameNumber = 0 },
-    { name = "7",   objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 7,  frameNumber = 0 },
-    { name = "8",   objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 8,  frameNumber = 0 },
-    { name = "9",   objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 9,  frameNumber = 0 },
-    { name = "10",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 10, frameNumber = 0 },
-    { name = "11",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 11, frameNumber = 0 },
-    { name = "12",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 12, frameNumber = 0 },
-    { name = "13",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 13, frameNumber = 0 },
-    { name = "14",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 14, frameNumber = 0 },
-    { name = "15",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 15, frameNumber = 0 },
-    { name = "16",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 16, frameNumber = 0 },
-    { name = "17",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 17, frameNumber = 0 },
-    { name = "18",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 18, frameNumber = 0 },
-    { name = "19",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 19, frameNumber = 0 },
-    { name = "20",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 20, frameNumber = 0 },
-    { name = "21",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 21, frameNumber = 0 },
-    { name = "22",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 22, frameNumber = 0 },
-    { name = "23",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 23, frameNumber = 0 },
-    { name = "24",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 24, frameNumber = 0 },
-    { name = "25",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 25, frameNumber = 0 },
-    { name = "26",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 26, frameNumber = 0 },
-    { name = "27",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 27, frameNumber = 0 },
-    { name = "28",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 28, frameNumber = 0 },
-    { name = "29",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 29, frameNumber = 0 },
-    { name = "30",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 30, frameNumber = 0 },
-    { name = "31",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 31, frameNumber = 0 },
-    { name = "32",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 32, frameNumber = 0 },
-    { name = "33",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 33, frameNumber = 0 },
-    { name = "34",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 34, frameNumber = 0 },
-    { name = "35",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 35, frameNumber = 0 },
-    { name = "36",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 36, frameNumber = 0 },
-    { name = "37",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 37, frameNumber = 0 },
-    { name = "38",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 38, frameNumber = 0 },
-    { name = "39",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 39, frameNumber = 0 },
-    { name = "40",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 40, frameNumber = 0 },
-    { name = "41",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 41, frameNumber = 0 },
-    { name = "42",  objID = TEN.Objects.ObjID.LARA_BIGGUN_ANIM, animNumber = 42, frameNumber = 0 },
+    { name = "0",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 0,  frameNumber = 0 },
+    { name = "1",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 1,  frameNumber = 0 },
+    { name = "2",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 2,  frameNumber = 0 },
+    { name = "3",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 3,  frameNumber = 0 },
+    { name = "4",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 4,  frameNumber = 0 },
+    { name = "5",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 5,  frameNumber = 0 },
+    { name = "6",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 6,  frameNumber = 0 },
+    { name = "7",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 7,  frameNumber = 0 },
+    { name = "8",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 8,  frameNumber = 0 },
+    { name = "9",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 9,  frameNumber = 0 },
+    { name = "10",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 10, frameNumber = 0 },
+    { name = "11",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 11, frameNumber = 0 },
+    { name = "12",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 12, frameNumber = 0 },
+    { name = "13",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 13, frameNumber = 0 },
+    { name = "14",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 14, frameNumber = 0 },
+    { name = "15",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 15, frameNumber = 0 },
+    { name = "16",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 16, frameNumber = 0 },
+    { name = "17",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 17, frameNumber = 0 },
+    { name = "18",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 18, frameNumber = 0 },
+    { name = "19",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 19, frameNumber = 0 },
+    { name = "20",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 20, frameNumber = 0 },
+    { name = "21",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 21, frameNumber = 0 },
+    { name = "22",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 22, frameNumber = 0 },
+    { name = "23",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 23, frameNumber = 0 },
+    { name = "24",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 24, frameNumber = 0 },
+    { name = "25",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 25, frameNumber = 0 },
+    { name = "26",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 26, frameNumber = 0 },
+    { name = "27",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 27, frameNumber = 0 },
+    { name = "28",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 28, frameNumber = 0 },
+    { name = "29",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 29, frameNumber = 0 },
+    { name = "30",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 30, frameNumber = 0 },
+    { name = "31",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 31, frameNumber = 0 },
+    { name = "32",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 32, frameNumber = 0 },
+    { name = "33",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 33, frameNumber = 0 },
+    { name = "34",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 34, frameNumber = 0 },
+    { name = "35",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 35, frameNumber = 0 },
+    { name = "36",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 36, frameNumber = 0 },
+    { name = "37",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 37, frameNumber = 0 },
+    { name = "38",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 38, frameNumber = 0 },
+    { name = "39",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 39, frameNumber = 0 },
+    { name = "40",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 40, frameNumber = 0 },
+    { name = "41",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 41, frameNumber = 0 },
+    { name = "42",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 42, frameNumber = 0 },
 }
 
 -- ============================================================================
@@ -384,7 +392,7 @@ Settings.Entry =
 
 Settings.HeaderSprites =
 {
-    objectID      = TEN.Objects.ObjID.DIARY_SPRITES, -- object that owns the sprites
+    objectID      = TEN.Objects.ObjID.PHOTOMODE_SPRITES, -- object that owns the sprites
     spriteIDs     = { 0, 1, 2, 3, 4 },                    -- one sprite index per header tab
     position      = TEN.Vec2(16, 15),                      -- center of the sprite row (percent)
     spacing       = 6,                                     -- percent spacing between sprites

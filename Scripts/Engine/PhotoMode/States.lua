@@ -69,6 +69,7 @@ local State = {
     lightEnabled    = Settings.Light.defaultEnabled,
     lightSource     = States.LightSource.MANUAL,
     lightPos        = TEN.Vec3(0, 0, 0),
+    lightIntensity   = Settings.Light.defaultIntensity,
     lightRadius     = Settings.Light.defaultRadius,
     lightShadows    = Settings.Light.defaultShadows,
     lightColorIndex = 1,
@@ -77,6 +78,7 @@ local State = {
     filterIndex    = 1,
     filterStrength = 1.0,
     tintIndex      = 1,
+    tintIntensity  = 0.0,
 
     -- Outfit / Weapons
     appliedSkin        = false,
@@ -174,6 +176,7 @@ function States.CaptureSnapshot()
     snap.filterIndex    = 1
     snap.filterStrength = 1.0
     snap.tintIndex      = 1
+    snap.tintIntensity  = 0.0
     snap.camPos         = nil
     snap.targetPos      = nil
     snap.hideUI         = false
@@ -291,6 +294,7 @@ function States.ResetToEntry()
     State.filterIndex   = 1
     State.filterStrength = 1.0
     State.tintIndex     = 1
+    State.tintIntensity = 0.0
     State.hideUI             = false
     State.appliedSkin        = false
     State.appliedSkinnedMesh = false
