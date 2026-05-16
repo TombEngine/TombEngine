@@ -22,9 +22,7 @@ ItemInfo* CreatureInfo::EnemyHandler::Get() const
 
 CreatureInfo::EnemyHandler& CreatureInfo::EnemyHandler::operator=(ItemInfo* item)
 {
-	if (Validate(item))
-		_enemy = item;
-
+	_enemy = Validate(item) ? item : nullptr;
 	return *this;
 }
 

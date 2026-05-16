@@ -218,7 +218,7 @@ namespace TEN::Entities::Creatures::TR3
 				targetDistance = SQUARE(targetDx) + SQUARE(targetDz);
 			}
 
-			// If Lara was placed by system (CreatureAIInfo), not because she were a real target. Then delete the target.
+			// If Lara was placed by the system (CreatureAIInfo) and not because she was a real target, then delete the target.
 			if (creature.Enemy.IsLara() && !creature.HurtByLara)
 				creature.Enemy = nullptr;
 

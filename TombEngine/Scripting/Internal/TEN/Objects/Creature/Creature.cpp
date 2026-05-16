@@ -18,6 +18,9 @@ namespace TEN::Scripting::Objects
 	// @tenclass Objects.Creature
 	// @pragma nostrip
 
+	static auto IndexError = IndexErrorMaker(ScriptCreature, ScriptReserved_Creature);
+	static auto NewIndexError = NewIndexErrorMaker(ScriptCreature, ScriptReserved_Creature);
+
 	void ScriptCreature::Register(sol::table& parent)
 	{
 		using ctors = sol::constructors<
@@ -26,6 +29,8 @@ namespace TEN::Scripting::Objects
 		// Register type.
 		parent.new_usertype<ScriptCreature>(ScriptReserved_Creature,
 			ctors(), sol::call_constructor, ctors(),
+			sol::meta_function::index, IndexError,
+			sol::meta_function::new_index, NewIndexError,
 
 			// Getters
 			ScriptReserved_GetMood, &ScriptCreature::GetMood,
@@ -337,7 +342,7 @@ namespace TEN::Scripting::Objects
 	/// Sets whether the creature has reached its goal.
 	// This setting may be used to break out the creature from reaching the next specified AI object nullmesh.
 	// @function SetAtGoal
-	// @tparam bool enabled `true` marks the creature is at goal, `false` clears goal reached state.
+	// @tparam bool enabled `true` marks the creature as having reached the goal, `false` clears goal reached state.
 	void ScriptCreature::SetAtGoal(bool enabled)
 	{
 		auto* creature = GetCreature();
