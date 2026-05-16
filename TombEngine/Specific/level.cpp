@@ -626,6 +626,11 @@ void LoadCameras()
 		cam.Speed      = ReadInt16();
 		cam.Flags      = ReadInt16();
 		cam.RoomNumber = ReadInt32();
+
+		cam.DOF.Mode     = (DOFMode)ReadInt32();
+		cam.DOF.Distance = ReadFloat();
+		cam.DOF.Range    = ReadFloat();
+		cam.DOF.Strength = ReadFloat();
 	}
 
 	int sinkCount = ReadCount();
@@ -1348,7 +1353,7 @@ void LoadEvent(EventSet& eventSet)
 	if (eventType >= (int)EventType::Count)
 	{
 		TENLog("Unknown event type detected for event set " + eventSet.Name + ". Fall back to default.", LogLevel::Warning);
-		eventType = (int)EventType::Enter;
+		eventType = (int)EventType::VolumeEnter;
 	}
 
 	auto& evt = eventSet.Events[eventType];

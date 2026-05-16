@@ -1486,7 +1486,7 @@ namespace TEN::Renderer
 		{
 			UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
 			Camera.DisableInterpolation = true;
-			DumpGameScene();
+			DumpGameScene(SceneRenderMode::NoHud, g_GameFlow->GetSettings()->UI.MenuBackgroundBlur);
 			_graphicsSettingsChanged = false;
 		}
 

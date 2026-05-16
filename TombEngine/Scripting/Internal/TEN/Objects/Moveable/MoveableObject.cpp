@@ -198,6 +198,7 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_SetAIBits, &Moveable::SetAIBits,
 		ScriptReserved_SetOnHit, &Moveable::SetOnHit,
 		ScriptReserved_SetOnKilled, &Moveable::SetOnKilled,
+		ScriptReserved_SetOnLoop, &Moveable::SetOnLoop,
 		ScriptReserved_SetOnCollidedWithRoom, &Moveable::SetOnCollidedWithRoom,
 		ScriptReserved_SetOnCollidedWithObject, &Moveable::SetOnCollidedWithObject,
 
@@ -269,6 +270,32 @@ void Moveable::Initialize()
 	_initialized = true;
 }
 
+int Moveable::GetIndex() const
+{
+	return _moveableID;
+}
+
+void Moveable::SetLevelFuncCallback(const TypeOrNil<LevelFunc>& cb, const std::string& callerName, std::string& toModify)
+{
+	if (std::holds_alternative<LevelFunc>(cb))
+	{
+		toModify = std::get<LevelFunc>(cb).m_funcName;
+		dynamic_cast<ObjectsHandler*>(g_GameScriptEntities)->TryAddColliding(_moveableID);
+	}
+	else if (std::holds_alternative<sol::nil_t>(cb))
+	{
+		toModify = std::string{};
+		dynamic_cast<ObjectsHandler*>(g_GameScriptEntities)->TryRemoveColliding(_moveableID);
+	}
+	else
+	{
+		ScriptAssert(
+			false, "Tried giving " + _moveable->Name
+			+ " a non-LevelFunc object as an arg to "
+			+ callerName);
+	}
+}
+
 /// Retrieve the object ID from a moveable.
 // @function Moveable:GetObjectID
 // @treturn Objects.ObjID A number representing the object ID of the moveable.
@@ -288,83 +315,6 @@ void Moveable::SetObjectID(GAME_OBJECT_ID id)
 	_moveable->ObjectNumber = id;
 	_moveable->ResetModelToDefault();
 	SetAnimation(_moveable, 0);
-}
-
-void SetLevelFuncCallback(const TypeOrNil<LevelFunc>& cb, const std::string& callerName, Moveable& mov, std::string& toModify)
-{
-	if (std::holds_alternative<LevelFunc>(cb))
-	{
-		toModify = std::get<LevelFunc>(cb).m_funcName;
-		dynamic_cast<ObjectsHandler*>(g_GameScriptEntities)->TryAddColliding(mov._moveableID);
-	}
-	else if (std::holds_alternative<sol::nil_t>(cb))
-	{
-		toModify = std::string{};
-		dynamic_cast<ObjectsHandler*>(g_GameScriptEntities)->TryRemoveColliding(mov._moveableID);
-	}
-	else
-	{
-		ScriptAssert(
-			false, "Tried giving " + mov._moveable->Name
-			+ " a non-LevelFunc object as an arg to "
-			+ callerName);
-	}
-}
-
-int Moveable::GetIndex() const
-{
-	return _moveableID;
-}
-
-/// Set the name of the function to be called when the moveable is shot by Lara.
-// Note that this will be triggered twice when shot with both pistols at once. 
-// @function Moveable:SetOnHit
-// @tparam function function Callback function in `LevelFuncs` hierarchy to call when moveable is shot.
-void Moveable::SetOnHit(const TypeOrNil<LevelFunc>& cb)
-{
-	SetLevelFuncCallback(cb, ScriptReserved_SetOnHit, *this, _moveable->Callbacks.OnHit);
-}
-
-/// Set the name of the function to be called when the moveable is destroyed/killed.
-// Note that enemy death often occurs at the end of an animation, and not at the exact moment
-// the enemy's HP becomes zero.
-// @function Moveable:SetOnKilled
-// @tparam function function Callback function in `LevelFuncs` hierarchy to call when moveable is killed.
-// @usage
-// LevelFuncs.baddyKilled = function(theBaddy) print("You killed a baddy!") end
-// baddy:SetOnKilled(LevelFuncs.baddyKilled)
-void Moveable::SetOnKilled(const TypeOrNil<LevelFunc>& cb)
-{
-	SetLevelFuncCallback(cb, ScriptReserved_SetOnKilled, *this, _moveable->Callbacks.OnKilled);
-}
-
-/// Set the function to be called when this moveable collides with another moveable.
-// @function Moveable:SetOnCollidedWithObject
-// @tparam function function Callback function to be called (must be in `LevelFuncs` hierarchy). This function can take two arguments; these will store the two @{Moveable}s taking part in the collision.
-// @usage
-// -- obj1 is the collision moveable
-// -- obj2 is the collider moveable
-//
-// LevelFuncs.objCollided = function(obj1, obj2)
-//     print(obj1:GetName() .. " collided with " .. obj2:GetName())
-// end
-// baddy:SetOnCollidedWithObject(LevelFuncs.objCollided)
-void Moveable::SetOnCollidedWithObject(const TypeOrNil<LevelFunc>& cb)
-{
-	SetLevelFuncCallback(cb, ScriptReserved_SetOnCollidedWithObject, *this, _moveable->Callbacks.OnObjectCollided);
-}
-
-/// Set the function called when this moveable collides with room geometry (e.g. a wall or floor). This function can take an argument that holds the @{Moveable} that collided with geometry.
-// @function Moveable:SetOnCollidedWithRoom
-// @tparam function function Callback function to be called (must be in `LevelFuncs` hierarchy).
-// @usage
-// LevelFuncs.roomCollided = function(obj)
-//     print(obj:GetName() .. " collided with room geometry")
-// end
-// baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)
-void Moveable::SetOnCollidedWithRoom(const TypeOrNil<LevelFunc>& cb)
-{
-	SetLevelFuncCallback(cb, ScriptReserved_SetOnCollidedWithRoom, *this, _moveable->Callbacks.OnRoomCollided);
 }
 
 /// Get the moveable's name (its unique string identifier). This corresponds with the "Lua Name" field in a moveable's properties in Tomb Editor.
@@ -503,14 +453,6 @@ Rotation Moveable::GetRotation() const
 	};
 }
 
-/// Get the moveable's visual scale.
-// @function Moveable:GetScale
-// @treturn Vec3 Moveable's visual scale.
-Vec3 Moveable::GetScale() const
-{
-	return Vec3(_moveable->Pose.Scale);
-}
-
 /// Set the moveable's rotation.
 // @function Moveable:SetRotation
 // @tparam Rotation rotation The moveable's new rotation.
@@ -531,6 +473,14 @@ void Moveable::SetRotation(const Rotation& rot)
 
 	if (bigRotation)
 		_moveable->DisableInterpolation = true;
+}
+
+/// Get the moveable's visual scale.
+// @function Moveable:GetScale
+// @treturn Vec3 Moveable's visual scale.
+Vec3 Moveable::GetScale() const
+{
+	return Vec3(_moveable->Pose.Scale);
 }
 
 /// Set the moveable's visual scale. Does not affect collision.
@@ -592,6 +542,14 @@ void Moveable::SetOcb(short ocb)
 	_moveable->TriggerFlags = ocb;
 }
 
+/// Get current moveable effect.
+// @function Moveable:GetEffect
+// @treturn Effects.EffectID Effect type currently assigned.
+EffectType Moveable::GetEffect() const
+{
+	return _moveable->Effect.Type;
+}
+
 /// Set the effect for this moveable.
 // @function Moveable:SetEffect
 // @tparam Effects.EffectID effect Type of effect to assign.
@@ -642,14 +600,6 @@ void Moveable::SetCustomEffect(const ScriptColor& col1, const ScriptColor& col2,
 	auto color1 = Vector3(col1.GetR() * (1.f / 255.f), col1.GetG() * (1.f / 255.f), col1.GetB() * (1.f / 255.f));
 	auto color2 = Vector3(col2.GetR() * (1.f / 255.f), col2.GetG() * (1.f / 255.f), col2.GetB() * (1.f / 255.f));
 	ItemCustomBurn(_moveable, color1, color2, realTimeout);
-}
-
-/// Get current moveable effect.
-// @function Moveable:GetEffect
-// @treturn Effects.EffectID Effect type currently assigned.
-EffectType Moveable::GetEffect() const
-{
-	return _moveable->Effect.Type;
 }
 
 /// Get the value stored in ItemFlags[index].
@@ -781,15 +731,6 @@ int Moveable::GetStateNumber() const
 	return _moveable->Animation.ActiveState;
 }
 
-/// Retrieve the index of the target state.
-// This corresponds to the state the moveable is trying to get into, which is sometimes different from the active state.
-// @function Moveable:GetTargetState
-// @treturn int The index of the target state.
-int Moveable::GetTargetStateNumber() const
-{
-	return _moveable->Animation.TargetState;
-}
-
 /// Set the moveable's state to the one specified by the given index.
 // Performs no bounds checking. *Ensure the number given is correct, else
 // moveable may end up in corrupted animation state.*
@@ -798,6 +739,15 @@ int Moveable::GetTargetStateNumber() const
 void Moveable::SetStateNumber(int stateNumber)
 {
 	_moveable->Animation.TargetState = stateNumber;
+}
+
+/// Retrieve the index of the target state.
+// This corresponds to the state the moveable is trying to get into, which is sometimes different from the active state.
+// @function Moveable:GetTargetState
+// @treturn int The index of the target state.
+int Moveable::GetTargetStateNumber() const
+{
+	return _moveable->Animation.TargetState;
 }
 
 /// Retrieve the slot ID of the animation.
@@ -839,6 +789,30 @@ int Moveable::GetFrameNumber() const
 	return _moveable->Animation.FrameNumber;
 }
 
+/// Set frame number.
+// This will move the animation to the given frame.
+// The number of frames in an animation can be seen under the heading "End frame" in
+// the WadTool animation editor. If the animation has no frames, the only valid argument
+// is -1.
+// @function Moveable:SetFrame
+// @tparam int frame The new frame number.
+void Moveable::SetFrameNumber(int frameNumber)
+{
+	const auto& anim = GetAnimData(*_moveable);
+
+	bool cond = (frameNumber < anim.EndFrameNumber);
+	const char* err = "Invalid frame number {}; max frame number for anim {} is {}.";
+
+	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, anim.EndFrameNumber - 1))
+	{
+		_moveable->Animation.FrameNumber = frameNumber;
+	}
+	else
+	{
+		ScriptWarn("Not setting frame number.");
+	}
+}
+
 /// Get the moveable's velocity.
 // In most cases, only Z and Y components are used as forward and vertical velocity.
 // In some cases, primarily NPCs, X component is used as side velocity.
@@ -863,30 +837,6 @@ void Moveable::SetVelocity(Vec3 velocity)
 		ScriptWarn("Attempt to set velocity to a creature. It may not work, as velocity is overridden by AI.");
 
 	_moveable->Animation.Velocity = Vector3(velocity.x, velocity.y, velocity.z);
-}
-
-/// Set frame number.
-// This will move the animation to the given frame.
-// The number of frames in an animation can be seen under the heading "End frame" in
-// the WadTool animation editor. If the animation has no frames, the only valid argument
-// is -1.
-// @function Moveable:SetFrame
-// @tparam int frame The new frame number.
-void Moveable::SetFrameNumber(int frameNumber)
-{
-	const auto& anim = GetAnimData(*_moveable);
-	
-	bool cond = (frameNumber < anim.EndFrameNumber);
-	const char* err = "Invalid frame number {}; max frame number for anim {} is {}.";
-
-	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, anim.EndFrameNumber - 1))
-	{
-		_moveable->Animation.FrameNumber = frameNumber;
-	}
-	else
-	{
-		ScriptWarn("Not setting frame number.");
-	}
 }
 
 /// Get the end frame number of the moveable's active animation.
@@ -1366,3 +1316,77 @@ void Moveable::HideInteractionHighlight()
 {
 	g_Hud.InteractionHighlighter.Suppress(_moveable.Get()->Index);
 }
+
+/// Sets the function to be called when the moveable is shot by Lara.
+// Note that this will be triggered twice when shot with both pistols at once. 
+// @function Moveable:SetOnHit
+// @tparam function function Callback function in `LevelFuncs` hierarchy to call when moveable is shot.
+void Moveable::SetOnHit(const TypeOrNil<LevelFunc>& cb)
+{
+	SetLevelFuncCallback(cb, ScriptReserved_SetOnHit, _moveable->Callbacks[(int)EntityCallbackPoint::Hit]);
+}
+
+/// Sets the function to be called when the moveable is destroyed or killed.
+// Note that enemy death often occurs at the end of an animation, and not at the exact moment
+// the enemy's HP becomes zero.
+// @function Moveable:SetOnKilled
+// @tparam function function Callback function in `LevelFuncs` hierarchy to call when moveable is killed.
+// @usage
+// LevelFuncs.baddyKilled = function(theBaddy) print("You killed a baddy!") end
+// baddy:SetOnKilled(LevelFuncs.baddyKilled)
+void Moveable::SetOnKilled(const TypeOrNil<LevelFunc>& cb)
+{
+	SetLevelFuncCallback(cb, ScriptReserved_SetOnKilled, _moveable->Callbacks[(int)EntityCallbackPoint::Killed]);
+}
+
+/// Sets the function to be called during the moveable control loop.
+// This callback runs on the fixed-timestep game loop either before or after the moveable's hardcoded control routine.
+// Will be called only if moveable is active.
+// @function Moveable:SetOnLoop
+// @tparam function function Callback function in `LevelFuncs` hierarchy to call during moveable update.
+// @bool[opt=false] post If true, run after hardcoded control; otherwise run before it.
+// @usage
+// LevelFuncs.preBaddyLoop = function(baddy)
+//     print("Pre-loop callback for " .. baddy:GetName())
+// end
+//
+// LevelFuncs.postBaddyLoop = function(baddy)
+//     print("Post-loop callback for " .. baddy:GetName())
+// end
+//
+// baddy:SetOnLoop(LevelFuncs.preBaddyLoop)
+// baddy:SetOnLoop(LevelFuncs.postBaddyLoop, true)
+void Moveable::SetOnLoop(const TypeOrNil<LevelFunc>& cb, sol::optional<bool> post)
+{
+	SetLevelFuncCallback(cb, ScriptReserved_SetOnLoop, post.value_or(false) ? _moveable->Callbacks[(int)EntityCallbackPoint::PostLoop] : _moveable->Callbacks[(int)EntityCallbackPoint::PreLoop]);
+}
+
+/// Sets the function to be called when this moveable collides with another moveable.
+// @function Moveable:SetOnCollidedWithObject
+// @tparam function function Callback function to be called (must be in `LevelFuncs` hierarchy). This function can take two arguments; these will store the two @{Moveable}s taking part in the collision.
+// @usage
+// -- obj1 is the collision moveable
+// -- obj2 is the collider moveable
+//
+// LevelFuncs.objCollided = function(obj1, obj2)
+//     print(obj1:GetName() .. " collided with " .. obj2:GetName())
+// end
+// baddy:SetOnCollidedWithObject(LevelFuncs.objCollided)
+void Moveable::SetOnCollidedWithObject(const TypeOrNil<LevelFunc>& cb)
+{
+	SetLevelFuncCallback(cb, ScriptReserved_SetOnCollidedWithObject, _moveable->Callbacks[(int)EntityCallbackPoint::ObjectCollided]);
+}
+
+/// Sets the function to be called when this moveable collides with room geometry (e.g. a wall or floor). This function can take an argument that holds the @{Moveable} that collided with geometry.
+// @function Moveable:SetOnCollidedWithRoom
+// @tparam function function Callback function to be called (must be in `LevelFuncs` hierarchy).
+// @usage
+// LevelFuncs.roomCollided = function(obj)
+//     print(obj:GetName() .. " collided with room geometry")
+// end
+// baddy:SetOnCollidedWithRoom(LevelFuncs.roomCollided)
+void Moveable::SetOnCollidedWithRoom(const TypeOrNil<LevelFunc>& cb)
+{
+	SetLevelFuncCallback(cb, ScriptReserved_SetOnCollidedWithRoom, _moveable->Callbacks[(int)EntityCallbackPoint::RoomCollided]);
+}
+
