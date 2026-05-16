@@ -1341,6 +1341,7 @@ void Moveable::SetOnKilled(const TypeOrNil<LevelFunc>& cb)
 
 /// Sets the function to be called during the moveable control loop.
 // This callback runs on the fixed-timestep game loop either before or after the moveable's hardcoded control routine.
+// Will be called only if moveable is active.
 // @function Moveable:SetOnLoop
 // @tparam function function Callback function in `LevelFuncs` hierarchy to call during moveable update.
 // @bool[opt=false] post If true, run after hardcoded control; otherwise run before it.

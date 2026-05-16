@@ -8976,6 +8976,18 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_POSTPROCESS_MODE = 84,
     VT_POSTPROCESS_STRENGTH = 86,
     VT_POSTPROCESS_TINT = 88,
+    VT_DOF_DISTANCE = 90,
+    VT_DOF_RANGE = 92,
+    VT_DOF_STRENGTH = 94,
+    VT_DOF_MODE = 96,
+    VT_ROPE = 98,
+    VT_PENDULUM = 100,
+    VT_ALTERNATE_PENDULUM = 102,
+    VT_VOLUMES = 104,
+    VT_GLOBAL_EVENT_SETS = 106,
+    VT_VOLUME_EVENT_SETS = 108,
+    VT_SCRIPT_VARS = 110,
+    VT_CALLBACKS = 112
   };
   const TEN::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Save::SaveGameHeader *>(VT_HEADER);
