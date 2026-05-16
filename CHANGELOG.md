@@ -42,6 +42,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed interaction highlighter appearing for underwater pushable objects.
 * Fixed clipping into underwater pushable objects while swimming upwards from the bottom.
 * Fixed incorrect renderer statistics in the linear inventory.
+* Fixed flyby camera flag "Let Lara Move In Cinimatic Mode" ignored.
+* Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
 
 ### Lua API changes
 
