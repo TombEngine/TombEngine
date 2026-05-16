@@ -2973,10 +2973,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			creature->FlyRate = savedCreature->fly_rate();
 			creature->MonkeySwingAhead = savedCreature->monkey_swing_ahead();
 			creature->Mood = (MoodType)savedCreature->mood();
-			if (savedCreature->forced_mood() == NO_VALUE)
-				creature->ForcedMood = std::nullopt;
-			else
-				creature->ForcedMood = (MoodType)savedCreature->forced_mood();
+			creature->ForcedMood = savedCreature->forced_mood() == NO_VALUE ? std::nullopt : std::optional((MoodType)savedCreature->forced_mood());
 			creature->Patrol = savedCreature->patrol();
 			creature->Poisoned = savedCreature->poisoned();
 			creature->ReachedGoal = savedCreature->reached_goal();
