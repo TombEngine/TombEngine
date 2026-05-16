@@ -38,7 +38,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed flyby camera jitter by converting the spline type to floating-point.
 * Fixed occasional flame emitter sprite jitter.
 * Fixed interaction highlighter appearing for underwater pushable objects.
-* Fixed clipping into underwater pushable objects while smimming upwards from the bottom.
+* Fixed clipping into underwater pushable objects while swimming upwards from the bottom.
 
 ### Lua API changes
 
@@ -50,7 +50,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
 * Added `View.GetPostProcessTint` to get currently set post process tint.
 * Added `View.GetPostProcess` and `View.SetPostProcess` to set/get postprocess mode and strength.
-* Remove `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` function.
+* Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` function.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 * Fixed incorrect error message when using `Moveable:SetFrame` with a frame number equal to the end frame.
 * Fixed glide camera movement when entering or exiting freeze mode.
