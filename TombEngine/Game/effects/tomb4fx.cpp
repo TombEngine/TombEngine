@@ -17,6 +17,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
@@ -60,7 +61,7 @@ int GetFreeFireSpark()
 	int minLife = 4095;
 	int i = 0;
 
-	FIRE_SPARKS* spark = &FireSparks[NextFireSpark];
+	auto* spark = &FireSparks[NextFireSpark];
 	while (spark->on)
 	{
 		if (spark->life < minLife)
@@ -97,7 +98,7 @@ int GetFreeFireSpark()
 
 void TriggerGlobalStaticFlame()
 {
-	FIRE_SPARKS* spark = &FireSparks[0];
+	auto* spark = &FireSparks[0];
 
 	spark->on = true;
 	spark->dR = spark->sR = (GetRandomControl() & 0x3F) - 64;
@@ -109,6 +110,7 @@ void TriggerGlobalStaticFlame()
 	spark->fadeToBlack = 0;
 	spark->life = 8;
 	spark->sLife = 8;
+	spark->rotAng = 2048;
 	spark->position = Vector3i(
 		(GetRandomControl() & 7) - 4,
 		0,
@@ -124,7 +126,7 @@ void TriggerGlobalStaticFlame()
 
 void TriggerGlobalFireSmoke()
 {
-	FIRE_SPARKS* spark = &FireSparks[GetFreeFireSpark()];
+	auto* spark = &FireSparks[GetFreeFireSpark()];
 
 	spark->on = 1;
 	spark->sR = 0;
@@ -165,11 +167,12 @@ void TriggerGlobalFireSmoke()
 	spark->gravity = -16 - (GetRandomControl() & 0xF);
 	spark->maxYvel = -8 - (GetRandomControl() & 7);
 	spark->dSize = spark->sSize = spark->size = (GetRandomControl() & 0x7F) + 128;
+	spark->StoreInterpolationData();
 }
 
 void TriggerGlobalFireFlame()
 {
-	FIRE_SPARKS* spark = &FireSparks[GetFreeFireSpark()];
+	auto* spark = &FireSparks[GetFreeFireSpark()];
 
 	spark->on = true;
 	spark->sR = 255;
@@ -211,6 +214,7 @@ void TriggerGlobalFireFlame()
 
 	spark->sSize = spark->size = (GetRandomControl() & 0x1F) + 128;
 	spark->dSize = spark->size;
+	spark->StoreInterpolationData();
 }
 
 void TriggerPilotFlame(int itemNumber, int nodeIndex)
@@ -379,7 +383,7 @@ void UpdateFireProgress()
 
 void AddFire(int x, int y, int z, short roomNum, float size, short fade)
 {
-	AddFire(Vector3i(x, y, z), roomNum, Vector4::One, size, fade);
+	AddFire(Vector3i(x, y, z), roomNum, NEUTRAL_COLOR, size, fade);
 }
 
 void AddFire(Vector3i& pos, int roomNumber, Vector4 color, float size, short fade)
@@ -401,13 +405,23 @@ void ClearFires()
 	Fires.clear();
 }
 
-void UpdateFireSparks()
+void UpdateFireSparks(bool recursive)
 {
+	// Fast-forward fire progress on level start.
+	if (!recursive && (JustLoaded || SaveGame::Statistics.Level.TimeTaken.GetFrameCount() == 0))
+	{
+		for (int i = 0; i < FPS; i++)
+		{
+			UpdateWibble();
+			UpdateFireSparks(true);
+		}
+	}
+
 	UpdateFireProgress();
 
 	for (int i = 0; i < MAX_SPARKS_FIRE; i++)
 	{
-		FIRE_SPARKS* spark = &FireSparks[i];
+		auto* spark = &FireSparks[i];
 
 		if (spark->on)
 		{
@@ -455,9 +469,9 @@ void UpdateFireSparks()
 			if (spark->flags & SP_ROTATE)
 				spark->rotAng = (spark->rotAng + spark->rotAdd) & 0xFFF;
 
-			float alpha = fmin(1, fmax(0, 1 - (spark->life / (float)spark->sLife)));
-			int sprite = (int)Lerp(Objects[ID_FIRE_SPRITES].meshIndex, Objects[ID_FIRE_SPRITES].meshIndex + (-Objects[ID_FIRE_SPRITES].nmeshes) - 1, alpha);
-			spark->def = sprite;
+			int spriteCount = -Objects[ID_FIRE_SPRITES].nmeshes - 1;
+			float normalizedAge = (spark->sLife - spark->life) / (float)spark->sLife;
+			spark->def = Objects[ID_FIRE_SPRITES].meshIndex + (int)round(Lerp(0.0f, (float)spriteCount, normalizedAge));
 
 			int dl = ((spark->sLife - spark->life) << 16) / spark->sLife;
 			spark->velocity.y += spark->gravity;
@@ -523,7 +537,7 @@ void UpdateSmoke()
 {
 	for (int i = 0; i < MAX_SPARKS_SMOKE; i++)
 	{
-		SMOKE_SPARKS* spark = &SmokeSparks[i];
+		auto* spark = &SmokeSparks[i];
 
 		if (spark->on)
 		{

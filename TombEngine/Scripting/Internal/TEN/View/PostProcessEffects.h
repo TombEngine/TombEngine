@@ -3,7 +3,7 @@
 #include <string>
 
 /// Constants for the post-process effects to apply.
-// To be used with @{View.SetPostProcessMode} function.
+// To be used with @{View.SetPostProcess} function.
 // @enum View.PostProcessMode
 // @pragma nostrip
 

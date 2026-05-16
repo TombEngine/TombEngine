@@ -3,7 +3,7 @@
 #include "Scripting/Include/VarMapVal.h"
 #include "Specific/level.h"
 
-typedef DWORD D3DCOLOR;
+typedef unsigned int D3DCOLOR;
 
 class ScriptInterfaceObjectsHandler
 {

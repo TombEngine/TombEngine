@@ -65,6 +65,7 @@ namespace TEN::Scripting
 	struct GraphicsSettings
 	{
 		bool AmbientOcclusion = true;
+		bool FlameHeatHaze = true;
 		bool Skinning = true;
 
 		static void Register(sol::table& parent);
@@ -99,8 +100,8 @@ namespace TEN::Scripting
 		float	PredictionFactor			= 15.0f;	// Prediction distance scale.
 		float	CollisionPenaltyThreshold	= 1.0f;		// Penalty threshold in seconds.
 		float	CollisionPenaltyCooldown	= 6.0f;		// Penalty cooldown in seconds.
-		bool	MoveableAvoidance			= true;		// Avoid moveable obstacles.
-		bool	StaticMeshAvoidance			= true;		// Avoid static mesh obstacles.
+		bool	MoveableAvoidance			= false;	// Avoid moveable obstacles.
+		bool	StaticMeshAvoidance			= false;	// Avoid static mesh obstacles.
 		bool	VerticalGeometryAvoidance	= true;		// Avoid geometry obstacles for swimming or flying creatures.
 		bool	WaterSurfaceAvoidance		= true;		// Avoid water surface for swimming or flying creatures.
 		bool	VerticalMovementSmoothing = true;		// Smooth vertical movement for swimming or flying creatures.
@@ -140,6 +141,8 @@ namespace TEN::Scripting
 		Vec2 TitleLogoPosition = Vec2(50, 20);
 		float TitleLogoScale = 0.38f;
 		ScriptColor TitleLogoColor = ScriptColor(255, 255, 255);
+
+		float MenuBackgroundBlur = 0.15f;
 
 		static void Register(sol::table& parent);
 	};

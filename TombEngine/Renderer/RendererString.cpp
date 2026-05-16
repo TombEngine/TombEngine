@@ -4,6 +4,8 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Utils;
+
 namespace TEN::Renderer
 {
 	void Renderer::AddDebugString(const std::string& string, const Vector2& pos, const Color& color, float scale, RendererDebugPage page)
@@ -19,7 +21,7 @@ namespace TEN::Renderer
 		AddString(string, pos, color, scale, FLAGS);
 	}
 
-	void Renderer::AddString(int x, int y, const std::string& string, D3DCOLOR color, int flags)
+	void Renderer::AddString(int x, int y, const std::string& string, unsigned int color, int flags)
 	{
 		AddString(string, Vector2(x, y), Color(color), 1.0f, flags);
 	}
@@ -50,31 +52,31 @@ namespace TEN::Renderer
 			float fontSpacing = _gameFont->GetLineSpacing();
 			float fontScale = REFERENCE_FONT_SIZE / fontSpacing;
 			float stringScale = (uiScale * fontScale) * scale;
-			float spaceWidth = Vector3(_gameFont->MeasureString(L" ")).x * stringScale;
+			float spaceWidth = Vector3(_gameFont->MeasureString(" ")).x * stringScale;
 
-			std::vector<std::wstring> stringLines;
+			std::vector<std::string> stringLines;
 
 			if (area.x > 0)
 			{
 				// Split the string into native lines first.
-				auto inputLines = SplitString(TEN::Utils::ToWString(string));
+				auto inputLines = SplitString(string);
 
 				for (const auto& inputLine : inputLines)
 				{
 					if (inputLine.empty())
 					{
 						// Preserve empty lines.
-						stringLines.push_back(L"");
+						stringLines.push_back("");
 						continue;
 					}
 
 					auto words = SplitWords(inputLine);
-					std::wstring currentLine;
+					std::string currentLine;
 					float currentLineWidth = 0.0f;
 
 					for (const auto& word : words)
 					{
-						float wordWidth = Vector3(_gameFont->MeasureString(word.c_str())).x * stringScale;
+						float wordWidth = Vector3(_gameFont->MeasureString(word)).x * stringScale;
 
 						if (!currentLine.empty() && (currentLineWidth + wordWidth + spaceWidth > area.x * factor.x))
 						{
@@ -85,7 +87,7 @@ namespace TEN::Renderer
 
 						if (!currentLine.empty())
 						{
-							currentLine += L" ";
+							currentLine += " ";
 							currentLineWidth += spaceWidth;
 						}
 
@@ -99,7 +101,7 @@ namespace TEN::Renderer
 			}
 			else
 			{
-				stringLines = SplitString(TEN::Utils::ToWString(string));
+				stringLines = SplitString(string);
 			}
 
 			// Calculate total height for vertical centering.
@@ -109,7 +111,7 @@ namespace TEN::Renderer
 				if (line.empty())
 					totalHeight += fontSpacing * stringScale;
 				else
-					totalHeight += Vector2(_gameFont->MeasureString(line.c_str())).y * stringScale;
+					totalHeight += Vector2(_gameFont->MeasureString(line)).y * stringScale;
 			}
 
 			// Calculate maximum textbox height.
@@ -144,7 +146,7 @@ namespace TEN::Renderer
 				rString.Scale = stringScale;
 
 				// Measure string.
-				auto stringSize = line.empty() ? Vector2(0, fontSpacing * rString.Scale) : Vector2(_gameFont->MeasureString(line.c_str())) * rString.Scale;
+				auto stringSize = line.empty() ? Vector2(0, fontSpacing * rString.Scale) : Vector2(_gameFont->MeasureString(line)) * rString.Scale;
 
 				// If height clipping enabled, stop drawing when exceeding maxHeight.
 				if (maxHeight > 0.0f && (yOffset + stringSize.y) > maxHeight)
@@ -164,7 +166,7 @@ namespace TEN::Renderer
 				else
 				{
 					// Calculate indentation to account for string scaling.
-					auto indent = line.empty() ? 0 : _gameFont->FindGlyph(line.at(0))->XAdvance * rString.Scale;
+					auto indent = line.empty() ? 0 : _gameFont->FindGlyph(line.at(0)).XAdvance * rString.Scale;
 
 					rString.Position.x = pos.x * factor.x + indent;
 					rString.PrevPosition.x = prevPos.x * factor.x + indent;
@@ -197,30 +199,30 @@ namespace TEN::Renderer
 		SetBlendMode(BlendMode::AlphaBlend);
 
 		float shadowOffset = 1.5f / (REFERENCE_FONT_SIZE / _gameFont->GetLineSpacing());
-		auto shadowColor = (Vector3)g_GameFlow->GetSettings()->UI.ShadowTextColor;
+		auto shadowColor = (Vector4)g_GameFlow->GetSettings()->UI.ShadowTextColor;
 
-		_spriteBatch->Begin();
+		_spriteBatch->Begin(SpriteSortingMode::Deferred, BlendMode::PremultipliedAlphaBlend);
 
 		for (const auto& rString : _stringsToDraw)
 		{
-			auto drawPos = Vector2::Lerp(rString.PrevPosition, rString.Position, GetInterpolationFactor());
+			auto drawPos = Vector2::Lerp(rString.PrevPosition, rString.Position, GetInterpolationFactor(true));
 
 			// Draw shadow.
 			if (rString.Flags & (int)PrintStringFlags::Outline)
 			{
 				_gameFont->DrawString(
-					_spriteBatch.get(), rString.String.c_str(),
+					_spriteBatch.get(), rString.String,
 					Vector2(drawPos.x + shadowOffset * rString.Scale, drawPos.y + shadowOffset * rString.Scale),
-					Vector4(shadowColor.x, shadowColor.y, shadowColor.z, rString.Color.w) * ScreenFadeCurrent,
-					0.0f, Vector4::Zero, rString.Scale);
+					(shadowColor * rString.Color.w * shadowColor.w) * ScreenFadeCurrent,
+					0.0f, Vector2::Zero, rString.Scale);
 			}
 
 			// Draw string.
 			_gameFont->DrawString(
-				_spriteBatch.get(), rString.String.c_str(),
+				_spriteBatch.get(), rString.String,
 				Vector2(drawPos.x, drawPos.y),
 				(rString.Color * rString.Color.w) * ScreenFadeCurrent,
-				0.0f, Vector4::Zero, rString.Scale);
+				0.0f, Vector2::Zero, rString.Scale);
 		}
 
 		_spriteBatch->End();

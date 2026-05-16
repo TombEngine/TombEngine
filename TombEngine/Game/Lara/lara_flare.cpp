@@ -363,7 +363,7 @@ void CreateFlare(ItemInfo& laraItem, GAME_OBJECT_ID objectID, bool isThrown)
 
 	flareItem.Pose.Orientation.x = 0;
 	flareItem.Pose.Orientation.z = 0;
-	flareItem.Model.Color = Vector4::One;
+	flareItem.Model.Color = NEUTRAL_COLOR;
 
 	if (isThrown)
 	{
