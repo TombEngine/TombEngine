@@ -1665,7 +1665,7 @@ void SetLaraVehicle(ItemInfo* item, ItemInfo* vehicle)
 
 		auto vehicleObjectNumber = g_Level.Items[previousVehicle].ObjectNumber;
 		if (vehicleObjectNumber != ID_SPEEDBOAT && vehicleObjectNumber != ID_RUBBER_BOAT) // Leave boat vehicles active for inertia.
-			g_Level.Items[lara->Context.Vehicle].Active = false;
+			g_Level.Items[previousVehicle].Active = false;
 
 		lara->Context.Vehicle = NO_VALUE;
 		g_GameScript->OnVehicleLeave(previousVehicle, true);

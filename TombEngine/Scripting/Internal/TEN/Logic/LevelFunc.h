@@ -160,18 +160,18 @@ public:
 // 	end
 
 /// Called after player enters a vehicle.
-// @function OnEnterVehicle
+// @function OnVehicleEnter
 // @tparam Objects.Moveable vehicle A vehicle that was mounted.
 // @usage
-// 	LevelFuncs.OnEnterVehicle = function(vehicle)
+// 	LevelFuncs.OnVehicleEnter = function(vehicle)
 // 		-- implementation goes here
 // 	end
 
 /// Called after player exits a vehicle.
-// @function OnExitVehicle
+// @function OnVehicleLeave
 // @tparam Objects.Moveable vehicle A vehicle that was dismounted.
 // @usage
-// 	LevelFuncs.OnExitVehicle = function(vehicle)
+// 	LevelFuncs.OnVehicleLeave = function(vehicle)
 // 		-- implementation goes here
 // 	end
 

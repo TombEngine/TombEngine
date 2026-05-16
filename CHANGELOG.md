@@ -37,8 +37,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ring inventory module.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
 * Added callbacks for item pickup and vehicle enter/leave events.
+* Added `Logic.HasCallback` method for checking if a callback exists.
 * Added `Moveable:SetOnLoop` method.
-* Added `Logic.HasCallback` method.
 * Added `Flow.Settings.Graphics.flameHeatHaze` option to toggle heat haze effects for flames.
 * Added `Flow.Settings.UI.menuBackgroundBlur` option to specify amount of blur for the inventory and pause backgrounds.
 * Added `Lara.SetSkin` to swap classic outfits.
@@ -61,7 +61,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 * Fixed `Timer` class not working correctly with single frame intervals.
 * Fixed alpha value being ignored for `Flow.Settings.UI.shadowTextColor` parameter.
-* Added `HasCallback`for checking if a callback exists.
 
 ## [Version 1.11]
 

@@ -143,7 +143,7 @@ Arguments:
 
 - The callbacks `PRE_END` and `POST_END` receive a @{Logic.EndReason} argument.
 - The callbacks `PRE_USE_ITEM` and `POST_USE_ITEM` receive an @{Objects.ObjID} argument.
-- The callbacks `PRE_PICKUP`, `POST_PICKUP`, `PRE_ENTER_VEHICLE`, `POST_ENTER_VEHICLE`, `PRE_EXIT_VEHICLE`, and `POST_EXIT_VEHICLE` receive a @{Objects.Moveable} argument.
+- The callbacks `PRE_PICKUP`, `POST_PICKUP`, `PRE_VEHICLE_ENTER`, `POST_VEHICLE_ENTER`, `PRE_VEHICLE_LEAVE`, and `POST_VEHICLE_LEAVE` receive a @{Objects.Moveable} argument.
 - The argument for `PRE_LOOP` and `POST_LOOP` is deprecated and should not be used.
 
 @function AddCallback
