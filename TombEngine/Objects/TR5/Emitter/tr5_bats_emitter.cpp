@@ -207,9 +207,7 @@ void UpdateBats()
 		if (ItemNearTarget(bat->Pose.Position, LaraItem, CLICK(1)))
 		{
 			TriggerBlood(bat->Pose.Position.x, bat->Pose.Position.y, bat->Pose.Position.z, 2 * GetRandomControl(), 2);
-
-			if (LaraItem->HitPoints > 0)
-				DoDamage(LaraItem, BAT_LARA_DAMAGE);
+			DoDamage(LaraItem, BAT_LARA_DAMAGE);
 		}
 
 		Matrix translation = Matrix::CreateTranslation(bat->Pose.Position.x, bat->Pose.Position.y, bat->Pose.Position.z);
