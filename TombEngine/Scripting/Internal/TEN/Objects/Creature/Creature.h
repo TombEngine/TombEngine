@@ -15,11 +15,14 @@ namespace TEN::Scripting::Objects
 	{
 	private:
 		int _itemNumber = NO_VALUE;
+		int _hash = 0;
+
 		CreatureInfo* GetCreature() const;
+
+		static bool TestCreature(int itemNumber);
 
 	public:
 		static void Register(sol::table& parent);
-		static bool TestCreature(int itemNumber);
 
 		// Constructors
 		ScriptCreature() = default;

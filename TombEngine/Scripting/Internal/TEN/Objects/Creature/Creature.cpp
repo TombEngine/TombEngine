@@ -9,6 +9,7 @@
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 namespace TEN::Scripting::Objects
 {
@@ -82,6 +83,14 @@ namespace TEN::Scripting::Objects
 			return nullptr;
 
 		auto* item = &g_Level.Items[_itemNumber];
+
+		int sourceHash = GetHash(item->Name);
+		if (sourceHash != _hash)
+		{
+			TENLog(fmt::format("Item {} has a name hash mismatch to this creature. Expected: {}, Actual: {}.", item->Name, _hash, sourceHash), LogLevel::Warning);
+			return false;
+		}
+
 		return GetCreatureInfo(item);
 	}
 
@@ -96,6 +105,7 @@ namespace TEN::Scripting::Objects
 			return;
 
 		_itemNumber = mov.GetIndex();
+		_hash = GetHash(mov.GetName());
 	}
 
 	/// Gets the current mood of the creature.

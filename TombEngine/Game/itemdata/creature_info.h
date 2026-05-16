@@ -133,6 +133,8 @@ struct CreatureInfo
 		ItemInfo* _enemy = nullptr;
 		const CreatureInfo* _creature = nullptr;
 
+		bool Validate(ItemInfo* enemy) const;
+
 	public:
 		void Initialize(const CreatureInfo* creature);
 		ItemInfo* Get() const;
