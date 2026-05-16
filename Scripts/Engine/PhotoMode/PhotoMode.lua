@@ -34,15 +34,6 @@ local _spriteAnim      = {}   -- per-sprite lerp state: { sizeW, sizeH, r, g, b 
 -- Helpers
 -- ============================================================================
 
-local function Clamp(v, lo, hi)
-    return math.max(lo, math.min(hi, v))
-end
-
-local function Round(val, decimals)
-    local mult = 10 ^ (decimals or 0)
-    return math.floor(val * mult + 0.5) / mult
-end
-
 local function ColorCombine(color, alpha)
     return TEN.Color(color.r, color.g, color.b, alpha)
 end
@@ -288,6 +279,11 @@ local function ApplyWeapon(state)
     pcall(function()
         local slot = preset and preset.type or "none"
         local snap = state.snapshot
+
+        if snap then
+            Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
+        end
+
         if slot == "holsters" then
             -- Pistols in both hand holsters: clear left + right, leave back alone
             Lara:SetHolsterWeapon(TEN.Objects.WeaponType.NONE, TEN.Objects.WeaponType.NONE, nil)
@@ -830,7 +826,7 @@ local function BuildAllMenus()
         { itemName = "pm_tint",          options = TINT_NAMES, currentOption = state.tintIndex },
         { itemName = "pm_tint_intensity", options = NumberRange(cfg.Filters.minTintIntensity, cfg.Filters.maxTintIntensity, cfg.Filters.tintIntensityStep,
               function(v) return string.format("%.2f", v) end),
-          currentOption = ValueToOptionIndex(state.tintIntensity, cfg.Filters.minTintIntensity, cfg.Filters.tintIntensityStep), accelerated = true },
+          currentOption = ValueToOptionIndex(state.tintIntensity, cfg.Filters.minTintIntensity, cfg.Filters.tintIntensityStep)},
         { itemName = "pm_reset",         options = { acceptString }, currentOption = 1 },
     }, "Engine.PhotoMode.OnFiltersAccept", "Engine.PhotoMode.OnFiltersOptionChange", "pm_header_filters")
 
@@ -844,8 +840,8 @@ local function BuildAllMenus()
           currentOption = ValueToOptionIndex(state.lightRadius, cfg.Light.minRadius, cfg.Light.radiusStep)},
         { itemName = "pm_color",        options = COLOR_NAMES, currentOption = state.lightColorIndex },
         { itemName = "pm_intensity",    options = NumberRange(cfg.Light.minIntensity, cfg.Light.maxIntensity, cfg.Light.intensityStep,
-              function(v) return string.format("%.1f", v) end),
-          currentOption = ValueToOptionIndex(state.lightIntensity, cfg.Light.minIntensity, cfg.Light.intensityStep), accelerated = true},
+              function(v) return string.format("%.2f", v) end),
+          currentOption = ValueToOptionIndex(state.lightIntensity, cfg.Light.minIntensity, cfg.Light.intensityStep)},
         { itemName = "pm_place_light",  options = { "Camera", "Lara" }, currentOption = 1 },
         { itemName = "pm_reset",        options = { acceptString }, currentOption = 1 },
     }, "Engine.PhotoMode.OnLightAccept", "Engine.PhotoMode.OnLightOptionChange", "pm_header_light")
@@ -1073,10 +1069,7 @@ local function DrawColorSelector()
             local numOpts = #e.palette
             local optIdx  = m:GetCurrentOptionIndex()
 
-            -- Interpolate between the left and right anchor along the strip
-            --local t       = (optIdx - 1) / math.max(numOpts - 1, 1)
             local cursorX = anchors.CENTER_LEFT.x + (optIdx - 1) / numOpts * (anchors.CENTER_RIGHT.x - anchors.CENTER_LEFT.x)
-            --local cursorX = anchors.CENTER_LEFT.x + t * (anchors.CENTER_RIGHT.x - anchors.CENTER_LEFT.x)
             local cursorY = anchors.CENTER_LEFT.y
 
             local ok2, cursor = pcall(TEN.View.DisplaySprite,

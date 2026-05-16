@@ -78,7 +78,7 @@ local State = {
     filterIndex    = 1,
     filterStrength = 1.0,
     tintIndex      = 1,
-    tintIntensity  = 0.0,
+    tintIntensity  = 0,
 
     -- Outfit / Weapons
     appliedSkin        = false,

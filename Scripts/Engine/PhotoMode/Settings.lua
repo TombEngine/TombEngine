@@ -144,6 +144,7 @@ Settings.Player =
 -- matching the 32-swatch rainbow strip sprite left-to-right.
 Settings.ColorPalette =
 {
+    { color = TEN.Color(255,   255,   255) },
     { color = TEN.Color(255,   0,   0) }, --  1  Red
     { color = TEN.Color(255,  48,   0) }, --  2  Red-orange
     { color = TEN.Color(255,  96,   0) }, --  3  Orange
@@ -208,7 +209,7 @@ Settings.Filters =
         { name = "Exclusion",  mode = TEN.View.PostProcessMode.EXCLUSION },
     },
     tints                = Settings.ColorPalette,
-    defaultTintIntensity = 1.0,
+    defaultTintIntensity = 0.0,
     minTintIntensity     = 0.0,
     maxTintIntensity     = 1.0,
     tintIntensityStep    = 0.05,
