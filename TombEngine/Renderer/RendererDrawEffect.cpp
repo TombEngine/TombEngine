@@ -608,7 +608,7 @@ namespace TEN::Renderer
 				auto size = Vector2(particle.size, particle.size);
 				
 				bool hasHaze = particle.flags & (SP_FIRE | SP_HAZE);
-				hasHaze = g_GameFlow->GetSettings()->Graphics.FlameHeatHaze && hasHaze && particle.blendMode != BlendMode::Distortion;
+				hasHaze = hasHaze && particle.blendMode != BlendMode::Distortion && g_GameFlow->GetSettings()->Graphics.FlameHeatHaze;
 				
 				if (particle.flags & SP_CONSTRAINED)
 				{
