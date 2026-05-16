@@ -131,7 +131,8 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 
 					if (weaponType == LaraWeaponType::Revolver)
 					{
-						auto additionalOrient = player.TargetEntity ? EulerAngles::Identity : player.ExtraTorsoRot;
+						// Allow free targeting while standing still and no target present.
+						auto additionalOrient = (player.TargetEntity || laraItem.Animation.ActiveState != LS_IDLE) ? EulerAngles::Identity : player.ExtraTorsoRot;
 
 						// HACK: Revolver, a right weapon, uses the left arm's orientation.
 						armOrient = EulerAngles(

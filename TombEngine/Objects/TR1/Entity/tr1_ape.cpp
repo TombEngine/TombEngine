@@ -21,10 +21,10 @@ namespace TEN::Entities::Creatures::TR1
 	constexpr auto APE_ATTACK_RANGE = SQUARE(BLOCK(0.42f));
 	constexpr auto APE_PANIC_RANGE	= SQUARE(BLOCK(2));
 
-	constexpr auto APE_IDLE_JUMP_CHANCE			= 1 / 6.0f;
-	constexpr auto APE_IDLE_POUND_CHEST_CHANCE  = 1 / 3.0f;
-	constexpr auto APE_IDLE_POUND_GROUND_CHANCE = 1 / 2.0f;
-	constexpr auto APE_IDLE_RUN_LEFT_CHANCE		= 1 / 2.0f;
+	constexpr auto APE_IDLE_JUMP_CHANCE			= 1 / 12.0f;
+	constexpr auto APE_IDLE_POUND_CHEST_CHANCE  = 1 / 6.0f;
+	constexpr auto APE_IDLE_POUND_GROUND_CHANCE = 1 / 5.0f;
+	constexpr auto APE_IDLE_RUN_LEFT_CHANCE		= 1 / 5.0f;
 	constexpr auto APE_RUN_JUMP_CHANCE			= APE_IDLE_JUMP_CHANCE / 32;
 	constexpr auto APE_RUN_POUND_CHEST_CHANCE	= APE_IDLE_POUND_CHEST_CHANCE / 32;
 	constexpr auto APE_RUN_POUND_GROUND_CHANCE	= APE_IDLE_POUND_GROUND_CHANCE / 32;

@@ -60,7 +60,21 @@ void InitializeLara(bool restore)
 	if (LaraItem == nullptr || LaraItem->Index == NO_VALUE)
 		return;
 
-	ZeroMemory(&Lara, sizeof(LaraInfo));
+	memset(&Lara, 0, sizeof(LaraInfo));
+
+	// Initialize or restore skin defaults.
+	if (restore)
+	{
+		Lara.Skin = PlayerBackup.Skin;
+	}
+	else
+	{
+		Lara.Skin.Skin				= ID_LARA_SKIN;
+		Lara.Skin.SkinJoints		= ID_LARA_SKIN_JOINTS;
+		Lara.Skin.SkinScream		= ID_LARA_SCREAM;
+		Lara.Skin.HairPrimary		= ID_HAIR_PRIMARY;
+		Lara.Skin.HairSecondary		= ID_HAIR_SECONDARY;
+	}
 
 	LaraItem->Data = &Lara;
 	LaraItem->Collidable = false;
@@ -104,12 +118,12 @@ void InitializeLara(bool restore)
 	g_Hud.StatusBars.Initialize(*LaraItem);
 }
 
-void InitializeLaraMeshes(ItemInfo* item)
+void InitializeLaraMeshes(ItemInfo* item, bool clearHolsters)
 {
 	auto& player = GetLaraInfo(*item);
 
 	// Override base mesh and mesh indices to player skin if it exists.
-	auto& obj = Objects[(Objects[ID_LARA_SKIN].loaded ? ID_LARA_SKIN : ID_LARA)];
+	auto& obj = Objects[(Objects[player.Skin.Skin].loaded ? player.Skin.Skin : ID_LARA)];
 
 	item->Model.BaseMesh = obj.meshIndex;
 	item->Model.SkinIndex = obj.skinIndex;
@@ -117,9 +131,12 @@ void InitializeLaraMeshes(ItemInfo* item)
 	for (int i = 0; i < NUM_LARA_MESHES; i++)
 		item->Model.MeshIndex[i] = item->Model.BaseMesh + i;
 
-	player.Control.Weapon.HolsterInfo.LeftHolster =
-	player.Control.Weapon.HolsterInfo.RightHolster = 
-	player.Control.Weapon.HolsterInfo.BackHolster = HolsterSlot::Empty;
+	if (clearHolsters)
+	{
+		player.Control.Weapon.HolsterInfo.LeftHolster =
+		player.Control.Weapon.HolsterInfo.RightHolster =
+		player.Control.Weapon.HolsterInfo.BackHolster = HolsterSlot::Empty;
+	}
 }
 
 void InitializeLaraAnims(ItemInfo* item)

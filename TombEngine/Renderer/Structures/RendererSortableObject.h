@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Renderer/Graphics/Vertices/Vertex.h"
 #include "Renderer/RendererEnums.h"
 #include "Renderer/Structures/RendererBucket.h"

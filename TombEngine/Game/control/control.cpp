@@ -60,10 +60,10 @@
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/EngineMain.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/Video/Video.h"
-#include "Specific/winmain.h"
 
 using namespace std::chrono;
 using namespace TEN::Effects;
@@ -75,6 +75,7 @@ using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Explosion;
+using namespace TEN::Effects::Fireflies;
 using namespace TEN::Effects::Footprint;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Effects::Ripple;
@@ -83,6 +84,7 @@ using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Splash;
 using namespace TEN::Effects::Streamer;
 using namespace TEN::Entities::Creatures::TR3;
+using namespace TEN::Entities::Effects;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::Traps;
@@ -93,9 +95,7 @@ using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
 using namespace TEN::Renderer;
-using namespace TEN::Entities::Creatures::TR3;
-using namespace TEN::Entities::Effects;
-using namespace TEN::Effects::Fireflies;
+using namespace TEN::SpotCam;
 using namespace TEN::Video;
 
 constexpr auto DEATH_NO_INPUT_TIMEOUT = 10 * FPS;
@@ -158,6 +158,7 @@ GameStatus GamePhase(bool insideMenu)
 
 	RegeneratePickups();
 
+	g_DrawItems.Prepare();
 	g_GameStringsHandler->ProcessDisplayStrings(DELTA_TIME);
 
 	// Controls are polled before OnLoop to allow input data to be overwritten by script API methods.
@@ -304,6 +305,7 @@ GameStatus FreezePhase()
 	SetupInterpolation();
 	PrepareCamera();
 
+	g_DrawItems.Prepare();
 	g_GameStringsHandler->ProcessDisplayStrings(DELTA_TIME);
 
 	// Track previous player animation to queue hair update if needed.
@@ -360,7 +362,7 @@ GameStatus ControlPhase(bool insideMenu)
 	}
 }
 
-unsigned CALLBACK GameMain(void *)
+int SDLCALL GameMain(void *)
 {
 	TENLog("Starting GameMain()...", LogLevel::Info);
 
@@ -388,9 +390,11 @@ unsigned CALLBACK GameMain(void *)
 	DeInitialize();
 	DoTheGame = false;
 
-	// Finish thread.
-	PostMessage(WindowsHandle, WM_CLOSE, NULL, NULL);
-	return true;
+	SDL_Event ev{};
+	ev.type = SDL_EVENT_QUIT;
+	SDL_PushEvent(&ev);
+
+	return 0;
 }
 
 GameStatus DoLevel(int levelIndex, bool loadGame)
@@ -581,7 +585,8 @@ void CleanUp()
 	g_Renderer.ClearScene();
 	g_Renderer.SetPostProcessMode(PostProcessMode::None);
 	g_Renderer.SetPostProcessStrength(1.0f);
-	g_Renderer.SetPostProcessTint(Vector3::One);
+	g_Renderer.SetPostProcessTint((Vector3)NEUTRAL_COLOR);
+	g_Renderer.SetDOF({});
 
 	// Reset Itemcamera
 	ClearObjCamera();
@@ -639,6 +644,9 @@ void DeInitializeScripting(int levelIndex, GameStatus reason)
 	// If level index is 0, it means we are in a title level and game variables should be cleared.
 	if (levelIndex == 0)
 		g_GameScript->ResetScripts(true);
+
+	// Always save global variables on any script deinit event.
+	SaveGame::SaveGlobalVars();
 }
 
 void InitializeOrLoadGame(bool loadGame)
@@ -746,7 +754,7 @@ GameStatus DoGameLoop(int levelIndex)
 void EndGameLoop(int levelIndex, GameStatus reason)
 {
 	// Save last screenshot for loading screen.
-	g_Renderer.DumpGameScene();
+	g_Renderer.DumpGameScene(SceneRenderMode::Full);
 
 	if (reason == GameStatus::LevelComplete)
 		SaveGame::SaveHub(levelIndex);
