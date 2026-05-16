@@ -87,8 +87,6 @@ Flow.DefineWeatherPreset("Altocumulus", {
 
 
 Flow.DefineWeatherPreset("RainSnowOvercast", {
-	duration ={6,9},-- {60,250},9	
-	--nextPresetB = {Altocumulus = {1.0, 50}},
     cloudB = {
 
     enabled                         = true,
@@ -192,8 +190,6 @@ Flow.DefineWeatherPreset("StormBuildUp",
 
 
 Flow.DefineWeatherPreset("Thunderstorm", {
-	duration = {6,9},--{230,560},
-	--nextPresetB = {Altocumulus = {0.7, 60}, RainSnowOvercast = {0.3, 90}},
     cloudB = {
     enabled                         = true,
     category                        = "AltocumulusMid",
@@ -258,7 +254,6 @@ Flow.DefineWeatherPreset("Thunderstorm", {
 
 
 Flow.DefineWeatherPreset("Cirrustratus", {
-	duration = {6,9},--{300, 560},  
 	cloudB = 
 	{
     enabled                         = true,
@@ -323,7 +318,6 @@ Flow.DefineWeatherPreset("Cirrustratus", {
 })
 
 Flow.DefineWeatherPreset("CirrocumulusLots", {
-	duration = {6,9},--{300, 560},  
 		cloudB = {
 
     enabled                         = true,
@@ -391,8 +385,6 @@ Flow.DefineWeatherPreset("CirrocumulusLots", {
 })
 
 Flow.DefineWeatherPreset("CirrocumulusFew", {
-	duration = {6,9},--{300, 560},
-	--nextPresetA  = {FewToClearSky = {0.2, 0.6, 40}, StormBuildUpHigh = {0.5, 0.0, 90}, CirrocumulusLots = {0.3, 0.2, 50}, AuroraBorealis = {0.0, 0.2, 50}},	  
 	cloudB = {
     enabled                         = true,
     category                        = "AltocumulusMid",
@@ -456,7 +448,6 @@ Flow.DefineWeatherPreset("CirrocumulusFew", {
 })
 
 Flow.DefineWeatherPreset("CloudsTransformation", {
-	duration = 30,--{300, 560},
     cloudB = {
 	enabled        = true,
 	category       = "AltocumulusMid",
