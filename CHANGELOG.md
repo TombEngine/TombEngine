@@ -39,6 +39,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed occasional flame emitter sprite jitter.
 * Fixed interaction highlighter appearing for underwater pushable objects.
 * Fixed clipping into underwater pushable objects while swimming upwards from the bottom.
+* Fixed incorrect renderer statistics in the linear inventory.
 
 ### Lua API changes
 

@@ -1482,6 +1482,8 @@ namespace TEN::Renderer
 
 	void Renderer::RenderInventory()
 	{
+		ResetDebugVariables();
+
 		if (_graphicsSettingsChanged)
 		{
 			UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
