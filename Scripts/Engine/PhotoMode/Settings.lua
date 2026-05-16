@@ -139,6 +139,45 @@ Settings.Player =
 -- Light Defaults
 -- ============================================================================
 
+-- Shared 32-colour palette used by both the light colour picker and the tint
+-- picker.  Colours are evenly spaced across the HSV hue wheel (S=1, V=1),
+-- matching the 32-swatch rainbow strip sprite left-to-right.
+Settings.ColorPalette =
+{
+    { color = TEN.Color(255,   0,   0) }, --  1  Red
+    { color = TEN.Color(255,  48,   0) }, --  2  Red-orange
+    { color = TEN.Color(255,  96,   0) }, --  3  Orange
+    { color = TEN.Color(255, 143,   0) }, --  4  Dark orange
+    { color = TEN.Color(255, 191,   0) }, --  5  Amber
+    { color = TEN.Color(255, 239,   0) }, --  6  Yellow
+    { color = TEN.Color(223, 255,   0) }, --  7  Yellow-green
+    { color = TEN.Color(175, 255,   0) }, --  8  Chartreuse
+    { color = TEN.Color(128, 255,   0) }, --  9  Spring green
+    { color = TEN.Color( 80, 255,   0) }, -- 10  Green
+    { color = TEN.Color( 32, 255,   0) }, -- 11  Bright green
+    { color = TEN.Color(  0, 255,  16) }, -- 12  Green
+    { color = TEN.Color(  0, 255,  64) }, -- 13  Cyan-green
+    { color = TEN.Color(  0, 255, 112) }, -- 14  Teal-green
+    { color = TEN.Color(  0, 255, 159) }, -- 15  Teal
+    { color = TEN.Color(  0, 255, 207) }, -- 16  Cyan-teal
+    { color = TEN.Color(  0, 255, 255) }, -- 17  Cyan
+    { color = TEN.Color(  0, 207, 255) }, -- 18  Sky cyan
+    { color = TEN.Color(  0, 159, 255) }, -- 19  Sky blue
+    { color = TEN.Color(  0, 112, 255) }, -- 20  Azure
+    { color = TEN.Color(  0,  64, 255) }, -- 21  Blue
+    { color = TEN.Color(  0,  16, 255) }, -- 22  Deep blue
+    { color = TEN.Color( 32,   0, 255) }, -- 23  Blue-violet
+    { color = TEN.Color( 80,   0, 255) }, -- 24  Violet-blue
+    { color = TEN.Color(128,   0, 255) }, -- 25  Violet
+    { color = TEN.Color(175,   0, 255) }, -- 26  Purple-violet
+    { color = TEN.Color(223,   0, 255) }, -- 27  Purple-magenta
+    { color = TEN.Color(255,   0, 239) }, -- 28  Magenta
+    { color = TEN.Color(255,   0, 191) }, -- 29  Pink-magenta
+    { color = TEN.Color(255,   0, 143) }, -- 30  Hot pink
+    { color = TEN.Color(255,   0,  96) }, -- 31  Deep pink
+    { color = TEN.Color(255,   0,  48) }, -- 32  Red-pink
+}
+
 Settings.Light =
 {
     defaultRadius  = 8,
@@ -151,16 +190,7 @@ Settings.Light =
     intensityStep    = 0.05,
     defaultEnabled = false,
     lightName      = "PHOTO_MODE_LIGHT",
-    colorPresets   =
-    {
-        { name = "White",   color = TEN.Color(255, 255, 255) },
-        { name = "Warm",    color = TEN.Color(255, 220, 180) },
-        { name = "Cool",    color = TEN.Color(180, 210, 255) },
-        { name = "Red",     color = TEN.Color(255, 80, 80) },
-        { name = "Green",   color = TEN.Color(80, 255, 80) },
-        { name = "Blue",    color = TEN.Color(80, 80, 255) },
-        { name = "Magenta", color = TEN.Color(255, 80, 255) },
-    },
+    colorPresets   = Settings.ColorPalette,
     sourceNames = { "Manual", "Follow Camera", "Follow Lara" },
 }
 
@@ -177,17 +207,8 @@ Settings.Filters =
         { name = "Negative",   mode = TEN.View.PostProcessMode.NEGATIVE },
         { name = "Exclusion",  mode = TEN.View.PostProcessMode.EXCLUSION },
     },
-    tints =
-    {
-        { name = "Neutral", color = TEN.Color(128, 128, 128) },
-        { name = "Warm",    color = TEN.Color(255, 160,  80) },
-        { name = "Cool",    color = TEN.Color( 80, 160, 255) },
-        { name = "Green",   color = TEN.Color( 80, 255,  80) },
-        { name = "Magenta", color = TEN.Color(128,  40, 128) },
-        { name = "Red",     color = TEN.Color(128,  40,  40) },
-        { name = "Sepia",   color = TEN.Color(255, 200, 120) },
-    },
-    defaultTintIntensity = 0.0,
+    tints                = Settings.ColorPalette,
+    defaultTintIntensity = 1.0,
     minTintIntensity     = 0.0,
     maxTintIntensity     = 1.0,
     tintIntensityStep    = 0.05,
@@ -215,7 +236,9 @@ Settings.Frames =
         { name = "Cinematic Bars", spriteID = 0 },
         { name = "Tomb Raider Logo", spriteID = 1 },
         { name = "Polaroid", spriteID = 2 },
-        { name = "Recording", spriteID = 3 }
+        { name = "Recording", spriteID = 3 },
+        { name = "Binoculars", spriteID = 4 },
+        { name = "Lasersight", spriteID = 5 }
     },
 }
 

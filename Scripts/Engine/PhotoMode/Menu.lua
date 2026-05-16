@@ -458,6 +458,11 @@ function Menu:IsVisible()
     return menu and menu.visible or false
 end
 
+function Menu:GetAlpha()
+    local menu = Menus[self.name]
+    return menu and menu.currentAlpha or 0
+end
+
 function Menu:SetSoundEffects(select, choose)
     local menu = Menus[self.name]
     if not menu then return end
@@ -549,6 +554,17 @@ function Menu:SetOptionIndexForItemName(itemName, optionIndex)
             return
         end
     end
+end
+
+function Menu:GetOptionIndexForItemName(itemName)
+    local menu = Menus[self.name]
+    if not menu then return nil end
+    for _, item in ipairs(menu.items) do
+        if item.itemName == itemName then
+            return item.currentOption or 1
+        end
+    end
+    return nil
 end
 
 function Menu:SetCurrentItem(itemIndex)

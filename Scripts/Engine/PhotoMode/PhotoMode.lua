@@ -59,11 +59,13 @@ end
 local DOF_MODE_NAMES   = BuildNames(Settings.DepthOfField.modes)
 local LIGHT_SRC_NAMES  = Settings.Light.sourceNames
 local FILTER_NAMES     = BuildNames(Settings.Filters.presets)
-local TINT_NAMES       = BuildNames(Settings.Filters.tints)
-local COLOR_NAMES      = BuildNames(Settings.Light.colorPresets)
-local ANIM_NAMES       = BuildNames(Settings.Animations)
 local FRAME_NAMES      = BuildNames(Settings.Frames.presets)
+local ANIM_NAMES       = BuildNames(Settings.Animations)
 local EXPRESSION_NAMES = BuildNames(Settings.Expressions)
+
+-- Color selectors use blank option labels — the actual color is shown via sprite strip.
+local TINT_NAMES  = (function() local t={} for i=1,#Settings.Filters.tints       do t[i]="" end return t end)()
+local COLOR_NAMES = (function() local t={} for i=1,#Settings.Light.colorPresets  do t[i]="" end return t end)()
 
 -- Outfit and weapon name lists are built dynamically each entry to respect
 -- per-outfit unlock flags and live inventory checks.
@@ -821,6 +823,7 @@ local function BuildAllMenus()
     -- FILTERS menu (Post-process + Frame)
     -- ================================================================
     CreateMenu(MENU_FILTERS, {
+        { itemName = "pm_frame_overlay", options = FRAME_NAMES, currentOption = state.frameIndex },
         { itemName = "pm_preset",        options = FILTER_NAMES, currentOption = state.filterIndex },
         { itemName = "pm_strength",      options = NumberRange(0, 1.0, 0.05, function(v) return string.format("%.2f", v) end),
           currentOption = ValueToOptionIndex(state.filterStrength, 0, 0.05)},
@@ -828,7 +831,6 @@ local function BuildAllMenus()
         { itemName = "pm_tint_intensity", options = NumberRange(cfg.Filters.minTintIntensity, cfg.Filters.maxTintIntensity, cfg.Filters.tintIntensityStep,
               function(v) return string.format("%.2f", v) end),
           currentOption = ValueToOptionIndex(state.tintIntensity, cfg.Filters.minTintIntensity, cfg.Filters.tintIntensityStep), accelerated = true },
-        { itemName = "pm_frame_overlay", options = FRAME_NAMES, currentOption = state.frameIndex },
         { itemName = "pm_reset",         options = { acceptString }, currentOption = 1 },
     }, "Engine.PhotoMode.OnFiltersAccept", "Engine.PhotoMode.OnFiltersOptionChange", "pm_header_filters")
 
@@ -868,7 +870,6 @@ local function BuildAllMenus()
     })
 
     Menu.SetHeaderSpacing(15)
-    -- Activate the first header's menu
     Menu.SetActiveHeader(1)
 end
 
@@ -1011,6 +1012,106 @@ local HEADER_SCALE      = 1.0
 local SPRITE_ANIM_SPEED = 0.18  -- lerp factor per frame (higher = snappier)
 
 -- ============================================================================
+-- Color Selector Sprite
+-- For pm_color (MENU_LIGHT) and pm_tint (MENU_FILTERS):
+--   * When the item is focused  → draw the rainbow strip (sprite 6) + cursor (sprite 7).
+--   * When the item is not focused → draw a small tinted square swatch (COLOR_SWATCH_SPRITE)
+--     at the option column position so the current colour is always visible.
+-- Each entry uses its own menu's alpha so fades work correctly on both menus.
+-- ============================================================================
+
+local function DrawColorSelector()
+    local state = States.Get()
+
+        -- Color selector strip constants (percent-screen coords, must match DrawBackSprites layout)
+    local COLOR_STRIP_X      = 23.2
+    local COLOR_STRIP_Y      = 33.8
+    local COLOR_STRIP_W      = 14.0
+    local COLOR_STRIP_H      = 8.0
+    -- Sprite index in PHOTOMODE_SPRITES used as a small color swatch next to
+    -- pm_color / pm_tint items when the rainbow strip is not expanded.
+    -- Must be a plain white (or neutral) square sprite in your WAD.
+    local COLOR_SWATCH_SPRITE = 8
+
+    -- Descriptor table for each colour-picking item
+    local entries = {
+        { menuName = MENU_LIGHT,   itemName = "pm_color",
+          palette  = Settings.Light.colorPresets,  colorIndex = state.lightColorIndex },
+        { menuName = MENU_FILTERS, itemName = "pm_tint",
+          palette  = Settings.Filters.tints,       colorIndex = state.tintIndex },
+    }
+
+    local activeMenuName = Menu.GetActiveHeaderMenu()
+    local activeM        = Menu.Get(activeMenuName)
+    local activeItemName = activeM and activeM:GetCurrentItemName() or nil
+    local menuAlpha      = activeM:GetAlpha()
+    for _, e in ipairs(entries) do
+        
+        if menuAlpha < 1 then goto nextEntry end
+        local a = math.floor(menuAlpha)
+
+        local m = Menu.Get(e.menuName)
+        if not m then goto nextEntry end
+
+        local isActive = (e.menuName == activeMenuName)
+        local isActiveItem =(activeItemName == e.itemName)
+
+        if isActive and isActiveItem then
+            local ok, strip = pcall(TEN.View.DisplaySprite,
+                TEN.Objects.ObjID.PHOTOMODE_SPRITES, 6,
+                TEN.Vec2(COLOR_STRIP_X, COLOR_STRIP_Y), 0,
+                TEN.Vec2(COLOR_STRIP_W, COLOR_STRIP_H), TEN.Color(255, 255, 255, a))
+            if ok and strip then
+                strip:Draw(-3,
+                    TEN.View.AlignMode.CENTER,
+                    TEN.View.ScaleMode.FIT,
+                    TEN.Effects.BlendID.ALPHA_BLEND)
+            end
+
+            local anchors = strip:GetAnchors(TEN.View.AlignMode.CENTER, TEN.View.ScaleMode.FIT)
+
+            local numOpts = #e.palette
+            local optIdx  = m:GetCurrentOptionIndex()
+
+            -- Interpolate between the left and right anchor along the strip
+            --local t       = (optIdx - 1) / math.max(numOpts - 1, 1)
+            local cursorX = anchors.CENTER_LEFT.x + (optIdx - 1) / numOpts * (anchors.CENTER_RIGHT.x - anchors.CENTER_LEFT.x)
+            --local cursorX = anchors.CENTER_LEFT.x + t * (anchors.CENTER_RIGHT.x - anchors.CENTER_LEFT.x)
+            local cursorY = anchors.CENTER_LEFT.y
+
+            local ok2, cursor = pcall(TEN.View.DisplaySprite,
+                TEN.Objects.ObjID.PHOTOMODE_SPRITES, 7,
+                TEN.Vec2(cursorX, cursorY), 0,
+                TEN.Vec2(COLOR_STRIP_W, COLOR_STRIP_H), TEN.Color(255, 255, 255, a))
+            if ok2 and cursor then
+                cursor:Draw(-2,
+                    TEN.View.AlignMode.CENTER_LEFT,
+                    TEN.View.ScaleMode.FIT,
+                    TEN.Effects.BlendID.ALPHA_BLEND)
+            end
+        elseif isActive then
+            -- Small tinted swatch at the option column position
+            local pos = TEN.Vec2(COLOR_STRIP_X, COLOR_STRIP_Y)
+            local col = e.palette[e.colorIndex]
+            if pos and col then
+                local ok, swatch = pcall(TEN.View.DisplaySprite,
+                    TEN.Objects.ObjID.PHOTOMODE_SPRITES, COLOR_SWATCH_SPRITE,
+                    pos, 0,
+                    TEN.Vec2(3, 3), TEN.Color(col.color.r, col.color.g, col.color.b, a))
+                if ok and swatch then
+                    swatch:Draw(-2,
+                        TEN.View.AlignMode.CENTER,
+                        TEN.View.ScaleMode.FIT,
+                        TEN.Effects.BlendID.ALPHA_BLEND)
+                end
+            end
+        end
+
+        ::nextEntry::
+    end
+end
+
+-- ============================================================================
 -- Header Sprites
 -- ============================================================================
 
@@ -1073,6 +1174,7 @@ local function DrawBackSprites(alpha)
             TEN.View.ScaleMode.STRETCH,
             TEN.Effects.BlendID.ALPHA_BLEND)
     end
+
 end
 
 local function DrawTitle(alpha)
@@ -1198,6 +1300,7 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
         end
         DrawBackSprites(headerAlpha)
         DrawHeaderSprites(headerAlpha)
+        DrawColorSelector()
         DrawModeText(headerAlpha)
         DrawHelpText(headerAlpha)
         DrawTitle(headerAlpha)
