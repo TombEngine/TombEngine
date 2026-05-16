@@ -46,11 +46,11 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
 * Added `Flow.Settings.Graphics.flameHeatHaze` option to toggle heat haze effects for flames.
 * Added `Flow.Settings.UI.menuBackgroundBlur` option to specify amount of blur for the inventory and pause backgrounds.
-* Added `Lara.SetSkin` to swap classic outfits.
+* Added `Lara.SetSkin` function to swap classic outfits.
 * Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
 * Added `View.GetPostProcessTint` to get currently set post process tint.
 * Added `View.GetPostProcess` and `View.SetPostProcess` to set/get postprocess mode and strength.
-* Remove `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
+* Remove `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` function.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 * Fixed incorrect error message when using `Moveable:SetFrame` with a frame number equal to the end frame.
 * Fixed glide camera movement when entering or exiting freeze mode.
