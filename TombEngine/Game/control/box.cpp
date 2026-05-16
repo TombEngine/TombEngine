@@ -2511,7 +2511,7 @@ void CreatureAIInfo(ItemInfo* item, AI_INFO* AI)
 	{
 		AI->distance = AI->verticalDistance = INT_MAX;
 		AI->enemyZone = NO_VALUE;
-		AI->ahead = AI->bite = false;
+		AI->ahead = AI->bite = 0;
 		AI->angle = AI->xAngle = AI->enemyFacing = 0;
 		return;
 	}
