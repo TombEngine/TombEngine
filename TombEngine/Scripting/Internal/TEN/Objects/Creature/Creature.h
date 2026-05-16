@@ -17,9 +17,8 @@ namespace TEN::Scripting::Objects
 		int _itemNumber = NO_VALUE;
 		int _hash = 0;
 
-		CreatureInfo* GetCreature() const;
-
-		static bool TestCreature(int itemNumber);
+		CreatureInfo* GetCreature(bool silent = false) const;
+		static bool TestCreature(int itemNumber, bool silent = false);
 
 	public:
 		static void Register(sol::table& parent);

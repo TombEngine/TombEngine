@@ -55,11 +55,13 @@ namespace TEN::Scripting::Objects
 	}
 
 	// Manages warnings for invalid creature/moveable pointers.
-	bool ScriptCreature::TestCreature(int itemNumber)
+	bool ScriptCreature::TestCreature(int itemNumber, bool silent)
 	{
 		if (itemNumber <= NO_VALUE || itemNumber >= (int)g_Level.Items.size())
 		{
-			TENLog(fmt::format("Attempt to access creature with invalid item number {}.", itemNumber), LogLevel::Warning);
+			if (!silent)
+				TENLog(fmt::format("Attempt to access creature with invalid item number {}.", itemNumber), LogLevel::Warning);
+
 			return false;
 		}
 
@@ -67,7 +69,9 @@ namespace TEN::Scripting::Objects
 
 		if (!item->IsCreature())
 		{
-			TENLog(fmt::format("Item {} does not correspond to an active creature. Make sure the item is a creature and it was activated.", item->Name), LogLevel::Warning);
+			if (!silent)
+				TENLog(fmt::format("Item {} does not correspond to an active creature. Make sure the item is a creature and it was activated.", item->Name), LogLevel::Warning);
+
 			return false;
 		}
 
@@ -76,9 +80,9 @@ namespace TEN::Scripting::Objects
 
 	// Resolves the Creature pointer from the stored item number.
 	// Returns nullptr if the item is invalid, inactive, or not a creature.
-	CreatureInfo* ScriptCreature::GetCreature() const
+	CreatureInfo* ScriptCreature::GetCreature(bool silent) const
 	{
-		if (!TestCreature(_itemNumber))
+		if (!TestCreature(_itemNumber, silent))
 			return nullptr;
 
 		auto* item = &g_Level.Items[_itemNumber];
@@ -86,7 +90,9 @@ namespace TEN::Scripting::Objects
 		int sourceHash = GetHash(item->Name);
 		if (sourceHash != _hash)
 		{
-			TENLog(fmt::format("Item {} has a name hash mismatch to this creature. Expected: {}, Actual: {}.", item->Name, _hash, sourceHash), LogLevel::Warning);
+			if (!silent)
+				TENLog(fmt::format("Item {} has a name hash mismatch to this creature. Expected: {}, Actual: {}.", item->Name, _hash, sourceHash), LogLevel::Warning);
+			
 			return false;
 		}
 
@@ -121,7 +127,7 @@ namespace TEN::Scripting::Objects
 
 	/// Sets the mood of the creature.
 	// Overrides the automatic mood management and forces the creature's mood to the specified value.
-	// Setting the mood to @{Objects.MoodType.Auto} will clear any mood override and allow the creature to manage the mood according to the AI.
+	// Setting the mood to @{Objects.MoodType.AUTO} will clear any mood override and allow the creature to manage the mood according to the AI.
 	// @function SetMood
 	// @tparam Objects.MoodType mood The mood to set.
 	void ScriptCreature::SetMood(ScriptMoodType mood)
@@ -401,6 +407,6 @@ namespace TEN::Scripting::Objects
 	// @treturn bool `true` if creature data is valid, `false` if creature was killed or disabled.
 	bool ScriptCreature::GetValid()
 	{
-		return GetCreature() != nullptr;
+		return GetCreature(true) != nullptr;
 	}
 }
