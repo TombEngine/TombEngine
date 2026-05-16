@@ -25,6 +25,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 
 #include "Game/control/control.h"
 #include "Game/Effects/LensFlareDebug.h"
@@ -42,6 +43,22 @@ namespace TEN::Sky
 	// ====================================================================
 	// Helpers
 	// ====================================================================
+
+	// Returns the current level's Lua name (the .TEN file basename without
+	// extension) for use as the table prefix in copy-to-clipboard Lua snippets.
+	// Falls back to "level" when no level is loaded or the filename is empty.
+	static std::string GetCurrentLevelLuaName()
+	{
+		auto* level = dynamic_cast<Level*>(g_GameFlow->GetLevel(CurrentLevel));
+		if (!level || level->FileName.empty())
+			return "level";
+
+		auto stem = std::filesystem::path(level->FileName).stem().string();
+		if (stem.empty())
+			return "level";
+
+		return stem;
+	}
 
 	static const char* CloudCategoryToString(CloudCategory cat)
 	{
@@ -599,37 +616,42 @@ namespace TEN::Sky
 	// or outputs as cloudA = {} for preset editor sections.
 	// ====================================================================
 
-	static std::string BuildCloudLayerLua(const VolumetricCloudLayerSnapshot& snap, const char* idPrefix)
+	static std::string BuildCloudLayerLua(const VolumetricCloudLayerSnapshot& snap, const char* idPrefix, bool wrap = true)
 	{
 		bool isLayerA = (strchr(idPrefix, 'A') != nullptr);
 		bool isPreset = (strncmp(idPrefix, "def", 3) == 0);
 
 		std::ostringstream ss;
 
-		if (isPreset)
-			ss << (isLayerA ? "cloudA = {\n" : "cloudB = {\n");
-		else
-			ss << (isLayerA ? "Flow.SetVolumetricCloudLayerA({\n" : "Flow.SetVolumetricCloudLayerB({\n");
+		if (wrap)
+		{
+			if (isPreset)
+				ss << (isLayerA ? "cloudA = {\n" : "cloudB = {\n");
+			else
+				ss << (isLayerA ? "Flow.SetVolumetricCloudLayerA({\n" : "Flow.SetVolumetricCloudLayerB({\n");
+		}
 
 		// Helpers: field writes with aligned columns.
 		char vbuf[64];
+		const char* indent  = wrap ? "    " : "";
+		const char* lineEnd = wrap ? ",\n"  : "\n";
 		auto fld = [&](const char* key, const char* fmt, float val)
 		{
 			snprintf(vbuf, sizeof(vbuf), fmt, val);
-			ss << "    " << std::left << std::setw(32) << (std::string(key) + " ") << "= " << vbuf << ",\n";
+			ss << indent << std::left << std::setw(32) << (std::string(key) + " ") << "= " << vbuf << lineEnd;
 		};
 		auto ifld = [&](const char* key, float val)
 		{
 			snprintf(vbuf, sizeof(vbuf), "%.0f", val);
-			ss << "    " << std::left << std::setw(32) << (std::string(key) + " ") << "= " << vbuf << ",\n";
+			ss << indent << std::left << std::setw(32) << (std::string(key) + " ") << "= " << vbuf << lineEnd;
 		};
 		auto bfld = [&](const char* key, bool val)
 		{
-			ss << "    " << std::left << std::setw(32) << (std::string(key) + " ") << "= " << (val ? "true" : "false") << ",\n";
+			ss << indent << std::left << std::setw(32) << (std::string(key) + " ") << "= " << (val ? "true" : "false") << lineEnd;
 		};
 		auto sfld = [&](const char* key, const char* val)
 		{
-			ss << "    " << std::left << std::setw(32) << (std::string(key) + " ") << "= \"" << val << "\",\n";
+			ss << indent << std::left << std::setw(32) << (std::string(key) + " ") << "= \"" << val << "\"" << lineEnd;
 		};
 
 		bfld("enabled",                         snap.Enabled);
@@ -690,10 +712,13 @@ namespace TEN::Sky
 		fld( "temporalAlphaLow",      "%.4f",    snap.TemporalAlphaLow);
 		fld( "temporalAlphaHigh",     "%.4f",    snap.TemporalAlphaHigh);
 
-		if (isPreset)
-			ss << "}\n";
-		else
-			ss << "})\n";
+		if (wrap)
+		{
+			if (isPreset)
+				ss << "}\n";
+			else
+				ss << "})\n";
+		}
 
 		return ss.str();
 	}
@@ -836,11 +861,13 @@ namespace TEN::Sky
 			char copyId[64];
 			snprintf(copyId, sizeof(copyId), "Copy Lua to Clipboard##%s", idPrefix);
 			if (ImGui::Button(copyId))
-				ImGui::SetClipboardText(BuildCloudLayerLua(snap, idPrefix).c_str());
+			{
+				bool isPreset = (strncmp(idPrefix, "def", 3) == 0);
+				ImGui::SetClipboardText(BuildCloudLayerLua(snap, idPrefix, isPreset).c_str());
+			}
 			if (ImGui::IsItemHovered())
 				ImGui::SetTooltip(
-					"Copies all current values as a Lua table to the clipboard.\n"
-					"Paste into Flow.SetVolumetricCloudLayerA/B or DefineWeatherPreset cloudA/cloudB.");
+					"Copies all current values as Lua key = value lines to the clipboard.");
 		}
 
 		ImGui::Unindent(8.0f);
@@ -999,77 +1026,6 @@ namespace TEN::Sky
 		}
 
 		// ----------------------------------------------------------------
-		// Preset Switcher section
-		// ----------------------------------------------------------------
-		if (ImGui::CollapsingHeader("Preset Switcher", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::Indent(8.0f);
-
-			auto presetTypes = g_SkyCloudSystem.GetAllPresetTypes();
-
-			// Build display names list.
-			static int selectedPresetIdx = 0;
-			std::vector<const char*> presetNames;
-			presetNames.reserve(presetTypes.size());
-			for (auto t : presetTypes)
-				presetNames.push_back(SkyCloudSystem::PresetTypeToString(t));
-
-			if (!presetNames.empty())
-			{
-				if (selectedPresetIdx >= static_cast<int>(presetNames.size()))
-					selectedPresetIdx = 0;
-
-				ImGui::Combo("Target Preset", &selectedPresetIdx,
-					presetNames.data(), static_cast<int>(presetNames.size()));
-
-				WeatherPresetType selectedType = presetTypes[selectedPresetIdx];
-
-				if (ImGui::Button("Apply Immediately"))
-					g_SkyCloudSystem.SetPresetImmediate(selectedType);
-
-				ImGui::SameLine();
-
-				static float transDurA = 30.0f;
-				static float transDurB = 30.0f;
-				static int   lastPresetForDur = -1;
-
-				// Auto-fill from preset definition when selection changes.
-				if (selectedPresetIdx != lastPresetForDur)
-				{
-					lastPresetForDur = selectedPresetIdx;
-					const auto* selDef = g_SkyCloudSystem.GetPresetDefinition(selectedType);
-					if (selDef)
-					{
-						transDurA = (selDef->TransitionDurationA >= 0.0f) ? selDef->TransitionDurationA : selDef->DefaultTransitionDuration;
-						transDurB = (selDef->TransitionDurationB >= 0.0f) ? selDef->TransitionDurationB : selDef->DefaultTransitionDuration;
-					}
-				}
-
-				ImGui::Text("Transition:");
-				ImGui::SameLine();
-				ImGui::SetNextItemWidth(80.0f);
-				ImGui::DragFloat("A##transDurA", &transDurA, 1.0f, 1.0f, 300.0f, "%.0f s");
-				ImGui::SameLine();
-				ImGui::SetNextItemWidth(80.0f);
-				ImGui::DragFloat("B##transDurB", &transDurB, 1.0f, 1.0f, 300.0f, "%.0f s");
-				ImGui::SameLine();
-				if (ImGui::Button("Transition"))
-					g_SkyCloudSystem.TransitionToPreset(selectedType, transDurA, transDurB);
-
-				if (g_SkyCloudSystem.IsTransitioning())
-				{
-					ImGui::SameLine();
-					if (ImGui::Button("Interrupt"))
-						g_SkyCloudSystem.InterruptTransition();
-				}
-			}
-
-		ImGui::Separator();
-
-		ImGui::Unindent(8.0f);
-		}
-
-		// ----------------------------------------------------------------
 		// Per-Layer Preset Switcher (Layer A and Layer B independently)
 		// ----------------------------------------------------------------
 		if (ImGui::CollapsingHeader("Per-Layer Preset Switcher"))
@@ -1108,10 +1064,10 @@ namespace TEN::Sky
 
 				WeatherPresetType typeA = presetTypesL[layerAPresetIdx];
 				if (ImGui::Button("Apply Immediately##layerA"))
+				{
+					g_SkyCloudSystem.SetDynamicSkyAuroraForced(typeA == WeatherPresetType::Aurora);
 					g_SkyCloudSystem.SetLayerAPresetImmediate(typeA);
-				ImGui::SameLine();
-				if (ImGui::Button("Transition##layerA"))
-					g_SkyCloudSystem.TransitionLayerAToPreset(typeA, layerADur);
+				}
 				if (g_SkyCloudSystem.IsLayerATransitioning())
 				{
 					ImGui::SameLine();
@@ -1140,22 +1096,23 @@ namespace TEN::Sky
 
 				WeatherPresetType typeB = presetTypesB[layerBPresetIdx];
 				if (ImGui::Button("Apply Immediately##layerB"))
+				{
+					g_SkyCloudSystem.SetDynamicSkyAuroraForced(typeB == WeatherPresetType::Aurora);
 					g_SkyCloudSystem.SetLayerBPresetImmediate(typeB);
+				}
 				ImGui::SameLine();
 				if (ImGui::Button("Transition##layerB"))
-					g_SkyCloudSystem.TransitionLayerBToPreset(typeB, layerBDur);
-				ImGui::SameLine();
 				{
-					bool hasLayerBDwell = (info.LayerBDwellTarget >= 0.0f);
-					ImGui::BeginDisabled(!hasLayerBDwell);
-					if (ImGui::Button(info.LayerBDwellPaused ? "Resume Dwell##layerB" : "Pause Dwell##layerB"))
-					{
-						if (info.LayerBDwellPaused)
-							g_SkyCloudSystem.ResumeLayerBDwell();
-						else
-							g_SkyCloudSystem.PauseLayerBDwell();
-					}
-					ImGui::EndDisabled();
+					g_SkyCloudSystem.SetDynamicSkyAuroraForced(typeB == WeatherPresetType::Aurora);
+					g_SkyCloudSystem.TransitionLayerBToPreset(typeB, layerBDur);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button(info.LayerBDwellPaused ? "Resume Dwell##layerB" : "Pause Dwell##layerB"))
+				{
+					if (info.LayerBDwellPaused)
+						g_SkyCloudSystem.ResumeLayerBDwell();
+					else
+						g_SkyCloudSystem.PauseLayerBDwell();
 				}
 				if (g_SkyCloudSystem.IsLayerBTransitioning())
 				{
@@ -1187,78 +1144,6 @@ namespace TEN::Sky
 				g_SkyCloudSystem.SetVolumetricLayerA(state.CloudA);
 			if (DrawLayerSection("Cloud Layer B (Live)", "liveB", state.CloudB, defaultsB))
 				g_SkyCloudSystem.SetVolumetricLayerB(state.CloudB);
-		}
-
-		// ----------------------------------------------------------------
-		// Preset Definition Editor (edits the stored preset, not just live)
-		// ----------------------------------------------------------------
-		if (ImGui::CollapsingHeader("Preset Definition Editor"))
-		{
-			ImGui::Indent(8.0f);
-
-			auto presetTypes = g_SkyCloudSystem.GetAllPresetTypes();
-			static int editPresetIdx = 0;
-
-			std::vector<const char*> presetNames;
-			for (auto t : presetTypes)
-				presetNames.push_back(SkyCloudSystem::PresetTypeToString(t));
-
-			if (!presetNames.empty())
-			{
-				if (editPresetIdx >= static_cast<int>(presetNames.size()))
-					editPresetIdx = 0;
-
-				ImGui::Combo("Edit Preset##def", &editPresetIdx,
-					presetNames.data(), static_cast<int>(presetNames.size()));
-
-				WeatherPresetType editType = presetTypes[editPresetIdx];
-				auto* def = g_SkyCloudSystem.GetMutablePresetDefinition(editType);
-
-				if (def)
-				{
-					ImGui::Text("Name: %s", def->Name.c_str());
-					ImGui::DragFloat("Default Transition",  &def->DefaultTransitionDuration, 1.0f, 1.0f, 300.0f, "%.0f s");
-					// Per-layer durations: -1 means "inherit DefaultTransition at runtime".
-					ImGui::DragFloat("Transition A (Layer A)", &def->TransitionDurationA, 1.0f, -1.0f, 300.0f,
-						def->TransitionDurationA < 0.0f ? "(inherit default)" : "%.0f s");
-					ImGui::DragFloat("Transition B (Layer B)", &def->TransitionDurationB, 1.0f, -1.0f, 300.0f,
-						def->TransitionDurationB < 0.0f ? "(inherit default)" : "%.0f s");
-ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f, 0.0f, 1.0f, "%.2f");
-
-					ImGui::Separator();
-					ImGui::Text("Auto-Chain (NextPreset)");
-					// Editable next-preset name.
-					static char nextPresetBuf[64] = {};
-					if (ImGui::IsWindowAppearing())
-						strncpy_s(nextPresetBuf, def->NextPreset.c_str(), sizeof(nextPresetBuf) - 1);
-					if (ImGui::InputText("Next Preset##chain", nextPresetBuf, sizeof(nextPresetBuf)))
-						def->NextPreset = nextPresetBuf;
-					ImGui::DragFloat("Next Trans Default##chain",  &def->NextPresetTransitionDuration,  1.0f, 0.1f, 300.0f, "%.0f s");
-					ImGui::DragFloat("Next Trans A##chain", &def->NextPresetTransitionDurationA, 1.0f, -1.0f, 300.0f,
-						def->NextPresetTransitionDurationA < 0.0f ? "(inherit default)" : "%.0f s");
-					ImGui::DragFloat("Next Trans B##chain", &def->NextPresetTransitionDurationB, 1.0f, -1.0f, 300.0f,
-						def->NextPresetTransitionDurationB < 0.0f ? "(inherit default)" : "%.0f s");
-					if (ImGui::Button("Clear Auto-Chain"))
-					{
-						def->NextPreset = "";
-						nextPresetBuf[0] = '\0';
-					}
-
-					ImGui::Separator();
-					DrawLayerSection("Preset Cloud A", "defA", def->TargetState.CloudA, nullptr);
-					DrawLayerSection("Preset Cloud B", "defB", def->TargetState.CloudB, nullptr);
-
-					ImGui::Separator();
-					if (ImGui::Button("Copy Live State -> This Preset"))
-					{
-						def->TargetState = g_SkyCloudSystem.GetCurrentState();
-					}
-					ImGui::SameLine();
-					ImGui::TextDisabled("(saves current runtime values into preset definition)");
-				}
-			}
-
-			ImGui::Unindent(8.0f);
 		}
 
 	}
@@ -1468,6 +1353,16 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 			ImGui::SliderFloat("Moon Pitch##manual", &moon.Pitch, MOON_PITCH_MIN, MOON_PITCH_MAX, "%.1f deg");
 			ImGui::SliderFloat("Moon Yaw##manual", &moon.Yaw, 0.0f, 360.0f, "%.1f deg");
 
+			if (ImGui::Button("Copy Lua to clipboard##moon"))
+			{
+				char buf[128];
+				auto levelName = GetCurrentLevelLuaName();
+				snprintf(buf, sizeof(buf),
+					"%s.moonLens = Flow.MoonLens(%.2f, %.2f)",
+					levelName.c_str(), moon.Pitch, moon.Yaw);
+				ImGui::SetClipboardText(buf);
+			}
+
 			ImGui::Unindent(8.0f);
 		}
 
@@ -1630,17 +1525,17 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 		if (!level)
 			return;
 
-		if (!ImGui::CollapsingHeader("Horizont-Mesh", ImGuiTreeNodeFlags_DefaultOpen))
+		if (!ImGui::CollapsingHeader("Horizon-Mesh", ImGuiTreeNodeFlags_DefaultOpen))
 			return;
 
 		ImGui::Indent(8.0f);
 
 		auto& atmoSettings = g_Renderer.GetAtmosphericSkySettings();
 
-		ImGui::TextDisabled("Horizont 1");
+		ImGui::TextDisabled("Horizon 1");
 		{
 			bool enabled = level->Horizon1.GetEnabled();
-			if (ImGui::Checkbox("Aktiv##h1", &enabled))
+			if (ImGui::Checkbox("activated##h1", &enabled))
 				level->Horizon1.SetEnabled(enabled);
 
 			float alpha = level->Horizon1.GetTransparency();
@@ -1654,10 +1549,10 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 
 		ImGui::Separator();
 
-		ImGui::TextDisabled("Horizont 2");
+		ImGui::TextDisabled("Horizon 2");
 		{
 			bool enabled = level->Horizon2.GetEnabled();
-			if (ImGui::Checkbox("Aktiv##h2", &enabled))
+			if (ImGui::Checkbox("activated##h2", &enabled))
 				level->Horizon2.SetEnabled(enabled);
 
 			float alpha = level->Horizon2.GetTransparency();
@@ -2091,6 +1986,21 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 			changed = true;
 		}
 
+		if (ImGui::Button("Copy Lua to clipboard##wind"))
+		{
+			float magnitude = std::sqrt(normX * normX + normZ * normZ);
+			float speed     = magnitude * MAX_WIND;
+			float dirX      = (magnitude > 0.0001f) ? (normX / magnitude) : 1.0f;
+			float dirZ      = (magnitude > 0.0001f) ? (normZ / magnitude) : 0.0f;
+
+			char buf[256];
+			auto levelName = GetCurrentLevelLuaName();
+			snprintf(buf, sizeof(buf),
+				"%s.windSpeed = %.2f\n%s.windDirection = Vec2(%.2f, %.2f)",
+				levelName.c_str(), speed, levelName.c_str(), dirX, dirZ);
+			ImGui::SetClipboardText(buf);
+		}
+
 		ImGui::EndGroup();
 
 		if (changed)
@@ -2139,6 +2049,29 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 			ImGui::SliderFloat("Turbulence",    &dust.Turbulence,     0.0f, 2.0f, "%.2f");
 			ImGui::SliderInt  ("Steps",         &dust.StepCount,      3,    12);
 			ImGui::EndDisabled();
+
+			if (ImGui::Button("Copy Lua to clipboard##dust"))
+			{
+				char buf[512];
+				auto levelName = GetCurrentLevelLuaName();
+				snprintf(buf, sizeof(buf),
+					"%s.dustStorm.enabled = %s\n"
+					"%s.dustStorm.density = %.2f\n"
+					"%s.dustStorm.minHeight = %.2f\n"
+					"%s.dustStorm.maxHeight = %.2f\n"
+					"%s.dustStorm.color = Color(%d, %d, %d)\n"
+					"%s.dustStorm.windCoupling = %.2f",
+					levelName.c_str(), dust.Enabled ? "true" : "false",
+					levelName.c_str(), dust.Density,
+					levelName.c_str(), dust.MinHeight,
+					levelName.c_str(), dust.MaxHeight,
+					levelName.c_str(),
+					(int)std::round(dust.ColorR * 255.0f),
+					(int)std::round(dust.ColorG * 255.0f),
+					(int)std::round(dust.ColorB * 255.0f),
+					levelName.c_str(), dust.WindSpeedScale);
+				ImGui::SetClipboardText(buf);
+			}
 
 			ImGui::TextWrapped(
 				"The dust storm is a volumetric raymarched effect rendered after "

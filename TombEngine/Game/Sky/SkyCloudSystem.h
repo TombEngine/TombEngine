@@ -468,6 +468,8 @@ namespace TEN::Sky
 		bool                    IsCloudAActive() const;
 		bool                    IsCloudBActive() const;
 		bool                    IsAuroraPresetActive() const;
+		void                    SetDynamicSkyAuroraForced(bool forced);
+		bool                    GetDynamicSkyAuroraForced() const;
 		bool                    IsLegacyLayer1Active() const;
 		bool                    IsLegacyLayer2Active() const;
 

@@ -16,6 +16,7 @@
 #include <imgui.h>
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 
 #include "Game/control/control.h"
 #include "Renderer/Renderer.h"
@@ -308,6 +309,45 @@ namespace TEN::Effects
 			{
 				lensFlare.SetPitch(pitch);
 				lensFlare.SetYaw(yaw);
+			}
+
+			if (ImGui::Button("Copy Lua to clipboard##sun"))
+			{
+				auto* level = dynamic_cast<Level*>(g_GameFlow->GetLevel(CurrentLevel));
+				std::string levelName = "level";
+				if (level && !level->FileName.empty())
+				{
+					auto stem = std::filesystem::path(level->FileName).stem().string();
+					if (!stem.empty())
+						levelName = stem;
+				}
+
+				LensFlareColorMode mode = lensFlare.GetColorMode();
+				char buf[256];
+				if (mode == LensFlareColorMode::AutoRealistic)
+				{
+					snprintf(buf, sizeof(buf),
+						"%s.lensFlare = Flow.LensFlare(%.2f, %.2f)",
+						levelName.c_str(), pitch, yaw);
+				}
+				else if (mode == LensFlareColorMode::SingleColor)
+				{
+					ScriptColor c = lensFlare.GetColor();
+					snprintf(buf, sizeof(buf),
+						"%s.lensFlare = Flow.LensFlare(%.2f, %.2f, Color(%d, %d, %d))",
+						levelName.c_str(), pitch, yaw, (int)c.GetR(), (int)c.GetG(), (int)c.GetB());
+				}
+				else
+				{
+					ScriptColor a = lensFlare.GetColor();
+					ScriptColor b = lensFlare.GetColorB();
+					snprintf(buf, sizeof(buf),
+						"%s.lensFlare = Flow.LensFlare(%.2f, %.2f, Color(%d, %d, %d), Color(%d, %d, %d))",
+						levelName.c_str(), pitch, yaw,
+						(int)a.GetR(), (int)a.GetG(), (int)a.GetB(),
+						(int)b.GetR(), (int)b.GetG(), (int)b.GetB());
+				}
+				ImGui::SetClipboardText(buf);
 			}
 
 			// Also provide manual numeric input.

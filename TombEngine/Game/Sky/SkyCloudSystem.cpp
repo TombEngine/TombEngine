@@ -1942,6 +1942,7 @@ namespace TEN::Sky
 
 		_manualOverrideCloudA    = false;
 		_layerTransitionA.Active = false;
+		_transition.Active       = false;
 		_layerAPreset            = preset;
 
 		if (it->second.Transform == TransformType::CloudMorph)
@@ -1965,6 +1966,7 @@ namespace TEN::Sky
 
 		_manualOverrideCloudB    = false;
 		_layerTransitionB.Active = false;
+		_transition.Active       = false;
 		_layerBPreset            = preset;
 
 		if (it->second.Transform == TransformType::CloudMorph)
@@ -2449,6 +2451,16 @@ namespace TEN::Sky
 		if (_currentState.CloudB.Enabled && _currentState.CloudB.Category == CloudCategory::Aurora)
 			return true;
 		return false;
+	}
+
+	void SkyCloudSystem::SetDynamicSkyAuroraForced(bool forced)
+	{
+		_dynamicSkyAuroraForced = forced;
+	}
+
+	bool SkyCloudSystem::GetDynamicSkyAuroraForced() const
+	{
+		return _dynamicSkyAuroraForced;
 	}
 
 	bool SkyCloudSystem::IsLegacyLayer1Active() const
