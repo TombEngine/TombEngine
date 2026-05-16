@@ -41,7 +41,6 @@ namespace TEN::Scripting::Objects
 			// Setters
 			ScriptReserved_SetMood, &ScriptCreature::SetMood,
 			ScriptReserved_SetCreatureTarget, &ScriptCreature::SetTarget,
-			ScriptReserved_SetTargetPosition, &ScriptCreature::SetTargetPosition,
 			ScriptReserved_SetAlerted, &ScriptCreature::SetAlerted,
 			ScriptReserved_SetFriendly, &ScriptCreature::SetFriendly,
 			ScriptReserved_SetHurtByPlayer, &ScriptCreature::SetHurtByPlayer,
@@ -209,6 +208,8 @@ namespace TEN::Scripting::Objects
 	}
 
 	/// Gets the current target position of the creature.
+	// Target position may differ from the actual enemy position if @{Flow.Settings.Pathfinding.predictionFactor} is set.
+	// If no enemy is currently set or mood is set to bored or stalk, returns the position where the creature is currently heading to.
 	// @function GetTargetPosition
 	// @treturn Vec3 The position of the creature's target. If creature is invalid, returns `nil`.
 	std::optional<Vec3> ScriptCreature::GetTargetPosition()
@@ -218,16 +219,6 @@ namespace TEN::Scripting::Objects
 			return creature->Target;
 		else
 			return std::nullopt;
-	}
-
-	/// Sets the position of the creature's target.
-	// @function SetTargetPosition
-	// @tparam Vec3 position The target position to set.
-	void ScriptCreature::SetTargetPosition(const Vec3& position)
-	{
-		auto* creature = GetCreature();
-		if (creature != nullptr)
-			creature->Target = position.ToVector3i();
 	}
 
 	/// Gets the creature's alerted state.

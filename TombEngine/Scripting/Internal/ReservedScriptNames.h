@@ -279,7 +279,6 @@ static constexpr char ScriptReserved_SetMood[]				= "SetMood";
 static constexpr char ScriptReserved_GetCreatureTarget[]	= "GetTarget";
 static constexpr char ScriptReserved_GetTargetPosition[]	= "GetTargetPosition";
 static constexpr char ScriptReserved_SetCreatureTarget[]	= "SetTarget";
-static constexpr char ScriptReserved_SetTargetPosition[]	= "SetTargetPosition";
 static constexpr char ScriptReserved_GetAlerted[]			= "GetAlerted";
 static constexpr char ScriptReserved_SetAlerted[]			= "SetAlerted";
 static constexpr char ScriptReserved_GetFriendly[]			= "GetFriendly";

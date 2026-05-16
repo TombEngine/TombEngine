@@ -42,7 +42,6 @@ namespace TEN::Scripting::Objects
 		// Setters
 		void SetMood(ScriptMoodType mood);
 		void SetTarget(const TypeOrNil<Moveable*> moveable);
-		void SetTargetPosition(const Vec3& position);
 		void SetLocationAI(int value);
 		void SetAlerted(bool enabled);
 		void SetFriendly(bool enabled);
