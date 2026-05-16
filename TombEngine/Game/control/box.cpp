@@ -2281,8 +2281,7 @@ void GetAITarget(CreatureInfo* creature)
 		{
 			FindAITargetObject(creature, ID_AI_AMBUSH);
 		}
-		else if (item->ObjectNumber != ID_MONKEY &&
-			Vector3i::Distance(enemy->Pose.Position, item->Pose.Position) < REACHED_GOAL_RADIUS)
+		else if (Vector3i::Distance(enemy->Pose.Position, item->Pose.Position) < REACHED_GOAL_RADIUS)
 		{
 			TestTriggers(enemy, true);
 			creature->ReachedGoal = true;
@@ -2362,12 +2361,8 @@ void FindAITargetObject(CreatureInfo* creature, int objectNumber, int ocb, bool 
 
 	for (auto& aiObject : g_Level.AIObjects)
 	{
-		bool matchingTriggerFlags = (aiObject.triggerFlags == ocb);
-		if (item.ObjectNumber == ID_MONKEY && objectNumber == ID_AI_AMBUSH)
-			matchingTriggerFlags = true;
-
 		if (aiObject.objectNumber == objectNumber &&
-			matchingTriggerFlags &&
+			aiObject.triggerFlags == ocb &&
 			aiObject.roomNumber != NO_VALUE)
 		{
 			int* zone = g_Level.Zones[(int)creature->LOT.Zone][(int)FlipStatus].data();
