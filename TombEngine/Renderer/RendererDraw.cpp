@@ -158,13 +158,13 @@ namespace TEN::Renderer
 
 		static constexpr Vector3 forwardVectors[6] =
 		{
-			
+
 			Vector3(-1,  0,  0), // +X (right)
-			Vector3( 1 , 0,  0), // -X (left)
-			Vector3( 0, -1,  0), // -Y (up)
-			Vector3( 0,  1,  0), // +Y (down)
-			Vector3( 0,  0,  1), // +Z (forward)
-			Vector3( 0,  0, -1), // -Z (backward)
+			Vector3(1 , 0,  0), // -X (left)
+			Vector3(0, -1,  0), // -Y (up)
+			Vector3(0,  1,  0), // +Y (down)
+			Vector3(0,  0,  1), // +Z (forward)
+			Vector3(0,  0, -1), // -Z (backward)
 		};
 
 		static constexpr Vector3 upVectors[6] =
@@ -673,7 +673,7 @@ namespace TEN::Renderer
 		{
 			for (const auto& fish : FishSwarm)
 			{
-				if (fish.Life <= 0.0f) 
+				if (fish.Life <= 0.0f)
 					continue;
 
 				auto& mesh = *GetMesh(Objects[ID_FISH_EMITTER].meshIndex + fish.MeshIndex);
@@ -681,7 +681,7 @@ namespace TEN::Renderer
 				{
 					if (!IsSortedBlendMode(bucket.BlendMode))
 						continue;
-						
+
 					for (auto& poly : bucket.Polygons)
 					{
 						auto worldMatrix = Matrix::Lerp(fish.PrevTransform, fish.Transform, GetInterpolationFactor());
@@ -765,7 +765,7 @@ namespace TEN::Renderer
 							{
 								if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
 									continue;
-	
+
 								DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
 
 								_numMoveablesDrawCalls++;
@@ -948,7 +948,7 @@ namespace TEN::Renderer
 			}
 		}
 		else
-		{	
+		{
 			int beetleCount = 0;
 			for (int i = 0; i < TEN::Entities::TR4::NUM_BEETLES; i++)
 			{
@@ -956,7 +956,7 @@ namespace TEN::Renderer
 
 				if (IgnoreReflectionPassForRoom(beetle.RoomNumber))
 					continue;
-				
+
 				if (beetle.On)
 				{
 					auto& room = _rooms[beetle.RoomNumber];
@@ -983,7 +983,7 @@ namespace TEN::Renderer
 					beetleCount++;
 				}
 
-				if (beetleCount == INSTANCED_STATIC_MESH_BUCKET_SIZE || 
+				if (beetleCount == INSTANCED_STATIC_MESH_BUCKET_SIZE ||
 					(i == TEN::Entities::TR4::NUM_BEETLES - 1 && beetleCount > 0))
 				{
 					if (rendererPass == RendererPass::GBuffer)
@@ -1536,9 +1536,9 @@ namespace TEN::Renderer
 
 	void Renderer::AddDebugSphere(const Vector3& center, float radius, const Color& color, RendererDebugPage page, bool isWireframe)
 	{
-		constexpr auto AXIS_COUNT		 = 3;
+		constexpr auto AXIS_COUNT = 3;
 		constexpr auto SUBDIVISION_COUNT = 16;
-		constexpr auto STEP_ANGLE		 = PI / (SUBDIVISION_COUNT / 4);
+		constexpr auto STEP_ANGLE = PI / (SUBDIVISION_COUNT / 4);
 
 		if (_isLocked)
 			return;
@@ -1747,7 +1747,7 @@ namespace TEN::Renderer
 				continue;
 
 			// TODO: Avoid LaraItem global.
-			if ((Camera.pos.RoomNumber == mirror.RoomNumber || LaraItem->RoomNumber == mirror.RoomNumber) && 
+			if ((Camera.pos.RoomNumber == mirror.RoomNumber || LaraItem->RoomNumber == mirror.RoomNumber) &&
 				IsPointInRoom(light.Position, mirror.RoomNumber))
 			{
 				auto reflectedLight = light;
@@ -2081,7 +2081,7 @@ namespace TEN::Renderer
 	void Renderer::RenderSimpleSceneToParaboloid(IRenderTarget2D* renderTarget, Vector3 position, int hemisphere)
 	{
 		// TODO: Update the horizon draw code here once paraboloids are required. TrainWreck Feb 2, 2025.
-		
+
 #ifdef PARABOLOID
 		// Reset GPU state
 		SetBlendMode(BlendMode::Opaque);
@@ -2244,7 +2244,7 @@ namespace TEN::Renderer
 			{
 				//continue;
 			}
-			  
+
 			cameraConstantBuffer.CameraUnderwater = g_Level.Rooms[_rooms[i].RoomNumber].flags & ENV_FLAG_WATER;
 			_cbCameraMatrices.UpdateData(cameraConstantBuffer, _context.Get());
 
@@ -2252,38 +2252,38 @@ namespace TEN::Renderer
 			_stRoom.AmbientColor = room->AmbientLight;
 			_stRoom.NumRoomLights = 0;
 			_stRoom.Water = (nativeRoom->flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
-<<<<<<< HEAD
-			_stRoom.Outdoor = (nativeRoom->flags & ENV_FLAG_SKYBOX) != 0 ? 1 : 0;
+			<<<<<< < HEAD
+				_stRoom.Outdoor = (nativeRoom->flags & ENV_FLAG_SKYBOX) != 0 ? 1 : 0;
 			UpdateConstantBuffer(_stRoom, _cbRoom);
-=======
-			UpdateConstantBuffer(&_stRoom, _cbRoom);
->>>>>>> develop
+			====== =
+				UpdateConstantBuffer(&_stRoom, _cbRoom);
+			>>>>>> > develop
 
-			for (auto& bucket : room->Buckets)
-			{
-				if (bucket.NumVertices == 0)
-					continue;
-
-				SetBlendMode(bucket.BlendMode);
-				SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
-
-				if (bucket.Animated)
+				for (auto& bucket : room->Buckets)
 				{
-					BindTexture(TextureRegister::ColorMap, &std::get<0>(_animatedTextures[bucket.Texture]),
-						SamplerStateRegister::AnisotropicClamp);
-				}
-				else
-				{
-					BindTexture(TextureRegister::ColorMap, &std::get<0>(_roomTextures[bucket.Texture]),
-						SamplerStateRegister::AnisotropicClamp);
-				}
+					if (bucket.NumVertices == 0)
+						continue;
 
-				DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+					SetBlendMode(bucket.BlendMode);
+					SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
-				_numRoomsDrawCalls++;
-			}
+					if (bucket.Animated)
+					{
+						BindTexture(TextureRegister::ColorMap, &std::get<0>(_animatedTextures[bucket.Texture]),
+							SamplerStateRegister::AnisotropicClamp);
+					}
+					else
+					{
+						BindTexture(TextureRegister::ColorMap, &std::get<0>(_roomTextures[bucket.Texture]),
+							SamplerStateRegister::AnisotropicClamp);
+					}
+
+					DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+
+					_numRoomsDrawCalls++;
+				}
 		}
-		  
+
 		SetCullMode(CullMode::CounterClockwise, true);
 		SetDepthState(DepthState::Write, true);
 		SetBlendMode(BlendMode::Opaque, true);
@@ -2307,7 +2307,7 @@ namespace TEN::Renderer
 		_postProcess->SetSourceTexture(_tempRoomAmbientRenderTarget1.ShaderResourceView.Get());
 		_postProcess->SetEffect(BasicPostProcess::GaussianBlur_5x5);
 		_postProcess->SetGaussianParameter(1);
-		_postProcess->Process(_context.Get()); 
+		_postProcess->Process(_context.Get());
 
 		_context->ClearRenderTargetView(_tempRoomAmbientRenderTarget3.RenderTargetView.Get(), Colors::Black);
 		_context->ClearDepthStencilView(_tempRoomAmbientRenderTarget3.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
@@ -2357,7 +2357,7 @@ namespace TEN::Renderer
 
 		// Bind back buffer.
 		_graphicsDevice->BindRenderTarget(_backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
-		
+
 		_graphicsDevice->SetViewport(_viewport);
 		_graphicsDevice->SetScissor(_viewport);
 
@@ -2496,7 +2496,7 @@ namespace TEN::Renderer
 					continue;
 
 				switch (itemToDraw->ObjectID)
-				{ 
+				{
 				case ID_LARA:
 					DrawLara(view, rendererPass);
 					continue;
@@ -2542,7 +2542,7 @@ namespace TEN::Renderer
 		// No mesh or bucket, abort
 		if (!moveableObj.ObjectMeshes.size() || !moveableObj.ObjectMeshes[0]->Buckets.size())
 			return;
-		 
+
 		// Get first three vertices of a waterfall object, meaning the very first triangle
 		const auto& v1 = _moveablesVertices[moveableObj.ObjectMeshes[0]->Buckets[0].StartVertex + 0];
 		const auto& v2 = _moveablesVertices[moveableObj.ObjectMeshes[0]->Buckets[0].StartVertex + 1];
@@ -2553,7 +2553,7 @@ namespace TEN::Renderer
 		auto maxY = std::max(std::max(v1.UV.y, v2.UV.y), v3.UV.y);
 		auto minX = std::min(std::min(v1.UV.x, v2.UV.x), v3.UV.x);
 		auto maxX = std::max(std::max(v1.UV.x, v2.UV.x), v3.UV.x);
-		  
+
 		// Setup animated metadata in PerDraw and frames in the structured buffer.
 		_stPerDraw.AnimFps = speed;
 		_stPerDraw.NumAnimFrames = 1;
@@ -2564,9 +2564,9 @@ namespace TEN::Renderer
 
 		// We need only top/bottom Y coordinate for UVRotate, but we pass whole
 		// rectangle anyway, in case later we may want to implement different UVRotate modes.
-		_animatedFrames[0].TopLeft     = Vector2(minX, minY);
-		_animatedFrames[0].TopRight    = Vector2(maxX, minY);
-		_animatedFrames[0].BottomLeft  = Vector2(minX, maxY);
+		_animatedFrames[0].TopLeft = Vector2(minX, minY);
+		_animatedFrames[0].TopRight = Vector2(maxX, minY);
+		_animatedFrames[0].BottomLeft = Vector2(minX, maxY);
 		_animatedFrames[0].BottomRight = Vector2(maxX, maxY);
 		_graphicsDevice->UpdateStructuredBuffer(_animatedFramesBuffer.get(), _animatedFrames.data(), 1);
 
@@ -2632,7 +2632,7 @@ namespace TEN::Renderer
 
 		if (_staticTextures.size() == 0 || view.SortedStaticsToDraw.size() == 0)
 			return;
-		 
+
 		if (rendererPass != RendererPass::CollectTransparentFaces)
 		{
 #ifdef DISABLE_INSTANCING
@@ -2656,7 +2656,7 @@ namespace TEN::Renderer
 			{
 				BindRenderTargetAsTexture(TextureRegister::SSAO, &_SSAOBlurredRenderTarget, SamplerStateRegister::PointWrap);
 			}
-			
+
 			BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, &_skyboxRenderTarget, SamplerStateRegister::AnisotropicClamp);
 
 			for (auto it = view.SortedStaticsToDraw.begin(); it != view.SortedStaticsToDraw.end(); it++)
@@ -2735,7 +2735,7 @@ namespace TEN::Renderer
 			// Bind vertex and index buffer
 			_graphicsDevice->BindVertexBuffer(_staticsVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_staticsIndexBuffer.get());
-			
+
 			if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion && rendererPass != RendererPass::GBuffer)
 			{
 				BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAOBlurredRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
@@ -2802,7 +2802,7 @@ namespace TEN::Renderer
 								{
 									continue;
 								}
-								 
+
 								int passes = rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest ? 2 : 1;
 								for (int p = 0; p < passes; p++)
 								{
@@ -2816,13 +2816,13 @@ namespace TEN::Renderer
 
 										bindTextureAndMaterialsRequired = false;
 									}
-																		
+
 									DrawIndexedInstancedTriangles(bucket.NumIndices, instancesCount, bucket.StartIndex, 0);
 
 									_numInstancedStaticsDrawCalls++;
 								}
 
-								bindTextureAndMaterialsRequired = true; 
+								bindTextureAndMaterialsRequired = true;
 							}
 						}
 					}
@@ -2928,24 +2928,24 @@ namespace TEN::Renderer
 			// Bind vertex and index buffer.
 			_graphicsDevice->BindVertexBuffer(_roomsVertexBuffer.get());
 			_graphicsDevice->BindIndexBuffer(_roomsIndexBuffer.get());
-			   
+
 			if (rendererPass != RendererPass::GBuffer)
 			{
 				// Bind caustics texture.
 				if (TEN::Utils::Contains(SpriteSequencesIds, (int)ID_CAUSTIC_TEXTURES))
-				{     
+				{
 					int nmeshes = -Objects[ID_CAUSTIC_TEXTURES].nmeshes;
 					int meshIndex = Objects[ID_CAUSTIC_TEXTURES].meshIndex;
 					int causticsFrame = GlobalCounter % nmeshes;
 					auto causticsSprite = _spriteSequences[ID_CAUSTIC_TEXTURES].SpritesList[causticsFrame];
 
 					BindTexture(TextureRegister::CausticsMap, causticsSprite->Texture, SamplerStateRegister::AnisotropicClamp);
-				
+
 					_stRoom.CausticsSize = Vector2(
 						(float)causticsSprite->Width / (float)causticsSprite->Texture->GetWidth(),
 						(float)causticsSprite->Height / (float)causticsSprite->Texture->GetHeight());
 					_stRoom.CausticsStartUV = causticsSprite->UV[0];
-				} 
+				}
 
 				// Set shadow map data and bind shadow map texture.
 				if (_shadowLight != nullptr)
@@ -2960,7 +2960,7 @@ namespace TEN::Renderer
 				{
 					_stShadowMap.CastShadows = false;
 				}
-				
+
 				UpdateConstantBuffer(&_stShadowMap, _cbShadowMap.get());
 			}
 
@@ -2976,7 +2976,7 @@ namespace TEN::Renderer
 
 				bool bindRoomDataRequired = true;
 				bool bindTexturesAndMaterialsRequired = true;
-				
+
 				for (int animated = 0; animated < 2; animated++)
 				{
 					for (const auto& bucket : room.Buckets)
@@ -3031,7 +3031,7 @@ namespace TEN::Renderer
 			ResetScissor();
 		}
 	}
-	
+
 	void Renderer::DrawHorizonAndSkyForReflections(RenderView& renderView)
 	{
 		_graphicsDevice->ClearRenderTarget2D(_skyboxRenderTarget->GetRenderTarget(), 0, Colors::Black);
@@ -3087,7 +3087,7 @@ namespace TEN::Renderer
 	void Renderer::DrawHorizonAndSky(IDepthTarget* depthTarget, RenderView& renderView, int arrayIndex, bool reflectionPass)
 	{
 		constexpr auto STAR_SIZE = 2;
-		constexpr auto SUN_SIZE	 = 64;
+		constexpr auto SUN_SIZE = 64;
 
 		auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
 
@@ -3135,7 +3135,7 @@ namespace TEN::Renderer
 
 				auto translation = Matrix::CreateTranslation(
 					renderView.Camera.WorldPosition.x + Weather.SkyPosition(layer) - i * SKY_SIZE,
-					renderView.Camera.WorldPosition.y - 1536.0f, 
+					renderView.Camera.WorldPosition.y - 1536.0f,
 					renderView.Camera.WorldPosition.z);
 				auto world = rotation * translation;
 
@@ -3145,7 +3145,7 @@ namespace TEN::Renderer
 				_stSky.Ambient = Vector4::One;
 				_stSky.HorizonGradientFade = 0.0f;
 				_stSky.HorizonGradientRise = 0.0f;
-				_stSky.MeshWorldYMin  = 0.0f;
+				_stSky.MeshWorldYMin = 0.0f;
 				_stSky.MeshWorldYRange = 1.0f;
 				UpdateConstantBuffer(&_stSky, _cbSky.get());
 
@@ -3211,8 +3211,8 @@ namespace TEN::Renderer
 			while (drawnStars < starCount)
 			{
 				int starsToDraw =
-					(starCount - drawnStars) > INSTANCED_SPRITES_BUCKET_SIZE ? 
-					INSTANCED_SPRITES_BUCKET_SIZE : 
+					(starCount - drawnStars) > INSTANCED_SPRITES_BUCKET_SIZE ?
+					INSTANCED_SPRITES_BUCKET_SIZE :
 					(starCount - drawnStars);
 				int i = 0;
 
@@ -3373,6 +3373,95 @@ namespace TEN::Renderer
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		}
 
+		// Draw sun sprite BEFORE the horizon mesh so the horizon naturally paints over it
+		// via painter's algorithm — no depth push or depth test needed.
+		// Skipped when the atmospheric sky is active: the sky shader renders its own
+		// sun disk that correctly fades behind the horizon darkening band.
+		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal && !reflectionPass
+			&& !_atmosphericSkySettings.Enabled)
+		{
+			SetDepthState(DepthState::None);
+			SetBlendMode(BlendMode::Additive);
+			SetCullMode(CullMode::None);
+
+			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleStrip);
+
+			_shaders.Bind(Shader::InstancedSprites);
+
+			// Set up vertex buffer and parameters.
+			_graphicsDevice->BindVertexBuffer(_quadVertexBuffer.get());
+
+			// Attenuate sun sprite by volumetric cloud transmittance.
+			// Uses the same smoothed value already computed for lens flare halo occlusion
+			// (previous frame, one-frame lag is invisible due to temporal smoothing).
+			float sunCloudOcclusion = (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
+				? g_SkyCloudSystem.GetCombinedCloudTransmittance()
+				: GetCloudLensFlareOcclusion();
+
+			auto& rawSunColor = renderView.LensFlaresToDraw[0].Color;
+			auto  sunColor = Color(
+				rawSunColor.x * sunCloudOcclusion,
+				rawSunColor.y * sunCloudOcclusion,
+				rawSunColor.z * sunCloudOcclusion,
+				rawSunColor.w);
+
+			auto rDrawSprite = RendererSpriteToDraw{};
+			rDrawSprite.Sprite = &_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + renderView.LensFlaresToDraw[0].SpriteID];
+
+			// Scale sun sprite larger near horizon.
+			// TombEngine uses Y-down: Direction.y is -1 at zenith, ~0 at horizon.
+			float sunElevation = -renderView.LensFlaresToDraw[0].Direction.y;
+			float sunElevClamped = std::clamp(sunElevation, 0.0f, 1.0f);
+			float sunSizeScale = 1.0f + (1.0f - sunElevClamped) * 0.8f; // 1.0x zenith -> 1.8x horizon
+
+			// Fade the sun sprite using sunBelowFade: full at horizon (elevation=0), gone by ~-7 degrees.
+			// Applied unconditionally so the sun cannot be seen below the horizon
+			// regardless of whether the atmospheric sky dome is enabled.
+			{
+				float sunHorizonFade = std::clamp(1.0f + sunElevation * 8.0f, 0.0f, 1.0f);
+				sunHorizonFade = sunHorizonFade * sunHorizonFade * (3.0f - 2.0f * sunHorizonFade);
+				sunColor = Color(
+					sunColor.x * sunHorizonFade,
+					sunColor.y * sunHorizonFade,
+					sunColor.z * sunHorizonFade,
+					sunColor.w);
+			}
+
+			rDrawSprite.Type = SpriteType::Billboard;
+			rDrawSprite.pos = renderView.Camera.WorldPosition + renderView.LensFlaresToDraw[0].Direction * BLOCK(1);
+			rDrawSprite.Rotation = 0.0f;
+			rDrawSprite.Scale = 1.0f;
+			rDrawSprite.Width = SUN_SIZE * sunSizeScale;
+			rDrawSprite.Height = SUN_SIZE * sunSizeScale;
+			rDrawSprite.color = sunColor;
+
+			_stInstancedSpriteBuffer.Sprites[0].World = GetWorldMatrixForSprite(rDrawSprite, renderView);
+			_stInstancedSpriteBuffer.Sprites[0].Color = sunColor;
+			_stInstancedSpriteBuffer.Sprites[0].IsBillboard = 1;
+			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = 0;
+			_stInstancedSpriteBuffer.Sprites[0].RenderType = 0;
+
+			// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+			_stInstancedSpriteBuffer.Sprites[0].UV[0].x = rDrawSprite.Sprite->UV[0].x;
+			_stInstancedSpriteBuffer.Sprites[0].UV[0].y = rDrawSprite.Sprite->UV[1].x;
+			_stInstancedSpriteBuffer.Sprites[0].UV[0].z = rDrawSprite.Sprite->UV[2].x;
+			_stInstancedSpriteBuffer.Sprites[0].UV[0].w = rDrawSprite.Sprite->UV[3].x;
+			_stInstancedSpriteBuffer.Sprites[0].UV[1].x = rDrawSprite.Sprite->UV[0].y;
+			_stInstancedSpriteBuffer.Sprites[0].UV[1].y = rDrawSprite.Sprite->UV[1].y;
+			_stInstancedSpriteBuffer.Sprites[0].UV[1].z = rDrawSprite.Sprite->UV[2].y;
+			_stInstancedSpriteBuffer.Sprites[0].UV[1].w = rDrawSprite.Sprite->UV[3].y;
+
+			BindTexture(TextureRegister::ColorMap, rDrawSprite.Sprite->Texture, SamplerStateRegister::LinearClamp);
+
+			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
+
+			// Draw sprites with instancing.
+			DrawInstancedTriangles(4, 1, 0);
+
+			SetCullMode(CullMode::CounterClockwise);
+			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		}
+
 		// Draw horizon.
 		for (int layer = 0; layer < 2; layer++)
 		{
@@ -3381,7 +3470,7 @@ namespace TEN::Renderer
 
 			if (!_moveableObjects[levelPtr->GetHorizonObjectID(layer)].has_value())
 				continue;
-			
+
 			_shaders.Bind(reflectionPass ? Shader::RoomAmbientSky : Shader::Sky);
 
 			SetDepthState(DepthState::None);
@@ -3435,7 +3524,7 @@ namespace TEN::Renderer
 				if (_stSky.HorizonGradientFade > 0.001f || _stSky.HorizonGradientRise > 0.001f)
 				{
 					const auto& gradMeshObj = *_moveableObjects[levelPtr->GetHorizonObjectID(layer)];
-					float yMin =  FLT_MAX;
+					float yMin = FLT_MAX;
 					float yMax = -FLT_MAX;
 					for (const auto* m : gradMeshObj.ObjectMeshes)
 					{
@@ -3449,12 +3538,12 @@ namespace TEN::Renderer
 						}
 					}
 					// yMin = topmost Y (most negative = highest in Y-down), yMax = bottommost.
-					_stSky.MeshWorldYMin   = yMin;
+					_stSky.MeshWorldYMin = yMin;
 					_stSky.MeshWorldYRange = std::max(yMax - yMin, 1.0f);
 				}
 				else
 				{
-					_stSky.MeshWorldYMin  = 0.0f;
+					_stSky.MeshWorldYMin = 0.0f;
 					_stSky.MeshWorldYRange = 1.0f;
 				}
 			}
@@ -3462,7 +3551,7 @@ namespace TEN::Renderer
 			{
 				_stSky.HorizonGradientFade = 0.0f;
 				_stSky.HorizonGradientRise = 0.0f;
-				_stSky.MeshWorldYMin  = 0.0f;
+				_stSky.MeshWorldYMin = 0.0f;
 				_stSky.MeshWorldYRange = 1.0f;
 			}
 
@@ -3470,7 +3559,7 @@ namespace TEN::Renderer
 
 			const auto& moveableObj = *_moveableObjects[levelPtr->GetHorizonObjectID(layer)];
 			for (auto* mesh : moveableObj.ObjectMeshes)
-			{ 
+			{
 				for (int animated = 0; animated < 2; animated++)
 				{
 					for (auto& bucket : mesh->Buckets)
@@ -3479,7 +3568,7 @@ namespace TEN::Renderer
 						{
 							continue;
 						}
-					    
+
 						BindBucketTextures(bucket, TextureSource::Moveables, animated);
 
 						// Always render horizon as alpha-blended surface.
@@ -3511,35 +3600,35 @@ namespace TEN::Renderer
 					anyHorizonVisible = true;
 			}
 			auto doBleedOverlay = [&](CloudRenderSettings settings, VolumetricCloud::CloudRuntimeState& layerState, IRenderSurface2D* cloudRT, float bleedStrength)
-			{
-				if (!settings.Enabled)
-					return;
-				if (settings.CloudType != 1)
-					return;
+				{
+					if (!settings.Enabled)
+						return;
+					if (settings.CloudType != 1)
+						return;
 
-				// AltoBleedDepth [0,100] drives bleed opacity progressively: 0 = invisible, 100 = full.
-				// HorizonMeshBleed bleedStrength adds on top (original mountain-bleed behavior).
-				float altoBleedIntensity = std::clamp(settings.AltoBleedDepth / 100.0f, 0.0f, 1.0f);
-				float effectiveBleed = std::max(altoBleedIntensity, bleedStrength);
-				if (effectiveBleed < 0.001f)
-					return;
+					// AltoBleedDepth [0,100] drives bleed opacity progressively: 0 = invisible, 100 = full.
+					// HorizonMeshBleed bleedStrength adds on top (original mountain-bleed behavior).
+					float altoBleedIntensity = std::clamp(settings.AltoBleedDepth / 100.0f, 0.0f, 1.0f);
+					float effectiveBleed = std::max(altoBleedIntensity, bleedStrength);
+					if (effectiveBleed < 0.001f)
+						return;
 
-				// Lerp cloud shape parameters toward bleed-optimised values as AltoBleedDepth increases:
-				//   AltoZenithBias    : current value -> -1.0  (push distribution toward zenith/top so
-				//                       clouds flood downward from above rather than pooling at horizon)
-				//   AltoHeightBlendPower: current value -> 1.470 (soften the height ramp for a wider curtain)
-				settings.AltoZenithBias       = settings.AltoZenithBias       + ((-1.0f)  - settings.AltoZenithBias)       * altoBleedIntensity;
-				settings.AltoHeightBlendPower = settings.AltoHeightBlendPower + (1.470f   - settings.AltoHeightBlendPower) * altoBleedIntensity;
+					// Lerp cloud shape parameters toward bleed-optimised values as AltoBleedDepth increases:
+					//   AltoZenithBias    : current value -> -1.0  (push distribution toward zenith/top so
+					//                       clouds flood downward from above rather than pooling at horizon)
+					//   AltoHeightBlendPower: current value -> 1.470 (soften the height ramp for a wider curtain)
+					settings.AltoZenithBias = settings.AltoZenithBias + ((-1.0f) - settings.AltoZenithBias) * altoBleedIntensity;
+					settings.AltoHeightBlendPower = settings.AltoHeightBlendPower + (1.470f - settings.AltoHeightBlendPower) * altoBleedIntensity;
 
-				settings.BleedPassStrength = effectiveBleed;
+					settings.BleedPassStrength = effectiveBleed;
 
-				DrawSingleVolumetricCloudLayer(settings, layerState, cloudRT, renderView, false);
+					DrawSingleVolumetricCloudLayer(settings, layerState, cloudRT, renderView, false);
 
-				// The cloud draw restores the main target, but explicitly restore the
-				// caller-owned DSV used by this sky pass.
-				_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), depthTarget);
-				_graphicsDevice->SetViewport(renderView.Viewport);
-			};
+					// The cloud draw restores the main target, but explicitly restore the
+					// caller-owned DSV used by this sky pass.
+					_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), depthTarget);
+					_graphicsDevice->SetViewport(renderView.Viewport);
+				};
 
 			if (anyHorizonVisible)
 			{
@@ -3565,105 +3654,6 @@ namespace TEN::Renderer
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 			SetBlendMode(BlendMode::Opaque);
 			SetDepthState(DepthState::None);
-		}
-
-		// Eventually draw the sun sprite.
-		// Skipped when the atmospheric sky is active: the sky shader renders its own
-		// sun disk that correctly fades behind the horizon darkening band.
-		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal && !reflectionPass
-			&& !_atmosphericSkySettings.Enabled)
-		{
-			// Note: horizon mesh occlusion of the sun sprite is handled separately by
-			// DrawHorizonDepth() which writes mesh depth into the GBuffer depth color
-			// target for the lens flare post-process. We must NOT write the horizon
-			// dome depth into the main DSV here, because the dome covers the entire
-			// sky hemisphere with opaque sky-backdrop pixels, which would occlude the
-			// sun sprite at every pixel and make it invisible.
-
-			SetDepthState(DepthState::Read);
-			SetBlendMode(BlendMode::Additive);
-			SetCullMode(CullMode::None);
-
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleStrip);
-
-			_shaders.Bind(Shader::InstancedSprites);
-
-			// Set up vertex buffer and parameters.
-			_graphicsDevice->BindVertexBuffer(_quadVertexBuffer.get());
-
-			// Attenuate sun sprite by volumetric cloud transmittance.
-			// Uses the same smoothed value already computed for lens flare halo occlusion
-			// (previous frame, one-frame lag is invisible due to temporal smoothing).
-			float sunCloudOcclusion = (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
-				? g_SkyCloudSystem.GetCombinedCloudTransmittance()
-				: GetCloudLensFlareOcclusion();
-
-			auto& rawSunColor = renderView.LensFlaresToDraw[0].Color;
-			auto  sunColor    = Color(
-				rawSunColor.x * sunCloudOcclusion,
-				rawSunColor.y * sunCloudOcclusion,
-				rawSunColor.z * sunCloudOcclusion,
-				rawSunColor.w);
-
-			auto rDrawSprite = RendererSpriteToDraw{};
-			rDrawSprite.Sprite = &_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + renderView.LensFlaresToDraw[0].SpriteID];
-
-			// Scale sun sprite larger near horizon.
-			// TombEngine uses Y-down: Direction.y is -1 at zenith, ~0 at horizon.
-			float sunElevation = -renderView.LensFlaresToDraw[0].Direction.y;
-			float sunElevClamped = std::clamp(sunElevation, 0.0f, 1.0f);
-			float sunSizeScale = 1.0f + (1.0f - sunElevClamped) * 0.8f; // 1.0x zenith -> 1.8x horizon
-
-			// Fade the sun sprite using sunBelowFade: full at horizon (elevation=0), gone by ~-7°.
-			// Applied unconditionally so the sun cannot be seen below the horizon
-			// regardless of whether the atmospheric sky dome is enabled.
-			{
-				float sunHorizonFade = std::clamp(1.0f + sunElevation * 8.0f, 0.0f, 1.0f);
-				sunHorizonFade = sunHorizonFade * sunHorizonFade * (3.0f - 2.0f * sunHorizonFade);
-				sunColor = Color(
-					sunColor.x * sunHorizonFade,
-					sunColor.y * sunHorizonFade,
-					sunColor.z * sunHorizonFade,
-					sunColor.w);
-			}
-
-			// Push the sun far away from the camera so its rasterised depth lies
-			// behind the horizon mesh just written to the main DSV. Width/Height
-			// scale by the same factor to preserve apparent screen size.
-			constexpr float SUN_DEPTH_PUSH = 30.0f;
-
-			rDrawSprite.Type = SpriteType::Billboard;
-			rDrawSprite.pos = renderView.Camera.WorldPosition + renderView.LensFlaresToDraw[0].Direction * BLOCK(1) * SUN_DEPTH_PUSH;
-			rDrawSprite.Rotation = 0.0f;
-			rDrawSprite.Scale = 1.0f;
-			rDrawSprite.Width  = SUN_SIZE * sunSizeScale * SUN_DEPTH_PUSH;
-			rDrawSprite.Height = SUN_SIZE * sunSizeScale * SUN_DEPTH_PUSH;
-			rDrawSprite.color = sunColor;
-
-			_stInstancedSpriteBuffer.Sprites[0].World = GetWorldMatrixForSprite(rDrawSprite, renderView);
-			_stInstancedSpriteBuffer.Sprites[0].Color = sunColor;
-			_stInstancedSpriteBuffer.Sprites[0].IsBillboard = 1;
-			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = 0;
-			_stInstancedSpriteBuffer.Sprites[0].RenderType = 0;
-
-			// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
-			_stInstancedSpriteBuffer.Sprites[0].UV[0].x = rDrawSprite.Sprite->UV[0].x;
-			_stInstancedSpriteBuffer.Sprites[0].UV[0].y = rDrawSprite.Sprite->UV[1].x;
-			_stInstancedSpriteBuffer.Sprites[0].UV[0].z = rDrawSprite.Sprite->UV[2].x;
-			_stInstancedSpriteBuffer.Sprites[0].UV[0].w = rDrawSprite.Sprite->UV[3].x;
-			_stInstancedSpriteBuffer.Sprites[0].UV[1].x = rDrawSprite.Sprite->UV[0].y;
-			_stInstancedSpriteBuffer.Sprites[0].UV[1].y = rDrawSprite.Sprite->UV[1].y;
-			_stInstancedSpriteBuffer.Sprites[0].UV[1].z = rDrawSprite.Sprite->UV[2].y;
-			_stInstancedSpriteBuffer.Sprites[0].UV[1].w = rDrawSprite.Sprite->UV[3].y;
-
-			BindTexture(TextureRegister::ColorMap, rDrawSprite.Sprite->Texture, SamplerStateRegister::LinearClamp);
-
-			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
-
-			// Draw sprites with instancing.
-			DrawInstancedTriangles(4, 1, 0);
-
-			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		}
 
 		// For reflection passes clear depth so the skybox RT is fresh for the next face.
@@ -3854,7 +3844,7 @@ namespace TEN::Renderer
 					else
 					{
 						int passes = rendererPass == RendererPass::Opaque && blendMode == BlendMode::AlphaTest ? 2 : 1;
-					
+
 						for (int p = 0; p < passes; p++)
 						{
 							if (!SetupBlendModeAndAlphaTest(blendMode, rendererPass, p))
@@ -3872,7 +3862,7 @@ namespace TEN::Renderer
 
 								bindTextureAndMaterialsRequired = false;
 							}
-												
+
 							DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
 
 							_numMoveablesDrawCalls++;
@@ -3898,7 +3888,7 @@ namespace TEN::Renderer
 			}
 
 			if (blendMode == BlendMode::Opaque)
-			{ 
+			{
 				SetBlendMode(BlendMode::Opaque);
 				SetAlphaTest(AlphaTestMode::None, 1.0f);
 			}
@@ -4031,7 +4021,7 @@ namespace TEN::Renderer
 				i--;
 			}
 			else if (object->ObjectType == RendererObjectType::HairPrimary ||
-					 object->ObjectType == RendererObjectType::HairSecondary)
+				object->ObjectType == RendererObjectType::HairSecondary)
 			{
 				while (i < view.TransparentObjectsToDraw.size() &&
 					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
@@ -4109,7 +4099,7 @@ namespace TEN::Renderer
 				i--;
 			}
 			else if (object->ObjectType == RendererObjectType::Sprite)
-			{			
+			{
 				while (i < view.TransparentObjectsToDraw.size() &&
 					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
 					view.TransparentObjectsToDraw[i].Sprite->Type == object->Sprite->Type &&
@@ -4155,7 +4145,7 @@ namespace TEN::Renderer
 					uv3 = spr->Sprite->UV[3];
 
 					auto world = GetWorldMatrixForSprite(*currentObject->Sprite, view);
-					
+
 					Vertex v0;
 					v0.Position = Vector3::Transform(p0t, world);
 					v0.UV = uv0;
@@ -4173,7 +4163,7 @@ namespace TEN::Renderer
 					v2.UV = uv2;
 					v2.Color = VectorColorToRGBA(spr->c3);
 					v2.Effects = 2 << INDEX_IN_POLY_VERTEX_SHIFT;
-				    
+
 					Vertex v3;
 					v3.Position = Vector3::Transform(p3t, world);
 					v3.UV = uv3;
@@ -4215,13 +4205,13 @@ namespace TEN::Renderer
 
 			_shaders.Bind(Shader::Rooms);
 		}
-		
+
 		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
 		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
 		RoomData* nativeRoom = &g_Level.Rooms[objectInfo->Room->RoomNumber];
 
-		_stRoom.Caustics =  int(g_Configuration.EnableCaustics && (nativeRoom->flags & ENV_FLAG_WATER) && !(nativeRoom->flags & ENV_FLAG_NOCAUSTICS));
+		_stRoom.Caustics = int(g_Configuration.EnableCaustics && (nativeRoom->flags & ENV_FLAG_WATER) && !(nativeRoom->flags & ENV_FLAG_NOCAUSTICS));
 		_stRoom.AmbientColor = Vector3(objectInfo->Room->AmbientLight.x, objectInfo->Room->AmbientLight.y, objectInfo->Room->AmbientLight.z);
 		BindRoomLights(view.LightsToDraw);
 		_stRoom.NumRoomDecals = 0; // Don't draw decals on sorted faces to avoid slowdowns.
@@ -4258,7 +4248,7 @@ namespace TEN::Renderer
 
 			_shaders.Bind(Shader::Items);
 		}
-		
+
 		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
 		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
@@ -4280,7 +4270,7 @@ namespace TEN::Renderer
 		{
 			memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
 		}
-		
+
 		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
@@ -4317,7 +4307,7 @@ namespace TEN::Renderer
 
 			_shaders.Bind(Shader::InstancedStatics);
 		}
-		
+
 		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
 		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
@@ -4473,7 +4463,7 @@ namespace TEN::Renderer
 		RendererViewport viewport = { 0, 0, _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), 0.0f, 1.0f };
 		_graphicsDevice->SetViewport(viewport);
 		_graphicsDevice->SetScissor(viewport);
-	
+
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
 
@@ -4484,7 +4474,7 @@ namespace TEN::Renderer
 		BindTexture(static_cast<TextureRegister>(2), _SSAONoiseTexture.get(), SamplerStateRegister::PointWrap);
 
 		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
-		_stPostProcessBuffer.TexelSize = Vector2(1.0f / _graphicsDevice->GetScreenWidth(), 1.0f /  _graphicsDevice->GetScreenHeight());
+		_stPostProcessBuffer.TexelSize = Vector2(1.0f / _graphicsDevice->GetScreenWidth(), 1.0f / _graphicsDevice->GetScreenHeight());
 		memcpy(_stPostProcessBuffer.SSAOKernel, _SSAOKernel.data(), 16 * _SSAOKernel.size());
 		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
@@ -4497,7 +4487,7 @@ namespace TEN::Renderer
 		_graphicsDevice->BindRenderTarget(_SSAOBlurredRenderTarget->GetRenderTarget(), nullptr);
 
 		BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAORenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
- 
+
 		DrawTriangles(3, 0);
 
 		_doingFullscreenPass = false;
@@ -4613,7 +4603,7 @@ namespace TEN::Renderer
 			// set for the source placeholder texture.
 
 			const auto& set = _animatedTextureSets[bucket.Texture];
-				
+
 			if (set.Type == AnimatedTextureType::Video && _videoSprite.Texture && _videoSprite.Texture->IsValid())
 			{
 				BindTexture(TextureRegister::ColorMap, _videoSprite.Texture, SamplerStateRegister::AnisotropicClamp);
@@ -4634,11 +4624,11 @@ namespace TEN::Renderer
 
 		switch (textureSource)
 		{
-			case TextureSource::Rooms:     atlasList = &_roomTextures;      break;
-			case TextureSource::Moveables: atlasList = &_moveablesTextures; break;
-			case TextureSource::Statics:   atlasList = &_staticTextures;    break;
-			case TextureSource::Animated:  atlasList = &_animatedTextures;  break;
-			default: return;
+		case TextureSource::Rooms:     atlasList = &_roomTextures;      break;
+		case TextureSource::Moveables: atlasList = &_moveablesTextures; break;
+		case TextureSource::Statics:   atlasList = &_staticTextures;    break;
+		case TextureSource::Animated:  atlasList = &_animatedTextures;  break;
+		default: return;
 		}
 
 		auto& atlas = (*atlasList)[bucket.Texture];

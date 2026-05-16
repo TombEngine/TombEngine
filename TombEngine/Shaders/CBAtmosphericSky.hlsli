@@ -65,6 +65,7 @@ cbuffer CBAtmosphericSky : register(b12)
     float  AtmoMoonEnabled;           // 0 or 1.
     float  AtmoMoonPhaseBrightness;   // [0,1] brightness from moon phase.
     float  AtmoMoonVisibility;        // [0,1] fades in as sky darkens.
+    float  AtmoSkyEnabled;            // 0 = sky dome disabled, 1 = enabled. Padding to keep Row 12 aligned.
     //--
     // Row 12 — Aurora core parameters
     float  AuroraEnabled;             // 0 or 1.
