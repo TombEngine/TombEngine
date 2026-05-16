@@ -430,11 +430,10 @@ void UpdateSparks()
 			if (spark.flags & SP_EXPLOSION)
 				SetSpriteSequence(spark, ID_EXPLOSION_SPRITES);
 
-
 			if (spark.flags & SP_ANIMATED)
 			{
-				ParticleAnimType animationType = static_cast<ParticleAnimType>(spark.animationType);
-				GAME_OBJECT_ID spriteObject = static_cast<GAME_OBJECT_ID>(spark.SpriteSeqID);
+				auto animationType = (ParticleAnimType)spark.animationType;
+				auto spriteObject = (GAME_OBJECT_ID)spark.SpriteSeqID;
 				SetAdvancedSpriteSequence(spark, spriteObject,  animationType, spark.framerate);
 			}
 
@@ -1629,13 +1628,15 @@ void TriggerFireFlame(int x, int y, int z, FlameType type, const Vector3& color1
 			spark->friction = 5;
 	}
 
+	spark->scalar = 2;
+	spark->flags = SP_EXPDEF | SP_DEF | SP_SCALE | SP_HAZE;
+
 	if (GetRandomControl() & 1)
 	{
 		spark->gravity = -16 - (GetRandomControl() & 0x1F);
 		spark->maxYvel = -16 - (GetRandomControl() & 7);
-		spark->flags = 538;
-
 		spark->rotAng = GetRandomControl() & 0xFFF;
+		spark->flags |= SP_ROTATE;
 
 		if (GetRandomControl() & 1)
 			spark->rotAdd = -16 - (GetRandomControl() & 0xF);
@@ -1644,12 +1645,9 @@ void TriggerFireFlame(int x, int y, int z, FlameType type, const Vector3& color1
 	}
 	else
 	{
-		spark->flags = SP_EXPDEF | SP_DEF | SP_SCALE;
 		spark->gravity = -16 - (GetRandomControl() & 0x1F);
 		spark->maxYvel = -16 - (GetRandomControl() & 7);
 	}
-
-	spark->scalar = 2;
 
 	if (type != FlameType::Big)
 	{

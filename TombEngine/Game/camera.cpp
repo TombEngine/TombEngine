@@ -1576,6 +1576,7 @@ void PrepareCamera()
 	{
 		UseSpotCam = false;
 		AlterFOV(LastFOV);
+		g_Renderer.RestoreDOF();
 	}
 }
 

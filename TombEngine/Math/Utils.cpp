@@ -197,10 +197,11 @@ namespace TEN::Math
 
 	unsigned int VectorColorToRGBA(Vector4 c)
 	{
-		auto to8 = [](float v) -> unsigned int {
+		auto to8 = [](float v) -> unsigned int 
+		{
 			float x = std::clamp(v, 0.0f, 1.0f) * 255.0f;
-			return static_cast<unsigned int>(std::lround(x));
-			};
+			return (unsigned int)std::lround(x);
+		};
 
 		unsigned int R = to8(c.x);
 		unsigned int G = to8(c.y);

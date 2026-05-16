@@ -131,6 +131,13 @@ namespace TEN::Renderer::Native::DirectX11
 		return texture;
 	}
 
+	std::unique_ptr<ITexture3D> DX11GraphicsDevice::CreateTexture3D(int width, int height, int depth, SurfaceFormat format, const void* data)
+	{
+		auto texture = std::make_unique<DX11Texture3D>(_device.Get(), width, height, depth, GetDXGIFormat(format), data);
+		_context->Flush();
+		return texture;
+	}
+
 	void DX11GraphicsDevice::SetBlendMode(BlendMode blendMode)
 	{
 		switch (blendMode)
@@ -154,6 +161,10 @@ namespace TEN::Renderer::Native::DirectX11
 
 		case BlendMode::Additive:
 			_context->OMSetBlendState(_renderStates->Additive(), nullptr, 0xFFFFFFFF);
+			break;
+
+		case BlendMode::Distortion:
+			_context->OMSetBlendState(_distortionBlendState.Get(), nullptr, 0xFFFFFFFF);
 			break;
 
 		case BlendMode::Screen:
@@ -264,7 +275,40 @@ namespace TEN::Renderer::Native::DirectX11
 			return;
 		}
 
-		_context->PSSetSamplers((unsigned int)registerType, 1, &d3dSamplerState);
+		_context->PSSetSamplers((unsigned int)samplerType, 1, &d3dSamplerState);
+	}
+
+	void DX11GraphicsDevice::UnbindTexture(ShaderStage stage, TextureRegister registerType)
+	{
+		ID3D11ShaderResourceView* nullSRV = nullptr;
+		UINT slot = (UINT)registerType;
+
+		switch (stage)
+		{
+		case ShaderStage::VertexShader:
+			_context->VSSetShaderResources(slot, 1, &nullSRV);
+			break;
+
+		case ShaderStage::GeometryShader:
+			_context->GSSetShaderResources(slot, 1, &nullSRV);
+			break;
+
+		case ShaderStage::PixelShader:
+			_context->PSSetShaderResources(slot, 1, &nullSRV);
+			break;
+
+		case ShaderStage::ComputeShader:
+			_context->CSSetShaderResources(slot, 1, &nullSRV);
+			break;
+
+		case ShaderStage::HullShader:
+			_context->HSSetShaderResources(slot, 1, &nullSRV);
+			break;
+
+		case ShaderStage::DomainShader:
+			_context->DSSetShaderResources(slot, 1, &nullSRV);
+			break;
+		}
 	}
 
 	void DX11GraphicsDevice::BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer)
@@ -477,6 +521,34 @@ namespace TEN::Renderer::Native::DirectX11
 		_context->OMSetRenderTargets((int)d3dRenderTargetViews.size(), d3dRenderTargetViews.data(), d3dDepthStencilView);
 	}
 
+	void DX11GraphicsDevice::CopyTextureResource(ITexture2D* src, ITexture2D* dst)
+	{
+		if (src == nullptr || dst == nullptr)
+			return;
+
+		auto getNative = [](ITexture2D* t) -> ID3D11Texture2D*
+		{
+			if (auto* rt = dynamic_cast<DX11RenderTarget2D*>(t))
+				return rt->GetD3D11Texture();
+			if (auto* tex = dynamic_cast<DX11Texture2D*>(t))
+				return tex->GetD3D11Texture();
+			return nullptr;
+		};
+
+		auto* srcNative = getNative(src);
+		auto* dstNative = getNative(dst);
+		if (srcNative == nullptr || dstNative == nullptr)
+			return;
+
+		_context->CopyResource(dstNative, srcNative);
+	}
+
+	std::unique_ptr<IGpuReadbackBuffer> DX11GraphicsDevice::CreateGpuReadbackBuffer(int width, int height, SurfaceFormat format)
+	{
+		return std::make_unique<DX11GpuReadbackBuffer>(_device.Get(), _context.Get(),
+			width, height, GetDXGIFormat(format));
+	}
+
 	void DX11GraphicsDevice::SetViewport(RendererViewport viewport)
 	{
 		D3D11_VIEWPORT d3dViewport;
@@ -547,6 +619,19 @@ namespace TEN::Renderer::Native::DirectX11
 		blendStateDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blendStateDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		throwIfFailed(_device->CreateBlendState(&blendStateDesc, _subtractiveBlendState.GetAddressOf()));
+
+		blendStateDesc = {};
+		blendStateDesc.AlphaToCoverageEnable = false;
+		blendStateDesc.IndependentBlendEnable = false;
+		blendStateDesc.RenderTarget[0].BlendEnable = true;
+		blendStateDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		blendStateDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		blendStateDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		throwIfFailed(_device->CreateBlendState(&blendStateDesc, _distortionBlendState.GetAddressOf()));
 
 		blendStateDesc.AlphaToCoverageEnable = false;
 		blendStateDesc.IndependentBlendEnable = false;

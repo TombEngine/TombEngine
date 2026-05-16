@@ -4,6 +4,7 @@
 #include "./SpriteEffects.hlsli"
 #include "./ShaderLight.hlsli"
 #include "./VertexInput.hlsli"
+#include "./Samplers.hlsli"
 
 // NOTE: Shader is used for all 3D and alpha blended sprites because transformed vertices are already sent to GPU instead of instances.
 
@@ -27,10 +28,7 @@ struct PixelShaderInput
 };
 
 Texture2D Texture : register(t0);
-SamplerState Sampler : register(s0);
-
 Texture2D DepthTexture : register(t6);
-SamplerState DepthSampler : register(s6);
 
 PixelShaderInput VS(VertexShaderInput input)
 {
@@ -52,7 +50,7 @@ PixelShaderInput VS(VertexShaderInput input)
 
 float4 PS(PixelShaderInput input) : SV_TARGET
 {
-	float4 output = Texture.Sample(Sampler, input.UV) * input.Color;
+		float4 output = Texture.Sample(LinearClampSampler, input.UV) * input.Color;
 
 	if (IsSoftParticle == 1)
 	{
@@ -60,7 +58,7 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 		input.PositionCopy.xy /= input.PositionCopy.w;
 
 		float2 texCoord = 0.5f * (float2(input.PositionCopy.x, -input.PositionCopy.y) + 1.0f);
-		float sceneDepth = DepthTexture.Sample(DepthSampler, texCoord).x;
+		float sceneDepth = DepthTexture.Sample(PointWrapSampler, texCoord).x;
 
 		sceneDepth = LinearizeDepth(sceneDepth, NearPlane, FarPlane);
 		particleDepth = LinearizeDepth(particleDepth, NearPlane, FarPlane);

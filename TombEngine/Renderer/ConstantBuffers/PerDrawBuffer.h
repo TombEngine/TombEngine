@@ -26,10 +26,10 @@ namespace TEN::Renderer::ConstantBuffers
 		int          AlphaTest;
 		float        AlphaThreshold;
 		//--
-		uint32_t     NumAnimFrames;
-		uint32_t     AnimFps;
-		uint32_t     AnimType;
-		uint32_t     Animated;
+		unsigned int NumAnimFrames;
+		unsigned int AnimFps;
+		unsigned int AnimType;
+		unsigned int Animated;
 		//--
 		float        UVRotateDirection;
 		float        UVRotateSpeed;

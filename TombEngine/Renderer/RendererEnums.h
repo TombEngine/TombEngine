@@ -69,8 +69,9 @@ constexpr auto MAX_SPRITES_DRAW = 512;
 constexpr auto MAX_LENS_FLARES_DRAW = 8;
 
 constexpr auto ROOM_AMBIENT_MAP_SIZE = 512;
-constexpr auto LEGACY_REFLECTIONS_DOWNSCALE_FACTOR = 2.0f;
 constexpr auto MAX_ROOM_AMBIENT_MAPS = 10;
+
+constexpr auto POSTPROCESS_DOWNSCALE_FACTOR = 2.0f;
 
 constexpr auto GLOW_DOWNSCALE_FACTOR = 4.0f;
 constexpr auto GLOW_BLUR_SIGMA = 10.0f;
@@ -99,6 +100,7 @@ enum class BlendMode
 	Opaque = 0,
 	AlphaTest = 1,
 	Additive = 2,
+	Distortion = 3,
 	NoDepthTest = 4,
 	Subtractive = 5,
 	Wireframe = 6,
@@ -209,7 +211,10 @@ enum class TextureRegister
 	EmissiveMap = 11,
 	LegacyEnvironmentReflections = 12,
 	SkyboxEnvironmentReflections = 13,
-	AnimatedFrames = 14 // StructuredBuffer<AnimatedFrameUV> for per-draw animated UVs.
+	AnimatedFrames = 14, // StructuredBuffer<AnimatedFrameUV> for per-draw animated UVs.
+	DistortionMap = 15,
+	NearBlurMap = 16,
+	FarBlurMap = 17
 };
 
 enum class SamplerStateRegister
@@ -265,6 +270,7 @@ enum class RendererPass
 	Transparent,
 	CollectTransparentFaces,
 	Additive,
+	Distortion,
 	GBuffer,
 	GunFlashes,
 	RoomAmbient
@@ -343,6 +349,14 @@ enum class PostProcessMode
 	Exclusion = 3
 };
 
+enum class DOFMode
+{
+	None = 0,
+	Full = 1,
+	Front = 2,
+	Back = 3
+};
+
 enum class MaterialShaderType
 {
 	Default = 0,
@@ -359,7 +373,10 @@ enum class SurfaceFormat
 	SF_R8_Unorm,
 	SF_R32_Float,
 	SF_RGBA32_Float,
-	SF_BGRA8_Unorm
+	SF_BGRA8_Unorm,
+	SF_R11G11B10_Float,
+	SF_RGBA16_Float,
+	SF_R16_Float
 };
 
 enum class DepthFormat
@@ -484,6 +501,12 @@ enum class Shader
 	PostProcessMonochrome,
 	PostProcessNegative,
 	PostProcessExclusion,
+	PostProcessDistortion,
+	PostProcessDofDownsample,
+	PostProcessDofFarBlur,
+	PostProcessDofNearDilate,
+	PostProcessDofNearBlur,
+	PostProcessDofComposite,
 	PostProcessFinalPass,
 	PostProcessLensFlare,
 
