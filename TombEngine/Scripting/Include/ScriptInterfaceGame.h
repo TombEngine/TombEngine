@@ -5,7 +5,7 @@
 #include "Scripting/Internal/TEN/Logic/CallbackPoint.h"
 #include "Specific/level.h"
 
-typedef DWORD D3DCOLOR;
+typedef unsigned int D3DCOLOR;
 
 using VarSaveType = std::variant<bool, double, std::string>;
 using IndexTable = std::vector<std::pair<unsigned int, unsigned int>>;

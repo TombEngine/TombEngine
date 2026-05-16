@@ -37,9 +37,9 @@ void PulseLightControl(short itemNumber)
 			item->Pose.Position.y,
 			item->Pose.Position.z,
 			24,
-			(pulse * item->Model.Color.x * SCHAR_MAX) / 512,
-			(pulse * item->Model.Color.y * SCHAR_MAX) / 512,
-			(pulse * item->Model.Color.z * SCHAR_MAX) / 512);
+			(pulse * item->Model.Color.x * UCHAR_MAX) / 512,
+			(pulse * item->Model.Color.y * UCHAR_MAX) / 512,
+			(pulse * item->Model.Color.z * UCHAR_MAX) / 512);
 	}
 }
 
@@ -62,9 +62,9 @@ void StrobeLightControl(short itemNumber)
 	{
 		item->Pose.Orientation.y += ANGLE(16.0f);
 
-		byte r = item->Model.Color.x * SCHAR_MAX;
-		byte g = item->Model.Color.y * SCHAR_MAX;
-		byte b = item->Model.Color.z * SCHAR_MAX;
+		byte r = item->Model.Color.x * UCHAR_MAX;
+		byte g = item->Model.Color.y * UCHAR_MAX;
+		byte b = item->Model.Color.z * UCHAR_MAX;
 
 		TriggerAlertLight(
 			item->Pose.Position.x,
@@ -95,9 +95,9 @@ void ColorLightControl(short itemNumber)
 			item->Pose.Position.y,
 			item->Pose.Position.z,
 			24,
-			item->Model.Color.x * SCHAR_MAX,
-			item->Model.Color.y * SCHAR_MAX,
-			item->Model.Color.z * SCHAR_MAX);
+			item->Model.Color.x * UCHAR_MAX,
+			item->Model.Color.y * UCHAR_MAX,
+			item->Model.Color.z * UCHAR_MAX);
 	}
 }
 
@@ -202,11 +202,11 @@ void ElectricalLightControl(short itemNumber)
 		(intensity * (lightPtr->Color.y / 2)) ,
 		(intensity * (lightPtr->Color.z / 2)));
 
-	// Set light mesh color. Model.Color max value is 2.0f.
+	// Set light mesh color.
 	item->Model.Color = Vector4(
-		((intensity / 2) * lightPtr->Color.x) / 96,
-		((intensity / 2) * lightPtr->Color.y) / 96,
-		((intensity / 2) * lightPtr->Color.z) / 96,
+		(intensity * lightPtr->Color.x) / 96,
+		(intensity * lightPtr->Color.y) / 96,
+		(intensity * lightPtr->Color.z) / 96,
 		1.0f);
 }
 
@@ -229,9 +229,9 @@ void BlinkingLightControl(short itemNumber)
 			SpawnDynamicLight(
 				pos.x, pos.y, pos.z,
 				16,
-				item->Model.Color.x * SCHAR_MAX,
-				item->Model.Color.y * SCHAR_MAX,
-				item->Model.Color.z * SCHAR_MAX);
+				item->Model.Color.x * UCHAR_MAX,
+				item->Model.Color.y * UCHAR_MAX,
+				item->Model.Color.z * UCHAR_MAX);
 
 			item->MeshBits = 2;
 

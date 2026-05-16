@@ -1,36 +1,36 @@
 #pragma once
 
-typedef DWORD D3DCOLOR;
+typedef unsigned int D3DCOLOR;
 
 class RGBAColor8Byte
 {
 private:
 	// Members
-	byte r = 0;
-	byte g = 0;
-	byte b = 0;
-	byte a = 255;
+	unsigned char r = 0;
+	unsigned char g = 0;
+	unsigned char b = 0;
+	unsigned char a = 255;
 
 public:
 	// Constructors
 	RGBAColor8Byte() = default;
 	RGBAColor8Byte(D3DCOLOR color);
-	RGBAColor8Byte(byte r, byte g, byte b);
-	RGBAColor8Byte(byte r, byte g, byte b, byte a);
+	RGBAColor8Byte(unsigned char r, unsigned char g, unsigned char b);
+	RGBAColor8Byte(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
 	RGBAColor8Byte(const Vector3& color);
 	RGBAColor8Byte(const Vector4& color);
 
 	// Getters
-	byte GetR() const;
-	byte GetG() const;
-	byte GetB() const;
-	byte GetA() const;
+	unsigned char GetR() const;
+	unsigned char GetG() const;
+	unsigned char GetB() const;
+	unsigned char GetA() const;
 
 	// Setters
-	void SetR(byte value);
-	void SetG(byte value);
-	void SetB(byte value);
-	void SetA(byte value);
+	void SetR(unsigned char value);
+	void SetG(unsigned char value);
+	void SetB(unsigned char value);
+	void SetA(unsigned char value);
 
 	// Operators
 	operator Color() const;
