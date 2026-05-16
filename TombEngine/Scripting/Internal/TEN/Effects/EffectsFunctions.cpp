@@ -289,7 +289,7 @@ namespace TEN::Scripting::Effects
 	// @tfield[opt=false] bool animated Play animated sprite sequence.
 	// @tfield[opt=TEN.Effects.ParticleAnimationType.LOOP] Effects.ParticleAnimationType animType Animation type of the sprite sequence.
 	// @tfield[opt=1] float frameRate Sprite sequence animation framerate.
-	// @tfield[opt=Rotation(0&#44; 0&#44; 0)] Rotation drawRot Sprite orientation in degrees.
+	// @tfield[opt=Rotation(0&#44; 0&#44; 0)] Rotation constraint Sprite orientation constraint in degrees.
 	static void EmitAdvancedParticle(const sol::table& table)
 	{
 		constexpr auto DEFAULT_START_SIZE = 10.0f;
@@ -371,6 +371,7 @@ namespace TEN::Scripting::Effects
 			part.flags |= SP_SOUND;
 			part.sound = convertedSoundID;
 		}
+
 		bool convertedApplyLight = table.get_or("light", false);
 		if (convertedApplyLight)
 		{
@@ -385,6 +386,7 @@ namespace TEN::Scripting::Effects
 				part.lightFlickerS = table.get_or("lightFlicker", 0);
 			}
 		}
+
 		bool animatedSpr = table.get_or("animated", false);
 		if (animatedSpr)
 		{
@@ -403,8 +405,7 @@ namespace TEN::Scripting::Effects
 				part.flags |= SP_WIND;
 		}
 
-		Rotation convertedConstraint = table.get_or("drawRot", Rotation(0, 0, 0));
-
+		Rotation convertedConstraint = table.get_or("constraint", Rotation(0, 0, 0));
 		if (!(convertedConstraint == Rotation(0, 0, 0)))
 		{
 			part.flags |= SP_CONSTRAINED;
