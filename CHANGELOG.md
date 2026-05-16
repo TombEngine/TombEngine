@@ -28,9 +28,16 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Bug fixes
 
+* Fixed MINECART_SWITCH object not working.
+* Fixed empty inventory screen after exiting examine mode.
+* Fixed USE not being first in the inventory if multiple item actions have been allocated.
+* Fixed regular spark sprite distance while moving with flare in hand.
+* Fixed UI bars being affected by the postprocess mode.
+* Fixed fireflies emitting bright white light while in fly form (negative OCB).
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
 * Fixed flyby camera jitter by converting the spline type to floating-point.
 * Fixed occasional flame emitter sprite jitter.
+* Fixed interaction highlighter appearing for underwater pushable objects.
 
 ### Lua API changes
 
@@ -44,18 +51,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `View.GetPostProcess` and `View.SetPostProcess` to set/get postprocess mode and strength.
 * Remove `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
-
-## [Version 2.0]
-
-### Bug fixes
-* Fixed MINECART_SWITCH object not working.
-* Fixed empty inventory screen after exiting examine mode.
-* Fixed USE not being first in the inventory if multiple item actions have been allocated.
-* Fixed regular spark sprite distance while moving with flare in hand.
-* Fixed UI bars being affected by the postprocess mode.
-* Fixed fireflies emitting bright white light while in fly form (negative OCB).
-
-### Lua API changes
 * Fixed incorrect error message when using `Moveable:SetFrame` with a frame number equal to the end frame.
 * Fixed glide camera movement when entering or exiting freeze mode.
 

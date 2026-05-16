@@ -187,7 +187,8 @@ namespace TEN::Entities::Generic
 		int quadrant = GetQuadrant(LaraItem->Pose.Orientation.y);
 		auto& pushableSidesAttributes = pushable.EdgeAttribs[quadrant]; // NOTE: 0 = north, 1 = east, 2 = south, 3 = west.
 
-		g_Hud.InteractionHighlighter.Test(*playerItem, pushableItem);
+		if (player.Control.WaterStatus == WaterStatus::Dry || player.Control.WaterStatus == WaterStatus::Wade)
+			g_Hud.InteractionHighlighter.Test(*playerItem, pushableItem);
 
 		// Align player to pushable.
 		if ((IsHeld(In::Action) &&
