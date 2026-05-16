@@ -630,6 +630,20 @@ namespace TEN::Sky
 				}
 			}
 
+			// changePresets are applied AFTER SetPresetImmediate, so the dwell timer that
+			// started inside SetPresetImmediate used the baked-in dwell range rather than the
+			// Lua-specified duration. Reset it now so the very first cycle uses the correct value.
+			if (!clouds.ChangePresets.empty())
+			{
+				auto it = _presets.find(_currentPreset);
+				if (it != _presets.end())
+				{
+					_nextPresetDwellTarget  = -1.0f;
+					_nextPresetDwellElapsed = 0.0f;
+					StartNextPresetDwell(it->second);
+				}
+			}
+
 			// --- Per-level alto cloud color overrides ---
 			// Applied to every preset definition AND the current snapshot so that
 			// every preset transition shares the level's chosen color palette.
@@ -863,8 +877,6 @@ namespace TEN::Sky
 			b.BlendThresholdHigh  = 1.0f;
 			b.BlendThresholdLow   = 0.004f;
 
-			def.GodRaysEnabled = false;
-
 			_presets[def.Type] = def;
 		}
 
@@ -973,8 +985,6 @@ namespace TEN::Sky
 			b.LightningBoltThicknessScale = 1.732f;
 			b.BlendThresholdHigh  = 1.0f;
 			b.BlendThresholdLow   = 0.004f;
-
-			def.GodRaysEnabled = false;
 
 			_presets[def.Type] = def;
 		}

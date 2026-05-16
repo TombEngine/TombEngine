@@ -2100,8 +2100,9 @@ ImGui::DragFloat("High Layer Lead (legacy)", &def->HighLayerLeadFraction, 0.01f,
 		ImGui::Separator();
 		ImGui::TextWrapped(
 			"This wind drives Lara's ponytail, particles, and the AltocumulusMid "
-			"cloud layer. Particles and hair add a randomised gust on top, but the "
-			"clouds always move with the steady value shown above.");
+			"cloud direction. Particles and hair add a randomised gust on top,"
+			"but the clouds always move with the steady value from the LUA entry:"
+			"level.dynamicSky.Clouds.windSpeed = 0.0 - 8.0");
 
 		// ============================================================
 		// Volumetric Dust Storm controls.
