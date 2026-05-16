@@ -38,6 +38,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed flyby camera jitter by converting the spline type to floating-point.
 * Fixed occasional flame emitter sprite jitter.
 * Fixed interaction highlighter appearing for underwater pushable objects.
+* Fixed clipping into underwater pushable objects while smimming upwards from the bottom.
 
 ### Lua API changes
 
