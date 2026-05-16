@@ -32,6 +32,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed flyby camera jitter by converting the spline type to floating-point.
 * Fixed occasional flame emitter sprite jitter.
 * Fixed flyby camera flag "Let Lara Move In Cinimatic Mode" ignored.
+* Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
 
 ### Lua API changes
 

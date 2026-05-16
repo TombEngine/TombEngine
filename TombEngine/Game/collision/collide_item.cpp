@@ -408,8 +408,11 @@ bool MoveLaraPosition(const Vector3i& offset, ItemInfo* item, ItemInfo* laraItem
 	auto pos = Vector3::Transform(offset.ToVector3(), rotMatrix);
 	auto target = Pose(item->Pose.Position + Vector3i(pos), item->Pose.Orientation);
 
-	if (!Objects[item->ObjectNumber].isPickup)
+	if (!Objects[item->ObjectNumber].isPickup ||
+		lara->Control.WaterStatus == WaterStatus::Underwater)
+	{
 		return Move3DPosTo3DPos(laraItem, laraItem->Pose, target, LARA_ALIGN_VELOCITY, ANGLE(2.0f));
+	}
 	else
 	{
 		// Prevent picking up items which can result in so called "flare pickup bug"
