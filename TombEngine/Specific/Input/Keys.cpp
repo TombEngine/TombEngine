@@ -209,6 +209,10 @@ namespace TEN::Input
 			case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_PRO:
 				gamepadKeyName = GamepadNameType::Switch;
 				break;
+
+			default:
+				gamepadKeyName = GamepadNameType::Xbox;
+				break;
 			}
 
 			const auto& keyNames = gamepadIt->second;

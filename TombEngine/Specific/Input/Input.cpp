@@ -555,7 +555,7 @@ namespace TEN::Input
 
 		RumbleInfo.Power -= RumbleInfo.FadeSpeed;
 
-		// Avoid spamming rumble updates when the level hasn't changed much.
+		// Don't update effect too frequently if its value hasn't changed much.
 		if (RumbleInfo.Power >= 0.2f && (RumbleInfo.LastPower - RumbleInfo.Power) < 0.1f)
 			return;
 

@@ -1,7 +1,9 @@
 #include "framework.h"
 #include "Specific/Input/InputAction.h"
 
+#include "Game/Gui.h"
 #include "Specific/clock.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 
 namespace TEN::Input
 {
@@ -129,6 +131,7 @@ namespace TEN::Input
 	Action::Action(ActionID actionID)
 	{
 		_id = actionID;
+		_mode = FreezeMode::None;
 	}
 
 	ActionID Action::GetID() const
@@ -138,7 +141,7 @@ namespace TEN::Input
 
 	float Action::GetValue() const
 	{
-		return _value;
+		return IsMatchingMode() ? _value : 0.0f;
 	}
 
 	// Time in game frames.
@@ -153,24 +156,53 @@ namespace TEN::Input
 		return _timeInactive;
 	}
 
-	bool Action::IsClicked() const
+	FreezeMode Action::GetCurrentMode() const
+	{
+		return (TEN::Gui::g_Gui.GetInventoryMode() != TEN::Gui::InventoryMode::None) ? FreezeMode::Full : g_GameFlow->CurrentFreezeMode;
+	}
+
+	bool Action::IsMatchingMode() const
+	{
+		return (_mode == FreezeMode::None || _mode == GetCurrentMode());
+	}
+
+	bool Action::IsClickedRaw() const
 	{
 		return (_value != 0.0f && _prevValue == 0.0f);
 	}
 
-	bool Action::IsHeld(float delaySec) const
+	bool Action::IsHeldRaw(float delaySec) const
 	{
 		unsigned int delayGameFrames = (delaySec == 0.0f) ? 0 : SecToGameFrames(delaySec);
 		return (_value != 0.0f && _timeActive >= delayGameFrames);
 	}
 
+	bool Action::IsReleasedRaw(float delaySecMax) const
+	{
+		unsigned int delayGameFramesMax = (delaySecMax == FLT_MAX) ? UINT_MAX : SecToGameFrames(delaySecMax);
+		return (_value == 0.0f && _prevValue != 0.0f && _timeActive <= delayGameFramesMax);
+	}
+
+	bool Action::IsClicked() const
+	{
+		return (IsMatchingMode() && IsClickedRaw());
+	}
+
+	bool Action::IsHeld(float delaySec) const
+	{
+		return (IsMatchingMode() && IsHeldRaw(delaySec));
+	}
+
 	// NOTE: To avoid stutter on second pulse, ensure `initialDelaySec` is multiple of `delaySec`.
 	bool Action::IsPulsed(float delaySec, float initialDelaySec) const
 	{
-		if (IsClicked())
+		if (!IsMatchingMode())
+			return false;
+
+		if (IsClickedRaw())
 			return true;
 
-		if (!IsHeld() || _prevTimeActive == 0 || _timeActive == _prevTimeActive)
+		if (!IsHeldRaw() || _prevTimeActive == 0 || _timeActive == _prevTimeActive)
 			return false;
 
 		float activeDelaySec = (_timeActive > SecToGameFrames(initialDelaySec)) ? delaySec : initialDelaySec;
@@ -183,8 +215,7 @@ namespace TEN::Input
 
 	bool Action::IsReleased(float delaySecMax) const
 	{
-		unsigned int delayGameFramesMax = (delaySecMax == FLT_MAX) ? UINT_MAX : SecToGameFrames(delaySecMax);
-		return (_value == 0.0f && _prevValue != 0.0f && _timeActive <= delayGameFramesMax);
+		return (IsMatchingMode() && IsReleasedRaw(delaySecMax));
 	}
 
 	void Action::Update(bool value)
@@ -197,19 +228,20 @@ namespace TEN::Input
 		_prevValue = _value;
 		_value	   = value;
 
-		if (IsClicked())
+		if (IsClickedRaw())
 		{
 			_prevTimeActive = 0;
 			_timeActive		= 0;
+			_mode = GetCurrentMode();
 			_timeInactive++;
 		}
-		else if (IsReleased())
+		else if (IsReleasedRaw())
 		{
 			_prevTimeActive = _timeActive;
 			_timeInactive	= 0;
 			_timeActive++;
 		}
-		else if (IsHeld())
+		else if (IsHeldRaw())
 		{
 			_prevTimeActive = _timeActive;
 			_timeInactive	= 0;
@@ -219,6 +251,7 @@ namespace TEN::Input
 		{
 			_prevTimeActive = 0;
 			_timeActive		= 0;
+			_mode = FreezeMode::None;
 			_timeInactive++;
 		}
 	}
@@ -230,6 +263,7 @@ namespace TEN::Input
 		_timeActive		= 0;
 		_prevTimeActive = 0;
 		_timeInactive	= 0;
+		_mode			= FreezeMode::None;
 	}
 
 	void Action::DrawDebug() const
@@ -246,5 +280,6 @@ namespace TEN::Input
 		PrintDebugMessage("TimeActive: %d", _timeActive);
 		PrintDebugMessage("PrevTimeActive: %d", _prevTimeActive);
 		PrintDebugMessage("TimeInactive: %d", _timeInactive);
+		PrintDebugMessage("Mode: %d", (int)_mode);
 	}
 }

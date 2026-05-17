@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Game/control/control.h"
+
 namespace TEN::Input
 {
 	typedef enum class ActionID
@@ -147,9 +149,17 @@ namespace TEN::Input
 		ActionID	 _id 			 = In::Forward;
 		float		 _value			 = 0.0f;
 		float		 _prevValue		 = 0.0f;
+		FreezeMode	 _mode			 = FreezeMode::None;
 		unsigned int _timeActive	 = 0;			// Time in game frames.
 		unsigned int _prevTimeActive = 0;			// Time in game frames.
 		unsigned int _timeInactive	 = 0;			// Time in game frames.
+
+		bool IsClickedRaw() const;
+		bool IsHeldRaw(float delaySec = 0.0f) const;
+		bool IsReleasedRaw(float delaySecMax = FLT_MAX) const;
+
+		FreezeMode GetCurrentMode() const;
+		bool IsMatchingMode() const;
 
 	public:
 		// Constructors
