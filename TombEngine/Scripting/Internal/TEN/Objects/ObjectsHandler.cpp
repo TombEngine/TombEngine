@@ -6,6 +6,8 @@
 #include "Game/Lara/lara.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
+#include "Scripting/Internal/TEN/Objects/Creature/Creature.h"
+#include "Scripting/Internal/TEN/Objects/Creature/CreatureStates.h"
 #include "Scripting/Internal/TEN/Objects/Camera/CameraObject.h"
 #include "Scripting/Internal/TEN/Objects/Lara/AmmoTypes.h"
 #include "Scripting/Internal/TEN/Objects/Lara/HandStatuses.h"
@@ -192,6 +194,8 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 		[this](auto && ... param) { return AddName(std::forward<decltype(param)>(param)...); },
 		[this](auto && ... param) { return RemoveName(std::forward<decltype(param)>(param)...); });
 
+	ScriptCreature::Register(_table_objects);
+
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_ObjID, GAME_OBJECT_IDS);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_RoomFlagID, ROOM_FLAG_IDS);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_RoomReverb, ROOM_REVERB_TYPES);
@@ -201,6 +205,7 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_HandStatus, HAND_STATUSES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_WaterStatus, WATER_STATUSES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_MoveableStatus, MOVEABLE_STATUSES);
+	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_MoodType, MOOD_TYPES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_InteractionType, INTERACTION_TYPE);
 }
 
@@ -214,19 +219,19 @@ void ObjectsHandler::TestCollidingObjects()
 	for (int itemNumber0 : _collidingItems)
 	{
 		auto& item = g_Level.Items[itemNumber0];
-		if (!item.Callbacks.OnObjectCollided.empty())
+		if (!item.Callbacks[(int)EntityCallbackPoint::ObjectCollided].empty())
 		{
 			// Test against other moveables.
 			auto collObjects = GetCollidedObjects(item, true, false);
 			for (const auto& collidedItemPtr : collObjects.Items)
-				g_GameScript->ExecuteFunction(item.Callbacks.OnObjectCollided, itemNumber0, collidedItemPtr->Index);
+				g_GameScript->ExecuteFunction(item.Callbacks[(int)EntityCallbackPoint::ObjectCollided], itemNumber0, collidedItemPtr->Index);
 		}
 
-		if (!item.Callbacks.OnRoomCollided.empty())
+		if (!item.Callbacks[(int)EntityCallbackPoint::RoomCollided].empty())
 		{
 			// Test against room geometry.
 			if (TestItemRoomCollisionAABB(&item))
-				g_GameScript->ExecuteFunction(item.Callbacks.OnRoomCollided, itemNumber0);
+				g_GameScript->ExecuteFunction(item.Callbacks[(int)EntityCallbackPoint::RoomCollided], itemNumber0);
 		}
 	}
 }

@@ -636,7 +636,7 @@ bool FireHarpoon(ItemInfo& laraItem, const std::optional<Pose>& pose)
 	auto& harpoonItem = g_Level.Items[itemNumber];
 
 	harpoonItem.ObjectNumber = ID_HARPOON;
-	harpoonItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	harpoonItem.Model.Color = NEUTRAL_COLOR;
 
 	if (!ammo.HasInfinite())
 		ammo--;
@@ -742,7 +742,7 @@ bool FireGrenade(ItemInfo& laraItem)
 
 	auto& grenadeItem = g_Level.Items[itemNumber];
 		
-	grenadeItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	grenadeItem.Model.Color = NEUTRAL_COLOR;
 	grenadeItem.ObjectNumber = ID_GRENADE;
 	grenadeItem.RoomNumber = laraItem.RoomNumber;
 
@@ -825,7 +825,7 @@ void GrenadeControl(short itemNumber)
 {
 	auto& grenadeItem = g_Level.Items[itemNumber];
 
-	grenadeItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	grenadeItem.Model.Color = NEUTRAL_COLOR;
 
 	// Force grenade to explode if it was activated externally.
 	if ((grenadeItem.Flags & CODE_BITS) == CODE_BITS)
@@ -1019,7 +1019,7 @@ void RocketControl(short itemNumber)
 		rocketItem.Pose.Orientation.z += short((rocketItem.Animation.Velocity.z / 4) + 7.0f) * ANGLE(1.0f);
 	}
 
-	rocketItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	rocketItem.Model.Color = NEUTRAL_COLOR;
 
 	// Calculate offset in rocket direction for fire and smoke sparks.
 	auto world = Matrix::CreateTranslation(0, 0, -64) *
@@ -1069,7 +1069,7 @@ bool FireCrossbow(ItemInfo& laraItem, const std::optional<Pose>& pose)
 
 	auto& boltItem = g_Level.Items[itemNumber];
 	boltItem.ObjectNumber = ID_CROSSBOW_BOLT;
-	boltItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+	boltItem.Model.Color = NEUTRAL_COLOR;
 
 	if (!ammo.HasInfinite())
 		ammo--;
@@ -1451,7 +1451,7 @@ bool EmitFromProjectile(ItemInfo& projectile, ProjectileType type)
 
 		auto& grenadeItem = g_Level.Items[grenadeItemNumber];
 
-		grenadeItem.Model.Color = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
+		grenadeItem.Model.Color = NEUTRAL_COLOR;
 		grenadeItem.ObjectNumber = ID_GRENADE;
 		grenadeItem.RoomNumber = projectile.RoomNumber;
 		grenadeItem.Pose.Position = Vector3i(
@@ -1712,7 +1712,8 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 					}
 				}
 			}
-			else if (itemPtr->ObjectNumber >= ID_SHOOT_SWITCH1 && itemPtr->ObjectNumber <= ID_SHOOT_SWITCH4)
+			else if (itemPtr->ObjectNumber >= ID_SHOOT_SWITCH1 && itemPtr->ObjectNumber <= ID_SHOOT_SWITCH4 ||
+			         itemPtr->ObjectNumber == ID_FUSEBOX_SWITCH)
 			{
 				doShatter = hasHit = true;
 				doExplosion = isExplosive;

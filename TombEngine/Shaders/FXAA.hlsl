@@ -1,6 +1,7 @@
 #include "./VertexInput.hlsli"
 #include "./Math.hlsli"
 #include "./CBPostProcess.hlsli"
+#include "./Samplers.hlsli"
 
 #define FXAA_SPAN_MAX	8.0
 #define FXAA_REDUCE_MUL 1.0/4.0
@@ -14,17 +15,16 @@ struct PixelShaderInput
 };
 
 Texture2D Texture : register(t0);
-SamplerState Sampler : register(s0);
 
 float4 ApplyFXAA(PixelShaderInput input)
 {
     float2 add = 1.0f / ViewportSize;
 
-	float3 rgbNW = Texture.Sample(Sampler, input.UV + float2(-add.x, -add.y));
-	float3 rgbNE = Texture.Sample(Sampler, input.UV + float2(add.x, -add.y));
-	float3 rgbSW = Texture.Sample(Sampler, input.UV + float2(-add.x, add.y));
-	float3 rgbSE = Texture.Sample(Sampler, input.UV + float2(add.x, add.y));
-	float3 rgbM = Texture.Sample(Sampler, input.UV);
+	float3 rgbNW = Texture.Sample(AnisotropicClampSampler, input.UV + float2(-add.x, -add.y));
+	float3 rgbNE = Texture.Sample(AnisotropicClampSampler, input.UV + float2(add.x, -add.y));
+	float3 rgbSW = Texture.Sample(AnisotropicClampSampler, input.UV + float2(-add.x, add.y));
+	float3 rgbSE = Texture.Sample(AnisotropicClampSampler, input.UV + float2(add.x, add.y));
+	float3 rgbM = Texture.Sample(AnisotropicClampSampler, input.UV);
 
 	float lumaNW = Luma(rgbNW);
 	float lumaNE = Luma(rgbNE);
@@ -48,12 +48,12 @@ float4 ApplyFXAA(PixelShaderInput input)
 		max(float2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX), dir * rcpDirMin)) * add;
 
 	float3 rgbA = (1.0f / 2.0f) *
-		(Texture.Sample(Sampler, input.UV + dir * (1.0f / 3.0f - 0.5f)) +
-			Texture.Sample(Sampler, input.UV + dir * (2.0f / 2.0f - 0.5f)));
+		(Texture.Sample(AnisotropicClampSampler, input.UV + dir * (1.0f / 3.0f - 0.5f)) +
+			Texture.Sample(AnisotropicClampSampler, input.UV + dir * (2.0f / 2.0f - 0.5f)));
 
 	float3 rgbB = rgbA * (1.0f / 2.0f) + (1.0f / 4.0f) *
-		(Texture.Sample(Sampler, input.UV + dir * (0.0f / 3.0f - 0.5f)) +
-			Texture.Sample(Sampler, input.UV + dir * (3.0f / 3.0f - 0.5f)));
+		(Texture.Sample(AnisotropicClampSampler, input.UV + dir * (0.0f / 3.0f - 0.5f)) +
+			Texture.Sample(AnisotropicClampSampler, input.UV + dir * (3.0f / 3.0f - 0.5f)));
 
 	float lumaB = Luma(rgbB);
 

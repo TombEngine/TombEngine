@@ -142,6 +142,7 @@ void InitializeSlot(short itemNumber, bool makeTarget)
 	auto* object = &Objects[item->ObjectNumber];
 	item->Data = CreatureInfo();
 	auto* creature = GetCreatureInfo(item);
+	creature->Enemy.Initialize(creature);
 
 	// Initialize pathfinding node array.
 	InitializeLOTarray(itemNumber);
