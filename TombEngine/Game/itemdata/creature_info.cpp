@@ -10,11 +10,6 @@ void CreatureInfo::EnemyHandler::Initialize(const CreatureInfo* creature)
 	_creature = creature;
 }
 
-bool CreatureInfo::EnemyHandler::Validate(ItemInfo* enemy) const
-{
-	return !(enemy && enemy->IsLara() && _creature && _creature->Friendly && !_creature->HurtByLara);
-}
-
 ItemInfo* CreatureInfo::EnemyHandler::Get() const
 {
 	return (ItemInfo*)(*this);
@@ -22,13 +17,13 @@ ItemInfo* CreatureInfo::EnemyHandler::Get() const
 
 CreatureInfo::EnemyHandler& CreatureInfo::EnemyHandler::operator=(ItemInfo* item)
 {
-	_enemy = Validate(item) ? item : nullptr;
+	_enemy = item;
 	return *this;
 }
 
 CreatureInfo::EnemyHandler::operator ItemInfo*() const
 {
-	if (!Validate(_enemy))
+	if (_creature && _creature->Friendly && !_creature->HurtByLara && _enemy == LaraItem)
 		return nullptr;
 
 	return _enemy;
