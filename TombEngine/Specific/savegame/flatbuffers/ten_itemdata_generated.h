@@ -1166,6 +1166,7 @@ struct CreatureT : public flatbuffers::NativeTable {
   int32_t weapon_delay1 = 0;
   int32_t weapon_delay2 = 0;
   int32_t mood = 0;
+  int32_t forced_mood = 0;
   int32_t enemy = 0;
   int32_t ai_target_number = 0;
   int32_t flags = 0;
@@ -1199,14 +1200,15 @@ struct Creature FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_WEAPON_DELAY1 = 34,
     VT_WEAPON_DELAY2 = 36,
     VT_MOOD = 38,
-    VT_ENEMY = 40,
-    VT_AI_TARGET_NUMBER = 42,
-    VT_FLAGS = 44,
-    VT_CAN_JUMP = 46,
-    VT_CAN_MONKEY = 48,
-    VT_IS_JUMPING = 50,
-    VT_IS_MONKEYING = 52,
-    VT_BAD_BOXES = 54
+    VT_FORCED_MOOD = 40,
+    VT_ENEMY = 42,
+    VT_AI_TARGET_NUMBER = 44,
+    VT_FLAGS = 46,
+    VT_CAN_JUMP = 48,
+    VT_CAN_MONKEY = 50,
+    VT_IS_JUMPING = 52,
+    VT_IS_MONKEYING = 54,
+    VT_BAD_BOXES = 56
   };
   int32_t fly_rate() const {
     return GetField<int32_t>(VT_FLY_RATE, 0);
@@ -1262,6 +1264,9 @@ struct Creature FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t mood() const {
     return GetField<int32_t>(VT_MOOD, 0);
   }
+  int32_t forced_mood() const {
+    return GetField<int32_t>(VT_FORCED_MOOD, 0);
+  }
   int32_t enemy() const {
     return GetField<int32_t>(VT_ENEMY, 0);
   }
@@ -1307,6 +1312,7 @@ struct Creature FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_WEAPON_DELAY1) &&
            VerifyField<int32_t>(verifier, VT_WEAPON_DELAY2) &&
            VerifyField<int32_t>(verifier, VT_MOOD) &&
+           VerifyField<int32_t>(verifier, VT_FORCED_MOOD) &&
            VerifyField<int32_t>(verifier, VT_ENEMY) &&
            VerifyField<int32_t>(verifier, VT_AI_TARGET_NUMBER) &&
            VerifyField<int32_t>(verifier, VT_FLAGS) &&
@@ -1382,6 +1388,9 @@ struct CreatureBuilder {
   void add_mood(int32_t mood) {
     fbb_.AddElement<int32_t>(Creature::VT_MOOD, mood, 0);
   }
+  void add_forced_mood(int32_t forced_mood) {
+    fbb_.AddElement<int32_t>(Creature::VT_FORCED_MOOD, forced_mood, 0);
+  }
   void add_enemy(int32_t enemy) {
     fbb_.AddElement<int32_t>(Creature::VT_ENEMY, enemy, 0);
   }
@@ -1437,6 +1446,7 @@ inline flatbuffers::Offset<Creature> CreateCreature(
     int32_t weapon_delay1 = 0,
     int32_t weapon_delay2 = 0,
     int32_t mood = 0,
+    int32_t forced_mood = 0,
     int32_t enemy = 0,
     int32_t ai_target_number = 0,
     int32_t flags = 0,
@@ -1450,6 +1460,7 @@ inline flatbuffers::Offset<Creature> CreateCreature(
   builder_.add_flags(flags);
   builder_.add_ai_target_number(ai_target_number);
   builder_.add_enemy(enemy);
+  builder_.add_forced_mood(forced_mood);
   builder_.add_mood(mood);
   builder_.add_weapon_delay2(weapon_delay2);
   builder_.add_weapon_delay1(weapon_delay1);
@@ -1500,6 +1511,7 @@ inline flatbuffers::Offset<Creature> CreateCreatureDirect(
     int32_t weapon_delay1 = 0,
     int32_t weapon_delay2 = 0,
     int32_t mood = 0,
+    int32_t forced_mood = 0,
     int32_t enemy = 0,
     int32_t ai_target_number = 0,
     int32_t flags = 0,
@@ -1530,6 +1542,7 @@ inline flatbuffers::Offset<Creature> CreateCreatureDirect(
       weapon_delay1,
       weapon_delay2,
       mood,
+      forced_mood,
       enemy,
       ai_target_number,
       flags,
@@ -3248,6 +3261,7 @@ inline void Creature::UnPackTo(CreatureT *_o, const flatbuffers::resolver_functi
   { auto _e = weapon_delay1(); _o->weapon_delay1 = _e; }
   { auto _e = weapon_delay2(); _o->weapon_delay2 = _e; }
   { auto _e = mood(); _o->mood = _e; }
+  { auto _e = forced_mood(); _o->forced_mood = _e; }
   { auto _e = enemy(); _o->enemy = _e; }
   { auto _e = ai_target_number(); _o->ai_target_number = _e; }
   { auto _e = flags(); _o->flags = _e; }
@@ -3284,6 +3298,7 @@ inline flatbuffers::Offset<Creature> CreateCreature(flatbuffers::FlatBufferBuild
   auto _weapon_delay1 = _o->weapon_delay1;
   auto _weapon_delay2 = _o->weapon_delay2;
   auto _mood = _o->mood;
+  auto _forced_mood = _o->forced_mood;
   auto _enemy = _o->enemy;
   auto _ai_target_number = _o->ai_target_number;
   auto _flags = _o->flags;
@@ -3312,6 +3327,7 @@ inline flatbuffers::Offset<Creature> CreateCreature(flatbuffers::FlatBufferBuild
       _weapon_delay1,
       _weapon_delay2,
       _mood,
+      _forced_mood,
       _enemy,
       _ai_target_number,
       _flags,

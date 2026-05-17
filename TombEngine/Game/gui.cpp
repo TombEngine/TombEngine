@@ -2127,8 +2127,7 @@ namespace TEN::Gui
 		InventoryItemChosen = objectNumber;
 
 		// Use item event handling.
-		g_GameScript->OnUseItem((GAME_OBJECT_ID)InventoryItemChosen);
-		HandleAllGlobalEvents(EventType::UseItem, (Activator)short(item.Index));
+		g_GameScript->OnUseItem(item.Index, (GAME_OBJECT_ID)InventoryItemChosen);
 
 		// Quickly discard further processing if chosen item was reset in script.
 		if (InventoryItemChosen == NO_VALUE)

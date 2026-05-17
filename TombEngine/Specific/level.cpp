@@ -1353,7 +1353,7 @@ void LoadEvent(EventSet& eventSet)
 	if (eventType >= (int)EventType::Count)
 	{
 		TENLog("Unknown event type detected for event set " + eventSet.Name + ". Fall back to default.", LogLevel::Warning);
-		eventType = (int)EventType::Enter;
+		eventType = (int)EventType::VolumeEnter;
 	}
 
 	auto& evt = eventSet.Events[eventType];
