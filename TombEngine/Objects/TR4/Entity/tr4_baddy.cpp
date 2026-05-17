@@ -937,7 +937,7 @@ namespace TEN::Entities::TR4
 			case BADDY_STATE_MONKEY_GRAB:
 				creature->MaxTurn = 0;
 				creature->LOT.IsJumping = true;
-				creature->LOT.IsMonkeying = true;
+				creature->LOT.IsMonkeying = false;
 				creature->Flags = 0;
 				joint1 = 0;
 				joint2 = 0;
@@ -1030,6 +1030,30 @@ namespace TEN::Entities::TR4
 						Lara.Control.HandStatus = HandStatus::Free;
 						creature->Flags = 1;
 					}
+				}
+
+				break;
+
+			case BADDY_STATE_MONKEY_FALL_LAND:
+				creature->MaxTurn = 0;
+				creature->LOT.IsJumping = false;
+				creature->LOT.IsMonkeying = false;
+				creature->Flags = 0;
+				joint1 = 0;
+				joint2 = 0;
+
+				if (item->Animation.FrameNumber == GetAnimData(*item).EndFrameNumber)
+				{
+					creature->JumpAhead = false;
+					creature->MonkeySwingAhead = false;
+
+					// Force a fresh path search from the new landing box.
+					//ClearLOT(&creature->LOT);
+
+					// Force actual exit from landing state.
+					SetAnimation(item, BADDY_ANIM_STAND_IDLE);
+					item->Animation.ActiveState = BADDY_STATE_IDLE;
+					item->Animation.TargetState = BADDY_STATE_IDLE;
 				}
 
 				break;
