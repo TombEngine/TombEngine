@@ -77,7 +77,7 @@ namespace TEN::Entities::Creatures::TR3
 		float gravity = 0.0f;
 		if (creature.Enemy != nullptr)
 		{
-			if (creature.Enemy->IsLara())
+			if (creature.Enemy.IsLara())
 			{
 				const auto& player = GetLaraInfo(*creature.Enemy);
 				if (player.Control.IsLow)
@@ -213,7 +213,7 @@ namespace TEN::Entities::Creatures::TR3
 			CreatureAIInfo(&item, &ai);
 
 			GetCreatureMood(&item, &ai, ai.zoneNumber == ai.enemyZone);
-			if (creature.Enemy != nullptr && creature.Enemy->IsLara())
+			if (creature.Enemy.IsLara())
 			{
 				const auto& player = GetLaraInfo(*creature.Enemy);
 				if (player.Status.Poison >= LARA_POISON_MAX)
@@ -223,7 +223,7 @@ namespace TEN::Entities::Creatures::TR3
 			CreatureMood(&item, &ai, ai.zoneNumber == ai.enemyZone);
 			headingAngle = CreatureTurn(&item, creature.MaxTurn);
 			
-			auto* target = creature.Enemy;
+			auto* target = creature.Enemy.Get();
 			creature.Enemy = LaraItem;
 			if (ai.distance < SEAL_MUTANT_ALERT_RANGE || item.HitStatus || TargetVisible(&item, &ai))
 				AlertAllGuards(itemNumber);
@@ -317,7 +317,7 @@ namespace TEN::Entities::Creatures::TR3
 					}
 
 					SpawnSealMutantPoisonGas(item, gasVel);
-					if (creature.Enemy != nullptr && !creature.Enemy->IsLara())
+					if (creature.Enemy && !creature.Enemy.IsLara())
 						creature.Enemy->HitStatus = true;
 				}
 

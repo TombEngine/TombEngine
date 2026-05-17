@@ -62,7 +62,6 @@ extern std::array<DebrisFragment, MAX_DEBRIS> DebrisFragments;
 
 namespace TEN::Renderer 
 {
-
 	constexpr auto ELECTRICITY_RANGE_MAX = BLOCK(24);
 		
 	void Renderer::PrepareLaserBarriers(RenderView& view)
@@ -448,26 +447,30 @@ namespace TEN::Renderer
 						color.w = 1.0f;
 					}
 
-					AddSpriteBillboard(
-						&_sprites[spark->def],
-						Vector3::Lerp(
-							Vector3(
-								fire.PrevPosition.x + spark->PrevPosition.x * fire.PrevSize / 2,
-								fire.PrevPosition.y + spark->PrevPosition.y * fire.PrevSize / 2,
-								fire.PrevPosition.z + spark->PrevPosition.z * fire.PrevSize / 2),
-							Vector3(
-								fire.position.x + spark->position.x * fire.size / 2,
-								fire.position.y + spark->position.y * fire.size / 2,
-								fire.position.z + spark->position.z * fire.size / 2),
-							GetInterpolationFactor()),
-						color,
-						TO_RAD(Lerp(spark->PrevRotAng << 4, spark->rotAng << 4, GetInterpolationFactor())),
-						Lerp(spark->PrevScalar, spark->scalar, GetInterpolationFactor()),
-						Vector2::Lerp(
-							Vector2(fire.PrevSize * spark->PrevSize, fire.PrevSize * spark->PrevSize),
-							Vector2(fire.size * spark->size, fire.size * spark->size),
-							GetInterpolationFactor()),
-						BlendMode::Additive, true, view);
+					auto position = Vector3::Lerp(
+						Vector3(
+							fire.PrevPosition.x + spark->PrevPosition.x * fire.PrevSize / 2,
+							fire.PrevPosition.y + spark->PrevPosition.y * fire.PrevSize / 2,
+							fire.PrevPosition.z + spark->PrevPosition.z * fire.PrevSize / 2),
+						Vector3(
+							fire.position.x + spark->position.x * fire.size / 2,
+							fire.position.y + spark->position.y * fire.size / 2,
+							fire.position.z + spark->position.z * fire.size / 2),
+						GetInterpolationFactor());
+
+					short prevOrientation = spark->PrevRotAng << 4;
+					short currentOrientation = spark->rotAng << 4;
+					auto orientation = TO_RAD(prevOrientation + Geometry::GetShortestAngle(prevOrientation, currentOrientation) * GetInterpolationFactor());
+					auto scalar = Lerp(spark->PrevScalar, spark->scalar, GetInterpolationFactor());
+					auto size = Vector2::Lerp(
+						Vector2(fire.PrevSize * spark->PrevSize, fire.PrevSize * spark->PrevSize),
+						Vector2(fire.size * spark->size, fire.size * spark->size),
+						GetInterpolationFactor());
+
+					AddSpriteBillboard(&_sprites[spark->def], position, color, orientation, scalar, size, BlendMode::Additive, true, view);
+
+					if (g_GameFlow->GetSettings()->Graphics.FlameHeatHaze)
+						AddSpriteBillboard(&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex], position, color, orientation, scalar, size * FLAME_HEAT_HAZE_SCALE, BlendMode::Distortion, true, view);
 				}
 			}
 		}
@@ -600,13 +603,15 @@ namespace TEN::Renderer
 
 				auto* sprite = particle.SpriteID == VIDEO_SPRITE_ID ? &_videoSprite : &_sprites[spriteIndex];
 
-				AddSpriteBillboard(
-					sprite,
-					pos,
-					Color(particle.r / (float)UCHAR_MAX, particle.g / (float)UCHAR_MAX, particle.b / (float)UCHAR_MAX, 1.0f),
-					TO_RAD(particle.rotAng << 4), particle.scalar,
-					Vector2(particle.size, particle.size),
-					particle.blendMode, true, view);
+				auto color = Color(particle.r / (float)UCHAR_MAX, particle.g / (float)UCHAR_MAX, particle.b / (float)UCHAR_MAX, 1.0f);
+				auto orientation = TO_RAD(particle.rotAng << 4);
+				auto size = Vector2(particle.size, particle.size);
+
+				AddSpriteBillboard(sprite, pos, color, orientation, particle.scalar, size, particle.blendMode, true, view);
+
+				bool hasHaze = particle.flags & (SP_FIRE | SP_HAZE);
+				if (g_GameFlow->GetSettings()->Graphics.FlameHeatHaze && hasHaze && particle.blendMode != BlendMode::Distortion)
+					AddSpriteBillboard(sprite, pos, color, orientation, particle.scalar, size * FLAME_HEAT_HAZE_SCALE, BlendMode::Distortion, true, view);
 			}
 			else
 			{

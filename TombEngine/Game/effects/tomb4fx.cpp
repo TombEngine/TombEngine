@@ -61,7 +61,7 @@ int GetFreeFireSpark()
 	int minLife = 4095;
 	int i = 0;
 
-	FIRE_SPARKS* spark = &FireSparks[NextFireSpark];
+	auto* spark = &FireSparks[NextFireSpark];
 	while (spark->on)
 	{
 		if (spark->life < minLife)
@@ -167,6 +167,7 @@ void TriggerGlobalFireSmoke()
 	spark->gravity = -16 - (GetRandomControl() & 0xF);
 	spark->maxYvel = -8 - (GetRandomControl() & 7);
 	spark->dSize = spark->sSize = spark->size = (GetRandomControl() & 0x7F) + 128;
+	spark->StoreInterpolationData();
 }
 
 void TriggerGlobalFireFlame()
@@ -213,6 +214,7 @@ void TriggerGlobalFireFlame()
 
 	spark->sSize = spark->size = (GetRandomControl() & 0x1F) + 128;
 	spark->dSize = spark->size;
+	spark->StoreInterpolationData();
 }
 
 void TriggerPilotFlame(int itemNumber, int nodeIndex)
@@ -419,7 +421,7 @@ void UpdateFireSparks(bool recursive)
 
 	for (int i = 0; i < MAX_SPARKS_FIRE; i++)
 	{
-		FIRE_SPARKS* spark = &FireSparks[i];
+		auto* spark = &FireSparks[i];
 
 		if (spark->on)
 		{
@@ -467,9 +469,9 @@ void UpdateFireSparks(bool recursive)
 			if (spark->flags & SP_ROTATE)
 				spark->rotAng = (spark->rotAng + spark->rotAdd) & 0xFFF;
 
-			float alpha = fmin(1, fmax(0, 1 - (spark->life / (float)spark->sLife)));
-			int sprite = (int)Lerp(Objects[ID_FIRE_SPRITES].meshIndex, Objects[ID_FIRE_SPRITES].meshIndex + (-Objects[ID_FIRE_SPRITES].nmeshes) - 1, alpha);
-			spark->def = sprite;
+			int spriteCount = -Objects[ID_FIRE_SPRITES].nmeshes - 1;
+			float normalizedAge = (spark->sLife - spark->life) / (float)spark->sLife;
+			spark->def = Objects[ID_FIRE_SPRITES].meshIndex + (int)round(Lerp(0.0f, (float)spriteCount, normalizedAge));
 
 			int dl = ((spark->sLife - spark->life) << 16) / spark->sLife;
 			spark->velocity.y += spark->gravity;
@@ -535,7 +537,7 @@ void UpdateSmoke()
 {
 	for (int i = 0; i < MAX_SPARKS_SMOKE; i++)
 	{
-		SMOKE_SPARKS* spark = &SmokeSparks[i];
+		auto* spark = &SmokeSparks[i];
 
 		if (spark->on)
 		{

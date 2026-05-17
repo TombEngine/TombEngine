@@ -31,8 +31,9 @@ namespace TEN::Effects::Spark
 			PrevVelocity = velocity;
 		}
 	};
+
 	extern std::array<SparkParticle, 256> SparkParticles;
-			
+
 	void UpdateSparkParticles();
 	void DisableSparkParticles();
 	SparkParticle& GetFreeSparkParticle();
@@ -43,4 +44,8 @@ namespace TEN::Effects::Spark
 	void TriggerElectricSpark(const GameVector& pos, const EulerAngles& angle, int count);
 	void TriggerAttackSpark(const Vector3& basePos, const Vector3& color);
 	void SpawnCyborgSpark(const Vector3& pos);
+	void TriggerFuseboxBlastSparks(const Vector3i& pos, int roomNumber);
+	void TriggerFuseboxSparks(const Vector3i& pos, int roomNumber);
+	void TriggerFuseboxDestructionBlast(const Vector3i& pos, int roomNumber);
+	void TriggerFuseboxContinuousSparks(const Vector3i& pos, int roomNumber, float intensity);
 }

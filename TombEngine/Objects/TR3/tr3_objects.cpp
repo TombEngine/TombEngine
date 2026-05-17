@@ -38,6 +38,7 @@
 
 // Objects
 #include "Objects/TR3/Object/Corpse.h"
+#include "Objects/TR3/Object/Fusebox.h"
 
 // Traps
 #include "Objects/Generic/Traps/Pendulum.h"
@@ -520,6 +521,14 @@ static void StartTrap(ObjectInfo* obj)
 		obj->HitPoints = NOT_TARGETABLE;
 		obj->nonLot = 1;
 		obj->radius = 512;
+	}
+
+	obj = &Objects[ID_FUSEBOX_SWITCH];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeFusebox;
+		obj->control = ControlFusebox;
+		obj->collision = CollideFusebox;
 	}
 
 	obj = &Objects[ID_WALL_MOUNTED_BLADE];

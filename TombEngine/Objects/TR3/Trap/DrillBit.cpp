@@ -34,8 +34,8 @@ namespace TEN::Entities::Traps
 				item.Animation.FrameNumber < DRILL_BIT_EFFECT_END_FRAME &&
 				item.TriggerFlags)
 			{				
-				TriggerRicochetSpark(targetGameVector, Random::GenerateAngle(), 2, Vector4(2.0f, 1.8f, 0.2f, 1.0f));
-				TriggerRicochetSpark(targetGameVector, Random::GenerateAngle(), 4, Vector4(2.0f, 1.0f, 0.2f, 1.0f));
+				TriggerRicochetSpark(targetGameVector, Random::GenerateAngle(), 2, Vector4(1.0f, 0.9f, 0.1f, 1.0f));
+				TriggerRicochetSpark(targetGameVector, Random::GenerateAngle(), 4, Vector4(1.0f, 0.9f, 0.1f, 1.0f));
 				SpawnDynamicLight(targetGameVector.x, targetGameVector.y, targetGameVector.z, Random::GenerateInt(4, 12), 24, 16, 4);
 			}
 			else if (item.TriggerFlags)

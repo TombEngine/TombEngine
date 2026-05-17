@@ -85,6 +85,12 @@ static constexpr char ScriptReserved_PreLoop[]			= "PRE_LOOP";
 static constexpr char ScriptReserved_PostLoop[]			= "POST_LOOP";
 static constexpr char ScriptReserved_PreUseItem[]		= "PRE_USE_ITEM";
 static constexpr char ScriptReserved_PostUseItem[]		= "POST_USE_ITEM";
+static constexpr char ScriptReserved_PrePickup[]		= "PRE_PICKUP";
+static constexpr char ScriptReserved_PostPickup[]		= "POST_PICKUP";
+static constexpr char ScriptReserved_PreVehicleEnter[]	= "PRE_VEHICLE_ENTER";
+static constexpr char ScriptReserved_PostVehicleEnter[]	= "POST_VEHICLE_ENTER";
+static constexpr char ScriptReserved_PreVehicleLeave[]	= "PRE_VEHICLE_LEAVE";
+static constexpr char ScriptReserved_PostVehicleLeave[]	= "POST_VEHICLE_LEAVE";
 static constexpr char ScriptReserved_PreFreeze[]		= "PRE_FREEZE";
 static constexpr char ScriptReserved_PostFreeze[]		= "POST_FREEZE";
 
@@ -95,19 +101,25 @@ static constexpr char ScriptReserved_OnLoop[]			= "OnLoop";
 static constexpr char ScriptReserved_OnSave[]			= "OnSave";
 static constexpr char ScriptReserved_OnEnd[]			= "OnEnd";
 static constexpr char ScriptReserved_OnUseItem[]		= "OnUseItem";
+static constexpr char ScriptReserved_OnPickup[]			= "OnPickup";
+static constexpr char ScriptReserved_OnVehicleEnter[]	= "OnVehicleEnter";
+static constexpr char ScriptReserved_OnVehicleLeave[]	= "OnVehicleLeave";
 static constexpr char ScriptReserved_OnFreeze[]			= "OnFreeze";
 
 // Event types (volume events + global events)
-static constexpr char ScriptReserved_EventOnEnter[]		= "ENTER";
-static constexpr char ScriptReserved_EventOnInside[]	= "INSIDE";
-static constexpr char ScriptReserved_EventOnLeave[]		= "LEAVE";
-static constexpr char ScriptReserved_EventOnStart[]		= "START";
-static constexpr char ScriptReserved_EventOnLoad[]		= "LOAD";
-static constexpr char ScriptReserved_EventOnLoop[]		= "LOOP";
-static constexpr char ScriptReserved_EventOnSave[]		= "SAVE";
-static constexpr char ScriptReserved_EventOnEnd[]		= "END";
-static constexpr char ScriptReserved_EventOnUseItem[]	= "USE_ITEM";
-static constexpr char ScriptReserved_EventOnFreeze[]	= "FREEZE";
+static constexpr char ScriptReserved_EventOnVolumeEnter[]	= "VOLUME_ENTER";
+static constexpr char ScriptReserved_EventOnVolumeInside[]	= "VOLUME_INSIDE";
+static constexpr char ScriptReserved_EventOnVolumeLeave[]	= "VOLUME_LEAVE";
+static constexpr char ScriptReserved_EventOnStart[]			= "START";
+static constexpr char ScriptReserved_EventOnLoad[]			= "LOAD";
+static constexpr char ScriptReserved_EventOnLoop[]			= "LOOP";
+static constexpr char ScriptReserved_EventOnSave[]			= "SAVE";
+static constexpr char ScriptReserved_EventOnEnd[]			= "END";
+static constexpr char ScriptReserved_EventOnUseItem[]		= "USE_ITEM";
+static constexpr char ScriptReserved_EventOnPickup[]		= "PICKUP";
+static constexpr char ScriptReserved_EventOnVehicleEnter[]	= "VEHICLE_ENTER";
+static constexpr char ScriptReserved_EventOnVehicleLeave[]	= "VEHICLE_LEAVE";
+static constexpr char ScriptReserved_EventOnFreeze[]		= "FREEZE";
 
 // Member functions
 static constexpr char ScriptReserved_New[]					= "New";
@@ -222,6 +234,7 @@ static constexpr char ScriptReserved_GetOnKilled[]			= "GetOnKilled";
 static constexpr char ScriptReserved_SetOnKilled[]			= "SetOnKilled";
 static constexpr char ScriptReserved_GetOnHit[]				= "GetOnHit";
 static constexpr char ScriptReserved_SetOnHit[]				= "SetOnHit";
+static constexpr char ScriptReserved_SetOnLoop[]			= "SetOnLoop";
 static constexpr char ScriptReserved_ToVec2[]				= "ToVec2";
 static constexpr char ScriptReserved_AttachObjCamera[]		= "AttachObjCamera";
 static constexpr char ScriptReserved_AnimFromObject[]		= "AnimFromObject";
@@ -271,6 +284,27 @@ static constexpr char ScriptReserved_EnableLevelSelect[]		= "EnableLevelSelect";
 static constexpr char ScriptReserved_EnableHomeLevel[]			= "EnableHomeLevel";
 static constexpr char ScriptReserved_EnableLoadSave[]			= "EnableLoadSave";
 static constexpr char ScriptReserved_EnablePointFilter[]		= "EnablePointFilter";
+
+// Creature Functions
+static constexpr char ScriptReserved_Creature[]				= "Creature";
+static constexpr char ScriptReserved_GetMood[]				= "GetMood";
+static constexpr char ScriptReserved_SetMood[]				= "SetMood";
+static constexpr char ScriptReserved_GetCreatureTarget[]	= "GetTarget";
+static constexpr char ScriptReserved_GetTargetPosition[]	= "GetTargetPosition";
+static constexpr char ScriptReserved_SetCreatureTarget[]	= "SetTarget";
+static constexpr char ScriptReserved_GetAlerted[]			= "GetAlerted";
+static constexpr char ScriptReserved_SetAlerted[]			= "SetAlerted";
+static constexpr char ScriptReserved_GetFriendly[]			= "GetFriendly";
+static constexpr char ScriptReserved_SetFriendly[]			= "SetFriendly";
+static constexpr char ScriptReserved_GetHurtByPlayer[]		= "GetHurtByPlayer";
+static constexpr char ScriptReserved_SetHurtByPlayer[]		= "SetHurtByPlayer";
+static constexpr char ScriptReserved_GetPoisoned[]			= "GetPoisoned";
+static constexpr char ScriptReserved_SetPoisoned[]			= "SetPoisoned";
+static constexpr char ScriptReserved_GetAtGoal[]			= "GetAtGoal";
+static constexpr char ScriptReserved_SetAtGoal[]			= "SetAtGoal";
+static constexpr char ScriptReserved_GetJumping[]			= "GetJumping";
+static constexpr char ScriptReserved_GetMonkeying[]			= "GetMonkeying";
+static constexpr char ScriptReserved_MoodType[]				= "MoodType";
 
 // Flow Functions
 static constexpr char ScriptReserved_SetStrings[]			= "SetStrings";
@@ -344,6 +378,7 @@ static constexpr char ScriptReserved_HasLineOfSight[]				= "HasLineOfSight";
 
 static constexpr char ScriptReserved_AddCallback[]					= "AddCallback";
 static constexpr char ScriptReserved_RemoveCallback[]				= "RemoveCallback";
+static constexpr char ScriptReserved_HasCallback[]					= "HasCallback";
 static constexpr char ScriptReserved_HandleEvent[]					= "HandleEvent";
 static constexpr char ScriptReserved_EnableEvent[]					= "EnableEvent";
 static constexpr char ScriptReserved_DisableEvent[]					= "DisableEvent";
@@ -375,9 +410,14 @@ static constexpr char ScriptReserved_GetFOV[]						= "GetFOV";
 static constexpr char ScriptReserved_GetCameraType[]				= "GetCameraType";
 static constexpr char ScriptReserved_GetCameraRoom[]				= "GetCameraRoom";
 
+static constexpr char ScriptReserved_GetPostProcess[]				= "GetPostProcess";
+static constexpr char ScriptReserved_SetPostProcess[]				= "SetPostProcess";
 static constexpr char ScriptReserved_SetPostProcessMode[]			= "SetPostProcessMode";
 static constexpr char ScriptReserved_SetPostProcessStrength[]		= "SetPostProcessStrength";
+static constexpr char ScriptReserved_GetPostProcessTint[]			= "GetPostProcessTint";
 static constexpr char ScriptReserved_SetPostProcessTint[]			= "SetPostProcessTint";
+static constexpr char ScriptReserved_GetDOF[]						= "GetDOF";
+static constexpr char ScriptReserved_SetDOF[]						= "SetDOF";
 
 static constexpr char ScriptReserved_GetCameraPosition[]			= "GetCameraPosition";
 static constexpr char ScriptReserved_GetCameraTarget[]				= "GetCameraTarget";
@@ -438,6 +478,7 @@ static constexpr char ScriptReserved_BlendID[]					= "BlendID";
 static constexpr char ScriptReserved_EffectID[]					= "EffectID";
 static constexpr char ScriptReserved_CameraType[]				= "CameraType";
 static constexpr char ScriptReserved_PostProcessMode[]			= "PostProcessMode";
+static constexpr char ScriptReserved_DOFMode[]					= "DOFMode";
 static constexpr char ScriptReserved_SoundTrackType[]			= "SoundTrackType";
 static constexpr char ScriptReserved_LogLevel[]					= "LogLevel";
 static constexpr char ScriptReserved_RoomFlagID[]				= "RoomFlagID";
@@ -471,7 +512,6 @@ static constexpr char ScriptReserved_LaraObject[] = "LaraObject";
 // =========
 
 constexpr char ScriptReserved_Collision[]					= "Collision";
-
 constexpr char ScriptReserved_Probe[]						= "Probe";
 constexpr char ScriptReserved_ProbeGetCeilingHeight[]		= "GetCeilingHeight";
 constexpr char ScriptReserved_ProbeGetCeilingMaterialType[]	= "GetCeilingMaterialType";

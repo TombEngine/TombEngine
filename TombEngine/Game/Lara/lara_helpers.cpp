@@ -3,7 +3,6 @@
 
 #include <OISKeyboard.h>
 
-#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
@@ -22,6 +21,8 @@
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
@@ -1655,15 +1656,25 @@ void SetLaraVehicle(ItemInfo* item, ItemInfo* vehicle)
 
 	if (vehicle == nullptr)
 	{
-		if (lara->Context.Vehicle != NO_VALUE)
-			g_Level.Items[lara->Context.Vehicle].Active = false;
+		auto previousVehicle = lara->Context.Vehicle;
+
+		if (previousVehicle == NO_VALUE)
+			return;
+
+		g_GameScript->OnVehicleLeave(previousVehicle, false);
+
+		auto vehicleObjectNumber = g_Level.Items[previousVehicle].ObjectNumber;
+		if (vehicleObjectNumber != ID_SPEEDBOAT && vehicleObjectNumber != ID_RUBBER_BOAT) // Leave boat vehicles active for inertia.
+			g_Level.Items[previousVehicle].Active = false;
 
 		lara->Context.Vehicle = NO_VALUE;
+		g_GameScript->OnVehicleLeave(previousVehicle, true);
 	}
 	else
 	{
-		g_Level.Items[vehicle->Index].Active = true;
 		lara->Context.Vehicle = vehicle->Index;
+		g_Level.Items[vehicle->Index].Active = true;
+		g_GameScript->OnVehicleEnter(vehicle->Index, true);
 	}
 }
 

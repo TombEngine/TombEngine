@@ -91,6 +91,17 @@ float LinearizeDepth(float depth, float nearPlane, float farPlane)
 	return ((nearPlane * 2) / (farPlane + nearPlane - (depth * (farPlane - nearPlane))));
 }
 
+float3 ReconstructViewPosition(float2 uv, float depth, float4x4 inverseProjection)
+{
+	float x = uv.x * 2.0f - 1.0f;
+	float y = (1.0f - uv.y) * 2.0f - 1.0f;
+
+	float4 projectedPosition = float4(x, y, depth, 1.0f);
+	float4 position = mul(projectedPosition, inverseProjection);
+
+	return position.xyz / position.w;
+}
+
 float3 Mod289(float3 x)
 {
 	return (x - floor(x * (1 / 289.0f)) * 289.0f);
@@ -465,6 +476,11 @@ inline float3 SafeNormalize(float3 v)
     float invLen = rsqrt(max(l2, EPSILON));
     float mask = saturate(l2 / (l2 + EPSILON));
     return v * invLen * mask;
+}
+
+inline float2 SafeNormalize(float2 v)
+{
+    return SafeNormalize(float3(v, 0.0f)).xy;
 }
 
 float2 GetSamplePosition(float4 projectedPosition)

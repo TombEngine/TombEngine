@@ -180,7 +180,7 @@ namespace TEN::Entities::TR4
 			return;
 		}
 
-		auto* enemy = creature->Enemy;
+		auto* enemy = creature->Enemy.Get();
 
 		auto pos = GetJointPosition(item,joint);
 		int x = enemy->Pose.Position.x - pos.x;

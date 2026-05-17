@@ -412,7 +412,7 @@ namespace TEN::Entities::Creatures::TR5
 			}
 
 			CreatureMood(item, &AI, creature->Enemy != LaraItem);
-			auto* enemy = creature->Enemy;
+			auto* enemy = creature->Enemy.Get();
 
 			angle = CreatureTurn(item, creature->MaxTurn);
 			creature->Enemy = LaraItem;
@@ -947,7 +947,7 @@ namespace TEN::Entities::Creatures::TR5
 
 		if (creature->ReachedGoal && creature->Enemy)
 		{
-			auto enemy = creature->Enemy;
+			auto* enemy = creature->Enemy.Get();
 		
 			if (enemy->Flags != 4)
 			{
