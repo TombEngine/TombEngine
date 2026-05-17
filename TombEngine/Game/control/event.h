@@ -31,9 +31,9 @@ namespace TEN::Control::Volumes
 
 	enum class EventType
 	{
-		Enter,
-		Inside,
-		Leave,
+		VolumeEnter,
+		VolumeInside,
+		VolumeLeave,
 		Loop,
 		Load,
 		Save,
@@ -41,6 +41,9 @@ namespace TEN::Control::Volumes
 		End,
 		UseItem,
 		Freeze,
+		Pickup,
+		VehicleEnter,
+		VehicleLeave,
 
 		Count
 	};

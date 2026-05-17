@@ -856,10 +856,15 @@ const std::vector<byte> SaveGame::Build()
 	for (auto& itemToSerialize : g_Level.Items) 
 	{
 		auto luaNameOffset = fbb.CreateString(itemToSerialize.Name);
-		auto luaOnKilledNameOffset = fbb.CreateString(itemToSerialize.Callbacks.OnKilled);
-		auto luaOnHitNameOffset = fbb.CreateString(itemToSerialize.Callbacks.OnHit);
-		auto luaOnCollidedObjectNameOffset = fbb.CreateString(itemToSerialize.Callbacks.OnObjectCollided);
-		auto luaOnCollidedRoomNameOffset = fbb.CreateString(itemToSerialize.Callbacks.OnRoomCollided);
+		std::vector<flatbuffers::Offset<Save::ItemCallback>> itemCallbackOffsets;
+		for (int i = 0; i < (int)EntityCallbackPoint::Count; ++i)
+		{
+			if (itemToSerialize.Callbacks[i].empty())
+				continue;
+
+			itemCallbackOffsets.push_back(Save::CreateItemCallback(fbb, i, fbb.CreateString(itemToSerialize.Callbacks[i])));
+		}
+		auto itemCallbackVecOffset = fbb.CreateVector(itemCallbackOffsets);
 
 		std::vector<int> itemFlags;
 		for (int i = 0; i < ITEM_FLAG_COUNT; i++)
@@ -913,6 +918,7 @@ const std::vector<byte> SaveGame::Build()
 			creatureBuilder.add_fly_rate(creature->FlyRate);
 			creatureBuilder.add_monkey_swing_ahead(creature->MonkeySwingAhead);
 			creatureBuilder.add_mood((int)creature->Mood);
+			creatureBuilder.add_forced_mood(creature->ForcedMood.has_value() ? (int)creature->ForcedMood.value() : NO_VALUE);
 			creatureBuilder.add_patrol(creature->Patrol);
 			creatureBuilder.add_poisoned(creature->Poisoned);
 			creatureBuilder.add_reached_goal(creature->ReachedGoal);
@@ -1142,10 +1148,7 @@ const std::vector<byte> SaveGame::Build()
 		}
 
 		serializedItem.add_lua_name(luaNameOffset);
-		serializedItem.add_lua_on_killed_name(luaOnKilledNameOffset);
-		serializedItem.add_lua_on_hit_name(luaOnHitNameOffset);
-		serializedItem.add_lua_on_collided_with_object_name(luaOnCollidedObjectNameOffset);
-		serializedItem.add_lua_on_collided_with_room_name(luaOnCollidedRoomNameOffset);
+		serializedItem.add_lua_callbacks(itemCallbackVecOffset);
 
 		auto serializedItemOffset = serializedItem.Finish();
 		serializedItems.push_back(serializedItemOffset);
@@ -1695,57 +1698,20 @@ const std::vector<byte> SaveGame::Build()
 	uvb.add_members(unionVec);
 	auto unionVecOffset = uvb.Finish();
 
-	std::vector<std::string> callbackVecPreStart;
-	std::vector<std::string> callbackVecPostStart;
+	CallbackStringLists callbackLists = {};
+	g_GameScript->GetCallbackStrings(callbackLists);
 
-	std::vector<std::string> callbackVecPreEnd;
-	std::vector<std::string> callbackVecPostEnd;
+	std::vector<flatbuffers::Offset<Save::CallbackSet>> callbackOffsets = {};
+	for (int i = 0; i < (int)callbackLists.size(); ++i)
+	{
+		if (callbackLists[i].empty())
+			continue;
 
-	std::vector<std::string> callbackVecPreSave;
-	std::vector<std::string> callbackVecPostSave;
+		auto callbackNamesOffset = fbb.CreateVectorOfStrings(callbackLists[i]);
+		callbackOffsets.push_back(Save::CreateCallbackSet(fbb, i, callbackNamesOffset));
+	}
 
-	std::vector<std::string> callbackVecPreLoad;
-	std::vector<std::string> callbackVecPostLoad;
-
-	std::vector<std::string> callbackVecPreLoop;
-	std::vector<std::string> callbackVecPostLoop;
-
-	std::vector<std::string> callbackVecPreUseItem;
-	std::vector<std::string> callbackVecPostUseItem;
-
-	std::vector<std::string> callbackVecPreFreeze;
-	std::vector<std::string> callbackVecPostFreeze;
-
-	g_GameScript->GetCallbackStrings(
-		callbackVecPreStart,
-		callbackVecPostStart,
-		callbackVecPreEnd,
-		callbackVecPostEnd,
-		callbackVecPreSave,
-		callbackVecPostSave,
-		callbackVecPreLoad,
-		callbackVecPostLoad,
-		callbackVecPreLoop,
-		callbackVecPostLoop,
-		callbackVecPreUseItem,
-		callbackVecPostUseItem,
-		callbackVecPreFreeze,
-		callbackVecPostFreeze);
-
-	auto stringsCallbackPreStart = fbb.CreateVectorOfStrings(callbackVecPreStart);
-	auto stringsCallbackPostStart = fbb.CreateVectorOfStrings(callbackVecPostStart);
-	auto stringsCallbackPreEnd = fbb.CreateVectorOfStrings(callbackVecPreEnd);
-	auto stringsCallbackPostEnd = fbb.CreateVectorOfStrings(callbackVecPostEnd);
-	auto stringsCallbackPreSave = fbb.CreateVectorOfStrings(callbackVecPreSave);
-	auto stringsCallbackPostSave = fbb.CreateVectorOfStrings(callbackVecPostSave);
-	auto stringsCallbackPreLoad = fbb.CreateVectorOfStrings(callbackVecPreLoad);
-	auto stringsCallbackPostLoad = fbb.CreateVectorOfStrings(callbackVecPostLoad);
-	auto stringsCallbackPreLoop = fbb.CreateVectorOfStrings(callbackVecPreLoop);
-	auto stringsCallbackPostLoop = fbb.CreateVectorOfStrings(callbackVecPostLoop);
-	auto stringsCallbackPreUseItem = fbb.CreateVectorOfStrings(callbackVecPreUseItem);
-	auto stringsCallbackPostUseItem = fbb.CreateVectorOfStrings(callbackVecPostUseItem);
-	auto stringsCallbackPreFreeze = fbb.CreateVectorOfStrings(callbackVecPreFreeze);
-	auto stringsCallbackPostFreeze = fbb.CreateVectorOfStrings(callbackVecPostFreeze);
+	auto callbacksOffset = fbb.CreateVector(callbackOffsets);
 
 	Save::SaveGameBuilder sgb{ fbb };
 
@@ -1809,27 +1775,7 @@ const std::vector<byte> SaveGame::Build()
 	}
 
 	sgb.add_script_vars(unionVecOffset);
-
-	sgb.add_callbacks_pre_start(stringsCallbackPreStart);
-	sgb.add_callbacks_post_start(stringsCallbackPostStart);
-
-	sgb.add_callbacks_pre_end(stringsCallbackPreEnd);
-	sgb.add_callbacks_post_end(stringsCallbackPostEnd);
-
-	sgb.add_callbacks_pre_save(stringsCallbackPreSave);
-	sgb.add_callbacks_post_save(stringsCallbackPostSave);
-
-	sgb.add_callbacks_pre_load(stringsCallbackPreLoad);
-	sgb.add_callbacks_post_load(stringsCallbackPostLoad);
-
-	sgb.add_callbacks_pre_loop(stringsCallbackPreLoop);
-	sgb.add_callbacks_post_loop(stringsCallbackPostLoop);
-
-	sgb.add_callbacks_pre_useitem(stringsCallbackPreUseItem);
-	sgb.add_callbacks_post_useitem(stringsCallbackPostUseItem);
-
-	sgb.add_callbacks_pre_freeze(stringsCallbackPreFreeze);
-	sgb.add_callbacks_post_freeze(stringsCallbackPostFreeze);
+	sgb.add_callbacks(callbacksOffset);
 
 	auto sg = sgb.Finish();
 	fbb.Finish(sg);
@@ -1889,7 +1835,6 @@ bool SaveGame::Save(int slot)
 		return false;
 
 	g_GameScript->OnSave();
-	HandleAllGlobalEvents(EventType::Save, (Activator)short(LaraItem->Index));
 
 	// Savegame infos need to be reloaded so that last savegame counter properly increases.
 	LoadHeaders();
@@ -2108,53 +2053,26 @@ static void ParseLua(const Save::SaveGame* s, bool hubMode)
 
 	// Callbacks
 
-	auto populateCallbackVecs = [&s](auto callbackFunc)
+	CallbackStringLists callbackLists = {};
+	auto callbackSets = s->callbacks();
+	if (callbackSets)
 	{
-		auto callbacksVec = std::vector<std::string>{};
-		auto callbacksOffsetVec = std::invoke(callbackFunc, s);
+		for (const auto& callbackSet : *callbackSets)
+		{
+			auto point = callbackSet->point();
+			if (point < 0 || point >= (int)callbackLists.size())
+				continue;
 
-		for (const auto& e : *callbacksOffsetVec)
-			callbacksVec.push_back(e->str());
+			auto callbackNames = callbackSet->callbacks();
+			if (!callbackNames)
+				continue;
 
-		return callbacksVec;
-	};
+			for (const auto& callbackName : *callbackNames)
+				callbackLists[point].push_back(callbackName->str());
+		}
+	}
 
-	auto callbacksPreStartVec = populateCallbackVecs(&Save::SaveGame::callbacks_pre_start);
-	auto callbacksPostStartVec = populateCallbackVecs(&Save::SaveGame::callbacks_post_start);
-
-	auto callbacksPreEndVec = populateCallbackVecs(&Save::SaveGame::callbacks_pre_end);
-	auto callbacksPostEndVec = populateCallbackVecs(&Save::SaveGame::callbacks_post_end);
-
-	auto callbacksPreSaveVec = populateCallbackVecs(&Save::SaveGame::callbacks_pre_save);
-	auto callbacksPostSaveVec = populateCallbackVecs(&Save::SaveGame::callbacks_post_save);
-
-	auto callbacksPreLoadVec = populateCallbackVecs(&Save::SaveGame::callbacks_pre_load);
-	auto callbacksPostLoadVec = populateCallbackVecs(&Save::SaveGame::callbacks_post_load);
-
-	auto callbacksPreLoopVec = populateCallbackVecs(&Save::SaveGame::callbacks_pre_loop);
-	auto callbacksPostLoopVec = populateCallbackVecs(&Save::SaveGame::callbacks_post_loop);
-
-	auto callbacksPreUseItemVec = populateCallbackVecs(&Save::SaveGame::callbacks_pre_useitem);
-	auto callbacksPostUseItemVec = populateCallbackVecs(&Save::SaveGame::callbacks_post_useitem);
-
-	auto callbacksPreFreezeVec = populateCallbackVecs(&Save::SaveGame::callbacks_pre_freeze);
-	auto callbacksPostFreezeVec = populateCallbackVecs(&Save::SaveGame::callbacks_post_freeze);
-
-	g_GameScript->SetCallbackStrings(
-		callbacksPreStartVec,
-		callbacksPostStartVec,
-		callbacksPreEndVec,
-		callbacksPostEndVec,
-		callbacksPreSaveVec,
-		callbacksPostSaveVec,
-		callbacksPreLoadVec,
-		callbacksPostLoadVec,
-		callbacksPreLoopVec,
-		callbacksPostLoopVec,
-		callbacksPreUseItemVec,
-		callbacksPostUseItemVec,
-		callbacksPreFreezeVec,
-		callbacksPostFreezeVec);
+	g_GameScript->SetCallbackStrings(callbackLists);
 }
 
 static void ParsePlayer(const Save::SaveGame* s)
@@ -2820,10 +2738,21 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		if (!item->Name.empty())
 			g_GameScriptEntities->AddName(item->Name, (short)i);
 
-		item->Callbacks.OnKilled = savedItem->lua_on_killed_name()->str();
-		item->Callbacks.OnHit = savedItem->lua_on_hit_name()->str();
-		item->Callbacks.OnObjectCollided = savedItem->lua_on_collided_with_object_name()->str();
-		item->Callbacks.OnRoomCollided = savedItem->lua_on_collided_with_room_name()->str();
+		// Clear callbacks in case some of the callbacks were removed in the runtime before saving the game.
+		item->Callbacks.fill({});
+
+		auto itemCallbacks = savedItem->lua_callbacks();
+		if (itemCallbacks)
+		{
+			for (const auto& entry : *itemCallbacks)
+			{
+				auto type = entry->type();
+				auto name = entry->name();
+
+				if (type >= 0 && type < (int)EntityCallbackPoint::Count && name)
+					item->Callbacks[type] = entry->name()->str();
+			}
+		}
 
 		g_GameScriptEntities->TryAddColliding(i);
 
@@ -2972,6 +2901,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			creature->FlyRate = savedCreature->fly_rate();
 			creature->MonkeySwingAhead = savedCreature->monkey_swing_ahead();
 			creature->Mood = (MoodType)savedCreature->mood();
+			creature->ForcedMood = savedCreature->forced_mood() == NO_VALUE ? std::nullopt : std::optional((MoodType)savedCreature->forced_mood());
 			creature->Patrol = savedCreature->patrol();
 			creature->Poisoned = savedCreature->poisoned();
 			creature->ReachedGoal = savedCreature->reached_goal();

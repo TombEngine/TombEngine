@@ -139,7 +139,7 @@ namespace TEN::Entities::Creatures::TR5
 
 			if (creature->ReachedGoal)
 			{
-				auto* enemy = creature->Enemy;
+				auto* enemy = creature->Enemy.Get();
 
 				if (enemy != nullptr)
 				{
