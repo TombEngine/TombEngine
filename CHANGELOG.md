@@ -10,7 +10,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added heat haze for flame emitters and effects.
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
-* Added native support for DualShock, DualSense and Switch Pro controllers. 
+* Added native support for DualShock, DualSense and Switch Pro controllers.
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
 * Added [DRILL_BIT](https://tombengine.com/asset/traps/drill-bit/) object from TR3.
 * Added [FUSEBOX_SWITCH](https://tombengine.com/asset/switches/fusebox-switch/) object from TR3.

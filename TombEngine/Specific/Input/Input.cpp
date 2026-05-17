@@ -381,7 +381,7 @@ namespace TEN::Input
 
 			float normalizedValue = 0.0f;
 			if (std::abs((int)raw) >= AXIS_DEADZONE)
-				normalizedValue = (float)(raw + (raw > 0 ? -AXIS_DEADZONE : AXIS_DEADZONE)) / (float)(SHRT_MAX - AXIS_DEADZONE);
+				normalizedValue = std::clamp((float)(raw + (raw > 0 ? -AXIS_DEADZONE : AXIS_DEADZONE)) / (float)(SHRT_MAX - AXIS_DEADZONE), -1.0f, 1.0f);
 
 			float absNormalizedValue = std::abs(normalizedValue);
 			if (absNormalizedValue <= EPSILON)
