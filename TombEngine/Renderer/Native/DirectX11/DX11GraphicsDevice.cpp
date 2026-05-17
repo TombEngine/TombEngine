@@ -275,7 +275,7 @@ namespace TEN::Renderer::Native::DirectX11
 			return;
 		}
 
-		_context->PSSetSamplers((unsigned int)registerType, 1, &d3dSamplerState);
+		_context->PSSetSamplers((unsigned int)samplerType, 1, &d3dSamplerState);
 	}
 
 	void DX11GraphicsDevice::UnbindTexture(ShaderStage stage, TextureRegister registerType)

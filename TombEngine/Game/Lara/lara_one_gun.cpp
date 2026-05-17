@@ -1699,7 +1699,8 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 					}
 				}
 			}
-			else if (itemPtr->ObjectNumber >= ID_SHOOT_SWITCH1 && itemPtr->ObjectNumber <= ID_SHOOT_SWITCH4)
+			else if (itemPtr->ObjectNumber >= ID_SHOOT_SWITCH1 && itemPtr->ObjectNumber <= ID_SHOOT_SWITCH4 ||
+			         itemPtr->ObjectNumber == ID_FUSEBOX_SWITCH)
 			{
 				doShatter = hasHit = true;
 				doExplosion = isExplosive;
