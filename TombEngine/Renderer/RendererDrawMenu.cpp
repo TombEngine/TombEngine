@@ -88,6 +88,33 @@ namespace TEN::Renderer
 		}
 	}
 
+	inline const int GetEffectiveBoundKeyID(ActionID actionID)
+	{
+		int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, actionID);
+		int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, actionID);
+		return (userKeyID != KEY_UNASSIGNED) ? userKeyID : defaultKeyID;
+	}
+
+	std::vector<bool> GetBindingConflictMask(ActionID baseActionID, int actionCount)
+	{
+		std::vector<bool> conflicts(actionCount, false);
+		std::unordered_map<std::string, int> firstActionIndexByBinding = {};
+		firstActionIndexByBinding.reserve(actionCount);
+
+		for (int i = 0; i < actionCount; i++)
+		{
+			int keyID = GetEffectiveBoundKeyID((ActionID)((int)baseActionID + i));
+			if (keyID == KEY_UNASSIGNED)
+				continue;
+
+			auto [it, inserted] = firstActionIndexByBinding.try_emplace(GetKeyName(keyID), i);
+			if (!inserted)
+				conflicts[it->second] = conflicts[i] = true;
+		}
+
+		return conflicts;
+	}
+
 	// These bars are only used in menus.
 	TEN::Renderer::RendererHudBar* g_MusicVolumeBar = nullptr;
 	TEN::Renderer::RendererHudBar* g_SFXVolumeBar	= nullptr;
@@ -329,6 +356,7 @@ namespace TEN::Renderer
 			{
 				// Set up needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Forward, (int)GeneralActionStrings.size());
 
 				// Arrows
 				AddString(RIGHT_ARROW_X_OFFSET, y, RIGHT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -349,11 +377,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)k);
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)k);
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)((int)In::Forward + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (GeneralActionStrings.size() - 1))
@@ -379,6 +404,7 @@ namespace TEN::Renderer
 			{
 				// Set up needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Accelerate, (int)VehicleActionStrings.size());
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -402,11 +428,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)(baseIndex + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (VehicleActionStrings.size() - 1))
@@ -438,6 +461,7 @@ namespace TEN::Renderer
 			{
 				// Set up needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Flare, (int)QuickActionStrings.size());
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -461,11 +485,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)(baseIndex + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (QuickActionStrings.size() - 1))
@@ -491,6 +512,7 @@ namespace TEN::Renderer
 			{
 				// Setup needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Pause, (int)MenuActionStrings.size());
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -513,11 +535,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)(baseIndex + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (MenuActionStrings.size() - 1))
