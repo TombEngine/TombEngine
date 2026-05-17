@@ -353,6 +353,54 @@ namespace TEN::Scripting::Input
 		// @mem NUM0
 		{ "NUM0", In::Num0 },
 
+		/// Function key F1.
+		// @mem F1
+		{ "F1", In::F1 },
+
+		/// Function key F2.
+		// @mem F2
+		{ "F2", In::F2 },
+
+		/// Function key F3.
+		// @mem F3
+		{ "F3", In::F3 },
+
+		/// Function key F4.
+		// @mem F4
+		{ "F4", In::F4 },
+
+		/// Function key F5.
+		// @mem F5
+		{ "F5", In::F5 },
+
+		/// Function key F6.
+		// @mem F6
+		{ "F6", In::F6 },
+
+		/// Function key F7.
+		// @mem F7
+		{ "F7", In::F7 },
+
+		/// Function key F8.
+		// @mem F8
+		{ "F8", In::F8 },
+
+		/// Function key F9.
+		// @mem F9
+		{ "F9", In::F9 },
+
+		/// Function key F10.
+		// @mem F10
+		{ "F10", In::F10 },
+
+		/// Function key F11.
+		// @mem F11
+		{ "F11", In::F11 },
+
+		/// Function key F12.
+		// @mem F12
+		{ "F12", In::F12 },
+
 		/// Return/Enter key.
 		// @mem RETURN
 		{ "RETURN", In::Return },
