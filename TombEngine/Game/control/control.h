@@ -106,4 +106,4 @@ void DeInitializeScripting(int levelIndex, GameStatus reason);
 
 void SetupInterpolation();
 
-unsigned CALLBACK GameMain(void*);
+int SDLCALL GameMain(void*);

@@ -32,9 +32,13 @@
 #include "Objects/TR2/Entity/tr2_yeti.h" // OK
 
 // Traps
+#include "Objects/Generic/Traps/Pendulum.h"
+#include "Objects/TR2/Trap/CircularSaw.h"
+#include "Objects/TR2/Trap/OverheadPulleyHook.h"
 #include "Objects/TR2/Trap/tr2_spinningblade.h"
 #include "Objects/TR2/Trap/tr2_springboard.h"
 #include "Objects/TR2/Trap/tr2_killerstatue.h"
+#include "Objects/TR5/Object/tr5_rollingball.h"
 
 // Vehicles
 #include "Objects/TR2/Vehicles/speedboat.h"
@@ -549,6 +553,67 @@ static void StartTrap(ObjectInfo* obj)
 		obj->Initialize = InitializeKillerStatue;
 		obj->control = ControlKillerStatue;
 		obj->collision = ObjectCollision;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_SWINGING_SANDBAG];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializePendulum;
+		obj->control = ControlPendulum;
+		obj->collision = CollidePendulum;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_SWINGING_BOX];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializePendulum;
+		obj->control = ControlPendulum;
+		obj->collision = CollidePendulum;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_SWINGING_SPIKE_BAG];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializePendulum;
+		obj->control = ControlPendulum;
+		obj->collision = CollidePendulum;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_OVERHEAD_PULLEY_HOOK];
+	if (obj->loaded)
+	{
+		obj->control = ControlOverheadPulleyHook;
+		obj->collision = CollideOverheadPulleyHook;
+	}
+
+	obj = &Objects[ID_CIRCULAR_SAW];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeCircularSaw;
+		obj->control = ControlCircularSaw;
+		obj->collision = CollideCircularSaw;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_ROLLING_BARRELS];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeClassicRollingBall;
+		obj->control = ClassicRollingBallControl;
+		obj->collision = ClassicRollingBallCollision;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_MULTIPLE_BOULDERS];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeClassicRollingBall;
+		obj->control = ClassicRollingBallControl;
+		obj->collision = ClassicRollingBallCollision;
 		obj->SetHitEffect(true);
 	}
 }

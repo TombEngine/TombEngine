@@ -130,7 +130,7 @@ namespace TEN::Entities::Creatures::TR5
 			fx.Animation.Velocity.z = BLOCK(0.25f);
 
 		fx.Animation.Velocity.y = 0;
-		fx.Model.Color = Vector4::One;
+		fx.Model.Color = NEUTRAL_COLOR;
 		fxInfo.Counter = 0;
 		fxInfo.Flag1 = 2;
 		fxInfo.Flag2 = 0x2000;

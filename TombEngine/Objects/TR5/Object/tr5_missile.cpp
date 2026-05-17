@@ -211,7 +211,7 @@ void ExplodeFX(const ItemInfo& fx, int noXZVel, int bits)
 
 	ShatterItem.yRot = fx.Pose.Orientation.y;
 	ShatterItem.meshIndex = fx.Animation.FrameNumber;
-	ShatterItem.color = Vector4::One;
+	ShatterItem.color = NEUTRAL_COLOR;
 	ShatterItem.sphere.Center = fx.Pose.Position.ToVector3();
 	ShatterItem.bit = 0;
 	ShatterItem.flags = fxInfo.Flag2 & 0x1400;

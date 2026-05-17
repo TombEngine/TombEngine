@@ -73,7 +73,7 @@ namespace TEN::Entities::Traps
 		spark->scalar = spark->life < 32 ? 4 : 3;
 		spark->size = (GetRandomControl() & 7) + 20;
 		spark->sSize = spark->size;
-		spark->dSize = static_cast<int>(spark->size) >> 3;
+		spark->dSize = spark->size / 8.0f;
 
 		spark->SpriteSeqID = ID_DEFAULT_SPRITES;
 		spark->SpriteID = 0;
@@ -166,7 +166,7 @@ namespace TEN::Entities::Traps
 		r += 125 - ((GetRandomControl() / 16) & 4);
 		g += 98 - ((GetRandomControl() / 16) & 8);
 
-		auto color = Color(r / (float)CHAR_MAX, g / (float)CHAR_MAX, b / (float)CHAR_MAX);
+		auto color = Color(r / (float)UCHAR_MAX, g / (float)UCHAR_MAX, b / (float)UCHAR_MAX);
 
 		if (item.TriggerFlags)
 			SpawnDynamicFogBulb(pos.ToVector3(), PENDULUM_FIRE_FOG_RADIUS, PENDULUM_FIRE_FOG_DENSITY, color);

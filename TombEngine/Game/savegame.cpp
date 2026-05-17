@@ -13,6 +13,7 @@
 #include "Objects/Effects/Fireflies.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/effects.h"
+#include "Game/effects/Hair.h"
 #include "Game/effects/weather.h"
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
@@ -50,6 +51,7 @@ using namespace TEN::Collision::Floordata;
 using namespace TEN::Control::Volumes;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Fireflies;
+using namespace TEN::Effects::Hair;
 using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Creatures::TR3;
 using namespace TEN::Entities::Generic;
@@ -64,7 +66,7 @@ using namespace TEN::Video;
 namespace Save = TEN::Save;
 
 constexpr auto SAVEGAME_MAX_SLOT    = 99;
-constexpr auto SAVEGAME_PATH	    = "Save//";
+constexpr auto SAVEGAME_PATH	    = "Save/";
 constexpr auto SAVEGAME_FILE_MASK   = "savegame.";
 constexpr auto GLOBAL_VARS_FILENAME = "savegame.global";
 
@@ -786,6 +788,14 @@ const std::vector<byte> SaveGame::Build()
 	}
 	auto carriedWeaponsOffset = fbb.CreateVector(carriedWeapons);
 
+	Save::PlayerSkinDataBuilder skinData{ fbb };
+	skinData.add_skin((int)Lara.Skin.Skin);
+	skinData.add_skin_joints((int)Lara.Skin.SkinJoints);
+	skinData.add_skin_scream((int)Lara.Skin.SkinScream);
+	skinData.add_hair_primary((int)Lara.Skin.HairPrimary);
+	skinData.add_hair_secondary((int)Lara.Skin.HairSecondary);
+	auto skinDataOffset = skinData.Finish();
+
 	Save::LaraBuilder lara{ fbb };
 	lara.add_context(contextOffset);
 	lara.add_control(controlOffset);
@@ -808,6 +818,7 @@ const std::vector<byte> SaveGame::Build()
 	lara.add_target_entity_number(Lara.TargetEntity == nullptr ? -1 : Lara.TargetEntity->Index);
 	lara.add_torch(torchOffset);
 	lara.add_weapons(carriedWeaponsOffset);
+	lara.add_skin(skinDataOffset);
 	auto laraOffset = lara.Finish();
 
 	std::vector<flatbuffers::Offset<Save::Room>> rooms;
@@ -1828,6 +1839,12 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_global_event_sets(globalEventSetsOffset);
 	sgb.add_volume_event_sets(volumeEventSetsOffset);
 
+	auto dof = g_Renderer.GetDOF();
+	sgb.add_dof_distance(dof.Distance);
+	sgb.add_dof_range(dof.Range);
+	sgb.add_dof_strength(dof.Strength);
+	sgb.add_dof_mode((int)dof.Mode);
+
 	if (Lara.Control.Rope.Ptr != -1)
 	{
 		sgb.add_rope(ropeOffset);
@@ -1928,7 +1945,7 @@ bool SaveGame::Save(int slot)
 		std::filesystem::create_directory(FullSaveDirectory);
 
 	std::ofstream fileOut{};
-	fileOut.open(filename, std::ios_base::binary | std::ios_base::out);
+	fileOut.open(std::filesystem::path{filename}, std::ios_base::binary | std::ios_base::out);
 
 	// Write current level save data.
 	auto currentLevelState = SaveGame::Build();
@@ -1968,7 +1985,7 @@ bool SaveGame::Load(int slot)
 	auto file = std::ifstream();
 	try
 	{
-		file.open(fileName, std::ios_base::app | std::ios_base::binary);
+		file.open(std::filesystem::path{fileName}, std::ios_base::app | std::ios_base::binary);
 
 		int size = 0;
 		file.read(reinterpret_cast<char*>(&size), sizeof(size));
@@ -2189,38 +2206,38 @@ static void ParsePlayer(const Save::SaveGame* s)
 	// Restore current inventory item.
 	g_Gui.SetLastInventoryItem(s->last_inv_item());
 
-	ZeroMemory(&Lara, sizeof(LaraInfo));
+	memset(&Lara, 0, sizeof(LaraInfo));
 
 	// Player
-	ZeroMemory(Lara.Inventory.Puzzles, NUM_PUZZLES * sizeof(int));
+	memset(Lara.Inventory.Puzzles, 0, NUM_PUZZLES * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->puzzles()->size(); i++)
 		Lara.Inventory.Puzzles[i] = s->lara()->inventory()->puzzles()->Get(i);
 
-	ZeroMemory(Lara.Inventory.PuzzlesCombo, NUM_PUZZLES * 2 * sizeof(int));
+	memset(Lara.Inventory.PuzzlesCombo, 0, NUM_PUZZLES * 2 * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->puzzles_combo()->size(); i++)
 		Lara.Inventory.PuzzlesCombo[i] = s->lara()->inventory()->puzzles_combo()->Get(i);
 
-	ZeroMemory(Lara.Inventory.Keys, NUM_KEYS * sizeof(int));
+	memset(Lara.Inventory.Keys, 0, NUM_KEYS * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->keys()->size(); i++)
 		Lara.Inventory.Keys[i] = s->lara()->inventory()->keys()->Get(i);
 
-	ZeroMemory(Lara.Inventory.KeysCombo, NUM_KEYS * 2 * sizeof(int));
+	memset(Lara.Inventory.KeysCombo, 0, NUM_KEYS * 2 * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->keys_combo()->size(); i++)
 		Lara.Inventory.KeysCombo[i] = s->lara()->inventory()->keys_combo()->Get(i);
 
-	ZeroMemory(Lara.Inventory.Pickups, NUM_PICKUPS * sizeof(int));
+	memset(Lara.Inventory.Pickups, 0, NUM_PICKUPS * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->pickups()->size(); i++)
 		Lara.Inventory.Pickups[i] = s->lara()->inventory()->pickups()->Get(i);
 
-	ZeroMemory(Lara.Inventory.PickupsCombo, NUM_PICKUPS * 2 * sizeof(int));
+	memset(Lara.Inventory.PickupsCombo, 0, NUM_PICKUPS * 2 * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->pickups_combo()->size(); i++)
 		Lara.Inventory.PickupsCombo[i] = s->lara()->inventory()->pickups_combo()->Get(i);
 
-	ZeroMemory(Lara.Inventory.Examines, NUM_EXAMINES * sizeof(int));
+	memset(Lara.Inventory.Examines, 0, NUM_EXAMINES * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->examines()->size(); i++)
 		Lara.Inventory.Examines[i] = s->lara()->inventory()->examines()->Get(i);
 
-	ZeroMemory(Lara.Inventory.ExaminesCombo, NUM_EXAMINES * 2 * sizeof(int));
+	memset(Lara.Inventory.ExaminesCombo, 0, NUM_EXAMINES * 2 * sizeof(int));
 	for (int i = 0; i < s->lara()->inventory()->examines_combo()->size(); i++)
 		Lara.Inventory.ExaminesCombo[i] = s->lara()->inventory()->examines_combo()->Get(i);
 
@@ -2378,6 +2395,29 @@ static void ParsePlayer(const Save::SaveGame* s)
 		Lara.Weapons[i].WeaponMode = (LaraWeaponTypeCarried)info->weapon_mode();
 	}
 
+	// Skin.
+	if (s->lara()->skin() != nullptr)
+	{
+		Lara.Skin.Skin          = (GAME_OBJECT_ID)s->lara()->skin()->skin();
+		Lara.Skin.SkinJoints    = (GAME_OBJECT_ID)s->lara()->skin()->skin_joints();
+		Lara.Skin.SkinScream	= (GAME_OBJECT_ID)s->lara()->skin()->skin_scream();
+		Lara.Skin.HairPrimary   = (GAME_OBJECT_ID)s->lara()->skin()->hair_primary();
+		Lara.Skin.HairSecondary = (GAME_OBJECT_ID)s->lara()->skin()->hair_secondary();
+	}
+	else
+	{
+		Lara.Skin.Skin				= ID_LARA_SKIN;
+		Lara.Skin.SkinJoints		= ID_LARA_SKIN_JOINTS;
+		Lara.Skin.SkinScream		= ID_LARA_SCREAM;
+		Lara.Skin.HairPrimary		= ID_HAIR_PRIMARY;
+		Lara.Skin.HairSecondary		= ID_HAIR_SECONDARY;
+	}
+
+	HairEffect.Initialize();
+
+	g_Renderer.UpdatePlayerSkinVertices(Lara.Skin.Skin, Lara.Skin.SkinJoints,
+		Lara.Skin.HairPrimary, Lara.Skin.HairSecondary);
+
 	// Rope
 	if (Lara.Control.Rope.Ptr >= 0)
 	{
@@ -2438,6 +2478,10 @@ static void ParseEffects(const Save::SaveGame* s)
 {
 	// Restore camera FOV.
 	AlterFOV(s->current_fov());
+
+	// Restore DOF.
+	DOFState dof = { (DOFMode)s->dof_mode(), s->dof_distance(), s->dof_range(), s->dof_strength() };
+	g_Renderer.SetDOF(dof);
 
 	// Restore postprocess effects.
 	g_Renderer.SetPostProcessMode((PostProcessMode)s->postprocess_mode());
@@ -3218,7 +3262,7 @@ bool SaveGame::LoadHeader(int slot, SaveGameHeader* header)
 	auto fileName = GetSavegameFilename(slot);
 
 	std::ifstream file;
-	file.open(fileName, std::ios_base::app | std::ios_base::binary);
+	file.open(std::filesystem::path{fileName}, std::ios_base::app | std::ios_base::binary);
 
 	file.seekg(0, std::ios::end);
 	size_t length = file.tellg();
@@ -3300,7 +3344,7 @@ bool SaveGame::SaveGlobalVars()
 		auto filename = FullSaveDirectory + GLOBAL_VARS_FILENAME;
 
 		std::ofstream fileOut{};
-		fileOut.open(filename, std::ios_base::binary | std::ios_base::out);
+		fileOut.open(std::filesystem::path{filename}, std::ios_base::binary | std::ios_base::out);
 
 		if (!fileOut.is_open())
 		{
@@ -3342,7 +3386,7 @@ bool SaveGame::LoadGlobalVars()
 	try
 	{
 		auto file = std::ifstream();
-		file.open(filename, std::ios_base::binary | std::ios_base::ate);
+		file.open(std::filesystem::path{filename}, std::ios_base::binary | std::ios_base::ate);
 
 		if (!file.is_open() || !file.good())
 		{

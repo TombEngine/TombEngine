@@ -83,7 +83,7 @@ namespace TEN::Entities::Creatures::TR2
 		fx.Animation.Velocity.z = vel;
 		fx.Animation.Velocity.y = 0;
 		fxInfo.Flag2 = KNIFE_PROJECTILE_DAMAGE;
-		fx.Model.Color = Vector4::One;
+		fx.Model.Color = NEUTRAL_COLOR;
 
 		return fxNumber;
 	}

@@ -1024,6 +1024,6 @@ namespace TEN::Entities
 
 	void AllocTR4Objects()
 	{
-		ZeroMemory(BeetleSwarm, NUM_BEETLES * sizeof(BeetleData));
+		memset(BeetleSwarm, 0, NUM_BEETLES * sizeof(BeetleData));
 	}
 }

@@ -144,23 +144,25 @@ namespace TEN::Entities::TR4
 
 	void TriggerRiseEffect(const ItemInfo& item)
 	{
-		int fxNumber = CreateNewEffect(item.RoomNumber, ID_BODY_PART, item.Pose);
+		int fxNumber = CreateNewEffect(item.RoomNumber, ID_BODY_PART,
+			Pose(
+				Vector3(
+					(byte)GetRandomControl() + item.Pose.Position.x - 128,
+					GetPointCollision(item).GetFloorHeight(),
+					(byte)GetRandomControl() + item.Pose.Position.z - 128),
+				EulerAngles(0, 2 * GetRandomControl(), 0)));
+
 		if (fxNumber == NO_VALUE)
 			return;
 
 		auto& fx = g_Level.Items[fxNumber];
 		auto& fxInfo = GetFXInfo(fx);
 
-		fx.Pose.Position.x = (byte)GetRandomControl() + item.Pose.Position.x - 128;
-		fx.Pose.Position.y = GetPointCollision(item).GetFloorHeight();
-		fx.Pose.Position.z = (byte)GetRandomControl() + item.Pose.Position.z - 128;
-		fx.Pose.Orientation.y = 2 * GetRandomControl();
-		fx.RoomNumber = item.RoomNumber;
 		fx.Animation.Velocity.z = GetRandomControl() / 2048;
 		fx.Animation.Velocity.y = -(GetRandomControl() / 1024);
 		fx.Animation.FrameNumber = Objects[103].meshIndex;
 		fx.ObjectNumber = ID_BODY_PART;
-		fx.Model.Color = Vector4::One;
+		fx.Model.Color = NEUTRAL_COLOR;
 		fxInfo.Flag2 = 0x601;
 
 		auto* spark = GetFreeParticle();

@@ -101,7 +101,7 @@ struct ObjectInfo
 	bool isPuzzleHole			= false;
 	bool Hidden				= false;
 
-	DWORD explodableMeshbits;
+	unsigned int explodableMeshbits;
 
 	std::vector<AnimData> Animations = {};
 

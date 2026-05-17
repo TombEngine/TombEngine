@@ -219,7 +219,7 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		if (item->ObjectNumber < ID_SHOOT_SWITCH1 || item->ObjectNumber > ID_SHOOT_SWITCH4)
+		if ((item->ObjectNumber < ID_SHOOT_SWITCH1 || item->ObjectNumber > ID_SHOOT_SWITCH4) && item->ObjectNumber != ID_FUSEBOX_SWITCH)
 		{
 			if ((Objects[item->ObjectNumber].explodableMeshbits & ShatterItem.bit) &&
 				Lara.Control.Look.IsUsingLasersight)
@@ -273,7 +273,12 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 		}
 		else
 		{
-			if (ShatterItem.bit == 1 << (Objects[item->ObjectNumber].nmeshes - 1))
+			if (item->ObjectNumber == ID_FUSEBOX_SWITCH)
+			{
+				ProcessShootSwitch(item);
+				hitProcessed = true;
+			}
+			else if (ShatterItem.bit == 1 << (Objects[item->ObjectNumber].nmeshes - 1))
 			{
 				ProcessShootSwitch(item);
 				hitProcessed = true;

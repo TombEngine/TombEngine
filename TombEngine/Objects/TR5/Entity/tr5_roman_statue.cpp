@@ -82,7 +82,7 @@ namespace TEN::Entities::Creatures::TR5
 
 		if (!(GetRandomControl() & 0x1F))
 		{
-			int fxNumber = CreateNewEffect(item->RoomNumber, ID_BODY_PART, Pose(pos));
+			int fxNumber = CreateNewEffect(item->RoomNumber, ID_BODY_PART, Pose(pos, EulerAngles(0, 2 * GetRandomControl(), 0)));
 			if (fxNumber != NO_VALUE)
 			{
 				auto& fx = g_Level.Items[fxNumber];
@@ -94,7 +94,7 @@ namespace TEN::Entities::Creatures::TR5
 				fx.Pose.Orientation.y = 2 * GetRandomControl();
 				fx.Animation.Velocity.z = 1;
 				fx.Animation.Velocity.y = 0;
-				fx.Model.Color = Vector4::One;
+				fx.Model.Color = NEUTRAL_COLOR;
 				fx.Animation.FrameNumber = Objects[ID_BUBBLES].meshIndex + (GetRandomControl() & 7);
 				fxInfo.Flag2 = 9729;
 				fxInfo.Counter = 0;
@@ -272,7 +272,7 @@ namespace TEN::Entities::Creatures::TR5
 		item->Pose.Position.x += 486 * phd_sin(item->Pose.Orientation.y + ANGLE(90.0f));
 		item->Pose.Position.z += 486 * phd_cos(item->Pose.Orientation.y + ANGLE(90.0f));
 
-		ZeroMemory(&RomanStatueData, sizeof(RomanStatueInfo));
+		memset(&RomanStatueData, 0, sizeof(RomanStatueInfo));
 	}
 
 	void RomanStatueControl(short itemNumber)

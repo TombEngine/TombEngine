@@ -195,10 +195,19 @@ short ShardGun(int x, int y, int z, short velocity, short yRot, short roomNumber
 	{
 		auto& fx = g_Level.Items[fxNumber];
 
+<<<<<<< HEAD
 		fx.RoomNumber = roomNumber;
 		fx.Animation.Velocity.z = velocity;
 		fx.Animation.FrameNumber = 0;
 		fx.Model.Color = Vector4::One;
+=======
+		fx.pos.Position = Vector3i(x, y, z);
+		fx.roomNumber = roomNumber;
+		fx.speed = velocity;
+		fx.frameNumber = 0;
+		fx.objectNumber = ID_PROJ_SHARD;
+		fx.color = NEUTRAL_COLOR;
+>>>>>>> develop
 	}
 
 	return fxNumber;
@@ -211,10 +220,19 @@ short BombGun(int x, int y, int z, short velocity, short yRot, short roomNumber)
 	{
 		auto& fx = g_Level.Items[fxNumber];
 
+<<<<<<< HEAD
 		fx.RoomNumber = roomNumber;
 		fx.Animation.Velocity.z = velocity;
 		fx.Animation.FrameNumber = 0;
 		fx.Model.Color = Vector4::One;
+=======
+		fx.pos.Position = Vector3i(x, y, z);
+		fx.roomNumber = roomNumber;
+		fx.speed = velocity;
+		fx.frameNumber = 0;
+		fx.objectNumber = ID_PROJ_BOMB;
+		fx.color = NEUTRAL_COLOR;
+>>>>>>> develop
 	}
 
 	return fxNumber;
@@ -227,10 +245,19 @@ short HarpoonGun(int x, int y, int z, short velocity, short yRot, short roomNumb
 	{
 		auto& fx = g_Level.Items[fxNumber];
 
+<<<<<<< HEAD
 		fx.RoomNumber = roomNumber;
 		fx.Animation.Velocity.z = velocity;
 		fx.Animation.FrameNumber = 0;
 		fx.Model.Color = Vector4::One;
+=======
+		fx.pos.Position = Vector3i(x, y, z);
+		fx.roomNumber = roomNumber;
+		fx.speed = velocity;
+		fx.frameNumber = 0;
+		fx.objectNumber = ID_SCUBA_HARPOON;
+		fx.color = NEUTRAL_COLOR;
+>>>>>>> develop
 	}
 
 	return fxNumber;

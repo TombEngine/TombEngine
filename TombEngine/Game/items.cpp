@@ -546,7 +546,7 @@ short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID)
 		newItem.ObjectNumber = objectID;
 		newItem.RoomNumber = item.RoomNumber;
 		newItem.Pose = item.Pose;
-		newItem.Model.Color = Vector4::One;
+		newItem.Model.Color = NEUTRAL_COLOR;
 
 		InitializeItem(itemNumber);
 
