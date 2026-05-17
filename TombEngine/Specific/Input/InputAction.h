@@ -50,16 +50,19 @@ namespace TEN::Input
 
 		// Menu
 
-		MenuUp,
-		MenuDown,
-		MenuLeft,
-		MenuRight,
 		Select,
 		Deselect,
 		Pause,
 		Inventory,
 		Save,
 		Load,
+		
+		// Agnostic menu navigation
+
+		MenuUp,
+		MenuDown,
+		MenuLeft,
+		MenuRight,
 
 		// Keyboard
 
