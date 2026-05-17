@@ -13,7 +13,7 @@ using namespace TEN::Animation;
 using namespace TEN::Math;
 using namespace TEN::Scripting;
 using namespace TEN::Utils;
-using EntityCallbackData = std::array<std::string, (int)EntityCallbackPoint::Count>;
+using MoveableCallbackData = std::array<std::string, (int)EntityCallbackPoint::Count>;
 
 constexpr float VERTICAL_VELOCITY_GRAVITY_THRESHOLD = CLICK(0.5f);
 
@@ -119,14 +119,6 @@ struct MoveableEffectData
 	Vector3	   PrimaryEffectColor	= Vector3::Zero;
 	Vector3	   SecondaryEffectColor = Vector3::Zero;
 	int		   Count				= NO_VALUE;
-};
-
-struct MoveableCallbackData
-{
-	std::string OnKilled         = {};
-	std::string OnHit            = {};
-	std::string OnObjectCollided = {};
-	std::string OnRoomCollided   = {};
 };
 
 struct ItemInfo
