@@ -735,7 +735,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		nextHeight = g_Level.PathfindingBoxes[nextBox].height;
 
 	bool heightThresholdReached = LOT->Fly == NO_FLYING && !LOT->IsJumping && (boxHeight - height > LOT->Step || boxHeight - height < LOT->Drop);
-	bool zoneIncorrect = item->BoxNumber != NO_VALUE && !LOT->IsJumping && LOT->Zone != ZoneType::Flyer && (zone[item->BoxNumber] != zone[floor->PathfindingBoxID]);
+	bool zoneIncorrect = item->BoxNumber != NO_VALUE && !LOT->IsJumping && !LOT->IsMonkeying && LOT->Zone != ZoneType::Flyer && (zone[item->BoxNumber] != zone[floor->PathfindingBoxID]);
 
 	// ZONE/STEP/DROP VALIDATION:
 	// If creature moved to invalid floor, push back to sector boundary.
@@ -1480,7 +1480,7 @@ bool BadFloor(int x, int y, int z, int boxHeight, int nextHeight, short roomNumb
 	if (floor->PathfindingBoxID == NO_VALUE)
 		return true;
 
-	if (LOT->IsJumping)
+	if (LOT->IsJumping || LOT->IsMonkeying)
 		return false;
 
 	auto* box = &g_Level.PathfindingBoxes[floor->PathfindingBoxID];

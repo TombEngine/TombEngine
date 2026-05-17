@@ -934,8 +934,19 @@ namespace TEN::Entities::TR4
 
 				break;
 
+			case BADDY_STATE_MONKEY_GRAB:
+				creature->MaxTurn = 0;
+				creature->LOT.IsJumping = true;
+				creature->LOT.IsMonkeying = true;
+				creature->Flags = 0;
+				joint1 = 0;
+				joint2 = 0;
+				break;
+
 			case BADDY_STATE_MONKEY_IDLE:
 				creature->MaxTurn = 0;
+				creature->LOT.IsJumping = true;
+				creature->LOT.IsMonkeying = true;
 				creature->Flags = 0;
 				joint1 = 0;
 				joint2 = 0;
@@ -953,9 +964,8 @@ namespace TEN::Entities::TR4
 				{
 					item->Animation.TargetState = BADDY_STATE_MONKEY_PUSH_OFF;
 				}
-				else if (item->BoxNumber != creature->LOT.TargetBox &&
-					creature->MonkeySwingAhead ||
-					probe.GetCeilingHeight() != (probe.GetFloorHeight() - CLICK(6)))
+				else if ((item->BoxNumber != creature->LOT.TargetBox && creature->MonkeySwingAhead) ||
+						 probe.GetCeilingHeight() != (probe.GetFloorHeight() - CLICK(6)))
 				{
 					item->Animation.TargetState = BADDY_STATE_MONKEY_FORWARD;
 				}
@@ -1005,6 +1015,8 @@ namespace TEN::Entities::TR4
 
 			case BADDY_STATE_MONKEY_PUSH_OFF:
 				creature->MaxTurn = ANGLE(7.0f);
+				creature->LOT.IsJumping = true;
+				creature->LOT.IsMonkeying = true;
 
 				if (!creature->Flags)
 				{
