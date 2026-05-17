@@ -24,8 +24,19 @@ function InputHelpers.GuiIsPulsed(actionID, timer)
     if oppositeAction ~= nil and TEN.Input.IsKeyHeld(oppositeAction) then
         return false
     end
-
-    return TEN.Input.IsKeyPulsed(actionID, PULSE_DELAY, PULSE_DELAY)
+	
+	-- Hook additional input handlers for specific controls.
+    local additionalAction = nil
+	if actionID == TEN.Input.ActionID.DESELECT then
+		additionalAction = TEN.Input.ActionID.DRAW
+	end
+	
+	-- Return either additional input result or main input result, if additional is unavailable.
+	if additionalAction ~= nil and TEN.Input.IsKeyPulsed(additionalAction, PULSE_DELAY, PULSE_DELAY) then
+		return true
+	else
+		return TEN.Input.IsKeyPulsed(actionID, PULSE_DELAY, PULSE_DELAY)
+	end
 end
 
 return InputHelpers
