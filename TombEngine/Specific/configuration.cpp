@@ -126,7 +126,6 @@ bool LoadConfiguration()
 	InitDefaultConfiguration();
 
 	bool foundInput = false;
-	int  inputVersion = 1; // Default: legacy (pre-SDL3) when the version line is absent.
 	std::vector<std::pair<int, int>> rawBindings; // Deferred so translation can happen after we know the version.
 
 	while (std::getline(in, line))

@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Game/Lara/lara_helpers.h"
 
-
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"

@@ -193,6 +193,8 @@ namespace TEN::Input
 
 	const std::string& GetKeyName(int keyID)
 	{
+		// Find and return key name.
+		// For gamepads, return key name according to a gamepad vendor.
 		auto gamepadIt = GAMEPAD_KEY_NAME_MAP.find(keyID);
 		if (gamepadIt != GAMEPAD_KEY_NAME_MAP.end())
 		{

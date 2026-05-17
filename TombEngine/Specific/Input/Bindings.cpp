@@ -206,25 +206,31 @@ namespace TEN::Input
 
 	int BindingManager::GetBoundKeyID(BindingProfileID profileID, ActionID actionID) const
 	{
+		// Find binding profile.
 		auto profileIt = _bindings.find(profileID);
 		if (profileIt == _bindings.end())
 			return KEY_UNASSIGNED;
 
+		// Get binding profile.
 		const auto& [inputDeviceID, profile] = *profileIt;
 
+		// Find key-action binding.
 		auto keyIt = profile.find(actionID);
 		if (keyIt == profile.end())
 			return KEY_UNASSIGNED;
 
+		// Return key binding.
 		const auto& [keyActionID, keyID] = *keyIt;
 		return keyID;
 	}
 
 	const BindingProfile& BindingManager::GetBindingProfile(BindingProfileID profileID) const
 	{
+		// Find binding profile.
 		auto profileIt = _bindings.find(profileID);
 		TENAssert(profileIt != _bindings.end(), "Attempted to get missing binding profile " + std::to_string((int)profileID) + ".");
 
+		// Return binding profile.
 		const auto& [keyProfileID, profile] = *profileIt;
 		return profile;
 	}
@@ -240,16 +246,19 @@ namespace TEN::Input
 
 	void BindingManager::SetKeyBinding(BindingProfileID profileID, ActionID actionID, int keyID)
 	{
+		// Overwrite or add key-action binding.
 		_bindings[profileID][actionID] = keyID;
 	}
 
 	void BindingManager::SetBindingProfile(BindingProfileID profileID, const BindingProfile& bindingProfile)
 	{
+		// Overwrite or create binding profile.
 		_bindings[profileID] = bindingProfile;
 	}
 
 	void BindingManager::SetDefaultBindingProfile(BindingProfileID profileID)
 	{
+		// Set binding profile defaults.
 		switch (profileID)
 		{
 			case BindingProfileID::Default:
@@ -275,6 +284,7 @@ namespace TEN::Input
 
 	void BindingManager::Initialize()
 	{
+		// Initialize bindings.
 		_bindings =
 		{
 			{ BindingProfileID::Default, DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE },

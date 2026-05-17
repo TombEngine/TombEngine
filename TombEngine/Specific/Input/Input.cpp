@@ -25,14 +25,14 @@ namespace TEN::Input
 	constexpr auto AXIS_OFFSET   = 0.2f;
 	constexpr auto AXIS_DEADZONE = 8000;
 
-	// Globals.
-	RumbleData                                     RumbleInfo = {};
-	std::unordered_map<int, float>                 KeyMap;
-	std::unordered_map<ActionID, Action>           ActionMap;
-	std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;
-	std::unordered_map<AxisID, Vector2>            AxisMap;
+    // Globals.
+    RumbleData                                     RumbleInfo = {};
+    std::unordered_map<int, float>				   KeyMap;			// Key = key ID, value = key value.
+    std::unordered_map<ActionID, Action>		   ActionMap;		// Key = action ID, value = action.
+    std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;	// Key = action ID, value = action queue state.
+    std::unordered_map<AxisID, Vector2>			   AxisMap;			// Key = axis ID, value = axis.
 
-	bool InputLocked = false;
+	bool InputLocked = false; // Disables control polling in case application is defocused.
 
 	// SDL3 gamepad state.
 	static SDL_Gamepad* ActiveGamepad   = nullptr;
@@ -101,9 +101,11 @@ namespace TEN::Input
 		RumbleInfo = {};
 		MouseWheelAccumY = 0.0f;
 
+		// Initialize key map.
 		for (int i = 0; i < KEY_COUNT; i++)
 			KeyMap[i] = 0.0f;
 
+		// Initialize action and action queue maps.
 		for (int i = 0; i < (int)ActionID::Count; i++)
 		{
 			auto actionID = (ActionID)i;
@@ -111,6 +113,7 @@ namespace TEN::Input
 			ActionQueueMap[actionID] = ActionQueueState::None;
 		}
 
+		// Initialize axis map.
 		for (int i = 0; i < (int)AxisID::Count; i++)
 		{
 			auto axisID = (AxisID)i;
@@ -294,6 +297,7 @@ namespace TEN::Input
 		if (state == nullptr)
 			return;
 
+		// Poll keyboard keys.
 		int limit = std::min(numKeys, KEYBOARD_KEY_COUNT);
 		for (int sc = 0; sc < limit; sc++)
 		{
@@ -303,6 +307,7 @@ namespace TEN::Input
 			int key = WrapSimilarKeys(sc);
 			KeyMap[key] = 1.0f;
 
+			// Interpret discrete directional keypresses as analog axis values.
 			SetDiscreteAxisValues(key);
 		}
 	}
@@ -352,9 +357,11 @@ namespace TEN::Input
 			(((rawAxes.x - -DISPLAY_SPACE_RES.x) * 2.0f) / float(DISPLAY_SPACE_RES.x - -DISPLAY_SPACE_RES.x)) - 1.0f,
 			(((rawAxes.y - -DISPLAY_SPACE_RES.y) * 2.0f) / float(DISPLAY_SPACE_RES.y - -DISPLAY_SPACE_RES.y)) - 1.0f);
 
+		// Apply sensitivity.
 		float sensitivity = (g_Configuration.MouseSensitivity * 0.1f) + 0.4f;
 		normAxes *= sensitivity;
 
+		// Set mouse axis values.
 		AxisMap[AxisID::Mouse] = normAxes;
 	}
 
@@ -408,6 +415,11 @@ namespace TEN::Input
 			default:
 				break;
 			}
+
+			// Register analog input in certain direction.
+			// If axis is bound as directional controls, register axis as directional input.
+			// Otherwise, register as camera movement input (for future).
+			// NOTE: `abs()` operations are needed to avoid issues with inverted axes on different controllers.
 
 			float scaledValue = (absNormalizedValue * AXIS_SCALE) + AXIS_OFFSET;
 
@@ -489,6 +501,7 @@ namespace TEN::Input
 
 	void SolveActionCollisions()
 	{
+		// Block simultaneous Left+Right actions.
 		if (IsHeld(In::Left) && IsHeld(In::Right))
 		{
 			ClearAction(In::Left);
@@ -589,6 +602,7 @@ namespace TEN::Input
 
 	void UpdateInputActions(bool allowAsyncUpdate, bool applyQueue)
 	{
+		// Don't update input data during frameskip.
 		if (allowAsyncUpdate || !g_Synchronizer.Locked())
 		{
 			ClearInputData();
@@ -600,12 +614,14 @@ namespace TEN::Input
 
 		DefaultConflict();
 
+		// Update action map.
 		for (auto& [actionID, action] : ActionMap)
 			action.Update(Key(action.GetID()));
 
 		if (applyQueue)
 			ApplyActionQueue();
 
+		// Additional handling.
 		HandleHotkeyActions();
 		SolveActionCollisions();
 	}
@@ -736,11 +752,13 @@ namespace TEN::Input
 
 	unsigned int GetActionTimeActive(ActionID actionID)
 	{
+		// Time in game frames.
 		return ActionMap[actionID].GetTimeActive();
 	}
 
 	unsigned int GetActionTimeInactive(ActionID actionID)
 	{
+		// Time in game frames.
 		return ActionMap[actionID].GetTimeInactive();
 	}
 
