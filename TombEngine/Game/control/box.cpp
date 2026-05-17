@@ -146,6 +146,34 @@ static Vector3 GetBoxCenter(int boxIndex)
 	return Vector3(z, y, x);
 }
 
+static int GetOverlapFlagsBetweenBoxes(int fromBox, int toBox)
+{
+	if (fromBox == NO_VALUE || toBox == NO_VALUE)
+		return 0;
+
+	if (fromBox < 0 || fromBox >= (int)g_Level.PathfindingBoxes.size())
+		return 0;
+
+	int index = g_Level.PathfindingBoxes[fromBox].overlapIndex;
+	if (index < 0)
+		return 0;
+
+	while (index < (int)g_Level.Overlaps.size())
+	{
+		const auto& overlap = g_Level.Overlaps[index];
+
+		if (overlap.box == toBox)
+			return overlap.flags;
+
+		if (overlap.flags & OVERLAP_END_BIT)
+			break;
+
+		index++;
+	}
+
+	return 0;
+}
+
 static void DrawBox(int boxIndex, const Vector3& color)
 {
 	if (boxIndex <= NO_VALUE || boxIndex >= g_Level.PathfindingBoxes.size())
@@ -737,10 +765,30 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	bool heightThresholdReached = LOT->Fly == NO_FLYING && !LOT->IsJumping && (boxHeight - height > LOT->Step || boxHeight - height < LOT->Drop);
 	bool zoneIncorrect = item->BoxNumber != NO_VALUE && !LOT->IsJumping && !LOT->IsMonkeying && LOT->Zone != ZoneType::Flyer && (zone[item->BoxNumber] != zone[floor->PathfindingBoxID]);
 
+	bool invalidMonkeyTraversal = false;
+	if (LOT->IsMonkeying)
+	{
+		auto pointColl = GetPointCollision(item->Pose.Position, roomNumber);
+
+		// Must remain under actual monkey-swing ceiling.
+		if (!pointColl.GetBottomSector().Flags.Monkeyswing)
+		{
+			invalidMonkeyTraversal = true;
+		}
+		// If we crossed into another box while monkeying, that transition itself
+		// must be a MONKEY overlap.
+		else if (item->BoxNumber != NO_VALUE &&
+			floor->PathfindingBoxID != item->BoxNumber &&
+			(GetOverlapFlagsBetweenBoxes(item->BoxNumber, floor->PathfindingBoxID) & OVERLAP_MONKEY) == 0)
+		{
+			invalidMonkeyTraversal = true;
+		}
+	}
+
 	// ZONE/STEP/DROP VALIDATION:
 	// If creature moved to invalid floor, push back to sector boundary.
 
-	if (floor->PathfindingBoxID == NO_VALUE || heightThresholdReached || zoneIncorrect)
+	if (floor->PathfindingBoxID == NO_VALUE || heightThresholdReached || zoneIncorrect || invalidMonkeyTraversal) 
 	{
 		if (heightThresholdReached)
 			AddBadBox(LOT, floor->PathfindingBoxID);
@@ -750,6 +798,27 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		zPos = item->Pose.Position.z / BLOCK(1);
 		shiftX = prevPos.x / BLOCK(1);
 		shiftZ = prevPos.z / BLOCK(1);
+
+		if (invalidMonkeyTraversal)
+		{
+			item->Pose.Position.x = prevPos.x;
+			item->Pose.Position.z = prevPos.z;
+
+			floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
+
+			if (floor->PathfindingBoxID != NO_VALUE)
+			{
+				height = g_Level.PathfindingBoxes[floor->PathfindingBoxID].height;
+
+				if (!Objects[item->ObjectNumber].nonLot)
+					nextBox = LOT->Node[floor->PathfindingBoxID].exitBox;
+				else
+					nextBox = floor->PathfindingBoxID;
+			}
+
+			nextHeight = (nextBox == NO_VALUE) ? height : g_Level.PathfindingBoxes[nextBox].height;
+		}
+		else
 
 		// Push to sector edge based on movement direction.
 		if (xPos < shiftX)

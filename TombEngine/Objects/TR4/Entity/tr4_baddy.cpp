@@ -951,6 +951,15 @@ namespace TEN::Entities::TR4
 				joint1 = 0;
 				joint2 = 0;
 
+				// If we are no longer under a valid monkey-swing sector, land.
+				if (!probe.GetBottomSector().Flags.Monkeyswing)
+				{
+					item->Animation.TargetState = BADDY_STATE_MONKEY_FALL_LAND;
+					creature->LOT.IsMonkeying = false;
+					creature->LOT.IsJumping = false;
+					break;
+				}
+
 				probe = GetPointCollision(*item);
 
 				if (laraAI.ahead && laraAI.distance < pow(682, 2) &&
@@ -985,6 +994,17 @@ namespace TEN::Entities::TR4
 				creature->Flags = 0;
 				joint1 = 0;
 				joint2 = 0;
+
+				probe = GetPointCollision(*item);
+
+				// Don't allow continued monkey movement outside flagged sectors.
+				if (!probe.GetBottomSector().Flags.Monkeyswing)
+				{
+					item->Animation.TargetState = BADDY_STATE_MONKEY_FALL_LAND;
+					creature->LOT.IsMonkeying = false;
+					creature->LOT.IsJumping = false;
+					break;
+				}
 
 				if (item->BoxNumber == creature->LOT.TargetBox || !creature->MonkeySwingAhead)
 				{
