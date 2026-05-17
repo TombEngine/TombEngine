@@ -7,13 +7,18 @@ using namespace TEN::Input;
 namespace TEN::Scripting::Input
 {
 	/// Constants for action key IDs.
-	// Contains mapped action IDs, raw keyboard input IDs, raw mouse input IDs, and Gamepad input IDs.
+	// Contains both bindable gameplay actions and hard-wired or raw input action IDs.
 	// To be used with @{Input.IsKeyHit}, @{Input.IsKeyHeld}, and other similar functions.
 	// @enum Input.ActionID
 	// @pragma nostrip
 
 	static const auto ACTION_IDS = std::unordered_map<std::string, ActionID>
 	{
+		/// Bindable action IDs.
+		// Actions in this section are exposed through the control settings and binding profiles.
+		// Use them when script logic should follow the player's configured bindings instead of physical device buttons.
+		// @section BindableActionIDs
+
 		/// Forward action.
 		// @mem FORWARD
 		{ "FORWARD", In::Forward },
@@ -154,22 +159,6 @@ namespace TEN::Scripting::Input
 		// @mem WEAPON_10
 		{ "WEAPON_10", In::Weapon10 },
 
-		/// Menu up action.
-		// @mem MENU_UP
-		{ "MENU_UP", In::MenuUp },
-
-		/// Menu down action.
-		// @mem MENU_DOWN
-		{ "MENU_DOWN", In::MenuDown },
-
-		/// Menu left action.
-		// @mem MENU_LEFT
-		{ "MENU_LEFT", In::MenuLeft },
-
-		/// Menu right action.
-		// @mem MENU_RIGHT
-		{ "MENU_RIGHT", In::MenuRight },
-
 		/// Select action.
 		// @mem SELECT
 		{ "SELECT", In::Select },
@@ -193,6 +182,32 @@ namespace TEN::Scripting::Input
 		/// Load action.
 		// @mem LOAD
 		{ "LOAD", In::Load },
+
+		/// Hard-wired menu navigation IDs.
+		// This section contains menu navigation actions that are hard-wired to specific raw input bindings 
+		// such as keyboard arrows or gamepad axis and D-Pad, and cannot be rebound by the player.
+		// @section HardWiredAndRawActionIDs
+
+		/// Menu up action.
+		// @mem MENU_UP
+		{ "MENU_UP", In::MenuUp },
+
+		/// Menu down action.
+		// @mem MENU_DOWN
+		{ "MENU_DOWN", In::MenuDown },
+
+		/// Menu left action.
+		// @mem MENU_LEFT
+		{ "MENU_LEFT", In::MenuLeft },
+
+		/// Menu right action.
+		// @mem MENU_RIGHT
+		{ "MENU_RIGHT", In::MenuRight },
+
+		/// Raw action IDs.
+		// This section contains raw keyboard, mouse, and gamepad input IDs.
+		// Use these values when script logic must read raw physical input.
+		// @section HardWiredAndRawActionIDs
 
 		/// Keyboard A key.
 		// @mem A
