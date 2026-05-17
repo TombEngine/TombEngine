@@ -106,7 +106,7 @@ namespace TEN::Entities::Creatures::TR3
 
 	bool IsMonkeyPickupInSameBox(ItemInfo* item, CreatureInfo* creature)
 	{
-		auto* enemy = creature->Enemy;
+		auto* enemy = creature->Enemy.Get();
 		if (enemy == nullptr)
 			return false;
 
