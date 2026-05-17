@@ -124,10 +124,6 @@ namespace TEN::Scripting
 		// @tfield[opt=false] bool ledgeJumps If this setting is enabled, player will be able to jump upwards while hanging on the ledge.
 		"ledgeJumps", &AnimSettings::LedgeJumps,
 
-		/// Invert backflip jump turn direction. If enabled, holding a direction during a backflip will cause the player to turn in the opposite direction.
-		// @tfield[opt=false] bool invertBackJump If enabled, player will turn in the opposite direction when holding a direction during backflip jump.
-		"invertBackflipTurn", &AnimSettings::InvertBackflipTurn,
-
 		/// Pose timeout.
 		// @tfield[opt=20] int poseTimeout If this setting is larger than 0, idle standing pose animation will be performed after given timeout (in seconds).
 		"poseTimeout", &AnimSettings::PoseTimeout);
