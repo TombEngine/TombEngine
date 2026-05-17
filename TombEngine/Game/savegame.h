@@ -1,11 +1,6 @@
 #pragma once
 
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
-#include "Specific/IO/ChunkId.h"
-#include "Specific/IO/ChunkReader.h"
-#include "Specific/IO/ChunkWriter.h"
-#include "Specific/IO/LEB128.h"
-#include "Specific/IO/Streams.h"
 #include "Scripting/Internal/TEN/Types/Time/Time.h"
 #include "Scripting/Internal/TEN/Flow/Statistics/Statistics.h"
 
@@ -57,6 +52,9 @@ public:
 	static void LoadHeaders();
 	static bool Save(int slot);
 	static void Delete(int slot);
+
+	static bool SaveGlobalVars();
+	static bool LoadGlobalVars();
 
 	static bool DoesSaveGameExist(int slot, bool silent = false);
 	static bool IsLoadGamePossible();

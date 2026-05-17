@@ -275,17 +275,14 @@ static void GameScriptHandleKilled(short itemNumber, bool destroyed)
 	auto* item = &g_Level.Items[itemNumber];
 
 	g_GameScriptEntities->TryRemoveColliding(itemNumber, true);
-	if (!item->Callbacks.OnKilled.empty())
-		g_GameScript->ExecuteFunction(item->Callbacks.OnKilled, itemNumber);
+	if (!item->Callbacks[(int)EntityCallbackPoint::Killed].empty())
+		g_GameScript->ExecuteFunction(item->Callbacks[(int)EntityCallbackPoint::Killed], itemNumber);
 
 	if (destroyed)
 	{
 		g_GameScriptEntities->NotifyKilled(item);
 		item->Name.clear();
-		item->Callbacks.OnKilled.clear();
-		item->Callbacks.OnHit.clear();
-		item->Callbacks.OnObjectCollided.clear();
-		item->Callbacks.OnRoomCollided.clear();
+		item->Callbacks = {};
 	}
 }
 
@@ -555,7 +552,7 @@ short CreateNewEffect(short roomNumber)
 		room->fxNumber = fxNumber;
 
 		fx->speed = 0;
-		fx->color = Vector4::One;
+		fx->color = NEUTRAL_COLOR;
 		fx->fallspeed = 0;
 		fx->frameNumber = 0;
 		fx->counter = 0;
@@ -769,7 +766,7 @@ short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID)
 		newItem.ObjectNumber = objectID;
 		newItem.RoomNumber = item.RoomNumber;
 		newItem.Pose = item.Pose;
-		newItem.Model.Color = Vector4::One;
+		newItem.Model.Color = NEUTRAL_COLOR;
 
 		InitializeItem(itemNumber);
 
@@ -893,8 +890,14 @@ void UpdateAllItems()
 
 		if (item.AfterDeath <= ITEM_DEATH_TIMEOUT)
 		{
+			if (!item.Callbacks[(int)EntityCallbackPoint::PreLoop].empty())
+				g_GameScript->ExecuteFunction(item.Callbacks[(int)EntityCallbackPoint::PreLoop], item.Index);
+
 			if (Objects[item.ObjectNumber].control)
 				Objects[item.ObjectNumber].control(item.Index);
+
+			if (!item.Callbacks[(int)EntityCallbackPoint::PostLoop].empty())
+				g_GameScript->ExecuteFunction(item.Callbacks[(int)EntityCallbackPoint::PostLoop], item.Index);
 
 			TestVolumes(item.Index);
 			ProcessEffects(&item);
@@ -955,7 +958,7 @@ void DoDamage(ItemInfo* item, int damage, bool silent)
 {
 	static int lastHurtTime = 0;
 
-	if (item->HitPoints <= 0)
+	if (!item || item->HitPoints <= 0)
 		return;
 
 	if (item->IsLara() && GetLaraInfo(*item).Control.WaterStatus == WaterStatus::FlyCheat)
@@ -1018,12 +1021,11 @@ void DoItemHit(ItemInfo* target, int damage, bool isExplosive, bool allowBurn)
 	if (isExplosive && allowBurn && Random::TestProbability(1 / 2.0f))
 		ItemBurn(target);
 
-	if (!target->Callbacks.OnHit.empty())
+	if (!target->Callbacks[(int)EntityCallbackPoint::Hit].empty())
 	{
-		short index = g_GameScriptEntities->GetIndexByName(target->Name);
-
+		int index = g_GameScriptEntities->GetIndexByName(target->Name);
 		if (index != NO_VALUE)
-			g_GameScript->ExecuteFunction(target->Callbacks.OnHit, index);
+			g_GameScript->ExecuteFunction(target->Callbacks[(int)EntityCallbackPoint::Hit], index);
 	}
 }
 

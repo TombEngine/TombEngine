@@ -1,6 +1,4 @@
 #pragma once
-#include <bass.h>
-#include <bass_fx.h>
 
 #include "Game/control/control.h"
 #include "Sound/sound_effects.h"
@@ -33,6 +31,18 @@ constexpr auto SOUND_XFADETIME_HIJACKSOUND   = 50;
 constexpr auto SOUND_BGM_DAMP_COEFFICIENT    = 0.5f;
 constexpr auto SOUND_MIN_PARAM_MULTIPLIER    = 0.05f;
 constexpr auto SOUND_MAX_PARAM_MULTIPLIER    = 5.0f;
+
+#pragma pack(push, 1)
+struct WaveFormatPCM
+{
+    unsigned short FormatTag;
+	unsigned short Channels;
+	unsigned int SamplesPerSec;
+	unsigned int AverageBytesPerSec;
+	unsigned short BlockAlign;
+	unsigned short BitsPerSample;
+};
+#pragma pack(pop)
 
 enum class SoundPauseMode
 {
@@ -153,6 +163,15 @@ struct SoundSourceInfo
 	}
 };
 
+struct BassDevice
+{
+	int         Index     = 0; // BASS index (1..N) - on Windows "0" is "no sound".
+	std::string Name      = {};
+	bool        IsDefault = false;
+	bool        IsEnabled = false;
+	bool        IsInUse   = false;
+};
+
 extern std::map<std::string, int> SoundTrackMap;
 extern std::unordered_map<int, SoundTrackInfo> SoundTracks;
 
@@ -180,6 +199,7 @@ float GetSoundTrackLoudness(SoundTrackType type);
 std::optional<std::string> GetCurrentSubtitle();
 std::pair<std::string, QWORD> GetSoundTrackNameAndPosition(SoundTrackType type);
 
+// NOTE: DWORD here is BASS's own cross-platform type (uint32_t on Linux/macOS, unsigned long on Windows).
 static void CALLBACK Sound_FinishOneshotTrack(HSYNC handle, DWORD channel, DWORD data, void* userData);
 
 void Sound_VideoPlayCallback(void* opaque, const void* samples, unsigned count, int64_t pts);
@@ -190,6 +210,7 @@ void  SetVolumeFX(int vol);
 
 void  Sound_Init(const std::string& gameDirectory);
 void  Sound_DeInit();
+void  Sound_Reset();
 bool  Sound_CheckBASSError(const char* message, bool verbose, ...);
 void  Sound_UpdateScene();
 void  Sound_FreeSample(int index);
@@ -202,3 +223,4 @@ float Sound_DistanceToListener(Vector3 position);
 float Sound_Attenuate(float gain, float distance, float radius);
 bool  Sound_UpdateEffectPosition(int index, Pose *position, bool force = false);
 bool  Sound_UpdateEffectAttributes(int index, float pitch, float gain);
+std::vector<BassDevice> Sound_ListDevices();
