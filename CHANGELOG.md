@@ -10,6 +10,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added heat haze for flame emitters and effects.
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
+* Added native support for DualShock, DualSense and Switch Pro controllers. 
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
 * Added [DRILL_BIT](https://tombengine.com/asset/traps/drill-bit/) object from TR3.
 * Added [FUSEBOX_SWITCH](https://tombengine.com/asset/switches/fusebox-switch/) object from TR3.
@@ -41,6 +42,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Moveable:SetOnLoop` method.
 * Added `Flow.Settings.Graphics.flameHeatHaze` option to toggle heat haze effects for flames.
 * Added `Flow.Settings.UI.menuBackgroundBlur` option to specify amount of blur for the inventory and pause backgrounds.
+* Added raw gamepad input mappings to the `Input.ActionID` and `Input.AxisID` enums.
 * Added `Lara.SetSkin` to swap classic outfits.
 * Added `Objects.Creature` class to fetch and set various enemy AI state parameters.
 * Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
