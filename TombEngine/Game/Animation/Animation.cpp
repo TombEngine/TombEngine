@@ -307,20 +307,16 @@ namespace TEN::Animation
 				blendAlpha = item.Animation.Blend.GetAlpha();
 			}
 
-			// TODO: Also get Y velocity from animation. Needs changes in WT.
 			auto vel = Vector3::Lerp(prevVel, fixedMotion.Translation + rootMotion.Translation, blendAlpha);
 			if (item.IsLara())
 			{
 				const auto& player = GetLaraInfo(item);
-
 				bool isInSwamp = (player.Control.WaterStatus == WaterStatus::Wade && TestEnvironment(ENV_FLAG_SWAMP, &item));
-				item.Animation.Velocity.x = vel.x * (isInSwamp ? 0.5f : 1.0f);
-				item.Animation.Velocity.z = vel.z * (isInSwamp ? 0.5f : 1.0f);
+				item.Animation.Velocity = vel * (isInSwamp ? 0.5f : 1.0f);
 			}
 			else
 			{
-				item.Animation.Velocity.x = vel.x;
-				item.Animation.Velocity.z = vel.z;
+				item.Animation.Velocity = vel;
 			}
 		}
 
@@ -334,7 +330,7 @@ namespace TEN::Animation
 
 			if (!player.Control.IsMoving)
 			{
-				item.Pose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, 0.0f, item.Animation.Velocity.x);
+				item.Pose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, item.Animation.Velocity.y, item.Animation.Velocity.x);
 				item.Pose.Orientation += rootMotion.Rotation;
 			}
 
@@ -342,7 +338,7 @@ namespace TEN::Animation
 		}
 		else
 		{
-			item.Pose.Translate(item.Pose.Orientation.y, item.Animation.Velocity.z, 0.0f, item.Animation.Velocity.x);
+			item.Pose.Translate(item.Pose.Orientation.y, item.Animation.Velocity.z, item.Animation.Velocity.y, item.Animation.Velocity.x);
 			item.Pose.Orientation += rootMotion.Rotation;
 			g_Renderer.UpdateItemAnimations(item.Index, true);
 		}

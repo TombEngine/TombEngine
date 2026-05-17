@@ -106,13 +106,13 @@ static Vector3 GetVelocity(const ItemInfo& item)
 				break;
 
 			default:
-				nextPose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, 0.0f, item.Animation.Velocity.x);
+				nextPose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, item.Animation.Velocity.y, item.Animation.Velocity.x);
 				break;
 		}
 	}
 	else
 	{
-		nextPose.Translate(item.Pose.Orientation.y, item.Animation.Velocity.z, 0.0f, item.Animation.Velocity.x);
+		nextPose.Translate(item.Pose.Orientation.y, item.Animation.Velocity.z, item.Animation.Velocity.y, item.Animation.Velocity.x);
 	}
 
 	return nextPose.Position.ToVector3() - item.Pose.Position.ToVector3();
