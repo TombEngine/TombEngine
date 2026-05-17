@@ -11,14 +11,14 @@ function InputHelpers.GuiIsPulsed(actionID, timer)
     end
 
     local oppositeAction = nil
-    if actionID == TEN.Input.ActionID.FORWARD then
-        oppositeAction = TEN.Input.ActionID.BACK
-    elseif actionID == TEN.Input.ActionID.BACK then
-        oppositeAction = TEN.Input.ActionID.FORWARD
-    elseif actionID == TEN.Input.ActionID.LEFT then
-        oppositeAction = TEN.Input.ActionID.RIGHT
-    elseif actionID == TEN.Input.ActionID.RIGHT then
-        oppositeAction = TEN.Input.ActionID.LEFT
+    if actionID == TEN.Input.ActionID.MENU_UP then
+        oppositeAction = TEN.Input.ActionID.MENU_DOWN
+    elseif actionID == TEN.Input.ActionID.MENU_DOWN then
+        oppositeAction = TEN.Input.ActionID.MENU_UP
+    elseif actionID == TEN.Input.ActionID.MENU_LEFT then
+        oppositeAction = TEN.Input.ActionID.MENU_RIGHT
+    elseif actionID == TEN.Input.ActionID.MENU_RIGHT then
+        oppositeAction = TEN.Input.ActionID.MENU_LEFT
     end
 
     if oppositeAction ~= nil and TEN.Input.IsKeyHeld(oppositeAction) then

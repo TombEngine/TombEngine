@@ -382,14 +382,39 @@ namespace TEN::Input
 		// Axes.
 		for (int axis = 0; axis < GAMEPAD_AXIS_COUNT; axis++)
 		{
-			Sint16 raw = SDL_GetGamepadAxis(ActiveGamepad, (SDL_GamepadAxis)axis);
-			if (std::abs((int)raw) < AXIS_DEADZONE)
+			auto raw = SDL_GetGamepadAxis(ActiveGamepad, (SDL_GamepadAxis)axis);
+
+			float normalizedValue = 0.0f;
+			if (std::abs((int)raw) >= AXIS_DEADZONE)
+				normalizedValue = (float)(raw + (raw > 0 ? -AXIS_DEADZONE : AXIS_DEADZONE)) / (float)(SHRT_MAX - AXIS_DEADZONE);
+
+			float absNormalizedValue = std::abs(normalizedValue);
+			if (absNormalizedValue <= EPSILON)
 				continue;
 
-			float normalizedValue = float(raw + (raw > 0 ? -AXIS_DEADZONE : AXIS_DEADZONE)) /
-				float(SHRT_MAX - AXIS_DEADZONE);
+			switch ((SDL_GamepadAxis)axis)
+			{
+			case SDL_GAMEPAD_AXIS_LEFTX:
+				AxisMap[AxisID::StickLeft].x = normalizedValue;
+				break;
 
-			float scaledValue = (std::abs(normalizedValue) * AXIS_SCALE) + AXIS_OFFSET;
+			case SDL_GAMEPAD_AXIS_LEFTY:
+				AxisMap[AxisID::StickLeft].y = normalizedValue;
+				break;
+
+			case SDL_GAMEPAD_AXIS_RIGHTX:
+				AxisMap[AxisID::StickRight].x = normalizedValue;
+				break;
+
+			case SDL_GAMEPAD_AXIS_RIGHTY:
+				AxisMap[AxisID::StickRight].y = normalizedValue;
+				break;
+
+			default:
+				break;
+			}
+
+			float scaledValue = (absNormalizedValue * AXIS_SCALE) + AXIS_OFFSET;
 
 			int negKeyID = KEY_OFFSET_GAMEPAD_AXIS + (axis * 2);
 			int posKeyID = negKeyID + 1;
@@ -427,6 +452,25 @@ namespace TEN::Input
 
 	static float Key(ActionID actionID)
 	{
+		// Hard-wired directional inputs for menu navigation, unaffected by user bindings.
+		switch (actionID)
+		{
+		case In::MenuUp:
+			return std::max({ KeyMap[SDL_SCANCODE_UP], KeyMap[GK_DPAD_UP], KeyMap[GK_LSTICK_Y_NEG] });
+
+		case In::MenuDown:
+			return std::max({ KeyMap[SDL_SCANCODE_DOWN], KeyMap[GK_DPAD_DOWN], KeyMap[GK_LSTICK_Y_POS] });
+
+		case In::MenuLeft:
+			return std::max({ KeyMap[SDL_SCANCODE_LEFT], KeyMap[GK_DPAD_LEFT], KeyMap[GK_LSTICK_X_NEG] });
+
+		case In::MenuRight:
+			return std::max({ KeyMap[SDL_SCANCODE_RIGHT], KeyMap[GK_DPAD_RIGHT], KeyMap[GK_LSTICK_X_POS] });
+
+		default:
+			break;
+		}
+
 		int keyID = KEY_UNASSIGNED;
 		for (int i = (int)BindingProfileID::Count - 1; i >= 0; i--)
 		{

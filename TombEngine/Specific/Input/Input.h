@@ -17,9 +17,8 @@ namespace TEN::Input
 		Camera,
 
 		Mouse,
-		// TODO: Add raw axes for analog gamepad sticks. -- Sezz 2025.5.9
-		/*StickLeft,
-		StickRight,*/
+		StickLeft,
+		StickRight,
 
 		Count
 	};

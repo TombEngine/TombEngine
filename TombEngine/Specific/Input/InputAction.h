@@ -50,6 +50,10 @@ namespace TEN::Input
 
 		// Menu
 
+		MenuUp,
+		MenuDown,
+		MenuLeft,
+		MenuRight,
 		Select,
 		Deselect,
 		Pause,
@@ -81,8 +85,36 @@ namespace TEN::Input
 		MouseLeft,
 		MouseRight,*/
 
-		// TODO: Can add raw gamepad actions too, however, we MUST ditch OIS in favour of SDL for it.
-		// It's a FAR better library which can also be used for window management. -- Sezz 2025.05.03
+		// Gamepad
+
+		GamepadSouth,
+		GamepadEast,
+		GamepadWest,
+		GamepadNorth,
+		GamepadBack,
+		GamepadGuide,
+		GamepadStart,
+		GamepadLeftStick,
+		GamepadRightStick,
+		GamepadLeftShoulder,
+		GamepadRightShoulder,
+		GamepadDPadUp,
+		GamepadDPadDown,
+		GamepadDPadLeft,
+		GamepadDPadRight,
+		GamepadRightPaddle1,
+		GamepadLeftPaddle1,
+		GamepadRightPaddle2,
+		GamepadLeftPaddle2,
+		GamepadTouchpad,
+		GamepadMisc1,
+		GamepadMisc2,
+		GamepadMisc3,
+		GamepadMisc4,
+		GamepadMisc5,
+		GamepadMisc6,
+		GamepadLeftTrigger,
+		GamepadRightTrigger,
 
 		Count
 	} In;
@@ -96,7 +128,7 @@ namespace TEN::Input
 
 		Keyboard,
 		Mouse,
-		//Gamepad
+		Gamepad
 	};
 
 	extern const std::vector<std::vector<ActionID>> ACTION_ID_GROUPS;

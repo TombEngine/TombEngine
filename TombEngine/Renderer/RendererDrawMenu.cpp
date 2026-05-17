@@ -1223,16 +1223,16 @@ namespace TEN::Renderer
 
 		auto& object = InventoryObjectTable[invItem];
 
-		if (IsHeld(In::Forward))
+		if (IsHeld(In::MenuUp))
 			orient.x += ANGLE(3.0f / multiplier);
 
-		if (IsHeld(In::Back))
+		if (IsHeld(In::MenuDown))
 			orient.x -= ANGLE(3.0f / multiplier);
 
-		if (IsHeld(In::Left))
+		if (IsHeld(In::MenuLeft))
 			orient.y += ANGLE(3.0f / multiplier);
 
-		if (IsHeld(In::Right))
+		if (IsHeld(In::MenuRight))
 			orient.y -= ANGLE(3.0f / multiplier);
 
 		if (IsHeld(In::Sprint))

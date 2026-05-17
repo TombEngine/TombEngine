@@ -172,7 +172,36 @@ namespace TEN::Input
 		{ In::MouseClickMiddle, MK_MCLICK },
 		{ In::MouseClickRight,  MK_RCLICK },
 		{ In::MouseScrollUp,    MK_AXIS_Z_NEG },
-		{ In::MouseScrollDown,  MK_AXIS_Z_POS }
+		{ In::MouseScrollDown,  MK_AXIS_Z_POS },
+
+		{ In::GamepadSouth,         GK_SOUTH },
+		{ In::GamepadEast,          GK_EAST },
+		{ In::GamepadWest,          GK_WEST },
+		{ In::GamepadNorth,         GK_NORTH },
+		{ In::GamepadBack,          GK_BACK },
+		{ In::GamepadGuide,         GK_GUIDE },
+		{ In::GamepadStart,         GK_START },
+		{ In::GamepadLeftStick,     GK_LSTICK },
+		{ In::GamepadRightStick,    GK_RSTICK },
+		{ In::GamepadLeftShoulder,  GK_LSHOULDER },
+		{ In::GamepadRightShoulder, GK_RSHOULDER },
+		{ In::GamepadDPadUp,        GK_DPAD_UP },
+		{ In::GamepadDPadDown,      GK_DPAD_DOWN },
+		{ In::GamepadDPadLeft,      GK_DPAD_LEFT },
+		{ In::GamepadDPadRight,     GK_DPAD_RIGHT },
+		{ In::GamepadMisc1,         GK_MISC1 },
+		{ In::GamepadRightPaddle1,  GK_RPADDLE1 },
+		{ In::GamepadLeftPaddle1,   GK_LPADDLE1 },
+		{ In::GamepadRightPaddle2,  GK_RPADDLE2 },
+		{ In::GamepadLeftPaddle2,   GK_LPADDLE2 },
+		{ In::GamepadTouchpad,      GK_TOUCHPAD },
+		{ In::GamepadMisc2,         GK_MISC2 },
+		{ In::GamepadMisc3,         GK_MISC3 },
+		{ In::GamepadMisc4,         GK_MISC4 },
+		{ In::GamepadMisc5,         GK_MISC5 },
+		{ In::GamepadMisc6,         GK_MISC6 },
+		{ In::GamepadLeftTrigger,   GK_LTRIGGER_POS },
+		{ In::GamepadRightTrigger,  GK_RTRIGGER_POS }
 	};
 
 	int BindingManager::GetBoundKeyID(BindingProfileID profileID, ActionID actionID) const
