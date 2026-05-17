@@ -186,7 +186,7 @@ namespace TEN::Scripting::Input
 		/// Hard-wired menu navigation IDs.
 		// This section contains menu navigation actions that are hard-wired to specific raw input bindings 
 		// such as keyboard arrows or gamepad axis and D-Pad, and cannot be rebound by the player.
-		// @section HardWiredAndRawActionIDs
+		// @section HardWiredMenuNavigationActionIDs
 
 		/// Menu up action.
 		// @mem MENU_UP
@@ -204,10 +204,10 @@ namespace TEN::Scripting::Input
 		// @mem MENU_RIGHT
 		{ "MENU_RIGHT", In::MenuRight },
 
-		/// Raw action IDs.
-		// This section contains raw keyboard, mouse, and gamepad input IDs.
-		// Use these values when script logic must read raw physical input.
-		// @section HardWiredAndRawActionIDs
+		/// Raw keyboard action IDs.
+		// This section contains raw keyboard input IDs, including function keys.
+		// Use these values when script logic must read physical keyboard state directly.
+		// @section RawKeyboardActionIDs
 
 		/// Keyboard A key.
 		// @mem A
@@ -489,17 +489,22 @@ namespace TEN::Scripting::Input
 		// @mem ARROW_RIGHT
 		{ "ARROW_RIGHT", In::ArrowRight },
 
-		/// Control key.
+		/// Control key. Registers both left and right keys.
 		// @mem CTRL
 		{ "CTRL", In::Ctrl },
 
-		/// Shift key.
+		/// Shift key. Registers both left and right keys.
 		// @mem SHIFT
 		{ "SHIFT", In::Shift },
 
-		/// Alt key.
+		/// Alt key. Registers both left and right keys.
 		// @mem ALT
 		{ "ALT", In::Alt },
+
+		/// Raw mouse action IDs.
+		// This section contains raw mouse button and wheel input IDs.
+		// Use these values when script logic must read physical mouse state directly.
+		// @section RawMouseActionIDs
 
 		/// Mouse left click.
 		// @mem MOUSE_CLICK_LEFT
@@ -521,6 +526,11 @@ namespace TEN::Scripting::Input
 		// @mem MOUSE_SCROLL_DOWN
 		{ "MOUSE_SCROLL_DOWN", In::MouseScrollDown },
 
+		/// Raw gamepad action IDs.
+		// This section contains raw gamepad button, D-Pad, paddle, touchpad, and trigger input IDs.
+		// Use these values when script logic must read physical gamepad state directly.
+		// @section RawGamepadActionIDs
+
 		/// Gamepad south button. Corresponds to the "A" button on Xbox controllers and "Cross" on PlayStation controllers.
 		// @mem GAMEPAD_SOUTH
 		{ "GAMEPAD_SOUTH", In::GamepadSouth },
@@ -537,15 +547,15 @@ namespace TEN::Scripting::Input
 		// @mem GAMEPAD_NORTH
 		{ "GAMEPAD_NORTH", In::GamepadNorth },
 
-		/// Gamepad back button.
+		/// Gamepad back button. Corresponds to the "Select" button on PlayStation 3/4 controllers and "Share" button on PlayStation 5 controllers.
 		// @mem GAMEPAD_BACK
 		{ "GAMEPAD_BACK", In::GamepadBack },
 
-		/// Gamepad guide button.
+		/// Gamepad guide button. Corresponds to the "Xbox" button on Xbox controllers and "PlayStation" button on PlayStation controllers.
 		// @mem GAMEPAD_GUIDE
 		{ "GAMEPAD_GUIDE", In::GamepadGuide },
 
-		/// Gamepad start button.
+		/// Gamepad start button. Corresponds to the "Options" button on PlayStation 4/5 controllers.
 		// @mem GAMEPAD_START
 		{ "GAMEPAD_START", In::GamepadStart },
 
@@ -581,23 +591,23 @@ namespace TEN::Scripting::Input
 		// @mem GAMEPAD_DPAD_RIGHT
 		{ "GAMEPAD_DPAD_RIGHT", In::GamepadDPadRight },
 
-		/// Gamepad right paddle 1 button.
-		// @mem GAMEPAD_RIGHT_PADDLE1
-		{ "GAMEPAD_RIGHT_PADDLE1", In::GamepadRightPaddle1 },
-
-		/// Gamepad left paddle 1 button.
+		/// Gamepad left paddle 1 button. Available only for Xbox Elite controllers and similar models with rear paddles.
 		// @mem GAMEPAD_LEFT_PADDLE1
 		{ "GAMEPAD_LEFT_PADDLE1", In::GamepadLeftPaddle1 },
 
-		/// Gamepad right paddle 2 button.
-		// @mem GAMEPAD_RIGHT_PADDLE2
-		{ "GAMEPAD_RIGHT_PADDLE2", In::GamepadRightPaddle2 },
-
-		/// Gamepad left paddle 2 button.
+		/// Gamepad left paddle 2 button. Available only for Xbox Elite controllers and similar models with rear paddles.
 		// @mem GAMEPAD_LEFT_PADDLE2
 		{ "GAMEPAD_LEFT_PADDLE2", In::GamepadLeftPaddle2 },
 
-		/// Gamepad touchpad button.
+		/// Gamepad right paddle 1 button. Available only for Xbox Elite controllers and similar models with rear paddles.
+		// @mem GAMEPAD_RIGHT_PADDLE1
+		{ "GAMEPAD_RIGHT_PADDLE1", In::GamepadRightPaddle1 },
+
+		/// Gamepad right paddle 2 button. Available only for Xbox Elite controllers and similar models with rear paddles.
+		// @mem GAMEPAD_RIGHT_PADDLE2
+		{ "GAMEPAD_RIGHT_PADDLE2", In::GamepadRightPaddle2 },
+
+		/// Gamepad touchpad button. Available only for PlayStation controllers with a clickable touchpad, such as DualShock 4 and DualSense.
 		// @mem GAMEPAD_TOUCHPAD
 		{ "GAMEPAD_TOUCHPAD", In::GamepadTouchpad },
 
