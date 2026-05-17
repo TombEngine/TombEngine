@@ -211,7 +211,6 @@ namespace TEN::Input
 				break;
 
 			default:
-				gamepadKeyName = GamepadNameType::Xbox;
 				break;
 			}
 

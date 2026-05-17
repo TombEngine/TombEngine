@@ -66,8 +66,8 @@ namespace TEN::Input
 			return;
 		}
 
-		const char* vendor = SDL_GetGamepadName(ActiveGamepad);
-		TENLog(std::string("Using '") + (vendor ? vendor : "unknown") + "' gamepad for input.", LogLevel::Info);
+		const char* gamepadName = SDL_GetGamepadName(ActiveGamepad);
+		TENLog(std::string("Using '") + (gamepadName ? gamepadName : "unknown") + "' gamepad for input.", LogLevel::Info);
 
 		// SDL3 reports rumble support via SDL_GetGamepadProperties.
 		SDL_PropertiesID props = SDL_GetGamepadProperties(ActiveGamepad);
@@ -76,14 +76,9 @@ namespace TEN::Input
 			TENLog("Controller supports vibration.", LogLevel::Info);
 
 		// If the user is on default keyboard/mouse bindings and this controller matches
-		// a supported Xbox/PlayStation/Switch Pro style layout, swap to gamepad defaults
-		// and enable rumble + thumbstick camera.
+		// a supported Xbox/PlayStation/Switch Pro style layout, swap to gamepad defaults.
 		if (ApplyDefaultGamepadBindings())
-		{
-			g_Configuration.EnableRumble = ActiveGamepadHasRumble;
-			g_Configuration.EnableThumbstickCamera = true;
 			SaveConfiguration();
-		}
 	}
 
 	static void CloseGamepadIfMatches(SDL_JoystickID id)
@@ -586,7 +581,7 @@ namespace TEN::Input
 			break;
 		}
 
-		if (!SDL_RumbleGamepad(ActiveGamepad, lowFreq, highFreq, 100))
+		if (!SDL_RumbleGamepad(ActiveGamepad, lowFreq, highFreq, 1000 / FPS))
 			TENLog(std::string("Rumble update failed: ") + SDL_GetError(), LogLevel::Warning);
 
 		RumbleInfo.LastPower = RumbleInfo.Power;
