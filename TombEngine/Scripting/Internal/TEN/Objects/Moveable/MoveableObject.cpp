@@ -787,7 +787,7 @@ int Moveable::GetFrameNumber() const
 void Moveable::SetFrameNumber(int frameNumber)
 {
 	const auto& anim = GetAnimData(*_moveable);
-	
+
 	bool cond = (frameNumber <= anim.EndFrameNumber);
 	const char* err = "Invalid frame number {}; max frame number for anim {} is {}.";
 
