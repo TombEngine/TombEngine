@@ -4,6 +4,9 @@
 #include "Game/Gui.h"
 #include "Specific/clock.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Specific/trutils.h"
+
+using namespace TEN::Utils;
 
 namespace TEN::Input
 {
@@ -113,6 +116,14 @@ namespace TEN::Input
 		}
 	};
 
+	const std::vector<ActionID> MODE_SWITCH_ACTION_IDS =
+	{
+		In::Jump,
+		In::Roll,
+		In::Action,
+		In::Draw
+	};
+
 	const std::vector<ActionGroupID> USER_ACTION_GROUP_IDS =
 	{
 		ActionGroupID::General,
@@ -163,6 +174,10 @@ namespace TEN::Input
 
 	bool Action::IsMatchingMode() const
 	{
+		// Only do mode comparison for specifically listed controls.
+		if (!Contains(MODE_SWITCH_ACTION_IDS, _id))
+			return true;
+
 		return (_mode == FreezeMode::None || _mode == GetCurrentMode());
 	}
 
