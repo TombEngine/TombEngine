@@ -332,7 +332,7 @@ namespace TEN::Entities::Creatures::TR3
 
 		// Knockback the target if Sophia in tower mode.
 		// Avoid spawning rings if target is dead.
-		if (ai.distance < SQUARE(SOPHIALEIGH_KNOCKBACK_RANGE) && creature->Flags <= 0 && creature->Enemy->HitPoints > 0)
+		if (ai.distance < SQUARE(SOPHIALEIGH_KNOCKBACK_RANGE) && creature->Flags <= 0 && creature->Enemy && creature->Enemy->HitPoints > 0)
 		{
 			TriggerKnockback(item);
 			creature->Flags = 50;
@@ -354,7 +354,7 @@ namespace TEN::Entities::Creatures::TR3
 			creature->MaxTurn = 0;
 			creature->Flags = 0;
 
-			if (creature->Enemy->IsLara() && creature->Enemy->HitPoints <= 0)
+			if (creature->Enemy.IsLara() && creature->Enemy->HitPoints <= 0)
 			{
 				item.Animation.TargetState = SOPHIALEIGH_STATE_LAUGH;
 			}
@@ -539,7 +539,7 @@ namespace TEN::Entities::Creatures::TR3
 			creature->MaxTurn = 0;
 			creature->Flags = 0;
 
-			if (creature->Enemy->IsLara() && creature->Enemy->HitPoints <= 0)
+			if (creature->Enemy.IsLara() && creature->Enemy->HitPoints <= 0)
 			{
 				item.Animation.TargetState = SOPHIALEIGH_STATE_LAUGH;
 			}
