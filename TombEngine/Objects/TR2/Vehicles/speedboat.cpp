@@ -179,7 +179,7 @@ namespace TEN::Entities::Vehicles
 		}
 		else
 		{
-			lara->Context.Vehicle = itemNumber;
+			SetLaraVehicle(laraItem, speedboatItem);
 			DoSpeedboatMount(speedboatItem, laraItem, mountType);
 
 			if (g_Level.Items[itemNumber].Status != ITEM_ACTIVE)
@@ -279,7 +279,7 @@ namespace TEN::Entities::Vehicles
 			laraItem->Animation.Velocity.y = -50;
 			laraItem->Pose.Orientation.x = 0;
 			laraItem->Pose.Orientation.z = 0;
-			lara->Context.Vehicle = NO_VALUE; // Leave vehicle itself active for inertia.
+			SetLaraVehicle(laraItem, nullptr);
 
 			int x = laraItem->Pose.Position.x + 360 * phd_sin(laraItem->Pose.Orientation.y);
 			int y = laraItem->Pose.Position.y - 90;

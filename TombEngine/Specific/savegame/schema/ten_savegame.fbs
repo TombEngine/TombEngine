@@ -61,6 +61,11 @@ table Room {
 	block_stopper_flags: [bool];
 }
 
+table ItemCallback {
+	type: int32;
+	name: string;
+}
+
 table Item {
 	anim_object_id: int32;
 	active_state: int32;
@@ -105,10 +110,7 @@ table Item {
 	effect_count: int32;
 
 	lua_name: string;
-	lua_on_killed_name: string;
-	lua_on_hit_name: string;
-	lua_on_collided_with_object_name: string;
-	lua_on_collided_with_room_name: string;
+	lua_callbacks: [ItemCallback];
 }
 
 table FXInfo {
@@ -645,6 +647,11 @@ table SaveGameStatistics {
 	timer: int32;
 }
 
+table CallbackSet {
+	point: int32;
+	callbacks: [string];
+}
+
 table SaveGame {
 	header: SaveGameHeader;
 	game: SaveGameStatistics;
@@ -701,25 +708,7 @@ table SaveGame {
 	global_event_sets: [EventSet];
 	volume_event_sets: [EventSet];
 	script_vars: UnionVec;
-	
-	// At the moment there is no real reason to save the pre_start and
-	// post_start callbacks as OnStart will have already be called when a save
-	// is loaded, but we'll store them anyway for completeness.
-	
-	callbacks_pre_start: [string];
-	callbacks_post_start: [string];
-	callbacks_pre_end: [string];
-	callbacks_post_end: [string];
-	callbacks_pre_save: [string];
-	callbacks_post_save: [string];
-	callbacks_pre_load: [string];
-	callbacks_post_load: [string];
-	callbacks_pre_loop: [string];
-	callbacks_post_loop: [string];
-	callbacks_pre_useitem: [string];
-	callbacks_post_useitem: [string];
-	callbacks_pre_freeze: [string];
-	callbacks_post_freeze: [string];
+	callbacks: [CallbackSet];
 	active_items: [int32];
 	free_item_slots: [int32];
 	active_effects: [int32];

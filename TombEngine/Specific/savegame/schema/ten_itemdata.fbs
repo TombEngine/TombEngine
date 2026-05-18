@@ -87,6 +87,7 @@ table Creature {
 	weapon_delay1: int32;
 	weapon_delay2: int32;
 	mood: int32;
+	forced_mood: int32;
 	enemy: int32;
 	ai_target_number: int32;
 	flags: int32;

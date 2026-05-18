@@ -227,7 +227,7 @@ namespace TEN::Entities::TR4
 			}
 		}
 
-		auto* enemy = creature->Enemy;
+		auto* enemy = creature->Enemy.Get();
 		if (foundEnemy)
 			creature->Enemy = foundEnemy;
 
@@ -419,7 +419,7 @@ namespace TEN::Entities::TR4
 						AI.distance >= SQUARE(BLOCK(1.5f)) &&
 						(item->TestMeshSwapFlags(GuideRightHandSwapJoints) || AI.distance >= SQUARE(BLOCK(3))))
 					{
-						if (creature->Enemy->IsLara())
+						if (creature->Enemy.IsLara())
 						{
 							if (AI.distance >= SQUARE(BLOCK(2)))
 							{
