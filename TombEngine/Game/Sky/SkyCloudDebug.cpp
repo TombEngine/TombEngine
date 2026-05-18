@@ -2033,24 +2033,6 @@ namespace TEN::Sky
 			ImGui::Unindent(8.0f);
 		}
 
-		if (ImGui::CollapsingHeader("Night Damping##uwsky"))
-		{
-			ImGui::Indent(8.0f);
-			ImGui::SliderFloat("Night Darken##uwsky", &uw.NightDarken, 0.0f, 1.0f, "%.3f");
-			ImGui::TextDisabled("  0 = unchanged at night, 1 = fully dark at night.");
-			ImGui::Unindent(8.0f);
-		}
-
-		if (ImGui::CollapsingHeader("Preset Fade##uwsky", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::Indent(8.0f);
-			ImGui::Text("Fade Progress: %.3f", g_Renderer.GetUnderwaterSkyPresetFade());
-			ImGui::SliderFloat("Fade Duration (s)##uwsky", &g_Renderer.GetUnderwaterSkyPresetFadeDuration(),
-			                   0.5f, 120.0f, "%.1f s");
-			ImGui::TextDisabled("  Duration for the underwater sky to fade in/out when preset changes.");
-			ImGui::Unindent(8.0f);
-		}
-
 		ImGui::Separator();
 
 		if (ImGui::Button("Reset Underwater Defaults##uwsky"))
@@ -2080,8 +2062,7 @@ namespace TEN::Sky
 				"%s.underwaterSky.depthFadeStrength = %.3f\n"
 				"%s.underwaterSky.causticStrength = %.3f\n"
 				"%s.underwaterSky.shaftStrength = %.3f\n"
-				"%s.underwaterSky.shaftSharpness = %.2f\n"
-				"%s.underwaterSky.nightDarken = %.3f",
+				"%s.underwaterSky.shaftSharpness = %.2f",
 				levelName.c_str(), uw.Enabled ? "true" : "false",
 				levelName.c_str(), uw.Intensity,
 				levelName.c_str(), uw.WaveSize,
@@ -2098,8 +2079,7 @@ namespace TEN::Sky
 				levelName.c_str(), uw.DepthFadeStrength,
 				levelName.c_str(), uw.CausticStrength,
 				levelName.c_str(), uw.ShaftStrength,
-				levelName.c_str(), uw.ShaftSharpness,
-				levelName.c_str(), uw.NightDarken);
+				levelName.c_str(), uw.ShaftSharpness);
 			ImGui::SetClipboardText(buf);
 		}
 	}

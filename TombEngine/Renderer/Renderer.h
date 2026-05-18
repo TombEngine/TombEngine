@@ -184,7 +184,6 @@ namespace TEN::Renderer
 		UnderwaterSky::UnderwaterSkySettings _underwaterSkySettings;
 		float _underwaterTime              = 0.0f;
 		float _underwaterPresetFade        = 0.0f;
-		float _underwaterPresetFadeDuration = 5.0f;
 
 		// God rays
 		ConstantBuffers::CGodRayBuffer _stGodRay;
@@ -468,8 +467,6 @@ namespace TEN::Renderer
 		UnderwaterSky::UnderwaterSkySettings& GetUnderwaterSkySettings() { return _underwaterSkySettings; }
 		const UnderwaterSky::UnderwaterSkySettings& GetUnderwaterSkySettings() const { return _underwaterSkySettings; }
 		float  GetUnderwaterSkyPresetFade() const { return _underwaterPresetFade; }
-		float& GetUnderwaterSkyPresetFadeDuration() { return _underwaterPresetFadeDuration; }
-		float  GetUnderwaterSkyPresetFadeDuration() const { return _underwaterPresetFadeDuration; }
 	private:
 
 		// God rays

@@ -128,4 +128,24 @@ namespace TEN::Scripting
 
 		static void Register(sol::table& parent);
 	};
+
+	// Per-level underwater sky container assigned to level.underwaterSky.
+	// Enabled toggles the WaterSurface Layer A weather preset; WaveSpeed and
+	// Color override the corresponding UnderwaterSkySettings fields when set.
+	struct LevelUnderwaterSky
+	{
+		bool        HasEnabled = false;
+		bool        Enabled    = false;
+		float       WaveSpeed  = -1.0f; // < 0 = keep preset/default.
+
+		bool        HasColor   = false;
+		ScriptColor Color      = ScriptColor(0, 120, 255);
+
+		void        SetEnabledLua(sol::object obj);
+		bool        GetEnabledLua() const { return Enabled; }
+		void        SetColorLua(sol::object obj);
+		ScriptColor GetColorLua() const { return Color; }
+
+		static void Register(sol::table& parent);
+	};
 }

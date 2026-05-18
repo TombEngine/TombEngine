@@ -649,6 +649,9 @@ namespace TEN::Sky
 
 			// --- Dust storm (level.dustStorm) ---
 			ApplyDustStormOverride(level->DustStorm);
+
+			// --- Underwater sky (level.underwaterSky) ---
+			ApplyUnderwaterSkyOverride(level->UnderwaterSky);
 		}
 	}
 
@@ -746,6 +749,26 @@ namespace TEN::Sky
 
 		if (dust.HasColor)
 			ScriptColorToFloatRGB(dust.Color, settings.ColorR, settings.ColorG, settings.ColorB);
+	}
+
+	void SkyCloudSystem::ApplyUnderwaterSkyOverride(const TEN::Scripting::LevelUnderwaterSky& uw)
+	{
+		auto& settings = g_Renderer.GetUnderwaterSkySettings();
+
+		// Enabled toggles the WaterSurface Layer A preset on/off.
+		if (uw.HasEnabled)
+		{
+			if (uw.Enabled)
+				SetLayerAPresetImmediate(WeatherPresetType::WaterSurface);
+			else if (_layerAPreset == WeatherPresetType::WaterSurface)
+				SetLayerAPresetImmediate(WeatherPresetType::Nothing);
+		}
+
+		if (uw.WaveSpeed >= 0.0f)
+			settings.WaveSpeed = std::clamp(uw.WaveSpeed, 0.0f, 3.0f);
+
+		if (uw.HasColor)
+			ScriptColorToFloatRGB(uw.Color, settings.ColorR, settings.ColorG, settings.ColorB);
 	}
 
 	// ====================================================================
@@ -1307,13 +1330,13 @@ namespace TEN::Sky
 			_presets[def.Type] = def;
 		}
 
-		// ----- ReservedWaterSurface -----
+		// ----- WaterSurface -----
 		// Layer A preset: underwater water-surface effect with caustic waves and
 		// god-ray light shafts. Renderer-side parameters live in UnderwaterSkySettings.
 		{
 			WeatherPresetDefinition def;
-			def.Type           = WeatherPresetType::ReservedWaterSurface;
-			def.Name           = "ReservedWaterSurface";
+			def.Type           = WeatherPresetType::WaterSurface;
+			def.Name           = "WaterSurface";
 			def.IsLayerAPreset = true;
 			def.DefaultTransitionDuration = 30.0f;
 
@@ -2593,7 +2616,7 @@ namespace TEN::Sky
 		case WeatherPresetType::Thunderstorm:          return "Thunderstorm";
 		case WeatherPresetType::Nothing:               return "Nothing";
 		case WeatherPresetType::Aurora:                return "Aurora";
-		case WeatherPresetType::ReservedWaterSurface:  return "ReservedWaterSurface";
+		case WeatherPresetType::WaterSurface:  return "WaterSurface";
 		default:                                       return "Unknown";
 		}
 	}
@@ -2613,7 +2636,7 @@ namespace TEN::Sky
 			{ "Thunderstorm",          WeatherPresetType::Thunderstorm },
 			{ "Nothing",               WeatherPresetType::Nothing },
 			{ "Aurora",                WeatherPresetType::Aurora },
-			{ "ReservedWaterSurface",  WeatherPresetType::ReservedWaterSurface },
+			{ "WaterSurface",          WeatherPresetType::WaterSurface },
 		};
 
 		auto it = map.find(name);

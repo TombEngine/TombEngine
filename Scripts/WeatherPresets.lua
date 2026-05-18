@@ -453,3 +453,29 @@ Flow.DefineWeatherPreset("CloudsTransformation", {
 	category       = "AltocumulusMid",
     }
 })
+
+-- Underwater water-surface preset (Layer A). All values below the cloudA table
+-- map directly to UnderwaterSkySettings. The godray* fields affect ONLY the
+-- underwater god rays and are independent from the regular atmospheric godrays.
+Flow.DefineWeatherPreset("WaterSurface", {
+    cloudA = {
+intensity = 0.758
+waveSize = 0.923
+waveSharpness = 5.225
+distortionAmount = 5.089
+distortionStrength = 1.516
+color = Color(0, 83, 255)
+layerHeight = 0.410
+horizonSoftness = 0.312
+depthFadeStrength = 1.008
+causticStrength = 2.471
+shaftStrength = 0.866
+shaftSharpness = 7.26
+godrayLength = 0.680,
+godrayIntensity = 2.733,
+godrayDecay = 0.9767,
+godraySharpness  = 7.26,
+godraySampleCount = 128,
+    }
+})
+

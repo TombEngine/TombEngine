@@ -88,6 +88,10 @@ void Level::Register(sol::table& parent)
 //@mem dustStorm
 		"dustStorm", &Level::DustStorm,
 
+/// (@{Flow.UnderwaterSky}) Per-level underwater sky settings.
+//@mem underwaterSky
+		"underwaterSky", &Level::UnderwaterSky,
+
 /// (@{Flow.Fog}) Global distance fog, with specified RGB color and distance.
 // If not provided, distance fog will not be visible.
 //@mem fog

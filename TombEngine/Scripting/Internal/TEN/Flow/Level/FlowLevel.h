@@ -34,6 +34,9 @@ struct Level : public ScriptInterfaceLevel
 	// Per-level dust storm config (level.dustStorm).
 	TEN::Scripting::LevelDustStorm DustStorm = {};
 
+	// Per-level underwater sky config (level.underwaterSky).
+	TEN::Scripting::LevelUnderwaterSky UnderwaterSky = {};
+
 	WeatherType Weather				= WeatherType::None;
 	float		WeatherStrength		= 1.0f;
 	bool		WeatherClustering	= true;

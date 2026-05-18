@@ -36,6 +36,7 @@ namespace TEN::Scripting
 	struct DynamicSkyClouds;
 	class  MoonLens;
 	struct LevelDustStorm;
+	struct LevelUnderwaterSky;
 }
 
 namespace TEN::Sky
@@ -76,7 +77,7 @@ namespace TEN::Sky
 		// Layer A-specific presets (only configure Cloud Layer A).
 		Nothing,               // Layer A disabled — no aurora, no water surface.
 		Aurora,                // Aurora borealis effect on Layer A.
-		ReservedWaterSurface,  // Reserved: future water surface effect on Layer A.
+		WaterSurface,          // Layer A: underwater water-surface effect with caustic waves and god-ray shafts.
 
 		Count
 	};
@@ -574,6 +575,7 @@ namespace TEN::Sky
 		void ApplyCloudColorOverrides(const TEN::Scripting::DynamicSkyClouds& clouds);
 		void ApplyMoonLensOverride(const TEN::Scripting::MoonLens& moon);
 		void ApplyDustStormOverride(const TEN::Scripting::LevelDustStorm& dust);
+		void ApplyUnderwaterSkyOverride(const TEN::Scripting::LevelUnderwaterSky& uw);
 
 		// --- Data ---
 		std::unordered_map<WeatherPresetType, WeatherPresetDefinition> _presets;

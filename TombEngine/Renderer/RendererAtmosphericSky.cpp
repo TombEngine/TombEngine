@@ -298,24 +298,15 @@ namespace TEN::Renderer
 			// Drive Enabled from the sky cloud system (Layer A preset).
 			bool wantsUnderwater = g_SkyCloudSystem.IsUnderwaterSkyPresetActive();
 
-			// Linear fade in/out on preset change (matches aurora pattern).
-			float fadeTarget = wantsUnderwater ? 1.0f : 0.0f;
-			float fadeStep   = (_underwaterPresetFadeDuration > 0.0f)
-				? (1.0f / 30.0f) / _underwaterPresetFadeDuration
-				: 1.0f;
-			if (_underwaterPresetFade < fadeTarget)
-				_underwaterPresetFade = std::clamp(_underwaterPresetFade + fadeStep, 0.0f, 1.0f);
-			else if (_underwaterPresetFade > fadeTarget)
-				_underwaterPresetFade = std::clamp(_underwaterPresetFade - fadeStep, 0.0f, 1.0f);
+			// Instant transition (no fade) per design: snap to target.
+			_underwaterPresetFade = wantsUnderwater ? 1.0f : 0.0f;
 
-			uw.Enabled = wantsUnderwater || (_underwaterPresetFade > 0.001f);
+			uw.Enabled = wantsUnderwater;
 
 			float visibility = 0.0f;
 			if (uw.Enabled)
 			{
-				// Night damping: at full night, fade by uw.NightDarken. During day, full strength.
-				float dayBoost = 1.0f - dayNightBlend * uw.NightDarken;
-				visibility = TEN::Math::Smoothstep(_underwaterPresetFade) * dayBoost;
+				visibility = _underwaterPresetFade;
 
 				// Accumulate animation time.
 				_underwaterTime += (1.0f / 30.0f) * uw.WaveSpeed;
@@ -456,6 +447,12 @@ namespace TEN::Renderer
 	void Renderer::DrawSunMoonDisc(RenderView& renderView)
 	{
 		if (!_atmosphericSkySettings.Enabled)
+			return;
+
+		// Skip sun/moon disc rendering entirely when the underwater sky preset
+		// is active. The water surface fully covers the sky and the sun must
+		// not bleed through as an additive disc on top of the caustics.
+		if (g_SkyCloudSystem.IsUnderwaterSkyPresetActive())
 			return;
 
 		// Bind atmospheric sky CB to register b12.

@@ -370,7 +370,9 @@ float4 ComputeUnderwaterSky(float3 viewDir, float3 sunDir)
     float2 warp  = float2(
         UnderwaterValueNoise(flow1) - 0.5f,
         UnderwaterValueNoise(flow2) - 0.5f);
-    float2 distortedUV = surfaceUV + warp * (0.18f * distortionStrength);
+    // Apply wind drift to the macro UV so the entire upper caustic layer
+    // travels in the configured wind direction (not just the fine warp).
+    float2 distortedUV = surfaceUV + warp * (0.18f * distortionStrength) + drift * 0.85f;
 
     float waveA = UnderwaterValueNoise(distortedUV * 2.80f + drift * 0.90f + float2(time * 0.03f, time * 0.02f));
     float waveB = UnderwaterValueNoise(distortedUV * 5.60f + drift * 1.60f + float2(-time * 0.02f, time * 0.04f));
@@ -390,26 +392,31 @@ float4 ComputeUnderwaterSky(float3 viewDir, float3 sunDir)
 
     // Base water tint.
     float3 waterColor = float3(AtmoUnderwaterColorR, AtmoUnderwaterColorG, AtmoUnderwaterColorB);
-    float3 brightTint = lerp(waterColor, float3(0.96f, 0.98f, 1.0f), 0.62f);
+    // Bright tint stays close to water color so caustic highlights keep the
+    // selected color saturation instead of washing out to white.
+    float3 brightTint = lerp(waterColor, float3(1.0f, 1.0f, 1.0f), 0.18f);
 
     float3 surfaceColor = waterColor * (0.34f + upperLayer * 0.56f);
     surfaceColor = lerp(surfaceColor, brightTint,
                         brightSurface * AtmoUnderwaterCausticStrength * 0.48f);
 
-    // Snell's-window warm bloom.
-    surfaceColor += float3(1.0f, 0.95f, 0.82f)
+    // Snell's-window warm bloom. Tinted heavily by waterColor so the sun
+    // hotspot keeps the chosen sea color (no pale grayish wash).
+    float3 sunBloomTint = lerp(float3(1.0f, 0.95f, 0.82f), waterColor, 0.65f);
+    surfaceColor += sunBloomTint
                   * (sunSpot * 0.55f + sunSpotCore * 1.10f)
                   * AtmoUnderwaterCausticStrength * 0.55f * aboveFactor;
 
-    // White sparkle glints.
-    surfaceColor += float3(1.0f, 1.0f, 1.0f) * sparkle
+    // Sparkle glints — also tinted by waterColor to preserve saturation.
+    float3 sparkleTint = lerp(float3(1.0f, 1.0f, 1.0f), waterColor, 0.45f);
+    surfaceColor += sparkleTint * sparkle
                   * AtmoUnderwaterCausticStrength * 1.2f * aboveFactor;
 
-    // Deep pit below the water-line.
-    float3 pitColor   = waterColor * 0.02f;
+    // Deep pit below the water-line. Sea color stays vivid until it fades into the void.
+    float3 pitColor   = waterColor * 0.04f;
     float depthFactor = pow(saturate((layerH - upY) / max(layerH + 0.001f, 0.001f)),
                             AtmoUnderwaterDepthFadeStr);
-    float3 belowColor = lerp(waterColor * 0.15f, pitColor, depthFactor);
+    float3 belowColor = lerp(waterColor * 0.85f, pitColor, depthFactor);
 
     // Blend surface (above) and pit (below) by aboveFactor.
     float3 finalColor = lerp(belowColor, surfaceColor, aboveFactor);

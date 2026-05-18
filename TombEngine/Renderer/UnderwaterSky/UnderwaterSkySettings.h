@@ -52,8 +52,5 @@ namespace TEN::Renderer::UnderwaterSky
 		float RayDecay             = 0.966f;  // [0.90, 1.0] Per-sample exponential decay.
 		float RayIntensity         = 2.5f;    // [0.0, 8.0]  Final brightness multiplier.
 		int   RaySampleCount       = 48;      // [8, 128]    Radial sample count.
-
-		// --- Night damping ---
-		float NightDarken          = 0.85f;   // [0, 1]      How much to darken the whole effect at full night.
 	};
 }

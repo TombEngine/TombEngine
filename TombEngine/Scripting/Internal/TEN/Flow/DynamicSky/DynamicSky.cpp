@@ -332,4 +332,47 @@ namespace TEN::Scripting
 			"windCoupling", &LevelDustStorm::WindCoupling
 		);
 	}
+
+	// ====================================================================
+	// LevelUnderwaterSky
+	// ====================================================================
+
+	void LevelUnderwaterSky::SetEnabledLua(sol::object obj)
+	{
+		if (obj.is<bool>())
+		{
+			Enabled    = obj.as<bool>();
+			HasEnabled = true;
+		}
+	}
+
+	void LevelUnderwaterSky::SetColorLua(sol::object obj)
+	{
+		if (obj.is<ScriptColor>())
+		{
+			Color    = obj.as<ScriptColor>();
+			HasColor = true;
+		}
+	}
+
+	void LevelUnderwaterSky::Register(sol::table& parent)
+	{
+		parent.new_usertype<LevelUnderwaterSky>(
+			"UnderwaterSky",
+			sol::constructors<LevelUnderwaterSky()>(),
+			sol::call_constructor, sol::constructors<LevelUnderwaterSky()>(),
+
+			/// (bool) Enables the WaterSurface weather preset for this level.
+			// @mem enabled
+			"enabled", sol::property(&LevelUnderwaterSky::GetEnabledLua, &LevelUnderwaterSky::SetEnabledLua),
+
+			/// (float) Wave animation drift speed override. Negative (default) keeps preset value.
+			// @mem waveSpeed
+			"waveSpeed", &LevelUnderwaterSky::WaveSpeed,
+
+			/// (Color) Underwater base color override.
+			// @mem color
+			"color", sol::property(&LevelUnderwaterSky::GetColorLua, &LevelUnderwaterSky::SetColorLua)
+		);
+	}
 }

@@ -370,6 +370,7 @@ Specify which translations in the strings table correspond to which languages.
 	DynamicSky::Register(tableFlow);
 	MoonLens::Register(tableFlow);
 	LevelDustStorm::Register(tableFlow);
+	LevelUnderwaterSky::Register(tableFlow);
 	InventoryItem::Register(tableFlow);
 	Settings::Register(tableFlow);
 	Fog::Register(tableFlow);
