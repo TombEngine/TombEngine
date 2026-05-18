@@ -34,5 +34,23 @@ namespace TEN::Renderer::ConstantBuffers
 		// Row 3 — View info
 		Vector2 ViewSize;         // Full resolution render target size.
 		Vector2 InvViewSize;      // 1.0 / ViewSize.
+		//--
+		// Row 4 — Underwater shaft mode
+		float   UnderwaterShaftActive;     // 0 = off, 1 = on. Switches sample march to procedural caustic mask.
+		float   UnderwaterShaftBrightness; // Overall multiplier for procedural mask (visibility * ShaftStrength).
+		float   UnderwaterShaftTime;       // Accumulated time for wave drift.
+		float   UnderwaterShaftSharpness;  // Mask power (1 = soft, 4+ = thin shafts).
+		//--
+		// Row 5 — Underwater wind drift direction and ray params
+		float   UnderwaterWindX;           // Normalized X wind component (same as atmospheric sky CB).
+		float   UnderwaterWindY;           // Normalized Y wind component.
+		float   UnderwaterRayLength;       // Underwater-specific march reach in UV space.
+		float   UnderwaterRayDecay;        // Underwater-specific per-sample exponential decay.
+		//--
+		// Row 6 — Underwater ray appearance
+		float   UnderwaterRayIntensity;    // Final brightness multiplier for underwater god rays.
+		float   _pad5;
+		float   _pad6;
+		int     UnderwaterSampleCount;     // Radial sample count for the underwater march.
 	};
 }

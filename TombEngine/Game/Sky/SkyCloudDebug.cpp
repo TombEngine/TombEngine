@@ -1824,6 +1824,19 @@ namespace TEN::Sky
 			ImGui::SliderFloat("Auto Strength Mix", &settings.AutoStrengthMix, 0.0f, 1.0f, "%.3f");
 		}
 
+		// --- Underwater God Rays ---
+		ImGui::Separator();
+		if (ImGui::CollapsingHeader("Underwater God Rays", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			auto& uw = g_Renderer.GetUnderwaterSkySettings();
+			ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "These parameters apply only when Underwater Sky is active.");
+			ImGui::SliderFloat("Length##uw",      &uw.RayLength,      0.05f, 1.5f,  "%.3f");
+			ImGui::SliderFloat("Intensity##uw",   &uw.RayIntensity,   0.0f,  8.0f,  "%.3f");
+			ImGui::SliderFloat("Decay##uw",       &uw.RayDecay,       0.90f, 1.0f,  "%.4f");
+			ImGui::SliderFloat("Sharpness##uw",   &uw.ShaftSharpness, 0.5f,  16.0f, "%.2f");
+			ImGui::SliderInt("Sample Count##uw",  &uw.RaySampleCount, 8,     128);
+		}
+
 		// --- Reset button ---
 		ImGui::Separator();
 		if (ImGui::Button("Reset Defaults"))

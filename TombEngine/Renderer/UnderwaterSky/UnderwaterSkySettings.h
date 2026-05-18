@@ -47,6 +47,12 @@ namespace TEN::Renderer::UnderwaterSky
 		float ShaftStrength         = 1.2f;   // [0, 4]      Brightness of god-ray light shafts piercing the surface.
 		float ShaftSharpness       = 12.0f;   // [1, 64]     Tightness of the cone around the sun direction.
 
+		// --- Underwater god ray appearance (independent from normal god ray settings) ---
+		float RayLength            = 0.65f;   // [0.05, 1.5] March reach in UV space.
+		float RayDecay             = 0.966f;  // [0.90, 1.0] Per-sample exponential decay.
+		float RayIntensity         = 2.5f;    // [0.0, 8.0]  Final brightness multiplier.
+		int   RaySampleCount       = 48;      // [8, 128]    Radial sample count.
+
 		// --- Night damping ---
 		float NightDarken          = 0.85f;   // [0, 1]      How much to darken the whole effect at full night.
 	};
