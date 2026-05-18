@@ -8,6 +8,7 @@
 #include <algorithm>
 #include "Game/control/control.h"
 #include "Game/effects/weather.h"
+#include "Math/Utils.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
@@ -15,6 +16,7 @@
 #include <cmath>
 #include <numeric>
 
+using TEN::Math::Smoothstep;
 using namespace TEN::Renderer;
 using namespace TEN::Renderer::Aurora;
 
@@ -40,21 +42,16 @@ namespace TEN::Sky
 			return t;
 
 		case EasingCurve::SmoothStep:
-			return t * t * (3.0f - 2.0f * t);
+			return Smoothstep(t);
 
 		case EasingCurve::EaseInOut:
-		{
-			if (t < 0.5f)
-				return 4.0f * t * t * t;
-			float f = 2.0f * t - 2.0f;
-			return 0.5f * f * f * f + 1.0f;
-		}
+			return TEN::Math::EaseInOutSine(t);
 
 		case EasingCurve::EaseIn:
-			return t * t;
+			return TEN::Math::EaseInSine(t);
 
 		case EasingCurve::EaseOut:
-			return t * (2.0f - t);
+			return TEN::Math::EaseOutSine(t);
 
 		default:
 			return t;
@@ -252,11 +249,6 @@ namespace TEN::Sky
 		return snap;
 	}
 
-	static float LerpFloat(float a, float b, float t)
-	{
-		return a + (b - a) * t;
-	}
-
 	static byte LerpByte(byte a, byte b, float t)
 	{
 		return static_cast<byte>(std::clamp(
@@ -286,79 +278,79 @@ namespace TEN::Sky
 		{
 			// Fading out: keep enabled until coverage is ~0.
 			result.Enabled = (t < 0.95f);
-			result.Coverage = LerpFloat(a.Coverage, 0.0f, t);
+			result.Coverage = TEN::Math::Lerp(a.Coverage, 0.0f, t);
 		}
 		else if (!a.Enabled && b.Enabled)
 		{
 			// Fading in: enable early, ramp coverage from 0.
 			result.Enabled = (t > 0.05f);
-			result.Coverage = LerpFloat(0.0f, b.Coverage, t);
+			result.Coverage = TEN::Math::Lerp(0.0f, b.Coverage, t);
 		}
 		else
 		{
-			result.Coverage = LerpFloat(a.Coverage, b.Coverage, t);
+			result.Coverage = TEN::Math::Lerp(a.Coverage, b.Coverage, t);
 		}
 
 		// Category: snap at halfway.
 		result.Category = (t < 0.5f) ? a.Category : b.Category;
 
-		result.BottomHeight    = LerpFloat(a.BottomHeight, b.BottomHeight, t);
-		result.Thickness       = LerpFloat(a.Thickness, b.Thickness, t);
-		result.EvolutionSpeed  = LerpFloat(a.EvolutionSpeed, b.EvolutionSpeed, t);
-		result.CurlWarpStrength = LerpFloat(a.CurlWarpStrength, b.CurlWarpStrength, t);
-		result.AltoFbmScale    = LerpFloat(a.AltoFbmScale,    b.AltoFbmScale,    t);
-		result.HorizonFade        = LerpFloat(a.HorizonFade,        b.HorizonFade,        t);
-		result.DistanceFade       = LerpFloat(a.DistanceFade,       b.DistanceFade,       t);
-		result.HorizonMeshBleed   = LerpFloat(a.HorizonMeshBleed,   b.HorizonMeshBleed,   t);
-		result.AltoBillowStrength = LerpFloat(a.AltoBillowStrength, b.AltoBillowStrength, t);
-		result.AltoCovSoftWidth   = LerpFloat(a.AltoCovSoftWidth,   b.AltoCovSoftWidth,   t);
-		result.AltoAbsorption      = LerpFloat(a.AltoAbsorption,      b.AltoAbsorption,      t);
-		result.AltoCloudSize      = LerpFloat(a.AltoCloudSize,      b.AltoCloudSize,      t);
-		result.AltoCloudAmount    = LerpFloat(a.AltoCloudAmount,    b.AltoCloudAmount,    t);
-		result.AltoCloudBrightness = LerpFloat(a.AltoCloudBrightness, b.AltoCloudBrightness, t);
-		result.AltoCloudColorR    = LerpFloat(a.AltoCloudColorR,    b.AltoCloudColorR,    t);
-		result.AltoCloudColorG    = LerpFloat(a.AltoCloudColorG,    b.AltoCloudColorG,    t);
-		result.AltoCloudColorB    = LerpFloat(a.AltoCloudColorB,    b.AltoCloudColorB,    t);
-		result.AltoFbmLacunarity  = LerpFloat(a.AltoFbmLacunarity,  b.AltoFbmLacunarity,  t);
-		result.AltoFbmGain        = LerpFloat(a.AltoFbmGain,        b.AltoFbmGain,        t);
-		result.AltoThickness      = LerpFloat(a.AltoThickness,      b.AltoThickness,      t);
-		result.AltoCloudColorDarkR = LerpFloat(a.AltoCloudColorDarkR, b.AltoCloudColorDarkR, t);
-		result.AltoCloudColorDarkG = LerpFloat(a.AltoCloudColorDarkG, b.AltoCloudColorDarkG, t);
-		result.AltoCloudColorDarkB = LerpFloat(a.AltoCloudColorDarkB, b.AltoCloudColorDarkB, t);
-		result.AltoBottomSoftness  = LerpFloat(a.AltoBottomSoftness,  b.AltoBottomSoftness,  t);
+		result.BottomHeight    = TEN::Math::Lerp(a.BottomHeight, b.BottomHeight, t);
+		result.Thickness       = TEN::Math::Lerp(a.Thickness, b.Thickness, t);
+		result.EvolutionSpeed  = TEN::Math::Lerp(a.EvolutionSpeed, b.EvolutionSpeed, t);
+		result.CurlWarpStrength = TEN::Math::Lerp(a.CurlWarpStrength, b.CurlWarpStrength, t);
+		result.AltoFbmScale    = TEN::Math::Lerp(a.AltoFbmScale,    b.AltoFbmScale,    t);
+		result.HorizonFade        = TEN::Math::Lerp(a.HorizonFade,        b.HorizonFade,        t);
+		result.DistanceFade       = TEN::Math::Lerp(a.DistanceFade,       b.DistanceFade,       t);
+		result.HorizonMeshBleed   = TEN::Math::Lerp(a.HorizonMeshBleed,   b.HorizonMeshBleed,   t);
+		result.AltoBillowStrength = TEN::Math::Lerp(a.AltoBillowStrength, b.AltoBillowStrength, t);
+		result.AltoCovSoftWidth   = TEN::Math::Lerp(a.AltoCovSoftWidth,   b.AltoCovSoftWidth,   t);
+		result.AltoAbsorption      = TEN::Math::Lerp(a.AltoAbsorption,      b.AltoAbsorption,      t);
+		result.AltoCloudSize      = TEN::Math::Lerp(a.AltoCloudSize,      b.AltoCloudSize,      t);
+		result.AltoCloudAmount    = TEN::Math::Lerp(a.AltoCloudAmount,    b.AltoCloudAmount,    t);
+		result.AltoCloudBrightness = TEN::Math::Lerp(a.AltoCloudBrightness, b.AltoCloudBrightness, t);
+		result.AltoCloudColorR    = TEN::Math::Lerp(a.AltoCloudColorR,    b.AltoCloudColorR,    t);
+		result.AltoCloudColorG    = TEN::Math::Lerp(a.AltoCloudColorG,    b.AltoCloudColorG,    t);
+		result.AltoCloudColorB    = TEN::Math::Lerp(a.AltoCloudColorB,    b.AltoCloudColorB,    t);
+		result.AltoFbmLacunarity  = TEN::Math::Lerp(a.AltoFbmLacunarity,  b.AltoFbmLacunarity,  t);
+		result.AltoFbmGain        = TEN::Math::Lerp(a.AltoFbmGain,        b.AltoFbmGain,        t);
+		result.AltoThickness      = TEN::Math::Lerp(a.AltoThickness,      b.AltoThickness,      t);
+		result.AltoCloudColorDarkR = TEN::Math::Lerp(a.AltoCloudColorDarkR, b.AltoCloudColorDarkR, t);
+		result.AltoCloudColorDarkG = TEN::Math::Lerp(a.AltoCloudColorDarkG, b.AltoCloudColorDarkG, t);
+		result.AltoCloudColorDarkB = TEN::Math::Lerp(a.AltoCloudColorDarkB, b.AltoCloudColorDarkB, t);
+		result.AltoBottomSoftness  = TEN::Math::Lerp(a.AltoBottomSoftness,  b.AltoBottomSoftness,  t);
 
-		result.AltoZenithBias       = LerpFloat(a.AltoZenithBias,       b.AltoZenithBias,       t);
-		result.AltoHeightBlendPower  = LerpFloat(a.AltoHeightBlendPower,  b.AltoHeightBlendPower,  t);
-		result.AltoHorizonWidth      = LerpFloat(a.AltoHorizonWidth,      b.AltoHorizonWidth,      t);
-		result.AltoBleedDepth        = LerpFloat(a.AltoBleedDepth,        b.AltoBleedDepth,        t);
-		result.AltoHorizonGradientFade = LerpFloat(a.AltoHorizonGradientFade, b.AltoHorizonGradientFade, t);
+		result.AltoZenithBias       = TEN::Math::Lerp(a.AltoZenithBias,       b.AltoZenithBias,       t);
+		result.AltoHeightBlendPower  = TEN::Math::Lerp(a.AltoHeightBlendPower,  b.AltoHeightBlendPower,  t);
+		result.AltoHorizonWidth      = TEN::Math::Lerp(a.AltoHorizonWidth,      b.AltoHorizonWidth,      t);
+		result.AltoBleedDepth        = TEN::Math::Lerp(a.AltoBleedDepth,        b.AltoBleedDepth,        t);
+		result.AltoHorizonGradientFade = TEN::Math::Lerp(a.AltoHorizonGradientFade, b.AltoHorizonGradientFade, t);
 
 		// Lightning
 		result.LightningEnabled      = (t < 0.5f) ? a.LightningEnabled : b.LightningEnabled;
-		result.LightningStrikeFreq   = LerpFloat(a.LightningStrikeFreq,   b.LightningStrikeFreq,   t);
-		result.LightningInternalFreq = LerpFloat(a.LightningInternalFreq, b.LightningInternalFreq, t);
-		result.LightningSpeed        = LerpFloat(a.LightningSpeed,        b.LightningSpeed,        t);
-		result.LightningInternalSpeed = LerpFloat(a.LightningInternalSpeed, b.LightningInternalSpeed, t);
-		result.LightningGlowIntensity = LerpFloat(a.LightningGlowIntensity, b.LightningGlowIntensity, t);
-		result.LightningBoltColorR   = LerpFloat(a.LightningBoltColorR,   b.LightningBoltColorR,   t);
-		result.LightningBoltColorG   = LerpFloat(a.LightningBoltColorG,   b.LightningBoltColorG,   t);
-		result.LightningBoltColorB   = LerpFloat(a.LightningBoltColorB,   b.LightningBoltColorB,   t);
-		result.LightningFlashIntensity = LerpFloat(a.LightningFlashIntensity, b.LightningFlashIntensity, t);
-		result.LightningAmbientContrib = LerpFloat(a.LightningAmbientContrib, b.LightningAmbientContrib, t);
-		result.LightningBoltLengthScale    = LerpFloat(a.LightningBoltLengthScale,    b.LightningBoltLengthScale,    t);
-		result.LightningBoltThicknessScale = LerpFloat(a.LightningBoltThicknessScale, b.LightningBoltThicknessScale, t);
+		result.LightningStrikeFreq   = TEN::Math::Lerp(a.LightningStrikeFreq,   b.LightningStrikeFreq,   t);
+		result.LightningInternalFreq = TEN::Math::Lerp(a.LightningInternalFreq, b.LightningInternalFreq, t);
+		result.LightningSpeed        = TEN::Math::Lerp(a.LightningSpeed,        b.LightningSpeed,        t);
+		result.LightningInternalSpeed = TEN::Math::Lerp(a.LightningInternalSpeed, b.LightningInternalSpeed, t);
+		result.LightningGlowIntensity = TEN::Math::Lerp(a.LightningGlowIntensity, b.LightningGlowIntensity, t);
+		result.LightningBoltColorR   = TEN::Math::Lerp(a.LightningBoltColorR,   b.LightningBoltColorR,   t);
+		result.LightningBoltColorG   = TEN::Math::Lerp(a.LightningBoltColorG,   b.LightningBoltColorG,   t);
+		result.LightningBoltColorB   = TEN::Math::Lerp(a.LightningBoltColorB,   b.LightningBoltColorB,   t);
+		result.LightningFlashIntensity = TEN::Math::Lerp(a.LightningFlashIntensity, b.LightningFlashIntensity, t);
+		result.LightningAmbientContrib = TEN::Math::Lerp(a.LightningAmbientContrib, b.LightningAmbientContrib, t);
+		result.LightningBoltLengthScale    = TEN::Math::Lerp(a.LightningBoltLengthScale,    b.LightningBoltLengthScale,    t);
+		result.LightningBoltThicknessScale = TEN::Math::Lerp(a.LightningBoltThicknessScale, b.LightningBoltThicknessScale, t);
 
 		// Blend thresholds
-		result.BlendThresholdHigh      = LerpFloat(a.BlendThresholdHigh,      b.BlendThresholdHigh,      t);
-		result.BlendThresholdHighWidth = LerpFloat(a.BlendThresholdHighWidth, b.BlendThresholdHighWidth, t);
-		result.BlendThresholdLow       = LerpFloat(a.BlendThresholdLow,       b.BlendThresholdLow,       t);
+		result.BlendThresholdHigh      = TEN::Math::Lerp(a.BlendThresholdHigh,      b.BlendThresholdHigh,      t);
+		result.BlendThresholdHighWidth = TEN::Math::Lerp(a.BlendThresholdHighWidth, b.BlendThresholdHighWidth, t);
+		result.BlendThresholdLow       = TEN::Math::Lerp(a.BlendThresholdLow,       b.BlendThresholdLow,       t);
 
 		// Edge quality tuning: interpolated so transitions don't snap jitter/temporal params.
-		result.JitterStrength        = LerpFloat(a.JitterStrength,        b.JitterStrength,        t);
-		result.UpsampleSpatialSigma2 = LerpFloat(a.UpsampleSpatialSigma2, b.UpsampleSpatialSigma2, t);
-		result.TemporalAlphaLow      = LerpFloat(a.TemporalAlphaLow,      b.TemporalAlphaLow,      t);
-		result.TemporalAlphaHigh     = LerpFloat(a.TemporalAlphaHigh,     b.TemporalAlphaHigh,     t);
-		result.AltoJitterAbsCap      = LerpFloat(a.AltoJitterAbsCap,      b.AltoJitterAbsCap,      t);
+		result.JitterStrength        = TEN::Math::Lerp(a.JitterStrength,        b.JitterStrength,        t);
+		result.UpsampleSpatialSigma2 = TEN::Math::Lerp(a.UpsampleSpatialSigma2, b.UpsampleSpatialSigma2, t);
+		result.TemporalAlphaLow      = TEN::Math::Lerp(a.TemporalAlphaLow,      b.TemporalAlphaLow,      t);
+		result.TemporalAlphaHigh     = TEN::Math::Lerp(a.TemporalAlphaHigh,     b.TemporalAlphaHigh,     t);
+		result.AltoJitterAbsCap      = TEN::Math::Lerp(a.AltoJitterAbsCap,      b.AltoJitterAbsCap,      t);
 
 		// DissolvePhase: NOT interpolated. Set directly by UpdateTransition
 		// for CloudMorph transforms; always 0 for normal transitions.

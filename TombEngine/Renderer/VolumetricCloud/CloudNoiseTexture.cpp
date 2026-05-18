@@ -45,11 +45,6 @@ namespace TEN::Renderer::VolumetricCloud
 		return x - std::floor(x);
 	}
 
-	static float Saturate(float x)
-	{
-		return (x < 0.0f) ? 0.0f : (x > 1.0f) ? 1.0f : x;
-	}
-
 	// Quintic Hermite (same as shader).
 	static float QuinticInterp(float t)
 	{
@@ -178,7 +173,7 @@ namespace TEN::Renderer::VolumetricCloud
 		float n0  = n00  + (n10  - n00) * uy;
 		float n1  = n01  + (n11  - n01) * uy;
 
-		return Saturate((n0 + (n1 - n0) * uz) + 0.5f);
+		return std::clamp((n0 + (n1 - n0) * uz) + 0.5f, 0.0f, 1.0f);
 	}
 
 	// Tiling Worley 2D noise (F1 = nearest cell distance), output in [0,1].
@@ -210,7 +205,7 @@ namespace TEN::Renderer::VolumetricCloud
 				minDist = dist;
 		}
 
-		return Saturate(minDist);
+		return std::clamp(minDist, 0.0f, 1.0f);
 	}
 
 	// ========================================================================
@@ -249,10 +244,10 @@ namespace TEN::Renderer::VolumetricCloud
 			float curlZ = -(nx0 - nx1) / (2.0f * curlEps);
 
 			int idx = ((iz * res3 + iy) * res3 + ix) * 4;
-			data3D[idx + 0] = (uint8_t)(Saturate(perlin) * 255.0f + 0.5f);
-			data3D[idx + 1] = (uint8_t)(Saturate(value)  * 255.0f + 0.5f);
-			data3D[idx + 2] = (uint8_t)(Saturate(curlX * 0.5f + 0.5f) * 255.0f + 0.5f);
-			data3D[idx + 3] = (uint8_t)(Saturate(curlZ * 0.5f + 0.5f) * 255.0f + 0.5f);
+			data3D[idx + 0] = (uint8_t)(std::clamp(perlin, 0.0f, 1.0f) * 255.0f + 0.5f);
+			data3D[idx + 1] = (uint8_t)(std::clamp(value, 0.0f, 1.0f)  * 255.0f + 0.5f);
+			data3D[idx + 2] = (uint8_t)(std::clamp(curlX * 0.5f + 0.5f, 0.0f, 1.0f) * 255.0f + 0.5f);
+			data3D[idx + 3] = (uint8_t)(std::clamp(curlZ * 0.5f + 0.5f, 0.0f, 1.0f) * 255.0f + 0.5f);
 		}
 
 		Noise3D = device->CreateTexture3D(res3, res3, res3,
@@ -277,8 +272,8 @@ namespace TEN::Renderer::VolumetricCloud
 			float w2 = WorleyNoise2D_Tiling(wx + 7.31f, wy + 3.17f, tile2);
 
 			int idx = (iy * res2 + ix) * 2;
-			data2D[idx + 0] = (uint8_t)(Saturate(w1) * 255.0f + 0.5f);
-			data2D[idx + 1] = (uint8_t)(Saturate(w2) * 255.0f + 0.5f);
+			data2D[idx + 0] = (uint8_t)(std::clamp(w1, 0.0f, 1.0f) * 255.0f + 0.5f);
+			data2D[idx + 1] = (uint8_t)(std::clamp(w2, 0.0f, 1.0f) * 255.0f + 0.5f);
 		}
 
 		Worley2D = device->CreateTexture2D(res2, res2,

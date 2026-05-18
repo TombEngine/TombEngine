@@ -15,6 +15,7 @@
 #include "Renderer/Renderer.h"
 
 #include "Game/Sky/SkyCloudSystem.h"
+#include "Math/Utils.h"
 #include "Renderer/ConstantBuffers/AtmosphericSkyBuffer.h"
 #include "Renderer/AtmosphericSky/AtmosphericSkySettings.h"
 #include "Renderer/Aurora/AuroraSettings.h"
@@ -29,8 +30,6 @@ using namespace TEN::Sky;
 
 namespace TEN::Renderer
 {
-	// Helper: clamp to [0,1].
-	static float Saturate(float x) { return std::clamp(x, 0.0f, 1.0f); }
 	// ========================================================================
 	// Initialization
 	// ========================================================================
@@ -53,7 +52,7 @@ namespace TEN::Renderer
 		float nightSpeed    = _atmosphericSkySettings.NightBlendSpeed;
 
 		// Blend factor: 0 at twilightStart, 1 when sun is sufficiently below horizon.
-		float nightFactor = Saturate((-sunElevation + twilightStart) * nightSpeed);
+		float nightFactor = std::clamp((-sunElevation + twilightStart) * nightSpeed, 0.0f, 1.0f);
 		// Smooth the transition.
 		nightFactor = nightFactor * nightFactor * (3.0f - 2.0f * nightFactor);
 
@@ -65,9 +64,8 @@ namespace TEN::Renderer
 		// Stars fade in at the same time as the moon — using identical thresholds
 		// so they appear together during twilight.
 		float twilightStart = _atmosphericSkySettings.TwilightOffset * 0.25f;
-		float starFade = Saturate((-sunElevation + twilightStart) * 3.0f);
-		starFade = starFade * starFade * (3.0f - 2.0f * starFade); // smoothstep
-		return starFade;
+		float starFade = std::clamp((-sunElevation + twilightStart) * 3.0f, 0.0f, 1.0f);
+		return TEN::Math::Smoothstep(starFade);
 	}
 
 	// ========================================================================
@@ -97,9 +95,8 @@ namespace TEN::Renderer
 		// Uses a slightly earlier threshold than starfield so the moon
 		// appears before the stars.
 		float twilightStart = _atmosphericSkySettings.TwilightOffset * 1.5f;
-		float moonFade = Saturate((-sunElevation + twilightStart) * 3.0f);
-		moonFade = moonFade * moonFade * (3.0f - 2.0f * moonFade); // smoothstep
-		return moonFade;
+		float moonFade = std::clamp((-sunElevation + twilightStart) * 3.0f, 0.0f, 1.0f);
+		return TEN::Math::Smoothstep(moonFade);
 	}
 
 	// ========================================================================
@@ -238,9 +235,9 @@ namespace TEN::Renderer
 				? (1.0f / 30.0f) / _auroraPresetFadeDuration
 				: 1.0f;
 			if (_auroraPresetFade < fadeTarget)
-				_auroraPresetFade = Saturate(_auroraPresetFade + fadeStep);
+				_auroraPresetFade = std::clamp(_auroraPresetFade + fadeStep, 0.0f, 1.0f);
 			else if (_auroraPresetFade > fadeTarget)
-				_auroraPresetFade = Saturate(_auroraPresetFade - fadeStep);
+				_auroraPresetFade = std::clamp(_auroraPresetFade - fadeStep, 0.0f, 1.0f);
 		}
 
 		// Keep aurora enabled while the fade is still visible (allows fade-out to complete).
@@ -251,13 +248,11 @@ namespace TEN::Renderer
 		float auroraVisibility = 0.0f;
 		if (aurora.Enabled)
 		{
-			float auroraFade = Saturate((-sunElevation + aurora.NightFadeThreshold) * aurora.SunSuppressionStr);
-			auroraFade = auroraFade * auroraFade * (3.0f - 2.0f * auroraFade); // smoothstep
-			auroraVisibility = auroraFade;
+			float auroraFade = std::clamp((-sunElevation + aurora.NightFadeThreshold) * aurora.SunSuppressionStr, 0.0f, 1.0f);
+			auroraVisibility = TEN::Math::Smoothstep(auroraFade);
 
 			// Apply preset fade (smoothstepped) as an additional multiplier.
-			float presetFadeSmooth = _auroraPresetFade * _auroraPresetFade * (3.0f - 2.0f * _auroraPresetFade);
-			auroraVisibility *= presetFadeSmooth;
+			auroraVisibility *= TEN::Math::Smoothstep(_auroraPresetFade);
 
 			// Accumulate animation time.
 			_auroraTime += 1.0f / 30.0f; // Approximate frame time; consistent drift.

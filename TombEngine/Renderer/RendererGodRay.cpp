@@ -32,9 +32,6 @@ namespace TEN::Renderer
 	// God ray half-res scale.  0.5 = quarter pixel count.
 	static constexpr float GOD_RAY_RESOLUTION_SCALE = 0.5f;
 
-	// Helper: clamp to [0,1].
-	static float Saturate(float x) { return std::clamp(x, 0.0f, 1.0f); }
-
 	// ========================================================================
 	// Initialization
 	// ========================================================================
@@ -75,7 +72,7 @@ namespace TEN::Renderer
 		float elevFactor = std::max(1.0f - sunElevation * 0.6f, 0.3f);
 
 		// Cloud coverage factor: ramps from 0 (no clouds) to 1.0 at ~33% coverage.
-		float coverageFactor = Saturate(cloudCoverage * 3.0f);
+		float coverageFactor = std::clamp(cloudCoverage * 3.0f, 0.0f, 1.0f);
 
 		return elevFactor * coverageFactor;
 	}
@@ -271,7 +268,7 @@ namespace TEN::Renderer
 
 		// Ray-source-facing fade: smoothly mute rays as the camera turns away.
 		float rayFacingDot  = rayDir.Dot(renderView.Camera.WorldDirection);
-		float rayFacingFade = Saturate((rayFacingDot - (-0.25f)) / (0.15f - (-0.25f)));
+		float rayFacingFade = std::clamp((rayFacingDot - (-0.25f)) / (0.15f - (-0.25f)), 0.0f, 1.0f);
 		rayFacingFade = rayFacingFade * rayFacingFade * (3.0f - 2.0f * rayFacingFade);
 
 		// --- Cloud coverage for auto-strength ---
