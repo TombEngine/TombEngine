@@ -459,22 +459,25 @@ Flow.DefineWeatherPreset("CloudsTransformation", {
 -- underwater god rays and are independent from the regular atmospheric godrays.
 Flow.DefineWeatherPreset("WaterSurface", {
     cloudA = {
-intensity = 0.758
-waveSize = 0.923
-waveSharpness = 5.225
-distortionAmount = 5.089
-distortionStrength = 1.516
-color = Color(0, 83, 255)
-layerHeight = 0.410
-horizonSoftness = 0.312
-depthFadeStrength = 1.008
-causticStrength = 2.471
-shaftStrength = 0.866
-shaftSharpness = 7.26
-godrayLength = 0.680,
-godrayIntensity = 2.733,
-godrayDecay = 0.9767,
-godraySharpness  = 7.26,
+intensity = 0.758,
+waveSize = 0.923,
+category       = "UnderwaterSky",
+waveSharpness = 5.225,
+distortionAmount = 5.089,
+distortionStrength = 1.516,
+colorR = 0,
+colorG = 83,
+colorB = 255,
+layerHeight = 0.410,
+horizonSoftness = 0.312,
+depthFadeStrength = 1.008,
+causticStrength = 2.471,
+shaftStrength = 0.866,
+shaftSharpness = 7.26,
+godrayLength = 0.221,
+godrayIntensity = 0.919,
+godrayDecay = 0.9835,
+godraySharpness  = 3.63,
 godraySampleCount = 128,
     }
 })

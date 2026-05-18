@@ -106,8 +106,15 @@ float4 PSGodRay(VSOutput input) : SV_TARGET
     if (GodRayUnderwaterActive > 0.5f)
     {
         // Dedicated march step using underwater-specific length.
+        // When the sun is near the zenith (elevation -> 1.0), physically the
+        // shafts should be very short because the light travels straight down
+        // through the water column. Without this attenuation the rays extend
+        // far across the screen, looking unnatural.
+        float zenithAtten = 1.0f - smoothstep(0.55f, 0.95f, GodRaySunElevation);
+        float lengthScale = lerp(0.22f, 1.0f, zenithAtten);
+
         float2 toSunUW     = uv - GodRaySunScreenPos;
-        float2 marchStepUW = toSunUW * clamp(GodRayUnderwaterRayLength, 0.01f, 1.5f) / (float)GodRayUnderwaterSampleCount;
+        float2 marchStepUW = toSunUW * clamp(GodRayUnderwaterRayLength, 0.01f, 1.5f) * lengthScale / (float)GodRayUnderwaterSampleCount;
         float2 sampleUVUW  = uv + marchStepUW * GodRayHash(uv);
 
         float  accumulated = 0.0f;
