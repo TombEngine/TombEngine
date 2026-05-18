@@ -1047,6 +1047,7 @@ namespace TEN::Entities::TR4
 						LaraItem->Animation.Velocity.y = 2;
 						LaraItem->Animation.Velocity.y = 1;
 						LaraItem->Pose.Position.y += CLICK(0.75f);
+						
 						Lara.Control.HandStatus = HandStatus::Free;
 						creature->Flags = 1;
 					}
@@ -1066,9 +1067,6 @@ namespace TEN::Entities::TR4
 				{
 					creature->JumpAhead = false;
 					creature->MonkeySwingAhead = false;
-
-					// Force a fresh path search from the new landing box.
-					//ClearLOT(&creature->LOT);
 
 					// Force actual exit from landing state.
 					SetAnimation(item, BADDY_ANIM_STAND_IDLE);
