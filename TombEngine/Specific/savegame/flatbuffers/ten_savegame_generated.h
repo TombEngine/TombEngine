@@ -8900,10 +8900,6 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<TEN::Save::EventSetT>> volume_event_sets{};
   std::unique_ptr<TEN::Save::UnionVecT> script_vars{};
   std::vector<std::unique_ptr<TEN::Save::CallbackSetT>> callbacks{};
-<<<<<<< HEAD
-=======
-  int32_t new_items_system = 0;
->>>>>>> origin/items_fx_refactor
   std::vector<int32_t> active_items{};
   std::vector<int32_t> free_item_slots{};
   std::vector<int32_t> active_effects{};
@@ -8970,19 +8966,10 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_VOLUME_EVENT_SETS = 108,
     VT_SCRIPT_VARS = 110,
     VT_CALLBACKS = 112,
-<<<<<<< HEAD
     VT_ACTIVE_ITEMS = 114,
     VT_FREE_ITEM_SLOTS = 116,
     VT_ACTIVE_EFFECTS = 118,
     VT_FREE_EFFECT_SLOTS = 120
-=======
-    VT_NEW_ITEMS_SYSTEM = 114,
-    VT_ACTIVE_ITEMS = 116,
-    VT_FREE_ITEM_SLOTS = 118,
-    VT_NEW_EFFECTS_SYSTEM = 120,
-    VT_ACTIVE_EFFECTS = 122,
-    VT_FREE_EFFECT_SLOTS = 124
->>>>>>> origin/items_fx_refactor
   };
   const TEN::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Save::SaveGameHeader *>(VT_HEADER);
@@ -9277,10 +9264,6 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_CALLBACKS) &&
            verifier.VerifyVector(callbacks()) &&
            verifier.VerifyVectorOfTables(callbacks()) &&
-<<<<<<< HEAD
-=======
-           VerifyField<int32_t>(verifier, VT_NEW_ITEMS_SYSTEM) &&
->>>>>>> origin/items_fx_refactor
            VerifyOffset(verifier, VT_ACTIVE_ITEMS) &&
            verifier.VerifyVector(active_items()) &&
            VerifyOffset(verifier, VT_FREE_ITEM_SLOTS) &&
@@ -9545,10 +9528,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::EventSet>>> volume_event_sets = 0,
     flatbuffers::Offset<TEN::Save::UnionVec> script_vars = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::CallbackSet>>> callbacks = 0,
-<<<<<<< HEAD
-=======
-    int32_t new_items_system = 0,
->>>>>>> origin/items_fx_refactor
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_items = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_item_slots = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_effects = 0,
@@ -9558,10 +9537,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
   builder_.add_active_effects(active_effects);
   builder_.add_free_item_slots(free_item_slots);
   builder_.add_active_items(active_items);
-<<<<<<< HEAD
-=======
-  builder_.add_new_items_system(new_items_system);
->>>>>>> origin/items_fx_refactor
   builder_.add_callbacks(callbacks);
   builder_.add_script_vars(script_vars);
   builder_.add_volume_event_sets(volume_event_sets);
@@ -9682,10 +9657,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<flatbuffers::Offset<TEN::Save::EventSet>> *volume_event_sets = nullptr,
     flatbuffers::Offset<TEN::Save::UnionVec> script_vars = 0,
     const std::vector<flatbuffers::Offset<TEN::Save::CallbackSet>> *callbacks = nullptr,
-<<<<<<< HEAD
-=======
-    int32_t new_items_system = 0,
->>>>>>> origin/items_fx_refactor
     const std::vector<int32_t> *active_items = nullptr,
     const std::vector<int32_t> *free_item_slots = nullptr,
     const std::vector<int32_t> *active_effects = nullptr,
@@ -9778,10 +9749,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       volume_event_sets__,
       script_vars,
       callbacks__,
-<<<<<<< HEAD
-=======
-      new_items_system,
->>>>>>> origin/items_fx_refactor
       active_items__,
       free_item_slots__,
       active_effects__,
@@ -12513,10 +12480,6 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = volume_event_sets(); if (_e) { _o->volume_event_sets.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->volume_event_sets[_i] = std::unique_ptr<TEN::Save::EventSetT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = script_vars(); if (_e) _o->script_vars = std::unique_ptr<TEN::Save::UnionVecT>(_e->UnPack(_resolver)); }
   { auto _e = callbacks(); if (_e) { _o->callbacks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks[_i] = std::unique_ptr<TEN::Save::CallbackSetT>(_e->Get(_i)->UnPack(_resolver)); } } }
-<<<<<<< HEAD
-=======
-  { auto _e = new_items_system(); _o->new_items_system = _e; }
->>>>>>> origin/items_fx_refactor
   { auto _e = active_items(); if (_e) { _o->active_items.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->active_items[_i] = _e->Get(_i); } } }
   { auto _e = free_item_slots(); if (_e) { _o->free_item_slots.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->free_item_slots[_i] = _e->Get(_i); } } }
   { auto _e = active_effects(); if (_e) { _o->active_effects.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->active_effects[_i] = _e->Get(_i); } } }
@@ -12586,10 +12549,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _volume_event_sets = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::EventSet>> (_o->volume_event_sets.size(), [](size_t i, _VectorArgs *__va) { return CreateEventSet(*__va->__fbb, __va->__o->volume_event_sets[i].get(), __va->__rehasher); }, &_va );
   auto _script_vars = _o->script_vars ? CreateUnionVec(_fbb, _o->script_vars.get(), _rehasher) : 0;
   auto _callbacks = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::CallbackSet>> (_o->callbacks.size(), [](size_t i, _VectorArgs *__va) { return CreateCallbackSet(*__va->__fbb, __va->__o->callbacks[i].get(), __va->__rehasher); }, &_va );
-<<<<<<< HEAD
-=======
-  auto _new_items_system = _o->new_items_system;
->>>>>>> origin/items_fx_refactor
   auto _active_items = _fbb.CreateVector(_o->active_items);
   auto _free_item_slots = _fbb.CreateVector(_o->free_item_slots);
   auto _active_effects = _fbb.CreateVector(_o->active_effects);
@@ -12651,10 +12610,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _volume_event_sets,
       _script_vars,
       _callbacks,
-<<<<<<< HEAD
-=======
-      _new_items_system,
->>>>>>> origin/items_fx_refactor
       _active_items,
       _free_item_slots,
       _active_effects,
