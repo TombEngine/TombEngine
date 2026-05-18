@@ -61,6 +61,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 * Fixed incorrect error message when using `Moveable:SetFrame` with a frame number equal to the end frame.
 * Fixed glide camera movement when entering or exiting freeze mode.
+* Fixed `View.DisplayString` not working in the title level.
 
 ## [Version 1.11.1]
 

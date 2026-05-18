@@ -620,7 +620,6 @@ namespace TEN::Renderer
 			break;
 		}
 
-		DrawDebugInfo(_gameCamera);
 		DrawAllStrings();
 	}
 
@@ -1507,9 +1506,6 @@ namespace TEN::Renderer
 
 	void Renderer::RenderTitle(float interpFactor)
 	{
-		_stringsToDraw.clear();
-		_isLocked = false;
-
 		InterpolateCamera(interpFactor);
 		DumpGameScene();
 
@@ -1519,8 +1515,6 @@ namespace TEN::Renderer
 		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 1.0f);
 		
 		_graphicsDevice->Present();
-
-		_isLocked = true;
 	}
 
 	void Renderer::DrawDebugRenderTargets(RenderView& view)

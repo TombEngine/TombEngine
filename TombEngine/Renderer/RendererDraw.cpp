@@ -2048,7 +2048,11 @@ namespace TEN::Renderer
 			DrawDisplaySprites(view, false);
 
 			DrawDebugRenderTargets(view);
-			DrawAllStrings();
+
+			// HACK: Strings in the title level are drawn in a separate menu pass, so we bypass it here.
+			if (CurrentLevel != 0)
+				DrawAllStrings();
+
 			DrawDisplaySprites(view, true);
 		}
 
