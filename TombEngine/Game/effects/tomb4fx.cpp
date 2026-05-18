@@ -1291,7 +1291,7 @@ void ExplodingDeath(short itemNumber, short flags)
 
 				fx.ObjectNumber = ID_BODY_PART;
 				fx.Model.Color = item->Model.Color;
-				fx.Animation.FrameNumber = item->Model.MeshIndex[i];
+				fx.Model.MeshIndex = { item->Model.MeshIndex[i] };
 				fxInfo.Flag2 = flags;
 			}
 		}

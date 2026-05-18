@@ -118,7 +118,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto& fxInfo = GetFXInfo(fx);
 
 		fx.ObjectNumber = ID_IMP_ROCK;
-		fx.Animation.FrameNumber = Objects[ID_IMP_ROCK].meshIndex;
+		fx.Model.MeshIndex = { (int)Objects[ID_IMP_ROCK].meshIndex };
 
 		fx.Pose.Position = pos1;
 		fx.RoomNumber = item->RoomNumber;

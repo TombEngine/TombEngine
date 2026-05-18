@@ -73,7 +73,7 @@ namespace TEN::Entities::Creatures::TR5
 		fx.Pose.Orientation.z = 0;
 		fx.RoomNumber = roomNumber;
 		fx.Animation.Velocity.z = (GetRandomControl() & 0x1F) + 64;
-		fx.Animation.FrameNumber = Objects[ID_BUBBLES].meshIndex + 8;
+		fx.Model.MeshIndex = { (int)Objects[ID_BUBBLES].meshIndex + 8 };
 		fxInfo.Counter = (count * 16) + 15;
 		fxInfo.Flag1 = 0;
 	}

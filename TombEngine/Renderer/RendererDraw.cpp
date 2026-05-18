@@ -250,14 +250,8 @@ namespace TEN::Renderer
 			memcpy(_stObjects.Bones, item->InterpolatedAnimTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
-			for (int k = 0; k < obj.ObjectMeshes.size(); k++)
+			for (int k = 0; k < item->MeshIndex.size(); k++)
 			{
-				if (item->MeshIndex.size() <= k)
-				{
-					TENLog("Mesh structure was not properly initialized for object " + GetObjectName((GAME_OBJECT_ID)item->ObjectID));
-					break;
-				}
-
 				auto* mesh = GetMesh(item->MeshIndex[k]);
 
 				if (skinMode == SkinningMode::Full && g_Level.Meshes[item->MeshIndex[k]].hidden)

@@ -100,7 +100,7 @@ namespace TEN::Entities::TR4
 		fx.ObjectNumber = ID_ENERGY_BUBBLES;
 		fx.Animation.Velocity.z = (GetRandomControl() & 0x1F) + 96;
 		fxInfo.Flag1 = boneID;
-		fx.Animation.FrameNumber = Objects[fx.ObjectNumber].meshIndex + (boneID * 2);
+		fx.Model.MeshIndex = { (int)Objects[fx.ObjectNumber].meshIndex + (boneID * 2) };
 	}
 
 	void DoHarpyEffects(ItemInfo* item, CreatureInfo* creature, short itemNumber)

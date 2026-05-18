@@ -160,8 +160,8 @@ namespace TEN::Entities::TR4
 
 		fx.Animation.Velocity.z = GetRandomControl() / 2048;
 		fx.Animation.Velocity.y = -(GetRandomControl() / 1024);
-		fx.Animation.FrameNumber = Objects[103].meshIndex;
 		fx.ObjectNumber = ID_BODY_PART;
+		fx.Model.MeshIndex = { (int)Objects[103].meshIndex };
 		fx.Model.Color = NEUTRAL_COLOR;
 		fxInfo.Flag2 = 0x601;
 

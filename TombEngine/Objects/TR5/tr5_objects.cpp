@@ -722,7 +722,6 @@ static void StartObject(ObjectInfo *obj)
 
 	obj = &Objects[ID_BODY_PART];
 	obj->loaded = true;
-	obj->meshSource = EffectMeshSource::FrameNumber;
 	obj->control = ControlBodyPart;
 
 	obj = &Objects[ID_SMOKE_EMITTER_BLACK];

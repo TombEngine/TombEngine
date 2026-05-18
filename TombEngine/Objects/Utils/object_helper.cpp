@@ -167,7 +167,6 @@ void InitProjectile(ObjectInfo* object, std::function<InitFunction> func, int ob
 	{
 		object->Initialize = nullptr;
 		object->collision = nullptr;
-		object->meshSource = (objectNumber == ID_IMP_ROCK || objectNumber == ID_BUBBLES || objectNumber == ID_ENERGY_BUBBLES ? EffectMeshSource::FrameNumber : EffectMeshSource::Model);
 		object->control = func;
 	}
 }

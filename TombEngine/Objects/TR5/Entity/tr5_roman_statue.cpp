@@ -95,7 +95,7 @@ namespace TEN::Entities::Creatures::TR5
 				fx.Animation.Velocity.z = 1;
 				fx.Animation.Velocity.y = 0;
 				fx.Model.Color = NEUTRAL_COLOR;
-				fx.Animation.FrameNumber = Objects[ID_BUBBLES].meshIndex + (GetRandomControl() & 7);
+				fx.Model.MeshIndex = { (int)Objects[ID_BUBBLES].meshIndex + (GetRandomControl() & 7) };
 				fxInfo.Flag2 = 9729;
 				fxInfo.Counter = 0;
 				fxInfo.Flag1 = 0;
@@ -223,7 +223,7 @@ namespace TEN::Entities::Creatures::TR5
 		fx.RoomNumber = roomNumber;
 		fx.ObjectNumber = ID_BUBBLES;
 		fx.Animation.Velocity.z = (GetRandomControl() & 0x1F) + 64;
-		fx.Animation.FrameNumber = Objects[ID_BUBBLES].meshIndex + 8;
+		fx.Model.MeshIndex = { (int)Objects[ID_BUBBLES].meshIndex + 8 };
 		fxInfo.Counter = 16 * count + 15;
 		fxInfo.Flag1 = 1;
 	}

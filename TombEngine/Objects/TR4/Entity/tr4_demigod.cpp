@@ -208,7 +208,7 @@ namespace TEN::Entities::TR4
 			fxInfo.Flag1 = flags;
 			fx.Animation.Velocity.z = (GetRandomControl() & 0x1F) + 96;
 			fx.ObjectNumber = ID_ENERGY_BUBBLES;
-			fx.Animation.FrameNumber = Objects[ID_ENERGY_BUBBLES].meshIndex + ((flags >= 4) ? flags - 1 : flags);
+			fx.Model.MeshIndex = { (int)Objects[ID_ENERGY_BUBBLES].meshIndex + ((flags >= 4) ? flags - 1 : flags) };
 		}
 	}
 

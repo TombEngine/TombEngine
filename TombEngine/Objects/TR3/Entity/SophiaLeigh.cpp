@@ -269,7 +269,7 @@ namespace TEN::Entities::Creatures::TR3
 		fx.Pose.Orientation.z = 0;
 		fx.RoomNumber = item.RoomNumber;
 		fx.Animation.Velocity.z = Random::GenerateInt(120, 160);
-		fx.Animation.FrameNumber = Objects[fx.ObjectNumber].meshIndex + (boltType - 1);
+		fx.Model.MeshIndex = { (int)Objects[fx.ObjectNumber].meshIndex + (boltType - 1) };
 		fxInfo.Counter = 0;
 		fxInfo.Flag1 = boltType;
 		fxInfo.Flag2 = isBoltLarge ? SOPHIALEIGH_DAMAGE_LARGE_BOLT : SOPHIALEIGH_DAMAGE_SMALL_BOLT; // Damage value

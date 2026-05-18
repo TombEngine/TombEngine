@@ -180,25 +180,9 @@ namespace TEN::Renderer
 
 		auto& moveableObj = *_moveableObjects[nativeItem->ObjectNumber];
 
-		// Copy meshswaps and apply eventually effects
-		if (nativeItem->Data.is<FXInfo>())
-		{
-			if (Objects[nativeItem->ObjectNumber].meshSource == EffectMeshSource::Model)
-			{
-				itemToDraw->MeshIndex = nativeItem->Model.MeshIndex;
-				itemToDraw->SkinIndex = nativeItem->Model.SkinIndex;
-			}
-			else
-			{
-				itemToDraw->MeshIndex.clear();
-				itemToDraw->MeshIndex.push_back(nativeItem->Animation.FrameNumber);
-			}
-		}
-		else
-		{
-			itemToDraw->MeshIndex = nativeItem->Model.MeshIndex;
-			itemToDraw->SkinIndex = nativeItem->Model.SkinIndex;
-		}
+		// Copy meshswaps and apply eventually effects.
+		itemToDraw->MeshIndex = nativeItem->Model.MeshIndex;
+		itemToDraw->SkinIndex = nativeItem->Model.SkinIndex;
 
 		if (obj->Animations.empty())
 			return;

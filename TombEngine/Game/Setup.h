@@ -67,12 +67,6 @@ enum class ShatterType
 	Explode
 };
 
-enum class EffectMeshSource
-{
-	Model,
-	FrameNumber
-};
-
 // TODO: All fields to PascalCase.
 struct ObjectInfo
 {
@@ -87,7 +81,6 @@ struct ObjectInfo
 	HitEffect hitEffect;
 	DamageMode damageType;
 	ShadowMode shadowType;
-	EffectMeshSource meshSource = EffectMeshSource::Model;
 
 	int meshSwapSlot;
 	int pivotLength;

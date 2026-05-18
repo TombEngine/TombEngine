@@ -81,7 +81,7 @@ namespace TEN::Entities::TR4
 			fx.Pose.Orientation.z = 0;
 			fx.RoomNumber = roomNumber;
 			fx.ObjectNumber = ID_ENERGY_BUBBLES;
-			fx.Animation.FrameNumber = Objects[fx.ObjectNumber].meshIndex + 5;
+			fx.Model.MeshIndex = { (int)Objects[fx.ObjectNumber].meshIndex + 5 };
 			fx.Animation.Velocity.z = (GetRandomControl() & 0x1F) + 96;
 			fxInfo.Counter = 16 * counter + 15;
 			fxInfo.Flag1 = 6;
