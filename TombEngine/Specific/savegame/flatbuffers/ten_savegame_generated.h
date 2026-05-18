@@ -1151,8 +1151,6 @@ struct ItemT : public flatbuffers::NativeTable {
   int32_t after_death = 0;
   std::vector<int32_t> item_flags{};
   std::unique_ptr<TEN::Save::Pose> pose{};
-  int32_t next_item = 0;
-  int32_t next_item_active = 0;
   bool active = false;
   int32_t status = 0;
   bool hit_stauts = false;
@@ -1203,29 +1201,27 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_AFTER_DEATH = 44,
     VT_ITEM_FLAGS = 46,
     VT_POSE = 48,
-    VT_NEXT_ITEM = 50,
-    VT_NEXT_ITEM_ACTIVE = 52,
-    VT_ACTIVE = 54,
-    VT_STATUS = 56,
-    VT_HIT_STAUTS = 58,
-    VT_COLLIDABLE = 60,
-    VT_LOOKED_AT = 62,
-    VT_AI_BITS = 64,
-    VT_DATA_TYPE = 66,
-    VT_DATA = 68,
-    VT_BASE_MESH = 70,
-    VT_SKIN_INDEX = 72,
-    VT_MESH_INDEX = 74,
-    VT_EFFECT_TYPE = 76,
-    VT_EFFECT_LIGHT_COLOUR = 78,
-    VT_EFFECT_PRIMARY_COLOUR = 80,
-    VT_EFFECT_SECONDARY_COLOUR = 82,
-    VT_EFFECT_COUNT = 84,
-    VT_LUA_NAME = 86,
-    VT_LUA_ON_KILLED_NAME = 88,
-    VT_LUA_ON_HIT_NAME = 90,
-    VT_LUA_ON_COLLIDED_WITH_OBJECT_NAME = 92,
-    VT_LUA_ON_COLLIDED_WITH_ROOM_NAME = 94
+    VT_ACTIVE = 50,
+    VT_STATUS = 52,
+    VT_HIT_STAUTS = 54,
+    VT_COLLIDABLE = 56,
+    VT_LOOKED_AT = 58,
+    VT_AI_BITS = 60,
+    VT_DATA_TYPE = 62,
+    VT_DATA = 64,
+    VT_BASE_MESH = 66,
+    VT_SKIN_INDEX = 68,
+    VT_MESH_INDEX = 70,
+    VT_EFFECT_TYPE = 72,
+    VT_EFFECT_LIGHT_COLOUR = 74,
+    VT_EFFECT_PRIMARY_COLOUR = 76,
+    VT_EFFECT_SECONDARY_COLOUR = 78,
+    VT_EFFECT_COUNT = 80,
+    VT_LUA_NAME = 82,
+    VT_LUA_ON_KILLED_NAME = 84,
+    VT_LUA_ON_HIT_NAME = 86,
+    VT_LUA_ON_COLLIDED_WITH_OBJECT_NAME = 88,
+    VT_LUA_ON_COLLIDED_WITH_ROOM_NAME = 90
   };
   int32_t anim_object_id() const {
     return GetField<int32_t>(VT_ANIM_OBJECT_ID, 0);
@@ -1295,12 +1291,6 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const TEN::Save::Pose *pose() const {
     return GetStruct<const TEN::Save::Pose *>(VT_POSE);
-  }
-  int32_t next_item() const {
-    return GetField<int32_t>(VT_NEXT_ITEM, 0);
-  }
-  int32_t next_item_active() const {
-    return GetField<int32_t>(VT_NEXT_ITEM_ACTIVE, 0);
   }
   bool active() const {
     return GetField<uint8_t>(VT_ACTIVE, 0) != 0;
@@ -1458,8 +1448,6 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_ITEM_FLAGS) &&
            verifier.VerifyVector(item_flags()) &&
            VerifyField<TEN::Save::Pose>(verifier, VT_POSE) &&
-           VerifyField<int32_t>(verifier, VT_NEXT_ITEM) &&
-           VerifyField<int32_t>(verifier, VT_NEXT_ITEM_ACTIVE) &&
            VerifyField<uint8_t>(verifier, VT_ACTIVE) &&
            VerifyField<int32_t>(verifier, VT_STATUS) &&
            VerifyField<uint8_t>(verifier, VT_HIT_STAUTS) &&
@@ -1656,12 +1644,6 @@ struct ItemBuilder {
   void add_pose(const TEN::Save::Pose *pose) {
     fbb_.AddStruct(Item::VT_POSE, pose);
   }
-  void add_next_item(int32_t next_item) {
-    fbb_.AddElement<int32_t>(Item::VT_NEXT_ITEM, next_item, 0);
-  }
-  void add_next_item_active(int32_t next_item_active) {
-    fbb_.AddElement<int32_t>(Item::VT_NEXT_ITEM_ACTIVE, next_item_active, 0);
-  }
   void add_active(bool active) {
     fbb_.AddElement<uint8_t>(Item::VT_ACTIVE, static_cast<uint8_t>(active), 0);
   }
@@ -1761,8 +1743,6 @@ inline flatbuffers::Offset<Item> CreateItem(
     int32_t after_death = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> item_flags = 0,
     const TEN::Save::Pose *pose = 0,
-    int32_t next_item = 0,
-    int32_t next_item_active = 0,
     bool active = false,
     int32_t status = 0,
     bool hit_stauts = false,
@@ -1801,8 +1781,6 @@ inline flatbuffers::Offset<Item> CreateItem(
   builder_.add_data(data);
   builder_.add_ai_bits(ai_bits);
   builder_.add_status(status);
-  builder_.add_next_item_active(next_item_active);
-  builder_.add_next_item(next_item);
   builder_.add_pose(pose);
   builder_.add_item_flags(item_flags);
   builder_.add_after_death(after_death);
@@ -1864,8 +1842,6 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
     int32_t after_death = 0,
     const std::vector<int32_t> *item_flags = nullptr,
     const TEN::Save::Pose *pose = 0,
-    int32_t next_item = 0,
-    int32_t next_item_active = 0,
     bool active = false,
     int32_t status = 0,
     bool hit_stauts = false,
@@ -1919,8 +1895,6 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
       after_death,
       item_flags__,
       pose,
-      next_item,
-      next_item_active,
       active,
       status,
       hit_stauts,
@@ -1951,8 +1925,6 @@ struct FXInfoT : public flatbuffers::NativeTable {
   std::unique_ptr<TEN::Save::Pose> pose{};
   int32_t room_number = 0;
   int32_t object_number = 0;
-  int32_t next_fx = 0;
-  int32_t next_active = 0;
   int32_t speed = 0;
   int32_t fall_speed = 0;
   int32_t frame_number = 0;
@@ -1970,15 +1942,13 @@ struct FXInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_POSE = 4,
     VT_ROOM_NUMBER = 6,
     VT_OBJECT_NUMBER = 8,
-    VT_NEXT_FX = 10,
-    VT_NEXT_ACTIVE = 12,
-    VT_SPEED = 14,
-    VT_FALL_SPEED = 16,
-    VT_FRAME_NUMBER = 18,
-    VT_COUNTER = 20,
-    VT_COLOR = 22,
-    VT_FLAG1 = 24,
-    VT_FLAG2 = 26
+    VT_SPEED = 10,
+    VT_FALL_SPEED = 12,
+    VT_FRAME_NUMBER = 14,
+    VT_COUNTER = 16,
+    VT_COLOR = 18,
+    VT_FLAG1 = 20,
+    VT_FLAG2 = 22
   };
   const TEN::Save::Pose *pose() const {
     return GetStruct<const TEN::Save::Pose *>(VT_POSE);
@@ -1988,12 +1958,6 @@ struct FXInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   int32_t object_number() const {
     return GetField<int32_t>(VT_OBJECT_NUMBER, 0);
-  }
-  int32_t next_fx() const {
-    return GetField<int32_t>(VT_NEXT_FX, 0);
-  }
-  int32_t next_active() const {
-    return GetField<int32_t>(VT_NEXT_ACTIVE, 0);
   }
   int32_t speed() const {
     return GetField<int32_t>(VT_SPEED, 0);
@@ -2021,8 +1985,6 @@ struct FXInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<TEN::Save::Pose>(verifier, VT_POSE) &&
            VerifyField<int32_t>(verifier, VT_ROOM_NUMBER) &&
            VerifyField<int32_t>(verifier, VT_OBJECT_NUMBER) &&
-           VerifyField<int32_t>(verifier, VT_NEXT_FX) &&
-           VerifyField<int32_t>(verifier, VT_NEXT_ACTIVE) &&
            VerifyField<int32_t>(verifier, VT_SPEED) &&
            VerifyField<int32_t>(verifier, VT_FALL_SPEED) &&
            VerifyField<int32_t>(verifier, VT_FRAME_NUMBER) &&
@@ -2049,12 +2011,6 @@ struct FXInfoBuilder {
   }
   void add_object_number(int32_t object_number) {
     fbb_.AddElement<int32_t>(FXInfo::VT_OBJECT_NUMBER, object_number, 0);
-  }
-  void add_next_fx(int32_t next_fx) {
-    fbb_.AddElement<int32_t>(FXInfo::VT_NEXT_FX, next_fx, 0);
-  }
-  void add_next_active(int32_t next_active) {
-    fbb_.AddElement<int32_t>(FXInfo::VT_NEXT_ACTIVE, next_active, 0);
   }
   void add_speed(int32_t speed) {
     fbb_.AddElement<int32_t>(FXInfo::VT_SPEED, speed, 0);
@@ -2093,8 +2049,6 @@ inline flatbuffers::Offset<FXInfo> CreateFXInfo(
     const TEN::Save::Pose *pose = 0,
     int32_t room_number = 0,
     int32_t object_number = 0,
-    int32_t next_fx = 0,
-    int32_t next_active = 0,
     int32_t speed = 0,
     int32_t fall_speed = 0,
     int32_t frame_number = 0,
@@ -2110,8 +2064,6 @@ inline flatbuffers::Offset<FXInfo> CreateFXInfo(
   builder_.add_frame_number(frame_number);
   builder_.add_fall_speed(fall_speed);
   builder_.add_speed(speed);
-  builder_.add_next_active(next_active);
-  builder_.add_next_fx(next_fx);
   builder_.add_object_number(object_number);
   builder_.add_room_number(room_number);
   builder_.add_pose(pose);
@@ -8834,10 +8786,8 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<std::string> callbacks_post_useitem{};
   std::vector<std::string> callbacks_pre_freeze{};
   std::vector<std::string> callbacks_post_freeze{};
-  int32_t new_items_system = 0;
   std::vector<int32_t> active_items{};
   std::vector<int32_t> free_item_slots{};
-  int32_t new_effects_system = 0;
   std::vector<int32_t> active_effects{};
   std::vector<int32_t> free_effect_slots{};
 };
@@ -8915,12 +8865,10 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_CALLBACKS_POST_USEITEM = 134,
     VT_CALLBACKS_PRE_FREEZE = 136,
     VT_CALLBACKS_POST_FREEZE = 138,
-    VT_NEW_ITEMS_SYSTEM = 140,
-    VT_ACTIVE_ITEMS = 142,
-    VT_FREE_ITEM_SLOTS = 144,
-    VT_NEW_EFFECTS_SYSTEM = 146,
-    VT_ACTIVE_EFFECTS = 148,
-    VT_FREE_EFFECT_SLOTS = 150
+    VT_ACTIVE_ITEMS = 140,
+    VT_FREE_ITEM_SLOTS = 142,
+    VT_ACTIVE_EFFECTS = 144,
+    VT_FREE_EFFECT_SLOTS = 146
   };
   const TEN::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Save::SaveGameHeader *>(VT_HEADER);
@@ -9126,17 +9074,11 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_freeze() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_CALLBACKS_POST_FREEZE);
   }
-  int32_t new_items_system() const {
-    return GetField<int32_t>(VT_NEW_ITEMS_SYSTEM, 0);
-  }
   const flatbuffers::Vector<int32_t> *active_items() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ACTIVE_ITEMS);
   }
   const flatbuffers::Vector<int32_t> *free_item_slots() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_FREE_ITEM_SLOTS);
-  }
-  int32_t new_effects_system() const {
-    return GetField<int32_t>(VT_NEW_EFFECTS_SYSTEM, 0);
   }
   const flatbuffers::Vector<int32_t> *active_effects() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ACTIVE_EFFECTS);
@@ -9299,12 +9241,10 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_CALLBACKS_POST_FREEZE) &&
            verifier.VerifyVector(callbacks_post_freeze()) &&
            verifier.VerifyVectorOfStrings(callbacks_post_freeze()) &&
-           VerifyField<int32_t>(verifier, VT_NEW_ITEMS_SYSTEM) &&
            VerifyOffset(verifier, VT_ACTIVE_ITEMS) &&
            verifier.VerifyVector(active_items()) &&
            VerifyOffset(verifier, VT_FREE_ITEM_SLOTS) &&
            verifier.VerifyVector(free_item_slots()) &&
-           VerifyField<int32_t>(verifier, VT_NEW_EFFECTS_SYSTEM) &&
            VerifyOffset(verifier, VT_ACTIVE_EFFECTS) &&
            verifier.VerifyVector(active_effects()) &&
            VerifyOffset(verifier, VT_FREE_EFFECT_SLOTS) &&
@@ -9524,17 +9464,11 @@ struct SaveGameBuilder {
   void add_callbacks_post_freeze(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_freeze) {
     fbb_.AddOffset(SaveGame::VT_CALLBACKS_POST_FREEZE, callbacks_post_freeze);
   }
-  void add_new_items_system(int32_t new_items_system) {
-    fbb_.AddElement<int32_t>(SaveGame::VT_NEW_ITEMS_SYSTEM, new_items_system, 0);
-  }
   void add_active_items(flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_items) {
     fbb_.AddOffset(SaveGame::VT_ACTIVE_ITEMS, active_items);
   }
   void add_free_item_slots(flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_item_slots) {
     fbb_.AddOffset(SaveGame::VT_FREE_ITEM_SLOTS, free_item_slots);
-  }
-  void add_new_effects_system(int32_t new_effects_system) {
-    fbb_.AddElement<int32_t>(SaveGame::VT_NEW_EFFECTS_SYSTEM, new_effects_system, 0);
   }
   void add_active_effects(flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_effects) {
     fbb_.AddOffset(SaveGame::VT_ACTIVE_EFFECTS, active_effects);
@@ -9623,19 +9557,15 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_useitem = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_pre_freeze = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> callbacks_post_freeze = 0,
-    int32_t new_items_system = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_items = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_item_slots = 0,
-    int32_t new_effects_system = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_effects = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_effect_slots = 0) {
   SaveGameBuilder builder_(_fbb);
   builder_.add_free_effect_slots(free_effect_slots);
   builder_.add_active_effects(active_effects);
-  builder_.add_new_effects_system(new_effects_system);
   builder_.add_free_item_slots(free_item_slots);
   builder_.add_active_items(active_items);
-  builder_.add_new_items_system(new_items_system);
   builder_.add_callbacks_post_freeze(callbacks_post_freeze);
   builder_.add_callbacks_pre_freeze(callbacks_pre_freeze);
   builder_.add_callbacks_post_useitem(callbacks_post_useitem);
@@ -9782,10 +9712,8 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_useitem = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_pre_freeze = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *callbacks_post_freeze = nullptr,
-    int32_t new_items_system = 0,
     const std::vector<int32_t> *active_items = nullptr,
     const std::vector<int32_t> *free_item_slots = nullptr,
-    int32_t new_effects_system = 0,
     const std::vector<int32_t> *active_effects = nullptr,
     const std::vector<int32_t> *free_effect_slots = nullptr) {
   auto rooms__ = rooms ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::Room>>(*rooms) : 0;
@@ -9902,10 +9830,8 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       callbacks_post_useitem__,
       callbacks_pre_freeze__,
       callbacks_post_freeze__,
-      new_items_system,
       active_items__,
       free_item_slots__,
-      new_effects_system,
       active_effects__,
       free_effect_slots__);
 }
@@ -10113,8 +10039,6 @@ inline void Item::UnPackTo(ItemT *_o, const flatbuffers::resolver_function_t *_r
   { auto _e = after_death(); _o->after_death = _e; }
   { auto _e = item_flags(); if (_e) { _o->item_flags.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->item_flags[_i] = _e->Get(_i); } } }
   { auto _e = pose(); if (_e) _o->pose = std::unique_ptr<TEN::Save::Pose>(new TEN::Save::Pose(*_e)); }
-  { auto _e = next_item(); _o->next_item = _e; }
-  { auto _e = next_item_active(); _o->next_item_active = _e; }
   { auto _e = active(); _o->active = _e; }
   { auto _e = status(); _o->status = _e; }
   { auto _e = hit_stauts(); _o->hit_stauts = _e; }
@@ -10169,8 +10093,6 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
   auto _after_death = _o->after_death;
   auto _item_flags = _fbb.CreateVector(_o->item_flags);
   auto _pose = _o->pose ? _o->pose.get() : 0;
-  auto _next_item = _o->next_item;
-  auto _next_item_active = _o->next_item_active;
   auto _active = _o->active;
   auto _status = _o->status;
   auto _hit_stauts = _o->hit_stauts;
@@ -10217,8 +10139,6 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
       _after_death,
       _item_flags,
       _pose,
-      _next_item,
-      _next_item_active,
       _active,
       _status,
       _hit_stauts,
@@ -10254,8 +10174,6 @@ inline void FXInfo::UnPackTo(FXInfoT *_o, const flatbuffers::resolver_function_t
   { auto _e = pose(); if (_e) _o->pose = std::unique_ptr<TEN::Save::Pose>(new TEN::Save::Pose(*_e)); }
   { auto _e = room_number(); _o->room_number = _e; }
   { auto _e = object_number(); _o->object_number = _e; }
-  { auto _e = next_fx(); _o->next_fx = _e; }
-  { auto _e = next_active(); _o->next_active = _e; }
   { auto _e = speed(); _o->speed = _e; }
   { auto _e = fall_speed(); _o->fall_speed = _e; }
   { auto _e = frame_number(); _o->frame_number = _e; }
@@ -10276,8 +10194,6 @@ inline flatbuffers::Offset<FXInfo> CreateFXInfo(flatbuffers::FlatBufferBuilder &
   auto _pose = _o->pose ? _o->pose.get() : 0;
   auto _room_number = _o->room_number;
   auto _object_number = _o->object_number;
-  auto _next_fx = _o->next_fx;
-  auto _next_active = _o->next_active;
   auto _speed = _o->speed;
   auto _fall_speed = _o->fall_speed;
   auto _frame_number = _o->frame_number;
@@ -10290,8 +10206,6 @@ inline flatbuffers::Offset<FXInfo> CreateFXInfo(flatbuffers::FlatBufferBuilder &
       _pose,
       _room_number,
       _object_number,
-      _next_fx,
-      _next_active,
       _speed,
       _fall_speed,
       _frame_number,
@@ -12611,10 +12525,8 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = callbacks_post_useitem(); if (_e) { _o->callbacks_post_useitem.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_post_useitem[_i] = _e->Get(_i)->str(); } } }
   { auto _e = callbacks_pre_freeze(); if (_e) { _o->callbacks_pre_freeze.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_pre_freeze[_i] = _e->Get(_i)->str(); } } }
   { auto _e = callbacks_post_freeze(); if (_e) { _o->callbacks_post_freeze.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks_post_freeze[_i] = _e->Get(_i)->str(); } } }
-  { auto _e = new_items_system(); _o->new_items_system = _e; }
   { auto _e = active_items(); if (_e) { _o->active_items.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->active_items[_i] = _e->Get(_i); } } }
   { auto _e = free_item_slots(); if (_e) { _o->free_item_slots.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->free_item_slots[_i] = _e->Get(_i); } } }
-  { auto _e = new_effects_system(); _o->new_effects_system = _e; }
   { auto _e = active_effects(); if (_e) { _o->active_effects.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->active_effects[_i] = _e->Get(_i); } } }
   { auto _e = free_effect_slots(); if (_e) { _o->free_effect_slots.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->free_effect_slots[_i] = _e->Get(_i); } } }
 }
@@ -12695,10 +12607,8 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _callbacks_post_useitem = _fbb.CreateVectorOfStrings(_o->callbacks_post_useitem);
   auto _callbacks_pre_freeze = _fbb.CreateVectorOfStrings(_o->callbacks_pre_freeze);
   auto _callbacks_post_freeze = _fbb.CreateVectorOfStrings(_o->callbacks_post_freeze);
-  auto _new_items_system = _o->new_items_system;
   auto _active_items = _fbb.CreateVector(_o->active_items);
   auto _free_item_slots = _fbb.CreateVector(_o->free_item_slots);
-  auto _new_effects_system = _o->new_effects_system;
   auto _active_effects = _fbb.CreateVector(_o->active_effects);
   auto _free_effect_slots = _fbb.CreateVector(_o->free_effect_slots);
   return TEN::Save::CreateSaveGame(
@@ -12771,10 +12681,8 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _callbacks_post_useitem,
       _callbacks_pre_freeze,
       _callbacks_post_freeze,
-      _new_items_system,
       _active_items,
       _free_item_slots,
-      _new_effects_system,
       _active_effects,
       _free_effect_slots);
 }

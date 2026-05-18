@@ -95,7 +95,7 @@ CollidedObjectData GetCollidedObjects(ItemInfo& collidingItem, bool onlyVisible,
 
 	auto collObjects = CollidedObjectData{};
 
-	int itemCount = 0;
+	int itemCount   = 0;
 	int staticCount = 0;
 
 	// Establish parameters of colliding item.

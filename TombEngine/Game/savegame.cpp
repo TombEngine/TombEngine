@@ -1083,8 +1083,6 @@ const std::vector<byte> SaveGame::Build()
 
 		Save::ItemBuilder serializedItem{ fbb };
 
-		serializedItem.add_next_item(NO_VALUE);
-		serializedItem.add_next_item_active(NO_VALUE);
 		serializedItem.add_anim_number(itemToSerialize.Animation.AnimNumber);
 		serializedItem.add_after_death(itemToSerialize.AfterDeath);
 		serializedItem.add_box_number(itemToSerialize.BoxNumber);
@@ -1800,7 +1798,6 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_camera(cameraOffset);
 	sgb.add_lara(laraOffset);
 	sgb.add_rooms(roomOffset);
-	sgb.add_new_items_system(1);
 	sgb.add_active_items(activeItemsOffset);
 	sgb.add_free_item_slots(freeItemSlotsOffset);
 	sgb.add_next_item_free(NO_VALUE);
@@ -1810,7 +1807,6 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_fish_swarm(fishSwarmOffset);
 	sgb.add_firefly_swarm(fireflySwarmOffset);
 	sgb.add_decals(decalOffset);
-	sgb.add_new_effects_system(1);
 	sgb.add_postprocess_mode((int)g_Renderer.GetPostProcessMode());
 	sgb.add_postprocess_strength(g_Renderer.GetPostProcessStrength());
 	sgb.add_postprocess_tint(&FromVector3(g_Renderer.GetPostProcessTint()));
@@ -2688,61 +2684,6 @@ static void ParseEffects(const Save::SaveGame* s)
 		beetle->RoomNumber = beetleInfo->room_number();
 		beetle->Pose = ToPose(*beetleInfo->pose());
 	}
-
-	// BACKWARD COMPATIBILITY: Convert old effects (fxinfos) to new item system.
-	// Old savegames stored effects in EffectList with linked lists via next_fx_active.
-	// New system uses regular Items with FXInfo as their Data variant.
-	if (s->fxinfos() != nullptr && s->fxinfos()->size() > 0)
-	{
-		// Reconstruct active effect indices from next_fx_active chain.
-		std::vector<int> activeEffectIndices;
-		for (int i = s->next_fx_active(); i != NO_VALUE && i < (int)s->fxinfos()->size(); )
-		{
-			activeEffectIndices.push_back(i);
-			int next = s->fxinfos()->Get(i)->next_active();
-			if (next == i || activeEffectIndices.size() > s->fxinfos()->size())
-				break;
-			i = next;
-		}
-
-		// Create new items for each active effect.
-		for (int oldIndex : activeEffectIndices)
-		{
-			auto fx_saved = s->fxinfos()->Get(oldIndex);
-
-			int itemNumber = CreateItem();
-			if (itemNumber == NO_VALUE)
-				continue;
-
-			auto& item = g_Level.Items[itemNumber];
-
-			// Set up FXInfo data.
-			item.Data = FXInfo();
-			auto& fxInfo = GetFXInfo(item);
-			fxInfo.Counter = fx_saved->counter();
-			fxInfo.Flag1 = fx_saved->flag1();
-			fxInfo.Flag2 = fx_saved->flag2();
-
-			// Restore pose and room.
-			item.Pose = ToPose(*fx_saved->pose());
-			item.RoomNumber = fx_saved->room_number();
-			item.ObjectNumber = (GAME_OBJECT_ID)fx_saved->object_number();
-			item.Model.Color = ToVector4(fx_saved->color());
-
-			// Restore velocity from old speed/fallspeed.
-			item.Animation.Velocity.z = fx_saved->speed();
-			item.Animation.Velocity.y = fx_saved->fall_speed();
-			item.Animation.FrameNumber = fx_saved->frame_number();
-
-			// Add to room and activate.
-			if (item.RoomNumber >= 0 && item.RoomNumber < (int)g_Level.Rooms.size())
-			{
-				g_Level.Rooms[item.RoomNumber].itemNumbers.push_back(itemNumber);
-				AddActiveItem(itemNumber);
-				item.Status = ITEM_ACTIVE;
-			}
-		}
-	}
 }
 
 static void ParseLevel(const Save::SaveGame* s, bool hubMode)
@@ -2777,7 +2718,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		staticObj.HitPoints = savedStaticObj.hit_points();
 		staticObj.Flags = savedStaticObj.flags();
 		staticObj.Dirty = true;
-		
+
 		if (!staticObj.Flags)
 			TestTriggers(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, savedStaticObj.room_number(), true, 0);
 	}
@@ -2792,7 +2733,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		room->TriggerVolumes[number].Enabled = volume->enabled();
 		room->TriggerVolumes[number].Name = volume->name()->str();
 		room->TriggerVolumes[number].Box.Center =
-		room->TriggerVolumes[number].Sphere.Center = ToVector3(volume->position());
+			room->TriggerVolumes[number].Sphere.Center = ToVector3(volume->position());
 		room->TriggerVolumes[number].Box.Orientation = ToVector4(volume->rotation());
 		room->TriggerVolumes[number].Box.Extents = ToVector3(volume->scale());
 		room->TriggerVolumes[number].Sphere.Radius = room->TriggerVolumes[number].Box.Extents.x;
@@ -2875,41 +2816,12 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	for (auto& room : g_Level.Rooms)
 		room.itemNumbers.clear();
 
-	if (s->new_items_system() == 1)
-	{
-		for (int i = 0; i < s->active_items()->size(); i++)
-			ActiveItems.push_back(s->active_items()->Get(i));
 
-		for (int i = 0; i < s->free_item_slots()->size(); i++)
-			FreeItemSlots.push_back(s->free_item_slots()->Get(i));
-	}
-	else
-	{
-		for (int i = s->next_item_active(); i != NO_VALUE && i < s->items()->size(); )
-		{
-			ActiveItems.push_back(i);
-			int next = s->items()->Get(i)->next_item_active();
+	for (int i = 0; i < s->active_items()->size(); i++)
+		ActiveItems.push_back(s->active_items()->Get(i));
 
-			// Safety: prevent infinite loop
-			if (next == i || ActiveItems.size() > s->items()->size())
-				break;
-
-			i = next;
-		}
-
-		// Reconstruct FreeItemSlots from NextItemFree chain
-		for (int i = s->next_item_free(); i != NO_VALUE && i < s->items()->size(); )
-		{
-			FreeItemSlots.push_back(i);
-			int next = s->items()->Get(i)->next_item();
-
-			// Safety: prevent infinite loop
-			if (next == i || FreeItemSlots.size() > s->items()->size())
-				break;
-
-			i = next;
-		}
-	}
+	for (int i = 0; i < s->free_item_slots()->size(); i++)
+		FreeItemSlots.push_back(s->free_item_slots()->Get(i));
 
 	for (int i = 0; i < s->items()->size(); i++)
 	{
