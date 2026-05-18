@@ -34,6 +34,7 @@
 #include "Renderer/Aurora/AuroraSettings.h"
 #include "Renderer/GodRay/GodRaySettings.h"
 #include "Renderer/Moon/MoonSettings.h"
+#include "Renderer/UnderwaterSky/UnderwaterSkySettings.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Specific/level.h"
@@ -67,6 +68,7 @@ namespace TEN::Sky
 		case CloudCategory::None:                 return "None";
 		case CloudCategory::AltocumulusMid:       return "AltocumulusMid";
 		case CloudCategory::Aurora:               return "Aurora";
+		case CloudCategory::UnderwaterSky:        return "UnderwaterSky";
 		default:                                         return "Unknown";
 		}
 	}
@@ -231,20 +233,27 @@ namespace TEN::Sky
 
 	static bool DrawCategoryCombo(const char* label, CloudCategory& category, bool isLayerA)
 	{
-		// Layer A is reserved for Aurora (and reserved water surface in the future).
+		// Layer A handles overlay effects (Aurora, UnderwaterSky).
 		// Layer B handles all volumetric cloud categories.
-		static const char* namesA[] = { "None", "Aurora" };
+		static const char* namesA[] = { "None", "Aurora", "UnderwaterSky" };
 		static const char* namesB[] = { "None", "AltocumulusMid", "Aurora" };
 
 		bool changed = false;
 
 		if (isLayerA)
 		{
-			// Map snap.Category (full enum) to the reduced 2-entry combo.
-			int current = (category == CloudCategory::Aurora) ? 1 : 0;
+			// Map snap.Category (full enum) to the reduced combo.
+			int current = 0;
+			if (category == CloudCategory::Aurora)              current = 1;
+			else if (category == CloudCategory::UnderwaterSky)  current = 2;
 			if (ImGui::Combo(label, &current, namesA, IM_ARRAYSIZE(namesA)))
 			{
-				category = (current == 1) ? CloudCategory::Aurora : CloudCategory::None;
+				switch (current)
+				{
+				case 1:  category = CloudCategory::Aurora;        break;
+				case 2:  category = CloudCategory::UnderwaterSky; break;
+				default: category = CloudCategory::None;          break;
+				}
 				changed = true;
 			}
 		}
@@ -761,7 +770,18 @@ namespace TEN::Sky
 			return changed;
 		}
 
-		// Layer A only supports Aurora — hide all volumetric cloud parameters.
+		// For UnderwaterSky category, mirror the Enabled flag into the renderer
+		// settings. Detailed controls live in the dedicated "Underwater Sky" tab.
+		if (snap.Category == CloudCategory::UnderwaterSky)
+		{
+			g_Renderer.GetUnderwaterSkySettings().Enabled = snap.Enabled;
+			ImGui::Separator();
+			ImGui::TextDisabled("(Underwater Sky parameters are configured in the 'Underwater Sky' tab.)");
+			ImGui::Unindent(8.0f);
+			return changed;
+		}
+
+		// Layer A only supports overlay effects — hide all volumetric cloud parameters.
 		if (isLayerA)
 		{
 			ImGui::TextDisabled("(Layer A parameters are shown only when Aurora is active.)");
@@ -1922,6 +1942,156 @@ namespace TEN::Sky
 	}
 
 	// ====================================================================
+	// Underwater Sky tab content
+	// ====================================================================
+
+	static void DrawUnderwaterSkyTabContent()
+	{
+		using namespace TEN::Renderer::UnderwaterSky;
+		auto& uw = g_Renderer.GetUnderwaterSkySettings();
+
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		ImGui::TextWrapped(
+			"Underwater Sky replaces the atmospheric sky dome with an animated "
+			"water surface seen from below. Above the water-line, caustic waves "
+			"and god-ray light shafts emerge from the sun direction. Below the "
+			"water-line the view fades into a deep pit void. Mutually exclusive "
+			"with Aurora (both use Cloud Layer A).");
+
+		ImGui::Spacing();
+
+		// Live status readout.
+		bool presetActive = g_SkyCloudSystem.IsUnderwaterSkyPresetActive();
+		float vis = g_Renderer.GetUnderwaterSkyPresetFade();
+		ImGui::Text("Preset Active: %s   |   Fade: %.3f", presetActive ? "yes" : "no", vis);
+
+		ImGui::Separator();
+
+		if (ImGui::CollapsingHeader("Core##uwsky", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::Checkbox("Enabled##uwsky", &uw.Enabled);
+			ImGui::SliderFloat("Intensity##uwsky", &uw.Intensity, 0.0f, 3.0f, "%.3f");
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Waves##uwsky", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::SliderFloat("Wave Size##uwsky",      &uw.WaveSize,      0.1f, 5.0f, "%.3f");
+			ImGui::SliderFloat("Wave Speed##uwsky",     &uw.WaveSpeed,     0.0f, 3.0f, "%.3f");
+			ImGui::SliderFloat("Wave Sharpness##uwsky", &uw.WaveSharpness, 0.5f, 8.0f, "%.3f");
+			ImGui::SliderFloat("Distortion Amount##uwsky",   &uw.DistortionAmount,   0.5f, 8.0f, "%.3f");
+			ImGui::SliderFloat("Distortion Strength##uwsky", &uw.DistortionStrength, 0.0f, 2.0f, "%.3f");
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Color##uwsky", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+			float color[3] = { uw.ColorR, uw.ColorG, uw.ColorB };
+			if (ImGui::ColorEdit3("Water Color##uwsky", color))
+			{
+				uw.ColorR = color[0];
+				uw.ColorG = color[1];
+				uw.ColorB = color[2];
+			}
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Geometry##uwsky"))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::SliderFloat("Layer Height##uwsky",     &uw.LayerHeight,       0.05f, 1.0f, "%.3f");
+			ImGui::TextDisabled("  0.0 = horizon, 1.0 = zenith");
+			ImGui::SliderFloat("Horizon Softness##uwsky", &uw.HorizonSoftness,   0.01f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Depth Fade Strength##uwsky", &uw.DepthFadeStrength, 0.1f, 4.0f, "%.3f");
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Light Shafts##uwsky"))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::SliderFloat("Caustic Strength##uwsky", &uw.CausticStrength, 0.0f, 4.0f,  "%.3f");
+			ImGui::SliderFloat("Shaft Strength##uwsky",   &uw.ShaftStrength,   0.0f, 4.0f,  "%.3f");
+			ImGui::SliderFloat("Shaft Sharpness##uwsky",  &uw.ShaftSharpness,  1.0f, 64.0f, "%.2f");
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Night Damping##uwsky"))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::SliderFloat("Night Darken##uwsky", &uw.NightDarken, 0.0f, 1.0f, "%.3f");
+			ImGui::TextDisabled("  0 = unchanged at night, 1 = fully dark at night.");
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Preset Fade##uwsky", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::Text("Fade Progress: %.3f", g_Renderer.GetUnderwaterSkyPresetFade());
+			ImGui::SliderFloat("Fade Duration (s)##uwsky", &g_Renderer.GetUnderwaterSkyPresetFadeDuration(),
+			                   0.5f, 120.0f, "%.1f s");
+			ImGui::TextDisabled("  Duration for the underwater sky to fade in/out when preset changes.");
+			ImGui::Unindent(8.0f);
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::Button("Reset Underwater Defaults##uwsky"))
+		{
+			bool wasEnabled = uw.Enabled;
+			uw = UnderwaterSkySettings{};
+			uw.Enabled = wasEnabled;
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("Copy Lua to clipboard##uwsky"))
+		{
+			char buf[1280];
+			auto levelName = GetCurrentLevelLuaName();
+			snprintf(buf, sizeof(buf),
+				"%s.underwaterSky.enabled = %s\n"
+				"%s.underwaterSky.intensity = %.3f\n"
+				"%s.underwaterSky.waveSize = %.3f\n"
+				"%s.underwaterSky.waveSpeed = %.3f\n"
+				"%s.underwaterSky.waveSharpness = %.3f\n"
+				"%s.underwaterSky.distortionAmount = %.3f\n"
+				"%s.underwaterSky.distortionStrength = %.3f\n"
+				"%s.underwaterSky.color = Color(%d, %d, %d)\n"
+				"%s.underwaterSky.layerHeight = %.3f\n"
+				"%s.underwaterSky.horizonSoftness = %.3f\n"
+				"%s.underwaterSky.depthFadeStrength = %.3f\n"
+				"%s.underwaterSky.causticStrength = %.3f\n"
+				"%s.underwaterSky.shaftStrength = %.3f\n"
+				"%s.underwaterSky.shaftSharpness = %.2f\n"
+				"%s.underwaterSky.nightDarken = %.3f",
+				levelName.c_str(), uw.Enabled ? "true" : "false",
+				levelName.c_str(), uw.Intensity,
+				levelName.c_str(), uw.WaveSize,
+				levelName.c_str(), uw.WaveSpeed,
+				levelName.c_str(), uw.WaveSharpness,
+				levelName.c_str(), uw.DistortionAmount,
+				levelName.c_str(), uw.DistortionStrength,
+				levelName.c_str(),
+				(int)std::round(uw.ColorR * 255.0f),
+				(int)std::round(uw.ColorG * 255.0f),
+				(int)std::round(uw.ColorB * 255.0f),
+				levelName.c_str(), uw.LayerHeight,
+				levelName.c_str(), uw.HorizonSoftness,
+				levelName.c_str(), uw.DepthFadeStrength,
+				levelName.c_str(), uw.CausticStrength,
+				levelName.c_str(), uw.ShaftStrength,
+				levelName.c_str(), uw.ShaftSharpness,
+				levelName.c_str(), uw.NightDarken);
+			ImGui::SetClipboardText(buf);
+		}
+	}
+
+	// ====================================================================
 	// Wind debug content
 	// ====================================================================
 
@@ -2112,6 +2282,12 @@ namespace TEN::Sky
 			if (ImGui::BeginTabItem("Atmospheric Sky/Horizon"))
 			{
 				DrawAtmosphericSkyTabContent();
+				ImGui::EndTabItem();
+			}
+
+			if (ImGui::BeginTabItem("Underwater Sky"))
+			{
+				DrawUnderwaterSkyTabContent();
 				ImGui::EndTabItem();
 			}
 

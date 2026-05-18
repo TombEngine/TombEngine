@@ -51,7 +51,8 @@ namespace TEN::Sky
 	{
 		None,                       // No clouds / clear sky
 		AltocumulusMid,             // Patchy, medium altitude, moderate density
-		Aurora                      // High-altitude aurora borealis effect
+		Aurora,                     // High-altitude aurora borealis effect
+		UnderwaterSky               // Underwater water-surface effect (Layer A only, mutually exclusive with Aurora).
 	};
 
 	// ====================================================================
@@ -470,6 +471,7 @@ namespace TEN::Sky
 		bool                    IsAuroraPresetActive() const;
 		void                    SetDynamicSkyAuroraForced(bool forced);
 		bool                    GetDynamicSkyAuroraForced() const;
+		bool                    IsUnderwaterSkyPresetActive() const;
 		bool                    IsLegacyLayer1Active() const;
 		bool                    IsLegacyLayer2Active() const;
 

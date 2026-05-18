@@ -3230,12 +3230,25 @@ namespace TEN::Renderer
 					rDrawSprite.Width = STAR_SIZE * star.Scale;
 					rDrawSprite.Height = STAR_SIZE * star.Scale;
 
+					// Underwater sky occlusion: stars below the water-line are fully hidden.
+					// TEN Y-down: star.Direction.y < 0 means the star is above the horizon.
+					float underwaterStarMask = 1.0f;
+					if (_underwaterSkySettings.Enabled && _stAtmosphericSky.UnderwaterSkyVisibility > 0.001f)
+					{
+						float upY = -star.Direction.y;
+						float layerH = std::max(_underwaterSkySettings.LayerHeight, 0.05f);
+						float soft   = std::max(_underwaterSkySettings.HorizonSoftness, 0.005f);
+						float t = std::clamp((upY - (layerH - soft)) / (2.0f * soft), 0.0f, 1.0f);
+						float aboveFactor = t * t * (3.0f - 2.0f * t);
+						underwaterStarMask = Lerp(1.0f, aboveFactor * 0.3f, _stAtmosphericSky.UnderwaterSkyVisibility);
+					}
+
 					_stInstancedSpriteBuffer.Sprites[i].World = GetWorldMatrixForSprite(rDrawSprite, renderView);
 					_stInstancedSpriteBuffer.Sprites[i].Color = Vector4(
 						star.Color.x,
 						star.Color.y,
 						star.Color.z,
-						star.Blinking * star.Extinction * starfieldAlphaScale);
+						star.Blinking * star.Extinction * starfieldAlphaScale * underwaterStarMask);
 					_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1;
 					_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = 0;
 					_stInstancedSpriteBuffer.Sprites[i].RenderType = 3;

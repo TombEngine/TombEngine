@@ -1308,7 +1308,8 @@ namespace TEN::Sky
 		}
 
 		// ----- ReservedWaterSurface -----
-		// Reserved Layer A preset for a future water surface effect.
+		// Layer A preset: underwater water-surface effect with caustic waves and
+		// god-ray light shafts. Renderer-side parameters live in UnderwaterSkySettings.
 		{
 			WeatherPresetDefinition def;
 			def.Type           = WeatherPresetType::ReservedWaterSurface;
@@ -1316,8 +1317,13 @@ namespace TEN::Sky
 			def.IsLayerAPreset = true;
 			def.DefaultTransitionDuration = 30.0f;
 
-			def.TargetState.CloudA.Enabled  = false;
-			def.TargetState.CloudA.Category = CloudCategory::None;
+			auto& a = def.TargetState.CloudA;
+			a.Enabled       = true;
+			a.Category      = CloudCategory::UnderwaterSky;
+			a.Coverage      = 1.0f;
+			a.BottomHeight  = 1200.0f;
+			a.Thickness     = 2000.0f;
+			a.EvolutionSpeed = 0.1f;
 
 			_presets[def.Type] = def;
 		}
@@ -2422,6 +2428,10 @@ namespace TEN::Sky
 
 	bool SkyCloudSystem::IsCloudAActive() const
 	{
+		// UnderwaterSky occupies Layer A as an overlay effect, not a volumetric cloud.
+		if (_currentState.CloudA.Category == CloudCategory::UnderwaterSky)
+			return false;
+
 		return _currentState.CloudA.Enabled && _currentState.CloudA.Coverage > 0.001f;
 	}
 
@@ -2453,6 +2463,18 @@ namespace TEN::Sky
 	bool SkyCloudSystem::GetDynamicSkyAuroraForced() const
 	{
 		return _dynamicSkyAuroraForced;
+	}
+
+	bool SkyCloudSystem::IsUnderwaterSkyPresetActive() const
+	{
+		// Underwater sky is active if any cloud layer has the UnderwaterSky category and is enabled.
+		// Layer A is the canonical owner (mutually exclusive with Aurora by design), but the check
+		// also tolerates Layer B for forward compatibility.
+		if (_currentState.CloudA.Enabled && _currentState.CloudA.Category == CloudCategory::UnderwaterSky)
+			return true;
+		if (_currentState.CloudB.Enabled && _currentState.CloudB.Category == CloudCategory::UnderwaterSky)
+			return true;
+		return false;
 	}
 
 	bool SkyCloudSystem::IsLegacyLayer1Active() const
@@ -2551,6 +2573,7 @@ namespace TEN::Sky
 	{
 		if (name == "AltocumulusMid")      return CloudCategory::AltocumulusMid;
 		if (name == "Aurora")              return CloudCategory::Aurora;
+		if (name == "UnderwaterSky")       return CloudCategory::UnderwaterSky;
 		return CloudCategory::None;
 	}
 

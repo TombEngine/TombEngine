@@ -105,5 +105,35 @@ namespace TEN::Renderer::ConstantBuffers
 		float   HorizonColorR;            // [0,1] Red channel of horizon ground color.
 		float   HorizonColorG;            // [0,1] Green channel of horizon ground color.
 		float   HorizonColorB;            // [0,1] Blue channel of horizon ground color.
+		//--
+		// Row 18 — Underwater sky core
+		float   UnderwaterSkyEnabled;     // 0 or 1.
+		float   UnderwaterSkyVisibility;  // [0,1] computed fade (preset fade x night damping).
+		float   UnderwaterTime;           // Accumulated animation time.
+		float   UnderwaterIntensity;      // Overall brightness multiplier.
+		//--
+		// Row 19 — Underwater wave/color
+		float   UnderwaterWaveSize;       // Spatial scale of wave caustics.
+		float   UnderwaterWaveSpeed;      // Animation drift speed.
+		float   UnderwaterWaveSharpness;  // Contrast of caustic ridges.
+		float   UnderwaterColorR;         // Water tint color (R).
+		//--
+		// Row 20 — Underwater color continued + geometry
+		float   UnderwaterColorG;         // Water tint color (G).
+		float   UnderwaterColorB;         // Water tint color (B).
+		float   UnderwaterLayerHeight;    // [0,1] hemisphere fraction where water-line sits.
+		float   UnderwaterHorizonSoftness;// Fade width around the water-line.
+		//--
+		// Row 21 — Underwater depth/shafts
+		float   UnderwaterDepthFadeStr;   // How quickly looking down fades into pit void.
+		float   UnderwaterCausticStrength;// Brightness of caustic peaks.
+		float   UnderwaterShaftStrength;  // Brightness of god-ray shafts.
+		float   UnderwaterShaftSharpness; // Tightness of cone around sun direction.
+		//--
+		// Row 22 — Underwater distortion + wind advection
+		float   UnderwaterDistortionAmount;   // Distortion detail frequency.
+		float   UnderwaterDistortionStrength; // Distortion amplitude multiplier.
+		float   UnderwaterWindDirX;           // Normalized X drift direction.
+		float   UnderwaterWindDirY;           // Normalized Y drift direction.
 	};
 }
