@@ -489,6 +489,12 @@ namespace TEN::Sky
 		// volumetric cloud layer through GetCloudA/BRenderSettings().
 		void SetGlobalWind(float dirX, float dirY, float speed);
 
+		// --- Independent cloud wind speed ---
+		// Exposes _cloudWindSpeed for debug UI read-back and direct override.
+		// Negative = derive from base wind (default).
+		float GetCloudWindSpeed() const;
+		void  SetCloudWindSpeed(float speed);
+
 		// --- Global rendering quality ---
 		// Set via level.dynamicSky.Clouds.quality in Gameflow.lua.
 		// Applies to all volumetric cloud layers regardless of which preset is active.

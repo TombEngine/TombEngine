@@ -2354,6 +2354,17 @@ namespace TEN::Sky
 		return _currentState;
 	}
 
+	float SkyCloudSystem::GetCloudWindSpeed() const
+	{
+		return _cloudWindSpeed;
+	}
+
+	void SkyCloudSystem::SetCloudWindSpeed(float speed)
+	{
+		constexpr float LUA_SPEED_MAX = 8.0f;
+		_cloudWindSpeed = (speed >= 0.0f) ? std::clamp(speed, 0.0f, LUA_SPEED_MAX) : -1.0f;
+	}
+
 	void SkyCloudSystem::SetGlobalWind(float dirX, float dirY, float speed)
 	{
 		// Backwards compatibility: the legacy Lua API took a normalized direction
@@ -2442,6 +2453,13 @@ namespace TEN::Sky
 			// convention (up = North = +Z) must be flipped for the cloud shader.
 			s.WindDirection = Vector2(-baseWind.x / magnitude, -baseWind.z / magnitude);
 			s.WindSpeed     = speed;
+		}
+		else if (_cloudWindSpeed >= 0.0f)
+		{
+			// An explicit cloud speed is configured but no atmospheric wind is
+			// present to derive a direction from. Apply the speed anyway and
+			// keep the default direction (1, 0) that CloudRenderSettings provides.
+			s.WindSpeed = speed;
 		}
 		else
 		{

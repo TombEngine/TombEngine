@@ -1104,7 +1104,16 @@ namespace TEN::Sky
 				ImGui::TextUnformatted("Cloud Layer B");
 				ImGui::Indent(8.0f);
 
-				static int layerBPresetIdx = 0;
+				static int   layerBPresetIdx = 0;
+				static float layerBCloudSpeed = -1.0f;   // -1 = uninitialized sentinel.
+
+				// Load the Lua-configured cloud wind speed once on first draw.
+				if (layerBCloudSpeed < 0.0f)
+				{
+					float luaSpeed = g_SkyCloudSystem.GetCloudWindSpeed();
+					layerBCloudSpeed = (luaSpeed >= 0.0f) ? luaSpeed : 1.0f;
+				}
+
 				if (layerBPresetIdx >= static_cast<int>(presetNamesB.size())) layerBPresetIdx = 0;
 				ImGui::SetNextItemWidth(160.0f);
 				ImGui::Combo("Preset##layerB", &layerBPresetIdx, presetNamesB.data(), static_cast<int>(presetNamesB.size()));
@@ -1114,15 +1123,23 @@ namespace TEN::Sky
 				ImGui::SetNextItemWidth(80.0f);
 				ImGui::DragFloat("s##layerBDur", &layerBDur, 1.0f, 1.0f, 300.0f, "%.0f s");
 
+				// Cloud wind speed slider (independent from atmospheric wind).
+				ImGui::SetNextItemWidth(180.0f);
+				ImGui::SliderFloat("Cloud Speed##layerB", &layerBCloudSpeed, 0.0f, 8.0f, "%.2f");
+				ImGui::SameLine();
+				ImGui::TextDisabled("(level.dynamicSky.Clouds.windSpeed)");
+
 				WeatherPresetType typeB = presetTypesB[layerBPresetIdx];
 				if (ImGui::Button("Apply Immediately##layerB"))
 				{
+					g_SkyCloudSystem.SetCloudWindSpeed(layerBCloudSpeed);
 					g_SkyCloudSystem.SetDynamicSkyAuroraForced(typeB == WeatherPresetType::Aurora);
 					g_SkyCloudSystem.SetLayerBPresetImmediate(typeB);
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Transition##layerB"))
 				{
+					g_SkyCloudSystem.SetCloudWindSpeed(layerBCloudSpeed);
 					g_SkyCloudSystem.SetDynamicSkyAuroraForced(typeB == WeatherPresetType::Aurora);
 					g_SkyCloudSystem.TransitionLayerBToPreset(typeB, layerBDur);
 				}
