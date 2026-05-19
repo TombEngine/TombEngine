@@ -51,6 +51,7 @@ local strings =
 	ammo_used = { "Ammo Used" },
 	antialiasing = { "Antialiasing" },
 	apply = { "Apply" },
+	atmospheric_sky_quality = { "Atmospheric Sky Quality" },
 	auto_monkey_swing_jump = { "Auto Monkey Jump" },
 	auto_targeting = { "Auto Targeting" },
 	back = { "Back" },

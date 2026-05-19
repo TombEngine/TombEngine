@@ -3,10 +3,12 @@
 #include "Math/Math.h"
 #include "Specific/Input/Input.h"
 #include "Renderer/RendererEnums.h"
+#include "Renderer/SkyQuality.h"
 #include "Sound/sound.h"
 
 using namespace TEN::Input;
 using namespace TEN::Math;
+using TEN::AtmosphericSkyQuality;
 
 // Graphics keys
 
@@ -22,6 +24,7 @@ constexpr auto OPTION_ENABLE_DECALS		   = "EnableDecals";
 constexpr auto OPTION_ANTIALIASING_MODE	   = "AntialiasingMode";
 constexpr auto OPTION_AMBIENT_OCCLUSION	   = "AmbientOcclusion";
 constexpr auto OPTION_HIGH_FRAMERATE       = "EnableHighFramerate";
+constexpr auto OPTION_ATMOSPHERIC_SKY_QUALITY = "AtmosphericSkyQuality";
 constexpr auto OPTION_ADAPTER_NAME         = "AdapterName";
 
 // Sound keys
@@ -75,6 +78,7 @@ struct GameConfiguration
 	bool	   EnableAmbientOcclusion = false;
 	bool	   EnableHighFramerate    = true;
 	AntialiasingMode AntialiasingMode = AntialiasingMode::None;
+	AtmosphericSkyQuality AtmosphericSkyQuality = AtmosphericSkyQuality::Medium;
 
 	// Sound
 

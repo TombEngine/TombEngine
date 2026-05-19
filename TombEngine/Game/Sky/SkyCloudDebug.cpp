@@ -33,6 +33,7 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/Aurora/AuroraSettings.h"
 #include "Renderer/GodRay/GodRaySettings.h"
+#include "Specific/configuration.h"
 #include "Renderer/Moon/MoonSettings.h"
 #include "Renderer/UnderwaterSky/UnderwaterSkySettings.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -910,6 +911,22 @@ namespace TEN::Sky
 		if (ImGui::CollapsingHeader("Performance Diagnostics", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			ImGui::Indent(8.0f);
+
+			// Live atmospheric sky quality preset (mirrors player Options menu).
+			{
+				int qualityIdx = (int)g_Configuration.AtmosphericSkyQuality;
+				if (qualityIdx < 0) qualityIdx = 0;
+				if (qualityIdx > (int)AtmosphericSkyQuality::High) qualityIdx = (int)AtmosphericSkyQuality::High;
+
+				if (ImGui::Combo("Atmospheric Sky Quality", &qualityIdx, "Low\0Medium\0High\0\0"))
+				{
+					g_Configuration.AtmosphericSkyQuality = (AtmosphericSkyQuality)qualityIdx;
+					SaveConfiguration();
+				}
+				ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f),
+					"Affects clouds, aurora, god rays and dust storm.");
+				ImGui::Separator();
+			}
 
 			const auto& io  = ImGui::GetIO();
 			const auto& cb  = g_Renderer.GetVolumetricCloudCB();

@@ -1484,10 +1484,20 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
     int   boostedStepCap   = 192;
     int   stepCap          = (int)lerp((float)baseStepCap, (float)boostedStepCap, altoStepBoost);
     int   effectiveSteps = clamp((int)max((float)PrimaryStepCount, minStepsF), 1, stepCap);
+    // On Low quality the adaptive formula above ignores PrimaryStepCount and can produce
+    // 32-128 effective steps for thin layers such as CirrocumulusFew (thickness ~1164).
+    // Cap to 3x PrimaryStepCount so the quality-level step budget is respected.
+    if (QualityLevel < 0.5f)
+        effectiveSteps = min(effectiveSteps, PrimaryStepCount * 3);
     // Low-absorption boost: when absorption is very small, each sample carries
     // little extinction and stochastic sampling noise is more visible.
     // Increase effective steps in that regime to average out point noise.
+    // Skipped on Low quality (QualityLevel == 0): the doubling effectively
+    // negates the Low step-count budget for low-absorption presets such as
+    // CirrocumulusFew/Lots, which is the dominant cost on entry-level GPUs.
     float lowAbsStepBoost = lerp(2.0f, 1.0f, saturate((effAbsorption - 0.2f) * 2.5f));
+    if (QualityLevel < 0.5f)
+        lowAbsStepBoost = 1.0f;
     effectiveSteps		= clamp((int)ceil((float)effectiveSteps * lowAbsStepBoost), 1, stepCap);
 
     // CloudMorph step reduction: during morph transitions, each step evaluates

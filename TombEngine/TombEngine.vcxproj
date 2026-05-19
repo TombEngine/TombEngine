@@ -895,6 +895,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\VolumetricCloud\CloudNoiseTexture.h" />
     <ClInclude Include="Renderer\GodRay\GodRaySettings.h" />
     <ClInclude Include="Renderer\DustStorm\DustStormSettings.h" />
+    <ClInclude Include="Renderer\SkyQuality.h" />
     <ClInclude Include="Renderer\Structures\RendererViewport.h" />
     <ClInclude Include="Scripting\Include\Flow\ScriptInterfaceFlowHandler.h" />
     <ClInclude Include="Scripting\Include\Objects\ScriptInterfaceObjectsHandler.h" />
@@ -1444,6 +1445,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\RendererAtmosphericSky.cpp" />
     <ClCompile Include="Renderer\RendererGodRay.cpp" />
     <ClCompile Include="Renderer\RendererDustStorm.cpp" />
+    <ClCompile Include="Renderer\SkyQuality.cpp" />
     <ClCompile Include="Renderer\RenderView.cpp" />
     <ClCompile Include="Renderer\ShaderManager\ShaderManager.cpp" />
     <ClCompile Include="Scripting\Internal\LuaHandler.cpp" />

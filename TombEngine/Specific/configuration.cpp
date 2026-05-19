@@ -87,6 +87,7 @@ void InitDefaultConfiguration()
 	g_Configuration.EnableAmbientOcclusion = true;
 	g_Configuration.EnableHighFramerate = true;
 	g_Configuration.Gamma = 1.0f;
+	g_Configuration.AtmosphericSkyQuality = AtmosphericSkyQuality::Medium;
 
 	g_Configuration.SoundDevice = 1;
 	g_Configuration.EnableSound = true;
@@ -191,6 +192,13 @@ bool LoadConfiguration()
 			else if (key == OPTION_HIGH_FRAMERATE)
 			{
 				g_Configuration.EnableHighFramerate = ToBool(val, g_Configuration.EnableHighFramerate);
+			}
+			else if (key == OPTION_ATMOSPHERIC_SKY_QUALITY)
+			{
+				int q = ToInt(val, (int)g_Configuration.AtmosphericSkyQuality);
+				if (q < 0) q = 0;
+				if (q > (int)AtmosphericSkyQuality::High) q = (int)AtmosphericSkyQuality::High;
+				g_Configuration.AtmosphericSkyQuality = (AtmosphericSkyQuality)q;
 			}
 			else if (key == OPTION_GAMMA)
 			{
@@ -303,6 +311,7 @@ bool SaveConfiguration()
 	ss << OPTION_ANTIALIASING_MODE << "=" << (int)g_Configuration.AntialiasingMode << "\n";
 	ss << OPTION_AMBIENT_OCCLUSION << "=" << (g_Configuration.EnableAmbientOcclusion ? 1 : 0) << "\n";
 	ss << OPTION_HIGH_FRAMERATE << "=" << (g_Configuration.EnableHighFramerate ? 1 : 0) << "\n";
+	ss << OPTION_ATMOSPHERIC_SKY_QUALITY << "=" << (int)g_Configuration.AtmosphericSkyQuality << "\n";
 	ss << OPTION_GAMMA << "=" << g_Configuration.Gamma << "\n";
 	ss << OPTION_ADAPTER_NAME << "=" << g_Configuration.AdapterName << "\n\n";
 

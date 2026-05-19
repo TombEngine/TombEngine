@@ -18,6 +18,7 @@
 #include "Renderer/VolumetricCloud/CloudNoiseTexture.h"
 #include "Renderer/ConstantBuffers/VolumetricCloudBuffer.h"
 #include "Renderer/Moon/MoonSettings.h"
+#include "Renderer/SkyQuality.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
@@ -438,7 +439,7 @@ namespace TEN::Renderer
 		_stVolumetricCloud.FlowAccumOffset       = runtimeState.FlowAccumOffset;
 		_stVolumetricCloud.WindAccumOffsetScaled = runtimeState.FreezeWind      ? 0.0f : runtimeState.WindAccumOffsetScaled;
 		_stVolumetricCloud.EvoAccumOffsetScaled  = runtimeState.FreezeEvolution ? 0.0f : runtimeState.EvoAccumOffsetScaled;
-		_stVolumetricCloud._PadRow31_0           = 0.0f;
+		_stVolumetricCloud.QualityLevel          = (float)TEN::GetCurrentSkyQuality();
 		_stVolumetricCloud._PadRow31_1           = 0.0f;
 		_stVolumetricCloud.UpsampleSpatialSigma2 = settings.UpsampleSpatialSigma2;
 		// Quality-dependent widening of the temporal stability bands.

@@ -17,6 +17,7 @@
 #include "Renderer/ConstantBuffers/GodRayBuffer.h"
 #include "Renderer/GodRay/GodRaySettings.h"
 #include "Renderer/Moon/MoonSettings.h"
+#include "Renderer/SkyQuality.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
@@ -342,6 +343,12 @@ namespace TEN::Renderer
 		_stGodRay.Intensity     = rayIntensity;
 
 		_stGodRay.Decay         = rayDecay;
+		{
+			// Cap sample count by the player's atmospheric sky quality preset.
+			auto caps = GetSkyQualityCaps(GetCurrentSkyQuality());
+			if (raySampleCount > caps.GodRaySampleCountMax)
+				raySampleCount = caps.GodRaySampleCountMax;
+		}
 		_stGodRay.SampleCount   = raySampleCount;
 		_stGodRay.SunElevation  = rayElevation;
 		_stGodRay.AutoStrength  = finalAutoStrength;
@@ -377,6 +384,12 @@ namespace TEN::Renderer
 			_stGodRay.UnderwaterRayDecay        = _underwaterSkySettings.RayDecay;
 			_stGodRay.UnderwaterRayIntensity    = _underwaterSkySettings.RayIntensity;
 			_stGodRay.UnderwaterSampleCount     = std::max(8, _underwaterSkySettings.RaySampleCount);
+			{
+				// Cap underwater sample count by sky-quality preset as well.
+				auto caps = GetSkyQualityCaps(GetCurrentSkyQuality());
+				if (_stGodRay.UnderwaterSampleCount > caps.GodRaySampleCountMax)
+					_stGodRay.UnderwaterSampleCount = caps.GodRaySampleCountMax;
+			}
 		}
 		else
 		{

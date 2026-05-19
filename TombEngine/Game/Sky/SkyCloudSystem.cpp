@@ -13,6 +13,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Scripting/Internal/TEN/Flow/DynamicSky/DynamicSky.h"
+#include "Specific/configuration.h"
 #include <cmath>
 #include <numeric>
 
@@ -563,16 +564,8 @@ namespace TEN::Sky
 				// Cloud effect implies disabling legacy bitmap sky layer 1.
 				level->Layer1.Enabled = false;
 
-				// Per-level quality override.
-				if (!clouds.Quality.empty())
-				{
-					if (clouds.Quality == "Low")
-						SetGlobalQuality(CloudQualityPreset::Low);
-					else if (clouds.Quality == "Medium")
-						SetGlobalQuality(CloudQualityPreset::Medium);
-					else if (clouds.Quality == "High")
-						SetGlobalQuality(CloudQualityPreset::High);
-				}
+				// Note: clouds.Quality is deprecated. Global rendering quality is now
+				// driven exclusively by the player's display setting and is ignored here.
 
 				if (!clouds.StartPreset.empty())
 					SetPresetImmediate(StringToPresetType(clouds.StartPreset));
@@ -1424,9 +1417,15 @@ namespace TEN::Sky
 		tr.Elapsed += deltaTime;
 
 		// Look up transform type once — used by completion and update logic.
+		// On Low atmospheric sky quality, the dual-density CloudMorph path is
+		// disabled. The transition falls through to the regular per-frame
+		// parameter-lerp path, which evaluates cloud density only once per step
+		// instead of twice. Visually the clouds smoothly morph their shape
+		// parameters from source to target rather than dissolving + reforming.
 		auto targetIt = _presets.find(tr.Target);
 		bool isMorph  = targetIt != _presets.end() &&
-		                targetIt->second.Transform == TransformType::CloudMorph;
+		                targetIt->second.Transform == TransformType::CloudMorph &&
+		                g_Configuration.AtmosphericSkyQuality != AtmosphericSkyQuality::Low;
 
 		if (tr.Elapsed >= tr.Duration)
 		{
@@ -2430,12 +2429,17 @@ namespace TEN::Sky
 
 	CloudQualityPreset SkyCloudSystem::GetGlobalQuality() const
 	{
-		return _globalQuality;
+		// Driven by the player's display setting (Options -> Display Settings -> Atmospheric Sky Quality).
+		int q = (int)g_Configuration.AtmosphericSkyQuality;
+		if (q < 0) q = 0;
+		if (q > (int)CloudQualityPreset::High) q = (int)CloudQualityPreset::High;
+		return (CloudQualityPreset)q;
 	}
 
-	void SkyCloudSystem::SetGlobalQuality(CloudQualityPreset preset)
+	void SkyCloudSystem::SetGlobalQuality(CloudQualityPreset /*preset*/)
 	{
-		_globalQuality = preset;
+		// Deprecated: cloud quality is now controlled exclusively by the player's
+		// Display Settings preference. Kept as a no-op for ABI compatibility.
 	}
 
 	CloudRenderSettings SkyCloudSystem::GetCloudARenderSettings() const

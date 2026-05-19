@@ -191,7 +191,7 @@ namespace TEN::Renderer::ConstantBuffers
 		// These accumulators bake AltoFbmScale into the integral so changes only affect future frames.
 		float WindAccumOffsetScaled; // Integral of WindSpeed * AltoFbmScale * dt
 		float EvoAccumOffsetScaled;  // Integral of EvolutionSpeed * AltoFbmScale * dt * 0.05
-		float _PadRow31_0;
+		float QualityLevel;          // 0 = Low, 1 = Medium, 2 = High (mirrors AtmosphericSkyQuality enum).
 		float _PadRow31_1;
 		//--
 		// Rows 32-35 — Previous frame ViewProjection matrix for temporal reprojection.

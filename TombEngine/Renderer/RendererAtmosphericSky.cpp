@@ -20,6 +20,7 @@
 #include "Renderer/AtmosphericSky/AtmosphericSkySettings.h"
 #include "Renderer/Aurora/AuroraSettings.h"
 #include "Renderer/Moon/MoonSettings.h"
+#include "Renderer/SkyQuality.h"
 #include "Renderer/UnderwaterSky/UnderwaterSkySettings.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
@@ -269,7 +270,16 @@ namespace TEN::Renderer
 		_stAtmosphericSky.AuroraNoiseScale        = aurora.NoiseScale;
 		_stAtmosphericSky.AuroraVerticalStretch   = aurora.VerticalStretch;
 		_stAtmosphericSky.AuroraDistortionStr     = aurora.DistortionStrength;
-		_stAtmosphericSky.AuroraLayerCount        = (float)aurora.LayerCount;
+		{
+			// Cap aurora layer count by the player's atmospheric sky quality.
+			int layerCount = aurora.LayerCount;
+			auto caps = GetSkyQualityCaps(GetCurrentSkyQuality());
+			if (layerCount > caps.AuroraLayerCountMax)
+				layerCount = caps.AuroraLayerCountMax;
+			if (layerCount < 1)
+				layerCount = 1;
+			_stAtmosphericSky.AuroraLayerCount    = (float)layerCount;
+		}
 		_stAtmosphericSky.AuroraSoftness          = aurora.Softness;
 		_stAtmosphericSky.AuroraColorPreset       = (float)aurora.ColorPreset;
 		_stAtmosphericSky.AuroraColorIntensity    = aurora.ColorIntensity;

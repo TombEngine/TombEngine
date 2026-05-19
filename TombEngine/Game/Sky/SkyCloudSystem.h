@@ -496,8 +496,9 @@ namespace TEN::Sky
 		void  SetCloudWindSpeed(float speed);
 
 		// --- Global rendering quality ---
-		// Set via level.dynamicSky.Clouds.quality in Gameflow.lua.
-		// Applies to all volumetric cloud layers regardless of which preset is active.
+		// Driven by the player's display setting (Options -> Display Settings ->
+		// Atmospheric Sky Quality). Applies to all volumetric cloud layers
+		// regardless of which preset is active. SetGlobalQuality is deprecated.
 		CloudQualityPreset GetGlobalQuality() const;
 		void SetGlobalQuality(CloudQualityPreset preset);
 
@@ -616,8 +617,8 @@ namespace TEN::Sky
 		LayerDwellState _layerDwellB;
 		std::mt19937 _dwellRNG; // separate RNG for dwell randomization
 
-		// Global rendering quality — set from level.volumetricClouds.quality at level load.
-		CloudQualityPreset _globalQuality = CloudQualityPreset::Medium;
+		// Global rendering quality is read directly from the player's display setting
+		// (g_Configuration.AtmosphericSkyQuality) and is no longer cached here.
 
 		// Independent cloud wind speed override.
 		// Negative = derive speed from base wind magnitude like before.

@@ -15,6 +15,7 @@
 #include "Game/room.h"
 #include "Renderer/ConstantBuffers/DustStormBuffer.h"
 #include "Renderer/DustStorm/DustStormSettings.h"
+#include "Renderer/SkyQuality.h"
 #include "Specific/level.h"
 
 using namespace TEN::Effects::Environment;
@@ -196,7 +197,14 @@ namespace TEN::Renderer
 		// horizontal velocity is 8 wu / frame at 30 fps -> 240 wu/sec; scale
 		// our wind so MAX_BASE_WIND_STRENGTH = ~600 wu/sec @ scale 1.
 		_stDustStorm.WindSpeed = windMag * 120.0f * std::clamp(settings.WindSpeedScale, 0.0f, 8.0f);
-		_stDustStorm.StepCount = (float)std::clamp(settings.StepCount, 3, 12);
+		{
+			// Clamp first by author limits, then cap by player's atmospheric sky quality.
+			int steps = std::clamp(settings.StepCount, 3, 12);
+			auto caps = GetSkyQualityCaps(GetCurrentSkyQuality());
+			if (steps > caps.DustStormStepCountMax)
+				steps = caps.DustStormStepCountMax;
+			_stDustStorm.StepCount = (float)steps;
+		}
 
 		// Camera and viewport.
 		_stDustStorm.ViewSize    = Vector2((float)_graphicsDevice->GetScreenWidth(), (float)_graphicsDevice->GetScreenHeight());
