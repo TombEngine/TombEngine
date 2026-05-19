@@ -14,6 +14,7 @@
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Renderer/ImGuiIntegration.h"
 #include "Scripting/Internal/TEN/Flow//Level/FlowLevel.h"
 #include "Specific/configuration.h"
 #include "Specific/Input/InputAction.h"
@@ -1791,6 +1792,10 @@ namespace TEN::Renderer
 			PrintDebugMessage("WIREFRAME MODE");
 			break;
 
+		case RendererDebugPage::SkyDebug:
+			// Shown via the ImGui overlay window activated by SwitchDebugPage.
+			break;
+
 		default:
 			break;
 		}
@@ -1803,6 +1808,10 @@ namespace TEN::Renderer
 
 	void Renderer::SwitchDebugPage(bool goBack)
 	{
+		// Hide ImGui overlay if leaving the sky debug page.
+		if (_debugPage == RendererDebugPage::SkyDebug && ImGuiIsOverlayVisible())
+			ImGuiToggleOverlay();
+
 		int page = (int)_debugPage;
 		goBack ? --page : ++page;
 
@@ -1816,5 +1825,9 @@ namespace TEN::Renderer
 		}
 
 		_debugPage = (RendererDebugPage)page;
+
+		// Show ImGui overlay when entering the sky debug page.
+		if (_debugPage == RendererDebugPage::SkyDebug && !ImGuiIsOverlayVisible())
+			ImGuiToggleOverlay();
 	}
 }

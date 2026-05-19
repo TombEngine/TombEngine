@@ -34,7 +34,6 @@ namespace TEN::Renderer
 	// Returns true if ImGui consumed the event (engine should ignore it).
 	bool ImGuiProcessEvent(const SDL_Event& event);
 
-	// F8 toggle handled internally by ImGuiProcessEvent.
 	void ImGuiToggleOverlay();
 	bool ImGuiIsOverlayVisible();
 }

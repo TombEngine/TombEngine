@@ -459,13 +459,6 @@ LRESULT CALLBACK WinAppProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			return true;
 	}
 
-	// Toggle debug overlay with F8.
-	if (msg == WM_KEYDOWN && wParam == VK_F8)
-	{
-		TEN::Renderer::ImGuiToggleOverlay();
-		return 0;
-	}
-
 	// Disables ALT + SPACE
 	if (msg == WM_SYSCOMMAND && wParam == SC_KEYMENU)
 	{

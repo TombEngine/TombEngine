@@ -180,6 +180,7 @@ enum class RendererDebugPage
 	PortalStats,
 	PathfindingStats,
 	WireframeMode,
+	SkyDebug,
 
 	Count
 };

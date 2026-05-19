@@ -1841,19 +1841,6 @@ namespace TEN::Sky
 			ImGui::SliderFloat("Auto Strength Mix", &settings.AutoStrengthMix, 0.0f, 1.0f, "%.3f");
 		}
 
-		// --- Underwater God Rays ---
-		ImGui::Separator();
-		if (ImGui::CollapsingHeader("Underwater God Rays", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			auto& uw = g_Renderer.GetUnderwaterSkySettings();
-			ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "These parameters apply only when Underwater Sky is active.");
-			ImGui::SliderFloat("Length##uw",      &uw.RayLength,      0.05f, 1.5f,  "%.3f");
-			ImGui::SliderFloat("Intensity##uw",   &uw.RayIntensity,   0.0f,  8.0f,  "%.3f");
-			ImGui::SliderFloat("Decay##uw",       &uw.RayDecay,       0.90f, 1.0f,  "%.4f");
-			ImGui::SliderFloat("Sharpness##uw",   &uw.ShaftSharpness, 0.5f,  16.0f, "%.2f");
-			ImGui::SliderInt("Sample Count##uw",  &uw.RaySampleCount, 8,     128);
-		}
-
 		// --- Reset button ---
 		ImGui::Separator();
 		if (ImGui::Button("Reset Defaults"))
@@ -2003,24 +1990,8 @@ namespace TEN::Sky
 		{
 			ImGui::Indent(8.0f);
 			ImGui::Checkbox("Enabled##uwsky", &uw.Enabled);
-			ImGui::SliderFloat("Intensity##uwsky", &uw.Intensity, 0.0f, 3.0f, "%.3f");
-			ImGui::Unindent(8.0f);
-		}
+			ImGui::SliderFloat("Wave Speed##uwsky", &uw.WaveSpeed, 0.0f, 3.0f, "%.3f");
 
-		if (ImGui::CollapsingHeader("Waves##uwsky", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::Indent(8.0f);
-			ImGui::SliderFloat("Wave Size##uwsky",      &uw.WaveSize,      0.1f, 5.0f, "%.3f");
-			ImGui::SliderFloat("Wave Speed##uwsky",     &uw.WaveSpeed,     0.0f, 3.0f, "%.3f");
-			ImGui::SliderFloat("Wave Sharpness##uwsky", &uw.WaveSharpness, 0.5f, 8.0f, "%.3f");
-			ImGui::SliderFloat("Distortion Amount##uwsky",   &uw.DistortionAmount,   0.5f, 8.0f, "%.3f");
-			ImGui::SliderFloat("Distortion Strength##uwsky", &uw.DistortionStrength, 0.0f, 2.0f, "%.3f");
-			ImGui::Unindent(8.0f);
-		}
-
-		if (ImGui::CollapsingHeader("Color##uwsky", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::Indent(8.0f);
 			float color[3] = { uw.ColorR, uw.ColorG, uw.ColorB };
 			if (ImGui::ColorEdit3("Water Color##uwsky", color))
 			{
@@ -2028,76 +1999,129 @@ namespace TEN::Sky
 				uw.ColorG = color[1];
 				uw.ColorB = color[2];
 			}
+
+			ImGui::Spacing();
+
+			if (ImGui::Button("Copy Lua (Gameflow.lua)##uwsky_lua"))
+			{
+				char buf[512];
+				auto levelName = GetCurrentLevelLuaName();
+				snprintf(buf, sizeof(buf),
+					"%s.underwaterSky.enabled = %s\n"
+					"%s.underwaterSky.waveSpeed = %.3f\n"
+					"%s.underwaterSky.color = Color(%d, %d, %d)",
+					levelName.c_str(), uw.Enabled ? "true" : "false",
+					levelName.c_str(), uw.WaveSpeed,
+					levelName.c_str(),
+					(int)std::round(uw.ColorR * 255.0f),
+					(int)std::round(uw.ColorG * 255.0f),
+					(int)std::round(uw.ColorB * 255.0f));
+				ImGui::SetClipboardText(buf);
+			}
+
+			ImGui::TextDisabled("(currentlevel.underwaterSky.enabled/waveSpeed/color)");
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Waves##uwsky", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::SliderFloat("Wave Size##uwsky",           &uw.WaveSize,          0.1f, 5.0f, "%.3f");
+			ImGui::SliderFloat("Wave Sharpness##uwsky",      &uw.WaveSharpness,     0.5f, 8.0f, "%.3f");
+			ImGui::SliderFloat("Distortion Amount##uwsky",   &uw.DistortionAmount,  0.5f, 8.0f, "%.3f");
+			ImGui::SliderFloat("Distortion Strength##uwsky", &uw.DistortionStrength, 0.0f, 2.0f, "%.3f");
 			ImGui::Unindent(8.0f);
 		}
 
 		if (ImGui::CollapsingHeader("Geometry##uwsky"))
 		{
 			ImGui::Indent(8.0f);
-			ImGui::SliderFloat("Layer Height##uwsky",     &uw.LayerHeight,       0.05f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Layer Height##uwsky",        &uw.LayerHeight,       0.05f, 1.0f, "%.3f");
 			ImGui::TextDisabled("  0.0 = horizon, 1.0 = zenith");
-			ImGui::SliderFloat("Horizon Softness##uwsky", &uw.HorizonSoftness,   0.01f, 1.0f, "%.3f");
-			ImGui::SliderFloat("Depth Fade Strength##uwsky", &uw.DepthFadeStrength, 0.1f, 4.0f, "%.3f");
+			ImGui::SliderFloat("Horizon Softness##uwsky",    &uw.HorizonSoftness,   0.01f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Depth Fade Strength##uwsky", &uw.DepthFadeStrength, 0.1f,  4.0f, "%.3f");
 			ImGui::Unindent(8.0f);
 		}
 
 		if (ImGui::CollapsingHeader("Light Shafts##uwsky"))
 		{
 			ImGui::Indent(8.0f);
-			ImGui::SliderFloat("Caustic Strength##uwsky", &uw.CausticStrength, 0.0f, 4.0f,  "%.3f");
-			ImGui::SliderFloat("Shaft Strength##uwsky",   &uw.ShaftStrength,   0.0f, 4.0f,  "%.3f");
+			ImGui::SliderFloat("Intensity##uwsky",        &uw.Intensity,      0.0f,  3.0f,  "%.3f");
+			ImGui::SliderFloat("Caustic Strength##uwsky", &uw.CausticStrength, 0.0f,  4.0f, "%.3f");
+			ImGui::SliderFloat("Shaft Strength##uwsky",   &uw.ShaftStrength,   0.0f,  4.0f, "%.3f");
 			ImGui::SliderFloat("Shaft Sharpness##uwsky",  &uw.ShaftSharpness,  1.0f, 64.0f, "%.2f");
 			ImGui::Unindent(8.0f);
 		}
 
 		ImGui::Separator();
 
+		if (ImGui::CollapsingHeader("Underwater God Rays##uwsky", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "These parameters apply only when Underwater Sky is active.");
+			ImGui::SliderFloat("Length##uwgr",       &uw.RayLength,     0.05f, 1.5f,  "%.3f");
+			ImGui::SliderFloat("Intensity##uwgr",    &uw.RayIntensity,  0.0f,  8.0f,  "%.3f");
+			ImGui::SliderFloat("Decay##uwgr",        &uw.RayDecay,      0.90f, 1.0f,  "%.4f");
+			ImGui::SliderFloat("Sharpness##uwgr",    &uw.ShaftSharpness, 0.5f, 16.0f, "%.2f");
+			ImGui::SliderInt("Sample Count##uwgr",   &uw.RaySampleCount, 8,    128);
+			ImGui::Unindent(8.0f);
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::Button("Copy Lua (WeatherPreset.lua)##uwsky_preset"))
+		{
+			char buf[1280];
+			snprintf(buf, sizeof(buf),
+				"intensity = %.3f,\n"
+				"waveSize = %.3f,\n"
+				"category = \"UnderwaterSky\",\n"
+				"waveSharpness = %.3f,\n"
+				"distortionAmount = %.3f,\n"
+				"distortionStrength = %.3f,\n"
+				"colorR = %d,\n"
+				"colorG = %d,\n"
+				"colorB = %d,\n"
+				"layerHeight = %.3f,\n"
+				"horizonSoftness = %.3f,\n"
+				"depthFadeStrength = %.3f,\n"
+				"causticStrength = %.3f,\n"
+				"shaftStrength = %.3f,\n"
+				"shaftSharpness = %.2f,\n"
+				"godrayLength = %.3f,\n"
+				"godrayIntensity = %.3f,\n"
+				"godrayDecay = %.4f,\n"
+				"godraySharpness = %.2f,\n"
+				"godraySampleCount = %d,",
+				uw.Intensity,
+				uw.WaveSize,
+				uw.WaveSharpness,
+				uw.DistortionAmount,
+				uw.DistortionStrength,
+				(int)std::round(uw.ColorR * 255.0f),
+				(int)std::round(uw.ColorG * 255.0f),
+				(int)std::round(uw.ColorB * 255.0f),
+				uw.LayerHeight,
+				uw.HorizonSoftness,
+				uw.DepthFadeStrength,
+				uw.CausticStrength,
+				uw.ShaftStrength,
+				uw.ShaftSharpness,
+				uw.RayLength,
+				uw.RayIntensity,
+				uw.RayDecay,
+				uw.ShaftSharpness,
+				uw.RaySampleCount);
+			ImGui::SetClipboardText(buf);
+		}
+
+		ImGui::Spacing();
+
 		if (ImGui::Button("Reset Underwater Defaults##uwsky"))
 		{
 			bool wasEnabled = uw.Enabled;
 			uw = UnderwaterSkySettings{};
 			uw.Enabled = wasEnabled;
-		}
-
-		ImGui::SameLine();
-
-		if (ImGui::Button("Copy Lua to clipboard##uwsky"))
-		{
-			char buf[1280];
-			auto levelName = GetCurrentLevelLuaName();
-			snprintf(buf, sizeof(buf),
-				"%s.underwaterSky.enabled = %s\n"
-				"%s.underwaterSky.intensity = %.3f\n"
-				"%s.underwaterSky.waveSize = %.3f\n"
-				"%s.underwaterSky.waveSpeed = %.3f\n"
-				"%s.underwaterSky.waveSharpness = %.3f\n"
-				"%s.underwaterSky.distortionAmount = %.3f\n"
-				"%s.underwaterSky.distortionStrength = %.3f\n"
-				"%s.underwaterSky.color = Color(%d, %d, %d)\n"
-				"%s.underwaterSky.layerHeight = %.3f\n"
-				"%s.underwaterSky.horizonSoftness = %.3f\n"
-				"%s.underwaterSky.depthFadeStrength = %.3f\n"
-				"%s.underwaterSky.causticStrength = %.3f\n"
-				"%s.underwaterSky.shaftStrength = %.3f\n"
-				"%s.underwaterSky.shaftSharpness = %.2f",
-				levelName.c_str(), uw.Enabled ? "true" : "false",
-				levelName.c_str(), uw.Intensity,
-				levelName.c_str(), uw.WaveSize,
-				levelName.c_str(), uw.WaveSpeed,
-				levelName.c_str(), uw.WaveSharpness,
-				levelName.c_str(), uw.DistortionAmount,
-				levelName.c_str(), uw.DistortionStrength,
-				levelName.c_str(),
-				(int)std::round(uw.ColorR * 255.0f),
-				(int)std::round(uw.ColorG * 255.0f),
-				(int)std::round(uw.ColorB * 255.0f),
-				levelName.c_str(), uw.LayerHeight,
-				levelName.c_str(), uw.HorizonSoftness,
-				levelName.c_str(), uw.DepthFadeStrength,
-				levelName.c_str(), uw.CausticStrength,
-				levelName.c_str(), uw.ShaftStrength,
-				levelName.c_str(), uw.ShaftSharpness);
-			ImGui::SetClipboardText(buf);
 		}
 	}
 
