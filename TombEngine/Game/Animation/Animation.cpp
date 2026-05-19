@@ -257,10 +257,11 @@ namespace TEN::Animation
 		// Get fixed motion and root motion.
 		auto fixedMotion = anim->GetFixedMotion(item.Animation.FrameNumber);
 		auto rootMotion = anim->GetRootMotion(item.Animation.FrameNumber);
+		bool verticalRootMotion = (anim->Flags & (int)AnimFlags::RootMotionTranslationY);
 
 		// TODO: Better handling of player airborne status.
 		// Apply motion translation and gravity.
-		if (item.Animation.IsAirborne)
+		if (item.Animation.IsAirborne && !verticalRootMotion)
 		{
 			if (item.IsLara())
 			{
@@ -279,6 +280,7 @@ namespace TEN::Animation
 
 					if (item.Animation.Velocity.y < 4.0f)
 						item.Animation.Velocity.y = 4.0f;
+
 					item.Pose.Position.y += item.Animation.Velocity.y;
 				}
 				else
@@ -308,17 +310,25 @@ namespace TEN::Animation
 			}
 
 			auto vel = Vector3::Lerp(prevVel, fixedMotion.Translation + rootMotion.Translation, blendAlpha);
+			float envDragMultiplier = 1.0f;
+
 			if (item.IsLara())
 			{
 				const auto& player = GetLaraInfo(item);
 				bool isInSwamp = (player.Control.WaterStatus == WaterStatus::Wade && TestEnvironment(ENV_FLAG_SWAMP, &item));
-				item.Animation.Velocity = vel * (isInSwamp ? 0.5f : 1.0f);
+				envDragMultiplier = (isInSwamp ? 0.5f : 1.0f);
 			}
-			else
-			{
-				item.Animation.Velocity = vel;
-			}
+
+			vel *= envDragMultiplier;
+			item.Animation.Velocity.x = vel.x;
+			item.Animation.Velocity.z = vel.z;
+
+			if (verticalRootMotion)
+				item.Animation.Velocity.y = vel.y;
 		}
+
+		// Bypass vertical translation, if vertical root motion is not enabled.
+		float vertVelocity = verticalRootMotion ? item.Animation.Velocity.y : 0.0f;
 
 		// Update animation.
 		if (item.IsLara())
@@ -330,7 +340,7 @@ namespace TEN::Animation
 
 			if (!player.Control.IsMoving)
 			{
-				item.Pose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, item.Animation.Velocity.y, item.Animation.Velocity.x);
+				item.Pose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, vertVelocity, item.Animation.Velocity.x);
 				item.Pose.Orientation += rootMotion.Rotation;
 			}
 
@@ -338,7 +348,7 @@ namespace TEN::Animation
 		}
 		else
 		{
-			item.Pose.Translate(item.Pose.Orientation.y, item.Animation.Velocity.z, item.Animation.Velocity.y, item.Animation.Velocity.x);
+			item.Pose.Translate(item.Pose.Orientation.y, item.Animation.Velocity.z, vertVelocity, item.Animation.Velocity.x);
 			item.Pose.Orientation += rootMotion.Rotation;
 			g_Renderer.UpdateItemAnimations(item.Index, true);
 		}
