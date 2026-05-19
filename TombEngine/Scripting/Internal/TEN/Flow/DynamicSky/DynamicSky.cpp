@@ -114,6 +114,15 @@ namespace TEN::Scripting
 		}
 	}
 
+	void DynamicSkyClouds::SetSunsetUndersideColorLua(sol::object obj)
+	{
+		if (obj.is<ScriptColor>())
+		{
+			SunsetUndersideColor = obj.as<ScriptColor>();
+			HasSunsetUndersideColor = true;
+		}
+	}
+
 	void DynamicSkyClouds::Register(sol::table& parent)
 	{
 		parent.new_usertype<DynamicSkyClouds>(
@@ -158,6 +167,36 @@ namespace TEN::Scripting
 			// @mem darkColor
 			"darkColor", sol::property(&DynamicSkyClouds::GetDarkColorLua, &DynamicSkyClouds::SetDarkColorLua),
 
+			/// (float) Direct sun light intensity on volumetric clouds. Range 0.0 - 5.0.
+			// Negative value (default) keeps the engine default.
+			// @mem sunlightIntensity
+			"sunlightIntensity", &DynamicSkyClouds::SunlightIntensity,
+
+			/// (float) Cloud forward-scatter (HG-like) strength. Range 0.0 - 3.0.
+			// Negative value (default) keeps the engine default.
+			// @mem forwardScatter
+			"forwardScatter", &DynamicSkyClouds::ForwardScatter,
+
+			/// (float) Sunset underside glow intensity. Range 0.0 - 3.0.
+			// Negative value (default) keeps the engine default.
+			// @mem sunsetUndersideIntensity
+			"sunsetUndersideIntensity", &DynamicSkyClouds::SunsetUndersideIntensity,
+
+			/// (float) Sunset underside glow angular spread. Range 0.5 - 4.0.
+			// Negative value (default) keeps the engine default.
+			// @mem sunsetUndersideSpread
+			"sunsetUndersideSpread", &DynamicSkyClouds::SunsetUndersideSpread,
+
+			/// (float) Sunset underside vertical fade exponent. Range 0.5 - 4.0.
+			// Negative value (default) keeps the engine default.
+			// @mem sunsetUndersideHeightFade
+			"sunsetUndersideHeightFade", &DynamicSkyClouds::SunsetUndersideHeightFade,
+
+			/// (Color) Optional static sunset underside color. When omitted the engine
+			// uses its built-in procedural yellow->orange->red->magenta gradient.
+			// @mem sunsetUndersideColor
+			"sunsetUndersideColor", sol::property(&DynamicSkyClouds::GetSunsetUndersideColorLua, &DynamicSkyClouds::SetSunsetUndersideColorLua),
+
 			/// (table) Random weather rotation table.
 			// Each entry has a duration (seconds) and a percent (relative weight).
 			// @mem changePresets
@@ -198,6 +237,15 @@ namespace TEN::Scripting
 	// DynamicSky
 	// ====================================================================
 
+	void DynamicSky::SetSkyColorLua(sol::object obj)
+	{
+		if (obj.is<ScriptColor>())
+		{
+			SkyColor    = obj.as<ScriptColor>();
+			HasSkyColor = true;
+		}
+	}
+
 	void DynamicSky::Register(sol::table& parent)
 	{
 		DynamicSkyAurora::Register(parent);
@@ -220,6 +268,43 @@ namespace TEN::Scripting
 			/// (float) Bottom-to-top alpha gradient on the horizon mesh. Range 0.0 - 1.0.
 			// @mem horizonbottomfade
 			"horizonbottomfade", &DynamicSky::HorizonBottomFade,
+
+			/// (Color) Base sky color (Rayleigh tint) override.
+			// Omit to keep the engine default.
+			// @mem skyColor
+			"skyColor", sol::property(&DynamicSky::GetSkyColorLua, &DynamicSky::SetSkyColorLua),
+
+			/// (float) Sun disk apparent half-angle in degrees. Range 0.10 - 10.00.
+			// Negative value (default) keeps the engine default.
+			// @mem sundiskSize
+			"sundiskSize", &DynamicSky::SundiskSize,
+
+			/// (float) Sun disk brightness before tone mapping. Range 1.0 - 200.0.
+			// Negative value (default) keeps the engine default.
+			// @mem sundiskIntensity
+			"sundiskIntensity", &DynamicSky::SundiskIntensity,
+
+			/// (float) Horizon darkening exponent. Range 0.1 - 5.0.
+			// Negative value (default) keeps the engine default.
+			// @mem horizonDarkening
+			"horizonDarkening", &DynamicSky::HorizonDarkening,
+
+			/// (float) Twilight onset offset (radians). Range 0.0 - 0.3.
+			// Negative value (default) keeps the engine default.
+			// @mem twilightOffset
+			"twilightOffset", &DynamicSky::TwilightOffset,
+
+			/// (float) Sky gradient ramp speed: how quickly the warm sun tint fades as the sun rises. Range 0.1 - 5.0.
+			// Low = warm tint persists high in the sky. High = warm tint only near the horizon.
+			// Negative value (default) keeps the engine default.
+			// @mem skyGradient
+			"skyGradient", &DynamicSky::SkyGradient,
+
+			/// (float) Maximum warm-color blend weight toward the sun color at the horizon. Range 0.0 - 1.0.
+			// 0 = always white sun rays, 1 = full sun color at horizon.
+			// Negative value (default) keeps the engine default.
+			// @mem warmInfluence
+			"warmInfluence", &DynamicSky::WarmInfluence,
 
 			/// (DynamicSkyAurora) Aurora borealis sub-settings.
 			// @mem Aurora

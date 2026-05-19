@@ -389,7 +389,12 @@ namespace TEN::Renderer
 			Vector3 cMagenta(0.90f, 0.25f, 0.45f);
 
 			Vector3 sunsetColor;
-			if (colorT < 0.333f)
+			if (atmo.HasSunsetUndersideColor)
+			{
+				// Static color override from Lua (level.dynamicSky.Clouds.sunsetUndersideColor).
+				sunsetColor = Vector3(atmo.SunsetUndersideColorR, atmo.SunsetUndersideColorG, atmo.SunsetUndersideColorB);
+			}
+			else if (colorT < 0.333f)
 			{
 				float s = colorT / 0.333f;
 				sunsetColor = Vector3::Lerp(cYellow, cOrange, s);

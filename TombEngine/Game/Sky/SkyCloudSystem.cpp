@@ -497,6 +497,35 @@ namespace TEN::Sky
 			atmo.HorizonGradientRise[0] = horizonRise;
 			atmo.HorizonGradientRise[1] = horizonRise;
 
+			// Optional atmospheric scattering overrides.
+			if (dyn.HasSkyColor)
+			{
+				atmo.SkyColorR = std::clamp(dyn.SkyColor.GetR() / 255.0f, 0.0f, 1.0f);
+				atmo.SkyColorG = std::clamp(dyn.SkyColor.GetG() / 255.0f, 0.0f, 1.0f);
+				atmo.SkyColorB = std::clamp(dyn.SkyColor.GetB() / 255.0f, 0.0f, 1.0f);
+			}
+			if (dyn.SundiskSize       >= 0.0f) atmo.SunDiskSize       = std::clamp(dyn.SundiskSize,       0.10f,  10.0f);
+			if (dyn.SundiskIntensity  >= 0.0f) atmo.SunDiskIntensity  = std::clamp(dyn.SundiskIntensity,  1.0f,   200.0f);
+			if (dyn.HorizonDarkening  >= 0.0f) atmo.HorizonDarkeningStr = std::clamp(dyn.HorizonDarkening, 0.1f,  5.0f);
+			if (dyn.TwilightOffset    >= 0.0f) atmo.TwilightOffset         = std::clamp(dyn.TwilightOffset,  0.0f,  0.3f);
+			if (dyn.SkyGradient       >= 0.0f) atmo.SunElevationRampSpeed  = std::clamp(dyn.SkyGradient,    0.1f,  5.0f);
+			if (dyn.WarmInfluence     >= 0.0f) atmo.SunWarmInfluence        = std::clamp(dyn.WarmInfluence,  0.0f,  1.0f);
+
+			// Cloud lighting overrides (live on AtmosphericSkySettings, consumed by the cloud renderer).
+			if (clouds.SunlightIntensity         >= 0.0f) atmo.CloudSunLightIntensity      = std::clamp(clouds.SunlightIntensity,         0.0f, 5.0f);
+			if (clouds.ForwardScatter            >= 0.0f) atmo.CloudForwardScatterStrength = std::clamp(clouds.ForwardScatter,            0.0f, 3.0f);
+			if (clouds.SunsetUndersideIntensity  >= 0.0f) atmo.SunsetUndersideIntensity    = std::clamp(clouds.SunsetUndersideIntensity,  0.0f, 3.0f);
+			if (clouds.SunsetUndersideSpread     >= 0.0f) atmo.SunsetUndersideSpread       = std::clamp(clouds.SunsetUndersideSpread,     0.5f, 4.0f);
+			if (clouds.SunsetUndersideHeightFade >= 0.0f) atmo.SunsetUndersideHeightFade   = std::clamp(clouds.SunsetUndersideHeightFade, 0.5f, 4.0f);
+
+			atmo.HasSunsetUndersideColor = clouds.HasSunsetUndersideColor;
+			if (clouds.HasSunsetUndersideColor)
+			{
+				atmo.SunsetUndersideColorR = std::clamp(clouds.SunsetUndersideColor.GetR() / 255.0f, 0.0f, 1.0f);
+				atmo.SunsetUndersideColorG = std::clamp(clouds.SunsetUndersideColor.GetG() / 255.0f, 0.0f, 1.0f);
+				atmo.SunsetUndersideColorB = std::clamp(clouds.SunsetUndersideColor.GetB() / 255.0f, 0.0f, 1.0f);
+			}
+
 			// --- Aurora ---
 			auto& auroraSettings = g_Renderer.GetAuroraSettings();
 			auroraSettings.Enabled = aurora.Enabled;
