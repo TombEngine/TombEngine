@@ -34,6 +34,7 @@
 #include "Renderer/Aurora/AuroraSettings.h"
 #include "Renderer/GodRay/GodRaySettings.h"
 #include "Renderer/Moon/MoonSettings.h"
+#include "Renderer/UnderwaterSky/UnderwaterSkySettings.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Specific/level.h"
@@ -67,6 +68,7 @@ namespace TEN::Sky
 		case CloudCategory::None:                 return "None";
 		case CloudCategory::AltocumulusMid:       return "AltocumulusMid";
 		case CloudCategory::Aurora:               return "Aurora";
+		case CloudCategory::UnderwaterSky:        return "UnderwaterSky";
 		default:                                         return "Unknown";
 		}
 	}
@@ -231,20 +233,27 @@ namespace TEN::Sky
 
 	static bool DrawCategoryCombo(const char* label, CloudCategory& category, bool isLayerA)
 	{
-		// Layer A is reserved for Aurora (and reserved water surface in the future).
+		// Layer A handles overlay effects (Aurora, UnderwaterSky).
 		// Layer B handles all volumetric cloud categories.
-		static const char* namesA[] = { "None", "Aurora" };
+		static const char* namesA[] = { "None", "Aurora", "UnderwaterSky" };
 		static const char* namesB[] = { "None", "AltocumulusMid", "Aurora" };
 
 		bool changed = false;
 
 		if (isLayerA)
 		{
-			// Map snap.Category (full enum) to the reduced 2-entry combo.
-			int current = (category == CloudCategory::Aurora) ? 1 : 0;
+			// Map snap.Category (full enum) to the reduced combo.
+			int current = 0;
+			if (category == CloudCategory::Aurora)              current = 1;
+			else if (category == CloudCategory::UnderwaterSky)  current = 2;
 			if (ImGui::Combo(label, &current, namesA, IM_ARRAYSIZE(namesA)))
 			{
-				category = (current == 1) ? CloudCategory::Aurora : CloudCategory::None;
+				switch (current)
+				{
+				case 1:  category = CloudCategory::Aurora;        break;
+				case 2:  category = CloudCategory::UnderwaterSky; break;
+				default: category = CloudCategory::None;          break;
+				}
 				changed = true;
 			}
 		}
@@ -761,7 +770,18 @@ namespace TEN::Sky
 			return changed;
 		}
 
-		// Layer A only supports Aurora — hide all volumetric cloud parameters.
+		// For UnderwaterSky category, mirror the Enabled flag into the renderer
+		// settings. Detailed controls live in the dedicated "Underwater Sky" tab.
+		if (snap.Category == CloudCategory::UnderwaterSky)
+		{
+			g_Renderer.GetUnderwaterSkySettings().Enabled = snap.Enabled;
+			ImGui::Separator();
+			ImGui::TextDisabled("(Underwater Sky parameters are configured in the 'Underwater Sky' tab.)");
+			ImGui::Unindent(8.0f);
+			return changed;
+		}
+
+		// Layer A only supports overlay effects — hide all volumetric cloud parameters.
 		if (isLayerA)
 		{
 			ImGui::TextDisabled("(Layer A parameters are shown only when Aurora is active.)");
@@ -1084,7 +1104,16 @@ namespace TEN::Sky
 				ImGui::TextUnformatted("Cloud Layer B");
 				ImGui::Indent(8.0f);
 
-				static int layerBPresetIdx = 0;
+				static int   layerBPresetIdx = 0;
+				static float layerBCloudSpeed = -1.0f;   // -1 = uninitialized sentinel.
+
+				// Load the Lua-configured cloud wind speed once on first draw.
+				if (layerBCloudSpeed < 0.0f)
+				{
+					float luaSpeed = g_SkyCloudSystem.GetCloudWindSpeed();
+					layerBCloudSpeed = (luaSpeed >= 0.0f) ? luaSpeed : 1.0f;
+				}
+
 				if (layerBPresetIdx >= static_cast<int>(presetNamesB.size())) layerBPresetIdx = 0;
 				ImGui::SetNextItemWidth(160.0f);
 				ImGui::Combo("Preset##layerB", &layerBPresetIdx, presetNamesB.data(), static_cast<int>(presetNamesB.size()));
@@ -1094,15 +1123,23 @@ namespace TEN::Sky
 				ImGui::SetNextItemWidth(80.0f);
 				ImGui::DragFloat("s##layerBDur", &layerBDur, 1.0f, 1.0f, 300.0f, "%.0f s");
 
+				// Cloud wind speed slider (independent from atmospheric wind).
+				ImGui::SetNextItemWidth(180.0f);
+				ImGui::SliderFloat("Cloud Speed##layerB", &layerBCloudSpeed, 0.0f, 8.0f, "%.2f");
+				ImGui::SameLine();
+				ImGui::TextDisabled("(level.dynamicSky.Clouds.windSpeed)");
+
 				WeatherPresetType typeB = presetTypesB[layerBPresetIdx];
 				if (ImGui::Button("Apply Immediately##layerB"))
 				{
+					g_SkyCloudSystem.SetCloudWindSpeed(layerBCloudSpeed);
 					g_SkyCloudSystem.SetDynamicSkyAuroraForced(typeB == WeatherPresetType::Aurora);
 					g_SkyCloudSystem.SetLayerBPresetImmediate(typeB);
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Transition##layerB"))
 				{
+					g_SkyCloudSystem.SetCloudWindSpeed(layerBCloudSpeed);
 					g_SkyCloudSystem.SetDynamicSkyAuroraForced(typeB == WeatherPresetType::Aurora);
 					g_SkyCloudSystem.TransitionLayerBToPreset(typeB, layerBDur);
 				}
@@ -1545,6 +1582,20 @@ namespace TEN::Sky
 
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 80.0f);
 			ImGui::SliderFloat("Horizon Bottom Fade##h1", &atmoSettings.HorizonGradientRise[0], 0.0f, 1.0f, "%.3f");
+
+			if (ImGui::Button("Copy Lua to clipboard (Gameflow.lua)##h1"))
+			{
+				char buf[512];
+				auto levelName = GetCurrentLevelLuaName();
+				snprintf(buf, sizeof(buf),
+					"%s.horizon = %s\n"
+					"%s.horizon1.transparency = %.3f\n"
+					"%s.dynamicSky.horizonbottomfade = %.3f",
+					levelName.c_str(), enabled ? "true" : "false",
+					levelName.c_str(), alpha,
+					levelName.c_str(), atmoSettings.HorizonGradientRise[0]);
+				ImGui::SetClipboardText(buf);
+			}
 		}
 
 		ImGui::Separator();
@@ -1620,90 +1671,146 @@ namespace TEN::Sky
 
 		ImGui::Separator();
 
-		// --- Scattering parameters ---
-		if (ImGui::CollapsingHeader("Scattering", ImGuiTreeNodeFlags_DefaultOpen))
+		// =====================================================
+		// Atmospheric Sky Options (curated, Lua-exportable set).
+		// =====================================================
+		if (ImGui::CollapsingHeader("Atmospheric Sky Options", ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			ImGui::SliderFloat("Sky Color R",           &settings.SkyColorR,            0.0f, 1.0f, "%.3f");
-			ImGui::SliderFloat("Sky Color G",           &settings.SkyColorG,            0.0f, 1.0f, "%.3f");
-			ImGui::SliderFloat("Sky Color B",           &settings.SkyColorB,            0.0f, 1.0f, "%.3f");
-			ImGui::SliderFloat("Density",               &settings.Density,              0.1f, 3.0f, "%.3f");
-			ImGui::SliderFloat("Zenith Offset",         &settings.ZenithOffset,         0.0f, 0.5f, "%.3f");
-			ImGui::SliderFloat("Multi Scatter Phase",   &settings.MultiScatterPhase,    0.0f, 1.0f, "%.3f");
-			ImGui::SliderFloat("Anisotropic Intensity", &settings.AnisotropicIntensity, 0.0f, 2.0f, "%.3f");
-		}
+			ImGui::Indent(8.0f);
 
-		// --- Sun disk ---
-		if (ImGui::CollapsingHeader("Sun Disk", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::SliderFloat("Sun Disk Size",      &settings.SunDiskSize,      0.1f, 10.0f, "%.2f deg");
-			ImGui::TextDisabled("  Apparent half-angle of the sun disk in degrees.");
-			ImGui::SliderFloat("Sun Disk Intensity", &settings.SunDiskIntensity, 1.0f, 200.0f, "%.1f");
-			ImGui::TextDisabled("  Brightness before tone mapping. High = solid white disk.");
-
-			// Cloud occlusion indicator — green = disc clear, red = disc behind screen-blend cloud
-			float transmittance = g_SkyCloudSystem.GetCombinedCloudTransmittance();
-			bool  discOccluded  = (transmittance < 0.5f);
-			ImVec4 indicatorColor = discOccluded
-				? ImVec4(1.0f, 0.15f, 0.15f, 1.0f)
-				: ImVec4(0.15f, 1.0f, 0.15f, 1.0f);
-			ImGui::TextColored(indicatorColor, discOccluded ? "  [DISC OCCLUDED]" : "  [DISC CLEAR]");
-			ImGui::SameLine();
-			ImGui::TextDisabled("cloud transmittance: %.2f", transmittance);
-		}
-
-		// --- Glow and brightness ---
-		if (ImGui::CollapsingHeader("Glow & Brightness", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::SliderFloat("Mie Intensity",          &settings.MieIntensity,          0.0f, 5.0f, "%.3f");
-			ImGui::SliderFloat("Rayleigh Intensity",     &settings.RayleighIntensity,     0.0f, 5.0f, "%.3f");
-			ImGui::SliderFloat("Sun Glow Intensity",     &settings.SunGlowIntensity,      0.0f, 10.0f, "%.3f");
-			ImGui::SliderFloat("Horizon Darkening Str",  &settings.HorizonDarkeningStr,   0.1f, 5.0f, "%.3f");
-			ImGui::SliderFloat("Exposure Multiplier",    &settings.ExposureMultiplier,     0.1f, 5.0f, "%.3f");
-		}
-
-		// --- Night sky ---
-		if (ImGui::CollapsingHeader("Night Sky", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::SliderFloat("Night Sky Brightness",   &settings.NightSkyBrightness,    0.0f, 5.0f, "%.3f");
-			ImGui::SliderFloat("Twilight Offset",        &settings.TwilightOffset,        0.0f, 0.3f, "%.4f");
-			ImGui::SliderFloat("Night Blend Speed",      &settings.NightBlendSpeed,       1.0f, 20.0f, "%.2f");
-		}
-
-		// --- Cloud lighting integration ---
-		if (ImGui::CollapsingHeader("Cloud Sun Lighting", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::SliderFloat("Cloud Sun Light Intensity",      &settings.CloudSunLightIntensity,      0.0f, 5.0f,  "%.3f");
-			ImGui::SliderFloat("Cloud Ambient Intensity",        &settings.CloudAmbientIntensity,       0.0f, 2.0f,  "%.3f");
-			ImGui::SliderFloat("Cloud Silverlining Strength",    &settings.CloudSilverliningStrength,   0.0f, 3.0f,  "%.3f");
-			ImGui::SliderFloat("Cloud Forward Scatter Strength", &settings.CloudForwardScatterStrength, 0.0f, 3.0f,  "%.3f");
-			ImGui::SliderFloat("Cloud Light Absorption",         &settings.CloudLightAbsorption,        0.1f, 5.0f,  "%.3f");
-			ImGui::SliderFloat("Cloud Sun Warmth Influence",     &settings.CloudSunWarmthInfluence,     0.0f, 1.0f,  "%.3f");
-			ImGui::SliderFloat("Cloud Twilight Ambient",         &settings.CloudTwilightAmbient,        0.0f, 1.0f,  "%.3f");
-			ImGui::SliderFloat("Cloud Night Ambient",            &settings.CloudNightAmbient,           0.0f, 0.5f,  "%.3f");
-		}
-
-		// --- Sunset underside lighting ---
-		if (ImGui::CollapsingHeader("Sunset Underside Lighting", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::SliderFloat("Sunset Underside Intensity",   &settings.SunsetUndersideIntensity,  0.0f, 3.0f,  "%.3f");
-			ImGui::SliderFloat("Sunset Underside Spread",      &settings.SunsetUndersideSpread,     0.5f, 4.0f,  "%.2f");
-			ImGui::SliderFloat("Sunset Underside Height Fade", &settings.SunsetUndersideHeightFade, 0.5f, 4.0f,  "%.2f");
-		}
-
-		// --- Horizon ground color ---
-		if (ImGui::CollapsingHeader("Black Void Color", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::TextDisabled("Color of the lower horizon void (level.dynamicSky.blackvoidcolor).");
-			float horizonCol[3] = { settings.HorizonColorR, settings.HorizonColorG, settings.HorizonColorB };
-			if (ImGui::ColorEdit3("Black Void Color", horizonCol))
+			// Sky Color (replaces individual R/G/B sliders).
+			float skyCol[3] = { settings.SkyColorR, settings.SkyColorG, settings.SkyColorB };
+			if (ImGui::ColorEdit3("Sky Color", skyCol))
 			{
-				settings.HorizonColorR = horizonCol[0];
-				settings.HorizonColorG = horizonCol[1];
-				settings.HorizonColorB = horizonCol[2];
+				settings.SkyColorR = skyCol[0];
+				settings.SkyColorG = skyCol[1];
+				settings.SkyColorB = skyCol[2];
 			}
-			ImGui::SliderFloat("Black Void R", &settings.HorizonColorR, 0.0f, 1.0f, "%.3f");
-			ImGui::SliderFloat("Black Void G", &settings.HorizonColorG, 0.0f, 1.0f, "%.3f");
-			ImGui::SliderFloat("Black Void B", &settings.HorizonColorB, 0.0f, 1.0f, "%.3f");
+
+			ImGui::SliderFloat("Sun Disk Size",         &settings.SunDiskSize,           0.10f, 10.0f,  "%.2f");
+			ImGui::SliderFloat("Sun Disk Intensity",    &settings.SunDiskIntensity,      1.0f,  200.0f, "%.1f");
+			ImGui::SliderFloat("Horizon Darkening Str", &settings.HorizonDarkeningStr,   0.100f, 5.0f,  "%.3f");
+			ImGui::SliderFloat("Twilight Offset",       &settings.TwilightOffset,        0.0f,   0.300f, "%.4f");
+
+			ImGui::Spacing();
+			ImGui::TextDisabled("Black Void Color");
+			float voidCol[3] = { settings.HorizonColorR, settings.HorizonColorG, settings.HorizonColorB };
+			if (ImGui::ColorEdit3("Black Void Color##void", voidCol))
+			{
+				settings.HorizonColorR = voidCol[0];
+				settings.HorizonColorG = voidCol[1];
+				settings.HorizonColorB = voidCol[2];
+			}
+
+			ImGui::Unindent(8.0f);
+		}
+
+		// Cloud Sun Lighting (curated subset).
+		if (ImGui::CollapsingHeader("Cloud Sun Lightning", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::SliderFloat("Cloud Sun Light Intensity",      &settings.CloudSunLightIntensity,      0.0f, 5.0f, "%.3f");
+			ImGui::SliderFloat("Cloud Forward Scatter",          &settings.CloudForwardScatterStrength, 0.0f, 3.0f, "%.3f");
+			ImGui::Unindent(8.0f);
+		}
+
+		// Sunset Cloud Underside Lighting (curated subset + color override).
+		if (ImGui::CollapsingHeader("Sunset Cloud Underside Lightning", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::SliderFloat("Sunset Underside Intensity",   &settings.SunsetUndersideIntensity,  0.0f, 3.0f, "%.3f");
+			ImGui::SliderFloat("Sunset Underside Spread",      &settings.SunsetUndersideSpread,     0.0f, 4.0f, "%.2f");
+			ImGui::SliderFloat("Sunset Underside Height Fade", &settings.SunsetUndersideHeightFade, 0.5f, 4.0f, "%.2f");
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Sunset Underside Color", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::TextDisabled("When 'Use Custom Color' is off, the engine uses its built-in");
+			ImGui::TextDisabled("yellow->orange->red->magenta sunset gradient.");
+			ImGui::Checkbox("Use Custom Color##sunsetCol", &settings.HasSunsetUndersideColor);
+
+			ImGui::BeginDisabled(!settings.HasSunsetUndersideColor);
+			float sunsetCol[3] = { settings.SunsetUndersideColorR, settings.SunsetUndersideColorG, settings.SunsetUndersideColorB };
+			if (ImGui::ColorEdit3("Sunset Underside Color##sunsetCol", sunsetCol))
+			{
+				settings.SunsetUndersideColorR = sunsetCol[0];
+				settings.SunsetUndersideColorG = sunsetCol[1];
+				settings.SunsetUndersideColorB = sunsetCol[2];
+			}
+			ImGui::EndDisabled();
+			ImGui::Unindent(8.0f);
+		}
+
+		// Copy curated Lua to clipboard.
+		ImGui::Spacing();
+		if (ImGui::Button("Copy Lua to clipboard (Gameflow.lua)##atmoSky"))
+		{
+			auto levelName = GetCurrentLevelLuaName();
+			std::ostringstream os;
+			os << std::fixed << std::setprecision(3);
+			os << levelName << ".dynamicSky.realisticskydome = " << (settings.Enabled ? "true" : "false") << "\n";
+			os << levelName << ".dynamicSky.skyColor = Color("
+				<< (int)std::round(std::clamp(settings.SkyColorR, 0.0f, 1.0f) * 255.0f) << ", "
+				<< (int)std::round(std::clamp(settings.SkyColorG, 0.0f, 1.0f) * 255.0f) << ", "
+				<< (int)std::round(std::clamp(settings.SkyColorB, 0.0f, 1.0f) * 255.0f) << ")\n";
+			os << std::setprecision(2);
+			os << levelName << ".dynamicSky.sundiskSize = "      << settings.SunDiskSize      << "\n";
+			os << std::setprecision(1);
+			os << levelName << ".dynamicSky.sundiskIntensity = " << settings.SunDiskIntensity << "\n";
+			os << std::setprecision(3);
+			os << levelName << ".dynamicSky.horizonDarkening = " << settings.HorizonDarkeningStr << "\n";
+			os << std::setprecision(4);
+			os << levelName << ".dynamicSky.twilightOffset = "   << settings.TwilightOffset      << "\n";
+			os << levelName << ".dynamicSky.blackvoidcolor = Color("
+				<< (int)std::round(std::clamp(settings.HorizonColorR, 0.0f, 1.0f) * 255.0f) << ", "
+				<< (int)std::round(std::clamp(settings.HorizonColorG, 0.0f, 1.0f) * 255.0f) << ", "
+				<< (int)std::round(std::clamp(settings.HorizonColorB, 0.0f, 1.0f) * 255.0f) << ")\n";
+			os << std::setprecision(3);
+			os << levelName << ".dynamicSky.Clouds.sunlightIntensity = "         << settings.CloudSunLightIntensity      << "\n";
+			os << levelName << ".dynamicSky.Clouds.forwardScatter = "            << settings.CloudForwardScatterStrength << "\n";
+			os << levelName << ".dynamicSky.Clouds.sunsetUndersideIntensity = "  << settings.SunsetUndersideIntensity    << "\n";
+			os << std::setprecision(2);
+			os << levelName << ".dynamicSky.Clouds.sunsetUndersideSpread = "     << settings.SunsetUndersideSpread       << "\n";
+			os << levelName << ".dynamicSky.Clouds.sunsetUndersideHeightFade = " << settings.SunsetUndersideHeightFade   << "\n";
+			if (settings.HasSunsetUndersideColor)
+			{
+				os << levelName << ".dynamicSky.Clouds.sunsetUndersideColor = Color("
+					<< (int)std::round(std::clamp(settings.SunsetUndersideColorR, 0.0f, 1.0f) * 255.0f) << ", "
+					<< (int)std::round(std::clamp(settings.SunsetUndersideColorG, 0.0f, 1.0f) * 255.0f) << ", "
+					<< (int)std::round(std::clamp(settings.SunsetUndersideColorB, 0.0f, 1.0f) * 255.0f) << ")\n";
+			}
+
+			ImGui::SetClipboardText(os.str().c_str());
+		}
+
+		// --- Advanced (not exported) ---
+		ImGui::Spacing();
+		if (ImGui::CollapsingHeader("Advanced (not exported to Lua)"))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::TextDisabled("These values use hardcoded defaults at runtime and are not");
+			ImGui::TextDisabled("written by the clipboard button. Tweak only for debugging.");
+
+			ImGui::SliderFloat("Density",                        &settings.Density,                     0.1f,  3.0f,  "%.3f");
+			ImGui::SliderFloat("Zenith Offset",                  &settings.ZenithOffset,                0.0f,  0.5f,  "%.3f");
+			ImGui::SliderFloat("Multi Scatter Phase",            &settings.MultiScatterPhase,           0.0f,  1.0f,  "%.3f");
+			ImGui::SliderFloat("Anisotropic Intensity",          &settings.AnisotropicIntensity,        0.0f,  2.0f,  "%.3f");
+			ImGui::SliderFloat("Mie Intensity",                  &settings.MieIntensity,                0.0f,  5.0f,  "%.3f");
+			ImGui::SliderFloat("Rayleigh Intensity",             &settings.RayleighIntensity,           0.0f,  5.0f,  "%.3f");
+			ImGui::SliderFloat("Sun Glow Intensity",             &settings.SunGlowIntensity,            0.0f,  10.0f, "%.3f");
+			ImGui::SliderFloat("Exposure Multiplier",            &settings.ExposureMultiplier,          0.1f,  5.0f,  "%.3f");
+			ImGui::SliderFloat("Night Sky Brightness",           &settings.NightSkyBrightness,          0.0f,  5.0f,  "%.3f");
+			ImGui::SliderFloat("Night Blend Speed",              &settings.NightBlendSpeed,             1.0f,  20.0f, "%.2f");
+			ImGui::SliderFloat("Cloud Ambient Intensity",        &settings.CloudAmbientIntensity,       0.0f,  2.0f,  "%.3f");
+			ImGui::SliderFloat("Cloud Silverlining Strength",    &settings.CloudSilverliningStrength,   0.0f,  3.0f,  "%.3f");
+			ImGui::SliderFloat("Cloud Light Absorption",         &settings.CloudLightAbsorption,        0.1f,  5.0f,  "%.3f");
+			ImGui::SliderFloat("Cloud Sun Warmth Influence",     &settings.CloudSunWarmthInfluence,     0.0f,  1.0f,  "%.3f");
+			ImGui::SliderFloat("Cloud Twilight Ambient",         &settings.CloudTwilightAmbient,        0.0f,  1.0f,  "%.3f");
+			ImGui::SliderFloat("Cloud Night Ambient",            &settings.CloudNightAmbient,           0.0f,  0.5f,  "%.3f");
+
+			ImGui::Unindent(8.0f);
 		}
 
 		// --- Reset button ---
@@ -1922,6 +2029,173 @@ namespace TEN::Sky
 	}
 
 	// ====================================================================
+	// Underwater Sky tab content
+	// ====================================================================
+
+	static void DrawUnderwaterSkyTabContent()
+	{
+		using namespace TEN::Renderer::UnderwaterSky;
+		auto& uw = g_Renderer.GetUnderwaterSkySettings();
+
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		ImGui::TextWrapped(
+			"Underwater Sky replaces the atmospheric sky dome with an animated "
+			"water surface seen from below. Above the water-line, caustic waves "
+			"and god-ray light shafts emerge from the sun direction. Below the "
+			"water-line the view fades into a deep pit void. Mutually exclusive "
+			"with Aurora (both use Cloud Layer A).");
+
+		ImGui::Spacing();
+
+		// Live status readout.
+		bool presetActive = g_SkyCloudSystem.IsUnderwaterSkyPresetActive();
+		float vis = g_Renderer.GetUnderwaterSkyPresetFade();
+		ImGui::Text("Preset Active: %s   |   Fade: %.3f", presetActive ? "yes" : "no", vis);
+
+		ImGui::Separator();
+
+		if (ImGui::CollapsingHeader("Core##uwsky", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::Checkbox("Enabled##uwsky", &uw.Enabled);
+			ImGui::SliderFloat("Wave Speed##uwsky", &uw.WaveSpeed, 0.0f, 3.0f, "%.3f");
+
+			float color[3] = { uw.ColorR, uw.ColorG, uw.ColorB };
+			if (ImGui::ColorEdit3("Water Color##uwsky", color))
+			{
+				uw.ColorR = color[0];
+				uw.ColorG = color[1];
+				uw.ColorB = color[2];
+			}
+
+			ImGui::Spacing();
+
+			if (ImGui::Button("Copy Lua (Gameflow.lua)##uwsky_lua"))
+			{
+				char buf[512];
+				auto levelName = GetCurrentLevelLuaName();
+				snprintf(buf, sizeof(buf),
+					"%s.underwaterSky.enabled = %s\n"
+					"%s.underwaterSky.waveSpeed = %.3f\n"
+					"%s.underwaterSky.color = Color(%d, %d, %d)",
+					levelName.c_str(), uw.Enabled ? "true" : "false",
+					levelName.c_str(), uw.WaveSpeed,
+					levelName.c_str(),
+					(int)std::round(uw.ColorR * 255.0f),
+					(int)std::round(uw.ColorG * 255.0f),
+					(int)std::round(uw.ColorB * 255.0f));
+				ImGui::SetClipboardText(buf);
+			}
+
+			ImGui::TextDisabled("(currentlevel.underwaterSky.enabled/waveSpeed/color)");
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Waves##uwsky", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::SliderFloat("Wave Size##uwsky",           &uw.WaveSize,          0.1f, 5.0f, "%.3f");
+			ImGui::SliderFloat("Wave Sharpness##uwsky",      &uw.WaveSharpness,     0.5f, 8.0f, "%.3f");
+			ImGui::SliderFloat("Distortion Amount##uwsky",   &uw.DistortionAmount,  0.5f, 8.0f, "%.3f");
+			ImGui::SliderFloat("Distortion Strength##uwsky", &uw.DistortionStrength, 0.0f, 2.0f, "%.3f");
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Geometry##uwsky"))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::SliderFloat("Layer Height##uwsky",        &uw.LayerHeight,       0.05f, 1.0f, "%.3f");
+			ImGui::TextDisabled("  0.0 = horizon, 1.0 = zenith");
+			ImGui::SliderFloat("Horizon Softness##uwsky",    &uw.HorizonSoftness,   0.01f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Depth Fade Strength##uwsky", &uw.DepthFadeStrength, 0.1f,  4.0f, "%.3f");
+			ImGui::Unindent(8.0f);
+		}
+
+		if (ImGui::CollapsingHeader("Light Shafts##uwsky"))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::SliderFloat("Intensity##uwsky",        &uw.Intensity,      0.0f,  3.0f,  "%.3f");
+			ImGui::SliderFloat("Caustic Strength##uwsky", &uw.CausticStrength, 0.0f,  4.0f, "%.3f");
+			ImGui::SliderFloat("Shaft Strength##uwsky",   &uw.ShaftStrength,   0.0f,  4.0f, "%.3f");
+			ImGui::SliderFloat("Shaft Sharpness##uwsky",  &uw.ShaftSharpness,  1.0f, 64.0f, "%.2f");
+			ImGui::Unindent(8.0f);
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::CollapsingHeader("Underwater God Rays##uwsky", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::Indent(8.0f);
+			ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "These parameters apply only when Underwater Sky is active.");
+			ImGui::SliderFloat("Length##uwgr",       &uw.RayLength,     0.05f, 1.5f,  "%.3f");
+			ImGui::SliderFloat("Intensity##uwgr",    &uw.RayIntensity,  0.0f,  8.0f,  "%.3f");
+			ImGui::SliderFloat("Decay##uwgr",        &uw.RayDecay,      0.90f, 1.0f,  "%.4f");
+			ImGui::SliderFloat("Sharpness##uwgr",    &uw.ShaftSharpness, 0.5f, 16.0f, "%.2f");
+			ImGui::SliderInt("Sample Count##uwgr",   &uw.RaySampleCount, 8,    128);
+			ImGui::Unindent(8.0f);
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::Button("Copy Lua (WeatherPreset.lua)##uwsky_preset"))
+		{
+			char buf[1280];
+			snprintf(buf, sizeof(buf),
+				"intensity = %.3f,\n"
+				"waveSize = %.3f,\n"
+				"category = \"UnderwaterSky\",\n"
+				"waveSharpness = %.3f,\n"
+				"distortionAmount = %.3f,\n"
+				"distortionStrength = %.3f,\n"
+				"colorR = %d,\n"
+				"colorG = %d,\n"
+				"colorB = %d,\n"
+				"layerHeight = %.3f,\n"
+				"horizonSoftness = %.3f,\n"
+				"depthFadeStrength = %.3f,\n"
+				"causticStrength = %.3f,\n"
+				"shaftStrength = %.3f,\n"
+				"shaftSharpness = %.2f,\n"
+				"godrayLength = %.3f,\n"
+				"godrayIntensity = %.3f,\n"
+				"godrayDecay = %.4f,\n"
+				"godraySharpness = %.2f,\n"
+				"godraySampleCount = %d,",
+				uw.Intensity,
+				uw.WaveSize,
+				uw.WaveSharpness,
+				uw.DistortionAmount,
+				uw.DistortionStrength,
+				(int)std::round(uw.ColorR * 255.0f),
+				(int)std::round(uw.ColorG * 255.0f),
+				(int)std::round(uw.ColorB * 255.0f),
+				uw.LayerHeight,
+				uw.HorizonSoftness,
+				uw.DepthFadeStrength,
+				uw.CausticStrength,
+				uw.ShaftStrength,
+				uw.ShaftSharpness,
+				uw.RayLength,
+				uw.RayIntensity,
+				uw.RayDecay,
+				uw.ShaftSharpness,
+				uw.RaySampleCount);
+			ImGui::SetClipboardText(buf);
+		}
+
+		ImGui::Spacing();
+
+		if (ImGui::Button("Reset Underwater Defaults##uwsky"))
+		{
+			bool wasEnabled = uw.Enabled;
+			uw = UnderwaterSkySettings{};
+			uw.Enabled = wasEnabled;
+		}
+	}
+
+	// ====================================================================
 	// Wind debug content
 	// ====================================================================
 
@@ -2112,6 +2386,12 @@ namespace TEN::Sky
 			if (ImGui::BeginTabItem("Atmospheric Sky/Horizon"))
 			{
 				DrawAtmosphericSkyTabContent();
+				ImGui::EndTabItem();
+			}
+
+			if (ImGui::BeginTabItem("Underwater Sky"))
+			{
+				DrawUnderwaterSkyTabContent();
 				ImGui::EndTabItem();
 			}
 

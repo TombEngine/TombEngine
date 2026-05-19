@@ -293,6 +293,18 @@ namespace TEN::Renderer
 				cloudCoverage = activeSettings->Coverage;
 		}
 
+		// Underwater sky acts as an occlusion layer for the sun. Use the preset
+		// visibility as synthetic coverage so god rays emerge from the bright
+		// Snell's window at the sun's projected position on the water surface,
+		// without requiring volumetric clouds to be present.
+		float underwaterVis = _stAtmosphericSky.UnderwaterSkyVisibility;
+		if (underwaterVis > 0.001f)
+		{
+			// 0.5 hits the breakup parabola peak (4*x*(1-x)) for max strength.
+			float syntheticCoverage = 0.5f * underwaterVis;
+			cloudCoverage = std::max(cloudCoverage, syntheticCoverage);
+		}
+
 		// --- Auto-strength ---
 		float rayElevation = useMoonRays ? std::sin(moon.Pitch * (DirectX::XM_PI / 180.0f)) : sunElevation;
 		float autoStrength = ComputeGodRayAutoStrength(rayElevation, cloudCoverage);
@@ -312,6 +324,17 @@ namespace TEN::Renderer
 		belowHorizonFade = belowHorizonFade * belowHorizonFade * (3.0f - 2.0f * belowHorizonFade);
 
 		float finalAutoStrength = (1.0f + (autoStrength - 1.0f) * rayAutoMix) * rayFacingFade * belowHorizonFade;
+
+		// Underwater sky overrides the below-horizon fade: even when the sun is
+		// physically low, rays should still shine through the water surface.
+		// Hold strength proportional to the underwater visibility and the user
+		// shaft slider so the artist can dial overall intensity.
+		if (underwaterVis > 0.001f && !useMoonRays)
+		{
+			float shaftMul = _underwaterSkySettings.ShaftStrength;
+			float underwaterStrength = underwaterVis * shaftMul * rayFacingFade;
+			finalAutoStrength = std::max(finalAutoStrength, underwaterStrength);
+		}
 
 		// --- Fill constant buffer ---
 		_stGodRay.SunScreenPos  = rayScreenUV;
@@ -338,6 +361,36 @@ namespace TEN::Renderer
 
 		_stGodRay.ViewSize      = Vector2((float)_graphicsDevice->GetScreenWidth(), (float)_graphicsDevice->GetScreenHeight());
 		_stGodRay.InvViewSize   = Vector2(1.0f / (float)_graphicsDevice->GetScreenWidth(), 1.0f / (float)_graphicsDevice->GetScreenHeight());
+
+		// Underwater shaft mode: when the underwater sky is visible, drive the god
+		// ray shader with a procedural wave mask instead of the (empty) cloud RT.
+		// Wind direction is sourced from the atmospheric sky CB so drift matches exactly.
+		if (underwaterVis > 0.001f && !useMoonRays)
+		{
+			_stGodRay.UnderwaterShaftActive     = 1.0f;
+			_stGodRay.UnderwaterShaftBrightness = underwaterVis * _underwaterSkySettings.ShaftStrength;
+			_stGodRay.UnderwaterShaftTime       = _stAtmosphericSky.UnderwaterTime;
+			_stGodRay.UnderwaterShaftSharpness  = std::max(0.25f, _underwaterSkySettings.ShaftSharpness);
+			_stGodRay.UnderwaterWindX           = _stAtmosphericSky.UnderwaterWindDirX;
+			_stGodRay.UnderwaterWindY           = _stAtmosphericSky.UnderwaterWindDirY;
+			_stGodRay.UnderwaterRayLength       = _underwaterSkySettings.RayLength;
+			_stGodRay.UnderwaterRayDecay        = _underwaterSkySettings.RayDecay;
+			_stGodRay.UnderwaterRayIntensity    = _underwaterSkySettings.RayIntensity;
+			_stGodRay.UnderwaterSampleCount     = std::max(8, _underwaterSkySettings.RaySampleCount);
+		}
+		else
+		{
+			_stGodRay.UnderwaterShaftActive     = 0.0f;
+			_stGodRay.UnderwaterShaftBrightness = 0.0f;
+			_stGodRay.UnderwaterShaftTime       = 0.0f;
+			_stGodRay.UnderwaterShaftSharpness  = 1.0f;
+			_stGodRay.UnderwaterWindX           = 0.0f;
+			_stGodRay.UnderwaterWindY           = 0.0f;
+			_stGodRay.UnderwaterRayLength       = 0.0f;
+			_stGodRay.UnderwaterRayDecay        = 0.0f;
+			_stGodRay.UnderwaterRayIntensity    = 0.0f;
+			_stGodRay.UnderwaterSampleCount     = 8;
+		}
 
 		UpdateConstantBuffer(&_stGodRay, _cbGodRay.get());
 	}
@@ -374,7 +427,12 @@ namespace TEN::Renderer
 				return;
 		}
 
+		// Underwater sky always wants god ray shafts to be visible — bypass the
+		// preset suppression and the cloud-required gate below.
+		bool underwaterActive = _stAtmosphericSky.UnderwaterSkyVisibility > 0.001f;
+
 		// Suppress god rays for presets that have heavy overcast (no visible sun).
+		if (!underwaterActive)
 		{
 			auto currentPreset = g_SkyCloudSystem.GetCurrentPreset();
 			auto* presetDef    = g_SkyCloudSystem.GetPresetDefinition(currentPreset);
@@ -402,7 +460,7 @@ namespace TEN::Renderer
 				hasClouds = true;
 		}
 
-		if (!hasClouds)
+		if (!hasClouds && !underwaterActive)
 			return;
 
 		// Update the constant buffer.
@@ -444,6 +502,11 @@ namespace TEN::Renderer
 		// t2: horizon silhouette mask for additional ray occlusion.
 		BindRenderTargetAsTexture(TextureRegister::CausticsMap, _horizonMaskRenderTarget->GetRenderTarget(),
 			SamplerStateRegister::LinearClamp);
+		// t3: main scene RT (read-only during pass 1 — not bound as render target here).
+		// Used by the underwater shaft branch to sample actual bright sky pixels instead
+		// of the empty cloud RT.
+		BindRenderTargetAsTexture(TextureRegister::ShadowMap, _renderTarget->GetRenderTarget(),
+			SamplerStateRegister::LinearClamp);
 
 		// Set up fullscreen triangle rendering.
 		SetBlendMode(BlendMode::Opaque);
@@ -475,6 +538,7 @@ namespace TEN::Renderer
 		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::ColorMap);
 		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::NormalMap);
 		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::CausticsMap);
+		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::ShadowMap);
 
 		SetBlendMode(BlendMode::Opaque);
 		SetDepthState(DepthState::Write);

@@ -47,6 +47,13 @@ namespace TEN::Scripting
 		std::string Quality           = "";    // "Low" / "Medium" / "High"; empty = keep current.
 		float       WindSpeed         = -1.0f; // < 0 = derive from base wind; 0.0 - 8.0 = override.
 
+		// Atmospheric-sky cloud-lighting overrides. Negative = keep engine default.
+		float SunlightIntensity         = -1.0f; // [0, 5]
+		float ForwardScatter            = -1.0f; // [0, 3]
+		float SunsetUndersideIntensity  = -1.0f; // [0, 3]
+		float SunsetUndersideSpread     = -1.0f; // [0.5, 4]
+		float SunsetUndersideHeightFade = -1.0f; // [0.5, 4]
+
 		// Per-level alto cloud color overrides. Applied to every preset (and any
 		// transition between them) when set. Sentinels stay false when the Lua
 		// script does not assign a value, in which case preset defaults are used.
@@ -54,6 +61,11 @@ namespace TEN::Scripting
 		ScriptColor Color        = ScriptColor(255, 255, 255);
 		bool        HasDarkColor = false;
 		ScriptColor DarkColor    = ScriptColor(140, 140, 165); // 0.55, 0.55, 0.65 * 255
+
+		// Optional static sunset-underside color. When HasSunsetUndersideColor is
+		// true the engine bypasses the procedural yellow->magenta gradient.
+		bool        HasSunsetUndersideColor = false;
+		ScriptColor SunsetUndersideColor    = ScriptColor(255, 140, 38); // ~1.0, 0.55, 0.15
 
 		std::vector<DynamicSkyCloudChangeEntry> ChangePresets;
 
@@ -65,6 +77,8 @@ namespace TEN::Scripting
 		ScriptColor GetColorLua() const { return Color; }
 		void        SetDarkColorLua(sol::object obj);
 		ScriptColor GetDarkColorLua() const { return DarkColor; }
+		void        SetSunsetUndersideColorLua(sol::object obj);
+		ScriptColor GetSunsetUndersideColorLua() const { return SunsetUndersideColor; }
 
 		static void Register(sol::table& parent);
 	};
@@ -76,9 +90,22 @@ namespace TEN::Scripting
 		ScriptColor BlackVoidColor    = ScriptColor(0, 0, 0);
 		float       HorizonBottomFade = 0.0f;
 
+		// Atmospheric sky scattering overrides. Negative = keep engine default.
+		bool        HasSkyColor     = false;
+		ScriptColor SkyColor        = ScriptColor(16, 37, 107); // 0.065, 0.145, 0.422 * 255 approx
+		float       SundiskSize      = -1.0f; // [0.10, 10.0]
+		float       SundiskIntensity = -1.0f; // [1.0, 200.0]
+		float       HorizonDarkening = -1.0f; // [0.1, 5.0]
+		float       TwilightOffset   = -1.0f; // [0.0, 0.3]
+		float       SkyGradient      = -1.0f; // [0.1, 5.0]  SunElevationRampSpeed override.
+		float       WarmInfluence    = -1.0f; // [0.0, 1.0]  SunWarmInfluence override.
+
 		DynamicSkyAurora  Aurora  = {};
 		DynamicSkyClouds  Clouds  = {};
 		DynamicSkyGodRays GodRays = {};
+
+		void        SetSkyColorLua(sol::object obj);
+		ScriptColor GetSkyColorLua() const { return SkyColor; }
 
 		static void Register(sol::table& parent);
 	};
@@ -123,6 +150,26 @@ namespace TEN::Scripting
 		bool        HasColor     = false;
 		ScriptColor Color        = ScriptColor(217, 166, 128); // 0.85, 0.65, 0.50 * 255
 
+		void        SetColorLua(sol::object obj);
+		ScriptColor GetColorLua() const { return Color; }
+
+		static void Register(sol::table& parent);
+	};
+
+	// Per-level underwater sky container assigned to level.underwaterSky.
+	// Enabled toggles the WaterSurface Layer A weather preset; WaveSpeed and
+	// Color override the corresponding UnderwaterSkySettings fields when set.
+	struct LevelUnderwaterSky
+	{
+		bool        HasEnabled = false;
+		bool        Enabled    = false;
+		float       WaveSpeed  = -1.0f; // < 0 = keep preset/default.
+
+		bool        HasColor   = false;
+		ScriptColor Color      = ScriptColor(0, 120, 255);
+
+		void        SetEnabledLua(sol::object obj);
+		bool        GetEnabledLua() const { return Enabled; }
 		void        SetColorLua(sol::object obj);
 		ScriptColor GetColorLua() const { return Color; }
 

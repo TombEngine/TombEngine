@@ -568,6 +568,27 @@ namespace TEN::Effects
 			ImGui::SliderFloat("Warm Influence",       &atmoSettings.SunWarmInfluence,      0.0f, 1.0f, "%.3f");
 			ImGui::TextDisabled("  0 = always white. 1 = full sun color at horizon.");
 
+			ImGui::Spacing();
+			if (ImGui::Button("Copy Lua to clipboard (Gameflow.lua)##skyGradient"))
+			{
+				auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
+				std::string levelName = "level";
+				if (levelPtr && !levelPtr->FileName.empty())
+				{
+					auto stem = std::filesystem::path(levelPtr->FileName).stem().string();
+					if (!stem.empty())
+						levelName = stem;
+				}
+
+				char buf[256];
+				snprintf(buf, sizeof(buf),
+					"%s.dynamicSky.skyGradient = %.3f\n"
+					"%s.dynamicSky.warmInfluence = %.3f",
+					levelName.c_str(), atmoSettings.SunElevationRampSpeed,
+					levelName.c_str(), atmoSettings.SunWarmInfluence);
+				ImGui::SetClipboardText(buf);
+			}
+
 			ImGui::Unindent(8.0f);
 		}
 

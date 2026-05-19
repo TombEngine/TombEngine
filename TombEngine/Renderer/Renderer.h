@@ -35,6 +35,7 @@
 #include "Renderer/ConstantBuffers/DustStormBuffer.h"
 #include "Renderer/AtmosphericSky/AtmosphericSkySettings.h"
 #include "Renderer/Aurora/AuroraSettings.h"
+#include "Renderer/UnderwaterSky/UnderwaterSkySettings.h"
 #include "Renderer/DustStorm/DustStormSettings.h"
 #include "Renderer/GodRay/GodRaySettings.h"
 #include "Renderer/Moon/MoonSettings.h"
@@ -178,6 +179,11 @@ namespace TEN::Renderer
 		float _auroraTime        = 0.0f;   // Accumulated animation time.
 		float _auroraPresetFade  = 0.0f;   // [0,1] fade multiplier driven by preset selection.
 		float _auroraPresetFadeDuration = 5.0f; // Duration in seconds for aurora to fade in/out on preset change.
+
+		// Underwater sky system (Layer A preset, mutually exclusive with Aurora).
+		UnderwaterSky::UnderwaterSkySettings _underwaterSkySettings;
+		float _underwaterTime              = 0.0f;
+		float _underwaterPresetFade        = 0.0f;
 
 		// God rays
 		ConstantBuffers::CGodRayBuffer _stGodRay;
@@ -458,6 +464,9 @@ namespace TEN::Renderer
 		float  GetAuroraPresetFade() const { return _auroraPresetFade; }
 		float& GetAuroraPresetFadeDuration() { return _auroraPresetFadeDuration; }
 		float  GetAuroraPresetFadeDuration() const { return _auroraPresetFadeDuration; }
+		UnderwaterSky::UnderwaterSkySettings& GetUnderwaterSkySettings() { return _underwaterSkySettings; }
+		const UnderwaterSky::UnderwaterSkySettings& GetUnderwaterSkySettings() const { return _underwaterSkySettings; }
+		float  GetUnderwaterSkyPresetFade() const { return _underwaterPresetFade; }
 	private:
 
 		// God rays

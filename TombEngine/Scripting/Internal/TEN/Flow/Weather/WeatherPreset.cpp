@@ -133,7 +133,7 @@ namespace TEN::Scripting
 		/// Valid values: "ClearSky", "CirrocumulusLots", "CirrocumulusFew",
 		/// "Cirrustratus", "CloudsTransformation", "Overcast", "Altocumulus",
 		/// "RainSnowOvercast", "StormBuildUp", "Thunderstorm",
-		/// "Nothing", "Aurora", "ReservedWaterSurface", "Random"
+		/// "Nothing", "Aurora", "WaterSurface", "Random"
 		parent.set_function("SetWeatherPreset",
 			[](const std::string& presetName)
 			{
@@ -413,6 +413,41 @@ namespace TEN::Scripting
 				sol::optional<sol::table> cloudBTbl = definition["cloudB"];
 				if (cloudBTbl.has_value())
 					def.TargetState.CloudB = ParseCloudLayerTable(cloudBTbl.value());
+
+				// WaterSurface preset: parse underwater-sky-specific fields from cloudA
+				// and write them directly into the live UnderwaterSkySettings as defaults.
+				if (type == WeatherPresetType::WaterSurface && cloudATbl.has_value())
+				{
+					auto& uw = g_Renderer.GetUnderwaterSkySettings();
+					sol::table ca = cloudATbl.value();
+					auto f = [&](const char* key, float fallback)
+					{
+						return (float)ca.get_or(key, (double)fallback);
+					};
+					uw.Intensity          = f("intensity",          uw.Intensity);
+					uw.WaveSize           = f("waveSize",           uw.WaveSize);
+					uw.WaveSharpness      = f("waveSharpness",      uw.WaveSharpness);
+					uw.DistortionAmount   = f("distortionAmount",   uw.DistortionAmount);
+					uw.DistortionStrength = f("distortionStrength", uw.DistortionStrength);
+					uw.LayerHeight        = f("layerHeight",        uw.LayerHeight);
+					uw.HorizonSoftness    = f("horizonSoftness",    uw.HorizonSoftness);
+					uw.DepthFadeStrength  = f("depthFadeStrength",  uw.DepthFadeStrength);
+					uw.CausticStrength    = f("causticStrength",    uw.CausticStrength);
+					uw.ShaftStrength      = f("shaftStrength",      uw.ShaftStrength);
+					uw.ShaftSharpness     = f("shaftSharpness",     uw.ShaftSharpness);
+					uw.RayLength          = f("godrayLength",       uw.RayLength);
+					uw.RayIntensity       = f("godrayIntensity",    uw.RayIntensity);
+					uw.RayDecay           = f("godrayDecay",        uw.RayDecay);
+					uw.RaySampleCount     = (int)ca.get_or("godraySampleCount", (double)uw.RaySampleCount);
+
+					// Color: 0-255 Lua values, store as normalized 0-1.
+					sol::optional<double> r = ca["colorR"];
+					sol::optional<double> g = ca["colorG"];
+					sol::optional<double> b = ca["colorB"];
+					if (r.has_value()) uw.ColorR = std::clamp((float)(r.value() / 255.0), 0.0f, 1.0f);
+					if (g.has_value()) uw.ColorG = std::clamp((float)(g.value() / 255.0), 0.0f, 1.0f);
+					if (b.has_value()) uw.ColorB = std::clamp((float)(b.value() / 255.0), 0.0f, 1.0f);
+				}
 
 				g_SkyCloudSystem.OverridePreset(type, def);
 			});

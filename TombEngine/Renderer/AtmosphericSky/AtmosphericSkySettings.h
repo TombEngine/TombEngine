@@ -66,6 +66,14 @@ namespace TEN::Renderer
 		float SunsetUndersideSpread     = 4.0f;   // [0.5,4] Angular spread of sunset glow around sun direction (higher = wider).
 		float SunsetUndersideHeightFade = 3.26f;   // [0.5,4] Exponent: how quickly glow fades from cloud base to top (higher = more concentrated at base).
 
+		// Optional static color override. When HasSunsetUndersideColor is true the
+		// procedural yellow->magenta gradient is bypassed and this color is used
+		// instead (still modulated by the activation envelope and intensity).
+		bool  HasSunsetUndersideColor = false;
+		float SunsetUndersideColorR   = 1.0f;
+		float SunsetUndersideColorG   = 0.55f;
+		float SunsetUndersideColorB   = 0.15f;
+
 		// --- Horizon ground color ---
 		// RGB color for the lower horizon/ground band. Replaces the default black
 		// below the horizon line. Set to (0,0,0) for the classic black falloff.

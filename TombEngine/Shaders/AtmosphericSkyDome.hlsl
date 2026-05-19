@@ -281,6 +281,152 @@ float3 ComputeNightSky(float3 viewDir)
 }
 
 // ---------------------------------------------------------------------------
+// Underwater sky — animated water surface viewed from below
+// ---------------------------------------------------------------------------
+// Renders a stylized underwater scene: above the water-line, animated caustic
+// waves with sun god-rays piercing through; below the water-line, the void
+// fades into a deep pit. Mutually exclusive with the aurora effect.
+//
+// Output: (rgbColor, coverageAlpha). coverageAlpha is used by PSSunMoonDisc
+// to suppress sun/moon discs that are seen "through" the underwater volume.
+// ---------------------------------------------------------------------------
+
+float UnderwaterHash(float2 p)
+{
+    p = frac(p * float2(123.34f, 456.21f));
+    p += dot(p, p + 45.32f);
+    return frac(p.x * p.y);
+}
+
+float UnderwaterValueNoise(float2 p)
+{
+    float2 i = floor(p);
+    float2 f = frac(p);
+    float2 u = f * f * (3.0f - 2.0f * f);
+    float a = UnderwaterHash(i);
+    float b = UnderwaterHash(i + float2(1.0f, 0.0f));
+    float c = UnderwaterHash(i + float2(0.0f, 1.0f));
+    float d = UnderwaterHash(i + float2(1.0f, 1.0f));
+    return lerp(lerp(a, b, u.x), lerp(c, d, u.x), u.y);
+}
+
+// High-frequency sparkle field, used near the sun-spot to add the small
+// bright glints visible in real underwater footage.
+float UnderwaterSparkle(float2 uv, float time)
+{
+    float2 p = uv * 6.5f + float2(time * 0.6f, time * 0.4f);
+    float n1 = UnderwaterValueNoise(p);
+    float n2 = UnderwaterValueNoise(p * 1.7f + 17.3f - time * 0.5f);
+    float n3 = UnderwaterValueNoise(p * 2.9f - 9.1f + time * 0.7f);
+    float s  = saturate(n1 * n2 * n3 * 3.0f);
+    return pow(s, 4.0f);
+}
+
+// Returns (color.rgb, coverage.a).
+float4 ComputeUnderwaterSky(float3 viewDir, float3 sunDir)
+{
+    // TEN is Y-down: -viewDir.y = "up factor" in conventional space.
+    float upY = -viewDir.y;
+
+    // Water-line is at upY == LayerHeight. Above = water surface; below = void.
+    float layerH = max(AtmoUnderwaterLayerHeight, 0.05f);
+    float soft   = max(AtmoUnderwaterHorizonSoftness, 0.005f);
+
+    // 0 = far below water-line (deep void), 1 = far above (looking straight up).
+    float aboveFactor = smoothstep(layerH - soft, layerH + soft, upY);
+
+    // Project view direction onto a horizontal plane (the underside of the
+    // water surface). Use xz / upY for a perspective unwrap.
+    float denom    = max(upY, 0.05f);
+    float2 surfaceUV = viewDir.xz / denom * AtmoUnderwaterWaveSize * 4.0f;
+
+    // Project the sun direction onto the same plane to locate Snell's window.
+    float sunUpY  = max(-sunDir.y, 0.05f);
+    float2 sunUV  = sunDir.xz / sunUpY * AtmoUnderwaterWaveSize * 4.0f;
+    float2 toSun  = surfaceUV - sunUV;
+    float sunDist = length(toSun);
+
+    float time = AtmoUnderwaterTime;
+
+    // Wave advection direction comes from existing global wind settings.
+    float2 windDir = float2(AtmoUnderwaterWindDirX, AtmoUnderwaterWindDirY);
+    float windLenSq = dot(windDir, windDir);
+    if (windLenSq > 0.0001f)
+        windDir *= rsqrt(windLenSq);
+    else
+        windDir = float2(1.0f, 0.0f);
+
+    // Time is already integrated with WaveSpeed on CPU. This makes higher
+    // WaveSpeed values pull the pattern faster in wind direction.
+    float2 drift = windDir * time * 0.45f;
+
+    float distortionAmount = max(AtmoUnderwaterDistortionAmount, 0.1f);
+    float distortionStrength = max(AtmoUnderwaterDistortionStrength, 0.0f);
+
+    // One single upper water layer: flowing value-noise with gentle UV warp.
+    // Keep this tight/meshy (higher frequencies) and avoid broad distortion.
+    float2 flow1 = surfaceUV * (2.20f * distortionAmount) + drift + float2(time * 0.06f, -time * 0.04f);
+    float2 flow2 = surfaceUV * (4.40f * distortionAmount) + drift * 1.7f + float2(-time * 0.03f, time * 0.05f);
+    float2 warp  = float2(
+        UnderwaterValueNoise(flow1) - 0.5f,
+        UnderwaterValueNoise(flow2) - 0.5f);
+    // Apply wind drift to the macro UV so the entire upper caustic layer
+    // travels in the configured wind direction (not just the fine warp).
+    float2 distortedUV = surfaceUV + warp * (0.18f * distortionStrength) + drift * 0.85f;
+
+    float waveA = UnderwaterValueNoise(distortedUV * 2.80f + drift * 0.90f + float2(time * 0.03f, time * 0.02f));
+    float waveB = UnderwaterValueNoise(distortedUV * 5.60f + drift * 1.60f + float2(-time * 0.02f, time * 0.04f));
+    float upperLayer = saturate(waveA * 0.68f + waveB * 0.32f);
+    upperLayer = pow(upperLayer, max(0.5f, AtmoUnderwaterWaveSharpness * 0.45f));
+
+    // Snell's-window bright spot.
+    float sunSpot     = exp(-sunDist * 0.35f);
+    float sunSpotCore = exp(-sunDist * 0.85f);
+
+    // Sparkle glints near the sun spot.
+    float sparkleMask = exp(-sunDist * 0.30f);
+    float sparkle = UnderwaterSparkle(distortedUV, time) * sparkleMask;
+
+    // Single-layer brightness: surface sheet + sun spot + sparkles.
+    float brightSurface = saturate(upperLayer + sunSpot * 0.70f + sparkle * 1.25f);
+
+    // Base water tint.
+    float3 waterColor = float3(AtmoUnderwaterColorR, AtmoUnderwaterColorG, AtmoUnderwaterColorB);
+    // Bright tint stays close to water color so caustic highlights keep the
+    // selected color saturation instead of washing out to white.
+    float3 brightTint = lerp(waterColor, float3(1.0f, 1.0f, 1.0f), 0.18f);
+
+    float3 surfaceColor = waterColor * (0.34f + upperLayer * 0.56f);
+    surfaceColor = lerp(surfaceColor, brightTint,
+                        brightSurface * AtmoUnderwaterCausticStrength * 0.48f);
+
+    // Snell's-window warm bloom. Tinted heavily by waterColor so the sun
+    // hotspot keeps the chosen sea color (no pale grayish wash).
+    float3 sunBloomTint = lerp(float3(1.0f, 0.95f, 0.82f), waterColor, 0.65f);
+    surfaceColor += sunBloomTint
+                  * (sunSpot * 0.55f + sunSpotCore * 1.10f)
+                  * AtmoUnderwaterCausticStrength * 0.55f * aboveFactor;
+
+    // Sparkle glints — also tinted by waterColor to preserve saturation.
+    float3 sparkleTint = lerp(float3(1.0f, 1.0f, 1.0f), waterColor, 0.45f);
+    surfaceColor += sparkleTint * sparkle
+                  * AtmoUnderwaterCausticStrength * 1.2f * aboveFactor;
+
+    // Deep pit below the water-line. Sea color stays vivid until it fades into the void.
+    float3 pitColor   = waterColor * 0.04f;
+    float depthFactor = pow(saturate((layerH - upY) / max(layerH + 0.001f, 0.001f)),
+                            AtmoUnderwaterDepthFadeStr);
+    float3 belowColor = lerp(waterColor * 0.85f, pitColor, depthFactor);
+
+    // Blend surface (above) and pit (below) by aboveFactor.
+    float3 finalColor = lerp(belowColor, surfaceColor, aboveFactor);
+    finalColor *= AtmoUnderwaterIntensity;
+
+    float coverage = AtmoUnderwaterSkyVisibility;
+    return float4(finalColor * AtmoUnderwaterSkyVisibility, coverage);
+}
+
+// ---------------------------------------------------------------------------
 // Moon surface noise — adapted from IQ's Shadertoy planet shader
 // ---------------------------------------------------------------------------
 
@@ -734,10 +880,6 @@ float4 PSAtmosphericSky(VSOutput input) : SV_TARGET
 
     float3 finalColor = lerp(daySky, nightSky, nightFactor);
 
-    // Sun disk and moon disk are NOT added here. They are rendered in a separate
-    // additive pass (PSSunMoonDisc) AFTER volumetric cloud compositing, so that
-    // clouds naturally occlude them by masking the disc contribution with cloud coverage.
-
     // --- Apply horizon ground color ---
     // Replace the default black below the horizon with a user-defined color.
     // horizonMask: 0 = below horizon (ground area), 1 = above (sky).
@@ -747,9 +889,36 @@ float4 PSAtmosphericSky(VSOutput input) : SV_TARGET
     float3 horizonColor = float3(AtmoHorizonColorR, AtmoHorizonColorG, AtmoHorizonColorB);
     finalColor = lerp(horizonColor, finalColor, horizonMask);
 
-    // Alpha = 0: no cloud coverage. The cloud compositor will write cloud
-    // coverage into alpha later. The sun/moon disc pass reads this alpha.
-    return float4(finalColor, 0.0f);
+    // --- Underwater sky overlay ---
+    // When the underwater preset is active, the entire sky is replaced by an
+    // animated underwater surface: the realistic skydome color is first tinted
+    // toward the water color, then progressively replaced by the underwater
+    // scene as the preset fades in. Below the water-line the sky collapses
+    // into the pit void.
+    float coverageAlpha = 0.0f;
+    if (AtmoUnderwaterSkyEnabled > 0.5f)
+    {
+        float4 uw = ComputeUnderwaterSky(viewDir, sunDir);
+        float3 waterTint = float3(AtmoUnderwaterColorR, AtmoUnderwaterColorG, AtmoUnderwaterColorB);
+
+        // Pre-tint the existing sky toward the water color so the transition
+        // reads as a continuous shift rather than a hard swap.
+        float tintAmount = saturate(AtmoUnderwaterSkyVisibility * 0.6f);
+        finalColor = lerp(finalColor, finalColor * waterTint * 2.0f, tintAmount);
+
+        // Replace with the underwater scene by the visibility factor.
+        finalColor = lerp(finalColor, uw.rgb, AtmoUnderwaterSkyVisibility);
+        coverageAlpha = uw.a;
+    }
+
+    // Sun disk and moon disk are NOT added here. They are rendered in a separate
+    // additive pass (PSSunMoonDisc) AFTER volumetric cloud compositing, so that
+    // clouds naturally occlude them by masking the disc contribution with cloud coverage.
+
+    // Alpha = underwater coverage (0 when underwater is off). The cloud
+    // compositor will MAX-blend additional cloud coverage on top, and the
+    // sun/moon disc pass reads this alpha to know what to hide.
+    return float4(finalColor, coverageAlpha);
 }
 
 // ---------------------------------------------------------------------------
@@ -848,6 +1017,29 @@ float4 PSSunMoonDisc(VSOutput input) : SV_TARGET
 
     // Moon disc.
     float3 moonDiskColor = ComputeMoonDisk(viewDir, moonDir, sunDir);
+
+    // --- Underwater sky disc occlusion ---
+    // When the underwater preset is active:
+    //   - Sun disc may still be partly visible above the water-line (the bright
+    //     spot is replaced by the in-water sun bloom + god-ray fan from
+    //     ComputeUnderwaterSky).
+    //   - Moon disc is fully hidden — only its diffuse halo/glow (added in the
+    //     sky pass via ComputeMoonGlow) shines through the water column.
+    if (AtmoUnderwaterSkyEnabled > 0.5f)
+    {
+        float upY = -viewDir.y;
+        float layerH = max(AtmoUnderwaterLayerHeight, 0.05f);
+        float soft   = max(AtmoUnderwaterHorizonSoftness, 0.005f);
+        float aboveFactor = smoothstep(layerH - soft, layerH + soft, upY);
+
+        // Sun: dim above the water-line, fully gone below.
+        float sunKeep = lerp(1.0f, aboveFactor * 0.4f, AtmoUnderwaterSkyVisibility);
+        sunVisibility *= sunKeep;
+
+        // Moon disc: fully removed when underwater preset is fully active.
+        // (Glow alone remains visible via the sky-pass overlay.)
+        moonVisibility *= (1.0f - AtmoUnderwaterSkyVisibility);
+    }
 
     // Combined: sun and moon use their own separate visibility masks.
     float3 result = sunDiskColor * sunVisibility + moonDiskColor * moonVisibility;

@@ -36,6 +36,7 @@ namespace TEN::Scripting
 	struct DynamicSkyClouds;
 	class  MoonLens;
 	struct LevelDustStorm;
+	struct LevelUnderwaterSky;
 }
 
 namespace TEN::Sky
@@ -51,7 +52,8 @@ namespace TEN::Sky
 	{
 		None,                       // No clouds / clear sky
 		AltocumulusMid,             // Patchy, medium altitude, moderate density
-		Aurora                      // High-altitude aurora borealis effect
+		Aurora,                     // High-altitude aurora borealis effect
+		UnderwaterSky               // Underwater water-surface effect (Layer A only, mutually exclusive with Aurora).
 	};
 
 	// ====================================================================
@@ -75,7 +77,7 @@ namespace TEN::Sky
 		// Layer A-specific presets (only configure Cloud Layer A).
 		Nothing,               // Layer A disabled — no aurora, no water surface.
 		Aurora,                // Aurora borealis effect on Layer A.
-		ReservedWaterSurface,  // Reserved: future water surface effect on Layer A.
+		WaterSurface,          // Layer A: underwater water-surface effect with caustic waves and god-ray shafts.
 
 		Count
 	};
@@ -470,6 +472,7 @@ namespace TEN::Sky
 		bool                    IsAuroraPresetActive() const;
 		void                    SetDynamicSkyAuroraForced(bool forced);
 		bool                    GetDynamicSkyAuroraForced() const;
+		bool                    IsUnderwaterSkyPresetActive() const;
 		bool                    IsLegacyLayer1Active() const;
 		bool                    IsLegacyLayer2Active() const;
 
@@ -485,6 +488,12 @@ namespace TEN::Sky
 		// (TEN::Effects::Environment::Weather), which then drives every
 		// volumetric cloud layer through GetCloudA/BRenderSettings().
 		void SetGlobalWind(float dirX, float dirY, float speed);
+
+		// --- Independent cloud wind speed ---
+		// Exposes _cloudWindSpeed for debug UI read-back and direct override.
+		// Negative = derive from base wind (default).
+		float GetCloudWindSpeed() const;
+		void  SetCloudWindSpeed(float speed);
 
 		// --- Global rendering quality ---
 		// Set via level.dynamicSky.Clouds.quality in Gameflow.lua.
@@ -572,6 +581,7 @@ namespace TEN::Sky
 		void ApplyCloudColorOverrides(const TEN::Scripting::DynamicSkyClouds& clouds);
 		void ApplyMoonLensOverride(const TEN::Scripting::MoonLens& moon);
 		void ApplyDustStormOverride(const TEN::Scripting::LevelDustStorm& dust);
+		void ApplyUnderwaterSkyOverride(const TEN::Scripting::LevelUnderwaterSky& uw);
 
 		// --- Data ---
 		std::unordered_map<WeatherPresetType, WeatherPresetDefinition> _presets;

@@ -100,15 +100,6 @@ namespace TEN::Renderer
 
 	bool ImGuiProcessEvent(const SDL_Event& event)
 	{
-		// F8 toggle is engine-owned and applies even when the overlay is hidden.
-		if (event.type == SDL_EVENT_KEY_DOWN &&
-			event.key.scancode == SDL_SCANCODE_F8 &&
-			event.key.repeat == 0)
-		{
-			ImGuiToggleOverlay();
-			return true;
-		}
-
 		if (!s_Initialized)
 			return false;
 

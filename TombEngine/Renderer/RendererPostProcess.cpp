@@ -110,6 +110,12 @@ namespace TEN::Renderer
 				if (!view.LensFlaresToDraw[i].EffectsEnabled)
 					flareColor = Vector3::Zero;
 
+				// Hide all global lens flare effects while the underwater sky
+				// preset is active — the sun is below the surface from the
+				// player's perspective and must not bleed sun/star flare through.
+				if (view.LensFlaresToDraw[i].IsGlobal && g_SkyCloudSystem.IsUnderwaterSkyPresetActive())
+					flareColor = Vector3::Zero;
+
 				_stPostProcessBuffer.LensFlares[i].Color = flareColor;
 			}
 			_stPostProcessBuffer.NumLensFlares = (int)view.LensFlaresToDraw.size();

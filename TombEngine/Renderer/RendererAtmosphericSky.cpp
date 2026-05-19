@@ -20,6 +20,7 @@
 #include "Renderer/AtmosphericSky/AtmosphericSkySettings.h"
 #include "Renderer/Aurora/AuroraSettings.h"
 #include "Renderer/Moon/MoonSettings.h"
+#include "Renderer/UnderwaterSky/UnderwaterSkySettings.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
@@ -290,6 +291,63 @@ namespace TEN::Renderer
 		_stAtmosphericSky.HorizonColorG = settings.HorizonColorG;
 		_stAtmosphericSky.HorizonColorB = settings.HorizonColorB;
 
+		// --- Underwater sky CB fill ---
+		{
+			auto& uw = _underwaterSkySettings;
+
+			// Drive Enabled from the sky cloud system (Layer A preset).
+			bool wantsUnderwater = g_SkyCloudSystem.IsUnderwaterSkyPresetActive();
+
+			// Instant transition (no fade) per design: snap to target.
+			_underwaterPresetFade = wantsUnderwater ? 1.0f : 0.0f;
+
+			uw.Enabled = wantsUnderwater;
+
+			float visibility = 0.0f;
+			if (uw.Enabled)
+			{
+				visibility = _underwaterPresetFade;
+
+				// Accumulate animation time.
+				_underwaterTime += (1.0f / 30.0f) * uw.WaveSpeed;
+			}
+
+			// Reuse existing global wind from the cloud system so underwater wave
+			// drift follows the same direction users already configure in the wind tab.
+			auto windA = g_SkyCloudSystem.GetCloudARenderSettings();
+			auto windB = g_SkyCloudSystem.GetCloudBRenderSettings();
+			Vector2 windDir = windA.WindDirection;
+
+			if (windDir.LengthSquared() < 0.0001f)
+				windDir = windB.WindDirection;
+
+			if (windDir.LengthSquared() > 0.0001f)
+				windDir.Normalize();
+			else
+				windDir = Vector2(1.0f, 0.0f);
+
+			_stAtmosphericSky.UnderwaterSkyEnabled      = uw.Enabled ? 1.0f : 0.0f;
+			_stAtmosphericSky.UnderwaterSkyVisibility   = visibility;
+			_stAtmosphericSky.UnderwaterTime            = _underwaterTime;
+			_stAtmosphericSky.UnderwaterIntensity       = uw.Intensity;
+			_stAtmosphericSky.UnderwaterWaveSize        = uw.WaveSize;
+			_stAtmosphericSky.UnderwaterWaveSpeed       = uw.WaveSpeed;
+			_stAtmosphericSky.UnderwaterWaveSharpness   = uw.WaveSharpness;
+			_stAtmosphericSky.UnderwaterDistortionAmount = uw.DistortionAmount;
+			_stAtmosphericSky.UnderwaterDistortionStrength = uw.DistortionStrength;
+			_stAtmosphericSky.UnderwaterWindDirX        = windDir.x;
+			_stAtmosphericSky.UnderwaterWindDirY        = windDir.y;
+			_stAtmosphericSky.UnderwaterColorR          = uw.ColorR;
+			_stAtmosphericSky.UnderwaterColorG          = uw.ColorG;
+			_stAtmosphericSky.UnderwaterColorB          = uw.ColorB;
+			_stAtmosphericSky.UnderwaterLayerHeight     = uw.LayerHeight;
+			_stAtmosphericSky.UnderwaterHorizonSoftness = uw.HorizonSoftness;
+			_stAtmosphericSky.UnderwaterDepthFadeStr    = uw.DepthFadeStrength;
+			_stAtmosphericSky.UnderwaterCausticStrength = uw.CausticStrength;
+			_stAtmosphericSky.UnderwaterShaftStrength   = uw.ShaftStrength;
+			_stAtmosphericSky.UnderwaterShaftSharpness  = uw.ShaftSharpness;
+		}
+
 		UpdateConstantBuffer(&_stAtmosphericSky, _cbAtmosphericSky.get());
 	}
 
@@ -389,6 +447,12 @@ namespace TEN::Renderer
 	void Renderer::DrawSunMoonDisc(RenderView& renderView)
 	{
 		if (!_atmosphericSkySettings.Enabled)
+			return;
+
+		// Skip sun/moon disc rendering entirely when the underwater sky preset
+		// is active. The water surface fully covers the sky and the sun must
+		// not bleed through as an additive disc on top of the caustics.
+		if (g_SkyCloudSystem.IsUnderwaterSkyPresetActive())
 			return;
 
 		// Bind atmospheric sky CB to register b12.

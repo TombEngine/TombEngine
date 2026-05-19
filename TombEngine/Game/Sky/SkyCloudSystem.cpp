@@ -497,6 +497,35 @@ namespace TEN::Sky
 			atmo.HorizonGradientRise[0] = horizonRise;
 			atmo.HorizonGradientRise[1] = horizonRise;
 
+			// Optional atmospheric scattering overrides.
+			if (dyn.HasSkyColor)
+			{
+				atmo.SkyColorR = std::clamp(dyn.SkyColor.GetR() / 255.0f, 0.0f, 1.0f);
+				atmo.SkyColorG = std::clamp(dyn.SkyColor.GetG() / 255.0f, 0.0f, 1.0f);
+				atmo.SkyColorB = std::clamp(dyn.SkyColor.GetB() / 255.0f, 0.0f, 1.0f);
+			}
+			if (dyn.SundiskSize       >= 0.0f) atmo.SunDiskSize       = std::clamp(dyn.SundiskSize,       0.10f,  10.0f);
+			if (dyn.SundiskIntensity  >= 0.0f) atmo.SunDiskIntensity  = std::clamp(dyn.SundiskIntensity,  1.0f,   200.0f);
+			if (dyn.HorizonDarkening  >= 0.0f) atmo.HorizonDarkeningStr = std::clamp(dyn.HorizonDarkening, 0.1f,  5.0f);
+			if (dyn.TwilightOffset    >= 0.0f) atmo.TwilightOffset         = std::clamp(dyn.TwilightOffset,  0.0f,  0.3f);
+			if (dyn.SkyGradient       >= 0.0f) atmo.SunElevationRampSpeed  = std::clamp(dyn.SkyGradient,    0.1f,  5.0f);
+			if (dyn.WarmInfluence     >= 0.0f) atmo.SunWarmInfluence        = std::clamp(dyn.WarmInfluence,  0.0f,  1.0f);
+
+			// Cloud lighting overrides (live on AtmosphericSkySettings, consumed by the cloud renderer).
+			if (clouds.SunlightIntensity         >= 0.0f) atmo.CloudSunLightIntensity      = std::clamp(clouds.SunlightIntensity,         0.0f, 5.0f);
+			if (clouds.ForwardScatter            >= 0.0f) atmo.CloudForwardScatterStrength = std::clamp(clouds.ForwardScatter,            0.0f, 3.0f);
+			if (clouds.SunsetUndersideIntensity  >= 0.0f) atmo.SunsetUndersideIntensity    = std::clamp(clouds.SunsetUndersideIntensity,  0.0f, 3.0f);
+			if (clouds.SunsetUndersideSpread     >= 0.0f) atmo.SunsetUndersideSpread       = std::clamp(clouds.SunsetUndersideSpread,     0.5f, 4.0f);
+			if (clouds.SunsetUndersideHeightFade >= 0.0f) atmo.SunsetUndersideHeightFade   = std::clamp(clouds.SunsetUndersideHeightFade, 0.5f, 4.0f);
+
+			atmo.HasSunsetUndersideColor = clouds.HasSunsetUndersideColor;
+			if (clouds.HasSunsetUndersideColor)
+			{
+				atmo.SunsetUndersideColorR = std::clamp(clouds.SunsetUndersideColor.GetR() / 255.0f, 0.0f, 1.0f);
+				atmo.SunsetUndersideColorG = std::clamp(clouds.SunsetUndersideColor.GetG() / 255.0f, 0.0f, 1.0f);
+				atmo.SunsetUndersideColorB = std::clamp(clouds.SunsetUndersideColor.GetB() / 255.0f, 0.0f, 1.0f);
+			}
+
 			// --- Aurora ---
 			auto& auroraSettings = g_Renderer.GetAuroraSettings();
 			auroraSettings.Enabled = aurora.Enabled;
@@ -649,6 +678,9 @@ namespace TEN::Sky
 
 			// --- Dust storm (level.dustStorm) ---
 			ApplyDustStormOverride(level->DustStorm);
+
+			// --- Underwater sky (level.underwaterSky) ---
+			ApplyUnderwaterSkyOverride(level->UnderwaterSky);
 		}
 	}
 
@@ -746,6 +778,26 @@ namespace TEN::Sky
 
 		if (dust.HasColor)
 			ScriptColorToFloatRGB(dust.Color, settings.ColorR, settings.ColorG, settings.ColorB);
+	}
+
+	void SkyCloudSystem::ApplyUnderwaterSkyOverride(const TEN::Scripting::LevelUnderwaterSky& uw)
+	{
+		auto& settings = g_Renderer.GetUnderwaterSkySettings();
+
+		// Enabled toggles the WaterSurface Layer A preset on/off.
+		if (uw.HasEnabled)
+		{
+			if (uw.Enabled)
+				SetLayerAPresetImmediate(WeatherPresetType::WaterSurface);
+			else if (_layerAPreset == WeatherPresetType::WaterSurface)
+				SetLayerAPresetImmediate(WeatherPresetType::Nothing);
+		}
+
+		if (uw.WaveSpeed >= 0.0f)
+			settings.WaveSpeed = std::clamp(uw.WaveSpeed, 0.0f, 3.0f);
+
+		if (uw.HasColor)
+			ScriptColorToFloatRGB(uw.Color, settings.ColorR, settings.ColorG, settings.ColorB);
 	}
 
 	// ====================================================================
@@ -1307,17 +1359,23 @@ namespace TEN::Sky
 			_presets[def.Type] = def;
 		}
 
-		// ----- ReservedWaterSurface -----
-		// Reserved Layer A preset for a future water surface effect.
+		// ----- WaterSurface -----
+		// Layer A preset: underwater water-surface effect with caustic waves and
+		// god-ray light shafts. Renderer-side parameters live in UnderwaterSkySettings.
 		{
 			WeatherPresetDefinition def;
-			def.Type           = WeatherPresetType::ReservedWaterSurface;
-			def.Name           = "ReservedWaterSurface";
+			def.Type           = WeatherPresetType::WaterSurface;
+			def.Name           = "WaterSurface";
 			def.IsLayerAPreset = true;
 			def.DefaultTransitionDuration = 30.0f;
 
-			def.TargetState.CloudA.Enabled  = false;
-			def.TargetState.CloudA.Category = CloudCategory::None;
+			auto& a = def.TargetState.CloudA;
+			a.Enabled       = true;
+			a.Category      = CloudCategory::UnderwaterSky;
+			a.Coverage      = 1.0f;
+			a.BottomHeight  = 1200.0f;
+			a.Thickness     = 2000.0f;
+			a.EvolutionSpeed = 0.1f;
 
 			_presets[def.Type] = def;
 		}
@@ -2325,6 +2383,17 @@ namespace TEN::Sky
 		return _currentState;
 	}
 
+	float SkyCloudSystem::GetCloudWindSpeed() const
+	{
+		return _cloudWindSpeed;
+	}
+
+	void SkyCloudSystem::SetCloudWindSpeed(float speed)
+	{
+		constexpr float LUA_SPEED_MAX = 8.0f;
+		_cloudWindSpeed = (speed >= 0.0f) ? std::clamp(speed, 0.0f, LUA_SPEED_MAX) : -1.0f;
+	}
+
 	void SkyCloudSystem::SetGlobalWind(float dirX, float dirY, float speed)
 	{
 		// Backwards compatibility: the legacy Lua API took a normalized direction
@@ -2414,6 +2483,13 @@ namespace TEN::Sky
 			s.WindDirection = Vector2(-baseWind.x / magnitude, -baseWind.z / magnitude);
 			s.WindSpeed     = speed;
 		}
+		else if (_cloudWindSpeed >= 0.0f)
+		{
+			// An explicit cloud speed is configured but no atmospheric wind is
+			// present to derive a direction from. Apply the speed anyway and
+			// keep the default direction (1, 0) that CloudRenderSettings provides.
+			s.WindSpeed = speed;
+		}
 		else
 		{
 			s.WindSpeed = 0.0f;
@@ -2422,6 +2498,10 @@ namespace TEN::Sky
 
 	bool SkyCloudSystem::IsCloudAActive() const
 	{
+		// UnderwaterSky occupies Layer A as an overlay effect, not a volumetric cloud.
+		if (_currentState.CloudA.Category == CloudCategory::UnderwaterSky)
+			return false;
+
 		return _currentState.CloudA.Enabled && _currentState.CloudA.Coverage > 0.001f;
 	}
 
@@ -2453,6 +2533,18 @@ namespace TEN::Sky
 	bool SkyCloudSystem::GetDynamicSkyAuroraForced() const
 	{
 		return _dynamicSkyAuroraForced;
+	}
+
+	bool SkyCloudSystem::IsUnderwaterSkyPresetActive() const
+	{
+		// Underwater sky is active if any cloud layer has the UnderwaterSky category and is enabled.
+		// Layer A is the canonical owner (mutually exclusive with Aurora by design), but the check
+		// also tolerates Layer B for forward compatibility.
+		if (_currentState.CloudA.Enabled && _currentState.CloudA.Category == CloudCategory::UnderwaterSky)
+			return true;
+		if (_currentState.CloudB.Enabled && _currentState.CloudB.Category == CloudCategory::UnderwaterSky)
+			return true;
+		return false;
 	}
 
 	bool SkyCloudSystem::IsLegacyLayer1Active() const
@@ -2551,6 +2643,7 @@ namespace TEN::Sky
 	{
 		if (name == "AltocumulusMid")      return CloudCategory::AltocumulusMid;
 		if (name == "Aurora")              return CloudCategory::Aurora;
+		if (name == "UnderwaterSky")       return CloudCategory::UnderwaterSky;
 		return CloudCategory::None;
 	}
 
@@ -2570,7 +2663,7 @@ namespace TEN::Sky
 		case WeatherPresetType::Thunderstorm:          return "Thunderstorm";
 		case WeatherPresetType::Nothing:               return "Nothing";
 		case WeatherPresetType::Aurora:                return "Aurora";
-		case WeatherPresetType::ReservedWaterSurface:  return "ReservedWaterSurface";
+		case WeatherPresetType::WaterSurface:  return "WaterSurface";
 		default:                                       return "Unknown";
 		}
 	}
@@ -2590,7 +2683,7 @@ namespace TEN::Sky
 			{ "Thunderstorm",          WeatherPresetType::Thunderstorm },
 			{ "Nothing",               WeatherPresetType::Nothing },
 			{ "Aurora",                WeatherPresetType::Aurora },
-			{ "ReservedWaterSurface",  WeatherPresetType::ReservedWaterSurface },
+			{ "WaterSurface",          WeatherPresetType::WaterSurface },
 		};
 
 		auto it = map.find(name);

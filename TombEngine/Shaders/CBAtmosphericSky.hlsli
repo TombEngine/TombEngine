@@ -102,6 +102,36 @@ cbuffer CBAtmosphericSky : register(b12)
     float  AtmoHorizonColorR;         // [0,1] Red channel of horizon ground color.
     float  AtmoHorizonColorG;         // [0,1] Green channel of horizon ground color.
     float  AtmoHorizonColorB;         // [0,1] Blue channel of horizon ground color.
+    //--
+    // Row 18 — Underwater sky core
+    float  AtmoUnderwaterSkyEnabled;     // 0 or 1.
+    float  AtmoUnderwaterSkyVisibility;  // [0,1] fade multiplier.
+    float  AtmoUnderwaterTime;           // Accumulated animation time.
+    float  AtmoUnderwaterIntensity;      // Overall brightness multiplier.
+    //--
+    // Row 19 — Underwater wave/color
+    float  AtmoUnderwaterWaveSize;
+    float  AtmoUnderwaterWaveSpeed;
+    float  AtmoUnderwaterWaveSharpness;
+    float  AtmoUnderwaterColorR;
+    //--
+    // Row 20 — Underwater color continued + geometry
+    float  AtmoUnderwaterColorG;
+    float  AtmoUnderwaterColorB;
+    float  AtmoUnderwaterLayerHeight;
+    float  AtmoUnderwaterHorizonSoftness;
+    //--
+    // Row 21 — Underwater depth/shafts
+    float  AtmoUnderwaterDepthFadeStr;
+    float  AtmoUnderwaterCausticStrength;
+    float  AtmoUnderwaterShaftStrength;
+    float  AtmoUnderwaterShaftSharpness;
+    //--
+    // Row 22 — Underwater distortion + wind advection
+    float  AtmoUnderwaterDistortionAmount;
+    float  AtmoUnderwaterDistortionStrength;
+    float  AtmoUnderwaterWindDirX;
+    float  AtmoUnderwaterWindDirY;
 };
 
 #endif // CB_ATMOSPHERIC_SKY_HLSLI
