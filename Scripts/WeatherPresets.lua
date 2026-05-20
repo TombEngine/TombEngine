@@ -482,3 +482,30 @@ godraySampleCount = 128,
     }
 })
 
+Flow.DefineWeatherPreset("Aurora", {
+    cloudA = {
+        category                        = "Aurora",
+        -- Core
+        intensity                       = 1.0000,
+        brightness                      = 1.5000,
+        height                          = 0.4500,
+        spread                          = 0.6000,
+        speed                           = 0.6790,
+        -- Color
+        colorPreset                     = "GreenClassic",
+        colorIntensity                  = 1.0000,
+        saturation                      = 1.0000,
+        -- Shape
+        bandSharpness                   = 2.0000,
+        noiseScale                      = 1.0000,
+        verticalStretch                 = 3.0000,
+        distortionStrength              = 0.3000,
+        -- Night visibility
+        nightFadeThreshold              = 0.1000,
+        horizonFade                     = 1.0000,
+        sunSuppressionStr               = 8.0000,
+        -- Advanced
+        layerCount                      = 3,
+        softness                        = 0.5000,
+    }
+})

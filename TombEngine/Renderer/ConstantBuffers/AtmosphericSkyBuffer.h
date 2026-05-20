@@ -135,5 +135,11 @@ namespace TEN::Renderer::ConstantBuffers
 		float   UnderwaterDistortionStrength; // Distortion amplitude multiplier.
 		float   UnderwaterWindDirX;           // Normalized X drift direction.
 		float   UnderwaterWindDirY;           // Normalized Y drift direction.
+		//--
+		// Row 23 — Per-quality level
+		float   SkyQualityLevel;              // 0=Low, 1=Medium, 2=High.
+		float   _PadRow23_1 = 0.0f;
+		float   _PadRow23_2 = 0.0f;
+		float   _PadRow23_3 = 0.0f;
 	};
 }

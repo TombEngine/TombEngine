@@ -7,10 +7,12 @@
 
 #include <sol/sol.hpp>
 #include "Game/Sky/SkyCloudSystem.h"
+#include "Renderer/Aurora/AuroraSettings.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Internal/ScriptAssert.h"
 
 using namespace TEN::Sky;
+using namespace TEN::Renderer::Aurora;
 
 namespace TEN::Scripting
 {
@@ -447,6 +449,64 @@ namespace TEN::Scripting
 					if (r.has_value()) uw.ColorR = std::clamp((float)(r.value() / 255.0), 0.0f, 1.0f);
 					if (g.has_value()) uw.ColorG = std::clamp((float)(g.value() / 255.0), 0.0f, 1.0f);
 					if (b.has_value()) uw.ColorB = std::clamp((float)(b.value() / 255.0), 0.0f, 1.0f);
+				}
+
+				// Aurora preset: parse aurora visual settings from cloudA and write
+				// them into the live AuroraSettings as defaults.
+				if (type == WeatherPresetType::Aurora && cloudATbl.has_value())
+				{
+					static const std::pair<const char*, AuroraColorPreset> COLOR_NAMES[] =
+					{
+						{ "GreenClassic",        AuroraColorPreset::GreenClassic        },
+						{ "GreenPurple",         AuroraColorPreset::GreenPurple         },
+						{ "GreenRedTips",        AuroraColorPreset::GreenRedTips        },
+						{ "BluePurple",          AuroraColorPreset::BluePurple          },
+						{ "StrongMulticolor",    AuroraColorPreset::StrongMulticolor    },
+						{ "TurquoiseBluePurple", AuroraColorPreset::TurquoiseBluePurple }
+					};
+
+					auto& aurora = g_Renderer.GetAuroraSettings();
+					sol::table ca = cloudATbl.value();
+					auto f = [&](const char* key, float fallback)
+					{
+						return (float)ca.get_or(key, (double)fallback);
+					};
+
+					aurora.Intensity          = std::clamp(f("intensity",          aurora.Intensity),   0.0f,  3.0f);
+					aurora.Brightness         = std::clamp(f("brightness",         aurora.Brightness),  0.0f,  5.0f);
+					aurora.Height             = std::clamp(f("height",             aurora.Height),      0.05f, 1.0f);
+					aurora.Spread             = std::clamp(f("spread",             aurora.Spread),      0.1f,  1.0f);
+					aurora.Speed              = std::clamp(f("speed",              aurora.Speed),       0.0f,  2.0f);
+					aurora.ColorIntensity     = std::clamp(f("colorIntensity",     aurora.ColorIntensity), 0.0f, 3.0f);
+					aurora.Saturation         = std::clamp(f("saturation",         aurora.Saturation),  0.0f,  2.0f);
+					aurora.BandSharpness      = std::clamp(f("bandSharpness",      aurora.BandSharpness), 0.5f, 8.0f);
+					aurora.NoiseScale         = std::clamp(f("noiseScale",         aurora.NoiseScale),  0.1f,  5.0f);
+					aurora.VerticalStretch    = std::clamp(f("verticalStretch",    aurora.VerticalStretch), 0.5f, 10.0f);
+					aurora.DistortionStrength = std::clamp(f("distortionStrength", aurora.DistortionStrength), 0.0f, 1.0f);
+					aurora.NightFadeThreshold = std::clamp(f("nightFadeThreshold", aurora.NightFadeThreshold), 0.0f, 0.5f);
+					aurora.HorizonFade        = std::clamp(f("horizonFade",        aurora.HorizonFade), 0.0f,  2.0f);
+					aurora.SunSuppressionStr  = std::clamp(f("sunSuppressionStr",  aurora.SunSuppressionStr), 1.0f, 20.0f);
+					aurora.Softness           = std::clamp(f("softness",           aurora.Softness),    0.0f,  1.0f);
+					aurora.LayerCount         = std::clamp((int)ca.get_or("layerCount", (double)aurora.LayerCount), 1, 5);
+
+					// Color preset: accept either an integer index or a name string.
+					sol::object colorObj = ca["colorPreset"];
+					if (colorObj.is<int>())
+					{
+						aurora.ColorPreset = std::clamp(colorObj.as<int>(), 0, (int)AuroraColorPreset::Count - 1);
+					}
+					else if (colorObj.is<std::string>())
+					{
+						auto colorStr = colorObj.as<std::string>();
+						for (const auto& kv : COLOR_NAMES)
+						{
+							if (colorStr == kv.first)
+							{
+								aurora.ColorPreset = (int)kv.second;
+								break;
+							}
+						}
+					}
 				}
 
 				g_SkyCloudSystem.OverridePreset(type, def);

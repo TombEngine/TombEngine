@@ -168,6 +168,7 @@ namespace TEN::Renderer
 			moon.BaseColorB + sunColor.z * sunTint);
 
 		// --- Fill constant buffer ---
+		_stAtmosphericSky.SkyQualityLevel = (float)GetCurrentSkyQuality();
 		_stAtmosphericSky.SunDirection    = sunDir;
 		_stAtmosphericSky.SunElevation    = sunElevation;
 
@@ -270,16 +271,7 @@ namespace TEN::Renderer
 		_stAtmosphericSky.AuroraNoiseScale        = aurora.NoiseScale;
 		_stAtmosphericSky.AuroraVerticalStretch   = aurora.VerticalStretch;
 		_stAtmosphericSky.AuroraDistortionStr     = aurora.DistortionStrength;
-		{
-			// Cap aurora layer count by the player's atmospheric sky quality.
-			int layerCount = aurora.LayerCount;
-			auto caps = GetSkyQualityCaps(GetCurrentSkyQuality());
-			if (layerCount > caps.AuroraLayerCountMax)
-				layerCount = caps.AuroraLayerCountMax;
-			if (layerCount < 1)
-				layerCount = 1;
-			_stAtmosphericSky.AuroraLayerCount    = (float)layerCount;
-		}
+		_stAtmosphericSky.AuroraLayerCount        = (float)std::max(1, aurora.LayerCount);
 		_stAtmosphericSky.AuroraSoftness          = aurora.Softness;
 		_stAtmosphericSky.AuroraColorPreset       = (float)aurora.ColorPreset;
 		_stAtmosphericSky.AuroraColorIntensity    = aurora.ColorIntensity;

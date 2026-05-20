@@ -309,6 +309,65 @@ namespace TEN::Sky
 	// Category == CloudCategory::Aurora (replaces volumetric cloud sliders).
 	// ====================================================================
 
+	static std::string BuildAuroraLua(const TEN::Renderer::Aurora::AuroraSettings& aurora)
+	{
+		static const char* COLOR_PRESET_NAMES[] =
+		{
+			"GreenClassic", "GreenPurple", "GreenRedTips",
+			"BluePurple", "StrongMulticolor", "TurquoiseBluePurple"
+		};
+		const char* colorName = (aurora.ColorPreset >= 0 && aurora.ColorPreset < 6)
+			? COLOR_PRESET_NAMES[aurora.ColorPreset]
+			: "GreenClassic";
+
+		std::ostringstream ss;
+		char vbuf[64];
+
+		const char* ind = "        ";
+		auto fld = [&](const char* key, const char* fmt, float val)
+		{
+			snprintf(vbuf, sizeof(vbuf), fmt, val);
+			ss << ind << std::left << std::setw(32) << (std::string(key) + " ") << "= " << vbuf << ",\n";
+		};
+		auto ifld = [&](const char* key, int val)
+		{
+			ss << ind << std::left << std::setw(32) << (std::string(key) + " ") << "= " << val << ",\n";
+		};
+		auto sfld = [&](const char* key, const char* val)
+		{
+			ss << ind << std::left << std::setw(32) << (std::string(key) + " ") << "= \"" << val << "\",\n";
+		};
+
+		ss << "Flow.DefineWeatherPreset(\"Aurora\", {\n";
+		ss << "    cloudA = {\n";
+		sfld("category",             "Aurora");
+		ss << ind << "-- Core\n";
+		fld( "intensity",            "%.4f", aurora.Intensity);
+		fld( "brightness",           "%.4f", aurora.Brightness);
+		fld( "height",               "%.4f", aurora.Height);
+		fld( "spread",               "%.4f", aurora.Spread);
+		fld( "speed",                "%.4f", aurora.Speed);
+		ss << ind << "-- Color\n";
+		sfld("colorPreset",          colorName);
+		fld( "colorIntensity",       "%.4f", aurora.ColorIntensity);
+		fld( "saturation",           "%.4f", aurora.Saturation);
+		ss << ind << "-- Shape\n";
+		fld( "bandSharpness",        "%.4f", aurora.BandSharpness);
+		fld( "noiseScale",           "%.4f", aurora.NoiseScale);
+		fld( "verticalStretch",      "%.4f", aurora.VerticalStretch);
+		fld( "distortionStrength",   "%.4f", aurora.DistortionStrength);
+		ss << ind << "-- Night visibility\n";
+		fld( "nightFadeThreshold",   "%.4f", aurora.NightFadeThreshold);
+		fld( "horizonFade",          "%.4f", aurora.HorizonFade);
+		fld( "sunSuppressionStr",    "%.4f", aurora.SunSuppressionStr);
+		ss << ind << "-- Advanced\n";
+		ifld("layerCount",           aurora.LayerCount);
+		fld( "softness",             "%.4f", aurora.Softness);
+		ss << "    }\n})\n";
+
+		return ss.str();
+	}
+
 	static void DrawAuroraControls()
 	{
 		using namespace TEN::Renderer;
@@ -403,6 +462,11 @@ namespace TEN::Sky
 		}
 
 		ImGui::Separator();
+		if (ImGui::Button("Copy to Lua (WeatherPreset.lua)##aurora"))
+			ImGui::SetClipboardText(BuildAuroraLua(aurora).c_str());
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Copies a ready-to-paste Flow.DefineWeatherPreset(\"Aurora\", {...}) snippet.");
+
 		if (ImGui::Button("Reset Aurora Defaults##layer"))
 		{
 			bool wasEnabled = aurora.Enabled;

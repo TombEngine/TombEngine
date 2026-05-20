@@ -671,6 +671,32 @@ float AuroraTriNoise2D(float2 p, float animTime)
     return clamp(1.0 / pow(rz * 29.0, 1.3), 0.0, 0.55);
 }
 
+// Low quality variant: 3 FBM octaves instead of 5.
+// Saves ~40% of per-call cost; curtain detail is coarser but shape is preserved.
+float AuroraTriNoise2DLow(float2 p, float animTime)
+{
+    float z = 1.8;
+    float z2 = 2.5;
+    float rz = 0.0;
+    p = mul(p, AuroraRotMat(p.x * 0.06));
+    float2 bp = p;
+
+    for (int i = 0; i < 3; i++)
+    {
+        float2 dg = AuroraTri2(bp * 1.85) * 0.75;
+        dg = mul(dg, AuroraRotMat(animTime));
+        p -= dg / z2;
+        bp *= 1.3;
+        z2 *= 0.45;
+        z *= 0.42;
+        p *= 1.21 + (rz - 1.0) * 0.02;
+        rz += AuroraTri(p.x + AuroraTri(p.y)) * z;
+        p = mul(p, -AuroraM2);
+    }
+
+    return clamp(1.0 / pow(rz * 29.0, 1.3), 0.0, 0.55);
+}
+
 // --- Simple 2D hash for per-pixel dithering ---
 float AuroraHash21(float2 n)
 {
@@ -793,7 +819,9 @@ float3 ComputeAurora(float3 viewDir, float2 screenPos)
             cos(p.x * 2.0 + animTime * 0.5)
         ) * AuroraDistortionStr * 0.12;
 
-        float rzt = AuroraTriNoise2D(p, animTime);
+        float rzt = (SkyQualityLevel < 0.5f)
+            ? AuroraTriNoise2DLow(p, animTime)
+            : AuroraTriNoise2D(p, animTime);
 
         // AuroraBandSharpness: higher = narrower, more intense curtain bands.
         rzt = pow(saturate(rzt / 0.55), AuroraBandSharpness) * 0.55;

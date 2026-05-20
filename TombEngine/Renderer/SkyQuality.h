@@ -5,7 +5,6 @@
 //
 // Single user-facing quality knob that scales all sky-related GPU effects:
 //   - AltocumulusMid volumetric clouds (step counts, render scale, temporal).
-//   - Aurora borealis (layer count).
 //   - God rays (radial sample count).
 //   - Volumetric dust storm (raymarch step count).
 //   - Atmospheric / underwater sky dome (reserved for future tuning).
@@ -31,7 +30,6 @@ namespace TEN
 	{
 		int GodRaySampleCountMax    = 128;
 		int DustStormStepCountMax   = 12;
-		int AuroraLayerCountMax     = 5;
 	};
 
 	inline SkyQualityCaps GetSkyQualityCaps(AtmosphericSkyQuality quality)
@@ -39,14 +37,14 @@ namespace TEN
 		switch (quality)
 		{
 		case AtmosphericSkyQuality::Low:
-			return SkyQualityCaps{ 20, 4, 1 };
+			return SkyQualityCaps{ 20, 4 };
 
 		case AtmosphericSkyQuality::Medium:
-			return SkyQualityCaps{ 40, 7, 2 };
+			return SkyQualityCaps{ 40, 7 };
 
 		case AtmosphericSkyQuality::High:
 		default:
-			return SkyQualityCaps{ 128, 12, 5 };
+			return SkyQualityCaps{ 128, 12 };
 		}
 	}
 

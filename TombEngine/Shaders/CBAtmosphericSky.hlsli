@@ -132,6 +132,12 @@ cbuffer CBAtmosphericSky : register(b12)
     float  AtmoUnderwaterDistortionStrength;
     float  AtmoUnderwaterWindDirX;
     float  AtmoUnderwaterWindDirY;
+    //--
+    // Row 23 — Per-quality level
+    float  SkyQualityLevel;              // 0=Low, 1=Medium, 2=High.
+    float  _PadRow23_1;
+    float  _PadRow23_2;
+    float  _PadRow23_3;
 };
 
 #endif // CB_ATMOSPHERIC_SKY_HLSLI
