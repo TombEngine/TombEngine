@@ -56,6 +56,11 @@ void Level::Register(sol::table& parent)
 //@mem layer2
 		"layer2", &Level::Layer2,
 
+/// (@{Flow.DynamicSky}) Dynamic sky container (atmospheric scattering sky dome,
+// aurora and volumetric cloud weather presets for this level).
+//@mem dynamicSky
+		"dynamicSky", &Level::DynamicSky,
+
 ///  (@{Flow.Horizon}) Primary horizon object.
 //@mem horizon1
 		"horizon1", &Level::Horizon1,
@@ -72,6 +77,20 @@ void Level::Register(sol::table& parent)
 /// (@{Flow.LensFlare}) Global lens flare.
 // @mem lensFlare
 		"lensFlare", &Level::LensFlare,
+
+/// (@{Flow.MoonLens}) Per-level moon position and enable state.
+// Use Flow.MoonLens(pitch, yaw) to enable the moon at a fixed sky position.
+// When omitted the moon is disabled for the level.
+//@mem moonLens
+		"moonLens", &Level::MoonLens,
+
+/// (@{Flow.DustStorm}) Per-level dust storm settings.
+//@mem dustStorm
+		"dustStorm", &Level::DustStorm,
+
+/// (@{Flow.UnderwaterSky}) Per-level underwater sky settings.
+//@mem underwaterSky
+		"underwaterSky", &Level::UnderwaterSky,
 
 /// (@{Flow.Fog}) Global distance fog, with specified RGB color and distance.
 // If not provided, distance fog will not be visible.
@@ -109,6 +128,19 @@ This setting does not affect ability to use weapons or flares.
 // As seen in TRC's Sinking Submarine.
 //@mem rumble
 		"rumble", &Level::Rumble,
+
+/// (float) Steady wind speed for this level. Range 0.0 - 8.0.
+// Drives Lara's ponytail, particles and AltocumulusMid cloud drift.
+// Set to a negative value (default) to keep any wind configured globally
+// from Settings.lua via Flow.SetCloudWind().
+//@mem windSpeed
+		"windSpeed", &Level::WindSpeed,
+
+/// (Vec2) Wind direction vector for this level.
+// x: +1 = East, -1 = West. y: +1 = South, -1 = North.
+// Used together with windSpeed.
+//@mem windDirection
+		"windDirection", &Level::WindDirection,
 
 /// (int) The maximum draw distance for level.
 // Given in sectors (blocks). Must be at least 4.
@@ -292,6 +324,11 @@ bool Level::GetLensFlareEnabled() const
 	return LensFlare.GetEnabled();
 }
 
+bool Level::GetLensFlareEffects() const
+{
+	return LensFlare.GetEffects();
+}
+
 int Level::GetLensFlareSunSpriteID() const
 {
 	return LensFlare.GetSunSpriteID();
@@ -310,6 +347,21 @@ short Level::GetLensFlareYaw() const
 Color Level::GetLensFlareColor() const
 {
 	return LensFlare.GetColor();
+}
+
+Color Level::GetLensFlareEvaluatedColor() const
+{
+	return LensFlare.EvaluateColor();
+}
+
+int Level::GetLensFlareColorMode() const
+{
+	return static_cast<int>(LensFlare.GetColorMode());
+}
+
+TEN::Scripting::LensFlare& Level::GetMutableLensFlare()
+{
+	return LensFlare;
 }
 
 int Level::GetStarfieldStarCount() const

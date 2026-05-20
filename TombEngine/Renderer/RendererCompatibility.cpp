@@ -22,12 +22,11 @@ using namespace TEN::Renderer::Graphics;
 
 namespace TEN::Renderer
 {
-	template class VertexBuffer<Vertex>;
-
 	bool Renderer::PrepareDataForTheRenderer()
 	{
 		TENLog("Preparing renderer...", LogLevel::Info);
 
+		_skinVertexBackups.clear();
 		_lastBlendMode = BlendMode::Unknown;
 		_lastCullMode = CullMode::Unknown;
 		_lastDepthState = DepthState::Unknown;
@@ -61,44 +60,47 @@ namespace TEN::Renderer
 		for (int i = 0; i < g_Level.AnimatedTextures.size(); i++)
 		{
 			TEXTURE* texture = &g_Level.AnimatedTextures[i];
-			Texture2D normal;
+			
+			std::unique_ptr<ITexture2D> color = _graphicsDevice->CreateTexture2DFromFileInMemory(
+				(int)texture->colorMapData.size(), texture->colorMapData.data());
+
+			std::unique_ptr<ITexture2D> normal;
 			if (texture->normalMapData.size() < 1)
 			{
 				normal = CreateDefaultTexture(emptyNormalMap);
 			}
 			else
 			{
-				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
+				normal = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->normalMapData.size(), texture->normalMapData.data());
 			}
 
-			Texture2D ORSH;
+			std::unique_ptr<ITexture2D> ORSH;
 			if (texture->ORSHMapData.size() < 1)
 			{
 				ORSH = CreateDefaultTexture(emptyORSHMap);
 			}
 			else
 			{
-				ORSH = Texture2D(_device.Get(), texture->ORSHMapData.data(), (int)texture->ORSHMapData.size());
+				ORSH = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->ORSHMapData.size(), texture->ORSHMapData.data());
 			}
 
-			Texture2D emissive;
-
+			std::unique_ptr<ITexture2D> emissive;
 			if (texture->emissiveMapData.size() < 1)
 			{
 				emissive = CreateDefaultTexture(emptyEmissiveMap);
 			}
 			else
 			{
-				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
+				emissive = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->emissiveMapData.size(), texture->emissiveMapData.data());
 			}
 
-			_animatedTextures[i] = std::make_tuple(
-				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
+			AtlasTexturesSet tex = std::make_tuple(
+				std::move(color),
 				std::move(normal),
 				std::move(ORSH),
 				std::move(emissive));
 
-			_context->Flush();
+			_animatedTextures[i] = std::move(tex);
 		}
 
 		std::transform(g_Level.AnimatedTexturesSequences.begin(), g_Level.AnimatedTexturesSequences.end(), std::back_inserter(_animatedTextureSets), [](ANIMATED_TEXTURES_SEQUENCE& sequence)
@@ -147,51 +149,54 @@ namespace TEN::Renderer
 		_roomTextures.resize(g_Level.RoomTextures.size());
 		for (int i = 0; i < g_Level.RoomTextures.size(); i++)
 		{
-			TEXTURE *texture = &g_Level.RoomTextures[i];
-			
-			Texture2D normal;
+			TEXTURE* texture = &g_Level.RoomTextures[i];
+
+			std::unique_ptr<ITexture2D> color = _graphicsDevice->CreateTexture2DFromFileInMemory(
+				(int)texture->colorMapData.size(), texture->colorMapData.data());
+
+				std::unique_ptr<ITexture2D> normal;
 			if (texture->normalMapData.size() < 1)
 			{
 				normal = CreateDefaultTexture(emptyNormalMap);
 			}
 			else
 			{
-				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
+				normal = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->normalMapData.size(), texture->normalMapData.data());
 			}
 
-			Texture2D ORSH;
+			std::unique_ptr<ITexture2D> ORSH;
 			if (texture->ORSHMapData.size() < 1)
 			{
 				ORSH = CreateDefaultTexture(emptyORSHMap);
 			}
 			else
 			{
-				ORSH = Texture2D(_device.Get(), texture->ORSHMapData.data(), (int)texture->ORSHMapData.size());
+				ORSH = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->ORSHMapData.size(), texture->ORSHMapData.data());
 			}
 
-			Texture2D emissive;
+			std::unique_ptr<ITexture2D> emissive;
 			if (texture->emissiveMapData.size() < 1)
 			{
 				emissive = CreateDefaultTexture(emptyEmissiveMap);
 			}
 			else
 			{
-				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
+				emissive = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->emissiveMapData.size(), texture->emissiveMapData.data());
 			}
 
-			_roomTextures[i] = std::make_tuple(
-				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
+			AtlasTexturesSet tex = std::make_tuple(
+				std::move(color),
 				std::move(normal),
 				std::move(ORSH),
 				std::move(emissive));
-
-			_context->Flush();
+			
+			_roomTextures[i] = std::move(tex);
 
 #ifdef DUMP_TEXTURES
 			char filename[255];
-			sprintf(filename, "dump\\room_%d.png", i);
+			sprintf(filename, "dump/room_%d.png", i);
 
-			std::ofstream outfile(filename, std::ios::out | std::ios::binary);
+			std::ofstream outfile(std::filesystem::path{filename}, std::ios::out | std::ios::binary);
 			outfile.write(reinterpret_cast<const char*>(texture->colorMapData.data()), texture->colorMapData.size());
 #endif
 		}
@@ -202,51 +207,54 @@ namespace TEN::Renderer
 		_moveablesTextures.resize(g_Level.MoveablesTextures.size());
 		for (int i = 0; i < g_Level.MoveablesTextures.size(); i++)
 		{
-			TEXTURE *texture = &g_Level.MoveablesTextures[i];
-			
-			Texture2D normal;
+			TEXTURE* texture = &g_Level.MoveablesTextures[i];
+
+			std::unique_ptr<ITexture2D> color = _graphicsDevice->CreateTexture2DFromFileInMemory(
+				(int)texture->colorMapData.size(), texture->colorMapData.data());
+
+				std::unique_ptr<ITexture2D> normal;
 			if (texture->normalMapData.size() < 1)
 			{
 				normal = CreateDefaultTexture(emptyNormalMap);
 			}
 			else
 			{
-				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
+				normal = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->normalMapData.size(), texture->normalMapData.data());
 			}
 
-			Texture2D ORSH;
+			std::unique_ptr<ITexture2D> ORSH;
 			if (texture->ORSHMapData.size() < 1)
 			{
 				ORSH = CreateDefaultTexture(emptyORSHMap);
 			}
 			else
 			{
-				ORSH = Texture2D(_device.Get(), texture->ORSHMapData.data(), (int)texture->ORSHMapData.size());
+				ORSH = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->ORSHMapData.size(), texture->ORSHMapData.data());
 			}
 
-			Texture2D emissive;
+			std::unique_ptr<ITexture2D> emissive;
 			if (texture->emissiveMapData.size() < 1)
 			{
 				emissive = CreateDefaultTexture(emptyEmissiveMap);
 			}
 			else
 			{
-				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
+				emissive = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->emissiveMapData.size(), texture->emissiveMapData.data());
 			}
 
-			_moveablesTextures[i] = std::make_tuple(
-				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
+			AtlasTexturesSet tex = std::make_tuple(
+				std::move(color),
 				std::move(normal),
 				std::move(ORSH),
 				std::move(emissive));
 
-			_context->Flush();
+			_moveablesTextures[i] = std::move(tex);
 
 #ifdef DUMP_TEXTURES
 			char filename[255];
-			sprintf(filename, "dump\\moveable_%d.png", i);
+			sprintf(filename, "dump/moveable_%d.png", i);
 
-			std::ofstream outfile(filename, std::ios::out | std::ios::binary);
+			std::ofstream outfile(std::filesystem::path{filename}, std::ios::out | std::ios::binary);
 			outfile.write(reinterpret_cast<const char*>(texture->colorMapData.data()), texture->colorMapData.size());
 #endif
 		}
@@ -257,51 +265,54 @@ namespace TEN::Renderer
 		_staticTextures.resize(g_Level.StaticsTextures.size());
 		for (int i = 0; i < g_Level.StaticsTextures.size(); i++)
 		{
-			TEXTURE *texture = &g_Level.StaticsTextures[i];
-			
-			Texture2D normal;
+			TEXTURE* texture = &g_Level.StaticsTextures[i];
+
+			std::unique_ptr<ITexture2D> color = _graphicsDevice->CreateTexture2DFromFileInMemory(
+				(int)texture->colorMapData.size(), texture->colorMapData.data());
+
+			std::unique_ptr<ITexture2D> normal;
 			if (texture->normalMapData.size() < 1)
 			{
 				normal = CreateDefaultTexture(emptyNormalMap);
 			}
 			else
 			{
-				normal = Texture2D(_device.Get(), texture->normalMapData.data(), (int)texture->normalMapData.size());
+				normal = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->normalMapData.size(), texture->normalMapData.data());
 			}
 
-			Texture2D ORSH;
+			std::unique_ptr<ITexture2D> ORSH;
 			if (texture->ORSHMapData.size() < 1)
 			{
 				ORSH = CreateDefaultTexture(emptyORSHMap);
 			}
 			else
 			{
-				ORSH = Texture2D(_device.Get(), texture->ORSHMapData.data(), (int)texture->ORSHMapData.size());
+				ORSH = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->ORSHMapData.size(), texture->ORSHMapData.data());
 			}
 
-			Texture2D emissive;
+			std::unique_ptr<ITexture2D> emissive;
 			if (texture->emissiveMapData.size() < 1)
 			{
 				emissive = CreateDefaultTexture(emptyEmissiveMap);
 			}
 			else
 			{
-				emissive = Texture2D(_device.Get(), texture->emissiveMapData.data(), (int)texture->emissiveMapData.size());
+				emissive = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture->emissiveMapData.size(), texture->emissiveMapData.data());
 			}
 
-			_staticTextures[i] = std::make_tuple(
-				Texture2D(_device.Get(), texture->colorMapData.data(), (int)texture->colorMapData.size()),
+			AtlasTexturesSet tex = std::make_tuple(
+				std::move(color),
 				std::move(normal),
 				std::move(ORSH),
 				std::move(emissive));
-
-			_context->Flush();
+			
+			_staticTextures[i] = std::move(tex);
 
 #ifdef DUMP_TEXTURES
 			char filename[255];
-			sprintf(filename, "dump\\static_%d.png", i);
+			sprintf(filename, "dump/static_%d.png", i);
 
-			std::ofstream outfile(filename, std::ios::out | std::ios::binary);
+			std::ofstream outfile(std::filesystem::path{filename}, std::ios::out | std::ios::binary);
 			outfile.write(reinterpret_cast<const char*>(texture->colorMapData.data()), texture->colorMapData.size());
 #endif
 		}
@@ -313,14 +324,13 @@ namespace TEN::Renderer
 		for (int i = 0; i < g_Level.SpritesTextures.size(); i++)
 		{
 			auto& texture = g_Level.SpritesTextures[i];
-			_spritesTextures[i] = Texture2D(_device.Get(), texture.colorMapData.data(), (int)texture.colorMapData.size());
-			_context->Flush();
+			_spritesTextures[i] = _graphicsDevice->CreateTexture2DFromFileInMemory((int)texture.colorMapData.size(), texture.colorMapData.data());
 		}
 
 		if (_spritesTextures.size() > 0)
 			TENLog("Generated " + std::to_string((int)_spritesTextures.size()) + " sprite atlases.", LogLevel::Info);
 
-		_skyTexture = Texture2D(_device.Get(), g_Level.SkyTexture.colorMapData.data(), (int)g_Level.SkyTexture.colorMapData.size());
+		_skyTexture = _graphicsDevice->CreateTexture2DFromFileInMemory((int)g_Level.SkyTexture.colorMapData.size(), g_Level.SkyTexture.colorMapData.data());
 
 		TENLog("Loaded sky texture.", LogLevel::Info);
 
@@ -470,7 +480,7 @@ namespace TEN::Renderer
 
 						vertex->Normal = PackVector3(poly.normals[k]);
 						vertex->UV = poly.textureCoordinates[k];
-						vertex->Color = VectorColorToRGBA_TempToVector4(Vector4(room.colors[index].x, room.colors[index].y, room.colors[index].z, 1.0f));
+						vertex->Color = VectorColorToRGBA(Vector4(room.colors[index].x, room.colors[index].y, room.colors[index].z, 1.0f));
 						vertex->Tangent = PackVector3(poly.tangents[k]);
 						vertex->FaceNormal = PackVector3(poly.normal);
 
@@ -593,8 +603,8 @@ namespace TEN::Renderer
 				}
 			}
 		}
-		_roomsVertexBuffer = VertexBuffer<Vertex>(_device.Get(), (int)_roomsVertices.size(), &_roomsVertices[0]);
-		_roomsIndexBuffer = IndexBuffer(_device.Get(), (int)_roomsIndices.size(), _roomsIndices.data());
+		_roomsVertexBuffer = _graphicsDevice->CreateVertexBuffer((int)_roomsVertices.size(), sizeof(Vertex), _roomsVertices.data());
+		_roomsIndexBuffer = _graphicsDevice->CreateIndexBuffer((int)_roomsIndices.size(), _roomsIndices.data());
 
 		std::for_each(std::execution::par_unseq,
 			_rooms.begin(),
@@ -776,217 +786,27 @@ namespace TEN::Renderer
 					// Fix player skin joints and hair units.
 					if (MoveablesIds[i] == ID_LARA_SKIN_JOINTS)
 					{
+						BackupObjectVertices(ID_LARA_SKIN_JOINTS);
 						isSkinPresent = true;
-						int bonesToCheck[2] = { 0, 0 };
 
-						const auto& objSkin = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
-
-						for (int j = 1; j < obj->nmeshes; j++)
-						{
-							const auto* jointMesh = moveable.ObjectMeshes[j];
-							const auto* jointBone = moveable.LinearizedBones[j];
-
-							bonesToCheck[0] = jointBone->Parent->Index;
-							bonesToCheck[1] = j;
-
-							for (int b1 = 0; b1 < jointMesh->Buckets.size(); b1++)
-							{
-								const auto* jointBucket = &jointMesh->Buckets[b1];
-
-								for (int v1 = 0; v1 < jointBucket->NumVertices; v1++)
-								{
-									auto* jointVertex = &_moveablesVertices[jointBucket->StartVertex + v1];
-
-									bool isDone = false;
-
-									for (int k = 0; k < 2; k++)
-									{
-										const auto* skinMesh = objSkin.ObjectMeshes[bonesToCheck[k]];
-										const auto* skinBone = objSkin.LinearizedBones[bonesToCheck[k]];
-
-										for (int b2 = 0; b2 < skinMesh->Buckets.size(); b2++)
-										{
-											const auto* skinBucket = &skinMesh->Buckets[b2];
-											for (int v2 = 0; v2 < skinBucket->NumVertices; v2++)
-											{
-												auto* skinVertex = &_moveablesVertices[skinBucket->StartVertex + v2];
-
-												// NOTE: Don't vectorize these coordinates, it breaks the connection in some cases. -- Lwmte, 21.12.24
-
-												int x1 = _moveablesVertices[jointBucket->StartVertex + v1].Position.x + jointBone->GlobalTranslation.x;
-												int y1 = _moveablesVertices[jointBucket->StartVertex + v1].Position.y + jointBone->GlobalTranslation.y;
-												int z1 = _moveablesVertices[jointBucket->StartVertex + v1].Position.z + jointBone->GlobalTranslation.z;
-
-												int x2 = _moveablesVertices[skinBucket->StartVertex + v2].Position.x + skinBone->GlobalTranslation.x;
-												int y2 = _moveablesVertices[skinBucket->StartVertex + v2].Position.y + skinBone->GlobalTranslation.y;
-												int z2 = _moveablesVertices[skinBucket->StartVertex + v2].Position.z + skinBone->GlobalTranslation.z;
-
-												// Joint vertex and skin mesh vertex are aligned, connect them.
-												if (abs(x1 - x2) < 2 && abs(y1 - y2) < 2 && abs(z1 - z2) < 2)
-												{
-													jointVertex->BoneIndex[0] = bonesToCheck[k];
-													jointVertex->Position = skinVertex->Position;
-													jointVertex->Normal = skinVertex->Normal;
-
-													isDone = true;
-													break;
-												}
-											}
-
-											if (isDone)
-												break;
-										}
-
-										if (isDone)
-											break;
-									}
-
-									// Joint vertex and skin mesh vertex are not connected, specify both bone weights for blending.
-									if (!isDone)
-									{
-										jointVertex->BoneIndex[0] = j;
-										jointVertex->BoneWeight[0] = 0.5f * UCHAR_MAX;
-										jointVertex->BoneIndex[1] = jointBone->Parent->Index;
-										jointVertex->BoneWeight[1] = 0.5f * UCHAR_MAX;
-									}
-								}
-							}
-						}
+						auto& jointsMoveable = moveable;
+						auto& skinMoveable = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
+						ProcessSkinJoints(jointsMoveable, const_cast<RendererObject&>(skinMoveable), *obj);
 					}
 					else if ((MoveablesIds[i] == ID_HAIR_PRIMARY || MoveablesIds[i] == ID_HAIR_SECONDARY) && isSkinPresent)
 					{
+						BackupObjectVertices((GAME_OBJECT_ID)MoveablesIds[i]);
 						bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
 						bool isSecond = isYoung && MoveablesIds[i] == ID_HAIR_SECONDARY;
-						const auto& skinObj = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
-						const auto& settings = g_GameFlow->GetSettings()->Hair;
-
-						// Flatten skinned hairmesh vertices to be transformed correctly.
-						// It's needed because every segment of hair skeleton uses global transform, and it's impossible
-						// to calculate correct offset for it dynamically.
-
-						if (obj->skinIndex != NO_VALUE)
-						{
-							const auto* hairMesh = GetMesh(obj->skinIndex);
-
-							for (const auto& bucket : hairMesh->Buckets)
-							{
-								for (int v = 0; v < bucket.NumVertices; v++)
-								{
-									auto& vertex = _moveablesVertices[bucket.StartVertex + v];
-
-									for (int w = 0; w < 4; w++)
-									{
-										if (vertex.BoneWeight[w] == 0)
-											continue;
-
-										auto offset = Vector3::Zero;
-
-										for (int b = 1; b < vertex.BoneIndex[w]; b++)
-											offset += GetJointOffset((GAME_OBJECT_ID)MoveablesIds[i], b, true);
-
-										vertex.Position += offset * (vertex.BoneWeight[w] / (float)UCHAR_MAX);
-									}
-								}
-							}
-						}
-
-						for (int j = 0; j < obj->nmeshes; j++)
-						{
-							const auto* currentMesh = moveable.ObjectMeshes[j];
-							const auto* currentBone = moveable.LinearizedBones[j];
-
-							for (const auto& currentBucket : currentMesh->Buckets)
-							{
-								for (int v1 = 0; v1 < currentBucket.NumVertices; v1++)
-								{
-									auto* currentVertex = &_moveablesVertices[currentBucket.StartVertex + v1];
-									currentVertex->BoneIndex[0] = j + 1;
-
-									// Link mesh 0 to root mesh.
-									if (j == 0)
-									{
-										const auto& vertices0 = isYoung ? settings[(int)PlayerHairType::YoungLeft].Indices :
-																		  settings[(int)PlayerHairType::Normal].Indices;
-
-										const auto& vertices1 = isYoung ? settings[(int)PlayerHairType::YoungRight].Indices :
-																		  settings[(int)PlayerHairType::Normal].Indices;
-
-										int rootMesh = HairUnit::GetRootMeshID(isSecond ? 1 : 0);
-
-										const auto* parentMesh = skinObj.ObjectMeshes[rootMesh];
-										const auto* parentBone = skinObj.LinearizedBones[rootMesh];
-
-										int currentOriginalIndex = GetOriginalIndex(currentVertex->AnimationFrameOffsetIndexHash);
-
-										// Link listed vertices.
-										if ((!isSecond && currentOriginalIndex >= vertices0.size()) ||
-											 (isSecond && currentOriginalIndex >= vertices1.size()))
-										{
-											continue;
-										}
-
-										for (int b2 = 0; b2 < parentMesh->Buckets.size(); b2++)
-										{
-											const auto* parentBucket = &parentMesh->Buckets[b2];
-											for (int v2 = 0; v2 < parentBucket->NumVertices; v2++)
-											{
-												const auto* parentVertex = &_moveablesVertices[parentBucket->StartVertex + v2];
-
-												int parentOriginalIndex = GetOriginalIndex(parentVertex->AnimationFrameOffsetIndexHash);
-
-												if ((parentOriginalIndex == vertices1[currentOriginalIndex] &&  isSecond) ||
-													(parentOriginalIndex == vertices0[currentOriginalIndex] && !isSecond))
-												{
-													currentVertex->BoneIndex[0] = 0;
-													currentVertex->Position = parentVertex->Position;
-													currentVertex->Normal = parentVertex->Normal;
-												}
-											}
-										}
-									}
-									// Link meshes > 0 to parent meshes.
-									else
-									{
-										const auto* parentMesh = moveable.ObjectMeshes[j - 1];
-										const auto* parentBone = moveable.LinearizedBones[j - 1];
-
-										for (int b2 = 0; b2 < parentMesh->Buckets.size(); b2++)
-										{
-											const auto* parentBucket = &parentMesh->Buckets[b2];
-											for (int v2 = 0; v2 < parentBucket->NumVertices; v2++)
-											{
-												auto* parentVertex = &_moveablesVertices[parentBucket->StartVertex + v2];
-
-												int x1 = _moveablesVertices[currentBucket.StartVertex + v1].Position.x + currentBone->GlobalTranslation.x;
-												int y1 = _moveablesVertices[currentBucket.StartVertex + v1].Position.y + currentBone->GlobalTranslation.y;
-												int z1 = _moveablesVertices[currentBucket.StartVertex + v1].Position.z + currentBone->GlobalTranslation.z;
-
-												int x2 = _moveablesVertices[parentBucket->StartVertex + v2].Position.x + parentBone->GlobalTranslation.x;
-												int y2 = _moveablesVertices[parentBucket->StartVertex + v2].Position.y + parentBone->GlobalTranslation.y;
-												int z2 = _moveablesVertices[parentBucket->StartVertex + v2].Position.z + parentBone->GlobalTranslation.z;
-
-												// FIXME: If a tolerance is used, a strange bug occurs where certain vertices don't connect. -- Lwmte, 14.12.2024
-
-												if (abs(x1 - x2) == 0 && abs(y1 - y2) == 0 && abs(z1 - z2) == 0)
-												{
-													currentVertex->BoneIndex[0] = j;
-													currentVertex->Position = parentVertex->Position;
-													currentVertex->Normal = parentVertex->Normal;
-													break;
-												}
-											}
-										}
-									}
-								}
-							}
-						}
+						auto& skinMoveable = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
+						ProcessHair((GAME_OBJECT_ID)MoveablesIds[i], const_cast<RendererObject&>(skinMoveable), isSecond);
 					}
 				}
 			}
 		}
 
-		_moveablesVertexBuffer = VertexBuffer<Vertex>(_device.Get(), (int)_moveablesVertices.size(), &_moveablesVertices[0]);
-		_moveablesIndexBuffer = IndexBuffer(_device.Get(), (int)_moveablesIndices.size(), _moveablesIndices.data());
+		_moveablesVertexBuffer = _graphicsDevice->CreateVertexBuffer((int)_moveablesVertices.size(), sizeof(Vertex), _moveablesVertices.data());
+		_moveablesIndexBuffer = _graphicsDevice->CreateIndexBuffer((int)_moveablesIndices.size(), _moveablesIndices.data());
 
 		TENLog("Preparing static mesh data...", LogLevel::Info);
 
@@ -1021,8 +841,8 @@ namespace TEN::Renderer
 			_staticObjects.push_back(newStaticObj);
 		}
 
-		_staticsVertexBuffer = VertexBuffer<Vertex>(_device.Get(), (int)_staticsVertices.size(), _staticsVertices.data());
-		_staticsIndexBuffer = IndexBuffer(_device.Get(), (int)_staticsIndices.size(), _staticsIndices.data());
+		_staticsVertexBuffer = _graphicsDevice->CreateVertexBuffer((int)_staticsVertices.size(), sizeof(Vertex), _staticsVertices.data());
+		_staticsIndexBuffer = _graphicsDevice->CreateIndexBuffer((int)_staticsIndices.size(), _staticsIndices.data());
 
 		TENLog("Preparing sprite data...", LogLevel::Info);
 		
@@ -1039,11 +859,11 @@ namespace TEN::Renderer
 			sprite.UV[1] = Vector2(oldSprite->x2, oldSprite->y2);
 			sprite.UV[2] = Vector2(oldSprite->x3, oldSprite->y3);
 			sprite.UV[3] = Vector2(oldSprite->x4, oldSprite->y4);
-			sprite.Texture = &_spritesTextures[oldSprite->tile];
-			sprite.Width = round((oldSprite->x2 - oldSprite->x1) * (float)sprite.Texture->Width + 1.0f);
-			sprite.Height = round((oldSprite->y3 - oldSprite->y2) * (float)sprite.Texture->Height + 1.0f);
-			sprite.X = oldSprite->x1 * sprite.Texture->Width;
-			sprite.Y = oldSprite->y1 * sprite.Texture->Height;
+			sprite.Texture = _spritesTextures[oldSprite->tile].get();
+			sprite.Width = round((oldSprite->x2 - oldSprite->x1) * (float)sprite.Texture->GetWidth() + 1.0f);
+			sprite.Height = round((oldSprite->y3 - oldSprite->y2) * (float)sprite.Texture->GetHeight() + 1.0f);
+			sprite.X = oldSprite->x1 * sprite.Texture->GetWidth();
+			sprite.Y = oldSprite->y1 * sprite.Texture->GetHeight();
 		}
 
 		for (int i = 0; i < SpriteSequencesIds.size(); i++)
@@ -1130,7 +950,7 @@ namespace TEN::Renderer
 					vertex.UV.x = poly->textureCoordinates[k].x;
 					vertex.UV.y = poly->textureCoordinates[k].y;
 					
-					vertex.Color = VectorColorToRGBA_TempToVector4(Vector4(meshPtr->colors[v].x, meshPtr->colors[v].y, meshPtr->colors[v].z, 1.0f));
+					vertex.Color = VectorColorToRGBA(Vector4(meshPtr->colors[v].x, meshPtr->colors[v].y, meshPtr->colors[v].z, 1.0f));
 					
 					vertex.BoneIndex  = meshPtr->boneIndices[v];
 					vertex.BoneWeight = meshPtr->boneWeights[v];
@@ -1203,5 +1023,292 @@ namespace TEN::Renderer
 		}
 
 		return mesh;
+	}
+
+	void Renderer::ProcessSkinJoints(RendererObject& jointsMoveable, RendererObject& skinMoveable, ObjectInfo& jointsObj)
+	{
+		for (int j = 1; j < jointsObj.nmeshes; j++)
+		{
+			const auto* jointMesh = jointsMoveable.ObjectMeshes[j];
+			const auto* jointBone = jointsMoveable.LinearizedBones[j];
+
+			int bonesToCheck[2] = { jointBone->Parent->Index, j };
+
+			for (int b1 = 0; b1 < jointMesh->Buckets.size(); b1++)
+			{
+				const auto* jointBucket = &jointMesh->Buckets[b1];
+
+				for (int v1 = 0; v1 < jointBucket->NumVertices; v1++)
+				{
+					auto* jointVertex = &_moveablesVertices[jointBucket->StartVertex + v1];
+					bool isDone = false;
+
+					for (int k = 0; k < 2; k++)
+					{
+						const auto* skinMesh = skinMoveable.ObjectMeshes[bonesToCheck[k]];
+						const auto* skinBone = skinMoveable.LinearizedBones[bonesToCheck[k]];
+
+						for (int b2 = 0; b2 < skinMesh->Buckets.size(); b2++)
+						{
+							const auto* skinBucket = &skinMesh->Buckets[b2];
+							for (int v2 = 0; v2 < skinBucket->NumVertices; v2++)
+							{
+								auto* skinVertex = &_moveablesVertices[skinBucket->StartVertex + v2];
+
+								int x1 = _moveablesVertices[jointBucket->StartVertex + v1].Position.x + jointBone->GlobalTranslation.x;
+								int y1 = _moveablesVertices[jointBucket->StartVertex + v1].Position.y + jointBone->GlobalTranslation.y;
+								int z1 = _moveablesVertices[jointBucket->StartVertex + v1].Position.z + jointBone->GlobalTranslation.z;
+
+								int x2 = _moveablesVertices[skinBucket->StartVertex + v2].Position.x + skinBone->GlobalTranslation.x;
+								int y2 = _moveablesVertices[skinBucket->StartVertex + v2].Position.y + skinBone->GlobalTranslation.y;
+								int z2 = _moveablesVertices[skinBucket->StartVertex + v2].Position.z + skinBone->GlobalTranslation.z;
+
+								if (abs(x1 - x2) < 2 && abs(y1 - y2) < 2 && abs(z1 - z2) < 2)
+								{
+									jointVertex->BoneIndex[0] = bonesToCheck[k];
+									jointVertex->Position = skinVertex->Position;
+									jointVertex->Normal = skinVertex->Normal;
+
+									isDone = true;
+									break;
+								}
+							}
+
+							if (isDone) break;
+						}
+
+						if (isDone) break;
+					}
+
+					if (!isDone)
+					{
+						jointVertex->BoneIndex[0] = j;
+						jointVertex->BoneWeight[0] = 0.5f * UCHAR_MAX;
+						jointVertex->BoneIndex[1] = jointBone->Parent->Index;
+						jointVertex->BoneWeight[1] = 0.5f * UCHAR_MAX;
+					}
+				}
+			}
+		}
+	}
+
+	void Renderer::ProcessHair(GAME_OBJECT_ID hairID, RendererObject& skinMoveable,	bool isSecond)
+	{
+		if (!_moveableObjects[hairID].has_value())
+			return;
+
+		auto* hairObj = &Objects[hairID];
+		if (!hairObj->loaded)
+			return;
+
+		auto& hairMoveable = _moveableObjects[hairID].value();
+		const auto& settings = g_GameFlow->GetSettings()->Hair;
+
+		// Flatten skinned hairmesh vertices.
+		if (hairObj->skinIndex != NO_VALUE)
+		{
+			const auto* hairMesh = GetMesh(hairObj->skinIndex);
+
+			for (const auto& bucket : hairMesh->Buckets)
+			{
+				for (int v = 0; v < bucket.NumVertices; v++)
+				{
+					auto& vertex = _moveablesVertices[bucket.StartVertex + v];
+
+					for (int w = 0; w < 4; w++)
+					{
+						if (vertex.BoneWeight[w] == 0)
+							continue;
+
+						auto offset = Vector3::Zero;
+
+						for (int b = 1; b < vertex.BoneIndex[w]; b++)
+							offset += GetJointOffset(hairID, b, true);
+
+						vertex.Position += offset * (vertex.BoneWeight[w] / (float)UCHAR_MAX);
+					}
+				}
+			}
+		}
+
+		bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
+
+		for (int j = 0; j < hairObj->nmeshes; j++)
+		{
+			const auto* currentMesh = hairMoveable.ObjectMeshes[j];
+			const auto* currentBone = hairMoveable.LinearizedBones[j];
+
+			for (const auto& currentBucket : currentMesh->Buckets)
+			{
+				for (int v1 = 0; v1 < currentBucket.NumVertices; v1++)
+				{
+					auto* currentVertex = &_moveablesVertices[currentBucket.StartVertex + v1];
+					currentVertex->BoneIndex[0] = j + 1;
+
+					if (j == 0)
+					{
+						const auto& vertices0 = isYoung ? settings[(int)PlayerHairType::YoungLeft].Indices :
+							settings[(int)PlayerHairType::Normal].Indices;
+						const auto& vertices1 = isYoung ? settings[(int)PlayerHairType::YoungRight].Indices :
+							settings[(int)PlayerHairType::Normal].Indices;
+
+						int rootMesh = HairUnit::GetRootMeshID(isSecond ? 1 : 0);
+						const auto* parentMesh = skinMoveable.ObjectMeshes[rootMesh];
+
+						int currentOriginalIndex = GetOriginalIndex(currentVertex->AnimationFrameOffsetIndexHash);
+
+						if ((!isSecond && currentOriginalIndex >= vertices0.size()) ||
+							(isSecond && currentOriginalIndex >= vertices1.size()))
+						{
+							continue;
+						}
+
+						for (int b2 = 0; b2 < parentMesh->Buckets.size(); b2++)
+						{
+							const auto* parentBucket = &parentMesh->Buckets[b2];
+							for (int v2 = 0; v2 < parentBucket->NumVertices; v2++)
+							{
+								const auto* parentVertex = &_moveablesVertices[parentBucket->StartVertex + v2];
+								int parentOriginalIndex = GetOriginalIndex(parentVertex->AnimationFrameOffsetIndexHash);
+
+								if ((parentOriginalIndex == vertices1[currentOriginalIndex] && isSecond) ||
+									(parentOriginalIndex == vertices0[currentOriginalIndex] && !isSecond))
+								{
+									currentVertex->BoneIndex[0] = 0;
+									currentVertex->Position = parentVertex->Position;
+									currentVertex->Normal = parentVertex->Normal;
+								}
+							}
+						}
+					}
+					else
+					{
+						const auto* parentMesh = hairMoveable.ObjectMeshes[j - 1];
+						const auto* parentBone = hairMoveable.LinearizedBones[j - 1];
+
+						for (int b2 = 0; b2 < parentMesh->Buckets.size(); b2++)
+						{
+							const auto* parentBucket = &parentMesh->Buckets[b2];
+							for (int v2 = 0; v2 < parentBucket->NumVertices; v2++)
+							{
+								auto* parentVertex = &_moveablesVertices[parentBucket->StartVertex + v2];
+
+								int x1 = _moveablesVertices[currentBucket.StartVertex + v1].Position.x + currentBone->GlobalTranslation.x;
+								int y1 = _moveablesVertices[currentBucket.StartVertex + v1].Position.y + currentBone->GlobalTranslation.y;
+								int z1 = _moveablesVertices[currentBucket.StartVertex + v1].Position.z + currentBone->GlobalTranslation.z;
+
+								int x2 = _moveablesVertices[parentBucket->StartVertex + v2].Position.x + parentBone->GlobalTranslation.x;
+								int y2 = _moveablesVertices[parentBucket->StartVertex + v2].Position.y + parentBone->GlobalTranslation.y;
+								int z2 = _moveablesVertices[parentBucket->StartVertex + v2].Position.z + parentBone->GlobalTranslation.z;
+
+								if (abs(x1 - x2) == 0 && abs(y1 - y2) == 0 && abs(z1 - z2) == 0)
+								{
+									currentVertex->BoneIndex[0] = j;
+									currentVertex->Position = parentVertex->Position;
+									currentVertex->Normal = parentVertex->Normal;
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Re-run vertex matching for player skin joints and hair objects at runtime, then re-upload the vertex buffer.
+	void Renderer::UpdatePlayerSkinVertices(GAME_OBJECT_ID skinID, GAME_OBJECT_ID skinJointsID, GAME_OBJECT_ID hairPrimaryID, GAME_OBJECT_ID hairSecondaryID)
+	{
+		if (!_moveableObjects[skinID].has_value() || !_moveableObjects[skinJointsID].has_value())
+			return;
+
+		// Restore original vertex data for objects that were previously processed.
+		RestoreObjectVertices(skinJointsID);
+		RestoreObjectVertices(hairPrimaryID);
+		RestoreObjectVertices(hairSecondaryID);
+
+		// Backup original vertex data for objects being processed for the first time.
+		BackupObjectVertices(skinJointsID);
+		BackupObjectVertices(hairPrimaryID);
+		BackupObjectVertices(hairSecondaryID);
+
+		auto& jointsMoveable = _moveableObjects[skinJointsID].value();
+		auto& skinMoveable = _moveableObjects[skinID].value();
+		auto* jointsObj = &Objects[skinJointsID];
+
+		ProcessSkinJoints(jointsMoveable, skinMoveable, *jointsObj);
+
+		bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
+		ProcessHair(hairPrimaryID, skinMoveable, false);
+		ProcessHair(hairSecondaryID, skinMoveable, isYoung);
+
+		// Re-upload modified vertex data to the GPU.
+		_graphicsDevice->UpdateVertexBuffer(_moveablesVertexBuffer.get(), 0, (int)_moveablesVertices.size(), _moveablesVertices.data());
+	}
+
+	void Renderer::BackupObjectVertices(GAME_OBJECT_ID objectID)
+	{
+		if (_skinVertexBackups.count((int)objectID))
+			return;
+
+		if (!_moveableObjects[objectID].has_value())
+			return;
+
+		auto& moveable = _moveableObjects[objectID].value();
+		auto& backup = _skinVertexBackups[(int)objectID];
+
+		for (auto* mesh : moveable.ObjectMeshes)
+		{
+			for (auto& bucket : mesh->Buckets)
+			{
+				for (int v = 0; v < bucket.NumVertices; v++)
+					backup.push_back(_moveablesVertices[bucket.StartVertex + v]);
+			}
+		}
+
+		auto* obj = &Objects[objectID];
+		if (obj->skinIndex != NO_VALUE)
+		{
+			auto* skinMesh = GetMesh(obj->skinIndex);
+			for (auto& bucket : skinMesh->Buckets)
+			{
+				for (int v = 0; v < bucket.NumVertices; v++)
+					backup.push_back(_moveablesVertices[bucket.StartVertex + v]);
+			}
+		}
+	}
+
+	void Renderer::RestoreObjectVertices(GAME_OBJECT_ID objectID)
+	{
+		auto it = _skinVertexBackups.find((int)objectID);
+		if (it == _skinVertexBackups.end())
+			return;
+
+		if (!_moveableObjects[objectID].has_value())
+			return;
+
+		auto& moveable = _moveableObjects[objectID].value();
+		auto& backup = it->second;
+		int idx = 0;
+
+		for (auto* mesh : moveable.ObjectMeshes)
+		{
+			for (auto& bucket : mesh->Buckets)
+			{
+				for (int v = 0; v < bucket.NumVertices; v++)
+					_moveablesVertices[bucket.StartVertex + v] = backup[idx++];
+			}
+		}
+
+		auto* obj = &Objects[objectID];
+		if (obj->skinIndex != NO_VALUE)
+		{
+			auto* skinMesh = GetMesh(obj->skinIndex);
+			for (auto& bucket : skinMesh->Buckets)
+			{
+				for (int v = 0; v < bucket.NumVertices; v++)
+					_moveablesVertices[bucket.StartVertex + v] = backup[idx++];
+			}
+		}
 	}
 }

@@ -25,6 +25,7 @@
 #include "Game/effects/Streamer.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
+#include "Game/Sky/SkyCloudSystem.h"
 #include "Game/Gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Hud/DrawItems/DisplayItem.h"
@@ -59,10 +60,10 @@
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/EngineMain.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/Video/Video.h"
-#include "Specific/winmain.h"
 
 using namespace std::chrono;
 using namespace TEN::Effects;
@@ -73,7 +74,9 @@ using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Environment;
+using namespace TEN::Sky;
 using namespace TEN::Effects::Explosion;
+using namespace TEN::Effects::Fireflies;
 using namespace TEN::Effects::Footprint;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Effects::Ripple;
@@ -82,6 +85,7 @@ using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Splash;
 using namespace TEN::Effects::Streamer;
 using namespace TEN::Entities::Creatures::TR3;
+using namespace TEN::Entities::Effects;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::Traps;
@@ -92,9 +96,7 @@ using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
 using namespace TEN::Renderer;
-using namespace TEN::Entities::Creatures::TR3;
-using namespace TEN::Entities::Effects;
-using namespace TEN::Effects::Fireflies;
+using namespace TEN::SpotCam;
 using namespace TEN::Video;
 
 constexpr auto DEATH_NO_INPUT_TIMEOUT = 10 * FPS;
@@ -191,6 +193,9 @@ GameStatus GamePhase(bool insideMenu)
 
 	// Update weather.
 	Weather.Update();
+
+	// Update layered sky/cloud/weather system.
+	g_SkyCloudSystem.Update(1.0f / 30.0f); // TEN runs at 30 ticks/sec.
 
 	// Update effects.
 	StreamerEffect.Update();
@@ -361,7 +366,7 @@ GameStatus ControlPhase(bool insideMenu)
 	}
 }
 
-unsigned CALLBACK GameMain(void *)
+int SDLCALL GameMain(void *)
 {
 	TENLog("Starting GameMain()...", LogLevel::Info);
 
@@ -389,9 +394,11 @@ unsigned CALLBACK GameMain(void *)
 	DeInitialize();
 	DoTheGame = false;
 
-	// Finish thread.
-	PostMessage(WindowsHandle, WM_CLOSE, NULL, NULL);
-	return true;
+	SDL_Event ev{};
+	ev.type = SDL_EVENT_QUIT;
+	SDL_PushEvent(&ev);
+
+	return 0;
 }
 
 GameStatus DoLevel(int levelIndex, bool loadGame)
@@ -540,6 +547,10 @@ void CleanUp()
 
 	// Resets lightning and wind parameters to avoid holding over previous weather to new level.
 	Weather.Clear();
+	g_Renderer.GetDustStormSettings() = {};
+
+	// Reset the layered sky/cloud/weather system to default state for the new level.
+	g_SkyCloudSystem.Initialize();
 
 	// Clear creatures, otherwise list of active creatures from previous level will spill into new level.
 	ActiveCreatures.clear();
@@ -581,7 +592,7 @@ void CleanUp()
 	g_Renderer.ClearScene();
 	g_Renderer.SetPostProcessMode(PostProcessMode::None);
 	g_Renderer.SetPostProcessStrength(1.0f);
-	g_Renderer.SetPostProcessTint(Vector3::One);
+	g_Renderer.SetPostProcessTint((Vector3)NEUTRAL_COLOR);
 
 	// Reset Itemcamera
 	ClearObjCamera();
@@ -639,6 +650,9 @@ void DeInitializeScripting(int levelIndex, GameStatus reason)
 	// If level index is 0, it means we are in a title level and game variables should be cleared.
 	if (levelIndex == 0)
 		g_GameScript->ResetScripts(true);
+
+	// Always save global variables on any script deinit event.
+	SaveGame::SaveGlobalVars();
 }
 
 void InitializeOrLoadGame(bool loadGame)
@@ -649,6 +663,10 @@ void InitializeOrLoadGame(bool loadGame)
 	// Restore game?
 	if (loadGame)
 	{
+		// Cancel any in-progress transitions before restoring the saved state,
+		// so the saved sky/preset takes effect cleanly without interference.
+		g_SkyCloudSystem.StopAllTransitions();
+
 		if (!SaveGame::Load(g_GameFlow->SelectedSaveGame))
 		{
 			NextLevel = g_GameFlow->GetNumLevels();
@@ -745,6 +763,10 @@ GameStatus DoGameLoop(int levelIndex)
 
 void EndGameLoop(int levelIndex, GameStatus reason)
 {
+	// Stop all sky transitions so the loading-screen screenshot and any remaining
+	// frames are free of mid-transition artefacts.
+	g_SkyCloudSystem.StopAllTransitions();
+
 	// Save last screenshot for loading screen.
 	g_Renderer.DumpGameScene();
 

@@ -43,7 +43,7 @@ namespace TEN::Renderer
 		_currentLineHeight;
 	}
 
-	void Renderer::PrintDebugMessage(LPCSTR msg, va_list args)
+	void Renderer::PrintDebugMessage(const char* msg, va_list args)
 	{
 		constexpr auto LINE_X_POS	= DISPLAY_SPACE_RES.x / 100;
 		constexpr auto LINE_SPACING = DISPLAY_SPACE_RES.y / 30;
@@ -51,14 +51,13 @@ namespace TEN::Renderer
 		constexpr auto SCALE		= 0.8f;
 
 		char buffer[255];
-		ZeroMemory(buffer, 255);
-		_vsprintf_l(buffer, msg, nullptr, args);
+		vsnprintf(buffer, sizeof(buffer), msg, args);
 		AddString(buffer, Vector2(LINE_X_POS, _currentLineHeight), COLOR, SCALE, (int)PrintStringFlags::Outline);
 
 		_currentLineHeight += LINE_SPACING;
 	}
 
-	void Renderer::PrintDebugMessage(LPCSTR msg, ...)
+	void Renderer::PrintDebugMessage(const char* msg, ...)
 	{
 		if (_isLocked)
 			return;

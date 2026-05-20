@@ -128,6 +128,13 @@ namespace TEN::Effects::Environment
 		int WindDAngle	= 0;
 		int WindCurrent = 0;
 
+		// Steady "base" wind set by debug menu / scripts.
+		// Range roughly [-MAX_BASE_WIND_STRENGTH, +MAX_BASE_WIND_STRENGTH] in each axis.
+		// At magnitude == MAX_BASE_WIND_STRENGTH the wind is strong enough to
+		// hold Lara's ponytail roughly horizontal.
+		float BaseWindX = 0.0f;
+		float BaseWindZ = 0.0f;
+
 		// Flash fader
 
 		Vector3 FlashColorBase = Vector3::Zero;
@@ -153,9 +160,19 @@ namespace TEN::Effects::Environment
 		LensFlare GlobalLensFlare = {};
 
 	public:
+		// Maximum magnitude (per axis and as overall magnitude) of the steady
+		// base wind. Picked so that at full strength Lara's ponytail flies out
+		// roughly horizontally. Mirrors the historical WindCurrent clamp.
+		static constexpr float MAX_BASE_WIND_STRENGTH = 9.0f;
+
 		EnvironmentController();
 
 		Vector3 Wind() { return Vector3(WindX / 2.0f, 0, WindZ / 2.0f); }
+
+		// Steady wind vector (no random fluctuation). Used by systems that
+		// need a constant, predictable wind such as the volumetric clouds.
+		Vector3 BaseWind() const { return Vector3(BaseWindX, 0.0f, BaseWindZ); }
+		void    SetBaseWind(float x, float z);
 		Vector3 FlashColor() { return FlashColorBase * sin((FlashProgress * PI) / 2.0f); }
 		Vector4 SkyColor(int index) { return SkyCurrentColor[std::clamp(index, 0, 1)]; }
 		short   SkyPosition(int index) { return SkyCurrentPosition[std::clamp(index, 0, 1)]; }

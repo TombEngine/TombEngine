@@ -1,8 +1,5 @@
 #include "framework.h"
 
-#include <codecvt>
-#include <filesystem>
-
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererEnums.h"
 #include "Specific/trutils.h"
@@ -78,10 +75,12 @@ namespace TEN::Utils
 		}
 		catch (std::exception ex)
 		{
-			return std::string{}; // Use exe path if any error is encountered.
+			// Use .EXE path if any error is encountered.
+			return std::string{};
 		}
 
-		return std::string{}; // Use exe path if no any assets were found.
+		// Use .EXE path if no any assets were found.
+		return std::string{};
 	}
 
 	std::string ToUpper(std::string string)
@@ -96,6 +95,62 @@ namespace TEN::Utils
 		return string;
 	}
 
+	std::string Trim(std::string string)
+	{
+		auto isNotSpace = [](unsigned char ch)
+		{
+			return !std::isspace(ch);
+		};
+
+		auto left = std::find_if(string.begin(), string.end(), isNotSpace);
+		string.erase(string.begin(), left);
+
+		auto right = std::find_if(string.rbegin(), string.rend(), isNotSpace).base();
+		string.erase(right, string.end());
+
+		return string;
+	}
+
+	bool StartsWith(const std::string& string, const char* pref)
+	{
+		return string.rfind(pref, 0) == 0;
+	}
+
+	int ToInt(const std::string& string, int fallback)
+	{
+		try
+		{
+			return std::stoi(string);
+		}
+		catch (...)
+		{
+			return fallback;
+		}
+	}
+
+	float ToFloat(const std::string& string, float fallback)
+	{
+		try
+		{
+			return std::stof(string);
+		}
+		catch (...)
+		{
+			return fallback;
+		}
+	}
+
+	bool ToBool(const std::string& string, bool fallback)
+	{
+		if (string == "1" || string == "true" || string == "True" || string == "TRUE")
+			return true;
+
+		if (string == "0" || string == "false" || string == "False" || string == "FALSE")
+			return false;
+
+		return fallback;
+	}
+
 	std::string ToString(const std::wstring& wString)
 	{
 		return ToString(wString.c_str());
@@ -103,24 +158,63 @@ namespace TEN::Utils
 
 	std::string ToString(const wchar_t* wString)
 	{
-        auto converter = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>();
-		return converter.to_bytes(std::wstring(wString));
+#ifdef SDL_PLATFORM_WIN32
+		if (!wString || !*wString)
+			return {};
+
+		int len = WideCharToMultiByte(CP_UTF8, 0, wString, -1, nullptr, 0, nullptr, nullptr);
+		if (len <= 0)
+			return {};
+
+		auto result = std::string(len - 1, '\0');
+		WideCharToMultiByte(CP_UTF8, 0, wString, -1, result.data(), len, nullptr, nullptr);
+		return result;
+#else
+		if (!wString || !*wString)
+			return {};
+
+		auto state = std::mbstate_t{};
+		auto len = std::wcsrtombs(nullptr, &wString, 0, &state);
+		if (len == static_cast<std::size_t>(-1))
+			return {};
+
+		auto result = std::string(len, '\0');
+		std::wcsrtombs(result.data(), &wString, len + 1, &state);
+		return result;
+#endif
 	}
 
-    std::wstring ToWString(const std::string& string)
-    {
-        auto cString = string.c_str();
-        int size = MultiByteToWideChar(CP_UTF8, 0, cString, (int)string.size(), nullptr, 0);
-        auto wString = std::wstring(size, 0);
-        MultiByteToWideChar(CP_UTF8, 0, cString, (int)strlen(cString), &wString[0], size);
-        return wString;
-    }
+	std::wstring ToWString(const std::string& string)
+	{
+#ifdef SDL_PLATFORM_WIN32
+		auto cString = string.c_str();
+		int size = MultiByteToWideChar(CP_UTF8, 0, cString, (int)string.size(), nullptr, 0);
+		auto wString = std::wstring(size, 0);
+		MultiByteToWideChar(CP_UTF8, 0, cString, (int)string.size(), &wString[0], size);
+		return wString;
+#else
+		if (string.empty())
+			return {};
+
+		auto cString = string.c_str();
+		auto state = std::mbstate_t{};
+		auto len = std::mbsrtowcs(nullptr, &cString, 0, &state);
+		if (len == static_cast<std::size_t>(-1))
+			return {};
+
+		auto wString = std::wstring(len, L'\0');
+		cString = string.c_str();
+		std::mbsrtowcs(wString.data(), &cString, len + 1, &state);
+		return wString;
+#endif
+	}
 
 	std::wstring ToWString(const char* cString)
 	{
-		wchar_t buffer[UCHAR_MAX];
-		std::mbstowcs(buffer, cString, UCHAR_MAX);
-		return std::wstring(buffer);
+		if (!cString || !*cString)
+			return {};
+
+		return ToWString(std::string(cString));
 	}
 
 	std::string ReplaceNewLineSymbols(const std::string& string)
@@ -137,20 +231,20 @@ namespace TEN::Utils
 		return result;
 	}
 
-	std::vector<std::wstring> SplitString(const std::wstring& string)
+	std::vector<std::string> SplitString(const std::string& string)
 	{
-		auto strings = std::vector<std::wstring>{};
+		auto strings = std::vector<std::string>{};
 
 		// Exit early if string is single line.
-		if (string.find(L'\n') == std::wstring::npos)
+		if (string.find('\n') == std::string::npos)
 		{
 			strings.push_back(string);
 			return strings;
 		}
 
-		std::wstring::size_type pos = 0;
-		std::wstring::size_type prev = 0;
-		while ((pos = string.find(L'\n', prev)) != std::string::npos)
+		std::string::size_type pos = 0;
+		std::string::size_type prev = 0;
+		while ((pos = string.find('\n', prev)) != std::string::npos)
 		{
 			strings.push_back(string.substr(prev, pos - prev));
 			prev = pos + 1;
@@ -159,12 +253,12 @@ namespace TEN::Utils
 		strings.push_back(string.substr(prev));
 		return strings;
 	}
-	
-	std::vector<std::wstring> SplitWords(const std::wstring& input)
+
+	std::vector<std::string> SplitWords(const std::string& input)
 	{
-		std::vector<std::wstring> words;
-		std::wstringstream stream(input);
-		std::wstring word;
+		std::vector<std::string> words;
+		std::stringstream stream(input);
+		std::string word;
 
 		while (stream >> word)
 			words.push_back(word);
@@ -222,83 +316,4 @@ namespace TEN::Utils
             ((1.0f - ndc.y) * DISPLAY_SPACE_RES.y) / 2);
     }
 
-	std::wstring GetBinaryPath(bool includeExeName)
-	{
-		static const int MAX_PATH_LENGTH = 1024;
-		wchar_t fileName[MAX_PATH_LENGTH] = {};
-
-		if (!GetModuleFileNameW(nullptr, fileName, MAX_PATH_LENGTH))
-		{
-			TENLog("Can't get current assembly path", LogLevel::Error);
-			return std::wstring();
-		}
-
-		auto result = std::wstring(fileName);
-		std::replace(result.begin(), result.end(), '\\', '/');
-
-		if (includeExeName)
-			return result;
-
-		size_t pos = result.find_last_of(L"/");
-		return (pos != std::wstring::npos) ? result.substr(0, pos + 1) : std::wstring();
-	}
-
-	std::vector<unsigned short> GetProductOrFileVersion(bool productVersion)
-	{
-		auto fileName = GetBinaryPath(true);
-
-		DWORD dummy;
-		DWORD size = GetFileVersionInfoSizeW(fileName.data(), &dummy);
-
-		if (size == 0)
-		{
-			TENLog("GetFileVersionInfoSizeW failed", LogLevel::Error);
-			return {};
-		}
-
-		std::unique_ptr<unsigned char[]> buffer(new unsigned char[size]);
-
-		// Load version info.
-		if (!GetFileVersionInfoW(fileName.data(), 0, size, buffer.get()))
-		{
-			TENLog("GetFileVersionInfoW failed", LogLevel::Error);
-			return {};
-		}
-
-		VS_FIXEDFILEINFO* info;
-		unsigned int infoSize;
-
-		if (!VerQueryValueW(buffer.get(), L"\\", (void**)&info, &infoSize))
-		{
-			TENLog("VerQueryValueW failed", LogLevel::Error);
-			return {};
-		}
-
-		if (infoSize != sizeof(VS_FIXEDFILEINFO))
-		{
-			TENLog("VerQueryValueW returned wrong size for VS_FIXEDFILEINFO", LogLevel::Error);
-			return {};
-		}
-
-		if (productVersion)
-		{
-			return
-			{
-				HIWORD(info->dwProductVersionMS),
-				LOWORD(info->dwProductVersionMS),
-				HIWORD(info->dwProductVersionLS),
-				LOWORD(info->dwProductVersionLS)
-			};
-		}
-		else
-		{
-			return
-			{
-				HIWORD(info->dwFileVersionMS),
-				LOWORD(info->dwFileVersionMS),
-				HIWORD(info->dwFileVersionLS),
-				LOWORD(info->dwFileVersionLS)
-			};
-		}
-	}
 }

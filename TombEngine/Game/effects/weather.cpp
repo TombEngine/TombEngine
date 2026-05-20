@@ -213,8 +213,23 @@ namespace TEN::Effects::Environment
 
 		WindAngle = (WindAngle + ((WindDAngle - WindAngle) >> 3)) & 0x1FFE;
 
-		WindX = WindCurrent * phd_sin(WindAngle << 3);
-		WindZ = WindCurrent * phd_cos(WindAngle << 3);
+		// Random walk gives a fluctuating component around zero.
+		float flucX = WindCurrent * phd_sin(WindAngle << 3);
+		float flucZ = WindCurrent * phd_cos(WindAngle << 3);
+
+		// Scale fluctuation by base wind strength so a calm sky (base == 0)
+		// produces no perceptible wind on particles or hair.
+		float baseMag = std::sqrt(BaseWindX * BaseWindX + BaseWindZ * BaseWindZ);
+		float flucScale = std::min(1.0f, baseMag / MAX_BASE_WIND_STRENGTH);
+
+		WindX = (int)(BaseWindX + flucX * flucScale);
+		WindZ = (int)(BaseWindZ + flucZ * flucScale);
+	}
+
+	void EnvironmentController::SetBaseWind(float x, float z)
+	{
+		BaseWindX = std::clamp(x, -MAX_BASE_WIND_STRENGTH, MAX_BASE_WIND_STRENGTH);
+		BaseWindZ = std::clamp(z, -MAX_BASE_WIND_STRENGTH, MAX_BASE_WIND_STRENGTH);
 	}
 
 	void EnvironmentController::UpdateFlash(const ScriptInterfaceLevel& level)
@@ -463,64 +478,61 @@ namespace TEN::Effects::Environment
 			switch (part.Type)
 			{
 			case WeatherType::Snow:
+			{
+				// Use the same stable BaseWind + quadratic curve as rain.
+				// SNOW_MAX_TARGET is tuned so that at full wind the movement angle
+				// matches rain (~10 deg from horizontal).
+				// Snow average effective vertical = ~26.5 units/frame (Velocity.y/2);
+				// target 150 gives atan(26.5/150) ~ 10 deg.
+				constexpr float SNOW_MAX_TARGET = 150.0f;
+				float fracX = BaseWindX / MAX_BASE_WIND_STRENGTH;
+				float fracZ = BaseWindZ / MAX_BASE_WIND_STRENGTH;
+				int snowTargetX = (int)(fracX * std::abs(fracX) * SNOW_MAX_TARGET);
+				int snowTargetZ = (int)(fracZ * std::abs(fracZ) * SNOW_MAX_TARGET);
 
-				if (part.Velocity.x < (WindX << 2))
-				{
-					part.Velocity.x += Random::GenerateFloat(0.5f, 2.5f);
-				}
-				else if (part.Velocity.x > (WindX << 2))
-				{
-					part.Velocity.x -= Random::GenerateFloat(0.5f, 2.5f);
-				}
+				// Clamped step: never overshoot the target (prevents zigzag at low wind).
+				float deltaX = (float)snowTargetX - part.Velocity.x;
+				float stepX  = Random::GenerateFloat(3.0f, 8.0f);
+				part.Velocity.x += (deltaX >= 0.0f) ? std::min(deltaX, stepX) : std::max(deltaX, -stepX);
 
-				if (part.Velocity.z < (WindZ << 2))
-				{
-					part.Velocity.z += Random::GenerateFloat(0.5f, 2.5f);
-				}
-				else if (part.Velocity.z > (WindZ << 2))
-				{
-					part.Velocity.z -= Random::GenerateFloat(0.5f, 2.5f);
-				}
+				float deltaZ = (float)snowTargetZ - part.Velocity.z;
+				float stepZ  = Random::GenerateFloat(3.0f, 8.0f);
+				part.Velocity.z += (deltaZ >= 0.0f) ? std::min(deltaZ, stepZ) : std::max(deltaZ, -stepZ);
 
 				if (part.Velocity.y < part.Size / 2)
 					part.Velocity.y += part.Size / 5.0f;
 
 				break;
+			}
 
 			case WeatherType::Rain:
+			{
+				// Use a quadratic curve for the target so the tilt effect builds
+				// slowly at low wind and only reaches near-horizontal at max wind.
+				// windFrac in [-1..1]; target = sign(frac) * frac^2 * MAX_TARGET.
+				// At full wind (BaseWindX = 9): target = 1080, angle ~= 10 deg from horizontal.
+				// At 50% wind (BaseWindX = 4.5): target = 270, angle ~= 35 deg from horizontal.
+				constexpr float RAIN_MAX_TARGET = 1080.0f;
+				float fracX = BaseWindX / MAX_BASE_WIND_STRENGTH;
+				float fracZ = BaseWindZ / MAX_BASE_WIND_STRENGTH;
+				int rainTargetX = (int)(fracX * std::abs(fracX) * RAIN_MAX_TARGET);
+				int rainTargetZ = (int)(fracZ * std::abs(fracZ) * RAIN_MAX_TARGET);
 
-				auto random = Random::GenerateInt();
-				if ((random & 3) != 3)
-				{
-					part.Velocity.x += (float)((random & 3) - 1);
-					if (part.Velocity.x < -4)
-					{
-						part.Velocity.x = -4;
-					}
-					else if (part.Velocity.x > 4)
-					{
-						part.Velocity.x = 4;
-					}
-				}
+				// Clamp step to distance so the particle never overshoots the target
+				// (eliminates zigzag at low wind where the target is near zero).
+				float deltaX = (float)rainTargetX - part.Velocity.x;
+				float stepX  = Random::GenerateFloat(60.0f, 100.0f);
+				part.Velocity.x += (deltaX >= 0.0f) ? std::min(deltaX, stepX) : std::max(deltaX, -stepX);
 
-				random = (random >> 2) & 3;
-				if (random != 3)
-				{
-					part.Velocity.z += random - 1;
-					if (part.Velocity.z < -4)
-					{
-						part.Velocity.z = -4;
-					}
-					else if (part.Velocity.z > 4)
-					{
-						part.Velocity.z = 4;
-					}
-				}
+				float deltaZ = (float)rainTargetZ - part.Velocity.z;
+				float stepZ  = Random::GenerateFloat(60.0f, 100.0f);
+				part.Velocity.z += (deltaZ >= 0.0f) ? std::min(deltaZ, stepZ) : std::max(deltaZ, -stepZ);
 
 				if (part.Velocity.y < part.Size * 2 * std::clamp(level.GetWeatherStrength(), 0.6f, 1.0f))
 					part.Velocity.y += part.Size / 5.0f;
 
 				break;
+			}
 			}
 		}
 	}
@@ -613,8 +625,18 @@ namespace TEN::Effects::Environment
 				float radius = Random::GenerateInt(0, dist);
 				short angle = Random::GenerateAngle();
 
-				auto xPos = Camera.pos.x + ((int)(phd_cos(angle) * radius));
-				auto zPos = Camera.pos.z + ((int)(phd_sin(angle) * radius));
+				// Shift the spawn circle upwind so that particles drift across and
+				// through the camera view instead of all blowing off to one side.
+				// At full wind the center moves by 90% of the spawn radius upwind.
+				float windMagSpawn = std::sqrt(BaseWindX * BaseWindX + BaseWindZ * BaseWindZ);
+				float windFracSpawn = (MAX_BASE_WIND_STRENGTH > 0.0f)
+					? std::min(1.0f, windMagSpawn / MAX_BASE_WIND_STRENGTH)
+					: 0.0f;
+				float spawnOffsetX = (windMagSpawn > 0.0f) ? (-BaseWindX / windMagSpawn) * windFracSpawn * dist * 0.9f : 0.0f;
+				float spawnOffsetZ = (windMagSpawn > 0.0f) ? (-BaseWindZ / windMagSpawn) * windFracSpawn * dist * 0.9f : 0.0f;
+
+				auto xPos = Camera.pos.x + (int)spawnOffsetX + ((int)(phd_cos(angle) * radius));
+				auto zPos = Camera.pos.z + (int)spawnOffsetZ + ((int)(phd_sin(angle) * radius));
 				auto yPos = Camera.pos.y - (BLOCK(3) + Random::GenerateInt() & (BLOCK(4) - 1));
 				
 				auto outsideRoom = IsRoomOutside(xPos, yPos, zPos);
@@ -649,8 +671,36 @@ namespace TEN::Effects::Environment
 					break;
 				}
 
-				part.Velocity.x = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
-				part.Velocity.z = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
+				// Set initial horizontal velocity in wind direction, pre-seeded close
+				// to the per-type steady-state target so particles look wind-blown
+				// immediately after spawning.
+				float windMag = std::sqrt(BaseWindX * BaseWindX + BaseWindZ * BaseWindZ);
+				float windFrac = (MAX_BASE_WIND_STRENGTH > 0.0f)
+					? std::min(1.0f, windMag / MAX_BASE_WIND_STRENGTH)
+					: 0.0f;
+
+				float initH;
+				if (part.Type == WeatherType::Rain)
+				{
+					// Match the quadratic curve used in UpdateWeather.
+					initH = windFrac * windFrac * 970.0f + Random::GenerateFloat(5.0f, 15.0f);
+				}
+				else
+				{
+					// Match the snow quadratic curve (SNOW_MAX_TARGET = 150).
+					initH = windFrac * windFrac * 130.0f + Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
+				}
+
+				if (windMag > 0.0f)
+				{
+					part.Velocity.x = (BaseWindX / windMag) * initH;
+					part.Velocity.z = (BaseWindZ / windMag) * initH;
+				}
+				else
+				{
+					part.Velocity.x = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
+					part.Velocity.z = Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
+				}
 
 				part.UniqueID = (int)Particles.size();
 				part.Type = level.GetWeatherType();

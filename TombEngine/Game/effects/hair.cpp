@@ -283,7 +283,7 @@ namespace TEN::Effects::Hair
 		{
 			// Let wind affect position.
 			if (TestEnvironment(ENV_FLAG_WIND, pointColl.GetRoomNumber()))
-				segment.Position += Weather.Wind() * 2;
+				segment.Position += Weather.Wind() * 3;
 
 			// Apply gravity.
 			segment.Position.y += g_GameFlow->GetSettings()->Physics.Gravity * HAIR_GRAVITY_COEFF;
@@ -343,7 +343,7 @@ namespace TEN::Effects::Hair
 		{
 			auto& unit = Units[i];
 
-			auto objectID = (i == 0) ? ID_HAIR_PRIMARY : ID_HAIR_SECONDARY;
+			auto objectID = (i == 0) ? Lara.Skin.HairPrimary : Lara.Skin.HairSecondary;
 			const auto& object = Objects[objectID];
 
 			unit.IsEnabled = (object.loaded && (i == 0 || (i == 1 && isYoung)));

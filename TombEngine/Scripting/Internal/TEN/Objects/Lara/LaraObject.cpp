@@ -3,16 +3,22 @@
 
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
+#include "Game/effects/Hair.h"
 #include "Game/Gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/effects/item_fx.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/lara_initialise.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara_one_gun.h"
 #include "Game/Lara/lara_two_guns.h"
+#include "Game/Setup.h"
 #include "Objects/Generic/Object/burning_torch.h"
+#include "Renderer/Renderer.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/TEN/Input/ActionIDs.h"
 #include "Scripting/Internal/TEN/Objects/Lara/AmmoTypes.h"
@@ -698,6 +704,129 @@ void LaraObject::SetWaterSkinStatus(int amount, TypeOrNil<bool> flag)
 		inventory.SmallWaterskin = amount;
 }
 
+/// Get the player's skin, skin joints, scream head and hair objects.
+// hair 2 is only returned if Young Lara is enabled in the settings.
+// @function LaraObject:GetSkin
+// @treturn table Array table: {skin, skinJoints, skinScream, hair1, hair2}.
+// @usage
+// local s = Lara:GetSkin()
+// print(s[1], s[2], s[3], s[4], s[5])
+sol::table LaraObject::GetSkin(sol::this_state s)
+{
+	sol::state_view lua(s);
+	auto* lara = GetLaraInfo(_moveable);
+	bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
+
+	auto t = lua.create_table();
+	t.add(lara->Skin.Skin);
+	t.add(lara->Skin.SkinJoints);
+	t.add(lara->Skin.SkinScream);
+	t.add(lara->Skin.HairPrimary);
+	
+	if (isYoung)
+		t.add(lara->Skin.HairSecondary);
+
+	return t;
+}
+
+/// Swap the skin, skin joints, scream head and hair objects.
+// Pass nil for any parameter to leave it unchanged.
+// The provided object IDs must correspond to objects loaded in the current level.
+// @function LaraObject:SetSkin
+// @tparam[opt] int skin Object ID of the replacement skin mesh.
+// @tparam[opt] int skinJoints Object ID of the replacement skin joints mesh.
+// @tparam[opt] int skinScream Object ID of the replacement scream head.
+// @tparam[opt] int hair1 Object ID of the replacement primary hair object.
+// @tparam[opt] int hair2 Object ID of the replacement secondary hair object.
+// @usage
+// Lara:SetSkin(TEN.Objects.ObjID.ANIMATING18, TEN.Objects.ObjID.ANIMATING19, TEN.Objects.ObjID.ANIMATING20, nil, nil)
+void LaraObject::SetSkin(sol::optional<GAME_OBJECT_ID> skin, sol::optional<GAME_OBJECT_ID> skinJoints, sol::optional<GAME_OBJECT_ID> skinScream, sol::optional<GAME_OBJECT_ID> hair1, sol::optional<GAME_OBJECT_ID> hair2)
+{
+
+	auto isValidObjectID = [](int id) -> bool
+	{
+		return (id > NO_VALUE && id < ID_NUMBER_OBJECTS && Objects[id].loaded);
+	};
+
+	auto* lara = GetLaraInfo(_moveable);
+
+	bool changed = false;
+
+	if (skin.has_value())
+	{
+		if (!isValidObjectID(skin.value()))
+		{
+			TENLog("SetSkin: skin object ID " + std::to_string(skin.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+		}
+		else
+		{
+			lara->Skin.Skin = skin.value();
+			changed = true;
+		}
+	}
+
+	if (skinJoints.has_value())
+	{
+		if (!isValidObjectID(skinJoints.value()))
+		{
+			TENLog("SetSkin: skinJoints object ID " + std::to_string(skinJoints.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+		}
+		else
+		{
+			lara->Skin.SkinJoints = skinJoints.value();
+			changed = true;
+		}
+	}
+
+	if (skinScream.has_value())
+	{
+		if (!isValidObjectID(skinScream.value()))
+		{
+			TENLog("SetSkin: skinScream object ID " + std::to_string(skinScream.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+		}
+		else
+		{
+			lara->Skin.SkinScream = skinScream.value();
+			changed = true;
+		}
+	}
+
+	if (hair1.has_value())
+	{
+		if (!isValidObjectID(hair1.value()))
+		{
+			TENLog("SetSkin: hair1 object ID " + std::to_string(hair1.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+		}
+		else
+		{
+			lara->Skin.HairPrimary = hair1.value();
+			changed = true;
+		}
+	}
+
+	if (hair2.has_value())
+	{
+		if (!isValidObjectID(hair2.value()))
+		{
+			TENLog("SetSkin: hair2 object ID " + std::to_string(hair2.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+		}
+		else
+		{
+			lara->Skin.HairSecondary = hair2.value();
+			changed = true;
+		}
+	}
+
+	if (!changed)
+		return;
+
+	InitializeLaraMeshes(_moveable, false);
+	TEN::Effects::Hair::HairEffect.Initialize();
+
+	g_Renderer.UpdatePlayerSkinVertices(lara->Skin.Skin, lara->Skin.SkinJoints,
+		lara->Skin.HairPrimary, lara->Skin.HairSecondary);
+}
+
 /// Align the player with a moveable object for interaction.
 // @function LaraObject:Interact
 // @tparam Objects.Moveable mov Moveable object to align the player with.
@@ -879,6 +1008,8 @@ void LaraObject::Register(sol::table& parent)
 		ScriptReserved_GetWaterStatus, & LaraObject::GetWaterStatus,
 		ScriptReserved_GetWaterSkinStatus, & LaraObject::GetWaterSkinStatus,
 		ScriptReserved_SetWaterSkinStatus, & LaraObject::SetWaterSkinStatus,
+		ScriptReserved_GetSkin, & LaraObject::GetSkin,
+		ScriptReserved_SetSkin, &LaraObject::SetSkin,
 		ScriptReserved_PlayerInteract, &LaraObject::Interact,
 		ScriptReserved_PlayerTestInteraction, &LaraObject::TestInteraction,
 
