@@ -515,7 +515,8 @@ namespace TEN::Renderer
 			IRenderSurface2D* renderTarget,
 			RenderView& renderView,
 			IRenderSurface2D* prevFrameRT = nullptr,
-			bool advanceState = true);
+			bool advanceState = true,
+			bool skipRaymarch = false);
 		void UpdateDualCloudLensFlareOcclusion(RenderView& renderView);
 		float ComputeSingleLayerOcclusion(
 			const VolumetricCloud::CloudRenderSettings& settings,

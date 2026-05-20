@@ -1486,9 +1486,10 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
     int   effectiveSteps = clamp((int)max((float)PrimaryStepCount, minStepsF), 1, stepCap);
     // On Low quality the adaptive formula above ignores PrimaryStepCount and can produce
     // 32-128 effective steps for thin layers such as CirrocumulusFew (thickness ~1164).
-    // Cap to 3x PrimaryStepCount so the quality-level step budget is respected.
+    // Cap to 4x PrimaryStepCount: overhead view exactly matches minStepsF (1164/32 = 36.4 units/step)
+    // which is the anti-banding threshold; angled views are still capped from 64+ to 32 steps.
     if (QualityLevel < 0.5f)
-        effectiveSteps = min(effectiveSteps, PrimaryStepCount * 3);
+        effectiveSteps = min(effectiveSteps, PrimaryStepCount * 4);
     // Low-absorption boost: when absorption is very small, each sample carries
     // little extinction and stochastic sampling noise is more visible.
     // Increase effective steps in that regime to average out point noise.
@@ -1580,6 +1581,33 @@ float4 RaymarchClouds(float3 rayOrigin, float3 rayDir, float2 screenPos)
 
     // Per-pixel start jitter: uniform [0,1] (see ScreenJitter comments).
     float jitter = ScreenJitter(jitterCloudPos, jitterScale);
+
+    // On Low quality WITHOUT temporal: the cloud-space hash in ScreenJitter shifts each
+    // frame as jitterCloudPos drifts with wind/EvoAccumOffset, causing visible edge
+    // shimmer. Override with a screen-space hash that is constant per render-target
+    // pixel regardless of camera movement or cloud motion: breaks march-plane banding
+    // without temporal flickering.
+    if (QualityLevel < 0.5f && TemporalEnabled == 0)
+    {
+        float2 hpS = frac(screenPos * float2(0.1031f, 0.1030f));
+        hpS += dot(hpS, hpS.yx + 33.33f);
+        jitter = frac(hpS.x * hpS.y);
+    }
+
+    // On Low quality WITH temporal: bypass the JitterStrength cap and use the full
+    // cloud-space hash at [0.10, 0.90] range instead of ScreenJitter's restricted
+    // ~[0.35, 0.65]. The wider range covers step-boundary regions that cause banding
+    // grooves at PrimaryStepCount=4. No per-frame shift is applied: the jitter is
+    // stable per cloud-space position, so reprojected history (same cloud region =
+    // same hash) is always consistent with fresh pixels — no checkerboard flicker.
+    // EvoAccumOffset drift provides a slow natural temporal variation over many frames.
+    if (QualityLevel < 0.5f && TemporalEnabled > 0)
+    {
+        float2 hpT = frac(jitterCloudPos * float2(443.897f, 441.423f));
+        hpT += dot(hpT, hpT.yx + 19.19f);
+        jitter = 0.10f + frac(hpT.x * hpT.y) * 0.80f;
+    }
+
     float t = tRange.x + stepSize * jitter;
 
     // Secondary cloud-space hash for per-step sub-jitter decorrelation.
@@ -2054,12 +2082,24 @@ float4 PS(VSOutput input) : SV_TARGET
 
                 if (skip)
                 {
-                    // Stability check: reuse only clear sky or solid cloud interior.
-                    // Mid-alpha silhouette band is forced to fresh raymarch because
-                    // cloud edges shift between frames from wind/evolution advection
-                    // (which reprojection does not correct â€” it only handles camera motion).
-                    bool stable = (reprojectedHistory.a <= TemporalAlphaLow ||
-                                   reprojectedHistory.a >= TemporalAlphaHigh);
+                    // Low quality: always use history for checkerboard skip pixels.
+                    // With PrimaryStepCount=4, fresh-raymarched edge pixels flicker;
+                    // returning history halves the per-pixel update rate and suppresses
+                    // coarse-step noise without additional GPU cost.
+                    if (QualityLevel < 0.5f)
+                        return reprojectedHistory;
+
+                    // When TemporalBlendFactor is high (fast-moving clouds or low FPS),
+                    // history has diverged from the current frame. Shrink the stability
+                    // zone toward {0,1} so fewer pixels take the skip — this prevents
+                    // the checkerboard dither pattern visible at higher render resolutions
+                    // (e.g. High at 0.5x scale) when adjacent frame-N and frame-(N-1)
+                    // cloud-core pixels differ noticeably.
+                    float stableMargin = saturate((TemporalBlendFactor - 0.3f) / 0.5f);
+                    float adjAlphaLow  = lerp(TemporalAlphaLow,  0.0f, stableMargin);
+                    float adjAlphaHigh = lerp(TemporalAlphaHigh, 1.0f, stableMargin);
+                    bool stable = (reprojectedHistory.a <= adjAlphaLow ||
+                                   reprojectedHistory.a >= adjAlphaHigh);
                     if (stable)
                         return reprojectedHistory;
                 }
@@ -2406,13 +2446,11 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     float4 cCenter = SceneColorTexture.Sample(SceneColorSamp, uv);
     float  refAlpha = cCenter.a;
 
-    // 5x5 bilateral upsampling filter.
-    // Quarter-res rendering (4x downscale per axis) needs a larger kernel to
-    // smooth out the coarser texel grid.  The 5x5 (25-tap) cross-bilateral
-    // filter still runs at full-res screen pixels but covers 5 cloud texels
-    // in each direction, producing smooth silhouettes even at 0.25x scale.
-    // At higher resolution scales (0.5, 0.75) the outer taps contribute less
-    // (spatialSigma2 naturally attenuates them) so quality degrades gracefully.
+    // Cross-bilateral upsampling filter: radius 2 (5x5, 25 taps) for Medium/High;
+    // radius 1 (3x3, 9 taps) for Low quality. Low quality has no temporal to
+    // smooth residual aliasing, so the tighter kernel is a worthwhile fps trade.
+    // spatialSigma2 is tuned for 5x5; the same value works for 3x3 since
+    // the outer taps it would suppress don't exist in the smaller kernel.
     const float spatialSigma2   = UpsampleSpatialSigma2; // tunable via debug menu (scaled for 5x5)
     const float alphaSigma2RGB  = 0.1568f; // 2 * 0.28^2 (RGB bilateral sigma = 0.28)
     const float alphaSigma2Edge = 0.50f; // 2 * 0.50^2 (alpha bilateral sigma = 0.50)
@@ -2422,11 +2460,23 @@ float4 PSCloudComposite(VSOutput input) : SV_TARGET
     float  accumWeightRGB = 0.0f;
     float  accumWeightA   = 0.0f;
 
-    [unroll]
-    for (int oy = -2; oy <= 2; oy++)
+    // Use 5x5 filter for all temporal modes (including Low with temporal enabled): the
+    // wider bilateral kernel smooths temporal noise and march-plane banding at cloud edges.
+    // 3x3 is only used for non-temporal Low quality where the stable jitter already
+    // suppresses shimmer and the tighter kernel is a worthwhile cost trade.
+    // On Low with temporal, the per-frame jitter randomisation produces residual stochastic
+    // grain that the EMA cannot fully resolve at PrimaryStepCount=4; a 7x7 kernel
+    // (filterRadius=3) wipes the remaining noise spatially.
+    int filterRadius;
+    if (QualityLevel < 0.5f)
+        filterRadius = (TemporalEnabled == 0) ? 1 : 4;
+    else
+        filterRadius = 2;
+    [loop]
+    for (int oy = -filterRadius; oy <= filterRadius; oy++)
     {
-        [unroll]
-        for (int ox = -2; ox <= 2; ox++)
+        [loop]
+        for (int ox = -filterRadius; ox <= filterRadius; ox++)
         {
             float2 offset = float2((float)ox, (float)oy);
             float4 tap = SceneColorTexture.Sample(SceneColorSamp, uv + offset * texelSize);

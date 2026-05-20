@@ -449,11 +449,12 @@ namespace TEN::Renderer
 		// alpha variance at thin cloud borders.  Widening the bands pushes more
 		// borderline pixels into the reuse path; motion still refreshes them
 		// because windEvoBoost ramps the EMA blend factor automatically.
+		// NOTE: more-specific (smaller step-count) checks must come first.
 		float alphaBandShrink = 0.0f;
-		if (q.PrimaryStepCount <= 12)
-			alphaBandShrink = 0.10f; // Medium: 0.05/0.95 -> 0.15/0.85
-		else if (q.PrimaryStepCount <= 8)
-			alphaBandShrink = 0.15f; // Low: even wider
+		if (q.PrimaryStepCount <= 8)
+			alphaBandShrink = 0.25f; // Low (<=8 steps): 0.05/0.95 -> 0.30/0.70; wider bands suppress coarse-step edge flicker
+		else if (q.PrimaryStepCount <= 16)
+			alphaBandShrink = 0.10f; // Medium (<=16 steps): 0.05/0.95 -> 0.15/0.85
 		_stVolumetricCloud.TemporalAlphaLow      = settings.TemporalAlphaLow + alphaBandShrink;
 		_stVolumetricCloud.TemporalAlphaHigh     = settings.TemporalAlphaHigh - alphaBandShrink;
 		_stVolumetricCloud.AltoJitterAbsCap      = settings.AltoJitterAbsCap;
@@ -533,6 +534,12 @@ namespace TEN::Renderer
 
 			float blend = kBaseBlend + std::max(windEvoBoost, camBoost);
 
+			// Low quality: cap blend factor to preserve temporal accumulation depth.
+			// Without this, windEvoBoost drives blend to 1.0, stableMargin hits 1.0,
+			// the unstable zone expands to [0,1], and the EMA stops smoothing edge pixels.
+			if (q.PrimaryStepCount <= 8)
+				blend = std::min(blend, 0.15f);
+
 			_stVolumetricCloud.TemporalBlendFactor = q.TemporalReprojection
 				? std::min(1.0f, blend)
 				: 1.0f;
@@ -540,7 +547,9 @@ namespace TEN::Renderer
 			// Hard guard: disable temporal only when wind/evolution has displaced cloud
 			// noise-space UVs so far that the reprojected history no longer matches.
 			// Camera rotation is intentionally excluded here — PrevViewProjection handles it.
-			if (noiseDisplace > 0.10f)
+			// Low quality (PrimaryStepCount<=8): skip guard; coarse-step noise requires temporal
+			// accumulation, and the blend-factor cap above prevents ghosting from stale history.
+			if (noiseDisplace > 0.10f && q.PrimaryStepCount > 8)
 				_stVolumetricCloud.TemporalEnabled = 0;
 		}
 

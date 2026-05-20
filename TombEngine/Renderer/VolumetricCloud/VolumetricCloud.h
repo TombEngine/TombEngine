@@ -297,14 +297,14 @@ namespace TEN::Renderer::VolumetricCloud
 		{
 		case CloudQualityPreset::Low:
 			return CloudQualityParams{
-				/*PrimaryStepCount=*/    8,
-				/*ShadowStepCount=*/     0,   // No shadow march on Low
+				/*PrimaryStepCount=*/    4,
+				/*ShadowStepCount=*/     0,   // No shadow march on Low.
 				/*OcclusionSampleSteps=*/4,
 				/*RenderResolutionScale=*/0.25f,
 				/*DetailNoiseEnabled=*/  false,
-				/*TemporalReprojection=*/false,
-				/*BlueNoiseJitter=*/     true,
-				/*TemporalBaseBlend=*/   0.30f  // Temporal disabled — value unused
+				/*TemporalReprojection=*/true,  // Checkerboard: half pixels per frame, same GPU reduction as 2x frame-skip without strobing.
+				/*BlueNoiseJitter=*/     false,
+				/*TemporalBaseBlend=*/   0.10f  // Standard EMA blend: stable cloud-space jitter means no per-frame noise to suppress.
 			};
 
 		case CloudQualityPreset::High:
@@ -312,7 +312,7 @@ namespace TEN::Renderer::VolumetricCloud
 				/*PrimaryStepCount=*/    32,
 				/*ShadowStepCount=*/     6,
 				/*OcclusionSampleSteps=*/8,
-				/*RenderResolutionScale=*/0.5f,   // was 0.75 — now half-res (balanced)
+				/*RenderResolutionScale=*/0.25f,   // was 0.75 — now half-res (balanced)
 				/*DetailNoiseEnabled=*/  true,
 				/*TemporalReprojection=*/true,
 				/*BlueNoiseJitter=*/     true,

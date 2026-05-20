@@ -105,6 +105,7 @@ namespace TEN::Renderer
 		// it copies the current RT to the prevFrameRT — order matters for temporal reprojection.
 		// Pre-clearing before DrawSingle would make prevFrameRT = black → temporal pixels read black.
 		// For INACTIVE layers we still clear here so the GodRay shader never reads stale cloud data.
+
 		// Draw Cloud Layer A (higher / thinner — composited first = behind).
 		if (g_SkyCloudSystem.IsCloudAActive())
 		{
@@ -132,7 +133,7 @@ namespace TEN::Renderer
 		else
 		{
 			_graphicsDevice->ClearRenderTarget2D(_cloudRenderTargetB->GetRenderTarget(), Colors::Transparent);
-			
+
 			// Reset temporal state so when the layer becomes active again it starts with
 			// fresh history (TemporalEnabled = warmup) rather than stale old-preset data.
 			_cloudStateB.FrameCounter = 0;
@@ -153,7 +154,8 @@ namespace TEN::Renderer
 		IRenderSurface2D* renderTarget,
 		RenderView& renderView,
 		IRenderSurface2D* prevFrameRT,
-		bool advanceState)
+		bool advanceState,
+		bool skipRaymarch)
 	{
 		// CloudType 1 = AltocumulusMid (volumetric), CloudType 2 = Aurora (rendered by separate pass — no cloud geometry).
 		bool layerIsAlto = (settings.CloudType == 1);
@@ -258,57 +260,67 @@ namespace TEN::Renderer
 		}
 
 		// --- Pass 1: Render to half-res target ---
-		// Temporal checkerboard: copy current RT to prevFrameRT before clearing,
-		// so the shader can read last frame's result for skipped checkerboard pixels.
-		if (prevFrameRT && state.ActiveQuality.TemporalReprojection)
-			_graphicsDevice->CopyTextureResource(renderTarget->GetRenderTarget(), prevFrameRT->GetRenderTarget());
-		
-		_graphicsDevice->ClearRenderTarget2D(renderTarget->GetRenderTarget(), Colors::Transparent);
-		_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
+		// On Low quality every other frame is skipped: the raymarch is omitted and the
+		// previous frame's half-res result is reused as-is. The composite pass still
+		// runs every frame so the clouds are always blended into the scene correctly.
+		// Temporal copy + clear are also skipped when skipRaymarch is true — the RT
+		// still holds the last rendered result, which is what Pass 2 should read.
 
-		RendererViewport cloudViewport = {};
-		cloudViewport.Width    = _stVolumetricCloud.CloudRenderSize.x;
-		cloudViewport.Height   = _stVolumetricCloud.CloudRenderSize.y;
-		cloudViewport.MinDepth = 0.0f;
-		cloudViewport.MaxDepth = 1.0f;
-		_graphicsDevice->SetViewport(cloudViewport);
-
+		// CB must be bound before Pass 2 regardless of whether Pass 1 runs.
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::VolumetricCloud, _cbVolumetricCloud.get());
 
-		if (_atmosphericSkySettings.Enabled)
+		if (!skipRaymarch)
 		{
-			auto* atmoSkyBuf = _cbAtmosphericSky.get();
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::AtmosphericSky, atmoSkyBuf);
+			// Temporal checkerboard: copy current RT to prevFrameRT before clearing,
+			// so the shader can read last frame's result for skipped checkerboard pixels.
+			if (prevFrameRT && state.ActiveQuality.TemporalReprojection)
+				_graphicsDevice->CopyTextureResource(renderTarget->GetRenderTarget(), prevFrameRT->GetRenderTarget());
+
+			_graphicsDevice->ClearRenderTarget2D(renderTarget->GetRenderTarget(), Colors::Transparent);
+			_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
+
+			RendererViewport cloudViewport = {};
+			cloudViewport.Width    = _stVolumetricCloud.CloudRenderSize.x;
+			cloudViewport.Height   = _stVolumetricCloud.CloudRenderSize.y;
+			cloudViewport.MinDepth = 0.0f;
+			cloudViewport.MaxDepth = 1.0f;
+			_graphicsDevice->SetViewport(cloudViewport);
+
+			if (_atmosphericSkySettings.Enabled)
+			{
+				auto* atmoSkyBuf = _cbAtmosphericSky.get();
+				BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::AtmosphericSky, atmoSkyBuf);
+			}
+
+			// Bind previous-frame RT as t1 for temporal pixel reuse.
+			if (prevFrameRT && state.ActiveQuality.TemporalReprojection)
+			{
+				BindRenderTargetAsTexture(TextureRegister::NormalMap, prevFrameRT->GetRenderTarget(),
+					SamplerStateRegister::LinearClamp);
+			}
+
+			SetBlendMode(BlendMode::Opaque);
+			SetCullMode(CullMode::CounterClockwise);
+			SetDepthState(DepthState::None);
+
+			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+			_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
+			_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
+
+			_shaders.Bind(Shader::VolumetricClouds);
+
+			// Bind pre-computed noise textures at t5, t6.
+			_cloudNoiseTextures.Bind(_graphicsDevice.get());
+
+			DrawTriangles(3, 0);
+
+			_cloudNoiseTextures.Unbind(_graphicsDevice.get());
+
+			// Unbind t1 (prev-frame RT) before composite pass.
+			if (prevFrameRT && state.ActiveQuality.TemporalReprojection)
+				_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::NormalMap);
 		}
-
-		// Bind previous-frame RT as t1 for temporal pixel reuse.
-		if (prevFrameRT && state.ActiveQuality.TemporalReprojection)
-		{
-			BindRenderTargetAsTexture(TextureRegister::NormalMap, prevFrameRT->GetRenderTarget(),
-				SamplerStateRegister::LinearClamp);
-		}
-
-		SetBlendMode(BlendMode::Opaque);
-		SetCullMode(CullMode::CounterClockwise);
-		SetDepthState(DepthState::None);
-
-		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
-		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
-		
-		_shaders.Bind(Shader::VolumetricClouds);
-
-		// Bind pre-computed noise textures at t5, t6.
-		_cloudNoiseTextures.Bind(_graphicsDevice.get());
-
-		DrawTriangles(3, 0);
-
-		_cloudNoiseTextures.Unbind(_graphicsDevice.get());
-
-		// Unbind t1 (prev-frame RT) before composite pass.
-		if (prevFrameRT && state.ActiveQuality.TemporalReprojection)
-			_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::NormalMap);
 
 		// --- Pass 2: Composite over scene ---
 		_graphicsDevice->SetViewport(renderView.Viewport);
