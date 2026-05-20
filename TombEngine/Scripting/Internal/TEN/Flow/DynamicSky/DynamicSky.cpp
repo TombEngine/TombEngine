@@ -208,6 +208,27 @@ namespace TEN::Scripting
 	// DynamicSkyAurora
 	// ====================================================================
 
+	void DynamicSkyAurora::SetColorLua(sol::object obj)
+	{
+		if (obj.is<std::string>())
+		{
+			Color          = obj.as<std::string>();
+			HasCustomColor = false;
+		}
+		else if (obj.is<sol::table>())
+		{
+			sol::table tbl = obj.as<sol::table>();
+			sol::object first  = tbl[1];
+			sol::object second = tbl[2];
+			if (first.is<ScriptColor>() && second.is<ScriptColor>())
+			{
+				CustomColorTop    = first.as<ScriptColor>();
+				CustomColorBottom = second.as<ScriptColor>();
+				HasCustomColor    = true;
+			}
+		}
+	}
+
 	void DynamicSkyAurora::Register(sol::table& parent)
 	{
 		parent.new_usertype<DynamicSkyAurora>(
@@ -220,11 +241,12 @@ namespace TEN::Scripting
 			// @mem enabled
 			"enabled", &DynamicSkyAurora::Enabled,
 
-			/// (string) Aurora color preset name.
-			// Valid: "GreenClassic", "GreenPurple", "GreenRedTips", "BluePurple",
+			/// (string|table) Aurora color: either a preset name string or a two-element table
+			// { Color(topR, topG, topB), Color(botR, botG, botB) } for a custom top/bottom gradient.
+			// Valid preset names: "GreenClassic", "GreenPurple", "GreenRedTips", "BluePurple",
 			// "StrongMulticolor", "TurquoiseBluePurple".
 			// @mem color
-			"color", &DynamicSkyAurora::Color,
+			"color", sol::property(&DynamicSkyAurora::GetColorLua, &DynamicSkyAurora::SetColorLua),
 
 			/// (float) Aurora animation drift speed. Range 0.0 - 2.0.
 			// Negative value (default) keeps the engine default of 0.679.

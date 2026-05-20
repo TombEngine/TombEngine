@@ -48,6 +48,11 @@ namespace TEN::Renderer::Aurora
 		float ColorIntensity       = 1.0f;     // [0, 3]     Color saturation/vibrancy multiplier.
 		float Saturation           = 1.0f;     // [0, 2]     Color saturation (1 = normal, 0 = grayscale).
 
+		// Custom color mode: overrides the preset gradient with user-defined bottom/top colors.
+		bool  UseCustomColor           = false;
+		float CustomColorBottom[3]     = { 0.1f, 0.8f, 0.2f };  // RGB [0,1], default = GreenClassic bottom.
+		float CustomColorTop[3]        = { 0.05f, 0.4f, 0.1f }; // RGB [0,1], default = GreenClassic top.
+
 		// --- Shape ---
 		float BandSharpness        = 2.0f;     // [0.5, 8]   Sharpness of individual aurora bands.
 		float NoiseScale           = 1.0f;     // [0.1, 5]   Scale of the noise pattern.

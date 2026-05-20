@@ -289,6 +289,13 @@ namespace TEN::Renderer
 		_stAtmosphericSky.AuroraHorizonFade       = aurora.HorizonFade;
 		_stAtmosphericSky.AuroraSunSuppressionStr = aurora.SunSuppressionStr;
 		_stAtmosphericSky.AuroraTime              = _auroraTime;
+		_stAtmosphericSky.AuroraUseCustomColor    = aurora.UseCustomColor ? 1.0f : 0.0f;
+		_stAtmosphericSky.AuroraCustomBottomR     = aurora.CustomColorBottom[0];
+		_stAtmosphericSky.AuroraCustomBottomG     = aurora.CustomColorBottom[1];
+		_stAtmosphericSky.AuroraCustomBottomB     = aurora.CustomColorBottom[2];
+		_stAtmosphericSky.AuroraCustomTopR        = aurora.CustomColorTop[0];
+		_stAtmosphericSky.AuroraCustomTopG        = aurora.CustomColorTop[1];
+		_stAtmosphericSky.AuroraCustomTopB        = aurora.CustomColorTop[2];
 
 		// Cloud disc occlusion: 1 - transmittance, clamped. Suppresses sun disc in shader
 		// when clouds cover the sun position (prev-frame readback, 1-frame latency is fine).

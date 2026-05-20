@@ -551,6 +551,21 @@ namespace TEN::Sky
 					}
 				}
 
+				if (aurora.HasCustomColor)
+				{
+					auroraSettings.UseCustomColor       = true;
+					auroraSettings.CustomColorTop[0]    = std::clamp(aurora.CustomColorTop.GetR() / 255.0f, 0.0f, 1.0f);
+					auroraSettings.CustomColorTop[1]    = std::clamp(aurora.CustomColorTop.GetG() / 255.0f, 0.0f, 1.0f);
+					auroraSettings.CustomColorTop[2]    = std::clamp(aurora.CustomColorTop.GetB() / 255.0f, 0.0f, 1.0f);
+					auroraSettings.CustomColorBottom[0] = std::clamp(aurora.CustomColorBottom.GetR() / 255.0f, 0.0f, 1.0f);
+					auroraSettings.CustomColorBottom[1] = std::clamp(aurora.CustomColorBottom.GetG() / 255.0f, 0.0f, 1.0f);
+					auroraSettings.CustomColorBottom[2] = std::clamp(aurora.CustomColorBottom.GetB() / 255.0f, 0.0f, 1.0f);
+				}
+				else
+				{
+					auroraSettings.UseCustomColor = false;
+				}
+
 				if (aurora.Speed >= 0.0f)
 					auroraSettings.Speed = aurora.Speed;
 

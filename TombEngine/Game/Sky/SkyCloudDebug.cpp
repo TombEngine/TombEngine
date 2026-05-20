@@ -368,6 +368,43 @@ namespace TEN::Sky
 		return ss.str();
 	}
 
+	static std::string BuildAuroraPropertyLua(const TEN::Renderer::Aurora::AuroraSettings& aurora)
+	{
+		static const char* COLOR_PRESET_NAMES[] =
+		{
+			"GreenClassic", "GreenPurple", "GreenRedTips",
+			"BluePurple", "StrongMulticolor", "TurquoiseBluePurple"
+		};
+
+		std::string levelName = GetCurrentLevelLuaName();
+		std::ostringstream ss;
+
+		if (aurora.UseCustomColor)
+		{
+			auto toU8 = [](float v) -> int { return std::clamp((int)std::round(v * 255.0f), 0, 255); };
+			ss << levelName << ".dynamicSky.Aurora.color = { Color("
+				<< toU8(aurora.CustomColorTop[0]) << ", "
+				<< toU8(aurora.CustomColorTop[1]) << ", "
+				<< toU8(aurora.CustomColorTop[2]) << "), Color("
+				<< toU8(aurora.CustomColorBottom[0]) << ", "
+				<< toU8(aurora.CustomColorBottom[1]) << ", "
+				<< toU8(aurora.CustomColorBottom[2]) << ") }\n";
+		}
+		else
+		{
+			const char* colorName = (aurora.ColorPreset >= 0 && aurora.ColorPreset < 6)
+				? COLOR_PRESET_NAMES[aurora.ColorPreset]
+				: "GreenClassic";
+			ss << levelName << ".dynamicSky.Aurora.color = \"" << colorName << "\"\n";
+		}
+
+		char buf[64];
+		snprintf(buf, sizeof(buf), "%.4f", aurora.Speed);
+		ss << levelName << ".dynamicSky.Aurora.speed = " << buf << "\n";
+
+		return ss.str();
+	}
+
 	static void DrawAuroraControls()
 	{
 		using namespace TEN::Renderer;
@@ -407,20 +444,47 @@ namespace TEN::Sky
 			ImGui::SliderFloat("Brightness##aurora",   &aurora.Brightness, 0.0f,  5.0f,  "%.3f");
 			ImGui::SliderFloat("Height##aurora",       &aurora.Height,     0.05f, 1.0f,  "%.3f");
 			ImGui::TextDisabled("  Zenith coverage: 1.0 = full canopy, 0.1 = near-horizon band");
-			ImGui::SliderFloat("Speed##aurora",        &aurora.Speed,      0.0f,  2.0f,  "%.3f");
 			ImGui::Unindent(8.0f);
 		}
 
-		if (ImGui::CollapsingHeader("Color##aurora", ImGuiTreeNodeFlags_DefaultOpen))
+		if (ImGui::CollapsingHeader("Color / Speed##aurora", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			ImGui::Indent(8.0f);
-			static const char* auroraPresetNames[] = {
-				"0: Green Classic", "1: Green + Purple", "2: Green + Red Tips",
-				"3: Blue / Purple", "4: Strong Multicolor", "5: Turquoise / Blue / Purple"
-			};
-			ImGui::Combo("Color Preset##aurora", &aurora.ColorPreset, auroraPresetNames, IM_ARRAYSIZE(auroraPresetNames));
-			ImGui::SliderFloat("Color Intensity##aurora", &aurora.ColorIntensity, 0.0f, 3.0f, "%.3f");
-			ImGui::SliderFloat("Saturation##aurora",      &aurora.Saturation,     0.0f, 2.0f, "%.3f");
+
+			// --- Preset Color ---
+			if (ImGui::TreeNodeEx("Preset Color##aurora", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				static const char* auroraPresetNames[] = {
+					"0: Green Classic", "1: Green + Purple", "2: Green + Red Tips",
+					"3: Blue / Purple", "4: Strong Multicolor", "5: Turquoise / Blue / Purple"
+				};
+				ImGui::Combo("Color Preset##aurora", &aurora.ColorPreset, auroraPresetNames, IM_ARRAYSIZE(auroraPresetNames));
+				ImGui::SliderFloat("Color Intensity##aurora", &aurora.ColorIntensity, 0.0f, 3.0f, "%.3f");
+				ImGui::SliderFloat("Saturation##aurora",      &aurora.Saturation,     0.0f, 2.0f, "%.3f");
+				ImGui::TreePop();
+			}
+
+			// --- Custom Color ---
+			if (ImGui::TreeNodeEx("Custom Color##aurora", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::Checkbox("Use Custom Color##aurora", &aurora.UseCustomColor);
+				if (aurora.UseCustomColor)
+				{
+					ImGui::ColorEdit3("Top##auroraCustomTop",    aurora.CustomColorTop);
+					ImGui::ColorEdit3("Bottom##auroraCustomBot", aurora.CustomColorBottom);
+				}
+				ImGui::TreePop();
+			}
+
+			// --- Speed ---
+			ImGui::SliderFloat("Speed##aurora", &aurora.Speed, 0.0f, 2.0f, "%.3f");
+
+			ImGui::Separator();
+			if (ImGui::Button("Copy Lua to Clipboard##aurora"))
+				ImGui::SetClipboardText(BuildAuroraPropertyLua(aurora).c_str());
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("Copies Aurora.color and Aurora.speed as per-level property lines.");
+
 			ImGui::Unindent(8.0f);
 		}
 

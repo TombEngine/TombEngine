@@ -708,6 +708,15 @@ float AuroraHash21(float2 n)
 // preset: 0=GreenClassic, 1=GreenPurple, 2=GreenRedTips, 3=BluePurple, 4=StrongMulticolor
 float3 GetAuroraColor(float heightFrac, float preset)
 {
+    // Custom color mode: bypass all presets and use a simple bottom-to-top gradient.
+    if (AuroraUseCustomColor >= 0.5)
+    {
+        float3 botC = float3(AuroraCustomBottomR, AuroraCustomBottomG, AuroraCustomBottomB);
+        float3 topC = float3(AuroraCustomTopR,    AuroraCustomTopG,    AuroraCustomTopB);
+        float t = pow(saturate(heightFrac), 1.5);
+        return lerp(botC, topC, t);
+    }
+
     // Interpolate between integer presets for smooth transitions.
     float presetFrac = frac(preset);
     int presetA = (int)floor(preset) % 6;

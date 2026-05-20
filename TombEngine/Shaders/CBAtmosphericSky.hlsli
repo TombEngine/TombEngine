@@ -133,11 +133,17 @@ cbuffer CBAtmosphericSky : register(b12)
     float  AtmoUnderwaterWindDirX;
     float  AtmoUnderwaterWindDirY;
     //--
-    // Row 23 — Per-quality level
+    // Row 23 — Per-quality level + aurora custom color flag + bottom color (RG)
     float  SkyQualityLevel;              // 0=Low, 1=Medium, 2=High.
-    float  _PadRow23_1;
-    float  _PadRow23_2;
-    float  _PadRow23_3;
+    float  AuroraUseCustomColor;         // 0 = use preset, 1 = use custom bottom/top colors.
+    float  AuroraCustomBottomR;          // Custom gradient bottom color R [0,1].
+    float  AuroraCustomBottomG;          // Custom gradient bottom color G [0,1].
+    //--
+    // Row 24 — Aurora custom color continued (bottom B + top RGB)
+    float  AuroraCustomBottomB;          // Custom gradient bottom color B [0,1].
+    float  AuroraCustomTopR;             // Custom gradient top color R [0,1].
+    float  AuroraCustomTopG;             // Custom gradient top color G [0,1].
+    float  AuroraCustomTopB;             // Custom gradient top color B [0,1].
 };
 
 #endif // CB_ATMOSPHERIC_SKY_HLSLI

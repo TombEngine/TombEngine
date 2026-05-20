@@ -27,6 +27,16 @@ namespace TEN::Scripting
 		std::string Color   = "GreenClassic"; // AuroraColorPreset name.
 		float       Speed   = -1.0f;          // < 0 = use engine default (0.679); 0.0 - 2.0 = override.
 
+		// Custom color mode: when HasCustomColor is true the preset is ignored.
+		// color = { Color(topR, topG, topB), Color(botR, botG, botB) } in Lua.
+		bool        HasCustomColor    = false;
+		ScriptColor CustomColorTop    = ScriptColor(13, 102, 26);   // ~0.05, 0.4, 0.1 * 255 (GreenClassic top)
+		ScriptColor CustomColorBottom = ScriptColor(25, 204, 51);   // ~0.1, 0.8, 0.2 * 255  (GreenClassic bottom)
+
+		// Lua property: accepts a preset name string OR a two-element Color table {top, bottom}.
+		void        SetColorLua(sol::object obj);
+		std::string GetColorLua() const { return Color; }
+
 		static void Register(sol::table& parent);
 	};
 
