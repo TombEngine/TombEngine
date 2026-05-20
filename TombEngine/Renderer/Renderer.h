@@ -176,6 +176,7 @@ namespace TEN::Renderer
 
 		// Aurora system
 		Aurora::AuroraSettings _auroraSettings;
+		std::unique_ptr<IRenderSurface2D> _auroraHalfResRenderTarget;   // Half-res offscreen RT for Low quality rendering.
 		float _auroraTime        = 0.0f;   // Accumulated animation time.
 		float _auroraPresetFade  = 0.0f;   // [0,1] fade multiplier driven by preset selection.
 		float _auroraPresetFadeDuration = 5.0f; // Duration in seconds for aurora to fade in/out on preset change.

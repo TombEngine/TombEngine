@@ -21,7 +21,8 @@ namespace TEN::Renderer
 		// Recreate resolution-dependent render targets that are NOT owned by InitializeScreen.
 		// These were allocated at startup with the old screen dimensions and must be resized
 		// so that subsequent draw passes use correctly-sized buffers.
-		InitializeGodRays();          // recreates _godRayRenderTarget at new half-res
+		InitializeAtmosphericSky();       // recreates _auroraHalfResRenderTarget at new half-res
+		InitializeGodRays();              // recreates _godRayRenderTarget at new half-res
 		ResizeVolumetricCloudTargets();   // recreates _cloudRenderTarget / _cloudOcclusionTarget (layer A)
 		ResizeDualCloudTargets();         // recreates _cloudRenderTargetB / _cloudOcclusionTargetB (layer B)
 	}

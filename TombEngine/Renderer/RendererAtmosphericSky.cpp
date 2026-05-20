@@ -26,6 +26,7 @@
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Renderer::ConstantBuffers;
 using namespace TEN::Sky;
@@ -39,6 +40,13 @@ namespace TEN::Renderer
 	void Renderer::InitializeAtmosphericSky()
 	{
 		_cbAtmosphericSky = CreateConstantBuffer<CAtmosphericSkyBuffer>();
+
+		int w = std::max(1, _graphicsDevice->GetScreenWidth()  / 2);
+		int h = std::max(1, _graphicsDevice->GetScreenHeight() / 2);
+
+		SAFE_DELETE(_auroraHalfResRenderTarget);
+		_auroraHalfResRenderTarget = _graphicsDevice->CreateRenderSurface2D(
+			w, h, SurfaceFormat::SF_RGBA16_Float, false, DepthFormat::None);
 	}
 
 	// ========================================================================
@@ -428,11 +436,44 @@ namespace TEN::Renderer
 		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
 		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
-		_shaders.Bind(Shader::Aurora);
-		DrawTriangles(3, 0);
+		bool useHalfRes = (_stAtmosphericSky.SkyQualityLevel < 0.5f) && (_auroraHalfResRenderTarget != nullptr);
 
-		// Unbind the SRV so _renderTarget can be bound as RT again without conflicts.
-		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::ColorMap);
+		if (useHalfRes)
+		{
+			// --- Pass 1: Render aurora to the half-res offscreen target ---
+			int hw = std::max(1, _graphicsDevice->GetScreenWidth()  / 2);
+			int hh = std::max(1, _graphicsDevice->GetScreenHeight() / 2);
+
+			_graphicsDevice->ClearRenderTarget2D(_auroraHalfResRenderTarget->GetRenderTarget(), Colors::Transparent);
+			_graphicsDevice->BindRenderTarget(_auroraHalfResRenderTarget->GetRenderTarget(), nullptr);
+
+			RendererViewport halfVp = {};
+			halfVp.Width    = (float)hw;
+			halfVp.Height   = (float)hh;
+			halfVp.MinDepth = 0.0f;
+			halfVp.MaxDepth = 1.0f;
+			_graphicsDevice->SetViewport(halfVp);
+
+			_shaders.Bind(Shader::Aurora);
+			DrawTriangles(3, 0);
+
+			// Unbind cloud coverage SRV before using the RT as a texture.
+			_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::ColorMap);
+
+			// --- Pass 2: Additively blit the upscaled half-res result to the main scene ---
+			_graphicsDevice->SetViewport(renderView.Viewport);
+			_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+
+			DrawFullScreenQuad(_auroraHalfResRenderTarget->GetRenderTarget(), Vector3::One, false);
+		}
+		else
+		{
+			_shaders.Bind(Shader::Aurora);
+			DrawTriangles(3, 0);
+
+			// Unbind the SRV so _renderTarget can be bound as RT again without conflicts.
+			_graphicsDevice->UnbindTexture(ShaderStage::PixelShader, TextureRegister::ColorMap);
+		}
 
 		// Restore regular input layout.
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
