@@ -1512,6 +1512,7 @@ const std::vector<byte> SaveGame::Build()
 		particleInfo.add_b(particle->b);
 		particleInfo.add_col_fade_speed(particle->colFadeSpeed);
 		particleInfo.add_d_b(particle->dB);
+		particleInfo.add_constraint(&FromVector3(particle->constraint));
 		particleInfo.add_sprite_index(particle->SpriteSeqID);
 		particleInfo.add_sprite_id(particle->SpriteID);
 		particleInfo.add_damage(particle->damage);
@@ -2505,6 +2506,7 @@ static void ParseEffects(const Save::SaveGame* s)
 		particle->lightFlicker = particleInfo->light_flicker();
 		particle->lightFlickerS = particleInfo->light_flicker_s();
 		particle->sound = particleInfo->sound();
+		particle->constraint = ToVector3(particleInfo->constraint());
 	}
 
 	for (int i = 0; i < s->locusts()->size(); i++)

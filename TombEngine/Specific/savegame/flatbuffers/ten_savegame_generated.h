@@ -5624,6 +5624,7 @@ struct ParticleInfoT : public flatbuffers::NativeTable {
   int32_t light_flicker = 0;
   int32_t light_flicker_s = 0;
   int32_t sound = 0;
+  std::unique_ptr<TEN::Save::Vector3> constraint{};
 };
 
 struct ParticleInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -5676,7 +5677,8 @@ struct ParticleInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_LIGHT_RADIUS = 88,
     VT_LIGHT_FLICKER = 90,
     VT_LIGHT_FLICKER_S = 92,
-    VT_SOUND = 94
+    VT_SOUND = 94,
+    VT_CONSTRAINT = 96
   };
   int32_t x() const {
     return GetField<int32_t>(VT_X, 0);
@@ -5816,6 +5818,9 @@ struct ParticleInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t sound() const {
     return GetField<int32_t>(VT_SOUND, 0);
   }
+  const TEN::Save::Vector3 *constraint() const {
+    return GetStruct<const TEN::Save::Vector3 *>(VT_CONSTRAINT);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_X) &&
@@ -5864,6 +5869,7 @@ struct ParticleInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_LIGHT_FLICKER) &&
            VerifyField<int32_t>(verifier, VT_LIGHT_FLICKER_S) &&
            VerifyField<int32_t>(verifier, VT_SOUND) &&
+           VerifyField<TEN::Save::Vector3>(verifier, VT_CONSTRAINT) &&
            verifier.EndTable();
   }
   ParticleInfoT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -6013,6 +6019,9 @@ struct ParticleInfoBuilder {
   void add_sound(int32_t sound) {
     fbb_.AddElement<int32_t>(ParticleInfo::VT_SOUND, sound, 0);
   }
+  void add_constraint(const TEN::Save::Vector3 *constraint) {
+    fbb_.AddStruct(ParticleInfo::VT_CONSTRAINT, constraint);
+  }
   explicit ParticleInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -6071,8 +6080,10 @@ inline flatbuffers::Offset<ParticleInfo> CreateParticleInfo(
     int32_t light_radius = 0,
     int32_t light_flicker = 0,
     int32_t light_flicker_s = 0,
-    int32_t sound = 0) {
+    int32_t sound = 0,
+    const TEN::Save::Vector3 *constraint = 0) {
   ParticleInfoBuilder builder_(_fbb);
+  builder_.add_constraint(constraint);
   builder_.add_sound(sound);
   builder_.add_light_flicker_s(light_flicker_s);
   builder_.add_light_flicker(light_flicker);
@@ -11328,6 +11339,7 @@ inline void ParticleInfo::UnPackTo(ParticleInfoT *_o, const flatbuffers::resolve
   { auto _e = light_flicker(); _o->light_flicker = _e; }
   { auto _e = light_flicker_s(); _o->light_flicker_s = _e; }
   { auto _e = sound(); _o->sound = _e; }
+  { auto _e = constraint(); if (_e) _o->constraint = std::unique_ptr<TEN::Save::Vector3>(new TEN::Save::Vector3(*_e)); }
 }
 
 inline flatbuffers::Offset<ParticleInfo> ParticleInfo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ParticleInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -11384,6 +11396,7 @@ inline flatbuffers::Offset<ParticleInfo> CreateParticleInfo(flatbuffers::FlatBuf
   auto _light_flicker = _o->light_flicker;
   auto _light_flicker_s = _o->light_flicker_s;
   auto _sound = _o->sound;
+  auto _constraint = _o->constraint ? _o->constraint.get() : 0;
   return TEN::Save::CreateParticleInfo(
       _fbb,
       _x,
@@ -11431,7 +11444,8 @@ inline flatbuffers::Offset<ParticleInfo> CreateParticleInfo(flatbuffers::FlatBuf
       _light_radius,
       _light_flicker,
       _light_flicker_s,
-      _sound);
+      _sound,
+      _constraint);
 }
 
 inline SoundtrackT *Soundtrack::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
