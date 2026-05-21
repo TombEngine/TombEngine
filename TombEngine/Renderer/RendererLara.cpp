@@ -456,23 +456,23 @@ void Renderer::DrawLaraHolsters(RendererItem* itemToDraw, RendererRoom* room, Re
 	auto rightHolsterID = Lara.Control.Weapon.HolsterInfo.RightHolster;
 	auto backHolsterID  = Lara.Control.Weapon.HolsterInfo.BackHolster;
 
-	if (_moveableObjects[static_cast<int>(leftHolsterID)])
+	if (_moveableObjects[(int)leftHolsterID])
 	{
-		RendererObject& holsterSkin = *_moveableObjects[static_cast<int>(leftHolsterID)];
+		RendererObject& holsterSkin = *_moveableObjects[(int)leftHolsterID];
 		RendererMesh* mesh = holsterSkin.ObjectMeshes[LM_LTHIGH];
 		DrawMesh(itemToDraw, mesh, RendererObjectType::Moveable, LM_LTHIGH, false, view, rendererPass);
 	}
 
-	if (_moveableObjects[static_cast<int>(rightHolsterID)])
+	if (_moveableObjects[(int)rightHolsterID])
 	{
-		RendererObject& holsterSkin = *_moveableObjects[static_cast<int>(rightHolsterID)];
+		RendererObject& holsterSkin = *_moveableObjects[(int)rightHolsterID];
 		RendererMesh* mesh = holsterSkin.ObjectMeshes[LM_RTHIGH];
 		DrawMesh(itemToDraw, mesh, RendererObjectType::Moveable, LM_RTHIGH, false, view, rendererPass);
 	}
 
-	if (backHolsterID != HolsterSlot::Empty && _moveableObjects[static_cast<int>(backHolsterID)])
+	if (backHolsterID != HolsterSlot::Empty && _moveableObjects[(int)backHolsterID])
 	{
-		RendererObject& holsterSkin = *_moveableObjects[static_cast<int>(backHolsterID)];
+		RendererObject& holsterSkin = *_moveableObjects[(int)backHolsterID];
 		RendererMesh* mesh = holsterSkin.ObjectMeshes[LM_TORSO];
 		DrawMesh(itemToDraw, mesh, RendererObjectType::Moveable, LM_TORSO, false, view, rendererPass);
 	}

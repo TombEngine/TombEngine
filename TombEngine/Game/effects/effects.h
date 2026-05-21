@@ -17,11 +17,11 @@ constexpr auto SD_UWEXPLOSION = 2;
 
 constexpr auto MAX_NODE		= 23;
 constexpr auto MAX_DYNAMICS = 64;
-
 constexpr auto MAX_PARTICLES		 = 8192;
 constexpr auto MAX_PARTICLE_DYNAMICS = 8;
 
 constexpr auto CREATURE_GUNFLASH_COLOR = Vector4(0.5f, 0.25f, 0.05f, 1.0f);
+constexpr auto FLAME_HEAT_HAZE_SCALE = 2.5f;
 
 extern int Wibble;
 
@@ -47,6 +47,7 @@ enum SpriteEnumFlag
 	SP_ANIMATED	  = (1 << 16),
 	SP_LIGHT	  = (1 << 17),
 	SP_SOUND	  = (1 << 18),
+	SP_HAZE		  = (1 << 19)
 };
 
 enum ParticleAnimType

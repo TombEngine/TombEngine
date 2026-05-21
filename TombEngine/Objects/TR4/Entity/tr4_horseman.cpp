@@ -316,7 +316,7 @@ namespace TEN::Entities::TR4
 			CreatureAIInfo(item, &AI);
 
 			AI_INFO laraAI;
-			if (creature->Enemy->IsLara())
+			if (creature->Enemy.IsLara())
 			{
 				laraAI.angle = AI.angle;
 				laraAI.distance = AI.distance;
@@ -462,7 +462,7 @@ namespace TEN::Entities::TR4
 			case HORSEMAN_STATE_MOUNTED_WALK_FORWARD:
 				creature->MaxTurn = ANGLE(1.5f);
 
-				if (laraAI.distance > SQUARE(BLOCK(4)) || creature->ReachedGoal || creature->Enemy->IsLara())
+				if (laraAI.distance > SQUARE(BLOCK(4)) || creature->ReachedGoal || creature->Enemy.IsLara())
 				{
 					item->Animation.TargetState = HORSEMAN_STATE_MOUNTED_RUN_FORWARD;
 					creature->ReachedGoal = false;

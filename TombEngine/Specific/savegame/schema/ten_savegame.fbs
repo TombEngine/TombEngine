@@ -60,6 +60,11 @@ table Room {
 	block_stopper_flags: [bool];
 }
 
+table ItemCallback {
+	type: int32;
+	name: string;
+}
+
 table Item {
 	anim_object_id: int32;
 	active_state: int32;
@@ -106,10 +111,7 @@ table Item {
 	effect_count: int32;
 
 	lua_name: string;
-	lua_on_killed_name: string;
-	lua_on_hit_name: string;
-	lua_on_collided_with_object_name: string;
-	lua_on_collided_with_room_name: string;
+	lua_callbacks: [ItemCallback];
 }
 
 table FXInfo {
@@ -648,6 +650,11 @@ table SaveGameStatistics {
 	timer: int32;
 }
 
+table CallbackSet {
+	point: int32;
+	callbacks: [string];
+}
+
 table SaveGame {
 	header: SaveGameHeader;
 	game: SaveGameStatistics;
@@ -693,6 +700,10 @@ table SaveGame {
 	postprocess_mode: int32;
 	postprocess_strength: float;
 	postprocess_tint: Vector3;
+	dof_distance: float;
+	dof_range: float;
+	dof_strength: float;
+	dof_mode: int32;
 	rope: Rope;
 	pendulum: Pendulum;
 	alternate_pendulum: Pendulum;
@@ -704,21 +715,8 @@ table SaveGame {
 	// At the moment there is no real reason to save the pre_start and
 	// post_start callbacks as OnStart will have already be called when a save
 	// is loaded, but we'll store them anyway for completeness.
-	
-	callbacks_pre_start: [string];
-	callbacks_post_start: [string];
-	callbacks_pre_end: [string];
-	callbacks_post_end: [string];
-	callbacks_pre_save: [string];
-	callbacks_post_save: [string];
-	callbacks_pre_load: [string];
-	callbacks_post_load: [string];
-	callbacks_pre_loop: [string];
-	callbacks_post_loop: [string];
-	callbacks_pre_useitem: [string];
-	callbacks_post_useitem: [string];
-	callbacks_pre_freeze: [string];
-	callbacks_post_freeze: [string];
+
+	callbacks: [CallbackSet];
 }
 
 root_type TEN.Save.SaveGame;
