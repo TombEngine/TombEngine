@@ -1065,7 +1065,7 @@ const GameBoundingBox* FindPlinth(ItemInfo* item)
 			if (!(staticObj.Flags & StaticMeshFlags::SM_VISIBLE))
 				continue;
 
-			const auto& bounds = GetAnimData(*item).Frames[item->Animation.FrameNumber].BoundingBox;
+			const auto& bounds = GetFrame(*item).BoundingBox;
 			auto& bBox = GetBoundsAccurate(staticObj, false);
 
 			if (bounds.X1 <= bBox.X2 && bounds.X2 >= bBox.X1 &&
@@ -1085,7 +1085,7 @@ const GameBoundingBox* FindPlinth(ItemInfo* item)
 			auto& object = Objects[currentItem.ObjectNumber];
 
 			if (!object.isPickup && (currentItem.ObjectNumber != ID_HIGH_OBJECT1 || currentItem.ItemFlags[0] == 5))
-				return &GetAnimData(g_Level.Items[currentItem.Index]).Frames[currentItem.Animation.FrameNumber].BoundingBox;
+				return &GetFrame(g_Level.Items[currentItem.Index]).BoundingBox;
 		}
 	}
 

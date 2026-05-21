@@ -1317,7 +1317,7 @@ short CreatureTurn(ItemInfo* item, short maxTurn)
 		auto leftAngle = item->Pose.Orientation + EulerAngles(0, FEELER_ANGLE, 0);
 		auto rightAngle = item->Pose.Orientation - EulerAngles(0, FEELER_ANGLE, 0);
 		auto feelerPos = item->Pose.Position.ToVector3() + Vector3(0, -CLICK(1), 0);
-		auto radius = GetAnimData(*item).Frames[item->Animation.FrameNumber].LocalAabb.Extents.z * 1.3f; // Increase the radius slightly.
+		auto radius = GetFrame(*item).LocalAabb.Extents.z * 1.3f; // Increase the radius slightly.
 
 		// Spawn feelers for object collision.
 		auto feelMidLos = GetLosCollision(feelerPos, item->RoomNumber, item->Pose.Orientation.ToDirection(), radius, true, false, true);

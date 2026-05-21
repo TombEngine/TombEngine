@@ -595,7 +595,7 @@ bool TestBoundsCollideStatic(ItemInfo* item, const StaticMesh& mesh, int radius)
 		return false;
 	}
 
-	const auto& itemBounds = GetAnimData(*item).Frames[item->Animation.FrameNumber].BoundingBox;
+	const auto& itemBounds = GetFrame(*item).BoundingBox;
 	if ((mesh.Pose.Position.y + bounds.Y2) <= (item->Pose.Position.y + itemBounds.Y1))
 		return false;
 
