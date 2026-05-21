@@ -319,6 +319,9 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	// @mem LOCUSTS_EMITTER
 	{ "LOCUSTS_EMITTER", ID_LOCUSTS_EMITTER },
 	/// Object ID.
+	// @mem BATS_EMITTER_TR3
+	{ "BATS_EMITTER_TR3", ID_BATS_EMITTER_TR3 },
+	/// Object ID.
 	// @mem SCUBA_HARPOON
 	{ "SCUBA_HARPOON", ID_SCUBA_HARPOON },
 	/// Object ID.
