@@ -412,6 +412,25 @@ namespace TEN::Renderer
 		}
 	}
 
+	Matrix Renderer::GetWorldMatrixForMoveable(const ItemInfo& item, Matrix* rotationMatrix, Matrix* translationMatrix) const
+	{
+		const auto& anim = GetAnimData(item);
+		auto rootMotionCounteract = anim.GetRootMotionCounteraction(item.Animation.FrameNumber);
+
+		auto orient = item.Pose.Orientation + rootMotionCounteract.Rotation;
+		auto rotMatrix = orient.ToRotationMatrix();
+		auto pos = item.Pose.Position.ToVector3() + Vector3::Transform(rootMotionCounteract.Translation, rotMatrix);
+		auto transMatrix = Matrix::CreateTranslation(pos);
+
+		if (rotationMatrix != nullptr)
+			*rotationMatrix = rotMatrix;
+
+		if (translationMatrix != nullptr)
+			*translationMatrix = transMatrix;
+
+		return Matrix::CreateScale(item.Pose.Scale) * rotMatrix * transMatrix;
+	}
+
 	RendererMesh* Renderer::GetMesh(int meshIndex)
 	{
 		return _meshes[meshIndex];
@@ -438,11 +457,8 @@ namespace TEN::Renderer
 			}
 		}
 
-		auto translationMatrix = Matrix::CreateTranslation(nativeItem->Pose.Position.ToVector3());
-		auto rotMatrix = nativeItem->Pose.Orientation.ToRotationMatrix();
-		auto worldMatrix = rotMatrix * translationMatrix;
-
 		const auto& moveable = GetRendererObject(nativeItem->ObjectNumber);
+		auto worldMatrix = GetWorldMatrixForMoveable(*nativeItem);
 
 		// Collect spheres.
 		auto spheres = std::vector<BoundingSphere>{};
@@ -450,8 +466,8 @@ namespace TEN::Renderer
 		{
 			const auto& mesh = *moveable.ObjectMeshes[i];
 
-			const auto& translationMatrix = itemToDraw.AnimationTransforms[i];
-			auto pos = Vector3::Transform(mesh.Sphere.Center, translationMatrix * worldMatrix);
+			const auto& animationTransform = itemToDraw.AnimationTransforms[i];
+			auto pos = Vector3::Transform(mesh.Sphere.Center, animationTransform * worldMatrix);
 
 			auto sphere = BoundingSphere(pos, mesh.Sphere.Radius);
 			spheres.push_back(sphere);

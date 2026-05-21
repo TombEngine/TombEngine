@@ -509,6 +509,7 @@ namespace TEN::Renderer
 			BlendMode blendMode, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 
 		Matrix GetWorldMatrixForSprite(const RendererSpriteToDraw& sprite, RenderView& view);
+		Matrix GetWorldMatrixForMoveable(const ItemInfo& item, Matrix* rotationMatrix = nullptr, Matrix* translationMatrix = nullptr) const;
 		RendererObject& GetRendererObject(GAME_OBJECT_ID id);
 		RendererMesh* GetMesh(int meshIndex);
 		void BackupObjectVertices(GAME_OBJECT_ID objectID);

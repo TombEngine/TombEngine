@@ -471,6 +471,7 @@ namespace TEN::Renderer
 
 				for (int i = 0; !inFrustum, i < spheres.size(); i++)
 				{
+					DrawDebugSphere(spheres[i].Center, spheres[i].Radius, Vector4::One);
 					if (renderView.Camera.Frustum.SphereInFrustum(spheres[i].Center, spheres[i].Radius * 1.5f))
 						inFrustum = true;
 				}
@@ -479,14 +480,8 @@ namespace TEN::Renderer
 				// for updating first positions and animations data
 			}
 
-			const auto& anim = GetAnimData(item);
-			auto rootMotionCounteract = anim.GetRootMotionCounteraction(item.Animation.FrameNumber);
-
-			auto orient = item.Pose.Orientation + rootMotionCounteract.Rotation;
-			auto rotMatrix = orient.ToRotationMatrix();
-
-			auto pos = item.Pose.Position.ToVector3() + Vector3::Transform(rootMotionCounteract.Translation, rotMatrix);
-			auto translationMatrix = Matrix::CreateTranslation(pos);
+			Matrix translationMatrix, rotMatrix;
+			auto worldMatrix = GetWorldMatrixForMoveable(item, &rotMatrix, &translationMatrix);
 
 			auto& newItem = _items[itemNumber];
 
@@ -497,7 +492,7 @@ namespace TEN::Renderer
 			newItem.Translation = translationMatrix;
 			newItem.Rotation = rotMatrix;
 			newItem.Scale = Matrix::CreateScale(item.Pose.Scale);
-			newItem.World = newItem.Scale * newItem.Rotation * newItem.Translation;
+			newItem.World = worldMatrix;
 
 			// Disable interpolation either when renderer slot or item slot has flag. 
 			// Renderer slot has no interpolation flag set in case it is fetched for the first time (e.g. item first time in frustum).
