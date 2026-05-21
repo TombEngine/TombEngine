@@ -1,9 +1,8 @@
 #pragma once
-#include <functional>
-#include <string>
-
+#include "framework.h"
 #include "Game/control/event.h"
 #include "Game/room.h"
+#include "Scripting/Internal/TEN/Logic/CallbackPoint.h"
 #include "Specific/level.h"
 
 typedef unsigned int D3DCOLOR;
@@ -45,7 +44,9 @@ using SavedVar = std::variant<
 	FuncName>;
 
 // Make sure SavedVarType and SavedVar have same number of types.
-static_assert(static_cast<int>(SavedVarType::NumTypes) == std::variant_size_v<SavedVar>);
+static_assert((int)SavedVarType::NumTypes == std::variant_size_v<SavedVar>);
+
+using CallbackStringLists = std::array<std::vector<std::string>, (int)TEN::Scripting::CallbackPoint::Count>;
 
 class ScriptInterfaceGame
 {
@@ -59,7 +60,10 @@ public:
 	virtual void OnLoop(float deltaTime, bool postLoop) = 0;
 	virtual void OnSave() = 0;
 	virtual void OnEnd(GameStatus reason) = 0;
-	virtual void OnUseItem(GAME_OBJECT_ID objectNumber) = 0;
+	virtual void OnUseItem(short itemNumber, GAME_OBJECT_ID objectNumber) = 0;
+	virtual void OnPickup(short itemNumber, bool postLoop) = 0;
+	virtual void OnVehicleEnter(short itemNumber, bool postLoop) = 0;
+	virtual void OnVehicleLeave(short itemNumber, bool postLoop) = 0;
 	virtual void OnFreeze() = 0;
 
 	virtual void AddConsoleInput(const std::string& input) = 0;
@@ -78,37 +82,8 @@ public:
 	virtual void GetGlobalVariables(std::vector<SavedVar>& vars) = 0;
 	virtual void SetGlobalVariables(const std::vector<SavedVar>& vars) = 0;
 
-	virtual void GetCallbackStrings(
-		std::vector<std::string>& preStart,
-		std::vector<std::string>& postStart,
-		std::vector<std::string>& preEnd,
-		std::vector<std::string>& postEnd,
-		std::vector<std::string>& preSave,
-		std::vector<std::string>& postSave,
-		std::vector<std::string>& preLoad,
-		std::vector<std::string>& postLoad,
-		std::vector<std::string>& preLoop,
-		std::vector<std::string>& postLoop,
-		std::vector<std::string>& preUseItem,
-		std::vector<std::string>& postUseItem,
-		std::vector<std::string>& preBreak,
-		std::vector<std::string>& postBreak) const = 0;
-
-	virtual void SetCallbackStrings(
-		const std::vector<std::string>& preStart,
-		const std::vector<std::string>& postStart,
-		const std::vector<std::string>& preEnd,
-		const std::vector<std::string>& postEnd,
-		const std::vector<std::string>& preSave,
-		const std::vector<std::string>& postSave,
-		const std::vector<std::string>& preLoad,
-		const std::vector<std::string>& postLoad,
-		const std::vector<std::string>& preLoop,
-		const std::vector<std::string>& postLoop,
-		const std::vector<std::string>& preUseItem,
-		const std::vector<std::string>& postUseItem,
-		const std::vector<std::string>& preBreak,
-		const std::vector<std::string>& postBreak) = 0;
+	virtual void GetCallbackStrings(CallbackStringLists& callbackLists) const = 0;
+	virtual void SetCallbackStrings(const CallbackStringLists& callbackLists) = 0;
 };
 
 extern ScriptInterfaceGame* g_GameScript;

@@ -27,27 +27,28 @@ extern int Wibble;
 
 enum SpriteEnumFlag
 {
-	SP_NONE		  = 0,
-	SP_FIRE		  = (1 << 0),
-	SP_SCALE	  = (1 << 1),
-	SP_BLOOD	  = (1 << 2),
-	SP_DEF		  = (1 << 3),
-	SP_ROTATE	  = (1 << 4),
-	SP_EXPLOSION  = (1 << 5),
-	SP_FX		  = (1 << 6),
-	SP_ITEM		  = (1 << 7),
-	SP_WIND		  = (1 << 8),
-	SP_EXPDEF	  = (1 << 9),
-	SP_DAMAGE	  = (1 << 10),
-	SP_UNDERWEXP  = (1 << 11),
-	SP_NODEATTACH = (1 << 12),
-	SP_PLASMAEXP  = (1 << 13),
-	SP_POISON	  = (1 << 14),
-	SP_COLOR	  = (1 << 15),
-	SP_ANIMATED	  = (1 << 16),
-	SP_LIGHT	  = (1 << 17),
-	SP_SOUND	  = (1 << 18),
-	SP_HAZE		  = (1 << 19)
+	SP_NONE			= 0,
+	SP_FIRE			= (1 << 0),
+	SP_SCALE		= (1 << 1),
+	SP_BLOOD		= (1 << 2),
+	SP_DEF			= (1 << 3),
+	SP_ROTATE		= (1 << 4),
+	SP_EXPLOSION	= (1 << 5),
+	SP_FX			= (1 << 6),
+	SP_ITEM			= (1 << 7),
+	SP_WIND			= (1 << 8),
+	SP_EXPDEF		= (1 << 9),
+	SP_DAMAGE		= (1 << 10),
+	SP_UNDERWEXP	= (1 << 11),
+	SP_NODEATTACH	= (1 << 12),
+	SP_PLASMAEXP	= (1 << 13),
+	SP_POISON		= (1 << 14),
+	SP_COLOR		= (1 << 15),
+	SP_ANIMATED		= (1 << 16),
+	SP_LIGHT		= (1 << 17),
+	SP_SOUND		= (1 << 18),
+	SP_HAZE			= (1 << 19),
+	SP_CONSTRAINED	= (1 << 20)
 };
 
 enum ParticleAnimType
@@ -186,6 +187,8 @@ struct Particle
 	int lightFlickerS;
 
 	int sound;
+
+	Vector3 constraint;
 
 	int PrevX;
 	int PrevY;
