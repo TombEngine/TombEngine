@@ -37,6 +37,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ring inventory module.
 * Added `Effects.ParticleGroup` class for managing particles via lua.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
+* Added `constraint` field to `ParticleData` argument table for `Effects.EmitAdvancedParticle` function to create particles with constrained orientation.
 * Added callbacks for item pickup and vehicle enter/leave events.
 * Added `Logic.HasCallback` method for checking if a callback exists.
 * Added `Moveable:SetOnLoop` method.

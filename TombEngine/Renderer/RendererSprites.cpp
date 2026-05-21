@@ -139,7 +139,7 @@ namespace TEN::Renderer
 		auto right = Vector3::Transform(Vector3(half, 0.0f, 0.0f), rot);
 		auto up = Vector3::Transform(Vector3(0.0f, half, 0.0f), rot);
 
-		AddQuad(sprite, pos - right + up, pos + right + up, pos + right - up, pos - right - up, color, orient2D, scale, Vector2(size, size), blendMode, true, view);
+		AddQuad(sprite, pos - right + up, pos + right + up,	pos + right - up, pos - right - up, color, orient2D, scale,	Vector2(size, size), blendMode, true, view);
 	}
 
 	void Renderer::AddColoredQuad(const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
