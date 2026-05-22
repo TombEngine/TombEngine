@@ -67,8 +67,8 @@ namespace TEN::Scripting::Input
 		return Vec2(cursorPos);
 	}
 
-	/// Get the last input device that activated a bindable action.
-	// Returns the precached last input device value updated by the native input system.
+	/// Get the last input device that was used.
+	// Last input device is only updated when an actual action binding is triggered for a given input. Raw input does not update this value.
 	// @function GetLastInputDevice
 	// @treturn Input.InputDevice Last input device used for bindable action input.
 	static InputDevice GetLastInputDevice()
