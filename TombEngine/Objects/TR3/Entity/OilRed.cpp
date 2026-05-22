@@ -86,31 +86,18 @@ namespace TEN::Entities::Creatures::TR3
 
         if (creature->MuzzleFlash[0].Delay != 0)
             creature->MuzzleFlash[0].Delay--;
-
+        
         if (item->HitPoints <= 0)
         {
             item->HitPoints = 0;
             if (item->Animation.ActiveState != (int)OilRedState::Death)
             {
                 SetAnimation(*item, (int)OilRedAnim::Die);
+                item->ItemFlags[FINAL_SHOT_FLAG_INDEX] = Random::GenerateInt(1, FINAL_SHOT_COUNT);
             }
-            else if (item->Animation.FrameNumber == 47)
+            else
             {
-                AI_INFO ai;
-                CreatureAIInfo(item, &ai);
-
-                if (Targetable(item, &ai))
-                {
-                    if (ai.angle > -OILRED_DEATH_SHOT_ANGLE && ai.angle < OILRED_DEATH_SHOT_ANGLE)
-                    {
-                        extraTorsoRot.y = ai.angle;
-                        head = ai.angle;
-                        ShotLara(item, &ai, OilRedGunBite, extraTorsoRot.y, OILRED_SHOT_DAMAGE * 3);
-                        creature->MuzzleFlash[0].Bite = OilRedGunBite;
-                        creature->MuzzleFlash[0].Delay = 2;
-                        SoundEffect(SFX_TR3_OIL_SMG_FIRE, &item->Pose, SoundEnvironment::Land, 1.0f, 0.5f);
-                    }
-                }
+                PerformFinalAttack(*item, OilRedGunBite, 8, (int)OilRedAnim::Die, OILRED_SHOT_DAMAGE * 3, SFX_TR3_OIL_SMG_FIRE);
             }
         }
         else
@@ -166,9 +153,9 @@ namespace TEN::Entities::Creatures::TR3
 
             creature->Enemy = realEnemy;
 
-            switch (item->Animation.ActiveState)
+            switch ((OilRedState)item->Animation.ActiveState)
             {
-            case (int)OilRedState::Wait:
+            case OilRedState::Wait:
                 head = laraAI.angle;
                 creature->MaxTurn = 0;
 
@@ -237,7 +224,7 @@ namespace TEN::Entities::Creatures::TR3
 
                 break;
 
-            case (int)OilRedState::Walk:
+            case OilRedState::Walk:
                 head = laraAI.angle;
                 creature->MaxTurn = OILRED_WALK_TURN_RATE_MAX;
 
@@ -276,7 +263,7 @@ namespace TEN::Entities::Creatures::TR3
 
                 break;
 
-            case (int)OilRedState::Run:
+            case OilRedState::Run:
                 if (ai.ahead)
                     head = ai.angle;
 
@@ -308,7 +295,7 @@ namespace TEN::Entities::Creatures::TR3
 
                 break;
 
-            case (int)OilRedState::OneHandAim:
+            case OilRedState::OneHandAim:
                 if (ai.ahead)
                 {
                     extraTorsoRot.y = ai.angle;
@@ -333,7 +320,7 @@ namespace TEN::Entities::Creatures::TR3
 
                 break;
 
-            case (int)OilRedState::OneHandShoot:
+            case OilRedState::OneHandShoot:
                 if (ai.ahead)
                 {
                     extraTorsoRot.y = ai.angle;
@@ -351,7 +338,7 @@ namespace TEN::Entities::Creatures::TR3
 
                 break;
 
-            case (int)OilRedState::TwoHandShoot:
+            case OilRedState::TwoHandShoot:
                 if (ai.ahead)
                 {
                     extraTorsoRot.y = ai.angle;
@@ -374,8 +361,8 @@ namespace TEN::Entities::Creatures::TR3
 
                 break;
 
-            case (int)OilRedState::HorizontalShootRight:
-            case (int)OilRedState::HorizontalShootLeft:
+            case OilRedState::HorizontalShootRight:
+            case OilRedState::HorizontalShootLeft:
                 if (ai.ahead)
                 {
                     extraTorsoRot.y = ai.angle;
@@ -399,7 +386,7 @@ namespace TEN::Entities::Creatures::TR3
 
                 break;
 
-            case (int)OilRedState::WalkToWalkShoot:
+            case OilRedState::WalkToWalkShoot:
                 if (ai.ahead)
                 {
                     extraTorsoRot.y = ai.angle;
@@ -428,8 +415,8 @@ namespace TEN::Entities::Creatures::TR3
 
                 break;
 
-            case (int)OilRedState::WalkShootRight:
-            case (int)OilRedState::WalkShootLeft:
+            case OilRedState::WalkShootRight:
+            case OilRedState::WalkShootLeft:
                 if (ai.ahead)
                 {
                     extraTorsoRot.y = ai.angle;
@@ -453,7 +440,7 @@ namespace TEN::Entities::Creatures::TR3
 
                 break;
 
-            case (int)OilRedState::Crouch:
+            case OilRedState::Crouch:
                 if (ai.ahead)
                     head = ai.angle;
 
@@ -474,7 +461,7 @@ namespace TEN::Entities::Creatures::TR3
 
                 break;
 
-            case (int)OilRedState::CrouchAim:
+            case OilRedState::CrouchAim:
                 creature->MaxTurn = ANGLE(1.0f);
 
                 if (ai.ahead)
@@ -487,7 +474,7 @@ namespace TEN::Entities::Creatures::TR3
 
                 break;
 
-            case (int)OilRedState::CrouchShoot:
+            case OilRedState::CrouchShoot:
                 if (ai.ahead)
                     extraTorsoRot.y = ai.angle;
 
@@ -505,7 +492,7 @@ namespace TEN::Entities::Creatures::TR3
 
                 break;
 
-            case (int)OilRedState::CrouchWalk:
+            case OilRedState::CrouchWalk:
                 if (ai.ahead)
                     head = ai.angle;
 
@@ -519,7 +506,7 @@ namespace TEN::Entities::Creatures::TR3
 
                 break;
 
-            case (int)OilRedState::CrouchToStand:
+            case OilRedState::CrouchToStand:
                 if (abs(ai.angle) < OILRED_WALK_TURN_RATE_MAX)
                     item->Pose.Orientation.y += ai.angle;
                 else if (ai.angle < 0)
