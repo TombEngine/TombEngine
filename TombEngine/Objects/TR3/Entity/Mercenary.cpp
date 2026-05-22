@@ -148,7 +148,7 @@ namespace TEN::Entities::Creatures::TR3
 			else
 			{
 				// Find nearest enemy target (not Lara, not other mercenaries)
-				creature->Enemy = FindMercenaryTarget(*item, MercenaryExcludedTargets);
+				TargetNearestEntity(*item, MercenaryExcludedTargets);
 			}
 
 			AI_INFO ai;
