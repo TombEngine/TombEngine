@@ -2253,7 +2253,7 @@ namespace TEN::Gui
 				{
 					// HACK.
 					ClearAllActions();
-					ActionMap[In::Flare].Update(1.0f);
+					ActionMap[In::Flare].Update(true);
 
 					HandleWeapon(item);
 					ClearAllActions();

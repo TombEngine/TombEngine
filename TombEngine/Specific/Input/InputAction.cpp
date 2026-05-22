@@ -65,6 +65,13 @@ namespace TEN::Input
 			In::Save,
 			In::Load
 		},
+		// Agnostic directional menu navigation
+		{
+			In::MenuUp,
+			In::MenuDown,
+			In::MenuLeft,
+			In::MenuRight
+		},
 		// Keyboard
 		{
 			In::A, In::B, In::C, In::D, In::E, In::F, In::G, In::H, In::I, In::J, In::K, In::L, In::M,

@@ -131,6 +131,7 @@ namespace TEN::Input
 		Vehicle,
 		Quick,
 		Menu,
+		MenuNavigation,
 
 		Keyboard,
 		Mouse,
