@@ -36,7 +36,7 @@ Steps:
 Once done, you should be able to build a level with *Tomb Editor* and run it in *TEN*.
 
 # Contributions
-Contributions are welcome. If you would like to participate in development to any degree, whether that be through suggestions, bug reports, or code, join our [Discord server](https://discord.gg/h5tUYFmres).
+Contributions are welcome. If you would like to participate in development to any degree, whether that be through suggestions, bug reports, or code, join our [Discord server](https://discord.gg/mU2V74RyvF).
 
 # Disclaimer
 Tomb Engine uses modified MIT license for non-commercial use only. For more information, see [license](https://github.com/TombEngine/TombEngine?tab=License-1-ov-file#readme). Tomb Engine is unaffiliated with the Crystal Dynamics group of companies or Embracer Group AB. *Tomb Raider* is a trademark of the Crystal Dynamics group of companies. Tomb Engine team is not responsible for illegal use of this source code and built binaries alone or in combination with third-party assets or components. This source code is released as-is and continues to be maintained by non-paid contributors in their free time.
