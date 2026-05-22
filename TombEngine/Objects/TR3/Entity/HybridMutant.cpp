@@ -94,7 +94,7 @@ namespace TEN::Entities::Creatures::TR3
 			CreatureMood(&item, &ai, true);
 			headingAngle = CreatureTurn(&item, creature.MaxTurn);
 
-			auto* target = creature.Enemy;
+			auto* target = creature.Enemy.Get();
 			creature.Enemy = LaraItem;
 			if (laraAI.distance < HYBRID_MUTANT_AWARE_RANGE || item.HitStatus || TargetVisible(&item, &laraAI))
 				AlertAllGuards(itemNumber);

@@ -171,7 +171,7 @@ namespace TEN::Entities::Creatures::TR3
 				AlertAllGuards(itemNumber);
 			}
 
-			auto* enemy = creature->Enemy;
+			auto* enemy = creature->Enemy.Get();
 
 			switch (item->Animation.ActiveState)
 			{

@@ -139,7 +139,7 @@ namespace TEN::Entities::Creatures::TR3
                 item->Pose.Position.y < (height + CLICK(4.5f)) &&
                 laraAI.distance > OILRED_AWARE_DISTANCE);
 
-            auto* realEnemy = creature->Enemy;
+            auto* realEnemy = creature->Enemy.Get();
             creature->Enemy = LaraItem;
 
             if ((laraAI.distance < OILRED_AWARE_DISTANCE || item->HitStatus || TargetVisible(item, &laraAI)) &&

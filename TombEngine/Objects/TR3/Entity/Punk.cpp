@@ -216,7 +216,7 @@ namespace TEN::Entities::Creatures::TR3
 
 			angle = CreatureTurn(item, creature->MaxTurn);
 
-			auto* realEnemy = creature->Enemy;
+			auto* realEnemy = creature->Enemy.Get();
 			creature->Enemy = LaraItem;
 
 			// Alert only if hit, OR (can see Lara AND not following).

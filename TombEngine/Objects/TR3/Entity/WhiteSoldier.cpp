@@ -115,7 +115,7 @@ namespace TEN::Entities::Creatures::TR3
 
 			angle = CreatureTurn(item, creature->MaxTurn);
 
-			auto* realEnemy = creature->Enemy;
+			auto* realEnemy = creature->Enemy.Get();
 			creature->Enemy = LaraItem;
 
 			if ((laraAI.distance < WHITE_SOLDIER_AWARE_DISTANCE || item->HitStatus || TargetVisible(item, &laraAI)) &&
