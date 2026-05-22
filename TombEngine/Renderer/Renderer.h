@@ -107,6 +107,7 @@ namespace TEN::Renderer
 		std::unique_ptr<IRenderSurface2D> _shadowMap;
 		std::unique_ptr<IRenderSurface2D> _legacyReflectionsRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _SSAORenderTarget;
+		std::unique_ptr<IRenderSurface2D> _SSAOBlurTempRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _SSAOBlurredRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _SMAASceneRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _SMAASceneSRGBRenderTarget;

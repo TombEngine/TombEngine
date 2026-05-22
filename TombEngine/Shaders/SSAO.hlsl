@@ -60,7 +60,7 @@ float PS(PixelShaderInput input) : SV_Target
     float3x3 TBN = float3x3(tangent, bitangent, normal);
 
     float occlusion = 0.0f;
-    int kernelSize = 64;
+    int kernelSize = 32;
     float radius = 64.0f;
     float bias = 4.0f;
 
@@ -92,44 +92,46 @@ float normpdf(float x, float sigma)
     return 0.39894 * exp(-0.5 * x * x / (sigma * sigma)) / sigma;
 }
 
-float PSBlur(PixelShaderInput input) : SV_Target
+// Bilateral blur along a single axis. A bilateral filter is not strictly separable,
+// but the two-pass (horizontal + vertical) approximation is standard for SSAO and
+// turns an MSIZE*MSIZE tap count into 2*MSIZE.
+float SSAOBlur1D(float2 uv, float2 dir)
 {
-    float2 texelSize = TexelSize;
-    float result = 0.0f;
-
     const int kernelSize = (MSIZE - 1) / 2;
+
+    // Create the 1-D kernel.
     float kernel[MSIZE];
-    float bZ = 0.0;
+    for (int k = 0; k <= kernelSize; k++)
+        kernel[kernelSize + k] = kernel[kernelSize - k] = normpdf(float(k), SIGMA);
 
-    // Create the 1-D kernel
-    for (int j = 0; j <= kernelSize; j++)
-    {
-        kernel[kernelSize + j] = kernel[kernelSize - j] = normpdf(float(j), SIGMA);
-    }
-
-    float color;
-    float baseColor = SSAOTexture.Sample(PointWrapSampler, input.UV).x;
-    float gfactor;
-    float bfactor;
+    float baseColor = SSAOTexture.Sample(PointWrapSampler, uv).x;
     float bZnorm = 1.0 / normpdf(0.0, BSIGMA);
 
-    // Read out the texels
+    float result = 0.0f;
+    float bZ = 0.0f;
+
     for (int i = -kernelSize; i <= kernelSize; i++)
     {
-        for (int j = -kernelSize; j <= kernelSize; j++)
-        {
-            // Color at pixel in the neighborhood
-            float2 offset = float2(i, j) * texelSize;
-            color = SSAOTexture.Sample(PointWrapSampler, input.UV + offset).x;
+        float2 offset = dir * (float(i) * TexelSize);
+        float color = SSAOTexture.Sample(PointWrapSampler, uv + offset).x;
 
-            // Compute both the gaussian smoothed and bilateral
-            gfactor = kernel[kernelSize + j] * kernel[kernelSize + i];
-            bfactor = normpdf(color - baseColor, BSIGMA) * bZnorm * gfactor;
-            bZ += bfactor;
+        // Combine the gaussian smoothed and bilateral weights.
+        float gfactor = kernel[kernelSize + i];
+        float bfactor = normpdf(color - baseColor, BSIGMA) * bZnorm * gfactor;
 
-            result += bfactor * color;
-        }
+        bZ += bfactor;
+        result += bfactor * color;
     }
 
     return (result / bZ);
+}
+
+float PSBlurHorizontal(PixelShaderInput input) : SV_Target
+{
+    return SSAOBlur1D(input.UV, float2(1.0f, 0.0f));
+}
+
+float PSBlurVertical(PixelShaderInput input) : SV_Target
+{
+    return SSAOBlur1D(input.UV, float2(0.0f, 1.0f));
 }

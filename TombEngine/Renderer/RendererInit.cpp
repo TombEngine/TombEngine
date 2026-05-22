@@ -144,7 +144,7 @@ namespace TEN::Renderer
 	{
 		std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
 		std::default_random_engine generator;
-		for (unsigned int i = 0; i < 64; ++i)
+		for (unsigned int i = 0; i < 32; ++i)
 		{
 			Vector4 sample(
 				randomFloats(generator) * 2.0 - 1.0,
@@ -155,7 +155,7 @@ namespace TEN::Renderer
 			sample.Normalize();
 			sample *= randomFloats(generator);
 
-			float scale = (float)i / 64.0;
+			float scale = (float)i / 32.0;
 			scale = Lerp(0.1f, 1.0f, scale * scale);
 			sample *= scale;
 			sample.w = 1.0f;
@@ -302,6 +302,7 @@ namespace TEN::Renderer
 		SAFE_DELETE(_dofRenderTarget[1]);
 		SAFE_DELETE(_dofRenderTarget[2]);
 		SAFE_DELETE(_SSAORenderTarget);
+		SAFE_DELETE(_SSAOBlurTempRenderTarget);
 		SAFE_DELETE(_SSAOBlurredRenderTarget);
 		SAFE_DELETE(_glowRenderTarget[0]);
 		SAFE_DELETE(_glowRenderTarget[1]);
@@ -329,6 +330,7 @@ namespace TEN::Renderer
 		_emissiveAndRoughnessRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 
 		_SSAORenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_SSAOBlurTempRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_SSAOBlurredRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 
 		int downscaledW = (w + POSTPROCESS_DOWNSCALE_FACTOR - 1) / POSTPROCESS_DOWNSCALE_FACTOR;

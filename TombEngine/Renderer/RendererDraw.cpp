@@ -4103,14 +4103,23 @@ namespace TEN::Renderer
 
 		DrawTriangles(3, 0);
 
-		// Blur step.
-		_shaders.Bind(Shader::SsaoBlur);
+		// Blur step (separable: horizontal pass, then vertical pass).
+		_shaders.Bind(Shader::SsaoBlurHorizontal);
+
+		_graphicsDevice->ClearRenderTarget2D(_SSAOBlurTempRenderTarget->GetRenderTarget(), Colors::Black);
+		_graphicsDevice->BindRenderTarget(_SSAOBlurTempRenderTarget->GetRenderTarget(), nullptr);
+
+		BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAORenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
+ 
+		DrawTriangles(3, 0);
+
+		_shaders.Bind(Shader::SsaoBlurVertical);
 
 		_graphicsDevice->ClearRenderTarget2D(_SSAOBlurredRenderTarget->GetRenderTarget(), Colors::Black);
 		_graphicsDevice->BindRenderTarget(_SSAOBlurredRenderTarget->GetRenderTarget(), nullptr);
 
-		BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAORenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
- 
+		BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAOBlurTempRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
+
 		DrawTriangles(3, 0);
 
 		_doingFullscreenPass = false;

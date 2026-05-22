@@ -47,7 +47,8 @@ namespace TEN::Renderer::Utils
 		Load(Shader::PostProcessLensFlare, "PostProcess", "LensFlare", ShaderType::Pixel, {});
 
 		Load(Shader::Ssao, "SSAO", "", ShaderType::Pixel, {});
-		Load(Shader::SsaoBlur, "SSAO", "Blur", ShaderType::Pixel, {});
+		Load(Shader::SsaoBlurHorizontal, "SSAO", "BlurHorizontal", ShaderType::Pixel, {});
+		Load(Shader::SsaoBlurVertical, "SSAO", "BlurVertical", ShaderType::Pixel, {});
 
 		Load(Shader::Downscale, "PostProcess", "Downscale", ShaderType::Pixel, {});
 		Load(Shader::Blur, "PostProcess", "Blur", ShaderType::Pixel, {});
