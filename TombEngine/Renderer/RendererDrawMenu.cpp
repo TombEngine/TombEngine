@@ -98,7 +98,7 @@ namespace TEN::Renderer
 	std::vector<bool> GetBindingConflictMask(ActionID baseActionID, int actionCount)
 	{
 		std::vector<bool> conflicts(actionCount, false);
-		std::unordered_map<std::string, int> firstActionIndexByBinding = {};
+		std::unordered_map<int, int> firstActionIndexByBinding = {};
 		firstActionIndexByBinding.reserve(actionCount);
 
 		for (int i = 0; i < actionCount; i++)
@@ -107,7 +107,7 @@ namespace TEN::Renderer
 			if (keyID == KEY_UNASSIGNED)
 				continue;
 
-			auto [it, inserted] = firstActionIndexByBinding.try_emplace(GetKeyName(keyID), i);
+			auto [it, inserted] = firstActionIndexByBinding.try_emplace(keyID, i);
 			if (!inserted)
 				conflicts[it->second] = conflicts[i] = true;
 		}
