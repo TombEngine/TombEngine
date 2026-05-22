@@ -79,55 +79,6 @@ namespace TEN::Entities::Creatures::TR3
 		PRISONER_STATE_FALL3 = 15
 	};
 
-	// Find nearest enemy target for Prisoner (excludes Lara and other Prisoners)
-	static ItemInfo* FindPrisonerTarget(ItemInfo& item, const std::vector<GAME_OBJECT_ID>& excludedTargets)
-	{
-		float nearestDistance = FLT_MAX;
-		ItemInfo* result = nullptr;
-
-		for (auto creatureIndex : ActiveCreatures)
-		{
-			auto* targetCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
-
-			if (targetCreature->ItemNumber == NO_VALUE || targetCreature->ItemNumber == item.Index)
-				continue;
-
-			auto& currentItem = g_Level.Items[targetCreature->ItemNumber];
-
-			if (currentItem.HitPoints <= 0)
-				continue;
-
-			bool isForbiddenTarget = false;
-			for (const auto& excludedTargetID : excludedTargets)
-			{
-				if (currentItem.ObjectNumber == excludedTargetID)
-				{
-					isForbiddenTarget = true;
-					break;
-				}
-			}
-
-			if (isForbiddenTarget)
-				continue;
-
-			int dx = currentItem.Pose.Position.x - item.Pose.Position.x;
-			int dz = currentItem.Pose.Position.z - item.Pose.Position.z;
-
-			// Skip targets that are too far
-			if (abs(dx) > BLOCK(32) || abs(dz) > BLOCK(32))
-				continue;
-
-			float distance = Vector3i::Distance(item.Pose.Position, currentItem.Pose.Position);
-			if (distance < nearestDistance)
-			{
-				nearestDistance = distance;
-				result = &currentItem;
-			}
-		}
-
-		return result;
-	}
-
 	void InitializePrisoner(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
@@ -179,7 +130,7 @@ namespace TEN::Entities::Creatures::TR3
 			else
 			{
 				// Find nearest enemy target (not Lara, not other Prisoners)
-				creature->Enemy = FindPrisonerTarget(*item, PrisonerExcludedTargets);
+				TargetNearestEntity(*item, PrisonerExcludedTargets);
 			}
 
 			// Indestructible Prisoner with MODIFY flag
