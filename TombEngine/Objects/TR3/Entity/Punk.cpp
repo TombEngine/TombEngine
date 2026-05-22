@@ -46,6 +46,26 @@ namespace TEN::Entities::Creatures::TR3
 	const auto PunkHitBite = CreatureBiteInfo(Vector3(16, 48, 320), 13);
 	const auto PunkAttackJoints = std::vector<unsigned int>{ 13 };
 
+	enum PunkState
+	{
+		PUNK_STATE_EMPTY = 0,
+		PUNK_STATE_STOP = 1,
+		PUNK_STATE_WALK = 2,
+		PUNK_STATE_PUNCH2 = 3,
+		PUNK_STATE_AIM2 = 4,
+		PUNK_STATE_WAIT = 5,
+		PUNK_STATE_AIM1 = 6,
+		PUNK_STATE_AIM0 = 7,
+		PUNK_STATE_PUNCH1 = 8,
+		PUNK_STATE_PUNCH0 = 9,
+		PUNK_STATE_RUN = 10,
+		PUNK_STATE_DEATH = 11,
+		PUNK_STATE_CLIMB3 = 12,
+		PUNK_STATE_CLIMB1 = 13,
+		PUNK_STATE_CLIMB2 = 14,
+		PUNK_STATE_FALL3 = 15
+	};
+
 	// ItemFlags[2]: Flame counter (0 = no flame, 1 = permanent flame that sets Lara on fire, >1 = temporary flame)
 	static void TriggerPunkFlame(short itemNumber)
 	{
@@ -125,26 +145,6 @@ namespace TEN::Entities::Creatures::TR3
 			24 - ((rnd >> 6) & 3),
 			rnd & 7);
 	}
-
-	enum PunkState
-	{
-		PUNK_STATE_EMPTY = 0,
-		PUNK_STATE_STOP = 1,
-		PUNK_STATE_WALK = 2,
-		PUNK_STATE_PUNCH2 = 3,
-		PUNK_STATE_AIM2 = 4,
-		PUNK_STATE_WAIT = 5,
-		PUNK_STATE_AIM1 = 6,
-		PUNK_STATE_AIM0 = 7,
-		PUNK_STATE_PUNCH1 = 8,
-		PUNK_STATE_PUNCH0 = 9,
-		PUNK_STATE_RUN = 10,
-		PUNK_STATE_DEATH = 11,
-		PUNK_STATE_CLIMB3 = 12,
-		PUNK_STATE_CLIMB1 = 13,
-		PUNK_STATE_CLIMB2 = 14,
-		PUNK_STATE_FALL3 = 15
-	};
 
 	void InitializePunk(short itemNumber)
 	{
