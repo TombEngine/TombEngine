@@ -118,7 +118,6 @@ namespace TEN::Entities::Creatures::TR3
 		}
 		else
 		{
-			// Bob's special AI target logic
 			if (item->AIBits && item->AIBits != MODIFY)
 			{
 				GetAITarget(creature);
