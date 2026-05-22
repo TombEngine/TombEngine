@@ -92,6 +92,7 @@ namespace TEN::Input
 		ActiveGamepadHasRumble = false;
 
 		TENLog("Gamepad disconnected.", LogLevel::Info);
+		OpenFirstGamepad();
 	}
 
 	void InitializeInput()
