@@ -172,9 +172,9 @@ namespace TEN::Entities::Creatures::TR3
 			if (!creature->HurtByLara && creature->Enemy == LaraItem)
 				creature->Enemy = nullptr;
 
-			bool metaMood = (creature->Enemy != LaraItem);
-			GetCreatureMood(item, &ai, metaMood);
-			CreatureMood(item, &ai, metaMood);
+			bool violent = (creature->Enemy != LaraItem);
+			GetCreatureMood(item, &ai, violent);
+			CreatureMood(item, &ai, violent);
 
 			angle = CreatureTurn(item, creature->MaxTurn);
 
