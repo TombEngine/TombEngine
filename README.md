@@ -11,7 +11,7 @@
 - Uncapped map size.
 - A streamlined player control scheme.
 
-*Tomb Engine* is used in conjunction with *Tomb Editor*. The repository can be found [here](https://github.com/MontyTRC89/Tomb-Editor).
+*Tomb Engine* is used in conjunction with *Tomb Editor*. The repository can be found [here](https://github.com/TombEngine/Tomb-Editor).
 
 # Compiling *Tomb Engine*
 To compile *TEN*, ensure you have installed:
