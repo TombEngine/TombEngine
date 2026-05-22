@@ -11,6 +11,13 @@ struct ItemInfo;
 
 namespace TEN::Input
 {
+	enum class InputDevice
+	{
+		Keyboard,
+		Mouse,
+		Gamepad
+	};
+
 	enum class AxisID
 	{
 		Move,
@@ -64,6 +71,7 @@ namespace TEN::Input
 	void ApplyDefaultBindings();
 	bool ApplyDefaultGamepadBindings();
 	SDL_GamepadType GetActiveGamepadType();
+	InputDevice GetLastInputDevice();
 
 	Vector2 GetMouse2DPosition();
 

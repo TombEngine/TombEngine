@@ -32,15 +32,15 @@ namespace TEN::Input
     std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;	// Key = action ID, value = action queue state.
     std::unordered_map<AxisID, Vector2>			   AxisMap;			// Key = axis ID, value = axis.
 
+	// Input state.
 	bool InputLocked = false; // Disables control polling in case application is defocused.
+	InputDevice	LastInputDevice = InputDevice::Keyboard;
+	float MouseWheelAccumY = 0.0f; // Mouse wheel deltas are event-only in SDL3, so accumulate them between frames.
 
 	// SDL3 gamepad state.
-	static SDL_Gamepad* ActiveGamepad   = nullptr;
-	static SDL_JoystickID ActiveGamepadId = 0;
-	static bool         ActiveGamepadHasRumble = false;
-
-	// Mouse wheel deltas are event-only in SDL3, so accumulate them between frames.
-	static float MouseWheelAccumY = 0.0f;
+	SDL_Gamepad* ActiveGamepad   = nullptr;
+	SDL_JoystickID ActiveGamepadId = 0;
+	bool ActiveGamepadHasRumble = false;
 
 	static void OpenFirstGamepad()
 	{
@@ -99,6 +99,7 @@ namespace TEN::Input
 		TENLog("Initializing input system...", LogLevel::Info);
 
 		RumbleInfo = {};
+		LastInputDevice = InputDevice::Keyboard;
 		MouseWheelAccumY = 0.0f;
 
 		// Initialize key map.
@@ -457,6 +458,46 @@ namespace TEN::Input
 		}
 	}
 
+	static void UpdateLastInputDevice(ActionID actionID, int keyID)
+	{
+		for (auto userActionGroupID : USER_ACTION_GROUP_IDS)
+		{
+			const auto& userActionGroup = ACTION_ID_GROUPS[(int)userActionGroupID];
+			if (!Contains(userActionGroup, actionID))
+				continue;
+
+			for (auto rawActionGroupID : RAW_ACTION_GROUP_IDS)
+			{
+				const auto& rawActionGroup = ACTION_ID_GROUPS[(int)rawActionGroupID];
+				for (auto rawActionID : rawActionGroup)
+				{
+					if (g_Bindings.GetBoundKeyID(BindingProfileID::Raw, rawActionID) != keyID)
+						continue;
+
+					switch (rawActionGroupID)
+					{
+					case ActionGroupID::Keyboard:
+						LastInputDevice = InputDevice::Keyboard;
+						return;
+
+					case ActionGroupID::Mouse:
+						LastInputDevice = InputDevice::Mouse;
+						return;
+
+					case ActionGroupID::Gamepad:
+						LastInputDevice = InputDevice::Gamepad;
+						return;
+
+					default:
+						break;
+					}
+				}
+			}
+
+			break;
+		}
+	}
+
 	static float Key(ActionID actionID)
 	{
 		// Hard-wired directional inputs for menu navigation, unaffected by user bindings.
@@ -496,7 +537,11 @@ namespace TEN::Input
 			}
 		}
 
-		return (keyID == KEY_UNASSIGNED) ? 0.0f : KeyMap[keyID];
+		float value = (keyID == KEY_UNASSIGNED) ? 0.0f : KeyMap[keyID];
+		if (keyID != KEY_UNASSIGNED && ActionMap[actionID].IsClicked())
+			UpdateLastInputDevice(actionID, keyID);
+
+		return value;
 	}
 
 	void SolveActionCollisions()
@@ -696,6 +741,11 @@ namespace TEN::Input
 		g_Configuration.EnableThumbstickCamera = true;
 
 		return true;
+	}
+
+	InputDevice GetLastInputDevice()
+	{
+		return LastInputDevice;
 	}
 
 	Vector2 GetMouse2DPosition()
