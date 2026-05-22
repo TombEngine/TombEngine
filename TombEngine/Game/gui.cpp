@@ -1030,13 +1030,23 @@ namespace TEN::Gui
 				break;
 
 			case OtherSettingsOption::TargetHighlighter:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableTargetHighlighter = !CurrentSettings.Configuration.EnableTargetHighlighter;
+				if (g_GameFlow->GetSettings()->Hud.TargetHighlighter)
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableTargetHighlighter = !CurrentSettings.Configuration.EnableTargetHighlighter;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
 				break;
 
 			case OtherSettingsOption::InteractionHighlighter:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableInteractionHighlighter = !CurrentSettings.Configuration.EnableInteractionHighlighter;
+				if (g_GameFlow->GetSettings()->Hud.InteractionHighlighter)
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableInteractionHighlighter = !CurrentSettings.Configuration.EnableInteractionHighlighter;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
 				break;
 
 			case OtherSettingsOption::ToggleRumble:
