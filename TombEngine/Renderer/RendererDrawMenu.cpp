@@ -512,7 +512,7 @@ namespace TEN::Renderer
 			{
 				// Setup needed parameters.
 				y = MenuVerticalControls;
-				auto bindingConflicts = GetBindingConflictMask(In::Pause, (int)MenuActionStrings.size());
+				auto bindingConflicts = GetBindingConflictMask(In::Select, (int)MenuActionStrings.size());
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));

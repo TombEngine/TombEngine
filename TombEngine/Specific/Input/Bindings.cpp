@@ -96,8 +96,8 @@ namespace TEN::Input
 		{ In::Weapon9,        SDL_SCANCODE_9 },
 		{ In::Weapon10,       SDL_SCANCODE_0 },
 
-		{ In::Select,         SDL_SCANCODE_RETURN },
-		{ In::Deselect,       GK_BACK },
+		{ In::Select,         GK_SOUTH },
+		{ In::Deselect,       GK_EAST },
 		{ In::Pause,          GK_START },
 		{ In::Inventory,      GK_BACK },
 		{ In::Save,           SDL_SCANCODE_F5 },
