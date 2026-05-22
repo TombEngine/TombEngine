@@ -45,6 +45,7 @@ namespace TEN::Scripting
 	{
 		AnimSettings::Register(parent);
 		CameraSettings::Register(parent);
+		EffectsSettings::Register(parent);
 		FlareSettings::Register(parent);
 		GameplaySettings::Register(parent);
 		GraphicsSettings::Register(parent);
@@ -62,6 +63,7 @@ namespace TEN::Scripting
 			sol::meta_function::new_index, NewIndexErrorMaker(Settings, ScriptReserved_Settings),
 			ScriptReserved_AnimSettings, &Settings::Animations,
 			ScriptReserved_CameraSettings, &Settings::Camera,
+			ScriptReserved_EffectsSettings, &Settings::Effects,
 			ScriptReserved_FlareSettings, &Settings::Flare,
 			ScriptReserved_GameplaySettings, &Settings::Gameplay,
 			ScriptReserved_GraphicsSettings, &Settings::Graphics,
@@ -259,6 +261,51 @@ namespace TEN::Scripting
 		"targetObjectOcclusion", &GameplaySettings::TargetObjectOcclusion);
 	}
 
+	/// Effects
+	// @section Effects
+	// Settings for blood and generic impact visuals.
+	// @usage
+	// -- Example of changing blood appearance and disabling generic explosion shockwaves
+	// -- In Settings.lua
+	// settings.Effects.bloodColor = TEN.Color(32, 160, 32)
+	// settings.Effects.bloodBlendMode = TEN.Effects.BlendID.ALPHA_BLEND
+	// settings.Effects.explosionShockwave = false
+
+	void EffectsSettings::Register(sol::table& parent)
+	{
+		parent.create().new_usertype<EffectsSettings>(ScriptReserved_EffectsSettings, sol::constructors<EffectsSettings()>(),
+			sol::call_constructor, sol::constructors<EffectsSettings()>(),
+			sol::meta_function::new_index, NewIndexErrorMaker(EffectsSettings, ScriptReserved_EffectsSettings),
+
+		/// Blood particle color.
+		// @tfield[opt=TEN.Color(255&#44; 0&#44; 0)] Color bloodColor Base tint used for classic and underwater blood particles.
+		"bloodColor", &EffectsSettings::BloodColor,
+
+		/// Blood particle blend mode.
+		// @tfield[opt=TEN.Effects.BlendID.ADDITIVE] Effects.BlendID bloodBlendMode Blend mode used when drawing blood particles.
+		"bloodBlendMode", &EffectsSettings::BloodBlendMode,
+
+		/// Blood particle size multiplier.
+		// @tfield[opt=1.0] float bloodSize Scale multiplier applied to classic and underwater blood particles.
+		"bloodSize", &EffectsSettings::BloodSize,
+
+		/// Ricochet particle count.
+		// @tfield[opt=8] int ricochetCount Maximum number of generated ricochet particles.
+		"ricochetCount", &EffectsSettings::RicochetCount,
+
+		// Ricochet sound effect.
+		// @tfield[opt=true] bool ricochetSound If enabled, ricochet effect will be accompanied by a sound effect. Disable for TR2-5 like behaviour.
+		"ricochetSound", &EffectsSettings::RicochetSound,
+
+		/// Ricochet spark color.
+		// @tfield[opt=TEN.Color(255&#44; 153&#44; 0)] Color ricochetColor Default tint used by ricochet sparks.
+		"ricochetColor", &EffectsSettings::RicochetColor,
+
+		/// Explosion shockwave toggle.
+		// @tfield[opt=true] bool explosionShockwave Enables shockwave generation for generic explosion effects.
+		"explosionShockwave", &EffectsSettings::ExplosionShockwave);
+	}
+
 	/// Graphics
 	// @section Graphics
 	// These settings are used to enable or disable certain graphics features.
@@ -364,7 +411,15 @@ namespace TEN::Scripting
 
 		/// Toggle pickup notifier visibility.
 		// @tfield[opt=true] bool pickupNotifier If disabled, pickup notifier will be invisible in game.
-		"pickupNotifier", &HudSettings::PickupNotifier);
+		"pickupNotifier", &HudSettings::PickupNotifier,
+
+		/// Toggle interaction highlighter visibility.
+		// @tfield[opt=true] bool interactionHighlighter If disabled, interaction highlighter won't be drawn and the corresponding menu entry is grayed out.
+		"interactionHighlighter", &HudSettings::InteractionHighlighter,
+
+		/// Toggle target highlighter visibility.
+		// @tfield[opt=true] bool targetHighlighter If disabled, target highlighter won't be drawn and the corresponding menu entry is grayed out.
+		"targetHighlighter", &HudSettings::TargetHighlighter);
 	}
 
 	/// Pathfinding
@@ -558,6 +613,10 @@ namespace TEN::Scripting
 		// @tfield[opt=TEN.Color(0&#44; 0&#44; 0)] Color shadowTextColor A color used for drawing a shadow under any rendered text.
 		"shadowTextColor", &UISettings::ShadowTextColor,
 
+		/// System text size. Used in all system menus, such as linear inventory, pause menu, settings menu, etc.
+		// @tfield[opt=1.0] float systemTextScale Scale multiplier applied to system menu text.
+		"systemTextScale", &UISettings::SystemTextScale,
+
 		/// Title logo center point position.
 		// @tfield[opt=TEN.Vec2(50&#44; 20)] Vec2 titleLogoPosition Center point of a title level logo position.
 		"titleLogoPosition", &UISettings::TitleLogoPosition,
@@ -576,7 +635,7 @@ namespace TEN::Scripting
 		"titleMenuPosition", &UISettings::TitleMenuPosition,
 			
 		/// Title menu scale.
-		// @tfield[opt=1.0] float titleMenuScale Title level menu scale.
+		// @tfield[opt=1.0] float titleMenuScale Title level menu text scale.
 		"titleMenuScale", &UISettings::TitleMenuScale,
 
 		/// Title menu alignment.
@@ -586,7 +645,7 @@ namespace TEN::Scripting
 		"titleMenuAlignment", &UISettings::TitleMenuAlignment,
 
 		/// Amount of blur for the inventory and pause menu backgrounds.
-		// @tfield[opt=0.15f] float menuBackgroundBlur Specifies how much should the background be blurred when pause or inventory menu is open. Set to 0 to disable blurring.
+		// @tfield[opt=0.15] float menuBackgroundBlur Specifies how much should the background be blurred when pause or inventory menu is open. Set to 0 to disable blurring.
 		"menuBackgroundBlur", &UISettings::MenuBackgroundBlur);
 	}
 
