@@ -78,26 +78,11 @@ namespace TEN::Entities::Creatures::TR3
 			if (item->Animation.ActiveState != WHITE_SOLDIER_STATE_DEATH)
 			{
 				SetAnimation(*item, WHITE_SOLDIER_DIE_ANIM);
-
-				if (Random::TestProbability(0.25f))
-					creature->Flags = 1;
-				else
-					creature->Flags = 0;
+				item->ItemFlags[FINAL_SHOT_FLAG_INDEX] = Random::GenerateInt(1, FINAL_SHOT_COUNT);
 			}
-			else if (creature->Flags &&
-				item->Animation.FrameNumber > 3 &&
-				item->Animation.FrameNumber < 31 &&
-				!(item->Animation.FrameNumber & 0x3))
+			else
 			{
-				AI_INFO ai;
-				CreatureAIInfo(item, &ai);
-
-				extraTorsoRot.y = ai.angle;
-				head = ai.angle;
-				ShotLara(item, &ai, WhiteSoldierGunBite, 0, 0);
-				creature->MuzzleFlash[0].Bite = WhiteSoldierGunBite;
-				creature->MuzzleFlash[0].Delay = 2;
-				SoundEffect(SFX_TR3_OIL_SMG_FIRE, &item->Pose, SoundEnvironment::Land, 1.0f, 0.7f);
+				PerformFinalAttack(*item, WhiteSoldierGunBite, 8, WHITE_SOLDIER_DIE_ANIM, WHITE_SOLDIER_SHOT_DAMAGE * 3, SFX_TR3_SWAT_SMG_FIRE);
 			}
 		}
 		else

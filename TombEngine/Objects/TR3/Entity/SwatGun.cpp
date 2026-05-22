@@ -23,7 +23,6 @@ namespace TEN::Entities::Creatures::TR3
 	constexpr auto SWAT_RUN_RANGE		 = SQUARE(BLOCK(2));
 	constexpr auto SWAT_SHOOT1_RANGE	 = SQUARE(BLOCK(3));
 	constexpr auto SWAT_AWARE_DISTANCE	 = SQUARE(BLOCK(1));
-	constexpr auto SWAT_DEATH_SHOT_ANGLE = ANGLE(45.0f);
 
 	constexpr auto SWAT_WALK_TURN_RATE_MAX = ANGLE(6.0f);
 	constexpr auto SWAT_RUN_TURN_RATE_MAX  = ANGLE(9.0f);
@@ -87,37 +86,11 @@ namespace TEN::Entities::Creatures::TR3
 			if (item->Animation.ActiveState != SWAT_STATE_DEATH)
 			{
 				SetAnimation(*item, SWAT_DIE_ANIM);
-
-				if (Random::TestProbability(0.5f))
-					creature->Flags = 1;
-				else
-					creature->Flags = 0;
+				item->ItemFlags[FINAL_SHOT_FLAG_INDEX] = Random::GenerateInt(1, FINAL_SHOT_COUNT);
 			}
-			else if (creature->Flags &&
-				item->Animation.FrameNumber > 44 &&
-				item->Animation.FrameNumber < 52 &&
-				!(item->Animation.FrameNumber & 0x3))
+			else
 			{
-				AI_INFO ai;
-				CreatureAIInfo(item, &ai);
-
-				if (Targetable(item, &ai))
-				{
-					if (ai.angle > -SWAT_DEATH_SHOT_ANGLE && ai.angle < SWAT_DEATH_SHOT_ANGLE)
-					{
-						extraTorsoRot.y = ai.angle;
-						head = ai.angle;
-						ShotLara(item, &ai, SwatGunBite, extraTorsoRot.y, SWAT_SHOT_DAMAGE * 3);
-						creature->MuzzleFlash[0].Bite = SwatGunBite;
-						creature->MuzzleFlash[0].Delay = 2;
-
-						// Different sound for London Mercenary vs SWAT
-						if (item->ObjectNumber == ID_LONDON_MERCENARY)
-							SoundEffect(SFX_TR3_OIL_SMG_FIRE, &item->Pose, SoundEnvironment::Land, 1.0f, 0.7f);
-						else
-							SoundEffect(SFX_TR3_OIL_SMG_FIRE, &item->Pose, SoundEnvironment::Land, 1.0f, 0.8f);
-					}
-				}
+				PerformFinalAttack(*item, SwatGunBite, 8, SWAT_DIE_ANIM, SWAT_SHOT_DAMAGE * 3, SFX_TR3_SWAT_SMG_FIRE);
 			}
 		}
 		else
