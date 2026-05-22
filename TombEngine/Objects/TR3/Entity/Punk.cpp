@@ -237,15 +237,15 @@ namespace TEN::Entities::Creatures::TR3
 			switch (item->Animation.ActiveState)
 			{
 			case PUNK_STATE_WAIT:
-				if (creature->Alerted || item->Animation.TargetState == PUNK_STATE_RUN)
+			case PUNK_STATE_STOP:
+				// WAIT bails out early once alerted or already heading into a run.
+				if (item->Animation.ActiveState == PUNK_STATE_WAIT &&
+					(creature->Alerted || item->Animation.TargetState == PUNK_STATE_RUN))
 				{
 					item->Animation.TargetState = PUNK_STATE_STOP;
 					break;
 				}
 
-				[[fallthrough]];
-
-			case PUNK_STATE_STOP:
 				creature->Flags = 0;
 				creature->MaxTurn = 0;
 				head = laraAI.angle;

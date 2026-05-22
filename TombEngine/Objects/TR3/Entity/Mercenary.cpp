@@ -379,16 +379,15 @@ namespace TEN::Entities::Creatures::TR3
 				break;
 
 			case MERCENARY_STATE_SHOOT3:
-				if (item->Animation.TargetState != MERCENARY_STATE_STOP)
+			case MERCENARY_STATE_SHOOT2:
+			case MERCENARY_STATE_SHOOT1:
+				// SHOOT3 re-checks whether to stop before the shared shoot logic runs.
+				if (item->Animation.ActiveState == MERCENARY_STATE_SHOOT3 &&
+					item->Animation.TargetState != MERCENARY_STATE_STOP)
 				{
 					if (creature->Mood == MoodType::Escape || ai.distance > MERCENARY_SHOOT1_RANGE || !Targetable(item, &ai))
 						item->Animation.TargetState = MERCENARY_STATE_STOP;
 				}
-
-				[[fallthrough]];
-
-			case MERCENARY_STATE_SHOOT2:
-			case MERCENARY_STATE_SHOOT1:
 				if (ai.ahead)
 				{
 					extraTorsoRot.y = ai.angle;

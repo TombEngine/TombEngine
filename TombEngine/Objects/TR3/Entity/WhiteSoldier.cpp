@@ -341,16 +341,15 @@ namespace TEN::Entities::Creatures::TR3
 				break;
 
 			case WHITE_SOLDIER_STATE_SHOOT3:
-				if (item->Animation.TargetState != WHITE_SOLDIER_STATE_STOP)
+			case WHITE_SOLDIER_STATE_SHOOT2:
+			case WHITE_SOLDIER_STATE_SHOOT1:
+				// SHOOT3 re-checks whether to stop before the shared shoot logic runs.
+				if (item->Animation.ActiveState == WHITE_SOLDIER_STATE_SHOOT3 &&
+					item->Animation.TargetState != WHITE_SOLDIER_STATE_STOP)
 				{
 					if (creature->Mood == MoodType::Escape || ai.distance > WHITE_SOLDIER_SHOOT1_RANGE || !Targetable(item, &ai))
 						item->Animation.TargetState = WHITE_SOLDIER_STATE_STOP;
 				}
-
-				[[fallthrough]];
-
-			case WHITE_SOLDIER_STATE_SHOOT2:
-			case WHITE_SOLDIER_STATE_SHOOT1:
 				if (ai.ahead)
 				{
 					extraTorsoRot.y = ai.angle;

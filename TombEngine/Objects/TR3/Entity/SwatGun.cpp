@@ -368,16 +368,15 @@ namespace TEN::Entities::Creatures::TR3
 				break;
 
 			case SWAT_STATE_SHOOT3:
-				if (item->Animation.TargetState != SWAT_STATE_STOP)
+			case SWAT_STATE_SHOOT2:
+			case SWAT_STATE_SHOOT1:
+				// SHOOT3 re-checks whether to stop before the shared shoot logic runs.
+				if (item->Animation.ActiveState == SWAT_STATE_SHOOT3 &&
+					item->Animation.TargetState != SWAT_STATE_STOP)
 				{
 					if (creature->Mood == MoodType::Escape || ai.distance > SWAT_SHOOT1_RANGE || !Targetable(item, &ai))
 						item->Animation.TargetState = SWAT_STATE_STOP;
 				}
-
-				[[fallthrough]];
-
-			case SWAT_STATE_SHOOT2:
-			case SWAT_STATE_SHOOT1:
 				if (ai.ahead)
 				{
 					extraTorsoRot.y = ai.angle;
