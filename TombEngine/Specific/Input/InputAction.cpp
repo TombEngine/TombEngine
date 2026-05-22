@@ -89,7 +89,11 @@ namespace TEN::Input
 			In::MouseClickMiddle,
 			In::MouseClickRight,
 			In::MouseScrollUp,
-			In::MouseScrollDown
+			In::MouseScrollDown,
+			In::MouseUp,
+			In::MouseDown,
+			In::MouseLeft,
+			In::MouseRight
 		},
 		// Gamepad
 		{
@@ -101,7 +105,15 @@ namespace TEN::Input
 			In::GamepadGuide,
 			In::GamepadStart,
 			In::GamepadLeftStick,
+			In::GamepadLeftStickUp,
+			In::GamepadLeftStickDown,
+			In::GamepadLeftStickLeft,
+			In::GamepadLeftStickRight,
 			In::GamepadRightStick,
+			In::GamepadRightStickUp,
+			In::GamepadRightStickDown,
+			In::GamepadRightStickLeft,
+			In::GamepadRightStickRight,
 			In::GamepadLeftShoulder,
 			In::GamepadRightShoulder,
 			In::GamepadDPadUp,

@@ -83,13 +83,10 @@ namespace TEN::Input
 		MouseClickRight,
 		MouseScrollUp,
 		MouseScrollDown,
-		// TODO: Another time. There's some complexity involved. -- Sezz 2025.03.05
-		/*MouseScrollLeft,
-		MouseScrollRight,
 		MouseUp,
 		MouseDown,
 		MouseLeft,
-		MouseRight,*/
+		MouseRight,
 
 		// Gamepad
 
@@ -101,7 +98,15 @@ namespace TEN::Input
 		GamepadGuide,
 		GamepadStart,
 		GamepadLeftStick,
+		GamepadLeftStickUp,
+		GamepadLeftStickDown,
+		GamepadLeftStickLeft,
+		GamepadLeftStickRight,
 		GamepadRightStick,
+		GamepadRightStickUp,
+		GamepadRightStickDown,
+		GamepadRightStickLeft,
+		GamepadRightStickRight,
 		GamepadLeftShoulder,
 		GamepadRightShoulder,
 		GamepadDPadUp,

@@ -460,6 +460,9 @@ namespace TEN::Input
 
 	static void UpdateLastInputDevice(ActionID actionID, int keyID)
 	{
+		// Detect whether specified action ID corresponds to a particular raw input action ID, 
+		// and if it does, record corresponding input device as the last used device.
+
 		for (auto userActionGroupID : USER_ACTION_GROUP_IDS)
 		{
 			const auto& userActionGroup = ACTION_ID_GROUPS[(int)userActionGroupID];
@@ -493,8 +496,6 @@ namespace TEN::Input
 					}
 				}
 			}
-
-			break;
 		}
 	}
 

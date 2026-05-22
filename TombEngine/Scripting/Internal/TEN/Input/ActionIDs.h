@@ -502,7 +502,7 @@ namespace TEN::Scripting::Input
 		{ "ALT", In::Alt },
 
 		/// Raw mouse action IDs.
-		// This section contains raw mouse button and wheel input IDs.
+		// This section contains raw mouse button, wheel, and movement direction input IDs.
 		// Use these values when script logic must read physical mouse state directly.
 		// @section RawMouseActionIDs
 
@@ -526,8 +526,25 @@ namespace TEN::Scripting::Input
 		// @mem MOUSE_SCROLL_DOWN
 		{ "MOUSE_SCROLL_DOWN", In::MouseScrollDown },
 
+		/// Mouse up movement.
+		// @mem MOUSE_UP
+		{ "MOUSE_UP", In::MouseUp },
+
+		/// Mouse down movement.
+		// @mem MOUSE_DOWN
+		{ "MOUSE_DOWN", In::MouseDown },
+
+		/// Mouse left movement.
+		// @mem MOUSE_LEFT
+		{ "MOUSE_LEFT", In::MouseLeft },
+
+		/// Mouse right movement.
+		// @mem MOUSE_RIGHT
+		{ "MOUSE_RIGHT", In::MouseRight },
+
+
 		/// Raw gamepad action IDs.
-		// This section contains raw gamepad button, D-Pad, paddle, touchpad, and trigger input IDs.
+		// This section contains raw gamepad button, stick direction, D-Pad, paddle, touchpad, and trigger input IDs.
 		// Use these values when script logic must read physical gamepad state directly.
 		// @section RawGamepadActionIDs
 
@@ -559,9 +576,41 @@ namespace TEN::Scripting::Input
 		// @mem GAMEPAD_START
 		{ "GAMEPAD_START", In::GamepadStart },
 
+		/// Gamepad left stick up direction.
+		// @mem GAMEPAD_LEFT_STICK_UP
+		{ "GAMEPAD_LEFT_STICK_UP", In::GamepadLeftStickUp },
+
+		/// Gamepad left stick down direction.
+		// @mem GAMEPAD_LEFT_STICK_DOWN
+		{ "GAMEPAD_LEFT_STICK_DOWN", In::GamepadLeftStickDown },
+
+		/// Gamepad left stick left direction.
+		// @mem GAMEPAD_LEFT_STICK_LEFT
+		{ "GAMEPAD_LEFT_STICK_LEFT", In::GamepadLeftStickLeft },
+
+		/// Gamepad left stick right direction.
+		// @mem GAMEPAD_LEFT_STICK_RIGHT
+		{ "GAMEPAD_LEFT_STICK_RIGHT", In::GamepadLeftStickRight },
+
 		/// Gamepad left stick click.
 		// @mem GAMEPAD_LEFT_STICK
 		{ "GAMEPAD_LEFT_STICK", In::GamepadLeftStick },
+
+		/// Gamepad right stick up direction.
+		// @mem GAMEPAD_RIGHT_STICK_UP
+		{ "GAMEPAD_RIGHT_STICK_UP", In::GamepadRightStickUp },
+
+		/// Gamepad right stick down direction.
+		// @mem GAMEPAD_RIGHT_STICK_DOWN
+		{ "GAMEPAD_RIGHT_STICK_DOWN", In::GamepadRightStickDown },
+
+		/// Gamepad right stick left direction.
+		// @mem GAMEPAD_RIGHT_STICK_LEFT
+		{ "GAMEPAD_RIGHT_STICK_LEFT", In::GamepadRightStickLeft },
+
+		/// Gamepad right stick right direction.
+		// @mem GAMEPAD_RIGHT_STICK_RIGHT
+		{ "GAMEPAD_RIGHT_STICK_RIGHT", In::GamepadRightStickRight },
 
 		/// Gamepad right stick click.
 		// @mem GAMEPAD_RIGHT_STICK
