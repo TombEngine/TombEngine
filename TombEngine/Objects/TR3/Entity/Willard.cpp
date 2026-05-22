@@ -16,6 +16,7 @@
 #include "Math/Math.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
+#include "Specific/trutils.h"
 #include "Objects/Effects/enemy_missile.h"
 
 
@@ -23,6 +24,7 @@ using namespace TEN::Animation;
 using namespace TEN::Math;
 using namespace TEN::Effects::Boss;
 using namespace TEN::Entities::Effects;
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Creatures::TR3
 {
@@ -53,6 +55,9 @@ namespace TEN::Entities::Creatures::TR3
 	const auto WillardBiteLeft						= CreatureBiteInfo(Vector3(19, -13, 3), 20);
 	const auto WillardBiteRight						= CreatureBiteInfo(Vector3(19, -13, 3), 23);
 	const auto WillardBiteAttackJoints				= std::vector<unsigned int>{ 20, 21, 22, 23 };
+
+	const auto WillardBloodSplatFramesLeft  = std::vector<int>{ 0, 43, 95, 105 };
+	const auto WillardBloodSplatFramesRight = std::vector<int>{ 61, 91, 101 };
 
 	enum WillardState
 	{
@@ -589,20 +594,10 @@ namespace TEN::Entities::Creatures::TR3
 
 			case WILLARD_STATE_BIGKILL:
 				// Blood splat timing.
-				switch (item.Animation.FrameNumber)
-				{
-				case 0:
-				case 43:
-				case 95:
-				case 105:
+				if (Contains(WillardBloodSplatFramesLeft, item.Animation.FrameNumber))
 					CreatureEffect(&item, WillardBiteLeft, DoBloodSplat);
-					break;
-				case 61:
-				case 91:
-				case 101:
+				else if (Contains(WillardBloodSplatFramesRight, item.Animation.FrameNumber))
 					CreatureEffect(&item, WillardBiteRight, DoBloodSplat);
-					break;
-				}
 				break;
 
 			case WILLARD_STATE_SHOOT:
