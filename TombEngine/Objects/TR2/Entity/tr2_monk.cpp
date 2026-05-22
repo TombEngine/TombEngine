@@ -56,7 +56,7 @@ namespace TEN::Entities::Creatures::TR2
 			AI_INFO AI;
 			CreatureAIInfo(item, &AI);
 
-			if (creature->Enemy->IsLara() && !creature->HurtByLara)
+			if (creature->Enemy.IsLara() && !creature->HurtByLara)
 				creature->Enemy = nullptr;
 
 			GetCreatureMood(item, &AI, true);
@@ -190,7 +190,7 @@ namespace TEN::Entities::Creatures::TR2
 			case 6:
 			case 7:
 			case 10:
-				auto * enemy = creature->Enemy;
+				auto* enemy = creature->Enemy.Get();
 				if (enemy == LaraItem)
 				{
 					if (!(creature->Flags & 0xF000) && item->TouchBits & 0x4000)

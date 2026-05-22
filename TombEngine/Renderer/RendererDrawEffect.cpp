@@ -458,7 +458,9 @@ namespace TEN::Renderer
 							fire.position.z + spark->position.z * fire.size / 2),
 						GetInterpolationFactor());
 
-					auto orientation = TO_RAD(Lerp(spark->PrevRotAng << 4, spark->rotAng << 4, GetInterpolationFactor()));
+					short prevOrientation = spark->PrevRotAng << 4;
+					short currentOrientation = spark->rotAng << 4;
+					auto orientation = TO_RAD(prevOrientation + Geometry::GetShortestAngle(prevOrientation, currentOrientation) * GetInterpolationFactor());
 					auto scalar = Lerp(spark->PrevScalar, spark->scalar, GetInterpolationFactor());
 					auto size = Vector2::Lerp(
 						Vector2(fire.PrevSize * spark->PrevSize, fire.PrevSize * spark->PrevSize),
@@ -600,16 +602,28 @@ namespace TEN::Renderer
 				spriteIndex = std::clamp(spriteIndex, 0, (int)_sprites.size());
 
 				auto* sprite = particle.SpriteID == VIDEO_SPRITE_ID ? &_videoSprite : &_sprites[spriteIndex];
-
+				
 				auto color = Color(particle.r / (float)UCHAR_MAX, particle.g / (float)UCHAR_MAX, particle.b / (float)UCHAR_MAX, 1.0f);
 				auto orientation = TO_RAD(particle.rotAng << 4);
 				auto size = Vector2(particle.size, particle.size);
-
-				AddSpriteBillboard(sprite, pos, color, orientation, particle.scalar, size, particle.blendMode, true, view);
-
+				
 				bool hasHaze = particle.flags & (SP_FIRE | SP_HAZE);
-				if (g_GameFlow->GetSettings()->Graphics.FlameHeatHaze && hasHaze && particle.blendMode != BlendMode::Distortion)
-					AddSpriteBillboard(sprite, pos, color, orientation, particle.scalar, size * FLAME_HEAT_HAZE_SCALE, BlendMode::Distortion, true, view);
+				hasHaze = hasHaze && particle.blendMode != BlendMode::Distortion && g_GameFlow->GetSettings()->Graphics.FlameHeatHaze;
+				
+				if (particle.flags & SP_CONSTRAINED)
+				{
+					AddQuad(sprite, pos, color, orientation, particle.scalar, particle.size, particle.blendMode, particle.constraint, true, view);
+					
+					if (hasHaze)
+						AddQuad(sprite, pos, color, orientation, particle.scalar, particle.size * FLAME_HEAT_HAZE_SCALE, BlendMode::Distortion, particle.constraint, true, view);
+				}
+				else
+				{
+					AddSpriteBillboard(sprite, pos, color, orientation, particle.scalar, size, particle.blendMode, true, view);
+
+					if (hasHaze)
+						AddSpriteBillboard(sprite, pos, color, orientation, particle.scalar, size * FLAME_HEAT_HAZE_SCALE, BlendMode::Distortion, true, view);
+				}
 			}
 			else
 			{

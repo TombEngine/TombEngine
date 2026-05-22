@@ -182,7 +182,7 @@ namespace TEN::Entities::Creatures::TR3
 		short tilt = 0;
 
 		int targetAngle = 0;
-		int targetDistance = 0;
+		int targetDistance = INT_MAX;
 		auto jointHeadRot = EulerAngles::Identity;
 		auto jointTorsoRot = EulerAngles::Identity;
 
@@ -207,12 +207,12 @@ namespace TEN::Entities::Creatures::TR3
 			AI_INFO ai;
 			CreatureAIInfo(&item, &ai);
 
-			if (creature.Enemy->IsLara())
+			if (creature.Enemy.IsLara())
 			{
 				targetAngle = ai.angle;
 				targetDistance = ai.distance;
 			}
-			else
+			else if (creature.Enemy)
 			{
 				int targetDx = creature.Enemy->Pose.Position.x - item.Pose.Position.x;
 				int targetDz = creature.Enemy->Pose.Position.z - item.Pose.Position.z;
@@ -220,8 +220,8 @@ namespace TEN::Entities::Creatures::TR3
 				targetDistance = SQUARE(targetDx) + SQUARE(targetDz);
 			}
 
-			//If Lara was placed by system (CreatureAIInfo), not because she were a real target. Then delete the target.
-			if (creature.Enemy->IsLara() && !creature.HurtByLara)
+			// If Lara was placed by the system (CreatureAIInfo) and not because she was a real target, then delete the target.
+			if (creature.Enemy.IsLara() && !creature.HurtByLara)
 				creature.Enemy = nullptr;
 
 			GetCreatureMood(&item, &ai, true);
@@ -500,7 +500,7 @@ namespace TEN::Entities::Creatures::TR3
 
 				if (creature.Enemy != nullptr && creature.Flags == CIVVY_HAS_NOT_HIT_YET)
 				{
-					if (creature.Enemy->IsLara())
+					if (creature.Enemy.IsLara())
 					{
 						if (item.TouchBits.Test(CivvyAttackJoints))
 							creature.Flags = CIVVY_IS_DOING_HIT;
@@ -519,7 +519,7 @@ namespace TEN::Entities::Creatures::TR3
 						SoundEffect(SFX_TR4_LARA_THUD, &item.Pose);
 						creature.Flags = CIVVY_HAS_ALREADY_HIT;
 
-						if (creature.Enemy->HitPoints <= 0 && !creature.Enemy->IsLara() && !item.HitStatus)
+						if (creature.Enemy->HitPoints <= 0 && !creature.Enemy.IsLara() && !item.HitStatus)
 							creature.Alerted = false;
 					}
 				}
@@ -537,7 +537,7 @@ namespace TEN::Entities::Creatures::TR3
 
 				if (creature.Enemy != nullptr && creature.Flags == CIVVY_HAS_NOT_HIT_YET)
 				{
-					if (creature.Enemy->IsLara())
+					if (creature.Enemy.IsLara())
 					{
 						if (item.TouchBits.Test(CivvyAttackJoints))
 							creature.Flags = CIVVY_IS_DOING_HIT;
@@ -556,7 +556,7 @@ namespace TEN::Entities::Creatures::TR3
 						SoundEffect(SFX_TR4_LARA_THUD, &item.Pose);
 						creature.Flags = CIVVY_HAS_ALREADY_HIT;
 
-						if (creature.Enemy->HitPoints <= 0 && !creature.Enemy->IsLara() && !item.HitStatus)
+						if (creature.Enemy->HitPoints <= 0 && !creature.Enemy.IsLara() && !item.HitStatus)
 							creature.Alerted = false;
 					}
 				}
@@ -577,7 +577,7 @@ namespace TEN::Entities::Creatures::TR3
 
 				if (creature.Enemy != nullptr && creature.Flags == CIVVY_HAS_NOT_HIT_YET)
 				{
-					if (creature.Enemy->IsLara())
+					if (creature.Enemy.IsLara())
 					{
 						if (item.TouchBits.Test(CivvyAttackJoints))
 							creature.Flags = CIVVY_IS_DOING_HIT;
@@ -596,7 +596,7 @@ namespace TEN::Entities::Creatures::TR3
 						SoundEffect(SFX_TR4_LARA_THUD, &item.Pose);
 						creature.Flags = CIVVY_HAS_ALREADY_HIT;
 
-						if (creature.Enemy->HitPoints <= 0 && !creature.Enemy->IsLara() && !item.HitStatus)
+						if (creature.Enemy->HitPoints <= 0 && !creature.Enemy.IsLara() && !item.HitStatus)
 							creature.Alerted = false;
 					}
 				}

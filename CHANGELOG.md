@@ -30,18 +30,25 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
 * Fixed flyby camera jitter by converting the spline type to floating-point.
+* Fixed occasional flame emitter sprite jitter.
 
 ### Lua API changes
 
 * Added ring inventory module.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
+* Added `constraint` field to `ParticleData` argument table for `Effects.EmitAdvancedParticle` function to create particles with constrained orientation.
+* Added callbacks for item pickup and vehicle enter/leave events.
+* Added `Logic.HasCallback` method for checking if a callback exists.
+* Added `Moveable:SetOnLoop` method.
 * Added `Flow.Settings.Graphics.flameHeatHaze` option to toggle heat haze effects for flames.
 * Added `Flow.Settings.UI.menuBackgroundBlur` option to specify amount of blur for the inventory and pause backgrounds.
 * Added `Lara.SetSkin` to swap classic outfits.
+* Added `Objects.Creature` class to fetch and set various enemy AI state parameters.
 * Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
 * Added `View.GetPostProcessTint` to get currently set post process tint.
 * Added `View.GetPostProcess` and `View.SetPostProcess` to set/get postprocess mode and strength.
-* Remove `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
+* Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
+* Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 
 ## [Version 1.11.1]
