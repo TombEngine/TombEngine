@@ -524,7 +524,8 @@ enum class Shader
 	// SSAO
 
 	Ssao,
-	SsaoBlur,
+	SsaoBlurHorizontal,
+	SsaoBlurVertical,
 
 	// Fullscreen effects
 
