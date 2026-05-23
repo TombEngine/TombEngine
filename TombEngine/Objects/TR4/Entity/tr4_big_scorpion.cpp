@@ -248,7 +248,7 @@ namespace TEN::Entities::TR4
 				if (creature->Flags != 0)
 					break;
 
-				if (creature->Enemy && !creature->Enemy->IsLara() && ai.distance < BIG_SCORPION_ATTACK_RANGE)
+				if (creature->Enemy && !creature->Enemy.IsLara() && ai.distance < BIG_SCORPION_ATTACK_RANGE)
 				{
 					DoDamage(creature->Enemy, BIG_SCORPION_TROOP_ATTACK_DAMAGE);
 					CreatureEffect2(item, BigScorpionBite1, 10, item->Pose.Orientation.y - ANGLE(180.0f), DoBloodSplat);
@@ -266,7 +266,7 @@ namespace TEN::Entities::TR4
 
 					if (item->Animation.ActiveState == BSCORPION_STATE_STINGER_ATTACK)
 					{
-						if (creature->Enemy->IsLara())
+						if (creature->Enemy.IsLara())
 							GetLaraInfo(creature->Enemy)->Status.Poison += BIG_SCORPION_STINGER_POISON_POTENCY;
 
 						CreatureEffect2(item, BigScorpionBite1, 10, item->Pose.Orientation.y - ANGLE(180.0f), DoBloodSplat);
@@ -278,7 +278,7 @@ namespace TEN::Entities::TR4
 
 					creature->Flags = 1;
 
-					if (creature->Enemy->IsLara() && creature->Enemy->HitPoints <= 0)
+					if (creature->Enemy.IsLara() && creature->Enemy->HitPoints <= 0)
 					{
 						CreatureKill(item, BSCORPION_ANIM_KILL, LEA_BIG_SCORPION_DEATH, BSCORPION_STATE_KILL, LS_DEATH);
 						creature->MaxTurn = 0;
