@@ -10,6 +10,7 @@
 #include "Sound/sound.h"
 #include "Specific/LevelCameraInfo.h"
 #include "Specific/newtypes.h"
+#include "Specific/Structures/MaterialData.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Control::Volumes;
@@ -77,22 +78,6 @@ struct SPRITE
 	float y3;
 	float x4;
 	float y4;
-};
-
-struct MaterialData
-{
-	std::string Name;
-	MaterialShaderType Type;
-	Vector4 Parameters0;
-	Vector4 Parameters1;
-	Vector4 Parameters2;
-	Vector4 Parameters3;
-	bool HasNormalMap;
-	bool HasHeightMap;
-	bool HasAmbientOcclusionMap;
-	bool HasRoughnessMap;
-	bool HasSpecularMap;
-	bool HasEmissiveMap;
 };
 
 struct MESH

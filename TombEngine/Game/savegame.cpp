@@ -1410,6 +1410,19 @@ const std::vector<byte> SaveGame::Build()
 	auto staticMeshesOffset = fbb.CreateVector(staticMeshes);
 	auto volumesOffset = fbb.CreateVector(volumes);
 
+	std::vector<Save::Vector4> materialPropertyCurrentValues = {};
+	materialPropertyCurrentValues.reserve(g_Level.Materials.size() * MaterialData::PropertyCount);
+
+	for (const auto& material : g_Level.Materials)
+	{
+		auto& currentParameters = material.GetProperties();
+
+		for (int i = 0; i < MaterialData::PropertyCount; i++)
+			materialPropertyCurrentValues.push_back(FromVector4(currentParameters[i]));
+	}
+
+	auto materialPropertyCurrentValuesOffset = fbb.CreateVectorOfStructs(materialPropertyCurrentValues);
+
 	// Level state
 	auto* level = (Level*)g_GameFlow->GetLevel(CurrentLevel);
 	Save::LevelDataBuilder levelData { fbb };
@@ -1458,6 +1471,7 @@ const std::vector<byte> SaveGame::Build()
 	levelData.add_weather_type((int)level->Weather);
 	levelData.add_weather_strength(level->WeatherStrength);
 	levelData.add_weather_clustering(level->WeatherClustering);
+	levelData.add_material_property_current_values(materialPropertyCurrentValuesOffset);
 
 	auto levelDataOffset = levelData.Finish();
 
@@ -2460,10 +2474,26 @@ static void ParseEffects(const Save::SaveGame* s)
 	g_Renderer.SetPostProcessStrength(s->postprocess_strength());
 	g_Renderer.SetPostProcessTint(ToVector3(s->postprocess_tint()));
 
+	// Restore material properties.
+	auto* savedValues = s->level_data()->material_property_current_values();
+	TENAssert(savedValues != nullptr && savedValues->size() == g_Level.Materials.size() * MaterialData::PropertyCount, "Savegame material property data size mismatch.");
+
+	auto valueIndex = 0;
+	for (auto& material : g_Level.Materials)
+	{
+		std::array<Vector4, MaterialData::PropertyCount> properties = {};
+
+		for (int i = 0; i < MaterialData::PropertyCount; i++)
+			properties[i] = ToVector4(savedValues->Get(valueIndex++));
+
+		material.SetCurrentProperties(properties);
+		material.StoreInterpolationData();
+	}
+
 	// Restore soundtracks.
 	for (int i = 0; i < s->soundtracks()->size(); i++)
 	{
-		TENAssert(i < (int)SoundTrackType::Count, "Soundtrack type count was changed");
+		TENAssert(i < (int)SoundTrackType::Count, "Soundtrack type count was changed.");
 
 		auto track = s->soundtracks()->Get(i);
 		PlaySoundTrack(track->name()->str(), (SoundTrackType)i, track->position(), SOUND_XFADETIME_LEVELJUMP);

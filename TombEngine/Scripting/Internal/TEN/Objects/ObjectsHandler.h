@@ -7,6 +7,7 @@
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Scripting/Internal/TEN/Objects/Static/StaticObject.h"
 #include "Scripting/Internal/TEN/Objects/AIObject/AIObject.h"
+#include "Scripting/Internal/TEN/View/Material/MaterialObject.h"
 #include "Scripting/Internal/TEN/Properties/PropertyLuaConverters.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 
@@ -140,7 +141,8 @@ private:
 		if (_nameMap.find(name) == _nameMap.end())
 			return NO_VALUE;
 
-		return std::get<int>(_nameMap.at(name));
+		const auto& value = _nameMap.at(name);
+		return std::holds_alternative<int>(value) ? std::get<int>(value) : NO_VALUE;
 	}
 
 	bool IsNameInUse(const std::string& key) const

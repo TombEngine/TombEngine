@@ -826,6 +826,8 @@ struct LevelDataT : public flatbuffers::NativeTable {
   int32_t starfield_meteor_count = 0;
   int32_t starfield_meteor_spawn_density = 0;
   int32_t starfield_meteor_velocity = 0;
+  std::vector<TEN::Save::Vector4> material_property_current_values{};
+  std::vector<TEN::Save::Vector4> material_property_prev_values{};
 };
 
 struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -867,7 +869,9 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_STARFIELD_STAR_COUNT = 66,
     VT_STARFIELD_METEOR_COUNT = 68,
     VT_STARFIELD_METEOR_SPAWN_DENSITY = 70,
-    VT_STARFIELD_METEOR_VELOCITY = 72
+    VT_STARFIELD_METEOR_VELOCITY = 72,
+    VT_MATERIAL_PROPERTY_CURRENT_VALUES = 74,
+    VT_MATERIAL_PROPERTY_PREV_VALUES = 76
   };
   uint32_t random_seed() const {
     return GetField<uint32_t>(VT_RANDOM_SEED, 0);
@@ -974,6 +978,12 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t starfield_meteor_velocity() const {
     return GetField<int32_t>(VT_STARFIELD_METEOR_VELOCITY, 0);
   }
+  const flatbuffers::Vector<const TEN::Save::Vector4 *> *material_property_current_values() const {
+    return GetPointer<const flatbuffers::Vector<const TEN::Save::Vector4 *> *>(VT_MATERIAL_PROPERTY_CURRENT_VALUES);
+  }
+  const flatbuffers::Vector<const TEN::Save::Vector4 *> *material_property_prev_values() const {
+    return GetPointer<const flatbuffers::Vector<const TEN::Save::Vector4 *> *>(VT_MATERIAL_PROPERTY_PREV_VALUES);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint32_t>(verifier, VT_RANDOM_SEED) &&
@@ -1011,6 +1021,10 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_STARFIELD_METEOR_COUNT) &&
            VerifyField<int32_t>(verifier, VT_STARFIELD_METEOR_SPAWN_DENSITY) &&
            VerifyField<int32_t>(verifier, VT_STARFIELD_METEOR_VELOCITY) &&
+           VerifyOffset(verifier, VT_MATERIAL_PROPERTY_CURRENT_VALUES) &&
+           verifier.VerifyVector(material_property_current_values()) &&
+           VerifyOffset(verifier, VT_MATERIAL_PROPERTY_PREV_VALUES) &&
+           verifier.VerifyVector(material_property_prev_values()) &&
            verifier.EndTable();
   }
   LevelDataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1126,6 +1140,12 @@ struct LevelDataBuilder {
   }
   void add_starfield_meteor_velocity(int32_t starfield_meteor_velocity) {
     fbb_.AddElement<int32_t>(LevelData::VT_STARFIELD_METEOR_VELOCITY, starfield_meteor_velocity, 0);
+  }
+  void add_material_property_current_values(flatbuffers::Offset<flatbuffers::Vector<const TEN::Save::Vector4 *>> material_property_current_values) {
+    fbb_.AddOffset(LevelData::VT_MATERIAL_PROPERTY_CURRENT_VALUES, material_property_current_values);
+  }
+  void add_material_property_prev_values(flatbuffers::Offset<flatbuffers::Vector<const TEN::Save::Vector4 *>> material_property_prev_values) {
+    fbb_.AddOffset(LevelData::VT_MATERIAL_PROPERTY_PREV_VALUES, material_property_prev_values);
   }
   explicit LevelDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {

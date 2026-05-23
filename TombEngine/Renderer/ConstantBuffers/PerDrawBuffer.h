@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <SimpleMath.h>
 #include <cstdint>
 
@@ -13,13 +14,7 @@ namespace TEN::Renderer::ConstantBuffers
 	// CBPerDraw — keep them in sync.
 	struct alignas(16) CPerDrawBuffer
 	{
-		Vector4      MaterialParameters0;
-		//--
-		Vector4      MaterialParameters1;
-		//--
-		Vector4      MaterialParameters2;
-		//--
-		Vector4      MaterialParameters3;
+		std::array<Vector4, MaterialData::PropertyCount> MaterialParameters;
 		//--
 		unsigned int MaterialTypeAndFlags;
 		unsigned int BlendMode;

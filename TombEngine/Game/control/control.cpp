@@ -776,6 +776,9 @@ void SetupInterpolation()
 	for (auto& item : g_Level.Items)
 		item.DisableInterpolation = false;
 
+	for (auto& material : g_Level.Materials)
+		material.StoreInterpolationData();
+
 	// HACK: Remove after ScriptInterfaceFlowHandler is deprecated.
 	auto* level = (Level*)g_GameFlow->GetLevel(CurrentLevel);
 	level->Horizon1.SetPosition(level->Horizon1.GetPosition(), true);

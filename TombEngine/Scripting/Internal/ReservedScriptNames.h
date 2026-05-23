@@ -19,6 +19,7 @@ static constexpr char ScriptReserved_Camera[]			= "Camera";
 static constexpr char ScriptReserved_SoundSource[]		= "SoundSource";
 static constexpr char ScriptReserved_AIObject[]			= "AIObject";
 static constexpr char ScriptReserved_Volume[]			= "Volume";
+static constexpr char ScriptReserved_Material[]			= "Material";
 static constexpr char ScriptReserved_Color[]			= "Color";
 static constexpr char ScriptReserved_DisplayString[]	= "DisplayString";
 static constexpr char ScriptReserved_LevelFunc[]		= "LevelFunc";
@@ -336,6 +337,7 @@ static constexpr char ScriptReserved_GetVolumeByName[]				= "GetVolumeByName";
 static constexpr char ScriptReserved_GetRoomsByTag[]				= "GetRoomsByTag";
 static constexpr char ScriptReserved_GetRoomByName[]				= "GetRoomByName";
 static constexpr char ScriptReserved_GetRoomByNumber[]				= "GetRoomByNumber";
+static constexpr char ScriptReserved_GetMaterialByName[]			= "GetMaterialByName";
 static constexpr char ScriptReserved_CalculateHorizontalDistance[]	= "CalculateHorizontalDistance";
 static constexpr char ScriptReserved_PercentToScreen[]				= "PercentToScreen";
 static constexpr char ScriptReserved_ScreenToPercent[]				= "ScreenToPercent";
@@ -569,10 +571,12 @@ constexpr char ScriptReserved_StaticSetSolid[]		= "SetSolid";
 constexpr char ScriptReserved_StaticSetCollidable[]	= "SetCollidable";
 constexpr char ScriptReserved_StaticShatter[]		= "Shatter";
 
-// Properties (shared between Moveable and Static)
+// Properties (shared between Moveable, Static, and Material)
 
 constexpr char ScriptReserved_GetProperty[]				= "GetProperty";
 constexpr char ScriptReserved_SetProperty[]				= "SetProperty";
+constexpr char ScriptReserved_ResetProperty[]			= "ResetProperty";
+constexpr char ScriptReserved_IsPropertyPresent[]		= "IsPropertyPresent";
 constexpr char ScriptReserved_HasInstanceProperty[]		= "HasInstanceProperty";
 
 // Properties (global type-level, on Objects table)

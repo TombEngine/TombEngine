@@ -61,6 +61,14 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	_table_objects.set_function(ScriptReserved_GetStaticByName, &ObjectsHandler::GetByName<Static, ScriptReserved_Static>, this);
 
 	/***
+	Get a Material by its Tomb Editor material name.
+	@function GetMaterialByName
+	@tparam string name Material name.
+	@treturn Objects.Material A non-owning material wrapper.
+	*/
+	_table_objects.set_function(ScriptReserved_GetMaterialByName, &ObjectsHandler::GetByName<Material, ScriptReserved_Material>, this);
+
+	/***
 	Get statics by their slot.
 	@function GetStaticsBySlot
 	@tparam int slot The unique numerical slot of the static mesh.
@@ -193,6 +201,11 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 
 	Static::Register(_table_objects);
 	Static::SetNameCallbacks(
+		[this](auto && ... param) { return AddName(std::forward<decltype(param)>(param)...); },
+		[this](auto && ... param) { return RemoveName(std::forward<decltype(param)>(param)...); });
+
+	Material::Register(_table_objects);
+	Material::SetNameCallbacks(
 		[this](auto && ... param) { return AddName(std::forward<decltype(param)>(param)...); },
 		[this](auto && ... param) { return RemoveName(std::forward<decltype(param)>(param)...); });
 
