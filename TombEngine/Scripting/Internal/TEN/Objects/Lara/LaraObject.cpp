@@ -970,7 +970,7 @@ bool LaraObject::TestInteraction(const Moveable& mov,
 	};
 
 	auto& item = g_Level.Items[mov.GetIndex()];
-	return (TestLaraPosition(interactionBasis, &item, _moveable));
+	return TestLaraPosition(interactionBasis, &item, _moveable);
 }
 
 void LaraObject::Register(sol::table& parent)
