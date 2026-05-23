@@ -20,10 +20,11 @@
 ---	local GeneralUtils = require("Engine.GeneralUtils")
 -- @luautil GeneralUtils
 
-local Type= require("Engine.Type")
+local Type = require("Engine.Type")
 local MAX_DEPTH = 10        -- Maximum recursion depth for deep operations (prevents stack overflow)
 local MAX_ELEMENTS = 1000   -- Maximum elements processed in deep operations (prevents performance issues)
-local COMPARISON_OPS = {
+local COMPARISON_OPS =
+{
     function(a, b) return a == b end,   -- 0: equal
     function(a, b) return a ~= b end,   -- 1: not equal
     function(a, b) return a < b end,    -- 2: less than
@@ -38,7 +39,8 @@ local COMPARISON_OPS = {
 -- ----------------------------------------------------------------------------
 local ESC = "\27["
 local ANSI_RESET = "\27[0m"
-local ANSI_CODES = {
+local ANSI_CODES =
+{
     -- Text colors (foreground)
     black   = "30", red     = "31", green   = "32", yellow  = "33",
     blue    = "34", magenta = "35", cyan    = "36", white   = "37",
@@ -274,21 +276,23 @@ end
 -- @treturn any The value if not nil, otherwise defaultValue.
 -- @usage
 -- -- Problem with Lua's 'or' operator:
+-- In Lua, 'false' is treated as falsy. Using 'or' will accidentally
+-- overwrite an explicit 'false' value set by the user with the default value.
 -- local enabled = false
--- local result = enabled or true  -- Result: true ❌ (wrong! false is treated as falsy)
+-- local result = enabled or true  -- Result: true (Flawed! Overwrites the user's choice)
 --
 -- -- Solution with GetOrDefault:
 -- local enabled = false
--- local result = GeneralUtils.GetOrDefault(enabled, true)  -- Result: false ✅ (correct!)
+-- local result = GeneralUtils.GetOrDefault(enabled, true)  -- Result: false (correct!)
 --
 -- -- Example with 0 (another falsy value in 'or'):
 -- local damage = 0
--- local finalDamage = damage or 10  -- Result: 10 ❌ (wrong! 0 is valid)
--- local finalDamage = GeneralUtils.GetOrDefault(damage, 10)  -- Result: 0 ✅ (correct!)
+-- local finalDamage = damage or 10  -- Result: 10 (wrong! 0 is valid)
+-- local finalDamage = GeneralUtils.GetOrDefault(damage, 10)  -- Result: 0 (correct!)
 --
 -- -- Example with nil (works like 'or'):
 -- local speed = nil
--- local finalSpeed = GeneralUtils.GetOrDefault(speed, 100)  -- Result: 100 ✅
+-- local finalSpeed = GeneralUtils.GetOrDefault(speed, 100)  -- Result: 100 (correct!)
 --
 -- -- Example with configuration:
 -- local config = { volume = 0, mute = false }
