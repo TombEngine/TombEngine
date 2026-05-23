@@ -179,6 +179,7 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_SetPosition, &Moveable::SetPosition,
 		ScriptReserved_SetScale, &Moveable::SetScale,
 		ScriptReserved_SetRoomNumber, &Moveable::SetRoomNumber,
+		ScriptReserved_SetJointRotation, &Moveable::SetJointRotation,
 		ScriptReserved_SetRotation, &Moveable::SetRotation,
 		ScriptReserved_SetColor, &Moveable::SetColor,
 		ScriptReserved_SetVisible, &Moveable::SetVisible,
@@ -451,6 +452,25 @@ Rotation Moveable::GetRotation() const
 		TO_DEGREES(_moveable->Pose.Orientation.y),
 		TO_DEGREES(_moveable->Pose.Orientation.z)
 	};
+}
+
+/// Set the moveable's joint rotation for the current game frame.
+// Call this every OnLoop to keep an override active.
+// @function Moveable:SetJointRotation
+// @tparam int jointIndex Index of a joint to override.
+// @tparam Rotation rotation Joint rotation override.
+void Moveable::SetJointRotation(int jointId, const Rotation& rot)
+{
+	if (!JointExists(jointId))
+		return;
+
+	auto meshCount = Objects[_moveable->ObjectNumber].nmeshes;
+	if (_moveable->Model.JointRotations.size() != meshCount)
+		_moveable->Model.JointRotations.resize(meshCount);
+
+	auto& jointRotation = _moveable->Model.JointRotations[jointId];
+	jointRotation.Rotation = rot.ToEulerAngles().ToQuaternion();
+	jointRotation.FrameStamp = GlobalCounter;
 }
 
 /// Set the moveable's rotation.
@@ -1249,6 +1269,17 @@ void Moveable::Destroy()
 	}
 
 	Invalidate();
+}
+
+bool Moveable::JointExists(int index) const
+{
+	if (index < 0 || index >= Objects[_moveable->ObjectNumber].nmeshes)
+	{
+		ScriptAssertF(false, "Joint index {} does not exist in moveable '{}'", index, _moveable->Name);
+		return false;
+	}
+
+	return true;
 }
 
 bool Moveable::MeshExists(int index) const

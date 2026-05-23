@@ -210,10 +210,15 @@ void ItemInfo::ResetModelToDefault()
 		Model.Mutators.resize(object.nmeshes);
 		for (auto& mutator : Model.Mutators)
 			mutator = {};
+
+		Model.JointRotations.resize(object.nmeshes);
+		for (auto& jointRotation : Model.JointRotations)
+			jointRotation = {};
 	}
 	else
 	{
 		Model.Mutators.clear();
+		Model.JointRotations.clear();
 		Model.MeshIndex.clear();
 	}
 }

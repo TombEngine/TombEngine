@@ -91,6 +91,7 @@ public:
 	void SetPosition(const Vec3& pos, sol::optional<bool> updateRoom);
 	std::unique_ptr<Room> GetRoom() const;
 	int GetRoomNumber() const;
+	void SetJointRotation(int jointId, const Rotation& rot);
 	void SetRotation(const Rotation& rot);
 	void SetScale(const Vec3& scale);
 	void SetStateNumber(int stateNumber);
@@ -145,5 +146,6 @@ public:
 private:
 	// Helpers
 
+	bool JointExists(int number) const;
 	bool MeshExists(int number) const;
 };
