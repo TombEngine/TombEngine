@@ -1191,7 +1191,7 @@ end
 -- 
 -- Lerp treats angles as linear numbers:
 --
---      InterpolationUtils.Lerp(350°, 10°, 0.5) = 180° ❌ (rotates 170° the long way!)
+--      InterpolationUtils.Lerp(350°, 10°, 0.5) = 180° (rotates 170° the long way!)
 -- 
 -- LerpAngle calculates shortest rotation path:
 --
