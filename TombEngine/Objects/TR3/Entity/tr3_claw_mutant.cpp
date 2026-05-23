@@ -150,12 +150,15 @@ namespace TEN::Entities::Creatures::TR3
 	{
 		const auto& creature = *GetCreatureInfo(&item);
 
+		if (creature.Enemy == nullptr)
+			return;
+
 		int plasmaBall = CreateNewEffect(item.RoomNumber);
 		if (plasmaBall == NO_VALUE)
 			return;
 
 		auto enemyPos = creature.Enemy->Pose.Position;
-		if (creature.Enemy->IsLara() && GetLaraInfo(creature.Enemy)->Control.IsLow)
+		if (creature.Enemy.IsLara() && GetLaraInfo(creature.Enemy)->Control.IsLow)
 		{
 			enemyPos.y -= CLICK(1);
 		}

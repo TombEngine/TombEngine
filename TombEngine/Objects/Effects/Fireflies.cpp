@@ -244,9 +244,9 @@ namespace TEN::Effects::Fireflies
                     }
 
                     SpawnDynamicLight(firefly.Position.x, firefly.Position.y, firefly.Position.z, 3,
-                        static_cast<unsigned char>(std::clamp(firefly.r * alphaFactor, 0.0f, (float)firefly.r)),
-                        static_cast<unsigned char>(std::clamp(firefly.g * alphaFactor, 0.0f, (float)firefly.g)),
-                        static_cast<unsigned char>(std::clamp(firefly.b * alphaFactor, 0.0f, (float)firefly.b)));
+                        (unsigned char)std::clamp(firefly.r * alphaFactor, 0.0f, (float)firefly.r),
+                        (unsigned char)std::clamp(firefly.g * alphaFactor, 0.0f, (float)firefly.g),
+                        (unsigned char)std::clamp(firefly.b * alphaFactor, 0.0f, (float)firefly.b));
                 }
             }
         }
@@ -343,9 +343,9 @@ namespace TEN::Effects::Fireflies
                 alphaFactor = (alphaTime - 2 * ALPHA_PAUSE_DURATION - LIGHT_ALPHA_CYCLE_DURATION) / LIGHT_ALPHA_CYCLE_DURATION;
             }
 
-            firefly.r = static_cast<unsigned char>(firefly.rB * alphaFactor);
-            firefly.g = static_cast<unsigned char>(firefly.gB * alphaFactor);
-            firefly.b = static_cast<unsigned char>(firefly.bB * alphaFactor);
+            firefly.r = (unsigned char)(firefly.rB * alphaFactor);
+            firefly.g = (unsigned char)(firefly.gB * alphaFactor);
+            firefly.b = (unsigned char)(firefly.bB * alphaFactor);
 
             for (const auto& otherFirefly : FireflySwarm)
             {

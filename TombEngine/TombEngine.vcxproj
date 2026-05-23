@@ -504,6 +504,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Math\Legacy.h" />
     <ClInclude Include="Math\Math.h" />
     <ClInclude Include="Math\Objects\AxisAngle.h" />
+    <ClInclude Include="Math\Objects\BezierCurve2.h" />
     <ClInclude Include="Math\Objects\EulerAngles.h" />
     <ClInclude Include="Math\Objects\GameBoundingBox.h" />
     <ClInclude Include="Math\Objects\GameVector.h" />
@@ -560,7 +561,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\Generic\generic_objects.h" />
     <ClInclude Include="Objects\Generic\puzzles_keys.h" />
     <ClInclude Include="Objects\Generic\Doors\breakable_wall.h" />
-    <ClInclude Include="Game\Sink.h" />
+    <ClInclude Include="Objects\Generic\Traps\Pendulum.h" />
+    <ClInclude Include="Objects\Sink.h" />
     <ClInclude Include="Objects\TR1\Entity\Centaur.h" />
     <ClInclude Include="Objects\TR1\Entity\Cowboy.h" />
     <ClInclude Include="Objects\TR1\Entity\Kold.h" />
@@ -599,6 +601,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\TR2\Entity\tr2_worker_machinegun.h" />
     <ClInclude Include="Objects\TR2\Entity\tr2_worker_shotgun.h" />
     <ClInclude Include="Objects\TR2\Entity\tr2_yeti.h" />
+    <ClInclude Include="Objects\TR2\Trap\CircularSaw.h" />
+    <ClInclude Include="Objects\TR2\Trap\OverheadPulleyHook.h" />
     <ClInclude Include="Objects\TR2\Trap\tr2_killerstatue.h" />
     <ClInclude Include="Objects\TR2\Trap\tr2_spinningblade.h" />
     <ClInclude Include="Objects\TR2\Trap\tr2_springboard.h" />
@@ -631,8 +635,12 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\TR3\Entity\tr3_tribesman.h" />
     <ClInclude Include="Objects\TR3\Entity\Winston.h" />
     <ClInclude Include="Objects\TR3\Object\Corpse.h" />
+    <ClInclude Include="Objects\TR3\Object\Fusebox.h" />
+    <ClInclude Include="Objects\TR3\Trap\DrillBit.h" />
     <ClInclude Include="Objects\TR3\Trap\ElectricCleaner.h" />
     <ClInclude Include="Objects\TR3\Trap\FirePendulum.h" />
+    <ClInclude Include="Objects\TR3\Trap\HeavyStamper.h" />
+    <ClInclude Include="Objects\TR3\Trap\SpikedFrame.h" />
     <ClInclude Include="Objects\TR3\Trap\train.h" />
     <ClInclude Include="Objects\TR3\Trap\TurningBlade.h" />
     <ClInclude Include="Objects\TR3\Trap\WallMountedBlade.h" />
@@ -805,7 +813,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Graphics\IStructuredBuffer.h" />
     <ClInclude Include="Renderer\Graphics\ISpriteFont.h" />
     <ClInclude Include="Renderer\Graphics\ITexture2D.h" />
+    <ClInclude Include="Renderer\Graphics\ITexture3D.h" />
     <ClInclude Include="Renderer\Graphics\ITextureBase.h" />
+    <ClInclude Include="Renderer\Graphics\IGpuReadbackBuffer.h" />
     <ClInclude Include="Renderer\Graphics\IVertexBuffer.h" />
     <ClInclude Include="Renderer\Graphics\VRAMTracker.h" />
     <ClInclude Include="Renderer\Graphics\VRAMAllocation.h" />
@@ -827,12 +837,15 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Native\DirectX11\DX11SpriteBatch.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11SpriteFont.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11Texture2D.h" />
+    <ClInclude Include="Renderer\Native\DirectX11\DX11Texture3D.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11TextureBase.h" />
+    <ClInclude Include="Renderer\Native\DirectX11\DX11GpuReadbackBuffer.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11VertexBuffer.h" />
     <ClInclude Include="Renderer\Renderer.h" />
     <ClInclude Include="Renderer\RendererEnums.h" />
     <ClInclude Include="Renderer\ShaderManager\ShaderManager.h" />
     <ClInclude Include="Renderer\Structures\RendererDecal.h" />
+    <ClInclude Include="Renderer\Structures\RendererDofMode.h" />
     <ClInclude Include="Renderer\Structures\RendererInputLayout.h" />
     <ClInclude Include="Renderer\Structures\RendererMirror.h" />
     <ClInclude Include="Renderer\RendererSprite2D.h" />
@@ -902,6 +915,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\Collision\MaterialTypes.h" />
     <ClInclude Include="Scripting\Internal\TEN\Collision\Probe.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\Horizon\Horizon.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Creature\Creature.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Creature\CreatureStates.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\ItemActions.h" />
     <ClInclude Include="Scripting\Internal\TEN\Logic\CallbackPoint.h" />
     <ClInclude Include="Scripting\Internal\TEN\Logic\EventType.h" />
@@ -978,6 +993,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\Types\Vec3\Vec3.h" />
     <ClInclude Include="Scripting\Internal\TEN\View\AlignModes.h" />
     <ClInclude Include="Scripting\Internal\TEN\View\CameraTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\View\DOFModes.h" />
     <ClInclude Include="Scripting\Internal\TEN\View\PostProcessEffects.h" />
     <ClInclude Include="Scripting\Internal\TEN\View\ScaleModes.h" />
     <ClInclude Include="Scripting\Internal\TEN\View\ViewHandler.h" />
@@ -1116,6 +1132,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Math\Geometry.cpp" />
     <ClCompile Include="Math\Legacy.cpp" />
     <ClCompile Include="Math\Objects\AxisAngle.cpp" />
+    <ClCompile Include="Math\Objects\BezierCurve2.cpp" />
     <ClCompile Include="Math\Objects\EulerAngles.cpp" />
     <ClCompile Include="Math\Objects\GameBoundingBox.cpp" />
     <ClCompile Include="Math\Objects\GameVector.cpp" />
@@ -1132,6 +1149,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\Effects\Fireflies.cpp" />
     <ClCompile Include="Objects\Effects\flame_emitters.cpp" />
     <ClCompile Include="Objects\Effects\LensFlare.cpp" />
+    <ClCompile Include="Objects\TR3\Object\Fusebox.cpp" />
     <ClCompile Include="Objects\TR4\Entity\Locust.cpp" />
     <ClCompile Include="Objects\Effects\tr5_electricity.cpp" />
     <ClCompile Include="Objects\Generic\Doors\double_doors.cpp" />
@@ -1173,6 +1191,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\Generic\Traps\dart_emitter.cpp" />
     <ClCompile Include="Objects\Generic\Traps\falling_block.cpp" />
     <ClCompile Include="Objects\Generic\Doors\breakable_wall.cpp" />
+    <ClCompile Include="Objects\Generic\Traps\Pendulum.cpp" />
     <ClCompile Include="Objects\TR1\Entity\Centaur.cpp" />
     <ClCompile Include="Objects\TR1\Entity\Cowboy.cpp" />
     <ClCompile Include="Objects\TR1\Entity\Kold.cpp" />
@@ -1212,6 +1231,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\TR2\Entity\tr2_worker_shotgun.cpp" />
     <ClCompile Include="Objects\TR2\Entity\tr2_yeti.cpp" />
     <ClCompile Include="Objects\TR2\tr2_objects.cpp" />
+    <ClCompile Include="Objects\TR2\Trap\CircularSaw.cpp" />
+    <ClCompile Include="Objects\TR2\Trap\OverheadPulleyHook.cpp" />
     <ClCompile Include="Objects\TR2\Trap\tr2_killerstatue.cpp" />
     <ClCompile Include="Objects\TR2\Trap\tr2_spinningblade.cpp" />
     <ClCompile Include="Objects\TR2\Trap\tr2_springboard.cpp" />
@@ -1242,8 +1263,11 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\TR3\Object\corpse.cpp" />
     <ClCompile Include="Objects\TR3\Entity\Winston.cpp" />
     <ClCompile Include="Objects\TR3\tr3_objects.cpp" />
+    <ClCompile Include="Objects\TR3\Trap\DrillBit.cpp" />
     <ClCompile Include="Objects\TR3\Trap\ElectricCleaner.cpp" />
     <ClCompile Include="Objects\TR3\Trap\FirePendulum.cpp" />
+    <ClCompile Include="Objects\TR3\Trap\HeavyStamper.cpp" />
+    <ClCompile Include="Objects\TR3\Trap\SpikedFrame.cpp" />
     <ClCompile Include="Objects\TR3\Trap\train.cpp" />
     <ClCompile Include="Objects\TR3\Trap\TurningBlade.cpp" />
     <ClCompile Include="Objects\TR3\Trap\WallMountedBlade.cpp" />
@@ -1383,6 +1407,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\Native\DirectX11\DX11SpriteBatch.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11SpriteFont.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11Texture2D.cpp" />
+    <ClCompile Include="Renderer\Native\DirectX11\DX11Texture3D.cpp" />
+    <ClCompile Include="Renderer\Native\DirectX11\DX11GpuReadbackBuffer.cpp" />
     <ClCompile Include="Renderer\Native\DirectX11\DX11VertexBuffer.cpp" />
     <ClCompile Include="Renderer\Renderer.cpp" />
     <ClCompile Include="Renderer\RendererAntialiasing.cpp" />
@@ -1411,6 +1437,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Scripting\Internal\TEN\Collision\Probe.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\Horizon\Horizon.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\Statistics\Statistics.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Objects\Creature\Creature.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Collision\Los.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Types\Color\Color.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\View\DisplayAnchors\ScriptDisplayAnchors.cpp" />
@@ -1507,7 +1534,13 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="Shaders\CBSky.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="Shaders\DOF.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="Shaders\Materials.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Shaders\Samplers.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="Shaders\SMAA.hlsli">

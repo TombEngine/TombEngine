@@ -293,12 +293,14 @@ namespace TEN::Renderer
 
 			// Target highlighter
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TARGET_HIGHLIGHTER), optionColor, SF(titleOption == 7));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableTargetHighlighter), plainColor, SF(titleOption == 7));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_GameFlow->GetSettings()->Hud.TargetHighlighter),
+				g_GameFlow->GetSettings()->Hud.TargetHighlighter ? plainColor : disabledColor, SF(titleOption == 7));
 			GetNextLinePosition(&y);
 
 			// Interaction highlighter
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INTERACTION_HIGHLIGHTER), optionColor, SF(titleOption == 8));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableInteractionHighlighter), plainColor, SF(titleOption == 8));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_GameFlow->GetSettings()->Hud.InteractionHighlighter),
+				g_GameFlow->GetSettings()->Hud.InteractionHighlighter ? plainColor : disabledColor, SF(titleOption == 8));
 			GetNextLinePosition(&y);
 
 			// Vibration
@@ -856,11 +858,8 @@ namespace TEN::Renderer
 		const auto& object = Objects[objectNumber];
 		if (!object.Animations.empty())
 		{
-			auto interpData = KeyframeInterpolationData(
-				GetAnimData(object, 0).Keyframes[0],
-				GetAnimData(object, 0).Keyframes[0],
-				0.0f);
-			UpdateAnimation(nullptr, *moveableObject, interpData, UINT_MAX);
+			const auto& frame = GetAnimData(object, 0).Frames.front();
+			UpdateAnimation(nullptr, *moveableObject, frame, UINT_MAX);
 		}
 
 		auto pos = _graphicsDevice->Unproject(Vector3(pos2D.x, pos2D.y, 1.0f), projMatrix, viewMatrix, Matrix::Identity);
@@ -1027,13 +1026,7 @@ namespace TEN::Renderer
 		{
 			int animNumber = item.GetAnimNumber();
 			int frameNumber = item.GetFrameNumber();
-			int prevFrameNumber = item.GetPrevFrameNumber();
-
-			auto interpData = KeyframeInterpolationData(
-				GetAnimData(object, animNumber).Keyframes[prevFrameNumber],
-				GetAnimData(object, animNumber).Keyframes[frameNumber],
-				alpha);
-			UpdateAnimation(nullptr, *moveableObject, interpData, UINT_MAX);
+			UpdateAnimation(nullptr, *moveableObject, GetAnimData(object, animNumber).Frames[frameNumber], UINT_MAX);
 		}
 
 		SetBlendMode(BlendMode::Opaque);
@@ -1486,7 +1479,7 @@ namespace TEN::Renderer
 		{
 			UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
 			Camera.DisableInterpolation = true;
-			DumpGameScene();
+			DumpGameScene(SceneRenderMode::NoHud, g_GameFlow->GetSettings()->UI.MenuBackgroundBlur);
 			_graphicsSettingsChanged = false;
 		}
 

@@ -26,7 +26,7 @@ public:
 	{
 		const auto& item = g_Level.Items[id];
 
-		bool hasName = !(item.Callbacks.OnObjectCollided.empty() && item.Callbacks.OnRoomCollided.empty());
+		bool hasName = !(item.Callbacks[(int)EntityCallbackPoint::ObjectCollided].empty() && item.Callbacks[(int)EntityCallbackPoint::RoomCollided].empty());
 		if (hasName && (item.IsLara() || item.Collidable))
 			return _collidingItems.insert(id).second;
 
@@ -37,7 +37,7 @@ public:
 	{
 		const auto& item = g_Level.Items[id];
 
-		bool hasName = !(item.Callbacks.OnObjectCollided.empty() && item.Callbacks.OnRoomCollided.empty());
+		bool hasName = !(item.Callbacks[(int)EntityCallbackPoint::ObjectCollided].empty() && item.Callbacks[(int)EntityCallbackPoint::RoomCollided].empty());
 		if (!force && hasName && (item.IsLara() || item.Collidable))
 			return false;
 

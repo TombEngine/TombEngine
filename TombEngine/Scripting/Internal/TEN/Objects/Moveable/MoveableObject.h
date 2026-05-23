@@ -37,6 +37,8 @@ private:
 	int	 _moveableID  = 0;
 	bool _initialized = false;
 
+	void SetLevelFuncCallback(const TypeOrNil<LevelFunc>& cb, const std::string& callerName, std::string& toModify);
+
 public:
 	using IdentifierType = int;
 
@@ -92,7 +94,7 @@ public:
 	void SetRotation(const Rotation& rot);
 	void SetScale(const Vec3& scale);
 	void SetStateNumber(int stateNumber);
-	void SetAnimNumber(int animNumber, sol::optional<int> slotIndex);
+	void SetAnimNumber(int animNumber, sol::optional<int> slotIndex, sol::optional<int> blendFrames);
 	void SetFrameNumber(int frameNumber);
 	void SetVelocity(Vec3 velocity);
 	void SetColor(const ScriptColor& color);
@@ -111,10 +113,9 @@ public:
 	void SetStatus(ItemStatus value);
 	void SetOnHit(const TypeOrNil<LevelFunc>& cb);
 	void SetOnKilled(const TypeOrNil<LevelFunc>& cb);
+	void SetOnLoop(const TypeOrNil<LevelFunc>& cb, sol::optional<bool> post);
 	void SetOnCollidedWithObject(const TypeOrNil<LevelFunc>& cb);
 	void SetOnCollidedWithRoom(const TypeOrNil<LevelFunc>& cb);
-
-	friend void SetLevelFuncCallback(const TypeOrNil<LevelFunc>& cb, const std::string& callerName, Moveable& mov, std::string& toModify);
 
 	// Utilities
 

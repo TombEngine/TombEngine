@@ -265,7 +265,7 @@ namespace TEN::Entities::TR4
 		}
 
 		// If a target is found, it becomes the enemy.
-		ItemInfo* enemy = creature->Enemy;
+		auto* enemy = creature->Enemy.Get();
 		if (foundTarget != nullptr)
 			creature->Enemy = foundTarget;
 
@@ -297,7 +297,7 @@ namespace TEN::Entities::TR4
 		CreatureMood(item, &AI, true);
 
 		AI_INFO laraAI;
-		if (creature->Enemy->IsLara())
+		if (creature->Enemy.IsLara())
 			memcpy(&laraAI, &AI, sizeof(AI_INFO));
 		else
 		{
@@ -441,7 +441,7 @@ namespace TEN::Entities::TR4
 			else
 			{
 				if (creature->Enemy != nullptr && creature->Enemy->HitPoints > 0 &&
-					AI.distance < pow(1024, 2) && !creature->Enemy->IsLara() &&
+					AI.distance < pow(1024, 2) && !creature->Enemy.IsLara() &&
 					creature->Enemy->ObjectNumber != ID_AI_FOLLOW)
 				{
 					if (AI.bite)
@@ -507,7 +507,7 @@ namespace TEN::Entities::TR4
 					if (!foundTarget || AI.distance >= pow(BLOCK(1.5f), 2) &&
 						(item->TestMeshSwapFlags(18) || AI.distance >= pow(BLOCK(3), 2)))
 					{
-						if (creature->Enemy->IsLara())
+						if (creature->Enemy.IsLara())
 						{
 							if (AI.distance >= pow(BLOCK(2), 2))
 							{

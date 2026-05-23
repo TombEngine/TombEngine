@@ -9,9 +9,15 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Math/Random.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 
 using namespace DirectX::SimpleMath;
 using namespace TEN::Math::Random;
+
+// Fusebox effect parameters.
+constexpr auto FUSEBOX_SPARK_COUNT = 6;
+constexpr auto FUSEBOX_SPARK_PROBABILITY = 0.6f;
+constexpr auto FUSEBOX_YELLOW_SPARK_PROBABILITY = 0.6f;
 
 namespace TEN::Effects::Spark
 {
@@ -25,7 +31,7 @@ namespace TEN::Effects::Spark
 
 			if (!s.active)
 				continue;
-			
+
 			s.StoreInterpolationData();
 
 			s.age += 1;
@@ -73,7 +79,7 @@ namespace TEN::Effects::Spark
 		auto v = vel.ToVector3();
 		v += Vector3(GenerateFloat(-64, 64), GenerateFloat(-64, 64), GenerateFloat(-64, 64));
 		v.Normalize(v);
-		s.velocity = v *GenerateFloat(17,24);
+		s.velocity = v * GenerateFloat(17, 24);
 		s.sourceColor = NEUTRAL_COLOR;
 		s.destinationColor = color;
 		s.active = true;
@@ -83,11 +89,12 @@ namespace TEN::Effects::Spark
 	{
 		constexpr auto DISTANCE_MULT_MAX = 3.0f;
 		constexpr auto DISTANCE_SCALE_THRESHOLD = BLOCK(DISTANCE_MULT_MAX);
+		auto finalColor = (colorStart == Vector4::Zero) ? (Vector4)g_GameFlow->GetSettings()->Effects.RicochetColor : colorStart;
 
 		// Make sparks bigger depending on a distance to imitate classic effect.
 		auto distanceMult = std::clamp(Vector3::Distance(pos.ToVector3(), Camera.pos.ToVector3()) / DISTANCE_SCALE_THRESHOLD, 1.0f, DISTANCE_MULT_MAX);
 
-		for (int i = 0; i < count; i++) 
+		for (int i = 0; i < count; i++)
 		{
 			auto& s = GetFreeSparkParticle();
 			s = {};
@@ -104,7 +111,7 @@ namespace TEN::Effects::Spark
 			v += Vector3(GenerateFloat(-64, 64), GenerateFloat(-64, 64), GenerateFloat(-64, 64));
 			v.Normalize(v);
 			s.velocity = v * GenerateFloat(17, 24);
-			s.sourceColor = colorStart;
+			s.sourceColor = finalColor;
 			s.destinationColor = Vector4::Zero;
 			s.active = true;
 		}
@@ -114,9 +121,9 @@ namespace TEN::Effects::Spark
 		sptr = {};
 		sptr.on = true;
 		sptr.dynamic = NO_VALUE;
-		sptr.sR = colorStart.x * 0.33f * UCHAR_MAX;
-		sptr.sG = colorStart.y * 0.33f * UCHAR_MAX;
-		sptr.sB = colorStart.z * 0.33f * UCHAR_MAX;
+		sptr.sR = finalColor.x * 0.33f * UCHAR_MAX;
+		sptr.sG = finalColor.y * 0.33f * UCHAR_MAX;
+		sptr.sB = finalColor.z * 0.33f * UCHAR_MAX;
 		sptr.dR = 0;
 		sptr.dG = 0;
 		sptr.dB = 0;
@@ -230,15 +237,15 @@ namespace TEN::Effects::Spark
 		spark.gravity = 0;
 		spark.scalar = 2;
 		spark.dSize =
-		spark.sSize =
-		spark.size = Random::GenerateInt(44, 48);
+			spark.sSize =
+			spark.size = Random::GenerateInt(44, 48);
 		spark.flags = SP_NONE;
 	}
 
 	void SpawnCyborgSpark(const Vector3& pos)
 	{
 		auto& spark = *GetFreeParticle();
-		
+
 		int velSign = -1;
 		int randomInt = Random::GenerateInt();
 
@@ -269,4 +276,121 @@ namespace TEN::Effects::Spark
 		spark.maxYvel = 0;
 		spark.gravity = 0;
 	}
+
+	void TriggerFuseboxSparks(const Vector3i& pos, int roomNumber)
+	{
+		// Yellow-white sparks for colour variation.
+		for (int i = 0; i < 12; i++)
+		{
+			auto& spark = GetFreeSparkParticle();
+			spark = {};
+			spark.age = 0;
+			spark.life = GenerateFloat(12.0f, 24.0f);
+			spark.friction = 0.94f;
+			spark.gravity = 2.0f;
+			spark.height = GenerateFloat(128.0f, 384.0f);
+			spark.width = GenerateFloat(10.0f, 20.0f);
+			spark.room = roomNumber;
+			spark.pos = pos.ToVector3();
+			spark.velocity = GenerateDirection() * GenerateFloat(40.0f, 88.0f);
+			spark.sourceColor = Vector4(1.0f, 1.0f, 0.9f, 1.0f);
+			spark.destinationColor = Vector4(1.0f, 0.6f, 0.0f, 0.0f);
+			spark.active = true;
+		}
+
+		// Close-range sparks for density.
+		for (int i = 0; i < 10; i++)
+		{
+			auto& spark = GetFreeSparkParticle();
+			spark = {};
+			spark.age = 0;
+			spark.life = GenerateFloat(12.0f, 22.0f);
+			spark.friction = 0.96f;
+			spark.gravity = 2.0f;
+			spark.height = GenerateFloat(96.0f, 320.0f);
+			spark.width = GenerateFloat(8.0f, 20.0f);
+			spark.room = roomNumber;
+			spark.pos = pos.ToVector3();
+			spark.velocity = GenerateDirection() * GenerateFloat(24.0f, 64.0f);
+			spark.sourceColor = Vector4(0.9f, 0.95f, 1.0f, 1.0f);
+			spark.destinationColor = Vector4(0.2f, 0.4f, 1.0f, 0.0f);
+			spark.active = true;
+		}
+	}
+
+	void TriggerFuseboxBlastSparks(const Vector3i& pos, int roomNumber)
+	{
+		// Blue-white sparks shooting outward up to 1 BLOCK distance.
+		for (int i = 0; i < 20; i++)
+		{
+			auto& spark = GetFreeSparkParticle();
+			spark = {};
+			spark.age = 0;
+			spark.life = GenerateFloat(16.0f, 28.0f);
+			spark.friction = 0.95f;
+			spark.gravity = 1.5f;
+			spark.height = GenerateFloat(192.0f, 512.0f);
+			spark.width = GenerateFloat(12.0f, 24.0f);
+			spark.room = roomNumber;
+			spark.pos = pos.ToVector3();
+			spark.velocity = GenerateDirection() * GenerateFloat(48.0f, 96.0f);
+			spark.sourceColor = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+			spark.destinationColor = Vector4(0.1f, 0.3f, 1.0f, 0.0f);
+			spark.active = true;
+		}
+	}
+
+	void TriggerFuseboxDestructionBlast(const Vector3i& pos, int roomNumber)
+	{
+		// Blue-white sparks shooting outward up to 1 BLOCK distance.
+		TriggerFuseboxBlastSparks(pos, roomNumber);
+
+		// Custom fusebox sparks (yellow and close-range blue/white).
+		TriggerFuseboxSparks(pos, roomNumber);
+	}
+
+	void TriggerFuseboxContinuousSparks(const Vector3i& pos, int roomNumber, float intensity)
+	{
+		if (!TestProbability(FUSEBOX_SPARK_PROBABILITY * intensity))
+			return;
+
+		int count = (int)(FUSEBOX_SPARK_COUNT * intensity);
+
+		for (int i = 0; i < count; i++)
+		{
+			auto& spark = GetFreeSparkParticle();
+			spark = {};
+
+			spark.age = 0;
+			spark.life = GenerateFloat(8.0f, 16.0f);
+			spark.friction = 1.0f;
+			spark.gravity = 2.5f;
+			spark.height = GenerateFloat(64.0f, 192.0f) * intensity;
+			spark.width = GenerateFloat(8.0f, 16.0f);
+			spark.room = roomNumber;
+
+			spark.pos = Vector3(
+				(float)pos.x + GenerateFloat(-16.0f, 16.0f),
+				(float)pos.y + GenerateFloat(-16.0f, 16.0f),
+				(float)pos.z + GenerateFloat(-16.0f, 16.0f));
+
+			auto dir = Vector3(GenerateFloat(-1.0f, 1.0f), GenerateFloat(0.5f, 2.0f), GenerateFloat(-1.0f, 1.0f));
+			dir.Normalize(dir);
+			spark.velocity = dir * GenerateFloat(8.0f, 24.0f);
+
+			if (TestProbability(FUSEBOX_YELLOW_SPARK_PROBABILITY))
+			{
+				spark.sourceColor = Vector4(1.0f, 1.0f, 0.8f, intensity);
+				spark.destinationColor = Vector4(1.0f, 0.5f, 0.0f, 0.0f);
+			}
+			else
+			{
+				spark.sourceColor = Vector4(0.6f, 0.8f, 1.0f, intensity);
+				spark.destinationColor = Vector4(0.2f, 0.3f, 0.8f, 0.0f);
+			}
+
+			spark.active = true;
+		}
+	}
 }
+
