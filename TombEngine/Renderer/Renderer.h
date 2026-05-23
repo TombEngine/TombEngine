@@ -359,7 +359,7 @@ namespace TEN::Renderer
 		void BindMaterial(int materialIndex, bool force);
 		void BuildHierarchy(RendererObject* obj);
 		void BuildHierarchyRecursive(RendererObject* obj, RendererBone* node, RendererBone* parentNode);
-		void UpdateAnimation(RendererItem* item, RendererObject& obj, const KeyframeInterpolationData& interpData, int mask, bool useObjectWorldRotation = false);
+		void UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation = false, const MoveableAnimBlendData* blend = nullptr, const RootMotionData* rootMotionOffset = nullptr);
 		bool CheckPortal(short parentRoomNumber, RendererDoor* door, Vector4 viewPort, Vector4* clipPort, RenderView& renderView);
 		void GetVisibleRooms(short from, short to, Vector4 viewPort, bool water, int count, bool onlyRooms, RenderView& renderView);
 		void CollectMirrors(RenderView& renderView);
@@ -512,6 +512,7 @@ namespace TEN::Renderer
 			BlendMode blendMode, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 
 		Matrix GetWorldMatrixForSprite(const RendererSpriteToDraw& sprite, RenderView& view);
+		Matrix GetWorldMatrixForMoveable(const ItemInfo& item, Matrix* rotationMatrix = nullptr, Matrix* translationMatrix = nullptr) const;
 		RendererObject& GetRendererObject(GAME_OBJECT_ID id);
 		RendererMesh* GetMesh(int meshIndex);
 		void BackupObjectVertices(GAME_OBJECT_ID objectID);

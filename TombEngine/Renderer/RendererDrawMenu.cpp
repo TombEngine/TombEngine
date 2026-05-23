@@ -857,11 +857,8 @@ namespace TEN::Renderer
 		const auto& object = Objects[objectNumber];
 		if (!object.Animations.empty())
 		{
-			auto interpData = KeyframeInterpolationData(
-				GetAnimData(object, 0).Keyframes[0],
-				GetAnimData(object, 0).Keyframes[0],
-				0.0f);
-			UpdateAnimation(nullptr, *moveableObject, interpData, UINT_MAX);
+			const auto& frame = GetAnimData(object, 0).Frames.front();
+			UpdateAnimation(nullptr, *moveableObject, frame, UINT_MAX);
 		}
 
 		auto pos = _graphicsDevice->Unproject(Vector3(pos2D.x, pos2D.y, 1.0f), projMatrix, viewMatrix, Matrix::Identity);
@@ -1028,13 +1025,7 @@ namespace TEN::Renderer
 		{
 			int animNumber = item.GetAnimNumber();
 			int frameNumber = item.GetFrameNumber();
-			int prevFrameNumber = item.GetPrevFrameNumber();
-
-			auto interpData = KeyframeInterpolationData(
-				GetAnimData(object, animNumber).Keyframes[prevFrameNumber],
-				GetAnimData(object, animNumber).Keyframes[frameNumber],
-				alpha);
-			UpdateAnimation(nullptr, *moveableObject, interpData, UINT_MAX);
+			UpdateAnimation(nullptr, *moveableObject, GetAnimData(object, animNumber).Frames[frameNumber], UINT_MAX);
 		}
 
 		SetBlendMode(BlendMode::Opaque);

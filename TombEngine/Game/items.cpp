@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Game/items.h"
 
+#include "Game/Animation/Animation.h"
 #include "Game/collision/floordata.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -27,6 +28,7 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Room;
@@ -40,6 +42,17 @@ using TEN::Renderer::g_Renderer;
 
 constexpr auto ITEM_DEATH_TIMEOUT = 4 * FPS;
 
+float MoveableAnimBlendData::GetAlpha() const
+{
+	float curveX = (FrameCount != 0) ? ((float)FrameNumber / (float)FrameCount) : 0.0f;
+	return Curve.GetY(curveX);
+}
+
+bool MoveableAnimBlendData::IsEnabled() const
+{
+	return (FrameCount != 0);
+}
+
 BoundingBox ItemInfo::GetAabb() const
 {
 	return Geometry::GetAabb(GetObb());
@@ -47,13 +60,23 @@ BoundingBox ItemInfo::GetAabb() const
 
 BoundingOrientedBox ItemInfo::GetObb() const
 {
-	auto frameData = GetFrameInterpData(*this);
-	auto obb = BoundingOrientedBox();
-	BoundingOrientedBox(
-		Vector3::Lerp(frameData.Keyframe0.Aabb.Center, frameData.Keyframe1.Aabb.Center, frameData.Alpha),
-		Vector3::Lerp(frameData.Keyframe0.Aabb.Extents, frameData.Keyframe1.Aabb.Extents, frameData.Alpha),
-		Vector4::UnitY).Transform(obb, 1.0f, Pose.Orientation.ToQuaternion(), Pose.Position.ToVector3());
-	return obb;
+	// Get anim data.
+	const auto& anim = GetAnimData(*this);
+	int frameNumber = std::clamp(Animation.FrameNumber, 0, (int)anim.Frames.size() - 1);
+	auto rootMotionCounteract = anim.GetRootMotionCounteraction(frameNumber);
+
+	// Compute offset.
+	const auto& relOffset = anim.Frames[frameNumber].LocalAabb.Center;
+	const auto orient = Pose.Orientation + rootMotionCounteract.Rotation;
+
+	auto rotMatrix = orient.ToRotationMatrix();
+	auto offset = Vector3::Transform(relOffset + rootMotionCounteract.Translation, rotMatrix);
+
+	// Get extents.
+	const auto& extents = anim.Frames[frameNumber].LocalAabb.Extents;
+
+	// Create and return OBB.
+	return BoundingOrientedBox(Pose.Position.ToVector3() + offset, extents, orient.ToQuaternion());
 }
 
 std::vector<BoundingSphere> ItemInfo::GetSpheres() const
@@ -193,6 +216,48 @@ void ItemInfo::ResetModelToDefault()
 		Model.Mutators.clear();
 		Model.MeshIndex.clear();
 	}
+}
+
+void ItemInfo::SetAnimBlend(int frameCount, const BezierCurve2& curve)
+{
+	// Return early if no new blend.
+	if (frameCount <= 0)
+		return;
+
+	const auto& object = Objects[ObjectNumber];
+
+	const auto& anim = GetAnimData(*this);
+	auto rootMotionCounteract = anim.GetRootMotionCounteraction(Animation.FrameNumber);
+
+	const auto& rootPos = anim.Frames[Animation.FrameNumber].RootPosition;
+	auto boneRot = rootMotionCounteract.Rotation.ToQuaternion();
+
+	// HACK: Update bone orientations in renderer if blend is engaged to prevent blending from default pose.
+	if (IsLara())
+	{
+		g_Renderer.UpdateLaraAnimations(true);
+	}
+	else
+	{
+		g_Renderer.UpdateItemAnimations(Index, true);
+	}
+
+	Animation.Blend.FrameNumber = 0;
+	Animation.Blend.FrameCount = frameCount;
+	Animation.Blend.Curve = curve;
+	Animation.Blend.Velocity = Animation.Velocity;
+	Animation.Blend.RootPosition = rootPos + rootMotionCounteract.Translation;
+
+	for (int i = 0; i < object.nmeshes; i++)
+	{
+		auto boneOrient = GetBoneOrientation(*this, i);
+		Animation.Blend.BoneOrientations[i] = boneOrient * boneRot;
+	}
+}
+
+void ItemInfo::DisableAnimBlend()
+{
+	Animation.Blend = {};
 }
 
 bool ItemInfo::IsLara() const
@@ -646,72 +711,72 @@ bool IsItemInRoom(short itemNumber, short roomNumber)
 
 void InitializeItem(short itemNumber) 
 {
-	auto* item = &g_Level.Items[itemNumber];
-	const auto& object = Objects[item->ObjectNumber];
+	auto& item = g_Level.Items[itemNumber];
+	const auto& object = Objects[item.ObjectNumber];
 
 	if (!object.Animations.empty())
 		SetAnimation(item, 0);
 
-	item->Animation.RequiredState = NO_VALUE;
-	item->Animation.Velocity = Vector3::Zero;
-	item->Animation.AnimObjectID = item->ObjectNumber;
+	item.Animation.RequiredState = NO_VALUE;
+	item.Animation.Velocity = Vector3::Zero;
+	item.Animation.AnimObjectID = item.ObjectNumber;
 
 	for (int i = 0; i < ITEM_FLAG_COUNT; i++)
-		item->ItemFlags[i] = 0;
+		item.ItemFlags[i] = 0;
 
-	item->Active = false;
-	item->Status = ITEM_NOT_ACTIVE;
-	item->Animation.IsAirborne = false;
-	item->HitStatus = false;
-	item->Collidable = true;
-	item->LookedAt = false;
-	item->Timer = 0;
-	item->HitPoints = object.HitPoints;
+	item.Active = false;
+	item.Status = ITEM_NOT_ACTIVE;
+	item.Animation.IsAirborne = false;
+	item.HitStatus = false;
+	item.Collidable = true;
+	item.LookedAt = false;
+	item.Timer = 0;
+	item.HitPoints = object.HitPoints;
 
-	item->Effect = {};
+	item.Effect = {};
 
-	if (item->ObjectNumber == ID_HK_ITEM ||
-		item->ObjectNumber == ID_HK_AMMO_ITEM ||
-		item->ObjectNumber == ID_CROSSBOW_ITEM ||
-		item->ObjectNumber == ID_REVOLVER_ITEM)
+	if (item.ObjectNumber == ID_HK_ITEM ||
+		item.ObjectNumber == ID_HK_AMMO_ITEM ||
+		item.ObjectNumber == ID_CROSSBOW_ITEM ||
+		item.ObjectNumber == ID_REVOLVER_ITEM)
 	{
-		item->MeshBits = 1 << 0;
+		item.MeshBits = 1 << 0;
 	}
 	else
 	{
-		item->MeshBits = ALL_JOINT_BITS;
+		item.MeshBits = ALL_JOINT_BITS;
 	}
 
-	item->TouchBits = NO_JOINT_BITS;
-	item->AfterDeath = 0;
+	item.TouchBits = NO_JOINT_BITS;
+	item.AfterDeath = 0;
 
-	if (item->Flags & IFLAG_INVISIBLE)
+	if (item.Flags & IFLAG_INVISIBLE)
 	{
-		item->Flags &= ~IFLAG_INVISIBLE;
-		item->Status = ITEM_INVISIBLE;
+		item.Flags &= ~IFLAG_INVISIBLE;
+		item.Status = ITEM_INVISIBLE;
 	}
 	else if (object.intelligent)
 	{
-		item->Status = ITEM_INVISIBLE;
+		item.Status = ITEM_INVISIBLE;
 	}
 
-	if ((item->Flags & IFLAG_ACTIVATION_MASK) == IFLAG_ACTIVATION_MASK)
+	if ((item.Flags & IFLAG_ACTIVATION_MASK) == IFLAG_ACTIVATION_MASK)
 	{
-		item->Flags &= ~IFLAG_ACTIVATION_MASK;
-		item->Flags |= IFLAG_REVERSE;
+		item.Flags &= ~IFLAG_ACTIVATION_MASK;
+		item.Flags |= IFLAG_REVERSE;
 		AddActiveItem(itemNumber);
-		item->Status = ITEM_ACTIVE;
+		item.Status = ITEM_ACTIVE;
 	}
 
-	auto* room = &g_Level.Rooms[item->RoomNumber];
-	item->NextItem = room->itemNumber;
-	room->itemNumber = itemNumber;
+	auto& room = g_Level.Rooms[item.RoomNumber];
+	item.NextItem = room.itemNumber;
+	room.itemNumber = itemNumber;
 
-	FloorInfo* floor = GetSector(room, item->Pose.Position.x - room->Position.x, item->Pose.Position.z - room->Position.z);
-	item->Floor = floor->GetSurfaceHeight(item->Pose.Position.x, item->Pose.Position.z, true);
-	item->BoxNumber = floor->PathfindingBoxID;
+	FloorInfo* floor = GetSector(&room, item.Pose.Position.x - room.Position.x, item.Pose.Position.z - room.Position.z);
+	item.Floor = floor->GetSurfaceHeight(item.Pose.Position.x, item.Pose.Position.z, true);
+	item.BoxNumber = floor->PathfindingBoxID;
 
-	item->ResetModelToDefault();
+	item.ResetModelToDefault();
 
 	if (object.Initialize != nullptr)
 		object.Initialize(itemNumber);
