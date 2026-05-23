@@ -15,7 +15,8 @@ namespace TEN::Scripting
 {
 	struct AnimSettings
 	{
-		int PoseTimeout = 20; // AFK pose timeout.
+		int PoseTimeout			= 20; // AFK pose timeout.
+		int SystemBlendDuration = 4;  // Default blend duration for internal player animation transitions.
 
 		bool SlideExtended	= false; // Extended slope sliding functionality (not ready yet).
 		bool SprintJump		= false; // Sprint jump.

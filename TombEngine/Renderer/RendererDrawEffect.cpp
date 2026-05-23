@@ -1287,7 +1287,7 @@ namespace TEN::Renderer
 			BindBucketTextures(flashBucket, TextureSource::Moveables, false);
 			BindMaterial(flashBucket.MaterialIndex, false);
 
-			auto meshOffset = Objects[gunflash].Animations.front().Keyframes.front().RootOffset;
+			auto meshOffset = Objects[gunflash].Animations.front().Frames.front().RootPosition;
 			auto offset = settings.MuzzleOffset + Vector3(meshOffset.x, meshOffset.z, meshOffset.y); // Offsets are inverted because of bone orientation.
 
 			offset.x = -offset.x;
@@ -1298,7 +1298,7 @@ namespace TEN::Renderer
 
 			if (Lara.LeftArm.GunFlash)
 			{
-				worldMatrix = itemPtr->InterpolatedAnimTransforms[LM_LHAND] * itemPtr->InterpolatedWorld;
+				worldMatrix = itemPtr->InterpolatedAnimationTransforms[LM_LHAND] * itemPtr->InterpolatedWorld;
 				worldMatrix = tMatrix * worldMatrix;
 				worldMatrix = rotMatrix * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
@@ -1316,7 +1316,7 @@ namespace TEN::Renderer
 
 			if (Lara.RightArm.GunFlash)
 			{
-				worldMatrix = itemPtr->InterpolatedAnimTransforms[LM_RHAND] * itemPtr->InterpolatedWorld;
+				worldMatrix = itemPtr->InterpolatedAnimationTransforms[LM_RHAND] * itemPtr->InterpolatedWorld;
 				worldMatrix = tMatrix * worldMatrix;
 				worldMatrix = rotMatrix * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
@@ -1390,7 +1390,7 @@ namespace TEN::Renderer
 						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
 						auto rotMatrixZ = Matrix::CreateRotationZ(TO_RAD(2 * GetRandomControl()));
 
-						auto worldMatrix = rItemPtr->InterpolatedAnimTransforms[creature.MuzzleFlash[0].Bite.BoneID] * rItemPtr->InterpolatedWorld;
+						auto worldMatrix = rItemPtr->InterpolatedAnimationTransforms[creature.MuzzleFlash[0].Bite.BoneID] * rItemPtr->InterpolatedWorld;
 						worldMatrix = tMatrix * worldMatrix;
 
 						if (creature.MuzzleFlash[0].ApplyXRotation)
@@ -1433,7 +1433,7 @@ namespace TEN::Renderer
 						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
 						auto rotMatrixZ = Matrix::CreateRotationZ(TO_RAD(2 * GetRandomControl()));
 
-						auto worldMatrix = rItemPtr->InterpolatedAnimTransforms[creature.MuzzleFlash[1].Bite.BoneID] * rItemPtr->InterpolatedWorld;
+						auto worldMatrix = rItemPtr->InterpolatedAnimationTransforms[creature.MuzzleFlash[1].Bite.BoneID] * rItemPtr->InterpolatedWorld;
 						worldMatrix = tMatrix * worldMatrix;
 
 						if (creature.MuzzleFlash[1].ApplyXRotation)
