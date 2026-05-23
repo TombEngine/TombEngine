@@ -69,6 +69,7 @@ namespace TEN::Input
 	void Rumble(float power, float delaySec = 0.3f, RumbleMode mode = RumbleMode::Both);
 	void StopRumble();
 	void ApplyDefaultBindings();
+	bool ApplyDefaultKeyboardBindings();
 	bool ApplyDefaultGamepadBindings();
 	SDL_GamepadType GetActiveGamepadType();
 	InputDevice GetLastInputDevice();

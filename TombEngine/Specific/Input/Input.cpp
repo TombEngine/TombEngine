@@ -93,6 +93,12 @@ namespace TEN::Input
 
 		TENLog("Gamepad disconnected.", LogLevel::Info);
 		OpenFirstGamepad();
+
+		if (ActiveGamepad == nullptr)
+		{
+			if (ApplyDefaultKeyboardBindings())
+				SaveConfiguration();
+		}
 	}
 
 	void InitializeInput()
@@ -715,6 +721,28 @@ namespace TEN::Input
 	{
 		ApplyBindings(DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE);
 		ApplyDefaultGamepadBindings();
+	}
+
+	bool ApplyDefaultKeyboardBindings()
+	{
+		if (ActiveGamepad != nullptr)
+			return false;
+
+		// Only revert to keyboard/mouse defaults if user hasn't customized beyond auto-applied gamepad defaults.
+		for (const auto& [actionID, gamepadKeyID] : DEFAULT_GAMEPAD_BINDING_PROFILE)
+		{
+			int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, actionID);
+			if (userKeyID != KEY_UNASSIGNED && userKeyID != gamepadKeyID)
+				return false;
+		}
+
+		ApplyBindings(DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE);
+		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+
+		g_Configuration.EnableRumble = false;
+		g_Configuration.EnableThumbstickCamera = false;
+
+		return true;
 	}
 
 	bool ApplyDefaultGamepadBindings()
