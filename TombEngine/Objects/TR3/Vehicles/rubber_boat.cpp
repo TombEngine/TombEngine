@@ -128,7 +128,7 @@ namespace TEN::Entities::Vehicles
 		}
 		else
 		{
-			lara->Context.Vehicle = itemNumber;
+			SetLaraVehicle(laraItem, rBoatItem);
 			DoRubberBoatMount(rBoatItem, laraItem, mountType);
 
 			if (g_Level.Items[itemNumber].Status != ITEM_ACTIVE)
@@ -773,7 +773,7 @@ namespace TEN::Entities::Vehicles
 			laraItem->Animation.IsAirborne = true;
 			laraItem->Animation.Velocity.z = 20;
 			laraItem->Animation.Velocity.y = -40;
-			lara->Context.Vehicle = NO_VALUE; // Leave vehicle itself active for inertia.
+			SetLaraVehicle(laraItem, nullptr);
 
 			int x = laraItem->Pose.Position.x + 360 * phd_sin(laraItem->Pose.Orientation.y);
 			int y = laraItem->Pose.Position.y - 90;

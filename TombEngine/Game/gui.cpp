@@ -1030,13 +1030,23 @@ namespace TEN::Gui
 				break;
 
 			case OtherSettingsOption::TargetHighlighter:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableTargetHighlighter = !CurrentSettings.Configuration.EnableTargetHighlighter;
+				if (g_GameFlow->GetSettings()->Hud.TargetHighlighter)
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableTargetHighlighter = !CurrentSettings.Configuration.EnableTargetHighlighter;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
 				break;
 
 			case OtherSettingsOption::InteractionHighlighter:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableInteractionHighlighter = !CurrentSettings.Configuration.EnableInteractionHighlighter;
+				if (g_GameFlow->GetSettings()->Hud.InteractionHighlighter)
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableInteractionHighlighter = !CurrentSettings.Configuration.EnableInteractionHighlighter;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
 				break;
 
 			case OtherSettingsOption::ToggleRumble:
@@ -2127,8 +2137,7 @@ namespace TEN::Gui
 		InventoryItemChosen = objectNumber;
 
 		// Use item event handling.
-		g_GameScript->OnUseItem((GAME_OBJECT_ID)InventoryItemChosen);
-		HandleAllGlobalEvents(EventType::UseItem, (Activator)short(item.Index));
+		g_GameScript->OnUseItem(item.Index, (GAME_OBJECT_ID)InventoryItemChosen);
 
 		// Quickly discard further processing if chosen item was reset in script.
 		if (InventoryItemChosen == NO_VALUE)

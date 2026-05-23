@@ -505,6 +505,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Math\Legacy.h" />
     <ClInclude Include="Math\Math.h" />
     <ClInclude Include="Math\Objects\AxisAngle.h" />
+    <ClInclude Include="Math\Objects\BezierCurve2.h" />
     <ClInclude Include="Math\Objects\EulerAngles.h" />
     <ClInclude Include="Math\Objects\GameBoundingBox.h" />
     <ClInclude Include="Math\Objects\GameVector.h" />
@@ -915,6 +916,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\Collision\MaterialTypes.h" />
     <ClInclude Include="Scripting\Internal\TEN\Collision\Probe.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\Horizon\Horizon.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Creature\Creature.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Creature\CreatureStates.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\ItemActions.h" />
     <ClInclude Include="Scripting\Internal\TEN\Logic\CallbackPoint.h" />
     <ClInclude Include="Scripting\Internal\TEN\Logic\EventType.h" />
@@ -1123,6 +1126,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Math\Geometry.cpp" />
     <ClCompile Include="Math\Legacy.cpp" />
     <ClCompile Include="Math\Objects\AxisAngle.cpp" />
+    <ClCompile Include="Math\Objects\BezierCurve2.cpp" />
     <ClCompile Include="Math\Objects\EulerAngles.cpp" />
     <ClCompile Include="Math\Objects\GameBoundingBox.cpp" />
     <ClCompile Include="Math\Objects\GameVector.cpp" />
@@ -1427,6 +1431,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Scripting\Internal\TEN\Collision\Probe.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\Horizon\Horizon.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\Statistics\Statistics.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Objects\Creature\Creature.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Collision\Los.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Types\Color\Color.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\View\DisplayAnchors\ScriptDisplayAnchors.cpp" />
@@ -1522,6 +1527,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="Shaders\Materials.hlsli">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="Shaders\Samplers.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="Shaders\SMAA.hlsli">

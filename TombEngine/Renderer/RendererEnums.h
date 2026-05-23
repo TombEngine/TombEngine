@@ -35,8 +35,8 @@ constexpr auto ALPHA_TEST_THRESHOLD			  = 0.5f;
 constexpr auto ALPHA_BLEND_THRESHOLD		  = 1.0f - EPSILON;
 constexpr auto FAST_ALPHA_BLEND_THRESHOLD	  = 0.5f;
 
-constexpr auto MAX_BONES = 32;
-constexpr auto MAX_BONE_WEIGHTS = 4;
+constexpr auto BONE_COUNT_MAX		 = 32;
+constexpr auto BONE_WEIGHT_COUNT_MAX = 4;
 
 constexpr auto DISPLAY_SPACE_RES = Vector2(800.0f, 600.0f);
 constexpr auto REFERENCE_FONT_SIZE = 35.0f;
@@ -212,7 +212,9 @@ enum class TextureRegister
 	LegacyEnvironmentReflections = 12,
 	SkyboxEnvironmentReflections = 13,
 	AnimatedFrames = 14, // StructuredBuffer<AnimatedFrameUV> for per-draw animated UVs.
-	DistortionMap = 15
+	DistortionMap = 15,
+	NearBlurMap = 16,
+	FarBlurMap = 17
 };
 
 enum class SamplerStateRegister

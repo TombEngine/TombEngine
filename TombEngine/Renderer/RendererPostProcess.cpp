@@ -74,8 +74,8 @@ namespace TEN::Renderer
 		_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
-		BindRenderTargetAsTexture(TextureRegister::DistortionMap, _dofRenderTarget[1]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
-		BindRenderTargetAsTexture(TextureRegister::CausticsMap, _dofRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::NearBlurMap, _dofRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::FarBlurMap, _dofRenderTarget[1]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
 	}
 
@@ -374,11 +374,11 @@ namespace TEN::Renderer
 		_stPostProcessBuffer.BlurRadius = GLOW_BLUR_RADIUS;
 
 		// Horizontal blur
-		_graphicsDevice->ClearRenderTarget2D(_glowRenderTarget[1]->GetRenderTarget(), Colors::Transparent);
-		_graphicsDevice->BindRenderTarget(_glowRenderTarget[1]->GetRenderTarget(), nullptr);
-
 		_stPostProcessBuffer.BlurDirection = Vector2(1.0f, 0.0f);
 		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
+
+		_graphicsDevice->ClearRenderTarget2D(_glowRenderTarget[1]->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->BindRenderTarget(_glowRenderTarget[1]->GetRenderTarget(), nullptr);
 
 		BindRenderTargetAsTexture(TextureRegister::ColorMap, _glowRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
@@ -410,8 +410,8 @@ namespace TEN::Renderer
 		_graphicsDevice->ClearRenderTarget2D(renderTarget->GetRenderTarget(), Colors::Transparent);
 		_graphicsDevice->BindRenderTarget(renderTarget->GetRenderTarget(), nullptr);
 
-		BindRenderTargetAsTexture(static_cast<TextureRegister>(0), _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
-		BindRenderTargetAsTexture(static_cast<TextureRegister>(3), _glowRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::ColorMap, _postProcessRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
+		BindRenderTargetAsTexture(TextureRegister::EmissiveMap, _glowRenderTarget[0]->GetRenderTarget(), SamplerStateRegister::LinearClamp);
 		DrawTriangles(3, 0);
 	}
 }
