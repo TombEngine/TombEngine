@@ -225,7 +225,7 @@ namespace TEN::Scripting::Types
 	// print(tostring(grayscaleColor)) -- Output: {54, 54, 54, 255}
 	ScriptColor ScriptColor::ToGrayscale() const
 	{
-		const byte grayscaleValue = static_cast<byte>(std::clamp(GetBrightness() * 255.0f, 0.0f, 255.0f));
+		const unsigned char grayscaleValue = std::clamp(GetBrightness() * 255.0f, 0.0f, 255.0f);
 		return ScriptColor(grayscaleValue, grayscaleValue, grayscaleValue, GetA());
 	}
 
