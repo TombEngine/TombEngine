@@ -78,7 +78,9 @@ namespace TEN::Input
 			In::N, In::O, In::P, In::Q, In::R, In::S, In::T, In::U, In::V, In::W, In::X, In::Y, In::Z,
 			In::Num1, In::Num2, In::Num3, In::Num4, In::Num5, In::Num6, In::Num7, In::Num8, In::Num9, In::Num0,
 			In::F1, In::F2, In::F3, In::F4, In::F5, In::F6, In::F7, In::F8, In::F9, In::F10, In::F11, In::F12,
-			In::Return, In::Escape, In::Backspace, In::Tab, In::Space, In::Home, In::End, In::Delete,
+			In::Return, In::Escape, In::Backspace, In::Tab, In::Space,
+			In::PageUp, In::PageDown, In::Insert, In::Home, In::End, In::Delete,
+			In::PauseKey, In::PrintScreen, In::ScrollLock, In::CapsLock, In::NumLock,
 			In::Minus, In::Equals, In::BracketLeft, In::BracketRight, In::Backslash, In::Semicolon, In::Apostrophe, In::Comma, In::Period, In::Slash,
 			In::ArrowUp, In::ArrowDown, In::ArrowLeft, In::ArrowRight,
 			In::Ctrl, In::Shift, In::Alt

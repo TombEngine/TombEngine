@@ -421,6 +421,18 @@ namespace TEN::Scripting::Input
 		// @mem SPACE
 		{ "SPACE", In::Space },
 
+		/// Page up key.
+		// @mem PAGE_UP
+		{ "PAGE_UP", In::PageUp },
+
+		/// Page down key.
+		// @mem PAGE_DOWN
+		{ "PAGE_DOWN", In::PageDown },
+
+		/// Insert key.
+		// @mem INSERT
+		{ "INSERT", In::Insert },
+
 		/// Home key.
 		// @mem HOME
 		{ "HOME", In::Home },
@@ -432,6 +444,26 @@ namespace TEN::Scripting::Input
 		/// Delete key.
 		// @mem DELETE
 		{ "DELETE", In::Delete },
+
+		/// Pause/Break key.
+		// @mem PAUSE_KEY
+		{ "PAUSE_KEY", In::PauseKey },
+
+		/// Print Screen key.
+		// @mem PRINT_SCREEN
+		{ "PRINT_SCREEN", In::PrintScreen },
+
+		/// Scroll Lock key.
+		// @mem SCROLL_LOCK
+		{ "SCROLL_LOCK", In::ScrollLock },
+
+		/// Caps Lock key.
+		// @mem CAPS_LOCK
+		{ "CAPS_LOCK", In::CapsLock },
+
+		/// Num Lock key.
+		// @mem NUM_LOCK
+		{ "NUM_LOCK", In::NumLock },
 
 		/// Minus key.
 		// @mem MINUS
