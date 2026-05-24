@@ -77,7 +77,7 @@ namespace TEN::Debug
 		std::string filename = "TENLog_" + GetTimestampString() + ".txt";
 		auto logPath = logDir / filename;
 
-		auto fileSink = std::make_shared<TEN::Debug::ansi_filter_file_sink>(logPath.string(), true);
+		auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logPath.string(), true);
 		auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
 
 		auto logger = std::make_shared<spdlog::logger>("multi_sink", spdlog::sinks_init_list{ fileSink, consoleSink });
