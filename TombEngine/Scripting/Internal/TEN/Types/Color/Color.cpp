@@ -41,12 +41,12 @@ namespace TEN::Scripting::Types
 			"a", sol::property(&ScriptColor::GetA, &ScriptColor::SetA),
 
 			// Register methods.
-			"GetBrightness", & ScriptColor::GetBrightness,
-			"GetSaturation", & ScriptColor::GetSaturation,
-			"ToGrayscale", & ScriptColor::ToGrayscale,
+			"GetBrightness", &ScriptColor::GetBrightness,
+			"GetSaturation", &ScriptColor::GetSaturation,
+			"ToGrayscale", &ScriptColor::ToGrayscale,
 			"Screen", &ScriptColor::Screen,
-			"Invert", & ScriptColor::Invert,
-			"GetHue", & ScriptColor::GetHue,
+			"Invert", &ScriptColor::Invert,
+			"GetHue", &ScriptColor::GetHue,
 			"Lerp", &ScriptColor::Lerp
 		);
 	}
