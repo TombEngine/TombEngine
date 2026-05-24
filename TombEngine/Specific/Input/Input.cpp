@@ -42,6 +42,58 @@ namespace TEN::Input
 	SDL_JoystickID ActiveGamepadId = 0;
 	bool ActiveGamepadHasRumble = false;
 
+	static bool HasMatchingBindings(const BindingProfile& bindingProfile)
+	{
+		for (const auto& [actionID, keyID] : bindingProfile)
+		{
+			int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, actionID);
+			if (userKeyID != KEY_UNASSIGNED && userKeyID != keyID)
+				return false;
+		}
+
+		return true;
+	}
+
+	static bool RestoreDefaultBindings(DefaultBindingType bindingType, bool force)
+	{
+		const BindingProfile* previousBindings = nullptr;
+		const BindingProfile* defaultBindings = nullptr;
+		bool enableRumble = false;
+		bool enableThumbstickCamera = false;
+
+		switch (bindingType)
+		{
+		case DefaultBindingType::KeyboardMouse:
+			if (!force && ActiveGamepad != nullptr)
+				return false;
+
+			previousBindings = &DEFAULT_GAMEPAD_BINDING_PROFILE;
+			defaultBindings = &DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
+			break;
+
+		case DefaultBindingType::Gamepad:
+			if (ActiveGamepad == nullptr)
+				return false;
+
+			previousBindings = &DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
+			defaultBindings = &DEFAULT_GAMEPAD_BINDING_PROFILE;
+			enableRumble = ActiveGamepadHasRumble;
+			enableThumbstickCamera = true;
+			break;
+		}
+
+		if (!force && !HasMatchingBindings(*previousBindings))
+			return false;
+
+		// Apply the selected default binding profile.
+		g_Bindings.SetBindingProfile(BindingProfileID::Custom, *defaultBindings);
+		g_Configuration.EnableRumble = enableRumble;
+		g_Configuration.EnableThumbstickCamera = enableThumbstickCamera;
+
+		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+		return true;
+	}
+
 	static void OpenFirstGamepad()
 	{
 		if (ActiveGamepad != nullptr)
@@ -69,6 +121,10 @@ namespace TEN::Input
 		const char* gamepadName = SDL_GetGamepadName(ActiveGamepad);
 		TENLog(std::string("Using '") + (gamepadName ? gamepadName : "unknown") + "' gamepad for input.", LogLevel::Info);
 
+		auto previousGamepadType = g_Configuration.LastGamepadType;
+		g_Configuration.LastGamepadType = GetActiveGamepadType();
+		bool gamepadTypeChanged = (g_Configuration.LastGamepadType != previousGamepadType);
+
 		// SDL3 reports rumble support via SDL_GetGamepadProperties.
 		SDL_PropertiesID props = SDL_GetGamepadProperties(ActiveGamepad);
 		ActiveGamepadHasRumble = SDL_GetBooleanProperty(props, SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN, false);
@@ -77,7 +133,7 @@ namespace TEN::Input
 
 		// If the user is on default keyboard/mouse bindings and this controller matches
 		// a supported Xbox/PlayStation/Switch Pro style layout, swap to gamepad defaults.
-		if (ApplyDefaultGamepadBindings())
+		if (RestoreDefaultBindings(DefaultBindingType::Gamepad) || gamepadTypeChanged)
 			SaveConfiguration();
 	}
 
@@ -96,7 +152,7 @@ namespace TEN::Input
 
 		if (ActiveGamepad == nullptr)
 		{
-			if (ApplyDefaultKeyboardBindings())
+			if (RestoreDefaultBindings(DefaultBindingType::KeyboardMouse))
 				SaveConfiguration();
 		}
 	}
@@ -178,12 +234,24 @@ namespace TEN::Input
 		InputLocked = locked;
 	}
 
-	SDL_GamepadType GetActiveGamepadType()
+	GamepadType GetActiveGamepadType()
 	{
 		if (ActiveGamepad == nullptr)
-			return SDL_GAMEPAD_TYPE_UNKNOWN;
+			return g_Configuration.LastGamepadType;
 
-		return SDL_GetGamepadType(ActiveGamepad);
+		switch (SDL_GetGamepadType(ActiveGamepad))
+		{
+		case SDL_GAMEPAD_TYPE_PS3:
+		case SDL_GAMEPAD_TYPE_PS4:
+		case SDL_GAMEPAD_TYPE_PS5:
+			return GamepadType::PlayStation;
+
+		case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_PRO:
+			return GamepadType::Switch;
+
+		default:
+			return GamepadType::Xbox;
+		}
 	}
 
 	void ClearInputData()
@@ -712,65 +780,15 @@ namespace TEN::Input
 		RumbleInfo = {};
 	}
 
-	static void ApplyBindings(const BindingProfile& set)
-	{
-		g_Bindings.SetBindingProfile(BindingProfileID::Custom, set);
-	}
-
 	void ApplyDefaultBindings()
 	{
-		ApplyBindings(DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE);
-		ApplyDefaultGamepadBindings();
+		auto bindingType = (ActiveGamepad != nullptr) ? DefaultBindingType::Gamepad : DefaultBindingType::KeyboardMouse;
+		RestoreDefaultBindings(bindingType, true);
 	}
 
-	bool ApplyDefaultKeyboardBindings()
+	bool RestoreDefaultBindings(DefaultBindingType bindingType)
 	{
-		if (ActiveGamepad != nullptr)
-			return false;
-
-		// Only revert to keyboard/mouse defaults if user hasn't customized beyond auto-applied gamepad defaults.
-		for (const auto& [actionID, gamepadKeyID] : DEFAULT_GAMEPAD_BINDING_PROFILE)
-		{
-			int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, actionID);
-			if (userKeyID != KEY_UNASSIGNED && userKeyID != gamepadKeyID)
-				return false;
-		}
-
-		ApplyBindings(DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE);
-		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
-
-		g_Configuration.EnableRumble = false;
-		g_Configuration.EnableThumbstickCamera = false;
-
-		return true;
-	}
-
-	bool ApplyDefaultGamepadBindings()
-	{
-		if (ActiveGamepad == nullptr)
-			return false;
-
-		// Only apply gamepad defaults if user hasn't customized any binding yet.
-		for (int i = 0; i < (int)ActionID::Count; i++)
-		{
-			auto actionID = (ActionID)i;
-
-			int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, actionID);
-			int userKeyID    = g_Bindings.GetBoundKeyID(BindingProfileID::Custom,  actionID);
-
-			if (userKeyID != KEY_UNASSIGNED && userKeyID != defaultKeyID)
-				return false;
-		}
-
-		// Apply the shared SDL gamepad layout. Face-button labels differ by controller,
-		// but the underlying logical positions stay consistent across supported pads.
-		ApplyBindings(DEFAULT_GAMEPAD_BINDING_PROFILE);
-		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
-
-		g_Configuration.EnableRumble = ActiveGamepadHasRumble;
-		g_Configuration.EnableThumbstickCamera = true;
-
-		return true;
+		return RestoreDefaultBindings(bindingType, false);
 	}
 
 	InputDevice GetLastInputDevice()

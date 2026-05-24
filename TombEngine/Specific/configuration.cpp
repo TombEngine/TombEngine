@@ -262,6 +262,11 @@ bool LoadConfiguration()
 			{
 				g_Configuration.MenuOptionLoopingMode = (MenuOptionLoopingMode)ToInt(val, (int)g_Configuration.MenuOptionLoopingMode);
 			}
+			else if (key == OPTION_GAMEPAD_TYPE)
+			{
+				int gamepadType = std::clamp(ToInt(val, (int)g_Configuration.LastGamepadType), 0, (int)GamepadType::Count - 1);
+				g_Configuration.LastGamepadType = (GamepadType)gamepadType;
+			}
 			else if (StartsWith(key, OPTION_BIND_PREFIX))
 			{
 				foundInput = true;
@@ -333,6 +338,7 @@ bool SaveConfiguration()
 	ss << "[Input]\n";
 	ss << OPTION_MOUSE_SENSITIVITY << "=" << g_Configuration.MouseSensitivity << "\n";
 	ss << OPTION_MENU_OPTION_LOOPING_MODE << "=" << (int)g_Configuration.MenuOptionLoopingMode << "\n";
+	ss << OPTION_GAMEPAD_TYPE << "=" << (int)g_Configuration.LastGamepadType << "\n";
 
 	if (g_Configuration.Bindings.empty())
 		g_Configuration.Bindings = DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;

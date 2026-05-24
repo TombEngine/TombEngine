@@ -4,15 +4,7 @@
 
 namespace TEN::Input
 {
-	enum class GamepadNameType
-	{
-		Xbox,
-		PlayStation,
-		Switch,
-		Count
-	};
-
-	using GamepadKeyNameSet = std::array<std::string, (int)GamepadNameType::Count>;
+	using GamepadKeyNameSet = std::array<std::string, (int)GamepadType::Count>;
 
 	static GamepadKeyNameSet GamepadKeyNames(const char* xboxName, const char* playStationName = nullptr, const char* nintendoName = nullptr)
 	{
@@ -198,26 +190,8 @@ namespace TEN::Input
 		auto gamepadIt = GAMEPAD_KEY_NAME_MAP.find(keyID);
 		if (gamepadIt != GAMEPAD_KEY_NAME_MAP.end())
 		{
-			auto gamepadKeyName = GamepadNameType::Xbox;
-
-			switch (GetActiveGamepadType())
-			{
-			case SDL_GAMEPAD_TYPE_PS3:
-			case SDL_GAMEPAD_TYPE_PS4:
-			case SDL_GAMEPAD_TYPE_PS5:
-				gamepadKeyName = GamepadNameType::PlayStation;
-				break;
-
-			case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_PRO:
-				gamepadKeyName = GamepadNameType::Switch;
-				break;
-
-			default:
-				break;
-			}
-
 			const auto& keyNames = gamepadIt->second;
-			return keyNames[(int)gamepadKeyName];
+			return keyNames[(int)GetActiveGamepadType()];
 		}
 
 		auto it = KEY_NAME_MAP.find(keyID);

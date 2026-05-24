@@ -18,6 +18,20 @@ namespace TEN::Input
 		Gamepad
 	};
 
+	enum class GamepadType
+	{
+		Xbox,
+		PlayStation,
+		Switch,
+		Count
+	};
+
+	enum class DefaultBindingType
+	{
+		KeyboardMouse,
+		Gamepad
+	};
+
 	enum class AxisID
 	{
 		Move,
@@ -69,9 +83,8 @@ namespace TEN::Input
 	void Rumble(float power, float delaySec = 0.3f, RumbleMode mode = RumbleMode::Both);
 	void StopRumble();
 	void ApplyDefaultBindings();
-	bool ApplyDefaultKeyboardBindings();
-	bool ApplyDefaultGamepadBindings();
-	SDL_GamepadType GetActiveGamepadType();
+	bool RestoreDefaultBindings(DefaultBindingType bindingType);
+	GamepadType GetActiveGamepadType();
 	InputDevice GetLastInputDevice();
 
 	Vector2 GetMouse2DPosition();
