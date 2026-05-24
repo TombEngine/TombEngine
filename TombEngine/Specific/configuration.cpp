@@ -126,6 +126,7 @@ bool LoadConfiguration()
 	InitDefaultConfiguration();
 
 	bool foundInput = false;
+	std::vector<std::pair<int, int>> rawBindings; // Deferred so translation can happen after we know the version.
 
 	while (std::getline(in, line))
 	{
@@ -261,6 +262,11 @@ bool LoadConfiguration()
 			{
 				g_Configuration.MenuOptionLoopingMode = (MenuOptionLoopingMode)ToInt(val, (int)g_Configuration.MenuOptionLoopingMode);
 			}
+			else if (key == OPTION_GAMEPAD_TYPE)
+			{
+				int gamepadType = std::clamp(ToInt(val, (int)g_Configuration.LastGamepadType), 0, (int)GamepadType::Count - 1);
+				g_Configuration.LastGamepadType = (GamepadType)gamepadType;
+			}
 			else if (StartsWith(key, OPTION_BIND_PREFIX))
 			{
 				foundInput = true;
@@ -268,12 +274,18 @@ bool LoadConfiguration()
 				int actionId = ToInt(key.substr(std::string_view(OPTION_BIND_PREFIX).size()), NO_VALUE);
 				int keyId = ToInt(val, NO_VALUE);
 				if (actionId >= 0 && keyId >= 0)
-				{
-					g_Configuration.Bindings.insert({ (ActionID)actionId, keyId });
-					g_Bindings.SetKeyBinding(BindingProfileID::Custom, (ActionID)actionId, keyId);
-				}
+					rawBindings.emplace_back(actionId, keyId);
 			}
 		}
+	}
+
+	for (auto [actionId, keyId] : rawBindings)
+	{
+		if (keyId == KEY_UNASSIGNED)
+			continue;
+
+		g_Configuration.Bindings.insert({ (ActionID)actionId, keyId });
+		g_Bindings.SetKeyBinding(BindingProfileID::Custom, (ActionID)actionId, keyId);
 	}
 
 	if (!foundInput)
@@ -283,6 +295,7 @@ bool LoadConfiguration()
 
 	SetAudioConfiguration(g_Configuration);
 	DefaultConflict();
+	SaveConfiguration();
 
 	return true;
 }
@@ -325,6 +338,7 @@ bool SaveConfiguration()
 	ss << "[Input]\n";
 	ss << OPTION_MOUSE_SENSITIVITY << "=" << g_Configuration.MouseSensitivity << "\n";
 	ss << OPTION_MENU_OPTION_LOOPING_MODE << "=" << (int)g_Configuration.MenuOptionLoopingMode << "\n";
+	ss << OPTION_GAMEPAD_TYPE << "=" << (int)g_Configuration.LastGamepadType << "\n";
 
 	if (g_Configuration.Bindings.empty())
 		g_Configuration.Bindings = DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;

@@ -11,15 +11,35 @@ struct ItemInfo;
 
 namespace TEN::Input
 {
+	enum class InputDevice
+	{
+		Keyboard,
+		Mouse,
+		Gamepad
+	};
+
+	enum class GamepadType
+	{
+		Xbox,
+		PlayStation,
+		Switch,
+		Count
+	};
+
+	enum class DefaultBindingType
+	{
+		KeyboardMouse,
+		Gamepad
+	};
+
 	enum class AxisID
 	{
 		Move,
 		Camera,
 
 		Mouse,
-		// TODO: Add raw axes for analog gamepad sticks. -- Sezz 2025.5.9
-		/*StickLeft,
-		StickRight,*/
+		StickLeft,
+		StickRight,
 
 		Count
 	};
@@ -54,6 +74,7 @@ namespace TEN::Input
 
 	void InitializeInput();
 	void DeinitializeInput();
+	void HandleSDLEvent(const SDL_Event& event);
 	void SetInputLockState(bool locked);
 	void DefaultConflict();
 	void UpdateInputActions(bool allowAsyncUpdate = false, bool applyQueue = false);
@@ -61,8 +82,10 @@ namespace TEN::Input
 	void ClearAllActions();
 	void Rumble(float power, float delaySec = 0.3f, RumbleMode mode = RumbleMode::Both);
 	void StopRumble();
-    void ApplyDefaultBindings();
-    bool ApplyDefaultXInputBindings();
+	void ApplyDefaultBindings();
+	bool RestoreDefaultBindings(DefaultBindingType bindingType);
+	GamepadType GetGamepadType();
+	InputDevice GetLastInputDevice();
 
 	Vector2 GetMouse2DPosition();
 
