@@ -907,8 +907,8 @@ namespace TEN::Renderer
 			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
 
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 			// Draw the skin mesh.
 			const auto skinMesh = GetMesh(object.skinIndex);
@@ -962,8 +962,8 @@ namespace TEN::Renderer
 			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
@@ -1075,8 +1075,8 @@ namespace TEN::Renderer
 			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
 
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 			// Get skin mesh.
 			const auto* skinMesh = GetMesh(object.skinIndex);
@@ -1130,8 +1130,8 @@ namespace TEN::Renderer
 			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
 
