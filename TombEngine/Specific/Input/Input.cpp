@@ -100,7 +100,7 @@ namespace TEN::Input
 			return;
 
 		int count = 0;
-		SDL_JoystickID* gamepads = SDL_GetGamepads(&count);
+		auto* gamepads = SDL_GetGamepads(&count);
 		if (gamepads == nullptr || count <= 0)
 		{
 			SDL_free(gamepads);
@@ -118,7 +118,7 @@ namespace TEN::Input
 			return;
 		}
 
-		const char* gamepadName = SDL_GetGamepadName(ActiveGamepad);
+		auto* gamepadName = SDL_GetGamepadName(ActiveGamepad);
 		TENLog(std::string("Using '") + (gamepadName ? gamepadName : "unknown") + "' gamepad for input.", LogLevel::Info);
 
 		auto previousGamepadType = g_Configuration.LastGamepadType;
@@ -126,7 +126,7 @@ namespace TEN::Input
 		bool gamepadTypeChanged = (g_Configuration.LastGamepadType != previousGamepadType);
 
 		// SDL3 reports rumble support via SDL_GetGamepadProperties.
-		SDL_PropertiesID props = SDL_GetGamepadProperties(ActiveGamepad);
+		auto props = SDL_GetGamepadProperties(ActiveGamepad);
 		ActiveGamepadHasRumble = SDL_GetBooleanProperty(props, SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN, false);
 		if (ActiveGamepadHasRumble)
 			TENLog("Controller supports vibration.", LogLevel::Info);
