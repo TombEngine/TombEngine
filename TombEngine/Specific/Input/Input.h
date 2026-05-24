@@ -84,7 +84,7 @@ namespace TEN::Input
 	void StopRumble();
 	void ApplyDefaultBindings();
 	bool RestoreDefaultBindings(DefaultBindingType bindingType);
-	GamepadType GetActiveGamepadType();
+	GamepadType GetGamepadType();
 	InputDevice GetLastInputDevice();
 
 	Vector2 GetMouse2DPosition();

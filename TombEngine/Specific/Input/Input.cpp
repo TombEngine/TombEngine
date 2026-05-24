@@ -122,7 +122,7 @@ namespace TEN::Input
 		TENLog(std::string("Using '") + (gamepadName ? gamepadName : "unknown") + "' gamepad for input.", LogLevel::Info);
 
 		auto previousGamepadType = g_Configuration.LastGamepadType;
-		g_Configuration.LastGamepadType = GetActiveGamepadType();
+		g_Configuration.LastGamepadType = GetGamepadType();
 		bool gamepadTypeChanged = (g_Configuration.LastGamepadType != previousGamepadType);
 
 		// SDL3 reports rumble support via SDL_GetGamepadProperties.
@@ -234,7 +234,7 @@ namespace TEN::Input
 		InputLocked = locked;
 	}
 
-	GamepadType GetActiveGamepadType()
+	GamepadType GetGamepadType()
 	{
 		if (ActiveGamepad == nullptr)
 			return g_Configuration.LastGamepadType;

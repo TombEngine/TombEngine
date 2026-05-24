@@ -191,7 +191,7 @@ namespace TEN::Input
 		if (gamepadIt != GAMEPAD_KEY_NAME_MAP.end())
 		{
 			const auto& keyNames = gamepadIt->second;
-			return keyNames[(int)GetActiveGamepadType()];
+			return keyNames[(int)GetGamepadType()];
 		}
 
 		auto it = KEY_NAME_MAP.find(keyID);
