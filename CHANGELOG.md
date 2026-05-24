@@ -37,6 +37,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Lua API changes
 
 * Added ring inventory module.
+* Added loading of the `Scripts/Autoexec.lua` script file before every level script is loaded.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
 * Added `Flow.Settings.Animation.systemBlendDuration` setting to specify hardcoded animation blend durations.
 * Added `Flow.Settings.Effects` category with blood, ricochet and explosion settings.
