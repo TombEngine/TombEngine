@@ -498,6 +498,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Math\Legacy.h" />
     <ClInclude Include="Math\Math.h" />
     <ClInclude Include="Math\Objects\AxisAngle.h" />
+    <ClInclude Include="Math\Objects\BezierCurve2.h" />
     <ClInclude Include="Math\Objects\EulerAngles.h" />
     <ClInclude Include="Math\Objects\GameBoundingBox.h" />
     <ClInclude Include="Math\Objects\GameVector.h" />
@@ -1118,6 +1119,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Math\Geometry.cpp" />
     <ClCompile Include="Math\Legacy.cpp" />
     <ClCompile Include="Math\Objects\AxisAngle.cpp" />
+    <ClCompile Include="Math\Objects\BezierCurve2.cpp" />
     <ClCompile Include="Math\Objects\EulerAngles.cpp" />
     <ClCompile Include="Math\Objects\GameBoundingBox.cpp" />
     <ClCompile Include="Math\Objects\GameVector.cpp" />

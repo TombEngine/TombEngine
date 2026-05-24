@@ -660,7 +660,7 @@ namespace TEN::Entities::Creatures::TR2
 					// TODO: Reimplement dagger pickup animation when state transitions
 					// from ID_LARA_EXTRA_ANIMS to ID_LARA are possible. -- Adngel 2023.10.03
 
-					//SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, LEA_PULL_DAGGER_FROM_DRAGON);
+					//SetAnimationFromSlot(*playerItem, ID_LARA_EXTRA_ANIMS, LEA_PULL_DAGGER_FROM_DRAGON);
 					//playerItem.Pose = item.Pose;
 
 					// HACK: Temporarily use small button push animation.

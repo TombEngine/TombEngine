@@ -11,6 +11,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
 * Added native support for DualShock, DualSense and Switch Pro controllers.
+* Added animation blending support and blended transitions for hardcoded animation changes.
+* Added root motion support.
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
 * Added [DRILL_BIT](https://tombengine.com/asset/traps/drill-bit/) object from TR3.
 * Added [FUSEBOX_SWITCH](https://tombengine.com/asset/switches/fusebox-switch/) object from TR3.
@@ -37,6 +39,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 * Added ring inventory module.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
+* Added `Flow.Settings.Animation.systemBlendDuration` setting to specify hardcoded animation blend durations.
 * Added `Flow.Settings.Effects` category with blood, ricochet and explosion settings.
 * Added `Flow.Settings.Graphics.flameHeatHaze` option to toggle heat haze effects for flames.
 * Added `Flow.Settings.Hud.interactionHighlighter` and `Flow.Settings.Hud.targetHighlighter` options to force these settings on or off.
@@ -45,6 +48,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Input.GetLastInputDevice` function to detect which input device was used last.
 * Added functional key (F1-F12) mappings and raw gamepad input mappings to the `Input.ActionID` and `Input.AxisID` enums.
 * Added `Lara.SetSkin` to swap classic outfits.
+* Added third argument to `Moveable:SetAnim` function to specify blend frame count.
 * Added `Objects.Creature` class to fetch and set various enemy AI state parameters.
 * Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
 * Added `View.GetPostProcessTint` to get currently set post process tint.
