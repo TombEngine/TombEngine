@@ -229,19 +229,32 @@ namespace TEN::Scripting::Types
 		return ScriptColor(grayscaleValue, grayscaleValue, grayscaleValue, GetA());
 	}
 
-	// Method not registered due to normalization issues.
-
 	/// Blend this Color with another Color using the Screen blend mode.
 	// @function Color:Screen
 	// @tparam Color other The other Color to blend with.
+	// @tparam[opt=true] bool keepAlpha Whether to keep the alpha component unchanged.
 	// @treturn Color The resulting blended Color.
 	// @usage
 	// local color1 = TEN.Color(255, 0, 0) -- Red color
 	// local color2 = TEN.Color(0, 0, 255) -- Blue color
 	// local blendedColor = color1:Screen(color2) -- Screen blend of red and blue
-	ScriptColor ScriptColor::Screen(const ScriptColor& color) const
+	ScriptColor ScriptColor::Screen(const ScriptColor& color, TypeOrNil<bool> keepAlpha) const
 	{
-		const Color result = Math::Screen(static_cast<Color>(_color), static_cast<Color>(color._color));
+		bool keepAlphaValue = ValueOr<bool>(keepAlpha, true);
+		ScriptColor result;
+		if (keepAlphaValue)
+		{
+			// If keeping alpha, we can simply use the existing alpha of _color.
+			Vector3 screenRGB = Math::Screen(Vector3(_color), Vector3(color));
+			result = ScriptColor(screenRGB);
+			result.SetA(GetA());
+		}
+		else
+		{
+			// If not keeping alpha, we need to blend the alpha values as well.
+			Vector4 screenRGBA = Math::Screen(Vector4(_color), Vector4(color));
+			result = ScriptColor(screenRGBA);
+		}
 		return ScriptColor(result);
 	}
 

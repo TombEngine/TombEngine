@@ -51,7 +51,7 @@ namespace TEN::Scripting::Types
 		float GetHue() const;
 		ScriptColor ToGrayscale() const;
 		ScriptColor Invert(TypeOrNil<bool> keepAlpha) const;
-		ScriptColor Screen(const ScriptColor& color) const;
+		ScriptColor Screen(const ScriptColor& color, TypeOrNil<bool> keepAlpha) const;
 		ScriptColor Lerp(const ScriptColor& color, float alpha) const;
 
 		// Converters
