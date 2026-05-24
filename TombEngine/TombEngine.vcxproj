@@ -408,7 +408,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Game\collision\Los.h" />
     <ClInclude Include="Game\collision\Point.h" />
     <ClInclude Include="Game\collision\Sphere.h" />
-    <ClInclude Include="Game\debug\ansi_filter_file_sink.h" />
     <ClInclude Include="Game\Debug\Debug.h" />
     <ClInclude Include="Game\effects\Bubble.h" />
     <ClInclude Include="Game\effects\Decal.h" />
