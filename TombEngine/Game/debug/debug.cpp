@@ -2,7 +2,6 @@
 #include "Game/Debug/Debug.h"
 
 #include "Renderer/Renderer.h"
-#include "Game/Debug/ansi_filter_file_sink.h"
 
 using TEN::Renderer::g_Renderer;
 
