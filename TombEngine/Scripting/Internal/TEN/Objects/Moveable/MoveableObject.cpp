@@ -470,7 +470,7 @@ void Moveable::SetJointRotation(int jointId, const Rotation& rot)
 
 	auto& jointRotation = _moveable->Model.JointRotations[jointId];
 	jointRotation.Rotation = rot.ToEulerAngles().ToQuaternion();
-	jointRotation.FrameStamp = GlobalCounter;
+	jointRotation.FrameStamp = (GlobalCounter + 1);
 }
 
 /// Set the moveable's rotation.
