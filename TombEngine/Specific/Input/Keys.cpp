@@ -8,12 +8,10 @@ namespace TEN::Input
 
 	static GamepadKeyNameSet GamepadKeyNames(const char* xboxName, const char* playStationName = nullptr, const char* nintendoName = nullptr)
 	{
-		return
-		{
-			xboxName,
-			(playStationName != nullptr) ? playStationName : xboxName,
-			(nintendoName != nullptr) ? nintendoName : xboxName
-		};
+		auto psName  = (playStationName != nullptr) ? playStationName : xboxName;
+		auto ninName = (nintendoName    != nullptr) ? nintendoName    : xboxName;
+
+		return { xboxName, psName, psName, ninName };
 	}
 
 	static const auto KEY_NAME_MAP = std::unordered_map<int, std::string>

@@ -21,7 +21,8 @@ namespace TEN::Input
 	enum class GamepadType
 	{
 		Xbox,
-		PlayStation,
+		PlayStation4,
+		PlayStation5,
 		Switch,
 		Count
 	};

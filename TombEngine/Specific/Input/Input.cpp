@@ -12,6 +12,7 @@
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/EngineMain.h"
+#include "Specific/Input/GamepadProfiles.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Gui;
@@ -42,6 +43,20 @@ namespace TEN::Input
 	SDL_JoystickID ActiveGamepadId = 0;
 	bool ActiveGamepadHasRumble = false;
 
+	// Returns true if the user's custom profile has at least one gamepad key bound.
+	// Used to avoid overwriting keyboard-only setups with gamepad defaults.
+	static bool HasAnyGamepadBindings()
+	{
+		const auto& profile = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+		for (const auto& [actionID, keyID] : profile)
+		{
+			if (keyID >= KEY_OFFSET_GAMEPAD)
+				return true;
+		}
+
+		return false;
+	}
+
 	static bool HasMatchingBindings(const BindingProfile& bindingProfile)
 	{
 		for (const auto& [actionID, keyID] : bindingProfile)
@@ -67,7 +82,7 @@ namespace TEN::Input
 			if (!force && ActiveGamepad != nullptr)
 				return false;
 
-			previousBindings = &DEFAULT_GAMEPAD_BINDING_PROFILE;
+			previousBindings = &GetDefaultGamepadBindingProfile(GetGamepadType());
 			defaultBindings = &DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
 			break;
 
@@ -76,13 +91,15 @@ namespace TEN::Input
 				return false;
 
 			previousBindings = &DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
-			defaultBindings = &DEFAULT_GAMEPAD_BINDING_PROFILE;
+			defaultBindings = &GetDefaultGamepadBindingProfile(GetGamepadType());
 			enableRumble = ActiveGamepadHasRumble;
 			enableThumbstickCamera = true;
 			break;
 		}
 
-		if (!force && !HasMatchingBindings(*previousBindings))
+		// Apply if: forced, user's bindings match the previous profile's defaults,
+		// or user has no gamepad keys at all (first-time controller connection).
+		if (!force && !HasMatchingBindings(*previousBindings) && HasAnyGamepadBindings())
 			return false;
 
 		// Apply the selected default binding profile.
@@ -243,8 +260,10 @@ namespace TEN::Input
 		{
 		case SDL_GAMEPAD_TYPE_PS3:
 		case SDL_GAMEPAD_TYPE_PS4:
+			return GamepadType::PlayStation4;
+
 		case SDL_GAMEPAD_TYPE_PS5:
-			return GamepadType::PlayStation;
+			return GamepadType::PlayStation5;
 
 		case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_PRO:
 			return GamepadType::Switch;
