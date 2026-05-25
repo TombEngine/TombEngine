@@ -632,7 +632,11 @@ namespace TEN::Entities::Vehicles
 		else if (collide)
 		{
 			if (laraItem->Animation.ActiveState != RBOAT_STATE_HIT)
+			{
+				StopRumble();
+				Rumble(std::clamp((float)abs(rBoatItem->Animation.Velocity.z) / RBOAT_FAST_VELOCITY_MAX * 0.5f, 0.3f, 0.7f), 0.3f, RumbleMode::Both);
 				SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, collide);
+			}
 		}
 		else
 		{
@@ -912,9 +916,17 @@ namespace TEN::Entities::Vehicles
 		rBoat->Pitch += ((pitch - rBoat->Pitch) / 4);
 
 		if (rBoatItem->Animation.Velocity.z > 8)
+		{
 			SoundEffect(SFX_TR3_VEHICLE_RUBBERBOAT_MOVING, &rBoatItem->Pose, SoundEnvironment::Land, 0.5f + (float)abs(rBoat->Pitch) / (float)RBOAT_NORMAL_VELOCITY_MAX);
+
+			float speedFrac = std::clamp((float)abs(rBoatItem->Animation.Velocity.z) / RBOAT_FAST_VELOCITY_MAX, 0.0f, 1.0f);
+			Rumble(0.12f + 0.2f * speedFrac, 0.2f, RumbleMode::Both);
+		}
 		else if (drive)
+		{
 			SoundEffect(SFX_TR3_VEHICLE_RUBBERBOAT_IDLE, &rBoatItem->Pose, SoundEnvironment::Land, 0.5f + (float)abs(rBoat->Pitch) / (float)RBOAT_NORMAL_VELOCITY_MAX);
+			Rumble(0.07f, 0.25f, RumbleMode::Both);
+		}
 
 		if (lara->Context.Vehicle != itemNumber)
 			return;

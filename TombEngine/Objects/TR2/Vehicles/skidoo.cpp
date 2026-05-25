@@ -340,12 +340,19 @@ namespace TEN::Entities::Vehicles
 
 			auto pitch = std::clamp(0.5f + (float)abs(skidoo->Pitch) / (float)SKIDOO_NORMAL_VELOCITY_MAX, 0.6f, 1.4f);
 			SoundEffect(skidoo->Pitch ? SFX_TR2_VEHICLE_SNOWMOBILE_MOVING : SFX_TR2_VEHICLE_SNOWMOBILE_ACCELERATE, &skidooItem->Pose, SoundEnvironment::Land, pitch);
+
+			float speedFrac = std::clamp((float)abs(skidooItem->Animation.Velocity.z) / SKIDOO_FAST_VELOCITY_MAX, 0.0f, 1.0f);
+			Rumble(0.15f + 0.3f * speedFrac, 0.2f, RumbleMode::Both);
 		}
 		else
 		{
 			skidoo->TrackMesh = NO_VALUE;
 			if (!drive)
+			{
 				SoundEffect(SFX_TR2_VEHICLE_SNOWMOBILE_IDLE, &skidooItem->Pose);
+				Rumble(0.08f, 0.25f, RumbleMode::Both);
+			}
+
 			skidoo->Pitch = 0;
 		}
 
@@ -516,6 +523,8 @@ namespace TEN::Entities::Vehicles
 				else
 					SoundEffect(SFX_TR2_VEHICLE_IMPACT2, &skidooItem->Pose);
 
+				StopRumble();
+				Rumble(std::clamp((float)abs(skidooItem->Animation.Velocity.z) / SKIDOO_FAST_VELOCITY_MAX * 0.7f, 0.4f, 0.8f), 0.3f, RumbleMode::Both);
 				SetAnimationFromSlot(*laraItem, ID_SNOWMOBILE_LARA_ANIMS, collide);
 			}
 		}
@@ -625,6 +634,8 @@ namespace TEN::Entities::Vehicles
 				{
 					laraItem->Animation.TargetState = SKIDOO_STATE_DRIVE;
 					SoundEffect(SFX_TR2_VEHICLE_IMPACT3, &skidooItem->Pose);
+					StopRumble();
+					Rumble(0.75f, 0.3f, RumbleMode::Both);
 				}
 				else if (skidooItem->Animation.Velocity.y > (SKIDOO_DAMAGE_START + SKIDOO_DAMAGE_LENGTH))
 					laraItem->Animation.TargetState = SKIDOO_STATE_JUMP_OFF;

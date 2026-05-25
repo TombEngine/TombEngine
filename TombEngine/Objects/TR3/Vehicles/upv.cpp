@@ -501,6 +501,8 @@ namespace TEN::Entities::Vehicles
 				{
 					laraItem->Animation.TargetState = UPV_STATE_COLLIDE;
 					UPV->Velocity = -UPV->Velocity / 2;
+					StopRumble();
+					Rumble(0.55f, 0.3f, RumbleMode::Both);
 				}
 				else
 					UPV->Velocity = 0;
@@ -987,7 +989,12 @@ namespace TEN::Entities::Vehicles
 			DoVehicleCollision(UPVItem, UPV_RADIUS);
 
 			if (UPV->Flags & UPV_FLAG_CONTROL)
+			{
 				SoundEffect(SFX_TR3_VEHICLE_UPV_LOOP, (Pose*)&UPVItem->Pose.Position.x, SoundEnvironment::Always, 1.0f + (float)UPVItem->Animation.Velocity.z / 96.0f);
+
+				float speedFrac = std::clamp((float)abs(UPV->Velocity) / UPV_VELOCITY_MAX, 0.0f, 1.0f);
+				Rumble(0.06f + 0.15f * speedFrac, 0.2f, RumbleMode::Both);
+			}
 
 			SyncItemAnimation(*UPVItem, *laraItem);
 

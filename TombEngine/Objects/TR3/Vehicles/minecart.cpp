@@ -481,7 +481,12 @@ namespace TEN::Entities::Vehicles
 			if (minecart->VerticalVelocity)
 				StopSoundEffect(SFX_TR3_VEHICLE_MINECART_TRACK_LOOP);
 			else
+			{
 				SoundEffect(SFX_TR3_VEHICLE_MINECART_TRACK_LOOP, &minecartItem->Pose, SoundEnvironment::Land, 1.0f + ((float)minecartItem->Animation.Velocity.z / BLOCK(8))); // TODO: check actual sound!
+
+				float speedFrac = std::clamp((float)minecart->Velocity / MINECART_STOP_VELOCITY_MAX, 0.0f, 1.0f);
+				Rumble(0.1f + 0.25f * speedFrac, 0.2f, RumbleMode::Both);
+			}
 		}
 
 		if (minecart->Flags & (MINECART_FLAG_TURNING_LEFT | MINECART_FLAG_TURNING_RIGHT))
@@ -547,6 +552,8 @@ namespace TEN::Entities::Vehicles
 				{
 					SoundEffect(SFX_TR3_VEHICLE_MINECART_BRAKE, &minecartItem->Pose, SoundEnvironment::Always);
 					TriggerWheelSparkles(minecartItem, (minecart->Flags & MINECART_FLAG_TURNING_RIGHT) != 0);
+					StopRumble();
+					Rumble(0.45f, 0.2f, RumbleMode::Both);
 				}
 			}
 		}
@@ -568,6 +575,8 @@ namespace TEN::Entities::Vehicles
 				float velocity = minecart->Velocity / VEHICLE_VELOCITY_SCALE;
 				DoDamage(LaraItem, (SQUARE(minecart->FallTime) * MINECART_FALL_DAMAGE_COEFF) + velocity);
 				SoundEffect(SFX_TR3_VEHICLE_QUADBIKE_FRONT_IMPACT, &minecartItem->Pose, SoundEnvironment::Always);
+				StopRumble();
+				Rumble(std::clamp((float)minecart->FallTime / 20.0f, 0.5f, 1.0f), 0.4f, RumbleMode::Both);
 			}
 
 			minecart->FallTime = 0;
