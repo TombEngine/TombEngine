@@ -20,11 +20,11 @@ namespace TEN::Input
 
 	enum class GamepadType
 	{
-		Xbox,
-		PlayStation4,
-		PlayStation5,
-		Switch,
-		Count
+		Xbox          = 0,
+		PlayStation4  = 1,
+		Switch        = 2, // Value must stay at 2 for existing config compatibility.
+		PlayStation5  = 3,
+		Count         = 4
 	};
 
 	enum class DefaultBindingType

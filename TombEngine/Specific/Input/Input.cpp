@@ -9,6 +9,7 @@
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererEnums.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/EngineMain.h"
@@ -102,9 +103,9 @@ namespace TEN::Input
 			break;
 		}
 
-		// Apply if: forced, user's bindings match the previous profile's defaults,
-		// or user has no gamepad keys at all (first-time controller connection).
-		if (!force && !HasMatchingBindings(*previousBindings) && HasAnyGamepadBindings())
+		// Apply only if forced or user's bindings still match the previous profile's defaults.
+		// This preserves custom layouts while auto-switching on a clean first-time connection.
+		if (!force && !HasMatchingBindings(*previousBindings))
 			return false;
 
 		// Apply the selected default binding profile.
@@ -812,6 +813,8 @@ namespace TEN::Input
 	void SetGamepadLED(unsigned char r, unsigned char g, unsigned char b)
 	{
 		if (ActiveGamepad == nullptr || !ActiveGamepadHasLED)
+			return;
+		if (g_GameFlow != nullptr && !g_GameFlow->GetSettings()->Input.ControllerLED)
 			return;
 
 		SDL_SetGamepadLED(ActiveGamepad, r, g, b);

@@ -11,7 +11,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
 * Added native support for DualShock, DualSense and Switch Pro controllers.
-* Added support to lightbar effects on supported controllers.
+* Added support for lightbar effects on supported controllers.
 * Added animation blending support and blended transitions for hardcoded animation changes.
 * Added root motion support.
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
