@@ -92,6 +92,9 @@ namespace TEN::Input
 	void RumbleTriggers(float leftPower, float rightPower, float delaySec = 0.3f);
 	void StopRumble();
 	void SetGamepadLED(unsigned char r, unsigned char g, unsigned char b);
+	void SetGamepadLEDOverride(unsigned char r, unsigned char g, unsigned char b);
+	void ClearGamepadLEDOverride();
+	bool RefreshGamepadLEDOverride();
 	void ApplyDefaultBindings();
 	bool RestoreDefaultBindings(DefaultBindingType bindingType);
 	GamepadType GetGamepadType();

@@ -38,6 +38,8 @@ local settings = Flow.Settings.new()
 	settings.Gameplay.enableInventory = true
 	settings.Gameplay.killPoisonedEnemies = true
 	settings.Gameplay.targetObjectOcclusion = true
+	settings.Gameplay.controllerLED = true
+	settings.Gameplay.healthLED = true
 
 	settings.Graphics.ambientOcclusion = true
 	settings.Graphics.flameHeatHaze = true

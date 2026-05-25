@@ -262,7 +262,16 @@ namespace TEN::Scripting
 
 		/// Enable target occlusion by moveables and static meshes.
 		// @tfield[opt=true] bool targetObjectOcclusion If enabled, player won't be able to target enemies through moveables and static meshes.
-		"targetObjectOcclusion", &GameplaySettings::TargetObjectOcclusion);
+		"targetObjectOcclusion", &GameplaySettings::TargetObjectOcclusion,
+
+		/// Enable or disable all controller LED color changes. When false, the engine will not change the LED color at all.
+		// @tfield[opt=true] bool controllerLED If false, the controller LED will not be changed by the engine.
+		"controllerLED", &GameplaySettings::ControllerLED,
+
+		/// Enable or disable automatic health-based LED color. When false, health will not drive the LED color,
+		// but scripts may still use TEN.Input.SetControllerLED to set a persistent color.
+		// @tfield[opt=true] bool healthLED If false, player health will not automatically update the controller LED color.
+		"healthLED", &GameplaySettings::HealthLED);
 	}
 
 	/// Effects

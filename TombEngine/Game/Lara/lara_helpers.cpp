@@ -1743,12 +1743,26 @@ void RumbleLaraHealthCondition(ItemInfo* item)
 
 void UpdatePlayerLED(ItemInfo* item)
 {
+	const auto& settings = *g_GameFlow->GetSettings();
+
+	// Do nothing if the master LED setting is disabled.
+	if (!settings.Gameplay.ControllerLED)
+		return;
+
+	// Persistent Lua script override takes priority over all other logic.
+	if (RefreshGamepadLEDOverride())
+		return;
+
 	// Turn off LED in the title level or when any menu is active.
 	if (CurrentLevel == 0 || g_Gui.GetInventoryMode() != InventoryMode::None)
 	{
 		SetGamepadLED(0, 0, 0);
 		return;
 	}
+
+	// Skip health-based color if the setting is disabled.
+	if (!settings.Gameplay.HealthLED)
+		return;
 
 	const auto& player = GetLaraInfo(*item);
 

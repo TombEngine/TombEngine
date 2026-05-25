@@ -46,6 +46,11 @@ namespace TEN::Input
 	bool ActiveGamepadHasLED            = false;
 	TriggerRumbleData TriggerRumbleInfo = {};
 
+	bool LEDOverrideActive = false;
+	unsigned char LEDOverrideR = 0;
+	unsigned char LEDOverrideG = 0;
+	unsigned char LEDOverrideB = 0;
+
 	// Returns true if the user's custom profile has at least one gamepad key bound.
 	// Used to avoid overwriting keyboard-only setups with gamepad defaults.
 	static bool HasAnyGamepadBindings()
@@ -883,6 +888,29 @@ namespace TEN::Input
 			return;
 
 		SDL_SetGamepadLED(ActiveGamepad, r, g, b);
+	}
+
+	void SetGamepadLEDOverride(unsigned char r, unsigned char g, unsigned char b)
+	{
+		LEDOverrideActive = true;
+		LEDOverrideR = r;
+		LEDOverrideG = g;
+		LEDOverrideB = b;
+		SetGamepadLED(r, g, b);
+	}
+
+	void ClearGamepadLEDOverride()
+	{
+		LEDOverrideActive = false;
+	}
+
+	bool RefreshGamepadLEDOverride()
+	{
+		if (!LEDOverrideActive)
+			return false;
+
+		SetGamepadLED(LEDOverrideR, LEDOverrideG, LEDOverrideB);
+		return true;
 	}
 
 	void ApplyDefaultBindings()

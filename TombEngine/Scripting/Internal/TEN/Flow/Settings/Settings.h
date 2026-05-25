@@ -59,6 +59,8 @@ namespace TEN::Scripting
 		bool TargetObjectOcclusion = true;
 		bool KillPoisonedEnemies = true;
 		bool EnableInventory = true;
+		bool ControllerLED = true;
+		bool HealthLED = true;
 
 		static void Register(sol::table& parent);
 	};

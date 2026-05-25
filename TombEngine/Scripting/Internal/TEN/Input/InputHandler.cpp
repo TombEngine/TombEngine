@@ -184,13 +184,22 @@ namespace TEN::Scripting::Input
 		StopRumble();
 	}
 
-	/// Set the RGB LED color of the game controller.
+	/// Set the RGB LED color of the game controller persistently.
+	// Overrides the automatic health-based color until TEN.Input.ClearControllerLED is called.
 	// Has no effect on controllers that do not have an RGB LED (e.g. Xbox controllers).
 	// @function SetControllerLED
 	// @tparam Color color LED color.
 	static void SetControllerLED(const ScriptColor& color)
 	{
-		TEN::Input::SetGamepadLED(color.GetR(), color.GetG(), color.GetB());
+		TEN::Input::SetGamepadLEDOverride(color.GetR(), color.GetG(), color.GetB());
+	}
+
+	/// Clear the persistent LED color set by TEN.Input.SetControllerLED.
+	// Allows automatic health-based color (or black in menus) to resume.
+	// @function ClearControllerLED
+	static void ClearControllerLED()
+	{
+		TEN::Input::ClearGamepadLEDOverride();
 	}
 
 	/// Returns the name of the key that has been assigned to specified ActionID.
@@ -234,6 +243,7 @@ namespace TEN::Scripting::Input
 		table.set_function(ScriptReserved_InputVibrateTriggers, &VibrateTriggers);
 		table.set_function(ScriptReserved_InputStopVibration, &StopVibration);
 		table.set_function(ScriptReserved_InputSetControllerLED, &SetControllerLED);
+		table.set_function(ScriptReserved_InputClearControllerLED, &ClearControllerLED);
 		table.set_function(ScriptReserved_GetActionBinding, &GetActionBinding);
 		table.set_function(ScriptReserved_GetActionTimeActive, &GetActionTimeActive);
 
