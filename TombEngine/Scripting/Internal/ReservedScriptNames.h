@@ -36,6 +36,7 @@ static constexpr char ScriptReserved_AnimSettings[]		= "Animations";
 static constexpr char ScriptReserved_GraphicsSettings[]	= "Graphics";
 static constexpr char ScriptReserved_HairSettings[]		= "Hair";
 static constexpr char ScriptReserved_HudSettings[]		= "Hud";
+static constexpr char ScriptReserved_InputSettings[]	= "Input";
 static constexpr char ScriptReserved_PFSettings[]		= "Pathfinding";
 static constexpr char ScriptReserved_PhysicsSettings[]	= "Physics";
 static constexpr char ScriptReserved_WeaponSettings[]	= "Weapons";

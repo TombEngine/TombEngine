@@ -836,23 +836,26 @@ GameStatus HandleMenuCalls(bool isTitle)
 	{
 		SaveGame::LoadHeaders();
 		g_Gui.SetInventoryMode(InventoryMode::Save);
+		SetGamepadLED(0, 0, 0);
 		g_Gui.CallInventory(LaraItem, false);
 	}
 	else if (doLoad && g_GameFlow->IsLoadSaveEnabled() && Lara.Inventory.HasLoad && g_Gui.GetInventoryMode() != InventoryMode::Load && inventoryEnabled)
 	{
 		SaveGame::LoadHeaders();
 		g_Gui.SetInventoryMode(InventoryMode::Load);
+		SetGamepadLED(0, 0, 0);
 		if (g_Gui.CallInventory(LaraItem, false))
 			gameStatus = GameStatus::LoadGame;
 	}
 	else if (doPause && g_Gui.GetInventoryMode() != InventoryMode::Pause)
 	{
+		SetGamepadLED(0, 0, 0);
 		if (g_Gui.CallPause())
 			gameStatus = GameStatus::ExitToTitle;
 	}
 	else if (doInventory && LaraItem->HitPoints > 0 && !Lara.Control.Look.IsUsingBinoculars && inventoryEnabled)
 	{
-
+		SetGamepadLED(0, 0, 0);
 		if (g_Gui.CallInventory(LaraItem, true))
 			gameStatus = GameStatus::LoadGame;
 	}

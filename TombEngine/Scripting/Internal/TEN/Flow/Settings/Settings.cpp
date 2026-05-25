@@ -51,6 +51,7 @@ namespace TEN::Scripting
 		GraphicsSettings::Register(parent);
 		HairSettings::Register(parent);
 		HudSettings::Register(parent);
+		InputSettings::Register(parent);
 		PathfindingSettings::Register(parent);
 		PhysicsSettings::Register(parent);
 		SystemSettings::Register(parent);
@@ -69,6 +70,7 @@ namespace TEN::Scripting
 			ScriptReserved_GraphicsSettings, &Settings::Graphics,
 			ScriptReserved_HairSettings, &Settings::Hair,
 			ScriptReserved_HudSettings, &Settings::Hud,
+			ScriptReserved_InputSettings, &Settings::Input,
 			ScriptReserved_PFSettings, &Settings::Pathfinding,
 			ScriptReserved_PhysicsSettings, &Settings::Physics,
 			ScriptReserved_SystemSettings, &Settings::System,
@@ -262,16 +264,31 @@ namespace TEN::Scripting
 
 		/// Enable target occlusion by moveables and static meshes.
 		// @tfield[opt=true] bool targetObjectOcclusion If enabled, player won't be able to target enemies through moveables and static meshes.
-		"targetObjectOcclusion", &GameplaySettings::TargetObjectOcclusion,
+		"targetObjectOcclusion", &GameplaySettings::TargetObjectOcclusion);
+	}
+
+	/// Input
+	// @section Input
+	// Settings for controller LED feedback.
+	// @usage
+	// -- Disable health-based LED but allow script overrides
+	// -- In Settings.lua
+	// settings.Input.healthLED = false
+
+	void InputSettings::Register(sol::table& parent)
+	{
+		parent.create().new_usertype<InputSettings>(ScriptReserved_InputSettings, sol::constructors<InputSettings()>(),
+			sol::call_constructor, sol::constructors<InputSettings()>(),
+			sol::meta_function::new_index, NewIndexErrorMaker(InputSettings, ScriptReserved_InputSettings),
 
 		/// Enable or disable all controller LED color changes. When false, the engine will not change the LED color at all.
 		// @tfield[opt=true] bool controllerLED If false, the controller LED will not be changed by the engine.
-		"controllerLED", &GameplaySettings::ControllerLED,
+		"controllerLED", &InputSettings::ControllerLED,
 
 		/// Enable or disable automatic health-based LED color. When false, health will not drive the LED color,
 		// but scripts may still use TEN.Input.SetControllerLED to set a persistent color.
 		// @tfield[opt=true] bool healthLED If false, player health will not automatically update the controller LED color.
-		"healthLED", &GameplaySettings::HealthLED);
+		"healthLED", &InputSettings::HealthLED);
 	}
 
 	/// Effects

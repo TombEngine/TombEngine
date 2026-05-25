@@ -38,8 +38,6 @@ local settings = Flow.Settings.new()
 	settings.Gameplay.enableInventory = true
 	settings.Gameplay.killPoisonedEnemies = true
 	settings.Gameplay.targetObjectOcclusion = true
-	settings.Gameplay.controllerLED = true
-	settings.Gameplay.healthLED = true
 
 	settings.Graphics.ambientOcclusion = true
 	settings.Graphics.flameHeatHaze = true
@@ -51,6 +49,9 @@ local settings = Flow.Settings.new()
 	settings.Hud.pickupNotifier = true
 	settings.Hud.interactionHighlighter = true
 	settings.Hud.targetHighlighter = true
+	
+	settings.Input.controllerLED = true
+	settings.Input.healthLED = true
 	
 	settings.Pathfinding.mode = PathfindingMode.ASTAR
 	settings.Pathfinding.searchDepth = 5

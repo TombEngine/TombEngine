@@ -59,6 +59,12 @@ namespace TEN::Scripting
 		bool TargetObjectOcclusion = true;
 		bool KillPoisonedEnemies = true;
 		bool EnableInventory = true;
+
+		static void Register(sol::table& parent);
+	};
+
+	struct InputSettings
+	{
 		bool ControllerLED = true;
 		bool HealthLED = true;
 
@@ -202,6 +208,7 @@ namespace TEN::Scripting
 		GraphicsSettings			Graphics    = {};
 		std::array<HairSettings, 3> Hair	    = {};
 		HudSettings					Hud		    = {};
+		InputSettings				Input	    = {};
 		PathfindingSettings			Pathfinding = {};
 		PhysicsSettings				Physics	    = {};
 		SystemSettings				System	    = {};
