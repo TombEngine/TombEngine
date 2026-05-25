@@ -18,20 +18,20 @@ namespace TEN::Effects::Ripple
 
 	void SpawnRipple(const Vector3& pos, int roomNumber, float size, int flags, const Vector3& normal)
 	{
-		constexpr auto LIFE_WATER_SURFACE_MAX = 1.0f;
-		constexpr auto LIFE_WATER_SURFACE_MIN = LIFE_WATER_SURFACE_MAX / 2;
+		constexpr auto LIFE_WATER_SURFACE_MAX = 2.0f;
+		constexpr auto LIFE_WATER_SURFACE_MIN = 1.25f;
 		constexpr auto LIFE_GROUND_MAX		  = 0.4f;
 		constexpr auto LIFE_GROUND_MIN		  = LIFE_GROUND_MAX / 2;
-		constexpr auto FADE_FAST_COEFF		  = 1 / 3.0f;
-		constexpr auto FADE_SLOW_COEFF		  = 0.5f;
-		constexpr auto COLOR_WHITE			  = Vector4(1.0f, 1.0f, 1.0f, RIPPLE_OPACITY_MAX);
+		constexpr auto FADE_FAST_COEFF		  = 0.5f;
+		constexpr auto FADE_SLOW_COEFF		  = 0.75f;
+		constexpr auto COLOR_WHITE			  = Vector4(1.0f, 1.0f, 1.0f, 0.0f);
 
 		auto& ripple = GetNewEffect(Ripples, RIPPLE_COUNT_MAX);
 
 		float lifeInSec = (flags & (int)RippleFlags::OnGround) ?
 			Random::GenerateFloat(LIFE_GROUND_MIN, LIFE_GROUND_MAX) :
 			Random::GenerateFloat(LIFE_WATER_SURFACE_MIN, LIFE_WATER_SURFACE_MAX);
-		float fadeDurationInSec = lifeInSec * ((ripple.Flags & ((int)RippleFlags::SlowFade)) ? FADE_SLOW_COEFF : FADE_FAST_COEFF);
+		float fadeDurationInSec = lifeInSec * ((flags & (int)RippleFlags::SlowFade) ? FADE_SLOW_COEFF : FADE_FAST_COEFF);
 
 		ripple.SpriteIndex = Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_RIPPLES;
 		ripple.Position = pos;
@@ -43,11 +43,12 @@ namespace TEN::Effects::Ripple
 		ripple.Size = size;
 		ripple.FadeDuration = round(fadeDurationInSec * FPS);
 		ripple.Flags = flags;
+		ripple.StoreInterpolationData();
 	}
 
 	void UpdateRipples()
 	{
-		constexpr auto RIPPLE_SIZE_MAX = BLOCK(0.5f);
+		constexpr auto RIPPLE_SIZE_MAX = BLOCK(1.0f);
 		constexpr auto SIZE_STEP_LARGE = 4.0f;
 		constexpr auto SIZE_STEP_SMALL = 2.0f;
 

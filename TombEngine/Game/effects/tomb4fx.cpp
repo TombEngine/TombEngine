@@ -1152,9 +1152,43 @@ void SomeSparkEffect(int x, int y, int z, int count)
 	}
 }
 
+static float GetSplashFootprintRadius(const ItemInfo& item)
+{
+	auto bounds = GameBoundingBox(&item);
+	float halfWidth = bounds.GetWidth() * 0.5f;
+	float halfDepth = bounds.GetDepth() * 0.5f;
+	return std::sqrt((halfWidth * halfWidth) + (halfDepth * halfDepth));
+}
+
 void TriggerUnderwaterExplosion(ItemInfo* item, bool splash)
 {
 	auto position = item->Pose.Position.ToVector3();
+
+	if (splash)
+	{
+		int roomNumber = FindRoomNumber(position);
+		TriggerExplosionBubble(position.x, position.y, position.z, roomNumber, Vector3::Zero, Vector3::Zero);
+		TriggerExplosionSparks(position.x, position.y, position.z, 2, -2, 1, roomNumber, Vector3::Zero, Vector3::Zero);
+
+		for (int i = 0; i < 3; i++)
+			TriggerExplosionSparks(position.x, position.y, position.z, 2, -1, 1, roomNumber, Vector3::Zero, Vector3::Zero);
+
+		int waterHeight = GetPointCollision(position, roomNumber).GetWaterTopHeight();
+		if (waterHeight != NO_HEIGHT)
+		{
+			int dy = position.y - waterHeight;
+			if (dy < 2048)
+			{
+				float footprintRadius = std::max(160.0f, GetSplashFootprintRadius(*item));
+				SplashSetup.Position = Vector3(position.x, waterHeight, position.z);
+				SplashSetup.InnerRadius = footprintRadius;
+				SplashSetup.SplashPower = 2048 - dy;
+
+				SetupSplash(&SplashSetup, roomNumber);
+				return;
+			}
+		}
+	}
 
 	TriggerUnderwaterExplosion(position, splash);
 }
@@ -1179,7 +1213,7 @@ void TriggerUnderwaterExplosion(Vector3 position, bool splash, const Vector3& ma
 			if (dy < 2048)
 			{
 				SplashSetup.Position = Vector3(position.x, waterHeight, position.z);
-				SplashSetup.InnerRadius = 160;
+				SplashSetup.InnerRadius = std::max(160.0f, (2048.0f - dy) * 0.125f);
 				SplashSetup.SplashPower = 2048 - dy;
 
 				SetupSplash(&SplashSetup, roomNumber);

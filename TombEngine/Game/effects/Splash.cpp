@@ -19,52 +19,63 @@ namespace TEN::Effects::Splash
 	{
 		constexpr auto SETUP_COUNT_MAX = 3;
 
+		unsigned int splashDripCount = 32;
+		float splashDripScale = 1.0f;
+		if (setup->InnerRadius >= 224.0f)
+		{
+			splashDripCount = 448;
+			splashDripScale = 2.5f;
+		}
+		else if (setup->InnerRadius >= 128.0f)
+		{
+			splashDripCount = 320;
+			splashDripScale = 2.0f;
+		}
+		else if (setup->InnerRadius >= 64.0f)
+		{
+			splashDripCount = 192;
+			splashDripScale = 1.35f;
+		}
+
 		int splashSetupCount = 0;
-		float splashVel = 0.0f;
+		float splashPower = std::min(256.0f, setup->SplashPower);
+		float splashVel = splashPower / 16;
 
 		for (auto& splash : SplashEffects)
 		{
 			if (splash.isActive)
 				continue;
 
+			splash = {};
+
 			if (splashSetupCount == 0)
 			{
-				float splashPower = std::min(256.0f, setup->SplashPower);
-
 				splash.isActive = true;
 				splash.Position = setup->Position;
 				splash.life = 62;
-				splash.isRipple = false;
-				splash.InnerRadius = setup->InnerRadius;
-				splashVel = splashPower / 16;
+				splash.isRipple = true;
+				splash.InnerRadius = setup->InnerRadius * 0.5f;
 				splash.InnerRadialVel = splashVel;
 				splash.HeightSpeed = splashPower * 1.2f;
 				splash.height = 0;
 				splash.HeightVel = -16;
-				splash.OuterRadius = setup->InnerRadius / 3;
+				splash.OuterRadius = setup->InnerRadius;
 				splash.outerRadialVel = splashVel * 1.5f;
-				splash.SpriteSeqStart = 8; // Splash texture.
+				splash.AnimPhase = 0.0f;
+				splash.StoreInterpolationData();
 				splashSetupCount++;
 			}
 			else
 			{
-				float thickness = Random::GenerateFloat(64, 128);
+				float thickness = Random::GenerateFloat(64.0f, 128.0f);
+				float vel = (splashSetupCount == 2) ?
+					((splashVel / 16) + Random::GenerateFloat(2, 4)) :
+					((splashVel / 7) + Random::GenerateFloat(3, 7));
 
 				splash.isActive = true;
 				splash.Position = setup->Position;
 				splash.isRipple = true;
-				float vel = 0.0f;
-
-				if (splashSetupCount == 2)
-				{
-					vel = (splashVel / 16) + Random::GenerateFloat(2, 4);
-				}
-				else
-				{
-					vel = (splashVel / 7) + Random::GenerateFloat(3, 7);
-				}
-
-				splash.InnerRadius = 0.0f;
+				splash.InnerRadius = thickness * 0.5f;
 				splash.InnerRadialVel = vel * 1.3f;
 				splash.OuterRadius = thickness;
 				splash.outerRadialVel = vel * 2.3f;
@@ -79,7 +90,8 @@ namespace TEN::Effects::Splash
 				splash.SpriteSeqStart = 4; // Splash texture.
 				splash.SpriteSeqEnd = 7; // Splash texture.
 				splash.AnimSpeed = fmin(0.6f, (1 / splash.outerRadialVel) * 2);
-
+				splash.AnimPhase = 0.0f;
+				splash.StoreInterpolationData();
 				splashSetupCount++;
 			}
 
@@ -87,7 +99,7 @@ namespace TEN::Effects::Splash
 				break;
 		}
 
-		SpawnSplashDrips(Vector3(setup->Position.x, setup->Position.y - 15, setup->Position.z), room, 32);
+		SpawnSplashDrips(Vector3(setup->Position.x, setup->Position.y - 15, setup->Position.z), room, splashDripCount, false, splashDripScale);
 
 		auto soundPose = Pose(Vector3i(setup->Position));
 		SoundEffect(SFX_TR4_LARA_SPLASH, &soundPose);

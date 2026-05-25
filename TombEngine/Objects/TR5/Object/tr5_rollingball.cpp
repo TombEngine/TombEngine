@@ -27,6 +27,13 @@ constexpr auto ROLLING_BALL_MAX_VELOCITY = BLOCK(3);
 constexpr auto ROLLING_BARREL_ROLL_ANIMATION = 0;
 constexpr auto ROLLING_BARREL_STOP_ANIMATION = 1;
 
+static float GetSplashFootprintRadius(const GameBoundingBox& bounds)
+{
+	float halfWidth = bounds.GetWidth() * 0.5f;
+	float halfDepth = bounds.GetDepth() * 0.5f;
+	return std::sqrt((halfWidth * halfWidth) + (halfDepth * halfDepth));
+}
+
 void RollingBallCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 {
 	auto* ballItem = &g_Level.Items[itemNumber];
@@ -284,10 +291,11 @@ void RollingBallControl(short itemNumber)
 		if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, pointColl.GetRoomNumber()) &&
 			!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item->RoomNumber))
 		{
+			auto bounds = GameBoundingBox(item);
 			int waterHeight = pointColl.GetWaterTopHeight();
 			SplashSetup.Position = Vector3(item->Pose.Position.x, waterHeight - 1, item->Pose.Position.z);
 			SplashSetup.SplashPower = item->Animation.Velocity.y * 4;
-			SplashSetup.InnerRadius = 160;
+			SplashSetup.InnerRadius = std::max(224.0f, GetSplashFootprintRadius(bounds));
 			SetupSplash(&SplashSetup, pointColl.GetRoomNumber());
 		}
 
