@@ -11,7 +11,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
 * Added native support for DualShock, DualSense and Switch Pro controllers.
-* Added support for lightbar effects on supported controllers.
+* Added support for reactive lightbar effects on supported controllers.
 * Added animation blending support and blended transitions for hardcoded animation changes.
 * Added root motion support.
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
@@ -49,6 +49,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Flow.Settings.UI.systemTextScale` option to change global system text scale.
 * Added `Flow.Settings.Input.controllerLED` to enable or disable all controller LED color changes.
 * Added `Flow.Settings.Input.healthLED` to enable or disable automatic health-based LED color.
+* Added `Flow.Settings.Input.airLED` to enable or disable automatic air-based LED color.
 * Added `Input.GetLastInputDevice` function to detect which input device was used last.
 * Added `Input.StopVibration` function to stop controller vibration.
 * Added `Input.SetControllerLED` and `Input.ClearControllerLED` function to set the color of the lightbar for supported controllers.

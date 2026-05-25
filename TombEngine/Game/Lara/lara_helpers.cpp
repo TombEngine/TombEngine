@@ -1760,11 +1760,39 @@ void UpdatePlayerLED(ItemInfo* item)
 		return;
 	}
 
-	// Skip health-based color if the setting is disabled.
-	if (!settings.Input.HealthLED)
-		return;
-
 	const auto& player = GetLaraInfo(*item);
+
+	// Select LED color mode based on the room environment Lara is currently in.
+	// Priority order allows further environment types to be slotted in as new else-if branches.
+	if (TestEnvironment(ENV_FLAG_WATER, item) && player.Control.WaterStatus == WaterStatus::Underwater)
+	{
+		// Fully submerged in a water room: air-based LED, light blue (full) to dark blue (empty), flashing below 20%.
+		if (settings.Input.AirLED)
+		{
+			float airFrac = std::clamp((float)player.Status.Air / LARA_AIR_MAX, 0.0f, 1.0f);
+
+			auto r = (unsigned char)(30 * airFrac);
+			auto g = (unsigned char)(120 * airFrac);
+			auto b = (unsigned char)(80 + 175 * airFrac);
+
+			bool isCritical = player.Status.Air > 0 && player.Status.Air <= (LARA_AIR_MAX * 0.2f);
+			if (isCritical && (GlobalCounter & 0x0F) >= 8)
+			{
+				SetGamepadLED(0, 0, 0);
+				return;
+			}
+
+			SetGamepadLED(r, g, b);
+			return;
+		}
+	}
+
+	// Default: health-based LED for all non-water environments.
+	if (!settings.Input.HealthLED)
+	{
+		SetGamepadLED(0, 0, 0);
+		return;
+	}
 
 	float healthFrac = std::clamp((float)item->HitPoints / LARA_HEALTH_MAX, 0.0f, 1.0f);
 

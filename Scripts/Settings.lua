@@ -52,7 +52,8 @@ local settings = Flow.Settings.new()
 	
 	settings.Input.controllerLED = true
 	settings.Input.healthLED = true
-	
+	settings.Input.airLED = true
+
 	settings.Pathfinding.mode = PathfindingMode.ASTAR
 	settings.Pathfinding.searchDepth = 5
 	settings.Pathfinding.escapeDistance = 5120

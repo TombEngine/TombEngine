@@ -288,7 +288,12 @@ namespace TEN::Scripting
 		/// Enable or disable automatic health-based LED color. When false, health will not drive the LED color,
 		// but scripts may still use TEN.Input.SetControllerLED to set a persistent color.
 		// @tfield[opt=true] bool healthLED If false, player health will not automatically update the controller LED color.
-		"healthLED", &InputSettings::HealthLED);
+		"healthLED", &InputSettings::HealthLED,
+
+		/// Enable or disable automatic air-based LED color. When active underwater, the LED transitions from
+		// light blue (full air) to dark blue (empty), and flashes when air drops below 20%.
+		// @tfield[opt=true] bool airLED If false, player air level will not automatically update the controller LED color.
+		"airLED", &InputSettings::AirLED);
 	}
 
 	/// Effects

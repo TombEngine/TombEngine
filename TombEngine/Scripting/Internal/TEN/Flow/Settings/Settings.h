@@ -67,6 +67,7 @@ namespace TEN::Scripting
 	{
 		bool ControllerLED = true;
 		bool HealthLED = true;
+		bool AirLED = true;
 
 		static void Register(sol::table& parent);
 	};
