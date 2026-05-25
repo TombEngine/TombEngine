@@ -988,7 +988,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Sound\sound.h" />
     <ClInclude Include="Sound\sound_effects.h" />
     <ClInclude Include="Specific\Input\Bindings.h" />
-    <ClInclude Include="Specific\Input\GamepadProfiles.h" />
     <ClInclude Include="Specific\Input\Keys.h" />
     <ClInclude Include="Specific\Input\Input.h" />
     <ClInclude Include="Specific\Input\InputAction.h" />
@@ -1466,7 +1465,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Specific\clock.cpp" />
     <ClCompile Include="Specific\configuration.cpp" />
     <ClCompile Include="Specific\Input\Bindings.cpp" />
-    <ClCompile Include="Specific\Input\GamepadProfiles.cpp" />
     <ClCompile Include="Specific\Input\Input.cpp" />
     <ClCompile Include="Specific\Input\InputAction.cpp" />
     <ClCompile Include="Specific\Input\Keys.cpp" />

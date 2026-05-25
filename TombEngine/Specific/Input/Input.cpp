@@ -12,7 +12,6 @@
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/EngineMain.h"
-#include "Specific/Input/GamepadProfiles.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Gui;
@@ -88,7 +87,7 @@ namespace TEN::Input
 			if (!force && ActiveGamepad != nullptr)
 				return false;
 
-			previousBindings = &GetDefaultGamepadBindingProfile(GetGamepadType());
+			previousBindings = &DEFAULT_GAMEPAD_BINDING_PROFILE;
 			defaultBindings = &DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
 			break;
 
@@ -97,7 +96,7 @@ namespace TEN::Input
 				return false;
 
 			previousBindings = &DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
-			defaultBindings = &GetDefaultGamepadBindingProfile(GetGamepadType());
+			defaultBindings = &DEFAULT_GAMEPAD_BINDING_PROFILE;
 			enableRumble = ActiveGamepadHasRumble;
 			enableThumbstickCamera = true;
 			break;
