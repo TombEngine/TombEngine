@@ -1073,7 +1073,7 @@ sol::optional<std::tuple<GAME_OBJECT_ID, sol::optional<int>>> Moveable::GetSkinn
 		? sol::optional<int>(_moveable->Model.SkinSwapIndex)
 		: sol::nullopt;
 
-	return std::tuple<GAME_OBJECT_ID, sol::optional<int>>(objectID, swapIndex);
+	return std::make_tuple(objectID, swapIndex);
 }
 
 /// Set the skinned mesh of a moveable.

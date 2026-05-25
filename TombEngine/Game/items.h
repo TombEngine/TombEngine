@@ -103,8 +103,8 @@ struct MoveableAnimData
 
 struct MoveableModelData
 {
-	int BaseMesh     = 0;
-	int SkinObjectID = NO_VALUE;
+	int BaseMesh      = 0;
+	int SkinObjectID  = NO_VALUE;
 	int SkinSwapIndex = NO_VALUE;
 
 	std::vector<int>		 MeshIndex = {};
