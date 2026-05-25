@@ -600,19 +600,27 @@ void CleanUp()
 
 void InitializeScripting(int levelIndex, bool loadGame)
 {
-	TENLog("Loading level script...", LogLevel::Info);
-
 	g_GameStringsHandler->ClearDisplayStrings();
 	g_GameScript->ResetScripts(!levelIndex || loadGame);
+
+	auto gameDir = g_GameFlow->GetGameDir();
+	auto autoexecScriptFileName = gameDir + "Scripts/Autoexec.lua";
+
+	if (std::filesystem::is_regular_file(autoexecScriptFileName))
+	{
+		TENLog("Loading autoexec script...", LogLevel::Info);
+		g_GameScript->ExecuteScriptFile(gameDir + "Scripts/Autoexec.lua");
+	}
 
 	const auto& level = *g_GameFlow->GetLevel(levelIndex);
 
 	// Run level script if it exists.
 	if (!level.ScriptFileName.empty())
 	{
-		auto levelScriptName = g_GameFlow->GetGameDir() + level.ScriptFileName;
+		auto levelScriptName = gameDir + level.ScriptFileName;
 		if (std::filesystem::is_regular_file(levelScriptName))
 		{
+			TENLog("Loading level script...", LogLevel::Info);
 			g_GameScript->ExecuteScriptFile(levelScriptName);
 		}
 		else
