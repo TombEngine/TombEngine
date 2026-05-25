@@ -63,6 +63,19 @@ extern std::array<DebrisFragment, MAX_DEBRIS> DebrisFragments;
 namespace TEN::Renderer 
 {
 	constexpr auto ELECTRICITY_RANGE_MAX = BLOCK(24);
+
+	namespace DrawEffectHelpers
+	{
+		Vector4 ScaleBloodColor(const Vector4& baseColor, float intensity)
+		{
+			auto clampedIntensity = std::clamp(intensity, 0.0f, 1.0f);
+			return Vector4(
+				baseColor.x * clampedIntensity,
+				baseColor.y * clampedIntensity,
+				baseColor.z * clampedIntensity,
+				baseColor.w * clampedIntensity);
+		}
+	}
 		
 	void Renderer::PrepareLaserBarriers(RenderView& view)
 	{
@@ -602,16 +615,28 @@ namespace TEN::Renderer
 				spriteIndex = std::clamp(spriteIndex, 0, (int)_sprites.size());
 
 				auto* sprite = particle.SpriteID == VIDEO_SPRITE_ID ? &_videoSprite : &_sprites[spriteIndex];
-
+				
 				auto color = Color(particle.r / (float)UCHAR_MAX, particle.g / (float)UCHAR_MAX, particle.b / (float)UCHAR_MAX, 1.0f);
 				auto orientation = TO_RAD(particle.rotAng << 4);
 				auto size = Vector2(particle.size, particle.size);
-
-				AddSpriteBillboard(sprite, pos, color, orientation, particle.scalar, size, particle.blendMode, true, view);
-
+				
 				bool hasHaze = particle.flags & (SP_FIRE | SP_HAZE);
-				if (g_GameFlow->GetSettings()->Graphics.FlameHeatHaze && hasHaze && particle.blendMode != BlendMode::Distortion)
-					AddSpriteBillboard(sprite, pos, color, orientation, particle.scalar, size * FLAME_HEAT_HAZE_SCALE, BlendMode::Distortion, true, view);
+				hasHaze = hasHaze && particle.blendMode != BlendMode::Distortion && g_GameFlow->GetSettings()->Graphics.FlameHeatHaze;
+				
+				if (particle.flags & SP_CONSTRAINED)
+				{
+					AddQuad(sprite, pos, color, orientation, particle.scalar, particle.size, particle.blendMode, particle.constraint, true, view);
+					
+					if (hasHaze)
+						AddQuad(sprite, pos, color, orientation, particle.scalar, particle.size * FLAME_HEAT_HAZE_SCALE, BlendMode::Distortion, particle.constraint, true, view);
+				}
+				else
+				{
+					AddSpriteBillboard(sprite, pos, color, orientation, particle.scalar, size, particle.blendMode, true, view);
+
+					if (hasHaze)
+						AddSpriteBillboard(sprite, pos, color, orientation, particle.scalar, size * FLAME_HEAT_HAZE_SCALE, BlendMode::Distortion, true, view);
+				}
 			}
 			else
 			{
@@ -805,36 +830,19 @@ namespace TEN::Renderer
 		if (UnderwaterBloodParticles.empty())
 			return;
 
+		auto bloodColor = (Vector4)g_GameFlow->GetSettings()->Effects.BloodColor;
+		auto bloodBlendMode = g_GameFlow->GetSettings()->Effects.BloodBlendMode;
+		auto bloodSize = g_GameFlow->GetSettings()->Effects.BloodSize;
+
 		for (const auto& uwBlood : UnderwaterBloodParticles)
 		{
 			if (uwBlood.Life <= 0.0f)
 				continue;
 
-			auto color = Vector4::Zero;
-			if (uwBlood.Init)
-			{
-				color = Vector4(uwBlood.Init / 2, 0, uwBlood.Init / 16, UCHAR_MAX);
-			}
-			else
-			{
-				color = Vector4(uwBlood.Life / 2, 0, uwBlood.Life / 16, UCHAR_MAX);
-			}
-
-			color.x = (int)std::clamp((int)color.x, 0, UCHAR_MAX);
-			color.y = (int)std::clamp((int)color.y, 0, UCHAR_MAX);
-			color.z = (int)std::clamp((int)color.z, 0, UCHAR_MAX);
-			color /= UCHAR_MAX;
-
-			auto oldColor = Vector4::Zero;
-			if (uwBlood.Init)
-				oldColor = Vector4(uwBlood.Init / 2, 0, uwBlood.Init / 16, UCHAR_MAX);
-			else
-				oldColor = Vector4(uwBlood.PrevLife / 2, 0, uwBlood.PrevLife / 16, UCHAR_MAX);
-
-			oldColor.x = (int)std::clamp((int)oldColor.x, 0, UCHAR_MAX);
-			oldColor.y = (int)std::clamp((int)oldColor.y, 0, UCHAR_MAX);
-			oldColor.z = (int)std::clamp((int)oldColor.z, 0, UCHAR_MAX);
-			oldColor /= UCHAR_MAX;
+			auto lifeValue = uwBlood.Init ? uwBlood.Init : uwBlood.Life;
+			auto prevLifeValue = uwBlood.Init ? uwBlood.Init : uwBlood.PrevLife;
+			auto color = DrawEffectHelpers::ScaleBloodColor(bloodColor, std::clamp(lifeValue / (float)(UCHAR_MAX * 0.5f), 0.0f, 1.0f));
+			auto oldColor = DrawEffectHelpers::ScaleBloodColor(bloodColor, std::clamp(prevLifeValue / (float)(UCHAR_MAX * 0.5f), 0.0f, 1.0f));
 
 			AddSpriteBillboard(
 				&_sprites[uwBlood.SpriteIndex],
@@ -843,8 +851,8 @@ namespace TEN::Renderer
 				0.0f, 1.0f,
 				Vector2(
 					Lerp(uwBlood.PrevSize, uwBlood.Size, GetInterpolationFactor()),
-					Lerp(uwBlood.PrevSize, uwBlood.Size, GetInterpolationFactor())) * 2,
-				BlendMode::Additive, true, view);
+					Lerp(uwBlood.PrevSize, uwBlood.Size, GetInterpolationFactor())) * 2 * bloodSize,
+				bloodBlendMode, true, view);
 		}
 	}
 
@@ -1029,6 +1037,10 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareBlood(RenderView& view) 
 	{
+		auto bloodColor = (Vector4)g_GameFlow->GetSettings()->Effects.BloodColor;
+		auto bloodBlendMode = g_GameFlow->GetSettings()->Effects.BloodBlendMode;
+		auto bloodSize = g_GameFlow->GetSettings()->Effects.BloodSize;
+
 		for (int i = 0; i < 32; i++) 
 		{
 			auto* blood = &Blood[i];
@@ -1045,15 +1057,15 @@ namespace TEN::Renderer
 						Vector3(blood->x, blood->y, blood->z),
 						GetInterpolationFactor()),
 					Vector4::Lerp(
-						Vector4(blood->PrevShade / 255.0f, blood->PrevShade * 0, blood->PrevShade * 0, 1.0f),
-						Vector4(blood->shade / 255.0f, blood->shade * 0, blood->shade * 0, 1.0f),
+						DrawEffectHelpers::ScaleBloodColor(bloodColor, blood->PrevShade / 255.0f),
+						DrawEffectHelpers::ScaleBloodColor(bloodColor, blood->shade / 255.0f),
 						GetInterpolationFactor()),
 					TO_RAD(Lerp(blood->PrevRotAng << 4, blood->rotAng << 4, GetInterpolationFactor())),
 					1.0f,
 					Vector2(
 						Lerp(blood->PrevSize, blood->size, GetInterpolationFactor()) * 8.0f,
-						Lerp(blood->PrevSize, blood->size, GetInterpolationFactor()) * 8.0f),
-					BlendMode::Additive, true, view);
+						Lerp(blood->PrevSize, blood->size, GetInterpolationFactor()) * 8.0f) * bloodSize,
+					bloodBlendMode, true, view);
 			}
 		}
 	}
@@ -1279,7 +1291,7 @@ namespace TEN::Renderer
 			BindBucketTextures(flashBucket, TextureSource::Moveables, false);
 			BindMaterial(flashBucket.MaterialIndex, false);
 
-			auto meshOffset = Objects[gunflash].Animations.front().Keyframes.front().RootOffset;
+			auto meshOffset = Objects[gunflash].Animations.front().Frames.front().RootPosition;
 			auto offset = settings.MuzzleOffset + Vector3(meshOffset.x, meshOffset.z, meshOffset.y); // Offsets are inverted because of bone orientation.
 
 			offset.x = -offset.x;
@@ -1290,7 +1302,7 @@ namespace TEN::Renderer
 
 			if (Lara.LeftArm.GunFlash)
 			{
-				worldMatrix = itemPtr->InterpolatedAnimTransforms[LM_LHAND] * itemPtr->InterpolatedWorld;
+				worldMatrix = itemPtr->InterpolatedAnimationTransforms[LM_LHAND] * itemPtr->InterpolatedWorld;
 				worldMatrix = tMatrix * worldMatrix;
 				worldMatrix = rotMatrix * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
@@ -1308,7 +1320,7 @@ namespace TEN::Renderer
 
 			if (Lara.RightArm.GunFlash)
 			{
-				worldMatrix = itemPtr->InterpolatedAnimTransforms[LM_RHAND] * itemPtr->InterpolatedWorld;
+				worldMatrix = itemPtr->InterpolatedAnimationTransforms[LM_RHAND] * itemPtr->InterpolatedWorld;
 				worldMatrix = tMatrix * worldMatrix;
 				worldMatrix = rotMatrix * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
@@ -1382,7 +1394,7 @@ namespace TEN::Renderer
 						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
 						auto rotMatrixZ = Matrix::CreateRotationZ(TO_RAD(2 * GetRandomControl()));
 
-						auto worldMatrix = rItemPtr->InterpolatedAnimTransforms[creature.MuzzleFlash[0].Bite.BoneID] * rItemPtr->InterpolatedWorld;
+						auto worldMatrix = rItemPtr->InterpolatedAnimationTransforms[creature.MuzzleFlash[0].Bite.BoneID] * rItemPtr->InterpolatedWorld;
 						worldMatrix = tMatrix * worldMatrix;
 
 						if (creature.MuzzleFlash[0].ApplyXRotation)
@@ -1425,7 +1437,7 @@ namespace TEN::Renderer
 						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
 						auto rotMatrixZ = Matrix::CreateRotationZ(TO_RAD(2 * GetRandomControl()));
 
-						auto worldMatrix = rItemPtr->InterpolatedAnimTransforms[creature.MuzzleFlash[1].Bite.BoneID] * rItemPtr->InterpolatedWorld;
+						auto worldMatrix = rItemPtr->InterpolatedAnimationTransforms[creature.MuzzleFlash[1].Bite.BoneID] * rItemPtr->InterpolatedWorld;
 						worldMatrix = tMatrix * worldMatrix;
 
 						if (creature.MuzzleFlash[1].ApplyXRotation)
