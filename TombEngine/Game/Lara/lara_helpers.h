@@ -82,5 +82,6 @@ void ResetPlayerFlex(ItemInfo* item, float alpha = 1.0f);
 void ResetPlayerLookAround(ItemInfo& item, float alpha = 0.1f);
 
 void RumbleLaraHealthCondition(ItemInfo* item);
+void UpdatePlayerLED(ItemInfo* item);
 
 float GetPlayerJumpVelocity(float height);

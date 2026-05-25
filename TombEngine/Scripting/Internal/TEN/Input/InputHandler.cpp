@@ -8,10 +8,12 @@
 #include "Scripting/Internal/TEN/Input/ActionIDs.h"
 #include "Scripting/Internal/TEN/Input/AxisIDs.h"
 #include "Scripting/Internal/TEN/Input/InputDevices.h"
+#include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Specific/Input/Input.h"
 
 using namespace TEN::Input;
+using namespace TEN::Scripting::Types;
 
 namespace TEN::Scripting::Input
 {
@@ -164,6 +166,33 @@ namespace TEN::Scripting::Input
 		Rumble(strength, time.value_or(0.3f), RumbleMode::Both);
 	}
 
+	/// Vibrate the left and right trigger motors of the game controller independently.
+	// Has no effect on controllers that do not support trigger haptics.
+	// @function VibrateTriggers
+	// @tparam float leftStrength Left trigger vibration strength in the range [0, 1].
+	// @tparam float rightStrength Right trigger vibration strength in the range [0, 1].
+	// @tparam[opt=0.3] float time Vibration time in seconds.
+	static void VibrateTriggers(float leftStrength, float rightStrength, sol::optional<float> time)
+	{
+		RumbleTriggers(leftStrength, rightStrength, time.value_or(0.3f));
+	}
+
+	/// Stop all controller vibration immediately.
+	// @function StopVibration
+	static void StopVibration()
+	{
+		StopRumble();
+	}
+
+	/// Set the RGB LED color of the game controller.
+	// Has no effect on controllers that do not have an RGB LED (e.g. Xbox controllers).
+	// @function SetControllerLED
+	// @tparam Color color LED color.
+	static void SetControllerLED(const ScriptColor& color)
+	{
+		TEN::Input::SetGamepadLED(color.GetR(), color.GetG(), color.GetB());
+	}
+
 	/// Returns the name of the key that has been assigned to specified ActionID.
 	// @function GetActionBinding
 	// @tparam Input.ActionID actionID Action ID to get binding key name for.
@@ -202,6 +231,9 @@ namespace TEN::Scripting::Input
 		table.set_function(ScriptReserved_InputClearKey, &ClearKey);
 		table.set_function(ScriptReserved_InputClearAllKeys, &ClearAllKeys);
 		table.set_function(ScriptReserved_InputVibrate, &Vibrate);
+		table.set_function(ScriptReserved_InputVibrateTriggers, &VibrateTriggers);
+		table.set_function(ScriptReserved_InputStopVibration, &StopVibration);
+		table.set_function(ScriptReserved_InputSetControllerLED, &SetControllerLED);
 		table.set_function(ScriptReserved_GetActionBinding, &GetActionBinding);
 		table.set_function(ScriptReserved_GetActionTimeActive, &GetActionTimeActive);
 

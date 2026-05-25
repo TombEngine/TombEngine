@@ -10,6 +10,7 @@
 #include "Game/items.h"
 #include "Game/effects/Bubble.h"
 #include "Game/effects/Drip.h"
+#include "Game/gui.h"
 #include "Game/GuiObjects.h"
 #include "Game/Lara/PlayerContext.h"
 #include "Game/Lara/lara.h"
@@ -1738,6 +1739,34 @@ void RumbleLaraHealthCondition(ItemInfo* item)
 	bool doPulse = ((GlobalCounter & 0x0F) % 0x0F == 1);
 	if (doPulse)
 		Rumble(POWER, DELAY);
+}
+
+void UpdatePlayerLED(ItemInfo* item)
+{
+	// Turn off LED in the title level or when any menu is active.
+	if (CurrentLevel == 0 || g_Gui.GetInventoryMode() != InventoryMode::None)
+	{
+		SetGamepadLED(0, 0, 0);
+		return;
+	}
+
+	const auto& player = GetLaraInfo(*item);
+
+	float healthFrac = std::clamp((float)item->HitPoints / LARA_HEALTH_MAX, 0.0f, 1.0f);
+
+	auto r = (unsigned char)(255 * (1.0f - healthFrac));
+	auto g = (unsigned char)(255 * healthFrac);
+
+	// Blink off on the second half of each 16-frame cycle at critical health or when poisoned.
+	bool isCritical = item->HitPoints > 0 &&
+		(item->HitPoints <= LARA_HEALTH_CRITICAL || player.Status.Poison > 0);
+	if (isCritical && (GlobalCounter & 0x0F) >= 8)
+	{
+		SetGamepadLED(0, 0, 0);
+		return;
+	}
+
+	SetGamepadLED(r, g, 0);
 }
 
 // NOTE: Formula uses kinematic equation of motion for vertical motion under constant acceleration.
