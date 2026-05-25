@@ -67,14 +67,6 @@ namespace TEN::Input
 		float	   LastPower = 0.0f;
 		float	   FadeSpeed = 0.0f;
 	};
-	struct TriggerRumbleData
-	{
-		float LeftPower		 = 0.0f;
-		float RightPower	 = 0.0f;
-		float LeftLastPower	 = 0.0f;
-		float RightLastPower = 0.0f;
-		float FadeSpeed		 = 0.0f;
-	};
 	extern std::unordered_map<int, float>				  KeyMap;
 	extern std::unordered_map<ActionID, Action>			  ActionMap;
 	extern std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;
@@ -89,7 +81,6 @@ namespace TEN::Input
 	void ApplyActionQueue();
 	void ClearAllActions();
 	void Rumble(float power, float delaySec = 0.3f, RumbleMode mode = RumbleMode::Both);
-	void RumbleTriggers(float leftPower, float rightPower, float delaySec = 0.3f);
 	void StopRumble();
 	void SetGamepadLED(unsigned char r, unsigned char g, unsigned char b);
 	void SetGamepadLEDOverride(unsigned char r, unsigned char g, unsigned char b);

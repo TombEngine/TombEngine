@@ -440,7 +440,6 @@ static constexpr char ScriptReserved_InputIsKeyHit[]				= "IsKeyHit";
 static constexpr char ScriptReserved_InputIsKeyPulsed[]				= "IsKeyPulsed";
 static constexpr char ScriptReserved_InputIsKeyReleased[]			= "IsKeyReleased";
 static constexpr char ScriptReserved_InputVibrate[]					= "Vibrate";
-static constexpr char ScriptReserved_InputVibrateTriggers[]			= "VibrateTriggers";
 static constexpr char ScriptReserved_InputStopVibration[]			= "StopVibration";
 static constexpr char ScriptReserved_InputSetControllerLED[]		= "SetControllerLED";
 static constexpr char ScriptReserved_InputClearControllerLED[]		= "ClearControllerLED";

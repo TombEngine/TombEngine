@@ -41,10 +41,8 @@ namespace TEN::Input
 	// SDL3 gamepad state.
 	SDL_Gamepad* ActiveGamepad          = nullptr;
 	SDL_JoystickID ActiveGamepadId      = 0;
-	bool ActiveGamepadHasRumble         = false;
-	bool ActiveGamepadHasTriggerRumble  = false;
-	bool ActiveGamepadHasLED            = false;
-	TriggerRumbleData TriggerRumbleInfo = {};
+	bool ActiveGamepadHasRumble = false;
+	bool ActiveGamepadHasLED    = false;
 
 	bool LEDOverrideActive = false;
 	unsigned char LEDOverrideR = 0;
@@ -156,10 +154,6 @@ namespace TEN::Input
 		if (ActiveGamepadHasRumble)
 			TENLog("Controller supports vibration.", LogLevel::Info);
 
-		ActiveGamepadHasTriggerRumble = SDL_GetBooleanProperty(props, SDL_PROP_GAMEPAD_CAP_TRIGGER_RUMBLE_BOOLEAN, false);
-		if (ActiveGamepadHasTriggerRumble)
-			TENLog("Controller supports trigger haptics.", LogLevel::Info);
-
 		ActiveGamepadHasLED = SDL_GetBooleanProperty(props, SDL_PROP_GAMEPAD_CAP_RGB_LED_BOOLEAN, false);
 		if (ActiveGamepadHasLED)
 			TENLog("Controller supports RGB LED.", LogLevel::Info);
@@ -179,9 +173,7 @@ namespace TEN::Input
 		ActiveGamepad = nullptr;
 		ActiveGamepadId = 0;
 		ActiveGamepadHasRumble = false;
-		ActiveGamepadHasTriggerRumble = false;
 		ActiveGamepadHasLED = false;
-		TriggerRumbleInfo = {};
 
 		TENLog("Gamepad disconnected.", LogLevel::Info);
 		OpenFirstGamepad();
@@ -198,7 +190,6 @@ namespace TEN::Input
 		TENLog("Initializing input system...", LogLevel::Info);
 
 		RumbleInfo = {};
-		TriggerRumbleInfo = {};
 		LastInputDevice = InputDevice::Keyboard;
 		MouseWheelAccumY = 0.0f;
 
@@ -760,43 +751,6 @@ namespace TEN::Input
 		RumbleInfo.LastPower = RumbleInfo.Power;
 	}
 
-	static void UpdateTriggerRumble()
-	{
-		if (ActiveGamepad == nullptr || !ActiveGamepadHasTriggerRumble)
-			return;
-
-		if (TriggerRumbleInfo.LeftPower == 0.0f && TriggerRumbleInfo.RightPower == 0.0f)
-			return;
-
-		TriggerRumbleInfo.LeftPower  -= TriggerRumbleInfo.FadeSpeed;
-		TriggerRumbleInfo.RightPower -= TriggerRumbleInfo.FadeSpeed;
-
-		// Don't update too frequently if values haven't changed much.
-		bool leftStable  = TriggerRumbleInfo.LeftPower  >= 0.2f && (TriggerRumbleInfo.LeftLastPower  - TriggerRumbleInfo.LeftPower)  < 0.1f;
-		bool rightStable = TriggerRumbleInfo.RightPower >= 0.2f && (TriggerRumbleInfo.RightLastPower - TriggerRumbleInfo.RightPower) < 0.1f;
-		if (leftStable && rightStable)
-			return;
-
-		if (TriggerRumbleInfo.LeftPower  <= EPSILON) TriggerRumbleInfo.LeftPower  = 0.0f;
-		if (TriggerRumbleInfo.RightPower <= EPSILON) TriggerRumbleInfo.RightPower = 0.0f;
-
-		if (TriggerRumbleInfo.LeftPower == 0.0f && TriggerRumbleInfo.RightPower == 0.0f)
-		{
-			SDL_RumbleGamepadTriggers(ActiveGamepad, 0, 0, 0);
-			TriggerRumbleInfo = {};
-			return;
-		}
-
-		auto leftAmp  = (Uint16)std::clamp(TriggerRumbleInfo.LeftPower  * USHRT_MAX, 0.0f, (float)USHRT_MAX);
-		auto rightAmp = (Uint16)std::clamp(TriggerRumbleInfo.RightPower * USHRT_MAX, 0.0f, (float)USHRT_MAX);
-
-		if (!SDL_RumbleGamepadTriggers(ActiveGamepad, leftAmp, rightAmp, 1000 / FPS))
-			TENLog(std::string("Trigger rumble update failed: ") + SDL_GetError(), LogLevel::Warning);
-
-		TriggerRumbleInfo.LeftLastPower  = TriggerRumbleInfo.LeftPower;
-		TriggerRumbleInfo.RightLastPower = TriggerRumbleInfo.RightPower;
-	}
-
 	void UpdateInputActions(bool allowAsyncUpdate, bool applyQueue)
 	{
 		// Don't update input data during frameskip.
@@ -804,7 +758,6 @@ namespace TEN::Input
 		{
 			ClearInputData();
 			UpdateRumble();
-			UpdateTriggerRumble();
 			ReadKeyboard();
 			ReadMouse();
 			ReadGamepad();
@@ -849,37 +802,12 @@ namespace TEN::Input
 		RumbleInfo.Mode = mode;
 	}
 
-	void RumbleTriggers(float leftPower, float rightPower, float delaySec)
-	{
-		if (!g_Configuration.EnableRumble)
-			return;
-
-		leftPower  = std::clamp(leftPower,  0.0f, 1.0f);
-		rightPower = std::clamp(rightPower, 0.0f, 1.0f);
-
-		if ((leftPower == 0.0f && rightPower == 0.0f) ||
-			(TriggerRumbleInfo.LeftPower != 0.0f || TriggerRumbleInfo.RightPower != 0.0f))
-		{
-			return;
-		}
-
-		TriggerRumbleInfo.FadeSpeed      = std::max(leftPower, rightPower) / (delaySec * FPS);
-		TriggerRumbleInfo.LeftPower      = leftPower  + TriggerRumbleInfo.FadeSpeed;
-		TriggerRumbleInfo.RightPower     = rightPower + TriggerRumbleInfo.FadeSpeed;
-		TriggerRumbleInfo.LeftLastPower  = TriggerRumbleInfo.LeftPower;
-		TriggerRumbleInfo.RightLastPower = TriggerRumbleInfo.RightPower;
-	}
-
 	void StopRumble()
 	{
 		if (ActiveGamepad != nullptr && ActiveGamepadHasRumble)
 			SDL_RumbleGamepad(ActiveGamepad, 0, 0, 0);
 
-		if (ActiveGamepad != nullptr && ActiveGamepadHasTriggerRumble)
-			SDL_RumbleGamepadTriggers(ActiveGamepad, 0, 0, 0);
-
 		RumbleInfo = {};
-		TriggerRumbleInfo = {};
 	}
 
 	void SetGamepadLED(unsigned char r, unsigned char g, unsigned char b)
