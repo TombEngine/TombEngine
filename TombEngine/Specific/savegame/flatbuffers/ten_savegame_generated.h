@@ -1237,6 +1237,8 @@ struct ItemT : public flatbuffers::NativeTable {
   int32_t base_mesh = 0;
   int32_t skin_index = 0;
   std::vector<int32_t> mesh_index{};
+  int32_t skin_object_id = -1;
+  int32_t skin_swap_index = -1;
   int32_t effect_type = 0;
   std::unique_ptr<TEN::Save::Vector3> effect_light_colour{};
   std::unique_ptr<TEN::Save::Vector3> effect_primary_colour{};
@@ -1293,7 +1295,9 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_EFFECT_SECONDARY_COLOUR = 82,
     VT_EFFECT_COUNT = 84,
     VT_LUA_NAME = 86,
-    VT_LUA_CALLBACKS = 88
+    VT_LUA_CALLBACKS = 88,
+    VT_SKIN_OBJECT_ID = 90,
+    VT_SKIN_SWAP_INDEX = 92
   };
   int32_t anim_object_id() const {
     return GetField<int32_t>(VT_ANIM_OBJECT_ID, 0);
@@ -1488,6 +1492,12 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::ItemCallback>> *lua_callbacks() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::ItemCallback>> *>(VT_LUA_CALLBACKS);
   }
+  int32_t skin_object_id() const {
+    return GetField<int32_t>(VT_SKIN_OBJECT_ID, -1);
+  }
+  int32_t skin_swap_index() const {
+    return GetField<int32_t>(VT_SKIN_SWAP_INDEX, -1);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_ANIM_OBJECT_ID) &&
@@ -1539,6 +1549,8 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_LUA_CALLBACKS) &&
            verifier.VerifyVector(lua_callbacks()) &&
            verifier.VerifyVectorOfTables(lua_callbacks()) &&
+           VerifyField<int32_t>(verifier, VT_SKIN_OBJECT_ID) &&
+           VerifyField<int32_t>(verifier, VT_SKIN_SWAP_INDEX) &&
            verifier.EndTable();
   }
   ItemT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1763,6 +1775,12 @@ struct ItemBuilder {
   void add_lua_callbacks(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::ItemCallback>>> lua_callbacks) {
     fbb_.AddOffset(Item::VT_LUA_CALLBACKS, lua_callbacks);
   }
+  void add_skin_object_id(int32_t skin_object_id) {
+    fbb_.AddElement<int32_t>(Item::VT_SKIN_OBJECT_ID, skin_object_id, -1);
+  }
+  void add_skin_swap_index(int32_t skin_swap_index) {
+    fbb_.AddElement<int32_t>(Item::VT_SKIN_SWAP_INDEX, skin_swap_index, -1);
+  }
   explicit ItemBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1818,8 +1836,12 @@ inline flatbuffers::Offset<Item> CreateItem(
     const TEN::Save::Vector3 *effect_secondary_colour = 0,
     int32_t effect_count = 0,
     flatbuffers::Offset<flatbuffers::String> lua_name = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::ItemCallback>>> lua_callbacks = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::ItemCallback>>> lua_callbacks = 0,
+    int32_t skin_object_id = -1,
+    int32_t skin_swap_index = -1) {
   ItemBuilder builder_(_fbb);
+  builder_.add_skin_swap_index(skin_swap_index);
+  builder_.add_skin_object_id(skin_object_id);
   builder_.add_lua_callbacks(lua_callbacks);
   builder_.add_lua_name(lua_name);
   builder_.add_effect_count(effect_count);
@@ -1915,7 +1937,9 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
     const TEN::Save::Vector3 *effect_secondary_colour = 0,
     int32_t effect_count = 0,
     const char *lua_name = nullptr,
-    const std::vector<flatbuffers::Offset<TEN::Save::ItemCallback>> *lua_callbacks = nullptr) {
+    const std::vector<flatbuffers::Offset<TEN::Save::ItemCallback>> *lua_callbacks = nullptr,
+    int32_t skin_object_id = -1,
+    int32_t skin_swap_index = -1) {
   auto item_flags__ = item_flags ? _fbb.CreateVector<int32_t>(*item_flags) : 0;
   auto mesh_index__ = mesh_index ? _fbb.CreateVector<int32_t>(*mesh_index) : 0;
   auto lua_name__ = lua_name ? _fbb.CreateString(lua_name) : 0;
@@ -1964,7 +1988,9 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
       effect_secondary_colour,
       effect_count,
       lua_name__,
-      lua_callbacks__);
+      lua_callbacks__,
+      skin_object_id,
+      skin_swap_index);
 }
 
 flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb, const ItemT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -9981,6 +10007,8 @@ inline void Item::UnPackTo(ItemT *_o, const flatbuffers::resolver_function_t *_r
   { auto _e = effect_count(); _o->effect_count = _e; }
   { auto _e = lua_name(); if (_e) _o->lua_name = _e->str(); }
   { auto _e = lua_callbacks(); if (_e) { _o->lua_callbacks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->lua_callbacks[_i] = std::unique_ptr<TEN::Save::ItemCallbackT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = skin_object_id(); _o->skin_object_id = _e; }
+  { auto _e = skin_swap_index(); _o->skin_swap_index = _e; }
 }
 
 inline flatbuffers::Offset<Item> Item::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ItemT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -10034,6 +10062,8 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
   auto _effect_count = _o->effect_count;
   auto _lua_name = _o->lua_name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->lua_name);
   auto _lua_callbacks = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::ItemCallback>> (_o->lua_callbacks.size(), [](size_t i, _VectorArgs *__va) { return CreateItemCallback(*__va->__fbb, __va->__o->lua_callbacks[i].get(), __va->__rehasher); }, &_va );
+  auto _skin_object_id = _o->skin_object_id;
+  auto _skin_swap_index = _o->skin_swap_index;
   return TEN::Save::CreateItem(
       _fbb,
       _anim_object_id,
@@ -10078,7 +10108,9 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
       _effect_secondary_colour,
       _effect_count,
       _lua_name,
-      _lua_callbacks);
+      _lua_callbacks,
+      _skin_object_id,
+      _skin_swap_index);
 }
 
 inline FXInfoT *FXInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {

@@ -1059,25 +1059,43 @@ void Moveable::UnswapMesh(int meshId)
 }
 
 /// Get the skinned mesh swap state of a moveable.
-// Returns whether a skinned mesh swap is currently active and global index.
+// Returns the object slot ID and optional swap index of the currently active skinned mesh.
 // @function Moveable:GetSkinnedMesh
-// @treturn[opt] int The skinned mesh current active. Nil if not being used.
-sol::optional<int> Moveable::GetSkinnedMesh() const
+// @treturn[opt] Objects.ObjID Object slot ID of the active skinned mesh. Nil if no swap is active.
+// @treturn[opt] int Swap index within the slot. Nil if using the slot's default skinned mesh.
+sol::optional<std::tuple<GAME_OBJECT_ID, sol::optional<int>>> Moveable::GetSkinnedMesh() const
 {
-	auto currentIndex = _moveable->Model.SkinIndex;
-	if (currentIndex != NO_VALUE)
-		return currentIndex;
+	if (_moveable->Model.SkinObjectID == NO_VALUE)
+		return sol::nullopt;
 
-	return sol::nullopt;
+	auto objectID = (GAME_OBJECT_ID)_moveable->Model.SkinObjectID;
+	auto swapIndex = (_moveable->Model.SkinSwapIndex != NO_VALUE)
+		? sol::optional<int>(_moveable->Model.SkinSwapIndex)
+		: sol::nullopt;
+
+	return std::tuple<GAME_OBJECT_ID, sol::optional<int>>(objectID, swapIndex);
 }
 
 /// Set the skinned mesh of a moveable.
-// Warning, to be used only with the returned value from Moveable:GetSkinnedMesh.
 // @function Moveable:SetSkinnedMesh
-// @tparam int skinIndex Global index of skin returned from Moveable:GetSkinnedMesh.
-void Moveable::SetSkinnedMesh(int skinIndex)
+// @tparam int objectID ID of the slot to use as skinned mesh.
+// @tparam[opt] int swapIndex Index of a mesh within the slot to use as the skin. If omitted, uses the slot's default skinned mesh.
+void Moveable::SetSkinnedMesh(int objectID, sol::optional<int> swapIndex)
 {
-	_moveable->Model.SkinIndex = skinIndex;
+	if (objectID <= NO_VALUE || objectID >= ID_NUMBER_OBJECTS || !Objects[objectID].loaded)
+	{
+		TENLog("Specified object slot ID is incorrect!", LogLevel::Error);
+		return;
+	}
+
+	if (swapIndex.has_value() && (swapIndex.value() >= Objects[objectID].nmeshes || swapIndex.value() < 0))
+	{
+		TENLog("Specified mesh index does not exist in a " + GetObjectName((GAME_OBJECT_ID)objectID) + " slot!", LogLevel::Error);
+		return;
+	}
+
+	_moveable->Model.SkinObjectID = objectID;
+	_moveable->Model.SkinSwapIndex = swapIndex.value_or(NO_VALUE);
 }
 
 /// Swap skinned mesh of a moveable. Use this to replace one skinned mesh with another.
@@ -1100,15 +1118,14 @@ void Moveable::SwapSkinnedMesh(int objectID, sol::optional<int> swapIndex)
 			TENLog("Specified mesh index does not exist in a " + GetObjectName((GAME_OBJECT_ID)objectID) + " slot!", LogLevel::Error);
 			return;
 		}
-
-		_moveable->Model.SkinIndex = Objects[objectID].meshIndex + swapIndex.value();
-		return;
+	}
+	else if (Objects[objectID].skinIndex == NO_VALUE)
+	{
+		TENLog(GetObjectName((GAME_OBJECT_ID)objectID) + " object has no skinned mesh specified. Skinned mesh will be unset.", LogLevel::Warning);
 	}
 
-	if (Objects[objectID].skinIndex == NO_VALUE)
-		TENLog(GetObjectName((GAME_OBJECT_ID)objectID) + " object has no skinned mesh specified. Skinned mesh will be unset.", LogLevel::Warning);
-
-	_moveable->Model.SkinIndex = Objects[objectID].skinIndex;
+	_moveable->Model.SkinObjectID = objectID;
+	_moveable->Model.SkinSwapIndex = swapIndex.value_or(NO_VALUE);
 }
 
 /// Unset skinned mesh swap of a moveable. Use this to bring back original unswapped skinned mesh.
@@ -1116,14 +1133,16 @@ void Moveable::SwapSkinnedMesh(int objectID, sol::optional<int> swapIndex)
 void Moveable::UnswapSkinnedMesh()
 {
 	int realID = _moveable->ObjectNumber == GAME_OBJECT_ID::ID_LARA ? GAME_OBJECT_ID::ID_LARA_SKIN : _moveable->ObjectNumber;
-	_moveable->Model.SkinIndex = Objects[realID].skinIndex;
+	_moveable->Model.SkinObjectID = realID;
+	_moveable->Model.SkinSwapIndex = NO_VALUE;
 }
 
 /// Clear skinned mesh of a moveable.
 // @function Moveable:ClearSkinnedMesh
 void Moveable::ClearSkinnedMesh()
 {
-	_moveable->Model.SkinIndex = NO_VALUE;
+	_moveable->Model.SkinObjectID = NO_VALUE;
+	_moveable->Model.SkinSwapIndex = NO_VALUE;
 }
 
 /// Enable the item, as if a trigger for it had been stepped on.

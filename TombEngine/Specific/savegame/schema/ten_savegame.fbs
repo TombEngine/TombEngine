@@ -101,8 +101,11 @@ table Item {
 	data: TEN.Save.ItemData;
 	
 	base_mesh: int32;
-	skin_index: int32;
+	skin_index: int32 (deprecated);
 	mesh_index: [int32];
+
+	skin_object_id: int32 = -1;
+	skin_swap_index: int32 = -1;
 
 	effect_type: int32;
 	effect_light_colour: Vector3;
