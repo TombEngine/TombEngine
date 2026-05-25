@@ -288,6 +288,7 @@ GameStatus FreezePhase()
 			g_Renderer.DumpGameScene(SceneRenderMode::NoHud);
 
 		StopRumble();
+		SetGamepadLED(0, 0, 0);
 	}
 	
 	// Update last freeze mode here, so that items won't update inside freeze loop.
@@ -766,6 +767,7 @@ void EndGameLoop(int levelIndex, GameStatus reason)
 	StopAllSounds();
 	StopSoundTracks(SOUND_XFADETIME_LEVELJUMP, true);
 	StopRumble();
+	SetGamepadLED(0, 0, 0);	
 }
 
 void SetupInterpolation()
