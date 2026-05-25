@@ -10,6 +10,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added Discord integration.
 * Added BATS_EMITTER_TR3 object from TR3.
 * Added the [turn switch and obelisk puzzle from TR4](https://tombengine.com/docs/tr4-obelisk-puzzle-tomb-engine-setup-guide/).
+* Added rumble effects for all vehicles.
 
 ### Bug fixes
 
