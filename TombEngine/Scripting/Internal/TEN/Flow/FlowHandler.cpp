@@ -156,9 +156,10 @@ have an index of 0, the first level will have an index of 1, and so on.
 */
 	tableFlow.set_function(ScriptReserved_GetCurrentLevelIndex, &FlowHandler::GetCurrentLevelIndex, this);
 
-/*** Returns the total number of levels that are in gameflow script.
+/*** Returns the total number of levels registered in the gameflow via AddLevel.
+This counts all entries in the Levels list, including title and home levels if they were added there.
 @function GetTotalLevelCount
-@treturn int The current level count.
+@treturn int The total number of registered levels.
 */
 	tableFlow.set_function(ScriptReserved_GetTotalLevelCount, &FlowHandler::GetNumLevels, this);
 
@@ -554,7 +555,7 @@ Level* FlowHandler::GetCurrentLevel()
 	return Levels[CurrentLevel];
 }
 
-int FlowHandler::GetCurrentLevelIndex()
+int FlowHandler::GetCurrentLevelIndex() const
 {
 	return CurrentLevel;
 }
