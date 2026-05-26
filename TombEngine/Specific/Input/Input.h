@@ -62,10 +62,11 @@ namespace TEN::Input
 
 	struct RumbleData
 	{
-		float	   Power	 = 0.0f;
-		RumbleMode Mode		 = RumbleMode::None;
-		float	   LastPower = 0.0f;
-		float	   FadeSpeed = 0.0f;
+		float	   Power		 = 0.0f;
+		float	   BasePower	 = 0.0f; // Power at the time Rumble() was called; used to block re-fire at same or lower level.
+		RumbleMode Mode			 = RumbleMode::None;
+		float	   LastPower	 = 0.0f;
+		float	   FadeSpeed	 = 0.0f;
 	};
 	extern std::unordered_map<int, float>				  KeyMap;
 	extern std::unordered_map<ActionID, Action>			  ActionMap;
