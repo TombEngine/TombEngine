@@ -252,6 +252,8 @@ namespace TEN::Input
 		switch (SDL_GetGamepadType(GamepadInfo.Handle))
 		{
 		case SDL_GAMEPAD_TYPE_PS3:
+			return GamepadType::PlayStation3;
+
 		case SDL_GAMEPAD_TYPE_PS4:
 			return GamepadType::PlayStation4;
 

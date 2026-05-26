@@ -166,13 +166,6 @@ namespace TEN::Scripting::Input
 		Rumble(strength, time.value_or(0.3f), RumbleMode::Both);
 	}
 
-	/// Stop all controller vibration immediately.
-	// @function StopVibration
-	static void StopVibration()
-	{
-		StopRumble();
-	}
-
 	/// Set the RGB LED color of the gamepad persistently.
 	// Overrides the automatic health-based color until TEN.Input.ClearGamepadLED is called.
 	// Has no effect on gamepads that do not have an RGB LED (e.g. Xbox controllers).
@@ -229,7 +222,6 @@ namespace TEN::Scripting::Input
 		table.set_function(ScriptReserved_InputClearKey, &ClearKey);
 		table.set_function(ScriptReserved_InputClearAllKeys, &ClearAllKeys);
 		table.set_function(ScriptReserved_InputVibrate, &Vibrate);
-		table.set_function(ScriptReserved_InputStopVibration, &StopVibration);
 		table.set_function(ScriptReserved_InputSetGamepadLED, &SetGamepadLED);
 		table.set_function(ScriptReserved_InputClearGamepadLED, &ClearGamepadLED);
 		table.set_function(ScriptReserved_GetActionBinding, &GetActionBinding);
