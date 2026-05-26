@@ -288,7 +288,7 @@ GameStatus FreezePhase()
 			g_Renderer.DumpGameScene(SceneRenderMode::NoHud);
 
 		StopRumble();
-		SetGamepadLED(0, 0, 0);
+		SetGamepadLED(Vector4::Zero);
 	}
 	
 	// Update last freeze mode here, so that items won't update inside freeze loop.
@@ -767,7 +767,7 @@ void EndGameLoop(int levelIndex, GameStatus reason)
 	StopAllSounds();
 	StopSoundTracks(SOUND_XFADETIME_LEVELJUMP, true);
 	StopRumble();
-	SetGamepadLED(0, 0, 0);	
+	SetGamepadLED(Vector4::Zero);	
 }
 
 void SetupInterpolation()
@@ -838,26 +838,26 @@ GameStatus HandleMenuCalls(bool isTitle)
 	{
 		SaveGame::LoadHeaders();
 		g_Gui.SetInventoryMode(InventoryMode::Save);
-		SetGamepadLED(0, 0, 0);
+		SetGamepadLED(Vector4::Zero);
 		g_Gui.CallInventory(LaraItem, false);
 	}
 	else if (doLoad && g_GameFlow->IsLoadSaveEnabled() && Lara.Inventory.HasLoad && g_Gui.GetInventoryMode() != InventoryMode::Load && inventoryEnabled)
 	{
 		SaveGame::LoadHeaders();
 		g_Gui.SetInventoryMode(InventoryMode::Load);
-		SetGamepadLED(0, 0, 0);
+		SetGamepadLED(Vector4::Zero);
 		if (g_Gui.CallInventory(LaraItem, false))
 			gameStatus = GameStatus::LoadGame;
 	}
 	else if (doPause && g_Gui.GetInventoryMode() != InventoryMode::Pause)
 	{
-		SetGamepadLED(0, 0, 0);
+		SetGamepadLED(Vector4::Zero);
 		if (g_Gui.CallPause())
 			gameStatus = GameStatus::ExitToTitle;
 	}
 	else if (doInventory && LaraItem->HitPoints > 0 && !Lara.Control.Look.IsUsingBinoculars && inventoryEnabled)
 	{
-		SetGamepadLED(0, 0, 0);
+		SetGamepadLED(Vector4::Zero);
 		if (g_Gui.CallInventory(LaraItem, true))
 			gameStatus = GameStatus::LoadGame;
 	}

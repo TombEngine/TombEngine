@@ -795,20 +795,23 @@ namespace TEN::Input
 		RumbleInfo = {};
 	}
 
-	void SetGamepadLED(unsigned char r, unsigned char g, unsigned char b)
+	void SetGamepadLED(const Vector4& color)
 	{
 		if (GamepadInfo.Handle == nullptr || !GamepadInfo.HasLED)
 			return;
 		if (g_GameFlow != nullptr && !g_GameFlow->GetSettings()->Input.GamepadLED)
 			return;
 
+		auto r = (unsigned char)std::clamp(color.x * color.w * 255.0f, 0.0f, 255.0f);
+		auto g = (unsigned char)std::clamp(color.y * color.w * 255.0f, 0.0f, 255.0f);
+		auto b = (unsigned char)std::clamp(color.z * color.w * 255.0f, 0.0f, 255.0f);
 		SDL_SetGamepadLED(GamepadInfo.Handle, r, g, b);
 	}
 
-	void SetGamepadLEDOverride(unsigned char r, unsigned char g, unsigned char b)
+	void SetGamepadLEDOverride(const Vector4& color)
 	{
-		GamepadInfo.LEDOverride = Vector4(r, g, b, 0.0f);
-		SetGamepadLED(r, g, b);
+		GamepadInfo.LEDOverride = color;
+		SetGamepadLED(color);
 	}
 
 	void ClearGamepadLEDOverride()
@@ -821,10 +824,7 @@ namespace TEN::Input
 		if (!GamepadInfo.LEDOverride.has_value())
 			return false;
 
-		SetGamepadLED(
-			(unsigned char)GamepadInfo.LEDOverride->x,
-			(unsigned char)GamepadInfo.LEDOverride->y,
-			(unsigned char)GamepadInfo.LEDOverride->z);
+		SetGamepadLED(*GamepadInfo.LEDOverride);
 		return true;
 	}
 

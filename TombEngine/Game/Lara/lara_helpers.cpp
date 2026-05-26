@@ -1758,7 +1758,7 @@ void UpdatePlayerLED(ItemInfo* item)
 	// Turn off LED in the title level or when any menu is active.
 	if (CurrentLevel == 0 || g_Gui.GetInventoryMode() != InventoryMode::None)
 	{
-		SetGamepadLED(0, 0, 0);
+		SetGamepadLED(Vector4::Zero);
 		return;
 	}
 
@@ -1774,18 +1774,14 @@ void UpdatePlayerLED(ItemInfo* item)
 		{
 			float airFrac = std::clamp((float)player.Status.Air / LARA_AIR_MAX, 0.0f, 1.0f);
 
-			auto r = (unsigned char)(30 * airFrac);
-			auto g = (unsigned char)(120 * airFrac);
-			auto b = (unsigned char)(80 + 175 * airFrac);
-
 			bool isCritical = player.Status.Air <= (LARA_AIR_MAX * 0.2f);
 			if (isCritical && (GlobalCounter & 0x0F) >= 8)
 			{
-				SetGamepadLED(0, 0, 0);
+				SetGamepadLED(Vector4::Zero);
 				return;
 			}
 
-			SetGamepadLED(r, g, b);
+			SetGamepadLED(Vector4(30.0f / 255.0f * airFrac, 120.0f / 255.0f * airFrac, (80.0f + 175.0f * airFrac) / 255.0f, 1.0f));
 			return;
 		}
 	}
@@ -1793,25 +1789,22 @@ void UpdatePlayerLED(ItemInfo* item)
 	// Default: health-based LED for all non-water environments.
 	if (!settings.Input.HealthLED)
 	{
-		SetGamepadLED(0, 0, 0);
+		SetGamepadLED(Vector4::Zero);
 		return;
 	}
 
 	float healthFrac = std::clamp((float)item->HitPoints / LARA_HEALTH_MAX, 0.0f, 1.0f);
-
-	auto r = (unsigned char)(255 * (1.0f - healthFrac));
-	auto g = (unsigned char)(255 * healthFrac);
 
 	// Blink off on the second half of each 16-frame cycle at critical health or when poisoned.
 	bool isCritical = item->HitPoints > 0 &&
 		(item->HitPoints <= LARA_HEALTH_CRITICAL || player.Status.Poison > 0);
 	if (isCritical && (GlobalCounter & 0x0F) >= 8)
 	{
-		SetGamepadLED(0, 0, 0);
+		SetGamepadLED(Vector4::Zero);
 		return;
 	}
 
-	SetGamepadLED(r, g, 0);
+	SetGamepadLED(Vector4(1.0f - healthFrac, healthFrac, 0.0f, 1.0f));
 }
 
 // NOTE: Formula uses kinematic equation of motion for vertical motion under constant acceleration.

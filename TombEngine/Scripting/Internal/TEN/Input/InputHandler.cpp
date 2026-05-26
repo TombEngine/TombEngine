@@ -173,7 +173,7 @@ namespace TEN::Scripting::Input
 	// @tparam Color color LED color.
 	static void SetGamepadLED(const ScriptColor& color)
 	{
-		TEN::Input::SetGamepadLEDOverride(color.GetR(), color.GetG(), color.GetB());
+		TEN::Input::SetGamepadLEDOverride(Vector4(color.GetR() / 255.0f, color.GetG() / 255.0f, color.GetB() / 255.0f, 1.0f));
 	}
 
 	/// Clear the persistent LED color set by TEN.Input.SetGamepadLED.

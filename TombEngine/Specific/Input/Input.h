@@ -84,8 +84,8 @@ namespace TEN::Input
 	void ClearAllActions();
 	void Rumble(float power, float delaySec = 0.3f, RumbleMode mode = RumbleMode::Both);
 	void StopRumble();
-	void SetGamepadLED(unsigned char r, unsigned char g, unsigned char b);
-	void SetGamepadLEDOverride(unsigned char r, unsigned char g, unsigned char b);
+	void SetGamepadLED(const Vector4& color);
+	void SetGamepadLEDOverride(const Vector4& color);
 	void ClearGamepadLEDOverride();
 	bool RefreshGamepadLEDOverride();
 	void ApplyDefaultBindings();
