@@ -259,6 +259,7 @@ static constexpr char ScriptReserved_AddLevel[]					= "AddLevel";
 static constexpr char ScriptReserved_GetLevel[]					= "GetLevel";
 static constexpr char ScriptReserved_GetCurrentLevel[]			= "GetCurrentLevel";
 static constexpr char ScriptReserved_GetCurrentLevelIndex[]		= "GetCurrentLevelIndex";
+static constexpr char ScriptReserved_GetTotalLevelCount[]		= "GetTotalLevelCount";
 static constexpr char ScriptReserved_SetIntroImagePath[]		= "SetIntroImagePath";
 static constexpr char ScriptReserved_SetIntroVideoPath[]		= "SetIntroVideoPath";
 static constexpr char ScriptReserved_SetTitleScreenImagePath[]	= "SetTitleScreenImagePath";

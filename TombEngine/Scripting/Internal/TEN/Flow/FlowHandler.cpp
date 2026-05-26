@@ -149,12 +149,18 @@ have an index of 0, the second an index of 1, and so on.
 	tableFlow.set_function(ScriptReserved_GetCurrentLevel, &FlowHandler::GetCurrentLevel, this);
 
 /*** Returns the index of the level that the game control is running in that moment.
-Indices depend on the order in which AddLevel was called; the first added will
-have an index of 0, the second an index of 1, and so on.
+Indices depend on the order in which AddLevel was called; the title level will
+have an index of 0, the first level will have an index of 1, and so on.
 @function GetCurrentLevelIndex
 @treturn int The current level index.
 */
 	tableFlow.set_function(ScriptReserved_GetCurrentLevelIndex, &FlowHandler::GetCurrentLevelIndex, this);
+
+/*** Returns the total number of levels that are in gameflow script.
+@function GetTotalLevelCount
+@treturn int The current level count.
+*/
+	tableFlow.set_function(ScriptReserved_GetTotalLevelCount, &FlowHandler::GetNumLevels, this);
 
 /*** Finishes the current level, with optional level index and start position index provided.
 If level index is not provided or is zero, jumps to next level. If level index is more than
