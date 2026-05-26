@@ -50,9 +50,6 @@ local settings = Flow.Settings.new()
 	settings.Hud.interactionHighlighter = true
 	settings.Hud.targetHighlighter = true
 	
-	settings.Input.healthLED = true
-	settings.Input.airLED = true
-
 	settings.Pathfinding.mode = PathfindingMode.ASTAR
 	settings.Pathfinding.searchDepth = 5
 	settings.Pathfinding.escapeDistance = 5120

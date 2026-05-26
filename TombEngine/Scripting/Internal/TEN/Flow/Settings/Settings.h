@@ -63,14 +63,6 @@ namespace TEN::Scripting
 		static void Register(sol::table& parent);
 	};
 
-	struct InputSettings
-	{
-		bool HealthLED = true;
-		bool AirLED = true;
-
-		static void Register(sol::table& parent);
-	};
-
 	struct EffectsSettings
 	{
 		ScriptColor	BloodColor			= ScriptColor(255, 0, 0);
@@ -208,7 +200,7 @@ namespace TEN::Scripting
 		GraphicsSettings			Graphics    = {};
 		std::array<HairSettings, 3> Hair	    = {};
 		HudSettings					Hud		    = {};
-		InputSettings				Input	    = {};
+
 		PathfindingSettings			Pathfinding = {};
 		PhysicsSettings				Physics	    = {};
 		SystemSettings				System	    = {};

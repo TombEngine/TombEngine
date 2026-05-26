@@ -48,8 +48,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Flow.Settings.Hud.interactionHighlighter` and `Flow.Settings.Hud.targetHighlighter` options to force these settings on or off.
 * Added `Flow.Settings.UI.menuBackgroundBlur` option to specify amount of blur for the inventory and pause backgrounds.
 * Added `Flow.Settings.UI.systemTextScale` option to change global system text scale.
-* Added `Flow.Settings.Input.healthLED` to enable or disable automatic health-based LED color.
-* Added `Flow.Settings.Input.airLED` to enable or disable automatic air-based LED color.
 * Added `Input.GetLastInputDevice` function to detect which input device was used last.
 * Added `Input.SetGamepadLED` and `Input.ClearGamepadLED` function to set the color of the lightbar for supported controllers.
 * Added `Input.GetActionBinding()` function to return the name of the key that has been assigned to specified ActionID.

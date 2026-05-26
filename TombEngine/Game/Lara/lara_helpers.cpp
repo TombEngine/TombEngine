@@ -1746,8 +1746,6 @@ void RumbleLaraHealthCondition(ItemInfo* item)
 
 void UpdatePlayerLED(ItemInfo* item)
 {
-	const auto& settings = *g_GameFlow->GetSettings();
-
 	// Do nothing if the master LED setting is disabled.
 	if (!g_Configuration.EnableLightbarEffects)
 		return;
@@ -1771,7 +1769,7 @@ void UpdatePlayerLED(ItemInfo* item)
 	{
 		// Fully submerged in a water room: air-based LED, light blue (full) to dark blue (empty), flashing below 20%.
 		// When air runs out, fall through to health-based LED to mirror in-game UI behavior (health depletes while drowning).
-		if (settings.Input.AirLED && player.Status.Air > 0)
+		if (player.Status.Air > 0)
 		{
 			float airFrac = std::clamp((float)player.Status.Air / LARA_AIR_MAX, 0.0f, 1.0f);
 
@@ -1798,13 +1796,7 @@ void UpdatePlayerLED(ItemInfo* item)
 			return;
 		}
 
-		// Air depleted: always fall through to health-based LED regardless of HealthLED setting,
-		// to mirror in-game UI behavior (health bar remains visible while drowning).
-	}
-	else if (!settings.Input.HealthLED)
-	{
-		SetGamepadLED(Vector4::Zero);
-		return;
+		// Air depleted: fall through to health-based LED to mirror in-game UI behavior (health depletes while drowning).
 	}
 
 	float healthFrac = std::clamp((float)item->HitPoints / LARA_HEALTH_MAX, 0.0f, 1.0f);
