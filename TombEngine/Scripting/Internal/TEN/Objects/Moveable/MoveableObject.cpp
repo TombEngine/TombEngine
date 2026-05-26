@@ -211,7 +211,6 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_ShatterMesh, &Moveable::ShatterMesh,
 		ScriptReserved_SwapMesh, &Moveable::SwapMesh,
 		ScriptReserved_UnswapMesh, &Moveable::UnswapMesh,
-		ScriptReserved_SetSkinnedMesh, & Moveable::SetSkinnedMesh,
 		ScriptReserved_SwapSkinnedMesh, &Moveable::SwapSkinnedMesh,
 		ScriptReserved_UnswapSkinnedMesh, &Moveable::UnswapSkinnedMesh,
 		ScriptReserved_ClearSkinnedMesh, & Moveable::ClearSkinnedMesh,
@@ -1074,28 +1073,6 @@ sol::optional<std::tuple<GAME_OBJECT_ID, sol::optional<int>>> Moveable::GetSkinn
 		: sol::nullopt;
 
 	return std::make_tuple(objectID, swapIndex);
-}
-
-/// Set the skinned mesh of a moveable.
-// @function Moveable:SetSkinnedMesh
-// @tparam int objectID ID of the slot to use as skinned mesh.
-// @tparam[opt] int swapIndex Index of a mesh within the slot to use as the skin. If omitted, uses the slot's default skinned mesh.
-void Moveable::SetSkinnedMesh(int objectID, sol::optional<int> swapIndex)
-{
-	if (objectID <= NO_VALUE || objectID >= ID_NUMBER_OBJECTS || !Objects[objectID].loaded)
-	{
-		TENLog("Specified object slot ID is incorrect!", LogLevel::Error);
-		return;
-	}
-
-	if (swapIndex.has_value() && (swapIndex.value() >= Objects[objectID].nmeshes || swapIndex.value() < 0))
-	{
-		TENLog("Specified mesh index does not exist in a " + GetObjectName((GAME_OBJECT_ID)objectID) + " slot!", LogLevel::Error);
-		return;
-	}
-
-	_moveable->Model.SkinObjectID = objectID;
-	_moveable->Model.SkinSwapIndex = swapIndex.value_or(NO_VALUE);
 }
 
 /// Swap skinned mesh of a moveable. Use this to replace one skinned mesh with another.

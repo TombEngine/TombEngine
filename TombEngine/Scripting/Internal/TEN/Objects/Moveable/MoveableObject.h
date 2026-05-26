@@ -126,7 +126,6 @@ public:
 	void ShatterMesh(int meshId);
 	void SwapMesh(int meshId, int swapSlotId, sol::optional<int> swapIndex);
 	void UnswapMesh(int meshId);
-	void SetSkinnedMesh(int objectID, sol::optional<int> swapIndex);
 	void SwapSkinnedMesh(int swapSlotId, sol::optional<int> swapIndex);
 	void UnswapSkinnedMesh();
 	void ClearSkinnedMesh();
