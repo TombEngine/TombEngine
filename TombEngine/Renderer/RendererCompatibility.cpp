@@ -513,8 +513,13 @@ namespace TEN::Renderer
 	{
 		float k = std::clamp(liftScale, 0.0f, 1.0f);
 
+		// 1 WU upward bias prevents Z-fighting with the underlying floor polygon when the
+		// snow is fully deformed (h=1 in SnowOverlay.hlsl), which would otherwise bring
+		// the snow surface to exactly the same Y as the floor geometry.
+		constexpr float SNOW_Z_BIAS = 1.0f;
+
 		out.Position.x = room.Position.x + posLocal.x;
-		out.Position.y = room.Position.y + posLocal.y - lift * k; // Lift snow above floor (Y is down).
+		out.Position.y = room.Position.y + posLocal.y - lift * k - SNOW_Z_BIAS; // Lift snow above floor (Y is down).
 		out.Position.z = room.Position.z + posLocal.z;
 
 		out.Normal	   = Renderer::PackVector3(nrm);
