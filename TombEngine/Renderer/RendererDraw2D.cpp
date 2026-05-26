@@ -140,10 +140,15 @@ namespace TEN::Renderer
 
 		auto* borderSprite = &_sprites[Objects[ID_BAR_BORDER_GRAPHICS].meshIndex];
 		float screenAspect = (float)_graphicsDevice->GetScreenWidth() / (float)_graphicsDevice->GetScreenHeight();
-		float verticalScale = screenAspect / (DISPLAY_SPACE_RES.x / DISPLAY_SPACE_RES.y);
-		auto topPivot = Vector3(0.0f, HUD_ZERO_Y + bar.Position.y, 0.0f);
+		auto  topLeftPivot = Vector3(bar.Position.x, HUD_ZERO_Y + bar.Position.y, 0.0f);
 
-		_stHUDBar.Transform = Matrix::CreateTranslation(-topPivot) * Matrix::CreateScale(1.0f, verticalScale, 1.0f) * Matrix::CreateTranslation(topPivot);
+		auto scale = Vector2::One;
+		if (screenAspect >= DISPLAY_SPACE_ASPECT)
+			scale.y = screenAspect / DISPLAY_SPACE_ASPECT;
+		else
+			scale.x = DISPLAY_SPACE_ASPECT / screenAspect;
+
+		_stHUDBar.Transform = Matrix::CreateTranslation(-topLeftPivot) * Matrix::CreateScale(scale.x, scale.y, 1.0f) * Matrix::CreateTranslation(topLeftPivot);
 		_stHUDBar.BarStartUV = borderSprite->UV[0];
 		_stHUDBar.BarScale = Vector2(borderSprite->Width / (float)borderSprite->Texture->GetWidth(), borderSprite->Height / (float)borderSprite->Texture->GetHeight());
 
@@ -566,8 +571,6 @@ namespace TEN::Renderer
 
 	void Renderer::CollectDisplaySprites(RenderView& renderView)
 	{
-		constexpr auto DISPLAY_SPACE_ASPECT = DISPLAY_SPACE_RES.x / DISPLAY_SPACE_RES.y;
-
 		// Calculate screen aspect ratio.
 		auto screenRes = GetScreenResolution().ToVector2();
 		float screenAspect = screenRes.x / screenRes.y;
