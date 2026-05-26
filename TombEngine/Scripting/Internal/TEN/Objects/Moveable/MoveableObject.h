@@ -78,7 +78,7 @@ public:
 	short GetMeshCount() const;
 	bool GetMeshVisible(int meshId) const;
 	std::tuple<bool, sol::optional<GAME_OBJECT_ID>> GetMeshSwapped(int meshId) const;
-	sol::optional<int> GetSkinnedMesh() const;
+	sol::optional<std::tuple<GAME_OBJECT_ID, sol::optional<int>>> GetSkinnedMesh() const;
 	bool GetHitStatus() const;
 	bool GetActive() const;
 	short GetStatus() const;
@@ -126,7 +126,6 @@ public:
 	void ShatterMesh(int meshId);
 	void SwapMesh(int meshId, int swapSlotId, sol::optional<int> swapIndex);
 	void UnswapMesh(int meshId);
-	void SetSkinnedMesh(int skinIndex);
 	void SwapSkinnedMesh(int swapSlotId, sol::optional<int> swapIndex);
 	void UnswapSkinnedMesh();
 	void ClearSkinnedMesh();

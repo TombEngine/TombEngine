@@ -183,7 +183,7 @@ namespace TEN::Renderer
 
 		// Copy meshswaps
 		itemToDraw->MeshIndex = nativeItem->Model.MeshIndex;
-		itemToDraw->SkinIndex = nativeItem->Model.SkinIndex;
+		itemToDraw->SkinIndex = nativeItem->Model.GetSkinGlobalIndex();
 
 		if (obj->Animations.empty())
 			return;

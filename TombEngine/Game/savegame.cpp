@@ -1082,7 +1082,8 @@ const std::vector<byte> SaveGame::Build()
 		serializedItem.add_mesh_bits(itemToSerialize.MeshBits.ToPackedBits());
 		serializedItem.add_base_mesh(itemToSerialize.Model.BaseMesh);
 		serializedItem.add_mesh_index(meshPointerOffset);
-		serializedItem.add_skin_index(itemToSerialize.Model.SkinIndex);
+		serializedItem.add_skin_object_id(itemToSerialize.Model.SkinObjectID);
+		serializedItem.add_skin_swap_index(itemToSerialize.Model.SkinSwapIndex);
 		serializedItem.add_object_id(itemToSerialize.ObjectNumber);
 		serializedItem.add_pose(&FromPose(itemToSerialize.Pose));
 		serializedItem.add_required_state(itemToSerialize.Animation.RequiredState);
@@ -2804,7 +2805,8 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		// Mesh stuff
 		item->MeshBits = savedItem->mesh_bits();
 		item->Model.BaseMesh = savedItem->base_mesh();
-		item->Model.SkinIndex = savedItem->skin_index();
+		item->Model.SkinObjectID = savedItem->skin_object_id();
+		item->Model.SkinSwapIndex = savedItem->skin_swap_index();
 
 		item->Model.MeshIndex.resize(savedItem->mesh_index()->size());
 		for (int j = 0; j < savedItem->mesh_index()->size(); j++)
