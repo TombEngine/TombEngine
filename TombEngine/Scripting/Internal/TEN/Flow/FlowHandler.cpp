@@ -148,6 +148,14 @@ have an index of 0, the second an index of 1, and so on.
 */
 	tableFlow.set_function(ScriptReserved_GetCurrentLevel, &FlowHandler::GetCurrentLevel, this);
 
+/*** Returns the index of the level that the game control is running in that moment.
+Indices depend on the order in which AddLevel was called; the first added will
+have an index of 0, the second an index of 1, and so on.
+@function GetCurrentLevelIndex
+@treturn int The current level index.
+*/
+	tableFlow.set_function(ScriptReserved_GetCurrentLevelIndex, &FlowHandler::GetCurrentLevelIndex, this);
+
 /*** Finishes the current level, with optional level index and start position index provided.
 If level index is not provided or is zero, jumps to next level. If level index is more than
 level count, jumps to title. If LARA\_START\_POS objects are present in level, player will be
@@ -538,6 +546,11 @@ Level* FlowHandler::GetLevel(int id)
 Level* FlowHandler::GetCurrentLevel()
 {
 	return Levels[CurrentLevel];
+}
+
+int FlowHandler::GetCurrentLevelIndex()
+{
+	return CurrentLevel;
 }
 
 int	FlowHandler::GetNumLevels() const
