@@ -480,7 +480,7 @@ int main(int argc, char* argv[])
 			case SDL_EVENT_WINDOW_RESIZED:
 			case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
 			{
-				if (!g_Configuration.EnableWindowedMode)
+				if (!g_Configuration.EnableWindowedMode || NextResolution.has_value())
 					break;
 
 				int w = 0, h = 0;

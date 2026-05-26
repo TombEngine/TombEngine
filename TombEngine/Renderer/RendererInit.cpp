@@ -363,9 +363,7 @@ namespace TEN::Renderer
 
 			view->Camera.ViewSize = { (float)w, (float)h };
 			view->Camera.InvViewSize = { 1.0f / w, 1.0f / h };
-			view->Camera.Projection = Matrix::CreatePerspectiveFieldOfView(
-				view->Camera.FOV, (float)w / (float)h,
-				view->Camera.NearPlane, view->Camera.FarPlane);
+			view->Camera.Projection = Matrix::CreatePerspectiveFieldOfView(view->Camera.FOV, (float)w / (float)h, view->Camera.NearPlane, view->Camera.FarPlane);
 			view->Camera.ViewProjection = view->Camera.View * view->Camera.Projection;
 			view->Camera.Frustum.Update(view->Camera.View, view->Camera.Projection);
 		}
