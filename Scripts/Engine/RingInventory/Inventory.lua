@@ -86,6 +86,13 @@ LevelFuncs.Engine.RingInventory.UpdateInventory = function()
 end
 
 LevelFuncs.Engine.RingInventory.RunInventory = function()
+
+    local isTitle = Flow.GetCurrentLevelIndex() == 0
+
+    if isTitle then
+        return
+    end
+
     if not InventoryStates then
         InventoryStates = require("Engine.RingInventory.InventoryStates")
     end
