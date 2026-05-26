@@ -103,11 +103,13 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
     
     local playerHp = Lara:GetHP() > 0
     local isNotUsingBinoculars = TEN.View.GetCameraType() ~= CameraType.BINOCULARS
-
+    local controlLocked = Lara:GetLocked()
+    
     if (TEN.Input.IsKeyHit(TEN.Input.ActionID.INVENTORY) or TEN.Inventory.GetFocusedItem() ~= Constants.NO_VALUE) and 
        not inventoryOpen and 
        playerHp and 
-       isNotUsingBinoculars then
+       isNotUsingBinoculars and
+       not controlLocked then
         inventoryOpen = true
         local focusedItem = TEN.Inventory.GetFocusedItem()
         if focusedItem == Constants.NO_VALUE then
@@ -122,7 +124,8 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
     if (TEN.Input.IsKeyHit(TEN.Input.ActionID.SAVE) or TEN.Inventory.GetFocusedItem() ~= Constants.NO_VALUE) and 
        not inventoryOpen and 
        playerHp and 
-       isNotUsingBinoculars then
+       isNotUsingBinoculars and
+       not controlLocked  then
         inventoryOpen = true
         Save.SetQuickSaveStatus(true)
         Save.SetSaveMenu()
@@ -132,7 +135,8 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
     
     if (TEN.Input.IsKeyHit(TEN.Input.ActionID.LOAD) or TEN.Inventory.GetFocusedItem() ~= Constants.NO_VALUE) and 
        not inventoryOpen and 
-       isNotUsingBinoculars then
+       isNotUsingBinoculars and
+       not controlLocked  then
         inventoryOpen = true
         Save.SetQuickSaveStatus(true)
         Save.SetLoadMenu()
