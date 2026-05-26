@@ -311,4 +311,13 @@ namespace TEN::Scripting::Types
 		const Color result = Color::Lerp(_color, color, clampedAlpha);
 		return ScriptColor(result);
 	}
+
+	static std::tuple<ScriptColor, ScriptColor> ColorShift(const ScriptColor& color, TypeOrNil<int> chromaShift, TypeOrNil<float> hueShift)
+	{
+		ScriptColor colorS;
+		ScriptColor colorD;
+		int chromaShiftValue = ValueOr<int>(chromaShift, 32);
+		float hueShiftValue = ValueOr<float>(hueShift, 0.5f);
+		return std::make_tuple(colorS, colorD);
+	}
 }
