@@ -2938,13 +2938,13 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		else if (savedItem->data_type() == Save::ItemData::TEN_Serialization_Common_Short)
 		{
 			auto* data = savedItem->data();
-			auto* savedData = (Common::Short*)data;
+			const auto* savedData = (Common::Short*)data;
 			item->Data = savedData->scalar();
 		}
 		else if (savedItem->data_type() == Save::ItemData::TEN_Serialization_Common_Int)
 		{
 			auto* data = savedItem->data();
-			auto* savedData = (Common::Int*)data;
+			const auto* savedData = (Common::Int*)data;
 			item->Data = savedData->scalar();
 		}
 	}
