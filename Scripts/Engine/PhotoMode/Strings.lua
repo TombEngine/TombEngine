@@ -41,7 +41,7 @@ local strings =
 
     -- Light menu items
     pm_enabled        = {"Enabled"},
-    pm_source         = {"Source"},
+    pm_source         = {"Position"},
     pm_radius         = {"Radius"},
     pm_color          = {"Color"},
     pm_intensity      = {"Intensity"},

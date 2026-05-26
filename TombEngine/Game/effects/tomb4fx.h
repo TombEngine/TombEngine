@@ -326,6 +326,7 @@ void UpdateBlood();
 int GetFreeGunshell();
 void TriggerGunShell(short hand, short objNum, LaraWeaponType weaponType);
 void UpdateGunFlashes();
+void UpdateGunFlashesFreezeMode();
 void UpdateGunShells();
 void AddWaterSparks(int x, int y, int z, int num);
 void ExplodingDeath(short itemNumber, short flags); // BODY_ flags

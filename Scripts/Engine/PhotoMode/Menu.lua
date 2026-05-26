@@ -584,16 +584,16 @@ local function HandleInput(menuName)
     local previousItem = menu.currentItem
 
     -- Header navigation: STEP_LEFT / STEP_RIGHT
-    if InputHelpers.GuiIsPulsed(ActionID.STEP_LEFT, menu.inputTimer) then
+    if InputHelpers.GuiIsPulsed(ActionID.GAMEPAD_LEFT_TRIGGER, menu.inputTimer) or InputHelpers.GuiIsPulsed(ActionID.STEP_LEFT, menu.inputTimer) then
         Menu.NavigateHeader(-1)
         return
-    elseif InputHelpers.GuiIsPulsed(ActionID.STEP_RIGHT, menu.inputTimer) then
+    elseif InputHelpers.GuiIsPulsed(ActionID.GAMEPAD_RIGHT_TRIGGER, menu.inputTimer) or InputHelpers.GuiIsPulsed(ActionID.STEP_RIGHT, menu.inputTimer) then
         Menu.NavigateHeader(1)
         return
     end
 
-    -- Navigate items: FORWARD / BACK
-    if InputHelpers.GuiIsPulsed(ActionID.FORWARD, menu.inputTimer) then
+    -- Navigate items: MENU_UP / MENU_DOWN
+    if InputHelpers.GuiIsPulsed(ActionID.MENU_UP, menu.inputTimer) then
         PlaySound(menu.sounds and menu.sounds.menuSelect)
         if menu.wrapAroundItems then
             menu.currentItem = (menu.currentItem - 2) % itemCount + 1
@@ -604,7 +604,7 @@ local function HandleInput(menuName)
             PerformFunction(menu.itemChangeFunction)
         end
 
-    elseif InputHelpers.GuiIsPulsed(ActionID.BACK, menu.inputTimer) then
+    elseif InputHelpers.GuiIsPulsed(ActionID.MENU_DOWN, menu.inputTimer) then
         PlaySound(menu.sounds and menu.sounds.menuSelect)
         if menu.wrapAroundItems then
             menu.currentItem = menu.currentItem % itemCount + 1
@@ -615,8 +615,7 @@ local function HandleInput(menuName)
             PerformFunction(menu.itemChangeFunction)
         end
 
-    -- Navigate options: LEFT / RIGHT (accelerated for numeric ranges, standard pulse for discrete lists)
-    elseif InputHelpers.GuiIsPulsed(ActionID.LEFT, menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+    elseif InputHelpers.GuiIsPulsed(ActionID.MENU_LEFT, menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             PlaySound(menu.sounds and menu.sounds.menuSelect)
@@ -630,7 +629,7 @@ local function HandleInput(menuName)
             end
         end
 
-    elseif InputHelpers.GuiIsPulsed(ActionID.RIGHT, menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+    elseif InputHelpers.GuiIsPulsed(ActionID.MENU_RIGHT, menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             PlaySound(menu.sounds and menu.sounds.menuSelect)

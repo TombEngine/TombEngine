@@ -181,9 +181,9 @@ function States.CaptureSnapshot()
     snap.targetPos      = nil
     snap.hideUI         = false
     -- Capture skinned mesh state (GPU skinning slot)
-    local ok, skinIdx = pcall(function() return Lara:GetSkinnedMesh() end)
-    snap.skinnedMeshIndex = (ok and skinIdx ~= nil) and skinIdx or nil
-
+    local ok, skinObject, meshIndex = pcall(function() return Lara:GetSkinnedMesh() end)
+    snap.skinnedMeshObject = (ok and skinObject ~= nil) and skinObject or nil
+    snap.skinnedMeshIndex = (ok and meshIndex ~= nil) and meshIndex or nil
     -- Capture classic skin state (SetSkin parameters)
     local okSkin, skinTable = pcall(function() return Lara:GetSkin() end)
     if okSkin then
@@ -229,8 +229,8 @@ function States.RestoreSnapshot()
     end
 
     -- Restore skinned mesh to entry state.
-    if snap.skinnedMeshIndex then
-        pcall(function() Lara:SetSkinnedMesh(snap.skinnedMeshIndex) end)
+    if snap.skinnedMeshObject then
+        pcall(function() Lara:SwapSkinnedMesh(snap.skinnedMeshObject, snap.skinnedMeshIndex) end)
     else
         pcall(function() Lara:ClearSkinnedMesh() end)
     end

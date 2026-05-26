@@ -156,8 +156,8 @@ local function ResetCurrentOutfit(state)
 
     -- Restore skinned mesh to entry state.
     if state.appliedSkinnedMesh then
-        if snap and snap.skinnedMeshIndex then
-            pcall(function() Lara:SetSkinnedMesh(snap.skinnedMeshIndex) end)
+        if snap and snap.skinnedMeshObject then
+            pcall(function() Lara:SwapSkinnedMesh(snap.skinnedMeshObject, snap.skinnedMeshIndex) end)
         else
             pcall(function() Lara:ClearSkinnedMesh() end)
         end
@@ -309,8 +309,16 @@ end
 local function ApplyPosePreset(state)
     local preset = Settings.Animations[state.animIndex]
     if preset then
-        pcall(function() Lara:SetAnim(preset.animNumber, preset.objID) end)
-        pcall(function() Lara:SetFrame(preset.frameNumber) end)
+
+        if preset.name == "Default" then
+            if state.snapshot then
+                pcall(function() Lara:SetAnim(state.snapshot.laraAnim, state.snapshot.laraAnimSlot) end)
+                pcall(function() Lara:SetFrame(state.snapshot.laraFrame) end)
+            end
+        else
+            pcall(function() Lara:SetAnim(preset.animNumber, preset.objID) end)
+            pcall(function() Lara:SetFrame(preset.frameNumber) end)
+        end
     end
     pcall(function() Lara:ResetHair() end)
 end
@@ -1216,13 +1224,15 @@ LevelFuncs.Engine.PhotoMode.OnLoop = function()
     end
 
     local state = States.Get()
-    local walkHeld = TEN.Input.IsKeyHeld(TEN.Input.ActionID.WALK)
-    local lookHeld  = TEN.Input.IsKeyHeld(TEN.Input.ActionID.LOOK)
+    local keySet1 = TEN.Input.IsKeyHeld(TEN.Input.ActionID.F3)
+    local keySet2  = TEN.Input.IsKeyHeld(TEN.Input.ActionID.GAMEPAD_LEFT_STICK) and TEN.Input.IsKeyHeld(TEN.Input.ActionID.GAMEPAD_RIGHT_STICK)
 
-    if walkHeld and lookHeld then
+    if keySet1 or keySet2 then
+        TEN.Input.ClearAllKeys()
         state.entryHoldCount = state.entryHoldCount + 1
         if state.entryHoldCount >= Settings.Entry.holdFrames then
             state.entryHoldCount = 0
+            TEN.Input.ClearAllKeys()
             PhotoMode.Enter()
         end
     else
