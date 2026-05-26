@@ -11,7 +11,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
 * Added native support for DualShock, DualSense and Switch Pro controllers.
-* Added support for lightbar effects on supported controllers.
+* Added support for lightbar effects on supported controllers, with an in-game Lightbar Effects toggle in the Sound and Gameplay options menu (greyed out when the connected controller has no LED support).
 * Added rumble effects for all vehicles.
 * Added animation blending support and blended transitions for hardcoded animation changes.
 * Added root motion support.
@@ -48,7 +48,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Flow.Settings.Hud.interactionHighlighter` and `Flow.Settings.Hud.targetHighlighter` options to force these settings on or off.
 * Added `Flow.Settings.UI.menuBackgroundBlur` option to specify amount of blur for the inventory and pause backgrounds.
 * Added `Flow.Settings.UI.systemTextScale` option to change global system text scale.
-* Added `Flow.Settings.Input.gamepadLED` to enable or disable all controller LED color changes.
 * Added `Flow.Settings.Input.healthLED` to enable or disable automatic health-based LED color.
 * Added `Flow.Settings.Input.airLED` to enable or disable automatic air-based LED color.
 * Added `Input.GetLastInputDevice` function to detect which input device was used last.

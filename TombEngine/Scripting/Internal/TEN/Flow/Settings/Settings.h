@@ -65,7 +65,6 @@ namespace TEN::Scripting
 
 	struct InputSettings
 	{
-		bool GamepadLED = true;
 		bool HealthLED = true;
 		bool AirLED = true;
 

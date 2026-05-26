@@ -24,6 +24,7 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Sound/sound.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
@@ -1748,7 +1749,7 @@ void UpdatePlayerLED(ItemInfo* item)
 	const auto& settings = *g_GameFlow->GetSettings();
 
 	// Do nothing if the master LED setting is disabled.
-	if (!settings.Input.GamepadLED)
+	if (!g_Configuration.EnableLightbarEffects)
 		return;
 
 	// Persistent Lua script override takes priority over all other logic.

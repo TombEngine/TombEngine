@@ -50,7 +50,6 @@ local settings = Flow.Settings.new()
 	settings.Hud.interactionHighlighter = true
 	settings.Hud.targetHighlighter = true
 	
-	settings.Input.gamepadLED = true
 	settings.Input.healthLED = true
 	settings.Input.airLED = true
 
@@ -80,7 +79,7 @@ local settings = Flow.Settings.new()
 	settings.UI.disabledTextColor = Color(128, 128, 128)
 	settings.UI.shadowTextColor = Color(0, 0, 0)
 	settings.UI.menuBackgroundBlur = 0.15
-	settings.UI.systemTextScale = 1.0
+	settings.UI.systemTextScale = 0.8
 	settings.UI.titleLogoPosition = Vec2(50, 20)
 	settings.UI.titleLogoScale = 0.38
 	settings.UI.titleLogoColor = Color(255, 255, 255)

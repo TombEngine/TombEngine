@@ -115,6 +115,7 @@ local strings =
 	subtitles = { "Subtitles" },
 	target_highlighter = { "Target Highlighter" },
 	thumbstick_camera = { "Thumbstick Camera" },
+	lightbar_effects = { "Lightbar Effects" },
 	time_taken = { "Time Taken" },
 	total_secrets_found = { "Secrets Found Total" },
 	use = { "Use" },

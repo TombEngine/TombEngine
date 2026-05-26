@@ -9,9 +9,9 @@
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererEnums.h"
-#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/configuration.h"
 #include "Specific/EngineMain.h"
 #include "Specific/trutils.h"
 
@@ -795,11 +795,16 @@ namespace TEN::Input
 		RumbleInfo = {};
 	}
 
+	bool GamepadHasLED()
+	{
+		return (GamepadInfo.Handle != nullptr && GamepadInfo.HasLED);
+	}
+
 	void SetGamepadLED(const Vector4& color)
 	{
-		if (GamepadInfo.Handle == nullptr || !GamepadInfo.HasLED)
+		if (!GamepadHasLED())
 			return;
-		if (g_GameFlow != nullptr && !g_GameFlow->GetSettings()->Input.GamepadLED)
+		if (!g_Configuration.EnableLightbarEffects)
 			return;
 
 		auto r = (unsigned char)std::clamp(color.x * color.w * 255.0f, 0.0f, 255.0f);

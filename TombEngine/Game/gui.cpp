@@ -993,6 +993,7 @@ namespace TEN::Gui
 			InteractionHighlighter,
 			ToggleRumble,
 			ThumbstickCameraControl,
+			LightbarEffects,
 
 			MouseSensitivity,
 
@@ -1056,6 +1057,16 @@ namespace TEN::Gui
 			case OtherSettingsOption::ThumbstickCameraControl:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableThumbstickCamera = !CurrentSettings.Configuration.EnableThumbstickCamera;
+				break;
+
+			case OtherSettingsOption::LightbarEffects:
+				if (GamepadHasLED())
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableLightbarEffects = !CurrentSettings.Configuration.EnableLightbarEffects;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
 				break;
 			}
 		}
