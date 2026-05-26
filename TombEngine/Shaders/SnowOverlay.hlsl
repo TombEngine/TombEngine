@@ -11,7 +11,14 @@
 
 #include "./CBCamera.hlsli"
 #include "./CBSnow.hlsli"
+#include "./CBRoom.hlsli"
+#include "./Math.hlsli"
+#include "./Blending.hlsli"
+#include "./ShaderLight.hlsli"
+#include "./Shadows.hlsli"
 #include "./VertexInput.hlsli"
+
+#define ROOM_LIGHT_COEFF 0.7f
 
 Texture2D    SnowSurface     : register(t0);
 SamplerState SnowSurfaceSamp : register(s0); // Sampler bound at same slot as ColorMap.
@@ -21,9 +28,14 @@ SamplerState SnowFieldSamp   : register(s0);  // Sampler at slot 0 (D3D11 max is
 
 struct PixelShaderInput
 {
-	float4 Position : SV_POSITION;
-	float2 UV       : TEXCOORD0;
-	float  Depth01  : TEXCOORD1; // sampled heightmap value at the vertex
+	float4 Position      : SV_POSITION;
+	float3 WorldPosition : POSITION0;
+	float3 Normal        : NORMAL;
+	float4 Color         : COLOR;
+	float2 UV            : TEXCOORD0;
+	float  Depth01       : TEXCOORD1; // sampled heightmap value at the vertex
+	float4 FogBulbs      : TEXCOORD2;
+	float  DistanceFog   : FOG;
 };
 
 float SampleSnowDepth(float worldX, float worldZ)
@@ -72,8 +84,13 @@ PixelShaderInput VS(VertexShaderInput input)
 	worldPos.y += (h * totalLift + hillPushY) * liftScale;
 
 	output.Position = mul(float4(worldPos, 1.0f), ViewProjection);
-	output.UV       = input.UV;
-	output.Depth01  = h;
+	output.WorldPosition = worldPos;
+	output.Normal        = normalize(input.Normal.xyz);
+	output.Color         = input.Color;
+	output.UV            = input.UV;
+	output.Depth01       = h;
+	output.FogBulbs      = DoFogBulbsForVertex(worldPos);
+	output.DistanceFog   = DoDistanceFogForVertex(worldPos);
 	return output;
 }
 
@@ -93,5 +110,44 @@ float4 PS(PixelShaderInput input) : SV_TARGET0
 	float rim     = saturate(gradMag * 8.0f) * SnowTintAndRim.a;
 	col          += tint * rim;
 
-	return float4(col, base.a);
+	// --- Room-style lighting (mirrors Rooms.hlsl) -------------------------
+	float3 normal = normalize(input.Normal);
+	float3 lighting = ModulateColor(input.Color.xyz);
+
+	lighting = DoShadow(input.WorldPosition, normal, lighting, -2.5f);
+	lighting = DoBlobShadows(input.WorldPosition, lighting);
+
+	bool onlyPointLights = (NumRoomLights & ~LT_MASK) == LT_MASK_POINT;
+	int numLights = NumRoomLights & LT_MASK;
+
+	for (int i = 0; i < numLights; i++)
+	{
+		if (onlyPointLights)
+		{
+			lighting += ModulateColor(DoPointLight(input.WorldPosition, normal, RoomLights[i])) * ROOM_LIGHT_COEFF;
+		}
+		else
+		{
+			float isPoint = step(0.5f, RoomLights[i].Type == LT_POINT);
+			float isSpot  = step(0.5f, RoomLights[i].Type == LT_SPOT);
+
+			float3 pointLight = float3(0.0f, 0.0f, 0.0f);
+			float3 spotLight  = float3(0.0f, 0.0f, 0.0f);
+			DoPointAndSpotLight(input.WorldPosition, normal, RoomLights[i], 0.0f, 1.0f, pointLight, spotLight);
+
+			lighting += ModulateColor(pointLight) * isPoint * ROOM_LIGHT_COEFF
+			          + ModulateColor(spotLight)  * isSpot  * ROOM_LIGHT_COEFF;
+		}
+	}
+
+	lighting -= float3(input.FogBulbs.w, input.FogBulbs.w, input.FogBulbs.w);
+
+	float4 outColor;
+	outColor.rgb = saturate(col * lighting);
+	outColor.a   = base.a;
+
+	outColor = DoFogBulbsForPixel(outColor, float4(input.FogBulbs.xyz, 1.0f));
+	outColor = DoDistanceFogForPixel(outColor, FogColor, input.DistanceFog);
+
+	return outColor;
 }

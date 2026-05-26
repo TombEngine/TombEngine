@@ -15,6 +15,8 @@
 #include "Renderer/RendererEnums.h"
 #include "Scripting/Internal/TEN/Flow/FlowHandler.h"
 #include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
+#include "Specific/configuration.h"
+#include "Specific/level.h"
 
 using namespace TEN::Renderer::ConstantBuffers;
 namespace SnowField = TEN::Effects::SnowField;
@@ -140,6 +142,33 @@ namespace TEN::Renderer
 		for (int i = (int)view.RoomsToDraw.size() - 1; i >= 0; i--)
 		{
 			const auto& room = *view.RoomsToDraw[i];
+
+			bool hasBucket = false;
+			for (const auto& bucket : room.Buckets)
+			{
+				if (bucket.IsSnowOverlay && bucket.NumVertices > 0)
+				{
+					hasBucket = true;
+					break;
+				}
+			}
+			if (!hasBucket)
+				continue;
+
+			// Per-room lighting state (mirrors DrawRooms): ambient color, room flags,
+			// caustics, dynamic lights and decals. Required so the snow PS can reproduce
+			// Rooms.hlsl's full lighting model (ambient, point/spot, shadows, fog bulbs).
+			const auto& nativeRoom = g_Level.Rooms[room.RoomNumber];
+
+			_stRoom.AmbientColor = Vector3(room.AmbientLight.x, room.AmbientLight.y, room.AmbientLight.z);
+			_stRoom.Caustics = int(g_Configuration.EnableCaustics && (nativeRoom.flags & ENV_FLAG_WATER) && !(nativeRoom.flags & ENV_FLAG_NOCAUSTICS));
+			_stRoom.Water = (nativeRoom.flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
+			_stRoom.Outdoor = (nativeRoom.flags & ENV_FLAG_SKYBOX) != 0 ? 1 : 0;
+
+			BindRoomLights(view.LightsToDraw);
+			BindRoomDecals(room.Decals);
+
+			UpdateConstantBuffer(&_stRoom, _cbRoom.get());
 
 			for (const auto& bucket : room.Buckets)
 			{
