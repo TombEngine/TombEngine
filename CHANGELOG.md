@@ -48,7 +48,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Flow.Settings.UI.systemTextScale` option to change global system text scale.
 * Added `Input.GetLastInputDevice` function to detect which input device was used last.
 * Added functional key (F1-F12) mappings and raw gamepad input mappings to the `Input.ActionID` and `Input.AxisID` enums.
-* Added `Lara.SetSkin` to swap classic outfits.
+* Added `Lara:GetLocked` and `Lara:SetLocked` to manage native control lock status.
+* Added `Lara:GetSkin` and `Lara:SetSkin` functions to manage swapping of classic outfits.
 * Added third argument to `Moveable:SetAnim` function to specify blend frame count.
 * Added `Objects.Creature` class to fetch and set various enemy AI state parameters.
 * Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
