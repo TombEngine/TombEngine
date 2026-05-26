@@ -1748,7 +1748,7 @@ void UpdatePlayerLED(ItemInfo* item)
 	const auto& settings = *g_GameFlow->GetSettings();
 
 	// Do nothing if the master LED setting is disabled.
-	if (!settings.Input.ControllerLED)
+	if (!settings.Input.GamepadLED)
 		return;
 
 	// Persistent Lua script override takes priority over all other logic.

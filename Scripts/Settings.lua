@@ -50,7 +50,7 @@ local settings = Flow.Settings.new()
 	settings.Hud.interactionHighlighter = true
 	settings.Hud.targetHighlighter = true
 	
-	settings.Input.controllerLED = true
+	settings.Input.gamepadLED = true
 	settings.Input.healthLED = true
 	settings.Input.airLED = true
 

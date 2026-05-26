@@ -281,18 +281,18 @@ namespace TEN::Scripting
 			sol::call_constructor, sol::constructors<InputSettings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(InputSettings, ScriptReserved_InputSettings),
 
-		/// Enable or disable all controller LED color changes. When false, the engine will not change the LED color at all.
-		// @tfield[opt=true] bool controllerLED If false, the controller LED will not be changed by the engine.
-		"controllerLED", &InputSettings::ControllerLED,
+		/// Enable or disable all gamepad LED color changes. When false, the engine will not change the LED color at all.
+		// @tfield[opt=true] bool gamepadLED If false, the gamepad LED will not be changed by the engine.
+		"gamepadLED", &InputSettings::GamepadLED,
 
 		/// Enable or disable automatic health-based LED color. When false, health will not drive the LED color,
-		// but scripts may still use TEN.Input.SetControllerLED to set a persistent color.
-		// @tfield[opt=true] bool healthLED If false, player health will not automatically update the controller LED color.
+		// but scripts may still use TEN.Input.SetGamepadLED to set a persistent color.
+		// @tfield[opt=true] bool healthLED If false, player health will not automatically update the gamepad LED color.
 		"healthLED", &InputSettings::HealthLED,
 
 		/// Enable or disable automatic air-based LED color. When active underwater, the LED transitions from
 		// light blue (full air) to dark blue (empty), and flashes when air drops below 20%.
-		// @tfield[opt=true] bool airLED If false, player air level will not automatically update the controller LED color.
+		// @tfield[opt=true] bool airLED If false, player air level will not automatically update the gamepad LED color.
 		"airLED", &InputSettings::AirLED);
 	}
 

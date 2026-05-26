@@ -798,7 +798,7 @@ namespace TEN::Input
 	{
 		if (ActiveGamepad == nullptr || !ActiveGamepadHasLED)
 			return;
-		if (g_GameFlow != nullptr && !g_GameFlow->GetSettings()->Input.ControllerLED)
+		if (g_GameFlow != nullptr && !g_GameFlow->GetSettings()->Input.GamepadLED)
 			return;
 
 		SDL_SetGamepadLED(ActiveGamepad, r, g, b);
