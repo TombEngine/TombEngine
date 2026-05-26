@@ -1774,20 +1774,33 @@ void UpdatePlayerLED(ItemInfo* item)
 		{
 			float airFrac = std::clamp((float)player.Status.Air / LARA_AIR_MAX, 0.0f, 1.0f);
 
-			bool isCritical = player.Status.Air <= (LARA_AIR_MAX * 0.2f);
-			if (isCritical && (GlobalCounter & 0x0F) >= 8)
+			bool isAirCritical = player.Status.Air <= (LARA_AIR_MAX * 0.2f);
+			if (isAirCritical && (GlobalCounter & 0x0F) >= 8)
 			{
 				SetGamepadLED(Vector4::Zero);
 				return;
 			}
 
-			SetGamepadLED(Vector4(30.0f / 255.0f * airFrac, 120.0f / 255.0f * airFrac, (80.0f + 175.0f * airFrac) / 255.0f, 1.0f));
+			auto color = Vector4(30.0f / 255.0f * airFrac, 120.0f / 255.0f * airFrac, (80.0f + 175.0f * airFrac) / 255.0f, 1.0f);
+
+			// Poison influence: blend towards yellow with a sine-wave intensity pulse (suppressed at critical air, where blink takes over).
+			if (player.Status.Poison > 0)
+			{
+				float poisonFrac = std::clamp((float)player.Status.Poison / LARA_POISON_MAX, 0.0f, 1.0f);
+				color.x += (1.0f - color.x) * poisonFrac;
+				color.y += (1.0f - color.y) * poisonFrac;
+				if (!isAirCritical)
+					color.w = (sin(GlobalCounter * (PI / 15.0f)) + 1.0f) * 0.5f;
+			}
+
+			SetGamepadLED(color);
 			return;
 		}
-	}
 
-	// Default: health-based LED for all non-water environments.
-	if (!settings.Input.HealthLED)
+		// Air depleted: always fall through to health-based LED regardless of HealthLED setting,
+		// to mirror in-game UI behavior (health bar remains visible while drowning).
+	}
+	else if (!settings.Input.HealthLED)
 	{
 		SetGamepadLED(Vector4::Zero);
 		return;
@@ -1795,16 +1808,37 @@ void UpdatePlayerLED(ItemInfo* item)
 
 	float healthFrac = std::clamp((float)item->HitPoints / LARA_HEALTH_MAX, 0.0f, 1.0f);
 
-	// Blink off on the second half of each 16-frame cycle at critical health or when poisoned.
-	bool isCritical = item->HitPoints > 0 &&
-		(item->HitPoints <= LARA_HEALTH_CRITICAL || player.Status.Poison > 0);
-	if (isCritical && (GlobalCounter & 0x0F) >= 8)
+	// Blink off on the second half of each 16-frame cycle at critical health.
+	bool isHealthCritical = item->HitPoints > 0 && item->HitPoints <= LARA_HEALTH_CRITICAL;
+	if (isHealthCritical && (GlobalCounter & 0x0F) >= 8)
 	{
 		SetGamepadLED(Vector4::Zero);
 		return;
 	}
 
-	SetGamepadLED(Vector4(1.0f - healthFrac, healthFrac, 0.0f, 1.0f));
+	// Base health color: green (full) to red (critical).
+	auto color = Vector4(1.0f - healthFrac, healthFrac, 0.0f, 1.0f);
+
+	// Poison influence: blend towards yellow with a sine-wave intensity pulse (suppressed at critical health, where blink takes over).
+	if (player.Status.Poison > 0)
+	{
+		float poisonFrac = std::clamp((float)player.Status.Poison / LARA_POISON_MAX, 0.0f, 1.0f);
+		color.x += (1.0f - color.x) * poisonFrac;
+		color.y += (1.0f - color.y) * poisonFrac;
+		if (!isHealthCritical)
+			color.w = (sin(GlobalCounter * (PI / 15.0f)) + 1.0f) * 0.5f;
+	}
+
+	// Cold influence: blend towards light blue as exposure depletes.
+	if (player.Status.Exposure < LARA_EXPOSURE_MAX)
+	{
+		float coldFrac = std::clamp(1.0f - (float)player.Status.Exposure / LARA_EXPOSURE_MAX, 0.0f, 1.0f);
+		color.x += (0.5f - color.x) * coldFrac;
+		color.y += (0.75f - color.y) * coldFrac;
+		color.z += (1.0f - color.z) * coldFrac;
+	}
+
+	SetGamepadLED(color);
 }
 
 // NOTE: Formula uses kinematic equation of motion for vertical motion under constant acceleration.
