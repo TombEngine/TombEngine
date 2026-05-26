@@ -1769,7 +1769,8 @@ void UpdatePlayerLED(ItemInfo* item)
 	if (TestEnvironment(ENV_FLAG_WATER, item) && player.Control.WaterStatus == WaterStatus::Underwater)
 	{
 		// Fully submerged in a water room: air-based LED, light blue (full) to dark blue (empty), flashing below 20%.
-		if (settings.Input.AirLED)
+		// When air runs out, fall through to health-based LED to mirror in-game UI behavior (health depletes while drowning).
+		if (settings.Input.AirLED && player.Status.Air > 0)
 		{
 			float airFrac = std::clamp((float)player.Status.Air / LARA_AIR_MAX, 0.0f, 1.0f);
 
@@ -1777,7 +1778,7 @@ void UpdatePlayerLED(ItemInfo* item)
 			auto g = (unsigned char)(120 * airFrac);
 			auto b = (unsigned char)(80 + 175 * airFrac);
 
-			bool isCritical = player.Status.Air > 0 && player.Status.Air <= (LARA_AIR_MAX * 0.2f);
+			bool isCritical = player.Status.Air <= (LARA_AIR_MAX * 0.2f);
 			if (isCritical && (GlobalCounter & 0x0F) >= 8)
 			{
 				SetGamepadLED(0, 0, 0);
