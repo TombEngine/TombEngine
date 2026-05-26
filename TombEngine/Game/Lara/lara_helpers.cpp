@@ -1671,8 +1671,10 @@ void SetLaraVehicle(ItemInfo* item, ItemInfo* vehicle)
 	}
 	else
 	{
+		if (vehicle->ObjectNumber != ID_SPEEDBOAT && vehicle->ObjectNumber != ID_RUBBER_BOAT) // Boats are activated elsewhere.
+			g_Level.Items[vehicle->Index].Active = true;
+
 		lara->Context.Vehicle = vehicle->Index;
-		g_Level.Items[vehicle->Index].Active = true;
 		g_GameScript->OnVehicleEnter(vehicle->Index, true);
 	}
 }
