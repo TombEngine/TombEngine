@@ -46,20 +46,6 @@ namespace TEN::Input
 
 	std::optional<Vector4> LEDOverrideColor = std::nullopt;
 
-	// Returns true if the user's custom profile has at least one gamepad key bound.
-	// Used to avoid overwriting keyboard-only setups with gamepad defaults.
-	static bool HasAnyGamepadBindings()
-	{
-		const auto& profile = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
-		for (const auto& [actionID, keyID] : profile)
-		{
-			if (keyID >= KEY_OFFSET_GAMEPAD)
-				return true;
-		}
-
-		return false;
-	}
-
 	static bool HasMatchingBindings(const BindingProfile& bindingProfile)
 	{
 		for (const auto& [actionID, keyID] : bindingProfile)
