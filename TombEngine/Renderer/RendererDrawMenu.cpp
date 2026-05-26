@@ -88,6 +88,33 @@ namespace TEN::Renderer
 		}
 	}
 
+	inline const int GetEffectiveBoundKeyID(ActionID actionID)
+	{
+		int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, actionID);
+		int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, actionID);
+		return (userKeyID != KEY_UNASSIGNED) ? userKeyID : defaultKeyID;
+	}
+
+	std::vector<bool> GetBindingConflictMask(ActionID baseActionID, int actionCount)
+	{
+		std::vector<bool> conflicts(actionCount, false);
+		std::unordered_map<int, int> firstActionIndexByBinding = {};
+		firstActionIndexByBinding.reserve(actionCount);
+
+		for (int i = 0; i < actionCount; i++)
+		{
+			int keyID = GetEffectiveBoundKeyID((ActionID)((int)baseActionID + i));
+			if (keyID == KEY_UNASSIGNED)
+				continue;
+
+			auto [it, inserted] = firstActionIndexByBinding.try_emplace(keyID, i);
+			if (!inserted)
+				conflicts[it->second] = conflicts[i] = true;
+		}
+
+		return conflicts;
+	}
+
 	// These bars are only used in menus.
 	TEN::Renderer::RendererHudBar* g_MusicVolumeBar = nullptr;
 	TEN::Renderer::RendererHudBar* g_SFXVolumeBar	= nullptr;
@@ -293,12 +320,14 @@ namespace TEN::Renderer
 
 			// Target highlighter
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TARGET_HIGHLIGHTER), optionColor, SF(titleOption == 7));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableTargetHighlighter), plainColor, SF(titleOption == 7));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_GameFlow->GetSettings()->Hud.TargetHighlighter),
+				g_GameFlow->GetSettings()->Hud.TargetHighlighter ? plainColor : disabledColor, SF(titleOption == 7));
 			GetNextLinePosition(&y);
 
 			// Interaction highlighter
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INTERACTION_HIGHLIGHTER), optionColor, SF(titleOption == 8));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableInteractionHighlighter), plainColor, SF(titleOption == 8));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_GameFlow->GetSettings()->Hud.InteractionHighlighter),
+				g_GameFlow->GetSettings()->Hud.InteractionHighlighter ? plainColor : disabledColor, SF(titleOption == 8));
 			GetNextLinePosition(&y);
 
 			// Vibration
@@ -329,6 +358,7 @@ namespace TEN::Renderer
 			{
 				// Set up needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Forward, (int)GeneralActionStrings.size());
 
 				// Arrows
 				AddString(RIGHT_ARROW_X_OFFSET, y, RIGHT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -349,11 +379,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)k);
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)k);
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)((int)In::Forward + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (GeneralActionStrings.size() - 1))
@@ -379,6 +406,7 @@ namespace TEN::Renderer
 			{
 				// Set up needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Accelerate, (int)VehicleActionStrings.size());
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -402,11 +430,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)(baseIndex + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (VehicleActionStrings.size() - 1))
@@ -438,6 +463,7 @@ namespace TEN::Renderer
 			{
 				// Set up needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Flare, (int)QuickActionStrings.size());
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -461,11 +487,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)(baseIndex + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (QuickActionStrings.size() - 1))
@@ -491,6 +514,7 @@ namespace TEN::Renderer
 			{
 				// Setup needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Select, (int)MenuActionStrings.size());
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -513,11 +537,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)(baseIndex + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (MenuActionStrings.size() - 1))
@@ -856,11 +877,8 @@ namespace TEN::Renderer
 		const auto& object = Objects[objectNumber];
 		if (!object.Animations.empty())
 		{
-			auto interpData = KeyframeInterpolationData(
-				GetAnimData(object, 0).Keyframes[0],
-				GetAnimData(object, 0).Keyframes[0],
-				0.0f);
-			UpdateAnimation(nullptr, *moveableObject, interpData, UINT_MAX);
+			const auto& frame = GetAnimData(object, 0).Frames.front();
+			UpdateAnimation(nullptr, *moveableObject, frame, UINT_MAX);
 		}
 
 		auto pos = _graphicsDevice->Unproject(Vector3(pos2D.x, pos2D.y, 1.0f), projMatrix, viewMatrix, Matrix::Identity);
@@ -894,23 +912,23 @@ namespace TEN::Renderer
 
 		auto skinMode = GetSkinningMode(*moveableObject, object.skinIndex);
 
-		_stItem.Color = color;
-		_stItem.AmbientLight = g_DrawItems.GetAmbientLight();;
-		_stItem.Skinned = (int)skinMode;
+		_stObjects.Objects[0].Color = color;
+		_stObjects.Objects[0].AmbientLight = g_DrawItems.GetAmbientLight();;
+		_stObjects.Skinned = (int)skinMode;
 
 		if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
 		{
-			_stItem.World = worldMatrix;
+			_stObjects.Objects[0].World = worldMatrix;
 
 			// Calculate bones matrices for skinning
 			for (int m = 0; m < moveableObject->AnimationTransforms.size(); m++)
-				_stItem.BonesMatrices[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
+				_stObjects.Bones[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
 
-			_stItem.BoneLightModes[0] = (int)LightMode::Dynamic;
+			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stItem, _cbItem.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
 
 			// Draw the skin mesh.
 			const auto skinMesh = GetMesh(object.skinIndex);
@@ -938,7 +956,7 @@ namespace TEN::Renderer
 		}
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
-			_stItem.BonesMatrices[i] = Matrix::Identity;
+			_stObjects.Bones[i] = Matrix::Identity;
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
 		{
@@ -954,19 +972,19 @@ namespace TEN::Renderer
 
 			if (!object.Animations.empty())
 			{
-				_stItem.World = moveableObject->AnimationTransforms[i] * worldMatrix;
+				_stObjects.Objects[0].World = moveableObject->AnimationTransforms[i] * worldMatrix;
 			}
 			else
 			{
-				_stItem.World = moveableObject->BindPoseTransforms[i] * worldMatrix;
+				_stObjects.Objects[0].World = moveableObject->BindPoseTransforms[i] * worldMatrix;
 			}
 
-			_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
+			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stItem, _cbItem.get());
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
 
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
 
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
 
@@ -1027,13 +1045,7 @@ namespace TEN::Renderer
 		{
 			int animNumber = item.GetAnimNumber();
 			int frameNumber = item.GetFrameNumber();
-			int prevFrameNumber = item.GetPrevFrameNumber();
-
-			auto interpData = KeyframeInterpolationData(
-				GetAnimData(object, animNumber).Keyframes[prevFrameNumber],
-				GetAnimData(object, animNumber).Keyframes[frameNumber],
-				alpha);
-			UpdateAnimation(nullptr, *moveableObject, interpData, UINT_MAX);
+			UpdateAnimation(nullptr, *moveableObject, GetAnimData(object, animNumber).Frames[frameNumber], UINT_MAX);
 		}
 
 		SetBlendMode(BlendMode::Opaque);
@@ -1068,23 +1080,23 @@ namespace TEN::Renderer
 
 		auto skinMode = GetSkinningMode(*moveableObject, object.skinIndex);
 
-		_stItem.Color = color;
-		_stItem.AmbientLight = g_DrawItems.GetAmbientLight();
-		_stItem.Skinned = (int)skinMode;
+		_stObjects.Objects[0].Color = color;
+		_stObjects.Objects[0].AmbientLight = g_DrawItems.GetAmbientLight();
+		_stObjects.Skinned = (int)skinMode;
 
 		if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
 		{
-			_stItem.World = worldMatrix;
+			_stObjects.Objects[0].World = worldMatrix;
 
 			// Calculate bones matrices for skinning.
 			for (int m = 0; m < moveableObject->AnimationTransforms.size(); m++)
-				_stItem.BonesMatrices[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
+				_stObjects.Bones[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
 
-			_stItem.BoneLightModes[0] = (int)LightMode::Dynamic;
+			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stItem, _cbItem.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
 
 			// Get skin mesh.
 			const auto* skinMesh = GetMesh(object.skinIndex);
@@ -1113,7 +1125,7 @@ namespace TEN::Renderer
 		}
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
-			_stItem.BonesMatrices[i] = Matrix::Identity;
+			_stObjects.Bones[i] = Matrix::Identity;
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
 		{
@@ -1128,18 +1140,18 @@ namespace TEN::Renderer
 
 			if (!object.Animations.empty())
 			{
-				_stItem.World = moveableObject->AnimationTransforms[i] * worldMatrix;
+				_stObjects.Objects[0].World = moveableObject->AnimationTransforms[i] * worldMatrix;
 			}
 			else
 			{
-				_stItem.World = moveableObject->BindPoseTransforms[i] * worldMatrix;
+				_stObjects.Objects[0].World = moveableObject->BindPoseTransforms[i] * worldMatrix;
 			}
 
-			_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
+			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stItem, _cbItem.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Item, _cbItem.get());
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
 
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
 
@@ -1169,7 +1181,7 @@ namespace TEN::Renderer
 
 	void Renderer::RenderTitleImage()
 	{
-		auto texture = SetTextureOrDefault(TEN::Utils::ToWString(g_GameFlow->GetGameDir() + g_GameFlow->IntroImagePath.c_str()));
+		auto texture = SetTextureOrDefault(g_GameFlow->GetGameDir() + g_GameFlow->IntroImagePath.c_str());
 		if (texture == nullptr || !texture->IsValid())
 			return;
 
@@ -1206,7 +1218,7 @@ namespace TEN::Renderer
 	{
 		if (!g_DrawItems.IsEmpty())
 		{
-			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+			_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 			g_DrawItems.Draw();
 		}
 	}
@@ -1223,16 +1235,16 @@ namespace TEN::Renderer
 
 		auto& object = InventoryObjectTable[invItem];
 
-		if (IsHeld(In::Forward))
+		if (IsHeld(In::MenuUp))
 			orient.x += ANGLE(3.0f / multiplier);
 
-		if (IsHeld(In::Back))
+		if (IsHeld(In::MenuDown))
 			orient.x -= ANGLE(3.0f / multiplier);
 
-		if (IsHeld(In::Left))
+		if (IsHeld(In::MenuLeft))
 			orient.y += ANGLE(3.0f / multiplier);
 
-		if (IsHeld(In::Right))
+		if (IsHeld(In::MenuRight))
 			orient.y -= ANGLE(3.0f / multiplier);
 
 		if (IsHeld(In::Sprint))
@@ -1382,7 +1394,7 @@ namespace TEN::Renderer
 		CopyRenderTarget(_renderTarget.get(), renderTarget, _gameCamera);
 	}
 
-	void Renderer::SetLoadingScreen(std::wstring& fileName)
+	void Renderer::SetLoadingScreen(const std::string& fileName)
 	{
 		_loadingScreenTexture = SetTextureOrDefault(fileName);
 	}
@@ -1397,17 +1409,16 @@ namespace TEN::Renderer
 			SetBlendMode(BlendMode::Opaque);
 			SetCullMode(CullMode::CounterClockwise);
 
-			// Clear screen
-			_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
+			// Clear the offscreen scene render targets.
+			_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), Colors::Black);
 			_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
-			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+			_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
 			std::vector<IRenderTarget2D*> renderTargets;
-			renderTargets.push_back(_backBuffer->GetRenderTarget());
+			renderTargets.push_back(_renderTarget->GetRenderTarget());
 			renderTargets.push_back(_emissiveAndRoughnessRenderTarget->GetRenderTarget());
 
-			// Bind back buffer.
-			_graphicsDevice->BindRenderTargets(renderTargets, _backBuffer->GetDepthTarget());
+			_graphicsDevice->BindRenderTargets(renderTargets, _renderTarget->GetDepthTarget());
 			_graphicsDevice->SetViewport(_viewport);
 			_graphicsDevice->SetScissor(_viewport);
 
@@ -1488,7 +1499,7 @@ namespace TEN::Renderer
 		{
 			UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
 			Camera.DisableInterpolation = true;
-			DumpGameScene();
+			DumpGameScene(SceneRenderMode::NoHud, g_GameFlow->GetSettings()->UI.MenuBackgroundBlur);
 			_graphicsSettingsChanged = false;
 		}
 

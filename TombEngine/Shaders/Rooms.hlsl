@@ -29,13 +29,8 @@ struct PixelShaderInput
 };
 
 Texture2D Texture : register(t0);
-SamplerState Sampler : register(s0);
-
 Texture2D NormalTexture : register(t1);
-SamplerState NormalTextureSampler : register(s1);
-
 Texture2D CausticsTexture : register(t2);
-SamplerState CausticsTextureSampler : register(s2);
 
 struct PixelShaderOutput
 {
@@ -94,18 +89,18 @@ PixelShaderOutput PS(PixelShaderInput input)
     float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
     input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);                	  
 
-    float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(ORSHSampler, input.UV));
+	float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(AnisotropicClampSampler, input.UV));
     float ambientOcclusion = ORSH.x;
     float roughness = ORSH.y;
     float specular = ORSH.z;
 
-    float3 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV).xyz;
+	float3 emissive = EmissiveTexture.Sample(AnisotropicClampSampler, input.UV).xyz;
 	
     float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
-    float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV)));
+	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV)));
     normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
 
-	output.Color = Texture.Sample(Sampler, input.UV);
+	output.Color = Texture.Sample(AnisotropicClampSampler, input.UV);
 	DoAlphaTest(output.Color);
 
     // Material effects
@@ -195,9 +190,9 @@ PixelShaderOutput PS(PixelShaderInput input)
         float2 uv_y = CausticsStartUV + float2(p.z, p.x) * CausticsSize;
         float2 uv_z = CausticsStartUV + float2(p.y, p.x) * CausticsSize;
 
-        float3 xaxis = CausticsTexture.SampleLevel(CausticsTextureSampler, uv_x, 0).xyz;
-        float3 yaxis = CausticsTexture.SampleLevel(CausticsTextureSampler, uv_y, 0).xyz;
-        float3 zaxis = CausticsTexture.SampleLevel(CausticsTextureSampler, uv_z, 0).xyz;
+		float3 xaxis = CausticsTexture.SampleLevel(AnisotropicClampSampler, uv_x, 0).xyz;
+		float3 yaxis = CausticsTexture.SampleLevel(AnisotropicClampSampler, uv_y, 0).xyz;
+		float3 zaxis = CausticsTexture.SampleLevel(AnisotropicClampSampler, uv_z, 0).xyz;
 
         float3 xc = xaxis * blending.x;
         float3 yc = yaxis * blending.y;
@@ -218,6 +213,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 	output.Color = DoFogBulbsForPixel(output.Color, float4(input.FogBulbs.xyz, 1.0f));
 	output.Color = DoDistanceFogForPixel(output.Color, FogColor, input.DistanceFog);
+	output.Color = ApplyBlendModeColor(output.Color, input.PositionCopy, false);
 
     return output;
 }

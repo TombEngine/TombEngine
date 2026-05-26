@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "Game/Gui.h"
 
-#include <OISKeyboard.h>
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/control/control.h"
@@ -44,8 +43,6 @@ namespace TEN::Gui
 	constexpr int PHD_CENTER_Y	  = DISPLAY_SPACE_RES.y / 2;
 	constexpr int OBJLIST_SPACING = PHD_CENTER_X / 2;
 
-	constexpr auto VOLUME_MAX			 = 100;
-	constexpr auto VOLUME_STEP			 = VOLUME_MAX / 20;
 	constexpr auto MOUSE_SENSITIVITY_MAX = 35;
 	constexpr auto MOUSE_SENSITIVITY_MIN = 1;
 	constexpr auto MOUSE_SMOOTHING_MAX	 = 5;
@@ -139,20 +136,20 @@ namespace TEN::Gui
 		auto oppositeAction = std::optional<ActionID>(std::nullopt);
 		switch (actionID)
 		{
-		case In::Forward:
-			oppositeAction = In::Back;
+		case In::MenuUp:
+			oppositeAction = In::MenuDown;
 			break;
 
-		case In::Back:
-			oppositeAction = In::Forward;
+		case In::MenuDown:
+			oppositeAction = In::MenuUp;
 			break;
 
-		case In::Left:
-			oppositeAction = In::Right;
+		case In::MenuLeft:
+			oppositeAction = In::MenuRight;
 			break;
 
-		case In::Right:
-			oppositeAction = In::Left;
+		case In::MenuRight:
+			oppositeAction = In::MenuLeft;
 			break;
 
 		default:
@@ -542,7 +539,7 @@ namespace TEN::Gui
 
 		OptionCount = (int)DisplaySettingsOption::Count - 1;
 
-		if (GuiIsPulsed(In::Left))
+		if (GuiIsPulsed(In::MenuLeft))
 		{
 			switch (SelectedOption)
 			{
@@ -620,7 +617,7 @@ namespace TEN::Gui
 			}
 		}
 
-		if (GuiIsPulsed(In::Right))
+		if (GuiIsPulsed(In::MenuRight))
 		{
 			switch (SelectedOption)
 			{
@@ -827,17 +824,17 @@ namespace TEN::Gui
 					}
 					else
 					{
-						int selectedKeyID = 0;
-						for (selectedKeyID = 0; selectedKeyID < KEY_COUNT; selectedKeyID++)
+						int selectedKeyID = KEY_UNASSIGNED;
+						for (int i = 0; i < KEY_COUNT; i++)
 						{
-							if (KeyMap[selectedKeyID])
+							if (KeyMap[i])
+							{
+								selectedKeyID = i;
 								break;
+							}
 						}
 
-						if (selectedKeyID == KEY_COUNT)
-							selectedKeyID = 0;
-
-						if (selectedKeyID != OIS::KC_UNASSIGNED && !GetKeyName(selectedKeyID).empty())
+						if (selectedKeyID != KEY_UNASSIGNED && !GetKeyName(selectedKeyID).empty())
 						{
 							unsigned int baseIndex = 0;
 							switch (MenuToDisplay)
@@ -909,11 +906,11 @@ namespace TEN::Gui
 			SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
 
 			// HACK: Menu screen scroll.
-			if (GuiIsPulsed(In::Left) || GuiIsPulsed(In::Right))
+			if (GuiIsPulsed(In::MenuLeft) || GuiIsPulsed(In::MenuRight))
 			{
 				auto menu = std::optional<Menu>(std::nullopt);
 
-				if (GuiIsPulsed(In::Left))
+				if (GuiIsPulsed(In::MenuLeft))
 				{
 					if ((int)MenuToDisplay == (int)Menu::GeneralActions)
 					{
@@ -924,7 +921,7 @@ namespace TEN::Gui
 						menu = Menu((int)MenuToDisplay - 1);
 					}
 				}
-				else if (GuiIsPulsed(In::Right))
+				else if (GuiIsPulsed(In::MenuRight))
 				{
 					if ((int)MenuToDisplay == (int)Menu::MenuActions)
 					{
@@ -1035,7 +1032,7 @@ namespace TEN::Gui
 
 		OptionCount = (int)OtherSettingsOption::Count - 1;
 
-		if (GuiIsPulsed(In::Left) || GuiIsPulsed(In::Right))
+		if (GuiIsPulsed(In::MenuLeft) || GuiIsPulsed(In::MenuRight))
 		{
 			switch (SelectedOption)
 			{
@@ -1060,13 +1057,23 @@ namespace TEN::Gui
 				break;
 
 			case OtherSettingsOption::TargetHighlighter:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableTargetHighlighter = !CurrentSettings.Configuration.EnableTargetHighlighter;
+				if (g_GameFlow->GetSettings()->Hud.TargetHighlighter)
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableTargetHighlighter = !CurrentSettings.Configuration.EnableTargetHighlighter;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
 				break;
 
 			case OtherSettingsOption::InteractionHighlighter:
-				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableInteractionHighlighter = !CurrentSettings.Configuration.EnableInteractionHighlighter;
+				if (g_GameFlow->GetSettings()->Hud.InteractionHighlighter)
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.EnableInteractionHighlighter = !CurrentSettings.Configuration.EnableInteractionHighlighter;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
 				break;
 
 			case OtherSettingsOption::ToggleRumble:
@@ -1081,14 +1088,14 @@ namespace TEN::Gui
 			}
 		}
 
-		if (GuiIsPulsed(In::Left) && SelectedOption == OtherSettingsOption::SoundDevice)
+		if (GuiIsPulsed(In::MenuLeft) && SelectedOption == OtherSettingsOption::SoundDevice)
 		{
 			SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 			if (CurrentSettings.SelectedSoundDevice > 0)
 				CurrentSettings.SelectedSoundDevice--;
 		}
 
-		if (GuiIsPulsed(In::Right) && SelectedOption == OtherSettingsOption::SoundDevice)
+		if (GuiIsPulsed(In::MenuRight) && SelectedOption == OtherSettingsOption::SoundDevice)
 		{
 			SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 			if (CurrentSettings.SelectedSoundDevice < g_Configuration.SupportedSoundDevices.size() - 1)
@@ -1097,7 +1104,7 @@ namespace TEN::Gui
 
 		bool isVolumeAdjusted = false;
 
-		if (IsPulsed(In::Left, 0.05f, 0.4f))
+		if (IsPulsed(In::MenuLeft, 0.05f, 0.4f))
 		{
 			switch (SelectedOption)
 			{
@@ -1108,7 +1115,7 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.MusicVolume < 0)
 						CurrentSettings.Configuration.MusicVolume = 0;
 
-					SetVolumeTracks(CurrentSettings.Configuration.MusicVolume);
+					SetAudioConfiguration(CurrentSettings.Configuration);
 				}
 
 				break;
@@ -1120,8 +1127,8 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.SfxVolume < 0)
 						CurrentSettings.Configuration.SfxVolume = 0;
 
-					SetVolumeFX(CurrentSettings.Configuration.SfxVolume);
-					isVolumeAdjusted = IsPulsed(In::Left, 0.1f);
+					SetAudioConfiguration(CurrentSettings.Configuration);
+					isVolumeAdjusted = IsPulsed(In::MenuLeft, 0.1f);
 				}
 
 				break;
@@ -1140,7 +1147,7 @@ namespace TEN::Gui
 			}
 		}
 
-		if (IsPulsed(In::Right, 0.05f, 0.4f))
+		if (IsPulsed(In::MenuRight, 0.05f, 0.4f))
 		{
 			switch (SelectedOption)
 			{
@@ -1151,7 +1158,7 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.MusicVolume > VOLUME_MAX)
 						CurrentSettings.Configuration.MusicVolume = VOLUME_MAX;
 
-					SetVolumeTracks(CurrentSettings.Configuration.MusicVolume);
+					SetAudioConfiguration(CurrentSettings.Configuration);
 				}
 
 				break;
@@ -1163,8 +1170,8 @@ namespace TEN::Gui
 					if (CurrentSettings.Configuration.SfxVolume > VOLUME_MAX)
 						CurrentSettings.Configuration.SfxVolume = VOLUME_MAX;
 
-					SetVolumeFX(CurrentSettings.Configuration.SfxVolume);
-					isVolumeAdjusted = IsPulsed(In::Right, 0.1f);
+					SetAudioConfiguration(CurrentSettings.Configuration);
+					isVolumeAdjusted = IsPulsed(In::MenuRight, 0.1f);
 				}
 
 				break;
@@ -1219,8 +1226,7 @@ namespace TEN::Gui
 			}
 			else if (SelectedOption == OtherSettingsOption::Cancel)
 			{
-				SetVolumeTracks(g_Configuration.MusicVolume);
-				SetVolumeFX(g_Configuration.SfxVolume);
+				SetAudioConfiguration(g_Configuration);
 			}
 			else
 			{
@@ -2158,8 +2164,7 @@ namespace TEN::Gui
 		InventoryItemChosen = objectNumber;
 
 		// Use item event handling.
-		g_GameScript->OnUseItem((GAME_OBJECT_ID)InventoryItemChosen);
-		HandleAllGlobalEvents(EventType::UseItem, (Activator)short(item.Index));
+		g_GameScript->OnUseItem(item.Index, (GAME_OBJECT_ID)InventoryItemChosen);
 
 		// Quickly discard further processing if chosen item was reset in script.
 		if (InventoryItemChosen == NO_VALUE)
@@ -2286,7 +2291,7 @@ namespace TEN::Gui
 				{
 					// HACK.
 					ClearAllActions();
-					ActionMap[In::Flare].Update(1.0f);
+					ActionMap[In::Flare].Update(true);
 
 					HandleWeapon(item);
 					ClearAllActions();
@@ -3205,7 +3210,7 @@ namespace TEN::Gui
 					if (ring.ObjectListMovement < 0)
 						ring.ObjectListMovement -= ANGLE(45.0f / g_Renderer.GetFramerateMultiplier());
 
-					if (IsHeld(In::Left))
+					if (IsHeld(In::MenuLeft))
 					{
 						if (!ring.ObjectListMovement)
 						{
@@ -3217,7 +3222,7 @@ namespace TEN::Gui
 						}
 					}
 
-					if (IsHeld(In::Right))
+					if (IsHeld(In::MenuRight))
 					{
 						if (!ring.ObjectListMovement)
 						{
@@ -3263,7 +3268,7 @@ namespace TEN::Gui
 
 	bool GuiController::CallPause()
 	{
-		g_Renderer.DumpGameScene(SceneRenderMode::NoHud);
+		g_Renderer.DumpGameScene(SceneRenderMode::NoHud, g_GameFlow->GetSettings()->UI.MenuBackgroundBlur);
 		g_VideoPlayer.Pause();
 		PauseAllSounds(SoundPauseMode::Pause);
 		SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
@@ -3346,7 +3351,7 @@ namespace TEN::Gui
 
 		player.Inventory.OldBusy = player.Inventory.IsBusy;
 
-		g_Renderer.DumpGameScene(SceneRenderMode::NoHud);
+		g_Renderer.DumpGameScene(SceneRenderMode::NoHud, g_GameFlow->GetSettings()->UI.MenuBackgroundBlur);
 		g_VideoPlayer.Pause();
 		PauseAllSounds(SoundPauseMode::Inventory);
 		SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
@@ -3539,11 +3544,11 @@ namespace TEN::Gui
 
 	int GuiController::GetLoopedSelectedOption(int selectedOption, int optionCount, bool canLoop)
 	{
-		if (GuiIsPulsed(In::Forward))
+		if (GuiIsPulsed(In::MenuUp))
 		{
 			if (selectedOption <= 0)
 			{
-				if (IsClicked(In::Forward) && canLoop)
+				if (IsClicked(In::MenuUp) && canLoop)
 				{
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 					return optionCount;
@@ -3555,11 +3560,11 @@ namespace TEN::Gui
 				return (selectedOption - 1);
 			}
 		}
-		else if (GuiIsPulsed(In::Back))
+		else if (GuiIsPulsed(In::MenuDown))
 		{
 			if (selectedOption >= optionCount)
 			{
-				if (IsClicked(In::Back) && canLoop)
+				if (IsClicked(In::MenuDown) && canLoop)
 				{
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 					return 0;

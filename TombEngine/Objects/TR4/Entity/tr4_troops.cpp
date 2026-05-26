@@ -150,11 +150,11 @@ namespace TEN::Entities::TR4
 			AI_INFO AI;
 			CreatureAIInfo(item, &AI);
 
-			if (creature->Enemy->IsLara() && !creature->HurtByLara && item->Animation.ActiveState != TROOP_STATE_ATTACKED_BY_SCORPION)
+			if (creature->Enemy.IsLara() && !creature->HurtByLara && item->Animation.ActiveState != TROOP_STATE_ATTACKED_BY_SCORPION)
 				creature->Enemy = nullptr;
 
 			int distance = 0;
-			if (creature->Enemy && creature->Enemy->IsLara())
+			if (creature->Enemy.IsLara())
 			{
 				distance = AI.distance;
 				rot = AI.angle;

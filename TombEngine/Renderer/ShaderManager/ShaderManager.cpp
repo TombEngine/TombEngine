@@ -37,6 +37,12 @@ namespace TEN::Renderer::Utils
 		Load(Shader::PostProcessMonochrome, "PostProcess", "Monochrome", ShaderType::Pixel, {});
 		Load(Shader::PostProcessNegative, "PostProcess", "Negative", ShaderType::Pixel, {});
 		Load(Shader::PostProcessExclusion, "PostProcess", "Exclusion", ShaderType::Pixel, {});
+		Load(Shader::PostProcessDistortion, "PostProcess", "Distortion", ShaderType::Pixel, {});
+		Load(Shader::PostProcessDofDownsample, "PostProcess", "DOFDownsample", ShaderType::Pixel, {});
+		Load(Shader::PostProcessDofFarBlur, "PostProcess", "DOFFarBlur", ShaderType::Pixel, {});
+		Load(Shader::PostProcessDofNearDilate, "PostProcess", "DOFNearDilate", ShaderType::Pixel, {});
+		Load(Shader::PostProcessDofNearBlur, "PostProcess", "DOFNearBlur", ShaderType::Pixel, {});
+		Load(Shader::PostProcessDofComposite, "PostProcess", "DOFComposite", ShaderType::Pixel, {});
 		Load(Shader::PostProcessFinalPass, "PostProcess", "FinalPass", ShaderType::Pixel, {});
 		Load(Shader::PostProcessLensFlare, "PostProcess", "LensFlare", ShaderType::Pixel, {});
 
@@ -98,7 +104,7 @@ namespace TEN::Renderer::Utils
 		Load(Shader::RoomsTransparent, "Rooms", "", ShaderType::Pixel, roomTransparent);
 		Load(Shader::RoomAmbient, "RoomAmbient", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::RoomAmbientSky, "RoomAmbient", "Sky", ShaderType::PixelAndVertex, {});
-		Load(Shader::Items, "Items", "", ShaderType::PixelAndVertex, {});
+		Load(Shader::Items, "Objects", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::Sky, "Sky", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::Solid, "Solid", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::Inventory, "Inventory", "", ShaderType::PixelAndVertex, {});
@@ -112,13 +118,18 @@ namespace TEN::Renderer::Utils
 		Load(Shader::HudDTexture, "HUD", "TexturedHUD", ShaderType::Pixel, {});
 		Load(Shader::HudBarColor, "HUD", "TexturedHUDBar", ShaderType::Pixel, {});
 
-		Load(Shader::InstancedStatics, "InstancedStatics", "", ShaderType::PixelAndVertex, {});
+		Load(Shader::InstancedStatics, "Objects", "", ShaderType::PixelAndVertex, {});
 		Load(Shader::InstancedSprites, "InstancedSprites", "", ShaderType::PixelAndVertex, {});
 
 		Load(Shader::GBuffer, "GBuffer", "", ShaderType::Pixel, {});
 		Load(Shader::GBufferRooms, "GBuffer", "Rooms", ShaderType::Vertex, {});
-		Load(Shader::GBufferItems, "GBuffer", "Items", ShaderType::Vertex, {});
-		Load(Shader::GBufferInstancedStatics, "GBuffer", "InstancedStatics", ShaderType::Vertex, {});
+		// Both GBuffer enum values map to the same unified VSObjects entry — items draw with
+		// instance_count=1 (SV_InstanceID==0), statics with the actual InstanceID. The
+		// duplicate Load is kept so existing call sites (Bind(Shader::GBufferItems / ...))
+		// don't have to be touched yet; they end up pointing at byte-identical compiled VS.
+		// CreateShader prefixes "VS" to the funcName, so passing "Objects" → entry "VSObjects".
+		Load(Shader::GBufferItems, "GBuffer", "Objects", ShaderType::Vertex, {});
+		Load(Shader::GBufferInstancedStatics, "GBuffer", "Objects", ShaderType::Vertex, {});
 	}
 
 	void ShaderManager::LoadShaders(int width, int height, bool recompileAAShaders)
@@ -159,18 +170,17 @@ namespace TEN::Renderer::Utils
 	std::unique_ptr<IShader> ShaderManager::LoadOrCompile(const std::string& fileName, const std::string& funcName, ShaderType type, std::map<std::string, std::string> defines, bool forceRecompile)
 	{
 		// Define paths for native (uncompiled) shaders and compiled shaders.
-		auto shaderPath = GetAssetPath(L"Shaders/");
-		auto compiledShaderPath = shaderPath + L"Bin/" + ToWString(TEN_VERSION_STRING) + L"/";
-		auto wideFileName = ToWString(fileName);
+		auto shaderPath = GetAssetPath("Shaders/");
+		auto compiledShaderPath = shaderPath + "Bin/" + TEN_VERSION_STRING + "/";
 
 		// Ensure the /Bin subdirectory exists.
 		std::filesystem::create_directories(compiledShaderPath);
 
 		ShaderCompileRequest request;
 		request.BinaryDirectory = compiledShaderPath;
-		request.FileName = wideFileName;
+		request.FileName = fileName;
 		request.CompileIndex = _compileCounter;
-		request.EntryPoint = TEN::Utils::ToWString(funcName);
+		request.EntryPoint = funcName;
 		request.ForceRecompile = forceRecompile;
 		request.Macros = defines;
 		request.SourceDirectory = shaderPath;

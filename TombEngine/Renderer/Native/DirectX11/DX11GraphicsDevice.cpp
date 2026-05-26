@@ -25,13 +25,13 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::UpdateVertexBuffer(IVertexBuffer* vertexBuffer, int startVertex, int count, void* data)
 	{
-		auto nativeVertexBuffer = (DX11VertexBuffer*)vertexBuffer;
+		auto nativeVertexBuffer = static_cast<DX11VertexBuffer*>(vertexBuffer);
 		nativeVertexBuffer->Update(_context.Get(), data, startVertex, count);
 	}
 
 	void DX11GraphicsDevice::BindVertexBuffer(IVertexBuffer* vertexBuffer)
 	{
-		auto nativeVertexBuffer = (DX11VertexBuffer*)vertexBuffer;
+		auto nativeVertexBuffer = static_cast<DX11VertexBuffer*>(vertexBuffer);
 
 		unsigned int stride = nativeVertexBuffer->GetStride();
 		unsigned int offset = 0;
@@ -48,13 +48,13 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::UpdateIndexBuffer(IIndexBuffer* indexBuffer, int numIndices, int startIndex, int* data)
 	{
-		auto nativeIndexBuffer = (DX11VertexBuffer*)indexBuffer;
+		auto nativeIndexBuffer = static_cast<DX11IndexBuffer*>(indexBuffer);
 		nativeIndexBuffer->Update(_context.Get(), data, startIndex, numIndices);
 	}
 
 	void DX11GraphicsDevice::BindIndexBuffer(IIndexBuffer* indexBuffer)
 	{
-		auto nativeIndexBuffer = (DX11VertexBuffer*)indexBuffer;
+		auto nativeIndexBuffer = static_cast<DX11IndexBuffer*>(indexBuffer);
 		auto d3dBuffer = nativeIndexBuffer->GetD3D11Buffer();
 
 		_context->IASetIndexBuffer(d3dBuffer, DXGI_FORMAT_R32_UINT, 0);
@@ -93,7 +93,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 	std::unique_ptr<IRenderSurface2D> DX11GraphicsDevice::CreateRenderSurface2D(IRenderSurface2D* parentRenderTarget, SurfaceFormat colorFormat)
 	{
-		auto nativeRenderTarget = (DX11RenderTarget2D*)parentRenderTarget->GetRenderTarget();
+		auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(parentRenderTarget->GetRenderTarget());
 
 		auto result = std::make_unique<IRenderSurface2D>(
 			std::move(std::make_unique<DX11RenderTarget2D>(_device.Get(), nativeRenderTarget->GetD3D11Texture(), GetDXGIFormat(colorFormat))),
@@ -119,7 +119,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 	std::unique_ptr<ITexture2D> DX11GraphicsDevice::CreateTexture2DFromFile(const std::string fileName)
 	{
-		auto texture = std::make_unique<DX11Texture2D>(_device.Get(), TEN::Utils::ToWString(fileName));
+		auto texture = std::make_unique<DX11Texture2D>(_device.Get(), fileName);
 		_context->Flush();
 		return texture;
 	}
@@ -127,6 +127,13 @@ namespace TEN::Renderer::Native::DirectX11
 	std::unique_ptr<ITexture2D> DX11GraphicsDevice::CreateTexture2DFromFileInMemory(int dataSize, unsigned char* data)
 	{
 		auto texture = std::make_unique<DX11Texture2D>(_device.Get(), dataSize, data);
+		_context->Flush();
+		return texture;
+	}
+
+	std::unique_ptr<ITexture3D> DX11GraphicsDevice::CreateTexture3D(int width, int height, int depth, SurfaceFormat format, const void* data)
+	{
+		auto texture = std::make_unique<DX11Texture3D>(_device.Get(), width, height, depth, GetDXGIFormat(format), data);
 		_context->Flush();
 		return texture;
 	}
@@ -154,6 +161,10 @@ namespace TEN::Renderer::Native::DirectX11
 
 		case BlendMode::Additive:
 			_context->OMSetBlendState(_renderStates->Additive(), nullptr, 0xFFFFFFFF);
+			break;
+
+		case BlendMode::Distortion:
+			_context->OMSetBlendState(_distortionBlendState.Get(), nullptr, 0xFFFFFFFF);
 			break;
 
 		case BlendMode::Screen:
@@ -264,12 +275,45 @@ namespace TEN::Renderer::Native::DirectX11
 			return;
 		}
 
-		_context->PSSetSamplers((unsigned int)registerType, 1, &d3dSamplerState);
+		_context->PSSetSamplers((unsigned int)samplerType, 1, &d3dSamplerState);
+	}
+
+	void DX11GraphicsDevice::UnbindTexture(ShaderStage stage, TextureRegister registerType)
+	{
+		ID3D11ShaderResourceView* nullSRV = nullptr;
+		UINT slot = (UINT)registerType;
+
+		switch (stage)
+		{
+		case ShaderStage::VertexShader:
+			_context->VSSetShaderResources(slot, 1, &nullSRV);
+			break;
+
+		case ShaderStage::GeometryShader:
+			_context->GSSetShaderResources(slot, 1, &nullSRV);
+			break;
+
+		case ShaderStage::PixelShader:
+			_context->PSSetShaderResources(slot, 1, &nullSRV);
+			break;
+
+		case ShaderStage::ComputeShader:
+			_context->CSSetShaderResources(slot, 1, &nullSRV);
+			break;
+
+		case ShaderStage::HullShader:
+			_context->HSSetShaderResources(slot, 1, &nullSRV);
+			break;
+
+		case ShaderStage::DomainShader:
+			_context->DSSetShaderResources(slot, 1, &nullSRV);
+			break;
+		}
 	}
 
 	void DX11GraphicsDevice::BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer)
 	{
-		auto nativeConstantBuffer = (DX11ConstantBuffer*)buffer;
+		auto nativeConstantBuffer = static_cast<DX11ConstantBuffer*>(buffer);
 		auto d3dBuffer = nativeConstantBuffer->GetD3D11Buffer();
 
 		switch (shaderStage)
@@ -303,15 +347,62 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 	}
 
-	std::unique_ptr<IConstantBuffer> DX11GraphicsDevice::CreateConstantBuffer(int size, std::wstring name)
+	std::unique_ptr<IConstantBuffer> DX11GraphicsDevice::CreateConstantBuffer(int size, std::string name)
 	{
 		return std::make_unique<DX11ConstantBuffer>(_device.Get(), size, name);
 	}
 
 	void DX11GraphicsDevice::UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data)
 	{
-		auto nativeConstantBuffer = (DX11ConstantBuffer*)constantBuffer;
+		auto nativeConstantBuffer = static_cast<DX11ConstantBuffer*>(constantBuffer);
 		nativeConstantBuffer->UpdateData(data, _context.Get());
+	}
+
+	std::unique_ptr<IStructuredBuffer> DX11GraphicsDevice::CreateStructuredBuffer(int stride, int elementCount, std::wstring name)
+	{
+		return std::make_unique<DX11StructuredBuffer>(_device.Get(), stride, elementCount, name);
+	}
+
+	void DX11GraphicsDevice::UpdateStructuredBuffer(IStructuredBuffer* buffer, const void* data, int elementCount)
+	{
+		auto native = static_cast<DX11StructuredBuffer*>(buffer);
+		native->UpdateData(data, elementCount, _context.Get());
+	}
+
+	void DX11GraphicsDevice::BindStructuredBuffer(ShaderStage shaderStage, TextureRegister registerType, IStructuredBuffer* buffer)
+	{
+		auto native = static_cast<DX11StructuredBuffer*>(buffer);
+		auto srv = native->GetD3D11ShaderResourceView();
+
+		switch (shaderStage)
+		{
+		case ShaderStage::VertexShader:
+			_context->VSSetShaderResources((unsigned int)registerType, 1, &srv);
+			break;
+
+		case ShaderStage::PixelShader:
+			_context->PSSetShaderResources((unsigned int)registerType, 1, &srv);
+			break;
+
+		case ShaderStage::GeometryShader:
+			_context->GSSetShaderResources((unsigned int)registerType, 1, &srv);
+			break;
+
+		case ShaderStage::ComputeShader:
+			_context->CSSetShaderResources((unsigned int)registerType, 1, &srv);
+			break;
+
+		case ShaderStage::HullShader:
+			_context->HSSetShaderResources((unsigned int)registerType, 1, &srv);
+			break;
+
+		case ShaderStage::DomainShader:
+			_context->DSSetShaderResources((unsigned int)registerType, 1, &srv);
+			break;
+
+		default:
+			break;
+		}
 	}
 
 	void DX11GraphicsDevice::DrawIndexedTriangles(int count, int baseIndex, int baseVertex)
@@ -336,37 +427,37 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::ClearRenderTarget2D(IRenderTarget2D* renderTarget, XMVECTORF32 clearColor)
 	{
-		auto nativeRenderTarget = (DX11RenderTarget2D*)renderTarget;
+		auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(renderTarget);
 		_context->ClearRenderTargetView(nativeRenderTarget->GetD3D11RenderTargetView(), clearColor);
 	}
 
 	void DX11GraphicsDevice::ClearRenderTarget2D(IRenderTarget2D* renderTarget, int arrayIndex, XMVECTORF32 clearColor)
 	{
-		auto nativeRenderTarget = (DX11RenderTarget2D*)renderTarget;
+		auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(renderTarget);
 		_context->ClearRenderTargetView(nativeRenderTarget->GetD3D11RenderTargetView(arrayIndex), clearColor);
 	}
 
 	void DX11GraphicsDevice::ClearDepthStencil(IDepthTarget* renderTarget, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil)
 	{
-		auto nativeRenderTarget = (DX11DepthTarget*)renderTarget;
+		auto nativeRenderTarget = static_cast<DX11DepthTarget*>(renderTarget);
 		_context->ClearDepthStencilView(nativeRenderTarget->GetD3D11DepthStencilView(), GetClearFlags(clearFlags), depth, stencil);
 	}
 
 	void DX11GraphicsDevice::ClearDepthStencil(IDepthTarget* renderTarget, int arrayIndex, DepthStencilClearFlags clearFlags, float depth, unsigned char stencil)
 	{
-		auto nativeRenderTarget = (DX11DepthTarget*)renderTarget;
+		auto nativeRenderTarget = static_cast<DX11DepthTarget*>(renderTarget);
 		_context->ClearDepthStencilView(nativeRenderTarget->GetD3D11DepthStencilView(arrayIndex), GetClearFlags(clearFlags), depth, stencil);
 	}
 
 	void DX11GraphicsDevice::BindRenderTarget(IRenderTarget2D* renderTarget, IDepthTarget* depthTarget)
 	{
-		auto nativeRenderTarget = (DX11RenderTarget2D*)renderTarget;
+		auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(renderTarget);
 		auto d3dRenderTargetView = nativeRenderTarget->GetD3D11RenderTargetView();
 
 		ID3D11DepthStencilView* d3dDepthStencilView = nullptr;
 		if (depthTarget != nullptr)
 		{
-			auto nativeDepthTarget = (DX11DepthTarget*)depthTarget;
+			auto nativeDepthTarget = static_cast<DX11DepthTarget*>(depthTarget);
 			d3dDepthStencilView = nativeDepthTarget->GetD3D11DepthStencilView();
 		}
 				
@@ -375,13 +466,13 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::BindRenderTarget(IRenderTargetBinding renderTarget, IDepthTargetBinding depthTarget)
 	{
-		auto nativeRenderTarget = (DX11RenderTarget2D*)renderTarget.RenderTarget;
+		auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(renderTarget.RenderTarget);
 		auto d3dRenderTargetView = nativeRenderTarget->GetD3D11RenderTargetView(renderTarget.ArrayIndex);
 
 		ID3D11DepthStencilView* d3dDepthStencilView = nullptr;
 		if (depthTarget.DepthTarget != nullptr)
 		{
-			auto nativeDepthTarget = (DX11DepthTarget*)depthTarget.DepthTarget;
+			auto nativeDepthTarget = static_cast<DX11DepthTarget*>(depthTarget.DepthTarget);
 			d3dDepthStencilView = nativeDepthTarget->GetD3D11DepthStencilView(depthTarget.ArrayIndex);
 		}
 
@@ -394,7 +485,7 @@ namespace TEN::Renderer::Native::DirectX11
 		for (int i = 0; i < renderTargets.size(); i++)
 		{
 			auto renderTarget = renderTargets[i];
-			auto nativeRenderTarget = (DX11RenderTarget2D*)renderTarget;
+			auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(renderTarget);
 			auto d3dRenderTargetView = nativeRenderTarget->GetD3D11RenderTargetView(0);
 			d3dRenderTargetViews.push_back(d3dRenderTargetView);
 		}
@@ -402,7 +493,7 @@ namespace TEN::Renderer::Native::DirectX11
 		ID3D11DepthStencilView* d3dDepthStencilView = nullptr;
 		if (depthTarget != nullptr)
 		{
-			auto nativeDepthTarget = (DX11DepthTarget*)depthTarget;
+			auto nativeDepthTarget = static_cast<DX11DepthTarget*>(depthTarget);
 			d3dDepthStencilView = nativeDepthTarget->GetD3D11DepthStencilView();
 		}
 
@@ -415,7 +506,7 @@ namespace TEN::Renderer::Native::DirectX11
 		for (int i = 0; i < renderTargets.size(); i++)
 		{
 			auto renderTarget = renderTargets[i].RenderTarget;
-			auto nativeRenderTarget = (DX11RenderTarget2D*)renderTarget;
+			auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(renderTarget);
 			auto d3dRenderTargetView = nativeRenderTarget->GetD3D11RenderTargetView(renderTargets[i].ArrayIndex);
 			d3dRenderTargetViews.push_back(d3dRenderTargetView);
 		}
@@ -423,11 +514,39 @@ namespace TEN::Renderer::Native::DirectX11
 		ID3D11DepthStencilView* d3dDepthStencilView = nullptr;
 		if (depthTarget.DepthTarget != nullptr)
 		{
-			auto nativeDepthTarget = (DX11DepthTarget*)depthTarget.DepthTarget;
+			auto nativeDepthTarget = static_cast<DX11DepthTarget*>(depthTarget.DepthTarget);
 			d3dDepthStencilView = nativeDepthTarget->GetD3D11DepthStencilView(depthTarget.ArrayIndex);
 		}
 
 		_context->OMSetRenderTargets((int)d3dRenderTargetViews.size(), d3dRenderTargetViews.data(), d3dDepthStencilView);
+	}
+
+	void DX11GraphicsDevice::CopyTextureResource(ITexture2D* src, ITexture2D* dst)
+	{
+		if (src == nullptr || dst == nullptr)
+			return;
+
+		auto getNative = [](ITexture2D* t) -> ID3D11Texture2D*
+		{
+			if (auto* rt = dynamic_cast<DX11RenderTarget2D*>(t))
+				return rt->GetD3D11Texture();
+			if (auto* tex = dynamic_cast<DX11Texture2D*>(t))
+				return tex->GetD3D11Texture();
+			return nullptr;
+		};
+
+		auto* srcNative = getNative(src);
+		auto* dstNative = getNative(dst);
+		if (srcNative == nullptr || dstNative == nullptr)
+			return;
+
+		_context->CopyResource(dstNative, srcNative);
+	}
+
+	std::unique_ptr<IGpuReadbackBuffer> DX11GraphicsDevice::CreateGpuReadbackBuffer(int width, int height, SurfaceFormat format)
+	{
+		return std::make_unique<DX11GpuReadbackBuffer>(_device.Get(), _context.Get(),
+			width, height, GetDXGIFormat(format));
 	}
 
 	void DX11GraphicsDevice::SetViewport(RendererViewport viewport)
@@ -456,13 +575,13 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::SetInputLayout(IInputLayout* inputLayout)
 	{
-		auto nativeInputLayout = (DX11InputLayout*)inputLayout;
+		auto nativeInputLayout = static_cast<DX11InputLayout*>(inputLayout);
 		_context->IASetInputLayout(nativeInputLayout->GetD3D11InputLayout());
 	}
 
 	std::unique_ptr<IInputLayout> DX11GraphicsDevice::CreateInputLayout(std::vector<RendererInputLayoutField> fields, IShader* shader)
 	{
-		auto nativeShader = (DX11Shader*)shader;
+		auto nativeShader = static_cast<DX11Shader*>(shader);
 		return std::make_unique<DX11InputLayout>(_device.Get(), fields, nativeShader);
 	}
 
@@ -500,6 +619,19 @@ namespace TEN::Renderer::Native::DirectX11
 		blendStateDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blendStateDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		throwIfFailed(_device->CreateBlendState(&blendStateDesc, _subtractiveBlendState.GetAddressOf()));
+
+		blendStateDesc = {};
+		blendStateDesc.AlphaToCoverageEnable = false;
+		blendStateDesc.IndependentBlendEnable = false;
+		blendStateDesc.RenderTarget[0].BlendEnable = true;
+		blendStateDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		blendStateDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		blendStateDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		throwIfFailed(_device->CreateBlendState(&blendStateDesc, _distortionBlendState.GetAddressOf()));
 
 		blendStateDesc.AlphaToCoverageEnable = false;
 		blendStateDesc.IndependentBlendEnable = false;
@@ -793,90 +925,90 @@ namespace TEN::Renderer::Native::DirectX11
 		auto nativeShader = std::make_unique<DX11Shader>();
 
 		auto baseFileName = req.SourceDirectory + req.FileName;
-		auto prefix = ((req.CompileIndex < 10) ? L"0" : L"") + std::to_wstring(req.CompileIndex) + L"_";
+		auto prefix = ((req.CompileIndex < 10) ? "0" : "") + std::to_string(req.CompileIndex) + "_";
 
 		// VS
-		auto makeCsoName = [&](const std::string& shaderType) {
-			return req.BinaryDirectory + prefix + req.FileName + L"." +
-				std::wstring(shaderType.begin(), shaderType.end()) + L".cso";
-			};
+		auto makeCsoName = [&](const std::string& shaderType) 
+		{
+			return req.BinaryDirectory + prefix + req.FileName + "." + shaderType + ".cso";
+		};
 
 		auto macros = ToD3DMacros(req.Macros);
 
-		auto compileOne = [&](const std::string& shaderType,
-			const std::wstring& entry,
-			const char* model,
-			ID3D10Blob** outBlob)
+		auto compileOne = [&](const std::string& shaderType, const std::string& entry, const char* model, ID3D10Blob** outBlob)
+		{
+			auto csoFileName = makeCsoName(shaderType);
+			auto srcFileName = baseFileName;
+
+			auto srcFileNameWithExt = srcFileName + ".hlsl";
+			if (!std::filesystem::exists(srcFileNameWithExt))
 			{
-				auto csoFileName = makeCsoName(shaderType);
-				auto srcFileName = baseFileName;
+				srcFileNameWithExt = srcFileName + ".fx";
+			}
 
-				auto srcFileNameWithExt = srcFileName + L".hlsl";
-				if (!std::filesystem::exists(srcFileNameWithExt))
+			bool loadedFromDisk = false;
+			if (!req.ForceRecompile && std::filesystem::exists(csoFileName))
+			{
+				auto csoTime = std::filesystem::last_write_time(csoFileName);
+				auto srcTime = std::filesystem::last_write_time(srcFileNameWithExt);
+				if (srcTime < csoTime)
 				{
-					srcFileNameWithExt = srcFileName + L".fx";
-				}
-
-				bool loadedFromDisk = false;
-				if (!req.ForceRecompile && std::filesystem::exists(csoFileName))
-				{
-					auto csoTime = std::filesystem::last_write_time(csoFileName);
-					auto srcTime = std::filesystem::last_write_time(srcFileNameWithExt);
-					if (srcTime < csoTime)
+					std::ifstream ifs(std::filesystem::path{csoFileName}, std::ios::binary);
+					if (ifs)
 					{
-						std::ifstream ifs(csoFileName, std::ios::binary);
-						if (ifs)
-						{
-							ifs.seekg(0, std::ios::end);
-							auto size = ifs.tellg();
-							ifs.seekg(0, std::ios::beg);
-							std::vector<char> buf(size);
-							ifs.read(buf.data(), size);
-							D3DCreateBlob((SIZE_T)size, outBlob);
-							memcpy((*outBlob)->GetBufferPointer(), buf.data(), size);
-							loadedFromDisk = true;
-						}
+						ifs.seekg(0, std::ios::end);
+						auto size = ifs.tellg();
+						ifs.seekg(0, std::ios::beg);
+						std::vector<char> buf(size);
+						ifs.read(buf.data(), size);
+						D3DCreateBlob((SIZE_T)size, outBlob);
+						memcpy((*outBlob)->GetBufferPointer(), buf.data(), size);
+						loadedFromDisk = true;
 					}
 				}
+			}
 
-				if (!loadedFromDisk)
-				{
-					UINT flags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
+			if (!loadedFromDisk)
+			{
+				UINT flags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
 #ifdef _DEBUG
-					flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+				flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
-					flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_IEEE_STRICTNESS;
+				flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_IEEE_STRICTNESS;
 #endif
 
-					ComPtr<ID3D10Blob> errors;
-					auto target = shaderType + TEN::Utils::ToString(entry);
-					auto hr = D3DCompileFromFile(
-						srcFileNameWithExt.c_str(),
-						macros.data(),
-						D3D_COMPILE_STANDARD_FILE_INCLUDE,
-						target.c_str(),
-						model,
-						flags,
-						0,
-						outBlob,
-						&errors
-					);
-					if (FAILED(hr))
-					{
-						if (errors)
-						{
-							TENLog((const char*)errors->GetBufferPointer(), LogLevel::Error);
-						}
-						throwIfFailed(hr);
-					}
+				TENLog(fmt::format("Compiling shader '{}'", srcFileNameWithExt));
 
-					std::ofstream ofs(csoFileName, std::ios::binary);
-					if (ofs)
+				ComPtr<ID3D10Blob> errors;
+				auto target = shaderType + entry;
+				auto wPath = TEN::Utils::ToWString(srcFileNameWithExt);
+				auto hr = D3DCompileFromFile(
+					wPath.c_str(),
+					macros.data(),
+					D3D_COMPILE_STANDARD_FILE_INCLUDE,
+					target.c_str(),
+					model,
+					flags,
+					0,
+					outBlob,
+					&errors);
+
+				if (FAILED(hr))
+				{
+					if (errors)
 					{
-						ofs.write((const char*)(*outBlob)->GetBufferPointer(), (*outBlob)->GetBufferSize());
+						TENLog((const char*)errors->GetBufferPointer(), LogLevel::Error);
 					}
+					throwIfFailed(hr);
 				}
-			};
+
+				std::ofstream ofs(std::filesystem::path{csoFileName}, std::ios::binary);
+				if (ofs)
+				{
+					ofs.write((const char*)(*outBlob)->GetBufferPointer(), (*outBlob)->GetBufferSize());
+				}
+			}
+		};
 
 		if (req.Type == ShaderType::Pixel || req.Type == ShaderType::PixelAndVertex)
 		{
@@ -922,7 +1054,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::BindShader(ShaderStage shaderStage, IShader* shader, bool forceNull)
 	{
-		auto* nativeShader = (DX11Shader*)shader;
+		auto* nativeShader = static_cast<DX11Shader*>(shader);
 
 		if (!nativeShader)
 		{
@@ -973,7 +1105,7 @@ namespace TEN::Renderer::Native::DirectX11
 		_context->ClearState();
 	}
 
-	std::unique_ptr<ISpriteFont> DX11GraphicsDevice::InitializeSpriteFont(std::wstring fontPath)
+	std::unique_ptr<ISpriteFont> DX11GraphicsDevice::InitializeSpriteFont(std::string fontPath)
 	{
 		return std::make_unique<DX11SpriteFont>(_device.Get(), fontPath);
 	}
@@ -988,10 +1120,11 @@ namespace TEN::Renderer::Native::DirectX11
 		return std::make_unique<DX11PrimitiveBatch>(_context.Get());
 	}
 
-	void DX11GraphicsDevice::SaveScreenshot(IRenderTarget2D* renderTarget, std::wstring path)
+	void DX11GraphicsDevice::SaveScreenshot(IRenderTarget2D* renderTarget, std::string path)
 	{
-		auto nativeRenderTarget = (DX11RenderTarget2D*)renderTarget;
-		SaveWICTextureToFile(_context.Get(), nativeRenderTarget->GetD3D11Texture(), GUID_ContainerFormatPng, path.c_str(), 
+		auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(renderTarget);
+		auto wPath = TEN::Utils::ToWString(path);
+		SaveWICTextureToFile(_context.Get(), nativeRenderTarget->GetD3D11Texture(), GUID_ContainerFormatPng, wPath.c_str(),
 			&GUID_WICPixelFormat24bppBGR, nullptr, true);
 	}
 
@@ -1013,7 +1146,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 	void DX11GraphicsDevice::UpdateTexture2D(ITexture2D* texture, std::vector<char> data)
 	{
-		auto nativeTexture = (DX11Texture2D*)texture;
+		auto nativeTexture = static_cast<DX11Texture2D*>(texture);
 		auto d3dTexture = nativeTexture->GetD3D11Texture();
 		
 		int width = texture->GetWidth();

@@ -8,9 +8,9 @@
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/ScriptUtil.h"
-#include "Scripting/Internal/TEN/Logic/LevelFunc.h"
 #include "Scripting/Internal/TEN/Logic/EventType.h"
 #include "Scripting/Internal/TEN/Logic/LevelEndReason.h"
+#include "Scripting/Internal/TEN/Logic/LevelFunc.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
@@ -52,8 +52,7 @@ void SetVariable(sol::table tab, sol::object key, sol::object value)
 	{
 		key.push();
 
-		size_t stringLength = 0;
-		auto string = std::string(luaL_tolstring(tab.lua_state(), -1, &stringLength));
+		auto string = std::string(luaL_tolstring(tab.lua_state(), -1, nullptr));
 
 		if (!string.empty())
 		{
@@ -115,6 +114,7 @@ LogicHandler::LogicHandler(sol::state* lua, sol::table& parent) : _handler{ lua 
 
 	tableLogic.set_function(ScriptReserved_AddCallback, &LogicHandler::AddCallback, this);
 	tableLogic.set_function(ScriptReserved_RemoveCallback, &LogicHandler::RemoveCallback, this);
+	tableLogic.set_function(ScriptReserved_HasCallback, &LogicHandler::HasCallback, this);
 	tableLogic.set_function(ScriptReserved_HandleEvent, &LogicHandler::HandleEvent, this);
 	tableLogic.set_function(ScriptReserved_EnableEvent, &LogicHandler::EnableEvent, this);
 	tableLogic.set_function(ScriptReserved_DisableEvent, &LogicHandler::DisableEvent, this);
@@ -122,21 +122,6 @@ LogicHandler::LogicHandler(sol::state* lua, sol::table& parent) : _handler{ lua 
 	_handler.MakeReadOnlyTable(tableLogic, ScriptReserved_EndReason, LEVEL_END_REASONS);
 	_handler.MakeReadOnlyTable(tableLogic, ScriptReserved_CallbackPoint, CALLBACK_POINTS);
 	_handler.MakeReadOnlyTable(tableLogic, ScriptReserved_EventType, EVENT_TYPES);
-
-	_callbacks.insert(std::make_pair(CallbackPoint::PreStart, &_callbacksPreStart));
-	_callbacks.insert(std::make_pair(CallbackPoint::PostStart, &_callbacksPostStart));
-	_callbacks.insert(std::make_pair(CallbackPoint::PreLoad, &_callbacksPreLoad));
-	_callbacks.insert(std::make_pair(CallbackPoint::PostLoad, &_callbacksPostLoad));
-	_callbacks.insert(std::make_pair(CallbackPoint::PreLoop, &_callbacksPreLoop));
-	_callbacks.insert(std::make_pair(CallbackPoint::PostLoop, &_callbacksPostLoop));
-	_callbacks.insert(std::make_pair(CallbackPoint::PreSave, &_callbacksPreSave));
-	_callbacks.insert(std::make_pair(CallbackPoint::PostSave, &_callbacksPostSave));
-	_callbacks.insert(std::make_pair(CallbackPoint::PreEnd, &_callbacksPreEnd));
-	_callbacks.insert(std::make_pair(CallbackPoint::PostEnd, &_callbacksPostEnd));
-	_callbacks.insert(std::make_pair(CallbackPoint::PreUseItem, &_callbacksPreUseItem));
-	_callbacks.insert(std::make_pair(CallbackPoint::PostUseItem, &_callbacksPostUseItem));
-	_callbacks.insert(std::make_pair(CallbackPoint::PreFreeze, &_callbacksPreFreeze));
-	_callbacks.insert(std::make_pair(CallbackPoint::PostFreeze, &_callbacksPostFreeze));
 
 	LevelFunc::Register(tableLogic);
 
@@ -156,8 +141,9 @@ i.e. if you register `MyFunc` and `MyFunc2` with `PRE_LOOP`, both will be called
 
 Arguments:
 
-- The callbacks `PRE_END`, `POST_END`, `PRE_USE_ITEM`, and `POST_USE_ITEM` receive an argument (like their respective LevelFuncs.OnEnd and LevelFuncs.OnUseItem).
-
+- The callbacks `PRE_END` and `POST_END` receive a @{Logic.EndReason} argument.
+- The callbacks `PRE_USE_ITEM` and `POST_USE_ITEM` receive an @{Objects.ObjID} argument.
+- The callbacks `PRE_PICKUP`, `POST_PICKUP`, `PRE_VEHICLE_ENTER`, `POST_VEHICLE_ENTER`, `PRE_VEHICLE_LEAVE`, and `POST_VEHICLE_LEAVE` receive a @{Objects.Moveable} argument.
 - The argument for `PRE_LOOP` and `POST_LOOP` is deprecated and should not be used.
 
 @function AddCallback
@@ -195,20 +181,15 @@ void LogicHandler::AddCallback(CallbackPoint point, const LevelFunc& levelFunc)
 		return;
 	}
 
-	auto it = _callbacks.find(point);
-	if (it == _callbacks.end()) 
+	auto& callbacks = _callbackSets[(int)point];
+
+	if (callbacks.find(levelFunc.m_funcName) != callbacks.end())
 	{
-		TENLog("Callback point not found. Attempted to access missing value.", LogLevel::Error, LogConfig::All, false);
-		return;
-	}
-	
-	if (it->second->find(levelFunc.m_funcName) != it->second->end())
-	{
-		TENLog(fmt::format("Function {} already registered in callbacks list.", levelFunc.m_funcName), LogLevel::Warning, LogConfig::All, true);
+		TENLog(fmt::format("Function {} already registered in the callback list.", levelFunc.m_funcName), LogLevel::Warning, LogConfig::All, true);
 	}
 	else
 	{
-		it->second->insert(levelFunc.m_funcName);
+		callbacks.insert(levelFunc.m_funcName);
 	}
 }
 
@@ -229,14 +210,27 @@ void LogicHandler::RemoveCallback(CallbackPoint point, const LevelFunc& levelFun
 		return;
 	}
 
-	auto it = _callbacks.find(point);
-	if (it == _callbacks.end())
-	{
-		TENLog("Callback point not found. Attempted to access missing value.", LogLevel::Error, LogConfig::All, false);
-		return;
-	}
+	_callbackSets[(int)point].erase(levelFunc.m_funcName);
+}
 
-	it->second->erase(levelFunc.m_funcName);
+/*** Check if a function is registered as a callback for a specific callback point.
+
+@function HasCallback
+@tparam Logic.CallbackPoint point The callback point to check.
+@tparam function func The function to check; must be in the `LevelFuncs` hierarchy.
+@treturn boolean True if the function is registered for the callback point, false otherwise.
+@usage
+	if TEN.Logic.HasCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.MyFunc) then
+		print("MyFunc is registered for PRE_LOOP")
+	end
+*/
+bool LogicHandler::HasCallback(CallbackPoint point, const LevelFunc& levelFunc)
+{
+	if (point == CallbackPoint::Count)
+		return false;
+
+	auto& callbacks = _callbackSets[(int)point];
+	return callbacks.find(levelFunc.m_funcName) != callbacks.end();
 }
 
 /*** Attempt to find an event set and execute a particular event from it.
@@ -401,8 +395,8 @@ void LogicHandler::ResetScripts(bool clearGameVars)
 {
 	FreeLevelScripts();
 
-	for (auto& [first, second] : _callbacks)
-		second->clear();
+	for (auto& callbacks : _callbackSets)
+		callbacks.clear();
 
 	auto currentPackage = _handler.GetState()->get<sol::table>("package");
 	auto currentLoaded = currentPackage.get<sol::table>("loaded");
@@ -436,13 +430,8 @@ void LogicHandler::FreeLevelScripts()
 
 	ResetLevelTables();
 
-	_onStart = sol::nil;
-	_onLoad = sol::nil;
-	_onLoop = sol::nil;
-	_onSave = sol::nil;
-	_onEnd = sol::nil;
-	_onUseItem = sol::nil;
-	_onFreeze = sol::nil;
+	for (auto& callback : _levelFuncCallbacks)
+		callback = sol::nil;
 
 	_functionCallCount = 0;
 	_insideFunction = false;
@@ -451,7 +440,7 @@ void LogicHandler::FreeLevelScripts()
 }
 
 template<SavedVarType TypeEnum, typename TypeTo, typename TypeFrom, typename MapType>
-int Handle(TypeFrom& var, MapType& varsMap, size_t& numVars, std::vector<SavedVar>& vars)
+int Handle(TypeFrom& var, MapType& varsMap, int& numVars, std::vector<SavedVar>& vars)
 {
 	auto [first, second] = varsMap.insert(std::make_pair(&var, (int)numVars));
 
@@ -522,7 +511,7 @@ void LogicHandler::SerializeScriptTable(const sol::table& tab, std::vector<Saved
 	auto numMap = std::unordered_map<double, unsigned int>{};
 	auto boolMap = std::unordered_map<bool, unsigned int>{};
 
-	size_t varCount = 0;
+	int varCount = 0;
 
 	// The following functions will all try to put their values in a map. If it succeeds
 	// then the value was not already in the map, so we can put it into the var vector.
@@ -609,7 +598,7 @@ void LogicHandler::SerializeScriptTable(const sol::table& tab, std::vector<Saved
 					else
 					{
 						keyIndex = handleNum(data, numMap);
-						key = static_cast<unsigned int>(data);
+						key = (unsigned int)data;
 						_savedVarPath.push_back(key);
 					}
 				}
@@ -839,92 +828,22 @@ void LogicHandler::SetGlobalVariables(const std::vector<SavedVar>& vars)
 	}
 }
 
-void LogicHandler::GetCallbackStrings(	
-	std::vector<std::string>& preStart,
-	std::vector<std::string>& postStart,
-	std::vector<std::string>& preEnd,
-	std::vector<std::string>& postEnd,
-	std::vector<std::string>& preSave,
-	std::vector<std::string>& postSave,
-	std::vector<std::string>& preLoad,
-	std::vector<std::string>& postLoad,
-	std::vector<std::string>& preLoop,
-	std::vector<std::string>& postLoop,
-	std::vector<std::string>& preUseItem,
-	std::vector<std::string>& postUseItem,
-	std::vector<std::string>& preBreak,
-	std::vector<std::string>& postBreak) const
+void LogicHandler::GetCallbackStrings(CallbackStringLists& callbackLists) const
 {
-	auto populateWith = [](std::vector<std::string>& dest, const std::unordered_set<std::string>& src)
+	for (int i = 0; i < (int)_callbackSets.size(); ++i)
 	{
-		for (const auto& string : src)
-			dest.push_back(string);
-	};
-
-	populateWith(preStart, _callbacksPreStart);
-	populateWith(postStart, _callbacksPostStart);
-
-	populateWith(preEnd, _callbacksPreEnd);
-	populateWith(postEnd, _callbacksPostEnd);
-
-	populateWith(preSave, _callbacksPreSave);
-	populateWith(postSave, _callbacksPostSave);
-
-	populateWith(preLoad, _callbacksPreLoad);
-	populateWith(postLoad, _callbacksPostLoad);
-
-	populateWith(preLoop, _callbacksPreLoop);
-	populateWith(postLoop, _callbacksPostLoop);
-
-	populateWith(preUseItem, _callbacksPreUseItem);
-	populateWith(postUseItem, _callbacksPostUseItem);
-
-	populateWith(preBreak, _callbacksPreFreeze);
-	populateWith(postBreak, _callbacksPostFreeze);
+		for (const auto& string : _callbackSets[i])
+			callbackLists[i].push_back(string);
+	}
 }
 
-void LogicHandler::SetCallbackStrings(	
-	const std::vector<std::string>& preStart,
-	const std::vector<std::string>& postStart,
-	const std::vector<std::string>& preEnd,
-	const std::vector<std::string>& postEnd,
-	const std::vector<std::string>& preSave,
-	const std::vector<std::string>& postSave,
-	const std::vector<std::string>& preLoad,
-	const std::vector<std::string>& postLoad,
-	const std::vector<std::string>& preLoop,
-	const std::vector<std::string>& postLoop,
-	const std::vector<std::string>& preUseItem,
-	const std::vector<std::string>& postUseItem,
-	const std::vector<std::string>& preBreak,
-	const std::vector<std::string>& postBreak)
+void LogicHandler::SetCallbackStrings(const CallbackStringLists& callbackLists)
 {
-	auto populateWith = [](std::unordered_set<std::string>& dest, const std::vector<std::string>& src)
+	for (int i = 0; i < (int)callbackLists.size(); ++i)
 	{
-		for (const auto& string : src)
-			dest.insert(string);
-	};
-
-	populateWith(_callbacksPreStart, preStart);
-	populateWith(_callbacksPostStart, postStart);
-
-	populateWith(_callbacksPreEnd, preEnd);
-	populateWith(_callbacksPostEnd, postEnd);
-
-	populateWith(_callbacksPreSave, preSave);
-	populateWith(_callbacksPostSave, postSave);
-
-	populateWith(_callbacksPreLoad, preLoad);
-	populateWith(_callbacksPostLoad, postLoad);
-
-	populateWith(_callbacksPreLoop, preLoop);
-	populateWith(_callbacksPostLoop, postLoop);
-
-	populateWith(_callbacksPreUseItem, preUseItem);
-	populateWith(_callbacksPostUseItem, postUseItem);
-
-	populateWith(_callbacksPreFreeze, preBreak);
-	populateWith(_callbacksPostFreeze, postBreak);
+		for (const auto& string : callbackLists[i])
+			_callbackSets[i].insert(string);
+	}
 }
 
 template <typename R, char const * S, typename mapType>
@@ -1007,46 +926,53 @@ unsigned int LogicHandler::GetFunctionCallCount()
 	return _insideFunction ? _functionCallCount : 0;
 }
 
-void LogicHandler::PerformCallbacks(CallbackPoint point, int argument)
+void LogicHandler::PerformMoveableCallbacks(CallbackPoint point, short itemNumber)
 {
-	auto it = _callbacks.find(point);
-	if (it == _callbacks.end())
+	if (itemNumber == NO_VALUE)
 		return;
 
-	if (it->second->empty())
+	auto& callbacks = _callbackSets[(int)point];
+	if (callbacks.empty())
 		return;
 
 	_lastCallbackPoint = point;
 
-	for (const auto& name : *it->second)
-	{
-		if (argument == NO_VALUE)
-			CallLevelFuncByName(name);
-		else
-			CallLevelFuncByName(name, argument);
-	}
+	for (const auto& name : callbacks)
+		CallLevelFuncByName(name, std::make_unique<Moveable>(itemNumber));
+
 	_lastCallbackPoint = std::nullopt;
+}
+
+void LogicHandler::PerformMoveableCallbacks(LevelFuncCallbackPoint callback, CallbackPoint prePoint, CallbackPoint postPoint, short itemNumber, bool postLoop)
+{
+	if (itemNumber == NO_VALUE)
+		return;
+
+	if (!postLoop)
+	{
+		PerformMoveableCallbacks(prePoint, itemNumber);
+		return;
+	}
+
+	PerformLevelFuncCallback(callback, std::make_unique<Moveable>(itemNumber));
+	PerformMoveableCallbacks(postPoint, itemNumber);
 }
 
 
 void LogicHandler::OnStart()
 {
 	PerformCallbacks(CallbackPoint::PreStart);
-
-	if (_onStart.valid())
-		CallLevelFunc(_onStart);
-
+	PerformLevelFuncCallback(LevelFuncCallbackPoint::Start);
 	PerformCallbacks(CallbackPoint::PostStart);
+	HandleAllGlobalEvents(EventType::Start, (Activator)short(LaraItem->Index));
 }
 
 void LogicHandler::OnLoad()
 {
 	PerformCallbacks(CallbackPoint::PreLoad);
-
-	if (_onLoad.valid())
-		CallLevelFunc(_onLoad);
-
+	PerformLevelFuncCallback(LevelFuncCallbackPoint::Load);
 	PerformCallbacks(CallbackPoint::PostLoad);
+	HandleAllGlobalEvents(EventType::Load, (Activator)short(LaraItem->Index));
 }
 
 void LogicHandler::OnLoop(float deltaTime, bool postLoop)
@@ -1058,8 +984,8 @@ void LogicHandler::OnLoop(float deltaTime, bool postLoop)
 		PerformConsoleInput();
 
 		lua_gc(_handler.GetState()->lua_state(), LUA_GCCOLLECT, 0);
-		if (_onLoop.valid())
-			CallLevelFunc(_onLoop, deltaTime);
+		PerformLevelFuncCallback(LevelFuncCallbackPoint::Loop, deltaTime);
+		HandleAllGlobalEvents(EventType::Loop, (Activator)short(LaraItem->Index));
 	}
 	else
 	{
@@ -1070,11 +996,9 @@ void LogicHandler::OnLoop(float deltaTime, bool postLoop)
 void LogicHandler::OnSave()
 {
 	PerformCallbacks(CallbackPoint::PreSave);
-
-	if (_onSave.valid())
-		CallLevelFunc(_onSave);
-
+	PerformLevelFuncCallback(LevelFuncCallbackPoint::Save);
 	PerformCallbacks(CallbackPoint::PostSave);
+	HandleAllGlobalEvents(EventType::Save, (Activator)short(LaraItem->Index));
 }
 
 void LogicHandler::OnEnd(GameStatus reason)
@@ -1100,21 +1024,38 @@ void LogicHandler::OnEnd(GameStatus reason)
 	}
 
 	PerformCallbacks(CallbackPoint::PreEnd, int(endReason));
-
-	if (_onEnd.valid())
-		CallLevelFunc(_onEnd, endReason);
-
+	PerformLevelFuncCallback(LevelFuncCallbackPoint::End, endReason);
 	PerformCallbacks(CallbackPoint::PostEnd, int(endReason));
+	HandleAllGlobalEvents(EventType::End, (Activator)short(LaraItem->Index));
 }
 
-void LogicHandler::OnUseItem(GAME_OBJECT_ID objectNumber)
+void LogicHandler::OnUseItem(short itemNumber, GAME_OBJECT_ID objectNumber)
 {
 	PerformCallbacks(CallbackPoint::PreUseItem, objectNumber);
-
-	if (_onUseItem.valid())
-		CallLevelFunc(_onUseItem, objectNumber);
-
+	PerformLevelFuncCallback(LevelFuncCallbackPoint::UseItem, objectNumber);
 	PerformCallbacks(CallbackPoint::PostUseItem, objectNumber);
+	HandleAllGlobalEvents(EventType::UseItem, (Activator)itemNumber);
+}
+
+void LogicHandler::OnPickup(short itemNumber, bool postLoop)
+{
+	PerformMoveableCallbacks(LevelFuncCallbackPoint::Pickup, CallbackPoint::PrePickup, CallbackPoint::PostPickup, itemNumber, postLoop);
+	if (postLoop)
+		HandleAllGlobalEvents(EventType::Pickup, (Activator)itemNumber);
+}
+
+void LogicHandler::OnVehicleEnter(short itemNumber, bool postLoop)
+{
+	PerformMoveableCallbacks(LevelFuncCallbackPoint::VehicleEnter, CallbackPoint::PreVehicleEnter, CallbackPoint::PostVehicleEnter, itemNumber, postLoop);
+	if (postLoop)
+		HandleAllGlobalEvents(EventType::VehicleEnter, (Activator)itemNumber);
+}
+
+void LogicHandler::OnVehicleLeave(short itemNumber, bool postLoop)
+{
+	PerformMoveableCallbacks(LevelFuncCallbackPoint::VehicleLeave, CallbackPoint::PreVehicleLeave, CallbackPoint::PostVehicleLeave, itemNumber, postLoop);
+	if (postLoop)
+		HandleAllGlobalEvents(EventType::VehicleLeave, (Activator)itemNumber);
 }
 
 void LogicHandler::OnFreeze()
@@ -1122,11 +1063,9 @@ void LogicHandler::OnFreeze()
 	PerformCallbacks(CallbackPoint::PreFreeze);
 
 	PerformConsoleInput();
-
-	if (_onFreeze.valid())
-		CallLevelFunc(_onFreeze);
-
+	PerformLevelFuncCallback(LevelFuncCallbackPoint::Freeze);
 	PerformCallbacks(CallbackPoint::PostFreeze);
+	HandleAllGlobalEvents(EventType::Freeze, (Activator)short(LaraItem->Index));
 }
 
 void LogicHandler::InitCallbacks()
@@ -1168,14 +1107,9 @@ void LogicHandler::InitCallbacks()
 			TENLog("Level script does not define callback " + fullName + ". Defaulting to no " + fullName + " behaviour.", LogLevel::Info, LogConfig::Debug);
 	};
 
-	assignCB(_onStart, ScriptReserved_OnStart);
-	assignCB(_onLoad, ScriptReserved_OnLoad);
-	assignCB(_onLoop, ScriptReserved_OnLoop);
-	assignCB(_onSave, ScriptReserved_OnSave);
-	assignCB(_onEnd, ScriptReserved_OnEnd);
-	assignCB(_onUseItem, ScriptReserved_OnUseItem);
-	assignCB(_onFreeze, ScriptReserved_OnFreeze);
+	for (int i = 0; i < (int)_levelFuncCallbacks.size(); ++i)
+		assignCB(_levelFuncCallbacks[i], LEVELFUNC_CALLBACK_POINTS[(LevelFuncCallbackPoint)i]);
 
 	// COMPATIBILITY
-	assignCB(_onLoop, "OnControlPhase");
+	assignCB(_levelFuncCallbacks[(int)LevelFuncCallbackPoint::Loop], "OnControlPhase");
 }
