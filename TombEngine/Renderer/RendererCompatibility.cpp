@@ -81,7 +81,23 @@ namespace TEN::Renderer
 		if (abs(floorHeight - absY) >= abs(ceilHeight - absY))
 			return false;
 
-		return sector.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow;
+		// Diagonal-split sectors store separate materials per sub-sector half. The
+		// centroid of a small triangular floor polygon can land in the OTHER half by
+		// a few units, which would falsely reject the snow overlay. Accept the polygon
+		// if any of its own vertices reports Snow material, not just the centroid.
+		if (sector.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow)
+			return true;
+
+		for (int idx : poly.indices)
+		{
+			const auto& v = room.positions[idx];
+			int vAbsX = (int)v.x + room.Position.x;
+			int vAbsZ = (int)v.z + room.Position.z;
+			if (sector.GetSurfaceMaterial(vAbsX, vAbsZ, true) == MaterialType::Snow)
+				return true;
+		}
+
+		return false;
 	}
 
 	static void GetSnowOverlayCounts(const POLYGON& poly, int subdivisions, int& outVerts, int& outIndices)
@@ -120,12 +136,12 @@ namespace TEN::Renderer
 
 		const auto& sector = room.Sectors[gridX * room.ZSize + gridZ];
 
-		// Reject neighbor sectors that are not snow themselves -- otherwise we'd drape
-		// snow over arbitrary stone steps.
-		int absSampleX = (int)localX + room.Position.x;
-		int absSampleZ = (int)localZ + room.Position.z;
-		if (sector.GetSurfaceMaterial(absSampleX, absSampleZ, true) != MaterialType::Snow)
-			return NO_HEIGHT;
+		// Use the probe point itself (not the polygon vertex) for both material and height
+		// queries. Non-snow neighbors are accepted: the skirt is the boundary between
+		// snow and whatever lies outside, so we WANT a drop where the neighbor is stone
+		// or open floor.
+		int absSampleX = (int)probeMidX + room.Position.x;
+		int absSampleZ = (int)probeMidZ + room.Position.z;
 
 		int floorY = sector.GetSurfaceHeight(absSampleX, absSampleZ, true);
 		return floorY;
@@ -143,7 +159,9 @@ namespace TEN::Renderer
 		int& outBottomAbsYA,
 		int& outBottomAbsYB)
 	{
-		constexpr int SKIRT_MIN_DROP = 8; // World units: avoid hairline skirts on flat tiles.
+		constexpr int SKIRT_MIN_DROP = 8;         // World units: avoid hairline skirts on flat tiles.
+		constexpr int SKIRT_MAX_DROP = CLICK(3);  // Beyond ~3 clicks the slope exceeds the angle of repose
+		                                           // for snow -- no natural drift forms against a near-vertical wall.
 
 		// Edge midpoint and outward direction (perpendicular to edge in XZ, away from centroid).
 		float midX = (vA.x + vB.x) * 0.5f;
@@ -179,9 +197,13 @@ namespace TEN::Renderer
 
 		// Skirt only when neighbor floor sits BELOW our edge (Y is down, so larger = lower).
 		// Emit only "downward" skirts to avoid duplication on shared edges.
+		// Suppress skirts where BOTH endpoints exceed the angle of repose (>= 3 clicks):
+		// snow cannot sustain a drift against a near-vertical wall.
 		int dropA = neighborYA - topAbsYA;
 		int dropB = neighborYB - topAbsYB;
 		if (dropA < SKIRT_MIN_DROP && dropB < SKIRT_MIN_DROP)
+			return false;
+		if (dropA >= SKIRT_MAX_DROP && dropB >= SKIRT_MAX_DROP)
 			return false;
 
 		// Clamp each endpoint individually -- a sloped edge may only drop on one side.
@@ -237,6 +259,91 @@ namespace TEN::Renderer
 		return a * w0 + b * w1 + c * w2;
 	}
 
+	// Returns the per-vertex lift scale k in [0, 1] for a snow overlay/skirt vertex
+	// at posLocal. Smoothstep-faded over EDGE_FADE_RANGE inward from any drop edge.
+	//
+	// The value of k at the edge itself depends on the drop magnitude:
+	//   - Drop >= 3 clicks (large): edgeScale=0 -> snow rolls all the way down to the floor.
+	//   - Drop < 3 clicks (small):  edgeScale = 1 - drop/lift -> snow transitions to the
+	//     neighbor snow surface height. CPU posY = polyFloor - lift*k = neighborFloor - lift
+	//     at h=0, so the pristine snow surface meets the neighbor snow level seamlessly.
+	// Outside the fade band k=1 (standard, undisturbed snow).
+	static float GetSnowLiftScale(
+		const POLYGON& poly,
+		const RoomData& room,
+		const Vector3& posLocal,
+		float lift)
+	{
+		constexpr float EDGE_FADE_RANGE = (float)CLICK(2);
+		constexpr int LARGE_DROP_THRESHOLD = CLICK(3);
+
+		int n = (int)poly.indices.size();
+		if (n < 3)
+			return 1.0f;
+
+		Vector3 centroid = Vector3::Zero;
+		for (int idx : poly.indices)
+			centroid += room.positions[idx];
+		centroid /= (float)n;
+
+		float minScale = 1.0f;
+
+		for (int e = 0; e < n; e++)
+		{
+			const auto& vA = room.positions[poly.indices[e]];
+			const auto& vB = room.positions[poly.indices[(e + 1) % n]];
+
+			int bottomYA, bottomYB;
+			if (!GetSnowSkirtForEdge(vA, vB, centroid, room, bottomYA, bottomYB))
+				continue;
+
+			// Distance from posLocal to nearest point on this edge in XZ.
+			float ex = vB.x - vA.x;
+			float ez = vB.z - vA.z;
+			float elenSq = ex * ex + ez * ez;
+			if (elenSq < 1e-3f)
+				continue;
+
+			float t = ((posLocal.x - vA.x) * ex + (posLocal.z - vA.z) * ez) / elenSq;
+			t = std::clamp(t, 0.0f, 1.0f);
+
+			float qx = vA.x + ex * t;
+			float qz = vA.z + ez * t;
+			float dx = posLocal.x - qx;
+			float dz = posLocal.z - qz;
+			float dist = sqrtf(dx * dx + dz * dz);
+			if (dist >= EDGE_FADE_RANGE)
+				continue;
+
+			// Interpolate the drop at the nearest edge point along parameter t.
+			// This correctly handles sloped ramps where one endpoint is at the same
+			// height as our floor (drop=0) and the other is lower: at the same-height
+			// corner the interpolated drop is 0, so edgeScale stays 1 (full snow),
+			// and the snow surface seamlessly continues across the shared corner.
+			int topAbsYA = (int)vA.y + room.Position.y;
+			int topAbsYB = (int)vB.y + room.Position.y;
+			int dropA = bottomYA - topAbsYA;
+			int dropB = bottomYB - topAbsYB;
+			int dropQ = (int)((float)dropA * (1.0f - t) + (float)dropB * t);
+
+			// Scale at the edge: large drop -> floor (0), small drop -> neighbor snow level.
+			float edgeScale;
+			if (dropQ >= LARGE_DROP_THRESHOLD || lift < 1.0f)
+				edgeScale = 0.0f;
+			else
+				edgeScale = std::clamp(1.0f - (float)dropQ / lift, 0.0f, 1.0f);
+
+			// Smoothstep: edgeScale at dist=0, 1.0 at EDGE_FADE_RANGE inward.
+			float u = dist / EDGE_FADE_RANGE;
+			float fade = u * u * (3.0f - 2.0f * u);
+			float scale = edgeScale + (1.0f - edgeScale) * fade;
+			if (scale < minScale)
+				minScale = scale;
+		}
+
+		return minScale;
+	}
+
 	// Writes one snow overlay vertex into the global buffer.
 	static void EmitSnowVertex(
 		Vertex&        out,
@@ -251,15 +358,18 @@ namespace TEN::Renderer
 		float lift,
 		int   animFrame,
 		float shineStrength,
-		int   vertIndexInPoly)
+		int   vertIndexInPoly,
+		float liftScale = 1.0f)
 	{
+		float k = std::clamp(liftScale, 0.0f, 1.0f);
+
 		out.Position.x = room.Position.x + posLocal.x;
-		out.Position.y = room.Position.y + posLocal.y - lift; // Lift snow above floor (Y is down).
+		out.Position.y = room.Position.y + posLocal.y - lift * k; // Lift snow above floor (Y is down).
 		out.Position.z = room.Position.z + posLocal.z;
 
 		out.Normal	   = Renderer::PackVector3(nrm);
 		out.UV		   = uv;
-		out.Color	   = VectorColorToRGBA(Vector4(col.x, col.y, col.z, 1.0f));
+		out.Color	   = VectorColorToRGBA(Vector4(col.x, col.y, col.z, k)); // alpha = per-vertex liftScale for SnowOverlay.hlsl.
 		out.Tangent	   = Renderer::PackVector3(tan);
 		out.FaceNormal = Renderer::PackVector3(faceNrm);
 
@@ -336,26 +446,18 @@ namespace TEN::Renderer
 				nz = -nz;
 			}
 
-			// Outward distance for the drift base: roughly the per-corner vertical drop,
-			// capped to half a block. Approximates a natural ~45-degree snow drift while
-			// keeping the skirt inside the neighbor sector.
+			// Bottom endpoints: same XZ as the top edge (purely vertical skirt). This makes
+			// the skirt connect to the neighbor overlay (or the neighbor floor) at exactly
+			// the same XZ as the polygon edge -- no horizontal gap, no separate floating
+			// surface. Y goes down to the neighbor floor.
 			int dropA = bottomAbsYA - ((int)vA.y + room.Position.y);
 			int dropB = bottomAbsYB - ((int)vB.y + room.Position.y);
-			float pushA = std::clamp((float)dropA, 0.0f, (float)BLOCK(0.5f));
-			float pushB = std::clamp((float)dropB, 0.0f, (float)BLOCK(0.5f));
+			(void)dropA; (void)dropB;
 
-			// Local-space top and bottom endpoints. EmitSnowVertex re-adds room.Position
-			// and then subtracts `lift`; setting bottom.y = (neighborFloor - room.Position.y)
-			// makes the final pre-deformation Y equal (neighborFloor - lift), i.e. the
-			// neighbor sector's pristine snow surface level.
 			Vector3 bA = vA;
-			bA.x = vA.x + nx * pushA;
-			bA.z = vA.z + nz * pushA;
 			bA.y = (float)(bottomAbsYA - room.Position.y);
 
 			Vector3 bB = vB;
-			bB.x = vB.x + nx * pushB;
-			bB.z = vB.z + nz * pushB;
 			bB.y = (float)(bottomAbsYB - room.Position.y);
 
 			// Average slope direction (top -> bottom) for the patch normal.
@@ -377,7 +479,10 @@ namespace TEN::Renderer
 			if (skirtNrm.y > 0.0f)
 				skirtNrm = -skirtNrm;
 
-			// UVs only along the edge (no vertical offset) -- guaranteed in-tile.
+			// UVs are interpolated along the edge only (constant V across rows). This
+			// keeps every skirt row inside the parent polygon's atlas tile and avoids
+			// the stretched / garbage textures that come from extrapolating V beyond
+			// the polygon's UV bounds.
 			Vector2 uvA = poly.textureCoordinates[k];
 			Vector2 uvB = poly.textureCoordinates[(k + 1) % n];
 
@@ -421,9 +526,16 @@ namespace TEN::Renderer
 					Vector3 vertEff = effA * (1.0f - tU) + effB * tU;
 
 					int slot = ((j == 0) ? 0 : 2) + ((i == nGrid - 1) ? 1 : 0);
+
+					// Per-vertex lift scale: top row matches the overlay edge at this XZ;
+					// bottom row has no lift (k=0) so it sits flush with the neighbor floor.
+					// Mid rows lerp linearly, keeping the skirt consistent with the overlay.
+					float topScale  = GetSnowLiftScale(poly, room, topPt, lift);
+					float vertScale = topScale * (1.0f - tV);
+
 					EmitSnowVertex(vertices[vertCursor++], pt, vertUV, skirtNrm, edgeDir,
 								   vertCol, vertEff, skirtNrm, room, lift,
-								   poly.animatedFrame, poly.shineStrength, slot);
+								   poly.animatedFrame, poly.shineStrength, slot, vertScale);
 				}
 			}
 
@@ -518,8 +630,10 @@ namespace TEN::Renderer
 						auto cc  = BilerpQuad(col[0], col[1], col[2], col[3], corners[k].u, corners[k].v);
 						auto ce  = BilerpQuad(eff[0], eff[1], eff[2], eff[3], corners[k].u, corners[k].v);
 
+float liftScale = GetSnowLiftScale(poly, room, cp, lift);
+
 						EmitSnowVertex(vertices[vertCursor], cp, cuv, cn, ct, cc, ce,
-									   poly.normal, room, lift, poly.animatedFrame, poly.shineStrength, k);
+									   poly.normal, room, lift, poly.animatedFrame, poly.shineStrength, k, liftScale);
 						vertCursor++;
 					}
 
@@ -562,8 +676,10 @@ namespace TEN::Renderer
 				auto cc  = BaryTri(col[0], col[1], col[2], w0, w1, w2);
 				auto ce  = BaryTri(eff[0], eff[1], eff[2], w0, w1, w2);
 
+				float liftScale = GetSnowLiftScale(poly, room, cp, lift);
+
 				EmitSnowVertex(vertices[vertCursor], cp, cuv, cn, ct, cc, ce,
-							   poly.normal, room, lift, poly.animatedFrame, poly.shineStrength, kSlot);
+							   poly.normal, room, lift, poly.animatedFrame, poly.shineStrength, kSlot, liftScale);
 				outBase = vertCursor;
 				vertCursor++;
 			};

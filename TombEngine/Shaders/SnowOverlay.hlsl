@@ -43,6 +43,12 @@ PixelShaderInput VS(VertexShaderInput input)
 {
 	PixelShaderInput output;
 
+	// Per-vertex lift scale (baked at mesh-gen time): 1 = full snow thickness above
+	// floor, 0 = vertex flush with floor with no deformation. Used to roll the snow
+	// surface smoothly down to the floor at drop edges and to keep skirt bottoms
+	// pinned to the neighbor floor regardless of trodden state.
+	float liftScale = input.Color.a;
+
 	float h = SampleSnowDepth(input.Position.x, input.Position.z);
 
 	// Procedural micro-hills: two-axis sinusoidal noise in [0..1] gives gentle
@@ -57,13 +63,13 @@ PixelShaderInput VS(VertexShaderInput input)
 	float hillPushY = hill01 * hillHeight * hillFade;
 
 	// Push deformed vertex back down toward original floor. Y is down in TEN, so
-	// "down" means increasing Y. Mesh was lifted by (MaxDepth + HillHeight) at gen
-	// time so hill peaks can rise above the standard snow line; the (h * total)
+	// "down" means increasing Y. Mesh was lifted by (MaxDepth + HillHeight) * liftScale
+	// at gen time so hill peaks can rise above the standard snow line; the (h * total)
 	// term guarantees a fully stamped sample (h=1) lands flush with the floor.
 	float totalLift = SnowMaxDepth + hillHeight;
 
 	float3 worldPos = input.Position;
-	worldPos.y += h * totalLift + hillPushY;
+	worldPos.y += (h * totalLift + hillPushY) * liftScale;
 
 	output.Position = mul(float4(worldPos, 1.0f), ViewProjection);
 	output.UV       = input.UV;
