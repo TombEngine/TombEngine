@@ -6,8 +6,10 @@
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/Point.h"
+#include "Game/effects/SnowDust.h"
 #include "Game/items.h"
 #include "Game/Lara/lara_struct.h"
+#include "Game/room.h"
 #include "Game/Setup.h"
 #include "Specific/level.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -82,7 +84,10 @@ namespace TEN::Effects::SnowField
 	}
 
 	// Stamps an additive circular impression. Higher of existing/incoming value wins.
-	static void StampCircle(int cx, int cy, int radius, unsigned char amplitude)
+	// Returns the highest pre-existing value among cells that were actually raised by
+	// this stamp. If nothing was changed (area already fully compressed), returns
+	// `amplitude` so the caller's gate `amplitude <= result` suppresses the puff.
+	static unsigned char StampCircle(int cx, int cy, int radius, unsigned char amplitude)
 	{
 		int xMin = std::max(0, cx - radius);
 		int xMax = std::min(RESOLUTION - 1, cx + radius);
@@ -90,7 +95,10 @@ namespace TEN::Effects::SnowField
 		int yMax = std::min(RESOLUTION - 1, cy + radius);
 		int r2 = radius * radius;
 		if (r2 == 0)
-			return;
+			return amplitude;
+
+		unsigned char prevMax = 0;
+		bool anyChanged = false;
 
 		for (int y = yMin; y <= yMax; y++)
 		{
@@ -104,12 +112,54 @@ namespace TEN::Effects::SnowField
 
 				float falloff = 1.0f - ((float)d2 / (float)r2);
 				unsigned char stamp = (unsigned char)((float)amplitude * falloff);
+				if (stamp == 0)
+					continue;
 
 				auto& cell = State.Heightmap[y * RESOLUTION + x];
 				if (stamp > cell)
+				{
+					// Track the highest pre-existing value only for cells we actually raise,
+					// so the delta reflects real fresh compression.
+					if (cell > prevMax)
+						prevMax = cell;
 					cell = stamp;
+					anyChanged = true;
+				}
 			}
 		}
+
+		// Nothing was overwritten: area already at full amplitude. Return amplitude
+		// so the caller's condition (amplitude <= result) suppresses the FX.
+		if (!anyChanged)
+			return amplitude;
+
+		return prevMax;
+	}
+
+	// Computes 0..1 compression delta for a stamp and, if significant, spawns a
+	// compression dust puff scaled by the configured snow MaxDepth. Centralised so
+	// foot stamps, item stamps and explosion stamps all feel consistent.
+	static void EmitCompressionPuffIfFresh(unsigned char amplitude, unsigned char overwritten,
+										   const Vector3& worldPos, int roomNumber, float worldRadius)
+	{
+		if (amplitude <= overwritten)
+			return;
+
+		const auto& settings = g_GameFlow->GetSettings()->Snow;
+		float maxDepth = (float)std::max(0, settings.MaxDepth);
+		if (maxDepth <= 0.0f)
+			return;
+
+		float delta = (float)(amplitude - overwritten) / 255.0f;
+
+		// Reference depth at which the puff reaches full strength. Picked so default
+		// MaxDepth (192) yields ~0.75 intensity for a fresh full-amplitude stamp.
+		constexpr float REFERENCE_DEPTH = 256.0f;
+		float intensity = delta * (maxDepth / REFERENCE_DEPTH);
+		if (intensity > 1.0f)
+			intensity = 1.0f;
+
+		TEN::Effects::SnowDust::SpawnSnowCompressionPuff(worldPos, roomNumber, worldRadius, intensity);
 	}
 
 	// Translates heightmap pixels so the new world centre matches the player. Newly
@@ -192,8 +242,17 @@ namespace TEN::Effects::SnowField
 			int rx = (int)(((float)rFoot.x - origin.x) * pxPerUnit);
 			int ry = (int)(((float)rFoot.z - origin.y) * pxPerUnit);
 
-			StampCircle(lx, ly, FOOT_BRUSH_RADIUS, STAMP_INTENSITY);
-			StampCircle(rx, ry, FOOT_BRUSH_RADIUS, STAMP_INTENSITY);
+			float footWorldRadius = (float)FOOT_BRUSH_RADIUS / pxPerUnit;
+
+			unsigned char lPrev = StampCircle(lx, ly, FOOT_BRUSH_RADIUS, STAMP_INTENSITY);
+			EmitCompressionPuffIfFresh(STAMP_INTENSITY, lPrev,
+				Vector3((float)lFoot.x, (float)lFoot.y, (float)lFoot.z),
+				player.RoomNumber, footWorldRadius);
+
+			unsigned char rPrev = StampCircle(rx, ry, FOOT_BRUSH_RADIUS, STAMP_INTENSITY);
+			EmitCompressionPuffIfFresh(STAMP_INTENSITY, rPrev,
+				Vector3((float)rFoot.x, (float)rFoot.y, (float)rFoot.z),
+				player.RoomNumber, footWorldRadius);
 		}
 
 		// All other active moveables impress the snow using their object's collision
@@ -260,6 +319,11 @@ namespace TEN::Effects::SnowField
 		if (amplitude == 0)
 			return;
 
-		StampCircle(cx, cy, radiusPx, amplitude);
+		unsigned char overwritten = StampCircle(cx, cy, radiusPx, amplitude);
+
+		// Resolve a sensible room for the puff. Caller may not have one handy, so
+		// look it up from world coords.
+		int puffRoom = FindRoomNumber(Vector3i((int)worldPos.x, (int)worldPos.y, (int)worldPos.z));
+		EmitCompressionPuffIfFresh(amplitude, overwritten, worldPos, puffRoom, worldRadius/4);
 	}
 }

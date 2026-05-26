@@ -12,6 +12,7 @@
 #include "Game/effects/explosion.h"
 #include "Game/effects/spark.h"
 #include "Game/effects/Streamer.h"
+#include "Game/effects/SnowDust.h"
 #include "Game/effects/SnowField.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
@@ -750,6 +751,23 @@ namespace TEN::Scripting::Effects
 		TEN::Effects::SnowField::Stamp(pos.ToVector3(), radius, depthValue);
 	}
 
+	/// Spawn a snow explosion burst at a world position.
+	// Throws a cloud of wet slush chunks plus a rising snow dust cloud, and also
+	// carves a circular impression into any active snow field at the impact point.
+	// Intended to be triggered alongside an explosion (e.g. inside an OnHit handler)
+	// in snowy levels. Safe to call even when no snow field is present - in that
+	// case only the particle burst plays.
+	// @function SnowExplosion
+	// @tparam Vec3 pos World position of the blast.
+	// @tparam float radius Blast radius in world units. Particle count, size and
+	// throw velocity scale with this value.
+	static void SnowExplosion(Vec3 pos, float radius)
+	{
+		auto worldPos = pos.ToVector3();
+		int roomNumber = FindRoomNumber(Vector3i((int)worldPos.x, (int)worldPos.y, (int)worldPos.z));
+		TEN::Effects::SnowDust::SpawnSnowExplosionBurst(worldPos, roomNumber, radius);
+	}
+
 	void Register(sol::state* state, sol::table& parent) 
 	{
 		auto tableEffects = sol::table(state->lua_state(), sol::create);
@@ -772,6 +790,7 @@ namespace TEN::Scripting::Effects
 		tableEffects.set_function(ScriptReserved_MakeExplosion, &MakeExplosion);
 		tableEffects.set_function(ScriptReserved_MakeEarthquake, &Earthquake);
 		tableEffects.set_function(ScriptReserved_DeformSnow, &DeformSnow);
+		tableEffects.set_function(ScriptReserved_SnowExplosion, &SnowExplosion);
 		tableEffects.set_function(ScriptReserved_GetWind, &GetWind);
 
 		auto handler = LuaHandler(state);

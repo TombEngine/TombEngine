@@ -191,6 +191,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <TreatWarningAsError>true</TreatWarningAsError>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
       <FunctionLevelLinking>true</FunctionLevelLinking>
+      <UseDynamicDebugging>false</UseDynamicDebugging>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -465,6 +466,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Game\effects\Hair.h" />
     <ClInclude Include="Game\effects\Ripple.h" />
     <ClInclude Include="Game\effects\SnowField.h" />
+    <ClInclude Include="Game\effects\SnowDust.h" />
     <ClInclude Include="Game\effects\Streamer.h" />
     <ClInclude Include="Game\effects\chaffFX.h" />
     <ClInclude Include="Game\effects\debris.h" />
@@ -1074,6 +1076,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Game\effects\simple_particle.cpp" />
     <ClCompile Include="Game\effects\smoke.cpp" />
     <ClCompile Include="Game\effects\SnowField.cpp" />
+    <ClCompile Include="Game\effects\SnowDust.cpp" />
     <ClCompile Include="Game\effects\spark.cpp" />
     <ClCompile Include="Game\effects\Splash.cpp" />
     <ClCompile Include="Game\effects\Streamer.cpp" />
