@@ -63,6 +63,10 @@ namespace TEN::Renderer::Graphics
 
 		virtual void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) = 0;
 
+		// Binds an SRV + sampler to a specific shader stage. Use when sampling from non-pixel
+		// stages (e.g. snow heightmap read in vertex shader, Phase 5).
+		virtual void BindTextureToStage(ShaderStage stage, TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) = 0;
+
 		// Clears the SRV bound at `registerType` for the given shader stage.
 		// Used to drop SRV bindings before re-binding the same resource as RTV/copy dest,
 		// which would otherwise trip D3D11 hazard warnings. On stateless backends

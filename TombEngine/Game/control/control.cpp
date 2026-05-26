@@ -20,6 +20,7 @@
 #include "Game/effects/Ripple.h"
 #include "Game/effects/simple_particle.h"
 #include "Game/effects/smoke.h"
+#include "Game/effects/SnowField.h"
 #include "Game/effects/spark.h"
 #include "Game/effects/Splash.h"
 #include "Game/effects/Streamer.h"
@@ -183,6 +184,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateAllItems();
 	UpdateAllEffects();
 	UpdateLara(LaraItem, isTitle);
+	TEN::Effects::SnowField::Update(*LaraItem);
 	g_GameScriptEntities->TestCollidingObjects();
 
 	// Smash shatters and clear stopper flags under them.
@@ -552,6 +554,9 @@ void CleanUp()
 	// Reset the layered sky/cloud/weather system to default state for the new level.
 	g_SkyCloudSystem.Initialize();
 
+	// Initialize deformable snow heightmap if Snow.Enabled is set in gameflow.
+	TEN::Effects::SnowField::Initialize();
+
 	// Clear creatures, otherwise list of active creatures from previous level will spill into new level.
 	ActiveCreatures.clear();
 
@@ -766,6 +771,9 @@ void EndGameLoop(int levelIndex, GameStatus reason)
 	// Stop all sky transitions so the loading-screen screenshot and any remaining
 	// frames are free of mid-transition artefacts.
 	g_SkyCloudSystem.StopAllTransitions();
+
+	// Release deformable snow heightmap resources.
+	TEN::Effects::SnowField::Deinitialize();
 
 	// Save last screenshot for loading screen.
 	g_Renderer.DumpGameScene();

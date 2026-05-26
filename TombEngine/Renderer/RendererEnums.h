@@ -211,7 +211,8 @@ enum class TextureRegister
 	LegacyEnvironmentReflections = 12,
 	SkyboxEnvironmentReflections = 13,
 	AnimatedFrames = 14, // StructuredBuffer<AnimatedFrameUV> for per-draw animated UVs.
-	GBufferOutdoorMask = 15
+	GBufferOutdoorMask = 15,
+	SnowFieldHeightmap = 16 // R8 heightmap for deformable snow overlay (Phase 5).
 };
 
 enum class SamplerStateRegister
@@ -233,6 +234,7 @@ enum class ConstantBufferRegister
 	InstancedStatics = 3, // Now holds the unified CBObjects (Bones + Skinned + Objects[N]).
 	ShadowLight = 4,
 	Room = 5,
+	Snow = 6, // Deformable snow overlay (Phase 5, was CBAnimatedTexture).
 	// Slot 6 is currently unused — was CBAnimatedTexture before frames moved to a structured
 	// buffer (t14) and metadata folded into PerDraw at b2.
 	PostProcess = 7,
@@ -526,6 +528,10 @@ enum class Shader
 	// Volumetric dust storm
 
 	DustStorm,
+
+	// Deformable snow overlay (Phase 5).
+
+	SnowOverlay,
 
 	Count
 };

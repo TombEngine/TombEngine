@@ -96,6 +96,7 @@ namespace TEN::Renderer
 		InitializeAtmosphericSky();
 		InitializeGodRays();
 		InitializeDustStorm();
+		InitializeSnowField();
 
 		_sortedPolygonsVertices.reserve(MAX_TRANSPARENT_VERTICES);
 		_sortedPolygonsIndices.reserve(MAX_TRANSPARENT_VERTICES);

@@ -12,6 +12,7 @@
 #include "Game/effects/explosion.h"
 #include "Game/effects/spark.h"
 #include "Game/effects/Streamer.h"
+#include "Game/effects/SnowField.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
 #include "Game/Setup.h"
@@ -735,6 +736,20 @@ namespace TEN::Scripting::Effects
 		return Vec3(Weather.Wind());
 	}
 
+	/// Deform the snow field at a world position.
+	// Pushes a circular impression into the dynamic snow heightmap, suitable for
+	// hooking up to explosions, projectile impacts or custom scripted events.
+	// Has no effect if no snow field is currently active in the level.
+	// @function DeformSnow
+	// @tparam Vec3 pos World position. Only the XZ coordinates are used.
+	// @tparam float radius Radius of the impression in world units.
+	// @tparam[opt=1.0] float depth Depth in 0..1, where 1.0 fully flattens the snow to the floor.
+	static void DeformSnow(Vec3 pos, float radius, TypeOrNil<float> depth)
+	{
+		float depthValue = ValueOr<float>(depth, 1.0f);
+		TEN::Effects::SnowField::Stamp(pos.ToVector3(), radius, depthValue);
+	}
+
 	void Register(sol::state* state, sol::table& parent) 
 	{
 		auto tableEffects = sol::table(state->lua_state(), sol::create);
@@ -756,6 +771,7 @@ namespace TEN::Scripting::Effects
 		tableEffects.set_function(ScriptReserved_EmitFlow, &EmitFlow);
 		tableEffects.set_function(ScriptReserved_MakeExplosion, &MakeExplosion);
 		tableEffects.set_function(ScriptReserved_MakeEarthquake, &Earthquake);
+		tableEffects.set_function(ScriptReserved_DeformSnow, &DeformSnow);
 		tableEffects.set_function(ScriptReserved_GetWind, &GetWind);
 
 		auto handler = LuaHandler(state);

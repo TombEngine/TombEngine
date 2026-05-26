@@ -37,6 +37,7 @@ static constexpr char ScriptReserved_HairSettings[]		= "Hair";
 static constexpr char ScriptReserved_HudSettings[]		= "Hud";
 static constexpr char ScriptReserved_PFSettings[]		= "Pathfinding";
 static constexpr char ScriptReserved_PhysicsSettings[]	= "Physics";
+static constexpr char ScriptReserved_SnowSettings[]		= "Snow";
 static constexpr char ScriptReserved_WeaponSettings[]	= "Weapons";
 
 // Moveable object
@@ -363,6 +364,7 @@ static constexpr char ScriptReserved_EmitFlow[]						= "EmitFlow";
 static constexpr char ScriptReserved_EmitStreamer[]					= "EmitStreamer";
 static constexpr char ScriptReserved_MakeExplosion[]				= "MakeExplosion";
 static constexpr char ScriptReserved_MakeEarthquake[]				= "MakeEarthquake";
+static constexpr char ScriptReserved_DeformSnow[]					= "DeformSnow";
 static constexpr char ScriptReserved_GetWind[]						= "GetWind";
 
 static constexpr char ScriptReserved_FlashScreen[]					= "FlashScreen";

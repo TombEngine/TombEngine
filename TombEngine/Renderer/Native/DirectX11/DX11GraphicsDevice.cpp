@@ -274,6 +274,65 @@ namespace TEN::Renderer::Native::DirectX11
 		_context->PSSetSamplers((unsigned int)registerType, 1, &d3dSamplerState);
 	}
 
+	void DX11GraphicsDevice::BindTextureToStage(ShaderStage stage, TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType)
+	{
+		auto* d3dShaderResourceView = GetD3D11ShaderResourceView(texture);
+
+		ID3D11SamplerState* d3dSamplerState = nullptr;
+		switch (samplerType)
+		{
+		case SamplerStateRegister::AnisotropicClamp:
+			d3dSamplerState = _renderStates->AnisotropicClamp();
+			break;
+
+		case SamplerStateRegister::AnisotropicWrap:
+			d3dSamplerState = _renderStates->AnisotropicWrap();
+			break;
+
+		case SamplerStateRegister::LinearClamp:
+			d3dSamplerState = _renderStates->LinearClamp();
+			break;
+
+		case SamplerStateRegister::LinearWrap:
+			d3dSamplerState = _renderStates->LinearWrap();
+			break;
+
+		case SamplerStateRegister::PointWrap:
+			d3dSamplerState = _pointWrapSamplerState.Get();
+			break;
+
+		case SamplerStateRegister::ShadowMap:
+			d3dSamplerState = _shadowSampler.Get();
+			break;
+
+		default:
+			return;
+		}
+
+		unsigned int slot        = (unsigned int)registerType;
+		unsigned int samplerSlot = slot % 16; // D3D11 only has 16 sampler slots (0-15); slots >= 16 wrap back.
+		switch (stage)
+		{
+		case ShaderStage::VertexShader:
+			_context->VSSetShaderResources(slot, 1, &d3dShaderResourceView);
+			_context->VSSetSamplers(samplerSlot, 1, &d3dSamplerState);
+			break;
+
+		case ShaderStage::PixelShader:
+			_context->PSSetShaderResources(slot, 1, &d3dShaderResourceView);
+			_context->PSSetSamplers(samplerSlot, 1, &d3dSamplerState);
+			break;
+
+		case ShaderStage::GeometryShader:
+			_context->GSSetShaderResources(slot, 1, &d3dShaderResourceView);
+			_context->GSSetSamplers(samplerSlot, 1, &d3dSamplerState);
+			break;
+
+		default:
+			break;
+		}
+	}
+
 	void DX11GraphicsDevice::UnbindTexture(ShaderStage stage, TextureRegister registerType)
 	{
 		ID3D11ShaderResourceView* nullSRV = nullptr;
@@ -1134,13 +1193,20 @@ namespace TEN::Renderer::Native::DirectX11
 		int width = texture->GetWidth();
 		int height = texture->GetHeight();
 
+		// Determine bytes-per-pixel from the actual texture format so this routine
+		// works for non-RGBA8 formats (e.g. R8 snow heightmap, Phase 5).
+		D3D11_TEXTURE2D_DESC desc = {};
+		d3dTexture->GetDesc(&desc);
+		int bpp = GetBytesPerPixel(desc.Format);
+		int srcPitch = width * bpp;
+
 		auto mappedResource = D3D11_MAPPED_SUBRESOURCE{};
 		if (d3dTexture && SUCCEEDED(_context->Map(d3dTexture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource)))
 		{
 			// Copy framebuffer row by row, otherwise skewing may occur.
 			unsigned char* pData = reinterpret_cast<unsigned char*>(mappedResource.pData);
 			for (int row = 0; row < height; row++)
-				memcpy(pData + row * mappedResource.RowPitch, data.data() + row * width * 4, width * 4);
+				memcpy(pData + row * mappedResource.RowPitch, data.data() + row * srcPitch, srcPitch);
 			_context->Unmap(d3dTexture, 0);
 		}
 		else

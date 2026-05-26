@@ -116,6 +116,48 @@ namespace TEN::Scripting
 		static void Register(sol::table& parent);
 	};
 
+	struct SnowSettings
+	{
+		// Enables the deformable snow overlay system.
+		bool  Enabled         = false;
+
+		// Maximum visual depth of the snow surface above the sector floor, in world units.
+		// Lara's foot/body pushes down into this depth as a heightmap.
+		int   MaxDepth        = 192;
+
+		// Snow depth (world units) at which Lara enters the wade state and walks through snow like water.
+		// When MaxDepth is below this, Lara only leaves footprints.
+		int   WadeThreshold   = 512;
+
+		// Per-frame snow recovery factor toward undeformed state (0.0 = persistent trails, 1.0 = instant).
+		float DecayRate       = 0.0f;
+
+		// World-space radius (units) around Lara within which the deformation heightmap is valid.
+		// Larger values give longer-lasting visible trails but cost more VRAM-resolution per unit.
+		int   FieldRadius     = 8192;
+
+		// Subdivisions per sector edge for the snow overlay mesh. 16 = 256 quads per sector.
+		// Higher values give smoother trails but more vertex load. Practical range: 4-32.
+		int   Subdivisions    = 16;
+
+		// Snow surface tint (applied on top of the underlying sector texture).
+		ScriptColor Tint      = ScriptColor(245, 248, 255);
+
+		// Brightness of the rim highlight along the edge of a deformation trail.
+		float RimStrength     = 0.6f;
+
+		// Maximum amplitude of the procedural micro-hills baked into pristine snow,
+		// in world units. 0 = perfectly flat surface. The hills fade out smoothly
+		// where the snow is deformed (footprints, explosions) so trails stay clean.
+		float HillHeight      = 64.0f;
+
+		// Spatial frequency of the procedural hill noise, in radians per world unit.
+		// Lower = larger, gentler mounds. Higher = tighter ripples.
+		float HillFrequency   = 0.0015f;
+
+		static void Register(sol::table& parent);
+	};
+
 	struct SystemSettings
 	{
 		ErrorMode ErrorMode		= ErrorMode::Warn;
@@ -180,6 +222,7 @@ namespace TEN::Scripting
 		HudSettings					Hud		    = {};
 		PathfindingSettings			Pathfinding = {};
 		PhysicsSettings				Physics	    = {};
+		SnowSettings				Snow	    = {};
 		SystemSettings				System	    = {};
 		UISettings					UI		    = {};
 		std::array<WeaponSettings, (int)LaraWeaponType::NumWeapons - 1> Weapons = {};

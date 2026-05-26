@@ -33,6 +33,7 @@
 #include "Renderer/ConstantBuffers/AtmosphericSkyBuffer.h"
 #include "Renderer/ConstantBuffers/GodRayBuffer.h"
 #include "Renderer/ConstantBuffers/DustStormBuffer.h"
+#include "Renderer/ConstantBuffers/SnowBuffer.h"
 #include "Renderer/AtmosphericSky/AtmosphericSkySettings.h"
 #include "Renderer/Aurora/AuroraSettings.h"
 #include "Renderer/UnderwaterSky/UnderwaterSkySettings.h"
@@ -197,6 +198,11 @@ namespace TEN::Renderer
 		ConstantBuffers::CDustStormBuffer _stDustStorm;
 		std::unique_ptr<IConstantBuffer> _cbDustStorm;
 		DustStorm::DustStormSettings _dustStormSettings;
+
+		// Deformable snow overlay (Phase 5).
+		ConstantBuffers::CSnowBuffer _stSnow;
+		std::unique_ptr<IConstantBuffer> _cbSnow;
+		std::unique_ptr<ITexture2D> _snowFieldHeightmap;
 
 		// Dual volumetric cloud layer B (layer A reuses the members above).
 		std::unique_ptr<IRenderSurface2D> _cloudRenderTargetB;
@@ -488,6 +494,13 @@ namespace TEN::Renderer
 		DustStorm::DustStormSettings& GetDustStormSettings() { return _dustStormSettings; }
 		const DustStorm::DustStormSettings& GetDustStormSettings() const { return _dustStormSettings; }
 	private:
+
+		// Deformable snow overlay (Phase 5).
+		void InitializeSnowField();
+		void DeinitializeSnowField();
+		void UploadSnowFieldHeightmap();
+		void UpdateSnowBuffer();
+		void DrawSnowOverlay(RenderView& view);
 
 		// Volumetric clouds
 		void InitializeVolumetricClouds();

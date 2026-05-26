@@ -2893,6 +2893,10 @@ namespace TEN::Renderer
 				{
 					auto& bucket = room->Buckets[j];
 
+					// Snow overlay buckets are drawn in a dedicated pass.
+					if (bucket.IsSnowOverlay)
+						continue;
+
 					if (IsSortedBlendMode(bucket.BlendMode))
 					{
 						for (int p = 0; p < bucket.Polygons.size(); p++)
@@ -2981,6 +2985,12 @@ namespace TEN::Renderer
 				{
 					for (const auto& bucket : room.Buckets)
 					{
+						// Snow overlay buckets are drawn in a dedicated pass (DrawSnowOverlay) that
+						// runs after this room loop on the opaque pass. Skip them here in all passes
+						// so they aren't double-drawn / contaminating GBuffer.
+						if (bucket.IsSnowOverlay)
+							continue;
+
 						if (((animated == 1) ^ bucket.Animated) || bucket.NumVertices == 0)
 							continue;
 
@@ -3029,6 +3039,11 @@ namespace TEN::Renderer
 			}
 
 			ResetScissor();
+
+			// Dedicated deformable-snow pass (Phase 5). Runs only in the opaque pass so
+			// trails appear on top of regular floor geometry without affecting GBuffer.
+			if (rendererPass == RendererPass::Opaque)
+				DrawSnowOverlay(view);
 		}
 	}
 

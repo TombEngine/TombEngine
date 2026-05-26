@@ -20,5 +20,10 @@ namespace TEN::Renderer::Structures
 		int NumIndices;
 		Vector3 Centre;
 		std::vector<RendererPolygon> Polygons;
+
+		// Snow deformation overlay bucket. Geometry generated at level load for sectors with
+		// MaterialType::Snow. Drawn in a separate pass with the snow shader and skipped by the
+		// regular DrawRooms loop. See Game/effects/SnowField.* and Renderer/RendererSnowField.*.
+		bool IsSnowOverlay = false;
 	};
 }

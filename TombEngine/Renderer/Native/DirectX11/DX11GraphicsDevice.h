@@ -132,6 +132,7 @@ namespace TEN::Renderer::Native::DirectX11
 		void SetScissor(RendererViewport viewport) override;
 
 		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) override;
+		void BindTextureToStage(ShaderStage stage, TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) override;
 		void UnbindTexture(ShaderStage stage, TextureRegister registerType) override;
 
 		std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::string name) override;

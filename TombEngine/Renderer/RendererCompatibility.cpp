@@ -5,10 +5,12 @@
 #include <stack>
 #include <tuple>
 
+#include "Game/collision/floordata.h"
 #include "Game/control/control.h"
 #include "Game/effects/Decal.h"
 #include "Game/effects/Hair.h"
 #include "Game/Lara/lara_struct.h"
+#include "Game/room.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Objects/Generic/Object/objects.h"
@@ -20,8 +22,284 @@ using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Renderer::Graphics;
 
+// =========================================================================================
+// Snow overlay generation (Phase 2).
+//
+// At level load, floor polygons sitting on sectors flagged with MaterialType::Snow get a
+// subdivided overlay mesh pinned MaxDepth units above the floor surface. The overlay
+// inherits texture index, UVs, color and tangent space from the underlying floor polygon
+// via bilinear (quad) or barycentric (triangle) interpolation. The geometry lives in the
+// same global vertex/index buffer as regular room geometry; it is marked with
+// RendererBucket::IsSnowOverlay so the main room render pass can skip it. The dedicated
+// snow shader (added in a later phase) reads a deformation heightmap and pushes each
+// snow vertex downward where Lara has walked.
+// =========================================================================================
+
 namespace TEN::Renderer
 {
+	// ----- Snow overlay helpers (file-local, kept inside namespace to access types). -----
+
+	static bool IsSnowFloorPolygon(const POLYGON& poly, const RoomData& room)
+	{
+		if (poly.indices.size() < 3)
+			return false;
+
+		// Reject walls and near-vertical faces. Use fabs() so the check works
+		// regardless of whether TombEditor bakes normals pointing "up" or "down"
+		// on floor polygons. Allow slanted floors (raised wedges, ramps, ...) down
+		// to ~17 degrees from horizontal (0.3 threshold ~= 73 deg from vertical).
+		// The floor-height and material checks below discard ceilings and walls.
+		if (fabs(poly.normal.y) < 0.3f)
+			return false;
+
+		auto centroid = Vector3::Zero;
+		for (int idx : poly.indices)
+			centroid += room.positions[idx];
+		centroid /= (float)poly.indices.size();
+
+		int gridX = (int)(centroid.x / BLOCK(1));
+		int gridZ = (int)(centroid.z / BLOCK(1));
+		if (gridX < 0 || gridX >= room.XSize || gridZ < 0 || gridZ >= room.ZSize)
+			return false;
+
+		const auto& sector = room.Sectors[gridX * room.ZSize + gridZ];
+
+		int absX = (int)centroid.x + room.Position.x;
+		int absZ = (int)centroid.z + room.Position.z;
+		int absY = (int)centroid.y + room.Position.y;
+
+		int floorHeight = sector.GetSurfaceHeight(absX, absZ, true);
+		if (abs(floorHeight - absY) > 8)
+			return false;
+
+		return sector.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow;
+	}
+
+	static void GetSnowOverlayCounts(const POLYGON& poly, int subdivisions, int& outVerts, int& outIndices)
+	{
+		int n2 = subdivisions * subdivisions;
+		if (poly.shape == 0)
+		{
+			outVerts   = n2 * 4;
+			outIndices = n2 * 6;
+		}
+		else
+		{
+			outVerts   = n2 * 3;
+			outIndices = n2 * 3;
+		}
+	}
+
+	// Bilinear interpolation across the 4 sector-floor quad corners.
+	// Index convention matches the main bucket loop: 0=NW, 1=NE, 2=SE, 3=SW.
+	template <typename T>
+	static T BilerpQuad(const T& nw, const T& ne, const T& se, const T& sw, float u, float v)
+	{
+		T top	 = nw * (1.0f - u) + ne * u;
+		T bottom = sw * (1.0f - u) + se * u;
+		return top * (1.0f - v) + bottom * v;
+	}
+
+	template <typename T>
+	static T BaryTri(const T& a, const T& b, const T& c, float w0, float w1, float w2)
+	{
+		return a * w0 + b * w1 + c * w2;
+	}
+
+	// Writes one snow overlay vertex into the global buffer.
+	static void EmitSnowVertex(
+		Vertex&        out,
+		const Vector3& posLocal,
+		const Vector2& uv,
+		const Vector3& nrm,
+		const Vector3& tan,
+		const Vector3& col,
+		const Vector3& effects,
+		const Vector3& faceNrm,
+		const RoomData& room,
+		float lift,
+		int   animFrame,
+		float shineStrength,
+		int   vertIndexInPoly)
+	{
+		out.Position.x = room.Position.x + posLocal.x;
+		out.Position.y = room.Position.y + posLocal.y - lift; // Lift snow above floor (Y is down).
+		out.Position.z = room.Position.z + posLocal.z;
+
+		out.Normal	   = Renderer::PackVector3(nrm);
+		out.UV		   = uv;
+		out.Color	   = VectorColorToRGBA(Vector4(col.x, col.y, col.z, 1.0f));
+		out.Tangent	   = Renderer::PackVector3(tan);
+		out.FaceNormal = Renderer::PackVector3(faceNrm);
+
+		constexpr unsigned long long PRIMES[] = { 73856093ULL, 19349663ULL, 83492791ULL };
+		unsigned int hash =
+			(unsigned int)std::hash<float>{}(out.Position.x * PRIMES[0]) ^
+			((unsigned int)std::hash<float>{}(out.Position.y) * PRIMES[1]) ^
+			((unsigned int)std::hash<float>{}(out.Position.z) * PRIMES[2]);
+
+		out.AnimationFrameOffsetIndexHash = Renderer::PackAnimationFrameOffsetIndexHash(animFrame, 0, (int)hash);
+		out.Effects						  = Renderer::PackEffectsAndIndexInPoly(effects, shineStrength, vertIndexInPoly);
+	}
+
+	// Emits a fully subdivided snow overlay for a single source floor polygon.
+	// Appends interleaved per-quad / per-triangle vertices and indices in the same layout
+	// used by the main bucket loop (so the existing index pattern keeps working).
+	static void EmitSnowOverlayPolygon(
+		const POLYGON&   poly,
+		const RoomData&  room,
+		int              subdivisions,
+		float            lift,
+		std::vector<Vertex>& vertices,
+		std::vector<int>&    indices,
+		int&             vertCursor,
+		int&             indexCursor,
+		std::vector<RendererPolygon>& outPolys)
+	{
+		const int N = subdivisions;
+
+		// Cache per-input-vertex attributes.
+		const int inCount = (int)poly.indices.size();
+		std::array<Vector3, 4> p {}, nrm {}, tan {}, col {}, eff {};
+		std::array<Vector2, 4> uv {};
+		for (int k = 0; k < inCount && k < 4; k++)
+		{
+			int idx = poly.indices[k];
+			p  [k] = room.positions[idx];
+			nrm[k] = poly.normals[k];
+			tan[k] = poly.tangents[k];
+			uv [k] = poly.textureCoordinates[k];
+			col[k] = room.colors[idx];
+			eff[k] = room.effects[idx];
+		}
+
+		if (poly.shape == 0)
+		{
+			// Quad: subdivide into N x N sub-quads via bilinear interpolation.
+			for (int j = 0; j < N; j++)
+			{
+				for (int i = 0; i < N; i++)
+				{
+					float u0 = (float)i       / (float)N;
+					float u1 = (float)(i + 1) / (float)N;
+					float v0 = (float)j       / (float)N;
+					float v1 = (float)(j + 1) / (float)N;
+
+					struct Corner { float u, v; };
+					const Corner corners[4] = { {u0, v0}, {u1, v0}, {u1, v1}, {u0, v1} };
+
+					int baseVertices = vertCursor;
+
+					for (int k = 0; k < 4; k++)
+					{
+						auto cp  = BilerpQuad(p[0],   p[1],   p[2],   p[3],   corners[k].u, corners[k].v);
+						auto cuv = BilerpQuad(uv[0],  uv[1],  uv[2],  uv[3],  corners[k].u, corners[k].v);
+						auto cn  = BilerpQuad(nrm[0], nrm[1], nrm[2], nrm[3], corners[k].u, corners[k].v);
+						cn.Normalize();
+						auto ct  = BilerpQuad(tan[0], tan[1], tan[2], tan[3], corners[k].u, corners[k].v);
+						ct.Normalize();
+						auto cc  = BilerpQuad(col[0], col[1], col[2], col[3], corners[k].u, corners[k].v);
+						auto ce  = BilerpQuad(eff[0], eff[1], eff[2], eff[3], corners[k].u, corners[k].v);
+
+						EmitSnowVertex(vertices[vertCursor], cp, cuv, cn, ct, cc, ce,
+									   poly.normal, room, lift, poly.animatedFrame, poly.shineStrength, k);
+						vertCursor++;
+					}
+
+					RendererPolygon subPoly{};
+					subPoly.Shape	 = 0;
+					subPoly.Normal	 = poly.normal;
+					subPoly.Centre	 = (vertices[baseVertices + 0].Position +
+										vertices[baseVertices + 1].Position +
+										vertices[baseVertices + 2].Position +
+										vertices[baseVertices + 3].Position) * 0.25f;
+					subPoly.BaseIndex = indexCursor;
+
+					indices[indexCursor + 0] = baseVertices + 0;
+					indices[indexCursor + 1] = baseVertices + 1;
+					indices[indexCursor + 2] = baseVertices + 3;
+					indices[indexCursor + 3] = baseVertices + 2;
+					indices[indexCursor + 4] = baseVertices + 3;
+					indices[indexCursor + 5] = baseVertices + 1;
+					indexCursor += 6;
+
+					outPolys.push_back(subPoly);
+				}
+			}
+		}
+		else
+		{
+			// Triangle: barycentric grid of (i, j) with 0 <= i, 0 <= j, i + j <= N.
+			// Each grid cell (i, j) with i + j < N emits 1 upward sub-triangle and, if
+			// i + j + 1 < N, 1 additional downward sub-triangle. Total: N * N triangles.
+			auto sampleAt = [&](int gi, int gj, int kSlot, int& outBase)
+			{
+				float w0 = (float)(N - gi - gj) / (float)N;
+				float w1 = (float)gi / (float)N;
+				float w2 = (float)gj / (float)N;
+
+				auto cp  = BaryTri(p[0],   p[1],   p[2],   w0, w1, w2);
+				auto cuv = BaryTri(uv[0],  uv[1],  uv[2],  w0, w1, w2);
+				auto cn  = BaryTri(nrm[0], nrm[1], nrm[2], w0, w1, w2); cn.Normalize();
+				auto ct  = BaryTri(tan[0], tan[1], tan[2], w0, w1, w2); ct.Normalize();
+				auto cc  = BaryTri(col[0], col[1], col[2], w0, w1, w2);
+				auto ce  = BaryTri(eff[0], eff[1], eff[2], w0, w1, w2);
+
+				EmitSnowVertex(vertices[vertCursor], cp, cuv, cn, ct, cc, ce,
+							   poly.normal, room, lift, poly.animatedFrame, poly.shineStrength, kSlot);
+				outBase = vertCursor;
+				vertCursor++;
+			};
+
+			for (int i = 0; i < N; i++)
+			{
+				for (int j = 0; j < N - i; j++)
+				{
+					// Upward sub-triangle: corners (i, j), (i+1, j), (i, j+1).
+					int b0, b1, b2;
+					sampleAt(i,     j,     0, b0);
+					sampleAt(i + 1, j,     1, b1);
+					sampleAt(i,     j + 1, 2, b2);
+
+					RendererPolygon up{};
+					up.Shape	 = 1;
+					up.Normal	 = poly.normal;
+					up.Centre	 = (vertices[b0].Position + vertices[b1].Position + vertices[b2].Position) / 3.0f;
+					up.BaseIndex = indexCursor;
+
+					indices[indexCursor + 0] = b0;
+					indices[indexCursor + 1] = b1;
+					indices[indexCursor + 2] = b2;
+					indexCursor += 3;
+
+					outPolys.push_back(up);
+
+					if (i + j + 1 < N)
+					{
+						// Downward sub-triangle: corners (i+1, j), (i+1, j+1), (i, j+1).
+						int d0, d1, d2;
+						sampleAt(i + 1, j,     0, d0);
+						sampleAt(i + 1, j + 1, 1, d1);
+						sampleAt(i,     j + 1, 2, d2);
+
+						RendererPolygon down{};
+						down.Shape	   = 1;
+						down.Normal	   = poly.normal;
+						down.Centre	   = (vertices[d0].Position + vertices[d1].Position + vertices[d2].Position) / 3.0f;
+						down.BaseIndex = indexCursor;
+
+						indices[indexCursor + 0] = d0;
+						indices[indexCursor + 1] = d1;
+						indices[indexCursor + 2] = d2;
+						indexCursor += 3;
+
+						outPolys.push_back(down);
+					}
+				}
+			}
+		}
+	}
+
 	bool Renderer::PrepareDataForTheRenderer()
 	{
 		TENLog("Preparing renderer...", LogLevel::Info);
@@ -343,6 +621,35 @@ namespace TEN::Renderer
 				totalIndices += bucket.numQuads * 6 + bucket.numTriangles * 3;
 			}
 
+		// Snow overlay (Phase 2): pre-count extra vertices and indices that snow-flagged
+		// floor polygons will generate, so the upcoming single immutable buffer upload
+		// can fit them in one shot.
+		const auto& snowSettings = g_GameFlow->GetSettings()->Snow;
+		int snowSubdivisions = std::clamp(snowSettings.Subdivisions, 1, 64);
+		if (snowSettings.Enabled)
+		{
+			for (auto& room : g_Level.Rooms)
+			{
+				if (room.positions.empty())
+					continue;
+
+				for (auto& bucket : room.buckets)
+				{
+					for (auto& poly : bucket.polygons)
+					{
+						if (!IsSnowFloorPolygon(poly, room))
+							continue;
+
+						int extraVerts = 0;
+						int extraIndices = 0;
+						GetSnowOverlayCounts(poly, snowSubdivisions, extraVerts, extraIndices);
+						totalVertices += extraVerts;
+						totalIndices += extraIndices;
+					}
+				}
+			}
+		}
+
 		if (!totalVertices || !totalIndices)
 			throw std::exception("Level has no textured room geometry.");
 
@@ -526,6 +833,58 @@ namespace TEN::Renderer
 				bucket.Centre /= bucket.NumIndices;
 
 				rendererRoom.Buckets.push_back(bucket);		
+			}
+
+			// Snow overlay (Phase 2): for every floor polygon sitting on a snow sector,
+			// emit a subdivided overlay bucket inheriting the parent's texture/material.
+			// These buckets are marked IsSnowOverlay and skipped by the regular room draw
+			// pass; a dedicated snow shader pass (Phase 4) consumes them.
+			if (snowSettings.Enabled)
+			{
+				float snowLift = (float)std::max(0, snowSettings.MaxDepth)
+					+ std::max(0.0f, snowSettings.HillHeight);
+
+				for (auto& levelBucket : room.buckets)
+				{
+					RendererBucket overlay{};
+					overlay.Animated	  = levelBucket.animated;
+					overlay.BlendMode	  = (BlendMode)levelBucket.blendMode;
+					overlay.MaterialIndex = levelBucket.materialIndex;
+					overlay.Texture		  = levelBucket.texture;
+					overlay.StartVertex	  = lastVertex;
+					overlay.StartIndex	  = lastIndex;
+					overlay.IsSnowOverlay = true;
+					overlay.Centre		  = Vector3::Zero;
+
+					int startVertex = lastVertex;
+					int startIndex	= lastIndex;
+
+					for (auto& poly : levelBucket.polygons)
+					{
+						if (!IsSnowFloorPolygon(poly, room))
+							continue;
+
+						EmitSnowOverlayPolygon(
+							poly, room, snowSubdivisions, snowLift,
+							_roomsVertices, _roomsIndices,
+							lastVertex, lastIndex,
+							overlay.Polygons);
+					}
+
+					overlay.NumVertices = lastVertex - startVertex;
+					overlay.NumIndices	= lastIndex - startIndex;
+
+					if (overlay.NumVertices == 0)
+						continue;
+
+					// Compute centre from emitted vertices.
+					Vector3 sum = Vector3::Zero;
+					for (int v = startVertex; v < lastVertex; v++)
+						sum += _roomsVertices[v].Position;
+					overlay.Centre = sum / (float)overlay.NumVertices;
+
+					rendererRoom.Buckets.push_back(overlay);
+				}
 			}
 
 			if (room.lights.size() != 0)

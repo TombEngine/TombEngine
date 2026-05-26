@@ -52,6 +52,7 @@ namespace TEN::Scripting
 		HudSettings::Register(parent);
 		PathfindingSettings::Register(parent);
 		PhysicsSettings::Register(parent);
+		SnowSettings::Register(parent);
 		SystemSettings::Register(parent);
 		UISettings::Register(parent);
 		WeaponSettings::Register(parent);
@@ -69,6 +70,7 @@ namespace TEN::Scripting
 			ScriptReserved_HudSettings, &Settings::Hud,
 			ScriptReserved_PFSettings, &Settings::Pathfinding,
 			ScriptReserved_PhysicsSettings, &Settings::Physics,
+			ScriptReserved_SnowSettings, &Settings::Snow,
 			ScriptReserved_SystemSettings, &Settings::System,
 			ScriptReserved_UISettings, &Settings::UI,
 			ScriptReserved_WeaponSettings, &Settings::Weapons);
@@ -670,5 +672,69 @@ namespace TEN::Scripting
 		/// Muzzle offset.
 		// @tfield Vec3 muzzleOffset specifies offset for spawning muzzle gunflash effects.
 		"muzzleOffset", &WeaponSettings::MuzzleOffset);
+	}
+
+	/// Snow
+	// @section Snow
+	// Settings for the deformable snow overlay system. When enabled, sector surfaces with
+	// the SNOW material type render a subdivided overlay mesh that is locally displaced
+	// downward where Lara walks, leaving persistent trails. If the snow depth exceeds the
+	// wade threshold, Lara enters the wade state and pushes a channel through the snow.
+	// @usage
+	// -- Enable snow with deep, persistent trails:
+	// local settings = TEN.Flow.GetSettings()
+	// settings.Snow.enabled = true
+	// settings.Snow.maxDepth = 384
+	// settings.Snow.wadeThreshold = 512
+	// settings.Snow.decayRate = 0.0
+	// TEN.Flow.SetSettings(settings)
+
+	void SnowSettings::Register(sol::table& parent)
+	{
+		parent.create().new_usertype<SnowSettings>(ScriptReserved_SnowSettings, sol::constructors<SnowSettings()>(),
+			sol::call_constructor, sol::constructors<SnowSettings()>(),
+			sol::meta_function::new_index, NewIndexErrorMaker(SnowSettings, ScriptReserved_SnowSettings),
+
+		/// Master switch for the deformable snow system.
+		// @tfield[opt=false] bool enabled If true, sectors with SNOW material render the subdivided deformable overlay.
+		"enabled", &SnowSettings::Enabled,
+
+		/// Maximum visual snow depth above the floor surface, in world units.
+		// @tfield[opt=192] int maxDepth Vertical extent of the snow overlay. Lara's foot/body pushes it down up to this distance.
+		"maxDepth", &SnowSettings::MaxDepth,
+
+		/// Wade threshold in world units. If maxDepth is at or above this value, Lara enters the wade state on snow.
+		// @tfield[opt=512] int wadeThreshold Depth above which Lara wades through snow like water.
+		"wadeThreshold", &SnowSettings::WadeThreshold,
+
+		/// Per-frame recovery toward the undeformed surface. 0.0 keeps trails permanent; small values let snow slowly refill.
+		// @tfield[opt=0.0] float decayRate Normalized refill speed per frame (0.0 - 1.0).
+		"decayRate", &SnowSettings::DecayRate,
+
+		/// World-space radius around Lara within which deformation is recorded in the heightmap.
+		// @tfield[opt=8192] int fieldRadius Radius of the moving heightmap window, in world units.
+		"fieldRadius", &SnowSettings::FieldRadius,
+
+		/// Subdivisions per sector edge for the overlay mesh. 16 gives 256 quads per 1024-unit sector.
+		// @tfield[opt=16] int subdivisions Practical range: 4 (coarse) to 32 (very smooth).
+		"subdivisions", &SnowSettings::Subdivisions,
+
+		/// Tint color applied to the snow surface on top of the underlying sector texture.
+		// @tfield[opt=TEN.Color(245&#44; 248&#44; 255)] Color tint Snow color.
+		"tint", &SnowSettings::Tint,
+
+		/// Brightness of the rim highlight at the edge of a deformation trail.
+		// @tfield[opt=0.6] float rimStrength Strength of the trail-edge highlight (0.0 - 1.0).
+		"rimStrength", &SnowSettings::RimStrength,
+
+		/// Amplitude of the procedural micro-hills baked into pristine snow, in world units.
+		// 0 disables the hills entirely. The bumps fade out where the snow is deformed.
+		// @tfield[opt=24.0] float hillHeight Maximum bump height in world units.
+		"hillHeight", &SnowSettings::HillHeight,
+
+		/// Spatial frequency of the procedural hill noise, in radians per world unit.
+		// Lower values give larger, gentler mounds; higher values give tighter ripples.
+		// @tfield[opt=0.0015] float hillFrequency Noise frequency.
+		"hillFrequency", &SnowSettings::HillFrequency);
 	}
 }
