@@ -68,6 +68,40 @@ namespace TEN::Renderer
 		int absZ = (int)centroid.z + room.Position.z;
 		int absY = (int)centroid.y + room.Position.y;
 
+		// Wall-top special case: a sector defined as a wall stores NO_HEIGHT for both
+		// its floor and ceiling planes, so all height-based checks below are meaningless.
+		// The horizontal top face of the wall block is walkable from the room above, and
+		// TombEditor stores the snow-material flag on the UPPER ROOM's sector, not on the
+		// wall sector itself. Query the room immediately above the polygon centroid and
+		// check for the Snow material there.
+		if (sector.IsWall(absX, absZ))
+		{
+			int aboveRoomNumber = FindRoomNumber(Vector3i(absX, absY - 16, absZ));
+			if (aboveRoomNumber == NO_VALUE || &g_Level.Rooms[aboveRoomNumber] == &room)
+				return false;
+
+			auto& roomAbove = g_Level.Rooms[aboveRoomNumber];
+			int agx = (absX - roomAbove.Position.x) / BLOCK(1);
+			int agz = (absZ - roomAbove.Position.z) / BLOCK(1);
+			if (agx < 0 || agx >= roomAbove.XSize || agz < 0 || agz >= roomAbove.ZSize)
+				return false;
+
+			const auto& sectorAbove = roomAbove.Sectors[agx * roomAbove.ZSize + agz];
+			if (sectorAbove.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow)
+				return true;
+
+			for (int idx : poly.indices)
+			{
+				const auto& v = room.positions[idx];
+				int vAbsX = (int)v.x + room.Position.x;
+				int vAbsZ = (int)v.z + room.Position.z;
+				if (sectorAbove.GetSurfaceMaterial(vAbsX, vAbsZ, true) == MaterialType::Snow)
+					return true;
+			}
+
+			return false;
+		}
+
 		int floorHeight = sector.GetSurfaceHeight(absX, absZ, true);
 		int ceilHeight  = sector.GetSurfaceHeight(absX, absZ, false);
 
@@ -75,9 +109,9 @@ namespace TEN::Renderer
 		if (floorHeight == NO_HEIGHT || ceilHeight == NO_HEIGHT)
 			return false;
 
-		// Accept only polygons whose centroid is closer to the sector floor than to
-		// the sector ceiling. This handles any slope depth without a hardcoded tolerance
-		// and reliably separates floor polygons from ceiling polygons.
+		// Accept only polygons whose centroid is closer to the sector floor than to the
+		// sector ceiling. This handles any slope depth without a hardcoded tolerance and
+		// reliably separates floor polygons from ceiling polygons.
 		if (abs(floorHeight - absY) >= abs(ceilHeight - absY))
 			return false;
 
@@ -117,23 +151,25 @@ namespace TEN::Renderer
 
 	// Probes the floor height of the neighbor sector across a polygon edge. Returns the
 	// absolute world-space Y of the neighbor's floor at the requested XZ, or NO_HEIGHT
-	// if there is no valid neighbor sector inside this room. Snow skirts only consider
-	// in-room neighbors to keep level-load cost predictable; cross-room steps fall back
-	// to the underlying static geometry (which is usually already a textured wall).
+	// if there is no valid neighbor sector inside this room.
+	// sourceAbsY is the absolute world-space Y of the source polygon vertex; it is used
+	// to locate the room above when the neighbor sector turns out to be a wall sector.
 	static int GetSnowNeighborFloorAt(
 		const RoomData& room,
 		float localX, float localZ,
 		float edgeMidX, float edgeMidZ,
-		float outwardX, float outwardZ)
+		float outwardX, float outwardZ,
+		int sourceAbsY)
 	{
-		// Probe just 4 world units outside the edge midpoint. Using a large inset (e.g.
-		// CLICK(0.5)) would read the neighbor floor deep inside a sloped sector, giving
-		// a false drop for ramps that smoothly join a flat tile. 4 units is sufficient
-		// to cross the sector boundary for the grid lookup, while slope-induced height
-		// change at this distance is always below MIN_DROP and is correctly ignored.
+		// Probe 4 world units outward from the vertex position (not the edge midpoint).
+		// Using the vertex position ensures that at a vertex shared with an adjacent snow
+		// polygon (e.g. ramp corner touching a flat center square), the neighbor floor
+		// queried is the floor at that exact corner, matching the adjacent polygon's vertex
+		// height and therefore producing rawDrop = 0. This prevents liftScale reduction at
+		// shared corners and eliminates triangular holes at diagonal-ramp-to-flat junctions.
 		constexpr float PROBE_INSET = 4.0f;
-		float probeMidX = edgeMidX + outwardX * PROBE_INSET;
-		float probeMidZ = edgeMidZ + outwardZ * PROBE_INSET;
+		float probeMidX = localX + outwardX * PROBE_INSET;
+		float probeMidZ = localZ + outwardZ * PROBE_INSET;
 		int gridX = (int)(probeMidX / BLOCK(1));
 		int gridZ = (int)(probeMidZ / BLOCK(1));
 		if (gridX < 0 || gridX >= room.XSize || gridZ < 0 || gridZ >= room.ZSize)
@@ -141,12 +177,41 @@ namespace TEN::Renderer
 
 		const auto& sector = room.Sectors[gridX * room.ZSize + gridZ];
 
-		// Wall sectors have no walkable floor. Treat them as having no neighbor:
-		// snow should pile naturally against a wall rather than roll off its edge.
 		int absSampleX = (int)probeMidX + room.Position.x;
 		int absSampleZ = (int)probeMidZ + room.Position.z;
+
+		// Wall-sector neighbour: the neighbor's floor plane stores NO_HEIGHT, so
+		// GetSurfaceHeight is meaningless here. Instead, look one step up to find
+		// the room above the neighbour position and query its floor height. This
+		// correctly handles three sub-cases:
+		//   1. Adjacent wall top at the same height (upper room floor == sourceAbsY)
+		//      -> drop = 0, no skirt. Correct: two snow-covered wall tops side by side.
+		//   2. Adjacent wall top at a lower height (upper room floor > sourceAbsY)
+		//      -> positive drop, skirt emitted. Correct: step-down between wall tops.
+		//   3. No room above the neighbour (open edge / drop-off)
+		//      -> emit a one-click skirt to represent snow drooping at the ledge.
 		if (sector.IsWall(absSampleX, absSampleZ))
-			return NO_HEIGHT;
+		{
+			int aboveRoomNumber = FindRoomNumber(Vector3i(absSampleX, sourceAbsY - 16, absSampleZ));
+			if (aboveRoomNumber == NO_VALUE)
+				return sourceAbsY + CLICK(1);
+
+			const auto& roomAbove = g_Level.Rooms[aboveRoomNumber];
+			int agx = (absSampleX - roomAbove.Position.x) / BLOCK(1);
+			int agz = (absSampleZ - roomAbove.Position.z) / BLOCK(1);
+			if (agx < 0 || agx >= roomAbove.XSize || agz < 0 || agz >= roomAbove.ZSize)
+				return sourceAbsY + CLICK(1);
+
+			const auto& sectorAbove = roomAbove.Sectors[agx * roomAbove.ZSize + agz];
+			if (sectorAbove.IsWall(absSampleX, absSampleZ))
+				return sourceAbsY + CLICK(1);
+
+			int floorY = sectorAbove.GetSurfaceHeight(absSampleX, absSampleZ, true);
+			if (floorY == NO_HEIGHT)
+				return sourceAbsY + CLICK(1);
+
+			return floorY;
+		}
 
 		int floorY = sector.GetSurfaceHeight(absSampleX, absSampleZ, true);
 		return floorY;
@@ -167,6 +232,9 @@ namespace TEN::Renderer
 		constexpr int SKIRT_MIN_DROP = 8;         // World units: avoid hairline skirts on flat tiles.
 		constexpr int SKIRT_MAX_DROP = CLICK(3);  // Beyond ~3 clicks the slope exceeds the angle of repose
 		                                           // for snow -- no natural drift forms against a near-vertical wall.
+		constexpr int SKIRT_CAP_DROP = CLICK(2);  // For cliff-edge wall tops (huge drops), clamp the skirt to a
+		                                           // short drooping lip so the snow cap visibly overhangs the edge
+		                                           // instead of cutting off flat.
 
 		// Edge midpoint and outward direction (perpendicular to edge in XZ, away from centroid).
 		float midX = (vA.x + vB.x) * 0.5f;
@@ -192,28 +260,42 @@ namespace TEN::Renderer
 			nz = -nz;
 		}
 
-		int neighborYA = GetSnowNeighborFloorAt(room, vA.x, vA.z, midX, midZ, nx, nz);
-		int neighborYB = GetSnowNeighborFloorAt(room, vB.x, vB.z, midX, midZ, nx, nz);
-		if (neighborYA == NO_HEIGHT || neighborYB == NO_HEIGHT)
-			return false;
-
 		int topAbsYA = (int)vA.y + room.Position.y;
 		int topAbsYB = (int)vB.y + room.Position.y;
 
+		int neighborYA = GetSnowNeighborFloorAt(room, vA.x, vA.z, midX, midZ, nx, nz, topAbsYA);
+		int neighborYB = GetSnowNeighborFloorAt(room, vB.x, vB.z, midX, midZ, nx, nz, topAbsYB);
+
+		// NO_HEIGHT means the probe went out of room bounds (level edge) -- treat it as a
+		// cliff-edge drop large enough to trigger the cap-skirt path below.
+		if (neighborYA == NO_HEIGHT) neighborYA = topAbsYA + SKIRT_MAX_DROP;
+		if (neighborYB == NO_HEIGHT) neighborYB = topAbsYB + SKIRT_MAX_DROP;
+
 		// Skirt only when neighbor floor sits BELOW our edge (Y is down, so larger = lower).
 		// Emit only "downward" skirts to avoid duplication on shared edges.
-		// Suppress skirts where BOTH endpoints exceed the angle of repose (>= 3 clicks):
-		// snow cannot sustain a drift against a near-vertical wall.
 		int dropA = neighborYA - topAbsYA;
 		int dropB = neighborYB - topAbsYB;
 		if (dropA < SKIRT_MIN_DROP && dropB < SKIRT_MIN_DROP)
 			return false;
-		if (dropA >= SKIRT_MAX_DROP && dropB >= SKIRT_MAX_DROP)
-			return false;
 
-		// Clamp each endpoint individually -- a sloped edge may only drop on one side.
-		outBottomAbsYA = std::max(topAbsYA, neighborYA);
-		outBottomAbsYB = std::max(topAbsYB, neighborYB);
+		// Cliff-edge case: when BOTH endpoints drop by more than SKIRT_MAX_DROP (or the
+		// probe went out of bounds), the underlying surface is effectively a vertical wall.
+		// A full-height skirt would be unrealistic, but cutting the snow off flat at the
+		// edge looks wrong too. Clamp the bottom Y to a short overhang lip (SKIRT_CAP_DROP
+		// below the top edge) so the snow cap visibly droops over the cliff.
+		bool isCliffEdge = (dropA >= SKIRT_MAX_DROP && dropB >= SKIRT_MAX_DROP);
+		if (isCliffEdge)
+		{
+			outBottomAbsYA = topAbsYA + SKIRT_CAP_DROP;
+			outBottomAbsYB = topAbsYB + SKIRT_CAP_DROP;
+			return true;
+		}
+
+		// Clamp each endpoint individually. If one side has a huge drop (NO_HEIGHT-replaced
+		// or genuine cliff) while the other has a valid small drop, cap the large side to
+		// SKIRT_CAP_DROP so the skirt remains visually proportional.
+		outBottomAbsYA = std::max(topAbsYA, (dropA >= SKIRT_MAX_DROP ? topAbsYA + SKIRT_CAP_DROP : neighborYA));
+		outBottomAbsYB = std::max(topAbsYB, (dropB >= SKIRT_MAX_DROP ? topAbsYB + SKIRT_CAP_DROP : neighborYB));
 		return true;
 	}
 
@@ -321,15 +403,15 @@ namespace TEN::Renderer
 				nz = -nz;
 			}
 
-			// Probe neighbor floor directly -- no SKIRT_MAX_DROP filter so large-drop
-			// edges on fully elevated squares are detected.
-			int neighborYA = GetSnowNeighborFloorAt(room, vA.x, vA.z, midX, midZ, nx, nz);
-			int neighborYB = GetSnowNeighborFloorAt(room, vB.x, vB.z, midX, midZ, nx, nz);
-			if (neighborYA == NO_HEIGHT || neighborYB == NO_HEIGHT)
-				continue;
-
 			int topAbsYA = (int)vA.y + room.Position.y;
 			int topAbsYB = (int)vB.y + room.Position.y;
+
+			// Probe neighbor floor directly -- no SKIRT_MAX_DROP filter so large-drop
+			// edges on fully elevated squares are detected.
+			int neighborYA = GetSnowNeighborFloorAt(room, vA.x, vA.z, midX, midZ, nx, nz, topAbsYA);
+			int neighborYB = GetSnowNeighborFloorAt(room, vB.x, vB.z, midX, midZ, nx, nz, topAbsYB);
+			if (neighborYA == NO_HEIGHT || neighborYB == NO_HEIGHT)
+				continue;
 			int rawDropA = neighborYA - topAbsYA;
 			int rawDropB = neighborYB - topAbsYB;
 
@@ -583,10 +665,13 @@ namespace TEN::Renderer
 					botPt.z = bA.z * (1.0f - tU) + bB.z * tU;
 
 					// Interpolate top -> bottom by tV.
+					// Apply a small inward bias so the skirt sits just inside the wall face
+					// geometry, preventing Z-fighting with the adjacent square textures.
+					constexpr float SKIRT_INSET = 2.0f;
 					Vector3 pt;
-					pt.x = topPt.x * (1.0f - tV) + botPt.x * tV;
+					pt.x = topPt.x * (1.0f - tV) + botPt.x * tV - nx * SKIRT_INSET;
 					pt.y = topPt.y * (1.0f - tV) + botPt.y * tV;
-					pt.z = topPt.z * (1.0f - tV) + botPt.z * tV;
+					pt.z = topPt.z * (1.0f - tV) + botPt.z * tV - nz * SKIRT_INSET;
 
 					Vector2 vertUV = Vector2(uvA.x * (1.0f - tU) + uvB.x * tU,
 											 uvA.y * (1.0f - tU) + uvB.y * tU);
