@@ -120,8 +120,8 @@ namespace TEN::Renderer
 				totalHeight = maxHeight;
 
 			// Compute vertical offset based on alignment flags.
-			float yBase = pos.y * uiScale;
-			float yBasePrev = prevPos.y * uiScale;
+			float yBase = pos.y * factor.y;
+			float yBasePrev = prevPos.y * factor.y;
 
 			if (flags & (int)PrintStringFlags::VerticalBottom)
 			{

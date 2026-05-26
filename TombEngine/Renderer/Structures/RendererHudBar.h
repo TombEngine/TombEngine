@@ -16,6 +16,7 @@ namespace TEN::Renderer::Structures
 		static constexpr auto COLOR_COUNT = 5;
 		static constexpr auto SIZE_DEFAULT = Vector2(150.0f, 10.0f);
 
+		Vector2 Position = Vector2::Zero;
 		std::unique_ptr<IVertexBuffer> VertexBufferBorder;
 		std::unique_ptr<IIndexBuffer>  IndexBufferBorder;
 		std::unique_ptr<IVertexBuffer> InnerVertexBuffer;
@@ -30,7 +31,7 @@ namespace TEN::Renderer::Structures
 			| /   \ |
 			3-------4
 		*/
-		RendererHudBar(IGraphicsDevice* devicePtr, const Vector2& pos, const Vector2& size, int borderSize, std::array<Vector4, COLOR_COUNT> colors)
+		RendererHudBar(IGraphicsDevice* devicePtr, const Vector2& pos, const Vector2& size, int borderSize, std::array<Vector4, COLOR_COUNT> colors) : Position(pos)
 		{
 			constexpr auto VERTEX_COUNT = 5;
 			constexpr auto UV_COUNT = 5;

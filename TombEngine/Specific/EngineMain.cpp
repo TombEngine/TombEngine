@@ -37,9 +37,7 @@ std::unique_ptr<ISubsystem> g_Platform;
 std::string GameDirectory;
 
 // Pending window resize in windowed mode, produced by the SDL event loop and consumed by the game thread before rendering.
-static std::atomic<int>  s_PendingResizeWidth{ 0 };
-static std::atomic<int>  s_PendingResizeHeight{ 0 };
-static std::atomic<bool> s_PendingResize{ false };
+static std::optional<Vector2i> NextResolution = std::nullopt;
 
 bool ArgEquals(const char* incomingArg, const std::string& name)
 {
@@ -485,15 +483,9 @@ int main(int argc, char* argv[])
 				if (!g_Configuration.EnableWindowedMode)
 					break;
 
-				int w = 0;
-				int h = 0;
+				int w = 0, h = 0;
 				SDL_GetWindowSizeInPixels(sdlWindow, &w, &h);
-				if (w <= 0 || h <= 0)
-					break;
-
-				s_PendingResizeWidth.store(w, std::memory_order_relaxed);
-				s_PendingResizeHeight.store(h, std::memory_order_relaxed);
-				s_PendingResize.store(true, std::memory_order_release);
+				NextResolution = Vector2i(w, h);
 				break;
 			}
 
@@ -522,24 +514,25 @@ int main(int argc, char* argv[])
 
 void ApplyPendingWindowResize()
 {
-	if (!s_PendingResize.exchange(false, std::memory_order_acquire))
+	if (!NextResolution.has_value())
 		return;
+
+	auto res = NextResolution.value();
+	NextResolution = std::nullopt;
 
 	if (!g_Configuration.EnableWindowedMode)
 		return;
 
-	int w = s_PendingResizeWidth.load(std::memory_order_relaxed);
-	int h = s_PendingResizeHeight.load(std::memory_order_relaxed);
-
-	if (w <= 0 || h <= 0)
+	if (res.x <= 0 || res.y <= 0)
 		return;
 
-	if (w == g_Configuration.ScreenWidth && h == g_Configuration.ScreenHeight)
+	if (res.x == g_Configuration.ScreenWidth && res.y == g_Configuration.ScreenHeight)
 		return;
 
-	g_Configuration.ScreenWidth = w;
-	g_Configuration.ScreenHeight = h;
-	g_Renderer.ChangeScreenResolution(w, h, true, /*resyncWindow*/ false);
+	g_Renderer.ChangeScreenResolution(res.x, res.y, true, false);
+	g_Configuration.ScreenWidth = res.x;
+	g_Configuration.ScreenHeight = res.y;
+	SaveConfiguration();
 }
 
 void EngineClose()

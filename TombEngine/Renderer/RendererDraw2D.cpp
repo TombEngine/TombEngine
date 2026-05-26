@@ -138,9 +138,15 @@ namespace TEN::Renderer
 
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Hud, _cbHUD.get());
 
-		RendererSprite* borderSprite = &_sprites[Objects[ID_BAR_BORDER_GRAPHICS].meshIndex];
+		auto* borderSprite = &_sprites[Objects[ID_BAR_BORDER_GRAPHICS].meshIndex];
+		float screenAspect = (float)_graphicsDevice->GetScreenWidth() / (float)_graphicsDevice->GetScreenHeight();
+		float verticalScale = screenAspect / (DISPLAY_SPACE_RES.x / DISPLAY_SPACE_RES.y);
+		auto topPivot = Vector3(0.0f, HUD_ZERO_Y + bar.Position.y, 0.0f);
+
+		_stHUDBar.Transform = Matrix::CreateTranslation(-topPivot) * Matrix::CreateScale(1.0f, verticalScale, 1.0f) * Matrix::CreateTranslation(topPivot);
 		_stHUDBar.BarStartUV = borderSprite->UV[0];
 		_stHUDBar.BarScale = Vector2(borderSprite->Width / (float)borderSprite->Texture->GetWidth(), borderSprite->Height / (float)borderSprite->Texture->GetHeight());
+
 		UpdateConstantBuffer(&_stHUDBar, _cbHUDBar.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::HudBar, _cbHUDBar.get());
@@ -152,8 +158,6 @@ namespace TEN::Renderer
 		BindTexture(static_cast<TextureRegister>(0), _sprites[Objects[textureSlot].meshIndex].Texture, SamplerStateRegister::AnisotropicClamp);
 
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
-
-		
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 		_graphicsDevice->BindVertexBuffer(bar.InnerVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(bar.InnerIndexBuffer.get());
@@ -182,6 +186,8 @@ namespace TEN::Renderer
 	{
 		if (!g_GameFlow->GetSettings()->Hud.LoadingBar)
 			return;
+
+		_stHUDBar.Transform = Matrix::Identity;
 
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
 	
