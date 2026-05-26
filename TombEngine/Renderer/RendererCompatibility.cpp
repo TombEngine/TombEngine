@@ -44,12 +44,12 @@ namespace TEN::Renderer
 		if (poly.indices.size() < 3)
 			return false;
 
-		// Reject walls and near-vertical faces. Use fabs() so the check works
-		// regardless of whether TombEditor bakes normals pointing "up" or "down"
-		// on floor polygons. Allow slanted floors (raised wedges, ramps, ...) down
-		// to ~17 degrees from horizontal (0.3 threshold ~= 73 deg from vertical).
-		// The floor-height and material checks below discard ceilings and walls.
-		if (fabs(poly.normal.y) < 0.3f)
+		// Reject perfectly vertical walls. Use fabs() so the check works regardless of
+		// whether TombEditor bakes floor-polygon normals pointing "up" or "down".
+		// A 0.08 threshold accepts slopes up to ~85 degrees from horizontal -- effectively
+		// everything except true 90-degree wall faces. The floor-height and material
+		// checks below discard ceilings and walls whose centroid doesn't sit on the floor.
+		if (fabs(poly.normal.y) < 0.08f)
 			return false;
 
 		auto centroid = Vector3::Zero;
@@ -69,7 +69,16 @@ namespace TEN::Renderer
 		int absY = (int)centroid.y + room.Position.y;
 
 		int floorHeight = sector.GetSurfaceHeight(absX, absZ, true);
-		if (abs(floorHeight - absY) > 8)
+		int ceilHeight  = sector.GetSurfaceHeight(absX, absZ, false);
+
+		// Reject bad/no-height sectors.
+		if (floorHeight == NO_HEIGHT || ceilHeight == NO_HEIGHT)
+			return false;
+
+		// Accept only polygons whose centroid is closer to the sector floor than to
+		// the sector ceiling. This handles any slope depth without a hardcoded tolerance
+		// and reliably separates floor polygons from ceiling polygons.
+		if (abs(floorHeight - absY) >= abs(ceilHeight - absY))
 			return false;
 
 		return sector.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow;
@@ -88,6 +97,128 @@ namespace TEN::Renderer
 			outVerts   = n2 * 3;
 			outIndices = n2 * 3;
 		}
+	}
+
+	// Probes the floor height of the neighbor sector across a polygon edge. Returns the
+	// absolute world-space Y of the neighbor's floor at the requested XZ, or NO_HEIGHT
+	// if there is no valid neighbor sector inside this room. Snow skirts only consider
+	// in-room neighbors to keep level-load cost predictable; cross-room steps fall back
+	// to the underlying static geometry (which is usually already a textured wall).
+	static int GetSnowNeighborFloorAt(
+		const RoomData& room,
+		float localX, float localZ,
+		float edgeMidX, float edgeMidZ,
+		float outwardX, float outwardZ)
+	{
+		// Probe sector half a click outside the edge midpoint.
+		float probeMidX = edgeMidX + outwardX * (float)CLICK(0.5f);
+		float probeMidZ = edgeMidZ + outwardZ * (float)CLICK(0.5f);
+		int gridX = (int)(probeMidX / BLOCK(1));
+		int gridZ = (int)(probeMidZ / BLOCK(1));
+		if (gridX < 0 || gridX >= room.XSize || gridZ < 0 || gridZ >= room.ZSize)
+			return NO_HEIGHT;
+
+		const auto& sector = room.Sectors[gridX * room.ZSize + gridZ];
+
+		// Reject neighbor sectors that are not snow themselves -- otherwise we'd drape
+		// snow over arbitrary stone steps.
+		int absSampleX = (int)localX + room.Position.x;
+		int absSampleZ = (int)localZ + room.Position.z;
+		if (sector.GetSurfaceMaterial(absSampleX, absSampleZ, true) != MaterialType::Snow)
+			return NO_HEIGHT;
+
+		int floorY = sector.GetSurfaceHeight(absSampleX, absSampleZ, true);
+		return floorY;
+	}
+
+	// For an edge from local vA to vB, determines whether a vertical skirt should be
+	// emitted and, if so, returns the absolute world-space bottom Y for each endpoint.
+	// Returns false if no skirt is needed (no neighbor, same height, or neighbor is
+	// higher -- which is handled by the neighbor polygon's own skirt going the other way).
+	static bool GetSnowSkirtForEdge(
+		const Vector3& vA,
+		const Vector3& vB,
+		const Vector3& polyCentroidLocal,
+		const RoomData& room,
+		int& outBottomAbsYA,
+		int& outBottomAbsYB)
+	{
+		constexpr int SKIRT_MIN_DROP = 8; // World units: avoid hairline skirts on flat tiles.
+
+		// Edge midpoint and outward direction (perpendicular to edge in XZ, away from centroid).
+		float midX = (vA.x + vB.x) * 0.5f;
+		float midZ = (vA.z + vB.z) * 0.5f;
+
+		float ex = vB.x - vA.x;
+		float ez = vB.z - vA.z;
+
+		// Two possible perpendiculars; pick the one pointing AWAY from polygon centroid.
+		float nx =  ez;
+		float nz = -ex;
+		float len = sqrtf(nx * nx + nz * nz);
+		if (len < 1e-3f)
+			return false;
+		nx /= len;
+		nz /= len;
+
+		float toMidX = midX - polyCentroidLocal.x;
+		float toMidZ = midZ - polyCentroidLocal.z;
+		if (nx * toMidX + nz * toMidZ < 0.0f)
+		{
+			nx = -nx;
+			nz = -nz;
+		}
+
+		int neighborYA = GetSnowNeighborFloorAt(room, vA.x, vA.z, midX, midZ, nx, nz);
+		int neighborYB = GetSnowNeighborFloorAt(room, vB.x, vB.z, midX, midZ, nx, nz);
+		if (neighborYA == NO_HEIGHT || neighborYB == NO_HEIGHT)
+			return false;
+
+		int topAbsYA = (int)vA.y + room.Position.y;
+		int topAbsYB = (int)vB.y + room.Position.y;
+
+		// Skirt only when neighbor floor sits BELOW our edge (Y is down, so larger = lower).
+		// Emit only "downward" skirts to avoid duplication on shared edges.
+		int dropA = neighborYA - topAbsYA;
+		int dropB = neighborYB - topAbsYB;
+		if (dropA < SKIRT_MIN_DROP && dropB < SKIRT_MIN_DROP)
+			return false;
+
+		// Clamp each endpoint individually -- a sloped edge may only drop on one side.
+		outBottomAbsYA = std::max(topAbsYA, neighborYA);
+		outBottomAbsYB = std::max(topAbsYB, neighborYB);
+		return true;
+	}
+
+	static int CountSnowSkirtEdges(const POLYGON& poly, const RoomData& room)
+	{
+		int n = (int)poly.indices.size();
+		if (n < 3)
+			return 0;
+
+		auto centroid = Vector3::Zero;
+		for (int idx : poly.indices)
+			centroid += room.positions[idx];
+		centroid /= (float)n;
+
+		int count = 0;
+		for (int k = 0; k < n; k++)
+		{
+			const auto& vA = room.positions[poly.indices[k]];
+			const auto& vB = room.positions[poly.indices[(k + 1) % n]];
+			int bottomA, bottomB;
+			if (GetSnowSkirtForEdge(vA, vB, centroid, room, bottomA, bottomB))
+				count++;
+		}
+		return count;
+	}
+
+	// Vertex/index counts for a subdivided skirt patch: (N+1) x (N+1) grid -> N*N quads.
+	static void GetSnowSkirtCounts(int skirtEdges, int subdivisions, int& outVerts, int& outIndices)
+	{
+		int nGrid = subdivisions + 1;
+		outVerts   = skirtEdges * nGrid * nGrid;
+		outIndices = skirtEdges * subdivisions * subdivisions * 6;
 	}
 
 	// Bilinear interpolation across the 4 sector-floor quad corners.
@@ -140,6 +271,192 @@ namespace TEN::Renderer
 
 		out.AnimationFrameOffsetIndexHash = Renderer::PackAnimationFrameOffsetIndexHash(animFrame, 0, (int)hash);
 		out.Effects						  = Renderer::PackEffectsAndIndexInPoly(effects, shineStrength, vertIndexInPoly);
+	}
+
+	// Emits a sloped, subdivided "snow drift" patch along polygon edges whose neighbor
+	// sector floor sits below the current edge. The patch is an N x N grid:
+	//   - The top row lies on the higher polygon's snow surface (s in [0,1] along edge).
+	//   - The bottom row sits on the neighbor sector's snow surface, pushed OUTWARD
+	//     horizontally to form a natural drift slope.
+	//   - Every interior vertex samples the snow heightmap at its own XZ via the snow VS,
+	//     so the patch curves with hills on the top edge and deforms with footprints on
+	//     either side. With sufficient subdivisions the patch meets the parent floor and
+	//     the neighbor floor without visible cracks.
+	// UVs are interpolated along the edge but kept constant vertically to avoid sampling
+	// outside the parent polygon's atlas tile.
+	static void EmitSnowSkirtsForPolygon(
+		const POLYGON&   poly,
+		const RoomData&  room,
+		int              subdivisions,
+		float            lift,
+		std::vector<Vertex>& vertices,
+		std::vector<int>&    indices,
+		int&             vertCursor,
+		int&             indexCursor,
+		std::vector<RendererPolygon>& outPolys)
+	{
+		const int N = std::max(1, subdivisions);
+		const int nGrid = N + 1;
+		int n = (int)poly.indices.size();
+		if (n < 3)
+			return;
+
+		auto centroid = Vector3::Zero;
+		for (int idx : poly.indices)
+			centroid += room.positions[idx];
+		centroid /= (float)n;
+
+		for (int k = 0; k < n; k++)
+		{
+			int ia = poly.indices[k];
+			int ib = poly.indices[(k + 1) % n];
+
+			const auto& vA = room.positions[ia];
+			const auto& vB = room.positions[ib];
+
+			int bottomAbsYA, bottomAbsYB;
+			if (!GetSnowSkirtForEdge(vA, vB, centroid, room, bottomAbsYA, bottomAbsYB))
+				continue;
+
+			// Outward horizontal normal (perpendicular to edge in XZ, away from centroid).
+			float ex = vB.x - vA.x;
+			float ez = vB.z - vA.z;
+			float nx =  ez;
+			float nz = -ex;
+			float nlen = sqrtf(nx * nx + nz * nz);
+			if (nlen < 1e-3f)
+				continue;
+			nx /= nlen;
+			nz /= nlen;
+			float toMidX = ((vA.x + vB.x) * 0.5f) - centroid.x;
+			float toMidZ = ((vA.z + vB.z) * 0.5f) - centroid.z;
+			if (nx * toMidX + nz * toMidZ < 0.0f)
+			{
+				nx = -nx;
+				nz = -nz;
+			}
+
+			// Outward distance for the drift base: roughly the per-corner vertical drop,
+			// capped to half a block. Approximates a natural ~45-degree snow drift while
+			// keeping the skirt inside the neighbor sector.
+			int dropA = bottomAbsYA - ((int)vA.y + room.Position.y);
+			int dropB = bottomAbsYB - ((int)vB.y + room.Position.y);
+			float pushA = std::clamp((float)dropA, 0.0f, (float)BLOCK(0.5f));
+			float pushB = std::clamp((float)dropB, 0.0f, (float)BLOCK(0.5f));
+
+			// Local-space top and bottom endpoints. EmitSnowVertex re-adds room.Position
+			// and then subtracts `lift`; setting bottom.y = (neighborFloor - room.Position.y)
+			// makes the final pre-deformation Y equal (neighborFloor - lift), i.e. the
+			// neighbor sector's pristine snow surface level.
+			Vector3 bA = vA;
+			bA.x = vA.x + nx * pushA;
+			bA.z = vA.z + nz * pushA;
+			bA.y = (float)(bottomAbsYA - room.Position.y);
+
+			Vector3 bB = vB;
+			bB.x = vB.x + nx * pushB;
+			bB.z = vB.z + nz * pushB;
+			bB.y = (float)(bottomAbsYB - room.Position.y);
+
+			// Average slope direction (top -> bottom) for the patch normal.
+			Vector3 slopeDir = (bA - vA) + (bB - vB);
+			slopeDir *= 0.5f;
+			if (slopeDir.LengthSquared() < 1e-6f)
+				slopeDir = Vector3(nx, 0.0f, nz);
+			else
+				slopeDir.Normalize();
+
+			Vector3 edgeDir = Vector3(ex, 0.0f, ez);
+			if (edgeDir.LengthSquared() > 1e-6f)
+				edgeDir.Normalize();
+			Vector3 skirtNrm = edgeDir.Cross(slopeDir);
+			if (skirtNrm.LengthSquared() < 1e-6f)
+				skirtNrm = Vector3(0.0f, -1.0f, 0.0f);
+			else
+				skirtNrm.Normalize();
+			if (skirtNrm.y > 0.0f)
+				skirtNrm = -skirtNrm;
+
+			// UVs only along the edge (no vertical offset) -- guaranteed in-tile.
+			Vector2 uvA = poly.textureCoordinates[k];
+			Vector2 uvB = poly.textureCoordinates[(k + 1) % n];
+
+			Vector3 colA = room.colors[ia];
+			Vector3 colB = room.colors[ib];
+			Vector3 effA = room.effects[ia];
+			Vector3 effB = room.effects[ib];
+
+			int baseVertices = vertCursor;
+
+			// Generate (N+1) x (N+1) vertex grid. Indexing: vert(i, j) at baseVertices + j * nGrid + i,
+			// where i is along the edge (0..N) and j is from top (0) to bottom (N).
+			for (int j = 0; j < nGrid; j++)
+			{
+				float tV = (float)j / (float)N;
+				for (int i = 0; i < nGrid; i++)
+				{
+					float tU = (float)i / (float)N;
+
+					// Top XZ at edge parameter tU.
+					Vector3 topPt;
+					topPt.x = vA.x * (1.0f - tU) + vB.x * tU;
+					topPt.y = vA.y * (1.0f - tU) + vB.y * tU;
+					topPt.z = vA.z * (1.0f - tU) + vB.z * tU;
+
+					// Bottom XZ at the same edge parameter (pushed outward by lerp(pushA, pushB)).
+					Vector3 botPt;
+					botPt.x = bA.x * (1.0f - tU) + bB.x * tU;
+					botPt.y = bA.y * (1.0f - tU) + bB.y * tU;
+					botPt.z = bA.z * (1.0f - tU) + bB.z * tU;
+
+					// Interpolate top -> bottom by tV.
+					Vector3 pt;
+					pt.x = topPt.x * (1.0f - tV) + botPt.x * tV;
+					pt.y = topPt.y * (1.0f - tV) + botPt.y * tV;
+					pt.z = topPt.z * (1.0f - tV) + botPt.z * tV;
+
+					Vector2 vertUV = Vector2(uvA.x * (1.0f - tU) + uvB.x * tU,
+											 uvA.y * (1.0f - tU) + uvB.y * tU);
+					Vector3 vertCol = colA * (1.0f - tU) + colB * tU;
+					Vector3 vertEff = effA * (1.0f - tU) + effB * tU;
+
+					int slot = ((j == 0) ? 0 : 2) + ((i == nGrid - 1) ? 1 : 0);
+					EmitSnowVertex(vertices[vertCursor++], pt, vertUV, skirtNrm, edgeDir,
+								   vertCol, vertEff, skirtNrm, room, lift,
+								   poly.animatedFrame, poly.shineStrength, slot);
+				}
+			}
+
+			// Index the N x N grid as quads (two triangles each), winding matched to
+			// EmitSnowOverlayPolygon's quad order so the outward face renders.
+			for (int j = 0; j < N; j++)
+			{
+				for (int i = 0; i < N; i++)
+				{
+					int v00 = baseVertices + j       * nGrid + i;
+					int v10 = baseVertices + j       * nGrid + (i + 1);
+					int v01 = baseVertices + (j + 1) * nGrid + i;
+					int v11 = baseVertices + (j + 1) * nGrid + (i + 1);
+
+					RendererPolygon subPoly{};
+					subPoly.Shape	  = 0;
+					subPoly.Normal	  = skirtNrm;
+					subPoly.Centre	  = (vertices[v00].Position + vertices[v10].Position +
+										 vertices[v11].Position + vertices[v01].Position) * 0.25f;
+					subPoly.BaseIndex = indexCursor;
+
+					indices[indexCursor + 0] = v00;
+					indices[indexCursor + 1] = v01;
+					indices[indexCursor + 2] = v10;
+					indices[indexCursor + 3] = v11;
+					indices[indexCursor + 4] = v10;
+					indices[indexCursor + 5] = v01;
+					indexCursor += 6;
+
+					outPolys.push_back(subPoly);
+				}
+			}
+		}
 	}
 
 	// Emits a fully subdivided snow overlay for a single source floor polygon.
@@ -643,6 +960,14 @@ namespace TEN::Renderer
 						int extraVerts = 0;
 						int extraIndices = 0;
 						GetSnowOverlayCounts(poly, snowSubdivisions, extraVerts, extraIndices);
+
+						// Subdivided skirts that bridge adjacent sectors at different floor heights.
+						int skirtEdges = CountSnowSkirtEdges(poly, room);
+						int skirtVerts = 0, skirtIndices = 0;
+						GetSnowSkirtCounts(skirtEdges, snowSubdivisions, skirtVerts, skirtIndices);
+						extraVerts   += skirtVerts;
+						extraIndices += skirtIndices;
+
 						totalVertices += extraVerts;
 						totalIndices += extraIndices;
 					}
@@ -865,6 +1190,12 @@ namespace TEN::Renderer
 							continue;
 
 						EmitSnowOverlayPolygon(
+							poly, room, snowSubdivisions, snowLift,
+							_roomsVertices, _roomsIndices,
+							lastVertex, lastIndex,
+							overlay.Polygons);
+
+						EmitSnowSkirtsForPolygon(
 							poly, room, snowSubdivisions, snowLift,
 							_roomsVertices, _roomsIndices,
 							lastVertex, lastIndex,
