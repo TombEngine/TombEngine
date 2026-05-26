@@ -11,7 +11,6 @@
 #include "Specific/trutils.h"
 #include "Sound/sound.h"
 
-using namespace flatbuffers;
 using namespace TEN::Input;
 using namespace TEN::Renderer;
 using namespace TEN::Serialization::Config;
@@ -101,7 +100,7 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 
 	TENLog(fmt::format("Loading configuration: {}", GetConfigFilePath()), LogLevel::Info);
 
-	auto verifier = Verifier(buffer.data(), buffer.size());
+	auto verifier = flatbuffers::Verifier(buffer.data(), buffer.size());
 	if (!VerifyConfigurationBuffer(verifier))
 		return false;
 
@@ -229,10 +228,10 @@ bool LoadConfiguration()
 
 static std::vector<unsigned char> BuildConfigurationBuffer()
 {
-	auto fbb = FlatBufferBuilder();
+	auto fbb = flatbuffers::FlatBufferBuilder();
 	auto adapterNameOffset = fbb.CreateString(g_Configuration.AdapterName);
 
-	auto bindings = std::vector<Offset<Binding>>();
+	auto bindings = std::vector<flatbuffers::Offset<Binding>>();
 	bindings.reserve(g_Configuration.Bindings.size());
 
 	for (const auto& [action, keyId] : g_Configuration.Bindings)
