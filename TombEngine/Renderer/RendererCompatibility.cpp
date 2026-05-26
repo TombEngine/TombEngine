@@ -126,9 +126,14 @@ namespace TEN::Renderer
 		float edgeMidX, float edgeMidZ,
 		float outwardX, float outwardZ)
 	{
-		// Probe sector half a click outside the edge midpoint.
-		float probeMidX = edgeMidX + outwardX * (float)CLICK(0.5f);
-		float probeMidZ = edgeMidZ + outwardZ * (float)CLICK(0.5f);
+		// Probe just 4 world units outside the edge midpoint. Using a large inset (e.g.
+		// CLICK(0.5)) would read the neighbor floor deep inside a sloped sector, giving
+		// a false drop for ramps that smoothly join a flat tile. 4 units is sufficient
+		// to cross the sector boundary for the grid lookup, while slope-induced height
+		// change at this distance is always below MIN_DROP and is correctly ignored.
+		constexpr float PROBE_INSET = 4.0f;
+		float probeMidX = edgeMidX + outwardX * PROBE_INSET;
+		float probeMidZ = edgeMidZ + outwardZ * PROBE_INSET;
 		int gridX = (int)(probeMidX / BLOCK(1));
 		int gridZ = (int)(probeMidZ / BLOCK(1));
 		if (gridX < 0 || gridX >= room.XSize || gridZ < 0 || gridZ >= room.ZSize)
@@ -263,10 +268,12 @@ namespace TEN::Renderer
 	// at posLocal. Smoothstep-faded over EDGE_FADE_RANGE inward from any drop edge.
 	//
 	// The value of k at the edge itself depends on the drop magnitude:
-	//   - Drop >= 3 clicks (large): edgeScale=0 -> snow rolls all the way down to the floor.
-	//   - Drop < 3 clicks (small):  edgeScale = 1 - drop/lift -> snow transitions to the
-	//     neighbor snow surface height. CPU posY = polyFloor - lift*k = neighborFloor - lift
-	//     at h=0, so the pristine snow surface meets the neighbor snow level seamlessly.
+	//   - Drop >= 3 clicks: edgeScale=0 -> snow rolls all the way down to the floor.
+	//     NOTE: edges with very large drops are probed directly (not via skirt eligibility),
+	//     so even fully-elevated squares (all edges >= 3 clicks, no skirt emitted) are handled.
+	//   - Drop in [1, lift]: edgeScale = 1 - drop/lift -> snow transitions to neighbor snow height.
+	//   - Drop in (lift, 3 clicks): skirt handles geometry, no overlay depression (avoids
+	//     triangulation artefacts at corners when lift < 1 click).
 	// Outside the fade band k=1 (standard, undisturbed snow).
 	static float GetSnowLiftScale(
 		const POLYGON& poly,
@@ -276,6 +283,7 @@ namespace TEN::Renderer
 	{
 		constexpr float EDGE_FADE_RANGE = (float)CLICK(2);
 		constexpr int LARGE_DROP_THRESHOLD = CLICK(3);
+		constexpr int MIN_DROP = 8; // Avoid hairline adjustments on flat tiles.
 
 		int n = (int)poly.indices.size();
 		if (n < 3)
@@ -293,13 +301,62 @@ namespace TEN::Renderer
 			const auto& vA = room.positions[poly.indices[e]];
 			const auto& vB = room.positions[poly.indices[(e + 1) % n]];
 
-			int bottomYA, bottomYB;
-			if (!GetSnowSkirtForEdge(vA, vB, centroid, room, bottomYA, bottomYB))
-				continue;
-
-			// Distance from posLocal to nearest point on this edge in XZ.
+			// Compute outward normal for this edge (away from polygon centroid).
+			float midX = (vA.x + vB.x) * 0.5f;
+			float midZ = (vA.z + vB.z) * 0.5f;
 			float ex = vB.x - vA.x;
 			float ez = vB.z - vA.z;
+			float nx =  ez;
+			float nz = -ex;
+			float nlen = sqrtf(nx * nx + nz * nz);
+			if (nlen < 1e-3f)
+				continue;
+			nx /= nlen;
+			nz /= nlen;
+			float toMidX = midX - centroid.x;
+			float toMidZ = midZ - centroid.z;
+			if (nx * toMidX + nz * toMidZ < 0.0f)
+			{
+				nx = -nx;
+				nz = -nz;
+			}
+
+			// Probe neighbor floor directly -- no SKIRT_MAX_DROP filter so large-drop
+			// edges on fully elevated squares are detected.
+			int neighborYA = GetSnowNeighborFloorAt(room, vA.x, vA.z, midX, midZ, nx, nz);
+			int neighborYB = GetSnowNeighborFloorAt(room, vB.x, vB.z, midX, midZ, nx, nz);
+			if (neighborYA == NO_HEIGHT || neighborYB == NO_HEIGHT)
+				continue;
+
+			int topAbsYA = (int)vA.y + room.Position.y;
+			int topAbsYB = (int)vB.y + room.Position.y;
+			int rawDropA = neighborYA - topAbsYA;
+			int rawDropB = neighborYB - topAbsYB;
+
+			// Skip edges with no meaningful downward drop on either endpoint.
+			if (rawDropA < MIN_DROP && rawDropB < MIN_DROP)
+				continue;
+
+			int dropA = std::max(0, rawDropA);
+			int dropB = std::max(0, rawDropB);
+
+			// Skip internal diagonal edges of split sectors. These edges lie entirely within
+			// one grid sector: the probe stays in the same cell as the polygon centroid.
+			// Regardless of material on the other triangle, no liftScale reduction should
+			// occur across an internal cut -- it creates holes between the two triangular halves.
+			{
+				constexpr float PROBE_INSET = 4.0f;
+				float probeMidX = midX + nx * PROBE_INSET;
+				float probeMidZ = midZ + nz * PROBE_INSET;
+				int probeGridX = (int)(probeMidX / BLOCK(1));
+				int probeGridZ = (int)(probeMidZ / BLOCK(1));
+				int centGridX  = (int)(centroid.x / BLOCK(1));
+				int centGridZ  = (int)(centroid.z / BLOCK(1));
+				if (probeGridX == centGridX && probeGridZ == centGridZ)
+					continue;
+			}
+
+			// Distance from posLocal to nearest point on this edge in XZ.
 			float elenSq = ex * ex + ez * ez;
 			if (elenSq < 1e-3f)
 				continue;
@@ -315,23 +372,34 @@ namespace TEN::Renderer
 			if (dist >= EDGE_FADE_RANGE)
 				continue;
 
-			// Interpolate the drop at the nearest edge point along parameter t.
-			// This correctly handles sloped ramps where one endpoint is at the same
-			// height as our floor (drop=0) and the other is lower: at the same-height
-			// corner the interpolated drop is 0, so edgeScale stays 1 (full snow),
-			// and the snow surface seamlessly continues across the shared corner.
-			int topAbsYA = (int)vA.y + room.Position.y;
-			int topAbsYB = (int)vB.y + room.Position.y;
-			int dropA = bottomYA - topAbsYA;
-			int dropB = bottomYB - topAbsYB;
+			// Interpolate the drop at the nearest edge point (handles sloped ramps).
 			int dropQ = (int)((float)dropA * (1.0f - t) + (float)dropB * t);
 
-			// Scale at the edge: large drop -> floor (0), small drop -> neighbor snow level.
+			// Determine edge scale based on drop magnitude.
 			float edgeScale;
 			if (dropQ >= LARGE_DROP_THRESHOLD || lift < 1.0f)
+			{
+				// Large drop: snow rolls all the way to the floor.
 				edgeScale = 0.0f;
+			}
+			else if (dropQ <= (int)lift)
+			{
+				// Small drop reachable by lift: interpolate to neighbor snow surface.
+				edgeScale = 1.0f - (float)dropQ / lift;
+			}
+			else if (dropQ > CLICK(1))
+			{
+				// Medium drop (> 1 click, < 3 clicks): roll snow cap to floor so the
+				// overlay forms a natural mound at raised platform edges (hill effect).
+				edgeScale = 0.0f;
+			}
 			else
-				edgeScale = std::clamp(1.0f - (float)dropQ / lift, 0.0f, 1.0f);
+			{
+				// Drop just above lift but <= 1 click: the skirt covers the geometry.
+				// Skip the overlay depression to avoid triangulation artefacts at
+				// corners when lift is smaller than the drop.
+				continue;
+			}
 
 			// Smoothstep: edgeScale at dist=0, 1.0 at EDGE_FADE_RANGE inward.
 			float u = dist / EDGE_FADE_RANGE;
