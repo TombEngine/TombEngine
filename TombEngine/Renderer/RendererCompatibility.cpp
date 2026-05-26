@@ -141,12 +141,12 @@ namespace TEN::Renderer
 
 		const auto& sector = room.Sectors[gridX * room.ZSize + gridZ];
 
-		// Use the probe point itself (not the polygon vertex) for both material and height
-		// queries. Non-snow neighbors are accepted: the skirt is the boundary between
-		// snow and whatever lies outside, so we WANT a drop where the neighbor is stone
-		// or open floor.
+		// Wall sectors have no walkable floor. Treat them as having no neighbor:
+		// snow should pile naturally against a wall rather than roll off its edge.
 		int absSampleX = (int)probeMidX + room.Position.x;
 		int absSampleZ = (int)probeMidZ + room.Position.z;
+		if (sector.IsWall(absSampleX, absSampleZ))
+			return NO_HEIGHT;
 
 		int floorY = sector.GetSurfaceHeight(absSampleX, absSampleZ, true);
 		return floorY;
@@ -387,7 +387,7 @@ namespace TEN::Renderer
 				// Small drop reachable by lift: interpolate to neighbor snow surface.
 				edgeScale = 1.0f - (float)dropQ / lift;
 			}
-			else if (dropQ > CLICK(1))
+			else if (dropQ >= CLICK(1))
 			{
 				// Medium drop (> 1 click, < 3 clicks): roll snow cap to floor so the
 				// overlay forms a natural mound at raised platform edges (hill effect).
