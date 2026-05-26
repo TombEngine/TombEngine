@@ -44,10 +44,7 @@ namespace TEN::Input
 	bool ActiveGamepadHasRumble = false;
 	bool ActiveGamepadHasLED    = false;
 
-	bool LEDOverrideActive = false;
-	unsigned char LEDOverrideR = 0;
-	unsigned char LEDOverrideG = 0;
-	unsigned char LEDOverrideB = 0;
+	std::optional<Vector4> LEDOverrideColor = std::nullopt;
 
 	// Returns true if the user's custom profile has at least one gamepad key bound.
 	// Used to avoid overwriting keyboard-only setups with gamepad defaults.
@@ -822,24 +819,24 @@ namespace TEN::Input
 
 	void SetGamepadLEDOverride(unsigned char r, unsigned char g, unsigned char b)
 	{
-		LEDOverrideActive = true;
-		LEDOverrideR = r;
-		LEDOverrideG = g;
-		LEDOverrideB = b;
+		LEDOverrideColor = Vector4(r, g, b, 0.0f);
 		SetGamepadLED(r, g, b);
 	}
 
 	void ClearGamepadLEDOverride()
 	{
-		LEDOverrideActive = false;
+		LEDOverrideColor = std::nullopt;
 	}
 
 	bool RefreshGamepadLEDOverride()
 	{
-		if (!LEDOverrideActive)
+		if (!LEDOverrideColor.has_value())
 			return false;
 
-		SetGamepadLED(LEDOverrideR, LEDOverrideG, LEDOverrideB);
+		SetGamepadLED(
+			(unsigned char)LEDOverrideColor->x,
+			(unsigned char)LEDOverrideColor->y,
+			(unsigned char)LEDOverrideColor->z);
 		return true;
 	}
 
