@@ -69,7 +69,7 @@ static bool ReadConfigFileData(const std::string& path, std::vector<unsigned cha
 	}
 }
 
-static bool ExtractConfigurationBuffer(const std::vector<byte>& fileData, std::vector<unsigned char>& buffer)
+static bool ExtractConfigurationBuffer(const std::vector<unsigned char>& fileData, std::vector<unsigned char>& buffer)
 {
 	if (fileData.size() <= sizeof(int))
 		return false;
@@ -101,7 +101,8 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 
 	TENLog(fmt::format("Loading configuration: {}", GetConfigFilePath()), LogLevel::Info);
 
-	if (!VerifyConfigurationBuffer(Verifier(buffer.data(), buffer.size())))
+	auto verifier = Verifier(buffer.data(), buffer.size());
+	if (!VerifyConfigurationBuffer(verifier))
 		return false;
 
 	InitDefaultConfiguration();
@@ -226,13 +227,12 @@ bool LoadConfiguration()
 	return true;
 }
 
-static const std::vector<byte> BuildConfigurationBuffer()
+static std::vector<unsigned char> BuildConfigurationBuffer()
 {
-	FlatBufferBuilder fbb{};
-
+	auto fbb = FlatBufferBuilder();
 	auto adapterNameOffset = fbb.CreateString(g_Configuration.AdapterName);
 
-	std::vector<Offset<Binding>> bindings{};
+	auto bindings = std::vector<Offset<Binding>>();
 	bindings.reserve(g_Configuration.Bindings.size());
 
 	for (const auto& [action, keyId] : g_Configuration.Bindings)
@@ -275,7 +275,7 @@ static const std::vector<byte> BuildConfigurationBuffer()
 
 	auto buffer = fbb.GetBufferPointer();
 	auto size = fbb.GetSize();
-	return std::vector<byte>(buffer, buffer + size);
+	return std::vector<unsigned char>(buffer, buffer + size);
 }
 
 bool SaveConfiguration()
@@ -286,13 +286,20 @@ bool SaveConfiguration()
 	auto buffer = BuildConfigurationBuffer();
 	auto path = GetConfigFilePath();
 	auto configPath = std::filesystem::path{ path };
+
 	auto parentPath = configPath.parent_path();
 	if (!parentPath.empty() && !std::filesystem::is_directory(parentPath))
-		std::filesystem::create_directories(parentPath);
+	{
+		auto errorCode = std::error_code();
+		std::filesystem::create_directories(parentPath, errorCode);
+
+		if (errorCode)
+			return false;
+	}
 
 	TENLog(fmt::format("Saving configuration {}.", path), LogLevel::Info);
 
-	auto fileOut = std::ofstream{};
+	auto fileOut = std::ofstream();
 	try
 	{
 		fileOut.open(configPath, std::ios_base::binary | std::ios_base::out);
