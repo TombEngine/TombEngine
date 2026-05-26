@@ -919,7 +919,6 @@ namespace TEN::Entities::Vehicles
 								DoDamage(laraItem, LARA_HEALTH_MAX);
 						}
 
-						StopRumble();
 						Rumble(0.75f, 0.3f, RumbleMode::Both);
 					}
 					else if (motorbikeItem->Animation.Velocity.y > 220)
@@ -959,7 +958,6 @@ namespace TEN::Entities::Vehicles
 					break;
 				}
 
-				StopRumble();
 				Rumble(std::clamp((float)abs(motorbike->Velocity) / MOTORBIKE_ACCEL_MAX * 0.7f, 0.4f, 0.9f), 0.3f, RumbleMode::Both);
 			}
 		}

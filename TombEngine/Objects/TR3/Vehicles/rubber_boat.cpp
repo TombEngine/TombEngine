@@ -633,7 +633,6 @@ namespace TEN::Entities::Vehicles
 		{
 			if (laraItem->Animation.ActiveState != RBOAT_STATE_HIT)
 			{
-				StopRumble();
 				Rumble(std::clamp((float)abs(rBoatItem->Animation.Velocity.z) / RBOAT_FAST_VELOCITY_MAX * 0.5f, 0.3f, 0.7f), 0.3f, RumbleMode::Both);
 				SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, collide);
 			}

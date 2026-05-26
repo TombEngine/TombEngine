@@ -776,7 +776,7 @@ namespace TEN::Input
 
 		power = std::clamp(power, 0.0f, 1.0f);
 
-		if (power == 0.0f || RumbleInfo.Power)
+		if (power == 0.0f)
 			return;
 
 		RumbleInfo.FadeSpeed = power / (delaySec * FPS);

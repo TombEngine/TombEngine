@@ -714,7 +714,6 @@ namespace TEN::Entities::Vehicles
 		{
 			if (laraItem->Animation.TargetState != SPEEDBOAT_STATE_HIT && speedboatItem->Animation.Velocity.z > 5)
 			{
-				StopRumble();
 				Rumble(std::clamp((float)abs(speedboatItem->Animation.Velocity.z) / SPEEDBOAT_FAST_VELOCITY_MAX * 0.7f, 0.4f, 0.9f), 0.3f, RumbleMode::Both);
 				SetAnimationFromSlot(*laraItem, ID_SPEEDBOAT_LARA_ANIMS, collide);
 			}

@@ -912,7 +912,6 @@ namespace TEN::Entities::Vehicles
 				break;
 			}
 
-			StopRumble();
 			Rumble(std::clamp((float)abs(jeep->Velocity) / JEEP_VELOCITY_MAX, 0.5f, 0.9f), 0.4f, RumbleMode::Both);
 		}
 		else
@@ -1118,7 +1117,6 @@ namespace TEN::Entities::Vehicles
 				if (jeepItem->Pose.Position.y == jeepItem->Floor)
 				{
 					laraItem->Animation.TargetState = JS_LAND;
-					StopRumble();
 					Rumble(0.65f, 0.35f, RumbleMode::Both);
 				}
 				else if (jeepItem->Animation.Velocity.y > 300)

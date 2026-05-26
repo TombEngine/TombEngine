@@ -716,7 +716,6 @@ namespace TEN::Entities::Vehicles
 			}
 
 			SoundEffect(SFX_TR3_VEHICLE_QUADBIKE_FRONT_IMPACT, &quadBikeItem->Pose);
-			StopRumble();
 			Rumble(std::clamp((float)abs(quadBike->Velocity) / MAX_VELOCITY * 0.7f, 0.4f, 0.9f), 0.3f, RumbleMode::Both);
 		}
 		else
@@ -813,7 +812,6 @@ namespace TEN::Entities::Vehicles
 				if (quadBikeItem->Pose.Position.y == quadBikeItem->Floor)
 				{
 					laraItem->Animation.TargetState = QBIKE_STATE_LAND;
-					StopRumble();
 					Rumble(0.75f, 0.3f, RumbleMode::Both);
 				}
 				else if (quadBikeItem->Animation.Velocity.y > TERMINAL_VERTICAL_VELOCITY)

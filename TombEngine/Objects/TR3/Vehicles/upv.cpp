@@ -501,7 +501,6 @@ namespace TEN::Entities::Vehicles
 				{
 					laraItem->Animation.TargetState = UPV_STATE_COLLIDE;
 					UPV->Velocity = -UPV->Velocity / 2;
-					StopRumble();
 					Rumble(0.55f, 0.3f, RumbleMode::Both);
 				}
 				else
