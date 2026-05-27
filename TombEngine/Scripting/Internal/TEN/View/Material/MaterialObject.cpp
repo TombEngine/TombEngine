@@ -3,6 +3,7 @@
 
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptUtil.h"
+#include "Scripting/Internal/TEN/Properties/PropertyLuaConverters.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
@@ -10,6 +11,7 @@
 
 using namespace TEN::Scripting::Types;
 using namespace TEN::Utils;
+using namespace TEN::Scripting::Properties;
 
 namespace TEN::Scripting::Objects
 {
@@ -64,60 +66,60 @@ namespace TEN::Scripting::Objects
 		TENLog(fmt::format("Objects.Material '{}' property '{}' value is out of range for {}.", material.Name, property.Name, GetPropertyTypeName(property.Type)), LogLevel::Warning);
 	}
 
-	static sol::object PropertyValueToLua(sol::state_view state, const MaterialPropertyDefinition& definition, const MaterialPropertyData& property)
+	static std::optional<PropertyValue> GetPropertyValue(const MaterialPropertyDefinition& definition, const MaterialPropertyData& property)
 	{
 		switch (definition.Type)
 		{
 		case MaterialPropertyType::Bool:
-			return sol::make_object(state, property.Value.x != 0.0f);
+			return property.Value.x != 0.0f;
 
 		case MaterialPropertyType::Int:
-			return sol::make_object(state, (int)property.Value.x);
+			return (float)(int)property.Value.x;
 
 		case MaterialPropertyType::Float:
-			return sol::make_object(state, property.Value.x);
+			return property.Value.x;
 
 		case MaterialPropertyType::Vec2:
-			return sol::make_object(state, Vec2(property.Value.x, property.Value.y));
+			return Vec2(property.Value.x, property.Value.y);
 
 		case MaterialPropertyType::Vec3:
-			return sol::make_object(state, Vec3(property.Value.x, property.Value.y, property.Value.z));
+			return Vec3(property.Value.x, property.Value.y, property.Value.z);
 
 		case MaterialPropertyType::Color:
-			return sol::make_object(state, ScriptColor(property.Value));
+			return ScriptColor(property.Value);
 
 		case MaterialPropertyType::None:
 		default:
-			return sol::nil;
+			return std::nullopt;
 		}
 	}
 
-	static bool TryConvertPropertyValue(const MaterialData& material, const MaterialPropertyDefinition& property, const sol::object& value, Vector4& outValue)
+	static bool TryConvertPropertyValue(const MaterialData& material, const MaterialPropertyDefinition& property, const sol::object& luaValue, const PropertyValue& value, Vector4& outValue)
 	{
 		switch (property.Type)
 		{
 		case MaterialPropertyType::Bool:
-			if (value.get_type() != sol::type::boolean)
+			if (auto convertedValue = ExtractValue<bool>(value); convertedValue.has_value())
 			{
-				WarnTypeMismatch(material, property);
-				return false;
+				outValue = Vector4(*convertedValue ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f);
+				return true;
 			}
 			else
 			{
-				outValue = Vector4(value.as<bool>() ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f);
-				return true;
+				WarnTypeMismatch(material, property);
+				return false;
 			}
 
 		case MaterialPropertyType::Int:
 		case MaterialPropertyType::Float:
-			if (value.get_type() != sol::type::number)
+			if (luaValue.get_type() != sol::type::number)
 			{
 				WarnTypeMismatch(material, property);
 				return false;
 			}
 			else
 			{
-				double number = value.as<double>();
+				double number = luaValue.as<double>();
 				if (!std::isfinite(number))
 				{
 					WarnTypeMismatch(material, property);
@@ -141,41 +143,39 @@ namespace TEN::Scripting::Objects
 			}
 
 		case MaterialPropertyType::Vec2:
-			if (!value.is<Vec2>())
+			if (auto vector = ExtractValue<Vec2>(value); vector.has_value())
 			{
-				WarnTypeMismatch(material, property);
-				return false;
+				outValue = Vector4(vector->x, vector->y, 0.0f, 0.0f);
+				return true;
 			}
 			else
 			{
-				auto vector = value.as<Vec2>();
-				outValue = Vector4(vector.x, vector.y, 0.0f, 0.0f);
-				return true;
+				WarnTypeMismatch(material, property);
+				return false;
 			}
 
 		case MaterialPropertyType::Vec3:
-			if (!value.is<Vec3>())
+			if (auto vector = ExtractValue<Vec3>(value); vector.has_value())
 			{
-				WarnTypeMismatch(material, property);
-				return false;
+				outValue = Vector4(vector->x, vector->y, vector->z, 0.0f);
+				return true;
 			}
 			else
 			{
-				auto vector = value.as<Vec3>();
-				outValue = Vector4(vector.x, vector.y, vector.z, 0.0f);
-				return true;
+				WarnTypeMismatch(material, property);
+				return false;
 			}
 
 		case MaterialPropertyType::Color:
-			if (!value.is<ScriptColor>())
+			if (auto color = ExtractValue<ScriptColor>(value); color.has_value())
 			{
-				WarnTypeMismatch(material, property);
-				return false;
+				outValue = Vector4(*color);
+				return true;
 			}
 			else
 			{
-				outValue = Vector4(value.as<ScriptColor>());
-				return true;
+				WarnTypeMismatch(material, property);
+				return false;
 			}
 
 		case MaterialPropertyType::None:
@@ -264,7 +264,11 @@ namespace TEN::Scripting::Objects
 			return sol::nil;
 		}
 
-		return PropertyValueToLua(sol::state_view(state), *definition, *property);
+		auto value = GetPropertyValue(*definition, *property);
+		if (!value.has_value())
+			return sol::nil;
+
+		return PropertyValueToLua(sol::state_view(state), *value);
 	}
 
 	void Material::SetProperty(const std::string& name, const sol::object& value)
@@ -295,8 +299,21 @@ namespace TEN::Scripting::Objects
 			return;
 		}
 
+		if (value.get_type() == sol::type::userdata && !value.is<Vec2>() && !value.is<Vec3>() && !value.is<ScriptColor>())
+		{
+			WarnTypeMismatch(_material, *definition);
+			return;
+		}
+
+		auto propertyValue = PropertyValueFromLua(value);
+		if (!propertyValue.has_value())
+		{
+			WarnTypeMismatch(_material, *definition);
+			return;
+		}
+
 		auto converted = Vector4::Zero;
-		if (TryConvertPropertyValue(_material, *definition, value, converted))
+		if (TryConvertPropertyValue(_material, *definition, value, *propertyValue, converted))
 			property->Value = converted;
 	}
 
