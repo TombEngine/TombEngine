@@ -83,6 +83,47 @@ namespace TEN::Effects::SnowField
 		return State.WorldRadius;
 	}
 
+	float GetSnowSurfaceY(float worldX, float worldZ, float floorY)
+	{
+		if (!State.Active)
+			return floorY;
+
+		const auto& settings = g_GameFlow->GetSettings()->Snow;
+		auto maxDepth = (float)settings.MaxDepth;
+		if (maxDepth <= 0.0f)
+			return floorY;
+
+		// Compute UV in [0, 1] relative to the centered snow field.
+		float u = ((worldX - State.WorldCentre.x) / (State.WorldRadius * 2.0f)) + 0.5f;
+		float v = ((worldZ - State.WorldCentre.y) / (State.WorldRadius * 2.0f)) + 0.5f;
+
+		if (u < 0.0f || u > 1.0f || v < 0.0f || v > 1.0f)
+			return floorY;
+
+		// Bilinear sample of the heightmap.
+		float px = u * (RESOLUTION - 1);
+		float py = v * (RESOLUTION - 1);
+		int x0 = (int)px;
+		int y0 = (int)py;
+		int x1 = std::min(x0 + 1, RESOLUTION - 1);
+		int y1 = std::min(y0 + 1, RESOLUTION - 1);
+		float fx = px - x0;
+		float fy = py - y0;
+
+		float h00 = State.Heightmap[y0 * RESOLUTION + x0] / 255.0f;
+		float h10 = State.Heightmap[y0 * RESOLUTION + x1] / 255.0f;
+		float h01 = State.Heightmap[y1 * RESOLUTION + x0] / 255.0f;
+		float h11 = State.Heightmap[y1 * RESOLUTION + x1] / 255.0f;
+		float h = h00 * (1.0f - fx) * (1.0f - fy) +
+				  h10 * fx * (1.0f - fy) +
+				  h01 * (1.0f - fx) * fy +
+				  h11 * fx * fy;
+
+		// Y is down in TR: raised surface has a lower (more negative) Y than the raw floor.
+		// h=0 (untrampled) = full snow depth above floor; h=1 (trampled) = flush with floor.
+		return floorY - (1.0f - h) * maxDepth;
+	}
+
 	// Stamps an additive circular impression. Higher of existing/incoming value wins.
 	// Returns the highest pre-existing value among cells that were actually raised by
 	// this stamp. If nothing was changed (area already fully compressed), returns

@@ -3,9 +3,11 @@
 
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
+#include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Ripple.h"
+#include "Game/effects/SnowField.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
@@ -449,10 +451,42 @@ namespace TEN::Effects::Environment
 				bool inSubstance = g_Level.Rooms[pointColl.GetRoomNumber()].flags & (ENV_FLAG_WATER | ENV_FLAG_SWAMP);
 				landed = landed || (pointColl.GetFloorHeight() <= part.Position.y) || (pointColl.GetCeilingHeight() >= part.Position.y);
 
+				// For snow particles on a Snow-material floor, stop at the heightmap-raised surface.
+				// This check runs even when the regular floor check already fired (landed == true),
+				// so thin snow layers are not bypassed when the particle overshoots in one tick.
+				// Only activates when the snow surface is actually above the raw floor (depth > 0).
+				float snowSurfaceY = 0.0f;
+				bool landedOnSnow = false;
+				if (part.Type == WeatherType::Snow)
+				{
+					auto material = pointColl.GetSector().GetSurfaceMaterial((int)part.Position.x, (int)part.Position.z, true);
+					if (material == MaterialType::Snow)
+					{
+						float candidate = TEN::Effects::SnowField::GetSnowSurfaceY(part.Position.x, part.Position.z, (float)pointColl.GetFloorHeight());
+						if (candidate <= part.Position.y && candidate < (float)pointColl.GetFloorHeight())
+						{
+							snowSurfaceY = candidate;
+							landedOnSnow = true;
+							landed = true;
+						}
+					}
+				}
+
 				if (inSubstance || landed)
 				{
 					part.Stopped = true;
-					part.Position = prevPos;
+
+					// Pin snow particles exactly to the snow surface so they fade out there
+					// rather than at prevPos (which may be above the surface) or below it
+					// (when CollisionCheckDelay allowed the particle to overshoot).
+					if (landedOnSnow)
+					{
+						part.Position.y = snowSurfaceY;
+					}
+					else
+					{
+						part.Position = prevPos;
+					}
 					part.Life = std::clamp(part.Life, 0.0f, WEATHER_PARTICLE_NEAR_DEATH_LIFE);
 
 					// Produce ripples if particle got into substance (water or swamp).
@@ -660,7 +694,10 @@ namespace TEN::Effects::Environment
 					part.ClusterSize = clustering ? (int)(level.GetWeatherStrength() * WEATHER_PARTICLE_CLUSTER_MULT / 2) : 1;
 					part.Size = Random::GenerateFloat(SNOW_SIZE_MAX / 3, SNOW_SIZE_MAX);
 					part.Velocity.y = Random::GenerateFloat(SNOW_VELOCITY_MAX / 4, SNOW_VELOCITY_MAX) * (part.Size / SNOW_SIZE_MAX);
-					part.Life = (SNOW_VELOCITY_MAX / 3) + ((SNOW_VELOCITY_MAX / 2) - ((int)part.Velocity.y >> 2));
+					// Life decrements by 2/tick; fall rate = Velocity.y/2 per tick.
+					// Ensure the particle survives the full descent from max spawn height (BLOCK(7) above camera).
+					// Very slow flakes are capped at 1500 and may fade slightly before max height.
+					part.Life = std::min(4.0f * BLOCK(7) / part.Velocity.y + WEATHER_PARTICLE_NEAR_DEATH_LIFE * 2.0f, 1500.0f);
 					break;
 
 				case WeatherType::Rain:

@@ -184,7 +184,13 @@ namespace TEN::Renderer
 		// opening (not a walkable surface). No snow overlay should be generated there.
 		const auto& ownerFloorTri = ownerSector.GetSurfaceTriangle(absX, absZ, true);
 		if (ownerFloorTri.PortalRoomNumber != NO_VALUE)
+		{
 			return nullptr;
+		}
+		else if (ownerFloorTri.Material != MaterialType::Snow)
+		{
+			return &ownerRoom;
+		}
 
 		return &ownerRoom;
 	}
@@ -192,6 +198,28 @@ namespace TEN::Renderer
 	static bool IsSnowFloorPolygon(const POLYGON& poly, const RoomData& room)
 	{
 		return FindSnowOwnerRoom(poly, room) != nullptr;
+	}
+
+	// Returns true if the polygon sits on a diagonally split sector where one triangle is a
+	// floor portal (fall-through opening). In that case skirts must be suppressed because
+	// the diagonal cut edge would otherwise droop down into the open portal below.
+	static bool IsSnowPolygonOnSplitPortalSector(const POLYGON& poly, const RoomData& sourceRoom, int ownerRoomIdx)
+	{
+		auto centroid = Vector3::Zero;
+		for (int idx : poly.indices)
+			centroid += sourceRoom.positions[idx];
+		centroid /= (float)poly.indices.size();
+
+		int absX = (int)centroid.x + sourceRoom.Position.x;
+		int absZ = (int)centroid.z + sourceRoom.Position.z;
+
+		const auto& ownerRoom = g_Level.Rooms[ownerRoomIdx];
+		int ogx = (absX - ownerRoom.Position.x) / BLOCK(1);
+		int ogz = (absZ - ownerRoom.Position.z) / BLOCK(1);
+		if (ogx < 0 || ogx >= ownerRoom.XSize || ogz < 0 || ogz >= ownerRoom.ZSize)
+			return false;
+
+		return ownerRoom.Sectors[ogx * ownerRoom.ZSize + ogz].IsSurfaceSplitPortal(true);
 	}
 
 	static void GetSnowOverlayCounts(const POLYGON& poly, int subdivisions, int& outVerts, int& outIndices)
@@ -362,7 +390,8 @@ namespace TEN::Renderer
 		const Vector3& polyCentroidLocal,
 		const RoomData& room,
 		int& outBottomAbsYA,
-		int& outBottomAbsYB)
+		int& outBottomAbsYB,
+		bool isSplitSector)
 	{
 		constexpr int SKIRT_MIN_DROP = 8;         // World units: avoid hairline skirts on flat tiles.
 		constexpr int SKIRT_MAX_DROP = CLICK(3);  // Beyond ~3 clicks the slope exceeds the angle of repose
@@ -409,30 +438,27 @@ namespace TEN::Renderer
 		int dropA = neighborYA - topAbsYA;
 		int dropB = neighborYB - topAbsYB;
 
-		// Suppress skirts where the snow blanket continues seamlessly onto the neighbouring
-		// sector (same height) or a solid wall closes the gap. When the neighbour is snow
-		// but sits more than SKIRT_MIN_DROP below, the step face between the two snow
-		// surface levels is exposed and a skirt is still required to cover it.
+		// Skip if both endpoints have a higher neighbour -- the adjacent higher polygon covers that side.
+		if (dropA <= -SKIRT_MIN_DROP && dropB <= -SKIRT_MIN_DROP)
+			return false;
+
+		// For split sectors: emit the skirt at the actual neighbour floor height, bypassing
+		// all height constraints (min drop, max drop cap). The diagonal cut edge must always
+		// be covered regardless of the height difference between the two sub-triangles.
+		if (isSplitSector)
+		{
+			outBottomAbsYA = std::max(topAbsYA, neighborYA);
+			outBottomAbsYB = std::max(topAbsYB, neighborYB);
+			return true;
+		}
+
+		// Non-split: suppress when the snow blanket continues seamlessly at the same height.
 		bool neighborIsSnowA = IsSnowNeighborAt(room, vA.x, vA.z, midX, midZ, nx, nz);
 		bool neighborIsSnowB = IsSnowNeighborAt(room, vB.x, vB.z, midX, midZ, nx, nz);
 		if (neighborIsSnowA && neighborIsSnowB && dropA < SKIRT_MIN_DROP && dropB < SKIRT_MIN_DROP)
 			return false;
 
-		// Even at zero drop, an edge whose neighbour is NOT snow needs a skirt: the
-		// snow surface sits `snowLift` above the underlying floor (shader-side), so
-		// without a skirt the snow blanket appears to float at its borders. The skirt
-		// top inherits the polygon's full liftScale and the bottom row sits at the
-		// neighbour floor with zero lift, producing a natural drooping edge of height
-		// snowLift in screen space. Only skip when BOTH endpoints have an upward
-		// neighbour (drop < 0) -- those edges belong to the adjacent higher polygon.
-		if (dropA <= -SKIRT_MIN_DROP && dropB <= -SKIRT_MIN_DROP)
-			return false;
-
-		// Cliff-edge case: when BOTH endpoints drop by more than SKIRT_MAX_DROP (or the
-		// probe went out of bounds), the underlying surface is effectively a vertical wall.
-		// A full-height skirt would be unrealistic, but cutting the snow off flat at the
-		// edge looks wrong too. Clamp the bottom Y to a short overhang lip (SKIRT_CAP_DROP
-		// below the top edge) so the snow cap visibly droops over the cliff.
+		// Cliff-edge case: clamp to a short overhang lip so the snow cap droops over the cliff.
 		bool isCliffEdge = (dropA >= SKIRT_MAX_DROP && dropB >= SKIRT_MAX_DROP);
 		if (isCliffEdge)
 		{
@@ -441,9 +467,7 @@ namespace TEN::Renderer
 			return true;
 		}
 
-		// Clamp each endpoint individually. If one side has a huge drop (NO_HEIGHT-replaced
-		// or genuine cliff) while the other has a valid small drop, cap the large side to
-		// SKIRT_CAP_DROP so the skirt remains visually proportional.
+		// Clamp each endpoint individually.
 		outBottomAbsYA = std::max(topAbsYA, (dropA >= SKIRT_MAX_DROP ? topAbsYA + SKIRT_CAP_DROP : neighborYA));
 		outBottomAbsYB = std::max(topAbsYB, (dropB >= SKIRT_MAX_DROP ? topAbsYB + SKIRT_CAP_DROP : neighborYB));
 		return true;
@@ -460,13 +484,18 @@ namespace TEN::Renderer
 			centroid += room.positions[idx];
 		centroid /= (float)n;
 
+		int cgx = (int)centroid.x / BLOCK(1);
+		int cgz = (int)centroid.z / BLOCK(1);
+		bool isSplitSector = (cgx >= 0 && cgx < room.XSize && cgz >= 0 && cgz < room.ZSize) &&
+			room.Sectors[cgx * room.ZSize + cgz].IsSurfaceSplit(true);
+
 		int count = 0;
 		for (int k = 0; k < n; k++)
 		{
 			const auto& vA = room.positions[poly.indices[k]];
 			const auto& vB = room.positions[poly.indices[(k + 1) % n]];
 			int bottomA, bottomB;
-			if (GetSnowSkirtForEdge(vA, vB, centroid, room, bottomA, bottomB))
+			if (GetSnowSkirtForEdge(vA, vB, centroid, room, bottomA, bottomB, isSplitSector))
 				count++;
 		}
 		return count;
@@ -853,6 +882,11 @@ namespace TEN::Renderer
 			centroid += room.positions[idx];
 		centroid /= (float)n;
 
+		int cgx = (int)centroid.x / BLOCK(1);
+		int cgz = (int)centroid.z / BLOCK(1);
+		bool isSplitSector = (cgx >= 0 && cgx < room.XSize && cgz >= 0 && cgz < room.ZSize) &&
+			room.Sectors[cgx * room.ZSize + cgz].IsSurfaceSplit(true);
+
 		for (int k = 0; k < n; k++)
 		{
 			int ia = poly.indices[k];
@@ -862,7 +896,7 @@ namespace TEN::Renderer
 			const auto& vB = room.positions[ib];
 
 			int bottomAbsYA, bottomAbsYB;
-			if (!GetSnowSkirtForEdge(vA, vB, centroid, room, bottomAbsYA, bottomAbsYB))
+			if (!GetSnowSkirtForEdge(vA, vB, centroid, room, bottomAbsYA, bottomAbsYB, isSplitSector))
 				continue;
 
 			// Outward horizontal normal (perpendicular to edge in XZ, away from centroid).
@@ -1786,12 +1820,16 @@ float liftScale = GetSnowLiftScale(poly, room, cp, lift);
 								overlay.Polygons,
 								colorOverride);
 
-							EmitSnowSkirtsForPolygon(
-								poly, room, snowSubdivisions, snowLift,
-								_roomsVertices, _roomsIndices,
-								lastVertex, lastIndex,
-								overlay.Polygons,
-								colorOverride);
+							// Skip skirts for polygons on split sectors with one portal (fall-through) half.
+							if (!IsSnowPolygonOnSplitPortalSector(poly, room, ownerIdx))
+							{
+								EmitSnowSkirtsForPolygon(
+									poly, room, snowSubdivisions, snowLift,
+									_roomsVertices, _roomsIndices,
+									lastVertex, lastIndex,
+									overlay.Polygons,
+									colorOverride);
+							}
 						}
 
 						overlay.NumVertices = lastVertex - startVertex;

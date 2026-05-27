@@ -32,4 +32,10 @@ namespace TEN::Effects::SnowField
 	// any time after Initialize() - silently ignored outside the active field.
 	// Use this for explosions, custom scripted impacts, etc.
 	void Stamp(const Vector3& worldPos, float worldRadius, float depth);
+
+	// Returns the effective snow surface Y at a world XZ position, derived from the
+	// heightmap. Y is down: returned value is <= floorY (raised surface = lower Y).
+	// Returns floorY unchanged when the snow field is inactive or the position is
+	// outside the field bounds.
+	float GetSnowSurfaceY(float worldX, float worldZ, float floorY);
 }
