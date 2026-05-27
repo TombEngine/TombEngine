@@ -1212,6 +1212,11 @@ float liftScale = GetSnowLiftScale(poly, room, cp, lift);
 	{
 		TENLog("Preparing renderer...", LogLevel::Info);
 
+		// The debug slider is a transient, per-session tool. Reset it on every level
+		// transition so the value entered on the title screen does not add to the
+		// snow surface offset restored from a savegame.
+		_snowDebugYOffset = 0.0f;
+
 		_skinVertexBackups.clear();
 		_lastBlendMode = BlendMode::Unknown;
 		_lastCullMode = CullMode::Unknown;

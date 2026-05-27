@@ -203,6 +203,7 @@ namespace TEN::Renderer
 		ConstantBuffers::CSnowBuffer _stSnow;
 		std::unique_ptr<IConstantBuffer> _cbSnow;
 		std::unique_ptr<ITexture2D> _snowFieldHeightmap;
+		float _snowDebugYOffset = 0.0f; // Live surface-height offset exposed via the debug UI.
 
 		// Dual volumetric cloud layer B (layer A reuses the members above).
 		std::unique_ptr<IRenderSurface2D> _cloudRenderTargetB;
@@ -493,6 +494,7 @@ namespace TEN::Renderer
 	public:
 		DustStorm::DustStormSettings& GetDustStormSettings() { return _dustStormSettings; }
 		const DustStorm::DustStormSettings& GetDustStormSettings() const { return _dustStormSettings; }
+		float& GetSnowDebugYOffset() { return _snowDebugYOffset; }
 	private:
 
 		// Deformable snow overlay (Phase 5).

@@ -55,6 +55,11 @@ struct Level : public ScriptInterfaceLevel
 
 	bool ResetHub = false;
 
+	// Dynamic snow surface height offset. Positive values raise the surface
+	// (thicker snow); negative values lower it. Saved per savegame slot.
+	// Writable from Lua via SetDynamicSnowLevel / GetDynamicSnowLevel.
+	float SnowSurfaceOffset = 0.0f;
+
 	// TODO: Clean up this mess.
 
 	RGBAColor8Byte GetFogColor() const override;
@@ -66,6 +71,9 @@ struct Level : public ScriptInterfaceLevel
 	RGBAColor8Byte GetSkyLayerColor(int index) const override;
 	LaraType GetLaraType() const override;
 	void SetWeatherStrength(float val);
+	void SetDynamicSnowLevel(float offset);
+	float GetDynamicSnowLevel() const;
+	float GetSnowSurfaceOffset() const override { return SnowSurfaceOffset; }
 	static void Register(sol::table& parent);
 	WeatherType GetWeatherType() const override;
 	bool GetWeatherClustering() const override;

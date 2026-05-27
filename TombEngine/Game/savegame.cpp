@@ -1441,6 +1441,7 @@ const std::vector<byte> SaveGame::Build()
 	levelData.add_weather_type((int)level->Weather);
 	levelData.add_weather_strength(level->WeatherStrength);
 	levelData.add_weather_clustering(level->WeatherClustering);
+	levelData.add_snow_surface_offset(level->SnowSurfaceOffset);
 
 	auto levelDataOffset = levelData.Finish();
 
@@ -2066,6 +2067,7 @@ static void ParseLua(const Save::SaveGame* s, bool hubMode)
 	level->Weather = (WeatherType)s->level_data()->weather_type();
 	level->WeatherStrength = s->level_data()->weather_strength();
 	level->WeatherClustering = s->level_data()->weather_clustering();
+	level->SnowSurfaceOffset = s->level_data()->snow_surface_offset();
 
 	// Event sets
 

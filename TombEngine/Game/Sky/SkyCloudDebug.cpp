@@ -38,6 +38,7 @@
 #include "Renderer/UnderwaterSky/UnderwaterSkySettings.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
+#include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
 #include "Specific/level.h"
 
 namespace TEN::Sky
@@ -2496,6 +2497,33 @@ namespace TEN::Sky
 				"The dust storm is a volumetric raymarched effect rendered after "
 				"the scene. It is only visible from outdoor rooms and follows the "
 				"steady wind set above.");
+		}
+
+		// ============================================================
+		// Snow surface debug controls.
+		// ============================================================
+		ImGui::Spacing();
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		const auto& snow = g_GameFlow->GetSettings()->Snow;
+		if (ImGui::CollapsingHeader("Snow Surface (Debug)"))
+		{
+			ImGui::BeginDisabled(!snow.Enabled);
+
+			ImGui::TextDisabled("Raises or lowers the entire snow surface live without");
+			ImGui::TextDisabled("rebuilding geometry. Footprints still reach the floor.");
+			ImGui::Spacing();
+
+			const float maxRange = (float)snow.MaxDepth;
+			ImGui::SliderFloat("Surface Offset##snow", &g_Renderer.GetSnowDebugYOffset(), -maxRange, maxRange, "%.1f units");
+
+			if (ImGui::Button("Reset##snow"))
+				g_Renderer.GetSnowDebugYOffset() = 0.0f;
+
+			ImGui::TextDisabled("(MaxDepth = %d, offset range +/-MaxDepth)", snow.MaxDepth);
+
+			ImGui::EndDisabled();
 		}
 	}
 

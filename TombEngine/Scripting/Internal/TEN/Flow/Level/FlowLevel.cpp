@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/ScriptAssert.h"
 
 using namespace TEN::Scripting;
@@ -158,7 +159,20 @@ This setting does not affect ability to use weapons or flares.
 
 /// (short) Set total secret count for current level.
 //@mem secrets
-		"secrets", &Level::LevelSecrets
+		"secrets", &Level::LevelSecrets,
+
+/// Raise or lower the deformable snow surface for this level at runtime.
+// Positive offset raises the surface (thicker snow), negative lowers it.
+// The value is clamped to [-Snow.maxDepth, +Snow.maxDepth] from Settings.lua.
+// Can be called from volume triggers or any level script.
+// @function SetDynamicSnowLevel
+// @tparam float offset Vertical offset in world units.
+		"SetDynamicSnowLevel", &Level::SetDynamicSnowLevel,
+
+/// Get the current snow surface height offset for this level.
+// @function GetDynamicSnowLevel
+// @treturn float Current offset in world units.
+		"GetDynamicSnowLevel", &Level::GetDynamicSnowLevel
 	);
 }
 
@@ -226,6 +240,18 @@ bool Level::GetWeatherClustering() const
 float Level::GetWeatherStrength() const
 {
 	return WeatherStrength;	
+}
+
+void Level::SetDynamicSnowLevel(float offset)
+{
+	const auto& snow = g_GameFlow->GetSettings()->Snow;
+	float limit = (float)snow.MaxDepth;
+	SnowSurfaceOffset = std::clamp(offset, -limit, limit);
+}
+
+float Level::GetDynamicSnowLevel() const
+{
+	return SnowSurfaceOffset;
 }
 
 WeatherType Level::GetWeatherType() const

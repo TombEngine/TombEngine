@@ -13,6 +13,7 @@
 #include "Game/effects/SnowField.h"
 #include "Renderer/ConstantBuffers/SnowBuffer.h"
 #include "Renderer/RendererEnums.h"
+#include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/TEN/Flow/FlowHandler.h"
 #include "Scripting/Internal/TEN/Flow/Settings/Settings.h"
 #include "Specific/configuration.h"
@@ -72,7 +73,10 @@ namespace TEN::Renderer
 		// HillHeight is independent of MaxDepth: the snow mesh is lifted by
 		// (MaxDepth + HillHeight) at generation time so hills always have room.
 		float hillHeight = std::max(0.0f, snow.HillHeight);
-		_stSnow.SnowHillParams = Vector4(hillHeight, snow.HillFrequency, 0.0f, 0.0f);
+
+		// Combine the scripted/saved level offset with the transient debug UI offset.
+		float levelOffset = g_GameFlow->GetLevel(CurrentLevel)->GetSnowSurfaceOffset();
+		_stSnow.SnowHillParams = Vector4(hillHeight, snow.HillFrequency, levelOffset + _snowDebugYOffset, 0.0f);
 
 		UpdateConstantBuffer(&_stSnow, _cbSnow.get());
 	}

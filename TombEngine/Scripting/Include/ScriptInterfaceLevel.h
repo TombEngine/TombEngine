@@ -67,4 +67,7 @@ public:
 	virtual int	  GetStarfieldMeteorCount() const = 0;
 	virtual int	  GetStarfieldMeteorSpawnDensity() const = 0;
 	virtual float GetStarfieldMeteorVelocity() const = 0;
+
+	// Dynamic snow surface offset (set via Lua or loaded from savegame).
+	virtual float GetSnowSurfaceOffset() const { return 0.0f; }
 };

@@ -23,7 +23,7 @@ cbuffer CBSnow : register(b6)
 	float4 SnowTintAndRim;
 
 	// Procedural micro-hill parameters: x = amplitude (world units, down-direction),
-	// y = spatial frequency (rad/unit), zw = reserved.
+	// y = spatial frequency (rad/unit), z = debug surface Y offset (world units, positive = raised), w = reserved.
 	float4 SnowHillParams;
 };
 

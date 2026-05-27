@@ -52,6 +52,8 @@ table LevelData {
 	starfield_meteor_count: int32;
 	starfield_meteor_spawn_density: int32;
 	starfield_meteor_velocity: int32;
+
+	snow_surface_offset: float;
 }
 
 table Room {

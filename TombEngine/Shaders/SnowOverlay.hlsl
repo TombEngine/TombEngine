@@ -81,6 +81,11 @@ PixelShaderInput VS(VertexShaderInput input)
 	float totalLift = SnowMaxDepth + hillHeight;
 
 	float3 worldPos = input.Position;
+
+	// Debug live surface-height offset (Wind tab slider). Positive = raised surface.
+	// Applied uniformly before footprint deformation so trails still reach the floor.
+	worldPos.y -= SnowHillParams.z * liftScale;
+
 	worldPos.y += (h * totalLift + hillPushY) * liftScale;
 
 	output.Position = mul(float4(worldPos, 1.0f), ViewProjection);
