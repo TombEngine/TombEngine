@@ -138,20 +138,47 @@ namespace TEN::Renderer
 
 		const auto& ownerSector = ownerRoom.Sectors[ogx * ownerRoom.ZSize + ogz];
 
-		// Snow material is stored on the OWNER room's sector. Diagonal-split sectors
-		// hold separate materials per sub-half, so probe the centroid AND each vertex
-		// position to catch small triangular polys whose centroid drifts into the
-		// other half by a few units.
+		// Snow material is stored on the OWNER room's sector. For non-split sectors,
+		// probe the centroid AND each vertex to catch polygons (e.g. wall-top triangular
+		// polys) whose centroid may drift slightly outside the sector. For split sectors,
+		// vertex probes must be skipped: vertices sitting exactly on the diagonal cut
+		// boundary map to TRI_ID_1 regardless of which half owns them (GetSurfaceTriangleID
+		// returns TRI_ID_1 when bias == 0.0), so the vertex loop leaks snow material from
+		// the snow half onto the non-snow (e.g. water) half. The centroid of a floor
+		// sub-triangle is always strictly inside its own sub-half, so the centroid probe
+		// is fully reliable for split sectors; the cross-room diagonal fallback below
+		// handles the wall-top case on cross-room split sectors.
 		if (ownerSector.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow)
 			return &ownerRoom;
 
-		for (int idx : poly.indices)
+		if (!ownerSector.IsSurfaceSplit(true))
 		{
-			const auto& v = sourceRoom.positions[idx];
-			int vAbsX = (int)v.x + sourceRoom.Position.x;
-			int vAbsZ = (int)v.z + sourceRoom.Position.z;
-			if (ownerSector.GetSurfaceMaterial(vAbsX, vAbsZ, true) == MaterialType::Snow)
+			for (int idx : poly.indices)
+			{
+				const auto& v = sourceRoom.positions[idx];
+				int vAbsX = (int)v.x + sourceRoom.Position.x;
+				int vAbsZ = (int)v.z + sourceRoom.Position.z;
+				if (ownerSector.GetSurfaceMaterial(vAbsX, vAbsZ, true) == MaterialType::Snow)
+					return &ownerRoom;
+			}
+		}
+
+		// Wall-top in a diagonal-split owner sector: the polygon physically lives in a
+		// neighbour room (ownerRoomNumber != sourceRoomIdx) and its footprint sits on
+		// the WALL sub-half of the owner sector. The wall sub-half has no walkable
+		// floor and TombEditor only lets the user assign the snow material to the
+		// FLOOR sub-half -- so the per-probe checks above return the wall sub-half's
+		// default material even when the tile is visibly snow in the editor. Restrict
+		// this fallback to the cross-room case so same-room diagonal-raised tiles
+		// (where the non-snow half is intentional) are NOT incorrectly snow-covered.
+		if (ownerRoomNumber != sourceRoomIdx && ownerSector.IsSurfaceSplit(true))
+		{
+			const auto& tris = ownerSector.FloorSurface.Triangles;
+			if (tris[0].Material == MaterialType::Snow ||
+				tris[1].Material == MaterialType::Snow)
+			{
 				return &ownerRoom;
+			}
 		}
 
 		return nullptr;
@@ -189,15 +216,35 @@ namespace TEN::Renderer
 		float outwardX, float outwardZ,
 		int sourceAbsY)
 	{
-		// Probe 4 world units outward from the vertex position (not the edge midpoint).
-		// Using the vertex position ensures that at a vertex shared with an adjacent snow
-		// polygon (e.g. ramp corner touching a flat center square), the neighbor floor
-		// queried is the floor at that exact corner, matching the adjacent polygon's vertex
-		// height and therefore producing rawDrop = 0. This prevents liftScale reduction at
-		// shared corners and eliminates triangular holes at diagonal-ramp-to-flat junctions.
+		// Probe outward from the vertex position so adjacent snow polys at ramp corners
+		// return matching floor heights (rawDrop = 0) and don't erroneously reduce the
+		// per-vertex lift scale. To make this work for INTERNAL diagonal-split edges --
+		// where the vertex sits exactly on a sector corner and the outward perpendicular
+		// points partly outside the sector -- first pull the probe a few world units
+		// along the edge toward its midpoint. This shifts the sample off the corner
+		// into the interior of the source sector, so the subsequent outward inset lands
+		// in the OTHER sub-triangle of the same sector instead of going out of bounds.
+		// The along-edge shift is small enough that on axis-aligned edges the probe
+		// still ends up in the neighbour sector (PROBE_INSET dominates perpendicularly).
 		constexpr float PROBE_INSET = 4.0f;
-		float probeMidX = localX + outwardX * PROBE_INSET;
-		float probeMidZ = localZ + outwardZ * PROBE_INSET;
+		constexpr float EDGE_INSET  = 8.0f;
+
+		float toMidDX = edgeMidX - localX;
+		float toMidDZ = edgeMidZ - localZ;
+		float toMidLen = sqrtf(toMidDX * toMidDX + toMidDZ * toMidDZ);
+		if (toMidLen > 1e-3f)
+		{
+			toMidDX /= toMidLen;
+			toMidDZ /= toMidLen;
+		}
+		else
+		{
+			toMidDX = 0.0f;
+			toMidDZ = 0.0f;
+		}
+
+		float probeMidX = localX + toMidDX * EDGE_INSET + outwardX * PROBE_INSET;
+		float probeMidZ = localZ + toMidDZ * EDGE_INSET + outwardZ * PROBE_INSET;
 		int gridX = (int)(probeMidX / BLOCK(1));
 		int gridZ = (int)(probeMidZ / BLOCK(1));
 		if (gridX < 0 || gridX >= room.XSize || gridZ < 0 || gridZ >= room.ZSize)
@@ -257,11 +304,28 @@ namespace TEN::Renderer
 	static bool IsSnowNeighborAt(
 		const RoomData& room,
 		float localX, float localZ,
+		float edgeMidX, float edgeMidZ,
 		float outwardX, float outwardZ)
 	{
 		constexpr float PROBE_INSET = 4.0f;
-		float probeX = localX + outwardX * PROBE_INSET;
-		float probeZ = localZ + outwardZ * PROBE_INSET;
+		constexpr float EDGE_INSET  = 8.0f;
+
+		float toMidDX = edgeMidX - localX;
+		float toMidDZ = edgeMidZ - localZ;
+		float toMidLen = sqrtf(toMidDX * toMidDX + toMidDZ * toMidDZ);
+		if (toMidLen > 1e-3f)
+		{
+			toMidDX /= toMidLen;
+			toMidDZ /= toMidLen;
+		}
+		else
+		{
+			toMidDX = 0.0f;
+			toMidDZ = 0.0f;
+		}
+
+		float probeX = localX + toMidDX * EDGE_INSET + outwardX * PROBE_INSET;
+		float probeZ = localZ + toMidDZ * EDGE_INSET + outwardZ * PROBE_INSET;
 		int gridX = (int)(probeX / BLOCK(1));
 		int gridZ = (int)(probeZ / BLOCK(1));
 
@@ -273,10 +337,13 @@ namespace TEN::Renderer
 		{
 			const auto& sector = room.Sectors[gridX * room.ZSize + gridZ];
 
-			// Wall neighbour: the solid wall geometry closes the visual gap, so no
-			// drooping skirt is needed along that edge regardless of the wall's material.
+			// Wall neighbour: a solid wall closes the visual gap, so no drooping skirt
+			// is needed. Exception: if the wall belongs to the wall sub-half of a
+			// diagonal-step sector (IsSurfaceSplit), the probe stayed inside the same
+			// sector and that partial wall does NOT close the gap under the lifted snow
+			// edge along the diagonal cut -- allow the skirt to be emitted.
 			if (sector.IsWall(absX, absZ))
-				return true;
+				return !sector.IsSurfaceSplit(true);
 
 			return sector.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow;
 		}
@@ -337,11 +404,13 @@ namespace TEN::Renderer
 		int dropA = neighborYA - topAbsYA;
 		int dropB = neighborYB - topAbsYB;
 
-		// Suppress skirts where the snow blanket continues onto the neighbouring sector or
-		// a solid wall closes the gap -- either case needs no drooping edge skirt.
-		bool neighborIsSnowA = IsSnowNeighborAt(room, vA.x, vA.z, nx, nz);
-		bool neighborIsSnowB = IsSnowNeighborAt(room, vB.x, vB.z, nx, nz);
-		if (neighborIsSnowA && neighborIsSnowB)
+		// Suppress skirts where the snow blanket continues seamlessly onto the neighbouring
+		// sector (same height) or a solid wall closes the gap. When the neighbour is snow
+		// but sits more than SKIRT_MIN_DROP below, the step face between the two snow
+		// surface levels is exposed and a skirt is still required to cover it.
+		bool neighborIsSnowA = IsSnowNeighborAt(room, vA.x, vA.z, midX, midZ, nx, nz);
+		bool neighborIsSnowB = IsSnowNeighborAt(room, vB.x, vB.z, midX, midZ, nx, nz);
+		if (neighborIsSnowA && neighborIsSnowB && dropA < SKIRT_MIN_DROP && dropB < SKIRT_MIN_DROP)
 			return false;
 
 		// Even at zero drop, an edge whose neighbour is NOT snow needs a skirt: the
@@ -560,6 +629,90 @@ namespace TEN::Renderer
 			}
 
 			// Smoothstep: edgeScale at dist=0, 1.0 at EDGE_FADE_RANGE inward.
+			float u = dist / EDGE_FADE_RANGE;
+			float fade = u * u * (3.0f - 2.0f * u);
+			float scale = edgeScale + (1.0f - edgeScale) * fade;
+			if (scale < minScale)
+				minScale = scale;
+		}
+
+		// Per-vertex corner probe: the edge loop above only detects drops for tiles that
+		// share an edge with this polygon. Tiles sharing only a corner (diagonal adjacency)
+		// are not covered by any edge perpendicular, so their drop is never seen -- causing
+		// the snow surface to remain fully lifted at the corner vertex even though the
+		// diagonally adjacent tile is lower. Probe outward from each vertex (in the
+		// centroid-to-vertex direction) to detect such diagonal drops and apply the same
+		// liftScale fade so the snow surface rolls down to match the adjacent surfaces.
+		for (int vi = 0; vi < n; vi++)
+		{
+			const auto& vc = room.positions[poly.indices[vi]];
+
+			float cornerDirX = vc.x - centroid.x;
+			float cornerDirZ = vc.z - centroid.z;
+			float cornerLen = sqrtf(cornerDirX * cornerDirX + cornerDirZ * cornerDirZ);
+			if (cornerLen < 1e-3f)
+				continue;
+			cornerDirX /= cornerLen;
+			cornerDirZ /= cornerLen;
+
+			// Small offset past the vertex to cross into the diagonal sector.
+			constexpr float CORNER_PROBE = 4.0f;
+			float probeX = vc.x + cornerDirX * CORNER_PROBE;
+			float probeZ = vc.z + cornerDirZ * CORNER_PROBE;
+			int probeGridX = (int)(probeX / BLOCK(1));
+			int probeGridZ = (int)(probeZ / BLOCK(1));
+
+			// Skip if the probe stayed in the same sector as the centroid (internal
+			// diagonal of a split sector, already excluded by the edge loop).
+			int centGridX = (int)(centroid.x / BLOCK(1));
+			int centGridZ = (int)(centroid.z / BLOCK(1));
+			if (probeGridX == centGridX && probeGridZ == centGridZ)
+				continue;
+
+			if (probeGridX < 0 || probeGridX >= room.XSize || probeGridZ < 0 || probeGridZ >= room.ZSize)
+				continue;
+
+			int topAbsY = (int)vc.y + room.Position.y;
+			int absProbeX = (int)probeX + room.Position.x;
+			int absProbeZ = (int)probeZ + room.Position.z;
+
+			const auto& cornerSector = room.Sectors[probeGridX * room.ZSize + probeGridZ];
+			if (cornerSector.IsWall(absProbeX, absProbeZ))
+				continue;
+
+			int cornerNeighborY = cornerSector.GetSurfaceHeight(absProbeX, absProbeZ, true);
+			if (cornerNeighborY == NO_HEIGHT)
+				continue;
+
+			int cornerDrop = cornerNeighborY - topAbsY;
+			if (cornerDrop < MIN_DROP)
+				continue;
+
+			// Distance from posLocal to this corner vertex.
+			float dx = posLocal.x - vc.x;
+			float dz = posLocal.z - vc.z;
+			float dist = sqrtf(dx * dx + dz * dz);
+			if (dist >= EDGE_FADE_RANGE)
+				continue;
+
+			float edgeScale;
+			if (cornerDrop >= LARGE_DROP_THRESHOLD || lift < 1.0f)
+			{
+				edgeScale = 0.0f;
+			}
+			else if (cornerDrop <= (int)lift)
+			{
+				edgeScale = 1.0f - (float)cornerDrop / lift;
+			}
+			else if (cornerDrop >= CLICK(1))
+			{
+				edgeScale = 0.0f;
+			}
+			else
+			{
+				continue;
+			}
+
 			float u = dist / EDGE_FADE_RANGE;
 			float fade = u * u * (3.0f - 2.0f * u);
 			float scale = edgeScale + (1.0f - edgeScale) * fade;
