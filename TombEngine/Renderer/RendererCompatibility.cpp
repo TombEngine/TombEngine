@@ -69,37 +69,8 @@ namespace TEN::Renderer
 		int absY = (int)centroid.y + sourceRoom.Position.y;
 		int absZ = (int)centroid.z + sourceRoom.Position.z;
 
-		// Material-probe XZ biased ~16 WU OUTWARD from the sector center through the
-		// polygon's centroid. Sub-quadrant polygons of a 4-way pyramid / diagonal-step
-		// sector all meet at the sector center, which sits exactly on the sector's
-		// split diagonal -- so a centroid near the center can land on the wrong side
-		// of GetSurfaceTriangleID's bias test (it returns TRI_ID_1 on the boundary)
-		// and the material probe reads the OPPOSITE sub-triangle's material. Biasing
-		// outward from the sector center pushes the probe away from the apex/diagonal
-		// into the polygon's own outer territory, which by convexity always belongs
-		// to the polygon's correct sub-triangle. Biasing toward a polygon vertex (V0)
-		// is wrong here because V0 may be the center apex itself, which would push
-		// the probe ACROSS the diagonal into the neighbouring sub-triangle.
 		int sgx = (absX - sourceRoom.Position.x) / BLOCK(1);
 		int sgz = (absZ - sourceRoom.Position.z) / BLOCK(1);
-		constexpr float MATERIAL_PROBE_BIAS = 16.0f;
-		float sectorCenterX = (sgx + 0.5f) * BLOCK(1);
-		float sectorCenterZ = (sgz + 0.5f) * BLOCK(1);
-		float biasDX = centroid.x - sectorCenterX;
-		float biasDZ = centroid.z - sectorCenterZ;
-		float biasLen = sqrtf(biasDX * biasDX + biasDZ * biasDZ);
-		if (biasLen > 1e-3f)
-		{
-			biasDX = biasDX / biasLen * MATERIAL_PROBE_BIAS;
-			biasDZ = biasDZ / biasLen * MATERIAL_PROBE_BIAS;
-		}
-		else
-		{
-			biasDX = 0.0f;
-			biasDZ = 0.0f;
-		}
-		int matAbsX = (int)(centroid.x + biasDX) + sourceRoom.Position.x;
-		int matAbsZ = (int)(centroid.z + biasDZ) + sourceRoom.Position.z;
 
 		// Source-sector gate. The owner-routing below can fall through to a neighbour
 		// room when the source room's volume check fails (e.g. for thin rooms, portal
@@ -113,8 +84,8 @@ namespace TEN::Renderer
 		if (sgx >= 0 && sgx < sourceRoom.XSize && sgz >= 0 && sgz < sourceRoom.ZSize)
 		{
 			const auto& srcSector = sourceRoom.Sectors[sgx * sourceRoom.ZSize + sgz];
-			bool srcIsWall = srcSector.IsWall(matAbsX, matAbsZ);
-			auto srcMaterial = srcSector.GetSurfaceMaterial(matAbsX, matAbsZ, true);
+			bool srcIsWall = srcSector.IsWall(absX, absZ);
+			auto srcMaterial = srcSector.GetSurfaceMaterial(absX, absZ, true);
 			if (!srcIsWall && srcMaterial != MaterialType::Snow)
 				return nullptr;
 		}
@@ -188,33 +159,32 @@ namespace TEN::Renderer
 
 		const auto& ownerSector = ownerRoom.Sectors[ogx * ownerRoom.ZSize + ogz];
 
-		// The outward-biased probe (matAbsX/matAbsZ) is guaranteed to land strictly
-		// inside the polygon's own sub-triangle for any sector geometry (plain, split,
-		// or multi-sub-quad pyramid), so a single material check suffices.
-		if (ownerSector.GetSurfaceMaterial(matAbsX, matAbsZ, true) != MaterialType::Snow)
-			return nullptr;
-
-		// Defensive per-sub-triangle confirmation for diagonally split sectors.
-		// The non-snow sub-half of a diagonal-split square (e.g. stone half of a
-		// diagonal elevation, or floor half of a diagonal wall) must never inherit
-		// the snow shader effect. Cross-reference the polygon's true sub-triangle
-		// (derived from its un-biased centroid) against the matched sub-triangle and
-		// require both to map to Snow material. If the un-biased centroid lands on
-		// the opposite sub-triangle, the biased probe was misclassified -- reject.
-		if (ownerSector.IsSurfaceSplit(true))
-		{
-			int centroidAbsX = (int)centroid.x + sourceRoom.Position.x;
-			int centroidAbsZ = (int)centroid.z + sourceRoom.Position.z;
-
-			int triIDBiased   = ownerSector.GetSurfaceTriangleID(matAbsX, matAbsZ, true);
-			int triIDCentroid = ownerSector.GetSurfaceTriangleID(centroidAbsX, centroidAbsZ, true);
-			if (triIDBiased != triIDCentroid)
-			{
-				const auto& centroidTri = ownerSector.FloorSurface.Triangles[triIDCentroid];
-				if (centroidTri.Material != MaterialType::Snow)
-					return nullptr;
-			}
+		// Use the polygon centroid directly for the material check. The centroid of a
+		// triangular polygon is always within its own sub-triangle, so GetSurfaceMaterial
+		// reliably returns the correct per-half material for diagonally split sectors.
+		// For quad polygons on non-split sectors both halves share the same material, so
+		// the boundary-case determination does not matter.
+		//if (ownerSector.GetSurfaceMaterial(absX, absZ, true) != MaterialType::Snow)
+			//return nullptr;
+	
+		//if (ownerSector.IsSurfaceSplit(true))
+		//{
+		/*
+			if (ownerSector.FloorSurface.Triangles[0].Material != MaterialType::Snow ||
+				ownerSector.FloorSurface.Triangles[1].Material != MaterialType::Snow)
+				return nullptr;
 		}
+		else*/
+			if (ownerSector.GetSurfaceMaterial(absX, absZ, true) != MaterialType::Snow)
+				return nullptr;
+		//}
+
+		// Reject fall-through floor triangles: if the owner sector's floor sub-triangle
+		// at this XZ is a vertical portal to the room below, the polygon represents an
+		// opening (not a walkable surface). No snow overlay should be generated there.
+		const auto& ownerFloorTri = ownerSector.GetSurfaceTriangle(absX, absZ, true);
+		if (ownerFloorTri.PortalRoomNumber != NO_VALUE)
+			return nullptr;
 
 		return &ownerRoom;
 	}
@@ -1684,7 +1654,7 @@ float liftScale = GetSnowLiftScale(poly, room, cp, lift);
 					n.Normalize();
 
 					newPoly.Normal = n;
-					
+
 					int baseVertices = lastVertex;
 					for (int k = 0; k < poly.indices.size(); k++)
 					{
