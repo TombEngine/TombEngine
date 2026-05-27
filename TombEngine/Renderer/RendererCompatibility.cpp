@@ -678,7 +678,25 @@ namespace TEN::Renderer
 
 			const auto& cornerSector = room.Sectors[probeGridX * room.ZSize + probeGridZ];
 			if (cornerSector.IsWall(absProbeX, absProbeZ))
+			{
+				// Non-split solid wall closes the visual gap; no reduction needed.
+				if (!cornerSector.IsSurfaceSplit(true))
+					continue;
+
+				// Diagonal-step wall sub-half: the step face is exposed at this corner.
+				// Force liftScale to zero so the snow rolls down to meet the step face.
+				float wdx = posLocal.x - vc.x;
+				float wdz = posLocal.z - vc.z;
+				float wDist = sqrtf(wdx * wdx + wdz * wdz);
+				if (wDist < EDGE_FADE_RANGE)
+				{
+					float wu = wDist / EDGE_FADE_RANGE;
+					float scale = wu * wu * (3.0f - 2.0f * wu);
+					if (scale < minScale)
+						minScale = scale;
+				}
 				continue;
+			}
 
 			int cornerNeighborY = cornerSector.GetSurfaceHeight(absProbeX, absProbeZ, true);
 			if (cornerNeighborY == NO_HEIGHT)
@@ -704,13 +722,13 @@ namespace TEN::Renderer
 			{
 				edgeScale = 1.0f - (float)cornerDrop / lift;
 			}
-			else if (cornerDrop >= CLICK(1))
-			{
-				edgeScale = 0.0f;
-			}
 			else
 			{
-				continue;
+				// Drop exceeds lift but is below the large-drop threshold. For edge-adjacent
+				// tiles the skirt covers the step face, so the overlay does a continue.
+				// For corner-adjacent tiles there is no skirt, so force edgeScale to 0
+				// to bring the snow surface down regardless of snow depth.
+				edgeScale = 0.0f;
 			}
 
 			float u = dist / EDGE_FADE_RANGE;
