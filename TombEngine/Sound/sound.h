@@ -224,3 +224,4 @@ float Sound_Attenuate(float gain, float distance, float radius);
 bool  Sound_UpdateEffectPosition(int index, Pose *position, bool force = false);
 bool  Sound_UpdateEffectAttributes(int index, float pitch, float gain);
 std::vector<BassDevice> Sound_ListDevices();
+std::string Sound_GetFullAudioDirectory();

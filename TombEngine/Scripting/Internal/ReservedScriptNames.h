@@ -349,6 +349,25 @@ static constexpr char ScriptReserved_PlaySound[]					= "PlaySound";
 static constexpr char ScriptReserved_StopSound[]					= "StopSound";
 static constexpr char ScriptReserved_IsSoundPlaying[]				= "IsSoundPlaying";
 static constexpr char ScriptReserved_IsAudioTrackPlaying[]			= "IsAudioTrackPlaying";
+
+// Soundtrack object API
+static constexpr char ScriptReserved_Soundtrack[]					= "Soundtrack";
+static constexpr char ScriptReserved_SoundtrackPlay[]				= "Play";
+static constexpr char ScriptReserved_SoundtrackPause[]				= "Pause";
+static constexpr char ScriptReserved_SoundtrackResume[]				= "Resume";
+static constexpr char ScriptReserved_SoundtrackStop[]				= "Stop";
+static constexpr char ScriptReserved_SoundtrackSetVolume[]			= "SetVolume";
+static constexpr char ScriptReserved_SoundtrackGetVolume[]			= "GetVolume";
+static constexpr char ScriptReserved_SoundtrackSetPlayMode[]		= "SetPlayMode";
+static constexpr char ScriptReserved_SoundtrackGetPlayMode[]		= "GetPlayMode";
+static constexpr char ScriptReserved_SoundtrackSetPosition[]		= "SetPosition";
+static constexpr char ScriptReserved_SoundtrackGetPosition[]		= "GetPosition";
+static constexpr char ScriptReserved_SoundtrackGetLength[]			= "GetLength";
+static constexpr char ScriptReserved_SoundtrackIsPlaying[]			= "IsPlaying";
+static constexpr char ScriptReserved_SoundtrackIsPaused[]			= "IsPaused";
+static constexpr char ScriptReserved_SoundtrackIsActive[]			= "IsActive";
+static constexpr char ScriptReserved_SoundtrackGetTrackName[]		= "GetTrackName";
+static constexpr char ScriptReserved_SoundtrackGetRuntimeID[]		= "GetRuntimeID";
 static constexpr char ScriptReserved_GiveInvItem[]					= "GiveItem";
 static constexpr char ScriptReserved_TakeInvItem[]					= "TakeItem";
 static constexpr char ScriptReserved_GetInvItemCount[]				= "GetItemCount";

@@ -16,6 +16,14 @@ static const std::unordered_map<std::string, SoundTrackType> SOUNDTRACK_TYPE
 	// @mem LOOPED
 	{ "LOOPED", SoundTrackType::BGM },
 
+	/// Alias for LOOPED. Used for background music.
+	// @mem BGM
+	{ "BGM", SoundTrackType::BGM },
+
+	/// Alias for LOOPED. Used for ambient tracks.
+	// @mem AMBIENT
+	{ "AMBIENT", SoundTrackType::BGM },
+
 	/// Used for dialogs. Also supports subtitles, set by @{Sound.GetCurrentSubtitle} function.
 	// @mem VOICE
 	{ "VOICE", SoundTrackType::Voice }

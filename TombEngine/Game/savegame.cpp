@@ -40,6 +40,7 @@
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
 #include "Sound/sound.h"
+#include "Sound/SoundtrackPersistence.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"
 #include "Specific/savegame/flatbuffers/ten_savegame_generated.h"
@@ -1267,6 +1268,26 @@ const std::vector<byte> SaveGame::Build()
 		track.add_position(trackData.second);
 		soundtracks.push_back(track.Finish());
 	}
+
+	// Save Lua-managed soundtracks (appended after legacy slots).
+	auto luaSoundtrackData = TEN::Sound::SaveLuaSoundtracks();
+	for (auto& luaTrack : luaSoundtrackData)
+	{
+		// Encode options as prefix: "__lua:<volume>:<playMode>:<isPaused>:<loop>:<hasLoop>|<name>"
+		auto encodedName = fmt::format("__lua:{}:{}:{}:{}:{}|{}",
+			luaTrack.Volume, luaTrack.PlayMode,
+			luaTrack.IsPaused ? 1 : 0,
+			luaTrack.Loop ? 1 : 0,
+			luaTrack.HasLoopOverride ? 1 : 0,
+			luaTrack.Name);
+		auto nameOffset = fbb.CreateString(encodedName);
+
+		Save::SoundtrackBuilder track{ fbb };
+		track.add_name(nameOffset);
+		track.add_position(luaTrack.Position);
+		soundtracks.push_back(track.Finish());
+	}
+
 	auto soundtrackOffset = fbb.CreateVector(soundtracks);
 
 	// Legacy soundtrack map
@@ -2364,13 +2385,52 @@ static void ParseEffects(const Save::SaveGame* s)
 	g_Renderer.SetPostProcessTint(ToVector3(s->postprocess_tint()));
 
 	// Restore soundtracks.
+	TEN::Sound::ClearLuaSoundtracks();
+	std::vector<TEN::Sound::SoundtrackSaveData> luaSoundtrackLoadData;
+
 	for (int i = 0; i < s->soundtracks()->size(); i++)
 	{
-		TENAssert(i < (int)SoundTrackType::Count, "Soundtrack type count was changed");
-
 		auto track = s->soundtracks()->Get(i);
-		PlaySoundTrack(track->name()->str(), (SoundTrackType)i, track->position(), SOUND_XFADETIME_LEVELJUMP);
+		auto name = track->name()->str();
+
+		// Check if this is a Lua-managed soundtrack (prefixed with "__lua:").
+		if (name.rfind("__lua:", 0) == 0)
+		{
+			// Parse encoded format: "__lua:<volume>:<playMode>:<isPaused>:<loop>:<hasLoop>|<name>"
+			auto pipePos = name.find('|');
+			if (pipePos != std::string::npos)
+			{
+				auto header = name.substr(6, pipePos - 6); // Skip "__lua:"
+				auto trackName = name.substr(pipePos + 1);
+
+				TEN::Sound::SoundtrackSaveData data;
+				data.Name = trackName;
+				data.Position = track->position();
+
+				// Parse header fields.
+				float volume = 1.0f;
+				int playMode = 0, isPaused = 0, loop = 0, hasLoop = 0;
+				sscanf(header.c_str(), "%f:%d:%d:%d:%d", &volume, &playMode, &isPaused, &loop, &hasLoop);
+
+				data.Volume = volume;
+				data.PlayMode = playMode;
+				data.IsPaused = (isPaused != 0);
+				data.Loop = (loop != 0);
+				data.HasLoopOverride = (hasLoop != 0);
+
+				luaSoundtrackLoadData.push_back(data);
+			}
+		}
+		else
+		{
+			TENAssert(i < (int)SoundTrackType::Count, "Soundtrack type count was changed");
+			PlaySoundTrack(name, (SoundTrackType)i, track->position(), SOUND_XFADETIME_LEVELJUMP);
+		}
 	}
+
+	// Restore Lua-managed soundtracks.
+	if (!luaSoundtrackLoadData.empty())
+		TEN::Sound::LoadLuaSoundtracks(luaSoundtrackLoadData);
 
 	// Restore video playback.
 	std::string videoName = s->video()->name()->str();

@@ -1343,3 +1343,9 @@ std::vector<BassDevice> Sound_ListDevices()
 
 	return out;
 }
+
+// Accessor for the full audio directory, used by the new soundtrack object system.
+std::string Sound_GetFullAudioDirectory()
+{
+	return FullAudioDirectory;
+}
