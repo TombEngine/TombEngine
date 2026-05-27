@@ -550,6 +550,7 @@ void ApplyPendingWindowResize()
 		return;
 
 	g_Renderer.ChangeScreenResolution(res.x, res.y, true, false);
+	g_Renderer.SetGraphicsSettingsChanged();
 	g_Configuration.ScreenWidth = res.x;
 	g_Configuration.ScreenHeight = res.y;
 	SaveConfiguration();
