@@ -525,6 +525,264 @@ namespace TEN::Renderer
 		return a * w0 + b * w1 + c * w2;
 	}
 
+	// Polygon-level precomputed data used by GetSnowLiftScaleCached to avoid
+	// re-running GetSnowNeighborFloorAt and all geometry lookups for every sub-vertex.
+	// Only data that varies per posLocal (distance, fade) is deferred to the per-vertex call.
+	struct SnowEdgeEntry
+	{
+		Vector3 vA;       // Edge start position (local room space).
+		float   ex, ez;   // Edge direction (B - A).
+		float   elenSq;   // Squared edge length, for the t projection.
+		int     dropA;    // Downward drop (clamped to >= 0) at vertex A.
+		int     dropB;    // Downward drop (clamped to >= 0) at vertex B.
+		bool    valid = false;
+	};
+
+	struct SnowCornerEntry
+	{
+		Vector3 vc;            // Corner vertex position (local room space).
+		float   edgeScale;     // Precomputed scale value at the corner itself.
+		bool    valid = false;
+	};
+
+	struct SnowLiftScaleCache
+	{
+		SnowEdgeEntry   edges[4];
+		int             edgeCount = 0;
+		SnowCornerEntry corners[4];
+		int             cornerCount = 0;
+	};
+
+	// Builds a SnowLiftScaleCache for one polygon. Performs all expensive per-polygon
+	// probes (GetSnowNeighborFloorAt, sector lookups) once so they are not repeated for
+	// each subdivided vertex in the emission loops.
+	static SnowLiftScaleCache BuildSnowLiftScaleCache(const POLYGON& poly, const RoomData& room, float lift)
+	{
+		constexpr int LARGE_DROP_THRESHOLD = CLICK(3);
+		constexpr int MIN_DROP = 8;
+
+		SnowLiftScaleCache cache;
+
+		int n = (int)poly.indices.size();
+		cache.edgeCount   = std::min(n, 4);
+		cache.cornerCount = std::min(n, 4);
+
+		Vector3 centroid = Vector3::Zero;
+		for (int idx : poly.indices)
+			centroid += room.positions[idx];
+		centroid /= (float)n;
+
+		for (int e = 0; e < n && e < 4; e++)
+		{
+			auto& entry = cache.edges[e];
+
+			const auto& vA = room.positions[poly.indices[e]];
+			const auto& vB = room.positions[poly.indices[(e + 1) % n]];
+
+			float midX = (vA.x + vB.x) * 0.5f;
+			float midZ = (vA.z + vB.z) * 0.5f;
+			float ex = vB.x - vA.x;
+			float ez = vB.z - vA.z;
+			float nx = ez, nz = -ex;
+			float nlen = sqrtf(nx * nx + nz * nz);
+			if (nlen < 1e-3f)
+				continue;
+			nx /= nlen;
+			nz /= nlen;
+			if (nx * (midX - centroid.x) + nz * (midZ - centroid.z) < 0.0f) { nx = -nx; nz = -nz; }
+
+			int topAbsYA = (int)vA.y + room.Position.y;
+			int topAbsYB = (int)vB.y + room.Position.y;
+			int neighborYA = GetSnowNeighborFloorAt(room, vA.x, vA.z, midX, midZ, nx, nz, topAbsYA);
+			int neighborYB = GetSnowNeighborFloorAt(room, vB.x, vB.z, midX, midZ, nx, nz, topAbsYB);
+			if (neighborYA == NO_HEIGHT || neighborYB == NO_HEIGHT)
+				continue;
+
+			int rawDropA = neighborYA - topAbsYA;
+			int rawDropB = neighborYB - topAbsYB;
+			if (rawDropA < MIN_DROP && rawDropB < MIN_DROP)
+				continue;
+
+			// Diagonal / split-sector gate (identical to the one in GetSnowLiftScale).
+			{
+				constexpr float PROBE_INSET = 4.0f;
+				float probeMidX = midX + nx * PROBE_INSET;
+				float probeMidZ = midZ + nz * PROBE_INSET;
+				int probeGridX = (int)(probeMidX / BLOCK(1));
+				int probeGridZ = (int)(probeMidZ / BLOCK(1));
+				int centGridX  = (int)(centroid.x / BLOCK(1));
+				int centGridZ  = (int)(centroid.z / BLOCK(1));
+				if (probeGridX == centGridX && probeGridZ == centGridZ)
+					continue;
+				if (probeGridX >= 0 && probeGridX < room.XSize &&
+					probeGridZ >= 0 && probeGridZ < room.ZSize)
+				{
+					const auto& probeSector = room.Sectors[probeGridX * room.ZSize + probeGridZ];
+					if (probeSector.IsSurfaceSplit(true))
+						continue;
+				}
+			}
+
+			float elenSq = ex * ex + ez * ez;
+			if (elenSq < 1e-3f)
+				continue;
+
+			entry.vA    = vA;
+			entry.ex    = ex;
+			entry.ez    = ez;
+			entry.elenSq = elenSq;
+			entry.dropA  = std::max(0, rawDropA);
+			entry.dropB  = std::max(0, rawDropB);
+			entry.valid  = true;
+		}
+
+		for (int vi = 0; vi < n && vi < 4; vi++)
+		{
+			auto& entry = cache.corners[vi];
+
+			const auto& vc = room.positions[poly.indices[vi]];
+			entry.vc = vc;
+
+			float cornerDirX = vc.x - centroid.x;
+			float cornerDirZ = vc.z - centroid.z;
+			float cornerLen = sqrtf(cornerDirX * cornerDirX + cornerDirZ * cornerDirZ);
+			if (cornerLen < 1e-3f)
+				continue;
+			cornerDirX /= cornerLen;
+			cornerDirZ /= cornerLen;
+
+			constexpr float CORNER_PROBE = 4.0f;
+			float probeX = vc.x + cornerDirX * CORNER_PROBE;
+			float probeZ = vc.z + cornerDirZ * CORNER_PROBE;
+			int probeGridX = (int)(probeX / BLOCK(1));
+			int probeGridZ = (int)(probeZ / BLOCK(1));
+
+			if (probeGridX < 0 || probeGridX >= room.XSize || probeGridZ < 0 || probeGridZ >= room.ZSize)
+				continue;
+
+			int topAbsY   = (int)vc.y + room.Position.y;
+			int absProbeX = (int)probeX + room.Position.x;
+			int absProbeZ = (int)probeZ + room.Position.z;
+			int centGridX = (int)(centroid.x / BLOCK(1));
+			int centGridZ = (int)(centroid.z / BLOCK(1));
+
+			const auto& cornerSector = room.Sectors[probeGridX * room.ZSize + probeGridZ];
+			int cornerNeighborY = NO_HEIGHT;
+
+			if (probeGridX == centGridX && probeGridZ == centGridZ)
+			{
+				auto belowRoomNum = cornerSector.GetNextRoomNumber(absProbeX, absProbeZ, true);
+				if (!belowRoomNum.has_value())
+					continue;
+				const auto& roomBelow = g_Level.Rooms[*belowRoomNum];
+				int bgx = (absProbeX - roomBelow.Position.x) / BLOCK(1);
+				int bgz = (absProbeZ - roomBelow.Position.z) / BLOCK(1);
+				if (bgx < 0 || bgx >= roomBelow.XSize || bgz < 0 || bgz >= roomBelow.ZSize)
+					continue;
+				const auto& belowSector = roomBelow.Sectors[bgx * roomBelow.ZSize + bgz];
+				if (!belowSector.IsWall(absProbeX, absProbeZ))
+					cornerNeighborY = belowSector.GetSurfaceHeight(absProbeX, absProbeZ, true);
+			}
+			else if (cornerSector.IsWall(absProbeX, absProbeZ))
+			{
+				continue;
+			}
+			else
+			{
+				if (cornerSector.IsSurfaceSplit(true))
+					continue;
+				cornerNeighborY = cornerSector.GetSurfaceHeight(absProbeX, absProbeZ, true);
+			}
+
+			if (cornerNeighborY == NO_HEIGHT)
+				continue;
+
+			int cornerDrop = cornerNeighborY - topAbsY;
+			if (cornerDrop < MIN_DROP)
+				continue;
+
+			float edgeScale;
+			if (cornerDrop >= LARGE_DROP_THRESHOLD || lift < 1.0f)
+				edgeScale = 0.0f;
+			else if (cornerDrop <= (int)lift)
+				edgeScale = 1.0f - (float)cornerDrop / lift;
+			else
+				edgeScale = 0.0f;
+
+			entry.edgeScale = edgeScale;
+			entry.valid = true;
+		}
+
+		return cache;
+	}
+
+	// Per-vertex lift scale from a prebuilt cache. Only performs the cheap
+	// distance-to-edge / smoothstep fade computation for each sub-vertex.
+	static float GetSnowLiftScaleCached(const SnowLiftScaleCache& cache, const Vector3& posLocal, float lift)
+	{
+		constexpr float EDGE_FADE_RANGE = (float)CLICK(2);
+		constexpr int LARGE_DROP_THRESHOLD = CLICK(3);
+
+		float minScale = 1.0f;
+
+		for (int e = 0; e < cache.edgeCount; e++)
+		{
+			const auto& entry = cache.edges[e];
+			if (!entry.valid)
+				continue;
+
+			float t = ((posLocal.x - entry.vA.x) * entry.ex + (posLocal.z - entry.vA.z) * entry.ez) / entry.elenSq;
+			t = std::clamp(t, 0.0f, 1.0f);
+
+			float qx = entry.vA.x + entry.ex * t;
+			float qz = entry.vA.z + entry.ez * t;
+			float dx = posLocal.x - qx;
+			float dz = posLocal.z - qz;
+			float dist = sqrtf(dx * dx + dz * dz);
+			if (dist >= EDGE_FADE_RANGE)
+				continue;
+
+			int dropQ = (int)((float)entry.dropA * (1.0f - t) + (float)entry.dropB * t);
+
+			float edgeScale;
+			if (dropQ >= LARGE_DROP_THRESHOLD || lift < 1.0f)
+				edgeScale = 0.0f;
+			else if (dropQ <= (int)lift)
+				edgeScale = 1.0f - (float)dropQ / lift;
+			else if (dropQ >= CLICK(1))
+				edgeScale = 0.0f;
+			else
+				continue;
+
+			float u = dist / EDGE_FADE_RANGE;
+			float fade = u * u * (3.0f - 2.0f * u);
+			float scale = edgeScale + (1.0f - edgeScale) * fade;
+			if (scale < minScale)
+				minScale = scale;
+		}
+
+		for (int vi = 0; vi < cache.cornerCount; vi++)
+		{
+			const auto& entry = cache.corners[vi];
+			if (!entry.valid)
+				continue;
+
+			float dx = posLocal.x - entry.vc.x;
+			float dz = posLocal.z - entry.vc.z;
+			float dist = sqrtf(dx * dx + dz * dz);
+			if (dist >= EDGE_FADE_RANGE)
+				continue;
+
+			float u = dist / EDGE_FADE_RANGE;
+			float fade = u * u * (3.0f - 2.0f * u);
+			float scale = entry.edgeScale + (1.0f - entry.edgeScale) * fade;
+			if (scale < minScale)
+				minScale = scale;
+		}
+
+		return minScale;
+	}
+
 	// Returns the per-vertex lift scale k in [0, 1] for a snow overlay/skirt vertex
 	// at posLocal. Smoothstep-faded over EDGE_FADE_RANGE inward from any drop edge.
 	//
@@ -887,6 +1145,10 @@ namespace TEN::Renderer
 		bool isSplitSector = (cgx >= 0 && cgx < room.XSize && cgz >= 0 && cgz < room.ZSize) &&
 			room.Sectors[cgx * room.ZSize + cgz].IsSurfaceSplit(true);
 
+		// Pre-compute all expensive per-polygon data (neighbor probes, sector lookups)
+		// once so GetSnowLiftScaleCached only runs the cheap per-vertex fade math.
+		const auto liftCache = BuildSnowLiftScaleCache(poly, room, lift);
+
 		for (int k = 0; k < n; k++)
 		{
 			int ia = poly.indices[k];
@@ -1004,7 +1266,7 @@ namespace TEN::Renderer
 					// Per-vertex lift scale: top row matches the overlay edge at this XZ;
 					// bottom row has no lift (k=0) so it sits flush with the neighbor floor.
 					// Mid rows lerp linearly, keeping the skirt consistent with the overlay.
-					float topScale  = GetSnowLiftScale(poly, room, topPt, lift);
+					float topScale  = GetSnowLiftScaleCached(liftCache, topPt, lift);
 					float vertScale = topScale * (1.0f - tV);
 
 					EmitSnowVertex(vertices[vertCursor++], pt, vertUV, skirtNrm, edgeDir,
@@ -1077,6 +1339,10 @@ namespace TEN::Renderer
 			eff[k] = room.effects[idx];
 		}
 
+		// Pre-compute all expensive per-polygon data (neighbor probes, sector lookups)
+		// once so GetSnowLiftScaleCached only runs the cheap per-vertex fade math.
+		const auto liftCache = BuildSnowLiftScaleCache(poly, room, lift);
+
 		if (poly.shape == 0)
 		{
 			// Quad: subdivide into N x N sub-quads via bilinear interpolation.
@@ -1105,7 +1371,7 @@ namespace TEN::Renderer
 						auto cc  = BilerpQuad(col[0], col[1], col[2], col[3], corners[k].u, corners[k].v);
 						auto ce  = BilerpQuad(eff[0], eff[1], eff[2], eff[3], corners[k].u, corners[k].v);
 
-float liftScale = GetSnowLiftScale(poly, room, cp, lift);
+						float liftScale = GetSnowLiftScaleCached(liftCache, cp, lift);
 
 						EmitSnowVertex(vertices[vertCursor], cp, cuv, cn, ct, cc, ce,
 									   poly.normal, room, lift, poly.animatedFrame, poly.shineStrength, k, liftScale);
@@ -1151,7 +1417,7 @@ float liftScale = GetSnowLiftScale(poly, room, cp, lift);
 				auto cc  = BaryTri(col[0], col[1], col[2], w0, w1, w2);
 				auto ce  = BaryTri(eff[0], eff[1], eff[2], w0, w1, w2);
 
-				float liftScale = GetSnowLiftScale(poly, room, cp, lift);
+				float liftScale = GetSnowLiftScaleCached(liftCache, cp, lift);
 
 				EmitSnowVertex(vertices[vertCursor], cp, cuv, cn, ct, cc, ce,
 							   poly.normal, room, lift, poly.animatedFrame, poly.shineStrength, kSlot, liftScale);
