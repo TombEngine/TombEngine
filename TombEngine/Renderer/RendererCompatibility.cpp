@@ -211,33 +211,34 @@ namespace TEN::Renderer
 		// Wall-sector neighbour: the neighbor's floor plane stores NO_HEIGHT, so
 		// GetSurfaceHeight is meaningless here. Instead, look one step up to find
 		// the room above the neighbour position and query its floor height. This
-		// correctly handles three sub-cases:
-		//   1. Adjacent wall top at the same height (upper room floor == sourceAbsY)
-		//      -> drop = 0, no skirt. Correct: two snow-covered wall tops side by side.
-		//   2. Adjacent wall top at a lower height (upper room floor > sourceAbsY)
-		//      -> positive drop, skirt emitted. Correct: step-down between wall tops.
-		//   3. No room above the neighbour (open edge / drop-off)
-		//      -> emit a one-click skirt to represent snow drooping at the ledge.
+		// correctly handles step-downs between adjacent wall tops (sub-case below).
+		// For all other wall cases (no room above, double wall, etc.) return sourceAbsY
+		// so the drop is zero: skirts at walls are already suppressed by IsSnowNeighborAt,
+		// and a non-zero fallback would incorrectly reduce the lift scale for floor
+		// polygons adjacent to exterior walls, causing the snow to sink to floor level
+		// and appear as holes.
 		if (sector.IsWall(absSampleX, absSampleZ))
 		{
 			int aboveRoomNumber = FindRoomNumber(Vector3i(absSampleX, sourceAbsY - 16, absSampleZ));
 			if (aboveRoomNumber == NO_VALUE)
-				return sourceAbsY + CLICK(1);
+				return sourceAbsY;
 
 			const auto& roomAbove = g_Level.Rooms[aboveRoomNumber];
 			int agx = (absSampleX - roomAbove.Position.x) / BLOCK(1);
 			int agz = (absSampleZ - roomAbove.Position.z) / BLOCK(1);
 			if (agx < 0 || agx >= roomAbove.XSize || agz < 0 || agz >= roomAbove.ZSize)
-				return sourceAbsY + CLICK(1);
+				return sourceAbsY;
 
 			const auto& sectorAbove = roomAbove.Sectors[agx * roomAbove.ZSize + agz];
 			if (sectorAbove.IsWall(absSampleX, absSampleZ))
-				return sourceAbsY + CLICK(1);
+				return sourceAbsY;
 
 			int floorY = sectorAbove.GetSurfaceHeight(absSampleX, absSampleZ, true);
 			if (floorY == NO_HEIGHT)
-				return sourceAbsY + CLICK(1);
+				return sourceAbsY;
 
+			// Step-down between adjacent wall tops: return the actual floor height so the
+			// correct drop is computed for both lift scale and skirt geometry.
 			return floorY;
 		}
 
@@ -256,8 +257,7 @@ namespace TEN::Renderer
 	static bool IsSnowNeighborAt(
 		const RoomData& room,
 		float localX, float localZ,
-		float outwardX, float outwardZ,
-		int sourceAbsY)
+		float outwardX, float outwardZ)
 	{
 		constexpr float PROBE_INSET = 4.0f;
 		float probeX = localX + outwardX * PROBE_INSET;
@@ -273,23 +273,10 @@ namespace TEN::Renderer
 		{
 			const auto& sector = room.Sectors[gridX * room.ZSize + gridZ];
 
-			// Wall neighbour: the snow surface lives on top of the wall, which belongs
-			// to the room ABOVE. Walk up one step and probe that room's sector material.
+			// Wall neighbour: the solid wall geometry closes the visual gap, so no
+			// drooping skirt is needed along that edge regardless of the wall's material.
 			if (sector.IsWall(absX, absZ))
-			{
-				int aboveRoomNumber = FindRoomNumber(Vector3i(absX, sourceAbsY - 16, absZ));
-				if (aboveRoomNumber == NO_VALUE)
-					return false;
-
-				const auto& roomAbove = g_Level.Rooms[aboveRoomNumber];
-				int agx = (absX - roomAbove.Position.x) / BLOCK(1);
-				int agz = (absZ - roomAbove.Position.z) / BLOCK(1);
-				if (agx < 0 || agx >= roomAbove.XSize || agz < 0 || agz >= roomAbove.ZSize)
-					return false;
-
-				const auto& sectorAbove = roomAbove.Sectors[agx * roomAbove.ZSize + agz];
-				return sectorAbove.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow;
-			}
+				return true;
 
 			return sector.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow;
 		}
@@ -350,11 +337,10 @@ namespace TEN::Renderer
 		int dropA = neighborYA - topAbsYA;
 		int dropB = neighborYB - topAbsYB;
 
-		// Suppress skirts where the snow blanket continues onto the neighbouring sector:
-		// emitting one there would carve an internal vertical seam through a continuous
-		// snow surface. The probe must match GetSnowNeighborFloorAt's geometry.
-		bool neighborIsSnowA = IsSnowNeighborAt(room, vA.x, vA.z, nx, nz, topAbsYA);
-		bool neighborIsSnowB = IsSnowNeighborAt(room, vB.x, vB.z, nx, nz, topAbsYB);
+		// Suppress skirts where the snow blanket continues onto the neighbouring sector or
+		// a solid wall closes the gap -- either case needs no drooping edge skirt.
+		bool neighborIsSnowA = IsSnowNeighborAt(room, vA.x, vA.z, nx, nz);
+		bool neighborIsSnowB = IsSnowNeighborAt(room, vB.x, vB.z, nx, nz);
 		if (neighborIsSnowA && neighborIsSnowB)
 			return false;
 
