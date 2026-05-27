@@ -69,6 +69,56 @@ namespace TEN::Renderer
 		int absY = (int)centroid.y + sourceRoom.Position.y;
 		int absZ = (int)centroid.z + sourceRoom.Position.z;
 
+		// Material-probe XZ biased ~16 WU OUTWARD from the sector center through the
+		// polygon's centroid. Sub-quadrant polygons of a 4-way pyramid / diagonal-step
+		// sector all meet at the sector center, which sits exactly on the sector's
+		// split diagonal -- so a centroid near the center can land on the wrong side
+		// of GetSurfaceTriangleID's bias test (it returns TRI_ID_1 on the boundary)
+		// and the material probe reads the OPPOSITE sub-triangle's material. Biasing
+		// outward from the sector center pushes the probe away from the apex/diagonal
+		// into the polygon's own outer territory, which by convexity always belongs
+		// to the polygon's correct sub-triangle. Biasing toward a polygon vertex (V0)
+		// is wrong here because V0 may be the center apex itself, which would push
+		// the probe ACROSS the diagonal into the neighbouring sub-triangle.
+		int sgx = (absX - sourceRoom.Position.x) / BLOCK(1);
+		int sgz = (absZ - sourceRoom.Position.z) / BLOCK(1);
+		constexpr float MATERIAL_PROBE_BIAS = 16.0f;
+		float sectorCenterX = (sgx + 0.5f) * BLOCK(1);
+		float sectorCenterZ = (sgz + 0.5f) * BLOCK(1);
+		float biasDX = centroid.x - sectorCenterX;
+		float biasDZ = centroid.z - sectorCenterZ;
+		float biasLen = sqrtf(biasDX * biasDX + biasDZ * biasDZ);
+		if (biasLen > 1e-3f)
+		{
+			biasDX = biasDX / biasLen * MATERIAL_PROBE_BIAS;
+			biasDZ = biasDZ / biasLen * MATERIAL_PROBE_BIAS;
+		}
+		else
+		{
+			biasDX = 0.0f;
+			biasDZ = 0.0f;
+		}
+		int matAbsX = (int)(centroid.x + biasDX) + sourceRoom.Position.x;
+		int matAbsZ = (int)(centroid.z + biasDZ) + sourceRoom.Position.z;
+
+		// Source-sector gate. The owner-routing below can fall through to a neighbour
+		// room when the source room's volume check fails (e.g. for thin rooms, portal
+		// sectors, or tilted floors where probe.y escapes ceiling/floor bounds). If
+		// that neighbour happens to be a snow room, water/stone polygons that legally
+		// live in a non-snow source sector would falsely inherit snow. Gate the entire
+		// lookup on the polygon's OWN sector: only proceed if that sector either has
+		// snow material itself, or is a wall sub-half (the legitimate wall-top case
+		// where the polygon's footprint has no walkable floor in its source room and
+		// the snow tag lives in a neighbour room's sector).
+		if (sgx >= 0 && sgx < sourceRoom.XSize && sgz >= 0 && sgz < sourceRoom.ZSize)
+		{
+			const auto& srcSector = sourceRoom.Sectors[sgx * sourceRoom.ZSize + sgz];
+			bool srcIsWall = srcSector.IsWall(matAbsX, matAbsZ);
+			auto srcMaterial = srcSector.GetSurfaceMaterial(matAbsX, matAbsZ, true);
+			if (!srcIsWall && srcMaterial != MaterialType::Snow)
+				return nullptr;
+		}
+
 		// Owner = whichever room contains the volume immediately above the polygon
 		// surface. FindRoomNumber() can't be used here because it tests only the room's
 		// full AABB, which routinely overlaps neighbours (e.g. a tall lower room whose
@@ -138,50 +188,35 @@ namespace TEN::Renderer
 
 		const auto& ownerSector = ownerRoom.Sectors[ogx * ownerRoom.ZSize + ogz];
 
-		// Snow material is stored on the OWNER room's sector. For non-split sectors,
-		// probe the centroid AND each vertex to catch polygons (e.g. wall-top triangular
-		// polys) whose centroid may drift slightly outside the sector. For split sectors,
-		// vertex probes must be skipped: vertices sitting exactly on the diagonal cut
-		// boundary map to TRI_ID_1 regardless of which half owns them (GetSurfaceTriangleID
-		// returns TRI_ID_1 when bias == 0.0), so the vertex loop leaks snow material from
-		// the snow half onto the non-snow (e.g. water) half. The centroid of a floor
-		// sub-triangle is always strictly inside its own sub-half, so the centroid probe
-		// is fully reliable for split sectors; the cross-room diagonal fallback below
-		// handles the wall-top case on cross-room split sectors.
-		if (ownerSector.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow)
-			return &ownerRoom;
+		// The outward-biased probe (matAbsX/matAbsZ) is guaranteed to land strictly
+		// inside the polygon's own sub-triangle for any sector geometry (plain, split,
+		// or multi-sub-quad pyramid), so a single material check suffices.
+		if (ownerSector.GetSurfaceMaterial(matAbsX, matAbsZ, true) != MaterialType::Snow)
+			return nullptr;
 
-		if (!ownerSector.IsSurfaceSplit(true))
+		// Defensive per-sub-triangle confirmation for diagonally split sectors.
+		// The non-snow sub-half of a diagonal-split square (e.g. stone half of a
+		// diagonal elevation, or floor half of a diagonal wall) must never inherit
+		// the snow shader effect. Cross-reference the polygon's true sub-triangle
+		// (derived from its un-biased centroid) against the matched sub-triangle and
+		// require both to map to Snow material. If the un-biased centroid lands on
+		// the opposite sub-triangle, the biased probe was misclassified -- reject.
+		if (ownerSector.IsSurfaceSplit(true))
 		{
-			for (int idx : poly.indices)
+			int centroidAbsX = (int)centroid.x + sourceRoom.Position.x;
+			int centroidAbsZ = (int)centroid.z + sourceRoom.Position.z;
+
+			int triIDBiased   = ownerSector.GetSurfaceTriangleID(matAbsX, matAbsZ, true);
+			int triIDCentroid = ownerSector.GetSurfaceTriangleID(centroidAbsX, centroidAbsZ, true);
+			if (triIDBiased != triIDCentroid)
 			{
-				const auto& v = sourceRoom.positions[idx];
-				int vAbsX = (int)v.x + sourceRoom.Position.x;
-				int vAbsZ = (int)v.z + sourceRoom.Position.z;
-				if (ownerSector.GetSurfaceMaterial(vAbsX, vAbsZ, true) == MaterialType::Snow)
-					return &ownerRoom;
+				const auto& centroidTri = ownerSector.FloorSurface.Triangles[triIDCentroid];
+				if (centroidTri.Material != MaterialType::Snow)
+					return nullptr;
 			}
 		}
 
-		// Wall-top in a diagonal-split owner sector: the polygon physically lives in a
-		// neighbour room (ownerRoomNumber != sourceRoomIdx) and its footprint sits on
-		// the WALL sub-half of the owner sector. The wall sub-half has no walkable
-		// floor and TombEditor only lets the user assign the snow material to the
-		// FLOOR sub-half -- so the per-probe checks above return the wall sub-half's
-		// default material even when the tile is visibly snow in the editor. Restrict
-		// this fallback to the cross-room case so same-room diagonal-raised tiles
-		// (where the non-snow half is intentional) are NOT incorrectly snow-covered.
-		if (ownerRoomNumber != sourceRoomIdx && ownerSector.IsSurfaceSplit(true))
-		{
-			const auto& tris = ownerSector.FloorSurface.Triangles;
-			if (tris[0].Material == MaterialType::Snow ||
-				tris[1].Material == MaterialType::Snow)
-			{
-				return &ownerRoom;
-			}
-		}
-
-		return nullptr;
+		return &ownerRoom;
 	}
 
 	static bool IsSnowFloorPolygon(const POLYGON& poly, const RoomData& room)
@@ -571,6 +606,11 @@ namespace TEN::Renderer
 			// one grid sector: the probe stays in the same cell as the polygon centroid.
 			// Regardless of material on the other triangle, no liftScale reduction should
 			// occur across an internal cut -- it creates holes between the two triangular halves.
+			//
+			// Also skip when the neighbour sector is itself diagonally split (diagonal wall
+			// or diagonal elevation): the diagonal cut makes the sub-triangle sampled at the
+			// edge probe ambiguous, and adjacent snow squares must keep their full lift along
+			// edges touching such a sector -- no drop allowed.
 			{
 				constexpr float PROBE_INSET = 4.0f;
 				float probeMidX = midX + nx * PROBE_INSET;
@@ -581,6 +621,14 @@ namespace TEN::Renderer
 				int centGridZ  = (int)(centroid.z / BLOCK(1));
 				if (probeGridX == centGridX && probeGridZ == centGridZ)
 					continue;
+
+				if (probeGridX >= 0 && probeGridX < room.XSize &&
+					probeGridZ >= 0 && probeGridZ < room.ZSize)
+				{
+					const auto& probeSector = room.Sectors[probeGridX * room.ZSize + probeGridZ];
+					if (probeSector.IsSurfaceSplit(true))
+						continue;
+				}
 			}
 
 			// Distance from posLocal to nearest point on this edge in XZ.
@@ -662,43 +710,59 @@ namespace TEN::Renderer
 			int probeGridX = (int)(probeX / BLOCK(1));
 			int probeGridZ = (int)(probeZ / BLOCK(1));
 
-			// Skip if the probe stayed in the same sector as the centroid (internal
-			// diagonal of a split sector, already excluded by the edge loop).
-			int centGridX = (int)(centroid.x / BLOCK(1));
-			int centGridZ = (int)(centroid.z / BLOCK(1));
-			if (probeGridX == centGridX && probeGridZ == centGridZ)
-				continue;
-
 			if (probeGridX < 0 || probeGridX >= room.XSize || probeGridZ < 0 || probeGridZ >= room.ZSize)
 				continue;
 
-			int topAbsY = (int)vc.y + room.Position.y;
+			int topAbsY  = (int)vc.y + room.Position.y;
 			int absProbeX = (int)probeX + room.Position.x;
 			int absProbeZ = (int)probeZ + room.Position.z;
+			int centGridX = (int)(centroid.x / BLOCK(1));
+			int centGridZ = (int)(centroid.z / BLOCK(1));
 
 			const auto& cornerSector = room.Sectors[probeGridX * room.ZSize + probeGridZ];
-			if (cornerSector.IsWall(absProbeX, absProbeZ))
+			int cornerNeighborY = NO_HEIGHT;
+
+			if (probeGridX == centGridX && probeGridZ == centGridZ)
 			{
-				// Non-split solid wall closes the visual gap; no reduction needed.
-				if (!cornerSector.IsSurfaceSplit(true))
+				// The probe landed in the same sector as the polygon centroid. This is the
+				// normal result for the internal diagonal edge of a split sector (both
+				// sub-halves share the same grid cell) and should be skipped to avoid
+				// suppressing lift on flat snow tiles. However, if the probe sub-half has
+				// a floor portal going downward, the raised polygon vertex overhangs the
+				// portal opening and must roll down to the floor of the room below.
+				auto belowRoomNum = cornerSector.GetNextRoomNumber(absProbeX, absProbeZ, true);
+				if (!belowRoomNum.has_value())
 					continue;
 
-				// Diagonal-step wall sub-half: the step face is exposed at this corner.
-				// Force liftScale to zero so the snow rolls down to meet the step face.
-				float wdx = posLocal.x - vc.x;
-				float wdz = posLocal.z - vc.z;
-				float wDist = sqrtf(wdx * wdx + wdz * wdz);
-				if (wDist < EDGE_FADE_RANGE)
-				{
-					float wu = wDist / EDGE_FADE_RANGE;
-					float scale = wu * wu * (3.0f - 2.0f * wu);
-					if (scale < minScale)
-						minScale = scale;
-				}
+				const auto& roomBelow = g_Level.Rooms[*belowRoomNum];
+				int bgx = (absProbeX - roomBelow.Position.x) / BLOCK(1);
+				int bgz = (absProbeZ - roomBelow.Position.z) / BLOCK(1);
+				if (bgx < 0 || bgx >= roomBelow.XSize || bgz < 0 || bgz >= roomBelow.ZSize)
+					continue;
+
+				const auto& belowSector = roomBelow.Sectors[bgx * roomBelow.ZSize + bgz];
+				if (!belowSector.IsWall(absProbeX, absProbeZ))
+					cornerNeighborY = belowSector.GetSurfaceHeight(absProbeX, absProbeZ, true);
+			}
+			else if (cornerSector.IsWall(absProbeX, absProbeZ))
+			{
+				// Solid wall closes the visual gap: no corner drop.
+				// Includes diagonal-step wall sub-halves: their step face is part of
+				// the diagonal sector and must not deform the neighbour snow surface.
 				continue;
 			}
+			else
+			{
+				// Diagonally split corner sector: the diagonal cut creates an ambiguous
+				// sub-triangle to sample, and either half (raised or lowered) is part
+				// of the diagonal feature. Adjacent snow squares must keep their full
+				// lift at corners touching such a sector -- no corner drop allowed.
+				if (cornerSector.IsSurfaceSplit(true))
+					continue;
 
-			int cornerNeighborY = cornerSector.GetSurfaceHeight(absProbeX, absProbeZ, true);
+				cornerNeighborY = cornerSector.GetSurfaceHeight(absProbeX, absProbeZ, true);
+			}
+
 			if (cornerNeighborY == NO_HEIGHT)
 				continue;
 
