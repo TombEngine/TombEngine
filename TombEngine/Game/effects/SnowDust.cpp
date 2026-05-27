@@ -40,6 +40,8 @@ namespace TEN::Effects::SnowDust
 		// stays silent when items barely graze the snow surface.
 		constexpr float MIN_INTENSITY = 0.08f;
 
+		return;
+
 		if (intensity < MIN_INTENSITY || worldRadius <= 0.0f)
 			return;
 

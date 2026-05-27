@@ -155,6 +155,11 @@ namespace TEN::Scripting
 		// Lower = larger, gentler mounds. Higher = tighter ripples.
 		float HillFrequency   = 0.0015f;
 
+		// Radius in world units of the circular footprint each foot leaves in the snow.
+		// Smaller values give narrow, shoe-like tracks; larger values leave wide divots.
+		// Default of 256 matches the legacy fixed 4-pixel brush at the default field radius.
+		int   FootBrushRadius = 256;
+
 		static void Register(sol::table& parent);
 	};
 

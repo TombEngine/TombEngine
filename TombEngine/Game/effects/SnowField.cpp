@@ -242,14 +242,16 @@ namespace TEN::Effects::SnowField
 			int rx = (int)(((float)rFoot.x - origin.x) * pxPerUnit);
 			int ry = (int)(((float)rFoot.z - origin.y) * pxPerUnit);
 
-			float footWorldRadius = (float)FOOT_BRUSH_RADIUS / pxPerUnit;
+			const auto& snowSettings = g_GameFlow->GetSettings()->Snow;
+			float footWorldRadius = (float)std::max(1, snowSettings.FootBrushRadius);
+			int footBrushPx = std::max(1, (int)(footWorldRadius * pxPerUnit));
 
-			unsigned char lPrev = StampCircle(lx, ly, FOOT_BRUSH_RADIUS, STAMP_INTENSITY);
+			unsigned char lPrev = StampCircle(lx, ly, footBrushPx, STAMP_INTENSITY);
 			EmitCompressionPuffIfFresh(STAMP_INTENSITY, lPrev,
 				Vector3((float)lFoot.x, (float)lFoot.y, (float)lFoot.z),
 				player.RoomNumber, footWorldRadius);
 
-			unsigned char rPrev = StampCircle(rx, ry, FOOT_BRUSH_RADIUS, STAMP_INTENSITY);
+			unsigned char rPrev = StampCircle(rx, ry, footBrushPx, STAMP_INTENSITY);
 			EmitCompressionPuffIfFresh(STAMP_INTENSITY, rPrev,
 				Vector3((float)rFoot.x, (float)rFoot.y, (float)rFoot.z),
 				player.RoomNumber, footWorldRadius);

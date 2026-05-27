@@ -735,6 +735,12 @@ namespace TEN::Scripting
 		/// Spatial frequency of the procedural hill noise, in radians per world unit.
 		// Lower values give larger, gentler mounds; higher values give tighter ripples.
 		// @tfield[opt=0.0015] float hillFrequency Noise frequency.
-		"hillFrequency", &SnowSettings::HillFrequency);
+		"hillFrequency", &SnowSettings::HillFrequency,
+
+		/// Radius of the circular footprint each foot leaves in the snow, in world units.
+		// Reduce this for narrow shoe-like tracks; increase for wide boot divots.
+		// Default is 256 (roughly one foot at 16-block field radius).
+		// @tfield[opt=256] int footBrushRadius Foot imprint radius in world units.
+		"footBrushRadius", &SnowSettings::FootBrushRadius);
 	}
 }
