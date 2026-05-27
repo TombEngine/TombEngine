@@ -39,99 +39,127 @@ namespace TEN::Renderer
 {
 	// ----- Snow overlay helpers (file-local, kept inside namespace to access types). -----
 
-	static bool IsSnowFloorPolygon(const POLYGON& poly, const RoomData& room)
+	// Returns the room that owns the snow surface above this polygon, or nullptr if the
+	// polygon is not a valid snow floor. The owner room is the room volume sitting above
+	// the polygon's surface (which may or may not be the room that geometrically owns
+	// the polygon vertices, e.g. when the polygon is the top of a wall in the lower
+	// room of a vertical portal, or when an upper room has a portal-floor at the same
+	// height as a partially-raised ramp). Routing snow to the correct owner room ensures
+	// the snow inherits that room's ambient color and dynamic lights instead of the
+	// (often unrelated) lighting state of the room that physically owns the geometry.
+	static RoomData* FindSnowOwnerRoom(const POLYGON& poly, const RoomData& sourceRoom)
 	{
 		if (poly.indices.size() < 3)
-			return false;
+			return nullptr;
 
-		// Reject perfectly vertical walls. Use fabs() so the check works regardless of
-		// whether TombEditor bakes floor-polygon normals pointing "up" or "down".
-		// A 0.08 threshold accepts slopes up to ~85 degrees from horizontal -- effectively
-		// everything except true 90-degree wall faces. The floor-height and material
-		// checks below discard ceilings and walls whose centroid doesn't sit on the floor.
-		if (fabs(poly.normal.y) < 0.08f)
-			return false;
+		// Reject walls and ceiling polygons in one check. In TR's Y-down coordinate
+		// system, floor surfaces have normals pointing toward +Y (downward direction),
+		// so poly.normal.y > 0 for floors. The threshold 0.08 rejects near-vertical
+		// walls (|normal.y| < 0.08), and the sign requirement (normal.y >= 0.08) rejects
+		// ceiling polygons whose normals point toward -Y (normal.y < 0).
+		if (poly.normal.y < 0.08f)
+			return nullptr;
 
 		auto centroid = Vector3::Zero;
 		for (int idx : poly.indices)
-			centroid += room.positions[idx];
+			centroid += sourceRoom.positions[idx];
 		centroid /= (float)poly.indices.size();
 
-		int gridX = (int)(centroid.x / BLOCK(1));
-		int gridZ = (int)(centroid.z / BLOCK(1));
-		if (gridX < 0 || gridX >= room.XSize || gridZ < 0 || gridZ >= room.ZSize)
-			return false;
+		int absX = (int)centroid.x + sourceRoom.Position.x;
+		int absY = (int)centroid.y + sourceRoom.Position.y;
+		int absZ = (int)centroid.z + sourceRoom.Position.z;
 
-		const auto& sector = room.Sectors[gridX * room.ZSize + gridZ];
-
-		int absX = (int)centroid.x + room.Position.x;
-		int absZ = (int)centroid.z + room.Position.z;
-		int absY = (int)centroid.y + room.Position.y;
-
-		// Wall-top special case: a sector defined as a wall stores NO_HEIGHT for both
-		// its floor and ceiling planes, so all height-based checks below are meaningless.
-		// The horizontal top face of the wall block is walkable from the room above, and
-		// TombEditor stores the snow-material flag on the UPPER ROOM's sector, not on the
-		// wall sector itself. Query the room immediately above the polygon centroid and
-		// check for the Snow material there.
-		if (sector.IsWall(absX, absZ))
+		// Owner = whichever room contains the volume immediately above the polygon
+		// surface. FindRoomNumber() can't be used here because it tests only the room's
+		// full AABB, which routinely overlaps neighbours (e.g. a tall lower room whose
+		// ceiling extends above the wall top of a vertical portal still "contains" the
+		// probe point by AABB) and returns the first matching room by index. Instead,
+		// query the sector at the probe XZ and check the probe Y against the sector's
+		// own floor and ceiling heights -- which respect walls and portal transitions.
+		auto isInsideRoomVolume = [](const Vector3i& probe, int roomIdx)
 		{
-			int aboveRoomNumber = FindRoomNumber(Vector3i(absX, absY - 16, absZ));
-			if (aboveRoomNumber == NO_VALUE || &g_Level.Rooms[aboveRoomNumber] == &room)
+			const auto& r = g_Level.Rooms[roomIdx];
+			int gx = (probe.x - r.Position.x) / BLOCK(1);
+			int gz = (probe.z - r.Position.z) / BLOCK(1);
+			if (gx < 0 || gx >= r.XSize || gz < 0 || gz >= r.ZSize)
 				return false;
 
-			auto& roomAbove = g_Level.Rooms[aboveRoomNumber];
-			int agx = (absX - roomAbove.Position.x) / BLOCK(1);
-			int agz = (absZ - roomAbove.Position.z) / BLOCK(1);
-			if (agx < 0 || agx >= roomAbove.XSize || agz < 0 || agz >= roomAbove.ZSize)
+			const auto& s = r.Sectors[gx * r.ZSize + gz];
+			if (s.IsWall(probe.x, probe.z))
 				return false;
 
-			const auto& sectorAbove = roomAbove.Sectors[agx * roomAbove.ZSize + agz];
-			if (sectorAbove.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow)
-				return true;
+			int fH = s.GetSurfaceHeight(probe.x, probe.z, true);
+			int cH = s.GetSurfaceHeight(probe.x, probe.z, false);
+			if (fH == NO_HEIGHT || cH == NO_HEIGHT)
+				return false;
 
-			for (int idx : poly.indices)
+			// Y-down: ceiling has smaller Y, floor has larger Y. Inside the volume means
+			// strictly between them.
+			return probe.y > cH && probe.y < fH;
+		};
+
+		Vector3i probe(absX, absY - 16, absZ);
+		int sourceRoomIdx = (int)(&sourceRoom - g_Level.Rooms.data());
+
+		int ownerRoomNumber = NO_VALUE;
+
+		// Prefer the source room: if the polygon really is the source room's own floor,
+		// the probe just above it is inside the source room's sector volume. This is the
+		// common case (normal floor poly) and also handles upper-room portal-height polys
+		// (Issue 2): the source room is the upper room, and the probe at portal_Y - 16
+		// sits between the upper ceiling and the (transitive) floor.
+		if (isInsideRoomVolume(probe, sourceRoomIdx))
+		{
+			ownerRoomNumber = sourceRoomIdx;
+		}
+		else
+		{
+			// Wall-top case (Issue 1): polygon is the top of a wall in the source room,
+			// the probe above it lands in a neighbouring upper room's sector.
+			for (int neighborIdx : sourceRoom.NeighborRoomNumbers)
 			{
-				const auto& v = room.positions[idx];
-				int vAbsX = (int)v.x + room.Position.x;
-				int vAbsZ = (int)v.z + room.Position.z;
-				if (sectorAbove.GetSurfaceMaterial(vAbsX, vAbsZ, true) == MaterialType::Snow)
-					return true;
+				if (neighborIdx != sourceRoomIdx && isInsideRoomVolume(probe, neighborIdx))
+				{
+					ownerRoomNumber = neighborIdx;
+					break;
+				}
 			}
-
-			return false;
 		}
 
-		int floorHeight = sector.GetSurfaceHeight(absX, absZ, true);
-		int ceilHeight  = sector.GetSurfaceHeight(absX, absZ, false);
+		if (ownerRoomNumber == NO_VALUE)
+			return nullptr;
 
-		// Reject bad/no-height sectors.
-		if (floorHeight == NO_HEIGHT || ceilHeight == NO_HEIGHT)
-			return false;
+		auto& ownerRoom = g_Level.Rooms[ownerRoomNumber];
 
-		// Accept only polygons whose centroid is closer to the sector floor than to the
-		// sector ceiling. This handles any slope depth without a hardcoded tolerance and
-		// reliably separates floor polygons from ceiling polygons.
-		if (abs(floorHeight - absY) >= abs(ceilHeight - absY))
-			return false;
+		int ogx = (absX - ownerRoom.Position.x) / BLOCK(1);
+		int ogz = (absZ - ownerRoom.Position.z) / BLOCK(1);
+		if (ogx < 0 || ogx >= ownerRoom.XSize || ogz < 0 || ogz >= ownerRoom.ZSize)
+			return nullptr;
 
-		// Diagonal-split sectors store separate materials per sub-sector half. The
-		// centroid of a small triangular floor polygon can land in the OTHER half by
-		// a few units, which would falsely reject the snow overlay. Accept the polygon
-		// if any of its own vertices reports Snow material, not just the centroid.
-		if (sector.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow)
-			return true;
+		const auto& ownerSector = ownerRoom.Sectors[ogx * ownerRoom.ZSize + ogz];
+
+		// Snow material is stored on the OWNER room's sector. Diagonal-split sectors
+		// hold separate materials per sub-half, so probe the centroid AND each vertex
+		// position to catch small triangular polys whose centroid drifts into the
+		// other half by a few units.
+		if (ownerSector.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow)
+			return &ownerRoom;
 
 		for (int idx : poly.indices)
 		{
-			const auto& v = room.positions[idx];
-			int vAbsX = (int)v.x + room.Position.x;
-			int vAbsZ = (int)v.z + room.Position.z;
-			if (sector.GetSurfaceMaterial(vAbsX, vAbsZ, true) == MaterialType::Snow)
-				return true;
+			const auto& v = sourceRoom.positions[idx];
+			int vAbsX = (int)v.x + sourceRoom.Position.x;
+			int vAbsZ = (int)v.z + sourceRoom.Position.z;
+			if (ownerSector.GetSurfaceMaterial(vAbsX, vAbsZ, true) == MaterialType::Snow)
+				return &ownerRoom;
 		}
 
-		return false;
+		return nullptr;
+	}
+
+	static bool IsSnowFloorPolygon(const POLYGON& poly, const RoomData& room)
+	{
+		return FindSnowOwnerRoom(poly, room) != nullptr;
 	}
 
 	static void GetSnowOverlayCounts(const POLYGON& poly, int subdivisions, int& outVerts, int& outIndices)
@@ -221,6 +249,54 @@ namespace TEN::Renderer
 	// emitted and, if so, returns the absolute world-space bottom Y for each endpoint.
 	// Returns false if no skirt is needed (no neighbor, same height, or neighbor is
 	// higher -- which is handled by the neighbor polygon's own skirt going the other way).
+	// Returns true if the neighbor sector that lies PROBE_INSET world units beyond the
+	// given local-space sample point (in the outward direction) has the Snow material on
+	// its floor. Mirrors the probing geometry used by GetSnowNeighborFloorAt so the two
+	// stay in sync.
+	static bool IsSnowNeighborAt(
+		const RoomData& room,
+		float localX, float localZ,
+		float outwardX, float outwardZ,
+		int sourceAbsY)
+	{
+		constexpr float PROBE_INSET = 4.0f;
+		float probeX = localX + outwardX * PROBE_INSET;
+		float probeZ = localZ + outwardZ * PROBE_INSET;
+		int gridX = (int)(probeX / BLOCK(1));
+		int gridZ = (int)(probeZ / BLOCK(1));
+
+		int absX = (int)probeX + room.Position.x;
+		int absZ = (int)probeZ + room.Position.z;
+
+		// Probe is inside the same room: query directly.
+		if (gridX >= 0 && gridX < room.XSize && gridZ >= 0 && gridZ < room.ZSize)
+		{
+			const auto& sector = room.Sectors[gridX * room.ZSize + gridZ];
+
+			// Wall neighbour: the snow surface lives on top of the wall, which belongs
+			// to the room ABOVE. Walk up one step and probe that room's sector material.
+			if (sector.IsWall(absX, absZ))
+			{
+				int aboveRoomNumber = FindRoomNumber(Vector3i(absX, sourceAbsY - 16, absZ));
+				if (aboveRoomNumber == NO_VALUE)
+					return false;
+
+				const auto& roomAbove = g_Level.Rooms[aboveRoomNumber];
+				int agx = (absX - roomAbove.Position.x) / BLOCK(1);
+				int agz = (absZ - roomAbove.Position.z) / BLOCK(1);
+				if (agx < 0 || agx >= roomAbove.XSize || agz < 0 || agz >= roomAbove.ZSize)
+					return false;
+
+				const auto& sectorAbove = roomAbove.Sectors[agx * roomAbove.ZSize + agz];
+				return sectorAbove.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow;
+			}
+
+			return sector.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow;
+		}
+
+		return false;
+	}
+
 	static bool GetSnowSkirtForEdge(
 		const Vector3& vA,
 		const Vector3& vB,
@@ -271,11 +347,25 @@ namespace TEN::Renderer
 		if (neighborYA == NO_HEIGHT) neighborYA = topAbsYA + SKIRT_MAX_DROP;
 		if (neighborYB == NO_HEIGHT) neighborYB = topAbsYB + SKIRT_MAX_DROP;
 
-		// Skirt only when neighbor floor sits BELOW our edge (Y is down, so larger = lower).
-		// Emit only "downward" skirts to avoid duplication on shared edges.
 		int dropA = neighborYA - topAbsYA;
 		int dropB = neighborYB - topAbsYB;
-		if (dropA < SKIRT_MIN_DROP && dropB < SKIRT_MIN_DROP)
+
+		// Suppress skirts where the snow blanket continues onto the neighbouring sector:
+		// emitting one there would carve an internal vertical seam through a continuous
+		// snow surface. The probe must match GetSnowNeighborFloorAt's geometry.
+		bool neighborIsSnowA = IsSnowNeighborAt(room, vA.x, vA.z, nx, nz, topAbsYA);
+		bool neighborIsSnowB = IsSnowNeighborAt(room, vB.x, vB.z, nx, nz, topAbsYB);
+		if (neighborIsSnowA && neighborIsSnowB)
+			return false;
+
+		// Even at zero drop, an edge whose neighbour is NOT snow needs a skirt: the
+		// snow surface sits `snowLift` above the underlying floor (shader-side), so
+		// without a skirt the snow blanket appears to float at its borders. The skirt
+		// top inherits the polygon's full liftScale and the bottom row sits at the
+		// neighbour floor with zero lift, producing a natural drooping edge of height
+		// snowLift in screen space. Only skip when BOTH endpoints have an upward
+		// neighbour (drop < 0) -- those edges belong to the adjacent higher polygon.
+		if (dropA <= -SKIRT_MIN_DROP && dropB <= -SKIRT_MIN_DROP)
 			return false;
 
 		// Cliff-edge case: when BOTH endpoints drop by more than SKIRT_MAX_DROP (or the
@@ -558,7 +648,8 @@ namespace TEN::Renderer
 		std::vector<int>&    indices,
 		int&             vertCursor,
 		int&             indexCursor,
-		std::vector<RendererPolygon>& outPolys)
+		std::vector<RendererPolygon>& outPolys,
+		const Vector3*   colorOverride = nullptr)
 	{
 		const int N = std::max(1, subdivisions);
 		const int nGrid = N + 1;
@@ -641,8 +732,8 @@ namespace TEN::Renderer
 			Vector2 uvA = poly.textureCoordinates[k];
 			Vector2 uvB = poly.textureCoordinates[(k + 1) % n];
 
-			Vector3 colA = room.colors[ia];
-			Vector3 colB = room.colors[ib];
+			Vector3 colA = colorOverride ? *colorOverride : room.colors[ia];
+			Vector3 colB = colorOverride ? *colorOverride : room.colors[ib];
 			Vector3 effA = room.effects[ia];
 			Vector3 effB = room.effects[ib];
 
@@ -741,7 +832,8 @@ namespace TEN::Renderer
 		std::vector<int>&    indices,
 		int&             vertCursor,
 		int&             indexCursor,
-		std::vector<RendererPolygon>& outPolys)
+		std::vector<RendererPolygon>& outPolys,
+		const Vector3*   colorOverride = nullptr)
 	{
 		const int N = subdivisions;
 
@@ -756,7 +848,7 @@ namespace TEN::Renderer
 			nrm[k] = poly.normals[k];
 			tan[k] = poly.tangents[k];
 			uv [k] = poly.textureCoordinates[k];
-			col[k] = room.colors[idx];
+			col[k] = colorOverride ? *colorOverride : room.colors[idx];
 			eff[k] = room.effects[idx];
 		}
 
@@ -1438,6 +1530,14 @@ float liftScale = GetSnowLiftScale(poly, room, cp, lift);
 			// emit a subdivided overlay bucket inheriting the parent's texture/material.
 			// These buckets are marked IsSnowOverlay and skipped by the regular room draw
 			// pass; a dedicated snow shader pass (Phase 4) consumes them.
+			//
+			// Polygons are grouped by OWNER room (the room volume sitting above the
+			// snow surface) rather than by the room whose geometry the polygon belongs
+			// to. This matters whenever a snow polygon sits at a portal boundary --
+			// e.g. the top of a wall in the lower room, or an upper-room ramp where
+			// some sub-polys remain at portal height. In every case the overlay must
+			// be pushed into the OWNER room's bucket list so it inherits that room's
+			// ambient color, dynamic lights and fog state in DrawSnowOverlay.
 			if (snowSettings.Enabled)
 			{
 				float snowLift = (float)std::max(0, snowSettings.MaxDepth)
@@ -1445,50 +1545,78 @@ float liftScale = GetSnowLiftScale(poly, room, cp, lift);
 
 				for (auto& levelBucket : room.buckets)
 				{
-					RendererBucket overlay{};
-					overlay.Animated	  = levelBucket.animated;
-					overlay.BlendMode	  = (BlendMode)levelBucket.blendMode;
-					overlay.MaterialIndex = levelBucket.materialIndex;
-					overlay.Texture		  = levelBucket.texture;
-					overlay.StartVertex	  = lastVertex;
-					overlay.StartIndex	  = lastIndex;
-					overlay.IsSnowOverlay = true;
-					overlay.Centre		  = Vector3::Zero;
-
-					int startVertex = lastVertex;
-					int startIndex	= lastIndex;
-
-					for (auto& poly : levelBucket.polygons)
+					// Group polygon indices by owner room number for this bucket.
+					std::unordered_map<int, std::vector<int>> polysByOwner;
+					for (int p = 0; p < (int)levelBucket.polygons.size(); p++)
 					{
-						if (!IsSnowFloorPolygon(poly, room))
+						auto* ownerRoomPtr = FindSnowOwnerRoom(levelBucket.polygons[p], room);
+						if (ownerRoomPtr == nullptr)
 							continue;
-
-						EmitSnowOverlayPolygon(
-							poly, room, snowSubdivisions, snowLift,
-							_roomsVertices, _roomsIndices,
-							lastVertex, lastIndex,
-							overlay.Polygons);
-
-						EmitSnowSkirtsForPolygon(
-							poly, room, snowSubdivisions, snowLift,
-							_roomsVertices, _roomsIndices,
-							lastVertex, lastIndex,
-							overlay.Polygons);
+						int ownerIdx = (int)(ownerRoomPtr - g_Level.Rooms.data());
+						polysByOwner[ownerIdx].push_back(p);
 					}
 
-					overlay.NumVertices = lastVertex - startVertex;
-					overlay.NumIndices	= lastIndex - startIndex;
+					for (auto& kv : polysByOwner)
+					{
+						int ownerIdx = kv.first;
+						auto& polyIdxs = kv.second;
 
-					if (overlay.NumVertices == 0)
-						continue;
+						RendererBucket overlay{};
+						overlay.Animated	  = levelBucket.animated;
+						overlay.BlendMode	  = (BlendMode)levelBucket.blendMode;
+						overlay.MaterialIndex = levelBucket.materialIndex;
+						overlay.Texture		  = levelBucket.texture;
+						overlay.StartVertex	  = lastVertex;
+						overlay.StartIndex	  = lastIndex;
+						overlay.IsSnowOverlay = true;
+						overlay.Centre		  = Vector3::Zero;
 
-					// Compute centre from emitted vertices.
-					Vector3 sum = Vector3::Zero;
-					for (int v = startVertex; v < lastVertex; v++)
-						sum += _roomsVertices[v].Position;
-					overlay.Centre = sum / (float)overlay.NumVertices;
+						int startVertex = lastVertex;
+						int startIndex	= lastIndex;
 
-					rendererRoom.Buckets.push_back(overlay);
+						// When the polygon's geometry belongs to a DIFFERENT room than the
+						// snow owner, the source room's baked per-vertex colors reflect that
+						// room's lighting (e.g. a dark cave below) and would clash with the
+						// owner room's ambient. Replace per-vertex color with the owner's
+						// flat ambient so DoModulateColor() in SnowOverlay.hlsl yields the
+						// correct base lighting before dynamic lights are added on top.
+						const auto& ownerRoom = g_Level.Rooms[ownerIdx];
+						Vector3 ownerAmbient(ownerRoom.ambient.x, ownerRoom.ambient.y, ownerRoom.ambient.z);
+						const Vector3* colorOverride = (ownerIdx != i) ? &ownerAmbient : nullptr;
+
+						for (int p : polyIdxs)
+						{
+							auto& poly = levelBucket.polygons[p];
+
+							EmitSnowOverlayPolygon(
+								poly, room, snowSubdivisions, snowLift,
+								_roomsVertices, _roomsIndices,
+								lastVertex, lastIndex,
+								overlay.Polygons,
+								colorOverride);
+
+							EmitSnowSkirtsForPolygon(
+								poly, room, snowSubdivisions, snowLift,
+								_roomsVertices, _roomsIndices,
+								lastVertex, lastIndex,
+								overlay.Polygons,
+								colorOverride);
+						}
+
+						overlay.NumVertices = lastVertex - startVertex;
+						overlay.NumIndices	= lastIndex - startIndex;
+
+						if (overlay.NumVertices == 0)
+							continue;
+
+						// Compute centre from emitted vertices.
+						Vector3 sum = Vector3::Zero;
+						for (int v = startVertex; v < lastVertex; v++)
+							sum += _roomsVertices[v].Position;
+						overlay.Centre = sum / (float)overlay.NumVertices;
+
+						_rooms[ownerIdx].Buckets.push_back(overlay);
+					}
 				}
 			}
 
