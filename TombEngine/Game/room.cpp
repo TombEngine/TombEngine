@@ -4,6 +4,7 @@
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
+#include "Game/effects/SnowField.h"
 #include "Game/control/lot.h"
 #include "Game/control/volume.h"
 #include "Game/items.h"
@@ -681,6 +682,11 @@ void DoFlipMap(int group)
 
 	FlipStatus =
 	FlipStats[group] = !FlipStats[group];
+
+	// Flush the snow heightmap so footprint depressions baked before the flip
+	// do not persist at wrong depths on the new floor geometry.
+	if (TEN::Effects::SnowField::IsActive())
+		TEN::Effects::SnowField::Initialize();
 
 	for (auto creatureIndex : ActiveCreatures)
 		GetCreatureInfo(&g_Level.Items[creatureIndex])->LOT.TargetBox = NO_VALUE;
