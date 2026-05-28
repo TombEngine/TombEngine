@@ -1395,7 +1395,7 @@ namespace TEN::Renderer
 					// Interpolate top -> bottom by tV.
 					// Apply a small inward bias so the skirt sits just inside the wall face
 					// geometry, preventing Z-fighting with the adjacent square textures.
-					constexpr float SKIRT_INSET = 2.0f;
+					constexpr float SKIRT_INSET = 9.0f;
 					Vector3 pt;
 					pt.x = topPt.x * (1.0f - tV) + botPt.x * tV - nx * SKIRT_INSET;
 					pt.y = topPt.y * (1.0f - tV) + botPt.y * tV;
