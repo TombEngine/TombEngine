@@ -148,25 +148,36 @@ namespace TEN::Renderer
 
 		int ownerRoomNumber = NO_VALUE;
 
-		// Prefer the source room: if the polygon really is the source room's own floor,
-		// the probe just above it is inside the source room's sector volume. This is the
-		// common case (normal floor poly) and also handles upper-room portal-height polys
-		// (Issue 2): the source room is the upper room, and the probe at portal_Y - 16
-		// sits between the upper ceiling and the (transitive) floor.
-		if (isInsideRoomVolume(probe, sourceRoomIdx))
+		// Portal sub-triangle: the centroid falls on the portal half of a split-floor
+		// sector, so GetSurfaceHeight returns NO_HEIGHT and isInsideRoomVolume rejects it.
+		// The polygon is part of the source room's geometry; assign it directly.
+		if (sgx >= 0 && sgx < sourceRoom.XSize && sgz >= 0 && sgz < sourceRoom.ZSize)
 		{
-			ownerRoomNumber = sourceRoomIdx;
+			const auto& srcSector = sourceRoom.Sectors[sgx * sourceRoom.ZSize + sgz];
+			if (!srcSector.IsWall(absX, absZ) && srcSector.GetSurfaceHeight(absX, absZ, true) == NO_HEIGHT)
+				ownerRoomNumber = sourceRoomIdx;
 		}
-		else
+
+		if (ownerRoomNumber == NO_VALUE)
 		{
-			// Wall-top case (Issue 1): polygon is the top of a wall in the source room,
-			// the probe above it lands in a neighbouring upper room's sector.
-			for (int neighborIdx : sourceRoom.NeighborRoomNumbers)
+			// Prefer the source room: if the polygon really is the source room's own floor,
+			// the probe just above it is inside the source room's sector volume. This is the
+			// common case (normal floor polygon).
+			if (isInsideRoomVolume(probe, sourceRoomIdx))
 			{
-				if (neighborIdx != sourceRoomIdx && isInsideRoomVolume(probe, neighborIdx))
+				ownerRoomNumber = sourceRoomIdx;
+			}
+			else
+			{
+				// Wall-top case (Issue 1): polygon is the top of a wall in the source room,
+				// the probe above it lands in a neighbouring upper room's sector.
+				for (int neighborIdx : sourceRoom.NeighborRoomNumbers)
 				{
-					ownerRoomNumber = neighborIdx;
-					break;
+					if (neighborIdx != sourceRoomIdx && isInsideRoomVolume(probe, neighborIdx))
+					{
+						ownerRoomNumber = neighborIdx;
+						break;
+					}
 				}
 			}
 		}
@@ -287,6 +298,27 @@ namespace TEN::Renderer
 		int absSampleX = (int)probeMidX + room.Position.x;
 		int absSampleZ = (int)probeMidZ + room.Position.z;
 
+		// Vertical-portal neighbour (e.g. ledge edge above water): both the floor and
+		// ceiling planes store NO_HEIGHT, which makes IsWall return true. Try following
+		// the floor portal downward to find the actual floor of the room below first.
+		// Cap the returned depth to CLICK(1) so the snow only drapes a short way over
+		// the ledge -- it must not plunge to the full depth of the room below.
+		{
+			auto belowRoomNum = sector.GetNextRoomNumber(absSampleX, absSampleZ, true);
+			if (belowRoomNum.has_value())
+			{
+				const auto& roomBelow = g_Level.Rooms[*belowRoomNum];
+				int bgx = (absSampleX - roomBelow.Position.x) / BLOCK(1);
+				int bgz = (absSampleZ - roomBelow.Position.z) / BLOCK(1);
+				if (bgx >= 0 && bgx < roomBelow.XSize && bgz >= 0 && bgz < roomBelow.ZSize)
+				{
+					int belowFloorY = roomBelow.Sectors[bgx * roomBelow.ZSize + bgz].GetSurfaceHeight(absSampleX, absSampleZ, true);
+					if (belowFloorY != NO_HEIGHT)
+						return std::min(belowFloorY, sourceAbsY + (int)CLICK(1));
+				}
+			}
+		}
+
 		// Wall-sector neighbour: the neighbor's floor plane stores NO_HEIGHT, so
 		// GetSurfaceHeight is meaningless here. Instead, look one step up to find
 		// the room above the neighbour position and query its floor height. This
@@ -322,6 +354,9 @@ namespace TEN::Renderer
 		}
 
 		int floorY = sector.GetSurfaceHeight(absSampleX, absSampleZ, true);
+		if (floorY == NO_HEIGHT)
+			return sourceAbsY;
+
 		return floorY;
 	}
 
@@ -374,8 +409,17 @@ namespace TEN::Renderer
 			// diagonal-step sector (IsSurfaceSplit), the probe stayed inside the same
 			// sector and that partial wall does NOT close the gap under the lifted snow
 			// edge along the diagonal cut -- allow the skirt to be emitted.
+			// Second exception: a vertical-portal sector also reports IsWall=true
+			// (both floor/ceiling planes store NO_HEIGHT). Such a portal does NOT close
+			// the gap -- the snow must drape over the ledge into the room below.
 			if (sector.IsWall(absX, absZ))
-				return !sector.IsSurfaceSplit(true);
+			{
+				if (sector.IsSurfaceSplit(true))
+					return false;
+				if (sector.GetNextRoomNumber(absX, absZ, true).has_value())
+					return false;
+				return true;
+			}
 
 			// Split-sector neighbour: the diagonal cut means the snow blanket does not
 			// seamlessly cover the full square, so it cannot suppress a skirt on the
@@ -483,13 +527,22 @@ namespace TEN::Renderer
 			}
 			else
 			{
-				// Diagonal cut edge: droop to the actual neighbour (other sub-triangle) floor height.
-				// Skip when the other half is a floor portal -- the skirt would droop into open space.
+				// Diagonal cut edge: the two sub-triangles share both corner vertices, so probing
+				// from the corners always returns the same height as the current polygon (zero drop).
+				// Instead, probe the lower sub-triangle's floor at the MIDPOINT of the diagonal,
+				// where the height difference between the two halves is maximal.
 				if (skipDiagonalCut)
 					return false;
-				outBottomAbsYA = std::max(topAbsYA, neighborYA);
-				outBottomAbsYB = std::max(topAbsYB, neighborYB);
-				return true;
+
+				int topAbsMid   = (int)((vA.y + vB.y) * 0.5f) + room.Position.y;
+				int neighborMid = GetSnowNeighborFloorAt(room, midX, midZ, midX, midZ, nx, nz, topAbsMid);
+				int dropMid     = neighborMid - topAbsMid;
+				int bottomMid   = topAbsMid + std::min(dropMid, SKIRT_CAP_DROP);
+				bottomMid       = std::max(topAbsMid, bottomMid);
+
+				outBottomAbsYA = std::max(topAbsYA, bottomMid);
+				outBottomAbsYB = std::max(topAbsYB, bottomMid);
+				return (outBottomAbsYA > topAbsYA || outBottomAbsYB > topAbsYB);
 			}
 		}
 
@@ -1230,6 +1283,13 @@ namespace TEN::Renderer
 		// once so GetSnowLiftScaleCached only runs the cheap per-vertex fade math.
 		const auto liftCache = BuildSnowLiftScaleCache(poly, room, lift);
 
+		// Average UV of all polygon vertices -- used to determine the correct perpendicular
+		// UV direction per edge so skirt texture coordinates stay within the atlas tile.
+		Vector2 uvCentroid = Vector2::Zero;
+		for (int q = 0; q < n; q++)
+				uvCentroid += poly.textureCoordinates[q];
+		uvCentroid /= (float)n;
+
 		for (int k = 0; k < n; k++)
 		{
 			int ia = poly.indices[k];
@@ -1293,15 +1353,16 @@ namespace TEN::Renderer
 			//if (skirtNrm.y > 0.0f)
 				//skirtNrm = -skirtNrm;
 
-// UVs: interpolate along the edge (tU) and scale vertically by the physical
-				// drop so the texture maintains its aspect ratio rather than repeating the
-				// same row ("barcode" effect). uvPerWU is derived from the floor polygon's
-				// own UV density so the texture scale matches the adjacent surface.
-				Vector2 uvA = poly.textureCoordinates[k];
-				Vector2 uvB = poly.textureCoordinates[(k + 1) % n];
+				Vector2 uvA     = poly.textureCoordinates[k];
+				Vector2 uvB     = poly.textureCoordinates[(k + 1) % n];
 				float edgeLenWU = sqrtf(ex * ex + ez * ez);
-				float uvDeltaLen = sqrtf((uvB.x - uvA.x) * (uvB.x - uvA.x) + (uvB.y - uvA.y) * (uvB.y - uvA.y));
-				float uvPerWU = (edgeLenWU > 1.0f) ? (uvDeltaLen / edgeLenWU) : (1.0f / BLOCK(1));
+				// Perpendicular to the UV edge direction, chosen to point TOWARD the UV centroid
+				// so the skirt texture coordinates stay within the atlas tile (no garbage sampling).
+				Vector2 uvEdgeVec = uvB - uvA;
+				Vector2 uvDownDir = Vector2(-uvEdgeVec.y, uvEdgeVec.x);
+				if (uvDownDir.Dot(uvCentroid - (uvA + uvB) * 0.5f) < 0.0f)
+						uvDownDir = -uvDownDir;
+				uvDownDir = (edgeLenWU > 1.0f) ? (uvDownDir / edgeLenWU) : Vector2::Zero;
 
 			Vector3 colA = colorOverride ? *colorOverride : room.colors[ia];
 			Vector3 colB = colorOverride ? *colorOverride : room.colors[ib];
@@ -1343,7 +1404,7 @@ namespace TEN::Renderer
 					Vector2 topUV = Vector2(uvA.x * (1.0f - tU) + uvB.x * tU,
 											uvA.y * (1.0f - tU) + uvB.y * tU);
 					float dropAtTU = (bA.y * (1.0f - tU) + bB.y * tU) - (vA.y * (1.0f - tU) + vB.y * tU);
-					Vector2 vertUV = Vector2(topUV.x, topUV.y + dropAtTU * uvPerWU * tV);
+					Vector2 vertUV = topUV + uvDownDir * (dropAtTU * tV);
 					Vector3 vertCol = colA * (1.0f - tU) + colB * tU;
 					Vector3 vertEff = effA * (1.0f - tU) + effB * tU;
 
@@ -2202,17 +2263,13 @@ namespace TEN::Renderer
 								colorOverride,
 								&ownerRoom);
 
-							// For split sectors with a portal half, suppress only the diagonal cut
-							// edge skirt (which would droop into the open portal). Side edge skirts
-							// are still needed to close the gap on the adjacent non-portal sides.
-							bool skipDiag = IsSnowPolygonOnSplitPortalSector(poly, room, ownerIdx);
 							EmitSnowSkirtsForPolygon(
 								poly, room, snowSubdivisions, snowLift,
 								_roomsVertices, _roomsIndices,
 								lastVertex, lastIndex,
 								overlay.Polygons,
 								colorOverride,
-								skipDiag);
+								false);
 						}
 
 						overlay.NumVertices = lastVertex - startVertex;
