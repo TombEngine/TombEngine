@@ -15,6 +15,7 @@
 #include "Scripting/Internal/TEN/Objects/Lara/WaterStatuses.h"
 #include "Scripting/Internal/TEN/Objects/Lara/WeaponModes.h"
 #include "Scripting/Internal/TEN/Objects/Lara/WeaponTypes.h"
+#include "Scripting/Internal/TEN/Objects/Material/MaterialObject.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableStatuses.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/InteractionType.h"
 #include "Scripting/Internal/TEN/Objects/ObjectIDs.h"

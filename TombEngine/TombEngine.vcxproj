@@ -931,7 +931,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\Types\Time\Time.h" />
     <ClInclude Include="Scripting\Internal\TEN\View\DisplayItem\ScriptDisplayItem.h" />
     <ClInclude Include="Scripting\Internal\TEN\View\DisplaySprite\ScriptDisplaySprite.h" />
-    <ClInclude Include="Scripting\Internal\TEN\View\Material\MaterialObject.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Material\MaterialObject.h" />
     <ClInclude Include="Scripting\Internal\TEN\Effects\BlendIDs.h" />
     <ClInclude Include="Scripting\Internal\TEN\Effects\EffectIDs.h" />
     <ClInclude Include="Scripting\Internal\TEN\Effects\EffectsFunctions.h" />
@@ -1438,7 +1438,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Scripting\Internal\TEN\Types\Time\Time.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\View\DisplayItem\ScriptDisplayItem.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\View\DisplaySprite\ScriptDisplaySprite.cpp" />
-    <ClCompile Include="Scripting\Internal\TEN\View\Material\MaterialObject.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Objects\Material\MaterialObject.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Effects\EffectsFunctions.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\Settings\Settings.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\FlowHandler.cpp" />

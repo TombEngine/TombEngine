@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Scripting/Internal/TEN/View/Material/MaterialObject.h"
+#include "Scripting/Internal/TEN/Objects/Material/MaterialObject.h"
 
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptUtil.h"
@@ -15,6 +15,11 @@ using namespace TEN::Scripting::Properties;
 
 namespace TEN::Scripting::Objects
 {
+	/// Level material instance.
+	// Material properties are defined by the material type and can be accessed by name or zero-based slot index.
+	// @tenclass Objects.Material
+	// @pragma nostrip
+
 	static auto IndexError = IndexErrorMaker(Material, ScriptReserved_Material);
 	static auto NewIndexError = NewIndexErrorMaker(Material, ScriptReserved_Material);
 
@@ -242,6 +247,11 @@ namespace TEN::Scripting::Objects
 			ScriptReserved_IsPropertyPresent, &Material::IsPropertyPresent);
 	}
 
+	/// Get a material property value.
+	// Property can be addressed by its name or zero-based slot index.
+	// @function Material:GetProperty
+	// @tparam string name Property name.
+	// @treturn any Property value, or nil if property is not present. Return type depends on property definition and can be bool, number, @{Vec2}, @{Vec3}, or @{Color}.
 	sol::object Material::GetProperty(sol::this_state state, const std::string& name) const
 	{
 		auto index = GetPropertyIndex(name);
@@ -271,6 +281,11 @@ namespace TEN::Scripting::Objects
 		return PropertyValueToLua(sol::state_view(state), *value);
 	}
 
+	/// Set a material property value.
+	// Property can be addressed by its name or zero-based slot index.
+	// @function Material:SetProperty
+	// @tparam string name Property name.
+	// @tparam any value Value matching the property's declared type: bool, number, @{Vec2}, @{Vec3}, or @{Color}.
 	void Material::SetProperty(const std::string& name, const sol::object& value)
 	{
 		auto index = GetPropertyIndex(name);
@@ -317,6 +332,10 @@ namespace TEN::Scripting::Objects
 			property->Value = converted;
 	}
 
+	/// Reset a material property to its default value.
+	// Property can be addressed by its name or zero-based slot index.
+	// @function Material:ResetProperty
+	// @tparam string name Property name.
 	void Material::ResetProperty(const std::string& name)
 	{
 		auto index = GetPropertyIndex(name);
@@ -341,6 +360,10 @@ namespace TEN::Scripting::Objects
 		property->Reset();
 	}
 
+	/// Check if this material type exposes a property.
+	// @function Material:IsPropertyPresent
+	// @tparam string name Property name.
+	// @treturn bool True if the property exists for this material.
 	bool Material::IsPropertyPresent(const std::string& name) const
 	{
 		if (name.empty())

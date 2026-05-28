@@ -7,7 +7,6 @@
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Scripting/Internal/TEN/Objects/Static/StaticObject.h"
 #include "Scripting/Internal/TEN/Objects/AIObject/AIObject.h"
-#include "Scripting/Internal/TEN/View/Material/MaterialObject.h"
 #include "Scripting/Internal/TEN/Properties/PropertyLuaConverters.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 

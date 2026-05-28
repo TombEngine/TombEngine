@@ -189,6 +189,7 @@ void LoadEventSets();
 void LoadAIObjects();
 void LoadMirrors();
 void LoadMaterials();
+void LoadMaterialDefinitions();
 void LoadProperties();
 
 void GetCarriedItems();
