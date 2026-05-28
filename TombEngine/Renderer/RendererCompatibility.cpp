@@ -1,4 +1,4 @@
-﻿#include "framework.h"
+#include "framework.h"
 #include "Renderer/Renderer.h"
 
 #include <execution>
@@ -1404,7 +1404,9 @@ namespace TEN::Renderer
 					Vector2 topUV = Vector2(uvA.x * (1.0f - tU) + uvB.x * tU,
 											uvA.y * (1.0f - tU) + uvB.y * tU);
 					float dropAtTU = (bA.y * (1.0f - tU) + bB.y * tU) - (vA.y * (1.0f - tU) + vB.y * tU);
-					Vector2 vertUV = topUV + uvDownDir * (dropAtTU * tV);
+					// Keep UV constant vertically: any downward offset risks exiting the atlas tile.
+					// Lerping halfway to the UV centroid blends the skirt naturally without tile overrun.
+					Vector2 vertUV = Vector2::Lerp(topUV, uvCentroid, tV * 0.5f);
 					Vector3 vertCol = colA * (1.0f - tU) + colB * tU;
 					Vector3 vertEff = effA * (1.0f - tU) + effB * tU;
 
