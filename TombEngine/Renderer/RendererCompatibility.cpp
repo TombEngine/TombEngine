@@ -39,6 +39,35 @@ namespace TEN::Renderer
 {
 	// ----- Snow overlay helpers (file-local, kept inside namespace to access types). -----
 
+	// Snow material detection. The level file stores only one MaterialType per sector
+	// (the editor / compiler picks one of the two floor textures), so the collision
+	// material is unreliable for height-split sectors with mixed textures. Until the
+	// Tomb Editor material system gains a proper Snow material, we tag a renderer
+	// material as snow by case-insensitive substring match on its name (currently set
+	// in the editor via the texture's "Snow" sound). This works per renderer bucket,
+	// which already groups polygons by texture/material, so each half of a split
+	// sector ends up in its own bucket and inherits the correct snow / non-snow state.
+	static bool IsSnowMaterialIndex(int materialIndex)
+	{
+		if (materialIndex < 0 || materialIndex >= (int)g_Level.Materials.size())
+			return false;
+
+		const auto& name = g_Level.Materials[materialIndex].Name;
+		if (name.size() < 4)
+			return false;
+
+		for (size_t i = 0; i + 4 <= name.size(); i++)
+		{
+			char c0 = (char)std::tolower((unsigned char)name[i]);
+			char c1 = (char)std::tolower((unsigned char)name[i + 1]);
+			char c2 = (char)std::tolower((unsigned char)name[i + 2]);
+			char c3 = (char)std::tolower((unsigned char)name[i + 3]);
+			if (c0 == 's' && c1 == 'n' && c2 == 'o' && c3 == 'w')
+				return true;
+		}
+		return false;
+	}
+
 	// Returns the room that owns the snow surface above this polygon, or nullptr if the
 	// polygon is not a valid snow floor. The owner room is the room volume sitting above
 	// the polygon's surface (which may or may not be the room that geometrically owns
@@ -72,22 +101,17 @@ namespace TEN::Renderer
 		int sgx = (absX - sourceRoom.Position.x) / BLOCK(1);
 		int sgz = (absZ - sourceRoom.Position.z) / BLOCK(1);
 
-		// Source-sector gate. The owner-routing below can fall through to a neighbour
-		// room when the source room's volume check fails (e.g. for thin rooms, portal
-		// sectors, or tilted floors where probe.y escapes ceiling/floor bounds). If
-		// that neighbour happens to be a snow room, water/stone polygons that legally
-		// live in a non-snow source sector would falsely inherit snow. Gate the entire
-		// lookup on the polygon's OWN sector: only proceed if that sector either has
-		// snow material itself, or is a wall sub-half (the legitimate wall-top case
-		// where the polygon's footprint has no walkable floor in its source room and
-		// the snow tag lives in a neighbour room's sector).
+		// Source-sector gate. Reject polygons whose footprint lies entirely outside the
+		// source room's sector grid -- the rest of the validation (snow material) is now
+		// done at the renderer-bucket level via IsSnowMaterialIndex(), so we no longer
+		// need a per-sector MaterialType::Snow check here.
 		if (sgx >= 0 && sgx < sourceRoom.XSize && sgz >= 0 && sgz < sourceRoom.ZSize)
 		{
-			const auto& srcSector = sourceRoom.Sectors[sgx * sourceRoom.ZSize + sgz];
-			bool srcIsWall = srcSector.IsWall(absX, absZ);
-			auto srcMaterial = srcSector.GetSurfaceMaterial(absX, absZ, true);
-			if (!srcIsWall && srcMaterial != MaterialType::Snow)
-				return nullptr;
+			// Intentionally left without a Snow material check: the level format stores
+			// only one MaterialType per sector, which is wrong for height-split sectors
+			// with mixed-material halves (the bug visible at red-marked triangles in the
+			// editor). The bucket-level filter in the snow overlay emission loop ensures
+			// only snow-textured polygons reach this function.
 		}
 
 		// Owner = whichever room contains the volume immediately above the polygon
@@ -159,38 +183,13 @@ namespace TEN::Renderer
 
 		const auto& ownerSector = ownerRoom.Sectors[ogx * ownerRoom.ZSize + ogz];
 
-		// Use the polygon centroid directly for the material check. The centroid of a
-		// triangular polygon is always within its own sub-triangle, so GetSurfaceMaterial
-		// reliably returns the correct per-half material for diagonally split sectors.
-		// For quad polygons on non-split sectors both halves share the same material, so
-		// the boundary-case determination does not matter.
-		//if (ownerSector.GetSurfaceMaterial(absX, absZ, true) != MaterialType::Snow)
-			//return nullptr;
-	
-		//if (ownerSector.IsSurfaceSplit(true))
-		//{
-		/*
-			if (ownerSector.FloorSurface.Triangles[0].Material != MaterialType::Snow ||
-				ownerSector.FloorSurface.Triangles[1].Material != MaterialType::Snow)
-				return nullptr;
-		}
-		else*/
-			if (ownerSector.GetSurfaceMaterial(absX, absZ, true) != MaterialType::Snow)
-				return nullptr;
-		//}
+		// Owner-sector material check intentionally removed: the renderer bucket's
+		// material name (IsSnowMaterialIndex) is the authoritative snow flag.
+		const auto& ownerTris = ownerSector.FloorSurface.Triangles;
 
-		// Reject fall-through floor triangles: if the owner sector's floor sub-triangle
-		// at this XZ is a vertical portal to the room below, the polygon represents an
-		// opening (not a walkable surface). No snow overlay should be generated there.
-		const auto& ownerFloorTri = ownerSector.GetSurfaceTriangle(absX, absZ, true);
-		if (ownerFloorTri.PortalRoomNumber != NO_VALUE)
-		{
+		// Reject fall-through sectors where ALL triangles are floor portals.
+		if (ownerTris[0].PortalRoomNumber != NO_VALUE && ownerTris[1].PortalRoomNumber != NO_VALUE)
 			return nullptr;
-		}
-		else if (ownerFloorTri.Material != MaterialType::Snow)
-		{
-			return &ownerRoom;
-		}
 
 		return &ownerRoom;
 	}
@@ -377,6 +376,12 @@ namespace TEN::Renderer
 			// edge along the diagonal cut -- allow the skirt to be emitted.
 			if (sector.IsWall(absX, absZ))
 				return !sector.IsSurfaceSplit(true);
+
+			// Split-sector neighbour: the diagonal cut means the snow blanket does not
+			// seamlessly cover the full square, so it cannot suppress a skirt on the
+			// adjacent edge.
+			if (sector.IsSurfaceSplit(true))
+				return false;
 
 			return sector.GetSurfaceMaterial(absX, absZ, true) == MaterialType::Snow;
 		}
@@ -863,11 +868,6 @@ namespace TEN::Renderer
 			// one grid sector: the probe stays in the same cell as the polygon centroid.
 			// Regardless of material on the other triangle, no liftScale reduction should
 			// occur across an internal cut -- it creates holes between the two triangular halves.
-			//
-			// Also skip when the neighbour sector is itself diagonally split (diagonal wall
-			// or diagonal elevation): the diagonal cut makes the sub-triangle sampled at the
-			// edge probe ambiguous, and adjacent snow squares must keep their full lift along
-			// edges touching such a sector -- no drop allowed.
 			{
 				constexpr float PROBE_INSET = 4.0f;
 				float probeMidX = midX + nx * PROBE_INSET;
@@ -878,14 +878,6 @@ namespace TEN::Renderer
 				int centGridZ  = (int)(centroid.z / BLOCK(1));
 				if (probeGridX == centGridX && probeGridZ == centGridZ)
 					continue;
-
-				if (probeGridX >= 0 && probeGridX < room.XSize &&
-					probeGridZ >= 0 && probeGridZ < room.ZSize)
-				{
-					const auto& probeSector = room.Sectors[probeGridX * room.ZSize + probeGridZ];
-					if (probeSector.IsSurfaceSplit(true))
-						continue;
-				}
 			}
 
 			// Distance from posLocal to nearest point on this edge in XZ.
@@ -1320,9 +1312,16 @@ namespace TEN::Renderer
 		int&             vertCursor,
 		int&             indexCursor,
 		std::vector<RendererPolygon>& outPolys,
-		const Vector3*   colorOverride = nullptr)
+		const Vector3*   colorOverride = nullptr,
+		const RoomData*  ownerRoom = nullptr)
 	{
 		const int N = subdivisions;
+
+		// Per-sub-polygon material filtering is no longer needed: the snow-vs-non-snow
+		// decision is now made at the renderer bucket level via IsSnowMaterialIndex(),
+		// and each half of a height-split sector lives in its own bucket. The
+		// `ownerRoom` parameter is retained for lighting / color routing only.
+		(void)ownerRoom;
 
 		// Cache per-input-vertex attributes.
 		const int inCount = (int)poly.indices.size();
@@ -1430,44 +1429,48 @@ namespace TEN::Renderer
 				for (int j = 0; j < N - i; j++)
 				{
 					// Upward sub-triangle: corners (i, j), (i+1, j), (i, j+1).
-					int b0, b1, b2;
-					sampleAt(i,     j,     0, b0);
-					sampleAt(i + 1, j,     1, b1);
-					sampleAt(i,     j + 1, 2, b2);
+					int b0 = -1, b1 = -1, b2 = -1;
+					{
+						sampleAt(i,     j,     0, b0);
+						sampleAt(i + 1, j,     1, b1);
+						sampleAt(i,     j + 1, 2, b2);
 
-					RendererPolygon up{};
-					up.Shape	 = 1;
-					up.Normal	 = poly.normal;
-					up.Centre	 = (vertices[b0].Position + vertices[b1].Position + vertices[b2].Position) / 3.0f;
-					up.BaseIndex = indexCursor;
+						RendererPolygon up{};
+						up.Shape	 = 1;
+						up.Normal	 = poly.normal;
+						up.Centre	 = (vertices[b0].Position + vertices[b1].Position + vertices[b2].Position) / 3.0f;
+						up.BaseIndex = indexCursor;
 
-					indices[indexCursor + 0] = b0;
-					indices[indexCursor + 1] = b1;
-					indices[indexCursor + 2] = b2;
-					indexCursor += 3;
+						indices[indexCursor + 0] = b0;
+						indices[indexCursor + 1] = b1;
+						indices[indexCursor + 2] = b2;
+						indexCursor += 3;
 
-					outPolys.push_back(up);
+						outPolys.push_back(up);
+					}
 
 					if (i + j + 1 < N)
 					{
 						// Downward sub-triangle: corners (i+1, j), (i+1, j+1), (i, j+1).
-						int d0, d1, d2;
-						sampleAt(i + 1, j,     0, d0);
-						sampleAt(i + 1, j + 1, 1, d1);
-						sampleAt(i,     j + 1, 2, d2);
+						{
+							int d0, d1, d2;
+							sampleAt(i + 1, j,     0, d0);
+							sampleAt(i + 1, j + 1, 1, d1);
+							sampleAt(i,     j + 1, 2, d2);
 
-						RendererPolygon down{};
-						down.Shape	   = 1;
-						down.Normal	   = poly.normal;
-						down.Centre	   = (vertices[d0].Position + vertices[d1].Position + vertices[d2].Position) / 3.0f;
-						down.BaseIndex = indexCursor;
+							RendererPolygon down{};
+							down.Shape	   = 1;
+							down.Normal	   = poly.normal;
+							down.Centre	   = (vertices[d0].Position + vertices[d1].Position + vertices[d2].Position) / 3.0f;
+							down.BaseIndex = indexCursor;
 
-						indices[indexCursor + 0] = d0;
-						indices[indexCursor + 1] = d1;
-						indices[indexCursor + 2] = d2;
-						indexCursor += 3;
+							indices[indexCursor + 0] = d0;
+							indices[indexCursor + 1] = d1;
+							indices[indexCursor + 2] = d2;
+							indexCursor += 3;
 
-						outPolys.push_back(down);
+							outPolys.push_back(down);
+						}
 					}
 				}
 			}
@@ -1814,6 +1817,13 @@ namespace TEN::Renderer
 
 				for (auto& bucket : room.buckets)
 				{
+					// Per-bucket snow gate: only buckets whose material name marks them
+					// as snow contribute overlay geometry. This also correctly handles
+					// height-split sectors with mixed-texture halves, since each half
+					// lives in its own bucket.
+					if (!IsSnowMaterialIndex(bucket.materialIndex))
+						continue;
+
 					for (auto& poly : bucket.polygons)
 					{
 						if (!IsSnowFloorPolygon(poly, room))
@@ -2041,6 +2051,11 @@ namespace TEN::Renderer
 
 				for (auto& levelBucket : room.buckets)
 				{
+					// Per-bucket snow gate (mirrors the precount loop above): non-snow
+					// material buckets contribute no overlay geometry.
+					if (!IsSnowMaterialIndex(levelBucket.materialIndex))
+						continue;
+
 					// Group polygon indices by owner room number for this bucket.
 					std::unordered_map<int, std::vector<int>> polysByOwner;
 					for (int p = 0; p < (int)levelBucket.polygons.size(); p++)
@@ -2089,7 +2104,8 @@ namespace TEN::Renderer
 								_roomsVertices, _roomsIndices,
 								lastVertex, lastIndex,
 								overlay.Polygons,
-								colorOverride);
+								colorOverride,
+								&ownerRoom);
 
 							// Skip skirts for polygons on split sectors with one portal (fall-through) half.
 							if (!IsSnowPolygonOnSplitPortalSector(poly, room, ownerIdx))
