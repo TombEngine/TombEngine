@@ -20,10 +20,12 @@ namespace TEN::Input
 
 	enum class GamepadType
 	{
-		Xbox,
-		PlayStation,
-		Switch,
-		Count
+		Xbox          = 0,
+		PlayStation3  = 1,
+		PlayStation4  = 2,
+		PlayStation5  = 3,
+		Switch        = 4,
+		Count         = 5
 	};
 
 	enum class DefaultBindingType
@@ -61,12 +63,12 @@ namespace TEN::Input
 
 	struct RumbleData
 	{
-		float	   Power	 = 0.0f;
-		RumbleMode Mode		 = RumbleMode::None;
-		float	   LastPower = 0.0f;
-		float	   FadeSpeed = 0.0f;
+		float	   Power		 = 0.0f;
+		float	   BasePower	 = 0.0f; // Power at the time Rumble() was called; used to block re-fire at same or lower level.
+		RumbleMode Mode			 = RumbleMode::None;
+		float	   LastPower	 = 0.0f;
+		float	   FadeSpeed	 = 0.0f;
 	};
-
 	extern std::unordered_map<int, float>				  KeyMap;
 	extern std::unordered_map<ActionID, Action>			  ActionMap;
 	extern std::unordered_map<ActionID, ActionQueueState> ActionQueueMap;
@@ -82,6 +84,11 @@ namespace TEN::Input
 	void ClearAllActions();
 	void Rumble(float power, float delaySec = 0.3f, RumbleMode mode = RumbleMode::Both);
 	void StopRumble();
+	bool GamepadHasLED();
+	void SetGamepadLED(const Vector4& color);
+	void SetGamepadLEDOverride(const Vector4& color);
+	void ClearGamepadLEDOverride();
+	bool RefreshGamepadLEDOverride();
 	void ApplyDefaultBindings();
 	bool RestoreDefaultBindings(DefaultBindingType bindingType);
 	GamepadType GetGamepadType();

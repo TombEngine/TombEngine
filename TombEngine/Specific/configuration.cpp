@@ -101,6 +101,7 @@ void InitDefaultConfiguration()
 	g_Configuration.EnableInteractionHighlighter = true;
 	g_Configuration.EnableRumble = true;
 	g_Configuration.EnableThumbstickCamera = false;
+	g_Configuration.EnableLightbarEffects = true;
 
 	g_Configuration.MouseSensitivity = GameConfiguration::DEFAULT_MOUSE_SENSITIVITY;
 	g_Configuration.MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
@@ -251,6 +252,10 @@ bool LoadConfiguration()
 			{
 				g_Configuration.EnableThumbstickCamera = ToBool(val, g_Configuration.EnableThumbstickCamera);
 			}
+			else if (key == OPTION_ENABLE_LIGHTBAR_EFFECTS)
+			{
+				g_Configuration.EnableLightbarEffects = ToBool(val, g_Configuration.EnableLightbarEffects);
+			}
 		}
 		else if (section == "Input")
 		{
@@ -333,7 +338,8 @@ bool SaveConfiguration()
 	ss << OPTION_ENABLE_TARGET_HIGHLIGHTER << "=" << (g_Configuration.EnableTargetHighlighter ? 1 : 0) << "\n";
 	ss << OPTION_ENABLE_INTERACTION_HIGHLIGHTER << "=" << (g_Configuration.EnableInteractionHighlighter ? 1 : 0) << "\n";
 	ss << OPTION_ENABLE_RUMBLE << "=" << (g_Configuration.EnableRumble ? 1 : 0) << "\n";
-	ss << OPTION_ENABLE_THUMBSTICK_CAMERA << "=" << (g_Configuration.EnableThumbstickCamera ? 1 : 0) << "\n\n";
+	ss << OPTION_ENABLE_THUMBSTICK_CAMERA << "=" << (g_Configuration.EnableThumbstickCamera ? 1 : 0) << "\n";
+	ss << OPTION_ENABLE_LIGHTBAR_EFFECTS << "=" << (g_Configuration.EnableLightbarEffects ? 1 : 0) << "\n\n";
 
 	ss << "[Input]\n";
 	ss << OPTION_MOUSE_SENSITIVITY << "=" << g_Configuration.MouseSensitivity << "\n";

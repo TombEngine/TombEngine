@@ -714,6 +714,7 @@ namespace TEN::Entities::Vehicles
 		{
 			if (laraItem->Animation.TargetState != SPEEDBOAT_STATE_HIT && speedboatItem->Animation.Velocity.z > 5)
 			{
+				Rumble(std::clamp((float)abs(speedboatItem->Animation.Velocity.z) / SPEEDBOAT_FAST_VELOCITY_MAX * 0.7f, 0.4f, 0.9f), 0.3f, RumbleMode::Both);
 				SetAnimationFromSlot(*laraItem, ID_SPEEDBOAT_LARA_ANIMS, collide);
 			}
 		}
@@ -927,6 +928,9 @@ namespace TEN::Entities::Vehicles
 				int fx = accelerating ? SFX_TR2_VEHICLE_SPEEDBOAT_ACCELERATE : (moving ? SFX_TR2_VEHICLE_SPEEDBOAT_MOVING : SFX_TR2_VEHICLE_SPEEDBOAT_IDLE);
 				float pitch  = idle ? 1.0f : 1.0f + speedboat->Pitch / (float)SPEEDBOAT_NORMAL_VELOCITY_MAX / 4.0f;
 				SoundEffect(fx, &speedboatItem->Pose, SoundEnvironment::Land, pitch);
+
+				float speedFrac = std::clamp((float)abs(speedboatItem->Animation.Velocity.z) / SPEEDBOAT_FAST_VELOCITY_MAX, 0.0f, 1.0f);
+				Rumble(0.2f + 0.3f * speedFrac, 0.2f, RumbleMode::Both);
 			}
 		}
 		else

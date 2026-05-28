@@ -11,6 +11,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
 * Added native support for DualShock, DualSense and Switch Pro controllers.
+* Added support for lightbar effects on supported controllers, with an in-game Lightbar Effects toggle in the Sound and Gameplay options menu (greyed out when the connected controller has no LED support).
+* Added rumble effects for all vehicles.
 * Added animation blending support and blended transitions for hardcoded animation changes.
 * Added root motion support.
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
@@ -48,6 +50,9 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Flow.Settings.UI.menuBackgroundBlur` option to specify amount of blur for the inventory and pause backgrounds.
 * Added `Flow.Settings.UI.systemTextScale` option to change global system text scale.
 * Added `Input.GetLastInputDevice` function to detect which input device was used last.
+* Added `Input.SetGamepadLED` and `Input.ClearGamepadLED` function to set the color of the lightbar for supported controllers.
+* Added `Input.GetActionBinding()` function to return the name of the key that has been assigned to specified ActionID.
+* Added `Input.GetActionTimeActive` function that returns the time for which a key has been held.
 * Added functional key (F1-F12) mappings and raw gamepad input mappings to the `Input.ActionID` and `Input.AxisID` enums.
 * Added `Lara:GetLocked` and `Lara:SetLocked` to manage native control lock status.
 * Added `Lara:GetSkin` and `Lara:SetSkin` functions to manage swapping of classic outfits.

@@ -181,6 +181,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 
 	HandlePlayerQuickActions(*item);
 	RumbleLaraHealthCondition(item);
+	UpdatePlayerLED(item);
 
 	auto water = GetPlayerWaterData(*item);
 	player.Context.WaterSurfaceDist = -water.HeightFromWater;

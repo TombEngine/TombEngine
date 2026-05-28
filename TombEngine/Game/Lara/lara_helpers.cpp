@@ -10,6 +10,7 @@
 #include "Game/items.h"
 #include "Game/effects/Bubble.h"
 #include "Game/effects/Drip.h"
+#include "Game/gui.h"
 #include "Game/GuiObjects.h"
 #include "Game/Lara/PlayerContext.h"
 #include "Game/Lara/lara.h"
@@ -23,6 +24,7 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Sound/sound.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
@@ -1740,6 +1742,96 @@ void RumbleLaraHealthCondition(ItemInfo* item)
 	bool doPulse = ((GlobalCounter & 0x0F) % 0x0F == 1);
 	if (doPulse)
 		Rumble(POWER, DELAY);
+}
+
+void UpdatePlayerLED(ItemInfo* item)
+{
+	// Do nothing if the master LED setting is disabled.
+	if (!g_Configuration.EnableLightbarEffects)
+		return;
+
+	// Persistent Lua script override takes priority over all other logic.
+	if (RefreshGamepadLEDOverride())
+		return;
+
+	// Turn off LED in the title level or when any menu is active.
+	if (CurrentLevel == 0 || g_Gui.GetInventoryMode() != InventoryMode::None)
+	{
+		SetGamepadLED(Vector4::Zero);
+		return;
+	}
+
+	const auto& player = GetLaraInfo(*item);
+
+	// Select LED color mode based on the room environment Lara is currently in.
+	// Priority order allows further environment types to be slotted in as new else-if branches.
+	if (TestEnvironment(ENV_FLAG_WATER, item) && player.Control.WaterStatus == WaterStatus::Underwater)
+	{
+		// Fully submerged in a water room: air-based LED, light blue (full) to dark blue (empty), flashing below 20%.
+		// When air runs out, fall through to health-based LED to mirror in-game UI behavior (health depletes while drowning).
+		if (player.Status.Air > 0)
+		{
+			float airFrac = std::clamp((float)player.Status.Air / LARA_AIR_MAX, 0.0f, 1.0f);
+
+			bool isAirCritical = player.Status.Air <= (LARA_AIR_MAX * 0.2f);
+			if (isAirCritical && (GlobalCounter & 0x0F) >= 8)
+			{
+				SetGamepadLED(Vector4::Zero);
+				return;
+			}
+
+			auto color = Vector4(30.0f / 255.0f * airFrac, 120.0f / 255.0f * airFrac, (80.0f + 175.0f * airFrac) / 255.0f, 1.0f);
+
+			// Poison influence: blend towards yellow with a sine-wave intensity pulse (suppressed at critical air, where blink takes over).
+			if (player.Status.Poison > 0)
+			{
+				float poisonFrac = std::clamp((float)player.Status.Poison / LARA_POISON_MAX, 0.0f, 1.0f);
+				color.x += (1.0f - color.x) * poisonFrac;
+				color.y += (1.0f - color.y) * poisonFrac;
+				if (!isAirCritical)
+					color.w = (sin(GlobalCounter * (PI / 15.0f)) + 1.0f) * 0.5f;
+			}
+
+			SetGamepadLED(color);
+			return;
+		}
+
+		// Air depleted: fall through to health-based LED to mirror in-game UI behavior (health depletes while drowning).
+	}
+
+	float healthFrac = std::clamp((float)item->HitPoints / LARA_HEALTH_MAX, 0.0f, 1.0f);
+
+	// Blink off on the second half of each 16-frame cycle at critical health.
+	bool isHealthCritical = item->HitPoints > 0 && item->HitPoints <= LARA_HEALTH_CRITICAL;
+	if (isHealthCritical && (GlobalCounter & 0x0F) >= 8)
+	{
+		SetGamepadLED(Vector4::Zero);
+		return;
+	}
+
+	// Base health color: green (full) to red (critical).
+	auto color = Vector4(1.0f - healthFrac, healthFrac, 0.0f, 1.0f);
+
+	// Poison influence: blend towards yellow with a sine-wave intensity pulse (suppressed at critical health, where blink takes over).
+	if (player.Status.Poison > 0)
+	{
+		float poisonFrac = std::clamp((float)player.Status.Poison / LARA_POISON_MAX, 0.0f, 1.0f);
+		color.x += (1.0f - color.x) * poisonFrac;
+		color.y += (1.0f - color.y) * poisonFrac;
+		if (!isHealthCritical)
+			color.w = (sin(GlobalCounter * (PI / 15.0f)) + 1.0f) * 0.5f;
+	}
+
+	// Cold influence: blend towards light blue as exposure depletes.
+	if (player.Status.Exposure < LARA_EXPOSURE_MAX)
+	{
+		float coldFrac = std::clamp(1.0f - (float)player.Status.Exposure / LARA_EXPOSURE_MAX, 0.0f, 1.0f);
+		color.x += (0.5f - color.x) * coldFrac;
+		color.y += (0.75f - color.y) * coldFrac;
+		color.z += (1.0f - color.z) * coldFrac;
+	}
+
+	SetGamepadLED(color);
 }
 
 // NOTE: Formula uses kinematic equation of motion for vertical motion under constant acceleration.

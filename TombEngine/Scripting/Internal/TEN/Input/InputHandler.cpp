@@ -8,10 +8,12 @@
 #include "Scripting/Internal/TEN/Input/ActionIDs.h"
 #include "Scripting/Internal/TEN/Input/AxisIDs.h"
 #include "Scripting/Internal/TEN/Input/InputDevices.h"
+#include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Specific/Input/Input.h"
 
 using namespace TEN::Input;
+using namespace TEN::Scripting::Types;
 
 namespace TEN::Scripting::Input
 {
@@ -164,6 +166,24 @@ namespace TEN::Scripting::Input
 		Rumble(strength, time.value_or(0.3f), RumbleMode::Both);
 	}
 
+	/// Set the RGB LED color of the gamepad persistently.
+	// Overrides the automatic health-based color until TEN.Input.ClearGamepadLED is called.
+	// Has no effect on gamepads that do not have an RGB LED (e.g. Xbox controllers).
+	// @function SetGamepadLED
+	// @tparam Color color LED color.
+	static void SetGamepadLED(const ScriptColor& color)
+	{
+		TEN::Input::SetGamepadLEDOverride(Vector4(color.GetR() / 255.0f, color.GetG() / 255.0f, color.GetB() / 255.0f, 1.0f));
+	}
+
+	/// Clear the persistent LED color set by TEN.Input.SetGamepadLED.
+	// Allows automatic health-based color (or black in menus) to resume.
+	// @function ClearGamepadLED
+	static void ClearGamepadLED()
+	{
+		TEN::Input::ClearGamepadLEDOverride();
+	}
+
 	/// Returns the name of the key that has been assigned to specified ActionID.
 	// @function GetActionBinding
 	// @tparam Input.ActionID actionID Action ID to get binding key name for.
@@ -202,6 +222,8 @@ namespace TEN::Scripting::Input
 		table.set_function(ScriptReserved_InputClearKey, &ClearKey);
 		table.set_function(ScriptReserved_InputClearAllKeys, &ClearAllKeys);
 		table.set_function(ScriptReserved_InputVibrate, &Vibrate);
+		table.set_function(ScriptReserved_InputSetGamepadLED, &SetGamepadLED);
+		table.set_function(ScriptReserved_InputClearGamepadLED, &ClearGamepadLED);
 		table.set_function(ScriptReserved_GetActionBinding, &GetActionBinding);
 		table.set_function(ScriptReserved_GetActionTimeActive, &GetActionTimeActive);
 

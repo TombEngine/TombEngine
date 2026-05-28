@@ -11,6 +11,7 @@
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/configuration.h"
 #include "Specific/EngineMain.h"
 #include "Specific/trutils.h"
 
@@ -38,9 +39,16 @@ namespace TEN::Input
 	float MouseWheelAccumY = 0.0f; // Mouse wheel deltas are event-only in SDL3, so accumulate them between frames.
 
 	// SDL3 gamepad state.
-	SDL_Gamepad* ActiveGamepad   = nullptr;
-	SDL_JoystickID ActiveGamepadId = 0;
-	bool ActiveGamepadHasRumble = false;
+	struct GamepadState
+	{
+		SDL_Gamepad*           Handle      = nullptr;
+		SDL_JoystickID         Id          = 0;
+		bool                   HasRumble   = false;
+		bool                   HasLED      = false;
+		std::optional<Vector4> LEDOverride = std::nullopt;
+	};
+
+	GamepadState GamepadInfo = {};
 
 	static bool HasMatchingBindings(const BindingProfile& bindingProfile)
 	{
@@ -64,7 +72,7 @@ namespace TEN::Input
 		switch (bindingType)
 		{
 		case DefaultBindingType::KeyboardMouse:
-			if (!force && ActiveGamepad != nullptr)
+			if (!force && GamepadInfo.Handle != nullptr)
 				return false;
 
 			previousBindings = &DEFAULT_GAMEPAD_BINDING_PROFILE;
@@ -72,16 +80,18 @@ namespace TEN::Input
 			break;
 
 		case DefaultBindingType::Gamepad:
-			if (ActiveGamepad == nullptr)
+			if (GamepadInfo.Handle == nullptr)
 				return false;
 
 			previousBindings = &DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
 			defaultBindings = &DEFAULT_GAMEPAD_BINDING_PROFILE;
-			enableRumble = ActiveGamepadHasRumble;
+			enableRumble = GamepadInfo.HasRumble;
 			enableThumbstickCamera = true;
 			break;
 		}
 
+		// Apply only if forced or user's bindings still match the previous profile's defaults.
+		// This preserves custom layouts while auto-switching on a clean first-time connection.
 		if (!force && !HasMatchingBindings(*previousBindings))
 			return false;
 
@@ -96,7 +106,7 @@ namespace TEN::Input
 
 	static void OpenFirstGamepad()
 	{
-		if (ActiveGamepad != nullptr)
+		if (GamepadInfo.Handle != nullptr)
 			return;
 
 		int count = 0;
@@ -107,18 +117,18 @@ namespace TEN::Input
 			return;
 		}
 
-		ActiveGamepadId = gamepads[0];
-		ActiveGamepad = SDL_OpenGamepad(ActiveGamepadId);
+		GamepadInfo.Id = gamepads[0];
+		GamepadInfo.Handle = SDL_OpenGamepad(GamepadInfo.Id);
 		SDL_free(gamepads);
 
-		if (ActiveGamepad == nullptr)
+		if (GamepadInfo.Handle == nullptr)
 		{
 			TENLog(std::string("Failed to open gamepad: ") + SDL_GetError(), LogLevel::Warning);
-			ActiveGamepadId = 0;
+			GamepadInfo.Id = 0;
 			return;
 		}
 
-		auto* gamepadName = SDL_GetGamepadName(ActiveGamepad);
+		auto* gamepadName = SDL_GetGamepadName(GamepadInfo.Handle);
 		TENLog(std::string("Using '") + (gamepadName ? gamepadName : "unknown") + "' gamepad for input.", LogLevel::Info);
 
 		auto previousGamepadType = g_Configuration.LastGamepadType;
@@ -126,10 +136,14 @@ namespace TEN::Input
 		bool gamepadTypeChanged = (g_Configuration.LastGamepadType != previousGamepadType);
 
 		// SDL3 reports rumble support via SDL_GetGamepadProperties.
-		auto props = SDL_GetGamepadProperties(ActiveGamepad);
-		ActiveGamepadHasRumble = SDL_GetBooleanProperty(props, SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN, false);
-		if (ActiveGamepadHasRumble)
+		auto props = SDL_GetGamepadProperties(GamepadInfo.Handle);
+		GamepadInfo.HasRumble = SDL_GetBooleanProperty(props, SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN, false);
+		if (GamepadInfo.HasRumble)
 			TENLog("Controller supports vibration.", LogLevel::Info);
+
+		GamepadInfo.HasLED = SDL_GetBooleanProperty(props, SDL_PROP_GAMEPAD_CAP_RGB_LED_BOOLEAN, false);
+		if (GamepadInfo.HasLED)
+			TENLog("Controller supports RGB LED.", LogLevel::Info);
 
 		// If the user is on default keyboard/mouse bindings and this controller matches
 		// a supported Xbox/PlayStation/Switch Pro style layout, swap to gamepad defaults.
@@ -139,18 +153,16 @@ namespace TEN::Input
 
 	static void CloseGamepadIfMatches(SDL_JoystickID id)
 	{
-		if (ActiveGamepad == nullptr || ActiveGamepadId != id)
+		if (GamepadInfo.Handle == nullptr || GamepadInfo.Id != id)
 			return;
 
-		SDL_CloseGamepad(ActiveGamepad);
-		ActiveGamepad = nullptr;
-		ActiveGamepadId = 0;
-		ActiveGamepadHasRumble = false;
+		SDL_CloseGamepad(GamepadInfo.Handle);
+		GamepadInfo = {};
 
 		TENLog("Gamepad disconnected.", LogLevel::Info);
 		OpenFirstGamepad();
 
-		if (ActiveGamepad == nullptr)
+		if (GamepadInfo.Handle == nullptr)
 		{
 			if (RestoreDefaultBindings(DefaultBindingType::KeyboardMouse))
 				SaveConfiguration();
@@ -201,12 +213,10 @@ namespace TEN::Input
 	{
 		TENLog("Shutting down input system...", LogLevel::Info);
 
-		if (ActiveGamepad != nullptr)
-		{
-			SDL_CloseGamepad(ActiveGamepad);
-			ActiveGamepad = nullptr;
-		}
+		if (GamepadInfo.Handle != nullptr)
+			SDL_CloseGamepad(GamepadInfo.Handle);
 
+		GamepadInfo = {};
 		SDL_QuitSubSystem(SDL_INIT_GAMEPAD);
 	}
 
@@ -219,7 +229,7 @@ namespace TEN::Input
 			break;
 
 		case SDL_EVENT_GAMEPAD_ADDED:
-			if (ActiveGamepad == nullptr)
+			if (GamepadInfo.Handle == nullptr)
 				OpenFirstGamepad();
 			break;
 
@@ -236,15 +246,19 @@ namespace TEN::Input
 
 	GamepadType GetGamepadType()
 	{
-		if (ActiveGamepad == nullptr)
+		if (GamepadInfo.Handle == nullptr)
 			return g_Configuration.LastGamepadType;
 
-		switch (SDL_GetGamepadType(ActiveGamepad))
+		switch (SDL_GetGamepadType(GamepadInfo.Handle))
 		{
 		case SDL_GAMEPAD_TYPE_PS3:
+			return GamepadType::PlayStation3;
+
 		case SDL_GAMEPAD_TYPE_PS4:
+			return GamepadType::PlayStation4;
+
 		case SDL_GAMEPAD_TYPE_PS5:
-			return GamepadType::PlayStation;
+			return GamepadType::PlayStation5;
 
 		case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_PRO:
 			return GamepadType::Switch;
@@ -443,13 +457,13 @@ namespace TEN::Input
 
 	static void ReadGamepad()
 	{
-		if (InputLocked || ActiveGamepad == nullptr)
+		if (InputLocked || GamepadInfo.Handle == nullptr)
 			return;
 
 		// Buttons.
 		for (int b = 0; b < GAMEPAD_BUTTON_COUNT; b++)
 		{
-			bool pressed = SDL_GetGamepadButton(ActiveGamepad, (SDL_GamepadButton)b);
+			bool pressed = SDL_GetGamepadButton(GamepadInfo.Handle, (SDL_GamepadButton)b);
 			int keyID = KEY_OFFSET_GAMEPAD + b;
 			KeyMap[keyID] = pressed ? 1.0f : 0.0f;
 
@@ -460,7 +474,7 @@ namespace TEN::Input
 		// Axes.
 		for (int axis = 0; axis < GAMEPAD_AXIS_COUNT; axis++)
 		{
-			auto raw = SDL_GetGamepadAxis(ActiveGamepad, (SDL_GamepadAxis)axis);
+			auto raw = SDL_GetGamepadAxis(GamepadInfo.Handle, (SDL_GamepadAxis)axis);
 
 			float normalizedValue = 0.0f;
 			if (std::abs((int)raw) >= AXIS_DEADZONE)
@@ -679,7 +693,7 @@ namespace TEN::Input
 
 	static void UpdateRumble()
 	{
-		if (ActiveGamepad == nullptr || !ActiveGamepadHasRumble || RumbleInfo.Power == 0.0f)
+		if (GamepadInfo.Handle == nullptr || !GamepadInfo.HasRumble || RumbleInfo.Power == 0.0f)
 			return;
 
 		RumbleInfo.Power -= RumbleInfo.FadeSpeed;
@@ -715,7 +729,7 @@ namespace TEN::Input
 			break;
 		}
 
-		if (!SDL_RumbleGamepad(ActiveGamepad, lowFreq, highFreq, 1000 / FPS))
+		if (!SDL_RumbleGamepad(GamepadInfo.Handle, lowFreq, highFreq, 1000 / FPS))
 			TENLog(std::string("Rumble update failed: ") + SDL_GetError(), LogLevel::Warning);
 
 		RumbleInfo.LastPower = RumbleInfo.Power;
@@ -763,9 +777,10 @@ namespace TEN::Input
 
 		power = std::clamp(power, 0.0f, 1.0f);
 
-		if (power == 0.0f || RumbleInfo.Power)
+		if (power == 0.0f || power <= RumbleInfo.BasePower)
 			return;
 
+		RumbleInfo.BasePower = power;
 		RumbleInfo.FadeSpeed = power / (delaySec * FPS);
 		RumbleInfo.Power = power + RumbleInfo.FadeSpeed;
 		RumbleInfo.LastPower = RumbleInfo.Power;
@@ -774,15 +789,53 @@ namespace TEN::Input
 
 	void StopRumble()
 	{
-		if (ActiveGamepad != nullptr && ActiveGamepadHasRumble)
-			SDL_RumbleGamepad(ActiveGamepad, 0, 0, 0);
+		if (GamepadInfo.Handle != nullptr && GamepadInfo.HasRumble)
+			SDL_RumbleGamepad(GamepadInfo.Handle, 0, 0, 0);
 
 		RumbleInfo = {};
 	}
 
+	bool GamepadHasLED()
+	{
+		return (GamepadInfo.Handle != nullptr && GamepadInfo.HasLED);
+	}
+
+	void SetGamepadLED(const Vector4& color)
+	{
+		if (!GamepadHasLED())
+			return;
+		if (!g_Configuration.EnableLightbarEffects)
+			return;
+
+		auto r = (unsigned char)std::clamp(color.x * color.w * 255.0f, 0.0f, 255.0f);
+		auto g = (unsigned char)std::clamp(color.y * color.w * 255.0f, 0.0f, 255.0f);
+		auto b = (unsigned char)std::clamp(color.z * color.w * 255.0f, 0.0f, 255.0f);
+		SDL_SetGamepadLED(GamepadInfo.Handle, r, g, b);
+	}
+
+	void SetGamepadLEDOverride(const Vector4& color)
+	{
+		GamepadInfo.LEDOverride = color;
+		SetGamepadLED(color);
+	}
+
+	void ClearGamepadLEDOverride()
+	{
+		GamepadInfo.LEDOverride = std::nullopt;
+	}
+
+	bool RefreshGamepadLEDOverride()
+	{
+		if (!GamepadInfo.LEDOverride.has_value())
+			return false;
+
+		SetGamepadLED(*GamepadInfo.LEDOverride);
+		return true;
+	}
+
 	void ApplyDefaultBindings()
 	{
-		auto bindingType = (ActiveGamepad != nullptr) ? DefaultBindingType::Gamepad : DefaultBindingType::KeyboardMouse;
+		auto bindingType = (GamepadInfo.Handle != nullptr) ? DefaultBindingType::Gamepad : DefaultBindingType::KeyboardMouse;
 		RestoreDefaultBindings(bindingType, true);
 	}
 

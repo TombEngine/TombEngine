@@ -41,6 +41,7 @@ constexpr auto OPTION_ENABLE_TARGET_HIGHLIGHTER			= "EnableTargetHighlighter";
 constexpr auto OPTION_ENABLE_INTERACTION_HIGHLIGHTER	= "EnableInteractionHighlighter";
 constexpr auto OPTION_ENABLE_RUMBLE						= "EnableRumble";
 constexpr auto OPTION_ENABLE_THUMBSTICK_CAMERA			= "EnableThumbstickCamera";
+constexpr auto OPTION_ENABLE_LIGHTBAR_EFFECTS			= "EnableLightbarEffects";
 
 // Input keys
 
@@ -94,6 +95,7 @@ struct GameConfiguration
 	bool EnableInteractionHighlighter	= false;
 	bool EnableRumble					= false;
 	bool EnableThumbstickCamera			= false;
+	bool EnableLightbarEffects			= true;
 
 	// Input
 	int					  MouseSensitivity		= DEFAULT_MOUSE_SENSITIVITY;

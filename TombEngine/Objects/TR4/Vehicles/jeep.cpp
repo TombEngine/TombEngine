@@ -911,6 +911,8 @@ namespace TEN::Entities::Vehicles
 				SetAnimationFromSlot(*laraItem, ID_JEEP_LARA_ANIMS, JA_CRASH_BACK);
 				break;
 			}
+
+			Rumble(std::clamp((float)abs(jeep->Velocity) / JEEP_VELOCITY_MAX, 0.5f, 0.9f), 0.4f, RumbleMode::Both);
 		}
 		else
 		{
@@ -1113,7 +1115,10 @@ namespace TEN::Entities::Vehicles
 
 			case JS_JUMP:
 				if (jeepItem->Pose.Position.y == jeepItem->Floor)
+				{
 					laraItem->Animation.TargetState = JS_LAND;
+					Rumble(0.65f, 0.35f, RumbleMode::Both);
+				}
 				else if (jeepItem->Animation.Velocity.y > 300)
 					jeep->Flags |= JEEP_FLAG_FALLING;
 
@@ -1324,11 +1329,18 @@ namespace TEN::Entities::Vehicles
 				jeep->Pitch = -32768;
 
 			SoundEffect(SFX_TR4_VEHICLE_JEEP_MOVING, &jeepItem->Pose, SoundEnvironment::Land, 0.5f + jeep->Pitch / 65535.0f);
+
+			float speedFrac = std::clamp((float)abs(jeep->Velocity) / JEEP_VELOCITY_MAX, 0.0f, 1.0f);
+			Rumble(0.2f + 0.35f * speedFrac, 0.2f, RumbleMode::Both);
 		}
 		else
 		{
 			if (drive != -1)
+			{
 				SoundEffect(SFX_TR4_VEHICLE_JEEP_IDLE, &jeepItem->Pose);
+				Rumble(0.12f, 0.25f, RumbleMode::Both);
+			}
+
 			jeep->Pitch = 0;
 		}
 

@@ -200,6 +200,7 @@ namespace TEN::Scripting
 		GraphicsSettings			Graphics    = {};
 		std::array<HairSettings, 3> Hair	    = {};
 		HudSettings					Hud		    = {};
+
 		PathfindingSettings			Pathfinding = {};
 		PhysicsSettings				Physics	    = {};
 		SystemSettings				System	    = {};
