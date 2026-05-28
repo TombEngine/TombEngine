@@ -606,6 +606,19 @@ table TypePropertyMap {
 	properties: PropertyMapData;
 }
 
+table MaterialPropertyValueState {
+	component0: float;
+	component1: float;
+	component2: float;
+	component3: float;
+}
+
+table MaterialPropertyState {
+	material_hash: int32;
+	property_hash: int32;
+	value: MaterialPropertyValueState;
+}
+
 // End property system tables
 
 table ScriptTable {
@@ -758,6 +771,7 @@ table SaveGame {
 	callbacks: [CallbackSet];
 	moveable_type_properties: [TypePropertyMap];
 	static_type_properties: [TypePropertyMap];
+	material_properties: [MaterialPropertyState];
 }
 
 root_type TEN.Save.SaveGame;
