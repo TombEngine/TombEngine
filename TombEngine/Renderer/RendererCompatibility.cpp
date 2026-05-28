@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include "Renderer/Renderer.h"
 
 #include <execution>
@@ -396,7 +396,8 @@ namespace TEN::Renderer
 		const RoomData& room,
 		int& outBottomAbsYA,
 		int& outBottomAbsYB,
-		bool isSplitSector)
+		bool isSplitSector,
+		bool skipDiagonalCut = false)
 	{
 		constexpr int SKIRT_MIN_DROP = 8;         // World units: avoid hairline skirts on flat tiles.
 		constexpr int SKIRT_MAX_DROP = CLICK(3);  // Beyond ~3 clicks the slope exceeds the angle of repose
@@ -454,7 +455,7 @@ namespace TEN::Renderer
 		// EXCEPT when the neighbour is itself a snow square: in that case emit a purely vertical
 		// skirt to close the gap between the source floor and the lifted snow blanket without
 		// drooping into the neighbour sector.
-		/*if (!isSplitSector)
+		if (isSplitSector)
 		{
 			constexpr float SIDE_PROBE_INSET = 4.0f;
 			float probeMidX = midX + nx * SIDE_PROBE_INSET;
@@ -483,11 +484,14 @@ namespace TEN::Renderer
 			else
 			{
 				// Diagonal cut edge: droop to the actual neighbour (other sub-triangle) floor height.
+				// Skip when the other half is a floor portal -- the skirt would droop into open space.
+				if (skipDiagonalCut)
+					return false;
 				outBottomAbsYA = std::max(topAbsYA, neighborYA);
 				outBottomAbsYB = std::max(topAbsYB, neighborYB);
 				return true;
 			}
-		}*/
+		}
 
 		// Non-split: suppress when the snow blanket continues seamlessly at the same height.
 		bool neighborIsSnowA = IsSnowNeighborAt(room, vA.x, vA.z, midX, midZ, nx, nz);
@@ -532,7 +536,7 @@ namespace TEN::Renderer
 			const auto& vA = room.positions[poly.indices[k]];
 			const auto& vB = room.positions[poly.indices[(k + 1) % n]];
 			int bottomA, bottomB;
-			if (GetSnowSkirtForEdge(vA, vB, centroid, room, bottomA, bottomB, isSplitSector))
+			if (GetSnowSkirtForEdge(vA, vB, centroid, room, bottomA, bottomB, isSplitSector, false))
 				count++;
 		}
 		return count;
@@ -1203,7 +1207,8 @@ namespace TEN::Renderer
 		int&             vertCursor,
 		int&             indexCursor,
 		std::vector<RendererPolygon>& outPolys,
-		const Vector3*   colorOverride = nullptr)
+		const Vector3*   colorOverride = nullptr,
+		bool             skipDiagonalCut = false)
 	{
 		const int N = std::max(1, subdivisions);
 		const int nGrid = N + 1;
@@ -1234,7 +1239,7 @@ namespace TEN::Renderer
 			const auto& vB = room.positions[ib];
 
 			int bottomAbsYA, bottomAbsYB;
-			if (!GetSnowSkirtForEdge(vA, vB, centroid, room, bottomAbsYA, bottomAbsYB, isSplitSector))
+			if (!GetSnowSkirtForEdge(vA, vB, centroid, room, bottomAbsYA, bottomAbsYB, isSplitSector, skipDiagonalCut))
 				continue;
 
 			// Outward horizontal normal (perpendicular to edge in XZ, away from centroid).
@@ -1288,12 +1293,15 @@ namespace TEN::Renderer
 			//if (skirtNrm.y > 0.0f)
 				//skirtNrm = -skirtNrm;
 
-			// UVs are interpolated along the edge only (constant V across rows). This
-			// keeps every skirt row inside the parent polygon's atlas tile and avoids
-			// the stretched / garbage textures that come from extrapolating V beyond
-			// the polygon's UV bounds.
-			Vector2 uvA = poly.textureCoordinates[k];
-			Vector2 uvB = poly.textureCoordinates[(k + 1) % n];
+// UVs: interpolate along the edge (tU) and scale vertically by the physical
+				// drop so the texture maintains its aspect ratio rather than repeating the
+				// same row ("barcode" effect). uvPerWU is derived from the floor polygon's
+				// own UV density so the texture scale matches the adjacent surface.
+				Vector2 uvA = poly.textureCoordinates[k];
+				Vector2 uvB = poly.textureCoordinates[(k + 1) % n];
+				float edgeLenWU = sqrtf(ex * ex + ez * ez);
+				float uvDeltaLen = sqrtf((uvB.x - uvA.x) * (uvB.x - uvA.x) + (uvB.y - uvA.y) * (uvB.y - uvA.y));
+				float uvPerWU = (edgeLenWU > 1.0f) ? (uvDeltaLen / edgeLenWU) : (1.0f / BLOCK(1));
 
 			Vector3 colA = colorOverride ? *colorOverride : room.colors[ia];
 			Vector3 colB = colorOverride ? *colorOverride : room.colors[ib];
@@ -1332,8 +1340,10 @@ namespace TEN::Renderer
 					pt.y = topPt.y * (1.0f - tV) + botPt.y * tV;
 					pt.z = topPt.z * (1.0f - tV) + botPt.z * tV - nz * SKIRT_INSET;
 
-					Vector2 vertUV = Vector2(uvA.x * (1.0f - tU) + uvB.x * tU,
-											 uvA.y * (1.0f - tU) + uvB.y * tU);
+					Vector2 topUV = Vector2(uvA.x * (1.0f - tU) + uvB.x * tU,
+											uvA.y * (1.0f - tU) + uvB.y * tU);
+					float dropAtTU = (bA.y * (1.0f - tU) + bB.y * tU) - (vA.y * (1.0f - tU) + vB.y * tU);
+					Vector2 vertUV = Vector2(topUV.x, topUV.y + dropAtTU * uvPerWU * tV);
 					Vector3 vertCol = colA * (1.0f - tU) + colB * tU;
 					Vector3 vertEff = effA * (1.0f - tU) + effB * tU;
 
@@ -2192,16 +2202,17 @@ namespace TEN::Renderer
 								colorOverride,
 								&ownerRoom);
 
-							// Skip skirts for polygons on split sectors with one portal (fall-through) half.
-							if (!IsSnowPolygonOnSplitPortalSector(poly, room, ownerIdx))
-							{
-								EmitSnowSkirtsForPolygon(
-									poly, room, snowSubdivisions, snowLift,
-									_roomsVertices, _roomsIndices,
-									lastVertex, lastIndex,
-									overlay.Polygons,
-									colorOverride);
-							}
+							// For split sectors with a portal half, suppress only the diagonal cut
+							// edge skirt (which would droop into the open portal). Side edge skirts
+							// are still needed to close the gap on the adjacent non-portal sides.
+							bool skipDiag = IsSnowPolygonOnSplitPortalSector(poly, room, ownerIdx);
+							EmitSnowSkirtsForPolygon(
+								poly, room, snowSubdivisions, snowLift,
+								_roomsVertices, _roomsIndices,
+								lastVertex, lastIndex,
+								overlay.Polygons,
+								colorOverride,
+								skipDiag);
 						}
 
 						overlay.NumVertices = lastVertex - startVertex;
