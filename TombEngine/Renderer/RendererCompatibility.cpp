@@ -684,7 +684,7 @@ namespace TEN::Renderer
 		// boundary, so the blanket can stay at uniform half lift everywhere.
 		if (poly.shape == 1 || isSplitSector)
 		{
-			cache.baseScale = 0.5f;
+			cache.baseScale = 1.0f;
 			return cache;
 		}
 
