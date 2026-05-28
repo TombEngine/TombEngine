@@ -416,8 +416,8 @@ namespace TEN::Renderer
 		float nx =  ez;
 		float nz = -ex;
 		float len = sqrtf(nx * nx + nz * nz);
-		if (len < 1e-3f)
-			return false;
+		//if (len < 1e-3f)
+			//return false;
 		nx /= len;
 		nz /= len;
 
@@ -437,39 +437,71 @@ namespace TEN::Renderer
 
 		// NO_HEIGHT means the probe went out of room bounds (level edge) -- treat it as a
 		// cliff-edge drop large enough to trigger the cap-skirt path below.
-		if (neighborYA == NO_HEIGHT) neighborYA = topAbsYA + SKIRT_MAX_DROP;
-		if (neighborYB == NO_HEIGHT) neighborYB = topAbsYB + SKIRT_MAX_DROP;
+		//if (neighborYA == NO_HEIGHT) neighborYA = topAbsYA + SKIRT_MAX_DROP;
+		//if (neighborYB == NO_HEIGHT) neighborYB = topAbsYB + SKIRT_MAX_DROP;
 
 		int dropA = neighborYA - topAbsYA;
 		int dropB = neighborYB - topAbsYB;
 
 		// Skip if both endpoints have a higher neighbour -- the adjacent higher polygon covers that side.
-		if (dropA <= -SKIRT_MIN_DROP && dropB <= -SKIRT_MIN_DROP)
-			return false;
+		//if (dropA <= -SKIRT_MIN_DROP && dropB <= -SKIRT_MIN_DROP)
+			//return false;
 
-		// For split sectors: emit the skirt at the actual neighbour floor height, bypassing
-		// all height constraints (min drop, max drop cap). The diagonal cut edge must always
-		// be covered regardless of the height difference between the two sub-triangles.
-		if (isSplitSector)
+		// For split (step) sectors: the polygon is one triangle of a diagonally cut sector.
+		// The DIAGONAL CUT edge (probe stays inside the same sector, hitting the other sub-triangle)
+		// droops to the neighbour floor as before, so the height difference between halves is
+		// bridged. SIDE edges (probe crosses into an adjacent sector) behave like non-split edges
+		// EXCEPT when the neighbour is itself a snow square: in that case emit a purely vertical
+		// skirt to close the gap between the source floor and the lifted snow blanket without
+		// drooping into the neighbour sector.
+		/*if (!isSplitSector)
 		{
-			outBottomAbsYA = std::max(topAbsYA, neighborYA);
-			outBottomAbsYB = std::max(topAbsYB, neighborYB);
-			return true;
-		}
+			constexpr float SIDE_PROBE_INSET = 4.0f;
+			float probeMidX = midX + nx * SIDE_PROBE_INSET;
+			float probeMidZ = midZ + nz * SIDE_PROBE_INSET;
+			int probeGridX = (int)(probeMidX / BLOCK(1));
+			int probeGridZ = (int)(probeMidZ / BLOCK(1));
+			int centGridX  = (int)(polyCentroidLocal.x / BLOCK(1));
+			int centGridZ  = (int)(polyCentroidLocal.z / BLOCK(1));
+			bool isSideEdge = (probeGridX != centGridX || probeGridZ != centGridZ);
+
+			if (isSideEdge)
+			{
+				// Side edge bordering a snow square: vertical skirt closes the gap.
+				bool neighborIsSnowA = IsSnowNeighborAt(room, vA.x, vA.z, midX, midZ, nx, nz);
+				bool neighborIsSnowB = IsSnowNeighborAt(room, vB.x, vB.z, midX, midZ, nx, nz);
+				if (neighborIsSnowA && neighborIsSnowB)
+				{
+					outBottomAbsYA = topAbsYA;
+					outBottomAbsYB = topAbsYB;
+					return true;
+				}
+
+				// Side edge NOT bordering snow: fall through to the regular non-split path
+				// so the snow droops naturally down the side (like a snow drift slope).
+			}
+			else
+			{
+				// Diagonal cut edge: droop to the actual neighbour (other sub-triangle) floor height.
+				outBottomAbsYA = std::max(topAbsYA, neighborYA);
+				outBottomAbsYB = std::max(topAbsYB, neighborYB);
+				return true;
+			}
+		}*/
 
 		// Non-split: suppress when the snow blanket continues seamlessly at the same height.
 		bool neighborIsSnowA = IsSnowNeighborAt(room, vA.x, vA.z, midX, midZ, nx, nz);
 		bool neighborIsSnowB = IsSnowNeighborAt(room, vB.x, vB.z, midX, midZ, nx, nz);
-		if (neighborIsSnowA && neighborIsSnowB && dropA < SKIRT_MIN_DROP && dropB < SKIRT_MIN_DROP)
-			return false;
+		//if (neighborIsSnowA && neighborIsSnowB && dropA < SKIRT_MIN_DROP && dropB < SKIRT_MIN_DROP)
+			//return false;
 
 		// Cliff-edge case: clamp to a short overhang lip so the snow cap droops over the cliff.
 		bool isCliffEdge = (dropA >= SKIRT_MAX_DROP && dropB >= SKIRT_MAX_DROP);
 		if (isCliffEdge)
 		{
-			outBottomAbsYA = topAbsYA + SKIRT_CAP_DROP;
-			outBottomAbsYB = topAbsYB + SKIRT_CAP_DROP;
-			return true;
+		//	outBottomAbsYA = topAbsYA + SKIRT_CAP_DROP;
+		//	outBottomAbsYB = topAbsYB + SKIRT_CAP_DROP;
+		//	return true;
 		}
 
 		// Clamp each endpoint individually.
@@ -556,6 +588,7 @@ namespace TEN::Renderer
 		int             edgeCount = 0;
 		SnowCornerEntry corners[4];
 		int             cornerCount = 0;
+		float           baseScale = 1.0f; // Uniform scale applied on top of per-vertex fade.
 	};
 
 	// Builds a SnowLiftScaleCache for one polygon. Performs all expensive per-polygon
@@ -576,6 +609,33 @@ namespace TEN::Renderer
 		for (int idx : poly.indices)
 			centroid += room.positions[idx];
 		centroid /= (float)n;
+
+		// Determine whether this polygon belongs to a step (diagonally split) sector.
+		// Step-sector triangles get special treatment: snow neighbours suppress the
+		// lift reduction on the side edges and at the apex corner so the snow blanket
+		// stays fully lifted where it continues seamlessly into an adjacent snow square.
+		int centGridX = (int)(centroid.x / BLOCK(1));
+		int centGridZ = (int)(centroid.z / BLOCK(1));
+		bool isSplitSector = (centGridX >= 0 && centGridX < room.XSize &&
+			centGridZ >= 0 && centGridZ < room.ZSize) &&
+			room.Sectors[centGridX * room.ZSize + centGridZ].IsSurfaceSplit(true);
+
+		// Triangular polygons and step-sector halves must NOT have edge-fade applied:
+		// on triangles two edge fades converge at every corner vertex, pulling it all
+		// the way to floor level and creating a visible arch between the corners.
+		// Skirt geometry (EmitSnowSkirtsForPolygon) already closes the gap at the
+		// boundary, so the blanket can stay at uniform half lift everywhere.
+		if (poly.shape == 1 || isSplitSector)
+		{
+			cache.baseScale = 0.5f;
+			return cache;
+		}
+
+		// Per-edge snow-neighbour flags at each endpoint. Populated only for split sectors;
+		// used in the corner loop below to skip the apex lift reduction when both edges
+		// meeting at a vertex border snow neighbours.
+		bool edgeSnowA[4] = { false, false, false, false };
+		bool edgeSnowB[4] = { false, false, false, false };
 
 		for (int e = 0; e < n && e < 4; e++)
 		{
@@ -603,8 +663,23 @@ namespace TEN::Renderer
 			if (neighborYA == NO_HEIGHT || neighborYB == NO_HEIGHT)
 				continue;
 
+			// For step-sector triangles: snow neighbours at either endpoint mean the
+			// snow blanket continues seamlessly (same lift), so treat those endpoints
+			// as drop=0. The skirt geometry closes the floor-to-blanket gap on the
+			// side. This prevents the overlay from being pulled down toward the floor
+			// at the step edge and avoids visible dips at the apex corner.
 			int rawDropA = neighborYA - topAbsYA;
 			int rawDropB = neighborYB - topAbsYB;
+			if (isSplitSector)
+			{
+				bool snowA = IsSnowNeighborAt(room, vA.x, vA.z, midX, midZ, nx, nz);
+				bool snowB = IsSnowNeighborAt(room, vB.x, vB.z, midX, midZ, nx, nz);
+				edgeSnowA[e] = snowA;
+				edgeSnowB[e] = snowB;
+				if (snowA) rawDropA = 0;
+				if (snowB) rawDropB = 0;
+			}
+
 			if (rawDropA < MIN_DROP && rawDropB < MIN_DROP)
 				continue;
 
@@ -615,8 +690,6 @@ namespace TEN::Renderer
 				float probeMidZ = midZ + nz * PROBE_INSET;
 				int probeGridX = (int)(probeMidX / BLOCK(1));
 				int probeGridZ = (int)(probeMidZ / BLOCK(1));
-				int centGridX  = (int)(centroid.x / BLOCK(1));
-				int centGridZ  = (int)(centroid.z / BLOCK(1));
 				if (probeGridX == centGridX && probeGridZ == centGridZ)
 					continue;
 				if (probeGridX >= 0 && probeGridX < room.XSize &&
@@ -648,6 +721,19 @@ namespace TEN::Renderer
 			const auto& vc = room.positions[poly.indices[vi]];
 			entry.vc = vc;
 
+			// For step-sector triangles: if both edges meeting at this corner border snow
+			// neighbours, the blanket continues seamlessly past the corner. Skip the corner
+			// entry so the apex stays fully lifted instead of being pulled down by the
+			// diagonal probe.
+			if (isSplitSector)
+			{
+				int prevEdge = (vi - 1 + n) % n;
+				int nextEdge = vi;
+				if (prevEdge < cache.edgeCount && nextEdge < cache.edgeCount &&
+					edgeSnowB[prevEdge] && edgeSnowA[nextEdge])
+					continue;
+			}
+
 			float cornerDirX = vc.x - centroid.x;
 			float cornerDirZ = vc.z - centroid.z;
 			float cornerLen = sqrtf(cornerDirX * cornerDirX + cornerDirZ * cornerDirZ);
@@ -668,8 +754,6 @@ namespace TEN::Renderer
 			int topAbsY   = (int)vc.y + room.Position.y;
 			int absProbeX = (int)probeX + room.Position.x;
 			int absProbeZ = (int)probeZ + room.Position.z;
-			int centGridX = (int)(centroid.x / BLOCK(1));
-			int centGridZ = (int)(centroid.z / BLOCK(1));
 
 			const auto& cornerSector = room.Sectors[probeGridX * room.ZSize + probeGridZ];
 			int cornerNeighborY = NO_HEIGHT;
@@ -785,7 +869,7 @@ namespace TEN::Renderer
 				minScale = scale;
 		}
 
-		return minScale;
+		return minScale * cache.baseScale;
 	}
 
 	// Returns the per-vertex lift scale k in [0, 1] for a snow overlay/skirt vertex
@@ -1159,8 +1243,8 @@ namespace TEN::Renderer
 			float nx =  ez;
 			float nz = -ex;
 			float nlen = sqrtf(nx * nx + nz * nz);
-			if (nlen < 1e-3f)
-				continue;
+			//if (nlen < 1e-3f)
+				//continue;
 			nx /= nlen;
 			nz /= nlen;
 			float toMidX = ((vA.x + vB.x) * 0.5f) - centroid.x;
@@ -1188,21 +1272,21 @@ namespace TEN::Renderer
 			// Average slope direction (top -> bottom) for the patch normal.
 			Vector3 slopeDir = (bA - vA) + (bB - vB);
 			slopeDir *= 0.5f;
-			if (slopeDir.LengthSquared() < 1e-6f)
-				slopeDir = Vector3(nx, 0.0f, nz);
-			else
-				slopeDir.Normalize();
+			//if (slopeDir.LengthSquared() < 1e-6f)
+				//slopeDir = Vector3(nx, 0.0f, nz);
+			//else
+			//	slopeDir.Normalize();
 
 			Vector3 edgeDir = Vector3(ex, 0.0f, ez);
-			if (edgeDir.LengthSquared() > 1e-6f)
-				edgeDir.Normalize();
+			//if (edgeDir.LengthSquared() > 1e-6f)
+			//	edgeDir.Normalize();
 			Vector3 skirtNrm = edgeDir.Cross(slopeDir);
-			if (skirtNrm.LengthSquared() < 1e-6f)
-				skirtNrm = Vector3(0.0f, -1.0f, 0.0f);
-			else
-				skirtNrm.Normalize();
-			if (skirtNrm.y > 0.0f)
-				skirtNrm = -skirtNrm;
+			//if (skirtNrm.LengthSquared() < 1e-6f)
+				//skirtNrm = Vector3(0.0f, -1.0f, 0.0f);
+			//else
+				//skirtNrm.Normalize();
+			//if (skirtNrm.y > 0.0f)
+				//skirtNrm = -skirtNrm;
 
 			// UVs are interpolated along the edge only (constant V across rows). This
 			// keeps every skirt row inside the parent polygon's atlas tile and avoids
@@ -1218,7 +1302,7 @@ namespace TEN::Renderer
 
 			int baseVertices = vertCursor;
 
-			// Generate (N+1) x (N+1) vertex grid. Indexing: vert(i, j) at baseVertices + j * nGrid + i,
+			// Generate (N+1) x (N+1) vertex grid. Indexing: vert(i, j) at baseVertices + j * nGrid + i, // VERTIKALE F�LLUNG
 			// where i is along the edge (0..N) and j is from top (0) to bottom (N).
 			for (int j = 0; j < nGrid; j++)
 			{
@@ -1267,7 +1351,7 @@ namespace TEN::Renderer
 				}
 			}
 
-			// Index the N x N grid as quads (two triangles each), winding matched to
+			// Index the N x N grid as quads (two triangles each), winding matched to // VERTIKALE F�LLUNG
 			// EmitSnowOverlayPolygon's quad order so the outward face renders.
 			for (int j = 0; j < N; j++)
 			{
@@ -1400,7 +1484,8 @@ namespace TEN::Renderer
 		}
 		else
 		{
-			// Triangle: barycentric grid of (i, j) with 0 <= i, 0 <= j, i + j <= N.
+
+			// Triangle: barycentric grid of (i, j) with 0 <= i, 0 <= j, i + j <= N.  //hier werden die schr�gen berechnet
 			// Each grid cell (i, j) with i + j < N emits 1 upward sub-triangle and, if
 			// i + j + 1 < N, 1 additional downward sub-triangle. Total: N * N triangles.
 			auto sampleAt = [&](int gi, int gj, int kSlot, int& outBase)
