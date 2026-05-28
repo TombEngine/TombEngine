@@ -1634,6 +1634,7 @@ bool LoadLevel(const std::string& path, bool partial)
 			LoadBoxes();
 			LoadMirrors();
 			LoadAnimatedTextures();
+			LoadMaterialDefinitions();
 			LoadMaterials();
 
 			UpdateProgress(70);
@@ -1813,34 +1814,43 @@ void LoadMirrors()
 	}
 }
 
+void LoadMaterialDefinitions()
+{
+	int materialDefinitionCount = ReadCount();
+	TENLog("Material definition count: " + std::to_string(materialDefinitionCount), LogLevel::Info);
+
+	ResetMaterialPropertyDefinitions();
+
+	for (int i = 0; i < materialDefinitionCount; i++)
+	{
+		auto materialType = (MaterialShaderType)ReadInt32();
+		MaterialPropertyDefinitions definitions = {};
+
+		for (int j = 0; j < MaterialData::PropertyCount; j++)
+		{
+			auto& definition = definitions[j];
+			definition.SetName(ReadString());
+			definition.Type = (MaterialPropertyType)ReadInt32();
+		}
+
+		SetMaterialPropertyDefinitions(materialType, definitions);
+	}
+}
+
 void LoadMaterials()
 {
 	int materialCount = ReadCount();
 	TENLog("Material count: " + std::to_string(materialCount), LogLevel::Info);
 	g_Level.Materials.reserve(materialCount);
 
-	ResetMaterialPropertyDefinitions();
-
 	for (int i = 0; i < materialCount; i++)
 	{
 		auto& material = g_Level.Materials.emplace_back();
-		MaterialPropertyDefinitions definitions = {};
 
 		material.SetName(ReadString());
 		material.Type = (MaterialShaderType)ReadInt32();
+		material.ResetProperties();
 		g_GameScriptEntities->AddName(material.Name, material);
-
-		for (int i = 0; i < MaterialData::PropertyCount; i++)
-		{
-			auto& property = material.Properties[i];
-			auto& definition = definitions[i];
-			definition.SetName(ReadString());
-			definition.Type = (MaterialPropertyType)ReadInt32();
-			property.DefaultValue = ReadVector4();
-			property.Reset();
-		}
-
-		SetMaterialPropertyDefinitions(material.Type, definitions);
 
 		material.HasNormalMap = ReadBool();
 		material.HasHeightMap = ReadBool();
