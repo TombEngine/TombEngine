@@ -13,7 +13,7 @@
 -- @local
 
 local Camera   = require("Engine.PhotoMode.Camera")
-local Frames   = require("Engine.PhotoMode.Frames")
+local Borders   = require("Engine.PhotoMode.SpriteBorders")
 local Input    = require("Engine.PhotoMode.Input")
 local InputHelpers = require("Engine.PhotoMode.InputHelpers")
 local Menu     = require("Engine.PhotoMode.Menu")
@@ -989,7 +989,7 @@ function PhotoMode.Exit()
     Menu.DeleteAll()
 
     -- Clear frames
-    Frames.Clear()
+    Borders.Clear()
 
     -- Unfreeze
     TEN.Flow.SetFreezeMode(TEN.Flow.FreezeMode.NONE)
@@ -999,6 +999,7 @@ function PhotoMode.Exit()
     States.Get().entryHoldCount = 0
     States.Get().timeInPhotoMode = 0
 
+    TEN.Sound.PlaySound(Settings.SoundMap.menuClose)
     TEN.Input.ClearAllKeys()
     TEN.Util.PrintLog("PhotoMode: Exited.", TEN.Util.LogLevel.INFO)
 end
@@ -1233,6 +1234,7 @@ LevelFuncs.Engine.PhotoMode.OnLoop = function()
         if state.entryHoldCount >= Settings.Entry.holdFrames then
             state.entryHoldCount = 0
             TEN.Input.ClearAllKeys()
+            TEN.Sound.PlaySound(Settings.SoundMap.menuOpen)
             PhotoMode.Enter()
         end
     else
@@ -1286,8 +1288,8 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
     UpdateGunFlash(state)
 
     -- Update and draw frames
-    Frames.Update()
-    Frames.Draw()
+    Borders.Update()
+    Borders.Draw()
 
     -- Draw UI (menus + headers) unless hidden
     if not state.hideUI then

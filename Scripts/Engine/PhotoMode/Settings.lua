@@ -3,7 +3,10 @@
 -- @module Engine.PhotoMode.Settings
 -- @local
 
-local RingSettings = require("Engine.RingInventory.Settings")
+local Expressions = require("Engine.PhotoMode.Expressions")
+local Frames = require("Engine.PhotoMode.Frames")
+local Outfits = require("Engine.PhotoMode.Outfits")
+local Poses = require("Engine.PhotoMode.Poses")
 
 local Settings = {}
 
@@ -27,9 +30,11 @@ Settings.ColorMap =
 
 Settings.SoundMap =
 {
-    menuSelect = RingSettings.SoundMap.menuSelect,
-    menuChoose = RingSettings.SoundMap.menuChoose,
-    menuRotate = RingSettings.SoundMap.menuRotate,
+    menuRotate = 108,
+    menuSelect = 109,
+    menuChoose = 111,
+    menuOpen = 109,
+    menuClose = 109,
 }
 
 -- ============================================================================
@@ -38,8 +43,8 @@ Settings.SoundMap =
 
 Settings.Animation =
 {
-    transitionSpeed = RingSettings.Animation.transitionSpeed,
-    fadeSpeed        = RingSettings.Animation.transitionSpeed,
+    transitionSpeed = 50,
+    fadeSpeed        = 50,
 }
 
 -- ============================================================================
@@ -87,7 +92,7 @@ Settings.Lens =
     defaultRoll = 0,
     minRoll     = -180,
     maxRoll     = 180,
-    rollStep    = 1,
+    rollStep    = 5,
 }
 
 -- ============================================================================
@@ -144,39 +149,39 @@ Settings.Player =
 -- matching the 32-swatch rainbow strip sprite left-to-right.
 Settings.ColorPalette =
 {
-    { color = TEN.Color(255,   255,   255) },
-    { color = TEN.Color(255,   0,   0) }, --  1  Red
-    { color = TEN.Color(255,  48,   0) }, --  2  Red-orange
-    { color = TEN.Color(255,  96,   0) }, --  3  Orange
-    { color = TEN.Color(255, 143,   0) }, --  4  Dark orange
-    { color = TEN.Color(255, 191,   0) }, --  5  Amber
-    { color = TEN.Color(255, 239,   0) }, --  6  Yellow
-    { color = TEN.Color(223, 255,   0) }, --  7  Yellow-green
-    { color = TEN.Color(175, 255,   0) }, --  8  Chartreuse
-    { color = TEN.Color(128, 255,   0) }, --  9  Spring green
-    { color = TEN.Color( 80, 255,   0) }, -- 10  Green
-    { color = TEN.Color( 32, 255,   0) }, -- 11  Bright green
-    { color = TEN.Color(  0, 255,  16) }, -- 12  Green
-    { color = TEN.Color(  0, 255,  64) }, -- 13  Cyan-green
-    { color = TEN.Color(  0, 255, 112) }, -- 14  Teal-green
-    { color = TEN.Color(  0, 255, 159) }, -- 15  Teal
-    { color = TEN.Color(  0, 255, 207) }, -- 16  Cyan-teal
-    { color = TEN.Color(  0, 255, 255) }, -- 17  Cyan
-    { color = TEN.Color(  0, 207, 255) }, -- 18  Sky cyan
-    { color = TEN.Color(  0, 159, 255) }, -- 19  Sky blue
-    { color = TEN.Color(  0, 112, 255) }, -- 20  Azure
-    { color = TEN.Color(  0,  64, 255) }, -- 21  Blue
-    { color = TEN.Color(  0,  16, 255) }, -- 22  Deep blue
-    { color = TEN.Color( 32,   0, 255) }, -- 23  Blue-violet
-    { color = TEN.Color( 80,   0, 255) }, -- 24  Violet-blue
-    { color = TEN.Color(128,   0, 255) }, -- 25  Violet
-    { color = TEN.Color(175,   0, 255) }, -- 26  Purple-violet
-    { color = TEN.Color(223,   0, 255) }, -- 27  Purple-magenta
-    { color = TEN.Color(255,   0, 239) }, -- 28  Magenta
-    { color = TEN.Color(255,   0, 191) }, -- 29  Pink-magenta
-    { color = TEN.Color(255,   0, 143) }, -- 30  Hot pink
-    { color = TEN.Color(255,   0,  96) }, -- 31  Deep pink
-    { color = TEN.Color(255,   0,  48) }, -- 32  Red-pink
+    { color = TEN.Color(255, 255, 255) },
+    { color = TEN.Color(255, 0, 0) }, --  1  Red
+    { color = TEN.Color(255, 45, 0) }, --  2  Red-orange
+    { color = TEN.Color(255, 99, 0) }, --  3  Orange
+    { color = TEN.Color(255, 150, 0) }, --  4  Dark orange
+    { color = TEN.Color(255, 199, 0) }, --  5  Amber
+    { color = TEN.Color(255, 248, 0) }, --  6  Yellow
+    { color = TEN.Color(215, 255, 0) }, --  7  Yellow-green
+    { color = TEN.Color(167, 255, 0) }, --  8  Chartreuse
+    { color = TEN.Color(116, 255, 0) }, --  9  Spring green
+    { color = TEN.Color(64, 255, 0) }, -- 10  Green
+    { color = TEN.Color(8, 255, 0) }, -- 11  Bright green
+    { color = TEN.Color(0, 255, 27) }, -- 12  Green
+    { color = TEN.Color(0, 255, 81) }, -- 13  Cyan-green
+    { color = TEN.Color(0, 255, 133) }, -- 14  Teal-green
+    { color = TEN.Color(0, 255, 183) }, -- 15  Teal
+    { color = TEN.Color(0, 255, 231) }, -- 16  Cyan-teal
+    { color = TEN.Color(0, 231, 255) }, -- 17  Cyan
+    { color = TEN.Color(0, 183, 255) }, -- 18  Sky cyan
+    { color = TEN.Color(0, 133, 255) }, -- 19  Sky blue
+    { color = TEN.Color(0, 81, 255) }, -- 20  Azure
+    { color = TEN.Color(0, 27, 255) }, -- 21  Blue
+    { color = TEN.Color(8, 0, 255) }, -- 22  Deep blue
+    { color = TEN.Color(64, 0, 255) }, -- 23  Blue-violet
+    { color = TEN.Color(116, 0, 255) }, -- 24  Violet-blue
+    { color = TEN.Color(167, 0, 255) }, -- 25  Violet
+    { color = TEN.Color(215, 0, 255) }, -- 26  Purple-violet
+    { color = TEN.Color(248, 0, 248) }, -- 27  Purple-magenta
+    { color = TEN.Color(255, 0, 199) }, -- 28  Magenta
+    { color = TEN.Color(255, 0, 150) }, -- 29  Pink-magenta
+    { color = TEN.Color(255, 0, 99) }, -- 30  Hot pink
+    { color = TEN.Color(255, 0,  45) }, -- 31  Deep pink
+    { color = TEN.Color(255, 0,  0) }, -- 32  Red-pink
 }
 
 Settings.Light =
@@ -231,86 +236,14 @@ Settings.Frames =
     blendMode = TEN.Effects.BlendID.ALPHA_BLEND,
     color     = TEN.Color(255, 255, 255),
     alpha     = 255,
-    presets   =
-    {
-        { name = "None",    spriteID = -1 },
-        { name = "Cinematic Bars", spriteID = 0 },
-        { name = "Tomb Raider Logo", spriteID = 1 },
-        { name = "Polaroid", spriteID = 2 },
-        { name = "Recording", spriteID = 3 },
-        { name = "Binoculars", spriteID = 4 },
-        { name = "Lasersight", spriteID = 5 }
-    },
+    presets   = Frames
 }
 
 -- ============================================================================
 -- Outfit / Weapon Presets
 -- ============================================================================
 
-Settings.Outfits =
-{
-    -- Index 1: Default — restores whatever state was active on photo mode entry.
-    { name = "Default" },
-
-    -- skin:              Array of up to 5 ObjIDs → Lara:SetSkin(skin, skinJoints, skinScream, hair1, hair2).
-    --                    Nil entries leave that slot unchanged.
-    -- skinnedMesh:       ObjID → Lara:SwapSkinnedMesh(objID [, skinnedMeshIndex]).
-    --                    "clear" → Lara:ClearSkinnedMesh() (disables GPU skin entirely).
-    -- skinnedMeshIndex:  Optional sub-index for SwapSkinnedMesh.
-    -- meshVisible:       Controls classic mesh visibility.
-    --                    "none" or nil → hide all classic meshes.
-    --                    "all"         → keep all classic meshes visible.
-    --                    { i, ... }    → keep only listed indices visible, hide the rest.
-    -- onEnter:           Optional function() called after the outfit is applied.
-    -- unlocked:          true/nil = outfit is visible in the menu.
-    --                    false    = hidden until PhotoMode.UnlockOutfit(name) is called.
-
-    { name = "Classic TR4",
-      skin = { TEN.Objects.ObjID.ANIMATING1, TEN.Objects.ObjID.ANIMATING2,
-               TEN.Objects.ObjID.ANIMATING3, TEN.Objects.ObjID.ANIMATING4 },
-        meshVisible = "all",
-    },
-
-        { name = "Classic TR2",
-      skin = { TEN.Objects.ObjID.ANIMATING18, TEN.Objects.ObjID.ANIMATING19,
-               TEN.Objects.ObjID.ANIMATING20, TEN.Objects.ObjID.ANIMATING21 },
-        meshVisible = "all",
-    },
-
-    { name = "Remastered",
-      skin = { TEN.Objects.ObjID.ANIMATING14, TEN.Objects.ObjID.ANIMATING15,
-               TEN.Objects.ObjID.ANIMATING16, TEN.Objects.ObjID.ANIMATING17 },
-        meshVisible = "all",
-        onEnter = 
-        function()
-            local settings = TEN.Flow.GetSettings()
-            settings.Hair[1].offset = Vec3(-4, 3, -28)
-            TEN.Flow.SetSettings(settings)
-        end
-    },
-
-    { name = "Dark Raider",
-      skin = { TEN.Objects.ObjID.ANIMATING10, TEN.Objects.ObjID.ANIMATING11,
-               TEN.Objects.ObjID.ANIMATING12, TEN.Objects.ObjID.ANIMATING13 },
-        meshVisible = "all",
-    },
-
-    { name = "Underworld Casual",
-      skin = { TEN.Objects.ObjID.ANIMATING6, TEN.Objects.ObjID.ANIMATING7,
-               TEN.Objects.ObjID.ANIMATING8, TEN.Objects.ObjID.ANIMATING9 },
-        meshVisible = "all",
-    },
-
-    { name = "TEN Lara",
-      skinnedMesh = TEN.Objects.ObjID.LARA_EXTRA_MESH1,
-      meshVisible = {10, 13},
-    },
-
-    { name = "Jeans",
-      skinnedMesh = TEN.Objects.ObjID.LARA_EXTRA_MESH2,
-      meshVisible = "none",
-    },
-}
+Settings.Outfits = Outfits
 
 Settings.Weapons =
 {
@@ -330,63 +263,8 @@ Settings.Weapons =
     { name = TEN.Flow.GetString("crowbar"),  objID = TEN.Objects.ObjID.LARA_CROWBAR_ANIM, meshIndices = {10}, weaponType = TEN.Objects.WeaponType.NONE, pickupObjID = TEN.Objects.ObjID.CROWBAR_ITEM, type = "none" },
 }
 
-Settings.Expressions =
-{
-    { name = "Default", objID = nil, meshIndices = {} },
-    { name = "Scream", objID = TEN.Objects.ObjID.LARA_SCREAM, meshIndices = {14} },
-    { name = "Talk 1", objID = TEN.Objects.ObjID.LARA_SPEECH_HEAD1, meshIndices = {14} },
-    { name = "Talk 2", objID = TEN.Objects.ObjID.LARA_SPEECH_HEAD2, meshIndices = {14} },
-    { name = "Talk 3", objID = TEN.Objects.ObjID.LARA_SPEECH_HEAD3, meshIndices = {14} },
-    { name = "Talk 4", objID = TEN.Objects.ObjID.LARA_SPEECH_HEAD4, meshIndices = {14} },
-}
-
-Settings.Animations =
-{
-    { name = "Default",        objID = TEN.Objects.ObjID.LARA, animNumber = 0, frameNumber = 0 },
-    { name = "0",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 0,  frameNumber = 0 },
-    { name = "1",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 1,  frameNumber = 0 },
-    { name = "2",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 2,  frameNumber = 0 },
-    { name = "3",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 3,  frameNumber = 0 },
-    { name = "4",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 4,  frameNumber = 0 },
-    { name = "5",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 5,  frameNumber = 0 },
-    { name = "6",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 6,  frameNumber = 0 },
-    { name = "7",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 7,  frameNumber = 0 },
-    { name = "8",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 8,  frameNumber = 0 },
-    { name = "9",   objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 9,  frameNumber = 0 },
-    { name = "10",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 10, frameNumber = 0 },
-    { name = "11",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 11, frameNumber = 0 },
-    { name = "12",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 12, frameNumber = 0 },
-    { name = "13",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 13, frameNumber = 0 },
-    { name = "14",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 14, frameNumber = 0 },
-    { name = "15",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 15, frameNumber = 0 },
-    { name = "16",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 16, frameNumber = 0 },
-    { name = "17",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 17, frameNumber = 0 },
-    { name = "18",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 18, frameNumber = 0 },
-    { name = "19",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 19, frameNumber = 0 },
-    { name = "20",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 20, frameNumber = 0 },
-    { name = "21",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 21, frameNumber = 0 },
-    { name = "22",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 22, frameNumber = 0 },
-    { name = "23",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 23, frameNumber = 0 },
-    { name = "24",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 24, frameNumber = 0 },
-    { name = "25",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 25, frameNumber = 0 },
-    { name = "26",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 26, frameNumber = 0 },
-    { name = "27",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 27, frameNumber = 0 },
-    { name = "28",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 28, frameNumber = 0 },
-    { name = "29",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 29, frameNumber = 0 },
-    { name = "30",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 30, frameNumber = 0 },
-    { name = "31",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 31, frameNumber = 0 },
-    { name = "32",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 32, frameNumber = 0 },
-    { name = "33",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 33, frameNumber = 0 },
-    { name = "34",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 34, frameNumber = 0 },
-    { name = "35",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 35, frameNumber = 0 },
-    { name = "36",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 36, frameNumber = 0 },
-    { name = "37",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 37, frameNumber = 0 },
-    { name = "38",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 38, frameNumber = 0 },
-    { name = "39",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 39, frameNumber = 0 },
-    { name = "40",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 40, frameNumber = 0 },
-    { name = "41",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 41, frameNumber = 0 },
-    { name = "42",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 42, frameNumber = 0 },
-}
+Settings.Expressions = Expressions
+Settings.Animations = Poses
 
 -- ============================================================================
 -- Sunglasses
