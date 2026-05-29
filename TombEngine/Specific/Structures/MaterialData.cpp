@@ -10,7 +10,7 @@
 using namespace TEN::Math;
 using namespace TEN::Utils;
 
-static std::unordered_map<MaterialShaderType, MaterialPropertyDefinitions> MaterialPropertyDefinitionMap = {};
+static std::unordered_map<TextureMaterialType, MaterialPropertyDefinitions> MaterialPropertyDefinitionMap = {};
 
 void MaterialPropertyDefinition::SetName(const std::string& name)
 {
@@ -62,14 +62,14 @@ void ResetMaterialPropertyDefinitions()
 	MaterialPropertyDefinitionMap.clear();
 }
 
-void SetMaterialPropertyDefinitions(MaterialShaderType shaderType, const MaterialPropertyDefinitions& definitions)
+void SetMaterialPropertyDefinitions(TextureMaterialType materialType, const MaterialPropertyDefinitions& definitions)
 {
-	MaterialPropertyDefinitionMap[shaderType] = definitions;
+	MaterialPropertyDefinitionMap[materialType] = definitions;
 }
 
-const MaterialPropertyDefinitions& GetMaterialPropertyDefinitions(MaterialShaderType shaderType)
+const MaterialPropertyDefinitions& GetMaterialPropertyDefinitions(TextureMaterialType materialType)
 {
-	auto found = MaterialPropertyDefinitionMap.find(shaderType);
+	auto found = MaterialPropertyDefinitionMap.find(materialType);
 	if (found != MaterialPropertyDefinitionMap.end())
 		return found->second;
 

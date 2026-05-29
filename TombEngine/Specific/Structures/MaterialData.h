@@ -44,7 +44,7 @@ struct MaterialData
 
 	std::string Name = {};
 	int NameHash = 0;
-	MaterialShaderType Type = MaterialShaderType::Default;
+	TextureMaterialType Type = TextureMaterialType::Default;
 	std::array<MaterialPropertyData, PropertyCount> Properties = {};
 
 	bool HasNormalMap			= false;
@@ -71,5 +71,5 @@ using MaterialPropertyDefinitions = std::array<MaterialPropertyDefinition, Mater
 
 void UpdateMaterials();
 void ResetMaterialPropertyDefinitions();
-void SetMaterialPropertyDefinitions(MaterialShaderType shaderType, const MaterialPropertyDefinitions& definitions);
-const MaterialPropertyDefinitions& GetMaterialPropertyDefinitions(MaterialShaderType shaderType);
+void SetMaterialPropertyDefinitions(TextureMaterialType materialType, const MaterialPropertyDefinitions& definitions);
+const MaterialPropertyDefinitions& GetMaterialPropertyDefinitions(TextureMaterialType materialType);

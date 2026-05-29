@@ -6,6 +6,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ## [Version 2.0]
 
 ### New features
+
 * Added a property system for moveables, static meshes and materials that is intended to supersede the legacy OCB system.
 * Added heat haze for flame emitters and effects.
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
@@ -65,7 +66,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 * Added `Objects.GetMoveableProperty`, `Objects.SetMoveableProperty`, `Objects.GetStaticProperty` and `Objects.SetStaticProperty` functions.
-* Added `Objects.GetMaterialByName` function.
+* Added `Objects.GetMaterialByName` and `Objects.GetMaterialByObject` functions.
 * Added `Moveable:GetProperty`, `Moveable:SetProperty` and `Moveable:HasInstanceProperty` functions.
 * Added `Static:GetProperty`, `Static:SetProperty` and `Static:HasInstanceProperty` functions.
 

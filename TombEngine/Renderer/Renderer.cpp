@@ -307,9 +307,9 @@ namespace TEN::Renderer
 			_numExecutedMaterialsUpdates++;
 		}
 
-		if (type == MaterialShaderType::Reflective)
+		if (type == TextureMaterialType::Reflective)
 			BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, _legacyReflectionsRenderTarget->GetRenderTarget(), SamplerStateRegister::AnisotropicClamp);
-		else if (type == MaterialShaderType::SkyboxReflective)
+		else if (type == TextureMaterialType::SkyboxReflective)
 			BindTexture(TextureRegister::SkyboxEnvironmentReflections, _skyboxRenderTarget->GetRenderTarget(), SamplerStateRegister::AnisotropicClamp);
 	}
 

@@ -1823,7 +1823,7 @@ void LoadMaterialDefinitions()
 
 	for (int i = 0; i < materialDefinitionCount; i++)
 	{
-		auto materialType = (MaterialShaderType)ReadInt32();
+		auto materialType = (TextureMaterialType)ReadInt32();
 		MaterialPropertyDefinitions definitions = {};
 
 		for (int j = 0; j < MaterialData::PropertyCount; j++)
@@ -1848,7 +1848,7 @@ void LoadMaterials()
 		auto& material = g_Level.Materials.emplace_back();
 
 		material.SetName(ReadString());
-		material.Type = (MaterialShaderType)ReadInt32();
+		material.Type = (TextureMaterialType)ReadInt32();
 		material.ResetProperties();
 		g_GameScriptEntities->AddName(material.Name, material);
 

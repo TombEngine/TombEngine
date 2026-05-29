@@ -4,6 +4,7 @@
 
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
+#include "Scripting/Internal/TEN/Objects/Material/MaterialObject.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Scripting/Internal/TEN/Objects/Static/StaticObject.h"
 #include "Scripting/Internal/TEN/Objects/AIObject/AIObject.h"
@@ -62,6 +63,8 @@ private:
 	sol::table				_table_objects			= {};
 
 	void AssignPlayer() override;
+	std::vector<std::unique_ptr<Material>> GetMaterialsByObject(const Moveable& moveable);
+	std::vector<std::unique_ptr<Material>> GetMaterialsByObject(const Static& staticObject);
 
 	template <typename R, const char* S>
 	std::unique_ptr<R> GetByName(const std::string& name)
