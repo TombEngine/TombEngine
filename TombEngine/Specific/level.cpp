@@ -1218,6 +1218,7 @@ void FreeLevel(bool partial)
 	g_Level.Cameras.resize(0);
 	g_Level.Sinks.resize(0);
 	g_Level.SoundSources.resize(0);
+	g_Level.Materials.resize(0);
 	g_Level.VolumeEventSets.resize(0);
 	g_Level.GlobalEventSets.resize(0);
 	g_Level.LoopedEventSetIndices.resize(0);
@@ -1249,7 +1250,6 @@ void FreeLevel(bool partial)
 	g_Level.SoundDetails.resize(0);
 	g_Level.SoundMap.resize(0);
 	g_Level.FloorData.resize(0);
-	g_Level.Materials.resize(0);
 
 	for (int i = 0; i < 2; i++)
 	{
@@ -1635,7 +1635,6 @@ bool LoadLevel(const std::string& path, bool partial)
 			LoadMirrors();
 			LoadAnimatedTextures();
 			LoadMaterialDefinitions();
-			LoadMaterials();
 
 			UpdateProgress(70);
 
@@ -1650,6 +1649,7 @@ bool LoadLevel(const std::string& path, bool partial)
 			LoadAIObjects();
 			LoadCameras();
 			LoadSoundSources();
+			LoadMaterials();
 			LoadEventSets();
 			LoadProperties();
 			UpdateProgress(80, partial);

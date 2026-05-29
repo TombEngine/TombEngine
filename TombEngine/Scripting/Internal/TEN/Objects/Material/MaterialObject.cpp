@@ -15,8 +15,8 @@ using namespace TEN::Scripting::Properties;
 
 namespace TEN::Scripting::Objects
 {
-	/// Level material instance.
-	// Material properties are defined by the material type and can be accessed by name or zero-based slot index.
+	/// Represents a material instance for the texture. To be used with @{Objects.GetMaterialByName}. Materials are managed in the Tomb Editor's material window.
+	// This class is not in any way related to @{Collision.MaterialType}.
 	// @tenclass Objects.Material
 	// @pragma nostrip
 
@@ -285,7 +285,7 @@ namespace TEN::Scripting::Objects
 	// Property can be addressed by its name or zero-based slot index.
 	// @function Material:SetProperty
 	// @tparam string name Property name.
-	// @tparam any value Value matching the property's declared type: bool, number, @{Vec2}, @{Vec3}, or @{Color}.
+	// @tparam any value Value matching the property's declared type: bool, number, @{Vec2}, @{Vec3}, or @{Color}. Provided value type must match the property type.
 	void Material::SetProperty(const std::string& name, const sol::object& value)
 	{
 		auto index = GetPropertyIndex(name);
@@ -360,10 +360,10 @@ namespace TEN::Scripting::Objects
 		property->Reset();
 	}
 
-	/// Check if this material type exposes a property.
+	/// Check if this material type has a property with the given name.
 	// @function Material:IsPropertyPresent
 	// @tparam string name Property name.
-	// @treturn bool True if the property exists for this material.
+	// @treturn bool True if the property with a given name exists for this material.
 	bool Material::IsPropertyPresent(const std::string& name) const
 	{
 		if (name.empty())
