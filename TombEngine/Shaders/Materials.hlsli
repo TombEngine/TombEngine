@@ -30,6 +30,12 @@ Texture2D EmissiveTexture : register(t11);
 Texture2D LegacyReflectionsTexture : register(t12);
 Texture2DArray SkyboxReflectionsTexture : register(t13);
 
+float GetEmissiveIntensity()
+{
+    int materialType = MaterialTypeAndFlags & MATERIAL_FLAG_MASK;
+    return (materialType == MATERIAL_DEFAULT) ? MaterialParameters[0].x : 1.0f;
+}
+
 float3 GetReflectionTint()
 {
     return saturate(MaterialParameters[0].rgb);
