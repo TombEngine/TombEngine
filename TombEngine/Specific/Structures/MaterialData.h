@@ -69,6 +69,7 @@ struct MaterialData
 
 using MaterialPropertyDefinitions = std::array<MaterialPropertyDefinition, MaterialData::PropertyCount>;
 
+void UpdateMaterials();
 void ResetMaterialPropertyDefinitions();
 void SetMaterialPropertyDefinitions(MaterialShaderType shaderType, const MaterialPropertyDefinitions& definitions);
 const MaterialPropertyDefinitions& GetMaterialPropertyDefinitions(MaterialShaderType shaderType);

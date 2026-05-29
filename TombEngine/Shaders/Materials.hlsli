@@ -33,18 +33,18 @@ Texture2DArray SkyboxReflectionsTexture : register(t13);
 float GetEmissiveIntensity()
 {
     int materialType = MaterialTypeAndFlags & MATERIAL_FLAG_MASK;
-    return (materialType == MATERIAL_DEFAULT) ? MaterialParameters[0].x : 1.0f;
+    return (materialType == MATERIAL_DEFAULT) ? MaterialProperties[0].x : 1.0f;
 }
 
 float3 GetReflectionTint()
 {
-    return saturate(MaterialParameters[0].rgb);
+    return saturate(MaterialProperties[0].rgb);
 }
 
 float GetReflectionVerticalMask(float3 worldPosition)
 {
-    float verticalOffset = MaterialParameters[1].x;
-    float verticalBias = MaterialParameters[2].x;
+    float verticalOffset = MaterialProperties[1].x;
+    float verticalBias = MaterialProperties[2].x;
 
     if (abs(verticalBias) <= EPSILON)
         return 1.0f;
@@ -90,7 +90,7 @@ float3 CalculateSkyBoxReflections(float3 worldPosition, float3 normal, float spe
     float3 reflectedColor = SkyboxReflectionsTexture.Sample(AnisotropicClampSampler, float3(uv, slice)).rgb;
     reflectedColor *= GetReflectionTint();
 
-    float reflectionAmount = saturate(specular) * MaterialParameters[0].a * GetReflectionVerticalMask(worldPosition);
+    float reflectionAmount = saturate(specular) * MaterialProperties[0].a * GetReflectionVerticalMask(worldPosition);
     return lerp(pixelColor, reflectedColor, reflectionAmount);
 }
 
@@ -111,7 +111,7 @@ float3 CalculateLegacyReflections(float3 worldPosition, float3 normal, float spe
     float3 reflectedColor = LegacyReflectionsTexture.Sample(AnisotropicClampSampler, uv).rgb;
     reflectedColor *= GetReflectionTint();
 
-    float reflectionAmount = saturate(specular) * MaterialParameters[0].a * GetReflectionVerticalMask(worldPosition);
+    float reflectionAmount = saturate(specular) * MaterialProperties[0].a * GetReflectionVerticalMask(worldPosition);
     return lerp(pixelColor, reflectedColor, reflectionAmount);
 }
 

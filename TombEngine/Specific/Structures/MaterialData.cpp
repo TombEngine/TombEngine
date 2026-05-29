@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "Math/Utils.h"
+#include "Specific/level.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Math;
@@ -48,6 +49,12 @@ Vector4 MaterialPropertyData::GetInterpolatedValue(MaterialPropertyType type, fl
 	default:
 		return Vector4::Lerp(PrevValue, Value, alpha);
 	}
+}
+
+void UpdateMaterials()
+{
+	for (auto& material : g_Level.Materials)
+		material.StoreInterpolationData();
 }
 
 void ResetMaterialPropertyDefinitions()

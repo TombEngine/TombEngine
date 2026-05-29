@@ -223,6 +223,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateFishSwarm();
 	UpdateFireflySwarm();
 	UpdateGlobalLensFlare();
+	UpdateMaterials();
 
 	// Update HUD.
 	g_Hud.Update(*LaraItem);
@@ -779,9 +780,6 @@ void SetupInterpolation()
 {
 	for (auto& item : g_Level.Items)
 		item.DisableInterpolation = false;
-
-	for (auto& material : g_Level.Materials)
-		material.StoreInterpolationData();
 
 	// HACK: Remove after ScriptInterfaceFlowHandler is deprecated.
 	auto* level = (Level*)g_GameFlow->GetLevel(CurrentLevel);

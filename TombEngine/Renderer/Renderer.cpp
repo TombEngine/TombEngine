@@ -287,9 +287,9 @@ namespace TEN::Renderer
 		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasHeightMap) << 8;
 		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasAmbientOcclusionMap) << 9;
 		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasEmissiveMap) << 10;
-		auto& materialParameters = g_Level.Materials[materialIndex].GetInterpolatedProperties(GetInterpolationFactor());
+		auto& materialProperties = g_Level.Materials[materialIndex].GetInterpolatedProperties(GetInterpolationFactor());
 
-		if (materialTypeAndFlags == _stPerDraw.MaterialTypeAndFlags && materialParameters == _stPerDraw.MaterialParameters && !force)
+		if (materialTypeAndFlags == _stPerDraw.MaterialTypeAndFlags && materialProperties == _stPerDraw.MaterialProperties && !force)
 		{
 			return;
 		}
@@ -298,7 +298,7 @@ namespace TEN::Renderer
 		//if (materialIndex != _lastMaterialIndex || force)
 		{
 			_stPerDraw.MaterialTypeAndFlags = materialTypeAndFlags;
-			_stPerDraw.MaterialParameters   = materialParameters;
+			_stPerDraw.MaterialProperties   = materialProperties;
 
 			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 

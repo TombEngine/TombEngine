@@ -14,7 +14,7 @@ namespace TEN::Renderer::ConstantBuffers
 	// CBPerDraw — keep them in sync.
 	struct alignas(16) CPerDrawBuffer
 	{
-		std::array<Vector4, MaterialData::PropertyCount> MaterialParameters;
+		std::array<Vector4, MaterialData::PropertyCount> MaterialProperties;
 		//--
 		unsigned int MaterialTypeAndFlags;
 		unsigned int BlendMode;
