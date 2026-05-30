@@ -638,7 +638,7 @@ namespace TEN::Animation
 
 		if (Objects[GAME_OBJECT_ID::ID_LARA_EXTRA_ANIMS].loaded && Objects[GAME_OBJECT_ID::ID_LARA_EXTRA_ANIMS].Animations.size() > relativeAnimNumber)
 		{
-			SetAnimation(item, GAME_OBJECT_ID::ID_LARA_EXTRA_ANIMS, relativeAnimNumber);
+			SetAnimationFromSlot(item, GAME_OBJECT_ID::ID_LARA_EXTRA_ANIMS, relativeAnimNumber);
 			return;
 		}
 
@@ -649,7 +649,7 @@ namespace TEN::Animation
 
 			if (objectNumber < GAME_OBJECT_ID::ID_NUMBER_OBJECTS && Objects[objectNumber].loaded && Objects[objectNumber].Animations.size() > animNumber)
 			{
-				SetAnimation(item, (GAME_OBJECT_ID)objectNumber, animNumber);
+				SetAnimationFromSlot(item, (GAME_OBJECT_ID)objectNumber, animNumber);
 				return;
 			}
 		}
