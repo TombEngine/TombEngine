@@ -46,6 +46,7 @@ constexpr auto OPTION_ENABLE_THUMBSTICK_CAMERA			= "EnableThumbstickCamera";
 
 constexpr auto OPTION_MOUSE_SENSITIVITY		   = "MouseSensitivity";
 constexpr auto OPTION_MENU_OPTION_LOOPING_MODE = "MenuOptionLoopingMode";
+constexpr auto OPTION_GAMEPAD_TYPE			   = "GamepadType";
 constexpr auto OPTION_BIND_PREFIX			   = "bind.";
 
 enum class MenuOptionLoopingMode
@@ -97,6 +98,7 @@ struct GameConfiguration
 	// Input
 	int					  MouseSensitivity		= DEFAULT_MOUSE_SENSITIVITY;
 	MenuOptionLoopingMode MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
+	GamepadType			  LastGamepadType		= GamepadType::Xbox;
 	BindingProfile		  Bindings				= {};
 
 	std::vector<Vector2i>	SupportedScreenResolutions	= {};
