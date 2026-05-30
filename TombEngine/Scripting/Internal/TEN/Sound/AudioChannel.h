@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Scripting/Internal/TEN/Types/Time/Time.h"
+#include "Sound/sound.h"
 #include "Sound/SoundTrackManager.h"
 
 namespace sol { class state; }
@@ -25,11 +26,11 @@ namespace TEN::Scripting::Sound
 		static std::unique_ptr<AudioChannel> Create(
 			const std::string& name,
 			sol::optional<std::string> track,
-			sol::optional<TrackPreset> preset);
+			sol::optional<SoundTrackType> type);
 
 		AudioChannel(const std::string& name);
 
-		void  Play(sol::optional<std::string> track, sol::optional<TrackPreset> preset);
+		void  Play(sol::optional<std::string> track, sol::optional<SoundTrackType> type);
 		void  SetTrack(const std::string& track, sol::optional<int> crossfadeTime);
 		void  Stop(sol::optional<int> fadeOutTime);
 		void  Pause();
@@ -45,7 +46,8 @@ namespace TEN::Scripting::Sound
 		std::string GetName() const;
 		std::string GetTrack() const;
 		float GetLoudness() const;
-		void  SetFlags(int flags);
-		int   GetFlags() const;
+		SoundTrackType GetType() const;
+		void  SetType(SoundTrackType type);
+		void  SetCrossFadeLength(int ms);
 	};
 }

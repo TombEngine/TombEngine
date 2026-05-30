@@ -463,6 +463,33 @@ TrackFlags SoundTrackManager::GetChannelFlags(const std::string& channelName) co
     return channel->Flags;
 }
 
+void SoundTrackManager::SetChannelPreset(const std::string& channelName, TrackPreset preset)
+{
+    auto* channel = FindChannel(channelName);
+    if (!channel)
+        return;
+
+    ConfigureFromPreset(*channel, preset);
+}
+
+TrackPreset SoundTrackManager::GetChannelPreset(const std::string& channelName) const
+{
+    const auto* channel = FindChannel(channelName);
+    if (!channel)
+        return TrackPreset::OneShot;
+
+    return channel->Preset;
+}
+
+void SoundTrackManager::SetCrossfadeTime(const std::string& channelName, int ms)
+{
+    auto* channel = FindChannel(channelName);
+    if (!channel)
+        return;
+
+    channel->CrossfadeTime = ms;
+}
+
 bool SoundTrackManager::SetPositionSeconds(const std::string& channelName, double seconds)
 {
     auto* channel = FindChannel(channelName);
