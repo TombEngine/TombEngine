@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Scripting/Internal/TEN/Types/Time/Time.h"
 #include "Sound/SoundTrackManager.h"
 
 namespace sol { class state; }
