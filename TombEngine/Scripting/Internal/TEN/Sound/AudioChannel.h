@@ -44,5 +44,7 @@ namespace TEN::Scripting::Sound
 		std::string GetName() const;
 		std::string GetTrack() const;
 		float GetLoudness() const;
+		void  SetFlags(int flags);
+		int   GetFlags() const;
 	};
 }

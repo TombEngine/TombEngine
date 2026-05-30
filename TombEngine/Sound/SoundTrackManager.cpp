@@ -4,6 +4,7 @@
 #include "Specific/configuration.h"
 #include "Specific/trutils.h"
 
+#include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Sound/sound.h"
 
 using namespace TEN::Utils;
@@ -174,9 +175,15 @@ bool SoundTrackManager::EnsureChannelExists(const std::string& name)
     if (_channels.count(hash) > 0)
         return true;
 
-    auto channel          = TrackChannel{};
-    channel.Name          = name;
-    _channels[hash]       = channel;
+    if ((int)_channels.size() >= SOUND_TRACK_CHANNEL_LIMIT)
+    {
+        TENLog("Sound channel limit of " + std::to_string(SOUND_TRACK_CHANNEL_LIMIT) + " reached. Channel \"" + name + "\" was not created.", LogLevel::Warning);
+        return false;
+    }
+
+    auto channel              = TrackChannel{};
+    channel.Name              = name;
+    _channels[hash]           = channel;
     _nameIndex[ToLower(name)] = hash;
     return true;
 }
@@ -303,6 +310,10 @@ bool SoundTrackManager::Play(const std::string& channelName, std::optional<std::
     // Load subtitles for the voice channel.
     if (ToLower(channel->Name) == ToLower(std::string(SOUND_TRACK_CHANNEL_VOICE)))
         LoadSubtitles(trackName);
+
+    // Fire audio channel callbacks for transient channels (not BGM, which never ends on its own).
+    if (channel->Preset != TrackPreset::BGM && g_GameScript)
+        g_GameScript->OnAudioChannelPlaying(channel->Name);
 
     return true;
 }
@@ -432,6 +443,24 @@ void SoundTrackManager::SetShuffleStart(const std::string& channelName, bool ena
         channel->Flags |= TrackFlags::ShuffleStart;
     else
         channel->Flags = channel->Flags & ~TrackFlags::ShuffleStart;
+}
+
+void SoundTrackManager::SetChannelFlags(const std::string& channelName, TrackFlags flags)
+{
+    auto* channel = FindChannel(channelName);
+    if (!channel)
+        return;
+
+    channel->Flags = flags;
+}
+
+TrackFlags SoundTrackManager::GetChannelFlags(const std::string& channelName) const
+{
+    auto* channel = FindChannel(channelName);
+    if (!channel)
+        return TrackFlags::None;
+
+    return channel->Flags;
 }
 
 bool SoundTrackManager::SetPositionSeconds(const std::string& channelName, double seconds)

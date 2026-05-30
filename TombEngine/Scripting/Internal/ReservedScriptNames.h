@@ -92,11 +92,14 @@ static constexpr char ScriptReserved_PreVehicleEnter[]	= "PRE_VEHICLE_ENTER";
 static constexpr char ScriptReserved_PostVehicleEnter[]	= "POST_VEHICLE_ENTER";
 static constexpr char ScriptReserved_PreVehicleLeave[]	= "PRE_VEHICLE_LEAVE";
 static constexpr char ScriptReserved_PostVehicleLeave[]	= "POST_VEHICLE_LEAVE";
-static constexpr char ScriptReserved_PreFreeze[]		= "PRE_FREEZE";
-static constexpr char ScriptReserved_PostFreeze[]		= "POST_FREEZE";
+static constexpr char ScriptReserved_PreFreeze[]			= "PRE_FREEZE";
+static constexpr char ScriptReserved_PostFreeze[]			= "POST_FREEZE";
+static constexpr char ScriptReserved_PreAudioChannel[]		= "PRE_AUDIO_CHANNEL";
+static constexpr char ScriptReserved_PostAudioChannel[]		= "POST_AUDIO_CHANNEL";
 
 // Built-in LevelFuncs
-static constexpr char ScriptReserved_OnStart[]			= "OnStart";
+static constexpr char ScriptReserved_OnAudioChannelPlaying[] = "OnAudioChannelPlaying";
+static constexpr char ScriptReserved_OnStart[]				= "OnStart";
 static constexpr char ScriptReserved_OnLoad[]			= "OnLoad";
 static constexpr char ScriptReserved_OnLoop[]			= "OnLoop";
 static constexpr char ScriptReserved_OnSave[]			= "OnSave";
@@ -504,6 +507,9 @@ static constexpr char ScriptReserved_AudioChannelShuffleStart[]	= "SetShuffleSta
 static constexpr char ScriptReserved_AudioChannelSetPosition[]	= "SetPosition";
 static constexpr char ScriptReserved_AudioChannelGetPosition[]	= "GetPosition";
 static constexpr char ScriptReserved_AudioChannelGetNormPos[]	= "GetNormalizedPosition";
+static constexpr char ScriptReserved_AudioChannelSetFlags[]		= "SetFlags";
+static constexpr char ScriptReserved_AudioChannelGetFlags[]		= "GetFlags";
+static constexpr char ScriptReserved_TrackFlags[]				= "TrackFlags";
 static constexpr char ScriptReserved_LogLevel[]					= "LogLevel";
 static constexpr char ScriptReserved_RoomFlagID[]				= "RoomFlagID";
 static constexpr char ScriptReserved_RoomReverb[]				= "RoomReverb";

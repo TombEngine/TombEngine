@@ -4,6 +4,8 @@ constexpr auto SOUND_TRACK_CHANNEL_BGM     = "BGM";
 constexpr auto SOUND_TRACK_CHANNEL_ONESHOT = "OneShot";
 constexpr auto SOUND_TRACK_CHANNEL_VOICE   = "Voice";
 
+constexpr auto SOUND_TRACK_CHANNEL_LIMIT   = 32;
+
 enum class TrackFlags : int
 {
     None         = 0,
@@ -91,6 +93,8 @@ public:
     void  SetChannelVolume(const std::string& channelName, float volume);
     float GetChannelVolume(const std::string& channelName) const;
     void  SetShuffleStart(const std::string& channelName, bool enable);
+    void  SetChannelFlags(const std::string& channelName, TrackFlags flags);
+    TrackFlags GetChannelFlags(const std::string& channelName) const;
 
     bool   SetPositionSeconds(const std::string& channelName, double seconds);
     double GetPositionSeconds(const std::string& channelName) const;

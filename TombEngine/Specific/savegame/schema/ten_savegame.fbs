@@ -451,6 +451,17 @@ table Soundtrack {
     position: uint64;
 }
 
+table NamedSoundtrack {
+    channel_name:   string;
+    track:          string;
+    position:       uint64;
+    preset:         int32;
+    flags:          int32;
+    fade_out_time:  int32;
+    crossfade_time: int32;
+    volume:         float;
+}
+
 table VideoInfo {
 	name: string;
 	position: float;
@@ -718,6 +729,7 @@ table SaveGame {
 	// is loaded, but we'll store them anyway for completeness.
 
 	callbacks: [CallbackSet];
+	named_soundtracks: [NamedSoundtrack];
 }
 
 root_type TEN.Save.SaveGame;

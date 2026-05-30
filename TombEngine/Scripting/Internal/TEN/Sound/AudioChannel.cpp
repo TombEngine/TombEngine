@@ -13,9 +13,39 @@ using namespace TEN::Scripting;
 
 static const std::unordered_map<std::string, TrackPreset> TRACK_PRESET
 {
-    { "BGM",    TrackPreset::BGM },
+    { "BGM",     TrackPreset::BGM },
     { "ONESHOT", TrackPreset::OneShot },
-    { "VOICE",  TrackPreset::Voice }
+    { "VOICE",   TrackPreset::Voice }
+};
+
+/// Flags controlling audio channel behaviour. Can be combined with bitwise OR.
+// @enum Sound.TrackFlags
+// @pragma nostrip
+static const std::unordered_map<std::string, int> TRACK_FLAGS
+{
+    /// Loop the track indefinitely.
+    // @mem LOOP
+    { "LOOP",         (int)TrackFlags::Loop },
+
+    /// Crossfade when switching to a new track.
+    // @mem CROSSFADE
+    { "CROSSFADE",    (int)TrackFlags::Crossfade },
+
+    /// Free channel automatically when the track ends.
+    // @mem AUTO_FREE
+    { "AUTO_FREE",    (int)TrackFlags::AutoFree },
+
+    /// Start playback at a random position (looped tracks only).
+    // @mem SHUFFLE_START
+    { "SHUFFLE_START",(int)TrackFlags::ShuffleStart },
+
+    /// Dampen the BGM channel while this channel plays.
+    // @mem DAMP_BGM
+    { "DAMP_BGM",     (int)TrackFlags::DampBGM },
+
+    /// Restore BGM volume when this channel finishes.
+    // @mem RESTORE_BGM
+    { "RESTORE_BGM",  (int)TrackFlags::RestoreBGM }
 };
 
 namespace TEN::Scripting::Sound
@@ -180,6 +210,22 @@ namespace TEN::Scripting::Sound
         return g_SoundTrackManager->GetLoudness(_channelName);
     }
 
+    void AudioChannel::SetFlags(int flags)
+    {
+        if (!g_SoundTrackManager)
+            return;
+
+        g_SoundTrackManager->SetChannelFlags(_channelName, (TrackFlags)flags);
+    }
+
+    int AudioChannel::GetFlags() const
+    {
+        if (!g_SoundTrackManager)
+            return 0;
+
+        return (int)g_SoundTrackManager->GetChannelFlags(_channelName);
+    }
+
     void AudioChannel::Register(sol::state& state, sol::table& parent)
     {
         parent.new_usertype<AudioChannel>(
@@ -263,10 +309,21 @@ namespace TEN::Scripting::Sound
             /// Get the normalized playback position (0.0 to 1.0).
             // @function AudioChannel:GetNormalizedPosition
             // @treturn float Normalized position.
-            ScriptReserved_AudioChannelGetNormPos, &AudioChannel::GetNormalizedPosition
+            ScriptReserved_AudioChannelGetNormPos, &AudioChannel::GetNormalizedPosition,
+
+            /// Set channel flags. Use values from Sound.TrackFlags, combined with bitwise OR.
+            // @function AudioChannel:SetFlags
+            // @tparam int flags Combined TrackFlags value.
+            ScriptReserved_AudioChannelSetFlags, &AudioChannel::SetFlags,
+
+            /// Get current channel flags as an integer.
+            // @function AudioChannel:GetFlags
+            // @treturn int Current flags bitmask.
+            ScriptReserved_AudioChannelGetFlags, &AudioChannel::GetFlags
         );
 
         LuaHandler handler{ &state };
         handler.MakeReadOnlyTable(parent, ScriptReserved_TrackPreset, TRACK_PRESET);
+        handler.MakeReadOnlyTable(parent, ScriptReserved_TrackFlags, TRACK_FLAGS);
     }
 }

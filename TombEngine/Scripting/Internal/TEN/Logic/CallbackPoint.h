@@ -27,6 +27,7 @@ namespace TEN::Scripting
 		VehicleEnter,
 		VehicleLeave,
 		Freeze,
+		AudioChannelPlay,
 
 		Count
 	};
@@ -53,6 +54,8 @@ namespace TEN::Scripting
 		PostVehicleLeave,
 		PreFreeze,
 		PostFreeze,
+		PreAudioChannel,
+		PostAudioChannel,
 
 		Count
 	};
@@ -68,7 +71,8 @@ namespace TEN::Scripting
 		{ LevelFuncCallbackPoint::Pickup, ScriptReserved_OnPickup },
 		{ LevelFuncCallbackPoint::VehicleEnter, ScriptReserved_OnVehicleEnter },
 		{ LevelFuncCallbackPoint::VehicleLeave, ScriptReserved_OnVehicleLeave },
-		{ LevelFuncCallbackPoint::Freeze, ScriptReserved_OnFreeze }
+		{ LevelFuncCallbackPoint::Freeze, ScriptReserved_OnFreeze },
+		{ LevelFuncCallbackPoint::AudioChannelPlay, ScriptReserved_OnAudioChannelPlaying }
 	};
 
 	/// Points in the game flow where level scripts can hook into. Used with @{Logic.AddCallback} and @{Logic.RemoveCallback} methods.
@@ -155,6 +159,14 @@ namespace TEN::Scripting
 		/// Will be called immediately after LevelFuncs.OnFreeze.
 		// @mem POST_FREEZE
 		{ ScriptReserved_PostFreeze, CallbackPoint::PostFreeze },
+
+		/// Will be called before LevelFuncs.OnAudioChannelPlaying fires (OneShot and Voice channels only).
+		// @mem PRE_AUDIO_CHANNEL
+		{ ScriptReserved_PreAudioChannel, CallbackPoint::PreAudioChannel },
+
+		/// Will be called after LevelFuncs.OnAudioChannelPlaying fires (OneShot and Voice channels only).
+		// @mem POST_AUDIO_CHANNEL
+		{ ScriptReserved_PostAudioChannel, CallbackPoint::PostAudioChannel },
 
 		// COMPATIBILITY
 		{ "POSTSTART", CallbackPoint::PostStart },

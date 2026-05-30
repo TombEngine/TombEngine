@@ -145,6 +145,10 @@ struct Soundtrack;
 struct SoundtrackBuilder;
 struct SoundtrackT;
 
+struct NamedSoundtrack;
+struct NamedSoundtrackBuilder;
+struct NamedSoundtrackT;
+
 struct VideoInfo;
 struct VideoInfoBuilder;
 struct VideoInfoT;
@@ -6221,6 +6225,167 @@ inline flatbuffers::Offset<Soundtrack> CreateSoundtrackDirect(
 
 flatbuffers::Offset<Soundtrack> CreateSoundtrack(flatbuffers::FlatBufferBuilder &_fbb, const SoundtrackT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct NamedSoundtrackT : public flatbuffers::NativeTable {
+  typedef NamedSoundtrack TableType;
+  std::string channel_name{};
+  std::string track{};
+  uint64_t position = 0;
+  int32_t preset = 0;
+  int32_t flags = 0;
+  int32_t fade_out_time = 0;
+  int32_t crossfade_time = 0;
+  float volume = 0.0f;
+};
+
+struct NamedSoundtrack FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef NamedSoundtrackT NativeTableType;
+  typedef NamedSoundtrackBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_CHANNEL_NAME = 4,
+    VT_TRACK = 6,
+    VT_POSITION = 8,
+    VT_PRESET = 10,
+    VT_FLAGS = 12,
+    VT_FADE_OUT_TIME = 14,
+    VT_CROSSFADE_TIME = 16,
+    VT_VOLUME = 18
+  };
+  const flatbuffers::String *channel_name() const {
+    return GetPointer<const flatbuffers::String *>(VT_CHANNEL_NAME);
+  }
+  const flatbuffers::String *track() const {
+    return GetPointer<const flatbuffers::String *>(VT_TRACK);
+  }
+  uint64_t position() const {
+    return GetField<uint64_t>(VT_POSITION, 0);
+  }
+  int32_t preset() const {
+    return GetField<int32_t>(VT_PRESET, 0);
+  }
+  int32_t flags() const {
+    return GetField<int32_t>(VT_FLAGS, 0);
+  }
+  int32_t fade_out_time() const {
+    return GetField<int32_t>(VT_FADE_OUT_TIME, 0);
+  }
+  int32_t crossfade_time() const {
+    return GetField<int32_t>(VT_CROSSFADE_TIME, 0);
+  }
+  float volume() const {
+    return GetField<float>(VT_VOLUME, 0.0f);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_CHANNEL_NAME) &&
+           verifier.VerifyString(channel_name()) &&
+           VerifyOffset(verifier, VT_TRACK) &&
+           verifier.VerifyString(track()) &&
+           VerifyField<uint64_t>(verifier, VT_POSITION) &&
+           VerifyField<int32_t>(verifier, VT_PRESET) &&
+           VerifyField<int32_t>(verifier, VT_FLAGS) &&
+           VerifyField<int32_t>(verifier, VT_FADE_OUT_TIME) &&
+           VerifyField<int32_t>(verifier, VT_CROSSFADE_TIME) &&
+           VerifyField<float>(verifier, VT_VOLUME) &&
+           verifier.EndTable();
+  }
+  NamedSoundtrackT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(NamedSoundtrackT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<NamedSoundtrack> Pack(flatbuffers::FlatBufferBuilder &_fbb, const NamedSoundtrackT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct NamedSoundtrackBuilder {
+  typedef NamedSoundtrack Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_channel_name(flatbuffers::Offset<flatbuffers::String> channel_name) {
+    fbb_.AddOffset(NamedSoundtrack::VT_CHANNEL_NAME, channel_name);
+  }
+  void add_track(flatbuffers::Offset<flatbuffers::String> track) {
+    fbb_.AddOffset(NamedSoundtrack::VT_TRACK, track);
+  }
+  void add_position(uint64_t position) {
+    fbb_.AddElement<uint64_t>(NamedSoundtrack::VT_POSITION, position, 0);
+  }
+  void add_preset(int32_t preset) {
+    fbb_.AddElement<int32_t>(NamedSoundtrack::VT_PRESET, preset, 0);
+  }
+  void add_flags(int32_t flags) {
+    fbb_.AddElement<int32_t>(NamedSoundtrack::VT_FLAGS, flags, 0);
+  }
+  void add_fade_out_time(int32_t fade_out_time) {
+    fbb_.AddElement<int32_t>(NamedSoundtrack::VT_FADE_OUT_TIME, fade_out_time, 0);
+  }
+  void add_crossfade_time(int32_t crossfade_time) {
+    fbb_.AddElement<int32_t>(NamedSoundtrack::VT_CROSSFADE_TIME, crossfade_time, 0);
+  }
+  void add_volume(float volume) {
+    fbb_.AddElement<float>(NamedSoundtrack::VT_VOLUME, volume, 0.0f);
+  }
+  explicit NamedSoundtrackBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<NamedSoundtrack> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<NamedSoundtrack>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<NamedSoundtrack> CreateNamedSoundtrack(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> channel_name = 0,
+    flatbuffers::Offset<flatbuffers::String> track = 0,
+    uint64_t position = 0,
+    int32_t preset = 0,
+    int32_t flags = 0,
+    int32_t fade_out_time = 0,
+    int32_t crossfade_time = 0,
+    float volume = 0.0f) {
+  NamedSoundtrackBuilder builder_(_fbb);
+  builder_.add_position(position);
+  builder_.add_volume(volume);
+  builder_.add_crossfade_time(crossfade_time);
+  builder_.add_fade_out_time(fade_out_time);
+  builder_.add_flags(flags);
+  builder_.add_preset(preset);
+  builder_.add_track(track);
+  builder_.add_channel_name(channel_name);
+  return builder_.Finish();
+}
+
+struct NamedSoundtrack::Traits {
+  using type = NamedSoundtrack;
+  static auto constexpr Create = CreateNamedSoundtrack;
+};
+
+inline flatbuffers::Offset<NamedSoundtrack> CreateNamedSoundtrackDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *channel_name = nullptr,
+    const char *track = nullptr,
+    uint64_t position = 0,
+    int32_t preset = 0,
+    int32_t flags = 0,
+    int32_t fade_out_time = 0,
+    int32_t crossfade_time = 0,
+    float volume = 0.0f) {
+  auto channel_name__ = channel_name ? _fbb.CreateString(channel_name) : 0;
+  auto track__ = track ? _fbb.CreateString(track) : 0;
+  return TEN::Save::CreateNamedSoundtrack(
+      _fbb,
+      channel_name__,
+      track__,
+      position,
+      preset,
+      flags,
+      fade_out_time,
+      crossfade_time,
+      volume);
+}
+
+flatbuffers::Offset<NamedSoundtrack> CreateNamedSoundtrack(flatbuffers::FlatBufferBuilder &_fbb, const NamedSoundtrackT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct VideoInfoT : public flatbuffers::NativeTable {
   typedef VideoInfo TableType;
   std::string name{};
@@ -8937,6 +9102,7 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<TEN::Save::EventSetT>> volume_event_sets{};
   std::unique_ptr<TEN::Save::UnionVecT> script_vars{};
   std::vector<std::unique_ptr<TEN::Save::CallbackSetT>> callbacks{};
+  std::vector<std::unique_ptr<TEN::Save::NamedSoundtrackT>> named_soundtracks{};
 };
 
 struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -8998,7 +9164,8 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_GLOBAL_EVENT_SETS = 106,
     VT_VOLUME_EVENT_SETS = 108,
     VT_SCRIPT_VARS = 110,
-    VT_CALLBACKS = 112
+    VT_CALLBACKS = 112,
+    VT_NAMED_SOUNDTRACKS = 114
   };
   const TEN::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Save::SaveGameHeader *>(VT_HEADER);
@@ -9165,6 +9332,9 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::CallbackSet>> *callbacks() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::CallbackSet>> *>(VT_CALLBACKS);
   }
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::NamedSoundtrack>> *named_soundtracks() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::NamedSoundtrack>> *>(VT_NAMED_SOUNDTRACKS);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_HEADER) &&
@@ -9281,6 +9451,9 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_CALLBACKS) &&
            verifier.VerifyVector(callbacks()) &&
            verifier.VerifyVectorOfTables(callbacks()) &&
+           VerifyOffset(verifier, VT_NAMED_SOUNDTRACKS) &&
+           verifier.VerifyVector(named_soundtracks()) &&
+           verifier.VerifyVectorOfTables(named_soundtracks()) &&
            verifier.EndTable();
   }
   SaveGameT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -9457,6 +9630,9 @@ struct SaveGameBuilder {
   void add_callbacks(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::CallbackSet>>> callbacks) {
     fbb_.AddOffset(SaveGame::VT_CALLBACKS, callbacks);
   }
+  void add_named_soundtracks(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::NamedSoundtrack>>> named_soundtracks) {
+    fbb_.AddOffset(SaveGame::VT_NAMED_SOUNDTRACKS, named_soundtracks);
+  }
   explicit SaveGameBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -9524,8 +9700,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::EventSet>>> global_event_sets = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::EventSet>>> volume_event_sets = 0,
     flatbuffers::Offset<TEN::Save::UnionVec> script_vars = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::CallbackSet>>> callbacks = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::CallbackSet>>> callbacks = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::NamedSoundtrack>>> named_soundtracks = 0) {
   SaveGameBuilder builder_(_fbb);
+  builder_.add_named_soundtracks(named_soundtracks);
   builder_.add_callbacks(callbacks);
   builder_.add_script_vars(script_vars);
   builder_.add_volume_event_sets(volume_event_sets);
@@ -9645,7 +9823,8 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<flatbuffers::Offset<TEN::Save::EventSet>> *global_event_sets = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Save::EventSet>> *volume_event_sets = nullptr,
     flatbuffers::Offset<TEN::Save::UnionVec> script_vars = 0,
-    const std::vector<flatbuffers::Offset<TEN::Save::CallbackSet>> *callbacks = nullptr) {
+    const std::vector<flatbuffers::Offset<TEN::Save::CallbackSet>> *callbacks = nullptr,
+    const std::vector<flatbuffers::Offset<TEN::Save::NamedSoundtrack>> *named_soundtracks = nullptr) {
   auto rooms__ = rooms ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::Room>>(*rooms) : 0;
   auto box_flags__ = box_flags ? _fbb.CreateVector<int32_t>(*box_flags) : 0;
   auto items__ = items ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::Item>>(*items) : 0;
@@ -9673,6 +9852,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
   auto global_event_sets__ = global_event_sets ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::EventSet>>(*global_event_sets) : 0;
   auto volume_event_sets__ = volume_event_sets ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::EventSet>>(*volume_event_sets) : 0;
   auto callbacks__ = callbacks ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::CallbackSet>>(*callbacks) : 0;
+  auto named_soundtracks__ = named_soundtracks ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::NamedSoundtrack>>(*named_soundtracks) : 0;
   return TEN::Save::CreateSaveGame(
       _fbb,
       header,
@@ -9729,7 +9909,8 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       global_event_sets__,
       volume_event_sets__,
       script_vars,
-      callbacks__);
+      callbacks__,
+      named_soundtracks__);
 }
 
 flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuilder &_fbb, const SaveGameT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -11477,6 +11658,53 @@ inline flatbuffers::Offset<Soundtrack> CreateSoundtrack(flatbuffers::FlatBufferB
       _position);
 }
 
+inline NamedSoundtrackT *NamedSoundtrack::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<NamedSoundtrackT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void NamedSoundtrack::UnPackTo(NamedSoundtrackT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = channel_name(); if (_e) _o->channel_name = _e->str(); }
+  { auto _e = track(); if (_e) _o->track = _e->str(); }
+  { auto _e = position(); _o->position = _e; }
+  { auto _e = preset(); _o->preset = _e; }
+  { auto _e = flags(); _o->flags = _e; }
+  { auto _e = fade_out_time(); _o->fade_out_time = _e; }
+  { auto _e = crossfade_time(); _o->crossfade_time = _e; }
+  { auto _e = volume(); _o->volume = _e; }
+}
+
+inline flatbuffers::Offset<NamedSoundtrack> NamedSoundtrack::Pack(flatbuffers::FlatBufferBuilder &_fbb, const NamedSoundtrackT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateNamedSoundtrack(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<NamedSoundtrack> CreateNamedSoundtrack(flatbuffers::FlatBufferBuilder &_fbb, const NamedSoundtrackT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const NamedSoundtrackT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _channel_name = _o->channel_name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->channel_name);
+  auto _track = _o->track.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->track);
+  auto _position = _o->position;
+  auto _preset = _o->preset;
+  auto _flags = _o->flags;
+  auto _fade_out_time = _o->fade_out_time;
+  auto _crossfade_time = _o->crossfade_time;
+  auto _volume = _o->volume;
+  return TEN::Save::CreateNamedSoundtrack(
+      _fbb,
+      _channel_name,
+      _track,
+      _position,
+      _preset,
+      _flags,
+      _fade_out_time,
+      _crossfade_time,
+      _volume);
+}
+
 inline VideoInfoT *VideoInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::make_unique<VideoInfoT>();
   UnPackTo(_o.get(), _resolver);
@@ -12469,6 +12697,7 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = volume_event_sets(); if (_e) { _o->volume_event_sets.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->volume_event_sets[_i] = std::unique_ptr<TEN::Save::EventSetT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = script_vars(); if (_e) _o->script_vars = std::unique_ptr<TEN::Save::UnionVecT>(_e->UnPack(_resolver)); }
   { auto _e = callbacks(); if (_e) { _o->callbacks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks[_i] = std::unique_ptr<TEN::Save::CallbackSetT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = named_soundtracks(); if (_e) { _o->named_soundtracks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->named_soundtracks[_i] = std::unique_ptr<TEN::Save::NamedSoundtrackT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
 inline flatbuffers::Offset<SaveGame> SaveGame::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SaveGameT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -12534,6 +12763,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _volume_event_sets = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::EventSet>> (_o->volume_event_sets.size(), [](size_t i, _VectorArgs *__va) { return CreateEventSet(*__va->__fbb, __va->__o->volume_event_sets[i].get(), __va->__rehasher); }, &_va );
   auto _script_vars = _o->script_vars ? CreateUnionVec(_fbb, _o->script_vars.get(), _rehasher) : 0;
   auto _callbacks = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::CallbackSet>> (_o->callbacks.size(), [](size_t i, _VectorArgs *__va) { return CreateCallbackSet(*__va->__fbb, __va->__o->callbacks[i].get(), __va->__rehasher); }, &_va );
+  auto _named_soundtracks = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::NamedSoundtrack>> (_o->named_soundtracks.size(), [](size_t i, _VectorArgs *__va) { return CreateNamedSoundtrack(*__va->__fbb, __va->__o->named_soundtracks[i].get(), __va->__rehasher); }, &_va );
   return TEN::Save::CreateSaveGame(
       _fbb,
       _header,
@@ -12590,7 +12820,8 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _global_event_sets,
       _volume_event_sets,
       _script_vars,
-      _callbacks);
+      _callbacks,
+      _named_soundtracks);
 }
 
 inline bool VerifyVarUnion(flatbuffers::Verifier &verifier, const void *obj, VarUnion type) {
