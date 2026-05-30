@@ -2515,13 +2515,17 @@ namespace TEN::Sky
 			ImGui::TextDisabled("rebuilding geometry. Footprints still reach the floor.");
 			ImGui::Spacing();
 
-			const float maxRange = (float)snow.MaxDepth;
+			// Use per-level depth override if set, otherwise fall back to global.
+			auto* currentLevel = g_GameFlow->GetLevel(CurrentLevel);
+			int perLevelMaxDepth = currentLevel ? currentLevel->GetSnowMaxDepth() : 0;
+			int effectiveMaxDepth = (perLevelMaxDepth > 0) ? perLevelMaxDepth : snow.MaxDepth;
+			const float maxRange = (float)effectiveMaxDepth;
 			ImGui::SliderFloat("Surface Offset##snow", &g_Renderer.GetSnowDebugYOffset(), -maxRange, maxRange, "%.1f units");
 
 			if (ImGui::Button("Reset##snow"))
 				g_Renderer.GetSnowDebugYOffset() = 0.0f;
 
-			ImGui::TextDisabled("(MaxDepth = %d, offset range +/-MaxDepth)", snow.MaxDepth);
+			ImGui::TextDisabled("(MaxDepth = %d, offset range +/-MaxDepth)", effectiveMaxDepth);
 
 			ImGui::EndDisabled();
 		}

@@ -60,6 +60,10 @@ struct Level : public ScriptInterfaceLevel
 	// Writable from Lua via SetDynamicSnowLevel / GetDynamicSnowLevel.
 	float SnowSurfaceOffset = 0.0f;
 
+	// Per-level snow overlay depth override, in world units.
+	// 0 means "use the global Settings.Snow.maxDepth value".
+	int SnowMaxDepth = 0;
+
 	// TODO: Clean up this mess.
 
 	RGBAColor8Byte GetFogColor() const override;
@@ -74,6 +78,7 @@ struct Level : public ScriptInterfaceLevel
 	void SetDynamicSnowLevel(float offset);
 	float GetDynamicSnowLevel() const;
 	float GetSnowSurfaceOffset() const override { return SnowSurfaceOffset; }
+	int   GetSnowMaxDepth() const override { return SnowMaxDepth; }
 	static void Register(sol::table& parent);
 	WeatherType GetWeatherType() const override;
 	bool GetWeatherClustering() const override;

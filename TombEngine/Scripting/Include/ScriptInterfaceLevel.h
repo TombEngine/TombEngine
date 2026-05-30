@@ -70,4 +70,7 @@ public:
 
 	// Dynamic snow surface offset (set via Lua or loaded from savegame).
 	virtual float GetSnowSurfaceOffset() const { return 0.0f; }
+
+	// Per-level snow max depth override (0 = use global Settings.Snow.maxDepth).
+	virtual int GetSnowMaxDepth() const { return 0; }
 };

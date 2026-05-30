@@ -551,6 +551,9 @@ void CleanUp()
 	Weather.Clear();
 	g_Renderer.GetDustStormSettings() = {};
 
+	// Reset transient snow debug offset so it never carries over across level transitions or savegame loads.
+	g_Renderer.GetSnowDebugYOffset() = 0.0f;
+
 	// Reset the layered sky/cloud/weather system to default state for the new level.
 	g_SkyCloudSystem.Initialize();
 

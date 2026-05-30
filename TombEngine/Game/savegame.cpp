@@ -1441,7 +1441,10 @@ const std::vector<byte> SaveGame::Build()
 	levelData.add_weather_type((int)level->Weather);
 	levelData.add_weather_strength(level->WeatherStrength);
 	levelData.add_weather_clustering(level->WeatherClustering);
-	levelData.add_snow_surface_offset(level->SnowSurfaceOffset);
+
+	// Commit the transient debug offset so the effective height visible to the player
+	// is what gets preserved. After loading, _snowDebugYOffset is reset to 0 by CleanUp.
+	levelData.add_snow_surface_offset(level->SnowSurfaceOffset + g_Renderer.GetSnowDebugYOffset());
 
 	auto levelDataOffset = levelData.Finish();
 

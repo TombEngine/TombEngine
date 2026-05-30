@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include "Renderer/Renderer.h"
 
 #include <execution>
@@ -1639,11 +1639,6 @@ namespace TEN::Renderer
 	{
 		TENLog("Preparing renderer...", LogLevel::Info);
 
-		// The debug slider is a transient, per-session tool. Reset it on every level
-		// transition so the value entered on the title screen does not add to the
-		// snow surface offset restored from a savegame.
-		_snowDebugYOffset = 0.0f;
-
 		_skinVertexBackups.clear();
 		_lastBlendMode = BlendMode::Unknown;
 		_lastCullMode = CullMode::Unknown;
@@ -2204,7 +2199,12 @@ namespace TEN::Renderer
 			// ambient color, dynamic lights and fog state in DrawSnowOverlay.
 			if (snowSettings.Enabled)
 			{
-				float snowLift = (float)std::max(0, snowSettings.MaxDepth)
+				// Use per-level depth if set; fall back to global settings.
+				auto* currentLevel = g_GameFlow->GetLevel(CurrentLevel);
+				int perLevelMaxDepth = currentLevel ? currentLevel->GetSnowMaxDepth() : 0;
+				int effectiveMaxDepth = (perLevelMaxDepth > 0) ? perLevelMaxDepth : snowSettings.MaxDepth;
+
+				float snowLift = (float)std::max(0, effectiveMaxDepth)
 					+ std::max(0.0f, snowSettings.HillHeight);
 
 				for (auto& levelBucket : room.buckets)

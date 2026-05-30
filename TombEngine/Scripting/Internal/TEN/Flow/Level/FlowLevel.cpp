@@ -163,8 +163,8 @@ This setting does not affect ability to use weapons or flares.
 
 /// Raise or lower the deformable snow surface for this level at runtime.
 // Positive offset raises the surface (thicker snow), negative lowers it.
-// The value is clamped to [-Snow.maxDepth, +Snow.maxDepth] from Settings.lua.
-// Can be called from volume triggers or any level script.
+// Clamped to [-snowMaxDepth, +snowMaxDepth] (or Settings.Snow.maxDepth if
+// snowMaxDepth is 0). Can be called from volume triggers or any level script.
 // @function SetDynamicSnowLevel
 // @tparam float offset Vertical offset in world units.
 		"SetDynamicSnowLevel", &Level::SetDynamicSnowLevel,
@@ -172,7 +172,13 @@ This setting does not affect ability to use weapons or flares.
 /// Get the current snow surface height offset for this level.
 // @function GetDynamicSnowLevel
 // @treturn float Current offset in world units.
-		"GetDynamicSnowLevel", &Level::GetDynamicSnowLevel
+		"GetDynamicSnowLevel", &Level::GetDynamicSnowLevel,
+
+/// (int) Per-level maximum visual snow depth above the floor, in world units.
+// When non-zero, overrides Settings.Snow.maxDepth for this level only.
+// 0 (default) means the global Settings.Snow.maxDepth value is used.
+//@mem snowMaxDepth
+		"snowMaxDepth", &Level::SnowMaxDepth
 	);
 }
 
@@ -244,8 +250,9 @@ float Level::GetWeatherStrength() const
 
 void Level::SetDynamicSnowLevel(float offset)
 {
-	const auto& snow = g_GameFlow->GetSettings()->Snow;
-	float limit = (float)snow.MaxDepth;
+	float limit = (SnowMaxDepth > 0)
+		? (float)SnowMaxDepth
+		: (float)g_GameFlow->GetSettings()->Snow.MaxDepth;
 	SnowSurfaceOffset = std::clamp(offset, -limit, limit);
 }
 

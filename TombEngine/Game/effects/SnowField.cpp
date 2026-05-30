@@ -13,6 +13,7 @@
 #include "Game/Setup.h"
 #include "Specific/level.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Include/ScriptInterfaceLevel.h"
 
 namespace TEN::Effects::SnowField
 {
@@ -89,7 +90,8 @@ namespace TEN::Effects::SnowField
 			return floorY;
 
 		const auto& settings = g_GameFlow->GetSettings()->Snow;
-		auto maxDepth = (float)settings.MaxDepth;
+		int perLevelMaxDepth = g_GameFlow->GetLevel(CurrentLevel)->GetSnowMaxDepth();
+		auto maxDepth = (float)((perLevelMaxDepth > 0) ? perLevelMaxDepth : settings.MaxDepth);
 		if (maxDepth <= 0.0f)
 			return floorY;
 
@@ -187,7 +189,8 @@ namespace TEN::Effects::SnowField
 			return;
 
 		const auto& settings = g_GameFlow->GetSettings()->Snow;
-		float maxDepth = (float)std::max(0, settings.MaxDepth);
+		int perLevelMaxDepth = g_GameFlow->GetLevel(CurrentLevel)->GetSnowMaxDepth();
+		float maxDepth = (float)std::max(0, (perLevelMaxDepth > 0) ? perLevelMaxDepth : settings.MaxDepth);
 		if (maxDepth <= 0.0f)
 			return;
 

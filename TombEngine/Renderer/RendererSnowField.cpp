@@ -60,10 +60,14 @@ namespace TEN::Renderer
 	void Renderer::UpdateSnowBuffer()
 	{
 		const auto& snow = g_GameFlow->GetSettings()->Snow;
+		const auto* level = g_GameFlow->GetLevel(CurrentLevel);
 
 		_stSnow.SnowCentre = SnowField::GetWorldCentre();
 		_stSnow.SnowWorldRadius = SnowField::GetWorldRadius();
-		_stSnow.SnowMaxDepth = (float)snow.MaxDepth;
+
+		// Use per-level depth if set; fall back to global settings.
+		int perLevelMaxDepth = level->GetSnowMaxDepth();
+		_stSnow.SnowMaxDepth = (float)((perLevelMaxDepth > 0) ? perLevelMaxDepth : snow.MaxDepth);
 
 		float tintR = (float)snow.Tint.GetR() / 255.0f;
 		float tintG = (float)snow.Tint.GetG() / 255.0f;
@@ -75,7 +79,7 @@ namespace TEN::Renderer
 		float hillHeight = std::max(0.0f, snow.HillHeight);
 
 		// Combine the scripted/saved level offset with the transient debug UI offset.
-		float levelOffset = g_GameFlow->GetLevel(CurrentLevel)->GetSnowSurfaceOffset();
+		float levelOffset = level->GetSnowSurfaceOffset();
 		_stSnow.SnowHillParams = Vector4(hillHeight, snow.HillFrequency, levelOffset + _snowDebugYOffset, 0.0f);
 
 		UpdateConstantBuffer(&_stSnow, _cbSnow.get());
