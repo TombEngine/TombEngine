@@ -498,8 +498,7 @@ int main(int argc, char* argv[])
 				SDL_GetWindowSizeInPixels(sdlWindow, &w, &h);
 
 				SDL_LockMutex(NextResolutionMutex);
-				if (!NextResolution.has_value())
-					NextResolution = Vector2i(w, h);
+				NextResolution = Vector2i(w, h);
 				SDL_UnlockMutex(NextResolutionMutex);
 				break;
 			}
