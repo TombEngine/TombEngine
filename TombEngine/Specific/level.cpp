@@ -1225,6 +1225,9 @@ void FreeLevel(bool partial)
 	g_GameScript->FreeLevelScripts();
 	g_GameScriptEntities->FreeEntities();
 
+	if (g_SoundTrackManager)
+		g_SoundTrackManager->ClearAll();
+
 	if (partial)
 		return;
 
