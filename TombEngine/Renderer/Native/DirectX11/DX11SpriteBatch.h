@@ -36,7 +36,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 		ID3D11ShaderResourceView* GetD3D11ShaderResourceView(ITextureBase* texture);
 
-		void Begin(SpriteSortingMode sortingMode, BlendMode blendMode) override;
+		void Begin(SpriteSortingMode sortingMode, BlendMode blendMode, bool useScissor = false) override;
 		void End() override;
 		void Draw(ITextureBase* texture, RendererRectangle area, Vector4 color) override;
 	};

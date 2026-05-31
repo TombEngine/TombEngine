@@ -206,12 +206,15 @@ void DisplayString::Register(sol::table& parent)
 
 		/// Set a scissor clipping rectangle for the display string.
 		// Clips the string to the specified rectangle when drawn.
+		// NOTE: Unlike DisplayString position and area, the scissor rectangle uses display-space percent coordinates (0-100).
 		// @function DisplayString:SetScissor
-		// @tparam Vec2 pos Top-left position of the scissor rectangle in percent.
-		// @tparam Vec2 size Width and height of the scissor rectangle in percent.
+		// @tparam Vec2 pos Position of the scissor rectangle in display-space percent coordinates (0-100).
+		// @tparam Vec2 size Width and height of the scissor rectangle in display-space percent coordinates (0-100).
+		// @tparam[opt=View.AlignMode.TOP_LEFT] View.AlignMode alignMode Alignment mode used to interpret `pos`.
 		ScriptReserved_SetScissor, &DisplayString::SetScissor,
 
 		/// Clear the scissor clipping rectangle from the display string.
+		// Removes the scissor rectangle previously specified in display-space percent coordinates (0-100).
 		// @function DisplayString:ClearScissor
 		ScriptReserved_ClearScissor, &DisplayString::ClearScissor,
 
@@ -330,17 +333,24 @@ void DisplayString::SetFlags(const sol::table& flags)
 
 void DisplayString::SetScissor(const Vec2& pos, const Vec2& size, sol::optional<DisplaySpriteAlignMode> alignMode)
 {
-	UserDisplayString& displayString = GetItemCallbackRoutine(_id).value();
-	displayString._hasScissor       = true;
-	displayString._scissorPos       = pos;
-	displayString._scissorSize      = size;
-	displayString._scissorAlignMode = alignMode.value_or(DisplaySpriteAlignMode::TopLeft);
+	auto displayString = GetItemCallbackRoutine(_id);
+	if (!displayString.has_value())
+		return;
+
+	auto& userDisplayString = displayString->get();
+	userDisplayString._hasScissor       = true;
+	userDisplayString._scissorPos       = pos;
+	userDisplayString._scissorSize      = size;
+	userDisplayString._scissorAlignMode = alignMode.value_or(DisplaySpriteAlignMode::TopLeft);
 }
 
 void DisplayString::ClearScissor()
 {
-	UserDisplayString& displayString = GetItemCallbackRoutine(_id).value();
-	displayString._hasScissor = false;
+	auto displayString = GetItemCallbackRoutine(_id);
+	if (!displayString.has_value())
+		return;
+
+	displayString->get()._hasScissor = false;
 }
 
 sol::table DisplayString::GetFlags(sol::this_state state) const

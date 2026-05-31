@@ -7,7 +7,6 @@
 
 namespace TEN::Scripting::Types { class ScriptColor; }
 
-using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Scripting::Types;
 
 /***
@@ -78,7 +77,7 @@ private:
 	bool _hasScissor       = false;
 	Vec2 _scissorPos       = Vec2(0.0f, 0.0f);
 	Vec2 _scissorSize      = Vec2(100.0f, 100.0f);
-	DisplaySpriteAlignMode _scissorAlignMode = DisplaySpriteAlignMode::TopLeft;
+	TEN::Effects::DisplaySprite::DisplaySpriteAlignMode _scissorAlignMode = TEN::Effects::DisplaySprite::DisplaySpriteAlignMode::TopLeft;
 
 	float _timeRemaining = 0.0f; // NOTE: Seconds.
 
@@ -132,7 +131,7 @@ public:
 	void SetColor(const ScriptColor&);
 	void SetTranslated(bool isTranslated);
 	void SetFlags(const sol::table& flags);
-	void SetScissor(const Vec2& pos, const Vec2& size, sol::optional<DisplaySpriteAlignMode> alignMode);
+	void SetScissor(const Vec2& pos, const Vec2& size, sol::optional<TEN::Effects::DisplaySprite::DisplaySpriteAlignMode> alignMode);
 	void ClearScissor();
 
 	// Routines

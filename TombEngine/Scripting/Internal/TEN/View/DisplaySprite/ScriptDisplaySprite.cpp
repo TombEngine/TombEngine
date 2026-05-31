@@ -13,6 +13,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Scripting::Types;
+using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Renderer::Structures;
 using TEN::Renderer::g_Renderer;
 
@@ -32,22 +33,6 @@ namespace TEN::Scripting::DisplaySprite
 	constexpr auto DEFAULT_SCALE_MODE = DisplaySpriteScaleMode::Fit;
 	constexpr auto DEFAULT_BLEND_MODE = BlendMode::AlphaBlend;
 	constexpr auto DISPLAY_ASPECT = DISPLAY_SPACE_RES.x / DISPLAY_SPACE_RES.y;
-
-	static Vector2 ComputeScissorTopLeft(const Vector2& pos, const Vector2& size, DisplaySpriteAlignMode alignMode)
-	{
-		switch (alignMode)
-		{
-		case DisplaySpriteAlignMode::CenterTop:    return Vector2(pos.x - size.x / 2.0f, pos.y);
-		case DisplaySpriteAlignMode::CenterBottom: return Vector2(pos.x - size.x / 2.0f, pos.y - size.y);
-		case DisplaySpriteAlignMode::CenterLeft:   return Vector2(pos.x, pos.y - size.y / 2.0f);
-		case DisplaySpriteAlignMode::CenterRight:  return Vector2(pos.x - size.x, pos.y - size.y / 2.0f);
-		case DisplaySpriteAlignMode::Center:       return Vector2(pos.x - size.x / 2.0f, pos.y - size.y / 2.0f);
-		case DisplaySpriteAlignMode::TopRight:     return Vector2(pos.x - size.x, pos.y);
-		case DisplaySpriteAlignMode::BottomLeft:   return Vector2(pos.x, pos.y - size.y);
-		case DisplaySpriteAlignMode::BottomRight:  return Vector2(pos.x - size.x, pos.y - size.y);
-		default:                                   return pos;
-		}
-	}
 
 	void ScriptDisplaySprite::Register(sol::state& state, sol::table& parent)
 	{
@@ -359,8 +344,9 @@ namespace TEN::Scripting::DisplaySprite
 	/// Set a scissor clipping rectangle for the display sprite.
 	// Clips the sprite to the specified rectangle when drawn.
 	// @function DisplaySprite:SetScissor
-	// @tparam Vec2 pos Top-left position of the scissor rectangle in percent.
-	// @tparam Vec2 size Width and height of the scissor rectangle in percent.
+	// @tparam Vec2 pos Position of the scissor rectangle in display-space percent coordinates (0-100).
+	// @tparam Vec2 size Width and height of the scissor rectangle in display-space percent coordinates (0-100).
+	// @tparam[opt=View.AlignMode.TOP_LEFT] View.AlignMode alignMode Alignment mode used to interpret `pos`.
 	void ScriptDisplaySprite::SetScissor(const Vec2& pos, const Vec2& size, sol::optional<DisplaySpriteAlignMode> alignMode)
 	{
 		_hasScissor       = true;
@@ -370,6 +356,7 @@ namespace TEN::Scripting::DisplaySprite
 	}
 
 	/// Clear the scissor clipping rectangle from the display sprite.
+	// The cleared rectangle was previously specified in display-space percent coordinates (0-100).
 	// @function DisplaySprite:ClearScissor
 	void ScriptDisplaySprite::ClearScissor()
 	{
@@ -409,6 +396,16 @@ namespace TEN::Scripting::DisplaySprite
 		short convertedRot = ANGLE(_rotation);
 		auto convertedScale = Vector2(_scale.x, _scale.y) * SCALE_CONVERSION_COEFF;
 		auto convertedColor = Vector4(_color.GetR(), _color.GetG(), _color.GetB(), _color.GetA()) / UCHAR_MAX;
+		auto hasScissor = _hasScissor;
+		auto scissor = RendererRectangle();
+
+		if (hasScissor)
+		{
+			auto screenRes = g_Renderer.GetScreenResolution();
+			auto pos = Vector2(_scissorPos.x, _scissorPos.y);
+			auto size = Vector2(_scissorSize.x, _scissorSize.y);
+			scissor = TEN::Effects::DisplaySprite::GetDisplaySpriteScissorRectangle(screenRes.ToVector2(), pos, size, _scissorAlignMode);
+		}
 
 		AddDisplaySprite(
 			_objectID, _spriteID,
@@ -417,21 +414,8 @@ namespace TEN::Scripting::DisplaySprite
 			alignMode.value_or(DEFAULT_ALIGN_MODE),
 			scaleMode.value_or(DEFAULT_SCALE_MODE),
 			blendMode.value_or(DEFAULT_BLEND_MODE), 
-			DisplaySpritePhase::Control);
-
-		if (_hasScissor)
-		{
-			auto screenRes = g_Renderer.GetScreenResolution();
-			auto pos  = Vector2(_scissorPos.x, _scissorPos.y);
-			auto size = Vector2(_scissorSize.x, _scissorSize.y);
-			auto tl   = ComputeScissorTopLeft(pos, size, _scissorAlignMode);
-			auto& queued = DisplaySprites.back();
-			queued.HasScissor = true;
-			queued.Scissor = RendererRectangle(
-				(int)(tl.x * screenRes.x / 100.0f),
-				(int)(tl.y * screenRes.y / 100.0f),
-				(int)((tl.x + size.x) * screenRes.x / 100.0f),
-				(int)((tl.y + size.y) * screenRes.y / 100.0f));
-		}
+			DisplaySpritePhase::Control,
+			hasScissor,
+			scissor);
 	}
 }

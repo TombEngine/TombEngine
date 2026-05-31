@@ -6,7 +6,6 @@
 #include "Scripting/Internal/TEN/View/DisplayAnchors/ScriptDisplayAnchors.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 
-using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Scripting::Types;
 
 enum BLEND_MODE;
@@ -31,7 +30,7 @@ namespace TEN::Scripting::DisplaySprite
 		bool _hasScissor       = false;
 		Vec2 _scissorPos       = Vec2(0.0f, 0.0f);
 		Vec2 _scissorSize      = Vec2(100.0f, 100.0f);
-		DisplaySpriteAlignMode _scissorAlignMode = DisplaySpriteAlignMode::TopLeft;
+		TEN::Effects::DisplaySprite::DisplaySpriteAlignMode _scissorAlignMode = TEN::Effects::DisplaySprite::DisplaySpriteAlignMode::TopLeft;
 
 	public:
 		// Constructors
@@ -47,7 +46,8 @@ namespace TEN::Scripting::DisplaySprite
 		float				 GetRotation() const;
 		Vec2				 GetScale() const;
 		ScriptColor			 GetColor() const;
-		ScriptDisplayAnchors GetAnchors(sol::optional<DisplaySpriteAlignMode> alignModeOpt, sol::optional<DisplaySpriteScaleMode> scaleModeOpt) const;
+		ScriptDisplayAnchors GetAnchors(sol::optional<TEN::Effects::DisplaySprite::DisplaySpriteAlignMode> alignModeOpt,
+			sol::optional<TEN::Effects::DisplaySprite::DisplaySpriteScaleMode> scaleModeOpt) const;
 
 		// Setters
 		void SetObjectID(GAME_OBJECT_ID objectID);
@@ -56,11 +56,11 @@ namespace TEN::Scripting::DisplaySprite
 		void SetRotation(float rot);
 		void SetScale(const Vec2& scale);
 		void SetColor(const ScriptColor& color);
-		void SetScissor(const Vec2& pos, const Vec2& size, sol::optional<DisplaySpriteAlignMode> alignMode);
+		void SetScissor(const Vec2& pos, const Vec2& size, sol::optional<TEN::Effects::DisplaySprite::DisplaySpriteAlignMode> alignMode);
 		void ClearScissor();
 
 		// Utilities
-		void Draw(sol::optional<int> priority, sol::optional<DisplaySpriteAlignMode> alignMode,
-				  sol::optional<DisplaySpriteScaleMode> scaleMode, sol::optional<BlendMode> blendMode);
+		void Draw(sol::optional<int> priority, sol::optional<TEN::Effects::DisplaySprite::DisplaySpriteAlignMode> alignMode,
+				  sol::optional<TEN::Effects::DisplaySprite::DisplaySpriteScaleMode> scaleMode, sol::optional<BlendMode> blendMode);
 	};
 }

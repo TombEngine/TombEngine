@@ -42,7 +42,7 @@ namespace TEN::Renderer::Native::DirectX11
 		return srv;
 	}
 
-	void DX11SpriteBatch::Begin(SpriteSortingMode sortingMode, BlendMode blendMode)
+	void DX11SpriteBatch::Begin(SpriteSortingMode sortingMode, BlendMode blendMode, bool useScissor)
 	{
 		SpriteSortMode mode;
 		switch (sortingMode)
@@ -97,7 +97,14 @@ namespace TEN::Renderer::Native::DirectX11
 			break;
 		}
 
-		_spriteBatch->Begin(mode, blendState, nullptr, nullptr, _scissorRasterizerState.Get());
+		if (useScissor)
+		{
+			_spriteBatch->Begin(mode, blendState, nullptr, nullptr, _scissorRasterizerState.Get());
+		}
+		else
+		{
+			_spriteBatch->Begin(mode, blendState);
+		}
 	}
 
 	void DX11SpriteBatch::End()

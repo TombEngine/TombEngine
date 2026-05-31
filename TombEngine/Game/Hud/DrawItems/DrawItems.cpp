@@ -16,22 +16,6 @@ namespace TEN::Hud
 {
 	DrawItemsController g_DrawItems = {};
 
-	static Vector2 ComputeScissorTopLeft(const Vector2& pos, const Vector2& size, DisplaySpriteAlignMode alignMode)
-	{
-		switch (alignMode)
-		{
-		case DisplaySpriteAlignMode::CenterTop:    return Vector2(pos.x - size.x / 2.0f, pos.y);
-		case DisplaySpriteAlignMode::CenterBottom: return Vector2(pos.x - size.x / 2.0f, pos.y - size.y);
-		case DisplaySpriteAlignMode::CenterLeft:   return Vector2(pos.x, pos.y - size.y / 2.0f);
-		case DisplaySpriteAlignMode::CenterRight:  return Vector2(pos.x - size.x, pos.y - size.y / 2.0f);
-		case DisplaySpriteAlignMode::Center:       return Vector2(pos.x - size.x / 2.0f, pos.y - size.y / 2.0f);
-		case DisplaySpriteAlignMode::TopRight:     return Vector2(pos.x - size.x, pos.y);
-		case DisplaySpriteAlignMode::BottomLeft:   return Vector2(pos.x, pos.y - size.y);
-		case DisplaySpriteAlignMode::BottomRight:  return Vector2(pos.x - size.x, pos.y - size.y);
-		default:                                   return pos;
-		}
-	}
-
 	DisplayItem* DrawItemsController::GetItemByID(unsigned int id)
 	{
 		for (auto& item : _displayItems)
@@ -228,14 +212,11 @@ namespace TEN::Hud
 			if (item.GetHasScissor())
 			{
 				auto screenRes = g_Renderer.GetScreenResolution();
-				auto pos  = item.GetScissorPos();
-				auto size = item.GetScissorSize();
-				auto tl   = ComputeScissorTopLeft(pos, size, item.GetScissorAlignMode());
-				auto rect = RendererRectangle(
-					(int)(tl.x * screenRes.x / 100.0f),
-					(int)(tl.y * screenRes.y / 100.0f),
-					(int)((tl.x + size.x) * screenRes.x / 100.0f),
-					(int)((tl.y + size.y) * screenRes.y / 100.0f));
+				auto rect = GetDisplaySpriteScissorRectangle(
+					screenRes.ToVector2(),
+					item.GetScissorPos(),
+					item.GetScissorSize(),
+					item.GetScissorAlignMode());
 				g_Renderer.SetDisplayScissor(rect);
 			}
 

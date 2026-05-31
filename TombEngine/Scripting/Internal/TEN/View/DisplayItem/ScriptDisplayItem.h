@@ -50,7 +50,8 @@ namespace TEN::Scripting::DisplayItem
 		void SetAnimNumber(int animNumber);
 		void SetFrameNumber(int frameNumber);
 		void SetMeshBits(int meshbits);
-		void SetScissor(const Vec2& pos, const Vec2& size, sol::optional<DisplaySpriteAlignMode> alignMode);
+		void SetScissor(const Vec2& pos, const Vec2& size,
+			sol::optional<TEN::Effects::DisplaySprite::DisplaySpriteAlignMode> alignMode);
 		void ClearScissor();
 
 		// Getters

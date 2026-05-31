@@ -6,6 +6,15 @@
 
 using namespace TEN::Utils;
 
+static bool AreScissorsEqual(const TEN::Renderer::Structures::RendererRectangle& left,
+	const TEN::Renderer::Structures::RendererRectangle& right)
+{
+	return (left.Left == right.Left &&
+		left.Top == right.Top &&
+		left.Right == right.Right &&
+		left.Bottom == right.Bottom);
+}
+
 namespace TEN::Renderer
 {
 	void Renderer::AddDebugString(const std::string& string, const Vector2& pos, const Color& color, float scale, RendererDebugPage page)
@@ -205,10 +214,15 @@ namespace TEN::Renderer
 
 		bool batchOpen        = false;
 		bool hasActiveScissor = false;
+		auto activeScissor = RendererRectangle();
 
 		for (const auto& rString : _stringsToDraw)
 		{
-			bool needBreak = !batchOpen || rString.HasScissor || hasActiveScissor;
+			bool scissorMatches = (hasActiveScissor == rString.HasScissor);
+			if (scissorMatches && hasActiveScissor)
+				scissorMatches = AreScissorsEqual(activeScissor, rString.Scissor);
+
+			bool needBreak = !batchOpen || !scissorMatches;
 			if (needBreak)
 			{
 				if (batchOpen)
@@ -217,19 +231,20 @@ namespace TEN::Renderer
 					batchOpen = false;
 				}
 
-				if (hasActiveScissor)
+				if (hasActiveScissor && !scissorMatches)
 				{
 					ResetScissor();
 					hasActiveScissor = false;
 				}
 
-				if (rString.HasScissor)
+				if (rString.HasScissor && !scissorMatches)
 				{
 					SetScissor(rString.Scissor);
 					hasActiveScissor = true;
+					activeScissor = rString.Scissor;
 				}
 
-				_spriteBatch->Begin(SpriteSortingMode::Deferred, BlendMode::PremultipliedAlphaBlend);
+				_spriteBatch->Begin(SpriteSortingMode::Deferred, BlendMode::PremultipliedAlphaBlend, rString.HasScissor);
 				batchOpen = true;
 			}
 
