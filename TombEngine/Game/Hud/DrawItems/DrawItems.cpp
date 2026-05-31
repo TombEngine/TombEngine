@@ -1,11 +1,13 @@
 #include "framework.h"
 #include "Game/Hud/DrawItems/DrawItems.h"
 
+#include "Game/effects/DisplaySprite.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/clock.h"
 
+using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Math;
 using namespace TEN::Renderer::Structures;
 using TEN::Renderer::g_Renderer;
@@ -13,6 +15,22 @@ using TEN::Renderer::g_Renderer;
 namespace TEN::Hud
 {
 	DrawItemsController g_DrawItems = {};
+
+	static Vector2 ComputeScissorTopLeft(const Vector2& pos, const Vector2& size, DisplaySpriteAlignMode alignMode)
+	{
+		switch (alignMode)
+		{
+		case DisplaySpriteAlignMode::CenterTop:    return Vector2(pos.x - size.x / 2.0f, pos.y);
+		case DisplaySpriteAlignMode::CenterBottom: return Vector2(pos.x - size.x / 2.0f, pos.y - size.y);
+		case DisplaySpriteAlignMode::CenterLeft:   return Vector2(pos.x, pos.y - size.y / 2.0f);
+		case DisplaySpriteAlignMode::CenterRight:  return Vector2(pos.x - size.x, pos.y - size.y / 2.0f);
+		case DisplaySpriteAlignMode::Center:       return Vector2(pos.x - size.x / 2.0f, pos.y - size.y / 2.0f);
+		case DisplaySpriteAlignMode::TopRight:     return Vector2(pos.x - size.x, pos.y);
+		case DisplaySpriteAlignMode::BottomLeft:   return Vector2(pos.x, pos.y - size.y);
+		case DisplaySpriteAlignMode::BottomRight:  return Vector2(pos.x - size.x, pos.y - size.y);
+		default:                                   return pos;
+		}
+	}
 
 	DisplayItem* DrawItemsController::GetItemByID(unsigned int id)
 	{
@@ -212,11 +230,12 @@ namespace TEN::Hud
 				auto screenRes = g_Renderer.GetScreenResolution();
 				auto pos  = item.GetScissorPos();
 				auto size = item.GetScissorSize();
+				auto tl   = ComputeScissorTopLeft(pos, size, item.GetScissorAlignMode());
 				auto rect = RendererRectangle(
-					(int)(pos.x * screenRes.x / 100.0f),
-					(int)(pos.y * screenRes.y / 100.0f),
-					(int)((pos.x + size.x) * screenRes.x / 100.0f),
-					(int)((pos.y + size.y) * screenRes.y / 100.0f));
+					(int)(tl.x * screenRes.x / 100.0f),
+					(int)(tl.y * screenRes.y / 100.0f),
+					(int)((tl.x + size.x) * screenRes.x / 100.0f),
+					(int)((tl.y + size.y) * screenRes.y / 100.0f));
 				g_Renderer.SetDisplayScissor(rect);
 			}
 

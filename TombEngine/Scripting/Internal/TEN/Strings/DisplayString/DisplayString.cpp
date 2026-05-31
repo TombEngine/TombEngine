@@ -8,6 +8,7 @@
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 
+using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Scripting::Types;
 using namespace TEN::Renderer::Structures;
 
@@ -327,12 +328,13 @@ void DisplayString::SetFlags(const sol::table& flags)
 	displayString._flags = flagArray;
 }
 
-void DisplayString::SetScissor(const Vec2& pos, const Vec2& size)
+void DisplayString::SetScissor(const Vec2& pos, const Vec2& size, sol::optional<DisplaySpriteAlignMode> alignMode)
 {
 	UserDisplayString& displayString = GetItemCallbackRoutine(_id).value();
-	displayString._hasScissor  = true;
-	displayString._scissorPos  = pos;
-	displayString._scissorSize = size;
+	displayString._hasScissor       = true;
+	displayString._scissorPos       = pos;
+	displayString._scissorSize      = size;
+	displayString._scissorAlignMode = alignMode.value_or(DisplaySpriteAlignMode::TopLeft);
 }
 
 void DisplayString::ClearScissor()

@@ -2,6 +2,7 @@
 #include "Scripting/Internal/TEN/Strings/StringsHandler.h"
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/TEN/Flow/FlowHandler.h"
+#include "Game/effects/DisplaySprite.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererEnums.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
@@ -14,6 +15,7 @@ Display strings.
 @pragma nostrip
 */
 
+using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Renderer::Structures;
 using TEN::Renderer::g_Renderer;
 
@@ -142,18 +144,21 @@ void StringsHandler::ProcessDisplayStrings(float deltaTime)
 				if (str._hasScissor)
 				{
 					auto screenRes = g_Renderer.GetScreenResolution();
+					auto pos  = Vector2(str._scissorPos.x, str._scissorPos.y);
+					auto size = Vector2(str._scissorSize.x, str._scissorSize.y);
+					auto tl   = ComputeScissorTopLeft(pos, size, str._scissorAlignMode);
 					auto rect = RendererRectangle(
-						(int)(str._scissorPos.x * screenRes.x / 100.0f),
-						(int)(str._scissorPos.y * screenRes.y / 100.0f),
-						(int)((str._scissorPos.x + str._scissorSize.x) * screenRes.x / 100.0f),
-						(int)((str._scissorPos.y + str._scissorSize.y) * screenRes.y / 100.0f));
-					g_Renderer.SetDisplayScissor(rect);
+						(int)(tl.x * screenRes.x / 100.0f),
+						(int)(tl.y * screenRes.y / 100.0f),
+						(int)((tl.x + size.x) * screenRes.x / 100.0f),
+						(int)((tl.y + size.y) * screenRes.y / 100.0f));
+					g_Renderer.SetPendingStringScissor(rect);
 				}
 
 				m_callbackDrawSring(cstr, str._color, str._position, str._area, str._scale, flags);
 
 				if (str._hasScissor)
-					g_Renderer.ResetDisplayScissor();
+					g_Renderer.ClearPendingStringScissor();
 
 				str._timeRemaining -= deltaTime;
 			}

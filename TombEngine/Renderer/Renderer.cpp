@@ -406,6 +406,8 @@ namespace TEN::Renderer
 
 	void Renderer::SetDisplayScissor(RendererRectangle rect) { SetScissor(rect); }
 	void Renderer::ResetDisplayScissor()                     { ResetScissor(); }
+	void Renderer::SetPendingStringScissor(RendererRectangle rect) { _pendingStringScissor = true;  _pendingStringScissorRect = rect; }
+	void Renderer::ClearPendingStringScissor()                     { _pendingStringScissor = false; }
 
 	void Renderer::SetGraphicsSettingsChanged()
 	{

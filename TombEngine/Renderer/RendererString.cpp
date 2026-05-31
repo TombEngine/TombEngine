@@ -182,6 +182,8 @@ namespace TEN::Renderer
 
 				// Advance vertical offset and add current substring.
 				yOffset += stringSize.y;
+				rString.HasScissor = _pendingStringScissor;
+				rString.Scissor    = _pendingStringScissorRect;
 				_stringsToDraw.push_back(rString);
 			}
 		}
@@ -201,10 +203,36 @@ namespace TEN::Renderer
 		float shadowOffset = 1.5f / (REFERENCE_FONT_SIZE / _gameFont->GetLineSpacing());
 		auto shadowColor = (Vector4)g_GameFlow->GetSettings()->UI.ShadowTextColor;
 
-		_spriteBatch->Begin(SpriteSortingMode::Deferred, BlendMode::PremultipliedAlphaBlend);
+		bool batchOpen        = false;
+		bool hasActiveScissor = false;
 
 		for (const auto& rString : _stringsToDraw)
 		{
+			bool needBreak = !batchOpen || rString.HasScissor || hasActiveScissor;
+			if (needBreak)
+			{
+				if (batchOpen)
+				{
+					_spriteBatch->End();
+					batchOpen = false;
+				}
+
+				if (hasActiveScissor)
+				{
+					ResetScissor();
+					hasActiveScissor = false;
+				}
+
+				if (rString.HasScissor)
+				{
+					SetScissor(rString.Scissor);
+					hasActiveScissor = true;
+				}
+
+				_spriteBatch->Begin(SpriteSortingMode::Deferred, BlendMode::PremultipliedAlphaBlend);
+				batchOpen = true;
+			}
+
 			auto drawPos = Vector2::Lerp(rString.PrevPosition, rString.Position, GetInterpolationFactor(true));
 
 			// Draw shadow.
@@ -225,6 +253,11 @@ namespace TEN::Renderer
 				0.0f, Vector2::Zero, rString.Scale);
 		}
 
-		_spriteBatch->End();
+		if (batchOpen)
+		{
+			_spriteBatch->End();
+			if (hasActiveScissor)
+				ResetScissor();
+		}
 	}
 }

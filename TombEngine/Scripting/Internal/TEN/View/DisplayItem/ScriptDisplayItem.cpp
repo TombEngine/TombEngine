@@ -316,10 +316,10 @@ namespace TEN::Scripting::DisplayItem
 	// @function DisplayItem:SetScissor
 	// @tparam Vec2 pos Top-left position of the scissor rectangle in percent.
 	// @tparam Vec2 size Width and height of the scissor rectangle in percent.
-	void ScriptDisplayItem::SetScissor(const Vec2& pos, const Vec2& size)
+	void ScriptDisplayItem::SetScissor(const Vec2& pos, const Vec2& size, sol::optional<DisplaySpriteAlignMode> alignMode)
 	{
 		if (auto* item = TryGetItem())
-			item->SetScissor(Vector2(pos.x, pos.y), Vector2(size.x, size.y));
+			item->SetScissor(Vector2(pos.x, pos.y), Vector2(size.x, size.y), alignMode.value_or(DisplaySpriteAlignMode::TopLeft));
 	}
 
 	/// Clear the scissor clipping rectangle from the display item.

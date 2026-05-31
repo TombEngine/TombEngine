@@ -33,6 +33,22 @@ namespace TEN::Scripting::DisplaySprite
 	constexpr auto DEFAULT_BLEND_MODE = BlendMode::AlphaBlend;
 	constexpr auto DISPLAY_ASPECT = DISPLAY_SPACE_RES.x / DISPLAY_SPACE_RES.y;
 
+	static Vector2 ComputeScissorTopLeft(const Vector2& pos, const Vector2& size, DisplaySpriteAlignMode alignMode)
+	{
+		switch (alignMode)
+		{
+		case DisplaySpriteAlignMode::CenterTop:    return Vector2(pos.x - size.x / 2.0f, pos.y);
+		case DisplaySpriteAlignMode::CenterBottom: return Vector2(pos.x - size.x / 2.0f, pos.y - size.y);
+		case DisplaySpriteAlignMode::CenterLeft:   return Vector2(pos.x, pos.y - size.y / 2.0f);
+		case DisplaySpriteAlignMode::CenterRight:  return Vector2(pos.x - size.x, pos.y - size.y / 2.0f);
+		case DisplaySpriteAlignMode::Center:       return Vector2(pos.x - size.x / 2.0f, pos.y - size.y / 2.0f);
+		case DisplaySpriteAlignMode::TopRight:     return Vector2(pos.x - size.x, pos.y);
+		case DisplaySpriteAlignMode::BottomLeft:   return Vector2(pos.x, pos.y - size.y);
+		case DisplaySpriteAlignMode::BottomRight:  return Vector2(pos.x - size.x, pos.y - size.y);
+		default:                                   return pos;
+		}
+	}
+
 	void ScriptDisplaySprite::Register(sol::state& state, sol::table& parent)
 	{
 		// NOTE: Single constructor with a sol::optional argument for the color doesn't work, hence the two constructors. -- Sezz 2023.10.19
@@ -345,11 +361,12 @@ namespace TEN::Scripting::DisplaySprite
 	// @function DisplaySprite:SetScissor
 	// @tparam Vec2 pos Top-left position of the scissor rectangle in percent.
 	// @tparam Vec2 size Width and height of the scissor rectangle in percent.
-	void ScriptDisplaySprite::SetScissor(const Vec2& pos, const Vec2& size)
+	void ScriptDisplaySprite::SetScissor(const Vec2& pos, const Vec2& size, sol::optional<DisplaySpriteAlignMode> alignMode)
 	{
-		_hasScissor  = true;
-		_scissorPos  = pos;
-		_scissorSize = size;
+		_hasScissor       = true;
+		_scissorPos       = pos;
+		_scissorSize      = size;
+		_scissorAlignMode = alignMode.value_or(DisplaySpriteAlignMode::TopLeft);
 	}
 
 	/// Clear the scissor clipping rectangle from the display sprite.
@@ -405,13 +422,16 @@ namespace TEN::Scripting::DisplaySprite
 		if (_hasScissor)
 		{
 			auto screenRes = g_Renderer.GetScreenResolution();
+			auto pos  = Vector2(_scissorPos.x, _scissorPos.y);
+			auto size = Vector2(_scissorSize.x, _scissorSize.y);
+			auto tl   = ComputeScissorTopLeft(pos, size, _scissorAlignMode);
 			auto& queued = DisplaySprites.back();
 			queued.HasScissor = true;
 			queued.Scissor = RendererRectangle(
-				(int)(_scissorPos.x * screenRes.x / 100.0f),
-				(int)(_scissorPos.y * screenRes.y / 100.0f),
-				(int)((_scissorPos.x + _scissorSize.x) * screenRes.x / 100.0f),
-				(int)((_scissorPos.y + _scissorSize.y) * screenRes.y / 100.0f));
+				(int)(tl.x * screenRes.x / 100.0f),
+				(int)(tl.y * screenRes.y / 100.0f),
+				(int)((tl.x + size.x) * screenRes.x / 100.0f),
+				(int)((tl.y + size.y) * screenRes.y / 100.0f));
 		}
 	}
 }

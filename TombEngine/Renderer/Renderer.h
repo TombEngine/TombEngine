@@ -160,6 +160,9 @@ namespace TEN::Renderer
 		float _blinkTime = 0.0f;
 		float _oldBlinkTime = 0.0f;
 
+		bool              _pendingStringScissor     = false;
+		RendererRectangle _pendingStringScissorRect = {};
+
 		// Sprites
 		std::vector<Vertex> _spriteVertices;
 		std::unique_ptr<IVertexBuffer> _spriteVertexBuffer;
@@ -772,6 +775,8 @@ namespace TEN::Renderer
 
 		void SetDisplayScissor(RendererRectangle rect);
 		void ResetDisplayScissor();
+		void SetPendingStringScissor(RendererRectangle rect);
+		void ClearPendingStringScissor();
 
 		PostProcessMode	GetPostProcessMode();
 		void			SetPostProcessMode(PostProcessMode mode);
