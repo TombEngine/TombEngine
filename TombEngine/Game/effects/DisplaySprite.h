@@ -2,6 +2,7 @@
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 #include "Renderer/RendererEnums.h"
+#include "Renderer/Structures/RendererRectangle.h"
 
 namespace TEN::Effects::DisplaySprite
 {
@@ -47,6 +48,9 @@ namespace TEN::Effects::DisplaySprite
 		BlendMode			   BlendMode = BlendMode::AlphaBlend;
 
 		DisplaySpritePhase Source = DisplaySpritePhase::Control;
+
+		bool                               HasScissor = false;
+		TEN::Renderer::Structures::RendererRectangle Scissor    = {};
 	};
 
 	// Result of display sprite layout calculation.

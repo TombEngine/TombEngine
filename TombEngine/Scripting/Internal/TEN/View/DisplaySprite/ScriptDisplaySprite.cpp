@@ -393,17 +393,6 @@ namespace TEN::Scripting::DisplaySprite
 		auto convertedScale = Vector2(_scale.x, _scale.y) * SCALE_CONVERSION_COEFF;
 		auto convertedColor = Vector4(_color.GetR(), _color.GetG(), _color.GetB(), _color.GetA()) / UCHAR_MAX;
 
-		if (_hasScissor)
-		{
-			auto screenRes = g_Renderer.GetScreenResolution();
-			auto rect = RendererRectangle(
-				(int)(_scissorPos.x * screenRes.x / 100.0f),
-				(int)(_scissorPos.y * screenRes.y / 100.0f),
-				(int)((_scissorPos.x + _scissorSize.x) * screenRes.x / 100.0f),
-				(int)((_scissorPos.y + _scissorSize.y) * screenRes.y / 100.0f));
-			g_Renderer.SetDisplayScissor(rect);
-		}
-
 		AddDisplaySprite(
 			_objectID, _spriteID,
 			convertedPos, convertedRot, convertedScale, convertedColor,
@@ -414,6 +403,15 @@ namespace TEN::Scripting::DisplaySprite
 			DisplaySpritePhase::Control);
 
 		if (_hasScissor)
-			g_Renderer.ResetDisplayScissor();
+		{
+			auto screenRes = g_Renderer.GetScreenResolution();
+			auto& queued = DisplaySprites.back();
+			queued.HasScissor = true;
+			queued.Scissor = RendererRectangle(
+				(int)(_scissorPos.x * screenRes.x / 100.0f),
+				(int)(_scissorPos.y * screenRes.y / 100.0f),
+				(int)((_scissorPos.x + _scissorSize.x) * screenRes.x / 100.0f),
+				(int)((_scissorPos.y + _scissorSize.y) * screenRes.y / 100.0f));
+		}
 	}
 }
