@@ -19,6 +19,22 @@ using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Renderer::Structures;
 using TEN::Renderer::g_Renderer;
 
+static Vector2 ComputeScissorTopLeft(const Vector2& pos, const Vector2& size, DisplaySpriteAlignMode alignMode)
+{
+	switch (alignMode)
+	{
+	case DisplaySpriteAlignMode::CenterTop:    return Vector2(pos.x - size.x / 2.0f, pos.y);
+	case DisplaySpriteAlignMode::CenterBottom: return Vector2(pos.x - size.x / 2.0f, pos.y - size.y);
+	case DisplaySpriteAlignMode::CenterLeft:   return Vector2(pos.x, pos.y - size.y / 2.0f);
+	case DisplaySpriteAlignMode::CenterRight:  return Vector2(pos.x - size.x, pos.y - size.y / 2.0f);
+	case DisplaySpriteAlignMode::Center:       return Vector2(pos.x - size.x / 2.0f, pos.y - size.y / 2.0f);
+	case DisplaySpriteAlignMode::TopRight:     return Vector2(pos.x - size.x, pos.y);
+	case DisplaySpriteAlignMode::BottomLeft:   return Vector2(pos.x, pos.y - size.y);
+	case DisplaySpriteAlignMode::BottomRight:  return Vector2(pos.x - size.x, pos.y - size.y);
+	default:                                   return pos;
+	}
+}
+
 StringsHandler::StringsHandler(sol::state* lua, sol::table& parent) :
 	LuaHandler(lua)
 {
