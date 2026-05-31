@@ -105,14 +105,38 @@ namespace TEN::Effects::SnowDust
 		}
 	}
 
-	void SpawnSnowExplosionBurst(const Vector3& worldPos, int roomNumber, float worldRadius)
+	void SpawnSnowExplosionBurst(const Vector3i& worldPos, int roomNumber, float worldRadius, bool oneShot, bool effect)
 	{
 		if (worldRadius <= 0.0f)
 			return;
 
+		// One-shot guard: track quantized positions that have already fired.
+		// Quantize to 512 WU so minor float drift from the same emitter cannot
+		// create duplicate keys. Each unique emitter position fires at most once.
+		if (oneShot)
+		{
+			static auto firedPositions = std::unordered_set<size_t>{};
+
+			int qx = (int)(worldPos.x / 512.0f);
+			int qy = (int)(worldPos.y / 512.0f);
+			int qz = (int)(worldPos.z / 512.0f);
+
+			size_t key = (size_t)(unsigned int)qx ^
+						((size_t)(unsigned int)qy << 21) ^
+						((size_t)(unsigned int)qz << 42);
+
+			if (firedPositions.count(key))
+				return;
+
+			firedPositions.insert(key);
+		}
+
 		// Deform the heightmap at the blast site so the visual carves a real crater
 		// into any nearby active snow field. No-op outside snowy areas.
-		SnowField::Stamp(worldPos, worldRadius, 1.0f);
+		SnowField::Stamp(worldPos.ToVector3(), worldRadius, 1.0f);
+
+		if (!effect)
+			return;
 
 		auto tint = ResolveSnowTint();
 		unsigned char br = (unsigned char)std::clamp((int)(tint.x * 255.0f), 0, 255);
@@ -127,6 +151,49 @@ namespace TEN::Effects::SnowDust
 		// Counts scale with blast radius. Clamped to keep the particle pool sane.
 		int slushCount = std::clamp((int)(worldRadius / 24.0f) + 8, 8, 64);
 		int dustCount  = std::clamp((int)(worldRadius / 12.0f) + 16, 16, 96);
+
+		for (int i = 0; i < dustCount; i++)
+		{
+			float size = 1.0f;
+			
+			//if (GetRandomControl() & 7)
+			//{
+				auto& spark = *GetFreeParticle();
+
+				spark.on = true;
+				spark.fadeToBlack = 4.0f;
+				spark.colFadeSpeed = Random::GenerateFloat(4.0f, 8.0f);
+
+				spark.sR =
+						spark.sG =
+						spark.sB =
+						spark.dR =
+						spark.dG =
+						spark.dB = 1.0f * UCHAR_MAX;
+					spark.blendMode = BlendMode::Additive;
+
+				spark.SpriteSeqID = ID_DEFAULT_SPRITES;
+				spark.SpriteID = SPR_UNDERWATERDUST;
+				spark.life =
+				spark.sLife = Random::GenerateFloat(74.0f, 78.0f);
+				spark.x = worldPos.x + Random::GenerateFloat(0.0f, 22.0f);
+				spark.y = worldPos.y;
+				spark.z = worldPos.z + Random::GenerateFloat(0.0f, 22.0f);
+				spark.rotAng = Random::GenerateAngle();
+				spark.yVel = -BLOCK(0.1f + size) - Random::GenerateFloat(0.0f, BLOCK(0.75f + size));
+				spark.gravity = Random::GenerateFloat(84.0f, 120.0f);
+				spark.xVel = Random::GenerateFloat(-368.0f * size, 368.0f * size);
+				spark.friction = 15;
+				spark.maxYvel = 0;
+				spark.zVel = Random::GenerateFloat(-368.0f * size, 368.0f * size);
+				spark.scalar = 1.0f;
+				spark.sSize =
+					spark.size = Random::GenerateFloat(32.0f, 48.0f);
+				spark.dSize = spark.size;
+				spark.flags = SP_ROTATE | SP_DEF | SP_SCALE;
+				spark.damage = 2;
+			//}
+		}
 
 		// Wet slush chunks: heavy, ballistic, alpha-blended.
 		for (int i = 0; i < slushCount; i++)
@@ -146,7 +213,7 @@ namespace TEN::Effects::SnowDust
 			spark->dB = (unsigned char)(sb / 3);
 			spark->colFadeSpeed = 6;
 			spark->fadeToBlack = 24;
-			spark->life = spark->sLife = 60 + (GetRandomControl() & 0x1F);
+			spark->life = spark->sLife = 2 + (GetRandomControl() & 0x1F);
 
 			float ang = Random::GenerateFloat(0.0f, PI * 2.0f);
 			float r = Random::GenerateFloat(0.0f, worldRadius * 0.3f);
@@ -162,7 +229,7 @@ namespace TEN::Effects::SnowDust
 
 			spark->friction = 3;
 			spark->gravity = (short)(3 + (GetRandomControl() & 3));
-			spark->maxYvel = 0;
+			spark->maxYvel = -8;
 
 			spark->roomNumber = roomNumber;
 			spark->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF;
@@ -193,7 +260,7 @@ namespace TEN::Effects::SnowDust
 			spark->dB = (unsigned char)(bb / 4);
 			spark->colFadeSpeed = 4;
 			spark->fadeToBlack = 32;
-			spark->life = spark->sLife = 80 + (GetRandomControl() & 0x3F);
+			spark->life = spark->sLife = 2 + (GetRandomControl() & 0x3F);
 
 			float ang = Random::GenerateFloat(0.0f, PI * 2.0f);
 			float r = Random::GenerateFloat(0.0f, worldRadius * 0.5f);
@@ -204,7 +271,7 @@ namespace TEN::Effects::SnowDust
 			float vh = Random::GenerateFloat(worldRadius * 0.02f, worldRadius * 0.08f);
 			spark->xVel = (short)(std::cos(ang) * vh);
 			spark->zVel = (short)(std::sin(ang) * vh);
-			spark->yVel = (short)(-Random::GenerateFloat(worldRadius * 0.04f, worldRadius * 0.10f));
+			spark->yVel = -5 -(short)(-Random::GenerateFloat(worldRadius * 0.04f, worldRadius * 0.10f));
 
 			spark->friction = 6;
 			spark->gravity = (short)(-2 - (GetRandomControl() & 1));

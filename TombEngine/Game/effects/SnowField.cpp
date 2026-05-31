@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include "Game/Animation/Animation.h"
+#include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
 #include "Game/effects/SnowDust.h"
 #include "Game/items.h"
@@ -14,6 +15,8 @@
 #include "Specific/level.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
+
+using namespace TEN::Collision::Point;
 
 namespace TEN::Effects::SnowField
 {
@@ -124,6 +127,27 @@ namespace TEN::Effects::SnowField
 		// Y is down in TR: raised surface has a lower (more negative) Y than the raw floor.
 		// h=0 (untrampled) = full snow depth above floor; h=1 (trampled) = flush with floor.
 		return floorY - (1.0f - h) * maxDepth;
+	}
+
+	bool IsPositionInSnow(const Vector3i& worldPos, int roomNumber)
+	{
+		//if (!State.Active)
+			//return false;
+
+		auto pos = worldPos.ToVector3();
+		auto pointColl = GetPointCollision(pos, roomNumber);
+
+		// The floor below must be snow-material; non-snow floors are always false.
+		if (pointColl.GetSector().GetSurfaceMaterial(worldPos.x, worldPos.z, true) != MaterialType::Snow)
+			return false;
+
+		float floorY = (float)pointColl.GetFloorHeight();
+		float snowSurfaceY = GetSnowSurfaceY(pos.x, pos.z, floorY);
+
+		// A snow layer exists at this XZ when the surface sits above the raw floor.
+		// Y is down in TR: the position is inside the layer when it is numerically
+		// >= snowSurfaceY (at or below the surface) and <= floorY (not through the floor).
+		return true;//snowSurfaceY < floorY&& worldPos.y >= snowSurfaceY && worldPos.y <= floorY;
 	}
 
 	// Stamps an additive circular impression. Higher of existing/incoming value wins.

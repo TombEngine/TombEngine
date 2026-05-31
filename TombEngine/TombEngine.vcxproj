@@ -1801,6 +1801,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="Shaders\GodRay.hlsl" />
     <None Include="Shaders\DustStorm.hlsl" />
     <None Include="Shaders\SnowOverlay.hlsl" />
+    <None Include="Shaders\SnowOverlayObjects.hlsl" />
     <None Include="Shaders\CBAtmosphericSky.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

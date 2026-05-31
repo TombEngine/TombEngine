@@ -41,31 +41,198 @@ namespace TEN::Renderer
 
 	// Snow material detection. The level file stores only one MaterialType per sector
 	// (the editor / compiler picks one of the two floor textures), so the collision
-	// material is unreliable for height-split sectors with mixed textures. Until the
-	// Tomb Editor material system gains a proper Snow material, we tag a renderer
-	// material as snow by case-insensitive substring match on its name (currently set
-	// in the editor via the texture's "Snow" sound). This works per renderer bucket,
-	// which already groups polygons by texture/material, so each half of a split
-	// sector ends up in its own bucket and inherits the correct snow / non-snow state.
+	// material is unreliable for height-split sectors with mixed textures. Tomb Editor
+	// exposes a dedicated MaterialShaderType::SnowSurface material (alongside
+	// Reflective / Skybox Reflective) which authors assign to snow textures. We tag a
+	// renderer material as snow purely by its shader type, which works per renderer
+	// bucket: each bucket groups polygons by texture/material, so each half of a
+	// split sector ends up in its own bucket and inherits the correct flag.
 	static bool IsSnowMaterialIndex(int materialIndex)
 	{
 		if (materialIndex < 0 || materialIndex >= (int)g_Level.Materials.size())
 			return false;
 
-		const auto& name = g_Level.Materials[materialIndex].Name;
-		if (name.size() < 4)
-			return false;
+		return g_Level.Materials[materialIndex].Type == MaterialShaderType::SnowSurface;
+	}
 
-		for (size_t i = 0; i + 4 <= name.size(); i++)
+	// =====================================================================================
+	// Item / Static mesh snow overlay (mesh-local, no sector grid).
+	//
+	// Polygons in MaterialShaderType::SnowSurface buckets of moveable and static meshes
+	// get a lifted subdivided overlay (mesh-local space, along the polygon normal) and a
+	// vertical skirt quad on every edge whose neighbouring polygon in the same mesh is
+	// not a snow bucket (or has no neighbour). The overlay buckets are appended to the
+	// mesh's Buckets vector with IsSnowOverlay = true; they render through the standard
+	// item / static draw paths as a thick lifted snow blanket with side walls.
+	// =====================================================================================
+
+	// Quantized mesh-local position key for cross-polygon edge adjacency. Mesh vertex
+	// buffers commonly store the same physical point under multiple indices (per-face
+	// duplication), so an index-based match is unreliable -- we hash quantized positions
+	// (0.125 WU steps) instead.
+	static inline long long QuantizeMeshPosKey(const Vector3& p)
+	{
+		constexpr float SCALE = 8.0f;
+		auto pack = [](long long v) { return (unsigned long long)(v & 0x1FFFFFULL); };
+		long long qx = (long long)std::lround(p.x * SCALE);
+		long long qy = (long long)std::lround(p.y * SCALE);
+		long long qz = (long long)std::lround(p.z * SCALE);
+		return (long long)((pack(qx) << 42) | (pack(qy) << 21) | pack(qz));
+	}
+
+	struct MeshEdgeKey
+	{
+		long long a, b;
+		bool operator==(const MeshEdgeKey& o) const { return a == o.a && b == o.b; }
+	};
+
+	struct MeshEdgeKeyHash
+	{
+		size_t operator()(const MeshEdgeKey& k) const
 		{
-			char c0 = (char)std::tolower((unsigned char)name[i]);
-			char c1 = (char)std::tolower((unsigned char)name[i + 1]);
-			char c2 = (char)std::tolower((unsigned char)name[i + 2]);
-			char c3 = (char)std::tolower((unsigned char)name[i + 3]);
-			if (c0 == 's' && c1 == 'n' && c2 == 'o' && c3 == 'w')
-				return true;
+			return (size_t)((unsigned long long)k.a * 0x9E3779B185EBCA87ULL) ^ (size_t)k.b;
 		}
-		return false;
+	};
+
+	static inline MeshEdgeKey MakeMeshEdgeKey(long long a, long long b)
+	{
+		return (a < b) ? MeshEdgeKey{ a, b } : MeshEdgeKey{ b, a };
+	}
+
+	// Per-polygon per-edge skirt mask for the snow buckets of a single mesh.
+	// outer key: bucket index in meshPtr->buckets.
+	// inner vector: one entry per polygon in that bucket; each entry has poly.indices.size() flags.
+	struct MeshSnowSkirtMask
+	{
+		std::unordered_map<int, std::vector<std::vector<unsigned char>>> needsSkirt;
+	};
+
+	static MeshSnowSkirtMask BuildMeshSnowSkirtMask(const MESH* meshPtr)
+	{
+		MeshSnowSkirtMask mask;
+		if (meshPtr->positions.empty())
+			return mask;
+
+		std::unordered_map<MeshEdgeKey, int, MeshEdgeKeyHash> snowEdgeCount;
+
+		for (const auto& bucket : meshPtr->buckets)
+		{
+			if (!IsSnowMaterialIndex(bucket.materialIndex))
+				continue;
+			for (const auto& poly : bucket.polygons)
+			{
+				int n = (int)poly.indices.size();
+				for (int e = 0; e < n; e++)
+				{
+					long long ka = QuantizeMeshPosKey(meshPtr->positions[poly.indices[e]]);
+					long long kb = QuantizeMeshPosKey(meshPtr->positions[poly.indices[(e + 1) % n]]);
+					snowEdgeCount[MakeMeshEdgeKey(ka, kb)]++;
+				}
+			}
+		}
+
+		for (int b = 0; b < (int)meshPtr->buckets.size(); b++)
+		{
+			const auto& bucket = meshPtr->buckets[b];
+			if (!IsSnowMaterialIndex(bucket.materialIndex))
+				continue;
+
+			auto& perPoly = mask.needsSkirt[b];
+			perPoly.resize(bucket.polygons.size());
+
+			for (int p = 0; p < (int)bucket.polygons.size(); p++)
+			{
+				const auto& poly = bucket.polygons[p];
+				int n = (int)poly.indices.size();
+				perPoly[p].assign(n, (unsigned char)1);
+				for (int e = 0; e < n; e++)
+				{
+					long long ka = QuantizeMeshPosKey(meshPtr->positions[poly.indices[e]]);
+					long long kb = QuantizeMeshPosKey(meshPtr->positions[poly.indices[(e + 1) % n]]);
+					// >= 2 snow polys share this edge => the other one is a snow neighbour.
+					if (snowEdgeCount[MakeMeshEdgeKey(ka, kb)] >= 2)
+						perPoly[p][e] = 0;
+				}
+			}
+		}
+
+		return mask;
+	}
+
+	// Vertex/index counts contributed by one snow bucket: subdivided overlay polygons
+	// plus one vertical skirt quad per edge flagged in perPolyEdges.
+	static void GetMeshSnowExtrasForBucket(
+		const BUCKET& bucket,
+		const std::vector<std::vector<unsigned char>>& perPolyEdges,
+		int subdivisions,
+		int& outVerts, int& outIndices)
+	{
+		outVerts = 0;
+		outIndices = 0;
+		int n2 = subdivisions * subdivisions;
+		for (int p = 0; p < (int)bucket.polygons.size(); p++)
+		{
+			const auto& poly = bucket.polygons[p];
+			if (poly.shape == 0)
+			{
+				outVerts   += n2 * 4;
+				outIndices += n2 * 6;
+			}
+			else
+			{
+				outVerts   += n2 * 3;
+				outIndices += n2 * 3;
+			}
+
+			if (p < (int)perPolyEdges.size())
+			{
+				int n = (int)poly.indices.size();
+				for (int e = 0; e < n; e++)
+				{
+					if (perPolyEdges[p][e])
+					{
+						outVerts   += 4;
+						outIndices += 6;
+					}
+				}
+			}
+		}
+	}
+
+	// Returns the per-mesh accumulated extras for all snow buckets in one mesh.
+	static void GetMeshSnowExtrasTotal(const MESH* meshPtr, int subdivisions, int& outVerts, int& outIndices)
+	{
+		outVerts = 0;
+		outIndices = 0;
+		auto mask = BuildMeshSnowSkirtMask(meshPtr);
+		for (int b = 0; b < (int)meshPtr->buckets.size(); b++)
+		{
+			const auto& bucket = meshPtr->buckets[b];
+			if (!IsSnowMaterialIndex(bucket.materialIndex))
+				continue;
+			auto it = mask.needsSkirt.find(b);
+			const std::vector<std::vector<unsigned char>>& perPoly =
+				(it != mask.needsSkirt.end()) ? it->second : std::vector<std::vector<unsigned char>>{};
+			int v = 0, i = 0;
+			GetMeshSnowExtrasForBucket(bucket, perPoly, subdivisions, v, i);
+			outVerts   += v;
+			outIndices += i;
+		}
+	}
+
+	// Returns the snow lift distance in mesh-local units (same as room snow lift, using
+	// the global Snow settings; ignores per-level overrides which are room-specific).
+	static float GetMeshSnowLift()
+	{
+		const auto& snow = g_GameFlow->GetSettings()->Snow;
+		return (float)std::max(0, snow.MaxDepth) + std::max(0.0f, snow.HillHeight);
+	}
+
+	static int GetMeshSnowSubdivisions()
+	{
+		// Items/statics are small and not deformable yet in this phase; cap subdivisions
+		// well below the room max to avoid wasting verts on tiny meshes.
+		return std::clamp(g_GameFlow->GetSettings()->Snow.Subdivisions, 1, 8);
 	}
 
 	// Returns the room that owns the snow surface above this polygon, or nullptr if the
@@ -2394,6 +2561,8 @@ namespace TEN::Renderer
 
 		totalVertices = 0;
 		totalIndices = 0;
+		const bool snowEnabledForMeshes = g_GameFlow->GetSettings()->Snow.Enabled;
+		const int meshSnowSubdiv = GetMeshSnowSubdivisions();
 		for (int i = 0; i < MoveablesIds.size(); i++)
 		{
 			int objNum = MoveablesIds[i];
@@ -2408,6 +2577,14 @@ namespace TEN::Renderer
 				{
 					totalVertices += bucket.numQuads * 4 + bucket.numTriangles * 3;
 					totalIndices += bucket.numQuads * 6 + bucket.numTriangles * 3;
+				}
+
+				if (snowEnabledForMeshes)
+				{
+					int sv = 0, si = 0;
+					GetMeshSnowExtrasTotal(mesh, meshSnowSubdiv, sv, si);
+					totalVertices += sv;
+					totalIndices  += si;
 				}
 			}
 		}
@@ -2582,6 +2759,14 @@ namespace TEN::Renderer
 			{
 				totalVertices += (bucket.numQuads * 4) + (bucket.numTriangles * 3);
 				totalIndices += (bucket.numQuads * 6) + (bucket.numTriangles * 3);
+			}
+
+			if (snowEnabledForMeshes)
+			{
+				int sv = 0, si = 0;
+				GetMeshSnowExtrasTotal(&g_Level.Meshes[staticObj.meshNumber], meshSnowSubdiv, sv, si);
+				totalVertices += sv;
+				totalIndices  += si;
 			}
 		}
 
@@ -2783,6 +2968,286 @@ namespace TEN::Renderer
 			}
 
 			mesh->Buckets.push_back(bucket);
+		}
+
+		// Snow overlay (Phase 2b, mesh-local): for each snow-material bucket emit a
+		// lifted subdivided overlay (along poly.normal) plus vertical skirt quads on
+		// every edge whose neighbour in the same mesh is not in a snow bucket.
+		// Geometry lives in the same global vertex/index buffer as the regular mesh
+		// buckets and inherits the standard bone/world transforms at draw time.
+		if (g_GameFlow->GetSettings()->Snow.Enabled && !meshPtr->positions.empty())
+		{
+			auto skirtMask = BuildMeshSnowSkirtMask(meshPtr);
+			const int subdiv = GetMeshSnowSubdivisions();
+			// Lift amount is no longer baked here; the SnowOverlayObjects shader
+			// applies the lift in world-Y at draw time so deformation works on
+			// items/statics regardless of object orientation.
+
+			auto& destVerts   = (obj->Type == 0) ? _moveablesVertices : _staticsVertices;
+			auto& destIndices = (obj->Type == 0) ? _moveablesIndices  : _staticsIndices;
+
+			for (int b = 0; b < (int)meshPtr->buckets.size(); b++)
+			{
+				const BUCKET& srcBucket = meshPtr->buckets[b];
+				if (!IsSnowMaterialIndex(srcBucket.materialIndex) || srcBucket.polygons.empty())
+					continue;
+
+				auto maskIt = skirtMask.needsSkirt.find(b);
+				const std::vector<std::vector<unsigned char>>* perPolyEdges =
+					(maskIt != skirtMask.needsSkirt.end()) ? &maskIt->second : nullptr;
+
+				RendererBucket overlay{};
+				overlay.Animated	  = srcBucket.animated;
+				overlay.BlendMode	  = (BlendMode)srcBucket.blendMode;
+				overlay.MaterialIndex = srcBucket.materialIndex;
+				overlay.Texture		  = srcBucket.texture;
+				overlay.StartVertex	  = *lastVertex;
+				overlay.StartIndex	  = *lastIndex;
+				overlay.IsSnowOverlay = true;
+
+				int startVert = *lastVertex;
+				int startIdx  = *lastIndex;
+
+				for (int p = 0; p < (int)srcBucket.polygons.size(); p++)
+				{
+					const POLYGON& poly = srcBucket.polygons[p];
+					int inCount = (int)poly.indices.size();
+					if (inCount < 3)
+						continue;
+
+					std::array<Vector3, 4> p0{}, n0{}, t0{}, c0{};
+					std::array<Vector2, 4> uv0{};
+					std::array<std::array<unsigned char, 4>, 4> bi{}, bw{};
+					for (int k = 0; k < inCount && k < 4; k++)
+					{
+						int idx = poly.indices[k];
+						p0[k]  = meshPtr->positions[idx];
+						n0[k]  = poly.normals[k];
+						t0[k]  = poly.tangents[k];
+						uv0[k] = poly.textureCoordinates[k];
+						c0[k]  = meshPtr->colors[idx];
+						bi[k]  = meshPtr->boneIndices[idx];
+						bw[k]  = meshPtr->boneWeights[idx];
+					}
+
+					Vector3 normN = poly.normal;
+					if (normN.LengthSquared() > 1e-6f)
+						normN.Normalize();
+					// Lift and heightmap deformation are applied in world-Y by the
+					// SnowOverlayObjects shader using Color.a as the per-vertex lift
+					// scale (1 = surface / skirt top, 0 = skirt bottom pinned to the
+					// original surface). No lift is baked at mesh-gen time.
+
+					auto emitVertexInternal = [&](const Vector3& pos, const Vector2& uv,
+						const Vector3& nrm, const Vector3& tan, const Vector3& col,
+						const std::array<unsigned char, 4>& bIdx,
+						const std::array<unsigned char, 4>& bWt,
+						int slot, float liftScale)
+					{
+						Vertex v{};
+						v.Position = pos;
+						v.Normal = PackVector3(nrm);
+						v.UV = uv;
+						v.Color = VectorColorToRGBA(Vector4(col.x, col.y, col.z, liftScale));
+						v.Tangent = PackVector3(tan);
+						v.FaceNormal = PackVector3(normN);
+						v.BoneIndex = bIdx;
+						v.BoneWeight = bWt;
+						unsigned int hash = (unsigned int)std::hash<float>{}(v.Position.x) ^
+											(unsigned int)std::hash<float>{}(v.Position.y) ^
+											(unsigned int)std::hash<float>{}(v.Position.z);
+						v.AnimationFrameOffsetIndexHash = PackAnimationFrameOffsetIndexHash(poly.animatedFrame, 0, hash);
+						v.Effects = PackEffectsAndIndexInPoly(Vector3::Zero, poly.shineStrength, slot);
+						destVerts[*lastVertex] = v;
+						*lastVertex = *lastVertex + 1;
+					};
+
+					// Surface / skirt top: gets full lift + heightmap deformation.
+					auto emitVertex = [&](const Vector3& pos, const Vector2& uv,
+						const Vector3& nrm, const Vector3& tan, const Vector3& col,
+						const std::array<unsigned char, 4>& bIdx,
+						const std::array<unsigned char, 4>& bWt,
+						int slot)
+					{
+						emitVertexInternal(pos, uv, nrm, tan, col, bIdx, bWt, slot, 1.0f);
+					};
+
+					// Skirt bottom: pinned to original surface position (no shader lift).
+					auto emitVertexNoLift = [&](const Vector3& pos, const Vector2& uv,
+						const Vector3& nrm, const Vector3& tan, const Vector3& col,
+						const std::array<unsigned char, 4>& bIdx,
+						const std::array<unsigned char, 4>& bWt,
+						int slot)
+					{
+						emitVertexInternal(pos, uv, nrm, tan, col, bIdx, bWt, slot, 0.0f);
+					};
+
+					// ---- Subdivided overlay. ----
+					if (poly.shape == 0)
+					{
+						for (int j = 0; j < subdiv; j++)
+						{
+							for (int i = 0; i < subdiv; i++)
+							{
+								float u0 = (float)i / (float)subdiv;
+								float u1 = (float)(i + 1) / (float)subdiv;
+								float v0 = (float)j / (float)subdiv;
+								float v1 = (float)(j + 1) / (float)subdiv;
+								struct Cn { float u, v; };
+								const Cn corners[4] = { { u0, v0 }, { u1, v0 }, { u1, v1 }, { u0, v1 } };
+								int baseV = *lastVertex;
+								for (int k = 0; k < 4; k++)
+								{
+									float U = corners[k].u, V = corners[k].v;
+									auto cp  = BilerpQuad(p0[0], p0[1], p0[2], p0[3], U, V);
+									auto cuv = BilerpQuad(uv0[0], uv0[1], uv0[2], uv0[3], U, V);
+									auto cn  = BilerpQuad(n0[0], n0[1], n0[2], n0[3], U, V); cn.Normalize();
+									auto ct  = BilerpQuad(t0[0], t0[1], t0[2], t0[3], U, V); ct.Normalize();
+									auto cc  = BilerpQuad(c0[0], c0[1], c0[2], c0[3], U, V);
+									int nearest = (U < 0.5f) ? (V < 0.5f ? 0 : 3) : (V < 0.5f ? 1 : 2);
+									emitVertex(cp, cuv, cn, ct, cc, bi[nearest], bw[nearest], k);
+								}
+								RendererPolygon sp{};
+								sp.Shape = 0;
+								sp.Normal = poly.normal;
+								sp.Centre = (destVerts[baseV + 0].Position + destVerts[baseV + 1].Position +
+											 destVerts[baseV + 2].Position + destVerts[baseV + 3].Position) * 0.25f;
+								sp.BaseIndex = *lastIndex;
+								destIndices[*lastIndex + 0] = baseV + 0;
+								destIndices[*lastIndex + 1] = baseV + 1;
+								destIndices[*lastIndex + 2] = baseV + 3;
+								destIndices[*lastIndex + 3] = baseV + 2;
+								destIndices[*lastIndex + 4] = baseV + 3;
+								destIndices[*lastIndex + 5] = baseV + 1;
+								*lastIndex = *lastIndex + 6;
+								overlay.Polygons.push_back(sp);
+							}
+						}
+					}
+					else
+					{
+						for (int i = 0; i < subdiv; i++)
+						{
+							for (int j = 0; j < subdiv - i; j++)
+							{
+								auto sampleAt = [&](int gi, int gj, int slot) -> int
+								{
+									float w0 = (float)(subdiv - gi - gj) / (float)subdiv;
+									float w1 = (float)gi / (float)subdiv;
+									float w2 = (float)gj / (float)subdiv;
+									auto cp  = BaryTri(p0[0], p0[1], p0[2], w0, w1, w2);
+									auto cuv = BaryTri(uv0[0], uv0[1], uv0[2], w0, w1, w2);
+									auto cn  = BaryTri(n0[0], n0[1], n0[2], w0, w1, w2); cn.Normalize();
+									auto ct  = BaryTri(t0[0], t0[1], t0[2], w0, w1, w2); ct.Normalize();
+									auto cc  = BaryTri(c0[0], c0[1], c0[2], w0, w1, w2);
+									int nearest = (w0 >= w1 && w0 >= w2) ? 0 : (w1 >= w2 ? 1 : 2);
+									int bIdx = *lastVertex;
+									emitVertex(cp, cuv, cn, ct, cc, bi[nearest], bw[nearest], slot);
+									return bIdx;
+								};
+
+								int b0 = sampleAt(i,     j,     0);
+								int b1 = sampleAt(i + 1, j,     1);
+								int b2 = sampleAt(i,     j + 1, 2);
+
+								RendererPolygon up{};
+								up.Shape = 1;
+								up.Normal = poly.normal;
+								up.Centre = (destVerts[b0].Position + destVerts[b1].Position + destVerts[b2].Position) / 3.0f;
+								up.BaseIndex = *lastIndex;
+								destIndices[*lastIndex + 0] = b0;
+								destIndices[*lastIndex + 1] = b1;
+								destIndices[*lastIndex + 2] = b2;
+								*lastIndex = *lastIndex + 3;
+								overlay.Polygons.push_back(up);
+
+								if (i + j + 1 < subdiv)
+								{
+									int d0 = sampleAt(i + 1, j,     0);
+									int d1 = sampleAt(i + 1, j + 1, 1);
+									int d2 = sampleAt(i,     j + 1, 2);
+
+									RendererPolygon dn{};
+									dn.Shape = 1;
+									dn.Normal = poly.normal;
+									dn.Centre = (destVerts[d0].Position + destVerts[d1].Position + destVerts[d2].Position) / 3.0f;
+									dn.BaseIndex = *lastIndex;
+									destIndices[*lastIndex + 0] = d0;
+									destIndices[*lastIndex + 1] = d1;
+									destIndices[*lastIndex + 2] = d2;
+									*lastIndex = *lastIndex + 3;
+									overlay.Polygons.push_back(dn);
+								}
+							}
+						}
+					}
+
+					// ---- Vertical skirts on non-snow-neighbour edges. ----
+					if (perPolyEdges != nullptr && p < (int)perPolyEdges->size())
+					{
+						const auto& edgeFlags = (*perPolyEdges)[p];
+						int n = inCount;
+
+						for (int e = 0; e < n; e++)
+						{
+							if (!edgeFlags[e])
+								continue;
+
+							int ia = e;
+							int ib = (e + 1) % n;
+							Vector3 vA = p0[ia];
+							Vector3 vB = p0[ib];
+
+							Vector2 uvTopA = uv0[ia];
+							Vector2 uvTopB = uv0[ib];
+							// Use the polygon's opposite-edge UVs for the skirt bottom.
+							// Guaranteed to stay within the polygon's atlas tile so we never
+							// sample garbage neighbour textures, and produces the full
+							// texture height across the skirt.
+							Vector2 uvBotA, uvBotB;
+							if (n == 4)
+							{
+								uvBotA = uv0[(e + 3) % 4]; // vert opposite ia
+								uvBotB = uv0[(e + 2) % 4]; // vert opposite ib
+							}
+							else // triangle
+							{
+								int io = 3 - ia - ib; // remaining vert (0+1+2 = 3)
+								uvBotA = uv0[io];
+								uvBotB = uv0[io];
+							}
+
+							int baseV = *lastVertex;
+							// Layout: 0=topA, 1=topB, 2=bottomB, 3=bottomA.
+							emitVertex      (vA, uvTopA, n0[ia], t0[ia], c0[ia], bi[ia], bw[ia], 0);
+							emitVertex      (vB, uvTopB, n0[ib], t0[ib], c0[ib], bi[ib], bw[ib], 1);
+							emitVertexNoLift(vB, uvBotB, n0[ib], t0[ib], c0[ib], bi[ib], bw[ib], 2);
+							emitVertexNoLift(vA, uvBotA, n0[ia], t0[ia], c0[ia], bi[ia], bw[ia], 3);
+
+							RendererPolygon sp{};
+							sp.Shape = 0;
+							sp.Normal = poly.normal;
+							sp.Centre = (destVerts[baseV + 0].Position + destVerts[baseV + 1].Position +
+										 destVerts[baseV + 2].Position + destVerts[baseV + 3].Position) * 0.25f;
+							sp.BaseIndex = *lastIndex;
+							// Winding flipped relative to original (was 0,1,3 / 2,3,1).
+							destIndices[*lastIndex + 0] = baseV + 0;
+							destIndices[*lastIndex + 1] = baseV + 3;
+							destIndices[*lastIndex + 2] = baseV + 2;
+							destIndices[*lastIndex + 3] = baseV + 0;
+							destIndices[*lastIndex + 4] = baseV + 2;
+							destIndices[*lastIndex + 5] = baseV + 1;
+							*lastIndex = *lastIndex + 6;
+							overlay.Polygons.push_back(sp);
+						}
+					}
+				}
+
+				overlay.NumVertices = *lastVertex - startVert;
+				overlay.NumIndices  = *lastIndex - startIdx;
+				if (overlay.NumVertices > 0)
+					mesh->Buckets.push_back(overlay);
+			}
 		}
 
 		return mesh;

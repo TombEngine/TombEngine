@@ -20,5 +20,8 @@ namespace TEN::Effects::SnowDust
 	// with the same radius (no-op if the snow system is inactive). Intended to be
 	// called from script via Effects.SnowExplosion(...) on top of the normal
 	// explosion FX.
-	void SpawnSnowExplosionBurst(const Vector3& worldPos, int roomNumber, float worldRadius);
+	// If `oneShot` is true the burst fires only once per unique world position;
+	// subsequent calls with the same position are silently ignored. Useful when
+	// a recurring trigger (e.g. a flame emitter) must stamp the snow exactly once.
+	void SpawnSnowExplosionBurst(const Vector3i& worldPos, int roomNumber, float worldRadius, bool oneShot = false, bool effect = false);
 }

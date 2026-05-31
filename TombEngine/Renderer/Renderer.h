@@ -503,6 +503,8 @@ namespace TEN::Renderer
 		void UploadSnowFieldHeightmap();
 		void UpdateSnowBuffer();
 		void DrawSnowOverlay(RenderView& view);
+		void DrawSnowOverlayItems(RenderView& view);
+		void DrawSnowOverlayStatics(RenderView& view);
 
 		// Volumetric clouds
 		void InitializeVolumetricClouds();

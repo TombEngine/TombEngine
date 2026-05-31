@@ -16,6 +16,8 @@
 #include "Game/effects/item_fx.h"
 #include "Game/effects/Ripple.h"
 #include "Game/effects/smoke.h"
+#include "Game/effects/SnowField.h"
+#include "Game/effects/SnowDust.h"
 #include "Game/effects/Splash.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
@@ -46,6 +48,8 @@ using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Items;
 using namespace TEN::Effects::Ripple;
 using namespace TEN::Effects::Smoke;
+using namespace TEN::Effects::SnowField;
+using namespace TEN::Effects::SnowDust;
 using namespace TEN::Effects::Splash;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Input;
@@ -1566,6 +1570,8 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 
 	TestProjectileNewRoom(projectile, pointColl);
 
+	SpawnSnowExplosionBurst(projectile.Pose.Position, projectile.RoomNumber, 100, false, false);
+
 	// Decrease launch timer (only if projectile is not harpoon or harpoon has hit wall).
 	if (type != ProjectileType::Harpoon || hasHit)
 		projectile.HitPoints--;
@@ -1737,6 +1743,12 @@ void HandleProjectile(ItemInfo& projectile, ItemInfo& emitter, const Vector3i& p
 	if (doExplosion && isExplosive)
 	{
 		ExplodeProjectile(projectile, prevPos);
+
+		//bool isWithinSnow = false;
+		//isWithinSnow = IsPositionInSnow(projectile.Pose.Position, projectile.RoomNumber);
+
+		if (IsPositionInSnow(projectile.Pose.Position, projectile.RoomNumber))
+		SpawnSnowExplosionBurst(projectile.Pose.Position, projectile.RoomNumber, 300, false, true);
 	}
 	else if (doShatter)
 	{

@@ -2428,17 +2428,27 @@ namespace TEN::Renderer
 				DrawRats(view, pass);
 				DrawLocusts(view, pass);
 				DrawFishSwarm(view, pass);
+
+				// Trodden-snow overlay pass for moveables (Phase 5 extension).
+				if (pass == RendererPass::Opaque)
+					DrawSnowOverlayItems(view);
 			}
 			else if (player)
 			{
 				DrawItems(view, pass, true);
 				DrawGunShells(view, pass);
+
+				if (pass == RendererPass::Opaque)
+					DrawSnowOverlayItems(view);
 			}
 
 			if (statics)
 			{
 				DrawStatics(view, pass);
 				DrawDebris(view, pass); // Debris mostly originate from shatter statics.
+
+				if (pass == RendererPass::Opaque)
+					DrawSnowOverlayStatics(view);
 			}
 
 			// Sorted sprites already collected at beginning of frame.
@@ -2699,6 +2709,10 @@ namespace TEN::Renderer
 							continue;
 						}
 
+						// Snow overlay buckets render only in DrawSnowOverlayStatics.
+						if (bucket.IsSnowOverlay)
+							continue;
+
 						int passes = rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest ? 2 : 1;
 
 						for (int p = 0; p < passes; p++)
@@ -2803,6 +2817,10 @@ namespace TEN::Renderer
 									continue;
 								}
 
+								// Snow overlay buckets render only in DrawSnowOverlayStatics.
+								if (bucket.IsSnowOverlay)
+									continue;
+
 								int passes = rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest ? 2 : 1;
 								for (int p = 0; p < passes; p++)
 								{
@@ -2851,6 +2869,10 @@ namespace TEN::Renderer
 						auto& bucket = refMesh->Buckets[j];
 
 						if (bucket.NumVertices == 0)
+							continue;
+
+						// Snow overlay buckets render only in DrawSnowOverlayStatics.
+						if (bucket.IsSnowOverlay)
 							continue;
 
 						auto blendMode = GetBlendModeFromAlpha(bucket.BlendMode, statics[i]->Color.w);
@@ -3814,6 +3836,10 @@ namespace TEN::Renderer
 				if (bucket.NumVertices == 0)
 					continue;
 
+				// Snow overlay buckets render only in the dedicated DrawSnowOverlayItems pass.
+				if (bucket.IsSnowOverlay)
+					continue;
+
 				auto blendMode = GetBlendModeFromAlpha(bucket.BlendMode, itemToDraw->Color.w);
 
 				if (IsSortedBlendMode(blendMode))
@@ -3851,6 +3877,10 @@ namespace TEN::Renderer
 					{
 						continue;
 					}
+
+					// Snow overlay buckets render only in the dedicated DrawSnowOverlayItems pass.
+					if (bucket.IsSnowOverlay)
+						continue;
 
 					// HACK: waterfalls have a hardcoded step
 					// We bind non animated textures in this case because the engine calculates at runtime the scroll effect

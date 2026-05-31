@@ -11,6 +11,7 @@
 #include "Renderer/Renderer.h"
 
 #include "Game/effects/SnowField.h"
+#include "Game/items.h"
 #include "Renderer/ConstantBuffers/SnowBuffer.h"
 #include "Renderer/RendererEnums.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
@@ -192,6 +193,301 @@ namespace TEN::Renderer
 		}
 
 		// Cleanup SRVs to avoid hazard warnings on subsequent passes.
+		_graphicsDevice->UnbindTexture(ShaderStage::VertexShader, TextureRegister::SnowFieldHeightmap);
+		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader,  TextureRegister::SnowFieldHeightmap);
+	}
+
+	// Dedicated draw pass for snow-overlay buckets that live on moveable (item) meshes.
+	// Mirrors DrawSnowOverlay but binds the moveables VB/IB and the SnowOverlayObjects
+	// shader, which reads per-instance world from Objects[0] and applies the lift +
+	// heightmap deformation in world space. Bones are not used; for multi-mesh items
+	// the per-mesh bone transform is composed into Objects[0].World on the CPU.
+	void Renderer::DrawSnowOverlayItems(RenderView& view)
+	{
+		if (_snowFieldHeightmap == nullptr || _cbSnow == nullptr)
+			return;
+
+		const auto& snow = g_GameFlow->GetSettings()->Snow;
+		if (!snow.Enabled || !SnowField::IsActive())
+			return;
+
+		if (_moveablesVertexBuffer == nullptr || _moveablesIndexBuffer == nullptr || view.RoomsToDraw.empty())
+			return;
+
+		// Quick scan: do any visible items carry snow-overlay buckets at all?
+		bool hasSnowBucket = false;
+		for (const auto* room : view.RoomsToDraw)
+		{
+			for (const auto* item : room->ItemsToDraw)
+			{
+				if (item->ObjectID < 0 || item->ObjectID >= (int)_moveableObjects.size())
+					continue;
+				if (!_moveableObjects[item->ObjectID].has_value())
+					continue;
+
+				for (int k = 0; k < (int)item->MeshIndex.size(); k++)
+				{
+					auto* mesh = GetMesh(item->MeshIndex[k]);
+					for (const auto& bucket : mesh->Buckets)
+					{
+						if (bucket.IsSnowOverlay && bucket.NumVertices > 0)
+						{
+							hasSnowBucket = true;
+							break;
+						}
+					}
+					if (hasSnowBucket) break;
+				}
+				if (hasSnowBucket) break;
+			}
+			if (hasSnowBucket) break;
+		}
+
+		if (!hasSnowBucket)
+			return;
+
+		// Ensure heightmap and CBSnow are current even if DrawSnowOverlay (rooms) was a
+		// no-op this frame (e.g. no room snow buckets in this scene).
+		UploadSnowFieldHeightmap();
+		UpdateSnowBuffer();
+
+		_shaders.Bind(Shader::SnowOverlayObjects);
+
+		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+
+		SetBlendMode(BlendMode::Opaque);
+		// Snow overlay on items must be visible from all camera angles (camera orbits
+		// freely around the item, so front/back of each face changes continuously).
+		SetCullMode(CullMode::None);
+		SetDepthState(DepthState::Write);
+
+		auto* cb = _cbSnow.get();
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Snow, cb);
+		BindConstantBuffer(ShaderStage::PixelShader,  ConstantBufferRegister::Snow, cb);
+
+		_graphicsDevice->BindTextureToStage(ShaderStage::VertexShader, TextureRegister::SnowFieldHeightmap,
+			_snowFieldHeightmap.get(), SamplerStateRegister::LinearClamp);
+		_graphicsDevice->BindTextureToStage(ShaderStage::PixelShader, TextureRegister::SnowFieldHeightmap,
+			_snowFieldHeightmap.get(), SamplerStateRegister::LinearClamp);
+
+		// Shader ignores Skinned; we still clear it so any future shader read is benign.
+		_stObjects.Skinned = 0;
+
+		for (const auto* room : view.RoomsToDraw)
+		{
+			for (auto* item : room->ItemsToDraw)
+			{
+				if (item->ObjectID < 0 || item->ObjectID >= (int)_moveableObjects.size())
+					continue;
+				if (!_moveableObjects[item->ObjectID].has_value())
+					continue;
+
+				if (_currentMirror != nullptr && (g_Level.Items[item->ItemNumber].Flags & IFLAG_CLEAR_BODY))
+					continue;
+
+				auto& moveableObj = *_moveableObjects[item->ObjectID];
+				auto* nativeItem  = &g_Level.Items[item->ItemNumber];
+
+				bool itemLightsBound = false;
+				bool acceptsShadows  = moveableObj.ShadowType == ShadowMode::None;
+
+				for (int k = 0; k < (int)item->MeshIndex.size(); k++)
+				{
+					if (!nativeItem->MeshBits.Test(k))
+						continue;
+
+					auto* mesh = GetMesh(item->MeshIndex[k]);
+
+					// Skip meshes that don't carry any snow-overlay bucket.
+					bool meshHasSnow = false;
+					for (const auto& bucket : mesh->Buckets)
+					{
+						if (bucket.IsSnowOverlay && bucket.NumVertices > 0)
+						{
+							meshHasSnow = true;
+							break;
+						}
+					}
+					if (!meshHasSnow)
+						continue;
+
+					// Compose per-mesh world: itemWorld with the mesh's bone transform pre-applied.
+					Matrix meshWorld = item->InterpolatedAnimTransforms[k] * item->InterpolatedWorld;
+					ReflectMatrixOptionally(meshWorld);
+
+					_stObjects.Objects[0].World        = meshWorld;
+					_stObjects.Objects[0].Color        = item->Color;
+					_stObjects.Objects[0].AmbientLight = item->AmbientLight;
+					_stObjects.Objects[0].LightMode    = (int)mesh->LightMode;
+
+					if (!itemLightsBound)
+					{
+						BindMoveableLights(item->LightsToDraw, item->RoomNumber, item->PrevRoomNumber, item->LightFade, acceptsShadows);
+						itemLightsBound = true;
+					}
+
+					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+					for (const auto& bucket : mesh->Buckets)
+					{
+						if (!bucket.IsSnowOverlay || bucket.NumVertices == 0)
+							continue;
+
+						BindBucketTextures(bucket, TextureSource::Moveables, bucket.Animated);
+						DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+						_numMoveablesDrawCalls++;
+					}
+				}
+			}
+		}
+
+		_graphicsDevice->UnbindTexture(ShaderStage::VertexShader, TextureRegister::SnowFieldHeightmap);
+		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader,  TextureRegister::SnowFieldHeightmap);
+	}
+
+	// Dedicated draw pass for snow-overlay buckets on instanced static meshes. Mirrors
+	// the instanced path of DrawStatics but binds SnowOverlayObjects so trodden snow
+	// and the debug Y offset apply uniformly to statics as well as to room geometry.
+	void Renderer::DrawSnowOverlayStatics(RenderView& view)
+	{
+		if (_snowFieldHeightmap == nullptr || _cbSnow == nullptr)
+			return;
+
+		const auto& snow = g_GameFlow->GetSettings()->Snow;
+		if (!snow.Enabled || !SnowField::IsActive())
+			return;
+
+		if (_staticsVertexBuffer == nullptr || _staticsIndexBuffer == nullptr || view.SortedStaticsToDraw.empty())
+			return;
+
+		// Quick scan across all visible static groups.
+		bool hasSnowBucket = false;
+		for (const auto& kv : view.SortedStaticsToDraw)
+		{
+			const auto& statics = kv.second;
+			if (statics.empty()) continue;
+			auto& refStaticObj = GetStaticRendererObject(statics[0]->ObjectNumber);
+			if (refStaticObj.ObjectMeshes.empty()) continue;
+			auto* refMesh = refStaticObj.ObjectMeshes[0];
+			for (const auto& bucket : refMesh->Buckets)
+			{
+				if (bucket.IsSnowOverlay && bucket.NumVertices > 0)
+				{
+					hasSnowBucket = true;
+					break;
+				}
+			}
+			if (hasSnowBucket) break;
+		}
+
+		if (!hasSnowBucket)
+			return;
+
+		// Same defensive upload as in DrawSnowOverlayItems: keeps statics self-contained.
+		UploadSnowFieldHeightmap();
+		UpdateSnowBuffer();
+
+		_shaders.Bind(Shader::SnowOverlayObjects);
+
+		_graphicsDevice->BindVertexBuffer(_staticsVertexBuffer.get());
+		_graphicsDevice->BindIndexBuffer(_staticsIndexBuffer.get());
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+
+		SetBlendMode(BlendMode::Opaque);
+		SetCullMode(CullMode::None);
+		SetDepthState(DepthState::Write);
+
+		auto* cb = _cbSnow.get();
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Snow, cb);
+		BindConstantBuffer(ShaderStage::PixelShader,  ConstantBufferRegister::Snow, cb);
+
+		_graphicsDevice->BindTextureToStage(ShaderStage::VertexShader, TextureRegister::SnowFieldHeightmap,
+			_snowFieldHeightmap.get(), SamplerStateRegister::LinearClamp);
+		_graphicsDevice->BindTextureToStage(ShaderStage::PixelShader, TextureRegister::SnowFieldHeightmap,
+			_snowFieldHeightmap.get(), SamplerStateRegister::LinearClamp);
+
+		_stObjects.Skinned = 0;
+
+		for (auto it = view.SortedStaticsToDraw.begin(); it != view.SortedStaticsToDraw.end(); it++)
+		{
+			auto& statics = it->second;
+			if (statics.empty()) continue;
+
+			auto& refStaticObj = GetStaticRendererObject(statics[0]->ObjectNumber);
+			if (refStaticObj.ObjectMeshes.empty()) continue;
+			auto* refMesh = refStaticObj.ObjectMeshes[0];
+
+			// Skip whole group if the reference mesh has no snow bucket.
+			bool groupHasSnow = false;
+			for (const auto& bucket : refMesh->Buckets)
+			{
+				if (bucket.IsSnowOverlay && bucket.NumVertices > 0)
+				{
+					groupHasSnow = true;
+					break;
+				}
+			}
+			if (!groupHasSnow)
+				continue;
+
+			int staticsCount    = (int)statics.size();
+			int bucketSize      = INSTANCED_STATIC_MESH_BUCKET_SIZE;
+			int baseStaticIndex = 0;
+
+			while (baseStaticIndex < staticsCount)
+			{
+				int instancesCount = 0;
+				int maxIdx = std::min(baseStaticIndex + bucketSize, staticsCount);
+
+				for (int s = baseStaticIndex; s < maxIdx; s++)
+				{
+					auto* current = statics[s];
+					auto* sroom   = &_rooms[current->RoomNumber];
+
+					if (IgnoreReflectionPassForRoom(current->RoomNumber))
+						continue;
+
+					if (current->Color.w < ALPHA_BLEND_THRESHOLD)
+						continue;
+
+					auto world = current->World;
+					ReflectMatrixOptionally(world);
+
+					_stObjects.Objects[instancesCount].World        = world;
+					_stObjects.Objects[instancesCount].Color        = current->Color;
+					_stObjects.Objects[instancesCount].AmbientLight = sroom->AmbientLight;
+					_stObjects.Objects[instancesCount].LightMode    = (int)refMesh->LightMode;
+
+					BindInstancedStaticLights(current->LightsToDraw, instancesCount);
+
+					instancesCount++;
+				}
+
+				baseStaticIndex += bucketSize;
+
+				if (instancesCount > 0)
+				{
+					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+					for (const auto& bucket : refMesh->Buckets)
+					{
+						if (!bucket.IsSnowOverlay || bucket.NumVertices == 0)
+							continue;
+
+						BindBucketTextures(bucket, TextureSource::Statics, bucket.Animated);
+						BindMaterial(bucket.MaterialIndex, false);
+
+						DrawIndexedInstancedTriangles(bucket.NumIndices, instancesCount, bucket.StartIndex, 0);
+						_numInstancedStaticsDrawCalls++;
+					}
+				}
+			}
+		}
+
 		_graphicsDevice->UnbindTexture(ShaderStage::VertexShader, TextureRegister::SnowFieldHeightmap);
 		_graphicsDevice->UnbindTexture(ShaderStage::PixelShader,  TextureRegister::SnowFieldHeightmap);
 	}

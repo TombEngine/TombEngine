@@ -38,4 +38,9 @@ namespace TEN::Effects::SnowField
 	// Returns floorY unchanged when the snow field is inactive or the position is
 	// outside the field bounds.
 	float GetSnowSurfaceY(float worldX, float worldZ, float floorY);
+
+	// Returns true when `worldPos` is inside the active snow layer: below the raised
+	// snow surface and above (or at) the raw floor. Safe to call every tick; returns
+	// false immediately when the snow system is inactive.
+	bool IsPositionInSnow(const Vector3i& worldPos, int roomNumber);
 }

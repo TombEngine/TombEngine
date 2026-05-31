@@ -352,7 +352,8 @@ enum class MaterialShaderType
 {
 	Default = 0,
 	Reflective = 1,
-	SkyboxReflective = 2
+	SkyboxReflective = 2,
+	SnowSurface = 3 // For deformable snow overlay 
 };
 
 enum class SurfaceFormat
@@ -532,6 +533,7 @@ enum class Shader
 	// Deformable snow overlay (Phase 5).
 
 	SnowOverlay,
+	SnowOverlayObjects,
 
 	Count
 };

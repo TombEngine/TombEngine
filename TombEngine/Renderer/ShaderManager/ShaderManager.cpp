@@ -66,6 +66,7 @@ namespace TEN::Renderer::Utils
 
 		// Deformable snow overlay (Phase 5).
 		Load(Shader::SnowOverlay, "SnowOverlay", "", ShaderType::PixelAndVertex, {});
+		Load(Shader::SnowOverlayObjects, "SnowOverlayObjects", "", ShaderType::PixelAndVertex, {});
 	}
 
 	void ShaderManager::LoadAAShaders(int width, int height, bool recompile)

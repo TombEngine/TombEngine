@@ -9,6 +9,7 @@
 #include "Game/effects/Electricity.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/tomb4fx.h"
+#include "Game/effects/SnowDust.h"
 #include "Game/effects/weather.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
@@ -28,6 +29,7 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Items;
+using namespace TEN::Effects::SnowDust;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 
@@ -145,6 +147,8 @@ namespace TEN::Entities::Effects
 
 		if (active)
 		{
+			TEN::Effects::SnowDust::SpawnSnowExplosionBurst(item->Pose.Position, item->RoomNumber, 445, false);
+
 			// Jet flame.
 			if (item->TriggerFlags < 0)
 			{
