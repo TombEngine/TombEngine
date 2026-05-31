@@ -50,7 +50,13 @@ namespace TEN::Scripting::Sound
         g_SoundTrackManager->EnsureChannelExists(name);
 
         if (type.has_value())
-            g_SoundTrackManager->SetChannelPreset(name, ToTrackPreset(type.value()));
+        {
+            auto preset = ToTrackPreset(type.value());
+            g_SoundTrackManager->SetChannelPreset(name, preset);
+
+            // User channels only loop — no shuffle start, auto-crossfade, or other built-in behaviors.
+            g_SoundTrackManager->SetChannelFlags(name, preset == TrackPreset::BGM ? TrackFlags::Loop : TrackFlags::None);
+        }
 
         if (track.has_value())
             g_SoundTrackManager->SetTrack(name, track.value(), 0);
@@ -205,7 +211,11 @@ namespace TEN::Scripting::Sound
         if (!g_SoundTrackManager)
             return;
 
-        g_SoundTrackManager->SetChannelPreset(_channelName, ToTrackPreset(type));
+        auto preset = ToTrackPreset(type);
+        g_SoundTrackManager->SetChannelPreset(_channelName, preset);
+
+        // User channels only loop — no shuffle start, auto-crossfade, or other built-in behaviors.
+        g_SoundTrackManager->SetChannelFlags(_channelName, preset == TrackPreset::BGM ? TrackFlags::Loop : TrackFlags::None);
     }
 
     void AudioChannel::SetCrossFadeLength(int ms)

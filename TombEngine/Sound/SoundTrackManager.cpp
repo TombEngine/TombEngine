@@ -324,11 +324,16 @@ void SoundTrackManager::SetTrack(const std::string& channelName, const std::stri
     if (!channel)
         return;
 
-    channel->Track         = track;
-    channel->CrossfadeTime = crossfadeTimeMs;
+    channel->Track = track;
 
-    // If already playing, crossfade to the new track immediately.
-    if (BASS_ChannelIsActive(channel->Stream))
+    // Only overwrite crossfade time when the channel is already playing (real crossfade request)
+    // or when an explicit non-zero duration is given. This preserves the preset-configured
+    // crossfade time when SetTrack is called before playback begins.
+    bool channelActive = BASS_ChannelIsActive(channel->Stream) != 0;
+    if (channelActive || crossfadeTimeMs > 0)
+        channel->CrossfadeTime = crossfadeTimeMs;
+
+    if (channelActive)
         Play(channelName, track, std::nullopt, std::nullopt, crossfadeTimeMs);
 }
 
