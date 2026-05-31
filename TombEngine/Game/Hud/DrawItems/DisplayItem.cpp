@@ -191,6 +191,18 @@ namespace TEN::Hud
 		_meshBits = meshBits;
 	}
 
+	void DisplayItem::SetScissor(const Vector2& pos, const Vector2& size)
+	{
+		_hasScissor  = true;
+		_scissorPos  = pos;
+		_scissorSize = size;
+	}
+
+	void DisplayItem::ClearScissor()
+	{
+		_hasScissor = false;
+	}
+
 	void DisplayItem::SetMeshVisible(int meshIndex, bool isVisible)
 	{
 		if (!MeshExists(meshIndex))
@@ -244,6 +256,10 @@ namespace TEN::Hud
 	{
 		return _visible;
 	}
+
+	bool DisplayItem::GetHasScissor() const  { return _hasScissor; }
+	Vector2 DisplayItem::GetScissorPos() const  { return _scissorPos; }
+	Vector2 DisplayItem::GetScissorSize() const { return _scissorSize; }
 
 	bool DisplayItem::GetDisposing() const
 	{

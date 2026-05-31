@@ -7,6 +7,7 @@
 #include "Specific/clock.h"
 
 using namespace TEN::Math;
+using namespace TEN::Renderer::Structures;
 using TEN::Renderer::g_Renderer;
 
 namespace TEN::Hud
@@ -205,7 +206,25 @@ namespace TEN::Hud
 			return;
 
 		for (const auto& item : _displayItems)
+		{
+			if (item.GetHasScissor())
+			{
+				auto screenRes = g_Renderer.GetScreenResolution();
+				auto pos  = item.GetScissorPos();
+				auto size = item.GetScissorSize();
+				auto rect = RendererRectangle(
+					(int)(pos.x * screenRes.x / 100.0f),
+					(int)(pos.y * screenRes.y / 100.0f),
+					(int)((pos.x + size.x) * screenRes.x / 100.0f),
+					(int)((pos.y + size.y) * screenRes.y / 100.0f));
+				g_Renderer.SetDisplayScissor(rect);
+			}
+
 			g_Renderer.DrawObjectIn3DSpace(item);
+
+			if (item.GetHasScissor())
+				g_Renderer.ResetDisplayScissor();
+		}
 	}
 
 	void DrawItemsController::Clear()

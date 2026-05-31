@@ -404,6 +404,9 @@ namespace TEN::Renderer
 		_graphicsDevice->SetScissor(s);
 	}
 
+	void Renderer::SetDisplayScissor(RendererRectangle rect) { SetScissor(rect); }
+	void Renderer::ResetDisplayScissor()                     { ResetScissor(); }
+
 	void Renderer::SetGraphicsSettingsChanged()
 	{
 		_graphicsSettingsChanged = true;

@@ -769,6 +769,9 @@ namespace TEN::Renderer
 			int priority, BlendMode blendMode, const Vector2& aspectCorrection, RenderView& renderView);
 		void CollectDisplaySprites(RenderView& renderView);
 
+		void SetDisplayScissor(RendererRectangle rect);
+		void ResetDisplayScissor();
+
 		PostProcessMode	GetPostProcessMode();
 		void			SetPostProcessMode(PostProcessMode mode);
 		float			GetPostProcessStrength();

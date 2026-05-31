@@ -40,6 +40,10 @@ namespace TEN::Hud
 		Color                                _prevColor            = NEUTRAL_COLOR;
 		std::unordered_map<int, EulerAngles> _prevMeshOrientations = {};
 
+		bool    _hasScissor  = false;
+		Vector2 _scissorPos  = Vector2::Zero;
+		Vector2 _scissorSize = Vector2(100.0f, 100.0f);
+
 	public:
 		// Constructors
 
@@ -68,6 +72,10 @@ namespace TEN::Hud
 		int  GetEndFrameNumber() const;
 		int  GetPrevFrameNumber() const;
 
+		bool    GetHasScissor() const;
+		Vector2 GetScissorPos() const;
+		Vector2 GetScissorSize() const;
+
 		Vector3     GetInterpolatedPosition(float alpha) const;
 		EulerAngles GetInterpolatedOrientation(float alpha) const;
 		Vector3     GetInterpolatedScale(float alpha) const;
@@ -88,6 +96,8 @@ namespace TEN::Hud
 		void SetMeshOrientation(int meshIndex, const EulerAngles& orient, bool disableInterpolation);
 		void SetAnimation(int animNumber);
 		void SetFrame(int frameNumber);
+		void SetScissor(const Vector2& pos, const Vector2& size);
+		void ClearScissor();
 
 		// Inquirers
 

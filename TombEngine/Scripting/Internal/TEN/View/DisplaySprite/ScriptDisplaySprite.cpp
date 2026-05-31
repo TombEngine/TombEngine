@@ -13,6 +13,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Scripting::Types;
+using namespace TEN::Renderer::Structures;
 using TEN::Renderer::g_Renderer;
 
 /// Represents a display sprite.
@@ -60,6 +61,8 @@ namespace TEN::Scripting::DisplaySprite
 		ScriptReserved_DisplayStringSetRotation, &ScriptDisplaySprite::SetRotation,
 		ScriptReserved_DisplayStringSetScale, &ScriptDisplaySprite::SetScale,
 		ScriptReserved_DisplayStringSetColor, &ScriptDisplaySprite::SetColor,
+		ScriptReserved_SetScissor,   &ScriptDisplaySprite::SetScissor,
+		ScriptReserved_ClearScissor, &ScriptDisplaySprite::ClearScissor,
 		ScriptReserved_DisplaySpriteDraw, &ScriptDisplaySprite::Draw);
 	}
 
@@ -337,6 +340,25 @@ namespace TEN::Scripting::DisplaySprite
 		_color = color;
 	}
 
+	/// Set a scissor clipping rectangle for the display sprite.
+	// Clips the sprite to the specified rectangle when drawn.
+	// @function DisplaySprite:SetScissor
+	// @tparam Vec2 pos Top-left position of the scissor rectangle in percent.
+	// @tparam Vec2 size Width and height of the scissor rectangle in percent.
+	void ScriptDisplaySprite::SetScissor(const Vec2& pos, const Vec2& size)
+	{
+		_hasScissor  = true;
+		_scissorPos  = pos;
+		_scissorSize = size;
+	}
+
+	/// Clear the scissor clipping rectangle from the display sprite.
+	// @function DisplaySprite:ClearScissor
+	void ScriptDisplaySprite::ClearScissor()
+	{
+		_hasScissor = false;
+	}
+
 	/// Draw the display sprite in display space for the current frame.
 	// @function DisplaySprite:Draw
 	// @tparam[opt=0] int priority Draw priority. Can be thought of as a layer, with higher values having precedence.
@@ -371,6 +393,17 @@ namespace TEN::Scripting::DisplaySprite
 		auto convertedScale = Vector2(_scale.x, _scale.y) * SCALE_CONVERSION_COEFF;
 		auto convertedColor = Vector4(_color.GetR(), _color.GetG(), _color.GetB(), _color.GetA()) / UCHAR_MAX;
 
+		if (_hasScissor)
+		{
+			auto screenRes = g_Renderer.GetScreenResolution();
+			auto rect = RendererRectangle(
+				(int)(_scissorPos.x * screenRes.x / 100.0f),
+				(int)(_scissorPos.y * screenRes.y / 100.0f),
+				(int)((_scissorPos.x + _scissorSize.x) * screenRes.x / 100.0f),
+				(int)((_scissorPos.y + _scissorSize.y) * screenRes.y / 100.0f));
+			g_Renderer.SetDisplayScissor(rect);
+		}
+
 		AddDisplaySprite(
 			_objectID, _spriteID,
 			convertedPos, convertedRot, convertedScale, convertedColor,
@@ -379,5 +412,8 @@ namespace TEN::Scripting::DisplaySprite
 			scaleMode.value_or(DEFAULT_SCALE_MODE),
 			blendMode.value_or(DEFAULT_BLEND_MODE), 
 			DisplaySpritePhase::Control);
+
+		if (_hasScissor)
+			g_Renderer.ResetDisplayScissor();
 	}
 }

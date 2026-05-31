@@ -73,6 +73,10 @@ private:
 	D3DCOLOR	_color	  = 0xFFFFFFFF;
 	FlagArray	_flags	  = {};
 
+	bool _hasScissor  = false;
+	Vec2 _scissorPos  = Vec2(0.0f, 0.0f);
+	Vec2 _scissorSize = Vec2(100.0f, 100.0f);
+
 	float _timeRemaining = 0.0f; // NOTE: Seconds.
 
 	bool _isInfinite	 = false;
@@ -125,6 +129,8 @@ public:
 	void SetColor(const ScriptColor&);
 	void SetTranslated(bool isTranslated);
 	void SetFlags(const sol::table& flags);
+	void SetScissor(const Vec2& pos, const Vec2& size);
+	void ClearScissor();
 
 	// Routines
 	static SetItemCallback	  SetItemCallbackRoutine;
