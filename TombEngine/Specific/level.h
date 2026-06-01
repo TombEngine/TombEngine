@@ -4,12 +4,13 @@
 #include "Game/control/event.h"
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
+#include "Game/LevelCamera.h"
 #include "Game/room.h"
 #include "Game/spotcam.h"
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
 #include "Specific/LevelCameraInfo.h"
-#include "Specific/newtypes.h"
+#include "Specific/Structures/newtypes.h"
 #include "Specific/Structures/MaterialData.h"
 
 using namespace TEN::Animation;

@@ -7,7 +7,7 @@
 #include "Renderer/RendererEnums.h"
 #include "Scripting/Internal/TEN/Logic/CallbackPoint.h"
 #include "Scripting/Internal/TEN/Properties/PropertyMap.h"
-#include "Specific/newtypes.h"
+#include "Specific/Structures/newtypes.h"
 #include "Specific/Structures/BitField.h"
 
 using namespace TEN::Animation;
