@@ -157,9 +157,6 @@ struct LevelData
 	std::vector<SPRITE>			 Sprites = {};
 	std::vector<MirrorData>		 Mirrors = {};
 	std::string					 PropertyBlob = {};
-
-	// Property script blob from Tomb Editor (executed after level script load).
-
 };
 
 extern const std::vector<GAME_OBJECT_ID> BRIDGE_OBJECT_IDS;

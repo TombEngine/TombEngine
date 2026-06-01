@@ -66,7 +66,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 * Added `Objects.GetMoveableProperty`, `Objects.SetMoveableProperty`, `Objects.GetStaticProperty` and `Objects.SetStaticProperty` functions.
-* Added `Objects.GetMaterialByName` and `Objects.GetMaterialByObject` functions.
+* Added `Objects.GetMaterialByName` and `Objects.GetMaterialsByObject` functions.
 * Added `Moveable:GetProperty`, `Moveable:SetProperty` and `Moveable:HasInstanceProperty` functions.
 * Added `Static:GetProperty`, `Static:SetProperty` and `Static:HasInstanceProperty` functions.
 

@@ -1331,18 +1331,18 @@ const std::vector<byte> SaveGame::Build()
 	auto staticMeshesOffset = fbb.CreateVector(staticMeshes);
 	auto volumesOffset = fbb.CreateVector(volumes);
 
-	std::vector<Common::Vector4> materialPropertyCurrentValues = {};
-	materialPropertyCurrentValues.reserve(g_Level.Materials.size() * MaterialData::PropertyCount);
+	std::vector<Common::Vector4> materialProperties = {};
+	materialProperties.reserve(g_Level.Materials.size() * MaterialData::PropertyCount);
 
 	for (const auto& material : g_Level.Materials)
 	{
 		auto& currentParameters = material.GetProperties();
 
 		for (int i = 0; i < MaterialData::PropertyCount; i++)
-			materialPropertyCurrentValues.push_back(FromVector4(currentParameters[i]));
+			materialProperties.push_back(FromVector4(currentParameters[i]));
 	}
 
-	auto materialPropertyCurrentValuesOffset = fbb.CreateVectorOfStructs(materialPropertyCurrentValues);
+	auto materialPropertiesOffset = fbb.CreateVectorOfStructs(materialProperties);
 
 	// Level state
 	auto* level = (Level*)g_GameFlow->GetLevel(CurrentLevel);
@@ -1392,7 +1392,7 @@ const std::vector<byte> SaveGame::Build()
 	levelData.add_weather_type((int)level->Weather);
 	levelData.add_weather_strength(level->WeatherStrength);
 	levelData.add_weather_clustering(level->WeatherClustering);
-	levelData.add_material_property_current_values(materialPropertyCurrentValuesOffset);
+	levelData.add_material_properties(materialPropertiesOffset);
 
 	auto levelDataOffset = levelData.Finish();
 
@@ -2322,8 +2322,8 @@ static void ParseEffects(const Save::SaveGame* s)
 	g_Renderer.SetPostProcessTint(ToVector3(s->postprocess_tint()));
 
 	// Restore material properties.
-	auto* savedValues = s->level_data()->material_property_current_values();
-	TENAssert(savedValues != nullptr && savedValues->size() == g_Level.Materials.size() * MaterialData::PropertyCount, "Savegame material property data size mismatch.");
+	auto* materialProperties = s->level_data()->material_properties();
+	TENAssert(materialProperties != nullptr && materialProperties->size() == g_Level.Materials.size() * MaterialData::PropertyCount, "Savegame material property data size mismatch.");
 
 	auto valueIndex = 0;
 	for (auto& material : g_Level.Materials)
@@ -2331,7 +2331,7 @@ static void ParseEffects(const Save::SaveGame* s)
 		std::array<Vector4, MaterialData::PropertyCount> properties = {};
 
 		for (int i = 0; i < MaterialData::PropertyCount; i++)
-			properties[i] = ToVector4(savedValues->Get(valueIndex++));
+			properties[i] = ToVector4(materialProperties->Get(valueIndex++));
 
 		material.SetCurrentProperties(properties);
 		material.StoreInterpolationData();

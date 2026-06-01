@@ -1412,14 +1412,15 @@ void LoadEventSets()
 
 void LoadProperties()
 {
-	int blobCount = ReadCount();
-	TENLog("Property count: " + std::to_string(blobCount), LogLevel::Info);
+	int propertyCount = ReadCount();
+	TENLog("Property count: " + std::to_string(propertyCount), LogLevel::Info);
 
-	if (blobCount > 0)
+	if (propertyCount > 0)
 		g_Level.PropertyBlob = ReadString();
 	else
 		g_Level.PropertyBlob = {};
 }
+
 static bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompressedSize)
 {
 	char* regionPtr = compressedRegion;
