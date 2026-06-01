@@ -243,7 +243,7 @@ void CameraInfo::HandleFollow(const ItemInfo& playerItem, bool isCombatCamera)
 		auto farthestIdealPos = Position;
 		int farthestIdealRoomNumber = RoomNumber;
 		short farthestIdealAzimuthAngle = actualAngle;
-		float farthestDistSqr = INFINITY;
+		float farthestDistSqr = FLT_MAX;
 
 		// Determine ideal position around player.
 		for (int i = 0; i < (TANK_CAMERA_SWIVEL_STEP_COUNT + 1); i++)
