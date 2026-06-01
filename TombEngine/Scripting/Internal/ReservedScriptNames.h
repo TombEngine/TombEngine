@@ -15,7 +15,7 @@ static constexpr char ScriptReserved_Util[]				= "Util";
 static constexpr char ScriptReserved_Effects[]			= "Effects";
 
 // Classes
-static constexpr char ScriptReserved_Camera[]			= "g_Camera";
+static constexpr char ScriptReserved_Camera[]			= "Camera";
 static constexpr char ScriptReserved_SoundSource[]		= "SoundSource";
 static constexpr char ScriptReserved_AIObject[]			= "AIObject";
 static constexpr char ScriptReserved_Volume[]			= "Volume";
@@ -31,7 +31,7 @@ static constexpr char ScriptReserved_UISettings[]		= "UI";
 static constexpr char ScriptReserved_SystemSettings[]	= "System";
 static constexpr char ScriptReserved_GameplaySettings[] = "Gameplay";
 static constexpr char ScriptReserved_FlareSettings[]	= "Flare";
-static constexpr char ScriptReserved_CameraSettings[]	= "g_Camera";
+static constexpr char ScriptReserved_CameraSettings[]	= "Camera";
 static constexpr char ScriptReserved_AnimSettings[]		= "Animations";
 static constexpr char ScriptReserved_GraphicsSettings[]	= "Graphics";
 static constexpr char ScriptReserved_HairSettings[]		= "Hair";

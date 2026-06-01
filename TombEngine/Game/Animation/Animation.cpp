@@ -340,7 +340,11 @@ namespace TEN::Animation
 
 			if (!player.Control.IsMoving)
 			{
-				item.Pose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, vertVelocity, item.Animation.Velocity.x);
+				// sezz state machine writes HeadingOrient.y for both classic and modern controls
+				// (e.g. lara_as_jump_back sets HeadingOrient.y = Pose.Orientation.y + ANGLE(180)).
+				// Develop's legacy MoveAngle field is no longer kept up to date, so read
+				// HeadingOrient instead to get the actual move direction per state.
+				item.Pose.Translate(player.Control.HeadingOrient.y, item.Animation.Velocity.z, vertVelocity, item.Animation.Velocity.x);
 				item.Pose.Orientation += rootMotion.Rotation;
 			}
 

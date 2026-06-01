@@ -370,9 +370,14 @@ namespace TEN::Renderer
 		if (farView < MIN_FAR_VIEW)
 			farView = DEFAULT_FAR_VIEW;
 
+		// sezz stores g_Camera.Fov in raw ANGLE short units (e.g. SetFov(ANGLE(80.0f)) ~= 14563);
+		// develop's RenderView expects radians (with the 4:3 aspect adjust develop applied via
+		// TO_RAD(CurrentFOV / 1.333333f)). Convert here so all downstream projection math is right.
 		// TODO: Roll was removed from CameraInfo in the modern-controls refactor; passing 0 for now.
-		_currentGameCamera = RenderView(cam, 0.0f, cam->Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
-		_gameCamera        = RenderView(cam, 0.0f, cam->Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
+		float fovRad = TO_RAD((short)(cam->Fov / 1.333333f));
+
+		_currentGameCamera = RenderView(cam, 0.0f, fovRad, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
+		_gameCamera        = RenderView(cam, 0.0f, fovRad, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
 	}
 
 	bool Renderer::SphereBoxIntersection(BoundingBox box, Vector3 sphereCentre, float sphereRadius)
