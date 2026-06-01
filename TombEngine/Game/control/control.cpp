@@ -138,6 +138,7 @@ void DrawPhase(bool isTitle, float interpolationFactor)
 	}
 
 	g_Renderer.Lock();
+	ApplyPendingWindowResize();
 }
 
 GameStatus GamePhase(bool insideMenu)

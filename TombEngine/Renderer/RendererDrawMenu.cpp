@@ -1321,28 +1321,29 @@ namespace TEN::Renderer
 
 			if (drawLogo && _logo != nullptr)
 			{
-				float factorX = (float)_graphicsDevice->GetScreenWidth() / DISPLAY_SPACE_RES.x;
-				float factorY = (float)_graphicsDevice->GetScreenHeight() / DISPLAY_SPACE_RES.y;
-				float scale = _graphicsDevice->GetScreenWidth() > _graphicsDevice->GetScreenHeight() ? factorX : factorY;
+				int screenW = _graphicsDevice->GetScreenWidth();
+				int screenH = _graphicsDevice->GetScreenHeight();
+				float factorX = (float)screenW / DISPLAY_SPACE_RES.x;
+				float factorY = (float)screenH / DISPLAY_SPACE_RES.y;
+
+				// Uniform scale to preserve logo aspect ratio regardless of window aspect.
+				float sizeScale = std::min(factorX, factorY);
 
 				auto& settings = g_GameFlow->GetSettings()->UI;
 
-				float logoWidthScaled  = _logo->GetWidth() * settings.TitleLogoScale;
-				float logoHeightScaled = _logo->GetHeight() * settings.TitleLogoScale;
+				float logoWidthScaled  = _logo->GetWidth()  * settings.TitleLogoScale * sizeScale;
+				float logoHeightScaled = _logo->GetHeight() * settings.TitleLogoScale * sizeScale;
 
-				float centerX = (settings.TitleLogoPosition.x / 100.0f) * DISPLAY_SPACE_RES.x;
-				float centerY = (settings.TitleLogoPosition.y / 100.0f) * DISPLAY_SPACE_RES.y;
-
-				float logoLeft   = centerX - logoWidthScaled  * 0.5f;
-				float logoRight  = centerX + logoWidthScaled  * 0.5f;
-				float logoTop    = centerY - logoHeightScaled * 0.5f;
-				float logoBottom = centerY + logoHeightScaled * 0.5f;
+				// Position the logo as a percentage of the actual window so it stays anchored
+				// (e.g. centered horizontally at 50%) across any aspect ratio.
+				float centerX = (settings.TitleLogoPosition.x / 100.0f) * screenW;
+				float centerY = (settings.TitleLogoPosition.y / 100.0f) * screenH;
 
 				RendererRectangle rect;
-				rect.Left   = logoLeft   * scale;
-				rect.Right  = logoRight  * scale;
-				rect.Top    = logoTop    * scale;
-				rect.Bottom = logoBottom * scale;
+				rect.Left   = centerX - logoWidthScaled  * 0.5f;
+				rect.Right  = centerX + logoWidthScaled  * 0.5f;
+				rect.Top    = centerY - logoHeightScaled * 0.5f;
+				rect.Bottom = centerY + logoHeightScaled * 0.5f;
 
 				// HACK: Color range slippage. Remove in fix color range PR.
 				auto color = Vector4(settings.TitleLogoColor.GetR() / (float)UCHAR_MAX,
