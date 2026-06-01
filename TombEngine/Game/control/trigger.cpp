@@ -891,9 +891,10 @@ void ProcessSectorFlags(ItemInfo* item)
 	if (isPlayer)
 	{
 		auto& player = GetLaraInfo(*item);
+		auto& climbSector = pointColl.GetBottomSector(true);
 
 		// Set wall climb status.
-		if (TestLaraNearClimbableWall(item, &sector))
+		if (TestLaraNearClimbableWall(item, &climbSector))
 		{
 			player.Control.CanClimbLadder = true;
 		}
@@ -903,7 +904,7 @@ void ProcessSectorFlags(ItemInfo* item)
 		}
 
 		// Set monkey swing status.
-		player.Control.CanMonkeySwing = sector.Flags.Monkeyswing;
+		player.Control.CanMonkeySwing = climbSector.Flags.Monkeyswing;
 	}
 
 	// Burn or drown item.

@@ -30,6 +30,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Bug fixes
 
+* Fixed original bug with bridge objects blocking monkeyswing and ladder flags in the bottom room.
 * Fixed MINECART_SWITCH object not working.
 * Fixed empty inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
