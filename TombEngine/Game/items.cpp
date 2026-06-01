@@ -554,8 +554,8 @@ void InitializeItem(short itemNumber)
 		item.Status = ITEM_ACTIVE;
 	}
 
-	auto* room = &g_Level.Rooms[item->RoomNumber];
-	room->itemNumbers.push_back(itemNumber);
+	auto& room = g_Level.Rooms[item.RoomNumber];
+	room.itemNumbers.push_back(itemNumber);
 
 	FloorInfo* floor = GetSector(&room, item.Pose.Position.x - room.Position.x, item.Pose.Position.z - room.Position.z);
 	item.Floor = floor->GetSurfaceHeight(item.Pose.Position.x, item.Pose.Position.z, true);

@@ -429,7 +429,7 @@ namespace TEN::Renderer
 
 		bool isRoomReflected = IsRoomReflected(renderView, roomNumber);
 
-		for (int itemNumber : room.itemNumbers)
+		for (int itemNumber : nativeRoom.itemNumbers)
 		{
 			const auto& item = g_Level.Items[itemNumber];
 
