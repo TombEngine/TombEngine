@@ -7,11 +7,13 @@
 #include "Scripting/Internal/LanguageScript.h"
 #include "Specific/EngineMain.h"
 #include "Specific/Input/Input.h"
+#include "Specific/Serialization/flatbuffers/ten_configuration_generated.h"
 #include "Specific/trutils.h"
 #include "Sound/sound.h"
 
 using namespace TEN::Input;
 using namespace TEN::Renderer;
+using namespace TEN::Serialization::Config;
 using namespace TEN::Utils;
 
 GameConfiguration g_Configuration;
@@ -27,40 +29,129 @@ static std::string GetConfigFilePath()
 	return path;
 }
 
-static bool WriteAllText(const std::string& path, const std::string& text)
+static bool ReadConfigFileData(const std::string& path, std::vector<unsigned char>& fileData)
 {
-	auto stream = SDL_IOFromFile(path.c_str(), "wb");
-	if (!stream) 
-		return false;
+	auto file = std::ifstream();
 
-	const size_t size = text.size();
-	size_t width = SDL_WriteIO(stream, text.data(), size);
+	try
+	{
+		file.open(std::filesystem::path{ path }, std::ios_base::binary);
+		if (!file.is_open())
+			return false;
 
-	SDL_CloseIO(stream);
+		file.seekg(0, std::ios::end);
+		auto length = (std::streamsize)file.tellg();
+		file.seekg(0, std::ios::beg);
 
-	return (width == size);
-}
+		if (length <= 0)
+		{
+			file.close();
+			return false;
+		}
 
-static bool ReadAllText(const std::string& path, std::string& out)
-{
-	auto stream = SDL_IOFromFile(path.c_str(), "rb");
-	if (!stream) 
-		return false;
+		fileData.resize((size_t)length);
+		if (!file.read(reinterpret_cast<char*>(fileData.data()), length))
+		{
+			file.close();
+			return false;
+		}
+		file.close();
 
-	auto size = SDL_GetIOSize(stream);
-	if (size < 0)
-	{ 
-		SDL_CloseIO(stream);
+		return true;
+	}
+	catch (std::exception&)
+	{
+		if (file.is_open())
+			file.close();
+
 		return false;
 	}
+}
 
-	out.resize(static_cast<size_t>(size));
+static bool ExtractConfigurationBuffer(const std::vector<unsigned char>& fileData, std::vector<unsigned char>& buffer)
+{
+	if (fileData.size() <= sizeof(int))
+		return false;
 
-	size_t read = SDL_ReadIO(stream, out.data(), out.size());
+	int size = 0;
+	memcpy(&size, fileData.data(), sizeof(size));
+	if (size <= 0 || (sizeof(int) + (size_t)size) > fileData.size())
+		return false;
 
-	SDL_CloseIO(stream);
+	buffer.assign(fileData.begin() + sizeof(size), fileData.begin() + sizeof(size) + size);
+	return true;
+}
 
-	return (read == out.size());
+static void LoadBinding(int actionId, int keyId)
+{
+	if (actionId < 0 || keyId < 0 || actionId >= (int)ActionID::Count || keyId == KEY_UNASSIGNED)
+		return;
+
+	auto action = (ActionID)actionId;
+	g_Configuration.Bindings.insert({ action, keyId });
+	g_Bindings.SetKeyBinding(BindingProfileID::Custom, action, keyId);
+}
+
+static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
+{
+	auto buffer = std::vector<unsigned char>();
+	if (!ExtractConfigurationBuffer(fileData, buffer))
+		return false;
+
+	TENLog(fmt::format("Loading configuration: {}", GetConfigFilePath()), LogLevel::Info);
+
+	auto verifier = flatbuffers::Verifier(buffer.data(), buffer.size());
+	if (!VerifyConfigurationBuffer(verifier))
+		return false;
+
+	InitDefaultConfiguration();
+
+	const auto* config = GetConfiguration(buffer.data());
+	g_Configuration.ScreenWidth = config->screen_width();
+	g_Configuration.ScreenHeight = config->screen_height();
+	g_Configuration.Gamma = config->gamma();
+	g_Configuration.EnableWindowedMode = config->enable_windowed_mode();
+	g_Configuration.ShadowType = (ShadowMode)config->shadow_type();
+	g_Configuration.ShadowMapSize = config->shadow_map_size();
+	g_Configuration.ShadowBlobsMax = config->shadow_blobs_max();
+	g_Configuration.EnableCaustics = config->enable_caustics();
+	g_Configuration.EnableDecals = config->enable_decals();
+	g_Configuration.AntialiasingMode = (AntialiasingMode)config->antialiasing_mode();
+	g_Configuration.EnableAmbientOcclusion = config->enable_ambient_occlusion();
+	g_Configuration.EnableHighFramerate = config->enable_high_framerate();
+
+	if (config->adapter_name() != nullptr)
+		g_Configuration.AdapterName = config->adapter_name()->str();
+
+	g_Configuration.SoundDevice = config->sound_device();
+	g_Configuration.EnableReverb = config->enable_reverb();
+	g_Configuration.MusicVolume = config->music_volume();
+	g_Configuration.SfxVolume = config->sfx_volume();
+
+	g_Configuration.EnableSubtitles = config->enable_subtitles();
+	g_Configuration.EnableAutoMonkeySwingJump = config->enable_auto_monkey_swing_jump();
+	g_Configuration.EnableAutoTargeting = config->enable_auto_targeting();
+	g_Configuration.EnableTargetHighlighter = config->enable_target_highlighter();
+	g_Configuration.EnableInteractionHighlighter = config->enable_interaction_highlighter();
+	g_Configuration.EnableRumble = config->enable_rumble();
+	g_Configuration.EnableThumbstickCamera = config->enable_thumbstick_camera();
+
+	g_Configuration.MouseSensitivity = config->mouse_sensitivity();
+	g_Configuration.MenuOptionLoopingMode = (MenuOptionLoopingMode)config->menu_option_looping_mode();
+
+	int gamepadType = std::clamp(config->last_gamepad_type(), 0, (int)GamepadType::Count - 1);
+	g_Configuration.LastGamepadType = (GamepadType)gamepadType;
+
+	if (config->bindings() != nullptr)
+	{
+		for (const auto* binding : *config->bindings())
+			LoadBinding(binding->action_id(), binding->key_id());
+	}
+
+	if (g_Configuration.Bindings.empty())
+		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Default);
+
+	return true;
 }
 
 void SetAudioConfiguration(const GameConfiguration& config)
@@ -78,6 +169,7 @@ void InitDefaultConfiguration()
 
 	g_Configuration.ScreenWidth = currentScreenResolution.x;
 	g_Configuration.ScreenHeight = currentScreenResolution.y;
+	g_Configuration.EnableWindowedMode = false;
 	g_Configuration.ShadowType = ShadowMode::Player;
 	g_Configuration.ShadowMapSize = GameConfiguration::DEFAULT_SHADOW_MAP_SIZE;
 	g_Configuration.ShadowBlobsMax = GameConfiguration::DEFAULT_SHADOW_BLOBS_MAX;
@@ -104,6 +196,8 @@ void InitDefaultConfiguration()
 
 	g_Configuration.MouseSensitivity = GameConfiguration::DEFAULT_MOUSE_SENSITIVITY;
 	g_Configuration.MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
+	g_Configuration.LastGamepadType = GamepadType::Xbox;
+	g_Configuration.Bindings = {};
 
 	g_Configuration.SupportedScreenResolutions = GetAllSupportedScreenResolutions();
 	g_Configuration.AdapterName = g_Renderer.GetDefaultAdapterName();
@@ -114,227 +208,114 @@ void InitDefaultConfiguration()
 bool LoadConfiguration()
 {
 	auto path = GetConfigFilePath();
+	auto fileData = std::vector<unsigned char>();
+	if (!ReadConfigFileData(path, fileData))
+		return false;
 
-	auto text = std::string();
-	if (!ReadAllText(path, text))
-		return false; 
-
-	auto in = std::istringstream(text);
-	auto line = std::string();
-	auto section = std::string();
-
-	InitDefaultConfiguration();
-
-	bool foundInput = false;
-
-	while (std::getline(in, line))
+	if (!LoadConfigurationBuffer(fileData))
 	{
-		line = Trim(line);
-		if (line.empty() || line[0] == '#' || line[0] == ';')
-			continue;
-
-		if (line.front() == '[' && line.back() == ']')
-		{
-			section = line.substr(1, line.size() - 2);
-			continue;
-		}
-
-		auto eq = line.find('=');
-		if (eq == std::string::npos)
-			continue;
-
-		auto key = Trim(line.substr(0, eq));
-		auto val = Trim(line.substr(eq + 1));
-
-		if (section == "Graphics")
-		{
-			if (key == OPTION_SCREEN_WIDTH)
-			{
-				g_Configuration.ScreenWidth = ToInt(val, g_Configuration.ScreenWidth);
-			}
-			else if (key == OPTION_SCREEN_HEIGHT)
-			{
-				g_Configuration.ScreenHeight = ToInt(val, g_Configuration.ScreenHeight);
-			}
-			else if (key == OPTION_ENABLE_WINDOWED_MODE)
-			{
-				g_Configuration.EnableWindowedMode = ToBool(val, g_Configuration.EnableWindowedMode);
-			}
-			else if (key == OPTION_SHADOWS)
-			{
-				g_Configuration.ShadowType = (ShadowMode)ToInt(val, (int)g_Configuration.ShadowType);
-			}
-			else if (key == OPTION_SHADOW_MAP_SIZE)
-			{
-				g_Configuration.ShadowMapSize = ToInt(val, g_Configuration.ShadowMapSize);
-			}
-			else if (key == OPTION_SHADOW_BLOBS_MAX)
-			{
-				g_Configuration.ShadowBlobsMax = ToInt(val, g_Configuration.ShadowBlobsMax);
-			}
-			else if (key == OPTION_ENABLE_CAUSTICS)
-			{
-				g_Configuration.EnableCaustics = ToBool(val, g_Configuration.EnableCaustics);
-			}
-			else if (key == OPTION_ENABLE_DECALS)
-			{
-				g_Configuration.EnableDecals = ToBool(val, g_Configuration.EnableDecals);
-			}
-			else if (key == OPTION_ANTIALIASING_MODE)
-			{
-				g_Configuration.AntialiasingMode = (AntialiasingMode)ToInt(val, (int)g_Configuration.AntialiasingMode);
-			}
-			else if (key == OPTION_AMBIENT_OCCLUSION)
-			{
-				g_Configuration.EnableAmbientOcclusion = ToBool(val, g_Configuration.EnableAmbientOcclusion);
-			}
-			else if (key == OPTION_HIGH_FRAMERATE)
-			{
-				g_Configuration.EnableHighFramerate = ToBool(val, g_Configuration.EnableHighFramerate);
-			}
-			else if (key == OPTION_GAMMA)
-			{
-				g_Configuration.Gamma = ToFloat(val, g_Configuration.Gamma);
-			}
-			else if (key == OPTION_ADAPTER_NAME)
-			{
-				g_Configuration.AdapterName = val;
-			}
-		}
-		else if (section == "Sound")
-		{
-			if (key == OPTION_SOUND_DEVICE)
-			{
-				g_Configuration.SoundDevice = ToInt(val, g_Configuration.SoundDevice);
-			}
-			else if (key == OPTION_ENABLE_REVERB)
-			{
-				g_Configuration.EnableReverb = ToBool(val, g_Configuration.EnableReverb);
-			}
-			else if (key == OPTION_MUSIC_VOLUME)
-			{
-				g_Configuration.MusicVolume = ToInt(val, g_Configuration.MusicVolume);
-			}
-			else if (key == OPTION_SFX_VOLUME)
-			{
-				g_Configuration.SfxVolume = ToInt(val, g_Configuration.SfxVolume);
-			}
-		}
-		else if (section == "Gameplay")
-		{
-			if (key == OPTION_ENABLE_SUBTITLES)
-			{
-				g_Configuration.EnableSubtitles = ToBool(val, g_Configuration.EnableSubtitles);
-			}
-			else if (key == OPTION_ENABLE_AUTO_MONKEY_JUMP)
-			{
-				g_Configuration.EnableAutoMonkeySwingJump = ToBool(val, g_Configuration.EnableAutoMonkeySwingJump);
-			}
-			else if (key == OPTION_ENABLE_AUTO_TARGETING)
-			{
-				g_Configuration.EnableAutoTargeting = ToBool(val, g_Configuration.EnableAutoTargeting);
-			}
-			else if (key == OPTION_ENABLE_TARGET_HIGHLIGHTER)
-			{
-				g_Configuration.EnableTargetHighlighter = ToBool(val, g_Configuration.EnableTargetHighlighter);
-			}
-			else if (key == OPTION_ENABLE_INTERACTION_HIGHLIGHTER)
-			{
-				g_Configuration.EnableInteractionHighlighter = ToBool(val, g_Configuration.EnableInteractionHighlighter);
-			}
-			else if (key == OPTION_ENABLE_RUMBLE)
-			{
-				g_Configuration.EnableRumble = ToBool(val, g_Configuration.EnableRumble);
-			}
-			else if (key == OPTION_ENABLE_THUMBSTICK_CAMERA)
-			{
-				g_Configuration.EnableThumbstickCamera = ToBool(val, g_Configuration.EnableThumbstickCamera);
-			}
-		}
-		else if (section == "Input")
-		{
-			if (key == OPTION_MOUSE_SENSITIVITY)
-			{
-				g_Configuration.MouseSensitivity = ToInt(val, g_Configuration.MouseSensitivity);
-			}
-			else if (key == OPTION_MENU_OPTION_LOOPING_MODE)
-			{
-				g_Configuration.MenuOptionLoopingMode = (MenuOptionLoopingMode)ToInt(val, (int)g_Configuration.MenuOptionLoopingMode);
-			}
-			else if (StartsWith(key, OPTION_BIND_PREFIX))
-			{
-				foundInput = true;
-
-				int actionId = ToInt(key.substr(std::string_view(OPTION_BIND_PREFIX).size()), NO_VALUE);
-				int keyId = ToInt(val, NO_VALUE);
-				if (actionId >= 0 && keyId >= 0)
-				{
-					g_Configuration.Bindings.insert({ (ActionID)actionId, keyId });
-					g_Bindings.SetKeyBinding(BindingProfileID::Custom, (ActionID)actionId, keyId);
-				}
-			}
-		}
+		TENLog("Configuration data is incorrect and was not loaded! Incorrect flatbuffer format or memory corruption?", LogLevel::Error);
+		return false;
 	}
 
-	if (!foundInput)
-		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Default);
-
 	g_Configuration.EnableSound = g_Configuration.SoundDevice > 0;
-
 	SetAudioConfiguration(g_Configuration);
 	DefaultConflict();
+	SaveConfiguration();
 
 	return true;
 }
 
+static std::vector<unsigned char> BuildConfigurationBuffer()
+{
+	auto fbb = flatbuffers::FlatBufferBuilder();
+	auto adapterNameOffset = fbb.CreateString(g_Configuration.AdapterName);
+
+	auto bindings = std::vector<flatbuffers::Offset<Binding>>();
+	bindings.reserve(g_Configuration.Bindings.size());
+
+	for (const auto& [action, keyId] : g_Configuration.Bindings)
+		bindings.push_back(CreateBinding(fbb, (int)action, keyId));
+
+	auto bindingsOffset = fbb.CreateVector(bindings);
+
+	ConfigurationBuilder builder{ fbb };
+	builder.add_screen_width(g_Configuration.ScreenWidth);
+	builder.add_screen_height(g_Configuration.ScreenHeight);
+	builder.add_gamma(g_Configuration.Gamma);
+	builder.add_enable_windowed_mode(g_Configuration.EnableWindowedMode);
+	builder.add_shadow_type((int)g_Configuration.ShadowType);
+	builder.add_shadow_map_size(g_Configuration.ShadowMapSize);
+	builder.add_shadow_blobs_max(g_Configuration.ShadowBlobsMax);
+	builder.add_enable_caustics(g_Configuration.EnableCaustics);
+	builder.add_enable_decals(g_Configuration.EnableDecals);
+	builder.add_antialiasing_mode((int)g_Configuration.AntialiasingMode);
+	builder.add_enable_ambient_occlusion(g_Configuration.EnableAmbientOcclusion);
+	builder.add_enable_high_framerate(g_Configuration.EnableHighFramerate);
+	builder.add_adapter_name(adapterNameOffset);
+	builder.add_sound_device(g_Configuration.SoundDevice);
+	builder.add_enable_reverb(g_Configuration.EnableReverb);
+	builder.add_music_volume(g_Configuration.MusicVolume);
+	builder.add_sfx_volume(g_Configuration.SfxVolume);
+	builder.add_enable_subtitles(g_Configuration.EnableSubtitles);
+	builder.add_enable_auto_monkey_swing_jump(g_Configuration.EnableAutoMonkeySwingJump);
+	builder.add_enable_auto_targeting(g_Configuration.EnableAutoTargeting);
+	builder.add_enable_target_highlighter(g_Configuration.EnableTargetHighlighter);
+	builder.add_enable_interaction_highlighter(g_Configuration.EnableInteractionHighlighter);
+	builder.add_enable_rumble(g_Configuration.EnableRumble);
+	builder.add_enable_thumbstick_camera(g_Configuration.EnableThumbstickCamera);
+	builder.add_mouse_sensitivity(g_Configuration.MouseSensitivity);
+	builder.add_menu_option_looping_mode((int)g_Configuration.MenuOptionLoopingMode);
+	builder.add_last_gamepad_type((int)g_Configuration.LastGamepadType);
+	builder.add_bindings(bindingsOffset);
+
+	auto config = builder.Finish();
+	FinishConfigurationBuffer(fbb, config);
+
+	auto buffer = fbb.GetBufferPointer();
+	auto size = fbb.GetSize();
+	return std::vector<unsigned char>(buffer, buffer + size);
+}
+
 bool SaveConfiguration()
 {
-	std::ostringstream ss;
-
-	ss << "[Graphics]\n";
-	ss << OPTION_SCREEN_WIDTH << "=" << g_Configuration.ScreenWidth << "\n";
-	ss << OPTION_SCREEN_HEIGHT << "=" << g_Configuration.ScreenHeight << "\n";
-	ss << OPTION_ENABLE_WINDOWED_MODE << "=" << (g_Configuration.EnableWindowedMode ? 1 : 0) << "\n";
-	ss << OPTION_SHADOWS << "=" << (int)g_Configuration.ShadowType << "\n";
-	ss << OPTION_SHADOW_MAP_SIZE << "=" << g_Configuration.ShadowMapSize << "\n";
-	ss << OPTION_SHADOW_BLOBS_MAX << "=" << g_Configuration.ShadowBlobsMax << "\n";
-	ss << OPTION_ENABLE_CAUSTICS << "=" << (g_Configuration.EnableCaustics ? 1 : 0) << "\n";
-	ss << OPTION_ENABLE_DECALS << "=" << (g_Configuration.EnableDecals ? 1 : 0) << "\n";
-	ss << OPTION_ANTIALIASING_MODE << "=" << (int)g_Configuration.AntialiasingMode << "\n";
-	ss << OPTION_AMBIENT_OCCLUSION << "=" << (g_Configuration.EnableAmbientOcclusion ? 1 : 0) << "\n";
-	ss << OPTION_HIGH_FRAMERATE << "=" << (g_Configuration.EnableHighFramerate ? 1 : 0) << "\n";
-	ss << OPTION_GAMMA << "=" << g_Configuration.Gamma << "\n";
-	ss << OPTION_ADAPTER_NAME << "=" << g_Configuration.AdapterName << "\n\n";
-
-	ss << "[Sound]\n";
-	ss << OPTION_SOUND_DEVICE << "=" << g_Configuration.SoundDevice << "\n";
-	ss << OPTION_ENABLE_SOUND << "=" << (g_Configuration.EnableSound ? 1 : 0) << "\n";
-	ss << OPTION_ENABLE_REVERB << "=" << (g_Configuration.EnableReverb ? 1 : 0) << "\n";
-	ss << OPTION_MUSIC_VOLUME << "=" << g_Configuration.MusicVolume << "\n";
-	ss << OPTION_SFX_VOLUME << "=" << g_Configuration.SfxVolume << "\n\n";
-
-	ss << "[Gameplay]\n";
-	ss << OPTION_ENABLE_SUBTITLES << "=" << (g_Configuration.EnableSubtitles ? 1 : 0) << "\n";
-	ss << OPTION_ENABLE_AUTO_MONKEY_JUMP << "=" << (g_Configuration.EnableAutoMonkeySwingJump ? 1 : 0) << "\n";
-	ss << OPTION_ENABLE_AUTO_TARGETING << "=" << (g_Configuration.EnableAutoTargeting ? 1 : 0) << "\n";
-	ss << OPTION_ENABLE_TARGET_HIGHLIGHTER << "=" << (g_Configuration.EnableTargetHighlighter ? 1 : 0) << "\n";
-	ss << OPTION_ENABLE_INTERACTION_HIGHLIGHTER << "=" << (g_Configuration.EnableInteractionHighlighter ? 1 : 0) << "\n";
-	ss << OPTION_ENABLE_RUMBLE << "=" << (g_Configuration.EnableRumble ? 1 : 0) << "\n";
-	ss << OPTION_ENABLE_THUMBSTICK_CAMERA << "=" << (g_Configuration.EnableThumbstickCamera ? 1 : 0) << "\n\n";
-
-	ss << "[Input]\n";
-	ss << OPTION_MOUSE_SENSITIVITY << "=" << g_Configuration.MouseSensitivity << "\n";
-	ss << OPTION_MENU_OPTION_LOOPING_MODE << "=" << (int)g_Configuration.MenuOptionLoopingMode << "\n";
-
 	if (g_Configuration.Bindings.empty())
 		g_Configuration.Bindings = DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
 
-	for (const auto& kv : g_Configuration.Bindings)
-	{
-		ss << OPTION_BIND_PREFIX << (int)kv.first << "=" << (int)kv.second << "\n";
-	}
-	ss << "\n";
-
+	auto buffer = BuildConfigurationBuffer();
 	auto path = GetConfigFilePath();
-	return WriteAllText(path, ss.str());
+	auto configPath = std::filesystem::path{ path };
+
+	auto parentPath = configPath.parent_path();
+	if (!parentPath.empty() && !std::filesystem::is_directory(parentPath))
+	{
+		auto errorCode = std::error_code();
+		std::filesystem::create_directories(parentPath, errorCode);
+
+		if (errorCode)
+			return false;
+	}
+
+	TENLog(fmt::format("Saving configuration {}.", path), LogLevel::Info);
+
+	auto fileOut = std::ofstream();
+	try
+	{
+		fileOut.open(configPath, std::ios_base::binary | std::ios_base::out);
+		if (!fileOut.is_open())
+			return false;
+
+		int size = (int)buffer.size();
+		fileOut.write(reinterpret_cast<const char*>(&size), sizeof(size));
+		fileOut.write(reinterpret_cast<const char*>(buffer.data()), size);
+		fileOut.close();
+		return true;
+	}
+	catch (std::exception&)
+	{
+		if (fileOut.is_open())
+			fileOut.close();
+
+		return false;
+	}
 }

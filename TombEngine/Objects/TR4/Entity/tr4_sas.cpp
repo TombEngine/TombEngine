@@ -163,7 +163,7 @@ namespace TEN::Entities::TR4
 
 			float distance2D = 0;
 			int angle = 0;
-			if (creature.Enemy->IsLara())
+			if (creature.Enemy.IsLara())
 			{
 				angle = AI.angle;
 				distance2D = AI.distance;
@@ -175,13 +175,13 @@ namespace TEN::Entities::TR4
 					Vector2(LaraItem->Pose.Position.x, LaraItem->Pose.Position.z));
 			}
 
-			GetCreatureMood(&item, &AI, !creature.Enemy->IsLara());
+			GetCreatureMood(&item, &AI, !creature.Enemy.IsLara());
 
 			// Vehicle handling
 			if (Lara.Context.Vehicle != NO_VALUE && AI.bite)
 				creature.Mood = MoodType::Escape;
 
-			CreatureMood(&item, &AI, !creature.Enemy->IsLara());
+			CreatureMood(&item, &AI, !creature.Enemy.IsLara());
 			angle = CreatureTurn(&item, creature.MaxTurn);
 
 			if (item.HitStatus)

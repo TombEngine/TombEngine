@@ -11,12 +11,6 @@
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
 #include "Game/Setup.h"
-#include "Specific/level.h"
-#include "Specific/fast_vector.h"
-#include "Renderer/Frustum.h"
-#include "Renderer/RendererEnums.h"
-#include "Renderer/RenderView.h"
-#include "Renderer/Structures/RendererLight.h"
 #include "Renderer/ConstantBuffers/HUDBarBuffer.h"
 #include "Renderer/ConstantBuffers/HUDBuffer.h"
 #include "Renderer/ConstantBuffers/ShadowLightBuffer.h"
@@ -29,15 +23,20 @@
 #include "Renderer/ConstantBuffers/PostProcessBuffer.h"
 #include "Renderer/ConstantBuffers/SMAABuffer.h"
 #include "Renderer/ConstantBuffers/SkyBuffer.h"
+#include "Renderer/Frustum.h"
+#include "Renderer/Graphics/IGraphicsDevice.h"
+#include "Renderer/Graphics/Vertices/PostProcessVertex.h"
+#include "Renderer/RendererEnums.h"
+#include "Renderer/RenderView.h"
+#include "Renderer/ShaderManager/ShaderManager.h"
 #include "Renderer/Structures/RendererBone.h"
 #include "Renderer/Structures/RendererDoor.h"
+#include "Renderer/Structures/RendererDofMode.h"
 #include "Renderer/Structures/RendererStringToDraw.h"
 #include "Renderer/Structures/RendererRoom.h"
 #include "Renderer/Structures/RendererSprite.h"
 #include "Renderer/Structures/RendererAnimatedTexture.h"
 #include "Renderer/Structures/RendererAnimatedTextureSet.h"
-#include "Renderer/Graphics/Vertices/PostProcessVertex.h"
-#include "Renderer/ShaderManager/ShaderManager.h"
 #include "Renderer/Structures/RendererItem.h"
 #include "Renderer/Structures/RendererEffect.h"
 #include "Renderer/Structures/RendererLine3D.h"
@@ -45,12 +44,14 @@
 #include "Renderer/Structures/RendererMesh.h"
 #include "Renderer/Structures/RendererSpriteSequence.h"
 #include "Renderer/Structures/RendererSpriteBucket.h"
+#include "Renderer/Structures/RendererLight.h"
 #include "Renderer/Structures/RendererLine2D.h"
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Renderer/Structures/RendererRoomAmbientMap.h"
 #include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererStar.h"
-#include "Renderer/Graphics/IGraphicsDevice.h"
+#include "Specific/level.h"
+#include "Specific/Structures/fast_vector.h"
 
 using namespace TEN::Animation;
 
@@ -93,6 +94,8 @@ namespace TEN::Renderer
 		std::unique_ptr<IRenderSurface2D> _normalsAndMaterialIndexRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _depthRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _emissiveAndRoughnessRenderTarget;
+		std::unique_ptr<IRenderSurface2D> _distortionRenderTarget;
+		std::unique_ptr<IRenderSurface2D> _dofRenderTarget[3];
 		std::unique_ptr<IRenderSurface2D> _dumpScreenRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _renderTarget;
 		std::unique_ptr<IRenderSurface2D> _postProcessRenderTarget[2];
@@ -145,6 +148,8 @@ namespace TEN::Renderer
 		// Primitive batches
 
 		RendererViewport _viewport;
+		RendererViewport _distortionViewport;
+		RendererViewport _dofViewport;
 		RendererViewport _shadowMapViewport;
 
 		// Text
@@ -300,9 +305,12 @@ namespace TEN::Renderer
 
 		// Post-process
 
+		bool _hasDistortionMask = false;
 		PostProcessMode _postProcessMode = PostProcessMode::None;
 		float _postProcessStrength = 1.0f;
 		Vector3 _postProcessTint = (Vector3)NEUTRAL_COLOR;
+		DOFState _currentDOF;
+		DOFState _lastDOF;
 
 		std::unique_ptr<IVertexBuffer> _fullscreenTriangleVertexBuffer;
 
@@ -338,6 +346,8 @@ namespace TEN::Renderer
 		void ApplySMAA(IRenderSurface2D* renderTarget, RenderView& view);
 		void ApplyFXAA(IRenderSurface2D* renderTarget, RenderView& view);
 		void ApplyAntialiasing(IRenderSurface2D* renderTarget, RenderView& view);
+		void ApplyDistortion(IRenderSurface2D* renderTarget, RenderView& view);
+		void ApplyDOF(IRenderSurface2D* renderTarget, RenderView& view);
 		void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType);
 		int  BindLight(RendererLight& light, ShaderLight* lights, int index);
 		void BindRoomLights(std::vector<RendererLight*>& lights);
@@ -349,7 +359,7 @@ namespace TEN::Renderer
 		void BindMaterial(int materialIndex, bool force);
 		void BuildHierarchy(RendererObject* obj);
 		void BuildHierarchyRecursive(RendererObject* obj, RendererBone* node, RendererBone* parentNode);
-		void UpdateAnimation(RendererItem* item, RendererObject& obj, const KeyframeInterpolationData& interpData, int mask, bool useObjectWorldRotation = false);
+		void UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation = false, const MoveableAnimBlendData* blend = nullptr, const RootMotionData* rootMotionOffset = nullptr);
 		bool CheckPortal(short parentRoomNumber, RendererDoor* door, Vector4 viewPort, Vector4* clipPort, RenderView& renderView);
 		void GetVisibleRooms(short from, short to, Vector4 viewPort, bool water, int count, bool onlyRooms, RenderView& renderView);
 		void CollectMirrors(RenderView& renderView);
@@ -367,7 +377,7 @@ namespace TEN::Renderer
 		void ClearShadowMap();
 		void CalculateSSAO(RenderView& view);
 		void UpdateItemAnimations(RenderView& view);
-		void InitializeScreen(int w, int h, bool reset);
+		void InitializeScreen(int w, int h, bool reset, bool resyncWindow = true);
 		void InitializeCommonTextures();
 		void InitializeGameBars();
 		void InitializeMenuBars(int y);
@@ -492,6 +502,9 @@ namespace TEN::Renderer
 		void AddQuad(RendererSprite* sprite, const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
 			const Vector4& color0, const Vector4& color1, const Vector4& color2, const Vector4& color3, float orient2D,
 			float scale, Vector2 size, BlendMode blendMode, bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
+		void AddQuad(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D,
+			float scale, float size, BlendMode blendMode, const Vector3& constraintAxis,
+			bool isSoftParticle, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 		void AddColoredQuad(const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
 			const Vector4& color, BlendMode blendMode, RenderView& view);
 		void AddColoredQuad(const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
@@ -499,6 +512,7 @@ namespace TEN::Renderer
 			BlendMode blendMode, RenderView& view, SpriteRenderType renderType = SpriteRenderType::Default);
 
 		Matrix GetWorldMatrixForSprite(const RendererSpriteToDraw& sprite, RenderView& view);
+		Matrix GetWorldMatrixForMoveable(const ItemInfo& item, Matrix* rotationMatrix = nullptr, Matrix* translationMatrix = nullptr) const;
 		RendererObject& GetRendererObject(GAME_OBJECT_ID id);
 		RendererMesh* GetMesh(int meshIndex);
 		void BackupObjectVertices(GAME_OBJECT_ID objectID);
@@ -580,6 +594,7 @@ namespace TEN::Renderer
 			return !(blendMode == BlendMode::Opaque ||
 				blendMode == BlendMode::AlphaTest ||
 				blendMode == BlendMode::Additive ||
+				blendMode == BlendMode::Distortion ||
 				blendMode == BlendMode::FastAlphaBlend);
 		}
 
@@ -675,7 +690,7 @@ namespace TEN::Renderer
 		bool PrepareDataForTheRenderer();
 		void UpdateCameraMatrices(CAMERA_INFO* cam, float farView);
 		void RenderSimpleSceneToParaboloid(IRenderTarget2D* renderTarget, Vector3 position, int hemisphere);
-		void DumpGameScene(SceneRenderMode renderMode = SceneRenderMode::Full);
+		void DumpGameScene(SceneRenderMode renderMode = SceneRenderMode::Full, float blur = 0.0f);
 		void RenderInventory();
 		void RenderScene(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode = SceneRenderMode::Full);
 		void PrepareScene();
@@ -725,7 +740,7 @@ namespace TEN::Renderer
 		void SwitchDebugPage(bool goBack);
 		RendererDebugPage GetCurrentDebugPage();
 
-		void ChangeScreenResolution(int width, int height, bool windowed);
+		void ChangeScreenResolution(int width, int height, bool windowed, bool resyncWindow = true);
 		void FlipRooms(short roomNumber1, short roomNumber2);
 		void UpdateLaraAnimations(bool force);
 		void UpdateItemAnimations(int itemNumber, bool force);
@@ -760,6 +775,9 @@ namespace TEN::Renderer
 		void			SetPostProcessStrength(float strength);
 		Vector3			GetPostProcessTint();
 		void			SetPostProcessTint(Vector3 color);
+		DOFState		GetDOF() const;
+		void			SetDOF(const DOFState& state, bool save = true);
+		void			RestoreDOF();
 
 		void SetGraphicsSettingsChanged();
 

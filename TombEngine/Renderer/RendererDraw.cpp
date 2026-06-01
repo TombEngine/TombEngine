@@ -221,13 +221,13 @@ namespace TEN::Renderer
 			_stObjects.Objects[0].AmbientLight = item->AmbientLight;
 			_stObjects.Skinned = (int)skinMode;
 
-			for (int k = 0; k < MAX_BONES; k++)
+			for (int k = 0; k < BONE_COUNT_MAX; k++)
 				_stObjects.BoneLightModes[k] = (int)LightMode::Static;
 
 			if (skinMode == SkinningMode::Full)
 			{
 				for (int m = 0; m < obj.AnimationTransforms.size(); m++)
-					_stObjects.Bones[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+					_stObjects.Bones[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
 				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 				auto* mesh = GetMesh(item->SkinIndex);
@@ -247,7 +247,7 @@ namespace TEN::Renderer
 				}
 			}
 
-			memcpy(_stObjects.Bones, item->InterpolatedAnimTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
+			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 			for (int k = 0; k < obj.ObjectMeshes.size(); k++)
@@ -1903,9 +1903,12 @@ namespace TEN::Renderer
 
 		// Bind and clear render target.
 		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
-
 		_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), _debugPage == RendererDebugPage::WireframeMode ? Colors::DimGray : Colors::Black);
 		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+
+		// Clear distortion pass data.
+		_graphicsDevice->ClearRenderTarget2D(_distortionRenderTarget->GetRenderTarget(), Colors::Transparent);
+		_hasDistortionMask = false;
 
 		// Reset viewport and scissor.
 		_graphicsDevice->SetViewport(view.Viewport);
@@ -1986,6 +1989,7 @@ namespace TEN::Renderer
 
 		DoRenderPass(RendererPass::Opaque, view, true);
 		DoRenderPass(RendererPass::Additive, view, true);
+		DoRenderPass(RendererPass::Distortion, view, true);
 		DoRenderPass(RendererPass::CollectTransparentFaces, view, false);
 		SortTransparentFaces(view);
 
@@ -1996,26 +2000,28 @@ namespace TEN::Renderer
 		DrawLines3D(view);
 		DrawTriangles3D(view);
 
-		// Copy current scene to the reflections render target for the next frame
+		// Copy current scene to the reflections render target for the next frame.
 		// RT -> LRRT
-		CopyRenderTargetAndDownscale(_renderTarget.get(), _legacyReflectionsRenderTarget.get(), LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, view);
+		CopyRenderTargetAndDownscale(_renderTarget.get(), _legacyReflectionsRenderTarget.get(), POSTPROCESS_DOWNSCALE_FACTOR, view);
 		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
-
-		// Clear the depth buffer for drawing HUD on top
-		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
-
-		// Draw 3D HUD elements separately here because objects may use emissive materials and require glow.
-		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
-		{
-			g_Hud.Draw3D();
-			g_DrawItems.Draw();
-		}
 
 		_doingFullscreenPass = true;
 
-		// Calculates glow
-		// GB-E -> GRT0, GRT0 -> GRT1, GRT1 -> GRT0, RT -> PPRT0, PPRT0 -> RT
+		// Calculate full-screen effects.
+		ApplyDistortion(_renderTarget.get(), view);
+		ApplyDOF(_renderTarget.get(), view);
 		ApplyGlow(_renderTarget.get(), view);
+
+		// Draw HUD-space object renders after DOF so they are not blurred by scene depth.
+		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
+		{
+			_doingFullscreenPass = false;
+			_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+			_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+			g_Hud.Draw3D();
+			g_DrawItems.Draw();
+			_doingFullscreenPass = true;
+		}
 
 		// Apply the antialiasing, now 3D geometry and 3D HUD are antialiased
 		// FXAA: RT -> PPRT0, PPRT0 -> RT
@@ -2341,9 +2347,15 @@ namespace TEN::Renderer
 		_graphicsDevice->Present();
 	}
 
-	void Renderer::DumpGameScene(SceneRenderMode renderMode)
+	void Renderer::DumpGameScene(SceneRenderMode renderMode, float blur)
 	{
+		if (blur > EPSILON)
+			SetDOF({ DOFMode::Full, 0, 0, blur }, false);
+
 		RenderScene(_dumpScreenRenderTarget.get(), _gameCamera, renderMode);
+
+		if (blur > EPSILON)
+			RestoreDOF();
 	}
 
 	void Renderer::DoRenderPass(RendererPass pass, RenderView& view, bool drawMirrors)
@@ -2351,6 +2363,13 @@ namespace TEN::Renderer
 		// Reset GPU state.
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
+
+		if (pass == RendererPass::Distortion)
+		{
+			_graphicsDevice->BindRenderTarget(_distortionRenderTarget->GetRenderTarget(), nullptr);
+			_graphicsDevice->SetViewport(_distortionViewport);
+			_graphicsDevice->SetScissor(_distortionViewport);
+		}
 
 		// Draw room geometry first if applicable for a given pass.
 		if (pass != RendererPass::Transparent && pass != RendererPass::GunFlashes)
@@ -2371,6 +2390,13 @@ namespace TEN::Renderer
 			}
 
 			SetCullMode(CullMode::CounterClockwise);
+		}
+
+		if (pass == RendererPass::Distortion)
+		{
+			_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
+			_graphicsDevice->SetViewport(view.Viewport);
+			_graphicsDevice->SetScissor(view.Viewport);
 		}
 	}
 
@@ -2566,13 +2592,13 @@ namespace TEN::Renderer
 			if (skinMode == SkinningMode::Full)
 			{
 				for (int m = 0; m < moveableObj.AnimationTransforms.size(); m++)
-					_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+					_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
 				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 				DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
 			}
 
-			memcpy(_stObjects.Bones, item->InterpolatedAnimTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
+			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 		}
 
@@ -3379,7 +3405,7 @@ namespace TEN::Renderer
 				{
 					for (int p = 0; p < bucket.Polygons.size(); p++)
 					{
-						auto center = Vector3::Transform(bucket.Polygons[p].Centre, itemToDraw->InterpolatedAnimTransforms[boneIndex] * itemToDraw->InterpolatedWorld);
+						auto center = Vector3::Transform(bucket.Polygons[p].Centre, itemToDraw->InterpolatedAnimationTransforms[boneIndex] * itemToDraw->InterpolatedWorld);
 						int dist = Vector3::Distance(center, Camera.pos.ToVector3());
 
 						auto object = RendererSortableObject{};
@@ -3519,7 +3545,18 @@ namespace TEN::Renderer
 				return false;
 			}
 
-			SetBlendMode(BlendMode::Additive);
+			SetBlendMode(blendMode);
+			SetAlphaTest(AlphaTestMode::None, 1.0f);
+			break;
+
+		case RendererPass::Distortion:
+			if (blendMode != BlendMode::Distortion)
+			{
+				return false;
+			}
+
+			_hasDistortionMask = true;
+			SetBlendMode(blendMode);
 			SetAlphaTest(AlphaTestMode::None, 1.0f);
 			break;
 
@@ -3850,11 +3887,11 @@ namespace TEN::Renderer
 		if (objectInfo->Skinned)
 		{
 			for (int m = 0; m < moveableObj.BindPoseTransforms.size(); m++)
-				_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * objectInfo->Item->InterpolatedAnimTransforms[m];
+				_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * objectInfo->Item->InterpolatedAnimationTransforms[m];
 		}
 		else
 		{
-			memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
+			memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimationTransforms, sizeof(Matrix) * BONE_COUNT_MAX);
 		}
 		
 		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
@@ -3991,7 +4028,7 @@ namespace TEN::Renderer
 		const auto& moveableObj = *_moveableObjects[(int)GAME_OBJECT_ID::ID_HAIR_PRIMARY + index];
 
 		_stObjects.Objects[0].World = Matrix::Identity;
-		_stObjects.Bones[0] = objectInfo->Item->InterpolatedAnimTransforms[HairUnit::GetRootMeshID(index)] * objectInfo->Item->InterpolatedWorld;
+		_stObjects.Bones[0] = objectInfo->Item->InterpolatedAnimationTransforms[HairUnit::GetRootMeshID(index)] * objectInfo->Item->InterpolatedWorld;
 		ReflectMatrixOptionally(_stObjects.Bones[0]);
 
 		bool forceValue = g_GameFlow->CurrentFreezeMode == FreezeMode::Player;

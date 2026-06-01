@@ -250,7 +250,7 @@ namespace TEN::Entities::Creatures::TR5
 		if (creature->Flags < item->TriggerFlags)
 			creature->Flags++;
 
-		auto* enemy = creature->Enemy;
+		auto* enemy = creature->Enemy.Get();
 		creature->Enemy = LaraItem;
 
 		if (Targetable(item, &laraAI))

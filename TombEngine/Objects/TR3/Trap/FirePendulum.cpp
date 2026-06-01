@@ -73,7 +73,7 @@ namespace TEN::Entities::Traps
 		spark->scalar = spark->life < 32 ? 4 : 3;
 		spark->size = (GetRandomControl() & 7) + 20;
 		spark->sSize = spark->size;
-		spark->dSize = static_cast<int>(spark->size) >> 3;
+		spark->dSize = spark->size / 8.0f;
 
 		spark->SpriteSeqID = ID_DEFAULT_SPRITES;
 		spark->SpriteID = 0;

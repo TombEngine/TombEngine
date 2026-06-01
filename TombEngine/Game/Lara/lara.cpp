@@ -238,7 +238,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 					}
 					else
 					{
-						SetAnimation(item, LA_FREEFALL_DIVE);
+						SetAnimation(item, LA_FREEFALL_DIVE, 0, 15, BezierCurve2::EaseOut);
 						item->Animation.Velocity.y = item->Animation.Velocity.y * (3 / 8.0f);
 						item->Pose.Orientation.x = ANGLE(-45.0f);
 					}

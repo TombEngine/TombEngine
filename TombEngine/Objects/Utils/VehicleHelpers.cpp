@@ -12,8 +12,9 @@
 #include "Game/Lara/lara_flare.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_struct.h"
-#include "Math/Random.h"
 #include "Game/room.h"
+#include "Math/Random.h"
+#include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 
@@ -29,6 +30,7 @@ namespace TEN::Entities::Vehicles
 {
 	constexpr auto VEHICLE_BASE_HEIGHT = CLICK(2);
 	constexpr auto VEHICLE_FULL_HEIGHT = CLICK(3);
+	constexpr auto VEHICLE_COLLISION_MARGIN_MULTIPLIER = 1.2f;
 
 	enum class VehicleWakeEffectTag
 	{
@@ -65,13 +67,17 @@ namespace TEN::Entities::Vehicles
 			return VehicleMountType::None;
 
 		// Assess object collision.
-		if (!TestBoundsCollide(vehicleItem, laraItem, coll->Setup.Radius) || !HandleItemSphereCollision(*vehicleItem, *laraItem))
+		if (!TestBoundsCollide(vehicleItem, laraItem, coll->Setup.Radius * VEHICLE_COLLISION_MARGIN_MULTIPLIER) || !HandleItemSphereCollision(*vehicleItem, *laraItem))
 			return VehicleMountType::None;
 
 		bool hasInputAction = IsHeld(In::Action);
 
+		// Vehicles may have shifted bounds, so use OBB center for mount type assessment instead of position.
+		auto vehicleCenter = vehicleItem->GetObb().Center;
+		vehicleCenter.y = vehicleItem->Pose.Position.y;
+
 		short deltaHeadingAngle = vehicleItem->Pose.Orientation.y - laraItem->Pose.Orientation.y;
-		short angleBetweenPositions = vehicleItem->Pose.Orientation.y - Geometry::GetOrientToPoint(laraItem->Pose.Position.ToVector3(), vehicleItem->Pose.Position.ToVector3()).y;
+		short angleBetweenPositions = vehicleItem->Pose.Orientation.y - Geometry::GetOrientToPoint(laraItem->Pose.Position.ToVector3(), vehicleCenter).y;
 		bool onCorrectSide = abs(deltaHeadingAngle - angleBetweenPositions) < ANGLE(45.0f);
 
 		// Assess mount types allowed for vehicle.
@@ -91,7 +97,7 @@ namespace TEN::Entities::Vehicles
 
 			case VehicleMountType::Front:
 				if (hasInputAction &&
-					deltaHeadingAngle > ANGLE(135.0f) && deltaHeadingAngle < -ANGLE(135.0f) &&
+					(deltaHeadingAngle > ANGLE(135.0f) || deltaHeadingAngle < -ANGLE(135.0f)) &&
 					onCorrectSide &&
 					!laraItem->Animation.IsAirborne)
 				{
@@ -146,6 +152,15 @@ namespace TEN::Entities::Vehicles
 			default:
 				return VehicleMountType::None;
 			}
+
+			// Re-evaluate mount type after the callback which may have intercepted the input (e.g. for vehicle keys check).
+			auto oldHandStatus = lara->Control.HandStatus;
+			g_GameScript->OnVehicleEnter(vehicleItem->Index, false);
+			bool mountCanceled = (mountType != VehicleMountType::LevelStart && lara->Control.HandStatus != HandStatus::Free);
+			lara->Control.HandStatus = oldHandStatus;
+			
+			if (mountCanceled)
+				return VehicleMountType::None;
 
 			return mountType;
 		}

@@ -66,7 +66,7 @@ void SetVolumeTracks(int vol)
 {
 	GlobalMusicVolume = vol;
 
-	float fVol = static_cast<float>(vol) / 100.0f;
+	float fVol = (float)vol / 100.0f;
 	for (int i = 0; i < (int)SoundTrackType::Count; i++)
 	{
 		if (BASS_ChannelIsActive(SoundtrackSlot[i].Channel))
@@ -581,7 +581,7 @@ void PlaySoundTrack(const std::string& track, SoundTrackType type, std::optional
 		// Only activates if no custom position is passed as argument.
 		if (!pos.has_value())
 		{
-			QWORD newPos = BASS_ChannelGetLength(stream, BASS_POS_BYTE) * (static_cast<float>(GetRandomControl()) / static_cast<float>(RAND_MAX));
+			QWORD newPos = BASS_ChannelGetLength(stream, BASS_POS_BYTE) * ((float)GetRandomControl() / (float)RAND_MAX);
 			BASS_ChannelSetPosition(stream, newPos, BASS_POS_BYTE);
 		}
 	}

@@ -163,6 +163,10 @@ namespace TEN::Renderer::Native::DirectX11
 			_context->OMSetBlendState(_renderStates->Additive(), nullptr, 0xFFFFFFFF);
 			break;
 
+		case BlendMode::Distortion:
+			_context->OMSetBlendState(_distortionBlendState.Get(), nullptr, 0xFFFFFFFF);
+			break;
+
 		case BlendMode::Screen:
 			_context->OMSetBlendState(_screenBlendState.Get(), nullptr, 0xFFFFFFFF);
 			break;
@@ -271,7 +275,7 @@ namespace TEN::Renderer::Native::DirectX11
 			return;
 		}
 
-		_context->PSSetSamplers((unsigned int)registerType, 1, &d3dSamplerState);
+		_context->PSSetSamplers((unsigned int)samplerType, 1, &d3dSamplerState);
 	}
 
 	void DX11GraphicsDevice::UnbindTexture(ShaderStage stage, TextureRegister registerType)
@@ -616,6 +620,19 @@ namespace TEN::Renderer::Native::DirectX11
 		blendStateDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		throwIfFailed(_device->CreateBlendState(&blendStateDesc, _subtractiveBlendState.GetAddressOf()));
 
+		blendStateDesc = {};
+		blendStateDesc.AlphaToCoverageEnable = false;
+		blendStateDesc.IndependentBlendEnable = false;
+		blendStateDesc.RenderTarget[0].BlendEnable = true;
+		blendStateDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		blendStateDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+		blendStateDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		blendStateDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		throwIfFailed(_device->CreateBlendState(&blendStateDesc, _distortionBlendState.GetAddressOf()));
+
 		blendStateDesc.AlphaToCoverageEnable = false;
 		blendStateDesc.IndependentBlendEnable = false;
 		blendStateDesc.RenderTarget[0].BlendEnable = true;
@@ -885,15 +902,17 @@ namespace TEN::Renderer::Native::DirectX11
 		DXGI_MODE_DESC modes[1024];
 		throwIfFailed(output->GetDisplayModeList(scd.BufferDesc.Format, 0, &numModes, modes));
 
-		DXGI_MODE_DESC* mode = &modes[0];
+		// Only call ResizeTarget when the requested size matches one of the display modes
+		// (i.e. fullscreen-style mode switch). For arbitrary windowed sizes coming from a
+		// user resize, skip it — the subsequent swap chain recreation handles the size.
 		for (unsigned int i = 0; i < numModes; i++)
 		{
-			mode = &modes[i];
-			if (mode->Width == width && mode->Height == height)
+			if (modes[i].Width == width && modes[i].Height == height)
+			{
+				throwIfFailed(_swapChain->ResizeTarget(&modes[i]));
 				break;
+			}
 		}
-
-		throwIfFailed(_swapChain->ResizeTarget(mode));
 
 		_screenWidth = width;
 		_screenHeight = height;
@@ -909,88 +928,87 @@ namespace TEN::Renderer::Native::DirectX11
 		auto prefix = ((req.CompileIndex < 10) ? "0" : "") + std::to_string(req.CompileIndex) + "_";
 
 		// VS
-		auto makeCsoName = [&](const std::string& shaderType) {
-			return req.BinaryDirectory + prefix + req.FileName + "." +
-				shaderType + ".cso";
-			};
+		auto makeCsoName = [&](const std::string& shaderType) 
+		{
+			return req.BinaryDirectory + prefix + req.FileName + "." + shaderType + ".cso";
+		};
 
 		auto macros = ToD3DMacros(req.Macros);
 
-		auto compileOne = [&](const std::string& shaderType,
-			const std::string& entry,
-			const char* model,
-			ID3D10Blob** outBlob)
+		auto compileOne = [&](const std::string& shaderType, const std::string& entry, const char* model, ID3D10Blob** outBlob)
+		{
+			auto csoFileName = makeCsoName(shaderType);
+			auto srcFileName = baseFileName;
+
+			auto srcFileNameWithExt = srcFileName + ".hlsl";
+			if (!std::filesystem::exists(srcFileNameWithExt))
 			{
-				auto csoFileName = makeCsoName(shaderType);
-				auto srcFileName = baseFileName;
+				srcFileNameWithExt = srcFileName + ".fx";
+			}
 
-				auto srcFileNameWithExt = srcFileName + ".hlsl";
-				if (!std::filesystem::exists(srcFileNameWithExt))
+			bool loadedFromDisk = false;
+			if (!req.ForceRecompile && std::filesystem::exists(csoFileName))
+			{
+				auto csoTime = std::filesystem::last_write_time(csoFileName);
+				auto srcTime = std::filesystem::last_write_time(srcFileNameWithExt);
+				if (srcTime < csoTime)
 				{
-					srcFileNameWithExt = srcFileName + ".fx";
-				}
-
-				bool loadedFromDisk = false;
-				if (!req.ForceRecompile && std::filesystem::exists(csoFileName))
-				{
-					auto csoTime = std::filesystem::last_write_time(csoFileName);
-					auto srcTime = std::filesystem::last_write_time(srcFileNameWithExt);
-					if (srcTime < csoTime)
+					std::ifstream ifs(std::filesystem::path{csoFileName}, std::ios::binary);
+					if (ifs)
 					{
-						std::ifstream ifs(std::filesystem::path{csoFileName}, std::ios::binary);
-						if (ifs)
-						{
-							ifs.seekg(0, std::ios::end);
-							auto size = ifs.tellg();
-							ifs.seekg(0, std::ios::beg);
-							std::vector<char> buf(size);
-							ifs.read(buf.data(), size);
-							D3DCreateBlob((SIZE_T)size, outBlob);
-							memcpy((*outBlob)->GetBufferPointer(), buf.data(), size);
-							loadedFromDisk = true;
-						}
+						ifs.seekg(0, std::ios::end);
+						auto size = ifs.tellg();
+						ifs.seekg(0, std::ios::beg);
+						std::vector<char> buf(size);
+						ifs.read(buf.data(), size);
+						D3DCreateBlob((SIZE_T)size, outBlob);
+						memcpy((*outBlob)->GetBufferPointer(), buf.data(), size);
+						loadedFromDisk = true;
 					}
 				}
+			}
 
-				if (!loadedFromDisk)
-				{
-					UINT flags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
+			if (!loadedFromDisk)
+			{
+				UINT flags = D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
 #ifdef _DEBUG
-					flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+				flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
-					flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_IEEE_STRICTNESS;
+				flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_IEEE_STRICTNESS;
 #endif
 
-					ComPtr<ID3D10Blob> errors;
-					auto target = shaderType + entry;
-					auto wPath = TEN::Utils::ToWString(srcFileNameWithExt);
-					auto hr = D3DCompileFromFile(
-						wPath.c_str(),
-						macros.data(),
-						D3D_COMPILE_STANDARD_FILE_INCLUDE,
-						target.c_str(),
-						model,
-						flags,
-						0,
-						outBlob,
-						&errors
-					);
-					if (FAILED(hr))
-					{
-						if (errors)
-						{
-							TENLog((const char*)errors->GetBufferPointer(), LogLevel::Error);
-						}
-						throwIfFailed(hr);
-					}
+				TENLog(fmt::format("Compiling shader '{}'", srcFileNameWithExt));
 
-					std::ofstream ofs(std::filesystem::path{csoFileName}, std::ios::binary);
-					if (ofs)
+				ComPtr<ID3D10Blob> errors;
+				auto target = shaderType + entry;
+				auto wPath = TEN::Utils::ToWString(srcFileNameWithExt);
+				auto hr = D3DCompileFromFile(
+					wPath.c_str(),
+					macros.data(),
+					D3D_COMPILE_STANDARD_FILE_INCLUDE,
+					target.c_str(),
+					model,
+					flags,
+					0,
+					outBlob,
+					&errors);
+
+				if (FAILED(hr))
+				{
+					if (errors)
 					{
-						ofs.write((const char*)(*outBlob)->GetBufferPointer(), (*outBlob)->GetBufferSize());
+						TENLog((const char*)errors->GetBufferPointer(), LogLevel::Error);
 					}
+					throwIfFailed(hr);
 				}
-			};
+
+				std::ofstream ofs(std::filesystem::path{csoFileName}, std::ios::binary);
+				if (ofs)
+				{
+					ofs.write((const char*)(*outBlob)->GetBufferPointer(), (*outBlob)->GetBufferSize());
+				}
+			}
+		};
 
 		if (req.Type == ShaderType::Pixel || req.Type == ShaderType::PixelAndVertex)
 		{

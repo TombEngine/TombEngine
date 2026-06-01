@@ -186,7 +186,7 @@ namespace TEN::Video
 			vlcArgs.push_back("--reset-plugins-cache");
 		}
 
-		_vlcInstance = libvlc_new(static_cast<int>(vlcArgs.size()), vlcArgs.data());
+		_vlcInstance = libvlc_new((int)vlcArgs.size(), vlcArgs.data());
 
 #if _DEBUG
 		//libvlc_log_set(_vlcInstance, OnLog, nullptr);

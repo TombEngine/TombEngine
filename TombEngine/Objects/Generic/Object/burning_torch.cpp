@@ -56,7 +56,7 @@ namespace TEN::Entities::Generic
 		spark->nodeNumber = node;
 		spark->fxObj = fxObject;
 
-		spark->flags = SP_NODEATTACH | SP_EXPDEF | SP_ITEM | SP_ROTATE | SP_DEF | SP_SCALE;
+		spark->flags = SP_NODEATTACH | SP_EXPDEF | SP_ITEM | SP_ROTATE | SP_DEF | SP_SCALE | SP_HAZE;
 
 		spark->blendMode = BlendMode::Additive;
 
