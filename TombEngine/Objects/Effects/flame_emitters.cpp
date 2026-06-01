@@ -81,7 +81,7 @@ namespace TEN::Entities::Effects
 			if (itemPtr->IsLara() && GetLaraInfo(item)->Control.WaterStatus == WaterStatus::FlyCheat)
 				continue;
 
-			if (!itemPtr->IsLara() && !g_GameFlow->GetSettings()->Gameplay.KillEnemiesWithFlames)
+			if (!itemPtr->IsLara() && !g_GameFlow->GetSettings()->Gameplay.SetEnemiesOnFire)
 				continue;
 
 			if (item->Model.Color == NEUTRAL_COLOR)

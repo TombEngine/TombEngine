@@ -935,7 +935,7 @@ void ProcessSectorFlags(ItemInfo* item)
 				// TODO: Implement correct rapids behaviour for other objects.
 				DoDamage(item, INT_MAX);
 			}
-			else if (g_GameFlow->GetSettings()->Gameplay.KillEnemiesWithFlames)
+			else if (g_GameFlow->GetSettings()->Gameplay.SetEnemiesOnFire)
 			{
 				ItemBurn(item);
 			}
