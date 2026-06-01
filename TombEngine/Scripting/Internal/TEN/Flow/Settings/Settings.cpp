@@ -577,7 +577,14 @@ namespace TEN::Scripting
 		// the level loaded from the savegame. It will not work if the level timestamp or checksum has changed
 		// (i.e. level was updated). If set to `false`, this functionality is turned off.
 		// @tfield[opt=true] bool fastReload Toggles fast reload on or off.
-		"fastReload", &SystemSettings::FastReload);
+		"fastReload", &SystemSettings::FastReload,
+
+		/// Use variable flood protection tracking. <br>
+		// When set to `true`, TombEngine will throw an error if scripts create more than 1000 variables within 1 second
+		// or if `GlobalVars`, `GameVars`, and `LevelVars` exceed 10000 variables in total. For performance reasons, latter
+		// feature works only when level is run from the editor via "Build and Play" command.
+		// @tfield[opt=true] bool variableFloodProtection Toggles script variable flood protection on or off.
+		"variableFloodProtection", &SystemSettings::VariableFloodProtection);
 	}
 
 	/// UI

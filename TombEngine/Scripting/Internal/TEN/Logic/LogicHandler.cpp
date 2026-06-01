@@ -1,10 +1,12 @@
 #include "framework.h"
 #include "LogicHandler.h"
 
+#include "Game/control/control.h"
 #include "Game/control/volume.h"
 #include "Game/effects/Electricity.h"
 #include "Game/Lara/lara.h"
 #include "Game/savegame.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/ScriptUtil.h"
@@ -17,6 +19,7 @@
 #include "Scripting/Internal/TEN/Types/Time/Time.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
+#include "Specific/clock.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Effects::Electricity;
@@ -29,7 +32,35 @@ Saving data, triggering functions, and callbacks for level-specific scripts.
 @pragma nostrip
 */
 
-static constexpr char const* strKey = "__internal_name";
+static constexpr char const* STRING_INTERNAL_KEY = "__internal_name";
+static constexpr auto VARIABLE_CREATE_LIMIT = 1000;
+static constexpr auto VARIABLE_TOTAL_LIMIT  = 10000;
+
+static int VariableCreateWindowStartFrame = 0;
+static int VariableCreateCount = 0;
+
+int GetTotalVariableCount(sol::state_view state)
+{
+	int count = 0;
+
+	for (auto tableName : { ScriptReserved_LevelVars, ScriptReserved_GameVars, ScriptReserved_GlobalVars })
+	{
+		sol::object tableObject = state[tableName];
+		if (!tableObject.valid() || !tableObject.is<sol::table>())
+			continue;
+
+		auto table = tableObject.as<sol::table>();
+		for (auto& [key, value] : table)
+		{
+			if (key.is<std::string>() && (key.as<std::string>() == ScriptReserved_Engine))
+				continue;
+
+			count++;
+		}
+	}
+
+	return count;
+}
 
 void SetVariable(sol::table tab, sol::object key, sol::object value)
 {
@@ -39,8 +70,39 @@ void SetVariable(sol::table tab, sol::object key, sol::object value)
 		{
 		case sol::type::number:
 		case sol::type::string:
+		{
+			if (g_GameFlow->GetSettings()->System.VariableFloodProtection)
+			{
+				auto existingValue = tab.raw_get<sol::object>(key);
+				bool isNewVariable = (value.get_type() != sol::type::lua_nil) && (existingValue.get_type() == sol::type::lua_nil);
+
+				if (isNewVariable)
+				{
+					VariableCreateCount++;
+
+					if (DebugMode)
+					{
+						int totalVariables = GetTotalVariableCount(sol::state_view(tab.lua_state()));
+						ScriptAssert(totalVariables < VARIABLE_TOTAL_LIMIT,
+							fmt::format("Variable flood protection triggered: user variables can contain at most {} variables in total, while current count is {}.", VARIABLE_TOTAL_LIMIT, totalVariables));
+					}
+				}
+
+				if (GlobalCounter < VariableCreateWindowStartFrame || (GlobalCounter - VariableCreateWindowStartFrame) >= FPS)
+				{
+					VariableCreateWindowStartFrame = GlobalCounter;
+					VariableCreateCount = 0;
+				}
+				else
+				{
+					ScriptAssert(VariableCreateCount < VARIABLE_CREATE_LIMIT,
+						fmt::format("Variable flood protection triggered: more than {} variables were created within 1 second.", VARIABLE_CREATE_LIMIT));
+				}
+			}
+
 			tab.raw_set(key, value);
 			break;
+		}
 
 		default:
 			ScriptAssert(false, "Unsupported key type used for special table. Valid types are string and number.", ErrorMode::Terminate);
@@ -306,7 +368,7 @@ void LogicHandler::ResetGlobalTables()
 
 sol::object LogicHandler::GetLevelFuncsMember(sol::table tab, const std::string& name)
 {
-	auto partName = tab.raw_get<std::string>(strKey);
+	auto partName = tab.raw_get<std::string>(STRING_INTERNAL_KEY);
 	auto& map = _levelFuncs_tablesOfNames[partName];
 
 	auto fullNameIt = map.find(name);
@@ -331,7 +393,7 @@ bool LogicHandler::SetLevelFuncsMember(sol::table tab, const std::string& name, 
 	else if (sol::type::function == value.get_type())
 	{
 		// Add name to table of names.
-		auto partName = tab.raw_get<std::string>(strKey);
+		auto partName = tab.raw_get<std::string>(STRING_INTERNAL_KEY);
 		auto fullName = partName + "." + name;
 		auto& parentNameTab = _levelFuncs_tablesOfNames[partName];
 
@@ -355,12 +417,12 @@ bool LogicHandler::SetLevelFuncsMember(sol::table tab, const std::string& name, 
 	{
 		// Create and add new name map.
 		auto newNameMap = std::unordered_map<std::string, std::string>{};
-		auto fullName = tab.raw_get<std::string>(strKey) + "." + name;
+		auto fullName = tab.raw_get<std::string>(STRING_INTERNAL_KEY) + "." + name;
 		_levelFuncs_tablesOfNames.insert_or_assign(fullName, newNameMap);
 
 		// Create new table to put in the LevelFuncs hierarchy.
 		auto newLevelFuncsTab = MakeSpecialTable(_handler.GetState(), name, &LogicHandler::GetLevelFuncsMember, &LogicHandler::SetLevelFuncsMember, this);
-		newLevelFuncsTab.raw_set(strKey, fullName);
+		newLevelFuncsTab.raw_set(STRING_INTERNAL_KEY, fullName);
 		tab.raw_set(name, newLevelFuncsTab);
 
 		// "Populate" new table. This will trigger the __newindex metafunction and will
@@ -417,7 +479,7 @@ void LogicHandler::ResetScripts(bool clearGameVars)
 void LogicHandler::FreeLevelScripts()
 {
 	_levelFuncs = MakeSpecialTable(_handler.GetState(), ScriptReserved_LevelFuncs, &LogicHandler::GetLevelFuncsMember, &LogicHandler::SetLevelFuncsMember, this);
-	_levelFuncs.raw_set(strKey, ScriptReserved_LevelFuncs);
+	_levelFuncs.raw_set(STRING_INTERNAL_KEY, ScriptReserved_LevelFuncs);
 
 	_levelFuncs[ScriptReserved_Engine] = sol::table(*_handler.GetState(), sol::create);
 	_levelFuncs[ScriptReserved_External] = sol::table(*_handler.GetState(), sol::create);

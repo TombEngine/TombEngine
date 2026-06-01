@@ -139,6 +139,7 @@ namespace TEN::Scripting
 		ErrorMode ErrorMode		= ErrorMode::Warn;
 		bool	  FastReload	= true;
 		bool	  Multithreaded = true;
+		bool	  VariableFloodProtection = true;
 
 		static void Register(sol::table& parent);
 	};
