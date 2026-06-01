@@ -106,13 +106,13 @@ static Vector3 GetVelocity(const ItemInfo& item)
 				break;
 
 			default:
-				nextPose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, 0.0f, item.Animation.Velocity.x);
+				nextPose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, item.Animation.Velocity.y, item.Animation.Velocity.x);
 				break;
 		}
 	}
 	else
 	{
-		nextPose.Translate(item.Pose.Orientation.y, item.Animation.Velocity.z, 0.0f, item.Animation.Velocity.x);
+		nextPose.Translate(item.Pose.Orientation.y, item.Animation.Velocity.z, item.Animation.Velocity.y, item.Animation.Velocity.x);
 	}
 
 	return nextPose.Position.ToVector3() - item.Pose.Position.ToVector3();
@@ -1106,8 +1106,8 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerExtraAnimNumber, int creatureState, int playerKillState)
 {
 	if (!Objects[ID_LARA_EXTRA_ANIMS].loaded ||
-		Objects[ID_LARA_EXTRA_ANIMS].Animations.size() <= playerExtraAnimNumber || Objects[ID_LARA_EXTRA_ANIMS].Animations[playerExtraAnimNumber].Keyframes.size() <= 1 ||
-		Objects[creatureItem->ObjectNumber].Animations.size() <= creatureAnimNumber || Objects[creatureItem->ObjectNumber].Animations[creatureAnimNumber].Keyframes.size() <= 1)
+		Objects[ID_LARA_EXTRA_ANIMS].Animations.size() <= playerExtraAnimNumber || Objects[ID_LARA_EXTRA_ANIMS].Animations[playerExtraAnimNumber].Frames.size() <= 1 ||
+		Objects[creatureItem->ObjectNumber].Animations.size() <= creatureAnimNumber || Objects[creatureItem->ObjectNumber].Animations[creatureAnimNumber].Frames.size() <= 1)
 	{
 		TENLog(fmt::format("Impossible to perform kill animation for object {}: animation data missing.", GetObjectName(creatureItem->ObjectNumber)), LogLevel::Warning);
 		return;
@@ -1117,7 +1117,7 @@ void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerExtr
 	auto& player = GetLaraInfo(playerItem);
 
 	SetAnimation(creatureItem, creatureAnimNumber);
-	SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, playerExtraAnimNumber);
+	SetAnimationFromSlot(playerItem, ID_LARA_EXTRA_ANIMS, playerExtraAnimNumber, 0, GetSystemBlendDuration());
 
 	if (creatureState != NO_VALUE)
 		creatureItem->Animation.ActiveState = creatureItem->Animation.TargetState = creatureState;
@@ -1317,7 +1317,7 @@ short CreatureTurn(ItemInfo* item, short maxTurn)
 		auto leftAngle = item->Pose.Orientation + EulerAngles(0, FEELER_ANGLE, 0);
 		auto rightAngle = item->Pose.Orientation - EulerAngles(0, FEELER_ANGLE, 0);
 		auto feelerPos = item->Pose.Position.ToVector3() + Vector3(0, -CLICK(1), 0);
-		auto radius = GetClosestKeyframe(*item).Aabb.Extents.z * 1.3f; // Increase the radius slightly.
+		auto radius = GetFrame(*item).LocalAabb.Extents.z * 1.3f; // Increase the radius slightly.
 
 		// Spawn feelers for object collision.
 		auto feelMidLos = GetLosCollision(feelerPos, item->RoomNumber, item->Pose.Orientation.ToDirection(), radius, true, false, true);
@@ -2651,13 +2651,11 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	case MoodType::Attack:
 	{
 	// Flying creatures target enemy's upper body when enemy is not in water.
-	bool isEnemyOnLand = enemy->IsLara()
-		? (GetLaraInfo(*enemy).Control.WaterStatus == WaterStatus::Dry)		 // Lara.
-		: !TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, enemy->RoomNumber); // Other Creatures.
+	bool isEnemyOnLand = enemy->IsLara() ?
+		(GetLaraInfo(*enemy).Control.WaterStatus == WaterStatus::Dry) :
+		!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, enemy->RoomNumber);
 
-	auto targetOffset = (LOT->Zone == ZoneType::Flyer && isEnemyOnLand)
-		? Vector3i(0, GetClosestKeyframe(*enemy).BoundingBox.Y1, 0) : Vector3i(0, 0, 0);
-
+	auto targetOffset = (LOT->Zone == ZoneType::Flyer && isEnemyOnLand) ? Vector3i(0, GetFrame(*enemy).BoundingBox.Y1, 0) : Vector3i::Zero;
 	LOT->Target = PredictTargetPosition(*item, *enemy, targetOffset);
 	LOT->RequiredBox = enemy->BoxNumber;
 

@@ -172,6 +172,27 @@ void LaraObject::SetAirborne(bool newAirborne)
 	_moveable->Animation.IsAirborne = newAirborne;
 }
 
+/// Get the player's locked status.
+// Indicates whether the native user input is blocked. Useful to detect whether a game is in the middle of a flyby sequence or a cutscene.
+// @function LaraObject:GetLocked
+// @treturn bool True if locked, otherwise false.
+bool LaraObject::GetLocked() const
+{
+	auto* lara = GetLaraInfo(_moveable);
+	return lara->Control.IsLocked;
+}
+
+/// Set the player's locked status. This status will lock the native user input. Useful for cutscenes and scripted sequences.
+// Scripts will still receive input events even if this parameter is set to true.
+// If this parameter is unset during a flyby sequence which blocks user input, it will override the flyby sequence's setting.
+// @function LaraObject:SetLocked
+// @tparam bool locked New locked status.
+void LaraObject::SetLocked(bool locked)
+{
+	auto* lara = GetLaraInfo(_moveable);
+	lara->Control.IsLocked = locked;
+}
+
 /// Undraw a weapon if it is drawn and throw away a flare if currently holding one.
 // @function LaraObject:UndrawWeapon
 // @usage
@@ -970,7 +991,7 @@ bool LaraObject::TestInteraction(const Moveable& mov,
 	};
 
 	auto& item = g_Level.Items[mov.GetIndex()];
-	return (TestLaraPosition(interactionBasis, &item, _moveable));
+	return TestLaraPosition(interactionBasis, &item, _moveable);
 }
 
 void LaraObject::Register(sol::table& parent)
@@ -988,6 +1009,8 @@ void LaraObject::Register(sol::table& parent)
 		ScriptReserved_GetStamina, &LaraObject::GetStamina,
 		ScriptReserved_GetAirborne, &LaraObject::GetAirborne,
 		ScriptReserved_SetAirborne, &LaraObject::SetAirborne,
+		ScriptReserved_GetLocked, &LaraObject::GetLocked,
+		ScriptReserved_SetLocked, &LaraObject::SetLocked,
 		ScriptReserved_UndrawWeapon, &LaraObject::UndrawWeapon,
 		ScriptReserved_PlayerDiscardTorch, &LaraObject::DiscardTorch,
 		ScriptReserved_GetHandStatus, &LaraObject::GetHandStatus,

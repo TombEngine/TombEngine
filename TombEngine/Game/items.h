@@ -4,14 +4,16 @@
 #include "Game/itemdata/itemdata.h"
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
+#include "Renderer/RendererEnums.h"
 #include "Scripting/Internal/TEN/Logic/CallbackPoint.h"
-#include "Specific/newtypes.h"
+#include "Specific/Structures/newtypes.h"
 #include "Specific/Structures/BitField.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Math;
 using namespace TEN::Scripting;
 using namespace TEN::Utils;
-using EntityCallbackData = std::array<std::string, (int)EntityCallbackPoint::Count>;
+using MoveableCallbackData = std::array<std::string, (int)EntityCallbackPoint::Count>;
 
 constexpr float VERTICAL_VELOCITY_GRAVITY_THRESHOLD = CLICK(0.5f);
 
@@ -65,26 +67,52 @@ enum AIObjectType
 	ALL_AIOBJ = GUARD | AMBUSH | PATROL1 | MODIFY | FOLLOW | PATROL2
 };
 
-struct EntityAnimationData
+struct MoveableAnimBlendData
 {
-	GAME_OBJECT_ID AnimObjectID = ID_NO_OBJECT;
+	int          FrameNumber = 0;
+	int          FrameCount  = 0;
+	BezierCurve2 Curve       = {};
 
-	int AnimNumber	  = 0;
-	int FrameNumber	  = 0;
-	int ActiveState	  = 0;
-	int TargetState	  = 0;
-	int RequiredState = NO_VALUE;
+	Vector3                                Velocity         = Vector3::Zero;
+	Vector3                                RootPosition     = Vector3::Zero;
+	std::array<Quaternion, BONE_COUNT_MAX> BoneOrientations = {};
+
+	float GetAlpha() const;
+
+	bool IsEnabled() const;
+};
+
+struct MoveableAnimData
+{
+	GAME_OBJECT_ID AnimObjectID  = GAME_OBJECT_ID::ID_NO_OBJECT;
+	int            AnimNumber    = 0;
+	int            FrameNumber   = 0;
+	int            ActiveState   = 0;
+	int            TargetState   = 0;
+	int            RequiredState = NO_VALUE;
 
 	// TODO: Have 3 velocity members:
 	// ControlVelocity:		 relative velocity derived from animation.
 	// ExtraControlVelocity: relative velocity set by code (used to control swimming, falling).
 	// ExternalVelocity:	 absolute velocity set by environment (slippery ice, offset blending).
-	Vector3 Velocity = Vector3::Zero; // CONVENTION: +X = Right, +Y = Down, +Z = Forward.
+	Vector3 Velocity   = Vector3::Zero; // CONVENTION: +X = Right, +Y = Down, +Z = Forward.
+	bool    IsAirborne = false;
 
-	bool IsAirborne = false;
+	MoveableAnimBlendData Blend = {};
 };
 
-struct EntityEffectData
+struct MoveableModelData
+{
+	int BaseMesh  = 0;
+	int SkinIndex = 0;
+
+	std::vector<int>		 MeshIndex = {};
+	std::vector<BoneMutator> Mutators = {};
+
+	Vector4 Color = Vector4::Zero;
+};
+
+struct MoveableEffectData
 {
 	EffectType Type					= EffectType::None;
 	Vector3	   LightColor			= Vector3::Zero;
@@ -93,64 +121,53 @@ struct EntityEffectData
 	int		   Count				= NO_VALUE;
 };
 
-struct EntityModelData
-{
-	int BaseMesh = 0;
-
-	int SkinIndex = NO_VALUE;
-	std::vector<int>		 MeshIndex = {};
-	std::vector<BoneMutator> Mutators  = {};
-
-	Vector4 Color = Vector4::Zero;
-};
-
 struct ItemInfo
 {
-	std::string	   Name			= {};
-	int			   Index		= 0;			// ItemNumber // TODO: Make int.
-	GAME_OBJECT_ID ObjectNumber = ID_NO_OBJECT; // ObjectID
+	std::string	   Name         = {};
+	int            Index        = 0;			// ID
+	GAME_OBJECT_ID ObjectNumber = ID_NO_OBJECT; // SlotID
 
 	ItemStatus Status = ITEM_NOT_ACTIVE;
 	bool	   Active = false;
 
-	ItemData			Data	  = {};
-	EntityAnimationData Animation = {};
-	EntityCallbackData	Callbacks = {};
-	EntityEffectData	Effect	  = {};
-	EntityModelData		Model	  = {};
+	ItemData             Data      = {};
+	MoveableAnimData     Animation = {};
+	MoveableModelData    Model     = {};
+	MoveableEffectData   Effect    = {};
+	MoveableCallbackData Callbacks = {};
 
-	Pose	   StartPose  = Pose::Zero;
-	Pose	   Pose		  = Pose::Zero;
-	RoomVector Location	  = {}; // NOTE: Describes vertical position in room.
+	Pose       StartPose  = Pose::Zero;
+	Pose       Pose       = Pose::Zero;
+	RoomVector Location   = {}; // NOTE: Describes vertical position in room.
 	short	   RoomNumber = 0; // TODO: Make int.
-	int		   Floor	  = 0;
+	int        Floor      = 0;
 
-	int	 HitPoints			  = 0;
-	bool HitStatus			  = false;
-	bool LookedAt			  = false;
-	bool Collidable			  = false;
-	bool InDrawRoom			  = false;
+	int	 HitPoints            = 0;
+	bool HitStatus            = false;
+	bool LookedAt             = false;
+	bool Collidable           = false;
+	bool InDrawRoom           = false;
 	bool DisableInterpolation = false;
 
 	int BoxNumber = 0;
-	int Timer	  = 0;
+	int Timer     = 0;
 
 	BitField TouchBits = BitField::Default; // TouchFlags
 	BitField MeshBits  = BitField::Default; // MeshFlags
 
 	std::array<short, ITEM_FLAG_COUNT> ItemFlags = {};
-	unsigned short Flags		= 0; // ItemFlags enum
-	short		   TriggerFlags = 0;
+	unsigned short Flags        = 0; // ItemFlags enum
+	short          TriggerFlags = 0;
 
 	// TODO: Move to CreatureInfo?
-	unsigned char AIBits	  = 0; // AIObjectFlags enum.
-	short		  AfterDeath  = 0;
-	short		  CarriedItem = 0;
+	unsigned char AIBits      = 0; // AIObjectFlags enum.
+	short         AfterDeath  = 0;
+	short         CarriedItem = 0;
 
 	// Getters
 
-	BoundingBox					GetAabb() const;
-	BoundingOrientedBox			GetObb() const;
+	BoundingBox                 GetAabb() const;
+	BoundingOrientedBox         GetObb() const;
 	std::vector<BoundingSphere> GetSpheres() const;
 
 	// OCB utilities
@@ -174,6 +191,11 @@ struct ItemInfo
 	void SetMeshSwapFlags(unsigned int flags, bool clear = false);
 	void SetMeshSwapFlags(const std::vector<unsigned int>& flags, bool clear = false);
 	void ResetModelToDefault();
+
+	// Animation blending utilities
+
+	void SetAnimBlend(int frameCount, const BezierCurve2& curve);
+	void DisableAnimBlend();
 
 	// Inquirers
 

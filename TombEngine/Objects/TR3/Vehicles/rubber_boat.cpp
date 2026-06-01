@@ -147,19 +147,19 @@ namespace TEN::Entities::Vehicles
 		{
 		default:
 		case VehicleMountType::LevelStart:
-			SetAnimation(laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_IDLE);
+			SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_IDLE);
 			break;
 
 		case VehicleMountType::Left:
-			SetAnimation(laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_MOUNT_LEFT);
+			SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_MOUNT_LEFT);
 			break;
 
 		case VehicleMountType::Right:
-			SetAnimation(laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_MOUNT_RIGHT);
+			SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_MOUNT_RIGHT);
 			break;
 
 		case VehicleMountType::Jump:
-			SetAnimation(laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_MOUNT_JUMP);
+			SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_MOUNT_JUMP);
 			break;
 		}
 
@@ -619,18 +619,18 @@ namespace TEN::Entities::Vehicles
 		if (laraItem->HitPoints <= 0)
 		{
 			if (laraItem->Animation.ActiveState != RBOAT_STATE_DEATH)
-				SetAnimation(laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_IDLE_DEATH);
+				SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_IDLE_DEATH);
 		}
 		else if (rBoatItem->Pose.Position.y < (rBoat->Water - CLICK(0.5f)) &&
 			rBoatItem->Animation.Velocity.y > 0)
 		{
 			if (laraItem->Animation.ActiveState != RBOAT_STATE_FALL)
-				SetAnimation(laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_LEAP_START);
+				SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_LEAP_START);
 		}
 		else if (collide)
 		{
 			if (laraItem->Animation.ActiveState != RBOAT_STATE_HIT)
-				SetAnimation(laraItem, ID_RUBBER_BOAT_LARA_ANIMS, collide);
+				SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, collide);
 		}
 		else
 		{
