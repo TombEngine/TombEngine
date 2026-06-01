@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Specific/RGBAColor8Byte.h"
+#include "RGBAColor8Byte.h"
 
 static unsigned char FloatComponentToByte(float value)
 {

@@ -11,8 +11,6 @@
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
 #include "Game/Setup.h"
-#include "Specific/level.h"
-#include "Specific/fast_vector.h"
 #include "Renderer/ConstantBuffers/HUDBarBuffer.h"
 #include "Renderer/ConstantBuffers/HUDBuffer.h"
 #include "Renderer/ConstantBuffers/ShadowLightBuffer.h"
@@ -52,6 +50,8 @@
 #include "Renderer/Structures/RendererRoomAmbientMap.h"
 #include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererStar.h"
+#include "Specific/level.h"
+#include "Specific/Structures/fast_vector.h"
 
 using namespace TEN::Animation;
 
