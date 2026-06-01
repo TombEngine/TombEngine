@@ -1263,6 +1263,13 @@ struct PlayerControlData
 	short MoveAngle = 0;
 	short TurnRate	= 0;
 
+	// Modern control scheme (used when g_Configuration.IsUsingModernControls()).
+	EulerAngles HeadingOrient		= EulerAngles::Identity;
+	EulerAngles HeadingOrientTarget = EulerAngles::Identity;
+	Vector2		RefMoveAxis			= Vector2::Zero;
+	EulerAngles RefCameraOrient		= EulerAngles::Identity;
+	bool		LockRefCameraOrient = false;
+
 	HandStatus	  HandStatus	= {};
 	WaterStatus	  WaterStatus	= {};
 	JumpDirection JumpDirection = {};
@@ -1273,6 +1280,10 @@ struct PlayerControlData
 	SubsuitControlData	 Subsuit   = {};
 	TightropeControlData Tightrope = {};
 	WeaponControlData	 Weapon	   = {};
+
+	bool ToggleClimb  = false;
+	bool ToggleCrouch = false;
+	bool ToggleWalk	  = false;
 
 	bool IsClimbingLadder = false;
 	bool IsLocked		  = false;
@@ -1348,6 +1359,16 @@ struct PlayerSkinData
 	GAME_OBJECT_ID HairSecondary	= ID_HAIR_SECONDARY;
 };
 
+struct PlayerLimbRotationData
+{
+	EulerAngles Hip	  = EulerAngles::Identity;
+	EulerAngles Torso = EulerAngles::Identity;
+	EulerAngles Head  = EulerAngles::Identity;
+
+	EulerAngles LeftArm	 = EulerAngles::Identity;
+	EulerAngles RightArm = EulerAngles::Identity;
+};
+
 struct LaraInfo
 {
 	static constexpr auto TARGET_COUNT_MAX = 16;
@@ -1364,6 +1385,7 @@ struct LaraInfo
 	TorchData		  Torch = {};
 	std::array<CarriedWeaponInfo, (int)LaraWeaponType::NumWeapons> Weapons = {}; // TODO: Move to WeaponControlData.
 
+	PlayerLimbRotationData LimbRot = {};
 	EulerAngles ExtraHeadRot	= EulerAngles::Identity;
 	EulerAngles ExtraTorsoRot	= EulerAngles::Identity;
 	EulerAngles TargetArmOrient = EulerAngles::Identity;
