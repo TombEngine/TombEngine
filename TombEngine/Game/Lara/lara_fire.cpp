@@ -36,6 +36,7 @@
 using namespace TEN::Animation;
 using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Sphere;
+// // using namespace TEN::Config; // sezz; develop uses g_Configuration without namespace. // sezz; develop uses g_Configuration without namespace.
 using namespace TEN::Entities::Generic;
 using namespace TEN::Input;
 using namespace TEN::Math;
@@ -733,7 +734,7 @@ void HandleWeapon(ItemInfo& laraItem)
 		}
 		else
 		{
-			laraItem.Model.MeshIndex[LM_HEAD] = Objects[Lara.Skin.SkinScream].meshIndex + LM_HEAD;
+			laraItem.Model.MeshIndex[LM_HEAD] = Objects[ID_LARA_SCREAM].meshIndex + LM_HEAD;
 		}
 
 		if (g_Camera.type != CameraType::Look &&

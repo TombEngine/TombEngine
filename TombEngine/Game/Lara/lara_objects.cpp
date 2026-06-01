@@ -13,10 +13,12 @@
 #include "Game/Lara/lara_tests.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Sound/sound.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
+// using namespace TEN::Config; // sezz; develop uses g_Configuration without namespace.
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
@@ -434,7 +436,11 @@ void lara_as_rope_idle(ItemInfo* item, CollisionInfo* coll)
 
 	lara->Control.Look.Mode = LookMode::Free;
 
-	if (!IsHeld(In::Action))
+	lara->Control.ToggleClimb = g_Configuration.EnableClimbToggle;
+	if (IsClicked(In::Action) && g_Configuration.EnableClimbToggle)
+		lara->Control.ToggleClimb = false;
+
+	if (!HasClimbAction(*item))
 		FallFromRope(item);
 }
 
@@ -444,7 +450,11 @@ void lara_col_rope_idle(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (IsHeld(In::Action))
+	lara->Control.ToggleClimb = g_Configuration.EnableClimbToggle;
+	if (IsClicked(In::Action) && g_Configuration.EnableClimbToggle)
+		lara->Control.ToggleClimb = false;
+
+	if (HasClimbAction(*item))
 	{
 		UpdateRopeSwing(item);
 		RopeSwingCollision(item, coll, false);
@@ -651,11 +661,11 @@ void lara_col_pole_idle(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	lara->Control.MoveAngle = item->Pose.Orientation.y;
+	lara->Control.HeadingOrient.y = item->Pose.Orientation.y;
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = BAD_JUMP_CEILING;
-	coll->Setup.ForwardAngle = lara->Control.MoveAngle;
+	coll->Setup.ForwardAngle = lara->Control.HeadingOrient.y;
 	coll->Setup.Radius = LARA_RADIUS;
 	coll->Setup.BlockFloorSlopeUp = true;
 	GetCollisionInfo(coll, item);
@@ -760,12 +770,12 @@ void lara_col_pole_down(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	lara->Control.MoveAngle = item->Pose.Orientation.y;
+	lara->Control.HeadingOrient.y = item->Pose.Orientation.y;
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = 0;
 	coll->Setup.BlockFloorSlopeUp = true;
-	coll->Setup.ForwardAngle = lara->Control.MoveAngle;
+	coll->Setup.ForwardAngle = lara->Control.HeadingOrient.y;
 	coll->Setup.Radius = LARA_RADIUS;
 	GetCollisionInfo(coll, item);
 
@@ -909,6 +919,6 @@ void lara_as_zip_line(ItemInfo* item, CollisionInfo* coll)
 		item->Animation.Velocity.z = 100;
 		item->Animation.Velocity.y = 40;
 		item->Animation.IsAirborne = true;
-		lara->Control.MoveAngle = item->Pose.Orientation.y;
+		lara->Control.HeadingOrient.y = item->Pose.Orientation.y;
 	}
 }

@@ -730,7 +730,7 @@ const std::vector<byte> SaveGame::Build()
 	control.add_rope(ropeControlOffset);
 	control.add_subsuit(subsuitControlOffset);
 	control.add_tightrope(tightropeControlOffset);
-	control.add_turn_rate(Lara.Control.TurnRate);
+	control.add_turn_rate(Lara.Control.TurnRate.y);
 	control.add_water_status((int)Lara.Control.WaterStatus);
 	control.add_weapon(weaponControlOffset);
 	auto controlOffset = control.Finish();
@@ -2155,7 +2155,7 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.Control.Look.TurnRate = ToEulerAngles(s->lara()->control()->look()->turn_rate());
 	Lara.Control.MoveAngle = s->lara()->control()->move_angle();
 	Lara.Control.IsRunJumpQueued = s->lara()->control()->is_run_jump_queued();
-	Lara.Control.TurnRate = s->lara()->control()->turn_rate();
+	Lara.Control.TurnRate.y = s->lara()->control()->turn_rate();
 	Lara.Control.IsLocked = s->lara()->control()->is_locked();
 	Lara.Control.HandStatus = (HandStatus)s->lara()->control()->hand_status();
 	Lara.Control.Weapon.GunType = (LaraWeaponType)s->lara()->control()->weapon()->gun_type();

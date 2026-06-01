@@ -5,9 +5,9 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/floordata.h"
-#include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
 #include "Game/control/flipeffect.h"
+#include "Game/control/los.h"
 #include "Game/control/volume.h"
 #include "Game/effects/Hair.h"
 #include "Game/effects/item_fx.h"
@@ -44,7 +44,6 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
-using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Control::Volumes;
 using namespace TEN::Effects::Hair;
@@ -143,6 +142,10 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
+	// Update reference move axis.
+	if (GetMoveAxis() != Vector2::Zero)
+		player.Control.RefMoveAxis = GetMoveAxis();
+
 	// Alert nearby creatures.
 	if (player.Control.Weapon.HasFired)
 	{
@@ -238,7 +241,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 					}
 					else
 					{
-						SetAnimation(item, LA_FREEFALL_DIVE, 0, 15, BezierCurve2::EaseOut);
+						SetAnimation(item, LA_FREEFALL_DIVE);
 						item->Animation.Velocity.y = item->Animation.Velocity.y * (3 / 8.0f);
 						item->Pose.Orientation.x = ANGLE(-45.0f);
 					}
@@ -450,7 +453,6 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 	}
 	else
 	{
-		// TODO: Extend ResetLaraFlex() to be a catch-all function.
 		ResetPlayerLookAround(*item);
 	}
 	player.Control.Look.Mode = LookMode::None;
@@ -491,9 +493,6 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.IsLow = false;
-	g_Camera.targetElevation = -ANGLE(22.0f);
-
 	// Reset collision setup.
 	coll->Setup.Mode = CollisionProbeMode::FreeForward;
 	coll->Setup.Radius = LARA_RADIUS;
@@ -511,6 +510,9 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.EnableSpasm = false;
 	coll->Setup.ForceSolidStatics = false;
 	coll->Setup.PrevPosition = item->Pose.Position;
+
+	player.Control.IsLow = false;
+	g_Camera.targetElevation = ANGLE(-22.0f);
 
 	// Handle look-around.
 	if (IsHeld(In::Look) && CanPlayerLookAround(*item))
@@ -531,9 +533,9 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 
 	// TODO: Subsuit gradually slows down at rate of 0.5 degrees. @Sezz 2022.06.23
 	// Apply and reset turn rate.
-	item->Pose.Orientation.y += player.Control.TurnRate;
+	item->Pose.Orientation.y += player.Control.TurnRate.y;
 	if (!(IsHeld(In::Left) || IsHeld(In::Right)))
-		player.Control.TurnRate = 0;
+		player.Control.TurnRate.y = 0;
 
 	if (hasDivesuit)
 		UpdateLaraSubsuitAngles(item);
@@ -565,8 +567,6 @@ void LaraUnderwater(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.IsLow = false;
-
 	// Reset collision setup.
 	coll->Setup.Mode = CollisionProbeMode::Quadrants;
 	coll->Setup.Radius = LARA_RADIUS_UNDERWATER;
@@ -584,6 +584,8 @@ void LaraUnderwater(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.EnableSpasm = false;
 	coll->Setup.ForceSolidStatics = false;
 	coll->Setup.PrevPosition = item->Pose.Position;
+
+	player.Control.IsLow = false;
 
 	// Handle look-around.
 	if (IsHeld(In::Look) && CanPlayerLookAround(*item))
@@ -604,9 +606,9 @@ void LaraUnderwater(ItemInfo* item, CollisionInfo* coll)
 
 	// TODO: Subsuit gradually slowed down at rate of 0.5 degrees. @Sezz 2022.06.23
 	// Apply and reset turn rate.
-	item->Pose.Orientation.y += player.Control.TurnRate;
+	item->Pose.Orientation.y += player.Control.TurnRate.y;
 	if (!(IsHeld(In::Left) || IsHeld(In::Right)))
-		player.Control.TurnRate = 0;
+		player.Control.TurnRate.y = 0;
 
 	if (hasDivesuit)
 		UpdateLaraSubsuitAngles(item);
@@ -704,19 +706,27 @@ void LaraCheat(ItemInfo* item, CollisionInfo* coll)
 	// Open doors in front by pressing the Draw button.
 	if (IsClicked(In::Draw))
 	{
-		auto los = GetItemLosCollision(item->Pose.Position.ToVector3(), item->RoomNumber, item->Pose.Orientation.ToDirection(), BLOCK(2));
+		auto origin = item->Pose.Position;
+		auto target = Geometry::TranslatePoint(item->Pose.Position, item->Pose.Orientation, BLOCK(2));
+		auto gameOrigin = GameVector(origin, item->RoomNumber);
+		auto gameTarget = GameVector(target, FindRoomNumber(target, item->RoomNumber, true));
 
-		if (los.has_value() && los.value().Item)
+		Vector3i vector = {};
+		bool inSight = !LOS(&gameOrigin, &gameTarget);
+		int itemNumber = ObjectOnLOS2(&gameOrigin, &gameTarget, &vector, nullptr);
+
+		if (inSight && itemNumber != NO_LOS_ITEM)
 		{
-			auto& losValue = los.value();
-			auto objectName = GetObjectName(losValue.Item->ObjectNumber);
+			auto distance = Vector3i::Distance(origin, vector);
+			auto objectName = GetObjectName(g_Level.Items[itemNumber].ObjectNumber);
 
-			if (losValue.Distance <= BLOCK(1.5f) && objectName.find("DOOR") != std::string::npos)
+			if (distance <= BLOCK(1.5f) && objectName.find("DOOR") != std::string::npos)
 			{
-				losValue.Item->Flags |= CODE_BITS;
-				Trigger(losValue.Item->Index);
+				g_Level.Items[itemNumber].Flags |= CODE_BITS;
+				Trigger(itemNumber);
 			}
 		}
+
 	}
 }
 

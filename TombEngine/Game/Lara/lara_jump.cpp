@@ -14,9 +14,11 @@
 #include "Game/Setup.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
+// using namespace TEN::Config; // sezz; develop uses g_Configuration without namespace.
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
 
@@ -37,14 +39,17 @@ void lara_col_land(ItemInfo* item, CollisionInfo* coll)
 // Collision:	lara_col_jump_forward()
 void lara_as_jump_forward(ItemInfo* item, CollisionInfo* coll)
 {
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY | (int)PlayerTurnFlags::VerticalFlex;
+
 	auto& player = GetLaraInfo(*item);
 
 	player.Control.Look.Mode = LookMode::Horizontal;
 
 	// Update running jump counter in preparation for possible jump action soon after landing.
+	int jumpTime = g_Configuration.IsUsingModernControls() ? PLAYER_MODERN_CONTROL_RUN_JUMP_TIME : (PLAYER_TANK_CONTROL_RUN_JUMP_TIME / 2);
 	player.Control.Count.Run++;
-	if (player.Control.Count.Run > PLAYER_RUN_JUMP_TIME / 2)
-		player.Control.Count.Run = PLAYER_RUN_JUMP_TIME / 2;
+	if (player.Control.Count.Run > jumpTime)
+		player.Control.Count.Run = jumpTime;
 
 	if (item->HitPoints <= 0)
 	{
@@ -57,22 +62,36 @@ void lara_as_jump_forward(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Left) || IsHeld(In::Right))
-		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_JUMP_TURN_RATE_MAX);
+	if (g_Configuration.IsUsingModernControls())
+	{
+		if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
+			HandlePlayerTurn(*item, PLAYER_JUMP_TURN_ALPHA, 0, false, TURN_FLAGS);
+	}
+	else
+	{
+		if (IsHeld(In::Left) || IsHeld(In::Right))
+			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_JUMP_TURN_RATE_MAX);
+	}
 
 	if (CanLand(*item, *coll))
 	{
 		DoLaraFallDamage(item);
 
 		if (item->HitPoints <= 0)
+		{
 			item->Animation.TargetState = LS_DEATH;
-		else if (IsHeld(In::Forward) && !IsHeld(In::Walk) &&
+		}
+		else if ((g_Configuration.IsUsingModernControls() ?
+			(IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right)) : IsHeld(In::Forward)) &&
+			!IsHeld(In::Walk) &&
 			player.Control.WaterStatus != WaterStatus::Wade)
 		{
 			item->Animation.TargetState = LS_RUN_FORWARD;
 		}
 		else
+		{
 			item->Animation.TargetState = LS_IDLE;
+		}
 
 		SetLaraLand(item, coll);
 		return;
@@ -91,7 +110,7 @@ void lara_as_jump_forward(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Roll) || IsHeld(In::Back))
+	if (IsHeld(In::Roll) || (IsHeld(In::Back) && !g_Configuration.IsUsingModernControls()))
 	{
 		item->Animation.TargetState = LS_JUMP_ROLL_180;
 		return;
@@ -113,17 +132,17 @@ void lara_col_jump_forward(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.MoveAngle = (item->Animation.Velocity.z > 0.0f) ? item->Pose.Orientation.y : item->Pose.Orientation.y + ANGLE(180.0f);
+	player.Control.HeadingOrient.y = (item->Animation.Velocity.z > 0.0f) ? item->Pose.Orientation.y : item->Pose.Orientation.y + ANGLE(180.0f);
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = BAD_JUMP_CEILING;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	LaraDeflectEdgeJump(item, coll);
 
 	// TODO: Why??
-	player.Control.MoveAngle = (item->Animation.Velocity.z < 0.0f) ? item->Pose.Orientation.y : player.Control.MoveAngle;
+	player.Control.HeadingOrient.y = (item->Animation.Velocity.z < 0.0f) ? item->Pose.Orientation.y : player.Control.HeadingOrient.y;
 }
 
 // State:		LS_FREEFALL (9)
@@ -145,9 +164,13 @@ void lara_as_freefall(ItemInfo* item, CollisionInfo* coll)
 		DoLaraFallDamage(item);
 
 		if (item->HitPoints <= 0)
+		{
 			item->Animation.TargetState = LS_DEATH;
+		}
 		else
+		{
 			item->Animation.TargetState = LS_IDLE;
+		}
 
 		SetLaraLand(item, coll);
 		StopSoundEffect(SFX_TR4_LARA_FALL);
@@ -167,7 +190,7 @@ void lara_col_freefall(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = BAD_JUMP_CEILING;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	LaraSlideEdgeJump(item, coll);
@@ -177,6 +200,8 @@ void lara_col_freefall(ItemInfo* item, CollisionInfo* coll)
 // Collision:	lara_col_reach()
 void lara_as_reach(ItemInfo* item, CollisionInfo* coll)
 {
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY | (int)PlayerTurnFlags::VerticalFlex;
+
 	auto& player = GetLaraInfo(*item);
 
 	player.Control.Look.Mode = LookMode::Horizontal;
@@ -193,17 +218,30 @@ void lara_as_reach(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Left) || IsHeld(In::Right))
-		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_JUMP_TURN_RATE_MAX / 2);
+	// Turn.
+	if (g_Configuration.IsUsingModernControls())
+	{
+		if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
+			HandlePlayerTurn(*item, PLAYER_JUMP_TURN_ALPHA, 0, false, TURN_FLAGS);
+	}
+	else if (g_Configuration.IsUsingEnhancedControls())
+	{
+		if (IsHeld(In::Left) || IsHeld(In::Right))
+			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_JUMP_TURN_RATE_MAX / 2);
+	}
 
 	if (CanLand(*item, *coll))
 	{
 		DoLaraFallDamage(item);
 
 		if (item->HitPoints <= 0)
+		{
 			item->Animation.TargetState = LS_DEATH;
+		}
 		else
+		{
 			item->Animation.TargetState = LS_IDLE;
+		}
 
 		SetLaraLand(item, coll);
 		return;
@@ -227,7 +265,7 @@ void lara_col_reach(ItemInfo* item, CollisionInfo* coll)
 	if (player.Control.Rope.Ptr == -1)
 		item->Animation.IsAirborne = true;
 
-	player.Control.MoveAngle = item->Pose.Orientation.y;
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y;
 
 	// HACK: height is altered according to VerticalVelocity to fix "issues" with physically impossible
 	// 6-click high ceiling running jumps. While TEN model is physically correct, original engines
@@ -237,7 +275,7 @@ void lara_col_reach(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = 0;
 	coll->Setup.LowerCeilingBound = BAD_JUMP_CEILING;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	coll->Setup.Radius = coll->Setup.Radius * 1.2f;
 	coll->Setup.Mode = CollisionProbeMode::FreeForward;
 	GetCollisionInfo(coll, item);
@@ -258,6 +296,8 @@ void lara_col_reach(ItemInfo* item, CollisionInfo* coll)
 // Collision:	lara_col_jump_prepare()
 void lara_as_jump_prepare(ItemInfo* item, CollisionInfo* coll)
 {
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY;
+
 	auto& player = GetLaraInfo(*item);
 
 	player.Control.Look.Mode = LookMode::Free;
@@ -272,45 +312,106 @@ void lara_as_jump_prepare(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	// JUMP key repressed without directional key; cancel directional jump lock.
-	if (IsClicked(In::Jump) && !IsDirectionalActionHeld())
+	if (IsClicked(In::Jump) && GetMoveAxis() == Vector2::Zero)
 		player.Control.JumpDirection = JumpDirection::None;
 
-	if (((IsHeld(In::Forward) &&
+	if (g_Configuration.IsUsingModernControls())
+	{
+		if (IsPlayerStrafing(*item) || IsHeld(In::Walk))
+		{
+			player.Control.JumpDirection = GetPlayerJumpDirection(*item, *coll);
+			switch (player.Control.JumpDirection)
+			{
+			case JumpDirection::None:
+				item->Animation.TargetState = LS_IDLE;
+				return;
+
+			case JumpDirection::Forward:
+				item->Animation.TargetState = LS_JUMP_FORWARD;
+				return;
+				
+			case JumpDirection::Back:
+				item->Animation.TargetState = LS_JUMP_BACK;
+				return;
+
+			case JumpDirection::Left:
+				item->Animation.TargetState = LS_JUMP_LEFT;
+				return;
+
+			case JumpDirection::Right:
+				item->Animation.TargetState = LS_JUMP_RIGHT;
+				return;
+
+			case JumpDirection::Up:
+				item->Animation.TargetState = LS_JUMP_UP;
+				return;
+			}
+		}
+		else
+		{
+			if (IsHeld(In::Forward) || IsHeld(In::Back) ||
+				IsHeld(In::Left) || IsHeld(In::Right))
+			{
+				HandlePlayerTurn(*item, PLAYER_JUMP_PREPARE_TURN_ALPHA, 0, false, TURN_FLAGS);
+
+				player.Control.JumpDirection = GetPlayerJumpDirection(*item, *coll);
+				switch (player.Control.JumpDirection)
+				{
+				case JumpDirection::None:
+					item->Animation.TargetState = LS_IDLE;
+					return;
+
+				case JumpDirection::Up:
+					item->Animation.TargetState = LS_JUMP_UP;
+					return;
+
+				default:
+					item->Animation.TargetState = LS_JUMP_FORWARD;
+					player.Control.JumpDirection = JumpDirection::Forward;
+					return;
+				}
+			}
+		}
+	}
+	else
+	{
+		if (((IsHeld(In::Forward) &&
 			!(IsHeld(In::Back) && player.Control.JumpDirection == JumpDirection::Back)) ||	// Back jump takes priority in this exception.
-		!IsDirectionalActionHeld() && player.Control.JumpDirection == JumpDirection::Forward) &&
-		CanJumpForward(*item, *coll))
-	{
-		item->Animation.TargetState = LS_JUMP_FORWARD;
-		player.Control.JumpDirection = JumpDirection::Forward;
-		return;
-	}
-	else if ((IsHeld(In::Back) ||
-		!IsDirectionalActionHeld() && player.Control.JumpDirection == JumpDirection::Back) &&
-		CanJumpBackward(*item, *coll))
-	{
-		item->Animation.TargetState = LS_JUMP_BACK;
-		player.Control.JumpDirection = JumpDirection::Back;
-		return;
+			GetMoveAxis() == Vector2::Zero && player.Control.JumpDirection == JumpDirection::Forward) &&
+			CanJumpForward(*item, *coll))
+		{
+			item->Animation.TargetState = LS_JUMP_FORWARD;
+			player.Control.JumpDirection = JumpDirection::Forward;
+			return;
+		}
+		else if ((IsHeld(In::Back) ||
+			GetMoveAxis() == Vector2::Zero && player.Control.JumpDirection == JumpDirection::Back) &&
+			CanJumpBackward(*item, *coll))
+		{
+			item->Animation.TargetState = LS_JUMP_BACK;
+			player.Control.JumpDirection = JumpDirection::Back;
+			return;
+		}
+
+		if ((IsHeld(In::Left) ||
+			GetMoveAxis() == Vector2::Zero && player.Control.JumpDirection == JumpDirection::Left) &&
+			CanJumpLeft(*item, *coll))
+		{
+			item->Animation.TargetState = LS_JUMP_LEFT;
+			player.Control.JumpDirection = JumpDirection::Left;
+			return;
+		}
+		else if ((IsHeld(In::Right) ||
+			GetMoveAxis() == Vector2::Zero && player.Control.JumpDirection == JumpDirection::Right) &&
+			CanJumpRight(*item, *coll))
+		{
+			item->Animation.TargetState = LS_JUMP_RIGHT;
+			player.Control.JumpDirection = JumpDirection::Right;
+			return;
+		}
 	}
 
-	if ((IsHeld(In::Left) ||
-		!IsDirectionalActionHeld() && player.Control.JumpDirection == JumpDirection::Left) &&
-		CanJumpLeft(*item, *coll))
-	{
-		item->Animation.TargetState = LS_JUMP_LEFT;
-		player.Control.JumpDirection = JumpDirection::Left;
-		return;
-	}
-	else if ((IsHeld(In::Right) ||
-		!IsDirectionalActionHeld() && player.Control.JumpDirection == JumpDirection::Right) &&
-		CanJumpRight(*item, *coll))
-	{
-		item->Animation.TargetState = LS_JUMP_RIGHT;
-		player.Control.JumpDirection = JumpDirection::Right;
-		return;
-	}
-
-	// No directional key pressed AND no directional lock; commit to jump up.
+	// Move axis is zero AND no directional lock; commit to jump up.
 	if (CanJumpUp(*item, *coll))
 	{
 		item->Animation.TargetState = LS_JUMP_UP;
@@ -330,23 +431,29 @@ void lara_col_jump_prepare(ItemInfo* item, CollisionInfo* coll)
 
 	bool isSwamp = TestEnvironment(ENV_FLAG_SWAMP, item);
 
-	player.Control.MoveAngle = item->Pose.Orientation.y;
-	switch (player.Control.JumpDirection)
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y;
+	if (!g_Configuration.IsUsingModernControls() /*||
+		(g_Configuration.IsUsingModernControls &&
+			(player.Control.HandStatus == HandStatus::WeaponDraw ||
+			 player.Control.HandStatus == HandStatus::WeaponReady))*/)
 	{
-	case JumpDirection::Back:
-		player.Control.MoveAngle += ANGLE(180.0f);
-		break;
+		switch (player.Control.JumpDirection)
+		{
+		case JumpDirection::Back:
+			player.Control.HeadingOrient.y += ANGLE(180.0f);
+			break;
 
-	case JumpDirection::Left:
-		player.Control.MoveAngle -= ANGLE(90.0f);
-		break;
+		case JumpDirection::Left:
+			player.Control.HeadingOrient.y -= ANGLE(90.0f);
+			break;
 
-	case JumpDirection::Right:
-		player.Control.MoveAngle += ANGLE(90.0f);
-		break;
+		case JumpDirection::Right:
+			player.Control.HeadingOrient.y += ANGLE(90.0f);
+			break;
 
-	default:
-		break;
+		default:
+			break;
+		}
 	}
 	
 	coll->Setup.LowerFloorBound = isSwamp ? NO_LOWER_BOUND : STEPUP_HEIGHT;	// Security.
@@ -354,7 +461,7 @@ void lara_col_jump_prepare(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.LowerCeilingBound = 0;
 	coll->Setup.BlockFloorSlopeDown = !isSwamp;	// Security.
 	coll->Setup.BlockFloorSlopeUp = !isSwamp;	// Security.
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	if (TestLaraHitCeiling(coll))
@@ -389,6 +496,8 @@ void lara_col_jump_prepare(ItemInfo* item, CollisionInfo* coll)
 // Collision:	lara_col_jump_back()
 void lara_as_jump_back(ItemInfo* item, CollisionInfo* coll)
 {
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY | (int)PlayerTurnFlags::VerticalFlex;
+
 	auto& player = GetLaraInfo(*item);
 
 	player.Control.Look.Mode = LookMode::Horizontal;
@@ -405,17 +514,34 @@ void lara_as_jump_back(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Left) || IsHeld(In::Right))
-		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_JUMP_TURN_RATE_MAX);
+	// Turn.
+	if (g_Configuration.IsUsingModernControls())
+	{
+		if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
+			HandlePlayerTurn(*item, PLAYER_JUMP_TURN_ALPHA, 0, false, TURN_FLAGS);
+	}
+	else if (g_Configuration.IsUsingEnhancedControls())
+	{
+		if (IsHeld(In::Left) || IsHeld(In::Right))
+			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_JUMP_TURN_RATE_MAX);
+	}
 
 	if (CanLand(*item, *coll))
 	{
 		DoLaraFallDamage(item);
 
 		if (item->HitPoints <= 0)
+		{
 			item->Animation.TargetState = LS_DEATH;
+		}
+		else if (g_Configuration.IsUsingModernControls() && IsHeld(In::Back))
+		{
+			item->Animation.TargetState = LS_SKIP_BACK;
+		}
 		else
+		{
 			item->Animation.TargetState = LS_IDLE;
+		}
 
 		SetLaraLand(item, coll);
 		return;
@@ -427,12 +553,13 @@ void lara_as_jump_back(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Roll) || IsHeld(In::Forward))
+	if (IsHeld(In::Roll) || (IsHeld(In::Forward) && !g_Configuration.IsUsingModernControls()))
 	{
 		item->Animation.TargetState = LS_JUMP_ROLL_180;
 		return;
 	}
 
+	// Reset.
 	item->Animation.TargetState = LS_JUMP_BACK;
 }
 
@@ -467,9 +594,13 @@ void lara_as_jump_right(ItemInfo* item, CollisionInfo* coll)
 		DoLaraFallDamage(item);
 
 		if (item->HitPoints <= 0)
+		{
 			item->Animation.TargetState = LS_DEATH;
+		}
 		else
+		{
 			item->Animation.TargetState = LS_IDLE;
+}
 
 		SetLaraLand(item, coll);
 		return;
@@ -482,7 +613,7 @@ void lara_as_jump_right(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	// TODO: It appears Core planned this feature. Add animations to make it possible.
-	/*if (TrInput & (IN_ROLL | IN_LEFT))
+	/*if (IsHeld(In::Roll) || (IsHeld(In::Left) && !g_Configuration.IsUsingModernControls()))
 	{
 		item->TargetState = LS_JUMP_ROLL_180;
 		return;
@@ -522,9 +653,13 @@ void lara_as_jump_left(ItemInfo* item, CollisionInfo* coll)
 		DoLaraFallDamage(item);
 
 		if (item->HitPoints <= 0)
+		{
 			item->Animation.TargetState = LS_DEATH;
+		}
 		else
+		{
 			item->Animation.TargetState = LS_IDLE;
+		}
 
 		SetLaraLand(item, coll);
 		return;
@@ -537,7 +672,7 @@ void lara_as_jump_left(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	// TODO: It appears Core planned this feature. Add animations to make it possible.
-	/*if (TrInput & (IN_ROLL | IN_RIGHT))
+	/*if (IsHeld(In::Roll) || (IsHeld(In::Right) && !g_Configuration.IsUsingModernControls()))
 	{
 		item->TargetState = LS_JUMP_ROLL_180;
 		return;
@@ -575,9 +710,13 @@ void lara_as_jump_up(ItemInfo* item, CollisionInfo* coll)
 	if (CanLand(*item, *coll))
 	{
 		if (item->HitPoints <= 0)
+		{
 			item->Animation.TargetState = LS_DEATH;
+		}
 		else
+		{
 			item->Animation.TargetState = LS_IDLE;
+		}
 
 		SetLaraLand(item, coll);
 		return;
@@ -589,27 +728,7 @@ void lara_as_jump_up(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Forward))
-	{
-		item->Animation.Velocity.z += 2.0f;
-		if (item->Animation.Velocity.z > 5.0f)
-			item->Animation.Velocity.z = 5.0f;
-	}
-	else if (IsHeld(In::Back))
-	{
-		item->Animation.Velocity.z -= 2.0f;
-		if (item->Animation.Velocity.z < -5.0f)
-			item->Animation.Velocity.z = -5.0f;
-	}
-	else
-		item->Animation.Velocity.z = (item->Animation.Velocity.z < 0.0f) ? -2.0f : 2.0f;
-
-	if (item->Animation.Velocity.z < 0.0f)
-	{
-		// TODO: Holding BACK + LEFT/RIGHT results in Lara flexing more.
-		item->Pose.Orientation.x += std::min<short>(LARA_LEAN_RATE / 3, abs(ANGLE(item->Animation.Velocity.z) - item->Pose.Orientation.x) / 3);
-		player.ExtraHeadRot.y += (ANGLE(10.0f) - item->Pose.Orientation.z) / 3;
-	}
+	HandlePlayerUpJumpShift(*item);
 
 	item->Animation.TargetState = LS_JUMP_UP;
 }
@@ -620,12 +739,12 @@ void lara_col_jump_up(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.MoveAngle = item->Pose.Orientation.y;
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y;
 	coll->Setup.Height = LARA_HEIGHT_STRETCH;
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = BAD_JUMP_CEILING;
-	coll->Setup.ForwardAngle = (item->Animation.Velocity.z >= 0) ? player.Control.MoveAngle : player.Control.MoveAngle + ANGLE(180.0f);
+	coll->Setup.ForwardAngle = (item->Animation.Velocity.z >= 0) ? player.Control.HeadingOrient.y : player.Control.HeadingOrient.y + ANGLE(180.0f);
 	coll->Setup.Mode = CollisionProbeMode::FreeForward;
 	GetCollisionInfo(coll, item);
 
@@ -672,9 +791,13 @@ void lara_as_fall_back(ItemInfo* item, CollisionInfo* coll)
 		DoLaraFallDamage(item);
 
 		if (item->HitPoints <= 0)
+		{
 			item->Animation.TargetState = LS_DEATH;
+		}
 		else
+		{
 			item->Animation.TargetState = LS_IDLE;
+		}
 
 		SetLaraLand(item, coll);
 		return;
@@ -707,6 +830,8 @@ void lara_col_fall_back(ItemInfo* item, CollisionInfo* coll)
 // Collision:	lara_col_swan_dive()
 void lara_as_swan_dive(ItemInfo* item, CollisionInfo* coll)
 {
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY | (int)PlayerTurnFlags::VerticalFlex;
+
 	auto& player = GetLaraInfo(*item);
 
 	player.Control.HandStatus = HandStatus::Busy;
@@ -731,10 +856,23 @@ void lara_as_swan_dive(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Left) || IsHeld(In::Right))
+	// Turn.
+	if (g_Configuration.IsUsingModernControls())
 	{
-		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_JUMP_TURN_RATE_MAX);
-		HandlePlayerLean(item, coll, LARA_LEAN_RATE / 2, LARA_LEAN_MAX);
+		if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
+			HandlePlayerTurn(*item, PLAYER_JUMP_TURN_ALPHA, 0, false, TURN_FLAGS);
+	}
+	else if (g_Configuration.IsUsingEnhancedControls())
+	{
+		if (IsHeld(In::Left) || IsHeld(In::Right))
+		{
+			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_JUMP_TURN_RATE_MAX);
+			HandlePlayerTurnLean(item, coll, LARA_LEAN_RATE / 2, LARA_LEAN_MAX);
+		}
+	}
+	else if (g_Configuration.IsUsingClassicControls())
+	{
+		ResetPlayerTurnRateY(*item);
 	}
 
 	if (CanLand(*item, *coll))
@@ -742,7 +880,9 @@ void lara_as_swan_dive(ItemInfo* item, CollisionInfo* coll)
 		DoLaraFallDamage(item);
 
 		if (item->HitPoints <= 0)
+		{
 			item->Animation.TargetState = LS_DEATH;
+		}
 		else if ((IsHeld(In::Crouch) || CanCrawlspaceDive(*item, *coll)) &&
 			g_GameFlow->GetSettings()->Animations.CrawlspaceDive)
 		{
@@ -750,7 +890,9 @@ void lara_as_swan_dive(ItemInfo* item, CollisionInfo* coll)
 			item->Pose.Translate(coll->Setup.ForwardAngle, CLICK(0.5f)); // HACK: Move forward to avoid standing up or falling out on an edge.
 		}
 		else
+		{
 			item->Animation.TargetState = LS_IDLE;
+		}
 
 		SetLaraLand(item, coll);
 		player.Control.HandStatus = HandStatus::Free;
@@ -775,12 +917,12 @@ void lara_col_swan_dive(ItemInfo* item, CollisionInfo* coll)
 	auto bounds = GameBoundingBox(item);
 	int realHeight = g_GameFlow->GetSettings()->Animations.CrawlspaceDive ? (bounds.GetHeight() * 0.7f) : LARA_HEIGHT;
 
-	player.Control.MoveAngle = item->Pose.Orientation.y;
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y;
 	coll->Setup.Height = std::max(LARA_HEIGHT_CRAWL, realHeight);
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = BAD_JUMP_CEILING;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	if (LaraDeflectEdgeJump(item, coll))
@@ -795,9 +937,11 @@ void lara_col_swan_dive(ItemInfo* item, CollisionInfo* coll)
 // Collision:	lara_col_freefall_dive()
 void lara_as_freefall_dive(ItemInfo* item, CollisionInfo* coll)
 {
+	constexpr auto VEL_COEFF = 0.95f;
+
 	auto& player = GetLaraInfo(*item);
 
-	item->Animation.Velocity.z *= 0.95f;
+	item->Animation.Velocity.z *= VEL_COEFF;
 	player.Control.Look.Mode = LookMode::Free;
 	coll->Setup.EnableObjectPush = true;
 	coll->Setup.EnableSpasm = false;
@@ -824,7 +968,9 @@ void lara_as_freefall_dive(ItemInfo* item, CollisionInfo* coll)
 			Rumble(0.5f, 0.2f);
 		}
 		else
+		{
 			item->Animation.TargetState = LS_IDLE;
+		}
 
 		SetLaraLand(item, coll);
 		return;

@@ -622,12 +622,12 @@ void lara_as_slopeshimmy(ItemInfo* item, CollisionInfo* coll)
 
 	if (item->Animation.AnimNumber == LA_OVERHANG_SHIMMY_LEFT)
 	{
-		lara->Control.MoveAngle = item->Pose.Orientation.y - ANGLE(90.0f);
+		lara->Control.HeadingOrient.y = item->Pose.Orientation.y - ANGLE(90.0f);
 		g_Camera.targetAngle = -ANGLE(22.5f);
 	}
 	else
 	{
-		lara->Control.MoveAngle = item->Pose.Orientation.y + ANGLE(90.0f);
+		lara->Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(90.0f);
 		g_Camera.targetAngle = ANGLE(22.5f);
 	}
 }

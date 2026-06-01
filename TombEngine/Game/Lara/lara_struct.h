@@ -31,7 +31,8 @@ enum LaraState
 	LS_IDLE = 2,
 	LS_JUMP_FORWARD = 3,
 	LS_POSE = 4,
-	LS_RUN_BACK = 5,
+	LS_HOP_BACK = 5,
+	LS_RUN_BACK = LS_HOP_BACK, // Develop alias for back-compat.
 	LS_TURN_RIGHT_SLOW = 6,
 	LS_TURN_LEFT_SLOW = 7,
 	LS_DEATH = 8,
@@ -211,7 +212,7 @@ enum LaraState
 	LS_CRAWL_TURN_180 = 172,
 	LS_TURN_180 = 173,
 
-	// 174-188 reserved for ladder object. -- Sezz 2023.04.16
+	// 174-188 reserved. See PlayerStateMachine.cpp.
 
 	LS_REMOVE_PUZZLE = 189,
 	LS_PUSHABLE_EDGE_SLIP = 190,
@@ -222,23 +223,20 @@ enum LaraState
 	LS_TREAD_WATER_VAULT_1_STEP_DOWN_TO_CROUCH = 195,
 	LS_TREAD_WATER_VAULT_0_STEPS_TO_CROUCH = 196,
 	LS_TREAD_WATER_VAULT_1_STEP_UP_TO_CROUCH = 197,
+	LS_STAND_EDGE_HANG_DESCENT = 198,
+	LS_STAND_EDGE_HANG_DESCENT_FRONT = 199,
+	LS_STAND_EDGE_HANG_DESCENT_BACK = 200,
+	LS_STAND_EDGE_HANG_DESCENT_BACK_FLIP = 201,
+	LS_CRAWL_EDGE_HANG_DESCENT_FRONT = 202,
+	LS_EDGE_HANG_SWING_CATCH = 203,
+	LS_EDGE_HANG_SHIMMY_UP = 204,
+	LS_EDGE_HANG_SHIMMY_DOWN = 205,
+	LS_RUN_FORWARD_CANCEL = 206,
+	LS_SKIP_BACK = 207,
+	LS_WALK_FORWARD_TURN_180 = 208,
+	LS_RUN_FORWARD_TURN_180 = 209,
 
 	LS_PULLEY_UNGRAB = 198,
-
-	// modern-controls states (sezz). Same numeric range as LS_PULLEY_UNGRAB by design;
-	// the two are never live concurrently. Behaviour wired up incrementally in later units.
-	LS_STAND_EDGE_HANG_DESCENT			 = 198,
-	LS_STAND_EDGE_HANG_DESCENT_FRONT	 = 199,
-	LS_STAND_EDGE_HANG_DESCENT_BACK		 = 200,
-	LS_STAND_EDGE_HANG_DESCENT_BACK_FLIP = 201,
-	LS_CRAWL_EDGE_HANG_DESCENT_FRONT	 = 202,
-	LS_EDGE_HANG_SWING_CATCH			 = 203,
-	LS_EDGE_HANG_SHIMMY_UP				 = 204,
-	LS_EDGE_HANG_SHIMMY_DOWN			 = 205,
-	LS_RUN_FORWARD_CANCEL				 = 206,
-	LS_SKIP_BACK						 = 207,
-	LS_WALK_FORWARD_TURN_180			 = 208,
-	LS_RUN_FORWARD_TURN_180				 = 209,
 
 	NUM_LARA_STATES
 };
@@ -629,9 +627,9 @@ enum LaraAnim
 	LA_LADDER_RIGHT_CORNER_OUTER_START = 365,				// Ladder around outer right corner
 	LA_PUSHABLE_BLOCK_PUSH_EDGE_SLIP = 366,
 	LA_LADDER_LEFT_CORNER_INNER_START = 367,				// Ladder around inner left corner
-	LA_LADDER_LEFT_CORNER_INNER_END = 368,
+	LA_RUN_FORWARD_TO_STAND_IDLE_EARLY_START = 368,			// Run forward start > stand idle (1/2)
 	LA_LADDER_RIGHT_CORNER_INNER_START = 369,				// Ladder around inner right corner
-	LA_LADDER_RIGHT_CORNER_INNER_END = 370,					// Unused.
+	LA_RUN_FORWARD_TO_STAND_IDLE_EARLY_END = 370,			// Run forward start > stand idle (2/2)
 	LA_JUMP_UP_TO_ROPE_START = 371,							// Jump up > rope idle (1/2)
 	LA_TRAIN_OVERBOARD_DEATH = 372,							// Train overboard death
 	LA_JUMP_UP_TO_ROPE_END = 373,							// Jump up > rope idle (2/2)
@@ -850,10 +848,10 @@ enum LaraAnim
 
 	//ADD NEW ANIMATIONS HERE
 
-	LA_STAND_IDLE_TO_SKIP_BACK			= 599,
-	LA_SKIP_BACK						= 600,
-	LA_SKIP_BACK_TO_STAND_IDLE			= 601,
-	LA_SKIP_BACK_TO_STAND_IDLE_EARLY	= 602,
+	LA_STAND_IDLE_TO_SKIP_BACK = 599,
+	LA_SKIP_BACK = 600,
+	LA_SKIP_BACK_TO_STAND_IDLE = 601,
+	LA_SKIP_BACK_TO_STAND_IDLE_EARLY = 602,
 
 	NUM_LARA_ANIMS
 
@@ -1266,7 +1264,7 @@ struct WeaponControlData
 	LaraWeaponType LastGunType	  = LaraWeaponType::None;
 	HolsterInfo	   HolsterInfo	  = {};
 
-	short WeaponItem = -1;
+	short WeaponItem = NO_VALUE;
 	bool  HasFired	 = false;
 
 	bool UziLeft  = false;
@@ -1280,13 +1278,17 @@ struct WeaponControlData
 
 struct PlayerControlData
 {
-	short MoveAngle = 0;
-	short TurnRate	= 0;
+	// Tank control
+	EulerAngles TurnRate = EulerAngles::Identity;
 
-	// Modern control scheme (used when g_Configuration.IsUsingModernControls()).
+	// Deprecated. Kept so develop's Animation.cpp Translate() call (and any other lingering
+	// integrators) still compiles while modern controls are wired up incrementally.
+	short MoveAngle = 0;
+
+	// Modern control
 	EulerAngles HeadingOrient		= EulerAngles::Identity;
 	EulerAngles HeadingOrientTarget = EulerAngles::Identity;
-	Vector2		RefMoveAxis			= Vector2::Zero;
+	Vector2		RefMoveAxis			= Vector3::Zero;
 	EulerAngles RefCameraOrient		= EulerAngles::Identity;
 	bool		LockRefCameraOrient = false;
 
@@ -1343,7 +1345,6 @@ struct PlayerInventoryData
 	byte SmallWaterskin;  // 1 = has waterskin, 2 = has waterskin with 1 liter, etc. max value is 4 (has skin + 3 = 4)
 	byte BigWaterskin;	  // 1 = has waterskin, 2 = has waterskin with 1 liter, etc. max value is 6 (has skin + 5 liters = 6)
 
-	// TODO: Rename prefixes back to "Num".
 	int TotalSmallMedipacks;
 	int TotalLargeMedipacks;
 	int TotalFlares;
@@ -1370,6 +1371,7 @@ struct PlayerInventoryData
 	int ExaminesCombo[NUM_EXAMINES * 2] = {};
 };
 
+// TODO: Savegame.
 struct PlayerSkinData
 {
 	GAME_OBJECT_ID Skin				= ID_LARA_SKIN;
@@ -1406,9 +1408,9 @@ struct LaraInfo
 	std::array<CarriedWeaponInfo, (int)LaraWeaponType::NumWeapons> Weapons = {}; // TODO: Move to WeaponControlData.
 
 	PlayerLimbRotationData LimbRot = {};
-	EulerAngles ExtraHeadRot	= EulerAngles::Identity;
-	EulerAngles ExtraTorsoRot	= EulerAngles::Identity;
-	EulerAngles TargetArmOrient = EulerAngles::Identity;
+	EulerAngles ExtraTorsoRot	= EulerAngles::Identity; // Deprecated.
+	EulerAngles ExtraHeadRot	= EulerAngles::Identity; // Deprecated.
+	EulerAngles TargetArmOrient = EulerAngles::Identity; // Deprecated.
 	ArmInfo		LeftArm			= {};
 	ArmInfo		RightArm		= {};
 

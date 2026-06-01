@@ -248,7 +248,7 @@ namespace TEN::Entities::Generic
 					playerItem->Pose.Orientation = pushableItem.Pose.Orientation;
 					ResetPlayerFlex(playerItem);
 					player.Control.IsMoving = false;
-					player.Control.TurnRate = 0;
+					player.Control.TurnRate = EulerAngles::Identity;
 					player.Control.HandStatus = HandStatus::Busy;
 					player.Context.NextCornerPos.Position.x = itemNumber; // TODO: Do this differently.
 				}

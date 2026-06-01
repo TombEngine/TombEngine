@@ -40,7 +40,7 @@ namespace TEN::Entities::Player
 		PlayerBehaviorStateRoutines[LS_IDLE] = std::pair(lara_as_idle, lara_col_idle);
 		PlayerBehaviorStateRoutines[LS_JUMP_FORWARD] = std::pair(lara_as_jump_forward, lara_col_jump_forward);
 		PlayerBehaviorStateRoutines[LS_POSE] = std::pair(lara_as_pose, lara_col_idle);
-		PlayerBehaviorStateRoutines[LS_RUN_BACK] = std::pair(lara_as_run_back, lara_col_run_back);
+		PlayerBehaviorStateRoutines[LS_HOP_BACK] = std::pair(lara_as_hop_back, lara_col_hop_back);
 		PlayerBehaviorStateRoutines[LS_TURN_RIGHT_SLOW] = std::pair(lara_as_turn_slow, lara_col_turn_slow);
 		PlayerBehaviorStateRoutines[LS_TURN_LEFT_SLOW] = std::pair(lara_as_turn_slow, lara_col_turn_slow);
 		PlayerBehaviorStateRoutines[LS_DEATH] = std::pair(lara_as_death, lara_col_death);
@@ -210,7 +210,7 @@ namespace TEN::Entities::Player
 		PlayerBehaviorStateRoutines[LS_CRAWL_TURN_180] = std::pair(lara_as_crawl_turn_180, lara_col_crawl_turn_180);
 		PlayerBehaviorStateRoutines[LS_TURN_180] = std::pair(lara_as_turn_180, lara_col_turn_180);
 
-		// Reserved for ladder object.
+		// Reserved for ladder object (branch: sezz_ladder_object).
 		PlayerBehaviorStateRoutines[174] = std::pair(lara_as_null, lara_void_func);
 		PlayerBehaviorStateRoutines[175] = std::pair(lara_as_null, lara_void_func);
 		PlayerBehaviorStateRoutines[176] = std::pair(lara_as_null, lara_void_func);
@@ -238,6 +238,19 @@ namespace TEN::Entities::Player
 		PlayerBehaviorStateRoutines[LS_TREAD_WATER_VAULT_1_STEP_UP_TO_CROUCH] = std::pair(lara_as_surface_climb_out, lara_void_func);
 
 		PlayerBehaviorStateRoutines[LS_PULLEY_UNGRAB] = std::pair(lara_as_controlled_no_look, lara_void_func);
+
+		PlayerBehaviorStateRoutines[199] = std::pair(lara_as_null, lara_void_func);
+		PlayerBehaviorStateRoutines[200] = std::pair(lara_as_null, lara_void_func);
+		PlayerBehaviorStateRoutines[201] = std::pair(lara_as_null, lara_void_func);
+		PlayerBehaviorStateRoutines[202] = std::pair(lara_as_null, lara_void_func);
+		PlayerBehaviorStateRoutines[203] = std::pair(lara_as_null, lara_void_func);
+		PlayerBehaviorStateRoutines[204] = std::pair(lara_as_null, lara_void_func);
+		PlayerBehaviorStateRoutines[205] = std::pair(lara_as_null, lara_void_func);
+
+		PlayerBehaviorStateRoutines[LS_RUN_FORWARD_CANCEL] = std::pair(lara_as_null, lara_void_func);
+		PlayerBehaviorStateRoutines[LS_SKIP_BACK] = std::pair(lara_as_skip_back, lara_col_skip_back);
+		PlayerBehaviorStateRoutines[LS_WALK_FORWARD_TURN_180] = std::pair(lara_as_walk_forward_turn_180, lara_col_walk_forward_turn_180);
+		PlayerBehaviorStateRoutines[LS_RUN_FORWARD_TURN_180] = std::pair(lara_as_run_forward_turn_180, lara_col_run_forward_turn_180);
 	}
 
 	void HandlePlayerBehaviorState(ItemInfo& item, CollisionInfo& coll, PlayerBehaviorStateRoutineType routineType)

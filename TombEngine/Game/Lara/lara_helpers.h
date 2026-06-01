@@ -3,10 +3,19 @@
 
 enum class JumpDirection;
 enum class WaterStatus;
-struct ItemInfo;
 struct CollisionInfo;
+struct ItemInfo;
 struct LaraInfo;
 struct VaultTestResult;
+
+enum PlayerTurnFlags
+{
+	TurnX		 = 1 << 0,
+	TurnY		 = 1 << 1,
+	VerticalFlex = 1 << 2,
+	CrawlFlex	 = 1 << 3,
+	SwimFlex	 = 1 << 4
+};
 
 struct PlayerWaterData
 {
@@ -30,8 +39,12 @@ void HandlePlayerQuickActions(ItemInfo& item);
 bool CanPlayerLookAround(const ItemInfo& item); // TODO: Move to context file. -- Sezz 2023.08.22
 void HandlePlayerLookAround(ItemInfo& item, bool invertXAxis = true);
 bool HandleLaraVehicle(ItemInfo* item, CollisionInfo* coll);
-void HandlePlayerLean(ItemInfo* item, CollisionInfo* coll, short baseRate, short maxAngle);
-void HandlePlayerCrawlFlex(ItemInfo& item);
+void HandlePlayerTurnLean(ItemInfo* item, CollisionInfo* coll, short baseRate, short maxAngle);
+void HandlePlayerCrawlTurnFlex(ItemInfo& item);
+void HandlePlayerTurn(ItemInfo& item, short turnRateAccel, short turnRateMin, short turnRateMax, short leanRate, short leanAngleMax);
+void HandlePlayerSwimTurnFlex(ItemInfo& item, float alpha);
+void HandlePlayerTurn(ItemInfo& item, float turnAlpha, short leanAngleMax, bool isStrafing, int flags, short yAngleOffset = ANGLE(0.0f));
+void HandlePlayerUpJumpShift(ItemInfo& item);
 void HandlePlayerFlyCheat(ItemInfo& item);
 void HandlePlayerExtraAnim(ItemInfo& item);
 void HandlePlayerWetnessDrips(ItemInfo& item);
@@ -47,14 +60,17 @@ void DoLaraTightropeLean(ItemInfo* item);
 void DoLaraTightropeBalanceRegen(ItemInfo* item);
 void DoLaraFallDamage(ItemInfo* item);
 
-LaraInfo& GetLaraInfo(ItemInfo& item);
+LaraInfo&		GetLaraInfo(ItemInfo& item);
 const LaraInfo& GetLaraInfo(const ItemInfo& item);
-LaraInfo*& GetLaraInfo(ItemInfo* item);
-JumpDirection GetPlayerJumpDirection(const ItemInfo& item, const CollisionInfo& coll);
+LaraInfo*&		GetLaraInfo(ItemInfo* item);
+JumpDirection	GetPlayerJumpDirection(const ItemInfo& item, const CollisionInfo& coll);
+int				GetPlayerStrafeTurnStateID(const ItemInfo& item);
 
 PlayerWaterData GetPlayerWaterData(ItemInfo& item);
-short GetPlayerSlideHeadingAngle(ItemInfo* item, CollisionInfo* coll);
+short GetPlayerHeadingAngleX(const ItemInfo& item);
 short GetPlayerHeadingAngleY(const ItemInfo& item);
+short GetPlayerRelHeadingAngleY(const ItemInfo& item);
+short GetPlayerSlideHeadingAngle(ItemInfo* item, CollisionInfo* coll);
 
 short ModulateLaraTurnRate(short turnRate, short accelRate, short minTurnRate, short maxTurnRate, float axisCoeff, bool invert);
 void ModulateLaraTurnRateX(ItemInfo* item, short accelRate, short minTurnRate, short maxTurnRate, bool invert = true);

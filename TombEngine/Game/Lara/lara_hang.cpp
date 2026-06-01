@@ -139,7 +139,7 @@ void lara_col_hang(ItemInfo* item, CollisionInfo* coll)
 		}
 	}
 
-	lara->Control.MoveAngle = item->Pose.Orientation.y;
+	lara->Control.HeadingOrient.y = item->Pose.Orientation.y;
 
 	TestLaraHang(item, coll);
 
@@ -231,11 +231,11 @@ void lara_col_shimmy_left(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.MoveAngle = item->Pose.Orientation.y - ANGLE(90.0f);
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y - ANGLE(90.0f);
 	coll->Setup.Radius = LARA_RADIUS;
 
 	TestLaraHang(item, coll);
-	player.Control.MoveAngle = item->Pose.Orientation.y - ANGLE(90.0f);
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y - ANGLE(90.0f);
 }
 
 // State:		LS_SHIMMY_RIGHT (31)
@@ -261,10 +261,10 @@ void lara_col_shimmy_right(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	lara->Control.MoveAngle = item->Pose.Orientation.y + ANGLE(90.0f);
+	lara->Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(90.0f);
 	coll->Setup.Radius = LARA_RADIUS;
 	TestLaraHang(item, coll);
-	lara->Control.MoveAngle = item->Pose.Orientation.y + ANGLE(90.0f);
+	lara->Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(90.0f);
 }
 
 // State:		LS_SHIMMY_OUTER_LEFT (107), LS_SHIMMY_OUTER_RIGHT (108), LS_SHIMMY_INNER_LEFT (109), LS_SHIMMY_INNER_RIGHT (110),

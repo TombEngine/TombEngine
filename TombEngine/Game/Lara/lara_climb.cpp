@@ -13,9 +13,11 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
+#include "Specific/configuration.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
+// using namespace TEN::Config; // sezz; develop uses g_Configuration without namespace.
 using namespace TEN::Input;
 
 constexpr auto LADDER_TEST_MARGIN = 8;
@@ -206,7 +208,7 @@ void lara_col_climb_right(ItemInfo* item, CollisionInfo* coll)
 	if (!LaraCheckForLetGo(item, coll))
 	{
 		int shift = 0;
-		lara->Control.MoveAngle = item->Pose.Orientation.y + ANGLE(90.0f);
+		lara->Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(90.0f);
 		LaraDoClimbLeftRight(item, coll, LaraTestClimbPos(item, coll->Setup.Radius, coll->Setup.Radius + LADDER_TEST_DISTANCE, -CLICK(2), CLICK(2), &shift), shift);
 	}
 }
@@ -229,7 +231,7 @@ void lara_col_climb_left(ItemInfo* item, CollisionInfo* coll)
 	if (!LaraCheckForLetGo(item, coll))
 	{
 		int shift = 0;
-		lara->Control.MoveAngle = item->Pose.Orientation.y - ANGLE(90.0f);
+		lara->Control.HeadingOrient.y = item->Pose.Orientation.y - ANGLE(90.0f);
 		LaraDoClimbLeftRight(item, coll, LaraTestClimbPos(item, coll->Setup.Radius, -(coll->Setup.Radius + LADDER_TEST_DISTANCE), -CLICK(2), CLICK(2), &shift), shift);
 	}
 }
@@ -371,12 +373,12 @@ void lara_as_climb_idle(ItemInfo* item, CollisionInfo* coll)
 	if (IsHeld(In::Left) || IsHeld(In::StepLeft))
 	{
 		item->Animation.TargetState = LS_LADDER_LEFT;
-		lara->Control.MoveAngle = item->Pose.Orientation.y - ANGLE(90.0f);
+		lara->Control.HeadingOrient.y = item->Pose.Orientation.y - ANGLE(90.0f);
 	}
 	else if (IsHeld(In::Right) || IsHeld(In::StepRight))
 	{
 		item->Animation.TargetState = LS_LADDER_RIGHT;
-		lara->Control.MoveAngle = item->Pose.Orientation.y + ANGLE(90.0f);
+		lara->Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(90.0f);
 	}
 	else if (IsHeld(In::Jump))
 	{
@@ -384,7 +386,7 @@ void lara_as_climb_idle(ItemInfo* item, CollisionInfo* coll)
 		{
 			item->Animation.TargetState = LS_JUMP_BACK;
 			lara->Control.HandStatus = HandStatus::Free;
-			lara->Control.MoveAngle = item->Pose.Orientation.y + ANGLE(180.0f);
+			lara->Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(180.0f);
 		}
 	}
 
@@ -599,7 +601,7 @@ int LaraClimbRightCornerTest(ItemInfo* item, CollisionInfo* coll)
 		return 0;
 
 	auto oldPos = item->Pose;
-	auto oldRot = lara->Control.MoveAngle;
+	auto oldRot = lara->Control.HeadingOrient.y;
 
 	short angle = GetQuadrant(item->Pose.Orientation.y);
 	int x, z;
@@ -622,7 +624,7 @@ int LaraClimbRightCornerTest(ItemInfo* item, CollisionInfo* coll)
 		lara->Context.NextCornerPos.Position.x = item->Pose.Position.x = x;
 		lara->Context.NextCornerPos.Position.y = item->Pose.Position.y;
 		lara->Context.NextCornerPos.Position.z = item->Pose.Position.z = z;
-		lara->Context.NextCornerPos.Orientation.y = item->Pose.Orientation.y = lara->Control.MoveAngle = item->Pose.Orientation.y + ANGLE(90);
+		lara->Context.NextCornerPos.Orientation.y = item->Pose.Orientation.y = lara->Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(90);
 
 		result = LaraTestClimbPos(item, coll->Setup.Radius, coll->Setup.Radius + LADDER_TEST_DISTANCE, -CLICK(2), CLICK(2), &shift);
 		item->ItemFlags[3] = result;
@@ -631,7 +633,7 @@ int LaraClimbRightCornerTest(ItemInfo* item, CollisionInfo* coll)
 	if (!result)
 	{
 		item->Pose = oldPos;
-		lara->Control.MoveAngle = oldRot;
+		lara->Control.HeadingOrient.y = oldRot;
 
 		switch (angle)
 		{
@@ -663,7 +665,7 @@ int LaraClimbRightCornerTest(ItemInfo* item, CollisionInfo* coll)
 			lara->Context.NextCornerPos.Position.x = item->Pose.Position.x = x;
 			lara->Context.NextCornerPos.Position.y = item->Pose.Position.y;
 			lara->Context.NextCornerPos.Position.z = item->Pose.Position.z = z;
-			lara->Context.NextCornerPos.Orientation.y = item->Pose.Orientation.y = lara->Control.MoveAngle = item->Pose.Orientation.y - ANGLE(90.0f);
+			lara->Context.NextCornerPos.Orientation.y = item->Pose.Orientation.y = lara->Control.HeadingOrient.y = item->Pose.Orientation.y - ANGLE(90.0f);
 
 			result = LaraTestClimbPos(item, coll->Setup.Radius, coll->Setup.Radius + LADDER_TEST_DISTANCE, -CLICK(2), CLICK(2), &shift);
 			item->ItemFlags[3] = result;
@@ -673,7 +675,7 @@ int LaraClimbRightCornerTest(ItemInfo* item, CollisionInfo* coll)
 		result = -1;
 
 	item->Pose = oldPos;
-	lara->Control.MoveAngle = oldRot;
+	lara->Control.HeadingOrient.y = oldRot;
 
 	return result;
 }
@@ -688,7 +690,7 @@ int LaraClimbLeftCornerTest(ItemInfo* item, CollisionInfo* coll)
 		return 0;
 
 	auto oldPos = item->Pose;
-	auto oldRot = lara->Control.MoveAngle;
+	auto oldRot = lara->Control.HeadingOrient.y;
 
 	short angle = GetQuadrant(item->Pose.Orientation.y);
 	int x, z;
@@ -711,7 +713,7 @@ int LaraClimbLeftCornerTest(ItemInfo* item, CollisionInfo* coll)
 		lara->Context.NextCornerPos.Position.x = item->Pose.Position.x = x;
 		lara->Context.NextCornerPos.Position.y = item->Pose.Position.y;
 		lara->Context.NextCornerPos.Position.z = item->Pose.Position.z = z;
-		lara->Context.NextCornerPos.Orientation.y = item->Pose.Orientation.y = lara->Control.MoveAngle = item->Pose.Orientation.y - ANGLE(90.0f);
+		lara->Context.NextCornerPos.Orientation.y = item->Pose.Orientation.y = lara->Control.HeadingOrient.y = item->Pose.Orientation.y - ANGLE(90.0f);
 
 		result = LaraTestClimbPos(item, coll->Setup.Radius, -coll->Setup.Radius - LADDER_TEST_DISTANCE, -CLICK(2), CLICK(2), &shift);
 		item->ItemFlags[3] = result;
@@ -720,7 +722,7 @@ int LaraClimbLeftCornerTest(ItemInfo* item, CollisionInfo* coll)
 	if (!result)
 	{
 		item->Pose = oldPos;
-		lara->Control.MoveAngle = oldRot;
+		lara->Control.HeadingOrient.y = oldRot;
 
 		switch (angle)
 		{
@@ -751,7 +753,7 @@ int LaraClimbLeftCornerTest(ItemInfo* item, CollisionInfo* coll)
 			lara->Context.NextCornerPos.Position.x = item->Pose.Position.x = x;
 			lara->Context.NextCornerPos.Position.y = item->Pose.Position.y;
 			lara->Context.NextCornerPos.Position.z = item->Pose.Position.z = z;
-			lara->Context.NextCornerPos.Orientation.y = item->Pose.Orientation.y = lara->Control.MoveAngle = item->Pose.Orientation.y + ANGLE(90.0f);
+			lara->Context.NextCornerPos.Orientation.y = item->Pose.Orientation.y = lara->Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(90.0f);
 
 			item->ItemFlags[3] = LaraTestClimbPos(item, coll->Setup.Radius, -coll->Setup.Radius - LADDER_TEST_DISTANCE, -CLICK(2), CLICK(2), &shift);
 			result = item->ItemFlags[3] != 0;
@@ -761,7 +763,7 @@ int LaraClimbLeftCornerTest(ItemInfo* item, CollisionInfo* coll)
 		result = -1;
 
 	item->Pose = oldPos;
-	lara->Control.MoveAngle = oldRot;
+	lara->Control.HeadingOrient.y = oldRot;
 	return result;
 }
 
@@ -970,7 +972,11 @@ bool LaraCheckForLetGo(ItemInfo* item, CollisionInfo* coll)
 	item->Animation.Velocity.y = 0;
 	item->Animation.IsAirborne = false;
 
-	if (IsHeld(In::Action) && item->HitPoints > 0 || item->Animation.AnimNumber == LA_ONWATER_TO_LADDER) // Can't let go on this anim
+	lara->Control.ToggleClimb = g_Configuration.EnableClimbToggle;
+	if (IsClicked(In::Action) && g_Configuration.EnableClimbToggle)
+		lara->Control.ToggleClimb = false;
+
+	if (HasClimbAction(*item) && item->HitPoints > 0 || item->Animation.AnimNumber == LA_ONWATER_TO_LADDER) // Can't let go on this anim
 		return false;
 
 	ResetPlayerFlex(item);

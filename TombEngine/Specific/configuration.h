@@ -124,6 +124,10 @@ struct GameConfiguration
 	bool				  InvertCameraXAxis		= false;
 	bool				  InvertCameraYAxis		= false;
 	bool				  EnableTankCameraControl = false;
+	bool				  EnableClimbToggle		= false;
+	bool				  EnableCrouchToggle	= false;
+	bool				  EnableWalkToggle		= false;
+	bool				  EnableOppositeActionRoll = false;
 
 	std::vector<Vector2i>	SupportedScreenResolutions	= {};
 	std::string				AdapterName					= {};
