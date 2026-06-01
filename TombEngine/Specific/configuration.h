@@ -47,6 +47,8 @@ constexpr auto OPTION_ENABLE_THUMBSTICK_CAMERA			= "EnableThumbstickCamera";
 constexpr auto OPTION_MOUSE_SENSITIVITY		   = "MouseSensitivity";
 constexpr auto OPTION_MENU_OPTION_LOOPING_MODE = "MenuOptionLoopingMode";
 constexpr auto OPTION_GAMEPAD_TYPE			   = "GamepadType";
+constexpr auto OPTION_CONTROL_MODE			   = "ControlMode";
+constexpr auto OPTION_SWIM_CONTROL_MODE		   = "SwimControlMode";
 constexpr auto OPTION_BIND_PREFIX			   = "bind.";
 
 enum class MenuOptionLoopingMode
@@ -54,6 +56,23 @@ enum class MenuOptionLoopingMode
 	AllMenus,
 	SaveLoadOnly,
 	Disabled
+};
+
+enum class ControlMode
+{
+	Classic,
+	Enhanced,
+	Modern,
+
+	Count
+};
+
+enum class SwimControlMode
+{
+	Omnidirectional,
+	Planar,
+
+	Count
 };
 
 struct GameConfiguration
@@ -100,10 +119,18 @@ struct GameConfiguration
 	MenuOptionLoopingMode MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
 	GamepadType			  LastGamepadType		= GamepadType::Xbox;
 	BindingProfile		  Bindings				= {};
+	ControlMode			  ControlMode			= ControlMode::Classic;
+	SwimControlMode		  SwimControlMode		= SwimControlMode::Omnidirectional;
 
 	std::vector<Vector2i>	SupportedScreenResolutions	= {};
 	std::string				AdapterName					= {};
 	std::vector<BassDevice> SupportedSoundDevices				= {};
+
+	bool IsUsingClassicControls() const	 { return ControlMode == ControlMode::Classic; }
+	bool IsUsingEnhancedControls() const { return ControlMode == ControlMode::Enhanced; }
+	bool IsUsingModernControls() const	 { return ControlMode == ControlMode::Modern; }
+	bool IsUsingOmnidirectionalSwimControls() const { return SwimControlMode == SwimControlMode::Omnidirectional; }
+	bool IsUsingPlanarSwimControls() const			{ return SwimControlMode == SwimControlMode::Planar; }
 };
 
 void InitDefaultConfiguration();
