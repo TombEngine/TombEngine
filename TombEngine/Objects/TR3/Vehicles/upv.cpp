@@ -199,14 +199,14 @@ namespace TEN::Entities::Vehicles
 		{
 		default:
 		case VehicleMountType::LevelStart:
-			SetAnimation(laraItem, ID_UPV_LARA_ANIMS, UPV_ANIM_IDLE);
+			SetAnimationFromSlot(*laraItem, ID_UPV_LARA_ANIMS, UPV_ANIM_IDLE);
 			break;
 
 		case VehicleMountType::Back:
 			if (lara->Control.WaterStatus == WaterStatus::TreadWater)
-				SetAnimation(laraItem, ID_UPV_LARA_ANIMS, UPV_ANIM_MOUNT_SURFACE_START);
+				SetAnimationFromSlot(*laraItem, ID_UPV_LARA_ANIMS, UPV_ANIM_MOUNT_SURFACE_START);
 			else
-				SetAnimation(laraItem, ID_UPV_LARA_ANIMS, UPV_ANIM_MOUNT_UNDERWATER);
+				SetAnimationFromSlot(*laraItem, ID_UPV_LARA_ANIMS, UPV_ANIM_MOUNT_UNDERWATER);
 
 			break;
 		}

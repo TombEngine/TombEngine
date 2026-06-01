@@ -203,16 +203,16 @@ namespace TEN::Entities::Vehicles
 		switch (mountType)
 		{
 		case VehicleMountType::LevelStart:
-			SetAnimation(laraItem, ID_MINECART_LARA_ANIMS, MINECART_ANIM_IDLE);
+			SetAnimationFromSlot(*laraItem, ID_MINECART_LARA_ANIMS, MINECART_ANIM_IDLE);
 			break;
 
 		case VehicleMountType::Left:
-			SetAnimation(laraItem, ID_MINECART_LARA_ANIMS, MINECART_ANIM_MOUNT_LEFT);
+			SetAnimationFromSlot(*laraItem, ID_MINECART_LARA_ANIMS, MINECART_ANIM_MOUNT_LEFT);
 			break;
 
 		default:
 		case VehicleMountType::Right:
-			SetAnimation(laraItem, ID_MINECART_LARA_ANIMS, MINECART_ANIM_MOUNT_RIGHT);
+			SetAnimationFromSlot(*laraItem, ID_MINECART_LARA_ANIMS, MINECART_ANIM_MOUNT_RIGHT);
 			break;
 		}
 
@@ -889,7 +889,7 @@ namespace TEN::Entities::Vehicles
 			if (minecartItem->Pose.Orientation.z > MINECART_TERMINAL_ANGLE ||
 				minecartItem->Pose.Orientation.z < -MINECART_TERMINAL_ANGLE)
 			{
-				SetAnimation(laraItem, ID_MINECART_LARA_ANIMS, MINECART_ANIM_TURN_DEATH);
+				SetAnimationFromSlot(*laraItem, ID_MINECART_LARA_ANIMS, MINECART_ANIM_TURN_DEATH);
 				minecartItem->Animation.Velocity.z = 0.0f;
 				minecart->Velocity = 0;
 				minecart->Flags = (minecart->Flags & ~MINECART_FLAG_CONTROL) | MINECART_FLAG_STOPPED | MINECART_FLAG_DEAD;
@@ -905,7 +905,7 @@ namespace TEN::Entities::Vehicles
 
 			if (floorHeight < -CLICK(2) || coll.HitStatic)
 			{
-				SetAnimation(laraItem, ID_MINECART_LARA_ANIMS, MINECART_ANIM_WALL_DEATH);
+				SetAnimationFromSlot(*laraItem, ID_MINECART_LARA_ANIMS, MINECART_ANIM_WALL_DEATH);
 				laraItem->HitPoints = -1;
 				minecartItem->Animation.Velocity.z = 0;
 				minecart->Velocity = 0;
@@ -921,7 +921,7 @@ namespace TEN::Entities::Vehicles
 
 				if (coll.HitStatic)
 				{
-					SetAnimation(laraItem, ID_MINECART_LARA_ANIMS, MINECART_ANIM_BONK_HEAD);
+					SetAnimationFromSlot(*laraItem, ID_MINECART_LARA_ANIMS, MINECART_ANIM_BONK_HEAD);
 
 					DoLotsOfBlood(
 						laraItem->Pose.Position.x,
@@ -951,7 +951,7 @@ namespace TEN::Entities::Vehicles
 				 laraItem->Animation.ActiveState != MINECART_STATE_TURN_DEATH &&
 				 laraItem->Animation.ActiveState != MINECART_STATE_WALL_DEATH)
 		{
-			SetAnimation(laraItem, ID_MINECART_LARA_ANIMS, MINECART_ANIM_DEATH);
+			SetAnimationFromSlot(*laraItem, ID_MINECART_LARA_ANIMS, MINECART_ANIM_DEATH);
 			laraItem->HitPoints = -1;
 			minecartItem->Animation.Velocity.z = 0;
 			minecart->Flags = (minecart->Flags & ~MINECART_FLAG_CONTROL) | (MINECART_FLAG_STOPPED | MINECART_FLAG_DEAD);

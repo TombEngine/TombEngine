@@ -471,7 +471,6 @@ namespace TEN::Renderer
 
 				for (int i = 0; !inFrustum, i < spheres.size(); i++)
 				{
-					DrawDebugSphere(spheres[i].Center, spheres[i].Radius, Vector4::One);
 					if (renderView.Camera.Frustum.SphereInFrustum(spheres[i].Center, spheres[i].Radius * 1.5f))
 						inFrustum = true;
 				}
