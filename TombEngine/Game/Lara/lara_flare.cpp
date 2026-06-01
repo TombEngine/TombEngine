@@ -34,6 +34,9 @@ void FlareControl(short itemNumber)
 {
 	auto& flareItem = g_Level.Items[itemNumber];
 
+	if (!flareItem.Data.is<int>())
+		return;
+
 	if (TestEnvironment(ENV_FLAG_SWAMP, &flareItem))
 	{
 		KillItem(itemNumber);
@@ -74,9 +77,6 @@ void FlareControl(short itemNumber)
 	DoProjectileDynamics(itemNumber, prevPos.x, prevPos.y, prevPos.z, vel.x, vel.y, vel.z);
 
 	const auto& settings = g_GameFlow->GetSettings()->Flare;
-
-	if (!flareItem.Data.is<int>())
-		flareItem.Data = (int)0;
 
 	int& life = flareItem.Data;
 	life &= 0x7FFF;
