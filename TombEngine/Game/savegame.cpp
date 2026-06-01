@@ -1331,7 +1331,7 @@ const std::vector<byte> SaveGame::Build()
 	auto staticMeshesOffset = fbb.CreateVector(staticMeshes);
 	auto volumesOffset = fbb.CreateVector(volumes);
 
-	std::vector<Save::Vector4> materialPropertyCurrentValues = {};
+	std::vector<Common::Vector4> materialPropertyCurrentValues = {};
 	materialPropertyCurrentValues.reserve(g_Level.Materials.size() * MaterialData::PropertyCount);
 
 	for (const auto& material : g_Level.Materials)

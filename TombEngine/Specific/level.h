@@ -9,7 +9,6 @@
 #include "Game/spotcam.h"
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
-#include "Specific/LevelCameraInfo.h"
 #include "Specific/Structures/newtypes.h"
 #include "Specific/Structures/MaterialData.h"
 

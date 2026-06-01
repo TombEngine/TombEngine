@@ -51,7 +51,7 @@ table LevelData {
 	starfield_meteor_count: int32;
 	starfield_meteor_spawn_density: int32;
 	starfield_meteor_velocity: int32;
-	material_property_current_values: [Vector4];
+	material_property_current_values: [TEN.Serialization.Common.Vector4];
 }
 
 table Room {
