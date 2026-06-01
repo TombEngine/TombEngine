@@ -3,7 +3,7 @@
 
 namespace TEN::Renderer
 {
-	RenderView::RenderView(CAMERA_INFO* cam, float roll, float fov, float nearPlane, float farPlane, int w, int h) : Camera(cam, roll, fov, nearPlane, farPlane, w, h) 
+	RenderView::RenderView(CameraInfo* cam, float roll, float fov, float nearPlane, float farPlane, int w, int h) : Camera(cam, roll, fov, nearPlane, farPlane, w, h)
 	{
 		Viewport = {};
 		Viewport.X = 0;
@@ -14,7 +14,7 @@ namespace TEN::Renderer
 		Viewport.MaxDepth = 1;
 	}
 
-	RenderView::RenderView(const Vector3& pos, const Vector3& dir, const Vector3& up, int w, int h, int room, float nearPlane, float farPlane, float fov) : Camera(pos, dir, up, room, w, h, fov, nearPlane, farPlane) 
+	RenderView::RenderView(const Vector3& pos, const Vector3& dir, const Vector3& up, int w, int h, int room, float nearPlane, float farPlane, float fov) : Camera(pos, dir, up, room, w, h, fov, nearPlane, farPlane)
 	{
 
 		Viewport = {};
@@ -57,12 +57,12 @@ namespace TEN::Renderer
 		Mirrors.clear();
 	}
 
-	RenderViewCamera::RenderViewCamera(CAMERA_INFO* cam, float roll, float fov, float n, float f, int w, int h)
+	RenderViewCamera::RenderViewCamera(CameraInfo* cam, float roll, float fov, float n, float f, int w, int h)
 	{
-		RoomNumber = cam->pos.RoomNumber;
-		WorldPosition = Vector3(cam->pos.x, cam->pos.y, cam->pos.z);
+		RoomNumber = cam->RoomNumber;
+		WorldPosition = cam->Position;
 
-		auto target = Vector3(cam->target.x, cam->target.y, cam->target.z);
+		auto target = cam->LookAt;
 		
 		// Safety clamps to avoid NaNs in view direction calculation.
 		auto rawDirection = target - WorldPosition;

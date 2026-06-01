@@ -482,9 +482,9 @@ namespace TEN::Collision::Los
 		dir.Normalize();
 		float dist = Vector3::Distance(posPair.first, posPair.second);
 
-		auto roomLos = GetRoomLosCollision(posPair.first, Camera.pos.RoomNumber, dir, dist);
+		auto roomLos = GetRoomLosCollision(posPair.first, g_Camera.RoomNumber, dir, dist);
 
-		auto origin = GameVector(posPair.first, Camera.pos.RoomNumber);
+		auto origin = GameVector(posPair.first, g_Camera.RoomNumber);
 		auto target = GameVector(roomLos.Position, roomLos.RoomNumber);
 		return std::pair(origin, target);
 	}

@@ -15,12 +15,12 @@ enum class LevelCameraFlags
 struct LevelCameraInfo
 {
 	std::string Name  = {};
-	short		Index = -1;
+	int			Index = -1; // ID
 
 	Vector3i Position	= Vector3i::Zero;
 	int		 RoomNumber = 0;
 	int		 Flags		= 0;
-	int		 Speed		= 1;
+	float	 Speed		= 1.0f;
 
 	LevelCameraInfo() {}
 
@@ -29,20 +29,20 @@ struct LevelCameraInfo
 		Position = Vector3i(xPos, yPos, zPos);
 	}
 
-	LevelCameraInfo(int xPos, int yPos, int zPos, short roomNumber)
+	LevelCameraInfo(int xPos, int yPos, int zPos, int roomNumber)
 	{
 		Position = Vector3i(xPos, yPos, zPos);
 		RoomNumber = roomNumber;
 	}
 
 	// Use isFlags to use flag instead of new data.
-	LevelCameraInfo(int xPos, int yPos, int zPos, short flags, bool isFlags)
+	LevelCameraInfo(int xPos, int yPos, int zPos, int flags, bool isFlags)
 	{
 		Position = Vector3i(xPos, yPos, zPos);
 		Flags = flags;
 	}
 
-	LevelCameraInfo(int xPos, int yPos, int zPos, short roomNumber, short newflags)
+	LevelCameraInfo(int xPos, int yPos, int zPos, int roomNumber, int newflags)
 	{
 		Position = Vector3i(xPos, yPos, zPos);
 		RoomNumber = roomNumber;

@@ -352,7 +352,7 @@ namespace TEN::Entities::Creatures::TR2
 				auto pose = Pose(pos, EulerAngles::Identity);
 				TriggerShockwave(&pose, 24, 88, 256, 128, 128, 128, 32, EulerAngles::Identity, 8, true, false, false, (int)ShockwaveStyle::Normal);
 
-				Camera.bounce = -128;
+				g_Camera.bounce = -128;
 			}
 		}
 	}

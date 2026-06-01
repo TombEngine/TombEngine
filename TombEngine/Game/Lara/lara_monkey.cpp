@@ -35,7 +35,7 @@ void lara_as_monkey_idle(ItemInfo* item, CollisionInfo* coll)
 	player.ExtraTorsoRot = EulerAngles::Identity;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetElevation = -ANGLE(5.0f);
+	g_Camera.targetElevation = -ANGLE(5.0f);
 
 	if (item->HitPoints <= 0)
 	{
@@ -185,7 +185,7 @@ void lara_as_monkey_forward(ItemInfo* item, CollisionInfo* coll)
 	player.ExtraTorsoRot = EulerAngles::Identity;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetElevation = -ANGLE(5.0f);
+	g_Camera.targetElevation = -ANGLE(5.0f);
 
 	if (item->HitPoints <= 0)
 	{
@@ -264,7 +264,7 @@ void lara_as_monkey_back(ItemInfo* item, CollisionInfo* coll)
 	player.ExtraTorsoRot = EulerAngles::Identity;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetElevation = -ANGLE(5.0f);
+	g_Camera.targetElevation = -ANGLE(5.0f);
 
 	if (item->HitPoints <= 0)
 	{
@@ -337,7 +337,7 @@ void lara_as_monkey_shimmy_left(ItemInfo* item, CollisionInfo* coll)
 	player.ExtraTorsoRot = EulerAngles::Identity;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetElevation = -ANGLE(5.0f);
+	g_Camera.targetElevation = -ANGLE(5.0f);
 
 	if (item->HitPoints <= 0)
 	{
@@ -413,7 +413,7 @@ void lara_as_monkey_shimmy_right(ItemInfo* item, CollisionInfo* coll)
 	player.ExtraTorsoRot = EulerAngles::Identity;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetElevation = -ANGLE(5.0f);
+	g_Camera.targetElevation = -ANGLE(5.0f);
 
 	if (item->HitPoints <= 0)
 	{
@@ -489,7 +489,7 @@ void lara_as_monkey_turn_180(ItemInfo* item, CollisionInfo* coll)
 	player.Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetElevation = -ANGLE(5.0f);
+	g_Camera.targetElevation = -ANGLE(5.0f);
 
 	ModulateLaraTurnRateY(item, 0, 0, 0);
 
@@ -513,7 +513,7 @@ void lara_as_monkey_turn_left(ItemInfo* item, CollisionInfo* coll)
 	player.ExtraTorsoRot = EulerAngles::Identity;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetElevation = -ANGLE(5.0f);
+	g_Camera.targetElevation = -ANGLE(5.0f);
 
 	if (item->HitPoints <= 0)
 	{
@@ -603,7 +603,7 @@ void lara_as_monkey_turn_right(ItemInfo* item, CollisionInfo* coll)
 	player.ExtraTorsoRot = EulerAngles::Identity;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetElevation = -ANGLE(5.0f);
+	g_Camera.targetElevation = -ANGLE(5.0f);
 
 	if (item->HitPoints <= 0)
 	{

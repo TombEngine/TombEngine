@@ -482,7 +482,7 @@ void HandlePlayerLookAround(ItemInfo& item, bool invertXAxis)
 	auto& player = GetLaraInfo(item);
 
 	// Set optics.
-	Camera.type = CameraType::Look;
+	g_Camera.type = CameraType::Look;
 
 	bool isSlow = IsHeld(In::Walk);
 	auto axisCoeff = Vector2::Zero;
@@ -1700,7 +1700,7 @@ void ResetPlayerLookAround(ItemInfo& item, float alpha)
 
 	player.Control.Look.Orientation = EulerAngles::Identity;
 
-	if (Camera.type != CameraType::Look)
+	if (g_Camera.type != CameraType::Look)
 	{
 		player.ExtraHeadRot.Lerp(EulerAngles::Identity, alpha);
 

@@ -1742,7 +1742,7 @@ namespace TEN::Renderer
 				continue;
 
 			// TODO: Avoid LaraItem global.
-			if ((Camera.pos.RoomNumber == mirror.RoomNumber || LaraItem->RoomNumber == mirror.RoomNumber) && 
+			if ((g_Camera.RoomNumber == mirror.RoomNumber || LaraItem->RoomNumber == mirror.RoomNumber) && 
 				IsPointInRoom(light.Position, mirror.RoomNumber))
 			{
 				auto reflectedLight = light;
@@ -1786,7 +1786,7 @@ namespace TEN::Renderer
 			_blinkTime -= PI_MUL_2;
 
 		_oldGameCamera = _currentGameCamera;
-		Camera.DisableInterpolation = false;
+		g_Camera.DisableInterpolation = false;
 
 		_isLocked = false;
 
@@ -1914,7 +1914,7 @@ namespace TEN::Renderer
 		_graphicsDevice->SetViewport(view.Viewport);
 		_graphicsDevice->SetScissor(view.Viewport);
 
-		// Camera constant buffer contains matrices, camera position, fog values, and other things shared for all shaders.
+		// g_Camera constant buffer contains matrices, camera position, fog values, and other things shared for all shaders.
 		auto cameraConstantBuffer = CCameraMatrixBuffer{};
 		view.FillConstantBuffer(cameraConstantBuffer);
 		cameraConstantBuffer.Frame = GlobalCounter;
@@ -2106,7 +2106,7 @@ namespace TEN::Renderer
 			SetCullMode(CullMode::Clockwise);
 		}
 
-		auto view = RenderView(&Camera, 0, PI / 2.0f, 32, DEFAULT_FAR_VIEW, ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE);
+		auto view = RenderView(&g_Camera, 0, PI / 2.0f, 32, DEFAULT_FAR_VIEW, ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE);
 
 		auto cameraConstantBuffer = CCameraMatrixBuffer{};
 		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(position, position + Vector3(0, 0, 1024), -Vector3::UnitY);
@@ -2122,7 +2122,7 @@ namespace TEN::Renderer
 			_shaders.Bind(Shader::RoomAmbientSky);
 
 			if (Lara.Control.Look.OpticRange != 0)
-				AlterFOV(ANGLE(DEFAULT_FOV) - Lara.Control.Look.OpticRange, false);
+				SetFov(ANGLE(DEFAULT_FOV) - Lara.Control.Look.OpticRange, false);
 
 			unsigned int stride = sizeof(Vertex);
 			unsigned int offset = 0;
@@ -2143,8 +2143,8 @@ namespace TEN::Renderer
 				{
 					auto weather = TEN::Effects::Environment::Weather;
 
-					auto translation = Matrix::CreateTranslation(Camera.pos.x + weather.SkyPosition(s) - i * SKY_SIZE,
-						Camera.pos.y - 1536.0f, Camera.pos.z);
+					auto translation = Matrix::CreateTranslation(g_Camera.Position.x + weather.SkyPosition(s) - i * SKY_SIZE,
+						g_Camera.Position.y - 1536.0f, g_Camera.Position.z);
 					auto world = rotation * translation;
 
 					_stObjects.Objects[0].World = (rotation * translation);
@@ -3093,7 +3093,7 @@ namespace TEN::Renderer
 			return;
 
 		if (Lara.Control.Look.OpticRange != 0)
-			AlterFOV(ANGLE(DEFAULT_FOV) - Lara.Control.Look.OpticRange, false);
+			SetFov(ANGLE(DEFAULT_FOV) - Lara.Control.Look.OpticRange, false);
 
 		// Draw sky.
 		auto rotation = Matrix::CreateRotationX(PI);
@@ -3406,7 +3406,7 @@ namespace TEN::Renderer
 					for (int p = 0; p < bucket.Polygons.size(); p++)
 					{
 						auto center = Vector3::Transform(bucket.Polygons[p].Centre, itemToDraw->InterpolatedAnimationTransforms[boneIndex] * itemToDraw->InterpolatedWorld);
-						int dist = Vector3::Distance(center, Camera.pos.ToVector3());
+						int dist = Vector3::Distance(center, g_Camera.Position);
 
 						auto object = RendererSortableObject{};
 						object.ObjectType = type;
@@ -4121,7 +4121,7 @@ namespace TEN::Renderer
 		_interpolationFactor = interpFactor;
 
 		// Interpolate camera.
-		if (!Camera.DisableInterpolation)
+		if (!g_Camera.DisableInterpolation)
 		{
 			_gameCamera.Camera.WorldPosition = Vector3::Lerp(_oldGameCamera.Camera.WorldPosition, _currentGameCamera.Camera.WorldPosition, interpFactor);
 			_gameCamera.Camera.WorldDirection = Vector3::Lerp(_oldGameCamera.Camera.WorldDirection, _currentGameCamera.Camera.WorldDirection, interpFactor);

@@ -338,8 +338,8 @@ namespace TEN::Effects::Environment
 			}
 
 			// Check if particle got out of collision check radius and fade out if it did.
-			if (abs(Camera.pos.x - part.Position.x) > COLLISION_CHECK_DISTANCE ||
-				abs(Camera.pos.z - part.Position.z) > COLLISION_CHECK_DISTANCE)
+			if (abs(g_Camera.Position.x - part.Position.x) > COLLISION_CHECK_DISTANCE ||
+				abs(g_Camera.Position.z - part.Position.z) > COLLISION_CHECK_DISTANCE)
 			{
 				part.Life = std::clamp(part.Life, 0.0f, WEATHER_PARTICLE_NEAR_DEATH_LIFE);
 			}
@@ -420,8 +420,8 @@ namespace TEN::Effects::Environment
 			float range = (part.Type == WeatherType::Rain) ? WEATHER_SPAWN_DIST_RAIN : COLLISION_CHECK_DISTANCE;
 
 			if (part.Type == WeatherType::Rain &&				
-				(abs(Camera.pos.x - part.Position.x) > range ||
-				abs(Camera.pos.z - part.Position.z) > range))
+				(abs(g_Camera.Position.x - part.Position.x) > range ||
+				abs(g_Camera.Position.z - part.Position.z) > range))
 			{
 				part.Life = std::clamp(part.Life, 0.0f, WEATHER_PARTICLE_NEAR_DEATH_LIFE);
 			}
@@ -530,14 +530,14 @@ namespace TEN::Effects::Environment
 		for (int i = 0; i < DUST_SPAWN_DENSITY; i++)
 		{
 			// TODO: Use functions in Math::Random namespace.
-			auto pos = Camera.pos.ToVector3i() + Vector3i(
+			auto pos = Vector3i(g_Camera.Position) + Vector3i(
 				(rand() % DUST_SPAWN_RADIUS) - (DUST_SPAWN_RADIUS / 2),
 				(rand() % DUST_SPAWN_RADIUS) - (DUST_SPAWN_RADIUS / 2),
 				(rand() % DUST_SPAWN_RADIUS) - (DUST_SPAWN_RADIUS / 2));
 
-			int roomNumber = Camera.pos.RoomNumber;
+			int roomNumber = g_Camera.RoomNumber;
 			if (!IsPointInRoom(pos, roomNumber))
-				roomNumber = FindRoomNumber(pos, Camera.pos.RoomNumber, true);
+				roomNumber = FindRoomNumber(pos, g_Camera.RoomNumber, true);
 
 			if (!IsPointInRoom(pos, roomNumber) || roomNumber == NO_VALUE)
 				continue;
@@ -613,9 +613,9 @@ namespace TEN::Effects::Environment
 				float radius = Random::GenerateInt(0, dist);
 				short angle = Random::GenerateAngle();
 
-				auto xPos = Camera.pos.x + ((int)(phd_cos(angle) * radius));
-				auto zPos = Camera.pos.z + ((int)(phd_sin(angle) * radius));
-				auto yPos = Camera.pos.y - (BLOCK(3) + Random::GenerateInt() & (BLOCK(4) - 1));
+				auto xPos = g_Camera.Position.x + ((int)(phd_cos(angle) * radius));
+				auto zPos = g_Camera.Position.z + ((int)(phd_sin(angle) * radius));
+				auto yPos = g_Camera.Position.y - (BLOCK(3) + Random::GenerateInt() & (BLOCK(4) - 1));
 				
 				auto outsideRoom = IsRoomOutside(xPos, yPos, zPos);
 				

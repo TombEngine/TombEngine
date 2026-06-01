@@ -39,7 +39,7 @@ namespace TEN::Renderer
 		float FarPlane;
 		float FOV;
 
-		RenderViewCamera(CAMERA_INFO* cam, float roll, float fov, float n, float f, int w, int h);
+		RenderViewCamera(CameraInfo* cam, float roll, float fov, float n, float f, int w, int h);
 		RenderViewCamera(const Vector3& pos, const Vector3& dir, const Vector3& up, int room, int width, int height, float fov, float n, float f);
 	};
 
@@ -58,7 +58,7 @@ namespace TEN::Renderer
 		std::vector<RendererLensFlare>				LensFlaresToDraw		 = {};
 		std::vector<RendererMirror>					Mirrors					 = {};
 
-		RenderView(CAMERA_INFO* cam, float roll, float fov, float nearPlane, float farPlane, int w, int h);
+		RenderView(CameraInfo* cam, float roll, float fov, float nearPlane, float farPlane, int w, int h);
 		RenderView(const Vector3& pos, const Vector3& dir, const Vector3& up, int w, int h, int room, float nearPlane, float farPlane, float fov);
 		
 		void FillConstantBuffer(CCameraMatrixBuffer& bufferToFill);

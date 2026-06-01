@@ -257,7 +257,7 @@ void LaraLocation(ItemInfo* item)
 void ExplosionFX(ItemInfo* item)
 {
 	SoundEffect(SFX_TR4_EXPLOSION1, nullptr);
-	Camera.bounce = -75;
+	g_Camera.bounce = -75;
 	FlipEffect = NO_VALUE;
 }
 
@@ -302,7 +302,7 @@ void RubbleFX(ItemInfo* item)
 		eq->Flags |= IFLAG_ACTIVATION_MASK;
 	}
 	else
-		Camera.bounce = -150;
+		g_Camera.bounce = -150;
 
 	FlipEffect = NO_VALUE;
 }
@@ -315,15 +315,15 @@ void PlaySoundEffect(ItemInfo* item)
 
 void FloorShake(ItemInfo* item)
 {
-	int x = abs(item->Pose.Position.x - Camera.pos.x);
-	int y = abs(item->Pose.Position.y - Camera.pos.y);
-	int z = abs(item->Pose.Position.z - Camera.pos.z);
+	int x = abs(item->Pose.Position.x - g_Camera.Position.x);
+	int y = abs(item->Pose.Position.y - g_Camera.Position.y);
+	int z = abs(item->Pose.Position.z - g_Camera.Position.z);
 
 	if (x < BLOCK(16) &&
 		y < BLOCK(16) &&
 		z < BLOCK(16))
 	{
-		Camera.bounce = 66 * ((pow(x, 2) + pow(y, 2) + pow(z, 2)) / CLICK(1) - pow(BLOCK(1), 2)) / pow(BLOCK(1), 2);
+		g_Camera.bounce = 66 * ((pow(x, 2) + pow(y, 2) + pow(z, 2)) / CLICK(1) - pow(BLOCK(1), 2)) / pow(BLOCK(1), 2);
 	}
 }
 

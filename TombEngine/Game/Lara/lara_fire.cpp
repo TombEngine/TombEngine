@@ -662,8 +662,8 @@ void HandleWeapon(ItemInfo& laraItem)
 		case LaraWeaponType::Pistol:
 		case LaraWeaponType::Revolver:
 		case LaraWeaponType::Uzi:
-			if (Camera.type != CameraType::Look && Camera.type != CameraType::Heavy)
-				Camera.type = CameraType::Combat;
+			if (g_Camera.type != CameraType::Look && g_Camera.type != CameraType::Heavy)
+				g_Camera.type = CameraType::Combat;
 
 			DrawPistols(laraItem, player.Control.Weapon.GunType);
 			break;
@@ -674,8 +674,8 @@ void HandleWeapon(ItemInfo& laraItem)
 		case LaraWeaponType::GrenadeLauncher:
 		case LaraWeaponType::RocketLauncher:
 		case LaraWeaponType::HarpoonGun:
-			if (Camera.type != CameraType::Look && Camera.type != CameraType::Heavy)
-				Camera.type = CameraType::Combat;
+			if (g_Camera.type != CameraType::Look && g_Camera.type != CameraType::Heavy)
+				g_Camera.type = CameraType::Combat;
 
 			DrawShotgun(laraItem, player.Control.Weapon.GunType);
 			break;
@@ -736,10 +736,10 @@ void HandleWeapon(ItemInfo& laraItem)
 			laraItem.Model.MeshIndex[LM_HEAD] = Objects[Lara.Skin.SkinScream].meshIndex + LM_HEAD;
 		}
 
-		if (Camera.type != CameraType::Look &&
-			Camera.type != CameraType::Heavy)
+		if (g_Camera.type != CameraType::Look &&
+			g_Camera.type != CameraType::Heavy)
 		{
-			Camera.type = CameraType::Combat;
+			g_Camera.type = CameraType::Combat;
 		}
 
 		if (IsHeld(In::Action) && !player.Control.Look.IsUsingLasersight)

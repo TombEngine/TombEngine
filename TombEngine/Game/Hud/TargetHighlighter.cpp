@@ -100,7 +100,7 @@ namespace TEN::Hud
 		// Update scale.
 		if (IsActive)
 		{
-			float cameraDist = Vector3::Distance(Camera.pos.ToVector3(), targetPos);
+			float cameraDist = Vector3::Distance(g_Camera.Position, targetPos);
 			float scaleTarget = GetScale(cameraDist) * (IsPrimary ? SCALE_PRIMARY : SCALE_PERIPHERAL);
 
 			Scale = Lerp(Scale, scaleTarget, MORPH_LERP_ALPHA);

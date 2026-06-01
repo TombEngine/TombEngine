@@ -1,7 +1,7 @@
 #pragma once
 #include "Game/camera.h"
 
-/// Constants for the type of the Camera.
+/// Constants for the type of the g_Camera.
 // To be used with @{View.GetCameraType} function.
 // @enum View.CameraType
 // @pragma nostrip

@@ -240,7 +240,7 @@ namespace TEN::Entities::Creatures::TR1
 				if (item->TouchBits.Test(MutantAttackRightJoints) || LaraItem->HitPoints <= 0)
 				{
 					CreatureKill(item, MUTANT_ANIM_KILL, LEA_GIANT_MUTANT_DEATH, MUTANT_STATE_KILL, LS_DEATH);
-					Camera.targetDistance = BLOCK(3);
+					g_Camera.targetDistance = BLOCK(3);
 				}
 
 				break;
@@ -262,7 +262,7 @@ namespace TEN::Entities::Creatures::TR1
 				item->Animation.TargetState = MUTANT_STATE_IDLE;
 				item->Animation.IsAirborne = false;
 				item->Pose.Position.y = item->Floor;
-				Camera.bounce = 500;
+				g_Camera.bounce = 500;
 			}
 		}
 		else

@@ -30,43 +30,43 @@ void CameraObject::Register(sol::table& parent)
 		sol::meta_function::new_index, NewIndexError,
 
 		/// Get the camera's position.
-		// @function Camera:GetPosition
-		// @treturn Vec3 Camera's position.
+		// @function g_Camera:GetPosition
+		// @treturn Vec3 g_Camera's position.
 		ScriptReserved_GetPosition, &CameraObject::GetPos,
 
 		/// Set the camera's position.
-		// @function Camera:SetPosition
+		// @function g_Camera:SetPosition
 		// @tparam Vec3 position The new position of the camera.
 		ScriptReserved_SetPosition, &CameraObject::SetPos,
 
 		/// Get the camera's unique string identifier
-		// @function Camera:GetName
+		// @function g_Camera:GetName
 		// @treturn string the camera's name.
 		ScriptReserved_GetName, &CameraObject::GetName,
 
 		/// Set the camera's name (its unique string identifier).
-		// @function Camera:SetName
+		// @function g_Camera:SetName
 		// @tparam string name The camera's new name.
 		ScriptReserved_SetName, &CameraObject::SetName,
 
 		/// Get the current room of the camera.
-		// @function Camera:GetRoom
+		// @function g_Camera:GetRoom
 		// @treturn Objects.Room Current room of the camera.
 		ScriptReserved_GetRoom, &CameraObject::GetRoom,
 
 		/// Get the current room number of the camera.
-		// @function Camera:GetRoomNumber
+		// @function g_Camera:GetRoomNumber
 		// @treturn int Number representing the current room of the camera.
 		ScriptReserved_GetRoomNumber, &CameraObject::GetRoomNumber,
 
 		/// Set room of camera.
 		// This is used in conjunction with SetPosition to teleport the camera to a new room.
-		// @function Camera:SetRoomNumber
+		// @function g_Camera:SetRoomNumber
 		// @tparam int ID The ID of the new room.
 		ScriptReserved_SetRoomNumber, &CameraObject::SetRoomNumber,
 
 		/// Activate the camera for the current game frame.
-		// @function Camera:Play
+		// @function g_Camera:Play
 		// @tparam[opt] Objects.Moveable target If you put a moveable, the camera will look at it. Otherwise, it will look at Lara.
 		ScriptReserved_PlayCamera, &CameraObject::Play,
 
@@ -133,18 +133,18 @@ void CameraObject::SetRoomNumber(short room)
 
 void CameraObject::Play(sol::optional<Moveable&> targetObj)
 {
-	Camera.number = m_camera.Index;
-	Camera.type = CameraType::Fixed;
-	Camera.timer = 0;
+	g_Camera.number = m_camera.Index;
+	g_Camera.type = CameraType::Fixed;
+	g_Camera.timer = 0;
 
 	// Borrow camera speed from the static camera to keep momentum between gliding fixed cameras.
-	Camera.speed = g_Level.Cameras[Camera.number].Speed + 1;
+	g_Camera.speed = g_Level.Cameras[g_Camera.number].Speed + 1;
 
 	// If camera has switched, and camera is gliding, disable interpolation.
-	if (Camera.last != m_camera.Index || Camera.lastType != CameraType::Fixed)
-		Camera.DisableInterpolation = (Camera.speed == 1);
+	if (g_Camera.last != m_camera.Index || g_Camera.oldType != CameraType::Fixed)
+		g_Camera.DisableInterpolation = (g_Camera.speed == 1);
 
 	if (targetObj.has_value()) //Otherwise, it will point to Lara by default.
-		Camera.item = &g_Level.Items[targetObj.value().GetIndex()];
+		g_Camera.item = &g_Level.Items[targetObj.value().GetIndex()];
 }
 

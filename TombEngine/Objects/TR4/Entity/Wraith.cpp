@@ -324,8 +324,8 @@ namespace TEN::Entities::TR4
 		}
 
 		// Always update room based on camera position. Otherwise object sometimes does not show up in rooms.
-		if (pointColl.GetRoomNumber() != Camera.pos.RoomNumber || item.RoomNumber != Camera.pos.RoomNumber)
-			ItemNewRoom(itemNumber, Camera.pos.RoomNumber);
+		if (pointColl.GetRoomNumber() != g_Camera.RoomNumber || item.RoomNumber != g_Camera.RoomNumber)
+			ItemNewRoom(itemNumber, g_Camera.RoomNumber);
 
 		for (int linkItemNumber = g_Level.Rooms[item.RoomNumber].itemNumber; linkItemNumber != NO_VALUE; linkItemNumber = g_Level.Items[linkItemNumber].NextItem)
 		{

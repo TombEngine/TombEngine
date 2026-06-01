@@ -992,9 +992,9 @@ namespace TEN::Entities::Vehicles
 			SyncItemAnimation(*UPVItem, *laraItem);
 
 			if (UPV->Flags & UPV_FLAG_SURFACE)
-				Camera.targetElevation = -ANGLE(60.0f);
+				g_Camera.targetElevation = -ANGLE(60.0f);
 			else
-				Camera.targetElevation = 0;
+				g_Camera.targetElevation = 0;
 
 			return true;
 		}

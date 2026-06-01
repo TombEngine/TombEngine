@@ -587,7 +587,7 @@ void LoadObjects()
 void LoadCameras()
 {
 	int cameraCount = ReadCount();
-	TENLog("Camera count: " + std::to_string(cameraCount), LogLevel::Info);
+	TENLog("g_Camera count: " + std::to_string(cameraCount), LogLevel::Info);
 
 	g_Level.Cameras.reserve(cameraCount);
 	for (int i = 0; i < cameraCount; i++)

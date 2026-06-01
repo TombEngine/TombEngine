@@ -1963,7 +1963,7 @@ namespace TEN::Gui
 	{
 		auto& player = GetLaraInfo(*item);
 
-		AlterFOV(ANGLE(DEFAULT_FOV), false);
+		SetFov(ANGLE(DEFAULT_FOV), false);
 		player.Inventory.IsBusy = false;
 		InventoryItemChosen = NO_VALUE;
 		ItemUsed = false;
@@ -3446,7 +3446,7 @@ namespace TEN::Gui
 		if (ItemUsed)
 			UseItem(*item, InventoryObjectTable[LastInvItem].ObjectNumber);
 
-		AlterFOV(LastFOV);
+		SetFov(g_Camera.PrevFov);
 		g_Renderer.PrepareScene();
 		g_VideoPlayer.Resume();
 		ResumeAllSounds(SoundPauseMode::Inventory);
@@ -3675,7 +3675,7 @@ namespace TEN::Gui
 			!UseSpotCam && !TrackCameraInit)
 		{
 			SetScreenFadeIn(OPTICS_FADE_SPEED);
-			BinocularOldCamera = Camera.oldType;
+			g_Camera.PrevBinocularCameraType = g_Camera.oldType;
 			player.Control.Look.OpticRange = OPTICS_RANGE_DEFAULT;
 			player.Control.Look.IsUsingBinoculars = true;
 			player.Inventory.OldBusy = true;

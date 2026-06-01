@@ -38,7 +38,7 @@ void ControlTeleporter(short itemNumber)
 	}
 	else
 	{
-		Camera.fixedCamera = true;
+		g_Camera.fixedCamera = true;
 		LaraItem->DisableInterpolation = true;
 		LaraItem->Pose.Position.x = item->Pose.Position.x;
 		LaraItem->Pose.Position.z = item->Pose.Position.z;

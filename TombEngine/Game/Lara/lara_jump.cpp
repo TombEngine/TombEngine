@@ -180,7 +180,7 @@ void lara_as_reach(ItemInfo* item, CollisionInfo* coll)
 	auto& player = GetLaraInfo(*item);
 
 	player.Control.Look.Mode = LookMode::Horizontal;
-	Camera.targetAngle = ANGLE(85.0f);
+	g_Camera.targetAngle = ANGLE(85.0f);
 
 	if (item->HitPoints <= 0)
 	{
@@ -392,7 +392,7 @@ void lara_as_jump_back(ItemInfo* item, CollisionInfo* coll)
 	auto& player = GetLaraInfo(*item);
 
 	player.Control.Look.Mode = LookMode::Horizontal;
-	Camera.targetAngle = ANGLE(135.0f);
+	g_Camera.targetAngle = ANGLE(135.0f);
 
 	if (item->HitPoints <= 0)
 	{

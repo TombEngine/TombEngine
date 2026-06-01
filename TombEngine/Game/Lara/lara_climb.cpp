@@ -36,8 +36,8 @@ void lara_as_climb_end(ItemInfo* item, CollisionInfo* coll)
 {
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.flags = CF_FOLLOW_CENTER;
-	Camera.targetAngle = -ANGLE(45.0f);
+	g_Camera.flags = CameraFlag::FollowCenter;
+	g_Camera.targetAngle = -ANGLE(45.0f);
 }
 
 void lara_col_climb_down(ItemInfo* item, CollisionInfo* coll)
@@ -122,7 +122,7 @@ void lara_as_climb_down(ItemInfo* item, CollisionInfo* coll)
 {
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetElevation = -ANGLE(45.0f);
+	g_Camera.targetElevation = -ANGLE(45.0f);
 
 	// Overhang hook.
 	SlopeClimbDownExtra(item, coll);
@@ -196,7 +196,7 @@ void lara_as_climb_up(ItemInfo* item, CollisionInfo* coll)
 {
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetElevation = ANGLE(30.0f);
+	g_Camera.targetElevation = ANGLE(30.0f);
 }
 
 void lara_col_climb_right(ItemInfo* item, CollisionInfo* coll)
@@ -215,8 +215,8 @@ void lara_as_climb_right(ItemInfo* item, CollisionInfo* coll)
 {
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetAngle = ANGLE(30.0f);
-	Camera.targetElevation = -ANGLE(15.0f);
+	g_Camera.targetAngle = ANGLE(30.0f);
+	g_Camera.targetElevation = -ANGLE(15.0f);
 
 	if (!(IsHeld(In::Right) || IsHeld(In::StepRight)))
 		item->Animation.TargetState = LS_LADDER_IDLE;
@@ -238,8 +238,8 @@ void lara_as_climb_left(ItemInfo* item, CollisionInfo* coll)
 {
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetAngle = -ANGLE(30.0f);
-	Camera.targetElevation = -ANGLE(15.0f);
+	g_Camera.targetAngle = -ANGLE(30.0f);
+	g_Camera.targetElevation = -ANGLE(15.0f);
 
 	if (!(IsHeld(In::Left) || IsHeld(In::StepLeft)))
 		item->Animation.TargetState = LS_LADDER_IDLE;
@@ -360,13 +360,13 @@ void lara_as_climb_idle(ItemInfo* item, CollisionInfo* coll)
 	lara->Control.IsClimbingLadder = true;
 	coll->Setup.EnableSpasm = false;
 	coll->Setup.EnableObjectPush = false;
-	Camera.targetElevation = -ANGLE(20.0f);
+	g_Camera.targetElevation = -ANGLE(20.0f);
 
 	if (item->Animation.AnimNumber == LA_LADDER_DISMOUNT_LEFT_START)
-		Camera.targetAngle = -ANGLE(60.0f);
+		g_Camera.targetAngle = -ANGLE(60.0f);
 
 	if (item->Animation.AnimNumber == LA_LADDER_DISMOUNT_RIGHT_START)
-		Camera.targetAngle = ANGLE(60.0f);
+		g_Camera.targetAngle = ANGLE(60.0f);
 
 	if (IsHeld(In::Left) || IsHeld(In::StepLeft))
 	{
@@ -396,8 +396,8 @@ void lara_as_climb_stepoff_left(ItemInfo* item, CollisionInfo* coll)
 {
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetAngle = -ANGLE(60.0f);
-	Camera.targetElevation = -ANGLE(15.0f);
+	g_Camera.targetAngle = -ANGLE(60.0f);
+	g_Camera.targetElevation = -ANGLE(15.0f);
 
 	item->Pose.Orientation.y -= ANGLE(90.0f);
 }
@@ -406,8 +406,8 @@ void lara_as_climb_stepoff_right(ItemInfo* item, CollisionInfo* coll)
 {
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetAngle = ANGLE(60.0f);
-	Camera.targetElevation = -ANGLE(15.0f);
+	g_Camera.targetAngle = ANGLE(60.0f);
+	g_Camera.targetElevation = -ANGLE(15.0f);
 
 	item->Pose.Orientation.y += ANGLE(90.0f);
 }

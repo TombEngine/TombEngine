@@ -35,7 +35,7 @@ namespace TEN::Input
 	enum class AxisID
 	{
 		Move,
-		Camera,
+		g_Camera,
 
 		Mouse,
 		StickLeft,

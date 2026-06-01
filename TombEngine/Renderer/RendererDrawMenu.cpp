@@ -1351,7 +1351,7 @@ namespace TEN::Renderer
 					settings.TitleLogoColor.GetA() / (float)UCHAR_MAX);
 
 				_spriteBatch->Begin(SpriteSortingMode::BackToFront, BlendMode::AlphaBlend);
-				_spriteBatch->Draw(_logo.get(), rect, color * ScreenFadeCurrent);
+				_spriteBatch->Draw(_logo.get(), rect, color * g_ScreenEffect.ScreenFadeCurrent);
 
 				_spriteBatch->End();
 			}
@@ -1473,14 +1473,14 @@ namespace TEN::Renderer
 			// Draw fullscreen background. If unavailable, draw last dumped game scene.
 			if (_loadingScreenTexture)
 			{
-				DrawFullScreenQuad(_loadingScreenTexture.get(), Vector3(ScreenFadeCurrent, ScreenFadeCurrent, ScreenFadeCurrent));
+				DrawFullScreenQuad(_loadingScreenTexture.get(), Vector3(g_ScreenEffect.ScreenFadeCurrent, g_ScreenEffect.ScreenFadeCurrent, g_ScreenEffect.ScreenFadeCurrent));
 			}
 			else if (_dumpScreenRenderTarget)
 			{
-				DrawFullScreenQuad(_dumpScreenRenderTarget->GetRenderTarget(), Vector3(ScreenFadeCurrent, ScreenFadeCurrent, ScreenFadeCurrent));
+				DrawFullScreenQuad(_dumpScreenRenderTarget->GetRenderTarget(), Vector3(g_ScreenEffect.ScreenFadeCurrent, g_ScreenEffect.ScreenFadeCurrent, g_ScreenEffect.ScreenFadeCurrent));
 			}
 
-			if (ScreenFadeCurrent && percentage > 0.0f && percentage < 100.0f)
+			if (g_ScreenEffect.ScreenFadeCurrent && percentage > 0.0f && percentage < 100.0f)
 				DrawLoadingBar(percentage);
 
 			_graphicsDevice->Present();
@@ -1489,15 +1489,15 @@ namespace TEN::Renderer
 			Synchronize();
 			UpdateFadeScreenAndCinematicBars();
 
-		} while (ScreenFading || !ScreenFadedOut);
+		} while (g_ScreenEffect.ScreenFading || !g_ScreenEffect.ScreenFadedOut);
 	}
 
 	void Renderer::RenderInventory()
 	{
 		if (_graphicsSettingsChanged)
 		{
-			UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
-			Camera.DisableInterpolation = true;
+			UpdateCameraMatrices(&g_Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
+			g_Camera.DisableInterpolation = true;
 			DumpGameScene(SceneRenderMode::NoHud, g_GameFlow->GetSettings()->UI.MenuBackgroundBlur);
 			_graphicsSettingsChanged = false;
 		}
@@ -1672,9 +1672,9 @@ namespace TEN::Renderer
 			PrintDebugMessage((player.Context.WaterSurfaceDist == -NO_HEIGHT ? "WaterSurfaceDist: N/A" : "WaterSurfaceDist: %d"), player.Context.WaterSurfaceDist);
 			PrintDebugMessage("Room Bounds: %d, %d, %d, %d", room.Position.z, room.Position.z, room.Position.z + BLOCK(room.XSize), room.Position.z + BLOCK(room.ZSize));
 			PrintDebugMessage("Room.y, minFloor, maxCeiling: %d, %d, %d ", room.Position.y, room.BottomHeight, room.TopHeight);
-			PrintDebugMessage("Camera Position: %d, %d, %d", Camera.pos.x, Camera.pos.y, Camera.pos.z);
-			PrintDebugMessage("Camera LookAt: %d, %d, %d", Camera.target.x, Camera.target.y, Camera.target.z);
-			PrintDebugMessage("Camera RoomNumber: %d", Camera.pos.RoomNumber);
+			PrintDebugMessage("g_Camera Position: %d, %d, %d", g_Camera.Position.x, g_Camera.Position.y, g_Camera.Position.z);
+			PrintDebugMessage("g_Camera LookAt: %d, %d, %d", g_Camera.LookAt.x, g_Camera.LookAt.y, g_Camera.LookAt.z);
+			PrintDebugMessage("g_Camera RoomNumber: %d", g_Camera.RoomNumber);
 			break;
 
 		case RendererDebugPage::PlayerStats:
@@ -1724,7 +1724,7 @@ namespace TEN::Renderer
 			PrintDebugMessage(("Held actions: " + heldActions.ToString()).c_str());
 			PrintDebugMessage(("Released actions: " + releasedActions.ToString()).c_str());
 			PrintDebugMessage("Move axes: %.3f, %.3f", GetMoveAxis().x, GetMoveAxis().y);
-			PrintDebugMessage("Camera axes: %.3f, %.3f", GetCameraAxis().x, GetCameraAxis().y);
+			PrintDebugMessage("g_Camera axes: %.3f, %.3f", GetCameraAxis().x, GetCameraAxis().y);
 			PrintDebugMessage("Mouse axes: %.3f, %.3f", GetMouseAxis().x, GetMouseAxis().y);
 			PrintDebugMessage("Cursor pos: %.3f, %.3f", GetMouse2DPosition().x, GetMouse2DPosition().y);
 		}
@@ -1791,7 +1791,7 @@ namespace TEN::Renderer
 		case RendererDebugPage::PortalStats:
 			PrintDebugMessage("PORTAL STATS");
 			PrintDebugMessage(" ");
-			PrintDebugMessage("Camera room number: %d", Camera.pos.RoomNumber);
+			PrintDebugMessage("g_Camera room number: %d", g_Camera.RoomNumber);
 			PrintDebugMessage("Room collector time: %d", _timeRoomsCollector);
 			PrintDebugMessage("Rooms: %d", view.RoomsToDraw.size());
 			PrintDebugMessage("    CheckPortal() calls: %d", _numCheckPortalCalls);

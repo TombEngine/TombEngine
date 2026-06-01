@@ -524,7 +524,7 @@ namespace TEN::Input
 			}
 			else if (!TestBoundKey(usedKeyID))
 			{
-				// Camera fallback: even axes drive Y, odd axes drive X (matches develop behavior).
+				// g_Camera fallback: even axes drive Y, odd axes drive X (matches develop behavior).
 				if ((axis % 2) == 0)
 					AxisMap[AxisID::Camera].x = normalizedValue;
 				else

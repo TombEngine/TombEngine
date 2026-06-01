@@ -154,7 +154,7 @@ namespace TEN::Scripting::DisplayItem
 
 	/// Get the camera position. This single camera is used for all display items.
 	// @function DisplayItem.GetCameraPosition
-	// @treturn Vec3 Camera position for all display items.
+	// @treturn Vec3 g_Camera position for all display items.
 	// @usage
 	// local camPos = TEN.View.DisplayItem.GetCameraPosition()
 	Vec3 ScriptDisplayItem::GetCameraPosition()

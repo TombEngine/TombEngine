@@ -34,7 +34,7 @@ namespace TEN::Effects::Decal
 		if (!g_Configuration.EnableDecals)
 			return;
 
-		auto distance = Vector3::Distance(Camera.pos.ToVector3(), pos);
+		auto distance = Vector3::Distance(g_Camera.Position, pos);
 		if (type == DecalType::BulletHole && !Lara.Control.Look.IsUsingLasersight && distance > COLLISION_CHECK_DISTANCE)
 			return;
 

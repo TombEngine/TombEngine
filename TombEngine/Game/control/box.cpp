@@ -1139,11 +1139,11 @@ void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerExtr
 	player.ExtraAnim = 1;
 	player.HitDirection = -1;
 
-	Camera.pos.RoomNumber = playerItem.RoomNumber;
-	Camera.flags = CF_FOLLOW_CENTER;
-	Camera.targetAngle = ANGLE(170.0f);
-	Camera.targetElevation = ANGLE(-25.0f);
-	Camera.targetDistance = BLOCK(2);
+	g_Camera.RoomNumber = playerItem.RoomNumber;
+	g_Camera.flags = CameraFlag::FollowCenter;
+	g_Camera.targetAngle = ANGLE(170.0f);
+	g_Camera.targetElevation = ANGLE(-25.0f);
+	g_Camera.targetDistance = BLOCK(2);
 }
 
 short CreatureEffect2(ItemInfo* item, const CreatureBiteInfo& bite, short velocity, short angle, std::function<CreatureEffectFunction> func)

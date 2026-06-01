@@ -298,7 +298,7 @@ namespace TEN::Hud
 			return;
 		}
 
-		auto distance = Vector3::Distance(Camera.pos.ToVector3(), _current.Position);
+		auto distance = Vector3::Distance(g_Camera.Position, _current.Position);
 		float scale = std::min(SPRITE_SCALE, INTERACTION_DISTANCE / distance * SPRITE_SCALE);
 		float distanceAlpha = std::min(1.0f, scale * 10.0f);
 

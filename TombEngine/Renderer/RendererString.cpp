@@ -213,7 +213,7 @@ namespace TEN::Renderer
 				_gameFont->DrawString(
 					_spriteBatch.get(), rString.String,
 					Vector2(drawPos.x + shadowOffset * rString.Scale, drawPos.y + shadowOffset * rString.Scale),
-					(shadowColor * rString.Color.w * shadowColor.w) * ScreenFadeCurrent,
+					(shadowColor * rString.Color.w * shadowColor.w) * g_ScreenEffect.ScreenFadeCurrent,
 					0.0f, Vector2::Zero, rString.Scale);
 			}
 
@@ -221,7 +221,7 @@ namespace TEN::Renderer
 			_gameFont->DrawString(
 				_spriteBatch.get(), rString.String,
 				Vector2(drawPos.x, drawPos.y),
-				(rString.Color * rString.Color.w) * ScreenFadeCurrent,
+				(rString.Color * rString.Color.w) * g_ScreenEffect.ScreenFadeCurrent,
 				0.0f, Vector2::Zero, rString.Scale);
 		}
 

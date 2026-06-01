@@ -133,8 +133,8 @@ namespace TEN::Scripting
 		"poseTimeout", &AnimSettings::PoseTimeout);
 	}
 
-	/// Camera
-	// @section Camera
+	/// g_Camera
+	// @section g_Camera
 	// Parameters to customize camera and everything related to it.
 	// @usage
 	// -- Example of changing binocular and lasersight highlight colors

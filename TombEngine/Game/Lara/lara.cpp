@@ -76,9 +76,9 @@ static void HandlePlayerDebug(const ItemInfo& item)
 	else if (g_Renderer.GetDebugPage() == RendererDebugPage::CollisionMeshStats)
 	{
 		auto bridgeItemNumbers = std::set<int>{};
-		const auto& room = g_Level.Rooms[Camera.pos.RoomNumber];
+		const auto& room = g_Level.Rooms[g_Camera.RoomNumber];
 
-		PrintDebugMessage("Room number: %d", Camera.pos.RoomNumber);
+		PrintDebugMessage("Room number: %d", g_Camera.RoomNumber);
 		PrintDebugMessage("Sectors: %d", room.Sectors.size());
 		PrintDebugMessage("Bridges: %d", room.Bridges.GetIds().size());
 		PrintDebugMessage("Trigger volumes: %d", room.TriggerVolumes.size());
@@ -127,8 +127,8 @@ static void HandlePlayerDebug(const ItemInfo& item)
 	// Portal stats.
 	else if (g_Renderer.GetDebugPage() == RendererDebugPage::PortalStats)
 	{
-		const auto& room = g_Level.Rooms[Camera.pos.RoomNumber];
-		PrintDebugMessage("Portals in room %d: %d", Camera.pos.RoomNumber, room.Portals.size());
+		const auto& room = g_Level.Rooms[g_Camera.RoomNumber];
+		PrintDebugMessage("Portals in room %d: %d", g_Camera.RoomNumber, room.Portals.size());
 
 		for (int neighborRoomNumber : room.NeighborRoomNumbers)
 		{
@@ -204,7 +204,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 			if (water.HeightFromWater == NO_HEIGHT || water.HeightFromWater < WADE_WATER_DEPTH)
 				break;
 
-			Camera.targetElevation = ANGLE(-22.0f);
+			g_Camera.targetElevation = ANGLE(-22.0f);
 
 			// Water is at swim depth; dispatch dive.
 			if (water.WaterDepth >= SWIM_WATER_DEPTH && !water.IsSwamp)
@@ -357,7 +357,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 			break;
 
 		case WaterStatus::Wade:
-			Camera.targetElevation = ANGLE(-22.0f);
+			g_Camera.targetElevation = ANGLE(-22.0f);
 
 			if (water.HeightFromWater >= WADE_WATER_DEPTH)
 			{
@@ -492,7 +492,7 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 	auto& player = GetLaraInfo(*item);
 
 	player.Control.IsLow = false;
-	Camera.targetElevation = -ANGLE(22.0f);
+	g_Camera.targetElevation = -ANGLE(22.0f);
 
 	// Reset collision setup.
 	coll->Setup.Mode = CollisionProbeMode::FreeForward;

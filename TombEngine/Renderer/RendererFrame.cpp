@@ -367,9 +367,9 @@ namespace TEN::Renderer
 			if (!door->Visited)
 			{
 				door->CameraToDoor = Vector3(
-					Camera.pos.x - (door->AbsoluteVertices[0].x),
-					Camera.pos.y - (door->AbsoluteVertices[0].y),
-					Camera.pos.z - (door->AbsoluteVertices[0].z));
+					g_Camera.Position.x - (door->AbsoluteVertices[0].x),
+					g_Camera.Position.y - (door->AbsoluteVertices[0].y),
+					g_Camera.Position.z - (door->AbsoluteVertices[0].z));
 				door->CameraToDoor.Normalize();
 			}
 
@@ -404,7 +404,7 @@ namespace TEN::Renderer
 		for (const auto& mirror : g_Level.Mirrors)
 		{
 			// TODO: Avoid LaraItem global.
-			if (mirror.RoomNumber != Camera.pos.RoomNumber && mirror.RoomNumber != LaraItem->RoomNumber)
+			if (mirror.RoomNumber != g_Camera.RoomNumber && mirror.RoomNumber != LaraItem->RoomNumber)
 				continue;
 
 			if (!mirror.Enabled)
@@ -785,7 +785,7 @@ namespace TEN::Renderer
 	void Renderer::CollectLightsForCamera()
 	{
 		std::vector<RendererLight*> lightsToDraw;
-		CollectLights(Vector3(Camera.pos.x, Camera.pos.y, Camera.pos.z), CAMERA_LIGHT_COLLECTION_RADIUS, Camera.pos.RoomNumber, NO_VALUE, true, false, nullptr, &lightsToDraw);
+		CollectLights(Vector3(g_Camera.Position.x, g_Camera.Position.y, g_Camera.Position.z), CAMERA_LIGHT_COLLECTION_RADIUS, g_Camera.RoomNumber, NO_VALUE, true, false, nullptr, &lightsToDraw);
 
 		if (g_Configuration.ShadowType != ShadowMode::None && !lightsToDraw.empty() && lightsToDraw.front()->CastShadows)
 		{

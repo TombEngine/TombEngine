@@ -752,11 +752,13 @@ const std::vector<byte> SaveGame::Build()
 	collision.add_last_bridge_item_pose(&FromPose(LaraCollision.LastBridgeItemPose));
 	auto collisionOffset = collision.Finish();
 
-	Save::CameraBuilder camera{ fbb };
-	camera.add_position(&FromGameVector(Camera.pos));
-	camera.add_target(&FromGameVector(Camera.target));
-	camera.add_extra_orientation(&FromEulerAngles(EulerAngles(Camera.extraElevation, Camera.extraAngle, 0)));
-	auto cameraOffset = camera.Finish();
+	// TODO: Save camera. Old GameVector pos/target and extraAngle/extraElevation no longer exist on
+	// CameraInfo; needs to be re-serialised against the new Position/LookAt fields.
+	/*Save::CameraBuilder camera{ fbb };
+	camera.add_position(&FromGameVector(g_Camera.pos));
+	camera.add_target(&FromGameVector(g_Camera.target));
+	camera.add_extra_orientation(&FromEulerAngles(EulerAngles(g_Camera.extraElevation, g_Camera.extraAngle, 0)));
+	auto cameraOffset = camera.Finish();*/
 
 
 	std::vector<flatbuffers::Offset<Save::CarriedWeaponInfo>> carriedWeapons;
@@ -1721,7 +1723,7 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_game(gameStatisticsOffset);
 	sgb.add_level_data(levelDataOffset);
 	sgb.add_secret_bits(SaveGame::Statistics.SecretBits);
-	sgb.add_camera(cameraOffset);
+	//sgb.add_camera(cameraOffset); // TODO: Restore once camera serialisation is rewritten.
 	sgb.add_lara(laraOffset);
 	sgb.add_rooms(roomOffset);
 	sgb.add_box_flags(boxFlagsOffset);
@@ -1746,7 +1748,7 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_room_items(roomItemsOffset);
 	sgb.add_flip_effect(FlipEffect);
 	sgb.add_flip_status(FlipStatus);
-	sgb.add_current_fov(LastFOV);
+	sgb.add_current_fov(g_Camera.PrevFov);
 	sgb.add_last_inv_item(g_Gui.GetLastInventoryItem());
 	sgb.add_static_meshes(staticMeshesOffset);
 	sgb.add_volumes(volumesOffset);
@@ -2329,11 +2331,11 @@ static void ParsePlayer(const Save::SaveGame* s)
 	LaraCollision.LastBridgeItemNumber = s->lara()->collision()->last_bridge_item_number();
 	LaraCollision.LastBridgeItemPose = ToPose(*s->lara()->collision()->last_bridge_item_pose());
 
-	// Camera
-	Camera.pos = ToGameVector(s->camera()->position());
-	Camera.target = ToGameVector(s->camera()->target());
-	Camera.extraAngle = ToEulerAngles(s->camera()->extra_orientation()).y;
-	Camera.extraElevation = ToEulerAngles(s->camera()->extra_orientation()).x;
+	// TODO: Restore camera load once serialisation is rewritten against the new CameraInfo schema.
+	/*g_Camera.pos = ToGameVector(s->camera()->position());
+	g_Camera.target = ToGameVector(s->camera()->target());
+	g_Camera.extraAngle = ToEulerAngles(s->camera()->extra_orientation()).y;
+	g_Camera.extraElevation = ToEulerAngles(s->camera()->extra_orientation()).x;*/
 
 	for (auto& item : g_Level.Items)
 	{
@@ -2352,7 +2354,7 @@ static void ParsePlayer(const Save::SaveGame* s)
 static void ParseEffects(const Save::SaveGame* s)
 {
 	// Restore camera FOV.
-	AlterFOV(s->current_fov());
+	SetFov(s->current_fov());
 
 	// Restore DOF.
 	DOFState dof = { (DOFMode)s->dof_mode(), s->dof_distance(), s->dof_range(), s->dof_strength() };

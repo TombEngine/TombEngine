@@ -825,14 +825,14 @@ namespace TEN::Entities::Vehicles
 			break;
 
 		case MINECART_STATE_WALL_DEATH:
-			Camera.targetElevation = -ANGLE(25.0f);
-			Camera.targetDistance = BLOCK(4);
+			g_Camera.targetElevation = -ANGLE(25.0f);
+			g_Camera.targetDistance = BLOCK(4);
 
 			break;
 
 		case MINECART_STATE_TURN_DEATH:
-			Camera.targetElevation = -ANGLE(45.0f);
-			Camera.targetDistance = BLOCK(2);
+			g_Camera.targetElevation = -ANGLE(45.0f);
+			g_Camera.targetDistance = BLOCK(2);
 
 			floorHeight = GetMinecartCollision(minecartItem, minecartItem->Pose.Orientation.y, CLICK(2));
 			if (abs(floorHeight) < MINECART_STEP_HEIGHT)
@@ -988,8 +988,8 @@ namespace TEN::Entities::Vehicles
 
 		if (!(minecart->Flags & MINECART_FLAG_DEAD))
 		{
-			Camera.targetElevation = -ANGLE(45.0f);
-			Camera.targetDistance = BLOCK(2);
+			g_Camera.targetElevation = -ANGLE(45.0f);
+			g_Camera.targetDistance = BLOCK(2);
 		}
 
 		return (lara->Context.Vehicle == NO_VALUE) ? false : true;

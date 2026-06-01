@@ -46,9 +46,9 @@ void lara_default_col(ItemInfo* item, CollisionInfo* coll)
 // Boulder death.
 void lara_as_special(ItemInfo* item, CollisionInfo* coll)
 {
-	Camera.flags = CF_FOLLOW_CENTER;
-	Camera.targetAngle = ANGLE(170.0f);
-	Camera.targetElevation = ANGLE(-25.0f);
+	g_Camera.flags = CameraFlag::FollowCenter;
+	g_Camera.targetAngle = ANGLE(170.0f);
+	g_Camera.targetElevation = ANGLE(-25.0f);
 }
 
 void lara_as_null(ItemInfo* item, CollisionInfo* coll)
@@ -64,14 +64,14 @@ void lara_as_controlled(ItemInfo* item, CollisionInfo* coll)
 	player.Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.flags = CF_FOLLOW_CENTER;
+	g_Camera.flags = CameraFlag::FollowCenter;
 
 	if (item->Animation.FrameNumber == (GetAnimData(*item).EndFrameNumber - 1))
 	{
 		player.Control.HandStatus = HandStatus::Free;
 
-		if (UseForcedFixedCamera)
-			UseForcedFixedCamera = false;
+		if (g_Camera.UseForcedFixedCamera)
+			g_Camera.UseForcedFixedCamera = false;
 	}
 }
 
@@ -91,9 +91,9 @@ void lara_as_controlled_no_look_follow(ItemInfo* item, CollisionInfo* coll)
 	player.Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.flags = CF_FOLLOW_CENTER;
-	Camera.laraNode = LM_HEAD;
-	Camera.targetElevation = -ANGLE(25.0f);
+	g_Camera.flags = CameraFlag::FollowCenter;
+	g_Camera.laraNode = LM_HEAD;
+	g_Camera.targetElevation = -ANGLE(25.0f);
 }
 
 // State:	  LS_VAULT (164)
@@ -960,7 +960,7 @@ void lara_as_death(ItemInfo* item, CollisionInfo* coll)
 		player.Control.Look.OpticRange = 0;
 		player.Control.Look.IsUsingLasersight = false;
 		player.Inventory.IsBusy = false;
-		AlterFOV(LastFOV);
+		SetFov(g_Camera.PrevFov);
 	}
 
 	auto bounds = GameBoundingBox(item);
@@ -1501,7 +1501,7 @@ void lara_col_roll_180_back(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.LowerCeilingBound = 0;
 	coll->Setup.BlockFloorSlopeUp = true;
 	coll->Setup.ForwardAngle = player.Control.MoveAngle;
-	Camera.laraNode = LM_HIPS;
+	g_Camera.laraNode = LM_HIPS;
 	GetCollisionInfo(coll, item);
 
 	if (TestLaraHitCeiling(coll))
@@ -1596,7 +1596,7 @@ void lara_as_wade_forward(ItemInfo* item, CollisionInfo* coll)
 	bool isInSwamp = TestEnvironment(ENV_FLAG_SWAMP, item);
 
 	player.Control.Look.Mode = LookMode::Horizontal;
-	Camera.targetElevation = -ANGLE(22.0f);
+	g_Camera.targetElevation = -ANGLE(22.0f);
 
 	if (item->HitPoints <= 0)
 	{

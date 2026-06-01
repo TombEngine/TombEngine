@@ -89,15 +89,15 @@ namespace TEN::Entities::Traps
 			if (item.ItemFlags[1] < 0)
 				item.ItemFlags[1] = 0;
 
-			if (!UseForcedFixedCamera)
+			if (!g_Camera.UseForcedFixedCamera)
 			{
-				ForcedFixedCamera.x = item.Pose.Position.x + BLOCK(8) * sinY;
-				ForcedFixedCamera.z = item.Pose.Position.z + BLOCK(8) * cosY;
+				g_Camera.ForcedFixedCamera.x = item.Pose.Position.x + BLOCK(8) * sinY;
+				g_Camera.ForcedFixedCamera.z = item.Pose.Position.z + BLOCK(8) * cosY;
 
-				ForcedFixedCamera.y = GetPointCollision(Vector3i(ForcedFixedCamera.x, item.Pose.Position.y - CLICK(2), ForcedFixedCamera.z), item.RoomNumber).GetFloorHeight();
+				g_Camera.ForcedFixedCamera.y = GetPointCollision(Vector3i(g_Camera.ForcedFixedCamera.x, item.Pose.Position.y - CLICK(2), g_Camera.ForcedFixedCamera.z), item.RoomNumber).GetFloorHeight();
 
-				ForcedFixedCamera.RoomNumber = roomNumber;
-				UseForcedFixedCamera = true;
+				g_Camera.ForcedFixedCamera.RoomNumber = roomNumber;
+				g_Camera.UseForcedFixedCamera = true;
 			}
 
 			StopSoundEffect(SFX_TR3_TUBE_LOOP);

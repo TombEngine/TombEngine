@@ -686,7 +686,7 @@ namespace TEN::Entities::Generic
 			FallFromRope(item);
 		else
 		{
-			Camera.targetAngle = ANGLE(30.0f);
+			g_Camera.targetAngle = ANGLE(30.0f);
 
 			if (Lara.Control.Rope.Count)
 			{

@@ -230,7 +230,7 @@ enum class SamplerStateRegister
 
 enum class ConstantBufferRegister
 {
-	Camera = 0,
+	g_Camera = 0,
 	// Slot 1 is currently unused — was the per-item CB before items folded into CBObjects.
 	PerDraw = 2, // Combined Material + Blending CB (was Material at b2 + Blending at b12).
 	InstancedStatics = 3, // Now holds the unified CBObjects (Bones + Skinned + Objects[N]).

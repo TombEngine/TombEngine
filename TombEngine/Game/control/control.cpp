@@ -530,10 +530,6 @@ void CleanUp()
 	// Reset oscillator seed.
 	Wibble = 0;
 
-	// Reset extra camera angles.
-	Camera.extraAngle = 0;
-	Camera.extraElevation = 0;
-
 	// Clear player lock, otherwise controls will lock if user exits to title while playing flyby with locked controls.
 	Lara.Control.IsLocked = false;
 
@@ -795,7 +791,7 @@ GameStatus HandleMenuCalls(bool isTitle)
 {
 	auto gameStatus = GameStatus::Normal;
 
-	if (ScreenFading)
+	if (g_ScreenEffect.ScreenFading)
 		return gameStatus;
 
 	if (isTitle)

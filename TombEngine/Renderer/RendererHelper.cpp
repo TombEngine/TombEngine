@@ -365,13 +365,14 @@ namespace TEN::Renderer
 		return (!_isWindowed);
 	}
 
-	void Renderer::UpdateCameraMatrices(CAMERA_INFO *cam, float farView)
+	void Renderer::UpdateCameraMatrices(CameraInfo *cam, float farView)
 	{
 		if (farView < MIN_FAR_VIEW)
 			farView = DEFAULT_FAR_VIEW;
 
-		_currentGameCamera = RenderView(cam, cam->Roll, cam->Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
-		_gameCamera        = RenderView(cam, cam->Roll, cam->Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
+		// TODO: Roll was removed from CameraInfo in the modern-controls refactor; passing 0 for now.
+		_currentGameCamera = RenderView(cam, 0.0f, cam->Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
+		_gameCamera        = RenderView(cam, 0.0f, cam->Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
 	}
 
 	bool Renderer::SphereBoxIntersection(BoundingBox box, Vector3 sphereCentre, float sphereRadius)
@@ -638,7 +639,7 @@ namespace TEN::Renderer
 		for (const auto& mirror : renderView.Mirrors)
 		{
 			// TODO: Avoid LaraItem global.
-			if (roomNumber == mirror.RoomNumber && (Camera.pos.RoomNumber == mirror.RoomNumber || LaraItem->RoomNumber == mirror.RoomNumber))
+			if (roomNumber == mirror.RoomNumber && (g_Camera.RoomNumber == mirror.RoomNumber || LaraItem->RoomNumber == mirror.RoomNumber))
 				return true;
 		}
 
@@ -772,7 +773,7 @@ namespace TEN::Renderer
 		// Build view-projection matrix.
 		float aspectRatio = (float)_graphicsDevice->GetScreenWidth() / _graphicsDevice->GetScreenHeight();
 		auto viewMatrix = Matrix::CreateLookAt(camPos, camTarget, Vector3::Up);
-		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(CurrentFOV, aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
+		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(g_Camera.Fov, aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
 		auto viewProj = viewMatrix * projMatrix;
 
 		// Helper lambda to project point and clamp to extended screen bounds.
@@ -831,7 +832,7 @@ namespace TEN::Renderer
 		// Ensure reasonable minimum size based on screen-space estimation.
 		// Calculate expected pixel size based on FOV and distance.
 		float angularSize = 2.0f * atan(radiusMax / std::max(dist, 1.0f));
-		float expectedPixelHeight = (angularSize / CurrentFOV) * _graphicsDevice->GetScreenHeight();
+		float expectedPixelHeight = (angularSize / g_Camera.Fov) * _graphicsDevice->GetScreenHeight();
 		float expectedPixelWidth = expectedPixelHeight * aspectRatio;
 
 		// Use the larger of projected size or estimated size.

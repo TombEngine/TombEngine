@@ -175,7 +175,7 @@ bool SoundEffect(int soundID, Pose* pose, SoundEnvironment soundEnv, float pitch
 	// Test if sound effect environment matches camera environment.
 	if (soundEnv != SoundEnvironment::Always)
 	{
-		bool isCameraUnderwater = TestEnvironment(ENV_FLAG_WATER, Camera.pos.RoomNumber);
+		bool isCameraUnderwater = TestEnvironment(ENV_FLAG_WATER, g_Camera.RoomNumber);
 		if ((soundEnv == SoundEnvironment::Underwater && !isCameraUnderwater) ||
 			(soundEnv != SoundEnvironment::Underwater && isCameraUnderwater))
 		{
@@ -765,7 +765,7 @@ int Sound_GetFreeSlot()
 
 	for (int i = 0; i < SOUND_MAX_CHANNELS; i++)
 	{
-		float distance = Vector3(SoundSlot[i].Origin - Vector3(Camera.mikePos.x, Camera.mikePos.y, Camera.mikePos.z)).Length();
+		float distance = Vector3(SoundSlot[i].Origin - Vector3(g_Camera.ListenerPosition.x, g_Camera.ListenerPosition.y, g_Camera.ListenerPosition.z)).Length();
 		if (distance > minDistance)
 		{
 			minDistance = distance;
@@ -847,7 +847,7 @@ float Sound_DistanceToListener(Pose *position)
 }
 float Sound_DistanceToListener(Vector3 position)
 {
-	return Vector3(Vector3(Camera.mikePos.x, Camera.mikePos.y, Camera.mikePos.z) - position).Length();
+	return Vector3(Vector3(g_Camera.ListenerPosition.x, g_Camera.ListenerPosition.y, g_Camera.ListenerPosition.z) - position).Length();
 }
 
 // Calculate attenuated volume.
@@ -928,7 +928,7 @@ void Sound_UpdateScene()
 
 	// Apply environmental effects
 
-	auto roomReverb = g_Configuration.EnableReverb ? (int)g_Level.Rooms[Camera.pos.RoomNumber].reverbType : (int)ReverbType::Small;
+	auto roomReverb = g_Configuration.EnableReverb ? (int)g_Level.Rooms[g_Camera.RoomNumber].reverbType : (int)ReverbType::Small;
 
 	if (CurrentReverbType == NO_VALUE || roomReverb != CurrentReverbType)
 	{
@@ -975,16 +975,16 @@ void Sound_UpdateScene()
 
 	// Apply current listener position.
 
-	auto velocity = (oldMikePos - Camera.mikePos.ToVector3()) * (float)FPS;
-	oldMikePos = Camera.mikePos.ToVector3();
+	auto velocity = (oldMikePos - g_Camera.ListenerPosition) * (float)FPS;
+	oldMikePos = g_Camera.ListenerPosition;
 
-	Vector3 at = Vector3(Camera.target.x, Camera.target.y, Camera.target.z) -
-		Vector3(Camera.mikePos.x, Camera.mikePos.y, Camera.mikePos.z);
+	Vector3 at = Vector3(g_Camera.LookAt.x, g_Camera.LookAt.y, g_Camera.LookAt.z) -
+		Vector3(g_Camera.ListenerPosition.x, g_Camera.ListenerPosition.y, g_Camera.ListenerPosition.z);
 	at.Normalize();
 	auto mikePos = BASS_3DVECTOR(					// Pos
-		Camera.mikePos.x,
-		Camera.mikePos.y,
-		Camera.mikePos.z);
+		g_Camera.ListenerPosition.x,
+		g_Camera.ListenerPosition.y,
+		g_Camera.ListenerPosition.z);
 	auto mikeVel = BASS_3DVECTOR(					// Vel
 		velocity.x,
 		velocity.y,

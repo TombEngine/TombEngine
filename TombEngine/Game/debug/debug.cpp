@@ -154,7 +154,7 @@ namespace TEN::Debug
 		constexpr float MIN_SCALE = 0.2f;
 		constexpr float MAX_SCALE = 0.8f;
 
-		float distance = (Camera.pos.ToVector3() - pos).Length();
+		float distance = (g_Camera.Position - pos).Length();
 		float scale = 1.0f / (distance / BLOCK(2));
 
 		if (scale < MIN_SCALE)

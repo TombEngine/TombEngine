@@ -163,10 +163,10 @@ namespace TEN::Entities::Traps
 						SetAnimation(LaraItem, LA_SPIKE_DEATH, 0, GetSystemBlendDuration());
 						LaraItem->Animation.IsAirborne = false;
 
-						Camera.flags = CF_FOLLOW_CENTER;
-						Camera.targetAngle = ANGLE(-150.0f);
-						Camera.targetElevation = ANGLE(-25.0f);
-						Camera.targetDistance = BLOCK(2);
+						g_Camera.flags = CameraFlag::FollowCenter;
+						g_Camera.targetAngle = ANGLE(-150.0f);
+						g_Camera.targetElevation = ANGLE(-25.0f);
+						g_Camera.targetDistance = BLOCK(2);
 					}
 				}
 			}

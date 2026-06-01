@@ -279,21 +279,21 @@ void HandlePistols(ItemInfo& laraItem, LaraWeaponType weaponType)
 	{
 		lara.ExtraTorsoRot = lara.LeftArm.Orientation / 2;
 
-		if (Camera.oldType != CameraType::Look)
+		if (g_Camera.oldType != CameraType::Look)
 			lara.ExtraHeadRot = lara.ExtraTorsoRot;
 	}
 	else if (!lara.LeftArm.Locked && lara.RightArm.Locked)
 	{
 		lara.ExtraTorsoRot = lara.RightArm.Orientation / 2;
 
-		if (Camera.oldType != CameraType::Look)
+		if (g_Camera.oldType != CameraType::Look)
 			lara.ExtraHeadRot = lara.ExtraTorsoRot;
 	}
 	else if (lara.LeftArm.Locked && lara.RightArm.Locked)
 	{
 		lara.ExtraTorsoRot = (lara.LeftArm.Orientation + lara.RightArm.Orientation) / 4;
 
-		if (Camera.oldType != CameraType::Look)
+		if (g_Camera.oldType != CameraType::Look)
 			lara.ExtraHeadRot = lara.ExtraTorsoRot;
 	}
 
