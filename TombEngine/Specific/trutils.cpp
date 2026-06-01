@@ -273,8 +273,6 @@ namespace TEN::Utils
 
     Vector2 GetAspectCorrect2DPosition(const Vector2& pos)
     {
-       constexpr auto DISPLAY_SPACE_ASPECT = DISPLAY_SPACE_RES.x / DISPLAY_SPACE_RES.y;
-
         auto screenRes = g_Renderer.GetScreenResolution().ToVector2();
         float screenResAspect = screenRes.x / screenRes.y;
         float aspectDelta = screenResAspect - DISPLAY_SPACE_ASPECT;

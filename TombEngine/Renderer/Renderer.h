@@ -377,7 +377,7 @@ namespace TEN::Renderer
 		void ClearShadowMap();
 		void CalculateSSAO(RenderView& view);
 		void UpdateItemAnimations(RenderView& view);
-		void InitializeScreen(int w, int h, bool reset);
+		void InitializeScreen(int w, int h, bool reset, bool resyncWindow = true);
 		void InitializeCommonTextures();
 		void InitializeGameBars();
 		void InitializeMenuBars(int y);
@@ -740,7 +740,7 @@ namespace TEN::Renderer
 		void SwitchDebugPage(bool goBack);
 		RendererDebugPage GetCurrentDebugPage();
 
-		void ChangeScreenResolution(int width, int height, bool windowed);
+		void ChangeScreenResolution(int width, int height, bool windowed, bool resyncWindow = true);
 		void FlipRooms(short roomNumber1, short roomNumber2);
 		void UpdateLaraAnimations(bool force);
 		void UpdateItemAnimations(int itemNumber, bool force);
