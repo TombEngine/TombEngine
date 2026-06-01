@@ -42,13 +42,6 @@ constexpr float CAMERA_OBJECT_COLL_EXTENT_THRESHOLD = CLICK(0.5f);
 CameraInfo		 g_Camera;
 ScreenEffectData g_ScreenEffect;
 
-// TODO: stubs for sezz player helpers; real implementations land with Unit 5 (state machine).
-static const std::vector<int> PLAYER_IDLE_STATE_IDS = { LS_IDLE };
-
-static inline bool IsPlayerInCombat(const ItemInfo&) { return false; }
-static inline bool IsPlayerStrafing(const ItemInfo&) { return false; }
-static inline short GetPlayerHeadingAngleY(const ItemInfo& item) { return item.Pose.Orientation.y; }
-
 void CameraInfo::Update(const ItemInfo& playerItem, Vector3 idealPos, int idealRoomNumber, float speed)
 {
 	constexpr float BUFFER = BLOCK(0.2f);

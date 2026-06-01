@@ -1247,6 +1247,48 @@ bool IsRunJumpCountableState(int state)
 	return TestState(state, runningJumpTimerStates);
 }
 
+bool IsPlayerStrafing(const ItemInfo& item)
+{
+	const auto& player = GetLaraInfo(item);
+
+	// Modern controls required.
+	if (!g_Configuration.IsUsingModernControls())
+		return false;
+
+	// State must be one of the strafe-capable states.
+	if (!TestState(item.Animation.ActiveState, PLAYER_STRAFE_STATE_IDS))
+		return false;
+
+	// Look input forces strafing.
+	if (IsHeld(In::Look))
+		return true;
+
+	// Drawn or ready weapon counts as strafing.
+	if (player.Control.HandStatus == HandStatus::WeaponDraw ||
+		player.Control.HandStatus == HandStatus::WeaponReady)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool IsPlayerInCombat(const ItemInfo& item)
+{
+	const auto& player = GetLaraInfo(item);
+
+	if (player.Control.HandStatus != HandStatus::WeaponDraw &&
+		player.Control.HandStatus != HandStatus::WeaponReady)
+	{
+		return false;
+	}
+
+	if (player.TargetEntity == nullptr)
+		return false;
+
+	return true;
+}
+
 std::optional<VaultTestResult> TestLaraVaultTolerance(ItemInfo* item, CollisionInfo* coll, VaultTestSetup testSetup)
 {
 	auto* lara = GetLaraInfo(item);

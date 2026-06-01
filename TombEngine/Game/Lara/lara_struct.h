@@ -225,6 +225,21 @@ enum LaraState
 
 	LS_PULLEY_UNGRAB = 198,
 
+	// modern-controls states (sezz). Same numeric range as LS_PULLEY_UNGRAB by design;
+	// the two are never live concurrently. Behaviour wired up incrementally in later units.
+	LS_STAND_EDGE_HANG_DESCENT			 = 198,
+	LS_STAND_EDGE_HANG_DESCENT_FRONT	 = 199,
+	LS_STAND_EDGE_HANG_DESCENT_BACK		 = 200,
+	LS_STAND_EDGE_HANG_DESCENT_BACK_FLIP = 201,
+	LS_CRAWL_EDGE_HANG_DESCENT_FRONT	 = 202,
+	LS_EDGE_HANG_SWING_CATCH			 = 203,
+	LS_EDGE_HANG_SHIMMY_UP				 = 204,
+	LS_EDGE_HANG_SHIMMY_DOWN			 = 205,
+	LS_RUN_FORWARD_CANCEL				 = 206,
+	LS_SKIP_BACK						 = 207,
+	LS_WALK_FORWARD_TURN_180			 = 208,
+	LS_RUN_FORWARD_TURN_180				 = 209,
+
 	NUM_LARA_STATES
 };
 
@@ -834,6 +849,11 @@ enum LaraAnim
 	LA_CEILING_LEVER_SWITCH = 575,			// Use ceiling switch above ground
 
 	//ADD NEW ANIMATIONS HERE
+
+	LA_STAND_IDLE_TO_SKIP_BACK			= 599,
+	LA_SKIP_BACK						= 600,
+	LA_SKIP_BACK_TO_STAND_IDLE			= 601,
+	LA_SKIP_BACK_TO_STAND_IDLE_EARLY	= 602,
 
 	NUM_LARA_ANIMS
 

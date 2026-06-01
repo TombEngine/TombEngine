@@ -93,6 +93,39 @@ constexpr auto SWIM_WATER_DEPTH		= CLICK(2.75f);
 constexpr auto SLOPE_DIFFERENCE		= 60;
 constexpr auto SWAMP_GRAVITY_COEFF	= 3.0f;
 
+static const auto PLAYER_IDLE_STATE_IDS = std::vector<int>
+{
+	LS_IDLE,
+	LS_CROUCH_IDLE,
+	LS_CRAWL_IDLE,
+	LS_MONKEY_IDLE,
+	LS_HANG,
+	LS_LADDER_IDLE,
+	LS_POLE_IDLE,
+	LS_ROPE_IDLE,
+	LS_TIGHTROPE_IDLE,
+	LS_ONWATER_IDLE,
+	LS_UNDERWATER_IDLE
+};
+
+static const auto PLAYER_STRAFE_STATE_IDS = std::vector<int>
+{
+	LS_IDLE,
+	LS_WALK_FORWARD,
+	LS_WALK_BACK,
+	LS_RUN_FORWARD,
+	LS_SKIP_BACK,
+	LS_STEP_LEFT,
+	LS_STEP_RIGHT,
+	LS_TURN_LEFT_SLOW,
+	LS_TURN_RIGHT_SLOW,
+	LS_JUMP_PREPARE,
+	LS_JUMP_FORWARD,
+	LS_JUMP_BACK,
+	LS_JUMP_LEFT,
+	LS_JUMP_RIGHT
+};
+
 extern LaraInfo		 Lara;
 extern ItemHandler	 LaraItem;
 extern CollisionInfo LaraCollision;
