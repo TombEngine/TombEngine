@@ -134,7 +134,7 @@ namespace TEN::Renderer
 		float cinematicBarsHeight = renderMode == SceneRenderMode::Full ? g_ScreenEffect.CinematicBarsHeight : 0.0f;
 
 		_stPostProcessBuffer.ScreenFadeFactor = screenFadeFactor;
-		_stPostProcessBuffer.g_ScreenEffect.CinematicBarsHeight = cinematicBarsHeight;
+		_stPostProcessBuffer.CinematicBarsHeight = cinematicBarsHeight;
 		_stPostProcessBuffer.ViewportSize = Vector2i( _graphicsDevice->GetScreenWidth(),  _graphicsDevice->GetScreenHeight());
 		_stPostProcessBuffer.EffectStrength = _postProcessStrength;
 		_stPostProcessBuffer.Tint = _postProcessTint;

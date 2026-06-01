@@ -193,7 +193,7 @@ namespace TEN::Scripting
 	struct Settings
 	{
 		AnimSettings				Animations  = {};
-		CameraSettings				g_Camera	    = {};
+		CameraSettings				Camera	    = {};
 		EffectsSettings				Effects	    = {};
 		FlareSettings				Flare	    = {};
 		GameplaySettings			Gameplay    = {};

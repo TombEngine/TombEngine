@@ -121,6 +121,9 @@ struct GameConfiguration
 	BindingProfile		  Bindings				= {};
 	ControlMode			  ControlMode			= ControlMode::Classic;
 	SwimControlMode		  SwimControlMode		= SwimControlMode::Omnidirectional;
+	bool				  InvertCameraXAxis		= false;
+	bool				  InvertCameraYAxis		= false;
+	bool				  EnableTankCameraControl = false;
 
 	std::vector<Vector2i>	SupportedScreenResolutions	= {};
 	std::string				AdapterName					= {};

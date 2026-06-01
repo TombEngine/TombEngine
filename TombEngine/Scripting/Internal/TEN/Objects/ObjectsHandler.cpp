@@ -8,7 +8,7 @@
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/TEN/Objects/Creature/Creature.h"
 #include "Scripting/Internal/TEN/Objects/Creature/CreatureStates.h"
-#include "Scripting/Internal/TEN/Objects/g_Camera/CameraObject.h"
+#include "Scripting/Internal/TEN/Objects/Camera/CameraObject.h"
 #include "Scripting/Internal/TEN/Objects/Lara/AmmoTypes.h"
 #include "Scripting/Internal/TEN/Objects/Lara/HandStatuses.h"
 #include "Scripting/Internal/TEN/Objects/Lara/LaraObject.h"

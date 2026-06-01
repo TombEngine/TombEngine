@@ -248,8 +248,8 @@ namespace TEN::SpotCam
 		Lara.Control.IsLocked = false;
 		Lara.Inventory.IsBusy = 0;
 	
-		AlterFOV(ANGLE(DEFAULT_FOV), false);
-		Camera.bounce = 0;
+		SetFov(ANGLE(DEFAULT_FOV), false);
+		g_Camera.bounce = 0;
 	
 		// Reset spotcam state.
 		FadeCameraIndex      = NO_VALUE;
@@ -264,9 +264,9 @@ namespace TEN::SpotCam
 		SavedLaraHealth = LaraItem->HitPoints;
 	
 		// Save camera state.
-		SavedCameraPos    = Vector3i(Camera.pos.x, Camera.pos.y, Camera.pos.z);
-		SavedCameraTarget = Vector3i(Camera.target.x, Camera.target.y, Camera.target.z);
-		SavedCameraRoom   = Camera.pos.RoomNumber;
+		SavedCameraPos    = Vector3i(g_Camera.Position.x, g_Camera.Position.y, g_Camera.Position.z);
+		SavedCameraTarget = Vector3i(g_Camera.LookAt.x, g_Camera.LookAt.y, g_Camera.LookAt.z);
+		SavedCameraRoom   = g_Camera.RoomNumber;
 
 		SplineAlpha = 0.0f;
 		IsTransitionToGame = false;
@@ -303,7 +303,7 @@ namespace TEN::SpotCam
 			Knots.SetKnot(1, g_Level.SpotCams[CurrentCameraIndex]);
 			SplineFromOffset = 0;
 
-			Camera.DisableInterpolation = true;
+			g_Camera.DisableInterpolation = true;
 	
 			int camIndex = CurrentCameraIndex;
 			for (int i = 0; i < 4; i++)
@@ -341,7 +341,7 @@ namespace TEN::SpotCam
 				Knots.TargetX[index] = (float)SavedCameraTarget.x;
 				Knots.TargetY[index] = (float)SavedCameraTarget.y;
 				Knots.TargetZ[index] = (float)SavedCameraTarget.z;
-				Knots.FOV[index]     = (float)CurrentFOV;
+				Knots.FOV[index]     = (float)g_Camera.Fov;
 				Knots.Roll[index]    = 0.0f;
 				Knots.Speed[index]   = (float)firstCam.Speed;
 				Knots.DofDistance[index] = lastDOF.Distance;
@@ -375,22 +375,22 @@ namespace TEN::SpotCam
 		if (!RunHeavyTriggers)
 			return;
 	
-		auto oldType = Camera.type;
-		Camera.type = CameraType::Heavy;
+		auto oldType = g_Camera.type;
+		g_Camera.type = CameraType::Heavy;
 	
 		if (CurrentLevel != 0)
 		{
-			TestTriggers(Camera.pos.x, Camera.pos.y, Camera.pos.z, Camera.pos.RoomNumber, true);
-			TestVolumes(&Camera);
+			TestTriggers(g_Camera.Position.x, g_Camera.Position.y, g_Camera.Position.z, g_Camera.RoomNumber, true);
+			TestVolumes(&g_Camera);
 		}
 		else
 		{
-			TestTriggers(Camera.pos.x, Camera.pos.y, Camera.pos.z, Camera.pos.RoomNumber, false);
-			TestTriggers(Camera.pos.x, Camera.pos.y, Camera.pos.z, Camera.pos.RoomNumber, true);
-			TestVolumes(&Camera);
+			TestTriggers(g_Camera.Position.x, g_Camera.Position.y, g_Camera.Position.z, g_Camera.RoomNumber, false);
+			TestTriggers(g_Camera.Position.x, g_Camera.Position.y, g_Camera.Position.z, g_Camera.RoomNumber, true);
+			TestVolumes(&g_Camera);
 		}
 	
-		Camera.type = oldType;
+		g_Camera.type = oldType;
 		RunHeavyTriggers = false;
 	}
 	
@@ -484,25 +484,25 @@ namespace TEN::SpotCam
 		RunHeavyTriggers = false;
 		Lara.Control.IsLocked = false;
 		Lara.Control.Look.IsUsingBinoculars = false;
-		Camera.oldType = CameraType::Fixed;
-		Camera.type = CameraType::Chase;
-		Camera.speed = 1;
-		Camera.DisableInterpolation = true;
+		g_Camera.oldType = CameraType::Fixed;
+		g_Camera.type = CameraType::Chase;
+		g_Camera.speed = 1;
+		g_Camera.DisableInterpolation = true;
 	
 		if (firstCam.Flags & SCF_CUT_TO_LARA_CAM)
 		{
-			Camera.pos.x = SavedCameraPos.x;
-			Camera.pos.y = SavedCameraPos.y;
-			Camera.pos.z = SavedCameraPos.z;
-			Camera.pos.RoomNumber = SavedCameraRoom;
-			Camera.target.x = SavedCameraTarget.x;
-			Camera.target.y = SavedCameraTarget.y;
-			Camera.target.z = SavedCameraTarget.z;
+			g_Camera.Position.x = SavedCameraPos.x;
+			g_Camera.Position.y = SavedCameraPos.y;
+			g_Camera.Position.z = SavedCameraPos.z;
+			g_Camera.RoomNumber = SavedCameraRoom;
+			g_Camera.LookAt.x = SavedCameraTarget.x;
+			g_Camera.LookAt.y = SavedCameraTarget.y;
+			g_Camera.LookAt.z = SavedCameraTarget.z;
 		}
 	
 		SpotcamOverlay = false;
 		SpotcamDontDrawLara = false;
-		AlterFOV(LastFOV);
+		SetFov(g_Camera.PrevFov);
 		g_Renderer.RestoreDOF();
 	}
 	
@@ -661,11 +661,11 @@ namespace TEN::SpotCam
 			{
 				if (!IsFirstLookPress)
 				{
-					Camera.oldType = CameraType::Fixed;
+					g_Camera.oldType = CameraType::Fixed;
 					IsFirstLookPress = true;
 				}
 	
-				CalculateCamera(LaraCollision);
+				CalculateCamera(*LaraItem, LaraCollision);
 			}
 			else
 			{
@@ -674,10 +674,10 @@ namespace TEN::SpotCam
 				SetCinematicBars(0.0f, SPOTCAM_CINEMATIC_BARS_SPEED);
 				UseSpotCam = false;
 				Lara.Control.IsLocked = false;
-				Camera.speed = 1;
-				AlterFOV(LastFOV);
+				g_Camera.speed = 1;
+				SetFov(g_Camera.PrevFov);
 				g_Renderer.RestoreDOF();
-				CalculateCamera(LaraCollision);
+				CalculateCamera(*LaraItem, LaraCollision);
 				RunHeavyTriggers = false;
 			}
 	
@@ -685,56 +685,56 @@ namespace TEN::SpotCam
 		}
 	
 		// Disable interpolation if camera jumped too far.
-		auto origin = Vector3((float)Camera.pos.x, (float)Camera.pos.y, (float)Camera.pos.z);
+		auto origin = Vector3((float)g_Camera.Position.x, (float)g_Camera.Position.y, (float)g_Camera.Position.z);
 		auto target = Vector3(interpPosX, interpPosY, interpPosZ);
 
 		if (Vector3::Distance(origin, target) > BLOCK(0.25f))
-			Camera.DisableInterpolation = true;
+			g_Camera.DisableInterpolation = true;
 	
 		// Apply interpolated camera position.
-		Camera.pos.x = (int)interpPosX;
-		Camera.pos.y = (int)interpPosY;
-		Camera.pos.z = (int)interpPosZ;
+		g_Camera.Position.x = (int)interpPosX;
+		g_Camera.Position.y = (int)interpPosY;
+		g_Camera.Position.z = (int)interpPosZ;
 	
 		if ((firstCam.Flags & SCF_FOCUS_LARA_HEAD) || (firstCam.Flags & SCF_TRACKING_CAM))
 		{
-			Camera.target.x = LaraItem->Pose.Position.x;
-			Camera.target.y = LaraItem->Pose.Position.y;
-			Camera.target.z = LaraItem->Pose.Position.z;
+			g_Camera.LookAt.x = LaraItem->Pose.Position.x;
+			g_Camera.LookAt.y = LaraItem->Pose.Position.y;
+			g_Camera.LookAt.z = LaraItem->Pose.Position.z;
 		}
 		else
 		{
-			Camera.target.x = (int)interpTargetX;
-			Camera.target.y = (int)interpTargetY;
-			Camera.target.z = (int)interpTargetZ;
-			CalculateBounce(false);
+			g_Camera.LookAt.x = (int)interpTargetX;
+			g_Camera.LookAt.y = (int)interpTargetY;
+			g_Camera.LookAt.z = (int)interpTargetZ;
+			g_Camera.RumbleFromBounce();
 		}
 	
 		// Resolve camera room number.
-		int outsideRoom = IsRoomOutside(Camera.pos.x, Camera.pos.y, Camera.pos.z);
+		int outsideRoom = IsRoomOutside(g_Camera.Position.x, g_Camera.Position.y, g_Camera.Position.z);
 		if (outsideRoom == NO_VALUE)
 		{
 			// HACK: Sometimes actual camera room number desyncs from room number derived using floordata functions.
 			// If such case is identified, we do a brute-force search for coherent room number.
 			// This issue is only present in sub-click floor height setups after TE 1.7.0. -- Lwmte, 02.11.2024
 	
-			auto pos = Vector3i(Camera.pos.x, Camera.pos.y, Camera.pos.z);
+			auto pos = Vector3i(g_Camera.Position.x, g_Camera.Position.y, g_Camera.Position.z);
 			int collRoomNumber = GetPointCollision(pos, g_Level.SpotCams[CurrentCameraIndex].RoomNumber).GetRoomNumber();
 	
-			if (collRoomNumber != Camera.pos.RoomNumber && !IsPointInRoom(pos, collRoomNumber))
+			if (collRoomNumber != g_Camera.RoomNumber && !IsPointInRoom(pos, collRoomNumber))
 				collRoomNumber = FindRoomNumber(pos, g_Level.SpotCams[CurrentCameraIndex].RoomNumber);
 	
-			Camera.pos.RoomNumber = collRoomNumber;
+			g_Camera.RoomNumber = collRoomNumber;
 		}
 		else
 		{
-			Camera.pos.RoomNumber = outsideRoom;
+			g_Camera.RoomNumber = outsideRoom;
 		}
 	
-		AlterFOV((short)interpFOV, false);
+		SetFov((short)interpFOV, false);
 		g_Renderer.SetDOF({ g_Level.SpotCams[CurrentCameraIndex].DOF.Mode, interpDofDistance, interpDofRange, interpDofStrength }, false);
-		LookAt(&Camera, (short)interpRoll);
-		UpdateMikePos(*LaraItem);
+		HandleLookAt(g_Camera, (short)interpRoll);
+		g_Camera.UpdateListenerPosition(*LaraItem);
 	
 		// Apply per-camera flags.
 		if (g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_OVERLAY)
@@ -808,7 +808,7 @@ namespace TEN::SpotCam
 				prevCamIndex = jumpTarget;
 
 				knotStartIndex = 2;
-				Camera.DisableInterpolation = true;
+				g_Camera.DisableInterpolation = true;
 			}
 	
 			knotStartIndex++;
@@ -844,56 +844,55 @@ namespace TEN::SpotCam
 		Knots.SetKnot(1, g_Level.SpotCams[CurrentCameraIndex - 1]);
 		Knots.SetKnot(2, g_Level.SpotCams[CurrentCameraIndex - 1]);
 	
-		CAMERA_INFO backup;
-		memcpy(&backup, &Camera, sizeof(CAMERA_INFO));
+		auto backup = g_Camera;
 	
-		Camera.oldType = CameraType::Fixed;
-		Camera.type = CameraType::Chase;
-		Camera.speed = 1;
+		g_Camera.oldType = CameraType::Fixed;
+		g_Camera.type = CameraType::Chase;
+		g_Camera.speed = 1;
 	
-		int savedElevation = Camera.targetElevation;
-		CalculateCamera(LaraCollision);
+		int savedElevation = g_Camera.targetElevation;
+		CalculateCamera(*LaraItem, LaraCollision);
 	
 		Knots.Roll[2]  = 0.0f;
 		Knots.Roll[3]  = 0.0f;
 		Knots.Speed[2] = Knots.Speed[1];
 	
-		SavedCameraPos    = Vector3i(Camera.pos.x, Camera.pos.y, Camera.pos.z);
-		SavedCameraTarget = Vector3i(Camera.target.x, Camera.target.y, Camera.target.z);
+		SavedCameraPos    = Vector3i(g_Camera.Position.x, g_Camera.Position.y, g_Camera.Position.z);
+		SavedCameraTarget = Vector3i(g_Camera.LookAt.x, g_Camera.LookAt.y, g_Camera.LookAt.z);
 
 		const auto& lastDOF = g_Renderer.GetDOF();
 	
-		Knots.PosX[3]    = (float)Camera.pos.x;
-		Knots.PosY[3]    = (float)Camera.pos.y;
-		Knots.PosZ[3]    = (float)Camera.pos.z;
-		Knots.TargetX[3] = (float)Camera.target.x;
-		Knots.TargetY[3] = (float)Camera.target.y;
-		Knots.TargetZ[3] = (float)Camera.target.z;
-		Knots.FOV[3]     = (float)LastFOV;
+		Knots.PosX[3]    = (float)g_Camera.Position.x;
+		Knots.PosY[3]    = (float)g_Camera.Position.y;
+		Knots.PosZ[3]    = (float)g_Camera.Position.z;
+		Knots.TargetX[3] = (float)g_Camera.LookAt.x;
+		Knots.TargetY[3] = (float)g_Camera.LookAt.y;
+		Knots.TargetZ[3] = (float)g_Camera.LookAt.z;
+		Knots.FOV[3]     = (float)g_Camera.PrevFov;
 		Knots.Speed[3]   = Knots.Speed[2];
 		Knots.Roll[3]    = 0.0f;
 		Knots.DofDistance[3] = lastDOF.Distance;
 		Knots.DofRange[3]    = lastDOF.Range;
 		Knots.DofStrength[3] = lastDOF.Strength;
 	
-		Knots.PosX[4]    = (float)Camera.pos.x;
-		Knots.PosY[4]    = (float)Camera.pos.y;
-		Knots.PosZ[4]    = (float)Camera.pos.z;
-		Knots.TargetX[4] = (float)Camera.target.x;
-		Knots.TargetY[4] = (float)Camera.target.y;
-		Knots.TargetZ[4] = (float)Camera.target.z;
-		Knots.FOV[4]     = (float)LastFOV;
+		Knots.PosX[4]    = (float)g_Camera.Position.x;
+		Knots.PosY[4]    = (float)g_Camera.Position.y;
+		Knots.PosZ[4]    = (float)g_Camera.Position.z;
+		Knots.TargetX[4] = (float)g_Camera.LookAt.x;
+		Knots.TargetY[4] = (float)g_Camera.LookAt.y;
+		Knots.TargetZ[4] = (float)g_Camera.LookAt.z;
+		Knots.FOV[4]     = (float)g_Camera.PrevFov;
 		Knots.Speed[4]   = Knots.Speed[2] / 2.0f;
 		Knots.Roll[4]    = 0.0f;
 		Knots.DofDistance[4] = lastDOF.Distance;
 		Knots.DofRange[4]    = lastDOF.Range;
 		Knots.DofStrength[4] = lastDOF.Strength;
 	
-		memcpy(&Camera, &backup, sizeof(CAMERA_INFO));
-		Camera.targetElevation = savedElevation;
+		g_Camera = backup;
+		g_Camera.targetElevation = savedElevation;
 	
-		LookAt(&Camera, (short)interpRoll);
-		UpdateMikePos(*LaraItem);
+		HandleLookAt(g_Camera, (short)interpRoll);
+		g_Camera.UpdateListenerPosition(*LaraItem);
 	
 		IsTransitionToGame = true;
 	
