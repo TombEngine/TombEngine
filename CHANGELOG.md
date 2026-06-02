@@ -33,6 +33,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 * Fixed original bug with bridge objects blocking monkeyswing and ladder flags in the bottom room.
 * Fixed original bug with inactive SQUISHY_BLOCK_VERTICAL killing player.
+* Fixed incorrect application of LARA_DOUBLE damage after using medipacks.
 * Fixed MINECART_SWITCH object not working.
 * Fixed empty inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
