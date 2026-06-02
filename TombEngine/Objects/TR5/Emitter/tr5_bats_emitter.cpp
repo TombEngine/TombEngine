@@ -17,6 +17,7 @@ using namespace TEN::Animation;
 using namespace TEN::Math;
 
 constexpr auto BAT_LARA_DAMAGE = 2;
+constexpr auto BAT_DAMAGE_CHANCE = 1 / 5.0f;
 
 int NextBat;
 BatData Bats[NUM_BATS];
@@ -204,7 +205,8 @@ void UpdateBats()
 		bat->Pose.Position.y += bat->Velocity * phd_sin(-bat->Pose.Orientation.x);
 		bat->Pose.Position.z += sp * phd_cos(bat->Pose.Orientation.y);
 
-		if (ItemNearTarget(bat->Pose.Position, LaraItem, CLICK(1)))
+		if (ItemNearTarget(bat->Pose.Position, LaraItem, CLICK(1)) &&
+			Random::TestProbability(BAT_DAMAGE_CHANCE))
 		{
 			TriggerBlood(bat->Pose.Position.x, bat->Pose.Position.y, bat->Pose.Position.z, 2 * GetRandomControl(), 2);
 			DoDamage(LaraItem, BAT_LARA_DAMAGE);
