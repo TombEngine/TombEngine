@@ -18,6 +18,8 @@ cbuffer CBPostProcess : register(b7)
     float EffectStrength;
     float3 Tint;
     //--
+    float4 DofParams;
+    //--
     float4 SSAOKernel[64];
     //--
     ShaderLensFlare LensFlares[8];

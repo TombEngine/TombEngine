@@ -35,10 +35,11 @@ constexpr auto ALPHA_TEST_THRESHOLD			  = 0.5f;
 constexpr auto ALPHA_BLEND_THRESHOLD		  = 1.0f - EPSILON;
 constexpr auto FAST_ALPHA_BLEND_THRESHOLD	  = 0.5f;
 
-constexpr auto MAX_BONES = 32;
-constexpr auto MAX_BONE_WEIGHTS = 4;
+constexpr auto BONE_COUNT_MAX		 = 32;
+constexpr auto BONE_WEIGHT_COUNT_MAX = 4;
 
 constexpr auto DISPLAY_SPACE_RES = Vector2(800.0f, 600.0f);
+constexpr auto DISPLAY_SPACE_ASPECT = DISPLAY_SPACE_RES.x / DISPLAY_SPACE_RES.y;
 constexpr auto REFERENCE_FONT_SIZE = 35.0f;
 constexpr auto HUD_ZERO_Y = -DISPLAY_SPACE_RES.y;
 
@@ -69,8 +70,9 @@ constexpr auto MAX_SPRITES_DRAW = 512;
 constexpr auto MAX_LENS_FLARES_DRAW = 8;
 
 constexpr auto ROOM_AMBIENT_MAP_SIZE = 512;
-constexpr auto LEGACY_REFLECTIONS_DOWNSCALE_FACTOR = 2.0f;
 constexpr auto MAX_ROOM_AMBIENT_MAPS = 10;
+
+constexpr auto POSTPROCESS_DOWNSCALE_FACTOR = 2.0f;
 
 constexpr auto GLOW_DOWNSCALE_FACTOR = 4.0f;
 constexpr auto GLOW_BLUR_SIGMA = 10.0f;
@@ -99,6 +101,7 @@ enum class BlendMode
 	Opaque = 0,
 	AlphaTest = 1,
 	Additive = 2,
+	Distortion = 3,
 	NoDepthTest = 4,
 	Subtractive = 5,
 	Wireframe = 6,
@@ -112,9 +115,13 @@ enum class BlendMode
 
 enum class SkinningMode
 {
-	None = 0,
-	Full = 1,
-	Classic = 2
+	// Values are uploaded directly as the Skinned scalar in CBObjects; the shader picks the
+	// VS world-transform path from this. Static is for instanced static meshes (no bones at
+	// all); the others are for moveables where every vertex carries a BoneIndex.
+	Static  = 0, // No bones — use the per-instance Object.World directly.
+	None    = 1, // Rigid moveable — apply Bones[BoneIndex[0]] without blending.
+	Full    = 2, // Modern skinning — blend bone matrices.
+	Classic = 3, // Legacy classic blend mode.
 };
 
 enum class CullMode
@@ -204,7 +211,11 @@ enum class TextureRegister
 	ORSHMap = 10,
 	EmissiveMap = 11,
 	LegacyEnvironmentReflections = 12,
-	SkyboxEnvironmentReflections = 13
+	SkyboxEnvironmentReflections = 13,
+	AnimatedFrames = 14, // StructuredBuffer<AnimatedFrameUV> for per-draw animated UVs.
+	DistortionMap = 15,
+	NearBlurMap = 16,
+	FarBlurMap = 17
 };
 
 enum class SamplerStateRegister
@@ -221,17 +232,18 @@ enum class SamplerStateRegister
 enum class ConstantBufferRegister
 {
 	Camera = 0,
-	Item = 1,
-	Material = 2,
-	InstancedStatics = 3,
+	// Slot 1 is currently unused — was the per-item CB before items folded into CBObjects.
+	PerDraw = 2, // Combined Material + Blending CB (was Material at b2 + Blending at b12).
+	InstancedStatics = 3, // Now holds the unified CBObjects (Bones + Skinned + Objects[N]).
 	ShadowLight = 4,
 	Room = 5,
-	AnimatedTextures = 6,
+	// Slot 6 is currently unused — was CBAnimatedTexture before frames moved to a structured
+	// buffer (t14) and metadata folded into PerDraw at b2.
 	PostProcess = 7,
 	Sky = 8,
 	Hud = 10,
 	HudBar = 11,
-	Blending = 12,
+	// Slot 12 is currently unused — was Blending before it merged into PerDraw at b2.
 	InstancedSprites = 13
 };
 
@@ -259,6 +271,7 @@ enum class RendererPass
 	Transparent,
 	CollectTransparentFaces,
 	Additive,
+	Distortion,
 	GBuffer,
 	GunFlashes,
 	RoomAmbient
@@ -337,6 +350,14 @@ enum class PostProcessMode
 	Exclusion = 3
 };
 
+enum class DOFMode
+{
+	None = 0,
+	Full = 1,
+	Front = 2,
+	Back = 3
+};
+
 enum class MaterialShaderType
 {
 	Default = 0,
@@ -353,7 +374,10 @@ enum class SurfaceFormat
 	SF_R8_Unorm,
 	SF_R32_Float,
 	SF_RGBA32_Float,
-	SF_BGRA8_Unorm
+	SF_BGRA8_Unorm,
+	SF_R11G11B10_Float,
+	SF_RGBA16_Float,
+	SF_R16_Float
 };
 
 enum class DepthFormat
@@ -478,6 +502,12 @@ enum class Shader
 	PostProcessMonochrome,
 	PostProcessNegative,
 	PostProcessExclusion,
+	PostProcessDistortion,
+	PostProcessDofDownsample,
+	PostProcessDofFarBlur,
+	PostProcessDofNearDilate,
+	PostProcessDofNearBlur,
+	PostProcessDofComposite,
 	PostProcessFinalPass,
 	PostProcessLensFlare,
 

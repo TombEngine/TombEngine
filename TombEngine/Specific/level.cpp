@@ -388,7 +388,7 @@ void LoadObjects()
 		MoveablesIds.push_back(objectID);
 
 		if (objectID >= GAME_OBJECT_ID::ID_NUMBER_OBJECTS)
-			throw std::exception(("Unsupported object slot " + std::to_string(objectID) + " is detected in a level. Make sure to delete unsupported objects from wads.").c_str());
+			throw std::exception(("Unsupported object slot " + std::to_string(objectID) + " detected in a level. Make sure to delete unsupported objects from WADs.").c_str());
 
 		auto& object = Objects[objectID];
 		object.loaded = true;
@@ -400,53 +400,51 @@ void LoadObjects()
 		// Load animations.
 		int animCount = ReadCount();
 		object.Animations.resize(animCount);
-		for (auto& anim : object.Animations)
+		for (int j = 0; j < object.Animations.size(); j++)
 		{
+			auto& anim = object.Animations[j];
+
 			anim.StateID = ReadInt32();
-			anim.Interpolation = ReadInt32();
 			anim.EndFrameNumber = ReadInt32();
 			anim.NextAnimNumber = ReadInt32();
 			anim.NextFrameNumber = ReadInt32();
-			/*anim.BlendFrameCount = */ReadCount();
+			anim.BlendFrameCount = ReadCount();
 
-			/*auto blendCurveStart = */ReadVector2();
-			/*auto blendCurveEnd = */ReadVector2();
-			/*auto blendCurveStartHandle = */ReadVector2();
-			/*auto blendCurveEndHandle = */ReadVector2();
-			//anim.BlendCurve = BezierCurve2D(blendCurveStart, blendCurveEnd, blendCurveStartHandle, blendCurveEndHandle);
+			auto blendCurveStart = ReadVector2();
+			auto blendCurveEnd = ReadVector2();
+			auto blendCurveStartHandle = ReadVector2();
+			auto blendCurveEndHandle = ReadVector2();
+			anim.BlendCurve = BezierCurve2(blendCurveStart, blendCurveEnd, blendCurveStartHandle, blendCurveEndHandle);
 
 			auto fixedMotionCurveXStart = ReadVector2();
 			auto fixedMotionCurveXEnd = ReadVector2();
-			/*auto fixedMotionCurveXStartHandle = */ReadVector2();
-			/*auto fixedMotionCurveXEndHandle = */ReadVector2();
-			//anim.FixedMotionCurveX = BezierCurve2D(fixedMotionCurveXStart, fixedMotionCurveXEnd, fixedMotionCurveXStartHandle, fixedMotionCurveXEndHandle);
+			auto fixedMotionCurveXStartHandle = ReadVector2();
+			auto fixedMotionCurveXEndHandle = ReadVector2();
+			anim.FixedMotionCurveX = BezierCurve2(fixedMotionCurveXStart, fixedMotionCurveXEnd, fixedMotionCurveXStartHandle, fixedMotionCurveXEndHandle);
 
 			auto fixedMotionCurveYStart = ReadVector2();
 			auto fixedMotionCurveYEnd = ReadVector2();
-			/*auto fixedMotionCurveYStartHandle = */ReadVector2();
-			/*auto fixedMotionCurveYEndHandle = */ReadVector2();
-			//anim.FixedMotionCurveY = BezierCurve2D(fixedMotionCurveYStart, fixedMotionCurveYEnd, fixedMotionCurveYStartHandle, fixedMotionCurveYEndHandle);
+			auto fixedMotionCurveYStartHandle = ReadVector2();
+			auto fixedMotionCurveYEndHandle = ReadVector2();
+			anim.FixedMotionCurveY = BezierCurve2(fixedMotionCurveYStart, fixedMotionCurveYEnd, fixedMotionCurveYStartHandle, fixedMotionCurveYEndHandle);
 
 			auto fixedMotionCurveZStart = ReadVector2();
 			auto fixedMotionCurveZEnd = ReadVector2();
-			/*auto fixedMotionCurveZStartHandle = */ReadVector2();
-			/*auto fixedMotionCurveZEndHandle = */ReadVector2();
-			//anim.FixedMotionCurveZ = BezierCurve2D(fixedMotionCurveZStart, fixedMotionCurveZEnd, fixedMotionCurveZStartHandle, fixedMotionCurveZEndHandle);
-
-			anim.VelocityStart = Vector3(fixedMotionCurveXStart.y, fixedMotionCurveYStart.y, fixedMotionCurveZStart.y);
-			anim.VelocityEnd = Vector3(fixedMotionCurveXEnd.y, fixedMotionCurveYEnd.y, fixedMotionCurveZEnd.y);
+			auto fixedMotionCurveZStartHandle = ReadVector2();
+			auto fixedMotionCurveZEndHandle = ReadVector2();
+			anim.FixedMotionCurveZ = BezierCurve2(fixedMotionCurveZStart, fixedMotionCurveZEnd, fixedMotionCurveZStartHandle, fixedMotionCurveZEndHandle);
 
 			// Load keyframes.
 			int frameCount = ReadCount();
-			anim.Keyframes.resize(frameCount);
-			for (auto& keyframe : anim.Keyframes)
+			anim.Frames.resize(frameCount);
+			for (auto& keyframe : anim.Frames)
 			{
 				auto center = ReadVector3();
 				auto extents = ReadVector3();
-				keyframe.Aabb = BoundingBox(center, extents);
-				keyframe.BoundingBox = GameBoundingBox(keyframe.Aabb);
+				keyframe.LocalAabb = BoundingBox(center, extents);
+				keyframe.BoundingBox = GameBoundingBox(keyframe.LocalAabb);
 
-				keyframe.RootOffset = ReadVector3();
+				keyframe.RootPosition = ReadVector3();
 
 				int boneCount = ReadCount();
 				keyframe.BoneOrientations.resize(boneCount);
@@ -460,18 +458,18 @@ void LoadObjects()
 			for (auto& dispatch : anim.Dispatches)
 			{
 				dispatch.StateID = ReadInt32();
-				dispatch.FrameNumberRange.first = ReadInt32(); //dispatch.FrameNumberLow = ReadInt32();
-				dispatch.FrameNumberRange.second = ReadInt32(); //dispatch.FrameNumberHigh = ReadInt32();
+				dispatch.FrameNumberLow = ReadInt32();
+				dispatch.FrameNumberHigh = std::max(ReadInt32(), dispatch.FrameNumberLow);
 				dispatch.NextAnimNumber = ReadInt32();
-				dispatch.NextFrameNumber/*Low*/ = ReadInt32();
-				/*dispatch.NextFrameNumberHigh = */ReadInt32();
-				/*dispatch.BlendFrameCount = */ReadInt32();
+				dispatch.NextFrameNumberLow = ReadInt32();
+				dispatch.NextFrameNumberHigh = std::max(ReadInt32(), dispatch.NextFrameNumberLow);
+				dispatch.BlendFrameCount = ReadInt32();
 
 				auto start = ReadVector2();
 				auto end = ReadVector2();
 				auto startHandle = ReadVector2();
 				auto endHandle = ReadVector2();
-				//dispatch.BlendCurve = BezierCurve2D(start, startHandle, endHandle, end);
+				dispatch.BlendCurve = BezierCurve2(start, end, startHandle, endHandle);
 			}
 
 			// Load animation commands.
@@ -480,7 +478,7 @@ void LoadObjects()
 			{
 				anim.Commands.reserve(commandCount);
 
-				for (int i = 0; i < commandCount; i++)
+				for (int k = 0; k < commandCount; k++)
 				{
 					auto type = (AnimCommandType)ReadInt32();
 
@@ -492,10 +490,10 @@ void LoadObjects()
 						case AnimCommandType::None:
 							continue;
 
-						case AnimCommandType::MoveOrigin:
+						case AnimCommandType::MoveRoot:
 						{
-							auto relOffset = ReadVector3();
-							command = std::make_shared<MoveOriginCommand>(relOffset);
+							auto translation = ReadVector3();
+							command = std::make_shared<MoveRootCommand>(translation);
 						}
 							break;
 
@@ -544,6 +542,10 @@ void LoadObjects()
 			}
 
 			anim.Flags = ReadInt32();
+
+			// Set root motion cycle flag if animation links to itself.
+			if (anim.NextAnimNumber == j)
+				anim.Flags |= (int)AnimFlags::RootMotionCycle;
 		}
 	}
 
@@ -626,6 +628,11 @@ void LoadCameras()
 		cam.Speed      = ReadInt16();
 		cam.Flags      = ReadInt16();
 		cam.RoomNumber = ReadInt32();
+
+		cam.DOF.Mode     = (DOFMode)ReadInt32();
+		cam.DOF.Distance = ReadFloat();
+		cam.DOF.Range    = ReadFloat();
+		cam.DOF.Strength = ReadFloat();
 	}
 
 	int sinkCount = ReadCount();
@@ -1253,12 +1260,11 @@ void FreeLevel(bool partial)
 	FreeSamples();
 }
 
-size_t ReadFileEx(void* ptr, size_t size, size_t count, FILE* stream)
+static void ReadBytes(std::ifstream& stream, void* dest, std::streamsize byteCount)
 {
-	_lock_file(stream);
-	size_t result = fread(ptr, size, count, stream);
-	_unlock_file(stream);
-	return result;
+	stream.read(reinterpret_cast<char*>(dest), byteCount);
+	if (!stream)
+		throw std::runtime_error("Unexpected end of level file or read error.");
 }
 
 void LoadSoundSources()
@@ -1349,7 +1355,7 @@ void LoadEvent(EventSet& eventSet)
 	if (eventType >= (int)EventType::Count)
 	{
 		TENLog("Unknown event type detected for event set " + eventSet.Name + ". Fall back to default.", LogLevel::Warning);
-		eventType = (int)EventType::Enter;
+		eventType = (int)EventType::VolumeEnter;
 	}
 
 	auto& evt = eventSet.Events[eventType];
@@ -1404,18 +1410,7 @@ void LoadEventSets()
 	}
 }
 
-FILE* FileOpen(const char* fileName)
-{
-	FILE* ptr = fopen(fileName, "rb");
-	return ptr;
-}
-
-void FileClose(FILE* ptr)
-{
-	fclose(ptr);
-}
-
-bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompressedSize)
+static bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompressedSize)
 {
 	char* regionPtr = compressedRegion;
 
@@ -1445,69 +1440,49 @@ bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompress
 	return totalDecompressed == totalUncompressedSize;
 }
 
-#if PLATFORM_64BIT
-long long GetRemainingSize(FILE* filePtr)
+static std::streamoff GetRemainingSize(std::ifstream& stream)
 {
-	auto current_position = _ftelli64(filePtr);
-
-	if (_fseeki64(filePtr, 0, SEEK_END) != 0)
+	auto current = stream.tellg();
+	if (current < 0)
 		return NO_VALUE;
 
-	auto size = _ftelli64(filePtr);
+	stream.seekg(0, std::ios::end);
+	auto end = stream.tellg();
 
-	if (_fseeki64(filePtr, current_position, SEEK_SET) != 0)
+	stream.seekg(current, std::ios::beg);
+	if (!stream)
 		return NO_VALUE;
 
-	return (size - current_position);
+	return static_cast<std::streamoff>(end - current);
 }
-#else
-long GetRemainingSize(FILE* filePtr)
-{
-	long current_position = ftell(filePtr);
 
-	if (fseek(filePtr, 0, SEEK_END) != 0)
-		return NO_VALUE;
-
-	long size = ftell(filePtr);
-
-	if (fseek(filePtr, current_position, SEEK_SET) != 0)
-		return NO_VALUE;
-
-	return (size - current_position);
-}
-#endif
-
-bool ReadCompressedBlock(FILE* filePtr, bool skip)
+static bool ReadCompressedBlock(std::ifstream& stream, bool skip)
 {
 	long long compressedSize = 0;
 	long long uncompressedSize = 0;
 
-	ReadFileEx(&uncompressedSize, 1, sizeof(long long), filePtr);
-	ReadFileEx(&compressedSize, 1, sizeof(long long), filePtr);
+	ReadBytes(stream, &uncompressedSize, sizeof(long long));
+	ReadBytes(stream, &compressedSize, sizeof(long long));
 
 #ifndef PLATFORM_64BIT
 	// Safeguard against incompatible block size.
 	if (uncompressedSize > INT_MAX || compressedSize > INT_MAX)
-		throw std::exception{ "Level data block exceeds 2 GB and can't be loaded by a 32-bit version of the engine." };
+		throw std::runtime_error("Level data block exceeds 2 GB and can't be loaded by a 32-bit version of the engine.");
 #endif
 
 	// Safeguard against changed file format.
-	auto remainingSize = GetRemainingSize(filePtr);
+	auto remainingSize = GetRemainingSize(stream);
 	if (uncompressedSize <= 0 || compressedSize <= 0 || compressedSize > remainingSize)
-		throw std::exception{ "Data block size is incorrect. Probably old level version?" };
+		throw std::runtime_error("Data block size is incorrect. Probably old level version?");
 
-	if (skip) 
+	if (skip)
 	{
-#ifdef _WIN64
-		_fseeki64(filePtr, compressedSize, SEEK_CUR);
-#else
-		fseek(filePtr, compressedSize, SEEK_CUR);
-#endif
+		stream.seekg(compressedSize, std::ios::cur);
 		return false;
 	}
 
 	auto compressedBuffer = (char*)malloc(compressedSize);
-	ReadFileEx(compressedBuffer, compressedSize, 1, filePtr);
+	ReadBytes(stream, compressedBuffer, compressedSize);
 	DataPtr = (char*)malloc(uncompressedSize);
 
 	if (!Decompress(DataPtr, compressedBuffer, uncompressedSize))
@@ -1515,7 +1490,7 @@ bool ReadCompressedBlock(FILE* filePtr, bool skip)
 		free(compressedBuffer);
 		free(DataPtr);
 		DataPtr = nullptr;
-		throw std::exception{ "LZ4 decompression failed." };
+		throw std::runtime_error("LZ4 decompression failed.");
 	}
 
 	free(compressedBuffer);
@@ -1545,15 +1520,14 @@ void UpdateProgress(float progress, bool skip = false)
 
 bool LoadLevel(const std::string& path, bool partial)
 {
-	FILE* filePtr = nullptr;
+	auto fsPath = std::filesystem::path(path);
+	auto stream = std::ifstream(fsPath, std::ios::binary);
 	bool loadedSuccessfully = false;
 
 	try
 	{
-		filePtr = FileOpen(path.c_str());
-
-		if (!filePtr)
-			throw std::exception{ (std::string{ "Unable to read level file: " } + path).c_str() };
+		if (!stream)
+			throw std::runtime_error("Unable to read level file: " + path);
 
 		char header[4];
 		unsigned char version[4];
@@ -1561,13 +1535,13 @@ bool LoadLevel(const std::string& path, bool partial)
 		int levelHash = 0;
 
 		// Read file header
-		ReadFileEx(&header, 1, 4, filePtr);
-		ReadFileEx(&version, 1, 4, filePtr);
-		ReadFileEx(&systemHash, 1, 4, filePtr);
-		ReadFileEx(&levelHash, 1, 4, filePtr);
+		ReadBytes(stream, &header, 4);
+		ReadBytes(stream, &version, 4);
+		ReadBytes(stream, &systemHash, 4);
+		ReadBytes(stream, &levelHash, 4);
 
 		// Check file header.
-		if (std::string(header) != "TEN")
+		if (std::string(header, 3) != "TEN")
 			throw std::invalid_argument("Level file header is not valid! Must be TEN. Probably old level version?");
 
 		// Check level file integrity to allow or disallow fast reload.
@@ -1581,7 +1555,7 @@ bool LoadLevel(const std::string& path, bool partial)
 		// Store information about last loaded level file.
 		LastLevelFilePath = path;
 		LastLevelHash = levelHash;
-		LastLevelTimestamp = std::filesystem::last_write_time(path);
+		LastLevelTimestamp = std::filesystem::last_write_time(fsPath);
 
 		// Only check version if this is not a dummy level, because dummy level is rarely updated.
 		if (path.find(DUMMY_LEVEL_NAME) == std::string_view::npos)
@@ -1626,7 +1600,7 @@ bool LoadLevel(const std::string& path, bool partial)
 		UpdateProgress(0);
 
 		// Media block
-		if (ReadCompressedBlock(filePtr, partial))
+		if (ReadCompressedBlock(stream, partial))
 		{
 			LoadTextures();
 			UpdateProgress(30);
@@ -1638,7 +1612,7 @@ bool LoadLevel(const std::string& path, bool partial)
 		}
 
 		// Geometry block
-		if (ReadCompressedBlock(filePtr, partial))
+		if (ReadCompressedBlock(stream, partial))
 		{
 			LoadRooms();
 			UpdateProgress(50);
@@ -1658,7 +1632,7 @@ bool LoadLevel(const std::string& path, bool partial)
 		}
 
 		// Dynamic data block
-		if (ReadCompressedBlock(filePtr, false))
+		if (ReadCompressedBlock(stream, false))
 		{
 			LoadDynamicRoomData();
 			LoadItems();
@@ -1709,10 +1683,7 @@ bool LoadLevel(const std::string& path, bool partial)
 		SystemNameHash = 0;
 	}
 
-	// Now the entire level is decompressed, we can close it
-	FileClose(filePtr);
-	filePtr = nullptr;
-
+	// std::ifstream closes automatically on scope exit.
 	return loadedSuccessfully;
 }
 
@@ -1889,8 +1860,8 @@ bool LoadLevelFile(int levelIndex)
 						levelIndex == CurrentLevel && timestamp == LastLevelTimestamp && levelPath == LastLevelFilePath);
 
 	// If fast reload is in action, draw last game frame instead of loading screen.
-	auto loadingScreenPath = TEN::Utils::ToWString(assetDir + level.LoadScreenFileName);
-	g_Renderer.SetLoadingScreen(fastReload ? std::wstring{} : loadingScreenPath);
+	auto loadingScreenPath = assetDir + level.LoadScreenFileName;
+	g_Renderer.SetLoadingScreen(fastReload ? std::string{} : loadingScreenPath);
 
 	BackupLara();
 	StopAllSounds();

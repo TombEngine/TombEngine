@@ -5,6 +5,7 @@
 #include "./ShaderLight.hlsli"
 #include "./SpriteEffects.hlsli"
 #include "./VertexEffects.hlsli"
+#include "./Samplers.hlsli"
 
 // NOTE: This shader is used for all opaque or not sorted transparent sprites, that can be instanced for a faster drawing
 
@@ -39,10 +40,7 @@ cbuffer InstancedSpriteBuffer : register(b13)
 };
 
 Texture2D Texture : register(t0);
-SamplerState Sampler : register(s0);
-
 Texture2D DepthTexture : register(t6);
-SamplerState DepthSampler : register(s6);
 
 PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
@@ -78,7 +76,7 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 
 float4 PS(PixelShaderInput input) : SV_TARGET
 {
-    float4 output = Texture.Sample(Sampler, input.UV) * input.Color;
+	float4 output = Texture.Sample(LinearClampSampler, input.UV) * input.Color;
 
     InstancedSprite sprite = Sprites[input.InstanceID];
 	
@@ -87,7 +85,7 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 		float particleDepth = input.PositionCopy.z / input.PositionCopy.w;
 		input.PositionCopy.xy /= input.PositionCopy.w;
 		float2 texCoord = 0.5f * (float2(input.PositionCopy.x, -input.PositionCopy.y) + 1);
-		float sceneDepth = DepthTexture.Sample(DepthSampler, texCoord).x;
+		float sceneDepth = DepthTexture.Sample(PointWrapSampler, texCoord).x;
 
 		sceneDepth = LinearizeDepth(sceneDepth, NearPlane, FarPlane);
 		particleDepth = LinearizeDepth(particleDepth, NearPlane, FarPlane);
@@ -103,20 +101,21 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 
     if (sprite.RenderType == 1)
     {
-        float4 rawOutput = Texture.Sample(Sampler, input.UV) * input.Color;
-        output = DoLaserBarrierEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
+		float4 rawOutput = Texture.Sample(LinearClampSampler, input.UV) * input.Color;
+		output = DoLaserBarrierEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
     }
 
     if (sprite.RenderType == 2)
     {
-        float4 rawOutput = Texture.Sample(Sampler, input.UV) * input.Color;
-        output = DoLaserBeamEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
+		float4 rawOutput = Texture.Sample(LinearClampSampler, input.UV) * input.Color;
+		output = DoLaserBeamEffect(input.Position, float4(ModulateColor(rawOutput.rgb), rawOutput.a), input.UV, FADE_FACTOR, Frame);
     }
 
 	output.xyz *= 1.0f - Luma(input.FogBulbs.xyz);
 	output.xyz = saturate(output.xyz);
 
 	output = DoDistanceFogForPixel(output, float4(0.0f, 0.0f, 0.0f, 0.0f), input.DistanceFog);
+	output = ApplyBlendModeColor(output, input.PositionCopy, true);
 
 	return output;
 }

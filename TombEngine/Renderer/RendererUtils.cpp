@@ -2,12 +2,11 @@
 
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
-#include "Specific/trutils.h"
 
 namespace TEN::Renderer::Utils
 {
-	std::wstring GetAssetPath(const wchar_t* fileName)
+	std::string GetAssetPath(const char* fileName)
 	{
-		return TEN::Utils::ToWString(g_GameFlow->GetGameDir()) + fileName;
+		return g_GameFlow->GetGameDir() + fileName;
 	}
 }

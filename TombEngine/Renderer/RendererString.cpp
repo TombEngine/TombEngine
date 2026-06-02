@@ -4,6 +4,8 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Utils;
+
 namespace TEN::Renderer
 {
 	void Renderer::AddDebugString(const std::string& string, const Vector2& pos, const Color& color, float scale, RendererDebugPage page)
@@ -21,7 +23,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddString(int x, int y, const std::string& string, unsigned int color, int flags)
 	{
-		AddString(string, Vector2(x, y), Color(color), 1.0f, flags);
+		AddString(string, Vector2(x, y), Color(color), std::max(0.1f, g_GameFlow->GetSettings()->UI.SystemTextScale), flags);
 	}
 
 	void Renderer::AddString(const std::string& string, const Vector2& pos, const Color& color, float scale, int flags)
@@ -50,31 +52,31 @@ namespace TEN::Renderer
 			float fontSpacing = _gameFont->GetLineSpacing();
 			float fontScale = REFERENCE_FONT_SIZE / fontSpacing;
 			float stringScale = (uiScale * fontScale) * scale;
-			float spaceWidth = Vector3(_gameFont->MeasureString(L" ")).x * stringScale;
+			float spaceWidth = Vector3(_gameFont->MeasureString(" ")).x * stringScale;
 
-			std::vector<std::wstring> stringLines;
+			std::vector<std::string> stringLines;
 
 			if (area.x > 0)
 			{
 				// Split the string into native lines first.
-				auto inputLines = SplitString(TEN::Utils::ToWString(string));
+				auto inputLines = SplitString(string);
 
 				for (const auto& inputLine : inputLines)
 				{
 					if (inputLine.empty())
 					{
 						// Preserve empty lines.
-						stringLines.push_back(L"");
+						stringLines.push_back("");
 						continue;
 					}
 
 					auto words = SplitWords(inputLine);
-					std::wstring currentLine;
+					std::string currentLine;
 					float currentLineWidth = 0.0f;
 
 					for (const auto& word : words)
 					{
-						float wordWidth = Vector3(_gameFont->MeasureString(word.c_str())).x * stringScale;
+						float wordWidth = Vector3(_gameFont->MeasureString(word)).x * stringScale;
 
 						if (!currentLine.empty() && (currentLineWidth + wordWidth + spaceWidth > area.x * factor.x))
 						{
@@ -85,7 +87,7 @@ namespace TEN::Renderer
 
 						if (!currentLine.empty())
 						{
-							currentLine += L" ";
+							currentLine += " ";
 							currentLineWidth += spaceWidth;
 						}
 
@@ -99,7 +101,7 @@ namespace TEN::Renderer
 			}
 			else
 			{
-				stringLines = SplitString(TEN::Utils::ToWString(string));
+				stringLines = SplitString(string);
 			}
 
 			// Calculate total height for vertical centering.
@@ -109,7 +111,7 @@ namespace TEN::Renderer
 				if (line.empty())
 					totalHeight += fontSpacing * stringScale;
 				else
-					totalHeight += Vector2(_gameFont->MeasureString(line.c_str())).y * stringScale;
+					totalHeight += Vector2(_gameFont->MeasureString(line)).y * stringScale;
 			}
 
 			// Calculate maximum textbox height.
@@ -118,8 +120,8 @@ namespace TEN::Renderer
 				totalHeight = maxHeight;
 
 			// Compute vertical offset based on alignment flags.
-			float yBase = pos.y * uiScale;
-			float yBasePrev = prevPos.y * uiScale;
+			float yBase = pos.y * factor.y;
+			float yBasePrev = prevPos.y * factor.y;
 
 			if (flags & (int)PrintStringFlags::VerticalBottom)
 			{
@@ -144,7 +146,7 @@ namespace TEN::Renderer
 				rString.Scale = stringScale;
 
 				// Measure string.
-				auto stringSize = line.empty() ? Vector2(0, fontSpacing * rString.Scale) : Vector2(_gameFont->MeasureString(line.c_str())) * rString.Scale;
+				auto stringSize = line.empty() ? Vector2(0, fontSpacing * rString.Scale) : Vector2(_gameFont->MeasureString(line)) * rString.Scale;
 
 				// If height clipping enabled, stop drawing when exceeding maxHeight.
 				if (maxHeight > 0.0f && (yOffset + stringSize.y) > maxHeight)
@@ -209,7 +211,7 @@ namespace TEN::Renderer
 			if (rString.Flags & (int)PrintStringFlags::Outline)
 			{
 				_gameFont->DrawString(
-					_spriteBatch.get(), rString.String.c_str(),
+					_spriteBatch.get(), rString.String,
 					Vector2(drawPos.x + shadowOffset * rString.Scale, drawPos.y + shadowOffset * rString.Scale),
 					(shadowColor * rString.Color.w * shadowColor.w) * ScreenFadeCurrent,
 					0.0f, Vector2::Zero, rString.Scale);
@@ -217,7 +219,7 @@ namespace TEN::Renderer
 
 			// Draw string.
 			_gameFont->DrawString(
-				_spriteBatch.get(), rString.String.c_str(),
+				_spriteBatch.get(), rString.String,
 				Vector2(drawPos.x, drawPos.y),
 				(rString.Color * rString.Color.w) * ScreenFadeCurrent,
 				0.0f, Vector2::Zero, rString.Scale);

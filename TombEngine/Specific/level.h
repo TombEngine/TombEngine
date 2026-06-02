@@ -4,12 +4,12 @@
 #include "Game/control/event.h"
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
+#include "Game/LevelCamera.h"
 #include "Game/room.h"
 #include "Game/spotcam.h"
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
-#include "Specific/LevelCameraInfo.h"
-#include "Specific/newtypes.h"
+#include "Specific/Structures/newtypes.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Control::Volumes;
@@ -182,11 +182,6 @@ extern int SystemNameHash;
 extern int LastLevelHash;
 
 inline std::future<bool> LevelLoadTask;
-
-size_t ReadFileEx(void* ptr, size_t size, size_t count, FILE* stream);
-FILE* FileOpen(const char* fileName);
-void FileClose(FILE* ptr);
-bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompressedSize);
 
 bool LoadLevelFile(int levelIndex);
 void FreeLevel(bool partial);

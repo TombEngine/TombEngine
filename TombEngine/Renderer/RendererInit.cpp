@@ -50,18 +50,17 @@ namespace TEN::Renderer
 		_vertexInputLayout = _graphicsDevice->CreateInputLayout(inputLayoutItems, (IShader*)roomShader);
 		
 		// Initialize constant buffers.
-		_cbCameraMatrices = CreateConstantBuffer<CItemBuffer>();
-		_cbItem = CreateConstantBuffer<CItemBuffer>();
+		_cbCameraMatrices = CreateConstantBuffer<CCameraMatrixBuffer>();
+		_cbObjects = CreateConstantBuffer<CObjectsBuffer>();
 		_cbSky = CreateConstantBuffer<CSkyBuffer>();
 		_cbShadowMap = CreateConstantBuffer<CShadowLightBuffer>();
 		_cbRoom = CreateConstantBuffer<CRoomBuffer>();
-		_cbAnimated = CreateConstantBuffer<CAnimatedBuffer>();
+		_animatedFramesBuffer = _graphicsDevice->CreateStructuredBuffer(
+			sizeof(AnimatedFrame), MAX_ANIMATED_FRAMES, L"AnimatedFramesBuffer");
 		_cbPostProcessBuffer = CreateConstantBuffer<CPostProcessBuffer>();
-		_cbBlending = CreateConstantBuffer<CBlendingBuffer>();
+		_cbPerDraw = CreateConstantBuffer<CPerDrawBuffer>();
 		_cbInstancedSpriteBuffer = CreateConstantBuffer<CInstancedSpriteBuffer>();
-		_cbInstancedStaticMeshBuffer = CreateConstantBuffer<CInstancedStaticMeshBuffer>();
 		_cbSMAABuffer = CreateConstantBuffer<CSMAABuffer>();
-		_cbMaterial = CreateConstantBuffer<CMaterialBuffer>();
 
 		// Prepare HUD Constant buffer.
 		_cbHUDBar = CreateConstantBuffer<CHUDBarBuffer>();
@@ -286,7 +285,7 @@ namespace TEN::Renderer
 		_skyIndexBuffer = _graphicsDevice->CreateIndexBuffer(SKY_INDICES_COUNT, indices.data());
 	}
 
-	void Renderer::InitializeScreen(int w, int h, bool reset)
+	void Renderer::InitializeScreen(int w, int h, bool reset, bool resyncWindow)
 	{
 		// Cleanup resources
 		SAFE_DELETE(_backBuffer);
@@ -298,6 +297,10 @@ namespace TEN::Renderer
 		SAFE_DELETE(_depthRenderTarget);
 		SAFE_DELETE(_normalsAndMaterialIndexRenderTarget);
 		SAFE_DELETE(_emissiveAndRoughnessRenderTarget);
+		SAFE_DELETE(_distortionRenderTarget);
+		SAFE_DELETE(_dofRenderTarget[0]);
+		SAFE_DELETE(_dofRenderTarget[1]);
+		SAFE_DELETE(_dofRenderTarget[2]);
 		SAFE_DELETE(_SSAORenderTarget);
 		SAFE_DELETE(_SSAOBlurredRenderTarget);
 		SAFE_DELETE(_glowRenderTarget[0]);
@@ -319,27 +322,58 @@ namespace TEN::Renderer
 		_dumpScreenRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::Depth32);  
 		
 		_shadowMap = _graphicsDevice->CreateRenderSurface2D(g_Configuration.ShadowMapSize, g_Configuration.ShadowMapSize, 6, SurfaceFormat::SF_R32_Float, DepthFormat::Depth32);
+		_shadowMapViewport = { 0, 0, g_Configuration.ShadowMapSize, g_Configuration.ShadowMapSize, 0.0f, 1.0f };
 		
 		_depthRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_R32_Float, false, DepthFormat::None);
 		_normalsAndMaterialIndexRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_emissiveAndRoughnessRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
-		
+
 		_SSAORenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_SSAOBlurredRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
-		
-		_glowRenderTarget[0] = _graphicsDevice->CreateRenderSurface2D(w / GLOW_DOWNSCALE_FACTOR, h / GLOW_DOWNSCALE_FACTOR, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
-		_glowRenderTarget[1] = _graphicsDevice->CreateRenderSurface2D(w / GLOW_DOWNSCALE_FACTOR, h / GLOW_DOWNSCALE_FACTOR, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
-		
-		_legacyReflectionsRenderTarget = _graphicsDevice->CreateRenderSurface2D(w / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, h / LEGACY_REFLECTIONS_DOWNSCALE_FACTOR, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+
+		int downscaledW = (w + POSTPROCESS_DOWNSCALE_FACTOR - 1) / POSTPROCESS_DOWNSCALE_FACTOR;
+		int downscaledH = (h + POSTPROCESS_DOWNSCALE_FACTOR - 1) / POSTPROCESS_DOWNSCALE_FACTOR;
+		_distortionViewport = { 0, 0, downscaledW, downscaledH, 0.0f, 1.0f };
+		_dofViewport = { 0, 0, downscaledW, downscaledH, 0.0f, 1.0f };
+		_distortionRenderTarget = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_dofRenderTarget[0] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_dofRenderTarget[1] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_dofRenderTarget[2] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_legacyReflectionsRenderTarget = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+
+		downscaledW = (w + GLOW_DOWNSCALE_FACTOR - 1) / GLOW_DOWNSCALE_FACTOR;
+		downscaledH = (h + GLOW_DOWNSCALE_FACTOR - 1) / GLOW_DOWNSCALE_FACTOR;
+		_glowRenderTarget[0] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_glowRenderTarget[1] = _graphicsDevice->CreateRenderSurface2D(downscaledW, downscaledH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		
 		_skyboxRenderTarget = _graphicsDevice->CreateRenderSurface2D(ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE, 2, SurfaceFormat::SF_RGBA8_Unorm, DepthFormat::Depth32);
 
 		// Initialize viewport
 		_viewport = { 0, 0, w, h, 0.0f, 1.0f };
-		_shadowMapViewport = { 0, 0, g_Configuration.ShadowMapSize, g_Configuration.ShadowMapSize, 0.0f, 1.0f };
+
+		// Keep cached render views in sync with the new screen size. Gameplay rebuilds these
+		// via UpdateCameraMatrices() every frame, but title/pause paths reuse the last values
+		// and otherwise would blit the scene through a stale viewport after a window resize.
+		for (auto* view : { &_gameCamera, &_oldGameCamera, &_currentGameCamera })
+		{
+			view->Viewport.X = 0;
+			view->Viewport.Y = 0;
+			view->Viewport.Width = w;
+			view->Viewport.Height = h;
+
+			view->Camera.ViewSize = { (float)w, (float)h };
+			view->Camera.InvViewSize = { 1.0f / w, 1.0f / h };
+			view->Camera.Projection = Matrix::CreatePerspectiveFieldOfView(view->Camera.FOV, (float)w / (float)h, view->Camera.NearPlane, view->Camera.FarPlane);
+			view->Camera.ViewProjection = view->Camera.View * view->Camera.Projection;
+			view->Camera.Frustum.Update(view->Camera.View, view->Camera.Projection);
+		}
 
 		InitializeSMAA();
-		SetFullScreen();
+
+		// Skip when the resize came from a user window drag: the window is already at the
+		// target size and SetFullScreen() would recenter/raise the window mid-drag.
+		if (resyncWindow)
+			SetFullScreen();
 	}
 
 	void Renderer::InitializeSMAA()
@@ -356,17 +390,17 @@ namespace TEN::Renderer
 	void Renderer::InitializeCommonTextures()
 	{
 		// Initialize font.
-		auto fontPath = GetAssetPath(L"Textures/Font.spritefont");
+		auto fontPath = GetAssetPath("Textures/Font.spritefont");
 		if (!std::filesystem::is_regular_file(fontPath))
-			throw std::runtime_error("Font not found; path " + TEN::Utils::ToString(fontPath) + " is missing.");
-		     
+			throw std::runtime_error("Font not found; path " + fontPath + " is missing.");
+
 		_gameFont = _graphicsDevice->InitializeSpriteFont(fontPath);
 
 		// Initialize common textures.
-		_logo = SetTextureOrDefault(GetAssetPath(L"Textures/Logo.png"));
-		_loadingBarBorder = SetTextureOrDefault(GetAssetPath(L"Textures/LoadingBarBorder.png"));
-		_loadingBarInner = SetTextureOrDefault(GetAssetPath(L"Textures/LoadingBarInner.png"));
-		_whiteTexture = SetTextureOrDefault(GetAssetPath(L"Textures/WhiteSprite.png"));
+		_logo = SetTextureOrDefault(GetAssetPath("Textures/Logo.png"));
+		_loadingBarBorder = SetTextureOrDefault(GetAssetPath("Textures/LoadingBarBorder.png"));
+		_loadingBarInner = SetTextureOrDefault(GetAssetPath("Textures/LoadingBarInner.png"));
+		_whiteTexture = SetTextureOrDefault(GetAssetPath("Textures/WhiteSprite.png"));
 
 		_whiteSprite.Height = _whiteTexture->GetHeight();
 		_whiteSprite.Width = _whiteTexture->GetWidth();
