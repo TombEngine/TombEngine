@@ -35,6 +35,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed flyby camera jitter by converting the spline type to floating-point.
 * Fixed occasional flame emitter sprite jitter.
 * Fixed incorrect aspect ratio when resizing the window in windowed mode.
+* Fixed title level selection dialog not scrolling offscreen entries.
 
 ### Lua API changes
 
