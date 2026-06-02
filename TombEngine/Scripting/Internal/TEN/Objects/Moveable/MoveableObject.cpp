@@ -455,13 +455,12 @@ Rotation Moveable::GetRotation() const
 }
 
 /// Set the moveable's joint rotation for the current game frame.
-// Call this every OnLoop to keep an override active.
 // @function Moveable:SetJointRotation
 // @tparam int jointIndex Index of a joint to override.
 // @tparam Rotation rotation Joint rotation override.
 void Moveable::SetJointRotation(int jointId, const Rotation& rot)
 {
-	if (!JointExists(jointId))
+	if (!MeshExists(jointId))
 		return;
 
 	auto meshCount = Objects[_moveable->ObjectNumber].nmeshes;
@@ -1269,17 +1268,6 @@ void Moveable::Destroy()
 	}
 
 	Invalidate();
-}
-
-bool Moveable::JointExists(int index) const
-{
-	if (index < 0 || index >= Objects[_moveable->ObjectNumber].nmeshes)
-	{
-		ScriptAssertF(false, "Joint index {} does not exist in moveable '{}'", index, _moveable->Name);
-		return false;
-	}
-
-	return true;
 }
 
 bool Moveable::MeshExists(int index) const

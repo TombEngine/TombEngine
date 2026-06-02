@@ -145,7 +145,5 @@ public:
 
 private:
 	// Helpers
-
-	bool JointExists(int number) const;
 	bool MeshExists(int number) const;
 };
