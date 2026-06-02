@@ -388,7 +388,7 @@ Ammo& GetAmmo(LaraInfo& lara, LaraWeaponType weaponType)
 
 GameVector GetTargetPoint(ItemInfo& targetEntity)
 {
-	const auto& bounds = GetClosestKeyframe(targetEntity).BoundingBox;
+	const auto& bounds = GetFrame(targetEntity).BoundingBox;
 
 	auto center = Vector3i(
 		(bounds.X1 + bounds.X2) / 2,
@@ -734,7 +734,7 @@ void HandleWeapon(ItemInfo& laraItem)
 		}
 		else
 		{
-			laraItem.Model.MeshIndex[LM_HEAD] = Objects[ID_LARA_SCREAM].meshIndex + LM_HEAD;
+			laraItem.Model.MeshIndex[LM_HEAD] = Objects[Lara.Skin.SkinScream].meshIndex + LM_HEAD;
 		}
 
 		if (g_Camera.type != CameraType::Look &&

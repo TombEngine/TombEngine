@@ -1377,6 +1377,15 @@ struct PlayerLimbRotationData
 	EulerAngles RightArm = EulerAngles::Identity;
 };
 
+struct PlayerSkinData
+{
+	GAME_OBJECT_ID Skin				= ID_LARA_SKIN;
+	GAME_OBJECT_ID SkinJoints		= ID_LARA_SKIN_JOINTS;
+	GAME_OBJECT_ID SkinScream		= ID_LARA_SCREAM;
+	GAME_OBJECT_ID HairPrimary		= ID_HAIR_PRIMARY;
+	GAME_OBJECT_ID HairSecondary	= ID_HAIR_SECONDARY;
+};
+
 struct LaraInfo
 {
 	static constexpr auto TARGET_COUNT_MAX = 16;
@@ -1386,6 +1395,7 @@ struct LaraInfo
 	PlayerStatusData	Status	  = {};
 	PlayerEffectData	Effect	  = {};
 	PlayerInventoryData Inventory = {};
+	PlayerSkinData      Skin      = {};
 
 	// TODO: Move to PlayerControlData.
 	FlareData		  Flare = {};

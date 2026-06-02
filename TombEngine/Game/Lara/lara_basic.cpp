@@ -289,7 +289,7 @@ void lara_col_walk_forward(ItemInfo* item, CollisionInfo* coll)
 void lara_as_walk_forward_turn_180(ItemInfo* item, CollisionInfo* coll)
 {
 	constexpr auto TURN_FLAGS	  = (int)PlayerTurnFlags::TurnY;
-	constexpr auto Y_ANGLE_OFFEST = ANGLE(-180.0f);
+	constexpr auto Y_ANGLE_OFFSET = ANGLE(-180.0f);
 
 	auto& player = GetLaraInfo(*item);
 
@@ -304,7 +304,7 @@ void lara_as_walk_forward_turn_180(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	// Turn.
-	HandlePlayerTurn(*item, PLAYER_TURNAROUND_TURN_ALPHA, 0, false, TURN_FLAGS, Y_ANGLE_OFFEST);
+	HandlePlayerTurn(*item, PLAYER_TURNAROUND_TURN_ALPHA, 0, false, TURN_FLAGS, Y_ANGLE_OFFSET);
 
 	// Reset.
 	item->Animation.TargetState = LS_WALK_FORWARD;
@@ -326,7 +326,7 @@ void lara_col_walk_forward_turn_180(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.BlockFloorSlopeUp = true;
 	coll->Setup.BlockFloorSlopeDown = true;
 	coll->Setup.BlockDeathFloorDown = true;
-	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y + (item->Animation.Velocity.z >= 0.0f ? 0 : ANGLE(180.0f));
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y + ((item->Animation.Velocity.z >= 0.0f) ? ANGLE(0.0f) : ANGLE(180.0f));
 	GetCollisionInfo(coll, item);
 
 	if (TestLaraHitCeiling(coll))

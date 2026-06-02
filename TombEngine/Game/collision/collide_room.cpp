@@ -94,7 +94,7 @@ int FindGridShift(int x, int z)
 // Test if the axis-aligned bounding box collides with geometry at all.
 bool TestItemRoomCollisionAABB(ItemInfo* item)
 {
-	const auto& bounds = GetClosestKeyframe(*item).BoundingBox;
+	const auto& bounds = GetFrame(*item).BoundingBox;
 	auto box = bounds + item->Pose;
 	short maxY = std::min(box.Y1, box.Y2);
 	short minY = std::max(box.Y1, box.Y2);

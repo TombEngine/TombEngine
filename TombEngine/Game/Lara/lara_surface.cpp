@@ -58,7 +58,7 @@ void lara_as_surface_idle(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (g_Config.IsUsingModernControls())
+	if (g_Configuration.IsUsingModernControls())
 	{
 		if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
 		{
@@ -77,13 +77,13 @@ void lara_as_surface_idle(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 	
-	if (IsHeld(In::Roll) || (HasOppositeAction(*item) && g_Config.EnableOppositeActionRoll))
+	if (IsHeld(In::Roll) || (HasOppositeAction(*item) && g_Configuration.EnableOppositeActionRoll))
 	{
 		item->Animation.TargetState = LS_ROLL_180_FORWARD;
 		return;
 	}
 
-	if (g_Config.IsUsingModernControls())
+	if (g_Configuration.IsUsingModernControls())
 	{
 		if (IsHeld(In::Forward) || IsHeld(In::Back) ||
 			IsHeld(In::Left) || IsHeld(In::Right))
@@ -106,12 +106,12 @@ void lara_as_surface_idle(ItemInfo* item, CollisionInfo* coll)
 		}
 	}
 
-	if (IsHeld(In::StepLeft) || ((IsHeld(In::Walk) && IsHeld(In::Left)) && !g_Config.IsUsingModernControls()))
+	if (IsHeld(In::StepLeft) || ((IsHeld(In::Walk) && IsHeld(In::Left)) && !g_Configuration.IsUsingModernControls()))
 	{
 		item->Animation.TargetState = LS_ONWATER_LEFT;
 		return;
 	}
-	else if (IsHeld(In::StepRight) || ((IsHeld(In::Walk) && IsHeld(In::Right)) && !g_Config.IsUsingModernControls()))
+	else if (IsHeld(In::StepRight) || ((IsHeld(In::Walk) && IsHeld(In::Right)) && !g_Configuration.IsUsingModernControls()))
 	{
 		item->Animation.TargetState = LS_ONWATER_RIGHT;
 		return;
@@ -146,7 +146,7 @@ void lara_as_surface_swim_forward(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (g_Config.IsUsingModernControls())
+	if (g_Configuration.IsUsingModernControls())
 	{
 		HandlePlayerTurn(*item, PLAYER_SWIM_TURN_ALPHA, 0, false, TURN_FLAGS);
 	}
@@ -165,7 +165,7 @@ void lara_as_surface_swim_forward(ItemInfo* item, CollisionInfo* coll)
 	float baseVel = g_GameFlow->GetSettings()->Physics.SwimVelocity;
 
 	if (IsHeld(In::Forward) ||
-		(g_Config.IsUsingModernControls() &&
+		(g_Configuration.IsUsingModernControls() &&
 			(IsHeld(In::Forward) || IsHeld(In::Back) ||
 			 IsHeld(In::Left) || IsHeld(In::Right))))
 	{
@@ -207,7 +207,7 @@ void lara_as_surface_swim_left(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (!g_Config.IsUsingModernControls())
+	if (!g_Configuration.IsUsingModernControls())
 	{
 		// NOTE: Walk locks orientation.
 		if (!IsHeld(In::Walk))
@@ -254,7 +254,7 @@ void lara_as_surface_swim_right(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (!g_Config.IsUsingModernControls())
+	if (!g_Configuration.IsUsingModernControls())
 	{
 		// NOTE: Walk locks orientation.
 		if (!IsHeld(In::Walk))

@@ -160,16 +160,16 @@ namespace TEN::Entities::Vehicles
 		switch (mountType)
 		{
 		case VehicleMountType::LevelStart:
-			SetAnimation(laraItem, ID_SNOWMOBILE_LARA_ANIMS, SKIDOO_ANIM_IDLE);
+			SetAnimationFromSlot(*laraItem, ID_SNOWMOBILE_LARA_ANIMS, SKIDOO_ANIM_IDLE);
 			break;
 
 		case VehicleMountType::Left:
-			SetAnimation(laraItem, ID_SNOWMOBILE_LARA_ANIMS, SKIDOO_ANIM_MOUNT_LEFT);
+			SetAnimationFromSlot(*laraItem, ID_SNOWMOBILE_LARA_ANIMS, SKIDOO_ANIM_MOUNT_LEFT);
 			break;
 
 		default:
 		case VehicleMountType::Right:
-			SetAnimation(laraItem, ID_SNOWMOBILE_LARA_ANIMS, SKIDOO_ANIM_MOUNT_RIGHT);
+			SetAnimationFromSlot(*laraItem, ID_SNOWMOBILE_LARA_ANIMS, SKIDOO_ANIM_MOUNT_RIGHT);
 			break;
 		}
 
@@ -504,7 +504,7 @@ namespace TEN::Entities::Vehicles
 			skidooItem->Pose.Position.y != skidooItem->Floor &&
 			!dead)
 		{
-			SetAnimation(laraItem, ID_SNOWMOBILE_LARA_ANIMS, SKIDOO_ANIM_LEAP_START);
+			SetAnimationFromSlot(*laraItem, ID_SNOWMOBILE_LARA_ANIMS, SKIDOO_ANIM_LEAP_START);
 		}
 		else if (laraItem->Animation.ActiveState != SKIDOO_STATE_FALL &&
 			collide && !dead)
@@ -516,7 +516,7 @@ namespace TEN::Entities::Vehicles
 				else
 					SoundEffect(SFX_TR2_VEHICLE_IMPACT2, &skidooItem->Pose);
 
-				SetAnimation(laraItem, ID_SNOWMOBILE_LARA_ANIMS, collide);
+				SetAnimationFromSlot(*laraItem, ID_SNOWMOBILE_LARA_ANIMS, collide);
 			}
 		}
 		else

@@ -120,9 +120,10 @@ namespace TEN::Gui
 
 		GameConfiguration Config = {};
 
-		int	  SelectedScreenResolution = 0;
-		bool  IgnoreInput			   = false; // Ignore input until all actions are inactive.
-		float NewKeyWaitTimer		   = 0.0f;
+		int	 SelectedScreenResolution = 0;
+		bool IgnoreInput			  = false; // Ignore input until all actions are inactive.
+		int	 NewKeyWaitTimer		  = 0;
+		int	 SelectedSoundDevice	  = 0;
 	};
 
 	class GuiController
@@ -141,7 +142,8 @@ namespace TEN::Gui
 		int OptionCount;
 		int SelectedSaveSlot;
 
-		float TimeInMenu = -1.0f;
+		int TimeInMenu = NO_VALUE;
+		float BackupGamma = 1.0f;
 		SettingsData CurrentSettings;
 
 		// Inventory variables
@@ -224,6 +226,7 @@ namespace TEN::Gui
 		bool DoObjectsCombine(int objectNumber1, int objectNumber2);
 		void InitializeInventory(ItemInfo* item);
 		void FillDisplayOptions();
+		void FillOtherOptions();
 		bool IsItemCurrentlyCombinable(int objectNumber);
 		bool IsItemInInventory(int objectNumber);
 		void CombineObjects(ItemInfo* item, int objectNumber1, int objectNumber2);

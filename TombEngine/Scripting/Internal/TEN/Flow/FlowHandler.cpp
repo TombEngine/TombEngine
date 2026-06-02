@@ -148,6 +148,21 @@ have an index of 0, the second an index of 1, and so on.
 */
 	tableFlow.set_function(ScriptReserved_GetCurrentLevel, &FlowHandler::GetCurrentLevel, this);
 
+/*** Returns the index of the level that the game control is running in that moment.
+Indices depend on the order in which AddLevel was called; the title level will
+have an index of 0, the first level will have an index of 1, and so on.
+@function GetCurrentLevelIndex
+@treturn int The current level index.
+*/
+	tableFlow.set_function(ScriptReserved_GetCurrentLevelIndex, &FlowHandler::GetCurrentLevelIndex, this);
+
+/*** Returns the total number of levels registered in the gameflow via AddLevel.
+This counts all entries in the Levels list, including title and home levels if they were added there.
+@function GetTotalLevelCount
+@treturn int The total number of registered levels.
+*/
+	tableFlow.set_function(ScriptReserved_GetTotalLevelCount, &FlowHandler::GetNumLevels, this);
+
 /*** Finishes the current level, with optional level index and start position index provided.
 If level index is not provided or is zero, jumps to next level. If level index is more than
 level count, jumps to title. If LARA\_START\_POS objects are present in level, player will be
@@ -537,6 +552,11 @@ Level* FlowHandler::GetCurrentLevel()
 	return Levels[CurrentLevel];
 }
 
+int FlowHandler::GetCurrentLevelIndex() const
+{
+	return CurrentLevel;
+}
+
 int	FlowHandler::GetNumLevels() const
 {
 	return (int)Levels.size();
@@ -863,10 +883,12 @@ bool FlowHandler::DoFlow()
 			loadFromSavegame = false;
 		}
 
+		bool exitGame = false;
+
 		switch (status)
 		{
 		case GameStatus::ExitGame:
-			DoTheGame = false;
+			exitGame = true;
 			break;
 
 		case GameStatus::ExitToTitle:
@@ -915,6 +937,9 @@ bool FlowHandler::DoFlow()
 			NextLevel = 0;
 			break;
 		}
+
+		if (exitGame)
+			break;
 	}
 
 	g_GameScript->ResetScripts(true);

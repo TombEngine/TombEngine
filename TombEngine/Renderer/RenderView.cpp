@@ -7,24 +7,24 @@ namespace TEN::Renderer
 		Camera(camera, roll, fov, nearPlane, farPlane, width, height) 
 	{
 		Viewport = {};
-		Viewport.TopLeftX = 0.0f;
-		Viewport.TopLeftY = 0.0f;
-		Viewport.Width = width;
-		Viewport.Height = height;
-		Viewport.MinDepth = 0.0f;
-		Viewport.MaxDepth = 1.0f;
+		Viewport.X = 0;
+		Viewport.Y = 0;
+		Viewport.Width = w;
+		Viewport.Height = h;
+		Viewport.MinDepth = 0;
+		Viewport.MaxDepth = 1;
 	}
 
 	RenderView::RenderView(const Vector3& pos, const Vector3& dir, const Vector3& up, float width, float height, int roomNumber, float nearPlane, float farPlane, float fov) :
 		Camera(pos, dir, up, roomNumber, width, height, fov, nearPlane, farPlane) 
 	{
 		Viewport = {};
-		Viewport.TopLeftX = 0.0f;
-		Viewport.TopLeftY = 0.0f;
-		Viewport.Width = width;
-		Viewport.Height = height;
-		Viewport.MinDepth = 0.0f;
-		Viewport.MaxDepth = 1.0f;
+		Viewport.X = 0;
+		Viewport.Y = 0;
+		Viewport.Width = w;
+		Viewport.Height = h;
+		Viewport.MinDepth = 0;
+		Viewport.MaxDepth = 1;
 	}
 	 
 	void RenderView::FillConstantBuffer(CCameraMatrixBuffer& bufferToFill)

@@ -111,7 +111,6 @@ struct CameraLosCollisionData
 	float Distance		= 0.0f;
 };
 
-// class CameraObject
 struct CameraInfo
 {
 	// Camera sphere

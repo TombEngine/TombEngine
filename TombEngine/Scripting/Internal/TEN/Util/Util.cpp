@@ -35,7 +35,8 @@ namespace TEN::Scripting::Util
 	// @tentable Util
 	// @pragma nostrip
 
-	/// Determine if there is a clear line of sight between two positions. Limited to room geometry. Objects are ignored.
+	/// Determine if there is a clear line of sight between two positions.
+	// This method is deprecated. It is recommended to use @{Collision.Ray} instead.
 	// @function HasLineOfSight
 	// @tparam float roomID Room ID of the first position's room.
 	// @tparam Vec3 posA First position.
@@ -106,8 +107,8 @@ namespace TEN::Scripting::Util
 	// str1:SetPosition(TEN.Util.PercentToScreen(50, 50))
 	static std::tuple<int, int> PercentToScreen(float x, float y)
 	{
-		float fWidth = g_Config.ScreenWidth;
-		float fHeight = g_Config.ScreenHeight;
+		float fWidth = g_Configuration.ScreenWidth;
+		float fHeight = g_Configuration.ScreenHeight;
 		int resX = (int)std::round(fWidth / 100.0f * x);
 		int resY = (int)std::round(fHeight / 100.0f * y);
 
@@ -149,8 +150,8 @@ namespace TEN::Scripting::Util
 	// local percentPos = TEN.Util.ScreenToPercent(screenPos.x, screenPos.y)
 	static std::tuple<float, float> ScreenToPercent(int x, int y)
 	{
-		float fWidth = g_Config.ScreenWidth;
-		float fHeight = g_Config.ScreenHeight;
+		float fWidth = g_Configuration.ScreenWidth;
+		float fHeight = g_Configuration.ScreenHeight;
 		float resX = x / fWidth * 100.0f;
 		float resY = y / fHeight * 100.0f;
 		return std::make_tuple(resX, resY);

@@ -211,7 +211,7 @@ namespace TEN::Entities::Traps
 			item.Animation.FrameNumber += FALLING_BLOCK_NEXT_FRAME;
 
 			DoDamage(playerItem, INT_MAX);
-			SetAnimation(playerItem, LA_BOULDER_DEATH);
+			SetAnimation(playerItem, LA_BOULDER_DEATH, 0, GetSystemBlendDuration());
 			playerItem->Animation.Velocity.y = 0.0f;	
 			playerItem->Animation.Velocity.z = 0.0f;	
 		}

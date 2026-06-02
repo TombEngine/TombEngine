@@ -601,7 +601,7 @@ void UpdatePlayerRefCameraOrient(ItemInfo& item)
 
 	float vel = Vector2(item.Animation.Velocity.x, item.Animation.Velocity.z).Length();
 
-	bool isSpotCameraSwitch = (UseSpotCam != PrevUseSpotCam);
+	bool isSpotCameraSwitch = (UseSpotCam != PrevUseSpotCam); // TODO: Fix this.
 	bool isStopped = (((GetMoveAxis() == Vector2::Zero && !IsHeld(In::StepLeft) && !IsHeld(In::StepRight)) || vel == 0.0f) &&
 					  TestState(item.Animation.ActiveState, PLAYER_IDLE_STATE_IDS));
 
@@ -622,10 +622,8 @@ void UpdatePlayerRefCameraOrient(ItemInfo& item)
 
 void HandleLookAt(CameraInfo& camera, short roll)
 {
-	float fov = TO_RAD(g_Camera.Fov / 1.333333f);
 	float farView = BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView());
-
-	g_Renderer.UpdateCameraMatrices(camera, TO_RAD(roll), fov, farView);
+	g_Renderer.UpdateCameraMatrices(&camera, farView);
 }
 
 void SetFov(short fov, bool store)

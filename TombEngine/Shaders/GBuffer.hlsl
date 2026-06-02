@@ -1,6 +1,5 @@
 #include "./CBCamera.hlsli"
-#include "./CBItem.hlsli"
-#include "./CBInstancedStatics.hlsli"
+#include "./CBObjects.hlsli"
 #include "./CBRoom.hlsli"
 #include "./Materials.hlsli"
 #include "./VertexInput.hlsli"
@@ -22,10 +21,7 @@ struct PixelShaderInput
 };
 
 Texture2D Texture : register(t0);
-SamplerState Sampler : register(s0);
-
 Texture2D NormalTexture : register(t1);
-SamplerState NormalTextureSampler : register(s1);
 
 struct PixelShaderOutput
 {
@@ -83,47 +79,42 @@ PixelShaderInput VSRooms(VertexShaderInput input)
 	return output;
 }
 
-PixelShaderInput VSItems(VertexShaderInput input)
+// Unified VS for moveables and instanced statics. Items draw with instance_count=1 so
+// InstanceID==0 for them; statics use the actual InstanceID. The Skinned uniform branch
+// collapses at the draw-call boundary, no per-vertex divergence cost.
+PixelShaderInput VSObjects(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
 	PixelShaderInput output;
-	
-	// Blend and apply world matrix
-	float4x4 blended = Skinned ? BlendBoneMatrices(input, Bones, (Skinned == 2)) : Bones[input.BoneIndex[0]];
-	float4x4 world = mul(blended, World);
 
-	// Calculate vertex effects
+	// 0 = Static (no bones), 1 = Rigid (single bone), 2 = Full blend, 3 = Classic blend.
+	float4x4 world;
+	if (Skinned == 0)
+	{
+		world = Objects[InstanceID].World;
+	}
+	else if (Skinned == 1)
+	{
+		world = mul(Bones[input.BoneIndex[0]], Objects[InstanceID].World);
+	}
+	else
+	{
+		float4x4 blended = BlendBoneMatrices(input, Bones, Skinned == 3);
+		world = mul(blended, Objects[InstanceID].World);
+	}
+
 	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
 	float3 pos = Move(input.Position, input.Effects, wibble);
 
-	output.Position = mul(mul(float4(pos, 1.0f), world), ViewProjection);
-    output.PositionCopy = output.Position;
-    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
-    output.Normal = normalize(mul(input.Normal.xyz, (float3x3) world).xyz);
-    output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) world).xyz);
-    output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) world).xyz);
-    output.DistanceFog = DoDistanceFogForVertex(pos);
-	
-	return output;
-}
-
-PixelShaderInput VSInstancedStatics(VertexShaderInput input, uint InstanceID : SV_InstanceID)
-{
-	PixelShaderInput output;
-
-	// Calculate vertex effects
-    float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
-	float3 pos = Move(input.Position, input.Effects, wibble);
-
-	float4 worldPosition = (mul(float4(pos, 1.0f), StaticMeshes[InstanceID].World));
+	float4 worldPosition = mul(float4(pos, 1.0f), world);
 
 	output.Position = mul(worldPosition, ViewProjection);
-    output.PositionCopy = output.Position;
-    output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
-    output.Normal = normalize(mul(input.Normal.xyz, (float3x3) StaticMeshes[InstanceID].World).xyz);
-    output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) StaticMeshes[InstanceID].World).xyz);
-    output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) StaticMeshes[InstanceID].World).xyz);
-    output.DistanceFog = DoDistanceFogForVertex(pos);
-	
+	output.PositionCopy = output.Position;
+	output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
+	output.Normal = normalize(mul(input.Normal.xyz, (float3x3) world).xyz);
+	output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) world).xyz);
+	output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) world).xyz);
+	output.DistanceFog = DoDistanceFogForVertex(pos);
+
 	return output;
 }
 
@@ -137,15 +128,15 @@ PixelShaderOutput PS(PixelShaderInput input)
         else
             input.UV = CalculateUVRotate(input.UV, 0);
 
-	float4 color = Texture.Sample(Sampler, input.UV);
+	float4 color = Texture.Sample(AnisotropicClampSampler, input.UV);
 
 	DoAlphaTest(color);
 	
-    float4 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV);
-    float specular = ORSHTexture.Sample(ORSHSampler, input.UV).z;
+	float4 emissive = EmissiveTexture.Sample(AnisotropicClampSampler, input.UV);
+	float specular = ORSHTexture.Sample(AnisotropicClampSampler, input.UV).z;
 	
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
-	float3 normal = DecodeNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV));
+	float3 normal = DecodeNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV));
 	normal = EncodeNormal(normalize(mul(mul(normal, TBN), (float3x3)View)));
 
 	output.Normals.xyz = normal;

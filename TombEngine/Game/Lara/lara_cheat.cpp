@@ -25,7 +25,7 @@ namespace TEN::Entities::Player
 
 		float baseVel = g_GameFlow->GetSettings()->Physics.SwimVelocity;
 
-		if (!g_Config.IsUsingModernControls())
+		if (!g_Configuration.IsUsingModernControls())
 		{
 			if (IsHeld(In::Forward))
 			{
@@ -49,11 +49,11 @@ namespace TEN::Entities::Player
 		if (IsHeld(In::Action))
 			SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, 31, 150, 150, 150);
 
-		if (g_Config.IsUsingModernControls() ?
+		if (g_Configuration.IsUsingModernControls() ?
 			(IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right)):
 			IsHeld(In::Jump))
 		{
-			if (g_Config.IsUsingModernControls())
+			if (g_Configuration.IsUsingModernControls())
 				HandlePlayerTurn(*item, PLAYER_FLY_CHEAT_TURN_ALPHA, 0, false, TURN_FLAGS);
 
 			float velCoeff = IsHeld(In::Sprint) ? 2.5f : 1.0f;

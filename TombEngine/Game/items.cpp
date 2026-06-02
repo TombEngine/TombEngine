@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Game/items.h"
 
+#include "Game/Animation/Animation.h"
 #include "Game/collision/floordata.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
@@ -27,6 +28,7 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Collision::Room;
@@ -40,6 +42,17 @@ using TEN::Renderer::g_Renderer;
 
 constexpr auto ITEM_DEATH_TIMEOUT = 4 * FPS;
 
+float MoveableAnimBlendData::GetAlpha() const
+{
+	float curveX = (FrameCount != 0) ? ((float)FrameNumber / (float)FrameCount) : 0.0f;
+	return Curve.GetY(curveX);
+}
+
+bool MoveableAnimBlendData::IsEnabled() const
+{
+	return (FrameCount != 0);
+}
+
 BoundingBox ItemInfo::GetAabb() const
 {
 	return Geometry::GetAabb(GetObb());
@@ -47,13 +60,23 @@ BoundingBox ItemInfo::GetAabb() const
 
 BoundingOrientedBox ItemInfo::GetObb() const
 {
-	auto frameData = GetFrameInterpData(*this);
-	auto obb = BoundingOrientedBox();
-	BoundingOrientedBox(
-		Vector3::Lerp(frameData.Keyframe0.Aabb.Center, frameData.Keyframe1.Aabb.Center, frameData.Alpha),
-		Vector3::Lerp(frameData.Keyframe0.Aabb.Extents, frameData.Keyframe1.Aabb.Extents, frameData.Alpha),
-		Vector4::UnitY).Transform(obb, 1.0f, Pose.Orientation.ToQuaternion(), Pose.Position.ToVector3());
-	return obb;
+	// Get anim data.
+	const auto& anim = GetAnimData(*this);
+	int frameNumber = std::clamp(Animation.FrameNumber, 0, (int)anim.Frames.size() - 1);
+	auto rootMotionCounteract = anim.GetRootMotionCounteraction(frameNumber);
+
+	// Compute offset.
+	const auto& relOffset = anim.Frames[frameNumber].LocalAabb.Center;
+	const auto orient = Pose.Orientation + rootMotionCounteract.Rotation;
+
+	auto rotMatrix = orient.ToRotationMatrix();
+	auto offset = Vector3::Transform(relOffset + rootMotionCounteract.Translation, rotMatrix);
+
+	// Get extents.
+	const auto& extents = anim.Frames[frameNumber].LocalAabb.Extents;
+
+	// Create and return OBB.
+	return BoundingOrientedBox(Pose.Position.ToVector3() + offset, extents, orient.ToQuaternion());
 }
 
 std::vector<BoundingSphere> ItemInfo::GetSpheres() const
@@ -195,6 +218,48 @@ void ItemInfo::ResetModelToDefault()
 	}
 }
 
+void ItemInfo::SetAnimBlend(int frameCount, const BezierCurve2& curve)
+{
+	// Return early if no new blend.
+	if (frameCount <= 0)
+		return;
+
+	const auto& object = Objects[ObjectNumber];
+
+	const auto& anim = GetAnimData(*this);
+	auto rootMotionCounteract = anim.GetRootMotionCounteraction(Animation.FrameNumber);
+
+	const auto& rootPos = anim.Frames[Animation.FrameNumber].RootPosition;
+	auto boneRot = rootMotionCounteract.Rotation.ToQuaternion();
+
+	// HACK: Update bone orientations in renderer if blend is engaged to prevent blending from default pose.
+	if (IsLara())
+	{
+		g_Renderer.UpdateLaraAnimations(true);
+	}
+	else
+	{
+		g_Renderer.UpdateItemAnimations(Index, true);
+	}
+
+	Animation.Blend.FrameNumber = 0;
+	Animation.Blend.FrameCount = frameCount;
+	Animation.Blend.Curve = curve;
+	Animation.Blend.Velocity = Animation.Velocity;
+	Animation.Blend.RootPosition = rootPos + rootMotionCounteract.Translation;
+
+	for (int i = 0; i < object.nmeshes; i++)
+	{
+		auto boneOrient = GetBoneOrientation(*this, i);
+		Animation.Blend.BoneOrientations[i] = boneOrient * boneRot;
+	}
+}
+
+void ItemInfo::DisableAnimBlend()
+{
+	Animation.Blend = {};
+}
+
 bool ItemInfo::IsLara() const
 {
 	return Data.is<LaraInfo*>();
@@ -269,17 +334,14 @@ static void GameScriptHandleKilled(short itemNumber, bool destroyed)
 	auto* item = &g_Level.Items[itemNumber];
 
 	g_GameScriptEntities->TryRemoveColliding(itemNumber, true);
-	if (!item->Callbacks.OnKilled.empty())
-		g_GameScript->ExecuteFunction(item->Callbacks.OnKilled, itemNumber);
+	if (!item->Callbacks[(int)EntityCallbackPoint::Killed].empty())
+		g_GameScript->ExecuteFunction(item->Callbacks[(int)EntityCallbackPoint::Killed], itemNumber);
 
 	if (destroyed)
 	{
 		g_GameScriptEntities->NotifyKilled(item);
 		item->Name.clear();
-		item->Callbacks.OnKilled.clear();
-		item->Callbacks.OnHit.clear();
-		item->Callbacks.OnObjectCollided.clear();
-		item->Callbacks.OnRoomCollided.clear();
+		item->Callbacks = {};
 	}
 }
 
@@ -553,7 +615,7 @@ short CreateNewEffect(short roomNumber)
 		room->fxNumber = fxNumber;
 
 		fx->speed = 0;
-		fx->color = Vector4::One;
+		fx->color = NEUTRAL_COLOR;
 		fx->fallspeed = 0;
 		fx->frameNumber = 0;
 		fx->counter = 0;
@@ -647,29 +709,29 @@ bool IsItemInRoom(short itemNumber, short roomNumber)
 
 void InitializeItem(short itemNumber) 
 {
-	auto* item = &g_Level.Items[itemNumber];
-	const auto& object = Objects[item->ObjectNumber];
+	auto& item = g_Level.Items[itemNumber];
+	const auto& object = Objects[item.ObjectNumber];
 
 	if (!object.Animations.empty())
 		SetAnimation(item, 0);
 
-	item->Animation.RequiredState = NO_VALUE;
-	item->Animation.Velocity = Vector3::Zero;
-	item->Animation.AnimObjectID = item->ObjectNumber;
+	item.Animation.RequiredState = NO_VALUE;
+	item.Animation.Velocity = Vector3::Zero;
+	item.Animation.AnimObjectID = item.ObjectNumber;
 
 	for (int i = 0; i < ITEM_FLAG_COUNT; i++)
 		item.ItemFlags[i] = 0;
 
-	item->Active = false;
-	item->Status = ITEM_NOT_ACTIVE;
-	item->Animation.IsAirborne = false;
-	item->HitStatus = false;
-	item->Collidable = true;
-	item->LookedAt = false;
-	item->Timer = 0;
-	item->HitPoints = object.HitPoints;
+	item.Active = false;
+	item.Status = ITEM_NOT_ACTIVE;
+	item.Animation.IsAirborne = false;
+	item.HitStatus = false;
+	item.Collidable = true;
+	item.LookedAt = false;
+	item.Timer = 0;
+	item.HitPoints = object.HitPoints;
 
-	item->Effect = {};
+	item.Effect = {};
 
 	if (item.ObjectNumber == ID_HK_ITEM ||
 		item.ObjectNumber == ID_HK_AMMO_ITEM ||
@@ -708,9 +770,9 @@ void InitializeItem(short itemNumber)
 	item.NextItem = room.itemNumber;
 	room.itemNumber = itemNumber;
 
-	const auto& sector = *GetSector(&room, item.Pose.Position.x - room.Position.x, item.Pose.Position.z - room.Position.z);
-	item.Floor = sector.GetSurfaceHeight(item.Pose.Position.x, item.Pose.Position.z, true);
-	item.BoxNumber = sector.PathfindingBoxID;
+	FloorInfo* floor = GetSector(&room, item.Pose.Position.x - room.Position.x, item.Pose.Position.z - room.Position.z);
+	item.Floor = floor->GetSurfaceHeight(item.Pose.Position.x, item.Pose.Position.z, true);
+	item.BoxNumber = floor->PathfindingBoxID;
 
 	item.ResetModelToDefault();
 
@@ -767,7 +829,7 @@ short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID)
 		newItem.ObjectNumber = objectID;
 		newItem.RoomNumber = item.RoomNumber;
 		newItem.Pose = item.Pose;
-		newItem.Model.Color = Vector4::One;
+		newItem.Model.Color = NEUTRAL_COLOR;
 
 		InitializeItem(itemNumber);
 
@@ -893,8 +955,14 @@ void UpdateAllItems()
 
 		if (item.AfterDeath <= ITEM_DEATH_TIMEOUT)
 		{
+			if (!item.Callbacks[(int)EntityCallbackPoint::PreLoop].empty())
+				g_GameScript->ExecuteFunction(item.Callbacks[(int)EntityCallbackPoint::PreLoop], item.Index);
+
 			if (Objects[item.ObjectNumber].control)
 				Objects[item.ObjectNumber].control(item.Index);
+
+			if (!item.Callbacks[(int)EntityCallbackPoint::PostLoop].empty())
+				g_GameScript->ExecuteFunction(item.Callbacks[(int)EntityCallbackPoint::PostLoop], item.Index);
 
 			TestVolumes(item.Index);
 			ProcessEffects(&item);
@@ -956,8 +1024,13 @@ void DoDamage(ItemInfo* item, int damage, bool silent)
 {
 	static int lastHurtTime = 0;
 
-	if (item->HitPoints <= 0)
+	if (!item || item->HitPoints <= 0)
 		return;
+
+	if (item->IsLara() && GetLaraInfo(*item).Control.WaterStatus == WaterStatus::FlyCheat)
+		return;
+	
+	const int oldHitPoints = item->HitPoints;
 
 	item->HitStatus = true;
 	item->HitPoints -= damage;
@@ -983,8 +1056,9 @@ void DoDamage(ItemInfo* item, int damage, bool silent)
 				Rumble(power, 0.15f);
 			}
 
-			SaveGame::Statistics.Game.DamageTaken += damage;
-			SaveGame::Statistics.Level.DamageTaken += damage;
+			int damageDelta = std::max(0, oldHitPoints - item->HitPoints);
+			SaveGame::Statistics.Game.DamageTaken += damageDelta;
+			SaveGame::Statistics.Level.DamageTaken += damageDelta;
 		}
 
 		if (!silent && (GlobalCounter - lastHurtTime) > (FPS * 2 + Random::GenerateInt(0, FPS)))
@@ -1013,12 +1087,11 @@ void DoItemHit(ItemInfo* target, int damage, bool isExplosive, bool allowBurn)
 	if (isExplosive && allowBurn && Random::TestProbability(1 / 2.0f))
 		ItemBurn(target);
 
-	if (!target->Callbacks.OnHit.empty())
+	if (!target->Callbacks[(int)EntityCallbackPoint::Hit].empty())
 	{
-		short index = g_GameScriptEntities->GetIndexByName(target->Name);
-
+		int index = g_GameScriptEntities->GetIndexByName(target->Name);
 		if (index != NO_VALUE)
-			g_GameScript->ExecuteFunction(target->Callbacks.OnHit, index);
+			g_GameScript->ExecuteFunction(target->Callbacks[(int)EntityCallbackPoint::Hit], index);
 	}
 }
 

@@ -170,7 +170,7 @@ namespace TEN::Entities::Creatures::TR3
 			int height = GetPointCollision(Vector3i(x, y, z), item->RoomNumber).GetFloorHeight();
 			bool cover = (item->Pose.Position.y > (height + CLICK(3)) && item->Pose.Position.y < (height + CLICK(4.5f)) && laraAI.distance > pow(BLOCK(1), 2));
 
-			auto* enemy = creature->Enemy;
+			auto* enemy = creature->Enemy.Get();
 			creature->Enemy = LaraItem;
 
 			if (laraAI.distance < pow(BLOCK(1), 2) || item->HitStatus || TargetVisible(item, &laraAI))

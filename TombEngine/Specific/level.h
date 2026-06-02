@@ -4,18 +4,16 @@
 #include "Game/control/event.h"
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
+#include "Game/LevelCamera.h"
 #include "Game/room.h"
+#include "Game/spotcam.h"
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
-#include "Specific/IO/ChunkId.h"
-#include "Specific/IO/ChunkReader.h"
-#include "Specific/IO/LEB128.h"
-#include "Specific/IO/Streams.h"
-#include "Specific/LevelCameraInfo.h"
-#include "Specific/newtypes.h"
+#include "Specific/Structures/newtypes.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Control::Volumes;
+using namespace TEN::SpotCam;
 
 struct ChunkId;
 struct LEB128;
@@ -139,6 +137,9 @@ struct LevelData
 	std::vector<RoomData> Rooms		= {};
 	std::vector<short>	  FloorData = {};
 	std::vector<SinkInfo> Sinks		= {};
+
+	// Pathfinding
+
 	std::vector<BOX_INFO> PathfindingBoxes				   = {};
 	std::vector<OVERLAP>  Overlaps						   = {};
 	std::vector<int>	  Zones[(int)ZoneType::MaxZone][2] = {};
@@ -151,13 +152,14 @@ struct LevelData
 
 	// Misc.
 
-	std::vector<LevelCameraInfo> Cameras			   = {};
-	std::vector<EventSet>		 GlobalEventSets	   = {};
-	std::vector<EventSet>		 VolumeEventSets	   = {};
+	std::vector<LevelCameraInfo> Cameras   = {};
+	std::vector<SpotCamInfo>	 SpotCams  = {};
+	std::vector<EventSet>		 GlobalEventSets = {};
+	std::vector<EventSet>		 VolumeEventSets = {};
 	std::vector<int>			 LoopedEventSetIndices = {};
-	std::vector<AI_OBJECT>		 AIObjects			   = {};
-	std::vector<SPRITE>			 Sprites			   = {};
-	std::vector<MirrorData>		 Mirrors			   = {};
+	std::vector<AI_OBJECT>		 AIObjects = {};
+	std::vector<SPRITE>			 Sprites   = {};
+	std::vector<MirrorData>		 Mirrors = {};
 
 	// Texture and materials
 
@@ -180,11 +182,6 @@ extern int SystemNameHash;
 extern int LastLevelHash;
 
 inline std::future<bool> LevelLoadTask;
-
-size_t ReadFileEx(void* ptr, size_t size, size_t count, FILE* stream);
-FILE* FileOpen(const char* fileName);
-void FileClose(FILE* ptr);
-bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompressedSize);
 
 bool LoadLevelFile(int levelIndex);
 void FreeLevel(bool partial);

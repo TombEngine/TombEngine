@@ -170,16 +170,16 @@ namespace TEN::Entities::Vehicles
 		switch (mountType)
 		{
 		case VehicleMountType::LevelStart:
-			SetAnimation(laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_IDLE);
+			SetAnimationFromSlot(*laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_IDLE);
 			break;
 
 		case VehicleMountType::Left:
-			SetAnimation(laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_MOUNT_LEFT);
+			SetAnimationFromSlot(*laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_MOUNT_LEFT);
 			break;
 
 		default:
 		case VehicleMountType::Right:
-			SetAnimation(laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_MOUNT_RIGHT);
+			SetAnimationFromSlot(*laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_MOUNT_RIGHT);
 			break;
 		}
 
@@ -708,7 +708,7 @@ namespace TEN::Entities::Vehicles
 		if (laraItem->HitPoints <= 0 &&
 			laraItem->Animation.ActiveState != KAYAK_STATE_IDLE_DEATH)
 		{
-			SetAnimation(laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_IDLE_DEATH);
+			SetAnimationFromSlot(*laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_IDLE_DEATH);
 		}
 
 		int frame = laraItem->Animation.FrameNumber;
@@ -1142,7 +1142,7 @@ namespace TEN::Entities::Vehicles
 		if (lara->Control.WaterStatus == WaterStatus::FlyCheat)
 			return;
 
-		SetAnimation(laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_OVERBOARD_DEATH);
+		SetAnimationFromSlot(*laraItem, ID_KAYAK_LARA_ANIMS, KAYAK_ANIM_OVERBOARD_DEATH);
 		laraItem->Animation.IsAirborne = false;
 		laraItem->Animation.Velocity.z = 0;
 		laraItem->Animation.Velocity.y = 0;
