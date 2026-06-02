@@ -114,8 +114,7 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
     
     if (TEN.Input.IsKeyHit(TEN.Input.ActionID.INVENTORY) or TEN.Inventory.GetFocusedItem() ~= Constants.NO_VALUE) and 
        not inventoryOpen and 
-       playerHp and 
-       isNotUsingBinoculars and
+       playerHp and isNotUsingBinoculars and
        not controlLocked then
         inventoryOpen = true
         local focusedItem = TEN.Inventory.GetFocusedItem()
@@ -130,8 +129,7 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
     
     if (TEN.Input.IsKeyHit(TEN.Input.ActionID.SAVE) or TEN.Inventory.GetFocusedItem() ~= Constants.NO_VALUE) and 
        not inventoryOpen and 
-       playerHp and 
-       isNotUsingBinoculars and
+       playerHp and isNotUsingBinoculars and
        not controlLocked  then
         inventoryOpen = true
         Save.SetQuickSaveStatus(true)
@@ -141,8 +139,7 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
     end
     
     if (TEN.Input.IsKeyHit(TEN.Input.ActionID.LOAD) or TEN.Inventory.GetFocusedItem() ~= Constants.NO_VALUE) and 
-       not inventoryOpen and 
-       isNotUsingBinoculars and
+       not inventoryOpen and isNotUsingBinoculars and
        not controlLocked  then
         inventoryOpen = true
         Save.SetQuickSaveStatus(true)
