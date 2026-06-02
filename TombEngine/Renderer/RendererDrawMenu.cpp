@@ -88,6 +88,33 @@ namespace TEN::Renderer
 		}
 	}
 
+	inline const int GetEffectiveBoundKeyID(ActionID actionID)
+	{
+		int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, actionID);
+		int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, actionID);
+		return (userKeyID != KEY_UNASSIGNED) ? userKeyID : defaultKeyID;
+	}
+
+	std::vector<bool> GetBindingConflictMask(ActionID baseActionID, int actionCount)
+	{
+		std::vector<bool> conflicts(actionCount, false);
+		std::unordered_map<int, int> firstActionIndexByBinding = {};
+		firstActionIndexByBinding.reserve(actionCount);
+
+		for (int i = 0; i < actionCount; i++)
+		{
+			int keyID = GetEffectiveBoundKeyID((ActionID)((int)baseActionID + i));
+			if (keyID == KEY_UNASSIGNED)
+				continue;
+
+			auto [it, inserted] = firstActionIndexByBinding.try_emplace(keyID, i);
+			if (!inserted)
+				conflicts[it->second] = conflicts[i] = true;
+		}
+
+		return conflicts;
+	}
+
 	// These bars are only used in menus.
 	TEN::Renderer::RendererHudBar* g_MusicVolumeBar = nullptr;
 	TEN::Renderer::RendererHudBar* g_SFXVolumeBar	= nullptr;
@@ -331,6 +358,7 @@ namespace TEN::Renderer
 			{
 				// Set up needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Forward, (int)GeneralActionStrings.size());
 
 				// Arrows
 				AddString(RIGHT_ARROW_X_OFFSET, y, RIGHT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -351,11 +379,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)k);
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)k);
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)((int)In::Forward + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (GeneralActionStrings.size() - 1))
@@ -381,6 +406,7 @@ namespace TEN::Renderer
 			{
 				// Set up needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Accelerate, (int)VehicleActionStrings.size());
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -404,11 +430,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)(baseIndex + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (VehicleActionStrings.size() - 1))
@@ -440,6 +463,7 @@ namespace TEN::Renderer
 			{
 				// Set up needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Flare, (int)QuickActionStrings.size());
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -463,11 +487,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)(baseIndex + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (QuickActionStrings.size() - 1))
@@ -493,6 +514,7 @@ namespace TEN::Renderer
 			{
 				// Setup needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Select, (int)MenuActionStrings.size());
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -515,11 +537,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)(baseIndex + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (MenuActionStrings.size() - 1))
@@ -1216,16 +1235,16 @@ namespace TEN::Renderer
 
 		auto& object = InventoryObjectTable[invItem];
 
-		if (IsHeld(In::Forward))
+		if (IsHeld(In::MenuUp))
 			orient.x += ANGLE(3.0f / multiplier);
 
-		if (IsHeld(In::Back))
+		if (IsHeld(In::MenuDown))
 			orient.x -= ANGLE(3.0f / multiplier);
 
-		if (IsHeld(In::Left))
+		if (IsHeld(In::MenuLeft))
 			orient.y += ANGLE(3.0f / multiplier);
 
-		if (IsHeld(In::Right))
+		if (IsHeld(In::MenuRight))
 			orient.y -= ANGLE(3.0f / multiplier);
 
 		if (IsHeld(In::Sprint))
@@ -1302,28 +1321,29 @@ namespace TEN::Renderer
 
 			if (drawLogo && _logo != nullptr)
 			{
-				float factorX = (float)_graphicsDevice->GetScreenWidth() / DISPLAY_SPACE_RES.x;
-				float factorY = (float)_graphicsDevice->GetScreenHeight() / DISPLAY_SPACE_RES.y;
-				float scale = _graphicsDevice->GetScreenWidth() > _graphicsDevice->GetScreenHeight() ? factorX : factorY;
+				int screenW = _graphicsDevice->GetScreenWidth();
+				int screenH = _graphicsDevice->GetScreenHeight();
+				float factorX = (float)screenW / DISPLAY_SPACE_RES.x;
+				float factorY = (float)screenH / DISPLAY_SPACE_RES.y;
+
+				// Uniform scale to preserve logo aspect ratio regardless of window aspect.
+				float sizeScale = std::min(factorX, factorY);
 
 				auto& settings = g_GameFlow->GetSettings()->UI;
 
-				float logoWidthScaled  = _logo->GetWidth() * settings.TitleLogoScale;
-				float logoHeightScaled = _logo->GetHeight() * settings.TitleLogoScale;
+				float logoWidthScaled  = _logo->GetWidth()  * settings.TitleLogoScale * sizeScale;
+				float logoHeightScaled = _logo->GetHeight() * settings.TitleLogoScale * sizeScale;
 
-				float centerX = (settings.TitleLogoPosition.x / 100.0f) * DISPLAY_SPACE_RES.x;
-				float centerY = (settings.TitleLogoPosition.y / 100.0f) * DISPLAY_SPACE_RES.y;
-
-				float logoLeft   = centerX - logoWidthScaled  * 0.5f;
-				float logoRight  = centerX + logoWidthScaled  * 0.5f;
-				float logoTop    = centerY - logoHeightScaled * 0.5f;
-				float logoBottom = centerY + logoHeightScaled * 0.5f;
+				// Position the logo as a percentage of the actual window so it stays anchored
+				// (e.g. centered horizontally at 50%) across any aspect ratio.
+				float centerX = (settings.TitleLogoPosition.x / 100.0f) * screenW;
+				float centerY = (settings.TitleLogoPosition.y / 100.0f) * screenH;
 
 				RendererRectangle rect;
-				rect.Left   = logoLeft   * scale;
-				rect.Right  = logoRight  * scale;
-				rect.Top    = logoTop    * scale;
-				rect.Bottom = logoBottom * scale;
+				rect.Left   = centerX - logoWidthScaled  * 0.5f;
+				rect.Right  = centerX + logoWidthScaled  * 0.5f;
+				rect.Top    = centerY - logoHeightScaled * 0.5f;
+				rect.Bottom = centerY + logoHeightScaled * 0.5f;
 
 				// HACK: Color range slippage. Remove in fix color range PR.
 				auto color = Vector4(settings.TitleLogoColor.GetR() / (float)UCHAR_MAX,

@@ -11,8 +11,6 @@
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
 #include "Game/Setup.h"
-#include "Specific/level.h"
-#include "Specific/fast_vector.h"
 #include "Renderer/ConstantBuffers/HUDBarBuffer.h"
 #include "Renderer/ConstantBuffers/HUDBuffer.h"
 #include "Renderer/ConstantBuffers/ShadowLightBuffer.h"
@@ -52,6 +50,8 @@
 #include "Renderer/Structures/RendererRoomAmbientMap.h"
 #include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererStar.h"
+#include "Specific/level.h"
+#include "Specific/Structures/fast_vector.h"
 
 using namespace TEN::Animation;
 
@@ -377,7 +377,7 @@ namespace TEN::Renderer
 		void ClearShadowMap();
 		void CalculateSSAO(RenderView& view);
 		void UpdateItemAnimations(RenderView& view);
-		void InitializeScreen(int w, int h, bool reset);
+		void InitializeScreen(int w, int h, bool reset, bool resyncWindow = true);
 		void InitializeCommonTextures();
 		void InitializeGameBars();
 		void InitializeMenuBars(int y);
@@ -740,7 +740,7 @@ namespace TEN::Renderer
 		void SwitchDebugPage(bool goBack);
 		RendererDebugPage GetCurrentDebugPage();
 
-		void ChangeScreenResolution(int width, int height, bool windowed);
+		void ChangeScreenResolution(int width, int height, bool windowed, bool resyncWindow = true);
 		void FlipRooms(short roomNumber1, short roomNumber2);
 		void UpdateLaraAnimations(bool force);
 		void UpdateItemAnimations(int itemNumber, bool force);

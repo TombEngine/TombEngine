@@ -10,6 +10,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added heat haze for flame emitters and effects.
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
+* Added native support for DualShock, DualSense and Switch Pro controllers.
 * Added animation blending support and blended transitions for hardcoded animation changes.
 * Added root motion support.
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
@@ -33,18 +34,24 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
 * Fixed flyby camera jitter by converting the spline type to floating-point.
 * Fixed occasional flame emitter sprite jitter.
+* Fixed incorrect aspect ratio when resizing the window in windowed mode.
 
 ### Lua API changes
 
 * Added ring inventory module.
+* Added loading of the `Scripts/Autoexec.lua` script file before every level script is loaded.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
+* Added `Add Flow.GetCurrentLevelIndex` and `Flow.GetTotalLevelCount` functions to get current level index and total level count in gameflow.
 * Added `Flow.Settings.Animation.systemBlendDuration` setting to specify hardcoded animation blend durations.
 * Added `Flow.Settings.Effects` category with blood, ricochet and explosion settings.
 * Added `Flow.Settings.Graphics.flameHeatHaze` option to toggle heat haze effects for flames.
 * Added `Flow.Settings.Hud.interactionHighlighter` and `Flow.Settings.Hud.targetHighlighter` options to force these settings on or off.
 * Added `Flow.Settings.UI.menuBackgroundBlur` option to specify amount of blur for the inventory and pause backgrounds.
 * Added `Flow.Settings.UI.systemTextScale` option to change global system text scale.
-* Added `Lara.SetSkin` to swap classic outfits.
+* Added `Input.GetLastInputDevice` function to detect which input device was used last.
+* Added functional key (F1-F12) mappings and raw gamepad input mappings to the `Input.ActionID` and `Input.AxisID` enums.
+* Added `Lara:GetLocked` and `Lara:SetLocked` to manage native control lock status.
+* Added `Lara:GetSkin` and `Lara:SetSkin` functions to manage swapping of classic outfits.
 * Added third argument to `Moveable:SetAnim` function to specify blend frame count.
 * Added `Objects.Creature` class to fetch and set various enemy AI state parameters.
 * Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
