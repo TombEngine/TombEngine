@@ -586,6 +586,8 @@ static void StartTrap(ObjectInfo* obj)
 		obj->Initialize = InitializeWallMountedBlade;
 		obj->control = WallMountedBladeControl;
 		obj->collision = GenericSphereBoxCollision;
+	}
+
 	obj = &Objects[ID_HEAVY_STAMPER];
 	if (obj->loaded)
 	{

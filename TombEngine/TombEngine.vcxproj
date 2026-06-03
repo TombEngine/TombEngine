@@ -520,7 +520,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\Effects\Fireflies.h" />
     <ClInclude Include="Objects\Effects\flame_emitters.h" />
     <ClInclude Include="Objects\Effects\LensFlare.h" />
-    <ClInclude Include="Objects\Generic\Traps\DiskShooter.h" />
+    <ClInclude Include="Objects\TR2\Trap\DiskShooter.h" />
     <ClInclude Include="Objects\TR2\Trap\FallingSpikes.h" />
     <ClInclude Include="Objects\TR3\Trap\Fan.h" />
     <ClInclude Include="Objects\TR4\Entity\Locust.h" />
@@ -1138,7 +1138,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\Effects\Fireflies.cpp" />
     <ClCompile Include="Objects\Effects\flame_emitters.cpp" />
     <ClCompile Include="Objects\Effects\LensFlare.cpp" />
-    <ClCompile Include="Objects\Generic\Traps\DiskShooter.cpp" />
+    <ClCompile Include="Objects\TR2\Trap\DiskShooter.cpp" />
     <ClCompile Include="Objects\TR2\Trap\FallingSpikes.cpp" />
     <ClCompile Include="Objects\TR3\Trap\Fan.cpp" />
     <ClCompile Include="Objects\TR4\Entity\Locust.cpp" />

@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Objects/Generic/Traps/DiskShooter.h"
+#include "Objects/TR2/Trap/DiskShooter.h"
 
 #include "Game/collision/collide_room.h"
 #include "Game/effects/effects.h"
@@ -25,11 +25,10 @@ namespace TEN::Entities::Traps
 	void InitializeDiskShooter(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
-
 		auto& delay = item.ItemFlags[0];
 
-			if (delay == 0)
-				delay = DISK_DEFAULT_DELAY;
+		if (delay == 0)
+			delay = DISK_DEFAULT_DELAY;
 	}
 
 	void ControlDisk(short itemNumber)
@@ -48,7 +47,6 @@ namespace TEN::Entities::Traps
 		else
 		{
 			auto prevPos = item.Pose.Position;
-
 			float vel = item.Animation.Velocity.z * phd_cos(item.Pose.Orientation.x);
 
 			item.Pose.Position.x += vel * phd_sin(item.Pose.Orientation.y);
@@ -68,7 +66,7 @@ namespace TEN::Entities::Traps
 			{
 				for (int i = 0; i < 4; i++)
 				{
-					GameVector targetPos = GameVector(prevPos.x, item.Pose.Position.y, prevPos.z, item.RoomNumber);
+					auto targetPos = GameVector(prevPos.x, item.Pose.Position.y, prevPos.z, item.RoomNumber);
 					
 					TriggerRicochetSpark(targetPos, 5, 1, Vector4(1.0f, 0.7f, 0.1f, 1.0f));
 					SoundEffect(SFX_TR2_CIRCLE_BLADE_HIT, &item.Pose);

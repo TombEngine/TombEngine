@@ -43,7 +43,6 @@
 // Traps
 #include "Objects/Generic/Traps/CrumblingPlatform.h"
 #include "Objects/Generic/Traps/dart_emitter.h"
-#include "Objects/Generic/Traps/DiskShooter.h"
 #include "Objects/Generic/Traps/falling_block.h"
 
 using namespace TEN::Entities::Doors;
@@ -400,22 +399,6 @@ void StartTraps(ObjectInfo* object)
 	{
 		object->Initialize = InitializeDartEmitter;
 		object->control = ControlDartEmitter;
-		object->Hidden = true;
-	}
-
-	object = &Objects[ID_DISK];
-	if (object->loaded)
-	{
-		object->collision = ObjectCollision;
-		object->control = ControlDisk;
-		object->shadowType = ShadowMode::All;
-	}
-
-	object = &Objects[ID_DISK_SHOOTER];
-	if (object->loaded)
-	{
-		object->Initialize = InitializeDiskShooter;
-		object->control = ControlDiskShooter;
 		object->Hidden = true;
 	}
 
