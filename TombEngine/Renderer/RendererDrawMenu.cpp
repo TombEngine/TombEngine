@@ -731,7 +731,7 @@ namespace TEN::Renderer
 				AddString(MenuLoadNameLeftSide, y, (char*)save.LevelName.c_str(), plainColor, SF(selection == n));
 
 				// Timestamp
-				sprintf(stringBuffer, g_GameFlow->GetString(STRING_SAVEGAME_TIMESTAMP).c_str(), save.Hours, save.Minutes, save.Seconds);
+				sprintf(stringBuffer, g_GameFlow->GetString(STRING_SAVEGAME_TIMESTAMP), save.Hours, save.Minutes, save.Seconds);
 				AddString(MenuLoadTimestampRightSide, y, stringBuffer, plainColor, SF(selection == n));
 			}
 

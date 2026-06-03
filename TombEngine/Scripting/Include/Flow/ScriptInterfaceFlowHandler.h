@@ -29,7 +29,7 @@ public:
 	virtual void SetGameDir(const std::string& assetDir) = 0;
 	virtual std::string GetGameDir() = 0;
 	virtual int	GetNumLevels() const = 0;
-	virtual std::string GetString(const std::string& id) const = 0;
+	virtual const char* GetString(const char* id) const = 0;
 
 	virtual bool IsFlyCheatEnabled() const = 0;
 	virtual bool IsMassPickupEnabled() const = 0;
