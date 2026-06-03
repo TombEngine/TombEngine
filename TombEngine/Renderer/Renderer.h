@@ -460,6 +460,7 @@ namespace TEN::Renderer
 		void RenderTitleMenu(Menu menu);
 		void RenderPauseMenu(Menu menu);
 		void RenderLoadSaveMenu();
+		void RenderSelectLevel();
 		void RenderOptionsMenu(Menu menu, int initialY);
 		void RenderNewInventory();
 		void RenderBlobShadows(RenderView& renderView);
