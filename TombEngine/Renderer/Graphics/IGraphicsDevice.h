@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include "Specific/fast_vector.h"
 #include <string>
 #include <SimpleMath.h>
 #include "Renderer/Graphics/IIndexBuffer.h"
@@ -24,6 +23,7 @@
 #include "Renderer/Structures/RendererRectangle.h"
 #include "Renderer/Structures/RendererInputLayout.h"
 #include "Renderer/Structures/RendererViewport.h"
+#include "Specific/Structures/fast_vector.h"
 
 using namespace TEN::Renderer::Structures;
 using namespace DirectX;

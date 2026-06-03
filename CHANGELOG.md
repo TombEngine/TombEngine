@@ -35,6 +35,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed original bug with inactive SQUISHY_BLOCK_VERTICAL killing player.
 * Fixed incorrect application of LARA_DOUBLE damage after using medipacks.
 * Fixed MINECART_SWITCH object not working.
+* Fixed BATS_EMITTER targeting issues.
 * Fixed empty inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed regular spark sprite distance while moving with flare in hand.
@@ -49,6 +50,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed flyby camera flag "Let Lara move in cinematic mode" being ignored.
 * Fixed fades and cinematic bars not progressing in the freeze mode.
 * Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
+* Fixed incorrect aspect ratio when resizing the window in windowed mode.
 
 ### Lua API changes
 
