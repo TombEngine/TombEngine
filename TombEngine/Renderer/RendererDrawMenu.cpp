@@ -734,9 +734,10 @@ namespace TEN::Renderer
 		constexpr auto ARROW_MARGIN  = 30.0f;
 		constexpr auto ARROW_SCALE	 = 0.03f;
 
-		int titleOption = g_Gui.GetSelectedOption();
-		auto plainColor = g_GameFlow->GetSettings()->UI.PlainTextColor;
-		auto scale		= g_GameFlow->GetSettings()->UI.TitleMenuScale;
+		int titleOption  = g_Gui.GetSelectedOption();
+		auto plainColor  = g_GameFlow->GetSettings()->UI.PlainTextColor;
+		auto headerColor = g_GameFlow->GetSettings()->UI.HeaderTextColor;
+		auto scale		 = g_GameFlow->GetSettings()->UI.TitleMenuScale;
 
 		// Level 0 is always Title Level and level 1 might be Home Level.
 		int firstLevel = g_GameFlow->IsHomeLevelEnabled() ? 2 : 1;
@@ -752,9 +753,8 @@ namespace TEN::Renderer
 		bool  needsScroll = (totalHeight > visibleH);
 		bool  needsAlpha  = false;
 
-		// Title
-		AddString(MenuCenterEntry, MenuVerticalLineSpacing, g_GameFlow->GetString(STRING_SELECT_LEVEL),
-			g_GameFlow->GetSettings()->UI.HeaderTextColor, SF_Center());
+		// Title.
+		AddString(MenuCenterEntry, MenuVerticalLineSpacing, g_GameFlow->GetString(STRING_SELECT_LEVEL), headerColor, SF_Center());
 
 		static float selectLevelScrollY = 0.0f;
 
@@ -820,11 +820,11 @@ namespace TEN::Renderer
 			auto angle = upperArrowActive ? ANGLE(0) : ANGLE(180);
 
 				TEN::Effects::DisplaySprite::AddDisplaySprite(ID_INVENTORY_SPRITES, 0,
-					pos1, angle, Vector2(ARROW_SCALE), Vector4::One, 0,
-					DisplaySpriteAlignMode::TopLeft, DisplaySpriteScaleMode::Fit, BlendMode::Additive, DisplaySpritePhase::Draw);
+					pos1, angle, Vector2(ARROW_SCALE), headerColor, 0,
+					DisplaySpriteAlignMode::TopLeft, DisplaySpriteScaleMode::Fit, BlendMode::Screen, DisplaySpritePhase::Draw);
 				TEN::Effects::DisplaySprite::AddDisplaySprite(ID_INVENTORY_SPRITES, 0,
-					pos2, angle, Vector2(ARROW_SCALE), Vector4::One, 0,
-					DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::Additive, DisplaySpritePhase::Draw);
+					pos2, angle, Vector2(ARROW_SCALE), headerColor, 0,
+					DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::Screen, DisplaySpritePhase::Draw);
 			
 			CollectDisplaySprites(_gameCamera);
 			DrawDisplaySprites(_gameCamera, false);
