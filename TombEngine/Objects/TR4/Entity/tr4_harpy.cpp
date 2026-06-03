@@ -268,7 +268,7 @@ namespace TEN::Entities::TR4
 			AI_INFO AI;
 			CreatureAIInfo(item, &AI);
 
-			if (!creature->Enemy->IsLara())
+			if (!creature->Enemy.IsLara())
 				phd_atan(LaraItem->Pose.Position.z - item->Pose.Position.z, LaraItem->Pose.Position.x - item->Pose.Position.x);
 
 			GetCreatureMood(item, &AI, true);
@@ -426,7 +426,7 @@ namespace TEN::Entities::TR4
 				creature->MaxTurn = ANGLE(2.0f);
 
 				if (item->TouchBits.Test(HarpySwoopAttackJoints) ||
-					creature->Enemy != nullptr && !creature->Enemy->IsLara() &&
+					creature->Enemy != nullptr && !creature->Enemy.IsLara() &&
 					abs(creature->Enemy->Pose.Position.y - item->Pose.Position.y) <= BLOCK(1) &&
 					AI.distance < SQUARE(BLOCK(2)))
 				{
@@ -452,7 +452,7 @@ namespace TEN::Entities::TR4
 						item->Animation.FrameNumber > 17)
 					)
 				{
-					if (creature->Enemy->IsLara())
+					if (creature->Enemy.IsLara())
 						GetLaraInfo(creature->Enemy)->Status.Poison += HARPY_STINGER_POISON_POTENCY;
 
 					DoDamage(creature->Enemy, HARPY_STINGER_ATTACK_DAMAGE);

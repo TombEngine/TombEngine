@@ -19,7 +19,7 @@ using namespace TEN::Collision::Point;
 bool ShotLara(ItemInfo* item, AI_INFO* AI, const CreatureBiteInfo& gun, short extraRotation, int damage)
 {
 	auto* creature = GetCreatureInfo(item);
-	auto* enemy = creature->Enemy;
+	auto* enemy = creature->Enemy.Get();
 
 	if (enemy == nullptr)
 		return false;
@@ -118,7 +118,7 @@ bool Targetable(ItemInfo* item, AI_INFO* ai)
 		return false;
 
 	auto* creature = GetCreatureInfo(item);
-	auto* enemy = creature->Enemy;
+	auto* enemy = creature->Enemy.Get();
 
 	if (creature->Enemy == nullptr)
 		return false;
@@ -127,8 +127,8 @@ bool Targetable(ItemInfo* item, AI_INFO* ai)
 	if ((!enemy->IsCreature() && !enemy->IsLara()) || enemy->HitPoints <= 0)
 		return false;
 
-	const auto& bounds = GetClosestKeyframe(*item).BoundingBox;
-	const auto& boundsTarget = GetClosestKeyframe(*enemy).BoundingBox;
+	const auto& bounds = GetFrame(*item).BoundingBox;
+	const auto& boundsTarget = GetFrame(*enemy).BoundingBox;
 
 	auto origin = Vector3(
 		item->Pose.Position.x,
@@ -170,14 +170,14 @@ bool TargetVisible(ItemInfo* item, AI_INFO* ai, float maxAngleInDegrees)
 	if (creature == nullptr)
 		return false;
 
-	auto* enemy = creature->Enemy;
+	auto* enemy = creature->Enemy.Get();
 	if (enemy == nullptr || enemy->HitPoints == 0)
 		return false;
 
 	short angle = ai->angle - creature->JointRotation[2];
 	if (angle > ANGLE(-maxAngleInDegrees) && angle < ANGLE(maxAngleInDegrees))
 	{
-		const auto& bounds = GetClosestKeyframe(*enemy).BoundingBox;
+		const auto& bounds = GetFrame(*enemy).BoundingBox;
 
 		auto origin = Vector3(
 			item->Pose.Position.x,
@@ -239,7 +239,7 @@ void PerformFinalAttack(ItemInfo& item, const CreatureBiteInfo& bite, int headBo
 
 	auto* creature = GetCreatureInfo(&item);
 
-	if (creature->Enemy == nullptr || (!creature->Enemy->IsLara() && !creature->Enemy->IsCreature()))
+	if (creature->Enemy == nullptr || (!creature->Enemy.IsLara() && !creature->Enemy->IsCreature()))
 		return;
 
 	AI_INFO AI;

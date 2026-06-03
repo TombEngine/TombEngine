@@ -15,9 +15,9 @@ namespace TEN::Renderer::ConstantBuffers
 	// shader. Layout matches the HLSL CBObjects cbuffer one-to-one.
 	struct alignas(16) CObjectsBuffer
 	{
-		Matrix Bones[MAX_BONES];
+		Matrix Bones[BONE_COUNT_MAX];
 		//--
-		int    BoneLightModes[MAX_BONES];
+		int    BoneLightModes[BONE_COUNT_MAX];
 		//--
 		int    Skinned;            // SkinningMode value (0=Static, 1=None, 2=Full, 3=Classic)
 		int    ObjectsBuffer_Padding0;
