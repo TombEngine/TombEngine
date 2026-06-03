@@ -78,7 +78,7 @@ static void HandlePlayerDebug(const ItemInfo& item)
 		auto bridgeItemNumbers = std::set<int>{};
 		const auto& room = g_Level.Rooms[g_Camera.RoomNumber];
 
-		PrintDebugMessage("Room number: %d", Camera.pos.RoomNumber);
+		PrintDebugMessage("Room number: %d", g_Camera.RoomNumber);
 		PrintDebugMessage("Sectors: %d", room.Sectors.size());
 		PrintDebugMessage("Bridges: %d", room.Bridges.GetIds().size());
 		PrintDebugMessage("Trigger volumes: %d", room.TriggerVolumes.size());
@@ -127,7 +127,7 @@ static void HandlePlayerDebug(const ItemInfo& item)
 	// Portal stats.
 	else if (g_Renderer.GetDebugPage() == RendererDebugPage::PortalStats)
 	{
-		const auto& room = g_Level.Rooms[Cg_amera.RoomNumber];
+		const auto& room = g_Level.Rooms[g_Camera.RoomNumber];
 		PrintDebugMessage("Portals in room %d: %d", g_Camera.RoomNumber, room.Portals.size());
 
 		for (int neighborRoomNumber : room.NeighborRoomNumbers)
@@ -549,7 +549,7 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 		LaraWaterCurrent(item, coll);
 
 	AnimateItem(item);
-	item->Pose.Translate(player.Control.MoveAngle, item->Animation.Velocity.y);
+	item->Pose.Translate(player.Control.HeadingOrient.y, item->Animation.Velocity.y);
 
 	DoObjectCollision(item, coll);
 

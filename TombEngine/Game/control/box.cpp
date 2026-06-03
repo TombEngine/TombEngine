@@ -95,7 +95,7 @@ static Vector3 GetVelocity(const ItemInfo& item)
 		switch (player.Control.WaterStatus)
 		{
 			case WaterStatus::TreadWater:
-				nextPose.Translate(player.Control.MoveAngle, item.Animation.Velocity.y);
+				nextPose.Translate(player.Control.HeadingOrient.y, item.Animation.Velocity.y);
 				break;
 
 			case WaterStatus::Underwater:
@@ -106,7 +106,7 @@ static Vector3 GetVelocity(const ItemInfo& item)
 				break;
 
 			default:
-				nextPose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, item.Animation.Velocity.y, item.Animation.Velocity.x);
+				nextPose.Translate(player.Control.HeadingOrient.y, item.Animation.Velocity.z, item.Animation.Velocity.y, item.Animation.Velocity.x);
 				break;
 		}
 	}

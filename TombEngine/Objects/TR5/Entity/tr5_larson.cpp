@@ -371,7 +371,7 @@ namespace TEN::Entities::Creatures::TR5
 
 		if (creature->Flags != 0)
 		{
-			auto start = Camera.pos;
+			auto start = GameVector(g_Camera.Position, g_Camera.RoomNumber);
 			auto target = GameVector(item->Pose.Position, item->RoomNumber);
 			target.y -= BLOCK(1);
 

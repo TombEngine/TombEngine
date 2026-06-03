@@ -9,8 +9,8 @@ namespace TEN::Renderer
 		Viewport = {};
 		Viewport.X = 0;
 		Viewport.Y = 0;
-		Viewport.Width = w;
-		Viewport.Height = h;
+		Viewport.Width = width;
+		Viewport.Height = height;
 		Viewport.MinDepth = 0;
 		Viewport.MaxDepth = 1;
 	}
@@ -21,8 +21,8 @@ namespace TEN::Renderer
 		Viewport = {};
 		Viewport.X = 0;
 		Viewport.Y = 0;
-		Viewport.Width = w;
-		Viewport.Height = h;
+		Viewport.Width = width;
+		Viewport.Height = height;
 		Viewport.MinDepth = 0;
 		Viewport.MaxDepth = 1;
 	}
@@ -60,10 +60,10 @@ namespace TEN::Renderer
 
 	RenderViewCamera::RenderViewCamera(const CameraInfo& camera, float roll, float fov, float nearPlane, float farPlane, float width, float height)
 	{
-		RoomNumber = cam->RoomNumber;
-		WorldPosition = Vector3(cam->Position.x, cam->Position.y, cam->Position.z);
+		RoomNumber = camera.RoomNumber;
+		WorldPosition = Vector3(camera.Position.x, camera.Position.y, camera.Position.z);
 
-		auto target = Vector3(cam->LookAt.x, cam->LookAt.y, cam->LookAt.z);
+		auto target = Vector3(camera.LookAt.x, camera.LookAt.y, camera.LookAt.z);
 		
 		// Safety clamps to avoid NaNs in view direction calculation.
 		auto rawDirection = target - WorldPosition;

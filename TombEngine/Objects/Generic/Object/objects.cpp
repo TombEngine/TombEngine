@@ -297,7 +297,7 @@ void EarthquakeControl(short itemNumber)
 		float volume = std::clamp((float)(timeout - item.ItemFlags[0]) / (float)FPS, 0.01f, 1.0f); // Fadeout for the last second.
 
 		if (!legacyMode333 && item.TriggerFlags > 0)
-			Camera.bounce = -64 - (GetRandomControl() & 0x1F);
+			g_Camera.bounce = -64 - (GetRandomControl() & 0x1F);
 
 		SoundEffect(SFX_TR4_EARTHQUAKE_LOOP, nullptr, SoundEnvironment::Always, 1.0f, volume);
 
@@ -338,7 +338,7 @@ void EarthquakeControl(short itemNumber)
 
 		float pitch = (item.ItemFlags[0] / 100.0f) / 2.0f;
 		SoundEffect(SFX_TR4_EARTHQUAKE_LOOP, nullptr, SoundEnvironment::Always, 1.0f + pitch);
-		Camera.bounce = -item.ItemFlags[0];
+		g_Camera.bounce = -item.ItemFlags[0];
 	}
 }
 

@@ -116,7 +116,7 @@ namespace TEN::Renderer
 				}
 				else
 				{
-					rotMatrix = extraRelRotMatrix * rotMatrix;
+					rotMatrix = extraRotMatrix * rotMatrix;
 				}
 
 				transforms[bone->Index] = rotMatrix * ((bone == rendererObject.Skeleton) ? translationMatrix : bone->Transform);
@@ -546,7 +546,7 @@ namespace TEN::Renderer
 
 	float Renderer::GetFramerateMultiplier() const
 	{
-		return (g_Configuration.FrameRateMode == FrameRateMode::Sixty) ? (g_Renderer.GetScreenRefreshRate() / (float)FPS) : 1.0f;
+		return (g_Configuration.EnableHighFramerate) ? (g_Renderer.GetScreenRefreshRate() / (float)FPS) : 1.0f;
 	}
 
 	float Renderer::GetInterpolationFactor(bool forceRawValue) const
@@ -778,7 +778,7 @@ namespace TEN::Renderer
 		// Build view-projection matrix.
 		float aspectRatio = (float)_graphicsDevice->GetScreenWidth() / _graphicsDevice->GetScreenHeight();
 		auto viewMatrix = Matrix::CreateLookAt(camPos, camTarget, Vector3::Up);
-		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(CurrentFOV, aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
+		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(g_Camera.Fov, aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
 		auto viewProj = viewMatrix * projMatrix;
 
 		// Helper lambda to project point and clamp to extended screen bounds.
@@ -837,7 +837,7 @@ namespace TEN::Renderer
 		// Ensure reasonable minimum size based on screen-space estimation.
 		// Calculate expected pixel size based on FOV and distance.
 		float angularSize = 2.0f * atan(radiusMax / std::max(dist, 1.0f));
-		float expectedPixelHeight = (angularSize / CurrentFOV) * _graphicsDevice->GetScreenHeight();
+		float expectedPixelHeight = (angularSize / g_Camera.Fov) * _graphicsDevice->GetScreenHeight();
 		float expectedPixelWidth = expectedPixelHeight * aspectRatio;
 
 		// Use the larger of projected size or estimated size.

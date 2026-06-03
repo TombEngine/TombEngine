@@ -420,8 +420,8 @@ namespace TEN::Effects::Environment
 			float range = (part.Type == WeatherType::Rain) ? WEATHER_SPAWN_DIST_RAIN : COLLISION_CHECK_DISTANCE;
 
 			if (part.Type == WeatherType::Rain &&				
-				(abs(Camera.pos.x - part.Position.x) > range ||
-				abs(Camera.pos.z - part.Position.z) > range))
+				(abs(g_Camera.Position.x - part.Position.x) > range ||
+				abs(g_Camera.Position.z - part.Position.z) > range))
 			{
 				part.Life = std::clamp(part.Life, 0.0f, WEATHER_PARTICLE_NEAR_DEATH_LIFE);
 			}

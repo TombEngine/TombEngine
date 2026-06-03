@@ -748,22 +748,6 @@ int IsRoomOutside(int x, int y, int z)
 	return NO_VALUE;
 }
 
-namespace TEN::Collision::Room
-{
-	// TODO: Can use floordata's GetRoomGridCoord()?
-	FloorInfo* GetSector(RoomData* room, int x, int z)
-	{
-		int sectorX = std::clamp(x / BLOCK(1), 0, room->XSize - 1);
-		int sectorZ = std::clamp(z / BLOCK(1), 0, room->ZSize - 1);
-
-		int sectorID = sectorZ + (sectorX * room->ZSize);
-		if (sectorID > room->Sectors.size())
-			return nullptr;
-
-		return &room->Sectors[sectorID];
-	}
-}
-
 bool IsPointInRoom(const Vector3i& pos, int roomNumber)
 {
 	if (roomNumber < 0 || roomNumber >= g_Level.Rooms.size())

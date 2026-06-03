@@ -68,7 +68,7 @@ namespace TEN::Entities::Traps
 			if ((pointColl.GetFloorHeight() - vPos) <= DAMOCLES_SWORD_IMPALE_DEPTH)
 			{
 				SoundEffect(SFX_TR1_DAMOCLES_ROOM_SWORD, &item.Pose);
-				float dist = Vector3::Distance(item.Pose.Position.ToVector3(), g_Camera.Position.ToVector3());
+				float dist = Vector3::Distance(item.Pose.Position.ToVector3(), g_Camera.Position);
 				g_Camera.bounce = -((BLOCK(7.0f / 2) - dist) * abs(item.Animation.Velocity.y)) / BLOCK(7.0f / 2);
 
 				item.Animation.IsAirborne = false;

@@ -476,7 +476,7 @@ void ClassicRollingBallControl(short itemNum)
 		{
 			SoundEffect(SFX_TR4_ROLLING_BALL, &item->Pose);
 
-			float distance = Vector3i::Distance(g_Camera.Position.ToVector3i(), item->Pose.Position);
+			float distance = Vector3i::Distance(Vector3i(g_Camera.Position), item->Pose.Position);
 			if (distance < BLOCK(10))
 				g_Camera.bounce = -40 * (BLOCK(10) - distance) / BLOCK(10);
 		}

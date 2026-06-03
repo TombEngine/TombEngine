@@ -14,9 +14,6 @@
 #include "Renderer/Graphics/VRAMTracker.h"
 
 using namespace TEN::Config;
-
-extern GameConfiguration g_Configuration;
-
 using namespace TEN::Renderer::Utils;
 using namespace TEN::Video;
 

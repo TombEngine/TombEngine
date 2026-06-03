@@ -14,7 +14,7 @@ namespace TEN::Config
 	{
 		AllMenus,
 		SaveLoadOnly,
-		Disabled
+		Off
 	};
 
 	enum class ControlMode
@@ -51,6 +51,8 @@ namespace TEN::Config
 		bool                  EnableRumble            = false;
 		int                   MouseSensitivity        = DEFAULT_MOUSE_SENSITIVITY;
 		MenuOptionLoopingMode MenuOptionLoopingMode   = MenuOptionLoopingMode::SaveLoadOnly;
+		GamepadType           LastGamepadType         = GamepadType::Xbox;
+		BindingProfile        Bindings                = {};
 
 		// Gameplay
 
@@ -89,12 +91,6 @@ namespace TEN::Config
 		bool EnableReverb = false;
 		int	 MusicVolume  = VOLUME_MAX;
 		int	 SfxVolume    = VOLUME_MAX;
-
-		// Input
-
-		int            MouseSensitivity = DEFAULT_MOUSE_SENSITIVITY;
-		GamepadType    LastGamepadType  = GamepadType::Xbox;
-		BindingProfile Bindings         = {};
 
 		std::vector<Vector2i>   SupportedScreenResolutions = {};
 		std::string             AdapterName                = {};

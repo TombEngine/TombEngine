@@ -298,9 +298,9 @@ namespace TEN::Hud
 			return;
 		}
 
-		auto distance = Vector3::Distance(Camera.pos.ToVector3(), _current.Position);
-		float scale = std::min(SPRITE_SCALE, INTERACTION_DISTANCE / distance * SPRITE_SCALE);
-		float distanceAlpha = std::min(1.0f, scale * 10.0f);
+		float dist = Vector3::Distance(g_Camera.Position, _current.Position);
+		float scale = std::min(SPRITE_SCALE, INTERACTION_DISTANCE / dist * SPRITE_SCALE);
+		float distAlpha = std::min(1.0f, scale * 10.0f);
 
 		auto drawState = [&](const HighlightState& state)
 		{
@@ -317,9 +317,9 @@ namespace TEN::Hud
 
 			float alpha = state.Fade;
 			float phase = (GlobalCounter % (int)FADE_RATE) / FADE_RATE;
-			float oscillation = 0.75f + 0.25f * sin(phase * PI * 2.0f);
+			float oscillation = 0.75f + (0.25f * sin(phase * PI_MUL_2));
 			alpha *= oscillation;
-			alpha *= distanceAlpha;
+			alpha *= distAlpha;
 
 			auto color = Vector4(1.0f, 1.0f, 1.0f, alpha);
 

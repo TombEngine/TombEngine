@@ -1446,3 +1446,20 @@ float GetParticleDistanceFade(const Vector3i& pos)
 
 	return std::clamp(1.0f - ((dist - PARTICLE_FADE_THRESHOLD) / CAMERA_OBJECT_COLL_DIST_THRESHOLD), 0.0f, 1.0f);
 }
+
+bool TestLockedCamera()
+{
+	// Check if break condition is met.
+	if (g_Camera.type != CameraType::Look && g_Camera.type != CameraType::Combat)
+		return true;
+
+	// Check if there's an active fixed camera.
+	if (g_Camera.number == NO_VALUE)
+		return true;
+
+	// Check if locked bit is set for a given fixed camera.
+	if (!(g_Level.Cameras[g_Camera.number].Flags & (int)LevelCameraFlags::Locked))
+		return false;
+
+	return true;
+}

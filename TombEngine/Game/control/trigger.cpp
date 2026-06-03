@@ -673,7 +673,7 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 			if (g_Camera.number != g_Camera.last || triggerType == TRIGGER_TYPES::SWITCH)
 			{
 				// Borrow camera speed from the static camera to keep momentum between gliding fixed cameras.
-				g_Camera.speed = g_Level.Cameras[Camera.number].Speed + 1;
+				g_Camera.speed = g_Level.Cameras[g_Camera.number].Speed + 1;
 				g_Camera.timer = (trigger & TIMER_BITS) * FPS;
 				g_Camera.type = heavy ? CameraType::Heavy : CameraType::Fixed;
 

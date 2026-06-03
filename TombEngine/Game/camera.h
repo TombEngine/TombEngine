@@ -256,3 +256,7 @@ void UpdateFadeScreenAndCinematicBars();
 void ClearCinematicBars();
 
 float GetParticleDistanceFade(const Vector3i& pos);
+
+// @modernme Functions pulled in from subsequent refactors. Organise later.
+
+bool TestLockedCamera();

@@ -73,7 +73,7 @@ namespace TEN::Entities::Generic
 			g_Level.PathfindingBoxes[floor->PathfindingBoxID].flags &= ~BLOCKED;
 
 		// Set Y scale to epsilon by default (not 0 because it may cause rendering issues).
-		item->Pose.Scale.y = EPSILON;
+		item.Pose.Scale.y = EPSILON;
 
 		if (item.TriggerFlags < 0)
 		{

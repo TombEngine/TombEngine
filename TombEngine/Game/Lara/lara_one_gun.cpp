@@ -1301,7 +1301,7 @@ void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType)
 		{
 			SaveGame::Statistics.Level.AmmoUsed++;
 			SaveGame::Statistics.Game.AmmoUsed++;
-			GetTargetOnLOS(&Camera.pos, &Camera.target);
+			GetTargetOnLOS(&GameVector(g_Camera.Position, g_Camera.RoomNumber), &GameVector(g_Camera.LookAt, g_Camera.LookAtRoomNumber));
 		}
 	}
 }

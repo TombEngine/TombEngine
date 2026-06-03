@@ -96,9 +96,8 @@ namespace TEN::Entities::Traps
 
 			g_Camera.ForcedFixedCamera.y = GetPointCollision(Vector3i(g_Camera.ForcedFixedCamera.x, item.Pose.Position.y - CLICK(2), g_Camera.ForcedFixedCamera.z), item.RoomNumber).GetFloorHeight();
 
-			g_ForcedFixedCamera.RoomNumber = roomNumber;
-			g_UseForcedFixedCamera = true;
-		}
+			g_Camera.ForcedFixedCamera.RoomNumber = roomNumber;
+			g_Camera.UseForcedFixedCamera = true;
 
 			StopSoundEffect(SFX_TR3_TUBE_LOOP);
 		}

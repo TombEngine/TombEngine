@@ -315,9 +315,7 @@ ItemInfo& ItemHandler::operator*() const
 {
 	if (_index < 0 || _index >= g_Level.Items.size())
 	{
-#if _DEBUG
-		TENLog(fmt::format("Attempt to dereference invalid item index {}.", _index), LogLevel::Warning);
-#endif
+		TENLog(fmt::format("Attempt to dereference invalid item index {}.", _index), LogLevel::Warning, LogConfig::Debug);
 		return g_Level.Items[0];
 	}
 
@@ -326,7 +324,7 @@ ItemInfo& ItemHandler::operator*() const
 
 bool TestState(int refState, const std::vector<int>& stateList)
 {
-	return Contains(stateIds, refStateID);
+	return Contains(stateList, refState);
 }
 
 static void GameScriptHandleKilled(short itemNumber, bool destroyed)
@@ -487,7 +485,7 @@ void ItemNewRoom(short itemNumber, short roomNumber)
 			}
 			else
 			{
-				for (short linkNumber = room->itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
+				for (short linkNumber = room.itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
 				{
 					auto& linkItem = g_Level.Items[linkNumber];
 					if (linkItem.NextItem == itemNumber)
@@ -1006,12 +1004,10 @@ bool UpdateItemRoom(short itemNumber)
 	auto* item = &g_Level.Items[itemNumber];
 	auto yOffset = GameBoundingBox(item).GetCenter().y;
 
-	auto roomNumber = GetPointCollision(
+	int roomNumber = GetPointCollision(
 		Vector3i(item->Pose.Position.x, item->Pose.Position.y + yOffset, item->Pose.Position.z),
 		item->RoomNumber).GetRoomNumber();
-
-	int roomNumber = GetPointCollision(item.Pose.Position + Vector3i(0, -CLICK(2), 0), item.RoomNumber).GetRoomNumber();
-	if (roomNumber != item.RoomNumber)
+	if (roomNumber != item->RoomNumber)
 	{
 		ItemNewRoom(itemNumber, roomNumber);
 		return true;

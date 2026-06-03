@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Game/GuiObjects.h"
 #include "Scripting/Internal/LanguageScript.h"
 #include "Math/Math.h"
@@ -6,10 +7,9 @@
 #include "Specific/configuration.h"
 #include "Specific/Input/InputAction.h"
 
-using namespace TEN::Config;
-
 struct ItemInfo;
 
+using namespace TEN::Config;
 using namespace TEN::Input;
 using namespace TEN::Math;
 
@@ -22,7 +22,6 @@ namespace TEN::Gui
 		Pause,
 		Statistics,
 		Examine,
-		Diary,
 		Load,
 		Save
 	};
@@ -53,7 +52,7 @@ namespace TEN::Gui
 		Use,
 		ChooseAmmo,
 		Combine,
-		Seperate,
+		Separate,
 		Equip,
 		Ammo1,
 		Ammo2,
@@ -61,8 +60,7 @@ namespace TEN::Gui
 		Load,
 		Save,
 		Examine,
-		Statistics,
-		Diary
+		Statistics
 	};
 
 	enum class RingTypes
@@ -75,21 +73,16 @@ namespace TEN::Gui
 	{
 		Title,
 		Pause,
-
 		Statistics,
 		SelectLevel,
 		LoadGame,
 		Options,
-
-		Controls,
-		Gameplay,
 		Display,
-		Sound,
-
 		GeneralActions,
 		VehicleActions,
 		QuickActions,
-		MenuActions
+		MenuActions,
+		OtherSettings
 	};
 
 	struct MenuOption
@@ -101,7 +94,7 @@ namespace TEN::Gui
 	struct ObjectList
 	{
 		int			InventoryItem = 0;
-		EulerAngles Orientation	  = EulerAngles::Identity;
+		EulerAngles Orientation = EulerAngles::Identity;
 		unsigned short Bright;
 	};
 
@@ -118,12 +111,12 @@ namespace TEN::Gui
 	{
 		static constexpr auto NEW_KEY_WAIT_TIMEOUT = 3.0f * FPS;
 
-		GameConfiguration Config = {};
+		GameConfiguration Configuration = {};
 
 		int	 SelectedScreenResolution = 0;
-		bool IgnoreInput			  = false; // Ignore input until all actions are inactive.
-		int	 NewKeyWaitTimer		  = 0;
-		int	 SelectedSoundDevice	  = 0;
+		bool IgnoreInput = false; // Ignore input until all actions are inactive.
+		int	 NewKeyWaitTimer = 0;
+		int	 SelectedSoundDevice = 0;
 	};
 
 	class GuiController
@@ -150,7 +143,7 @@ namespace TEN::Gui
 		short CombineObject1;
 		short CombineObject2;
 		bool ItemUsed;
-		char SeperateTypeFlag;
+		char SeparateTypeFlag;
 		char CombineTypeFlag;
 		InventoryRing Rings[2];
 		int CurrentSelectedOption;
@@ -216,11 +209,9 @@ namespace TEN::Gui
 		void SetLastInventoryItem(int itemNumber);
 
 	private:
-		void HandleControlsSettingsInput();
-		void HandleKeyBindingsSettingsInput(ItemInfo* item, bool fromPauseMenu);
-		void HandleGameplaySettingsInput();
-		void HandleDisplaySettingsInput();
-		void HandleSoundSettingsInput();
+		void HandleDisplaySettingsInput(bool fromPauseMenu);
+		void HandleControlSettingsInput(ItemInfo* item, bool fromPauseMenu);
+		void HandleOtherSettingsInput(bool fromPauseMenu);
 		void HandleOptionsInput();
 		void BackupOptions();
 		bool DoObjectsCombine(int objectNumber1, int objectNumber2);

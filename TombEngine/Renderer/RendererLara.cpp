@@ -141,10 +141,10 @@ void Renderer::UpdateLaraAnimations(bool force)
 	_playerWorldMatrix = scaleMatrix * rotMatrix * translationMatrix;
 	rItem.World = _playerWorldMatrix;
 
-	auto frameData = GetFrameInterpData(*LaraItem);
+	const auto& frameData = GetFrame(*LaraItem);
 
 	// Calculate hip orientation and conjugate.
-	auto hipOrient = Quaternion::Lerp(frameData.FramePtr0->BoneOrientations[LM_HIPS], frameData.FramePtr1->BoneOrientations[LM_HIPS], frameData.Alpha);
+	const auto& hipOrient = frameData.BoneOrientations[LM_HIPS];
 	auto hipOrientConj = hipOrient;
 	hipOrientConj.Conjugate();
 

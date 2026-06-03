@@ -92,7 +92,7 @@ namespace TEN::Effects::Spark
 		auto finalColor = (colorStart == Vector4::Zero) ? (Vector4)g_GameFlow->GetSettings()->Effects.RicochetColor : colorStart;
 
 		// Make sparks bigger depending on a distance to imitate classic effect.
-		auto distanceMult = std::clamp(Vector3::Distance(pos.ToVector3(), Camera.pos.ToVector3()) / DISTANCE_SCALE_THRESHOLD, 1.0f, DISTANCE_MULT_MAX);
+		auto distanceMult = std::clamp(Vector3::Distance(pos.ToVector3(), g_Camera.Position) / DISTANCE_SCALE_THRESHOLD, 1.0f, DISTANCE_MULT_MAX);
 
 		for (int i = 0; i < count; i++)
 		{
