@@ -460,12 +460,13 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 
 	UpdateLaraRoom(item, -coll->Setup.Height / 2);
 
+	// @modernme Why is this passing??
 	// Process vehicles.
-	if (HandleLaraVehicle(item, coll))
-	{
-		DoObjectCollision(item, coll);
-		return;
-	}
+	//if (HandleLaraVehicle(item, coll))
+	//{
+	//	DoObjectCollision(item, coll);
+	//	return;
+	//}
 
 	HandlePlayerExtraAnim(*item);
 	HandlePlayerBehaviorState(*item, *coll, PlayerBehaviorStateRoutineType::Control);

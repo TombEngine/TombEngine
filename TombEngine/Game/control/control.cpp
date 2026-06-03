@@ -155,7 +155,7 @@ GameStatus GamePhase(bool insideMenu)
 	ClearAllDisplaySprites();
 
 	SetupInterpolation();
-	//PrepareCamera(); // TODO: Restore.
+	g_Camera.Initialize();
 
 	RegeneratePickups();
 
@@ -264,7 +264,7 @@ GameStatus GamePhase(bool insideMenu)
 		g_GameScript->OnLoop(DELTA_TIME, true);
 	}
 
-	//UpdateCamera(); // TODO: Restore.
+	g_Camera.Update()();
 
 	// Clear savegame loaded flag.
 	JustLoaded = false;
@@ -302,7 +302,7 @@ GameStatus FreezePhase()
 	ClearAllDisplaySprites();
 
 	SetupInterpolation();
-	//PrepareCamera(); // TODO: Restore.
+	g_Camera.Prepare()();
 
 	g_DrawItems.Prepare();
 	g_GameStringsHandler->ProcessDisplayStrings(DELTA_TIME);
@@ -323,7 +323,7 @@ GameStatus FreezePhase()
 		UpdateAllItems();
 		UpdateGlobalLensFlare();
 
-		//UpdateCamera(); // TODO: Restore.
+		//g_Camera.Update()(); // TODO: Restore.
 
 		PlaySoundSources();
 		Sound_UpdateScene();

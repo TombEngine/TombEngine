@@ -42,7 +42,168 @@ constexpr float CAMERA_OBJECT_COLL_EXTENT_THRESHOLD = CLICK(0.5f);
 CameraInfo		 g_Camera;
 ScreenEffectData g_ScreenEffect;
 
-void CameraInfo::Update(const ItemInfo& playerItem, Vector3 idealPos, int idealRoomNumber, float speed)
+CameraLosCollisionData CameraInfo::GetLos(const Vector3& origin, int roomNumber, const Vector3& dir, float dist) const
+{
+	auto cameraLos = CameraLosCollisionData{};
+
+	// 1) Get raw LOS collision.
+	auto los = GetLosCollision(origin, roomNumber, dir, dist, true, false, true);
+
+	// 2) Clip room.
+	cameraLos.Normal = los.Room.Triangle.has_value() ? los.Room.Triangle->Normal : -dir;
+	cameraLos.Position = los.Room.Position;
+	cameraLos.RoomNumber = los.Room.RoomNumber;
+	cameraLos.IsIntersected = los.Room.IsIntersected;
+	cameraLos.Distance = los.Room.Distance;
+
+	// 3) Clip item.
+	for (const auto& itemLos : los.Items)
+	{
+		if (!TestCollidableMoveable(*itemLos.Item))
+			continue;
+
+		if (itemLos.Distance < cameraLos.Distance)
+		{
+			auto normal = itemLos.Item->GetObb().Center - origin;
+			normal.Normalize();
+
+			cameraLos.Normal = normal;
+			cameraLos.Position = itemLos.Position;
+			cameraLos.RoomNumber = itemLos.RoomNumber;
+			cameraLos.IsIntersected = true;
+			cameraLos.Distance = itemLos.Distance;
+			break;
+		}
+	}
+
+	// 4) Clip static.
+	for (const auto& staticLos : los.Statics)
+	{
+		if (!TestCollidableStatic(*staticLos.Static))
+			continue;
+
+		if (staticLos.Distance < cameraLos.Distance)
+		{
+			auto normal = staticLos.Static->GetObb().Center - origin;
+			normal.Normalize();
+
+			cameraLos.Normal = normal;
+			cameraLos.Position = staticLos.Position;
+			cameraLos.RoomNumber = staticLos.RoomNumber;
+			cameraLos.IsIntersected = true;
+			cameraLos.Distance = staticLos.Distance;
+			break;
+		}
+	}
+
+	// 5) Return camera LOS collision.
+	return cameraLos;
+}
+
+Vector3 CameraInfo::GetGeometryOffset() const
+{
+	return {};
+}
+
+Vector3 CameraInfo::GetPlayerOffset(const ItemInfo& item, const CollisionInfo& coll) const
+{
+	constexpr float VERTICAL_OFFSET_DEFAULT = -BLOCK(0.05f);
+	constexpr float VERTICAL_OFFSET_SWAMP = BLOCK(0.4f);
+	constexpr float VERTICAL_OFFSET_MONKEY_SWING = BLOCK(0.25f);
+	constexpr float VERTICAL_OFFSET_TREADING_WATER = BLOCK(0.5f);
+
+	const auto& player = GetLaraInfo(item);
+
+	bool isInSwamp = TestEnvironment(ENV_FLAG_SWAMP, item.RoomNumber);
+
+	// Determine contextual vertical offset.
+	float verticalOffset = coll.Setup.Height;
+	if (player.Control.IsMonkeySwinging)
+	{
+		verticalOffset -= VERTICAL_OFFSET_MONKEY_SWING;
+	}
+	else if (player.Control.WaterStatus == WaterStatus::TreadWater)
+	{
+		verticalOffset -= VERTICAL_OFFSET_TREADING_WATER;
+	}
+	else if (isInSwamp)
+	{
+		verticalOffset = VERTICAL_OFFSET_SWAMP;
+	}
+	else
+	{
+		verticalOffset -= VERTICAL_OFFSET_DEFAULT;
+	}
+
+	// Get floor-to-ceiling height.
+	auto pointColl = GetPointCollision(item);
+	int floorToCeilHeight = abs(pointColl.GetCeilingHeight() - pointColl.GetFloorHeight());
+
+	// Return offset.
+	return Vector3(
+		0.0f,
+		-((verticalOffset < floorToCeilHeight) ? verticalOffset : floorToCeilHeight),
+		0.0f);
+}
+
+EulerAngles CameraInfo::GetControlRotation() const
+{
+	constexpr float SLOW_ROT_COEFF = 0.4f;
+	constexpr float MOUSE_AXIS_SENSITIVITY_COEFF = 20.0f;
+	constexpr float CAMERA_AXIS_SENSITIVITY_COEFF = 12.0f;
+	constexpr float SMOOTHING_FACTOR = 8.0f;
+
+	bool isUsingMouse = (GetCameraAxis() == Vector2::Zero);
+	auto axisSign = Vector2(g_Configuration.InvertCameraXAxis ? -1 : 1, g_Configuration.InvertCameraYAxis ? -1 : 1);
+
+	// Calculate axis.
+	auto axis = (isUsingMouse ? GetMouseAxis() : GetCameraAxis()) * axisSign;
+	float sensitivityCoeff = isUsingMouse ? MOUSE_AXIS_SENSITIVITY_COEFF : CAMERA_AXIS_SENSITIVITY_COEFF;
+	float sensitivity = sensitivityCoeff / (1.0f + (abs(axis.x) + abs(axis.y)));
+	axis *= sensitivity * (isUsingMouse ? SMOOTHING_FACTOR : 1.0f);
+
+	// Calculate and return rotation.
+	auto rotCoeff = IsHeld(In::Walk) ? SLOW_ROT_COEFF : 1.0f;
+	return EulerAngles(ANGLE(axis.x), ANGLE(axis.y), 0) * rotCoeff;
+}
+
+void CameraInfo::Prepare()
+{
+	if (!TrackCameraInit)
+		return;
+
+	UseSpotCam = false;
+	SetFov(PrevFov);
+	g_Renderer.RestoreDOF();
+}
+
+void CameraInfo::Update()
+{
+	// HACK: Disable interpolation when switching to/from flyby camera.
+	// When camera structs are converted to a class, this should go to getter/setter. -- Lwmte, 29.10.2024
+	if (UseSpotCam != SpotcamSwitched)
+	{
+		DisableInterpolation = true;
+		SpotcamSwitched = UseSpotCam;
+	}
+
+	// Handle flyby cameras.
+	if (UseSpotCam)
+	{
+		CalculateSpotCam();
+	}
+	// Handle standard camera.
+	else
+	{
+		TrackCameraInit = false;
+		CalculateCamera(*LaraItem, LaraCollision);
+	}
+
+	// Update cameras matrices after having done all possible camera logic.
+	g_Renderer.UpdateCameraMatrices(g_Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
+}
+
+void CameraInfo::UpdateMovement(const ItemInfo& playerItem, Vector3 idealPos, int idealRoomNumber, float speed)
 {
 	constexpr float BUFFER = BLOCK(0.2f);
 
@@ -236,14 +397,14 @@ void CameraInfo::HandleFollow(const ItemInfo& playerItem, bool isCombatCamera)
 		}
 
 		float speedCoeff = (type != CameraType::Look) ? 0.2f : 1.0f;
-		Update(playerItem, idealPos, idealRoomNumber, speed * speedCoeff);
+		UpdateMovement(playerItem, idealPos, idealRoomNumber, speed * speedCoeff);
 	}
 	else
 	{
 		auto farthestIdealPos = Position;
 		int farthestIdealRoomNumber = RoomNumber;
 		short farthestIdealAzimuthAngle = actualAngle;
-		float farthestDistSqr = INFINITY;
+		float farthestDistSqr = FLT_MAX;
 
 		// Determine ideal position around player.
 		for (int i = 0; i < (TANK_CAMERA_SWIVEL_STEP_COUNT + 1); i++)
@@ -295,7 +456,7 @@ void CameraInfo::HandleFollow(const ItemInfo& playerItem, bool isCombatCamera)
 		if (isCombatCamera && oldType == CameraType::Fixed)
 			speed = 1.0f;
 
-		Update(playerItem, farthestIdealPos, farthestIdealRoomNumber, speed);
+		UpdateMovement(playerItem, farthestIdealPos, farthestIdealRoomNumber, speed);
 	}
 }
 
@@ -325,132 +486,24 @@ void CameraInfo::LookCamera(const ItemInfo& playerItem, const CollisionInfo& col
 	// Update camera.
 	auto lookAtTarget = basePos + GetPlayerOffset(playerItem, coll);
 	LookAt += (lookAtTarget - LookAt) * (1.0f / speed);
-	Update(playerItem, cameraLos.Position, cameraLos.RoomNumber, speed);
+	UpdateMovement(playerItem, cameraLos.Position, cameraLos.RoomNumber, speed);
 }
 
-CameraLosCollisionData CameraInfo::GetLos(const Vector3& origin, int roomNumber, const Vector3& dir, float dist) const
+bool CameraInfo::IsLocked() const
 {
-	auto cameraLos = CameraLosCollisionData{};
+	// Check if break condition is met.
+	if (type != CameraType::Look && type != CameraType::Combat)
+		return true;
 
-	// 1) Get raw LOS collision.
-	auto los = GetLosCollision(origin, roomNumber, dir, dist, true, false, true);
+	// Check if there's an active fixed camera.
+	if (number == NO_VALUE)
+		return true;
 
-	// 2) Clip room.
-	cameraLos.Normal = los.Room.Triangle.has_value() ? los.Room.Triangle->Normal : -dir;
-	cameraLos.Position = los.Room.Position;
-	cameraLos.RoomNumber = los.Room.RoomNumber;
-	cameraLos.IsIntersected = los.Room.IsIntersected;
-	cameraLos.Distance = los.Room.Distance;
+	// Check if locked bit is set for a given fixed camera.
+	if (!(g_Level.Cameras[number].Flags & (int)LevelCameraFlags::Locked))
+		return false;
 
-	// 3) Clip item.
-	for (const auto& itemLos : los.Items)
-	{
-		if (!TestCollidableMoveable(*itemLos.Item))
-			continue;
-
-		if (itemLos.Distance < cameraLos.Distance)
-		{
-			auto normal = itemLos.Item->GetObb().Center - origin;
-			normal.Normalize();
-
-			cameraLos.Normal = normal;
-			cameraLos.Position = itemLos.Position;
-			cameraLos.RoomNumber = itemLos.RoomNumber;
-			cameraLos.IsIntersected = true;
-			cameraLos.Distance = itemLos.Distance;
-			break;
-		}
-	}
-
-	// 4) Clip static.
-	for (const auto& staticLos : los.Statics)
-	{
-		if (!TestCollidableStatic(*staticLos.Static))
-			continue;
-
-		if (staticLos.Distance < cameraLos.Distance)
-		{
-			auto normal = staticLos.Static->GetObb().Center - origin;
-			normal.Normalize();
-
-			cameraLos.Normal = normal;
-			cameraLos.Position = staticLos.Position;
-			cameraLos.RoomNumber = staticLos.RoomNumber;
-			cameraLos.IsIntersected = true;
-			cameraLos.Distance = staticLos.Distance;
-			break;
-		}
-	}
-
-	// 5) Return camera LOS collision.
-	return cameraLos;
-}
-
-Vector3 CameraInfo::GetGeometryOffset() const
-{
-	return {};
-}
-
-Vector3 CameraInfo::GetPlayerOffset(const ItemInfo& item, const CollisionInfo& coll) const
-{
-	constexpr float VERTICAL_OFFSET_DEFAULT        = -BLOCK(0.05f);
-	constexpr float VERTICAL_OFFSET_SWAMP          = BLOCK(0.4f);
-	constexpr float VERTICAL_OFFSET_MONKEY_SWING   = BLOCK(0.25f);
-	constexpr float VERTICAL_OFFSET_TREADING_WATER = BLOCK(0.5f);
-
-	const auto& player = GetLaraInfo(item);
-
-	bool isInSwamp = TestEnvironment(ENV_FLAG_SWAMP, item.RoomNumber);
-
-	// Determine contextual vertical offset.
-	float verticalOffset = coll.Setup.Height;
-	if (player.Control.IsMonkeySwinging)
-	{
-		verticalOffset -= VERTICAL_OFFSET_MONKEY_SWING;
-	}
-	else if (player.Control.WaterStatus == WaterStatus::TreadWater)
-	{
-		verticalOffset -= VERTICAL_OFFSET_TREADING_WATER;
-	}
-	else if (isInSwamp)
-	{
-		verticalOffset = VERTICAL_OFFSET_SWAMP;
-	}
-	else
-	{
-		verticalOffset -= VERTICAL_OFFSET_DEFAULT;
-	}
-
-	// Get floor-to-ceiling height.
-	auto pointColl = GetPointCollision(item);
-	int floorToCeilHeight = abs(pointColl.GetCeilingHeight() - pointColl.GetFloorHeight());
-
-	// Return offset.
-	return Vector3(
-		0.0f,
-		-((verticalOffset < floorToCeilHeight) ? verticalOffset : floorToCeilHeight),
-		0.0f);
-}
-
-EulerAngles CameraInfo::GetControlRotation() const
-{
-	constexpr float SLOW_ROT_COEFF                = 0.4f;
-	constexpr float MOUSE_AXIS_SENSITIVITY_COEFF  = 20.0f;
-	constexpr float CAMERA_AXIS_SENSITIVITY_COEFF = 12.0f;
-	constexpr float SMOOTHING_FACTOR              = 8.0f;
-
-	bool isUsingMouse = (GetCameraAxis() == Vector2::Zero);
-	auto axisSign = Vector2(g_Configuration.InvertCameraXAxis ? -1 : 1, g_Configuration.InvertCameraYAxis ? -1 : 1);
-
-	// Calculate axis.
-	auto axis = (isUsingMouse ? GetMouseAxis() : GetCameraAxis()) * axisSign;
-	float sensitivityCoeff = isUsingMouse ? MOUSE_AXIS_SENSITIVITY_COEFF : CAMERA_AXIS_SENSITIVITY_COEFF;
-	float sensitivity = sensitivityCoeff / (1.0f + (abs(axis.x) + abs(axis.y)));
-	axis *= sensitivity * (isUsingMouse ? SMOOTHING_FACTOR : 1.0f);
-
-	// Calculate and return rotation.
-	auto rotCoeff = IsHeld(In::Walk) ? SLOW_ROT_COEFF : 1.0f;
-	return EulerAngles(ANGLE(axis.x), ANGLE(axis.y), 0) * rotCoeff;
+	return true;
 }
 
 bool CameraInfo::CanControlTankCamera(const ItemInfo& playerItem) const
@@ -772,7 +825,7 @@ void RefreshFixedCamera(int cameraID)
 	const auto& camera = g_Level.Cameras[cameraID];
 
 	int speed = (camera.Speed * 8) + 1.0f;
-	g_Camera.Update(*LaraItem, camera.Position.ToVector3(), camera.RoomNumber, speed);
+	g_Camera.UpdateMovement(*LaraItem, camera.Position.ToVector3(), camera.RoomNumber, speed);
 }
 
 void ChaseCamera(const ItemInfo& playerItem)
@@ -905,7 +958,7 @@ void FixedCamera()
 
 	g_Camera.fixedCamera = true;
 
-	g_Camera.Update(*LaraItem, origin.ToVector3(), origin.RoomNumber, speed);
+	g_Camera.UpdateMovement(*LaraItem, origin.ToVector3(), origin.RoomNumber, speed);
 
 	if (g_Camera.timer)
 	{
@@ -1445,21 +1498,4 @@ float GetParticleDistanceFade(const Vector3i& pos)
 		return 1.0f;
 
 	return std::clamp(1.0f - ((dist - PARTICLE_FADE_THRESHOLD) / CAMERA_OBJECT_COLL_DIST_THRESHOLD), 0.0f, 1.0f);
-}
-
-bool TestLockedCamera()
-{
-	// Check if break condition is met.
-	if (g_Camera.type != CameraType::Look && g_Camera.type != CameraType::Combat)
-		return true;
-
-	// Check if there's an active fixed camera.
-	if (g_Camera.number == NO_VALUE)
-		return true;
-
-	// Check if locked bit is set for a given fixed camera.
-	if (!(g_Level.Cameras[g_Camera.number].Flags & (int)LevelCameraFlags::Locked))
-		return false;
-
-	return true;
 }

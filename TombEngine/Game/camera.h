@@ -184,7 +184,10 @@ struct CameraInfo
 
 	// Utilities
 
-	void Update(const ItemInfo& playerItem, Vector3 idealPos, int idealRoomNumber, float speed);
+	void Prepare();
+
+	void Update();
+	void UpdateMovement(const ItemInfo& playerItem, Vector3 idealPos, int idealRoomNumber, float speed);
 	void UpdateSphere(const ItemInfo& playerItem);
 	void UpdateListenerPosition(const ItemInfo& item);
 
@@ -194,6 +197,10 @@ struct CameraInfo
 	// Camera types
 
 	void LookCamera(const ItemInfo& playerItem, const CollisionInfo& coll);
+
+	// Inquirers
+
+	bool IsLocked() const;
 
 private:
 	// Helper inquirers
@@ -257,7 +264,3 @@ void UpdateFadeScreenAndCinematicBars();
 void ClearCinematicBars();
 
 float GetParticleDistanceFade(const Vector3i& pos);
-
-// @modernme Functions pulled in from subsequent refactors. Organise later.
-
-bool TestLockedCamera();
