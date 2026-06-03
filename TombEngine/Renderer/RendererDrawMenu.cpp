@@ -732,7 +732,7 @@ namespace TEN::Renderer
 		constexpr auto SCROLL_EASE	 = 0.3f;
 		constexpr auto FADE_ZONE_H	 = 25.0f;
 		constexpr auto ARROW_MARGIN  = 30.0f;
-		constexpr auto ARROW_SCALE	 = 0.03f;
+		constexpr auto ARROW_SCALE	 = 0.05f;
 
 		int titleOption  = g_Gui.GetSelectedOption();
 		auto plainColor  = g_GameFlow->GetSettings()->UI.PlainTextColor;
@@ -811,7 +811,7 @@ namespace TEN::Renderer
 		}
 
 		// Draw scroll arrows.
-		if (needsScroll)
+		if (needsScroll && Objects[GAME_OBJECT_ID::ID_INVENTORY_SPRITES].loaded)
 		{
 			bool upperArrowActive = selectLevelScrollY > 1.0f;
 
@@ -821,15 +821,15 @@ namespace TEN::Renderer
 
 				TEN::Effects::DisplaySprite::AddDisplaySprite(ID_INVENTORY_SPRITES, 0,
 					pos1, angle, Vector2(ARROW_SCALE), headerColor, 0,
-					DisplaySpriteAlignMode::TopLeft, DisplaySpriteScaleMode::Fit, BlendMode::Screen, DisplaySpritePhase::Draw);
+					DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::AlphaBlend, DisplaySpritePhase::Draw);
 				TEN::Effects::DisplaySprite::AddDisplaySprite(ID_INVENTORY_SPRITES, 0,
 					pos2, angle, Vector2(ARROW_SCALE), headerColor, 0,
-					DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::Screen, DisplaySpritePhase::Draw);
-			
-			CollectDisplaySprites(_gameCamera);
-			DrawDisplaySprites(_gameCamera, false);
-			DrawDisplaySprites(_gameCamera, true);
+					DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::AlphaBlend, DisplaySpritePhase::Draw);
 		}
+
+		CollectDisplaySprites(_gameCamera);
+		DrawDisplaySprites(_gameCamera, false);
+		DrawDisplaySprites(_gameCamera, true);
 	}
 
 	void Renderer::DrawStatistics()
