@@ -365,15 +365,15 @@ namespace TEN::Renderer
 		return !_isWindowed;
 	}
 
-	void Renderer::UpdateCameraMatrices(const CameraInfo& camera, float roll, float fov, float farView)
+	void Renderer::UpdateCameraMatrices(const CameraInfo& cam, float farView)
 	{
 		constexpr auto NEAR_PLANE = 32.0f;
 
 		if (farView < MIN_FAR_VIEW)
 			farView = DEFAULT_FAR_VIEW;
 
-		farView = farView;
-		_gameCamera = RenderView(camera, roll, fov, NEAR_PLANE, farView, Config::g_Configuration.ScreenWidth, Config::g_Configuration.ScreenHeight);
+		_currentGameCamera = RenderView(cam, cam.Roll, cam.Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
+		_gameCamera = RenderView(cam, cam.Roll, cam.Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
 	}
 
 	bool Renderer::SphereBoxIntersection(const BoundingBox& box, const Vector3& sphereCentre, float sphereRadius)

@@ -76,7 +76,7 @@ namespace TEN::Config
 		bool             EnableWindowedMode     = false;
 		ShadowMode       ShadowType             = ShadowMode::None;
 		int              ShadowMapSize          = DEFAULT_SHADOW_MAP_SIZE;
-		int              ShadowBlobsMax         = DEFAULT_SHADOW_BLOB_COUNT_MAX;
+		int              ShadowBlobCountMax     = DEFAULT_SHADOW_BLOB_COUNT_MAX;
 		bool             EnableCaustics         = false;
 		bool             EnableDecal            = true;
 		bool             EnableAmbientOcclusion = false;

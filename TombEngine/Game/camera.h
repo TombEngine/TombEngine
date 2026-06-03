@@ -129,6 +129,7 @@ struct CameraInfo
 	float	Radius			 = 0.0f;
 	float	speed			 = 0.0f;
 	float	targetspeed		 = 0.0f;
+	float   Roll             = 0.0f;
 	short	Fov				 = 0;
 	short	PrevFov			 = 0;
 
@@ -228,7 +229,7 @@ extern ScreenEffectData g_ScreenEffect;
 
 void UpdatePlayerRefCameraOrient(ItemInfo& item);
 
-void HandleLookAt(CameraInfo& camera, short roll);
+void HandleLookAt(const CameraInfo& camera, short roll);
 void SetFov(short fov, bool store = true);
 short GetCurrentFov();
 void InitializeCamera();

@@ -140,7 +140,7 @@ namespace TEN::Config
 		g_Configuration.EnableWindowedMode = config->enable_windowed_mode();
 		g_Configuration.ShadowType = (ShadowMode)config->shadow_type();
 		g_Configuration.ShadowMapSize = config->shadow_map_size();
-		g_Configuration.ShadowBlobsMax = config->shadow_blobs_max();
+		g_Configuration.ShadowBlobCountMax = config->shadow_blobs_max();
 		g_Configuration.EnableCaustics = config->enable_caustics();
 		g_Configuration.EnableDecals = config->enable_decals();
 		g_Configuration.AntialiasingMode = (AntialiasingMode)config->antialiasing_mode();
@@ -199,7 +199,7 @@ namespace TEN::Config
 		g_Configuration.EnableWindowedMode = false;
 		g_Configuration.ShadowType = ShadowMode::Player;
 		g_Configuration.ShadowMapSize = GameConfiguration::DEFAULT_SHADOW_MAP_SIZE;
-		g_Configuration.ShadowBlobsMax = GameConfiguration::DEFAULT_SHADOW_BLOB_COUNT_MAX;
+		g_Configuration.ShadowBlobCountMax = GameConfiguration::DEFAULT_SHADOW_BLOB_COUNT_MAX;
 		g_Configuration.EnableCaustics = true;
 		g_Configuration.EnableDecals = true;
 		g_Configuration.AntialiasingMode = AntialiasingMode::Medium;
@@ -273,7 +273,7 @@ namespace TEN::Config
 		builder.add_enable_windowed_mode(g_Configuration.EnableWindowedMode);
 		builder.add_shadow_type((int)g_Configuration.ShadowType);
 		builder.add_shadow_map_size(g_Configuration.ShadowMapSize);
-		builder.add_shadow_blobs_max(g_Configuration.ShadowBlobsMax);
+		builder.add_shadow_blobs_max(g_Configuration.ShadowBlobCountMax);
 		builder.add_enable_caustics(g_Configuration.EnableCaustics);
 		builder.add_enable_decals(g_Configuration.EnableDecals);
 		builder.add_antialiasing_mode((int)g_Configuration.AntialiasingMode);

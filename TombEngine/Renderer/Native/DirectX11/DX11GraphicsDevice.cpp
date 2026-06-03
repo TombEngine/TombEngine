@@ -2,18 +2,18 @@
 
 #ifdef SDL_PLATFORM_WIN32
 
-#include "Renderer/Native/DirectX11/DX11GraphicsDevice.h"
-#include "Renderer/Native/DirectX11/DX11ErrorHelper.h"
-#include "Renderer/Native/DirectX11/DX11Utils.h"
-#include "Specific/EngineMain.h"
-#include "Specific/configuration.h"
-#include "Specific/trutils.h"
 #include <wincodec.h>
 #include <ScreenGrab.h>
 #include <ctime>
 
-extern GameConfiguration g_Configuration;
+#include "Renderer/Native/DirectX11/DX11GraphicsDevice.h"
+#include "Renderer/Native/DirectX11/DX11ErrorHelper.h"
+#include "Renderer/Native/DirectX11/DX11Utils.h"
+#include "Specific/configuration.h"
+#include "Specific/EngineMain.h"
+#include "Specific/trutils.h"
 
+using namespace TEN::Config;
 using namespace TEN::Renderer::Graphics;
 
 namespace TEN::Renderer::Native::DirectX11

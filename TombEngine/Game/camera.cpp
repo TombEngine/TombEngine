@@ -620,10 +620,10 @@ void UpdatePlayerRefCameraOrient(ItemInfo& item)
 		player.Control.RefCameraOrient = EulerAngles(g_Camera.actualElevation, g_Camera.actualAngle, 0);
 }
 
-void HandleLookAt(CameraInfo& camera, short roll)
+void HandleLookAt(const CameraInfo& camera, short roll)
 {
 	float farView = BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView());
-	g_Renderer.UpdateCameraMatrices(&camera, farView);
+	g_Renderer.UpdateCameraMatrices(camera, farView);
 }
 
 void SetFov(short fov, bool store)
