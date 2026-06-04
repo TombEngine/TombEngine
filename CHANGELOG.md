@@ -34,8 +34,10 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
 * Fixed flyby camera jitter by converting the spline type to floating-point.
+* Fixed BATS_EMITTER targeting issues.
 * Fixed occasional flame emitter sprite jitter.
 * Fixed incorrect aspect ratio when resizing the window in windowed mode.
+* Fixed title level selection dialog not scrolling offscreen entries.
 
 ### Lua API changes
 
