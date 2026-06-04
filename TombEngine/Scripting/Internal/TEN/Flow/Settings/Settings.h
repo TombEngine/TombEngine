@@ -24,6 +24,7 @@ namespace TEN::Scripting
 		bool CrawlExtended	= true;	 // Extended crawl moveset.
 		bool CrouchRoll		= true;	 // Crouch roll.
 		bool OverhangClimb	= false; // Overhang functionality.
+		bool BackJumpTurn	= false; // Allow turning while jumping back.
 		bool LedgeJumps		= false; // Jump up or back from a ledge.
 
 		static void Register(sol::table& parent);

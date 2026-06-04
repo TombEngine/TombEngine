@@ -5,6 +5,7 @@ local Flow = TEN.Flow
 
 local settings = Flow.Settings.new()
 
+	settings.Animations.backJumpTurn = false
 	settings.Animations.crouchRoll = true
 	settings.Animations.crawlspaceSwandive = true
 	settings.Animations.sprintJump = false
