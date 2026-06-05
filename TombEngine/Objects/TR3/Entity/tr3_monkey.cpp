@@ -20,6 +20,11 @@ namespace TEN::Entities::Creatures::TR3
 	// TODO: Work out damage constants.
 	constexpr auto MONKEY_SWIPE_ATTACK_PLAYER_DAMAGE = 40;
 	constexpr auto MONKEY_SWIPE_ATTACK_CREATURE_DAMAGE = 20;
+	constexpr auto MONKEY_PICKUP_FRAME = 12;
+	constexpr auto MONKEY_MESH_NORMAL = ALL_JOINT_BITS;
+	constexpr auto MONKEY_MESH_MEDIPACK = 0xFFFFFEFF;
+	constexpr auto MONKEY_MESH_KEY = 0xFFFF6E6F;
+	constexpr auto MONKEY_MESH_KEY_EMPTY = 0xFFFF6F6F;
 
 	// TODO: Range constants.
 
@@ -85,6 +90,73 @@ namespace TEN::Entities::Creatures::TR3
 		MONKEY_ANIM_WALK_FORWARD_TO_IDLE = 30
 	};
 
+	bool IsMonkeyPickupTarget(ItemInfo* target, GAME_OBJECT_ID objectNumber, CreatureInfo* creature)
+	{
+		if (target->ObjectNumber != objectNumber)
+			return false;
+
+		if (target->RoomNumber == NO_VALUE || target->AIBits)
+			return false;
+
+		if (target->Status == ITEM_INVISIBLE || target->Flags & IFLAG_CLEAR_BODY)
+			return false;
+
+		return SameZone(creature, target);
+	}
+
+	bool IsMonkeyPickupInSameBox(ItemInfo* item, CreatureInfo* creature)
+	{
+		auto* enemy = creature->Enemy.Get();
+		if (enemy == nullptr)
+			return false;
+
+		return item->BoxNumber == enemy->BoxNumber;
+	}
+
+	void UpdateMonkeyPickupTarget(ItemInfo* item, CreatureInfo* creature)
+	{
+		if (item->CarriedItem != NO_VALUE)
+			return;
+
+		auto targetObjectNumber = (item->AIBits == MODIFY) ? ID_KEY_ITEM4 : ID_SMALLMEDI_ITEM;
+
+		if (creature->Enemy && IsMonkeyPickupTarget(creature->Enemy, targetObjectNumber, creature))
+			return;
+
+		for (int i = 0; i < g_Level.NumItems; i++)
+		{
+			auto* target = &g_Level.Items[i];
+
+			if (IsMonkeyPickupTarget(target, targetObjectNumber, creature))
+			{
+				creature->Enemy = target;
+				return;
+			}
+		}
+	}
+
+	void ApplyMonkeyMeshSwap(ItemInfo* item, unsigned int swapMask)
+	{
+		auto meshSwapObjectNumber = (item->AIBits == MODIFY) ?
+			ID_MESHSWAP_MONKEY_KEY :
+			ID_MESHSWAP_MONKEY_MEDIPACK;
+
+		const auto& meshSwapObject = Objects[meshSwapObjectNumber];
+		if (!meshSwapObject.loaded)
+		{
+			item->ResetModelToDefault();
+			return;
+		}
+
+		for (int i = 0; i < item->Model.MeshIndex.size(); i++)
+		{
+			if (swapMask & (1 << i))
+				item->Model.MeshIndex[i] = item->Model.BaseMesh + i;
+			else
+				item->Model.MeshIndex[i] = meshSwapObject.meshIndex + i;
+		}
+	}
+
 	void InitializeMonkey(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
@@ -110,61 +182,36 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			if (item->Animation.ActiveState != MONKEY_STATE_DEATH)
 			{
+				item->ResetModelToDefault();
 				SetAnimation(item, MONKEY_ANIM_DEATH);
 				item->MeshBits = ALL_JOINT_BITS;
 			}
 		}
 		else
 		{
-			GetAITarget(creature);
+			if (item->AIBits & AMBUSH)
+			{
+				if (creature->Enemy == nullptr || creature->Enemy->ObjectNumber != ID_AI_AMBUSH)
+					FindAITargetObject(creature, ID_AI_AMBUSH, 0, true);
+			}
+			else
+			{
+				GetAITarget(creature);
+			}
 
 			if (creature->HurtByLara)
 				creature->Enemy = LaraItem;
 			else
-			{
-				creature->Enemy = nullptr;
-				int minDistance = INT_MAX;
+				UpdateMonkeyPickupTarget(item, creature);
 
-				for (auto creatureIndex : ActiveCreatures)
-				{
-					auto* currentCreature = GetCreatureInfo(&g_Level.Items[creatureIndex]);
+			auto swapMask = MONKEY_MESH_NORMAL;
+			if (item->AIBits == MODIFY)
+				swapMask = (item->CarriedItem != NO_VALUE) ? MONKEY_MESH_KEY : MONKEY_MESH_KEY_EMPTY;
+			else if (item->CarriedItem != NO_VALUE)
+				swapMask = MONKEY_MESH_MEDIPACK;
 
-					if (currentCreature->ItemNumber == NO_VALUE || currentCreature->ItemNumber == itemNumber)
-						continue;
-
-					auto* target = &g_Level.Items[currentCreature->ItemNumber];
-					if (target->ObjectNumber == ID_LARA || target->ObjectNumber == ID_MONKEY)
-						continue;
-
-					if (target->ObjectNumber == ID_SMALLMEDI_ITEM)
-					{
-						int x = target->Pose.Position.x - item->Pose.Position.x;
-						int z = target->Pose.Position.z - item->Pose.Position.z;
-						int distance = pow(x, 2) + pow(z, 2);
-
-						if (distance < minDistance)
-						{
-							creature->Enemy = target;
-							minDistance = distance;
-						}
-					}
-				}
-			}
-
-			if (item->AIBits != MODIFY)
-			{
-				if (item->CarriedItem != NO_VALUE)
-					item->MeshBits = 0xFFFFFEFF;
-				else
-					item->MeshBits = ALL_JOINT_BITS;
-			}
-			else
-			{
-				if (item->CarriedItem != NO_VALUE)
-					item->MeshBits = 0xFFFF6E6F;
-				else
-					item->MeshBits = 0xFFFF6F6F;
-			}
+			item->MeshBits = ALL_JOINT_BITS;
+			ApplyMonkeyMeshSwap(item, swapMask);
 
 			AI_INFO AI;
 			CreatureAIInfo(item, &AI);
@@ -186,7 +233,7 @@ namespace TEN::Entities::Creatures::TR3
 				int dx = LaraItem->Pose.Position.x - item->Pose.Position.x;
 				int dz = LaraItem->Pose.Position.z - item->Pose.Position.z;
 
-				laraAI.angle = phd_atan(dz, dz) - item->Pose.Orientation.y;
+				laraAI.angle = phd_atan(dz, dx) - item->Pose.Orientation.y;
 				laraAI.distance = pow(dx, 2) + pow(dz, 2);
 			}
 
@@ -349,11 +396,11 @@ namespace TEN::Entities::Creatures::TR3
 					break;
 				else if ((creature->Enemy->ObjectNumber == ID_SMALLMEDI_ITEM ||
 					creature->Enemy->ObjectNumber == ID_KEY_ITEM4) &&
-					item->Animation.FrameNumber == 12)
+					item->Animation.FrameNumber == MONKEY_PICKUP_FRAME)
 				{
 					if (creature->Enemy->RoomNumber == NO_VALUE ||
 						creature->Enemy->Status == ITEM_INVISIBLE ||
-						creature->Enemy->Flags & -32768)
+						creature->Enemy->Flags & IFLAG_CLEAR_BODY)
 					{
 						creature->Enemy = nullptr;
 					}
@@ -386,7 +433,8 @@ namespace TEN::Entities::Creatures::TR3
 					}
 				}
 				else if (creature->Enemy->ObjectNumber == ID_AI_AMBUSH &&
-					item->Animation.FrameNumber == 12)
+					item->Animation.FrameNumber == MONKEY_PICKUP_FRAME &&
+					item->CarriedItem != NO_VALUE)
 				{
 					item->AIBits = 0;
 
@@ -430,9 +478,11 @@ namespace TEN::Entities::Creatures::TR3
 					if (Random::TestProbability(1 / 128.0f))
 						item->Animation.TargetState = MONKEY_STATE_SIT;
 				}
+				else if (IsMonkeyPickupInSameBox(item, creature))
+					item->Animation.TargetState = MONKEY_STATE_IDLE;
 				else if (AI.bite && AI.distance < pow(682, 2))
 					item->Animation.TargetState = MONKEY_STATE_IDLE;
-				
+
 				break;
 
 			case MONKEY_STATE_RUN_FORWARD:
