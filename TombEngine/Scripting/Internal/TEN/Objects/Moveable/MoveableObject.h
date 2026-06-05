@@ -94,7 +94,7 @@ public:
 	void SetRotation(const Rotation& rot);
 	void SetScale(const Vec3& scale);
 	void SetStateNumber(int stateNumber);
-	void SetAnimNumber(int animNumber, sol::optional<int> slotIndex);
+	void SetAnimNumber(int animNumber, sol::optional<int> slotIndex, sol::optional<int> blendFrames);
 	void SetFrameNumber(int frameNumber);
 	void SetVelocity(Vec3 velocity);
 	void SetColor(const ScriptColor& color);
