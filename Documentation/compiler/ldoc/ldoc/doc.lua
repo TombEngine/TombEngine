@@ -25,7 +25,7 @@ local TAG_MULTI,TAG_ID,TAG_SINGLE,TAG_TYPE,TAG_FLAG,TAG_MULTI_LINE = 'M','id','S
 local known_tags = {
    param = 'M', see = 'M', comment = 'M', advancedDesc = 'ML', usage = 'ML', ['return'] = 'M', field = 'M', author='M',set='M';
    class = 'id', name = 'id', pragma = 'id', alias = 'id',
-   copyright = 'S', summary = 'S', description = 'S', release = 'S', license = 'S', __ten_ldoc_display_name = 'S',
+   copyright = 'S', summary = 'S', description = 'S', release = 'S', license = 'S', ten_ldoc_display_name = 'S',
    fixme = 'S', todo = 'S', warning = 'S', raise = 'S', charset = 'S', within = 'S', inherits = 'S',
    ['local'] = 'N', export = 'N', private = 'N', constructor = 'N', static = 'N',include = 'S', summaryonly = 'N',
    -- project-level
@@ -556,7 +556,7 @@ function Item.check_tag(tags,tag, value, modifiers)
          if identifier then
             local display_name, trailing_rest = tools.extract_quoted_name(rest)
             if display_name and display_name ~= '' then
-               tags:add('__ten_ldoc_display_name', display_name)
+               tags:add('ten_ldoc_display_name', display_name)
                value = identifier .. trailing_rest
             end
          end
@@ -624,7 +624,7 @@ function Item:finish()
    self.modifiers = extract_tag_modifiers(tags)
    self.usage = read_del(tags,'usage')
    self.advancedDesc = read_del(tags,'advancedDesc')
-   self.display_name = read_del(tags,'__ten_ldoc_display_name')
+   self.display_name = read_del(tags,'ten_ldoc_display_name')
    self.summary_only = read_del(tags,'summaryonly') or false
    tags.see = read_del(tags,'see')
    if tags.see then
