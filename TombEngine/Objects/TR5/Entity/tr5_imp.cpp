@@ -139,7 +139,7 @@ namespace TEN::Entities::Creatures::TR5
 	{
 		const auto& creature = *GetCreatureInfo(&item);
 
-		if (creature.Enemy->IsLara())
+		if (creature.Enemy.IsLara())
 		{
 			const auto& player = *GetLaraInfo(creature.Enemy);
 
@@ -225,8 +225,11 @@ namespace TEN::Entities::Creatures::TR5
 
 			CreatureAIInfo(item, &ai);
 
-			int elevation = (item->Pose.Position.y - creature->Enemy->Pose.Position.y) + CLICK(1.5f);
-			if (creature->Enemy->IsLara())
+			int elevation = CLICK(1.5f);
+			if (creature->Enemy)
+				elevation += (item->Pose.Position.y - creature->Enemy->Pose.Position.y);
+
+			if (creature->Enemy.IsLara())
 			{
 				if (creature->Enemy->Animation.ActiveState == LS_CROUCH_IDLE ||
 					creature->Enemy->Animation.ActiveState == LS_CROUCH_ROLL ||

@@ -6,6 +6,7 @@
 #include "Game/effects/tomb4fx.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 
 using namespace TEN::Math;
 
@@ -33,7 +34,7 @@ namespace TEN::Effects::Explosion
 			//TriggerExplosionSparks(&sparkPos, room); @TODO
 		}
 
-		if (triggerShockwave)
+		if (triggerShockwave && g_GameFlow->GetSettings()->Effects.ExplosionShockwave)
 		{
 			auto shockPos = Pose(Vector3i(pos));
 			TriggerShockwave(&shockPos, 0, size, 64, 32, 32, 32, 30, EulerAngles(rand() & 0xFFFF, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);

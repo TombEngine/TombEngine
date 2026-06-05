@@ -741,7 +741,7 @@ namespace TEN::Entities::Generic
 		vec.y = 0;
 		vec.z = 0;
 
-		const auto& offset = GetClosestKeyframe(*item).RootOffset;
+		const auto& offset = GetFrame(*item).RootPosition;
 		ropeY = Lara.Control.Rope.Y - ANGLE(90.0f);
 		rope = &Ropes[Lara.Control.Rope.Ptr];
 

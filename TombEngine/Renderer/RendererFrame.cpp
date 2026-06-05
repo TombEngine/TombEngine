@@ -1,6 +1,5 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
-
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/Sphere.h"
@@ -66,10 +65,10 @@ namespace TEN::Renderer
 		for (auto* roomPtr : renderView.RoomsToDraw)
 		{
 			// Prepare real DX scissor test rectangle.
-			roomPtr->ClipBounds.Left = (roomPtr->ViewPort.x + 1.0f) * _screenWidth * 0.5f;
-			roomPtr->ClipBounds.Bottom = (1.0f - roomPtr->ViewPort.y) * _screenHeight * 0.5f;
-			roomPtr->ClipBounds.Right = (roomPtr->ViewPort.z + 1.0f) * _screenWidth * 0.5f;
-			roomPtr->ClipBounds.Top = (1.0f - roomPtr->ViewPort.w) * _screenHeight * 0.5f;
+			roomPtr->ClipBounds.Left = (roomPtr->ViewPort.x + 1.0f) * _graphicsDevice->GetScreenWidth() * 0.5f;
+			roomPtr->ClipBounds.Bottom = (1.0f - roomPtr->ViewPort.y) * _graphicsDevice->GetScreenHeight() * 0.5f;
+			roomPtr->ClipBounds.Right = (roomPtr->ViewPort.z + 1.0f) * _graphicsDevice->GetScreenWidth() * 0.5f;
+			roomPtr->ClipBounds.Top = (1.0f - roomPtr->ViewPort.w) * _graphicsDevice->GetScreenHeight() * 0.5f;
 
 			// Indicate that Lara object is found.
 			if (roomPtr->RoomNumber == LaraItem->RoomNumber)
@@ -428,12 +427,12 @@ namespace TEN::Renderer
 			return;
 
 		auto& rendererRoom = _rooms[roomNumber];
-		const auto& room = g_Level.Rooms[rendererRoom.RoomNumber];
+		const auto& nativeRoom = g_Level.Rooms[rendererRoom.RoomNumber];
 
 		bool isRoomReflected = IsRoomReflected(renderView, roomNumber);
 
-		short itemNumber = NO_VALUE;
-		for (itemNumber = room.itemNumber; itemNumber != NO_VALUE; itemNumber = g_Level.Items[itemNumber].NextItem)
+		int itemNumber = NO_VALUE;
+		for (itemNumber = nativeRoom.itemNumber; itemNumber != NO_VALUE; itemNumber = g_Level.Items[itemNumber].NextItem)
 		{
 			const auto& item = g_Level.Items[itemNumber];
 
@@ -455,16 +454,15 @@ namespace TEN::Renderer
 			if (!_moveableObjects[item.ObjectNumber].has_value())
 				continue;
 
-			auto& obj = _moveableObjects[item.ObjectNumber].value();
-
-			if (obj.Hidden)
+			const auto& rendererObject = _moveableObjects[item.ObjectNumber].value();
+			if (rendererObject.Hidden)
 				continue;
 
 			// Clip object by frustum only if it doesn't cast shadows and is not in mirror room,
 			// otherwise disappearing shadows or reflections may be seen if object gets out of frustum.
 			bool inFrustum = true;
 			
-			if (!isRoomReflected && obj.ShadowType == ShadowMode::None)
+			if (!isRoomReflected && rendererObject.ShadowType == ShadowMode::None)
 			{
 				inFrustum = false;
 
@@ -473,7 +471,6 @@ namespace TEN::Renderer
 
 				for (int i = 0; !inFrustum, i < spheres.size(); i++)
 				{
-					// Blow up sphere radius by half for cases of too small calculated spheres.
 					if (renderView.Camera.Frustum.SphereInFrustum(spheres[i].Center, spheres[i].Radius * 1.5f))
 						inFrustum = true;
 				}
@@ -482,19 +479,22 @@ namespace TEN::Renderer
 				// for updating first positions and animations data
 			}
 
+			Matrix translationMatrix, rotMatrix;
+			auto worldMatrix = GetWorldMatrixForMoveable(item, &rotMatrix, &translationMatrix);
+
 			auto& newItem = _items[itemNumber];
 
 			newItem.ItemNumber = itemNumber;
 			newItem.ObjectID = item.ObjectNumber;
 			newItem.Color = item.Model.Color;
 			newItem.Position = item.Pose.Position.ToVector3();
-			newItem.Translation = Matrix::CreateTranslation(newItem.Position);
-			newItem.Rotation = item.Pose.Orientation.ToRotationMatrix();
+			newItem.Translation = translationMatrix;
+			newItem.Rotation = rotMatrix;
 			newItem.Scale = Matrix::CreateScale(item.Pose.Scale);
-			newItem.World = newItem.Scale * newItem.Rotation * newItem.Translation;
+			newItem.World = worldMatrix;
 
 			// Disable interpolation either when renderer slot or item slot has flag. 
-			// Renderer slot has no interpolation flag set in case it is fetched for first time (e.g. item first time in frustum).
+			// Renderer slot has no interpolation flag set in case it is fetched for the first time (e.g. item first time in frustum).
 			newItem.DisableInterpolation = item.DisableInterpolation || newItem.DisableInterpolation;
 
 			// Disable interpolation when object has traveled significant distance.
@@ -513,8 +513,8 @@ namespace TEN::Renderer
 				// Otherwise all frames until next ControlPhase will not be interpolated.
 				newItem.DisableInterpolation = false;
 				
-				for (int j = 0; j < MAX_BONES; j++)
-					newItem.PrevAnimTransforms[j] = newItem.AnimTransforms[j];
+				for (int j = 0; j < BONE_COUNT_MAX; j++)
+					newItem.PrevAnimationTransforms[j] = newItem.AnimationTransforms[j];
 			}
 
 			// Force interpolation only for player in player freeze mode.
@@ -527,8 +527,8 @@ namespace TEN::Renderer
 			newItem.InterpolatedScale = Matrix::Lerp(newItem.InterpolatedScale, newItem.Scale, interpFactor);
 			newItem.InterpolatedWorld = Matrix::Lerp(newItem.PrevWorld, newItem.World, interpFactor);
 			
-			for (int j = 0; j < MAX_BONES; j++)
-				newItem.InterpolatedAnimTransforms[j] = Matrix::Lerp(newItem.PrevAnimTransforms[j], newItem.AnimTransforms[j], GetInterpolationFactor(forceValue));
+			for (int j = 0; j < BONE_COUNT_MAX; j++)
+				newItem.InterpolatedAnimationTransforms[j] = Matrix::Lerp(newItem.PrevAnimationTransforms[j], newItem.AnimationTransforms[j], GetInterpolationFactor(forceValue));
 
 			// NOTE: now at least positions and animations are updated,
 			// because even off-screen the correct position is required 
@@ -1000,8 +1000,8 @@ namespace TEN::Renderer
 			item.PrevRotation = item.Rotation;
 			item.PrevScale = item.Scale;
 
-			for (int j = 0; j < MAX_BONES; j++)
-				item.PrevAnimTransforms[j] = item.AnimTransforms[j];
+			for (int j = 0; j < BONE_COUNT_MAX; j++)
+				item.PrevAnimationTransforms[j] = item.AnimationTransforms[j];
 		}
 
 		for (auto& effect : _effects)

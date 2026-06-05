@@ -38,7 +38,7 @@ namespace TEN::Entities::Effects
 	constexpr int FLAME_BIG_RADIUS = CLICK(2.33f);
 	constexpr int FLAME_ITEM_BURN_TIMEOUT = 3 * FPS;
 
-	byte Flame3xzoffs[16][2] =
+	int Flame3xzoffs[16][2] =
 	{
 		{ 9, 9 },
 		{ 24, 9 },
