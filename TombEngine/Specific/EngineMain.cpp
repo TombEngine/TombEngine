@@ -7,6 +7,7 @@
 #include "resource.h"
 #include "Sound/sound.h"
 #include "Specific/configuration.h"
+#include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/Parallel.h"
 #include "Specific/trutils.h"
@@ -28,12 +29,16 @@ unsigned int ThreadSuspendCount = 0;
 // Cooperative pause, it emulates Windows APIs for pausing and resuming the game but it's cross platform
 SDL_Mutex* GamePauseMutex = nullptr;
 SDL_Condition* GamePauseCond = nullptr;
-bool       GamePaused = false;
+bool GamePaused = false;
 
 // Global variables
 bool ResetClock;
 std::unique_ptr<ISubsystem> g_Platform;
 std::string GameDirectory;
+
+// Pending window resize in windowed mode, produced by the SDL event loop and consumed by the game thread before rendering.
+SDL_Mutex* NextResolutionMutex = nullptr;
+static std::optional<Vector2i> NextResolution = std::nullopt;
 
 bool ArgEquals(const char* incomingArg, const std::string& name)
 {
@@ -436,11 +441,21 @@ int main(int argc, char* argv[])
 
 	GamePauseMutex = SDL_CreateMutex();
 	GamePauseCond = SDL_CreateCondition();
+	NextResolutionMutex = SDL_CreateMutex();
+
+	if (!GamePauseMutex || !GamePauseCond || !NextResolutionMutex)
+	{
+		auto errorMessage = fmt::format("Failed to create SDL synchronization primitives: {}", SDL_GetError());
+		TENLog(errorMessage, LogLevel::Error);
+		g_Platform->ShowErrorMessage(errorMessage);
+		EngineClose();
+		exit(EXIT_FAILURE);
+	}
 
 	GameThread = SDL_CreateThread(GameMain, "GameMain", nullptr);
 	if (!GameThread)
 	{
-		TENLog(std::string("Failed to create game thread: ") + SDL_GetError(), LogLevel::Error);
+		TENLog(fmt::format("Failed to create game thread: {}", SDL_GetError()), LogLevel::Error);
 		DoTheGame = false;
 	}
 
@@ -473,7 +488,23 @@ int main(int argc, char* argv[])
 				HandleWindowFocusLost(sdlWindow);
 				break;
 
+			case SDL_EVENT_WINDOW_RESIZED:
+			case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+			{
+				if (!g_Configuration.EnableWindowedMode)
+					break;
+
+				int w = 0, h = 0;
+				SDL_GetWindowSizeInPixels(sdlWindow, &w, &h);
+
+				SDL_LockMutex(NextResolutionMutex);
+				NextResolution = Vector2i(w, h);
+				SDL_UnlockMutex(NextResolutionMutex);
+				break;
+			}
+
 			default:
+				HandleSDLEvent(event);
 				break;
 			}
 		}
@@ -493,6 +524,35 @@ int main(int argc, char* argv[])
 	EngineClose();
 
 	exit(EXIT_SUCCESS);
+}
+
+void ApplyPendingWindowResize()
+{
+	SDL_LockMutex(NextResolutionMutex);
+	if (!NextResolution.has_value())
+	{
+		SDL_UnlockMutex(NextResolutionMutex);
+		return;
+	}
+
+	auto res = NextResolution.value();
+	NextResolution = std::nullopt;
+	SDL_UnlockMutex(NextResolutionMutex);
+
+	if (!g_Configuration.EnableWindowedMode)
+		return;
+
+	if (res.x <= 0 || res.y <= 0)
+		return;
+
+	if (res.x == g_Configuration.ScreenWidth && res.y == g_Configuration.ScreenHeight)
+		return;
+
+	g_Renderer.ChangeScreenResolution(res.x, res.y, true, false);
+	g_Renderer.SetGraphicsSettingsChanged();
+	g_Configuration.ScreenWidth = res.x;
+	g_Configuration.ScreenHeight = res.y;
+	SaveConfiguration();
 }
 
 void EngineClose()
@@ -520,9 +580,13 @@ void EngineClose()
 		GamePauseMutex = nullptr;
 	}
 
+	if (NextResolutionMutex)
+	{
+		SDL_DestroyMutex(NextResolutionMutex);
+		NextResolutionMutex = nullptr;
+	}
+
 	g_Platform->Shutdown();
-
 	SDL_Quit();
-
 	ShutdownTENLog();
 }
