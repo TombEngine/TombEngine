@@ -202,13 +202,17 @@ namespace TEN::Entities::Traps
 				{
 					auto spheres = item.GetSpheres();
 					int waterHeight = GetPointCollision(item.Pose.Position, probedRoomNumber).GetWaterTopHeight();
+					int extentsLength = ((Vector3)item.GetAabb().Extents).Length();
 
 					for (const auto& sphere : spheres)
 					{
 						SplashSetup.Position = Vector3(sphere.Center.x, (float)(waterHeight - 1), sphere.Center.z);
 						SplashSetup.SplashPower = GenerateFloat(fallVel * 0.5f, fallVel * 2.0f);
-						SplashSetup.InnerRadius = sphere.Radius;
-						SetupSplash(&SplashSetup, probedRoomNumber, CRUMBLING_PLATFORM_SPLASH_SETUP_COUNT_MAX);
+
+						// Legacy assets for crumbling platforms often have oversized spheres that can produce incorrect splash sizes,
+						// so calculate a fallback override radius based on the platform's bounding box extents for such cases.
+						SplashSetup.InnerRadius = (sphere.Radius > extentsLength ? extentsLength / 2 : sphere.Radius) * Random::GenerateFloat(0.7f, 1.3f);
+						SetupSplash(&SplashSetup, probedRoomNumber, 3);
 					}
 				}
 
