@@ -14,7 +14,7 @@ namespace TEN::Effects::Splash
 	constexpr auto SPLASH_AUDIO_DRIP_COOLDOWN = 16; // Safeguard against stacked splash sound and drip spam.
 
 	int	SplashCount; // Lara-specific splash cooldown used when entering water.
-	int	SplashAudioDripCount; // Global cooldown for splash sound and drip spam suppression.
+	int	SplashTimeout; // Global cooldown for splash sound and drip spam suppression.
 
 	SplashEffectSetup								  SplashSetup;
 	std::array<SplashEffect, SPLASH_EFFECT_COUNT_MAX> SplashEffects;
@@ -89,13 +89,13 @@ namespace TEN::Effects::Splash
 				break;
 		}
 
-		if (SplashAudioDripCount == 0)
+		if (SplashTimeout == 0)
 		{
 			SpawnSplashDrips(Vector3(setup->Position.x, setup->Position.y - 15, setup->Position.z), room, 32);
 
 			auto soundPose = Pose(Vector3i(setup->Position));
 			SoundEffect(SFX_TR4_LARA_SPLASH, &soundPose);
-			SplashAudioDripCount = SPLASH_AUDIO_DRIP_COOLDOWN;
+			SplashTimeout = SPLASH_AUDIO_DRIP_COOLDOWN;
 		}
 	}
 
@@ -104,8 +104,8 @@ namespace TEN::Effects::Splash
 		if (SplashCount)
 			SplashCount--;
 
-		if (SplashAudioDripCount)
-			SplashAudioDripCount--;
+		if (SplashTimeout)
+			SplashTimeout--;
 
 		for (auto& splash : SplashEffects)
 		{
@@ -141,7 +141,7 @@ namespace TEN::Effects::Splash
 	void ClearSplashes()
 	{
 		SplashCount = 0;
-		SplashAudioDripCount = 0;
+		SplashTimeout = 0;
 
 		for (auto& splash : SplashEffects)
 			splash = {};

@@ -194,6 +194,9 @@ namespace TEN::Entities::Traps
 			// Update room number.
 			int probedRoomNumber = pointColl.GetRoomNumber();
 
+			// Get bounding box extents.
+			int extentsLength = ((Vector3)item.GetAabb().Extents).Length();
+
 			if (item.RoomNumber != probedRoomNumber)
 			{
 				// Spawn splash for each bone of the platform when entering water.
@@ -202,7 +205,6 @@ namespace TEN::Entities::Traps
 				{
 					auto spheres = item.GetSpheres();
 					int waterHeight = GetPointCollision(item.Pose.Position, probedRoomNumber).GetWaterTopHeight();
-					int extentsLength = ((Vector3)item.GetAabb().Extents).Length();
 
 					for (const auto& sphere : spheres)
 					{
@@ -230,17 +232,15 @@ namespace TEN::Entities::Traps
 
 				auto spheres = item.GetSpheres();
 
-				for (const auto& sphere : spheres)
+				for (auto& sphere : spheres)
 				{
 					if (TestProbability(spawnChance))
 					{
-						SpawnBubble(
-							GeneratePointInSphere(sphere),
-							item.RoomNumber, GenerateInt(32, 256), GenerateInt(BLOCK(0.1f), BLOCK(0.25f)));
+						sphere.Radius = sphere.Radius > extentsLength ? extentsLength / 2 : sphere.Radius;
+						SpawnBubble(GeneratePointInSphere(sphere), item.RoomNumber, GenerateInt(32, 256), GenerateInt(BLOCK(0.1f), BLOCK(0.25f)));
 					}
 				}
 			}
-
 		}
 
 		break;
