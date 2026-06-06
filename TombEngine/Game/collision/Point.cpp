@@ -353,6 +353,7 @@ namespace TEN::Collision::Point
 
 			sector = &room->Sectors[z + (x * room->ZSize)];
 			adjoiningRoomNumber = sector->SidePortalRoomNumber;
+			
 			if (adjoiningRoomNumber != NO_VALUE)
 			{
 				roomNumber = adjoiningRoomNumber;
