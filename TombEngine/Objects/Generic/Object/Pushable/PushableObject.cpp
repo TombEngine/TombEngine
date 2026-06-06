@@ -137,7 +137,6 @@ namespace TEN::Entities::Generic
 		const auto& player = Lara;
 		auto& pushableItem = g_Level.Items[itemNumber];
 		auto& pushable = GetPushableInfo(pushableItem);
-		auto& bridge = GetBridgeObject(pushableItem);
 
 		if (player.Context.InteractedItem == itemNumber && player.Control.IsMoving)
 			return;

@@ -661,7 +661,7 @@ namespace TEN::Entities::Generic
 			item->Animation.FrameNumber = 0;
 			item->Animation.ActiveState = LS_REACH;
 			item->Animation.TargetState = LS_REACH;
-			Lara.Control.Rope.Ptr = -1;
+			Lara.Control.Rope.Ptr = NO_VALUE;
 		}
 	}
 
@@ -678,7 +678,7 @@ namespace TEN::Entities::Generic
 
 		auto* lara = GetLaraInfo(item);
 		lara->Control.HandStatus = HandStatus::Free;
-		lara->Control.Rope.Ptr = -1;
+		lara->Control.Rope.Ptr = NO_VALUE;
 
 		if (stumble)
 		{

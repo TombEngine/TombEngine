@@ -30,8 +30,8 @@ namespace TEN::Entities::Player
 		short	 WaterCurrentActive = 0; // Sink number? Often used as bool.
 		Vector3i WaterCurrentPull	= Vector3i::Zero;
 
-		int InteractedItem = 0; // InteractedItemNumber.
-		int Vehicle		   = 0; // VehicleItemNumber.
+		int InteractedItem = NO_VALUE; // InteractedItemNumber.
+		int Vehicle		   = NO_VALUE; // VehicleItemNumber.
 
 		PlayerContext() {};
 		PlayerContext(const ItemInfo& item, const CollisionInfo& coll);

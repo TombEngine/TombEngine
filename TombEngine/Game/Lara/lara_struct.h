@@ -1229,7 +1229,7 @@ struct RopeControlData
 	unsigned short FrameRate = 0;
 
 	unsigned short Y = 0;
-	int Ptr = 0;
+	int Ptr = NO_VALUE;
 	int Offset = 0;
 	int DownVel = 0;
 	byte Flag = 0;

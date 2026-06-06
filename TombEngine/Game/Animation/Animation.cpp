@@ -335,9 +335,8 @@ namespace TEN::Animation
 		{
 			const auto& player = GetLaraInfo(item);
 
-			// @modernme Why is this firing??
-			//if (player.Control.Rope.Ptr != NO_VALUE)
-			//	DelAlignLaraToRope(&item);
+			if (player.Control.Rope.Ptr != NO_VALUE)
+				DelAlignLaraToRope(&item);
 
 			if (!player.Control.IsMoving)
 			{
