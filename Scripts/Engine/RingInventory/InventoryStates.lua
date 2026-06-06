@@ -379,6 +379,8 @@ end
 
 local HandleInventoryOpening = function(state)
     TEN.View.SetPostProcessMode(View.PostProcessMode.NONE)
+    TEN.View.SetPostProcessTint(COLOR_MAP.itemSelected)
+    TEN.View.SetDOF(View.DOFMode.NONE)
     Text.Setup()
 
     if Save.IsQuickSaveEnabled() then
@@ -630,8 +632,10 @@ local HandleStatisticsClose = function(state)
             InventoryStates.SetMode(InventoryStates.MODE.ITEM_SELECTED)
         else
             if Statistics.IsEndStatisticsEnabled() then
+                local endLevel = Statistics.GetEndLevel() or 999
+                Statistics.SetEndStatistics(false, nil)
+                Flow.EndLevel(endLevel)
                 InventoryStates.SetMode(InventoryStates.MODE.INVENTORY_EXIT)
-                Statistics.SetEndStatistics(false)
             else
                 InventoryStates.SetMode(InventoryStates.MODE.INVENTORY)
             end

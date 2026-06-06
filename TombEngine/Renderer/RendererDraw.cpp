@@ -222,13 +222,13 @@ namespace TEN::Renderer
 			_stObjects.Objects[0].AmbientLight = item->AmbientLight;
 			_stObjects.Skinned = (int)skinMode;
 
-			for (int k = 0; k < MAX_BONES; k++)
+			for (int k = 0; k < BONE_COUNT_MAX; k++)
 				_stObjects.BoneLightModes[k] = (int)LightMode::Static;
 
 			if (skinMode == SkinningMode::Full)
 			{
 				for (int m = 0; m < obj.AnimationTransforms.size(); m++)
-					_stObjects.Bones[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+					_stObjects.Bones[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
 				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 				auto* mesh = GetMesh(item->SkinIndex);
@@ -248,7 +248,7 @@ namespace TEN::Renderer
 				}
 			}
 
-			memcpy(_stObjects.Bones, item->InterpolatedAnimTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
+			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 			for (int k = 0; k < obj.ObjectMeshes.size(); k++)
@@ -2755,13 +2755,13 @@ namespace TEN::Renderer
 			if (skinMode == SkinningMode::Full)
 			{
 				for (int m = 0; m < moveableObj.AnimationTransforms.size(); m++)
-					_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+					_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
 				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 				DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
 			}
 
-			memcpy(_stObjects.Bones, item->InterpolatedAnimTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
+			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 		}
 
@@ -3568,7 +3568,7 @@ namespace TEN::Renderer
 				{
 					for (int p = 0; p < bucket.Polygons.size(); p++)
 					{
-						auto center = Vector3::Transform(bucket.Polygons[p].Centre, itemToDraw->InterpolatedAnimTransforms[boneIndex] * itemToDraw->InterpolatedWorld);
+						auto center = Vector3::Transform(bucket.Polygons[p].Centre, itemToDraw->InterpolatedAnimationTransforms[boneIndex] * itemToDraw->InterpolatedWorld);
 						int dist = Vector3::Distance(center, Camera.pos.ToVector3());
 
 						auto object = RendererSortableObject{};
@@ -4050,11 +4050,11 @@ namespace TEN::Renderer
 		if (objectInfo->Skinned)
 		{
 			for (int m = 0; m < moveableObj.BindPoseTransforms.size(); m++)
-				_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * objectInfo->Item->InterpolatedAnimTransforms[m];
+				_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * objectInfo->Item->InterpolatedAnimationTransforms[m];
 		}
 		else
 		{
-			memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
+			memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimationTransforms, sizeof(Matrix) * BONE_COUNT_MAX);
 		}
 		
 		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
@@ -4191,7 +4191,7 @@ namespace TEN::Renderer
 		const auto& moveableObj = *_moveableObjects[(int)GAME_OBJECT_ID::ID_HAIR_PRIMARY + index];
 
 		_stObjects.Objects[0].World = Matrix::Identity;
-		_stObjects.Bones[0] = objectInfo->Item->InterpolatedAnimTransforms[HairUnit::GetRootMeshID(index)] * objectInfo->Item->InterpolatedWorld;
+		_stObjects.Bones[0] = objectInfo->Item->InterpolatedAnimationTransforms[HairUnit::GetRootMeshID(index)] * objectInfo->Item->InterpolatedWorld;
 		ReflectMatrixOptionally(_stObjects.Bones[0]);
 
 		bool forceValue = g_GameFlow->CurrentFreezeMode == FreezeMode::Player;

@@ -1,0 +1,724 @@
+include "ten_common.fbs";
+include "ten_itemdata.fbs";
+namespace TEN.Serialization.Save;
+
+struct RoomVector {
+	room: uint32;
+	y_location: uint32;
+}
+
+table LevelData {
+	random_seed: uint32;
+	level_far_view: int32;
+
+	storm_enabled: bool;
+	rumble_enabled: bool;
+	weather_type: int32;
+	weather_strength: float;
+	weather_clustering: bool;
+
+	fog_color: int32;
+	fog_min_distance: float;
+	fog_max_distance: float;
+
+	sky_layer_1_enabled: bool;
+	sky_layer_1_color: int32;
+	sky_layer_1_speed: int32;
+
+	sky_layer_2_enabled: bool;
+	sky_layer_2_color: int32;
+	sky_layer_2_speed: int32;
+
+	horizon1_enabled: bool;
+	horizon1_object_id: int32;
+	horizon1_position: TEN.Serialization.Common.Vector3;
+	horizon1_orientation: TEN.Serialization.Common.EulerAngles;
+	horizon1_transparency: float;
+
+	horizon2_enabled: bool;
+	horizon2_object_id: int32;
+	horizon2_position: TEN.Serialization.Common.Vector3;
+	horizon2_orientation: TEN.Serialization.Common.EulerAngles;
+	horizon2_transparency: float;
+
+	lensflare_enabled: bool;
+	lensflare_sprite_id: int32;
+	lensflare_pitch: float;
+	lensflare_yaw: float;
+	lensflare_color: int32;
+
+	starfield_star_count: int32;
+	starfield_meteor_count: int32;
+	starfield_meteor_spawn_density: int32;
+	starfield_meteor_velocity: int32;
+}
+
+table Room {
+	index: int32;
+	name: string;
+	flags: int32;
+	reverb_type: int32;
+	block_stopper_flags: [bool];
+}
+
+table ItemCallback {
+	type: int32;
+	name: string;
+}
+
+table Item {
+	anim_object_id: int32;
+	active_state: int32;
+	anim_number: int32;
+	frame_number: int32;
+	is_airborne: bool;
+	required_state: int32;
+	target_state: int32;
+	velocity: TEN.Serialization.Common.Vector3;
+
+	floor: int;
+	touch_bits: int32;
+	mesh_bits: int32;
+	object_id: int32;
+	room_number: int32;
+	hit_points: int32;
+	box_number: int32;
+	timer: int32;
+	color: TEN.Serialization.Common.Vector4;
+	flags: int32;
+	trigger_flags: int32;
+	carried_item: int32;
+	after_death: int32;
+	item_flags: [int32];
+	pose: TEN.Serialization.Common.Pose;
+	next_item: int32;
+	next_item_active: int32;
+	active: bool;
+	status: int32;
+	hit_stauts: bool;
+	collidable: bool;
+	looked_at: bool;
+	ai_bits: int32;
+	data: TEN.Serialization.Save.ItemData;
+	
+	base_mesh: int32;
+	skin_index: int32;
+	mesh_index: [int32];
+
+	effect_type: int32;
+	effect_light_colour: TEN.Serialization.Common.Vector3;
+	effect_primary_colour: TEN.Serialization.Common.Vector3;
+	effect_secondary_colour: TEN.Serialization.Common.Vector3;
+	effect_count: int32;
+
+	lua_name: string;
+	lua_callbacks: [ItemCallback];
+}
+
+table FXInfo {
+	pose : TEN.Serialization.Common.Pose;
+	room_number: int32;
+	object_number: int32;
+	next_fx: int32;
+	next_active: int32;
+	speed: int32;
+	fall_speed: int32;
+	frame_number: int32;
+	counter : int32;
+	color: TEN.Serialization.Common.Vector4;
+	flag1: int32;
+	flag2: int32;
+}
+
+table AmmoInfo {
+	count: int32;
+	is_infinite: bool;
+}
+
+table HolsterInfo {
+	left_holster: int32;
+	right_holster: int32;
+	back_holster: int32;
+}
+
+table CarriedWeaponInfo {
+	present: bool;
+	has_lasersight: bool;
+	has_silencer: bool;
+	ammo: [AmmoInfo];
+	selected_ammo: int32;
+	weapon_mode: int32;
+}
+
+table WeaponInfo {
+	object_number: uint32;
+	anim_number: uint32;
+	frame_number: uint32;
+	active_state: uint32;
+	target_state: uint32;
+}
+
+table ArmInfo {
+	anim_number: int32;
+	frame_number: int32;
+	anim_object_id: int32;
+	locked: bool;
+	rotation: TEN.Serialization.Common.EulerAngles;
+	gun_flash: int32;
+	gun_smoke: int32;
+}
+
+table FlareData {
+	life: uint32;
+	frame: int32;
+	control_left: bool;
+}
+
+enum TorchState:int32 { 
+	holding = 0,
+	throwing,
+	dropping,
+	just_lit
+}
+
+table TorchData {
+	state: TorchState;
+	is_lit: bool;
+	fade: int32;
+	current_color: TEN.Serialization.Common.Vector3;
+	next_color: TEN.Serialization.Common.Vector3;
+}
+
+table LaraInventoryData {
+	is_busy: bool;
+	old_busy: bool;
+	beetle_life: int32;
+	beetle_components: int32;
+	small_waterskin: int32;
+	big_waterskin: int32;
+	has_binoculars: bool;
+	has_compass: bool;
+	has_stopwatch: bool;
+	has_diary: bool;
+	has_load: bool;
+	has_save: bool;
+	has_crowbar: bool;
+	has_torch: bool;
+	has_lasersight: bool;
+	has_silencer: bool;
+	total_small_medipacks: int32;
+	total_large_medipacks: int32;
+	total_flares: int32;
+	total_secrets: uint32;
+	puzzles: [int32];
+	keys: [int32];
+	pickups: [int32];
+	examines: [int32];
+	puzzles_combo: [int32];
+	keys_combo: [int32];
+	pickups_combo: [int32];
+	examines_combo: [int32];
+}
+
+table LaraCountData {
+	run_jump: uint32;
+	position_adjust: uint32;
+	pose: uint32;
+	death: uint32;
+	no_cheat: uint32;
+}
+
+table LookControlData {
+	is_using_binoculars: bool;
+	is_using_lasersight: bool;
+	mode: int32;
+	optic_range: int32;
+	orientation: TEN.Serialization.Common.EulerAngles;
+	turn_rate: TEN.Serialization.Common.EulerAngles;
+}
+
+table RopeControlData {
+	segment: int32;
+	direction: int32;
+	arc_front: int32;
+	arc_back: int32;
+	last_x: int32;
+	max_x_forward: int32;
+	max_x_backward: int32;
+	dframe: int32;
+	frame: int32;
+	frame_rate: int32;
+	y: int32;
+	ptr: int32;
+	offset: int32;
+	down_vel: int32;
+	flag: int32;
+	count: int32;
+}
+
+table SubsuitControlData {
+	x_rot: int32;
+	d_x_rot: int32;
+	velocity: [int32];
+	vertical_velocity: int32;
+	x_rot_vel: int32;
+	hit_count: uint32;
+}
+
+table TightropeControlData {
+	balance: float;
+	time_on_tightrope: uint32;
+	can_dismount: bool;
+	tightrope_item: int32;
+}
+
+table WeaponControlData {
+	weapon_item: int32;
+	has_fired: bool;
+	uzi_left: bool;
+	uzi_right: bool;
+	gun_type: int32;
+	request_gun_type: int32;
+	last_gun_type: int32;
+	holster_info: HolsterInfo;
+	num_shots_fired: uint;
+	interval: float;
+	timer: float;
+}
+
+table LaraControlData {
+	can_climb_ladder: bool;
+	can_monkey_swing: bool;
+	count: LaraCountData;
+	hand_status: int32;
+	is_climbing_ladder: bool;
+	is_locked: bool;
+	is_low: bool;
+	is_moving: bool;
+	is_run_jump_queued: bool;
+	jump_direction: int32;
+	keep_low: bool;
+	look: LookControlData;
+	move_angle: int32;
+	rope: RopeControlData;
+	subsuit: SubsuitControlData;
+	tightrope: TightropeControlData;
+	turn_rate: int32;
+	water_status: int32;
+	weapon: WeaponControlData;
+}
+
+table PlayerEffectData {
+	bubble_nodes: [float];
+	drip_nodes: [float];
+}
+
+table PlayerStatusData {
+	air: int32;
+	exposure: int32;
+	poison: int32;
+	stamina: int32;
+}
+
+table PlayerContextData {
+	calc_jump_velocity: int32;
+	interacted_item_number: int32;
+	next_corner_pose: TEN.Serialization.Common.Pose;
+	projected_floor_height: int32;
+	target_orient: TEN.Serialization.Common.EulerAngles;
+	vehicle_item_number: int32;
+	water_current_active: int32;
+	water_current_pull: TEN.Serialization.Common.Vector3;
+	water_surface_dist: int32;
+}
+
+table CollisionInfoData {
+	last_bridge_item_number: int32;
+	last_bridge_item_pose: TEN.Serialization.Common.Pose;
+}
+
+table PlayerSkinData {
+	skin: int32;
+	skin_joints: int32;
+	skin_scream: int32;
+	hair_primary: int32;
+	hair_secondary: int32;
+}
+
+table Lara {
+	context: PlayerContextData;
+	control: LaraControlData;
+	effect: PlayerEffectData;
+	collision: CollisionInfoData;
+	extra_anim: int32;
+	extra_head_rot: TEN.Serialization.Common.EulerAngles;
+	extra_torso_rot: TEN.Serialization.Common.EulerAngles;
+	flare: FlareData;
+	highest_location: int32;
+	hit_direction: int32;
+	hit_frame: int32;
+	inventory: LaraInventoryData;
+	left_arm: ArmInfo;
+	location: int32;
+	location_pad: int32;
+	right_arm: ArmInfo;
+	status: PlayerStatusData;
+	target_arm_orient: TEN.Serialization.Common.EulerAngles;
+	target_entity_number: int32;
+	torch: TorchData;
+	weapons: [CarriedWeaponInfo];
+	skin: PlayerSkinData;
+}
+
+table Camera {
+	position: TEN.Serialization.Common.GameVector;
+	target: TEN.Serialization.Common.GameVector;
+	extra_orientation: TEN.Serialization.Common.EulerAngles;
+}
+
+table FixedCamera {
+	flags: int32;
+}
+
+table FlyByCamera {
+	flags: int32;
+}
+
+table Sink {
+	flags: int32;
+}
+
+table StaticMeshInfo {
+	number: int32;
+	pose: TEN.Serialization.Common.Pose;
+	room_number: int32;
+	color: TEN.Serialization.Common.Vector4;
+	hit_points: int32;
+	flags: int32;
+}
+
+table ParticleInfo {
+	x: int32;
+	y: int32;
+	z: int32;
+	x_vel: int32;
+	y_vel: int32;
+	z_vel: int32;
+	gravity: int32;
+	rot_ang: int32;
+	flags: int32;
+	s_size: float;
+	d_size: float;
+	size: float;
+	friction: int32;
+	scalar: int32;
+	sprite_index: int32;
+	rot_add: int32;
+	max_y_vel: int32;
+	on: bool;
+	s_r: int32;
+	s_g: int32;
+	s_b: int32;
+	d_r: int32;
+	d_g: int32;
+	d_b: int32;
+	r: int32;
+	g: int32;
+	b: int32;
+	col_fade_speed: int32;
+	fade_to_black: int32;
+	s_life: int32;
+	life: int32;
+	blend_mode: int32;
+	extras: int32;
+	dynamic: int32;
+	fx_obj: int32;
+	room_number: int32;
+	node_number: int32;
+	target_pos: TEN.Serialization.Common.Vector3;
+	sprite_id: int32;
+	damage: int32;
+	framerate: float;
+	animation_type: int32;
+	light_radius: int32;
+	light_flicker: int32;
+	light_flicker_s: int32;
+	sound: int32;
+	constraint: TEN.Serialization.Common.Vector3;
+}
+
+table Soundtrack {
+    name: string;
+    position: uint64;
+}
+
+table VideoInfo {
+	name: string;
+	position: float;
+	silent: bool;
+	looped: bool;
+}
+
+table SwarmObjectInfo {
+	on: bool;
+	pose: TEN.Serialization.Common.Pose;
+	room_number: int32;
+	target: int32;
+	flags: int32;
+}
+
+table RopeSegment {
+	segment: TEN.Serialization.Common.Vector3;
+	velocity: TEN.Serialization.Common.Vector3;
+	normalised_segment: TEN.Serialization.Common.Vector3;
+	mesh_segment: TEN.Serialization.Common.Vector3;
+	coord: TEN.Serialization.Common.Vector3;
+}
+
+table Rope {
+	segments: [RopeSegment];
+	position: TEN.Serialization.Common.Vector3;
+	segment_length: int32;
+	active: int32;
+	coiled: int32;
+}
+
+table Pendulum {
+	position: TEN.Serialization.Common.Vector3;
+	velocity: TEN.Serialization.Common.Vector3;
+	node: int32;
+}
+
+table Decal {
+	position: TEN.Serialization.Common.Vector3;
+	radius: float;
+	room_number: int32;
+	type: int32;
+	life: int32;
+	life_start_fading: int32;
+	opacity: float;
+	start_opacity: float;
+}
+
+table EventSet {
+	index: int32;
+	statuses: [bool];
+	call_counters: [int32];
+}
+
+table VolumeState {
+	status: int32;
+	activator: int32;
+	timestamp: int32;
+}
+
+table Volume {
+	name: string;
+	number: int32;
+	room_number: int32;
+	enabled: bool;
+	position: TEN.Serialization.Common.Vector3;
+	rotation: TEN.Serialization.Common.Vector4;
+	scale: TEN.Serialization.Common.Vector3;
+	queue: [VolumeState];
+}
+
+table FishData {
+	is_patrolling: bool;
+	is_lethal: bool;
+	leader_item_number: int32;
+	life: float;
+	mesh_index: int32;
+	orientation: TEN.Serialization.Common.EulerAngles;
+	position: TEN.Serialization.Common.Vector3;
+	position_target: TEN.Serialization.Common.Vector3;
+	room_number: int32;
+	target_item_number: int32;
+	undulation: float;
+	velocity: float;
+}
+
+table FireflyData {
+	sprite_index: int32;
+	sprite_id: int32;
+	blend_mode: int32;
+	scalar: int32;
+	position: TEN.Serialization.Common.Vector3;
+	room_number: int32;
+	position_target: TEN.Serialization.Common.Vector3;
+	orientation: TEN.Serialization.Common.EulerAngles;
+	velocity: float;
+	target_item_number: int32;
+	z_vel: float;
+	life: float;
+	number: int32;
+	d_r: int32;
+	d_g: int32;
+	d_b: int32;
+	r: int32;
+	g: int32;
+	b: int32;
+	on: bool;
+	size: float;
+	rot_ang: int32;
+}
+
+struct KeyValPair {
+	key: uint32;
+	val: uint32;
+}
+
+table ScriptTable {
+	keys_vals: [KeyValPair];
+}
+
+table stringTable {
+	str: string;
+}
+
+table doubleTable {
+	scalar: double;
+}
+
+table boolTable {
+	scalar: bool;
+}
+
+table timeTable {
+	scalar: int32;
+}
+
+table vec2Table {
+	vec: TEN.Serialization.Common.Vector2;
+}
+
+table vec3Table {
+	vec: TEN.Serialization.Common.Vector3;
+}
+
+table rotationTable {
+	vec: TEN.Serialization.Common.Vector3;
+}
+
+table colorTable {
+	color: uint32;
+}
+
+table funcNameTable {
+	str: string;
+}
+
+union VarUnion {
+	str: stringTable,
+	tab: ScriptTable,
+	num: doubleTable,
+	boolean: boolTable,
+	time: timeTable,
+	vec2: vec2Table,
+	vec3: vec3Table,
+	rotation: rotationTable,
+	color: colorTable,
+	funcName: funcNameTable
+}
+
+table UnionTable{
+	u:VarUnion;
+}
+
+table UnionVec {
+	members: [UnionTable];
+}
+
+table SaveGameHeader {
+	level_name: string;
+	level_hash: int32;
+	hours: int32;
+	minutes: int32;
+	seconds: int32;
+	level: int32;
+	timer: int32;
+	count: int32;
+}
+
+table SaveGameStatistics {
+	ammo_hits: int32;
+	ammo_used: int32;
+	medipacks_used: int32;
+	damage_taken: int32;
+	distance: int32;
+	kills: int32;
+	pickups: int32;
+	secrets: int32;
+	timer: int32;
+}
+
+table CallbackSet {
+	point: int32;
+	callbacks: [string];
+}
+
+table SaveGame {
+	header: SaveGameHeader;
+	game: SaveGameStatistics;
+	level: SaveGameStatistics;
+	level_data: LevelData;
+	secret_bits: int32;
+	camera: Camera;
+	lara: Lara;
+	rooms: [Room];
+	box_flags: [int32];
+	items: [Item];
+	next_item_free: int32;
+	next_item_active: int32;
+	room_items: [int32];
+	fish_swarm: [FishData];
+	firefly_swarm: [FireflyData];
+	fxinfos: [FXInfo];
+	next_fx_free: int32;
+	next_fx_active: int32;
+	fixed_cameras: [FixedCamera];
+	sinks: [Sink];
+	static_meshes: [StaticMeshInfo];
+	flyby_cameras: [FlyByCamera];
+	particles: [ParticleInfo];
+	rats: [SwarmObjectInfo];
+	spiders: [SwarmObjectInfo];
+	scarabs: [SwarmObjectInfo];
+	bats: [SwarmObjectInfo];
+	locusts: [SwarmObjectInfo];
+	decals: [Decal];
+	flip_maps: [int32];
+	flip_stats: [int32];
+	flip_effect: int32;
+	flip_timer: int32;
+	flip_status: int32;
+	current_fov: int16;
+	last_inv_item: int32;
+	action_queue: [int32];
+	soundtracks: [Soundtrack];
+	cd_flags: [int32];
+	video: VideoInfo;
+
+	postprocess_mode: int32;
+	postprocess_strength: float;
+	postprocess_tint: TEN.Serialization.Common.Vector3;
+	dof_distance: float;
+	dof_range: float;
+	dof_strength: float;
+	dof_mode: int32;
+	rope: Rope;
+	pendulum: Pendulum;
+	alternate_pendulum: Pendulum;
+	volumes: [Volume];
+	global_event_sets: [EventSet];
+	volume_event_sets: [EventSet];
+	script_vars: UnionVec;
+	
+	// At the moment there is no real reason to save the pre_start and
+	// post_start callbacks as OnStart will have already be called when a save
+	// is loaded, but we'll store them anyway for completeness.
+
+	callbacks: [CallbackSet];
+}
+
+root_type TEN.Serialization.Save.SaveGame;
