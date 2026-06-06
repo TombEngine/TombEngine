@@ -1666,15 +1666,15 @@ namespace TEN::Renderer
 			PrintDebugMessage("DIMENSION STATS");
 			PrintDebugMessage(" ");
 			PrintDebugMessage("Position: %d, %d, %d", playerItem.Pose.Position.x, playerItem.Pose.Position.y, playerItem.Pose.Position.z);
-			PrintDebugMessage("Orientation: %d, %d, %d", playerItem.Pose.Orientation.x, playerItem.Pose.Orientation.y, playerItem.Pose.Orientation.z);
+			PrintDebugMessage("Orientation: %.3f, %.3f, %.3f", TO_DEGREES(playerItem.Pose.Orientation.x), TO_DEGREES(playerItem.Pose.Orientation.y), TO_DEGREES(playerItem.Pose.Orientation.z));
 			PrintDebugMessage("Scale: %.3f, %.3f, %.3f", playerItem.Pose.Scale.x, playerItem.Pose.Scale.y, playerItem.Pose.Scale.z);
 			PrintDebugMessage("Room number: %d", playerItem.RoomNumber);
 			PrintDebugMessage("PathfindingBoxID: %d", playerItem.BoxNumber);
-			PrintDebugMessage((player.Context.WaterSurfaceDist == -NO_HEIGHT ? "WaterSurfaceDist: N/A" : "WaterSurfaceDist: %d"), player.Context.WaterSurfaceDist);
+			PrintDebugMessage(((player.Context.WaterSurfaceDist == -NO_HEIGHT) ? "WaterSurfaceDist: N/A" : "WaterSurfaceDist: %d"), player.Context.WaterSurfaceDist);
 			PrintDebugMessage("Room Bounds: %d, %d, %d, %d", room.Position.z, room.Position.z, room.Position.z + BLOCK(room.XSize), room.Position.z + BLOCK(room.ZSize));
 			PrintDebugMessage("Room.y, minFloor, maxCeiling: %d, %d, %d ", room.Position.y, room.BottomHeight, room.TopHeight);
-			PrintDebugMessage("Camera Position: %d, %d, %d", g_Camera.Position.x, g_Camera.Position.y, g_Camera.Position.z);
-			PrintDebugMessage("Camera LookAt: %d, %d, %d", g_Camera.LookAt.x, g_Camera.LookAt.y, g_Camera.LookAt.z);
+			PrintDebugMessage("Camera Position: %.3f, %.3f, %.3f", g_Camera.Position.x, g_Camera.Position.y, g_Camera.Position.z);
+			PrintDebugMessage("Camera LookAt: %.3f, %.3f, %.3f", g_Camera.LookAt.x, g_Camera.LookAt.y, g_Camera.LookAt.z);
 			PrintDebugMessage("Camera RoomNumber: %d", g_Camera.RoomNumber);
 			break;
 

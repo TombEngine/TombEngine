@@ -291,7 +291,7 @@ void RefreshCamera(short type, short* data)
 			{
 				g_Camera.number = value;
 
-				if (g_Camera.timer < 0 || !g_Camera.IsLocked()())
+				if (g_Camera.timer < 0 || !g_Camera.IsLocked())
 				{
 					g_Camera.timer = NO_VALUE;
 					targetOk = 0;
@@ -306,7 +306,7 @@ void RefreshCamera(short type, short* data)
 			break;
 
 		case TO_TARGET:
-			if (!g_Camera.IsLocked()())
+			if (!g_Camera.IsLocked())
 				break;
 
 			g_Camera.item = &g_Level.Items[value];
@@ -661,7 +661,7 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 
 			g_Camera.number = value;
 
-			if (!g_Camera.IsLocked()())
+			if (!g_Camera.IsLocked())
 				break;
 
 			if (triggerType == TRIGGER_TYPES::COMBAT)

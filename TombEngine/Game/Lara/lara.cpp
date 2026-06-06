@@ -712,13 +712,12 @@ void LaraCheat(ItemInfo* item, CollisionInfo* coll)
 
 		if (los.has_value() && los.value().Item)
 		{
-			auto& losValue = los.value();
-			auto objectName = GetObjectName(losValue.Item->ObjectNumber);
+			auto objectName = GetObjectName(los->Item->ObjectNumber);
 
-			if (losValue.Distance <= BLOCK(1.5f) && objectName.find("DOOR") != std::string::npos)
+			if (los->Distance <= BLOCK(1.5f) && objectName.find("DOOR") != std::string::npos)
 			{
-				losValue.Item->Flags |= CODE_BITS;
-				Trigger(losValue.Item->Index);
+				los->Item->Flags |= CODE_BITS;
+				Trigger(los->Item->Index);
 			}
 		}
 	}

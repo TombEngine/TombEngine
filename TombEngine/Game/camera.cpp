@@ -39,7 +39,7 @@ using TEN::Renderer::g_Renderer;
 constexpr float CAMERA_OBJECT_COLL_DIST_THRESHOLD   = BLOCK(4);
 constexpr float CAMERA_OBJECT_COLL_EXTENT_THRESHOLD = CLICK(0.5f);
 
-CameraInfo		 g_Camera;
+CameraInfo       g_Camera;
 ScreenEffectData g_ScreenEffect;
 
 CameraLosCollisionData CameraInfo::GetLos(const Vector3& origin, int roomNumber, const Vector3& dir, float dist) const
@@ -107,9 +107,9 @@ Vector3 CameraInfo::GetGeometryOffset() const
 
 Vector3 CameraInfo::GetPlayerOffset(const ItemInfo& item, const CollisionInfo& coll) const
 {
-	constexpr float VERTICAL_OFFSET_DEFAULT = -BLOCK(0.05f);
-	constexpr float VERTICAL_OFFSET_SWAMP = BLOCK(0.4f);
-	constexpr float VERTICAL_OFFSET_MONKEY_SWING = BLOCK(0.25f);
+	constexpr float VERTICAL_OFFSET_DEFAULT        = -BLOCK(0.05f);
+	constexpr float VERTICAL_OFFSET_SWAMP          = BLOCK(0.4f);
+	constexpr float VERTICAL_OFFSET_MONKEY_SWING   = BLOCK(0.25f);
 	constexpr float VERTICAL_OFFSET_TREADING_WATER = BLOCK(0.5f);
 
 	const auto& player = GetLaraInfo(item);
@@ -148,23 +148,23 @@ Vector3 CameraInfo::GetPlayerOffset(const ItemInfo& item, const CollisionInfo& c
 
 EulerAngles CameraInfo::GetControlRotation() const
 {
-	constexpr float SLOW_ROT_COEFF = 0.4f;
-	constexpr float MOUSE_AXIS_SENSITIVITY_COEFF = 20.0f;
+	constexpr float SLOW_ROT_COEFF                = 0.4f;
+	constexpr float MOUSE_AXIS_SENSITIVITY_COEFF  = 20.0f;
 	constexpr float CAMERA_AXIS_SENSITIVITY_COEFF = 12.0f;
-	constexpr float SMOOTHING_FACTOR = 8.0f;
+	constexpr float SMOOTHING_FACTOR              = 8.0f;
 
 	bool isUsingMouse = (GetCameraAxis() == Vector2::Zero);
 	auto axisSign = Vector2(g_Configuration.InvertCameraXAxis ? -1 : 1, g_Configuration.InvertCameraYAxis ? -1 : 1);
 
-	// Calculate axis.
+	// Compute axis.
 	auto axis = (isUsingMouse ? GetMouseAxis() : GetCameraAxis()) * axisSign;
 	float sensitivityCoeff = isUsingMouse ? MOUSE_AXIS_SENSITIVITY_COEFF : CAMERA_AXIS_SENSITIVITY_COEFF;
 	float sensitivity = sensitivityCoeff / (1.0f + (abs(axis.x) + abs(axis.y)));
 	axis *= sensitivity * (isUsingMouse ? SMOOTHING_FACTOR : 1.0f);
 
-	// Calculate and return rotation.
+	// Compute and return rotation.
 	auto rotCoeff = IsHeld(In::Walk) ? SLOW_ROT_COEFF : 1.0f;
-	return EulerAngles(ANGLE(axis.x), ANGLE(axis.y), 0) * rotCoeff;
+	return EulerAngles(ANGLE(axis.x), ANGLE(axis.y), ANGLE(0.0f)) * rotCoeff;
 }
 
 void CameraInfo::Prepare()
@@ -307,6 +307,7 @@ void CameraInfo::UpdateSphere(const ItemInfo& playerItem)
 	}
 	else
 	{
+		// Modern camera.
 		if (g_Configuration.IsUsingModernControls() && !player.Control.IsLocked)
 		{
 			Rotation.Lerp(GetControlRotation(), CONTROLLED_CAMERA_ROT_LERP_ALPHA);
@@ -325,6 +326,7 @@ void CameraInfo::UpdateSphere(const ItemInfo& playerItem)
 				actualElevation -= Rotation.y;
 			}
 		}
+		// Tank camera.
 		else
 		{
 			if (CanControlTankCamera(playerItem))

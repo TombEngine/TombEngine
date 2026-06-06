@@ -155,7 +155,7 @@ GameStatus GamePhase(bool insideMenu)
 	ClearAllDisplaySprites();
 
 	SetupInterpolation();
-	g_Camera.Initialize();
+	g_Camera.Prepare();
 
 	RegeneratePickups();
 
@@ -264,7 +264,7 @@ GameStatus GamePhase(bool insideMenu)
 		g_GameScript->OnLoop(DELTA_TIME, true);
 	}
 
-	g_Camera.Update()();
+	g_Camera.Update();
 
 	// Clear savegame loaded flag.
 	JustLoaded = false;
@@ -302,7 +302,7 @@ GameStatus FreezePhase()
 	ClearAllDisplaySprites();
 
 	SetupInterpolation();
-	g_Camera.Prepare()();
+	g_Camera.Prepare();
 
 	g_DrawItems.Prepare();
 	g_GameStringsHandler->ProcessDisplayStrings(DELTA_TIME);
