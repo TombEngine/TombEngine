@@ -28,12 +28,14 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added [SWINGING_SPIKE_BAG](https://tombengine.com/asset/traps/swinging-spike-bag/) object from TR2.
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if OCB is above 0 and when the flipeffect "playsound" with the soundID SFX_TR1_SLAMDOOR_CLOSE = 1144 is played.
 * Added hit sounds for TR1 enemies when shot.
+* Added splash and bubble effects for CRUMBLING_FLOOR if it falls into water.
 * Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fxfog effect if OCB value is 0.
 
 ### Bug fixes
 
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
 * Fixed flyby camera jitter by converting the spline type to floating-point.
+* Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
 * Fixed BATS_EMITTER targeting issues.
 * Fixed occasional flame emitter sprite jitter.
 * Fixed incorrect aspect ratio when resizing the window in windowed mode.

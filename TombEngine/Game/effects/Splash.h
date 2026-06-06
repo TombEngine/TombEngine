@@ -2,7 +2,7 @@
 
 namespace TEN::Effects::Splash
 {
-	constexpr auto SPLASH_EFFECT_COUNT_MAX = 8;
+	constexpr auto SPLASH_EFFECT_COUNT_MAX = 48;
 
 	// TODO: Refactor everything here to use new effect handling patterns.
 
@@ -58,7 +58,7 @@ namespace TEN::Effects::Splash
 	extern SplashEffectSetup								 SplashSetup;
 	extern std::array<SplashEffect, SPLASH_EFFECT_COUNT_MAX> SplashEffects;
 
-	void SetupSplash(const SplashEffectSetup* const setup, int room);
+	void SetupSplash(const SplashEffectSetup* const setup, int room, int setupCountMax = 3);
 	void UpdateSplashes();
 	void ClearSplashes();
 	void Splash(ItemInfo* item);
