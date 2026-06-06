@@ -54,8 +54,7 @@ namespace TEN::Effects::Splash
 		}
 	};
 
-	extern int												 SplashCount; // Lara-specific splash cooldown used when entering water.
-	extern int												 SplashAudioDripCount; // Global cooldown for splash sound and drip spam suppression.
+	extern int												 SplashCount;
 	extern SplashEffectSetup								 SplashSetup;
 	extern std::array<SplashEffect, SPLASH_EFFECT_COUNT_MAX> SplashEffects;
 

@@ -13,8 +13,9 @@ namespace TEN::Effects::Splash
 {
 	constexpr auto SPLASH_AUDIO_DRIP_COOLDOWN = 16; // Safeguard against stacked splash sound and drip spam.
 
-	int												  SplashCount;
-	int												  SplashAudioDripCount;
+	int	SplashCount; // Lara-specific splash cooldown used when entering water.
+	int	SplashAudioDripCount; // Global cooldown for splash sound and drip spam suppression.
+
 	SplashEffectSetup								  SplashSetup;
 	std::array<SplashEffect, SPLASH_EFFECT_COUNT_MAX> SplashEffects;
 
