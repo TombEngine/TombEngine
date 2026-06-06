@@ -195,7 +195,7 @@ namespace TEN::Entities::Traps
 			int probedRoomNumber = pointColl.GetRoomNumber();
 
 			// Get bounding box extents.
-			int extentsLength = ((Vector3)item.GetAabb().Extents).Length();
+			float extentsLength = ((Vector3)item.GetAabb().Extents).Length();
 
 			if (item.RoomNumber != probedRoomNumber)
 			{
@@ -213,7 +213,7 @@ namespace TEN::Entities::Traps
 
 						// Legacy assets for crumbling platforms often have oversized spheres that can produce incorrect splash sizes,
 						// so calculate a fallback override radius based on the platform's bounding box extents for such cases.
-						SplashSetup.InnerRadius = (sphere.Radius > extentsLength ? extentsLength / 2 : sphere.Radius) * Random::GenerateFloat(0.7f, 1.3f);
+						SplashSetup.InnerRadius = (sphere.Radius > extentsLength ? extentsLength / 2.0f : sphere.Radius) * Random::GenerateFloat(0.7f, 1.3f);
 						SetupSplash(&SplashSetup, probedRoomNumber, CRUMBLING_PLATFORM_SPLASH_SETUP_COUNT_MAX);
 					}
 				}
@@ -236,7 +236,7 @@ namespace TEN::Entities::Traps
 				{
 					if (TestProbability(spawnChance))
 					{
-						sphere.Radius = sphere.Radius > extentsLength ? extentsLength / 2 : sphere.Radius;
+						sphere.Radius = sphere.Radius > extentsLength ? extentsLength / 2.0f : sphere.Radius;
 						SpawnBubble(GeneratePointInSphere(sphere), item.RoomNumber, GenerateInt(32, 256), GenerateInt(BLOCK(0.1f), BLOCK(0.25f)));
 					}
 				}
