@@ -130,15 +130,15 @@ namespace TEN::Scripting::DisplayItem
 
 	/// Set the field of view for all display items.
 	// @function DisplayItem.SetFOV
-	// @tparam[opt=80] float fov Field of view angle in degrees (clamped to [10, 170]).
+	// @tparam[opt=25] float fov Field of view angle in degrees (clamped to [10, 170]).
 	// @bool[opt=false] disableInterpolation Disable interpolation to allow snap movements.
 	// @usage
-	// TEN.View.DisplayItem.SetFOV(80)
+	// TEN.View.DisplayItem.SetFOV(25)
 	void ScriptDisplayItem::SetFOV(TypeOrNil<float> fov, TypeOrNil<bool> disableInterpolation)
 	{
-		auto convertedFOV = ValueOr<float>(fov, 80.0f);
+		auto convertedFOV = ValueOr<float>(fov, 25.0f);
 		auto convertedBool = ValueOr<bool>(disableInterpolation, false);
-		auto clampedFov = ANGLE(std::clamp(abs(convertedFOV), 10.0f, 170.0f));
+		auto clampedFov = DEG_TO_RAD(std::clamp(abs(convertedFOV), 10.0f, 170.0f));
 		g_DrawItems.SetFOV(clampedFov, convertedBool);
 	}
 
@@ -179,7 +179,7 @@ namespace TEN::Scripting::DisplayItem
 	// local fieldOfView = TEN.View.DisplayItem.GetFOV()
 	float ScriptDisplayItem::GetFOV()
 	{
-		return TO_DEGREES(g_DrawItems.GetFov());
+		return RAD_TO_DEG(g_DrawItems.GetFov());
 	}
 
 	/// Reset the camera position, camera target position, and field of view.

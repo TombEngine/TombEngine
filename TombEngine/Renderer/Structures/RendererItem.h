@@ -17,35 +17,35 @@ namespace TEN::Renderer::Structures
 		Matrix	Translation = Matrix::Identity;
 		Matrix	Rotation	= Matrix::Identity;
 		Matrix	Scale		= Matrix::Identity;
-		Matrix	AnimTransforms[MAX_BONES] = {};
+		Matrix	AnimationTransforms[BONE_COUNT_MAX] = {};
 
-		Quaternion BoneOrientations[MAX_BONES];
+		Quaternion BoneOrientations[BONE_COUNT_MAX] = {};
 
-		Vector4 Color = Vector4::One;
-		Vector4 AmbientLight = Vector4::One;
+		Vector4 Color        = NEUTRAL_COLOR;
+		Vector4 AmbientLight = NEUTRAL_COLOR;
 
 		int				 SkinIndex	 = NO_VALUE;	
 		std::vector<int> MeshIndex	 = {};
 
 		std::vector<RendererLight*> LightsToDraw = {};
-		float LightFade = 0.0f;
+		float						LightFade	 = 0.0f;
 
-		bool DoneAnimations = false;
+		bool DoneAnimations		  = false;
 		bool DisableInterpolation = true;
 
-		Vector3 InterpolatedPosition	= Vector3::Zero;
-		Matrix	InterpolatedWorld		= Matrix::Identity;
-		Matrix	InterpolatedTranslation = Matrix::Identity;
-		Matrix	InterpolatedRotation	= Matrix::Identity;
-		Matrix	InterpolatedScale		= Matrix::Identity;
-		Matrix	InterpolatedAnimTransforms[MAX_BONES];
+		Vector3 InterpolatedPosition                       = Vector3::Zero;
+		Matrix  InterpolatedWorld                          = Matrix::Identity;
+		Matrix  InterpolatedTranslation                    = Matrix::Identity;
+		Matrix  InterpolatedRotation                       = Matrix::Identity;
+		Matrix  InterpolatedScale                          = Matrix::Identity;
+		Matrix  InterpolatedAnimationTransforms[BONE_COUNT_MAX] = {};
 
-		Vector3 PrevPosition	= Vector3::Zero;
-		int		PrevRoomNumber	= NO_VALUE;
-		Matrix	PrevWorld		= Matrix::Identity;
-		Matrix	PrevTranslation = Matrix::Identity;
-		Matrix	PrevRotation	= Matrix::Identity;
-		Matrix	PrevScale		= Matrix::Identity;
-		Matrix	PrevAnimTransforms[MAX_BONES];
+		Vector3 PrevPosition                       = Vector3::Zero;
+		int     PrevRoomNumber                     = NO_VALUE;
+		Matrix  PrevWorld                          = Matrix::Identity;
+		Matrix  PrevTranslation                    = Matrix::Identity;
+		Matrix  PrevRotation                       = Matrix::Identity;
+		Matrix  PrevScale                          = Matrix::Identity;
+		Matrix  PrevAnimationTransforms[BONE_COUNT_MAX] = {};
 	};
 }

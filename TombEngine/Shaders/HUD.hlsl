@@ -1,5 +1,6 @@
 #include "VertexInput.hlsli"
 #include "Math.hlsli"
+#include "./Samplers.hlsli"
 
 cbuffer HUDBuffer : register(b10)
 {
@@ -16,20 +17,23 @@ struct PixelShaderInput
 
 cbuffer HUDBarBuffer : register(b11)
 {
+	float4x4 Transform;
 	float2 BarStartUV;
 	float2 BarScale;
+	//------------
 	float Percent;
 	int Poisoned;
 	int Frame;
+    int HUDBarBuffer_Buffer0;
 };
 
 Texture2D Texture : register(t5);
-SamplerState Sampler : register(s5);
 
 PixelShaderInput VS(VertexShaderInput input)
 {
 	PixelShaderInput output;
-	output.Position = mul(mul(float4(input.Position, 1.0f), View), Projection);
+	float4 position = mul(float4(input.Position, 1.0f), Transform);
+	output.Position = mul(mul(position, View), Projection);
 	output.Color = input.Color;
 	output.UV = input.UV;
 	return output;
@@ -43,7 +47,7 @@ half4 PSColoredHUD(PixelShaderInput input) : SV_TARGET
 half4 PSTexturedHUD(PixelShaderInput input) : SV_TARGET
 {
 	float2 uv = float2((input.UV.x * BarScale.x) + BarStartUV.x, (input.UV.y * BarScale.y) + BarStartUV.y);
-	float4 output = Texture.Sample(Sampler, uv);
+	float4 output = Texture.Sample(LinearClampSampler, uv);
 	return output;
 }
 
@@ -79,7 +83,7 @@ half4 PSTexturedHUDBar(PixelShaderInput input) : SV_TARGET
 		discard;
 	}
 	float2 uv = float2((input.UV.x * BarScale.x) + BarStartUV.x, (input.UV.y * BarScale.y) + BarStartUV.y);
-	half4 col = Texture.Sample(Sampler, uv);
+	half4 col = Texture.Sample(LinearClampSampler, uv);
 	if (Poisoned) {
 		float factor = sin(((Frame % 30) / 30.0) * PI2) * 0.5 + 0.5;
 		col = lerp(col, half4(214 / 512.0, 241 / 512.0, 18 / 512.0, 1), factor);
