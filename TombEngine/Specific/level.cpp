@@ -1218,6 +1218,7 @@ void FreeLevel(bool partial)
 	g_Level.Cameras.resize(0);
 	g_Level.Sinks.resize(0);
 	g_Level.SoundSources.resize(0);
+	g_Level.Materials.resize(0);
 	g_Level.VolumeEventSets.resize(0);
 	g_Level.GlobalEventSets.resize(0);
 	g_Level.LoopedEventSetIndices.resize(0);
@@ -1249,7 +1250,6 @@ void FreeLevel(bool partial)
 	g_Level.SoundDetails.resize(0);
 	g_Level.SoundMap.resize(0);
 	g_Level.FloorData.resize(0);
-	g_Level.Materials.resize(0);
 
 	for (int i = 0; i < 2; i++)
 	{
@@ -1408,6 +1408,17 @@ void LoadEventSets()
 
 		g_Level.VolumeEventSets.push_back(eventSet);
 	}
+}
+
+void LoadProperties()
+{
+	int propertyCount = ReadCount();
+	TENLog("Property count: " + std::to_string(propertyCount), LogLevel::Info);
+
+	if (propertyCount > 0)
+		g_Level.PropertyBlob = ReadString();
+	else
+		g_Level.PropertyBlob = {};
 }
 
 static bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompressedSize)
@@ -1624,7 +1635,7 @@ bool LoadLevel(const std::string& path, bool partial)
 			LoadBoxes();
 			LoadMirrors();
 			LoadAnimatedTextures();
-			LoadMaterials();
+			LoadMaterialDefinitions();
 
 			UpdateProgress(70);
 
@@ -1639,7 +1650,9 @@ bool LoadLevel(const std::string& path, bool partial)
 			LoadAIObjects();
 			LoadCameras();
 			LoadSoundSources();
+			LoadMaterials();
 			LoadEventSets();
+			LoadProperties();
 			UpdateProgress(80, partial);
 
 			FinalizeBlock();
@@ -1802,22 +1815,44 @@ void LoadMirrors()
 	}
 }
 
+void LoadMaterialDefinitions()
+{
+	int materialDefinitionCount = ReadCount();
+	TENLog("Material definition count: " + std::to_string(materialDefinitionCount), LogLevel::Info);
+
+	ResetMaterialPropertyDefinitions();
+
+	for (int i = 0; i < materialDefinitionCount; i++)
+	{
+		auto materialType = (TextureMaterialType)ReadInt32();
+		MaterialPropertyDefinitions definitions = {};
+
+		for (int j = 0; j < MaterialData::PropertyCount; j++)
+		{
+			auto& definition = definitions[j];
+			definition.SetName(ReadString());
+			definition.Type = (MaterialPropertyType)ReadInt32();
+		}
+
+		SetMaterialPropertyDefinitions(materialType, definitions);
+	}
+}
+
 void LoadMaterials()
 {
 	int materialCount = ReadCount();
-	TENLog("Materials count: " + std::to_string(materialCount), LogLevel::Info);
+	TENLog("Material count: " + std::to_string(materialCount), LogLevel::Info);
 	g_Level.Materials.reserve(materialCount);
 
 	for (int i = 0; i < materialCount; i++)
 	{
 		auto& material = g_Level.Materials.emplace_back();
 
-		material.Name = ReadString();
-		material.Type = (MaterialShaderType)ReadInt32();
-		material.Parameters0 = ReadVector4();
-		material.Parameters1 = ReadVector4();
-		material.Parameters2 = ReadVector4();
-		material.Parameters3 = ReadVector4();
+		material.SetName(ReadString());
+		material.Type = (TextureMaterialType)ReadInt32();
+		material.ResetProperties();
+		g_GameScriptEntities->AddName(material.Name, material);
+
 		material.HasNormalMap = ReadBool();
 		material.HasHeightMap = ReadBool();
 		material.HasAmbientOcclusionMap = ReadBool();

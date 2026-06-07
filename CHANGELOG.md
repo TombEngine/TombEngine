@@ -7,6 +7,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### New features
 
+* Added a property system for moveables, static meshes and materials that is intended to supersede the legacy OCB system.
 * Added heat haze for flame emitters and effects.
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
@@ -27,6 +28,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added [SWINGING_SPIKE_BAG](https://tombengine.com/asset/traps/swinging-spike-bag/) object from TR2.
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if OCB is above 0 and when the flipeffect "playsound" with the soundID SFX_TR1_SLAMDOOR_CLOSE = 1144 is played.
 * Added hit sounds for TR1 enemies when shot.
+* Added splash and bubble effects for CRUMBLING_FLOOR if it falls into water.
 * Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fxfog effect if OCB value is 0.
 
 ### Bug fixes
@@ -36,6 +38,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect application of LARA_DOUBLE damage after using medipacks.
 * Fixed MINECART_SWITCH object not working.
 * Fixed BATS_EMITTER targeting issues.
+* Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
 * Fixed empty inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed regular spark sprite distance while moving with flare in hand.
@@ -50,6 +53,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed flyby camera flag "Let Lara move in cinematic mode" being ignored.
 * Fixed fades and cinematic bars not progressing in the freeze mode.
 * Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
+* Fixed an issue where the storm effect would stop producing lightning over time.
 * Fixed incorrect aspect ratio when resizing the window in windowed mode.
 * Fixed title level selection dialog not scrolling offscreen entries.
 
@@ -58,7 +62,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ring inventory module.
 * Added loading of the `Scripts/Autoexec.lua` script file before every level script is loaded.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
-* Added `Add Flow.GetCurrentLevelIndex` and `Flow.GetTotalLevelCount` functions to get current level index and total level count in gameflow.
+* Added `Effects.EmitSplash` for generating splashes.
+* Added `Flow.GetCurrentLevelIndex` and `Flow.GetTotalLevelCount` functions to get current level index and total level count in gameflow.
 * Added `Flow.Settings.Animation.systemBlendDuration` setting to specify hardcoded animation blend durations.
 * Added `Flow.Settings.Effects` category with blood, ricochet and explosion settings.
 * Added `Flow.Settings.Graphics.flameHeatHaze` option to toggle heat haze effects for flames.
@@ -71,6 +76,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Lara:GetSkin` and `Lara:SetSkin` functions to manage swapping of classic outfits.
 * Added third argument to `Moveable:SetAnim` function to specify blend frame count.
 * Added `Objects.Creature` class to fetch and set various enemy AI state parameters.
+* Added `Objects.Material` class to fetch and set properties for texture materials.
 * Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
 * Added `View.GetPostProcessTint` to get currently set post process tint.
 * Added `View.GetPostProcess` and `View.SetPostProcess` to set/get postprocess mode and strength.
@@ -78,12 +84,17 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added callbacks for item pickup and vehicle enter/leave events.
 * Added `Logic.HasCallback` method for checking if a callback exists.
 * Added `Moveable:SetOnLoop` method.
-* Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` function.
+* Added `Objects.GetMoveableProperty`, `Objects.SetMoveableProperty`, `Objects.GetStaticProperty` and `Objects.SetStaticProperty` functions.
+* Added `Objects.GetMaterialByName` and `Objects.GetMaterialsByObject` functions.
+* Added `Moveable:GetProperty`, `Moveable:SetProperty` and `Moveable:HasInstanceProperty` functions.
+* Added `Static:GetProperty`, `Static:SetProperty` and `Static:HasInstanceProperty` functions.
+* Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
-* Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 * Fixed incorrect error message when using `Moveable:SetFrame` with a frame number equal to the end frame.
 * Fixed glide camera movement when entering or exiting freeze mode.
 * Fixed `View.DisplayString` not working in the title level.
+* Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
+* Fixed notification display bug in `CustomDiary` class.
 
 ## [Version 1.11.1]
 
