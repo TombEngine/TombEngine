@@ -1,8 +1,4 @@
 #include "framework.h"
-#include "Objects/TR3/Entity/PunaBoss.h"
-#include "Objects/TR3/Entity/SophiaLeigh.h"
-#include "Objects/TR3/Entity/tr3_tony.h"
-
 #include "Game/control/box.h"
 #include "Game/control/los.h"
 #include "Game/effects/effects.h"
@@ -13,6 +9,9 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Effects/Boss.h"
+#include "Objects/TR3/Entity/PunaBoss.h"
+#include "Objects/TR3/Entity/SophiaLeigh.h"
+#include "Objects/TR3/Entity/tr3_tony.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Specific/level.h"
 
