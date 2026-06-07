@@ -61,7 +61,7 @@ namespace TEN::Scripting::Effects::ParticleGroups
 		void                          SetSubIndex(int index);
 		sol::optional<int>            GetSubIndex() const;
 		sol::optional<GAME_OBJECT_ID> GetObjectID() const;
-		void                          SetInitialOrientation(const Vec3& orient);
+		void                          SetInitialOrientation(const Rotation& orient);
 
 		// Contact
 		void SetContactRadius(float radius);

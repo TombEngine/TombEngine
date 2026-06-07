@@ -64,7 +64,7 @@ namespace TEN::Scripting::Effects::ParticleGroups
 			p.ObjectID = *seq;
 		if (auto color = data.get<sol::optional<ScriptColor>>("color"))
 			p.ParticleColor = Color(*color);
-		if (auto orient = data.get<sol::optional<Vec3>>("orientation"))
+		if (auto orient = data.get<sol::optional<Rotation>>("orientation"))
 			p.Orientation = Vector3(orient->x * RADIAN, orient->y * RADIAN, orient->z * RADIAN);
 		if (auto lt = data.get<sol::optional<float>>("lifetime"))
 			p.Lifetime = std::max(0.01f, *lt);
@@ -304,7 +304,7 @@ namespace TEN::Scripting::Effects::ParticleGroups
 		return group->ObjectID;
 	}
 
-	void LuaParticleGroup::SetInitialOrientation(const Vec3& orient)
+	void LuaParticleGroup::SetInitialOrientation(const Rotation& orient)
 	{
 		if (auto* group = _handle.Get())
 		{
