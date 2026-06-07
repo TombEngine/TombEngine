@@ -173,7 +173,7 @@ namespace TEN::Entities::TR4
 							// Stinger attack
 							else
 							{
-								if (creature->Enemy->IsLara())
+								if (creature->Enemy.IsLara())
 									GetLaraInfo(creature->Enemy)->Status.Poison += SMALL_SCORPION_STINGER_POISON_POTENCY;
 
 								DoDamage(creature->Enemy, SMALL_SCORPION_STINGER_ATTACK_DAMAGE);

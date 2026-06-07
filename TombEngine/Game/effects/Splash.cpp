@@ -11,14 +11,16 @@ using namespace TEN::Effects::Drip;
 
 namespace TEN::Effects::Splash
 {
-	int												  SplashCount;
+	constexpr auto SPLASH_AUDIO_DRIP_COOLDOWN = 16; // Safeguard against stacked splash sound and drip spam.
+
+	int	SplashCount; // Lara-specific splash cooldown used when entering water.
+	int	SplashTimeout; // Global cooldown for splash sound and drip spam suppression.
+
 	SplashEffectSetup								  SplashSetup;
 	std::array<SplashEffect, SPLASH_EFFECT_COUNT_MAX> SplashEffects;
 
-	void SetupSplash(const SplashEffectSetup* const setup, int room)
+	void SetupSplash(const SplashEffectSetup* const setup, int room, int setupCountMax)
 	{
-		constexpr auto SETUP_COUNT_MAX = 3;
-
 		int splashSetupCount = 0;
 		float splashVel = 0.0f;
 
@@ -35,13 +37,13 @@ namespace TEN::Effects::Splash
 				splash.Position = setup->Position;
 				splash.life = 62;
 				splash.isRipple = false;
-				splash.InnerRadius = setup->InnerRadius;
+				splash.InnerRadius = setup->InnerRadius / 2;
 				splashVel = splashPower / 16;
 				splash.InnerRadialVel = splashVel;
-				splash.HeightSpeed = splashPower * 1.2f;
+				splash.HeightSpeed = splashPower * 1.0f;
 				splash.height = 0;
 				splash.HeightVel = -16;
-				splash.OuterRadius = setup->InnerRadius / 3;
+				splash.OuterRadius = setup->InnerRadius;
 				splash.outerRadialVel = splashVel * 1.5f;
 				splash.SpriteSeqStart = 8; // Splash texture.
 				splashSetupCount++;
@@ -83,20 +85,27 @@ namespace TEN::Effects::Splash
 				splashSetupCount++;
 			}
 
-			if (splashSetupCount == SETUP_COUNT_MAX)
+			if (splashSetupCount == setupCountMax)
 				break;
 		}
 
-		SpawnSplashDrips(Vector3(setup->Position.x, setup->Position.y - 15, setup->Position.z), room, 32);
+		if (SplashTimeout == 0)
+		{
+			SpawnSplashDrips(Vector3(setup->Position.x, setup->Position.y - 15, setup->Position.z), room, 32);
 
-		auto soundPose = Pose(Vector3i(setup->Position));
-		SoundEffect(SFX_TR4_LARA_SPLASH, &soundPose);
+			auto soundPose = Pose(Vector3i(setup->Position));
+			SoundEffect(SFX_TR4_LARA_SPLASH, &soundPose);
+			SplashTimeout = SPLASH_AUDIO_DRIP_COOLDOWN;
+		}
 	}
 
 	void UpdateSplashes()
 	{
 		if (SplashCount)
 			SplashCount--;
+
+		if (SplashTimeout)
+			SplashTimeout--;
 
 		for (auto& splash : SplashEffects)
 		{
@@ -132,6 +141,7 @@ namespace TEN::Effects::Splash
 	void ClearSplashes()
 	{
 		SplashCount = 0;
+		SplashTimeout = 0;
 
 		for (auto& splash : SplashEffects)
 			splash = {};

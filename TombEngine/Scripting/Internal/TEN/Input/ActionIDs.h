@@ -7,13 +7,18 @@ using namespace TEN::Input;
 namespace TEN::Scripting::Input
 {
 	/// Constants for action key IDs.
-	// Contains mapped action IDs, raw keyboard input IDs, and raw mouse input IDs.
+	// Contains both bindable gameplay actions and hard-wired or raw input action IDs.
 	// To be used with @{Input.IsKeyHit}, @{Input.IsKeyHeld}, and other similar functions.
 	// @enum Input.ActionID
 	// @pragma nostrip
 
 	static const auto ACTION_IDS = std::unordered_map<std::string, ActionID>
 	{
+		/// Bindable action IDs.
+		// Actions in this section are exposed through the control settings and binding profiles.
+		// Use them when script logic should follow the player's configured bindings instead of physical device buttons.
+		// @section BindableActionIDs
+
 		/// Forward action.
 		// @mem FORWARD
 		{ "FORWARD", In::Forward },
@@ -178,6 +183,32 @@ namespace TEN::Scripting::Input
 		// @mem LOAD
 		{ "LOAD", In::Load },
 
+		/// Hard-wired menu navigation IDs.
+		// This section contains menu navigation actions that are hard-wired to specific raw input bindings 
+		// such as keyboard arrows or gamepad axis and D-Pad, and cannot be rebound by the player.
+		// @section HardWiredMenuNavigationActionIDs
+
+		/// Menu up action.
+		// @mem MENU_UP
+		{ "MENU_UP", In::MenuUp },
+
+		/// Menu down action.
+		// @mem MENU_DOWN
+		{ "MENU_DOWN", In::MenuDown },
+
+		/// Menu left action.
+		// @mem MENU_LEFT
+		{ "MENU_LEFT", In::MenuLeft },
+
+		/// Menu right action.
+		// @mem MENU_RIGHT
+		{ "MENU_RIGHT", In::MenuRight },
+
+		/// Raw keyboard action IDs.
+		// This section contains raw keyboard input IDs, including function keys.
+		// Use these values when script logic must read physical keyboard state directly.
+		// @section RawKeyboardActionIDs
+
 		/// Keyboard A key.
 		// @mem A
 		{ "A", In::A },
@@ -322,6 +353,54 @@ namespace TEN::Scripting::Input
 		// @mem NUM0
 		{ "NUM0", In::Num0 },
 
+		/// Function key F1.
+		// @mem F1
+		{ "F1", In::F1 },
+
+		/// Function key F2.
+		// @mem F2
+		{ "F2", In::F2 },
+
+		/// Function key F3.
+		// @mem F3
+		{ "F3", In::F3 },
+
+		/// Function key F4.
+		// @mem F4
+		{ "F4", In::F4 },
+
+		/// Function key F5.
+		// @mem F5
+		{ "F5", In::F5 },
+
+		/// Function key F6.
+		// @mem F6
+		{ "F6", In::F6 },
+
+		/// Function key F7.
+		// @mem F7
+		{ "F7", In::F7 },
+
+		/// Function key F8.
+		// @mem F8
+		{ "F8", In::F8 },
+
+		/// Function key F9.
+		// @mem F9
+		{ "F9", In::F9 },
+
+		/// Function key F10.
+		// @mem F10
+		{ "F10", In::F10 },
+
+		/// Function key F11.
+		// @mem F11
+		{ "F11", In::F11 },
+
+		/// Function key F12.
+		// @mem F12
+		{ "F12", In::F12 },
+
 		/// Return/Enter key.
 		// @mem RETURN
 		{ "RETURN", In::Return },
@@ -342,6 +421,18 @@ namespace TEN::Scripting::Input
 		// @mem SPACE
 		{ "SPACE", In::Space },
 
+		/// Page up key.
+		// @mem PAGE_UP
+		{ "PAGE_UP", In::PageUp },
+
+		/// Page down key.
+		// @mem PAGE_DOWN
+		{ "PAGE_DOWN", In::PageDown },
+
+		/// Insert key.
+		// @mem INSERT
+		{ "INSERT", In::Insert },
+
 		/// Home key.
 		// @mem HOME
 		{ "HOME", In::Home },
@@ -353,6 +444,26 @@ namespace TEN::Scripting::Input
 		/// Delete key.
 		// @mem DELETE
 		{ "DELETE", In::Delete },
+
+		/// Pause/Break key.
+		// @mem PAUSE_KEY
+		{ "PAUSE_KEY", In::PauseKey },
+
+		/// Print Screen key.
+		// @mem PRINT_SCREEN
+		{ "PRINT_SCREEN", In::PrintScreen },
+
+		/// Scroll Lock key.
+		// @mem SCROLL_LOCK
+		{ "SCROLL_LOCK", In::ScrollLock },
+
+		/// Caps Lock key.
+		// @mem CAPS_LOCK
+		{ "CAPS_LOCK", In::CapsLock },
+
+		/// Num Lock key.
+		// @mem NUM_LOCK
+		{ "NUM_LOCK", In::NumLock },
 
 		/// Minus key.
 		// @mem MINUS
@@ -410,17 +521,22 @@ namespace TEN::Scripting::Input
 		// @mem ARROW_RIGHT
 		{ "ARROW_RIGHT", In::ArrowRight },
 
-		/// Control key.
+		/// Control key. Registers both left and right keys.
 		// @mem CTRL
 		{ "CTRL", In::Ctrl },
 
-		/// Shift key.
+		/// Shift key. Registers both left and right keys.
 		// @mem SHIFT
 		{ "SHIFT", In::Shift },
 
-		/// Alt key.
+		/// Alt key. Registers both left and right keys.
 		// @mem ALT
 		{ "ALT", In::Alt },
+
+		/// Raw mouse action IDs.
+		// This section contains raw mouse button, wheel, and movement direction input IDs.
+		// Use these values when script logic must read physical mouse state directly.
+		// @section RawMouseActionIDs
 
 		/// Mouse left click.
 		// @mem MOUSE_CLICK_LEFT
@@ -440,6 +556,172 @@ namespace TEN::Scripting::Input
 
 		/// Mouse scroll down.
 		// @mem MOUSE_SCROLL_DOWN
-		{ "MOUSE_SCROLL_DOWN", In::MouseScrollDown }
+		{ "MOUSE_SCROLL_DOWN", In::MouseScrollDown },
+
+		/// Mouse up movement.
+		// @mem MOUSE_UP
+		{ "MOUSE_UP", In::MouseUp },
+
+		/// Mouse down movement.
+		// @mem MOUSE_DOWN
+		{ "MOUSE_DOWN", In::MouseDown },
+
+		/// Mouse left movement.
+		// @mem MOUSE_LEFT
+		{ "MOUSE_LEFT", In::MouseLeft },
+
+		/// Mouse right movement.
+		// @mem MOUSE_RIGHT
+		{ "MOUSE_RIGHT", In::MouseRight },
+
+
+		/// Raw gamepad action IDs.
+		// This section contains raw gamepad button, stick direction, D-Pad, paddle, touchpad, and trigger input IDs.
+		// Use these values when script logic must read physical gamepad state directly.
+		// @section RawGamepadActionIDs
+
+		/// Gamepad south button. Corresponds to the "A" button on Xbox controllers and "Cross" on PlayStation controllers.
+		// @mem GAMEPAD_SOUTH
+		{ "GAMEPAD_SOUTH", In::GamepadSouth },
+
+		/// Gamepad east button. Corresponds to the "B" button on Xbox controllers and "Circle" on PlayStation controllers.
+		// @mem GAMEPAD_EAST
+		{ "GAMEPAD_EAST", In::GamepadEast },
+
+		/// Gamepad west button. Corresponds to the "X" button on Xbox controllers and "Square" on PlayStation controllers.
+		// @mem GAMEPAD_WEST
+		{ "GAMEPAD_WEST", In::GamepadWest },
+
+		/// Gamepad north button. Corresponds to the "Y" button on Xbox controllers and "Triangle" on PlayStation controllers.
+		// @mem GAMEPAD_NORTH
+		{ "GAMEPAD_NORTH", In::GamepadNorth },
+
+		/// Gamepad back button. Corresponds to the "Select" button on PlayStation 3/4 controllers and "Share" button on PlayStation 5 controllers.
+		// @mem GAMEPAD_BACK
+		{ "GAMEPAD_BACK", In::GamepadBack },
+
+		/// Gamepad guide button. Corresponds to the "Xbox" button on Xbox controllers and "PlayStation" button on PlayStation controllers.
+		// @mem GAMEPAD_GUIDE
+		{ "GAMEPAD_GUIDE", In::GamepadGuide },
+
+		/// Gamepad start button. Corresponds to the "Options" button on PlayStation 4/5 controllers.
+		// @mem GAMEPAD_START
+		{ "GAMEPAD_START", In::GamepadStart },
+
+		/// Gamepad left stick up direction.
+		// @mem GAMEPAD_LEFT_STICK_UP
+		{ "GAMEPAD_LEFT_STICK_UP", In::GamepadLeftStickUp },
+
+		/// Gamepad left stick down direction.
+		// @mem GAMEPAD_LEFT_STICK_DOWN
+		{ "GAMEPAD_LEFT_STICK_DOWN", In::GamepadLeftStickDown },
+
+		/// Gamepad left stick left direction.
+		// @mem GAMEPAD_LEFT_STICK_LEFT
+		{ "GAMEPAD_LEFT_STICK_LEFT", In::GamepadLeftStickLeft },
+
+		/// Gamepad left stick right direction.
+		// @mem GAMEPAD_LEFT_STICK_RIGHT
+		{ "GAMEPAD_LEFT_STICK_RIGHT", In::GamepadLeftStickRight },
+
+		/// Gamepad left stick click.
+		// @mem GAMEPAD_LEFT_STICK
+		{ "GAMEPAD_LEFT_STICK", In::GamepadLeftStick },
+
+		/// Gamepad right stick up direction.
+		// @mem GAMEPAD_RIGHT_STICK_UP
+		{ "GAMEPAD_RIGHT_STICK_UP", In::GamepadRightStickUp },
+
+		/// Gamepad right stick down direction.
+		// @mem GAMEPAD_RIGHT_STICK_DOWN
+		{ "GAMEPAD_RIGHT_STICK_DOWN", In::GamepadRightStickDown },
+
+		/// Gamepad right stick left direction.
+		// @mem GAMEPAD_RIGHT_STICK_LEFT
+		{ "GAMEPAD_RIGHT_STICK_LEFT", In::GamepadRightStickLeft },
+
+		/// Gamepad right stick right direction.
+		// @mem GAMEPAD_RIGHT_STICK_RIGHT
+		{ "GAMEPAD_RIGHT_STICK_RIGHT", In::GamepadRightStickRight },
+
+		/// Gamepad right stick click.
+		// @mem GAMEPAD_RIGHT_STICK
+		{ "GAMEPAD_RIGHT_STICK", In::GamepadRightStick },
+
+		/// Gamepad left shoulder button.
+		// @mem GAMEPAD_LEFT_SHOULDER
+		{ "GAMEPAD_LEFT_SHOULDER", In::GamepadLeftShoulder },
+
+		/// Gamepad right shoulder button.
+		// @mem GAMEPAD_RIGHT_SHOULDER
+		{ "GAMEPAD_RIGHT_SHOULDER", In::GamepadRightShoulder },
+
+		/// Gamepad D-Pad up button.
+		// @mem GAMEPAD_DPAD_UP
+		{ "GAMEPAD_DPAD_UP", In::GamepadDPadUp },
+
+		/// Gamepad D-Pad down button.
+		// @mem GAMEPAD_DPAD_DOWN
+		{ "GAMEPAD_DPAD_DOWN", In::GamepadDPadDown },
+
+		/// Gamepad D-Pad left button.
+		// @mem GAMEPAD_DPAD_LEFT
+		{ "GAMEPAD_DPAD_LEFT", In::GamepadDPadLeft },
+
+		/// Gamepad D-Pad right button.
+		// @mem GAMEPAD_DPAD_RIGHT
+		{ "GAMEPAD_DPAD_RIGHT", In::GamepadDPadRight },
+
+		/// Gamepad left paddle 1 button. Available only for Xbox Elite controllers and similar models with rear paddles.
+		// @mem GAMEPAD_LEFT_PADDLE1
+		{ "GAMEPAD_LEFT_PADDLE1", In::GamepadLeftPaddle1 },
+
+		/// Gamepad left paddle 2 button. Available only for Xbox Elite controllers and similar models with rear paddles.
+		// @mem GAMEPAD_LEFT_PADDLE2
+		{ "GAMEPAD_LEFT_PADDLE2", In::GamepadLeftPaddle2 },
+
+		/// Gamepad right paddle 1 button. Available only for Xbox Elite controllers and similar models with rear paddles.
+		// @mem GAMEPAD_RIGHT_PADDLE1
+		{ "GAMEPAD_RIGHT_PADDLE1", In::GamepadRightPaddle1 },
+
+		/// Gamepad right paddle 2 button. Available only for Xbox Elite controllers and similar models with rear paddles.
+		// @mem GAMEPAD_RIGHT_PADDLE2
+		{ "GAMEPAD_RIGHT_PADDLE2", In::GamepadRightPaddle2 },
+
+		/// Gamepad touchpad button. Available only for PlayStation controllers with a clickable touchpad, such as DualShock 4 and DualSense.
+		// @mem GAMEPAD_TOUCHPAD
+		{ "GAMEPAD_TOUCHPAD", In::GamepadTouchpad },
+
+		/// Gamepad misc 1 button.
+		// @mem GAMEPAD_MISC1
+		{ "GAMEPAD_MISC1", In::GamepadMisc1 },
+
+		/// Gamepad misc 2 button.
+		// @mem GAMEPAD_MISC2
+		{ "GAMEPAD_MISC2", In::GamepadMisc2 },
+
+		/// Gamepad misc 3 button.
+		// @mem GAMEPAD_MISC3
+		{ "GAMEPAD_MISC3", In::GamepadMisc3 },
+
+		/// Gamepad misc 4 button.
+		// @mem GAMEPAD_MISC4
+		{ "GAMEPAD_MISC4", In::GamepadMisc4 },
+
+		/// Gamepad misc 5 button.
+		// @mem GAMEPAD_MISC5
+		{ "GAMEPAD_MISC5", In::GamepadMisc5 },
+
+		/// Gamepad misc 6 button.
+		// @mem GAMEPAD_MISC6
+		{ "GAMEPAD_MISC6", In::GamepadMisc6 },
+
+		/// Gamepad left trigger.
+		// @mem GAMEPAD_LEFT_TRIGGER
+		{ "GAMEPAD_LEFT_TRIGGER", In::GamepadLeftTrigger },
+
+		/// Gamepad right trigger.
+		// @mem GAMEPAD_RIGHT_TRIGGER
+		{ "GAMEPAD_RIGHT_TRIGGER", In::GamepadRightTrigger }
 	};
 }

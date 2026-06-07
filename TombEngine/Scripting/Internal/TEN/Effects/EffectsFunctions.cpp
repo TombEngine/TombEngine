@@ -288,9 +288,10 @@ namespace TEN::Scripting::Effects
 	// @tfield[opt=0] int lightRadius Light radius in 1/4 blocks.
 	// @tfield[opt=0] int lightFlicker Interval at which the light should flicker.
 	// @tfield[opt] int soundID Sound ID to play. __Caution__: Recommended only for a single particle. Too many particles with sounds can overwhelm the sound system.
-	// @tfield[opt=false] bool animated Play animates sprite sequence.
+	// @tfield[opt=false] bool animated Play animated sprite sequence.
 	// @tfield[opt=TEN.Effects.ParticleAnimationType.LOOP] Effects.ParticleAnimationType animType Animation type of the sprite sequence.
 	// @tfield[opt=1] float frameRate Sprite sequence animation framerate.
+	// @tfield[opt=Rotation(0&#44; 0&#44; 0)] Rotation constraint Sprite orientation constraint in degrees.
 	static void EmitAdvancedParticle(const sol::table& table)
 	{
 		constexpr auto DEFAULT_START_SIZE = 10.0f;
@@ -372,6 +373,7 @@ namespace TEN::Scripting::Effects
 			part.flags |= SP_SOUND;
 			part.sound = convertedSoundID;
 		}
+
 		bool convertedApplyLight = table.get_or("light", false);
 		if (convertedApplyLight)
 		{
@@ -386,6 +388,7 @@ namespace TEN::Scripting::Effects
 				part.lightFlickerS = table.get_or("lightFlicker", 0);
 			}
 		}
+
 		bool animatedSpr = table.get_or("animated", false);
 		if (animatedSpr)
 		{
@@ -402,6 +405,13 @@ namespace TEN::Scripting::Effects
 		{
 			if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WIND, part.roomNumber))
 				part.flags |= SP_WIND;
+		}
+
+		Rotation convertedConstraint = table.get_or("constraint", Rotation(0, 0, 0));
+		if (!(convertedConstraint == Rotation(0, 0, 0)))
+		{
+			part.flags |= SP_CONSTRAINED;
+			part.constraint = Vector3(DEG_TO_RAD(convertedConstraint.x), DEG_TO_RAD(convertedConstraint.y), DEG_TO_RAD(convertedConstraint.z));
 		}
 	}
 	

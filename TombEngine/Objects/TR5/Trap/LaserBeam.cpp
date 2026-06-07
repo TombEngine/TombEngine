@@ -191,7 +191,7 @@ namespace TEN::Entities::Traps
 			if (beam.IsLethal)
 				SpawnLaserSpark(beam.Target, Random::GenerateAngle(), 6, beam.Color);
 
-			SpawnLaserBeamLight(beam.Target.ToVector3(), beam.Target.RoomNumber, item.Model.Color, LASER_BEAM_LIGHT_INTENSITY * item.Model.Color.w, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
+			SpawnLaserBeamLight(beam.Target.ToVector3(), beam.Target.RoomNumber, beam.Color, LASER_BEAM_LIGHT_INTENSITY * beam.Color.w, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
 		}
 
 		SoundEffect(SFX_TR5_DOOR_BEAM, &item.Pose);

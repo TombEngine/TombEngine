@@ -1,7 +1,7 @@
 #ifndef BLENDINGSHADER
 #define BLENDINGSHADER
 
-#include "./CBBlending.hlsli"
+#include "./CBPerDraw.hlsli"
 #include "./Math.hlsli"
 
 #define ALPHATEST_NONE			0
@@ -11,6 +11,7 @@
 #define BLENDMODE_OPAQUE	  0
 #define BLENDMODE_ALPHATEST	  1
 #define BLENDMODE_ADDITIVE	  2
+#define BLENDMODE_DISTORTION  3
 #define BLENDMODE_NOZTEST	  4
 #define BLENDMODE_SUBTRACTIVE 5
 #define BLENDMODE_WIREFRAME	  6
@@ -49,6 +50,7 @@ float4 DoDistanceFogForPixel(float4 sourceColor, float4 fogColor, float value)
 	switch (BlendMode)
 	{
 		case BLENDMODE_ADDITIVE:
+		case BLENDMODE_DISTORTION:
 		case BLENDMODE_SCREEN:
 		case BLENDMODE_LIGHTEN:
 			fogColor.xyz *= Luma(sourceColor.xyz);
@@ -79,6 +81,7 @@ float4 DoFogBulbsForPixel(float4 sourceColor, float4 fogColor)
 	switch (BlendMode)
 	{
 		case BLENDMODE_ADDITIVE:
+		case BLENDMODE_DISTORTION:
 		case BLENDMODE_SCREEN:
 		case BLENDMODE_LIGHTEN:
 			fogColor.xyz *= Luma(sourceColor);
@@ -106,6 +109,35 @@ float4 DoFogBulbsForPixel(float4 sourceColor, float4 fogColor)
 	result.xyz += saturate(fogColor.xyz);
 
 	return result;
+}
+
+// Encodes a distortion payload for additive RGBA8_Unorm accumulation.
+inline float4 EncodeDistortionPayload(float4 sourceColor, float4 position, float emitterType)
+{
+	float luma = saturate(Luma(sourceColor.xyz));
+	float strength = saturate(luma * sourceColor.w);
+
+	if (strength <= EPSILON)
+		return 0.0f;
+		
+	float emitterDepth = clamp(position.w, 0.0f, 65535.0f);
+	float distInt  = floor(emitterDepth);
+	float distHigh = floor(distInt / 256.0f) / 255.0f;
+	float distLow  = fmod(distInt, 256.0f)   / 255.0f;
+
+	return float4(
+		strength,
+		distHigh * strength,
+		distLow  * strength,
+		emitterType * strength);
+}
+
+float4 ApplyBlendModeColor(float4 sourceColor, float4 position, bool billboard)
+{
+	if (BlendMode != BLENDMODE_DISTORTION)
+		return sourceColor;
+
+	return EncodeDistortionPayload(sourceColor, position, billboard ? 0.0f : 1.0f);
 }
 
 #endif // BLENDINGSHADER
