@@ -42,20 +42,20 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed empty inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed regular spark sprite distance while moving with flare in hand.
-* Fixed UI bars being affected by the postprocess mode.
 * Fixed fireflies emitting bright white light while in fly form (negative OCB).
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
+* Fixed flyby camera flag "Let Lara move in cinematic mode" being ignored.
 * Fixed flyby camera jitter by converting the spline type to floating-point.
 * Fixed occasional flame emitter sprite jitter.
 * Fixed interaction highlighter appearing for underwater pushable objects.
 * Fixed clipping into underwater pushable objects while swimming upwards from the bottom.
 * Fixed incorrect renderer statistics in the linear inventory.
-* Fixed flyby camera flag "Let Lara move in cinematic mode" being ignored.
 * Fixed fades and cinematic bars not progressing in the freeze mode.
 * Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
 * Fixed an issue where the storm effect would stop producing lightning over time.
 * Fixed incorrect aspect ratio when resizing the window in windowed mode.
 * Fixed title level selection dialog not scrolling offscreen entries.
+* Fixed UI bars being affected by the postprocess mode.
 
 ### Lua API changes
 
