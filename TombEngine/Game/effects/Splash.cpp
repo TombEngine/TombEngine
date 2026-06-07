@@ -11,6 +11,7 @@ using namespace TEN::Effects::Drip;
 
 namespace TEN::Effects::Splash
 {
+	constexpr auto SPLASH_DEFAULT_RADIUS = 64;
 	constexpr auto SPLASH_AUDIO_DRIP_COOLDOWN = 16; // Safeguard against stacked splash sound and drip spam.
 
 	int	SplashCount; // Lara-specific splash cooldown used when entering water.
@@ -153,7 +154,7 @@ namespace TEN::Effects::Splash
 		Splash(item->Pose.Position, probedRoomNumber, item->Animation.Velocity.y);
 	}
 
-	void Splash(Vector3i position, int roomNumber, int splashPower)
+	void Splash(Vector3i position, int roomNumber, int power)
 	{
 		if (!TestEnvironment(ENV_FLAG_WATER, roomNumber))
 			return;
@@ -161,8 +162,8 @@ namespace TEN::Effects::Splash
 		int waterHeight = GetPointCollision(position, roomNumber).GetWaterTopHeight();
 
 		SplashSetup.Position = Vector3(position.x, waterHeight - 1, position.z);
-		SplashSetup.SplashPower = splashPower;
-		SplashSetup.InnerRadius = 64;
+		SplashSetup.SplashPower = power;
+		SplashSetup.InnerRadius = SPLASH_DEFAULT_RADIUS;
 		SetupSplash(&SplashSetup, roomNumber);
 
 	}

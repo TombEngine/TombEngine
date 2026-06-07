@@ -62,5 +62,5 @@ namespace TEN::Effects::Splash
 	void UpdateSplashes();
 	void ClearSplashes();
 	void Splash(ItemInfo* item);
-	void Splash(Vector3i position, int roomNumber, int splashPower);
+	void Splash(Vector3i position, int roomNumber, int power);
 }

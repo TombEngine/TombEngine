@@ -691,14 +691,14 @@ namespace TEN::Scripting::Effects
 		part.sSize = part.size = part.dSize = Random::GenerateFloat(convertedMaxSize / 2, convertedMaxSize);
 	}
 
-	/// Emit a splash effect.
+	/// Emit a splash effect. Consists of a ripple effect and a splash ring.
 	// @function EmitSplash
 	// @tparam Vec3 pos World position. Needs to be inside a water room.
-	// @tparam[opt=128] int splashPower Determines the height of splash, ranging from 0 to 1024.
-	static void EmitSplash(const Vec3& pos, TypeOrNil<int> splashPower)
+	// @tparam[opt=128] int power Determines the splash ring height, ranging from 0 to 1024.
+	static void EmitSplash(const Vec3& pos, TypeOrNil<int> power)
 	{
 		int roomNumber = FindRoomNumber(pos.ToVector3i());
-		auto convertedPower = std::clamp(ValueOr<int>(splashPower, 128), 0, 1024);
+		auto convertedPower = std::clamp(ValueOr<int>(power, 128), 0, 1024);
 
 		Splash(pos.ToVector3i(), roomNumber, convertedPower);
 	}
