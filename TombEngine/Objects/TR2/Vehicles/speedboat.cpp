@@ -15,6 +15,7 @@
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Sound/sound.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
@@ -96,23 +97,44 @@ namespace TEN::Entities::Vehicles
 		SPEEDBOAT_ANIM_LEAP_END = 17,
 		SPEEDBOAT_ANIM_DEATH = 18
 	};
-
-	static void SpawnSpeedboatBoatMist(const Vector3& pos, float velocity, short angle)
+		
+	SpeedboatInfo* GetSpeedboatInfo(ItemInfo* speedboatItem)
 	{
+		return (SpeedboatInfo*)speedboatItem->Data;
+	}
+
+	void InitializeSpeedboat(short itemNumber)
+	{
+		auto* speedboatItem = &g_Level.Items[itemNumber];
+		speedboatItem->Data = SpeedboatInfo();
+		auto* speedboat = GetSpeedboatInfo(speedboatItem);
+	}
+
+	static void SpawnSpeedboatBoatMist(short itemNumber, const Vector3& pos, float velocity, short angle)
+	{
+		
+		auto& speedboatItem = g_Level.Items[itemNumber];
+
+		auto speedboatMistStartColor = PropertyHandler::Get(speedboatItem, "SpeedboatMistStartColor", ScriptColor(0, 0, 0));
+		auto speedboatMistEndColor = PropertyHandler::Get(speedboatItem, "SpeedboatMistEndColor", ScriptColor(64, 64, 64));
+		auto speedboatMistLife = PropertyHandler::Get(speedboatItem, "SpeedboatMistLife", 20);
+
+		float life = speedboatMistLife;
+
 		auto& mist = *GetFreeParticle();
-
 		mist.on = true;
-		mist.sR = 0;
-		mist.sG = 0;
-		mist.sB = 0;
 
-		mist.dR = 64;
-		mist.dG = 64;
-		mist.dB = 64;
+		mist.sR = speedboatMistStartColor.GetR();
+		mist.sG = speedboatMistStartColor.GetG();
+		mist.sB = speedboatMistStartColor.GetB();
 
-		mist.colFadeSpeed = 4 + (GetRandomControl() & 3);
+		mist.dR = speedboatMistEndColor.GetR();
+		mist.dG = speedboatMistEndColor.GetG();
+		mist.dB = speedboatMistEndColor.GetB();
+
+		mist.colFadeSpeed = (life * 0.5f) + (GetRandomControl() & 3);
 		mist.fadeToBlack = 12;
-		mist.sLife = mist.life = (GetRandomControl() & 3) + 20;
+		mist.sLife = mist.life = (GetRandomControl() & 3) + speedboatMistLife;
 		mist.blendMode = BlendMode::Additive;
 		mist.extras = 0;
 		mist.dynamic = -1;
@@ -122,10 +144,10 @@ namespace TEN::Entities::Vehicles
 		mist.z = pos.z + ((GetRandomControl() & 15) - 8);
 		int zv = velocity * phd_cos(angle) / 4;
 		int xv = velocity * phd_sin(angle) / 4;
-		mist.xVel = xv + ((GetRandomControl() & 127) - 64);
+		mist.xVel = xv + ((GetRandomControl() & 31) - 16);
 		mist.yVel = 0;
-		mist.zVel = zv + ((GetRandomControl() & 127) - 64);
-		mist.friction = 3;
+		mist.zVel = zv + ((GetRandomControl() & 31) - 16);
+		mist.friction = std::max(1.0f, life * 0.15f);
 
 		if (GetRandomControl() & 1)
 		{
@@ -144,23 +166,10 @@ namespace TEN::Entities::Vehicles
 
 		mist.scalar = 3;
 		mist.gravity = mist.maxYvel = 0;
-
-		float size = (GetRandomControl() & 7) + (velocity / 2) + 16;
-		mist.size =
-		mist.sSize = size / 4;
-		mist.dSize = size;
-	}
-
-	SpeedboatInfo* GetSpeedboatInfo(ItemInfo* speedboatItem)
-	{
-		return (SpeedboatInfo*)speedboatItem->Data;
-	}
-
-	void InitializeSpeedboat(short itemNumber)
-	{
-		auto* speedboatItem = &g_Level.Items[itemNumber];
-		speedboatItem->Data = SpeedboatInfo();
-		auto* speedboat = GetSpeedboatInfo(speedboatItem);
+		float baseSize = (GetRandomControl() & 7) + (velocity / 2) + 16;
+		mist.sSize = baseSize / 4;
+		float growthFactor = 1.0f + (life / 20.0f);
+		mist.dSize = mist.sSize * growthFactor;
 	}
 
 	void SpeedboatPlayerCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
@@ -946,25 +955,31 @@ namespace TEN::Entities::Vehicles
 			if (roomNumber.has_value() &&
 				(TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, *roomNumber) || TestEnvironment(RoomEnvFlags::ENV_FLAG_SWAMP, *roomNumber)))
 			{
-				if (speedboatItem->TriggerFlags == 1)
+				if (PropertyHandler::Get(speedboatItem, "SpeedboatFoam", speedboatItem->TriggerFlags == 0))
+				{
+					TEN::Effects::TriggerSpeedboatFoam(speedboatItem, Vector3(0.0f, 0.0f, SPEEDBOAT_BACK));
+				}
+
+				if (PropertyHandler::Get(speedboatItem, "SpeedboatMist", speedboatItem->TriggerFlags == 1))
 				{
 					SpawnSpeedboatBoatMist(
+						itemNumber,
 						pos1.ToVector3(),
 						abs(speedboatItem->Animation.Velocity.z),
 						speedboatItem->Pose.Orientation.y + ANGLE(180.0f));
 
 					SpawnSpeedboatBoatMist(
+						itemNumber,
 						pos2.ToVector3(),
 						abs(speedboatItem->Animation.Velocity.z),
 						speedboatItem->Pose.Orientation.y + ANGLE(180.0f));
 				}
-				else
+
+				if (PropertyHandler::Get(speedboatItem, "SpeedboatWake", speedboatItem->TriggerFlags == 1))
 				{
-					TEN::Effects::TriggerSpeedboatFoam(speedboatItem, Vector3(0.0f, 0.0f, SPEEDBOAT_BACK));
+					int waterHeight = GetPointCollision(*speedboatItem).GetWaterTopHeight();
+					SpawnVehicleWake(*speedboatItem, SPEEDBOAT_WAKE_OFFSET, waterHeight);
 				}
-				
-				int waterHeight = GetPointCollision(*speedboatItem).GetWaterTopHeight();
-				SpawnVehicleWake(*speedboatItem, SPEEDBOAT_WAKE_OFFSET, waterHeight);
 			}
 		}
 
