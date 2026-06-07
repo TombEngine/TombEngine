@@ -32,9 +32,10 @@ namespace TEN::Entities::TR3
 	constexpr auto FUSEBOX_SPARK_DURATION = 10 * FPS;
 
 	// Dynamic lighting parameters.
-	constexpr auto FUSEBOX_FLASH_DURATION  = FPS / 2;
-	constexpr auto FUSEBOX_FLASH_FALLOFF   = BLOCK(4);
-	constexpr auto FUSEBOX_FLICKER_FALLOFF = BLOCK(2);
+	constexpr auto FUSEBOX_FLASH_DURATION	= FPS / 2;
+	constexpr auto FUSEBOX_FLASH_FALLOFF	= BLOCK(4);
+	constexpr auto FUSEBOX_FLICKER_FALLOFF	= BLOCK(2);
+	constexpr auto FUSEBOX_ANIMATION		= 1;
 
 	static void UpdateDynamicLight(const ItemInfo& item, const Vector3i& pos, int sparkTimer, int flashTimer)
 	{
@@ -120,7 +121,7 @@ namespace TEN::Entities::TR3
 			item.ItemFlags[FuseboxFlags::SparkTimer]  = FUSEBOX_SPARK_DURATION;
 			item.ItemFlags[FuseboxFlags::FlashTimer]  = FUSEBOX_FLASH_DURATION;
 
-			SetAnimation(item, item.ObjectNumber, 1);
+			SetAnimation(item, FUSEBOX_ANIMATION);
 			TriggerFuseboxDestructionBlast(pos, item.RoomNumber);
 			SoundEffect(SFX_TR5_ELECTRIC_LIGHT_CRACKLES, &item.Pose);
 		}

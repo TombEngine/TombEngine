@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "ObjectsHandler.h"
+#include "Scripting/Internal/TEN/Objects/ObjectsHandler.h"
 
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
@@ -15,6 +15,8 @@
 #include "Scripting/Internal/TEN/Objects/Lara/WaterStatuses.h"
 #include "Scripting/Internal/TEN/Objects/Lara/WeaponModes.h"
 #include "Scripting/Internal/TEN/Objects/Lara/WeaponTypes.h"
+#include "Scripting/Internal/TEN/Objects/Material/MaterialObject.h"
+#include "Scripting/Internal/TEN/Objects/Material/TextureMaterialTypes.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableStatuses.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/InteractionType.h"
 #include "Scripting/Internal/TEN/Objects/ObjectIDs.h"
@@ -26,6 +28,28 @@
 #include "Scripting/Internal/TEN/Objects/Volume/VolumeObject.h"
 
 using namespace TEN::Scripting::Objects;
+
+void AppendMeshMaterials(std::vector<std::unique_ptr<Material>>& materials, std::unordered_set<int>& addedMaterialIndices, int meshIndex)
+{
+	if (meshIndex < 0 || meshIndex >= (int)g_Level.Meshes.size())
+		return;
+
+	const auto& mesh = g_Level.Meshes[meshIndex];
+	if (mesh.hidden)
+		return;
+
+	for (const auto& bucket : mesh.buckets)
+	{
+		int materialIndex = bucket.materialIndex;
+		if (materialIndex < 0 || materialIndex >= (int)g_Level.Materials.size())
+			continue;
+
+		if (!addedMaterialIndices.insert(materialIndex).second)
+			continue;
+
+		materials.push_back(std::make_unique<Material>(g_Level.Materials[materialIndex]));
+	}
+}
 
 /// Objects include moveables, statics, cameras, and others.
 // Every object accessible by script API must have unique name, disregarding its type.
@@ -61,6 +85,25 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	@treturn Objects.Static A non-owning Static referencing the static mesh.
 	*/
 	_table_objects.set_function(ScriptReserved_GetStaticByName, &ObjectsHandler::GetByName<Static, ScriptReserved_Static>, this);
+
+	/***
+	Get a Material by its Tomb Editor material name.
+	@function GetMaterialByName
+	@tparam string name Material name.
+	@treturn Objects.Material A non-owning material wrapper.
+	*/
+	_table_objects.set_function(ScriptReserved_GetMaterialByName, &ObjectsHandler::GetByName<Material, ScriptReserved_Material>, this);
+
+	/***
+	Get all materials referenced by a moveable or static object.
+	@function GetMaterialsByObject
+	@tparam Objects.Moveable|Objects.Static object Object to inspect.
+	@treturn table Table of unique material wrappers referenced by the object's meshes and/or skin. Meshes that were hidden in the WadTool are not included.
+	*/
+	_table_objects.set_function(
+		ScriptReserved_GetMaterialsByObject,
+		sol::overload([this](const Moveable& moveable) { return GetMaterialsByObject(moveable); },
+					  [this](const Static& staticObject) { return GetMaterialsByObject(staticObject); }));
 
 	/***
 	Get statics by their slot.
@@ -142,7 +185,6 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	*/
 	_table_objects.set_function(ScriptReserved_IsNameInUse, &ObjectsHandler::IsNameInUse, this);
 
-
 	/***
 	Converts moveable Object ID to a string with internal slot name.
 	@function GetSlotName
@@ -150,6 +192,42 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	@treturn string Internal slot name.
 	*/
 	_table_objects.set_function(ScriptReserved_GetSlotName, &GetObjectName);
+
+	/***
+	Get a global property for a moveable object ID.
+	@function GetMoveableProperty
+	@tparam Objects.ObjID objectID Moveable object ID.
+	@tparam string name Property name.
+	@treturn any Property value, or nil if not set. You can use @{Type} module functions to determine return value type.
+	*/
+	_table_objects.set_function(ScriptReserved_GetMoveableProperty, &ObjectsHandler::GetMoveableProperty, this);
+
+	/***
+	Set a global property for a moveable object ID. If property does not exist, it creates it. If value is nil, the property is removed.
+	@function SetMoveableProperty
+	@tparam Objects.ObjID objectID Moveable object ID.
+	@tparam string name Property name.
+	@tparam any value The value of any given type: nil, bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}.
+	*/
+	_table_objects.set_function(ScriptReserved_SetMoveableProperty, &ObjectsHandler::SetMoveableProperty, this);
+
+	/***
+	Get a global property for a static slot ID.
+	@function GetStaticProperty
+	@tparam int slotID Static slot ID.
+	@tparam string name Property name.
+	@treturn any Property value, or nil if not set. You can use @{Type} module functions to determine return value type.
+	*/
+	_table_objects.set_function(ScriptReserved_GetStaticProperty, &ObjectsHandler::GetStaticProperty, this);
+
+	/***
+	Set a global property for a static slot ID. If property does not exist, it creates it. If value is nil, the property is removed.
+	@function SetStaticProperty
+	@tparam int slotID Static slot ID.
+	@tparam string name Property name.
+	@tparam any value The value of any given type: nil, bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}.
+	*/
+	_table_objects.set_function(ScriptReserved_SetStaticProperty, &ObjectsHandler::SetStaticProperty, this);
 
 	LaraObject::Register(_table_objects);
 
@@ -160,6 +238,11 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 
 	Static::Register(_table_objects);
 	Static::SetNameCallbacks(
+		[this](auto && ... param) { return AddName(std::forward<decltype(param)>(param)...); },
+		[this](auto && ... param) { return RemoveName(std::forward<decltype(param)>(param)...); });
+
+	Material::Register(_table_objects);
+	Material::SetNameCallbacks(
 		[this](auto && ... param) { return AddName(std::forward<decltype(param)>(param)...); },
 		[this](auto && ... param) { return RemoveName(std::forward<decltype(param)>(param)...); });
 
@@ -201,12 +284,45 @@ ObjectsHandler::ObjectsHandler(sol::state* lua, sol::table& parent) :
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_RoomReverb, ROOM_REVERB_TYPES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_WeaponType, WEAPON_TYPES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_AmmoType, AMMO_TYPES);
+	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_TextureMaterialType, TEXTURE_MATERIAL_TYPES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_WeaponMode, WEAPON_MODES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_HandStatus, HAND_STATUSES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_WaterStatus, WATER_STATUSES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_MoveableStatus, MOVEABLE_STATUSES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_MoodType, MOOD_TYPES);
 	_handler.MakeReadOnlyTable(_table_objects, ScriptReserved_InteractionType, INTERACTION_TYPE);
+}
+
+std::vector<std::unique_ptr<Material>> ObjectsHandler::GetMaterialsByObject(const Moveable& moveable)
+{
+	auto materials = std::vector<std::unique_ptr<Material>>{};
+	auto addedMaterialIndices = std::unordered_set<int>{};
+
+	int moveableIndex = moveable.GetIndex();
+	if (moveableIndex < 0 || moveableIndex >= (int)g_Level.Items.size())
+		return materials;
+
+	const auto& item = g_Level.Items[moveableIndex];
+	for (int meshIndex : item.Model.MeshIndex)
+		AppendMeshMaterials(materials, addedMaterialIndices, meshIndex);
+
+	if (item.Model.SkinIndex != NO_VALUE)
+		AppendMeshMaterials(materials, addedMaterialIndices, item.Model.SkinIndex);
+
+	return materials;
+}
+
+std::vector<std::unique_ptr<Material>> ObjectsHandler::GetMaterialsByObject(const Static& staticObject)
+{
+	auto materials = std::vector<std::unique_ptr<Material>>{};
+	auto addedMaterialIndices = std::unordered_set<int>{};
+
+	int slot = staticObject.GetSlot();
+	if (slot == NO_VALUE)
+		return materials;
+
+	AppendMeshMaterials(materials, addedMaterialIndices, Statics[slot].meshNumber);
+	return materials;
 }
 
 void ObjectsHandler::TestCollidingObjects()

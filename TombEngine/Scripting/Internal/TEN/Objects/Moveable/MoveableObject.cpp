@@ -16,6 +16,8 @@
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Logic/LevelFunc.h"
 #include "Scripting/Internal/TEN/Objects/ObjectsHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyLuaConverters.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
@@ -24,6 +26,7 @@
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Effects::Items;
 using namespace TEN::Math;
+using namespace TEN::Scripting::Properties;
 using namespace TEN::Scripting::Types;
 
 /// Represents a moveable object in the game world.
@@ -218,7 +221,11 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_AttachObjCamera, &Moveable::AttachObjCamera,
 		ScriptReserved_AnimFromObject, &Moveable::AnimFromObject,
 		ScriptReserved_ShowInteractionHighlight, &Moveable::ShowInteractionHighlight,
-		ScriptReserved_HideInteractionHighlight, &Moveable::HideInteractionHighlight);
+		ScriptReserved_HideInteractionHighlight, &Moveable::HideInteractionHighlight,
+
+		ScriptReserved_GetProperty, &Moveable::GetProperty,
+		ScriptReserved_SetProperty, &Moveable::SetProperty,
+		ScriptReserved_HasInstanceProperty, &Moveable::HasInstanceProperty);
 }
 
 Moveable::Moveable(int movID, bool alreadyInitialized)
@@ -620,6 +627,59 @@ short Moveable::GetItemFlags(int index) const
 void Moveable::SetItemFlags(short value, int index)
 {
 	_moveable->ItemFlags[index] = value;
+}
+
+/// Get a property value.
+// Tries to get an instance property first, then falls back to global object ID property. Returns nil if the property does not exist.
+// @function Moveable:GetProperty
+// @tparam string name The property name.
+// @treturn any The property value, or nil if not set. You can use @{Type} module functions to determine return value type.
+sol::object Moveable::GetProperty(sol::this_state state, const std::string& name) const
+{
+	if (!ValidatePropertyName(name))
+		return sol::nil;
+
+	auto* val = PropertyHandler::Get(*_moveable, name);
+
+	if (val == nullptr)
+		return sol::nil;
+
+	return PropertyValueToLua(state, *val);
+}
+
+/// Set a property value.
+// Will be set only for this moveable instance. If property does not exist, creates it.
+// If value is nil, the instance property is removed. Does not affect global object ID property set by @{Objects.SetMoveableProperty}.
+// @function Moveable:SetProperty
+// @tparam string name The property name.
+// @tparam any value The value of any given type: nil, bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}.
+void Moveable::SetProperty(const std::string& name, const sol::object& value)
+{
+	if (!ValidatePropertyName(name))
+		return;
+
+	if (value == sol::nil)
+	{
+		_moveable->Properties.Remove(name);
+	}
+	else
+	{
+		auto propValue = PropertyValueFromLua(value);
+		if (propValue.has_value())
+			_moveable->Properties.Set(name, *propValue);
+	}
+}
+
+/// Check if a property value was individually set for a given moveable instance.
+// @function Moveable:HasInstanceProperty
+// @tparam string name The property name.
+// @treturn bool True if an instance property exists.
+bool Moveable::HasInstanceProperty(const std::string& name) const
+{
+	if (!ValidatePropertyName(name))
+		return false;
+
+	return _moveable->Properties.Has(name);
 }
 
 // COMPATIBILITY. Do not restore the documentation for this method.

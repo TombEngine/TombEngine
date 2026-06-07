@@ -1,5 +1,6 @@
+include "ten_common.fbs";
 include "ten_itemdata.fbs";
-namespace TEN.Save;
+namespace TEN.Serialization.Save;
 
 struct RoomVector {
 	room: uint32;
@@ -30,14 +31,14 @@ table LevelData {
 
 	horizon1_enabled: bool;
 	horizon1_object_id: int32;
-	horizon1_position: Vector3;
-	horizon1_orientation: EulerAngles;
+	horizon1_position: TEN.Serialization.Common.Vector3;
+	horizon1_orientation: TEN.Serialization.Common.EulerAngles;
 	horizon1_transparency: float;
 
 	horizon2_enabled: bool;
 	horizon2_object_id: int32;
-	horizon2_position: Vector3;
-	horizon2_orientation: EulerAngles;
+	horizon2_position: TEN.Serialization.Common.Vector3;
+	horizon2_orientation: TEN.Serialization.Common.EulerAngles;
 	horizon2_transparency: float;
 
 	lensflare_enabled: bool;
@@ -50,6 +51,7 @@ table LevelData {
 	starfield_meteor_count: int32;
 	starfield_meteor_spawn_density: int32;
 	starfield_meteor_velocity: int32;
+	material_properties: [TEN.Serialization.Common.Vector4];
 }
 
 table Room {
@@ -73,7 +75,7 @@ table Item {
 	is_airborne: bool;
 	required_state: int32;
 	target_state: int32;
-	velocity: Vector3;
+	velocity: TEN.Serialization.Common.Vector3;
 
 	floor: int;
 	touch_bits: int32;
@@ -83,13 +85,13 @@ table Item {
 	hit_points: int32;
 	box_number: int32;
 	timer: int32;
-	color: Vector4;
+	color: TEN.Serialization.Common.Vector4;
 	flags: int32;
 	trigger_flags: int32;
 	carried_item: int32;
 	after_death: int32;
 	item_flags: [int32];
-	pose: Pose;
+	pose: TEN.Serialization.Common.Pose;
 	next_item: int32;
 	next_item_active: int32;
 	active: bool;
@@ -98,7 +100,7 @@ table Item {
 	collidable: bool;
 	looked_at: bool;
 	ai_bits: int32;
-	data: TEN.Save.ItemData;
+	data: TEN.Serialization.Save.ItemData;
 	
 	base_mesh: int32;
 	mesh_index: [int32];
@@ -106,17 +108,18 @@ table Item {
 	skin_swap_index: int32;
 
 	effect_type: int32;
-	effect_light_colour: Vector3;
-	effect_primary_colour: Vector3;
-	effect_secondary_colour: Vector3;
+	effect_light_colour: TEN.Serialization.Common.Vector3;
+	effect_primary_colour: TEN.Serialization.Common.Vector3;
+	effect_secondary_colour: TEN.Serialization.Common.Vector3;
 	effect_count: int32;
 
 	lua_name: string;
+	properties: PropertyMapData;
 	lua_callbacks: [ItemCallback];
 }
 
 table FXInfo {
-	pose : Pose;
+	pose : TEN.Serialization.Common.Pose;
 	room_number: int32;
 	object_number: int32;
 	next_fx: int32;
@@ -125,7 +128,7 @@ table FXInfo {
 	fall_speed: int32;
 	frame_number: int32;
 	counter : int32;
-	color: Vector4;
+	color: TEN.Serialization.Common.Vector4;
 	flag1: int32;
 	flag2: int32;
 }
@@ -163,7 +166,7 @@ table ArmInfo {
 	frame_number: int32;
 	anim_object_id: int32;
 	locked: bool;
-	rotation: EulerAngles;
+	rotation: TEN.Serialization.Common.EulerAngles;
 	gun_flash: int32;
 	gun_smoke: int32;
 }
@@ -185,8 +188,8 @@ table TorchData {
 	state: TorchState;
 	is_lit: bool;
 	fade: int32;
-	current_color: Vector3;
-	next_color: Vector3;
+	current_color: TEN.Serialization.Common.Vector3;
+	next_color: TEN.Serialization.Common.Vector3;
 }
 
 table LaraInventoryData {
@@ -233,8 +236,8 @@ table LookControlData {
 	is_using_lasersight: bool;
 	mode: int32;
 	optic_range: int32;
-	orientation: EulerAngles;
-	turn_rate: EulerAngles;
+	orientation: TEN.Serialization.Common.EulerAngles;
+	turn_rate: TEN.Serialization.Common.EulerAngles;
 }
 
 table RopeControlData {
@@ -323,18 +326,18 @@ table PlayerStatusData {
 table PlayerContextData {
 	calc_jump_velocity: int32;
 	interacted_item_number: int32;
-	next_corner_pose: Pose;
+	next_corner_pose: TEN.Serialization.Common.Pose;
 	projected_floor_height: int32;
-	target_orient: EulerAngles;
+	target_orient: TEN.Serialization.Common.EulerAngles;
 	vehicle_item_number: int32;
 	water_current_active: int32;
-	water_current_pull: Vector3;
+	water_current_pull: TEN.Serialization.Common.Vector3;
 	water_surface_dist: int32;
 }
 
 table CollisionInfoData {
 	last_bridge_item_number: int32;
-	last_bridge_item_pose: Pose;
+	last_bridge_item_pose: TEN.Serialization.Common.Pose;
 }
 
 table PlayerSkinData {
@@ -351,8 +354,8 @@ table Lara {
 	effect: PlayerEffectData;
 	collision: CollisionInfoData;
 	extra_anim: int32;
-	extra_head_rot: EulerAngles;
-	extra_torso_rot: EulerAngles;
+	extra_head_rot: TEN.Serialization.Common.EulerAngles;
+	extra_torso_rot: TEN.Serialization.Common.EulerAngles;
 	flare: FlareData;
 	highest_location: int32;
 	hit_direction: int32;
@@ -363,7 +366,7 @@ table Lara {
 	location_pad: int32;
 	right_arm: ArmInfo;
 	status: PlayerStatusData;
-	target_arm_orient: EulerAngles;
+	target_arm_orient: TEN.Serialization.Common.EulerAngles;
 	target_entity_number: int32;
 	torch: TorchData;
 	weapons: [CarriedWeaponInfo];
@@ -371,9 +374,9 @@ table Lara {
 }
 
 table Camera {
-	position: GameVector;
-	target: GameVector;
-	extra_orientation: EulerAngles;
+	position: TEN.Serialization.Common.GameVector;
+	target: TEN.Serialization.Common.GameVector;
+	extra_orientation: TEN.Serialization.Common.EulerAngles;
 }
 
 table FixedCamera {
@@ -390,11 +393,13 @@ table Sink {
 
 table StaticMeshInfo {
 	number: int32;
-	pose: Pose;
+	pose: TEN.Serialization.Common.Pose;
 	room_number: int32;
-	color: Vector4;
+	color: TEN.Serialization.Common.Vector4;
 	hit_points: int32;
 	flags: int32;
+
+	properties: PropertyMapData;
 }
 
 table ParticleInfo {
@@ -435,7 +440,7 @@ table ParticleInfo {
 	fx_obj: int32;
 	room_number: int32;
 	node_number: int32;
-	target_pos: Vector3;
+	target_pos: TEN.Serialization.Common.Vector3;
 	sprite_id: int32;
 	damage: int32;
 	framerate: float;
@@ -444,7 +449,7 @@ table ParticleInfo {
 	light_flicker: int32;
 	light_flicker_s: int32;
 	sound: int32;
-	constraint: Vector3;
+	constraint: TEN.Serialization.Common.Vector3;
 }
 
 table Soundtrack {
@@ -461,36 +466,36 @@ table VideoInfo {
 
 table SwarmObjectInfo {
 	on: bool;
-	pose: Pose;
+	pose: TEN.Serialization.Common.Pose;
 	room_number: int32;
 	target: int32;
 	flags: int32;
 }
 
 table RopeSegment {
-	segment: Vector3;
-	velocity: Vector3;
-	normalised_segment: Vector3;
-	mesh_segment: Vector3;
-	coord: Vector3;
+	segment: TEN.Serialization.Common.Vector3;
+	velocity: TEN.Serialization.Common.Vector3;
+	normalised_segment: TEN.Serialization.Common.Vector3;
+	mesh_segment: TEN.Serialization.Common.Vector3;
+	coord: TEN.Serialization.Common.Vector3;
 }
 
 table Rope {
 	segments: [RopeSegment];
-	position: Vector3;
+	position: TEN.Serialization.Common.Vector3;
 	segment_length: int32;
 	active: int32;
 	coiled: int32;
 }
 
 table Pendulum {
-	position: Vector3;
-	velocity: Vector3;
+	position: TEN.Serialization.Common.Vector3;
+	velocity: TEN.Serialization.Common.Vector3;
 	node: int32;
 }
 
 table Decal {
-	position: Vector3;
+	position: TEN.Serialization.Common.Vector3;
 	radius: float;
 	room_number: int32;
 	type: int32;
@@ -517,9 +522,9 @@ table Volume {
 	number: int32;
 	room_number: int32;
 	enabled: bool;
-	position: Vector3;
-	rotation: Vector4;
-	scale: Vector3;
+	position: TEN.Serialization.Common.Vector3;
+	rotation: TEN.Serialization.Common.Vector4;
+	scale: TEN.Serialization.Common.Vector3;
 	queue: [VolumeState];
 }
 
@@ -529,9 +534,9 @@ table FishData {
 	leader_item_number: int32;
 	life: float;
 	mesh_index: int32;
-	orientation: EulerAngles;
-	position: Vector3;
-	position_target: Vector3;
+	orientation: TEN.Serialization.Common.EulerAngles;
+	position: TEN.Serialization.Common.Vector3;
+	position_target: TEN.Serialization.Common.Vector3;
 	room_number: int32;
 	target_item_number: int32;
 	undulation: float;
@@ -543,10 +548,10 @@ table FireflyData {
 	sprite_id: int32;
 	blend_mode: int32;
 	scalar: int32;
-	position: Vector3;
+	position: TEN.Serialization.Common.Vector3;
 	room_number: int32;
-	position_target: Vector3;
-	orientation: EulerAngles;
+	position_target: TEN.Serialization.Common.Vector3;
+	orientation: TEN.Serialization.Common.EulerAngles;
 	velocity: float;
 	target_item_number: int32;
 	z_vel: float;
@@ -567,6 +572,44 @@ struct KeyValPair {
 	key: uint32;
 	val: uint32;
 }
+
+// Property system tables
+
+table PropertyBool      { value: bool; }
+table PropertyFloat     { value: float; }
+table PropertyString    { value: string; }
+table PropertyVec2      { x: float; y: float; }
+table PropertyVec3      { x: float; y: float; z: float; }
+table PropertyColor     { r: ubyte; g: ubyte; b: ubyte; a: ubyte; }
+table PropertyRotation  { x: float; y: float; z: float; }
+table PropertyTime      { frame_count: int32; }
+
+union PropertyValueUnion {
+	prop_bool: PropertyBool,
+	prop_float: PropertyFloat,
+	prop_string: PropertyString,
+	prop_vec2: PropertyVec2,
+	prop_vec3: PropertyVec3,
+	prop_color: PropertyColor,
+	prop_rotation: PropertyRotation,
+	prop_time: PropertyTime
+}
+
+table PropertyEntry {
+	name: string;
+	value: PropertyValueUnion;
+}
+
+table PropertyMapData {
+	entries: [PropertyEntry];
+}
+
+table TypePropertyMap {
+	type_id: int32;
+	properties: PropertyMapData;
+}
+
+// End property system tables
 
 table ScriptTable {
 	keys_vals: [KeyValPair];
@@ -589,15 +632,15 @@ table timeTable {
 }
 
 table vec2Table {
-	vec: Vector2;
+	vec: TEN.Serialization.Common.Vector2;
 }
 
 table vec3Table {
-	vec: Vector3;
+	vec: TEN.Serialization.Common.Vector3;
 }
 
 table rotationTable {
-	vec: Vector3;
+	vec: TEN.Serialization.Common.Vector3;
 }
 
 table colorTable {
@@ -701,24 +744,23 @@ table SaveGame {
 
 	postprocess_mode: int32;
 	postprocess_strength: float;
-	postprocess_tint: Vector3;
+	postprocess_tint: TEN.Serialization.Common.Vector3;
 	dof_distance: float;
 	dof_range: float;
 	dof_strength: float;
 	dof_mode: int32;
+	
 	rope: Rope;
 	pendulum: Pendulum;
 	alternate_pendulum: Pendulum;
+	
 	volumes: [Volume];
 	global_event_sets: [EventSet];
 	volume_event_sets: [EventSet];
 	script_vars: UnionVec;
-	
-	// At the moment there is no real reason to save the pre_start and
-	// post_start callbacks as OnStart will have already be called when a save
-	// is loaded, but we'll store them anyway for completeness.
-
 	callbacks: [CallbackSet];
+	moveable_type_properties: [TypePropertyMap];
+	static_type_properties: [TypePropertyMap];
 }
 
-root_type TEN.Save.SaveGame;
+root_type TEN.Serialization.Save.SaveGame;
