@@ -1,5 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Entity/PunaBoss.h"
+#include "Objects/TR3/Entity/SophiaLeigh.h"
+#include "Objects/TR3/Entity/tr3_tony.h"
 
 #include "Game/control/box.h"
 #include "Game/control/los.h"
@@ -11,11 +13,14 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Effects/Boss.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Specific/level.h"
+
 
 using namespace TEN::Effects::Boss;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Items;
+using namespace TEN::Scripting::Types;
 
 namespace TEN::Entities::Creatures::TR3
 {
@@ -224,12 +229,14 @@ namespace TEN::Entities::Creatures::TR3
 		{
 			auto target = GameVector(pos, item.RoomNumber);
 
-			SpawnElectricity(origin.ToVector3(), target.ToVector3(), 1, 0, 255, 180, 30, (int)(int)(int)ElectricityFlags::ThinIn | (int)ElectricityFlags::Spline | (int)ElectricityFlags::MoveEnd, 8, 12);
-			SpawnElectricity(origin.ToVector3(), target.ToVector3(), 1, 180, 255, 0, 30, (int)(int)(int)ElectricityFlags::ThinIn | (int)ElectricityFlags::Spline | (int)ElectricityFlags::MoveEnd, 3, 12);
-			SpawnElectricity(origin.ToVector3(), target.ToVector3(), Random::GenerateInt(25, 50), 100, 200, 200, 30, (int)(int)(int)ElectricityFlags::ThinIn | (int)(int)ElectricityFlags::ThinOut, 4, 12);
-			SpawnElectricity(origin.ToVector3(), target.ToVector3(), Random::GenerateInt(25, 50), 100, 250, 255, 30, (int)(int)(int)ElectricityFlags::ThinIn | (int)(int)ElectricityFlags::ThinOut, 2, 12);
+			auto summonColor = PropertyHandler::Get<ScriptColor>(item, "PunaSummonColor", ScriptColor(0, 255, 128));
 
-			SpawnDynamicLight(origin.x, origin.y, origin.z, 20, 0, 255, 0);
+			SpawnElectricity(origin.ToVector3(), target.ToVector3(), 1, summonColor.GetR(), summonColor.GetG(), summonColor.GetB(), 30, (int)(int)(int)ElectricityFlags::ThinIn | (int)ElectricityFlags::Spline | (int)ElectricityFlags::MoveEnd, 8, 12);
+			SpawnElectricity(origin.ToVector3(), target.ToVector3(), 1, summonColor.GetR(), summonColor.GetG(), summonColor.GetB(), 30, (int)(int)(int)ElectricityFlags::ThinIn | (int)ElectricityFlags::Spline | (int)ElectricityFlags::MoveEnd, 3, 12);
+			SpawnElectricity(origin.ToVector3(), target.ToVector3(), Random::GenerateInt(25, 50), summonColor.GetR(), summonColor.GetG(), summonColor.GetB(), 30, (int)(int)(int)ElectricityFlags::ThinIn | (int)(int)ElectricityFlags::ThinOut, 4, 12);
+			SpawnElectricity(origin.ToVector3(), target.ToVector3(), Random::GenerateInt(25, 50), summonColor.GetR(), summonColor.GetG(), summonColor.GetB(), 30, (int)(int)(int)ElectricityFlags::ThinIn | (int)(int)ElectricityFlags::ThinOut, 2, 12);
+
+			SpawnDynamicLight(origin.x, origin.y, origin.z, 20, summonColor.GetR(), summonColor.GetG(), summonColor.GetB());
 			SpawnLizard(item);
 		}
 		else
@@ -245,34 +252,36 @@ namespace TEN::Entities::Creatures::TR3
 			auto target2 = GameVector(Geometry::TranslatePoint(origin.ToVector3(), pos - origin.ToVector3(), PUNA_ATTACK_RANGE / 6), creature.Enemy->RoomNumber);
 			auto target3 = GameVector(Geometry::TranslatePoint(origin1.ToVector3(), pos - origin1.ToVector3(), PUNA_ATTACK_RANGE / 10), creature.Enemy->RoomNumber);
 
-			SpawnElectricity(origin.ToVector3(), target2.ToVector3(), Random::GenerateInt(15, 40), 20, 160, 160, 20, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 4, 6);
-			SpawnElectricity(origin.ToVector3(), target2.ToVector3(), Random::GenerateInt(25, 35), 20, 160, 160, 20, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 2, 7);
+			auto punaLightningColor = PropertyHandler::Get<ScriptColor>(item, "PunaLightningColor", ScriptColor(20, 160, 160));
 
-			SpawnElectricity(target2.ToVector3(), origin1.ToVector3(), Random::GenerateInt(15, 40), 20, 160, 160, 20, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 4, 6);
-			SpawnElectricity(target2.ToVector3(), origin1.ToVector3(), Random::GenerateInt(25, 35), 20, 160, 160, 20, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 2, 7);
+			SpawnElectricity(origin.ToVector3(), target2.ToVector3(), Random::GenerateInt(15, 40), punaLightningColor.GetR(), punaLightningColor.GetG(), punaLightningColor.GetB(), 20, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 4, 6);
+			SpawnElectricity(origin.ToVector3(), target2.ToVector3(), Random::GenerateInt(25, 35), punaLightningColor.GetR(), punaLightningColor.GetG(), punaLightningColor.GetB(), 20, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 2, 7);
 
-			SpawnElectricity(origin1.ToVector3(), target3.ToVector3(), Random::GenerateInt(15, 40), 20, 160, 160, 20, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 4, 9);
-			SpawnElectricity(origin1.ToVector3(), target3.ToVector3(), Random::GenerateInt(25, 35), 20, 160, 160, 20, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 2, 10);
+			SpawnElectricity(target2.ToVector3(), origin1.ToVector3(), Random::GenerateInt(15, 40), punaLightningColor.GetR(), punaLightningColor.GetG(), punaLightningColor.GetB(), 20, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 4, 6);
+			SpawnElectricity(target2.ToVector3(), origin1.ToVector3(), Random::GenerateInt(25, 35), punaLightningColor.GetR(), punaLightningColor.GetG(), punaLightningColor.GetB(), 20, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 2, 7);
 
-			SpawnElectricity(origin2.ToVector3(), target3.ToVector3(), Random::GenerateInt(15, 40), 20, 160, 160, 16, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 4, 7);
-			SpawnElectricity(origin2.ToVector3(), target3.ToVector3(), Random::GenerateInt(25, 35), 20, 160, 160, 16, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 2, 8);
+			SpawnElectricity(origin1.ToVector3(), target3.ToVector3(), Random::GenerateInt(15, 40), punaLightningColor.GetR(), punaLightningColor.GetG(), punaLightningColor.GetB(), 20, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 4, 9);
+			SpawnElectricity(origin1.ToVector3(), target3.ToVector3(), Random::GenerateInt(25, 35), punaLightningColor.GetR(), punaLightningColor.GetG(), punaLightningColor.GetB(), 20, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 2, 10);
 
-			SpawnElectricity(origin.ToVector3(), target.ToVector3(), 1, 20, 160, 160, 30, (int)(int)(int)ElectricityFlags::ThinIn | (int)ElectricityFlags::Spline | (int)ElectricityFlags::MoveEnd, 12, 12);
-			SpawnElectricity(origin.ToVector3(), target.ToVector3(), 1, 80, 160, 160, 30, (int)(int)(int)ElectricityFlags::ThinIn | (int)ElectricityFlags::Spline | (int)ElectricityFlags::MoveEnd, 5, 12);
+			SpawnElectricity(origin2.ToVector3(), target3.ToVector3(), Random::GenerateInt(15, 40), punaLightningColor.GetR(), punaLightningColor.GetG(), punaLightningColor.GetB(), 16, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 4, 7);
+			SpawnElectricity(origin2.ToVector3(), target3.ToVector3(), Random::GenerateInt(25, 35), punaLightningColor.GetR(), punaLightningColor.GetG(), punaLightningColor.GetB(), 16, (int)(int)ElectricityFlags::ThinOut | (int)(int)(int)ElectricityFlags::ThinIn, 2, 8);
 
-			SpawnDynamicLight(origin.x, origin.y, origin.z, 20, 0, 255, 255);
+			SpawnElectricity(origin.ToVector3(), target.ToVector3(), 1, punaLightningColor.GetR(), punaLightningColor.GetG(), punaLightningColor.GetB(), 30, (int)(int)(int)ElectricityFlags::ThinIn | (int)ElectricityFlags::Spline | (int)ElectricityFlags::MoveEnd, 12, 12);
+			SpawnElectricity(origin.ToVector3(), target.ToVector3(), 1, punaLightningColor.GetR(), punaLightningColor.GetG(), punaLightningColor.GetB(), 30, (int)(int)(int)ElectricityFlags::ThinIn | (int)ElectricityFlags::Spline | (int)ElectricityFlags::MoveEnd, 5, 12);
+
+			SpawnDynamicLight(origin.x, origin.y, origin.z, 20, punaLightningColor.GetR(), punaLightningColor.GetG(), punaLightningColor.GetB());
 
 			auto hitPos = Vector3i::Zero;
 			if (ObjectOnLOS2(&origin, &target, &hitPos, nullptr, ID_LARA) == creature.Enemy->Index)
 			{
-				if (creature.Enemy->HitPoints <= PUNA_LIGHTNING_DAMAGE)
+				if (creature.Enemy->HitPoints <= PropertyHandler::Get(item, "PunaLightningDamage", PUNA_LIGHTNING_DAMAGE))
 				{
 					ItemElectricBurn(creature.Enemy);
-					DoDamage(creature.Enemy, PUNA_LIGHTNING_DAMAGE);
+					DoDamage(creature.Enemy, PropertyHandler::Get(item, "PunaLightningDamage", PUNA_LIGHTNING_DAMAGE));
 				}
 				else
 				{
-					DoDamage(creature.Enemy, PUNA_LIGHTNING_DAMAGE);
+					DoDamage(creature.Enemy, PropertyHandler::Get(item, "PunaLightningDamage", PUNA_LIGHTNING_DAMAGE));
 				}
 			}
 		}
@@ -348,6 +357,14 @@ namespace TEN::Entities::Creatures::TR3
 					item.ItemFlags[7]++;
 
 				// Do explosion effect.
+				ExplodeBoss(
+					item,
+					item.GetFlagField((int)BossItemFlags::ExplodeCount),
+					PropertyHandler::Get<ScriptColor>(item, "PunaEffectColor", ScriptColor(PUNA_EFFECT_COLOR)),
+					PropertyHandler::Get<ScriptColor>(item, "PunaExplosionColor1", ScriptColor(PUNA_EXPLOSION_MAIN_COLOR)),
+					PropertyHandler::Get<ScriptColor>(item, "PunaExplosionColor2", ScriptColor(PUNA_EXPLOSION_SECOND_COLOR))
+				);
+
 				ExplodeBoss(item, PUNA_EXPLOSION_NUM_MAX, PUNA_EFFECT_COLOR, PUNA_EXPLOSION_MAIN_COLOR, PUNA_EXPLOSION_SECOND_COLOR);
 				return;
 			}
@@ -368,7 +385,7 @@ namespace TEN::Entities::Creatures::TR3
 			{
 				float distance = Vector3i::Distance(creature.Enemy->Pose.Position, item.Pose.Position);
 
-				if (distance <= BLOCK(2.5f))
+				if (distance <= PropertyHandler::Get<float>(item, "PunaAlertRange", 2.5f) * BLOCK(1))
 					item.SetFlagField((int)BossItemFlags::AttackType, (int)PunaAttackType::DeathLightning);
 
 				// Rotate the object on puna boss chair.
@@ -416,13 +433,13 @@ namespace TEN::Entities::Creatures::TR3
 			switch (item.Animation.ActiveState)
 			{
 			case PUNA_STATE_IDLE:
-				creature.MaxTurn = PUNA_TURN_RATE_MAX;
+				creature.MaxTurn = ANGLE(PropertyHandler::Get<float>(item, "PunaTurnRate", 3.0f));
 				item.SetFlagField((int)BossItemFlags::ShieldIsEnabled, 1);
 
 				if ((item.Animation.TargetState != PUNA_STATE_HAND_ATTACK && item.Animation.TargetState != PUNA_STATE_HEAD_ATTACK) &&
 					ai.angle > ANGLE(-1.0f) && ai.angle < ANGLE(1.0f) &&
 					creature.Enemy->HitPoints > 0 &&
-					item.GetFlagField((int)BossItemFlags::AttackCount) < PUNA_HEAD_ATTACK_NUM_MAX &&
+					item.GetFlagField((int)BossItemFlags::AttackCount) < PropertyHandler::Get<int>(item, "PunaAttackCount", PUNA_HEAD_ATTACK_NUM_MAX) &&
 					!item.TestFlagField((int)BossItemFlags::AttackType, (int)PunaAttackType::SummonLightning) && !item.TestFlagField((int)BossItemFlags::AttackType, (int)PunaAttackType::Wait))
 				{
 					creature.MaxTurn = 0;
@@ -438,7 +455,7 @@ namespace TEN::Entities::Creatures::TR3
 					if (item.TestFlags((int)BossItemFlags::Object, (short)BossFlagValue::Lizard) && isLizardActiveNearby)
 						item.ItemFlags[(int)BossItemFlags::AttackCount]++;
 				}
-				else if (item.ItemFlags[(int)BossItemFlags::AttackCount] >= PUNA_HEAD_ATTACK_NUM_MAX &&
+				else if (item.ItemFlags[(int)BossItemFlags::AttackCount] >= PropertyHandler::Get<int>(item, "PunaAttackCount", PUNA_HEAD_ATTACK_NUM_MAX) &&
 					creature.Enemy->HitPoints > 0 && 
 					item.ItemFlags[(int)BossItemFlags::AttackType] != (int)PunaAttackType::Wait)
 				{
@@ -514,11 +531,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (target.TestFlags((int)BossItemFlags::Object, (short)BossFlagValue::Shield) &&
 			target.TestFlagField((int)BossItemFlags::ShieldIsEnabled, 1))
 		{
-			auto color = Vector4(
-				0.0f,
-				Random::GenerateFloat(0.0f, 0.5f),
-				Random::GenerateFloat(0.0f, 0.5f),
-				Random::GenerateFloat(0.5f, 0.8f));
+			auto color = (Vector4)PropertyHandler::Get<ScriptColor>(target, "PunaShieldColor", ScriptColor(0, 64, 64, 166));
 
 			if (pos.has_value() && !isExplosive)
 			{
