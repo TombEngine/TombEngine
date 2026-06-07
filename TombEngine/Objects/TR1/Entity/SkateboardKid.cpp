@@ -9,6 +9,7 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Specific/trutils.h"
+#include "Sound/sound.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Math;
@@ -163,6 +164,9 @@ namespace TEN::Entities::Creatures::TR1
 			CreatureMood(&item, &ai, false);
 
 			headingAngle = CreatureTurn(&item, creature.MaxTurn);
+
+			if (item.HitStatus)
+				SoundEffect(SFX_TR1_SKATEBOARDKID_HIT, &item.Pose);
 
 			switch (item.Animation.ActiveState)
 			{

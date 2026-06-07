@@ -11,14 +11,14 @@ extern short RPickups[16];
 
 void InitializePickup(short itemNumber);
 bool SetInventoryCount(GAME_OBJECT_ID objectID, int count);
-void PickedUpObject(GAME_OBJECT_ID objectID, std::optional<int> count = std::nullopt);
+bool PickedUpObject(GAME_OBJECT_ID objectID, std::optional<int> count = std::nullopt);
 void PickedUpObject(ItemInfo& item);
 void RemoveObjectFromInventory(GAME_OBJECT_ID objectID, std::optional<int> count = std::nullopt);
 int GetInventoryCount(GAME_OBJECT_ID objectID);
 void CollectCarriedItems(ItemInfo* item);
 void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll);
 void RegeneratePickups();
-void DropPickups(ItemInfo* item);
+void DropPickups(ItemInfo* item, bool disableAlignment = false);
 void CollectMultiplePickups(int itemNumber);
 const GameBoundingBox* FindPlinth(ItemInfo* item);
 

@@ -15,7 +15,8 @@ namespace TEN::Scripting
 {
 	struct AnimSettings
 	{
-		int PoseTimeout = 20; // AFK pose timeout.
+		int PoseTimeout			= 20; // AFK pose timeout.
+		int SystemBlendDuration = 4;  // Default blend duration for internal player animation transitions.
 
 		bool SlideExtended	= false; // Extended slope sliding functionality (not ready yet).
 		bool SprintJump		= false; // Sprint jump.
@@ -62,9 +63,23 @@ namespace TEN::Scripting
 		static void Register(sol::table& parent);
 	};
 
+	struct EffectsSettings
+	{
+		ScriptColor	BloodColor			= ScriptColor(255, 0, 0);
+		BlendMode	BloodBlendMode		= BlendMode::Additive;
+		float		BloodSize			= 1.0f;
+		ScriptColor	RicochetColor		= ScriptColor(255, 153, 0);
+		int			RicochetCount		= 8;
+		bool		RicochetSound		= true;
+		bool		ExplosionShockwave	= true;
+
+		static void Register(sol::table& parent);
+	};
+
 	struct GraphicsSettings
 	{
 		bool AmbientOcclusion = true;
+		bool FlameHeatHaze = true;
 		bool Skinning = true;
 
 		static void Register(sol::table& parent);
@@ -85,6 +100,8 @@ namespace TEN::Scripting
 		bool LoadingBar		= true;
 		bool Speedometer	= true;
 		bool PickupNotifier = true;
+		bool InteractionHighlighter = true;
+		bool TargetHighlighter = true;
 
 		static void Register(sol::table& parent);
 	};
@@ -99,8 +116,8 @@ namespace TEN::Scripting
 		float	PredictionFactor			= 15.0f;	// Prediction distance scale.
 		float	CollisionPenaltyThreshold	= 1.0f;		// Penalty threshold in seconds.
 		float	CollisionPenaltyCooldown	= 6.0f;		// Penalty cooldown in seconds.
-		bool	MoveableAvoidance			= true;		// Avoid moveable obstacles.
-		bool	StaticMeshAvoidance			= true;		// Avoid static mesh obstacles.
+		bool	MoveableAvoidance			= false;	// Avoid moveable obstacles.
+		bool	StaticMeshAvoidance			= false;	// Avoid static mesh obstacles.
 		bool	VerticalGeometryAvoidance	= true;		// Avoid geometry obstacles for swimming or flying creatures.
 		bool	WaterSurfaceAvoidance		= true;		// Avoid water surface for swimming or flying creatures.
 		bool	VerticalMovementSmoothing = true;		// Smooth vertical movement for swimming or flying creatures.
@@ -133,6 +150,8 @@ namespace TEN::Scripting
 		ScriptColor DisabledTextColor	= ScriptColor(128, 128, 128);	// Gray
 		ScriptColor ShadowTextColor		= ScriptColor(0, 0, 0);			// Black
 
+		float SystemTextScale = 1.0f;
+
 		Vec2 TitleMenuPosition = Vec2(50, 66);
 		float TitleMenuScale = 1.0f;
 		sol::optional<DisplayStringOptions>	TitleMenuAlignment = DisplayStringOptions::Center;
@@ -140,6 +159,8 @@ namespace TEN::Scripting
 		Vec2 TitleLogoPosition = Vec2(50, 20);
 		float TitleLogoScale = 0.38f;
 		ScriptColor TitleLogoColor = ScriptColor(255, 255, 255);
+
+		float MenuBackgroundBlur = 0.15f;
 
 		static void Register(sol::table& parent);
 	};
@@ -173,6 +194,7 @@ namespace TEN::Scripting
 	{
 		AnimSettings				Animations  = {};
 		CameraSettings				Camera	    = {};
+		EffectsSettings				Effects	    = {};
 		FlareSettings				Flare	    = {};
 		GameplaySettings			Gameplay    = {};
 		GraphicsSettings			Graphics    = {};

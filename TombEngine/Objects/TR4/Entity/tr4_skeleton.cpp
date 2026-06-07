@@ -159,7 +159,7 @@ namespace TEN::Entities::TR4
 		fx->fallspeed = -(GetRandomControl() / 1024);
 		fx->frameNumber = Objects[103].meshIndex;
 		fx->objectNumber = ID_BODY_PART;
-		fx->color = Vector4::One;
+		fx->color = NEUTRAL_COLOR;
 		fx->flag2 = 0x601;
 
 		auto* spark = GetFreeParticle();
@@ -203,7 +203,7 @@ namespace TEN::Entities::TR4
 
 		auto* item = &g_Level.Items[itemNumber];
 		auto* creature = GetCreatureInfo(item);
-		auto* enemyItem = creature->Enemy;
+		auto* enemyItem = creature->Enemy.Get();
 
 		bool jumpLeft = false;
 		bool jumpRight = false;
@@ -293,7 +293,7 @@ namespace TEN::Entities::TR4
 		else
 		{
 			AI_INFO laraAI;
-			if (creature->Enemy->IsLara())
+			if (creature->Enemy.IsLara())
 			{
 				laraAI.distance = AI.distance;
 				laraAI.angle = AI.angle;
@@ -315,7 +315,7 @@ namespace TEN::Entities::TR4
 
 			angle = CreatureTurn(item, creature->MaxTurn);
 
-			auto* tempEnemy = creature->Enemy;
+			auto* tempEnemy = creature->Enemy.Get();
 
 			creature->Enemy = LaraItem;
 

@@ -234,6 +234,7 @@ void ControlBodyPart(short fxNumber)
 			{
 				BodyPartExplode(*fx);
 				KillEffect(fxNumber);
+				return;
 			}
 		}
 

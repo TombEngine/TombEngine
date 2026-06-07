@@ -171,12 +171,12 @@ namespace TEN::Entities::Creatures::TR3
 
 			if (creature->Enemy != nullptr)
 			{
-				if (!creature->HurtByLara && creature->Enemy->IsLara())
+				if (!creature->HurtByLara && creature->Enemy.IsLara())
 					creature->Enemy = nullptr;
 			}
 
 			AI_INFO laraAI;
-			if (creature->Enemy != nullptr && creature->Enemy->IsLara())
+			if (creature->Enemy.IsLara())
 			{
 				laraAI.angle = AI.angle;
 				laraAI.distance = AI.distance;
@@ -199,7 +199,7 @@ namespace TEN::Entities::Creatures::TR3
 
 			angle = CreatureTurn(item, creature->MaxTurn);
 
-			auto* enemy = creature->Enemy;
+			auto* enemy = creature->Enemy.Get();
 			creature->Enemy = LaraItem;
 
 			if (item->HitStatus)
@@ -328,7 +328,7 @@ namespace TEN::Entities::Creatures::TR3
 				else if (AI.bite && AI.distance < pow(682, 2))
 					item->Animation.TargetState = MONKEY_STATE_WALK_FORWARD;
 				else if (AI.distance < pow(682, 2) &&
-					!creature->Enemy->IsLara() && creature->Enemy != nullptr &&
+					creature->Enemy && !creature->Enemy.IsLara() &&
 					creature->Enemy->ObjectNumber != ID_AI_PATROL1 &&
 					creature->Enemy->ObjectNumber != ID_AI_PATROL2 &&
 					abs(item->Pose.Position.y - creature->Enemy->Pose.Position.y) < CLICK(1))

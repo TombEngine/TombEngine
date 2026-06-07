@@ -241,6 +241,9 @@ namespace TEN::Entities::Creatures::TR3
 		}
 		else
 		{
+			if (creature.Enemy == nullptr)
+				return;
+
 			auto target = GameVector(Geometry::TranslatePoint(origin.ToVector3(), pos - origin.ToVector3(), PUNA_ATTACK_RANGE), creature.Enemy->RoomNumber);
 
 			auto origin1 = GameVector(Geometry::TranslatePoint(origin.ToVector3(), pos - origin.ToVector3(), PUNA_ATTACK_RANGE / 4), creature.Enemy->RoomNumber);
@@ -354,10 +357,17 @@ namespace TEN::Entities::Creatures::TR3
 					item.ItemFlags[7]++;
 
 				// Do explosion effect.
-				ExplodeBoss(itemNumber, item, PUNA_EXPLOSION_NUM_MAX,
-				PropertyHandler::Get<ScriptColor>(item, "puna_effect_color", ScriptColor(PUNA_EFFECT_COLOR)),
-				PropertyHandler::Get<ScriptColor>(item, "puna_explosion_color_1", ScriptColor(PUNA_EXPLOSION_MAIN_COLOR)),
-				PropertyHandler::Get<ScriptColor>(item, "puna_explosion_color_2", ScriptColor(PUNA_EXPLOSION_SECOND_COLOR)));
+				ExplodeBoss
+				(
+					itemNumber,
+					item,
+					PUNA_EXPLOSION_NUM_MAX,
+					PropertyHandler::Get<ScriptColor>(item, "puna_effect_color", ScriptColor(PUNA_EFFECT_COLOR)),
+					PropertyHandler::Get<ScriptColor>(item, "puna_explosion_color_1", ScriptColor(PUNA_EXPLOSION_MAIN_COLOR)),
+					PropertyHandler::Get<ScriptColor>(item, "puna_explosion_color_2", ScriptColor(PUNA_EXPLOSION_SECOND_COLOR))
+				);
+
+				ExplodeBoss(item, PUNA_EXPLOSION_NUM_MAX, PUNA_EFFECT_COLOR, PUNA_EXPLOSION_MAIN_COLOR, PUNA_EXPLOSION_SECOND_COLOR);
 				return;
 			}
 		}

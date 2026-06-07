@@ -4,6 +4,7 @@
 
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
+#include "Scripting/Internal/TEN/Objects/Material/MaterialObject.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Scripting/Internal/TEN/Objects/Static/StaticObject.h"
 #include "Scripting/Internal/TEN/Objects/AIObject/AIObject.h"
@@ -25,7 +26,7 @@ public:
 	{
 		const auto& item = g_Level.Items[id];
 
-		bool hasName = !(item.Callbacks.OnObjectCollided.empty() && item.Callbacks.OnRoomCollided.empty());
+		bool hasName = !(item.Callbacks[(int)EntityCallbackPoint::ObjectCollided].empty() && item.Callbacks[(int)EntityCallbackPoint::RoomCollided].empty());
 		if (hasName && (item.IsLara() || item.Collidable))
 			return _collidingItems.insert(id).second;
 
@@ -36,7 +37,7 @@ public:
 	{
 		const auto& item = g_Level.Items[id];
 
-		bool hasName = !(item.Callbacks.OnObjectCollided.empty() && item.Callbacks.OnRoomCollided.empty());
+		bool hasName = !(item.Callbacks[(int)EntityCallbackPoint::ObjectCollided].empty() && item.Callbacks[(int)EntityCallbackPoint::RoomCollided].empty());
 		if (!force && hasName && (item.IsLara() || item.Collidable))
 			return false;
 
@@ -62,6 +63,8 @@ private:
 	sol::table				_table_objects			= {};
 
 	void AssignPlayer() override;
+	std::vector<std::unique_ptr<Material>> GetMaterialsByObject(const Moveable& moveable);
+	std::vector<std::unique_ptr<Material>> GetMaterialsByObject(const Static& staticObject);
 
 	template <typename R, const char* S>
 	std::unique_ptr<R> GetByName(const std::string& name)
@@ -140,7 +143,8 @@ private:
 		if (_nameMap.find(name) == _nameMap.end())
 			return NO_VALUE;
 
-		return std::get<int>(_nameMap.at(name));
+		const auto& value = _nameMap.at(name);
+		return std::holds_alternative<int>(value) ? std::get<int>(value) : NO_VALUE;
 	}
 
 	bool IsNameInUse(const std::string& key) const

@@ -3,11 +3,11 @@
 #include "Scripting/Internal/TEN/Properties/PropertyMap.h"
 #include "Scripting/Internal/TEN/Properties/PropertyValue.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
-#include "Specific/savegame/flatbuffers/ten_savegame_generated.h"
+#include "Specific/Serialization/flatbuffers/ten_savegame_generated.h"
 
 namespace TEN::Scripting::Properties
 {
-	namespace Save = TEN::Save;
+	namespace Save = TEN::Serialization::Save;
 
 	// Build helpers (PropertyMap -> FlatBuffers).
 
