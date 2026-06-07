@@ -357,11 +357,9 @@ namespace TEN::Entities::Creatures::TR3
 					item.ItemFlags[7]++;
 
 				// Do explosion effect.
-				ExplodeBoss
-				(
-					itemNumber,
+				ExplodeBoss(
 					item,
-					PUNA_EXPLOSION_NUM_MAX,
+					item.GetFlagField((int)BossItemFlags::ExplodeCount),
 					PropertyHandler::Get<ScriptColor>(item, "puna_effect_color", ScriptColor(PUNA_EFFECT_COLOR)),
 					PropertyHandler::Get<ScriptColor>(item, "puna_explosion_color_1", ScriptColor(PUNA_EXPLOSION_MAIN_COLOR)),
 					PropertyHandler::Get<ScriptColor>(item, "puna_explosion_color_2", ScriptColor(PUNA_EXPLOSION_SECOND_COLOR))
