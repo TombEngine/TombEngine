@@ -332,7 +332,7 @@ namespace TEN::Entities::Creatures::TR3
 			if (item.Animation.ActiveState != PUNA_STATE_DEATH)
 			{
 				SetAnimation(item, PUNA_ANIM_DEATH);
-				SoundEffect(SFX_TR3_PUNA_BOSS_DEATH, &item.Pose);
+				SoundEffect(PropertyHandler::Get<int>(item, "PunaDeathSound", SFX_TR3_PUNA_BOSS_DEATH), &item.Pose);
 				item.ItemFlags[(int)BossItemFlags::DeathCount] = 1;
 				creature.MaxTurn = 0;
 			}
@@ -515,13 +515,13 @@ namespace TEN::Entities::Creatures::TR3
 		if (prevYOrient != item.Pose.Orientation.y && !hasTurned)
 		{
 			hasTurned = true;
-			SoundEffect(SFX_TR3_PUNA_BOSS_TURN_CHAIR, &item.Pose);
+			SoundEffect(PropertyHandler::Get<int>(item, "PunaChairTurnSound", SFX_TR3_PUNA_BOSS_TURN_CHAIR), &item.Pose);
 		}
 		else if (prevYOrient == item.Pose.Orientation.y)
 		{
 			hasTurned = false;
-			StopSoundEffect(SFX_TR3_PUNA_BOSS_CHAIR_2);
-			StopSoundEffect(SFX_TR3_PUNA_BOSS_TURN_CHAIR);
+			StopSoundEffect(PropertyHandler::Get<int>(item, "PunaChairStopSound", SFX_TR3_PUNA_BOSS_CHAIR_2));
+			StopSoundEffect(PropertyHandler::Get<int>(item, "PunaChairTurnSound", SFX_TR3_PUNA_BOSS_TURN_CHAIR));
 		}
 	}
 
@@ -544,7 +544,7 @@ namespace TEN::Entities::Creatures::TR3
 		else
 		{
 			if (target.HitStatus)
-				SoundEffect(SFX_TR3_PUNA_BOSS_TAKE_HIT, &target.Pose);
+				SoundEffect(PropertyHandler::Get<int>(target, "PunaHitSound", SFX_TR3_PUNA_BOSS_TAKE_HIT), &target.Pose);
 
 			if (pos.has_value())
 				DoBloodSplat(pos->x, pos->y, pos->z, 5, source.Pose.Orientation.y, pos->RoomNumber);
