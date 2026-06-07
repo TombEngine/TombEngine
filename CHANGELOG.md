@@ -47,6 +47,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed flyby camera flag "Let Lara move in cinematic mode" being ignored.
 * Fixed flyby camera jitter by converting the spline type to floating-point.
 * Fixed occasional flame emitter sprite jitter.
+* Fixed incorrect static mesh interpolation after a large position change.
 * Fixed interaction highlighter appearing for underwater pushable objects.
 * Fixed clipping into underwater pushable objects while swimming upwards from the bottom.
 * Fixed incorrect renderer statistics in the linear inventory.

@@ -377,8 +377,6 @@ Vec3 Moveable::GetPosition() const
 // @bool[opt=true] updateRoom Will room changes be automatically detected? Set to false if you are using overlapping rooms.
 void Moveable::SetPosition(const Vec3& pos, sol::optional<bool> updateRoom)
 {
-	constexpr auto BIG_DISTANCE_THRESHOLD = BLOCK(1);
-
 	auto newPos = pos.ToVector3i();
 	bool bigDistance = Vector3i::Distance(newPos, _moveable->Pose.Position) > BIG_DISTANCE_THRESHOLD;
 	
