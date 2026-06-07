@@ -640,14 +640,16 @@ void InitializeScripting(int levelIndex, bool loadGame)
 		g_GameScript->ExecuteString(g_Level.PropertyBlob);
 	}
 
-	// Apply property overrides that depend on scripts being loaded.
+	// Global Properties.
 	for (int i = 0; i < g_Level.NumItems; i++)
 	{
 		auto& item = g_Level.Items[i];
 		const auto& object = Objects[item.ObjectNumber];
 
 		if (object.intelligent)
-			item.HitPoints = TEN::Scripting::Properties::PropertyHandler::Get<int>(item, "hitpoints", item.HitPoints);
+		{
+			item.HitPoints = PropertyHandler::Get<int>(item, "hitpoints", item.HitPoints);
+		}
 	}
 
 	// Play default background music.
