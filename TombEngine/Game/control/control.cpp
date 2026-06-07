@@ -649,7 +649,7 @@ void InitializeScripting(int levelIndex, bool loadGame)
 
 		if (object.intelligent)
 		{
-			item.HitPoints = PropertyHandler::Get<int>(item, "HitPoints", item.HitPoints);
+			item.HitPoints = PropertyHandler::Get(item, "HitPoints", item.HitPoints);
 		}
 	}
 
