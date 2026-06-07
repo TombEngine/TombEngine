@@ -94,6 +94,7 @@ using namespace TEN::Control::Volumes;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Scripting::Properties;
 using namespace TEN::Renderer;
 using namespace TEN::SpotCam;
 using namespace TEN::Video;
