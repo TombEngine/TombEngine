@@ -1,12 +1,18 @@
 #include "framework.h"
 #include "Objects/Generic/Traps/CrumblingPlatform.h"
 
+#include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
+#include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
+#include "Game/effects/Bubble.h"
+#include "Game/effects/effects.h"
+#include "Game/effects/Splash.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/setup.h"
+#include "Math/Random.h"
 #include "Objects/Generic/Object/BridgeObject.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"
@@ -14,7 +20,10 @@
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
+using namespace TEN::Effects::Bubble;
+using namespace TEN::Effects::Splash;
 using namespace TEN::Entities::Generic;
+using namespace TEN::Math::Random;
 using namespace TEN::Utils;
 
 // NOTES:
@@ -23,11 +32,15 @@ using namespace TEN::Utils;
 
 namespace TEN::Entities::Traps
 {
-	constexpr auto CRUMBLING_PLATFORM_VELOCITY_MAX	 = 100.0f;
-	constexpr auto CRUMBLING_PLATFORM_VELOCITY_MIN	 = 10.0f;
+	constexpr auto CRUMBLING_PLATFORM_VELOCITY_MAX = 100.0f;
+	constexpr auto CRUMBLING_PLATFORM_VELOCITY_MIN = 10.0f;
 	constexpr auto CRUMBLING_PLATFORM_VELOCITY_ACCEL = 4.0f;
 
 	constexpr auto CRUMBLING_PLATFORM_DELAY = 1.2f;
+	constexpr auto CRUMBLING_PLATFORM_BUBBLE_SPAWN_CHANCE_MAX = 0.5f; // Higher bubble density near the water surface.
+	constexpr auto CRUMBLING_PLATFORM_BUBBLE_SPAWN_CHANCE_MIN = 0.1f; // Lower bubble density once the platform sinks deeper.
+	constexpr auto CRUMBLING_PLATFORM_BUBBLE_FULL_DENSITY_DEPTH = BLOCK(1.0f); // Depth threshold where bubble spawning switches from max to min density.
+	constexpr auto CRUMBLING_PLATFORM_SPLASH_SETUP_COUNT_MAX = 2; // Per-frame splash slot cap for crumbling platforms to reduce splash pool pressure.
 
 	enum CrumblingPlatformState
 	{
@@ -160,7 +173,7 @@ namespace TEN::Entities::Traps
 			// Get point collision.
 			auto box = GameBoundingBox(&item);
 			auto pointColl = GetPointCollision(item);
-			int relFloorHeight = (item.Pose.Position.y - pointColl.GetFloorHeight()) - box.Y1 ;
+			int relFloorHeight = (item.Pose.Position.y - pointColl.GetFloorHeight()) - box.Y1;
 
 			// Airborne.
 			if (relFloorHeight <= fallVel)
@@ -180,8 +193,54 @@ namespace TEN::Entities::Traps
 
 			// Update room number.
 			int probedRoomNumber = pointColl.GetRoomNumber();
+
+			// Get bounding box extents.
+			float extentsLength = ((Vector3)item.GetAabb().Extents).Length();
+
 			if (item.RoomNumber != probedRoomNumber)
+			{
+				// Spawn splash for each bone of the platform when entering water.
+				if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, probedRoomNumber) &&
+					!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item.RoomNumber))
+				{
+					auto spheres = item.GetSpheres();
+					int waterHeight = GetPointCollision(item.Pose.Position, probedRoomNumber).GetWaterTopHeight();
+
+					for (const auto& sphere : spheres)
+					{
+						SplashSetup.Position = Vector3(sphere.Center.x, (float)(waterHeight - 1), sphere.Center.z);
+						SplashSetup.SplashPower = GenerateFloat(fallVel * 0.5f, fallVel * 2.0f);
+
+						// Legacy assets for crumbling platforms often have oversized spheres that can produce incorrect splash sizes,
+						// so calculate a fallback override radius based on the platform's bounding box extents for such cases.
+						SplashSetup.InnerRadius = (sphere.Radius > extentsLength ? extentsLength / 2.0f : sphere.Radius) * Random::GenerateFloat(0.7f, 1.3f);
+						SetupSplash(&SplashSetup, probedRoomNumber, CRUMBLING_PLATFORM_SPLASH_SETUP_COUNT_MAX);
+					}
+				}
+
 				ItemNewRoom(itemNumber, probedRoomNumber);
+			}
+
+			// Spawn bubbles every frame while sinking underwater.
+			if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item.RoomNumber))
+			{
+				int waterHeight = GetPointCollision(item.Pose.Position, item.RoomNumber).GetWaterTopHeight();
+				float depth = (float)(item.Pose.Position.y - waterHeight);
+				float spawnChance = (depth <= CRUMBLING_PLATFORM_BUBBLE_FULL_DENSITY_DEPTH) ?
+					CRUMBLING_PLATFORM_BUBBLE_SPAWN_CHANCE_MAX :
+					CRUMBLING_PLATFORM_BUBBLE_SPAWN_CHANCE_MIN;
+
+				auto spheres = item.GetSpheres();
+
+				for (auto& sphere : spheres)
+				{
+					if (TestProbability(spawnChance))
+					{
+						sphere.Radius = sphere.Radius > extentsLength ? extentsLength / 2.0f : sphere.Radius;
+						SpawnBubble(GeneratePointInSphere(sphere), item.RoomNumber, GenerateInt(32, 256), GenerateInt(BLOCK(0.1f), BLOCK(0.25f)));
+					}
+				}
+			}
 		}
 
 		break;

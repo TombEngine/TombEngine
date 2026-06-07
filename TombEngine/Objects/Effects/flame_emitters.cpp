@@ -38,7 +38,7 @@ namespace TEN::Entities::Effects
 	constexpr int FLAME_BIG_RADIUS = CLICK(2.33f);
 	constexpr int FLAME_ITEM_BURN_TIMEOUT = 3 * FPS;
 
-	byte Flame3xzoffs[16][2] =
+	int Flame3xzoffs[16][2] =
 	{
 		{ 9, 9 },
 		{ 24, 9 },
@@ -81,7 +81,7 @@ namespace TEN::Entities::Effects
 			if (itemPtr->IsLara() && GetLaraInfo(item)->Control.WaterStatus == WaterStatus::FlyCheat)
 				continue;
 
-			if (item->Model.Color == Vector4::One)
+			if (item->Model.Color == NEUTRAL_COLOR)
 			{
 				ItemBurn(itemPtr, itemPtr->IsLara() ? NO_VALUE : FLAME_ITEM_BURN_TIMEOUT);
 			}
@@ -132,10 +132,10 @@ namespace TEN::Entities::Effects
 
 	static Vector4 GetFlameColor(Vector4 sourceColor)
 	{
-		if (sourceColor == Vector4::One)
+		if (sourceColor == NEUTRAL_COLOR)
 			return Vector4(1.0f, Random::GenerateFloat(0.3f, 0.4f), 0.1f, 1.0f) * UCHAR_MAX;
 
-		return sourceColor / 2.0f * Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
+		return sourceColor * Random::GenerateFloat(0.85f, 1.0f) * UCHAR_MAX;
 	}
 
 	void FlameEmitterControl(short itemNumber)

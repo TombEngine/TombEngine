@@ -9,6 +9,7 @@
 #include "./ShaderLight.hlsli"
 #include "./Materials.hlsli"
 
+// This value is here for historic reasons, dynamic lights were 0.3 less powerful for rooms
 #define ROOM_LIGHT_COEFF 0.7f
 
 struct PixelShaderInput
@@ -28,13 +29,8 @@ struct PixelShaderInput
 };
 
 Texture2D Texture : register(t0);
-SamplerState Sampler : register(s0);
-
 Texture2D NormalTexture : register(t1);
-SamplerState NormalTextureSampler : register(s1);
-
 Texture2D CausticsTexture : register(t2);
-SamplerState CausticsTextureSampler : register(s2);
 
 struct PixelShaderOutput
 {
@@ -55,21 +51,21 @@ PixelShaderInput VS(VertexShaderInput input)
 	float3 col = Glow(input.Color.xyz, input.Effects, wibble);
 
 	// Refraction
-float4 screenPos = mul(float4(pos, 1.0f), ViewProjection);
+	float4 screenPos = mul(float4(pos, 1.0f), ViewProjection);
 
-if (CameraUnderwater != Water)
-{
-    float dist = length(pos - CamPositionWS.xyz);
-    float factor = InterpolatedFrame + (pos.x + pos.z) * 0.2f;
-    float xOffset = (sin(factor * PI / 20.0f)) * (dist / 1024) * 3;
-    float yOffset = (cos(factor * PI / 20.0f)) * (dist / 1024) * 3;
-    screenPos.x += xOffset * weight;
-    screenPos.y += yOffset * weight;
-}
+	if (CameraUnderwater != Water)
+	{
+		float dist = length(pos - CamPositionWS.xyz);
+		float factor = InterpolatedFrame + (pos.x + pos.z) * 0.2f;
+		float xOffset = (sin(factor * PI / 20.0f)) * (dist / 1024) * 3;
+		float yOffset = (cos(factor * PI / 20.0f)) * (dist / 1024) * 3;
+		screenPos.x += xOffset * weight;
+		screenPos.y += yOffset * weight;
+	}
 	
 	output.Position = screenPos;
     output.Normal = input.Normal.xyz;
-	output.Color = float4(col, input.Color.w);
+    output.Color = float4(col, input.Color.w);
 	output.PositionCopy = screenPos;
     output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	output.WorldPosition = pos;
@@ -93,18 +89,18 @@ PixelShaderOutput PS(PixelShaderInput input)
     float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
     input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);                	  
 
-    float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(ORSHSampler, input.UV));
+	float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(AnisotropicClampSampler, input.UV));
     float ambientOcclusion = ORSH.x;
     float roughness = ORSH.y;
     float specular = ORSH.z;
 
-    float3 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV).xyz;
+	float3 emissive = EmissiveTexture.Sample(AnisotropicClampSampler, input.UV).xyz * GetEmissiveIntensity();
 	
     float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
-    float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV)));
+	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV)));
     normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
 
-	output.Color = Texture.Sample(Sampler, input.UV);
+	output.Color = Texture.Sample(AnisotropicClampSampler, input.UV);
 	DoAlphaTest(output.Color);
 
     // Material effects
@@ -115,7 +111,7 @@ PixelShaderOutput PS(PixelShaderInput input)
     float occlusion = CalculateOcclusion(GetSamplePosition(input.PositionCopy), output.Color.w);
     occlusion *= ambientOcclusion;
 
-	float3 lighting = input.Color.xyz;
+    float3 lighting = ModulateColor(input.Color.xyz);
 	
 	// Shadows
 	lighting = DoShadow(input.WorldPosition, normal, lighting, -2.5f);
@@ -128,9 +124,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 	{
 		if (onlyPointLights)
 		{
-            lighting += DoPointLight(input.WorldPosition, normal, RoomLights[i]) * ROOM_LIGHT_COEFF;
-            lighting += DoSpecularPoint(input.WorldPosition, normal, RoomLights[i], 0.0f, specular, roughness);
-        }
+			lighting += ModulateColor(DoPointLight(input.WorldPosition, normal, RoomLights[i])) * ROOM_LIGHT_COEFF;
+			lighting += ModulateColor(DoSpecularPoint(input.WorldPosition, normal, RoomLights[i], 0.0f, specular, roughness));
+		}
 		else
 		{
 			// Room dynamic lights can only be spot or point, so we use simplified function for that.
@@ -141,8 +137,8 @@ PixelShaderOutput PS(PixelShaderInput input)
 			float3 pointLight = float3(0.0f, 0.0f, 0.0f);
 			float3 spotLight  = float3(0.0f, 0.0f, 0.0f);
 			DoPointAndSpotLight(input.WorldPosition, normal, RoomLights[i], specular, roughness, pointLight, spotLight);
-			
-			lighting += pointLight * isPoint * ROOM_LIGHT_COEFF + spotLight  * isSpot * ROOM_LIGHT_COEFF;
+
+			lighting += ModulateColor(pointLight) * isPoint * ROOM_LIGHT_COEFF + ModulateColor(spotLight) * isSpot * ROOM_LIGHT_COEFF;
 		}
 	}
 
@@ -194,9 +190,9 @@ PixelShaderOutput PS(PixelShaderInput input)
         float2 uv_y = CausticsStartUV + float2(p.z, p.x) * CausticsSize;
         float2 uv_z = CausticsStartUV + float2(p.y, p.x) * CausticsSize;
 
-        float3 xaxis = CausticsTexture.SampleLevel(CausticsTextureSampler, uv_x, 0).xyz;
-        float3 yaxis = CausticsTexture.SampleLevel(CausticsTextureSampler, uv_y, 0).xyz;
-        float3 zaxis = CausticsTexture.SampleLevel(CausticsTextureSampler, uv_z, 0).xyz;
+		float3 xaxis = CausticsTexture.SampleLevel(AnisotropicClampSampler, uv_x, 0).xyz;
+		float3 yaxis = CausticsTexture.SampleLevel(AnisotropicClampSampler, uv_y, 0).xyz;
+		float3 zaxis = CausticsTexture.SampleLevel(AnisotropicClampSampler, uv_z, 0).xyz;
 
         float3 xc = xaxis * blending.x;
         float3 yc = yaxis * blending.y;
@@ -217,6 +213,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 	output.Color = DoFogBulbsForPixel(output.Color, float4(input.FogBulbs.xyz, 1.0f));
 	output.Color = DoDistanceFogForPixel(output.Color, FogColor, input.DistanceFog);
+	output.Color = ApplyBlendModeColor(output.Color, input.PositionCopy, false);
 
     return output;
 }
