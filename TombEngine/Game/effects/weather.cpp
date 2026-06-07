@@ -180,8 +180,8 @@ namespace TEN::Effects::Environment
 		}
 		else if (StormCount)
 		{
-			StormRand = ((rand() & 0x1FF - StormRand) >> 1) + StormRand;
-			StormSkyColor2 += StormRand * StormSkyColor2 >> 8;
+			StormRand = ((Random::GenerateInt() & 0x1FF - StormRand) >> 1) + StormRand;
+			StormSkyColor2 = std::max(1, StormSkyColor2 + (StormRand * StormSkyColor2 >> 8));
 			StormSkyColor = StormSkyColor2;
 			if (StormSkyColor > UCHAR_MAX)
 				StormSkyColor = UCHAR_MAX;
