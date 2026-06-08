@@ -15,7 +15,6 @@
 #include "Game/Lara/lara.h"
 #include "Math/Math.h"
 #include "Game/misc.h"
-#include "Objects/Generic/Doors/generic_doors.h"
 #include "Objects/Generic/Doors/sequence_door.h"
 #include "Objects/Generic/Switches/fullblock_switch.h"
 #include "Game/itemdata/door_data.h"
@@ -27,7 +26,7 @@ namespace TEN::Entities::Doors
 {
     void SequenceDoorControl(short itemNumber)
     {
-        auto& sequenceData = Lara.Inventory.SequenceSwitchData;
+        auto& sequenceData = Lara.Control.SequenceSwitch;
         auto* doorItem = &g_Level.Items[itemNumber];
         auto* door = &GetDoorObject(*doorItem);
 

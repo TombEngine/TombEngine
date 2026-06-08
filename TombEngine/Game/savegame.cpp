@@ -528,16 +528,16 @@ const std::vector<byte> SaveGame::Build()
 
 	std::vector<int> sequenceSequences{};
 	for (int i = 0; i < 3; i++)
-		sequenceSequences.push_back(Lara.Inventory.SequenceSwitchData.Sequences[i]);
+		sequenceSequences.push_back(Lara.Control.SequenceSwitch.Sequences[i]);
 	auto sequenceSequencesOffset = fbb.CreateVector(sequenceSequences);
 
 	std::vector<int> sequenceUsed{};
 	for (int i = 0; i < 6; i++)
-		sequenceUsed.push_back(Lara.Inventory.SequenceSwitchData.SequenceUsed[i]);
+		sequenceUsed.push_back(Lara.Control.SequenceSwitch.SequenceUsed[i]);
 	auto sequenceUsedOffset = fbb.CreateVector(sequenceUsed);
 
 	Save::SequenceDataBuilder sequence{ fbb };
-	sequence.add_current_sequence(Lara.Inventory.SequenceSwitchData.CurrentSequence);
+	sequence.add_current_sequence(Lara.Control.SequenceSwitch.CurrentSequence);
 	sequence.add_sequences(sequenceSequencesOffset);
 	sequence.add_sequence_used(sequenceUsedOffset);
 	auto sequenceOffset = sequence.Finish();
@@ -2097,6 +2097,12 @@ static void ParsePlayer(const Save::SaveGame* s)
 	for (int i = 0; i < Lara.Effect.DripNodes.size(); i++)
 		Lara.Effect.DripNodes[i] = s->lara()->effect()->drip_nodes()->Get(i);
 
+	Lara.Control.SequenceSwitch.CurrentSequence = s->lara()->inventory()->sequenceData()->current_sequence();
+	for (int i = 0; i < 3; i++)
+		Lara.Control.SequenceSwitch.Sequences[i] = s->lara()->inventory()->sequenceData()->sequences()->Get(i);
+	for (int i = 0; i < 6; i++)
+		Lara.Control.SequenceSwitch.SequenceUsed[i] = s->lara()->inventory()->sequenceData()->sequence_used()->Get(i);
+
 	Lara.Context.CalcJumpVelocity = s->lara()->context()->calc_jump_velocity();
 	Lara.Context.WaterCurrentActive = s->lara()->context()->water_current_active();
 	Lara.Context.WaterCurrentPull.x = s->lara()->context()->water_current_pull()->x();
@@ -2168,11 +2174,6 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.Inventory.HasTorch = s->lara()->inventory()->has_torch();
 	Lara.Inventory.IsBusy = s->lara()->inventory()->is_busy();
 	Lara.Inventory.OldBusy = s->lara()->inventory()->old_busy();
-	Lara.Inventory.SequenceSwitchData.CurrentSequence = s->lara()->inventory()->sequenceData()->current_sequence();
-	for (int i = 0; i < 3; i++)
-		Lara.Inventory.SequenceSwitchData.Sequences[i] = s->lara()->inventory()->sequenceData()->sequences()->Get(i);
-	for (int i = 0; i < 6; i++)
-		Lara.Inventory.SequenceSwitchData.SequenceUsed[i] = s->lara()->inventory()->sequenceData()->sequence_used()->Get(i);
 	Lara.Inventory.SmallWaterskin = s->lara()->inventory()->small_waterskin();
 	Lara.Inventory.TotalFlares = s->lara()->inventory()->total_flares();
 	Lara.Inventory.TotalLargeMedipacks = s->lara()->inventory()->total_large_medipacks();

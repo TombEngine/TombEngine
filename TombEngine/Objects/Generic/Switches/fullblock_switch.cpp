@@ -34,7 +34,7 @@ namespace TEN::Entities::Switches
 
     void SetupFullBlockSwitch()
     {
-        auto& sequenceData = Lara.Inventory.SequenceSwitchData;
+        auto& sequenceData = Lara.Control.SequenceSwitch;
 
         sequenceData.CurrentSequence = 0;
         sequenceData.SequenceResults[0][1][2] = 0;
@@ -54,7 +54,7 @@ namespace TEN::Entities::Switches
     void FullBlockSwitchCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
     {
         auto* laraInfo = GetLaraInfo(laraItem);
-        auto& sequenceData = laraInfo->Inventory.SequenceSwitchData;
+        auto& sequenceData = laraInfo->Control.SequenceSwitch;
         auto* switchItem = &g_Level.Items[itemNumber];
 
         if (switchItem->Animation.ActiveState == SWITCH_ON)
@@ -105,7 +105,7 @@ namespace TEN::Entities::Switches
      void FullBlockSwitchControl(short itemNumber, byte switchIndex)
      {
         auto* switchItem = &g_Level.Items[itemNumber];
-        auto& sequenceData = Lara.Inventory.SequenceSwitchData;
+        auto& sequenceData = Lara.Control.SequenceSwitch;
 
         if (switchItem->Animation.AnimNumber != 2 ||
             sequenceData.CurrentSequence >= 3 ||

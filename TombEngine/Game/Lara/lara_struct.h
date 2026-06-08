@@ -1218,6 +1218,14 @@ struct RopeControlData
 	int Count = 0;
 };
 
+struct SequenceSwitchControlData
+{
+	unsigned char SequenceUsed[6];			// Stores the current active sequence.  
+	unsigned char SequenceResults[3][3][3]; // Maps combination to a door ocb
+	unsigned char Sequences[3];				// Current Sequence
+	unsigned char CurrentSequence;			// Count of switches pressed in current sequence
+};
+
 struct SubsuitControlData
 {
 	short XRot = 0;
@@ -1268,11 +1276,12 @@ struct PlayerControlData
 	JumpDirection JumpDirection = {};
 	LaraCountData Count			= {};
 
-	LookControlData		 Look	   = {};
-	RopeControlData		 Rope	   = {};
-	SubsuitControlData	 Subsuit   = {};
-	TightropeControlData Tightrope = {};
-	WeaponControlData	 Weapon	   = {};
+	LookControlData				Look			= {};
+	RopeControlData				Rope			= {};
+	SequenceSwitchControlData	SequenceSwitch	= {};
+	SubsuitControlData			Subsuit			= {};
+	TightropeControlData		Tightrope		= {};
+	WeaponControlData			Weapon			= {};
 
 	bool IsClimbingLadder = false;
 	bool IsLocked		  = false;
@@ -1302,14 +1311,6 @@ struct PlayerEffectData
 	std::array<float, NUM_LARA_MESHES> BubbleNodes = {};
 };
 
-struct SequenceSwitchData
-{
-	unsigned char SequenceUsed[6];			//Stores the current active sequence.  
-	unsigned char SequenceResults[3][3][3]; //Maps combination to a door ocb
-	unsigned char Sequences[3];				//Current Sequence
-	unsigned char CurrentSequence;			//Count of switches pressed in current sequence
-};
-
 struct PlayerInventoryData
 {
 	bool IsBusy	 = false;
@@ -1319,7 +1320,6 @@ struct PlayerInventoryData
 	int BeetleComponents; // BeetleComponentFlags enum
 	byte SmallWaterskin;  // 1 = has waterskin, 2 = has waterskin with 1 liter, etc. max value is 4 (has skin + 3 = 4)
 	byte BigWaterskin;	  // 1 = has waterskin, 2 = has waterskin with 1 liter, etc. max value is 6 (has skin + 5 liters = 6)
-	SequenceSwitchData SequenceSwitchData;
 
 	// TODO: Rename prefixes back to "Num".
 	int TotalSmallMedipacks;
