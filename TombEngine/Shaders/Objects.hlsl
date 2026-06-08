@@ -41,16 +41,9 @@ struct PixelShaderOutput
 };
 
 Texture2D Texture : register(t0);
-SamplerState Sampler : register(s0);
-
 Texture2D NormalTexture : register(t1);
-SamplerState NormalTextureSampler : register(s1);
-
 Texture2D AmbientMapFrontTexture : register(t7);
-SamplerState AmbientMapFrontSampler : register(s7);
-
 Texture2D AmbientMapBackTexture : register(t8);
-SamplerState AmbientMapBackSampler : register(s8);
 
 PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
@@ -77,9 +70,13 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 	float wibble = Wibble(input.Effects, DecodeHash(input.AnimationFrameOffsetIndexHash));
 	float3 pos = Move(input.Position, input.Effects, wibble);
 	float3 col = Glow(input.Color.xyz, input.Effects, wibble);
-	float3 worldPosition = mul(float4(pos, 1.0f), world).xyz;
+	// Keep worldPosition as a float4 and feed the whole vector to ViewProjection.
+	// This MUST stay bit-identical to GBuffer.hlsl::VSObjects: the GBuffer pass fills the
+	// shared depth buffer, the opaque pass reuses it with a LESS_EQUAL test, so any
+	// divergence in clip-space Z makes triangles fail the test and render black.
+	float4 worldPosition = mul(float4(pos, 1.0f), world);
 
-	output.Position = mul(float4(worldPosition, 1.0f), ViewProjection);
+	output.Position = mul(worldPosition, ViewProjection);
 	output.UV = GetUVPossiblyAnimated(input.UV, DecodeIndexInPoly(input.Effects), DecodeAnimationFrameOffset(input.AnimationFrameOffsetIndexHash));
 	output.Color = float4(col, input.Color.w);
 	output.Color.w *= Objects[InstanceID].Color.w;
@@ -87,15 +84,15 @@ PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 	output.Sheen = DecodeSheen(input.Effects);
 	output.InstanceID = InstanceID;
 	output.Bone = input.BoneIndex[0];
-	output.WorldPosition = worldPosition;
+	output.WorldPosition = worldPosition.xyz;
 
 	output.Normal = normalize(mul(input.Normal.xyz, (float3x3) world).xyz);
 	output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3) world).xyz);
 	output.Binormal = SafeNormalize(mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3) world).xyz);
 	output.FaceNormal = normalize(mul(input.FaceNormal.xyz, (float3x3) world).xyz);
 
-	output.FogBulbs = DoFogBulbsForVertex(worldPosition);
-	output.DistanceFog = DoDistanceFogForVertex(worldPosition);
+	output.FogBulbs = DoFogBulbsForVertex(worldPosition.xyz);
+	output.DistanceFog = DoDistanceFogForVertex(worldPosition.xyz);
 
 	return output;
 }
@@ -110,18 +107,18 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
 	input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);
 
-	float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(ORSHSampler, input.UV));
+	float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(AnisotropicClampSampler, input.UV));
 	float ambientOcclusion = ORSH.x;
 	float roughness = ORSH.y;
 	float specular = ORSH.z;
 
-	float3 emissive = EmissiveTexture.Sample(EmissiveSampler, input.UV).xyz;
+	float3 emissive = EmissiveTexture.Sample(AnisotropicClampSampler, input.UV).xyz * GetEmissiveIntensity();
 
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
-	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(NormalTextureSampler, input.UV)));
+	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV)));
 	normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
 
-	float4 tex = Texture.Sample(Sampler, input.UV);
+	float4 tex = Texture.Sample(AnisotropicClampSampler, input.UV);
 	DoAlphaTest(tex);
 
 	// Material effects
@@ -167,6 +164,8 @@ PixelShaderOutput PS(PixelShaderInput input)
 	output.Color = DoFogBulbsForPixel(output.Color, float4(input.FogBulbs.xyz, 1.0f));
 	output.Color = DoDistanceFogForPixel(output.Color, FogColor, input.DistanceFog);
 	output.Color.w *= input.Color.w;
+	
+    output.Color = ApplyBlendModeColor(output.Color, input.PositionCopy, false);
 
 	return output;
 }

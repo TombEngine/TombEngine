@@ -46,6 +46,9 @@ namespace TEN::SpotCam
 		std::vector<float> Roll    = {};
 		std::vector<float> FOV     = {};
 		std::vector<float> Speed   = {};
+		std::vector<float> DofDistance = {};
+		std::vector<float> DofRange    = {};
+		std::vector<float> DofStrength = {};
 
 		void Resize(int count)
 		{
@@ -58,6 +61,9 @@ namespace TEN::SpotCam
 			Roll.assign(count, 0.0f);
 			FOV.assign(count, 0.0f);
 			Speed.assign(count, 0.0f);
+			DofDistance.assign(count, 0.0f);
+			DofRange.assign(count, 0.0f);
+			DofStrength.assign(count, 0.0f);
 		}
 	
 		void SetKnot(int index, const SpotCamInfo& cam)
@@ -71,6 +77,9 @@ namespace TEN::SpotCam
 			Roll[index]    = (float)cam.Roll;
 			FOV[index]     = (float)cam.FOV;
 			Speed[index]   = (float)cam.Speed;
+			DofDistance[index] = cam.DOF.Distance;
+			DofRange[index]    = cam.DOF.Range;
+			DofStrength[index] = cam.DOF.Strength;
 		}
 	};
 	
@@ -200,10 +209,9 @@ namespace TEN::SpotCam
 		SequenceMap[currentSequence] = (int)SequenceCamCount.size();
 		SequenceCamCount.push_back(count);
 
-		if (startFirstSequence&& HasSpotCamSequence(0))
+		if (startFirstSequence && HasSpotCamSequence(0))
 		{
 			InitializeSpotCam(0);
-			UseSpotCam = true;
 		}
 	}
 	
@@ -218,6 +226,16 @@ namespace TEN::SpotCam
 		if (TrackCameraInit && LastSpotCamSequence == sequence)
 		{
 			TrackCameraInit = false;
+			return;
+		}
+
+		// Compute first camera index for this sequence.
+		CurrentSequenceID = sequence;
+		CurrentCameraIndex = GetSequenceFirstCameraIndex(sequence);
+
+		if (CurrentCameraIndex == NO_VALUE)
+		{
+			TENLog(fmt::format("Can't find proper first camera index for flyby sequence {}.", sequence), LogLevel::Warning);
 			return;
 		}
 	
@@ -237,6 +255,7 @@ namespace TEN::SpotCam
 		FadeCameraIndex      = NO_VALUE;
 		LastSpotCamSequence  = sequence;
 		TrackCameraInit      = false;
+		UseSpotCam           = true;
 		LoopCount            = 0;
 		InitializePauseState();
 	
@@ -248,16 +267,6 @@ namespace TEN::SpotCam
 		SavedCameraPos    = Vector3i(Camera.pos.x, Camera.pos.y, Camera.pos.z);
 		SavedCameraTarget = Vector3i(Camera.target.x, Camera.target.y, Camera.target.z);
 		SavedCameraRoom   = Camera.pos.RoomNumber;
-	
-		// Compute first camera index for this sequence.
-		CurrentSequenceID = sequence;
-		CurrentCameraIndex = GetSequenceFirstCameraIndex(sequence);
-
-		if (CurrentCameraIndex == NO_VALUE)
-		{
-			TENLog(fmt::format("Can't find proper first camera index for flyby sequence {}.", sequence), LogLevel::Warning);
-			return;
-		}
 
 		SplineAlpha = 0.0f;
 		IsTransitionToGame = false;
@@ -321,6 +330,7 @@ namespace TEN::SpotCam
 			// Smooth pan: blend from current camera position to first spotcam (indices 0-4).
 			Knots.Resize(SplineCameraKnots::BLEND_KNOT_COUNT);
 			SplineFromOffset = 1;
+			const auto& lastDOF = g_Renderer.GetDOF();
 	
 			// Knots [1] and [2] = current camera position (for smooth approach).
 			auto setInitialKnot = [&](int index)
@@ -334,6 +344,9 @@ namespace TEN::SpotCam
 				Knots.FOV[index]     = (float)CurrentFOV;
 				Knots.Roll[index]    = 0.0f;
 				Knots.Speed[index]   = (float)firstCam.Speed;
+				Knots.DofDistance[index] = lastDOF.Distance;
+				Knots.DofRange[index]    = lastDOF.Range;
+				Knots.DofStrength[index] = lastDOF.Strength;
 			};
 	
 			setInitialKnot(1);
@@ -352,6 +365,8 @@ namespace TEN::SpotCam
 	
 		if (firstCam.Flags & SCF_HIDE_LARA)
 			SpotcamDontDrawLara = true;
+
+		g_Renderer.SetDOF({ firstCam.DOF.Mode, Knots.DofDistance[1], Knots.DofRange[1], Knots.DofStrength[1] }, false);
 	}
 	
 	// Runs heavy triggers at the camera's current position.
@@ -488,6 +503,7 @@ namespace TEN::SpotCam
 		SpotcamOverlay = false;
 		SpotcamDontDrawLara = false;
 		AlterFOV(LastFOV);
+		g_Renderer.RestoreDOF();
 	}
 	
 	// Fills 4 spline knots starting from the given camera index, wrapping or clamping as needed.
@@ -592,6 +608,9 @@ namespace TEN::SpotCam
 		float interpSpeed   = Spline(SplineAlpha, &Knots.Speed[1],   knotCount);
 		float interpRoll    = Spline(SplineAlpha, &Knots.Roll[1],    knotCount);
 		float interpFOV     = Spline(SplineAlpha, &Knots.FOV[1],     knotCount);
+		float interpDofDistance = Spline(SplineAlpha, &Knots.DofDistance[1], knotCount);
+		float interpDofRange    = Spline(SplineAlpha, &Knots.DofRange[1],    knotCount);
+		float interpDofStrength = Spline(SplineAlpha, &Knots.DofStrength[1], knotCount);
 	
 		// Handle screen fading.
 		if ((g_Level.SpotCams[CurrentCameraIndex].Flags & SCF_SCREEN_FADE_IN) &&
@@ -657,6 +676,7 @@ namespace TEN::SpotCam
 				Lara.Control.IsLocked = false;
 				Camera.speed = 1;
 				AlterFOV(LastFOV);
+				g_Renderer.RestoreDOF();
 				CalculateCamera(LaraCollision);
 				RunHeavyTriggers = false;
 			}
@@ -712,6 +732,7 @@ namespace TEN::SpotCam
 		}
 	
 		AlterFOV((short)interpFOV, false);
+		g_Renderer.SetDOF({ g_Level.SpotCams[CurrentCameraIndex].DOF.Mode, interpDofDistance, interpDofRange, interpDofStrength }, false);
 		LookAt(&Camera, (short)interpRoll);
 		UpdateMikePos(*LaraItem);
 	
@@ -839,6 +860,8 @@ namespace TEN::SpotCam
 	
 		SavedCameraPos    = Vector3i(Camera.pos.x, Camera.pos.y, Camera.pos.z);
 		SavedCameraTarget = Vector3i(Camera.target.x, Camera.target.y, Camera.target.z);
+
+		const auto& lastDOF = g_Renderer.GetDOF();
 	
 		Knots.PosX[3]    = (float)Camera.pos.x;
 		Knots.PosY[3]    = (float)Camera.pos.y;
@@ -849,6 +872,9 @@ namespace TEN::SpotCam
 		Knots.FOV[3]     = (float)LastFOV;
 		Knots.Speed[3]   = Knots.Speed[2];
 		Knots.Roll[3]    = 0.0f;
+		Knots.DofDistance[3] = lastDOF.Distance;
+		Knots.DofRange[3]    = lastDOF.Range;
+		Knots.DofStrength[3] = lastDOF.Strength;
 	
 		Knots.PosX[4]    = (float)Camera.pos.x;
 		Knots.PosY[4]    = (float)Camera.pos.y;
@@ -859,6 +885,9 @@ namespace TEN::SpotCam
 		Knots.FOV[4]     = (float)LastFOV;
 		Knots.Speed[4]   = Knots.Speed[2] / 2.0f;
 		Knots.Roll[4]    = 0.0f;
+		Knots.DofDistance[4] = lastDOF.Distance;
+		Knots.DofRange[4]    = lastDOF.Range;
+		Knots.DofStrength[4] = lastDOF.Strength;
 	
 		memcpy(&Camera, &backup, sizeof(CAMERA_INFO));
 		Camera.targetElevation = savedElevation;

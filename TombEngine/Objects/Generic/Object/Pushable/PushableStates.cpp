@@ -187,7 +187,7 @@ namespace TEN::Entities::Generic
 		if (pushable.SoundState == PushableSoundState::Move)
 			pushable.SoundState = PushableSoundState::Stop;
 
-		displaceDepth = GetLastKeyframe(GAME_OBJECT_ID::ID_LARA, playerItem.Animation.AnimNumber).BoundingBox.Z2;
+		displaceDepth = GetLastFrame(GAME_OBJECT_ID::ID_LARA, playerItem.Animation.AnimNumber).BoundingBox.Z2;
 		
 		if (isPlayerPulling)
 		{

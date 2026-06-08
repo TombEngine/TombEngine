@@ -70,12 +70,13 @@ namespace TEN::Effects::EmberEmitter
 				spark.sSize =
 				spark.size = Random::GenerateFloat(32.0f, 48.0f);
 				spark.dSize = spark.size / 4;
+				spark.flags = SP_ROTATE | SP_DEF | SP_SCALE | SP_HAZE; 
 
 				if (GetRandomControl() & 3)
 				{
 					spark.scalar = 3.0f;
 					spark.gravity = Random::GenerateFloat(32.0f, 96.0f);
-					spark.flags = SP_DAMAGE | SP_ROTATE | SP_DEF | SP_SCALE | SP_EXPDEF;
+					spark.flags |= (SP_DAMAGE | SP_EXPDEF);
 					spark.damage = 2;
 				}
 				else
@@ -84,7 +85,6 @@ namespace TEN::Effects::EmberEmitter
 					spark.SpriteID = SPR_UNDERWATERDUST;
 					spark.scalar = 1.0f;
 					spark.gravity = Random::GenerateFloat(64.0f, 80.0f);
-					spark.flags = SP_ROTATE | SP_DEF | SP_SCALE;
 				}
 			}
 		}
