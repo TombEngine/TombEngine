@@ -526,11 +526,20 @@ const std::vector<byte> SaveGame::Build()
 	torch.add_next_color(&FromVector3(Lara.Torch.NextColor));
 	auto torchOffset = torch.Finish();
 
+	std::vector<int> sequenceSequences{};
+	for (int i = 0; i < 3; i++)
+		sequenceSequences.push_back(Lara.Inventory.SequenceSwitchData.Sequences[i]);
+	auto sequenceSequencesOffset = fbb.CreateVector(sequenceSequences);
+
+	std::vector<int> sequenceUsed{};
+	for (int i = 0; i < 6; i++)
+		sequenceUsed.push_back(Lara.Inventory.SequenceSwitchData.SequenceUsed[i]);
+	auto sequenceUsedOffset = fbb.CreateVector(sequenceUsed);
+
 	Save::SequenceDataBuilder sequence{ fbb };
 	sequence.add_current_sequence(Lara.Inventory.SequenceSwitchData.CurrentSequence);
-	sequence.add_sequences(Lara.Inventory.SequenceSwitchData.Sequences);
-	sequence.add_sequence_used()
-
+	sequence.add_sequences(sequenceSequencesOffset);
+	sequence.add_sequence_used(sequenceUsedOffset);
 	auto sequenceOffset = sequence.Finish();
 
 	Save::LaraInventoryDataBuilder inventory{ fbb };
@@ -561,7 +570,7 @@ const std::vector<byte> SaveGame::Build()
 	inventory.add_total_flares(Lara.Inventory.TotalFlares);
 	inventory.add_total_small_medipacks(Lara.Inventory.TotalSmallMedipacks);
 	inventory.add_total_large_medipacks(Lara.Inventory.TotalLargeMedipacks);
-	inventory.add_sequenceData()
+	inventory.add_sequenceData(sequenceOffset);
 	auto inventoryOffset = inventory.Finish();
 
 	Save::LaraCountDataBuilder count{ fbb };
@@ -1402,18 +1411,6 @@ const std::vector<byte> SaveGame::Build()
 	levelData.add_weather_clustering(level->WeatherClustering);
 	levelData.add_material_properties(materialPropertiesOffset);
 
-	//Sequence Switch Data
-	std::vector<int> sequenceUsedVec(std::begin(SequenceUsed), std::end(SequenceUsed));
-	std::vector<int> sequencesVec(std::begin(Sequences), std::end(Sequences));
-	int currentSequenceVal = CurrentSequence;
-	
-	auto sequenceUsedOffset = fbb.CreateVector(sequenceUsedVec);
-	auto sequencesOffset = fbb.CreateVector(sequencesVec);
-
-	levelData.add_current_sequence(currentSequenceVal);
-	levelData.add_sequences(sequencesOffset);
-	levelData.add_sequence_used(sequenceUsedOffset);
-
 	auto levelDataOffset = levelData.Finish();
 
 	// Global event sets
@@ -2171,6 +2168,11 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.Inventory.HasTorch = s->lara()->inventory()->has_torch();
 	Lara.Inventory.IsBusy = s->lara()->inventory()->is_busy();
 	Lara.Inventory.OldBusy = s->lara()->inventory()->old_busy();
+	Lara.Inventory.SequenceSwitchData.CurrentSequence = s->lara()->inventory()->sequenceData()->current_sequence();
+	for (int i = 0; i < 3; i++)
+		Lara.Inventory.SequenceSwitchData.Sequences[i] = s->lara()->inventory()->sequenceData()->sequences()->Get(i);
+	for (int i = 0; i < 6; i++)
+		Lara.Inventory.SequenceSwitchData.SequenceUsed[i] = s->lara()->inventory()->sequenceData()->sequence_used()->Get(i);
 	Lara.Inventory.SmallWaterskin = s->lara()->inventory()->small_waterskin();
 	Lara.Inventory.TotalFlares = s->lara()->inventory()->total_flares();
 	Lara.Inventory.TotalLargeMedipacks = s->lara()->inventory()->total_large_medipacks();
