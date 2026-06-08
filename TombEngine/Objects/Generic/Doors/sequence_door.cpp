@@ -27,6 +27,7 @@ namespace TEN::Entities::Doors
 {
     void SequenceDoorControl(short itemNumber)
     {
+        auto& sequenceData = Lara.Inventory.SequenceSwitchData;
         auto* doorItem = &g_Level.Items[itemNumber];
         auto* door = &GetDoorObject(*doorItem);
 
@@ -51,15 +52,15 @@ namespace TEN::Entities::Doors
                     }
 
                     // Correct sequence confirmed - mark as used and advance
-                    if (CurrentSequence == 3 &&
-                        SequenceResults[Sequences[0]][Sequences[1]][Sequences[2]] == doorItem->TriggerFlags &&
-                        !Sequences[0] && Sequences[1] == 1 && Sequences[2] == 2)
+                    if (sequenceData.CurrentSequence == 3 &&
+                        sequenceData.SequenceResults[sequenceData.Sequences[0]][sequenceData.Sequences[1]][sequenceData.Sequences[2]] == doorItem->TriggerFlags &&
+                        !sequenceData.Sequences[0] && sequenceData.Sequences[1] == 1 && sequenceData.Sequences[2] == 2)
                     {
-                        CurrentSequence = 4;
-                        SequenceUsed[doorItem->TriggerFlags] = Sequences[1];
+                        sequenceData.CurrentSequence = 4;
+                        sequenceData.SequenceUsed[doorItem->TriggerFlags] = sequenceData.Sequences[1];
                     }
                     // Wrong sequence mid-entry - reset trap door
-                    else if ((CurrentSequence == 1 || CurrentSequence == 2) &&
+                    else if ((sequenceData.CurrentSequence == 1 || sequenceData.CurrentSequence == 2) &&
                         doorItem->TriggerFlags == 2)
                     {
                         doorItem->Flags &= ~(IFLAG_INVISIBLE | IFLAG_CLEAR_BODY);
@@ -76,12 +77,12 @@ namespace TEN::Entities::Doors
                 else
                 {
                     // Sequence complete but this door wasn't the right one - advance and close
-                    if (CurrentSequence == 3 &&
-                        SequenceResults[Sequences[0]][Sequences[1]][Sequences[2]] == doorItem->TriggerFlags)
+                    if (sequenceData.CurrentSequence == 3 &&
+                        sequenceData.SequenceResults[sequenceData.Sequences[0]][sequenceData.Sequences[1]][sequenceData.Sequences[2]] == doorItem->TriggerFlags)
                     {
-                        CurrentSequence = 4;
+                        sequenceData.CurrentSequence = 4;
                         if (doorItem->TriggerFlags != 2)
-                            SequenceUsed[doorItem->TriggerFlags] = 1;
+                            sequenceData.SequenceUsed[doorItem->TriggerFlags] = 1;
                     }
 
                     // Close geometry
@@ -98,15 +99,15 @@ namespace TEN::Entities::Doors
         }
         // Door inactive - check if sequence matches to activate
         else if (!doorItem->Animation.ActiveState &&
-            CurrentSequence == 3 &&
-            SequenceResults[Sequences[0]][Sequences[1]][Sequences[2]] == doorItem->TriggerFlags)
+            sequenceData.CurrentSequence == 3 &&
+            sequenceData.SequenceResults[sequenceData.Sequences[0]][sequenceData.Sequences[1]][sequenceData.Sequences[2]] == doorItem->TriggerFlags)
         {
             // First time - seed the safe sequence if not yet used
-            if (doorItem->TriggerFlags && doorItem->TriggerFlags != 2 && !SequenceUsed[0])
+            if (doorItem->TriggerFlags && doorItem->TriggerFlags != 2 && !sequenceData.SequenceUsed[0])
             {
-                Sequences[0] = 1;
-                Sequences[1] = 0;
-                Sequences[2] = 2;
+                sequenceData.Sequences[0] = 1;
+                sequenceData.Sequences[1] = 0;
+                sequenceData.Sequences[2] = 2;
                 return;
             }
 
