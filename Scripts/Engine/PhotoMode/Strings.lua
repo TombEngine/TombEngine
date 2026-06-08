@@ -58,6 +58,13 @@ local strings =
     -- Display strings
     pm_mode_prefix    = {"Mode: "},
     pm_help           = {"StepL/R=Tab  Look=Hide UI  Inventory=Exit"},
+
+    -- Per-mode control hints (line 1 of the help bar)
+    pm_help_camera    = {"WASD/LS=Move  Mouse/RS=Look  RMB+Mouse/R2+RS=Tilt  Scroll=Dolly"},
+    pm_help_character = {"WASD/LS=Move+Strafe  Mouse/RS X=Rotate Y=Vertical  RMB+Mouse/R2+RS=Tilt"},
+    pm_help_light     = {"WASD/LS=Move+Strafe  Mouse/RS Y=Vertical  RMB+Mouse/R2+RS=Tilt  Scroll=Dolly"},
+    -- Universal navigation hints (line 2 of the help bar)
+    pm_help_nav       = {"StepL/StepR=Tab  Look=Hide UI  Inventory=Exit"},
 }
 
 TEN.Flow.SetStrings(strings)

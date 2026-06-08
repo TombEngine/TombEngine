@@ -1,16 +1,225 @@
---- PhotoMode entry point.
--- Orchestrates all sub-modules: Camera, States, Input, Menu, Frames.
--- Uses the RingInventory-style Menu with header tabs to provide a polished UI.
+--------------------------------------------------------------------------------
+-- PhotoMode
+-- A non-destructive in-game photo mode for Tomb Engine New (TEN).
 --
--- To use in a level script:
+-- The player freezes the game, moves a free camera, adjusts Lara's pose and
+-- appearance, sets up a light, applies post-process filters, and can overlay
+-- frame sprites before taking an in-game screenshot.
 --
---    local PhotoMode = require("Engine.PhotoMode.PhotoMode")
+-- All user-facing content (poses, outfits, expressions, accessories, frames)
+-- lives in small data files inside Engine/PhotoMode/ so you can extend the
+-- system without touching this file.
 --
--- Entry is triggered by holding Walk + Inventory for N frames.
--- While active the game is frozen (SPECTATOR mode) and the object camera is used.
+-- ============================================================================
+-- QUICK START
+-- ============================================================================
 --
--- @module Engine.PhotoMode.PhotoMode
--- @local
+-- 1. In your level script, require this module once:
+--
+--        local PhotoMode = require("Engine.PhotoMode.PhotoMode")
+--
+--    The module self-registers its POSTLOOP and PREFREEZE callbacks, so no
+--    further wiring is needed.
+--
+-- 2. Make sure the following WAD objects exist in your level:
+--
+--        PHOTOMODE_SPRITES  — sprite sheet (see Settings.lua for sprite indices)
+--        PHOTOMODE_FRAMES   — frame overlay sprite sheet
+--        PHOTOMODE_ANIMS    — object that holds all custom photo-mode poses
+--        CAMERA_TARGET      — used internally to drive the object camera
+--        pm_CameraMesh      — null-mesh object placed at runtime (auto-created)
+--        pm_CameraTarget    — null-mesh object placed at runtime (auto-created)
+--        pm_Sunglasses      — Lara-skeleton object used for accessory mesh swaps
+--                             (auto-spawned; the name is set in Settings.Accessories.meshName)
+--
+-- ============================================================================
+-- ENTERING PHOTO MODE
+-- ============================================================================
+--
+-- Keyboard
+--   Press F3 to enter immediately.
+--
+-- Controller
+--   Hold Left Stick + Right Stick simultaneously.
+--
+-- Both methods respect Settings.Entry.holdFrames (default 1).  Raise this
+-- value to require a sustained hold before entering.
+--
+-- Exiting
+--   Press Inventory (keyboard) / Circle/B (controller) at any time.
+--
+-- ============================================================================
+-- CONTROLS
+-- ============================================================================
+--
+-- The active header tab (cycle with Step Left / Step Right) determines which
+-- subject the movement controls apply to.  The UI remains fully functional
+-- while you move — you do not need to hide it first.
+--
+-- ┌─────────────────────────┬────────────────────────────────────────────────┐
+-- │ Action                  │ Keyboard              │ Controller             │
+-- ├─────────────────────────┼───────────────────────┼────────────────────────┤
+-- │ Move forward / back     │ W / S                 │ Left stick Y           │
+-- │ Strafe left / right     │ A / D                 │ Left stick X           │
+-- │ Rotate camera view      │ Mouse (move freely)   │ Right stick            │
+-- │ Rotate character Y      │ Mouse X               │ Right stick X          │
+-- │ Move subject vertically │ Mouse Y               │ Right stick Y          │
+-- │ Tilt camera target      │ Hold RMB + Mouse Y    │ Hold R2 + Right stick Y│
+-- │ Zoom (dolly)            │ Scroll wheel          │ Scroll wheel           │
+-- │ Navigate menu items     │ Up / Down             │ D-pad Up / Down        │
+-- │ Change option value     │ Left / Right          │ D-pad Left / Right     │
+-- │ Confirm (Accept)        │ Enter / Action        │ Cross/A                │
+-- │ Switch header tab       │ Step Left / Right     │ L1 / R1                │
+-- │ Toggle UI visibility    │ Look (NumPad 0)       │ L3                     │
+-- │ Exit Photo Mode         │ Inventory (Escape)    │ Circle/B               │
+-- └─────────────────────────┴───────────────────────┴────────────────────────┘
+--
+-- Camera tab (Effects header)
+--   Mouse / Right stick   — free-look (yaw + pitch)
+--   WASD / Left stick     — dolly forward/back + strafe
+--   RMB + Mouse Y         — tilt the camera look-at point up/down
+--   R2 + Right stick Y    — same as above on controller
+--   Scroll wheel          — fast forward/back dolly
+--
+-- Character tab (Character header)
+--   WASD / Left stick     — move Lara forward/back + strafe
+--   Mouse X / RS X        — rotate Lara around her Y axis
+--   Mouse Y / RS Y        — move Lara up/down
+--   RMB + Mouse Y / R2+RS — tilt camera look-at (does not move Lara)
+--
+-- Light tab (Light header)
+--   WASD / Left stick     — move the light on the XZ plane (camera-relative)
+--   Mouse Y / RS Y        — move the light up/down
+--   RMB + Mouse Y / R2+RS — tilt camera look-at (does not move the light)
+--
+-- ============================================================================
+-- ADDING CONTENT
+-- ============================================================================
+--
+-- ---------- Poses (Engine/PhotoMode/Poses.lua) ----------
+--
+-- Each entry applies an animation from the PHOTOMODE_ANIMS object.
+-- The first entry must be "Default" — it restores Lara's entry animation.
+--
+--    { name = "Victory",
+--      objID       = TEN.Objects.ObjID.PHOTOMODE_ANIMS,
+--      animNumber  = 42,    -- animation slot inside PHOTOMODE_ANIMS
+--      frameNumber = 0,     -- starting frame (0 = first frame)
+--    },
+--
+-- You can also reference any other object's animations:
+--
+--    { name = "Running",
+--      objID       = TEN.Objects.ObjID.LARA,
+--      animNumber  = 17,
+--      frameNumber = 0,
+--    },
+--
+-- ---------- Expressions (Engine/PhotoMode/Expressions.lua) ----------
+--
+-- Expressions swap one or more of Lara's classic mesh slots with meshes
+-- sourced from another object.  Slot 14 is the head.
+--
+--    { name = "Default", objID = nil, meshIndices = {} },   -- always first
+--    { name = "Wink",
+--      objID       = TEN.Objects.ObjID.LARA_SPEECH_HEAD1,
+--      meshIndices = { 14 },   -- head slot
+--    },
+--
+-- Use multiple indices to swap more than one slot at once.
+--
+-- ---------- Accessories (Engine/PhotoMode/Accessories.lua) ----------
+--
+-- Accessories drive mesh swaps on the pm_Sunglasses moveable (a hidden
+-- Lara-skeleton object that rides on top of Lara and mirrors her animation).
+-- This means the accessory mesh moves naturally with her skeleton.
+--
+--    { name = "None",  objID = nil, meshIndices = {} },   -- always first
+--    { name = "Sunglasses",
+--      objID       = TEN.Objects.ObjID.ACTOR1_SPEECH_HEAD1,
+--      meshIndices = { 14 },   -- head mesh on the accessory object
+--    },
+--    { name = "Beret",
+--      objID       = TEN.Objects.ObjID.ANIMATING5,
+--      meshIndices = { 14 },
+--    },
+--
+-- The pm_Sunglasses moveable is auto-spawned the first time an accessory is
+-- applied.  Its base object is Settings.Accessories.baseObjID (default:
+-- LARA_SKIN).  Change baseObjID if your accessory object uses a different
+-- skeleton than Lara.
+--
+-- To hide the Accessory option entirely set Settings.Accessories.enabled = false
+-- inside Settings.lua:
+--
+--    Settings.Accessories =
+--    {
+--        meshName  = "pm_Sunglasses",
+--        baseObjID = TEN.Objects.ObjID.LARA_SKIN,
+--        enabled   = false,    -- <-- hides the menu item
+--        presets   = Accessories,
+--    }
+--
+-- ---------- Frames (Engine/PhotoMode/Frames.lua) ----------
+--
+-- Frames are full-screen sprites drawn from the PHOTOMODE_FRAMES object.
+-- spriteID -1 means "no frame" (the first entry should always be "None").
+--
+--    { name = "None",          spriteID = -1 },
+--    { name = "Cinematic Bars", spriteID = 0 },
+--    { name = "My Custom Frame", spriteID = 6 },   -- sprite index in PHOTOMODE_FRAMES
+--
+-- ---------- Outfits (Engine/PhotoMode/Outfits.lua) ----------
+--
+-- Outfits can change Lara's classic skin, GPU-skinned mesh, per-mesh
+-- visibility, and holster state.  The first entry is always "Default".
+--
+-- Classic skin swap (uses Lara:SetSkin):
+--
+--    { name = "Classic TR4",
+--      skin = {
+--          TEN.Objects.ObjID.ANIMATING1,   -- skin
+--          TEN.Objects.ObjID.ANIMATING2,   -- skinJoints
+--          TEN.Objects.ObjID.ANIMATING3,   -- skinScream
+--          TEN.Objects.ObjID.ANIMATING4,   -- hair1
+--          -- hair2 omitted → unchanged
+--      },
+--      meshVisible = "all",
+--    },
+--
+-- GPU-skinned mesh swap (uses Lara:SwapSkinnedMesh):
+--
+--    { name = "Remastered",
+--      skinnedMesh      = TEN.Objects.ObjID.ANIMATING14,
+--      skinnedMeshIndex = 0,      -- optional sub-index
+--      meshVisible      = "none", -- hide classic meshes so only GPU mesh shows
+--    },
+--
+-- meshVisible values:
+--    "all"       — all 15 classic mesh slots remain visible
+--    "none"      — all classic mesh slots are hidden
+--    { 0, 4, 9 } — only the listed slot indices stay visible; rest are hidden
+--
+-- Optional onEnter hook (runs after the outfit is applied):
+--
+--    onEnter = function()
+--        local s = TEN.Flow.GetSettings()
+--        s.Hair[1].offset = Vec3(-4, 3, -28)
+--        TEN.Flow.SetSettings(s)
+--    end,
+--
+-- Outfit locking / unlocking:
+-- Set unlocked = false to hide an outfit until the player earns it:
+--
+--    { name = "Secret Wetsuit", skinnedMesh = TEN.Objects.ObjID.ANIMATING9,
+--      meshVisible = "none", unlocked = false },
+--
+-- Then unlock it at any point from a level script:
+--
+--    PhotoMode.UnlockOutfit("Secret Wetsuit")
+--
+--------------------------------------------------------------------------------
+
 
 local Camera   = require("Engine.PhotoMode.Camera")
 local Borders   = require("Engine.PhotoMode.SpriteBorders")
@@ -903,6 +1112,7 @@ end
 
 local function UpdateLightEmission()
     local state = States.Get()
+
     if not state.lightEnabled then return end
 
     local lightPos = state.lightPos
@@ -1222,14 +1432,36 @@ local function DrawModeText(alpha)
 end
 
 local function DrawHelpText(alpha)
-    -- Draw control hint at bottom
-    local helpPos  = TEN.Util.PercentToScreen(TEN.Vec2(50, 92))
-    local helpStr  = TEN.Strings.DisplayString(
-        "pm_help", helpPos, 0.65,
+    local state   = States.Get()
+    local mode    = States.GetMode()
+
+    -- Pick the string key for the current control mode
+    local modeKey
+    if mode == States.Mode.PLAYER then
+        modeKey = "pm_help_character"
+    elseif mode == States.Mode.LIGHT then
+        modeKey = "pm_help_light"
+    else
+        modeKey = "pm_help_camera"
+    end
+
+    -- Line 1: mode-specific movement hints
+    local helpPos1 = TEN.Util.PercentToScreen(TEN.Vec2(50, 90))
+    local helpStr1 = TEN.Strings.DisplayString(
+        modeKey, helpPos1, 0.6,
         ColorCombine(Settings.ColorMap.neutral, alpha), true,
         { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }
     )
-    TEN.Strings.ShowString(helpStr, 1 / 30)
+    TEN.Strings.ShowString(helpStr1, 1 / 30)
+
+    -- Line 2: universal navigation hints
+    local helpPos2 = TEN.Util.PercentToScreen(TEN.Vec2(50, 94))
+    local helpStr2 = TEN.Strings.DisplayString(
+        "pm_help_nav", helpPos2, 0.6,
+        ColorCombine(Settings.ColorMap.neutral, alpha), true,
+        { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }
+    )
+    TEN.Strings.ShowString(helpStr2, 1 / 30)
 end
 
 -- ============================================================================
@@ -1285,11 +1517,11 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
     local activeMenu = Menu.GetActiveHeaderMenu()
     state.controlMode = HEADER_CONTROL_MODE[activeMenu] or States.Mode.CAMERA
 
-    if state.hideUI then
-        -- UI hidden: movement controls only (mode determined by active tab)
-        Input.Update()
-    else
-        -- UI visible: menu handles input (includes header nav via STEP_LEFT/RIGHT)
+    -- Movement controls are always active (UI visible or hidden).
+    Input.Update()
+
+    if not state.hideUI then
+        -- Menu navigation when UI is visible.
         Menu.UpdateActiveMenus()
     end
 
