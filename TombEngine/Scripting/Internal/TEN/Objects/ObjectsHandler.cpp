@@ -306,8 +306,8 @@ std::vector<std::unique_ptr<Material>> ObjectsHandler::GetMaterialsByObject(cons
 	for (int meshIndex : item.Model.MeshIndex)
 		AppendMeshMaterials(materials, addedMaterialIndices, meshIndex);
 
-	if (item.Model.SkinIndex != NO_VALUE)
-		AppendMeshMaterials(materials, addedMaterialIndices, item.Model.SkinIndex);
+	if (item.Model.GetSkinGlobalIndex() != NO_VALUE)
+		AppendMeshMaterials(materials, addedMaterialIndices, item.Model.GetSkinGlobalIndex());
 
 	return materials;
 }

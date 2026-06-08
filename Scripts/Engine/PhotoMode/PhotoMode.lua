@@ -53,6 +53,7 @@ local FILTER_NAMES     = BuildNames(Settings.Filters.presets)
 local FRAME_NAMES      = BuildNames(Settings.Frames.presets)
 local ANIM_NAMES       = BuildNames(Settings.Animations)
 local EXPRESSION_NAMES = BuildNames(Settings.Expressions)
+local ACCESSORY_NAMES  = BuildNames(Settings.Accessories.presets)
 
 -- Color selectors use blank option labels — the actual color is shown via sprite strip.
 local TINT_NAMES  = (function() local t={} for i=1,#Settings.Filters.tints       do t[i]="" end return t end)()
@@ -339,48 +340,67 @@ local function ApplyExpression(state)
     pcall(function() Lara:ResetHair() end)
 end
 
-local function GetOrCreateSunglasses(state)
-    if Settings.Sunglasses.enabled == false then return nil end
-    local name = Settings.Sunglasses.meshName
-    if state.sunglassesMesh then return state.sunglassesMesh end
+local function GetOrCreateAccessoryMesh(state)
+    if Settings.Accessories.enabled == false then return nil end
+    local name = Settings.Accessories.meshName
+    if state.accessoryMesh then return state.accessoryMesh end
     if TEN.Objects.IsNameInUse(name) then
         local mov = TEN.Objects.GetMoveableByName(name)
-        state.sunglassesMesh = mov
+        state.accessoryMesh = mov
         return mov
     end
     local pos  = Lara:GetPosition()
     local rot  = Lara:GetRotation()
     local room = Lara:GetRoomNumber()
-    local ok, mov = pcall(TEN.Objects.Moveable, Settings.Sunglasses.objID, name, pos, rot, room)
+    local ok, mov = pcall(TEN.Objects.Moveable, Settings.Accessories.baseObjID, name, pos, rot, room)
     if ok and mov then
         mov:Enable()
         pcall(function() mov:SetColor(TEN.Color(255, 255, 255, 0)) end)
-        state.sunglassesMesh = mov
+        state.accessoryMesh = mov
         return mov
     end
     return nil
 end
 
-local function ApplySunglasses(state)
-    local mov = GetOrCreateSunglasses(state)
+local function ApplyAccessory(state)
+    local mov = GetOrCreateAccessoryMesh(state)
     if not mov then return end
-    if state.sunglassesEnabled then
+    local preset = Settings.Accessories.presets[state.accessoryIndex]
+    local hasPreset = preset and preset.objID ~= nil
+    -- Swap meshes based on the selected preset
+    if hasPreset then
+
+        for i = 0, 14 do
+            pcall(function() mov:SetMeshVisible(i, false) end)
+        end
+
+        for _, meshIdx in ipairs(preset.meshIndices) do
+            pcall(function() mov:SwapMesh(meshIdx, preset.objID, meshIdx) end)
+            pcall(function() mov:SetMeshVisible(meshIdx, true) end)
+        end
         pcall(function() mov:SetPosition(Lara:GetPosition()) end)
         pcall(function() mov:SetRotation(Lara:GetRotation()) end)
         pcall(function() mov:SetAnim(Lara:GetAnim(), Lara:GetAnimSlot()) end)
         pcall(function() mov:SetFrame(Lara:GetFrame()) end)
         pcall(function() mov:SetColor(TEN.Color(255, 255, 255, 255)) end)
     else
+        -- Restore default meshes and hide the moveable
+        for i = 0, 14 do
+            pcall(function() mov:SetMeshVisible(i, false) end)
+            pcall(function() mov:UnswapMesh(i) end)
+        end
         pcall(function() mov:SetColor(TEN.Color(255, 255, 255, 0)) end)
     end
 end
 
-local function UpdateSunglasses(state)
-    if not state.sunglassesEnabled or not state.sunglassesMesh then return end
-    pcall(function() state.sunglassesMesh:SetPosition(Lara:GetPosition()) end)
-    pcall(function() state.sunglassesMesh:SetRotation(Lara:GetRotation()) end)
-    pcall(function() state.sunglassesMesh:SetAnim(Lara:GetAnim(), Lara:GetAnimSlot()) end)
-    pcall(function() state.sunglassesMesh:SetFrame(Lara:GetFrame()) end)
+local function UpdateAccessoryMesh(state)
+    local preset = Settings.Accessories.presets[state.accessoryIndex]
+    if not preset or preset.objID == nil then return end
+    if not state.accessoryMesh then return end
+    pcall(function() state.accessoryMesh:SetPosition(Lara:GetPosition()) end)
+    pcall(function() state.accessoryMesh:SetRotation(Lara:GetRotation()) end)
+    pcall(function() state.accessoryMesh:SetAnim(Lara:GetAnim(), Lara:GetAnimSlot()) end)
+    pcall(function() state.accessoryMesh:SetFrame(Lara:GetFrame()) end)
 end
 
 local function UpdateGunFlash(state)
@@ -451,9 +471,9 @@ local function ResetCharacter()
     state.outfitIndex     = 1
     state.weaponIndex     = 1
     state.expressionIndex = 1
-    state.sunglassesEnabled = false
+    state.accessoryIndex  = 1
     state.gunflashEnabled   = false
-    ApplySunglasses(state)
+    ApplyAccessory(state)
 end
 
 local function ResetEffects()
@@ -612,7 +632,7 @@ local function BuildAllMenus()
             m:SetOptionIndexForItemName("pm_outfit",     _outfitMenuMapReverse[state.outfitIndex] or 1)
             m:SetOptionIndexForItemName("pm_weapons",    _weaponMenuMapReverse[state.weaponIndex] or 1)
             m:SetOptionIndexForItemName("pm_expression", state.expressionIndex)
-            m:SetOptionIndexForItemName("pm_sunglasses", BoolToIndex(state.sunglassesEnabled))
+            m:SetOptionIndexForItemName("pm_accessory",   state.accessoryIndex)
             m:SetOptionIndexForItemName("pm_gunflash",   BoolToIndex(state.gunflashEnabled))
         end
     end
@@ -685,9 +705,9 @@ local function BuildAllMenus()
         elseif name == "pm_expression" then
             state.expressionIndex = m:GetCurrentOptionIndex()
             ApplyExpression(state)
-        elseif name == "pm_sunglasses" then
-            state.sunglassesEnabled = IndexToBool(m:GetCurrentOptionIndex())
-            ApplySunglasses(state)
+        elseif name == "pm_accessory" then
+            state.accessoryIndex = m:GetCurrentOptionIndex()
+            ApplyAccessory(state)
         elseif name == "pm_gunflash" then
             state.gunflashEnabled = IndexToBool(m:GetCurrentOptionIndex())
         end
@@ -796,8 +816,8 @@ local function BuildAllMenus()
         { itemName = "pm_weapons",    options = weaponNames,      currentOption = _weaponMenuMapReverse[state.weaponIndex] or 1 },
         { itemName = "pm_expression", options = EXPRESSION_NAMES, currentOption = state.expressionIndex },
     }
-    if Settings.Sunglasses.enabled ~= false then
-        characterItems[#characterItems + 1] = { itemName = "pm_sunglasses", options = BoolOptions(), currentOption = BoolToIndex(state.sunglassesEnabled) }
+    if Settings.Accessories.enabled ~= false then
+        characterItems[#characterItems + 1] = { itemName = "pm_accessory", options = ACCESSORY_NAMES, currentOption = state.accessoryIndex }
     end
     characterItems[#characterItems + 1] = { itemName = "pm_gunflash", options = BoolOptions(),    currentOption = BoolToIndex(state.gunflashEnabled) }
     characterItems[#characterItems + 1] = { itemName = "pm_reset",    options = { acceptString }, currentOption = 1 }
@@ -976,12 +996,12 @@ function PhotoMode.Exit()
         TEN.Effects.EmitLight(state.lightPos, TEN.Color(0, 0, 0), 0, false, Settings.Light.lightName)
     end)
 
-    -- Hide sunglasses
+    -- Hide accessory mesh
     pcall(function()
         local state = States.Get()
-        if state.sunglassesMesh then
-            state.sunglassesMesh:SetColor(TEN.Color(255, 255, 255, 0))
-            state.sunglassesEnabled = false
+        if state.accessoryMesh then
+            state.accessoryMesh:SetColor(TEN.Color(255, 255, 255, 0))
+            state.accessoryIndex = 1
         end
     end)
 
@@ -1281,8 +1301,8 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
     -- Emit light
     UpdateLightEmission()
 
-    -- Update sunglasses position to follow joint
-    UpdateSunglasses(state)
+    -- Update accessory mesh position to follow Lara
+    UpdateAccessoryMesh(state)
 
     -- Emit gun flash if enabled
     UpdateGunFlash(state)

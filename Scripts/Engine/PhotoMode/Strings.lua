@@ -17,7 +17,7 @@ local strings =
     pm_outfit         = {"Outfit"},
     pm_weapons        = {"Weapons"},
     pm_expression     = {"Expression"},
-    pm_sunglasses     = {"Sunglasses"},
+    pm_accessory      = {"Accessory"},
     pm_gunflash       = {"Gun Flash"},
 
     -- Effects menu items (Lens)

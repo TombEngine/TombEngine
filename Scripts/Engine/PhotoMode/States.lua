@@ -108,8 +108,9 @@ local State = {
     entryRoll      = Settings.Lens.defaultRoll,
     entryLight     = nil,
 
-    -- Sunglasses
-    sunglassesEnabled = false,
+    -- Accessory
+    accessoryIndex = 1,
+    accessoryMesh  = nil,
 
     -- Gun Flash
     gunflashEnabled = false,
@@ -309,7 +310,7 @@ function States.ResetToEntry()
     State.dofRange         = Settings.DepthOfField.defaultRange
     State.dofStrength      = Settings.DepthOfField.defaultStrength
     State.frameIndex        = 1
-    State.sunglassesEnabled = false
+    State.accessoryIndex    = 1
     State.gunflashEnabled   = false
     State.entryHoldCount    = 0
 end

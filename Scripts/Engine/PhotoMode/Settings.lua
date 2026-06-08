@@ -3,6 +3,7 @@
 -- @module Engine.PhotoMode.Settings
 -- @local
 
+local Accessories = require("Engine.PhotoMode.Accessories")
 local Expressions = require("Engine.PhotoMode.Expressions")
 local Frames = require("Engine.PhotoMode.Frames")
 local Outfits = require("Engine.PhotoMode.Outfits")
@@ -267,14 +268,18 @@ Settings.Expressions = Expressions
 Settings.Animations = Poses
 
 -- ============================================================================
--- Sunglasses
+-- Accessories
 -- ============================================================================
 
-Settings.Sunglasses =
+Settings.Accessories =
 {
-    meshName   = "pm_Sunglasses",
-    objID      = TEN.Objects.ObjID.ACTOR1_SPEECH_HEAD1,
-    enabled    = true,    -- Set to false to hide the Sunglasses option entirely.
+    -- Name of the moveable spawned in the level to host accessory mesh swaps.
+    meshName = "pm_Sunglasses",
+    -- Base object used when spawning the moveable (any Lara-compatible skeleton).
+    baseObjID = TEN.Objects.ObjID.ACTOR1_SPEECH_HEAD1,
+    -- Set to false to hide the Accessory option entirely.
+    enabled  = true,
+    presets  = Accessories,
 }
 
 -- ============================================================================
