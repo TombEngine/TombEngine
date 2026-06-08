@@ -526,6 +526,13 @@ const std::vector<byte> SaveGame::Build()
 	torch.add_next_color(&FromVector3(Lara.Torch.NextColor));
 	auto torchOffset = torch.Finish();
 
+	Save::SequenceDataBuilder sequence{ fbb };
+	sequence.add_current_sequence(Lara.Inventory.SequenceSwitchData.CurrentSequence);
+	sequence.add_sequences(Lara.Inventory.SequenceSwitchData.Sequences);
+	sequence.add_sequence_used()
+
+	auto sequenceOffset = sequence.Finish();
+
 	Save::LaraInventoryDataBuilder inventory{ fbb };
 	inventory.add_beetle_life(Lara.Inventory.BeetleLife);
 	inventory.add_big_waterskin(Lara.Inventory.BigWaterskin);
@@ -554,6 +561,7 @@ const std::vector<byte> SaveGame::Build()
 	inventory.add_total_flares(Lara.Inventory.TotalFlares);
 	inventory.add_total_small_medipacks(Lara.Inventory.TotalSmallMedipacks);
 	inventory.add_total_large_medipacks(Lara.Inventory.TotalLargeMedipacks);
+	inventory.add_sequenceData()
 	auto inventoryOffset = inventory.Finish();
 
 	Save::LaraCountDataBuilder count{ fbb };
@@ -3022,18 +3030,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			item->Data = savedData->scalar();
 		}
 	}
-
-	//Sequence Switch
-	if (s->level_data()->sequences() && s->level_data()->sequence_used()) 
-	{
-		for (int i = 0; i < s->level_data()->sequences()->size() && i < 3; ++i)
-			Sequences[i] = (byte)s->level_data()->sequences()->Get(i);
-
-		for (int i = 0; i < s->level_data()->sequence_used()->size() && i < 6; ++i)
-			SequenceUsed[i] = (byte)s->level_data()->sequence_used()->Get(i);
-	}
-
-	CurrentSequence = (byte)s->level_data()->current_sequence();
 }
 
 void SaveGame::Parse(const std::vector<byte>& buffer, bool hubMode)

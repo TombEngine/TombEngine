@@ -32,31 +32,29 @@ namespace TEN::Entities::Switches
 	};
 	const auto FullBlockSwitchPos = Vector3i(0, CLICK(1), 0);
 
-	byte SequenceUsed[6]; //Stores the current active sequence.
-	byte SequenceResults[3][3][3];  //Maps combination to a door ocb
-	byte Sequences[3]; //Current Sequence
-	byte CurrentSequence; //Count of switches pressed in current sequence
-
     void SetupFullBlockSwitch()
     {
-        CurrentSequence = 0;
-        SequenceResults[0][1][2] = 0;
-        SequenceResults[0][2][1] = 1;
-        SequenceResults[1][0][2] = 2;
-        SequenceResults[1][2][0] = 3;
-        SequenceResults[2][0][1] = 4;
-        SequenceResults[2][1][0] = 5;
-        SequenceUsed[0] = 0;
-        SequenceUsed[1] = 0;
-        SequenceUsed[2] = 0;
-        SequenceUsed[3] = 0;
-        SequenceUsed[4] = 0;
-        SequenceUsed[5] = 0;
+        auto& sequenceData = Lara.Inventory.SequenceSwitchData;
+
+        sequenceData.CurrentSequence = 0;
+        sequenceData.SequenceResults[0][1][2] = 0;
+        sequenceData.SequenceResults[0][2][1] = 1;
+        sequenceData.SequenceResults[1][0][2] = 2;
+        sequenceData.SequenceResults[1][2][0] = 3;
+        sequenceData.SequenceResults[2][0][1] = 4;
+        sequenceData.SequenceResults[2][1][0] = 5;
+        sequenceData.SequenceUsed[0] = 0;
+        sequenceData.SequenceUsed[1] = 0;
+        sequenceData.SequenceUsed[2] = 0;
+        sequenceData.SequenceUsed[3] = 0;
+        sequenceData.SequenceUsed[4] = 0;
+        sequenceData.SequenceUsed[5] = 0;
     }
 
     void FullBlockSwitchCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
     {
         auto* laraInfo = GetLaraInfo(laraItem);
+        auto& sequenceData = laraInfo->Inventory.SequenceSwitchData;
         auto* switchItem = &g_Level.Items[itemNumber];
 
         if (switchItem->Animation.ActiveState == SWITCH_ON)
@@ -67,7 +65,7 @@ namespace TEN::Entities::Switches
             laraItem->Animation.AnimNumber != LA_STAND_IDLE ||
             laraInfo->Control.HandStatus != HandStatus::Free ||
             switchItem->ItemFlags[0] == 1 ||
-            CurrentSequence >= 3) &&
+            sequenceData.CurrentSequence >= 3) &&
             (!laraInfo->Control.IsMoving || laraInfo->Context.InteractedItem != itemNumber))
         {
             ObjectCollision(itemNumber, laraItem, coll);
@@ -107,30 +105,31 @@ namespace TEN::Entities::Switches
      void FullBlockSwitchControl(short itemNumber, byte switchIndex)
      {
         auto* switchItem = &g_Level.Items[itemNumber];
+        auto& sequenceData = Lara.Inventory.SequenceSwitchData;
 
         if (switchItem->Animation.AnimNumber != 2 ||
-            CurrentSequence >= 3 ||
+            sequenceData.CurrentSequence >= 3 ||
             switchItem->ItemFlags[0])
         {
-            if (CurrentSequence >= 4)
+            if (sequenceData.CurrentSequence >= 4)
             {
                 switchItem->ItemFlags[0] = 0;
                 switchItem->Animation.TargetState = SWITCH_ON;
                 switchItem->Status = ITEM_NOT_ACTIVE;
-                CurrentSequence++;
+                sequenceData.CurrentSequence++;
 
-                if (CurrentSequence >= 7)
-                    CurrentSequence = 0;
+                if (sequenceData.CurrentSequence >= 7)
+                    sequenceData.CurrentSequence = 0;
             }
         }
         else
         {
             switchItem->ItemFlags[0] = 1;
-            Sequences[CurrentSequence] = switchIndex;
-            CurrentSequence++;
+            sequenceData.Sequences[sequenceData.CurrentSequence] = switchIndex;
+            sequenceData.CurrentSequence++;
 
-            if (CurrentSequence == 3 && SequenceUsed[SequenceResults[Sequences[0]][Sequences[1]][Sequences[2]]])
-                CurrentSequence++;
+            if (sequenceData.CurrentSequence == 3 && sequenceData.SequenceUsed[sequenceData.SequenceResults[sequenceData.Sequences[0]][sequenceData.Sequences[1]][sequenceData.Sequences[2]]])
+                sequenceData.CurrentSequence++;
         }
 
         AnimateItem(switchItem);
