@@ -836,6 +836,9 @@ struct LevelDataT : public flatbuffers::NativeTable {
   int32_t starfield_meteor_count = 0;
   int32_t starfield_meteor_spawn_density = 0;
   int32_t starfield_meteor_velocity = 0;
+  int32_t current_sequence = 0;
+  std::vector<int32_t> sequences{};
+  std::vector<int32_t> sequence_used{};
   std::vector<TEN::Serialization::Common::Vector4> material_properties{};
 };
 
@@ -879,7 +882,10 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_STARFIELD_METEOR_COUNT = 68,
     VT_STARFIELD_METEOR_SPAWN_DENSITY = 70,
     VT_STARFIELD_METEOR_VELOCITY = 72,
-    VT_MATERIAL_PROPERTIES = 74
+    VT_CURRENT_SEQUENCE = 74,
+    VT_SEQUENCES = 76,
+    VT_SEQUENCE_USED = 78,
+    VT_MATERIAL_PROPERTIES = 80
   };
   uint32_t random_seed() const {
     return GetField<uint32_t>(VT_RANDOM_SEED, 0);
@@ -986,6 +992,15 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t starfield_meteor_velocity() const {
     return GetField<int32_t>(VT_STARFIELD_METEOR_VELOCITY, 0);
   }
+  int32_t current_sequence() const {
+    return GetField<int32_t>(VT_CURRENT_SEQUENCE, 0);
+  }
+  const flatbuffers::Vector<int32_t> *sequences() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_SEQUENCES);
+  }
+  const flatbuffers::Vector<int32_t> *sequence_used() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_SEQUENCE_USED);
+  }
   const flatbuffers::Vector<const TEN::Serialization::Common::Vector4 *> *material_properties() const {
     return GetPointer<const flatbuffers::Vector<const TEN::Serialization::Common::Vector4 *> *>(VT_MATERIAL_PROPERTIES);
   }
@@ -1026,6 +1041,11 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_STARFIELD_METEOR_COUNT) &&
            VerifyField<int32_t>(verifier, VT_STARFIELD_METEOR_SPAWN_DENSITY) &&
            VerifyField<int32_t>(verifier, VT_STARFIELD_METEOR_VELOCITY) &&
+           VerifyField<int32_t>(verifier, VT_CURRENT_SEQUENCE) &&
+           VerifyOffset(verifier, VT_SEQUENCES) &&
+           verifier.VerifyVector(sequences()) &&
+           VerifyOffset(verifier, VT_SEQUENCE_USED) &&
+           verifier.VerifyVector(sequence_used()) &&
            VerifyOffset(verifier, VT_MATERIAL_PROPERTIES) &&
            verifier.VerifyVector(material_properties()) &&
            verifier.EndTable();
@@ -1144,6 +1164,15 @@ struct LevelDataBuilder {
   void add_starfield_meteor_velocity(int32_t starfield_meteor_velocity) {
     fbb_.AddElement<int32_t>(LevelData::VT_STARFIELD_METEOR_VELOCITY, starfield_meteor_velocity, 0);
   }
+  void add_current_sequence(int32_t current_sequence) {
+    fbb_.AddElement<int32_t>(LevelData::VT_CURRENT_SEQUENCE, current_sequence, 0);
+  }
+  void add_sequences(flatbuffers::Offset<flatbuffers::Vector<int32_t>> sequences) {
+    fbb_.AddOffset(LevelData::VT_SEQUENCES, sequences);
+  }
+  void add_sequence_used(flatbuffers::Offset<flatbuffers::Vector<int32_t>> sequence_used) {
+    fbb_.AddOffset(LevelData::VT_SEQUENCE_USED, sequence_used);
+  }
   void add_material_properties(flatbuffers::Offset<flatbuffers::Vector<const TEN::Serialization::Common::Vector4 *>> material_properties) {
     fbb_.AddOffset(LevelData::VT_MATERIAL_PROPERTIES, material_properties);
   }
@@ -1195,9 +1224,15 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(
     int32_t starfield_meteor_count = 0,
     int32_t starfield_meteor_spawn_density = 0,
     int32_t starfield_meteor_velocity = 0,
+    int32_t current_sequence = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> sequences = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> sequence_used = 0,
     flatbuffers::Offset<flatbuffers::Vector<const TEN::Serialization::Common::Vector4 *>> material_properties = 0) {
   LevelDataBuilder builder_(_fbb);
   builder_.add_material_properties(material_properties);
+  builder_.add_sequence_used(sequence_used);
+  builder_.add_sequences(sequences);
+  builder_.add_current_sequence(current_sequence);
   builder_.add_starfield_meteor_velocity(starfield_meteor_velocity);
   builder_.add_starfield_meteor_spawn_density(starfield_meteor_spawn_density);
   builder_.add_starfield_meteor_count(starfield_meteor_count);
@@ -1278,7 +1313,12 @@ inline flatbuffers::Offset<LevelData> CreateLevelDataDirect(
     int32_t starfield_meteor_count = 0,
     int32_t starfield_meteor_spawn_density = 0,
     int32_t starfield_meteor_velocity = 0,
+    int32_t current_sequence = 0,
+    const std::vector<int32_t> *sequences = nullptr,
+    const std::vector<int32_t> *sequence_used = nullptr,
     const std::vector<TEN::Serialization::Common::Vector4> *material_properties = nullptr) {
+  auto sequences__ = sequences ? _fbb.CreateVector<int32_t>(*sequences) : 0;
+  auto sequence_used__ = sequence_used ? _fbb.CreateVector<int32_t>(*sequence_used) : 0;
   auto material_properties__ = material_properties ? _fbb.CreateVectorOfStructs<TEN::Serialization::Common::Vector4>(*material_properties) : 0;
   return TEN::Serialization::Save::CreateLevelData(
       _fbb,
@@ -1317,6 +1357,9 @@ inline flatbuffers::Offset<LevelData> CreateLevelDataDirect(
       starfield_meteor_count,
       starfield_meteor_spawn_density,
       starfield_meteor_velocity,
+      current_sequence,
+      sequences__,
+      sequence_used__,
       material_properties__);
 }
 
@@ -11013,6 +11056,9 @@ inline void LevelData::UnPackTo(LevelDataT *_o, const flatbuffers::resolver_func
   { auto _e = starfield_meteor_count(); _o->starfield_meteor_count = _e; }
   { auto _e = starfield_meteor_spawn_density(); _o->starfield_meteor_spawn_density = _e; }
   { auto _e = starfield_meteor_velocity(); _o->starfield_meteor_velocity = _e; }
+  { auto _e = current_sequence(); _o->current_sequence = _e; }
+  { auto _e = sequences(); if (_e) { _o->sequences.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->sequences[_i] = _e->Get(_i); } } }
+  { auto _e = sequence_used(); if (_e) { _o->sequence_used.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->sequence_used[_i] = _e->Get(_i); } } }
   { auto _e = material_properties(); if (_e) { _o->material_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->material_properties[_i] = *_e->Get(_i); } } }
 }
 
@@ -11059,6 +11105,9 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBui
   auto _starfield_meteor_count = _o->starfield_meteor_count;
   auto _starfield_meteor_spawn_density = _o->starfield_meteor_spawn_density;
   auto _starfield_meteor_velocity = _o->starfield_meteor_velocity;
+  auto _current_sequence = _o->current_sequence;
+  auto _sequences = _fbb.CreateVector(_o->sequences);
+  auto _sequence_used = _fbb.CreateVector(_o->sequence_used);
   auto _material_properties = _fbb.CreateVectorOfStructs(_o->material_properties);
   return TEN::Serialization::Save::CreateLevelData(
       _fbb,
@@ -11097,6 +11146,9 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBui
       _starfield_meteor_count,
       _starfield_meteor_spawn_density,
       _starfield_meteor_velocity,
+      _current_sequence,
+      _sequences,
+      _sequence_used,
       _material_properties);
 }
 
