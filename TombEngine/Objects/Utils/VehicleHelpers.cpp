@@ -15,6 +15,7 @@
 #include "Game/room.h"
 #include "Math/Random.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 
@@ -385,6 +386,9 @@ namespace TEN::Entities::Vehicles
 		constexpr auto EXP_RATE_ON_WATER   = 6.0f;
 		constexpr auto EXP_RATE_UNDERWATER = 1.5f;
 
+		Color wakeStartColor = PropertyHandler::Get(vehicleItem, "WakeStartColor", ScriptColor(COLOR_START));
+		Color wakeEndColor = PropertyHandler::Get(vehicleItem, "WakeEndColor", ScriptColor(COLOR_END));
+
 		// Vehicle is out of water; return early.
 		if (waterHeight == NO_HEIGHT)
 			return;
@@ -406,14 +410,14 @@ namespace TEN::Entities::Vehicles
 		// Spawn left wake.
 		StreamerEffect.Spawn(
 			vehicleItem.Index, (int)tagLeft,
-			positions.first, dir, orient2D, COLOR_START, COLOR_END,
+			positions.first, dir, orient2D, wakeStartColor, wakeEndColor,
 			0.0f, life, vel, expRate, 0,
 			StreamerFeatherMode::Right, BlendMode::Additive);
 
 		// Spawn right wake.
 		StreamerEffect.Spawn(
 			vehicleItem.Index, (int)tagRight,
-			positions.second, dir, orient2D, COLOR_START, COLOR_END,
+			positions.second, dir, orient2D, wakeStartColor, wakeEndColor,
 			0.0f, life, vel, expRate, 0,
 			StreamerFeatherMode::Left, BlendMode::Additive);
 	}
