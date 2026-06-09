@@ -265,7 +265,7 @@ namespace TEN::Entities::Vehicles
 				if (TEN::Math::Random::GenerateInt(0, 32) > 28)
 					SoundEffect(SFX_TR4_LARA_WADE, &Pose(vehicleItem->Pose.Position), SoundEnvironment::Land, isWater ? 0.8f : 0.7f);
 
-				if (isWater)
+				if (isWater && PropertyHandler::Get(vehicleItem, "VehicleWake", true))
 				{
 					int waterHeight = GetPointCollision(*vehicleItem).GetWaterTopHeight();
 					SpawnVehicleWake(*vehicleItem, wakeOffset, waterHeight);
