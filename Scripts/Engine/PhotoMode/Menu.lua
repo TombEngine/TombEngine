@@ -574,6 +574,29 @@ end
 -- Input Handling
 -- ============================================================================
 
+local function GetKey(actionID)
+
+    local device = TEN.Input.GetLastInputDevice()
+   
+   if device == TEN.Input.InputDevice.GAMEPAD then
+
+        if actionID == ActionID.MENU_UP then
+            return ActionID.GAMEPAD_DPAD_UP
+        elseif actionID == ActionID.MENU_DOWN then
+            return ActionID.GAMEPAD_DPAD_DOWN
+        elseif actionID == ActionID.MENU_LEFT then
+            return ActionID.GAMEPAD_DPAD_LEFT
+        elseif actionID == ActionID.MENU_RIGHT then
+            return ActionID.GAMEPAD_DPAD_RIGHT
+        end
+    else 
+        return actionID
+    end
+    
+end
+
+
+
 local function HandleInput(menuName)
     local menu = Menus[menuName]
     local itemCount = #menu.items
@@ -582,16 +605,16 @@ local function HandleInput(menuName)
     local previousItem = menu.currentItem
 
     -- Header navigation: STEP_LEFT / STEP_RIGHT
-    if InputHelpers.GuiIsPulsed(ActionID.GAMEPAD_LEFT_SHOULDER, menu.inputTimer) or InputHelpers.GuiIsPulsed(ActionID.STEP_LEFT, menu.inputTimer) then
+    if InputHelpers.GuiIsPulsed(ActionID.GAMEPAD_LEFT_SHOULDER, menu.inputTimer) or InputHelpers.GuiIsPulsed(ActionID.Q, menu.inputTimer) then
         Menu.NavigateHeader(-1)
         return
-    elseif InputHelpers.GuiIsPulsed(ActionID.GAMEPAD_RIGHT_SHOULDER, menu.inputTimer) or InputHelpers.GuiIsPulsed(ActionID.STEP_RIGHT, menu.inputTimer) then
+    elseif InputHelpers.GuiIsPulsed(ActionID.GAMEPAD_RIGHT_SHOULDER, menu.inputTimer) or InputHelpers.GuiIsPulsed(ActionID.E, menu.inputTimer) then
         Menu.NavigateHeader(1)
         return
     end
 
     -- Navigate items: MENU_UP / MENU_DOWN
-    if InputHelpers.GuiIsPulsed(ActionID.MENU_UP, menu.inputTimer) then
+    if InputHelpers.GuiIsPulsed(GetKey(ActionID.MENU_UP), menu.inputTimer) then
         PlaySound(menu.sounds and menu.sounds.menuSelect)
         if menu.wrapAroundItems then
             menu.currentItem = (menu.currentItem - 2) % itemCount + 1
@@ -602,7 +625,7 @@ local function HandleInput(menuName)
             PerformFunction(menu.itemChangeFunction)
         end
 
-    elseif InputHelpers.GuiIsPulsed(ActionID.MENU_DOWN, menu.inputTimer) then
+    elseif InputHelpers.GuiIsPulsed(GetKey(ActionID.MENU_DOWN), menu.inputTimer) then
         PlaySound(menu.sounds and menu.sounds.menuSelect)
         if menu.wrapAroundItems then
             menu.currentItem = menu.currentItem % itemCount + 1
@@ -613,7 +636,7 @@ local function HandleInput(menuName)
             PerformFunction(menu.itemChangeFunction)
         end
 
-    elseif InputHelpers.GuiIsPulsed(ActionID.MENU_LEFT, menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+    elseif InputHelpers.GuiIsPulsed(GetKey(ActionID.MENU_LEFT), menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             PlaySound(menu.sounds and menu.sounds.menuSelect)
@@ -627,7 +650,7 @@ local function HandleInput(menuName)
             end
         end
 
-    elseif InputHelpers.GuiIsPulsed(ActionID.MENU_RIGHT, menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+    elseif InputHelpers.GuiIsPulsed(GetKey(ActionID.MENU_RIGHT), menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             PlaySound(menu.sounds and menu.sounds.menuSelect)

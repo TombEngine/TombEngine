@@ -64,6 +64,7 @@ local function UpdateCameraInput(state)
 
     -- WASD / left analogue: forward/back + strafe
     local ls = TEN.Input.GetAnalogAxisValue(AxisID.STICK_LEFT)
+
     local lsX = ls and ApplyDeadZone(ls.x) or 0
     local lsY = ls and ApplyDeadZone(ls.y) or 0
 
@@ -160,31 +161,32 @@ local function UpdatePlayerInput(state)
         newPos = Vec3Add(newPos, Vec3Scale(right, s))
     end
 
-    -- Right analogue X: rotate character Y; right analogue Y: move up/down
-    local r2Held         = TEN.Input.IsKeyHeld(ActionID.GAMEPAD_RIGHT_TRIGGER)
-    local rightClickHeld = TEN.Input.IsKeyHeld(ActionID.MOUSE_CLICK_RIGHT)
-
-    local rs = TEN.Input.GetAnalogAxisValue(AxisID.STICK_RIGHT)
-    local rsX = rs and ApplyDeadZone(rs.x) or 0
-    local rsY = rs and ApplyDeadZone(rs.y) or 0
-
-    if r2Held and math.abs(rsY) > 0 then
-        newPos = TEN.Vec3(newPos.x, newPos.y + rsY * speed, newPos.z)
+    local device = TEN.Input.GetLastInputDevice()
+    if device == TEN.Input.InputDevice.GAMEPAD then
+        -- Right analogue X: rotate character Y; right analogue Y: move up/down
+        local r2Held         = TEN.Input.IsKeyHeld(ActionID.GAMEPAD_RIGHT_TRIGGER)
+        local rs = TEN.Input.GetAnalogAxisValue(AxisID.STICK_RIGHT)
+        local rsX = rs and ApplyDeadZone(rs.x) or 0
+        local rsY = rs and ApplyDeadZone(rs.y) or 0
+        if r2Held and math.abs(rsY) > 0 then
+            newPos = TEN.Vec3(newPos.x, newPos.y + rsY * speed, newPos.z)
+        else
+            newRot = TEN.Rotation(laraRot.x, laraRot.y + rsX * rotSpeed, laraRot.z)
+        end
     else
-        newRot = TEN.Rotation(laraRot.x, laraRot.y + rsX * rotSpeed, laraRot.z)
-    end
+        -- Mouse X: rotate character Y; mouse Y: move up/down (right-click held)
+        local rightClickHeld = TEN.Input.IsKeyHeld(ActionID.MOUSE_CLICK_RIGHT)
+        local mouse = TEN.Input.GetAnalogAxisValue(AxisID.MOUSE)
+        local mx = mouse and mouse.x or 0
+        local my = mouse and mouse.y or 0
+        local scale = Settings.Camera.mouseSensitivity * 2
 
-    -- Mouse X: rotate character Y; mouse Y: move up/down (right-click held)
-    local mouse = TEN.Input.GetAnalogAxisValue(AxisID.MOUSE)
-    local mx = mouse and mouse.x or 0
-    local my = mouse and mouse.y or 0
-    local scale = Settings.Camera.mouseSensitivity * 2
-
-    if rightClickHeld and math.abs(my) > 0.001 then
-        scale = scale / 2
-        newPos = TEN.Vec3(newPos.x, newPos.y + my * scale * speed, newPos.z)
-    else
-        newRot = TEN.Rotation(laraRot.x, laraRot.y + mx * scale * rotSpeed, laraRot.z)
+        if rightClickHeld and math.abs(my) > 0.001 then
+            scale = scale / 2
+            newPos = TEN.Vec3(newPos.x, newPos.y + my * scale * speed, newPos.z)
+        else
+            newRot = TEN.Rotation(laraRot.x, laraRot.y + mx * scale * rotSpeed, laraRot.z)
+        end
     end
     
 
