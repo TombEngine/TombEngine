@@ -1,9 +1,7 @@
---- Menu system for the PhotoMode module.
+-- Menu system for the PhotoMode module.
 -- Based on Engine.RingInventory.Menu, extended with header tab navigation.
 -- Headers are switched with STEP_LEFT / STEP_RIGHT, each header can show/hide
 -- its associated menu via Menu.AddActive.
--- @module Engine.PhotoMode.Menu
--- @local
 
 local InputHelpers = require("Engine.PhotoMode.InputHelpers")
 local Settings     = require("Engine.PhotoMode.Settings")
@@ -584,10 +582,10 @@ local function HandleInput(menuName)
     local previousItem = menu.currentItem
 
     -- Header navigation: STEP_LEFT / STEP_RIGHT
-    if InputHelpers.GuiIsPulsed(ActionID.GAMEPAD_LEFT_TRIGGER, menu.inputTimer) or InputHelpers.GuiIsPulsed(ActionID.STEP_LEFT, menu.inputTimer) then
+    if InputHelpers.GuiIsPulsed(ActionID.GAMEPAD_LEFT_SHOULDER, menu.inputTimer) or InputHelpers.GuiIsPulsed(ActionID.STEP_LEFT, menu.inputTimer) then
         Menu.NavigateHeader(-1)
         return
-    elseif InputHelpers.GuiIsPulsed(ActionID.GAMEPAD_RIGHT_TRIGGER, menu.inputTimer) or InputHelpers.GuiIsPulsed(ActionID.STEP_RIGHT, menu.inputTimer) then
+    elseif InputHelpers.GuiIsPulsed(ActionID.GAMEPAD_RIGHT_SHOULDER, menu.inputTimer) or InputHelpers.GuiIsPulsed(ActionID.STEP_RIGHT, menu.inputTimer) then
         Menu.NavigateHeader(1)
         return
     end

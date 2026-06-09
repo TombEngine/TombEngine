@@ -1,6 +1,4 @@
---- Internal file used by the RingInventory module.
--- @module RingInventory.InputHelpers
--- @local
+-- Internal file used by the RingInventory module.
 
 local InputHelpers = {}
 local PULSE_DELAY = 0.25

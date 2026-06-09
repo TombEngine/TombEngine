@@ -1,7 +1,5 @@
---- Settings for the PhotoMode module.
+-- Settings for the PhotoMode module.
 -- Reads colors from RingInventory.Settings where available.
--- @module Engine.PhotoMode.Settings
--- @local
 
 local Accessories = require("Engine.PhotoMode.Accessories")
 local Expressions = require("Engine.PhotoMode.Expressions")
@@ -62,11 +60,11 @@ Settings.Camera =
     minMoveSpeed     = 8,
     maxMoveSpeed     = 512,
     moveSpeedStep    = 8,
-    defaultLookSpeed  = 2.0,
+    defaultLookSpeed  = 8.0,
     minLookSpeed      = 0.5,
     maxLookSpeed      = 5.0,
     lookSpeedStep     = 0.5,
-    mouseSensitivity  = 30,
+    mouseSensitivity  = 32,
     offsetForward    = -512,
     offsetUp         = -256,
     targetForward    = 512,

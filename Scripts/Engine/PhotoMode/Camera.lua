@@ -1,8 +1,6 @@
---- Camera management for the PhotoMode module.
+-- Camera management for the PhotoMode module.
 -- Handles creation of null-mesh camera objects, initial placement,
 -- attaching/detaching the object camera, and camera movement.
--- @module Engine.PhotoMode.Camera
--- @local
 
 local Settings = require("Engine.PhotoMode.Settings")
 local States   = require("Engine.PhotoMode.States")
@@ -224,9 +222,9 @@ function Camera.AdjustTargetVertical(speed)
     local state  = States.Get()
     local camPos = state.cameraMesh:GetPosition()
     local tgtPos = state.cameraTarget:GetPosition()
+    local newCam = TEN.Vec3(camPos.x, camPos.y + speed, camPos.z)
     local newTgt = TEN.Vec3(tgtPos.x, tgtPos.y + speed, tgtPos.z)
-    -- Set both so the engine refreshes the object camera
-    state.cameraMesh:SetPosition(camPos)
+    state.cameraMesh:SetPosition(newCam)
     state.cameraTarget:SetPosition(newTgt)
 end
 

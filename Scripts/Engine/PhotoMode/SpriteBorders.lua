@@ -1,8 +1,6 @@
---- Frame overlay for the PhotoMode module.
+-- Frame overlay for the PhotoMode module.
 -- Draws a full-screen sprite as a decorative frame using the same
 -- technique as RingInventory.Sprites background drawing.
--- @module Engine.PhotoMode.FrameSprites
--- @local
 
 local Settings = require("Engine.PhotoMode.Settings")
 local States   = require("Engine.PhotoMode.States")

@@ -1,7 +1,5 @@
---- State management for the PhotoMode module.
+-- State management for the PhotoMode module.
 -- Tracks the current mode (Camera, Player, Light) and all mutable photo mode state.
--- @module Engine.PhotoMode.States
--- @local
 
 local Settings = require("Engine.PhotoMode.Settings")
 

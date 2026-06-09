@@ -1,6 +1,4 @@
---- Translatable strings for the PhotoMode module.
--- @module Engine.PhotoMode.Strings
--- @local
+-- Translatable strings for the PhotoMode module.
 
 local strings =
 {
@@ -60,11 +58,14 @@ local strings =
     pm_help           = {"StepL/R=Tab  Look=Hide UI  Inventory=Exit"},
 
     -- Per-mode control hints (line 1 of the help bar)
-    pm_help_camera    = {"WASD/LS=Move  Mouse/RS=Look  RMB+Mouse/R2+RS=Tilt  Scroll=Dolly"},
-    pm_help_character = {"WASD/LS=Move+Strafe  Mouse/RS X=Rotate Y=Vertical  RMB+Mouse/R2+RS=Tilt"},
-    pm_help_light     = {"WASD/LS=Move+Strafe  Mouse/RS Y=Vertical  RMB+Mouse/R2+RS=Tilt  Scroll=Dolly"},
-    -- Universal navigation hints (line 2 of the help bar)
+    pm_help_camera    = {"WASD=Move Mouse=Look RMB+Mouse=Raise/Lower"},
+    pm_help_character = {"WASD=Move Mouse=Rotate RMB+Mouse=Raise/Lower"},
+    pm_help_light     = {"WASD=Move RMB+Mouse=Raise/Lower"},
     pm_help_nav       = {"StepL/StepR=Tab  Look=Hide UI  Inventory=Exit"},
+    pm_help_camera_gamepad    = {"LS=Move RS=Look RT+RS=Raise/Lower"},
+    pm_help_character_gamepad = {"LS=Move RS=Rotate RT+RS=Raise/Lower"},
+    pm_help_light_gamepad     = {"LS=Move RT+RS=Raise/Lower"},
+    pm_help_nav_gamepad       = {"LS/RS=Tab LT=Hide UI Inventory=Exit"},
 }
 
 TEN.Flow.SetStrings(strings)

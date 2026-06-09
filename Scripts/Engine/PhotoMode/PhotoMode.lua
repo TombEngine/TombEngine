@@ -219,7 +219,7 @@
 --    PhotoMode.UnlockOutfit("Secret Wetsuit")
 --
 --------------------------------------------------------------------------------
-
+-- @luautil PhotoMode
 
 local Camera   = require("Engine.PhotoMode.Camera")
 local Borders   = require("Engine.PhotoMode.SpriteBorders")
@@ -1415,7 +1415,7 @@ local function DrawTitle(alpha)
     local modeStr  = TEN.Strings.DisplayString(
         modeText, modePos, 0.8,
         ColorCombine(Settings.ColorMap.headerText, alpha), false,
-        { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER, Strings.DisplayStringOption.VERTICAL_CENTER }
+        { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER, TEN.Strings.DisplayStringOption.VERTICAL_CENTER }
     )
     TEN.Strings.ShowString(modeStr, 1 / 30)
 end
@@ -1432,34 +1432,37 @@ local function DrawModeText(alpha)
 end
 
 local function DrawHelpText(alpha)
-    local state   = States.Get()
+
     local mode    = States.GetMode()
 
     -- Pick the string key for the current control mode
-    local modeKey
-    if mode == States.Mode.PLAYER then
-        modeKey = "pm_help_character"
-    elseif mode == States.Mode.LIGHT then
-        modeKey = "pm_help_light"
-    else
-        modeKey = "pm_help_camera"
-    end
+    local device = TEN.Input.GetLastInputDevice()
+    local suffix = (device == TEN.Input.InputDevice.GAMEPAD) and "_gamepad" or ""
 
+    local modeKeys = {
+        [States.Mode.PLAYER] = "pm_help_character",
+        [States.Mode.LIGHT]  = "pm_help_light",
+        default              = "pm_help_camera"
+    }
+
+    local modeKey = (modeKeys[mode] or modeKeys.default) .. suffix
+    local helpKey = (device == TEN.Input.InputDevice.GAMEPAD) and "pm_help_nav_gamepad" or "pm_help_nav"
+    
     -- Line 1: mode-specific movement hints
     local helpPos1 = TEN.Util.PercentToScreen(TEN.Vec2(50, 90))
     local helpStr1 = TEN.Strings.DisplayString(
         modeKey, helpPos1, 0.6,
         ColorCombine(Settings.ColorMap.neutral, alpha), true,
-        { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }
+        { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER }
     )
     TEN.Strings.ShowString(helpStr1, 1 / 30)
 
     -- Line 2: universal navigation hints
     local helpPos2 = TEN.Util.PercentToScreen(TEN.Vec2(50, 94))
     local helpStr2 = TEN.Strings.DisplayString(
-        "pm_help_nav", helpPos2, 0.6,
+        helpKey, helpPos2, 0.6,
         ColorCombine(Settings.ColorMap.neutral, alpha), true,
-        { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }
+        { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER }
     )
     TEN.Strings.ShowString(helpStr2, 1 / 30)
 end
@@ -1501,8 +1504,11 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
 
     state.timeInPhotoMode = state.timeInPhotoMode + 1
 
-    -- Toggle UI with LOOK key
-    if InputHelpers.GuiIsPulsed(TEN.Input.ActionID.LOOK, state.timeInPhotoMode) then
+    local device = TEN.Input.GetLastInputDevice()
+    local hideKey = (device == TEN.Input.InputDevice.GAMEPAD) and TEN.Input.ActionID.GAMEPAD_LEFT_TRIGGER or TEN.Input.ActionID.LOOK
+
+    -- Toggle UI with CROUCH key
+    if InputHelpers.GuiIsPulsed(hideKey, state.timeInPhotoMode) then
         state.hideUI = not state.hideUI
     end
 

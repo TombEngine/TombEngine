@@ -1,4 +1,4 @@
---- Accessory presets for the Photo Mode accessory picker.
+-- Accessory presets for the Photo Mode accessory picker.
 -- Each entry describes a mesh swap to apply to the pm_Sunglasses moveable.
 --   name        : Display name shown in the menu.
 --   objID       : Source object to copy meshes from (nil = no swap / restore default).
@@ -6,9 +6,6 @@
 --
 -- Add or remove entries freely.  The first entry should always be a "None"
 -- sentinel (objID = nil, meshIndices = {}) so the player can clear accessories.
---
--- @module Engine.PhotoMode.Accessories
--- @local
 
 local Accessories =
 {
