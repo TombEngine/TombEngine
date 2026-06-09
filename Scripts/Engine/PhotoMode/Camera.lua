@@ -228,15 +228,42 @@ function Camera.AdjustTargetVertical(speed)
     state.cameraTarget:SetPosition(newTgt)
 end
 
+-- Maximum elevation angle (degrees from horizontal) the look-at vector is
+-- allowed to reach.  Staying below 90° prevents the camera from flipping.
+local PITCH_LIMIT = 88.0
+
 -- Rotate the camera view freely (yaw = horizontal, pitch = vertical).
+-- Uses spherical coordinates to guarantee no gimbal flip regardless of input speed.
 function Camera.RotateView(yawDeg, pitchDeg)
     local state  = States.Get()
     local camPos = state.cameraMesh:GetPosition()
     local tgtPos = state.cameraTarget:GetPosition()
 
-    local offset  = TEN.Vec3(tgtPos.x - camPos.x, tgtPos.y - camPos.y, tgtPos.z - camPos.z)
-    local rotated = offset:Rotate(TEN.Rotation(pitchDeg, yawDeg, 0))
-    local newTgt  = TEN.Vec3(camPos.x + rotated.x, camPos.y + rotated.y, camPos.z + rotated.z)
+    local ox = tgtPos.x - camPos.x
+    local oy = tgtPos.y - camPos.y
+    local oz = tgtPos.z - camPos.z
+
+    -- Keep the camera-to-target distance constant.
+    local dist = math.sqrt(ox * ox + oy * oy + oz * oz)
+    if dist < 0.001 then return end
+
+    local hDist = math.sqrt(ox * ox + oz * oz)
+
+    -- Decompose into spherical angles (radians).
+    local currentYaw   = math.atan(ox, oz)
+    local currentPitch = math.atan(oy, hDist)
+
+    -- Apply deltas and clamp pitch.
+    local limitRad = math.rad(PITCH_LIMIT)
+    local newYaw   = currentYaw   + math.rad(yawDeg)
+    local newPitch = math.max(-limitRad, math.min(limitRad, currentPitch + math.rad(pitchDeg)))
+
+    -- Reconstruct offset from spherical coordinates.
+    local cosP = math.cos(newPitch)
+    local newTgt = TEN.Vec3(
+        camPos.x + dist * cosP * math.sin(newYaw),
+        camPos.y + dist * math.sin(newPitch),
+        camPos.z + dist * cosP * math.cos(newYaw))
 
     state.cameraMesh:SetPosition(camPos)
     state.cameraTarget:SetPosition(newTgt)
