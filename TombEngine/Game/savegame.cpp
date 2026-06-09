@@ -39,10 +39,12 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertySavegame.h"
 #include "Sound/sound.h"
+#include "Specific/Serialization/Flatbuffers.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"
-#include "Specific/savegame/flatbuffers/ten_savegame_generated.h"
+#include "Specific/Serialization/flatbuffers/ten_savegame_generated.h"
 #include "Specific/trutils.h"
 #include "Specific/Video/Video.h"
 
@@ -59,11 +61,14 @@ using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
 using namespace TEN::Renderer;
+using namespace TEN::Scripting::Properties;
+using namespace TEN::Serialization;
 using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 using namespace TEN::Video;
 
-namespace Save = TEN::Save;
+namespace Common = TEN::Serialization::Common;
+namespace Save = TEN::Serialization::Save;
 
 constexpr auto SAVEGAME_MAX_SLOT    = 99;
 constexpr auto SAVEGAME_PATH	    = "Save/";
@@ -102,91 +107,6 @@ void SaveGame::LoadHeaders()
 		if (Infos[i].Count > LastSaveGame)
 			LastSaveGame = Infos[i].Count;
 	}
-}
-
-static Save::EulerAngles FromEulerAngles(const EulerAngles& eulers)
-{
-	return Save::EulerAngles(eulers.x, eulers.y, eulers.z);
-}
-
-static Save::Vector2 FromVector2(const Vector2& vec)
-{
-	return Save::Vector2(vec.x, vec.y);
-}
-
-static Save::Vector2 FromVector2i(const Vector2i& vec)
-{
-	return Save::Vector2(vec.x, vec.y);
-}
-
-static Save::Vector3 FromVector3(const Vector3& vec)
-{
-	return Save::Vector3(vec.x, vec.y, vec.z);
-}
-
-static Save::Vector3 FromVector3i(const Vector3i& vec)
-{
-	return Save::Vector3(vec.x, vec.y, vec.z);
-}
-
-static Save::Vector4 FromVector4(const Vector4& vec)
-{
-	return Save::Vector4(vec.x, vec.y, vec.z, vec.w);
-}
-
-static Save::GameVector FromGameVector(const GameVector& vec)
-{
-	return Save::GameVector(vec.x, vec.y, vec.z, (int)vec.RoomNumber);
-}
-
-static Save::Pose FromPose(const Pose& pose)
-{
-	return Save::Pose(FromVector3i(pose.Position), FromEulerAngles(pose.Orientation), FromVector3(pose.Scale));
-}
-
-static EulerAngles ToEulerAngles(const Save::EulerAngles* eulers)
-{
-	return EulerAngles((short)round(eulers->x()), (short)round(eulers->y()), (short)round(eulers->z()));
-}
-
-static Vector2 ToVector2(const Save::Vector2* vec)
-{
-	return Vector2(vec->x(), vec->y());
-}
-
-static Vector2i ToVector2i(const Save::Vector2* vec)
-{
-	return Vector2i((int)round(vec->x()), (int)round(vec->y()));
-}
-
-static Vector3i ToVector3i(const Save::Vector3* vec)
-{
-	return Vector3i((int)round(vec->x()), (int)round(vec->y()), (int)round(vec->z()));
-}
-
-static Vector3 ToVector3(const Save::Vector3* vec)
-{
-	return Vector3(vec->x(), vec->y(), vec->z());
-}
-
-static Vector4 ToVector4(const Save::Vector3* vec)
-{
-	return Vector4(vec->x(), vec->y(), vec->z(), 1.0f);
-}
-
-static Vector4 ToVector4(const Save::Vector4* vec)
-{
-	return Vector4(vec->x(), vec->y(), vec->z(), vec->w());
-}
-
-static GameVector ToGameVector(const Save::GameVector* vec)
-{
-	return GameVector(vec->x(), vec->y(), vec->z(), (short)vec->room_number());
-}
-
-static Pose ToPose(const Save::Pose& pose)
-{
-	return Pose(ToVector3i(&pose.position()), ToEulerAngles(&pose.orientation()), ToVector3(&pose.scale()));
 }
 
 bool SaveGame::IsSaveGameSlotValid(int slot)
@@ -242,10 +162,10 @@ std::string SaveGame::GetSavegameFilename(int slot)
 	return (FullSaveDirectory + SAVEGAME_FILE_MASK + std::to_string(slot));
 }
 
-#define SaveVec(Type, Data, TableBuilder, UnionType, SaveType, ConversionFunc) \
+#define SaveVec(Type, Data, TableBuilder, UnionType, ConversionFunc) \
 				auto data = std::get<(int)Type>(Data); \
 				TableBuilder vtb{ fbb }; \
-				SaveType saveVec = ConversionFunc(data); \
+				auto saveVec = ConversionFunc(data); \
 				vtb.add_vec(&saveVec); \
 				auto vecOffset = vtb.Finish(); \
 				putDataInVec(UnionType, vecOffset);
@@ -320,19 +240,19 @@ static std::vector<flatbuffers::Offset<Save::UnionTable>> SerializeScriptVars(Fl
 			{
 			case SavedVarType::Vec2:
 				{
-					SaveVec(SavedVarType::Vec2, s, Save::vec2TableBuilder, Save::VarUnion::vec2, Save::Vector2, FromVector2);
+					SaveVec(SavedVarType::Vec2, s, Save::vec2TableBuilder, Save::VarUnion::vec2, FromVector2);
 					break;
 				}
 				
 			case SavedVarType::Vec3:
 				{
-					SaveVec(SavedVarType::Vec3, s, Save::vec3TableBuilder, Save::VarUnion::vec3, Save::Vector3, FromVector3);
+					SaveVec(SavedVarType::Vec3, s, Save::vec3TableBuilder, Save::VarUnion::vec3, FromVector3);
 					break;
 				}
 
 			case SavedVarType::Rotation:
 				{
-					SaveVec(SavedVarType::Rotation, s, Save::rotationTableBuilder, Save::VarUnion::rotation, Save::Vector3, FromVector3);
+					SaveVec(SavedVarType::Rotation, s, Save::rotationTableBuilder, Save::VarUnion::rotation, FromVector3);
 					break;
 				}
 
@@ -866,6 +786,11 @@ const std::vector<byte> SaveGame::Build()
 		}
 		auto itemCallbackVecOffset = fbb.CreateVector(itemCallbackOffsets);
 
+		// Serialize per-instance properties.
+		flatbuffers::Offset<Save::PropertyMapData> itemPropsOffset;
+		if (!itemToSerialize.Properties.IsEmpty())
+			itemPropsOffset = BuildPropertyMap(fbb, itemToSerialize.Properties);
+
 		std::vector<int> itemFlags;
 		for (int i = 0; i < ITEM_FLAG_COUNT; i++)
 			itemFlags.push_back(itemToSerialize.ItemFlags[i]);
@@ -883,8 +808,8 @@ const std::vector<byte> SaveGame::Build()
 		flatbuffers::Offset<Save::Kayak> kayakOffset;
 		flatbuffers::Offset<Save::Pushable> pushableOffset;
 
-		flatbuffers::Offset<Save::Short> shortOffset;
-		flatbuffers::Offset<Save::Int> intOffset;
+		flatbuffers::Offset<Common::Short> shortOffset;
+		flatbuffers::Offset<Common::Int> intOffset;
 
 		if (Objects.CheckID(itemToSerialize.ObjectNumber, true) && 
 			Objects[itemToSerialize.ObjectNumber].intelligent && itemToSerialize.IsCreature())
@@ -1052,13 +977,13 @@ const std::vector<byte> SaveGame::Build()
 		}
 		else if (itemToSerialize.Data.is<short>())
 		{
-			Save::ShortBuilder sb{ fbb };
+			Common::ShortBuilder sb{ fbb };
 			sb.add_scalar(short(itemToSerialize.Data));
 			shortOffset = sb.Finish();
 		}
 		else if (itemToSerialize.Data.is<int>())
 		{
-			Save::IntBuilder ib{ fbb };
+			Common::IntBuilder ib{ fbb };
 			ib.add_scalar(int(itemToSerialize.Data));
 			intOffset = ib.Finish();
 		}
@@ -1138,17 +1063,20 @@ const std::vector<byte> SaveGame::Build()
 		}
 		else if (itemToSerialize.Data.is<short>())
 		{
-			serializedItem.add_data_type(Save::ItemData::Short);
+			serializedItem.add_data_type(Save::ItemData::TEN_Serialization_Common_Short);
 			serializedItem.add_data(shortOffset.Union());
 		}
 		else if (itemToSerialize.Data.is<int>())
 		{
-			serializedItem.add_data_type(Save::ItemData::Int);
+			serializedItem.add_data_type(Save::ItemData::TEN_Serialization_Common_Int);
 			serializedItem.add_data(intOffset.Union());
 		}
 
 		serializedItem.add_lua_name(luaNameOffset);
 		serializedItem.add_lua_callbacks(itemCallbackVecOffset);
+
+		if (!itemToSerialize.Properties.IsEmpty())
+			serializedItem.add_properties(itemPropsOffset);
 
 		auto serializedItemOffset = serializedItem.Finish();
 		serializedItems.push_back(serializedItemOffset);
@@ -1339,6 +1267,11 @@ const std::vector<byte> SaveGame::Build()
 
 		for (int j = 0; j < room->mesh.size(); j++)
 		{
+			// Serialize per-instance static properties (must be before builder).
+			flatbuffers::Offset<Save::PropertyMapData> staticPropsOffset;
+			if (!room->mesh[j].Properties.IsEmpty())
+				staticPropsOffset = BuildPropertyMap(fbb, room->mesh[j].Properties);
+
 			auto staticObjBuilder = Save::StaticMeshInfoBuilder(fbb);
 
 			staticObjBuilder.add_number(j);
@@ -1347,6 +1280,10 @@ const std::vector<byte> SaveGame::Build()
 			staticObjBuilder.add_color(&FromVector4(room->mesh[j].Color));
 			staticObjBuilder.add_hit_points(room->mesh[j].HitPoints);
 			staticObjBuilder.add_flags(room->mesh[j].Flags);
+
+			if (!room->mesh[j].Properties.IsEmpty())
+				staticObjBuilder.add_properties(staticPropsOffset);
+
 			staticMeshes.push_back(staticObjBuilder.Finish());
 		}
 
@@ -1393,6 +1330,19 @@ const std::vector<byte> SaveGame::Build()
 	}
 	auto staticMeshesOffset = fbb.CreateVector(staticMeshes);
 	auto volumesOffset = fbb.CreateVector(volumes);
+
+	std::vector<Common::Vector4> materialProperties = {};
+	materialProperties.reserve(g_Level.Materials.size() * MaterialData::PropertyCount);
+
+	for (const auto& material : g_Level.Materials)
+	{
+		auto& currentParameters = material.GetProperties();
+
+		for (int i = 0; i < MaterialData::PropertyCount; i++)
+			materialProperties.push_back(FromVector4(currentParameters[i]));
+	}
+
+	auto materialPropertiesOffset = fbb.CreateVectorOfStructs(materialProperties);
 
 	// Level state
 	auto* level = (Level*)g_GameFlow->GetLevel(CurrentLevel);
@@ -1442,6 +1392,7 @@ const std::vector<byte> SaveGame::Build()
 	levelData.add_weather_type((int)level->Weather);
 	levelData.add_weather_strength(level->WeatherStrength);
 	levelData.add_weather_clustering(level->WeatherClustering);
+	levelData.add_material_properties(materialPropertiesOffset);
 
 	auto levelDataOffset = levelData.Finish();
 
@@ -1714,6 +1665,10 @@ const std::vector<byte> SaveGame::Build()
 
 	auto callbacksOffset = fbb.CreateVector(callbackOffsets);
 
+	// Serialize global type properties.
+	auto moveableTypePropsOffset = BuildTypeProperties(fbb, PropertyHandler::GetAllMoveableProperties());
+	auto staticTypePropsOffset = BuildTypeProperties(fbb, PropertyHandler::GetAllStaticProperties());
+
 	Save::SaveGameBuilder sgb{ fbb };
 
 	sgb.add_header(headerOffset);
@@ -1777,6 +1732,9 @@ const std::vector<byte> SaveGame::Build()
 
 	sgb.add_script_vars(unionVecOffset);
 	sgb.add_callbacks(callbacksOffset);
+
+	sgb.add_moveable_type_properties(moveableTypePropsOffset);
+	sgb.add_static_type_properties(staticTypePropsOffset);
 
 	auto sg = sgb.Finish();
 	fbb.Finish(sg);
@@ -2363,10 +2321,26 @@ static void ParseEffects(const Save::SaveGame* s)
 	g_Renderer.SetPostProcessStrength(s->postprocess_strength());
 	g_Renderer.SetPostProcessTint(ToVector3(s->postprocess_tint()));
 
+	// Restore material properties.
+	auto* materialProperties = s->level_data()->material_properties();
+	TENAssert(materialProperties != nullptr && materialProperties->size() == g_Level.Materials.size() * MaterialData::PropertyCount, "Savegame material property data size mismatch.");
+
+	auto valueIndex = 0;
+	for (auto& material : g_Level.Materials)
+	{
+		std::array<Vector4, MaterialData::PropertyCount> properties = {};
+
+		for (int i = 0; i < MaterialData::PropertyCount; i++)
+			properties[i] = ToVector4(materialProperties->Get(valueIndex++));
+
+		material.SetCurrentProperties(properties);
+		material.StoreInterpolationData();
+	}
+
 	// Restore soundtracks.
 	for (int i = 0; i < s->soundtracks()->size(); i++)
 	{
-		TENAssert(i < (int)SoundTrackType::Count, "Soundtrack type count was changed");
+		TENAssert(i < (int)SoundTrackType::Count, "Soundtrack type count was changed.");
 
 		auto track = s->soundtracks()->Get(i);
 		PlaySoundTrack(track->name()->str(), (SoundTrackType)i, track->position(), SOUND_XFADETIME_LEVELJUMP);
@@ -2619,6 +2593,9 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		staticObj.HitPoints = savedStaticObj.hit_points();
 		staticObj.Flags = savedStaticObj.flags();
 		staticObj.Dirty = true;
+
+		// Load per-instance properties.
+		ParsePropertyMap(savedStaticObj.properties(), staticObj.Properties);
 		
 		if (!staticObj.Flags)
 			TestTriggers(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, savedStaticObj.room_number(), true, 0);
@@ -2755,6 +2732,9 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 					item->Callbacks[type] = entry->name()->str();
 			}
 		}
+
+		// Load per-instance properties.
+		ParsePropertyMap(savedItem->properties(), item->Properties);
 
 		g_GameScriptEntities->TryAddColliding(i);
 
@@ -3017,16 +2997,16 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			pushable->EdgeAttribs[3].IsPushable = savedPushable->pushable_west_pushable();
 			pushable->EdgeAttribs[3].IsClimbable = savedPushable->pushable_west_climbable();
 		}
-		else if (savedItem->data_type() == Save::ItemData::Short)
+		else if (savedItem->data_type() == Save::ItemData::TEN_Serialization_Common_Short)
 		{
 			auto* data = savedItem->data();
-			auto* savedData = (Save::Short*)data;
+			const auto* savedData = (Common::Short*)data;
 			item->Data = savedData->scalar();
 		}
-		else if (savedItem->data_type() == Save::ItemData::Int)
+		else if (savedItem->data_type() == Save::ItemData::TEN_Serialization_Common_Int)
 		{
 			auto* data = savedItem->data();
-			auto* savedData = (Save::Int*)data;
+			const auto* savedData = (Common::Int*)data;
 			item->Data = savedData->scalar();
 		}
 	}
@@ -3045,6 +3025,11 @@ void SaveGame::Parse(const std::vector<byte>& buffer, bool hubMode)
 	const Save::SaveGame* s = Save::GetSaveGame(buffer.data());
 
 	ParseLevel(s, hubMode);
+
+	// Load global type properties.
+	ParseTypeProperties(s->moveable_type_properties(), PropertyHandler::GetMutableMoveableProperties());
+	ParseTypeProperties(s->static_type_properties(), PropertyHandler::GetMutableStaticProperties());
+
 	ParseLua(s, hubMode);
 	ParseStatistics(s, hubMode);
 

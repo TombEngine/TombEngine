@@ -39,6 +39,7 @@ constexpr auto BONE_COUNT_MAX		 = 32;
 constexpr auto BONE_WEIGHT_COUNT_MAX = 4;
 
 constexpr auto DISPLAY_SPACE_RES = Vector2(800.0f, 600.0f);
+constexpr auto DISPLAY_SPACE_ASPECT = DISPLAY_SPACE_RES.x / DISPLAY_SPACE_RES.y;
 constexpr auto REFERENCE_FONT_SIZE = 35.0f;
 constexpr auto HUD_ZERO_Y = -DISPLAY_SPACE_RES.y;
 
@@ -357,7 +358,7 @@ enum class DOFMode
 	Back = 3
 };
 
-enum class MaterialShaderType
+enum class TextureMaterialType
 {
 	Default = 0,
 	Reflective = 1,

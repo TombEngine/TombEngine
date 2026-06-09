@@ -7,6 +7,7 @@
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
+#include "Game/effects/DisplaySprite.h"
 #include "Game/Gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Lara/lara.h"
@@ -23,6 +24,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
+using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Gui;
 using namespace TEN::Hud;
 using namespace TEN::Input;
@@ -611,23 +613,7 @@ namespace TEN::Renderer
 			break;
 
 		case Menu::SelectLevel:
-
-			// Setup needed parameters
-			menuPos.y = MenuVerticalLineSpacing;
-
-			// Title
-			AddString(MenuCenterEntry, 26, g_GameFlow->GetString(STRING_SELECT_LEVEL), g_GameFlow->GetSettings()->UI.HeaderTextColor, SF_Center());
-			GetNextBlockPosition(&menuPos.y);
-
-			// Level 0 is always Title Level and level 1 might be Home Level.
-			for (int i = (g_GameFlow->IsHomeLevelEnabled() ? 2 : 1); i < g_GameFlow->GetNumLevels(); i++, selectedOption++)
-			{
-				AddString(
-					MenuCenterEntry, menuPos.y, g_GameFlow->GetString(g_GameFlow->GetLevel(i)->NameStringKey.c_str()),
-					plainColor, SF_Center(titleOption == selectedOption));
-				GetNextNarrowLinePosition(&menuPos.y);
-			}
-
+			RenderSelectLevel();
 			break;
 
 		case Menu::Options:
@@ -739,6 +725,119 @@ namespace TEN::Renderer
 		}
 
 		DrawAllStrings();
+	}
+
+	void Renderer::RenderSelectLevel()
+	{
+		constexpr auto SCROLL_EASE	 = 0.3f;
+		constexpr auto FADE_ZONE_H	 = 25.0f;
+		constexpr auto ARROW_MARGIN  = 30.0f;
+		constexpr auto ARROW_SCALE	 = 0.03f;
+
+		int titleOption  = g_Gui.GetSelectedOption();
+		auto plainColor  = g_GameFlow->GetSettings()->UI.PlainTextColor;
+		auto headerColor = g_GameFlow->GetSettings()->UI.HeaderTextColor;
+		auto scale		 = g_GameFlow->GetSettings()->UI.TitleMenuScale;
+
+		// Level 0 is always Title Level and level 1 might be Home Level.
+		int firstLevel = g_GameFlow->IsHomeLevelEnabled() ? 2 : 1;
+		int numLevels  = g_GameFlow->GetNumLevels() - firstLevel;
+
+		if (numLevels <= 0)
+			return;
+
+		float listStartY  = (float)(MenuVerticalLineSpacing + MenuVerticalBlockSpacing);
+		float lineHeight  = (float)MenuVerticalLineSpacing;
+		float totalHeight = (float)numLevels * lineHeight;
+		float visibleH	  = DISPLAY_SPACE_RES.y - listStartY - lineHeight * 2;
+		bool  needsScroll = (totalHeight > visibleH);
+		bool  needsAlpha  = false;
+
+		// Title.
+		AddString(MenuCenterEntry, MenuVerticalLineSpacing, g_GameFlow->GetString(STRING_SELECT_LEVEL), headerColor, SF_Center());
+
+		static float selectLevelScrollY = 0.0f;
+
+		// Compute target scroll and ease toward it.
+		if (needsScroll)
+		{
+			float selectedCenterY = (float)titleOption * lineHeight + lineHeight * 0.5f;
+			float maxScrollY	  = totalHeight - visibleH;
+			float targetScrollY   = selectedCenterY - visibleH * 0.5f;
+
+			if (targetScrollY < 0.0f)
+				targetScrollY = 0.0f;
+			if (targetScrollY > maxScrollY)
+				targetScrollY = maxScrollY;
+
+			auto delta = targetScrollY - selectLevelScrollY;
+			needsAlpha = abs(delta) >= EPSILON;
+
+			selectLevelScrollY += delta * SCROLL_EASE;
+			if (abs(selectLevelScrollY - targetScrollY) < 0.5f)
+				selectLevelScrollY = targetScrollY;
+		}
+		else
+			selectLevelScrollY = 0.0f;
+
+		// Draw level entries.
+		for (int i = 0; i < numLevels; i++)
+		{
+			int levelIndex = firstLevel + i;
+			float entryY = listStartY + (float)i * lineHeight - selectLevelScrollY;
+
+			// Fade entries near clip boundaries.
+			float alpha = 1.0f;
+			if (needsScroll)
+			{
+				float topEdge    = listStartY;
+				float bottomEdge = listStartY + visibleH - lineHeight;
+
+				if (entryY < topEdge)
+					alpha = std::max(0.0f, 1.0f - (topEdge - entryY) / FADE_ZONE_H);
+				else if (entryY > bottomEdge)
+					alpha = std::max(0.0f, 1.0f - (entryY - bottomEdge) / FADE_ZONE_H);
+			}
+
+			// Skip clipped entries.
+			if ((alpha <= 0.0f) || (!needsAlpha && alpha < 1.0f))
+				continue;
+
+			auto color = Color(plainColor);
+			color.w *= alpha;
+
+			AddString(g_GameFlow->GetString(g_GameFlow->GetLevel(levelIndex)->NameStringKey.c_str()),
+				Vector2((float)MenuCenterEntry, entryY), color, scale, SF_Center(titleOption == i));
+		}
+
+		// Draw scroll arrows.
+		if (needsScroll && Objects[GAME_OBJECT_ID::ID_INVENTORY_SPRITES].loaded)
+		{
+			const float xPositions[] = { ARROW_MARGIN, DISPLAY_SPACE_RES.x - ARROW_MARGIN };
+			auto maxScrollY = totalHeight - visibleH;
+
+			for (float x : xPositions)
+			{
+				if (selectLevelScrollY > 1.0f)
+				{
+					TEN::Effects::DisplaySprite::AddDisplaySprite(ID_INVENTORY_SPRITES, 0,
+						Vector2(x, ARROW_MARGIN), 0, Vector2(ARROW_SCALE), headerColor, 0,
+						DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::AlphaBlend, DisplaySpritePhase::Draw);
+				}
+
+				if (selectLevelScrollY < maxScrollY - 1.0f)
+				{
+					TEN::Effects::DisplaySprite::AddDisplaySprite(ID_INVENTORY_SPRITES, 0,
+						Vector2(x, DISPLAY_SPACE_RES.y - ARROW_MARGIN),
+						ANGLE(180), Vector2(ARROW_SCALE), headerColor, 0,
+						DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::AlphaBlend, DisplaySpritePhase::Draw);
+				}
+			}
+		}
+
+		CollectDisplaySprites(_gameCamera);
+		DrawDisplaySprites(_gameCamera, false);
+		DrawDisplaySprites(_gameCamera, true);
 	}
 
 	void Renderer::DrawStatistics()
@@ -1321,28 +1420,29 @@ namespace TEN::Renderer
 
 			if (drawLogo && _logo != nullptr)
 			{
-				float factorX = (float)_graphicsDevice->GetScreenWidth() / DISPLAY_SPACE_RES.x;
-				float factorY = (float)_graphicsDevice->GetScreenHeight() / DISPLAY_SPACE_RES.y;
-				float scale = _graphicsDevice->GetScreenWidth() > _graphicsDevice->GetScreenHeight() ? factorX : factorY;
+				int screenW = _graphicsDevice->GetScreenWidth();
+				int screenH = _graphicsDevice->GetScreenHeight();
+				float factorX = (float)screenW / DISPLAY_SPACE_RES.x;
+				float factorY = (float)screenH / DISPLAY_SPACE_RES.y;
+
+				// Uniform scale to preserve logo aspect ratio regardless of window aspect.
+				float sizeScale = std::min(factorX, factorY);
 
 				auto& settings = g_GameFlow->GetSettings()->UI;
 
-				float logoWidthScaled  = _logo->GetWidth() * settings.TitleLogoScale;
-				float logoHeightScaled = _logo->GetHeight() * settings.TitleLogoScale;
+				float logoWidthScaled  = _logo->GetWidth()  * settings.TitleLogoScale * sizeScale;
+				float logoHeightScaled = _logo->GetHeight() * settings.TitleLogoScale * sizeScale;
 
-				float centerX = (settings.TitleLogoPosition.x / 100.0f) * DISPLAY_SPACE_RES.x;
-				float centerY = (settings.TitleLogoPosition.y / 100.0f) * DISPLAY_SPACE_RES.y;
-
-				float logoLeft   = centerX - logoWidthScaled  * 0.5f;
-				float logoRight  = centerX + logoWidthScaled  * 0.5f;
-				float logoTop    = centerY - logoHeightScaled * 0.5f;
-				float logoBottom = centerY + logoHeightScaled * 0.5f;
+				// Position the logo as a percentage of the actual window so it stays anchored
+				// (e.g. centered horizontally at 50%) across any aspect ratio.
+				float centerX = (settings.TitleLogoPosition.x / 100.0f) * screenW;
+				float centerY = (settings.TitleLogoPosition.y / 100.0f) * screenH;
 
 				RendererRectangle rect;
-				rect.Left   = logoLeft   * scale;
-				rect.Right  = logoRight  * scale;
-				rect.Top    = logoTop    * scale;
-				rect.Bottom = logoBottom * scale;
+				rect.Left   = centerX - logoWidthScaled  * 0.5f;
+				rect.Right  = centerX + logoWidthScaled  * 0.5f;
+				rect.Top    = centerY - logoHeightScaled * 0.5f;
+				rect.Bottom = centerY + logoHeightScaled * 0.5f;
 
 				// HACK: Color range slippage. Remove in fix color range PR.
 				auto color = Vector4(settings.TitleLogoColor.GetR() / (float)UCHAR_MAX,
@@ -1521,7 +1621,7 @@ namespace TEN::Renderer
 		_isLocked = false;
 
 		InterpolateCamera(interpFactor);
-		DumpGameScene();
+		DumpGameScene(g_Gui.GetMenuToDisplay() == Menu::SelectLevel ? SceneRenderMode::NoHud : SceneRenderMode::Full);
 
 		_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);

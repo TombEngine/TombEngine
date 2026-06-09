@@ -3,6 +3,7 @@
 namespace TEN::Utils
 {
 	// Memory utilities
+
 	float ToMegabytes(unsigned long long bytes);
 	
 	// String utilities
@@ -26,6 +27,20 @@ namespace TEN::Utils
 	std::vector<std::string> SplitWords(const std::string& input);
 
 	int GetHash(const std::string& string);
+	constexpr int GetHash(const char* str)
+	{
+		if (str == nullptr || str[0] == '\0')
+			return 0;
+
+		unsigned int hash = 2166136261u;
+		for (; *str != '\0'; ++str)
+		{
+			hash ^= static_cast<unsigned char>(*str);
+			hash *= 16777619u;
+		}
+
+		return static_cast<int>(hash);
+	}
 
 	// 2D space utilities
 
