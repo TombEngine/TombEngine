@@ -102,8 +102,8 @@ namespace TEN::Entities::Vehicles
 	{
 		auto& speedboatItem = g_Level.Items[itemNumber];
 
-		auto speedboatMistStartColor = PropertyHandler::Get(speedboatItem, "SpeedboatMistStartColor", ScriptColor(0, 0, 0));
-		auto speedboatMistEndColor = PropertyHandler::Get(speedboatItem, "SpeedboatMistEndColor", ScriptColor(64, 64, 64));
+		auto speedboatMistStartColor = PropertyHandler::Get(speedboatItem, "VehicleMistStartColor", ScriptColor(0, 0, 0));
+		auto speedboatMistEndColor = PropertyHandler::Get(speedboatItem, "VehicleMistEndColor", ScriptColor(64, 64, 64));
 
 		auto& mist = *GetFreeParticle();
 		mist.on = true;
