@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Specific/RGBAColor8Byte.h"
+#include "Specific/Structures/RGBAColor8Byte.h"
 #include "Scripting/Internal/ScriptUtil.h"
 
 typedef unsigned int D3DCOLOR;
