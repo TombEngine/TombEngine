@@ -10,7 +10,7 @@ namespace TEN::Effects::ParticleGroups
 	// Constants.
 	constexpr auto MAX_PARTICLE_GROUPS	  = 64;
 	constexpr auto MAX_GROUP_PARTICLES	  = 256;
-	constexpr auto DEFAULT_RENDER_DISTANCE = 32768.0f;
+	constexpr auto DEFAULT_RENDER_DISTANCE = BLOCK(32);
 
 	enum class ParticleGroupState
 	{
@@ -31,7 +31,7 @@ namespace TEN::Effects::ParticleGroups
 		Vector3 Acceleration = Vector3::Zero;
 
 		// Visuals
-		Color          ParticleColor  = Color(1.0f, 1.0f, 1.0f, 1.0f);
+		Color          ParticleColor = NEUTRAL_COLOR;
 		float          Size           = 1.0f;
 		float          Rotation       = 0.0f;
 		int            SubIndex  = 0;
@@ -97,8 +97,8 @@ namespace TEN::Effects::ParticleGroups
 		float   LifetimeMax        = 1.0f;
 		float   InitSizeMin        = 16.0f;
 		float   InitSizeMax        = 16.0f;
-		Color   InitColorMin       = Color(1.0f, 1.0f, 1.0f, 1.0f);
-		Color   InitColorMax       = Color(1.0f, 1.0f, 1.0f, 1.0f);
+		Color   InitColorMin       = NEUTRAL_COLOR;
+		Color   InitColorMax       = NEUTRAL_COLOR;
 		float   InitRotation       = 0.0f;
 		float   InitRotationVel    = 0.0f;
 		int     InitSubIndex    = 0;

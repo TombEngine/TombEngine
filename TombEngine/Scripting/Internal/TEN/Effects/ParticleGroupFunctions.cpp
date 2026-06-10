@@ -21,62 +21,82 @@ using namespace TEN::Scripting::Types;
 // @tenclass Effects.ParticleGroups 
 // @pragma nostrip
 
+namespace ParticleKey
+{
+	constexpr const char* Id = "id";
+	constexpr const char* Position = "position";
+	constexpr const char* Velocity = "velocity";
+	constexpr const char* Acceleration = "acceleration";
+	constexpr const char* Size = "size";
+	constexpr const char* Rotation = "rotation";
+	constexpr const char* Color = "color";
+	constexpr const char* Age = "age";
+	constexpr const char* Lifetime = "lifetime";
+	constexpr const char* AgeNormalized = "ageNormalized";
+	constexpr const char* SubIndex = "subIndex";
+	constexpr const char* ObjectID = "objectID";
+	constexpr const char* Orientation = "orientation";
+	constexpr const char* ContactRadius = "contactRadius";
+	constexpr const char* TouchingPlayer = "touchingPlayer";
+	constexpr const char* Teleport = "teleport";
+}
+
 namespace TEN::Scripting::Effects::ParticleGroups
 {
-	// -- Private static helpers --
+	// Private static helpers
 
 	sol::table LuaParticleGroup::MakeParticleTable(sol::state_view& lua, const GroupParticle& p)
 	{
 		auto tbl = lua.create_table();
-		tbl["id"]            = p.ID;
-		tbl["position"]      = Vec3(p.Position);
-		tbl["velocity"]      = Vec3(p.Velocity);
-		tbl["acceleration"]  = Vec3(p.Acceleration);
-		tbl["size"]          = p.Size;
-		tbl["rotation"]      = p.Rotation / RADIAN;
-		tbl["color"]         = ScriptColor(p.ParticleColor);
-		tbl["age"]           = p.Age;
-		tbl["lifetime"]      = p.Lifetime;
-		tbl["ageNormalized"] = p.AgeNormalized;
-		tbl["subIndex"]      = p.SubIndex;
-		tbl["objectID"]      = p.ObjectID;
-		tbl["orientation"]   = Vec3(p.Orientation.x / RADIAN, p.Orientation.y / RADIAN, p.Orientation.z / RADIAN);
-		tbl["contactRadius"]        = p.ContactRadius;
-		tbl["touchingPlayer"] = p.TouchingPlayer;
+		tbl[ParticleKey::Id] = p.ID;
+		tbl[ParticleKey::Position] = Vec3(p.Position);
+		tbl[ParticleKey::Velocity] = Vec3(p.Velocity);
+		tbl[ParticleKey::Acceleration] = Vec3(p.Acceleration);
+		tbl[ParticleKey::Size] = p.Size;
+		tbl[ParticleKey::Rotation] = p.Rotation / RADIAN;
+		tbl[ParticleKey::Color] = ScriptColor(p.ParticleColor);
+		tbl[ParticleKey::Age] = p.Age;
+		tbl[ParticleKey::Lifetime] = p.Lifetime;
+		tbl[ParticleKey::AgeNormalized] = p.AgeNormalized;
+		tbl[ParticleKey::SubIndex] = p.SubIndex;
+		tbl[ParticleKey::ObjectID] = p.ObjectID;
+		tbl[ParticleKey::Orientation] = Vec3(p.Orientation.x / RADIAN, p.Orientation.y / RADIAN, p.Orientation.z / RADIAN);
+		tbl[ParticleKey::ContactRadius] = p.ContactRadius;
+		tbl[ParticleKey::TouchingPlayer] = p.TouchingPlayer;
 		return tbl;
 	}
 
 	void LuaParticleGroup::ApplyParticleTable(GroupParticle& p, const sol::table& data)
 	{
-		if (auto pos = data.get<sol::optional<Vec3>>("position"))
+		if (auto pos = data.get<sol::optional<Vec3>>(ParticleKey::Position))
 			p.Position = pos->ToVector3();
-		if (auto vel = data.get<sol::optional<Vec3>>("velocity"))
+		if (auto vel = data.get<sol::optional<Vec3>>(ParticleKey::Velocity))
 			p.Velocity = vel->ToVector3();
-		if (auto accel = data.get<sol::optional<Vec3>>("acceleration"))
+		if (auto accel = data.get<sol::optional<Vec3>>(ParticleKey::Acceleration))
 			p.Acceleration = accel->ToVector3();
-		if (auto size = data.get<sol::optional<float>>("size"))
+		if (auto size = data.get<sol::optional<float>>(ParticleKey::Size))
 			p.Size = *size;
-		if (auto rot = data.get<sol::optional<float>>("rotation"))
+		if (auto rot = data.get<sol::optional<float>>(ParticleKey::Rotation))
 			p.Rotation = *rot * RADIAN;
-		if (auto sprite = data.get<sol::optional<int>>("subIndex"))
+		if (auto sprite = data.get<sol::optional<int>>(ParticleKey::SubIndex))
 			p.SubIndex = *sprite;
-		if (auto seq = data.get<sol::optional<GAME_OBJECT_ID>>("objectID"))
+		if (auto seq = data.get<sol::optional<GAME_OBJECT_ID>>(ParticleKey::ObjectID))
 			p.ObjectID = *seq;
-		if (auto color = data.get<sol::optional<ScriptColor>>("color"))
+		if (auto color = data.get<sol::optional<ScriptColor>>(ParticleKey::Color))
 			p.ParticleColor = Color(*color);
-		if (auto orient = data.get<sol::optional<Rotation>>("orientation"))
+		if (auto orient = data.get<sol::optional<Rotation>>(ParticleKey::Orientation))
 			p.Orientation = Vector3(orient->x * RADIAN, orient->y * RADIAN, orient->z * RADIAN);
-		if (auto lt = data.get<sol::optional<float>>("lifetime"))
+		if (auto lt = data.get<sol::optional<float>>(ParticleKey::Lifetime))
 			p.Lifetime = std::max(0.01f, *lt);
-		if (auto age = data.get<sol::optional<float>>("age"))
+		if (auto age = data.get<sol::optional<float>>(ParticleKey::Age))
 			p.Age = std::clamp(*age, 0.0f, p.Lifetime);
-		if (auto cr = data.get<sol::optional<float>>("contactRadius"))
+		if (auto cr = data.get<sol::optional<float>>(ParticleKey::ContactRadius))
 			p.ContactRadius = std::max(1.0f, *cr);
-		if (auto tp = data.get<sol::optional<bool>>("teleport"); tp && *tp)
+		if (auto tp = data.get<sol::optional<bool>>(ParticleKey::Teleport); tp && *tp)
 			p.Teleport = true;
 	}
 
-	// -- Constructor --
+	// Constructor
 
 	LuaParticleGroup::LuaParticleGroup(GAME_OBJECT_ID objectID, int maxParticles)
 	{
@@ -90,7 +110,7 @@ namespace TEN::Scripting::Effects::ParticleGroups
 		_handle = ParticleGroupHandle{ id, ParticleGroupList[id].Generation };
 	}
 
-	// -- Emission control --
+	// Emission control
 
 	void LuaParticleGroup::Start()
 	{
@@ -117,7 +137,7 @@ namespace TEN::Scripting::Effects::ParticleGroups
 		if (auto* group = _handle.Get()) group->EmitBurst(count);
 	}
 
-	// -- Queries --
+	// Queries
 
 	int LuaParticleGroup::GetActiveCount() const
 	{
@@ -142,7 +162,7 @@ namespace TEN::Scripting::Effects::ParticleGroups
 		return _handle.IsValid();
 	}
 
-	// -- Emitter --
+	// Emitter
 
 	void LuaParticleGroup::SetEmissionRate(float rate)
 	{
@@ -168,7 +188,7 @@ namespace TEN::Scripting::Effects::ParticleGroups
 		return Vec3(group->EmitterPosition);
 	}
 
-	// -- Initial particle properties --
+	// Initial particle properties
 
 	void LuaParticleGroup::SetInitialVelocity(const Vec3& vel)
 	{
@@ -313,14 +333,14 @@ namespace TEN::Scripting::Effects::ParticleGroups
 		}
 	}
 
-	// -- Contact --
+	// Contact
 
 	void LuaParticleGroup::SetContactRadius(float radius)
 	{
 		if (auto* group = _handle.Get()) group->InitContactRadius = std::max(1.0f, radius);
 	}
 
-	// -- Per-particle access --
+	// Per-particle access
 
 	sol::object LuaParticleGroup::GetParticle(int index, sol::this_state s) const
 	{
@@ -368,7 +388,7 @@ namespace TEN::Scripting::Effects::ParticleGroups
 		}
 	}
 
-	// -- Registration --
+	// Registration
 
 	void LuaParticleGroup::Register(sol::table& parent)
 	{

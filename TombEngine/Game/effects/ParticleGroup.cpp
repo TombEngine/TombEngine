@@ -41,7 +41,7 @@ namespace TEN::Effects::ParticleGroups
 		}
 
 		TENLog("ParticleGroup limit reached.", LogLevel::Warning);
-		return -1;
+		return NO_VALUE;
 	}
 
 	bool ParticleGroupHandle::IsValid() const
