@@ -1,3 +1,4 @@
+-- ldignore
 -- Accessory presets for the Photo Mode accessory picker.
 -- Each entry describes a mesh swap to apply to the pm_Sunglasses moveable.
 --   name        : Display name shown in the menu.

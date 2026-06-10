@@ -1,8 +1,3 @@
--- Menu system for the PhotoMode module.
--- Based on Engine.RingInventory.Menu, extended with header tab navigation.
--- Headers are switched with STEP_LEFT / STEP_RIGHT, each header can show/hide
--- its associated menu via Menu.AddActive.
-
 local InputHelpers = require("Engine.PhotoMode.InputHelpers")
 local Settings     = require("Engine.PhotoMode.Settings")
 
@@ -574,7 +569,7 @@ end
 -- Input Handling
 -- ============================================================================
 
-local function GetKey(actionID)
+local function GetRawKey(actionID)
 
     local device = TEN.Input.GetLastInputDevice()
    
@@ -614,7 +609,7 @@ local function HandleInput(menuName)
     end
 
     -- Navigate items: MENU_UP / MENU_DOWN
-    if InputHelpers.GuiIsPulsed(GetKey(ActionID.MENU_UP), menu.inputTimer) then
+    if InputHelpers.GuiIsPulsed(GetRawKey(ActionID.MENU_UP), menu.inputTimer) then
         PlaySound(menu.sounds and menu.sounds.menuSelect)
         if menu.wrapAroundItems then
             menu.currentItem = (menu.currentItem - 2) % itemCount + 1
@@ -625,7 +620,7 @@ local function HandleInput(menuName)
             PerformFunction(menu.itemChangeFunction)
         end
 
-    elseif InputHelpers.GuiIsPulsed(GetKey(ActionID.MENU_DOWN), menu.inputTimer) then
+    elseif InputHelpers.GuiIsPulsed(GetRawKey(ActionID.MENU_DOWN), menu.inputTimer) then
         PlaySound(menu.sounds and menu.sounds.menuSelect)
         if menu.wrapAroundItems then
             menu.currentItem = menu.currentItem % itemCount + 1
@@ -636,7 +631,7 @@ local function HandleInput(menuName)
             PerformFunction(menu.itemChangeFunction)
         end
 
-    elseif InputHelpers.GuiIsPulsed(GetKey(ActionID.MENU_LEFT), menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+    elseif InputHelpers.GuiIsPulsed(GetRawKey(ActionID.MENU_LEFT), menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             PlaySound(menu.sounds and menu.sounds.menuSelect)
@@ -650,7 +645,7 @@ local function HandleInput(menuName)
             end
         end
 
-    elseif InputHelpers.GuiIsPulsed(GetKey(ActionID.MENU_RIGHT), menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+    elseif InputHelpers.GuiIsPulsed(GetRawKey(ActionID.MENU_RIGHT), menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             PlaySound(menu.sounds and menu.sounds.menuSelect)

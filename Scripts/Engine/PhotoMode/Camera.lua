@@ -1,3 +1,4 @@
+-- ldignore
 -- Camera management for the PhotoMode module.
 -- Handles creation of null-mesh camera objects, initial placement,
 -- attaching/detaching the object camera, and camera movement.

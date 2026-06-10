@@ -1,3 +1,4 @@
+-- ldignore
 local Poses =
 {
     { name = "Default",        objID = TEN.Objects.ObjID.LARA, animNumber = 0, frameNumber = 0 },

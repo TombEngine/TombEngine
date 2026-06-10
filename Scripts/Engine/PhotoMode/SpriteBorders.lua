@@ -1,3 +1,4 @@
+-- ldignore
 -- Frame overlay for the PhotoMode module.
 -- Draws a full-screen sprite as a decorative frame using the same
 -- technique as RingInventory.Sprites background drawing.

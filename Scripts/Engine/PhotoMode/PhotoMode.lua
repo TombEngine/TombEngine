@@ -1,6 +1,6 @@
---------------------------------------------------------------------------------
+---
 -- PhotoMode
--- A non-destructive in-game photo mode for Tomb Engine New (TEN).
+-- An in-game photo mode for Tomb Engine.
 --
 -- The player freezes the game, moves a free camera, adjusts Lara's pose and
 -- appearance, sets up a light, applies post-process filters, and can overlay
@@ -10,130 +10,98 @@
 -- lives in small data files inside Engine/PhotoMode/ so you can extend the
 -- system without touching this file.
 --
--- ============================================================================
--- QUICK START
--- ============================================================================
+-- In your level script, require this module once:
 --
--- 1. In your level script, require this module once:
+-- <i>local PhotoMode = require("Engine.PhotoMode.PhotoMode")</i>
 --
---        local PhotoMode = require("Engine.PhotoMode.PhotoMode")
+-- The module self-registers its POSTLOOP and PREFREEZE callbacks, so no further wiring is needed.
 --
---    The module self-registers its POSTLOOP and PREFREEZE callbacks, so no
---    further wiring is needed.
---
--- 2. Make sure the following WAD objects exist in your level:
+-- Make sure the following WAD objects exist in your wad:
 --
 --        PHOTOMODE_SPRITES  — sprite sheet (see Settings.lua for sprite indices)
 --        PHOTOMODE_FRAMES   — frame overlay sprite sheet
 --        PHOTOMODE_ANIMS    — object that holds all custom photo-mode poses
 --        CAMERA_TARGET      — used internally to drive the object camera
---        pm_CameraMesh      — null-mesh object placed at runtime (auto-created)
---        pm_CameraTarget    — null-mesh object placed at runtime (auto-created)
---        pm_Sunglasses      — Lara-skeleton object used for accessory mesh swaps
---                             (auto-spawned; the name is set in Settings.Accessories.meshName)
 --
--- ============================================================================
--- ENTERING PHOTO MODE
--- ============================================================================
 --
--- Keyboard
---   Press F3 to enter immediately.
+-- <h3><b>Controls</b></h3>
+-- The active header tab (cycle with Q / E or shoulder buttons) determines which
+-- subject (camera, character or light) the movement controls apply to.  The controls remain functional even when the UI is hidden.
 --
--- Controller
---   Hold Left Stick + Right Stick simultaneously.
+-- <table class="function_list">
+-- <tr>
+--   <th>Action</th>
+--   <th>Keyboard</th>
+--   <th>Controller</th>
+-- </tr>
+-- <tr>
+--   <td>Enter Photo Mode</td>
+--   <td>F3</td>
+--   <td>Press Left Stick + Right Stick</td>
+-- </tr>
+-- <tr>
+--   <td>Move forward / back</td>
+--   <td>W / S</td>
+--   <td>Left stick Y</td>
+-- </tr>
+-- <tr>
+--   <td>Strafe left / right</td>
+--   <td>A / D</td>
+--   <td>Left stick X</td>
+-- </tr>
+-- <tr>
+--   <td>Rotate camera view</td>
+--   <td>Mouse (move freely)</td>
+--   <td>Right stick</td>
+-- </tr>
+-- <tr>
+--   <td>Rotate character Y</td>
+--   <td>Mouse X</td>
+--   <td>Right stick X</td>
+-- </tr>
+-- <tr>
+--   <td>Move subject vertically</td>
+--   <td>Hold RMB + Mouse Y</td>
+--   <td>Hold RT + Right stick Y</td>
+-- </tr>
+-- <tr>
+--   <td>Navigate menu items</td>
+--   <td>Up / Down</td>
+--   <td>D-pad </td>
+-- </tr>
+-- <tr>
+--   <td>Change option value</td>
+--   <td>Left / Right</td>
+--   <td>D-pad Left / Right</td>
+-- </tr>
+-- <tr>
+--   <td>Confirm (Accept)</td>
+--   <td>Enter / Action</td>
+--   <td>Cross/A</td>
+-- </tr>
+-- <tr>
+--   <td>Switch tabs</td>
+--   <td>Q / E</td>
+--   <td>LS / RS</td>
+-- </tr>
+-- <tr>
+--   <td>Toggle UI visibility</td>
+--   <td>Look (NumPad 0)</td>
+--   <td>LT</td>
+-- </tr>
+-- <tr>
+--   <td>Exit Photo Mode</td>
+--   <td>Inventory (Escape)</td>
+--   <td>Circle/B</td>
+-- </tr>
+-- </table>
 --
--- Both methods respect Settings.Entry.holdFrames (default 1).  Raise this
--- value to require a sustained hold before entering.
---
--- Exiting
---   Press Inventory (keyboard) / Circle/B (controller) at any time.
---
--- ============================================================================
--- CONTROLS
--- ============================================================================
---
--- The active header tab (cycle with Step Left / Step Right) determines which
--- subject the movement controls apply to.  The UI remains fully functional
--- while you move — you do not need to hide it first.
---
--- ┌─────────────────────────┬────────────────────────────────────────────────┐
--- │ Action                  │ Keyboard              │ Controller             │
--- ├─────────────────────────┼───────────────────────┼────────────────────────┤
--- │ Move forward / back     │ W / S                 │ Left stick Y           │
--- │ Strafe left / right     │ A / D                 │ Left stick X           │
--- │ Rotate camera view      │ Mouse (move freely)   │ Right stick            │
--- │ Rotate character Y      │ Mouse X               │ Right stick X          │
--- │ Move subject vertically │ Mouse Y               │ Right stick Y          │
--- │ Tilt camera target      │ Hold RMB + Mouse Y    │ Hold R2 + Right stick Y│
--- │ Zoom (dolly)            │ Scroll wheel          │ Scroll wheel           │
--- │ Navigate menu items     │ Up / Down             │ D-pad Up / Down        │
--- │ Change option value     │ Left / Right          │ D-pad Left / Right     │
--- │ Confirm (Accept)        │ Enter / Action        │ Cross/A                │
--- │ Switch header tab       │ Step Left / Right     │ L1 / R1                │
--- │ Toggle UI visibility    │ Look (NumPad 0)       │ L3                     │
--- │ Exit Photo Mode         │ Inventory (Escape)    │ Circle/B               │
--- └─────────────────────────┴───────────────────────┴────────────────────────┘
---
--- Camera tab (Effects header)
---   Mouse / Right stick   — free-look (yaw + pitch)
---   WASD / Left stick     — dolly forward/back + strafe
---   RMB + Mouse Y         — tilt the camera look-at point up/down
---   R2 + Right stick Y    — same as above on controller
---   Scroll wheel          — fast forward/back dolly
---
--- Character tab (Character header)
---   WASD / Left stick     — move Lara forward/back + strafe
---   Mouse X / RS X        — rotate Lara around her Y axis
---   Mouse Y / RS Y        — move Lara up/down
---   RMB + Mouse Y / R2+RS — tilt camera look-at (does not move Lara)
---
--- Light tab (Light header)
---   WASD / Left stick     — move the light on the XZ plane (camera-relative)
---   Mouse Y / RS Y        — move the light up/down
---   RMB + Mouse Y / R2+RS — tilt camera look-at (does not move the light)
---
--- ============================================================================
--- ADDING CONTENT
--- ============================================================================
---
--- ---------- Poses (Engine/PhotoMode/Poses.lua) ----------
---
--- Each entry applies an animation from the PHOTOMODE_ANIMS object.
--- The first entry must be "Default" — it restores Lara's entry animation.
---
---    { name = "Victory",
---      objID       = TEN.Objects.ObjID.PHOTOMODE_ANIMS,
---      animNumber  = 42,    -- animation slot inside PHOTOMODE_ANIMS
---      frameNumber = 0,     -- starting frame (0 = first frame)
---    },
---
--- You can also reference any other object's animations:
---
---    { name = "Running",
---      objID       = TEN.Objects.ObjID.LARA,
---      animNumber  = 17,
---      frameNumber = 0,
---    },
---
--- ---------- Expressions (Engine/PhotoMode/Expressions.lua) ----------
---
--- Expressions swap one or more of Lara's classic mesh slots with meshes
--- sourced from another object.  Slot 14 is the head.
---
---    { name = "Default", objID = nil, meshIndices = {} },   -- always first
---    { name = "Wink",
---      objID       = TEN.Objects.ObjID.LARA_SPEECH_HEAD1,
---      meshIndices = { 14 },   -- head slot
---    },
---
--- Use multiple indices to swap more than one slot at once.
---
--- ---------- Accessories (Engine/PhotoMode/Accessories.lua) ----------
---
--- Accessories drive mesh swaps on the pm_Sunglasses moveable (a hidden
--- Lara-skeleton object that rides on top of Lara and mirrors her animation).
--- This means the accessory mesh moves naturally with her skeleton.
---
+-- @luautil PhotoMode
+
+--- Accessories
+-- @section Accessories
+-- Accessories drive mesh swaps via a hidden Lara-skeleton object that rides on top of Lara and mirrors her animation, so the mesh moves naturally with her skeleton. The moveable is auto-spawned the first time an accessory is applied. Its base object is Settings.Accessories.baseObjID (default: PHOTOMODE_ANIMS). Change baseObjID if your accessory object uses a different skeleton than Lara.
+-- @usage
 --    { name = "None",  objID = nil, meshIndices = {} },   -- always first
 --    { name = "Sunglasses",
 --      objID       = TEN.Objects.ObjID.ACTOR1_SPEECH_HEAD1,
@@ -144,36 +112,62 @@
 --      meshIndices = { 14 },
 --    },
 --
--- The pm_Sunglasses moveable is auto-spawned the first time an accessory is
--- applied.  Its base object is Settings.Accessories.baseObjID (default:
--- LARA_SKIN).  Change baseObjID if your accessory object uses a different
--- skeleton than Lara.
---
--- To hide the Accessory option entirely set Settings.Accessories.enabled = false
--- inside Settings.lua:
+-- To hide the Accessory option entirely set Settings.Accessories.enabled = false inside Settings.lua:
 --
 --    Settings.Accessories =
 --    {
 --        meshName  = "pm_Sunglasses",
---        baseObjID = TEN.Objects.ObjID.LARA_SKIN,
+--        baseObjID = TEN.Objects.ObjID.PHOTOMODE_ANIMS,
 --        enabled   = false,    -- <-- hides the menu item
 --        presets   = Accessories,
 --    }
---
--- ---------- Frames (Engine/PhotoMode/Frames.lua) ----------
---
--- Frames are full-screen sprites drawn from the PHOTOMODE_FRAMES object.
--- spriteID -1 means "no frame" (the first entry should always be "None").
---
---    { name = "None",          spriteID = -1 },
---    { name = "Cinematic Bars", spriteID = 0 },
+
+--- Display name shown in the selector.
+-- @tfield string name Display name for this acccessory.
+
+--- The object to source the accessory meshes from (nil for no accessory).
+-- @tfield Objects.ObjID objID Object that provides the accessory meshes. nil means no accessory is displayed.
+
+--- Mesh slot indices on the accessory moveable to make visible.
+-- @tfield table meshIndices Array of mesh slot indices to display on the accessory moveable.
+
+--- Expressions
+-- @section Expressions
+-- Expressions swap one or more of Lara's classic mesh slots with meshes sourced from another object. Slot 14 is the head. Use multiple indices to swap more than one mesh at once.
+-- @usage
+--    { name = "Default", objID = nil, meshIndices = {} },   -- always first
+--    { name = "Wink",
+--      objID       = TEN.Objects.ObjID.LARA_SPEECH_HEAD1,
+--      meshIndices = { 14 },   -- head slot
+--    },
+
+--- Display name shown in the selector.
+-- @tfield string name Display name for this expression.
+
+--- The object to source swapped meshes from (nil restores Lara's default expression).
+-- @tfield Objects.ObjID objID Object to source the swapped meshes from.
+
+--- Mesh slot indices on Lara to swap.
+-- @tfield table meshIndices table of mesh slot indices to swap. Use multiple indices to swap more than one mesh at once.
+
+--- Frames
+-- @section Frames
+-- Frames are full-screen sprites drawn from the PHOTOMODE_FRAMES object. A spriteID of -1 means "no frame". The first entry should always be "None".
+-- @usage
+--    { name = "None",            spriteID = -1 },
+--    { name = "Cinematic Bars",  spriteID = 0 },
 --    { name = "My Custom Frame", spriteID = 6 },   -- sprite index in PHOTOMODE_FRAMES
---
--- ---------- Outfits (Engine/PhotoMode/Outfits.lua) ----------
---
--- Outfits can change Lara's classic skin, GPU-skinned mesh, per-mesh
--- visibility, and holster state.  The first entry is always "Default".
---
+
+--- Display name shown in the Frames selector.
+-- @tfield string name Display name for this frame overlay preset.
+
+--- Sprite index in the PHOTOMODE_FRAMES object (-1 for no frame).
+-- @tfield int spriteID Sprite index from PHOTOMODE_FRAMES. Use -1 for no overlay.
+
+--- Outfits
+-- @section Outfits
+-- Outfits can change Lara's classic skin, GPU-skinned mesh, per-mesh visibility, and holster state. The first entry is always "Default". Set unlocked = false to hide an outfit until the player earns it, then call PhotoMode.UnlockOutfit(name) to reveal it. Unlocks are saved in GlobalVars.Engine.PhotoModeOutfits.
+-- @usage
 -- Classic skin swap (uses Lara:SetSkin):
 --
 --    { name = "Classic TR4",
@@ -209,17 +203,75 @@
 --    end,
 --
 -- Outfit locking / unlocking:
--- Set unlocked = false to hide an outfit until the player earns it:
 --
 --    { name = "Secret Wetsuit", skinnedMesh = TEN.Objects.ObjID.ANIMATING9,
 --      meshVisible = "none", unlocked = false },
 --
--- Then unlock it at any point from a level script:
---
 --    PhotoMode.UnlockOutfit("Secret Wetsuit")
+
+--- Display name shown in the selector.
+-- @tfield string name Display name for this outfit.
+
+--- Array of up to 5 ObjIDs for classic skin swap via Lara:SetSkin().
+-- @tfield[opt=nil] table skin Array of up to 5 ObjIDs: skin, skinJoints, skinScream, hair1, hair2. Nil entries leave that slot unchanged.
+
+--- ObjID for GPU-skinned mesh swap, or the string "clear" to disable GPU skinning.
+-- @tfield[opt=nil] Objects.ObjID skinnedMesh ObjID passed to Lara:SwapSkinnedMesh(), or "clear" to call Lara:ClearSkinnedMesh().
+
+--- Optional sub-index passed to Lara:SwapSkinnedMesh().
+-- @tfield[opt=nil] int skinnedMeshIndex Optional sub-index for SwapSkinnedMesh.
+
+--- Controls classic mesh visibility: "all", "none", or a table of visible slot indices.
+-- @tfield[opt=nil] string|table meshVisible "all" keeps all meshes visible, "none" hides all, or a table of indices keeps only those slots visible.
+
+--- Optional function called after the outfit is applied.
+-- @tfield[opt=nil] function onEnter Hook function executed after applying this outfit.
+
+--- Whether the outfit is visible in the selector menu.
+-- @tfield[opt=true] bool unlocked true or nil makes the outfit visible; false hides it until @{PhotoMode.UnlockOutfit} is called.
+
+--- Clear all unlocked outfits so they no longer appear in the photo mode outfit selector.
+-- @function PhotoMode.ClearOutfits
+-- @usage
+-- PhotoMode.ClearOutfits()
+
+--- Unlock a named outfit so it appears in the photo mode outfit selector. The outfit remains unlocked in all levels.
+-- @function PhotoMode.UnlockOutfit
+-- @tparam string name The outfit name string as defined in Outfits.lua.
+-- @usage
+-- PhotoMode.UnlockOutfit("Secret Wetsuit")
+
+--- Poses
+-- @section Poses
+-- Poses sit in the Engine/PhotoMode/Poses.lua file. Each pose applies an animation from the PHOTOMODE_ANIMS object or any other object in the level. The first entry is always "Default" — it restores Lara's entry animation.
+-- @usage
+--    { name = "Victory",
+--      objID       = TEN.Objects.ObjID.PHOTOMODE_ANIMS,
+--      animNumber  = 42,    -- animation slot inside PHOTOMODE_ANIMS
+--      frameNumber = 0,     -- starting frame (0 = first frame)
+--    },
 --
---------------------------------------------------------------------------------
--- @luautil PhotoMode
+-- --You can also reference any other object's animations
+--
+--    { name = "Running",
+--      objID       = TEN.Objects.ObjID.LARA,
+--      animNumber  = 17,
+--      frameNumber = 0,
+--    },
+
+--- Display name shown in the selector.
+-- @tfield string name Display name for this pose.
+
+--- The object that contains the animation to apply for this pose.
+-- @tfield Objects.ObjID objID The object that contains the animation to apply for this pose.
+
+--- The animation slot number inside that object (0-based).
+-- @tfield int animNumber The animation slot number inside that object (0-based).
+
+--- The starting frame number for that animation (0-based).
+-- @tfield int frameNumber The frame number for that animation to set as pose (0-based).
+--
+
 
 local Camera   = require("Engine.PhotoMode.Camera")
 local Borders   = require("Engine.PhotoMode.SpriteBorders")
@@ -233,6 +285,20 @@ require("Engine.PhotoMode.Strings")
 LevelFuncs.Engine.PhotoMode = LevelFuncs.Engine.PhotoMode or {}
 
 local PhotoMode = {}
+
+function PhotoMode.UnlockOutfit(name)
+    for _, outfit in ipairs(Settings.Outfits) do
+        if outfit.name == name then
+            GlobalVars.Engine.PhotoModeOutfits = GlobalVars.Engine.PhotoModeOutfits or {}
+            GlobalVars.Engine.PhotoModeOutfits[name] = true
+            return
+        end
+    end
+end
+
+function PhotoMode.ClearOutfits()
+    GlobalVars.Engine.PhotoModeOutfits = {}
+end
 
 -- Guards LevelFuncs registration to once per Lua session (resets on level/savegame reload).
 local _callbacksRegistered = false
@@ -280,7 +346,13 @@ local function BuildFilteredOutfitNames()
     _outfitMenuMapReverse = {}
     local names = {}
     for i, outfit in ipairs(Settings.Outfits) do
-        if outfit.unlocked ~= false then
+        local unlocked = outfit.unlocked
+        if unlocked == false then
+            local photoModeOutfits = GlobalVars.Engine and GlobalVars.Engine.PhotoModeOutfits
+            unlocked = photoModeOutfits ~= nil and photoModeOutfits[outfit.name] == true
+        end
+
+        if unlocked ~= false then  -- allows nil and true, blocks false
             local idx             = #names + 1
             names[idx]            = outfit.name
             _outfitMenuMap[idx]   = i
@@ -1570,17 +1642,6 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
         Menu.DrawHeaders(HEADER_POS, HEADER_SCALE, headerAlpha)
         Menu.DrawActiveMenus()
 
-    end
-end
-
---- Unlock a named outfit so it appears in the photo mode outfit selector.
--- @param name  The outfit name string as defined in Settings.Outfits.
-function PhotoMode.UnlockOutfit(name)
-    for _, outfit in ipairs(Settings.Outfits) do
-        if outfit.name == name then
-            outfit.unlocked = true
-            return
-        end
     end
 end
 

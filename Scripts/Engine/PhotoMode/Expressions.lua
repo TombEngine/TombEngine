@@ -1,3 +1,4 @@
+-- ldignore
 local Expressions =
 {
     { name = "Default", objID = nil, meshIndices = {} },

@@ -1,3 +1,4 @@
+-- ldignore
 --- Generic input handling for the PhotoMode module.
 -- Supports simultaneous UI + movement: controls are always active regardless
 -- of whether the UI is visible.

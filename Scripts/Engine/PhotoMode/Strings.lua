@@ -1,5 +1,5 @@
+-- ldignore
 -- Translatable strings for the PhotoMode module.
-
 local strings =
 {
     photo_mode = {"Photo Mode"},

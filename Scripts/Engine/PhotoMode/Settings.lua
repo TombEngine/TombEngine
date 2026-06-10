@@ -1,3 +1,4 @@
+-- ldignore
 -- Settings for the PhotoMode module.
 -- Reads colors from RingInventory.Settings where available.
 
@@ -274,7 +275,7 @@ Settings.Accessories =
     -- Name of the moveable spawned in the level to host accessory mesh swaps.
     meshName = "pm_Sunglasses",
     -- Base object used when spawning the moveable (any Lara-compatible skeleton).
-    baseObjID = TEN.Objects.ObjID.ACTOR1_SPEECH_HEAD1,
+    baseObjID = TEN.Objects.ObjID.PHOTOMODE_ANIMS,
     -- Set to false to hide the Accessory option entirely.
     enabled  = true,
     presets  = Accessories,

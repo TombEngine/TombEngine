@@ -1,3 +1,4 @@
+-- ldignore
 -- Internal file used by the RingInventory module.
 
 local InputHelpers = {}

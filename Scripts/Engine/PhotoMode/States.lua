@@ -1,3 +1,4 @@
+-- ldignore
 -- State management for the PhotoMode module.
 -- Tracks the current mode (Camera, Player, Light) and all mutable photo mode state.
 

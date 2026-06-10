@@ -1,3 +1,4 @@
+-- ldignore
 local Frames =
 {
     { name = "None",    spriteID = -1 },

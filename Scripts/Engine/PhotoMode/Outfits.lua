@@ -1,3 +1,4 @@
+-- ldignore
 local Outfits =
 {
     -- Index 1: Default — restores whatever state was active on photo mode entry.
@@ -37,7 +38,8 @@ local Outfits =
             local settings = TEN.Flow.GetSettings()
             settings.Hair[1].offset = Vec3(-4, 3, -28)
             TEN.Flow.SetSettings(settings)
-        end
+        end,
+        unlocked = false
     },
 
     { name = "Dark Raider",
