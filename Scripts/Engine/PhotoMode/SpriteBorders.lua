@@ -3,12 +3,12 @@
 -- Draws a full-screen sprite as a decorative frame using the same
 -- technique as RingInventory.Sprites background drawing.
 
-local Settings = require("Engine.PhotoMode.Settings")
+local Configuration = require("Engine.PhotoMode.Configuration")
 local States   = require("Engine.PhotoMode.States")
 
 local FrameSprites = {}
 
-local ALPHA_SPEED = Settings.Animation.fadeSpeed
+local ALPHA_SPEED = Configuration.Animation.fadeSpeed
 
 local currentAlpha = 0
 local targetAlpha  = 0
@@ -18,7 +18,7 @@ local targetAlpha  = 0
 -- ============================================================================
 
 function FrameSprites.Show()
-    targetAlpha = Settings.Frames.alpha
+    targetAlpha = Configuration.Frames.alpha
 end
 
 function FrameSprites.Hide()
@@ -35,13 +35,13 @@ end
 
 function FrameSprites.Update()
     local state = States.Get()
-    local preset = Settings.Frames.presets[state.frameIndex]
+    local preset = Configuration.Frames.presets[state.frameIndex]
 
     -- If preset is "None" (spriteID == -1), fade out
     if not preset or preset.spriteID < 0 then
         targetAlpha = 0
     else
-        targetAlpha = Settings.Frames.alpha
+        targetAlpha = Configuration.Frames.alpha
     end
 
     -- Step alpha toward target
@@ -60,10 +60,10 @@ function FrameSprites.Draw()
     if currentAlpha <= 0 then return end
 
     local state  = States.Get()
-    local preset = Settings.Frames.presets[state.frameIndex]
+    local preset = Configuration.Frames.presets[state.frameIndex]
     if not preset or preset.spriteID < 0 then return end
 
-    local cfg = Settings.Frames
+    local cfg = Configuration.Frames
 
     local frameColor = TEN.Color(cfg.color.r, cfg.color.g, cfg.color.b, math.floor(currentAlpha))
 

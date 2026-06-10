@@ -1,8 +1,8 @@
 local InputHelpers = require("Engine.PhotoMode.InputHelpers")
-local Settings     = require("Engine.PhotoMode.Settings")
+local Configuration     = require("Engine.PhotoMode.Configuration")
 
-local COLOR_MAP  = Settings.ColorMap
-local SOUND_MAP  = Settings.SoundMap
+local COLOR_MAP  = Configuration.ColorMap
+local SOUND_MAP  = Configuration.SoundMap
 local ALPHA_MAX  = 255
 local ALPHA_MIN  = 0
 local ActionID   = TEN.Input.ActionID
@@ -32,7 +32,7 @@ local ActiveMenus  = {}       -- Set of currently active menus  { [menuName] = t
 
 local LINE_SPACING = 6
 local SCROLL_SPEED = 0.2
-local FADE_SPEED   = Settings.Animation.fadeSpeed
+local FADE_SPEED   = Configuration.Animation.fadeSpeed
 
 local ITEM_FLAGS_NORMAL = { Strings.DisplayStringOption.SHADOW }
 

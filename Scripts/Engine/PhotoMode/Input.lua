@@ -16,7 +16,7 @@
 -- @local
 
 local Camera   = require("Engine.PhotoMode.Camera")
-local Settings = require("Engine.PhotoMode.Settings")
+local Configuration = require("Engine.PhotoMode.Configuration")
 local States   = require("Engine.PhotoMode.States")
 
 local ActionID = TEN.Input.ActionID
@@ -111,12 +111,12 @@ local function UpdateCameraInput(state)
     local my = mouse and mouse.y or 0
     if rightClickHeld then
         if math.abs(my) > 0.001 then
-            local scale = speed * Settings.Camera.mouseSensitivity
+            local scale = speed * Configuration.Camera.mouseSensitivity
             Camera.AdjustTargetVertical(my * scale)
         end
     else
         if math.abs(mx) > 0.001 or math.abs(my) > 0.001 then
-            local scale = lookSpeed * Settings.Camera.mouseSensitivity
+            local scale = lookSpeed * Configuration.Camera.mouseSensitivity
             Camera.RotateView(mx * scale, my * scale)
         end
     end
@@ -127,7 +127,7 @@ end
 -- ============================================================================
 
 local function UpdatePlayerInput(state)
-    local cfg      = Settings.Player
+    local cfg      = Configuration.Player
     local speed    = cfg.moveSpeed
     local rotSpeed = cfg.rotateSpeed
 
@@ -180,7 +180,7 @@ local function UpdatePlayerInput(state)
         local mouse = TEN.Input.GetAnalogAxisValue(AxisID.MOUSE)
         local mx = mouse and mouse.x or 0
         local my = mouse and mouse.y or 0
-        local scale = Settings.Camera.mouseSensitivity * 2
+        local scale = Configuration.Camera.mouseSensitivity * 2
 
         if rightClickHeld and math.abs(my) > 0.001 then
             scale = scale / 2
@@ -206,7 +206,7 @@ end
 -- ============================================================================
 
 local function UpdateLightInput(state)
-    local speed    = Settings.Camera.defaultMoveSpeed
+    local speed    = Configuration.Camera.defaultMoveSpeed
     local lightPos = state.lightPos
     local dir      = Camera.GetDirection()
     local right    = Camera.GetRightVector()
@@ -250,7 +250,7 @@ local function UpdateLightInput(state)
         local mouse = TEN.Input.GetAnalogAxisValue(AxisID.MOUSE)
         local my = mouse and mouse.y or 0
         if math.abs(my) > 0.001 then
-            local scale = Settings.Camera.mouseSensitivity * 2
+            local scale = Configuration.Camera.mouseSensitivity * 2
             lightPos = TEN.Vec3(lightPos.x, lightPos.y + my * scale * speed, lightPos.z)
         end
     end

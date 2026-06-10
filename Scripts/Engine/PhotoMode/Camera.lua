@@ -3,7 +3,7 @@
 -- Handles creation of null-mesh camera objects, initial placement,
 -- attaching/detaching the object camera, and camera movement.
 
-local Settings = require("Engine.PhotoMode.Settings")
+local Configuration = require("Engine.PhotoMode.Configuration")
 local States   = require("Engine.PhotoMode.States")
 
 local Camera = {}
@@ -55,8 +55,8 @@ end
 function Camera.Init()
     local state = States.Get()
 
-    local camMesh, _   = GetOrCreate(Settings.Camera.meshName)
-    local camTarget, _ = GetOrCreate(Settings.Camera.targetName)
+    local camMesh, _   = GetOrCreate(Configuration.Camera.meshName)
+    local camTarget, _ = GetOrCreate(Configuration.Camera.targetName)
 
     state.cameraMesh   = camMesh
     state.cameraTarget = camTarget
@@ -84,7 +84,7 @@ function Camera.PlaceInitial()
     local state = States.Get()
     if not state.cameraMesh or not state.cameraTarget then return end
 
-    local cfg = Settings.Camera
+    local cfg = Configuration.Camera
 
     -- Try to start from the current game camera; fall back to Lara-based offsets
     -- if those positions are out of the level bounds.
@@ -117,9 +117,9 @@ function Camera.Attach()
     local state = States.Get()
     if state.cameraMesh and state.cameraTarget then
         state.cameraMesh:AttachObjCamera(
-            Settings.Camera.meshIndex,
+            Configuration.Camera.meshIndex,
             state.cameraTarget,
-            Settings.Camera.targetIndex
+            Configuration.Camera.targetIndex
         )
     end
 end
@@ -172,13 +172,13 @@ local function ApplyPositions(newCam, newTgt)
     end
 
     -- Distance limit: prevent camera moving beyond maxCameraDistance from Lara's entry position.
-    if Settings.Camera.limitDistance and state.snapshot and state.snapshot.laraPos then
+    if Configuration.Camera.limitDistance and state.snapshot and state.snapshot.laraPos then
         local origin = state.snapshot.laraPos
         local dx = newCam.x - origin.x
         local dy = newCam.y - origin.y
         local dz = newCam.z - origin.z
         local distSq = dx * dx + dy * dy + dz * dz
-        local maxDist = Settings.Camera.maxDistance
+        local maxDist = Configuration.Camera.maxDistance
         if distSq > maxDist * maxDist then return false end
     end
 

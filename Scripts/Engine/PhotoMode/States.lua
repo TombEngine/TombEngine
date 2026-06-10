@@ -2,7 +2,7 @@
 -- State management for the PhotoMode module.
 -- Tracks the current mode (Camera, Player, Light) and all mutable photo mode state.
 
-local Settings = require("Engine.PhotoMode.Settings")
+local Configuration = require("Engine.PhotoMode.Configuration")
 
 local States = {}
 
@@ -51,26 +51,26 @@ local State = {
     controlMode = States.Mode.CAMERA,
 
     -- Camera settings
-    moveSpeed         = Settings.Camera.defaultMoveSpeed,
-    lookSpeed         = Settings.Camera.defaultLookSpeed,
+    moveSpeed         = Configuration.Camera.defaultMoveSpeed,
+    lookSpeed         = Configuration.Camera.defaultLookSpeed,
     collisionOn       = true,
-    limitCameraDistance = Settings.Camera.defaultLimitDistance,
-    maxCameraDistance   = Settings.Camera.defaultMaxDistance,
+    limitCameraDistance = Configuration.Camera.defaultLimitDistance,
+    maxCameraDistance   = Configuration.Camera.defaultMaxDistance,
 
     -- Lens
-    fov  = Settings.Lens.defaultFOV,
-    roll = Settings.Lens.defaultRoll,
+    fov  = Configuration.Lens.defaultFOV,
+    roll = Configuration.Lens.defaultRoll,
 
     -- Pose
     animIndex = 1,
 
     -- Light
-    lightEnabled    = Settings.Light.defaultEnabled,
+    lightEnabled    = Configuration.Light.defaultEnabled,
     lightSource     = States.LightSource.MANUAL,
     lightPos        = TEN.Vec3(0, 0, 0),
-    lightIntensity   = Settings.Light.defaultIntensity,
-    lightRadius     = Settings.Light.defaultRadius,
-    lightShadows    = Settings.Light.defaultShadows,
+    lightIntensity   = Configuration.Light.defaultIntensity,
+    lightRadius     = Configuration.Light.defaultRadius,
+    lightShadows    = Configuration.Light.defaultShadows,
     lightColorIndex = 1,
 
     -- Filters
@@ -88,23 +88,23 @@ local State = {
     weaponIndex        = 1,
 
     -- Frame overlay
-    frameIndex = 1, -- index into Settings.Frames.presets (1 = None)
+    frameIndex = 1, -- index into Configuration.Frames.presets (1 = None)
 
     -- Expressions
     expressionIndex         = 1,
     swappedExpressionMeshes = {},
 
     -- Depth of Field
-    dofMode          = Settings.DepthOfField.defaultMode,
-    dofFocusDistance = Settings.DepthOfField.defaultFocusDistance,
-    dofRange         = Settings.DepthOfField.defaultRange,
-    dofStrength      = Settings.DepthOfField.defaultStrength,
+    dofMode          = Configuration.DepthOfField.defaultMode,
+    dofFocusDistance = Configuration.DepthOfField.defaultFocusDistance,
+    dofRange         = Configuration.DepthOfField.defaultRange,
+    dofStrength      = Configuration.DepthOfField.defaultStrength,
 
     -- Entry camera state (for Reset Camera)
     entryCamPos    = nil,
     entryTargetPos = nil,
-    entryFov       = Settings.Lens.defaultFOV,
-    entryRoll      = Settings.Lens.defaultRoll,
+    entryFov       = Configuration.Lens.defaultFOV,
+    entryRoll      = Configuration.Lens.defaultRoll,
     entryLight     = nil,
 
     -- Accessory
@@ -279,17 +279,17 @@ end
 
 function States.ResetToEntry()
     State.controlMode         = States.Mode.CAMERA
-    State.moveSpeed           = Settings.Camera.defaultMoveSpeed
-    State.lookSpeed           = Settings.Camera.defaultLookSpeed
+    State.moveSpeed           = Configuration.Camera.defaultMoveSpeed
+    State.lookSpeed           = Configuration.Camera.defaultLookSpeed
     State.collisionOn         = true
-    State.limitCameraDistance = Settings.Camera.defaultLimitDistance
-    State.maxCameraDistance   = Settings.Camera.defaultMaxDistance
-    State.fov           = State.snapshot and State.snapshot.fov or Settings.Lens.defaultFOV
-    State.roll          = Settings.Lens.defaultRoll
+    State.limitCameraDistance = Configuration.Camera.defaultLimitDistance
+    State.maxCameraDistance   = Configuration.Camera.defaultMaxDistance
+    State.fov           = State.snapshot and State.snapshot.fov or Configuration.Lens.defaultFOV
+    State.roll          = Configuration.Lens.defaultRoll
     State.animIndex     = 1
-    State.lightEnabled  = Settings.Light.defaultEnabled
+    State.lightEnabled  = Configuration.Light.defaultEnabled
     State.lightSource   = States.LightSource.MANUAL
-    State.lightRadius   = Settings.Light.defaultRadius
+    State.lightRadius   = Configuration.Light.defaultRadius
     State.lightColorIndex = 1
     State.filterIndex   = 1
     State.filterStrength = 1.0
@@ -304,10 +304,10 @@ function States.ResetToEntry()
     State.weaponIndex         = 1
     State.expressionIndex         = 1
     State.swappedExpressionMeshes = {}
-    State.dofMode          = Settings.DepthOfField.defaultMode
-    State.dofFocusDistance = Settings.DepthOfField.defaultFocusDistance
-    State.dofRange         = Settings.DepthOfField.defaultRange
-    State.dofStrength      = Settings.DepthOfField.defaultStrength
+    State.dofMode          = Configuration.DepthOfField.defaultMode
+    State.dofFocusDistance = Configuration.DepthOfField.defaultFocusDistance
+    State.dofRange         = Configuration.DepthOfField.defaultRange
+    State.dofStrength      = Configuration.DepthOfField.defaultStrength
     State.frameIndex        = 1
     State.accessoryIndex    = 1
     State.gunflashEnabled   = false

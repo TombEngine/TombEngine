@@ -18,11 +18,14 @@
 --
 -- Make sure the following WAD objects exist in your wad:
 --
---        PHOTOMODE_SPRITES  — sprite sheet (see Settings.lua for sprite indices)
+--        PHOTOMODE_SPRITES  — sprite sheet (see Configuration.lua for sprite indices)
 --        PHOTOMODE_FRAMES   — frame overlay sprite sheet
 --        PHOTOMODE_ANIMS    — object that holds all custom photo-mode poses
 --        CAMERA_TARGET      — used internally to drive the object camera
 --
+-- It is possible to change settings on a per-level basis via @{PhotoMode.GetSettings} and @{PhotoMode.SetSettings} functions, but keep in mind that
+-- _Settings.lua is reread every time the level is reloaded_. Therefore, you need to implement custom settings management in your level script
+-- if you want to override global settings.
 --
 -- <h3><b>Controls</b></h3>
 -- The active header tab (cycle with Q / E or shoulder buttons) determines which
@@ -100,7 +103,7 @@
 
 --- Accessories
 -- @section Accessories
--- Accessories drive mesh swaps via a hidden Lara-skeleton object that rides on top of Lara and mirrors her animation, so the mesh moves naturally with her skeleton. The moveable is auto-spawned the first time an accessory is applied. Its base object is Settings.Accessories.baseObjID (default: PHOTOMODE_ANIMS). Change baseObjID if your accessory object uses a different skeleton than Lara.
+-- Accessories drive mesh swaps via a hidden Lara-skeleton object that rides on top of Lara and mirrors her animation, so the mesh moves naturally with her skeleton. The moveable is auto-spawned the first time an accessory is applied. Its base object is Configuration.Accessories.baseObjID (default: PHOTOMODE_ANIMS). Change baseObjID if your accessory object uses a different skeleton than Lara.
 -- @usage
 --    { name = "None",  objID = nil, meshIndices = {} },   -- always first
 --    { name = "Sunglasses",
@@ -112,9 +115,9 @@
 --      meshIndices = { 14 },
 --    },
 --
--- To hide the Accessory option entirely set Settings.Accessories.enabled = false inside Settings.lua:
+-- To hide the Accessory option entirely set Configuration.Accessories.enabled = false inside Configuration.lua:
 --
---    Settings.Accessories =
+--    Configuration.Accessories =
 --    {
 --        meshName  = "pm_Sunglasses",
 --        baseObjID = TEN.Objects.ObjID.PHOTOMODE_ANIMS,
@@ -270,15 +273,119 @@
 
 --- The starting frame number for that animation (0-based).
 -- @tfield int frameNumber The frame number for that animation to set as pose (0-based).
---
+
+--- Settings
+-- @section Settings
+-- Settings can be managed by the two functions @{PhotoMode.GetSettings} and @{PhotoMode.SetSettings}. See those functions for details.
+
+---Set settings tables for PhotoMode.
+-- @function PhotoMode.SetSettings
+-- @tparam Settings newSettings Required settings table
+-- @usage
+-- -- In the level's lua file
+-- local settings = PhotoMode.GetSettings()
+-- settings.Accessories.enable = false
+-- PhotoMode.SetSettings(settings)
+
+---Get settings tables for PhotoMode.
+-- @function PhotoMode.GetSettings
+-- @treturn Settings Current settings table
+
+--- Settings.Accessories
+-- @section Settings.Accessories
+-- Settings related to accessories.
+
+--- Whether the Accessories menu is enabled. Accessories are mesh swaps parented to a hidden moveable that mirrors Lara's animation, allowing them to move naturally with her skeleton. Set this to false to hide the Accessories menu and disable the accessory system entirely.
+-- @tfield bool enabled true to enable the Accessories menu, false to hide it and disable the accessory system.
+
+--- Settings.Camera
+-- @section Settings.Camera
+-- Camera-related settings.
+
+--- Whether to limit camera distance from Lara to prevent clipping through level geometry. Enabling this will cause the camera to stop moving further away once it reaches the configured distance, but it will not push the camera back if the player moves closer after exceeding the limit.
+-- @tfield bool limitCameraDistance true to enable camera distance limiting, false to allow unlimited camera distance.
+
+--- Maximum camera distance from Lara when Settings.Camera.limitCameraDistance is enabled. The camera will stop moving further away once it reaches this distance.
+-- @tfield int distance Maximum camera distance from Lara when Settings.Camera.limitCameraDistance is enabled, measured in game units.
+
+--- Settings.ColorMap
+-- @section Settings.ColorMap
+-- These settings define the colors used throughout the inventory UI.
+-- Colors are of type @{Color}.
+-- @usage
+-- -- Example of changing the selected item highlight color
+-- -- In the level's lua file
+-- local settings = PhotoMode.GetSettings()
+-- settings.ColorMap.itemSelected = TEN.Color(200, 180, 60, 255)
+-- PhotoMode.SetSettings(settings)
+
+--- Color used for standard body text in the inventory.
+-- @tfield[opt=Flow.GetSettings().UI.plainTextColor] Color plainText Applied to descriptive text.
+
+--- Color used for section headers and titles.
+-- @tfield[opt=Flow.GetSettings().UI.headerTextColor] Color headerText Applied to inventory category headings and titles.
+
+--- Color used for selectable option text.
+-- @tfield[opt=Flow.GetSettings().UI.optionTextColor] Color optionText Applied to text entries.
+
+--- Background tint color for the inventory.
+-- @tfield[opt=Color(64&#44; 64&#44; 64&#44; 128)] Color background Semi-transparent overlay color drawn behind inventory content. The alpha channel determines the strenght of the effect.
+
+--- Ambient light color cast on inventory item models.
+-- @tfield[opt=Color(255&#44; 255&#44; 128)] Color inventoryAmbient Light applied to Inventory items.
+
+--- Color used to render hidden inventory items.
+-- @tfield[opt=Color(0&#44; 0&#44; 0&#44; 0)] Color itemHidden Fully transparent; items with this color are invisible in the ring.
+
+--- Color used to render unselected inventory items.
+-- @tfield[opt=Color(32&#44; 32&#44; 32&#44; 255)] Color itemDeselected Tint applied to items that are not currently highlighted.
+
+--- Color used to render the currently selected inventory item.
+-- @tfield[opt=Color(128&#44; 128&#44; 128&#44; 255)] Color itemSelected Tint applied to the item the player has focused on.
+
+--- Color used to render the neutral sprites.
+-- @tfield[opt=Color(255&#44; 255&#44; 255&#44; 255)] Color neutral Tint applied to the sprites.
+
+--- Settings.SoundMap
+-- @section Settings.SoundMap
+-- These settings map inventory UI events to sound effect IDs.
+-- Sound IDs correspond to entries in the game's sound catalogue.
+-- @usage
+-- -- Example of overriding the inventory open sound
+-- -- In the level's lua file
+-- local settings = PhotoMode.GetSettings()
+-- settings.SoundMap.inventoryOpen = 42
+-- PhotoMode.SetSettings(settings)
+
+--- Sound played when Lara has no item available.
+-- @tfield[opt=2] int playerNo Sound effect ID triggered when the player attempts to use an unavailable item.
+
+--- Sound played when rotating the inventory ring.
+-- @tfield[opt=108] int menuRotate Sound effect ID triggered while scrolling through inventory items.
+
+--- Sound played when hovering over or highlighting a menu option.
+-- @tfield[opt=109] int menuSelect Sound effect ID triggered on item selection highlight.
+
+--- Sound played when confirming a menu choice.
+-- @tfield[opt=111] int menuChoose Sound effect ID triggered when the player confirms a selected action.
+
+--- Sound played when combining two inventory items.
+-- @tfield[opt=114] int menuCombine Sound effect ID triggered when two compatible items are combined.
+
+--- Sound played when the inventory is opened.
+-- @tfield[opt=109] int inventoryOpen Sound effect ID triggered when the inventory ring is opened.
+
+--- Sound played when the inventory is closed.
+-- @tfield[opt=109] int inventoryClose Sound effect ID triggered when the inventory ring is closed.
 
 
+-- Photo Module Start
 local Camera   = require("Engine.PhotoMode.Camera")
 local Borders   = require("Engine.PhotoMode.SpriteBorders")
 local Input    = require("Engine.PhotoMode.Input")
 local InputHelpers = require("Engine.PhotoMode.InputHelpers")
 local Menu     = require("Engine.PhotoMode.Menu")
-local Settings = require("Engine.PhotoMode.Settings")
+local Configuration = require("Engine.PhotoMode.Configuration")
 local States   = require("Engine.PhotoMode.States")
 require("Engine.PhotoMode.Strings")
 
@@ -286,8 +393,32 @@ LevelFuncs.Engine.PhotoMode = LevelFuncs.Engine.PhotoMode or {}
 
 local PhotoMode = {}
 
+-- Guards LevelFuncs registration to once per Lua session (resets on level/savegame reload).
+local _callbacksRegistered = false
+local _photoModeExited = false
+local _spriteAnim      = {}   -- per-sprite lerp state: { sizeW, sizeH, r, g, b }
+
+-- ============================================================================
+-- Helpers
+-- ============================================================================
+local CopyTable = function(original)
+    local copy = {}
+    for k, v in pairs(original) do
+        if type(v) == "table" then
+            copy[k] = Utilities.CopyTable(v)
+        else
+            copy[k] = v
+        end
+    end
+    return copy
+end
+
+local function ColorCombine(color, alpha)
+    return TEN.Color(color.r, color.g, color.b, alpha)
+end
+
 function PhotoMode.UnlockOutfit(name)
-    for _, outfit in ipairs(Settings.Outfits) do
+    for _, outfit in ipairs(Configuration.Outfits) do
         if outfit.name == name then
             GlobalVars.Engine.PhotoModeOutfits = GlobalVars.Engine.PhotoModeOutfits or {}
             GlobalVars.Engine.PhotoModeOutfits[name] = true
@@ -300,17 +431,20 @@ function PhotoMode.ClearOutfits()
     GlobalVars.Engine.PhotoModeOutfits = {}
 end
 
--- Guards LevelFuncs registration to once per Lua session (resets on level/savegame reload).
-local _callbacksRegistered = false
-local _photoModeExited = false
-local _spriteAnim      = {}   -- per-sprite lerp state: { sizeW, sizeH, r, g, b }
+PhotoMode.GetSettings = function()
+    return CopyTable(Configuration)
+end
 
--- ============================================================================
--- Helpers
--- ============================================================================
-
-local function ColorCombine(color, alpha)
-    return TEN.Color(color.r, color.g, color.b, alpha)
+PhotoMode.SetSettings = function(newSettings)
+    for section, values in pairs(newSettings) do
+        if Configuration[section] ~= nil then
+            for setting, value in pairs(values) do
+                if Configuration[section][setting] ~= nil then
+                    Configuration[section][setting] = value
+                end
+            end
+        end
+    end
 end
 -- ============================================================================
 -- Option name builders (for selector-type options)
@@ -322,30 +456,30 @@ local function BuildNames(list, key)
     return t
 end
 
-local DOF_MODE_NAMES   = BuildNames(Settings.DepthOfField.modes)
-local LIGHT_SRC_NAMES  = Settings.Light.sourceNames
-local FILTER_NAMES     = BuildNames(Settings.Filters.presets)
-local FRAME_NAMES      = BuildNames(Settings.Frames.presets)
-local ANIM_NAMES       = BuildNames(Settings.Animations)
-local EXPRESSION_NAMES = BuildNames(Settings.Expressions)
-local ACCESSORY_NAMES  = BuildNames(Settings.Accessories.presets)
+local DOF_MODE_NAMES   = BuildNames(Configuration.DepthOfField.modes)
+local LIGHT_SRC_NAMES  = Configuration.Light.sourceNames
+local FILTER_NAMES     = BuildNames(Configuration.Filters.presets)
+local FRAME_NAMES      = BuildNames(Configuration.Frames.presets)
+local ANIM_NAMES       = BuildNames(Configuration.Animations)
+local EXPRESSION_NAMES = BuildNames(Configuration.Expressions)
+local ACCESSORY_NAMES  = BuildNames(Configuration.Accessories.presets)
 
 -- Color selectors use blank option labels — the actual color is shown via sprite strip.
-local TINT_NAMES  = (function() local t={} for i=1,#Settings.Filters.tints       do t[i]="" end return t end)()
-local COLOR_NAMES = (function() local t={} for i=1,#Settings.Light.colorPresets  do t[i]="" end return t end)()
+local TINT_NAMES  = (function() local t={} for i=1,#Configuration.Filters.tints       do t[i]="" end return t end)()
+local COLOR_NAMES = (function() local t={} for i=1,#Configuration.Light.colorPresets  do t[i]="" end return t end)()
 
 -- Outfit and weapon name lists are built dynamically each entry to respect
 -- per-outfit unlock flags and live inventory checks.
-local _outfitMenuMap        = {}  -- [menuOptionIdx] -> real Settings.Outfits index
-local _outfitMenuMapReverse = {}  -- [real Settings.Outfits index] -> menuOptionIdx
-local _weaponMenuMap        = {}  -- [menuOptionIdx] -> real Settings.Weapons index
-local _weaponMenuMapReverse = {}  -- [real Settings.Weapons index] -> menuOptionIdx
+local _outfitMenuMap        = {}  -- [menuOptionIdx] -> real Configuration.Outfits index
+local _outfitMenuMapReverse = {}  -- [real Configuration.Outfits index] -> menuOptionIdx
+local _weaponMenuMap        = {}  -- [menuOptionIdx] -> real Configuration.Weapons index
+local _weaponMenuMapReverse = {}  -- [real Configuration.Weapons index] -> menuOptionIdx
 
 local function BuildFilteredOutfitNames()
     _outfitMenuMap        = {}
     _outfitMenuMapReverse = {}
     local names = {}
-    for i, outfit in ipairs(Settings.Outfits) do
+    for i, outfit in ipairs(Configuration.Outfits) do
         local unlocked = outfit.unlocked
         if unlocked == false then
             local photoModeOutfits = GlobalVars.Engine and GlobalVars.Engine.PhotoModeOutfits
@@ -366,7 +500,7 @@ local function BuildFilteredWeaponNames()
     _weaponMenuMap        = {}
     _weaponMenuMapReverse = {}
     local names = {}
-    for i, weapon in ipairs(Settings.Weapons) do
+    for i, weapon in ipairs(Configuration.Weapons) do
         local show = false
         if weapon.name == "Default" then
             show = true  -- Default always shown.
@@ -409,7 +543,7 @@ local function ApplyRoll(state)
 end
 
 local function ApplyFilter(state)
-    local preset = Settings.Filters.presets[state.filterIndex]
+    local preset = Configuration.Filters.presets[state.filterIndex]
     if preset then
         TEN.View.SetPostProcessMode(preset.mode)
     end
@@ -420,7 +554,7 @@ local function ApplyFilterStrength(state)
 end
 
 local function ApplyTint(state)
-    local preset = Settings.Filters.tints[state.tintIndex]
+    local preset = Configuration.Filters.tints[state.tintIndex]
     if preset then
         local i = state.tintIntensity or 0
         local c = preset.color
@@ -469,7 +603,7 @@ end
 local function ApplyOutfit(state)
     ResetCurrentOutfit(state)
 
-    local preset = Settings.Outfits[state.outfitIndex]
+    local preset = Configuration.Outfits[state.outfitIndex]
 
     -- Default: ResetCurrentOutfit already restored entry state.
     if not preset or (not preset.skin and not preset.skinnedMesh and not preset.meshVisible) then
@@ -520,13 +654,13 @@ local function ApplyOutfit(state)
 
     -- Re-apply weapon and expression mesh swaps (SetSkin resets classic meshes).
     for _, meshIdx in ipairs(state.swappedWeaponMeshes) do
-        local wp = Settings.Weapons[state.weaponIndex]
+        local wp = Configuration.Weapons[state.weaponIndex]
         if wp and wp.objID then
             pcall(function() Lara:SwapMesh(meshIdx, wp.objID, meshIdx) end)
         end
     end
     for _, meshIdx in ipairs(state.swappedExpressionMeshes) do
-        local ep = Settings.Expressions[state.expressionIndex]
+        local ep = Configuration.Expressions[state.expressionIndex]
         if ep and ep.objID then
             pcall(function() Lara:SwapMesh(meshIdx, ep.objID, meshIdx) end)
         end
@@ -547,7 +681,7 @@ local function ApplyWeapon(state)
     end
     state.swappedWeaponMeshes = {}
 
-    local preset = Settings.Weapons[state.weaponIndex]
+    local preset = Configuration.Weapons[state.weaponIndex]
     if preset and preset.objID and preset.meshIndices then
         for _, meshIdx in ipairs(preset.meshIndices) do
             pcall(function() Lara:SwapMesh(meshIdx, preset.objID, meshIdx) end)
@@ -589,7 +723,7 @@ local function ApplyWeapon(state)
 end
 
 local function ApplyPosePreset(state)
-    local preset = Settings.Animations[state.animIndex]
+    local preset = Configuration.Animations[state.animIndex]
     if preset then
 
         if preset.name == "Default" then
@@ -611,7 +745,7 @@ local function ApplyExpression(state)
     end
     state.swappedExpressionMeshes = {}
 
-    local preset = Settings.Expressions[state.expressionIndex]
+    local preset = Configuration.Expressions[state.expressionIndex]
     if preset and preset.objID and preset.meshIndices then
         for _, meshIdx in ipairs(preset.meshIndices) do
             pcall(function() Lara:SwapMesh(meshIdx, preset.objID, meshIdx) end)
@@ -622,8 +756,8 @@ local function ApplyExpression(state)
 end
 
 local function GetOrCreateAccessoryMesh(state)
-    if Settings.Accessories.enabled == false then return nil end
-    local name = Settings.Accessories.meshName
+    if Configuration.Accessories.enabled == false then return nil end
+    local name = Configuration.Accessories.meshName
     if state.accessoryMesh then return state.accessoryMesh end
     if TEN.Objects.IsNameInUse(name) then
         local mov = TEN.Objects.GetMoveableByName(name)
@@ -633,7 +767,7 @@ local function GetOrCreateAccessoryMesh(state)
     local pos  = Lara:GetPosition()
     local rot  = Lara:GetRotation()
     local room = Lara:GetRoomNumber()
-    local ok, mov = pcall(TEN.Objects.Moveable, Settings.Accessories.baseObjID, name, pos, rot, room)
+    local ok, mov = pcall(TEN.Objects.Moveable, Configuration.Accessories.baseObjID, name, pos, rot, room)
     if ok and mov then
         mov:Enable()
         pcall(function() mov:SetColor(TEN.Color(255, 255, 255, 0)) end)
@@ -646,7 +780,7 @@ end
 local function ApplyAccessory(state)
     local mov = GetOrCreateAccessoryMesh(state)
     if not mov then return end
-    local preset = Settings.Accessories.presets[state.accessoryIndex]
+    local preset = Configuration.Accessories.presets[state.accessoryIndex]
     local hasPreset = preset and preset.objID ~= nil
     -- Swap meshes based on the selected preset
     if hasPreset then
@@ -675,7 +809,7 @@ local function ApplyAccessory(state)
 end
 
 local function UpdateAccessoryMesh(state)
-    local preset = Settings.Accessories.presets[state.accessoryIndex]
+    local preset = Configuration.Accessories.presets[state.accessoryIndex]
     if not preset or preset.objID == nil then return end
     if not state.accessoryMesh then return end
     pcall(function() state.accessoryMesh:SetPosition(Lara:GetPosition()) end)
@@ -686,7 +820,7 @@ end
 
 local function UpdateGunFlash(state)
     if not state.gunflashEnabled then return end
-    local preset = Settings.Weapons[state.weaponIndex]
+    local preset = Configuration.Weapons[state.weaponIndex]
     if not preset or preset.weaponType == TEN.Objects.WeaponType.NONE then return end
 
     if preset.weaponType == TEN.Objects.WeaponType.FLARE then
@@ -699,7 +833,7 @@ local function UpdateGunFlash(state)
 end
 
 local function ApplyDOF(state)
-    local cfg = Settings.DepthOfField
+    local cfg = Configuration.DepthOfField
     local modePreset = cfg.modes[state.dofMode]
     local mode = modePreset and modePreset.mode or TEN.View.DOFMode.NONE
     if mode == TEN.View.DOFMode.NONE then
@@ -767,16 +901,16 @@ local function ResetEffects()
     state.filterIndex    = 1
     state.filterStrength = 1.0
     state.tintIndex      = 1
-    state.tintIntensity  = Settings.Filters.defaultTintIntensity
+    state.tintIntensity  = Configuration.Filters.defaultTintIntensity
     ApplyFilter(state)
     ApplyFilterStrength(state)
     ApplyTint(state)
 
     state.frameIndex       = 1
-    state.dofMode          = Settings.DepthOfField.defaultMode
-    state.dofFocusDistance = Settings.DepthOfField.defaultFocusDistance
-    state.dofRange         = Settings.DepthOfField.defaultRange
-    state.dofStrength      = Settings.DepthOfField.defaultStrength
+    state.dofMode          = Configuration.DepthOfField.defaultMode
+    state.dofFocusDistance = Configuration.DepthOfField.defaultFocusDistance
+    state.dofRange         = Configuration.DepthOfField.defaultRange
+    state.dofStrength      = Configuration.DepthOfField.defaultStrength
     ApplyDOF(state)
 end
 
@@ -867,7 +1001,7 @@ end
 
 local function BuildAllMenus()
     local state = States.Get()
-    local cfg   = Settings
+    local cfg   = Configuration
     local acceptString = TEN.Flow.GetString("pm_press")
 
     Menu.DeleteAll()
@@ -1097,7 +1231,7 @@ local function BuildAllMenus()
         { itemName = "pm_weapons",    options = weaponNames,      currentOption = _weaponMenuMapReverse[state.weaponIndex] or 1 },
         { itemName = "pm_expression", options = EXPRESSION_NAMES, currentOption = state.expressionIndex },
     }
-    if Settings.Accessories.enabled ~= false then
+    if Configuration.Accessories.enabled ~= false then
         characterItems[#characterItems + 1] = { itemName = "pm_accessory", options = ACCESSORY_NAMES, currentOption = state.accessoryIndex }
     end
     characterItems[#characterItems + 1] = { itemName = "pm_gunflash", options = BoolOptions(),    currentOption = BoolToIndex(state.gunflashEnabled) }
@@ -1196,7 +1330,7 @@ local function UpdateLightEmission()
         lightPos = TEN.Vec3(lp.x, lp.y - 256, lp.z)
     end
 
-    local lightColor = Settings.Light.colorPresets[state.lightColorIndex].color
+    local lightColor = Configuration.Light.colorPresets[state.lightColorIndex].color
     local i = state.lightIntensity
     local modifiedColor = TEN.Color(
         math.min(255, math.floor(lightColor.r * i)),
@@ -1205,7 +1339,7 @@ local function UpdateLightEmission()
     )
 
     pcall(function()
-        TEN.Effects.EmitLight(lightPos, modifiedColor, state.lightRadius, state.lightShadows, Settings.Light.lightName)
+        TEN.Effects.EmitLight(lightPos, modifiedColor, state.lightRadius, state.lightShadows, Configuration.Light.lightName)
     end)
 end
 
@@ -1275,7 +1409,7 @@ function PhotoMode.Exit()
     -- Stop light
     pcall(function()
         local state = States.Get()
-        TEN.Effects.EmitLight(state.lightPos, TEN.Color(0, 0, 0), 0, false, Settings.Light.lightName)
+        TEN.Effects.EmitLight(state.lightPos, TEN.Color(0, 0, 0), 0, false, Configuration.Light.lightName)
     end)
 
     -- Hide accessory mesh
@@ -1301,7 +1435,7 @@ function PhotoMode.Exit()
     States.Get().entryHoldCount = 0
     States.Get().timeInPhotoMode = 0
 
-    TEN.Sound.PlaySound(Settings.SoundMap.menuClose)
+    TEN.Sound.PlaySound(Configuration.SoundMap.menuClose)
     TEN.Input.ClearAllKeys()
     TEN.Util.PrintLog("PhotoMode: Exited.", TEN.Util.LogLevel.INFO)
 end
@@ -1343,9 +1477,9 @@ local function DrawColorSelector()
     -- Descriptor table for each colour-picking item
     local entries = {
         { menuName = MENU_LIGHT,   itemName = "pm_color",
-          palette  = Settings.Light.colorPresets,  colorIndex = state.lightColorIndex },
+          palette  = Configuration.Light.colorPresets,  colorIndex = state.lightColorIndex },
         { menuName = MENU_FILTERS, itemName = "pm_tint",
-          palette  = Settings.Filters.tints,       colorIndex = state.tintIndex },
+          palette  = Configuration.Filters.tints,       colorIndex = state.tintIndex },
     }
 
     local activeMenuName = Menu.GetActiveHeaderMenu()
@@ -1420,7 +1554,7 @@ end
 -- ============================================================================
 
 local function DrawHeaderSprites(alpha)
-    local cfg = Settings.HeaderSprites
+    local cfg = Configuration.HeaderSprites
     if not cfg or not cfg.spriteIDs or alpha < 1 then return end
     local activeIdx  = Menu.GetActiveHeaderIndex()
     local count      = #cfg.spriteIDs
@@ -1469,7 +1603,7 @@ end
 
 local function DrawBackSprites(alpha)
 
-    local color = ColorCombine(Settings.ColorMap.dimmed, math.floor(alpha))
+    local color = ColorCombine(Configuration.ColorMap.dimmed, math.floor(alpha))
     local ok, sprite = pcall(TEN.View.DisplaySprite,
         TEN.Objects.ObjID.PHOTOMODE_SPRITES, 5, TEN.Vec2(1.5, 11), 0, TEN.Vec2(29, 38.5), color)
     if ok and sprite then
@@ -1486,7 +1620,7 @@ local function DrawTitle(alpha)
     local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(16, 9))
     local modeStr  = TEN.Strings.DisplayString(
         modeText, modePos, 0.8,
-        ColorCombine(Settings.ColorMap.headerText, alpha), false,
+        ColorCombine(Configuration.ColorMap.headerText, alpha), false,
         { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER, TEN.Strings.DisplayStringOption.VERTICAL_CENTER }
     )
     TEN.Strings.ShowString(modeStr, 1 / 30)
@@ -1497,7 +1631,7 @@ local function DrawModeText(alpha)
     local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(16, 46))
     local modeStr  = TEN.Strings.DisplayString(
         modeText, modePos, 0.6,
-        ColorCombine(Settings.ColorMap.neutral, alpha), false,
+        ColorCombine(Configuration.ColorMap.neutral, alpha), false,
         { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }
     )
     TEN.Strings.ShowString(modeStr, 1 / 30)
@@ -1524,7 +1658,7 @@ local function DrawHelpText(alpha)
     local helpPos1 = TEN.Util.PercentToScreen(TEN.Vec2(50, 90))
     local helpStr1 = TEN.Strings.DisplayString(
         modeKey, helpPos1, 0.6,
-        ColorCombine(Settings.ColorMap.neutral, alpha), true,
+        ColorCombine(Configuration.ColorMap.neutral, alpha), true,
         { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER }
     )
     TEN.Strings.ShowString(helpStr1, 1 / 30)
@@ -1533,7 +1667,7 @@ local function DrawHelpText(alpha)
     local helpPos2 = TEN.Util.PercentToScreen(TEN.Vec2(50, 94))
     local helpStr2 = TEN.Strings.DisplayString(
         helpKey, helpPos2, 0.6,
-        ColorCombine(Settings.ColorMap.neutral, alpha), true,
+        ColorCombine(Configuration.ColorMap.neutral, alpha), true,
         { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER }
     )
     TEN.Strings.ShowString(helpStr2, 1 / 30)
@@ -1558,10 +1692,10 @@ LevelFuncs.Engine.PhotoMode.OnLoop = function()
     if keySet1 or keySet2 then
         TEN.Input.ClearAllKeys()
         state.entryHoldCount = state.entryHoldCount + 1
-        if state.entryHoldCount >= Settings.Entry.holdFrames then
+        if state.entryHoldCount >= Configuration.Entry.holdFrames then
             state.entryHoldCount = 0
             TEN.Input.ClearAllKeys()
-            TEN.Sound.PlaySound(Settings.SoundMap.menuOpen)
+            TEN.Sound.PlaySound(Configuration.SoundMap.menuOpen)
             PhotoMode.Enter()
         end
     else
