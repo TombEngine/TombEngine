@@ -286,13 +286,9 @@ namespace TEN::Renderer
 		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasHeightMap) << 8;
 		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasAmbientOcclusionMap) << 9;
 		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasEmissiveMap) << 10;
+		auto& materialProperties = g_Level.Materials[materialIndex].GetInterpolatedProperties(GetInterpolationFactor());
 
-		if (materialTypeAndFlags == _stPerDraw.MaterialTypeAndFlags &&
-			g_Level.Materials[materialIndex].Parameters0 == _stPerDraw.MaterialParameters0 &&
-			g_Level.Materials[materialIndex].Parameters1 == _stPerDraw.MaterialParameters1 &&
-			g_Level.Materials[materialIndex].Parameters2 == _stPerDraw.MaterialParameters2 &&
-			g_Level.Materials[materialIndex].Parameters3 == _stPerDraw.MaterialParameters3 &&
-			!force)
+		if (materialTypeAndFlags == _stPerDraw.MaterialTypeAndFlags && materialProperties == _stPerDraw.MaterialProperties && !force)
 		{
 			return;
 		}
@@ -301,10 +297,7 @@ namespace TEN::Renderer
 		//if (materialIndex != _lastMaterialIndex || force)
 		{
 			_stPerDraw.MaterialTypeAndFlags = materialTypeAndFlags;
-			_stPerDraw.MaterialParameters0  = g_Level.Materials[materialIndex].Parameters0;
-			_stPerDraw.MaterialParameters1  = g_Level.Materials[materialIndex].Parameters1;
-			_stPerDraw.MaterialParameters2  = g_Level.Materials[materialIndex].Parameters2;
-			_stPerDraw.MaterialParameters3  = g_Level.Materials[materialIndex].Parameters3;
+			_stPerDraw.MaterialProperties   = materialProperties;
 
 			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
@@ -313,9 +306,9 @@ namespace TEN::Renderer
 			_numExecutedMaterialsUpdates++;
 		}
 
-		if (type == MaterialShaderType::Reflective)
+		if (type == TextureMaterialType::Reflective)
 			BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, _legacyReflectionsRenderTarget->GetRenderTarget(), SamplerStateRegister::AnisotropicClamp);
-		else if (type == MaterialShaderType::SkyboxReflective)
+		else if (type == TextureMaterialType::SkyboxReflective)
 			BindTexture(TextureRegister::SkyboxEnvironmentReflections, _skyboxRenderTarget->GetRenderTarget(), SamplerStateRegister::AnisotropicClamp);
 	}
 
