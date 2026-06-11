@@ -1051,8 +1051,7 @@ namespace TEN::Entities::Vehicles
 		if (spark->sLife < 9)
 			spark->sLife = spark->life = 9;
 
-		// TODO: Switch back to screen blend mode once rendering for it is refactored. -- Sezz 2023.01.14
-		spark->blendMode = BlendMode::Additive;
+		spark->blendMode = BlendMode::Screen;
 		spark->colFadeSpeed = 4;
 		spark->fadeToBlack = 4;
 		spark->extras = 0;
@@ -1069,7 +1068,7 @@ namespace TEN::Entities::Vehicles
 
 		if (GetRandomControl() & 1)
 		{
-			spark->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF;
+			spark->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_HAZE;
 			spark->rotAng = GetRandomControl() & 4095;
 			if (GetRandomControl() & 1)
 				spark->rotAdd = -(GetRandomControl() & 7) - 24;
@@ -1077,7 +1076,7 @@ namespace TEN::Entities::Vehicles
 				spark->rotAdd = (GetRandomControl() & 7) + 24;
 		}
 		else
-			spark->flags = SP_SCALE | SP_DEF | SP_EXPDEF;
+			spark->flags = SP_SCALE | SP_DEF | SP_EXPDEF | SP_HAZE;
 
 		spark->SpriteSeqID = ID_DEFAULT_SPRITES;
 		spark->SpriteID = 0;
