@@ -26,6 +26,7 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 #include "Specific/Input/Input.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
@@ -248,18 +249,20 @@ namespace TEN::Entities::Vehicles
 		upv.HarpoonLeft = !upv.HarpoonLeft;
 	}
 
-	static void TriggerUPVMist(long x, long y, long z, long velocity, short angle)
+	static void TriggerUPVMist(ItemInfo* upv, short itemNumber, long x, long y, long z, long velocity, short angle)
 	{
 		auto* sptr = GetFreeParticle();
+		auto upvMistStartColor = PropertyHandler::Get(upv, "VehicleMistStartColor", ScriptColor(0, 0, 0));
+		auto upvMistEndColor = PropertyHandler::Get(upv, "VehicleMistEndColor", ScriptColor(64, 64, 64));
 
 		sptr->on = 1;
-		sptr->sR = 0;
-		sptr->sG = 0;
-		sptr->sB = 0;
+		sptr->sR = upvMistStartColor.GetR();
+		sptr->sG = upvMistStartColor.GetG();
+		sptr->sB = upvMistStartColor.GetB();
 
-		sptr->dR = 64;
-		sptr->dG = 64;
-		sptr->dB = 64;
+		sptr->dR = upvMistEndColor.GetR();
+		sptr->dG = upvMistEndColor.GetG();
+		sptr->dB = upvMistEndColor.GetB();
 
 		sptr->colFadeSpeed = 4 + (GetRandomControl() & 3);
 		sptr->fadeToBlack = 12;
@@ -280,7 +283,7 @@ namespace TEN::Entities::Vehicles
 
 		if (GetRandomControl() & 1)
 		{
-			sptr->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF;
+			sptr->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_HAZE;
 			sptr->rotAng = GetRandomControl() & 4095;
 
 			if (GetRandomControl() & 1)
@@ -289,7 +292,7 @@ namespace TEN::Entities::Vehicles
 				sptr->rotAdd = (GetRandomControl() & 15) + 16;
 		}
 		else
-			sptr->flags = SP_SCALE | SP_DEF | SP_EXPDEF;
+			sptr->flags = SP_SCALE | SP_DEF | SP_EXPDEF | SP_HAZE;
 
 		sptr->scalar = 3;
 		sptr->gravity = sptr->maxYvel = 0;
@@ -317,7 +320,11 @@ namespace TEN::Entities::Vehicles
 			if (UPV->Velocity)
 			{
 				auto pos = GetJointPosition(UPVItem, UPVBites[UPV_BITE_TURBINE]).ToVector3();
-				TriggerUPVMist(pos.x, pos.y + UPV_SHIFT, pos.z, abs(UPV->Velocity) / VEHICLE_VELOCITY_SCALE, UPVItem->Pose.Orientation.y + ANGLE(180.0f));
+
+				if (PropertyHandler::Get(UPVItem, "VehicleMist", true))
+				{
+					TriggerUPVMist(UPVItem, itemNumber, pos.x, pos.y + UPV_SHIFT, pos.z, abs(UPV->Velocity) / VEHICLE_VELOCITY_SCALE, UPVItem->Pose.Orientation.y + ANGLE(180.0f));
+				};
 
 				auto sphere = BoundingSphere(pos, BLOCK(1 / 32.0f));
 				if (Random::TestProbability(1 / 2.0f))
