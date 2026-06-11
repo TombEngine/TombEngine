@@ -229,30 +229,30 @@ namespace TEN::Entities::Vehicles
 		auto origin = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), CLICK(1))).ToVector3();
 		auto target = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), BLOCK(1))).ToVector3();
 
-		auto vehicleLightColor = PropertyHandler::Get(upvItem, "VehicleLightColor", ScriptColor(255, 255, 255));
-		auto vehicleLightIntensity = PropertyHandler::Get(upvItem, "VehicleLightIntensity", 0.5f);
-		auto vehicleLightCastShadow = PropertyHandler::Get(upvItem, "VehicleLightCastShadow", true);
-		auto vehicleLightRadius = PropertyHandler::Get(upvItem, "VehicleLightRadius",4);
-		auto vehicleLightFalloff = PropertyHandler::Get(upvItem, "VehicleLightFalloff", 2);
-		auto vehicleLightDistance = PropertyHandler::Get(upvItem, "VehicleLightDistance", 10);
+		auto upvLightColor = PropertyHandler::Get(upvItem, "VehicleLightColor", ScriptColor(255, 255, 255));
+		auto upvLightIntensity = PropertyHandler::Get(upvItem, "VehicleLightIntensity", 0.5f);
+		auto upvLightCastShadow = PropertyHandler::Get(upvItem, "VehicleLightCastShadow", true);
+		auto upvLightRadius = PropertyHandler::Get(upvItem, "VehicleLightRadius",4);
+		auto upvLightFalloff = PropertyHandler::Get(upvItem, "VehicleLightFalloff", 2);
+		auto upvLightDistance = PropertyHandler::Get(upvItem, "VehicleLightDistance", 10);
 
 		target = target - origin;
 		target.Normalize();
 
-		float lightIntensity = vehicleLightIntensity + Random::GenerateFloat(0.0f, 0.1f);
+		float lightIntensity = upvLightIntensity + Random::GenerateFloat(0.0f, 0.1f);
 		SpawnDynamicSpotLight
 		(
 			origin,
 			target,
 			Vector4(
-				(vehicleLightColor.GetR() / 255.0f) * lightIntensity,
-				(vehicleLightColor.GetG() / 255.0f) * lightIntensity,
-				(vehicleLightColor.GetB() / 255.0f) * lightIntensity,
+				(upvLightColor.GetR() / 255.0f) * lightIntensity,
+				(upvLightColor.GetG() / 255.0f) * lightIntensity,
+				(upvLightColor.GetB() / 255.0f) * lightIntensity,
 				1.0f),
-			BLOCK(vehicleLightRadius),
-			BLOCK(vehicleLightFalloff),
-			BLOCK(vehicleLightDistance),
-			vehicleLightCastShadow,
+			BLOCK(upvLightRadius),
+			BLOCK(upvLightFalloff),
+			BLOCK(upvLightDistance),
+			upvLightCastShadow,
 			UPV_LIGHT_HASH
 		);
 	}
