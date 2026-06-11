@@ -223,16 +223,33 @@ namespace TEN::Entities::Vehicles
 
 	static void DrawUPVLight(ItemInfo* upvItem)
 	{
-		auto* upv = GetUPVInfo(upvItem);
+		if (!PropertyHandler::Get(upvItem, "VehicleLight", true))
+			return;
 
 		auto origin = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), CLICK(1))).ToVector3();
 		auto target = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), BLOCK(1))).ToVector3();
+		auto vehicleLightColor = PropertyHandler::Get(upvItem, "VehicleLightColor", ScriptColor(255, 255, 255));
+		auto vehicleLightIntensity = PropertyHandler::Get(upvItem, "VehicleLightIntensity", 0.5f);
 
 		target = target - origin;
 		target.Normalize();
 
-		float lightIntensity = 0.5f + Random::GenerateFloat(0.0f, 0.1f);
-		SpawnDynamicSpotLight(origin, target, Vector4(lightIntensity, lightIntensity, lightIntensity, 1.0f), BLOCK(4), BLOCK(2), BLOCK(10), true, UPV_LIGHT_HASH);
+		float lightIntensity = vehicleLightIntensity + Random::GenerateFloat(0.0f, 0.1f);
+		SpawnDynamicSpotLight
+		(
+			origin,
+			target,
+			Vector4(
+				(vehicleLightColor.GetR() / 255.0f) * lightIntensity,
+				(vehicleLightColor.GetG() / 255.0f) * lightIntensity,
+				(vehicleLightColor.GetB() / 255.0f) * lightIntensity,
+				1.0f),
+			BLOCK(4),
+			BLOCK(2),
+			BLOCK(10),
+			true,
+			UPV_LIGHT_HASH
+		);
 	}
 
 	static void FireUPVHarpoon(ItemInfo* UPVItem, ItemInfo* laraItem)
@@ -337,27 +354,38 @@ namespace TEN::Entities::Vehicles
 				}
 			}
 		}
-	
-		for (int lp = 0; lp < 2; lp++)
+
+		if (PropertyHandler::Get(UPVItem, "VehicleLight", true))	
 		{
-			int random = 31 - (GetRandomControl() & 3);
-			auto pos = GetJointPosition(UPVItem, UPVBites[UPV_BITE_FRONT_LIGHT].BoneID, Vector3i(
-				UPVBites[UPV_BITE_FRONT_LIGHT].Position.x,
-				UPVBites[UPV_BITE_FRONT_LIGHT].Position.y,
-				(int)UPVBites[UPV_BITE_FRONT_LIGHT].Position.z << (lp * 6)
-			));
-
-			GameVector origin;
-			if (lp == 1)
+			for (int lp = 0; lp < 2; lp++)
 			{
-				auto target = GameVector(pos, UPVItem->RoomNumber);
-				LOS(&origin, &target);
-				pos = Vector3i(target.x, target.y, target.z);
-			}
-			else
-				origin = GameVector(pos, UPVItem->RoomNumber);
+				int random = 31 - (GetRandomControl() & 3);
+				auto pos = GetJointPosition(UPVItem, UPVBites[UPV_BITE_FRONT_LIGHT].BoneID, Vector3i(
+					UPVBites[UPV_BITE_FRONT_LIGHT].Position.x,
+					UPVBites[UPV_BITE_FRONT_LIGHT].Position.y,
+					(int)UPVBites[UPV_BITE_FRONT_LIGHT].Position.z << (lp * 6)
+				));
 
-			SpawnDynamicLight(pos.x, pos.y, pos.z, 16 + (lp << 3), random, random, random);
+				GameVector origin;
+				if (lp == 1)
+				{
+					auto target = GameVector(pos, UPVItem->RoomNumber);
+					LOS(&origin, &target);
+					pos = Vector3i(target.x, target.y, target.z);
+				}
+				else
+				{
+					origin = GameVector(pos, UPVItem->RoomNumber);
+				}					
+
+				float lightValue = random / (float)UCHAR_MAX;
+				SpawnDynamicPointLight(
+					pos.ToVector3(),
+					Vector4(lightValue, lightValue, lightValue, 1.0f),
+					16.0f + (lp << 3),
+					false,
+					UPV_LIGHT_HASH + lp);
+			}
 		}
 
 		if (UPV->HarpoonTimer)
