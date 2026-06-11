@@ -614,8 +614,6 @@ namespace TEN::Entities::Vehicles
 		bool noTurn = true;
 		int maxVelocity;
 
-		const int vehicleVelocity = PropertyHandler::Get(speedboatItem, "VehicleVelocity", SPEEDBOAT_NORMAL_VELOCITY_MAX);
-
 		if (speedboatItem->Pose.Position.y >= speedboat->Water - CLICK(0.5f) && speedboat->Water != NO_HEIGHT)
 		{
 			if ((!IsHeld(In::Brake) && !IsHeld(In::Look)) || speedboatItem->Animation.Velocity.z)
@@ -657,9 +655,9 @@ namespace TEN::Entities::Vehicles
 				else if (IsHeld(In::Accelerate))
 				{
 					if (IsHeld(In::Faster))
-						maxVelocity = vehicleVelocity;
+						maxVelocity = SPEEDBOAT_NORMAL_VELOCITY_MAX;
 					else
-						maxVelocity = (IsHeld(In::Slower)) ? SPEEDBOAT_SLOW_VELOCITY_MAX : vehicleVelocity;
+						maxVelocity = (IsHeld(In::Slower)) ? SPEEDBOAT_SLOW_VELOCITY_MAX : SPEEDBOAT_NORMAL_VELOCITY_MAX;
 
 					if (speedboatItem->Animation.Velocity.z < maxVelocity)
 						speedboatItem->Animation.Velocity.z += (SPEEDBOAT_VELOCITY_ACCEL / 2) + (SPEEDBOAT_VELOCITY_ACCEL * (speedboatItem->Animation.Velocity.z / (maxVelocity * 2)));
