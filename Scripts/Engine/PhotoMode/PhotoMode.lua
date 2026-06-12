@@ -121,8 +121,17 @@
 --    {
 --        meshName  = "pm_Sunglasses",
 --        baseObjID = TEN.Objects.ObjID.PHOTOMODE_ANIMS,
---        enabled   = false,    -- <-- hides the menu item
+--        enabled   = false,    -- <-- hides the Accessory menu item
 --        presets   = Accessories,
+--    }
+--
+-- To hide the Outfit option, set Settings.Accessories.outfitsEnabled = false
+-- inside Settings.lua (it lives alongside the accessories toggle):
+--
+--    Settings.Accessories =
+--    {
+--        enabled        = true,
+--        outfitsEnabled = false,   -- <-- hides the Outfit menu item
 --    }
 
 --- Display name shown in the selector.
@@ -211,6 +220,27 @@
 --      meshVisible = "none", unlocked = false },
 --
 --    PhotoMode.UnlockOutfit("Secret Wetsuit")
+--
+-- Hiding all outfit options:
+-- Set Settings.Character.outfitsEnabled = false in Settings.lua to remove
+-- the Outfit item from the Character menu entirely:
+--
+--    Settings.Character = { accessoriesEnabled = true, outfitsEnabled = false }
+--
+-- ---------- Depth of Field (Settings.Camera.depthOfFieldEnabled) ----------
+--
+-- All four DOF items (Mode, Focus Distance, Focus Range, Blur Strength) can
+-- be hidden at once by setting depthOfFieldEnabled = false in Settings.lua:
+--
+--    Settings.Camera =
+--    {
+--        limitCameraDistance = true,
+--        distance            = 4096,
+--        depthOfFieldEnabled = false,   -- <-- hides the DOF items
+--    }
+--
+-- This is useful for projects that do not use the DOF post-process effect and
+-- want a cleaner Effects menu.
 
 --- Display name shown in the selector.
 -- @tfield string name Display name for this outfit.
@@ -380,12 +410,13 @@
 
 
 -- Photo Module Start
-local Camera   = require("Engine.PhotoMode.Camera")
 local Borders   = require("Engine.PhotoMode.SpriteBorders")
+local Camera   = require("Engine.PhotoMode.Camera")
+local Configuration = require("Engine.PhotoMode.Configuration")
 local Input    = require("Engine.PhotoMode.Input")
 local InputHelpers = require("Engine.PhotoMode.InputHelpers")
 local Menu     = require("Engine.PhotoMode.Menu")
-local Configuration = require("Engine.PhotoMode.Configuration")
+local Settings = require("Engine.PhotoMode.Settings")
 local States   = require("Engine.PhotoMode.States")
 require("Engine.PhotoMode.Strings")
 
@@ -856,6 +887,8 @@ local function ResetCharacter()
     if state.snapshot then
         pcall(function() Lara:SetAnim(state.snapshot.laraAnim, state.snapshot.laraAnimSlot) end)
         pcall(function() Lara:SetFrame(state.snapshot.laraFrame) end)
+        pcall(function() Lara:SetPosition(state.snapshot.laraPos) end)
+        pcall(function() Lara:SetRotation(state.snapshot.laraRot) end)
     end
     state.animIndex = 1
 
@@ -889,6 +922,9 @@ local function ResetCharacter()
     state.accessoryIndex  = 1
     state.gunflashEnabled   = false
     ApplyAccessory(state)
+
+    pcall(function() Lara:ResetHair() end)
+
 end
 
 local function ResetEffects()
@@ -1171,6 +1207,9 @@ local function BuildAllMenus()
         local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
         if name == "pm_hide_ui" then
             state.hideUI = IndexToBool(m:GetCurrentOptionIndex())
+        elseif name == "pm_hide_character" then
+            state.hideCharacter = IndexToBool(m:GetCurrentOptionIndex())
+            pcall(function() Lara:SetVisible(not state.hideCharacter) end)
         end
     end
 
@@ -1227,11 +1266,13 @@ local function BuildAllMenus()
     local weaponNames = BuildFilteredWeaponNames()
     local characterItems = {
         { itemName = "pm_animation",  options = ANIM_NAMES,       currentOption = state.animIndex },
-        { itemName = "pm_outfit",     options = outfitNames,      currentOption = _outfitMenuMapReverse[state.outfitIndex] or 1 },
-        { itemName = "pm_weapons",    options = weaponNames,      currentOption = _weaponMenuMapReverse[state.weaponIndex] or 1 },
-        { itemName = "pm_expression", options = EXPRESSION_NAMES, currentOption = state.expressionIndex },
     }
-    if Configuration.Accessories.enabled ~= false then
+    if Settings.Character.outfitsEnabled ~= false then
+        characterItems[#characterItems + 1] = { itemName = "pm_outfit", options = outfitNames, currentOption = _outfitMenuMapReverse[state.outfitIndex] or 1 }
+    end
+    characterItems[#characterItems + 1] = { itemName = "pm_weapons",    options = weaponNames,      currentOption = _weaponMenuMapReverse[state.weaponIndex] or 1 }
+    characterItems[#characterItems + 1] = { itemName = "pm_expression", options = EXPRESSION_NAMES, currentOption = state.expressionIndex }
+    if Settings.Character.accessoriesEnabled ~= false then
         characterItems[#characterItems + 1] = { itemName = "pm_accessory", options = ACCESSORY_NAMES, currentOption = state.accessoryIndex }
     end
     characterItems[#characterItems + 1] = { itemName = "pm_gunflash", options = BoolOptions(),    currentOption = BoolToIndex(state.gunflashEnabled) }
@@ -1242,21 +1283,25 @@ local function BuildAllMenus()
     -- ================================================================
     -- EFFECTS menu (Lens + Depth of Field)
     -- ================================================================
-    CreateMenu(MENU_EFFECTS, {
-        { itemName = "pm_fov",         options = NumberRange(cfg.Lens.minFOV, cfg.Lens.maxFOV, cfg.Lens.fovStep),
+    local effectsItems = {
+        { itemName = "pm_fov",  options = NumberRange(cfg.Lens.minFOV, cfg.Lens.maxFOV, cfg.Lens.fovStep),
           currentOption = ValueToOptionIndex(state.fov, cfg.Lens.minFOV, cfg.Lens.fovStep)},
-        { itemName = "pm_roll",        options = NumberRange(cfg.Lens.minRoll, cfg.Lens.maxRoll, cfg.Lens.rollStep),
+        { itemName = "pm_roll", options = NumberRange(cfg.Lens.minRoll, cfg.Lens.maxRoll, cfg.Lens.rollStep),
           currentOption = ValueToOptionIndex(state.roll, cfg.Lens.minRoll, cfg.Lens.rollStep)},
-        { itemName = "pm_dof_mode",    options = DOF_MODE_NAMES, currentOption = state.dofMode },
-        { itemName = "pm_dof_focus",   options = NumberRange(cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.maxFocusDistance, cfg.DepthOfField.focusDistanceStep),
-          currentOption = ValueToOptionIndex(state.dofFocusDistance, cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.focusDistanceStep)},
-        { itemName = "pm_dof_range",   options = NumberRange(cfg.DepthOfField.minRange, cfg.DepthOfField.maxRange, cfg.DepthOfField.rangeStep),
-          currentOption = ValueToOptionIndex(state.dofRange, cfg.DepthOfField.minRange, cfg.DepthOfField.rangeStep)},
-        { itemName = "pm_dof_strength", options = NumberRange(cfg.DepthOfField.minStrength, cfg.DepthOfField.maxStrength, cfg.DepthOfField.strengthStep,
+    }
+    if Settings.Camera.depthOfFieldEnabled ~= false then
+        effectsItems[#effectsItems + 1] = { itemName = "pm_dof_mode", options = DOF_MODE_NAMES, currentOption = state.dofMode }
+        effectsItems[#effectsItems + 1] = { itemName = "pm_dof_focus", options = NumberRange(cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.maxFocusDistance, cfg.DepthOfField.focusDistanceStep),
+          currentOption = ValueToOptionIndex(state.dofFocusDistance, cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.focusDistanceStep)}
+        effectsItems[#effectsItems + 1] = { itemName = "pm_dof_range", options = NumberRange(cfg.DepthOfField.minRange, cfg.DepthOfField.maxRange, cfg.DepthOfField.rangeStep),
+          currentOption = ValueToOptionIndex(state.dofRange, cfg.DepthOfField.minRange, cfg.DepthOfField.rangeStep)}
+        effectsItems[#effectsItems + 1] = { itemName = "pm_dof_strength", options = NumberRange(cfg.DepthOfField.minStrength, cfg.DepthOfField.maxStrength, cfg.DepthOfField.strengthStep,
               function(v) return string.format("%.2f", v) end),
-          currentOption = ValueToOptionIndex(state.dofStrength, cfg.DepthOfField.minStrength, cfg.DepthOfField.strengthStep)},
-        { itemName = "pm_reset",       options = { acceptString }, currentOption = 1 },
-    }, "Engine.PhotoMode.OnEffectsAccept", "Engine.PhotoMode.OnEffectsOptionChange", "pm_header_effects")
+          currentOption = ValueToOptionIndex(state.dofStrength, cfg.DepthOfField.minStrength, cfg.DepthOfField.strengthStep)}
+    end
+    effectsItems[#effectsItems + 1] = { itemName = "pm_reset", options = { acceptString }, currentOption = 1 }
+    CreateMenu(MENU_EFFECTS, effectsItems,
+        "Engine.PhotoMode.OnEffectsAccept", "Engine.PhotoMode.OnEffectsOptionChange", "pm_header_effects")
 
     -- ================================================================
     -- FILTERS menu (Post-process + Frame)
@@ -1293,8 +1338,9 @@ local function BuildAllMenus()
     -- UI menu
     -- ================================================================
     CreateMenu(MENU_UI, {
-        { itemName = "pm_hide_ui", options = BoolOptions(), currentOption = BoolToIndex(state.hideUI) },
-        { itemName = "pm_exit",    options = { acceptString }, currentOption = 1 },
+        { itemName = "pm_hide_ui",        options = BoolOptions(), currentOption = BoolToIndex(state.hideUI) },
+        { itemName = "pm_hide_character",  options = BoolOptions(), currentOption = BoolToIndex(state.hideCharacter) },
+        { itemName = "pm_exit",            options = { acceptString }, currentOption = 1 },
     }, "Engine.PhotoMode.OnUIAccept", "Engine.PhotoMode.OnUIOptionChange", "pm_header_ui")
 
     -- ================================================================
@@ -1420,6 +1466,9 @@ function PhotoMode.Exit()
             state.accessoryIndex = 1
         end
     end)
+
+    -- Restore Lara visibility
+    pcall(function() Lara:SetVisible(true) end)
 
     -- Clean up menus
     Menu.DeleteAll()

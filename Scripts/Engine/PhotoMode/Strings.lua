@@ -47,6 +47,7 @@ local strings =
 
     -- UI menu items
     pm_hide_ui        = {"Hide UI"},
+    pm_hide_character  = {"Hide Character"},
     pm_exit           = {"Exit Photo Mode"},
 
     -- Common

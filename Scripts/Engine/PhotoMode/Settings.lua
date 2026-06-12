@@ -4,15 +4,17 @@
 
 local Settings = {}
 
-Settings.Accessories = 
-{
-    enabled = true
-}
-
 Settings.Camera = 
 {
     limitCameraDistance = true,
-    distance = 4096
+    distance = 4096,
+    depthOfFieldEnabled = false
+}
+
+Settings.Character = 
+{
+    accessoriesEnabled = false,
+    outfitsEnabled = false
 }
 
 Settings.ColorMap =

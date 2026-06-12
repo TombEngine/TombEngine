@@ -64,7 +64,7 @@ function FrameSprites.Draw()
     if not preset or preset.spriteID < 0 then return end
 
     local cfg = Configuration.Frames
-
+    local stretchMode = preset.scaleMode or cfg.scaleMode
     local frameColor = TEN.Color(cfg.color.r, cfg.color.g, cfg.color.b, math.floor(currentAlpha))
 
     local sprite = TEN.View.DisplaySprite(
@@ -77,7 +77,7 @@ function FrameSprites.Draw()
     )
 
     -- Draw on a layer in front of the scene but behind the UI text
-    sprite:Draw(-5, cfg.alignMode, cfg.scaleMode, cfg.blendMode)
+    sprite:Draw(-5, cfg.alignMode, stretchMode, cfg.blendMode)
 end
 
 -- ============================================================================

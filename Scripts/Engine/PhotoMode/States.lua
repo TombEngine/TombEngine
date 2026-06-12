@@ -38,6 +38,7 @@ local State = {
     active         = false,
     entryHoldCount = 0,
     hideUI         = false,
+    hideCharacter  = false,
     timeInPhotoMode   = 0,
 
     -- Snapshot of Lara / view state captured on entry
@@ -296,6 +297,7 @@ function States.ResetToEntry()
     State.tintIndex     = 1
     State.tintIntensity = 0.0
     State.hideUI             = false
+    State.hideCharacter      = false
     State.appliedSkin        = false
     State.appliedSkinnedMesh = false
     State.hiddenMeshes       = {}

@@ -28,7 +28,6 @@ Configuration.SoundMap = Settings.SoundMap
 
 Configuration.Animation =
 {
-    transitionSpeed = 50,
     fadeSpeed        = 50,
 }
 
@@ -43,25 +42,15 @@ Configuration.Camera =
     meshIndex        = 0,
     targetIndex      = 0,
     defaultMoveSpeed = 64,
-    minMoveSpeed     = 8,
-    maxMoveSpeed     = 512,
-    moveSpeedStep    = 8,
     defaultLookSpeed  = 8.0,
-    minLookSpeed      = 0.5,
-    maxLookSpeed      = 5.0,
-    lookSpeedStep     = 0.5,
     mouseSensitivity  = 32,
     offsetForward    = -512,
     offsetUp         = -256,
     targetForward    = 512,
     targetUp         = -256,
 
-    -- Distance limit from Lara's entry position (snap.laraPos)
     defaultLimitDistance = Settings.Camera.limitCameraDistance,
     defaultMaxDistance   = Settings.Camera.distance,
-    minMaxDistance       = 512,
-    maxMaxDistance       = 16384,
-    distanceStep         = 512,
 }
 
 -- ============================================================================
@@ -257,12 +246,8 @@ Configuration.Animations = Poses
 
 Configuration.Accessories =
 {
-    -- Name of the moveable spawned in the level to host accessory mesh swaps.
     meshName = "pm_Sunglasses",
-    -- Base object used when spawning the moveable (any Lara-compatible skeleton).
     baseObjID = TEN.Objects.ObjID.PHOTOMODE_ANIMS,
-    -- Set to false to hide the Accessory option entirely.
-    enabled  = Settings.Accessories.enabled,
     presets  = Accessories,
 }
 
