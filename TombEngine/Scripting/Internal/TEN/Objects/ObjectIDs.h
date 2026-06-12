@@ -1,7 +1,7 @@
 #pragma once
 
 // This file is generated automatically, do not edit it.
-// Last generated on 15-05-2026.
+// Last generated on 12-06-2026.
 
 #include <unordered_map>
 #include <string>

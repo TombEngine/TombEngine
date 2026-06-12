@@ -186,14 +186,14 @@ void DrawRightPistol(ItemInfo* item)
 void ShootLeftGun(ItemInfo* item)
 {
 	auto& player = GetLaraInfo(*item);
-
+	player.LeftArm.GunFlashType = player.Control.Weapon.GunType;
 	player.LeftArm.GunFlash = 3;
 }
 
 void ShootRightGun(ItemInfo* item)
 {
 	auto& player = GetLaraInfo(*item);
-
+	player.RightArm.GunFlashType = player.Control.Weapon.GunType;
 	player.RightArm.GunFlash = 3;
 }
 

@@ -2894,6 +2894,7 @@ struct ArmInfoT : public flatbuffers::NativeTable {
   std::unique_ptr<TEN::Serialization::Common::EulerAngles> rotation{};
   int32_t gun_flash = 0;
   int32_t gun_smoke = 0;
+  int32_t gun_flash_type = 0;
 };
 
 struct ArmInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -2907,7 +2908,8 @@ struct ArmInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_LOCKED = 10,
     VT_ROTATION = 12,
     VT_GUN_FLASH = 14,
-    VT_GUN_SMOKE = 16
+    VT_GUN_SMOKE = 16,
+    VT_GUN_FLASH_TYPE = 18
   };
   int32_t anim_number() const {
     return GetField<int32_t>(VT_ANIM_NUMBER, 0);
@@ -2930,6 +2932,9 @@ struct ArmInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t gun_smoke() const {
     return GetField<int32_t>(VT_GUN_SMOKE, 0);
   }
+  int32_t gun_flash_type() const {
+    return GetField<int32_t>(VT_GUN_FLASH_TYPE, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_ANIM_NUMBER) &&
@@ -2939,6 +2944,7 @@ struct ArmInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<TEN::Serialization::Common::EulerAngles>(verifier, VT_ROTATION) &&
            VerifyField<int32_t>(verifier, VT_GUN_FLASH) &&
            VerifyField<int32_t>(verifier, VT_GUN_SMOKE) &&
+           VerifyField<int32_t>(verifier, VT_GUN_FLASH_TYPE) &&
            verifier.EndTable();
   }
   ArmInfoT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -2971,6 +2977,9 @@ struct ArmInfoBuilder {
   void add_gun_smoke(int32_t gun_smoke) {
     fbb_.AddElement<int32_t>(ArmInfo::VT_GUN_SMOKE, gun_smoke, 0);
   }
+  void add_gun_flash_type(int32_t gun_flash_type) {
+    fbb_.AddElement<int32_t>(ArmInfo::VT_GUN_FLASH_TYPE, gun_flash_type, 0);
+  }
   explicit ArmInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -2990,8 +2999,10 @@ inline flatbuffers::Offset<ArmInfo> CreateArmInfo(
     bool locked = false,
     const TEN::Serialization::Common::EulerAngles *rotation = 0,
     int32_t gun_flash = 0,
-    int32_t gun_smoke = 0) {
+    int32_t gun_smoke = 0,
+    int32_t gun_flash_type = 0) {
   ArmInfoBuilder builder_(_fbb);
+  builder_.add_gun_flash_type(gun_flash_type);
   builder_.add_gun_smoke(gun_smoke);
   builder_.add_gun_flash(gun_flash);
   builder_.add_rotation(rotation);
@@ -11553,6 +11564,7 @@ inline void ArmInfo::UnPackTo(ArmInfoT *_o, const flatbuffers::resolver_function
   { auto _e = rotation(); if (_e) _o->rotation = std::unique_ptr<TEN::Serialization::Common::EulerAngles>(new TEN::Serialization::Common::EulerAngles(*_e)); }
   { auto _e = gun_flash(); _o->gun_flash = _e; }
   { auto _e = gun_smoke(); _o->gun_smoke = _e; }
+  { auto _e = gun_flash_type(); _o->gun_flash_type = _e; }
 }
 
 inline flatbuffers::Offset<ArmInfo> ArmInfo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ArmInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -11570,6 +11582,7 @@ inline flatbuffers::Offset<ArmInfo> CreateArmInfo(flatbuffers::FlatBufferBuilder
   auto _rotation = _o->rotation ? _o->rotation.get() : 0;
   auto _gun_flash = _o->gun_flash;
   auto _gun_smoke = _o->gun_smoke;
+  auto _gun_flash_type = _o->gun_flash_type;
   return TEN::Serialization::Save::CreateArmInfo(
       _fbb,
       _anim_number,
@@ -11578,7 +11591,8 @@ inline flatbuffers::Offset<ArmInfo> CreateArmInfo(flatbuffers::FlatBufferBuilder
       _locked,
       _rotation,
       _gun_flash,
-      _gun_smoke);
+      _gun_smoke,
+      _gun_flash_type);
 }
 
 inline FlareDataT *FlareData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {

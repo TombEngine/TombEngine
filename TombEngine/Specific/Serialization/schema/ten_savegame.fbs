@@ -169,6 +169,7 @@ table ArmInfo {
 	rotation: TEN.Serialization.Common.EulerAngles;
 	gun_flash: int32;
 	gun_smoke: int32;
+	gun_flash_type: int32;
 }
 
 table FlareData {

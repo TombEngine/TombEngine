@@ -494,6 +494,7 @@ const std::vector<byte> SaveGame::Build()
 	leftArm.add_anim_object_id(Lara.LeftArm.AnimObjectID);
 	leftArm.add_anim_number(Lara.LeftArm.AnimNumber);
 	leftArm.add_gun_flash(Lara.LeftArm.GunFlash);
+	leftArm.add_gun_flash_type((int)Lara.LeftArm.GunFlashType);
 	leftArm.add_gun_smoke(Lara.LeftArm.GunSmoke);
 	leftArm.add_frame_number(Lara.LeftArm.FrameNumber);
 	leftArm.add_locked(Lara.LeftArm.Locked);
@@ -504,6 +505,7 @@ const std::vector<byte> SaveGame::Build()
 	rightArm.add_anim_object_id(Lara.RightArm.AnimObjectID);
 	rightArm.add_anim_number(Lara.RightArm.AnimNumber);
 	rightArm.add_gun_flash(Lara.RightArm.GunFlash);
+	rightArm.add_gun_flash_type((int)Lara.RightArm.GunFlashType);
 	rightArm.add_gun_smoke(Lara.RightArm.GunSmoke);
 	rightArm.add_frame_number(Lara.RightArm.FrameNumber);
 	rightArm.add_locked(Lara.RightArm.Locked);
@@ -2159,6 +2161,7 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.LeftArm.AnimObjectID = (GAME_OBJECT_ID)s->lara()->left_arm()->anim_object_id();
 	Lara.LeftArm.AnimNumber = s->lara()->left_arm()->anim_number();
 	Lara.LeftArm.GunFlash = s->lara()->left_arm()->gun_flash();
+	Lara.LeftArm.GunFlashType = (LaraWeaponType)s->lara()->left_arm()->gun_flash_type();
 	Lara.LeftArm.GunSmoke = s->lara()->left_arm()->gun_smoke();
 	Lara.LeftArm.FrameNumber = s->lara()->left_arm()->frame_number();
 	Lara.LeftArm.Locked = s->lara()->left_arm()->locked();
@@ -2168,6 +2171,7 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.RightArm.AnimObjectID = (GAME_OBJECT_ID)s->lara()->right_arm()->anim_object_id();
 	Lara.RightArm.AnimNumber = s->lara()->right_arm()->anim_number();
 	Lara.RightArm.GunFlash = s->lara()->right_arm()->gun_flash();
+	Lara.RightArm.GunFlashType = (LaraWeaponType)s->lara()->right_arm()->gun_flash_type();
 	Lara.RightArm.GunSmoke = s->lara()->right_arm()->gun_smoke();
 	Lara.RightArm.FrameNumber = s->lara()->right_arm()->frame_number();
 	Lara.RightArm.Locked = s->lara()->right_arm()->locked();

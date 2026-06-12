@@ -665,43 +665,6 @@ std::unique_ptr<Moveable> LaraObject::GetPlayerInteractedMoveable() const
 	return std::make_unique<Moveable>(player.Context.InteractedItem);
 }
 
-//Helper function for GetHolsterWeapon
-static LaraWeaponType GetHolsterSlotWeapon(HolsterSlot slot)
-{
-	switch (slot)
-	{
-	case HolsterSlot::Pistols:
-		return LaraWeaponType::Pistol;
-
-	case HolsterSlot::Uzis:
-		return LaraWeaponType::Uzi;
-
-	case HolsterSlot::Revolver:
-		return LaraWeaponType::Revolver;
-
-	case HolsterSlot::Shotgun:
-		return LaraWeaponType::Shotgun;
-
-	case HolsterSlot::HK:
-		return LaraWeaponType::HK;
-
-	case HolsterSlot::Harpoon:
-		return LaraWeaponType::HarpoonGun;
-
-	case HolsterSlot::Crossbow:
-		return LaraWeaponType::Crossbow;
-
-	case HolsterSlot::GrenadeLauncher:
-		return LaraWeaponType::GrenadeLauncher;
-
-	case HolsterSlot::RocketLauncher:
-		return LaraWeaponType::RocketLauncher;
-
-	default:
-		return LaraWeaponType::None;
-	}
-}
-
 /// Get currently holstered weapon types in left holster, right holster and back holster.
 // @function LaraObject:GetHolsterWeapon
 // @treturn Objects.WeaponType Left holster weapon type.

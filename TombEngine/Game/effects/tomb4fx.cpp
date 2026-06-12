@@ -987,14 +987,6 @@ void UpdateGunFlashes()
 	}
 }
 
-void UpdateGunFlashesFreezeMode()
-{
-	if (Lara.LeftArm.GunFlash > 0 && --Lara.LeftArm.GunFlash == 0)
-		Lara.LeftArm.GunFlashType = LaraWeaponType::None;
-	if (Lara.RightArm.GunFlash > 0 && --Lara.RightArm.GunFlash == 0)
-		Lara.RightArm.GunFlashType = LaraWeaponType::None;
-}
-
 void UpdateGunShells()
 {
 	for (int i = 0; i < MAX_GUNSHELL; i++)

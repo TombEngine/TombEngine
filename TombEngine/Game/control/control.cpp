@@ -30,6 +30,7 @@
 #include "Game/Hud/DrawItems/DisplayItem.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_cheat.h"
+#include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
 #include "Game/items.h"
@@ -313,7 +314,7 @@ GameStatus FreezePhase()
 	// Decrement gun flash counters for spectator mode
 	if (g_GameFlow->LastFreezeMode == FreezeMode::Spectator)
 	{
-		UpdateGunFlashesFreezeMode();
+		ReduceWeaponFlashesTimer(Lara);
 	}
 
 	// Poll controls and call scripting events.

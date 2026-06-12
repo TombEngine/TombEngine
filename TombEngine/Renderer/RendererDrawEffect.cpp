@@ -1240,9 +1240,7 @@ namespace TEN::Renderer
 		if (Lara.Control.Look.OpticRange > 0 && _currentMirror == nullptr)
 			return false;
 
-		auto flashWeaponType = (Lara.RightArm.GunFlashType != LaraWeaponType::None)
-			? Lara.RightArm.GunFlashType
-			: Lara.Control.Weapon.GunType;
+		auto flashWeaponType = Lara.RightArm.GunFlashType;
 
 		if (flashWeaponType == LaraWeaponType::None || flashWeaponType == LaraWeaponType::Flare)
 			return false;
