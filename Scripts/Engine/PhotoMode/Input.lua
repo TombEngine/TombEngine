@@ -133,12 +133,26 @@ local function UpdatePlayerInput(state)
 
     local laraPos = Lara:GetPosition()
     local laraRot = Lara:GetRotation()
-    local fwd     = ForwardFromYaw(laraRot.y)
 
     local newPos = TEN.Vec3(laraPos.x, laraPos.y, laraPos.z)
     local newRot = TEN.Rotation(laraRot.x, laraRot.y, laraRot.z)
 
-    -- WASD / left analogue: move + strafe
+    -- Use the camera's look direction projected onto XZ so that W/S move
+    -- Lara away from / towards the camera and A/D strafe relative to it.
+    local camDir   = Camera.GetDirection()
+    local fwd      = TEN.Vec3(camDir.x, 0, camDir.z)
+    local fwdLen   = math.sqrt(fwd.x * fwd.x + fwd.z * fwd.z)
+    if fwdLen > 0.001 then
+        fwd = TEN.Vec3(fwd.x / fwdLen, 0, fwd.z / fwdLen)
+    end
+    local right = Camera.GetRightVector()
+    right = TEN.Vec3(right.x, 0, right.z)
+    local rightLen = math.sqrt(right.x * right.x + right.z * right.z)
+    if rightLen > 0.001 then
+        right = TEN.Vec3(right.x / rightLen, 0, right.z / rightLen)
+    end
+
+    -- WASD / left analogue: move + strafe (camera-relative, XZ only)
     local ls = TEN.Input.GetAnalogAxisValue(AxisID.STICK_LEFT)
     local lsX = ls and ApplyDeadZone(ls.x) or 0
     local lsY = ls and ApplyDeadZone(ls.y) or 0
@@ -153,12 +167,10 @@ local function UpdatePlayerInput(state)
     end
     if TEN.Input.IsKeyHeld(ActionID.A) or lsX < -AXIS_DEAD_ZONE then
         local s = (lsX < -AXIS_DEAD_ZONE) and (-lsX * speed) or speed
-        local right = RightFromYaw(laraRot.y)
         newPos = Vec3Add(newPos, Vec3Scale(right, -s))
     end
     if TEN.Input.IsKeyHeld(ActionID.D) or lsX > AXIS_DEAD_ZONE then
         local s = (lsX > AXIS_DEAD_ZONE) and (lsX * speed) or speed
-        local right = RightFromYaw(laraRot.y)
         newPos = Vec3Add(newPos, Vec3Scale(right, s))
     end
 
@@ -208,8 +220,20 @@ end
 local function UpdateLightInput(state)
     local speed    = Configuration.Camera.defaultMoveSpeed
     local lightPos = state.lightPos
-    local dir      = Camera.GetDirection()
+
+    -- Camera-relative XZ axes (same normalization as player mode)
+    local camDir = Camera.GetDirection()
+    local fwd    = TEN.Vec3(camDir.x, 0, camDir.z)
+    local fwdLen = math.sqrt(fwd.x * fwd.x + fwd.z * fwd.z)
+    if fwdLen > 0.001 then
+        fwd = TEN.Vec3(fwd.x / fwdLen, 0, fwd.z / fwdLen)
+    end
     local right    = Camera.GetRightVector()
+    right          = TEN.Vec3(right.x, 0, right.z)
+    local rightLen = math.sqrt(right.x * right.x + right.z * right.z)
+    if rightLen > 0.001 then
+        right = TEN.Vec3(right.x / rightLen, 0, right.z / rightLen)
+    end
 
     -- WASD / left analogue: XZ movement relative to camera direction
     local ls = TEN.Input.GetAnalogAxisValue(AxisID.STICK_LEFT)
@@ -218,11 +242,11 @@ local function UpdateLightInput(state)
 
     if TEN.Input.IsKeyHeld(ActionID.W) or lsY < -AXIS_DEAD_ZONE then
         local s = (lsY < -AXIS_DEAD_ZONE) and (-lsY * speed) or speed
-        lightPos = Vec3Add(lightPos, Vec3Scale(TEN.Vec3(dir.x, 0, dir.z), s))
+        lightPos = Vec3Add(lightPos, Vec3Scale(fwd, s))
     end
     if TEN.Input.IsKeyHeld(ActionID.S) or lsY > AXIS_DEAD_ZONE then
         local s = (lsY > AXIS_DEAD_ZONE) and (lsY * speed) or speed
-        lightPos = Vec3Add(lightPos, Vec3Scale(TEN.Vec3(dir.x, 0, dir.z), -s))
+        lightPos = Vec3Add(lightPos, Vec3Scale(fwd, -s))
     end
     if TEN.Input.IsKeyHeld(ActionID.A) or lsX < -AXIS_DEAD_ZONE then
         local s = (lsX < -AXIS_DEAD_ZONE) and (-lsX * speed) or speed

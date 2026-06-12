@@ -8,13 +8,14 @@ Settings.Camera =
 {
     limitCameraDistance = true,
     distance = 4096,
-    depthOfFieldEnabled = false
+    depthOfFieldEnabled = true
 }
 
 Settings.Character = 
 {
-    accessoriesEnabled = false,
-    outfitsEnabled = false
+    accessoriesEnabled = true,
+    allWeapons = true,
+    outfitsEnabled = true
 }
 
 Settings.ColorMap =
@@ -24,7 +25,6 @@ Settings.ColorMap =
     optionText = TEN.Flow.GetSettings().UI.optionTextColor,
     neutral      = Color(255, 255, 255, 255),
     dimmed       = Color(120, 120, 120, 255),
-    highlight    = Color(255, 255, 80, 255),
 }
 
 Settings.SoundMap =

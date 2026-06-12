@@ -11,18 +11,18 @@
 -- system without touching this file.
 --
 -- In your level script, require this module once:
---
+-- <br><br>
 -- <i>local PhotoMode = require("Engine.PhotoMode.PhotoMode")</i>
---
+-- <br><br>
 -- The module self-registers its POSTLOOP and PREFREEZE callbacks, so no further wiring is needed.
 --
 -- Make sure the following WAD objects exist in your wad:
---
---        PHOTOMODE_SPRITES  — sprite sheet (see Configuration.lua for sprite indices)
+-- <br><br>
+--        PHOTOMODE_SPRITES  — sprite sheet for menus
 --        PHOTOMODE_FRAMES   — frame overlay sprite sheet
 --        PHOTOMODE_ANIMS    — object that holds all custom photo-mode poses
 --        CAMERA_TARGET      — used internally to drive the object camera
---
+-- 
 -- It is possible to change settings on a per-level basis via @{PhotoMode.GetSettings} and @{PhotoMode.SetSettings} functions, but keep in mind that
 -- _Settings.lua is reread every time the level is reloaded_. Therefore, you need to implement custom settings management in your level script
 -- if you want to override global settings.
@@ -103,55 +103,40 @@
 
 --- Accessories
 -- @section Accessories
--- Accessories drive mesh swaps via a hidden Lara-skeleton object that rides on top of Lara and mirrors her animation, so the mesh moves naturally with her skeleton. The moveable is auto-spawned the first time an accessory is applied. Its base object is Configuration.Accessories.baseObjID (default: PHOTOMODE_ANIMS). Change baseObjID if your accessory object uses a different skeleton than Lara.
+-- Accessories are drawn on top of Lara. They are defined in <i>Engine/PhotoMode/Accessories.lua</i> file. To add new accessories add a row to the accessory presets table in that file. The first entry should always be a "None" sentinel (objID = nil, meshIndices = {}) so the player can clear accessories.
+-- To hide the Accessory option entirely set Settings.Character.accessoriesEnabled = false via @{PhotoMode.SetSettings}.
 -- @usage
---    { name = "None",  objID = nil, meshIndices = {} },   -- always first
+--    { name = "None",  objID = nil, meshIndices = {} },
 --    { name = "Sunglasses",
 --      objID       = TEN.Objects.ObjID.ACTOR1_SPEECH_HEAD1,
---      meshIndices = { 14 },   -- head mesh on the accessory object
+--      meshIndices = { 14 }, 
 --    },
 --    { name = "Beret",
 --      objID       = TEN.Objects.ObjID.ANIMATING5,
 --      meshIndices = { 14 },
---    },
---
--- To hide the Accessory option entirely set Configuration.Accessories.enabled = false inside Configuration.lua:
---
---    Configuration.Accessories =
---    {
---        meshName  = "pm_Sunglasses",
---        baseObjID = TEN.Objects.ObjID.PHOTOMODE_ANIMS,
---        enabled   = false,    -- <-- hides the Accessory menu item
---        presets   = Accessories,
 --    }
 --
--- To hide the Outfit option, set Settings.Accessories.outfitsEnabled = false
--- inside Settings.lua (it lives alongside the accessories toggle):
---
---    Settings.Accessories =
---    {
---        enabled        = true,
---        outfitsEnabled = false,   -- <-- hides the Outfit menu item
---    }
 
 --- Display name shown in the selector.
 -- @tfield string name Display name for this acccessory.
 
---- The object to source the accessory meshes from (nil for no accessory).
--- @tfield Objects.ObjID objID Object that provides the accessory meshes. nil means no accessory is displayed.
+--- The object to source the accessory meshes from.
+-- @tfield Objects.ObjID objID Object that provides the accessory meshes.
 
 --- Mesh slot indices on the accessory moveable to make visible.
 -- @tfield table meshIndices Array of mesh slot indices to display on the accessory moveable.
+-- @usage
+-- meshIndices = { 0, 4, 9 } — only the listed slot indices are shown
 
 --- Expressions
 -- @section Expressions
--- Expressions swap one or more of Lara's classic mesh slots with meshes sourced from another object. Slot 14 is the head. Use multiple indices to swap more than one mesh at once.
+-- Expressions swap one or more of Lara's classic mesh slots with meshes sourced from another object. Use multiple indices to swap more than one mesh at once. They are defined in <i>Engine/PhotoMode/Expressions.lua</i> file.
 -- @usage
---    { name = "Default", objID = nil, meshIndices = {} },   -- always first
---    { name = "Wink",
---      objID       = TEN.Objects.ObjID.LARA_SPEECH_HEAD1,
+--    { name = "Default", objID = nil, meshIndices = {} },
+--    { name = "Scream",
+--      objID       = TEN.Objects.ObjID.LARA_SCREAM,
 --      meshIndices = { 14 },   -- head slot
---    },
+--    }
 
 --- Display name shown in the selector.
 -- @tfield string name Display name for this expression.
@@ -161,14 +146,16 @@
 
 --- Mesh slot indices on Lara to swap.
 -- @tfield table meshIndices table of mesh slot indices to swap. Use multiple indices to swap more than one mesh at once.
+-- @usage
+-- meshIndices = { 0, 4, 9 } — only the listed slot indices are swapped
 
 --- Frames
 -- @section Frames
--- Frames are full-screen sprites drawn from the PHOTOMODE_FRAMES object. A spriteID of -1 means "no frame". The first entry should always be "None".
+-- Frames are full-screen sprites drawn from the PHOTOMODE_FRAMES object. A spriteID of -1 means "no frame". The first entry should always be "None". They are defined in <i>Engine/PhotoMode/Frames.lua</i> file.
 -- @usage
 --    { name = "None",            spriteID = -1 },
 --    { name = "Cinematic Bars",  spriteID = 0 },
---    { name = "My Custom Frame", spriteID = 6 },   -- sprite index in PHOTOMODE_FRAMES
+--    { name = "My Custom Frame", spriteID = 6, scaleMode = TEN.View.ScaleMode.FIT },
 
 --- Display name shown in the Frames selector.
 -- @tfield string name Display name for this frame overlay preset.
@@ -176,11 +163,14 @@
 --- Sprite index in the PHOTOMODE_FRAMES object (-1 for no frame).
 -- @tfield int spriteID Sprite index from PHOTOMODE_FRAMES. Use -1 for no overlay.
 
+--- Scale mode to set for the frame overlay.
+-- @tfield[opt=TEN.View.ScaleMode.STRETCH] View.ScaleMode scaleMode Scale mode for the frame overlay.
+
 --- Outfits
 -- @section Outfits
--- Outfits can change Lara's classic skin, GPU-skinned mesh, per-mesh visibility, and holster state. The first entry is always "Default". Set unlocked = false to hide an outfit until the player earns it, then call PhotoMode.UnlockOutfit(name) to reveal it. Unlocks are saved in GlobalVars.Engine.PhotoModeOutfits.
+-- Outfits can change Lara's Outfit. Both the classic skins and skinned mesh can be used.  They are defined in <i>Engine/PhotoMode/Outfits.lua</i> file. The first entry is always "Default". Set unlocked = false to hide an outfit until the player earns it, then call @{PhotoMode.UnlockOutfit} to reveal it. Unlocks are saved in GlobalVars.Engine.PhotoModeOutfits.
 -- @usage
--- Classic skin swap (uses Lara:SetSkin):
+-- --Classic skin swap (uses Lara:SetSkin):
 --
 --    { name = "Classic TR4",
 --      skin = {
@@ -193,75 +183,65 @@
 --      meshVisible = "all",
 --    },
 --
--- GPU-skinned mesh swap (uses Lara:SwapSkinnedMesh):
+-- --skinned mesh swap (uses Lara:SwapSkinnedMesh):
 --
 --    { name = "Remastered",
 --      skinnedMesh      = TEN.Objects.ObjID.ANIMATING14,
 --      skinnedMeshIndex = 0,      -- optional sub-index
 --      meshVisible      = "none", -- hide classic meshes so only GPU mesh shows
---    },
---
--- meshVisible values:
---    "all"       — all 15 classic mesh slots remain visible
---    "none"      — all classic mesh slots are hidden
---    { 0, 4, 9 } — only the listed slot indices stay visible; rest are hidden
---
--- Optional onEnter hook (runs after the outfit is applied):
---
---    onEnter = function()
---        local s = TEN.Flow.GetSettings()
---        s.Hair[1].offset = Vec3(-4, 3, -28)
---        TEN.Flow.SetSettings(s)
---    end,
---
--- Outfit locking / unlocking:
---
---    { name = "Secret Wetsuit", skinnedMesh = TEN.Objects.ObjID.ANIMATING9,
---      meshVisible = "none", unlocked = false },
---
---    PhotoMode.UnlockOutfit("Secret Wetsuit")
---
--- Hiding all outfit options:
--- Set Settings.Character.outfitsEnabled = false in Settings.lua to remove
--- the Outfit item from the Character menu entirely:
---
---    Settings.Character = { accessoriesEnabled = true, outfitsEnabled = false }
---
--- ---------- Depth of Field (Settings.Camera.depthOfFieldEnabled) ----------
---
--- All four DOF items (Mode, Focus Distance, Focus Range, Blur Strength) can
--- be hidden at once by setting depthOfFieldEnabled = false in Settings.lua:
---
---    Settings.Camera =
---    {
---        limitCameraDistance = true,
---        distance            = 4096,
---        depthOfFieldEnabled = false,   -- <-- hides the DOF items
+--      unlocked = false,
+--      onEnter = function() --function to call when outfit is selected
+--      local s = TEN.Flow.GetSettings()
+--       s.Hair[1].offset = Vec3(-4, 3, -28)
+--       TEN.Flow.SetSettings(s)
+--      end
 --    }
 --
--- This is useful for projects that do not use the DOF post-process effect and
--- want a cleaner Effects menu.
 
 --- Display name shown in the selector.
 -- @tfield string name Display name for this outfit.
 
 --- Array of up to 5 ObjIDs for classic skin swap via Lara:SetSkin().
 -- @tfield[opt=nil] table skin Array of up to 5 ObjIDs: skin, skinJoints, skinScream, hair1, hair2. Nil entries leave that slot unchanged.
+-- @usage
+--      skin = {
+--          TEN.Objects.ObjID.ANIMATING1,   -- skin
+--          TEN.Objects.ObjID.ANIMATING2,   -- skinJoints
+--          TEN.Objects.ObjID.ANIMATING3,   -- skinScream
+--          TEN.Objects.ObjID.ANIMATING4,   -- hair1
+--          -- hair2 omitted → unchanged
+--      },
 
---- ObjID for GPU-skinned mesh swap, or the string "clear" to disable GPU skinning.
+--- ObjID for skinned mesh swap, or the string "clear" to disable GPU skinning.
 -- @tfield[opt=nil] Objects.ObjID skinnedMesh ObjID passed to Lara:SwapSkinnedMesh(), or "clear" to call Lara:ClearSkinnedMesh().
+-- @usage
+-- skinnedMesh      = TEN.Objects.ObjID.ANIMATING14,
 
 --- Optional sub-index passed to Lara:SwapSkinnedMesh().
 -- @tfield[opt=nil] int skinnedMeshIndex Optional sub-index for SwapSkinnedMesh.
+-- @usage
+-- skinnedMeshIndex = 0,      -- optional sub-index
 
 --- Controls classic mesh visibility: "all", "none", or a table of visible slot indices.
 -- @tfield[opt=nil] string|table meshVisible "all" keeps all meshes visible, "none" hides all, or a table of indices keeps only those slots visible.
+-- @usage
+-- meshVisible values:
+--    "all"       — all classic mesh slots remain visible
+--    "none"      — all classic mesh slots are hidden
+--    { 0, 4, 9 } — only the listed slot indices stay visible; rest are hidden
 
 --- Optional function called after the outfit is applied.
--- @tfield[opt=nil] function onEnter Hook function executed after applying this outfit.
+-- @tfield[opt=nil] function onEnter Hook function executed after applying this outfit. Can be used to change hair offsets.
+-- @usage
+-- onEnter = function() --function to call when outfit is selected
+--      local s = TEN.Flow.GetSettings()
+--      s.Hair[1].offset = Vec3(-4, 3, -28)
+--      TEN.Flow.SetSettings(s)
+-- end
+--
 
 --- Whether the outfit is visible in the selector menu.
--- @tfield[opt=true] bool unlocked true or nil makes the outfit visible; false hides it until @{PhotoMode.UnlockOutfit} is called.
+-- @tfield[opt=true] bool unlocked true or nil makes the outfit visible; false hides it in selection until @{PhotoMode.UnlockOutfit} is called.
 
 --- Clear all unlocked outfits so they no longer appear in the photo mode outfit selector.
 -- @function PhotoMode.ClearOutfits
@@ -276,7 +256,7 @@
 
 --- Poses
 -- @section Poses
--- Poses sit in the Engine/PhotoMode/Poses.lua file. Each pose applies an animation from the PHOTOMODE_ANIMS object or any other object in the level. The first entry is always "Default" — it restores Lara's entry animation.
+-- Poses are defined in the <i>Engine/PhotoMode/Poses.lua</i> file. Each pose applies an animation from the PHOTOMODE_ANIMS object or any other object in the level. The first entry is always "Default" — it restores Lara's entry animation.
 -- @usage
 --    { name = "Victory",
 --      objID       = TEN.Objects.ObjID.PHOTOMODE_ANIMS,
@@ -314,19 +294,12 @@
 -- @usage
 -- -- In the level's lua file
 -- local settings = PhotoMode.GetSettings()
--- settings.Accessories.enable = false
+-- settings.Character.accessoriesEnabled = false
 -- PhotoMode.SetSettings(settings)
 
 ---Get settings tables for PhotoMode.
 -- @function PhotoMode.GetSettings
 -- @treturn Settings Current settings table
-
---- Settings.Accessories
--- @section Settings.Accessories
--- Settings related to accessories.
-
---- Whether the Accessories menu is enabled. Accessories are mesh swaps parented to a hidden moveable that mirrors Lara's animation, allowing them to move naturally with her skeleton. Set this to false to hide the Accessories menu and disable the accessory system entirely.
--- @tfield bool enabled true to enable the Accessories menu, false to hide it and disable the accessory system.
 
 --- Settings.Camera
 -- @section Settings.Camera
@@ -338,15 +311,31 @@
 --- Maximum camera distance from Lara when Settings.Camera.limitCameraDistance is enabled. The camera will stop moving further away once it reaches this distance.
 -- @tfield int distance Maximum camera distance from Lara when Settings.Camera.limitCameraDistance is enabled, measured in game units.
 
+--- All four DOF items (Mode, Focus Distance, Focus Range, Blur Strength) can be hidden at once by setting depthOfFieldEnabled = false. This is useful for projects that do not use the DOF post-process effect and want a cleaner Camera menu.
+-- @tfield bool depthOfFieldEnabled true to enable depth of field, false to disable it.
+
+--- Settings.Character
+-- @section Settings.Character
+-- Settings related to character customization.
+
+--- Whether the Accessories menu is enabled. Accessories are mesh swaps parented to a hidden moveable that mirrors Lara's animation, allowing them to move naturally with her skeleton. Set this to false to hide the Accessories menu and disable the accessory system entirely.
+-- @tfield bool accessoriesEnabled true to enable the Accessories menu, false to hide it and disable the accessory option in Character menu.
+
+--- Whether to show all weapon options in the Character menu regardless of inventory.
+-- @tfield bool allWeapons set this to false to hide unavailable weapons.
+
+--- Whether the Outfits menu is enabled.
+-- @tfield bool outfitsEnabled true to enable the Outfits menu, false to hide it and disable the outfit option in Character menu.
+
 --- Settings.ColorMap
 -- @section Settings.ColorMap
 -- These settings define the colors used throughout the inventory UI.
 -- Colors are of type @{Color}.
 -- @usage
--- -- Example of changing the selected item highlight color
+-- -- Example of changing the text color
 -- -- In the level's lua file
 -- local settings = PhotoMode.GetSettings()
--- settings.ColorMap.itemSelected = TEN.Color(200, 180, 60, 255)
+-- settings.ColorMap.plainTextColor = TEN.Color(200, 180, 60, 255)
 -- PhotoMode.SetSettings(settings)
 
 --- Color used for standard body text in the inventory.
@@ -358,40 +347,26 @@
 --- Color used for selectable option text.
 -- @tfield[opt=Flow.GetSettings().UI.optionTextColor] Color optionText Applied to text entries.
 
---- Background tint color for the inventory.
--- @tfield[opt=Color(64&#44; 64&#44; 64&#44; 128)] Color background Semi-transparent overlay color drawn behind inventory content. The alpha channel determines the strenght of the effect.
-
---- Ambient light color cast on inventory item models.
--- @tfield[opt=Color(255&#44; 255&#44; 128)] Color inventoryAmbient Light applied to Inventory items.
-
---- Color used to render hidden inventory items.
--- @tfield[opt=Color(0&#44; 0&#44; 0&#44; 0)] Color itemHidden Fully transparent; items with this color are invisible in the ring.
-
---- Color used to render unselected inventory items.
--- @tfield[opt=Color(32&#44; 32&#44; 32&#44; 255)] Color itemDeselected Tint applied to items that are not currently highlighted.
-
---- Color used to render the currently selected inventory item.
--- @tfield[opt=Color(128&#44; 128&#44; 128&#44; 255)] Color itemSelected Tint applied to the item the player has focused on.
-
 --- Color used to render the neutral sprites.
 -- @tfield[opt=Color(255&#44; 255&#44; 255&#44; 255)] Color neutral Tint applied to the sprites.
+
+--- Color used to render the dimmed sprites.
+-- @tfield[opt=Color(120&#44; 120&#44; 120&#44; 255)] Color dimmed Tint applied to the sprites.
+
 
 --- Settings.SoundMap
 -- @section Settings.SoundMap
 -- These settings map inventory UI events to sound effect IDs.
 -- Sound IDs correspond to entries in the game's sound catalogue.
 -- @usage
--- -- Example of overriding the inventory open sound
+-- -- Example of overriding the photo mode open sound
 -- -- In the level's lua file
 -- local settings = PhotoMode.GetSettings()
--- settings.SoundMap.inventoryOpen = 42
+-- settings.SoundMap.menuOpen = 42
 -- PhotoMode.SetSettings(settings)
 
---- Sound played when Lara has no item available.
--- @tfield[opt=2] int playerNo Sound effect ID triggered when the player attempts to use an unavailable item.
-
 --- Sound played when rotating the inventory ring.
--- @tfield[opt=108] int menuRotate Sound effect ID triggered while scrolling through inventory items.
+-- @tfield[opt=108] int menuRotate Sound effect ID triggered while scrolling through photo mode.
 
 --- Sound played when hovering over or highlighting a menu option.
 -- @tfield[opt=109] int menuSelect Sound effect ID triggered on item selection highlight.
@@ -399,14 +374,11 @@
 --- Sound played when confirming a menu choice.
 -- @tfield[opt=111] int menuChoose Sound effect ID triggered when the player confirms a selected action.
 
---- Sound played when combining two inventory items.
--- @tfield[opt=114] int menuCombine Sound effect ID triggered when two compatible items are combined.
-
 --- Sound played when the inventory is opened.
--- @tfield[opt=109] int inventoryOpen Sound effect ID triggered when the inventory ring is opened.
+-- @tfield[opt=109] int menuOpen Sound effect ID triggered when the photo modeis opened.
 
 --- Sound played when the inventory is closed.
--- @tfield[opt=109] int inventoryClose Sound effect ID triggered when the inventory ring is closed.
+-- @tfield[opt=109] int menuClose Sound effect ID triggered when the photo modeis closed.
 
 
 -- Photo Module Start
@@ -539,7 +511,7 @@ local function BuildFilteredWeaponNames()
             show = true  -- No inventory check configured.
         else
             local ok, count = pcall(TEN.Inventory.GetItemCount, weapon.pickupObjID)
-            show = ok and count > 0
+            show = ok and (count > 0 or Settings.Character.allWeapons)  -- Show if in inventory or if allWeapons setting is enabled.
         end
         if show then
             local idx             = #names + 1
@@ -1765,6 +1737,11 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
     -- Toggle UI with CROUCH key
     if InputHelpers.GuiIsPulsed(hideKey, state.timeInPhotoMode) then
         state.hideUI = not state.hideUI
+        -- Sync the menu item so it shows Off when the UI is restored
+        local mUI = Menu.Get(MENU_UI)
+        if mUI then
+            mUI:SetOptionIndexForItemName("pm_hide_ui", BoolToIndex(state.hideUI))
+        end
     end
 
     -- Exit with Inventory key (always available)

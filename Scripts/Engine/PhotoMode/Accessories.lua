@@ -11,8 +11,8 @@
 local Accessories =
 {
     { name = "None",   objID = nil, meshIndices = {} },
-    { name = "Sunglasses", objID = TEN.Objects.ObjID.ACTOR1_SPEECH_HEAD1, meshIndices = {14} },
-    { name = "Rose", objID = TEN.Objects.ObjID.ACTOR1_SPEECH_HEAD1, meshIndices = {10} },
+    { name = "Sunglasses", objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, meshIndices = {14} },
+    { name = "Rose", objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, meshIndices = {10} },
 }
 
 return Accessories
