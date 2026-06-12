@@ -259,9 +259,13 @@ namespace TEN::Scripting
 		// @tfield[opt=true] bool enableInventory If false, inventory will not open.
 		"enableInventory", &GameplaySettings::EnableInventory,
 
-		/// Set enemies on fire.
-		// @tfield[opt=true] bool setEnemiesOnFire If true, enemy creatures will catch fire from flame emitters, lava or explosive weapons.
-		"setEnemiesOnFire", &GameplaySettings::SetEnemiesOnFire,
+		/// Set enemies on fire with weapons.
+		// @tfield[opt=true] bool setEnemiesOnFireWithWeapons If true, enemy creatures will catch fire from explosive weapons.
+		"setEnemiesOnFireWithWeapons", &GameplaySettings::SetEnemiesOnFireWithWeapons,
+
+		/// Set enemies on fire with death sector flag.
+		// @tfield[opt=true] bool setEnemiesOnFireWithDeathFlag If true, enemy creatures will catch fire when stepping on a sector with death flag set.
+		"setEnemiesOnFireWithDeathFlag", &GameplaySettings::SetEnemiesOnFireWithDeathFlag,
 
 		/// Kill enemies which were poisoned by a crossbow poisoned ammo or by any other means. If disabled, enemy hit points will
 		// reach minimum but will never go to zero. This behaviour replicates original TR4 behaviour.

@@ -37,8 +37,9 @@ local settings = Flow.Settings.new()
 	settings.Flare.pickupCount = 12
 	
 	settings.Gameplay.enableInventory = true
-	settings.Gameplay.killEnemiesWithFlames = true
 	settings.Gameplay.killPoisonedEnemies = true
+	settings.Gameplay.setEnemiesOnFireWithWeapons = true
+	settings.Gameplay.setEnemiesOnFireWithDeathSectors = true
 	settings.Gameplay.targetObjectOcclusion = true
 
 	settings.Graphics.ambientOcclusion = true

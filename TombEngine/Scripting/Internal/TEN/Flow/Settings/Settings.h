@@ -59,7 +59,8 @@ namespace TEN::Scripting
 	{
 		bool TargetObjectOcclusion = true;
 		bool KillPoisonedEnemies = true;
-		bool SetEnemiesOnFire = true;
+		bool SetEnemiesOnFireWithWeapons = true;
+		bool SetEnemiesOnFireWithDeathFlag = true;
 		bool EnableInventory = true;
 
 		static void Register(sol::table& parent);
