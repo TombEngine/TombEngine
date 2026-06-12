@@ -33,8 +33,6 @@ Saving data, triggering functions, and callbacks for level-specific scripts.
 */
 
 static constexpr char const* STRING_INTERNAL_KEY = "__internal_name";
-static constexpr auto VARIABLE_CREATE_LIMIT = 1000;
-static constexpr auto VARIABLE_TOTAL_LIMIT  = 10000;
 
 static int VariableCreateWindowStartFrame = 0;
 static int VariableCreateCount = 0;
@@ -66,12 +64,15 @@ void SetVariable(sol::table tab, sol::object key, sol::object value)
 {
 	auto PutVar = [](sol::table tab, sol::object key, sol::object value)
 	{
+		int timeLimit = g_GameFlow->GetSettings()->System.VariableFloodProtectionTimeLimit;
+		int overallLimit = g_GameFlow->GetSettings()->System.VariableFloodProtectionOverallLimit;
+
 		switch (key.get_type())
 		{
 		case sol::type::number:
 		case sol::type::string:
 		{
-			if (g_GameFlow->GetSettings()->System.VariableFloodProtection)
+			if (timeLimit > 0 || overallLimit > 0)
 			{
 				auto existingValue = tab.raw_get<sol::object>(key);
 				bool isNewVariable = (value.get_type() != sol::type::lua_nil) && (existingValue.get_type() == sol::type::lua_nil);
@@ -83,8 +84,8 @@ void SetVariable(sol::table tab, sol::object key, sol::object value)
 					if (DebugMode)
 					{
 						int totalVariables = GetTotalVariableCount(sol::state_view(tab.lua_state()));
-						ScriptAssert(totalVariables < VARIABLE_TOTAL_LIMIT,
-							fmt::format("Variable flood protection triggered: user variables can contain at most {} variables in total, while current count is {}.", VARIABLE_TOTAL_LIMIT, totalVariables));
+						ScriptAssert(totalVariables < overallLimit,
+							fmt::format("Variable flood protection triggered: user variables can contain at most {} variables in total, while current count is {}.", overallLimit, totalVariables));
 					}
 				}
 
@@ -95,8 +96,8 @@ void SetVariable(sol::table tab, sol::object key, sol::object value)
 				}
 				else
 				{
-					ScriptAssert(VariableCreateCount < VARIABLE_CREATE_LIMIT,
-						fmt::format("Variable flood protection triggered: more than {} variables were created within 1 second.", VARIABLE_CREATE_LIMIT));
+					ScriptAssert(VariableCreateCount < timeLimit,
+						fmt::format("Variable flood protection triggered: more than {} variables were created within 1 second.", timeLimit));
 				}
 			}
 

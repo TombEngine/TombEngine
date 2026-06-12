@@ -580,19 +580,22 @@ namespace TEN::Scripting
 		// @tfield[opt=true] bool multithreaded Determines whether to use multithreading or not.
 		"multithreaded", &SystemSettings::Multithreaded,
 
-		/// Can the game utilize the fast reload feature? <br>
+		/// Toggle fast savegame reload. <br>
 		// When set to `true`, the game will attempt to perform fast savegame reloading if current level is the same as
 		// the level loaded from the savegame. It will not work if the level timestamp or checksum has changed
 		// (i.e. level was updated). If set to `false`, this functionality is turned off.
 		// @tfield[opt=true] bool fastReload Toggles fast reload on or off.
 		"fastReload", &SystemSettings::FastReload,
 
-		/// Use variable flood protection tracking. <br>
-		// When set to `true`, TombEngine will throw an error if scripts create more than 1000 variables within 1 second
-		// or if `GlobalVars`, `GameVars`, and `LevelVars` exceed 10000 variables in total. For performance reasons, latter
-		// feature works only when level is run from the editor via "Build and Play" command.
-		// @tfield[opt=true] bool variableFloodProtection Toggles script variable flood protection on or off.
-		"variableFloodProtection", &SystemSettings::VariableFloodProtection);
+		/// Maximum number of variables in scripts created within 1 second. <br>
+		// Set to `0` or less to disable the per-second limit.
+		// @tfield[opt=1000] int variableFloodProtectionTimeLimit Maximum variable creations allowed per second.
+		"variableFloodProtectionTimeLimit", &SystemSettings::VariableFloodProtectionTimeLimit,
+
+		/// Maximum combined number of variables allowed in `GlobalVars`, `GameVars`, and `LevelVars`. <br>
+		// Set to `0` or less to disable the overall limit.
+		// @tfield[opt=5000] int variableFloodProtectionOverallLimit Maximum total variable count allowed.
+		"variableFloodProtectionOverallLimit", &SystemSettings::VariableFloodProtectionOverallLimit);
 	}
 
 	/// UI

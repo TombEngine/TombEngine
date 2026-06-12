@@ -72,7 +72,8 @@ local settings = Flow.Settings.new()
 	settings.System.errorMode = Flow.ErrorMode.WARN
 	settings.System.fastReload = true
 	settings.System.multithreaded = true
-	settings.System.variableFloodProtection = true
+	settings.System.variableFloodProtectionTimeLimit = 1000
+	settings.System.variableFloodProtectionOverallLimit = 10000
 	
 	settings.UI.headerTextColor = Color(216, 117, 49)
 	settings.UI.optionTextColor = Color(240, 220, 32)
