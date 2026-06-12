@@ -753,12 +753,15 @@ const std::vector<byte> SaveGame::Build()
 		}
 		auto blockStopperFlagsOffset = fbb.CreateVector(blockStopperFlags);
 
+		auto itemNumbersOffset = fbb.CreateVector(room.itemNumbers);
+
 		Save::RoomBuilder serializedInfo{ fbb };
 		serializedInfo.add_name(nameOffset);
 		serializedInfo.add_index(room.originalRoom);
 		serializedInfo.add_reverb_type((int)room.reverbType);
 		serializedInfo.add_flags(room.flags);
 		serializedInfo.add_block_stopper_flags(blockStopperFlagsOffset);
+		serializedInfo.add_item_numbers(itemNumbersOffset);
 		auto serializedInfoOffset = serializedInfo.Finish();
 
 		rooms.push_back(serializedInfoOffset);
@@ -2710,9 +2713,21 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	// Items
 	ActiveItems.clear();
 	FreeItemSlots.clear();
-	for (auto& room : g_Level.Rooms)
+
+	// Restore room item lists by array position: lists are bound to room slots, not room
+	// contents (see FlipRooms), and flipmaps were already reapplied above.
+	for (int i = 0; i < s->rooms()->size(); i++)
+	{
+		auto& room = g_Level.Rooms[i];
 		room.itemNumbers.clear();
 
+		const auto* savedItemNumbers = s->rooms()->Get(i)->item_numbers();
+		if (savedItemNumbers != nullptr)
+		{
+			for (int j = 0; j < savedItemNumbers->size(); j++)
+				room.itemNumbers.push_back(savedItemNumbers->Get(j));
+		}
+	}
 
 	for (int i = 0; i < s->active_items()->size(); i++)
 		ActiveItems.push_back(s->active_items()->Get(i));
@@ -2763,8 +2778,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		if (item->ObjectNumber == ID_LARA && hubMode)
 		{
 			item->RoomNumber = savedItem->room_number();
-			g_Level.Rooms[item->RoomNumber].itemNumbers.push_back(i);
-
 			item->Floor = savedItem->floor();
 			item->BoxNumber = savedItem->box_number();
 			continue;
@@ -2774,8 +2787,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		{
 			//item->Pose = ToPose(*savedItem->pose());
 			item->RoomNumber = savedItem->room_number();
-			g_Level.Rooms[item->RoomNumber].itemNumbers.push_back(i);
-
 			item->Floor = savedItem->floor();
 			item->BoxNumber = savedItem->box_number();
 			continue;
@@ -2792,8 +2803,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		item->Pose = ToPose(*savedItem->pose());
 
 		item->RoomNumber = savedItem->room_number();
-		g_Level.Rooms[item->RoomNumber].itemNumbers.push_back(i);
-
 		item->Floor = savedItem->floor();
 		item->BoxNumber = savedItem->box_number();
 
@@ -3025,8 +3034,10 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			pushable->EdgeAttribs[3].IsPushable = savedPushable->pushable_west_pushable();
 			pushable->EdgeAttribs[3].IsClimbable = savedPushable->pushable_west_climbable();
 		}
-		else if (item->Data.is<FXInfo>())
+		else if (savedItem->data_type() == Save::ItemData::ItemFXInfo)
 		{
+			// Dynamic FX slots have no data after level load, so recreate it.
+			item->Data = FXInfo();
 			auto* fx = (FXInfo*)item->Data;
 			auto* savedFX = (Save::ItemFXInfo*)savedItem->data();
 
