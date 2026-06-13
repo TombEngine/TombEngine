@@ -358,7 +358,7 @@ enum class DOFMode
 	Back = 3
 };
 
-enum class MaterialShaderType
+enum class TextureMaterialType
 {
 	Default = 0,
 	Reflective = 1,
