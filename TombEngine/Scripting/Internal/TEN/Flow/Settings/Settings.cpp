@@ -128,9 +128,9 @@ namespace TEN::Scripting
 		// @tfield[opt=false] bool ledgeJumps If this setting is enabled, player will be able to jump upwards while hanging on the ledge.
 		"ledgeJumps", &AnimSettings::LedgeJumps,
 
-		/// Blend duration for internal system animation changes.
-		// @tfield[opt=4] int systemBlendDuration Default blend duration in frames for internal system player animation transitions, such as death or fall animations.
-		"systemBlendDuration", &AnimSettings::SystemBlendDuration,
+		/// Animation blending duration for internal hardcoded animation changes.
+		// @tfield[opt=4] int internalBlendDuration Default blend duration in frames for internal hardcoded player animation transitions, such as death, slide or fall animations.
+		"internalBlendDuration", &AnimSettings::InternalBlendDuration,
 
 		/// Pose timeout.
 		// @tfield[opt=20] int poseTimeout If this setting is larger than 0, idle standing pose animation will be performed after given timeout (in seconds).

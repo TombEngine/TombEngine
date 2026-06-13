@@ -160,7 +160,7 @@ namespace TEN::Entities::Traps
 
 					if (item.Pose.Position.y >= LaraItem->Pose.Position.y && heightFromFloor < CLICK(1))
 					{
-						SetAnimation(LaraItem, LA_SPIKE_DEATH, 0, GetSystemBlendDuration());
+						SetAnimation(LaraItem, LA_SPIKE_DEATH, 0, GetInternalBlendDuration());
 						LaraItem->Animation.IsAirborne = false;
 
 						Camera.flags = CF_FOLLOW_CENTER;

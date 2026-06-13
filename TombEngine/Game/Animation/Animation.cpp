@@ -504,9 +504,9 @@ namespace TEN::Animation
 		return ((verticalVel >= VERTICAL_VELOCITY_GRAVITY_THRESHOLD) ? 1.0f : g_GameFlow->GetSettings()->Physics.Gravity);
 	}
 
-	int GetSystemBlendDuration()
+	int GetInternalBlendDuration()
 	{
-		return std::max(0, g_GameFlow->GetSettings()->Animations.SystemBlendDuration);
+		return std::max(0, g_GameFlow->GetSettings()->Animations.InternalBlendDuration);
 	}
 
 	Vector3i GetJointPosition(const ItemInfo& item, int boneID, const Vector3i& relOffset)
