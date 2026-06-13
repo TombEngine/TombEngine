@@ -37,6 +37,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed original bug with inactive SQUISHY_BLOCK_VERTICAL killing player.
 * Fixed incorrect application of LARA_DOUBLE damage after using medipacks.
 * Fixed MINECART_SWITCH object not working.
+* Fixed SNOWMOBILE death being too sensitive to vertical velocity.
 * Fixed BATS_EMITTER targeting issues.
 * Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
 * Fixed empty inventory screen after exiting examine mode.
