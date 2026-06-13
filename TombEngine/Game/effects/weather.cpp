@@ -340,7 +340,7 @@ namespace TEN::Effects::Environment
 	void EnvironmentController::SpawnWeatherParticles(const Vector3i& position, const WeatherParameters& parameters)
 	{
 		int newParticlesCount = 0;
-		int density = (int)((float)WEATHER_PARTICLE_SPAWN_DENSITY * parameters.Strength);
+		int density = (int)(WEATHER_PARTICLE_SPAWN_DENSITY * parameters.Strength);
 
 		// Snow is falling twice as fast and must be spawned accordingly fast.
 		if (parameters.Type == WeatherType::Snow)
@@ -355,7 +355,7 @@ namespace TEN::Effects::Environment
 				newParticlesCount++;
 
 				auto randPos = Random::GeneratePointInCylinder(position.ToVector3(), parameters.RandomRange, parameters.RandomHeight);
-				auto outsideRoom = IsRoomOutside(randPos.x, randPos.y, randPos.z, parameters.Flags == WeatherFlags::IgnoreWindRoom);
+				auto outsideRoom = IsRoomOutside(randPos.x, randPos.y, randPos.z) || parameters.Flags == WeatherFlags::IgnoreWindRoom;
 				if (outsideRoom == NO_VALUE)
 					continue;
 

@@ -707,7 +707,7 @@ bool IsObjectInRoom(int roomNumber, GAME_OBJECT_ID objectID)
 	return true;
 }
 
-int IsRoomOutside(int x, int y, int z, bool ignoreWindRoomFlag)
+int IsRoomOutside(int x, int y, int z)
 {
 	if (x < 0 || z < 0)
 		return NO_VALUE;
@@ -736,7 +736,7 @@ int IsRoomOutside(int x, int y, int z, bool ignoreWindRoomFlag)
 				return NO_VALUE;
 
 			if (TestEnvironmentFlags(ENV_FLAG_WATER, room.flags) ||
-			   (ignoreWindRoomFlag || TestEnvironmentFlags(ENV_FLAG_WIND, room.flags)))
+			    TestEnvironmentFlags(ENV_FLAG_WIND, room.flags))
 			{
 				return pointColl.GetRoomNumber();
 			}

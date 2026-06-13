@@ -748,11 +748,12 @@ namespace TEN::Scripting::Effects
 	static void EmitWeather(const sol::table& table)
 	{
 		auto pos = table.get_or("position", Vec3(0, 0, 0));
-		if (pos.x == 0 && pos.y == 0 && pos.z == 0)
+		if (pos == Vector3::Zero)
 		{
 			TENLog("EmitWeather() 'position' not specified, aborting.", LogLevel::Error);
 			return;
 		}
+
 		WeatherParameters params;
 		params.Type = table.get_or("type", WeatherType::Rain);
 		params.InitialVelocity = table.get_or("initialVelocity", Vec3(0, 0, 0));
