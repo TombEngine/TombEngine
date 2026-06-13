@@ -822,7 +822,7 @@ local function UpdateAccessoryMesh(state)
 end
 
 local function UpdateGunFlash(state)
-    if not state.gunflashEnabled then return end
+    if not state.gunflashEnabled or state.hideCharacter then return end
     local preset = Configuration.Weapons[state.weaponIndex]
     if not preset or preset.weaponType == TEN.Objects.WeaponType.NONE then return end
 
@@ -1182,6 +1182,7 @@ local function BuildAllMenus()
         elseif name == "pm_hide_character" then
             state.hideCharacter = IndexToBool(m:GetCurrentOptionIndex())
             pcall(function() Lara:SetVisible(not state.hideCharacter) end)
+            pcall(function() state.accessoryMesh:SetVisible(not state.hideCharacter) end)
         end
     end
 
