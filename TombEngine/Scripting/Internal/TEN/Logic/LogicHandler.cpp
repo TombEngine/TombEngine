@@ -85,7 +85,7 @@ void SetVariable(sol::table tab, sol::object key, sol::object value)
 					{
 						int totalVariables = GetTotalVariableCount(sol::state_view(tab.lua_state()));
 						ScriptAssert(totalVariables < overallLimit,
-							fmt::format("Variable flood protection triggered: user variables can contain at most {} variables in total, while current count is {}.", overallLimit, totalVariables));
+							fmt::format("Variable flood protection triggered: user variables can contain at most {} variables in total, while current count is {}.", overallLimit, totalVariables), ErrorMode::Terminate);
 					}
 				}
 
@@ -97,7 +97,7 @@ void SetVariable(sol::table tab, sol::object key, sol::object value)
 				else
 				{
 					ScriptAssert(VariableCreateCount < timeLimit,
-						fmt::format("Variable flood protection triggered: more than {} variables were created within 1 second.", timeLimit));
+						fmt::format("Variable flood protection triggered: more than {} variables were created within 1 second.", timeLimit), ErrorMode::Terminate);
 				}
 			}
 

@@ -588,12 +588,13 @@ namespace TEN::Scripting
 		"fastReload", &SystemSettings::FastReload,
 
 		/// Maximum number of variables in scripts created within 1 second. <br>
-		// Set to `0` or less to disable the per-second limit.
+		// Set to `0` to disable the per-second limit.
 		// @tfield[opt=1000] int variableFloodProtectionTimeLimit Maximum variable creations allowed per second.
 		"variableFloodProtectionTimeLimit", &SystemSettings::VariableFloodProtectionTimeLimit,
 
-		/// Maximum combined number of variables allowed in `GlobalVars`, `GameVars`, and `LevelVars`. <br>
-		// Set to `0` or less to disable the overall limit.
+		/// Maximum combined number of variables allowed in `GlobalVars`, `GameVars`, and `LevelVars`.
+		// This type of variable flood protection will only trigger in debug mode for performance reasons. <br>
+		// Set to `0` to disable the overall limit.
 		// @tfield[opt=5000] int variableFloodProtectionOverallLimit Maximum total variable count allowed.
 		"variableFloodProtectionOverallLimit", &SystemSettings::VariableFloodProtectionOverallLimit);
 	}
