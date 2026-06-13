@@ -610,6 +610,10 @@ namespace TEN::Renderer
 				if (particle.SpriteID == VIDEO_SPRITE_ID && (_videoSprite.Texture == nullptr || !_videoSprite.Texture->IsValid()))
 					continue;
 
+				// If sprite is not a video texture and no sprites present, bypass it.
+				if (particle.SpriteID != VIDEO_SPRITE_ID && _sprites.empty())
+					continue;
+
 				// Disallow sprites out of bounds.
 				int spriteIndex = Objects[particle.SpriteSeqID].meshIndex + particle.SpriteID;
 				spriteIndex = std::clamp(spriteIndex, 0, (int)_sprites.size());
@@ -800,7 +804,7 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareRipples(RenderView& view) 
 	{
-		if (Ripples.empty())
+		if (Ripples.empty() || _sprites.empty())
 			return;
 
 		for (const auto& ripple : Ripples)
@@ -1367,11 +1371,14 @@ namespace TEN::Renderer
 				SetBlendMode(BlendMode::Additive);
 				SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
-				if (creature.MuzzleFlash[0].Delay != 0 && creature.MuzzleFlash[0].Bite.BoneID != -1)
+				if (creature.MuzzleFlash[0].Delay != 0 && creature.MuzzleFlash[0].Bite.BoneID != NO_VALUE)
 				{
 					auto flashObjectID = creature.MuzzleFlash[0].SwitchToMuzzle2 ?
 						_moveableObjects[ID_GUN_FLASH2].has_value() ? ID_GUN_FLASH2 : ID_GUN_FLASH :
 						ID_GUN_FLASH;
+
+					if (!_moveableObjects[flashObjectID].has_value() || _moveableObjects[flashObjectID]->ObjectMeshes.empty())
+						continue;
 
 					const auto& flashMoveable = *_moveableObjects[flashObjectID]->ObjectMeshes.at(0);
 					
