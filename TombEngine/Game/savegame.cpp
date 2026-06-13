@@ -40,9 +40,10 @@
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
 #include "Sound/sound.h"
+#include "Specific/Serialization/Flatbuffers.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"
-#include "Specific/savegame/flatbuffers/ten_savegame_generated.h"
+#include "Specific/Serialization/flatbuffers/ten_savegame_generated.h"
 #include "Specific/trutils.h"
 #include "Specific/Video/Video.h"
 
@@ -59,11 +60,13 @@ using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
 using namespace TEN::Renderer;
+using namespace TEN::Serialization;
 using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 using namespace TEN::Video;
 
-namespace Save = TEN::Save;
+namespace Common = TEN::Serialization::Common;
+namespace Save = TEN::Serialization::Save;
 
 constexpr auto SAVEGAME_MAX_SLOT    = 99;
 constexpr auto SAVEGAME_PATH	    = "Save/";
@@ -102,91 +105,6 @@ void SaveGame::LoadHeaders()
 		if (Infos[i].Count > LastSaveGame)
 			LastSaveGame = Infos[i].Count;
 	}
-}
-
-static Save::EulerAngles FromEulerAngles(const EulerAngles& eulers)
-{
-	return Save::EulerAngles(eulers.x, eulers.y, eulers.z);
-}
-
-static Save::Vector2 FromVector2(const Vector2& vec)
-{
-	return Save::Vector2(vec.x, vec.y);
-}
-
-static Save::Vector2 FromVector2i(const Vector2i& vec)
-{
-	return Save::Vector2(vec.x, vec.y);
-}
-
-static Save::Vector3 FromVector3(const Vector3& vec)
-{
-	return Save::Vector3(vec.x, vec.y, vec.z);
-}
-
-static Save::Vector3 FromVector3i(const Vector3i& vec)
-{
-	return Save::Vector3(vec.x, vec.y, vec.z);
-}
-
-static Save::Vector4 FromVector4(const Vector4& vec)
-{
-	return Save::Vector4(vec.x, vec.y, vec.z, vec.w);
-}
-
-static Save::GameVector FromGameVector(const GameVector& vec)
-{
-	return Save::GameVector(vec.x, vec.y, vec.z, (int)vec.RoomNumber);
-}
-
-static Save::Pose FromPose(const Pose& pose)
-{
-	return Save::Pose(FromVector3i(pose.Position), FromEulerAngles(pose.Orientation), FromVector3(pose.Scale));
-}
-
-static EulerAngles ToEulerAngles(const Save::EulerAngles* eulers)
-{
-	return EulerAngles((short)round(eulers->x()), (short)round(eulers->y()), (short)round(eulers->z()));
-}
-
-static Vector2 ToVector2(const Save::Vector2* vec)
-{
-	return Vector2(vec->x(), vec->y());
-}
-
-static Vector2i ToVector2i(const Save::Vector2* vec)
-{
-	return Vector2i((int)round(vec->x()), (int)round(vec->y()));
-}
-
-static Vector3i ToVector3i(const Save::Vector3* vec)
-{
-	return Vector3i((int)round(vec->x()), (int)round(vec->y()), (int)round(vec->z()));
-}
-
-static Vector3 ToVector3(const Save::Vector3* vec)
-{
-	return Vector3(vec->x(), vec->y(), vec->z());
-}
-
-static Vector4 ToVector4(const Save::Vector3* vec)
-{
-	return Vector4(vec->x(), vec->y(), vec->z(), 1.0f);
-}
-
-static Vector4 ToVector4(const Save::Vector4* vec)
-{
-	return Vector4(vec->x(), vec->y(), vec->z(), vec->w());
-}
-
-static GameVector ToGameVector(const Save::GameVector* vec)
-{
-	return GameVector(vec->x(), vec->y(), vec->z(), (short)vec->room_number());
-}
-
-static Pose ToPose(const Save::Pose& pose)
-{
-	return Pose(ToVector3i(&pose.position()), ToEulerAngles(&pose.orientation()), ToVector3(&pose.scale()));
 }
 
 bool SaveGame::IsSaveGameSlotValid(int slot)
@@ -242,10 +160,10 @@ std::string SaveGame::GetSavegameFilename(int slot)
 	return (FullSaveDirectory + SAVEGAME_FILE_MASK + std::to_string(slot));
 }
 
-#define SaveVec(Type, Data, TableBuilder, UnionType, SaveType, ConversionFunc) \
+#define SaveVec(Type, Data, TableBuilder, UnionType, ConversionFunc) \
 				auto data = std::get<(int)Type>(Data); \
 				TableBuilder vtb{ fbb }; \
-				SaveType saveVec = ConversionFunc(data); \
+				auto saveVec = ConversionFunc(data); \
 				vtb.add_vec(&saveVec); \
 				auto vecOffset = vtb.Finish(); \
 				putDataInVec(UnionType, vecOffset);
@@ -320,19 +238,19 @@ static std::vector<flatbuffers::Offset<Save::UnionTable>> SerializeScriptVars(Fl
 			{
 			case SavedVarType::Vec2:
 				{
-					SaveVec(SavedVarType::Vec2, s, Save::vec2TableBuilder, Save::VarUnion::vec2, Save::Vector2, FromVector2);
+					SaveVec(SavedVarType::Vec2, s, Save::vec2TableBuilder, Save::VarUnion::vec2, FromVector2);
 					break;
 				}
 				
 			case SavedVarType::Vec3:
 				{
-					SaveVec(SavedVarType::Vec3, s, Save::vec3TableBuilder, Save::VarUnion::vec3, Save::Vector3, FromVector3);
+					SaveVec(SavedVarType::Vec3, s, Save::vec3TableBuilder, Save::VarUnion::vec3, FromVector3);
 					break;
 				}
 
 			case SavedVarType::Rotation:
 				{
-					SaveVec(SavedVarType::Rotation, s, Save::rotationTableBuilder, Save::VarUnion::rotation, Save::Vector3, FromVector3);
+					SaveVec(SavedVarType::Rotation, s, Save::rotationTableBuilder, Save::VarUnion::rotation, FromVector3);
 					break;
 				}
 
@@ -856,10 +774,15 @@ const std::vector<byte> SaveGame::Build()
 	for (auto& itemToSerialize : g_Level.Items) 
 	{
 		auto luaNameOffset = fbb.CreateString(itemToSerialize.Name);
-		auto luaOnKilledNameOffset = fbb.CreateString(itemToSerialize.Callbacks.OnKilled);
-		auto luaOnHitNameOffset = fbb.CreateString(itemToSerialize.Callbacks.OnHit);
-		auto luaOnCollidedObjectNameOffset = fbb.CreateString(itemToSerialize.Callbacks.OnObjectCollided);
-		auto luaOnCollidedRoomNameOffset = fbb.CreateString(itemToSerialize.Callbacks.OnRoomCollided);
+		std::vector<flatbuffers::Offset<Save::ItemCallback>> itemCallbackOffsets;
+		for (int i = 0; i < (int)EntityCallbackPoint::Count; ++i)
+		{
+			if (itemToSerialize.Callbacks[i].empty())
+				continue;
+
+			itemCallbackOffsets.push_back(Save::CreateItemCallback(fbb, i, fbb.CreateString(itemToSerialize.Callbacks[i])));
+		}
+		auto itemCallbackVecOffset = fbb.CreateVector(itemCallbackOffsets);
 
 		std::vector<int> itemFlags;
 		for (int i = 0; i < ITEM_FLAG_COUNT; i++)
@@ -878,8 +801,8 @@ const std::vector<byte> SaveGame::Build()
 		flatbuffers::Offset<Save::Kayak> kayakOffset;
 		flatbuffers::Offset<Save::Pushable> pushableOffset;
 
-		flatbuffers::Offset<Save::Short> shortOffset;
-		flatbuffers::Offset<Save::Int> intOffset;
+		flatbuffers::Offset<Common::Short> shortOffset;
+		flatbuffers::Offset<Common::Int> intOffset;
 
 		if (Objects.CheckID(itemToSerialize.ObjectNumber, true) && 
 			Objects[itemToSerialize.ObjectNumber].intelligent && itemToSerialize.IsCreature())
@@ -913,6 +836,7 @@ const std::vector<byte> SaveGame::Build()
 			creatureBuilder.add_fly_rate(creature->FlyRate);
 			creatureBuilder.add_monkey_swing_ahead(creature->MonkeySwingAhead);
 			creatureBuilder.add_mood((int)creature->Mood);
+			creatureBuilder.add_forced_mood(creature->ForcedMood.has_value() ? (int)creature->ForcedMood.value() : NO_VALUE);
 			creatureBuilder.add_patrol(creature->Patrol);
 			creatureBuilder.add_poisoned(creature->Poisoned);
 			creatureBuilder.add_reached_goal(creature->ReachedGoal);
@@ -1046,13 +970,13 @@ const std::vector<byte> SaveGame::Build()
 		}
 		else if (itemToSerialize.Data.is<short>())
 		{
-			Save::ShortBuilder sb{ fbb };
+			Common::ShortBuilder sb{ fbb };
 			sb.add_scalar(short(itemToSerialize.Data));
 			shortOffset = sb.Finish();
 		}
 		else if (itemToSerialize.Data.is<int>())
 		{
-			Save::IntBuilder ib{ fbb };
+			Common::IntBuilder ib{ fbb };
 			ib.add_scalar(int(itemToSerialize.Data));
 			intOffset = ib.Finish();
 		}
@@ -1132,20 +1056,17 @@ const std::vector<byte> SaveGame::Build()
 		}
 		else if (itemToSerialize.Data.is<short>())
 		{
-			serializedItem.add_data_type(Save::ItemData::Short);
+			serializedItem.add_data_type(Save::ItemData::TEN_Serialization_Common_Short);
 			serializedItem.add_data(shortOffset.Union());
 		}
 		else if (itemToSerialize.Data.is<int>())
 		{
-			serializedItem.add_data_type(Save::ItemData::Int);
+			serializedItem.add_data_type(Save::ItemData::TEN_Serialization_Common_Int);
 			serializedItem.add_data(intOffset.Union());
 		}
 
 		serializedItem.add_lua_name(luaNameOffset);
-		serializedItem.add_lua_on_killed_name(luaOnKilledNameOffset);
-		serializedItem.add_lua_on_hit_name(luaOnHitNameOffset);
-		serializedItem.add_lua_on_collided_with_object_name(luaOnCollidedObjectNameOffset);
-		serializedItem.add_lua_on_collided_with_room_name(luaOnCollidedRoomNameOffset);
+		serializedItem.add_lua_callbacks(itemCallbackVecOffset);
 
 		auto serializedItemOffset = serializedItem.Finish();
 		serializedItems.push_back(serializedItemOffset);
@@ -1509,6 +1430,7 @@ const std::vector<byte> SaveGame::Build()
 		particleInfo.add_b(particle->b);
 		particleInfo.add_col_fade_speed(particle->colFadeSpeed);
 		particleInfo.add_d_b(particle->dB);
+		particleInfo.add_constraint(&FromVector3(particle->constraint));
 		particleInfo.add_sprite_index(particle->SpriteSeqID);
 		particleInfo.add_sprite_id(particle->SpriteID);
 		particleInfo.add_damage(particle->damage);
@@ -1695,57 +1617,20 @@ const std::vector<byte> SaveGame::Build()
 	uvb.add_members(unionVec);
 	auto unionVecOffset = uvb.Finish();
 
-	std::vector<std::string> callbackVecPreStart;
-	std::vector<std::string> callbackVecPostStart;
+	CallbackStringLists callbackLists = {};
+	g_GameScript->GetCallbackStrings(callbackLists);
 
-	std::vector<std::string> callbackVecPreEnd;
-	std::vector<std::string> callbackVecPostEnd;
+	std::vector<flatbuffers::Offset<Save::CallbackSet>> callbackOffsets = {};
+	for (int i = 0; i < (int)callbackLists.size(); ++i)
+	{
+		if (callbackLists[i].empty())
+			continue;
 
-	std::vector<std::string> callbackVecPreSave;
-	std::vector<std::string> callbackVecPostSave;
+		auto callbackNamesOffset = fbb.CreateVectorOfStrings(callbackLists[i]);
+		callbackOffsets.push_back(Save::CreateCallbackSet(fbb, i, callbackNamesOffset));
+	}
 
-	std::vector<std::string> callbackVecPreLoad;
-	std::vector<std::string> callbackVecPostLoad;
-
-	std::vector<std::string> callbackVecPreLoop;
-	std::vector<std::string> callbackVecPostLoop;
-
-	std::vector<std::string> callbackVecPreUseItem;
-	std::vector<std::string> callbackVecPostUseItem;
-
-	std::vector<std::string> callbackVecPreFreeze;
-	std::vector<std::string> callbackVecPostFreeze;
-
-	g_GameScript->GetCallbackStrings(
-		callbackVecPreStart,
-		callbackVecPostStart,
-		callbackVecPreEnd,
-		callbackVecPostEnd,
-		callbackVecPreSave,
-		callbackVecPostSave,
-		callbackVecPreLoad,
-		callbackVecPostLoad,
-		callbackVecPreLoop,
-		callbackVecPostLoop,
-		callbackVecPreUseItem,
-		callbackVecPostUseItem,
-		callbackVecPreFreeze,
-		callbackVecPostFreeze);
-
-	auto stringsCallbackPreStart = fbb.CreateVectorOfStrings(callbackVecPreStart);
-	auto stringsCallbackPostStart = fbb.CreateVectorOfStrings(callbackVecPostStart);
-	auto stringsCallbackPreEnd = fbb.CreateVectorOfStrings(callbackVecPreEnd);
-	auto stringsCallbackPostEnd = fbb.CreateVectorOfStrings(callbackVecPostEnd);
-	auto stringsCallbackPreSave = fbb.CreateVectorOfStrings(callbackVecPreSave);
-	auto stringsCallbackPostSave = fbb.CreateVectorOfStrings(callbackVecPostSave);
-	auto stringsCallbackPreLoad = fbb.CreateVectorOfStrings(callbackVecPreLoad);
-	auto stringsCallbackPostLoad = fbb.CreateVectorOfStrings(callbackVecPostLoad);
-	auto stringsCallbackPreLoop = fbb.CreateVectorOfStrings(callbackVecPreLoop);
-	auto stringsCallbackPostLoop = fbb.CreateVectorOfStrings(callbackVecPostLoop);
-	auto stringsCallbackPreUseItem = fbb.CreateVectorOfStrings(callbackVecPreUseItem);
-	auto stringsCallbackPostUseItem = fbb.CreateVectorOfStrings(callbackVecPostUseItem);
-	auto stringsCallbackPreFreeze = fbb.CreateVectorOfStrings(callbackVecPreFreeze);
-	auto stringsCallbackPostFreeze = fbb.CreateVectorOfStrings(callbackVecPostFreeze);
+	auto callbacksOffset = fbb.CreateVector(callbackOffsets);
 
 	Save::SaveGameBuilder sgb{ fbb };
 
@@ -1795,6 +1680,12 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_global_event_sets(globalEventSetsOffset);
 	sgb.add_volume_event_sets(volumeEventSetsOffset);
 
+	auto dof = g_Renderer.GetDOF();
+	sgb.add_dof_distance(dof.Distance);
+	sgb.add_dof_range(dof.Range);
+	sgb.add_dof_strength(dof.Strength);
+	sgb.add_dof_mode((int)dof.Mode);
+
 	if (Lara.Control.Rope.Ptr != -1)
 	{
 		sgb.add_rope(ropeOffset);
@@ -1803,27 +1694,7 @@ const std::vector<byte> SaveGame::Build()
 	}
 
 	sgb.add_script_vars(unionVecOffset);
-
-	sgb.add_callbacks_pre_start(stringsCallbackPreStart);
-	sgb.add_callbacks_post_start(stringsCallbackPostStart);
-
-	sgb.add_callbacks_pre_end(stringsCallbackPreEnd);
-	sgb.add_callbacks_post_end(stringsCallbackPostEnd);
-
-	sgb.add_callbacks_pre_save(stringsCallbackPreSave);
-	sgb.add_callbacks_post_save(stringsCallbackPostSave);
-
-	sgb.add_callbacks_pre_load(stringsCallbackPreLoad);
-	sgb.add_callbacks_post_load(stringsCallbackPostLoad);
-
-	sgb.add_callbacks_pre_loop(stringsCallbackPreLoop);
-	sgb.add_callbacks_post_loop(stringsCallbackPostLoop);
-
-	sgb.add_callbacks_pre_useitem(stringsCallbackPreUseItem);
-	sgb.add_callbacks_post_useitem(stringsCallbackPostUseItem);
-
-	sgb.add_callbacks_pre_freeze(stringsCallbackPreFreeze);
-	sgb.add_callbacks_post_freeze(stringsCallbackPostFreeze);
+	sgb.add_callbacks(callbacksOffset);
 
 	auto sg = sgb.Finish();
 	fbb.Finish(sg);
@@ -1883,7 +1754,6 @@ bool SaveGame::Save(int slot)
 		return false;
 
 	g_GameScript->OnSave();
-	HandleAllGlobalEvents(EventType::Save, (Activator)short(LaraItem->Index));
 
 	// Savegame infos need to be reloaded so that last savegame counter properly increases.
 	LoadHeaders();
@@ -2102,53 +1972,26 @@ static void ParseLua(const Save::SaveGame* s, bool hubMode)
 
 	// Callbacks
 
-	auto populateCallbackVecs = [&s](auto callbackFunc)
+	CallbackStringLists callbackLists = {};
+	auto callbackSets = s->callbacks();
+	if (callbackSets)
 	{
-		auto callbacksVec = std::vector<std::string>{};
-		auto callbacksOffsetVec = std::invoke(callbackFunc, s);
+		for (const auto& callbackSet : *callbackSets)
+		{
+			auto point = callbackSet->point();
+			if (point < 0 || point >= (int)callbackLists.size())
+				continue;
 
-		for (const auto& e : *callbacksOffsetVec)
-			callbacksVec.push_back(e->str());
+			auto callbackNames = callbackSet->callbacks();
+			if (!callbackNames)
+				continue;
 
-		return callbacksVec;
-	};
+			for (const auto& callbackName : *callbackNames)
+				callbackLists[point].push_back(callbackName->str());
+		}
+	}
 
-	auto callbacksPreStartVec = populateCallbackVecs(&Save::SaveGame::callbacks_pre_start);
-	auto callbacksPostStartVec = populateCallbackVecs(&Save::SaveGame::callbacks_post_start);
-
-	auto callbacksPreEndVec = populateCallbackVecs(&Save::SaveGame::callbacks_pre_end);
-	auto callbacksPostEndVec = populateCallbackVecs(&Save::SaveGame::callbacks_post_end);
-
-	auto callbacksPreSaveVec = populateCallbackVecs(&Save::SaveGame::callbacks_pre_save);
-	auto callbacksPostSaveVec = populateCallbackVecs(&Save::SaveGame::callbacks_post_save);
-
-	auto callbacksPreLoadVec = populateCallbackVecs(&Save::SaveGame::callbacks_pre_load);
-	auto callbacksPostLoadVec = populateCallbackVecs(&Save::SaveGame::callbacks_post_load);
-
-	auto callbacksPreLoopVec = populateCallbackVecs(&Save::SaveGame::callbacks_pre_loop);
-	auto callbacksPostLoopVec = populateCallbackVecs(&Save::SaveGame::callbacks_post_loop);
-
-	auto callbacksPreUseItemVec = populateCallbackVecs(&Save::SaveGame::callbacks_pre_useitem);
-	auto callbacksPostUseItemVec = populateCallbackVecs(&Save::SaveGame::callbacks_post_useitem);
-
-	auto callbacksPreFreezeVec = populateCallbackVecs(&Save::SaveGame::callbacks_pre_freeze);
-	auto callbacksPostFreezeVec = populateCallbackVecs(&Save::SaveGame::callbacks_post_freeze);
-
-	g_GameScript->SetCallbackStrings(
-		callbacksPreStartVec,
-		callbacksPostStartVec,
-		callbacksPreEndVec,
-		callbacksPostEndVec,
-		callbacksPreSaveVec,
-		callbacksPostSaveVec,
-		callbacksPreLoadVec,
-		callbacksPostLoadVec,
-		callbacksPreLoopVec,
-		callbacksPostLoopVec,
-		callbacksPreUseItemVec,
-		callbacksPostUseItemVec,
-		callbacksPreFreezeVec,
-		callbacksPostFreezeVec);
+	g_GameScript->SetCallbackStrings(callbackLists);
 }
 
 static void ParsePlayer(const Save::SaveGame* s)
@@ -2429,6 +2272,10 @@ static void ParseEffects(const Save::SaveGame* s)
 	// Restore camera FOV.
 	AlterFOV(s->current_fov());
 
+	// Restore DOF.
+	DOFState dof = { (DOFMode)s->dof_mode(), s->dof_distance(), s->dof_range(), s->dof_strength() };
+	g_Renderer.SetDOF(dof);
+
 	// Restore postprocess effects.
 	g_Renderer.SetPostProcessMode((PostProcessMode)s->postprocess_mode());
 	g_Renderer.SetPostProcessStrength(s->postprocess_strength());
@@ -2577,6 +2424,7 @@ static void ParseEffects(const Save::SaveGame* s)
 		particle->lightFlicker = particleInfo->light_flicker();
 		particle->lightFlickerS = particleInfo->light_flicker_s();
 		particle->sound = particleInfo->sound();
+		particle->constraint = ToVector3(particleInfo->constraint());
 	}
 
 	for (int i = 0; i < s->locusts()->size(); i++)
@@ -2810,10 +2658,21 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		if (!item->Name.empty())
 			g_GameScriptEntities->AddName(item->Name, (short)i);
 
-		item->Callbacks.OnKilled = savedItem->lua_on_killed_name()->str();
-		item->Callbacks.OnHit = savedItem->lua_on_hit_name()->str();
-		item->Callbacks.OnObjectCollided = savedItem->lua_on_collided_with_object_name()->str();
-		item->Callbacks.OnRoomCollided = savedItem->lua_on_collided_with_room_name()->str();
+		// Clear callbacks in case some of the callbacks were removed in the runtime before saving the game.
+		item->Callbacks.fill({});
+
+		auto itemCallbacks = savedItem->lua_callbacks();
+		if (itemCallbacks)
+		{
+			for (const auto& entry : *itemCallbacks)
+			{
+				auto type = entry->type();
+				auto name = entry->name();
+
+				if (type >= 0 && type < (int)EntityCallbackPoint::Count && name)
+					item->Callbacks[type] = entry->name()->str();
+			}
+		}
 
 		g_GameScriptEntities->TryAddColliding(i);
 
@@ -2962,6 +2821,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			creature->FlyRate = savedCreature->fly_rate();
 			creature->MonkeySwingAhead = savedCreature->monkey_swing_ahead();
 			creature->Mood = (MoodType)savedCreature->mood();
+			creature->ForcedMood = savedCreature->forced_mood() == NO_VALUE ? std::nullopt : std::optional((MoodType)savedCreature->forced_mood());
 			creature->Patrol = savedCreature->patrol();
 			creature->Poisoned = savedCreature->poisoned();
 			creature->ReachedGoal = savedCreature->reached_goal();
@@ -3075,16 +2935,16 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			pushable->EdgeAttribs[3].IsPushable = savedPushable->pushable_west_pushable();
 			pushable->EdgeAttribs[3].IsClimbable = savedPushable->pushable_west_climbable();
 		}
-		else if (savedItem->data_type() == Save::ItemData::Short)
+		else if (savedItem->data_type() == Save::ItemData::TEN_Serialization_Common_Short)
 		{
 			auto* data = savedItem->data();
-			auto* savedData = (Save::Short*)data;
+			const auto* savedData = (Common::Short*)data;
 			item->Data = savedData->scalar();
 		}
-		else if (savedItem->data_type() == Save::ItemData::Int)
+		else if (savedItem->data_type() == Save::ItemData::TEN_Serialization_Common_Int)
 		{
 			auto* data = savedItem->data();
-			auto* savedData = (Save::Int*)data;
+			const auto* savedData = (Common::Int*)data;
 			item->Data = savedData->scalar();
 		}
 	}

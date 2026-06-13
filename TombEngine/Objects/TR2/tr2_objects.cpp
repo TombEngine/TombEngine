@@ -34,6 +34,7 @@
 // Traps
 #include "Objects/Generic/Traps/Pendulum.h"
 #include "Objects/TR2/Trap/CircularSaw.h"
+#include "Objects/TR2/Trap/DiskShooter.h"
 #include "Objects/TR2/Trap/OverheadPulleyHook.h"
 #include "Objects/TR2/Trap/tr2_spinningblade.h"
 #include "Objects/TR2/Trap/tr2_springboard.h"
@@ -572,6 +573,8 @@ static void StartTrap(ObjectInfo* obj)
 	{
 		obj->collision = TrapCollision;
 		obj->control = ControlFallingCeiling;
+	}
+
 	obj = &Objects[ID_SWINGING_SANDBAG];
 	if (obj->loaded)
 	{
@@ -632,12 +635,26 @@ static void StartTrap(ObjectInfo* obj)
 		obj->collision = ClassicRollingBallCollision;
 		obj->SetHitEffect(true);
 	}
+
+	obj = &Objects[ID_DISK];
+	if (obj->loaded)
+	{
+		obj->collision = ObjectCollision;
+		obj->control = ControlDisk;
+		obj->shadowType = ShadowMode::All;
+	}
+
+	obj = &Objects[ID_DISK_SHOOTER];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeDiskShooter;
+		obj->control = ControlDiskShooter;
+		obj->Hidden = true;
+	}
 }
 
-// boat, snowmobile, snowmobile gun
 static void StartVehicles(ObjectInfo* obj)
 {
-	// TODO: Fix BoatControl() not using BoatControl().
 	obj = &Objects[ID_SPEEDBOAT];
 	if (obj->loaded)
 	{
@@ -648,7 +665,6 @@ static void StartVehicles(ObjectInfo* obj)
 		obj->SetHitEffect(true);
 	}
 
-	// TODO: Create a new renderer for the skidoo with animated track.
 	obj = &Objects[ID_SNOWMOBILE];
 	if (obj->loaded)
 	{
