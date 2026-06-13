@@ -354,7 +354,7 @@ namespace TEN::Effects::Environment
 					break;
 				newParticlesCount++;
 
-				auto randPos = (Vector3i)Random::GeneratePointInCylinder(position.ToVector3(), parameters.RandomRange, parameters.RandomHeight);
+				auto randPos = Random::GeneratePointInCylinder(position.ToVector3(), parameters.RandomRange, parameters.RandomHeight);
 				auto outsideRoom = IsRoomOutside(randPos.x, randPos.y, randPos.z, parameters.Flags == WeatherFlags::IgnoreWindRoom);
 				if (outsideRoom == NO_VALUE)
 					continue;
