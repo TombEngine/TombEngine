@@ -111,8 +111,8 @@ void BurningFloorControl(short itemNumber)
 	{
 		int   xoff     = FLOOR_FIRES[i][0];
 		int   zoff     = FLOOR_FIRES[i][1];
-		int   sizeIdx  = FLOOR_FIRES[i][2];
-		short intensity = item->ItemFlags[sizeIdx];
+		int   size	   = FLOOR_FIRES[i][2];
+		short intensity = item->ItemFlags[size];
 
 		if (!intensity)
 			continue;
@@ -126,10 +126,10 @@ void BurningFloorControl(short itemNumber)
 
 		AddFire(
 			item->Pose.Position.x + rotX,
-			item->Pose.Position.y - FLOOR_FIRE_Y_OFFS[sizeIdx],
+			item->Pose.Position.y - FLOOR_FIRE_Y_OFFS[size],
 			item->Pose.Position.z + rotZ,
 			item->RoomNumber,
-			FLOOR_FIRE_SIZES[sizeIdx],
+			FLOOR_FIRE_SIZES[size],
 			fade);
 	}
 
@@ -180,9 +180,9 @@ void BurningFloorControl(short itemNumber)
 		if (item->ItemFlags[3] > 60)
 			item->ItemFlags[2] += 8;
 
-		if (item->ItemFlags[0] > 255) item->ItemFlags[0] = 255;
-		if (item->ItemFlags[1] > 255) item->ItemFlags[1] = 255;
-		if (item->ItemFlags[2] > 255) item->ItemFlags[2] = 255;
+		if (item->ItemFlags[0] > UCHAR_MAX) item->ItemFlags[0] = UCHAR_MAX;
+		if (item->ItemFlags[1] > UCHAR_MAX) item->ItemFlags[1] = UCHAR_MAX;
+		if (item->ItemFlags[2] > UCHAR_MAX) item->ItemFlags[2] = UCHAR_MAX;
 
 		item->ItemFlags[3]++;
 		item->Animation.RequiredState = 127 - item->ItemFlags[3] / 6;
