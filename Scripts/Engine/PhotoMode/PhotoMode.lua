@@ -823,23 +823,22 @@ end
 
 local function UpdateGunFlash(state)
     
-    if not state.gunflashEnabled or state.hideCharacter then 
+    local preset = Configuration.Weapons[state.weaponIndex]
+    if not state.gunflashEnabled or state.hideCharacter or not preset then 
         Lara:ClearGunFlash()
         return
-    end
-
-    local preset = Configuration.Weapons[state.weaponIndex]
-    if not preset or not preset.gunFlash then
-        Lara:ClearGunFlash()
     end
 
     if preset.weaponType == TEN.Objects.WeaponType.FLARE then
         local flare = TEN.Flow.GetSettings().Flare
         local position = Lara:GetJointPosition(preset.meshIndices[1], flare.offset)
         pcall(function() TEN.Effects.EmitLight(position, flare.color, flare.range) end)
-    else
+    elseif preset.gunFlash then
         pcall(function() Lara:SpawnGunFlash(preset.weaponType) end)
+    else
+        Lara:ClearGunFlash()
     end
+    
 end
 
 local function ApplyDOF(state)
