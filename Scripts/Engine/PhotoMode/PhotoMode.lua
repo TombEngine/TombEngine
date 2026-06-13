@@ -822,9 +822,16 @@ local function UpdateAccessoryMesh(state)
 end
 
 local function UpdateGunFlash(state)
-    if not state.gunflashEnabled or state.hideCharacter then return end
+    
+    if not state.gunflashEnabled or state.hideCharacter then 
+        Lara:ClearGunFlash()
+        return
+    end
+
     local preset = Configuration.Weapons[state.weaponIndex]
-    if not preset or preset.weaponType == TEN.Objects.WeaponType.NONE then return end
+    if not preset or not preset.gunFlash then
+        Lara:ClearGunFlash()
+    end
 
     if preset.weaponType == TEN.Objects.WeaponType.FLARE then
         local flare = TEN.Flow.GetSettings().Flare

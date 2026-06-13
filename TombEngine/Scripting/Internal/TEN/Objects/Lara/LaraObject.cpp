@@ -723,7 +723,7 @@ void LaraObject::ResetHair()
 /// Spawn a muzzle flash and dynamic point light for the given weapon type at the correct muzzle position.
 // Useful in photo mode or freeze mode to show a gun firing effect without the weapon actually being fired.
 // The weapon type should match the one currently equipped by the player; the renderer uses the active
-// weapon type for the correct mesh offset and rotation.
+// weapon type for the correct mesh offset and rotation. Call only once in freeze mode to maintain the flash.
 // @function LaraObject:SpawnGunFlash
 // @tparam Objects.WeaponType weaponType Weapon type to spawn the flash for.
 // @usage
@@ -731,6 +731,20 @@ void LaraObject::ResetHair()
 void LaraObject::SpawnGunFlash(LaraWeaponType weaponType)
 {
 	SpawnWeaponFlash(*_moveable, weaponType);
+}
+
+/// Clear the muzzle flash.
+// Useful in photo mode or freeze mode to clear active gunflashes.
+// @function LaraObject:ClearGunFlash
+// @usage
+// Lara:ClearGunFlash()
+void LaraObject::ClearGunFlash()
+{
+	auto& player = GetLaraInfo(*_moveable);
+	player.LeftArm.GunFlash = 0;
+	player.LeftArm.GunFlashType = LaraWeaponType::None;
+	player.RightArm.GunFlash = 0;
+	player.RightArm.GunFlashType = LaraWeaponType::None;
 }
 
 /// Check if a held torch is lit.
@@ -1098,6 +1112,7 @@ void LaraObject::Register(sol::table& parent)
 		ScriptReserved_SetHolsterWeapon, &LaraObject::SetHolsterWeapon,
 		ScriptReserved_ResetHair, &LaraObject::ResetHair,
 		ScriptReserved_SpawnGunFlash, &LaraObject::SpawnGunFlash,
+		ScriptReserved_ClearGunFlash, & LaraObject::ClearGunFlash,
 		ScriptReserved_GetVehicle, &LaraObject::GetVehicle,
 		ScriptReserved_GetTarget, &LaraObject::GetTarget,
 		ScriptReserved_GetPlayerInteractedMoveable, &LaraObject::GetPlayerInteractedMoveable,

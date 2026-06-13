@@ -311,12 +311,6 @@ GameStatus FreezePhase()
 	// Track previous player animation to queue hair update if needed.
 	int lastAnimNumber = LaraItem->Animation.AnimNumber;
 
-	// Decrement gun flash counters for spectator mode
-	if (g_GameFlow->LastFreezeMode == FreezeMode::Spectator)
-	{
-		ReduceWeaponFlashesTimer(Lara);
-	}
-
 	// Poll controls and call scripting events.
 	HandleControls(false);
 	g_GameScript->OnFreeze();

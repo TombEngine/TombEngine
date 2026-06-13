@@ -465,11 +465,11 @@ void SpawnWeaponFlash(ItemInfo& laraItem, LaraWeaponType weaponType)
 	player.RightArm.GunFlash = 0;
 	player.RightArm.GunFlashType = LaraWeaponType::None;
 
-	player.RightArm.GunFlash = 1;
+	player.RightArm.GunFlash = 3;
 	player.RightArm.GunFlashType = weaponType;
 	if (isDualWield)
 	{
-		player.LeftArm.GunFlash = 1;
+		player.LeftArm.GunFlash = 3;
 		player.LeftArm.GunFlashType = weaponType;
 	}
 
@@ -477,7 +477,9 @@ void SpawnWeaponFlash(ItemInfo& laraItem, LaraWeaponType weaponType)
 
 	if (isDualWield)
 	{
-		auto basePos = GetJointPosition(&laraItem, LM_RHAND).ToVector3();
+		auto lhandPos = GetJointPosition(&laraItem, LM_LHAND).ToVector3();
+		auto rhandPos = GetJointPosition(&laraItem, LM_RHAND).ToVector3();
+		auto basePos = (lhandPos + rhandPos) / 2.0f;
 		SpawnDynamicPointLight(basePos, color, CLICK(settings.FlashRange));
 	}
 	else
@@ -486,14 +488,6 @@ void SpawnWeaponFlash(ItemInfo& laraItem, LaraWeaponType weaponType)
 		auto pos = GetJointPosition(&laraItem, LM_RHAND, offset);
 		SpawnDynamicPointLight(pos.ToVector3(), color, CLICK(settings.FlashRange));
 	}
-}
-
-void ReduceWeaponFlashesTimer(LaraInfo& player)
-{
-	if (player.LeftArm.GunFlash > 0 && --player.LeftArm.GunFlash == 0)
-		player.LeftArm.GunFlashType = LaraWeaponType::None;
-	if (player.RightArm.GunFlash > 0 && --player.RightArm.GunFlash == 0)
-		player.RightArm.GunFlashType = LaraWeaponType::None;
 }
 
 GAME_OBJECT_ID GetWeaponObjectID(LaraWeaponType weaponType)
@@ -580,7 +574,11 @@ void HandleWeapon(ItemInfo& laraItem)
 {
 	auto& player = *GetLaraInfo(&laraItem);
 
-	ReduceWeaponFlashesTimer(player);
+	if (player.LeftArm.GunFlash > 0 && --player.LeftArm.GunFlash == 0)
+		player.LeftArm.GunFlashType = LaraWeaponType::None;
+
+	if (player.RightArm.GunFlash > 0 && --player.RightArm.GunFlash == 0)
+		player.RightArm.GunFlashType = LaraWeaponType::None;
 
 	if (player.RightArm.GunSmoke > 0)
 		--player.RightArm.GunSmoke;
