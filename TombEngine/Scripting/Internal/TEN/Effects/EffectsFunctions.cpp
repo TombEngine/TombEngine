@@ -737,18 +737,19 @@ namespace TEN::Scripting::Effects
 	// @table WeatherParameters
 	// @tfield Vec3 position World position.
 	// @tfield Vec3 initialVelocity Initial velocity of the particles. initialVelocity should be positive and have a low value, otherwise the particle could be too fast.
-	// @tfield[opt=TEN.Flow.WeatherType.RAIN] Flow.WeatherType type Type of weather effect.
+	// @tfield[opt=TEN.Flow.WeatherType.Rain] Flow.WeatherType type Type of weather effect.
 	// @tfield[opt=8192] float randomRange XZ Range in blocks around the position where particles will be spawned. (1 block = 1024 world units, 8 blocks by default)
 	// @tfield[opt=1024] float randomHeight Y range in blocks around the randomRange where particles will be spawned. (1 block = 1024 world units, 1 block by default)
-	// @tfield[opt=1] float life Lifetime in seconds. (avoid very high values to avoid performance issues and array saturation)
-	// @tfield[opt=1] float strength Strength of the effect.
+	// @tfield[opt=1] float life Lifetime in seconds. Avoid very high values to avoid performance issues.
+	// @tfield[opt=1] float strength Strength of the effect. Clamped to [1, 10]
 	// @tfield[opt=false] bool enableClustering Whether to enable clustering of particles.
-	// @tfield[opt=true] bool checkWindFlag Whether to ignore wind room flag when trying to spawn.
+	// @tfield[opt=true] bool checkWindFlag Whether to check wind room flag when trying to spawn.
 	// @tfield[opt=Color(255&#44; 255&#44; 255)] Color baseColor Color of the particles.
 	static void EmitWeather(const sol::table& table)
 	{
 		auto pos = table.get_or("position", Vec3(0, 0, 0));
-		if (pos.x == 0 && pos.y == 0 && pos.z == 0) {
+		if (pos.x == 0 && pos.y == 0 && pos.z == 0)
+		{
 			TENLog("EmitWeather() 'position' not specified, aborting.", LogLevel::Error);
 			return;
 		}
@@ -756,7 +757,7 @@ namespace TEN::Scripting::Effects
 		params.Type = table.get_or("type", WeatherType::Rain);
 		params.InitialVelocity = table.get_or("initialVelocity", Vec3(0, 0, 0));
 		params.Life = table.get_or("life", 1.0f);
-		params.Strength = table.get_or("strength", 1.0f);
+		params.Strength = std::clamp((float)table.get_or("strength", 1.0f), 1.0f, 10.0f);
 		params.RandomRange = table.get_or("randomRange", BLOCK(8));
 		params.RandomHeight = table.get_or("randomHeight", BLOCK(1));
 		params.Clustering = table.get_or("enableClustering", false);

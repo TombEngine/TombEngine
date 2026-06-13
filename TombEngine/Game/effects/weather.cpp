@@ -350,11 +350,11 @@ namespace TEN::Effects::Environment
 		{
 			while (Particles.size() < WEATHER_PARTICLE_COUNT_MAX)
 			{
-				if (newParticlesCount > density)
+				if (newParticlesCount >= density)
 					break;
 				newParticlesCount++;
 
-				auto randPos = Random::GeneratePointInCylinder(position.ToVector3(), parameters.RandomRange, parameters.RandomHeight);
+				auto randPos = (Vector3i)Random::GeneratePointInCylinder(position.ToVector3(), parameters.RandomRange, parameters.RandomHeight);
 				auto outsideRoom = IsRoomOutside(randPos.x, randPos.y, randPos.z, parameters.Flags == WeatherFlags::IgnoreWindRoom);
 				if (outsideRoom == NO_VALUE)
 					continue;

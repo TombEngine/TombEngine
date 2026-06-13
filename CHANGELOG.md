@@ -44,7 +44,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Lua API changes
 
 * Added ring inventory module.
-* Added `EmitSnow` and `EmitRain` to spawn weather at specific position.
+* Added `EmitWeather` to spawn weather at specific position.
 * Added loading of the `Scripts/Autoexec.lua` script file before every level script is loaded.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
 * Added `Effects.EmitSplash` for generating splashes.
