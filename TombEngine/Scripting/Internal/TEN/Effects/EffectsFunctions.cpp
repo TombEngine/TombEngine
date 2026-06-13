@@ -711,7 +711,7 @@ namespace TEN::Scripting::Effects
 	// local weatherParams = {
 	//     position = Vec3(0, 0, 0),
 	//     initialVelocity = Vec3(0, 15, 0),
-	//     type = TEN.Flow.WeatherType.Snow,
+	//     type = TEN.Flow.WeatherType.SNOW,
 	//     randomRange = 4096,
 	//     enableClustering = true,
 	//     checkWindFlag = false,
