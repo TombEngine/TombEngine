@@ -262,7 +262,6 @@ static void StartEntity(ObjectInfo *obj)
 		obj->pivotLength = 200;
 		obj->radius = 512;
 		obj->intelligent = true;
-		obj->waterCreature = true;
 		obj->damageType = DamageMode::None;
 		obj->LotType = LotType::Water;
 		obj->SetBoneRotationFlags(0, ROT_X);
@@ -343,7 +342,6 @@ static void StartEntity(ObjectInfo *obj)
 		obj->pivotLength = 50;
 		obj->radius = 102;
 		obj->intelligent = true;
-		obj->waterCreature = true;
 		obj->LotType = LotType::Water;
 		obj->SetHitEffect();
 	}
@@ -533,7 +531,6 @@ static void StartEntity(ObjectInfo *obj)
 		obj->pivotLength = 20;
 		obj->radius = 256;
 		obj->intelligent = true;
-		obj->waterCreature = true;
 		obj->LotType = LotType::Water;
 		obj->SetBoneRotationFlags(4, ROT_X | ROT_Z);
 		obj->SetBoneRotationFlags(9, ROT_X | ROT_Z);
@@ -1063,7 +1060,7 @@ void InitializeTR5Objects()
 
 void AllocTR5Objects()
 {
-	ZeroMemory(Bats, NUM_BATS * sizeof(BatData));
-	ZeroMemory(Spiders, NUM_SPIDERS * sizeof(SpiderData));
-	ZeroMemory(Rats, NUM_RATS * sizeof(RatData));
+	memset(Bats, 0, NUM_BATS * sizeof(BatData));
+	memset(Spiders, 0, NUM_SPIDERS * sizeof(SpiderData));
+	memset(Rats, 0, NUM_RATS * sizeof(RatData));
 }

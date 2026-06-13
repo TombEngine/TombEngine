@@ -35,19 +35,23 @@ namespace TEN::Hud
 		// Members
 
 		bool _isActive = false;
+		std::unordered_set<int> _suppressedItemNumbers = {};
+
 		HighlightState _current = {};
 		HighlightState _previous = {};
 
 		// Utilities
 
 		bool TestInteractionConditions(ItemInfo& actor, ItemInfo& item, InteractionMode mode);
+		bool IsEnabled() const;
 
 	public:
 		// Utilities
 
-		void Test(ItemInfo& actor, ItemInfo& item, InteractionMode type = InteractionMode::Always, InteractionType overriddenType = InteractionType::Undefined);
+		void Test(ItemInfo& actor, ItemInfo& item, InteractionMode type = InteractionMode::Always, InteractionType overriddenType = InteractionType::Undefined, Vector3 offset = Vector3::Zero);
 		void Draw() const;
 		void Update();
+		void Suppress(int index);
 		void Clear();
 	};
 }

@@ -13,9 +13,8 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Specific/trutils.h"
 
-using namespace TEN::Utils;
-
 using namespace TEN::Animation;
+using namespace TEN::Utils;
 
 namespace TEN::Control::Volumes
 {
@@ -141,6 +140,9 @@ namespace TEN::Control::Volumes
 		if (roomNumber == NO_VALUE)
 			return;
 
+		if (((Vector3)box.Extents).Length() <= EPSILON)
+			return;
+
 		for (int currentRoomIndex : g_Level.Rooms[roomNumber].NeighborRoomNumbers)
 		{
 			auto& room = g_Level.Rooms[currentRoomIndex];
@@ -198,14 +200,14 @@ namespace TEN::Control::Volumes
 								SaveGame::Statistics.Level.TimeTaken
 							});
 
-						HandleEvent(set.Events[(int)EventType::Enter], activator);
+						HandleEvent(set.Events[(int)EventType::VolumeEnter], activator);
 					}
 					else
 					{
 						entryPtr->Status = VolumeStateStatus::Inside;
 						entryPtr->Timestamp = SaveGame::Statistics.Level.TimeTaken;
 
-						HandleEvent(set.Events[(int)EventType::Inside], activator);
+						HandleEvent(set.Events[(int)EventType::VolumeInside], activator);
 					}
 				}
 				else if (entryPtr != nullptr)
@@ -218,7 +220,7 @@ namespace TEN::Control::Volumes
 						entryPtr->Status = VolumeStateStatus::Leaving;
 						entryPtr->Timestamp = SaveGame::Statistics.Level.TimeTaken;
 
-						HandleEvent(set.Events[(int)EventType::Leave], activator);
+						HandleEvent(set.Events[(int)EventType::VolumeLeave], activator);
 					}
 				}
 			}

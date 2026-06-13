@@ -179,7 +179,7 @@ namespace TEN::Entities::Vehicles
 		}
 		else
 		{
-			lara->Context.Vehicle = itemNumber;
+			SetLaraVehicle(laraItem, speedboatItem);
 			DoSpeedboatMount(speedboatItem, laraItem, mountType);
 
 			if (g_Level.Items[itemNumber].Status != ITEM_ACTIVE)
@@ -197,20 +197,20 @@ namespace TEN::Entities::Vehicles
 		switch (mountType)
 		{
 		case VehicleMountType::LevelStart:
-			SetAnimation(laraItem, ID_SPEEDBOAT_LARA_ANIMS, SPEEDBOAT_ANIM_IDLE);
+			SetAnimationFromSlot(*laraItem, ID_SPEEDBOAT_LARA_ANIMS, SPEEDBOAT_ANIM_IDLE);
 			break;
 
 		case VehicleMountType::Left:
-			SetAnimation(laraItem, ID_SPEEDBOAT_LARA_ANIMS, SPEEDBOAT_ANIM_MOUNT_LEFT);
+			SetAnimationFromSlot(*laraItem, ID_SPEEDBOAT_LARA_ANIMS, SPEEDBOAT_ANIM_MOUNT_LEFT);
 			break;
 
 		case VehicleMountType::Right:
-			SetAnimation(laraItem, ID_SPEEDBOAT_LARA_ANIMS, SPEEDBOAT_ANIM_MOUNT_RIGHT);
+			SetAnimationFromSlot(*laraItem, ID_SPEEDBOAT_LARA_ANIMS, SPEEDBOAT_ANIM_MOUNT_RIGHT);
 			break;
 
 		default:
 		case VehicleMountType::Jump:
-			SetAnimation(laraItem, ID_SPEEDBOAT_LARA_ANIMS, SPEEDBOAT_ANIM_MOUNT_JUMP);
+			SetAnimationFromSlot(*laraItem, ID_SPEEDBOAT_LARA_ANIMS, SPEEDBOAT_ANIM_MOUNT_JUMP);
 			break;
 		} 
 		laraItem->Animation.FrameNumber = 0;
@@ -279,7 +279,7 @@ namespace TEN::Entities::Vehicles
 			laraItem->Animation.Velocity.y = -50;
 			laraItem->Pose.Orientation.x = 0;
 			laraItem->Pose.Orientation.z = 0;
-			lara->Context.Vehicle = NO_VALUE; // Leave vehicle itself active for inertia.
+			SetLaraVehicle(laraItem, nullptr);
 
 			int x = laraItem->Pose.Position.x + 360 * phd_sin(laraItem->Pose.Orientation.y);
 			int y = laraItem->Pose.Position.y - 90;
@@ -296,7 +296,7 @@ namespace TEN::Entities::Vehicles
 			}
 			laraItem->Pose.Position.y = y;
 
-			SetAnimation(speedboatItem, SPEEDBOAT_ANIM_MOUNT_LEFT);
+			SetAnimation(speedboatItem, 0);
 		}
 	}
 
@@ -610,11 +610,9 @@ namespace TEN::Entities::Vehicles
 
 		if (speedboatItem->Pose.Position.y >= speedboat->Water - CLICK(0.5f) && speedboat->Water != NO_HEIGHT)
 		{
-			if (!IsHeld(In::Brake) && !IsHeld(In::Look) ||
-				speedboatItem->Animation.Velocity.z)
+			if ((!IsHeld(In::Brake) && !IsHeld(In::Look)) || speedboatItem->Animation.Velocity.z)
 			{
-				if (IsHeld(In::Left) && !IsHeld(In::Reverse) ||
-					IsHeld(In::Right) && IsHeld(In::Reverse))
+				if ((IsHeld(In::Left) && !IsHeld(In::Reverse)) || (IsHeld(In::Right) && IsHeld(In::Reverse)))
 				{
 					if (speedboat->TurnRate > 0)
 						speedboat->TurnRate -= SPEEDBOAT_TURN_RATE_DECEL;
@@ -627,8 +625,7 @@ namespace TEN::Entities::Vehicles
 
 					noTurn = false;
 				}
-				else if (IsHeld(In::Right) && !IsHeld(In::Reverse) ||
-					IsHeld(In::Left) && IsHeld(In::Reverse))
+				else if ((IsHeld(In::Right) && !IsHeld(In::Reverse)) || (IsHeld(In::Left) && IsHeld(In::Reverse)))
 				{
 					if (speedboat->TurnRate < 0)
 						speedboat->TurnRate += SPEEDBOAT_TURN_RATE_DECEL;
@@ -661,7 +658,7 @@ namespace TEN::Entities::Vehicles
 					else if (speedboatItem->Animation.Velocity.z > (maxVelocity + SPEEDBOAT_VELOCITY_DECEL))
 						speedboatItem->Animation.Velocity.z -= SPEEDBOAT_VELOCITY_DECEL;
 				}
-				else if (IsHeld(In::Left) || IsHeld(In::Right) &&
+				else if ((IsHeld(In::Left) || IsHeld(In::Right)) &&
 					speedboatItem->Animation.Velocity.z >= 0 &&
 					speedboatItem->Animation.Velocity.z < SPEEDBOAT_VELOCITY_MIN)
 				{
@@ -703,21 +700,21 @@ namespace TEN::Entities::Vehicles
 		{
 			if (laraItem->Animation.ActiveState != SPEEDBOAT_STATE_DEATH)
 			{
-				SetAnimation(laraItem, ID_SPEEDBOAT_LARA_ANIMS, SPEEDBOAT_ANIM_DEATH);
+				SetAnimationFromSlot(*laraItem, ID_SPEEDBOAT_LARA_ANIMS, SPEEDBOAT_ANIM_DEATH);
 			}
 		}
 		else if (speedboatItem->Pose.Position.y < speedboat->Water - CLICK(0.5f) && speedboatItem->Animation.Velocity.y > 0)
 		{
 			if (laraItem->Animation.ActiveState != SPEEDBOAT_STATE_FALL)
 			{
-				SetAnimation(laraItem, ID_SPEEDBOAT_LARA_ANIMS, SPEEDBOAT_ANIM_LEAP_START);
+				SetAnimationFromSlot(*laraItem, ID_SPEEDBOAT_LARA_ANIMS, SPEEDBOAT_ANIM_LEAP_START);
 			}
 		}
 		else if (collide)
 		{
-			if (laraItem->Animation.ActiveState != SPEEDBOAT_STATE_HIT)
+			if (laraItem->Animation.TargetState != SPEEDBOAT_STATE_HIT && speedboatItem->Animation.Velocity.z > 5)
 			{
-				SetAnimation(laraItem, ID_SPEEDBOAT_LARA_ANIMS, collide);
+				SetAnimationFromSlot(*laraItem, ID_SPEEDBOAT_LARA_ANIMS, collide);
 			}
 		}
 		else

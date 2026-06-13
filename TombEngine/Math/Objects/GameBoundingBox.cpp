@@ -36,21 +36,37 @@ using namespace TEN::Animation;
 
 	GameBoundingBox::GameBoundingBox(GAME_OBJECT_ID objectID, int animNumber, int frameNumber)
 	{
-		*this = GetKeyframe(objectID, animNumber, frameNumber).BoundingBox;
+		*this = GetFrame(objectID, animNumber, frameNumber).BoundingBox;
 	}
 
-	// TODO: Use reference, not pointer.
+	// NOTE: Deprecated. Use item.GetObb() instead.
 	GameBoundingBox::GameBoundingBox(const ItemInfo* item)
 	{
-		auto frameData = GetFrameInterpData(*item);
-		if (frameData.Alpha == 0.0f)
+		// If object has no animations, return empty bounds.
+		if (Objects[item->ObjectNumber].Animations.empty())
 		{
-			*this = frameData.Keyframe0.BoundingBox;
+			*this = GameBoundingBox::Zero;
+			return;
 		}
-		else
+
+		const auto& anim = GetAnimData(*item);
+
+		if (anim.Frames.empty())
 		{
-			*this = frameData.Keyframe0.BoundingBox + (((frameData.Keyframe1.BoundingBox - frameData.Keyframe0.BoundingBox) * frameData.Alpha));
+			*this = GameBoundingBox::Zero;
+			return;
 		}
+
+		int frameNumber = std::clamp(item->Animation.FrameNumber, 0, (int)anim.Frames.size() - 1);
+		auto rootMotionCounteract = anim.GetRootMotionCounteraction(frameNumber);
+		*this = anim.Frames[frameNumber].BoundingBox;
+
+		X1 += rootMotionCounteract.Translation.x;
+		X2 += rootMotionCounteract.Translation.x;
+		Y1 += rootMotionCounteract.Translation.y;
+		Y2 += rootMotionCounteract.Translation.y;
+		Z1 += rootMotionCounteract.Translation.z;
+		Z2 += rootMotionCounteract.Translation.z;
 	}
 
 	int GameBoundingBox::GetWidth() const

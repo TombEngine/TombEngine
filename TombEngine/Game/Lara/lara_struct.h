@@ -1084,10 +1084,10 @@ public:
 		return (Count == value);
 	}
 
-	Ammo& operator =(Ammo& ammo)
+	Ammo& operator =(const Ammo& ammo)
 	{
 		Count = ammo.Count;
-		IsInfinite = ammo.Count;
+		IsInfinite = ammo.IsInfinite;
 		return *this;
 	}
 
@@ -1339,6 +1339,15 @@ struct PlayerInventoryData
 	int ExaminesCombo[NUM_EXAMINES * 2] = {};
 };
 
+struct PlayerSkinData
+{
+	GAME_OBJECT_ID Skin				= ID_LARA_SKIN;
+	GAME_OBJECT_ID SkinJoints		= ID_LARA_SKIN_JOINTS;
+	GAME_OBJECT_ID SkinScream		= ID_LARA_SCREAM;
+	GAME_OBJECT_ID HairPrimary		= ID_HAIR_PRIMARY;
+	GAME_OBJECT_ID HairSecondary	= ID_HAIR_SECONDARY;
+};
+
 struct LaraInfo
 {
 	static constexpr auto TARGET_COUNT_MAX = 16;
@@ -1348,11 +1357,12 @@ struct LaraInfo
 	PlayerStatusData	Status	  = {};
 	PlayerEffectData	Effect	  = {};
 	PlayerInventoryData Inventory = {};
+	PlayerSkinData      Skin      = {};
 
 	// TODO: Move to PlayerControlData.
 	FlareData		  Flare = {};
 	TorchData		  Torch = {};
-	CarriedWeaponInfo Weapons[(int)LaraWeaponType::NumWeapons] = {}; // TODO: Move to WeaponControlData.
+	std::array<CarriedWeaponInfo, (int)LaraWeaponType::NumWeapons> Weapons = {}; // TODO: Move to WeaponControlData.
 
 	EulerAngles ExtraHeadRot	= EulerAngles::Identity;
 	EulerAngles ExtraTorsoRot	= EulerAngles::Identity;
@@ -1393,4 +1403,14 @@ const auto CRAWL_STATES = std::vector<int>
 	LS_CRAWL_TURN_RIGHT,
 	LS_CRAWL_TURN_180,
 	LS_CRAWL_TO_HANG
+};
+
+const auto JUMP_STATES = std::vector<int>
+{
+	LS_JUMP_FORWARD,
+	LS_JUMP_BACK,
+	LS_JUMP_LEFT,
+	LS_JUMP_RIGHT,
+	LS_JUMP_UP,
+	LS_REACH
 };

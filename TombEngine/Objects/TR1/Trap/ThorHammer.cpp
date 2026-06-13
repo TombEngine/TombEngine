@@ -174,7 +174,7 @@ namespace TEN::Entities::Traps
 			playerItem->Pose.Scale = Vector3(1.0f, 0.1f, 1.0f);
 
 			DoDamage(playerItem, INT_MAX);
-			SetAnimation(playerItem, LA_BOULDER_DEATH);
+			SetAnimation(playerItem, LA_BOULDER_DEATH, 0, GetSystemBlendDuration());
 		}
 		else if (playerItem->HitPoints > 0)
 		{

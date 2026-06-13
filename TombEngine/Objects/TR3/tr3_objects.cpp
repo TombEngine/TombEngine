@@ -4,6 +4,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/control/box.h"
 #include "Game/itemdata/creature_info.h"
+#include "Game/missile.h"
 #include "Game/Setup.h"
 #include "Specific/level.h"
 
@@ -37,9 +38,14 @@
 
 // Objects
 #include "Objects/TR3/Object/Corpse.h"
+#include "Objects/TR3/Object/Fusebox.h"
 
 // Traps
+#include "Objects/Generic/Traps/Pendulum.h"
+#include "Objects/TR3/Trap/DrillBit.h"
 #include "Objects/TR3/Trap/ElectricCleaner.h"
+#include "Objects/TR3/Trap/HeavyStamper.h"
+#include "Objects/TR3/Trap/SpikedFrame.h"
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
 #include "Objects/TR3/Trap/TurningBlade.h"
@@ -104,8 +110,10 @@ static void StartEntity(ObjectInfo* obj)
 		obj->radius = 102;
 		obj->intelligent = true;
 		obj->nonLot = true;
-		obj->SetBoneRotationFlags(0, ROT_Y);
-		obj->SetBoneRotationFlags(6, ROT_Y);
+		obj->SetBoneRotationFlags(1, ROT_Z);
+		obj->SetBoneRotationFlags(5, ROT_Z);
+		obj->SetBoneRotationFlags(11, ROT_Z);
+		obj->SetBoneRotationFlags(12, ROT_Z);
 		obj->SetHitEffect();
 	}
 
@@ -187,19 +195,11 @@ static void StartEntity(ObjectInfo* obj)
 		obj->HitPoints = 20;
 		obj->radius = 340;
 		obj->intelligent = true;
-		obj->waterCreature = true;
 		obj->pivotLength = 50;
 		obj->LotType = LotType::Water;
 		obj->SetBoneRotationFlags(10, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(14, ROT_Y);
 		obj->SetHitEffect();
-	}
-
-	obj = &Objects[ID_SCUBA_HARPOON];
-	if (obj->loaded)
-	{
-		obj->control = ScubaHarpoonControl;
-		obj->collision = ObjectCollision;
 	}
 
 	obj = &Objects[ID_FLAMETHROWER_BADDY];
@@ -230,6 +230,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->HitPoints = 8;
 		obj->radius = 102;
 		obj->intelligent = true;
+		obj->LotType = LotType::Human;
 		obj->pivotLength = 0;
 		obj->SetBoneRotationFlags(0, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(7, ROT_Y);
@@ -458,6 +459,8 @@ static void StartEntity(ObjectInfo* obj)
 
 static void StartObject(ObjectInfo* obj)
 {
+	InitProjectile(obj, ControlMissile, ID_SCUBA_HARPOON);
+
 	obj = &Objects[ID_BOSS_SHIELD];
 	if (obj->loaded)
 	{
@@ -521,6 +524,14 @@ static void StartTrap(ObjectInfo* obj)
 		obj->radius = 512;
 	}
 
+	obj = &Objects[ID_FUSEBOX_SWITCH];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeFusebox;
+		obj->control = ControlFusebox;
+		obj->collision = CollideFusebox;
+	}
+
 	obj = &Objects[ID_WALL_MOUNTED_BLADE];
 	if (obj->loaded)
 	{
@@ -552,6 +563,38 @@ static void StartTrap(ObjectInfo* obj)
 		obj->control = ControlFirePendulum;
 		obj->collision = CollideFirePendulum;
 		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_HEAVY_STAMPER];
+	if (obj->loaded)
+	{
+		obj->control = ControlHeavyStamper;
+		obj->collision = CollideHeavyStamper;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_DRILL_BIT];
+	if (obj->loaded)
+	{
+		obj->control = ControlDrillBit;
+		obj->collision = CollideDrillBit;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_SPIKED_FRAME];
+	if (obj->loaded)
+	{
+		obj->control = ControlSPikedFrame;
+		obj->collision = CollideSpikedFrame;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_SWINGING_IRON_ANCHOR];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializePendulum;
+		obj->control = ControlPendulum;
+		obj->collision = CollidePendulum;
 	}
 }
 

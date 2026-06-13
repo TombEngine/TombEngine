@@ -188,6 +188,16 @@ namespace TEN::Entities::Traps
 		constexpr auto SPAWN_RADIUS		 = BLOCK(0.30f);
 		constexpr auto RAYGUN_SMOKE_LIFE = 16.0f;
 
+		auto chargeChannel = [](float value, float step)
+		{
+			constexpr auto OVERBRIGHT_MAX = 8.0f;
+
+			float normalizedValue = std::clamp(value / OVERBRIGHT_MAX, 0.0f, 1.0f);
+			normalizedValue = std::min(normalizedValue + (step / OVERBRIGHT_MAX), 1.0f);
+
+			return normalizedValue * OVERBRIGHT_MAX;
+		};
+
 		auto offset = Vector3::Zero;
 		auto origin = GameVector(GetJointPosition(&item, bite), item.RoomNumber);
 		auto targetRandom = Vector3i::Zero;
@@ -338,34 +348,9 @@ namespace TEN::Entities::Traps
 
 		if (item.ItemFlags[3] < 30)
 		{
-			int intensity = 0.01f;
-
-			if (item.Model.Color.x < 4.0f)
-			{
-				item.Model.Color.x += 0.05f;
-			}
-			else
-			{
-				item.Model.Color.x = 4.0f;
-			}
-
-			if (item.Model.Color.y < 4.0f)
-			{
-				item.Model.Color.y += 0.05f;
-			}
-			else
-			{
-				item.Model.Color.y = 4.0f;
-			}
-
-			if (item.Model.Color.z < 4.0f)
-			{
-				item.Model.Color.z += 0.09f;
-			}
-			else
-			{
-				item.Model.Color.z = 4.0f;
-			}
+			item.Model.Color.x = chargeChannel(item.Model.Color.x, 0.05f);
+			item.Model.Color.y = chargeChannel(item.Model.Color.y, 0.05f);
+			item.Model.Color.z = chargeChannel(item.Model.Color.z, 0.09f);
 			
 			SoundEffect(SFX_TR5_GOD_HEAD_CHARGE, &item.Pose);
 		}

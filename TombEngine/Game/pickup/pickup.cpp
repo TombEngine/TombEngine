@@ -5,6 +5,7 @@
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
+#include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
 #include "Game/effects/debris.h"
 #include "Game/Gui.h"
@@ -27,12 +28,14 @@
 #include "Math/Math.h"
 #include "Objects/Generic/Object/burning_torch.h"
 #include "Objects/TR4/Object/tr4_clockwork_beetle.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
-#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Hud;
@@ -134,6 +137,12 @@ const ObjectCollisionBounds MSBounds =
 int NumRPickups;
 short RPickups[16];
 
+static void DispatchPrePickupCallback(short itemNumber)
+{
+	if (itemNumber != NO_VALUE)
+		g_GameScript->OnPickup(itemNumber, false);
+}
+
 bool SetInventoryCount(GAME_OBJECT_ID objectID, int count)
 {
 	if (!TryModifyWeapon(Lara, objectID, count, ModificationType::Set) &&
@@ -148,7 +157,7 @@ bool SetInventoryCount(GAME_OBJECT_ID objectID, int count)
 	return true;
 }
 
-void PickedUpObject(GAME_OBJECT_ID objectID, std::optional<int> count)
+bool PickedUpObject(GAME_OBJECT_ID objectID, std::optional<int> count)
 {
 	// See if the items fit into one of these easy groups.
 	if (!TryAddingWeapon(Lara, objectID) &&
@@ -158,17 +167,20 @@ void PickedUpObject(GAME_OBJECT_ID objectID, std::optional<int> count)
 		!TryAddMiscItem(Lara, objectID))
 	{
 		// Item isn't any of the above; do nothing.
+		return false;
 	}
 	else
 	{
 		SaveGame::Statistics.Level.Pickups++;
 		SaveGame::Statistics.Game.Pickups++;
+		return true;
 	}
 }
 
 void PickedUpObject(ItemInfo& item)
 {
-	PickedUpObject(item.ObjectNumber, item.HitPoints > 0 ? std::optional<int>(item.HitPoints) : std::nullopt);
+	if (PickedUpObject(item.ObjectNumber, item.HitPoints > 0 ? std::optional<int>(item.HitPoints) : std::nullopt))
+		g_GameScript->OnPickup(item.Index, true);
 }
 
 int GetInventoryCount(GAME_OBJECT_ID objectID)
@@ -299,6 +311,8 @@ void DoPickup(ItemInfo* laraItem)
 
 	if (pickupItem->ObjectNumber == ID_BURNING_TORCH_ITEM)
 	{
+		g_GameScript->OnPickup(pickupItemNumber, true);
+
 		PickedUpObject(ID_BURNING_TORCH_ITEM);
 		g_Hud.PickupSummary.AddDisplayPickup(ID_BURNING_TORCH_ITEM, pickupItem->Pose.Position.ToVector3());
 
@@ -314,6 +328,8 @@ void DoPickup(ItemInfo* laraItem)
 	}
 	else if (pickupItem->ObjectNumber == ID_FLARE_ITEM && pickupItem->Active)
 	{
+		g_GameScript->OnPickup(pickupItemNumber, true);
+
 		lara->Control.Weapon.RequestGunType = LaraWeaponType::Flare;
 		lara->Control.Weapon.GunType = LaraWeaponType::Flare;
 		InitializeNewWeapon(*laraItem);
@@ -351,6 +367,8 @@ void DoPickup(ItemInfo* laraItem)
 		{
 			if (laraItem->Animation.AnimNumber == LA_CROWBAR_PRY_WALL_SLOW)
 			{
+				g_GameScript->OnPickup(pickupItemNumber, true);
+
 				PickedUpObject(ID_CROWBAR_ITEM);
 				g_Hud.PickupSummary.AddDisplayPickup(ID_CROWBAR_ITEM, pickupItem->Pose.Position.ToVector3());
 				KillItem(pickupItemNumber);
@@ -448,6 +466,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 						laraItem->Animation.FrameNumber = 0;
 						lara->Control.IsMoving = false;
 						lara->Control.HandStatus = HandStatus::Busy;
+						DispatchPrePickupCallback(itemNumber);
 					}
 
 					lara->Context.InteractedItem = itemNumber;
@@ -505,7 +524,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 
 	item->Pose.Orientation.x = 0;
 	const GameBoundingBox* plinthBounds = nullptr;
-	bool flag = false;
+	bool resetAnimation = false;
 
 	switch (triggerFlags)
 	{
@@ -529,7 +548,8 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 		{
 			laraItem->Animation.AnimNumber = LA_HOLESWITCH_ACTIVATE;
 			laraItem->Animation.ActiveState = LS_HOLE;
-			flag = true;
+			resetAnimation = true;
+			DispatchPrePickupCallback(itemNumber);
 		}
 
 		lara->Context.InteractedItem = itemNumber;
@@ -586,7 +606,8 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 			item->Status = ITEM_ACTIVE;
 			AddActiveItem(itemNumber);
 			AnimateItem(item);
-			flag = true;
+			resetAnimation = true;
+			DispatchPrePickupCallback(itemNumber);
 		}
 
 		lara->Context.InteractedItem = itemNumber;
@@ -609,7 +630,11 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 		PlinthPickUpBounds.BoundingBox.X2 = plinthBounds->X2;
 		PlinthPickUpBounds.BoundingBox.Y2 = laraItem->Pose.Position.y - item->Pose.Position.y + 100;
 		PlinthPickUpBounds.BoundingBox.Z2 = plinthBounds->Z2 + 320;
-		PlinthPickUpPosition.z = -200 - plinthBounds->Z2;
+
+		// HACK: Determine pickup bounds distance based on narrower plinth bounds dimension,
+		// plus limit it by a reasonable distance.
+		// This code should be removed after plinth collision refactor. -- Lwmte, 20.02.26
+		PlinthPickUpPosition.z = -200 - std::min(CLICK(1), std::min(plinthBounds->X2, plinthBounds->Z2));
 
 		// HACK: Until we refactor a way plinth collision is detected, this must be here
 		// to prevent false positives with two stacked plinths -- Lwmte, 16.06.22
@@ -638,7 +663,8 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 					SetAnimation(laraItem, LA_PICKUP_PEDESTAL_LOW);
 				}
 
-				flag = true;
+				resetAnimation = true;
+				DispatchPrePickupCallback(itemNumber);
 			}
 
 			lara->Context.InteractedItem = itemNumber;
@@ -675,7 +701,8 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 			SetAnimation(laraItem, LA_CROWBAR_PRY_WALL_SLOW);
 			item->Status = ITEM_ACTIVE;
 			AddActiveItem(itemNumber);
-			flag = true;
+			resetAnimation = true;
+			DispatchPrePickupCallback(itemNumber);
 		}
 
 		lara->Context.InteractedItem = itemNumber;
@@ -713,11 +740,13 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 				laraItem->Animation.AnimNumber = LA_CROUCH_PICKUP_FLARE;
 				laraItem->Animation.ActiveState = LS_PICKUP_FLARE;
 				lara->Context.InteractedItem = itemNumber;
-				flag = true;
+				resetAnimation = true;
+				DispatchPrePickupCallback(itemNumber);
 				break;
 			}
 
 			laraItem->Animation.TargetState = LS_PICKUP;
+			DispatchPrePickupCallback(itemNumber);
 		}
 		else
 		{
@@ -737,6 +766,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 				else
 				{
 					laraItem->Animation.TargetState = LS_PICKUP;
+					DispatchPrePickupCallback(itemNumber);
 				}
 				lara->Context.InteractedItem = itemNumber;
 				break;
@@ -754,7 +784,8 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 					laraItem->Animation.AnimNumber = LA_PICKUP;
 					laraItem->Animation.ActiveState = LS_PICKUP_FLARE;
 					lara->Context.InteractedItem = itemNumber;
-					flag = true;
+					resetAnimation = true;
+					DispatchPrePickupCallback(itemNumber);
 					break;
 				}
 				else
@@ -762,15 +793,16 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 					// HACK: Because of MoveLaraPosition(), we can't properly dispatch. Must be fixed later.
 					laraItem->Animation.AnimNumber = LA_PICKUP;
 					laraItem->Animation.ActiveState = LS_PICKUP;
+					DispatchPrePickupCallback(itemNumber);
 				}
 			}
 		}
 
 		lara->Context.InteractedItem = itemNumber;
-		flag = true;
+		resetAnimation = true;
 	}
 
-	if (flag)
+	if (resetAnimation)
 	{
 		laraItem->Animation.FrameNumber = 0;
 		ResetPlayerFlex(laraItem);
@@ -856,7 +888,7 @@ void RegeneratePickups()
 	}
 }
 
-void DropPickups(ItemInfo* item)
+void DropPickups(ItemInfo* item, bool disableAlignment)
 {
 	ItemInfo* pickup = nullptr;
 
@@ -875,7 +907,7 @@ void DropPickups(ItemInfo* item)
 	// and also does not significantly differ in height to an object centerpoint height.
 	// If all corner tests will fail, a pickup will be spawned at bounding box centerpoint, as it does in tomb4.
 
-	for (int corner = 0; corner < 4; corner++)
+	if (!disableAlignment) for (int corner = 0; corner < 4; corner++)
 	{
 		auto angle = item->Pose.Orientation;
 		angle.y += startAngle + corner * ANGLE(90.0f);
@@ -965,11 +997,13 @@ void DropPickups(ItemInfo* item)
 
 		pickup->RoomNumber = item->RoomNumber;
 		AlignEntityToSurface(pickup, Vector2(Objects[pickup->ObjectNumber].radius));
-		pickup->RoomNumber = -1;
-		pickup->Flags |= 32;
+		pickup->RoomNumber = NO_VALUE;
+		pickup->Flags |= IFLAG_TRIGGERED;
 
 		ItemNewRoom(pickupNumber, item->RoomNumber);
 	}
+
+	item->CarriedItem = NO_VALUE;
 }
 
 void PickupControl(short itemNumber)
@@ -1020,56 +1054,45 @@ void PickupControl(short itemNumber)
 
 const GameBoundingBox* FindPlinth(ItemInfo* item)
 {
-	auto* room = &g_Level.Rooms[item->RoomNumber];
-	
-	for (int i = 0; i < room->mesh.size(); i++)
+	auto coll = GetLosCollision(item->Pose.Position.ToVector3(), item->RoomNumber, Vector3::UnitY, CLICK(1), true, false, true);
+
+	if (!coll.Statics.empty())
 	{
-		const auto& staticObj = room->mesh[i];
-
-		if (!(staticObj.Flags & StaticMeshFlags::SM_VISIBLE))
-			continue;
-
-		if (item->Pose.Position.x != staticObj.Pose.Position.x || item->Pose.Position.z != staticObj.Pose.Position.z)
-			continue;
-
-		const auto& bounds = GetClosestKeyframe(*item).BoundingBox;
-		auto& bBox = GetBoundsAccurate(staticObj, false);
-
-		if (bounds.X1 <= bBox.X2 && bounds.X2 >= bBox.X1 &&
-			bounds.Z1 <= bBox.Z2 && bounds.Z2 >= bBox.Z1 &&
-			(bBox.X1 || bBox.X2))
+		for (auto& staticLosEntry : coll.Statics)
 		{
-			return &bBox;
+			auto& staticObj = *staticLosEntry.Static;
+
+			if (!(staticObj.Flags & StaticMeshFlags::SM_VISIBLE))
+				continue;
+
+			const auto& bounds = GetFrame(*item).BoundingBox;
+			auto& bBox = GetBoundsAccurate(staticObj, false);
+
+			if (bounds.X1 <= bBox.X2 && bounds.X2 >= bBox.X1 &&
+				bounds.Z1 <= bBox.Z2 && bounds.Z2 >= bBox.Z1 &&
+				(bBox.X1 || bBox.X2))
+			{
+				return &bBox;
+			}
 		}
 	}
 
-	if (room->itemNumber == NO_VALUE)
-		return nullptr;
-
-	short itemNumber = room->itemNumber;
-	for (itemNumber = room->itemNumber; itemNumber != NO_VALUE; itemNumber = g_Level.Items[itemNumber].NextItem)
+	if (!coll.Items.empty())
 	{
-		auto* currentItem = &g_Level.Items[itemNumber];
-		auto* object = &Objects[currentItem->ObjectNumber];
-
-		if (!object->isPickup &&
-			item->Pose.Position.x == currentItem->Pose.Position.x &&
-			item->Pose.Position.y <= currentItem->Pose.Position.y &&
-			item->Pose.Position.z == currentItem->Pose.Position.z &&
-			(currentItem->ObjectNumber != ID_HIGH_OBJECT1 || currentItem->ItemFlags[0] == 5))
+		for (auto& itemLosEntry : coll.Items)
 		{
-			break;
+			auto& currentItem = *itemLosEntry.Item;
+			auto& object = Objects[currentItem.ObjectNumber];
+
+			if (!object.isPickup && (currentItem.ObjectNumber != ID_HIGH_OBJECT1 || currentItem.ItemFlags[0] == 5))
+				return &GetFrame(g_Level.Items[currentItem.Index]).BoundingBox;
 		}
 	}
 
-	if (itemNumber == NO_VALUE)
-	{
-		return nullptr;
-	}
-	else
-	{
-		return &GetClosestKeyframe(g_Level.Items[itemNumber]).BoundingBox;
-	}
+	constexpr int MIN_BOUND = CLICK(0.5f);
+	static auto defautBounds = GameBoundingBox(-MIN_BOUND, MIN_BOUND, 0, MIN_BOUND, -MIN_BOUND, MIN_BOUND);
+
+	return &defautBounds;
 }
 
 void InitializePickup(short itemNumber)

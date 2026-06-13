@@ -203,16 +203,16 @@ namespace TEN::Entities::Vehicles
 		switch (mountType)
 		{
 		case VehicleMountType::LevelStart:
-			SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_IDLE);
+			SetAnimationFromSlot(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_IDLE);
 			break;
 
 		case VehicleMountType::Left:
-			SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_MOUNT_LEFT);
+			SetAnimationFromSlot(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_MOUNT_LEFT);
 			break;
 
 		default:
 		case VehicleMountType::Right:
-			SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_MOUNT_RIGHT);
+			SetAnimationFromSlot(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_MOUNT_RIGHT);
 			break;
 		}
 
@@ -685,9 +685,9 @@ namespace TEN::Entities::Vehicles
 			!dead)
 		{
 			if (quadBike->Velocity < 0)
-				SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_LEAP_START);
+				SetAnimationFromSlot(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_LEAP_START);
 			else
-				SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_LEAP_START2);
+				SetAnimationFromSlot(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_LEAP_START2);
 		}
 		else if (collide &&
 			laraItem->Animation.ActiveState != QBIKE_STATE_HIT_FRONT &&
@@ -700,19 +700,19 @@ namespace TEN::Entities::Vehicles
 		{
 			if (collide == QBIKE_HIT_FRONT)
 			{
-				SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_BACK);
+				SetAnimationFromSlot(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_BACK);
 			}
 			else if (collide == QBIKE_HIT_BACK)
 			{
-				SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_FRONT);
+				SetAnimationFromSlot(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_FRONT);
 			}
 			else if (collide == QBIKE_HIT_LEFT)
 			{
-				SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_RIGHT);
+				SetAnimationFromSlot(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_RIGHT);
 			}
 			else
 			{
-				SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_LEFT);
+				SetAnimationFromSlot(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_HIT_LEFT);
 			}
 
 			SoundEffect(SFX_TR3_VEHICLE_QUADBIKE_FRONT_IMPACT, &quadBikeItem->Pose);
@@ -788,7 +788,7 @@ namespace TEN::Entities::Vehicles
 					laraItem->Animation.TargetState = QBIKE_STATE_IDLE;
 				else if (IsHeld(In::Right))
 				{
-					SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_TURN_RIGHT_START);
+					SetAnimationFromSlot(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_TURN_RIGHT_START);
 				}
 				else if (!IsHeld(In::Left))
 					laraItem->Animation.TargetState = QBIKE_STATE_DRIVE;
@@ -800,7 +800,7 @@ namespace TEN::Entities::Vehicles
 					laraItem->Animation.TargetState = QBIKE_STATE_IDLE;
 				else if (IsHeld(In::Left))
 				{
-					SetAnimation(laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_TURN_LEFT_START);
+					SetAnimationFromSlot(*laraItem, ID_QUAD_LARA_ANIMS, QBIKE_ANIM_TURN_LEFT_START);
 				}
 				else if (!IsHeld(In::Right))
 					laraItem->Animation.TargetState = QBIKE_STATE_DRIVE;

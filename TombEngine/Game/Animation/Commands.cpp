@@ -15,18 +15,16 @@ using namespace TEN::Collision::Point;
 
 namespace TEN::Animation
 {
-	void MoveOriginCommand::Execute(ItemInfo& item, bool isFrameBased) const
+	void MoveRootCommand::Execute(ItemInfo& item, bool isFrameBased) const
 	{
 		if (isFrameBased)
 			return;
 
-		item.Pose.Translate(item.Pose.Orientation.y, _relOffset.z, _relOffset.y, _relOffset.x);
+		item.Pose.Translate(item.Pose.Orientation.y, _translation.z, _translation.y, _translation.x);
 
 		if (item.IsLara())
 		{
-			// NOTE: GameBoundingBox constructor always clamps to last frame to avoid errors.
-			auto bounds = GameBoundingBox(&item);
-			UpdateLaraRoom(&item, -bounds.GetHeight() / 2, -_relOffset.x, -_relOffset.z);
+			UpdateLaraRoom(&item, -item.GetObb().Extents.y, -_translation.x, -_translation.z);
 		}
 		else
 		{
@@ -110,7 +108,7 @@ namespace TEN::Animation
 			{
 				// HACK: Must update assets before removing this exception for water creatures.
 				const auto& object = Objects[item.ObjectNumber];
-				soundEnv = object.waterCreature ? SoundEnvironment::Underwater : SoundEnvironment::ShallowWater;
+				soundEnv = object.WaterCreature() ? SoundEnvironment::Underwater : SoundEnvironment::ShallowWater;
 			}
 
 			break;

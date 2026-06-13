@@ -11,6 +11,7 @@
 #include "Game/effects/Electricity.h"
 #include "Game/effects/explosion.h"
 #include "Game/effects/spark.h"
+#include "Game/effects/Splash.h"
 #include "Game/effects/Streamer.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
@@ -46,6 +47,7 @@ using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Explosion;
 using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Streamer;
+using namespace TEN::Effects::Splash;
 using namespace TEN::Math;
 using namespace TEN::Scripting::Types;
 
@@ -286,9 +288,10 @@ namespace TEN::Scripting::Effects
 	// @tfield[opt=0] int lightRadius Light radius in 1/4 blocks.
 	// @tfield[opt=0] int lightFlicker Interval at which the light should flicker.
 	// @tfield[opt] int soundID Sound ID to play. __Caution__: Recommended only for a single particle. Too many particles with sounds can overwhelm the sound system.
-	// @tfield[opt=false] bool animated Play animates sprite sequence.
+	// @tfield[opt=false] bool animated Play animated sprite sequence.
 	// @tfield[opt=TEN.Effects.ParticleAnimationType.LOOP] Effects.ParticleAnimationType animType Animation type of the sprite sequence.
 	// @tfield[opt=1] float frameRate Sprite sequence animation framerate.
+	// @tfield[opt=Rotation(0&#44; 0&#44; 0)] Rotation constraint Sprite orientation constraint in degrees.
 	static void EmitAdvancedParticle(const sol::table& table)
 	{
 		constexpr auto DEFAULT_START_SIZE = 10.0f;
@@ -370,6 +373,7 @@ namespace TEN::Scripting::Effects
 			part.flags |= SP_SOUND;
 			part.sound = convertedSoundID;
 		}
+
 		bool convertedApplyLight = table.get_or("light", false);
 		if (convertedApplyLight)
 		{
@@ -384,6 +388,7 @@ namespace TEN::Scripting::Effects
 				part.lightFlickerS = table.get_or("lightFlicker", 0);
 			}
 		}
+
 		bool animatedSpr = table.get_or("animated", false);
 		if (animatedSpr)
 		{
@@ -400,6 +405,13 @@ namespace TEN::Scripting::Effects
 		{
 			if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WIND, part.roomNumber))
 				part.flags |= SP_WIND;
+		}
+
+		Rotation convertedConstraint = table.get_or("constraint", Rotation(0, 0, 0));
+		if (!(convertedConstraint == Rotation(0, 0, 0)))
+		{
+			part.flags |= SP_CONSTRAINED;
+			part.constraint = Vector3(DEG_TO_RAD(convertedConstraint.x), DEG_TO_RAD(convertedConstraint.y), DEG_TO_RAD(convertedConstraint.z));
 		}
 	}
 	
@@ -751,6 +763,17 @@ namespace TEN::Scripting::Effects
 		params.Flags = table.get_or("checkWindFlag", true) ? WeatherFlags::None : WeatherFlags::IgnoreWindRoom;
 		params.BaseColor = table.get_or("baseColor", params.Type == WeatherType::Rain ? ScriptColor(204, 255, 255, 255) : ScriptColor(255, 255, 255, 255)); // Rain default color is light blueish.
 		Weather.SpawnWeatherParticles(pos.ToVector3i(), params);
+	}	
+	/// Emit a splash effect. Consists of a ripple effect and a splash ring.
+	// @function EmitSplash
+	// @tparam Vec3 pos World position. Needs to be inside a water room.
+	// @tparam[opt=128] int power Determines the splash ring height, ranging from 0 to 1024.
+	static void EmitSplash(const Vec3& pos, TypeOrNil<int> power)
+	{
+		int roomNumber = FindRoomNumber(pos.ToVector3i());
+		auto convertedPower = std::clamp(ValueOr<int>(power, 128), 0, 1024);
+
+		Splash(pos.ToVector3i(), roomNumber, convertedPower);
 	}
 
 	/// Make an explosion. Does not hurt Lara
@@ -829,6 +852,7 @@ namespace TEN::Scripting::Effects
 		tableEffects.set_function(ScriptReserved_EmitWeather, &EmitWeather);
 		tableEffects.set_function(ScriptReserved_EmitWaterfallMist, &EmitWaterfallMist);
 		tableEffects.set_function(ScriptReserved_EmitFlow, &EmitFlow);
+		tableEffects.set_function(ScriptReserved_EmitSplash, &EmitSplash);
 		tableEffects.set_function(ScriptReserved_MakeExplosion, &MakeExplosion);
 		tableEffects.set_function(ScriptReserved_MakeEarthquake, &Earthquake);
 		tableEffects.set_function(ScriptReserved_GetWind, &GetWind);

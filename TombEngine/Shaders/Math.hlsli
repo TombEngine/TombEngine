@@ -40,8 +40,8 @@ struct ShaderLight
 	float In;
 	float Out;
 	float InRange;
-	float OutRange;
-	float Padding;
+    float OutRange;
+    int ShaderLight_Padding0;
 };
 
 struct ShaderFogBulb
@@ -52,15 +52,18 @@ struct ShaderFogBulb
 	float SquaredRadius;
 	float3 FogBulbToCameraVector;
 	float SquaredCameraToFogBulbDistance;
-	float4 Padding2;
+    float4 ShaderFogBulb_Padding0;
 };
 
 struct ShaderDecal
 {
 	float3 Position;
 	unsigned int Pattern;
+	//----------
 	float Radius;
-	float Opacity;
+    float Opacity;
+    int ShaderDecal_Padding0;
+    int ShaderDecal_Padding1;
 };
 
 float Luma(float3 color)
@@ -86,6 +89,17 @@ float3 Screen(float3 ambient, float3 tint)
 float LinearizeDepth(float depth, float nearPlane, float farPlane)
 {
 	return ((nearPlane * 2) / (farPlane + nearPlane - (depth * (farPlane - nearPlane))));
+}
+
+float3 ReconstructViewPosition(float2 uv, float depth, float4x4 inverseProjection)
+{
+	float x = uv.x * 2.0f - 1.0f;
+	float y = (1.0f - uv.y) * 2.0f - 1.0f;
+
+	float4 projectedPosition = float4(x, y, depth, 1.0f);
+	float4 position = mul(projectedPosition, inverseProjection);
+
+	return position.xyz / position.w;
 }
 
 float3 Mod289(float3 x)
@@ -183,72 +197,6 @@ float SimplexNoise(float3 v)
 	m = m * m;
 
 	return 105.0 * dot(m*m, float4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
-}
-
-float4 snoise(float3 v)
-{ 
-
-  float2 C = float2(1.0 / 6.0, 1.0 / 3.0);
-
-    // First corner
-    float3 i  = floor(v + dot(v, float3(C.yyy)));
-    float3 x0 = v   - i + dot(i, float3(C.xxx));
-
-    // Other corners
-    float3 g = step(x0.yzx, x0.xyz);
-    float3 l = 1.0 - g;
-    float3 i1 = min(g.xyz, l.zxy);
-    float3 i2 = max(g.xyz, l.zxy);
-
-    float3 x1 = x0 - i1 + C.x;
-    float3 x2 = x0 - i2 + C.y;
-    float3 x3 = x0 - 0.5;
-
-    // Permutations
-    float4 p =
-      Permute(Permute(Permute(i.z + float4(0.0, i1.z, i2.z, 1.0))
-                            + i.y + float4(0.0, i1.y, i2.y, 1.0))
-                            + i.x + float4(0.0, i1.x, i2.x, 1.0));
-
-    // Gradients: 7x7 points over a square, mapped onto an octahedron.
-    // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)
-    float4 j = p - 49.0 * floor(p / 49.0);  // mod(p,7*7)
-
-    float4 x_ = floor(j / 7.0);
-    float4 y_ = floor(j - 7.0 * x_); 
-
-    float4 x = (x_ * 2.0 + 0.5) / 7.0 - 1.0;
-    float4 y = (y_ * 2.0 + 0.5) / 7.0 - 1.0;
-
-    float4 h = 1.0 - abs(x) - abs(y);
-
-    float4 b0 = float4(x.xy, y.xy);
-    float4 b1 = float4(x.zw, y.zw);
-
-    float4 s0 = floor(b0) * 2.0 + 1.0;
-    float4 s1 = floor(b1) * 2.0 + 1.0;
-    float4 sh = -step(h, float4(0.0f, 0.0f, 0.0f, 0.0f));
-
-    float4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
-    float4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
-
-    float3 g0 = float3(a0.xy, h.x);
-    float3 g1 = float3(a0.zw, h.y);
-    float3 g2 = float3(a1.xy, h.z);
-    float3 g3 = float3(a1.zw, h.w);
-
-    // Compute noise and gradient at P
-    float4 m = max(0.6 - float4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
-    float4 m2 = m * m;
-    float4 m3 = m2 * m;
-    float4 m4 = m2 * m2;
-    float3 grad =
-      -6.0 * m3.x * x0 * dot(x0, g0) + m4.x * g0 +
-      -6.0 * m3.y * x1 * dot(x1, g1) + m4.y * g1 +
-      -6.0 * m3.z * x2 * dot(x2, g2) + m4.z * g2 +
-      -6.0 * m3.w * x3 * dot(x3, g3) + m4.w * g3;
-    float4 px = float4(dot(x0, g0), dot(x1, g1), dot(x2, g2), dot(x3, g3));
-    return 42.0 * float4(grad, dot(m4, px));	
 }
 
 float2 Gradient2D(float2 p)
@@ -381,28 +329,6 @@ float FractalNoise(float2 input)
 	}
 
 	return value;
-}
-
-float3 NormalNoise(float3 v, float3 i, float3 n)
-{
-	// Resulting vector.
-	float3 r = float3(.0f,.0f,.0f);
-
-	// Interpolates lerp(v,i,dot(n,i))
-	//v, which is the reference of the pixel and
-	//i, a vector perturbed with SimpleNoise
-	//the threshold dot(n,i) is based on a dot product between
-	//n, the normal and each tuple from it (xy, xz and yz)
-	//and the same for the vector from the noise
-	r.x = lerp(v.x, i.x, dot(n.xy,i.xy))*.9f;
-	r.y = lerp(v.y, i.y, dot(n.xz,i.xz))*.75f;
-	r.z = lerp(v.z, i.z, dot(n.yz,i.yz))*.8f;
-
-	// c = threshold based on tuples of reference pixel.
-	float c = dot(v.xy,v.yz);
-
-	// Return perturbed pixel based on reference pixel and resulting vector with threshold c attenuated by 2/5 times.
-	return lerp(v, r, c * 0.3f);
 }
 
 // Matrix (3x3) to Quaternion
@@ -550,6 +476,11 @@ inline float3 SafeNormalize(float3 v)
     float invLen = rsqrt(max(l2, EPSILON));
     float mask = saturate(l2 / (l2 + EPSILON));
     return v * invLen * mask;
+}
+
+inline float2 SafeNormalize(float2 v)
+{
+    return SafeNormalize(float3(v, 0.0f)).xy;
 }
 
 float2 GetSamplePosition(float4 projectedPosition)

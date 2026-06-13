@@ -21,6 +21,7 @@
 #include "Scripting/Internal/TEN/View/DisplaySprite/ScriptDisplaySprite.h"
 #include "Scripting/Internal/TEN/View/ScaleModes.h"
 #include "Scripting/Internal/TEN/View/PostProcessEffects.h"
+#include "Scripting/Internal/TEN/View/DOFModes.h"
 #include "Specific/clock.h"
 #include "Specific/Video/Video.h"
 #include "Specific/trutils.h"
@@ -29,6 +30,7 @@ using namespace TEN::Effects::Environment;
 using namespace TEN::Scripting::DisplaySprite;
 using namespace TEN::Scripting::DisplayItem;
 using namespace TEN::Scripting::View;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 using namespace TEN::Video;
 
@@ -59,11 +61,10 @@ namespace TEN::Scripting::View
 
 	static void SetCineBars(TypeOrNil<float> height, TypeOrNil<float> speed)
 	{
-		// divide by 200 so that a percentage of 100 means that each
-		// bar takes up half the screen
+		// Divide by 200 so that a percentage of 100 means that each bar takes up half the screen.
 		float heightProportion = ValueOr<float>(height, 30) / 200.0f;
-		float speedProportion = ValueOr<float>(speed, 30) / 200.0f;
-		SetCinematicBars(heightProportion, speedProportion / float(FPS));
+		float speedProportion = ValueOr<float>(speed, 1);
+		SetCinematicBars(heightProportion, speedProportion);
 	}
 
 	static void SetFOV(float angle)
@@ -115,7 +116,6 @@ namespace TEN::Scripting::View
 
 	static void PlayFlyby(int seqID)
 	{
-		UseSpotCam = true;
 		InitializeSpotCam(seqID);
 	}
 
@@ -176,14 +176,14 @@ namespace TEN::Scripting::View
 	{
 		constexpr auto PROGRESS_MAX = 100.0f;
 
-		return Vec3(GetCameraTransform(seqID, progress / PROGRESS_MAX, ValueOr<bool>(loop, false)).Position);
+		return Vec3(GetSpotCamSequenceTransform(seqID, progress / PROGRESS_MAX, ValueOr<bool>(loop, false)).Position);
 	}
 
 	static Rotation GetFlybyRotation(int seqID, float progress, TypeOrNil<bool> loop)
 	{
 		constexpr auto PROGRESS_MAX = 100.0f;
 
-		return Rotation(GetCameraTransform(seqID, progress / PROGRESS_MAX, ValueOr<bool>(loop, false)).Orientation);
+		return Rotation(GetSpotCamSequenceTransform(seqID, progress / PROGRESS_MAX, ValueOr<bool>(loop, false)).Orientation);
 	}
 
 	static void FlashScreen(TypeOrNil<ScriptColor> col, TypeOrNil<float> speed)
@@ -198,6 +198,17 @@ namespace TEN::Scripting::View
 		return (screenRes.x / screenRes.y);
 	}
 
+	static std::pair<PostProcessMode, float> GetPostProcess()
+	{
+		return std::pair(g_Renderer.GetPostProcessMode(), g_Renderer.GetPostProcessStrength());
+	}
+
+	static void SetPostProcess(PostProcessMode mode, TypeOrNil<float> strength)
+	{
+		g_Renderer.SetPostProcessMode(mode);
+		g_Renderer.SetPostProcessStrength(std::clamp((float)ValueOr<float>(strength, 1.0), 0.0f, 1.0f));
+	}
+
 	static void SetPostProcessMode(PostProcessMode mode)
 	{
 		g_Renderer.SetPostProcessMode(mode);
@@ -206,6 +217,11 @@ namespace TEN::Scripting::View
 	static void SetPostProcessStrength(TypeOrNil<float> strength)
 	{
 		g_Renderer.SetPostProcessStrength(std::clamp((float)ValueOr<float>(strength, 1.0), 0.0f, 1.0f));
+	}
+
+	static ScriptColor GetPostProcessTint()
+	{
+		return (ScriptColor)g_Renderer.GetPostProcessTint();
 	}
 
 	static void SetPostProcessTint(const ScriptColor& color)
@@ -220,10 +236,20 @@ namespace TEN::Scripting::View
 		g_Renderer.SetPostProcessTint(vec);
 	}
 
-	static void UseBinoculars()
+	static std::tuple<DOFMode, float, float, float> GetDOF()
 	{
-		auto& item = *LaraItem;
-		g_Gui.UseBinoculars(item);
+		auto state = g_Renderer.GetDOF();
+		return std::make_tuple(state.Mode, state.Distance, state.Range, state.Strength);
+	}
+
+	static void SetDOF(DOFMode mode, TypeOrNil<float> distance, TypeOrNil<float> range, TypeOrNil<float> strength)
+	{
+		auto state = DOFState{};
+		state.Distance = ValueOr<float>(distance, BLOCK(1.5f));
+		state.Range    = ValueOr<float>(range, BLOCK(2));
+		state.Strength = ValueOr<float>(strength, 0.2f);
+		state.Mode     = mode;
+		g_Renderer.SetDOF(state);
 	}
 
 	void Register(sol::state* state, sol::table& parent)
@@ -245,21 +271,38 @@ namespace TEN::Scripting::View
 		//@treturn bool State of the fade out.
 		tableView.set_function(ScriptReserved_FadeOutComplete, &FadeOutComplete);
 
-		///Move black cinematic bars in from the top and bottom of the game window.
+		///Animate black cinematic bars in from the top and bottom of the game window.
 		//@function SetCineBars
 		//@tparam[opt=30] float height Percentage of the screen to be covered.
-		//@tparam[opt=30] float speed Coverage percent per second.
+		//@tparam[opt=1] float speed Speed in units per second. A value of 1 will make the animation take one second.
 		tableView.set_function(ScriptReserved_SetCineBars, &SetCineBars);
+
+		///Get field of view.
+		//@function GetFOV
+		//@treturn float Current FOV angle in degrees.
+		tableView.set_function(ScriptReserved_GetFOV, &GetFOV);
 
 		///Set field of view.
 		//@function SetFOV
 		//@tparam float angle Angle in degrees (clamped to [10, 170]).
 		tableView.set_function(ScriptReserved_SetFOV, &SetFOV);
 
-		///Get field of view.
-		//@function GetFOV
-		//@treturn float Current FOV angle in degrees.
-		tableView.set_function(ScriptReserved_GetFOV, &GetFOV);
+		///Get a set of 4 depth of field parameters.
+		//@function GetDOF
+		//@treturn View.DOFMode Current depth of field mode.
+		//@treturn float Current focus distance in world units.
+		//@treturn float Current sharp focus width in world units.
+		//@treturn float Current maximum bokeh radius.
+		//@usage local mode, distance, range, strength = View.GetDOF()
+		tableView.set_function(ScriptReserved_GetDOF, &GetDOF);
+
+		///Set depth of field parameters.
+		//@function SetDOF
+		//@tparam View.DOFMode mode Specifies depth of field mode to use. Set to @{View.DOFMode.NONE} to disable depth of field.
+		//@tparam[opt=1536] float distance Focus distance in world units.
+		//@tparam[opt=2048] float range Width of the sharp focus region in world units.
+		//@tparam[opt=0.2] float strength Maximum bokeh radius (clamped to [0, 1]).
+		tableView.set_function(ScriptReserved_SetDOF, &SetDOF);
 
 		///Shows the mode of the game camera.
 		//@function GetCameraType
@@ -287,19 +330,26 @@ namespace TEN::Scripting::View
 		//@treturn Objects.Room Current room of the camera.
 		tableView.set_function(ScriptReserved_GetCameraRoom, &GetCameraRoom);
 
-		///Sets the post-process effect mode, like negative or monochrome.
-		//@function SetPostProcessMode
-		//@tparam View.PostProcessMode effect Effect type to set.
-		tableView.set_function(ScriptReserved_SetPostProcessMode, &SetPostProcessMode);
+		///Gets the post-process effect mode and strength.
+		//@function GetPostProcess
+		//@treturn View.PostProcessMode Current post process mode.
+		//@treturn float strength How strong the current effect is.
+		tableView.set_function(ScriptReserved_GetPostProcess, &GetPostProcess);
 
-		///Sets the post-process effect strength.
-		//@function SetPostProcessStrength
+		///Sets the post-process effect, like negative or monochrome.
+		//@function SetPostProcess
+		//@tparam View.PostProcessMode effect Effect type to set.
 		//@tparam[opt=1] float strength How strong the effect is.
-		tableView.set_function(ScriptReserved_SetPostProcessStrength, &SetPostProcessStrength);
+		tableView.set_function(ScriptReserved_SetPostProcess, &SetPostProcess);
+	
+		///Gets the post-process tint.
+		//@function GetPostProcessTint
+		//@treturn Color Current tint value.
+		tableView.set_function(ScriptReserved_GetPostProcessTint, &GetPostProcessTint);
 
 		///Sets the post-process tint.
 		//@function SetPostProcessTint
-		//@tparam Color tint value to use.
+		//@tparam Color tint Tint value to use.
 		tableView.set_function(ScriptReserved_SetPostProcessTint, &SetPostProcessTint);
 
 		/// Play a video file. File should be placed in the `FMV` folder.
@@ -372,19 +422,18 @@ namespace TEN::Scripting::View
 		// @treturn float Display resolution's aspect ratio.
 		tableView.set_function(ScriptReserved_GetAspectRatio, &GetAspectRatio);
 
-		/// Sets the view to binoculars mode.
-		// @function UseBinoculars
-		tableView.set_function(ScriptReserved_UseBinoculars, &UseBinoculars);
-
 		// COMPATIBILITY
+		tableView.set_function("SetPostProcessMode", &SetPostProcessMode);
+		tableView.set_function("SetPostProcessStrength", &SetPostProcessStrength);
 		tableView.set_function("PlayFlyBy", &PlayFlyby);
 
 		// Register types.
 		ScriptDisplaySprite::Register(*state, tableView);
+		ScriptDisplayItem::Register(*state, tableView);
+		ScriptDisplayAnchors::Register(tableView);
 
 		// Register types COMPATIBILITY
 		ScriptDisplaySprite::Register(*state, parent);
-		ScriptDisplayItem::Register(*state, tableView);
 
 		// Register enums.
 		auto handler = LuaHandler(state);
@@ -392,5 +441,6 @@ namespace TEN::Scripting::View
 		handler.MakeReadOnlyTable(tableView, ScriptReserved_AlignMode, ALIGN_MODES);
 		handler.MakeReadOnlyTable(tableView, ScriptReserved_ScaleMode, SCALE_MODES);
 		handler.MakeReadOnlyTable(tableView, ScriptReserved_PostProcessMode, POSTPROCESS_MODES);
+		handler.MakeReadOnlyTable(tableView, ScriptReserved_DOFMode, DOF_MODES);
 	}
 };

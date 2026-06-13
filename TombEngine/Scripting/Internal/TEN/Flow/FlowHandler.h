@@ -51,6 +51,7 @@ public:
 	void		SetLanguageNames(sol::as_table_t<std::vector<std::string>>&& src);
 	Level*		GetLevel(int id);
 	Level*		GetCurrentLevel();
+	int			GetCurrentLevelIndex() const;
 	int			GetLevelNumber(const std::string& flieName);
 	int			GetNumLevels() const;
 	void		EndLevel(std::optional<int> nextLevel, std::optional<int> startPosIndex);
@@ -74,6 +75,7 @@ public:
 	void		SetTitleScreenImagePath(const std::string& path);
 	int			GetTotalSecretCount();
 	void		SetTotalSecretCount(int secretsNumber);
+	Time		GetGlobalGameTime();
 	bool		IsFlyCheatEnabled() const;
 	void		EnableFlyCheat(bool enable);
 	bool		IsPointFilterEnabled() const;

@@ -173,8 +173,8 @@ void ObjectInfo::SetHitEffect(bool isSolid, bool isAlive)
 
 void InitializeGameFlags()
 {
-	ZeroMemory(FlipMap, MAX_FLIPMAP * sizeof(int));
-	ZeroMemory(FlipStats, MAX_FLIPMAP * sizeof(bool));
+	memset(FlipMap, 0, MAX_FLIPMAP * sizeof(int));
+	memset(FlipStats, 0, MAX_FLIPMAP * sizeof(bool));
 
 	FlipEffect = NO_VALUE;
 	FlipStatus = false;
@@ -236,7 +236,6 @@ void InitializeObjects()
 		obj->explodableMeshbits = 0;
 		obj->intelligent = false;
 		obj->AlwaysActive = false;
-		obj->waterCreature = false;
 		obj->nonLot = false;
 		obj->Hidden = false;
 		obj->damageType = DamageMode::Any;
