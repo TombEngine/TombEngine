@@ -185,16 +185,14 @@ void DrawRightPistol(ItemInfo* item)
 
 void ShootLeftGun(ItemInfo* item)
 {
-	auto& player = GetLaraInfo(*item);
-	player.LeftArm.GunFlashType = player.Control.Weapon.GunType;
-	player.LeftArm.GunFlash = 3;
+	SpawnWeaponFlash(*item, WeaponFlashMode::Left);
+	FlipEffect = NO_VALUE;
 }
 
 void ShootRightGun(ItemInfo* item)
 {
-	auto& player = GetLaraInfo(*item);
-	player.RightArm.GunFlashType = player.Control.Weapon.GunType;
-	player.RightArm.GunFlash = 3;
+	SpawnWeaponFlash(*item, WeaponFlashMode::Right);
+	FlipEffect = NO_VALUE;
 }
 
 void LaraHandsFree(ItemInfo* item)

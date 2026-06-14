@@ -730,7 +730,7 @@ void LaraObject::ResetHair()
 // Lara:SpawnGunFlash(WeaponType.PISTOLS)
 void LaraObject::SpawnGunFlash(LaraWeaponType weaponType)
 {
-	SpawnWeaponFlash(*_moveable, weaponType);
+	SpawnWeaponFlash(*_moveable, WeaponFlashMode::Auto, weaponType);
 }
 
 /// Clear the muzzle flash.

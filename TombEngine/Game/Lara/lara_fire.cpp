@@ -440,8 +440,11 @@ LaraWeaponType GetHolsterSlotWeapon(HolsterSlot slot)
 	return (it != HOLSTER_SLOT_TO_WEAPON.end()) ? it->second : LaraWeaponType::None;
 }
 
-void SpawnWeaponFlash(ItemInfo& laraItem, LaraWeaponType weaponType)
+void SpawnWeaponFlash(ItemInfo& laraItem, WeaponFlashMode mode, LaraWeaponType weaponType)
 {
+	if (!laraItem.IsLara())
+		return;
+
 	if (weaponType == LaraWeaponType::None ||
 		weaponType == LaraWeaponType::Flare ||
 		weaponType == LaraWeaponType::Torch ||
@@ -457,36 +460,44 @@ void SpawnWeaponFlash(ItemInfo& laraItem, LaraWeaponType weaponType)
 
 	auto& player = GetLaraInfo(laraItem);
 
-	bool isDualWield = (weaponType == LaraWeaponType::Pistol || weaponType == LaraWeaponType::Uzi);
+	bool isDualWield = mode == WeaponFlashMode::Auto && (weaponType == LaraWeaponType::Pistol || weaponType == LaraWeaponType::Uzi);
 
 	// Reset both arms first to clear any previously set flash from a different weapon type.
-	player.LeftArm.GunFlash = 0;
-	player.LeftArm.GunFlashType = LaraWeaponType::None;
-	player.RightArm.GunFlash = 0;
-	player.RightArm.GunFlashType = LaraWeaponType::None;
+	if (mode == WeaponFlashMode::Auto)
+	{
+		player.LeftArm.GunFlash = player.RightArm.GunFlash = 0;
+		player.LeftArm.GunFlashType = player.RightArm.GunFlashType = LaraWeaponType::None;
+	}
 
-	player.RightArm.GunFlash = 3;
-	player.RightArm.GunFlashType = weaponType;
-	if (isDualWield)
+	if (mode == WeaponFlashMode::Right || mode == WeaponFlashMode::Auto)
+	{
+		player.RightArm.GunFlash = 3;
+		player.RightArm.GunFlashType = weaponType;
+	}
+
+	if (mode == WeaponFlashMode::Left || isDualWield)
 	{
 		player.LeftArm.GunFlash = 3;
 		player.LeftArm.GunFlashType = weaponType;
 	}
 
-	auto color = Color(settings.FlashColor);
+	// Spawn gunflash light only when weapon is armed, because otherwise it is handled in HandleWeapon function.
+	if (mode == WeaponFlashMode::Auto || player.Control.HandStatus != HandStatus::WeaponReady)
+	{
+		auto color = Color(settings.FlashColor);
 
-	if (isDualWield)
-	{
-		auto lhandPos = GetJointPosition(&laraItem, LM_LHAND).ToVector3();
-		auto rhandPos = GetJointPosition(&laraItem, LM_RHAND).ToVector3();
-		auto basePos = (lhandPos + rhandPos) / 2.0f;
-		SpawnDynamicPointLight(basePos, color, CLICK(settings.FlashRange));
-	}
-	else
-	{
-		auto offset = (weaponType == LaraWeaponType::Revolver) ? Vector3i(0, -32, 0) : Vector3i(0, -64, 0);
-		auto pos = GetJointPosition(&laraItem, LM_RHAND, offset);
-		SpawnDynamicPointLight(pos.ToVector3(), color, CLICK(settings.FlashRange));
+		if (isDualWield)
+		{
+			auto lhandPos = GetJointPosition(&laraItem, LM_LHAND).ToVector3();
+			auto rhandPos = GetJointPosition(&laraItem, LM_RHAND).ToVector3();
+			auto basePos = (lhandPos + rhandPos) / 2.0f;
+			SpawnDynamicPointLight(basePos, color, CLICK(settings.FlashRange));
+		}
+		else
+		{
+			auto pos = GetJointPosition(&laraItem, mode == WeaponFlashMode::Left ? LM_LHAND : LM_RHAND);
+			SpawnDynamicPointLight(pos.ToVector3(), color, CLICK(settings.FlashRange));
+		}
 	}
 }
 
