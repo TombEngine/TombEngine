@@ -80,50 +80,11 @@ namespace TEN::Entities::Traps
 	void CollideFan(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
 	{
 		auto& item = g_Level.Items[itemNumber];
-		if (item.Status == ITEM_INVISIBLE || item.Status == ITEM_NOT_ACTIVE)
+		
+		// Deactivate collision when the fan is not active
+		if (!TriggerActive(&item))
 			return;
-
-		if (!TestBoundsCollide(&item, playerItem, coll->Setup.Radius))
-			return;
-
-		HandleItemSphereCollision(item, *playerItem);
-		if (!item.TouchBits.TestAny())
-			return;
-
-		short prevYOrient = item.Pose.Orientation.y;
-		item.Pose.Orientation.y = 0;
-		auto spheres = item.GetSpheres();
-		item.Pose.Orientation.y = prevYOrient;
-
-		int harmBits = *(int*)&item.ItemFlags[0]; // NOTE: Value spread across ItemFlags[0] and ItemFlags[1].
-
-		auto collidedBits = item.TouchBits;
-
-		coll->Setup.EnableObjectPush = (item.ItemFlags[4] == 0);
-
-		// Handle push and damage.
-		for (int i = 0; i < spheres.size(); i++)
-		{
-			if (collidedBits.Test(i))
-			{
-				const auto& sphere = spheres[i];
-
-				GlobalCollisionBounds.X1 = sphere.Center.x - sphere.Radius - item.Pose.Position.x;
-				GlobalCollisionBounds.X2 = sphere.Center.x + sphere.Radius - item.Pose.Position.x;
-				GlobalCollisionBounds.Y1 = sphere.Center.y - sphere.Radius - item.Pose.Position.y;
-				GlobalCollisionBounds.Y2 = sphere.Center.y + sphere.Radius - item.Pose.Position.y;
-				GlobalCollisionBounds.Z1 = sphere.Center.z - sphere.Radius - item.Pose.Position.z;
-				GlobalCollisionBounds.Z2 = sphere.Center.z + sphere.Radius - item.Pose.Position.z;
-
-				if ( (harmBits & 1) && (item.ItemFlags[3] > 0))
-				{
-					DoDamage(playerItem, item.ItemFlags[3]);
-					TriggerLaraBlood();
-					DoLotsOfBlood(LaraItem->Pose.Position.x, LaraItem->Pose.Position.y - CLICK(2), LaraItem->Pose.Position.z, (short)(item.Animation.Velocity.z * 2), LaraItem->Pose.Orientation.y, LaraItem->RoomNumber, 2);					
-				}
-			}
-
-			harmBits >>= 1;
-		}
+		
+		GenericSphereBoxCollision(itemNumber, playerItem, coll);
 	}
 }

@@ -7,10 +7,11 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Renderer/RendererEnums.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
-
+using namespace TEN::Scripting::Properties;
 using namespace TEN::Effects::Spark;
 // NOTES:
 // ItemFlags[0]: Delay between disks in frame time.
@@ -25,10 +26,7 @@ namespace TEN::Entities::Traps
 	void InitializeDiskShooter(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
-		auto& delay = item.ItemFlags[0];
-
-		if (delay == 0)
-			delay = DISK_DEFAULT_DELAY;
+		short delay = PropertyHandler::Get(item, "DiskShooterDelay", item.ItemFlags[0]);
 	}
 
 	void ControlDisk(short itemNumber)
@@ -37,10 +35,10 @@ namespace TEN::Entities::Traps
 
 		if (item.TouchBits.TestAny())
 		{
-			if (item.TriggerFlags < 0)
+			if (PropertyHandler::Get(item, "DiskShooterPoison", item.TriggerFlags < 0))
 				Lara.Status.Poison += 1;
 
-			DoDamage(LaraItem, item.TriggerFlags ? abs(item.TriggerFlags) : DISK_DEFAULT_HARM_DAMAGE);
+			DoDamage(LaraItem, PropertyHandler::Get(item, "DiskShooterDamage", item.TriggerFlags ? abs(item.TriggerFlags) : DISK_DEFAULT_HARM_DAMAGE));
 			DoBloodSplat(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, (GetRandomControl() & 3) + 4, LaraItem->Pose.Orientation.y, LaraItem->RoomNumber);
 			KillItem(itemNumber);
 		}
@@ -85,17 +83,16 @@ namespace TEN::Entities::Traps
 		{
 			if (item.Active)
 			{
-				auto& delay = item.ItemFlags[0];
-				auto& timer = item.ItemFlags[1];
+				short delay = PropertyHandler::Get(item, "DiskShooterDelay", item.ItemFlags[0]);
 
-				if (timer > 0)
+				if (item.ItemFlags[1] > 0)
 				{
-					timer--;
+					item.ItemFlags[1]--;
 					return;
 				}
 				else
 				{
-					timer = delay;
+					item.ItemFlags[1] = delay;
 				}
 			}
 
@@ -112,6 +109,8 @@ namespace TEN::Entities::Traps
 			InitializeItem(diskItemNumber);
 
 			diskItem.Animation.Velocity.z = DISK_DEFAULT_VELOCITY;
+			
+			diskItem.Properties.Set("DiskShooterPoison", PropertyHandler::Get<bool>(item, "DiskShooterPoison", item.TriggerFlags < 0));
 			diskItem.TriggerFlags = item.TriggerFlags;
 			diskItem.Model.Color = item.Model.Color;
 
