@@ -25,8 +25,7 @@ namespace TEN::Entities::Traps
 
 	void InitializeDiskShooter(short itemNumber)
 	{
-		auto& item = g_Level.Items[itemNumber];
-		short delay = PropertyHandler::Get(item, "DiskShooterDelay", item.ItemFlags[0]);
+
 	}
 
 	void ControlDisk(short itemNumber)

@@ -11,9 +11,11 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+using namespace TEN::Scripting::Properties;
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Collision::Point;
 
@@ -72,7 +74,7 @@ namespace TEN::Entities::Traps
 			}
 		}
 
-		item.ItemFlags[3] = item.TriggerFlags;
+		item.ItemFlags[3] = PropertyHandler::Get(item, "FanDamage", item.TriggerFlags);
 
 		AnimateItem(&item);
 	}

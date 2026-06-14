@@ -11,10 +11,12 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Point;
 using namespace TEN::Math;
+using namespace TEN::Scripting::Properties;
 
 namespace TEN::Entities::Traps
 {
@@ -65,10 +67,11 @@ namespace TEN::Entities::Traps
 
 			// Calculate vertical velocity.
 			item.Animation.Velocity.y += (item.Animation.Velocity.y < FALLING_SPIKES_VELOCITY_MAX) ? g_GameFlow->GetSettings()->Physics.Gravity : 1.0f;
-			short headingAngle = Geometry::GetOrientToPoint(item.Pose.Position.ToVector3(), laraItem.Pose.Position.ToVector3()).y;
+			auto orient = Geometry::GetOrientToPoint(item.Pose.Position.ToVector3(), laraItem.Pose.Position.ToVector3());
+			short headingAngle = (short)orient.y;
 
-			// If OCB: falls towards the Player.
-			item.ItemFlags[1] = item.TriggerFlags ? item.ItemFlags[1] : 0;
+			// If "FallingSpikeForwardVelocity" property is true: falls towards the Player.
+			item.ItemFlags[1] = PropertyHandler::Get(item, "FallingSpikeForwardVelocity", item.TriggerFlags) ? item.ItemFlags[1] : 0;
 			item.Pose.Translate(headingAngle, item.ItemFlags[1], item.Animation.Velocity.y);
 
 			int vPos = item.Pose.Position.y;
