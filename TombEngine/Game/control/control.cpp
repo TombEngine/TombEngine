@@ -793,6 +793,8 @@ void SetupInterpolation()
 
 void HandleControls(bool isTitle)
 {
+	SetRelativeMouseMode(!isTitle && g_GameFlow->CurrentFreezeMode != FreezeMode::Full);
+
 	// Poll input devices and update input variables.
 	// TODO: To allow cutscene skipping later, don't clear Deselect action.
 	UpdateInputActions(false, true);
