@@ -833,6 +833,8 @@ local function UpdateGunFlash(state)
         local flare = TEN.Flow.GetSettings().Flare
         local position = Lara:GetJointPosition(preset.meshIndices[1], flare.offset)
         pcall(function() TEN.Effects.EmitLight(position, flare.color, flare.range) end)
+    elseif preset.name =="Default" then
+        pcall(function() Lara:SpawnGunFlash(Lara:GetWeaponType(), TEN.Objects.WeaponFlashMode.AUTO) end)
     elseif preset.gunFlash then
         if preset.gunFlash ~= TEN.Objects.WeaponFlashMode.AUTO then
             Lara:ClearGunFlash()

@@ -95,14 +95,14 @@ local function UpdateCameraInput(state)
     local rsX = rs and ApplyDeadZone(rs.x) or 0
     local rsYraw = rs and ApplyDeadZone(rs.y) or 0
     if r2Held then
-         if math.abs(rsYraw) > 0 then
+         if math.abs(rsX) > 0 or math.abs(rsYraw) > 0 then
             Camera.AdjustTargetVertical(rsYraw * speed)
+            Camera.RotateView(rsX * lookSpeed, 0)
         end 
     else
         if math.abs(rsX) > 0 or math.abs(rsYraw) > 0 then
             Camera.RotateView(rsX * lookSpeed, rsYraw * lookSpeed)
         end
-       
     end
 
     -- Mouse: rotate view (unless right-click is held — that's handled by shared)
@@ -113,6 +113,7 @@ local function UpdateCameraInput(state)
         if math.abs(my) > 0.001 then
             local scale = speed * Configuration.Camera.mouseSensitivity
             Camera.AdjustTargetVertical(my * scale)
+            Camera.RotateView(mx * scale, 0)
         end
     else
         if math.abs(mx) > 0.001 or math.abs(my) > 0.001 then

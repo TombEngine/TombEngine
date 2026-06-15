@@ -12,12 +12,32 @@ local Camera = {}
 -- Helpers
 -- ============================================================================
 
-local UP = TEN.Vec3(0, -1, 0) -- negative Y is up in TEN
+local WORLD_UP = TEN.Vec3(0, -1, 0) -- negative Y is up in TEN
 
 local function IsInsideSolid(pos)
-    local ok, probe = pcall(TEN.Collision.Probe, pos)
-    if not ok then return false end
-    return probe:IsInsideSolidGeometry()
+    local state   = States.Get()
+    local camRoom = state.cameraMesh:GetRoomNumber()
+    local front   = Camera.GetDirection():Normalize()
+    local right = front:Cross(WORLD_UP):Normalize()
+    local up    = right:Cross(front):Normalize()
+
+    local dirs = {
+        front,
+        TEN.Vec3(-front.x, -front.y, -front.z),
+        right,
+        TEN.Vec3(-right.x, -right.y, -right.z),
+        up,
+        TEN.Vec3(-up.x,    -up.y,    -up.z),
+    }
+
+    for _, dir in ipairs(dirs) do
+        local ok, probe = pcall(TEN.Collision.Probe, pos, camRoom, dir, 256)
+        if ok and probe:IsInsideSolidGeometry() then
+            return true
+        end
+    end
+
+    return false
 end
 
 -- ============================================================================
@@ -152,7 +172,7 @@ end
 
 function Camera.GetRightVector()
     local dir = Camera.GetDirection()
-    local right = dir:Cross(UP)
+    local right = dir:Cross(WORLD_UP)
     if right:Length() < 0.001 then
         return TEN.Vec3(1, 0, 0)
     end
@@ -168,7 +188,7 @@ end
 local function ApplyPositions(newCam, newTgt)
     local state = States.Get()
     if state.collisionOn then
-        if IsInsideSolid(newCam) or IsInsideSolid(newTgt) then return false end
+        if IsInsideSolid(newCam)  then return false end
     end
 
     -- Distance limit: prevent camera moving beyond maxCameraDistance from Lara's entry position.
@@ -215,8 +235,7 @@ function Camera.OrbitHorizontal(angle)
     local rotated = offset:Rotate(TEN.Rotation(0, angle, 0))
     local newTgt  = TEN.Vec3(camPos.x + rotated.x, camPos.y + rotated.y, camPos.z + rotated.z)
     -- Set both so the engine refreshes the object camera
-    state.cameraMesh:SetPosition(camPos)
-    state.cameraTarget:SetPosition(newTgt)
+    ApplyPositions(camPos, newTgt)
 end
 
 function Camera.AdjustTargetVertical(speed)
@@ -225,8 +244,7 @@ function Camera.AdjustTargetVertical(speed)
     local tgtPos = state.cameraTarget:GetPosition()
     local newCam = TEN.Vec3(camPos.x, camPos.y + speed, camPos.z)
     local newTgt = TEN.Vec3(tgtPos.x, tgtPos.y + speed, tgtPos.z)
-    state.cameraMesh:SetPosition(newCam)
-    state.cameraTarget:SetPosition(newTgt)
+    ApplyPositions(newCam, newTgt)
 end
 
 -- Maximum elevation angle (degrees from horizontal) the look-at vector is
