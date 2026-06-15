@@ -17,11 +17,11 @@ namespace TEN::Scripting
 		// @mem AUTO
 		{ "AUTO", WeaponFlashMode::Auto},
 
-		/// Only Left Gunflash is spawned if weapon suupports it.
+		/// Spawns left gunflash for specified weapon.
 		// @mem LEFT
 		{ "LEFT", WeaponFlashMode::Left },
 
-		/// Only Right Gunflash is spawned if weapon suupports it..
+		/// Spawns right gunflash for specified weapon.
 		// @mem RIGHT
 		{ "RIGHT", WeaponFlashMode::Right },
 	};
