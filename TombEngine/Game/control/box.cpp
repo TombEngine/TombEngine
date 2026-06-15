@@ -2806,30 +2806,14 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		int endBox = LOT->Node[item->BoxNumber].exitBox;
 		if (endBox != NO_VALUE)
 		{
-			// Find the overlap that connects current box to exit box.
-			int overlapIndex = g_Level.PathfindingBoxes[item->BoxNumber].overlapIndex;
-			int nextBox = 0;
-			int flags = 0;
+			// Check the traversal flags of the overlap connecting the current box to the exit box.
+			int flags = GetOverlapFlagsBetweenBoxes(item->BoxNumber, endBox);
 
-			// Search through overlaps until we find the one leading to exitBox.
-			if (overlapIndex >= 0)
-			{
-				do
-				{
-					nextBox = g_Level.Overlaps[overlapIndex].box;
-					flags = g_Level.Overlaps[overlapIndex++].flags;
-				} while (nextBox != NO_VALUE && ((flags & OVERLAP_END_BIT) == false) && (nextBox != endBox));
-			}
+			if (flags & OVERLAP_JUMP)
+				creature->JumpAhead = true;
 
-			// If we found the exit overlap, check its traversal flags.
-			if (nextBox == endBox)
-			{
-				if (flags & OVERLAP_JUMP)
-					creature->JumpAhead = true;
-
-				if (flags & OVERLAP_MONKEY)
-					creature->MonkeySwingAhead = true;
-			}
+			if (flags & OVERLAP_MONKEY)
+				creature->MonkeySwingAhead = true;
 		}
 	}
 }
