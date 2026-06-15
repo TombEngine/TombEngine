@@ -524,16 +524,6 @@ local function BuildFilteredWeaponNames()
 end
 
 -- ============================================================================
--- LevelFuncs callbacks for menu option changes
--- ============================================================================
-
--- We register thin callback stubs in LevelFuncs so Menu can call them by name.
-
-LevelFuncs.Engine.PhotoMode.OnExit = function()
-    PhotoMode.Exit()
-end
-
--- ============================================================================
 -- Apply Functions (setters triggered by option changes)
 -- ============================================================================
 
@@ -543,6 +533,17 @@ end
 
 local function ApplyRoll(state)
     TEN.View.SetRoll(state.roll)
+end
+
+local function ApplyDOF(state)
+    local cfg = Configuration.DepthOfField
+    local modePreset = cfg.modes[state.dofMode]
+    local mode = modePreset and modePreset.mode or TEN.View.DOFMode.NONE
+    if mode == TEN.View.DOFMode.NONE then
+        pcall(function() TEN.View.SetDOF(TEN.View.DOFMode.NONE) end)
+    else
+        pcall(function() TEN.View.SetDOF(mode, state.dofFocusDistance, state.dofRange, state.dofStrength) end)
+    end
 end
 
 local function ApplyFilter(state)
@@ -678,10 +679,39 @@ local function ApplyOutfit(state)
 end
 
 local function ApplyWeapon(state)
-    -- Unswap previously applied weapon meshes
+
+    local snap = state.snapshot
+    if not snap then return end
+
+        -- Unswap previously applied weapon meshes
     for _, meshIdx in ipairs(state.swappedWeaponMeshes) do
         pcall(function() Lara:UnswapMesh(meshIdx) end)
     end
+
+    if Configuration.Weapons[state.weaponIndex].name == "Default" then
+        if snap.meshSwaps then
+            
+            local entry10, entry13
+
+            for _, entry in ipairs(snap.meshSwaps) do
+                if entry.index == 10 then entry10 = entry end
+                if entry.index == 13 then entry13 = entry end
+            end
+
+            if entry10 then
+                pcall(function() Lara:SwapMesh(entry10.index, entry10.sourceObjID, entry10.index) end)
+            end
+
+            if entry13 then
+                pcall(function() Lara:SwapMesh(entry13.index, entry13.sourceObjID, entry13.index) end)
+            end
+
+            pcall(function() Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack) end)
+            pcall(function() Lara:ResetHair() end)
+        end
+        return
+    end
+
     state.swappedWeaponMeshes = {}
 
     local preset = Configuration.Weapons[state.weaponIndex]
@@ -697,7 +727,6 @@ local function ApplyWeapon(state)
     -- For "none" (default), restore entry snapshot holster state.
     pcall(function()
         local slot = preset and preset.type or "none"
-        local snap = state.snapshot
 
         if snap then
             Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
@@ -845,18 +874,6 @@ local function UpdateGunFlash(state)
     end
     
 end
-
-local function ApplyDOF(state)
-    local cfg = Configuration.DepthOfField
-    local modePreset = cfg.modes[state.dofMode]
-    local mode = modePreset and modePreset.mode or TEN.View.DOFMode.NONE
-    if mode == TEN.View.DOFMode.NONE then
-        pcall(function() TEN.View.SetDOF(TEN.View.DOFMode.NONE) end)
-    else
-        pcall(function() TEN.View.SetDOF(mode, state.dofFocusDistance, state.dofRange, state.dofStrength) end)
-    end
-end
-
 -- ============================================================================
 -- Reset Functions
 -- ============================================================================
@@ -1030,7 +1047,7 @@ local function BuildAllMenus()
     -- ================================================================
     local function CreateMenu(menuName, items, acceptFunc, optionChangeFunc, titleText)
         local menu = Menu.Create(menuName, "", items,
-            acceptFunc, "Engine.PhotoMode.OnExit", Menu.Type.ITEMS_AND_OPTIONS)
+            acceptFunc, nil, Menu.Type.ITEMS_AND_OPTIONS)
         menu:SetItemsPosition(Vec2(2, 23))
         menu:SetItemsFont(nil, 0.6)
         menu:SetOptionsFont(nil, 0.6)
@@ -1813,7 +1830,6 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
         DrawTitle(headerAlpha)
         Menu.DrawHeaders(HEADER_POS, HEADER_SCALE, headerAlpha)
         Menu.DrawActiveMenus()
-
     end
 end
 

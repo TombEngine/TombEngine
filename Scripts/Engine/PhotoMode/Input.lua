@@ -27,24 +27,6 @@ local Input    = {}
 -- Helpers
 -- ============================================================================
 
-local function ForwardFromYaw(yawDeg)
-    local rad = math.rad(yawDeg)
-    return TEN.Vec3(math.sin(rad), 0, math.cos(rad))
-end
-
-local function RightFromYaw(yawDeg)
-    local rad = math.rad(yawDeg)
-    return TEN.Vec3(math.cos(rad), 0, -math.sin(rad))
-end
-
-local function Vec3Add(a, b)
-    return TEN.Vec3(a.x + b.x, a.y + b.y, a.z + b.z)
-end
-
-local function Vec3Scale(v, s)
-    return TEN.Vec3(v.x * s, v.y * s, v.z * s)
-end
-
 -- Dead-zone threshold for analogue axes.
 local AXIS_DEAD_ZONE = 0.15
 
@@ -160,19 +142,19 @@ local function UpdatePlayerInput(state)
 
     if TEN.Input.IsKeyHeld(ActionID.W) or lsY < -AXIS_DEAD_ZONE then
         local s = (lsY < -AXIS_DEAD_ZONE) and (-lsY * speed) or speed
-        newPos = Vec3Add(newPos, Vec3Scale(fwd, s))
+        newPos = newPos + (fwd * s)
     end
     if TEN.Input.IsKeyHeld(ActionID.S) or lsY > AXIS_DEAD_ZONE then
         local s = (lsY > AXIS_DEAD_ZONE) and (lsY * speed) or speed
-        newPos = Vec3Add(newPos, Vec3Scale(fwd, -s))
+        newPos = newPos + (fwd * -s)
     end
     if TEN.Input.IsKeyHeld(ActionID.A) or lsX < -AXIS_DEAD_ZONE then
         local s = (lsX < -AXIS_DEAD_ZONE) and (-lsX * speed) or speed
-        newPos = Vec3Add(newPos, Vec3Scale(right, -s))
+        newPos = newPos + (right * -s)
     end
     if TEN.Input.IsKeyHeld(ActionID.D) or lsX > AXIS_DEAD_ZONE then
         local s = (lsX > AXIS_DEAD_ZONE) and (lsX * speed) or speed
-        newPos = Vec3Add(newPos, Vec3Scale(right, s))
+        newPos = newPos + (right * s)
     end
 
     local device = TEN.Input.GetLastInputDevice()
@@ -243,19 +225,19 @@ local function UpdateLightInput(state)
 
     if TEN.Input.IsKeyHeld(ActionID.W) or lsY < -AXIS_DEAD_ZONE then
         local s = (lsY < -AXIS_DEAD_ZONE) and (-lsY * speed) or speed
-        lightPos = Vec3Add(lightPos, Vec3Scale(fwd, s))
+        lightPos = lightPos + (fwd * s)
     end
     if TEN.Input.IsKeyHeld(ActionID.S) or lsY > AXIS_DEAD_ZONE then
         local s = (lsY > AXIS_DEAD_ZONE) and (lsY * speed) or speed
-        lightPos = Vec3Add(lightPos, Vec3Scale(fwd, -s))
+        lightPos = lightPos + (fwd * -s)
     end
     if TEN.Input.IsKeyHeld(ActionID.A) or lsX < -AXIS_DEAD_ZONE then
         local s = (lsX < -AXIS_DEAD_ZONE) and (-lsX * speed) or speed
-        lightPos = Vec3Add(lightPos, Vec3Scale(right, -s))
+        lightPos = lightPos + (right * -s)
     end
     if TEN.Input.IsKeyHeld(ActionID.D) or lsX > AXIS_DEAD_ZONE then
         local s = (lsX > AXIS_DEAD_ZONE) and (lsX * speed) or speed
-        lightPos = Vec3Add(lightPos, Vec3Scale(right, s))
+        lightPos = lightPos + (right * s)
     end
 
     -- Right analogue Y: move light up/down (unless R2 held — that's camera adjust)
