@@ -1486,7 +1486,6 @@ function PhotoMode.Exit()
     States.Get().timeInPhotoMode = 0
 
     TEN.Sound.PlaySound(Configuration.SoundMap.menuClose)
-    TEN.Input.ClearAllKeys()
     TEN.Util.PrintLog("PhotoMode: Exited.", TEN.Util.LogLevel.INFO)
 end
 
@@ -1731,7 +1730,6 @@ LevelFuncs.Engine.PhotoMode.OnLoop = function()
     if States.IsActive() then return end
 
     if _photoModeExited then
-        TEN.Input.ClearAllKeys()
         _photoModeExited = false
     end
 
@@ -1740,11 +1738,9 @@ LevelFuncs.Engine.PhotoMode.OnLoop = function()
     local keySet2  = TEN.Input.IsKeyHeld(TEN.Input.ActionID.GAMEPAD_LEFT_STICK) and TEN.Input.IsKeyHeld(TEN.Input.ActionID.GAMEPAD_RIGHT_STICK)
 
     if keySet1 or keySet2 then
-        TEN.Input.ClearAllKeys()
         state.entryHoldCount = state.entryHoldCount + 1
         if state.entryHoldCount >= Configuration.Entry.holdFrames then
             state.entryHoldCount = 0
-            TEN.Input.ClearAllKeys()
             TEN.Sound.PlaySound(Configuration.SoundMap.menuOpen)
             PhotoMode.Enter()
         end
@@ -1763,18 +1759,18 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
     local device = TEN.Input.GetLastInputDevice()
     local hideKey = (device == TEN.Input.InputDevice.GAMEPAD) and TEN.Input.ActionID.GAMEPAD_LEFT_TRIGGER or TEN.Input.ActionID.LOOK
 
-    -- Toggle UI with CROUCH key
-    if InputHelpers.GuiIsPulsed(hideKey, state.timeInPhotoMode) then
+    -- Toggle UI with Look key or L2
+    if (TEN.Input.IsKeyHit(hideKey) or (TEN.Input.IsKeyHit(TEN.Input.ActionID.INVENTORY) and state.hideUI)) then
         state.hideUI = not state.hideUI
         -- Sync the menu item so it shows Off when the UI is restored
         local mUI = Menu.Get(MENU_UI)
         if mUI then
             mUI:SetOptionIndexForItemName("pm_hide_ui", BoolToIndex(state.hideUI))
         end
+        return
     end
 
-    -- Exit with Inventory key (always available)
-    if TEN.Input.IsKeyHit(TEN.Input.ActionID.INVENTORY) then
+    if (TEN.Input.IsKeyHit(TEN.Input.ActionID.INVENTORY) or TEN.Input.IsKeyHit(TEN.Input.ActionID.DESELECT)) and not state.hideUI then
         PhotoMode.Exit()
         _photoModeExited = true
         return
