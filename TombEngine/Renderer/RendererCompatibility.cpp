@@ -794,6 +794,22 @@ namespace TEN::Renderer
 			}
 		}
 
+		// ID_BODY_PART is a virtual object with no meshes of its own: each instance borrows a single
+		// mesh from the entity that spawned it (set per-instance in ItemInfo::Model.MeshIndex). It still
+		// needs a renderer object, otherwise the item pipeline skips it entirely and no parts are drawn.
+		// A single identity bone is enough since body parts have no animation.
+		if (!_moveableObjects[ID_BODY_PART].has_value())
+		{
+			_moveableObjects[ID_BODY_PART] = RendererObject();
+			auto& bodyPart = *_moveableObjects[ID_BODY_PART];
+			bodyPart.Id = ID_BODY_PART;
+			bodyPart.Hidden = false;
+			bodyPart.ShadowType = ShadowMode::None;
+			bodyPart.Skeleton = nullptr;
+			bodyPart.AnimationTransforms.push_back(Matrix::Identity);
+			bodyPart.BindPoseTransforms.push_back(Matrix::Identity);
+		}
+
 		_moveablesVertexBuffer = _graphicsDevice->CreateVertexBuffer((int)_moveablesVertices.size(), sizeof(Vertex), _moveablesVertices.data());
 		_moveablesIndexBuffer = _graphicsDevice->CreateIndexBuffer((int)_moveablesIndices.size(), _moveablesIndices.data());
 
