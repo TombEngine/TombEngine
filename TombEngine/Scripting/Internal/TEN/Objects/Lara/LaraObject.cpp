@@ -726,11 +726,13 @@ void LaraObject::ResetHair()
 // weapon type for the correct mesh offset and rotation. Call only once in freeze mode to maintain the flash.
 // @function LaraObject:SpawnGunFlash
 // @tparam Objects.WeaponType weaponType Weapon type to spawn the flash for.
+// @tparam[opt=TEN.Objects.WeaponFlashMode.AUTO] Objects.WeaponFlashMode weaponFlashType Weapon Flash mode type.
 // @usage
 // Lara:SpawnGunFlash(WeaponType.PISTOLS)
-void LaraObject::SpawnGunFlash(LaraWeaponType weaponType)
+void LaraObject::SpawnGunFlash(LaraWeaponType weaponType, TypeOrNil<WeaponFlashMode> weaponFlashType)
 {
-	SpawnWeaponFlash(*_moveable, WeaponFlashMode::Auto, weaponType);
+	auto convertedFlag = ValueOr<WeaponFlashMode>(weaponFlashType, WeaponFlashMode::Auto);
+	SpawnWeaponFlash(*_moveable, convertedFlag, weaponType);
 }
 
 /// Clear the muzzle flash.

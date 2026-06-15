@@ -333,6 +333,7 @@ static constexpr char ScriptReserved_WeaponType[]			= "WeaponType";
 static constexpr char ScriptReserved_AmmoType[]				= "AmmoType";
 static constexpr char ScriptReserved_TextureMaterialType[]	= "TextureMaterialType";
 static constexpr char ScriptReserved_WeaponMode[]			= "WeaponMode";
+static constexpr char ScriptReserved_WeaponFlashMode[]		= "WeaponFlashMode";
 static constexpr char ScriptReserved_RotationAxis[]			= "RotationAxis";
 static constexpr char ScriptReserved_ItemAction[]			= "ItemAction";
 static constexpr char ScriptReserved_ErrorMode[]			= "ErrorMode";

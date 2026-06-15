@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Game/Lara/lara_struct.h"
+#include "Game/Lara/lara_fire.h"
 #include "Scripting/Internal/TEN/Input/ActionIDs.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 
@@ -41,7 +42,7 @@ public:
 	std::tuple<LaraWeaponType, LaraWeaponType, LaraWeaponType> GetHolsterWeapon() const;
 	void SetHolsterWeapon(TypeOrNil<LaraWeaponType> left, TypeOrNil<LaraWeaponType> right, TypeOrNil<LaraWeaponType> back);
 	void ResetHair();
-	void SpawnGunFlash(LaraWeaponType weaponType);
+	void SpawnGunFlash(LaraWeaponType weaponType, TypeOrNil<WeaponFlashMode> weaponFlashType);
 	void ClearGunFlash();
 
 	void UndrawWeapon();
