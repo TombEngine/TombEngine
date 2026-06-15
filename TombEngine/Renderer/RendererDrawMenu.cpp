@@ -1495,6 +1495,9 @@ namespace TEN::Renderer
 
 		if (staticBackground)
 		{
+			ResetDebugVariables();
+			UpdateDumpScreenRenderTarget();
+
 			// Set basic render states.
 			SetBlendMode(BlendMode::Opaque);
 			SetCullMode(CullMode::CounterClockwise);
@@ -1586,6 +1589,7 @@ namespace TEN::Renderer
 	void Renderer::RenderInventory()
 	{
 		ResetDebugVariables();
+		UpdateDumpScreenRenderTarget();
 
 		if (_graphicsSettingsChanged)
 		{
@@ -1619,6 +1623,17 @@ namespace TEN::Renderer
 		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 1.0f);
 		
 		_graphicsDevice->Present();
+	}
+
+	void Renderer::UpdateDumpScreenRenderTarget()
+	{
+		if (!_graphicsSettingsChanged)
+			return;
+
+		UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
+		Camera.DisableInterpolation = true;
+		DumpGameScene(SceneRenderMode::NoHud, g_GameFlow->GetSettings()->UI.MenuBackgroundBlur);
+		_graphicsSettingsChanged = false;
 	}
 
 	void Renderer::DrawDebugRenderTargets(RenderView& view)
