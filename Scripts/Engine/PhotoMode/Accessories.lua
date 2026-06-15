@@ -10,9 +10,9 @@
 
 local Accessories =
 {
-    { name = "None",   objID = nil, meshIndices = {} },
-    { name = "Sunglasses", objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, meshIndices = {14} },
-    { name = "Rose", objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, meshIndices = {10} },
+    { name = "None",        objID = nil,                               meshIndices = {}   },
+    { name = "Sunglasses",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, meshIndices = {14} },
+    { name = "Rose",        objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, meshIndices = {10} },
 }
 
 return Accessories

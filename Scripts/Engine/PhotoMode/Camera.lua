@@ -8,36 +8,38 @@ local States   = require("Engine.PhotoMode.States")
 
 local Camera = {}
 
+-- Maximum elevation angle (degrees from horizontal) the look-at vector is
+-- allowed to reach.  Staying below 90° prevents the camera from flipping.
+local PITCH_LIMIT = 88.0
+local WORLD_UP = TEN.Vec3(0, -1, 0) -- negative Y is up in TEN
+local WALL_TOLERANCE = 256 -- how close the camera can get to walls (in units) before blocking movement
 -- ============================================================================
 -- Helpers
 -- ============================================================================
-
-local WORLD_UP = TEN.Vec3(0, -1, 0) -- negative Y is up in TEN
-
-local function IsInsideSolid(pos)
+local function IsMoveBlocked(oldPos, newPos)
     local state   = States.Get()
     local camRoom = state.cameraMesh:GetRoomNumber()
-    local front   = Camera.GetDirection():Normalize()
-    local right = front:Cross(WORLD_UP):Normalize()
-    local up    = right:Cross(front):Normalize()
 
-    local dirs = {
-        front,
-        TEN.Vec3(-front.x, -front.y, -front.z),
-        right,
-        TEN.Vec3(-right.x, -right.y, -right.z),
-        up,
-        TEN.Vec3(-up.x,    -up.y,    -up.z),
-    }
+    local moveDir = newPos - oldPos
+    local dist    = moveDir:Length()
 
-    for _, dir in ipairs(dirs) do
-        local ok, probe = pcall(TEN.Collision.Probe, pos, camRoom, dir, 256)
-        if ok and probe:IsInsideSolidGeometry() then
-            return true
-        end
+    if dist <= 0 then
+        return false
     end
 
-    return false
+    moveDir = moveDir:Normalize()
+
+    local ray = TEN.Collision.Ray(
+        oldPos,
+        camRoom,
+        moveDir,
+        WALL_TOLERANCE,
+        TEN.Collision.IntersectionType.BOX,
+        TEN.Collision.IntersectionType.BOX,
+        false
+    )
+
+    return ray:HitRoom() or ray:HitMoveable() or ray:HitStatic()
 end
 
 -- ============================================================================
@@ -45,17 +47,16 @@ end
 -- ============================================================================
 
 local function IsValidPosition(pos)
-    local ok, probe = pcall(TEN.Collision.Probe, pos)
-    return ok and probe ~= nil
+    local probe = TEN.Collision.Probe(pos)
+    return probe ~= nil
 end
 
 local function CreateAtLara(name)
     local pos  = Lara:GetPosition()
     local rot  = TEN.Rotation(0, 0, 0)
     local room = Lara:GetRoomNumber()
-    local ok, mov = pcall(TEN.Objects.Moveable,
-        TEN.Objects.ObjID.CAMERA_TARGET, name, pos, rot, room)
-    if ok and mov then
+    local mov = TEN.Objects.Moveable(TEN.Objects.ObjID.CAMERA_TARGET, name, pos, rot, room)
+    if mov then
         mov:Enable()
         return mov
     end
@@ -145,7 +146,7 @@ function Camera.Attach()
 end
 
 function Camera.Detach()
-    pcall(TEN.View.ResetObjCamera)
+    TEN.View.ResetObjCamera()
 end
 
 function Camera.Reset()
@@ -171,7 +172,7 @@ function Camera.GetDirection()
 end
 
 function Camera.GetRightVector()
-    local dir = Camera.GetDirection()
+    local dir   = Camera.GetDirection()
     local right = dir:Cross(WORLD_UP)
     if right:Length() < 0.001 then
         return TEN.Vec3(1, 0, 0)
@@ -188,18 +189,15 @@ end
 local function ApplyPositions(newCam, newTgt)
     local state = States.Get()
     if state.collisionOn then
-        if IsInsideSolid(newCam)  then return false end
+        if IsMoveBlocked(state.cameraMesh:GetPosition(), newCam)  then return false end
     end
 
     -- Distance limit: prevent camera moving beyond maxCameraDistance from Lara's entry position.
     if Configuration.Camera.limitDistance and state.snapshot and state.snapshot.laraPos then
-        local origin = state.snapshot.laraPos
-        local dx = newCam.x - origin.x
-        local dy = newCam.y - origin.y
-        local dz = newCam.z - origin.z
-        local distSq = dx * dx + dy * dy + dz * dz
-        local maxDist = Configuration.Camera.maxDistance
-        if distSq > maxDist * maxDist then return false end
+        local origin   = state.snapshot.laraPos
+        local distance = newCam:Distance(origin)
+        local maxDist  = Configuration.Camera.maxDistance
+        if distance > maxDist then return false end
     end
 
     state.cameraMesh:SetPosition(newCam)
@@ -208,7 +206,7 @@ local function ApplyPositions(newCam, newTgt)
 end
 
 function Camera.MoveForward(speed)
-    local state = States.Get()
+    local state  = States.Get()
     local dir    = Camera.GetDirection()
     local newCam = state.cameraMesh:GetPosition():Translate(dir, speed)
     local newTgt = state.cameraTarget:GetPosition():Translate(dir, speed)
@@ -247,10 +245,6 @@ function Camera.AdjustTargetVertical(speed)
     ApplyPositions(newCam, newTgt)
 end
 
--- Maximum elevation angle (degrees from horizontal) the look-at vector is
--- allowed to reach.  Staying below 90° prevents the camera from flipping.
-local PITCH_LIMIT = 88.0
-
 -- Rotate the camera view freely (yaw = horizontal, pitch = vertical).
 -- Uses spherical coordinates to guarantee no gimbal flip regardless of input speed.
 function Camera.RotateView(yawDeg, pitchDeg)
@@ -258,19 +252,16 @@ function Camera.RotateView(yawDeg, pitchDeg)
     local camPos = state.cameraMesh:GetPosition()
     local tgtPos = state.cameraTarget:GetPosition()
 
-    local ox = tgtPos.x - camPos.x
-    local oy = tgtPos.y - camPos.y
-    local oz = tgtPos.z - camPos.z
-
     -- Keep the camera-to-target distance constant.
-    local dist = math.sqrt(ox * ox + oy * oy + oz * oz)
+    local dist = tgtPos:Distance(camPos)
     if dist < 0.001 then return end
 
-    local hDist = math.sqrt(ox * ox + oz * oz)
+    local delta = tgtPos - camPos
+    local hDist = Util.CalculateHorizontalDistance(camPos, tgtPos)
 
     -- Decompose into spherical angles (radians).
-    local currentYaw   = math.atan(ox, oz)
-    local currentPitch = math.atan(oy, hDist)
+    local currentYaw   = math.atan(delta.x, delta.z)
+    local currentPitch = math.atan(delta.y, hDist)
 
     -- Apply deltas and clamp pitch.
     local limitRad = math.rad(PITCH_LIMIT)

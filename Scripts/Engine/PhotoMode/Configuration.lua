@@ -43,8 +43,8 @@ Configuration.Camera =
     meshIndex        = 0,
     targetIndex      = 0,
     defaultMoveSpeed = 50,
-    defaultLookSpeed  = 8.0,
-    mouseSensitivity  = 8,
+    defaultLookSpeed = 8.0,
+    mouseSensitivity = 8,
     offsetForward    = -512,
     offsetUp         = -256,
     targetForward    = 512,
@@ -161,18 +161,18 @@ Configuration.ColorPalette =
 
 Configuration.Light =
 {
-    defaultRadius  = 8,
-    minRadius      = 1,
-    maxRadius      = 20,
-    radiusStep     = 1,
-    defaultIntensity = 0.5,
-    minIntensity     = 0.0,
-    maxIntensity     = 1.0,
-    intensityStep    = 0.05,
-    defaultEnabled = false,
-    lightName      = "PHOTO_MODE_LIGHT",
-    colorPresets   = Configuration.ColorPalette,
-    sourceNames = { "Manual", "Follow Camera", "Follow Lara" },
+    defaultRadius     = 8,
+    minRadius         = 1,
+    maxRadius         = 20,
+    radiusStep        = 1,
+    defaultIntensity  = 0.5,
+    minIntensity      = 0.0,
+    maxIntensity      = 1.0,
+    intensityStep     = 0.05,
+    defaultEnabled    = false,
+    lightName         = "PHOTO_MODE_LIGHT",
+    colorPresets      = Configuration.ColorPalette,
+    sourceNames       = { "Manual", "Follow Camera", "Follow Lara" },
 }
 
 -- ============================================================================
@@ -218,10 +218,10 @@ Configuration.Frames =
 -- Outfit / Weapon Presets
 -- ============================================================================
 
-Configuration.Outfits = Outfits
-Configuration.Weapons = Weapons
+Configuration.Outfits     = Outfits
+Configuration.Weapons     = Weapons
 Configuration.Expressions = Expressions
-Configuration.Animations = Poses
+Configuration.Animations  = Poses
 
 -- ============================================================================
 -- Accessories
@@ -229,9 +229,9 @@ Configuration.Animations = Poses
 
 Configuration.Accessories =
 {
-    meshName = "pm_Sunglasses",
+    meshName  = "pm_Sunglasses",
     baseObjID = TEN.Objects.ObjID.PHOTOMODE_ANIMS,
-    presets  = Accessories,
+    presets   = Accessories,
 }
 
 -- ============================================================================
@@ -240,7 +240,7 @@ Configuration.Accessories =
 
 Configuration.Entry =
 {
-    holdFrames = 1,  -- Walk + Inventory held for N frames to enter
+    holdFrames = 1,  -- held for N frames to enter
 }
 -- ============================================================================
 -- Header Sprites
@@ -251,18 +251,18 @@ Configuration.Entry =
 
 Configuration.HeaderSprites =
 {
-    objectID      = TEN.Objects.ObjID.PHOTOMODE_SPRITES, -- object that owns the sprites
-    spriteIDs     = { 0, 1, 2, 3, 4 },                    -- one sprite index per header tab
-    position      = TEN.Vec2(16, 15),                      -- center of the sprite row (percent)
-    spacing       = 6,                                     -- percent spacing between sprites
-    sizeActive    = TEN.Vec2(6, 6),                        -- size when selected
-    sizeInactive  = TEN.Vec2(4, 4),                        -- size when not selected
+    objectID      = TEN.Objects.ObjID.PHOTOMODE_SPRITES,
+    spriteIDs     = { 0, 1, 2, 3, 4 },
+    position      = TEN.Vec2(16, 15),
+    spacing       = 6,
+    sizeActive    = TEN.Vec2(6, 6),
+    sizeInactive  = TEN.Vec2(4, 4),
     colorActive   = Settings.ColorMap.neutral,
     colorInactive = Settings.ColorMap.dimmed,
-    rotation  = 0,
-    alignMode = TEN.View.AlignMode.CENTER,
-    scaleMode = TEN.View.ScaleMode.FIT,
-    blendMode = TEN.Effects.BlendID.ALPHA_BLEND,
-    layer     = -4,
+    rotation      = 0,
+    alignMode     = TEN.View.AlignMode.CENTER,
+    scaleMode     = TEN.View.ScaleMode.FIT,
+    blendMode     = TEN.Effects.BlendID.ALPHA_BLEND,
+    layer         = -4,
 }
 return Configuration

@@ -106,12 +106,16 @@
 -- Accessories are drawn on top of Lara. They are defined in <i>Engine/PhotoMode/Accessories.lua</i> file. To add new accessories add a row to the accessory presets table in that file. The first entry should always be a "None" sentinel (objID = nil, meshIndices = {}) so the player can clear accessories.
 -- To hide the Accessory option entirely set Settings.Character.accessoriesEnabled = false via @{PhotoMode.SetSettings}.
 -- @usage
---    { name = "None",  objID = nil, meshIndices = {} },
---    { name = "Sunglasses",
+--    {
+--      name = "None",  objID = nil, meshIndices = {}
+--    },
+--    {
+--      name = "Sunglasses",
 --      objID       = TEN.Objects.ObjID.ACTOR1_SPEECH_HEAD1,
 --      meshIndices = { 14 }, 
 --    },
---    { name = "Beret",
+--    { 
+--      name = "Beret",
 --      objID       = TEN.Objects.ObjID.ANIMATING5,
 --      meshIndices = { 14 },
 --    }
@@ -132,8 +136,11 @@
 -- @section Expressions
 -- Expressions swap one or more of Lara's classic mesh slots with meshes sourced from another object. Use multiple indices to swap more than one mesh at once. They are defined in <i>Engine/PhotoMode/Expressions.lua</i> file.
 -- @usage
---    { name = "Default", objID = nil, meshIndices = {} },
---    { name = "Scream",
+--    {
+--      name = "Default", objID = nil, meshIndices = {}
+--    },
+--    {
+--      name = "Scream",
 --      objID       = TEN.Objects.ObjID.LARA_SCREAM,
 --      meshIndices = { 14 },   -- head slot
 --    }
@@ -172,24 +179,27 @@
 -- @usage
 -- --Classic skin swap (uses Lara:SetSkin):
 --
---    { name = "Classic TR4",
---      skin = {
+--    { 
+--      name = "Classic TR4",
+--      skin = 
+--          {
 --          TEN.Objects.ObjID.ANIMATING1,   -- skin
 --          TEN.Objects.ObjID.ANIMATING2,   -- skinJoints
 --          TEN.Objects.ObjID.ANIMATING3,   -- skinScream
 --          TEN.Objects.ObjID.ANIMATING4,   -- hair1
 --          -- hair2 omitted → unchanged
---      },
+--          },
 --      meshVisible = "all",
 --    },
 --
 -- --skinned mesh swap (uses Lara:SwapSkinnedMesh):
 --
---    { name = "Remastered",
+--    {
+--      name             = "Remastered",
 --      skinnedMesh      = TEN.Objects.ObjID.ANIMATING14,
 --      skinnedMeshIndex = 0,      -- optional sub-index
 --      meshVisible      = "none", -- hide classic meshes so only GPU mesh shows
---      unlocked = false,
+--      unlocked         = false,
 --      onEnter = function() --function to call when outfit is selected
 --      local s = TEN.Flow.GetSettings()
 --       s.Hair[1].offset = Vec3(-4, 3, -28)
@@ -204,18 +214,18 @@
 --- Array of up to 5 ObjIDs for classic skin swap via Lara:SetSkin().
 -- @tfield[opt=nil] table skin Array of up to 5 ObjIDs: skin, skinJoints, skinScream, hair1, hair2. Nil entries leave that slot unchanged.
 -- @usage
---      skin = {
+--      skin = 
+--          {
 --          TEN.Objects.ObjID.ANIMATING1,   -- skin
 --          TEN.Objects.ObjID.ANIMATING2,   -- skinJoints
 --          TEN.Objects.ObjID.ANIMATING3,   -- skinScream
 --          TEN.Objects.ObjID.ANIMATING4,   -- hair1
---          -- hair2 omitted → unchanged
---      },
+--          },
 
 --- ObjID for skinned mesh swap, or the string "clear" to disable GPU skinning.
 -- @tfield[opt=nil] Objects.ObjID skinnedMesh ObjID passed to Lara:SwapSkinnedMesh(), or "clear" to call Lara:ClearSkinnedMesh().
 -- @usage
--- skinnedMesh      = TEN.Objects.ObjID.ANIMATING14,
+-- skinnedMesh = TEN.Objects.ObjID.ANIMATING14,
 
 --- Optional sub-index passed to Lara:SwapSkinnedMesh().
 -- @tfield[opt=nil] int skinnedMeshIndex Optional sub-index for SwapSkinnedMesh.
@@ -258,7 +268,8 @@
 -- @section Poses
 -- Poses are defined in the <i>Engine/PhotoMode/Poses.lua</i> file. Each pose applies an animation from the PHOTOMODE_ANIMS object or any other object in the level. The first entry is always "Default" — it restores Lara's entry animation.
 -- @usage
---    { name = "Victory",
+--    { 
+--      name = "Victory",
 --      objID       = TEN.Objects.ObjID.PHOTOMODE_ANIMS,
 --      animNumber  = 42,    -- animation slot inside PHOTOMODE_ANIMS
 --      frameNumber = 0,     -- starting frame (0 = first frame)
@@ -266,7 +277,8 @@
 --
 -- --You can also reference any other object's animations
 --
---    { name = "Running",
+--    { 
+--      name = "Running",
 --      objID       = TEN.Objects.ObjID.LARA,
 --      animNumber  = 17,
 --      frameNumber = 0,
@@ -382,14 +394,13 @@
 
 
 -- Photo Module Start
-local Borders   = require("Engine.PhotoMode.SpriteBorders")
-local Camera   = require("Engine.PhotoMode.Camera")
+local Borders       = require("Engine.PhotoMode.SpriteBorders")
+local Camera        = require("Engine.PhotoMode.Camera")
 local Configuration = require("Engine.PhotoMode.Configuration")
-local Input    = require("Engine.PhotoMode.Input")
-local InputHelpers = require("Engine.PhotoMode.InputHelpers")
-local Menu     = require("Engine.PhotoMode.Menu")
-local Settings = require("Engine.PhotoMode.Settings")
-local States   = require("Engine.PhotoMode.States")
+local Input         = require("Engine.PhotoMode.Input")
+local Menu          = require("Engine.PhotoMode.Menu")
+local Settings      = require("Engine.PhotoMode.Settings")
+local States        = require("Engine.PhotoMode.States")
 require("Engine.PhotoMode.Strings")
 
 LevelFuncs.Engine.PhotoMode = LevelFuncs.Engine.PhotoMode or {}
@@ -398,8 +409,8 @@ local PhotoMode = {}
 
 -- Guards LevelFuncs registration to once per Lua session (resets on level/savegame reload).
 local _callbacksRegistered = false
-local _photoModeExited = false
-local _spriteAnim      = {}   -- per-sprite lerp state: { sizeW, sizeH, r, g, b }
+local _photoModeExited     = false
+local _spriteAnim          = {}   -- per-sprite lerp state: { sizeW, sizeH, r, g, b }
 
 -- ============================================================================
 -- Helpers
@@ -481,7 +492,7 @@ local _weaponMenuMapReverse = {}  -- [real Configuration.Weapons index] -> menuO
 local function BuildFilteredOutfitNames()
     _outfitMenuMap        = {}
     _outfitMenuMapReverse = {}
-    local names = {}
+    local names           = {}
     for i, outfit in ipairs(Configuration.Outfits) do
         local unlocked = outfit.unlocked
         if unlocked == false then
@@ -490,9 +501,9 @@ local function BuildFilteredOutfitNames()
         end
 
         if unlocked ~= false then  -- allows nil and true, blocks false
-            local idx             = #names + 1
-            names[idx]            = outfit.name
-            _outfitMenuMap[idx]   = i
+            local idx                = #names + 1
+            names[idx]               = outfit.name
+            _outfitMenuMap[idx]      = i
             _outfitMenuMapReverse[i] = idx
         end
     end
@@ -510,13 +521,13 @@ local function BuildFilteredWeaponNames()
         elseif weapon.pickupObjID == nil then
             show = true  -- No inventory check configured.
         else
-            local ok, count = pcall(TEN.Inventory.GetItemCount, weapon.pickupObjID)
-            show = ok and (count > 0 or Settings.Character.allWeapons)  -- Show if in inventory or if allWeapons setting is enabled.
+            local count = TEN.Inventory.GetItemCount(weapon.pickupObjID)
+            show = count > 0 or Settings.Character.allWeapons  -- Show if in inventory or if allWeapons setting is enabled.
         end
         if show then
-            local idx             = #names + 1
-            names[idx]            = weapon.name
-            _weaponMenuMap[idx]   = i
+            local idx                = #names + 1
+            names[idx]               = weapon.name
+            _weaponMenuMap[idx]      = i
             _weaponMenuMapReverse[i] = idx
         end
     end
@@ -540,9 +551,9 @@ local function ApplyDOF(state)
     local modePreset = cfg.modes[state.dofMode]
     local mode = modePreset and modePreset.mode or TEN.View.DOFMode.NONE
     if mode == TEN.View.DOFMode.NONE then
-        pcall(function() TEN.View.SetDOF(TEN.View.DOFMode.NONE) end)
+        TEN.View.SetDOF(TEN.View.DOFMode.NONE)
     else
-        pcall(function() TEN.View.SetDOF(mode, state.dofFocusDistance, state.dofRange, state.dofStrength) end)
+        TEN.View.SetDOF(mode, state.dofFocusDistance, state.dofRange, state.dofStrength)
     end
 end
 
@@ -565,8 +576,7 @@ local function ApplyTint(state)
         local blended = TEN.Color(
             math.floor(128 + (c.r - 128) * i),
             math.floor(128 + (c.g - 128) * i),
-            math.floor(128 + (c.b - 128) * i)
-        )
+            math.floor(128 + (c.b - 128) * i))
         TEN.View.SetPostProcessTint(blended)
     end
 end
@@ -577,21 +587,21 @@ local function ResetCurrentOutfit(state)
     -- Restore skinned mesh to entry state.
     if state.appliedSkinnedMesh then
         if snap and snap.skinnedMeshObject then
-            pcall(function() Lara:SwapSkinnedMesh(snap.skinnedMeshObject, snap.skinnedMeshIndex) end)
+            Lara:SwapSkinnedMesh(snap.skinnedMeshObject, snap.skinnedMeshIndex)
         else
-            pcall(function() Lara:ClearSkinnedMesh() end)
+            Lara:ClearSkinnedMesh()
         end
     end
 
     -- Restore classic skin to entry state.
     if state.appliedSkin and snap and snap.skin then
-        pcall(function() Lara:SetSkin(snap.skin[1], snap.skin[2], snap.skin[3], snap.skin[4], snap.skin[5]) end)
+        Lara:SetSkin(snap.skin[1], snap.skin[2], snap.skin[3], snap.skin[4], snap.skin[5])
     end
 
     -- Restore mesh visibility to entry state.
     if #state.hiddenMeshes > 0 and snap and snap.meshVisible then
         for i = 0, 14 do
-            pcall(function() Lara:SetMeshVisible(i, snap.meshVisible[i] ~= false) end)
+            Lara:SetMeshVisible(i, snap.meshVisible[i] ~= false)
         end
     end
 
@@ -611,23 +621,23 @@ local function ApplyOutfit(state)
 
     -- Default: ResetCurrentOutfit already restored entry state.
     if not preset or (not preset.skin and not preset.skinnedMesh and not preset.meshVisible) then
-        pcall(function() Lara:ResetHair() end)
+        Lara:ResetHair()
         return
     end
 
     -- Apply classic skin change.
     if preset.skin then
         local s = preset.skin
-        pcall(function() Lara:SetSkin(s[1], s[2], s[3], s[4], s[5]) end)
+        Lara:SetSkin(s[1], s[2], s[3], s[4], s[5])
         state.appliedSkin = true
     end
 
     -- Apply skinned mesh change.
     if preset.skinnedMesh then
         if preset.skinnedMesh == "clear" then
-            pcall(function() Lara:ClearSkinnedMesh() end)
+            Lara:ClearSkinnedMesh()
         else
-            pcall(function() Lara:SwapSkinnedMesh(preset.skinnedMesh, preset.skinnedMeshIndex) end)
+            Lara:SwapSkinnedMesh(preset.skinnedMesh, preset.skinnedMeshIndex)
         end
         state.appliedSkinnedMesh = true
     end
@@ -643,14 +653,14 @@ local function ApplyOutfit(state)
             for _, idx in ipairs(mv) do keep[idx] = true end
             for i = 0, 14 do
                 if not keep[i] then
-                    pcall(function() Lara:SetMeshVisible(i, false) end)
+                    Lara:SetMeshVisible(i, false)
                     state.hiddenMeshes[#state.hiddenMeshes + 1] = i
                 end
             end
         else
             -- "none" → hide all classic meshes
             for i = 0, 14 do
-                pcall(function() Lara:SetMeshVisible(i, false) end)
+                Lara:SetMeshVisible(i, false)
                 state.hiddenMeshes[#state.hiddenMeshes + 1] = i
             end
         end
@@ -660,22 +670,22 @@ local function ApplyOutfit(state)
     for _, meshIdx in ipairs(state.swappedWeaponMeshes) do
         local wp = Configuration.Weapons[state.weaponIndex]
         if wp and wp.objID then
-            pcall(function() Lara:SwapMesh(meshIdx, wp.objID, meshIdx) end)
+            Lara:SwapMesh(meshIdx, wp.objID, meshIdx)
         end
     end
     for _, meshIdx in ipairs(state.swappedExpressionMeshes) do
         local ep = Configuration.Expressions[state.expressionIndex]
         if ep and ep.objID then
-            pcall(function() Lara:SwapMesh(meshIdx, ep.objID, meshIdx) end)
+            Lara:SwapMesh(meshIdx, ep.objID, meshIdx)
         end
     end
 
     -- Execute outfit-specific hook if provided.
     if preset.onEnter and type(preset.onEnter) == "function" then
-        pcall(preset.onEnter)
+        preset.onEnter()
     end
 
-    pcall(function() Lara:ResetHair() end)
+    Lara:ResetHair()
 end
 
 local function ApplyWeapon(state)
@@ -685,7 +695,7 @@ local function ApplyWeapon(state)
 
         -- Unswap previously applied weapon meshes
     for _, meshIdx in ipairs(state.swappedWeaponMeshes) do
-        pcall(function() Lara:UnswapMesh(meshIdx) end)
+        Lara:UnswapMesh(meshIdx)
     end
 
     if Configuration.Weapons[state.weaponIndex].name == "Default" then
@@ -699,15 +709,15 @@ local function ApplyWeapon(state)
             end
 
             if entry10 then
-                pcall(function() Lara:SwapMesh(entry10.index, entry10.sourceObjID, entry10.index) end)
+                Lara:SwapMesh(entry10.index, entry10.sourceObjID, entry10.index)
             end
 
             if entry13 then
-                pcall(function() Lara:SwapMesh(entry13.index, entry13.sourceObjID, entry13.index) end)
+                Lara:SwapMesh(entry13.index, entry13.sourceObjID, entry13.index)
             end
 
-            pcall(function() Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack) end)
-            pcall(function() Lara:ResetHair() end)
+            Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
+            Lara:ResetHair()
         end
         return
     end
@@ -717,7 +727,7 @@ local function ApplyWeapon(state)
     local preset = Configuration.Weapons[state.weaponIndex]
     if preset and preset.objID and preset.meshIndices then
         for _, meshIdx in ipairs(preset.meshIndices) do
-            pcall(function() Lara:SwapMesh(meshIdx, preset.objID, meshIdx) end)
+            Lara:SwapMesh(meshIdx, preset.objID, meshIdx)
             state.swappedWeaponMeshes[#state.swappedWeaponMeshes + 1] = meshIdx
         end
     end
@@ -725,33 +735,32 @@ local function ApplyWeapon(state)
     -- Adjust holster slots based on which visual slots the weapon occupies.
     -- Clear the slots that are now visually shown as drawn; retain the rest.
     -- For "none" (default), restore entry snapshot holster state.
-    pcall(function()
-        local slot = preset and preset.type or "none"
+    local slot = preset and preset.type or "none"
 
+    if snap then
+        Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
+    end
+
+    if slot == "holsters" then
+        -- Pistols in both hand holsters: clear left + right, leave back alone
+        Lara:SetHolsterWeapon(TEN.Objects.WeaponType.NONE, TEN.Objects.WeaponType.NONE, nil)
+    elseif slot == "right" then
+        -- Weapon in right holster only: clear right, leave left + back alone
+        Lara:SetHolsterWeapon(nil, TEN.Objects.WeaponType.NONE, nil)
+    elseif slot == "back" then
+        -- Weapon on back: clear back, leave left + right alone
+        Lara:SetHolsterWeapon(nil, nil, TEN.Objects.WeaponType.NONE)
+    elseif slot == "left" then
+        -- Weapon in left holster only: clear left, leave right + back alone
+        Lara:SetHolsterWeapon(TEN.Objects.WeaponType.NONE, nil, nil)
+    else
+        -- No weapon / default: restore entry holster state
         if snap then
             Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
         end
+    end
 
-        if slot == "holsters" then
-            -- Pistols in both hand holsters: clear left + right, leave back alone
-            Lara:SetHolsterWeapon(TEN.Objects.WeaponType.NONE, TEN.Objects.WeaponType.NONE, nil)
-        elseif slot == "right" then
-            -- Weapon in right holster only: clear right, leave left + back alone
-            Lara:SetHolsterWeapon(nil, TEN.Objects.WeaponType.NONE, nil)
-        elseif slot == "back" then
-            -- Weapon on back: clear back, leave left + right alone
-            Lara:SetHolsterWeapon(nil, nil, TEN.Objects.WeaponType.NONE)
-        elseif slot == "left" then
-            -- Weapon in left holster only: clear left, leave right + back alone
-            Lara:SetHolsterWeapon(TEN.Objects.WeaponType.NONE, nil, nil)
-        else
-            -- No weapon / default: restore entry holster state
-            if snap then
-                Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
-            end
-        end
-    end)
-    pcall(function() Lara:ResetHair() end)
+    Lara:ResetHair()
 end
 
 local function ApplyPosePreset(state)
@@ -760,31 +769,31 @@ local function ApplyPosePreset(state)
 
         if preset.name == "Default" then
             if state.snapshot then
-                pcall(function() Lara:SetAnim(state.snapshot.laraAnim, state.snapshot.laraAnimSlot) end)
-                pcall(function() Lara:SetFrame(state.snapshot.laraFrame) end)
+                Lara:SetAnim(state.snapshot.laraAnim, state.snapshot.laraAnimSlot)
+                Lara:SetFrame(state.snapshot.laraFrame)
             end
         else
-            pcall(function() Lara:SetAnim(preset.animNumber, preset.objID) end)
-            pcall(function() Lara:SetFrame(preset.frameNumber) end)
+            Lara:SetAnim(preset.animNumber, preset.objID)
+            Lara:SetFrame(preset.frameNumber)
         end
     end
-    pcall(function() Lara:ResetHair() end)
+    Lara:ResetHair()
 end
 
 local function ApplyExpression(state)
     for _, meshIdx in ipairs(state.swappedExpressionMeshes) do
-        pcall(function() Lara:UnswapMesh(meshIdx) end)
+        Lara:UnswapMesh(meshIdx)
     end
     state.swappedExpressionMeshes = {}
 
     local preset = Configuration.Expressions[state.expressionIndex]
     if preset and preset.objID and preset.meshIndices then
         for _, meshIdx in ipairs(preset.meshIndices) do
-            pcall(function() Lara:SwapMesh(meshIdx, preset.objID, meshIdx) end)
+            Lara:SwapMesh(meshIdx, preset.objID, meshIdx)
             state.swappedExpressionMeshes[#state.swappedExpressionMeshes + 1] = meshIdx
         end
     end
-    pcall(function() Lara:ResetHair() end)
+    Lara:ResetHair()
 end
 
 local function GetOrCreateAccessoryMesh(state)
@@ -799,10 +808,10 @@ local function GetOrCreateAccessoryMesh(state)
     local pos  = Lara:GetPosition()
     local rot  = Lara:GetRotation()
     local room = Lara:GetRoomNumber()
-    local ok, mov = pcall(TEN.Objects.Moveable, Configuration.Accessories.baseObjID, name, pos, rot, room)
-    if ok and mov then
+    local mov = TEN.Objects.Moveable(Configuration.Accessories.baseObjID, name, pos, rot, room)
+    if mov then
         mov:Enable()
-        pcall(function() mov:SetColor(TEN.Color(255, 255, 255, 0)) end)
+        mov:SetColor(TEN.Color(255, 255, 255, 0))
         state.accessoryMesh = mov
         return mov
     end
@@ -818,25 +827,25 @@ local function ApplyAccessory(state)
     if hasPreset then
 
         for i = 0, 14 do
-            pcall(function() mov:SetMeshVisible(i, false) end)
+            mov:SetMeshVisible(i, false)
         end
 
         for _, meshIdx in ipairs(preset.meshIndices) do
-            pcall(function() mov:SwapMesh(meshIdx, preset.objID, meshIdx) end)
-            pcall(function() mov:SetMeshVisible(meshIdx, true) end)
+            mov:SwapMesh(meshIdx, preset.objID, meshIdx)
+            mov:SetMeshVisible(meshIdx, true)
         end
-        pcall(function() mov:SetPosition(Lara:GetPosition()) end)
-        pcall(function() mov:SetRotation(Lara:GetRotation()) end)
-        pcall(function() mov:SetAnim(Lara:GetAnim(), Lara:GetAnimSlot()) end)
-        pcall(function() mov:SetFrame(Lara:GetFrame()) end)
-        pcall(function() mov:SetColor(TEN.Color(255, 255, 255, 255)) end)
+        mov:SetPosition(Lara:GetPosition())
+        mov:SetRotation(Lara:GetRotation())
+        mov:SetAnim(Lara:GetAnim(), Lara:GetAnimSlot())
+        mov:SetFrame(Lara:GetFrame())
+        mov:SetColor(TEN.Color(255, 255, 255, 255))
     else
         -- Restore default meshes and hide the moveable
         for i = 0, 14 do
-            pcall(function() mov:SetMeshVisible(i, false) end)
-            pcall(function() mov:UnswapMesh(i) end)
+            mov:SetMeshVisible(i, false)
+            mov:UnswapMesh(i)
         end
-        pcall(function() mov:SetColor(TEN.Color(255, 255, 255, 0)) end)
+        mov:SetColor(TEN.Color(255, 255, 255, 0))
     end
 end
 
@@ -844,10 +853,10 @@ local function UpdateAccessoryMesh(state)
     local preset = Configuration.Accessories.presets[state.accessoryIndex]
     if not preset or preset.objID == nil then return end
     if not state.accessoryMesh then return end
-    pcall(function() state.accessoryMesh:SetPosition(Lara:GetPosition()) end)
-    pcall(function() state.accessoryMesh:SetRotation(Lara:GetRotation()) end)
-    pcall(function() state.accessoryMesh:SetAnim(Lara:GetAnim(), Lara:GetAnimSlot()) end)
-    pcall(function() state.accessoryMesh:SetFrame(Lara:GetFrame()) end)
+    state.accessoryMesh:SetPosition(Lara:GetPosition())
+    state.accessoryMesh:SetRotation(Lara:GetRotation())
+    state.accessoryMesh:SetAnim(Lara:GetAnim(), Lara:GetAnimSlot())
+    state.accessoryMesh:SetFrame(Lara:GetFrame())
 end
 
 local function UpdateGunFlash(state)
@@ -858,17 +867,19 @@ local function UpdateGunFlash(state)
         return
     end
 
+    local handStatus = Lara:GetHandStatus()
+
     if preset.weaponType == TEN.Objects.WeaponType.FLARE then
         local flare = TEN.Flow.GetSettings().Flare
         local position = Lara:GetJointPosition(preset.meshIndices[1], flare.offset)
-        pcall(function() TEN.Effects.EmitLight(position, flare.color, flare.range) end)
-    elseif preset.name =="Default" then
-        pcall(function() Lara:SpawnGunFlash(Lara:GetWeaponType(), TEN.Objects.WeaponFlashMode.AUTO) end)
+        TEN.Effects.EmitLight(position, flare.color, flare.range)
+    elseif preset.name =="Default" and (handStatus ~= TEN.Objects.HandStatus.BUSY and handStatus ~= TEN.Objects.HandStatus.FREE) then
+        Lara:SpawnGunFlash(Lara:GetWeaponType(), TEN.Objects.WeaponFlashMode.AUTO)
     elseif preset.gunFlash then
         if preset.gunFlash ~= TEN.Objects.WeaponFlashMode.AUTO then
             Lara:ClearGunFlash()
         end
-        pcall(function() Lara:SpawnGunFlash(preset.weaponType, preset.gunFlash) end)
+        Lara:SpawnGunFlash(preset.weaponType, preset.gunFlash)
     else
         Lara:ClearGunFlash()
     end
@@ -885,10 +896,10 @@ end
 local function ResetCharacter()
     local state = States.Get()
     if state.snapshot then
-        pcall(function() Lara:SetAnim(state.snapshot.laraAnim, state.snapshot.laraAnimSlot) end)
-        pcall(function() Lara:SetFrame(state.snapshot.laraFrame) end)
-        pcall(function() Lara:SetPosition(state.snapshot.laraPos) end)
-        pcall(function() Lara:SetRotation(state.snapshot.laraRot) end)
+        Lara:SetAnim(state.snapshot.laraAnim, state.snapshot.laraAnimSlot)
+        Lara:SetFrame(state.snapshot.laraFrame)
+        Lara:SetPosition(state.snapshot.laraPos)
+        Lara:SetRotation(state.snapshot.laraRot)
     end
     state.animIndex = 1
 
@@ -896,12 +907,12 @@ local function ResetCharacter()
 
     -- Undo weapon and expression mesh swaps.
     for _, meshIdx in ipairs(state.swappedWeaponMeshes) do
-        pcall(function() Lara:UnswapMesh(meshIdx) end)
+        Lara:UnswapMesh(meshIdx)
     end
     state.swappedWeaponMeshes = {}
 
     for _, meshIdx in ipairs(state.swappedExpressionMeshes) do
-        pcall(function() Lara:UnswapMesh(meshIdx) end)
+        Lara:UnswapMesh(meshIdx)
     end
     state.swappedExpressionMeshes = {}
 
@@ -910,20 +921,20 @@ local function ResetCharacter()
     if snap then
         if snap.meshSwaps then
             for _, entry in ipairs(snap.meshSwaps) do
-                pcall(function() Lara:SwapMesh(entry.index, entry.sourceObjID, entry.index) end)
+                Lara:SwapMesh(entry.index, entry.sourceObjID, entry.index)
             end
         end
-        pcall(function() Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack) end)
+        Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
     end
 
     state.outfitIndex     = 1
     state.weaponIndex     = 1
     state.expressionIndex = 1
     state.accessoryIndex  = 1
-    state.gunflashEnabled   = false
+    state.gunflashEnabled = false
     ApplyAccessory(state)
 
-    pcall(function() Lara:ResetHair() end)
+    Lara:ResetHair()
 
 end
 
@@ -958,7 +969,7 @@ local function ResetLight()
         state.lightPos        = TEN.Vec3(state.entryLight.pos.x, state.entryLight.pos.y, state.entryLight.pos.z)
         state.lightRadius     = state.entryLight.radius
         state.lightShadows    = state.entryLight.shadows
-        state.lightIntensity   = state.entryLight.intensity
+        state.lightIntensity  = state.entryLight.intensity
         state.lightColorIndex = state.entryLight.colorIndex
     end
 end
@@ -1193,11 +1204,11 @@ local function BuildAllMenus()
         local m = Menu.Get(MENU_LIGHT)
         if not m then return end
         local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
-        if     name == "pm_enabled" then state.lightEnabled    = IndexToBool(m:GetCurrentOptionIndex())
-        elseif name == "pm_source"  then state.lightSource     = m:GetCurrentOptionIndex()
-        elseif name == "pm_radius"  then state.lightRadius     = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Light.minRadius, cfg.Light.radiusStep)
-        elseif name == "pm_intensity" then state.lightIntensity = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Light.minIntensity, cfg.Light.intensityStep)
-        elseif name == "pm_color"   then state.lightColorIndex = m:GetCurrentOptionIndex()
+        if     name == "pm_enabled"   then state.lightEnabled    = IndexToBool(m:GetCurrentOptionIndex())
+        elseif name == "pm_source"    then state.lightSource     = m:GetCurrentOptionIndex()
+        elseif name == "pm_radius"    then state.lightRadius     = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Light.minRadius, cfg.Light.radiusStep)
+        elseif name == "pm_intensity" then state.lightIntensity  = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Light.minIntensity, cfg.Light.intensityStep)
+        elseif name == "pm_color"     then state.lightColorIndex = m:GetCurrentOptionIndex()
         end
     end
 
@@ -1209,8 +1220,8 @@ local function BuildAllMenus()
             state.hideUI = IndexToBool(m:GetCurrentOptionIndex())
         elseif name == "pm_hide_character" then
             state.hideCharacter = IndexToBool(m:GetCurrentOptionIndex())
-            pcall(function() Lara:SetVisible(not state.hideCharacter) end)
-            pcall(function() state.accessoryMesh:SetVisible(not state.hideCharacter) end)
+            Lara:SetVisible(not state.hideCharacter)
+            state.accessoryMesh:SetVisible(not state.hideCharacter)
         end
     end
 
@@ -1265,9 +1276,11 @@ local function BuildAllMenus()
     -- ================================================================
     local outfitNames = BuildFilteredOutfitNames()
     local weaponNames = BuildFilteredWeaponNames()
-    local characterItems = {
+    local characterItems =
+    {
         { itemName = "pm_animation",  options = ANIM_NAMES,       currentOption = state.animIndex },
     }
+
     if Settings.Character.outfitsEnabled ~= false then
         characterItems[#characterItems + 1] = { itemName = "pm_outfit", options = outfitNames, currentOption = _outfitMenuMapReverse[state.outfitIndex] or 1 }
     end
@@ -1284,12 +1297,14 @@ local function BuildAllMenus()
     -- ================================================================
     -- EFFECTS menu (Lens + Depth of Field)
     -- ================================================================
-    local effectsItems = {
+    local effectsItems =
+    {
         { itemName = "pm_fov",  options = NumberRange(cfg.Lens.minFOV, cfg.Lens.maxFOV, cfg.Lens.fovStep),
           currentOption = ValueToOptionIndex(state.fov, cfg.Lens.minFOV, cfg.Lens.fovStep)},
         { itemName = "pm_roll", options = NumberRange(cfg.Lens.minRoll, cfg.Lens.maxRoll, cfg.Lens.rollStep),
           currentOption = ValueToOptionIndex(state.roll, cfg.Lens.minRoll, cfg.Lens.rollStep)},
     }
+
     if Settings.Camera.depthOfFieldEnabled ~= false then
         effectsItems[#effectsItems + 1] = { itemName = "pm_dof_mode", options = DOF_MODE_NAMES, currentOption = state.dofMode }
         effectsItems[#effectsItems + 1] = { itemName = "pm_dof_focus", options = NumberRange(cfg.DepthOfField.minFocusDistance, cfg.DepthOfField.maxFocusDistance, cfg.DepthOfField.focusDistanceStep),
@@ -1307,7 +1322,8 @@ local function BuildAllMenus()
     -- ================================================================
     -- FILTERS menu (Post-process + Frame)
     -- ================================================================
-    CreateMenu(MENU_FILTERS, {
+    CreateMenu(MENU_FILTERS,
+    {
         { itemName = "pm_frame_overlay", options = FRAME_NAMES, currentOption = state.frameIndex },
         { itemName = "pm_preset",        options = FILTER_NAMES, currentOption = state.filterIndex },
         { itemName = "pm_strength",      options = NumberRange(0, 1.0, 0.05, function(v) return string.format("%.2f", v) end),
@@ -1317,12 +1333,14 @@ local function BuildAllMenus()
               function(v) return string.format("%.2f", v) end),
           currentOption = ValueToOptionIndex(state.tintIntensity, cfg.Filters.minTintIntensity, cfg.Filters.tintIntensityStep)},
         { itemName = "pm_reset",         options = { acceptString }, currentOption = 1 },
-    }, "Engine.PhotoMode.OnFiltersAccept", "Engine.PhotoMode.OnFiltersOptionChange", "pm_header_filters")
+    },
+    "Engine.PhotoMode.OnFiltersAccept", "Engine.PhotoMode.OnFiltersOptionChange", "pm_header_filters")
 
     -- ================================================================
     -- LIGHT menu
     -- ================================================================
-    CreateMenu(MENU_LIGHT, {
+    CreateMenu(MENU_LIGHT,
+    {
         { itemName = "pm_enabled",      options = BoolOptions(), currentOption = BoolToIndex(state.lightEnabled) },
         { itemName = "pm_source",       options = LIGHT_SRC_NAMES, currentOption = state.lightSource },
         { itemName = "pm_radius",       options = NumberRange(cfg.Light.minRadius, cfg.Light.maxRadius, cfg.Light.radiusStep),
@@ -1333,21 +1351,25 @@ local function BuildAllMenus()
           currentOption = ValueToOptionIndex(state.lightIntensity, cfg.Light.minIntensity, cfg.Light.intensityStep)},
         { itemName = "pm_place_light",  options = { "Camera", "Lara" }, currentOption = 1 },
         { itemName = "pm_reset",        options = { acceptString }, currentOption = 1 },
-    }, "Engine.PhotoMode.OnLightAccept", "Engine.PhotoMode.OnLightOptionChange", "pm_header_light")
+    },
+    "Engine.PhotoMode.OnLightAccept", "Engine.PhotoMode.OnLightOptionChange", "pm_header_light")
 
     -- ================================================================
     -- UI menu
     -- ================================================================
-    CreateMenu(MENU_UI, {
+    CreateMenu(MENU_UI,
+    {
         { itemName = "pm_hide_ui",        options = BoolOptions(), currentOption = BoolToIndex(state.hideUI) },
         { itemName = "pm_hide_character",  options = BoolOptions(), currentOption = BoolToIndex(state.hideCharacter) },
         { itemName = "pm_exit",            options = { acceptString }, currentOption = 1 },
-    }, "Engine.PhotoMode.OnUIAccept", "Engine.PhotoMode.OnUIOptionChange", "pm_header_ui")
+    },
+    "Engine.PhotoMode.OnUIAccept", "Engine.PhotoMode.OnUIOptionChange", "pm_header_ui")
 
     -- ================================================================
     -- Set up headers (STEP_LEFT / STEP_RIGHT to navigate)
     -- ================================================================
-    Menu.SetHeaders({
+    Menu.SetHeaders(
+    {
         { name = "",   menuName = MENU_EFFECTS, hideText = true },
         { name = "", menuName = MENU_CHARACTER, hideText = true },
         { name = "",     menuName = MENU_LIGHT, hideText = true },
@@ -1382,12 +1404,9 @@ local function UpdateLightEmission()
     local modifiedColor = TEN.Color(
         math.min(255, math.floor(lightColor.r * i)),
         math.min(255, math.floor(lightColor.g * i)),
-        math.min(255, math.floor(lightColor.b * i))
-    )
+        math.min(255, math.floor(lightColor.b * i)))
 
-    pcall(function()
-        TEN.Effects.EmitLight(lightPos, modifiedColor, state.lightRadius, state.lightShadows, Configuration.Light.lightName)
-    end)
+    TEN.Effects.EmitLight(lightPos, modifiedColor, state.lightRadius, state.lightShadows, Configuration.Light.lightName)
 end
 
 -- ============================================================================
@@ -1418,7 +1437,8 @@ function PhotoMode.Enter()
 
     -- Store entry light state
     local camPos = state.cameraMesh:GetPosition()
-    state.entryLight = {
+    state.entryLight =
+    {
         enabled    = state.lightEnabled,
         source     = state.lightSource,
         pos        = TEN.Vec3(camPos.x, camPos.y, camPos.z),
@@ -1454,22 +1474,17 @@ function PhotoMode.Exit()
     Camera.Detach()
 
     -- Stop light
-    pcall(function()
-        local state = States.Get()
-        TEN.Effects.EmitLight(state.lightPos, TEN.Color(0, 0, 0), 0, false, Configuration.Light.lightName)
-    end)
+    local state = States.Get()
+    TEN.Effects.EmitLight(state.lightPos, TEN.Color(0, 0, 0), 0, false, Configuration.Light.lightName)
 
     -- Hide accessory mesh
-    pcall(function()
-        local state = States.Get()
-        if state.accessoryMesh then
-            state.accessoryMesh:SetColor(TEN.Color(255, 255, 255, 0))
-            state.accessoryIndex = 1
-        end
-    end)
+    if state.accessoryMesh then
+        state.accessoryMesh:SetColor(TEN.Color(255, 255, 255, 0))
+        state.accessoryIndex = 1
+    end
 
     -- Restore Lara visibility
-    pcall(function() Lara:SetVisible(true) end)
+    Lara:SetVisible(true)
 
     -- Clean up menus
     Menu.DeleteAll()
@@ -1524,11 +1539,10 @@ local function DrawColorSelector()
     local COLOR_SWATCH_SPRITE = 8
 
     -- Descriptor table for each colour-picking item
-    local entries = {
-        { menuName = MENU_LIGHT,   itemName = "pm_color",
-          palette  = Configuration.Light.colorPresets,  colorIndex = state.lightColorIndex },
-        { menuName = MENU_FILTERS, itemName = "pm_tint",
-          palette  = Configuration.Filters.tints,       colorIndex = state.tintIndex },
+    local entries =
+    {
+        { menuName = MENU_LIGHT,   itemName = "pm_color", palette  = Configuration.Light.colorPresets,  colorIndex = state.lightColorIndex },
+        { menuName = MENU_FILTERS, itemName = "pm_tint",  palette  = Configuration.Filters.tints,       colorIndex = state.tintIndex },
     }
 
     local activeMenuName = Menu.GetActiveHeaderMenu()
@@ -1547,11 +1561,10 @@ local function DrawColorSelector()
         local isActiveItem =(activeItemName == e.itemName)
 
         if isActive and isActiveItem then
-            local ok, strip = pcall(TEN.View.DisplaySprite,
-                TEN.Objects.ObjID.PHOTOMODE_SPRITES, 6,
+            local strip = TEN.View.DisplaySprite(TEN.Objects.ObjID.PHOTOMODE_SPRITES, 6,
                 TEN.Vec2(COLOR_STRIP_X, COLOR_STRIP_Y), 0,
                 TEN.Vec2(COLOR_STRIP_W, COLOR_STRIP_H), TEN.Color(255, 255, 255, a))
-            if ok and strip then
+            if strip then
                 strip:Draw(-3,
                     TEN.View.AlignMode.CENTER,
                     TEN.View.ScaleMode.FIT,
@@ -1566,11 +1579,11 @@ local function DrawColorSelector()
             local cursorX = anchors.CENTER_LEFT.x + (optIdx - 1) / numOpts * (anchors.CENTER_RIGHT.x - anchors.CENTER_LEFT.x)
             local cursorY = anchors.CENTER_LEFT.y
 
-            local ok2, cursor = pcall(TEN.View.DisplaySprite,
+            local cursor = TEN.View.DisplaySprite(
                 TEN.Objects.ObjID.PHOTOMODE_SPRITES, 7,
                 TEN.Vec2(cursorX, cursorY), 0,
                 TEN.Vec2(COLOR_STRIP_W, COLOR_STRIP_H), TEN.Color(255, 255, 255, a))
-            if ok2 and cursor then
+            if cursor then
                 cursor:Draw(-2,
                     TEN.View.AlignMode.CENTER_LEFT,
                     TEN.View.ScaleMode.FIT,
@@ -1581,11 +1594,11 @@ local function DrawColorSelector()
             local pos = TEN.Vec2(COLOR_STRIP_X, COLOR_STRIP_Y)
             local col = e.palette[e.colorIndex]
             if pos and col then
-                local ok, swatch = pcall(TEN.View.DisplaySprite,
+                local swatch = TEN.View.DisplaySprite(
                     TEN.Objects.ObjID.PHOTOMODE_SPRITES, COLOR_SWATCH_SPRITE,
                     pos, 0,
                     TEN.Vec2(3, 3), TEN.Color(col.color.r, col.color.g, col.color.b, a))
-                if ok and swatch then
+                if swatch then
                     swatch:Draw(-2,
                         TEN.View.AlignMode.CENTER,
                         TEN.View.ScaleMode.FIT,
@@ -1639,13 +1652,9 @@ local function DrawHeaderSprites(alpha)
         local x     = startX + (i - 1) * spacing
         local size  = TEN.Vec2(anim.sizeW, anim.sizeH)
         local color = TEN.Color(math.floor(anim.r), math.floor(anim.g), math.floor(anim.b), math.floor(alpha))
-        local ok, sprite = pcall(TEN.View.DisplaySprite,
-            cfg.objectID, spriteID, TEN.Vec2(x, posY), cfg.rotation or 0, size, color)
-        if ok and sprite then
-            sprite:Draw(cfg.layer or -4,
-                cfg.alignMode or TEN.View.AlignMode.CENTER,
-                cfg.scaleMode or TEN.View.ScaleMode.FIT,
-                cfg.blendMode or TEN.Effects.BlendID.ALPHA_BLEND)
+        local sprite = TEN.View.DisplaySprite(cfg.objectID, spriteID, TEN.Vec2(x, posY), cfg.rotation or 0, size, color)
+        if sprite then
+            sprite:Draw(cfg.layer or -4, cfg.alignMode or TEN.View.AlignMode.CENTER, cfg.scaleMode or TEN.View.ScaleMode.FIT, cfg.blendMode or TEN.Effects.BlendID.ALPHA_BLEND)
         end
     end
 end
@@ -1653,13 +1662,9 @@ end
 local function DrawBackSprites(alpha)
 
     local color = ColorCombine(Configuration.ColorMap.dimmed, math.floor(alpha))
-    local ok, sprite = pcall(TEN.View.DisplaySprite,
-        TEN.Objects.ObjID.PHOTOMODE_SPRITES, 5, TEN.Vec2(1.5, 11), 0, TEN.Vec2(29, 38.5), color)
-    if ok and sprite then
-        sprite:Draw(-4,
-            TEN.View.AlignMode.TOP_LEFT,
-            TEN.View.ScaleMode.STRETCH,
-            TEN.Effects.BlendID.ALPHA_BLEND)
+    local sprite = TEN.View.DisplaySprite(TEN.Objects.ObjID.PHOTOMODE_SPRITES, 5, TEN.Vec2(1.5, 11), 0, TEN.Vec2(29, 38.5), color)
+    if sprite then
+        sprite:Draw(-4, TEN.View.AlignMode.TOP_LEFT, TEN.View.ScaleMode.STRETCH, TEN.Effects.BlendID.ALPHA_BLEND)
     end
 
 end
@@ -1667,22 +1672,14 @@ end
 local function DrawTitle(alpha)
     local modeText = TEN.Flow.GetString("photo_mode")
     local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(16, 9))
-    local modeStr  = TEN.Strings.DisplayString(
-        modeText, modePos, 0.8,
-        ColorCombine(Configuration.ColorMap.headerText, alpha), false,
-        { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER, TEN.Strings.DisplayStringOption.VERTICAL_CENTER }
-    )
+    local modeStr  = TEN.Strings.DisplayString(modeText, modePos, 0.8, ColorCombine(Configuration.ColorMap.headerText, alpha), false, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER, TEN.Strings.DisplayStringOption.VERTICAL_CENTER })
     TEN.Strings.ShowString(modeStr, 1 / 30)
 end
 
 local function DrawModeText(alpha)
     local modeText = TEN.Flow.GetString("pm_mode_prefix") .. States.GetModeName()
     local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(16, 46))
-    local modeStr  = TEN.Strings.DisplayString(
-        modeText, modePos, 0.6,
-        ColorCombine(Configuration.ColorMap.neutral, alpha), false,
-        { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }
-    )
+    local modeStr  = TEN.Strings.DisplayString(modeText, modePos, 0.6, ColorCombine(Configuration.ColorMap.neutral, alpha), false, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
     TEN.Strings.ShowString(modeStr, 1 / 30)
 end
 
@@ -1705,20 +1702,12 @@ local function DrawHelpText(alpha)
     
     -- Line 1: mode-specific movement hints
     local helpPos1 = TEN.Util.PercentToScreen(TEN.Vec2(50, 90))
-    local helpStr1 = TEN.Strings.DisplayString(
-        modeKey, helpPos1, 0.6,
-        ColorCombine(Configuration.ColorMap.neutral, alpha), true,
-        { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER }
-    )
+    local helpStr1 = TEN.Strings.DisplayString(modeKey, helpPos1, 0.6, ColorCombine(Configuration.ColorMap.neutral, alpha), true, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
     TEN.Strings.ShowString(helpStr1, 1 / 30)
 
     -- Line 2: universal navigation hints
     local helpPos2 = TEN.Util.PercentToScreen(TEN.Vec2(50, 94))
-    local helpStr2 = TEN.Strings.DisplayString(
-        helpKey, helpPos2, 0.6,
-        ColorCombine(Configuration.ColorMap.neutral, alpha), true,
-        { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER }
-    )
+    local helpStr2 = TEN.Strings.DisplayString(helpKey, helpPos2, 0.6, ColorCombine(Configuration.ColorMap.neutral, alpha), true, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
     TEN.Strings.ShowString(helpStr2, 1 / 30)
 end
 

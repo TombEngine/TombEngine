@@ -34,7 +34,8 @@ States.LightSource =
 -- Runtime State (reset on entry, restored on exit)
 -- ============================================================================
 
-local State = {
+local State = 
+{
     active         = false,
     entryHoldCount = 0,
     hideUI         = false,
@@ -182,20 +183,20 @@ function States.CaptureSnapshot()
     snap.targetPos      = nil
     snap.hideUI         = false
     -- Capture skinned mesh state (GPU skinning slot)
-    local ok, skinObject, meshIndex = pcall(function() return Lara:GetSkinnedMesh() end)
-    snap.skinnedMeshObject = (ok and skinObject ~= nil) and skinObject or nil
-    snap.skinnedMeshIndex = (ok and meshIndex ~= nil) and meshIndex or nil
+    local skinObject, meshIndex = Lara:GetSkinnedMesh()
+    snap.skinnedMeshObject = skinObject ~= nil and skinObject or nil
+    snap.skinnedMeshIndex = meshIndex ~= nil and meshIndex or nil
     -- Capture classic skin state (SetSkin parameters)
-    local okSkin, skinTable = pcall(function() return Lara:GetSkin() end)
-    if okSkin then
+    local skinTable = Lara:GetSkin()
+    if skinTable then
         snap.skin = skinTable
     end
 
     -- Capture per-mesh swap state for all 15 Lara meshes (0-14)
     snap.meshSwaps = {}
     for i = 0, 14 do
-        local ok, swapped, sourceObjID = pcall(function() return Lara:GetMeshSwapped(i) end)
-        if ok and swapped and sourceObjID then
+        local swapped, sourceObjID = Lara:GetMeshSwapped(i)
+        if swapped and sourceObjID then
             snap.meshSwaps[#snap.meshSwaps + 1] = { index = i, sourceObjID = sourceObjID }
         end
     end
@@ -203,8 +204,8 @@ function States.CaptureSnapshot()
     -- Capture per-mesh visibility state for all 15 Lara meshes (0-14).
     snap.meshVisible = {}
     for i = 0, 14 do
-        local ok, vis = pcall(function() return Lara:GetMeshVisible(i) end)
-        snap.meshVisible[i] = not (ok and vis == false)
+        local vis = Lara:GetMeshVisible(i)
+        snap.meshVisible[i] = vis ~= false
     end
 
     State.snapshot = snap
@@ -220,58 +221,57 @@ function States.RestoreSnapshot()
     Lara:SetPosition(snap.laraPos)
     Lara:SetRotation(snap.laraRot)
     Lara:SetVelocity(snap.laraVelocity)
-    pcall(function() Lara:SetAnim(snap.laraAnim, snap.laraAnimSlot) end)
-    pcall(function() Lara:SetFrame(snap.laraFrame) end)
-    pcall(function() Lara:SetState(snap.laraState) end)
+    Lara:SetAnim(snap.laraAnim, snap.laraAnimSlot)
+    Lara:SetFrame(snap.laraFrame)
+    Lara:SetState(snap.laraState)
 
     -- Restore classic skin to entry state.
     if snap.skin then
-        pcall(function() Lara:SetSkin(snap.skin[1], snap.skin[2], snap.skin[3], snap.skin[4], snap.skin[5]) end)
+        Lara:SetSkin(snap.skin[1], snap.skin[2], snap.skin[3], snap.skin[4], snap.skin[5])
     end
 
     -- Restore skinned mesh to entry state.
     if snap.skinnedMeshObject then
-        pcall(function() Lara:SwapSkinnedMesh(snap.skinnedMeshObject, snap.skinnedMeshIndex) end)
+        Lara:SwapSkinnedMesh(snap.skinnedMeshObject, snap.skinnedMeshIndex)
     else
-        pcall(function() Lara:ClearSkinnedMesh() end)
+        Lara:ClearSkinnedMesh()
     end
 
     -- Restore per-mesh visibility to entry state.
     if snap.meshVisible then
         for i = 0, 14 do
-            pcall(function() Lara:SetMeshVisible(i, snap.meshVisible[i] ~= false) end)
+            Lara:SetMeshVisible(i, snap.meshVisible[i] ~= false)
         end
     end
 
     -- Undo weapon and expression mesh swaps, then re-apply entry swaps.
     for _, meshIdx in ipairs(State.swappedWeaponMeshes) do
-        pcall(function() Lara:UnswapMesh(meshIdx) end)
+        Lara:UnswapMesh(meshIdx)
     end
     for _, meshIdx in ipairs(State.swappedExpressionMeshes) do
-        pcall(function() Lara:UnswapMesh(meshIdx) end)
+        Lara:UnswapMesh(meshIdx)
     end
     if snap.meshSwaps then
         for _, entry in ipairs(snap.meshSwaps) do
-            pcall(function() Lara:SwapMesh(entry.index, entry.sourceObjID, entry.index) end)
+            Lara:SwapMesh(entry.index, entry.sourceObjID, entry.index)
         end
     end
 
     -- Restore holster state
-    pcall(function()
-        Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
-    end)
+    Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
 
     --Reset Hair
-    pcall(function() Lara:ResetHair() end)
+    Lara:ResetHair()
+
+    --Clear any trailing gun flashes
+    Lara:ClearGunFlash()
 
     -- Reset post-process and camera settings
-    pcall(function()
-        TEN.View.SetDOF(snap.dofMode, snap.dofFocusDistance, snap.dofRange, snap.dofStrength)
-        TEN.View.SetFOV(snap.fov)
-        TEN.View.SetRoll(snap.roll)
-        TEN.View.SetPostProcess(snap.postProcessMode, snap.postProcessStrength)
-        TEN.View.SetPostProcessTint(snap.postProcessTint)
-    end)
+    TEN.View.SetDOF(snap.dofMode, snap.dofFocusDistance, snap.dofRange, snap.dofStrength)
+    TEN.View.SetFOV(snap.fov)
+    TEN.View.SetRoll(snap.roll)
+    TEN.View.SetPostProcess(snap.postProcessMode, snap.postProcessStrength)
+    TEN.View.SetPostProcessTint(snap.postProcessTint)
 end
 
 -- ============================================================================

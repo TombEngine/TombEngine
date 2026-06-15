@@ -34,8 +34,9 @@ local LINE_SPACING = 6
 local SCROLL_SPEED = 0.2
 local FADE_SPEED   = Configuration.Animation.fadeSpeed
 
-local ITEM_FLAGS_NORMAL = { Strings.DisplayStringOption.SHADOW }
+local DRAW_RATE = 1 / 30
 
+local ITEM_FLAGS_NORMAL = { Strings.DisplayStringOption.SHADOW }
 local TEXT_FLAGS_NORMAL = { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }
 local TEXT_FLAGS_SELECT = { Strings.DisplayStringOption.BLINK, Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }
 
@@ -196,7 +197,7 @@ function Menu.DrawHeaders(position, scale, alpha)
             local displayText = isActive and ("[ " .. string .. " ]") or string
 
             local textObj = TEN.Strings.DisplayString(displayText, pos, scale or 1.0, ColorCombine(color, alpha), false, flags)
-            TEN.Strings.ShowString(textObj, 1 / 30)
+            TEN.Strings.ShowString(textObj, DRAW_RATE)
         end
     end
 end
@@ -733,9 +734,8 @@ function Menu.DrawMenu(menuName)
         local titleNode = TEN.Strings.DisplayString(
             menu.titleString, pos, menu.titleTextScale,
             ColorCombine(menu.titleTextColor, actualTransparency),
-            menu.titleTranslate, menu.titleTextFlags
-        )
-        TEN.Strings.ShowString(titleNode, 1 / 30)
+            menu.titleTranslate, menu.titleTextFlags)
+        TEN.Strings.ShowString(titleNode, DRAW_RATE)
     end
 
     local baseYItems = menu.itemsPosition.y
@@ -764,7 +764,7 @@ function Menu.DrawMenu(menuName)
             else
                 itemNode:SetFlags(menu.itemsTextFlags)
             end
-            TEN.Strings.ShowString(itemNode, 1 / 30)
+            TEN.Strings.ShowString(itemNode, DRAW_RATE)
         end
 
         -- Options
@@ -779,14 +779,13 @@ function Menu.DrawMenu(menuName)
                 TEN.Util.PercentToScreen(position),
                 menu.optionsTextScale,
                 ColorCombine(menu.optionsTextColor, actualTransparency),
-                menu.optionsTranslate
-            )
+                menu.optionsTranslate)
             if i == menu.currentItem then
                 optNode:SetFlags(menu.optionsSelectedFlags)
             else
                 optNode:SetFlags(menu.optionsTextFlags)
             end
-            TEN.Strings.ShowString(optNode, 1 / 30)
+            TEN.Strings.ShowString(optNode, DRAW_RATE)
         end
 
         ::continue::

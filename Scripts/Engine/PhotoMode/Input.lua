@@ -192,7 +192,7 @@ local function UpdatePlayerInput(state)
     if posChanged or rotChanged then
         if posChanged then Lara:SetPosition(newPos) end
         if rotChanged then Lara:SetRotation(newRot) end
-        pcall(function() Lara:ResetHair() end)
+        Lara:ResetHair()
     end
 end
 
