@@ -1292,6 +1292,8 @@ namespace TEN::Renderer
 			const auto& flashMoveable = *_moveableObjects[gunflash];
 			const auto& flashMesh = *flashMoveable.ObjectMeshes[0];
 
+			auto zRot = (gunflash == GAME_OBJECT_ID::ID_GUN_FLASH2) ? 0.0f : TO_RAD((short)std::hash<int>()(GlobalCounter));
+
 			// Divide gunflash tint by 2 because tinting uses multiplication and additive color which doesn't look good with overbright color values.
 			_stObjects.Objects[0].Color = settings.ColorizeMuzzleFlash ? settings.FlashColor : NEUTRAL_COLOR;
 
@@ -1318,6 +1320,7 @@ namespace TEN::Renderer
 				auto worldMatrix = itemPtr->InterpolatedAnimationTransforms[left ? LM_LHAND : LM_RHAND] * itemPtr->InterpolatedWorld;
 				worldMatrix = tMatrix * worldMatrix;
 				worldMatrix = rotMatrix * worldMatrix;
+				worldMatrix = Matrix::CreateRotationZ(zRot) * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
 
 				_stObjects.Objects[0].World = worldMatrix;
@@ -1344,9 +1347,61 @@ namespace TEN::Renderer
 		_stObjects.Skinned = (int)SkinningMode::Static;
 
 		_shaders.Bind(Shader::InstancedStatics);
-
 		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+
+		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
+		SetBlendMode(BlendMode::Additive);
+
+		// Per-slot draw helper: only transform and draw.
+		auto drawMuzzleFlash = [&](const CreatureMuzzleFlashInfo& flash, RendererItem& rItem, const RendererRoom& rRoom)
+		{
+			if (flash.Delay == 0 || flash.Bite.BoneID == NO_VALUE)
+				return;
+
+			auto flashObjectID = flash.SwitchToMuzzle2 ? (_moveableObjects[ID_GUN_FLASH2].has_value() ? ID_GUN_FLASH2 : ID_GUN_FLASH) : ID_GUN_FLASH;
+			auto zRot = flash.SwitchToMuzzle2 ? 0.0f : TO_RAD((short)std::hash<int>()(GlobalCounter));
+
+			const auto& flashMoveable = *_moveableObjects[flashObjectID];
+			const auto& flashMesh = *flashMoveable.ObjectMeshes[0];
+
+			for (const auto& flashBucket : flashMesh.Buckets)
+			{
+				if (flashBucket.BlendMode == BlendMode::Opaque)
+					continue;
+
+				if (flashBucket.Polygons.size() == 0)
+					continue;
+
+				BindBucketTextures(flashBucket, TextureSource::Moveables, false);
+				BindMaterial(flashBucket.MaterialIndex, false);
+
+				auto tMatrix = Matrix::CreateTranslation(flash.Bite.Position);
+				auto worldMatrix = rItem.InterpolatedAnimationTransforms[flash.Bite.BoneID] * rItem.InterpolatedWorld;
+				worldMatrix = tMatrix * worldMatrix;
+
+				if (flash.ApplyXRotation)
+				{
+					auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
+					worldMatrix = rotMatrixX * worldMatrix;
+				}
+
+				if (flash.ApplyZRotation)
+				{
+					auto rotMatrixZ = Matrix::CreateRotationZ(zRot);
+					worldMatrix = rotMatrixZ * worldMatrix;
+				}
+
+				ReflectMatrixOptionally(worldMatrix);
+
+				_stObjects.Objects[0].World = worldMatrix;
+				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
+
+				_numMoveablesDrawCalls++;
+			}
+		};
 
 		for (auto* rRoomPtr : view.RoomsToDraw)
 		{
@@ -1356,7 +1411,6 @@ namespace TEN::Renderer
 			for (auto* rItemPtr : rRoomPtr->ItemsToDraw)
 			{
 				auto& nativeItem = g_Level.Items[rItemPtr->ItemNumber];
-
 				if (!nativeItem.IsCreature())
 					continue;
 
@@ -1366,97 +1420,10 @@ namespace TEN::Renderer
 				_stObjects.Objects[0].Color = CREATURE_GUNFLASH_COLOR;
 				_stObjects.Objects[0].AmbientLight = rRoom.AmbientLight;
 				_stObjects.Objects[0].LightMode = (int)LightMode::Static;
+				BindInstancedStaticLights(rItemPtr->LightsToDraw, 0);
 
-				BindInstancedStaticLights(rItemPtr->LightsToDraw, 0); // FIXME: Is it really needed for gunflashes? -- Lwmte, 15.07.22
-
-				SetBlendMode(BlendMode::Additive);
-				SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
-
-				if (creature.MuzzleFlash[0].Delay != 0 && creature.MuzzleFlash[0].Bite.BoneID != -1)
-				{
-					auto flashObjectID = creature.MuzzleFlash[0].SwitchToMuzzle2 ?
-						_moveableObjects[ID_GUN_FLASH2].has_value() ? ID_GUN_FLASH2 : ID_GUN_FLASH :
-						ID_GUN_FLASH;
-
-					const auto& flashMoveable = *_moveableObjects[flashObjectID]->ObjectMeshes.at(0);
-					
-					for (const auto& flashBucket : flashMoveable.Buckets)
-					{
-						if (flashBucket.BlendMode == BlendMode::Opaque)
-							continue;
-
-						if (flashBucket.Polygons.size() == 0)
-							continue;
-
-						BindBucketTextures(flashBucket, TextureSource::Moveables, false);
-						BindMaterial(flashBucket.MaterialIndex, false);
-
-						auto tMatrix = Matrix::CreateTranslation(creature.MuzzleFlash[0].Bite.Position);
-						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
-						auto rotMatrixZ = Matrix::CreateRotationZ(TO_RAD(2 * GetRandomControl()));
-
-						auto worldMatrix = rItemPtr->InterpolatedAnimationTransforms[creature.MuzzleFlash[0].Bite.BoneID] * rItemPtr->InterpolatedWorld;
-						worldMatrix = tMatrix * worldMatrix;
-
-						if (creature.MuzzleFlash[0].ApplyXRotation)
-							worldMatrix = rotMatrixX * worldMatrix;
-
-						if (creature.MuzzleFlash[0].ApplyZRotation)
-							worldMatrix = rotMatrixZ * worldMatrix;
-
-						ReflectMatrixOptionally(worldMatrix);
-
-						_stObjects.Objects[0].World = worldMatrix;
-						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
-						DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
-
-						_numMoveablesDrawCalls++;
-					}
-				}
-
-				if (creature.MuzzleFlash[1].Delay != 0 && creature.MuzzleFlash[1].Bite.BoneID != -1)
-				{
-					auto flashObjectID = creature.MuzzleFlash[1].SwitchToMuzzle2 ?
-						_moveableObjects[ID_GUN_FLASH2].has_value() ? ID_GUN_FLASH2 : ID_GUN_FLASH :
-						ID_GUN_FLASH;
-
-					const auto& flashMoveable = *_moveableObjects[flashObjectID]->ObjectMeshes.at(0);
-					
-					for (auto& flashBucket : flashMoveable.Buckets)
-					{
-						if (flashBucket.BlendMode == BlendMode::Opaque)
-							continue;
-
-						if (flashBucket.Polygons.size() == 0)
-							continue;
-
-						BindBucketTextures(flashBucket, TextureSource::Moveables, false);
-						BindMaterial(flashBucket.MaterialIndex, false);
-
-						auto tMatrix = Matrix::CreateTranslation(creature.MuzzleFlash[1].Bite.Position);
-						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
-						auto rotMatrixZ = Matrix::CreateRotationZ(TO_RAD(2 * GetRandomControl()));
-
-						auto worldMatrix = rItemPtr->InterpolatedAnimationTransforms[creature.MuzzleFlash[1].Bite.BoneID] * rItemPtr->InterpolatedWorld;
-						worldMatrix = tMatrix * worldMatrix;
-
-						if (creature.MuzzleFlash[1].ApplyXRotation)
-							worldMatrix = rotMatrixX * worldMatrix;
-
-						if (creature.MuzzleFlash[1].ApplyZRotation)
-							worldMatrix = rotMatrixZ * worldMatrix;
-
-						ReflectMatrixOptionally(worldMatrix);
-
-						_stObjects.Objects[0].World = worldMatrix;
-						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
-						DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
-
-						_numMoveablesDrawCalls++;
-					}
-				}
+				drawMuzzleFlash(creature.MuzzleFlash[0], *rItemPtr, rRoom);
+				drawMuzzleFlash(creature.MuzzleFlash[1], *rItemPtr, rRoom);
 			}
 		}
 
