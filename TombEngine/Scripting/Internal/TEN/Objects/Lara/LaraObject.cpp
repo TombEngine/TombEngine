@@ -849,21 +849,23 @@ sol::table LaraObject::GetSkin(sol::this_state s)
 // Lara:SetSkin(TEN.Objects.ObjID.ANIMATING18, TEN.Objects.ObjID.ANIMATING19, TEN.Objects.ObjID.ANIMATING20, nil, nil)
 void LaraObject::SetSkin(sol::optional<GAME_OBJECT_ID> skin, sol::optional<GAME_OBJECT_ID> skinJoints, sol::optional<GAME_OBJECT_ID> skinScream, sol::optional<GAME_OBJECT_ID> hair1, sol::optional<GAME_OBJECT_ID> hair2)
 {
-
 	auto isValidObjectID = [](int id) -> bool
 	{
 		return (id > NO_VALUE && id < ID_NUMBER_OBJECTS && Objects[id].loaded);
 	};
 
 	auto* lara = GetLaraInfo(_moveable);
-
 	bool changed = false;
 
 	if (skin.has_value())
 	{
 		if (!isValidObjectID(skin.value()))
 		{
-			TENLog("SetSkin: skin object ID " + std::to_string(skin.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+			TENLog("SetSkin: skin object ID " + GetObjectName(skin.value()) + " (" + std::to_string(skin.value()) + ")" + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+		}
+		else if (Objects[skin.value()].nmeshes != Objects[ID_LARA_SKIN].nmeshes)
+		{
+			TENLog("SetSkin: skin object ID " + GetObjectName(skin.value()) + " (" + std::to_string(skin.value()) + ")" + " mesh count (" + std::to_string(Objects[skin.value()].nmeshes) + ") does not match LaraSkin mesh count (" + std::to_string(Objects[ID_LARA_SKIN].nmeshes) + ").", LogLevel::Warning, LogConfig::All);
 		}
 		else
 		{
@@ -876,7 +878,11 @@ void LaraObject::SetSkin(sol::optional<GAME_OBJECT_ID> skin, sol::optional<GAME_
 	{
 		if (!isValidObjectID(skinJoints.value()))
 		{
-			TENLog("SetSkin: skinJoints object ID " + std::to_string(skinJoints.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+			TENLog("SetSkin: skinJoints object ID " + GetObjectName(skinJoints.value()) + " (" + std::to_string(skinJoints.value()) + ")" + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+		}
+		else if (Objects[skinJoints.value()].nmeshes != Objects[ID_LARA_SKIN].nmeshes)
+		{
+			TENLog("SetSkin: skinJoints object ID " + GetObjectName(skinJoints.value()) + " (" + std::to_string(skinJoints.value()) + ")" + " mesh count (" + std::to_string(Objects[skinJoints.value()].nmeshes) + ") does not match LaraSkin mesh count (" + std::to_string(Objects[ID_LARA_SKIN].nmeshes) + ").", LogLevel::Warning, LogConfig::All);
 		}
 		else
 		{
@@ -889,7 +895,11 @@ void LaraObject::SetSkin(sol::optional<GAME_OBJECT_ID> skin, sol::optional<GAME_
 	{
 		if (!isValidObjectID(skinScream.value()))
 		{
-			TENLog("SetSkin: skinScream object ID " + std::to_string(skinScream.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+			TENLog("SetSkin: skinScream object ID " + GetObjectName(skinScream.value()) + " (" + std::to_string(skinScream.value()) + ")" + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+		}
+		else if (Objects[skinScream.value()].nmeshes != Objects[ID_LARA_SKIN].nmeshes)
+		{
+			TENLog("SetSkin: skinScream object ID " + GetObjectName(skinScream.value()) + " (" + std::to_string(skinScream.value()) + ")" + " mesh count (" + std::to_string(Objects[skinScream.value()].nmeshes) + ") does not match LaraSkin mesh count (" + std::to_string(Objects[ID_LARA_SKIN].nmeshes) + ").", LogLevel::Warning, LogConfig::All);
 		}
 		else
 		{
@@ -902,7 +912,11 @@ void LaraObject::SetSkin(sol::optional<GAME_OBJECT_ID> skin, sol::optional<GAME_
 	{
 		if (!isValidObjectID(hair1.value()))
 		{
-			TENLog("SetSkin: hair1 object ID " + std::to_string(hair1.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+			TENLog("SetSkin: hair1 object ID " + GetObjectName(hair1.value()) + " (" + std::to_string(hair1.value()) + ")" + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+		}
+		else if (Objects[hair1.value()].nmeshes != Objects[ID_HAIR_PRIMARY].nmeshes)
+		{
+			TENLog("SetSkin: hair1 object ID " + GetObjectName(hair1.value()) + " (" + std::to_string(hair1.value()) + ")" + " mesh count (" + std::to_string(Objects[hair1.value()].nmeshes) + ") does not match HairPrimary mesh count (" + std::to_string(Objects[ID_HAIR_PRIMARY].nmeshes) + ").", LogLevel::Warning, LogConfig::All);
 		}
 		else
 		{
@@ -915,7 +929,11 @@ void LaraObject::SetSkin(sol::optional<GAME_OBJECT_ID> skin, sol::optional<GAME_
 	{
 		if (!isValidObjectID(hair2.value()))
 		{
-			TENLog("SetSkin: hair2 object ID " + std::to_string(hair2.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+			TENLog("SetSkin: hair2 object ID " + GetObjectName(hair2.value()) + " (" + std::to_string(hair2.value()) + ")" + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+		}
+		else if (Objects[hair2.value()].nmeshes != Objects[ID_HAIR_PRIMARY].nmeshes)
+		{
+			TENLog("SetSkin: hair2 object ID " + GetObjectName(hair2.value()) + " (" + std::to_string(hair2.value()) + ")" + " mesh count (" + std::to_string(Objects[hair2.value()].nmeshes) + ") does not match HairPrimary mesh count (" + std::to_string(Objects[ID_HAIR_PRIMARY].nmeshes) + ").", LogLevel::Warning, LogConfig::All);
 		}
 		else
 		{
@@ -929,7 +947,6 @@ void LaraObject::SetSkin(sol::optional<GAME_OBJECT_ID> skin, sol::optional<GAME_
 
 	InitializeLaraMeshes(_moveable, false);
 	TEN::Effects::Hair::HairEffect.Initialize();
-
 	g_Renderer.UpdatePlayerSkinVertices(lara->Skin.Skin, lara->Skin.SkinJoints,
 		lara->Skin.HairPrimary, lara->Skin.HairSecondary);
 }
