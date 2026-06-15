@@ -229,12 +229,12 @@ namespace TEN::Entities::Vehicles
 		auto origin = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), CLICK(1))).ToVector3();
 		auto target = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), BLOCK(1))).ToVector3();
 
-		auto upvLightColor = PropertyHandler::Get(upvItem, "VehicleLightColor", ScriptColor(255, 255, 255));
-		auto upvLightIntensity = PropertyHandler::Get(upvItem, "VehicleLightIntensity", 0.5f);
-		auto upvLightCastShadow = PropertyHandler::Get(upvItem, "VehicleLightCastShadow", true);
-		auto upvLightRadius = PropertyHandler::Get(upvItem, "VehicleLightRadius",4);
-		auto upvLightFalloff = PropertyHandler::Get(upvItem, "VehicleLightFalloff", 2);
-		auto upvLightDistance = PropertyHandler::Get(upvItem, "VehicleLightDistance", 10);
+		auto upvLightColor = PropertyHandler::Get(upvItem, "UPVLightColor", ScriptColor(255, 255, 255));
+		auto upvLightIntensity = PropertyHandler::Get(upvItem, "UPVLightIntensity", 0.5f);
+		auto upvLightCastShadow = PropertyHandler::Get(upvItem, "UPVLightCastShadow", true);
+		auto upvLightRadius = PropertyHandler::Get(upvItem, "UPVLightRadius",4);
+		auto upvLightFalloff = PropertyHandler::Get(upvItem, "UPVLightFalloff", 2);
+		auto upvLightDistance = PropertyHandler::Get(upvItem, "UPVLightDistance", 10);
 
 		target = target - origin;
 		target.Normalize();
