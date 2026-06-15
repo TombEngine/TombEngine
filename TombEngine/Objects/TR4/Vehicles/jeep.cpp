@@ -36,7 +36,7 @@ namespace TEN::Entities::Vehicles
 
 	const std::vector<unsigned int> JeepJoints = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16 };
 	const std::vector<unsigned int> JeepBrakeLightJoints = { 15, 16 };
-	const std::vector<unsigned int> JeepHeadLightJoints = { 0 };
+	const std::vector<unsigned int> JeepHeadLightJoints = { 18 };
 
 	const std::vector<VehicleMountType> JeepMountTypes =
 	{
@@ -154,6 +154,7 @@ namespace TEN::Entities::Vehicles
 
 		jeepItem->MeshBits.Set(JeepJoints);
 		jeepItem->MeshBits.Clear(17);
+		jeepItem->MeshBits.Clear(18);
 		jeep->MomentumAngle = jeepItem->Pose.Orientation.y;
 	}
 
@@ -1370,15 +1371,24 @@ namespace TEN::Entities::Vehicles
 		int pitch = 0;
 		if (jeep->Flags)
 			collide = 0;
-		else if (laraItem->Animation.ActiveState == JS_MOUNT)
+		else if (laraItem->Animation.ActiveState == JS_MOUNT ||	laraItem->Animation.ActiveState == JS_DISMOUNT)
 		{
+			jeepItem->MeshBits.Clear(18);
 			drive = -1;
 			collide = 0;
 		}
 		else
 		{
 			drive = JeepUserControl(jeepItem, laraItem, floorHeight, &pitch);
+
+			bool renderLight = PropertyHandler::Get(jeepItem, "JeepLight", true);
 			DrawJeepLight(jeepItem);
+
+			if (renderLight)
+				jeepItem->MeshBits.Set(18);
+			else
+				jeepItem->MeshBits.Clear(18);
+			
 			HandleVehicleSpeedometer(jeepItem->Animation.Velocity.z, JEEP_VELOCITY_MAX / (float)VEHICLE_VELOCITY_SCALE);
 		}
 
