@@ -591,8 +591,6 @@ local function GetRawKey(actionID)
     
 end
 
-
-
 local function HandleInput(menuName)
     local menu = Menus[menuName]
     local itemCount = #menu.items
@@ -632,7 +630,7 @@ local function HandleInput(menuName)
             PerformFunction(menu.itemChangeFunction)
         end
 
-    elseif InputHelpers.GuiIsPulsed(GetRawKey(ActionID.MENU_LEFT), menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+    elseif (InputHelpers.GuiIsPulsed(GetRawKey(ActionID.MENU_LEFT), menu.inputTimer, true) or InputHelpers.GuiIsPulsed(ActionID.MOUSE_SCROLL_DOWN, menu.inputTimer)) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             PlaySound(menu.sounds and menu.sounds.menuSelect)
@@ -646,7 +644,7 @@ local function HandleInput(menuName)
             end
         end
 
-    elseif InputHelpers.GuiIsPulsed(GetRawKey(ActionID.MENU_RIGHT), menu.inputTimer, true) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
+    elseif (InputHelpers.GuiIsPulsed(GetRawKey(ActionID.MENU_RIGHT), menu.inputTimer, true) or InputHelpers.GuiIsPulsed(ActionID.MOUSE_SCROLL_UP, menu.inputTimer)) and menu.menuType ~= Menu.Type.ITEMS_ONLY then
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             PlaySound(menu.sounds and menu.sounds.menuSelect)

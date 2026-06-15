@@ -1716,6 +1716,11 @@ end
 -- ============================================================================
 
 LevelFuncs.Engine.PhotoMode.OnLoop = function()
+
+    local isTitle = Flow.GetCurrentLevelIndex() == 0
+
+    if isTitle then return end
+
     if States.IsActive() then return end
 
     if _photoModeExited then
