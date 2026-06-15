@@ -16,6 +16,8 @@
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Logic/LevelFunc.h"
 #include "Scripting/Internal/TEN/Objects/ObjectsHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyLuaConverters.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
@@ -24,6 +26,7 @@
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Effects::Items;
 using namespace TEN::Math;
+using namespace TEN::Scripting::Properties;
 using namespace TEN::Scripting::Types;
 
 /// Represents a moveable object in the game world.
@@ -104,7 +107,7 @@ static std::unique_ptr<Moveable> Create(GAME_OBJECT_ID objID, const std::string&
 
 		if (std::holds_alternative<int>(animNumber))
 		{
-			scriptMov->SetAnimNumber(std::get<int>(animNumber), objID);
+			scriptMov->SetAnimNumber(std::get<int>(animNumber), objID, 0);
 			scriptMov->SetFrameNumber(ValueOr<int>(frameNumber, 0));
 		}
 
@@ -216,7 +219,11 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_AttachObjCamera, &Moveable::AttachObjCamera,
 		ScriptReserved_AnimFromObject, &Moveable::AnimFromObject,
 		ScriptReserved_ShowInteractionHighlight, &Moveable::ShowInteractionHighlight,
-		ScriptReserved_HideInteractionHighlight, &Moveable::HideInteractionHighlight);
+		ScriptReserved_HideInteractionHighlight, &Moveable::HideInteractionHighlight,
+
+		ScriptReserved_GetProperty, &Moveable::GetProperty,
+		ScriptReserved_SetProperty, &Moveable::SetProperty,
+		ScriptReserved_HasInstanceProperty, &Moveable::HasInstanceProperty);
 }
 
 Moveable::Moveable(int movID, bool alreadyInitialized)
@@ -620,6 +627,59 @@ void Moveable::SetItemFlags(short value, int index)
 	_moveable->ItemFlags[index] = value;
 }
 
+/// Get a property value.
+// Tries to get an instance property first, then falls back to global object ID property. Returns nil if the property does not exist.
+// @function Moveable:GetProperty
+// @tparam string name The property name.
+// @treturn any The property value, or nil if not set. You can use @{Type} module functions to determine return value type.
+sol::object Moveable::GetProperty(sol::this_state state, const std::string& name) const
+{
+	if (!ValidatePropertyName(name))
+		return sol::nil;
+
+	auto* val = PropertyHandler::Get(*_moveable, name);
+
+	if (val == nullptr)
+		return sol::nil;
+
+	return PropertyValueToLua(state, *val);
+}
+
+/// Set a property value.
+// Will be set only for this moveable instance. If property does not exist, creates it.
+// If value is nil, the instance property is removed. Does not affect global object ID property set by @{Objects.SetMoveableProperty}.
+// @function Moveable:SetProperty
+// @tparam string name The property name.
+// @tparam any value The value of any given type: nil, bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}.
+void Moveable::SetProperty(const std::string& name, const sol::object& value)
+{
+	if (!ValidatePropertyName(name))
+		return;
+
+	if (value == sol::nil)
+	{
+		_moveable->Properties.Remove(name);
+	}
+	else
+	{
+		auto propValue = PropertyValueFromLua(value);
+		if (propValue.has_value())
+			_moveable->Properties.Set(name, *propValue);
+	}
+}
+
+/// Check if a property value was individually set for a given moveable instance.
+// @function Moveable:HasInstanceProperty
+// @tparam string name The property name.
+// @treturn bool True if an instance property exists.
+bool Moveable::HasInstanceProperty(const std::string& name) const
+{
+	if (!ValidatePropertyName(name))
+		return false;
+
+	return _moveable->Properties.Has(name);
+}
+
 // COMPATIBILITY. Do not restore the documentation for this method.
 short Moveable::GetLocationAI() const
 {
@@ -761,11 +821,12 @@ int Moveable::GetAnimNumber() const
 // Performs no bounds checking. *Ensure the number given is correct, else
 // moveable may end up in corrupted animation state.*
 // @function Moveable:SetAnim
-// @tparam int index The index of the desired animation.
-// @tparam[opt] int slot Slot ID of the desired anim (if omitted, moveable's own slot ID is used).
-void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex)
+// @tparam int index Index of the desired animation.
+// @tparam[opt] int slot Slot ID of the desired animation. If omitted, the moveable's own slot ID is used.
+// @tparam[opt] int blendFrames Number of frames to blend between current and new animation. If omitted, no blending will be performed.
+void Moveable::SetAnimNumber(int animNumber, sol::optional<int> slotIndex, sol::optional<int> blendFrames)
 {
-	SetAnimation(_moveable, (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber);
+	SetAnimationFromSlot(*_moveable, (GAME_OBJECT_ID)slotIndex.value_or(_moveable->ObjectNumber), animNumber, 0, blendFrames.value_or(0), BezierCurve2::EaseInOut);
 }
 
 /// Retrieve frame number.

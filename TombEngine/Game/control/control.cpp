@@ -138,6 +138,7 @@ void DrawPhase(bool isTitle, float interpolationFactor)
 	}
 
 	g_Renderer.Lock();
+	ApplyPendingWindowResize();
 }
 
 GameStatus GamePhase(bool insideMenu)
@@ -223,6 +224,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateFishSwarm();
 	UpdateFireflySwarm();
 	UpdateGlobalLensFlare();
+	UpdateMaterials();
 
 	// Update HUD.
 	g_Hud.Update(*LaraItem);
@@ -589,19 +591,27 @@ void CleanUp()
 
 void InitializeScripting(int levelIndex, bool loadGame)
 {
-	TENLog("Loading level script...", LogLevel::Info);
-
 	g_GameStringsHandler->ClearDisplayStrings();
 	g_GameScript->ResetScripts(!levelIndex || loadGame);
+
+	auto gameDir = g_GameFlow->GetGameDir();
+	auto autoexecScriptFileName = gameDir + "Scripts/Autoexec.lua";
+
+	if (std::filesystem::is_regular_file(autoexecScriptFileName))
+	{
+		TENLog("Loading autoexec script...", LogLevel::Info);
+		g_GameScript->ExecuteScriptFile(gameDir + "Scripts/Autoexec.lua");
+	}
 
 	const auto& level = *g_GameFlow->GetLevel(levelIndex);
 
 	// Run level script if it exists.
 	if (!level.ScriptFileName.empty())
 	{
-		auto levelScriptName = g_GameFlow->GetGameDir() + level.ScriptFileName;
+		auto levelScriptName = gameDir + level.ScriptFileName;
 		if (std::filesystem::is_regular_file(levelScriptName))
 		{
+			TENLog("Loading level script...", LogLevel::Info);
 			g_GameScript->ExecuteScriptFile(levelScriptName);
 		}
 		else
@@ -620,6 +630,13 @@ void InitializeScripting(int levelIndex, bool loadGame)
 						(area.y / g_Configuration.ScreenHeight) * DISPLAY_SPACE_RES.y),
 				Color(color), scale, flags);
 		});
+	}
+
+	// Execute property script blob.
+	if (!g_Level.PropertyBlob.empty())
+	{
+		TENLog("Executing property script blob...", LogLevel::Info);
+		g_GameScript->ExecuteString(g_Level.PropertyBlob);
 	}
 
 	// Play default background music.

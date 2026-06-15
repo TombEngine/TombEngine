@@ -20,6 +20,8 @@ public:
 	int GetWet() const;
 	bool GetAirborne() const;
 	void SetAirborne(bool newAirborne);
+	bool GetLocked() const;
+	void SetLocked(bool locked);
 
 	std::unique_ptr<Moveable> GetVehicle() const;
 	std::unique_ptr<Moveable> GetTarget() const;
