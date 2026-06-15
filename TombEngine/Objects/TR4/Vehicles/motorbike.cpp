@@ -156,7 +156,6 @@ namespace TEN::Entities::Vehicles
 
 		motorbikeItem->MeshBits.Set(MotorbikeJoints);
 		motorbike->MomentumAngle = motorbikeItem->Pose.Orientation.y;
-
 		motorbikeItem->MeshBits.Clear(MotorbikeHeadLightJoints);
 	}
 
@@ -1236,7 +1235,7 @@ namespace TEN::Entities::Vehicles
 		if (laraItem->Animation.ActiveState < MOTORBIKE_STATE_MOUNT ||
 			laraItem->Animation.ActiveState > MOTORBIKE_STATE_DISMOUNT)
 		{
-			bool renderLight = PropertyHandler::Get(motorbikeItem, "VehicleLight", true);
+			bool renderLight = PropertyHandler::Get(motorbikeItem, "MotorbikeLight", true);
 
 			DrawMotorbikeLight(motorbikeItem);
 
