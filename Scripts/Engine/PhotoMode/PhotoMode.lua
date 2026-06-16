@@ -1563,6 +1563,9 @@ function PhotoMode.Exit()
     States.Get().entryHoldCount = 0
     States.Get().timeInPhotoMode = 0
 
+	-- Trigger look to reset thumbstick camera
+	TEN.Input.PushKey(TEN.Input.ActionID.LOOK)
+	
     TEN.Sound.PlaySound(Configuration.SoundMap.menuClose)
     TEN.Util.PrintLog("PhotoMode: Exited.", TEN.Util.LogLevel.INFO)
 end
