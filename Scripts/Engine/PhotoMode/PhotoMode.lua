@@ -505,7 +505,7 @@ local function ProcessScreenshot()
     if state.screenshotMessage then
         state.screenshotMessage.timer = state.screenshotMessage.timer - 1
         if state.screenshotMessage.timer > 0 then
-            local msgPos = TEN.Util.PercentToScreen(TEN.Vec2(50, 86))
+            local msgPos = TEN.Util.PercentToScreen(TEN.Vec2(50, 85))
             local alpha  = math.min(255, state.screenshotMessage.timer * 20)
             local msgStr = TEN.Strings.DisplayString(
                 state.screenshotMessage.text, msgPos, 0.55,
