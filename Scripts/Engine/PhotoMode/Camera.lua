@@ -12,19 +12,21 @@ local Camera = {}
 -- allowed to reach.  Staying below 90° prevents the camera from flipping.
 local PITCH_LIMIT = 88.0
 local WORLD_UP = TEN.Vec3(0, -1, 0) -- negative Y is up in TEN
-local WALL_TOLERANCE = 256 -- how close the camera can get to walls (in units) before blocking movement
+local WALL_TOLERANCE = 64 -- Minimum distance the camera maintains from walls (in units).
+
 -- ============================================================================
 -- Helpers
 -- ============================================================================
-local function IsMoveBlocked(oldPos, newPos)
+
+local function ResolveCollision(oldPos, newPos)
     local state   = States.Get()
     local camRoom = state.cameraMesh:GetRoomNumber()
 
     local moveDir = newPos - oldPos
     local dist    = moveDir:Length()
 
-    if dist <= 0 then
-        return false
+    if dist <= 0.0 then
+        return oldPos
     end
 
     moveDir = moveDir:Normalize()
@@ -33,14 +35,103 @@ local function IsMoveBlocked(oldPos, newPos)
         oldPos,
         camRoom,
         moveDir,
-        WALL_TOLERANCE,
+        dist + WALL_TOLERANCE,
         TEN.Collision.IntersectionType.BOX,
         TEN.Collision.IntersectionType.BOX,
         false,
-		true
-    )
+        true)
 
-    return ray:HitRoom() or ray:HitMoveable() or ray:HitStatic()
+    -- No collision; allow full movement.
+    if not (ray:HitRoom() or ray:HitMoveable() or ray:HitStatic()) then
+		print((tostring(camRoom)))
+        return newPos
+    end
+
+    -- Room-based surface sliding: uses accurate surface normals to project
+    -- movement along the surface plane, then verifies the slide path is
+    -- clear to prevent corner penetration.
+    if ray:HitRoom() then
+        local normal = ray:GetRoomNormal()
+        if normal then
+            local dot = moveDir:Dot(normal)
+
+            -- Not moving toward surface; allow full movement.
+            if dot >= 0.0 then
+                return newPos
+            end
+
+            -- Project movement onto the surface plane.
+            local slideDir = TEN.Vec3(
+                moveDir.x - normal.x * dot,
+                moveDir.y - normal.y * dot,
+                moveDir.z - normal.z * dot)
+
+            local slideLen = slideDir:Length()
+            if slideLen >= 0.001 then
+                slideDir = slideDir:Normalize()
+
+                -- Verify the slide path is clear (prevents corner penetration).
+                local slideRay = TEN.Collision.Ray(
+                    oldPos, camRoom, slideDir, dist + WALL_TOLERANCE,
+                    TEN.Collision.IntersectionType.BOX,
+                    TEN.Collision.IntersectionType.BOX,
+                    false, true)
+
+                if not (slideRay:HitRoom() or slideRay:HitMoveable() or slideRay:HitStatic()) then
+                    return oldPos:Translate(slideDir, dist)
+                end
+            end
+
+            -- Perpendicular to surface or cornered with no safe slide path.
+            return oldPos
+        end
+    end
+
+    -- Fallback: attempt horizontal then vertical sliding via additional ray
+    -- tests. Used only for moveable or static hits where no room surface
+    -- normal is available. The engine uses strictly vertical bounding boxes
+    -- for moveables and statics (no pitch/roll), so these two planes cover
+    -- all possible slide directions.
+
+    -- Try horizontal slide (XZ plane).
+    local hDir = TEN.Vec3(moveDir.x, 0.0, moveDir.z)
+    local hLen = hDir:Length()
+    if hLen > 0.001 then
+        hDir = hDir:Normalize()
+        local hRay = TEN.Collision.Ray(
+            oldPos, camRoom, hDir, dist + WALL_TOLERANCE,
+            TEN.Collision.IntersectionType.BOX,
+            TEN.Collision.IntersectionType.BOX,
+            false, true)
+			
+        if not (hRay:HitRoom() or hRay:HitMoveable() or hRay:HitStatic()) then
+            return oldPos:Translate(hDir, hLen)
+        end
+    end
+
+    -- Try vertical slide.
+    local vSign = 0.0
+    if moveDir.y > 0.001 then
+        vSign = 1.0
+    elseif moveDir.y < -0.001 then
+        vSign = -1.0
+    end
+    if vSign ~= 0.0 then
+        local vDir = TEN.Vec3(0.0, vSign, 0.0)
+        local vDist = math.abs(moveDir.y) * dist
+        local vRay = TEN.Collision.Ray(
+            oldPos, camRoom, vDir, vDist + WALL_TOLERANCE,
+            TEN.Collision.IntersectionType.BOX,
+            TEN.Collision.IntersectionType.BOX,
+            false, true)
+			
+        if not (vRay:HitRoom() or vRay:HitMoveable() or vRay:HitStatic()) then
+            return oldPos:Translate(vDir, vDist)
+        end
+    end
+
+    -- No slide direction available; block.
+    return oldPos
 end
 
 -- ============================================================================
@@ -190,7 +281,21 @@ end
 local function ApplyPositions(newCam, newTgt)
     local state = States.Get()
     if state.collisionOn then
-        if IsMoveBlocked(state.cameraMesh:GetPosition(), newCam)  then return false end
+        local oldCam = state.cameraMesh:GetPosition()
+        local oldTgt = state.cameraTarget:GetPosition()
+        local adjustedCam = ResolveCollision(oldCam, newCam)
+
+        -- Calculate actual camera delta and apply the same offset to the target.
+        local delta = TEN.Vec3(
+            adjustedCam.x - oldCam.x,
+            adjustedCam.y - oldCam.y,
+            adjustedCam.z - oldCam.z)
+
+        newCam = adjustedCam
+        newTgt = TEN.Vec3(
+            oldTgt.x + delta.x,
+            oldTgt.y + delta.y,
+            oldTgt.z + delta.z)
     end
 
     -- Distance limit: prevent camera moving beyond maxCameraDistance from Lara's entry position.
