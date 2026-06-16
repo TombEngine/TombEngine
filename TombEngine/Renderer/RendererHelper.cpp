@@ -652,13 +652,14 @@ namespace TEN::Renderer
 
 		time(&rawtime);
 		auto time = localtime(&rawtime);
-		strftime(buffer, sizeof(buffer), "/TEN-%Y-%m-%d_%H-%M-%S.png", time);
+		strftime(buffer, sizeof(buffer), "TEN-%Y-%m-%d_%H-%M-%S.png", time);
 
 		auto screenPath = g_GameFlow->GetGameDir() + "Screenshots";
 
 		if (!std::filesystem::is_directory(screenPath))
 			std::filesystem::create_directory(screenPath);
 
+		screenPath += "/";
 		screenPath += buffer;
 
 		if (!_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), screenPath))
@@ -669,7 +670,7 @@ namespace TEN::Renderer
 		else
 		{
 			TENLog(fmt::format("Saved screenshot to '{}'.", screenPath), LogLevel::Info);
-			return screenPath;
+			return std::string(buffer);
 		}
 	}
 

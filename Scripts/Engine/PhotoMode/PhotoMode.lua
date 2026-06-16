@@ -417,60 +417,10 @@ local _screenshotPending     = false -- True when a screenshot request is in pro
 local _screenshotHideFrames  = 0     -- Countdown of frames to hide UI before capturing.
 local _screenshotMessage     = nil   -- { text = "message", timer = 0 }
 
-local function TriggerScreenshot()
-    if _screenshotPending then
-        return
-    end
-
-    TEN.View.FlashScreen(TEN.Color(0, 0, 0))
-    _screenshotPending    = true
-    _screenshotHideFrames = 5
-end
-
-local function ProcessScreenshot()
-    -- Process pending screenshot.
-    if _screenshotPending then
-        _screenshotHideFrames = _screenshotHideFrames - 1
-
-        if _screenshotHideFrames == 1 then
-            local path = TEN.View.SaveScreenshot()
-            if path then
-                TEN.Sound.PlaySound(Configuration.SoundMap.menuChoose)
-                _screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_saved") .. path, timer = 30 }
-            else
-                _screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_failed") .. "screenshot", timer = 30 }
-            end
-        end
-
-        if _screenshotHideFrames <= 0 then
-            TEN.View.FlashScreen(TEN.Color(100, 100, 100), 3)
-            _screenshotPending = false
-        end
-    end
-
-    -- Draw screenshot message.
-    if _screenshotMessage then
-        _screenshotMessage.timer = _screenshotMessage.timer - 1
-        if _screenshotMessage.timer > 0 then
-            local msgPos = TEN.Util.PercentToScreen(TEN.Vec2(50, 86))
-            local alpha  = math.min(255, _screenshotMessage.timer * 20)
-            local msgStr = TEN.Strings.DisplayString(
-                _screenshotMessage.text, msgPos, 0.55,
-                ColorCombine(Configuration.ColorMap.headerText, alpha),
-                true, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
-
-            if _screenshotHideFrames <= 0 then
-                TEN.Strings.ShowString(msgStr, 1 / 30)
-            end
-        else
-            _screenshotMessage = nil
-        end
-    end
-end
-
 -- ============================================================================
 -- Helpers
 -- ============================================================================
+
 local CopyTable = function(original)
     local copy = {}
     for k, v in pairs(original) do
@@ -516,6 +466,62 @@ PhotoMode.SetSettings = function(newSettings)
         end
     end
 end
+
+-- ============================================================================
+-- Screenshot processing
+-- ============================================================================
+
+local function TriggerScreenshot()
+    if _screenshotPending then
+        return
+    end
+
+    TEN.View.FlashScreen(TEN.Color(0, 0, 0))
+    _screenshotPending    = true
+    _screenshotHideFrames = 5
+end
+
+local function ProcessScreenshot()
+    -- Process pending screenshot.
+    if _screenshotPending then
+        _screenshotHideFrames = _screenshotHideFrames - 1
+
+        if _screenshotHideFrames == 1 then
+            local path = TEN.View.SaveScreenshot()
+            if path then
+                TEN.Sound.PlaySound(Configuration.SoundMap.menuChoose)
+                _screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_saved") .. path, timer = 30 }
+            else
+                _screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_failed") .. "screenshot", timer = 30 }
+            end
+        end
+
+        if _screenshotHideFrames <= 0 then
+            TEN.View.FlashScreen(TEN.Color(100, 100, 100), 3)
+            _screenshotPending = false
+        end
+    end
+
+    -- Draw screenshot message.
+    if _screenshotMessage then
+        _screenshotMessage.timer = _screenshotMessage.timer - 1
+        if _screenshotMessage.timer > 0 then
+            local msgPos = TEN.Util.PercentToScreen(TEN.Vec2(50, 86))
+            local alpha  = math.min(255, _screenshotMessage.timer * 20)
+            local msgStr = TEN.Strings.DisplayString(
+                _screenshotMessage.text, msgPos, 0.55,
+                ColorCombine(Configuration.ColorMap.headerText, alpha),
+                false, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
+
+            if _screenshotHideFrames <= 0 then
+                TEN.Strings.ShowString(msgStr, 1 / 30)
+            end
+        else
+            _screenshotMessage = nil
+        end
+    end
+end
+
 -- ============================================================================
 -- Option name builders (for selector-type options)
 -- ============================================================================
