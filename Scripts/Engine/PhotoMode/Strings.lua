@@ -61,14 +61,14 @@ local strings =
     pm_screenshot_failed = {"Failed to save "},
 
     -- Per-mode control hints (line 1 of the help bar)
-    pm_help_camera            = {"WASD=Move Mouse=Look RMB+Mouse=Raise/Lower"},
-    pm_help_character         = {"WASD=Move Mouse=Rotate RMB+Mouse=Raise/Lower"},
-    pm_help_light             = {"WASD=Move RMB+Mouse=Raise/Lower"},
-    pm_help_nav               = {"Q/E=Tab  Look/F12=Screenshot  Inventory=Exit"},
-    pm_help_camera_gamepad    = {"LS=Move RS=Look RT+RS=Raise/Lower"},
-    pm_help_character_gamepad = {"LS=Move RS=Rotate RT+RS=Raise/Lower"},
-    pm_help_light_gamepad     = {"LS=Move RT+RS=Raise/Lower"},
-    pm_help_nav_gamepad       = {"LS/RS=Tab LT=Screenshot Inventory=Exit"},
+    pm_help_camera            = {"WASD: Move  Mouse: Look  RMB+Mouse: Raise/Lower"},
+    pm_help_character         = {"WASD or LMB+Mouse: Move  Mouse: Rotate  RMB+Mouse: Raise/Lower"},
+    pm_help_light             = {"WASD or LMB+Mouse: Move  RMB+Mouse: Raise/Lower"},
+    pm_help_nav               = {"Q/E: Switch Tab  Look/F12: Screenshot  Inventory: Exit"},
+    pm_help_camera_gamepad    = {"LStick: Move  RStick: Look  RT+RStick: Raise/Lower"},
+    pm_help_character_gamepad = {"LStick: Move  RStick: Rotate  RT+RStick: Raise/Lower"},
+    pm_help_light_gamepad     = {"LStick: Move RT+RStick: Raise/Lower"},
+    pm_help_nav_gamepad       = {"LS/RS: Switch Tab  LT: Screenshot  Inventory: Exit"},
 }
 
 TEN.Flow.SetStrings(strings)
