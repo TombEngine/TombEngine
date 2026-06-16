@@ -417,7 +417,7 @@ local _spriteAnim          = {}   -- per-sprite lerp state: { sizeW, sizeH, r, g
 -- Helpers
 -- ============================================================================
 
-local CopyTable = function(original)
+local function CopyTable(original)
     local copy = {}
     for k, v in pairs(original) do
         if type(v) == "table" then
@@ -467,7 +467,7 @@ end
 -- Screenshot processing
 -- ============================================================================
 
-function TriggerScreenshot()
+local function TriggerScreenshot()
     local state = States.Get()
     if state.screenshotPending then
         return
@@ -478,7 +478,7 @@ function TriggerScreenshot()
     state.screenshotHideFrames = 5
 end
 
-function ProcessScreenshot()
+local function ProcessScreenshot()
     local state = States.Get()
 
     -- Process pending screenshot.

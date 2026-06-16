@@ -13,7 +13,7 @@ local Camera = {}
 -- Helpers
 -- ============================================================================
 
-function ResolveCollision(oldPos, newPos)
+local function ResolveCollision(oldPos, newPos)
     local state   = States.Get()
     local camRoom = state.cameraMesh:GetRoomNumber()
 
