@@ -202,6 +202,16 @@ namespace TEN::Scripting::View
 		Weather.Flash(color.GetR(), color.GetG(), color.GetB(), (ValueOr<float>(speed, 1.0)) / (float)FPS);
 	}
 
+	static TypeOrNil<std::string> SaveScreenshot()
+	{
+		auto path = g_Renderer.SaveScreenshot();
+
+		if (path.empty())
+			return sol::nil;
+		else
+			return path;
+	}
+
 	static float GetAspectRatio()
 	{
 		auto screenRes = g_Renderer.GetScreenResolution().ToVector2();
@@ -436,6 +446,12 @@ namespace TEN::Scripting::View
 		//@tparam[opt=Color(255&#44; 255&#44; 255)] Color color Color.
 		//@tparam[opt=1] float speed Speed in units per second. Value of 1 will make flash take one second. Clamped to [0.005, 1.0].
 		tableView.set_function(ScriptReserved_FlashScreen, &FlashScreen);
+
+		/// Save a screenshot to the Screenshots folder.
+		// Name of the screenshot is generated automatically based on the current date and time.
+		// @function SaveScreenshot
+		// @treturn string Path to the saved screenshot file. `nil` if saving failed.
+		tableView.set_function(ScriptReserved_SaveScreenshot, &SaveScreenshot);
 
 		/// Get the display resolution's aspect ratio.
 		// @function GetAspectRatio

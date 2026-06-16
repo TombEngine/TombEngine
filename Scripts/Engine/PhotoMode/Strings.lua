@@ -48,6 +48,7 @@ local strings =
     -- UI menu items
     pm_hide_ui        = {"Hide UI"},
     pm_hide_character  = {"Hide Character"},
+    pm_screenshot     = {"Take Screenshot"},
     pm_exit           = {"Exit Photo Mode"},
 
     -- Common
@@ -56,6 +57,8 @@ local strings =
 
     -- Display strings
     pm_mode_prefix    = {"Mode: "},
+    pm_screenshot_saved  = {"Saved to "},
+    pm_screenshot_failed = {"Failed to save "},
 
     -- Per-mode control hints (line 1 of the help bar)
     pm_help_camera    = {"WASD=Move Mouse=Look RMB+Mouse=Raise/Lower"},

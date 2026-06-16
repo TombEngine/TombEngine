@@ -323,6 +323,7 @@ GameStatus FreezePhase()
 
 		UpdateAllItems();
 		UpdateGlobalLensFlare();
+		Weather.Update();
 
 		UpdateCamera();
 

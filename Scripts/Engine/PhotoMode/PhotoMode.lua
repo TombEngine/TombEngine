@@ -412,6 +412,62 @@ local _callbacksRegistered = false
 local _photoModeExited     = false
 local _spriteAnim          = {}   -- per-sprite lerp state: { sizeW, sizeH, r, g, b }
 
+-- Screenshot state
+local _screenshotPending     = false -- True when a screenshot request is in progress.
+local _screenshotHideFrames  = 0     -- Countdown of frames to hide UI before capturing.
+local _screenshotMessage     = nil   -- { text = "message", timer = 0 }
+
+local function TriggerScreenshot()
+    if _screenshotPending then
+        return
+    end
+
+    TEN.View.FlashScreen(TEN.Color(0, 0, 0))
+    _screenshotPending    = true
+    _screenshotHideFrames = 5
+end
+
+local function ProcessScreenshot()
+    -- Process pending screenshot.
+    if _screenshotPending then
+        _screenshotHideFrames = _screenshotHideFrames - 1
+
+        if _screenshotHideFrames == 1 then
+            local path = TEN.View.SaveScreenshot()
+            if path then
+                TEN.Sound.PlaySound(111)
+                _screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_saved") .. path, timer = 30 }
+            else
+                _screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_failed") .. "screenshot", timer = 30 }
+            end
+        end
+
+        if _screenshotHideFrames <= 0 then
+            TEN.View.FlashScreen(TEN.Color(100, 100, 100), 3)
+            _screenshotPending = false
+        end
+    end
+
+    -- Draw screenshot message.
+    if _screenshotMessage then
+        _screenshotMessage.timer = _screenshotMessage.timer - 1
+        if _screenshotMessage.timer > 0 then
+            local msgPos = TEN.Util.PercentToScreen(TEN.Vec2(50, 86))
+            local alpha  = math.min(255, _screenshotMessage.timer * 20)
+            local msgStr = TEN.Strings.DisplayString(
+                _screenshotMessage.text, msgPos, 0.55,
+                ColorCombine(Configuration.ColorMap.headerText, alpha),
+                true, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
+
+            if _screenshotHideFrames <= 0 then
+                TEN.Strings.ShowString(msgStr, 1 / 30)
+            end
+        else
+            _screenshotMessage = nil
+        end
+    end
+end
+
 -- ============================================================================
 -- Helpers
 -- ============================================================================
@@ -1144,6 +1200,7 @@ local function BuildAllMenus()
         local m = Menu.Get(MENU_UI)
         if not m then return end
         local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
+        if name == "pm_screenshot" then TriggerScreenshot() end
         if name == "pm_exit" then PhotoMode.Exit() end
     end
 
@@ -1361,6 +1418,7 @@ local function BuildAllMenus()
     {
         { itemName = "pm_hide_ui",        options = BoolOptions(), currentOption = BoolToIndex(state.hideUI) },
         { itemName = "pm_hide_character",  options = BoolOptions(), currentOption = BoolToIndex(state.hideCharacter) },
+        { itemName = "pm_screenshot",     options = { acceptString }, currentOption = 1 },
         { itemName = "pm_exit",            options = { acceptString }, currentOption = 1 },
     },
     "Engine.PhotoMode.OnUIAccept", "Engine.PhotoMode.OnUIOptionChange", "pm_header_ui")
@@ -1764,6 +1822,11 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
         return
     end
 
+    -- Screenshot hotkey (F12).
+    if TEN.Input.IsKeyHit(TEN.Input.ActionID.F12) then
+        TriggerScreenshot()
+    end
+
     if (TEN.Input.IsKeyHit(TEN.Input.ActionID.INVENTORY) or TEN.Input.IsKeyHit(TEN.Input.ActionID.DESELECT)) and not state.hideUI then
         PhotoMode.Exit()
         _photoModeExited = true
@@ -1798,10 +1861,9 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
 
     -- Update and draw frames
     Borders.Update()
-    Borders.Draw()
 
     -- Draw UI (menus + headers) unless hidden
-    if not state.hideUI then
+    if not state.hideUI and _screenshotHideFrames == 0 then
         -- Draw header bar
         local headerAlpha = 255
         -- Use the alpha from the active menu for consistency
@@ -1812,6 +1874,7 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
                 headerAlpha = 0
             end
         end
+        Borders.Draw()
         DrawBackSprites(headerAlpha)
         DrawHeaderSprites(headerAlpha)
         DrawColorSelector()
@@ -1821,6 +1884,8 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
         Menu.DrawHeaders(HEADER_POS, HEADER_SCALE, headerAlpha)
         Menu.DrawActiveMenus()
     end
+
+    ProcessScreenshot()
 end
 
 -- ============================================================================

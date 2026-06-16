@@ -420,6 +420,7 @@ static constexpr char ScriptReserved_MakeEarthquake[]				= "MakeEarthquake";
 static constexpr char ScriptReserved_GetWind[]						= "GetWind";
 
 static constexpr char ScriptReserved_FlashScreen[]					= "FlashScreen";
+static constexpr char ScriptReserved_SaveScreenshot[]				= "SaveScreenshot";
 static constexpr char ScriptReserved_FadeIn[]						= "FadeIn";
 static constexpr char ScriptReserved_FadeOut[]						= "FadeOut";
 static constexpr char ScriptReserved_FadeOutComplete[]				= "FadeOutComplete";

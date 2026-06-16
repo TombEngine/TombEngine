@@ -43,7 +43,6 @@ local function ResolveCollision(oldPos, newPos)
 
     -- No collision; allow full movement.
     if not (ray:HitRoom() or ray:HitMoveable() or ray:HitStatic()) then
-		print((tostring(camRoom)))
         return newPos
     end
 
