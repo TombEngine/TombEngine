@@ -696,7 +696,6 @@ namespace TEN::Renderer
 		void RenderScene(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode = SceneRenderMode::Full);
 		void PrepareScene();
 		void ClearScene();
-		void SaveScreenshot();
 		void DrawDisplayPickup(const DisplayPickup& pickup);
 		int  Synchronize();
 		void AddString(int x, int y, const std::string& string, unsigned int color, int flags);
@@ -753,6 +752,7 @@ namespace TEN::Renderer
 		void SetLoadingScreen(const std::string& fileName);
 		std::unique_ptr<ITexture2D> SetTextureOrDefault(std::string path);
 		std::string GetDefaultAdapterName();
+		std::string SaveScreenshot();
 		const AdapterInfo& GetAdapterInfo() const;
 		void SaveOldState();
 

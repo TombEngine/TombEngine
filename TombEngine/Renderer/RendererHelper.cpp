@@ -645,7 +645,7 @@ namespace TEN::Renderer
 		return false;
 	}
 
-	void Renderer::SaveScreenshot()
+	std::string Renderer::SaveScreenshot()
 	{
 		char buffer[64];
 		time_t rawtime;
@@ -660,8 +660,17 @@ namespace TEN::Renderer
 			std::filesystem::create_directory(screenPath);
 
 		screenPath += buffer;
-		
-		_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), screenPath);
+
+		if (!_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), screenPath))
+		{
+			TENLog(fmt::format("Failed to save screenshot '{}' to disk.", screenPath), LogLevel::Error);
+			return std::string();
+		}
+		else
+		{
+			TENLog(fmt::format("Saved screenshot to '{}'.", screenPath), LogLevel::Info);
+			return screenPath;
+		}
 	}
 
 	std::optional<Vector2> Renderer::ProjectDisplayItemPointToScreen(const Vector3& worldPos) const
