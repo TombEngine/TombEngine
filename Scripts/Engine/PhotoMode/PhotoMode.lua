@@ -17,11 +17,11 @@
 -- The module self-registers its POSTLOOP and PREFREEZE callbacks, so no further wiring is needed.
 --
 -- Make sure the following WAD objects exist in your wad:
--- <br><br>
---        PHOTOMODE_SPRITES  — sprite sheet for menus
---        PHOTOMODE_FRAMES   — frame overlay sprite sheet
---        PHOTOMODE_ANIMS    — object that holds all custom photo-mode poses
---        CAMERA_TARGET      — used internally to drive the object camera
+--
+-- - PHOTOMODE_SPRITES  — sprite sheet for menus
+-- - PHOTOMODE_FRAMES   — frame overlay sprite sheet
+-- - PHOTOMODE_ANIMS    — object that holds all custom photo-mode poses
+-- - CAMERA_TARGET      — used internally to drive the object camera
 -- 
 -- It is possible to change settings on a per-level basis via @{PhotoMode.GetSettings} and @{PhotoMode.SetSettings} functions, but keep in mind that
 -- _Settings.lua is reread every time the level is reloaded_. Therefore, you need to implement custom settings management in your level script
