@@ -45,27 +45,48 @@ local function UpdateCameraInput(state)
     local speed     = state.moveSpeed
     local lookSpeed = state.lookSpeed
 
-    -- WASD / left analogue: forward/back + strafe
+    -- WASD / left analogue: forward/back + strafe.
+    -- Inputs are combined into a single normalised translation so that
+    -- diagonal speed matches cardinal speed and collision / distance
+    -- limiting are evaluated exactly once per frame on the final delta.
     local ls = TEN.Input.GetAnalogAxisValue(AxisID.STICK_LEFT)
-
     local lsX = ls and ApplyDeadZone(ls.x) or 0
     local lsY = ls and ApplyDeadZone(ls.y) or 0
 
+    local moveFwd   = 0
+    local moveRight = 0
+
     if TEN.Input.IsKeyHeld(ActionID.W) or lsY < -AXIS_DEAD_ZONE then
-        local s = (lsY < -AXIS_DEAD_ZONE) and (-lsY * speed) or speed
-        Camera.MoveForward(s)
+        moveFwd = (lsY < -AXIS_DEAD_ZONE) and -lsY or 1
     end
     if TEN.Input.IsKeyHeld(ActionID.S) or lsY > AXIS_DEAD_ZONE then
-        local s = (lsY > AXIS_DEAD_ZONE) and (lsY * speed) or speed
-        Camera.MoveBack(s)
+        moveFwd = (lsY > AXIS_DEAD_ZONE) and -lsY or -1
     end
     if TEN.Input.IsKeyHeld(ActionID.A) or lsX < -AXIS_DEAD_ZONE then
-        local s = (lsX < -AXIS_DEAD_ZONE) and (-lsX * speed) or speed
-        Camera.Strafe(-s)
+        moveRight = (lsX < -AXIS_DEAD_ZONE) and lsX or -1
     end
     if TEN.Input.IsKeyHeld(ActionID.D) or lsX > AXIS_DEAD_ZONE then
-        local s = (lsX > AXIS_DEAD_ZONE) and (lsX * speed) or speed
-        Camera.Strafe(s)
+        moveRight = (lsX > AXIS_DEAD_ZONE) and lsX or 1
+    end
+
+    if moveFwd ~= 0 or moveRight ~= 0 then
+        local dir   = Camera.GetDirection()
+        local right = Camera.GetRightVector()
+
+        local combined = TEN.Vec3(
+            dir.x * moveFwd + right.x * moveRight,
+            dir.y * moveFwd + right.y * moveRight,
+            dir.z * moveFwd + right.z * moveRight)
+
+        local len = combined:Length()
+        if len > 0.001 then
+            combined = combined:Normalize()
+            local moveAmount = speed * len
+            if moveAmount > speed then
+                moveAmount = speed
+            end
+            Camera.Move(combined, moveAmount)
+        end
     end
 
     -- Right analogue: rotate view
@@ -87,15 +108,18 @@ local function UpdateCameraInput(state)
         end
     end
 
-    -- Mouse: rotate view (unless right-click is held — that's handled by shared)
+    -- Mouse: rotate view, or translate vertically when a mouse button is held.
+    local leftClickHeld  = TEN.Input.IsKeyHeld(ActionID.MOUSE_CLICK_LEFT)
+    local clickHeld      = leftClickHeld or rightClickHeld
     local mouse = TEN.Input.GetAnalogAxisValue(AxisID.MOUSE)
     local mx = mouse and mouse.x or 0
     local my = mouse and mouse.y or 0
-    if rightClickHeld then
+    if clickHeld then
         if math.abs(my) > 0.001 then
-            local scale = speed * Configuration.Camera.mouseSensitivity
-            Camera.AdjustTargetVertical(my * scale)
-            Camera.RotateView(mx * scale, 0)
+            local vertScale = speed * Configuration.Camera.mouseSensitivity
+            local lookScale = lookSpeed * Configuration.Camera.mouseSensitivity
+            Camera.AdjustTargetVertical(my * vertScale)
+            Camera.RotateView(mx * lookScale, 0)
         end
     else
         if math.abs(mx) > 0.001 or math.abs(my) > 0.001 then
@@ -170,17 +194,26 @@ local function UpdatePlayerInput(state)
             newRot = TEN.Rotation(laraRot.x, laraRot.y + rsX * rotSpeed, laraRot.z)
         end
     else
-        -- Mouse X: rotate character Y; mouse Y: move up/down (right-click held)
+        -- Mouse: rotate character Y, or move when a mouse button is held.
+        -- LMB + mouse Y/X = horizontal (camera-relative XZ).
+        -- RMB + mouse Y   = vertical.
+        local leftClickHeld  = TEN.Input.IsKeyHeld(ActionID.MOUSE_CLICK_LEFT)
         local rightClickHeld = TEN.Input.IsKeyHeld(ActionID.MOUSE_CLICK_RIGHT)
         local mouse = TEN.Input.GetAnalogAxisValue(AxisID.MOUSE)
         local mx = mouse and mouse.x or 0
         local my = mouse and mouse.y or 0
         local scale = Configuration.Camera.mouseSensitivity * 2
 
-        if rightClickHeld and math.abs(my) > 0.001 then
-            scale = scale / 2
-            newPos = TEN.Vec3(newPos.x, newPos.y + my * scale * speed, newPos.z)
+        if leftClickHeld and (math.abs(mx) > 0.001 or math.abs(my) > 0.001) then
+            -- Horizontal movement: mouse Y = forward/back, mouse X = strafe.
+            local hScale = scale * speed / 2
+            newPos = newPos - (fwd * my * hScale)
+            newPos = newPos + (right * mx * hScale)
+        elseif rightClickHeld and math.abs(my) > 0.001 then
+            -- Vertical movement.
+            newPos = TEN.Vec3(newPos.x, newPos.y + my * scale / 2 * speed, newPos.z)
         else
+            -- Y-axis rotation.
             newRot = TEN.Rotation(laraRot.x, laraRot.y + mx * scale * rotSpeed, laraRot.z)
         end
     end
@@ -242,7 +275,6 @@ local function UpdateLightInput(state)
 
     -- Right analogue Y: move light up/down (unless R2 held — that's camera adjust)
     local r2Held = TEN.Input.IsKeyHeld(ActionID.GAMEPAD_RIGHT_TRIGGER)
-    local rightClickHeld = TEN.Input.IsKeyHeld(ActionID.MOUSE_CLICK_RIGHT)
 
     if r2Held then
         local rs = TEN.Input.GetAnalogAxisValue(AxisID.STICK_RIGHT)
@@ -252,14 +284,25 @@ local function UpdateLightInput(state)
         end
     end
 
-    -- Mouse Y: move light up/down (unless right-click held — that's camera adjust)
-    if rightClickHeld then
-        local mouse = TEN.Input.GetAnalogAxisValue(AxisID.MOUSE)
-        local my = mouse and mouse.y or 0
-        if math.abs(my) > 0.001 then
-            local scale = Configuration.Camera.mouseSensitivity * 2
-            lightPos = TEN.Vec3(lightPos.x, lightPos.y + my * scale * speed, lightPos.z)
-        end
+    -- Mouse: move light.
+    -- LMB + mouse Y/X = horizontal (camera-relative XZ).
+    -- RMB + mouse Y   = vertical.
+    local leftClickHeld  = TEN.Input.IsKeyHeld(ActionID.MOUSE_CLICK_LEFT)
+    local rightClickHeld = TEN.Input.IsKeyHeld(ActionID.MOUSE_CLICK_RIGHT)
+    local mouse = TEN.Input.GetAnalogAxisValue(AxisID.MOUSE)
+    local mx = mouse and mouse.x or 0
+    local my = mouse and mouse.y or 0
+    local scale = Configuration.Camera.mouseSensitivity * 2
+
+    if leftClickHeld and (math.abs(mx) > 0.001 or math.abs(my) > 0.001) then
+        -- Horizontal movement: mouse Y = forward/back, mouse X = strafe.
+        lightPos = lightPos - (fwd * my * scale * speed)
+        lightPos = lightPos + (right * mx * scale * speed)
+    end
+
+    if rightClickHeld and math.abs(my) > 0.001 then
+        -- Vertical movement.
+        lightPos = TEN.Vec3(lightPos.x, lightPos.y + my * scale * speed, lightPos.z)
     end
 
     state.lightPos = lightPos

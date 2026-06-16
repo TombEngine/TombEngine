@@ -47,7 +47,7 @@ local strings =
 
     -- UI menu items
     pm_hide_ui        = {"Hide UI"},
-    pm_hide_character  = {"Hide Character"},
+    pm_hide_character = {"Hide Character"},
     pm_screenshot     = {"Take Screenshot"},
     pm_exit           = {"Exit Photo Mode"},
 
@@ -56,15 +56,15 @@ local strings =
     pm_press          = {"Accept"},
 
     -- Display strings
-    pm_mode_prefix    = {"Mode: "},
+    pm_mode_prefix       = {"Mode: "},
     pm_screenshot_saved  = {"Saved to "},
     pm_screenshot_failed = {"Failed to save "},
 
     -- Per-mode control hints (line 1 of the help bar)
-    pm_help_camera    = {"WASD=Move Mouse=Look RMB+Mouse=Raise/Lower"},
-    pm_help_character = {"WASD=Move Mouse=Rotate RMB+Mouse=Raise/Lower"},
-    pm_help_light     = {"WASD=Move RMB+Mouse=Raise/Lower"},
-    pm_help_nav       = {"Q/E=Tab  Look=Hide UI  Inventory=Exit"},
+    pm_help_camera            = {"WASD=Move Mouse=Look RMB+Mouse=Raise/Lower"},
+    pm_help_character         = {"WASD=Move Mouse=Rotate RMB+Mouse=Raise/Lower"},
+    pm_help_light             = {"WASD=Move RMB+Mouse=Raise/Lower"},
+    pm_help_nav               = {"Q/E=Tab  Look=Hide UI  Inventory=Exit"},
     pm_help_camera_gamepad    = {"LS=Move RS=Look RT+RS=Raise/Lower"},
     pm_help_character_gamepad = {"LS=Move RS=Rotate RT+RS=Raise/Lower"},
     pm_help_light_gamepad     = {"LS=Move RT+RS=Raise/Lower"},

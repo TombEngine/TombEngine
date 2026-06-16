@@ -12,7 +12,7 @@ local Camera = {}
 -- allowed to reach.  Staying below 90° prevents the camera from flipping.
 local PITCH_LIMIT = 88.0
 local WORLD_UP = TEN.Vec3(0, -1, 0) -- negative Y is up in TEN
-local WALL_TOLERANCE = 64 -- Minimum distance the camera maintains from walls (in units).
+local WALL_TOLERANCE = 256 -- Minimum distance the camera maintains from walls (in units).
 
 -- ============================================================================
 -- Helpers
@@ -327,6 +327,16 @@ function Camera.Strafe(speed)
     local right  = Camera.GetRightVector()
     local newCam = state.cameraMesh:GetPosition():Translate(right, speed)
     local newTgt = state.cameraTarget:GetPosition():Translate(right, speed)
+    ApplyPositions(newCam, newTgt)
+end
+
+-- Translate camera and target along an arbitrary (pre-normalized) direction.
+-- Used by combined WASD input so collision and distance limiting are applied
+-- once per frame rather than per-axis.
+function Camera.Move(dir, amount)
+    local state  = States.Get()
+    local newCam = state.cameraMesh:GetPosition():Translate(dir, amount)
+    local newTgt = state.cameraTarget:GetPosition():Translate(dir, amount)
     ApplyPositions(newCam, newTgt)
 end
 

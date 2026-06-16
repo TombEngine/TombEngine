@@ -435,7 +435,7 @@ local function ProcessScreenshot()
         if _screenshotHideFrames == 1 then
             local path = TEN.View.SaveScreenshot()
             if path then
-                TEN.Sound.PlaySound(111)
+                TEN.Sound.PlaySound(Configuration.SoundMap.menuChoose)
                 _screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_saved") .. path, timer = 30 }
             else
                 _screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_failed") .. "screenshot", timer = 30 }

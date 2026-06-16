@@ -55,7 +55,7 @@ local Outfits =
     skin = {
             TEN.Objects.ObjID.ANIMATING10, TEN.Objects.ObjID.ANIMATING11,
             TEN.Objects.ObjID.ANIMATING12, TEN.Objects.ObjID.ANIMATING13
-          },
+           },
     meshVisible = "all",
   },
   {

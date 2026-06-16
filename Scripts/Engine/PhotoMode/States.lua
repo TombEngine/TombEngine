@@ -70,7 +70,7 @@ local State =
     lightEnabled    = Configuration.Light.defaultEnabled,
     lightSource     = States.LightSource.MANUAL,
     lightPos        = TEN.Vec3(0, 0, 0),
-    lightIntensity   = Configuration.Light.defaultIntensity,
+    lightIntensity  = Configuration.Light.defaultIntensity,
     lightRadius     = Configuration.Light.defaultRadius,
     lightShadows    = Configuration.Light.defaultShadows,
     lightColorIndex = 1,
@@ -82,12 +82,12 @@ local State =
     tintIntensity  = 0,
 
     -- Outfit / Weapons
-    appliedSkin        = false,
-    appliedSkinnedMesh = false,
-    hiddenMeshes       = {},
+    appliedSkin         = false,
+    appliedSkinnedMesh  = false,
+    hiddenMeshes        = {},
     swappedWeaponMeshes = {},
-    outfitIndex        = 1,
-    weaponIndex        = 1,
+    outfitIndex         = 1,
+    weaponIndex         = 1,
 
     -- Frame overlay
     frameIndex = 1, -- index into Configuration.Frames.presets (1 = None)
@@ -279,41 +279,41 @@ end
 -- ============================================================================
 
 function States.ResetToEntry()
-    State.controlMode         = States.Mode.CAMERA
-    State.moveSpeed           = Configuration.Camera.defaultMoveSpeed
-    State.lookSpeed           = Configuration.Camera.defaultLookSpeed
-    State.collisionOn         = true
-    State.limitCameraDistance = Configuration.Camera.defaultLimitDistance
-    State.maxCameraDistance   = Configuration.Camera.defaultMaxDistance
-    State.fov           = State.snapshot and State.snapshot.fov or Configuration.Lens.defaultFOV
-    State.roll          = Configuration.Lens.defaultRoll
-    State.animIndex     = 1
-    State.lightEnabled  = Configuration.Light.defaultEnabled
-    State.lightSource   = States.LightSource.MANUAL
-    State.lightRadius   = Configuration.Light.defaultRadius
-    State.lightColorIndex = 1
-    State.filterIndex   = 1
-    State.filterStrength = 1.0
-    State.tintIndex     = 1
-    State.tintIntensity = 0.0
-    State.hideUI             = false
-    State.hideCharacter      = false
-    State.appliedSkin        = false
-    State.appliedSkinnedMesh = false
-    State.hiddenMeshes       = {}
-    State.swappedWeaponMeshes = {}
-    State.outfitIndex                  = 1
-    State.weaponIndex         = 1
+    State.controlMode             = States.Mode.CAMERA
+    State.moveSpeed               = Configuration.Camera.defaultMoveSpeed
+    State.lookSpeed               = Configuration.Camera.defaultLookSpeed
+    State.collisionOn             = true
+    State.limitCameraDistance     = Configuration.Camera.defaultLimitDistance
+    State.maxCameraDistance       = Configuration.Camera.defaultMaxDistance
+    State.fov                     = State.snapshot and State.snapshot.fov or Configuration.Lens.defaultFOV
+    State.roll                    = Configuration.Lens.defaultRoll
+    State.animIndex               = 1
+    State.lightEnabled            = Configuration.Light.defaultEnabled
+    State.lightSource             = States.LightSource.MANUAL
+    State.lightRadius             = Configuration.Light.defaultRadius
+    State.lightColorIndex         = 1
+    State.filterIndex             = 1
+    State.filterStrength          = 1.0
+    State.tintIndex               = 1
+    State.tintIntensity           = 0.0
+    State.hideUI                  = false
+    State.hideCharacter           = false
+    State.appliedSkin             = false
+    State.appliedSkinnedMesh      = false
+    State.hiddenMeshes            = {}
+    State.swappedWeaponMeshes     = {}
+    State.outfitIndex             = 1
+    State.weaponIndex             = 1
     State.expressionIndex         = 1
     State.swappedExpressionMeshes = {}
-    State.dofMode          = Configuration.DepthOfField.defaultMode
-    State.dofFocusDistance = Configuration.DepthOfField.defaultFocusDistance
-    State.dofRange         = Configuration.DepthOfField.defaultRange
-    State.dofStrength      = Configuration.DepthOfField.defaultStrength
-    State.frameIndex        = 1
-    State.accessoryIndex    = 1
-    State.gunflashEnabled   = false
-    State.entryHoldCount    = 0
+    State.dofMode                 = Configuration.DepthOfField.defaultMode
+    State.dofFocusDistance        = Configuration.DepthOfField.defaultFocusDistance
+    State.dofRange                = Configuration.DepthOfField.defaultRange
+    State.dofStrength             = Configuration.DepthOfField.defaultStrength
+    State.frameIndex              = 1
+    State.accessoryIndex          = 1
+    State.gunflashEnabled         = false
+    State.entryHoldCount          = 0
 end
 
 return States
