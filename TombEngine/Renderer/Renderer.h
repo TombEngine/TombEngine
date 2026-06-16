@@ -232,6 +232,7 @@ namespace TEN::Renderer
 		// lights should be oversized (eventually ignore lights more than MAX_LIGHTS)
 
 		std::vector<RendererItem> _items;
+		std::vector<RendererEffect> _effects;
 
 		// Debug variables
 
@@ -389,6 +390,9 @@ namespace TEN::Renderer
 		void DrawRooms(RenderView& view, RendererPass rendererPass);
 		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);
 		void DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass);
+		void DrawEffects(RenderView& view, RendererPass rendererPass);
+		void DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass);
+		void CollectEffect(int itemNumber, RendererRoom& room);
 		void DrawWaterfalls(RendererItem* item, RenderView& view, float speed, RendererPass rendererPass);
 		void DrawBaddyGunflashes(RenderView& view);
 		void DrawStatics(RenderView& view, RendererPass rendererPass);

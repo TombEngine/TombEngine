@@ -405,8 +405,22 @@ namespace TEN::Animation
 		if (object.Animations.size() > animNumber)
 			return object.Animations[animNumber];
 
+		// Object has no animations at all (e.g. virtual objects like ID_BODY_PART). Return a static,
+		// motion-free dummy animation instead of falling back to object 0's animation (the player),
+		// which would otherwise leak the player's root motion and bounding box onto the caller.
+		if (object.Animations.empty())
+		{
+			static const AnimData DUMMY_ANIM = []()
+			{
+				auto anim = AnimData{};
+				anim.Frames.emplace_back();
+				return anim;
+			}();
+			return DUMMY_ANIM;
+		}
+
 		TENLog("Attempted to access invalid animation.", LogLevel::Error);
-		return (object.Animations.empty() ? Objects[0].Animations[0] : object.Animations[0]);
+		return object.Animations[0];
 	}
 
 	const AnimData& GetAnimData(GAME_OBJECT_ID objectID, int animNumber)

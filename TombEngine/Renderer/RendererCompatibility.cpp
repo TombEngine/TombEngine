@@ -46,6 +46,7 @@ namespace TEN::Renderer
 
 		auto item = RendererItem();
 		_items = std::vector<RendererItem>(allocatedItemSize, item);
+		_effects = std::vector<RendererEffect>(allocatedItemSize, RendererEffect());
 		
 		auto emptyNormalMap = std::vector<unsigned char>{ 128, 128, 255, 255 };
 		auto emptyORSHMap = std::vector<unsigned char>{ 255, 255, 0, 255 };

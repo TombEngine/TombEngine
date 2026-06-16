@@ -1755,4 +1755,75 @@ namespace TEN::Renderer
 	{
 		return _graphicsDevice->CreateTexture2D(1, 1, SurfaceFormat::SF_RGBA8_Unorm, color.data());
 	}
+
+	// Draws all FX-backed items (e.g. body parts, projectiles) as simple single-mesh effects, the same
+	// way the legacy effect system did: no skeleton, no animation, no root motion and no frustum culling.
+	void Renderer::DrawEffects(RenderView& view, RendererPass rendererPass)
+	{
+		// Effects are drawn immediately and don't participate in sorted transparency collection.
+		if (rendererPass == RendererPass::CollectTransparentFaces)
+			return;
+
+		_shaders.Bind(Shader::InstancedStatics);
+
+		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+
+		for (auto* roomPtr : view.RoomsToDraw)
+		{
+			if (IgnoreReflectionPassForRoom(roomPtr->RoomNumber))
+				continue;
+
+			for (auto* effectPtr : roomPtr->EffectsToDraw)
+			{
+				const auto& object = Objects[effectPtr->ObjectID];
+				if (!object.Hidden && object.loaded)
+					DrawEffect(view, effectPtr, rendererPass);
+			}
+		}
+	}
+
+	void Renderer::DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass)
+	{
+		if (effect->Mesh == nullptr)
+			return;
+
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
+		auto world = effect->InterpolatedWorld;
+		ReflectMatrixOptionally(world);
+
+		_stObjects.Objects[0].World = world;
+		_stObjects.Objects[0].Color = effect->Color;
+		_stObjects.Objects[0].AmbientLight = effect->AmbientLight;
+		_stObjects.Objects[0].LightMode = (int)LightMode::Dynamic;
+		BindInstancedStaticLights(effect->LightsToDraw, 0);
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+		const auto& mesh = *effect->Mesh;
+
+		for (int animated = 0; animated < 2; animated++)
+		{
+			for (const auto& bucket : mesh.Buckets)
+			{
+				if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+					continue;
+
+				int passes = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
+				for (int p = 0; p < passes; p++)
+				{
+					if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
+						continue;
+
+					BindBucketTextures(bucket, TextureSource::Moveables, animated);
+					BindMaterial(bucket.MaterialIndex, false);
+
+					DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
+
+					_numEffectsDrawCalls++;
+				}
+			}
+		}
+	}
 }

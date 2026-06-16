@@ -41,6 +41,7 @@ namespace TEN::Renderer
 			auto& room = _rooms[i];
 
 			room.ItemsToDraw.clear();
+			room.EffectsToDraw.clear();
 			room.StaticsToDraw.clear();
 			room.LightsToDraw.clear();
 			room.Decals.clear();
@@ -439,6 +440,15 @@ namespace TEN::Renderer
 			if (item.Model.Color.w < EPSILON)
 				continue;
 
+			// Items carrying FX data (e.g. body parts, projectiles) are drawn through the lightweight
+			// effect path - a single mesh with no skeleton, animation, root motion or frustum culling -
+			// exactly like the legacy effect system. Route them there and skip the moveable pipeline.
+			if (item.Data.is<FXInfo>())
+			{
+				CollectEffect(itemNumber, rendererRoom);
+				continue;
+			}
+
 			if (item.ObjectNumber == ID_LARA && UseSpotCam && (SpotcamOverlay || SpotcamDontDrawLara))
 				continue;
 
@@ -455,7 +465,7 @@ namespace TEN::Renderer
 			// Clip object by frustum only if it doesn't cast shadows and is not in mirror room,
 			// otherwise disappearing shadows or reflections may be seen if object gets out of frustum.
 			bool inFrustum = true;
-			
+
 			if (!isRoomReflected && rendererObject.ShadowType == ShadowMode::None)
 			{
 				inFrustum = false;
@@ -535,6 +545,49 @@ namespace TEN::Renderer
 
 			rendererRoom.ItemsToDraw.push_back(&newItem);
 		}
+	}
+
+	void Renderer::CollectEffect(int itemNumber, RendererRoom& room)
+	{
+		const auto& item = g_Level.Items[itemNumber];
+
+		const auto& object = Objects[item.ObjectNumber];
+		if (!object.loaded || item.Model.MeshIndex.empty())
+			return;
+
+		auto& effect = _effects[itemNumber];
+
+		effect.ObjectID = item.ObjectNumber;
+		effect.RoomNumber = item.RoomNumber;
+		effect.Position = item.Pose.Position.ToVector3();
+		effect.Translation = Matrix::CreateTranslation(effect.Position);
+		effect.Rotation = item.Pose.Orientation.ToRotationMatrix();
+		effect.Scale = Matrix::CreateScale(1.0f);
+		effect.World = effect.Rotation * effect.Translation;
+		effect.Color = item.Model.Color;
+		effect.AmbientLight = room.AmbientLight;
+		effect.Mesh = GetMesh(item.Model.MeshIndex[0]);
+
+		// On the first frame after spawn (or a teleport) collapse interpolation onto the current pose.
+		if (item.DisableInterpolation)
+		{
+			effect.PrevPosition = effect.Position;
+			effect.PrevTranslation = effect.Translation;
+			effect.PrevRotation = effect.Rotation;
+			effect.PrevWorld = effect.World;
+			effect.PrevScale = effect.Scale;
+		}
+
+		float interpFactor = GetInterpolationFactor();
+		effect.InterpolatedPosition = Vector3::Lerp(effect.PrevPosition, effect.Position, interpFactor);
+		effect.InterpolatedTranslation = Matrix::Lerp(effect.PrevTranslation, effect.Translation, interpFactor);
+		effect.InterpolatedRotation = Matrix::Lerp(effect.InterpolatedRotation, effect.Rotation, interpFactor);
+		effect.InterpolatedWorld = Matrix::Lerp(effect.PrevWorld, effect.World, interpFactor);
+		effect.InterpolatedScale = Matrix::Lerp(effect.PrevScale, effect.Scale, interpFactor);
+
+		CollectLightsForEffect(item.RoomNumber, &effect);
+
+		room.EffectsToDraw.push_back(&effect);
 	}
 
 	void Renderer::CollectStatics(short roomNumber, RenderView& renderView)
@@ -942,6 +995,15 @@ namespace TEN::Renderer
 
 			for (int j = 0; j < BONE_COUNT_MAX; j++)
 				item.PrevAnimationTransforms[j] = item.AnimationTransforms[j];
+		}
+
+		for (auto& effect : _effects)
+		{
+			effect.PrevPosition = effect.Position;
+			effect.PrevWorld = effect.World;
+			effect.PrevTranslation = effect.Translation;
+			effect.PrevRotation = effect.Rotation;
+			effect.PrevScale = effect.Scale;
 		}
 
 		for (auto& room : _rooms)

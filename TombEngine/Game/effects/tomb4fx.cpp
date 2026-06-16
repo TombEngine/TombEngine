@@ -1269,6 +1269,14 @@ void ExplodingDeath(short itemNumber, short flags)
 
 				fx.Pose.Orientation.x = 0;
 				fx.Pose.Orientation.y = Random::GenerateAngle();
+
+				// Body parts always spawned with a clean, enemy-independent pose in the legacy FX
+				// system (drawn at scale 1.0 with no inherited roll). Since effects are now items and
+				// CreateNewEffect copies the spawning entity's full Pose, explicitly clear the inherited
+				// roll and scale, otherwise tilted or scaled enemies would produce skewed body parts.
+				fx.Pose.Orientation.z = 0;
+				fx.Pose.Scale = Vector3::One;
+
 				fx.RoomNumber = item->RoomNumber;
 
 				if (!(flags & BODY_NO_RAND_VELOCITY))
