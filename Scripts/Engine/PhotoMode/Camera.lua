@@ -36,7 +36,8 @@ local function IsMoveBlocked(oldPos, newPos)
         WALL_TOLERANCE,
         TEN.Collision.IntersectionType.BOX,
         TEN.Collision.IntersectionType.BOX,
-        false
+        false,
+		true
     )
 
     return ray:HitRoom() or ray:HitMoveable() or ray:HitStatic()
