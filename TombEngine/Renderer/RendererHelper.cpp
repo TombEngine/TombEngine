@@ -422,12 +422,23 @@ namespace TEN::Renderer
 
 	Matrix Renderer::GetWorldMatrixForMoveable(const ItemInfo& item, Matrix* rotationMatrix, Matrix* translationMatrix) const
 	{
-		const auto& anim = GetAnimData(item);
-		auto rootMotionCounteract = anim.GetRootMotionCounteraction(item.Animation.FrameNumber);
+		auto orient = item.Pose.Orientation;
+		auto pos = item.Pose.Position.ToVector3();
 
-		auto orient = item.Pose.Orientation + rootMotionCounteract.Rotation;
+		// Apply root motion counteraction only for animated objects. Virtual objects without
+		// animations (e.g. ID_BODY_PART) would otherwise fetch a fallback animation and have their
+		// world matrix polluted by bogus root motion, making them spin erratically.
+		const auto& animObject = Objects[item.Animation.AnimObjectID];
+		if (!animObject.Animations.empty())
+		{
+			const auto& anim = GetAnimData(item);
+			auto rootMotionCounteract = anim.GetRootMotionCounteraction(item.Animation.FrameNumber);
+
+			orient += rootMotionCounteract.Rotation;
+			pos += Vector3::Transform(rootMotionCounteract.Translation, orient.ToRotationMatrix());
+		}
+
 		auto rotMatrix = orient.ToRotationMatrix();
-		auto pos = item.Pose.Position.ToVector3() + Vector3::Transform(rootMotionCounteract.Translation, rotMatrix);
 		auto transMatrix = Matrix::CreateTranslation(pos);
 
 		if (rotationMatrix != nullptr)
