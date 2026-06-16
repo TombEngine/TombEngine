@@ -15,20 +15,21 @@
 -- @module Engine.PhotoMode.Input
 -- @local
 
-local Camera   = require("Engine.PhotoMode.Camera")
+local Camera        = require("Engine.PhotoMode.Camera")
 local Configuration = require("Engine.PhotoMode.Configuration")
-local States   = require("Engine.PhotoMode.States")
+local Constants     = require("Engine.PhotoMode.Constants")
+local States        = require("Engine.PhotoMode.States")
 
 local ActionID = TEN.Input.ActionID
 local AxisID   = TEN.Input.AxisID
 local Input    = {}
 
+-- Dead-zone threshold for analogue axes.
+local AXIS_DEAD_ZONE = Constants.AXIS_DEAD_ZONE
+
 -- ============================================================================
 -- Helpers
 -- ============================================================================
-
--- Dead-zone threshold for analogue axes.
-local AXIS_DEAD_ZONE = 0.15
 
 local function ApplyDeadZone(v)
     if math.abs(v) < AXIS_DEAD_ZONE then return 0 end
@@ -79,7 +80,7 @@ local function UpdateCameraInput(state)
             dir.z * moveFwd + right.z * moveRight)
 
         local len = combined:Length()
-        if len > 0.001 then
+        if len > Constants.EPSILON then
             combined = combined:Normalize()
             local moveAmount = speed * len
             if moveAmount > speed then
@@ -115,14 +116,14 @@ local function UpdateCameraInput(state)
     local mx = mouse and mouse.x or 0
     local my = mouse and mouse.y or 0
     if clickHeld then
-        if math.abs(my) > 0.001 then
+        if math.abs(my) > Constants.EPSILON then
             local vertScale = speed * Configuration.Camera.mouseSensitivity
             local lookScale = lookSpeed * Configuration.Camera.mouseSensitivity
             Camera.AdjustTargetVertical(my * vertScale)
             Camera.RotateView(mx * lookScale, 0)
         end
     else
-        if math.abs(mx) > 0.001 or math.abs(my) > 0.001 then
+        if math.abs(mx) > Constants.EPSILON or math.abs(my) > Constants.EPSILON then
             local scale = lookSpeed * Configuration.Camera.mouseSensitivity
             Camera.RotateView(mx * scale, my * scale)
         end
@@ -149,13 +150,13 @@ local function UpdatePlayerInput(state)
     local camDir   = Camera.GetDirection()
     local fwd      = TEN.Vec3(camDir.x, 0, camDir.z)
     local fwdLen   = math.sqrt(fwd.x * fwd.x + fwd.z * fwd.z)
-    if fwdLen > 0.001 then
+    if fwdLen > Constants.EPSILON then
         fwd = TEN.Vec3(fwd.x / fwdLen, 0, fwd.z / fwdLen)
     end
     local right = Camera.GetRightVector()
     right = TEN.Vec3(right.x, 0, right.z)
     local rightLen = math.sqrt(right.x * right.x + right.z * right.z)
-    if rightLen > 0.001 then
+    if rightLen > Constants.EPSILON then
         right = TEN.Vec3(right.x / rightLen, 0, right.z / rightLen)
     end
 
@@ -204,12 +205,12 @@ local function UpdatePlayerInput(state)
         local my = mouse and mouse.y or 0
         local scale = Configuration.Camera.mouseSensitivity * 2
 
-        if leftClickHeld and (math.abs(mx) > 0.001 or math.abs(my) > 0.001) then
+        if leftClickHeld and (math.abs(mx) > Constants.EPSILON or math.abs(my) > Constants.EPSILON) then
             -- Horizontal movement: mouse Y = forward/back, mouse X = strafe.
             local hScale = scale * speed / 2
             newPos = newPos - (fwd * my * hScale)
             newPos = newPos + (right * mx * hScale)
-        elseif rightClickHeld and math.abs(my) > 0.001 then
+        elseif rightClickHeld and math.abs(my) > Constants.EPSILON then
             -- Vertical movement.
             newPos = TEN.Vec3(newPos.x, newPos.y + my * scale / 2 * speed, newPos.z)
         else
@@ -241,13 +242,13 @@ local function UpdateLightInput(state)
     local camDir = Camera.GetDirection()
     local fwd    = TEN.Vec3(camDir.x, 0, camDir.z)
     local fwdLen = math.sqrt(fwd.x * fwd.x + fwd.z * fwd.z)
-    if fwdLen > 0.001 then
+    if fwdLen > Constants.EPSILON then
         fwd = TEN.Vec3(fwd.x / fwdLen, 0, fwd.z / fwdLen)
     end
     local right    = Camera.GetRightVector()
     right          = TEN.Vec3(right.x, 0, right.z)
     local rightLen = math.sqrt(right.x * right.x + right.z * right.z)
-    if rightLen > 0.001 then
+    if rightLen > Constants.EPSILON then
         right = TEN.Vec3(right.x / rightLen, 0, right.z / rightLen)
     end
 
@@ -294,13 +295,13 @@ local function UpdateLightInput(state)
     local my = mouse and mouse.y or 0
     local scale = Configuration.Camera.mouseSensitivity * 2
 
-    if leftClickHeld and (math.abs(mx) > 0.001 or math.abs(my) > 0.001) then
+    if leftClickHeld and (math.abs(mx) > Constants.EPSILON or math.abs(my) > Constants.EPSILON) then
         -- Horizontal movement: mouse Y = forward/back, mouse X = strafe.
         lightPos = lightPos - (fwd * my * scale * speed)
         lightPos = lightPos + (right * mx * scale * speed)
     end
 
-    if rightClickHeld and math.abs(my) > 0.001 then
+    if rightClickHeld and math.abs(my) > Constants.EPSILON then
         -- Vertical movement.
         lightPos = TEN.Vec3(lightPos.x, lightPos.y + my * scale * speed, lightPos.z)
     end

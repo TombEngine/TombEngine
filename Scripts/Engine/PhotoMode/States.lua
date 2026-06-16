@@ -115,6 +115,11 @@ local State =
 
     -- Gun Flash
     gunflashEnabled = false,
+
+    -- Screenshot
+    screenshotPending    = false,
+    screenshotHideFrames = 0,
+    screenshotMessage    = nil,
 }
 
 -- ============================================================================

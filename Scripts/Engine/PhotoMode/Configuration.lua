@@ -125,38 +125,38 @@ Configuration.Player =
 Configuration.ColorPalette =
 {
     { color = TEN.Color(255, 255, 255) },
-    { color = TEN.Color(255, 0, 0) }, --  1  Red
-    { color = TEN.Color(255, 45, 0) }, --  2  Red-orange
-    { color = TEN.Color(255, 99, 0) }, --  3  Orange
+    { color = TEN.Color(255, 0, 0) },   --  1  Red
+    { color = TEN.Color(255, 45, 0) },  --  2  Red-orange
+    { color = TEN.Color(255, 99, 0) },  --  3  Orange
     { color = TEN.Color(255, 150, 0) }, --  4  Dark orange
     { color = TEN.Color(255, 199, 0) }, --  5  Amber
     { color = TEN.Color(255, 248, 0) }, --  6  Yellow
     { color = TEN.Color(215, 255, 0) }, --  7  Yellow-green
     { color = TEN.Color(167, 255, 0) }, --  8  Chartreuse
     { color = TEN.Color(116, 255, 0) }, --  9  Spring green
-    { color = TEN.Color(64, 255, 0) }, -- 10  Green
-    { color = TEN.Color(8, 255, 0) }, -- 11  Bright green
-    { color = TEN.Color(0, 255, 27) }, -- 12  Green
-    { color = TEN.Color(0, 255, 81) }, -- 13  Cyan-green
+    { color = TEN.Color(64, 255, 0) },  -- 10  Green
+    { color = TEN.Color(8, 255, 0) },   -- 11  Bright green
+    { color = TEN.Color(0, 255, 27) },  -- 12  Green
+    { color = TEN.Color(0, 255, 81) },  -- 13  Cyan-green
     { color = TEN.Color(0, 255, 133) }, -- 14  Teal-green
     { color = TEN.Color(0, 255, 183) }, -- 15  Teal
     { color = TEN.Color(0, 255, 231) }, -- 16  Cyan-teal
     { color = TEN.Color(0, 231, 255) }, -- 17  Cyan
     { color = TEN.Color(0, 183, 255) }, -- 18  Sky cyan
     { color = TEN.Color(0, 133, 255) }, -- 19  Sky blue
-    { color = TEN.Color(0, 81, 255) }, -- 20  Azure
-    { color = TEN.Color(0, 27, 255) }, -- 21  Blue
-    { color = TEN.Color(8, 0, 255) }, -- 22  Deep blue
-    { color = TEN.Color(64, 0, 255) }, -- 23  Blue-violet
+    { color = TEN.Color(0, 81, 255) },  -- 20  Azure
+    { color = TEN.Color(0, 27, 255) },  -- 21  Blue
+    { color = TEN.Color(8, 0, 255) },   -- 22  Deep blue
+    { color = TEN.Color(64, 0, 255) },  -- 23  Blue-violet
     { color = TEN.Color(116, 0, 255) }, -- 24  Violet-blue
     { color = TEN.Color(167, 0, 255) }, -- 25  Violet
     { color = TEN.Color(215, 0, 255) }, -- 26  Purple-violet
     { color = TEN.Color(248, 0, 248) }, -- 27  Purple-magenta
     { color = TEN.Color(255, 0, 199) }, -- 28  Magenta
     { color = TEN.Color(255, 0, 150) }, -- 29  Pink-magenta
-    { color = TEN.Color(255, 0, 99) }, -- 30  Hot pink
+    { color = TEN.Color(255, 0, 99) },  -- 30  Hot pink
     { color = TEN.Color(255, 0,  45) }, -- 31  Deep pink
-    { color = TEN.Color(255, 0,  0) }, -- 32  Red-pink
+    { color = TEN.Color(255, 0,  0) },  -- 32  Red-pink
 }
 
 Configuration.Light =
@@ -240,7 +240,7 @@ Configuration.Accessories =
 
 Configuration.Entry =
 {
-    holdFrames = 1,  -- held for N frames to enter
+    holdFrames = 1, -- held for N frames to enter
 }
 -- ============================================================================
 -- Header Sprites

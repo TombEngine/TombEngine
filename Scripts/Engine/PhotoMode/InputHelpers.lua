@@ -1,16 +1,18 @@
 -- ldignore
 -- Internal file used by the RingInventory module.
 
+local Constants = require("Engine.PhotoMode.Constants")
+
 local InputHelpers = {}
-local PULSE_DELAY = 0.25
-local FPS = 30
+local PULSE_DELAY = Constants.PULSE_DELAY
+local FPS = Constants.FPS
 -- Acceleration thresholds for option left/right navigation (hold to repeat faster).
-local ACCEL_INITIAL_DELAY = PULSE_DELAY   -- seconds after first press before repeating begins
-local ACCEL_SLOW_REPEAT   = PULSE_DELAY   -- repeat interval at start of hold
-local ACCEL_MED_REPEAT    = 0.08   -- repeat interval after ACCEL_MED_TIME seconds held
-local ACCEL_FAST_REPEAT   = 0.04   -- repeat interval after ACCEL_FAST_TIME seconds held
-local ACCEL_MED_TIME      = FPS * 1.5    -- hold time to reach medium speed
-local ACCEL_FAST_TIME     = FPS * 2   -- hold time to reach fast speed
+local ACCEL_INITIAL_DELAY = Constants.ACCEL_INITIAL_DELAY
+local ACCEL_SLOW_REPEAT   = Constants.ACCEL_SLOW_REPEAT
+local ACCEL_MED_REPEAT    = Constants.ACCEL_MED_REPEAT
+local ACCEL_FAST_REPEAT   = Constants.ACCEL_FAST_REPEAT
+local ACCEL_MED_TIME      = Constants.ACCEL_MED_TIME
+local ACCEL_FAST_TIME     = Constants.ACCEL_FAST_TIME
 
 local function GetAccelerationRate(timeactive)
     

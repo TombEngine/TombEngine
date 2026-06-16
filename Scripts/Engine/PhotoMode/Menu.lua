@@ -1,10 +1,11 @@
-local InputHelpers = require("Engine.PhotoMode.InputHelpers")
-local Configuration     = require("Engine.PhotoMode.Configuration")
+local InputHelpers  = require("Engine.PhotoMode.InputHelpers")
+local Configuration = require("Engine.PhotoMode.Configuration")
+local Constants     = require("Engine.PhotoMode.Constants")
 
 local COLOR_MAP  = Configuration.ColorMap
 local SOUND_MAP  = Configuration.SoundMap
-local ALPHA_MAX  = 255
-local ALPHA_MIN  = 0
+local ALPHA_MAX  = Constants.ALPHA_MAX
+local ALPHA_MIN  = Constants.ALPHA_MIN
 local ActionID   = TEN.Input.ActionID
 
 local Menu = {}
@@ -30,11 +31,11 @@ local Headers = {}            -- Ordered list of header definitions
 local ActiveHeader = 1        -- Currently selected header index
 local ActiveMenus  = {}       -- Set of currently active menus  { [menuName] = true }
 
-local LINE_SPACING = 6
-local SCROLL_SPEED = 0.2
-local FADE_SPEED   = Configuration.Animation.fadeSpeed
+local LINE_SPACING = Constants.LINE_SPACING
+local SCROLL_SPEED = Constants.SCROLL_SPEED
+local FADE_SPEED   = Constants.FADE_SPEED
 
-local DRAW_RATE = 1 / 30
+local DRAW_RATE = Constants.DRAW_RATE
 
 local ITEM_FLAGS_NORMAL = { Strings.DisplayStringOption.SHADOW }
 local TEXT_FLAGS_NORMAL = { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.CENTER }

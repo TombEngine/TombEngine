@@ -4,21 +4,16 @@
 -- attaching/detaching the object camera, and camera movement.
 
 local Configuration = require("Engine.PhotoMode.Configuration")
-local States   = require("Engine.PhotoMode.States")
+local Constants     = require("Engine.PhotoMode.Constants")
+local States        = require("Engine.PhotoMode.States")
 
 local Camera = {}
-
--- Maximum elevation angle (degrees from horizontal) the look-at vector is
--- allowed to reach.  Staying below 90° prevents the camera from flipping.
-local PITCH_LIMIT = 88.0
-local WORLD_UP = TEN.Vec3(0, -1, 0) -- negative Y is up in TEN
-local WALL_TOLERANCE = 256 -- Minimum distance the camera maintains from walls (in units).
 
 -- ============================================================================
 -- Helpers
 -- ============================================================================
 
-local function ResolveCollision(oldPos, newPos)
+function ResolveCollision(oldPos, newPos)
     local state   = States.Get()
     local camRoom = state.cameraMesh:GetRoomNumber()
 
@@ -35,7 +30,7 @@ local function ResolveCollision(oldPos, newPos)
         oldPos,
         camRoom,
         moveDir,
-        dist + WALL_TOLERANCE,
+        dist + Constants.WALL_TOLERANCE,
         TEN.Collision.IntersectionType.BOX,
         TEN.Collision.IntersectionType.BOX,
         false,
@@ -66,12 +61,12 @@ local function ResolveCollision(oldPos, newPos)
                 moveDir.z - normal.z * dot)
 
             local slideLen = slideDir:Length()
-            if slideLen >= 0.001 then
+            if slideLen >= Constants.EPSILON then
                 slideDir = slideDir:Normalize()
 
                 -- Verify the slide path is clear (prevents corner penetration).
                 local slideRay = TEN.Collision.Ray(
-                    oldPos, camRoom, slideDir, dist + WALL_TOLERANCE,
+                    oldPos, camRoom, slideDir, dist + Constants.WALL_TOLERANCE,
                     TEN.Collision.IntersectionType.BOX,
                     TEN.Collision.IntersectionType.BOX,
                     false, true)
@@ -95,10 +90,10 @@ local function ResolveCollision(oldPos, newPos)
     -- Try horizontal slide (XZ plane).
     local hDir = TEN.Vec3(moveDir.x, 0.0, moveDir.z)
     local hLen = hDir:Length()
-    if hLen > 0.001 then
+    if hLen > Constants.EPSILON then
         hDir = hDir:Normalize()
         local hRay = TEN.Collision.Ray(
-            oldPos, camRoom, hDir, dist + WALL_TOLERANCE,
+            oldPos, camRoom, hDir, dist + Constants.WALL_TOLERANCE,
             TEN.Collision.IntersectionType.BOX,
             TEN.Collision.IntersectionType.BOX,
             false, true)
@@ -110,16 +105,16 @@ local function ResolveCollision(oldPos, newPos)
 
     -- Try vertical slide.
     local vSign = 0.0
-    if moveDir.y > 0.001 then
+    if moveDir.y > Constants.EPSILON then
         vSign = 1.0
-    elseif moveDir.y < -0.001 then
+    elseif moveDir.y < -Constants.EPSILON then
         vSign = -1.0
     end
     if vSign ~= 0.0 then
         local vDir = TEN.Vec3(0.0, vSign, 0.0)
         local vDist = math.abs(moveDir.y) * dist
         local vRay = TEN.Collision.Ray(
-            oldPos, camRoom, vDir, vDist + WALL_TOLERANCE,
+            oldPos, camRoom, vDir, vDist + Constants.WALL_TOLERANCE,
             TEN.Collision.IntersectionType.BOX,
             TEN.Collision.IntersectionType.BOX,
             false, true)
@@ -264,8 +259,8 @@ end
 
 function Camera.GetRightVector()
     local dir   = Camera.GetDirection()
-    local right = dir:Cross(WORLD_UP)
-    if right:Length() < 0.001 then
+    local right = dir:Cross(Constants.WORLD_UP)
+    if right:Length() < Constants.EPSILON then
         return TEN.Vec3(1, 0, 0)
     end
     return right:Normalize()
@@ -369,7 +364,7 @@ function Camera.RotateView(yawDeg, pitchDeg)
 
     -- Keep the camera-to-target distance constant.
     local dist = tgtPos:Distance(camPos)
-    if dist < 0.001 then return end
+    if dist < Constants.EPSILON then return end
 
     local delta = tgtPos - camPos
     local hDist = Util.CalculateHorizontalDistance(camPos, tgtPos)
@@ -379,7 +374,7 @@ function Camera.RotateView(yawDeg, pitchDeg)
     local currentPitch = math.atan(delta.y, hDist)
 
     -- Apply deltas and clamp pitch.
-    local limitRad = math.rad(PITCH_LIMIT)
+    local limitRad = math.rad(Constants.PITCH_LIMIT)
     local newYaw   = currentYaw   + math.rad(yawDeg)
     local newPitch = math.max(-limitRad, math.min(limitRad, currentPitch + math.rad(pitchDeg)))
 

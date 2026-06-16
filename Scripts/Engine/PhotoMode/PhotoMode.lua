@@ -88,8 +88,8 @@
 --   <td>LS / RS</td>
 -- </tr>
 -- <tr>
---   <td>Toggle UI visibility</td>
---   <td>Look (NumPad 0)</td>
+--   <td>Take Screenshot</td>
+--   <td>Look (NumPad 0) / F12</td>
 --   <td>LT</td>
 -- </tr>
 -- <tr>
@@ -397,6 +397,7 @@
 local Borders       = require("Engine.PhotoMode.SpriteBorders")
 local Camera        = require("Engine.PhotoMode.Camera")
 local Configuration = require("Engine.PhotoMode.Configuration")
+local Constants     = require("Engine.PhotoMode.Constants")
 local Input         = require("Engine.PhotoMode.Input")
 local Menu          = require("Engine.PhotoMode.Menu")
 local Settings      = require("Engine.PhotoMode.Settings")
@@ -411,11 +412,6 @@ local PhotoMode = {}
 local _callbacksRegistered = false
 local _photoModeExited     = false
 local _spriteAnim          = {}   -- per-sprite lerp state: { sizeW, sizeH, r, g, b }
-
--- Screenshot state
-local _screenshotPending     = false -- True when a screenshot request is in progress.
-local _screenshotHideFrames  = 0     -- Countdown of frames to hide UI before capturing.
-local _screenshotMessage     = nil   -- { text = "message", timer = 0 }
 
 -- ============================================================================
 -- Helpers
@@ -471,53 +467,56 @@ end
 -- Screenshot processing
 -- ============================================================================
 
-local function TriggerScreenshot()
-    if _screenshotPending then
+function TriggerScreenshot()
+    local state = States.Get()
+    if state.screenshotPending then
         return
     end
 
     TEN.View.FlashScreen(TEN.Color(0, 0, 0))
-    _screenshotPending    = true
-    _screenshotHideFrames = 5
+    state.screenshotPending    = true
+    state.screenshotHideFrames = 5
 end
 
-local function ProcessScreenshot()
-    -- Process pending screenshot.
-    if _screenshotPending then
-        _screenshotHideFrames = _screenshotHideFrames - 1
+function ProcessScreenshot()
+    local state = States.Get()
 
-        if _screenshotHideFrames == 1 then
+    -- Process pending screenshot.
+    if state.screenshotPending then
+        state.screenshotHideFrames = state.screenshotHideFrames - 1
+
+        if state.screenshotHideFrames == 1 then
             local path = TEN.View.SaveScreenshot()
             if path then
                 TEN.Sound.PlaySound(Configuration.SoundMap.menuChoose)
-                _screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_saved") .. path, timer = 30 }
+                state.screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_saved") .. path, timer = 30 }
             else
-                _screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_failed") .. "screenshot", timer = 30 }
+                state.screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_failed") .. "screenshot", timer = 30 }
             end
         end
 
-        if _screenshotHideFrames <= 0 then
+        if state.screenshotHideFrames <= 0 then
             TEN.View.FlashScreen(TEN.Color(100, 100, 100), 3)
-            _screenshotPending = false
+            state.screenshotPending = false
         end
     end
 
     -- Draw screenshot message.
-    if _screenshotMessage then
-        _screenshotMessage.timer = _screenshotMessage.timer - 1
-        if _screenshotMessage.timer > 0 then
+    if state.screenshotMessage then
+        state.screenshotMessage.timer = state.screenshotMessage.timer - 1
+        if state.screenshotMessage.timer > 0 then
             local msgPos = TEN.Util.PercentToScreen(TEN.Vec2(50, 86))
-            local alpha  = math.min(255, _screenshotMessage.timer * 20)
+            local alpha  = math.min(255, state.screenshotMessage.timer * 20)
             local msgStr = TEN.Strings.DisplayString(
-                _screenshotMessage.text, msgPos, 0.55,
+                state.screenshotMessage.text, msgPos, 0.55,
                 ColorCombine(Configuration.ColorMap.headerText, alpha),
                 false, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
 
-            if _screenshotHideFrames <= 0 then
+            if state.screenshotHideFrames <= 0 then
                 TEN.Strings.ShowString(msgStr, 1 / 30)
             end
         else
-            _screenshotMessage = nil
+            state.screenshotMessage = nil
         end
     end
 end
@@ -1576,8 +1575,8 @@ end
 -- Header drawing position
 -- ============================================================================
 
-local HEADER_POS        = TEN.Vec2(50, 15)
-local HEADER_SCALE      = 1.0
+local HEADER_POS        = Constants.HEADER_POS
+local HEADER_SCALE      = Constants.HEADER_SCALE
 local SPRITE_ANIM_SPEED = 0.18  -- lerp factor per frame (higher = snappier)
 
 -- ============================================================================
@@ -1815,22 +1814,21 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
     state.timeInPhotoMode = state.timeInPhotoMode + 1
 
     local device = TEN.Input.GetLastInputDevice()
-    local hideKey = (device == TEN.Input.InputDevice.GAMEPAD) and TEN.Input.ActionID.GAMEPAD_LEFT_TRIGGER or TEN.Input.ActionID.LOOK
 
-    -- Toggle UI with Look key or L2
-    if (TEN.Input.IsKeyHit(hideKey) or (TEN.Input.IsKeyHit(TEN.Input.ActionID.INVENTORY) and state.hideUI)) then
-        state.hideUI = not state.hideUI
-        -- Sync the menu item so it shows Off when the UI is restored
+    -- Take screenshot with Look key, L2, or F12.
+    local screenshotKey = (device == TEN.Input.InputDevice.GAMEPAD) and TEN.Input.ActionID.GAMEPAD_LEFT_TRIGGER or TEN.Input.ActionID.LOOK
+    if TEN.Input.IsKeyHit(screenshotKey) or TEN.Input.IsKeyHit(TEN.Input.ActionID.F12) then
+        TriggerScreenshot()
+    end
+
+    -- When UI is hidden, pressing Inventory shows UI instead of exiting.
+    if TEN.Input.IsKeyHit(TEN.Input.ActionID.INVENTORY) and state.hideUI then
+        state.hideUI = false
         local mUI = Menu.Get(MENU_UI)
         if mUI then
             mUI:SetOptionIndexForItemName("pm_hide_ui", BoolToIndex(state.hideUI))
         end
         return
-    end
-
-    -- Screenshot hotkey (F12).
-    if TEN.Input.IsKeyHit(TEN.Input.ActionID.F12) then
-        TriggerScreenshot()
     end
 
     if (TEN.Input.IsKeyHit(TEN.Input.ActionID.INVENTORY) or TEN.Input.IsKeyHit(TEN.Input.ActionID.DESELECT)) and not state.hideUI then
@@ -1869,7 +1867,7 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
     Borders.Update()
 
     -- Draw UI (menus + headers) unless hidden
-    if not state.hideUI and _screenshotHideFrames == 0 then
+    if not state.hideUI and state.screenshotHideFrames == 0 then
         -- Draw header bar
         local headerAlpha = 255
         -- Use the alpha from the active menu for consistency
