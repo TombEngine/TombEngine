@@ -226,8 +226,7 @@ function Camera.Attach()
         state.cameraMesh:AttachObjCamera(
             Configuration.Camera.meshIndex,
             state.cameraTarget,
-            Configuration.Camera.targetIndex
-        )
+            Configuration.Camera.targetIndex)
     end
 end
 
