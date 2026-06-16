@@ -193,6 +193,9 @@ namespace TEN::Input
 			return;
 		}
 
+		// Do not snap mouse pointer to the window center when going from/to menus.
+		SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_CENTER, "0");
+
 		// Open whatever gamepad is connected at startup. Subsequent connections arrive via
 		// SDL_EVENT_GAMEPAD_ADDED through HandleSDLEvent.
 		OpenFirstGamepad();
@@ -237,6 +240,8 @@ namespace TEN::Input
 
 	void SetRelativeMouseMode(bool relative)
 	{
+		relative = relative || g_Renderer.IsFullScreen();
+
 		if (MouseRelativeMode == relative)
 			return;
 

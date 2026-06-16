@@ -360,7 +360,7 @@ namespace TEN::Renderer
 			BuildHierarchyRecursive(obj, childNode, obj->Skeleton);
 	}
 
-	bool Renderer::IsFullsScreen()
+	bool Renderer::IsFullScreen()
 	{
 		return (!_isWindowed);
 	}
