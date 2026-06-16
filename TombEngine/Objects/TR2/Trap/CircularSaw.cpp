@@ -7,12 +7,14 @@
 #include "Game/effects/spark.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Effects::Spark;
 using namespace TEN::Math;
 using namespace TEN::Math::Random;
+using namespace TEN::Scripting::Properties;
 
 namespace TEN::Entities::Traps
 {
@@ -81,7 +83,7 @@ namespace TEN::Entities::Traps
 				SoundEffect(SFX_TR2_SAW_REVVING, &item.Pose, SoundEnvironment::Land, 2, 4);
 				item.ItemFlags[5]--;
 			}
-			else if (item.TriggerFlags)
+			else if (PropertyHandler::Get(item, "CircularSawSparkles", item.TriggerFlags > 0))  
 			{
 				TriggerSawSparkles(&item);
 				SoundEffect(SFX_TR2_SAW_REVVING, &item.Pose, SoundEnvironment::Land, 2, 3);

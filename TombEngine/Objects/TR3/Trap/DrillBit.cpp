@@ -9,10 +9,12 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Specific/level.h"
 
 using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Smoke;
+using namespace TEN::Scripting::Properties;
 
 namespace TEN::Entities::Traps
 {	
@@ -32,13 +34,13 @@ namespace TEN::Entities::Traps
 
 			if (item.Animation.FrameNumber > DRILL_BIT_EFFECT_START_FRAME &&
 				item.Animation.FrameNumber < DRILL_BIT_EFFECT_END_FRAME &&
-				item.TriggerFlags)
+				PropertyHandler::Get(item, "DrillBitSparkles", item.TriggerFlags > 0))
 			{				
 				TriggerRicochetSpark(targetGameVector, Random::GenerateAngle(), 2, Vector4(1.0f, 0.9f, 0.1f, 1.0f));
 				TriggerRicochetSpark(targetGameVector, Random::GenerateAngle(), 4, Vector4(1.0f, 0.9f, 0.1f, 1.0f));
 				SpawnDynamicLight(targetGameVector.x, targetGameVector.y, targetGameVector.z, Random::GenerateInt(4, 12), 24, 16, 4);
 			}
-			else if (item.TriggerFlags)
+			else if (PropertyHandler::Get(item, "DrillBitSparkles", item.TriggerFlags > 0))
 			{
 				SpawnGunSmokeParticles(targetGameVector.ToVector3(), Vector3::Zero, item.RoomNumber, 0, LaraWeaponType::Pistol, 14);
 			}

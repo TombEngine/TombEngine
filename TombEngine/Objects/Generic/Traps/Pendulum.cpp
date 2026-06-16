@@ -4,9 +4,11 @@
 #include "Game/collision/Sphere.h"
 #include "Game/collision/collide_item.h"
 #include "Game/effects/effects.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Sphere;
+using namespace TEN::Scripting::Properties;
 
 namespace TEN::Entities::Generic
 {
@@ -15,7 +17,7 @@ namespace TEN::Entities::Generic
 		auto& item = g_Level.Items[itemNumber];
 
 		item.ItemFlags[0] = 2;
-		item.ItemFlags[3] = item.TriggerFlags;
+		item.ItemFlags[3] = PropertyHandler::Get(item, "PendulumDamage", item.TriggerFlags);
 	}
 
 	void ControlPendulum(short itemNumber)
@@ -49,7 +51,7 @@ namespace TEN::Entities::Generic
 			if (!TriggerActive(item))
 				return;
 
-			DoDamage(playerItem, abs(item->TriggerFlags));
+			DoDamage(playerItem, PropertyHandler::Get(item, "PendulumDamage", item->TriggerFlags));
 
 			TriggerLaraBlood();
 		}
