@@ -489,9 +489,9 @@ function ProcessScreenshot()
             local path = TEN.View.SaveScreenshot()
             if path then
                 TEN.Sound.PlaySound(Configuration.SoundMap.menuChoose)
-                state.screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_saved") .. path, timer = 30 }
+                state.screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_saved") .. path, timer = Constants.MESSAGE_TIMEOUT }
             else
-                state.screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_failed") .. "screenshot", timer = 30 }
+                state.screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_failed") .. "screenshot", timer = Constants.MESSAGE_TIMEOUT }
             end
         end
 
