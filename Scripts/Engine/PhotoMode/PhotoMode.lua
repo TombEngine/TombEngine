@@ -1156,7 +1156,7 @@ local function BuildAllMenus()
             m:SetOptionIndexForItemName("pm_outfit",     _outfitMenuMapReverse[state.outfitIndex] or 1)
             m:SetOptionIndexForItemName("pm_weapons",    _weaponMenuMapReverse[state.weaponIndex] or 1)
             m:SetOptionIndexForItemName("pm_expression", state.expressionIndex)
-            m:SetOptionIndexForItemName("pm_accessory",   state.accessoryIndex)
+            m:SetOptionIndexForItemName("pm_accessory",  state.accessoryIndex)
             m:SetOptionIndexForItemName("pm_gunflash",   BoolToIndex(state.gunflashEnabled))
         end
     end
@@ -1177,10 +1177,10 @@ local function BuildAllMenus()
             local mf = Menu.Get(MENU_FILTERS)
             if mf then
                 mf:SetOptionIndexForItemName("pm_preset",         state.filterIndex)
-                mf:SetOptionIndexForItemName("pm_strength",      ValueToOptionIndex(state.filterStrength, 0, 0.05))
-                mf:SetOptionIndexForItemName("pm_tint",          state.tintIndex)
+                mf:SetOptionIndexForItemName("pm_strength",       ValueToOptionIndex(state.filterStrength, 0, 0.05))
+                mf:SetOptionIndexForItemName("pm_tint",           state.tintIndex)
                 mf:SetOptionIndexForItemName("pm_tint_intensity", ValueToOptionIndex(state.tintIntensity, cfg.Filters.minTintIntensity, cfg.Filters.tintIntensityStep))
-                mf:SetOptionIndexForItemName("pm_frame_overlay", state.frameIndex)
+                mf:SetOptionIndexForItemName("pm_frame_overlay",  state.frameIndex)
             end
         end
     end
@@ -1421,10 +1421,10 @@ local function BuildAllMenus()
     -- ================================================================
     CreateMenu(MENU_UI,
     {
+        { itemName = "pm_hide_character", options = BoolOptions(), currentOption = BoolToIndex(state.hideCharacter) },
         { itemName = "pm_hide_ui",        options = { acceptString }, currentOption = 1 },
-        { itemName = "pm_hide_character",  options = BoolOptions(), currentOption = BoolToIndex(state.hideCharacter) },
         { itemName = "pm_screenshot",     options = { acceptString }, currentOption = 1 },
-        { itemName = "pm_exit",            options = { acceptString }, currentOption = 1 },
+        { itemName = "pm_exit",           options = { acceptString }, currentOption = 1 },
     },
     "Engine.PhotoMode.OnUIAccept", "Engine.PhotoMode.OnUIOptionChange", "pm_header_ui")
 
@@ -1433,11 +1433,11 @@ local function BuildAllMenus()
     -- ================================================================
     Menu.SetHeaders(
     {
-        { name = "",   menuName = MENU_EFFECTS, hideText = true },
+        { name = "", menuName = MENU_EFFECTS, hideText = true },
         { name = "", menuName = MENU_CHARACTER, hideText = true },
-        { name = "",     menuName = MENU_LIGHT, hideText = true },
-        { name = "",   menuName = MENU_FILTERS, hideText = true },
-        { name = "",        menuName = MENU_UI, hideText = true },
+        { name = "", menuName = MENU_LIGHT, hideText = true },
+        { name = "", menuName = MENU_FILTERS, hideText = true },
+        { name = "", menuName = MENU_UI, hideText = true },
     })
 
     Menu.SetHeaderSpacing(15)
@@ -1825,6 +1825,13 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
     local screenshotKey = (device == TEN.Input.InputDevice.GAMEPAD) and TEN.Input.ActionID.GAMEPAD_LEFT_TRIGGER or TEN.Input.ActionID.LOOK
     if TEN.Input.IsKeyHit(screenshotKey) or TEN.Input.IsKeyHit(TEN.Input.ActionID.F12) then
         TriggerScreenshot()
+    end
+
+    -- Toggle UI visibility with Draw key or North button.
+    local hideUIKey = (device == TEN.Input.InputDevice.GAMEPAD) and TEN.Input.ActionID.GAMEPAD_NORTH or TEN.Input.ActionID.DRAW
+    if TEN.Input.IsKeyHit(hideUIKey) then
+        state.hideUI = not state.hideUI
+        return
     end
 
     -- When UI is hidden, pressing Inventory or Deselect shows UI instead of exiting.

@@ -48,7 +48,7 @@ local strings =
     -- UI menu items
     pm_hide_ui        = {"Hide UI"},
     pm_hide_character = {"Hide Character"},
-    pm_screenshot     = {"Take Screenshot"},
+    pm_screenshot     = {"Take Photo"},
     pm_exit           = {"Exit Photo Mode"},
 
     -- Common
@@ -64,11 +64,12 @@ local strings =
     pm_help_camera            = {"WASD: Move  Mouse: Look  RMB+Mouse: Raise/Lower"},
     pm_help_character         = {"WASD or LMB+Mouse: Move  Mouse: Rotate  RMB+Mouse: Raise/Lower"},
     pm_help_light             = {"WASD or LMB+Mouse: Move  RMB+Mouse: Raise/Lower"},
-    pm_help_nav               = {"Q/E: Switch Tab  Look/F12: Screenshot  Inventory: Exit"},
     pm_help_camera_gamepad    = {"LStick: Move  RStick: Look  RT+RStick: Raise/Lower"},
     pm_help_character_gamepad = {"LStick: Move  RStick: Rotate  RT+RStick: Raise/Lower"},
     pm_help_light_gamepad     = {"LStick: Move RT+RStick: Raise/Lower"},
-    pm_help_nav_gamepad       = {"LS/RS: Switch Tab  LT: Screenshot  Inventory: Exit"},
 }
+
+strings.pm_help_nav           = {"Q/E: Switch Tab  Draw: " .. strings.pm_hide_ui[1] .. "  Look/F12: " .. strings.pm_screenshot[1] .. "  Inventory: Exit"}
+strings.pm_help_nav_gamepad   = {"LS/RS: Switch Tab  Y: " .. strings.pm_hide_ui[1] .. "  LT: " .. strings.pm_screenshot[1] .. "  Inventory: Exit"}
 
 TEN.Flow.SetStrings(strings)

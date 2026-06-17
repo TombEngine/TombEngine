@@ -7,7 +7,7 @@ local Constants = {}
 Constants.EPSILON = 0.001
 
 -- Camera limits.
-Constants.PITCH_LIMIT     = 88.0
+Constants.PITCH_LIMIT     = 85.0
 Constants.WORLD_UP        = TEN.Vec3(0, -1, 0)
 Constants.WALL_TOLERANCE  = 256
 
@@ -34,7 +34,7 @@ Constants.DRAW_RATE        = 1 / Constants.FPS
 Constants.MESSAGE_TIMEOUT  = Constants.FPS * 2
 
 -- Photo-mode UI layout.
-Constants.HEADER_POS   = TEN.Vec2(50, 15)
+Constants.HEADER_POS   = TEN.Vec2(50, 13)
 Constants.HEADER_SCALE = 1.0
 
 return Constants
