@@ -1596,7 +1596,7 @@ local function DrawColorSelector()
     local state = States.Get()
 
     -- Color selector strip constants (percent-screen coords, must match DrawBackSprites layout)
-    local COLOR_STRIP_X      = 23.2
+    local COLOR_STRIP_X      = 30.0
     local COLOR_STRIP_Y      = 33.8
     local COLOR_STRIP_W      = 14.0
     local COLOR_STRIP_H      = 8.0
@@ -1605,6 +1605,8 @@ local function DrawColorSelector()
     -- pm_color / pm_tint items when the rainbow strip is not expanded.
     -- Must be a plain white (or neutral) square sprite in your WAD.
     local COLOR_SWATCH_SPRITE = 8
+	local COLOR_SWATCH_W      = 3
+	local COLOR_SWATCH_X      = COLOR_STRIP_X
 
     -- Descriptor table for each colour-picking item
     local entries =
@@ -1634,7 +1636,7 @@ local function DrawColorSelector()
                 TEN.Vec2(COLOR_STRIP_W, COLOR_STRIP_H), TEN.Color(255, 255, 255, a))
             if strip then
                 strip:Draw(-3,
-                    TEN.View.AlignMode.CENTER,
+                    TEN.View.AlignMode.CENTER_RIGHT,
                     TEN.View.ScaleMode.FIT,
                     TEN.Effects.BlendID.ALPHA_BLEND)
             end
@@ -1644,7 +1646,7 @@ local function DrawColorSelector()
             local numOpts = #e.palette
             local optIdx  = m:GetCurrentOptionIndex()
 
-            local cursorX = anchors.CENTER_LEFT.x + (optIdx - 1) / numOpts * (anchors.CENTER_RIGHT.x - anchors.CENTER_LEFT.x)
+            local cursorX = anchors.CENTER_LEFT.x - COLOR_STRIP_W / 2 + (optIdx - 1) / numOpts * (anchors.CENTER_RIGHT.x - anchors.CENTER_LEFT.x)
             local cursorY = anchors.CENTER_LEFT.y
 
             local cursor = TEN.View.DisplaySprite(
@@ -1659,16 +1661,16 @@ local function DrawColorSelector()
             end
         elseif isActive then
             -- Small tinted swatch at the option column position
-            local pos = TEN.Vec2(COLOR_STRIP_X, COLOR_STRIP_Y)
+            local pos = TEN.Vec2(COLOR_SWATCH_X, COLOR_STRIP_Y)
             local col = e.palette[e.colorIndex]
             if pos and col then
                 local swatch = TEN.View.DisplaySprite(
                     TEN.Objects.ObjID.PHOTOMODE_SPRITES, COLOR_SWATCH_SPRITE,
                     pos, 0,
-                    TEN.Vec2(3, 3), TEN.Color(col.color.r, col.color.g, col.color.b, a))
+                    TEN.Vec2(COLOR_SWATCH_W, COLOR_SWATCH_W), TEN.Color(col.color.r, col.color.g, col.color.b, a))
                 if swatch then
                     swatch:Draw(-2,
-                        TEN.View.AlignMode.CENTER,
+                        TEN.View.AlignMode.CENTER_RIGHT,
                         TEN.View.ScaleMode.FIT,
                         TEN.Effects.BlendID.ALPHA_BLEND)
                 end
