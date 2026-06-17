@@ -553,37 +553,35 @@ namespace TEN::Input
 		// Detect whether specified action ID corresponds to a particular raw input action ID, 
 		// and if it does, record corresponding input device as the last used device.
 
-		for (auto userActionGroupID : USER_ACTION_GROUP_IDS)
+		for (auto rawActionGroupID : RAW_ACTION_GROUP_IDS)
 		{
-			const auto& userActionGroup = ACTION_ID_GROUPS[(int)userActionGroupID];
-			if (!Contains(userActionGroup, actionID))
-				continue;
-
-			for (auto rawActionGroupID : RAW_ACTION_GROUP_IDS)
+			const auto& rawActionGroup = ACTION_ID_GROUPS[(int)rawActionGroupID];
+			for (auto rawActionID : rawActionGroup)
 			{
-				const auto& rawActionGroup = ACTION_ID_GROUPS[(int)rawActionGroupID];
-				for (auto rawActionID : rawActionGroup)
+				if (g_Bindings.GetBoundKeyID(BindingProfileID::Raw, rawActionID) != keyID)
+					continue;
+
+				// Bypass mouse move events because these are easy to trigger accidentally.
+				if (rawActionID == In::MouseLeft || rawActionID == In::MouseRight ||
+					rawActionID == In::MouseUp   || rawActionID == In::MouseDown)
+					continue;
+
+				switch (rawActionGroupID)
 				{
-					if (g_Bindings.GetBoundKeyID(BindingProfileID::Raw, rawActionID) != keyID)
-						continue;
+				case ActionGroupID::Keyboard:
+					LastInputDevice = InputDevice::Keyboard;
+					return;
 
-					switch (rawActionGroupID)
-					{
-					case ActionGroupID::Keyboard:
-						LastInputDevice = InputDevice::Keyboard;
-						return;
+				case ActionGroupID::Mouse:
+					LastInputDevice = InputDevice::Mouse;
+					return;
 
-					case ActionGroupID::Mouse:
-						LastInputDevice = InputDevice::Mouse;
-						return;
+				case ActionGroupID::Gamepad:
+					LastInputDevice = InputDevice::Gamepad;
+					return;
 
-					case ActionGroupID::Gamepad:
-						LastInputDevice = InputDevice::Gamepad;
-						return;
-
-					default:
-						break;
-					}
+				default:
+					break;
 				}
 			}
 		}
