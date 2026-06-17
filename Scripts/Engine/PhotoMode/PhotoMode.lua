@@ -1122,9 +1122,10 @@ local function BuildAllMenus()
             acceptFunc, nil, Menu.Type.ITEMS_AND_OPTIONS)
         menu:SetItemsPosition(Vec2(2, 23))
         menu:SetItemsFont(nil, 0.6)
-        menu:SetOptionsFont(nil, 0.6)
+        menu:SetOptionsFont(nil, 0.6, { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.RIGHT })
+        menu:SetSelectedOptionsFlags({ Strings.DisplayStringOption.BLINK, Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.RIGHT })
         menu:SetLineSpacing(3)
-        menu:SetOptionsPosition(Vec2(23, 23))
+        menu:SetOptionsPosition(Vec2(30, 23))
         menu:SetTitle(titleText, nil, 0.6, nil, true)
         menu:SetTitlePosition(Vec2(16, 19))
         menu:SetItemsTranslate(true)
@@ -1594,11 +1595,12 @@ local SPRITE_ANIM_SPEED = 0.18  -- lerp factor per frame (higher = snappier)
 local function DrawColorSelector()
     local state = States.Get()
 
-        -- Color selector strip constants (percent-screen coords, must match DrawBackSprites layout)
+    -- Color selector strip constants (percent-screen coords, must match DrawBackSprites layout)
     local COLOR_STRIP_X      = 23.2
     local COLOR_STRIP_Y      = 33.8
     local COLOR_STRIP_W      = 14.0
     local COLOR_STRIP_H      = 8.0
+	
     -- Sprite index in PHOTOMODE_SPRITES used as a small color swatch next to
     -- pm_color / pm_tint items when the rainbow strip is not expanded.
     -- Must be a plain white (or neutral) square sprite in your WAD.
@@ -1737,7 +1739,7 @@ end
 
 local function DrawTitle(alpha)
     local modeText = TEN.Flow.GetString("photo_mode")
-    local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(16, 9))
+    local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(16, 8))
     local modeStr  = TEN.Strings.DisplayString(modeText, modePos, 0.8, ColorCombine(Configuration.ColorMap.headerText, alpha), false, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER, TEN.Strings.DisplayStringOption.VERTICAL_CENTER })
     TEN.Strings.ShowString(modeStr, 1 / 30)
 end
@@ -1745,7 +1747,7 @@ end
 local function DrawModeText(alpha)
     local modeText = TEN.Flow.GetString("pm_mode_prefix") .. States.GetModeName()
     local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(16, 46))
-    local modeStr  = TEN.Strings.DisplayString(modeText, modePos, 0.6, ColorCombine(Configuration.ColorMap.neutral, alpha), false, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
+    local modeStr  = TEN.Strings.DisplayString(modeText, modePos, 0.5, ColorCombine(Configuration.ColorMap.neutral, alpha), false, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
     TEN.Strings.ShowString(modeStr, 1 / 30)
 end
 
