@@ -44,6 +44,8 @@
 #include "Objects/Generic/Traps/Pendulum.h"
 #include "Objects/TR3/Trap/DrillBit.h"
 #include "Objects/TR3/Trap/ElectricCleaner.h"
+#include "Objects/TR3/Trap/ElectricField.h"
+#include "Objects/TR3/Trap/Fusebox.h" 
 #include "Objects/TR3/Trap/HeavyStamper.h"
 #include "Objects/TR3/Trap/SpikedFrame.h"
 #include "Objects/TR3/Trap/train.h"
@@ -522,6 +524,14 @@ static void StartTrap(ObjectInfo* obj)
 		obj->HitPoints = NOT_TARGETABLE;
 		obj->nonLot = 1;
 		obj->radius = 512;
+	}
+
+	obj = &Objects[ID_ELECTRIC_FIELD];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeElectricField;
+		obj->control = ControlElectricField;
+		obj->Hidden = true;
 	}
 
 	obj = &Objects[ID_FUSEBOX_SWITCH];
