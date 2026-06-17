@@ -3,6 +3,7 @@
 
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
+#include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
 #include "Game/items.h"
@@ -15,6 +16,7 @@
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 
@@ -327,10 +329,20 @@ void lara_col_climb_idle(ItemInfo* item, CollisionInfo* coll)
 					yShift = shiftRight;
 			}
 
-			// HACK: Prevent climbing inside sloped ceilings. Breaks overhang even more, but that shouldn't matter since we'll be doing it over. -- Sezz 2022.05.13
-			int y = item->Pose.Position.y - (coll->Setup.Height + CLICK(0.5f));
+			// Prevent climbing into sloped or close ceilings; defer to the overhang system for slope transitions.
 			auto probe = GetPointCollision(*item, 0, 0, -(coll->Setup.Height + CLICK(0.5f)));
-			if ((probe.GetCeilingHeight() - y) < 0)
+			int y = item->Pose.Position.y - (coll->Setup.Height + CLICK(0.5f));
+			bool allowClimbUp = (probe.GetCeilingHeight() - y) < 0;
+
+			if (allowClimbUp && g_GameFlow->GetSettings()->Animations.OverhangClimb &&
+				probe.GetTopSector().Flags.Monkeyswing)
+			{
+				auto ceilTilt = GetSurfaceTilt(probe.GetCeilingNormal(), false);
+				if (ceilTilt.x != 0 || ceilTilt.y != 0)
+					allowClimbUp = (probe.GetCeilingHeight() < item->Pose.Position.y - CLICK(5));
+			}
+
+			if (allowClimbUp)
 			{
 				item->Animation.TargetState = LS_LADDER_UP;
 				item->Pose.Position.y += yShift;
