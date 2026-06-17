@@ -1206,6 +1206,7 @@ local function BuildAllMenus()
         local m = Menu.Get(MENU_UI)
         if not m then return end
         local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
+        if name == "pm_hide_ui" then state.hideUI = not state.hideUI end
         if name == "pm_screenshot" then TriggerScreenshot() end
         if name == "pm_exit" then PhotoMode.Exit() end
     end
@@ -1279,9 +1280,7 @@ local function BuildAllMenus()
         local m = Menu.Get(MENU_UI)
         if not m then return end
         local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
-        if name == "pm_hide_ui" then
-            state.hideUI = IndexToBool(m:GetCurrentOptionIndex())
-        elseif name == "pm_hide_character" then
+        if name == "pm_hide_character" then
             state.hideCharacter = IndexToBool(m:GetCurrentOptionIndex())
             Lara:SetVisible(not state.hideCharacter)
             state.accessoryMesh:SetVisible(not state.hideCharacter)
@@ -1422,7 +1421,7 @@ local function BuildAllMenus()
     -- ================================================================
     CreateMenu(MENU_UI,
     {
-        { itemName = "pm_hide_ui",        options = BoolOptions(), currentOption = BoolToIndex(state.hideUI) },
+        { itemName = "pm_hide_ui",        options = { acceptString }, currentOption = 1 },
         { itemName = "pm_hide_character",  options = BoolOptions(), currentOption = BoolToIndex(state.hideCharacter) },
         { itemName = "pm_screenshot",     options = { acceptString }, currentOption = 1 },
         { itemName = "pm_exit",            options = { acceptString }, currentOption = 1 },
@@ -1828,13 +1827,9 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
         TriggerScreenshot()
     end
 
-    -- When UI is hidden, pressing Inventory shows UI instead of exiting.
-    if TEN.Input.IsKeyHit(TEN.Input.ActionID.INVENTORY) and state.hideUI then
+    -- When UI is hidden, pressing Inventory or Deselect shows UI instead of exiting.
+    if (TEN.Input.IsKeyHit(TEN.Input.ActionID.INVENTORY) or TEN.Input.IsKeyHit(TEN.Input.ActionID.DESELECT)) and state.hideUI then
         state.hideUI = false
-        local mUI = Menu.Get(MENU_UI)
-        if mUI then
-            mUI:SetOptionIndexForItemName("pm_hide_ui", BoolToIndex(state.hideUI))
-        end
         return
     end
 
