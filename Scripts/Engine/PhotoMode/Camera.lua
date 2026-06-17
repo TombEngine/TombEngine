@@ -55,11 +55,7 @@ local function ResolveCollision(oldPos, newPos)
             end
 
             -- Project movement onto the surface plane.
-            local slideDir = TEN.Vec3(
-                moveDir.x - normal.x * dot,
-                moveDir.y - normal.y * dot,
-                moveDir.z - normal.z * dot)
-
+            local slideDir = moveDir - (normal * dot)
             local slideLen = slideDir:Length()
             if slideLen >= Constants.EPSILON then
                 slideDir = slideDir:Normalize()
@@ -279,16 +275,10 @@ local function ApplyPositions(newCam, newTgt)
         local adjustedCam = ResolveCollision(oldCam, newCam)
 
         -- Calculate actual camera delta and apply the same offset to the target.
-        local delta = TEN.Vec3(
-            adjustedCam.x - oldCam.x,
-            adjustedCam.y - oldCam.y,
-            adjustedCam.z - oldCam.z)
-
+        local delta = adjustedCam - oldCam
+        
         newCam = adjustedCam
-        newTgt = TEN.Vec3(
-            oldTgt.x + delta.x,
-            oldTgt.y + delta.y,
-            oldTgt.z + delta.z)
+        newTgt = oldTgt + delta
     end
 
     -- Distance limit: prevent camera moving beyond maxCameraDistance from Lara's entry position.
@@ -338,9 +328,9 @@ function Camera.OrbitHorizontal(angle)
     local state  = States.Get()
     local camPos = state.cameraMesh:GetPosition()
     local tgtPos = state.cameraTarget:GetPosition()
-    local offset = TEN.Vec3(tgtPos.x - camPos.x, tgtPos.y - camPos.y, tgtPos.z - camPos.z)
+    local offset = tgtPos - camPos
     local rotated = offset:Rotate(TEN.Rotation(0, angle, 0))
-    local newTgt  = TEN.Vec3(camPos.x + rotated.x, camPos.y + rotated.y, camPos.z + rotated.z)
+    local newTgt  = camPos + rotated
     -- Set both so the engine refreshes the object camera
     ApplyPositions(camPos, newTgt)
 end
@@ -349,8 +339,8 @@ function Camera.AdjustTargetVertical(speed)
     local state  = States.Get()
     local camPos = state.cameraMesh:GetPosition()
     local tgtPos = state.cameraTarget:GetPosition()
-    local newCam = TEN.Vec3(camPos.x, camPos.y + speed, camPos.z)
-    local newTgt = TEN.Vec3(tgtPos.x, tgtPos.y + speed, tgtPos.z)
+    local newCam = camPos + TEN.Vec3(0, speed, 0)
+    local newTgt = tgtPos + TEN.Vec3(0, speed, 0)
     ApplyPositions(newCam, newTgt)
 end
 

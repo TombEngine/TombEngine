@@ -447,11 +447,11 @@ function PhotoMode.ClearOutfits()
     GlobalVars.Engine.PhotoModeOutfits = {}
 end
 
-PhotoMode.GetSettings = function()
+function PhotoMode.GetSettings()
     return CopyTable(Configuration)
 end
 
-PhotoMode.SetSettings = function(newSettings)
+function PhotoMode.SetSettings(newSettings)
     for section, values in pairs(newSettings) do
         if Configuration[section] ~= nil then
             for setting, value in pairs(values) do
@@ -488,7 +488,7 @@ local function ProcessScreenshot()
         if state.screenshotHideFrames == 1 then
             local path = TEN.View.SaveScreenshot()
             if path then
-                TEN.Sound.PlaySound(Configuration.SoundMap.menuChoose)
+                TEN.Sound.PlaySound(Configuration.SoundMap.screenshot)
                 state.screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_saved") .. path, timer = Constants.MESSAGE_TIMEOUT }
             else
                 state.screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_failed") .. "screenshot", timer = Constants.MESSAGE_TIMEOUT }
@@ -1872,6 +1872,7 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
 
     -- Update and draw frames
     Borders.Update()
+    Borders.Draw()
 
     -- Draw UI (menus + headers) unless hidden
     if not state.hideUI and state.screenshotHideFrames == 0 then
@@ -1879,13 +1880,14 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
         local headerAlpha = 255
         -- Use the alpha from the active menu for consistency
         local activeMenuName = Menu.GetActiveHeaderMenu()
+
         if activeMenuName then
             local m = Menu.Get(activeMenuName)
             if m and m.IsVisible and not m:IsVisible() then
                 headerAlpha = 0
             end
         end
-        Borders.Draw()
+
         DrawBackSprites(headerAlpha)
         DrawHeaderSprites(headerAlpha)
         DrawColorSelector()

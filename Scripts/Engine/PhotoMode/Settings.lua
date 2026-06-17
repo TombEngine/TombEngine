@@ -34,6 +34,7 @@ Settings.SoundMap =
     menuChoose = 111,
     menuOpen   = 109,
     menuClose  = 109,
+    screenshot = 111
 }
 
 return Settings
