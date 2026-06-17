@@ -59,6 +59,7 @@ namespace TEN::Scripting
 		bool TargetObjectOcclusion = true;
 		bool KillPoisonedEnemies = true;
 		bool EnableInventory = true;
+		bool DualTarget = false;
 
 		static void Register(sol::table& parent);
 	};
@@ -186,6 +187,7 @@ namespace TEN::Scripting
 		bool MuzzleGlow			 = true;
 		bool ColorizeMuzzleFlash = false;
 		Vec3 MuzzleOffset = {};
+		bool DoubleHanded = false;
 
 		static void Register(sol::table& parent);
 	};

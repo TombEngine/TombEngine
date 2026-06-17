@@ -336,6 +336,7 @@ void InitializeNewWeapon(ItemInfo& laraItem)
 	auto& player = *GetLaraInfo(&laraItem);
 
 	player.TargetEntity = nullptr;
+	player.SecondaryTargetEntity = nullptr;
 	player.LeftArm.AnimObjectID =
 	player.RightArm.AnimObjectID = GetWeaponObjectID(player.Control.Weapon.GunType);
 	player.LeftArm.AnimNumber =
@@ -358,8 +359,18 @@ void InitializeNewWeapon(ItemInfo& laraItem)
 
 		break;
 
-	case LaraWeaponType::Shotgun:
 	case LaraWeaponType::Revolver:
+		if (player.Control.HandStatus != HandStatus::Free)
+		{
+			if (g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Revolver - 1].DoubleHanded)
+				DrawPistolMeshes(laraItem, LaraWeaponType::Revolver);
+			else
+				DrawShotgunMeshes(laraItem, LaraWeaponType::Revolver);
+		}
+
+		break;
+
+	case LaraWeaponType::Shotgun:
 	case LaraWeaponType::HK:
 	case LaraWeaponType::GrenadeLauncher:
 	case LaraWeaponType::HarpoonGun:
@@ -516,6 +527,7 @@ static void ClearPlayerTargets(ItemInfo& playerItem)
 	auto& player = GetLaraInfo(playerItem);
 
 	player.TargetEntity = nullptr;
+	player.SecondaryTargetEntity = nullptr;
 	player.TargetList.fill(nullptr);
 	player.LastTargets.fill(nullptr);
 }
@@ -759,13 +771,21 @@ void HandleWeapon(ItemInfo& laraItem)
 			HandlePistols(laraItem, player.Control.Weapon.GunType);
 			break;
 
+		case LaraWeaponType::Revolver:
+			if (g_GameFlow->GetSettings()->Weapons[(int)LaraWeaponType::Revolver - 1].DoubleHanded)
+				HandlePistols(laraItem, LaraWeaponType::Revolver);
+			else
+				RifleHandler(laraItem, LaraWeaponType::Revolver);
+
+			LasersightWeaponHandler(laraItem, LaraWeaponType::Revolver);
+			break;
+
 		case LaraWeaponType::Shotgun:
 		case LaraWeaponType::Crossbow:
 		case LaraWeaponType::HK:
 		case LaraWeaponType::GrenadeLauncher:
 		case LaraWeaponType::RocketLauncher:
 		case LaraWeaponType::HarpoonGun:
-		case LaraWeaponType::Revolver:
 			RifleHandler(laraItem, player.Control.Weapon.GunType);
 			LasersightWeaponHandler(laraItem, player.Control.Weapon.GunType);
 			break;
@@ -830,6 +850,12 @@ void AimWeapon(ItemInfo& laraItem, ArmInfo& arm, const WeaponInfo& weaponInfo)
 	const auto& player = *GetLaraInfo(&laraItem);
 
 	auto targetArmOrient = arm.Locked ? player.TargetArmOrient : EulerAngles::Identity;
+	arm.Orientation.InterpolateConstant(targetArmOrient, weaponInfo.AimSpeed);
+}
+
+void AimWeapon(ArmInfo& arm, const WeaponInfo& weaponInfo, const EulerAngles& targetOrient)
+{
+	auto targetArmOrient = arm.Locked ? targetOrient : EulerAngles::Identity;
 	arm.Orientation.InterpolateConstant(targetArmOrient, weaponInfo.AimSpeed);
 }
 

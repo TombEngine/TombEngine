@@ -211,7 +211,8 @@ namespace TEN::Hud
 
 			// Set crosshair as primary or peripheral.
 			auto& crosshair = it->second;
-			if (player.TargetEntity != nullptr && item->Index == player.TargetEntity->Index)
+			if ((player.TargetEntity != nullptr && item->Index == player.TargetEntity->Index) ||
+				(player.SecondaryTargetEntity != nullptr && item->Index == player.SecondaryTargetEntity->Index))
 			{
 				crosshair.SetPrimary();
 			}

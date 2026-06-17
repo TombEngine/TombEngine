@@ -1371,6 +1371,7 @@ struct LaraInfo
 	ArmInfo		RightArm		= {};
 
 	ItemInfo* TargetEntity = nullptr; // TargetEntityPtr. Should use item number instead?
+	ItemInfo* SecondaryTargetEntity = nullptr; // Secondary target for double-handed dual targeting.
 	std::array<ItemInfo*, TARGET_COUNT_MAX> TargetList	= {};
 	std::array<ItemInfo*, TARGET_COUNT_MAX> LastTargets = {};
 

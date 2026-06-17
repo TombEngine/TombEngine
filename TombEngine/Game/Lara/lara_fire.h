@@ -61,6 +61,7 @@ GAME_OBJECT_ID	  GetWeaponObjectMeshID(ItemInfo& laraItem, LaraWeaponType weapon
 
 void HandleWeapon(ItemInfo& laraItem);
 void AimWeapon(ItemInfo& laraItem, ArmInfo& arm, const WeaponInfo& weaponInfo);
+void AimWeapon(ArmInfo& arm, const WeaponInfo& weaponInfo, const EulerAngles& targetOrient);
 FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, ItemInfo& laraItem, const EulerAngles& armOrient);
 
 void FindNewTarget(ItemInfo& laraItem, const WeaponInfo& weaponInfo);

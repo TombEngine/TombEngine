@@ -35,6 +35,7 @@ local settings = Flow.Settings.new()
 	settings.Flare.flicker = true
 	settings.Flare.pickupCount = 12
 	
+	settings.Gameplay.dualTarget = false
 	settings.Gameplay.enableInventory = true
 	settings.Gameplay.killPoisonedEnemies = true
 	settings.Gameplay.targetObjectOcclusion = true
@@ -116,6 +117,7 @@ local settings = Flow.Settings.new()
 	settings.Weapons[WeaponType.PISTOLS].muzzleOffset = Vec3(0, 120, 30)
 	settings.Weapons[WeaponType.PISTOLS].colorizeMuzzleFlash = false
 	settings.Weapons[WeaponType.PISTOLS].pickupCount = 30
+	settings.Weapons[WeaponType.PISTOLS].doubleHanded = true
 	
 	settings.Weapons[WeaponType.REVOLVER].accuracy = 8
 	settings.Weapons[WeaponType.REVOLVER].targetingDistance = 8192
@@ -133,6 +135,7 @@ local settings = Flow.Settings.new()
 	settings.Weapons[WeaponType.REVOLVER].muzzleOffset = Vec3(-10, 130, 65)
 	settings.Weapons[WeaponType.REVOLVER].colorizeMuzzleFlash = false
 	settings.Weapons[WeaponType.REVOLVER].pickupCount = 6
+	settings.Weapons[WeaponType.REVOLVER].doubleHanded = false
 	
 	settings.Weapons[WeaponType.UZIS].accuracy = 8
 	settings.Weapons[WeaponType.UZIS].targetingDistance = 8192
@@ -149,6 +152,7 @@ local settings = Flow.Settings.new()
 	settings.Weapons[WeaponType.UZIS].muzzleOffset = Vec3(0, 110, 40)
 	settings.Weapons[WeaponType.UZIS].colorizeMuzzleFlash = false
 	settings.Weapons[WeaponType.UZIS].pickupCount = 30
+	settings.Weapons[WeaponType.UZIS].doubleHanded = true
 	
 	settings.Weapons[WeaponType.SHOTGUN].accuracy = 10
 	settings.Weapons[WeaponType.SHOTGUN].targetingDistance = 8192
