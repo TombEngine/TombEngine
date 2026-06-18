@@ -228,7 +228,6 @@ function Menu.Create(menuName, title, items, acceptFunction, exitFunction, menuT
         acceptFunction       = acceptFunction,
         itemChangeFunction   = nil,
         wrapAroundItems      = true,
-        wrapAroundOptions    = true,
         maxVisibleItems      = 16,
         lineSpacing          = LINE_SPACING,
         itemsPosition        = Vec2(10, 20),
@@ -344,11 +343,6 @@ end
 function Menu:SetWrapAroundItems(v)
     local menu = Menus[self.name]
     if menu then menu.wrapAroundItems = v end
-end
-
-function Menu:SetWrapAroundOptions(v)
-    local menu = Menus[self.name]
-    if menu then menu.wrapAroundOptions = v end
 end
 
 function Menu:SetAcceptFunction(f)
@@ -635,7 +629,7 @@ local function HandleInput(menuName)
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             PlaySound(menu.sounds and menu.sounds.menuSelect)
-            if menu.wrapAroundOptions then
+            if currentItem.wrapOptions then
                 currentItem.currentOption = (currentItem.currentOption - 2) % #currentItem.options + 1
             else
                 currentItem.currentOption = math.max(1, currentItem.currentOption - 1)
@@ -649,7 +643,7 @@ local function HandleInput(menuName)
         local currentItem = menu.items[menu.currentItem]
         if currentItem.options and #currentItem.options > 1 then
             PlaySound(menu.sounds and menu.sounds.menuSelect)
-            if menu.wrapAroundOptions then
+            if currentItem.wrapOptions then
                 currentItem.currentOption = currentItem.currentOption % #currentItem.options + 1
             else
                 currentItem.currentOption = math.min(#currentItem.options, currentItem.currentOption + 1)

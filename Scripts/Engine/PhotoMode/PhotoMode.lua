@@ -1146,13 +1146,20 @@ local function BuildAllMenus()
         menu:SetTitle(titleText, nil, 0.6, nil, true)
         menu:SetTitlePosition(Vec2(boxCenter, menuTitleYPos))
         menu:SetItemsTranslate(true)
-        menu:SetWrapAroundItems(false)
-        menu:SetWrapAroundOptions(false)
-        if optionChangeFunc then
-            for _, item in ipairs(items) do
-                item.onOptionChange = optionChangeFunc
+        menu:SetWrapAroundItems(true)
+		
+        for _, item in ipairs(items) do
+			if optionChangeFunc then
+				item.onOptionChange = optionChangeFunc
+			end
+            if item.options and #item.options > 1 then
+                local firstValue = item.options[1]
+                if firstValue and tonumber(firstValue) == nil then
+                    item.wrapOptions = true
+                end
             end
         end
+		
         return menu
     end
 
