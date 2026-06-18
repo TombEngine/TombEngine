@@ -103,7 +103,7 @@
 
 --- Accessories
 -- @section Accessories
--- Accessories are drawn on top of Lara. They are defined in <i>Engine/PhotoMode/Accessories.lua</i> file. To add new accessories add a row to the accessory presets table in that file. The first entry should always be a "None" sentinel (objID = nil, meshIndices = {}) so the player can clear accessories.
+-- Accessories are drawn on top of Lara. They are defined in <i>Scripts/PhotoModeData.lua</i> file in Accessories table. To add new accessories add a row to the accessory presets table in that file. The first entry should always be a "None" sentinel (objID = nil, meshIndices = {}) so the player can clear accessories.
 -- To hide the Accessory option entirely set Settings.Character.accessoriesEnabled = false via @{PhotoMode.SetSettings}.
 -- @usage
 --    {
@@ -134,7 +134,7 @@
 
 --- Expressions
 -- @section Expressions
--- Expressions swap one or more of Lara's classic mesh slots with meshes sourced from another object. Use multiple indices to swap more than one mesh at once. They are defined in <i>Engine/PhotoMode/Expressions.lua</i> file.
+-- Expressions swap one or more of Lara's classic mesh slots with meshes sourced from another object. They are defined in <i>Scripts/PhotoModeData.lua</i> file in Expressions table. Use multiple indices to swap more than one mesh at once.
 -- @usage
 --    {
 --      name = "Default", objID = nil, meshIndices = {}
@@ -158,7 +158,7 @@
 
 --- Frames
 -- @section Frames
--- Frames are full-screen sprites drawn from the PHOTOMODE_FRAMES object. A spriteID of -1 means "no frame". The first entry should always be "None". They are defined in <i>Engine/PhotoMode/Frames.lua</i> file.
+-- Frames are full-screen sprites drawn from the PHOTOMODE_FRAMES object. A spriteID of -1 means "no frame". The first entry should always be "None". They are defined in <i>Scripts/PhotoModeData.lua</i> file in Frames table.
 -- @usage
 --    { name = "None",            spriteID = -1 },
 --    { name = "Cinematic Bars",  spriteID = 0 },
@@ -175,7 +175,7 @@
 
 --- Outfits
 -- @section Outfits
--- Outfits can change Lara's Outfit. Both the classic skins and skinned mesh can be used.  They are defined in <i>Engine/PhotoMode/Outfits.lua</i> file. The first entry is always "Default". Set unlocked = false to hide an outfit until the player earns it, then call @{PhotoMode.UnlockOutfit} to reveal it. Unlocks are saved in GlobalVars.Engine.PhotoModeOutfits.
+-- Outfits can change Lara's Outfit. Both the classic skins and skinned mesh can be used.  They are defined in <i>Scripts/PhotoModeData.lua</i> file in Outfits table. The first entry is always "Default". Set unlocked = false to hide an outfit until the player earns it, then call @{PhotoMode.UnlockOutfit} to reveal it. Unlocks are saved in GlobalVars.Engine.PhotoModeOutfits.
 -- @usage
 -- --Classic skin swap (uses Lara:SetSkin):
 --
@@ -253,20 +253,20 @@
 --- Whether the outfit is visible in the selector menu.
 -- @tfield[opt=true] bool unlocked true or nil makes the outfit visible; false hides it in selection until @{PhotoMode.UnlockOutfit} is called.
 
---- Clear all unlocked outfits so they no longer appear in the photo mode outfit selector.
+--- Clear all unlocked outfits so they no longer appear in the PhotoMode outfit selector.
 -- @function PhotoMode.ClearOutfits
 -- @usage
 -- PhotoMode.ClearOutfits()
 
---- Unlock a named outfit so it appears in the photo mode outfit selector. The outfit remains unlocked in all levels.
+--- Unlock a named outfit so it appears in the PhotoMode outfit selector. The outfit remains unlocked in all levels.
 -- @function PhotoMode.UnlockOutfit
--- @tparam string name The outfit name string as defined in Outfits.lua.
+-- @tparam string name The outfit name string as defined in Scripts/PhotoModeData.lua file in Outfits table.
 -- @usage
 -- PhotoMode.UnlockOutfit("Secret Wetsuit")
 
 --- Poses
 -- @section Poses
--- Poses are defined in the <i>Engine/PhotoMode/Poses.lua</i> file. Each pose applies an animation from the PHOTOMODE_ANIMS object or any other object in the level. The first entry is always "Default" — it restores Lara's entry animation.
+-- Poses are defined in the <i>Scripts/PhotoModeData.lua</i> file in Poses table. Each pose applies an animation from the PHOTOMODE_ANIMS object or any other object in the level.
 -- @usage
 --    { 
 --      name = "Victory",
@@ -341,7 +341,7 @@
 
 --- Settings.ColorMap
 -- @section Settings.ColorMap
--- These settings define the colors used throughout the inventory UI.
+-- These settings define the colors used throughout the PhotoMode UI.
 -- Colors are of type @{Color}.
 -- @usage
 -- -- Example of changing the text color
@@ -350,11 +350,11 @@
 -- settings.ColorMap.plainTextColor = TEN.Color(200, 180, 60, 255)
 -- PhotoMode.SetSettings(settings)
 
---- Color used for standard body text in the inventory.
+--- Color used for standard body text in the PhotoMode UI.
 -- @tfield[opt=Flow.GetSettings().UI.plainTextColor] Color plainText Applied to descriptive text.
 
 --- Color used for section headers and titles.
--- @tfield[opt=Flow.GetSettings().UI.headerTextColor] Color headerText Applied to inventory category headings and titles.
+-- @tfield[opt=Flow.GetSettings().UI.headerTextColor] Color headerText Applied to PhotoMode category headings and titles.
 
 --- Color used for selectable option text.
 -- @tfield[opt=Flow.GetSettings().UI.optionTextColor] Color optionText Applied to text entries.
@@ -368,17 +368,17 @@
 
 --- Settings.SoundMap
 -- @section Settings.SoundMap
--- These settings map inventory UI events to sound effect IDs.
+-- These settings map PhotoMode UI events to sound effect IDs.
 -- Sound IDs correspond to entries in the game's sound catalogue.
 -- @usage
--- -- Example of overriding the photo mode open sound
+-- -- Example of overriding the PhotoMode open sound
 -- -- In the level's lua file
 -- local settings = PhotoMode.GetSettings()
 -- settings.SoundMap.menuOpen = 42
 -- PhotoMode.SetSettings(settings)
 
---- Sound played when rotating the inventory ring.
--- @tfield[opt=108] int menuRotate Sound effect ID triggered while scrolling through photo mode.
+--- Sound played when changing the PhotoMode tabs.
+-- @tfield[opt=108] int menuRotate Sound effect ID triggered while scrolling through PhotoMode.
 
 --- Sound played when hovering over or highlighting a menu option.
 -- @tfield[opt=109] int menuSelect Sound effect ID triggered on item selection highlight.
@@ -386,12 +386,14 @@
 --- Sound played when confirming a menu choice.
 -- @tfield[opt=111] int menuChoose Sound effect ID triggered when the player confirms a selected action.
 
---- Sound played when the inventory is opened.
--- @tfield[opt=109] int menuOpen Sound effect ID triggered when the photo modeis opened.
+--- Sound played when the PhotoMode is opened.
+-- @tfield[opt=109] int menuOpen Sound effect ID triggered when the PhotoMode is opened.
 
---- Sound played when the inventory is closed.
--- @tfield[opt=109] int menuClose Sound effect ID triggered when the photo modeis closed.
+--- Sound played when the PhotoMode is closed.
+-- @tfield[opt=109] int menuClose Sound effect ID triggered when the PhotoMode is closed.
 
+--- Sound played when a photo is taken.
+-- @tfield[opt=111] int takePhoto Sound effect ID triggered when a photo is taken.
 
 -- Photo Module Start
 local Borders       = require("Engine.PhotoMode.SpriteBorders")
@@ -488,7 +490,7 @@ local function ProcessScreenshot()
         if state.screenshotHideFrames == 1 then
             local path = TEN.View.SaveScreenshot()
             if path then
-                TEN.Sound.PlaySound(Configuration.SoundMap.screenshot)
+                TEN.Sound.PlaySound(Configuration.SoundMap.takePhoto)
                 state.screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_saved") .. path, timer = Constants.MESSAGE_TIMEOUT }
             else
                 state.screenshotMessage = { text = TEN.Flow.GetString("pm_screenshot_failed") .. "screenshot", timer = Constants.MESSAGE_TIMEOUT }
@@ -1742,14 +1744,14 @@ local function DrawTitle(alpha)
     local modeText = TEN.Flow.GetString("photo_mode")
     local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(16, 8))
     local modeStr  = TEN.Strings.DisplayString(modeText, modePos, 0.8, ColorCombine(Configuration.ColorMap.headerText, alpha), false, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER, TEN.Strings.DisplayStringOption.VERTICAL_CENTER })
-    TEN.Strings.ShowString(modeStr, 1 / 30)
+    TEN.Strings.ShowString(modeStr, Constants.DRAW_RATE)
 end
 
 local function DrawModeText(alpha)
     local modeText = TEN.Flow.GetString("pm_mode_prefix") .. States.GetModeName()
     local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(16, 46))
     local modeStr  = TEN.Strings.DisplayString(modeText, modePos, 0.5, ColorCombine(Configuration.ColorMap.neutral, alpha), false, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
-    TEN.Strings.ShowString(modeStr, 1 / 30)
+    TEN.Strings.ShowString(modeStr, Constants.DRAW_RATE)
 end
 
 local function DrawHelpText(alpha)
@@ -1772,12 +1774,12 @@ local function DrawHelpText(alpha)
     -- Line 1: mode-specific movement hints
     local helpPos1 = TEN.Util.PercentToScreen(TEN.Vec2(50, 90))
     local helpStr1 = TEN.Strings.DisplayString(modeKey, helpPos1, 0.6, ColorCombine(Configuration.ColorMap.neutral, alpha), true, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
-    TEN.Strings.ShowString(helpStr1, 1 / 30)
+    TEN.Strings.ShowString(helpStr1, Constants.DRAW_RATE)
 
     -- Line 2: universal navigation hints
     local helpPos2 = TEN.Util.PercentToScreen(TEN.Vec2(50, 94))
     local helpStr2 = TEN.Strings.DisplayString(helpKey, helpPos2, 0.6, ColorCombine(Configuration.ColorMap.neutral, alpha), true, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
-    TEN.Strings.ShowString(helpStr2, 1 / 30)
+    TEN.Strings.ShowString(helpStr2, Constants.DRAW_RATE)
 end
 
 -- ============================================================================

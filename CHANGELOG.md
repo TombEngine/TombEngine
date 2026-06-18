@@ -60,6 +60,10 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added functional key (F1-F12) mappings and raw gamepad input mappings to the `Input.ActionID` and `Input.AxisID` enums.
 * Added `Lara:GetLocked` and `Lara:SetLocked` to manage native control lock status.
 * Added `Lara:GetSkin` and `Lara:SetSkin` functions to manage swapping of classic outfits.
+* Added `Lara:SpawnGunFlash` and `Lara:ClearGunFlash` functions to spawn and clear gunflashes.
+* Added `Lara:GetHolsterWeapon` and `Lara:SetHolsterWeapon` functions to manage holsters.
+* Added `Lara:ResetHair` function to reset character hair. Useful for PhotoMode.
+* Added `Movaeble:GetSkin` to get the current active skin and `Moveable:ClearSkin` to clear current active skin.
 * Added third argument to `Moveable:SetAnim` function to specify blend frame count.
 * Added `Objects.Creature` class to fetch and set various enemy AI state parameters.
 * Added `Objects.Material` class to fetch and set properties for texture materials.

@@ -2,30 +2,34 @@ local PhotoModeData = {}
 
 PhotoModeData.Accessories =
 {
--- Accessory presets for the Photo Mode accessory picker.
--- Each entry describes a mesh swap to apply to the pm_Sunglasses moveable.
+--   Each entry describes an Accessory.
 --   name        : Display name shown in the menu.
---   objID       : Source object to copy meshes from (nil = no swap / restore default).
---   meshIndices : Which mesh slots on pm_Sunglasses are swapped from objID.
+--   objID       : Source object to copy meshes from.
+--   meshIndices : Which mesh slots are swapped from objID.
 --
--- Add or remove entries freely.  The first entry should always be a "None"
--- sentinel (objID = nil, meshIndices = {}) so the player can clear accessories.
 -- { name = "Rose",        objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, meshIndices = {10} }
-
 }
 
 PhotoModeData.Expressions =
 {
-
+--   Each entry describes an expression.
+--   name        : Display name shown in the menu.
+--   objID       : Source object to copy meshes from.
+--   meshIndices : Which mesh slots are swapped from objID.
+-- { name = "Talk 1", objID = TEN.Objects.ObjID.LARA_SPEECH_HEAD1, meshIndices = {14} },
 }
 
 PhotoModeData.Frames =
 {
-
+--  Each entry describes a frame.
+--   name        : Display name shown in the menu.
+--   spriteID    : Which sprite index in PHOTOMODE_FRAMES to use. 
+-- { name = "Recording", spriteID = 3 },
 }
 
 PhotoModeData.Outfits =
 {
+--   Each entry describes an outfit.
 -- skin:              Array of up to 5 ObjIDs → Lara:SetSkin(skin, skinJoints, skinScream, hair1, hair2).
 --                    Nil entries leave that slot unchanged.
 -- skinnedMesh:       ObjID → Lara:SwapSkinnedMesh(objID [, skinnedMeshIndex]).
@@ -64,7 +68,12 @@ PhotoModeData.Outfits =
 
 PhotoModeData.Poses =
 {
-
+--   Each entry describes a pose.
+--   name        : Display name shown in the menu.
+--   objID       : Source object to use for the pose.
+--   animNumber  : Which animation id to use for the pose.
+--   frameNumber : Which frame to use from the animation.
+--   { name = "Pose Name",      objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 42, frameNumber = 0 },
 }
 
 return PhotoModeData
