@@ -235,13 +235,17 @@ Configuration.Accessories =
 }
 
 -- ============================================================================
--- Entry
+-- Menu
 -- ============================================================================
 
-Configuration.Entry =
+Configuration.Menu =
 {
-    holdFrames = 1, -- held for N frames to enter
+    holdFrames      = 1, -- held for N frames to enter
+    position        = TEN.Vec2(5, 10),
+    size            = TEN.Vec2(29, 38.5),
+	backgroundAlpha = 128
 }
+
 -- ============================================================================
 -- Header Sprites
 -- ============================================================================
@@ -253,16 +257,11 @@ Configuration.HeaderSprites =
 {
     objectID      = TEN.Objects.ObjID.PHOTOMODE_SPRITES,
     spriteIDs     = { 0, 1, 2, 3, 4 },
-    position      = TEN.Vec2(16, 15),
-    spacing       = 6,
     sizeActive    = TEN.Vec2(5, 5),
     sizeInactive  = TEN.Vec2(4, 4),
     colorActive   = Settings.ColorMap.headerText,
     colorInactive = Settings.ColorMap.neutral,
-    rotation      = 0,
-    alignMode     = TEN.View.AlignMode.CENTER,
-    scaleMode     = TEN.View.ScaleMode.FIT,
-    blendMode     = TEN.Effects.BlendID.ALPHA_BLEND,
     layer         = -4,
 }
+
 return Configuration

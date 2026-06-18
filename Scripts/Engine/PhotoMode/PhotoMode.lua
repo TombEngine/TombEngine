@@ -445,6 +445,12 @@ function PhotoMode.UnlockOutfit(name)
     end
 end
 
+local function GetAspectScale()
+    local aspectRatio = TEN.View.GetAspectRatio()
+	local refAspectRatio = 16.0 / 9.0
+	return refAspectRatio / aspectRatio
+end
+
 function PhotoMode.ClearOutfits()
     GlobalVars.Engine.PhotoModeOutfits = {}
 end
@@ -1067,7 +1073,8 @@ local MENU_LIGHT     = "pm_light"
 local MENU_UI        = "pm_ui"
 
 -- Maps the active header's menu name to the input control mode used when UI is hidden.
-local HEADER_CONTROL_MODE = {
+local HEADER_CONTROL_MODE =
+{
     [MENU_CHARACTER] = States.Mode.PLAYER,
     [MENU_EFFECTS]   = States.Mode.CAMERA,
     [MENU_FILTERS]   = States.Mode.CAMERA,
@@ -1120,16 +1127,24 @@ local function BuildAllMenus()
     -- Helper to create and configure a menu
     -- ================================================================
     local function CreateMenu(menuName, items, acceptFunc, optionChangeFunc, titleText)
-        local menu = Menu.Create(menuName, "", items,
-            acceptFunc, nil, Menu.Type.ITEMS_AND_OPTIONS)
-        menu:SetItemsPosition(Vec2(2, 23))
+        local menu = Menu.Create(menuName, "", items, acceptFunc, nil, Menu.Type.ITEMS_AND_OPTIONS)
+		
+        local scale = GetAspectScale()
+        local boxW = cfg.Menu.size.x * scale
+        local boxLeft = cfg.Menu.position.x + 0.5
+        local boxRight = cfg.Menu.position.x + boxW - 0.8
+		local boxCenter = cfg.Menu.position.x + (boxW / 2.0)
+		local menuTitleYPos = cfg.Menu.position.y + 9.0
+		local menuEntryYPos = menuTitleYPos + 3.0
+		
+        menu:SetItemsPosition(Vec2(boxLeft, menuEntryYPos))
         menu:SetItemsFont(nil, 0.6)
         menu:SetOptionsFont(nil, 0.6, { Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.RIGHT })
         menu:SetSelectedOptionsFlags({ Strings.DisplayStringOption.BLINK, Strings.DisplayStringOption.SHADOW, Strings.DisplayStringOption.RIGHT })
         menu:SetLineSpacing(3)
-        menu:SetOptionsPosition(Vec2(30, 23))
+        menu:SetOptionsPosition(Vec2(boxRight, menuEntryYPos))
         menu:SetTitle(titleText, nil, 0.6, nil, true)
-        menu:SetTitlePosition(Vec2(16, 19))
+        menu:SetTitlePosition(Vec2(boxCenter, menuEntryYPos))
         menu:SetItemsTranslate(true)
         menu:SetWrapAroundItems(false)
         menu:SetWrapAroundOptions(false)
@@ -1594,20 +1609,25 @@ local SPRITE_ANIM_SPEED = 0.18  -- lerp factor per frame (higher = snappier)
 -- ============================================================================
 
 local function DrawColorSelector()
+	
+    -- Color swatch constants
+    local COLOR_STRIP_SPRITE  = 6
+    local COLOR_CURSOR_SPRITE = 7
+    local COLOR_SWATCH_SPRITE = 8
+	local COLOR_SWATCH_W      = 8
+	local COLOR_SWATCH_H      = 2
+	
+    local cfg   = Configuration
     local state = States.Get()
+    local scale = GetAspectScale()
 
     -- Color selector strip constants (percent-screen coords, must match DrawBackSprites layout)
-    local COLOR_STRIP_X      = 30.0
-    local COLOR_STRIP_Y      = 33.8
-    local COLOR_STRIP_W      = 14.0
-    local COLOR_STRIP_H      = 8.0
-	
-    -- Sprite index in PHOTOMODE_SPRITES used as a small color swatch next to
-    -- pm_color / pm_tint items when the rainbow strip is not expanded.
-    -- Must be a plain white (or neutral) square sprite in your WAD.
-    local COLOR_SWATCH_SPRITE = 8
-	local COLOR_SWATCH_W      = 3
-	local COLOR_SWATCH_X      = COLOR_STRIP_X
+    local boxW        = cfg.Menu.position.x + cfg.Menu.size.x * scale
+    local boxRight    = boxW
+    local colorStripX = boxRight - 0.5
+    local colorStripY = cfg.Menu.position.y + 22.5
+    local colorStripW = 14.0
+    local colorStripH = 14.0
 
     -- Descriptor table for each colour-picking item
     local entries =
@@ -1619,7 +1639,7 @@ local function DrawColorSelector()
     local activeMenuName = Menu.GetActiveHeaderMenu()
     local activeM        = Menu.Get(activeMenuName)
     local activeItemName = activeM and activeM:GetCurrentItemName() or nil
-    local menuAlpha      = activeM:GetAlpha()
+    local menuAlpha      = activeM:GetAlpha() or 0
     for _, e in ipairs(entries) do
         
         if menuAlpha < 1 then goto nextEntry end
@@ -1632,9 +1652,9 @@ local function DrawColorSelector()
         local isActiveItem =(activeItemName == e.itemName)
 
         if isActive and isActiveItem then
-            local strip = TEN.View.DisplaySprite(TEN.Objects.ObjID.PHOTOMODE_SPRITES, 6,
-                TEN.Vec2(COLOR_STRIP_X, COLOR_STRIP_Y), 0,
-                TEN.Vec2(COLOR_STRIP_W, COLOR_STRIP_H), TEN.Color(255, 255, 255, a))
+            local strip = TEN.View.DisplaySprite(TEN.Objects.ObjID.PHOTOMODE_SPRITES, COLOR_STRIP_SPRITE,
+                TEN.Vec2(colorStripX, colorStripY), 0,
+                TEN.Vec2(colorStripW, colorStripH), TEN.Color(255, 255, 255, a))
             if strip then
                 strip:Draw(-3,
                     TEN.View.AlignMode.CENTER_RIGHT,
@@ -1647,13 +1667,13 @@ local function DrawColorSelector()
             local numOpts = #e.palette
             local optIdx  = m:GetCurrentOptionIndex()
 
-            local cursorX = anchors.CENTER_LEFT.x - COLOR_STRIP_W / 2 + (optIdx - 1) / numOpts * (anchors.CENTER_RIGHT.x - anchors.CENTER_LEFT.x)
+            local cursorX = anchors.CENTER_LEFT.x - colorStripW / 2 + (optIdx - 1) / numOpts * (anchors.CENTER_RIGHT.x - anchors.CENTER_LEFT.x)
             local cursorY = anchors.CENTER_LEFT.y
 
             local cursor = TEN.View.DisplaySprite(
-                TEN.Objects.ObjID.PHOTOMODE_SPRITES, 7,
+                TEN.Objects.ObjID.PHOTOMODE_SPRITES, COLOR_CURSOR_SPRITE,
                 TEN.Vec2(cursorX, cursorY), 0,
-                TEN.Vec2(COLOR_STRIP_W, COLOR_STRIP_H), TEN.Color(255, 255, 255, a))
+                TEN.Vec2(colorStripW, colorStripH), TEN.Color(255, 255, 255, a))
             if cursor then
                 cursor:Draw(-2,
                     TEN.View.AlignMode.CENTER_LEFT,
@@ -1662,13 +1682,13 @@ local function DrawColorSelector()
             end
         elseif isActive then
             -- Small tinted swatch at the option column position
-            local pos = TEN.Vec2(COLOR_SWATCH_X, COLOR_STRIP_Y)
+            local pos = TEN.Vec2(colorStripX, colorStripY)
             local col = e.palette[e.colorIndex]
             if pos and col then
                 local swatch = TEN.View.DisplaySprite(
                     TEN.Objects.ObjID.PHOTOMODE_SPRITES, COLOR_SWATCH_SPRITE,
                     pos, 0,
-                    TEN.Vec2(COLOR_SWATCH_W, COLOR_SWATCH_W), TEN.Color(col.color.r, col.color.g, col.color.b, a))
+                    TEN.Vec2(COLOR_SWATCH_W, COLOR_SWATCH_H), TEN.Color(col.color.r, col.color.g, col.color.b, a))
                 if swatch then
                     swatch:Draw(-2,
                         TEN.View.AlignMode.CENTER_RIGHT,
@@ -1688,19 +1708,23 @@ end
 
 local function DrawHeaderSprites(alpha)
     local cfg = Configuration.HeaderSprites
+	
     if not cfg or not cfg.spriteIDs or alpha < 1 then return end
-    local activeIdx  = Menu.GetActiveHeaderIndex()
-    local count      = #cfg.spriteIDs
-    local spacing    = cfg.spacing or 6
-    local totalWidth = (count - 1) * spacing
-    local posX       = cfg.position and cfg.position.x or 50
-    local posY       = cfg.position and cfg.position.y or 21
-    local startX     = posX - totalWidth / 2
+	
+    local aspectScale = GetAspectScale()
+    local activeIdx   = Menu.GetActiveHeaderIndex()
+    local count       = #cfg.spriteIDs
+    local spacing     = ((Configuration.Menu.size.x - cfg.sizeActive.x) / (count - 1) * aspectScale)
+    local totalWidth  = (count - 1) * spacing
+    local posX        = (Configuration.Menu.size.x / 2) * aspectScale + Configuration.Menu.position.x
+    local posY        = Configuration.Menu.position.y + cfg.sizeInactive.y
+    local startX      = posX - totalWidth / 2
     local sizeA  = cfg.sizeActive    or TEN.Vec2(5, 5)
     local sizeI  = cfg.sizeInactive  or TEN.Vec2(4, 4)
     local colorA = cfg.colorActive   or TEN.Color(255, 255, 255)
     local colorI = cfg.colorInactive or TEN.Color(100, 100, 100)
     local spd = SPRITE_ANIM_SPEED
+	
     for i, spriteID in ipairs(cfg.spriteIDs) do
         local isActive = (i == activeIdx)
         local tW = isActive and sizeA.x  or sizeI.x
@@ -1723,17 +1747,19 @@ local function DrawHeaderSprites(alpha)
         local x     = startX + (i - 1) * spacing
         local size  = TEN.Vec2(anim.sizeW, anim.sizeH)
         local color = TEN.Color(math.floor(anim.r), math.floor(anim.g), math.floor(anim.b), math.floor(alpha))
-        local sprite = TEN.View.DisplaySprite(cfg.objectID, spriteID, TEN.Vec2(x, posY), cfg.rotation or 0, size, color)
+        local sprite = TEN.View.DisplaySprite(cfg.objectID, spriteID, TEN.Vec2(x, posY), 0, size, color)
         if sprite then
-            sprite:Draw(cfg.layer or -4, cfg.alignMode or TEN.View.AlignMode.CENTER, cfg.scaleMode or TEN.View.ScaleMode.FIT, cfg.blendMode or TEN.Effects.BlendID.ALPHA_BLEND)
+            sprite:Draw(cfg.layer or -4, TEN.View.AlignMode.CENTER, TEN.View.ScaleMode.FIT, TEN.Effects.BlendID.ALPHA_BLEND)
         end
     end
 end
 
 local function DrawBackSprites(alpha)
-
     local color = ColorCombine(Configuration.ColorMap.dimmed, math.floor(alpha))
-    local sprite = TEN.View.DisplaySprite(TEN.Objects.ObjID.PHOTOMODE_SPRITES, 5, TEN.Vec2(1.5, 11), 0, TEN.Vec2(29, 38.5), color)
+    local scale = GetAspectScale()
+    local boxW = Configuration.Menu.size.x * scale
+    local boxH = Configuration.Menu.size.y
+    local sprite = TEN.View.DisplaySprite(TEN.Objects.ObjID.PHOTOMODE_SPRITES, 5, Configuration.Menu.position, 0, TEN.Vec2(boxW, boxH), color)
     if sprite then
         sprite:Draw(-4, TEN.View.AlignMode.TOP_LEFT, TEN.View.ScaleMode.STRETCH, TEN.Effects.BlendID.ALPHA_BLEND)
     end
@@ -1741,16 +1767,22 @@ local function DrawBackSprites(alpha)
 end
 
 local function DrawTitle(alpha)
+    local aspectScale = GetAspectScale()
+    local posX = (Configuration.Menu.size.x / 2) * aspectScale + Configuration.Menu.position.x
+    local posY = Configuration.Menu.position.y - Configuration.HeaderSprites.sizeInactive.y
     local modeText = TEN.Flow.GetString("photo_mode")
-    local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(16, 8))
+    local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(posX, posY))
     local modeStr  = TEN.Strings.DisplayString(modeText, modePos, 0.8, ColorCombine(Configuration.ColorMap.headerText, alpha), false, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER, TEN.Strings.DisplayStringOption.VERTICAL_CENTER })
     TEN.Strings.ShowString(modeStr, Constants.DRAW_RATE)
 end
 
 local function DrawModeText(alpha)
+    local aspectScale = GetAspectScale()
+    local posX = (Configuration.Menu.size.x / 2) * aspectScale + Configuration.Menu.position.x
+    local posY = Configuration.Menu.position.y + Configuration.Menu.size.y - Configuration.HeaderSprites.sizeInactive.y + 0.5
     local modeText = TEN.Flow.GetString("pm_mode_prefix") .. States.GetModeName()
-    local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(16, 46))
-    local modeStr  = TEN.Strings.DisplayString(modeText, modePos, 0.5, ColorCombine(Configuration.ColorMap.neutral, alpha), false, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
+    local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(posX, posY))
+    local modeStr  = TEN.Strings.DisplayString(modeText, modePos, 0.5, ColorCombine(Configuration.ColorMap.dimmed, alpha), false, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
     TEN.Strings.ShowString(modeStr, Constants.DRAW_RATE)
 end
 
@@ -1762,7 +1794,8 @@ local function DrawHelpText(alpha)
     local device = TEN.Input.GetLastInputDevice()
     local suffix = (device == TEN.Input.InputDevice.GAMEPAD) and "_gamepad" or ""
 
-    local modeKeys = {
+    local modeKeys = 
+	{
         [States.Mode.PLAYER] = "pm_help_character",
         [States.Mode.LIGHT]  = "pm_help_light",
         default              = "pm_help_camera"
@@ -1804,7 +1837,7 @@ LevelFuncs.Engine.PhotoMode.OnLoop = function()
 
     if keySet1 or keySet2 then
         state.entryHoldCount = state.entryHoldCount + 1
-        if state.entryHoldCount >= Configuration.Entry.holdFrames then
+        if state.entryHoldCount >= Configuration.Menu.holdFrames then
             state.entryHoldCount = 0
             TEN.Sound.PlaySound(Configuration.SoundMap.menuOpen)
             PhotoMode.Enter()
@@ -1892,7 +1925,7 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
             end
         end
 
-        DrawBackSprites(headerAlpha)
+        DrawBackSprites(headerAlpha * (Configuration.Menu.backgroundAlpha / 255.0))
         DrawHeaderSprites(headerAlpha)
         DrawColorSelector()
         DrawModeText(headerAlpha)
