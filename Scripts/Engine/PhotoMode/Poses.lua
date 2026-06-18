@@ -1,4 +1,6 @@
 -- ldignore
+local PhotoModeData = require("PhotoModeData")
+
 local Poses =
 {
     { name = "Default", objID = TEN.Objects.ObjID.LARA,            animNumber = 0,  frameNumber = 0 },
@@ -46,5 +48,9 @@ local Poses =
     { name = "41",      objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 41, frameNumber = 0 },
     { name = "42",      objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 42, frameNumber = 0 },
 }
+
+for _, pose in ipairs(PhotoModeData.Poses) do
+    table.insert(Poses, pose)
+end
 
 return Poses
