@@ -107,6 +107,9 @@ void DoThumbstickCamera()
 	if (!g_Configuration.EnableThumbstickCamera)
 		return;
 
+	if (g_GameFlow->CurrentFreezeMode == FreezeMode::Spectator)
+		return;
+
 	if (Camera.laraNode != NO_VALUE)
 		return;
 
