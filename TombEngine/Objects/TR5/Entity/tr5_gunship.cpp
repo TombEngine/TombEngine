@@ -33,7 +33,8 @@ namespace TEN::Entities::Creatures::TR5
 	constexpr float SHOT_COUNTER_SPEED_DEFAULT = 1.0f;
 
 	constexpr float BANK_LERP_SPEED = 8.0f;
-	constexpr int MAX_BANK_ANGLE = ANGLE(25);
+	constexpr int MAX_BANK_ANGLE = ANGLE(5);
+	constexpr int MAX_REVERSE_PITCH = ANGLE(15);
 
 	int GunShipCounter = 0;
 
@@ -106,23 +107,49 @@ namespace TEN::Entities::Creatures::TR5
 			storedRollAngle = 0;
 		}
 
-		// Pitch from z-component of direction (forward/backward movement relative to Lara)
-		// Pitch has a higher multiplier for more forward/backward tilt
+		// Pitch (forward/back tilt) based on whether Lara is in front or behind the heli
+		// Roll (left/right tilt) based on lateral offset from the heli-lara plane
+		const float PITCH_MULTIPLIER = 2.5f;
+		
+		// Use yaw angle to determine if Lara is in front (-Z) or behind (+Z) relative to heli orientation
+		float hdx = LaraItem->Pose.Position.x - item->Pose.Position.x;
+		float hdz = LaraItem->Pose.Position.z - item->Pose.Position.z;
+		float hLen = sqrtf(hdx * hdx + hdz * hdz);
+		
+		float pitchDirZ = 0.0f;
+		if (hLen > 0.1f)
+			pitchDirZ = hdz / hLen;
+		
 		float targetPitch = 0.0f;
-		float zComponent = direction.z * (-moveAmount);
-		const float PITCH_MULTIPLIER = 1.8f;
-		if (zComponent > 0.2f)
-			targetPitch = -MAX_BANK_ANGLE * PITCH_MULTIPLIER * zComponent;
-		else if (zComponent < -0.2f)
-			targetPitch = MAX_BANK_ANGLE * PITCH_MULTIPLIER * (-zComponent);
+		if (moveAmount != 0.0f && hLen > 100.0f)
+		{
+			float zComponent = pitchDirZ * moveAmount;
+			if (zComponent > 0.2f)
+			{
+				float pitchFactor = zComponent;
+				if (hLen < 300.0f)
+					pitchFactor *= 0.4f;
+				else if (zComponent > 0.8f)
+					pitchFactor *= 0.7f;
+				targetPitch = MAX_BANK_ANGLE * PITCH_MULTIPLIER * pitchFactor;
+			}
+			else if (zComponent < -0.2f)
+			{
+				float pitchFactor = zComponent;
+				if (hLen < 300.0f)
+					pitchFactor *= 0.4f;
+				else if (zComponent < -0.8f)
+					pitchFactor *= 0.7f;
+				targetPitch = -MAX_REVERSE_PITCH * PITCH_MULTIPLIER * pitchFactor;
+			}
+		}
 
-		// Roll from x-component of direction (left/right movement relative to Lara)
 		float targetRoll = 0.0f;
 		float xComponent = direction.x * (-moveAmount);
 		if (xComponent > 0.2f)
-			targetRoll = MAX_BANK_ANGLE * 0.5f * xComponent;
+			targetRoll = -MAX_BANK_ANGLE * 0.5f * xComponent;
 		else if (xComponent < -0.2f)
-			targetRoll = -MAX_BANK_ANGLE * 0.5f * (-xComponent);
+			targetRoll = MAX_BANK_ANGLE * 0.5f * (-xComponent);
 
 		float tiltLerpAlpha = 1.0f / powf(2.0f, BANK_LERP_SPEED);
 		currentPitch += (targetPitch - currentPitch) * tiltLerpAlpha;
@@ -130,7 +157,7 @@ namespace TEN::Entities::Creatures::TR5
 
 		// Clamp pitch and roll angles to prevent excessive rotation
 		if (currentPitch > MAX_BANK_ANGLE) currentPitch = MAX_BANK_ANGLE;
-		if (currentPitch < -MAX_BANK_ANGLE) currentPitch = -MAX_BANK_ANGLE;
+		if (currentPitch < -MAX_REVERSE_PITCH) currentPitch = -MAX_REVERSE_PITCH;
 		if (currentRoll > MAX_BANK_ANGLE) currentRoll = MAX_BANK_ANGLE;
 		if (currentRoll < -MAX_BANK_ANGLE) currentRoll = -MAX_BANK_ANGLE;
 
@@ -151,6 +178,13 @@ namespace TEN::Entities::Creatures::TR5
 		const float ACCELERATION = 6.0f;
 		float accelAlpha = 1.0f / powf(2.0f, ACCELERATION);
 
+		// Track home position for returning to altitude when not maneuvering
+		static int homeY = item->Pose.Position.y;
+		const float HOME_Y_SMOOTH = 4.0f;
+		
+		if (item->ItemFlags[0] == 1)
+			homeY = item->Pose.Position.y;
+
 		const float MAX_MOVE_SPEED = 84.0f;
 
 		// Determine target velocity based on movement state
@@ -160,9 +194,31 @@ namespace TEN::Entities::Creatures::TR5
 
 		if (moveAmount != 0.0f)
 		{
-			targetVelocityX = direction.x * moveAmount * MAX_MOVE_SPEED;
-			targetVelocityY = direction.y * moveAmount * MAX_MOVE_SPEED;
-			targetVelocityZ = direction.z * moveAmount * MAX_MOVE_SPEED;
+			// Use horizontal distance projection for movement to avoid excessive vertical drift
+			float hdx = LaraItem->Pose.Position.x - item->Pose.Position.x;
+			float hdz = LaraItem->Pose.Position.z - item->Pose.Position.z;
+			float hLen = sqrtf(hdx * hdx + hdz * hdz);
+			if (hLen > 0.0f)
+			{
+				targetVelocityX = (hdx / hLen) * moveAmount * MAX_MOVE_SPEED;
+				targetVelocityZ = (hdz / hLen) * moveAmount * MAX_MOVE_SPEED;
+			}
+			else
+			{
+				targetVelocityX = direction.x * moveAmount * MAX_MOVE_SPEED;
+				targetVelocityZ = direction.z * moveAmount * MAX_MOVE_SPEED;
+			}
+			// Y movement - avoid excessive vertical drift
+			targetVelocityY = direction.y * moveAmount * MAX_MOVE_SPEED * 0.15f;
+			
+			// Update homeY dynamically when moving vertically
+			if (moveAmount != 0.0f && targetVelocityY != 0.0f)
+				homeY += (int)(targetVelocityY * 0.5f);
+		}
+		else
+		{
+			// When not maneuvering, gently return to homeY altitude
+			targetVelocityY += (homeY - item->Pose.Position.y) * 0.02f;
 		}
 
 		if (moveAmount != 0.0f)
@@ -186,15 +242,12 @@ namespace TEN::Entities::Creatures::TR5
 		Vector3 vecTarget = targetPos.ToVector3();
 
 		EulerAngles targetOrient = Geometry::GetOrientToPoint(vecOrigin, vecTarget);
-		targetOrient.z += ANGLE(180.0f);
+		targetOrient.y += ANGLE(180.0f);
 
-		const int MAX_PITCH = ANGLE(185.0);
-		if (targetOrient.x < -MAX_PITCH) targetOrient.x = -MAX_PITCH;
-		if (targetOrient.x > MAX_PITCH) targetOrient.x = MAX_PITCH;
 
 		int prevStoredYawAngle = item->Pose.Orientation.y;
 
-		const int TRACK_SPEED = 3;
+		constexpr int TRACK_SPEED = 3;
 		float lerpAlpha = 1.0f / powf(2.0f, TRACK_SPEED);
 
 		if (item->ItemFlags[0] == 1)
@@ -202,14 +255,15 @@ namespace TEN::Entities::Creatures::TR5
 
 		item->Pose.Orientation.Lerp(targetOrient, lerpAlpha);
 
-		// Apply pitch and roll rotation deltas as additive offsets
-		if (pitchDelta != 0)
-			item->Pose.Orientation.x += pitchDelta;
-
-		if (rollDelta != 0)
-			item->Pose.Orientation.z += rollDelta;
+		// Apply pitch/roll as additive offsets to override LERP for proper tilt orientation
+		// Apply pitch (X-axis) and roll (Y-axis) per helicopter local coordinate system
+		// pitch: +X = nose up, -X = nose down
+		// roll: +Y = right bank, -Y = left bank
+		item->Pose.Orientation.x += storedPitchAngle;
+		item->Pose.Orientation.z += storedRollAngle;
 
 		// Keep yaw from snapping back to the original LERP target
+		// Yaw is on Y-axis for helicopter local coordinate system
 		const int deltaYaw = item->Pose.Orientation.y - prevStoredYawAngle;
 		if (deltaYaw != 0)
 			targetOrient.y += deltaYaw;
