@@ -110,8 +110,8 @@
 --
 -- @luautil PhotoMode
 
---- Accessories
--- @section Accessories
+--- Adding Accessories
+-- @section AddingAccessories
 -- Accessories are drawn on top of Lara. They are defined in <i>Scripts/PhotoModeData.lua</i> file in Accessories table. To add new accessories add a row to the accessory presets table in that file. The first entry should always be a "None" sentinel (objID = nil, meshIndices = {}) so the player can clear accessories.
 -- To hide the Accessory option entirely set Settings.Character.accessoriesEnabled = false via @{PhotoMode.SetSettings}.
 -- @usage
@@ -141,17 +141,14 @@
 -- @usage
 -- meshIndices = { 0, 4, 9 } — only the listed slot indices are shown
 
---- Expressions
--- @section Expressions
+--- Adding Expressions
+-- @section AddingExpressions
 -- Expressions swap one or more of Lara's classic mesh slots with meshes sourced from another object. They are defined in <i>Scripts/PhotoModeData.lua</i> file in Expressions table. Use multiple indices to swap more than one mesh at once.
 -- @usage
 --    {
---      name = "Default", objID = nil, meshIndices = {}
---    },
---    {
 --      name = "Scream",
 --      objID       = TEN.Objects.ObjID.LARA_SCREAM,
---      meshIndices = { 14 },   -- head slot
+--      meshIndices = { 14 },   -- head mesh
 --    }
 
 --- Display name shown in the selector.
@@ -165,8 +162,8 @@
 -- @usage
 -- meshIndices = { 0, 4, 9 } — only the listed slot indices are swapped
 
---- Frames
--- @section Frames
+--- Adding Frames
+-- @section AddingFrames
 -- Frames are full-screen sprites drawn from the PHOTOMODE_FRAMES object. A spriteID of -1 means "no frame". The first entry should always be "None". They are defined in <i>Scripts/PhotoModeData.lua</i> file in Frames table.
 -- @usage
 --    { name = "None",            spriteID = -1 },
@@ -182,8 +179,8 @@
 --- Scale mode to set for the frame overlay.
 -- @tfield[opt=TEN.View.ScaleMode.STRETCH] View.ScaleMode scaleMode Scale mode for the frame overlay.
 
---- Outfits
--- @section Outfits
+--- Adding Outfits
+-- @section AddingOutfits
 -- Outfits can change Lara's Outfit. Both the classic skins and skinned mesh can be used.  They are defined in <i>Scripts/PhotoModeData.lua</i> file in Outfits table. The first entry is always "Default". Set unlocked = false to hide an outfit until the player earns it, then call @{PhotoMode.UnlockOutfit} to reveal it. Unlocks are saved in GlobalVars.Engine.PhotoModeOutfits.
 -- @usage
 -- -- Classic skin swap (uses Lara:SetSkin):
@@ -207,7 +204,7 @@
 --       name             = "Remastered",
 --       skinnedMesh      = TEN.Objects.ObjID.ANIMATING14,
 --       skinnedMeshIndex = 0,      -- Optional sub-index.
---       meshVisible      = "none", -- Hide classic meshes so only GPU mesh shows.
+--       meshVisible      = "none", -- Hide classic meshes
 --       unlocked         = false,
 
 --       onEnter = function() -- Function to call when outfit is selected.
@@ -263,6 +260,10 @@
 --- Whether the outfit is visible in the selector menu.
 -- @tfield[opt=true] bool unlocked true or nil makes the outfit visible; false hides it in selection until @{PhotoMode.UnlockOutfit} is called.
 
+--- Unlocking Outfits
+-- @section UnlockingOutfits
+-- Outfits unlocking and locking can be managed using the @{PhotoMode.UnlockOutfit} and @{PhotoMode.ClearOutfits} functions.
+
 --- Clear all unlocked outfits so they no longer appear in the PhotoMode outfit selector.
 -- @function PhotoMode.ClearOutfits
 -- @usage
@@ -274,8 +275,8 @@
 -- @usage
 -- PhotoMode.UnlockOutfit("Secret Wetsuit")
 
---- Poses
--- @section Poses
+--- Adding Poses
+-- @section AddingPoses
 -- Poses are defined in the <i>Scripts/PhotoModeData.lua</i> file in Poses table. Each pose applies an animation from the PHOTOMODE_ANIMS object or any other object in the level.
 -- @usage
 --    { 
@@ -326,28 +327,38 @@
 --- Settings.Camera
 -- @section Settings.Camera
 -- Camera-related settings.
+-- @usage
+-- -- In the level's lua file
+-- local settings = PhotoMode.GetSettings()
+-- settings.Camera.limitCameraDistance = false
+-- PhotoMode.SetSettings(settings)
 
 --- Whether to limit camera distance from Lara to prevent clipping through level geometry. Enabling this will cause the camera to stop moving further away once it reaches the configured distance, but it will not push the camera back if the player moves closer after exceeding the limit.
--- @tfield bool limitCameraDistance true to enable camera distance limiting, false to allow unlimited camera distance.
+-- @tfield[opt=true] bool limitCameraDistance true to enable camera distance limiting, false to allow unlimited camera distance.
 
 --- Maximum camera distance from Lara when Settings.Camera.limitCameraDistance is enabled. The camera will stop moving further away once it reaches this distance.
--- @tfield int distance Maximum camera distance from Lara when Settings.Camera.limitCameraDistance is enabled, measured in game units.
+-- @tfield[opt=4096] int distance Maximum camera distance from Lara when Settings.Camera.limitCameraDistance is enabled, measured in game units.
 
 --- All four DOF items (Mode, Focus Distance, Focus Range, Blur Strength) can be hidden at once by setting depthOfFieldEnabled = false. This is useful for projects that do not use the DOF post-process effect and want a cleaner Camera menu.
--- @tfield bool depthOfFieldEnabled true to enable depth of field, false to disable it.
+-- @tfield[opt=true] bool depthOfFieldEnabled true to enable depth of field, false to disable it.
 
 --- Settings.Character
 -- @section Settings.Character
 -- Settings related to character customization.
+-- @usage
+-- -- In the level's lua file
+-- local settings = PhotoMode.GetSettings()
+-- settings.Character.allWeapons = false
+-- PhotoMode.SetSettings(settings)
 
 --- Whether the Accessories menu is enabled. Accessories are mesh swaps parented to a hidden moveable that mirrors Lara's animation, allowing them to move naturally with her skeleton. Set this to false to hide the Accessories menu and disable the accessory system entirely.
--- @tfield bool accessoriesEnabled true to enable the Accessories menu, false to hide it and disable the accessory option in Character menu.
+-- @tfield[opt=true] bool accessoriesEnabled true to enable the Accessories menu, false to hide it and disable the accessory option in Character menu.
 
 --- Whether to show all weapon options in the Character menu regardless of inventory.
--- @tfield bool allWeapons set this to false to hide unavailable weapons.
+-- @tfield[opt=true] bool allWeapons set this to false to hide unavailable weapons.
 
 --- Whether the Outfits menu is enabled.
--- @tfield bool outfitsEnabled true to enable the Outfits menu, false to hide it and disable the outfit option in Character menu.
+-- @tfield[opt=true] bool outfitsEnabled true to enable the Outfits menu, false to hide it and disable the outfit option in Character menu.
 
 --- Settings.ColorMap
 -- @section Settings.ColorMap
