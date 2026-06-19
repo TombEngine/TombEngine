@@ -1,5 +1,5 @@
 -- ldignore
-local PhotoModeData = require("PhotoModeData")
+local PhotoModeSetup = require("PhotoModeSetup")
 
 local Expressions =
 {
@@ -7,7 +7,7 @@ local Expressions =
     { name = "Scream", objID = TEN.Objects.ObjID.LARA_SCREAM, meshIndices = {14} }
 }
 
-for _, expression in ipairs(PhotoModeData.Expressions) do
+for _, expression in ipairs(PhotoModeSetup.Expressions) do
     table.insert(Expressions, expression)
 end
 

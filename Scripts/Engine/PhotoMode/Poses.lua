@@ -1,5 +1,5 @@
 -- ldignore
-local PhotoModeData = require("PhotoModeData")
+local PhotoModeSetup = require("PhotoModeSetup")
 
 local Poses =
 {
@@ -49,7 +49,7 @@ local Poses =
     { name = "42",      objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 42, frameNumber = 0 },
 }
 
-for _, pose in ipairs(PhotoModeData.Poses) do
+for _, pose in ipairs(PhotoModeSetup.Poses) do
     table.insert(Poses, pose)
 end
 

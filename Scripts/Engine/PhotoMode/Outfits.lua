@@ -1,5 +1,5 @@
 -- ldignore
-local PhotoModeData = require("PhotoModeData")
+local PhotoModeSetup = require("PhotoModeSetup")
 
 local Outfits =
 {
@@ -9,7 +9,7 @@ local Outfits =
   }
 }
 
-for _, outfit in ipairs(PhotoModeData.Outfits) do
+for _, outfit in ipairs(PhotoModeSetup.Outfits) do
     table.insert(Outfits, outfit)
 end
 

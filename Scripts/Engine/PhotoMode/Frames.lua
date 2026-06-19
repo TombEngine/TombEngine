@@ -1,5 +1,5 @@
 -- ldignore
-local PhotoModeData = require("PhotoModeData")
+local PhotoModeSetup = require("PhotoModeSetup")
 
 local Frames =
 {
@@ -9,7 +9,7 @@ local Frames =
     { name = "Polaroid", spriteID = 2, scaleMode = TEN.View.ScaleMode.FIT }
 }
 
-for _, frame in ipairs(PhotoModeData.Frames) do
+for _, frame in ipairs(PhotoModeSetup.Frames) do
     table.insert(Frames, frame)
 end
 

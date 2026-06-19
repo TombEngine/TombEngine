@@ -1,5 +1,5 @@
 -- ldignore
-local PhotoModeData = require("PhotoModeData")
+local PhotoModeSetup = require("PhotoModeSetup")
 
 local Accessories =
 {
@@ -7,7 +7,7 @@ local Accessories =
     { name = "Sunglasses",  objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, meshIndices = {14} },
 }
 
-for _, accessory in ipairs(PhotoModeData.Accessories) do
+for _, accessory in ipairs(PhotoModeSetup.Accessories) do
     table.insert(Accessories, accessory)
 end
 

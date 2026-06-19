@@ -1307,7 +1307,9 @@ local function BuildAllMenus()
         if name == "pm_hide_character" then
             state.hideCharacter = IndexToBool(m:GetCurrentOptionIndex())
             Lara:SetVisible(not state.hideCharacter)
-            state.accessoryMesh:SetVisible(not state.hideCharacter)
+            if state.accessoryMesh then
+                state.accessoryMesh:SetVisible(not state.hideCharacter)
+            end
         end
     end
 
@@ -1621,7 +1623,7 @@ local function DrawColorSelector()
     local COLOR_STRIP_SPRITE  = 6
     local COLOR_CURSOR_SPRITE = 7
     local COLOR_SWATCH_SPRITE = 8
-	local COLOR_SWATCH_W      = 8
+	local COLOR_SWATCH_W      = 2
 	local COLOR_SWATCH_H      = 2
 	
     local cfg   = Configuration
@@ -1633,8 +1635,8 @@ local function DrawColorSelector()
     local boxRight    = boxW
     local colorStripX = boxRight - 0.5
     local colorStripY = cfg.Menu.position.y + 22.5
-    local colorStripW = 14.0
-    local colorStripH = 14.0
+    local colorStripW = 10.0
+    local colorStripH = 10.0
 
     -- Descriptor table for each colour-picking item
     local entries =
@@ -1789,7 +1791,7 @@ local function DrawModeText(alpha)
     local posY = Configuration.Menu.position.y + Configuration.Menu.size.y - Configuration.HeaderSprites.sizeInactive.y + 0.5
     local modeText = TEN.Flow.GetString("pm_mode_prefix") .. States.GetModeName()
     local modePos  = TEN.Util.PercentToScreen(TEN.Vec2(posX, posY))
-    local modeStr  = TEN.Strings.DisplayString(modeText, modePos, 0.5, ColorCombine(Configuration.ColorMap.dimmed, alpha), false, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
+    local modeStr  = TEN.Strings.DisplayString(modeText, modePos, 0.5, ColorCombine(Configuration.ColorMap.neutral, alpha), false, { TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.CENTER })
     TEN.Strings.ShowString(modeStr, Constants.DRAW_RATE)
 end
 

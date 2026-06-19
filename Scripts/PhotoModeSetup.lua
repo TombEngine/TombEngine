@@ -1,6 +1,6 @@
-local PhotoModeData = {}
+local PhotoModeSetup = {}
 
-PhotoModeData.Accessories =
+PhotoModeSetup.Accessories =
 {
 --   Each entry describes an Accessory.
 --   name        : Display name shown in the menu.
@@ -10,7 +10,7 @@ PhotoModeData.Accessories =
 -- { name = "Rose",        objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, meshIndices = {10} }
 }
 
-PhotoModeData.Expressions =
+PhotoModeSetup.Expressions =
 {
 --   Each entry describes an expression.
 --   name        : Display name shown in the menu.
@@ -19,7 +19,7 @@ PhotoModeData.Expressions =
 -- { name = "Talk 1", objID = TEN.Objects.ObjID.LARA_SPEECH_HEAD1, meshIndices = {14} },
 }
 
-PhotoModeData.Frames =
+PhotoModeSetup.Frames =
 {
 --  Each entry describes a frame.
 --   name        : Display name shown in the menu.
@@ -27,7 +27,7 @@ PhotoModeData.Frames =
 -- { name = "Recording", spriteID = 3 },
 }
 
-PhotoModeData.Outfits =
+PhotoModeSetup.Outfits =
 {
 --   Each entry describes an outfit.
 -- skin:              Array of up to 5 ObjIDs → Lara:SetSkin(skin, skinJoints, skinScream, hair1, hair2).
@@ -66,7 +66,7 @@ PhotoModeData.Outfits =
 
 }
 
-PhotoModeData.Poses =
+PhotoModeSetup.Poses =
 {
 --   Each entry describes a pose.
 --   name        : Display name shown in the menu.
@@ -76,4 +76,4 @@ PhotoModeData.Poses =
 --   { name = "Pose Name",      objID = TEN.Objects.ObjID.PHOTOMODE_ANIMS, animNumber = 42, frameNumber = 0 },
 }
 
-return PhotoModeData
+return PhotoModeSetup
