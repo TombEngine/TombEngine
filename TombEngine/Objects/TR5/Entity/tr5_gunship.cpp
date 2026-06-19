@@ -36,7 +36,7 @@ namespace TEN::Entities::Creatures::TR5
 	constexpr float ROLL_LERP_SPEED = 4.0f;
 
 	constexpr int MAX_REVERSE_PITCH_DEG = 30;
-	constexpr int MAX_BANK_ANGLE_DEG = 15;
+	constexpr int MAX_BANK_ANGLE_DEG = 8;
 
 	int GunShipCounter = 0;
 
@@ -209,13 +209,13 @@ namespace TEN::Entities::Creatures::TR5
 		else
 		{
 			// When not maneuvering, gently return to homeY altitude
-			targetVelocityY += (homeY - item->Pose.Position.y) * 0.02f;
+			targetVelocityY = (homeY - item->Pose.Position.y) * 0.02f;
 		}
 
 		if (moveAmount == 0.0f)
 		{
-			currentPitch *= 0.95f;
-			currentBankAngle *= 0.95f;
+			currentPitch *= 0.999f;
+			currentBankAngle *= 0.999f;
 		}
 
 		// Smoothly interpolate velocity toward target
