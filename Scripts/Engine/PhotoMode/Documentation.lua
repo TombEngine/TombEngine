@@ -13,10 +13,10 @@
 --
 -- Make sure the following objects exist in your wad:
 --
--- - `PHOTOMODE_SPRITES`  — Sprite sheet for menus.
--- - `PHOTOMODE_FRAMES`   — Frame overlay sprite sheet.
--- - `PHOTOMODE_ANIMS`    — Object that holds all custom photo mode poses.
--- - `CAMERA_TARGET`      — Used internally to drive the object camera.
+-- - `PHOTOMODE_SPRITES` — Sprite sheet for menus.
+-- - `PHOTOMODE_FRAMES`  — Frame overlay sprite sheet.
+-- - `PHOTOMODE_ANIMS`   — Object that holds all custom photo mode poses.
+-- - `CAMERA_TARGET`     — Used internally to drive the object camera.
 -- 
 -- It is possible to change settings on a per-level basis via @{PhotoMode.GetSettings} and @{PhotoMode.SetSettings} functions, but keep in mind that
 -- _Settings.lua is reread every time the level is reloaded_. Therefore, you need to implement custom settings management in your level script
@@ -186,34 +186,35 @@
 -- @section Outfits
 -- Outfits can change Lara's Outfit. Both the classic skins and skinned mesh can be used.  They are defined in <i>Scripts/PhotoModeData.lua</i> file in Outfits table. The first entry is always "Default". Set unlocked = false to hide an outfit until the player earns it, then call @{PhotoMode.UnlockOutfit} to reveal it. Unlocks are saved in GlobalVars.Engine.PhotoModeOutfits.
 -- @usage
--- --Classic skin swap (uses Lara:SetSkin):
+-- -- Classic skin swap (uses Lara:SetSkin):
 --
 --    { 
 --      name = "Classic TR4",
 --      skin = 
 --          {
---            TEN.Objects.ObjID.ANIMATING1,   -- skin
---            TEN.Objects.ObjID.ANIMATING2,   -- skinJoints
---            TEN.Objects.ObjID.ANIMATING3,   -- skinScream
---            TEN.Objects.ObjID.ANIMATING4,   -- hair1
---            -- hair2 omitted - unchanged
+--             TEN.Objects.ObjID.ANIMATING1,   -- skin
+--             TEN.Objects.ObjID.ANIMATING2,   -- skinJoints
+--             TEN.Objects.ObjID.ANIMATING3,   -- skinScream
+--             TEN.Objects.ObjID.ANIMATING4,   -- hair1
+--             -- hair2 omitted - unchanged
 --          },
 --      meshVisible = "all",
 --    },
 --
--- --skinned mesh swap (uses Lara:SwapSkinnedMesh):
+-- -- Skinned mesh swap (uses Lara:SwapSkinnedMesh):
 --
 --    {
---      name             = "Remastered",
---      skinnedMesh      = TEN.Objects.ObjID.ANIMATING14,
---      skinnedMeshIndex = 0,      -- optional sub-index
---      meshVisible      = "none", -- hide classic meshes so only GPU mesh shows
---      unlocked         = false,
---      onEnter = function() --function to call when outfit is selected
---      local s = TEN.Flow.GetSettings()
---       s.Hair[1].offset = Vec3(-4, 3, -28)
---       TEN.Flow.SetSettings(s)
---      end
+--       name             = "Remastered",
+--       skinnedMesh      = TEN.Objects.ObjID.ANIMATING14,
+--       skinnedMeshIndex = 0,      -- Optional sub-index.
+--       meshVisible      = "none", -- Hide classic meshes so only GPU mesh shows.
+--       unlocked         = false,
+
+--       onEnter = function() -- Function to call when outfit is selected.
+--         local s = TEN.Flow.GetSettings()
+--         s.Hair[1].offset = Vec3(-4, 3, -28)
+--         TEN.Flow.SetSettings(s)
+--       end
 --    }
 --
 
@@ -225,10 +226,10 @@
 -- @usage
 --      skin = 
 --          {
---          TEN.Objects.ObjID.ANIMATING1,   -- skin
---          TEN.Objects.ObjID.ANIMATING2,   -- skinJoints
---          TEN.Objects.ObjID.ANIMATING3,   -- skinScream
---          TEN.Objects.ObjID.ANIMATING4,   -- hair1
+--             TEN.Objects.ObjID.ANIMATING1,   -- skin
+--             TEN.Objects.ObjID.ANIMATING2,   -- skinJoints
+--             TEN.Objects.ObjID.ANIMATING3,   -- skinScream
+--             TEN.Objects.ObjID.ANIMATING4,   -- hair1
 --          },
 
 --- ObjID for skinned mesh swap, or the string "clear" to disable GPU skinning.
@@ -239,20 +240,20 @@
 --- Optional sub-index passed to Lara:SwapSkinnedMesh().
 -- @tfield[opt=nil] int skinnedMeshIndex Optional sub-index for SwapSkinnedMesh.
 -- @usage
--- skinnedMeshIndex = 0,      -- optional sub-index
+-- skinnedMeshIndex = 0, -- Optional sub-index.
 
 --- Controls classic mesh visibility: "all", "none", or a table of visible slot indices.
 -- @tfield[opt=nil] string|table meshVisible "all" keeps all meshes visible, "none" hides all, or a table of indices keeps only those slots visible.
+--
 -- @usage
--- meshVisible values:
---    "all"       — all classic mesh slots remain visible
---    "none"      — all classic mesh slots are hidden
---    { 0, 4, 9 } — only the listed slot indices stay visible; rest are hidden
+-- - "all"       -- All classic mesh slots remain visible.
+-- - "none"      -- All classic mesh slots are hidden.
+-- - { 0, 4, 9 } -- Only the listed slot indices stay visible; rest are hidden.
 
 --- Optional function called after the outfit is applied.
 -- @tfield[opt=nil] function onEnter Hook function executed after applying this outfit. Can be used to change hair offsets.
 -- @usage
--- onEnter = function() --function to call when outfit is selected
+-- onEnter = function() -- Function to call when outfit is selected.
 --      local s = TEN.Flow.GetSettings()
 --      s.Hair[1].offset = Vec3(-4, 3, -28)
 --      TEN.Flow.SetSettings(s)
@@ -280,11 +281,11 @@
 --    { 
 --      name = "Victory",
 --      objID       = TEN.Objects.ObjID.PHOTOMODE_ANIMS,
---      animNumber  = 42,    -- animation slot inside PHOTOMODE_ANIMS
---      frameNumber = 0,     -- starting frame (0 = first frame)
+--      animNumber  = 42, -- Animation slot inside PHOTOMODE_ANIMS.
+--      frameNumber = 0,  -- Starting frame (0 = first frame).
 --    },
 --
--- --You can also reference any other object's animations
+-- -- You can also reference any other object's animations.
 --
 --    { 
 --      name = "Running",
@@ -309,7 +310,7 @@
 -- @section Settings
 -- Settings can be managed by the two functions @{PhotoMode.GetSettings} and @{PhotoMode.SetSettings}. See those functions for details.
 
----Set settings tables for PhotoMode.
+--- Set settings tables for PhotoMode.
 -- @function PhotoMode.SetSettings
 -- @tparam Settings newSettings Required settings table
 -- @usage
@@ -318,7 +319,7 @@
 -- settings.Character.accessoriesEnabled = false
 -- PhotoMode.SetSettings(settings)
 
----Get settings tables for PhotoMode.
+--- Get settings tables for PhotoMode.
 -- @function PhotoMode.GetSettings
 -- @treturn Settings Current settings table
 
