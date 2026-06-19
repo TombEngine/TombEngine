@@ -240,7 +240,7 @@ namespace TEN::Entities::Creatures::TR1
 		}
 
 		CreatureJoint(item, 0, head);
-		if (!isOnWater)
+		if (!isOnWater && item->HitPoints > 0)
 			CreatureVault(itemNumber, angle, 2, 0); //Interpolate descent steps in dry rooms.
 		else
 			CreatureAnimation(itemNumber, angle, 0);
