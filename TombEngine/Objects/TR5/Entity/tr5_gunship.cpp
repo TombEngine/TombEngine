@@ -24,12 +24,16 @@ using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR5
 {
+
 	constexpr int DEFAULT_TARGET_DISTANCE_SECTORS = 3;
 	constexpr int SHOT_COUNTER_MULTIPLIER_NO_LOS = 2;
 	constexpr int ROTOR_ACTIVE_THRESHOLD = 15;
-	constexpr int FIRE_FIRE_RATE = 4;
+	constexpr int FIRE_FIRE_RATE = 30;
 
 	constexpr float SHOT_COUNTER_SPEED_DEFAULT = 1.0f;
+
+	constexpr float BANK_LERP_SPEED = 8.0f;
+	constexpr int MAX_BANK_ANGLE = ANGLE(25);
 
 	int GunShipCounter = 0;
 
@@ -67,58 +71,156 @@ namespace TEN::Entities::Creatures::TR5
 		GameVector targetPos = LaraItem->Pose.Position;
 		bool los = LOS(&origin, &targetPos);
 
-		if (los && currentDistance > 2048.0f)
-		{
-			Vector3 vecOrigin = origin.ToVector3();
-			Vector3 vecTarget = targetPos.ToVector3();
-
-			EulerAngles targetOrient = Geometry::GetOrientToPoint(vecOrigin, vecTarget);
-			targetOrient.z += ANGLE(180.0f);
-
-			const int MAX_PITCH = ANGLE(185.0);
-			if (targetOrient.x < -MAX_PITCH) targetOrient.x = -MAX_PITCH;
-			if (targetOrient.x > MAX_PITCH) targetOrient.x = MAX_PITCH;
-
-			const int TRACK_SPEED = 3;
-			float lerpAlpha = 1.0f / powf(2.0f, TRACK_SPEED);
-
-			if (item->Timer == 0)
-				lerpAlpha = 1.0f;
-
-			item->Pose.Orientation.Lerp(targetOrient, lerpAlpha);
-		}
-
-		const int MOVE_SPEED = 84;
+		// Determine movement direction and calculate target bank angle
+		float moveAmount = 0.0f;
 
 		const int minimumDistance = BLOCK(item->TriggerFlags);
+		const int maxShotsRange = minimumDistance + BLOCK(2);
 		bool tooCloseToLara = currentDistance < minimumDistance;
+
+		if (tooCloseToLara || currentDistance < targetDistance)
+		{
+			moveAmount = -1.0f;
+		}
+		else if (currentDistance > maxShotsRange)
+		{
+			moveAmount = 1.0f;
+		}
+		else
+		{
+			moveAmount = 0.0f;
+		}
+
+		// Calculate pitch (forward/backward tilt) and roll (left/right tilt) using lerp
+		static float currentPitch = 0.0f;
+		static float currentRoll = 0.0f;
+		static int storedPitchAngle = 0;
+		static int storedRollAngle = 0;
+		
+		// Reset tilt angles on first frame to prevent initial spin
+		if (item->ItemFlags[0] <= 1)
+		{
+			currentPitch = 0.0f;
+			currentRoll = 0.0f;
+			storedPitchAngle = 0;
+			storedRollAngle = 0;
+		}
+
+		// Pitch from z-component of direction (forward/backward movement relative to Lara)
+		// Pitch has a higher multiplier for more forward/backward tilt
+		float targetPitch = 0.0f;
+		float zComponent = direction.z * (-moveAmount);
+		const float PITCH_MULTIPLIER = 1.8f;
+		if (zComponent > 0.2f)
+			targetPitch = -MAX_BANK_ANGLE * PITCH_MULTIPLIER * zComponent;
+		else if (zComponent < -0.2f)
+			targetPitch = MAX_BANK_ANGLE * PITCH_MULTIPLIER * (-zComponent);
+
+		// Roll from x-component of direction (left/right movement relative to Lara)
+		float targetRoll = 0.0f;
+		float xComponent = direction.x * (-moveAmount);
+		if (xComponent > 0.2f)
+			targetRoll = MAX_BANK_ANGLE * 0.5f * xComponent;
+		else if (xComponent < -0.2f)
+			targetRoll = -MAX_BANK_ANGLE * 0.5f * (-xComponent);
+
+		float tiltLerpAlpha = 1.0f / powf(2.0f, BANK_LERP_SPEED);
+		currentPitch += (targetPitch - currentPitch) * tiltLerpAlpha;
+		currentRoll  += (targetRoll - currentRoll)  * tiltLerpAlpha;
+
+		// Clamp pitch and roll angles to prevent excessive rotation
+		if (currentPitch > MAX_BANK_ANGLE) currentPitch = MAX_BANK_ANGLE;
+		if (currentPitch < -MAX_BANK_ANGLE) currentPitch = -MAX_BANK_ANGLE;
+		if (currentRoll > MAX_BANK_ANGLE) currentRoll = MAX_BANK_ANGLE;
+		if (currentRoll < -MAX_BANK_ANGLE) currentRoll = -MAX_BANK_ANGLE;
+
+		int prevStoredPitchAngle = storedPitchAngle;
+		storedPitchAngle = (int)currentPitch;
+		int pitchDelta = storedPitchAngle - prevStoredPitchAngle;
+
+		// Calculate the delta for roll (z-axis) this frame
+		int prevStoredRollAngle = storedRollAngle;
+		storedRollAngle = (int)currentRoll;
+		int rollDelta = storedRollAngle - prevStoredRollAngle;
+
+		// Track frame counter and calculate movement toward/away from Lara
+		item->ItemFlags[0]++;
+
+		// Smooth movement velocity for natural acceleration and deceleration
+		static Vector3 smoothedVelocity(0.0f, 0.0f, 0.0f);
+		const float ACCELERATION = 6.0f;
+		float accelAlpha = 1.0f / powf(2.0f, ACCELERATION);
+
+		const float MAX_MOVE_SPEED = 84.0f;
+
+		// Determine target velocity based on movement state
+		float targetVelocityX = 0.0f;
+		float targetVelocityY = 0.0f;
+		float targetVelocityZ = 0.0f;
+
+		if (moveAmount != 0.0f)
+		{
+			targetVelocityX = direction.x * moveAmount * MAX_MOVE_SPEED;
+			targetVelocityY = direction.y * moveAmount * MAX_MOVE_SPEED;
+			targetVelocityZ = direction.z * moveAmount * MAX_MOVE_SPEED;
+		}
+
+		if (moveAmount != 0.0f)
+		{
+			// Reset tilt angles when not moving
+			currentPitch += (0.0f - currentPitch) * tiltLerpAlpha;
+			currentRoll  += (0.0f - currentRoll)  * tiltLerpAlpha;
+		}
+
+		// Smoothly interpolate velocity toward target
+		smoothedVelocity.x += (targetVelocityX - smoothedVelocity.x) * accelAlpha;
+		smoothedVelocity.y += (targetVelocityY - smoothedVelocity.y) * accelAlpha;
+		smoothedVelocity.z += (targetVelocityZ - smoothedVelocity.z) * accelAlpha;
+
+		// Apply velocity to position
+		item->Pose.Position.x += (int)smoothedVelocity.x;
+		item->Pose.Position.y += (int)smoothedVelocity.y;
+		item->Pose.Position.z += (int)smoothedVelocity.z;
+
+		Vector3 vecOrigin = origin.ToVector3();
+		Vector3 vecTarget = targetPos.ToVector3();
+
+		EulerAngles targetOrient = Geometry::GetOrientToPoint(vecOrigin, vecTarget);
+		targetOrient.z += ANGLE(180.0f);
+
+		const int MAX_PITCH = ANGLE(185.0);
+		if (targetOrient.x < -MAX_PITCH) targetOrient.x = -MAX_PITCH;
+		if (targetOrient.x > MAX_PITCH) targetOrient.x = MAX_PITCH;
+
+		int prevStoredYawAngle = item->Pose.Orientation.y;
+
+		const int TRACK_SPEED = 3;
+		float lerpAlpha = 1.0f / powf(2.0f, TRACK_SPEED);
+
+		if (item->ItemFlags[0] == 1)
+			lerpAlpha = 1.0f;
+
+		item->Pose.Orientation.Lerp(targetOrient, lerpAlpha);
+
+		// Apply pitch and roll rotation deltas as additive offsets
+		if (pitchDelta != 0)
+			item->Pose.Orientation.x += pitchDelta;
+
+		if (rollDelta != 0)
+			item->Pose.Orientation.z += rollDelta;
+
+		// Keep yaw from snapping back to the original LERP target
+		const int deltaYaw = item->Pose.Orientation.y - prevStoredYawAngle;
+		if (deltaYaw != 0)
+			targetOrient.y += deltaYaw;
 
 		CollisionInfo coll{};
 		CollideSolidStatics(item, &coll);
 		const bool blockedByWorld = coll.HitStatic;
 
-		if (!blockedByWorld)
-		{
-			float verticalFactor = 0.5f;
-			if (tooCloseToLara || currentDistance < targetDistance)
-			{
-				item->Pose.Position.x -= static_cast<int>(direction.x * MOVE_SPEED);
-				item->Pose.Position.y -= static_cast<int>(direction.y * MOVE_SPEED * verticalFactor);
-				item->Pose.Position.z -= static_cast<int>(direction.z * MOVE_SPEED);
-			}
-			else
-			{
-				item->Pose.Position.x += static_cast<int>(direction.x * MOVE_SPEED);
-				item->Pose.Position.y += static_cast<int>(direction.y * MOVE_SPEED * verticalFactor);
-				item->Pose.Position.z += static_cast<int>(direction.z * MOVE_SPEED);
-			}
-		}
-
 		if (los)
 		{
-			const float MAX_SHOT_RANGE = targetDistance + BLOCK(2);
-			
-			if (currentDistance <= MAX_SHOT_RANGE)
+			if (currentDistance <= maxShotsRange)
 			{
 				GunShipCounter = 1;
 
