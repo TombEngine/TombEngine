@@ -187,9 +187,7 @@ bool SwitchTrigger(short itemNumber, short timer)
 	// Handle switches.
 	if (item.Status == ITEM_DEACTIVATED)
 	{
-		if (((item.Animation.ActiveState == SWITCH_OFF && item.ObjectNumber != ID_JUMP_SWITCH) ||
-			 (item.Animation.ActiveState == SWITCH_ON && item.ObjectNumber == ID_JUMP_SWITCH)) &&
-			timer > 0)
+		if (item.Animation.ActiveState == SWITCH_OFF && timer > 0)
 		{
 			item.Timer = timer;
 			item.Status = ITEM_ACTIVE;

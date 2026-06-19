@@ -61,17 +61,8 @@ namespace TEN::Entities::Switches
 
 		if (!TriggerActive(switchItem) && !(switchItem->Flags & IFLAG_INVISIBLE))
 		{
-			if (switchItem->ObjectNumber == ID_JUMP_SWITCH)
-			{
-				switchItem->Animation.TargetState = SWITCH_OFF;
-				switchItem->Timer = 0;
-				AnimateItem(switchItem);
-			}
-			else
-			{
-				switchItem->Animation.TargetState = SWITCH_ON;
-				switchItem->Timer = 0;
-			}
+			switchItem->Animation.TargetState = SWITCH_ON;
+			switchItem->Timer = 0;
 		}
 
 		AnimateItem(switchItem);

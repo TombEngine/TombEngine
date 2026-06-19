@@ -160,6 +160,7 @@ void StartSwitches(ObjectInfo* object)
 	object = &Objects[ID_JUMP_SWITCH];
 	if (object->loaded)
 	{
+		SetupJumpSwitch(*object);
 		object->collision = JumpSwitchCollision;
 		object->control = SwitchControl;
 		object->SetHitEffect(true);
