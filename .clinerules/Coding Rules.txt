@@ -1,0 +1,26 @@
+# C++ Coding Rules
+
+## Data Structures
+
+- Never add new fields to existing structs or classes unless explicitly requested.
+- Never modify the layout of existing data structures.
+- Never assume a field exists.
+- Always inspect the actual class or struct definition before accessing members.
+
+## Existing Code
+
+- Search for existing functions before creating new functionality.
+- Prefer reusing existing functions over duplicating logic.
+- Prefer existing utilities and helpers when available.
+
+## Implementation
+
+- New local variables are allowed.
+- New local helper functions are allowed when necessary.
+- New private functions are allowed when necessary.
+- Temporary variables may be introduced for readability.
+
+## Safety
+
+- If a member is not found in the class definition, do not invent it.
+- If required data is unavailable, ask for clarification.

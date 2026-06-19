@@ -36,7 +36,7 @@ namespace TEN::Entities::Creatures::TR5
 	constexpr float ROLL_LERP_SPEED = 4.0f;
 
 	constexpr int MAX_REVERSE_PITCH_DEG = 30;
-	constexpr int MAX_BANK_ANGLE_DEG = 8;
+	constexpr int MAX_BANK_ANGLE_DEG = 15;
 
 	int GunShipCounter = 0;
 
@@ -79,31 +79,13 @@ namespace TEN::Entities::Creatures::TR5
 
 		const int minimumDistance = BLOCK(item->TriggerFlags);
 		const int maxShotsRange = minimumDistance + BLOCK(2);
+		bool tooCloseToLara = currentDistance < minimumDistance;
 
-		// Hysteresis: large enough to prevent oscillation at sector boundaries (use 3 sectors)
-		static bool wasTooClose = false;
-		const float HYSTERESIS_RANGE = targetDistance * 3.0f;
-
-		// Horizontal distances for movement and shooting logic
-		float hdx = LaraItem->Pose.Position.x - item->Pose.Position.x;
-		float hdz = LaraItem->Pose.Position.z - item->Pose.Position.z;
-		float hLen = sqrtf(hdx * hdx + hdz * hdz);
-
-		// Horizontal proximity check only (vertical tracking handled by Y-Sync separately)
-		bool tooCloseHorizontally = hLen < minimumDistance;
-
-		if (tooCloseHorizontally)
+		if (tooCloseToLara || currentDistance < targetDistance)
 		{
 			moveAmount = -1.0f;
-			wasTooClose = true;
 		}
-		else if (wasTooClose && hLen > maxShotsRange + HYSTERESIS_RANGE)
-		{
-			// Need to far exceed range after being too close before approaching
-			moveAmount = 1.0f;
-			wasTooClose = false;
-		}
-		else if (!wasTooClose && hLen > maxShotsRange)
+		else if (currentDistance > maxShotsRange)
 		{
 			moveAmount = 1.0f;
 		}
@@ -122,6 +104,11 @@ namespace TEN::Entities::Creatures::TR5
 			currentBankAngle = 0.0f;
 			currentPitch = 0.0f;
 		}
+
+		// Use yaw angle to determine Lara's position relative to heli orientation
+		float hdx = LaraItem->Pose.Position.x - item->Pose.Position.x;
+		float hdz = LaraItem->Pose.Position.z - item->Pose.Position.z;
+		float hLen = sqrtf(hdx * hdx + hdz * hdz);
 
 		float yawRad = TO_RAD(item->Pose.Orientation.y);
 		float fwdX = sinf(yawRad);
@@ -182,54 +169,56 @@ namespace TEN::Entities::Creatures::TR5
 		const float ACCELERATION = 6.0f;
 		float accelAlpha = 1.0f / powf(2.0f, ACCELERATION);
 
-		const float MAX_MOVE_SPEED = 84.0f;
+		// Track home position for returning to altitude when not maneuvering
+		static int homeY = item->Pose.Position.y;
+		const float HOME_Y_SMOOTH = 4.0f;
 
-		// Reset smoothed velocity on first frame to prevent carry-over between triggers
 		if (item->ItemFlags[0] == 1)
-			smoothedVelocity = Vector3(0.0f, 0.0f, 0.0f);
+			homeY = item->Pose.Position.y;
+
+		const float MAX_MOVE_SPEED = 84.0f;
 
 		// Determine target velocity based on movement state
 		float targetVelocityX = 0.0f;
+		float targetVelocityY = 0.0f;
 		float targetVelocityZ = 0.0f;
 
 		if (moveAmount != 0.0f)
 		{
-			if (hLen > 0.0f)
+			// Use horizontal distance projection for movement to avoid excessive vertical drift
+			float hdx2 = LaraItem->Pose.Position.x - item->Pose.Position.x;
+			float hdz2 = LaraItem->Pose.Position.z - item->Pose.Position.z;
+			float hLen2 = sqrtf(hdx2 * hdx2 + hdz2 * hdz2);
+			if (hLen2 > 0.0f)
 			{
-				targetVelocityX = (hdx / hLen) * moveAmount * MAX_MOVE_SPEED;
-				targetVelocityZ = (hdz / hLen) * moveAmount * MAX_MOVE_SPEED;
+				targetVelocityX = (hdx2 / hLen2) * moveAmount * MAX_MOVE_SPEED;
+				targetVelocityZ = (hdz2 / hLen2) * moveAmount * MAX_MOVE_SPEED;
 			}
 			else
 			{
 				targetVelocityX = direction.x * moveAmount * MAX_MOVE_SPEED;
 				targetVelocityZ = direction.z * moveAmount * MAX_MOVE_SPEED;
 			}
+			// Y movement - avoid excessive vertical drift
+			targetVelocityY = direction.y * moveAmount * MAX_MOVE_SPEED * 0.15f;
+
+			// Update homeY dynamically when moving vertically
+			if (moveAmount != 0.0f && targetVelocityY != 0.0f)
+				homeY += (int)(targetVelocityY * 0.5f);
+		}
+		else
+		{
+			// When not maneuvering, gently return to homeY altitude
+			targetVelocityY += (homeY - item->Pose.Position.y) * 0.02f;
 		}
 
 		if (moveAmount == 0.0f)
 		{
-			currentPitch *= 0.999f;
-			currentBankAngle *= 0.999f;
+			currentPitch *= 0.95f;
+			currentBankAngle *= 0.95f;
 		}
 
-		// Y velocity: only active when horizontally close enough to Lara, scaled by proximity
-		const float HEIGHT_DIFF = LaraItem->Pose.Position.y - item->Pose.Position.y;
-		const float Y_DEADZONE = 10.0f;
-		float targetVelocityY = 0.0f;
-
-		if (hLen < targetDistance)
-		{
-			// Scale Y velocity by horizontal proximity for smoother, more controlled vertical tracking
-			float ySpeedScale = 1.0f - (hLen / targetDistance);
-			const float MAX_Y_SPEED = MAX_MOVE_SPEED * 0.25f;
-
-			if (HEIGHT_DIFF > Y_DEADZONE)
-				targetVelocityY = MAX_Y_SPEED * ySpeedScale;
-			else if (HEIGHT_DIFF < -Y_DEADZONE)
-				targetVelocityY = -MAX_Y_SPEED * ySpeedScale;
-		}
-
-		// Smoothly interpolate velocity toward target (X/Z and Y)
+		// Smoothly interpolate velocity toward target
 		smoothedVelocity.x += (targetVelocityX - smoothedVelocity.x) * accelAlpha;
 		smoothedVelocity.y += (targetVelocityY - smoothedVelocity.y) * accelAlpha;
 		smoothedVelocity.z += (targetVelocityZ - smoothedVelocity.z) * accelAlpha;
@@ -262,46 +251,13 @@ namespace TEN::Entities::Creatures::TR5
 
 		item->Pose.Orientation = lerpResult;
 
-		// Static mesh collision processing
 		CollisionInfo coll{};
 		CollideSolidStatics(item, &coll);
-
-		auto collObjects = GetCollidedObjects(*item, true, true);
-
-		// Floor and ceiling collision check using point collision
-		FloorInfo* floorInfo = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &item->RoomNumber);
-		int floorHeight = NO_VALUE;
-		if (floorInfo != nullptr)
-			floorHeight = GetFloorHeight(floorInfo, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
-
-		int ceilingHeight = NO_VALUE;
-		if (floorInfo != nullptr)
-			ceilingHeight = GetCeiling(floorInfo, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
-
-		// Prevent flying through floor (including elevated floor)
-		if (floorHeight != NO_VALUE && item->Pose.Position.y < floorHeight)
-		{
-			item->Pose.Position.y = floorHeight;
-			smoothedVelocity.y *= 0.5f; // Dampen velocity instead of zeroing
-		}
-
-		// Prevent flying through ceiling
-		if (ceilingHeight != NO_VALUE && item->Pose.Position.y > ceilingHeight)
-		{
-			item->Pose.Position.y = ceilingHeight;
-			smoothedVelocity.y *= 0.5f; // Dampen velocity instead of zeroing
-		}
-
-		// Wall collision using ItemPushStatic for sliding along walls
-		if (!collObjects.Statics.empty())
-		{
-			for (const StaticMesh* staticMesh : collObjects.Statics)
-				ItemPushStatic(item, *staticMesh, &coll);
-		}
+		const bool blockedByWorld = coll.HitStatic;
 
 		if (los)
 		{
-			if (hLen <= maxShotsRange)
+			if (currentDistance <= maxShotsRange)
 			{
 				GunShipCounter = 1;
 
