@@ -115,9 +115,8 @@
 -- Accessories are drawn on top of Lara. They are defined in <i>Scripts/PhotoModeData.lua</i> file in Accessories table. To add new accessories add a row to the accessory presets table in that file. The first entry should always be a "None" sentinel (objID = nil, meshIndices = {}) so the player can clear accessories.
 -- To hide the Accessory option entirely set Settings.Character.accessoriesEnabled = false via @{PhotoMode.SetSettings}.
 -- @usage
---    {
---      name = "None",  objID = nil, meshIndices = {}
---    },
+-- PhotoModeSetup.Accessories =
+-- {
 --    {
 --      name = "Sunglasses",
 --      objID       = TEN.Objects.ObjID.ACTOR1_SPEECH_HEAD1,
@@ -128,7 +127,7 @@
 --      objID       = TEN.Objects.ObjID.ANIMATING5,
 --      meshIndices = { 14 },
 --    }
---
+--}
 
 --- Display name shown in the selector.
 -- @tfield string name Display name for this acccessory.
@@ -145,11 +144,14 @@
 -- @section AddingExpressions
 -- Expressions swap one or more of Lara's classic mesh slots with meshes sourced from another object. They are defined in <i>Scripts/PhotoModeData.lua</i> file in Expressions table. Use multiple indices to swap more than one mesh at once.
 -- @usage
+-- PhotoModeSetup.Expressions =
+-- {
 --    {
 --      name = "Scream",
 --      objID       = TEN.Objects.ObjID.LARA_SCREAM,
 --      meshIndices = { 14 },   -- head mesh
 --    }
+-- }
 
 --- Display name shown in the selector.
 -- @tfield string name Display name for this expression.
@@ -166,9 +168,10 @@
 -- @section AddingFrames
 -- Frames are full-screen sprites drawn from the PHOTOMODE_FRAMES object. A spriteID of -1 means "no frame". The first entry should always be "None". They are defined in <i>Scripts/PhotoModeData.lua</i> file in Frames table.
 -- @usage
---    { name = "None",            spriteID = -1 },
---    { name = "Cinematic Bars",  spriteID = 0 },
+-- PhotoModeSetup.Frames =
+-- {
 --    { name = "My Custom Frame", spriteID = 6, scaleMode = TEN.View.ScaleMode.FIT },
+-- }
 
 --- Display name shown in the Frames selector.
 -- @tfield string name Display name for this frame overlay preset.
@@ -183,6 +186,8 @@
 -- @section AddingOutfits
 -- Outfits can change Lara's Outfit. Both the classic skins and skinned mesh can be used.  They are defined in <i>Scripts/PhotoModeData.lua</i> file in Outfits table. The first entry is always "Default". Set unlocked = false to hide an outfit until the player earns it, then call @{PhotoMode.UnlockOutfit} to reveal it. Unlocks are saved in GlobalVars.Engine.PhotoModeOutfits.
 -- @usage
+-- PhotoModeSetup.Outfits =
+-- {
 -- -- Classic skin swap (uses Lara:SetSkin):
 --
 --    { 
@@ -206,14 +211,13 @@
 --       skinnedMeshIndex = 0,      -- Optional sub-index.
 --       meshVisible      = "none", -- Hide classic meshes
 --       unlocked         = false,
-
 --       onEnter = function() -- Function to call when outfit is selected.
 --         local s = TEN.Flow.GetSettings()
 --         s.Hair[1].offset = Vec3(-4, 3, -28)
 --         TEN.Flow.SetSettings(s)
 --       end
 --    }
---
+-- }
 
 --- Display name shown in the selector.
 -- @tfield string name Display name for this outfit.
@@ -279,6 +283,8 @@
 -- @section AddingPoses
 -- Poses are defined in the <i>Scripts/PhotoModeData.lua</i> file in Poses table. Each pose applies an animation from the PHOTOMODE_ANIMS object or any other object in the level.
 -- @usage
+-- PhotoModeSetup.Poses =
+-- {
 --    { 
 --      name = "Victory",
 --      objID       = TEN.Objects.ObjID.PHOTOMODE_ANIMS,
@@ -294,6 +300,7 @@
 --      animNumber  = 17,
 --      frameNumber = 0,
 --    },
+-- }
 
 --- Display name shown in the selector.
 -- @tfield string name Display name for this pose.
