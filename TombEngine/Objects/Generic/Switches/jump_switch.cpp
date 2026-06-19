@@ -46,23 +46,20 @@ namespace TEN::Entities::Switches
 		idleDownAnim.StateID = SWITCH_OFF;
 		resetUpAnim.StateID = SWITCH_ON;
 
-		for (auto& dispatch : idleUpAnim.Dispatches)
+		auto remapDispatch = [](auto& anim, int fromState, int toState, int nextAnim)
 		{
-			if (dispatch.StateID == SWITCH_ON)
+			for (auto& dispatch : anim.Dispatches)
 			{
-				dispatch.StateID = SWITCH_OFF;
-				dispatch.NextAnimNumber = 1;
+				if (dispatch.StateID == fromState)
+				{
+					dispatch.StateID = toState;
+					dispatch.NextAnimNumber = nextAnim;
+				}
 			}
-		}
+		};
 
-		for (auto& dispatch : idleDownAnim.Dispatches)
-		{
-			if (dispatch.StateID == SWITCH_OFF)
-			{
-				dispatch.StateID = SWITCH_ON;
-				dispatch.NextAnimNumber = 3;
-			}
-		}
+		remapDispatch(idleUpAnim, SWITCH_ON, SWITCH_OFF, 1);
+		remapDispatch(idleDownAnim, SWITCH_OFF, SWITCH_ON, 3);
 	}
 
 	void JumpSwitchCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
