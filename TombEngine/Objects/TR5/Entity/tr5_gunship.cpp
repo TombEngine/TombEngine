@@ -1,6 +1,8 @@
 #include "framework.h"
 #include "Objects/TR5/Entity/tr5_gunship.h"
 
+#include <unordered_map>
+
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
@@ -38,7 +40,36 @@ namespace TEN::Entities::Creatures::TR5
 	constexpr int MAX_REVERSE_PITCH_DEG = 30;
 	constexpr int MAX_BANK_ANGLE_DEG = 8;
 
-	int GunShipCounter = 0;
+	constexpr int SECTOR_SIZE = 1024;
+	constexpr float MIN_HORIZONTAL_DIST = 100.0f;
+	constexpr float HYSTERESIS_MULTIPLIER = 0.5f;
+	constexpr float MAX_MOVE_SPEED = 84.0f;
+	constexpr float ACCELERATION = 6.0f;
+		constexpr float LARA_TORSO_HEIGHT_OFFSET = 4.0f;
+	constexpr float FLOOR_CEILING_DAMPENING_FACTOR = 0.1f;
+	constexpr float FLOOR_HEIGHT_OFFSET = 0.0f;
+	constexpr float Y_DEADZONE = 1.0f;
+	constexpr float SMOOTH_DECAY_FACTOR = 0.999f;
+	constexpr float RAD_TO_SHORTS = (float)(65536.0 / (2.0 * PI));
+
+	// Per-item state to avoid sharing static variables across multiple gunships
+	struct GunShipState
+	{
+		bool wasTooClose;
+		float currentBankAngle;
+		float currentPitch;
+		Vector3 smoothedVelocity;
+		int shotCounter;
+
+		GunShipState() : wasTooClose(false), currentBankAngle(0.0f), currentPitch(0.0f), smoothedVelocity(0.0f, 0.0f, 0.0f), shotCounter(0) {}
+	};
+
+	// Per-gunship state storage keyed by item number
+	static std::unordered_map<short, GunShipState>& GetGunShipStates()
+	{
+		static std::unordered_map<short, GunShipState> states;
+		return states;
+	}
 
 	void ControlGunShip(short itemNumber)
 	{
@@ -53,12 +84,11 @@ namespace TEN::Entities::Creatures::TR5
 		if (targetDistanceSectors <= 0)
 			targetDistanceSectors = DEFAULT_TARGET_DISTANCE_SECTORS;
 
-		const int targetDistance = targetDistanceSectors * 1024;
+		const int targetDistance = targetDistanceSectors * SECTOR_SIZE;
 
 		int dx = LaraItem->Pose.Position.x - item->Pose.Position.x;
 		int dy = LaraItem->Pose.Position.y - item->Pose.Position.y;
 		int dz = LaraItem->Pose.Position.z - item->Pose.Position.z;
-		float currentDistance = sqrtf(dx * dx + dy * dy + dz * dz);
 
 		Vector3 direction(
 			(float)dx,
@@ -80,9 +110,8 @@ namespace TEN::Entities::Creatures::TR5
 		const int minimumDistance = BLOCK(item->TriggerFlags);
 		const int maxShotsRange = minimumDistance + BLOCK(2);
 
-		// Hysteresis: large enough to prevent oscillation at sector boundaries (use 3 sectors)
-		static bool wasTooClose = false;
-		const float HYSTERESIS_RANGE = targetDistance * 3.0f;
+		// Hysteresis: prevents oscillation at sector boundaries
+		const float hysteresisRange = targetDistance * HYSTERESIS_MULTIPLIER;
 
 		// Horizontal distances for movement and shooting logic
 		float hdx = LaraItem->Pose.Position.x - item->Pose.Position.x;
@@ -92,18 +121,34 @@ namespace TEN::Entities::Creatures::TR5
 		// Horizontal proximity check only (vertical tracking handled by Y-Sync separately)
 		bool tooCloseHorizontally = hLen < minimumDistance;
 
+		// Retrieve or initialize per-item state
+		GunShipState& state = GetGunShipStates()[itemNumber];
+
+		// Reset state on first frame to prevent spin / carry-over between triggers
+		if (item->ItemFlags[0] == 0)
+		{
+			state.currentBankAngle = 0.0f;
+			state.currentPitch = 0.0f;
+			state.smoothedVelocity = Vector3(0.0f, 0.0f, 0.0f);
+			state.wasTooClose = false;
+		}
+
+		// Track frame counter and calculate movement toward/away from Lara
+		item->ItemFlags[0]++;
+
+		// Hysteresis logic: track proximity state per-item
 		if (tooCloseHorizontally)
 		{
 			moveAmount = -1.0f;
-			wasTooClose = true;
+			state.wasTooClose = true;
 		}
-		else if (wasTooClose && hLen > maxShotsRange + HYSTERESIS_RANGE)
+		else if (state.wasTooClose && hLen > maxShotsRange + hysteresisRange)
 		{
-			// Need to far exceed range after being too close before approaching
+			// Far exceed range after being too close before approaching
 			moveAmount = 1.0f;
-			wasTooClose = false;
+			state.wasTooClose = false;
 		}
-		else if (!wasTooClose && hLen > maxShotsRange)
+		else if (!state.wasTooClose && hLen > maxShotsRange)
 		{
 			moveAmount = 1.0f;
 		}
@@ -112,28 +157,22 @@ namespace TEN::Entities::Creatures::TR5
 			moveAmount = 0.0f;
 		}
 
-		// Calculate pitch (forward/backward tilt) and roll (left/right tilt) using lerp
-		static float currentBankAngle = 0.0f;
-		static float currentPitch = 0.0f;
-
-		// Reset tilt angles on first frame to prevent initial spin
-		if (item->ItemFlags[0] <= 1)
-		{
-			currentBankAngle = 0.0f;
-			currentPitch = 0.0f;
-		}
-
-		float yawRad = TO_RAD(item->Pose.Orientation.y);
-		float fwdX = sinf(yawRad);
-		float fwdZ = cosf(yawRad);
+		// Lerp alphas
+		const float bankLerpAlpha = 1.0f / powf(2.0f, ROLL_LERP_SPEED);
+		const float pitchLerpAlpha = 1.0f / powf(2.0f, PITCH_LERP_SPEED);
+		const float accelAlpha = 1.0f / powf(2.0f, ACCELERATION);
 
 		float targetPitch = 0.0f;
 		float motion = 0.0f;
 		float bankAngle = 0.0f;
 
-		if (moveAmount != 0.0f && hLen > 100.0f)
+		if (moveAmount != 0.0f && hLen > MIN_HORIZONTAL_DIST)
 		{
 			// Calculate lateral offset for bank angle
+			float yawRad = TO_RAD(item->Pose.Orientation.y);
+			float fwdX = sinf(yawRad);
+			float fwdZ = cosf(yawRad);
+
 			float rightX = fwdZ;
 			float rightZ = -fwdX;
 			float sideComponent = (hdx * rightX + hdz * rightZ) / hLen;
@@ -169,24 +208,9 @@ namespace TEN::Entities::Creatures::TR5
 			}
 		}
 
-		float bankLerpAlpha = 1.0f / powf(2.0f, ROLL_LERP_SPEED);
-		float pitchLerpAlpha = 1.0f / powf(2.0f, PITCH_LERP_SPEED);
-		currentBankAngle += (bankAngle - currentBankAngle) * bankLerpAlpha;
-		currentPitch += (targetPitch - currentPitch) * pitchLerpAlpha;
-
-		// Track frame counter and calculate movement toward/away from Lara
-		item->ItemFlags[0]++;
-
-		// Smooth movement velocity for natural acceleration and deceleration
-		static Vector3 smoothedVelocity(0.0f, 0.0f, 0.0f);
-		const float ACCELERATION = 6.0f;
-		float accelAlpha = 1.0f / powf(2.0f, ACCELERATION);
-
-		const float MAX_MOVE_SPEED = 84.0f;
-
-		// Reset smoothed velocity on first frame to prevent carry-over between triggers
-		if (item->ItemFlags[0] == 1)
-			smoothedVelocity = Vector3(0.0f, 0.0f, 0.0f);
+		// Smooth bank angle and pitch
+		state.currentBankAngle += (bankAngle - state.currentBankAngle) * bankLerpAlpha;
+		state.currentPitch += (targetPitch - state.currentPitch) * pitchLerpAlpha;
 
 		// Determine target velocity based on movement state
 		float targetVelocityX = 0.0f;
@@ -208,36 +232,50 @@ namespace TEN::Entities::Creatures::TR5
 
 		if (moveAmount == 0.0f)
 		{
-			currentPitch *= 0.999f;
-			currentBankAngle *= 0.999f;
+			state.currentPitch *= SMOOTH_DECAY_FACTOR;
+			state.currentBankAngle *= SMOOTH_DECAY_FACTOR;
 		}
 
-		// Y velocity: only active when horizontally close enough to Lara, scaled by proximity
-		const float HEIGHT_DIFF = LaraItem->Pose.Position.y - item->Pose.Position.y;
-		const float Y_DEADZONE = 10.0f;
+		// Y velocity: track Lara torso height, clamped above floor/ramp level
+		const float laraTorsoY = LaraItem->Pose.Position.y + LARA_TORSO_HEIGHT_OFFSET;
+		float targetPosY = laraTorsoY;
+
+		FloorInfo* yPosFloorInfo = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &item->RoomNumber);
+		int yPosFloorHeight = NO_VALUE;
+		if (yPosFloorInfo != nullptr)
+			yPosFloorHeight = GetFloorHeight(yPosFloorInfo, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
+
 		float targetVelocityY = 0.0f;
 
 		if (hLen < targetDistance)
 		{
+			targetPosY = laraTorsoY;
+
+			// Only clamp to floor if it's above Lara: never fly under elevated surfaces
+			if (yPosFloorHeight != NO_VALUE && (float)yPosFloorHeight > targetPosY)
+				targetPosY = (float)yPosFloorHeight + FLOOR_HEIGHT_OFFSET;
+
+			const float heightDiff = targetPosY - item->Pose.Position.y;
+
 			// Scale Y velocity by horizontal proximity for smoother, more controlled vertical tracking
 			float ySpeedScale = 1.0f - (hLen / targetDistance);
-			const float MAX_Y_SPEED = MAX_MOVE_SPEED * 0.25f;
+			const float maxYSpeed = MAX_MOVE_SPEED * 0.25f;
 
-			if (HEIGHT_DIFF > Y_DEADZONE)
-				targetVelocityY = MAX_Y_SPEED * ySpeedScale;
-			else if (HEIGHT_DIFF < -Y_DEADZONE)
-				targetVelocityY = -MAX_Y_SPEED * ySpeedScale;
+			if (heightDiff > Y_DEADZONE)
+				targetVelocityY = maxYSpeed * ySpeedScale;
+			else if (heightDiff < -Y_DEADZONE)
+				targetVelocityY = -maxYSpeed * ySpeedScale;
 		}
 
 		// Smoothly interpolate velocity toward target (X/Z and Y)
-		smoothedVelocity.x += (targetVelocityX - smoothedVelocity.x) * accelAlpha;
-		smoothedVelocity.y += (targetVelocityY - smoothedVelocity.y) * accelAlpha;
-		smoothedVelocity.z += (targetVelocityZ - smoothedVelocity.z) * accelAlpha;
+		state.smoothedVelocity.x += (targetVelocityX - state.smoothedVelocity.x) * accelAlpha;
+		state.smoothedVelocity.y += (targetVelocityY - state.smoothedVelocity.y) * accelAlpha;
+		state.smoothedVelocity.z += (targetVelocityZ - state.smoothedVelocity.z) * accelAlpha;
 
 		// Apply velocity to position
-		item->Pose.Position.x += (int)smoothedVelocity.x;
-		item->Pose.Position.y += (int)smoothedVelocity.y;
-		item->Pose.Position.z += (int)smoothedVelocity.z;
+		item->Pose.Position.x += (int)state.smoothedVelocity.x;
+		item->Pose.Position.y += (int)state.smoothedVelocity.y;
+		item->Pose.Position.z += (int)state.smoothedVelocity.z;
 
 		Vector3 vecOrigin = origin.ToVector3();
 		Vector3 vecTarget = targetPos.ToVector3();
@@ -256,17 +294,21 @@ namespace TEN::Entities::Creatures::TR5
 		EulerAngles lerpResult = EulerAngles::Lerp(item->Pose.Orientation, targetOrient, lerpAlpha);
 
 		// Override pitch/roll with our controlled tilt values (convert radians to short angles)
-		constexpr float RAD_TO_SHORTS = (float)(65536.0 / (2.0 * PI));
-		lerpResult.x = (short)(currentPitch * RAD_TO_SHORTS);
-		lerpResult.z = (short)(currentBankAngle * RAD_TO_SHORTS);
+		lerpResult.x = (short)(state.currentPitch * RAD_TO_SHORTS);
+		lerpResult.z = (short)(state.currentBankAngle * RAD_TO_SHORTS);
 
 		item->Pose.Orientation = lerpResult;
 
-		// Static mesh collision processing
+		// Post-position collision: wall sliding first, then floor/ceiling correction
 		CollisionInfo coll{};
-		CollideSolidStatics(item, &coll);
-
 		auto collObjects = GetCollidedObjects(*item, true, true);
+
+		// Wall collision using ItemPushStatic for sliding along walls
+		if (!collObjects.Statics.empty())
+		{
+			for (const StaticMesh* staticMesh : collObjects.Statics)
+				ItemPushStatic(item, *staticMesh, &coll);
+		}
 
 		// Floor and ceiling collision check using point collision
 		FloorInfo* floorInfo = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &item->RoomNumber);
@@ -279,31 +321,24 @@ namespace TEN::Entities::Creatures::TR5
 			ceilingHeight = GetCeiling(floorInfo, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
 
 		// Prevent flying through floor (including elevated floor)
-		if (floorHeight != NO_VALUE && item->Pose.Position.y < floorHeight)
+		if (floorHeight != NO_VALUE && item->Pose.Position.y > floorHeight)
 		{
 			item->Pose.Position.y = floorHeight;
-			smoothedVelocity.y *= 0.5f; // Dampen velocity instead of zeroing
+			state.smoothedVelocity.y *= FLOOR_CEILING_DAMPENING_FACTOR; // Dampen velocity instead of zeroing
 		}
 
 		// Prevent flying through ceiling
-		if (ceilingHeight != NO_VALUE && item->Pose.Position.y > ceilingHeight)
+		if (ceilingHeight != NO_VALUE && item->Pose.Position.y < ceilingHeight)
 		{
 			item->Pose.Position.y = ceilingHeight;
-			smoothedVelocity.y *= 0.5f; // Dampen velocity instead of zeroing
-		}
-
-		// Wall collision using ItemPushStatic for sliding along walls
-		if (!collObjects.Statics.empty())
-		{
-			for (const StaticMesh* staticMesh : collObjects.Statics)
-				ItemPushStatic(item, *staticMesh, &coll);
+			state.smoothedVelocity.y *= FLOOR_CEILING_DAMPENING_FACTOR; // Dampen velocity instead of zeroing
 		}
 
 		if (los)
 		{
 			if (hLen <= maxShotsRange)
 			{
-				GunShipCounter = 1;
+				state.shotCounter = 1;
 
 				if (!(GlobalCounter & (FIRE_FIRE_RATE - 1)))
 				{
@@ -312,15 +347,15 @@ namespace TEN::Entities::Creatures::TR5
 			}
 			else
 			{
-				GunShipCounter += (int)(SHOT_COUNTER_SPEED_DEFAULT * ROTOR_ACTIVE_THRESHOLD);
+				state.shotCounter += (int)(SHOT_COUNTER_SPEED_DEFAULT * ROTOR_ACTIVE_THRESHOLD);
 			}
 		}
 		else
 		{
-			GunShipCounter += SHOT_COUNTER_MULTIPLIER_NO_LOS;
+			state.shotCounter += SHOT_COUNTER_MULTIPLIER_NO_LOS;
 		}
 
-		if (GunShipCounter <= ROTOR_ACTIVE_THRESHOLD)
+		if (state.shotCounter <= ROTOR_ACTIVE_THRESHOLD)
 			item->MeshBits |= 0x100;
 		else
 			item->MeshBits &= 0xFEFF;
