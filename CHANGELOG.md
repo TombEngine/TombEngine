@@ -40,6 +40,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed SNOWMOBILE death being too sensitive to vertical velocity.
 * Fixed BATS_EMITTER targeting issues.
 * Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
+* Fixed TEETH_SPIKES behaviour for OCB 1 and move static TR1-3 mode to pre-activated trigger bit flags.
 * Fixed empty inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed regular spark sprite distance while moving with flare in hand.
