@@ -251,6 +251,10 @@ namespace TEN::Entities::Creatures::TR5
 		{
 			targetPosY = laraTorsoY;
 
+			// Higher altitude when flying backwards for obstacle clearance
+			if (moveAmount < 0.0f)
+				targetPosY += SECTOR_SIZE;
+
 			// Only clamp to floor if it's above Lara: never fly under elevated surfaces
 			if (yPosFloorHeight != NO_VALUE && (float)yPosFloorHeight > targetPosY)
 				targetPosY = (float)yPosFloorHeight + FLOOR_HEIGHT_OFFSET;
