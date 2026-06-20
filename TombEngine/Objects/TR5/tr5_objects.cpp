@@ -645,7 +645,15 @@ static void StartEntity(ObjectInfo *obj)
 	obj = &Objects[ID_GUNSHIP];
 	if (obj->loaded)
 	{
+		obj->Initialize = InitializeGunShip;
+		obj->collision = CreatureCollision;
 		obj->control = ControlGunShip;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 100;
+		obj->pivotLength = 200;
+		obj->radius = 512;
+		obj->intelligent = true;
+		obj->LotType = LotType::Flyer;
 		obj->SetBoneRotationFlags(0, ROT_Y);
 		obj->SetBoneRotationFlags(1, ROT_X);
 		obj->SetHitEffect(true);

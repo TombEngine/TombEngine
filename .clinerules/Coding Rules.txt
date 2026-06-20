@@ -6,6 +6,8 @@
 - Never modify the layout of existing data structures.
 - Never assume a field exists.
 - Always inspect the actual class or struct definition before accessing members.
+- In TEN, Y positive is downwards.
+- Do not compile. If the build contains errors, I will report them.
 
 ## Existing Code
 
