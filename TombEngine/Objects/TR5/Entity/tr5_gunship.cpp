@@ -184,27 +184,33 @@ namespace TEN::Entities::Creatures::TR5
 		Vector3 vecTarget = LaraItem->Pose.Position.ToVector3();
 		EulerAngles targetOrient = Geometry::GetOrientToPoint(vecOrigin, vecTarget);
 
-		// Vertikaler Y-Speed-Target für alle States (immer möglich, auch im IDLE)
+		// Vertikaler Y-Speed-Target
 		float ySpeedTargetGlobal = 0.0f;
-		const int minYDiff = SECTOR_SIZE; // Mindest-Y-Differenz bevor Y-Bewegung startet
-		if (fabsf(LaraItem->Pose.Position.y - item->Pose.Position.y) > minYDiff)
+
+		// EVADE_NEAR: Immer nach oben steigen (unabhängig von Laras Y-Position)
+		if (currentState == GunShipState::EVADE_NEAR)
 		{
-			switch (currentState)
+			ySpeedTargetGlobal = -FLY_UP_SPEED * 2.0f;
+		}
+		else
+		{
+			// FOLLOW/IDLE: Nur wenn Lara genug über/unter uns ist
+			const int minYDiff = SECTOR_SIZE;
+			if (fabsf(LaraItem->Pose.Position.y - item->Pose.Position.y) > minYDiff)
 			{
-			case GunShipState::FOLLOW:
-				ySpeedTargetGlobal = (LaraItem->Pose.Position.y > item->Pose.Position.y) 
-					? FLY_DOWN_SPEED : -FLY_UP_SPEED;
-				break;
-			case GunShipState::IDLE:
-				ySpeedTargetGlobal = (LaraItem->Pose.Position.y > item->Pose.Position.y) 
-					? FLY_DOWN_SPEED * 0.5f : -FLY_UP_SPEED * 0.5f;
-				break;
-			case GunShipState::EVADE_NEAR:
-				ySpeedTargetGlobal = (LaraItem->Pose.Position.y > item->Pose.Position.y) 
-					? FLY_DOWN_SPEED * 2.0f : -FLY_UP_SPEED * 2.0f;
-				break;
-			default:
-				break;
+				switch (currentState)
+				{
+				case GunShipState::FOLLOW:
+					ySpeedTargetGlobal = (LaraItem->Pose.Position.y > item->Pose.Position.y)
+						? FLY_DOWN_SPEED : -FLY_UP_SPEED;
+					break;
+				case GunShipState::IDLE:
+					ySpeedTargetGlobal = (LaraItem->Pose.Position.y > item->Pose.Position.y)
+						? FLY_DOWN_SPEED * 0.5f : -FLY_UP_SPEED * 0.5f;
+					break;
+				default:
+					break;
+				}
 			}
 		}
 
@@ -267,6 +273,13 @@ namespace TEN::Entities::Creatures::TR5
 					item->Pose.Position.x += (int)delta.x;
 					item->Pose.Position.z += (int)delta.z;
 				}
+
+				if (item->ItemFlags[7])
+				{
+					const float yLerpAlpha = 1.0f / powf(2.0f, MOVEMENT_LERP_SPEED);
+					currentYSpeed += (0.0f - currentYSpeed) * yLerpAlpha;
+				}
+
 
 					auto fwdVec = Vector3(
 						cosf(item->Pose.Orientation.x) * sinf(item->Pose.Orientation.y),
