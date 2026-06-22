@@ -110,7 +110,7 @@ namespace TEN::Entities::Creatures::TR5
 		// Trägheit: Wenn sich der Zustand geändert hat, Timer starten
 		int prevStates = item->ItemFlags[4];
 		int inertiaTimer = item->ItemFlags[5];
-		if (prevStates != currentState)
+		if (prevStates != currentState && item->ItemFlags[7] == 0)
 		{
 			inertiaTimer = INERTIA_FRAMES;
 			item->ItemFlags[4] = currentState;
@@ -176,10 +176,10 @@ namespace TEN::Entities::Creatures::TR5
 			case GunShipState::EVADE_NEAR:
 				targetSpeed = maxSpeed * 2.5f;
 				//currentYSpeed -= (0.0f - currentYSpeed) * yLerpAlpha;
-				ySpeedTargetGlobal = -FLY_UP_SPEED * 2.0f;
+		
 
-				//if (item->ItemFlags[7] == 1)
-					//
+				if (item->ItemFlags[7] == 1)
+							ySpeedTargetGlobal = -FLY_UP_SPEED * 2.0f;
 
 
 
@@ -297,6 +297,8 @@ namespace TEN::Entities::Creatures::TR5
 					item->Pose.Position.z += (int)(-(hdz / hLen) * moveDist);
 				}
 
+
+
 				// Direkt nach oben steigen — unabhängig vom globalen ySpeedTargetGlobal
 				// Wenn isDodgingUp, sanft auf LaraY zurückkehren (ySpeed auf 0 decelerieren)
 				if (item->ItemFlags[7])
@@ -304,7 +306,11 @@ namespace TEN::Entities::Creatures::TR5
 
 
 					if (item->Pose.Position.y <= LaraItem->Pose.Position.y - SECTOR_SIZE * 6 || hLen >= maxShotsRange)
+					{
 						item->ItemFlags[7] = 0;
+						inertiaTimer = 0;
+						item->ItemFlags[5] = 0;
+					}
 				}
 
 
@@ -389,11 +395,11 @@ namespace TEN::Entities::Creatures::TR5
 			item->ItemFlags[1] = (int)(currentPitch * FLOATING_POINT_SCALE);
 			item->ItemFlags[2] = (int)(currentBankAngle * FLOATING_POINT_SCALE);
 
-			/*/ YSpeed auch im Idle sanft auf ySpeedTargetGlobal lerpren
+			// YSpeed auch im Idle sanft auf ySpeedTargetGlobal lerpren
 			if (fabsf(ySpeedTargetGlobal) > 0.1f)
 				currentYSpeed += (ySpeedTargetGlobal - currentYSpeed) * 0.1f;
 			else
-				currentYSpeed *= 0.95f;*/
+				currentYSpeed *= 0.95f;
 		}
 
 		constexpr int TRACK_SPEED = 3;
