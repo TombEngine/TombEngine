@@ -119,15 +119,18 @@ namespace TEN::Entities::Creatures::TR5
 
 		// Vertikales Ausweich-Flag: ItemFlags[7] = isDodgingUp
 		// Setzen beim Wechsel zu EVADE_NEAR, löschen wenn sicher entfernt
-		if (currentState == GunShipState::EVADE_NEAR && item->ItemFlags[7] == 0 && hLen < SECTOR_SIZE * 3 && item->Pose.Position.y >= LaraItem->Pose.Position.y - SECTOR_SIZE * 3)
+		if (currentState == GunShipState::EVADE_NEAR && item->ItemFlags[7] == 0 && hLen < SECTOR_SIZE * 3 && item->Pose.Position.y >= LaraItem->Pose.Position.y - SECTOR_SIZE * 6)
 
 			item->ItemFlags[7] = 1;
 
 
 
-		if (item->ItemFlags[7] == 1 && hLen > maxShotsRange)
-
+		if (item->ItemFlags[7] == 1 && hLen > maxShotsRange && currentState != GunShipState::EVADE_NEAR)
+		{
 			item->ItemFlags[7] = 0;
+			inertiaTimer = 0;
+			item->ItemFlags[5] = 0;
+		}
 
 
 
@@ -171,8 +174,15 @@ namespace TEN::Entities::Creatures::TR5
 
 				break;
 			case GunShipState::EVADE_NEAR:
-				targetSpeed = maxSpeed * 1.5f;
-				currentYSpeed = -FLY_UP_SPEED * 2.0f;
+				targetSpeed = maxSpeed * 2.5f;
+				//currentYSpeed -= (0.0f - currentYSpeed) * yLerpAlpha;
+				ySpeedTargetGlobal = -FLY_UP_SPEED * 2.0f;
+
+				//if (item->ItemFlags[7] == 1)
+					//
+
+
+
 				break;
 			default:
 				break;
@@ -241,30 +251,25 @@ namespace TEN::Entities::Creatures::TR5
 
 			switch (currentState)
 			{
-			case GunShipState::FOLLOW:
+		case GunShipState::FOLLOW:
+		{
+			// Geradeaus in Richtung Lara fliegen — keine seitliche Bewegung
+			if (hLen > 1.0f)
 			{
+				item->Pose.Position.x += (int)((hdx / hLen) * moveDist);
+				item->Pose.Position.z += (int)((hdz / hLen) * moveDist);
+			}
 
-				auto targetPos = Geometry::TranslatePoint(item->Pose.Position.ToVector3(), targetOrient, moveDist);
-				// Nur bewegen wenn weiter weg als Schussdistanz → bis maxShotsRange ranfliegen
-				//if (hLen > maxShotsRange)
-				//{
-
-				item->Pose.Position.x += (int)(targetPos.x - item->Pose.Position.x);
-				item->Pose.Position.z += (int)(targetPos.z - item->Pose.Position.z);
-				//}
-
-				pitchTarget = (float)DEG_TO_RAD(MAX_PITCH_DEG);
+			pitchTarget = (float)DEG_TO_RAD(MAX_PITCH_DEG);
 
 				// Wenn isDodgingUp, sanft auf LaraY zurückkehren (ySpeed auf 0 decelerieren)
 				if (item->ItemFlags[7])
 				{
 
 
-					if (item->Pose.Position.y <= LaraItem->Pose.Position.y - SECTOR_SIZE - 50.0f)
+					if (item->Pose.Position.y >= LaraItem->Pose.Position.y - SECTOR_SIZE - 50.0f)
 						item->ItemFlags[7] = 0;
 				}
-
-
 
 				auto fwdVec = Vector3(
 					cosf(item->Pose.Orientation.x) * sinf(item->Pose.Orientation.y),
@@ -283,20 +288,14 @@ namespace TEN::Entities::Creatures::TR5
 
 			case GunShipState::EVADE_NEAR:
 			{
-				EulerAngles evadeOrient = targetOrient;
-				evadeOrient.y += ANGLE(180.0f);
 				pitchTarget = -(float)DEG_TO_RAD(MAX_PITCH_DEG);
 
-				auto targetPos = Geometry::TranslatePoint(item->Pose.Position.ToVector3(), evadeOrient, moveDist);
-
-				// Nur horizontal wegfliegen wenn noch nicht maxShotsRange erreicht
-				//if (hLen < maxShotsRange)
-				//{
-
-				Vector3 delta = targetPos - item->Pose.Position.ToVector3();
-				item->Pose.Position.x += (int)delta.x;
-				item->Pose.Position.z += (int)delta.z;
-				//}
+				// Weg von Lara fliegen — geradeaus ohne seitliche Bewegung
+				if (hLen > 1.0f)
+				{
+					item->Pose.Position.x += (int)(-(hdx / hLen) * moveDist);
+					item->Pose.Position.z += (int)(-(hdz / hLen) * moveDist);
+				}
 
 				// Direkt nach oben steigen — unabhängig vom globalen ySpeedTargetGlobal
 				// Wenn isDodgingUp, sanft auf LaraY zurückkehren (ySpeed auf 0 decelerieren)
@@ -304,7 +303,7 @@ namespace TEN::Entities::Creatures::TR5
 				{
 
 
-					if (item->Pose.Position.y >= LaraItem->Pose.Position.y - SECTOR_SIZE * 3 || hLen >= maxShotsRange)
+					if (item->Pose.Position.y <= LaraItem->Pose.Position.y - SECTOR_SIZE * 6 || hLen >= maxShotsRange)
 						item->ItemFlags[7] = 0;
 				}
 
@@ -331,9 +330,12 @@ namespace TEN::Entities::Creatures::TR5
 		}
 
 		// Lerne den globalen ySpeedTarget (aktiv für IDLE/FOLLOW — EVADE_NEAR hat eigenen Boost)
-		//const float yLerpAlpha = 1.0f / powf(2.0f, MOVEMENT_LERP_SPEED);
-		if (currentState != GunShipState::EVADE_NEAR)
+
+		//if (currentState != GunShipState::EVADE_NEAR)
 			currentYSpeed += (ySpeedTargetGlobal - currentYSpeed) * yLerpAlpha;
+
+		//if (fabsf(ySpeedTargetGlobal) > 0.1f)
+		//	currentYSpeed += (ySpeedTargetGlobal - currentYSpeed) * 0.1f;
 
 		// Direkte Y-Bewegung über currentYSpeed (konstante vertikale Geschwindigkeit, immer möglich)
 		item->Pose.Position.y += (int)currentYSpeed;
@@ -387,11 +389,11 @@ namespace TEN::Entities::Creatures::TR5
 			item->ItemFlags[1] = (int)(currentPitch * FLOATING_POINT_SCALE);
 			item->ItemFlags[2] = (int)(currentBankAngle * FLOATING_POINT_SCALE);
 
-			// YSpeed auch im Idle sanft auf ySpeedTargetGlobal lerpren
+			/*/ YSpeed auch im Idle sanft auf ySpeedTargetGlobal lerpren
 			if (fabsf(ySpeedTargetGlobal) > 0.1f)
 				currentYSpeed += (ySpeedTargetGlobal - currentYSpeed) * 0.1f;
 			else
-				currentYSpeed *= 0.95f;
+				currentYSpeed *= 0.95f;*/
 		}
 
 		constexpr int TRACK_SPEED = 3;
@@ -474,7 +476,10 @@ namespace TEN::Entities::Creatures::TR5
 		}
 
 		// YSpeed persistent speichern für den nächsten Frame
-		item->ItemFlags[6] = (int)(currentYSpeed * FLOATING_POINT_SCALE);
+		if (currentState != GunShipState::EVADE_NEAR || item->ItemFlags[7] == 0)
+			item->ItemFlags[6] = (int)(currentYSpeed * FLOATING_POINT_SCALE);
+		else
+			item->ItemFlags[6] = (int)currentYSpeed;
 
 		AnimateItem(item);
 	}
