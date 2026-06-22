@@ -731,7 +731,7 @@ namespace TEN::Renderer
 		constexpr auto SCROLL_EASE	 = 0.3f;
 		constexpr auto FADE_ZONE_H	 = 25.0f;
 		constexpr auto ARROW_MARGIN  = 30.0f;
-		constexpr auto ARROW_SCALE	 = 0.05f;
+		constexpr auto ARROW_SCALE	 = 0.03f;
 
 		int titleOption  = g_Gui.GetSelectedOption();
 		auto plainColor  = g_GameFlow->GetSettings()->UI.PlainTextColor;
@@ -812,18 +812,26 @@ namespace TEN::Renderer
 		// Draw scroll arrows.
 		if (needsScroll && Objects[GAME_OBJECT_ID::ID_INVENTORY_SPRITES].loaded)
 		{
-			bool upperArrowActive = selectLevelScrollY > 1.0f;
+			const float xPositions[] = { ARROW_MARGIN, DISPLAY_SPACE_RES.x - ARROW_MARGIN };
+			auto maxScrollY = totalHeight - visibleH;
 
-			auto pos1  = upperArrowActive ? Vector2(ARROW_MARGIN, ARROW_MARGIN) : Vector2(ARROW_MARGIN, DISPLAY_SPACE_RES.y - ARROW_MARGIN);
-			auto pos2  = upperArrowActive ? Vector2(DISPLAY_SPACE_RES.x - ARROW_MARGIN, ARROW_MARGIN) : Vector2(DISPLAY_SPACE_RES.x - ARROW_MARGIN, DISPLAY_SPACE_RES.y - ARROW_MARGIN);
-			auto angle = upperArrowActive ? ANGLE(0) : ANGLE(180);
+			for (float x : xPositions)
+			{
+				if (selectLevelScrollY > 1.0f)
+				{
+					TEN::Effects::DisplaySprite::AddDisplaySprite(ID_INVENTORY_SPRITES, 0,
+						Vector2(x, ARROW_MARGIN), 0, Vector2(ARROW_SCALE), headerColor, 0,
+						DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::AlphaBlend, DisplaySpritePhase::Draw);
+				}
 
-				TEN::Effects::DisplaySprite::AddDisplaySprite(ID_INVENTORY_SPRITES, 0,
-					pos1, angle, Vector2(ARROW_SCALE), headerColor, 0,
-					DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::AlphaBlend, DisplaySpritePhase::Draw);
-				TEN::Effects::DisplaySprite::AddDisplaySprite(ID_INVENTORY_SPRITES, 0,
-					pos2, angle, Vector2(ARROW_SCALE), headerColor, 0,
-					DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::AlphaBlend, DisplaySpritePhase::Draw);
+				if (selectLevelScrollY < maxScrollY - 1.0f)
+				{
+					TEN::Effects::DisplaySprite::AddDisplaySprite(ID_INVENTORY_SPRITES, 0,
+						Vector2(x, DISPLAY_SPACE_RES.y - ARROW_MARGIN),
+						ANGLE(180), Vector2(ARROW_SCALE), headerColor, 0,
+						DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::AlphaBlend, DisplaySpritePhase::Draw);
+				}
+			}
 		}
 
 		CollectDisplaySprites(_gameCamera);
