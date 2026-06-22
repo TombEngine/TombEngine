@@ -150,7 +150,7 @@ namespace TEN::Entities::Creatures::TR5
 				targetSpeed = 0.0f;
 				break;
 			case GunShipState::EVADE_NEAR:
-				targetSpeed = maxSpeed;
+				targetSpeed = maxSpeed * 1.5f;
 				break;
 			default:
 				break;
@@ -278,7 +278,7 @@ namespace TEN::Entities::Creatures::TR5
 					{
 						currentYSpeed = -FLY_UP_SPEED * 2.0f;
 
-						if (item->Pose.Position.y >= LaraItem->Pose.Position.y - SECTOR_SIZE * 3)
+						if (item->Pose.Position.y >= LaraItem->Pose.Position.y - SECTOR_SIZE * 3 || hLen >= maxShotsRange)
 							item->ItemFlags[7] = 0;
 					}
 
