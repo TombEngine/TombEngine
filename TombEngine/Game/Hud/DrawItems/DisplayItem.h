@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Game/effects/DisplaySprite.h"
 #include "Math/Constants.h"
 #include "Objects/game_object_ids.h"
 #include "Specific/Structures/BitField.h"
@@ -40,6 +41,11 @@ namespace TEN::Hud
 		Color                                _prevColor            = NEUTRAL_COLOR;
 		std::unordered_map<int, EulerAngles> _prevMeshOrientations = {};
 
+		bool    _hasScissor       = false;
+		Vector2 _scissorPos       = Vector2::Zero;
+		Vector2 _scissorSize      = Vector2(100.0f, 100.0f);
+		TEN::Effects::DisplaySprite::DisplaySpriteAlignMode _scissorAlignMode = TEN::Effects::DisplaySprite::DisplaySpriteAlignMode::TopLeft;
+
 	public:
 		// Constructors
 
@@ -68,6 +74,11 @@ namespace TEN::Hud
 		int  GetEndFrameNumber() const;
 		int  GetPrevFrameNumber() const;
 
+		bool    GetHasScissor() const;
+		Vector2 GetScissorPos() const;
+		Vector2 GetScissorSize() const;
+		TEN::Effects::DisplaySprite::DisplaySpriteAlignMode GetScissorAlignMode() const;
+
 		Vector3     GetInterpolatedPosition(float alpha) const;
 		EulerAngles GetInterpolatedOrientation(float alpha) const;
 		Vector3     GetInterpolatedScale(float alpha) const;
@@ -88,6 +99,9 @@ namespace TEN::Hud
 		void SetMeshOrientation(int meshIndex, const EulerAngles& orient, bool disableInterpolation);
 		void SetAnimation(int animNumber);
 		void SetFrame(int frameNumber);
+		void SetScissor(const Vector2& pos, const Vector2& size,
+			TEN::Effects::DisplaySprite::DisplaySpriteAlignMode alignMode = TEN::Effects::DisplaySprite::DisplaySpriteAlignMode::TopLeft);
+		void ClearScissor();
 
 		// Inquirers
 

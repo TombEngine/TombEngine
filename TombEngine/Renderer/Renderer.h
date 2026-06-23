@@ -160,6 +160,9 @@ namespace TEN::Renderer
 		float _blinkTime = 0.0f;
 		float _oldBlinkTime = 0.0f;
 
+		bool              _pendingStringScissor     = false;
+		RendererRectangle _pendingStringScissorRect = {};
+
 		// Sprites
 		std::vector<Vertex> _spriteVertices;
 		std::unique_ptr<IVertexBuffer> _spriteVertexBuffer;
@@ -767,8 +770,14 @@ namespace TEN::Renderer
 		Quaternion GetMoveableBoneOrientation(int itemNumber, int boneID);
 
 		void AddDisplaySprite(const RendererSprite& sprite, const Vector2& pos2D, short orient, const Vector2& size, const Vector4& color,
-			int priority, BlendMode blendMode, const Vector2& aspectCorrection, RenderView& renderView);
+			int priority, BlendMode blendMode, const Vector2& aspectCorrection, RenderView& renderView,
+			bool hasScissor = false, RendererRectangle scissor = {});
 		void CollectDisplaySprites(RenderView& renderView);
+
+		void SetDisplayScissor(RendererRectangle rect);
+		void ResetDisplayScissor();
+		void SetPendingStringScissor(RendererRectangle rect);
+		void ClearPendingStringScissor();
 
 		PostProcessMode	GetPostProcessMode();
 		void			SetPostProcessMode(PostProcessMode mode);

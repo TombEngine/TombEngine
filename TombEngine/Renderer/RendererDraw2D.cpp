@@ -367,34 +367,57 @@ namespace TEN::Renderer
 		if (renderView.DisplaySpritesToDraw.empty())
 			return;
 
+		bool batchOpen = false;
+		bool hasActiveScissor = false;
 		ITexture2D* texture2DPtr = nullptr;
+
 		for (const auto& spriteToDraw : renderView.DisplaySpritesToDraw)
 		{
 			if ((spriteToDraw.Priority >= 0) == negativePriority)
 				continue;
 
-			if (texture2DPtr == nullptr)
-			{
-				_shaders.Bind(Shader::FullScreenQuad);
+			bool needNewBatch = !batchOpen ||
+				texture2DPtr != spriteToDraw.SpritePtr->Texture ||
+				_lastBlendMode != spriteToDraw.BlendMode ||
+				spriteToDraw.HasScissor ||
+				hasActiveScissor;
 
-				_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
-				_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+			if (needNewBatch)
+			{
+				if (batchOpen)
+				{
+					_primitiveBatch->End();
+					batchOpen = false;
+
+					if (hasActiveScissor)
+					{
+						ResetScissor();
+						hasActiveScissor = false;
+					}
+				}
+
+				if (texture2DPtr == nullptr)
+				{
+					_shaders.Bind(Shader::FullScreenQuad);
+					_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+					_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+				}
+
+				if (spriteToDraw.HasScissor)
+				{
+					SetScissor(spriteToDraw.Scissor);
+					hasActiveScissor = true;
+				}
 
 				_primitiveBatch->Begin();
-
 				BindTexture(TextureRegister::ColorMap, spriteToDraw.SpritePtr->Texture, SamplerStateRegister::AnisotropicClamp);
 				SetBlendMode(spriteToDraw.BlendMode);
-			}
-			else if (texture2DPtr != spriteToDraw.SpritePtr->Texture || _lastBlendMode != spriteToDraw.BlendMode)
-			{
-				_primitiveBatch->End();
-				_primitiveBatch->Begin();
-
-				BindTexture(TextureRegister::ColorMap, spriteToDraw.SpritePtr->Texture, SamplerStateRegister::AnisotropicClamp);
-				SetBlendMode(spriteToDraw.BlendMode);
+				texture2DPtr = spriteToDraw.SpritePtr->Texture;
+				batchOpen = true;
 			}
 
 			// Calculate vertex base.
+			// NOTE: Must rotate 180 degrees to account for +Y being down.
 			auto vertices = std::array<Vector2, VERTEX_COUNT>
 			{
 				spriteToDraw.Size / 2,
@@ -404,37 +427,34 @@ namespace TEN::Renderer
 			};
 
 			// Transform vertices.
-			// NOTE: Must rotate 180 degrees to account for +Y being down.
 			auto rotMatrix = Matrix::CreateRotationZ(TO_RAD(spriteToDraw.Orientation + ANGLE(180.0f)));
 			for (auto& vertex : vertices)
 			{
-				// Rotate.
 				vertex = Vector2::Transform(vertex, rotMatrix);
-
-				// Apply aspect correction.
 				vertex *= spriteToDraw.AspectCorrection;
-
-				// Offset to position and convert to NDC.
 				vertex += spriteToDraw.Position;
 				vertex = TEN::Utils::Convert2DPositionToNDC(vertex);
 			}
 
 			// Define renderer vertices.
 			auto rVertices = std::array<Vertex, VERTEX_COUNT>{};
-			for (int i = 0; i < rVertices.size(); i++)
+			for (int i = 0; i < (int)rVertices.size(); i++)
 			{
 				rVertices[i].Position = Vector3(vertices[i]);
 				rVertices[i].UV = spriteToDraw.SpritePtr->UV[i];
 				rVertices[i].Color = VectorColorToRGBA(Vector4(spriteToDraw.Color.x, spriteToDraw.Color.y, spriteToDraw.Color.z, spriteToDraw.Color.w));
 			}
-			
-			_primitiveBatch->DrawQuad(rVertices[0], rVertices[1], rVertices[2], rVertices[3]);
 
-			texture2DPtr = spriteToDraw.SpritePtr->Texture;
+			_primitiveBatch->DrawQuad(rVertices[0], rVertices[1], rVertices[2], rVertices[3]);
 		}
-		
-		if (texture2DPtr != nullptr)
+
+		if (batchOpen)
+		{
 			_primitiveBatch->End();
+
+			if (hasActiveScissor)
+				ResetScissor();
+		}
 	}
 
 	void Renderer::DrawFullScreenQuad(ITextureBase* texture, Vector3 color, bool fit, float customAspect)
@@ -574,7 +594,8 @@ namespace TEN::Renderer
 	}
 
 	void Renderer::AddDisplaySprite(const RendererSprite& sprite, const Vector2& pos2D, short orient, const Vector2& size, const Vector4& color,
-									  int priority, BlendMode blendMode, const Vector2& aspectCorrection, RenderView& renderView)
+									  int priority, BlendMode blendMode, const Vector2& aspectCorrection, RenderView& renderView,
+									  bool hasScissor, RendererRectangle scissor)
 	{
 		auto spriteToDraw = RendererDisplaySpriteToDraw{};
 
@@ -586,6 +607,8 @@ namespace TEN::Renderer
 		spriteToDraw.Priority = priority;
 		spriteToDraw.BlendMode = blendMode;
 		spriteToDraw.AspectCorrection = aspectCorrection;
+		spriteToDraw.HasScissor = hasScissor;
+		spriteToDraw.Scissor = scissor;
 
 		renderView.DisplaySpritesToDraw.push_back(spriteToDraw);
 	}
@@ -625,7 +648,8 @@ namespace TEN::Renderer
 				displaySprite.Priority,
 				displaySprite.BlendMode,
 				layout.AspectCorrection,
-				renderView);
+				renderView,
+				displaySprite.HasScissor, displaySprite.Scissor);
 		}
 
 		std::sort(

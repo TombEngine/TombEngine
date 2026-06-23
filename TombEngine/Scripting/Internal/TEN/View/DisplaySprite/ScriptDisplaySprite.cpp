@@ -13,6 +13,8 @@
 #include "Specific/level.h"
 
 using namespace TEN::Scripting::Types;
+using namespace TEN::Effects::DisplaySprite;
+using namespace TEN::Renderer::Structures;
 using TEN::Renderer::g_Renderer;
 
 /// Represents a display sprite.
@@ -60,6 +62,8 @@ namespace TEN::Scripting::DisplaySprite
 		ScriptReserved_DisplayStringSetRotation, &ScriptDisplaySprite::SetRotation,
 		ScriptReserved_DisplayStringSetScale, &ScriptDisplaySprite::SetScale,
 		ScriptReserved_DisplayStringSetColor, &ScriptDisplaySprite::SetColor,
+		ScriptReserved_SetScissor,   &ScriptDisplaySprite::SetScissor,
+		ScriptReserved_ClearScissor, &ScriptDisplaySprite::ClearScissor,
 		ScriptReserved_DisplaySpriteDraw, &ScriptDisplaySprite::Draw);
 	}
 
@@ -337,6 +341,28 @@ namespace TEN::Scripting::DisplaySprite
 		_color = color;
 	}
 
+	/// Set a scissor clipping rectangle for the display sprite.
+	// Clips the sprite to the specified rectangle when drawn.
+	// @function DisplaySprite:SetScissor
+	// @tparam Vec2 pos Position of the scissor rectangle in display-space percent coordinates (0-100).
+	// @tparam Vec2 size Width and height of the scissor rectangle in display-space percent coordinates (0-100).
+	// @tparam[opt=View.AlignMode.TOP_LEFT] View.AlignMode alignMode Alignment mode used to interpret `pos`.
+	void ScriptDisplaySprite::SetScissor(const Vec2& pos, const Vec2& size, sol::optional<DisplaySpriteAlignMode> alignMode)
+	{
+		_hasScissor       = true;
+		_scissorPos       = pos;
+		_scissorSize      = size;
+		_scissorAlignMode = alignMode.value_or(DisplaySpriteAlignMode::TopLeft);
+	}
+
+	/// Clear the scissor clipping rectangle from the display sprite.
+	// The cleared rectangle was previously specified in display-space percent coordinates (0-100).
+	// @function DisplaySprite:ClearScissor
+	void ScriptDisplaySprite::ClearScissor()
+	{
+		_hasScissor = false;
+	}
+
 	/// Draw the display sprite in display space for the current frame.
 	// @function DisplaySprite:Draw
 	// @tparam[opt=0] int priority Draw priority. Can be thought of as a layer, with higher values having precedence.
@@ -370,6 +396,16 @@ namespace TEN::Scripting::DisplaySprite
 		short convertedRot = ANGLE(_rotation);
 		auto convertedScale = Vector2(_scale.x, _scale.y) * SCALE_CONVERSION_COEFF;
 		auto convertedColor = Vector4(_color.GetR(), _color.GetG(), _color.GetB(), _color.GetA()) / UCHAR_MAX;
+		auto hasScissor = _hasScissor;
+		auto scissor = RendererRectangle();
+
+		if (hasScissor)
+		{
+			auto screenRes = g_Renderer.GetScreenResolution();
+			auto pos = Vector2(_scissorPos.x, _scissorPos.y);
+			auto size = Vector2(_scissorSize.x, _scissorSize.y);
+			scissor = TEN::Effects::DisplaySprite::GetDisplaySpriteScissorRectangle(screenRes.ToVector2(), pos, size, _scissorAlignMode);
+		}
 
 		AddDisplaySprite(
 			_objectID, _spriteID,
@@ -378,6 +414,8 @@ namespace TEN::Scripting::DisplaySprite
 			alignMode.value_or(DEFAULT_ALIGN_MODE),
 			scaleMode.value_or(DEFAULT_SCALE_MODE),
 			blendMode.value_or(DEFAULT_BLEND_MODE), 
-			DisplaySpritePhase::Control);
+			DisplaySpritePhase::Control,
+			hasScissor,
+			scissor);
 	}
 }

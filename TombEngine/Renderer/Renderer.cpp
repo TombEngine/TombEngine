@@ -397,6 +397,11 @@ namespace TEN::Renderer
 		_graphicsDevice->SetScissor(s);
 	}
 
+	void Renderer::SetDisplayScissor(RendererRectangle rect) { SetScissor(rect); }
+	void Renderer::ResetDisplayScissor()                     { ResetScissor(); }
+	void Renderer::SetPendingStringScissor(RendererRectangle rect) { _pendingStringScissor = true;  _pendingStringScissorRect = rect; }
+	void Renderer::ClearPendingStringScissor()                     { _pendingStringScissor = false; }
+
 	void Renderer::SetGraphicsSettingsChanged()
 	{
 		_graphicsSettingsChanged = true;

@@ -6,6 +6,15 @@
 
 using namespace TEN::Utils;
 
+static bool AreScissorsEqual(const TEN::Renderer::Structures::RendererRectangle& left,
+	const TEN::Renderer::Structures::RendererRectangle& right)
+{
+	return (left.Left == right.Left &&
+		left.Top == right.Top &&
+		left.Right == right.Right &&
+		left.Bottom == right.Bottom);
+}
+
 namespace TEN::Renderer
 {
 	void Renderer::AddDebugString(const std::string& string, const Vector2& pos, const Color& color, float scale, RendererDebugPage page)
@@ -182,6 +191,8 @@ namespace TEN::Renderer
 
 				// Advance vertical offset and add current substring.
 				yOffset += stringSize.y;
+				rString.HasScissor = _pendingStringScissor;
+				rString.Scissor    = _pendingStringScissorRect;
 				_stringsToDraw.push_back(rString);
 			}
 		}
@@ -201,10 +212,42 @@ namespace TEN::Renderer
 		float shadowOffset = 1.5f / (REFERENCE_FONT_SIZE / _gameFont->GetLineSpacing());
 		auto shadowColor = (Vector4)g_GameFlow->GetSettings()->UI.ShadowTextColor;
 
-		_spriteBatch->Begin(SpriteSortingMode::Deferred, BlendMode::PremultipliedAlphaBlend);
+		bool batchOpen        = false;
+		bool hasActiveScissor = false;
+		auto activeScissor = RendererRectangle();
 
 		for (const auto& rString : _stringsToDraw)
 		{
+			bool scissorMatches = (hasActiveScissor == rString.HasScissor);
+			if (scissorMatches && hasActiveScissor)
+				scissorMatches = AreScissorsEqual(activeScissor, rString.Scissor);
+
+			bool needBreak = !batchOpen || !scissorMatches;
+			if (needBreak)
+			{
+				if (batchOpen)
+				{
+					_spriteBatch->End();
+					batchOpen = false;
+				}
+
+				if (hasActiveScissor && !scissorMatches)
+				{
+					ResetScissor();
+					hasActiveScissor = false;
+				}
+
+				if (rString.HasScissor && !scissorMatches)
+				{
+					SetScissor(rString.Scissor);
+					hasActiveScissor = true;
+					activeScissor = rString.Scissor;
+				}
+
+				_spriteBatch->Begin(SpriteSortingMode::Deferred, BlendMode::PremultipliedAlphaBlend, rString.HasScissor);
+				batchOpen = true;
+			}
+
 			auto drawPos = Vector2::Lerp(rString.PrevPosition, rString.Position, GetInterpolationFactor(true));
 
 			// Draw shadow.
@@ -225,6 +268,11 @@ namespace TEN::Renderer
 				0.0f, Vector2::Zero, rString.Scale);
 		}
 
-		_spriteBatch->End();
+		if (batchOpen)
+		{
+			_spriteBatch->End();
+			if (hasActiveScissor)
+				ResetScissor();
+		}
 	}
 }
