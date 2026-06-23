@@ -40,6 +40,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed occasional flame emitter sprite jitter.
 * Fixed incorrect aspect ratio when resizing the window in windowed mode.
 * Fixed title level selection dialog not scrolling offscreen entries.
+* Fixed JUMP_SWITCH not activating event sets
+
 
 ### Lua API changes
 
