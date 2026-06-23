@@ -194,7 +194,7 @@ local function BuildFilteredWeaponNames()
             show = true  -- No inventory check configured.
         else
             local count = TEN.Inventory.GetItemCount(weapon.pickupObjID)
-            show = count > 0 or Settings.Character.allWeapons  -- Show if in inventory or if allWeapons setting is enabled.
+            show = count > 0 or Settings.Character.weaponsUnlocked  -- Show if in inventory or if weaponsUnlocked setting is enabled.
         end
         if show then
             local idx                = #names + 1
@@ -388,7 +388,7 @@ local function ApplyWeapon(state)
                 Lara:SwapMesh(entry13.index, entry13.sourceObjID, entry13.index)
             end
 
-            Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
+            Lara:SetHolsterWeapons(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
             Lara:ResetHair()
         end
         return
@@ -410,25 +410,25 @@ local function ApplyWeapon(state)
     local slot = preset and preset.type or "none"
 
     if snap then
-        Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
+        Lara:SetHolsterWeapons(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
     end
 
     if slot == "holsters" then
         -- Pistols in both hand holsters: clear left + right, leave back alone
-        Lara:SetHolsterWeapon(TEN.Objects.WeaponType.NONE, TEN.Objects.WeaponType.NONE, nil)
+        Lara:SetHolsterWeapons(TEN.Objects.WeaponType.NONE, TEN.Objects.WeaponType.NONE, nil)
     elseif slot == "right" then
         -- Weapon in right holster only: clear right, leave left + back alone
-        Lara:SetHolsterWeapon(nil, TEN.Objects.WeaponType.NONE, nil)
+        Lara:SetHolsterWeapons(nil, TEN.Objects.WeaponType.NONE, nil)
     elseif slot == "back" then
         -- Weapon on back: clear back, leave left + right alone
-        Lara:SetHolsterWeapon(nil, nil, TEN.Objects.WeaponType.NONE)
+        Lara:SetHolsterWeapons(nil, nil, TEN.Objects.WeaponType.NONE)
     elseif slot == "left" then
         -- Weapon in left holster only: clear left, leave right + back alone
-        Lara:SetHolsterWeapon(TEN.Objects.WeaponType.NONE, nil, nil)
+        Lara:SetHolsterWeapons(TEN.Objects.WeaponType.NONE, nil, nil)
     else
         -- No weapon / default: restore entry holster state
         if snap then
-            Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
+            Lara:SetHolsterWeapons(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
         end
     end
 
@@ -596,7 +596,7 @@ local function ResetCharacter()
                 Lara:SwapMesh(entry.index, entry.sourceObjID, entry.index)
             end
         end
-        Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
+        Lara:SetHolsterWeapons(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
     end
 
     state.outfitIndex     = 1

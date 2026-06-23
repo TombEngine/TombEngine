@@ -355,17 +355,17 @@
 -- @usage
 -- -- In the level's lua file
 -- local settings = PhotoMode.GetSettings()
--- settings.Character.allWeapons = false
+-- settings.Character.weaponsUnlocked = false
 -- PhotoMode.SetSettings(settings)
 
 --- Whether the Accessories menu is enabled. Accessories are mesh swaps parented to a hidden moveable that mirrors Lara's animation, allowing them to move naturally with her skeleton. Set this to false to hide the Accessories menu and disable the accessory system entirely.
 -- @tfield[opt=true] bool accessoriesEnabled true to enable the Accessories menu, false to hide it and disable the accessory option in Character menu.
 
---- Whether to show all weapon options in the Character menu regardless of inventory.
--- @tfield[opt=true] bool allWeapons set this to false to hide unavailable weapons.
-
 --- Whether the Outfits menu is enabled.
 -- @tfield[opt=true] bool outfitsEnabled true to enable the Outfits menu, false to hide it and disable the outfit option in Character menu.
+
+--- Whether to show all weapon options in the Character menu regardless of inventory.
+-- @tfield[opt=true] bool weaponsUnlocked set this to false to hide unavailable weapons.
 
 --- Settings.ColorMap
 -- @section Settings.ColorMap

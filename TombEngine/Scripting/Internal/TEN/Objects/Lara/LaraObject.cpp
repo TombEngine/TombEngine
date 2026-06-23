@@ -32,6 +32,7 @@
 #include "Specific/clock.h"
 #include "Specific/level.h"
 
+using namespace TEN::Effects::Hair;
 using namespace TEN::Gui;
 using namespace TEN::Hud;
 using namespace TEN::Input;
@@ -666,13 +667,13 @@ std::unique_ptr<Moveable> LaraObject::GetPlayerInteractedMoveable() const
 }
 
 /// Get currently holstered weapon types in left holster, right holster and back holster.
-// @function LaraObject:GetHolsterWeapon
+// @function LaraObject:GetHolsterWeapons
 // @treturn Objects.WeaponType Left holster weapon type.
 // @treturn Objects.WeaponType Right holster weapon type.
 // @treturn Objects.WeaponType Back holster weapon type.
 // @usage
-// local left, right, back = Lara:GetHolsterWeapon()
-std::tuple<LaraWeaponType, LaraWeaponType, LaraWeaponType> LaraObject::GetHolsterWeapon() const
+// local left, right, back = Lara:GetHolsterWeapons()
+std::tuple<LaraWeaponType, LaraWeaponType, LaraWeaponType> LaraObject::GetHolsterWeaponTypes() const
 {
 	const auto& player = GetLaraInfo(*_moveable);
 
@@ -686,14 +687,14 @@ std::tuple<LaraWeaponType, LaraWeaponType, LaraWeaponType> LaraObject::GetHolste
 /// Set holstered weapon meshes for left holster, right holster and back holster.
 // Pass nil for any slot to leave it unchanged.
 // Use WeaponType.NONE to clear a holster slot.
-// @function LaraObject:SetHolsterWeapon
+// @function LaraObject:SetHolsterWeapons
 // @tparam[opt] Objects.WeaponType left Left holster weapon type (nil to leave unchanged).
 // @tparam[opt] Objects.WeaponType right Right holster weapon type (nil to leave unchanged).
 // @tparam[opt] Objects.WeaponType back Back holster weapon type (nil to leave unchanged).
 // @usage
-// Lara:SetHolsterWeapon(WeaponType.PISTOLS, WeaponType.PISTOLS, WeaponType.SHOTGUN)
-// Lara:SetHolsterWeapon(nil, nil, WeaponType.NONE) -- Clear back holster only.
-void LaraObject::SetHolsterWeapon(TypeOrNil<LaraWeaponType> left, TypeOrNil<LaraWeaponType> right, TypeOrNil<LaraWeaponType> back)
+// Lara:SetHolsterWeapons(WeaponType.PISTOLS, WeaponType.PISTOLS, WeaponType.SHOTGUN)
+// Lara:SetHolsterWeapons(nil, nil, WeaponType.NONE) -- Clear back holster only.
+void LaraObject::SetHolsterWeaponTypes(TypeOrNil<LaraWeaponType> left, TypeOrNil<LaraWeaponType> right, TypeOrNil<LaraWeaponType> back)
 {
 	auto& player = GetLaraInfo(*_moveable);
 
@@ -714,8 +715,6 @@ void LaraObject::SetHolsterWeapon(TypeOrNil<LaraWeaponType> left, TypeOrNil<Lara
 // Lara:ResetHair()
 void LaraObject::ResetHair()
 {
-	using namespace TEN::Effects::Hair;
-
 	for (int i = 0; i < FPS; i++)
 		HairEffect.Update(*_moveable);
 }
@@ -735,7 +734,7 @@ void LaraObject::SpawnGunFlash(LaraWeaponType weaponType, TypeOrNil<WeaponFlashM
 	SpawnWeaponFlash(*_moveable, convertedFlag, weaponType);
 }
 
-/// Clear the muzzle flash.
+/// Clear all currently active muzzle flashes.
 // Useful in photo mode or freeze mode to clear active gunflashes.
 // @function LaraObject:ClearGunFlash
 // @usage
@@ -849,104 +848,51 @@ sol::table LaraObject::GetSkin(sol::this_state s)
 // Lara:SetSkin(TEN.Objects.ObjID.ANIMATING18, TEN.Objects.ObjID.ANIMATING19, TEN.Objects.ObjID.ANIMATING20, nil, nil)
 void LaraObject::SetSkin(sol::optional<GAME_OBJECT_ID> skin, sol::optional<GAME_OBJECT_ID> skinJoints, sol::optional<GAME_OBJECT_ID> skinScream, sol::optional<GAME_OBJECT_ID> hair1, sol::optional<GAME_OBJECT_ID> hair2)
 {
-	auto isValidObjectID = [](int id) -> bool
-	{
-		return (id > NO_VALUE && id < ID_NUMBER_OBJECTS && Objects[id].loaded);
-	};
-
 	auto* lara = GetLaraInfo(_moveable);
 	bool changed = false;
 
-	if (skin.has_value())
+	auto trySetSkinPart = [&](const std::string& paramName, const sol::optional<GAME_OBJECT_ID>& value, GAME_OBJECT_ID referenceID, GAME_OBJECT_ID& target)
 	{
-		if (!isValidObjectID(skin.value()))
-		{
-			TENLog("SetSkin: skin object ID " + GetObjectName(skin.value()) + " (" + std::to_string(skin.value()) + ")" + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
-		}
-		else if (Objects[skin.value()].nmeshes != Objects[ID_LARA_SKIN].nmeshes)
-		{
-			TENLog("SetSkin: skin object ID " + GetObjectName(skin.value()) + " (" + std::to_string(skin.value()) + ")" + " mesh count (" + std::to_string(Objects[skin.value()].nmeshes) + ") does not match LaraSkin mesh count (" + std::to_string(Objects[ID_LARA_SKIN].nmeshes) + ").", LogLevel::Warning, LogConfig::All);
-		}
-		else
-		{
-			lara->Skin.Skin = skin.value();
-			changed = true;
-		}
-	}
+		if (!value.has_value())
+			return;
 
-	if (skinJoints.has_value())
-	{
-		if (!isValidObjectID(skinJoints.value()))
-		{
-			TENLog("SetSkin: skinJoints object ID " + GetObjectName(skinJoints.value()) + " (" + std::to_string(skinJoints.value()) + ")" + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
-		}
-		else if (Objects[skinJoints.value()].nmeshes != Objects[ID_LARA_SKIN].nmeshes)
-		{
-			TENLog("SetSkin: skinJoints object ID " + GetObjectName(skinJoints.value()) + " (" + std::to_string(skinJoints.value()) + ")" + " mesh count (" + std::to_string(Objects[skinJoints.value()].nmeshes) + ") does not match LaraSkin mesh count (" + std::to_string(Objects[ID_LARA_SKIN].nmeshes) + ").", LogLevel::Warning, LogConfig::All);
-		}
-		else
-		{
-			lara->Skin.SkinJoints = skinJoints.value();
-			changed = true;
-		}
-	}
+		GAME_OBJECT_ID id = value.value();
+		bool isValidID = (id > NO_VALUE && id < ID_NUMBER_OBJECTS && Objects[id].loaded);
 
-	if (skinScream.has_value())
-	{
-		if (!isValidObjectID(skinScream.value()))
+		if (!isValidID)
 		{
-			TENLog("SetSkin: skinScream object ID " + GetObjectName(skinScream.value()) + " (" + std::to_string(skinScream.value()) + ")" + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+			TENLog("SetSkin: " + paramName + " object ID " + GetObjectName(id) + " (" +
+				std::to_string(id) + ") is invalid or not loaded.",
+				LogLevel::Warning, LogConfig::All);
+			return;
 		}
-		else if (Objects[skinScream.value()].nmeshes != Objects[ID_LARA_SKIN].nmeshes)
-		{
-			TENLog("SetSkin: skinScream object ID " + GetObjectName(skinScream.value()) + " (" + std::to_string(skinScream.value()) + ")" + " mesh count (" + std::to_string(Objects[skinScream.value()].nmeshes) + ") does not match LaraSkin mesh count (" + std::to_string(Objects[ID_LARA_SKIN].nmeshes) + ").", LogLevel::Warning, LogConfig::All);
-		}
-		else
-		{
-			lara->Skin.SkinScream = skinScream.value();
-			changed = true;
-		}
-	}
 
-	if (hair1.has_value())
-	{
-		if (!isValidObjectID(hair1.value()))
+		if (Objects[id].nmeshes != Objects[referenceID].nmeshes)
 		{
-			TENLog("SetSkin: hair1 object ID " + GetObjectName(hair1.value()) + " (" + std::to_string(hair1.value()) + ")" + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+			TENLog("SetSkin: " + paramName + " object ID " + GetObjectName(id) + " (" +
+				std::to_string(id) + ") mesh count (" +
+				std::to_string(Objects[id].nmeshes) + ") does not match " +
+				GetObjectName(referenceID) + " mesh count (" +
+				std::to_string(Objects[referenceID].nmeshes) + ").",
+				LogLevel::Warning, LogConfig::All);
+			return;
 		}
-		else if (Objects[hair1.value()].nmeshes != Objects[ID_HAIR_PRIMARY].nmeshes)
-		{
-			TENLog("SetSkin: hair1 object ID " + GetObjectName(hair1.value()) + " (" + std::to_string(hair1.value()) + ")" + " mesh count (" + std::to_string(Objects[hair1.value()].nmeshes) + ") does not match HairPrimary mesh count (" + std::to_string(Objects[ID_HAIR_PRIMARY].nmeshes) + ").", LogLevel::Warning, LogConfig::All);
-		}
-		else
-		{
-			lara->Skin.HairPrimary = hair1.value();
-			changed = true;
-		}
-	}
 
-	if (hair2.has_value())
-	{
-		if (!isValidObjectID(hair2.value()))
-		{
-			TENLog("SetSkin: hair2 object ID " + GetObjectName(hair2.value()) + " (" + std::to_string(hair2.value()) + ")" + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
-		}
-		else if (Objects[hair2.value()].nmeshes != Objects[ID_HAIR_PRIMARY].nmeshes)
-		{
-			TENLog("SetSkin: hair2 object ID " + GetObjectName(hair2.value()) + " (" + std::to_string(hair2.value()) + ")" + " mesh count (" + std::to_string(Objects[hair2.value()].nmeshes) + ") does not match HairPrimary mesh count (" + std::to_string(Objects[ID_HAIR_PRIMARY].nmeshes) + ").", LogLevel::Warning, LogConfig::All);
-		}
-		else
-		{
-			lara->Skin.HairSecondary = hair2.value();
-			changed = true;
-		}
-	}
+		target = id;
+		changed = true;
+	};
+
+	trySetSkinPart("skin", skin, ID_LARA_SKIN, lara->Skin.Skin);
+	trySetSkinPart("skinJoints", skinJoints, ID_LARA_SKIN, lara->Skin.SkinJoints);
+	trySetSkinPart("skinScream", skinScream, ID_LARA_SKIN, lara->Skin.SkinScream);
+	trySetSkinPart("hair1", hair1, ID_HAIR_PRIMARY, lara->Skin.HairPrimary);
+	trySetSkinPart("hair2", hair2, ID_HAIR_PRIMARY, lara->Skin.HairSecondary);
 
 	if (!changed)
 		return;
 
 	InitializeLaraMeshes(_moveable, false);
-	TEN::Effects::Hair::HairEffect.Initialize();
+	HairEffect.Initialize();
 	g_Renderer.UpdatePlayerSkinVertices(lara->Skin.Skin, lara->Skin.SkinJoints,
 		lara->Skin.HairPrimary, lara->Skin.HairSecondary);
 }
@@ -1127,8 +1073,8 @@ void LaraObject::Register(sol::table& parent)
 		ScriptReserved_GetAmmoCount, &LaraObject::GetAmmoCount,
 		ScriptReserved_GetWeaponMode, & LaraObject::GetWeaponMode,
 		ScriptReserved_SetWeaponMode, & LaraObject::SetWeaponMode,
-		ScriptReserved_GetHolsterWeapon, &LaraObject::GetHolsterWeapon,
-		ScriptReserved_SetHolsterWeapon, &LaraObject::SetHolsterWeapon,
+		ScriptReserved_GetHolsterWeapon, &LaraObject::GetHolsterWeaponTypes,
+		ScriptReserved_SetHolsterWeapon, &LaraObject::SetHolsterWeaponTypes,
 		ScriptReserved_ResetHair, &LaraObject::ResetHair,
 		ScriptReserved_SpawnGunFlash, &LaraObject::SpawnGunFlash,
 		ScriptReserved_ClearGunFlash, & LaraObject::ClearGunFlash,

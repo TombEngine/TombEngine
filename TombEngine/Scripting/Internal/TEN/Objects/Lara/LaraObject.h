@@ -39,8 +39,8 @@ public:
 	int GetWeaponMode(TypeOrNil<LaraWeaponType> weaponType) const;
 	void SetWeaponMode(LaraWeaponType weaponType, PlayerWeaponMode weaponMode);
 
-	std::tuple<LaraWeaponType, LaraWeaponType, LaraWeaponType> GetHolsterWeapon() const;
-	void SetHolsterWeapon(TypeOrNil<LaraWeaponType> left, TypeOrNil<LaraWeaponType> right, TypeOrNil<LaraWeaponType> back);
+	std::tuple<LaraWeaponType, LaraWeaponType, LaraWeaponType> GetHolsterWeaponTypes() const;
+	void SetHolsterWeaponTypes(TypeOrNil<LaraWeaponType> left, TypeOrNil<LaraWeaponType> right, TypeOrNil<LaraWeaponType> back);
 	void ResetHair();
 	void SpawnGunFlash(LaraWeaponType weaponType, TypeOrNil<WeaponFlashMode> weaponFlashType);
 	void ClearGunFlash();

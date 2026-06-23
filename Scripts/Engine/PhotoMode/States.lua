@@ -175,7 +175,7 @@ function States.CaptureSnapshot()
     snap.postProcessTint = TEN.View.GetPostProcessTint()
 
     -- Holster state
-    local left, right, back = Lara:GetHolsterWeapon()
+    local left, right, back = Lara:GetHolsterWeapons()
     snap.holsterLeft  = left
     snap.holsterRight = right
     snap.holsterBack  = back
@@ -263,7 +263,7 @@ function States.RestoreSnapshot()
     end
 
     -- Restore holster state
-    Lara:SetHolsterWeapon(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
+    Lara:SetHolsterWeapons(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
 
     --Reset Hair
     Lara:ResetHair()

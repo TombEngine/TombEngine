@@ -14,8 +14,8 @@ Settings.Camera =
 Settings.Character = 
 {
     accessoriesEnabled = true,
-    allWeapons = true,
-    outfitsEnabled = true
+    outfitsEnabled = true,
+    weaponsUnlocked = true
 }
 
 Settings.ColorMap =
