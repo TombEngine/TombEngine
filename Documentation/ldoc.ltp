@@ -1,5 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+# local asset_root = module and '../' or ''
 <html>
 <meta http-equiv="Content-Type" content="text/html; charset=$(ldoc.doc_charset)"/>
 <head>
@@ -28,7 +29,6 @@
 # local iter = ldoc.modules.iter
 # local function M(txt,item) return ldoc.markup(txt,item,ldoc.plain) end
 # local nowrap = ldoc.wrap and '' or 'nowrap'
-# local asset_root = module and '../' or ''
 # local index_path = module and '../index.html' or 'index.html'
 # local logo_path = module and '../resources/TEN%20logo.png' or 'resources/TEN%20logo.png'
 
