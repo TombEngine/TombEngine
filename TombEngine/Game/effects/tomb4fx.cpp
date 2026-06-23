@@ -865,35 +865,62 @@ int GetFreeGunshell()
 	return gsNum;
 }
 
+void SpawnGunshell(const Vector3i& pos, short angle, short speed, short objNum, short roomNum)
+{
+	auto& gunshell = Gunshells[GetFreeGunshell()];
+
+	gunshell.pos.Position = pos;
+	gunshell.pos.Orientation.x = 0;
+	gunshell.pos.Orientation.y = 0;
+	gunshell.pos.Orientation.z = GetRandomControl();
+	gunshell.roomNumber = roomNum;
+	gunshell.speed = speed;
+	gunshell.fallspeed = -48 - (GetRandomControl() & 7);
+	gunshell.objectNumber = objNum;
+	gunshell.counter = (GetRandomControl() & 0x1F) + 60;
+	gunshell.dirXrot = angle;
+}
+
 void TriggerGunShell(short hand, short objNum, LaraWeaponType weaponType)
 {
+	if (!g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].Shell)
+		return;
+
 	auto pos = Vector3i::Zero;
+	short angle = 0;
+	auto speed = (GetRandomControl() & 0x1F) + 16;
+
 	if (hand)
 	{
 		auto offset = Vector3i::Zero;
 		switch (weaponType)
 		{
-		case LaraWeaponType::Pistol:
-			offset = Vector3i(8, 48, 40);
-			break;
-
-		case LaraWeaponType::Uzi:
-			offset = Vector3i(8, 35, 48);
-			break;
-
-		case LaraWeaponType::Shotgun:
-			offset = Vector3i(16, 114, 32);
-			break;
-
-		case LaraWeaponType::HK:
-			offset = Vector3i(16, 114, 96);
-			break;
-
-		default:
-			break;
+		case LaraWeaponType::Pistol:  offset = Vector3i(8, 48, 40); break;
+		case LaraWeaponType::Uzi:     offset = Vector3i(8, 35, 48); break;
+		case LaraWeaponType::Shotgun: offset = Vector3i(16, 114, 32); break;
+		case LaraWeaponType::HK:      offset = Vector3i(16, 114, 96); break;
+		default: break;
 		}
-
 		pos = GetJointPosition(LaraItem, LM_RHAND, offset);
+
+		if (weaponType == LaraWeaponType::Shotgun)
+		{
+			angle =	Lara.LeftArm.Orientation.y +
+				Lara.ExtraTorsoRot.y +
+				LaraItem->Pose.Orientation.y -
+				(GetRandomControl() & 0xFFF) +
+				10240;
+
+			if (speed < 24)
+				speed += 24;
+		}
+		else
+		{
+			angle =	Lara.LeftArm.Orientation.y +
+				LaraItem->Pose.Orientation.y -
+				(GetRandomControl() & 0xFFF) +
+				18432;
+		}
 	}
 	else
 	{
@@ -901,58 +928,14 @@ void TriggerGunShell(short hand, short objNum, LaraWeaponType weaponType)
 			pos = GetJointPosition(LaraItem, LM_LHAND, Vector3i(-12, 48, 40));
 		else if (weaponType == LaraWeaponType::Uzi)
 			pos = GetJointPosition(LaraItem, LM_LHAND, Vector3i(-16, 35, 48));
+
+		angle =	Lara.LeftArm.Orientation.y +
+			LaraItem->Pose.Orientation.y +
+			(GetRandomControl() & 0xFFF) -
+			18432;
 	}
 
-	if (g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].Shell)
-	{
-		auto& gunshell = Gunshells[GetFreeGunshell()];
-
-		gunshell.pos.Position = pos;
-		gunshell.pos.Orientation.x = 0;
-		gunshell.pos.Orientation.y = 0;
-		gunshell.pos.Orientation.z = GetRandomControl();
-		gunshell.roomNumber = LaraItem->RoomNumber;
-		gunshell.speed = (GetRandomControl() & 0x1F) + 16;
-		gunshell.fallspeed = -48 - (GetRandomControl() & 7);
-		gunshell.objectNumber = objNum;
-		gunshell.counter = (GetRandomControl() & 0x1F) + 60;
-
-		if (hand)
-		{
-			if (weaponType == LaraWeaponType::Shotgun)
-			{
-				gunshell.dirXrot =
-					Lara.LeftArm.Orientation.y +
-					Lara.ExtraTorsoRot.y +
-					LaraItem->Pose.Orientation.y -
-					(GetRandomControl() & 0xFFF) +
-					10240;
-				gunshell.pos.Orientation.y +=
-					Lara.LeftArm.Orientation.y +
-					Lara.ExtraTorsoRot.y +
-					LaraItem->Pose.Orientation.y;
-
-				if (gunshell.speed < 24)
-					gunshell.speed += 24;
-			}
-			else
-			{
-				gunshell.dirXrot =
-					Lara.LeftArm.Orientation.y +
-					LaraItem->Pose.Orientation.y -
-					(GetRandomControl() & 0xFFF) +
-					18432;
-			}
-		}
-		else
-		{
-			gunshell.dirXrot =
-				Lara.LeftArm.Orientation.y +
-				LaraItem->Pose.Orientation.y +
-				(GetRandomControl() & 0xFFF) -
-				18432;
-		}
-	}
+	SpawnGunshell(pos, angle, speed, objNum, LaraItem->RoomNumber);
 
 	if (LaraItem->MeshBits.TestAny())
 	{
