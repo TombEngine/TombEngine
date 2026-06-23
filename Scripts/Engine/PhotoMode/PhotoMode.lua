@@ -388,7 +388,7 @@ local function ApplyWeapon(state)
                 Lara:SwapMesh(entry13.index, entry13.sourceObjID, entry13.index)
             end
 
-            Lara:SetHolsterWeapons(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
+            Lara:SetHolsterWeaponTypes(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
             Lara:ResetHair()
         end
         return
@@ -410,25 +410,25 @@ local function ApplyWeapon(state)
     local slot = preset and preset.type or "none"
 
     if snap then
-        Lara:SetHolsterWeapons(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
+        Lara:SetHolsterWeaponTypes(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
     end
 
     if slot == "holsters" then
         -- Pistols in both hand holsters: clear left + right, leave back alone
-        Lara:SetHolsterWeapons(TEN.Objects.WeaponType.NONE, TEN.Objects.WeaponType.NONE, nil)
+        Lara:SetHolsterWeaponTypes(TEN.Objects.WeaponType.NONE, TEN.Objects.WeaponType.NONE, nil)
     elseif slot == "right" then
         -- Weapon in right holster only: clear right, leave left + back alone
-        Lara:SetHolsterWeapons(nil, TEN.Objects.WeaponType.NONE, nil)
+        Lara:SetHolsterWeaponTypes(nil, TEN.Objects.WeaponType.NONE, nil)
     elseif slot == "back" then
         -- Weapon on back: clear back, leave left + right alone
-        Lara:SetHolsterWeapons(nil, nil, TEN.Objects.WeaponType.NONE)
+        Lara:SetHolsterWeaponTypes(nil, nil, TEN.Objects.WeaponType.NONE)
     elseif slot == "left" then
         -- Weapon in left holster only: clear left, leave right + back alone
-        Lara:SetHolsterWeapons(TEN.Objects.WeaponType.NONE, nil, nil)
+        Lara:SetHolsterWeaponTypes(TEN.Objects.WeaponType.NONE, nil, nil)
     else
         -- No weapon / default: restore entry holster state
         if snap then
-            Lara:SetHolsterWeapons(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
+            Lara:SetHolsterWeaponTypes(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
         end
     end
 
@@ -596,7 +596,7 @@ local function ResetCharacter()
                 Lara:SwapMesh(entry.index, entry.sourceObjID, entry.index)
             end
         end
-        Lara:SetHolsterWeapons(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
+        Lara:SetHolsterWeaponTypes(snap.holsterLeft, snap.holsterRight, snap.holsterBack)
     end
 
     state.outfitIndex     = 1

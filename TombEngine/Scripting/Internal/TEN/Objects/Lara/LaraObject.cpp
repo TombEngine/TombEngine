@@ -667,12 +667,12 @@ std::unique_ptr<Moveable> LaraObject::GetPlayerInteractedMoveable() const
 }
 
 /// Get currently holstered weapon types in left holster, right holster and back holster.
-// @function LaraObject:GetHolsterWeapons
+// @function LaraObject:GetHolsterWeaponTypes
 // @treturn Objects.WeaponType Left holster weapon type.
 // @treturn Objects.WeaponType Right holster weapon type.
 // @treturn Objects.WeaponType Back holster weapon type.
 // @usage
-// local left, right, back = Lara:GetHolsterWeapons()
+// local left, right, back = Lara:GetHolsterWeaponTypes()
 std::tuple<LaraWeaponType, LaraWeaponType, LaraWeaponType> LaraObject::GetHolsterWeaponTypes() const
 {
 	const auto& player = GetLaraInfo(*_moveable);
@@ -687,13 +687,13 @@ std::tuple<LaraWeaponType, LaraWeaponType, LaraWeaponType> LaraObject::GetHolste
 /// Set holstered weapon meshes for left holster, right holster and back holster.
 // Pass nil for any slot to leave it unchanged.
 // Use WeaponType.NONE to clear a holster slot.
-// @function LaraObject:SetHolsterWeapons
+// @function LaraObject:SetHolsterWeaponTypes
 // @tparam[opt] Objects.WeaponType left Left holster weapon type (nil to leave unchanged).
 // @tparam[opt] Objects.WeaponType right Right holster weapon type (nil to leave unchanged).
 // @tparam[opt] Objects.WeaponType back Back holster weapon type (nil to leave unchanged).
 // @usage
-// Lara:SetHolsterWeapons(WeaponType.PISTOLS, WeaponType.PISTOLS, WeaponType.SHOTGUN)
-// Lara:SetHolsterWeapons(nil, nil, WeaponType.NONE) -- Clear back holster only.
+// Lara:SetHolsterWeaponTypes(WeaponType.PISTOLS, WeaponType.PISTOLS, WeaponType.SHOTGUN)
+// Lara:SetHolsterWeaponTypes(nil, nil, WeaponType.NONE) -- Clear back holster only.
 void LaraObject::SetHolsterWeaponTypes(TypeOrNil<LaraWeaponType> left, TypeOrNil<LaraWeaponType> right, TypeOrNil<LaraWeaponType> back)
 {
 	auto& player = GetLaraInfo(*_moveable);
@@ -1073,8 +1073,8 @@ void LaraObject::Register(sol::table& parent)
 		ScriptReserved_GetAmmoCount, &LaraObject::GetAmmoCount,
 		ScriptReserved_GetWeaponMode, & LaraObject::GetWeaponMode,
 		ScriptReserved_SetWeaponMode, & LaraObject::SetWeaponMode,
-		ScriptReserved_GetHolsterWeapon, &LaraObject::GetHolsterWeaponTypes,
-		ScriptReserved_SetHolsterWeapon, &LaraObject::SetHolsterWeaponTypes,
+		ScriptReserved_GetHolsterWeaponTypes, &LaraObject::GetHolsterWeaponTypes,
+		ScriptReserved_SetHolsterWeaponTypes,&LaraObject::SetHolsterWeaponTypes,
 		ScriptReserved_ResetHair, &LaraObject::ResetHair,
 		ScriptReserved_SpawnGunFlash, &LaraObject::SpawnGunFlash,
 		ScriptReserved_ClearGunFlash, & LaraObject::ClearGunFlash,
