@@ -337,6 +337,7 @@ void AnimateShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 		player.Control.Weapon.HasFired = true;
 
 		player.RightArm.GunFlash = Weapons[(int)weaponType].FlashTime;
+		player.RightArm.GunFlashType = weaponType;
 		if (weaponType != LaraWeaponType::GrenadeLauncher && weaponType != LaraWeaponType::RocketLauncher)
 			player.LeftArm.GunSmoke = 20;
 

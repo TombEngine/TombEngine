@@ -333,7 +333,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 		playerObject.AnimationTransforms[m] = rItem.AnimationTransforms[m];
 
 	// Copy meshswap indices.
-	rItem.SkinIndex = LaraItem->Model.SkinIndex;
+	rItem.SkinIndex = LaraItem->Model.GetSkinGlobalIndex();
 	rItem.MeshIndex = LaraItem->Model.MeshIndex;
 	rItem.DoneAnimations = true;
 }

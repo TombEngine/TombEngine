@@ -40,6 +40,7 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertySavegame.h"
 #include "Sound/sound.h"
 #include "Specific/Serialization/Flatbuffers.h"
 #include "Specific/clock.h"
@@ -63,6 +64,7 @@ using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
 using namespace TEN::Input;
 using namespace TEN::Renderer;
+using namespace TEN::Scripting::Properties;
 using namespace TEN::Serialization;
 using namespace TEN::SpotCam;
 using namespace TEN::Utils;
@@ -495,6 +497,7 @@ const std::vector<byte> SaveGame::Build()
 	leftArm.add_anim_object_id(Lara.LeftArm.AnimObjectID);
 	leftArm.add_anim_number(Lara.LeftArm.AnimNumber);
 	leftArm.add_gun_flash(Lara.LeftArm.GunFlash);
+	leftArm.add_gun_flash_type((int)Lara.LeftArm.GunFlashType);
 	leftArm.add_gun_smoke(Lara.LeftArm.GunSmoke);
 	leftArm.add_frame_number(Lara.LeftArm.FrameNumber);
 	leftArm.add_locked(Lara.LeftArm.Locked);
@@ -505,6 +508,7 @@ const std::vector<byte> SaveGame::Build()
 	rightArm.add_anim_object_id(Lara.RightArm.AnimObjectID);
 	rightArm.add_anim_number(Lara.RightArm.AnimNumber);
 	rightArm.add_gun_flash(Lara.RightArm.GunFlash);
+	rightArm.add_gun_flash_type((int)Lara.RightArm.GunFlashType);
 	rightArm.add_gun_smoke(Lara.RightArm.GunSmoke);
 	rightArm.add_frame_number(Lara.RightArm.FrameNumber);
 	rightArm.add_locked(Lara.RightArm.Locked);
@@ -798,6 +802,11 @@ const std::vector<byte> SaveGame::Build()
 		}
 		auto itemCallbackVecOffset = fbb.CreateVector(itemCallbackOffsets);
 
+		// Serialize per-instance properties.
+		flatbuffers::Offset<Save::PropertyMapData> itemPropsOffset;
+		if (!itemToSerialize.Properties.IsEmpty())
+			itemPropsOffset = BuildPropertyMap(fbb, itemToSerialize.Properties);
+
 		std::vector<int> itemFlags;
 		for (int i = 0; i < ITEM_FLAG_COUNT; i++)
 			itemFlags.push_back(itemToSerialize.ItemFlags[i]);
@@ -1014,7 +1023,8 @@ const std::vector<byte> SaveGame::Build()
 		serializedItem.add_mesh_bits(itemToSerialize.MeshBits.ToPackedBits());
 		serializedItem.add_base_mesh(itemToSerialize.Model.BaseMesh);
 		serializedItem.add_mesh_index(meshPointerOffset);
-		serializedItem.add_skin_index(itemToSerialize.Model.SkinIndex);
+		serializedItem.add_skin_object_id(itemToSerialize.Model.SkinObjectID);
+		serializedItem.add_skin_swap_index(itemToSerialize.Model.SkinSwapIndex);
 		serializedItem.add_object_id(itemToSerialize.ObjectNumber);
 		serializedItem.add_pose(&FromPose(itemToSerialize.Pose));
 		serializedItem.add_required_state(itemToSerialize.Animation.RequiredState);
@@ -1081,6 +1091,9 @@ const std::vector<byte> SaveGame::Build()
 
 		serializedItem.add_lua_name(luaNameOffset);
 		serializedItem.add_lua_callbacks(itemCallbackVecOffset);
+
+		if (!itemToSerialize.Properties.IsEmpty())
+			serializedItem.add_properties(itemPropsOffset);
 
 		auto serializedItemOffset = serializedItem.Finish();
 		serializedItems.push_back(serializedItemOffset);
@@ -1271,6 +1284,11 @@ const std::vector<byte> SaveGame::Build()
 
 		for (int j = 0; j < room->mesh.size(); j++)
 		{
+			// Serialize per-instance static properties (must be before builder).
+			flatbuffers::Offset<Save::PropertyMapData> staticPropsOffset;
+			if (!room->mesh[j].Properties.IsEmpty())
+				staticPropsOffset = BuildPropertyMap(fbb, room->mesh[j].Properties);
+
 			auto staticObjBuilder = Save::StaticMeshInfoBuilder(fbb);
 
 			staticObjBuilder.add_number(j);
@@ -1279,6 +1297,10 @@ const std::vector<byte> SaveGame::Build()
 			staticObjBuilder.add_color(&FromVector4(room->mesh[j].Color));
 			staticObjBuilder.add_hit_points(room->mesh[j].HitPoints);
 			staticObjBuilder.add_flags(room->mesh[j].Flags);
+
+			if (!room->mesh[j].Properties.IsEmpty())
+				staticObjBuilder.add_properties(staticPropsOffset);
+
 			staticMeshes.push_back(staticObjBuilder.Finish());
 		}
 
@@ -1325,6 +1347,19 @@ const std::vector<byte> SaveGame::Build()
 	}
 	auto staticMeshesOffset = fbb.CreateVector(staticMeshes);
 	auto volumesOffset = fbb.CreateVector(volumes);
+
+	std::vector<Common::Vector4> materialProperties = {};
+	materialProperties.reserve(g_Level.Materials.size() * MaterialData::PropertyCount);
+
+	for (const auto& material : g_Level.Materials)
+	{
+		auto& currentParameters = material.GetProperties();
+
+		for (int i = 0; i < MaterialData::PropertyCount; i++)
+			materialProperties.push_back(FromVector4(currentParameters[i]));
+	}
+
+	auto materialPropertiesOffset = fbb.CreateVectorOfStructs(materialProperties);
 
 	// Level state
 	auto* level = (Level*)g_GameFlow->GetLevel(CurrentLevel);
@@ -1374,6 +1409,7 @@ const std::vector<byte> SaveGame::Build()
 	levelData.add_weather_type((int)level->Weather);
 	levelData.add_weather_strength(level->WeatherStrength);
 	levelData.add_weather_clustering(level->WeatherClustering);
+	levelData.add_material_properties(materialPropertiesOffset);
 
 	auto levelDataOffset = levelData.Finish();
 
@@ -1646,6 +1682,10 @@ const std::vector<byte> SaveGame::Build()
 
 	auto callbacksOffset = fbb.CreateVector(callbackOffsets);
 
+	// Serialize global type properties.
+	auto moveableTypePropsOffset = BuildTypeProperties(fbb, PropertyHandler::GetAllMoveableProperties());
+	auto staticTypePropsOffset = BuildTypeProperties(fbb, PropertyHandler::GetAllStaticProperties());
+
 	Save::SaveGameBuilder sgb{ fbb };
 
 	sgb.add_header(headerOffset);
@@ -1709,6 +1749,9 @@ const std::vector<byte> SaveGame::Build()
 
 	sgb.add_script_vars(unionVecOffset);
 	sgb.add_callbacks(callbacksOffset);
+
+	sgb.add_moveable_type_properties(moveableTypePropsOffset);
+	sgb.add_static_type_properties(staticTypePropsOffset);
 
 	auto sg = sgb.Finish();
 	fbb.Finish(sg);
@@ -2143,6 +2186,7 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.LeftArm.AnimObjectID = (GAME_OBJECT_ID)s->lara()->left_arm()->anim_object_id();
 	Lara.LeftArm.AnimNumber = s->lara()->left_arm()->anim_number();
 	Lara.LeftArm.GunFlash = s->lara()->left_arm()->gun_flash();
+	Lara.LeftArm.GunFlashType = (LaraWeaponType)s->lara()->left_arm()->gun_flash_type();
 	Lara.LeftArm.GunSmoke = s->lara()->left_arm()->gun_smoke();
 	Lara.LeftArm.FrameNumber = s->lara()->left_arm()->frame_number();
 	Lara.LeftArm.Locked = s->lara()->left_arm()->locked();
@@ -2152,6 +2196,7 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.RightArm.AnimObjectID = (GAME_OBJECT_ID)s->lara()->right_arm()->anim_object_id();
 	Lara.RightArm.AnimNumber = s->lara()->right_arm()->anim_number();
 	Lara.RightArm.GunFlash = s->lara()->right_arm()->gun_flash();
+	Lara.RightArm.GunFlashType = (LaraWeaponType)s->lara()->right_arm()->gun_flash_type();
 	Lara.RightArm.GunSmoke = s->lara()->right_arm()->gun_smoke();
 	Lara.RightArm.FrameNumber = s->lara()->right_arm()->frame_number();
 	Lara.RightArm.Locked = s->lara()->right_arm()->locked();
@@ -2307,10 +2352,26 @@ static void ParseEffects(const Save::SaveGame* s)
 	g_Renderer.SetPostProcessStrength(s->postprocess_strength());
 	g_Renderer.SetPostProcessTint(ToVector3(s->postprocess_tint()));
 
+	// Restore material properties.
+	auto* materialProperties = s->level_data()->material_properties();
+	TENAssert(materialProperties != nullptr && materialProperties->size() == g_Level.Materials.size() * MaterialData::PropertyCount, "Savegame material property data size mismatch.");
+
+	auto valueIndex = 0;
+	for (auto& material : g_Level.Materials)
+	{
+		std::array<Vector4, MaterialData::PropertyCount> properties = {};
+
+		for (int i = 0; i < MaterialData::PropertyCount; i++)
+			properties[i] = ToVector4(materialProperties->Get(valueIndex++));
+
+		material.SetCurrentProperties(properties);
+		material.StoreInterpolationData();
+	}
+
 	// Restore soundtracks.
 	for (int i = 0; i < s->soundtracks()->size(); i++)
 	{
-		TENAssert(i < (int)SoundTrackType::Count, "Soundtrack type count was changed");
+		TENAssert(i < (int)SoundTrackType::Count, "Soundtrack type count was changed.");
 
 		auto track = s->soundtracks()->Get(i);
 		PlaySoundTrack(track->name()->str(), (SoundTrackType)i, track->position(), SOUND_XFADETIME_LEVELJUMP);
@@ -2563,6 +2624,9 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		staticObj.HitPoints = savedStaticObj.hit_points();
 		staticObj.Flags = savedStaticObj.flags();
 		staticObj.Dirty = true;
+
+		// Load per-instance properties.
+		ParsePropertyMap(savedStaticObj.properties(), staticObj.Properties);
 		
 		if (!staticObj.Flags)
 			TestTriggers(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, savedStaticObj.room_number(), true, 0);
@@ -2700,6 +2764,9 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			}
 		}
 
+		// Load per-instance properties.
+		ParsePropertyMap(savedItem->properties(), item->Properties);
+
 		g_GameScriptEntities->TryAddColliding(i);
 
 		// Don't load player data in hub mode.
@@ -2748,7 +2815,8 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		// Mesh stuff
 		item->MeshBits = savedItem->mesh_bits();
 		item->Model.BaseMesh = savedItem->base_mesh();
-		item->Model.SkinIndex = savedItem->skin_index();
+		item->Model.SkinObjectID = savedItem->skin_object_id();
+		item->Model.SkinSwapIndex = savedItem->skin_swap_index();
 
 		item->Model.MeshIndex.resize(savedItem->mesh_index()->size());
 		for (int j = 0; j < savedItem->mesh_index()->size(); j++)
@@ -2989,6 +3057,11 @@ void SaveGame::Parse(const std::vector<byte>& buffer, bool hubMode)
 	const Save::SaveGame* s = Save::GetSaveGame(buffer.data());
 
 	ParseLevel(s, hubMode);
+
+	// Load global type properties.
+	ParseTypeProperties(s->moveable_type_properties(), PropertyHandler::GetMutableMoveableProperties());
+	ParseTypeProperties(s->static_type_properties(), PropertyHandler::GetMutableStaticProperties());
+
 	ParseLua(s, hubMode);
 	ParseStatistics(s, hubMode);
 

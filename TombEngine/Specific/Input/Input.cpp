@@ -33,9 +33,10 @@ namespace TEN::Input
     std::unordered_map<AxisID, Vector2>			   AxisMap;			// Key = axis ID, value = axis.
 
 	// Input state.
-	bool InputLocked = false; // Disables control polling in case application is defocused.
-	InputDevice	LastInputDevice = InputDevice::Keyboard;
-	float MouseWheelAccumY = 0.0f; // Mouse wheel deltas are event-only in SDL3, so accumulate them between frames.
+	bool  InputLocked = false;		 // Disables control polling in case application is defocused.
+	bool  MouseRelativeMode = false; // Indicates whether relative mouse mode was already set.
+	float MouseWheelAccumY = 0.0f;	 // Mouse wheel deltas are event-only in SDL3, so accumulate them between frames.
+	auto  LastInputDevice = InputDevice::Keyboard;
 
 	// SDL3 gamepad state.
 	SDL_Gamepad* ActiveGamepad   = nullptr;
@@ -192,6 +193,9 @@ namespace TEN::Input
 			return;
 		}
 
+		// Do not snap mouse pointer to the window center when going from/to menus.
+		SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_CENTER, "0");
+
 		// Open whatever gamepad is connected at startup. Subsequent connections arrive via
 		// SDL_EVENT_GAMEPAD_ADDED through HandleSDLEvent.
 		OpenFirstGamepad();
@@ -232,6 +236,17 @@ namespace TEN::Input
 	void SetInputLockState(bool locked)
 	{
 		InputLocked = locked;
+	}
+
+	void SetRelativeMouseMode(bool relative)
+	{
+		relative = relative || g_Renderer.IsFullScreen();
+
+		if (MouseRelativeMode == relative)
+			return;
+
+		if (SDL_SetWindowRelativeMouseMode(g_Platform->GetSDL3Window(), relative))
+			MouseRelativeMode = relative;
 	}
 
 	GamepadType GetGamepadType()
@@ -538,37 +553,35 @@ namespace TEN::Input
 		// Detect whether specified action ID corresponds to a particular raw input action ID, 
 		// and if it does, record corresponding input device as the last used device.
 
-		for (auto userActionGroupID : USER_ACTION_GROUP_IDS)
+		for (auto rawActionGroupID : RAW_ACTION_GROUP_IDS)
 		{
-			const auto& userActionGroup = ACTION_ID_GROUPS[(int)userActionGroupID];
-			if (!Contains(userActionGroup, actionID))
-				continue;
-
-			for (auto rawActionGroupID : RAW_ACTION_GROUP_IDS)
+			const auto& rawActionGroup = ACTION_ID_GROUPS[(int)rawActionGroupID];
+			for (auto rawActionID : rawActionGroup)
 			{
-				const auto& rawActionGroup = ACTION_ID_GROUPS[(int)rawActionGroupID];
-				for (auto rawActionID : rawActionGroup)
+				if (g_Bindings.GetBoundKeyID(BindingProfileID::Raw, rawActionID) != keyID)
+					continue;
+
+				// Bypass mouse move events because these are easy to trigger accidentally.
+				if (rawActionID == In::MouseLeft || rawActionID == In::MouseRight ||
+					rawActionID == In::MouseUp   || rawActionID == In::MouseDown)
+					continue;
+
+				switch (rawActionGroupID)
 				{
-					if (g_Bindings.GetBoundKeyID(BindingProfileID::Raw, rawActionID) != keyID)
-						continue;
+				case ActionGroupID::Keyboard:
+					LastInputDevice = InputDevice::Keyboard;
+					return;
 
-					switch (rawActionGroupID)
-					{
-					case ActionGroupID::Keyboard:
-						LastInputDevice = InputDevice::Keyboard;
-						return;
+				case ActionGroupID::Mouse:
+					LastInputDevice = InputDevice::Mouse;
+					return;
 
-					case ActionGroupID::Mouse:
-						LastInputDevice = InputDevice::Mouse;
-						return;
+				case ActionGroupID::Gamepad:
+					LastInputDevice = InputDevice::Gamepad;
+					return;
 
-					case ActionGroupID::Gamepad:
-						LastInputDevice = InputDevice::Gamepad;
-						return;
-
-					default:
-						break;
-					}
+				default:
+					break;
 				}
 			}
 		}

@@ -30,6 +30,7 @@
 #include "Game/Hud/DrawItems/DisplayItem.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_cheat.h"
+#include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
 #include "Game/items.h"
@@ -225,6 +226,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateFishSwarm();
 	UpdateFireflySwarm();
 	UpdateGlobalLensFlare();
+	UpdateMaterials();
 
 	// Update HUD.
 	g_Hud.Update(*LaraItem);
@@ -322,6 +324,7 @@ GameStatus FreezePhase()
 
 		UpdateAllItems();
 		UpdateGlobalLensFlare();
+		Weather.Update(true);
 
 		//g_Camera.Update()(); // TODO: Restore.
 
@@ -628,6 +631,13 @@ void InitializeScripting(int levelIndex, bool loadGame)
 		});
 	}
 
+	// Execute property script blob.
+	if (!g_Level.PropertyBlob.empty())
+	{
+		TENLog("Executing property script blob...", LogLevel::Info);
+		g_GameScript->ExecuteString(g_Level.PropertyBlob);
+	}
+
 	// Play default background music.
 	if (!loadGame)
 		PlaySoundTrack(level.GetAmbientTrack(), SoundTrackType::BGM, 0, SOUND_XFADETIME_LEVELJUMP);
@@ -781,6 +791,8 @@ void SetupInterpolation()
 
 void HandleControls(bool isTitle)
 {
+	SetRelativeMouseMode(!isTitle && g_GameFlow->CurrentFreezeMode != FreezeMode::Full);
+
 	// Poll input devices and update input variables.
 	// TODO: To allow cutscene skipping later, don't clear Deselect action.
 	UpdateInputActions(false, true);

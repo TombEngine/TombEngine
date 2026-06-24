@@ -119,10 +119,12 @@ void InitializeLaraMeshes(ItemInfo* item, bool clearHolsters)
 	auto& player = GetLaraInfo(*item);
 
 	// Override base mesh and mesh indices to player skin if it exists.
-	auto& obj = Objects[(Objects[player.Skin.Skin].loaded ? player.Skin.Skin : ID_LARA)];
+	int skinSlot = (Objects[player.Skin.Skin].loaded ? player.Skin.Skin : ID_LARA);
+	auto& obj = Objects[skinSlot];
 
 	item->Model.BaseMesh = obj.meshIndex;
-	item->Model.SkinIndex = obj.skinIndex;
+	item->Model.SkinObjectID = skinSlot;
+	item->Model.SkinSwapIndex = NO_VALUE;
 
 	for (int i = 0; i < NUM_LARA_MESHES; i++)
 		item->Model.MeshIndex[i] = item->Model.BaseMesh + i;

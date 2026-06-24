@@ -1120,12 +1120,13 @@ namespace TEN::Renderer::Native::DirectX11
 		return std::make_unique<DX11PrimitiveBatch>(_context.Get());
 	}
 
-	void DX11GraphicsDevice::SaveScreenshot(IRenderTarget2D* renderTarget, std::string path)
+	bool DX11GraphicsDevice::SaveScreenshot(IRenderTarget2D* renderTarget, std::string path)
 	{
 		auto nativeRenderTarget = static_cast<DX11RenderTarget2D*>(renderTarget);
 		auto wPath = TEN::Utils::ToWString(path);
-		SaveWICTextureToFile(_context.Get(), nativeRenderTarget->GetD3D11Texture(), GUID_ContainerFormatPng, wPath.c_str(),
-			&GUID_WICPixelFormat24bppBGR, nullptr, true);
+
+		return SUCCEEDED(SaveWICTextureToFile(_context.Get(), nativeRenderTarget->GetD3D11Texture(), GUID_ContainerFormatPng, wPath.c_str(),
+			&GUID_WICPixelFormat24bppBGR, nullptr, true));
 	}
 
 	Vector3 DX11GraphicsDevice::Unproject(Vector3 position, Matrix projection, Matrix view, Matrix world)
