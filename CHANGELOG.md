@@ -34,6 +34,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Bug fixes
 
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
+* Fixed BURNING_FLOOR, ELEMENTAL_PUZZLE and SCALES.
 * Fixed flyby camera jitter by converting the spline type to floating-point.
 * Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
 * Fixed BATS_EMITTER targeting issues.
