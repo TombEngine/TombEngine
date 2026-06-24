@@ -68,6 +68,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Objects.Creature` class to fetch and set various enemy AI state parameters.
 * Added `Objects.Material` class to fetch and set properties for texture materials.
 * Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
+* Added `View.GetRoll` and `View.SetRoll` functions to get or set camera roll axis value.
 * Added `View.GetPostProcessTint` to get currently set post process tint.
 * Added `View.GetPostProcess` and `View.SetPostProcess` to set/get postprocess mode and strength.
 * Added `constraint` field to `ParticleData` argument table for `Effects.EmitAdvancedParticle` function to create particles with constrained orientation.
@@ -81,7 +82,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
-* Added `SetRoll` and `GetRoll` functions to `View`.
 * Fixed notification display bug in `CustomDiary` class.
 
 ## [Version 1.11.1]
