@@ -42,7 +42,7 @@ LevelFuncs.Engine.RingInventory = LevelFuncs.Engine.RingInventory or {}
 -- ============================================================================
 -- VIEW SNAPSHOT FUNCTIONS
 -- ============================================================================
-function CaptureSnapshot()
+local function CaptureSnapshot()
     snap.fov  = TEN.View.GetFOV()
     snap.roll = TEN.View.GetRoll()
     snap.dofMode, snap.dofFocusDistance, snap.dofRange, snap.dofStrength = TEN.View.GetDOF()
@@ -50,7 +50,7 @@ function CaptureSnapshot()
     snap.postProcessTint = TEN.View.GetPostProcessTint()
 end
 
-function RestoreSnapshot()
+local function RestoreSnapshot()
     if not snap then return end
 
     -- Reset post-process and camera settings

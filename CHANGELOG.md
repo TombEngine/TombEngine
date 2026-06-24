@@ -37,6 +37,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed flyby camera jitter by converting the spline type to floating-point.
 * Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
 * Fixed BATS_EMITTER targeting issues.
+* Fixed JUMP_SWITCH not activating event sets.
 * Fixed occasional flame emitter sprite jitter.
 * Fixed incorrect aspect ratio when resizing the window in windowed mode.
 * Fixed title level selection dialog not scrolling offscreen entries.
@@ -44,8 +45,10 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Lua API changes
 
 * Added ring inventory module.
+* Added photo mode module.
 * Added loading of the `Scripts/Autoexec.lua` script file before every level script is loaded.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
+* Added `includePlayer` argument for `Collision.Ray` class to detect collisions with Lara.
 * Added `Effects.EmitSplash` for generating splashes.
 * Added `Flow.GetCurrentLevelIndex` and `Flow.GetTotalLevelCount` functions to get current level index and total level count in gameflow.
 * Added `Flow.Settings.Animation.systemBlendDuration` setting to specify hardcoded animation blend durations.
@@ -58,10 +61,15 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added functional key (F1-F12) mappings and raw gamepad input mappings to the `Input.ActionID` and `Input.AxisID` enums.
 * Added `Lara:GetLocked` and `Lara:SetLocked` to manage native control lock status.
 * Added `Lara:GetSkin` and `Lara:SetSkin` functions to manage swapping of classic outfits.
+* Added `Lara:SpawnGunFlash` and `Lara:ClearGunFlashes` functions to spawn and clear gunflashes.
+* Added `Lara:GetHolsterWeaponTypes` and `Lara:SetHolsterWeaponTypes` functions to manage holsters.
+* Added `Lara:ResetHair` function to reset character hair. Useful for PhotoMode.
+* Added `Movaeble:GetSkinnedMesh` to get the current active skin and `Moveable:ClearSkinnedMesh` to clear current active skin.
 * Added third argument to `Moveable:SetAnim` function to specify blend frame count.
 * Added `Objects.Creature` class to fetch and set various enemy AI state parameters.
 * Added `Objects.Material` class to fetch and set properties for texture materials.
 * Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
+* Added `View.GetRoll` and `View.SetRoll` functions to get or set camera roll axis value.
 * Added `View.GetPostProcessTint` to get currently set post process tint.
 * Added `View.GetPostProcess` and `View.SetPostProcess` to set/get postprocess mode and strength.
 * Added `constraint` field to `ParticleData` argument table for `Effects.EmitAdvancedParticle` function to create particles with constrained orientation.
