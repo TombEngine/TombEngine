@@ -45,14 +45,18 @@ namespace TEN::Effects::Environment
 		Particles.reserve(WEATHER_PARTICLE_COUNT_MAX);
 	}
 
-	void EnvironmentController::Update()
+	void EnvironmentController::Update(bool onlyFlash)
 	{
 		const auto& level = *g_GameFlow->GetLevel(CurrentLevel);
+
+		UpdateFlash(level);
+
+		if (onlyFlash)
+			return;
 
 		UpdateSky(level);
 		UpdateStorm(level);
 		UpdateWind(level);
-		UpdateFlash(level);
 		UpdateWeather(level);
 		UpdateStarfield(level);
 
