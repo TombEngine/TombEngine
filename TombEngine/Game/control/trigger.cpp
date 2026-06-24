@@ -495,7 +495,8 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 			if (!SwitchTrigger(value, timer))
 				return;
 
-			switchOff = (triggerType == TRIGGER_TYPES::SWITCH && timer && g_Level.Items[value].Animation.ActiveState == 1);
+			switchOff = (triggerType == TRIGGER_TYPES::SWITCH && timer &&
+				g_Level.Items[value].Animation.ActiveState == (g_Level.Items[value].ObjectNumber == ID_JUMP_SWITCH ? SWITCH_OFF : SWITCH_ON));
 			break;
 
 		case TRIGGER_TYPES::MONKEY:
