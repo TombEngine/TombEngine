@@ -269,7 +269,7 @@ function States.RestoreSnapshot()
     Lara:ResetHair()
 
     --Clear any trailing gun flashes
-    Lara:ClearGunFlash()
+    Lara:ClearGunFlashes()
 
     -- Reset post-process and camera settings
     TEN.View.SetDOF(snap.dofMode, snap.dofFocusDistance, snap.dofRange, snap.dofStrength)

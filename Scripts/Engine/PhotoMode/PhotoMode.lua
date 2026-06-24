@@ -535,7 +535,7 @@ local function UpdateGunFlash(state)
     
     local preset = Configuration.Weapons[state.weaponIndex]
     if not state.gunflashEnabled or state.hideCharacter or not preset then 
-        Lara:ClearGunFlash()
+        Lara:ClearGunFlashes()
         return
     end
 
@@ -549,11 +549,11 @@ local function UpdateGunFlash(state)
         Lara:SpawnGunFlash(Lara:GetWeaponType(), TEN.Objects.WeaponFlashMode.AUTO)
     elseif preset.gunFlash then
         if preset.gunFlash ~= TEN.Objects.WeaponFlashMode.AUTO then
-            Lara:ClearGunFlash()
+            Lara:ClearGunFlashes()
         end
         Lara:SpawnGunFlash(preset.weaponType, preset.gunFlash)
     else
-        Lara:ClearGunFlash()
+        Lara:ClearGunFlashes()
     end
     
 end

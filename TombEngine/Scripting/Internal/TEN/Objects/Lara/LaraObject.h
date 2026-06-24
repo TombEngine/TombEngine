@@ -43,7 +43,7 @@ public:
 	void SetHolsterWeaponTypes(TypeOrNil<LaraWeaponType> left, TypeOrNil<LaraWeaponType> right, TypeOrNil<LaraWeaponType> back);
 	void ResetHair();
 	void SpawnGunFlash(LaraWeaponType weaponType, TypeOrNil<WeaponFlashMode> weaponFlashType);
-	void ClearGunFlash();
+	void ClearGunFlashes();
 
 	void UndrawWeapon();
 	void DiscardTorch();
