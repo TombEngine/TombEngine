@@ -689,11 +689,6 @@ void SetFov(short fov, bool store)
 	g_Camera.Fov = fov;
 }
 
-short GetCurrentFov()
-{
-	return g_Camera.Fov;
-}
-
 void InitializeCamera()
 {
 	g_Camera.shift = LaraItem->Pose.Position.y - BLOCK(1);

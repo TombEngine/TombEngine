@@ -74,17 +74,17 @@ namespace TEN::Scripting::View
 
 	static float GetFOV()
 	{
-		return TO_DEGREES(GetCurrentFov());
+		return TO_DEGREES(g_Camera.Fov);
 	}
 
 	static void SetRoll(float degrees)
 	{
-		AlterRoll(ANGLE(degrees));
+		g_Camera.Roll = DEG_TO_RAD(degrees);
 	}
 
 	static float GetRoll()
 	{
-		return TO_DEGREES(GetCurrentRoll());
+		return RAD_TO_DEG(g_Camera.Roll);
 	}
 
 	static ScriptCameraType GetCameraType()

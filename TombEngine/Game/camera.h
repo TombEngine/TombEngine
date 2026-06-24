@@ -238,7 +238,6 @@ void UpdatePlayerRefCameraOrient(ItemInfo& item);
 
 void HandleLookAt(const CameraInfo& camera, short roll);
 void SetFov(short fov, bool store = true);
-short GetCurrentFov();
 void InitializeCamera();
 void ChaseCamera(const ItemInfo& playerItem);
 void CombatCamera(const ItemInfo& playerItem);
