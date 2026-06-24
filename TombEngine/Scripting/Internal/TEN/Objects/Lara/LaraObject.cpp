@@ -738,7 +738,7 @@ void LaraObject::SpawnGunFlash(LaraWeaponType weaponType, TypeOrNil<WeaponFlashM
 // Useful in photo mode or freeze mode to clear active gunflashes.
 // @function LaraObject:ClearGunFlashes
 // @usage
-// Lara:ClearGunFlash()
+// Lara:ClearGunFlashes()
 void LaraObject::ClearGunFlashes()
 {
 	auto& player = GetLaraInfo(*_moveable);
