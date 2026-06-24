@@ -6,9 +6,7 @@
 -- frame sprites before taking an in-game screenshot.
 --
 -- To enable photo mode in a level, `require` this module once in your level script:
--- <br><br>
--- `local PhotoMode = require("Engine.PhotoMode.PhotoMode")`
--- <br><br>
+--	local PhotoMode = require("Engine.PhotoMode.PhotoMode")
 -- The module self-registers via callbacks, so no further scripting is needed.
 --
 -- Make sure the following objects exist in your wad:
