@@ -81,6 +81,7 @@ void ScalesControl(short itemNumber)
 	if (item->Animation.ActiveState == 2)
 	{
 		// Correct water amount.
+		item->ItemFlags[2] = 1;
 		RemoveActiveItem(itemNumber);
 		item->Status = ITEM_NOT_ACTIVE;
 		TestTriggers(item, true, -512);
@@ -89,7 +90,6 @@ void ScalesControl(short itemNumber)
 	{
 		// Wrong water amount.
 		item->ItemFlags[1] = 1;
-		TestTriggers(item, true, -1024);
 	}
 	AnimateItem(item);
 }
@@ -99,12 +99,12 @@ void ScalesCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 	auto* item = &g_Level.Items[itemNumber];
 	auto* laraInfo = GetLaraInfo(laraItem);
 
+	if (item->ItemFlags[2] != 0)
+		g_Hud.InteractionHighlighter.Test(*laraItem, *item);
+
 	// Suppress highlighter once water has been poured (wrong: ItemFlags[1] = 1, correct: item deactivated).
 	// It reappears when the scale resets (ItemFlags[1] cleared back to 0).
 	bool waterPoured = (item->ItemFlags[1] != 0 || item->Status == ITEM_ACTIVE);
-
-	if (!waterPoured)
-		g_Hud.InteractionHighlighter.Test(*laraItem, *item);
 
 	// Idle: open inventory to a filled waterskin, or handle the choice
 	bool isPlayerIdle = (laraItem->Animation.ActiveState == LS_IDLE &&
