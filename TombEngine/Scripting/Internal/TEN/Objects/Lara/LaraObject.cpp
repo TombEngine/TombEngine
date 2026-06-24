@@ -1077,7 +1077,7 @@ void LaraObject::Register(sol::table& parent)
 		ScriptReserved_SetHolsterWeaponTypes,&LaraObject::SetHolsterWeaponTypes,
 		ScriptReserved_ResetHair, &LaraObject::ResetHair,
 		ScriptReserved_SpawnGunFlash, &LaraObject::SpawnGunFlash,
-		ScriptReserved_ClearGunFlash, &LaraObject::ClearGunFlashes,
+		ScriptReserved_ClearGunFlashes, &LaraObject::ClearGunFlashes,
 		ScriptReserved_GetVehicle, &LaraObject::GetVehicle,
 		ScriptReserved_GetTarget, &LaraObject::GetTarget,
 		ScriptReserved_GetPlayerInteractedMoveable, &LaraObject::GetPlayerInteractedMoveable,
