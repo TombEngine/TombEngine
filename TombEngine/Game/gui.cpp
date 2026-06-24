@@ -3292,6 +3292,7 @@ namespace TEN::Gui
 			{
 				g_Renderer.PrepareScene();
 				ApplyPendingWindowResize();
+				SetRelativeMouseMode(false);
 
 				if (g_Gui.DoPauseMenu(LaraItem) == InventoryResult::ExitToTitle)
 				{
@@ -3386,6 +3387,7 @@ namespace TEN::Gui
 
 				g_Renderer.PrepareScene();
 				ApplyPendingWindowResize();
+				SetRelativeMouseMode(false);
 
 				switch (InvMode)
 				{

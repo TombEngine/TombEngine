@@ -33,9 +33,10 @@ namespace TEN::Input
     std::unordered_map<AxisID, Vector2>			   AxisMap;			// Key = axis ID, value = axis.
 
 	// Input state.
-	bool InputLocked = false; // Disables control polling in case application is defocused.
-	InputDevice	LastInputDevice = InputDevice::Keyboard;
-	float MouseWheelAccumY = 0.0f; // Mouse wheel deltas are event-only in SDL3, so accumulate them between frames.
+	bool  InputLocked = false;		 // Disables control polling in case application is defocused.
+	bool  MouseRelativeMode = false; // Indicates whether relative mouse mode was already set.
+	float MouseWheelAccumY = 0.0f;	 // Mouse wheel deltas are event-only in SDL3, so accumulate them between frames.
+	auto  LastInputDevice = InputDevice::Keyboard;
 
 	// SDL3 gamepad state.
 	SDL_Gamepad* ActiveGamepad   = nullptr;
@@ -192,6 +193,9 @@ namespace TEN::Input
 			return;
 		}
 
+		// Do not snap mouse pointer to the window center when going from/to menus.
+		SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_CENTER, "0");
+
 		// Open whatever gamepad is connected at startup. Subsequent connections arrive via
 		// SDL_EVENT_GAMEPAD_ADDED through HandleSDLEvent.
 		OpenFirstGamepad();
@@ -232,6 +236,17 @@ namespace TEN::Input
 	void SetInputLockState(bool locked)
 	{
 		InputLocked = locked;
+	}
+
+	void SetRelativeMouseMode(bool relative)
+	{
+		relative = relative || g_Renderer.IsFullScreen();
+
+		if (MouseRelativeMode == relative)
+			return;
+
+		if (SDL_SetWindowRelativeMouseMode(g_Platform->GetSDL3Window(), relative))
+			MouseRelativeMode = relative;
 	}
 
 	GamepadType GetGamepadType()

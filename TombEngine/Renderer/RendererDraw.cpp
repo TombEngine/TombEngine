@@ -1622,7 +1622,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicSpotLight(const Vector3& pos, const Vector3& dir, float radius, float falloff, float distance, const Color& color, bool castShadows, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
+		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
 			return;
 
 		RendererLight dynamicLight = {};
@@ -1659,7 +1659,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicPointLight(const Vector3& pos, float radius, const Color& color, bool castShadows, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
+		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
 			return;
 
 		if (radius <= EPSILON)
@@ -1687,7 +1687,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicFogBulb(const Vector3& pos, float radius, float density, const Color& color, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
+		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
 			return;
 
 		auto dynamicLight = RendererLight{};
@@ -1758,7 +1758,7 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareScene()
 	{
-		if (g_GameFlow->CurrentFreezeMode == FreezeMode::None &&
+		if (g_GameFlow->CurrentFreezeMode != FreezeMode::Full &&
 			g_Gui.GetInventoryMode() == InventoryMode::None)
 		{
 			_dynamicLightList ^= 1;
