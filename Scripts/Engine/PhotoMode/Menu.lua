@@ -1,3 +1,4 @@
+-- ldignore
 local InputHelpers  = require("Engine.PhotoMode.InputHelpers")
 local Configuration = require("Engine.PhotoMode.Configuration")
 local Constants     = require("Engine.PhotoMode.Constants")
