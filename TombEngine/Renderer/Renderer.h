@@ -781,6 +781,7 @@ namespace TEN::Renderer
 		void			RestoreDOF();
 
 		void SetGraphicsSettingsChanged();
+		void UpdateDumpScreenRenderTarget();
 
 		RendererDebugPage GetDebugPage() const;
 	};

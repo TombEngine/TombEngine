@@ -1,4 +1,6 @@
+-- ldignore
 -- Photo Module Start
+
 local Borders       = require("Engine.PhotoMode.SpriteBorders")
 local Camera        = require("Engine.PhotoMode.Camera")
 local Configuration = require("Engine.PhotoMode.Configuration")
@@ -1465,14 +1467,14 @@ LevelFuncs.Engine.PhotoMode.OnFreeze = function()
 
     local device = TEN.Input.GetLastInputDevice()
 
-    -- Take screenshot with Look key, L2, or F12.
-    local screenshotKey = (device == TEN.Input.InputDevice.GAMEPAD) and TEN.Input.ActionID.GAMEPAD_LEFT_TRIGGER or TEN.Input.ActionID.LOOK
+    -- Take screenshot with Draw key, L2, or F12.
+    local screenshotKey = (device == TEN.Input.InputDevice.GAMEPAD) and TEN.Input.ActionID.GAMEPAD_LEFT_TRIGGER or TEN.Input.ActionID.DRAW
     if TEN.Input.IsKeyHit(screenshotKey) or TEN.Input.IsKeyHit(TEN.Input.ActionID.F12) then
         TriggerScreenshot()
     end
 
-    -- Toggle UI visibility with Draw key or North button.
-    local hideUIKey = (device == TEN.Input.InputDevice.GAMEPAD) and TEN.Input.ActionID.GAMEPAD_NORTH or TEN.Input.ActionID.DRAW
+    -- Toggle UI visibility with Look key or North button.
+    local hideUIKey = (device == TEN.Input.InputDevice.GAMEPAD) and TEN.Input.ActionID.GAMEPAD_NORTH or TEN.Input.ActionID.LOOK
     if TEN.Input.IsKeyHit(hideUIKey) then
         state.hideUI = not state.hideUI
         return

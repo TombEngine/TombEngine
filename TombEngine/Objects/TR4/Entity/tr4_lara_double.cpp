@@ -5,6 +5,7 @@
 #include "Game/control/box.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Game/Setup.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
@@ -20,9 +21,13 @@ namespace TEN::Entities::TR4
 
 		if (CreatureActive(itemNumber))
 		{
-			if (item->HitStatus)
-				LaraItem->HitPoints = item->HitPoints;
+			int startHitPoints = Objects[GAME_OBJECT_ID::ID_LARA_DOUBLE].HitPoints;
 
+			if (item->HitStatus)
+				LaraItem->HitPoints -= (startHitPoints - item->HitPoints);
+
+			item->HitPoints = startHitPoints;
+			item->Effect.Type = EffectType::None;
 			AnimateItem(item);
 		}
 	}
