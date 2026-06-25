@@ -553,10 +553,10 @@ namespace TEN::Gui
 			case DisplaySettingsOption::ShadowType:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
-				if (CurrentSettings.Configuration.ShadowType == ShadowMode::None)
-					CurrentSettings.Configuration.ShadowType = ShadowMode::All;
+				if (CurrentSettings.Configuration.ShadowMode == ShadowMode::None)
+					CurrentSettings.Configuration.ShadowMode = ShadowMode::All;
 				else
-					CurrentSettings.Configuration.ShadowType = ShadowMode(int(CurrentSettings.Configuration.ShadowType) - 1);
+					CurrentSettings.Configuration.ShadowMode = ShadowMode(int(CurrentSettings.Configuration.ShadowMode) - 1);
 
 				break;
 
@@ -630,10 +630,10 @@ namespace TEN::Gui
 			case DisplaySettingsOption::ShadowType:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
-				if (CurrentSettings.Configuration.ShadowType == ShadowMode::All)
-					CurrentSettings.Configuration.ShadowType = ShadowMode::None;
+				if (CurrentSettings.Configuration.ShadowMode == ShadowMode::All)
+					CurrentSettings.Configuration.ShadowMode = ShadowMode::None;
 				else
-					CurrentSettings.Configuration.ShadowType = ShadowMode(int(CurrentSettings.Configuration.ShadowType) + 1);
+					CurrentSettings.Configuration.ShadowMode = ShadowMode(int(CurrentSettings.Configuration.ShadowMode) + 1);
 
 				break;
 

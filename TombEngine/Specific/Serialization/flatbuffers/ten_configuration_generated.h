@@ -89,34 +89,42 @@ flatbuffers::Offset<Binding> CreateBinding(flatbuffers::FlatBufferBuilder &_fbb,
 
 struct ConfigurationT : public flatbuffers::NativeTable {
   typedef Configuration TableType;
+  std::vector<std::unique_ptr<TEN::Serialization::Config::BindingT>> bindings{};
+  bool enable_tank_camera_control = false;
+  bool invert_camera_x_axis = false;
+  bool invert_camera_y_axis = false;
+  bool enable_rumble = false;
+  int32_t mouse_sensitivity = 0;
+  int32_t menu_option_looping_mode = 0;
+  int32_t last_gamepad_type = 0;
+  int32_t control_mode = 0;
+  int32_t swim_control_mode = 0;
+  bool enable_walk_toggle = false;
+  bool enable_crouch_toggle = false;
+  bool enable_climb_toggle = false;
+  bool enable_auto_monkey_swing_jump = false;
+  bool enable_auto_targeting = false;
+  bool enable_opposite_action_roll = false;
+  bool enable_target_highlighter = false;
+  bool enable_interaction_highlighter = false;
+  bool enable_subtitles = false;
   int32_t screen_width = 0;
   int32_t screen_height = 0;
   float gamma = 0.0f;
   bool enable_windowed_mode = false;
-  int32_t shadow_type = 0;
+  int32_t shadow_mode = 0;
   int32_t shadow_map_size = 0;
-  int32_t shadow_blobs_max = 0;
+  int32_t shadow_blob_count_max = 0;
   bool enable_caustics = false;
   bool enable_decals = false;
-  int32_t antialiasing_mode = 0;
   bool enable_ambient_occlusion = false;
   bool enable_high_framerate = false;
-  std::string adapter_name{};
+  int32_t antialiasing_mode = 0;
   int32_t sound_device = 0;
   bool enable_reverb = false;
   int32_t music_volume = 0;
   int32_t sfx_volume = 0;
-  bool enable_subtitles = false;
-  bool enable_auto_monkey_swing_jump = false;
-  bool enable_auto_targeting = false;
-  bool enable_target_highlighter = false;
-  bool enable_interaction_highlighter = false;
-  bool enable_rumble = false;
-  bool enable_thumbstick_camera = false;
-  int32_t mouse_sensitivity = 0;
-  int32_t menu_option_looping_mode = 0;
-  int32_t last_gamepad_type = 0;
-  std::vector<std::unique_ptr<TEN::Serialization::Config::BindingT>> bindings{};
+  std::string adapter_name{};
 };
 
 struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -124,35 +132,100 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ConfigurationBuilder Builder;
   struct Traits;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_SCREEN_WIDTH = 4,
-    VT_SCREEN_HEIGHT = 6,
-    VT_GAMMA = 8,
-    VT_ENABLE_WINDOWED_MODE = 10,
-    VT_SHADOW_TYPE = 12,
-    VT_SHADOW_MAP_SIZE = 14,
-    VT_SHADOW_BLOBS_MAX = 16,
-    VT_ENABLE_CAUSTICS = 18,
-    VT_ENABLE_DECALS = 20,
-    VT_ANTIALIASING_MODE = 22,
-    VT_ENABLE_AMBIENT_OCCLUSION = 24,
-    VT_ENABLE_HIGH_FRAMERATE = 26,
-    VT_ADAPTER_NAME = 28,
-    VT_SOUND_DEVICE = 30,
-    VT_ENABLE_REVERB = 32,
-    VT_MUSIC_VOLUME = 34,
-    VT_SFX_VOLUME = 36,
-    VT_ENABLE_SUBTITLES = 38,
-    VT_ENABLE_AUTO_MONKEY_SWING_JUMP = 40,
-    VT_ENABLE_AUTO_TARGETING = 42,
-    VT_ENABLE_TARGET_HIGHLIGHTER = 44,
-    VT_ENABLE_INTERACTION_HIGHLIGHTER = 46,
-    VT_ENABLE_RUMBLE = 48,
-    VT_ENABLE_THUMBSTICK_CAMERA = 50,
-    VT_MOUSE_SENSITIVITY = 52,
-    VT_MENU_OPTION_LOOPING_MODE = 54,
-    VT_LAST_GAMEPAD_TYPE = 56,
-    VT_BINDINGS = 58
+    VT_BINDINGS = 4,
+    VT_ENABLE_TANK_CAMERA_CONTROL = 6,
+    VT_INVERT_CAMERA_X_AXIS = 8,
+    VT_INVERT_CAMERA_Y_AXIS = 10,
+    VT_ENABLE_RUMBLE = 12,
+    VT_MOUSE_SENSITIVITY = 14,
+    VT_MENU_OPTION_LOOPING_MODE = 16,
+    VT_LAST_GAMEPAD_TYPE = 18,
+    VT_CONTROL_MODE = 20,
+    VT_SWIM_CONTROL_MODE = 22,
+    VT_ENABLE_WALK_TOGGLE = 24,
+    VT_ENABLE_CROUCH_TOGGLE = 26,
+    VT_ENABLE_CLIMB_TOGGLE = 28,
+    VT_ENABLE_AUTO_MONKEY_SWING_JUMP = 30,
+    VT_ENABLE_AUTO_TARGETING = 32,
+    VT_ENABLE_OPPOSITE_ACTION_ROLL = 34,
+    VT_ENABLE_TARGET_HIGHLIGHTER = 36,
+    VT_ENABLE_INTERACTION_HIGHLIGHTER = 38,
+    VT_ENABLE_SUBTITLES = 40,
+    VT_SCREEN_WIDTH = 42,
+    VT_SCREEN_HEIGHT = 44,
+    VT_GAMMA = 46,
+    VT_ENABLE_WINDOWED_MODE = 48,
+    VT_SHADOW_MODE = 50,
+    VT_SHADOW_MAP_SIZE = 52,
+    VT_SHADOW_BLOB_COUNT_MAX = 54,
+    VT_ENABLE_CAUSTICS = 56,
+    VT_ENABLE_DECALS = 58,
+    VT_ENABLE_AMBIENT_OCCLUSION = 60,
+    VT_ENABLE_HIGH_FRAMERATE = 62,
+    VT_ANTIALIASING_MODE = 64,
+    VT_SOUND_DEVICE = 66,
+    VT_ENABLE_REVERB = 68,
+    VT_MUSIC_VOLUME = 70,
+    VT_SFX_VOLUME = 72,
+    VT_ADAPTER_NAME = 74
   };
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *bindings() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *>(VT_BINDINGS);
+  }
+  bool enable_tank_camera_control() const {
+    return GetField<uint8_t>(VT_ENABLE_TANK_CAMERA_CONTROL, 0) != 0;
+  }
+  bool invert_camera_x_axis() const {
+    return GetField<uint8_t>(VT_INVERT_CAMERA_X_AXIS, 0) != 0;
+  }
+  bool invert_camera_y_axis() const {
+    return GetField<uint8_t>(VT_INVERT_CAMERA_Y_AXIS, 0) != 0;
+  }
+  bool enable_rumble() const {
+    return GetField<uint8_t>(VT_ENABLE_RUMBLE, 0) != 0;
+  }
+  int32_t mouse_sensitivity() const {
+    return GetField<int32_t>(VT_MOUSE_SENSITIVITY, 0);
+  }
+  int32_t menu_option_looping_mode() const {
+    return GetField<int32_t>(VT_MENU_OPTION_LOOPING_MODE, 0);
+  }
+  int32_t last_gamepad_type() const {
+    return GetField<int32_t>(VT_LAST_GAMEPAD_TYPE, 0);
+  }
+  int32_t control_mode() const {
+    return GetField<int32_t>(VT_CONTROL_MODE, 0);
+  }
+  int32_t swim_control_mode() const {
+    return GetField<int32_t>(VT_SWIM_CONTROL_MODE, 0);
+  }
+  bool enable_walk_toggle() const {
+    return GetField<uint8_t>(VT_ENABLE_WALK_TOGGLE, 0) != 0;
+  }
+  bool enable_crouch_toggle() const {
+    return GetField<uint8_t>(VT_ENABLE_CROUCH_TOGGLE, 0) != 0;
+  }
+  bool enable_climb_toggle() const {
+    return GetField<uint8_t>(VT_ENABLE_CLIMB_TOGGLE, 0) != 0;
+  }
+  bool enable_auto_monkey_swing_jump() const {
+    return GetField<uint8_t>(VT_ENABLE_AUTO_MONKEY_SWING_JUMP, 0) != 0;
+  }
+  bool enable_auto_targeting() const {
+    return GetField<uint8_t>(VT_ENABLE_AUTO_TARGETING, 0) != 0;
+  }
+  bool enable_opposite_action_roll() const {
+    return GetField<uint8_t>(VT_ENABLE_OPPOSITE_ACTION_ROLL, 0) != 0;
+  }
+  bool enable_target_highlighter() const {
+    return GetField<uint8_t>(VT_ENABLE_TARGET_HIGHLIGHTER, 0) != 0;
+  }
+  bool enable_interaction_highlighter() const {
+    return GetField<uint8_t>(VT_ENABLE_INTERACTION_HIGHLIGHTER, 0) != 0;
+  }
+  bool enable_subtitles() const {
+    return GetField<uint8_t>(VT_ENABLE_SUBTITLES, 0) != 0;
+  }
   int32_t screen_width() const {
     return GetField<int32_t>(VT_SCREEN_WIDTH, 0);
   }
@@ -165,14 +238,14 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool enable_windowed_mode() const {
     return GetField<uint8_t>(VT_ENABLE_WINDOWED_MODE, 0) != 0;
   }
-  int32_t shadow_type() const {
-    return GetField<int32_t>(VT_SHADOW_TYPE, 0);
+  int32_t shadow_mode() const {
+    return GetField<int32_t>(VT_SHADOW_MODE, 0);
   }
   int32_t shadow_map_size() const {
     return GetField<int32_t>(VT_SHADOW_MAP_SIZE, 0);
   }
-  int32_t shadow_blobs_max() const {
-    return GetField<int32_t>(VT_SHADOW_BLOBS_MAX, 0);
+  int32_t shadow_blob_count_max() const {
+    return GetField<int32_t>(VT_SHADOW_BLOB_COUNT_MAX, 0);
   }
   bool enable_caustics() const {
     return GetField<uint8_t>(VT_ENABLE_CAUSTICS, 0) != 0;
@@ -180,17 +253,14 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool enable_decals() const {
     return GetField<uint8_t>(VT_ENABLE_DECALS, 0) != 0;
   }
-  int32_t antialiasing_mode() const {
-    return GetField<int32_t>(VT_ANTIALIASING_MODE, 0);
-  }
   bool enable_ambient_occlusion() const {
     return GetField<uint8_t>(VT_ENABLE_AMBIENT_OCCLUSION, 0) != 0;
   }
   bool enable_high_framerate() const {
     return GetField<uint8_t>(VT_ENABLE_HIGH_FRAMERATE, 0) != 0;
   }
-  const flatbuffers::String *adapter_name() const {
-    return GetPointer<const flatbuffers::String *>(VT_ADAPTER_NAME);
+  int32_t antialiasing_mode() const {
+    return GetField<int32_t>(VT_ANTIALIASING_MODE, 0);
   }
   int32_t sound_device() const {
     return GetField<int32_t>(VT_SOUND_DEVICE, 0);
@@ -204,72 +274,50 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t sfx_volume() const {
     return GetField<int32_t>(VT_SFX_VOLUME, 0);
   }
-  bool enable_subtitles() const {
-    return GetField<uint8_t>(VT_ENABLE_SUBTITLES, 0) != 0;
-  }
-  bool enable_auto_monkey_swing_jump() const {
-    return GetField<uint8_t>(VT_ENABLE_AUTO_MONKEY_SWING_JUMP, 0) != 0;
-  }
-  bool enable_auto_targeting() const {
-    return GetField<uint8_t>(VT_ENABLE_AUTO_TARGETING, 0) != 0;
-  }
-  bool enable_target_highlighter() const {
-    return GetField<uint8_t>(VT_ENABLE_TARGET_HIGHLIGHTER, 0) != 0;
-  }
-  bool enable_interaction_highlighter() const {
-    return GetField<uint8_t>(VT_ENABLE_INTERACTION_HIGHLIGHTER, 0) != 0;
-  }
-  bool enable_rumble() const {
-    return GetField<uint8_t>(VT_ENABLE_RUMBLE, 0) != 0;
-  }
-  bool enable_thumbstick_camera() const {
-    return GetField<uint8_t>(VT_ENABLE_THUMBSTICK_CAMERA, 0) != 0;
-  }
-  int32_t mouse_sensitivity() const {
-    return GetField<int32_t>(VT_MOUSE_SENSITIVITY, 0);
-  }
-  int32_t menu_option_looping_mode() const {
-    return GetField<int32_t>(VT_MENU_OPTION_LOOPING_MODE, 0);
-  }
-  int32_t last_gamepad_type() const {
-    return GetField<int32_t>(VT_LAST_GAMEPAD_TYPE, 0);
-  }
-  const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *bindings() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *>(VT_BINDINGS);
+  const flatbuffers::String *adapter_name() const {
+    return GetPointer<const flatbuffers::String *>(VT_ADAPTER_NAME);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_BINDINGS) &&
+           verifier.VerifyVector(bindings()) &&
+           verifier.VerifyVectorOfTables(bindings()) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_TANK_CAMERA_CONTROL) &&
+           VerifyField<uint8_t>(verifier, VT_INVERT_CAMERA_X_AXIS) &&
+           VerifyField<uint8_t>(verifier, VT_INVERT_CAMERA_Y_AXIS) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_RUMBLE) &&
+           VerifyField<int32_t>(verifier, VT_MOUSE_SENSITIVITY) &&
+           VerifyField<int32_t>(verifier, VT_MENU_OPTION_LOOPING_MODE) &&
+           VerifyField<int32_t>(verifier, VT_LAST_GAMEPAD_TYPE) &&
+           VerifyField<int32_t>(verifier, VT_CONTROL_MODE) &&
+           VerifyField<int32_t>(verifier, VT_SWIM_CONTROL_MODE) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_WALK_TOGGLE) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_CROUCH_TOGGLE) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_CLIMB_TOGGLE) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_AUTO_MONKEY_SWING_JUMP) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_AUTO_TARGETING) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_OPPOSITE_ACTION_ROLL) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_TARGET_HIGHLIGHTER) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_INTERACTION_HIGHLIGHTER) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLE_SUBTITLES) &&
            VerifyField<int32_t>(verifier, VT_SCREEN_WIDTH) &&
            VerifyField<int32_t>(verifier, VT_SCREEN_HEIGHT) &&
            VerifyField<float>(verifier, VT_GAMMA) &&
            VerifyField<uint8_t>(verifier, VT_ENABLE_WINDOWED_MODE) &&
-           VerifyField<int32_t>(verifier, VT_SHADOW_TYPE) &&
+           VerifyField<int32_t>(verifier, VT_SHADOW_MODE) &&
            VerifyField<int32_t>(verifier, VT_SHADOW_MAP_SIZE) &&
-           VerifyField<int32_t>(verifier, VT_SHADOW_BLOBS_MAX) &&
+           VerifyField<int32_t>(verifier, VT_SHADOW_BLOB_COUNT_MAX) &&
            VerifyField<uint8_t>(verifier, VT_ENABLE_CAUSTICS) &&
            VerifyField<uint8_t>(verifier, VT_ENABLE_DECALS) &&
-           VerifyField<int32_t>(verifier, VT_ANTIALIASING_MODE) &&
            VerifyField<uint8_t>(verifier, VT_ENABLE_AMBIENT_OCCLUSION) &&
            VerifyField<uint8_t>(verifier, VT_ENABLE_HIGH_FRAMERATE) &&
-           VerifyOffset(verifier, VT_ADAPTER_NAME) &&
-           verifier.VerifyString(adapter_name()) &&
+           VerifyField<int32_t>(verifier, VT_ANTIALIASING_MODE) &&
            VerifyField<int32_t>(verifier, VT_SOUND_DEVICE) &&
            VerifyField<uint8_t>(verifier, VT_ENABLE_REVERB) &&
            VerifyField<int32_t>(verifier, VT_MUSIC_VOLUME) &&
            VerifyField<int32_t>(verifier, VT_SFX_VOLUME) &&
-           VerifyField<uint8_t>(verifier, VT_ENABLE_SUBTITLES) &&
-           VerifyField<uint8_t>(verifier, VT_ENABLE_AUTO_MONKEY_SWING_JUMP) &&
-           VerifyField<uint8_t>(verifier, VT_ENABLE_AUTO_TARGETING) &&
-           VerifyField<uint8_t>(verifier, VT_ENABLE_TARGET_HIGHLIGHTER) &&
-           VerifyField<uint8_t>(verifier, VT_ENABLE_INTERACTION_HIGHLIGHTER) &&
-           VerifyField<uint8_t>(verifier, VT_ENABLE_RUMBLE) &&
-           VerifyField<uint8_t>(verifier, VT_ENABLE_THUMBSTICK_CAMERA) &&
-           VerifyField<int32_t>(verifier, VT_MOUSE_SENSITIVITY) &&
-           VerifyField<int32_t>(verifier, VT_MENU_OPTION_LOOPING_MODE) &&
-           VerifyField<int32_t>(verifier, VT_LAST_GAMEPAD_TYPE) &&
-           VerifyOffset(verifier, VT_BINDINGS) &&
-           verifier.VerifyVector(bindings()) &&
-           verifier.VerifyVectorOfTables(bindings()) &&
+           VerifyOffset(verifier, VT_ADAPTER_NAME) &&
+           verifier.VerifyString(adapter_name()) &&
            verifier.EndTable();
   }
   ConfigurationT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -281,6 +329,63 @@ struct ConfigurationBuilder {
   typedef Configuration Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
+  void add_bindings(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> bindings) {
+    fbb_.AddOffset(Configuration::VT_BINDINGS, bindings);
+  }
+  void add_enable_tank_camera_control(bool enable_tank_camera_control) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_TANK_CAMERA_CONTROL, static_cast<uint8_t>(enable_tank_camera_control), 0);
+  }
+  void add_invert_camera_x_axis(bool invert_camera_x_axis) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_INVERT_CAMERA_X_AXIS, static_cast<uint8_t>(invert_camera_x_axis), 0);
+  }
+  void add_invert_camera_y_axis(bool invert_camera_y_axis) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_INVERT_CAMERA_Y_AXIS, static_cast<uint8_t>(invert_camera_y_axis), 0);
+  }
+  void add_enable_rumble(bool enable_rumble) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_RUMBLE, static_cast<uint8_t>(enable_rumble), 0);
+  }
+  void add_mouse_sensitivity(int32_t mouse_sensitivity) {
+    fbb_.AddElement<int32_t>(Configuration::VT_MOUSE_SENSITIVITY, mouse_sensitivity, 0);
+  }
+  void add_menu_option_looping_mode(int32_t menu_option_looping_mode) {
+    fbb_.AddElement<int32_t>(Configuration::VT_MENU_OPTION_LOOPING_MODE, menu_option_looping_mode, 0);
+  }
+  void add_last_gamepad_type(int32_t last_gamepad_type) {
+    fbb_.AddElement<int32_t>(Configuration::VT_LAST_GAMEPAD_TYPE, last_gamepad_type, 0);
+  }
+  void add_control_mode(int32_t control_mode) {
+    fbb_.AddElement<int32_t>(Configuration::VT_CONTROL_MODE, control_mode, 0);
+  }
+  void add_swim_control_mode(int32_t swim_control_mode) {
+    fbb_.AddElement<int32_t>(Configuration::VT_SWIM_CONTROL_MODE, swim_control_mode, 0);
+  }
+  void add_enable_walk_toggle(bool enable_walk_toggle) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_WALK_TOGGLE, static_cast<uint8_t>(enable_walk_toggle), 0);
+  }
+  void add_enable_crouch_toggle(bool enable_crouch_toggle) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_CROUCH_TOGGLE, static_cast<uint8_t>(enable_crouch_toggle), 0);
+  }
+  void add_enable_climb_toggle(bool enable_climb_toggle) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_CLIMB_TOGGLE, static_cast<uint8_t>(enable_climb_toggle), 0);
+  }
+  void add_enable_auto_monkey_swing_jump(bool enable_auto_monkey_swing_jump) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_AUTO_MONKEY_SWING_JUMP, static_cast<uint8_t>(enable_auto_monkey_swing_jump), 0);
+  }
+  void add_enable_auto_targeting(bool enable_auto_targeting) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_AUTO_TARGETING, static_cast<uint8_t>(enable_auto_targeting), 0);
+  }
+  void add_enable_opposite_action_roll(bool enable_opposite_action_roll) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_OPPOSITE_ACTION_ROLL, static_cast<uint8_t>(enable_opposite_action_roll), 0);
+  }
+  void add_enable_target_highlighter(bool enable_target_highlighter) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_TARGET_HIGHLIGHTER, static_cast<uint8_t>(enable_target_highlighter), 0);
+  }
+  void add_enable_interaction_highlighter(bool enable_interaction_highlighter) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_INTERACTION_HIGHLIGHTER, static_cast<uint8_t>(enable_interaction_highlighter), 0);
+  }
+  void add_enable_subtitles(bool enable_subtitles) {
+    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_SUBTITLES, static_cast<uint8_t>(enable_subtitles), 0);
+  }
   void add_screen_width(int32_t screen_width) {
     fbb_.AddElement<int32_t>(Configuration::VT_SCREEN_WIDTH, screen_width, 0);
   }
@@ -293,14 +398,14 @@ struct ConfigurationBuilder {
   void add_enable_windowed_mode(bool enable_windowed_mode) {
     fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_WINDOWED_MODE, static_cast<uint8_t>(enable_windowed_mode), 0);
   }
-  void add_shadow_type(int32_t shadow_type) {
-    fbb_.AddElement<int32_t>(Configuration::VT_SHADOW_TYPE, shadow_type, 0);
+  void add_shadow_mode(int32_t shadow_mode) {
+    fbb_.AddElement<int32_t>(Configuration::VT_SHADOW_MODE, shadow_mode, 0);
   }
   void add_shadow_map_size(int32_t shadow_map_size) {
     fbb_.AddElement<int32_t>(Configuration::VT_SHADOW_MAP_SIZE, shadow_map_size, 0);
   }
-  void add_shadow_blobs_max(int32_t shadow_blobs_max) {
-    fbb_.AddElement<int32_t>(Configuration::VT_SHADOW_BLOBS_MAX, shadow_blobs_max, 0);
+  void add_shadow_blob_count_max(int32_t shadow_blob_count_max) {
+    fbb_.AddElement<int32_t>(Configuration::VT_SHADOW_BLOB_COUNT_MAX, shadow_blob_count_max, 0);
   }
   void add_enable_caustics(bool enable_caustics) {
     fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_CAUSTICS, static_cast<uint8_t>(enable_caustics), 0);
@@ -308,17 +413,14 @@ struct ConfigurationBuilder {
   void add_enable_decals(bool enable_decals) {
     fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_DECALS, static_cast<uint8_t>(enable_decals), 0);
   }
-  void add_antialiasing_mode(int32_t antialiasing_mode) {
-    fbb_.AddElement<int32_t>(Configuration::VT_ANTIALIASING_MODE, antialiasing_mode, 0);
-  }
   void add_enable_ambient_occlusion(bool enable_ambient_occlusion) {
     fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_AMBIENT_OCCLUSION, static_cast<uint8_t>(enable_ambient_occlusion), 0);
   }
   void add_enable_high_framerate(bool enable_high_framerate) {
     fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_HIGH_FRAMERATE, static_cast<uint8_t>(enable_high_framerate), 0);
   }
-  void add_adapter_name(flatbuffers::Offset<flatbuffers::String> adapter_name) {
-    fbb_.AddOffset(Configuration::VT_ADAPTER_NAME, adapter_name);
+  void add_antialiasing_mode(int32_t antialiasing_mode) {
+    fbb_.AddElement<int32_t>(Configuration::VT_ANTIALIASING_MODE, antialiasing_mode, 0);
   }
   void add_sound_device(int32_t sound_device) {
     fbb_.AddElement<int32_t>(Configuration::VT_SOUND_DEVICE, sound_device, 0);
@@ -332,38 +434,8 @@ struct ConfigurationBuilder {
   void add_sfx_volume(int32_t sfx_volume) {
     fbb_.AddElement<int32_t>(Configuration::VT_SFX_VOLUME, sfx_volume, 0);
   }
-  void add_enable_subtitles(bool enable_subtitles) {
-    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_SUBTITLES, static_cast<uint8_t>(enable_subtitles), 0);
-  }
-  void add_enable_auto_monkey_swing_jump(bool enable_auto_monkey_swing_jump) {
-    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_AUTO_MONKEY_SWING_JUMP, static_cast<uint8_t>(enable_auto_monkey_swing_jump), 0);
-  }
-  void add_enable_auto_targeting(bool enable_auto_targeting) {
-    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_AUTO_TARGETING, static_cast<uint8_t>(enable_auto_targeting), 0);
-  }
-  void add_enable_target_highlighter(bool enable_target_highlighter) {
-    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_TARGET_HIGHLIGHTER, static_cast<uint8_t>(enable_target_highlighter), 0);
-  }
-  void add_enable_interaction_highlighter(bool enable_interaction_highlighter) {
-    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_INTERACTION_HIGHLIGHTER, static_cast<uint8_t>(enable_interaction_highlighter), 0);
-  }
-  void add_enable_rumble(bool enable_rumble) {
-    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_RUMBLE, static_cast<uint8_t>(enable_rumble), 0);
-  }
-  void add_enable_thumbstick_camera(bool enable_thumbstick_camera) {
-    fbb_.AddElement<uint8_t>(Configuration::VT_ENABLE_THUMBSTICK_CAMERA, static_cast<uint8_t>(enable_thumbstick_camera), 0);
-  }
-  void add_mouse_sensitivity(int32_t mouse_sensitivity) {
-    fbb_.AddElement<int32_t>(Configuration::VT_MOUSE_SENSITIVITY, mouse_sensitivity, 0);
-  }
-  void add_menu_option_looping_mode(int32_t menu_option_looping_mode) {
-    fbb_.AddElement<int32_t>(Configuration::VT_MENU_OPTION_LOOPING_MODE, menu_option_looping_mode, 0);
-  }
-  void add_last_gamepad_type(int32_t last_gamepad_type) {
-    fbb_.AddElement<int32_t>(Configuration::VT_LAST_GAMEPAD_TYPE, last_gamepad_type, 0);
-  }
-  void add_bindings(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> bindings) {
-    fbb_.AddOffset(Configuration::VT_BINDINGS, bindings);
+  void add_adapter_name(flatbuffers::Offset<flatbuffers::String> adapter_name) {
+    fbb_.AddOffset(Configuration::VT_ADAPTER_NAME, adapter_name);
   }
   explicit ConfigurationBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -378,63 +450,79 @@ struct ConfigurationBuilder {
 
 inline flatbuffers::Offset<Configuration> CreateConfiguration(
     flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> bindings = 0,
+    bool enable_tank_camera_control = false,
+    bool invert_camera_x_axis = false,
+    bool invert_camera_y_axis = false,
+    bool enable_rumble = false,
+    int32_t mouse_sensitivity = 0,
+    int32_t menu_option_looping_mode = 0,
+    int32_t last_gamepad_type = 0,
+    int32_t control_mode = 0,
+    int32_t swim_control_mode = 0,
+    bool enable_walk_toggle = false,
+    bool enable_crouch_toggle = false,
+    bool enable_climb_toggle = false,
+    bool enable_auto_monkey_swing_jump = false,
+    bool enable_auto_targeting = false,
+    bool enable_opposite_action_roll = false,
+    bool enable_target_highlighter = false,
+    bool enable_interaction_highlighter = false,
+    bool enable_subtitles = false,
     int32_t screen_width = 0,
     int32_t screen_height = 0,
     float gamma = 0.0f,
     bool enable_windowed_mode = false,
-    int32_t shadow_type = 0,
+    int32_t shadow_mode = 0,
     int32_t shadow_map_size = 0,
-    int32_t shadow_blobs_max = 0,
+    int32_t shadow_blob_count_max = 0,
     bool enable_caustics = false,
     bool enable_decals = false,
-    int32_t antialiasing_mode = 0,
     bool enable_ambient_occlusion = false,
     bool enable_high_framerate = false,
-    flatbuffers::Offset<flatbuffers::String> adapter_name = 0,
+    int32_t antialiasing_mode = 0,
     int32_t sound_device = 0,
     bool enable_reverb = false,
     int32_t music_volume = 0,
     int32_t sfx_volume = 0,
-    bool enable_subtitles = false,
-    bool enable_auto_monkey_swing_jump = false,
-    bool enable_auto_targeting = false,
-    bool enable_target_highlighter = false,
-    bool enable_interaction_highlighter = false,
-    bool enable_rumble = false,
-    bool enable_thumbstick_camera = false,
-    int32_t mouse_sensitivity = 0,
-    int32_t menu_option_looping_mode = 0,
-    int32_t last_gamepad_type = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> bindings = 0) {
+    flatbuffers::Offset<flatbuffers::String> adapter_name = 0) {
   ConfigurationBuilder builder_(_fbb);
-  builder_.add_bindings(bindings);
-  builder_.add_last_gamepad_type(last_gamepad_type);
-  builder_.add_menu_option_looping_mode(menu_option_looping_mode);
-  builder_.add_mouse_sensitivity(mouse_sensitivity);
+  builder_.add_adapter_name(adapter_name);
   builder_.add_sfx_volume(sfx_volume);
   builder_.add_music_volume(music_volume);
   builder_.add_sound_device(sound_device);
-  builder_.add_adapter_name(adapter_name);
   builder_.add_antialiasing_mode(antialiasing_mode);
-  builder_.add_shadow_blobs_max(shadow_blobs_max);
+  builder_.add_shadow_blob_count_max(shadow_blob_count_max);
   builder_.add_shadow_map_size(shadow_map_size);
-  builder_.add_shadow_type(shadow_type);
+  builder_.add_shadow_mode(shadow_mode);
   builder_.add_gamma(gamma);
   builder_.add_screen_height(screen_height);
   builder_.add_screen_width(screen_width);
-  builder_.add_enable_thumbstick_camera(enable_thumbstick_camera);
-  builder_.add_enable_rumble(enable_rumble);
-  builder_.add_enable_interaction_highlighter(enable_interaction_highlighter);
-  builder_.add_enable_target_highlighter(enable_target_highlighter);
-  builder_.add_enable_auto_targeting(enable_auto_targeting);
-  builder_.add_enable_auto_monkey_swing_jump(enable_auto_monkey_swing_jump);
-  builder_.add_enable_subtitles(enable_subtitles);
+  builder_.add_swim_control_mode(swim_control_mode);
+  builder_.add_control_mode(control_mode);
+  builder_.add_last_gamepad_type(last_gamepad_type);
+  builder_.add_menu_option_looping_mode(menu_option_looping_mode);
+  builder_.add_mouse_sensitivity(mouse_sensitivity);
+  builder_.add_bindings(bindings);
   builder_.add_enable_reverb(enable_reverb);
   builder_.add_enable_high_framerate(enable_high_framerate);
   builder_.add_enable_ambient_occlusion(enable_ambient_occlusion);
   builder_.add_enable_decals(enable_decals);
   builder_.add_enable_caustics(enable_caustics);
   builder_.add_enable_windowed_mode(enable_windowed_mode);
+  builder_.add_enable_subtitles(enable_subtitles);
+  builder_.add_enable_interaction_highlighter(enable_interaction_highlighter);
+  builder_.add_enable_target_highlighter(enable_target_highlighter);
+  builder_.add_enable_opposite_action_roll(enable_opposite_action_roll);
+  builder_.add_enable_auto_targeting(enable_auto_targeting);
+  builder_.add_enable_auto_monkey_swing_jump(enable_auto_monkey_swing_jump);
+  builder_.add_enable_climb_toggle(enable_climb_toggle);
+  builder_.add_enable_crouch_toggle(enable_crouch_toggle);
+  builder_.add_enable_walk_toggle(enable_walk_toggle);
+  builder_.add_enable_rumble(enable_rumble);
+  builder_.add_invert_camera_y_axis(invert_camera_y_axis);
+  builder_.add_invert_camera_x_axis(invert_camera_x_axis);
+  builder_.add_enable_tank_camera_control(enable_tank_camera_control);
   return builder_.Finish();
 }
 
@@ -445,66 +533,82 @@ struct Configuration::Traits {
 
 inline flatbuffers::Offset<Configuration> CreateConfigurationDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *bindings = nullptr,
+    bool enable_tank_camera_control = false,
+    bool invert_camera_x_axis = false,
+    bool invert_camera_y_axis = false,
+    bool enable_rumble = false,
+    int32_t mouse_sensitivity = 0,
+    int32_t menu_option_looping_mode = 0,
+    int32_t last_gamepad_type = 0,
+    int32_t control_mode = 0,
+    int32_t swim_control_mode = 0,
+    bool enable_walk_toggle = false,
+    bool enable_crouch_toggle = false,
+    bool enable_climb_toggle = false,
+    bool enable_auto_monkey_swing_jump = false,
+    bool enable_auto_targeting = false,
+    bool enable_opposite_action_roll = false,
+    bool enable_target_highlighter = false,
+    bool enable_interaction_highlighter = false,
+    bool enable_subtitles = false,
     int32_t screen_width = 0,
     int32_t screen_height = 0,
     float gamma = 0.0f,
     bool enable_windowed_mode = false,
-    int32_t shadow_type = 0,
+    int32_t shadow_mode = 0,
     int32_t shadow_map_size = 0,
-    int32_t shadow_blobs_max = 0,
+    int32_t shadow_blob_count_max = 0,
     bool enable_caustics = false,
     bool enable_decals = false,
-    int32_t antialiasing_mode = 0,
     bool enable_ambient_occlusion = false,
     bool enable_high_framerate = false,
-    const char *adapter_name = nullptr,
+    int32_t antialiasing_mode = 0,
     int32_t sound_device = 0,
     bool enable_reverb = false,
     int32_t music_volume = 0,
     int32_t sfx_volume = 0,
-    bool enable_subtitles = false,
-    bool enable_auto_monkey_swing_jump = false,
-    bool enable_auto_targeting = false,
-    bool enable_target_highlighter = false,
-    bool enable_interaction_highlighter = false,
-    bool enable_rumble = false,
-    bool enable_thumbstick_camera = false,
-    int32_t mouse_sensitivity = 0,
-    int32_t menu_option_looping_mode = 0,
-    int32_t last_gamepad_type = 0,
-    const std::vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *bindings = nullptr) {
-  auto adapter_name__ = adapter_name ? _fbb.CreateString(adapter_name) : 0;
+    const char *adapter_name = nullptr) {
   auto bindings__ = bindings ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>(*bindings) : 0;
+  auto adapter_name__ = adapter_name ? _fbb.CreateString(adapter_name) : 0;
   return TEN::Serialization::Config::CreateConfiguration(
       _fbb,
+      bindings__,
+      enable_tank_camera_control,
+      invert_camera_x_axis,
+      invert_camera_y_axis,
+      enable_rumble,
+      mouse_sensitivity,
+      menu_option_looping_mode,
+      last_gamepad_type,
+      control_mode,
+      swim_control_mode,
+      enable_walk_toggle,
+      enable_crouch_toggle,
+      enable_climb_toggle,
+      enable_auto_monkey_swing_jump,
+      enable_auto_targeting,
+      enable_opposite_action_roll,
+      enable_target_highlighter,
+      enable_interaction_highlighter,
+      enable_subtitles,
       screen_width,
       screen_height,
       gamma,
       enable_windowed_mode,
-      shadow_type,
+      shadow_mode,
       shadow_map_size,
-      shadow_blobs_max,
+      shadow_blob_count_max,
       enable_caustics,
       enable_decals,
-      antialiasing_mode,
       enable_ambient_occlusion,
       enable_high_framerate,
-      adapter_name__,
+      antialiasing_mode,
       sound_device,
       enable_reverb,
       music_volume,
       sfx_volume,
-      enable_subtitles,
-      enable_auto_monkey_swing_jump,
-      enable_auto_targeting,
-      enable_target_highlighter,
-      enable_interaction_highlighter,
-      enable_rumble,
-      enable_thumbstick_camera,
-      mouse_sensitivity,
-      menu_option_looping_mode,
-      last_gamepad_type,
-      bindings__);
+      adapter_name__);
 }
 
 flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatBufferBuilder &_fbb, const ConfigurationT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -547,34 +651,42 @@ inline ConfigurationT *Configuration::UnPack(const flatbuffers::resolver_functio
 inline void Configuration::UnPackTo(ConfigurationT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
+  { auto _e = bindings(); if (_e) { _o->bindings.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->bindings[_i] = std::unique_ptr<TEN::Serialization::Config::BindingT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = enable_tank_camera_control(); _o->enable_tank_camera_control = _e; }
+  { auto _e = invert_camera_x_axis(); _o->invert_camera_x_axis = _e; }
+  { auto _e = invert_camera_y_axis(); _o->invert_camera_y_axis = _e; }
+  { auto _e = enable_rumble(); _o->enable_rumble = _e; }
+  { auto _e = mouse_sensitivity(); _o->mouse_sensitivity = _e; }
+  { auto _e = menu_option_looping_mode(); _o->menu_option_looping_mode = _e; }
+  { auto _e = last_gamepad_type(); _o->last_gamepad_type = _e; }
+  { auto _e = control_mode(); _o->control_mode = _e; }
+  { auto _e = swim_control_mode(); _o->swim_control_mode = _e; }
+  { auto _e = enable_walk_toggle(); _o->enable_walk_toggle = _e; }
+  { auto _e = enable_crouch_toggle(); _o->enable_crouch_toggle = _e; }
+  { auto _e = enable_climb_toggle(); _o->enable_climb_toggle = _e; }
+  { auto _e = enable_auto_monkey_swing_jump(); _o->enable_auto_monkey_swing_jump = _e; }
+  { auto _e = enable_auto_targeting(); _o->enable_auto_targeting = _e; }
+  { auto _e = enable_opposite_action_roll(); _o->enable_opposite_action_roll = _e; }
+  { auto _e = enable_target_highlighter(); _o->enable_target_highlighter = _e; }
+  { auto _e = enable_interaction_highlighter(); _o->enable_interaction_highlighter = _e; }
+  { auto _e = enable_subtitles(); _o->enable_subtitles = _e; }
   { auto _e = screen_width(); _o->screen_width = _e; }
   { auto _e = screen_height(); _o->screen_height = _e; }
   { auto _e = gamma(); _o->gamma = _e; }
   { auto _e = enable_windowed_mode(); _o->enable_windowed_mode = _e; }
-  { auto _e = shadow_type(); _o->shadow_type = _e; }
+  { auto _e = shadow_mode(); _o->shadow_mode = _e; }
   { auto _e = shadow_map_size(); _o->shadow_map_size = _e; }
-  { auto _e = shadow_blobs_max(); _o->shadow_blobs_max = _e; }
+  { auto _e = shadow_blob_count_max(); _o->shadow_blob_count_max = _e; }
   { auto _e = enable_caustics(); _o->enable_caustics = _e; }
   { auto _e = enable_decals(); _o->enable_decals = _e; }
-  { auto _e = antialiasing_mode(); _o->antialiasing_mode = _e; }
   { auto _e = enable_ambient_occlusion(); _o->enable_ambient_occlusion = _e; }
   { auto _e = enable_high_framerate(); _o->enable_high_framerate = _e; }
-  { auto _e = adapter_name(); if (_e) _o->adapter_name = _e->str(); }
+  { auto _e = antialiasing_mode(); _o->antialiasing_mode = _e; }
   { auto _e = sound_device(); _o->sound_device = _e; }
   { auto _e = enable_reverb(); _o->enable_reverb = _e; }
   { auto _e = music_volume(); _o->music_volume = _e; }
   { auto _e = sfx_volume(); _o->sfx_volume = _e; }
-  { auto _e = enable_subtitles(); _o->enable_subtitles = _e; }
-  { auto _e = enable_auto_monkey_swing_jump(); _o->enable_auto_monkey_swing_jump = _e; }
-  { auto _e = enable_auto_targeting(); _o->enable_auto_targeting = _e; }
-  { auto _e = enable_target_highlighter(); _o->enable_target_highlighter = _e; }
-  { auto _e = enable_interaction_highlighter(); _o->enable_interaction_highlighter = _e; }
-  { auto _e = enable_rumble(); _o->enable_rumble = _e; }
-  { auto _e = enable_thumbstick_camera(); _o->enable_thumbstick_camera = _e; }
-  { auto _e = mouse_sensitivity(); _o->mouse_sensitivity = _e; }
-  { auto _e = menu_option_looping_mode(); _o->menu_option_looping_mode = _e; }
-  { auto _e = last_gamepad_type(); _o->last_gamepad_type = _e; }
-  { auto _e = bindings(); if (_e) { _o->bindings.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->bindings[_i] = std::unique_ptr<TEN::Serialization::Config::BindingT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = adapter_name(); if (_e) _o->adapter_name = _e->str(); }
 }
 
 inline flatbuffers::Offset<Configuration> Configuration::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConfigurationT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -585,64 +697,80 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatB
   (void)_rehasher;
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const ConfigurationT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _bindings = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> (_o->bindings.size(), [](size_t i, _VectorArgs *__va) { return CreateBinding(*__va->__fbb, __va->__o->bindings[i].get(), __va->__rehasher); }, &_va );
+  auto _enable_tank_camera_control = _o->enable_tank_camera_control;
+  auto _invert_camera_x_axis = _o->invert_camera_x_axis;
+  auto _invert_camera_y_axis = _o->invert_camera_y_axis;
+  auto _enable_rumble = _o->enable_rumble;
+  auto _mouse_sensitivity = _o->mouse_sensitivity;
+  auto _menu_option_looping_mode = _o->menu_option_looping_mode;
+  auto _last_gamepad_type = _o->last_gamepad_type;
+  auto _control_mode = _o->control_mode;
+  auto _swim_control_mode = _o->swim_control_mode;
+  auto _enable_walk_toggle = _o->enable_walk_toggle;
+  auto _enable_crouch_toggle = _o->enable_crouch_toggle;
+  auto _enable_climb_toggle = _o->enable_climb_toggle;
+  auto _enable_auto_monkey_swing_jump = _o->enable_auto_monkey_swing_jump;
+  auto _enable_auto_targeting = _o->enable_auto_targeting;
+  auto _enable_opposite_action_roll = _o->enable_opposite_action_roll;
+  auto _enable_target_highlighter = _o->enable_target_highlighter;
+  auto _enable_interaction_highlighter = _o->enable_interaction_highlighter;
+  auto _enable_subtitles = _o->enable_subtitles;
   auto _screen_width = _o->screen_width;
   auto _screen_height = _o->screen_height;
   auto _gamma = _o->gamma;
   auto _enable_windowed_mode = _o->enable_windowed_mode;
-  auto _shadow_type = _o->shadow_type;
+  auto _shadow_mode = _o->shadow_mode;
   auto _shadow_map_size = _o->shadow_map_size;
-  auto _shadow_blobs_max = _o->shadow_blobs_max;
+  auto _shadow_blob_count_max = _o->shadow_blob_count_max;
   auto _enable_caustics = _o->enable_caustics;
   auto _enable_decals = _o->enable_decals;
-  auto _antialiasing_mode = _o->antialiasing_mode;
   auto _enable_ambient_occlusion = _o->enable_ambient_occlusion;
   auto _enable_high_framerate = _o->enable_high_framerate;
-  auto _adapter_name = _o->adapter_name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->adapter_name);
+  auto _antialiasing_mode = _o->antialiasing_mode;
   auto _sound_device = _o->sound_device;
   auto _enable_reverb = _o->enable_reverb;
   auto _music_volume = _o->music_volume;
   auto _sfx_volume = _o->sfx_volume;
-  auto _enable_subtitles = _o->enable_subtitles;
-  auto _enable_auto_monkey_swing_jump = _o->enable_auto_monkey_swing_jump;
-  auto _enable_auto_targeting = _o->enable_auto_targeting;
-  auto _enable_target_highlighter = _o->enable_target_highlighter;
-  auto _enable_interaction_highlighter = _o->enable_interaction_highlighter;
-  auto _enable_rumble = _o->enable_rumble;
-  auto _enable_thumbstick_camera = _o->enable_thumbstick_camera;
-  auto _mouse_sensitivity = _o->mouse_sensitivity;
-  auto _menu_option_looping_mode = _o->menu_option_looping_mode;
-  auto _last_gamepad_type = _o->last_gamepad_type;
-  auto _bindings = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> (_o->bindings.size(), [](size_t i, _VectorArgs *__va) { return CreateBinding(*__va->__fbb, __va->__o->bindings[i].get(), __va->__rehasher); }, &_va );
+  auto _adapter_name = _o->adapter_name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->adapter_name);
   return TEN::Serialization::Config::CreateConfiguration(
       _fbb,
+      _bindings,
+      _enable_tank_camera_control,
+      _invert_camera_x_axis,
+      _invert_camera_y_axis,
+      _enable_rumble,
+      _mouse_sensitivity,
+      _menu_option_looping_mode,
+      _last_gamepad_type,
+      _control_mode,
+      _swim_control_mode,
+      _enable_walk_toggle,
+      _enable_crouch_toggle,
+      _enable_climb_toggle,
+      _enable_auto_monkey_swing_jump,
+      _enable_auto_targeting,
+      _enable_opposite_action_roll,
+      _enable_target_highlighter,
+      _enable_interaction_highlighter,
+      _enable_subtitles,
       _screen_width,
       _screen_height,
       _gamma,
       _enable_windowed_mode,
-      _shadow_type,
+      _shadow_mode,
       _shadow_map_size,
-      _shadow_blobs_max,
+      _shadow_blob_count_max,
       _enable_caustics,
       _enable_decals,
-      _antialiasing_mode,
       _enable_ambient_occlusion,
       _enable_high_framerate,
-      _adapter_name,
+      _antialiasing_mode,
       _sound_device,
       _enable_reverb,
       _music_volume,
       _sfx_volume,
-      _enable_subtitles,
-      _enable_auto_monkey_swing_jump,
-      _enable_auto_targeting,
-      _enable_target_highlighter,
-      _enable_interaction_highlighter,
-      _enable_rumble,
-      _enable_thumbstick_camera,
-      _mouse_sensitivity,
-      _menu_option_looping_mode,
-      _last_gamepad_type,
-      _bindings);
+      _adapter_name);
 }
 
 inline const TEN::Serialization::Config::Configuration *GetConfiguration(const void *buf) {

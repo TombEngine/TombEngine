@@ -133,7 +133,7 @@ namespace TEN::Renderer
 			return;
 
 		// Only render for player if such setting is active.
-		if (g_Configuration.ShadowType == ShadowMode::Player && _moveableObjects[item->ObjectID].value().ShadowType != ShadowMode::Player)
+		if (g_Configuration.ShadowMode == ShadowMode::Player && _moveableObjects[item->ObjectID].value().ShadowType != ShadowMode::Player)
 			return;
 
 		// No shadow light found.
@@ -2513,7 +2513,7 @@ namespace TEN::Renderer
 	{
 		RenderBlobShadows(renderView);
 
-		if (g_Configuration.ShadowType != ShadowMode::None)
+		if (g_Configuration.ShadowMode != ShadowMode::None)
 		{
 			for (auto room : renderView.RoomsToDraw)
 				for (auto itemToDraw : room->ItemsToDraw)

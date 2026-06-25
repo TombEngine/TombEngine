@@ -788,7 +788,7 @@ namespace TEN::Renderer
 		std::vector<RendererLight*> lightsToDraw;
 		CollectLights(g_Camera.Position, CAMERA_LIGHT_COLLECTION_RADIUS, g_Camera.RoomNumber, NO_VALUE, true, false, nullptr, &lightsToDraw);
 
-		if (g_Configuration.ShadowType != ShadowMode::None && !lightsToDraw.empty() && lightsToDraw.front()->CastShadows)
+		if (g_Configuration.ShadowMode != ShadowMode::None && !lightsToDraw.empty() && lightsToDraw.front()->CastShadows)
 		{
 			_shadowLight = lightsToDraw.front();
 		}

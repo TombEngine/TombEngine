@@ -166,8 +166,8 @@ namespace TEN::Renderer
 		char soundDeviceStringBuffer[255] = {};
 		sprintf(soundDeviceStringBuffer, "%s", g_Configuration.SupportedSoundDevices[g_Gui.GetCurrentSettings().SelectedSoundDevice].Name.c_str());
 
-		auto* shadowMode = g_Gui.GetCurrentSettings().Configuration.ShadowType != ShadowMode::None ?
-			(g_Gui.GetCurrentSettings().Configuration.ShadowType == ShadowMode::Player ? STRING_SHADOWS_PLAYER : STRING_SHADOWS_ALL) : STRING_SHADOWS_NONE;
+		auto* shadowMode = g_Gui.GetCurrentSettings().Configuration.ShadowMode != ShadowMode::None ?
+			(g_Gui.GetCurrentSettings().Configuration.ShadowMode == ShadowMode::Player ? STRING_SHADOWS_PLAYER : STRING_SHADOWS_ALL) : STRING_SHADOWS_NONE;
 
 		const char* antialiasMode;
 		switch (g_Gui.GetCurrentSettings().Configuration.AntialiasingMode)

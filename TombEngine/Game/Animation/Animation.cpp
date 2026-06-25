@@ -335,8 +335,9 @@ namespace TEN::Animation
 		{
 			const auto& player = GetLaraInfo(item);
 
-			if (player.Control.Rope.Ptr != NO_VALUE)
-				DelAlignLaraToRope(&item);
+			// @modernme This causes a crash.
+			//if (player.Control.Rope.Ptr != NO_VALUE)
+			//	DelAlignLaraToRope(&item);
 
 			if (!player.Control.IsMoving)
 			{

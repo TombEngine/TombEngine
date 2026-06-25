@@ -45,6 +45,7 @@ namespace TEN::Config
 
 		// Controls
 
+		BindingProfile        Bindings                = {};
 		bool                  EnableTankCameraControl = false;
 		bool                  InvertCameraXAxis       = false;
 		bool                  InvertCameraYAxis       = false;
@@ -52,7 +53,6 @@ namespace TEN::Config
 		int                   MouseSensitivity        = DEFAULT_MOUSE_SENSITIVITY;
 		MenuOptionLoopingMode MenuOptionLoopingMode   = MenuOptionLoopingMode::SaveLoadOnly;
 		GamepadType           LastGamepadType         = GamepadType::Xbox;
-		BindingProfile        Bindings                = {};
 
 		// Gameplay
 
@@ -74,14 +74,13 @@ namespace TEN::Config
 		int              ScreenHeight           = 0;
 		float            Gamma                  = 1.0f;
 		bool             EnableWindowedMode     = false;
-		ShadowMode       ShadowType             = ShadowMode::None;
+		ShadowMode       ShadowMode             = ShadowMode::None;
 		int              ShadowMapSize          = DEFAULT_SHADOW_MAP_SIZE;
 		int              ShadowBlobCountMax     = DEFAULT_SHADOW_BLOB_COUNT_MAX;
 		bool             EnableCaustics         = false;
-		bool             EnableDecal            = true;
+		bool             EnableDecals           = true;
 		bool             EnableAmbientOcclusion = false;
 		bool             EnableHighFramerate    = true;
-		bool             EnableDecals           = true;
 		AntialiasingMode AntialiasingMode       = AntialiasingMode::None;
 
 		// Sound
