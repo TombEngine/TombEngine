@@ -1,4 +1,6 @@
 -- ldignore
+-- Menu handling for the PhotoMode module.
+
 local InputHelpers  = require("Engine.PhotoMode.InputHelpers")
 local Configuration = require("Engine.PhotoMode.Configuration")
 local Constants     = require("Engine.PhotoMode.Constants")
@@ -84,7 +86,7 @@ end
 -- Header System
 -- ============================================================================
 
---- Define all headers. Call once during setup.
+-- Define all headers. Call once during setup.
 -- @param headerList  Array of { name = "Camera", menuName = "pm_camera", hideText = false }
 function Menu.SetHeaders(headerList)
     Headers = {}
@@ -104,35 +106,35 @@ function Menu.SetHeaderSpacing(spacing)
 
 end
 
---- Get the currently selected header index.
+-- Get the currently selected header index.
 function Menu.GetActiveHeaderIndex()
     return ActiveHeader
 end
 
---- Get the currently selected header name.
+-- Get the currently selected header name.
 function Menu.GetActiveHeaderName()
     local h = Headers[ActiveHeader]
     return h and h.name or ""
 end
 
---- Get the menu name associated with the active header.
+-- Get the menu name associated with the active header.
 function Menu.GetActiveHeaderMenu()
     local h = Headers[ActiveHeader]
     return h and h.menuName or nil
 end
 
---- Get the total number of headers.
+-- Get the total number of headers.
 function Menu.GetHeaderCount()
     return #Headers
 end
 
---- Get header at index.
+-- Get header at index.
 function Menu.GetHeader(index)
     return Headers[index]
 end
 
---- Switch to a specific header by index. Deactivates the old header's menu
---- and activates the new one.
+-- Switch to a specific header by index. Deactivates the old header's menu
+-- and activates the new one.
 function Menu.SetActiveHeader(index)
     if #Headers == 0 then return end
 
@@ -153,7 +155,7 @@ function Menu.SetActiveHeader(index)
     end
 end
 
---- Navigate headers left/right. Called from input handling.
+-- Navigate headers left/right. Called from input handling.
 function Menu.NavigateHeader(direction)
     if #Headers == 0 then return end
 
@@ -172,10 +174,7 @@ end
 -- Header Drawing
 -- ============================================================================
 
---- Draw the header bar at the specified position.
--- @param position  Vec2 in percent coordinates (center position for the bar)
--- @param scale     Font scale
--- @param alpha     Current alpha for fading
+-- Draw the header bar at the specified position.
 function Menu.DrawHeaders(position, scale, alpha)
     if #Headers == 0 or alpha < 1 then return end
 

@@ -322,13 +322,13 @@ namespace TEN::Renderer
 
 			// Target highlighter
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TARGET_HIGHLIGHTER), optionColor, SF(titleOption == 7));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_GameFlow->GetSettings()->Hud.TargetHighlighter),
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableTargetHighlighter),
 				g_GameFlow->GetSettings()->Hud.TargetHighlighter ? plainColor : disabledColor, SF(titleOption == 7));
 			GetNextLinePosition(&y);
 
 			// Interaction highlighter
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INTERACTION_HIGHLIGHTER), optionColor, SF(titleOption == 8));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_GameFlow->GetSettings()->Hud.InteractionHighlighter),
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableInteractionHighlighter),
 				g_GameFlow->GetSettings()->Hud.InteractionHighlighter ? plainColor : disabledColor, SF(titleOption == 8));
 			GetNextLinePosition(&y);
 
