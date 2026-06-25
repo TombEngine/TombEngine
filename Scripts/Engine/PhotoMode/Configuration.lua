@@ -49,9 +49,8 @@ Configuration.Camera =
     offsetUp         = -256,
     targetForward    = 512,
     targetUp         = -256,
-
-    defaultLimitDistance = Settings.Camera.limitCameraDistance,
-    defaultMaxDistance   = Settings.Camera.distance,
+    limitDistance    = Settings.Camera.limitCameraDistance,
+    maxDistance      = Settings.Camera.distance,
 }
 
 -- ============================================================================
