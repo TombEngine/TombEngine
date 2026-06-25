@@ -1,4 +1,6 @@
+-- ldignore
 -- Photo Module Start
+
 local Borders       = require("Engine.PhotoMode.SpriteBorders")
 local Camera        = require("Engine.PhotoMode.Camera")
 local Configuration = require("Engine.PhotoMode.Configuration")
