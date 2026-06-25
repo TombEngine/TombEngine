@@ -69,7 +69,7 @@ bool LaraDeflectEdge(ItemInfo* item, CollisionInfo* coll)
 bool LaraDeflectTopSide(ItemInfo* item, CollisionInfo* coll)
 {
 	// HACK: If we are falling down, collision is CollisionType::Clamp and
-	// HitStatic flag is set, it means we've collided static from the top.
+	// HitStatic flag is set, static is collided from top.
 
 	if (coll->CollisionType == CollisionType::Clamp &&
 		coll->HitStatic && item->Animation.Velocity.y > 0.0f)
@@ -96,13 +96,13 @@ bool LaraDeflectEdgeJump(ItemInfo* item, CollisionInfo* coll)
 		{
 			if (coll->Middle.Floor <= CLICK(1))
 			{
-				SetAnimation(item, LA_LAND);
+				SetAnimation(*item, LA_LAND, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 				LaraSnapToHeight(item, coll);
 			}
 			// TODO: Demagic. This is Lara's running velocity. Jumps have a minimum of 50.
 			else if (abs(item->Animation.Velocity.z) > 47.0f)
 			{
-				SetAnimation(item, LA_JUMP_WALL_SMASH_START, 1);
+				SetAnimation(*item, LA_JUMP_WALL_SMASH_START, 1, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 				Rumble(0.5f, 0.15f);
 			}
 
@@ -284,8 +284,8 @@ void LaraCollideStop(ItemInfo* item, CollisionInfo* coll)
 	default:
 		item->Animation.TargetState = LS_IDLE;
 
-		if (item->Animation.AnimNumber != LA_STAND_SOLID)
-			SetAnimation(item, LA_STAND_SOLID);
+		if (item->Animation.AnimNumber != LA_STAND_IDLE)
+			SetAnimation(*item, LA_STAND_IDLE, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 
 		break;
 	}
@@ -318,10 +318,7 @@ void LaraCollideStopCrawl(ItemInfo* item, CollisionInfo* coll)
 		item->Animation.TargetState = LS_CRAWL_IDLE;
 
 		if (item->Animation.AnimNumber != LA_CRAWL_IDLE)
-		{
-			item->Animation.AnimNumber = LA_CRAWL_IDLE;
-			item->Animation.FrameNumber = 0;
-		}
+			SetAnimation(*item, LA_CRAWL_IDLE, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 
 		break;
 	}
@@ -354,10 +351,7 @@ void LaraCollideStopMonkey(ItemInfo* item, CollisionInfo* coll)
 		item->Animation.TargetState = LS_MONKEY_IDLE;
 
 		if (item->Animation.AnimNumber != LA_MONKEY_IDLE)
-		{
-			item->Animation.AnimNumber = LA_MONKEY_IDLE;
-			item->Animation.FrameNumber = 0;
-		}
+			SetAnimation(*item, LA_MONKEY_IDLE, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 
 		break;
 	}
@@ -552,7 +546,16 @@ void LaraSwimCollision(ItemInfo* item, CollisionInfo* coll)
 
 	ShiftItem(item, coll);
 
-	int flag = 0;
+	int hitFlag = 0;
+	bool noYshift = false;
+
+	auto pointColl = GetPointCollision(*item);
+	if (item->Pose.Position.y > pointColl.GetFloorHeight() || item->Pose.Position.y < pointColl.GetCeilingHeight() || coll->Middle.Floor < -CLICK(2))
+	{
+		item->Pose.Position = coll->Setup.PrevPosition;
+		noYshift = true;
+	}
+
 	switch (coll->CollisionType)
 	{
 	case CollisionType::Front:
@@ -579,19 +582,19 @@ void LaraSwimCollision(ItemInfo* item, CollisionInfo* coll)
 				else
 				{
 					item->Animation.Velocity.y = 0;
-					flag = 1;
+					hitFlag = 1;
 				}
 			}
 			else
 			{
 				item->Pose.Orientation.x -= ANGLE(1.0f);
-				flag = 1;
+				hitFlag = 1;
 			}
 		}
 		else
 		{
 			item->Pose.Orientation.x += ANGLE(1.0f);
-			flag = 1;
+			hitFlag = 1;
 		}
 
 		if (coll0.CollisionType == CollisionType::Left)
@@ -617,47 +620,46 @@ void LaraSwimCollision(ItemInfo* item, CollisionInfo* coll)
 		if (item->Pose.Orientation.x >= -ANGLE(45.0f))
 		{
 			item->Pose.Orientation.x -= ANGLE(1.0f);
-			flag = 1;
+			hitFlag = 1;
 		}
 
 		break;
 
 	case CollisionType::TopFront:
 		item->Animation.Velocity.y = 0;
-		flag = 1;
+		hitFlag = 1;
 		break;
 
 	case CollisionType::Left:
 		item->Pose.Orientation.y += ANGLE(2.0f);
-		flag = 1;
+		hitFlag = 1;
 		break;
 
 	case CollisionType::Right:
 		item->Pose.Orientation.y -= ANGLE(2.0f);
-		flag = 1;
+		hitFlag = 1;
 		break;
 
 	case CollisionType::Clamp:
 		item->Animation.Velocity.y = 0.0f;
 		item->Pose.Position = coll->Setup.PrevPosition;
-		flag = 2;
+		hitFlag = 2;
 		break;
 	}
 
-	if (coll->Middle.Floor < 0 &&
-		coll->Middle.Floor != NO_HEIGHT)
+	if (coll->Middle.Floor != NO_HEIGHT && coll->Middle.Floor < 0 && !noYshift)
 	{
-		flag = 1;
+		hitFlag = 1;
 		item->Pose.Orientation.x += ANGLE(1.0f);
 		item->Pose.Position.y += coll->Middle.Floor;
 	}
 
 	if ((prevPose.Position == item->Pose.Position &&
-		prevPose.Orientation.x == item->Pose.Orientation.x &&
-		prevPose.Orientation.y == item->Pose.Orientation.y) ||
-		flag != 1)
+		 prevPose.Orientation.x == item->Pose.Orientation.x &&
+		 prevPose.Orientation.y == item->Pose.Orientation.y) ||
+		hitFlag != 1)
 	{
-		if (flag == 2)
+		if (hitFlag == 2)
 			return;
 	}
 

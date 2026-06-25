@@ -593,10 +593,11 @@ void UpdateSparks()
 
 void TriggerRicochetSpark(const GameVector& pos, short angle, bool sound)
 {
-	int count = Random::GenerateInt(3, 8);
+	int maxCount = g_GameFlow->GetSettings()->Effects.RicochetCount;
+	int count = Random::GenerateInt(maxCount / 2, maxCount);
 	TriggerRicochetSpark(pos, angle, count);
 
-	if (sound)
+	if (sound && g_GameFlow->GetSettings()->Effects.RicochetSound)
 		SoundEffect(SFX_TR4_WEAPON_RICOCHET, &Pose(pos.ToVector3i()));
 }
 

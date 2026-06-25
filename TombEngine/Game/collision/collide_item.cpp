@@ -99,7 +99,7 @@ CollidedObjectData GetCollidedObjects(ItemInfo& collidingItem, bool onlyVisible,
 	int staticCount = 0;
 
 	// Establish parameters of colliding item.
-	const auto& collidingBounds = GetClosestKeyframe(collidingItem).BoundingBox;
+	const auto& collidingBounds = GetFrame(collidingItem).BoundingBox;
 
 	// Quickly discard collision if colliding item bounds are below tolerance threshold.
 	if (!customRadius && collidingBounds.GetExtents().Length() <= COLLIDABLE_BOUNDS_THRESHOLD)
@@ -166,7 +166,7 @@ CollidedObjectData GetCollidedObjects(ItemInfo& collidingItem, bool onlyVisible,
 						continue;
 
 					// If item bounding box extents is below tolerance threshold, discard object.
-					const auto& bounds = GetClosestKeyframe(item).BoundingBox;
+					const auto& bounds = GetFrame(item).BoundingBox;
 					if (bounds.GetExtents().Length() <= COLLIDABLE_BOUNDS_THRESHOLD)
 						continue;
 
@@ -222,7 +222,7 @@ CollidedObjectData GetCollidedObjects(ItemInfo& collidingItem, bool onlyVisible,
 
 bool TestWithGlobalCollisionBounds(ItemInfo* item, ItemInfo* laraItem, CollisionInfo* coll)
 {
-	const auto& bounds = GetClosestKeyframe(*laraItem).BoundingBox;
+	const auto& bounds = GetFrame(*laraItem).BoundingBox;
 
 	if ((item->Pose.Position.y + GlobalCollisionBounds.Y2) <= (laraItem->Pose.Position.y + bounds.Y1))
 		return false;
@@ -408,8 +408,10 @@ bool MoveLaraPosition(const Vector3i& offset, ItemInfo* item, ItemInfo* laraItem
 	auto pos = Vector3::Transform(offset.ToVector3(), rotMatrix);
 	auto target = Pose(item->Pose.Position + Vector3i(pos), item->Pose.Orientation);
 
-	if (!Objects[item->ObjectNumber].isPickup)
+	if (!Objects[item->ObjectNumber].isPickup || lara->Control.WaterStatus == WaterStatus::Underwater)
+	{
 		return Move3DPosTo3DPos(laraItem, laraItem->Pose, target, LARA_ALIGN_VELOCITY, ANGLE(2.0f));
+	}
 	else
 	{
 		// Prevent picking up items which can result in so called "flare pickup bug"
@@ -553,8 +555,8 @@ bool Move3DPosTo3DPos(ItemInfo* item, Pose& fromPose, const Pose& toPose, int ve
 
 bool TestBoundsCollide(ItemInfo* item, ItemInfo* laraItem, int radius)
 {
-	const auto& bounds = GetClosestKeyframe(*item).BoundingBox;
-	const auto& playerBounds = GetClosestKeyframe(*laraItem).BoundingBox;
+	const auto& bounds = GetFrame(*item).BoundingBox;
+	const auto& playerBounds = GetFrame(*laraItem).BoundingBox;
 
 	if (bounds.GetExtents() == Vector3::Zero || playerBounds.GetExtents() == Vector3::Zero)
 		return false;
@@ -588,14 +590,18 @@ bool TestBoundsCollideStatic(ItemInfo* item, const StaticMesh& mesh, int radius)
 {
 	const auto& bounds = GetBoundsAccurate(mesh, false);
 
-	if (!(bounds.Z2 != 0 || bounds.Z1 != 0 || bounds.X1 != 0 || bounds.X2 != 0 || bounds.Y1 != 0 || bounds.Y2 != 0))
+	if (!(bounds.Z2 != 0 || bounds.Z1 != 0 ||
+		  bounds.X1 != 0 || bounds.X2 != 0 ||
+		  bounds.Y1 != 0 || bounds.Y2 != 0))
+	{
+		return false;
+	}
+
+	const auto& itemBounds = GetFrame(*item).BoundingBox;
+	if ((mesh.Pose.Position.y + bounds.Y2) <= (item->Pose.Position.y + itemBounds.Y1))
 		return false;
 
-	const auto& itemBounds = GetClosestKeyframe(*item).BoundingBox;
-	if (mesh.Pose.Position.y + bounds.Y2 <= item->Pose.Position.y + itemBounds.Y1)
-		return false;
-
-	if (mesh.Pose.Position.y + bounds.Y1 >= item->Pose.Position.y + itemBounds.Y2)
+	if ((mesh.Pose.Position.y + bounds.Y1) >= (item->Pose.Position.y + itemBounds.Y2))
 		return false;
 
 	float sinY = phd_sin(mesh.Pose.Orientation.y);
@@ -754,9 +760,7 @@ bool ItemPushItem(ItemInfo* item, ItemInfo* item2)
 	int rx = (direction.x * cosY) - (direction.z * sinY);
 	int rz = (direction.z * cosY) + (direction.x * sinY);
 
-	const auto& anim = GetAnimData(*item);
-	const auto& keyframe = anim.GetClosestKeyframe(item->Animation.FrameNumber);
-	const auto& bounds = keyframe.BoundingBox;
+	const auto& bounds = GetFrame(*item).BoundingBox;
 
 	int minX = bounds.X1;
 	int maxX = bounds.X2;

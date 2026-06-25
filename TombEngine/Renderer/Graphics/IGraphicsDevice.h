@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include "Specific/fast_vector.h"
 #include <string>
 #include <SimpleMath.h>
 #include "Renderer/Graphics/IIndexBuffer.h"
@@ -24,6 +23,7 @@
 #include "Renderer/Structures/RendererRectangle.h"
 #include "Renderer/Structures/RendererInputLayout.h"
 #include "Renderer/Structures/RendererViewport.h"
+#include "Specific/Structures/fast_vector.h"
 
 using namespace TEN::Renderer::Structures;
 using namespace DirectX;
@@ -129,7 +129,7 @@ namespace TEN::Renderer::Graphics
 		virtual void SetViewport(RendererViewport viewport) = 0;
 		virtual Vector3 Unproject(Vector3 position, Matrix projection, Matrix view, Matrix world) = 0;
 
-		virtual void SaveScreenshot(IRenderTarget2D* renderTarget, std::string path) = 0;
+		virtual bool SaveScreenshot(IRenderTarget2D* renderTarget, std::string path) = 0;
 
 		virtual void Flush() = 0;
 		virtual void UnbindAllRenderTargets() = 0;

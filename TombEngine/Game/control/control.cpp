@@ -30,6 +30,7 @@
 #include "Game/Hud/DrawItems/DisplayItem.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_cheat.h"
+#include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
 #include "Game/items.h"
@@ -139,6 +140,7 @@ void DrawPhase(bool isTitle, float interpolationFactor)
 	}
 
 	g_Renderer.Lock();
+	ApplyPendingWindowResize();
 }
 
 GameStatus GamePhase(bool insideMenu)
@@ -166,7 +168,6 @@ GameStatus GamePhase(bool insideMenu)
 
 	// Pre-loop script and event handling.
 	g_GameScript->OnLoop(DELTA_TIME, false); // TODO: Don't use DELTA_TIME constant with high framerate.
-	HandleAllGlobalEvents(EventType::Loop, (Activator)short(LaraItem->Index));
 
 	// Queued input actions are read again after OnLoop, so that remaining control loop can immediately register
 	// emulated keypresses from the script.
@@ -225,6 +226,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateFishSwarm();
 	UpdateFireflySwarm();
 	UpdateGlobalLensFlare();
+	UpdateMaterials();
 
 	// Update HUD.
 	g_Hud.Update(*LaraItem);
@@ -257,7 +259,6 @@ GameStatus GamePhase(bool insideMenu)
 		// Call post-loop callbacks last time and end level.
 		g_GameScript->OnLoop(DELTA_TIME, true);
 		g_GameScript->OnEnd(gameStatus);
-		HandleAllGlobalEvents(EventType::End, (Activator)short(LaraItem->Index));
 	}
 	else
 	{
@@ -314,7 +315,6 @@ GameStatus FreezePhase()
 	// Poll controls and call scripting events.
 	HandleControls(false);
 	g_GameScript->OnFreeze();
-	HandleAllGlobalEvents(EventType::Freeze, (Activator)short(LaraItem->Index));
 
 	// Partially update scene if not using full freeze mode.
 	if (g_GameFlow->LastFreezeMode != FreezeMode::Full)
@@ -324,6 +324,8 @@ GameStatus FreezePhase()
 
 		UpdateAllItems();
 		UpdateGlobalLensFlare();
+		UpdateFadeScreenAndCinematicBars();
+		Weather.Update(true);
 
 		UpdateCamera();
 
@@ -594,19 +596,27 @@ void CleanUp()
 
 void InitializeScripting(int levelIndex, bool loadGame)
 {
-	TENLog("Loading level script...", LogLevel::Info);
-
 	g_GameStringsHandler->ClearDisplayStrings();
 	g_GameScript->ResetScripts(!levelIndex || loadGame);
+
+	auto gameDir = g_GameFlow->GetGameDir();
+	auto autoexecScriptFileName = gameDir + "Scripts/Autoexec.lua";
+
+	if (std::filesystem::is_regular_file(autoexecScriptFileName))
+	{
+		TENLog("Loading autoexec script...", LogLevel::Info);
+		g_GameScript->ExecuteScriptFile(gameDir + "Scripts/Autoexec.lua");
+	}
 
 	const auto& level = *g_GameFlow->GetLevel(levelIndex);
 
 	// Run level script if it exists.
 	if (!level.ScriptFileName.empty())
 	{
-		auto levelScriptName = g_GameFlow->GetGameDir() + level.ScriptFileName;
+		auto levelScriptName = gameDir + level.ScriptFileName;
 		if (std::filesystem::is_regular_file(levelScriptName))
 		{
+			TENLog("Loading level script...", LogLevel::Info);
 			g_GameScript->ExecuteScriptFile(levelScriptName);
 		}
 		else
@@ -625,6 +635,13 @@ void InitializeScripting(int levelIndex, bool loadGame)
 						(area.y / g_Configuration.ScreenHeight) * DISPLAY_SPACE_RES.y),
 				Color(color), scale, flags);
 		});
+	}
+
+	// Execute property script blob.
+	if (!g_Level.PropertyBlob.empty())
+	{
+		TENLog("Executing property script blob...", LogLevel::Info);
+		g_GameScript->ExecuteString(g_Level.PropertyBlob);
 	}
 
 	// Play default background music.
@@ -668,7 +685,6 @@ void InitializeOrLoadGame(bool loadGame)
 		g_Hud.StatusBars.Clamp(*LaraItem);
 		g_GameFlow->SelectedSaveGame = 0;
 		g_GameScript->OnLoad();
-		HandleAllGlobalEvents(EventType::Load, (Activator)short(LaraItem->Index));
 	}
 	else
 	{
@@ -692,7 +708,6 @@ void InitializeOrLoadGame(bool loadGame)
 		}
 
 		g_GameScript->OnStart();
-		HandleAllGlobalEvents(EventType::Start, (Activator)short(LaraItem->Index));
 	}
 }
 
@@ -782,6 +797,8 @@ void SetupInterpolation()
 
 void HandleControls(bool isTitle)
 {
+	SetRelativeMouseMode(!isTitle && g_GameFlow->CurrentFreezeMode != FreezeMode::Full);
+
 	// Poll input devices and update input variables.
 	// TODO: To allow cutscene skipping later, don't clear Deselect action.
 	UpdateInputActions(false, true);

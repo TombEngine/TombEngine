@@ -34,7 +34,8 @@ namespace TEN::Scripting::Util
 	// @tentable Util
 	// @pragma nostrip
 
-	/// Determine if there is a clear line of sight between two positions. Limited to room geometry. Objects are ignored.
+	/// Determine if there is a clear line of sight between two positions.
+	// This method is deprecated. It is recommended to use @{Collision.Ray} instead.
 	// @function HasLineOfSight
 	// @tparam float roomID Room ID of the first position's room.
 	// @tparam Vec3 posA First position.

@@ -132,7 +132,7 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 	DoAlphaTest(color);
 	
-	float4 emissive = EmissiveTexture.Sample(AnisotropicClampSampler, input.UV);
+	float4 emissive = EmissiveTexture.Sample(AnisotropicClampSampler, input.UV) * GetEmissiveIntensity();
 	float specular = ORSHTexture.Sample(AnisotropicClampSampler, input.UV).z;
 	
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);

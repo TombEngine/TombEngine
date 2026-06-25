@@ -388,7 +388,7 @@ void LoadObjects()
 		MoveablesIds.push_back(objectID);
 
 		if (objectID >= GAME_OBJECT_ID::ID_NUMBER_OBJECTS)
-			throw std::exception(("Unsupported object slot " + std::to_string(objectID) + " is detected in a level. Make sure to delete unsupported objects from wads.").c_str());
+			throw std::exception(("Unsupported object slot " + std::to_string(objectID) + " detected in a level. Make sure to delete unsupported objects from WADs.").c_str());
 
 		auto& object = Objects[objectID];
 		object.loaded = true;
@@ -400,53 +400,51 @@ void LoadObjects()
 		// Load animations.
 		int animCount = ReadCount();
 		object.Animations.resize(animCount);
-		for (auto& anim : object.Animations)
+		for (int j = 0; j < object.Animations.size(); j++)
 		{
+			auto& anim = object.Animations[j];
+
 			anim.StateID = ReadInt32();
-			anim.Interpolation = ReadInt32();
 			anim.EndFrameNumber = ReadInt32();
 			anim.NextAnimNumber = ReadInt32();
 			anim.NextFrameNumber = ReadInt32();
-			/*anim.BlendFrameCount = */ReadCount();
+			anim.BlendFrameCount = ReadCount();
 
-			/*auto blendCurveStart = */ReadVector2();
-			/*auto blendCurveEnd = */ReadVector2();
-			/*auto blendCurveStartHandle = */ReadVector2();
-			/*auto blendCurveEndHandle = */ReadVector2();
-			//anim.BlendCurve = BezierCurve2D(blendCurveStart, blendCurveEnd, blendCurveStartHandle, blendCurveEndHandle);
+			auto blendCurveStart = ReadVector2();
+			auto blendCurveEnd = ReadVector2();
+			auto blendCurveStartHandle = ReadVector2();
+			auto blendCurveEndHandle = ReadVector2();
+			anim.BlendCurve = BezierCurve2(blendCurveStart, blendCurveEnd, blendCurveStartHandle, blendCurveEndHandle);
 
 			auto fixedMotionCurveXStart = ReadVector2();
 			auto fixedMotionCurveXEnd = ReadVector2();
-			/*auto fixedMotionCurveXStartHandle = */ReadVector2();
-			/*auto fixedMotionCurveXEndHandle = */ReadVector2();
-			//anim.FixedMotionCurveX = BezierCurve2D(fixedMotionCurveXStart, fixedMotionCurveXEnd, fixedMotionCurveXStartHandle, fixedMotionCurveXEndHandle);
+			auto fixedMotionCurveXStartHandle = ReadVector2();
+			auto fixedMotionCurveXEndHandle = ReadVector2();
+			anim.FixedMotionCurveX = BezierCurve2(fixedMotionCurveXStart, fixedMotionCurveXEnd, fixedMotionCurveXStartHandle, fixedMotionCurveXEndHandle);
 
 			auto fixedMotionCurveYStart = ReadVector2();
 			auto fixedMotionCurveYEnd = ReadVector2();
-			/*auto fixedMotionCurveYStartHandle = */ReadVector2();
-			/*auto fixedMotionCurveYEndHandle = */ReadVector2();
-			//anim.FixedMotionCurveY = BezierCurve2D(fixedMotionCurveYStart, fixedMotionCurveYEnd, fixedMotionCurveYStartHandle, fixedMotionCurveYEndHandle);
+			auto fixedMotionCurveYStartHandle = ReadVector2();
+			auto fixedMotionCurveYEndHandle = ReadVector2();
+			anim.FixedMotionCurveY = BezierCurve2(fixedMotionCurveYStart, fixedMotionCurveYEnd, fixedMotionCurveYStartHandle, fixedMotionCurveYEndHandle);
 
 			auto fixedMotionCurveZStart = ReadVector2();
 			auto fixedMotionCurveZEnd = ReadVector2();
-			/*auto fixedMotionCurveZStartHandle = */ReadVector2();
-			/*auto fixedMotionCurveZEndHandle = */ReadVector2();
-			//anim.FixedMotionCurveZ = BezierCurve2D(fixedMotionCurveZStart, fixedMotionCurveZEnd, fixedMotionCurveZStartHandle, fixedMotionCurveZEndHandle);
-
-			anim.VelocityStart = Vector3(fixedMotionCurveXStart.y, fixedMotionCurveYStart.y, fixedMotionCurveZStart.y);
-			anim.VelocityEnd = Vector3(fixedMotionCurveXEnd.y, fixedMotionCurveYEnd.y, fixedMotionCurveZEnd.y);
+			auto fixedMotionCurveZStartHandle = ReadVector2();
+			auto fixedMotionCurveZEndHandle = ReadVector2();
+			anim.FixedMotionCurveZ = BezierCurve2(fixedMotionCurveZStart, fixedMotionCurveZEnd, fixedMotionCurveZStartHandle, fixedMotionCurveZEndHandle);
 
 			// Load keyframes.
 			int frameCount = ReadCount();
-			anim.Keyframes.resize(frameCount);
-			for (auto& keyframe : anim.Keyframes)
+			anim.Frames.resize(frameCount);
+			for (auto& keyframe : anim.Frames)
 			{
 				auto center = ReadVector3();
 				auto extents = ReadVector3();
-				keyframe.Aabb = BoundingBox(center, extents);
-				keyframe.BoundingBox = GameBoundingBox(keyframe.Aabb);
+				keyframe.LocalAabb = BoundingBox(center, extents);
+				keyframe.BoundingBox = GameBoundingBox(keyframe.LocalAabb);
 
-				keyframe.RootOffset = ReadVector3();
+				keyframe.RootPosition = ReadVector3();
 
 				int boneCount = ReadCount();
 				keyframe.BoneOrientations.resize(boneCount);
@@ -460,18 +458,18 @@ void LoadObjects()
 			for (auto& dispatch : anim.Dispatches)
 			{
 				dispatch.StateID = ReadInt32();
-				dispatch.FrameNumberRange.first = ReadInt32(); //dispatch.FrameNumberLow = ReadInt32();
-				dispatch.FrameNumberRange.second = ReadInt32(); //dispatch.FrameNumberHigh = ReadInt32();
+				dispatch.FrameNumberLow = ReadInt32();
+				dispatch.FrameNumberHigh = std::max(ReadInt32(), dispatch.FrameNumberLow);
 				dispatch.NextAnimNumber = ReadInt32();
-				dispatch.NextFrameNumber/*Low*/ = ReadInt32();
-				/*dispatch.NextFrameNumberHigh = */ReadInt32();
-				/*dispatch.BlendFrameCount = */ReadInt32();
+				dispatch.NextFrameNumberLow = ReadInt32();
+				dispatch.NextFrameNumberHigh = std::max(ReadInt32(), dispatch.NextFrameNumberLow);
+				dispatch.BlendFrameCount = ReadInt32();
 
 				auto start = ReadVector2();
 				auto end = ReadVector2();
 				auto startHandle = ReadVector2();
 				auto endHandle = ReadVector2();
-				//dispatch.BlendCurve = BezierCurve2D(start, startHandle, endHandle, end);
+				dispatch.BlendCurve = BezierCurve2(start, end, startHandle, endHandle);
 			}
 
 			// Load animation commands.
@@ -480,7 +478,7 @@ void LoadObjects()
 			{
 				anim.Commands.reserve(commandCount);
 
-				for (int i = 0; i < commandCount; i++)
+				for (int k = 0; k < commandCount; k++)
 				{
 					auto type = (AnimCommandType)ReadInt32();
 
@@ -492,10 +490,10 @@ void LoadObjects()
 						case AnimCommandType::None:
 							continue;
 
-						case AnimCommandType::MoveOrigin:
+						case AnimCommandType::MoveRoot:
 						{
-							auto relOffset = ReadVector3();
-							command = std::make_shared<MoveOriginCommand>(relOffset);
+							auto translation = ReadVector3();
+							command = std::make_shared<MoveRootCommand>(translation);
 						}
 							break;
 
@@ -544,6 +542,10 @@ void LoadObjects()
 			}
 
 			anim.Flags = ReadInt32();
+
+			// Set root motion cycle flag if animation links to itself.
+			if (anim.NextAnimNumber == j)
+				anim.Flags |= (int)AnimFlags::RootMotionCycle;
 		}
 	}
 
@@ -1216,6 +1218,7 @@ void FreeLevel(bool partial)
 	g_Level.Cameras.resize(0);
 	g_Level.Sinks.resize(0);
 	g_Level.SoundSources.resize(0);
+	g_Level.Materials.resize(0);
 	g_Level.VolumeEventSets.resize(0);
 	g_Level.GlobalEventSets.resize(0);
 	g_Level.LoopedEventSetIndices.resize(0);
@@ -1247,7 +1250,6 @@ void FreeLevel(bool partial)
 	g_Level.SoundDetails.resize(0);
 	g_Level.SoundMap.resize(0);
 	g_Level.FloorData.resize(0);
-	g_Level.Materials.resize(0);
 
 	for (int i = 0; i < 2; i++)
 	{
@@ -1353,7 +1355,7 @@ void LoadEvent(EventSet& eventSet)
 	if (eventType >= (int)EventType::Count)
 	{
 		TENLog("Unknown event type detected for event set " + eventSet.Name + ". Fall back to default.", LogLevel::Warning);
-		eventType = (int)EventType::Enter;
+		eventType = (int)EventType::VolumeEnter;
 	}
 
 	auto& evt = eventSet.Events[eventType];
@@ -1406,6 +1408,17 @@ void LoadEventSets()
 
 		g_Level.VolumeEventSets.push_back(eventSet);
 	}
+}
+
+void LoadProperties()
+{
+	int propertyCount = ReadCount();
+	TENLog("Property count: " + std::to_string(propertyCount), LogLevel::Info);
+
+	if (propertyCount > 0)
+		g_Level.PropertyBlob = ReadString();
+	else
+		g_Level.PropertyBlob = {};
 }
 
 static bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompressedSize)
@@ -1622,7 +1635,7 @@ bool LoadLevel(const std::string& path, bool partial)
 			LoadBoxes();
 			LoadMirrors();
 			LoadAnimatedTextures();
-			LoadMaterials();
+			LoadMaterialDefinitions();
 
 			UpdateProgress(70);
 
@@ -1637,7 +1650,9 @@ bool LoadLevel(const std::string& path, bool partial)
 			LoadAIObjects();
 			LoadCameras();
 			LoadSoundSources();
+			LoadMaterials();
 			LoadEventSets();
+			LoadProperties();
 			UpdateProgress(80, partial);
 
 			FinalizeBlock();
@@ -1800,22 +1815,44 @@ void LoadMirrors()
 	}
 }
 
+void LoadMaterialDefinitions()
+{
+	int materialDefinitionCount = ReadCount();
+	TENLog("Material definition count: " + std::to_string(materialDefinitionCount), LogLevel::Info);
+
+	ResetMaterialPropertyDefinitions();
+
+	for (int i = 0; i < materialDefinitionCount; i++)
+	{
+		auto materialType = (TextureMaterialType)ReadInt32();
+		MaterialPropertyDefinitions definitions = {};
+
+		for (int j = 0; j < MaterialData::PropertyCount; j++)
+		{
+			auto& definition = definitions[j];
+			definition.SetName(ReadString());
+			definition.Type = (MaterialPropertyType)ReadInt32();
+		}
+
+		SetMaterialPropertyDefinitions(materialType, definitions);
+	}
+}
+
 void LoadMaterials()
 {
 	int materialCount = ReadCount();
-	TENLog("Materials count: " + std::to_string(materialCount), LogLevel::Info);
+	TENLog("Material count: " + std::to_string(materialCount), LogLevel::Info);
 	g_Level.Materials.reserve(materialCount);
 
 	for (int i = 0; i < materialCount; i++)
 	{
 		auto& material = g_Level.Materials.emplace_back();
 
-		material.Name = ReadString();
-		material.Type = (MaterialShaderType)ReadInt32();
-		material.Parameters0 = ReadVector4();
-		material.Parameters1 = ReadVector4();
-		material.Parameters2 = ReadVector4();
-		material.Parameters3 = ReadVector4();
+		material.SetName(ReadString());
+		material.Type = (TextureMaterialType)ReadInt32();
+		material.ResetProperties();
+		g_GameScriptEntities->AddName(material.Name, material);
+
 		material.HasNormalMap = ReadBool();
 		material.HasHeightMap = ReadBool();
 		material.HasAmbientOcclusionMap = ReadBool();

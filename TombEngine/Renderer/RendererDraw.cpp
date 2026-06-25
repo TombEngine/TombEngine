@@ -207,6 +207,7 @@ namespace TEN::Renderer
 			shadowProjection.ViewProjection = view * projection;
 			UpdateConstantBuffer(&shadowProjection, _cbCameraMatrices.get());
 			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 			_stShadowMap.LightViewProjections[step] = (view * projection);
 
@@ -221,13 +222,13 @@ namespace TEN::Renderer
 			_stObjects.Objects[0].AmbientLight = item->AmbientLight;
 			_stObjects.Skinned = (int)skinMode;
 
-			for (int k = 0; k < MAX_BONES; k++)
+			for (int k = 0; k < BONE_COUNT_MAX; k++)
 				_stObjects.BoneLightModes[k] = (int)LightMode::Static;
 
 			if (skinMode == SkinningMode::Full)
 			{
 				for (int m = 0; m < obj.AnimationTransforms.size(); m++)
-					_stObjects.Bones[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+					_stObjects.Bones[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
 				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 				auto* mesh = GetMesh(item->SkinIndex);
@@ -247,7 +248,7 @@ namespace TEN::Renderer
 				}
 			}
 
-			memcpy(_stObjects.Bones, item->InterpolatedAnimTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
+			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 			for (int k = 0; k < obj.ObjectMeshes.size(); k++)
@@ -1621,7 +1622,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicSpotLight(const Vector3& pos, const Vector3& dir, float radius, float falloff, float distance, const Color& color, bool castShadows, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
+		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
 			return;
 
 		RendererLight dynamicLight = {};
@@ -1658,7 +1659,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicPointLight(const Vector3& pos, float radius, const Color& color, bool castShadows, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
+		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
 			return;
 
 		if (radius <= EPSILON)
@@ -1686,7 +1687,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicFogBulb(const Vector3& pos, float radius, float density, const Color& color, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
+		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
 			return;
 
 		auto dynamicLight = RendererLight{};
@@ -1757,7 +1758,7 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareScene()
 	{
-		if (g_GameFlow->CurrentFreezeMode == FreezeMode::None &&
+		if (g_GameFlow->CurrentFreezeMode != FreezeMode::Full &&
 			g_Gui.GetInventoryMode() == InventoryMode::None)
 		{
 			_dynamicLightList ^= 1;
@@ -1862,19 +1863,19 @@ namespace TEN::Renderer
 		// Bind constant buffers.
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PerDraw, _cbPerDraw.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Sprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Sky, _cbSky.get());
 
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PerDraw, _cbPerDraw.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Sprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Sky, _cbSky.get());
 
@@ -2028,14 +2029,14 @@ namespace TEN::Renderer
 		// SMAA: RT -> ..., ... -> RT
 		ApplyAntialiasing(_renderTarget.get(), view);
 
+		// Now we can apply the color grade, lens flare, cinematic bars and post process effects
+		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT
+		DrawPostprocess(renderTarget, view, renderMode);
+
 		// Draw text and 2D HUD
 		ClearDrawPhaseDisplaySprites();
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
 			g_Hud.Draw2D(*LaraItem);
-
-		// Now we can apply the color grade, lens flare, cinematic bars and post process effects
-		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT
-		DrawPostprocess(renderTarget, view, renderMode);
 
 		_doingFullscreenPass = false;
 
@@ -2048,7 +2049,11 @@ namespace TEN::Renderer
 			DrawDisplaySprites(view, false);
 
 			DrawDebugRenderTargets(view);
-			DrawAllStrings();
+
+			// HACK: Strings in the title level are drawn in a separate menu pass, so we bypass it here.
+			if (CurrentLevel != 0)
+				DrawAllStrings();
+
 			DrawDisplaySprites(view, true);
 		}
 
@@ -2592,13 +2597,13 @@ namespace TEN::Renderer
 			if (skinMode == SkinningMode::Full)
 			{
 				for (int m = 0; m < moveableObj.AnimationTransforms.size(); m++)
-					_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+					_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
 				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 				DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
 			}
 
-			memcpy(_stObjects.Bones, item->InterpolatedAnimTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
+			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 		}
 
@@ -3405,7 +3410,7 @@ namespace TEN::Renderer
 				{
 					for (int p = 0; p < bucket.Polygons.size(); p++)
 					{
-						auto center = Vector3::Transform(bucket.Polygons[p].Centre, itemToDraw->InterpolatedAnimTransforms[boneIndex] * itemToDraw->InterpolatedWorld);
+						auto center = Vector3::Transform(bucket.Polygons[p].Centre, itemToDraw->InterpolatedAnimationTransforms[boneIndex] * itemToDraw->InterpolatedWorld);
 						int dist = Vector3::Distance(center, Camera.pos.ToVector3());
 
 						auto object = RendererSortableObject{};
@@ -3887,11 +3892,11 @@ namespace TEN::Renderer
 		if (objectInfo->Skinned)
 		{
 			for (int m = 0; m < moveableObj.BindPoseTransforms.size(); m++)
-				_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * objectInfo->Item->InterpolatedAnimTransforms[m];
+				_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * objectInfo->Item->InterpolatedAnimationTransforms[m];
 		}
 		else
 		{
-			memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
+			memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimationTransforms, sizeof(Matrix) * BONE_COUNT_MAX);
 		}
 		
 		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
@@ -4028,7 +4033,7 @@ namespace TEN::Renderer
 		const auto& moveableObj = *_moveableObjects[(int)GAME_OBJECT_ID::ID_HAIR_PRIMARY + index];
 
 		_stObjects.Objects[0].World = Matrix::Identity;
-		_stObjects.Bones[0] = objectInfo->Item->InterpolatedAnimTransforms[HairUnit::GetRootMeshID(index)] * objectInfo->Item->InterpolatedWorld;
+		_stObjects.Bones[0] = objectInfo->Item->InterpolatedAnimationTransforms[HairUnit::GetRootMeshID(index)] * objectInfo->Item->InterpolatedWorld;
 		ReflectMatrixOptionally(_stObjects.Bones[0]);
 
 		bool forceValue = g_GameFlow->CurrentFreezeMode == FreezeMode::Player;

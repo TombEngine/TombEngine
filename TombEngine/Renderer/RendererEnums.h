@@ -35,10 +35,11 @@ constexpr auto ALPHA_TEST_THRESHOLD			  = 0.5f;
 constexpr auto ALPHA_BLEND_THRESHOLD		  = 1.0f - EPSILON;
 constexpr auto FAST_ALPHA_BLEND_THRESHOLD	  = 0.5f;
 
-constexpr auto MAX_BONES = 32;
-constexpr auto MAX_BONE_WEIGHTS = 4;
+constexpr auto BONE_COUNT_MAX		 = 32;
+constexpr auto BONE_WEIGHT_COUNT_MAX = 4;
 
 constexpr auto DISPLAY_SPACE_RES = Vector2(800.0f, 600.0f);
+constexpr auto DISPLAY_SPACE_ASPECT = DISPLAY_SPACE_RES.x / DISPLAY_SPACE_RES.y;
 constexpr auto REFERENCE_FONT_SIZE = 35.0f;
 constexpr auto HUD_ZERO_Y = -DISPLAY_SPACE_RES.y;
 
@@ -233,7 +234,7 @@ enum class ConstantBufferRegister
 	Camera = 0,
 	// Slot 1 is currently unused — was the per-item CB before items folded into CBObjects.
 	PerDraw = 2, // Combined Material + Blending CB (was Material at b2 + Blending at b12).
-	InstancedStatics = 3, // Now holds the unified CBObjects (Bones + Skinned + Objects[N]).
+	Objects = 3, // Now holds the unified CBObjects (Bones + Skinned + Objects[N]).
 	ShadowLight = 4,
 	Room = 5,
 	// Slot 6 is currently unused — was CBAnimatedTexture before frames moved to a structured
@@ -243,7 +244,7 @@ enum class ConstantBufferRegister
 	Hud = 10,
 	HudBar = 11,
 	// Slot 12 is currently unused — was Blending before it merged into PerDraw at b2.
-	InstancedSprites = 13
+	Sprites = 13
 };
 
 enum class AlphaTestMode
@@ -357,7 +358,7 @@ enum class DOFMode
 	Back = 3
 };
 
-enum class MaterialShaderType
+enum class TextureMaterialType
 {
 	Default = 0,
 	Reflective = 1,
