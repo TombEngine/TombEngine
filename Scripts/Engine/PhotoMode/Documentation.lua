@@ -87,12 +87,12 @@
 -- </tr>
 -- <tr>
 --   <td>Hide UI</td>
---   <td>Draw</td>
+--   <td>Look (NumPad 0) / F12</td>
 --   <td>Triangle / Y</td>
 -- </tr>
 -- <tr>
 --   <td>Take Photo</td>
---   <td>Look (NumPad 0) / F12</td>
+--   <td>Draw</td>
 --   <td>LT</td>
 -- </tr>
 -- <tr>

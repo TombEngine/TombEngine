@@ -2470,13 +2470,6 @@ namespace TEN::Gui
 					n++;
 				}
 
-				if (options & OPT_EXAMINABLE)
-				{
-					CurrentOptions[n].Type = MenuType::Examine;
-					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[8].c_str());
-					n++;
-				}
-
 				if (options & OPT_STATS)
 				{
 					CurrentOptions[n].Type = MenuType::Statistics;
@@ -2495,6 +2488,13 @@ namespace TEN::Gui
 				{
 					CurrentOptions[n].Type = MenuType::Equip;
 					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[4].c_str());
+					n++;
+				}
+
+				if (options & OPT_EXAMINABLE)
+				{
+					CurrentOptions[n].Type = MenuType::Examine;
+					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[8].c_str());
 					n++;
 				}
 
