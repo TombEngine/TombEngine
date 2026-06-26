@@ -232,7 +232,8 @@ void ItemInfo::ResetModelToDefault()
 
 		// Reset skinning for mesh-less/virtual objects (e.g. ID_BODY_PART), otherwise a reused item
 		// slot keeps a stale skin index and renders garbage when drawn with the borrowed mesh.
-		Model.SkinIndex = NO_VALUE;
+		Model.SkinObjectID = NO_VALUE;
+		Model.SkinSwapIndex = NO_VALUE;
 	}
 }
 
