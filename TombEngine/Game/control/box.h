@@ -113,8 +113,8 @@ extern int PathfindingDisplayIndex;
 
 void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent);
 void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent);
-void FindAITargetObject(CreatureInfo* creature, int objectNumber); // True if AI target found.
-void FindAITargetObject(CreatureInfo* creature, int objectNumber, int ocb, bool checkSameZone = true); // True if AI target found.
+void FindAITargetObject(CreatureInfo* creature, int objectNumber); 
+void FindAITargetObject(CreatureInfo* creature, int objectNumber, int ocb, bool checkSameZone = true);
 void GetAITarget(CreatureInfo* creature);
 int CreatureVault(short itemNumber, short angle, int vault, int shift);
 bool MoveCreature3DPos(Pose* fromPose, Pose* toPose, int velocity, short angleDif, int angleAdd);

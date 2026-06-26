@@ -49,8 +49,8 @@ namespace TEN::Entities::Creatures::TR3
 	constexpr auto SOPHIALEIGH_LIGHTNING_GLOW_SIZE 		= 8;
 	constexpr auto SOPHIALEIGH_MAX_LIGHTNING_GLOW_SIZE 	= 10;
 	constexpr auto SOPHIALEIGH_SHOCKWAVE_SPEED 			= -184;
-	constexpr auto SOPHIALEIGH_SHOCKWAVE_INNER_SIZE 	= 2700;
-	constexpr auto SOPHIALEIGH_SHOCKWAVE_OUTER_SIZE 	= 2300;
+	constexpr auto SOPHIALEIGH_SHOCKWAVE_INNER_SIZE 	= 2300;
+	constexpr auto SOPHIALEIGH_SHOCKWAVE_OUTER_SIZE 	= 2700;
 
 	constexpr auto SOPHIALEIGH_KNOCKBACK_LARGE_INNER_SIZE = 800;
 	constexpr auto SOPHIALEIGH_KNOCKBACK_LARGE_OUTER_SIZE = 0;
@@ -772,6 +772,7 @@ namespace TEN::Entities::Creatures::TR3
 	{
 		if (!CreatureActive(itemNumber))
 			return;
+
 		if (SophiaLeighs.find(itemNumber) == SophiaLeighs.end())
 			return;
 
