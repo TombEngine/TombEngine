@@ -568,7 +568,7 @@ void CleanUp()
 	ClearSplashes();
 	ClearLaserBarrierEffects();
 	ClearLaserBeamEffects();
-	ClearSophiaLeighs();
+	ClearSophiaLeighEffects();
 	DisableSmokeParticles();
 	DisableSparkParticles();
 	DisableDebris();

@@ -806,7 +806,7 @@ namespace TEN::Entities::Creatures::TR3
 					item.ItemFlags[7]++;
 
 				// Explosion effect with pickup drop on completion.
-				ExplodeBoss(itemNumber, item, SOPHIALEIGH_EXPLOSION_NUM_MAX, SOPHIALEIGH_SHOCKWAVE_COLOR, SOPHIALEIGH_EXPLOSION_MAIN_COLOR, SOPHIALEIGH_EXPLOSION_SECOND_COLOR, true);
+				ExplodeBoss(item, SOPHIALEIGH_EXPLOSION_NUM_MAX, SOPHIALEIGH_SHOCKWAVE_COLOR, SOPHIALEIGH_EXPLOSION_MAIN_COLOR, SOPHIALEIGH_EXPLOSION_SECOND_COLOR, true);
 				return;
 			}
 		}
@@ -911,7 +911,7 @@ namespace TEN::Entities::Creatures::TR3
 		}
 	}
 
-	void ClearSophiaLeighs()
+	void ClearSophiaLeighEffects()
 	{
 		SophiaLeighs.clear();
 	}
