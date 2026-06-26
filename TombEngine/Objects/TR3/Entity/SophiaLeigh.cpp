@@ -65,16 +65,16 @@ namespace TEN::Entities::Creatures::TR3
 
 	struct SophiaData
 	{
-		short angle 				= 0;
-		short tilt 					= 0;
-		short headAngle 			= 0;
-		short torsoXAngle			= 0;
-		short torsoYAngle 			= 0;
-		short chargeDelay 			= 0;
-		short shockwaveTimer 		= 0;
-		short shockwaveCount 		= 0;
-		short waypointStableTimer 	= 0;  // Hysteresis timer to prevent waypoint oscillation.
-		short pendingLocationAI 	= -1;   // Pending LocationAI value waiting for stability.
+		short angle 				= NO_VALUE;
+		short tilt 					= NO_VALUE;
+		short headAngle 			= NO_VALUE;
+		short torsoXAngle			= NO_VALUE;
+		short torsoYAngle 			= NO_VALUE;
+		short chargeDelay 			= NO_VALUE;
+		short shockwaveTimer 		= NO_VALUE;
+		short shockwaveCount 		= NO_VALUE;
+		short waypointStableTimer 	= NO_VALUE;  // Hysteresis timer to prevent waypoint oscillation.
+		short pendingLocationAI 	= NO_VALUE;   // Pending LocationAI value waiting for stability.
 	};
 
 	static std::unordered_map<int, SophiaData> SophiaLeighs = {};
@@ -128,9 +128,9 @@ namespace TEN::Entities::Creatures::TR3
 
 	enum class SophiaOCB
 	{
-		Normal 		= 0,		// Move, climb, attack, and chase player.
-		Tower	 	= 1,		// TR3 one, with climbing only.
-		TowerLua	= 2,		// TR3 one, but uses lua to move. Must increase/decrease creature->LocationAI to go up/down.
+		Normal 	 = 0,		// Move, climb, attack, and chase player.
+		Tower	 = 1,		// TR3 one, with climbing only.
+		TowerLua = 2,		// TR3 one, but uses lua to move. Must increase/decrease creature->LocationAI to go up/down.
 	};
 
 	static void RotateTowardTarget(ItemInfo& item, const AI_INFO& ai, short turnRate)
@@ -167,7 +167,8 @@ namespace TEN::Entities::Creatures::TR3
 		item.Pose.Orientation.x = 0;
 		item.Pose.Orientation.z = 0;
 
-		if (!item.IsLara()) return; // Set Lara to fall back.
+		if (!item.IsLara())
+			return; // Set Lara to fall back.
 		SetAnimation(item, LA_FALL_BACK);
 	}
 
@@ -175,7 +176,8 @@ namespace TEN::Entities::Creatures::TR3
 	{
 		auto& creature = *GetCreatureInfo(&item);
 		auto& enemy = *creature.Enemy;
-		if (enemy.ObjectNumber == ID_AI_X1) return; // Ignore knockback for AI object used for path, just in case...
+		if (enemy.ObjectNumber == ID_AI_X1) 
+			return; // Ignore knockback for AI object used for path, just in case...
 
 		// Fly cheat active, ignore knockback.
 		if (enemy.IsLara() && Lara.Control.WaterStatus == WaterStatus::FlyCheat)
