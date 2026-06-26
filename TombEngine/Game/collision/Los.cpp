@@ -26,7 +26,7 @@ using TEN::Renderer::g_Renderer;
 
 namespace TEN::Collision::Los
 {
-	static std::vector<ItemInfo*> GetNearbyItems(const std::vector<int>& roomNumbers)
+	static std::vector<ItemInfo*> GetNearbyItems(const std::vector<int>& roomNumbers, bool includePlayer)
 	{
 		// Collect neighbor room numbers.
 		auto neighborRoomNumbers = std::set<int>{};
@@ -55,8 +55,8 @@ namespace TEN::Collision::Los
 
 				// 2) Check collidability.
 				const auto& object = Objects[item.ObjectNumber];
-				if (!item.Collidable || item.Flags & IFLAG_KILLED ||
-					object.collision == nullptr || object.Hidden)
+				if (!(item.IsLara() && includePlayer) &&
+					(!item.Collidable || item.Flags & IFLAG_KILLED || object.collision == nullptr || object.Hidden))
 				{
 					continue;
 				}
@@ -106,7 +106,7 @@ namespace TEN::Collision::Los
 	}
 
 	LosCollisionData GetLosCollision(const Vector3& origin, int roomNumber, const Vector3& dir, float dist,
-									 bool collideItemBoxes, bool collideItemSpheres, bool collideStatics)
+									 bool collideItemBoxes, bool collideItemSpheres, bool collideStatics, bool collidePlayer)
 	{
 		// FAILSAFE.
 		if (dir == Vector3::Zero)
@@ -148,7 +148,7 @@ namespace TEN::Collision::Los
 		if (collideItemBoxes || collideItemSpheres)
 		{
 			// Run through nearby items.
-			auto items = GetNearbyItems(los.Room.RoomNumbers);
+			auto items = GetNearbyItems(los.Room.RoomNumbers, collidePlayer);
 			for (auto* item : items)
 			{
 				// 2.1) Collect item box LOS collisions.

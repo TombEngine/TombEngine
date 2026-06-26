@@ -160,11 +160,14 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 		Lara.RightArm.GunFlash = Weapons[(int)Lara.Control.Weapon.GunType].FlashTime;
 
 		if (Lara.Control.Weapon.GunType == LaraWeaponType::Revolver)
+		{
 			SoundEffect(SFX_TR4_REVOLVER_FIRE, nullptr);
-
+			Lara.RightArm.GunFlashType = LaraWeaponType::Revolver;
+		}
 		if (Lara.Control.Weapon.GunType == LaraWeaponType::Crossbow)
 		{
 			FireCrossBowFromLaserSight(*LaraItem, origin, &target2);
+			Lara.RightArm.GunFlashType = LaraWeaponType::Crossbow;
 			return false;
 		}
 	}

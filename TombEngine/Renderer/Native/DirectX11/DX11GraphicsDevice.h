@@ -185,7 +185,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 		Vector3 Unproject(Vector3 position, Matrix projection, Matrix view, Matrix world) override;
 
-		void SaveScreenshot(IRenderTarget2D* renderTarget, std::string path) override;
+		bool SaveScreenshot(IRenderTarget2D* renderTarget, std::string path) override;
 
 		void Flush() override;
 		void UnbindAllRenderTargets() override;

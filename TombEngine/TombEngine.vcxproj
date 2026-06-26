@@ -929,6 +929,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\Objects\Material\TextureMaterialTypes.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Moveable\InteractionType.h" />
     <ClInclude Include="Scripting\Internal\TEN\Collision\Los.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Objects\Lara\WeaponFlashMode.h" />
     <ClInclude Include="Scripting\Internal\TEN\Types\Color\Color.h" />
     <ClInclude Include="Scripting\Internal\TEN\View\DisplayAnchors\ScriptDisplayAnchors.h" />
     <ClInclude Include="Scripting\Internal\TEN\Types\Time\Time.h" />

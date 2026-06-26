@@ -1152,9 +1152,10 @@ struct ArmInfo
 	EulerAngles Orientation = EulerAngles::Identity;
 	bool		Locked		= false;
 
-	int GunFlash = 0;
-	int GunSmoke = 0;
-	int AimDelay = 0;
+	int				GunFlash	 = 0;
+	int				GunSmoke	 = 0;
+	int				AimDelay	 = 0;
+	LaraWeaponType	GunFlashType = LaraWeaponType::None;
 };
 
 struct FlareData
