@@ -2470,13 +2470,6 @@ namespace TEN::Gui
 					n++;
 				}
 
-				if (options & OPT_EXAMINABLE)
-				{
-					CurrentOptions[n].Type = MenuType::Examine;
-					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[8].c_str());
-					n++;
-				}
-
 				if (options & OPT_STATS)
 				{
 					CurrentOptions[n].Type = MenuType::Statistics;
@@ -2495,6 +2488,13 @@ namespace TEN::Gui
 				{
 					CurrentOptions[n].Type = MenuType::Equip;
 					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[4].c_str());
+					n++;
+				}
+
+				if (options & OPT_EXAMINABLE)
+				{
+					CurrentOptions[n].Type = MenuType::Examine;
+					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[8].c_str());
 					n++;
 				}
 
@@ -3292,6 +3292,7 @@ namespace TEN::Gui
 			{
 				g_Renderer.PrepareScene();
 				ApplyPendingWindowResize();
+				SetRelativeMouseMode(false);
 
 				if (g_Gui.DoPauseMenu(LaraItem) == InventoryResult::ExitToTitle)
 				{
@@ -3386,6 +3387,7 @@ namespace TEN::Gui
 
 				g_Renderer.PrepareScene();
 				ApplyPendingWindowResize();
+				SetRelativeMouseMode(false);
 
 				switch (InvMode)
 				{
@@ -3502,7 +3504,7 @@ namespace TEN::Gui
 		if (GuiIsDeselected())
 		{
 			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-			SetInventoryMode(InventoryMode::None);
+			SetInventoryMode(InventoryMode::InGame);
 		}
 	}
 
