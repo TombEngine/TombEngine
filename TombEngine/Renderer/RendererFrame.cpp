@@ -441,8 +441,7 @@ namespace TEN::Renderer
 				continue;
 
 			// Items carrying FX data (e.g. body parts, projectiles) are drawn through the lightweight
-			// effect path - a single mesh with no skeleton, animation, root motion or frustum culling -
-			// exactly like the legacy effect system. Route them there and skip the moveable pipeline.
+			// effect path - a single mesh with no skeleton, animation, root motion or frustum culling.
 			if (item.Data.is<FXInfo>())
 			{
 				CollectEffect(itemNumber, rendererRoom);
@@ -562,7 +561,7 @@ namespace TEN::Renderer
 		effect.Position = item.Pose.Position.ToVector3();
 		effect.Translation = Matrix::CreateTranslation(effect.Position);
 		effect.Rotation = item.Pose.Orientation.ToRotationMatrix();
-		effect.Scale = Matrix::CreateScale(1.0f);
+		effect.Scale = Matrix::CreateScale(Vector3::One);
 		effect.World = effect.Rotation * effect.Translation;
 		effect.Color = item.Model.Color;
 		effect.AmbientLight = room.AmbientLight;

@@ -1732,8 +1732,6 @@ namespace TEN::Renderer
 		return _graphicsDevice->CreateTexture2D(1, 1, SurfaceFormat::SF_RGBA8_Unorm, color.data());
 	}
 
-	// Draws all FX-backed items (e.g. body parts, projectiles) as simple single-mesh effects, the same
-	// way the legacy effect system did: no skeleton, no animation, no root motion and no frustum culling.
 	void Renderer::DrawEffects(RenderView& view, RendererPass rendererPass)
 	{
 		// Effects are drawn immediately and don't participate in sorted transparency collection.
