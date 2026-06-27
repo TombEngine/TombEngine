@@ -528,6 +528,22 @@ const std::vector<byte> SaveGame::Build()
 	torch.add_next_color(&FromVector3(Lara.Torch.NextColor));
 	auto torchOffset = torch.Finish();
 
+	std::vector<int> sequenceSequences{};
+	for (int i = 0; i < 3; i++)
+		sequenceSequences.push_back(Lara.Control.SequenceSwitch.Sequences[i]);
+	auto sequenceSequencesOffset = fbb.CreateVector(sequenceSequences);
+
+	std::vector<int> sequenceUsed{};
+	for (int i = 0; i < 6; i++)
+		sequenceUsed.push_back(Lara.Control.SequenceSwitch.SequenceUsed[i]);
+	auto sequenceUsedOffset = fbb.CreateVector(sequenceUsed);
+
+	Save::SequenceDataBuilder sequence{ fbb };
+	sequence.add_current_sequence(Lara.Control.SequenceSwitch.CurrentSequence);
+	sequence.add_sequences(sequenceSequencesOffset);
+	sequence.add_sequence_used(sequenceUsedOffset);
+	auto sequenceOffset = sequence.Finish();
+
 	Save::LaraInventoryDataBuilder inventory{ fbb };
 	inventory.add_beetle_life(Lara.Inventory.BeetleLife);
 	inventory.add_big_waterskin(Lara.Inventory.BigWaterskin);
@@ -556,6 +572,7 @@ const std::vector<byte> SaveGame::Build()
 	inventory.add_total_flares(Lara.Inventory.TotalFlares);
 	inventory.add_total_small_medipacks(Lara.Inventory.TotalSmallMedipacks);
 	inventory.add_total_large_medipacks(Lara.Inventory.TotalLargeMedipacks);
+	inventory.add_sequenceData(sequenceOffset);
 	auto inventoryOffset = inventory.Finish();
 
 	Save::LaraCountDataBuilder count{ fbb };
@@ -2082,6 +2099,12 @@ static void ParsePlayer(const Save::SaveGame* s)
 
 	for (int i = 0; i < Lara.Effect.DripNodes.size(); i++)
 		Lara.Effect.DripNodes[i] = s->lara()->effect()->drip_nodes()->Get(i);
+
+	Lara.Control.SequenceSwitch.CurrentSequence = s->lara()->inventory()->sequenceData()->current_sequence();
+	for (int i = 0; i < 3; i++)
+		Lara.Control.SequenceSwitch.Sequences[i] = s->lara()->inventory()->sequenceData()->sequences()->Get(i);
+	for (int i = 0; i < 6; i++)
+		Lara.Control.SequenceSwitch.SequenceUsed[i] = s->lara()->inventory()->sequenceData()->sequence_used()->Get(i);
 
 	Lara.Context.CalcJumpVelocity = s->lara()->context()->calc_jump_velocity();
 	Lara.Context.WaterCurrentActive = s->lara()->context()->water_current_active();

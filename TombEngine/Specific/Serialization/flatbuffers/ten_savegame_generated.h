@@ -63,6 +63,10 @@ struct TorchData;
 struct TorchDataBuilder;
 struct TorchDataT;
 
+struct SequenceData;
+struct SequenceDataBuilder;
+struct SequenceDataT;
+
 struct LaraInventoryData;
 struct LaraInventoryDataBuilder;
 struct LaraInventoryDataT;
@@ -3202,6 +3206,102 @@ struct TorchData::Traits {
 
 flatbuffers::Offset<TorchData> CreateTorchData(flatbuffers::FlatBufferBuilder &_fbb, const TorchDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct SequenceDataT : public flatbuffers::NativeTable {
+  typedef SequenceData TableType;
+  int32_t current_sequence = 0;
+  std::vector<int32_t> sequences{};
+  std::vector<int32_t> sequence_used{};
+};
+
+struct SequenceData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SequenceDataT NativeTableType;
+  typedef SequenceDataBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_CURRENT_SEQUENCE = 4,
+    VT_SEQUENCES = 6,
+    VT_SEQUENCE_USED = 8
+  };
+  int32_t current_sequence() const {
+    return GetField<int32_t>(VT_CURRENT_SEQUENCE, 0);
+  }
+  const flatbuffers::Vector<int32_t> *sequences() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_SEQUENCES);
+  }
+  const flatbuffers::Vector<int32_t> *sequence_used() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_SEQUENCE_USED);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_CURRENT_SEQUENCE) &&
+           VerifyOffset(verifier, VT_SEQUENCES) &&
+           verifier.VerifyVector(sequences()) &&
+           VerifyOffset(verifier, VT_SEQUENCE_USED) &&
+           verifier.VerifyVector(sequence_used()) &&
+           verifier.EndTable();
+  }
+  SequenceDataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(SequenceDataT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<SequenceData> Pack(flatbuffers::FlatBufferBuilder &_fbb, const SequenceDataT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct SequenceDataBuilder {
+  typedef SequenceData Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_current_sequence(int32_t current_sequence) {
+    fbb_.AddElement<int32_t>(SequenceData::VT_CURRENT_SEQUENCE, current_sequence, 0);
+  }
+  void add_sequences(flatbuffers::Offset<flatbuffers::Vector<int32_t>> sequences) {
+    fbb_.AddOffset(SequenceData::VT_SEQUENCES, sequences);
+  }
+  void add_sequence_used(flatbuffers::Offset<flatbuffers::Vector<int32_t>> sequence_used) {
+    fbb_.AddOffset(SequenceData::VT_SEQUENCE_USED, sequence_used);
+  }
+  explicit SequenceDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<SequenceData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<SequenceData>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<SequenceData> CreateSequenceData(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t current_sequence = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> sequences = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> sequence_used = 0) {
+  SequenceDataBuilder builder_(_fbb);
+  builder_.add_sequence_used(sequence_used);
+  builder_.add_sequences(sequences);
+  builder_.add_current_sequence(current_sequence);
+  return builder_.Finish();
+}
+
+struct SequenceData::Traits {
+  using type = SequenceData;
+  static auto constexpr Create = CreateSequenceData;
+};
+
+inline flatbuffers::Offset<SequenceData> CreateSequenceDataDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t current_sequence = 0,
+    const std::vector<int32_t> *sequences = nullptr,
+    const std::vector<int32_t> *sequence_used = nullptr) {
+  auto sequences__ = sequences ? _fbb.CreateVector<int32_t>(*sequences) : 0;
+  auto sequence_used__ = sequence_used ? _fbb.CreateVector<int32_t>(*sequence_used) : 0;
+  return TEN::Serialization::Save::CreateSequenceData(
+      _fbb,
+      current_sequence,
+      sequences__,
+      sequence_used__);
+}
+
+flatbuffers::Offset<SequenceData> CreateSequenceData(flatbuffers::FlatBufferBuilder &_fbb, const SequenceDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct LaraInventoryDataT : public flatbuffers::NativeTable {
   typedef LaraInventoryData TableType;
   bool is_busy = false;
@@ -3232,6 +3332,7 @@ struct LaraInventoryDataT : public flatbuffers::NativeTable {
   std::vector<int32_t> keys_combo{};
   std::vector<int32_t> pickups_combo{};
   std::vector<int32_t> examines_combo{};
+  std::unique_ptr<TEN::Serialization::Save::SequenceDataT> sequenceData{};
 };
 
 struct LaraInventoryData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -3266,7 +3367,8 @@ struct LaraInventoryData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_PUZZLES_COMBO = 52,
     VT_KEYS_COMBO = 54,
     VT_PICKUPS_COMBO = 56,
-    VT_EXAMINES_COMBO = 58
+    VT_EXAMINES_COMBO = 58,
+    VT_SEQUENCEDATA = 60
   };
   bool is_busy() const {
     return GetField<uint8_t>(VT_IS_BUSY, 0) != 0;
@@ -3352,6 +3454,9 @@ struct LaraInventoryData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<int32_t> *examines_combo() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_EXAMINES_COMBO);
   }
+  const TEN::Serialization::Save::SequenceData *sequenceData() const {
+    return GetPointer<const TEN::Serialization::Save::SequenceData *>(VT_SEQUENCEDATA);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_IS_BUSY) &&
@@ -3390,6 +3495,8 @@ struct LaraInventoryData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(pickups_combo()) &&
            VerifyOffset(verifier, VT_EXAMINES_COMBO) &&
            verifier.VerifyVector(examines_combo()) &&
+           VerifyOffset(verifier, VT_SEQUENCEDATA) &&
+           verifier.VerifyTable(sequenceData()) &&
            verifier.EndTable();
   }
   LaraInventoryDataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -3485,6 +3592,9 @@ struct LaraInventoryDataBuilder {
   void add_examines_combo(flatbuffers::Offset<flatbuffers::Vector<int32_t>> examines_combo) {
     fbb_.AddOffset(LaraInventoryData::VT_EXAMINES_COMBO, examines_combo);
   }
+  void add_sequenceData(flatbuffers::Offset<TEN::Serialization::Save::SequenceData> sequenceData) {
+    fbb_.AddOffset(LaraInventoryData::VT_SEQUENCEDATA, sequenceData);
+  }
   explicit LaraInventoryDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -3525,8 +3635,10 @@ inline flatbuffers::Offset<LaraInventoryData> CreateLaraInventoryData(
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> puzzles_combo = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> keys_combo = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> pickups_combo = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> examines_combo = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> examines_combo = 0,
+    flatbuffers::Offset<TEN::Serialization::Save::SequenceData> sequenceData = 0) {
   LaraInventoryDataBuilder builder_(_fbb);
+  builder_.add_sequenceData(sequenceData);
   builder_.add_examines_combo(examines_combo);
   builder_.add_pickups_combo(pickups_combo);
   builder_.add_keys_combo(keys_combo);
@@ -3592,7 +3704,8 @@ inline flatbuffers::Offset<LaraInventoryData> CreateLaraInventoryDataDirect(
     const std::vector<int32_t> *puzzles_combo = nullptr,
     const std::vector<int32_t> *keys_combo = nullptr,
     const std::vector<int32_t> *pickups_combo = nullptr,
-    const std::vector<int32_t> *examines_combo = nullptr) {
+    const std::vector<int32_t> *examines_combo = nullptr,
+    flatbuffers::Offset<TEN::Serialization::Save::SequenceData> sequenceData = 0) {
   auto puzzles__ = puzzles ? _fbb.CreateVector<int32_t>(*puzzles) : 0;
   auto keys__ = keys ? _fbb.CreateVector<int32_t>(*keys) : 0;
   auto pickups__ = pickups ? _fbb.CreateVector<int32_t>(*pickups) : 0;
@@ -3630,7 +3743,8 @@ inline flatbuffers::Offset<LaraInventoryData> CreateLaraInventoryDataDirect(
       puzzles_combo__,
       keys_combo__,
       pickups_combo__,
-      examines_combo__);
+      examines_combo__,
+      sequenceData);
 }
 
 flatbuffers::Offset<LaraInventoryData> CreateLaraInventoryData(flatbuffers::FlatBufferBuilder &_fbb, const LaraInventoryDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -11665,6 +11779,38 @@ inline flatbuffers::Offset<TorchData> CreateTorchData(flatbuffers::FlatBufferBui
       _next_color);
 }
 
+inline SequenceDataT *SequenceData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<SequenceDataT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void SequenceData::UnPackTo(SequenceDataT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = current_sequence(); _o->current_sequence = _e; }
+  { auto _e = sequences(); if (_e) { _o->sequences.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->sequences[_i] = _e->Get(_i); } } }
+  { auto _e = sequence_used(); if (_e) { _o->sequence_used.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->sequence_used[_i] = _e->Get(_i); } } }
+}
+
+inline flatbuffers::Offset<SequenceData> SequenceData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SequenceDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateSequenceData(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<SequenceData> CreateSequenceData(flatbuffers::FlatBufferBuilder &_fbb, const SequenceDataT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const SequenceDataT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _current_sequence = _o->current_sequence;
+  auto _sequences = _fbb.CreateVector(_o->sequences);
+  auto _sequence_used = _fbb.CreateVector(_o->sequence_used);
+  return TEN::Serialization::Save::CreateSequenceData(
+      _fbb,
+      _current_sequence,
+      _sequences,
+      _sequence_used);
+}
+
 inline LaraInventoryDataT *LaraInventoryData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::make_unique<LaraInventoryDataT>();
   UnPackTo(_o.get(), _resolver);
@@ -11702,6 +11848,7 @@ inline void LaraInventoryData::UnPackTo(LaraInventoryDataT *_o, const flatbuffer
   { auto _e = keys_combo(); if (_e) { _o->keys_combo.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->keys_combo[_i] = _e->Get(_i); } } }
   { auto _e = pickups_combo(); if (_e) { _o->pickups_combo.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->pickups_combo[_i] = _e->Get(_i); } } }
   { auto _e = examines_combo(); if (_e) { _o->examines_combo.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->examines_combo[_i] = _e->Get(_i); } } }
+  { auto _e = sequenceData(); if (_e) _o->sequenceData = std::unique_ptr<TEN::Serialization::Save::SequenceDataT>(_e->UnPack(_resolver)); }
 }
 
 inline flatbuffers::Offset<LaraInventoryData> LaraInventoryData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LaraInventoryDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -11740,6 +11887,7 @@ inline flatbuffers::Offset<LaraInventoryData> CreateLaraInventoryData(flatbuffer
   auto _keys_combo = _fbb.CreateVector(_o->keys_combo);
   auto _pickups_combo = _fbb.CreateVector(_o->pickups_combo);
   auto _examines_combo = _fbb.CreateVector(_o->examines_combo);
+  auto _sequenceData = _o->sequenceData ? CreateSequenceData(_fbb, _o->sequenceData.get(), _rehasher) : 0;
   return TEN::Serialization::Save::CreateLaraInventoryData(
       _fbb,
       _is_busy,
@@ -11769,7 +11917,8 @@ inline flatbuffers::Offset<LaraInventoryData> CreateLaraInventoryData(flatbuffer
       _puzzles_combo,
       _keys_combo,
       _pickups_combo,
-      _examines_combo);
+      _examines_combo,
+      _sequenceData);
 }
 
 inline LaraCountDataT *LaraCountData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {

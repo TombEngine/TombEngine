@@ -51,6 +51,7 @@ table LevelData {
 	starfield_meteor_count: int32;
 	starfield_meteor_spawn_density: int32;
 	starfield_meteor_velocity: int32;
+	
 	material_properties: [TEN.Serialization.Common.Vector4];
 }
 
@@ -193,6 +194,12 @@ table TorchData {
 	next_color: TEN.Serialization.Common.Vector3;
 }
 
+table SequenceData{
+	current_sequence: int32;
+	sequences: [int32];
+	sequence_used: [int32];
+}
+
 table LaraInventoryData {
 	is_busy: bool;
 	old_busy: bool;
@@ -222,6 +229,7 @@ table LaraInventoryData {
 	keys_combo: [int32];
 	pickups_combo: [int32];
 	examines_combo: [int32];
+	sequenceData: SequenceData;
 }
 
 table LaraCountData {
