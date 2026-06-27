@@ -514,9 +514,7 @@ namespace TEN::Renderer
 
 				if (particle.flags & SP_FX)
 				{
-					auto& fx = g_Level.Items[particle.fxObj];
-					auto& fxInfo = GetFXInfo(fx);
-
+					const auto& fx = g_Level.Items[particle.fxObj];
 					auto& newEffect = _items[particle.fxObj];
 
 					newEffect.Translation = Matrix::CreateTranslation(fx.Pose.Position.ToVector3());

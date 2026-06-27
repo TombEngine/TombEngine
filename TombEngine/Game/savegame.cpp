@@ -2638,7 +2638,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		room->TriggerVolumes[number].Enabled = volume->enabled();
 		room->TriggerVolumes[number].Name = volume->name()->str();
 		room->TriggerVolumes[number].Box.Center =
-			room->TriggerVolumes[number].Sphere.Center = ToVector3(volume->position());
+		room->TriggerVolumes[number].Sphere.Center = ToVector3(volume->position());
 		room->TriggerVolumes[number].Box.Orientation = ToVector4(volume->rotation());
 		room->TriggerVolumes[number].Box.Extents = ToVector3(volume->scale());
 		room->TriggerVolumes[number].Sphere.Radius = room->TriggerVolumes[number].Box.Extents.x;

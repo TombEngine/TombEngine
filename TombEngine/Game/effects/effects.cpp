@@ -2054,9 +2054,3 @@ FXInfo& GetFXInfo(ItemInfo& fx)
 	TENAssert(fx.Data.is<FXInfo>(), "GetFXInfo called on item without FXInfo data.");
 	return static_cast<FXInfo&>(fx.Data);
 }
-
-const FXInfo& GetFXInfo(const ItemInfo& fx)
-{
-	TENAssert(fx.Data.is<FXInfo>(), "GetFXInfo called on item without FXInfo data.");
-	return static_cast<FXInfo&>(const_cast<ItemData&>(fx.Data));
-}

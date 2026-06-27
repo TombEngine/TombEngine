@@ -210,14 +210,10 @@ void KillActiveBaddys(ItemInfo* item)
 
 		if (Objects[targetItem->ObjectNumber].intelligent)
 		{
+			RemoveActiveItem(itemNumber);
+			DisableEntityAI(itemNumber);
+			targetItem->Flags |= IFLAG_INVISIBLE;
 			targetItem->Status = ITEM_INVISIBLE;
-
-			if (*(int*)&item != 0xABCDEF)
-			{
-				RemoveActiveItem(itemNumber);
-				DisableEntityAI(itemNumber);
-				targetItem->Flags |= IFLAG_INVISIBLE;
-			}
 		}
 	}
 

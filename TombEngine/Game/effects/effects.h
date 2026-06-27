@@ -2,7 +2,7 @@
 
 #include "Game/Items.h"
 #include "Game/effects/Light.h"
-#include "Game/effects/fx_info.h"
+#include "Game/itemdata/FXInfo.h"
 #include "Math/Math.h"
 #include "Renderer/RendererEnums.h"
 
@@ -253,9 +253,7 @@ void ClearInactiveEffects(std::vector<TEffect>& effects)
 }
 
 Particle* GetFreeParticle();
-
 FXInfo& GetFXInfo(ItemInfo& fx);
-const FXInfo& GetFXInfo(const ItemInfo& fx);
 
 void SetSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID);
 void SetAdvancedSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID, ParticleAnimType animationType, float frameRate);

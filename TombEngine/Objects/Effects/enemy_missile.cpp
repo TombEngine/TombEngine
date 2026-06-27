@@ -116,7 +116,7 @@ namespace TEN::Entities::Effects
 		flame.dSize = flame.size / 32;
 	}
 
-	void BubblesShatterFunction(const ItemInfo& fx, int param1, int param2)
+	void BubblesShatterFunction(ItemInfo& fx, int param1, int param2)
 	{
 		auto& fxInfo = GetFXInfo(fx);
 

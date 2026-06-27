@@ -306,9 +306,8 @@ void UseClockworkBeetle(bool flag)
 		beetle->Animation.Velocity.z = 0;
 		AddActiveItem(itemNumber);
 
-		std::string stringResult = fmt::format("ID_CLOCKWORK_BEETLE{}", itemNumber);
-		beetle->Name = stringResult;
-		g_GameScriptEntities->AddName(stringResult, itemNumber);
+		beetle->Name = fmt::format("ID_CLOCKWORK_BEETLE_{}", itemNumber);
+		g_GameScriptEntities->AddName(beetle->Name, itemNumber);
 
 		if (beetle->ItemFlags[0])
 		{

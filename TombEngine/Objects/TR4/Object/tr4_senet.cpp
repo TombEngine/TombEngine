@@ -330,7 +330,7 @@ void SenetPieceExplosionEffect(ItemInfo* item, int color, int speed)
 	item->Pose.Position.y += STEPUP_HEIGHT;
 }
 
-void TriggerItemInRoom(short roomNumber, int object) // Originally this is in deltapak.
+void TriggerItemInRoom(short roomNumber, int object)
 {
 	for (int itemNumber : g_Level.Rooms[roomNumber].itemNumbers)
 	{
