@@ -295,8 +295,8 @@ table LaraControlData {
 	can_monkey_swing: bool;
 	count: LaraCountData;
 	hand_status: int32;
-	heading_orient: EulerAngles;
-	heading_orient_target: EulerAngles;
+	heading_orient: TEN.Serialization.Common.EulerAngles;
+	heading_orient_target: TEN.Serialization.Common.EulerAngles;
 	is_climbing_ladder: bool;
 	is_locked: bool;
 	is_low: bool;
@@ -308,8 +308,8 @@ table LaraControlData {
 	look: LookControlData;
 	move_angle: int32;
 	move_angle_target: int32;
-	ref_camera_orient: EulerAngles;
-	ref_move_axis: Vector2;
+	ref_camera_orient: TEN.Serialization.Common.EulerAngles;
+	ref_move_axis: TEN.Serialization.Common.Vector2;
 	rope: RopeControlData;
 	subsuit: SubsuitControlData;
 	tightrope: TightropeControlData;

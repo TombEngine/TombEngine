@@ -306,8 +306,6 @@ namespace TEN::Config
 		builder.add_enable_subtitles(g_Configuration.EnableSubtitles);
 		builder.add_screen_width(g_Configuration.ScreenWidth);
 		builder.add_screen_height(g_Configuration.ScreenHeight);
-		builder.add_screen_width(g_Configuration.ScreenWidth);
-		builder.add_screen_height(g_Configuration.ScreenHeight);
 		builder.add_gamma(g_Configuration.Gamma);
 		builder.add_enable_windowed_mode(g_Configuration.EnableWindowedMode);
 		builder.add_shadow_mode((int)g_Configuration.ShadowMode);

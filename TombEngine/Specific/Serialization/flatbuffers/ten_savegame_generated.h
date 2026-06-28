@@ -6,8 +6,8 @@
 
 #include "flatbuffers/flatbuffers.h"
 
-#include "ten_itemdata_generated.h"
 #include "ten_common_generated.h"
+#include "ten_itemdata_generated.h"
 
 namespace TEN {
 namespace Serialization {
@@ -4472,6 +4472,8 @@ struct LaraControlDataT : public flatbuffers::NativeTable {
   bool can_monkey_swing = false;
   std::unique_ptr<TEN::Serialization::Save::LaraCountDataT> count{};
   int32_t hand_status = 0;
+  std::unique_ptr<TEN::Serialization::Common::EulerAngles> heading_orient{};
+  std::unique_ptr<TEN::Serialization::Common::EulerAngles> heading_orient_target{};
   bool is_climbing_ladder = false;
   bool is_locked = false;
   bool is_low = false;
@@ -4479,11 +4481,18 @@ struct LaraControlDataT : public flatbuffers::NativeTable {
   bool is_run_jump_queued = false;
   int32_t jump_direction = 0;
   bool keep_low = false;
+  bool lock_ref_camera_orient = false;
   std::unique_ptr<TEN::Serialization::Save::LookControlDataT> look{};
   int32_t move_angle = 0;
+  int32_t move_angle_target = 0;
+  std::unique_ptr<TEN::Serialization::Common::EulerAngles> ref_camera_orient{};
+  std::unique_ptr<TEN::Serialization::Common::Vector2> ref_move_axis{};
   std::unique_ptr<TEN::Serialization::Save::RopeControlDataT> rope{};
   std::unique_ptr<TEN::Serialization::Save::SubsuitControlDataT> subsuit{};
   std::unique_ptr<TEN::Serialization::Save::TightropeControlDataT> tightrope{};
+  bool toggle_climb = false;
+  bool toggle_crouch = false;
+  bool toggle_walk = false;
   int32_t turn_rate = 0;
   int32_t water_status = 0;
   std::unique_ptr<TEN::Serialization::Save::WeaponControlDataT> weapon{};
@@ -4498,21 +4507,30 @@ struct LaraControlData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_CAN_MONKEY_SWING = 6,
     VT_COUNT = 8,
     VT_HAND_STATUS = 10,
-    VT_IS_CLIMBING_LADDER = 12,
-    VT_IS_LOCKED = 14,
-    VT_IS_LOW = 16,
-    VT_IS_MOVING = 18,
-    VT_IS_RUN_JUMP_QUEUED = 20,
-    VT_JUMP_DIRECTION = 22,
-    VT_KEEP_LOW = 24,
-    VT_LOOK = 26,
-    VT_MOVE_ANGLE = 28,
-    VT_ROPE = 30,
-    VT_SUBSUIT = 32,
-    VT_TIGHTROPE = 34,
-    VT_TURN_RATE = 36,
-    VT_WATER_STATUS = 38,
-    VT_WEAPON = 40
+    VT_HEADING_ORIENT = 12,
+    VT_HEADING_ORIENT_TARGET = 14,
+    VT_IS_CLIMBING_LADDER = 16,
+    VT_IS_LOCKED = 18,
+    VT_IS_LOW = 20,
+    VT_IS_MOVING = 22,
+    VT_IS_RUN_JUMP_QUEUED = 24,
+    VT_JUMP_DIRECTION = 26,
+    VT_KEEP_LOW = 28,
+    VT_LOCK_REF_CAMERA_ORIENT = 30,
+    VT_LOOK = 32,
+    VT_MOVE_ANGLE = 34,
+    VT_MOVE_ANGLE_TARGET = 36,
+    VT_REF_CAMERA_ORIENT = 38,
+    VT_REF_MOVE_AXIS = 40,
+    VT_ROPE = 42,
+    VT_SUBSUIT = 44,
+    VT_TIGHTROPE = 46,
+    VT_TOGGLE_CLIMB = 48,
+    VT_TOGGLE_CROUCH = 50,
+    VT_TOGGLE_WALK = 52,
+    VT_TURN_RATE = 54,
+    VT_WATER_STATUS = 56,
+    VT_WEAPON = 58
   };
   bool can_climb_ladder() const {
     return GetField<uint8_t>(VT_CAN_CLIMB_LADDER, 0) != 0;
@@ -4525,6 +4543,12 @@ struct LaraControlData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   int32_t hand_status() const {
     return GetField<int32_t>(VT_HAND_STATUS, 0);
+  }
+  const TEN::Serialization::Common::EulerAngles *heading_orient() const {
+    return GetStruct<const TEN::Serialization::Common::EulerAngles *>(VT_HEADING_ORIENT);
+  }
+  const TEN::Serialization::Common::EulerAngles *heading_orient_target() const {
+    return GetStruct<const TEN::Serialization::Common::EulerAngles *>(VT_HEADING_ORIENT_TARGET);
   }
   bool is_climbing_ladder() const {
     return GetField<uint8_t>(VT_IS_CLIMBING_LADDER, 0) != 0;
@@ -4547,11 +4571,23 @@ struct LaraControlData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool keep_low() const {
     return GetField<uint8_t>(VT_KEEP_LOW, 0) != 0;
   }
+  bool lock_ref_camera_orient() const {
+    return GetField<uint8_t>(VT_LOCK_REF_CAMERA_ORIENT, 0) != 0;
+  }
   const TEN::Serialization::Save::LookControlData *look() const {
     return GetPointer<const TEN::Serialization::Save::LookControlData *>(VT_LOOK);
   }
   int32_t move_angle() const {
     return GetField<int32_t>(VT_MOVE_ANGLE, 0);
+  }
+  int32_t move_angle_target() const {
+    return GetField<int32_t>(VT_MOVE_ANGLE_TARGET, 0);
+  }
+  const TEN::Serialization::Common::EulerAngles *ref_camera_orient() const {
+    return GetStruct<const TEN::Serialization::Common::EulerAngles *>(VT_REF_CAMERA_ORIENT);
+  }
+  const TEN::Serialization::Common::Vector2 *ref_move_axis() const {
+    return GetStruct<const TEN::Serialization::Common::Vector2 *>(VT_REF_MOVE_AXIS);
   }
   const TEN::Serialization::Save::RopeControlData *rope() const {
     return GetPointer<const TEN::Serialization::Save::RopeControlData *>(VT_ROPE);
@@ -4561,6 +4597,15 @@ struct LaraControlData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const TEN::Serialization::Save::TightropeControlData *tightrope() const {
     return GetPointer<const TEN::Serialization::Save::TightropeControlData *>(VT_TIGHTROPE);
+  }
+  bool toggle_climb() const {
+    return GetField<uint8_t>(VT_TOGGLE_CLIMB, 0) != 0;
+  }
+  bool toggle_crouch() const {
+    return GetField<uint8_t>(VT_TOGGLE_CROUCH, 0) != 0;
+  }
+  bool toggle_walk() const {
+    return GetField<uint8_t>(VT_TOGGLE_WALK, 0) != 0;
   }
   int32_t turn_rate() const {
     return GetField<int32_t>(VT_TURN_RATE, 0);
@@ -4578,6 +4623,8 @@ struct LaraControlData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_COUNT) &&
            verifier.VerifyTable(count()) &&
            VerifyField<int32_t>(verifier, VT_HAND_STATUS) &&
+           VerifyField<TEN::Serialization::Common::EulerAngles>(verifier, VT_HEADING_ORIENT) &&
+           VerifyField<TEN::Serialization::Common::EulerAngles>(verifier, VT_HEADING_ORIENT_TARGET) &&
            VerifyField<uint8_t>(verifier, VT_IS_CLIMBING_LADDER) &&
            VerifyField<uint8_t>(verifier, VT_IS_LOCKED) &&
            VerifyField<uint8_t>(verifier, VT_IS_LOW) &&
@@ -4585,15 +4632,22 @@ struct LaraControlData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_IS_RUN_JUMP_QUEUED) &&
            VerifyField<int32_t>(verifier, VT_JUMP_DIRECTION) &&
            VerifyField<uint8_t>(verifier, VT_KEEP_LOW) &&
+           VerifyField<uint8_t>(verifier, VT_LOCK_REF_CAMERA_ORIENT) &&
            VerifyOffset(verifier, VT_LOOK) &&
            verifier.VerifyTable(look()) &&
            VerifyField<int32_t>(verifier, VT_MOVE_ANGLE) &&
+           VerifyField<int32_t>(verifier, VT_MOVE_ANGLE_TARGET) &&
+           VerifyField<TEN::Serialization::Common::EulerAngles>(verifier, VT_REF_CAMERA_ORIENT) &&
+           VerifyField<TEN::Serialization::Common::Vector2>(verifier, VT_REF_MOVE_AXIS) &&
            VerifyOffset(verifier, VT_ROPE) &&
            verifier.VerifyTable(rope()) &&
            VerifyOffset(verifier, VT_SUBSUIT) &&
            verifier.VerifyTable(subsuit()) &&
            VerifyOffset(verifier, VT_TIGHTROPE) &&
            verifier.VerifyTable(tightrope()) &&
+           VerifyField<uint8_t>(verifier, VT_TOGGLE_CLIMB) &&
+           VerifyField<uint8_t>(verifier, VT_TOGGLE_CROUCH) &&
+           VerifyField<uint8_t>(verifier, VT_TOGGLE_WALK) &&
            VerifyField<int32_t>(verifier, VT_TURN_RATE) &&
            VerifyField<int32_t>(verifier, VT_WATER_STATUS) &&
            VerifyOffset(verifier, VT_WEAPON) &&
@@ -4621,6 +4675,12 @@ struct LaraControlDataBuilder {
   void add_hand_status(int32_t hand_status) {
     fbb_.AddElement<int32_t>(LaraControlData::VT_HAND_STATUS, hand_status, 0);
   }
+  void add_heading_orient(const TEN::Serialization::Common::EulerAngles *heading_orient) {
+    fbb_.AddStruct(LaraControlData::VT_HEADING_ORIENT, heading_orient);
+  }
+  void add_heading_orient_target(const TEN::Serialization::Common::EulerAngles *heading_orient_target) {
+    fbb_.AddStruct(LaraControlData::VT_HEADING_ORIENT_TARGET, heading_orient_target);
+  }
   void add_is_climbing_ladder(bool is_climbing_ladder) {
     fbb_.AddElement<uint8_t>(LaraControlData::VT_IS_CLIMBING_LADDER, static_cast<uint8_t>(is_climbing_ladder), 0);
   }
@@ -4642,11 +4702,23 @@ struct LaraControlDataBuilder {
   void add_keep_low(bool keep_low) {
     fbb_.AddElement<uint8_t>(LaraControlData::VT_KEEP_LOW, static_cast<uint8_t>(keep_low), 0);
   }
+  void add_lock_ref_camera_orient(bool lock_ref_camera_orient) {
+    fbb_.AddElement<uint8_t>(LaraControlData::VT_LOCK_REF_CAMERA_ORIENT, static_cast<uint8_t>(lock_ref_camera_orient), 0);
+  }
   void add_look(flatbuffers::Offset<TEN::Serialization::Save::LookControlData> look) {
     fbb_.AddOffset(LaraControlData::VT_LOOK, look);
   }
   void add_move_angle(int32_t move_angle) {
     fbb_.AddElement<int32_t>(LaraControlData::VT_MOVE_ANGLE, move_angle, 0);
+  }
+  void add_move_angle_target(int32_t move_angle_target) {
+    fbb_.AddElement<int32_t>(LaraControlData::VT_MOVE_ANGLE_TARGET, move_angle_target, 0);
+  }
+  void add_ref_camera_orient(const TEN::Serialization::Common::EulerAngles *ref_camera_orient) {
+    fbb_.AddStruct(LaraControlData::VT_REF_CAMERA_ORIENT, ref_camera_orient);
+  }
+  void add_ref_move_axis(const TEN::Serialization::Common::Vector2 *ref_move_axis) {
+    fbb_.AddStruct(LaraControlData::VT_REF_MOVE_AXIS, ref_move_axis);
   }
   void add_rope(flatbuffers::Offset<TEN::Serialization::Save::RopeControlData> rope) {
     fbb_.AddOffset(LaraControlData::VT_ROPE, rope);
@@ -4656,6 +4728,15 @@ struct LaraControlDataBuilder {
   }
   void add_tightrope(flatbuffers::Offset<TEN::Serialization::Save::TightropeControlData> tightrope) {
     fbb_.AddOffset(LaraControlData::VT_TIGHTROPE, tightrope);
+  }
+  void add_toggle_climb(bool toggle_climb) {
+    fbb_.AddElement<uint8_t>(LaraControlData::VT_TOGGLE_CLIMB, static_cast<uint8_t>(toggle_climb), 0);
+  }
+  void add_toggle_crouch(bool toggle_crouch) {
+    fbb_.AddElement<uint8_t>(LaraControlData::VT_TOGGLE_CROUCH, static_cast<uint8_t>(toggle_crouch), 0);
+  }
+  void add_toggle_walk(bool toggle_walk) {
+    fbb_.AddElement<uint8_t>(LaraControlData::VT_TOGGLE_WALK, static_cast<uint8_t>(toggle_walk), 0);
   }
   void add_turn_rate(int32_t turn_rate) {
     fbb_.AddElement<int32_t>(LaraControlData::VT_TURN_RATE, turn_rate, 0);
@@ -4683,6 +4764,8 @@ inline flatbuffers::Offset<LaraControlData> CreateLaraControlData(
     bool can_monkey_swing = false,
     flatbuffers::Offset<TEN::Serialization::Save::LaraCountData> count = 0,
     int32_t hand_status = 0,
+    const TEN::Serialization::Common::EulerAngles *heading_orient = 0,
+    const TEN::Serialization::Common::EulerAngles *heading_orient_target = 0,
     bool is_climbing_ladder = false,
     bool is_locked = false,
     bool is_low = false,
@@ -4690,11 +4773,18 @@ inline flatbuffers::Offset<LaraControlData> CreateLaraControlData(
     bool is_run_jump_queued = false,
     int32_t jump_direction = 0,
     bool keep_low = false,
+    bool lock_ref_camera_orient = false,
     flatbuffers::Offset<TEN::Serialization::Save::LookControlData> look = 0,
     int32_t move_angle = 0,
+    int32_t move_angle_target = 0,
+    const TEN::Serialization::Common::EulerAngles *ref_camera_orient = 0,
+    const TEN::Serialization::Common::Vector2 *ref_move_axis = 0,
     flatbuffers::Offset<TEN::Serialization::Save::RopeControlData> rope = 0,
     flatbuffers::Offset<TEN::Serialization::Save::SubsuitControlData> subsuit = 0,
     flatbuffers::Offset<TEN::Serialization::Save::TightropeControlData> tightrope = 0,
+    bool toggle_climb = false,
+    bool toggle_crouch = false,
+    bool toggle_walk = false,
     int32_t turn_rate = 0,
     int32_t water_status = 0,
     flatbuffers::Offset<TEN::Serialization::Save::WeaponControlData> weapon = 0) {
@@ -4705,11 +4795,20 @@ inline flatbuffers::Offset<LaraControlData> CreateLaraControlData(
   builder_.add_tightrope(tightrope);
   builder_.add_subsuit(subsuit);
   builder_.add_rope(rope);
+  builder_.add_ref_move_axis(ref_move_axis);
+  builder_.add_ref_camera_orient(ref_camera_orient);
+  builder_.add_move_angle_target(move_angle_target);
   builder_.add_move_angle(move_angle);
   builder_.add_look(look);
   builder_.add_jump_direction(jump_direction);
+  builder_.add_heading_orient_target(heading_orient_target);
+  builder_.add_heading_orient(heading_orient);
   builder_.add_hand_status(hand_status);
   builder_.add_count(count);
+  builder_.add_toggle_walk(toggle_walk);
+  builder_.add_toggle_crouch(toggle_crouch);
+  builder_.add_toggle_climb(toggle_climb);
+  builder_.add_lock_ref_camera_orient(lock_ref_camera_orient);
   builder_.add_keep_low(keep_low);
   builder_.add_is_run_jump_queued(is_run_jump_queued);
   builder_.add_is_moving(is_moving);
@@ -12067,6 +12166,8 @@ inline void LaraControlData::UnPackTo(LaraControlDataT *_o, const flatbuffers::r
   { auto _e = can_monkey_swing(); _o->can_monkey_swing = _e; }
   { auto _e = count(); if (_e) _o->count = std::unique_ptr<TEN::Serialization::Save::LaraCountDataT>(_e->UnPack(_resolver)); }
   { auto _e = hand_status(); _o->hand_status = _e; }
+  { auto _e = heading_orient(); if (_e) _o->heading_orient = std::unique_ptr<TEN::Serialization::Common::EulerAngles>(new TEN::Serialization::Common::EulerAngles(*_e)); }
+  { auto _e = heading_orient_target(); if (_e) _o->heading_orient_target = std::unique_ptr<TEN::Serialization::Common::EulerAngles>(new TEN::Serialization::Common::EulerAngles(*_e)); }
   { auto _e = is_climbing_ladder(); _o->is_climbing_ladder = _e; }
   { auto _e = is_locked(); _o->is_locked = _e; }
   { auto _e = is_low(); _o->is_low = _e; }
@@ -12074,11 +12175,18 @@ inline void LaraControlData::UnPackTo(LaraControlDataT *_o, const flatbuffers::r
   { auto _e = is_run_jump_queued(); _o->is_run_jump_queued = _e; }
   { auto _e = jump_direction(); _o->jump_direction = _e; }
   { auto _e = keep_low(); _o->keep_low = _e; }
+  { auto _e = lock_ref_camera_orient(); _o->lock_ref_camera_orient = _e; }
   { auto _e = look(); if (_e) _o->look = std::unique_ptr<TEN::Serialization::Save::LookControlDataT>(_e->UnPack(_resolver)); }
   { auto _e = move_angle(); _o->move_angle = _e; }
+  { auto _e = move_angle_target(); _o->move_angle_target = _e; }
+  { auto _e = ref_camera_orient(); if (_e) _o->ref_camera_orient = std::unique_ptr<TEN::Serialization::Common::EulerAngles>(new TEN::Serialization::Common::EulerAngles(*_e)); }
+  { auto _e = ref_move_axis(); if (_e) _o->ref_move_axis = std::unique_ptr<TEN::Serialization::Common::Vector2>(new TEN::Serialization::Common::Vector2(*_e)); }
   { auto _e = rope(); if (_e) _o->rope = std::unique_ptr<TEN::Serialization::Save::RopeControlDataT>(_e->UnPack(_resolver)); }
   { auto _e = subsuit(); if (_e) _o->subsuit = std::unique_ptr<TEN::Serialization::Save::SubsuitControlDataT>(_e->UnPack(_resolver)); }
   { auto _e = tightrope(); if (_e) _o->tightrope = std::unique_ptr<TEN::Serialization::Save::TightropeControlDataT>(_e->UnPack(_resolver)); }
+  { auto _e = toggle_climb(); _o->toggle_climb = _e; }
+  { auto _e = toggle_crouch(); _o->toggle_crouch = _e; }
+  { auto _e = toggle_walk(); _o->toggle_walk = _e; }
   { auto _e = turn_rate(); _o->turn_rate = _e; }
   { auto _e = water_status(); _o->water_status = _e; }
   { auto _e = weapon(); if (_e) _o->weapon = std::unique_ptr<TEN::Serialization::Save::WeaponControlDataT>(_e->UnPack(_resolver)); }
@@ -12096,6 +12204,8 @@ inline flatbuffers::Offset<LaraControlData> CreateLaraControlData(flatbuffers::F
   auto _can_monkey_swing = _o->can_monkey_swing;
   auto _count = _o->count ? CreateLaraCountData(_fbb, _o->count.get(), _rehasher) : 0;
   auto _hand_status = _o->hand_status;
+  auto _heading_orient = _o->heading_orient ? _o->heading_orient.get() : 0;
+  auto _heading_orient_target = _o->heading_orient_target ? _o->heading_orient_target.get() : 0;
   auto _is_climbing_ladder = _o->is_climbing_ladder;
   auto _is_locked = _o->is_locked;
   auto _is_low = _o->is_low;
@@ -12103,11 +12213,18 @@ inline flatbuffers::Offset<LaraControlData> CreateLaraControlData(flatbuffers::F
   auto _is_run_jump_queued = _o->is_run_jump_queued;
   auto _jump_direction = _o->jump_direction;
   auto _keep_low = _o->keep_low;
+  auto _lock_ref_camera_orient = _o->lock_ref_camera_orient;
   auto _look = _o->look ? CreateLookControlData(_fbb, _o->look.get(), _rehasher) : 0;
   auto _move_angle = _o->move_angle;
+  auto _move_angle_target = _o->move_angle_target;
+  auto _ref_camera_orient = _o->ref_camera_orient ? _o->ref_camera_orient.get() : 0;
+  auto _ref_move_axis = _o->ref_move_axis ? _o->ref_move_axis.get() : 0;
   auto _rope = _o->rope ? CreateRopeControlData(_fbb, _o->rope.get(), _rehasher) : 0;
   auto _subsuit = _o->subsuit ? CreateSubsuitControlData(_fbb, _o->subsuit.get(), _rehasher) : 0;
   auto _tightrope = _o->tightrope ? CreateTightropeControlData(_fbb, _o->tightrope.get(), _rehasher) : 0;
+  auto _toggle_climb = _o->toggle_climb;
+  auto _toggle_crouch = _o->toggle_crouch;
+  auto _toggle_walk = _o->toggle_walk;
   auto _turn_rate = _o->turn_rate;
   auto _water_status = _o->water_status;
   auto _weapon = _o->weapon ? CreateWeaponControlData(_fbb, _o->weapon.get(), _rehasher) : 0;
@@ -12117,6 +12234,8 @@ inline flatbuffers::Offset<LaraControlData> CreateLaraControlData(flatbuffers::F
       _can_monkey_swing,
       _count,
       _hand_status,
+      _heading_orient,
+      _heading_orient_target,
       _is_climbing_ladder,
       _is_locked,
       _is_low,
@@ -12124,11 +12243,18 @@ inline flatbuffers::Offset<LaraControlData> CreateLaraControlData(flatbuffers::F
       _is_run_jump_queued,
       _jump_direction,
       _keep_low,
+      _lock_ref_camera_orient,
       _look,
       _move_angle,
+      _move_angle_target,
+      _ref_camera_orient,
+      _ref_move_axis,
       _rope,
       _subsuit,
       _tightrope,
+      _toggle_climb,
+      _toggle_crouch,
+      _toggle_walk,
       _turn_rate,
       _water_status,
       _weapon);
