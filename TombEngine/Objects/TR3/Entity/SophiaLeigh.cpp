@@ -226,7 +226,7 @@ namespace TEN::Entities::Creatures::TR3
 		}
 	}
 
-	static void TriggerSophiaLeightLight(ItemInfo& item, const Vector3& pos)
+	static void TriggerSophiaLeighLight(ItemInfo& item, const Vector3& pos)
 	{
 		if ((item.Animation.AnimNumber == SOPHIALEIGH_ANIM_SUMMON_START && item.Animation.FrameNumber > 6) ||
 			item.Animation.AnimNumber == SOPHIALEIGH_ANIM_SUMMON ||
@@ -479,7 +479,7 @@ namespace TEN::Entities::Creatures::TR3
 
 		auto sphere = BoundingSphere(item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(2), 0.0f), BLOCK(1 / 16.0f));
 		auto shockwavePos = Pose(Random::GeneratePointInSphere(sphere), item.Pose.Orientation);
-		TriggerSophiaLeightLight(item, shockwavePos.Position.ToVector3());
+		TriggerSophiaLeighLight(item, shockwavePos.Position.ToVector3());
 
 		// Set current AI_X1 waypoint as enemy and check if reached.
 		FindAITargetObject(creature, ID_AI_X1, creature->LocationAI, false);
@@ -573,7 +573,7 @@ namespace TEN::Entities::Creatures::TR3
 
 		auto sphere = BoundingSphere(item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(2), 0.0f), BLOCK(1 / 16.0f));
 		auto shockwavePos = Pose(Random::GeneratePointInSphere(sphere), item.Pose.Orientation);
-		TriggerSophiaLeightLight(item, shockwavePos.Position.ToVector3());
+		TriggerSophiaLeighLight(item, shockwavePos.Position.ToVector3());
 
 		// Charge count. Sophia can start charge animation again when at 0.
 		if (data->chargeDelay > 0)
