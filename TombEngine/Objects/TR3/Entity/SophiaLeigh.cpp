@@ -169,6 +169,7 @@ namespace TEN::Entities::Creatures::TR3
 
 		if (!item.IsLara())
 			return; // Set Lara to fall back.
+
 		SetAnimation(item, LA_FALL_BACK);
 	}
 
@@ -521,7 +522,7 @@ namespace TEN::Entities::Creatures::TR3
 				// Clear pending decision if in dead zone (Lara at similar height or can't move further).
 				if (isInDeadZone)
 				{
-					data->pendingLocationAI = -1;
+					data->pendingLocationAI = NO_VALUE;
 					data->waypointStableTimer = 0;
 				}
 				// Apply hysteresis: only change waypoint after consistent direction for multiple frames.
@@ -532,7 +533,7 @@ namespace TEN::Entities::Creatures::TR3
 					if (data->waypointStableTimer <= 0)
 					{
 						creature->LocationAI = desiredLocationAI;
-						data->pendingLocationAI = -1;
+						data->pendingLocationAI = NO_VALUE;
 						data->waypointStableTimer = 0;
 					}
 				}
@@ -553,7 +554,7 @@ namespace TEN::Entities::Creatures::TR3
 			item.ItemFlags[6] = 0; // Not reached goal.
 
 			// Reset hysteresis state while navigating.
-			data->pendingLocationAI = -1;
+			data->pendingLocationAI = NO_VALUE;
 			data->waypointStableTimer = 0;
 
 			// Run state machine with ai relative to waypoint for correct movement/turning.
