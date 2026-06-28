@@ -322,13 +322,13 @@ namespace TEN::Renderer
 
 			// Target highlighter
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TARGET_HIGHLIGHTER), optionColor, SF(titleOption == 7));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_GameFlow->GetSettings()->Hud.TargetHighlighter),
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableTargetHighlighter),
 				g_GameFlow->GetSettings()->Hud.TargetHighlighter ? plainColor : disabledColor, SF(titleOption == 7));
 			GetNextLinePosition(&y);
 
 			// Interaction highlighter
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INTERACTION_HIGHLIGHTER), optionColor, SF(titleOption == 8));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_GameFlow->GetSettings()->Hud.InteractionHighlighter),
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableInteractionHighlighter),
 				g_GameFlow->GetSettings()->Hud.InteractionHighlighter ? plainColor : disabledColor, SF(titleOption == 8));
 			GetNextLinePosition(&y);
 
@@ -627,7 +627,6 @@ namespace TEN::Renderer
 			break;
 		}
 
-		DrawDebugInfo(_gameCamera);
 		DrawAllStrings();
 	}
 
@@ -1026,8 +1025,8 @@ namespace TEN::Renderer
 			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
 
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 			// Draw the skin mesh.
 			const auto skinMesh = GetMesh(object.skinIndex);
@@ -1081,8 +1080,8 @@ namespace TEN::Renderer
 			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
@@ -1194,8 +1193,8 @@ namespace TEN::Renderer
 			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
 
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 			// Get skin mesh.
 			const auto* skinMesh = GetMesh(object.skinIndex);
@@ -1249,8 +1248,8 @@ namespace TEN::Renderer
 			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
-			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
 
@@ -1504,6 +1503,9 @@ namespace TEN::Renderer
 
 		if (staticBackground)
 		{
+			ResetDebugVariables();
+			UpdateDumpScreenRenderTarget();
+
 			// Set basic render states.
 			SetBlendMode(BlendMode::Opaque);
 			SetCullMode(CullMode::CounterClockwise);
@@ -1594,6 +1596,9 @@ namespace TEN::Renderer
 
 	void Renderer::RenderInventory()
 	{
+		ResetDebugVariables();
+		UpdateDumpScreenRenderTarget();
+
 		if (_graphicsSettingsChanged)
 		{
 			UpdateCameraMatrices(g_Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
@@ -1617,9 +1622,6 @@ namespace TEN::Renderer
 
 	void Renderer::RenderTitle(float interpFactor)
 	{
-		_stringsToDraw.clear();
-		_isLocked = false;
-
 		InterpolateCamera(interpFactor);
 		DumpGameScene(g_Gui.GetMenuToDisplay() == Menu::SelectLevel ? SceneRenderMode::NoHud : SceneRenderMode::Full);
 
@@ -1629,8 +1631,17 @@ namespace TEN::Renderer
 		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 1.0f);
 
 		_graphicsDevice->Present();
+	}
 
-		_isLocked = true;
+	void Renderer::UpdateDumpScreenRenderTarget()
+	{
+		if (!_graphicsSettingsChanged)
+			return;
+
+		UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
+		Camera.DisableInterpolation = true;
+		DumpGameScene(SceneRenderMode::NoHud, g_GameFlow->GetSettings()->UI.MenuBackgroundBlur);
+		_graphicsSettingsChanged = false;
 	}
 
 	void Renderer::DrawDebugRenderTargets(RenderView& view)

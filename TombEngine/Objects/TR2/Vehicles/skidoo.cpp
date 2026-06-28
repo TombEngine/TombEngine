@@ -54,7 +54,7 @@ namespace TEN::Entities::Vehicles
 	constexpr auto SKIDOO_MIN_BOUNCE = (SKIDOO_NORMAL_VELOCITY_MAX / 2) / 256;
 
 	constexpr auto SKIDOO_DAMAGE_START = 140;
-	constexpr auto SKIDOO_DAMAGE_LENGTH = 14;
+	constexpr auto SKIDOO_DAMAGE_LENGTH = 30; // Increased from original 14 by builder request. To be converted to a property.
 
 	constexpr auto SKIDOO_WAKE_OFFSET = Vector3(SKIDOO_SIDE, 0, SKIDOO_FRONT / 2);
 

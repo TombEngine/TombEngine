@@ -562,7 +562,16 @@ void LaraSwimCollision(ItemInfo* item, CollisionInfo* coll)
 
 	ShiftItem(item, coll);
 
-	int flag = 0;
+	int hitFlag = 0;
+	bool noYshift = false;
+
+	auto pointColl = GetPointCollision(*item);
+	if (item->Pose.Position.y > pointColl.GetFloorHeight() || item->Pose.Position.y < pointColl.GetCeilingHeight() || coll->Middle.Floor < -CLICK(2))
+	{
+		item->Pose.Position = coll->Setup.PrevPosition;
+		noYshift = true;
+	}
+
 	switch (coll->CollisionType)
 	{
 	case CollisionType::Front:
@@ -593,7 +602,7 @@ void LaraSwimCollision(ItemInfo* item, CollisionInfo* coll)
 				else
 				{
 					item->Animation.Velocity.y = 0;
-					flag = 1;
+					hitFlag = 1;
 				}
 			}
 			else
@@ -601,7 +610,7 @@ void LaraSwimCollision(ItemInfo* item, CollisionInfo* coll)
 				if (!g_Configuration.IsUsingModernControls())
 					item->Pose.Orientation.x -= ANGLE(1.0f);
 
-				flag = 1;
+				hitFlag = 1;
 			}
 		}
 		else
@@ -609,7 +618,7 @@ void LaraSwimCollision(ItemInfo* item, CollisionInfo* coll)
 			if (!g_Configuration.IsUsingModernControls())
 				item->Pose.Orientation.x += ANGLE(1.0f);
 
-			flag = 1;
+			hitFlag = 1;
 		}
 
 		if (!g_Configuration.IsUsingModernControls())
@@ -640,41 +649,38 @@ void LaraSwimCollision(ItemInfo* item, CollisionInfo* coll)
 			if (!g_Configuration.IsUsingModernControls())
 				item->Pose.Orientation.x -= ANGLE(1.0f);
 
-			flag = 1;
+			hitFlag = 1;
 		}
 
 		break;
 
 	case CollisionType::TopFront:
 		item->Animation.Velocity.y = 0;
-		flag = 1;
+		hitFlag = 1;
 		break;
 
 	case CollisionType::Left:
 		if (!g_Configuration.IsUsingModernControls())
 			item->Pose.Orientation.y += ANGLE(2.0f);
-
-		flag = 1;
+		hitFlag = 1;
 		break;
 
 	case CollisionType::Right:
 		if (!g_Configuration.IsUsingModernControls())
 			item->Pose.Orientation.y -= ANGLE(2.0f);
-
-		flag = 1;
+		hitFlag = 1;
 		break;
 
 	case CollisionType::Clamp:
 		item->Animation.Velocity.y = 0.0f;
 		item->Pose.Position = coll->Setup.PrevPosition;
-		flag = 2;
+		hitFlag = 2;
 		break;
 	}
 
-	if (coll->Middle.Floor < 0 &&
-		coll->Middle.Floor != NO_HEIGHT)
+	if (coll->Middle.Floor != NO_HEIGHT && coll->Middle.Floor < 0 && !noYshift)
 	{
-		flag = 1;
+		hitFlag = 1;
 		item->Pose.Position.y += coll->Middle.Floor;
 
 		if (!g_Configuration.IsUsingModernControls())
@@ -682,11 +688,11 @@ void LaraSwimCollision(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	if ((prevPose.Position == item->Pose.Position &&
-		prevPose.Orientation.x == item->Pose.Orientation.x &&
-		prevPose.Orientation.y == item->Pose.Orientation.y) ||
-		flag != 1)
+		 prevPose.Orientation.x == item->Pose.Orientation.x &&
+		 prevPose.Orientation.y == item->Pose.Orientation.y) ||
+		hitFlag != 1)
 	{
-		if (flag == 2)
+		if (hitFlag == 2)
 			return;
 	}
 

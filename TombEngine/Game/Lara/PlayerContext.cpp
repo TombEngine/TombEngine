@@ -681,7 +681,7 @@ namespace TEN::Entities::Player
 		auto pointColl = GetPointCollision(item, setup.HeadingAngle, OFFSET_RADIUS(coll.Setup.Radius));
 
 		// 1) Test if ceiling is monkey swing.
-		if (!pointColl.GetBottomSector().Flags.Monkeyswing)
+		if (!pointColl.GetBottomSector(true).Flags.Monkeyswing)
 			return false;
 
 		// 2) Test for illegal ceiling.

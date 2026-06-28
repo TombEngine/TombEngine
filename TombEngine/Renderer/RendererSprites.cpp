@@ -276,7 +276,6 @@ namespace TEN::Renderer
 				_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleStrip);
 
 				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
-
 				SetDepthState(DepthState::Read);
 				SetCullMode(CullMode::None);
 
@@ -307,6 +306,7 @@ namespace TEN::Renderer
 			};
 			g_Parallel.AddTasks((int)spriteBucket.SpritesToDraw.size(), prepareSprites).wait();
 
+			SetBlendMode(spriteBucket.BlendMode);
 			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
 			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());;
 
@@ -331,7 +331,6 @@ namespace TEN::Renderer
 				_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 
 				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
-
 				SetDepthState(DepthState::Read);
 				SetCullMode(CullMode::None);
 
@@ -351,10 +350,9 @@ namespace TEN::Renderer
 			_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
 			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = spriteBucket.IsSoftParticle ? 1.0f : 0.0f;
 
+			SetBlendMode(spriteBucket.BlendMode);
 			PackSpriteTextureCoordinates(0, spriteBucket.Sprite);
-
 			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
-
 			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
 
 			int spritesToDraw = 0;

@@ -610,6 +610,10 @@ namespace TEN::Renderer
 				if (particle.SpriteID == VIDEO_SPRITE_ID && (_videoSprite.Texture == nullptr || !_videoSprite.Texture->IsValid()))
 					continue;
 
+				// If sprite is not a video texture and no sprites present, bypass it.
+				if (particle.SpriteID != VIDEO_SPRITE_ID && _sprites.empty())
+					continue;
+
 				// Disallow sprites out of bounds.
 				int spriteIndex = Objects[particle.SpriteSeqID].meshIndex + particle.SpriteID;
 				spriteIndex = std::clamp(spriteIndex, 0, (int)_sprites.size());
@@ -800,7 +804,7 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareRipples(RenderView& view) 
 	{
-		if (Ripples.empty())
+		if (Ripples.empty() || _sprites.empty())
 			return;
 
 		for (const auto& ripple : Ripples)

@@ -175,7 +175,7 @@ static void SetSectorAttribs(CollisionPositionData& sectorAttribs, const Collisi
 	else if (collSetup.BlockMonkeySwingEdge)
 	{
 		auto pointColl = GetPointCollision(probePos, realRoomNumber, Vector3::UnitY, collSetup.Height);
-		if (!pointColl.GetBottomSector().Flags.Monkeyswing)
+		if (!pointColl.GetBottomSector(true).Flags.Monkeyswing)
 			sectorAttribs.Floor = MAX_HEIGHT;
 	}
 }

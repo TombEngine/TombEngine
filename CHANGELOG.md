@@ -33,14 +33,35 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Bug fixes
 
-* Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
-* Fixed flyby camera jitter by converting the spline type to floating-point.
-* Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
-* Fixed BATS_EMITTER targeting issues.
+* Fixed original bug with bridge objects blocking monkeyswing and ladder flags in the bottom room.
+* Fixed original bug with inactive SQUISHY_BLOCK_VERTICAL killing player.
+* Fixed incorrect application of LARA_DOUBLE damage after using medipacks.
+* Fixed MINECART_SWITCH object not working.
 * Fixed JUMP_SWITCH not activating event sets.
+* Fixed SNOWMOBILE death being too sensitive to vertical velocity.
+* Fixed BATS_EMITTER targeting issues.
+* Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
+* Fixed SOPHIA_LEIGH_BOSS pathfinding and knockback effect.
+* Fixed TEETH_SPIKES behaviour for OCB 1 and move static TR1-3 mode to pre-activated trigger bit flags.
+* Fixed empty inventory screen after exiting examine mode.
+* Fixed USE not being first in the inventory if multiple item actions have been allocated.
+* Fixed regular spark sprite distance while moving with flare in hand.
+* Fixed fireflies emitting bright white light while in fly form (negative OCB).
+* Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
+* Fixed flyby camera flag "Let Lara move in cinematic mode" being ignored.
+* Fixed flyby camera jitter by converting the spline type to floating-point.
 * Fixed occasional flame emitter sprite jitter.
+* Fixed incorrect static mesh interpolation after a large position change.
+* Fixed interaction highlighter appearing for underwater pushable objects.
+* Fixed clipping into underwater pushable objects while swimming upwards from the bottom.
+* Fixed incorrect renderer statistics in the linear inventory.
+* Fixed fades and cinematic bars not progressing in the freeze mode.
+* Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
+* Fixed an issue where the storm effect would stop producing lightning over time.
 * Fixed incorrect aspect ratio when resizing the window in windowed mode.
 * Fixed title level selection dialog not scrolling offscreen entries.
+* Fixed incorrect blend mode application for sprites.
+* Fixed UI bars being affected by the postprocess mode.
 
 ### Lua API changes
 
@@ -59,6 +80,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Flow.Settings.UI.systemTextScale` option to change global system text scale.
 * Added `Input.GetLastInputDevice` function to detect which input device was used last.
 * Added functional key (F1-F12) mappings and raw gamepad input mappings to the `Input.ActionID` and `Input.AxisID` enums.
+* Added `Lara:GetExposure` and `Lara:SetExposure` functions to get or set cold exposure value.
 * Added `Lara:GetLocked` and `Lara:SetLocked` to manage native control lock status.
 * Added `Lara:GetSkin` and `Lara:SetSkin` functions to manage swapping of classic outfits.
 * Added `Lara:SpawnGunFlash` and `Lara:ClearGunFlashes` functions to spawn and clear gunflashes.
@@ -82,6 +104,9 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Static:GetProperty`, `Static:SetProperty` and `Static:HasInstanceProperty` functions.
 * Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
+* Fixed incorrect error message when using `Moveable:SetFrame` with a frame number equal to the end frame.
+* Fixed glide camera movement when entering or exiting freeze mode.
+* Fixed `View.DisplayString` not working in the title level.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 * Fixed notification display bug in `CustomDiary` class.
 
