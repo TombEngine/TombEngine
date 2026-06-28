@@ -173,19 +173,24 @@ namespace TEN::Entities::Creatures::TR3
 		SetAnimation(item, LA_FALL_BACK, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 	}
 
-	static void TriggerKnockback(ItemInfo& item)
+	static bool TriggerKnockback(ItemInfo& item, ItemInfo& enemy)
 	{
 		auto& creature = *GetCreatureInfo(&item);
-		auto& enemy = *creature.Enemy;
-		if (enemy.ObjectNumber == ID_AI_X1) 
-			return; // Ignore knockback for AI object used for path, just in case...
+
+		// Ignore knockback for AI object used for path, just in case...
+		if (enemy.ObjectNumber == ID_AI_X1)
+			return false; 
+
+		// Ignore knockback for dead enemies or enemies that are already knocked back.
+		if (creature.Flags > 0 || enemy.HitPoints <= 0)
+			return false;
 
 		// Fly cheat active, ignore knockback.
 		if (enemy.IsLara() && Lara.Control.WaterStatus == WaterStatus::FlyCheat)
-			return;
+			return false;
 
-		auto orient = Geometry::GetOrientToPoint(enemy.Pose.Position.ToVector3(), item.Pose.Position.ToVector3());
 		auto distance = Vector3::Distance(item.Pose.Position.ToVector3(), enemy.Pose.Position.ToVector3());
+
 		if (distance <= SOPHIALEIGH_KNOCKBACK_RANGE)
 		{
 			unsigned char red = SOPHIALEIGH_EFFECT_COLOR.x * UCHAR_MAX;
@@ -219,11 +224,16 @@ namespace TEN::Entities::Creatures::TR3
 				red, green, blue,
 				36, EulerAngles(0, 30, 0), 0, false, true, false, (int)ShockwaveStyle::Knockback);
 
-			TriggerExplosionSparks(enemy.Pose.Position.x, enemy.Pose.Position.y, enemy.Pose.Position.z, 3, -2, 2, enemy.RoomNumber);
 			// NOTE: TriggerPlasmaBall exists but isn't coded (uses EXTRAFX5 in OG).
+			TriggerExplosionSparks(enemy.Pose.Position.x, enemy.Pose.Position.y, enemy.Pose.Position.z, 3, -2, 2, enemy.RoomNumber);
 
+			auto orient = Geometry::GetOrientToPoint(enemy.Pose.Position.ToVector3(), item.Pose.Position.ToVector3());
 			KnockbackCollision(enemy, orient.y);
+
+			return true;
 		}
+
+		return false;
 	}
 
 	static void TriggerSophiaLeighLight(ItemInfo& item, const Vector3& pos)
@@ -302,9 +312,8 @@ namespace TEN::Entities::Creatures::TR3
 
 		// Knockback the target if Sophia in tower mode.
 		// Avoid spawning rings if target is dead.
-		if (ai.distance < SQUARE(SOPHIALEIGH_KNOCKBACK_RANGE) && creature->Flags <= 0 && creature->Enemy && creature->Enemy->HitPoints > 0)
+		if (TriggerKnockback(item, *LaraItem))
 		{
-			TriggerKnockback(item);
 			creature->Flags = 50;
 		}
 		else
@@ -502,8 +511,7 @@ namespace TEN::Entities::Creatures::TR3
 				// Update waypoint based on Lara's vertical position with hysteresis to prevent oscillation.
 
 				int desiredLocationAI = creature->LocationAI; // Default: stay at current waypoint.
-				bool isInDeadZone = (ai.verticalDistance >= -SOPHIALEIGH_Y_DISTANCE_RANGE &&
-					ai.verticalDistance <= SOPHIALEIGH_Y_DISTANCE_RANGE);
+				bool isInDeadZone = (ai.verticalDistance >= -SOPHIALEIGH_Y_DISTANCE_RANGE && ai.verticalDistance <= SOPHIALEIGH_Y_DISTANCE_RANGE);
 
 				// Determine which direction to go based on Lara's position.
 				if (ai.verticalDistance > SOPHIALEIGH_Y_DISTANCE_RANGE)
