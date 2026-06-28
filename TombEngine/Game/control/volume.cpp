@@ -28,7 +28,7 @@ namespace TEN::Control::Volumes
 		switch (volume.Type)
 		{
 		case VolumeType::Box:
-			if (roomNumber == Camera.pos.RoomNumber)
+			if (roomNumber == g_Camera.RoomNumber)
 			{
 				DrawDebugBox(volume.Box, 
 					Vector4(color, 0.0f, color, 1.0f), RendererDebugPage::CollisionStats);
@@ -36,7 +36,7 @@ namespace TEN::Control::Volumes
 			return volume.Box.Intersects(box);
 
 		case VolumeType::Sphere:
-			if (roomNumber == Camera.pos.RoomNumber)
+			if (roomNumber == g_Camera.RoomNumber)
 			{
 				DrawDebugSphere(volume.Sphere.Center, volume.Sphere.Radius, 
 					Vector4(color, 0.0f, color, 1.0f), RendererDebugPage::CollisionStats);
@@ -227,16 +227,16 @@ namespace TEN::Control::Volumes
 		}
 	}
 	
-	void TestVolumes(CAMERA_INFO* camera)
+	void TestVolumes(CameraInfo* camera)
 	{
-		auto pose = Pose(camera->pos.ToVector3i(), EulerAngles::Identity);
+		auto pose = Pose(camera->Position, EulerAngles::Identity);
 		auto bounds = GameBoundingBox::Zero;
 		bounds.X1 = bounds.Y1 = bounds.Z1 =  CAM_SIZE;
 		bounds.X2 = bounds.Y2 = bounds.Z2 = -CAM_SIZE;
 
 		auto box = bounds.ToBoundingOrientedBox(pose);
 
-		TestVolumes(camera->pos.RoomNumber, box, ActivatorFlags::Flyby, camera);
+		TestVolumes(camera->RoomNumber, box, ActivatorFlags::Flyby, camera);
 	}
 
 	void TestVolumes(int roomNumber, StaticMesh* mesh)

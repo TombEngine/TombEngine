@@ -12,8 +12,10 @@
 #include "Sound/sound.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/Input/Input.h"
+#include "Specific/configuration.h"
 #include "Specific/level.h"
 
+using namespace TEN::Config;
 using namespace TEN::Input;
 using namespace TEN::Entities::Player;
 
@@ -28,8 +30,9 @@ void lara_as_slide_forward(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
+	lara->Control.HeadingOrientTarget.y = item->Pose.Orientation.y;
 	lara->Control.Look.Mode = LookMode::Free;
-	Camera.targetElevation = -ANGLE(45.0f);
+	g_Camera.targetElevation = -ANGLE(45.0f);
 
 	if (item->HitPoints <= 0)
 	{
@@ -49,17 +52,17 @@ void lara_as_slide_forward(ItemInfo* item, CollisionInfo* coll)
 			// TODO: Prepped for another time.
 			if (IsHeld(In::Left))
 			{
-				lara->Control.TurnRate -= LARA_TURN_RATE_ACCEL;
-				if (lara->Control.TurnRate < -LARA_SLIDE_TURN_RATE_MAX)
-					lara->Control.TurnRate = -LARA_SLIDE_TURN_RATE_MAX;
+				lara->Control.TurnRate.y -= LARA_TURN_RATE_ACCEL;
+				if (lara->Control.TurnRate.y < -LARA_SLIDE_TURN_RATE_MAX)
+					lara->Control.TurnRate.y = -LARA_SLIDE_TURN_RATE_MAX;
 
 				DoLaraLean(item, coll, -LARA_LEAN_MAX, LARA_LEAN_RATE / 3 * 2);
 			}
 			else if (IsHeld(In::Right))
 			{
-				lara->Control.TurnRate += LARA_TURN_RATE_ACCEL;
-				if (lara->Control.TurnRate > LARA_SLIDE_TURN_RATE_MAX)
-					lara->Control.TurnRate = LARA_SLIDE_TURN_RATE_MAX;
+				lara->Control.TurnRate.y += LARA_TURN_RATE_ACCEL;
+				if (lara->Control.TurnRate.y > LARA_SLIDE_TURN_RATE_MAX)
+					lara->Control.TurnRate.y = LARA_SLIDE_TURN_RATE_MAX;
 
 				DoLaraLean(item, coll, LARA_LEAN_MAX, LARA_LEAN_RATE / 3 * 2);
 			}
@@ -78,10 +81,18 @@ void lara_as_slide_forward(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Forward))
+	if (g_Configuration.IsUsingModernControls() && ((IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))))
+	{
 		item->Animation.TargetState = LS_RUN_FORWARD;
+	}
+	else if (IsHeld(In::Forward))
+	{
+		item->Animation.TargetState = LS_RUN_FORWARD;
+	}
 	else
+	{
 		item->Animation.TargetState = LS_IDLE;
+	}
 
 	StopSoundEffect(SFX_TR4_LARA_SLIPPING);
 	return;
@@ -94,12 +105,12 @@ void lara_col_slide_forward(ItemInfo* item, CollisionInfo* coll)
 	auto* lara = GetLaraInfo(item);
 
 	item->Animation.IsAirborne = false;
-	lara->Control.MoveAngle = item->Pose.Orientation.y;
+	lara->Control.HeadingOrient.y = item->Pose.Orientation.y;
 	coll->Setup.Height = LARA_HEIGHT_CRAWL;	// HACK: Behaves better with clamps.
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = 0;
-	coll->Setup.ForwardAngle = lara->Control.MoveAngle;
+	coll->Setup.ForwardAngle = lara->Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	if (TestLaraHitCeiling(coll))
@@ -135,7 +146,7 @@ void lara_as_slide_back(ItemInfo* item, CollisionInfo* coll)
 	auto* lara = GetLaraInfo(item);
 
 	lara->Control.Look.Mode = LookMode::Free;
-	Camera.targetElevation = -ANGLE(45.0f);
+	g_Camera.targetElevation = -ANGLE(45.0f);
 	//Camera.targetAngle = ANGLE(135.0f); // TODO: Player setting to swivel camera around. -- Sezz 2023.04.09
 
 	if (item->HitPoints <= 0)
@@ -156,17 +167,17 @@ void lara_as_slide_back(ItemInfo* item, CollisionInfo* coll)
 			// TODO: Prepped for another time.
 			if (IsHeld(In::Left))
 			{
-				lara->Control.TurnRate -= LARA_TURN_RATE_ACCEL;
-				if (lara->Control.TurnRate < -LARA_SLIDE_TURN_RATE_MAX)
-					lara->Control.TurnRate = -LARA_SLIDE_TURN_RATE_MAX;
+				lara->Control.TurnRate.y -= LARA_TURN_RATE_ACCEL;
+				if (lara->Control.TurnRate.y < -LARA_SLIDE_TURN_RATE_MAX)
+					lara->Control.TurnRate.y = -LARA_SLIDE_TURN_RATE_MAX;
 
 				DoLaraLean(item, coll, LARA_LEAN_MAX, LARA_LEAN_RATE / 3 * 2);
 			}
 			else if (IsHeld(In::Right))
 			{
-				lara->Control.TurnRate += LARA_TURN_RATE_ACCEL;
-				if (lara->Control.TurnRate > LARA_SLIDE_TURN_RATE_MAX)
-					lara->Control.TurnRate = LARA_SLIDE_TURN_RATE_MAX;
+				lara->Control.TurnRate.y += LARA_TURN_RATE_ACCEL;
+				if (lara->Control.TurnRate.y > LARA_SLIDE_TURN_RATE_MAX)
+					lara->Control.TurnRate.y = LARA_SLIDE_TURN_RATE_MAX;
 
 				DoLaraLean(item, coll, -LARA_LEAN_MAX, LARA_LEAN_RATE / 3 * 2);
 			}
@@ -197,12 +208,12 @@ void lara_col_slide_back(ItemInfo* item, CollisionInfo* coll)
 	auto* lara = GetLaraInfo(item);
 
 	item->Animation.IsAirborne = false;
-	lara->Control.MoveAngle = item->Pose.Orientation.y + ANGLE(180.0f);
+	lara->Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(180.0f);
 	coll->Setup.Height = LARA_HEIGHT_CRAWL;	// HACK: Behaves better with clamps.
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = 0;
-	coll->Setup.ForwardAngle = lara->Control.MoveAngle;
+	coll->Setup.ForwardAngle = lara->Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	if (TestLaraHitCeiling(coll))

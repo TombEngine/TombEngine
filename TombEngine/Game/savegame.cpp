@@ -25,6 +25,7 @@
 #include "Game/room.h"
 #include "Game/Setup.h"
 #include "Game/StaticMesh.h"
+#include "Objects/Generic/Object/BridgeObject.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/Generic/Switches/fullblock_switch.h"
 #include "Objects/Generic/puzzles_keys.h"
@@ -43,6 +44,7 @@
 #include "Sound/sound.h"
 #include "Specific/Serialization/Flatbuffers.h"
 #include "Specific/clock.h"
+#include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/Serialization/flatbuffers/ten_savegame_generated.h"
 #include "Specific/trutils.h"
@@ -60,6 +62,7 @@ using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
+using namespace TEN::Input;
 using namespace TEN::Renderer;
 using namespace TEN::Scripting::Properties;
 using namespace TEN::Serialization;
@@ -635,6 +638,8 @@ const std::vector<byte> SaveGame::Build()
 	context.add_water_surface_dist(Lara.Context.WaterSurfaceDist);
 	auto contextOffset = context.Finish();
 
+	// @modernme Update schema with new fields.
+
 	Save::LaraControlDataBuilder control{ fbb };
 	control.add_can_climb_ladder(Lara.Control.CanClimbLadder);
 	control.add_can_monkey_swing(Lara.Control.CanMonkeySwing);
@@ -645,14 +650,23 @@ const std::vector<byte> SaveGame::Build()
 	control.add_is_low(Lara.Control.IsLow);
 	control.add_is_moving(Lara.Control.IsMoving);
 	control.add_is_run_jump_queued(Lara.Control.IsRunJumpQueued);
+	//control.add_heading_orient(&FromEulerAngles(Lara.Control.HeadingOrient));
+	//control.add_heading_orient_target(&FromEulerAngles(Lara.Control.HeadingOrientTarget));
 	control.add_jump_direction((int)Lara.Control.JumpDirection);
 	control.add_keep_low(Lara.Control.KeepLow);
+	//control.add_lock_ref_camera_orient(Lara.Control.LockRefCameraOrient);
 	control.add_look(lookControlOffset);
-	control.add_move_angle(Lara.Control.MoveAngle);
+	control.add_move_angle(Lara.Control.HeadingOrient.y);
+	//control.add_move_angle_target(Lara.Control.HeadingOrientTarget.y);
+	//control.add_ref_camera_orient(&FromEulerAngles(Lara.Control.RefCameraOrient));
+	//control.add_ref_move_axis(&FromVector2(Lara.Control.RefMoveAxis));
 	control.add_rope(ropeControlOffset);
 	control.add_subsuit(subsuitControlOffset);
 	control.add_tightrope(tightropeControlOffset);
-	control.add_turn_rate(Lara.Control.TurnRate);
+	//control.add_toggle_climb(Lara.Control.ToggleClimb);
+	//control.add_toggle_crouch(Lara.Control.ToggleCrouch);
+	//control.add_toggle_walk(Lara.Control.ToggleWalk);
+	control.add_turn_rate(Lara.Control.TurnRate.y);
 	control.add_water_status((int)Lara.Control.WaterStatus);
 	control.add_weapon(weaponControlOffset);
 	auto controlOffset = control.Finish();
@@ -674,12 +688,12 @@ const std::vector<byte> SaveGame::Build()
 	collision.add_last_bridge_item_pose(&FromPose(LaraCollision.LastBridgeItemPose));
 	auto collisionOffset = collision.Finish();
 
-	Save::CameraBuilder camera{ fbb };
-	camera.add_position(&FromGameVector(Camera.pos));
+	// TODO: Save camera.
+	/*Save::CameraBuilder camera{ fbb };
+	camera.add_position(&FromGameVector(g_Camera.pos));
 	camera.add_target(&FromGameVector(Camera.target));
 	camera.add_extra_orientation(&FromEulerAngles(EulerAngles(Camera.extraElevation, Camera.extraAngle, 0)));
-	auto cameraOffset = camera.Finish();
-
+	auto cameraOffset = camera.Finish();*/
 
 	std::vector<flatbuffers::Offset<Save::CarriedWeaponInfo>> carriedWeapons;
 	for (int i = 0; i < (int)LaraWeaponType::NumWeapons; i++)
@@ -1679,7 +1693,7 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_game(gameStatisticsOffset);
 	sgb.add_level_data(levelDataOffset);
 	sgb.add_secret_bits(SaveGame::Statistics.SecretBits);
-	sgb.add_camera(cameraOffset);
+	//sgb.add_camera(cameraOffset); // TODO: Save camera.
 	sgb.add_lara(laraOffset);
 	sgb.add_rooms(roomOffset);
 	sgb.add_box_flags(boxFlagsOffset);
@@ -1704,7 +1718,7 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_room_items(roomItemsOffset);
 	sgb.add_flip_effect(FlipEffect);
 	sgb.add_flip_status(FlipStatus);
-	sgb.add_current_fov(LastFOV);
+	sgb.add_current_fov(g_Camera.PrevFov);
 	sgb.add_last_inv_item(g_Gui.GetLastInventoryItem());
 	sgb.add_static_meshes(staticMeshesOffset);
 	sgb.add_volumes(volumesOffset);
@@ -2083,6 +2097,8 @@ static void ParsePlayer(const Save::SaveGame* s)
 	for (int i = 0; i < Lara.Effect.DripNodes.size(); i++)
 		Lara.Effect.DripNodes[i] = s->lara()->effect()->drip_nodes()->Get(i);
 
+	// @modernme Update schema with new fields.
+
 	Lara.Context.CalcJumpVelocity = s->lara()->context()->calc_jump_velocity();
 	Lara.Context.WaterCurrentActive = s->lara()->context()->water_current_active();
 	Lara.Context.WaterCurrentPull.x = s->lara()->context()->water_current_pull()->x();
@@ -2101,20 +2117,29 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.Control.Count.PositionAdjust = s->lara()->control()->count()->position_adjust();
 	Lara.Control.Count.Run = s->lara()->control()->count()->run_jump();
 	Lara.Control.Count.Death = s->lara()->control()->count()->death();
+	//Lara.Control.HeadingOrient = ToEulerAngles(s->lara()->control()->heading_orient());
+	//Lara.Control.HeadingOrientTarget = ToEulerAngles(s->lara()->control()->heading_orient_target());
 	Lara.Control.IsClimbingLadder = s->lara()->control()->is_climbing_ladder();
 	Lara.Control.IsLow = s->lara()->control()->is_low();
 	Lara.Control.IsMoving = s->lara()->control()->is_moving();
 	Lara.Control.JumpDirection = (JumpDirection)s->lara()->control()->jump_direction();
 	Lara.Control.KeepLow = s->lara()->control()->keep_low();
+	//Lara.Control.LockRefCameraOrient = s->lara()->control()->lock_ref_camera_orient();
 	Lara.Control.Look.IsUsingBinoculars = s->lara()->control()->look()->is_using_binoculars();
 	Lara.Control.Look.IsUsingLasersight = s->lara()->control()->look()->is_using_lasersight();
 	Lara.Control.Look.Mode = (LookMode)s->lara()->control()->look()->mode();
 	Lara.Control.Look.OpticRange = s->lara()->control()->look()->optic_range();
 	Lara.Control.Look.Orientation = ToEulerAngles(s->lara()->control()->look()->orientation());
 	Lara.Control.Look.TurnRate = ToEulerAngles(s->lara()->control()->look()->turn_rate());
-	Lara.Control.MoveAngle = s->lara()->control()->move_angle();
+	Lara.Control.HeadingOrient.y = s->lara()->control()->move_angle();
+	//Lara.Control.HeadingOrientTarget.y = s->lara()->control()->move_angle_target();
 	Lara.Control.IsRunJumpQueued = s->lara()->control()->is_run_jump_queued();
-	Lara.Control.TurnRate = s->lara()->control()->turn_rate();
+	//Lara.Control.RefCameraOrient = ToEulerAngles(s->lara()->control()->ref_camera_orient());
+	//Lara.Control.RefMoveAxis = ToVector2(s->lara()->control()->ref_move_axis());
+	//Lara.Control.ToggleClimb = s->lara()->control()->toggle_climb();
+	//Lara.Control.ToggleCrouch = s->lara()->control()->toggle_crouch();
+	//Lara.Control.ToggleWalk = s->lara()->control()->toggle_walk();
+	Lara.Control.TurnRate.y = s->lara()->control()->turn_rate();
 	Lara.Control.IsLocked = s->lara()->control()->is_locked();
 	Lara.Control.HandStatus = (HandStatus)s->lara()->control()->hand_status();
 	Lara.Control.Weapon.GunType = (LaraWeaponType)s->lara()->control()->weapon()->gun_type();
@@ -2292,11 +2317,12 @@ static void ParsePlayer(const Save::SaveGame* s)
 	LaraCollision.LastBridgeItemNumber = s->lara()->collision()->last_bridge_item_number();
 	LaraCollision.LastBridgeItemPose = ToPose(*s->lara()->collision()->last_bridge_item_pose());
 
+	// TODO: Save camera.
 	// Camera
-	Camera.pos = ToGameVector(s->camera()->position());
+	/*Camera.pos = ToGameVector(s->camera()->position());
 	Camera.target = ToGameVector(s->camera()->target());
 	Camera.extraAngle = ToEulerAngles(s->camera()->extra_orientation()).y;
-	Camera.extraElevation = ToEulerAngles(s->camera()->extra_orientation()).x;
+	Camera.extraElevation = ToEulerAngles(s->camera()->extra_orientation()).x;*/
 
 	for (auto& item : g_Level.Items)
 	{
@@ -2315,7 +2341,7 @@ static void ParsePlayer(const Save::SaveGame* s)
 static void ParseEffects(const Save::SaveGame* s)
 {
 	// Restore camera FOV.
-	AlterFOV(s->current_fov());
+	SetFov(s->current_fov());
 
 	// Restore DOF.
 	DOFState dof = { (DOFMode)s->dof_mode(), s->dof_distance(), s->dof_range(), s->dof_strength() };

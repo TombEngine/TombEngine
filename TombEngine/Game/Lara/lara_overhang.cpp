@@ -455,14 +455,14 @@ void lara_as_slopeclimb(ItemInfo* item, CollisionInfo* coll)
 	else
 		item->Pose.Orientation.x++;
 
-	Camera.flags = CF_FOLLOW_CENTER;
+	g_Camera.flags = CameraFlag::FollowCenter;
 
-	if (Camera.type != CameraType::Chase)
+	if (g_Camera.type != CameraType::Chase)
 		return;
 
-	Camera.targetElevation = -ANGLE(16.75f);
-	Camera.targetDistance = BLOCK(1.75f);
-	Camera.speed = 15;
+	g_Camera.targetElevation = -ANGLE(16.75f);
+	g_Camera.targetDistance = BLOCK(1.75f);
+	g_Camera.speed = 15;
 }
 
 void lara_as_slopefall(ItemInfo* item, CollisionInfo* coll)
@@ -474,14 +474,14 @@ void lara_as_slopefall(ItemInfo* item, CollisionInfo* coll)
 	else
 		item->Pose.Orientation.x++;
 
-	Camera.flags = CF_FOLLOW_CENTER;
+	g_Camera.flags = CameraFlag::FollowCenter;
 
-	if (Camera.type != CameraType::Chase)
+	if (g_Camera.type != CameraType::Chase)
 		return;
 
-	Camera.targetElevation = -ANGLE(16.75f);
-	Camera.targetDistance = BLOCK(1.75f);
-	Camera.speed = 15;
+	g_Camera.targetElevation = -ANGLE(16.75f);
+	g_Camera.targetDistance = BLOCK(1.75f);
+	g_Camera.speed = 15;
 }
 
 void lara_col_slopehang(ItemInfo* item, CollisionInfo* coll)
@@ -554,12 +554,12 @@ void lara_as_slopehang(ItemInfo* item, CollisionInfo* coll)
 	else
 		item->Pose.Orientation.x++;
 
-	if (Camera.type != CameraType::Chase)
+	if (g_Camera.type != CameraType::Chase)
 		return;
 
-	Camera.targetElevation = -BLOCK(1);
-	Camera.targetDistance = CLICK(6.5f);
-	Camera.speed = 15;
+	g_Camera.targetElevation = -BLOCK(1);
+	g_Camera.targetDistance = CLICK(6.5f);
+	g_Camera.speed = 15;
 }
 
 void lara_col_slopeshimmy(ItemInfo* item, CollisionInfo* coll)
@@ -611,24 +611,24 @@ void lara_as_slopeshimmy(ItemInfo* item, CollisionInfo* coll)
 	else
 		item->Pose.Orientation.x++;
 
-	if (Camera.type != CameraType::Chase)
+	if (g_Camera.type != CameraType::Chase)
 		return;
 
-	Camera.targetElevation = -BLOCK(1);
-	Camera.targetDistance = CLICK(6.5f);
-	Camera.speed = 15;
+	g_Camera.targetElevation = -BLOCK(1);
+	g_Camera.targetDistance = CLICK(6.5f);
+	g_Camera.speed = 15;
 
 	auto* lara = GetLaraInfo(item);
 
 	if (item->Animation.AnimNumber == LA_OVERHANG_SHIMMY_LEFT)
 	{
-		lara->Control.MoveAngle = item->Pose.Orientation.y - ANGLE(90.0f);
-		Camera.targetAngle = -ANGLE(22.5f);
+		lara->Control.HeadingOrient.y = item->Pose.Orientation.y - ANGLE(90.0f);
+		g_Camera.targetAngle = -ANGLE(22.5f);
 	}
 	else
 	{
-		lara->Control.MoveAngle = item->Pose.Orientation.y + ANGLE(90.0f);
-		Camera.targetAngle = ANGLE(22.5f);
+		lara->Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(90.0f);
+		g_Camera.targetAngle = ANGLE(22.5f);
 	}
 }
 
@@ -639,14 +639,14 @@ void lara_as_slopeclimbup(ItemInfo* item, CollisionInfo* coll)
 	else
 		item->Pose.Orientation.x++;
 
-	Camera.flags = CF_FOLLOW_CENTER;
+	g_Camera.flags = CameraFlag::FollowCenter;
 
-	if (Camera.type != CameraType::Chase)
+	if (g_Camera.type != CameraType::Chase)
 		return; // If camera mode isn't chase (0) then don't change camera angles.
 
-	Camera.targetElevation = BLOCK(2);
-	Camera.targetDistance = CLICK(7);
-	Camera.speed = 15;
+	g_Camera.targetElevation = BLOCK(2);
+	g_Camera.targetDistance = CLICK(7);
+	g_Camera.speed = 15;
 
 
 	if (!IsHeld(In::Action))
@@ -670,14 +670,14 @@ void lara_as_slopeclimbdown(ItemInfo* item, CollisionInfo* coll)
 	else
 		item->Pose.Orientation.x++;
 
-	Camera.flags = CF_FOLLOW_CENTER;
+	g_Camera.flags = CameraFlag::FollowCenter;
 
-	if (Camera.type != CameraType::Chase)
+	if (g_Camera.type != CameraType::Chase)
 		return;
 
-	Camera.targetElevation = -3072;
-	Camera.targetDistance = 1664;
-	Camera.speed = 15;
+	g_Camera.targetElevation = -3072;
+	g_Camera.targetDistance = 1664;
+	g_Camera.speed = 15;
 
 	if (!IsHeld(In::Action))
 	{
@@ -705,32 +705,32 @@ void lara_as_sclimbstart(ItemInfo* item, CollisionInfo* coll)
 		if (frac > 1.0f)
 			frac = 1.0f;
 
-		Camera.flags = CF_FOLLOW_CENTER;
+		g_Camera.flags = CameraFlag::FollowCenter;
 
 		int distance = TestLaraWall(item, 0, BLOCK(1.5f)) ? BLOCK(1) : CLICK(6.5f);
 
 		if (!TestLastFrame(*item))
 		{
-			Camera.targetDistance = distance;
-			Camera.targetElevation = int(BLOCK(3) * frac);
-			Camera.targetAngle = int(-ANGLE(180.0f) * frac);
-			Camera.targetspeed = 15;
+			g_Camera.targetDistance = distance;
+			g_Camera.targetElevation = int(BLOCK(3) * frac);
+			g_Camera.targetAngle = int(-ANGLE(180.0f) * frac);
+			g_Camera.targetspeed = 15;
 		}
 		else
 		{
 
-			Camera.targetDistance = distance;
-			Camera.targetElevation = BLOCK(3);
-			Camera.targetAngle = 0;
-			Camera.targetspeed = 15;
+			g_Camera.targetDistance = distance;
+			g_Camera.targetElevation = BLOCK(3);
+			g_Camera.targetAngle = 0;
+			g_Camera.targetspeed = 15;
 		}
 	}
 	else// if (item->animNumber == LA_OVERHANG_MONKEY_SLOPE_CONCAVE)
 	{
-		//Camera.flags = CF_FOLLOW_CENTER;
-		Camera.targetElevation = -ANGLE(11.25f);
-		Camera.targetDistance = CLICK(6.5f);
-		Camera.speed = 15;
+		//Camera.flags = CameraFlag::FollowCenter;
+		g_Camera.targetElevation = -ANGLE(11.25f);
+		g_Camera.targetDistance = CLICK(6.5f);
+		g_Camera.speed = 15;
 	}
 
 	if (GlobalCounter % 2)
@@ -746,10 +746,10 @@ void lara_as_sclimbstop(ItemInfo* item, CollisionInfo* coll)
 	// Following camera effect during the slope to underlying monkey transition.
 	if (item->Animation.AnimNumber == LA_OVERHANG_SLOPE_MONKEY_CONVEX)
 	{
-		Camera.flags = CF_FOLLOW_CENTER;
-		Camera.targetDistance = CLICK(6.5f);
-		Camera.targetElevation = ANGLE(11.25f);
-		Camera.targetspeed = 15;
+		g_Camera.flags = CameraFlag::FollowCenter;
+		g_Camera.targetDistance = CLICK(6.5f);
+		g_Camera.targetElevation = ANGLE(11.25f);
+		g_Camera.targetspeed = 15;
 	}
 	// Rotating camera effect during concave slope to monkey transition.
 	else if (item->Animation.AnimNumber == LA_OVERHANG_SLOPE_MONKEY_CONCAVE)
@@ -761,27 +761,27 @@ void lara_as_sclimbstop(ItemInfo* item, CollisionInfo* coll)
 		if (frac > 1.0f)
 			frac = 1.0f;
 
-		Camera.flags = CF_FOLLOW_CENTER;
+		g_Camera.flags = CameraFlag::FollowCenter;
 
 		if (!TestLastFrame(*item))
 		{
 			
-			Camera.targetAngle = (short)(-ANGLE(90.0f) * frac);
-			Camera.targetDistance = BLOCK(1.75f) - int(CLICK(2) * frac);
-			Camera.targetspeed = 15;
+			g_Camera.targetAngle = (short)(-ANGLE(90.0f) * frac);
+			g_Camera.targetDistance = BLOCK(1.75f) - int(CLICK(2) * frac);
+			g_Camera.targetspeed = 15;
 		}
 		else
 		{
-			Camera.targetAngle = ANGLE(90.0f);
-			Camera.targetDistance = BLOCK(1.25f);
-			Camera.targetspeed = 15;
+			g_Camera.targetAngle = ANGLE(90.0f);
+			g_Camera.targetDistance = BLOCK(1.25f);
+			g_Camera.targetspeed = 15;
 		}
 	}
 	else
 	{
-		Camera.targetDistance = CLICK(6.5f);
-		Camera.targetElevation = -ANGLE(11.25f);
-		Camera.targetspeed = 15;
+		g_Camera.targetDistance = CLICK(6.5f);
+		g_Camera.targetElevation = -ANGLE(11.25f);
+		g_Camera.targetspeed = 15;
 	}
 
 

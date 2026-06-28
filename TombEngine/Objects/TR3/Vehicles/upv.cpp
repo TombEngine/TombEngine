@@ -468,13 +468,13 @@ namespace TEN::Entities::Vehicles
 
 		if ((UPVItem->Pose.Orientation.x >= -(SHRT_MAX / 2 + 1)) && (UPVItem->Pose.Orientation.x <= (SHRT_MAX / 2 + 1)))
 		{
-			lara->Control.MoveAngle = UPVItem->Pose.Orientation.y;
-			coll->Setup.ForwardAngle = lara->Control.MoveAngle;
+			lara->Control.HeadingOrient.y = UPVItem->Pose.Orientation.y;
+			coll->Setup.ForwardAngle = lara->Control.HeadingOrient.y;
 		}
 		else
 		{
-			lara->Control.MoveAngle = UPVItem->Pose.Orientation.y - ANGLE(180.0f);
-			coll->Setup.ForwardAngle = lara->Control.MoveAngle;
+			lara->Control.HeadingOrient.y = UPVItem->Pose.Orientation.y - ANGLE(180.0f);
+			coll->Setup.ForwardAngle = lara->Control.HeadingOrient.y;
 		}
 
 		int height = phd_sin(UPVItem->Pose.Orientation.x) * UPV_LENGTH;
@@ -992,9 +992,9 @@ namespace TEN::Entities::Vehicles
 			SyncItemAnimation(*UPVItem, *laraItem);
 
 			if (UPV->Flags & UPV_FLAG_SURFACE)
-				Camera.targetElevation = -ANGLE(60.0f);
+				g_Camera.targetElevation = -ANGLE(60.0f);
 			else
-				Camera.targetElevation = 0;
+				g_Camera.targetElevation = 0;
 
 			return true;
 		}

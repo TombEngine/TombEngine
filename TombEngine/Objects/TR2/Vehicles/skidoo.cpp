@@ -251,7 +251,7 @@ namespace TEN::Entities::Vehicles
 				laraItem->Pose.Orientation.x = 0;
 				laraItem->Pose.Orientation.z = 0;
 				laraItem->Animation.IsAirborne = true;
-				lara->Control.MoveAngle = skidooItem->Pose.Orientation.y;
+				lara->Control.HeadingOrient.y = skidooItem->Pose.Orientation.y;
 				lara->Control.HandStatus = HandStatus::Free;
 				lara->Control.Weapon.GunType = lara->Control.Weapon.LastGunType;
 

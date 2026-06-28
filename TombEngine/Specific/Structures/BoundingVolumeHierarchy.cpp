@@ -186,6 +186,10 @@ namespace TEN::Structures
 		if (_nodes.empty())
 			return objectIds;
 
+		// Initialize stack.
+		auto stack = std::stack<int>{};
+		stack.push(_rootId);
+
 		// Traverse tree.
 		auto nodeIds = std::stack<int>{};
 		nodeIds.push(_rootId);
@@ -230,6 +234,7 @@ namespace TEN::Structures
 		// Allocate and get new empty node ID.
 		if (_freeNodeIds.empty())
 		{
+			nodeId = (int)_nodes.size();
 			_nodes.emplace_back();
 			nodeId = (int)_nodes.size() - 1;
 		}

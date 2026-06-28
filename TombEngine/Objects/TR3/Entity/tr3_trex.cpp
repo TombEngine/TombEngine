@@ -170,7 +170,7 @@ namespace TEN::Entities::Creatures::TR3
 				if (item->TouchBits.Test(TRexAttackJoints))
 				{
 					CreatureKill(item, TREX_ANIM_KILL, LEA_TREX_DEATH, TREX_STATE_KILL, LS_DEATH);
-					Camera.targetDistance = BLOCK(3);
+					g_Camera.targetDistance = BLOCK(3);
 				}
 
 				break;

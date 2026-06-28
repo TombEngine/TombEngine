@@ -297,7 +297,7 @@ namespace TEN::Entities::Vehicles
 			break;
 		}
 
-		Camera.targetElevation = -(bigGun->Rotation.x + ANGLE(15.0f));
+		g_Camera.targetElevation = -(bigGun->Rotation.x + ANGLE(15.0f));
 
 		bigGunItem->Pose.Orientation.y = bigGun->BaseOrientation.y + bigGun->Rotation.y;
 		laraItem->Pose.Orientation.y = bigGunItem->Pose.Orientation.y;

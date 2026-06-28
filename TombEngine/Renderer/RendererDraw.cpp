@@ -34,6 +34,7 @@
 #include "Specific/trutils.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Config;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Hud;
 using namespace TEN::Effects::Environment;
@@ -49,7 +50,7 @@ namespace TEN::Renderer
 	void Renderer::RenderBlobShadows(RenderView& renderView)
 	{
 		auto nearestSpheres = std::vector<Sphere>{};
-		nearestSpheres.reserve(g_Configuration.ShadowBlobsMax);
+		nearestSpheres.reserve(g_Configuration.ShadowBlobCountMax);
 
 		// Collect player spheres.
 		static const std::array<LARA_MESHES, 4> sphereMeshes = { LM_HIPS, LM_TORSO, LM_LFOOT, LM_RFOOT };
@@ -98,7 +99,7 @@ namespace TEN::Renderer
 			}
 		}
 
-		if (nearestSpheres.size() > g_Configuration.ShadowBlobsMax)
+		if (nearestSpheres.size() > g_Configuration.ShadowBlobCountMax)
 		{
 			std::sort(nearestSpheres.begin(), nearestSpheres.end(), [](const Sphere& a, const Sphere& b)
 				{
@@ -106,8 +107,8 @@ namespace TEN::Renderer
 					return Vector3::Distance(laraPos.ToVector3(), a.position) < Vector3::Distance(laraPos.ToVector3(), b.position);
 				});
 
-			std::copy(nearestSpheres.begin(), nearestSpheres.begin() + g_Configuration.ShadowBlobsMax, _stShadowMap.Spheres);
-			_stShadowMap.NumSpheres = g_Configuration.ShadowBlobsMax;
+			std::copy(nearestSpheres.begin(), nearestSpheres.begin() + g_Configuration.ShadowBlobCountMax, _stShadowMap.Spheres);
+			_stShadowMap.NumSpheres = g_Configuration.ShadowBlobCountMax;
 		}
 		else
 		{
@@ -132,7 +133,7 @@ namespace TEN::Renderer
 			return;
 
 		// Only render for player if such setting is active.
-		if (g_Configuration.ShadowType == ShadowMode::Player && _moveableObjects[item->ObjectID].value().ShadowType != ShadowMode::Player)
+		if (g_Configuration.ShadowMode == ShadowMode::Player && _moveableObjects[item->ObjectID].value().ShadowType != ShadowMode::Player)
 			return;
 
 		// No shadow light found.
@@ -1558,8 +1559,8 @@ namespace TEN::Renderer
 					auto vertices = std::array<Vector3, AXIS_COUNT>
 					{
 						center + Vector3(sin(angle) * abs(x), z, cos(angle) * abs(x)),
-							center + Vector3(cos(angle) * abs(x), sin(angle) * abs(x), z),
-							center + Vector3(z, sin(angle) * abs(x), cos(angle) * abs(x))
+						center + Vector3(cos(angle) * abs(x), sin(angle) * abs(x), z),
+						center + Vector3(z, sin(angle) * abs(x), cos(angle) * abs(x))
 					};
 
 					if (j > 0)
@@ -1743,7 +1744,7 @@ namespace TEN::Renderer
 				continue;
 
 			// TODO: Avoid LaraItem global.
-			if ((Camera.pos.RoomNumber == mirror.RoomNumber || LaraItem->RoomNumber == mirror.RoomNumber) && 
+			if ((g_Camera.RoomNumber == mirror.RoomNumber || LaraItem->RoomNumber == mirror.RoomNumber) && 
 				IsPointInRoom(light.Position, mirror.RoomNumber))
 			{
 				auto reflectedLight = light;
@@ -1787,7 +1788,7 @@ namespace TEN::Renderer
 			_blinkTime -= PI_MUL_2;
 
 		_oldGameCamera = _currentGameCamera;
-		Camera.DisableInterpolation = false;
+		g_Camera.DisableInterpolation = false;
 
 		_isLocked = false;
 
@@ -2099,7 +2100,7 @@ namespace TEN::Renderer
 
 		_context->RSSetScissorRects(1, rects);
 
-		// Opaque geometry
+		// Opaque geometry.
 		SetBlendMode(BlendMode::Opaque);
 
 		if (hemisphere == -1)
@@ -2111,7 +2112,7 @@ namespace TEN::Renderer
 			SetCullMode(CullMode::Clockwise);
 		}
 
-		auto view = RenderView(&Camera, 0, PI / 2.0f, 32, DEFAULT_FAR_VIEW, ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE);
+		auto view = RenderView(g_Camera, 0.0f, PI_DIV_2, 32.0f, DEFAULT_FAR_VIEW, ROOM_AMBIENT_MAP_SIZE, ROOM_AMBIENT_MAP_SIZE);
 
 		auto cameraConstantBuffer = CCameraMatrixBuffer{};
 		cameraConstantBuffer.DualParaboloidView = Matrix::CreateLookAt(position, position + Vector3(0, 0, 1024), -Vector3::UnitY);
@@ -2127,7 +2128,7 @@ namespace TEN::Renderer
 			_shaders.Bind(Shader::RoomAmbientSky);
 
 			if (Lara.Control.Look.OpticRange != 0)
-				AlterFOV(ANGLE(DEFAULT_FOV) - Lara.Control.Look.OpticRange, false);
+				SetFov(ANGLE(DEFAULT_FOV) - Lara.Control.Look.OpticRange, false);
 
 			unsigned int stride = sizeof(Vertex);
 			unsigned int offset = 0;
@@ -2148,8 +2149,8 @@ namespace TEN::Renderer
 				{
 					auto weather = TEN::Effects::Environment::Weather;
 
-					auto translation = Matrix::CreateTranslation(Camera.pos.x + weather.SkyPosition(s) - i * SKY_SIZE,
-						Camera.pos.y - 1536.0f, Camera.pos.z);
+					auto translation = Matrix::CreateTranslation(g_Camera.Position.x + weather.SkyPosition(s) - i * SKY_SIZE,
+						g_Camera.Position.y - 1536.0f, g_Camera.Position.z);
 					auto world = rotation * translation;
 
 					_stObjects.Objects[0].World = (rotation * translation);
@@ -2517,7 +2518,7 @@ namespace TEN::Renderer
 	{
 		RenderBlobShadows(renderView);
 
-		if (g_Configuration.ShadowType != ShadowMode::None)
+		if (g_Configuration.ShadowMode != ShadowMode::None)
 		{
 			for (auto room : renderView.RoomsToDraw)
 				for (auto itemToDraw : room->ItemsToDraw)
@@ -3098,7 +3099,7 @@ namespace TEN::Renderer
 			return;
 
 		if (Lara.Control.Look.OpticRange != 0)
-			AlterFOV(ANGLE(DEFAULT_FOV) - Lara.Control.Look.OpticRange, false);
+			SetFov(ANGLE(DEFAULT_FOV) - Lara.Control.Look.OpticRange, false);
 
 		// Draw sky.
 		auto rotation = Matrix::CreateRotationX(PI);
@@ -3411,7 +3412,7 @@ namespace TEN::Renderer
 					for (int p = 0; p < bucket.Polygons.size(); p++)
 					{
 						auto center = Vector3::Transform(bucket.Polygons[p].Centre, itemToDraw->InterpolatedAnimationTransforms[boneIndex] * itemToDraw->InterpolatedWorld);
-						int dist = Vector3::Distance(center, Camera.pos.ToVector3());
+						int dist = Vector3::Distance(center, g_Camera.Position);
 
 						auto object = RendererSortableObject{};
 						object.ObjectType = type;
@@ -4126,7 +4127,7 @@ namespace TEN::Renderer
 		_interpolationFactor = interpFactor;
 
 		// Interpolate camera.
-		if (!Camera.DisableInterpolation)
+		if (!g_Camera.DisableInterpolation)
 		{
 			_gameCamera.Camera.WorldPosition = Vector3::Lerp(_oldGameCamera.Camera.WorldPosition, _currentGameCamera.Camera.WorldPosition, interpFactor);
 			_gameCamera.Camera.WorldDirection = Vector3::Lerp(_oldGameCamera.Camera.WorldDirection, _currentGameCamera.Camera.WorldDirection, interpFactor);

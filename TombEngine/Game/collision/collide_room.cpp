@@ -1063,12 +1063,12 @@ FloorInfo* GetFloor(int x, int y, int z, short* roomNumber)
 	return &GetFloor(*roomNumber, x, z);
 }
 
-int GetFloorHeight(FloorInfo* floor, int x, int y, int z)
+int GetFloorHeight(const FloorInfo* floor, int x, int y, int z)
 {
 	return GetSurfaceHeight(RoomVector(floor->RoomNumber, y), x, z, true).value_or(NO_HEIGHT);
 }
 
-int GetCeiling(FloorInfo* floor, int x, int y, int z)
+int GetCeiling(const FloorInfo* floor, int x, int y, int z)
 {
 	return GetSurfaceHeight(RoomVector(floor->RoomNumber, y), x, z, false).value_or(NO_HEIGHT);
 }

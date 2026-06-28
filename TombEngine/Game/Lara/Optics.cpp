@@ -160,10 +160,10 @@ static void ResetPlayerOpticAnimations(ItemInfo& item)
 	player.Control.Look.IsUsingBinoculars = player.Control.Look.IsUsingLasersight = false;
 	player.Inventory.IsBusy = false;
 
-	Camera.DisableInterpolation = true;
-	Camera.type = BinocularOldCamera;
-	Camera.bounce = 0;
-	AlterFOV(LastFOV);
+	g_Camera.DisableInterpolation = true;
+	g_Camera.type = g_Camera.PrevBinocularCameraType;
+	g_Camera.bounce = 0;
+	SetFov(g_Camera.PrevFov);
 	SetScreenFadeIn(OPTICS_FADE_SPEED);
 }
 
@@ -226,8 +226,8 @@ bool HandlePlayerOptics(ItemInfo& item)
 			player.Control.Look.IsUsingLasersight = true;
 			player.Inventory.IsBusy = true;
 
-			Camera.DisableInterpolation = true;
-			BinocularOldCamera = Camera.oldType;
+			g_Camera.DisableInterpolation = true;
+			g_Camera.PrevBinocularCameraType = g_Camera.oldType;
 			SetScreenFadeIn(OPTICS_FADE_SPEED);
 		}
 	}
@@ -236,7 +236,7 @@ bool HandlePlayerOptics(ItemInfo& item)
 	if (!player.Control.Look.IsUsingBinoculars && !player.Control.Look.IsUsingLasersight)
 		return true;
 
-	AlterFOV(7 * (ANGLE(11.5f) - player.Control.Look.OpticRange), false);
+	SetFov(7 * (ANGLE(11.5f) - player.Control.Look.OpticRange), false);
 
 	// Handle various binocular controls.
 	if (!player.Control.Look.IsUsingLasersight)
@@ -258,8 +258,8 @@ bool HandlePlayerOptics(ItemInfo& item)
 		if (!player.Control.Look.IsUsingLasersight)
 			ClearAction(In::Action);
 
-		auto origin = Camera.pos.ToVector3i();
-		auto target = Camera.target.ToVector3i();
+		auto origin = Vector3i(g_Camera.Position);
+		auto target = Vector3i(g_Camera.LookAt);
 		DoOpticsHighlight(item, origin, target);
 	}
 

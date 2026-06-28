@@ -38,7 +38,7 @@ using namespace TEN::Scripting::Collision;
 Functions that (mostly) don't directly impact in-game mechanics. Used for setup
 in gameflow.lua, settings.lua and strings.lua; some can be used in level
 scripts too.
-@tentable Flow 
+@tentable Flow
 @pragma nostrip
 */
 
@@ -49,328 +49,328 @@ ScriptInterfaceFlowHandler* g_GameFlow;
 
 FlowHandler::FlowHandler(sol::state* lua, sol::table& parent) : _handler(lua)
 {
-/*** gameflow.lua.
-These functions are called in gameflow.lua, a file loosely equivalent to winroomedit's SCRIPT.DAT.
-They handle a game's 'metadata'; i.e., things such as level titles, loading screen paths, and default
-ambient tracks.
-@section Flowlua
-*/
+	/*** gameflow.lua.
+	These functions are called in gameflow.lua, a file loosely equivalent to winroomedit's SCRIPT.DAT.
+	They handle a game's 'metadata'; i.e., things such as level titles, loading screen paths, and default
+	ambient tracks.
+	@section Flowlua
+	*/
 	sol::table tableFlow{ _handler.GetState()->lua_state(), sol::create };
 	parent.set(ScriptReserved_Flow, tableFlow);
 
-/***
-Add a level to the Flow.
-@function AddLevel
-@tparam Flow.Level level A level object.
-*/
+	/***
+	Add a level to the Flow.
+	@function AddLevel
+	@tparam Flow.Level level A level object.
+	*/
 	tableFlow.set_function(ScriptReserved_AddLevel, &FlowHandler::AddLevel, this);
 
-/*** Image to show when loading the game. Must be a .jpg or .png image.
-@function SetIntroImagePath
-@tparam string path The path to the image, relative to the TombEngine executable.
-*/
+	/*** Image to show when loading the game. Must be a .jpg or .png image.
+	@function SetIntroImagePath
+	@tparam string path The path to the image, relative to the TombEngine executable.
+	*/
 	tableFlow.set_function(ScriptReserved_SetIntroImagePath, &FlowHandler::SetIntroImagePath, this);
 
-/*** Video to show when loading the game. Must be a common video format, such as mp4, mkv, mov or avi.
-@function SetIntroVideoPath
-@tparam string path the path to the video, relative to the TombEngine exe
-*/
+	/*** Video to show when loading the game. Must be a common video format, such as mp4, mkv, mov or avi.
+	@function SetIntroVideoPath
+	@tparam string path the path to the video, relative to the TombEngine exe
+	*/
 	tableFlow.set_function(ScriptReserved_SetIntroVideoPath, &FlowHandler::SetIntroVideoPath, this);
 
-/*** Image to show in the background of the title screen. Must be a .jpg or .png image. _Not yet implemented._
-@function SetTitleScreenImagePath
-@tparam string path The path to the image, relative to the TombEngine executable.
-*/
+	/*** Image to show in the background of the title screen. Must be a .jpg or .png image. _Not yet implemented._
+	@function SetTitleScreenImagePath
+	@tparam string path The path to the image, relative to the TombEngine executable.
+	*/
 	tableFlow.set_function(ScriptReserved_SetTitleScreenImagePath, &FlowHandler::SetTitleScreenImagePath, this);
 
-/*** Enable or disable Lara drawing in title flyby.
-Must be true or false
-@function EnableLaraInTitle
-@tparam bool enabled True or false.
-*/
+	/*** Enable or disable Lara drawing in title flyby.
+	Must be true or false
+	@function EnableLaraInTitle
+	@tparam bool enabled True or false.
+	*/
 	tableFlow.set_function(ScriptReserved_EnableLaraInTitle, &FlowHandler::EnableLaraInTitle, this);
 
-/*** Enable or disable level selection in title flyby.
-Must be true or false
-@function EnableLevelSelect
-@tparam bool enabled True or false.
-*/
+	/*** Enable or disable level selection in title flyby.
+	Must be true or false
+	@function EnableLevelSelect
+	@tparam bool enabled True or false.
+	*/
 	tableFlow.set_function(ScriptReserved_EnableLevelSelect, &FlowHandler::EnableLevelSelect, this);
 
-/*** Enable or disable Home Level entry in the main menu.
-@function EnableHomeLevel
-@tparam bool enabled True or false.
-*/
+	/*** Enable or disable Home Level entry in the main menu.
+	@function EnableHomeLevel
+	@tparam bool enabled True or false.
+	*/
 	tableFlow.set_function(ScriptReserved_EnableHomeLevel, &FlowHandler::EnableHomeLevel, this);
 
-/*** Enable or disable saving and loading of savegames.
-@function EnableLoadSave
-@tparam bool enabled True or false.
-*/
+	/*** Enable or disable saving and loading of savegames.
+	@function EnableLoadSave
+	@tparam bool enabled True or false.
+	*/
 	tableFlow.set_function(ScriptReserved_EnableLoadSave, &FlowHandler::EnableLoadSave, this);
 
-/*** gameflow.lua or level scripts.
-@section FlowluaOrScripts
-*/
+	/*** gameflow.lua or level scripts.
+	@section FlowluaOrScripts
+	*/
 
-/*** Enable or disable the fly cheat.
-@function EnableFlyCheat
-@tparam bool enabled True or false.
-*/
+	/*** Enable or disable the fly cheat.
+	@function EnableFlyCheat
+	@tparam bool enabled True or false.
+	*/
 	tableFlow.set_function(ScriptReserved_EnableFlyCheat, &FlowHandler::EnableFlyCheat, this);
 
-/*** Enable or disable point texture filter.
-Must be true or false
-@function EnablePointFilter
-@tparam bool enabled True or false.
-*/
+	/*** Enable or disable point texture filter.
+	Must be true or false
+	@function EnablePointFilter
+	@tparam bool enabled True or false.
+	*/
 	tableFlow.set_function(ScriptReserved_EnablePointFilter, &FlowHandler::EnablePointFilter, this);
 
-/*** Enable or disable mass pickup.
-Must be true or false
-@function EnableMassPickup
-@tparam bool enabled True or false.
-*/
+	/*** Enable or disable mass pickup.
+	Must be true or false
+	@function EnableMassPickup
+	@tparam bool enabled True or false.
+	*/
 	tableFlow.set_function(ScriptReserved_EnableMassPickup, &FlowHandler::EnableMassPickup, this);
 
-/*** Returns the level by index.
-Indices depend on the order in which AddLevel was called; the first added will
-have an index of 0, the second an index of 1, and so on.
-@function GetLevel
-@tparam int index Index of the level.
-@treturn Flow.Level The level indicated by the index.
-*/
+	/*** Returns the level by index.
+	Indices depend on the order in which AddLevel was called; the first added will
+	have an index of 0, the second an index of 1, and so on.
+	@function GetLevel
+	@tparam int index Index of the level.
+	@treturn Flow.Level The level indicated by the index.
+	*/
 	tableFlow.set_function(ScriptReserved_GetLevel, &FlowHandler::GetLevel, this);
 
-/*** Returns the level that the game control is running in that moment.
-@function GetCurrentLevel
-@treturn Flow.Level The current level.
-*/
+	/*** Returns the level that the game control is running in that moment.
+	@function GetCurrentLevel
+	@treturn Flow.Level The current level.
+	*/
 	tableFlow.set_function(ScriptReserved_GetCurrentLevel, &FlowHandler::GetCurrentLevel, this);
 
-/*** Returns the index of the level that the game control is running in that moment.
-Indices depend on the order in which AddLevel was called; the title level will
-have an index of 0, the first level will have an index of 1, and so on.
-@function GetCurrentLevelIndex
-@treturn int The current level index.
-*/
+	/*** Returns the index of the level that the game control is running in that moment.
+	Indices depend on the order in which AddLevel was called; the title level will
+	have an index of 0, the first level will have an index of 1, and so on.
+	@function GetCurrentLevelIndex
+	@treturn int The current level index.
+	*/
 	tableFlow.set_function(ScriptReserved_GetCurrentLevelIndex, &FlowHandler::GetCurrentLevelIndex, this);
 
-/*** Returns the total number of levels registered in the gameflow via AddLevel.
-This counts all entries in the Levels list, including title and home levels if they were added there.
-@function GetTotalLevelCount
-@treturn int The total number of registered levels.
-*/
+	/*** Returns the total number of levels registered in the gameflow via AddLevel.
+	This counts all entries in the Levels list, including title and home levels if they were added there.
+	@function GetTotalLevelCount
+	@treturn int The total number of registered levels.
+	*/
 	tableFlow.set_function(ScriptReserved_GetTotalLevelCount, &FlowHandler::GetNumLevels, this);
 
-/*** Finishes the current level, with optional level index and start position index provided.
-If level index is not provided or is zero, jumps to next level. If level index is more than
-level count, jumps to title. If LARA\_START\_POS objects are present in level, player will be
-teleported to such object with OCB similar to provided second argument.
-@function EndLevel
-@int[opt=0] index Level index.
-@int[opt=0] startPos Player start position in the next level. Should correspond to OCB of `Objects.ObjID.LARA_START_POS` object in the next level.
-*/
+	/*** Finishes the current level, with optional level index and start position index provided.
+	If level index is not provided or is zero, jumps to next level. If level index is more than
+	level count, jumps to title. If LARA\_START\_POS objects are present in level, player will be
+	teleported to such object with OCB similar to provided second argument.
+	@function EndLevel
+	@int[opt=0] index Level index.
+	@int[opt=0] startPos Player start position in the next level. Should correspond to OCB of `Objects.ObjID.LARA_START_POS` object in the next level.
+	*/
 	tableFlow.set_function(ScriptReserved_EndLevel, &FlowHandler::EndLevel, this);
 
-/***
-Get game or level statistics. For reference about statistics class, see @{Flow.Statistics}.
-@function GetStatistics
-@tparam[opt=false] bool game If true, returns overall game statistics, otherwise returns current level statistics.
-@treturn Flow.Statistics Statistics structure representing game or level statistics.
-*/
+	/***
+	Get game or level statistics. For reference about statistics class, see @{Flow.Statistics}.
+	@function GetStatistics
+	@tparam[opt=false] bool game If true, returns overall game statistics, otherwise returns current level statistics.
+	@treturn Flow.Statistics Statistics structure representing game or level statistics.
+	*/
 	tableFlow.set_function(ScriptReserved_GetStatistics, &FlowHandler::GetStatistics, this);
 
-/***
-Set game or level statistics. For reference about statistics class, see @{Flow.Statistics}.
-@function SetStatistics
-@tparam Flow.Statistics statistics Statistic object to set.
-@tparam[opt=false] bool game If true, sets overall game statistics, otherwise sets current level statistics.
-*/
+	/***
+	Set game or level statistics. For reference about statistics class, see @{Flow.Statistics}.
+	@function SetStatistics
+	@tparam Flow.Statistics statistics Statistic object to set.
+	@tparam[opt=false] bool game If true, sets overall game statistics, otherwise sets current level statistics.
+	*/
 	tableFlow.set_function(ScriptReserved_SetStatistics, &FlowHandler::SetStatistics, this);
 
-/***
-Get current game status, such as normal game loop, exiting to title, etc.
-@function GetGameStatus
-@treturn Flow.GameStatus The current game status.
-*/
+	/***
+	Get current game status, such as normal game loop, exiting to title, etc.
+	@function GetGameStatus
+	@treturn Flow.GameStatus The current game status.
+	*/
 	tableFlow.set_function(ScriptReserved_GetGameStatus, &FlowHandler::GetGameStatus, this);
 
-/***
-Get current freeze mode, such as none, full, spectator or player.
-@function GetFreezeMode
-@treturn Flow.FreezeMode The current freeze mode.
-*/
+	/***
+	Get current freeze mode, such as none, full, spectator or player.
+	@function GetFreezeMode
+	@treturn Flow.FreezeMode The current freeze mode.
+	*/
 	tableFlow.set_function(ScriptReserved_GetFreezeMode, &FlowHandler::GetFreezeMode, this);
 
-/***
-Set current freeze mode, such as none, full, spectator or player. 
-Freeze mode specifies whether game is in normal mode or paused in a particular way to allow
-custom menu creation, photo mode or time freeze.
-@function SetFreezeMode
-@tparam Flow.FreezeMode freezeMode New freeze mode to set.
-*/
+	/***
+	Set current freeze mode, such as none, full, spectator or player.
+	Freeze mode specifies whether game is in normal mode or paused in a particular way to allow
+	custom menu creation, photo mode or time freeze.
+	@function SetFreezeMode
+	@tparam Flow.FreezeMode freezeMode New freeze mode to set.
+	*/
 	tableFlow.set_function(ScriptReserved_SetFreezeMode, &FlowHandler::SetFreezeMode, this);
 
-/***
-Save the game to a savegame slot.
-@function SaveGame
-@tparam int slotID ID of the savegame slot to save to.
-*/
+	/***
+	Save the game to a savegame slot.
+	@function SaveGame
+	@tparam int slotID ID of the savegame slot to save to.
+	*/
 	tableFlow.set_function(ScriptReserved_SaveGame, &FlowHandler::SaveGame, this);
 
-/***
-Load the game from a savegame slot.
-@function LoadGame
-@tparam int slotID ID of the savegame slot to load from.
-*/
+	/***
+	Load the game from a savegame slot.
+	@function LoadGame
+	@tparam int slotID ID of the savegame slot to load from.
+	*/
 	tableFlow.set_function(ScriptReserved_LoadGame, &FlowHandler::LoadGame, this);
 
-/***
-Delete a savegame.
-@function DeleteSaveGame
-@tparam int slotID ID of the savegame slot to clear.
-*/
+	/***
+	Delete a savegame.
+	@function DeleteSaveGame
+	@tparam int slotID ID of the savegame slot to clear.
+	*/
 	tableFlow.set_function(ScriptReserved_DeleteSaveGame, &FlowHandler::DeleteSaveGame, this);
 
-/***
-Check if a savegame exists.
-@function DoesSaveGameExist
-@tparam int slotID ID of the savegame slot to check.
-@treturn bool true if the savegame exists, false if not.
-*/
+	/***
+	Check if a savegame exists.
+	@function DoesSaveGameExist
+	@tparam int slotID ID of the savegame slot to check.
+	@treturn bool true if the savegame exists, false if not.
+	*/
 	tableFlow.set_function(ScriptReserved_DoesSaveGameExist, &FlowHandler::DoesSaveGameExist, this);
 
-/***
-Get the header of all savegames
-@function GetSaveHeaders
-@treturn SaveData A table with save data headers.
-@usage
-local headers = TEN.Flow.GetSaveHeaders()
-for i, header in ipairs(headers) do
-	if header.Present then
-		print("Slot", i, ":", header.LevelName,
-		string.format("Time %02d:%02d:%02d", header.Hours, header.Minutes, header.Seconds))
-	else
-		print("Slot", i, ": <empty>")
+	/***
+	Get the header of all savegames
+	@function GetSaveHeaders
+	@treturn SaveData A table with save data headers.
+	@usage
+	local headers = TEN.Flow.GetSaveHeaders()
+	for i, header in ipairs(headers) do
+		if header.Present then
+			print("Slot", i, ":", header.LevelName,
+			string.format("Time %02d:%02d:%02d", header.Hours, header.Minutes, header.Seconds))
+		else
+			print("Slot", i, ": <empty>")
+		end
 	end
-end
-*/
+	*/
 
-/// Structure for SaveData header table.
-// @table SaveData
-// @tfield string LevelName The display name of the level stored in the save slot.
-// @tfield int Hours Hours component of the total play time recorded in the save.
-// @tfield int Minutes Minutes component of the total play time.
-// @tfield int Seconds Seconds component of the total play time.
-// @tfield int Level Numeric level index associated with this save.
-// @tfield int Timer Raw timer value saved internally by the engine.
-// @tfield int Count Save slot index or internal counter value.
-// @tfield bool Present True if the save slot contains valid savegame data; false if the slot is empty.
+	/// Structure for SaveData header table.
+	// @table SaveData
+	// @tfield string LevelName The display name of the level stored in the save slot.
+	// @tfield int Hours Hours component of the total play time recorded in the save.
+	// @tfield int Minutes Minutes component of the total play time.
+	// @tfield int Seconds Seconds component of the total play time.
+	// @tfield int Level Numeric level index associated with this save.
+	// @tfield int Timer Raw timer value saved internally by the engine.
+	// @tfield int Count Save slot index or internal counter value.
+	// @tfield bool Present True if the save slot contains valid savegame data; false if the slot is empty.
 	tableFlow.set_function(ScriptReserved_GetSaveHeaders, &FlowHandler::GetSaveHeaders, this);
 
-/***
-Returns the player's current per-game secret count.
-@function GetSecretCount
-@treturn int Current game secret count.
-*/
+	/***
+	Returns the player's current per-game secret count.
+	@function GetSecretCount
+	@treturn int Current game secret count.
+	*/
 	tableFlow.set_function(ScriptReserved_GetSecretCount, &FlowHandler::GetSecretCount, this);
 
-/*** 
-Sets the player's current per-game secret count.
-@function SetSecretCount
-@tparam int count New secret count.
-*/
+	/***
+	Sets the player's current per-game secret count.
+	@function SetSecretCount
+	@tparam int count New secret count.
+	*/
 	tableFlow.set_function(ScriptReserved_SetSecretCount, &FlowHandler::SetSecretCount, this);
 
-/***
-Adds one secret to current level secret count and also plays secret music track.
-The index argument corresponds to the secret's unique ID, the same that would go in a secret trigger's Param.
-@function AddSecret
-@tparam int index An index of current level's secret (must be from 0 to 31).
-*/
+	/***
+	Adds one secret to current level secret count and also plays secret music track.
+	The index argument corresponds to the secret's unique ID, the same that would go in a secret trigger's Param.
+	@function AddSecret
+	@tparam int index An index of current level's secret (must be from 0 to 31).
+	*/
 	tableFlow.set_function(ScriptReserved_AddSecret, &FlowHandler::AddSecret, this);
 
-/*** Get total number of secrets in the game.
-@function GetTotalSecretCount
-@treturn int Total number of secrets in the game.
-*/
+	/*** Get total number of secrets in the game.
+	@function GetTotalSecretCount
+	@treturn int Total number of secrets in the game.
+	*/
 	tableFlow.set_function(ScriptReserved_GetTotalSecretCount, &FlowHandler::GetTotalSecretCount, this);
 
-/*** Set total number of secrets in the game.
-Must be an integer value (0 means no secrets).
-@function SetTotalSecretCount
-@tparam int count Total number of secrets in the game.
-*/
+	/*** Set total number of secrets in the game.
+	Must be an integer value (0 means no secrets).
+	@function SetTotalSecretCount
+	@tparam int count Total number of secrets in the game.
+	*/
 	tableFlow.set_function(ScriptReserved_SetTotalSecretCount, &FlowHandler::SetTotalSecretCount, this);
 
-/*** Get global game session time.
-Represents a global session time elapsed since the game launch. Does not correspond to time values in level or game statistics.
-@function GetGlobalGameTime
-@treturn Time Global game session time elapsed since the game launch.
-*/
+	/*** Get global game session time.
+	Represents a global session time elapsed since the game launch. Does not correspond to time values in level or game statistics.
+	@function GetGlobalGameTime
+	@treturn Time Global game session time elapsed since the game launch.
+	*/
 	tableFlow.set_function(ScriptReserved_GetGlobalGameTime, &FlowHandler::GetGlobalGameTime, this);
-	
-/*** Do FlipMap with specific group ID.
-@function FlipMap
-@tparam int flipmap ID of flipmap group to actuvate / deactivate.
-*/
-	tableFlow.set_function(ScriptReserved_FlipMap, &FlowHandler::FlipMap, this);
-	
-/*** Get current FlipMap status for specific group ID.
-@function GetFlipMapStatus
-@int[opt] index Flipmap group ID to check. If no group specified or group is -1, function returns overall flipmap status (on or off).
-@treturn bool Status of the flipmap group (true means on, false means off).
-*/
-	tableFlow.set_function(ScriptReserved_GetFlipMapStatus, &FlowHandler::GetFlipMapStatus, this);
-	
-/*** settings.lua.
-These functions are called in settings.lua, a file which holds global settings, such as system settings, flare color or animation movesets.
-@section settingslua
-*/
 
-/*** Set provided settings table to an engine.
-@function SetSettings
-@tparam Flow.Settings settings A settings table.
-*/
+	/*** Do FlipMap with specific group ID.
+	@function FlipMap
+	@tparam int flipmap ID of flipmap group to actuvate / deactivate.
+	*/
+	tableFlow.set_function(ScriptReserved_FlipMap, &FlowHandler::FlipMap, this);
+
+	/*** Get current FlipMap status for specific group ID.
+	@function GetFlipMapStatus
+	@int[opt] index Flipmap group ID to check. If no group specified or group is -1, function returns overall flipmap status (on or off).
+	@treturn bool Status of the flipmap group (true means on, false means off).
+	*/
+	tableFlow.set_function(ScriptReserved_GetFlipMapStatus, &FlowHandler::GetFlipMapStatus, this);
+
+	/*** settings.lua.
+	These functions are called in settings.lua, a file which holds global settings, such as system settings, flare color or animation movesets.
+	@section settingslua
+	*/
+
+	/*** Set provided settings table to an engine.
+	@function SetSettings
+	@tparam Flow.Settings settings A settings table.
+	*/
 	tableFlow.set_function(ScriptReserved_SetSettings, &FlowHandler::SetSettings, this);
 
-/*** Get settings table from an engine.
-@function GetSettings
-@treturn Flow.Settings Current settings table.
-*/
+	/*** Get settings table from an engine.
+	@function GetSettings
+	@treturn Flow.Settings Current settings table.
+	*/
 	tableFlow.set_function(ScriptReserved_GetSettings, &FlowHandler::GetSettings, this);
 
-/*** strings.lua. 
-These functions used in strings.lua, which is generated by TombIDE. You will not need to call them manually.
-@section stringslua
-*/
+	/*** strings.lua.
+	These functions used in strings.lua, which is generated by TombIDE. You will not need to call them manually.
+	@section stringslua
+	*/
 
-/*** Set string variable keys and their translations.
-@function SetStrings
-@tparam table table Array-style table with strings.
-*/
+	/*** Set string variable keys and their translations.
+	@function SetStrings
+	@tparam table table Array-style table with strings.
+	*/
 	tableFlow.set_function(ScriptReserved_SetStrings, &FlowHandler::SetStrings, this);
 
-/*** Get translated string.
-@function GetString
-@tparam string key Key for translated string.
-*/
+	/*** Get translated string.
+	@function GetString
+	@tparam string key Key for translated string.
+	*/
 	tableFlow.set_function(ScriptReserved_GetString, &FlowHandler::GetString, this);
 
-/*** Check if translated string is present.
-@function IsStringPresent
-@tparam string key Key for translated string.
-*/
+	/*** Check if translated string is present.
+	@function IsStringPresent
+	@tparam string key Key for translated string.
+	*/
 	tableFlow.set_function(ScriptReserved_IsStringPresent, &FlowHandler::IsStringPresent, this);
 
-/*** Set language names for translations.
-Specify which translations in the strings table correspond to which languages.
-@function SetLanguageNames
-@tparam table table Array-style table with language names.
-*/
+	/*** Set language names for translations.
+	Specify which translations in the strings table correspond to which languages.
+	@function SetLanguageNames
+	@tparam table table Array-style table with language names.
+	*/
 	tableFlow.set_function(ScriptReserved_SetLanguageNames, &FlowHandler::SetLanguageNames, this);
-	
+
 	ScriptColor::Register(parent);
 	Rotation::Register(parent);
 	Statistics::Register(parent);
@@ -505,7 +505,7 @@ void FlowHandler::LoadFlowScript()
 	_handler.ExecuteScript(_gameDir + "Scripts/Settings.lua", true);
 
 	SetScriptErrorMode(GetSettings()->System.ErrorMode);
-	
+
 	// Check if levels exist in Gameflow.lua.
 	if (Levels.empty())
 	{
@@ -517,7 +517,7 @@ void FlowHandler::LoadFlowScript()
 	}
 }
 
- const char* FlowHandler::GetString(const char* id) const
+const char* FlowHandler::GetString(const char* id) const
 {
 	if (id == nullptr || *id == '\0')
 	{
@@ -720,14 +720,14 @@ void FlowHandler::AddSecret(int levelSecretIndex)
 }
 
 sol::table FlowHandler::GetSaveHeaders(sol::this_state state)
-{	
+{
 	sol::state_view lua(state);
 
 	SaveGame::LoadHeaders();
 	auto headersTable = lua.create_table();
 
 	for (int i = 0; i < SAVEGAME_MAX; ++i)
-	{	
+	{
 		const SaveGameHeader& header = SaveGame::Infos[i];
 
 		sol::table headerTable = lua.create_table();
@@ -876,7 +876,7 @@ bool FlowHandler::DoFlow()
 				PrepareInventoryObjects();
 				status = DoLevel(CurrentLevel, loadFromSavegame);
 			}
-			catch (TENScriptException const& e) 
+			catch (TENScriptException const& e)
 			{
 				std::string msg = std::string{ "A Lua error occurred while running a level; " } + __func__ + ": " + e.what();
 				TENLog(msg, LogLevel::Error, LogConfig::All);

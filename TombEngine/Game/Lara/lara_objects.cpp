@@ -13,10 +13,12 @@
 #include "Game/Lara/lara_tests.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Sound/sound.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Config;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
@@ -39,9 +41,9 @@ void lara_as_pickup(ItemInfo* item, CollisionInfo* coll)
 	lara->Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetAngle = -ANGLE(130.0f);
-	Camera.targetElevation = -ANGLE(15.0f);
-	Camera.targetDistance = BLOCK(1);
+	g_Camera.targetAngle = -ANGLE(130.0f);
+	g_Camera.targetElevation = -ANGLE(15.0f);
+	g_Camera.targetDistance = BLOCK(1);
 
 	if (TestLastFrame(*item))
 		item->Animation.TargetState = GetNextAnimState(*item);
@@ -66,9 +68,9 @@ void lara_as_pickup_flare(ItemInfo* item, CollisionInfo* coll)
 	lara->Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetAngle = ANGLE(130.0f);
-	Camera.targetElevation = -ANGLE(15.0f);
-	Camera.targetDistance = BLOCK(1);
+	g_Camera.targetAngle = ANGLE(130.0f);
+	g_Camera.targetElevation = -ANGLE(15.0f);
+	g_Camera.targetDistance = BLOCK(1);
 
 	if (item->Animation.FrameNumber == (GetAnimData(*item).EndFrameNumber - 1))
 		lara->Control.HandStatus = HandStatus::Free;
@@ -87,10 +89,10 @@ void lara_as_switch_on(ItemInfo* item, CollisionInfo* coll)
 	lara->Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetAngle = ANGLE(80.0f);
-	Camera.targetElevation = -ANGLE(25.0f);
-	Camera.targetDistance = BLOCK(1);
-	Camera.speed = 6;
+	g_Camera.targetAngle = ANGLE(80.0f);
+	g_Camera.targetElevation = -ANGLE(25.0f);
+	g_Camera.targetDistance = BLOCK(1);
+	g_Camera.speed = 6;
 }
 
 // State:		LS_SWITCH_DOWN (40), LS_DOVE_SWITCH (126)
@@ -102,10 +104,10 @@ void lara_as_switch_off(ItemInfo* item, CollisionInfo* coll)
 	lara->Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetAngle = ANGLE(80.0f);
-	Camera.targetElevation = -ANGLE(25.0f);
-	Camera.targetDistance = BLOCK(1);
-	Camera.speed = 6;
+	g_Camera.targetAngle = ANGLE(80.0f);
+	g_Camera.targetElevation = -ANGLE(25.0f);
+	g_Camera.targetDistance = BLOCK(1);
+	g_Camera.speed = 6;
 }
 
 // State:	LS_ROUND_HANDLE (95)
@@ -141,9 +143,9 @@ void lara_as_use_key(ItemInfo* item, CollisionInfo* coll)
 	lara->Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetAngle = -ANGLE(80.0f);
-	Camera.targetElevation = -ANGLE(25.0f);
-	Camera.targetDistance = BLOCK(1);
+	g_Camera.targetAngle = -ANGLE(80.0f);
+	g_Camera.targetElevation = -ANGLE(25.0f);
+	g_Camera.targetDistance = BLOCK(1);
 }
 
 // State:		LS_USE_PUZZLE (43)
@@ -155,9 +157,9 @@ void lara_as_use_puzzle(ItemInfo* item, CollisionInfo* coll)
 	lara->Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetAngle = -ANGLE(80.0f);
-	Camera.targetElevation = -ANGLE(25.0f);
-	Camera.targetDistance = BLOCK(1);
+	g_Camera.targetAngle = -ANGLE(80.0f);
+	g_Camera.targetElevation = -ANGLE(25.0f);
+	g_Camera.targetDistance = BLOCK(1);
 
 	if (TestLastFrame(*item) && item->ItemFlags[0])
 	{
@@ -180,9 +182,9 @@ void lara_as_pushable_push(ItemInfo* item, CollisionInfo* coll)
 	player.Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetAngle = ANGLE(35.0f);
-	Camera.targetElevation = ANGLE(-25.0f);
-	Camera.flags = CF_FOLLOW_CENTER;
+	g_Camera.targetAngle = ANGLE(35.0f);
+	g_Camera.targetElevation = ANGLE(-25.0f);
+	g_Camera.flags = CameraFlag::FollowCenter;
 }
 
 // State:	  LS_PUSHABLE_PULL (37)
@@ -194,9 +196,9 @@ void lara_as_pushable_pull(ItemInfo* item, CollisionInfo* coll)
 	player.Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetAngle = ANGLE(35.0f);
-	Camera.targetElevation = ANGLE(-25.0f);
-	Camera.flags = CF_FOLLOW_CENTER;
+	g_Camera.targetAngle = ANGLE(35.0f);
+	g_Camera.targetElevation = ANGLE(-25.0f);
+	g_Camera.flags = CameraFlag::FollowCenter;
 }
 
 // State:	  LS_PUSHABLE_GRAB (38)
@@ -205,7 +207,7 @@ void lara_as_pushable_grab(ItemInfo* item, CollisionInfo* coll)
 {
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetAngle = ANGLE(75.0f);
+	g_Camera.targetAngle = ANGLE(75.0f);
 
 	if (!IsHeld(In::Action))
 		item->Animation.TargetState = LS_IDLE;
@@ -220,9 +222,9 @@ void lara_as_pushable_edge_slip(ItemInfo* item, CollisionInfo* coll)
 	player.Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.targetAngle = ANGLE(35.0f);
-	Camera.targetElevation = ANGLE(-25.0f);
-	Camera.flags = CF_FOLLOW_CENTER;
+	g_Camera.targetAngle = ANGLE(35.0f);
+	g_Camera.targetElevation = ANGLE(-25.0f);
+	g_Camera.flags = CameraFlag::FollowCenter;
 }
 
 // --------------
@@ -434,7 +436,11 @@ void lara_as_rope_idle(ItemInfo* item, CollisionInfo* coll)
 
 	lara->Control.Look.Mode = LookMode::Free;
 
-	if (!IsHeld(In::Action))
+	lara->Control.ToggleClimb = g_Configuration.EnableClimbToggle;
+	if (IsClicked(In::Action) && g_Configuration.EnableClimbToggle)
+		lara->Control.ToggleClimb = false;
+
+	if (!HasClimbAction(*item))
 		FallFromRope(item);
 }
 
@@ -444,7 +450,11 @@ void lara_col_rope_idle(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	if (IsHeld(In::Action))
+	lara->Control.ToggleClimb = g_Configuration.EnableClimbToggle;
+	if (IsClicked(In::Action) && g_Configuration.EnableClimbToggle)
+		lara->Control.ToggleClimb = false;
+
+	if (HasClimbAction(*item))
 	{
 		UpdateRopeSwing(item);
 		RopeSwingCollision(item, coll, false);
@@ -478,7 +488,7 @@ void lara_col_rope_swing(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	Camera.targetDistance = BLOCK(2);
+	g_Camera.targetDistance = BLOCK(2);
 
 	UpdateRopeSwing(item);
 	RopeSwingCollision(item, coll, true);
@@ -547,7 +557,7 @@ void lara_as_rope_up(ItemInfo* item, CollisionInfo* coll)
 	}
 	else
 	{
-		Camera.targetAngle = ANGLE(30.0f);
+		g_Camera.targetAngle = ANGLE(30.0f);
 
 		if (TestLastFrame(*item))
 		{
@@ -651,11 +661,11 @@ void lara_col_pole_idle(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	lara->Control.MoveAngle = item->Pose.Orientation.y;
+	lara->Control.HeadingOrient.y = item->Pose.Orientation.y;
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = BAD_JUMP_CEILING;
-	coll->Setup.ForwardAngle = lara->Control.MoveAngle;
+	coll->Setup.ForwardAngle = lara->Control.HeadingOrient.y;
 	coll->Setup.Radius = LARA_RADIUS;
 	coll->Setup.BlockFloorSlopeUp = true;
 	GetCollisionInfo(coll, item);
@@ -760,12 +770,12 @@ void lara_col_pole_down(ItemInfo* item, CollisionInfo* coll)
 {
 	auto* lara = GetLaraInfo(item);
 
-	lara->Control.MoveAngle = item->Pose.Orientation.y;
+	lara->Control.HeadingOrient.y = item->Pose.Orientation.y;
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = 0;
 	coll->Setup.BlockFloorSlopeUp = true;
-	coll->Setup.ForwardAngle = lara->Control.MoveAngle;
+	coll->Setup.ForwardAngle = lara->Control.HeadingOrient.y;
 	coll->Setup.Radius = LARA_RADIUS;
 	GetCollisionInfo(coll, item);
 
@@ -899,7 +909,7 @@ void lara_as_zip_line(ItemInfo* item, CollisionInfo* coll)
 	auto* lara = GetLaraInfo(item);
 
 	lara->Control.Look.Mode = LookMode::Free;
-	Camera.targetAngle = ANGLE(70.0f);
+	g_Camera.targetAngle = ANGLE(70.0f);
 
 	if (!IsHeld(In::Action))
 	{
@@ -909,6 +919,6 @@ void lara_as_zip_line(ItemInfo* item, CollisionInfo* coll)
 		item->Animation.Velocity.z = 100;
 		item->Animation.Velocity.y = 40;
 		item->Animation.IsAirborne = true;
-		lara->Control.MoveAngle = item->Pose.Orientation.y;
+		lara->Control.HeadingOrient.y = item->Pose.Orientation.y;
 	}
 }

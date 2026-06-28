@@ -20,7 +20,7 @@ void SpringBoardControl(short itemNumber)
 			return;
 
 		if (LaraItem->Animation.ActiveState == LS_WALK_BACK ||
-			LaraItem->Animation.ActiveState == LS_RUN_BACK)
+			LaraItem->Animation.ActiveState == LS_HOP_BACK)
 		{
 			LaraItem->Animation.Velocity.z *= -1;
 		}

@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Game/Lara/lara_initialise.h"
 
+#include "Game/camera.h"
 #include "Game/collision/Point.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
@@ -80,24 +81,19 @@ void InitializeLara(bool restore)
 	LaraItem->Collidable = false;
 	
 	Lara.Context = PlayerContext(*LaraItem, LaraCollision);
+	Lara.Control.HeadingOrientTarget.y = LaraItem->Pose.Orientation.y;
+	Lara.Control.RefCameraOrient = EulerAngles(g_Camera.actualElevation, g_Camera.actualAngle, 0);
 
 	LaraItem->HitPoints = LARA_HEALTH_MAX;
 	Lara.Status.Air = LARA_AIR_MAX;
 	Lara.Status.Exposure = LARA_EXPOSURE_MAX;
 	Lara.Status.Poison = 0;
 	Lara.Status.Stamina = LARA_STAMINA_MAX;
-
-	Lara.Control.Look.Mode = LookMode::None;
 	Lara.HitDirection = NO_VALUE;
-	Lara.Control.Weapon.WeaponItem = NO_VALUE;
-	Lara.Context.WaterSurfaceDist = 100;
 
 	Lara.ExtraAnim = NO_VALUE;
-	Lara.Context.Vehicle = NO_VALUE;
 	Lara.Location = NO_VALUE;
 	Lara.HighestLocation = NO_VALUE;
-	Lara.Control.Rope.Ptr = NO_VALUE;
-	Lara.Control.HandStatus = HandStatus::Free;
 
 	InitializePlayerStateMachine();
 	InitializeLaraMeshes(LaraItem);

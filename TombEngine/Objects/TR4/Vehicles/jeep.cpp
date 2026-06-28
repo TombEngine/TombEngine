@@ -1379,15 +1379,15 @@ namespace TEN::Entities::Vehicles
 			AnimateItem(laraItem);
 			SyncItemAnimation(*jeepItem, *laraItem);
 
-			Camera.targetElevation = -ANGLE(30.0f);
-			Camera.targetDistance = BLOCK(2);
+			g_Camera.targetElevation = -ANGLE(30.0f);
+			g_Camera.targetDistance = BLOCK(2);
 
 			if (jeep->Gear == 1)
 				jeep->CameraElevation += ((32578 - jeep->CameraElevation) / 8);
 			else
 				jeep->CameraElevation -= (jeep->CameraElevation / 8);
 
-			Camera.targetAngle = jeep->CameraElevation;
+			g_Camera.targetAngle = jeep->CameraElevation;
 
 			if (jeep->Flags & JEEP_FLAG_FALLING && jeepItem->Pose.Position.y == jeepItem->Floor)
 			{

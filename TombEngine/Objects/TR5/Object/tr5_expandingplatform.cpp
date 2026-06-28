@@ -226,7 +226,7 @@ namespace TEN::Entities::Generic
 			{
 				xShift = isExpanding ? -16 : 16;
 			}
-			else if (angle == -ANGLE(90.0f))
+			else if (angle == ANGLE(-90.0f))
 			{
 				xShift = isExpanding ? 16 : -16;
 			}
@@ -258,16 +258,19 @@ namespace TEN::Entities::Generic
 		if (coll->Middle.Ceiling >= 0 || coll->HitStatic)
 			return;
 
-		if (zShift != 0)
-			LaraItem->Pose.Position.z += zShift;
 		if (xShift != 0)
 			LaraItem->Pose.Position.x += xShift;
+
+		if (zShift != 0)
+			LaraItem->Pose.Position.z += zShift;
 	}
 
 	void ControlExpandingPlatform(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 		auto& bridge = GetBridgeObject(item);
+
+		bridge.Update(item);
 
 		bridge.Update(item);
 
@@ -289,17 +292,17 @@ namespace TEN::Entities::Generic
 
 				if (item.TriggerFlags > 0)
 				{
-					if (abs(item.Pose.Position.x - Camera.pos.x) < 10240 &&
-						abs(item.Pose.Position.x - Camera.pos.x) < 10240 &&
-						abs(item.Pose.Position.x - Camera.pos.x) < 10240)
+					if (abs(item.Pose.Position.x - g_Camera.Position.x) < BLOCK(10) &&
+						abs(item.Pose.Position.x - g_Camera.Position.x) < BLOCK(10) &&
+						abs(item.Pose.Position.x - g_Camera.Position.x) < BLOCK(10))
 					{
 						if (item.ItemFlags[1] == 64 || item.ItemFlags[1] == 4096)
 						{
-							Camera.bounce = -32;
+							g_Camera.bounce = -32;
 						}
 						else
 						{
-							Camera.bounce = -16;
+							g_Camera.bounce = -16;
 						}
 					}
 				}
@@ -319,17 +322,17 @@ namespace TEN::Entities::Generic
 
 			if (item.TriggerFlags >= 0)
 			{
-				if (abs(item.Pose.Position.x - Camera.pos.x) < 10240 &&
-					abs(item.Pose.Position.x - Camera.pos.x) < 10240 &&
-					abs(item.Pose.Position.x - Camera.pos.x) < 10240)
+				if (abs(item.Pose.Position.x - g_Camera.Position.x) < 10240 &&
+					abs(item.Pose.Position.x - g_Camera.Position.x) < 10240 &&
+					abs(item.Pose.Position.x - g_Camera.Position.x) < 10240)
 				{
 					if (item.ItemFlags[1] == 64 || item.ItemFlags[1] == 4096)
 					{
-						Camera.bounce = -32;
+						g_Camera.bounce = -32;
 					}
 					else
 					{
-						Camera.bounce = -16;
+						g_Camera.bounce = -16;
 					}
 				}
 			}

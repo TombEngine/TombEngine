@@ -51,6 +51,7 @@ namespace TEN::SpotCam
 
 	extern int  LastSpotCamSequence;
 	extern bool UseSpotCam;
+	extern bool PrevUseSpotCam;
 	extern bool SpotcamSwitched;
 	extern bool SpotcamDontDrawLara;
 	extern bool SpotcamOverlay;

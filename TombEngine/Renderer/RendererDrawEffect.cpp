@@ -1466,7 +1466,7 @@ namespace TEN::Renderer
 		case SpriteType::Billboard:
 		{
 			auto cameraUp = Vector3(view.Camera.View._12, view.Camera.View._22, view.Camera.View._32);
-			spriteMatrix = scaleMatrix * Matrix::CreateRotationZ(sprite.Rotation) * Matrix::CreateBillboard(spritePos, Camera.pos.ToVector3(), cameraUp);
+			spriteMatrix = scaleMatrix * Matrix::CreateRotationZ(sprite.Rotation) * Matrix::CreateBillboard(spritePos, g_Camera.Position, cameraUp);
 		}
 		break;
 
@@ -1476,7 +1476,7 @@ namespace TEN::Renderer
 			auto quadForward = Vector3(0.0f, 0.0f, 1.0f);
 			spriteMatrix = scaleMatrix * Matrix::CreateConstrainedBillboard(
 				spritePos,
-				Camera.pos.ToVector3(),
+				g_Camera.Position,
 				sprite.ConstrainAxis,
 				nullptr,
 				&quadForward);

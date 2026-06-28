@@ -33,7 +33,7 @@ namespace TEN::Entities::Traps
 
 		if (item.Animation.FrameNumber >= HEAVY_STAMPER_IMPACT_FRAME)
 		{
-			Camera.bounce = -9;
+			g_Camera.bounce = -9;
 			item.ItemFlags[4] = HEAVY_STAMPER_DAMAGE;  // NOTE: Avoid the stamper pushing the player in GenericSphereBoxCollision().
 		}
 		else

@@ -747,7 +747,7 @@ namespace TEN::Scripting::Effects
 	static void Earthquake(TypeOrNil<int> strength)
 	{
 		int str = ValueOr<int>(strength, 100);
-		Camera.bounce = -str;
+		g_Camera.bounce = -str;
 	}
 
 	/// Get the wind vector for the current game frame.

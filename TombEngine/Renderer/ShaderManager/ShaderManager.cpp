@@ -6,6 +6,7 @@
 #include "Specific/trutils.h"
 #include "Version.h"
 
+using namespace TEN::Config;
 using namespace TEN::Renderer::Structures;
 using namespace TEN::Utils;
 using namespace TEN::Renderer::Graphics;

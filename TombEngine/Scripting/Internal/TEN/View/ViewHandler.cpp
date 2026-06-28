@@ -56,7 +56,7 @@ namespace TEN::Scripting::View
 
 	static bool FadeOutComplete()
 	{
-		return ScreenFadeCurrent == 0.0f;
+		return g_ScreenEffect.ScreenFadeCurrent == 0.0f;
 	}
 
 	static void SetCineBars(TypeOrNil<float> height, TypeOrNil<float> speed)
@@ -69,22 +69,22 @@ namespace TEN::Scripting::View
 
 	static void SetFOV(float angle)
 	{
-		AlterFOV(ANGLE(std::clamp(abs(angle), 10.0f, 170.0f)));
+		SetFov(ANGLE(std::clamp(abs(angle), 10.0f, 170.0f)));
 	}
 
 	static float GetFOV()
 	{
-		return TO_DEGREES(GetCurrentFOV());
+		return TO_DEGREES(g_Camera.Fov);
 	}
 
 	static void SetRoll(float degrees)
 	{
-		AlterRoll(ANGLE(degrees));
+		g_Camera.Roll = DEG_TO_RAD(degrees);
 	}
 
 	static float GetRoll()
 	{
-		return TO_DEGREES(GetCurrentRoll());
+		return RAD_TO_DEG(g_Camera.Roll);
 	}
 
 	static ScriptCameraType GetCameraType()
@@ -98,25 +98,25 @@ namespace TEN::Scripting::View
 		if (Lara.Control.Look.IsUsingBinoculars)
 			return ScriptCameraType::Binoculars;
 
-		if (Camera.oldType == CameraType::Heavy)
+		if (g_Camera.oldType == CameraType::Heavy)
 			return ScriptCameraType::Fixed;
 
-		return (ScriptCameraType)Camera.oldType;
+		return (ScriptCameraType)g_Camera.oldType;
 	}
 	
 	static Vec3 GetCameraPosition()
 	{
-		return Vec3(Camera.pos.ToVector3());
+		return Vec3(g_Camera.Position);
 	}
 
 	static Vec3 GetCameraTarget()
 	{
-		return Vec3(Camera.target.ToVector3());
+		return Vec3(g_Camera.LookAt);
 	}
 
 	static std::unique_ptr<Room> GetCameraRoom()
 	{
-		return std::make_unique<Room>(g_Level.Rooms[Camera.pos.RoomNumber]);
+		return std::make_unique<Room>(g_Level.Rooms[g_Camera.RoomNumber]);
 	}
 
 	static void ResetObjCamera()

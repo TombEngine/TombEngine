@@ -7,6 +7,8 @@
 #include "Specific/configuration.h"
 #include "Specific/level.h"
 
+using namespace TEN::Config;
+
 namespace TEN::Effects::Decal
 {
 	std::vector<Decal> Decals;
@@ -34,8 +36,8 @@ namespace TEN::Effects::Decal
 		if (!g_Configuration.EnableDecals)
 			return;
 
-		auto distance = Vector3::Distance(Camera.pos.ToVector3(), pos);
-		if (type == DecalType::BulletHole && !Lara.Control.Look.IsUsingLasersight && distance > COLLISION_CHECK_DISTANCE)
+		auto dist = Vector3::Distance(g_Camera.Position, pos);
+		if (type == DecalType::BulletHole && !Lara.Control.Look.IsUsingLasersight && dist > COLLISION_CHECK_DISTANCE)
 			return;
 
 		auto& decal = GetNewEffect(Decals, Decal::COUNT_MAX);

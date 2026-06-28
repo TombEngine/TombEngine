@@ -13,6 +13,7 @@
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Specific/configuration.h"
 
+using namespace TEN::Config;
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Animation;
 using namespace TEN::Hud;

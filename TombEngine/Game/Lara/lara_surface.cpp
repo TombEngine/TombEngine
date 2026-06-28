@@ -11,9 +11,11 @@
 #include "Game/Lara/lara_swim.h"
 #include "Game/Lara/lara_tests.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Specific/configuration.h"
 #include "Specific/level.h"
 #include "Specific/Input/Input.h"
 
+using namespace TEN::Config;
 using namespace TEN::Input;
 
 // -----------------------------
@@ -40,9 +42,11 @@ void lara_col_surface_dive(ItemInfo* item, CollisionInfo* coll)
 // Collision:	lara_col_surface_idle()
 void lara_as_surface_idle(ItemInfo* item, CollisionInfo* coll)
 {
-	auto* lara = GetLaraInfo(item);
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY | (int)PlayerTurnFlags::VerticalFlex;
 
-	lara->Control.Look.Mode = LookMode::Free;
+	auto& player = GetLaraInfo(*item);
+
+	player.Control.Look.Mode = LookMode::Free;
 
 	item->Animation.Velocity.y -= g_GameFlow->GetSettings()->Physics.SwimVelocity * LARA_SWIM_VELOCITY_DECEL_COEFF;
 	if (item->Animation.Velocity.y < 0)
@@ -54,8 +58,18 @@ void lara_as_surface_idle(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Left) || IsHeld(In::Right))
-		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL * 1.25f, 0, LARA_MED_TURN_RATE_MAX);
+	if (g_Configuration.IsUsingModernControls())
+	{
+		if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
+		{
+			HandlePlayerTurn(*item, PLAYER_SWIM_TURN_ALPHA, 0, false, TURN_FLAGS);
+		}
+	}
+	else
+	{
+		if (IsHeld(In::Left) || IsHeld(In::Right))
+			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL * 1.25f, 0, LARA_MED_TURN_RATE_MAX);
+	}
 
 	if (IsClicked(In::Jump))
 	{
@@ -63,29 +77,41 @@ void lara_as_surface_idle(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 	
-	if (IsHeld(In::Roll) || (IsHeld(In::Forward) && IsHeld(In::Back)))
+	if (IsHeld(In::Roll) || (HasOppositeAction(*item) && g_Configuration.EnableOppositeActionRoll))
 	{
 		item->Animation.TargetState = LS_ROLL_180_FORWARD;
 		return;
 	}
 
-	if (IsHeld(In::Forward))
+	if (g_Configuration.IsUsingModernControls())
 	{
-		item->Animation.TargetState = LS_ONWATER_FORWARD;
-		return;
+		if (IsHeld(In::Forward) || IsHeld(In::Back) ||
+			IsHeld(In::Left) || IsHeld(In::Right))
+		{
+			item->Animation.TargetState = LS_ONWATER_FORWARD;
+			return;
+		}
 	}
-	else if (IsHeld(In::Back))
+	else
 	{
-		item->Animation.TargetState = LS_ONWATER_BACK;
-		return;
+		if (IsHeld(In::Forward))
+		{
+			item->Animation.TargetState = LS_ONWATER_FORWARD;
+			return;
+		}
+		else if (IsHeld(In::Back))
+		{
+			item->Animation.TargetState = LS_ONWATER_BACK;
+			return;
+		}
 	}
-	
-	if (IsHeld(In::StepLeft) || (IsHeld(In::Walk) && IsHeld(In::Left)))
+
+	if (IsHeld(In::StepLeft) || ((IsHeld(In::Walk) && IsHeld(In::Left)) && !g_Configuration.IsUsingModernControls()))
 	{
 		item->Animation.TargetState = LS_ONWATER_LEFT;
 		return;
 	}
-	else if (IsHeld(In::StepRight) || (IsHeld(In::Walk) && IsHeld(In::Right)))
+	else if (IsHeld(In::StepRight) || ((IsHeld(In::Walk) && IsHeld(In::Right)) && !g_Configuration.IsUsingModernControls()))
 	{
 		item->Animation.TargetState = LS_ONWATER_RIGHT;
 		return;
@@ -98,9 +124,9 @@ void lara_as_surface_idle(ItemInfo* item, CollisionInfo* coll)
 // Control:		lara_as_surface_idle()
 void lara_col_surface_idle(ItemInfo* item, CollisionInfo* coll)
 {
-	auto* lara = GetLaraInfo(item);
+	auto& player = GetLaraInfo(*item);
 
-	lara->Control.MoveAngle = item->Pose.Orientation.y;
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y;
 	LaraSurfaceCollision(item, coll);
 }
 
@@ -108,9 +134,11 @@ void lara_col_surface_idle(ItemInfo* item, CollisionInfo* coll)
 // Collision:	lara_col_surface_swim_forward()
 void lara_as_surface_swim_forward(ItemInfo* item, CollisionInfo* coll)
 {
-	auto* lara = GetLaraInfo(item);
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY | (int)PlayerTurnFlags::VerticalFlex;
 
-	lara->Control.Look.Mode = LookMode::Horizontal;
+	auto& player = GetLaraInfo(*item);
+
+	player.Control.Look.Mode = LookMode::Horizontal;
 
 	if (item->HitPoints <= 0)
 	{
@@ -118,29 +146,47 @@ void lara_as_surface_swim_forward(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Left) || IsHeld(In::Right))
-		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL * 1.25f, 0, LARA_MED_TURN_RATE_MAX);
-
-	if (!IsHeld(In::Forward))
-		item->Animation.TargetState = LS_ONWATER_IDLE;
+	if (g_Configuration.IsUsingModernControls())
+	{
+		HandlePlayerTurn(*item, PLAYER_SWIM_TURN_ALPHA, 0, false, TURN_FLAGS);
+	}
+	else
+	{
+		if (IsHeld(In::Left) || IsHeld(In::Right))
+			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL * 1.25f, 0, LARA_MED_TURN_RATE_MAX);
+	}
 
 	if (IsClicked(In::Jump))
+	{
 		SetLaraSwimDiveAnimation(item);
+		return;
+	}
 
 	float baseVel = g_GameFlow->GetSettings()->Physics.SwimVelocity;
 
-	item->Animation.Velocity.y += baseVel * LARA_SWIM_VELOCITY_ACCEL_COEFF;
-	if (item->Animation.Velocity.y > baseVel * LARA_TREAD_VELOCITY_MAX_COEFF)
-		item->Animation.Velocity.y = baseVel * LARA_TREAD_VELOCITY_MAX_COEFF;
+	if (IsHeld(In::Forward) ||
+		(g_Configuration.IsUsingModernControls() &&
+			(IsHeld(In::Forward) || IsHeld(In::Back) ||
+			 IsHeld(In::Left) || IsHeld(In::Right))))
+	{
+		item->Animation.Velocity.y += baseVel * LARA_SWIM_VELOCITY_ACCEL_COEFF;
+		if (item->Animation.Velocity.y > baseVel *LARA_TREAD_VELOCITY_MAX_COEFF)
+			item->Animation.Velocity.y = baseVel * LARA_TREAD_VELOCITY_MAX_COEFF;
+
+		item->Animation.TargetState = LS_ONWATER_FORWARD;
+		return;
+	}
+
+	item->Animation.TargetState = LS_ONWATER_IDLE;
 }
 
 // State:		LS_ONWATER_FORWARD (34)
 // Control:		lara_as_surface_swim_forward()
 void lara_col_surface_swim_forward(ItemInfo* item, CollisionInfo* coll)
 {
-	auto* lara = GetLaraInfo(item);
+	auto& player = GetLaraInfo(*item);
 
-	lara->Control.MoveAngle = item->Pose.Orientation.y;
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	LaraSurfaceCollision(item, coll);
 	TestLaraWaterClimbOut(item, coll);
@@ -151,9 +197,9 @@ void lara_col_surface_swim_forward(ItemInfo* item, CollisionInfo* coll)
 // Collision:	lara_col_surface_swim_left()
 void lara_as_surface_swim_left(ItemInfo* item, CollisionInfo* coll)
 {
-	auto* lara = GetLaraInfo(item);
+	auto& player = GetLaraInfo(*item);
 
-	lara->Control.Look.Mode = LookMode::Vertical;
+	player.Control.Look.Mode = LookMode::Vertical;
 
 	if (item->HitPoints <= 0)
 	{
@@ -161,10 +207,14 @@ void lara_as_surface_swim_left(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (!IsHeld(In::Walk))	// WALK locks orientation.
+	if (!g_Configuration.IsUsingModernControls())
 	{
-		if (IsHeld(In::Left) || IsHeld(In::Right))
-			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL * 1.25f, 0, LARA_SLOW_MED_TURN_RATE_MAX);
+		// NOTE: Walk locks orientation.
+		if (!IsHeld(In::Walk))
+		{
+			if (IsHeld(In::Left) || IsHeld(In::Right))
+				ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL * 1.25f, 0, LARA_SLOW_MED_TURN_RATE_MAX);
+		}
 	}
 
 	if (!(IsHeld(In::StepLeft) || (IsHeld(In::Walk) && IsHeld(In::Left))))
@@ -184,9 +234,9 @@ void lara_as_surface_swim_left(ItemInfo* item, CollisionInfo* coll)
 // Control:		lara_as_surface_swim_left()
 void lara_col_surface_swim_left(ItemInfo* item, CollisionInfo* coll)
 {
-	auto* lara = GetLaraInfo(item);
+	auto& player = GetLaraInfo(*item);
 
-	lara->Control.MoveAngle = item->Pose.Orientation.y - ANGLE(90.0f);
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y - ANGLE(90.0f);
 	LaraSurfaceCollision(item, coll);
 }
 
@@ -194,9 +244,9 @@ void lara_col_surface_swim_left(ItemInfo* item, CollisionInfo* coll)
 // Collision:	lara_col_surface_swim_right()
 void lara_as_surface_swim_right(ItemInfo* item, CollisionInfo* coll)
 {
-	auto* lara = GetLaraInfo(item);
+	auto& player = GetLaraInfo(*item);
 
-	lara->Control.Look.Mode = LookMode::Vertical;
+	player.Control.Look.Mode = LookMode::Vertical;
 
 	if (item->HitPoints <= 0)
 	{
@@ -204,10 +254,14 @@ void lara_as_surface_swim_right(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (!IsHeld(In::Walk))	// WALK locks orientation.
+	if (!g_Configuration.IsUsingModernControls())
 	{
-		if (IsHeld(In::Left) || IsHeld(In::Right))
-			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL * 1.25f, 0, LARA_SLOW_MED_TURN_RATE_MAX);
+		// NOTE: Walk locks orientation.
+		if (!IsHeld(In::Walk))
+		{
+			if (IsHeld(In::Left) || IsHeld(In::Right))
+				ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL * 1.25f, 0, LARA_SLOW_MED_TURN_RATE_MAX);
+		}
 	}
 
 	if (!(IsHeld(In::StepRight) || (IsHeld(In::Walk) && IsHeld(In::Right))))
@@ -227,9 +281,9 @@ void lara_as_surface_swim_right(ItemInfo* item, CollisionInfo* coll)
 // Conrol:		lara_as_surface_swim_right()
 void lara_col_surface_swim_right(ItemInfo* item, CollisionInfo* coll)
 {
-	auto* lara = GetLaraInfo(item);
+	auto& player = GetLaraInfo(*item);
 
-	lara->Control.MoveAngle = item->Pose.Orientation.y + ANGLE(90.0f);
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(90.0f);
 	LaraSurfaceCollision(item, coll);
 }
 
@@ -237,9 +291,9 @@ void lara_col_surface_swim_right(ItemInfo* item, CollisionInfo* coll)
 // Collision:	lara_col_surface_swim_back()
 void lara_as_surface_swim_back(ItemInfo* item, CollisionInfo* coll)
 {
-	auto* lara = GetLaraInfo(item);
+	auto& player = GetLaraInfo(*item);
 
-	lara->Control.Look.Mode = LookMode::Horizontal;
+	player.Control.Look.Mode = LookMode::Horizontal;
 
 	if (item->HitPoints <= 0)
 	{
@@ -267,9 +321,9 @@ void lara_as_surface_swim_back(ItemInfo* item, CollisionInfo* coll)
 // Control:		lara_as_surface_swim_back()
 void lara_col_surface_swim_back(ItemInfo* item, CollisionInfo* coll)
 {
-	auto* lara = GetLaraInfo(item);
+	auto& player = GetLaraInfo(*item);
 
-	lara->Control.MoveAngle = item->Pose.Orientation.y + ANGLE(180.0f);
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(180.0f);
 	LaraSurfaceCollision(item, coll);
 }
 
@@ -282,5 +336,6 @@ void lara_as_surface_climb_out(ItemInfo* item, CollisionInfo* coll)
 	player.Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.flags = CF_FOLLOW_CENTER;	// Forces the camera to follow Lara instead of snapping.
+	g_Camera.flags = CameraFlag::FollowCenter;
+	g_Camera.laraNode = LM_HIPS;	// Forces the camera to follow Lara instead of snapping.
 }

@@ -9,39 +9,53 @@
 #include "Game/Setup.h"
 #include "Sound/sound.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 
+using namespace TEN::Config;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Player
 {
 	void lara_as_fly_cheat(ItemInfo* item, CollisionInfo* coll)
 	{
+		constexpr auto TURN_FLAGS	 = (int)PlayerTurnFlags::TurnX | (int)PlayerTurnFlags::TurnY;
+		constexpr auto LIGHT_FALLOFF = 0.1f;
+		constexpr auto LIGHT_COLOR	 = Color(0.6f, 0.6f, 0.6f);
+
 		float baseVel = g_GameFlow->GetSettings()->Physics.SwimVelocity;
 
-		if (IsHeld(In::Forward))
+		if (!g_Configuration.IsUsingModernControls())
 		{
-			item->Pose.Orientation.x -= ANGLE(3.0f);
-		}
-		else if (IsHeld(In::Back))
-		{
-			item->Pose.Orientation.x += ANGLE(3.0f);
-		}
+			if (IsHeld(In::Forward))
+			{
+				item->Pose.Orientation.x -= ANGLE(3.0f);
+			}
+			else if (IsHeld(In::Back))
+			{
+				item->Pose.Orientation.x += ANGLE(3.0f);
+			}
 
-		if (IsHeld(In::Left))
-		{
-			ModulateLaraTurnRateY(item, ANGLE(3.4f), 0, ANGLE(6.0f));
-		}
-		else if (IsHeld(In::Right))
-		{
-			ModulateLaraTurnRateY(item, ANGLE(3.4f), 0, ANGLE(6.0f));
+			if (IsHeld(In::Left))
+			{
+				ModulateLaraTurnRateY(item, ANGLE(3.4f), 0, ANGLE(6.0f));
+			}
+			else if (IsHeld(In::Right))
+			{
+				ModulateLaraTurnRateY(item, ANGLE(3.4f), 0, ANGLE(6.0f));
+			}
 		}
 
 		if (IsHeld(In::Action))
 			SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, 31, 150, 150, 150);
 
-		if (IsHeld(In::Jump))
+		if (g_Configuration.IsUsingModernControls() ?
+			(IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right)):
+			IsHeld(In::Jump))
 		{
+			if (g_Configuration.IsUsingModernControls())
+				HandlePlayerTurn(*item, PLAYER_FLY_CHEAT_TURN_ALPHA, 0, false, TURN_FLAGS);
+
 			float velCoeff = IsHeld(In::Sprint) ? 2.5f : 1.0f;
 
 			item->Animation.Velocity.y += ((baseVel * LARA_SWIM_VELOCITY_ACCEL_COEFF) * 4) * velCoeff;
@@ -68,12 +82,12 @@ namespace TEN::Entities::Player
 		if (item->Pose.Orientation.x < ANGLE(-90.0f) ||
 			item->Pose.Orientation.x > ANGLE(90.0f))
 		{
-			player.Control.MoveAngle = item->Pose.Orientation.y + ANGLE(180.0f);
+			player.Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(180.0f);
 			coll->Setup.ForwardAngle = item->Pose.Orientation.y - ANGLE(180.0f);
 		}
 		else
 		{
-			player.Control.MoveAngle = item->Pose.Orientation.y;
+			player.Control.HeadingOrient.y = GetPlayerHeadingAngleY(*item);
 			coll->Setup.ForwardAngle = item->Pose.Orientation.y;
 		}
 

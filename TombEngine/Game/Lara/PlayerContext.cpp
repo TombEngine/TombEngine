@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Game/Lara/PlayerContext.h"
 
+#include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Los.h"
@@ -13,11 +14,14 @@
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara_tests.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
+#include "Game/collision/Los.h"
 
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
+using namespace TEN::Config;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Player
@@ -140,12 +144,12 @@ namespace TEN::Entities::Player
 		// 1) Test player turn rate.
 		if (isGoingRight)
 		{
-			if (player.Control.TurnRate/*.y*/ >= LARA_SLOW_TURN_RATE_MAX)
+			if (player.Control.TurnRate.y >= LARA_SLOW_TURN_RATE_MAX)
 				return true;
 		}
 		else
 		{
-			if (player.Control.TurnRate/*.y*/ <= -LARA_SLOW_TURN_RATE_MAX)
+			if (player.Control.TurnRate.y <= -LARA_SLOW_TURN_RATE_MAX)
 				return true;
 		}
 
@@ -158,6 +162,13 @@ namespace TEN::Entities::Player
 		}
 
 		return false;
+	}
+
+	bool CanPerformTurnaround(const ItemInfo& item)
+	{
+		constexpr auto BASE_ANGLE = ANGLE(110.0f);
+
+		return (abs(GetPlayerRelHeadingAngleY(item)) > BASE_ANGLE);
 	}
 
 	static bool TestGroundMovementSetup(const ItemInfo& item, const CollisionInfo& coll, const GroundMovementSetupData& setup, bool isCrawling = false)
@@ -252,7 +263,7 @@ namespace TEN::Entities::Player
 		return false;
 	}
 
-	bool CanRoll180Running(const ItemInfo& item)
+	bool CanRunRoll180(const ItemInfo& item)
 	{
 		const auto& player = GetLaraInfo(item);
 
@@ -269,7 +280,7 @@ namespace TEN::Entities::Player
 	{
 		auto setup = GroundMovementSetupData
 		{
-			item.Pose.Orientation.y,
+			GetPlayerHeadingAngleY(item),
 			-MAX_HEIGHT, -STEPUP_HEIGHT, // NOTE: Bounds defined by run forward state.
 			false, true, false
 		};
@@ -281,7 +292,7 @@ namespace TEN::Entities::Player
 	{
 		auto setup = GroundMovementSetupData
 		{
-			short(item.Pose.Orientation.y + ANGLE(180.0f)),
+			short(GetPlayerHeadingAngleY(item) + (g_Configuration.IsUsingModernControls() ? ANGLE(0.0f) : ANGLE(180.0f))),
 			-MAX_HEIGHT, -STEPUP_HEIGHT, // NOTE: Bounds defined by run backward state.
 			false, false, false
 		};
@@ -293,7 +304,7 @@ namespace TEN::Entities::Player
 	{
 		auto setup = GroundMovementSetupData
 		{
-			item.Pose.Orientation.y,
+			GetPlayerHeadingAngleY(item),
 			STEPUP_HEIGHT, -STEPUP_HEIGHT, // NOTE: Bounds defined by walk forward state.
 		};
 
@@ -304,11 +315,22 @@ namespace TEN::Entities::Player
 	{
 		auto setup = GroundMovementSetupData
 		{
-			short(item.Pose.Orientation.y + ANGLE(180.0f)),
+			short(GetPlayerHeadingAngleY(item) + (g_Configuration.IsUsingModernControls() ? ANGLE(0.0f) : ANGLE(180.0f))),
 			STEPUP_HEIGHT, -STEPUP_HEIGHT // NOTE: Bounds defined by walk backward state.
 		};
 
 		return TestGroundMovementSetup(item, coll, setup);
+	}
+
+	bool CanStrafeBackward(const ItemInfo& item, const CollisionInfo& coll)
+	{
+		constexpr auto BASE_ANGLE = ANGLE(90.0f);
+
+		if (!IsPlayerStrafing(item))
+			return false;
+
+		short relHeadingAngle = GetPlayerRelHeadingAngleY(item);
+		return (abs(relHeadingAngle) > BASE_ANGLE);
 	}
 
 	static bool TestSidestep(const ItemInfo& item, const CollisionInfo& coll, bool isGoingRight)
@@ -318,11 +340,12 @@ namespace TEN::Entities::Player
 		auto setup = GroundMovementSetupData{};
 
 		// Wade case.
+		short headingAngle = (g_Configuration.IsUsingModernControls() ? player.Control.RefCameraOrient.y : item.Pose.Orientation.y) + (isGoingRight ? ANGLE(90.0f) : ANGLE(-90.0f));
 		if (player.Control.WaterStatus == WaterStatus::Wade)
 		{
 			setup = GroundMovementSetupData
 			{
-				short(item.Pose.Orientation.y + (isGoingRight ? ANGLE(90.0f) : ANGLE(-90.0f))),
+				headingAngle,
 				-MAX_HEIGHT, -(int)CLICK(1.25f), // NOTE: Upper bound defined by sidestep left/right states.
 				false, false, false
 			};
@@ -332,7 +355,7 @@ namespace TEN::Entities::Player
 		{
 			setup = GroundMovementSetupData
 			{
-				short(item.Pose.Orientation.y + (isGoingRight ? ANGLE(90.0f) : ANGLE(-90.0f))),
+				headingAngle,
 				(int)CLICK(0.8f), -(int)CLICK(0.8f) // NOTE: Bounds defined by sidestep left/right states.
 			};
 		}
@@ -360,7 +383,7 @@ namespace TEN::Entities::Player
 
 		auto setup = GroundMovementSetupData
 		{
-			item.Pose.Orientation.y,
+			GetPlayerHeadingAngleY(item),
 			-MAX_HEIGHT, -STEPUP_HEIGHT, // NOTE: Bounds defined by wade forward state.
 			false, false, false
 		};
@@ -379,7 +402,7 @@ namespace TEN::Entities::Player
 
 		auto setup = GroundMovementSetupData
 		{
-			short(item.Pose.Orientation.y + ANGLE(180.0f)),
+			short(GetPlayerHeadingAngleY(item) + (g_Configuration.IsUsingModernControls() ? ANGLE(0.0f) : ANGLE(180.0f))),
 			-MAX_HEIGHT, -STEPUP_HEIGHT, // NOTE: Bounds defined by walk backward state.
 			false, false, false
 		};
@@ -553,7 +576,7 @@ namespace TEN::Entities::Player
 	{
 		auto setup = GroundMovementSetupData
 		{
-			item.Pose.Orientation.y,
+			GetPlayerHeadingAngleY(item),
 			CRAWL_STEPUP_HEIGHT, -CRAWL_STEPUP_HEIGHT // NOTE: Bounds defined by crawl forward state.
 		};
 
@@ -564,7 +587,7 @@ namespace TEN::Entities::Player
 	{
 		auto setup = GroundMovementSetupData
 		{
-			short(item.Pose.Orientation.y + ANGLE(180.0f)),
+			short(GetPlayerHeadingAngleY(item) + (g_Configuration.IsUsingModernControls() ? ANGLE(0.0f) : ANGLE(180.0f))),
 			CRAWL_STEPUP_HEIGHT, -CRAWL_STEPUP_HEIGHT // NOTE: Bounds defined by crawl backward state.
 		};
 
@@ -729,7 +752,7 @@ namespace TEN::Entities::Player
 	{
 		auto setup = MonkeySwingMovementSetupData
 		{
-			item.Pose.Orientation.y,
+			GetPlayerHeadingAngleY(item),
 			MONKEY_STEPUP_HEIGHT, -MONKEY_STEPUP_HEIGHT // NOTE: Bounds defined by monkey forward state.
 		};
 
@@ -740,7 +763,7 @@ namespace TEN::Entities::Player
 	{
 		auto setup = MonkeySwingMovementSetupData
 		{
-			short(item.Pose.Orientation.y + ANGLE(180.0f)),
+			short(GetPlayerHeadingAngleY(item) + (g_Configuration.IsUsingModernControls() ? ANGLE(0.0f) : ANGLE(180.0f))),
 			MONKEY_STEPUP_HEIGHT, -MONKEY_STEPUP_HEIGHT // NOTE: Bounds defined by monkey backward state.
 		};
 
@@ -749,9 +772,11 @@ namespace TEN::Entities::Player
 
 	static bool TestMonkeyShimmy(const ItemInfo& item, const CollisionInfo& coll, bool isGoingRight)
 	{
+		const auto& player = GetLaraInfo(item);
+
 		auto setup = MonkeySwingMovementSetupData
 		{
-			short(item.Pose.Orientation.y + (isGoingRight ? ANGLE(90.0f) : ANGLE(-90.0f))),
+			short((g_Configuration.IsUsingModernControls() ? player.Control.RefCameraOrient.y : item.Pose.Orientation.y) + (isGoingRight ? ANGLE(90.0f) : ANGLE(-90.0f))),
 			(int)CLICK(0.5f), -(int)CLICK(0.5f) // NOTE: Bounds defined by monkey shimmy left/right states.
 		};
 
@@ -881,7 +906,7 @@ namespace TEN::Entities::Player
 
 		auto setup = JumpSetupData
 		{
-			short(item.Pose.Orientation.y + relHeadingAngle),
+			short(GetPlayerHeadingAngleY(item) + (g_Configuration.IsUsingModernControls() ? ANGLE(0.0f) : relHeadingAngle)),
 			CLICK(0.85f)
 		};
 
@@ -941,12 +966,13 @@ namespace TEN::Entities::Player
 		const auto& player = GetLaraInfo(item);
 
 		// Check running jump timer.
-		if (player.Control.Count.Run < PLAYER_RUN_JUMP_TIME)
+		int jumpTime = g_Configuration.IsUsingModernControls() ? PLAYER_MODERN_CONTROL_RUN_JUMP_TIME : PLAYER_TANK_CONTROL_RUN_JUMP_TIME;
+		if (player.Control.Count.Run < jumpTime)
 			return false;
 
 		auto setup = JumpSetupData
 		{
-			item.Pose.Orientation.y,
+			GetPlayerHeadingAngleY(item),
 			CLICK(3 / 2.0f)
 		};
 
@@ -966,12 +992,13 @@ namespace TEN::Entities::Player
 			return false;
 
 		// 3) Check running jump timer.
-		if (player.Control.Count.Run < PLAYER_SPRINT_JUMP_TIME)
+		int jumpTime = g_Configuration.IsUsingModernControls() ? PLAYER_MODERN_CONTROL_SPRINT_JUMP_TIME : PLAYER_TANK_CONTROL_SPRINT_JUMP_TIME;
+		if (player.Control.Count.Run < jumpTime)
 			return false;
 
 		auto setup = JumpSetupData
 		{
-			item.Pose.Orientation.y,
+			GetPlayerHeadingAngleY(item),
 			CLICK(1.8f)
 		};
 

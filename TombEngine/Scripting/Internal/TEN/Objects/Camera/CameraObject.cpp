@@ -133,18 +133,18 @@ void CameraObject::SetRoomNumber(short room)
 
 void CameraObject::Play(sol::optional<Moveable&> targetObj)
 {
-	Camera.number = m_camera.Index;
-	Camera.type = CameraType::Fixed;
-	Camera.timer = 0;
+	g_Camera.number = m_camera.Index;
+	g_Camera.type = CameraType::Fixed;
+	g_Camera.timer = 0;
 
 	// Borrow camera speed from the static camera to keep momentum between gliding fixed cameras.
-	Camera.speed = g_Level.Cameras[Camera.number].Speed + 1;
+	g_Camera.speed = g_Level.Cameras[g_Camera.number].Speed + 1;
 
 	// If camera has switched, and camera is gliding, disable interpolation.
-	if (Camera.last != m_camera.Index || Camera.lastType != CameraType::Fixed)
-		Camera.DisableInterpolation = (Camera.speed == 1);
+	if (g_Camera.last != m_camera.Index || g_Camera.oldType != CameraType::Fixed)
+		g_Camera.DisableInterpolation = (g_Camera.speed == 1);
 
 	if (targetObj.has_value()) //Otherwise, it will point to Lara by default.
-		Camera.item = &g_Level.Items[targetObj.value().GetIndex()];
+		g_Camera.item = &g_Level.Items[targetObj.value().GetIndex()];
 }
 

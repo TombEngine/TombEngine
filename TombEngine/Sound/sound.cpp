@@ -14,6 +14,7 @@
 #include "Specific/Video/Video.h"
 #include "Specific/EngineMain.h"
 
+using namespace TEN::Config;
 using namespace TEN::Gui;
 using namespace TEN::Math;
 using namespace TEN::Video;
@@ -175,7 +176,7 @@ bool SoundEffect(int soundID, Pose* pose, SoundEnvironment soundEnv, float pitch
 	// Test if sound effect environment matches camera environment.
 	if (soundEnv != SoundEnvironment::Always)
 	{
-		bool isCameraUnderwater = TestEnvironment(ENV_FLAG_WATER, Camera.pos.RoomNumber);
+		bool isCameraUnderwater = TestEnvironment(ENV_FLAG_WATER, g_Camera.RoomNumber);
 		if ((soundEnv == SoundEnvironment::Underwater && !isCameraUnderwater) ||
 			(soundEnv != SoundEnvironment::Underwater && isCameraUnderwater))
 		{
@@ -760,15 +761,15 @@ int Sound_GetFreeSlot()
 
 	// No free slots, hijack now.
 
-	float minDistance = 0;
+	float distMin = 0;
 	int farSlot = SOUND_NO_CHANNEL;
 
 	for (int i = 0; i < SOUND_MAX_CHANNELS; i++)
 	{
-		float distance = Vector3(SoundSlot[i].Origin - Vector3(Camera.mikePos.x, Camera.mikePos.y, Camera.mikePos.z)).Length();
-		if (distance > minDistance)
+		float dist = Vector3(SoundSlot[i].Origin - g_Camera.ListenerPosition).Length();
+		if (dist > distMin)
 		{
-			minDistance = distance;
+			distMin = dist;
 			farSlot = i;
 		}
 	}
@@ -847,7 +848,7 @@ float Sound_DistanceToListener(Pose *position)
 }
 float Sound_DistanceToListener(Vector3 position)
 {
-	return Vector3(Vector3(Camera.mikePos.x, Camera.mikePos.y, Camera.mikePos.z) - position).Length();
+	return Vector3(g_Camera.ListenerPosition - position).Length();
 }
 
 // Calculate attenuated volume.
@@ -928,7 +929,7 @@ void Sound_UpdateScene()
 
 	// Apply environmental effects
 
-	auto roomReverb = g_Configuration.EnableReverb ? (int)g_Level.Rooms[Camera.pos.RoomNumber].reverbType : (int)ReverbType::Small;
+	auto roomReverb = g_Configuration.EnableReverb ? (int)g_Level.Rooms[g_Camera.RoomNumber].reverbType : (int)ReverbType::Small;
 
 	if (CurrentReverbType == NO_VALUE || roomReverb != CurrentReverbType)
 	{
@@ -975,26 +976,19 @@ void Sound_UpdateScene()
 
 	// Apply current listener position.
 
-	auto velocity = (oldMikePos - Camera.mikePos.ToVector3()) * (float)FPS;
-	oldMikePos = Camera.mikePos.ToVector3();
-
-	Vector3 at = Vector3(Camera.target.x, Camera.target.y, Camera.target.z) -
-		Vector3(Camera.mikePos.x, Camera.mikePos.y, Camera.mikePos.z);
+	auto at = g_Camera.LookAt - g_Camera.ListenerPosition;
 	at.Normalize();
 	auto mikePos = BASS_3DVECTOR(					// Pos
-		Camera.mikePos.x,
-		Camera.mikePos.y,
-		Camera.mikePos.z);
-	auto mikeVel = BASS_3DVECTOR(					// Vel
-		velocity.x,
-		velocity.y,
-		velocity.z);
+		g_Camera.ListenerPosition.x,
+		g_Camera.ListenerPosition.y,
+		g_Camera.ListenerPosition.z);
+	auto laraVel = BASS_3DVECTOR(					// Vel
+		Lara.Context.WaterCurrentPull.x,
+		Lara.Context.WaterCurrentPull.y,
+		Lara.Context.WaterCurrentPull.z);
 	auto atVec = BASS_3DVECTOR(at.x, at.y, at.z);	// At
 	auto upVec = BASS_3DVECTOR(0.0f, 1.0f, 0.0f);	// Up
-	BASS_Set3DPosition(&mikePos,
-					   &mikeVel,
-					   &atVec,
-					   &upVec);
+	BASS_Set3DPosition(&mikePos, &laraVel, &atVec, &upVec);
 	BASS_Apply3D();
 }
 

@@ -237,7 +237,7 @@ namespace TEN::Renderer
 				rDrawSprite.BlendMode != BlendMode::Distortion &&
 				rDrawSprite.BlendMode != BlendMode::AlphaTest)
 			{
-				int distance = (rDrawSprite.pos - Camera.pos.ToVector3()).Length();
+				int distance = (rDrawSprite.pos - g_Camera.Position).Length();
 
 				RendererSortableObject object;
 				object.ObjectType = RendererObjectType::Sprite;

@@ -7,6 +7,7 @@
 #include "Specific/Input/Input.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_struct.h"
+#include "Game/Lara/lara_tests.h"
 #include "Game/Lara/lara.h"
 #include "Math/Math.h"
 #include "Game/collision/collide_room.h"
@@ -14,7 +15,9 @@
 #include "Sound/sound.h"
 #include "Game/camera.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Specific/configuration.h"
 
+using namespace TEN::Config;
 using namespace TEN::Input;
 
 namespace TEN::Entities::Generic
@@ -169,8 +172,12 @@ namespace TEN::Entities::Generic
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* ropeItem = &g_Level.Items[itemNumber];
 		auto* rope = &Ropes[ropeItem->TriggerFlags];
-		
-		if (IsHeld(In::Action) &&
+
+		laraInfo->Control.ToggleClimb = g_Configuration.EnableClimbToggle;
+		if (IsClicked(In::Action) && g_Configuration.EnableClimbToggle)
+			laraInfo->Control.ToggleClimb = false;
+
+		if (HasClimbAction(*laraItem) &&
 			laraInfo->Control.HandStatus == HandStatus::Free &&
 			(laraItem->Animation.ActiveState == LS_REACH || laraItem->Animation.ActiveState == LS_JUMP_UP) &&
 			laraItem->Animation.IsAirborne &&
@@ -654,7 +661,7 @@ namespace TEN::Entities::Generic
 			item->Animation.FrameNumber = 0;
 			item->Animation.ActiveState = LS_REACH;
 			item->Animation.TargetState = LS_REACH;
-			Lara.Control.Rope.Ptr = -1;
+			Lara.Control.Rope.Ptr = NO_VALUE;
 		}
 	}
 
@@ -671,7 +678,7 @@ namespace TEN::Entities::Generic
 
 		auto* lara = GetLaraInfo(item);
 		lara->Control.HandStatus = HandStatus::Free;
-		lara->Control.Rope.Ptr = -1;
+		lara->Control.Rope.Ptr = NO_VALUE;
 
 		if (stumble)
 		{
@@ -686,7 +693,7 @@ namespace TEN::Entities::Generic
 			FallFromRope(item);
 		else
 		{
-			Camera.targetAngle = ANGLE(30.0f);
+			g_Camera.targetAngle = ANGLE(30.0f);
 
 			if (Lara.Control.Rope.Count)
 			{

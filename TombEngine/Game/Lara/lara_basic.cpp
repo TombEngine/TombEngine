@@ -17,10 +17,12 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Game/Setup.h"
 #include "Sound/sound.h"
+#include "Specific/configuration.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Config;
 using namespace TEN::Entities::Player;
 using namespace TEN::Input;
 
@@ -46,9 +48,9 @@ void lara_default_col(ItemInfo* item, CollisionInfo* coll)
 // Boulder death.
 void lara_as_special(ItemInfo* item, CollisionInfo* coll)
 {
-	Camera.flags = CF_FOLLOW_CENTER;
-	Camera.targetAngle = ANGLE(170.0f);
-	Camera.targetElevation = ANGLE(-25.0f);
+	g_Camera.flags = CameraFlag::FollowCenter;
+	g_Camera.targetAngle = ANGLE(170.0f);
+	g_Camera.targetElevation = ANGLE(-25.0f);
 }
 
 void lara_as_null(ItemInfo* item, CollisionInfo* coll)
@@ -64,14 +66,14 @@ void lara_as_controlled(ItemInfo* item, CollisionInfo* coll)
 	player.Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.flags = CF_FOLLOW_CENTER;
+	g_Camera.flags = CameraFlag::FollowCenter;
 
 	if (item->Animation.FrameNumber == (GetAnimData(*item).EndFrameNumber - 1))
 	{
 		player.Control.HandStatus = HandStatus::Free;
 
-		if (UseForcedFixedCamera)
-			UseForcedFixedCamera = false;
+		if (g_Camera.UseForcedFixedCamera)
+			g_Camera.UseForcedFixedCamera = false;
 	}
 }
 
@@ -91,9 +93,9 @@ void lara_as_controlled_no_look_follow(ItemInfo* item, CollisionInfo* coll)
 	player.Control.Look.Mode = LookMode::None;
 	coll->Setup.EnableObjectPush = false;
 	coll->Setup.EnableSpasm = false;
-	Camera.flags = CF_FOLLOW_CENTER;
-	Camera.laraNode = LM_HEAD;
-	Camera.targetElevation = -ANGLE(25.0f);
+	g_Camera.flags = CameraFlag::FollowCenter;
+	g_Camera.laraNode = LM_HEAD;
+	g_Camera.targetElevation = -ANGLE(25.0f);
 }
 
 // State:	  LS_VAULT (164)
@@ -109,6 +111,7 @@ void lara_as_vault(ItemInfo* item, CollisionInfo* coll)
 	EasePlayerElevation(item, player.Context.ProjectedFloorHeight - item->Pose.Position.y);
 	item->Pose.Orientation.Lerp(player.Context.TargetOrientation, 0.4f);
 
+	// Reset.
 	item->Animation.TargetState = LS_IDLE;
 }
 
@@ -133,12 +136,16 @@ void lara_as_auto_jump(ItemInfo* item, CollisionInfo* coll)
 // Collision: lara_col_walk_forward()
 void lara_as_walk_forward(ItemInfo* item, CollisionInfo* coll)
 {
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY | (int)PlayerTurnFlags::VerticalFlex;
+
 	auto& player = GetLaraInfo(*item);
 
 	player.Control.Look.Mode = LookMode::Horizontal;
 
 	bool isWading = (player.Control.WaterStatus == WaterStatus::Wade);
-	player.Control.Count.Run = std::clamp<unsigned int>(player.Control.Count.Run + 1, 0, (PLAYER_RUN_JUMP_TIME / 2) + 4);
+	player.Control.Count.Run = std::clamp<unsigned int>(
+		player.Control.Count.Run + 1,
+		0, g_Configuration.IsUsingModernControls() ? (PLAYER_MODERN_CONTROL_RUN_JUMP_TIME / 2) : (PLAYER_TANK_CONTROL_RUN_JUMP_TIME / 2) + 4);
 
 	if (item->HitPoints <= 0)
 	{
@@ -153,13 +160,31 @@ void lara_as_walk_forward(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Left) || IsHeld(In::Right))
+	// Turn.
+	if (g_Configuration.IsUsingModernControls())
 	{
-		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_MED_TURN_RATE_MAX);
-		HandlePlayerLean(item, coll, LARA_LEAN_RATE / 6, LARA_LEAN_MAX / 2);
+		if (!(CanPerformTurnaround(*item) && TestStateDispatch(*item, LS_WALK_FORWARD_TURN_180)))
+			HandlePlayerTurn(*item, PLAYER_DEFAULT_TURN_ALPHA, LARA_LEAN_MAX / 2, IsPlayerStrafing(*item), TURN_FLAGS);
+	}
+	else
+	{
+		if (IsHeld(In::Left) || IsHeld(In::Right))
+		{
+			if (g_Configuration.IsUsingClassicControls())
+			{
+				ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
+			}
+			else if (g_Configuration.IsUsingEnhancedControls())
+			{
+				ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_MED_TURN_RATE_MAX);
+				HandlePlayerTurnLean(item, coll, LARA_LEAN_RATE / 6, LARA_LEAN_MAX / 2);
+			}
+		}
 	}
 
-	if (IsHeld(In::Forward))
+	if (g_Configuration.IsUsingModernControls() ?
+		(IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right)) :
+		IsHeld(In::Forward))
 	{
 		if (IsHeld(In::Action))
 		{
@@ -178,7 +203,14 @@ void lara_as_walk_forward(ItemInfo* item, CollisionInfo* coll)
 		}
 		else if (IsHeld(In::Walk))
 		{
-			item->Animation.TargetState = LS_WALK_FORWARD;
+			if (CanPerformTurnaround(*item) && TestStateDispatch(*item, LS_WALK_FORWARD_TURN_180))
+			{
+				item->Animation.TargetState = LS_WALK_FORWARD_TURN_180;
+			}
+			else
+			{
+				item->Animation.TargetState = LS_WALK_FORWARD;
+			}
 		}
 		else
 		{
@@ -188,6 +220,7 @@ void lara_as_walk_forward(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
+	// Reset.
 	item->Animation.TargetState = LS_IDLE;
 }
 
@@ -197,7 +230,8 @@ void lara_col_walk_forward(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.MoveAngle = item->Pose.Orientation.y;
+	// Setup.
+	player.Control.HeadingOrient.y = GetPlayerHeadingAngleY(*item);
 	item->Animation.IsAirborne = false;
 	item->Animation.Velocity.y = 0;
 	coll->Setup.LowerFloorBound = STEPUP_HEIGHT;
@@ -206,7 +240,7 @@ void lara_col_walk_forward(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.BlockFloorSlopeUp = true;
 	coll->Setup.BlockFloorSlopeDown = true;
 	coll->Setup.BlockDeathFloorDown = true;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y + (item->Animation.Velocity.z >= 0.0f ? 0 : ANGLE(180.0f));
 	GetCollisionInfo(coll, item);
 
 	if (TestLaraHitCeiling(coll))
@@ -250,29 +284,114 @@ void lara_col_walk_forward(ItemInfo* item, CollisionInfo* coll)
 	}
 }
 
+// State:	  LS_WALK_FORWARD_TURN_180 (208)
+// Collision: lara_col_walk_forward_turn_180()
+void lara_as_walk_forward_turn_180(ItemInfo* item, CollisionInfo* coll)
+{
+	constexpr auto TURN_FLAGS	  = (int)PlayerTurnFlags::TurnY;
+	constexpr auto Y_ANGLE_OFFSET = ANGLE(-180.0f);
+
+	auto& player = GetLaraInfo(*item);
+
+	// Setup.
+	player.Control.Look.Mode = LookMode::Horizontal;
+
+	// Death.
+	if (item->HitPoints <= 0)
+	{
+		item->Animation.TargetState = LS_WALK_FORWARD;
+		return;
+	}
+
+	// Turn.
+	HandlePlayerTurn(*item, PLAYER_TURNAROUND_TURN_ALPHA, 0, false, TURN_FLAGS, Y_ANGLE_OFFSET);
+
+	// Reset.
+	item->Animation.TargetState = LS_WALK_FORWARD;
+}
+
+// State:	LS_WALK_FORWARD_TURN_180 (208)
+// Control: lara_as_walk_forward_turn_180()
+void lara_col_walk_forward_turn_180(ItemInfo* item, CollisionInfo* coll)
+{
+	auto& player = GetLaraInfo(*item);
+
+	// Setup.
+	player.Control.HeadingOrient.y = GetPlayerHeadingAngleY(*item);
+	item->Animation.IsAirborne = false;
+	item->Animation.Velocity.y = 0;
+	coll->Setup.LowerFloorBound = STEPUP_HEIGHT;
+	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
+	coll->Setup.LowerCeilingBound = 0;
+	coll->Setup.BlockFloorSlopeUp = true;
+	coll->Setup.BlockFloorSlopeDown = true;
+	coll->Setup.BlockDeathFloorDown = true;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y + ((item->Animation.Velocity.z >= 0.0f) ? ANGLE(0.0f) : ANGLE(180.0f));
+	GetCollisionInfo(coll, item);
+
+	if (TestLaraHitCeiling(coll))
+	{
+		SetLaraHitCeiling(item, coll);
+		return;
+	}
+
+	if (CanFall(*item, *coll))
+	{
+		SetLaraFallAnimation(item);
+		return;
+	}
+
+	if (CanSlide(*item, *coll))
+	{
+		SetLaraSlideAnimation(item, coll);
+		return;
+	}
+
+	LaraDeflectEdge(item, coll);
+
+	if (CanChangeElevation(*item, *coll) && coll->CollisionType != CollisionType::Front)
+	{
+		HandlePlayerElevationChange(item, coll);
+		return;
+	}
+}
+
 // State:	  LS_RUN_FORWARD (1)
 // Collision: lara_col_run_forward()
 void lara_as_run_forward(ItemInfo* item, CollisionInfo* coll)
 {
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY | (int)PlayerTurnFlags::VerticalFlex;
+
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.Look.Mode = LookMode::Horizontal;
-
+	// Setup.
 	bool isWading = (player.Control.WaterStatus == WaterStatus::Wade);
-	player.Control.Count.Run = std::clamp<unsigned int>(player.Control.Count.Run + 1, 0, PLAYER_RUN_JUMP_TIME);
+	player.Control.Look.Mode = LookMode::Horizontal;
+	player.Control.Count.Run = std::clamp<unsigned int>(player.Control.Count.Run + 1, 0, PLAYER_TANK_CONTROL_RUN_JUMP_TIME);
 
+	// Death.
 	if (item->HitPoints <= 0)
 	{
 		item->Animation.TargetState = LS_DEATH;
 		return;
 	}
 
-	if (IsHeld(In::Left) || IsHeld(In::Right))
+	// Turn.
+	if (g_Configuration.IsUsingModernControls())
 	{
-		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_FAST_TURN_RATE_MAX);
-		HandlePlayerLean(item, coll, LARA_LEAN_RATE, LARA_LEAN_MAX);
+		if (!(CanPerformTurnaround(*item) && TestStateDispatch(*item, LS_RUN_FORWARD_TURN_180)))
+			HandlePlayerTurn(*item, PLAYER_DEFAULT_TURN_ALPHA, LARA_LEAN_MAX, IsPlayerStrafing(*item), TURN_FLAGS);
+	}
+	else
+	{
+		if (IsHeld(In::Left) || IsHeld(In::Right))
+		{
+			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_FAST_TURN_RATE_MAX);
+			HandlePlayerTurnLean(item, coll, LARA_LEAN_RATE, LARA_LEAN_MAX);
+		}
 	}
 
+	// Jump.
 	if (IsHeld(In::Jump) || player.Control.IsRunJumpQueued)
 	{
 		if (!IsHeld(In::Sprint) && CanRunJumpForward(*item, *coll))
@@ -281,24 +400,31 @@ void lara_as_run_forward(ItemInfo* item, CollisionInfo* coll)
 			return;
 		}
 
-		player.Control.IsRunJumpQueued = CanQueueRunningJump(*item, *coll);
+		if (!g_Configuration.IsUsingClassicControls())
+			player.Control.IsRunJumpQueued = CanQueueRunningJump(*item, *coll);
 	}
 
-	if ((IsHeld(In::Roll) || (IsHeld(In::Forward) && IsHeld(In::Back))) &&
-		CanRoll180Running(*item))
+	// Roll 180.
+	if ((IsHeld(In::Roll) || (HasOppositeAction(*item) && g_Configuration.EnableOppositeActionRoll)) &&
+		CanRunRoll180(*item))
 	{
 		item->Animation.TargetState = LS_ROLL_180_FORWARD;
 		return;
 	}
 
+	// Crouch.
 	if (IsHeld(In::Crouch) && CanCrouch(*item, *coll))
 	{
 		item->Animation.TargetState = LS_CROUCH_IDLE;
 		return;
 	}
 
-	if (IsHeld(In::Forward))
+	// Move forward.
+	if (g_Configuration.IsUsingModernControls() ?
+		(IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right)) :
+		IsHeld(In::Forward))
 	{
+		// Climb.
 		if (IsHeld(In::Action))
 		{
 			auto vaultContext = TestLaraVault(item, coll);
@@ -310,6 +436,7 @@ void lara_as_run_forward(ItemInfo* item, CollisionInfo* coll)
 			}
 		}
 
+		// Wade, walk, run, sprint, turn 180.
 		if (isWading)
 		{
 			item->Animation.TargetState = LS_WADE_FORWARD;
@@ -324,13 +451,35 @@ void lara_as_run_forward(ItemInfo* item, CollisionInfo* coll)
 		}
 		else
 		{
-			item->Animation.TargetState = LS_RUN_FORWARD;
+			if (IsPlayerStrafing(*item))
+			{
+				item->Animation.TargetState = CanStrafeBackward(*item, *coll) ? LS_SKIP_BACK : LS_RUN_FORWARD;
+			}
+			else
+			{
+				if (CanPerformTurnaround(*item) && TestStateDispatch(*item, LS_RUN_FORWARD_TURN_180))
+				{
+					item->Animation.TargetState = LS_RUN_FORWARD_TURN_180;
+				}
+				else
+				{
+					item->Animation.TargetState = LS_RUN_FORWARD;
+				}
+			}
 		}
 
 		return;
 	}
 
-	item->Animation.TargetState = LS_IDLE;
+	// Reset.
+	if (g_Configuration.IsUsingModernControls())
+	{
+		item->Animation.TargetState = TestStateDispatch(*item, LS_RUN_FORWARD_CANCEL) ? LS_RUN_FORWARD_CANCEL : LS_IDLE;
+	}
+	else
+	{
+		item->Animation.TargetState = LS_IDLE;
+	}
 }
 
 // State:	LS_RUN_FORWARD (1)
@@ -339,7 +488,8 @@ void lara_col_run_forward(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.MoveAngle = item->Pose.Orientation.y;
+	// Setup.
+	player.Control.HeadingOrient.y = GetPlayerHeadingAngleY(*item);
 	item->Animation.IsAirborne = false;
 	item->Animation.Velocity.y = 0;
 	coll->Setup.LowerFloorBound = IsHeld(In::Walk) ? STEPUP_HEIGHT : NO_LOWER_BOUND;
@@ -348,7 +498,7 @@ void lara_col_run_forward(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.BlockFloorSlopeUp = true;
 	coll->Setup.BlockFloorSlopeDown = IsHeld(In::Walk);
 	coll->Setup.BlockDeathFloorDown = IsHeld(In::Walk);
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y + (item->Animation.Velocity.z >= 0.0f ? 0 : ANGLE(180.0f));
 	GetCollisionInfo(coll, item);
 	LaraResetGravityStatus(item, coll);
 
@@ -409,18 +559,95 @@ void lara_col_run_forward(ItemInfo* item, CollisionInfo* coll)
 	}
 }
 
+// State:	  LS_RUN_FORWARD_TURN_180 (209)
+// Collision: lara_col_run_forward_turn_180()
+void lara_as_run_forward_turn_180(ItemInfo* item, CollisionInfo* coll)
+{
+	constexpr auto TURN_FLAGS	  = (int)PlayerTurnFlags::TurnY;
+	constexpr auto Y_ANGLE_OFFEST = ANGLE(-180.0f);
+
+	auto& player = GetLaraInfo(*item);
+
+	// Setup.
+	player.Control.Look.Mode = LookMode::Horizontal;
+
+	// Death.
+	if (item->HitPoints <= 0)
+	{
+		item->Animation.TargetState = LS_RUN_FORWARD;
+		return;
+	}
+
+	// Turn.
+	HandlePlayerTurn(*item, PLAYER_TURNAROUND_TURN_ALPHA, 0, false, TURN_FLAGS, Y_ANGLE_OFFEST);
+
+	// Reset.
+	item->Animation.TargetState = LS_RUN_FORWARD;
+}
+
+// State:	LS_RUN_FORWARD_TURN_180 (209)
+// Control: lara_as_run_forward_turn_180()
+void lara_col_run_forward_turn_180(ItemInfo* item, CollisionInfo* coll)
+{
+	auto& player = GetLaraInfo(*item);
+
+	// Setup.
+	player.Control.HeadingOrient.y = GetPlayerHeadingAngleY(*item);
+	item->Animation.IsAirborne = false;
+	item->Animation.Velocity.y = 0;
+	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
+	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
+	coll->Setup.LowerCeilingBound = 0;
+	coll->Setup.BlockFloorSlopeUp = true;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y + (item->Animation.Velocity.z >= 0.0f ? 0 : ANGLE(180.0f));
+	GetCollisionInfo(coll, item);
+	LaraResetGravityStatus(item, coll);
+
+	if (TestLaraHitCeiling(coll))
+	{
+		SetLaraHitCeiling(item, coll);
+		return;
+	}
+
+	if (CanFall(*item, *coll))
+	{
+		SetLaraFallAnimation(item);
+		return;
+	}
+
+	if (CanSlide(*item, *coll))
+	{
+		SetLaraSlideAnimation(item, coll);
+		return;
+	}
+
+	if (TestAndDoLaraLadderClimb(item, coll))
+		return;
+
+	LaraDeflectEdge(item, coll);
+	
+	if (CanChangeElevation(*item, *coll))
+	{
+		HandlePlayerElevationChange(item, coll);
+		return;
+	}
+}
+
 // State:	  LS_IDLE (2), LS_SPLAT_SOFT (170)
 // Collision: lara_col_idle()
 void lara_as_idle(ItemInfo* item, CollisionInfo* coll)
 {
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY | (int)PlayerTurnFlags::VerticalFlex;
+
 	auto& player = GetLaraInfo(*item);
 
+	// Setup.
 	bool isWading = (player.Control.WaterStatus == WaterStatus::Wade);
 	bool isInSwamp = TestEnvironment(ENV_FLAG_SWAMP, item);
 	player.Control.CanLook = !((isWading && isInSwamp) || item->Animation.AnimNumber == LA_SWANDIVE_ROLL);
-
 	player.Control.Look.Mode = LookMode::Free;
 
+	// Death.
 	if (item->HitPoints <= 0)
 	{
 		item->Animation.TargetState = LS_DEATH;
@@ -441,33 +668,89 @@ void lara_as_idle(ItemInfo* item, CollisionInfo* coll)
 	if (player.Control.Look.IsUsingBinoculars)
 		return;
 
-	// Jump locks orientation.
-	if (!IsHeld(In::Jump))
+	// Toggle walk (if toggle enabled).
+	if (IsClicked(In::Walk) && g_Configuration.EnableWalkToggle)
+		player.Control.ToggleWalk = true;
+
+	// Turn.
+	if (g_Configuration.IsUsingClassicControls())
 	{
-		// Sidestep locks orientation.
-		if ((IsHeld(In::StepLeft) || (IsHeld(In::Walk) && IsHeld(In::Left))) ||
-			(IsHeld(In::StepRight) || (IsHeld(In::Walk) && IsHeld(In::Right))))
+		if ((IsHeld(In::Forward) || abs(player.Control.TurnRate.y) >= LARA_MED_TURN_RATE_MAX) &&
+			(IsHeld(In::Left) || IsHeld(In::Right)))
+		{
+			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_FAST_TURN_RATE_MAX);
+		}
+		else
 		{
 			ResetPlayerTurnRateY(*item);
 		}
-		else if (IsHeld(In::Left) || IsHeld(In::Right))
-		{
-			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_MED_TURN_RATE_MAX);
-		}
 	}
-
-	if (IsHeld(In::Jump) && CanPerformJump(*item, *coll))
+	else if (g_Configuration.IsUsingEnhancedControls())
 	{
-		auto jumpDirection = GetPlayerJumpDirection(*item, *coll);
-		if (jumpDirection != JumpDirection::None)
+		// Jump locks orientation.
+		if (!IsHeld(In::Jump))
 		{
-			item->Animation.TargetState = LS_JUMP_PREPARE;
-			player.Control.JumpDirection = jumpDirection;
-			return;
+			// Sidestep locks orientation.
+			if ((IsHeld(In::StepLeft) || (IsHeld(In::Walk) && IsHeld(In::Left))) ||
+				(IsHeld(In::StepRight) || (IsHeld(In::Walk) && IsHeld(In::Right))))
+			{
+				ResetPlayerTurnRateY(*item);
+			}
+			else if (IsHeld(In::Left) || IsHeld(In::Right))
+			{
+				ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_MED_FAST_TURN_RATE_MAX);
+			}
+		}
+	}
+	else if (g_Configuration.IsUsingModernControls())
+	{
+		float turnAlpha = isWading ?
+			PLAYER_WADE_TURN_ALPHA * (isInSwamp ? 0.5f : 1.0f) :
+			PLAYER_DEFAULT_TURN_ALPHA;
+
+		if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
+		{
+			bool isJumpingDirectionally = (IsPlayerStrafing(*item) || (IsHeld(In::Jump) && IsHeld(In::Walk)));
+			bool isWalkRunTurning180 = (CanPerformTurnaround(*item) && TestStateDispatch(*item, LS_WALK_FORWARD_TURN_180) && GetMoveAxis() != Vector2::Zero); // TODO: Something more accurate.
+			
+			if (!isJumpingDirectionally && !isWalkRunTurning180)
+				HandlePlayerTurn(*item, turnAlpha, 0, false, TURN_FLAGS);
+		}
+		else if (IsPlayerStrafing(*item))
+		{
+			HandlePlayerTurn(*item, turnAlpha, 0, false, TURN_FLAGS);
 		}
 	}
 
-	if (IsHeld(In::Roll) || (IsHeld(In::Forward) && IsHeld(In::Back)))
+	// Jump.
+	if (IsHeld(In::Jump))
+	{
+		if ((IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right)) &&
+			g_Configuration.EnableClimbToggle)
+		{
+			auto vaultContext = TestLaraVault(item, coll);
+			if (vaultContext.has_value())
+			{
+				item->Animation.TargetState = vaultContext->TargetState;
+				SetLaraVault(item, coll, *vaultContext);
+				return;
+			}
+		}
+
+		if (CanPerformJump(*item, *coll))
+		{
+			auto jumpDirection = GetPlayerJumpDirection(*item, *coll);
+			if (jumpDirection != JumpDirection::None)
+			{
+				item->Animation.TargetState = LS_JUMP_PREPARE;
+				player.Control.JumpDirection = jumpDirection;
+				return;
+			}
+		}
+	}
+
+	// Turn or roll 180.
+	if (IsHeld(In::Roll) || (HasOppositeAction(*item) && g_Configuration.EnableOppositeActionRoll))
 	{
 		if (IsHeld(In::Walk) || CanTurn180(*item, *coll))
 		{
@@ -481,81 +764,201 @@ void lara_as_idle(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
+	// Crouch.
 	if (IsHeld(In::Crouch) && CanCrouch(*item, *coll))
 	{
 		item->Animation.TargetState = LS_CROUCH_IDLE;
 		return;
 	}
 
+	// Look.
 	if (IsHeld(In::Look) && CanPlayerLookAround(*item))
 	{
 		item->Animation.TargetState = LS_IDLE;
 		return;
 	}
 
-	if (IsHeld(In::Forward))
+	// Move forward or back.
+	if (g_Configuration.IsUsingClassicControls() || g_Configuration.IsUsingEnhancedControls())
 	{
-		if (IsHeld(In::Action))
+		if (IsHeld(In::Forward))
 		{
-			auto vaultContext = TestLaraVault(item, coll);
-			if (vaultContext.has_value())
+			// Climb.
+			if (IsHeld(In::Action))
 			{
-				item->Animation.TargetState = vaultContext->TargetState;
-				SetLaraVault(item, coll, *vaultContext);
+				auto vaultContext = TestLaraVault(item, coll);
+				if (vaultContext.has_value())
+				{
+					item->Animation.TargetState = vaultContext->TargetState;
+					SetLaraVault(item, coll, *vaultContext);
+					return;
+				}
+			}
+
+			// Wade, walk, run, or sprint.
+			if (CanWadeForward(*item, *coll))
+			{
+				item->Animation.TargetState = LS_WADE_FORWARD;
+				return;
+			}
+			else if (IsHeld(In::Walk))
+			{
+				if (CanWalkForward(*item, *coll))
+				{
+					item->Animation.TargetState = LS_WALK_FORWARD;
+					return;
+				}
+			}
+			else if (CanRunForward(*item, *coll))
+			{
+				if (IsHeld(In::Sprint))
+				{
+					item->Animation.TargetState = LS_SPRINT;
+				}
+				else
+				{
+					item->Animation.TargetState = LS_RUN_FORWARD;
+				}
+
 				return;
 			}
 		}
-
-		if (CanWadeForward(*item, *coll))
+		else if (IsHeld(In::Back))
 		{
-			item->Animation.TargetState = LS_WADE_FORWARD;
-			return;
-		}
-		else if (IsHeld(In::Walk))
-		{
-			if (CanWalkForward(*item, *coll))
-			{
-				item->Animation.TargetState = LS_WALK_FORWARD;
-				return;
-			}
-		}
-		else if (CanRunForward(*item, *coll))
-		{
-			if (IsHeld(In::Sprint))
-			{
-				item->Animation.TargetState = LS_SPRINT;
-			}
-			else
-			{
-				item->Animation.TargetState = LS_RUN_FORWARD;
-			}
-
-			return;
-		}
-	}
-	else if (IsHeld(In::Back))
-	{
-		if (CanWadeBackward(*item, *coll))
-		{
-			item->Animation.TargetState = LS_WALK_BACK;
-			return;
-		}
-		else if (IsHeld(In::Walk))
-		{
-			if (CanWalkBackward(*item, *coll))
+			// Wade, walk, or hop back.
+			if (CanWadeBackward(*item, *coll))
 			{
 				item->Animation.TargetState = LS_WALK_BACK;
 				return;
 			}
+			else if (IsHeld(In::Walk))
+			{
+				if (CanWalkBackward(*item, *coll))
+				{
+					item->Animation.TargetState = LS_WALK_BACK;
+					return;
+				}
+			}
+			else if (CanRunBackward(*item, *coll))
+			{
+				item->Animation.TargetState = LS_HOP_BACK;
+				return;
+			}
 		}
-		else if (CanRunBackward(*item, *coll))
+
+		// Turn left/right.
+		if (IsHeld(In::Left))
 		{
-			item->Animation.TargetState = LS_RUN_BACK;
+			if ((IsHeld(In::Sprint) || CanTurnFast(*item, *coll, false)) &&
+				!isWading)
+			{
+				item->Animation.TargetState = LS_TURN_LEFT_FAST;
+			}
+			else
+			{
+				item->Animation.TargetState = LS_TURN_LEFT_SLOW;
+			}
+
+			return;
+		}
+		else if (IsHeld(In::Right))
+		{
+			if ((IsHeld(In::Sprint) || CanTurnFast(*item, *coll, true)) &&
+				!isWading)
+			{
+				item->Animation.TargetState = LS_TURN_RIGHT_FAST;
+			}
+			else
+			{
+				item->Animation.TargetState = LS_TURN_RIGHT_SLOW;
+			}
+
 			return;
 		}
 	}
+	else if (g_Configuration.IsUsingModernControls())
+	{
+		if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
+		{
+			// CLimb.
+			if (IsHeld(In::Action))
+			{
+				auto vaultContext = TestLaraVault(item, coll);
+				if (vaultContext.has_value())
+				{
+					item->Animation.TargetState = vaultContext->TargetState;
+					SetLaraVault(item, coll, *vaultContext);
+					return;
+				}
+			}
 
-	if (IsHeld(In::StepLeft) || (IsHeld(In::Walk) && IsHeld(In::Left)))
+			// Walk or skip back.
+			if (CanStrafeBackward(*item, *coll))
+			{
+				if (CanWadeBackward(*item, *coll))
+				{
+					item->Animation.TargetState = LS_WALK_BACK;
+				}
+				else if (IsHeld(In::Walk))
+				{
+					if (CanWalkBackward(*item, *coll))
+						item->Animation.TargetState = LS_WALK_BACK;
+				}
+				else if (CanRunBackward(*item, *coll))
+				{
+					item->Animation.TargetState = LS_SKIP_BACK;
+				}
+
+				return;
+			}
+
+			// Wade, walk, run, or sprint.
+			if (CanWadeForward(*item, *coll))
+			{
+				item->Animation.TargetState = LS_WADE_FORWARD;
+				return;
+			}
+			else if (IsHeld(In::Walk))
+			{
+				if (CanWalkForward(*item, *coll))
+				{
+					if (CanPerformTurnaround(*item) && TestStateDispatch(*item, LS_WALK_FORWARD_TURN_180))
+					{
+						item->Animation.TargetState = LS_WALK_FORWARD_TURN_180;
+					}
+					else
+					{
+						item->Animation.TargetState = LS_WALK_FORWARD;
+					}
+
+					return;
+				}
+			}
+			else if (CanRunForward(*item, *coll))
+			{
+				if (CanPerformTurnaround(*item) && TestStateDispatch(*item, LS_RUN_FORWARD_TURN_180))
+				{
+					item->Animation.TargetState = LS_RUN_FORWARD_TURN_180;
+				}
+				else
+				{
+					if (IsHeld(In::Sprint))
+					{
+						item->Animation.TargetState = LS_SPRINT;
+					}
+					else
+					{
+						item->Animation.TargetState = LS_RUN_FORWARD;
+					}
+				}
+
+				return;
+			}
+		}
+	}
+
+	// Sidestep.
+	if (IsHeld(In::StepLeft) || ((IsHeld(In::Walk) && IsHeld(In::Left)) && !g_Configuration.IsUsingModernControls()))
 	{
 		if (CanSidestepLeft(*item, *coll))
 		{
@@ -568,7 +971,7 @@ void lara_as_idle(ItemInfo* item, CollisionInfo* coll)
 
 		return;
 	}
-	else if (IsHeld(In::StepRight) || (IsHeld(In::Walk) && IsHeld(In::Right)))
+	else if (IsHeld(In::StepRight) || ((IsHeld(In::Walk) && IsHeld(In::Right)) && !g_Configuration.IsUsingModernControls()))
 	{
 		if (CanSidestepRight(*item, *coll))
 		{
@@ -582,43 +985,29 @@ void lara_as_idle(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Left))
-	{
-		if ((IsHeld(In::Sprint) || CanTurnFast(*item, *coll, false)) &&
-			!isWading)
-		{
-			item->Animation.TargetState = LS_TURN_LEFT_FAST;
-		}
-		else
-		{
-			item->Animation.TargetState = LS_TURN_LEFT_SLOW;
-		}
-
-		return;
-	}
-	else if (IsHeld(In::Right))
-	{
-		if ((IsHeld(In::Sprint) || CanTurnFast(*item, *coll, true)) &&
-			!isWading)
-		{
-			item->Animation.TargetState = LS_TURN_RIGHT_FAST;
-		}
-		else
-		{
-			item->Animation.TargetState = LS_TURN_RIGHT_SLOW;
-		}
-
-		return;
-	}
-
-	// TODO: Without animation blending, the AFK state's movement lock interferes with responsiveness. -- Sezz 2021.10.31
+	// AFK pose.
 	if (CanStrikeAfkPose(*item, *coll) && player.Control.Count.Pose >= (g_GameFlow->GetSettings()->Animations.PoseTimeout * FPS))
 	{
 		item->Animation.TargetState = LS_POSE;
 		return;
 	}
 
-	item->Animation.TargetState = LS_IDLE;
+	// Reset.
+	if (IsPlayerStrafing(*item))
+	{
+		int turnStateID = GetPlayerStrafeTurnStateID(*item);
+		if (turnStateID != NO_VALUE)
+		{
+			item->Animation.TargetState = turnStateID;
+			return;
+		}
+
+		item->Animation.TargetState = LS_IDLE;
+	}
+	else
+	{
+		item->Animation.TargetState = LS_IDLE;
+	}
 }
 
 // State:	LS_IDLE (2), LS_POSE (4), LS_SPLAT_SOFT (170)
@@ -629,15 +1018,16 @@ void lara_col_idle(ItemInfo* item, CollisionInfo* coll)
 
 	bool isWading = (player.Control.WaterStatus == WaterStatus::Wade);
 
+	// Setup.
 	item->Animation.IsAirborne = false;
 	item->Animation.Velocity.y = 0;
-	player.Control.MoveAngle = (item->Animation.Velocity.z >= 0) ? item->Pose.Orientation.y : (item->Pose.Orientation.y + ANGLE(180.0f));
+	player.Control.HeadingOrient.y = GetPlayerHeadingAngleY(*item) + ((item->Animation.Velocity.z >= 0.0f) ? 0 : ANGLE(180.0f));
 	coll->Setup.LowerFloorBound = isWading ? NO_LOWER_BOUND : STEPUP_HEIGHT;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = 0;
 	coll->Setup.BlockFloorSlopeDown = !isWading;
 	coll->Setup.BlockFloorSlopeUp = !isWading;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	// TODO: Better clamp handling. This can result in the player standing above or below the floor. -- Sezz 2022.04.01
@@ -707,21 +1097,105 @@ void lara_as_pose(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
+	// Reset.
 	item->Animation.TargetState = LS_IDLE;
 }
 
-// State:	  LS_RUN_BACK (5)
-// Collision: lara_col_run_back()
-void lara_as_run_back(ItemInfo* item, CollisionInfo* coll)
+// State:	  LS_HOP_BACK (5)
+// Collision: lara_col_hop_back()
+void lara_as_hop_back(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
 	player.Control.Look.Mode = LookMode::Horizontal;
 
+	// Turn.
 	if (IsHeld(In::Left) || IsHeld(In::Right))
 	{
 		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_MED_TURN_RATE_MAX);
-		HandlePlayerLean(item, coll, LARA_LEAN_RATE / 4, LARA_LEAN_MAX / 3);
+		HandlePlayerTurnLean(item, coll, LARA_LEAN_RATE / 4, LARA_LEAN_MAX / 3);
+	}
+
+	if (!g_Configuration.IsUsingClassicControls())
+	{
+		if (IsHeld(In::Roll))
+		{
+			item->Animation.TargetState = LS_ROLL_180_FORWARD;
+			return;
+		}
+	}
+
+	if (IsHeld(In::Back))
+	{
+		item->Animation.TargetState = LS_HOP_BACK;
+		return;
+	}
+
+	// Reset.
+	item->Animation.TargetState = LS_IDLE;
+}
+
+// State:	LS_HOP_BACK (5)
+// Control: lara_as_hop_back()
+void lara_col_hop_back(ItemInfo* item, CollisionInfo* coll)
+{
+	auto& player = GetLaraInfo(*item);
+
+	// Setup.
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(180.0f);
+	item->Animation.Velocity.y = 0;
+	item->Animation.IsAirborne = false;
+	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
+	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
+	coll->Setup.LowerCeilingBound = 0;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
+	GetCollisionInfo(coll, item);
+
+	if (TestLaraHitCeiling(coll))
+	{
+		SetLaraHitCeiling(item, coll);
+		return;
+	}
+
+	if (coll->Middle.Floor > (STEPUP_HEIGHT / 2))
+	{
+		SetLaraFallBackAnimation(item);
+		return;
+	}
+
+	if (CanSlide(*item, *coll))
+	{
+		SetLaraSlideAnimation(item, coll);
+		return;
+	}
+
+	if (LaraDeflectEdge(item, coll))
+		LaraCollideStop(item, coll);
+
+	if (CanChangeElevation(*item, *coll))
+	{
+		HandlePlayerElevationChange(item, coll);
+		return;
+	}
+}
+
+// State:	  LS_SKIP_BACK (207)
+// Collision: lara_col_skip_back()
+void lara_as_skip_back(ItemInfo* item, CollisionInfo* coll)
+{
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY | (int)PlayerTurnFlags::VerticalFlex;
+
+	auto& player = GetLaraInfo(*item);
+
+	player.Control.Look.Mode = LookMode::None;
+
+	// Turn.
+	HandlePlayerTurn(*item, PLAYER_DEFAULT_TURN_ALPHA, LARA_LEAN_MAX, true, TURN_FLAGS);
+
+	if (IsHeld(In::Jump))
+	{
+		item->Animation.TargetState = LS_JUMP_BACK;
+		return;
 	}
 
 	if (IsHeld(In::Roll))
@@ -730,22 +1204,38 @@ void lara_as_run_back(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
+	if (IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right))
+	{
+		if (IsPlayerStrafing(*item))
+		{
+			item->Animation.TargetState = CanStrafeBackward(*item, *coll) ? LS_SKIP_BACK : LS_RUN_FORWARD;
+			return;
+		}
+		else
+		{
+			item->Animation.TargetState = LS_RUN_FORWARD;
+			return;
+		}
+	}
+
+	// Reset.
 	item->Animation.TargetState = LS_IDLE;
 }
 
-// State:	LS_RUN_BACK (5)
-// Control: lara_as_run_back()
-void lara_col_run_back(ItemInfo* item, CollisionInfo* coll)
+// State:	LS_SKIP_BACK (207)
+// Control: lara_as_skip_back()
+void lara_col_skip_back(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.MoveAngle = item->Pose.Orientation.y + ANGLE(180.0f);
-	item->Animation.Velocity.y = 0;
+	// Setup.
+	player.Control.HeadingOrient.y = GetPlayerHeadingAngleY(*item);
+	item->Animation.Velocity.y = 0.0f;
 	item->Animation.IsAirborne = false;
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = 0;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	if (TestLaraHitCeiling(coll))
@@ -780,55 +1270,99 @@ void lara_col_run_back(ItemInfo* item, CollisionInfo* coll)
 // Collision: lara_col_turn_slow()
 void lara_as_turn_slow(ItemInfo* item, CollisionInfo* coll)
 {
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY | (int)PlayerTurnFlags::VerticalFlex;
+
 	auto& player = GetLaraInfo(*item);
 
+	// Setup.
 	bool isWading = (player.Control.WaterStatus == WaterStatus::Wade);
 	bool isInSwamp = TestEnvironment(ENV_FLAG_SWAMP, item);
 	player.Control.CanLook = (isWading && isInSwamp) ? false : true;
-
 	player.Control.Look.Mode = LookMode::Vertical;
 
+	// Death.
 	if (item->HitPoints <= 0)
 	{
 		item->Animation.TargetState = LS_DEATH;
 		return;
 	}
 
-	if (isWading)
+	// Turn.
+	if (g_Configuration.IsUsingModernControls())
 	{
-		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, isInSwamp ? LARA_SWAMP_TURN_RATE_MAX : LARA_WADE_TURN_RATE_MAX);
+		float turnAlpha = isWading ? (PLAYER_WADE_TURN_ALPHA * (isInSwamp ? 0.5f : 1.0f)) : PLAYER_DEFAULT_TURN_ALPHA;
+		HandlePlayerTurn(*item, turnAlpha, 0, true, TURN_FLAGS);
 	}
 	else
 	{
-		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_MED_FAST_TURN_RATE_MAX);
+		if (isWading)
+		{
+			if (g_Configuration.IsUsingClassicControls())
+			{
+				ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_WADE_TURN_RATE_MAX / 2);
+			}
+			else
+			{
+				ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, isInSwamp ? LARA_SWAMP_TURN_RATE_MAX : LARA_WADE_TURN_RATE_MAX);
+			}
+		}
+		else
+		{
+			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_MED_FAST_TURN_RATE_MAX);
+		}
 	}
 
-	if (IsHeld(In::Jump) && CanPerformJump(*item, *coll))
+	// Move.
+	if (g_Configuration.IsUsingEnhancedControls() || g_Configuration.IsUsingModernControls())
 	{
-		auto jumpDirection = GetPlayerJumpDirection(*item, *coll);
-		if (jumpDirection != JumpDirection::None)
+		// Jump or climb.
+		if (IsHeld(In::Jump))
 		{
-			item->Animation.TargetState = LS_JUMP_PREPARE;
-			player.Control.JumpDirection = jumpDirection;
+			// Climb with Jump.
+			if (IsHeld(In::Forward) && g_Configuration.EnableClimbToggle)
+			{
+				auto vaultContext = TestLaraVault(item, coll);
+				if (vaultContext.has_value())
+				{
+					item->Animation.TargetState = vaultContext->TargetState;
+					SetLaraVault(item, coll, *vaultContext);
+					return;
+				}
+			}
+
+			// Jump.
+			if (CanPerformJump(*item, *coll))
+			{
+				auto jumpDirection = GetPlayerJumpDirection(*item, *coll);
+				if (jumpDirection != JumpDirection::None)
+				{
+					item->Animation.TargetState = LS_JUMP_PREPARE;
+					player.Control.JumpDirection = jumpDirection;
+					return;
+				}
+			}
+		}
+
+		// Roll 180.
+		if ((IsHeld(In::Roll) || (HasOppositeAction(*item) && g_Configuration.EnableOppositeActionRoll)) &&
+			!isWading)
+		{
+			item->Animation.TargetState = LS_ROLL_180_FORWARD;
+			return;
+		}
+
+		// Crouch.
+		if (IsHeld(In::Crouch) && CanCrouch(*item, *coll))
+		{
+			item->Animation.TargetState = LS_CROUCH_IDLE;
 			return;
 		}
 	}
 
-	if ((IsHeld(In::Roll) || (IsHeld(In::Forward) && IsHeld(In::Back))) &&
-		!isWading)
-	{
-		item->Animation.TargetState = LS_ROLL_180_FORWARD;
-		return;
-	}
-
-	if (IsHeld(In::Crouch) && CanCrouch(*item, *coll))
-	{
-		item->Animation.TargetState = LS_CROUCH_IDLE;
-		return;
-	}
-
+	// Move forward.
 	if (IsHeld(In::Forward))
 	{
+		// Climb.
 		if (IsHeld(In::Action))
 		{
 			auto vaultContext = TestLaraVault(item, coll);
@@ -840,11 +1374,13 @@ void lara_as_turn_slow(ItemInfo* item, CollisionInfo* coll)
 			}
 		}
 
+		// Wade.
 		if (CanWadeForward(*item, *coll))
 		{
 			item->Animation.TargetState = LS_WADE_FORWARD;
 			return;
 		}
+		// Walk.
 		else if (IsHeld(In::Walk))
 		{
 			if (CanWalkForward(*item, *coll))
@@ -853,6 +1389,7 @@ void lara_as_turn_slow(ItemInfo* item, CollisionInfo* coll)
 				return;
 			}
 		}
+		// Run.
 		else if (CanRunForward(*item, *coll))
 		{
 			if (IsHeld(In::Sprint))
@@ -867,28 +1404,75 @@ void lara_as_turn_slow(ItemInfo* item, CollisionInfo* coll)
 			return;
 		}
 	}
-	else if (IsHeld(In::Back))
+
+	// Move back.
+	if (g_Configuration.IsUsingEnhancedControls() || g_Configuration.IsUsingModernControls())
 	{
-		if (CanWadeBackward(*item, *coll))
+		if (IsHeld(In::Back))
 		{
-			item->Animation.TargetState = LS_WALK_BACK;
-			return;
-		}
-		else if (IsHeld(In::Walk))
-		{
-			if (CanWalkBackward(*item, *coll))
+			if (CanWadeBackward(*item, *coll))
 			{
 				item->Animation.TargetState = LS_WALK_BACK;
 				return;
 			}
+			else if (IsHeld(In::Walk))
+			{
+				if (CanWalkBackward(*item, *coll))
+				{
+					item->Animation.TargetState = LS_WALK_BACK;
+					return;
+				}
+			}
+			else if (CanRunBackward(*item, *coll))
+			{
+				if (g_Configuration.IsUsingEnhancedControls())
+				{
+					item->Animation.TargetState = LS_HOP_BACK;
+					return;
+				}
+				else if (g_Configuration.IsUsingModernControls())
+				{
+					item->Animation.TargetState = LS_SKIP_BACK;
+					return;
+				}
+			}
 		}
-		else if (CanRunBackward(*item, *coll))
+	}
+
+	// Turn left/right.
+	if (g_Configuration.IsUsingClassicControls() || g_Configuration.IsUsingEnhancedControls())
+	{
+		if (IsHeld(In::Left) && item->Animation.ActiveState == LS_TURN_LEFT_SLOW)
 		{
-			item->Animation.TargetState = LS_RUN_BACK;
+			if (player.Control.TurnRate.y < -LARA_MED_TURN_RATE_MAX &&
+				!isWading)
+			{
+				item->Animation.TargetState = LS_TURN_LEFT_FAST;
+			}
+			else
+			{
+				item->Animation.TargetState = LS_TURN_LEFT_SLOW;
+			}
+
+			return;
+		}
+		else if (IsHeld(In::Right) && item->Animation.ActiveState == LS_TURN_RIGHT_SLOW)
+		{
+			if (player.Control.TurnRate.y > LARA_MED_TURN_RATE_MAX &&
+				!isWading)
+			{
+				item->Animation.TargetState = LS_TURN_RIGHT_FAST;
+			}
+			else
+			{
+				item->Animation.TargetState = LS_TURN_RIGHT_SLOW;
+			}
+
 			return;
 		}
 	}
 
+	// Sidestep.
 	if (IsHeld(In::StepLeft) || (IsHeld(In::Walk) && IsHeld(In::Left)) &&
 		CanSidestepLeft(*item, *coll))
 	{
@@ -902,36 +1486,22 @@ void lara_as_turn_slow(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Left) && item->Animation.ActiveState == LS_TURN_LEFT_SLOW)
+	// Reset.
+	if (IsPlayerStrafing(*item))
 	{
-		if (player.Control.TurnRate/*.y*/ < -LARA_SLOW_MED_TURN_RATE_MAX &&
-			!isWading)
+		int turnStateID = GetPlayerStrafeTurnStateID(*item);
+		if (turnStateID != NO_VALUE)
 		{
-			item->Animation.TargetState = LS_TURN_LEFT_FAST;
-		}
-		else
-		{
-			item->Animation.TargetState = LS_TURN_LEFT_SLOW;
+			item->Animation.TargetState = turnStateID;
+			return;
 		}
 
-		return;
+		item->Animation.TargetState = LS_IDLE;
 	}
-	else if (IsHeld(In::Right) && item->Animation.ActiveState == LS_TURN_RIGHT_SLOW)
+	else
 	{
-		if (player.Control.TurnRate/*.y*/ > LARA_SLOW_MED_TURN_RATE_MAX &&
-			!isWading)
-		{
-			item->Animation.TargetState = LS_TURN_RIGHT_FAST;
-		}
-		else
-		{
-			item->Animation.TargetState = LS_TURN_RIGHT_SLOW;
-		}
-
-		return;
+		item->Animation.TargetState = LS_IDLE;
 	}
-
-	item->Animation.TargetState = LS_IDLE;
 }
 
 // State:	LS_TURN_RIGHT_SLOW (6), LS_TURN_LEFT_SLOW (7)
@@ -960,11 +1530,11 @@ void lara_as_death(ItemInfo* item, CollisionInfo* coll)
 		player.Control.Look.OpticRange = 0;
 		player.Control.Look.IsUsingLasersight = false;
 		player.Inventory.IsBusy = false;
-		AlterFOV(LastFOV);
+		SetFov(g_Camera.PrevFov);
 	}
 
-	auto bounds = GameBoundingBox(item);
-	if (bounds.GetHeight() <= (LARA_HEIGHT * 0.75f))
+	auto box = GameBoundingBox(item).ToBoundingOrientedBox(item->Pose);
+	if ((box.Extents.y * 2) <= (LARA_HEIGHT * 0.75f))
 		AlignLaraToSurface(item);
 }
 
@@ -975,12 +1545,12 @@ void lara_col_death(ItemInfo* item, CollisionInfo* coll)
 	auto& player = GetLaraInfo(*item);
 
 	item->Animation.IsAirborne = false;
-	player.Control.MoveAngle = item->Pose.Orientation.y;
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y;
 	coll->Setup.LowerFloorBound = STEPUP_HEIGHT;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = 0;
 	coll->Setup.Radius = LARA_RADIUS_DEATH;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	StopSoundEffect(SFX_TR4_LARA_FALL);
@@ -1011,13 +1581,13 @@ void lara_col_splat(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.MoveAngle = item->Pose.Orientation.y;
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y;
 	coll->Setup.BlockFloorSlopeUp = true;
 	coll->Setup.BlockFloorSlopeDown = true;
 	coll->Setup.LowerFloorBound = STEPUP_HEIGHT;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = 0;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	ShiftItem(item, coll);
@@ -1033,12 +1603,14 @@ void lara_col_splat(ItemInfo* item, CollisionInfo* coll)
 // Collision: lara_col_walk_back()
 void lara_as_walk_back(ItemInfo* item, CollisionInfo* coll)
 {
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY | (int)PlayerTurnFlags::VerticalFlex;
+
 	auto& player = GetLaraInfo(*item);
 
 	bool isWading = (player.Control.WaterStatus == WaterStatus::Wade);
 	bool isInSwamp = TestEnvironment(ENV_FLAG_SWAMP, item);
-	player.Control.CanLook = (isWading && isInSwamp) ? false : true;
 
+	player.Control.CanLook = (isWading && isInSwamp) ? false : true;
 	player.Control.Look.Mode = LookMode::Horizontal;
 
 	if (item->HitPoints <= 0)
@@ -1053,26 +1625,46 @@ void lara_as_walk_back(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Left) || IsHeld(In::Right))
+	if (g_Configuration.IsUsingModernControls())
 	{
-		if (isWading && isInSwamp)
+		// Turn.
+		HandlePlayerTurn(*item, PLAYER_DEFAULT_TURN_ALPHA, 0, true, TURN_FLAGS);
+
+		if (IsPlayerStrafing(*item))
 		{
-			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX / 3);
-			HandlePlayerLean(item, coll, LARA_LEAN_RATE / 3, LARA_LEAN_MAX / 3);
+			if ((IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right)) &&
+				(IsHeld(In::Walk) || isWading))
+			{
+				item->Animation.TargetState = CanStrafeBackward(*item, *coll) ? LS_WALK_BACK : LS_WALK_FORWARD;
+				return;
+			}
 		}
-		else
+	}
+	else
+	{
+		// Turn.
+		if (IsHeld(In::Left) || IsHeld(In::Right))
 		{
-			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
-			HandlePlayerLean(item, coll, LARA_LEAN_RATE / 4, LARA_LEAN_MAX / 3);
+			if (isWading && isInSwamp)
+			{
+				ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX / 3);
+				HandlePlayerTurnLean(item, coll, LARA_LEAN_RATE / 3, LARA_LEAN_MAX / 3);
+			}
+			else
+			{
+				ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
+				HandlePlayerTurnLean(item, coll, LARA_LEAN_RATE / 4, LARA_LEAN_MAX / 3);
+			}
+		}
+
+		if (IsHeld(In::Back) && (IsHeld(In::Walk) || isWading))
+		{
+			item->Animation.TargetState = LS_WALK_BACK;
+			return;
 		}
 	}
 
-	if (IsHeld(In::Back) && (IsHeld(In::Walk) || isWading))
-	{
-		item->Animation.TargetState = LS_WALK_BACK;
-		return;
-	}
-
+	// Reset.
 	item->Animation.TargetState = LS_IDLE;
 }
 
@@ -1084,7 +1676,8 @@ void lara_col_walk_back(ItemInfo* item, CollisionInfo* coll)
 
 	bool isWading = (player.Control.WaterStatus == WaterStatus::Wade);
 
-	player.Control.MoveAngle = item->Pose.Orientation.y + ANGLE(180.0f);
+	// Setup.
+	player.Control.HeadingOrient.y = GetPlayerHeadingAngleY(*item) + (g_Configuration.IsUsingModernControls() ? ANGLE(0.0f) : ANGLE(180.0f));
 	item->Animation.IsAirborne = false;
 	item->Animation.Velocity.y = 0;
 	coll->Setup.LowerFloorBound = isWading ? NO_LOWER_BOUND : STEPUP_HEIGHT;
@@ -1093,7 +1686,7 @@ void lara_col_walk_back(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.BlockFloorSlopeDown = !isWading;
 	coll->Setup.BlockFloorSlopeUp = !isWading;
 	coll->Setup.BlockDeathFloorDown = true;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	if (TestLaraHitCeiling(coll))
@@ -1140,35 +1733,12 @@ void lara_as_turn_fast(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
+	// Turn.
 	ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, LARA_MED_TURN_RATE_MAX, LARA_FAST_TURN_RATE_MAX);
 
-	if (IsHeld(In::Jump) && CanPerformJump(*item, *coll))
+	if (IsHeld(In::Jump))
 	{
-		auto jumpDirection = GetPlayerJumpDirection(*item, *coll);
-		if (jumpDirection != JumpDirection::None)
-		{
-			item->Animation.TargetState = LS_JUMP_PREPARE;
-			player.Control.JumpDirection = jumpDirection;
-			return;
-		}
-	}
-
-	if ((IsHeld(In::Roll) || (IsHeld(In::Forward) && IsHeld(In::Back))) &&
-		!isWading)
-	{
-		item->Animation.TargetState = LS_ROLL_180_FORWARD;
-		return;
-	}
-
-	if (IsHeld(In::Crouch) && CanCrouch(*item, *coll))
-	{
-		item->Animation.TargetState = LS_CROUCH_IDLE;
-		return;
-	}
-
-	if (IsHeld(In::Forward))
-	{
-		if (IsHeld(In::Action))
+		if (IsHeld(In::Forward) && g_Configuration.EnableClimbToggle)
 		{
 			auto vaultContext = TestLaraVault(item, coll);
 			if (vaultContext.has_value())
@@ -1179,52 +1749,93 @@ void lara_as_turn_fast(ItemInfo* item, CollisionInfo* coll)
 			}
 		}
 
-		if (CanWadeForward(*item, *coll))
+		if (CanPerformJump(*item, *coll))
 		{
-			item->Animation.TargetState = LS_WADE_FORWARD;
-			return;
-		}
-		else if (IsHeld(In::Walk))
-		{
-			if (CanWalkForward(*item, *coll))
+			auto jumpDirection = GetPlayerJumpDirection(*item, *coll);
+			if (jumpDirection != JumpDirection::None)
 			{
-				item->Animation.TargetState = LS_WALK_FORWARD;
+				item->Animation.TargetState = LS_JUMP_PREPARE;
+				player.Control.JumpDirection = jumpDirection;
 				return;
 			}
 		}
-		else if (CanRunForward(*item, *coll))
+	}
+
+	if (g_Configuration.IsUsingEnhancedControls())
+	{
+		if ((IsHeld(In::Roll) || (HasOppositeAction(*item) && g_Configuration.EnableOppositeActionRoll)) &&
+			!isWading)
 		{
-			if (IsHeld(In::Sprint))
+			item->Animation.TargetState = LS_ROLL_180_FORWARD;
+			return;
+		}
+
+		if (IsHeld(In::Crouch) && CanCrouch(*item, *coll))
+		{
+			item->Animation.TargetState = LS_CROUCH_IDLE;
+			return;
+		}
+
+		if (IsHeld(In::Forward))
+		{
+			if (IsHeld(In::Action))
 			{
-				item->Animation.TargetState = LS_SPRINT;
-			}
-			else
-			{
-				item->Animation.TargetState = LS_RUN_FORWARD;
+				auto vaultContext = TestLaraVault(item, coll);
+				if (vaultContext.has_value())
+				{
+					item->Animation.TargetState = vaultContext->TargetState;
+					SetLaraVault(item, coll, *vaultContext);
+					return;
+				}
 			}
 
-			return;
+			if (CanWadeForward(*item, *coll))
+			{
+				item->Animation.TargetState = LS_WADE_FORWARD;
+				return;
+			}
+			else if (IsHeld(In::Walk))
+			{
+				if (CanWalkForward(*item, *coll))
+				{
+					item->Animation.TargetState = LS_WALK_FORWARD;
+					return;
+				}
+			}
+			else if (CanRunForward(*item, *coll))
+			{
+				if (IsHeld(In::Sprint))
+				{
+					item->Animation.TargetState = LS_SPRINT;
+				}
+				else
+				{
+					item->Animation.TargetState = LS_RUN_FORWARD;
+				}
+
+				return;
+			}
 		}
-	}
-	else if (IsHeld(In::Back))
-	{
-		if (CanWadeBackward(*item, *coll))
+		else if (IsHeld(In::Back))
 		{
-			item->Animation.TargetState = LS_WALK_BACK;
-			return;
-		}
-		else if (IsHeld(In::Walk))
-		{
-			if (CanWalkBackward(*item, *coll))
+			if (CanWadeBackward(*item, *coll))
 			{
 				item->Animation.TargetState = LS_WALK_BACK;
 				return;
 			}
-		}
-		else if (CanRunBackward(*item, *coll))
-		{
-			item->Animation.TargetState = LS_RUN_BACK;
-			return;
+			else if (IsHeld(In::Walk))
+			{
+				if (CanWalkBackward(*item, *coll))
+				{
+					item->Animation.TargetState = LS_WALK_BACK;
+					return;
+				}
+			}
+			else if (CanRunBackward(*item, *coll))
+			{
+				item->Animation.TargetState = LS_HOP_BACK;
+				return;
+			}
 		}
 	}
 
@@ -1252,6 +1863,7 @@ void lara_as_turn_fast(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
+	// Reset.
 	item->Animation.TargetState = LS_IDLE;
 }
 
@@ -1266,6 +1878,8 @@ void lara_col_turn_fast(ItemInfo* item, CollisionInfo* coll)
 // Collision: lara_col_step_right()
 void lara_as_step_right(ItemInfo* item, CollisionInfo* coll)
 {
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY;
+
 	auto& player = GetLaraInfo(*item);
 
 	player.Control.Look.Mode = LookMode::Vertical;
@@ -1282,22 +1896,31 @@ void lara_as_step_right(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	// Walk action locks orientation.
-	if (IsHeld(In::Walk))
+	// Turn.
+	if (g_Configuration.IsUsingModernControls())
 	{
-		ResetPlayerTurnRateY(*item);
+		HandlePlayerTurn(*item, PLAYER_DEFAULT_TURN_ALPHA, 0, true, TURN_FLAGS);
 	}
-	else if (IsHeld(In::Left) || IsHeld(In::Right))
+	else
 	{
-		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
+		// Walk action locks orientation.
+		if (IsHeld(In::Walk))
+		{
+			ResetPlayerTurnRateY(*item);
+		}
+		else if (IsHeld(In::Left) || IsHeld(In::Right))
+		{
+			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
+		}
 	}
 
-	if (IsHeld(In::StepRight) || (IsHeld(In::Walk) && IsHeld(In::Right)))
+	if (IsHeld(In::StepRight) || ((IsHeld(In::Walk) && IsHeld(In::Right)) && !g_Configuration.IsUsingModernControls()))
 	{
 		item->Animation.TargetState = LS_STEP_RIGHT;
 		return;
 	}
 
+	// Reset.
 	item->Animation.TargetState = LS_IDLE;
 }
 
@@ -1309,7 +1932,8 @@ void lara_col_step_right(ItemInfo* item, CollisionInfo* coll)
 
 	bool isWading = (player.Control.WaterStatus == WaterStatus::Wade);
 
-	player.Control.MoveAngle = item->Pose.Orientation.y + ANGLE(90.0f);
+	// Setup.
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(90.0f);
 	item->Animation.IsAirborne = false;
 	item->Animation.Velocity.y = 0;
 	coll->Setup.LowerFloorBound = isWading ? NO_LOWER_BOUND : CLICK(0.8f);
@@ -1318,7 +1942,7 @@ void lara_col_step_right(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.BlockFloorSlopeDown = !isWading;
 	coll->Setup.BlockFloorSlopeUp = !isWading;
 	coll->Setup.BlockDeathFloorDown = true;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	if (TestLaraHitCeiling(coll))
@@ -1363,6 +1987,8 @@ void lara_col_step_right(ItemInfo* item, CollisionInfo* coll)
 // Collision: lara_col_step_left()
 void lara_as_step_left(ItemInfo* item, CollisionInfo* coll)
 {
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY;
+
 	auto& player = GetLaraInfo(*item);
 
 	player.Control.Look.Mode = LookMode::Vertical;
@@ -1379,22 +2005,31 @@ void lara_as_step_left(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	// Walk action locks orientation.
-	if (IsHeld(In::Walk))
+	// Turn.
+	if (g_Configuration.IsUsingModernControls())
 	{
-		ResetPlayerTurnRateY(*item);
+		HandlePlayerTurn(*item, PLAYER_DEFAULT_TURN_ALPHA, 0, true, TURN_FLAGS);
 	}
-	else if (IsHeld(In::Left) || IsHeld(In::Right))
+	else
 	{
-		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
+		// Walk action locks orientation.
+		if (IsHeld(In::Walk))
+		{
+			ResetPlayerTurnRateY(*item);
+		}
+		else if (IsHeld(In::Left) || IsHeld(In::Right))
+		{
+			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
+		}
 	}
 
-	if (IsHeld(In::StepLeft) || (IsHeld(In::Walk) && IsHeld(In::Left)))
+	if (IsHeld(In::StepLeft) || ((IsHeld(In::Walk) && IsHeld(In::Left)) && !g_Configuration.IsUsingModernControls()))
 	{
 		item->Animation.TargetState = LS_STEP_LEFT;
 		return;
 	}
 
+	// Reset.
 	item->Animation.TargetState = LS_IDLE;
 }
 
@@ -1406,7 +2041,8 @@ void lara_col_step_left(ItemInfo* item, CollisionInfo* coll)
 
 	bool isWading = (player.Control.WaterStatus == WaterStatus::Wade);
 
-	player.Control.MoveAngle = item->Pose.Orientation.y - ANGLE(90.0f);
+	// Setup.
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y - ANGLE(90.0f);
 	item->Animation.IsAirborne = false;
 	item->Animation.Velocity.y = 0;
 	coll->Setup.LowerFloorBound = isWading ? NO_LOWER_BOUND : CLICK(0.8f);
@@ -1415,7 +2051,7 @@ void lara_col_step_left(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.BlockFloorSlopeDown = !isWading;
 	coll->Setup.BlockFloorSlopeUp = !isWading;
 	coll->Setup.BlockDeathFloorDown = true;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	if (TestLaraHitCeiling(coll))
@@ -1465,6 +2101,7 @@ void lara_as_turn_180(ItemInfo* item, CollisionInfo* coll)
 	player.Control.Look.Mode = LookMode::None;
 	ResetPlayerTurnRateY(*item);
 
+	// Reset.
 	item->Animation.TargetState = LS_IDLE;
 }
 
@@ -1484,6 +2121,7 @@ void lara_as_roll_180_back(ItemInfo* item, CollisionInfo* coll)
 	player.Control.Look.Mode = LookMode::None;
 	ResetPlayerTurnRateY(*item);
 
+	// Reset.
 	item->Animation.TargetState = LS_IDLE;
 }
 
@@ -1493,15 +2131,16 @@ void lara_col_roll_180_back(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.MoveAngle = item->Pose.Orientation.y + ANGLE(180.0f);
+	// Setup.
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y + ANGLE(180.0f);
 	item->Animation.IsAirborne = false;
 	item->Animation.Velocity.y = 0;
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = 0;
 	coll->Setup.BlockFloorSlopeUp = true;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
-	Camera.laraNode = LM_HIPS;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
+	g_Camera.laraNode = LM_HIPS;
 	GetCollisionInfo(coll, item);
 
 	if (TestLaraHitCeiling(coll))
@@ -1540,6 +2179,7 @@ void lara_as_roll_180_forward(ItemInfo* item, CollisionInfo* coll)
 	player.Control.Look.Mode = LookMode::None;
 	ResetPlayerTurnRateY(*item);
 
+	// Reset.
 	item->Animation.TargetState = LS_IDLE;
 }
 
@@ -1549,14 +2189,14 @@ void lara_col_roll_180_forward(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.MoveAngle = item->Pose.Orientation.y;
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y;
 	item->Animation.IsAirborne = false;
 	item->Animation.Velocity.y = 0;
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = 0;
 	coll->Setup.BlockFloorSlopeUp = true;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	if (TestLaraHitCeiling(coll))
@@ -1590,13 +2230,15 @@ void lara_col_roll_180_forward(ItemInfo* item, CollisionInfo* coll)
 // Collision: lara_col_wade_forward()
 void lara_as_wade_forward(ItemInfo* item, CollisionInfo* coll)
 {
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY | (int)PlayerTurnFlags::VerticalFlex;
+
 	auto& player = GetLaraInfo(*item);
 
 	bool isWading = (player.Control.WaterStatus == WaterStatus::Wade);
 	bool isInSwamp = TestEnvironment(ENV_FLAG_SWAMP, item);
 
 	player.Control.Look.Mode = LookMode::Horizontal;
-	Camera.targetElevation = -ANGLE(22.0f);
+	g_Camera.targetElevation = -ANGLE(22.0f);
 
 	if (item->HitPoints <= 0)
 	{
@@ -1604,21 +2246,28 @@ void lara_as_wade_forward(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Left) || IsHeld(In::Right))
+	// Turn.
+	if (g_Configuration.IsUsingModernControls())
 	{
-		if (isInSwamp)
+		float turnAlpha = PLAYER_WADE_TURN_ALPHA / (isInSwamp ? 3 : 1);
+		short leanAngleMax = LARA_LEAN_MAX * (isInSwamp ? 0.6f : 1.0f);
+		HandlePlayerTurn(*item, turnAlpha, leanAngleMax, false, TURN_FLAGS);
+	}
+	else
+	{
+		if (IsHeld(In::Left) || IsHeld(In::Right))
 		{
-			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SWAMP_TURN_RATE_MAX);
-			HandlePlayerLean(item, coll, LARA_LEAN_RATE / 3, LARA_LEAN_MAX * 0.6f);
-		}
-		else
-		{
-			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_MED_TURN_RATE_MAX);
-			HandlePlayerLean(item, coll, LARA_LEAN_RATE / 2, LARA_LEAN_MAX);
+			short turnRateMax = (g_Configuration.IsUsingClassicControls() && !isInSwamp) ? LARA_FAST_TURN_RATE_MAX : LARA_MED_TURN_RATE_MAX;
+			float leanCoeff = isInSwamp ? 0.6f : 1.0f;
+
+			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, turnRateMax);
+			HandlePlayerTurnLean(item, coll, LARA_LEAN_RATE  / (isInSwamp ? 3 : 2), LARA_LEAN_MAX * leanCoeff);
 		}
 	}
 
-	if (IsHeld(In::Forward))
+	if (g_Configuration.IsUsingModernControls() ?
+		(IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right)) :
+		IsHeld(In::Forward))
 	{
 		if (IsHeld(In::Action))
 		{
@@ -1654,12 +2303,12 @@ void lara_col_wade_forward(ItemInfo* item, CollisionInfo* coll)
 
 	bool isWading = (player.Control.WaterStatus == WaterStatus::Wade);
 
-	player.Control.MoveAngle = item->Pose.Orientation.y;
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y;
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = 0;
 	coll->Setup.BlockFloorSlopeUp = !isWading;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	if (TestLaraHitCeiling(coll))
@@ -1697,12 +2346,14 @@ void lara_col_wade_forward(ItemInfo* item, CollisionInfo* coll)
 // Collision: lara_col_sprint()
 void lara_as_sprint(ItemInfo* item, CollisionInfo* coll)
 {
+	constexpr auto TURN_FLAGS = (int)PlayerTurnFlags::TurnY | (int)PlayerTurnFlags::VerticalFlex;
+
 	auto& player = GetLaraInfo(*item);
 
 	bool isWading = (player.Control.WaterStatus == WaterStatus::Wade);
 
 	player.Status.Stamina = std::clamp(player.Status.Stamina - 1, 0, (int)LARA_STAMINA_MAX);
-	player.Control.Count.Run = std::clamp<unsigned int>(player.Control.Count.Run + 1, 0, PLAYER_SPRINT_JUMP_TIME);
+	player.Control.Count.Run = std::clamp<unsigned int>(player.Control.Count.Run + 1, 0, PLAYER_TANK_CONTROL_SPRINT_JUMP_TIME);
 
 	if (item->HitPoints <= 0)
 	{
@@ -1710,10 +2361,18 @@ void lara_as_sprint(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Left) || IsHeld(In::Right))
+	// Turn.
+	if (g_Configuration.IsUsingModernControls())
 	{
-		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
-		HandlePlayerLean(item, coll, LARA_LEAN_RATE, LARA_LEAN_MAX);
+		HandlePlayerTurn(*item, PLAYER_SPRINT_TURN_ALPHA, LARA_LEAN_MAX, false, TURN_FLAGS);
+	}
+	else
+	{
+		if (IsHeld(In::Left) || IsHeld(In::Right))
+		{
+			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
+			HandlePlayerTurnLean(item, coll, LARA_LEAN_RATE, LARA_LEAN_MAX);
+		}
 	}
 
 	if (IsHeld(In::Jump) || player.Control.IsRunJumpQueued)
@@ -1739,7 +2398,9 @@ void lara_as_sprint(ItemInfo* item, CollisionInfo* coll)
 		return;
 	}
 
-	if (IsHeld(In::Forward))
+	if (g_Configuration.IsUsingModernControls() ?
+		(IsHeld(In::Forward) || IsHeld(In::Back) || IsHeld(In::Left) || IsHeld(In::Right)) :
+		IsHeld(In::Forward))
 	{
 		if (IsHeld(In::Action) && CanVaultFromSprint(*item, *coll))
 		{
@@ -1782,12 +2443,12 @@ void lara_col_sprint(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.MoveAngle = item->Pose.Orientation.y;
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y;
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = 0;
 	coll->Setup.BlockFloorSlopeUp = true;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	if (TestLaraHitCeiling(coll))
@@ -1853,12 +2514,20 @@ void lara_as_sprint_dive(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.Count.Run = std::clamp<unsigned int>(player.Control.Count.Run + 1, 0, PLAYER_RUN_JUMP_TIME);
+	player.Control.Count.Run = std::clamp<unsigned int>(player.Control.Count.Run + 1, 0, PLAYER_TANK_CONTROL_RUN_JUMP_TIME);
 
-	if (IsHeld(In::Left) || IsHeld(In::Right))
+	// Turn.
+	if (g_Configuration.IsUsingClassicControls())
 	{
-		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
-		HandlePlayerLean(item, coll, LARA_LEAN_RATE, LARA_LEAN_MAX * 0.6f);
+		ResetPlayerTurnRateY(*item);
+	}
+	else
+	{
+		if (IsHeld(In::Left) || IsHeld(In::Right))
+		{
+			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
+			HandlePlayerTurnLean(item, coll, LARA_LEAN_RATE, LARA_LEAN_MAX * 0.6f);
+		}
 	}
 
 	item->Animation.TargetState = LS_RUN_FORWARD;
@@ -1870,12 +2539,12 @@ void lara_col_sprint_dive(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.MoveAngle = (item->Animation.Velocity.z >= 0.0f) ? item->Pose.Orientation.y : item->Pose.Orientation.y + ANGLE(180.0f);
+	player.Control.HeadingOrient.y = (item->Animation.Velocity.z >= 0.0f) ? item->Pose.Orientation.y : item->Pose.Orientation.y + ANGLE(180.0f);
 	coll->Setup.LowerFloorBound = NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = BAD_JUMP_CEILING;
 	coll->Setup.BlockFloorSlopeUp = true;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	LaraDeflectEdgeJump(item, coll);
@@ -1887,7 +2556,7 @@ void lara_col_sprint_dive(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	if (item->Animation.Velocity.z < 0.0f)
-		player.Control.MoveAngle = item->Pose.Orientation.y; // ???
+		player.Control.HeadingOrient.y = item->Pose.Orientation.y; // ???
 
 	ShiftItem(item, coll);
 
@@ -1909,13 +2578,21 @@ void lara_as_sprint_slide(ItemInfo* item, CollisionInfo* coll)
 	player.Control.Look.Mode = LookMode::Horizontal;
 
 	player.Control.Count.Run++;
-	if (player.Control.Count.Run > PLAYER_RUN_JUMP_TIME)
-		player.Control.Count.Run = PLAYER_RUN_JUMP_TIME;
+	if (player.Control.Count.Run > PLAYER_TANK_CONTROL_RUN_JUMP_TIME)
+		player.Control.Count.Run = PLAYER_TANK_CONTROL_RUN_JUMP_TIME;
 
-	if (IsHeld(In::Left) || IsHeld(In::Right))
+	// Turn.
+	if (g_Configuration.IsUsingClassicControls())
 	{
-		ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
-		HandlePlayerLean(item, coll, LARA_LEAN_RATE, LARA_LEAN_MAX * 0.6f);
+		ResetPlayerTurnRateY(*item);
+	}
+	else
+	{
+		if (IsHeld(In::Left) || IsHeld(In::Right))
+		{
+			ModulateLaraTurnRateY(item, LARA_TURN_RATE_ACCEL, 0, LARA_SLOW_TURN_RATE_MAX);
+			HandlePlayerTurnLean(item, coll, LARA_LEAN_RATE, LARA_LEAN_MAX * 0.6f);
+		}
 	}
 
 	if ((player.Control.KeepLow || IsHeld(In::Crouch)) && CanCrouch(*item, *coll))
@@ -1937,7 +2614,7 @@ void lara_col_sprint_slide(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.MoveAngle = item->Pose.Orientation.y;
+	player.Control.HeadingOrient.y = item->Pose.Orientation.y;
 	player.Control.KeepLow = IsInLowSpace(*item, *coll);
 	player.Control.IsLow = true;
 	coll->Setup.Height = LARA_HEIGHT_CRAWL;
@@ -1945,7 +2622,7 @@ void lara_col_sprint_slide(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.UpperFloorBound = -(CLICK(1) - 1);
 	coll->Setup.LowerCeilingBound = 0;
 	coll->Setup.BlockFloorSlopeUp = true;
-	coll->Setup.ForwardAngle = player.Control.MoveAngle;
+	coll->Setup.ForwardAngle = player.Control.HeadingOrient.y;
 	GetCollisionInfo(coll, item);
 
 	LaraDeflectEdge(item, coll);

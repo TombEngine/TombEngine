@@ -95,7 +95,6 @@ namespace TEN::Entities::Generic
 		trapDoorItem.Data = BridgeObject();
 		auto& bridge = GetBridgeObject(trapDoorItem);
 
-		// Initialize routines.
 		bridge.GetFloorHeight = GetTrapDoorFloorHeight;
 		bridge.GetCeilingHeight = GetTrapDoorCeilingHeight;
 		bridge.GetFloorBorder = GetTrapDoorFloorBorder;
@@ -154,16 +153,16 @@ namespace TEN::Entities::Generic
 			trapDoorItem->Status = ITEM_ACTIVE;
 			trapDoorItem->Animation.TargetState = 1;
 
-			UseForcedFixedCamera = true;
-			ForcedFixedCamera.x = trapDoorItem->Pose.Position.x - phd_sin(trapDoorItem->Pose.Orientation.y) * 1024;
-			ForcedFixedCamera.y = trapDoorItem->Pose.Position.y + 1024;
-			ForcedFixedCamera.z = trapDoorItem->Pose.Position.z - phd_cos(trapDoorItem->Pose.Orientation.y) * 1024;
-			ForcedFixedCamera.RoomNumber = trapDoorItem->RoomNumber;
+			g_Camera.UseForcedFixedCamera = true;
+			g_Camera.ForcedFixedCamera.x = trapDoorItem->Pose.Position.x - phd_sin(trapDoorItem->Pose.Orientation.y) * 1024;
+			g_Camera.ForcedFixedCamera.y = trapDoorItem->Pose.Position.y + 1024;
+			g_Camera.ForcedFixedCamera.z = trapDoorItem->Pose.Position.z - phd_cos(trapDoorItem->Pose.Orientation.y) * 1024;
+			g_Camera.ForcedFixedCamera.RoomNumber = trapDoorItem->RoomNumber;
 		}
 		else
 		{
 			if (trapDoorItem->Animation.ActiveState == 1)
-				UseForcedFixedCamera = false;
+				g_Camera.UseForcedFixedCamera = false;
 		}
 
 		if (trapDoorItem->Animation.ActiveState == 1 && TestLastFrame(*trapDoorItem))
@@ -205,15 +204,15 @@ namespace TEN::Entities::Generic
 					trapDoorItem->Status = ITEM_ACTIVE;
 					trapDoorItem->Animation.TargetState = 1;
 
-					UseForcedFixedCamera = true;
-					ForcedFixedCamera.x = trapDoorItem->Pose.Position.x - phd_sin(trapDoorItem->Pose.Orientation.y) * 2048;
-					ForcedFixedCamera.y = trapDoorItem->Pose.Position.y - 2048;
+					g_Camera.UseForcedFixedCamera = true;
+					g_Camera.ForcedFixedCamera.x = trapDoorItem->Pose.Position.x - phd_sin(trapDoorItem->Pose.Orientation.y) * 2048;
+					g_Camera.ForcedFixedCamera.y = trapDoorItem->Pose.Position.y - 2048;
 
-					if (ForcedFixedCamera.y < g_Level.Rooms[trapDoorItem->RoomNumber].TopHeight)
-						ForcedFixedCamera.y = g_Level.Rooms[trapDoorItem->RoomNumber].TopHeight;
+					if (g_Camera.ForcedFixedCamera.y < g_Level.Rooms[trapDoorItem->RoomNumber].TopHeight)
+						g_Camera.ForcedFixedCamera.y = g_Level.Rooms[trapDoorItem->RoomNumber].TopHeight;
 
-					ForcedFixedCamera.z = trapDoorItem->Pose.Position.z - phd_cos(trapDoorItem->Pose.Orientation.y) * 2048;
-					ForcedFixedCamera.RoomNumber = trapDoorItem->RoomNumber;
+					g_Camera.ForcedFixedCamera.z = trapDoorItem->Pose.Position.z - phd_cos(trapDoorItem->Pose.Orientation.y) * 2048;
+					g_Camera.ForcedFixedCamera.RoomNumber = trapDoorItem->RoomNumber;
 				}
 				else
 				{
@@ -224,7 +223,7 @@ namespace TEN::Entities::Generic
 		else
 		{
 			if (trapDoorItem->Animation.ActiveState == 1)
-				UseForcedFixedCamera = false;
+				g_Camera.UseForcedFixedCamera = false;
 		}
 
 		if (trapDoorItem->Animation.ActiveState == 1 && TestLastFrame(*trapDoorItem))

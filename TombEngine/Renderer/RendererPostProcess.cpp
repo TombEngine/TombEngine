@@ -130,8 +130,8 @@ namespace TEN::Renderer
 		_graphicsDevice->SetViewport(view.Viewport);
 		_graphicsDevice->SetScissor(view.Viewport);
 
-		float screenFadeFactor = renderMode == SceneRenderMode::Full ? ScreenFadeCurrent : 1.0f;
-		float cinematicBarsHeight = renderMode == SceneRenderMode::Full ? CinematicBarsHeight : 0.0f;
+		float screenFadeFactor = renderMode == SceneRenderMode::Full ? g_ScreenEffect.ScreenFadeCurrent : 1.0f;
+		float cinematicBarsHeight = renderMode == SceneRenderMode::Full ? g_ScreenEffect.CinematicBarsHeight : 0.0f;
 
 		_stPostProcessBuffer.ScreenFadeFactor = screenFadeFactor;
 		_stPostProcessBuffer.CinematicBarsHeight = cinematicBarsHeight;

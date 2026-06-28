@@ -1,7 +1,9 @@
 #pragma once
+
 #include "Math/Constants.h"
 #include "Math/Geometry.h"
 #include "Math/Legacy.h"
+#include "Math/Objects/AxisAngle.h"
 #include "Math/Objects/BezierCurve2.h"
 #include "Math/Objects/EulerAngles.h"
 #include "Math/Objects/GameBoundingBox.h"

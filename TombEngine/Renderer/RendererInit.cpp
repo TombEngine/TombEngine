@@ -13,8 +13,7 @@
 #include "Renderer/Native/DirectX11/DX11GraphicsDevice.h"
 #include "Renderer/Graphics/VRAMTracker.h"
 
-extern GameConfiguration g_Configuration;
-
+using namespace TEN::Config;
 using namespace TEN::Renderer::Utils;
 using namespace TEN::Video;
 

@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Game/GuiObjects.h"
 #include "Scripting/Internal/LanguageScript.h"
 #include "Math/Math.h"
@@ -8,6 +9,7 @@
 
 struct ItemInfo;
 
+using namespace TEN::Config;
 using namespace TEN::Input;
 using namespace TEN::Math;
 
@@ -92,7 +94,7 @@ namespace TEN::Gui
 	struct ObjectList
 	{
 		int			InventoryItem = 0;
-		EulerAngles Orientation	  = EulerAngles::Identity;
+		EulerAngles Orientation = EulerAngles::Identity;
 		unsigned short Bright;
 	};
 
@@ -112,9 +114,9 @@ namespace TEN::Gui
 		GameConfiguration Configuration = {};
 
 		int	 SelectedScreenResolution = 0;
-		bool IgnoreInput			  = false; // Ignore input until all actions are inactive.
-		int	 NewKeyWaitTimer		  = 0;
-		int	 SelectedSoundDevice	  = 0;
+		bool IgnoreInput = false; // Ignore input until all actions are inactive.
+		int	 NewKeyWaitTimer = 0;
+		int	 SelectedSoundDevice = 0;
 	};
 
 	class GuiController

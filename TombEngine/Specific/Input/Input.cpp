@@ -89,7 +89,7 @@ namespace TEN::Input
 		// Apply the selected default binding profile.
 		g_Bindings.SetBindingProfile(BindingProfileID::Custom, *defaultBindings);
 		g_Configuration.EnableRumble = enableRumble;
-		g_Configuration.EnableThumbstickCamera = enableThumbstickCamera;
+		//g_Configuration.EnableThumbstickCamera = enableThumbstickCamera; // @modernme Thumbstick camera is completely redone.
 
 		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
 		return true;

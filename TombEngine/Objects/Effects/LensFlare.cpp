@@ -47,8 +47,8 @@ namespace TEN::Entities::Effects
 
 	void SetupLensFlare(const Vector3& pos, int roomNumber, const Color& color, float* intensity, int spriteID)
 	{
-		auto cameraPos = Camera.pos.ToVector3();
-		auto cameraTarget = Camera.target.ToVector3();
+		auto cameraPos = g_Camera.Position;
+		auto cameraTarget = g_Camera.LookAt;
 
 		auto forward = (cameraTarget - cameraPos);
 		forward.Normalize();
@@ -61,7 +61,7 @@ namespace TEN::Entities::Effects
 		bool isVisible = true;
 
 		// Don't draw global lensflare if camera is in a room with no lensflare flag set.
-		if (isGlobal && TestEnvironment(ENV_FLAG_NO_LENSFLARE, Camera.pos.RoomNumber))
+		if (isGlobal && TestEnvironment(ENV_FLAG_NO_LENSFLARE, g_Camera.RoomNumber))
 			isVisible = false;
 
 		auto lensFlarePos = pos;
@@ -97,8 +97,8 @@ namespace TEN::Entities::Effects
 		if (isVisible)
 		{
 			auto origin = GameVector(lensFlarePos, roomNumber);
-			auto target = Camera.pos;
-			auto distance = Vector3::Distance(origin.ToVector3(), target.ToVector3());
+			auto target = GameVector(g_Camera.Position, g_Camera.RoomNumber);
+			auto dist	= Vector3::Distance(origin.ToVector3(), target.ToVector3());
 
 			// Check room occlusion.
 			isVisible = LOS(&origin, &target);
@@ -108,13 +108,13 @@ namespace TEN::Entities::Effects
 
 			// Check occlusion for all static meshes and moveables but player.
 			bool collided = isVisible && ObjectOnLOS2(&origin, &target, &pointOfContact, &mesh) != NO_LOS_ITEM;
-			if (collided && Vector3::Distance(pointOfContact.ToVector3(), origin.ToVector3()) < distance)
+			if (collided && Vector3::Distance(pointOfContact.ToVector3(), origin.ToVector3()) < dist)
 				isVisible = false;
 
 			// Check occlusion only for player.
 			int playerItemNumber = isVisible ? ObjectOnLOS2(&origin, &target, &pointOfContact, nullptr, ID_LARA) : NO_LOS_ITEM;
 			collided = isVisible && playerItemNumber != NO_LOS_ITEM && !GetLaraInfo(g_Level.Items[playerItemNumber]).Control.Look.IsUsingBinoculars;
-			if (collided && Vector3::Distance(pointOfContact.ToVector3(), origin.ToVector3()) < distance)
+			if (collided && Vector3::Distance(pointOfContact.ToVector3(), origin.ToVector3()) < dist)
 				isVisible = false;
 		}
 
@@ -156,7 +156,7 @@ namespace TEN::Entities::Effects
 		auto color    = g_GameFlow->GetLevel(CurrentLevel)->GetLensFlareColor();
 		auto spriteID = g_GameFlow->GetLevel(CurrentLevel)->GetLensFlareSunSpriteID();
 		
-		auto pos = Camera.pos.ToVector3();
+		auto pos = g_Camera.Position;
 		auto rotMatrix = orient.ToRotationMatrix();
 
 		pos += Vector3::Transform(BASE_POS, rotMatrix);
@@ -173,12 +173,12 @@ namespace TEN::Entities::Effects
 		auto color = item.Model.Color;
 
 		// If OCB is set, it specifies radius in blocks, after which flare starts to fadeout.
-		float radius   = (item.TriggerFlags > 0) ? (float)(item.TriggerFlags * BLOCK(1)) : DEFAULT_FALLOFF_RADIUS;
-		float distance = Vector3i::Distance(item.Pose.Position, Camera.pos.ToVector3i());
+		float radius = (item.TriggerFlags > 0) ? (float)(item.TriggerFlags * BLOCK(1)) : DEFAULT_FALLOFF_RADIUS;
+		float dist	 = Vector3i::Distance(item.Pose.Position.ToVector3(), g_Camera.Position);
 
-		if (distance > radius)
+		if (dist > radius)
 		{
-			float fadeMultiplier = std::max((1.0f - ((distance - radius) / radius)), 0.0f);
+			float fadeMultiplier = std::max((1.0f - ((dist - radius) / radius)), 0.0f);
 
 			// Discard flare, if it is out of falloff sphere radius.
 			if (fadeMultiplier <= 0.0f)

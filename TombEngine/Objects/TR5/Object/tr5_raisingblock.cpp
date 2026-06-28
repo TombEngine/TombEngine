@@ -62,31 +62,31 @@ namespace TEN::Entities::Generic
 
 	void InitializeRaisingBlock(short itemNumber)
 	{
-		auto* item = &g_Level.Items[itemNumber];
-		item->Data = BridgeObject();
-		auto& bridge = GetBridgeObject(*item);
+		auto& item = g_Level.Items[itemNumber];
+		item.Data = BridgeObject();
+		auto& bridge = GetBridgeObject(item);
 
-		short roomNumber = item->RoomNumber;
-		auto* floor = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &roomNumber);
+		short roomNumber = item.RoomNumber;
+		auto* floor = GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &roomNumber);
 
 		if (floor->PathfindingBoxID != NO_VALUE)
 			g_Level.PathfindingBoxes[floor->PathfindingBoxID].flags &= ~BLOCKED;
 
 		// Set Y scale to epsilon by default (not 0 because it may cause rendering issues).
-		item->Pose.Scale.y = EPSILON;
+		item.Pose.Scale.y = EPSILON;
 
-		if (item->TriggerFlags < 0)
+		if (item.TriggerFlags < 0)
 		{
-			item->AIBits |= ALL_AIOBJ;
+			item.AIBits |= ALL_AIOBJ;
 			AddActiveItem(itemNumber);
-			item->Status = ITEM_ACTIVE;
+			item.Status = ITEM_ACTIVE;
 		}
 
 		bridge.GetFloorHeight = GetRaisingBlockFloorHeight;
 		bridge.GetCeilingHeight = GetRaisingBlockCeilingHeight;
 		bridge.GetFloorBorder = GetRaisingBlockFloorBorder;
 		bridge.GetCeilingBorder = GetRaisingBlockCeilingBorder;
-		bridge.Initialize(*item);
+		bridge.Initialize(item);
 	}
 
 	void ShakeRaisingBlock(ItemInfo* item)
@@ -96,15 +96,15 @@ namespace TEN::Entities::Generic
 		if (item->TriggerFlags == 0)
 			return;
 
-		if ((item->Pose.Position.ToVector3() - Camera.pos.ToVector3()).Length() < BLOCK(10))
+		if ((item->Pose.Position.ToVector3() - g_Camera.Position).Length() < BLOCK(10))
 		{
 			if (item->ItemFlags[1] == 64 || item->ItemFlags[1] == 4096)
 			{
-				Camera.bounce = -32;
+				g_Camera.bounce = -32;
 			}
 			else
 			{
-				Camera.bounce = -16;
+				g_Camera.bounce = -16;
 			}
 		}
 	}

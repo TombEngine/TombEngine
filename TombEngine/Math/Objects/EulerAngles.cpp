@@ -239,8 +239,8 @@ using namespace TEN::Math;
 
 	bool EulerAngles::Compare(short angle0, short angle1, short epsilon)
 	{
-		short difference = Geometry::GetShortestAngle(angle0, angle1);
-		if (abs(difference) <= epsilon)
+		short deltaAngle = Geometry::GetShortestAngle(angle0, angle1);
+		if (abs(deltaAngle) <= epsilon)
 			return true;
 
 		return false;

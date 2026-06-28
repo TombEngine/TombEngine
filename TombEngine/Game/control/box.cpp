@@ -95,7 +95,7 @@ static Vector3 GetVelocity(const ItemInfo& item)
 		switch (player.Control.WaterStatus)
 		{
 			case WaterStatus::TreadWater:
-				nextPose.Translate(player.Control.MoveAngle, item.Animation.Velocity.y);
+				nextPose.Translate(player.Control.HeadingOrient.y, item.Animation.Velocity.y);
 				break;
 
 			case WaterStatus::Underwater:
@@ -106,7 +106,7 @@ static Vector3 GetVelocity(const ItemInfo& item)
 				break;
 
 			default:
-				nextPose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, item.Animation.Velocity.y, item.Animation.Velocity.x);
+				nextPose.Translate(player.Control.HeadingOrient.y, item.Animation.Velocity.z, item.Animation.Velocity.y, item.Animation.Velocity.x);
 				break;
 		}
 	}
@@ -1139,11 +1139,11 @@ void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerExtr
 	player.ExtraAnim = 1;
 	player.HitDirection = -1;
 
-	Camera.pos.RoomNumber = playerItem.RoomNumber;
-	Camera.flags = CF_FOLLOW_CENTER;
-	Camera.targetAngle = ANGLE(170.0f);
-	Camera.targetElevation = ANGLE(-25.0f);
-	Camera.targetDistance = BLOCK(2);
+	g_Camera.RoomNumber = playerItem.RoomNumber;
+	g_Camera.flags = CameraFlag::FollowCenter;
+	g_Camera.targetAngle = ANGLE(170.0f);
+	g_Camera.targetElevation = ANGLE(-25.0f);
+	g_Camera.targetDistance = BLOCK(2);
 }
 
 short CreatureEffect2(ItemInfo* item, const CreatureBiteInfo& bite, short velocity, short angle, std::function<CreatureEffectFunction> func)

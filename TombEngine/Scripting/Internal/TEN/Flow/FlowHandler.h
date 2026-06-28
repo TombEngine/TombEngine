@@ -1,4 +1,5 @@
 #pragma once
+
 #include <string_view>
 
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -45,7 +46,7 @@ public:
 	void		SetGameDir(const std::string& assetDir) override;
 	void		AddLevel(Level const& level);
 	void		LoadFlowScript();
-	const char* GetString(const char* id) const;
+	const char* GetString(const char* id) const override;
 	bool		IsStringPresent(const char* id) const;
 	void		SetStrings(sol::nested<std::unordered_map<std::string, std::vector<std::string>>>&& src);
 	void		SetLanguageNames(sol::as_table_t<std::vector<std::string>>&& src);

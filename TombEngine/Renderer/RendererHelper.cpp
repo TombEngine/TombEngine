@@ -30,9 +30,9 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Sphere;
+using namespace TEN::Config;
 using namespace TEN::Math;
 
-extern GameConfiguration g_Configuration;
 extern ScriptInterfaceFlowHandler *g_GameFlow;
 
 namespace TEN::Renderer
@@ -339,7 +339,7 @@ namespace TEN::Renderer
 		}
 	}
 
-	void Renderer::BuildHierarchyRecursive(RendererObject *obj, RendererBone *node, RendererBone *parentNode)
+	void Renderer::BuildHierarchyRecursive(RendererObject* obj, RendererBone* node, RendererBone* parentNode)
 	{
 		node->GlobalTransform = node->Transform * parentNode->GlobalTransform;
 		obj->BindPoseTransforms[node->Index] = node->GlobalTransform.Invert();
@@ -350,7 +350,7 @@ namespace TEN::Renderer
 			BuildHierarchyRecursive(obj, childNode, node);
 	}
 
-	void Renderer::BuildHierarchy(RendererObject *obj)
+	void Renderer::BuildHierarchy(RendererObject* obj)
 	{
 		obj->Skeleton->GlobalTransform = obj->Skeleton->Transform;
 		obj->BindPoseTransforms[obj->Skeleton->Index] = obj->Skeleton->GlobalTransform.Invert();
@@ -362,19 +362,21 @@ namespace TEN::Renderer
 
 	bool Renderer::IsFullScreen()
 	{
-		return (!_isWindowed);
+		return !_isWindowed;
 	}
 
-	void Renderer::UpdateCameraMatrices(CAMERA_INFO *cam, float farView)
+	void Renderer::UpdateCameraMatrices(const CameraInfo& cam, float farView)
 	{
+		constexpr auto NEAR_PLANE = 32.0f;
+
 		if (farView < MIN_FAR_VIEW)
 			farView = DEFAULT_FAR_VIEW;
 
-		_currentGameCamera = RenderView(cam, cam->Roll, cam->Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
-		_gameCamera        = RenderView(cam, cam->Roll, cam->Fov, 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
+		_currentGameCamera = RenderView(cam, cam.Roll, TO_RAD(cam.Fov), 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
+		_gameCamera = RenderView(cam, cam.Roll, TO_RAD(cam.Fov), 32, farView, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight);
 	}
 
-	bool Renderer::SphereBoxIntersection(BoundingBox box, Vector3 sphereCentre, float sphereRadius)
+	bool Renderer::SphereBoxIntersection(const BoundingBox& box, const Vector3& sphereCentre, float sphereRadius)
 	{
 		if (sphereRadius == 0.0f)
 		{
@@ -382,7 +384,7 @@ namespace TEN::Renderer
 		}
 		else
 		{
-			BoundingSphere sphere = BoundingSphere(sphereCentre, sphereRadius);
+			auto sphere = BoundingSphere(sphereCentre, sphereRadius);
 			return box.Intersects(sphere);
 		}
 	}
@@ -402,9 +404,13 @@ namespace TEN::Renderer
 		if (id == GAME_OBJECT_ID::ID_LARA || id == GAME_OBJECT_ID::ID_LARA_SKIN)
 		{
 			if (_moveableObjects[GAME_OBJECT_ID::ID_LARA_SKIN].has_value())
+			{
 				return _moveableObjects[GAME_OBJECT_ID::ID_LARA_SKIN].value();
+			}
 			else
+			{
 				return _moveableObjects[GAME_OBJECT_ID::ID_LARA].value();
+			}
 		}
 		else
 		{
@@ -540,7 +546,7 @@ namespace TEN::Renderer
 
 	float Renderer::GetFramerateMultiplier() const
 	{
-		return g_Configuration.EnableHighFramerate ? (g_Renderer.GetScreenRefreshRate() / (float)FPS) : 1.0f;
+		return (g_Configuration.EnableHighFramerate) ? (g_Renderer.GetScreenRefreshRate() / (float)FPS) : 1.0f;
 	}
 
 	float Renderer::GetInterpolationFactor(bool forceRawValue) const
@@ -638,7 +644,7 @@ namespace TEN::Renderer
 		for (const auto& mirror : renderView.Mirrors)
 		{
 			// TODO: Avoid LaraItem global.
-			if (roomNumber == mirror.RoomNumber && (Camera.pos.RoomNumber == mirror.RoomNumber || LaraItem->RoomNumber == mirror.RoomNumber))
+			if (roomNumber == mirror.RoomNumber && (g_Camera.RoomNumber == mirror.RoomNumber || LaraItem->RoomNumber == mirror.RoomNumber))
 				return true;
 		}
 
@@ -782,7 +788,7 @@ namespace TEN::Renderer
 		// Build view-projection matrix.
 		float aspectRatio = (float)_graphicsDevice->GetScreenWidth() / _graphicsDevice->GetScreenHeight();
 		auto viewMatrix = Matrix::CreateLookAt(camPos, camTarget, Vector3::Up);
-		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(CurrentFOV, aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
+		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(g_Camera.Fov, aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
 		auto viewProj = viewMatrix * projMatrix;
 
 		// Helper lambda to project point and clamp to extended screen bounds.
@@ -841,7 +847,7 @@ namespace TEN::Renderer
 		// Ensure reasonable minimum size based on screen-space estimation.
 		// Calculate expected pixel size based on FOV and distance.
 		float angularSize = 2.0f * atan(radiusMax / std::max(dist, 1.0f));
-		float expectedPixelHeight = (angularSize / CurrentFOV) * _graphicsDevice->GetScreenHeight();
+		float expectedPixelHeight = (angularSize / g_Camera.Fov) * _graphicsDevice->GetScreenHeight();
 		float expectedPixelWidth = expectedPixelHeight * aspectRatio;
 
 		// Use the larger of projected size or estimated size.

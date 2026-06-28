@@ -13,6 +13,7 @@
 #include "Game/Lara/lara_initialise.h"
 #include "Game/misc.h"
 #include "Game/pickup/pickup.h"
+#include "Game/room.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Game/Sink.h"
@@ -33,6 +34,7 @@ using namespace TEN::Physics;
 using TEN::Renderer::g_Renderer;
 
 using namespace TEN::Entities::Doors;
+using namespace TEN::Collision::Room;
 using namespace TEN::Input;
 using namespace TEN::SpotCam;
 using namespace TEN::Utils;
@@ -874,8 +876,10 @@ static Plane ConvertFakePlaneToPlane(const Vector3& fakePlane, bool isFloor)
 
 void LoadDynamicRoomData()
 {
-	int roomCount = ReadCount();
+	constexpr auto SECTOR_BOX_CENTER_OFFSET = Vector3(BLOCK(0.5f), 0.0f, BLOCK(0.5f));
+	constexpr auto SECTOR_BOX_EXTENTS		= Vector3(BLOCK(0.5f), BLOCK(4096), BLOCK(0.5f));
 
+	int roomCount = ReadInt32();
 	if (g_Level.Rooms.size() != roomCount)
 		throw std::exception("Dynamic room data count is inconsistent with room count.");
 
@@ -1105,6 +1109,7 @@ void LoadStaticRoomData()
 				sector.ID = (x * room.ZSize) + z;
 				sector.Position = roomPos + Vector2i(BLOCK(x), BLOCK(z));
 				sector.RoomNumber = i;
+				sector.Aabb = BoundingBox(Vector3(sector.Position.x, 0.0f, sector.Position.y) + SECTOR_AABB_CENTER_OFFSET, SECTOR_AABB_EXTENTS_BASE);
 
 				auto center = Vector3(sector.Position.x, room.Aabb.Center.y, sector.Position.y) + SECTOR_AABB_CENTER_OFFSET;
 				auto extents = Vector3(SECTOR_AABB_EXTENTS_BASE.x, room.Aabb.Extents.y, SECTOR_AABB_EXTENTS_BASE.z);

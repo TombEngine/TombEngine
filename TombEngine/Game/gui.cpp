@@ -38,15 +38,15 @@ using namespace TEN::Video;
 
 namespace TEN::Gui
 {
-	constexpr int LINE_HEIGHT	  = 25;
-	constexpr int PHD_CENTER_X	  = DISPLAY_SPACE_RES.x / 2;
-	constexpr int PHD_CENTER_Y	  = DISPLAY_SPACE_RES.y / 2;
+	constexpr int LINE_HEIGHT = 25;
+	constexpr int PHD_CENTER_X = DISPLAY_SPACE_RES.x / 2;
+	constexpr int PHD_CENTER_Y = DISPLAY_SPACE_RES.y / 2;
 	constexpr int OBJLIST_SPACING = PHD_CENTER_X / 2;
 
 	constexpr auto MOUSE_SENSITIVITY_MAX = 35;
 	constexpr auto MOUSE_SENSITIVITY_MIN = 1;
-	constexpr auto MOUSE_SMOOTHING_MAX	 = 5;
-	constexpr auto MOUSE_SMOOTHING_MIN	 = 0;
+	constexpr auto MOUSE_SMOOTHING_MAX = 5;
+	constexpr auto MOUSE_SMOOTHING_MIN = 0;
 
 	GuiController g_Gui;
 
@@ -125,7 +125,7 @@ namespace TEN::Gui
 
 	bool GuiController::GuiIsPulsed(ActionID actionID) const
 	{
-		constexpr auto DELAY		 = 0.1f;
+		constexpr auto DELAY = 0.1f;
 		constexpr auto INITIAL_DELAY = 0.4f;
 
 		// Action already held prior to entering menu; lock input.
@@ -292,9 +292,9 @@ namespace TEN::Gui
 			Count
 		};
 
-		constexpr auto TITLE_OPTION_COUNT	  = TitleOption::Count - 1;
+		constexpr auto TITLE_OPTION_COUNT = TitleOption::Count - 1;
 		constexpr auto LOAD_GAME_OPTION_COUNT = SAVEGAME_MAX - 1;
-		constexpr auto OPTION_OPTION_COUNT	  = 2;
+		constexpr auto OPTION_OPTION_COUNT = 2;
 
 		static int selectedOptionBackup;
 		auto inventoryResult = InventoryResult::None;
@@ -368,8 +368,8 @@ namespace TEN::Gui
 			}
 		}
 		else if (MenuToDisplay == Menu::Title ||
-				 MenuToDisplay == Menu::SelectLevel ||
-				 MenuToDisplay == Menu::Options)
+			MenuToDisplay == Menu::SelectLevel ||
+			MenuToDisplay == Menu::Options)
 		{
 			SelectedOption = GetLoopedSelectedOption(SelectedOption, OptionCount, g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus);
 
@@ -465,9 +465,9 @@ namespace TEN::Gui
 		if (currentSize.x > 0 && currentSize.y > 0)
 		{
 			auto cmp = [](const Vector2i& a, const Vector2i& b)
-			{
-				return (a.x == b.x) ? (a.y < b.y) : (a.x < b.x);
-			};
+				{
+					return (a.x == b.x) ? (a.y < b.y) : (a.x < b.x);
+				};
 
 			bool alreadyListed = std::any_of(g_Configuration.SupportedScreenResolutions.begin(), g_Configuration.SupportedScreenResolutions.end(),
 				[&](const Vector2i& r) { return r.x == currentSize.x && r.y == currentSize.y; });
@@ -566,10 +566,10 @@ namespace TEN::Gui
 			case DisplaySettingsOption::ShadowType:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
-				if (CurrentSettings.Configuration.ShadowType == ShadowMode::None)
-					CurrentSettings.Configuration.ShadowType = ShadowMode::All;
+				if (CurrentSettings.Configuration.ShadowMode == ShadowMode::None)
+					CurrentSettings.Configuration.ShadowMode = ShadowMode::All;
 				else
-					CurrentSettings.Configuration.ShadowType = ShadowMode(int(CurrentSettings.Configuration.ShadowType) - 1);
+					CurrentSettings.Configuration.ShadowMode = ShadowMode(int(CurrentSettings.Configuration.ShadowMode) - 1);
 
 				break;
 
@@ -615,7 +615,7 @@ namespace TEN::Gui
 					CurrentSettings.Configuration.Gamma -= GAMMA_STEP;
 					if (CurrentSettings.Configuration.Gamma < GAMMA_MIN)
 						CurrentSettings.Configuration.Gamma = GAMMA_MIN;
-					
+
 					g_Configuration.Gamma = CurrentSettings.Configuration.Gamma;
 					g_Renderer.SetGraphicsSettingsChanged();
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
@@ -643,10 +643,10 @@ namespace TEN::Gui
 			case DisplaySettingsOption::ShadowType:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 
-				if (CurrentSettings.Configuration.ShadowType == ShadowMode::All)
-					CurrentSettings.Configuration.ShadowType = ShadowMode::None;
+				if (CurrentSettings.Configuration.ShadowMode == ShadowMode::All)
+					CurrentSettings.Configuration.ShadowMode = ShadowMode::None;
 				else
-					CurrentSettings.Configuration.ShadowType = ShadowMode(int(CurrentSettings.Configuration.ShadowType) + 1);
+					CurrentSettings.Configuration.ShadowMode = ShadowMode(int(CurrentSettings.Configuration.ShadowMode) + 1);
 
 				break;
 
@@ -804,7 +804,7 @@ namespace TEN::Gui
 
 			bool legacy30FpsDoneDraw = false;
 			bool decreaseCounter = false;
-			
+
 			while (CurrentSettings.NewKeyWaitTimer > 0)
 			{
 				g_Synchronizer.Sync();
@@ -1091,7 +1091,7 @@ namespace TEN::Gui
 
 			case OtherSettingsOption::ThumbstickCameraControl:
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
-				CurrentSettings.Configuration.EnableThumbstickCamera = !CurrentSettings.Configuration.EnableThumbstickCamera;
+				//CurrentSettings.Configuration.EnableThumbstickCamera = !CurrentSettings.Configuration.EnableThumbstickCamera;
 				break;
 			}
 		}
@@ -1209,7 +1209,7 @@ namespace TEN::Gui
 			{
 				// Was rumble setting changed?
 				bool indicateRumble = CurrentSettings.Configuration.EnableRumble && !g_Configuration.EnableRumble;
-				
+
 				// Save the new sound device
 				int oldSoundDeviceIndex = CurrentSettings.Configuration.SoundDevice;
 				int newSoundDeviceIndex = g_Configuration.SupportedSoundDevices[CurrentSettings.SelectedSoundDevice].Index;
@@ -1228,7 +1228,7 @@ namespace TEN::Gui
 				// Reset the sound system
 				if (reinitSoundSystem)
 					Sound_Reset();
-		
+
 				MenuToDisplay = fromPauseMenu ? Menu::Pause : Menu::Options;
 				SelectedOption = 1;
 			}
@@ -1257,9 +1257,9 @@ namespace TEN::Gui
 			ExitToTitle
 		};
 
-		static const int numPauseOptions	  = 2;
+		static const int numPauseOptions = 2;
 		static const int numStatisticsOptions = 0;
-		static const int numOptionsOptions	  = 2;
+		static const int numOptionsOptions = 2;
 
 		TimeInMenu++;
 		UpdateInputActions();
@@ -1382,7 +1382,7 @@ namespace TEN::Gui
 	bool GuiController::IsItemCurrentlyCombinable(int objectNumber)
 	{
 		static const int numSmallWaterskins = INV_OBJECT_SMALL_WATERSKIN_3L - INV_OBJECT_SMALL_WATERSKIN_EMPTY + 1;
-		static const int numBigWaterskins	= INV_OBJECT_BIG_WATERSKIN_5L - INV_OBJECT_BIG_WATERSKIN_EMPTY + 1;
+		static const int numBigWaterskins = INV_OBJECT_BIG_WATERSKIN_5L - INV_OBJECT_BIG_WATERSKIN_EMPTY + 1;
 
 		if (objectNumber < INV_OBJECT_SMALL_WATERSKIN_EMPTY || objectNumber > INV_OBJECT_BIG_WATERSKIN_5L)//trash
 		{
@@ -1505,7 +1505,7 @@ namespace TEN::Gui
 
 		if (options &
 			(OPT_CHOOSE_AMMO_UZI | OPT_CHOOSE_AMMO_PISTOLS | OPT_CHOOSE_AMMO_REVOLVER | OPT_CHOOSE_AMMO_CROSSBOW |
-			OPT_CHOOSE_AMMO_HK | OPT_CHOOSE_AMMO_SHOTGUN | OPT_CHOOSE_AMMO_GRENADEGUN | OPT_CHOOSE_AMMO_HARPOON | OPT_CHOOSE_AMMO_ROCKET))
+				OPT_CHOOSE_AMMO_HK | OPT_CHOOSE_AMMO_SHOTGUN | OPT_CHOOSE_AMMO_GRENADEGUN | OPT_CHOOSE_AMMO_HARPOON | OPT_CHOOSE_AMMO_ROCKET))
 		{
 			AmmoSelectorFlag = 1;
 			AmmoSelectorFadeDir = 1;
@@ -1999,7 +1999,7 @@ namespace TEN::Gui
 	{
 		auto& player = GetLaraInfo(*item);
 
-		AlterFOV(ANGLE(DEFAULT_FOV), false);
+		SetFov(ANGLE(DEFAULT_FOV), false);
 		player.Inventory.IsBusy = false;
 		InventoryItemChosen = NO_VALUE;
 		ItemUsed = false;
@@ -2032,7 +2032,7 @@ namespace TEN::Gui
 		Ammo.AmountRevolverAmmo = player.Weapons[(int)LaraWeaponType::Revolver].Ammo[(int)WeaponAmmoType::Ammo1].HasInfinite() ? -1 : player.Weapons[(int)LaraWeaponType::Revolver].Ammo[(int)WeaponAmmoType::Ammo1].GetCount();
 		Ammo.AmountPistolsAmmo = player.Weapons[(int)LaraWeaponType::Pistol].Ammo[(int)WeaponAmmoType::Ammo1].HasInfinite() ? -1 : player.Weapons[(int)LaraWeaponType::Pistol].Ammo[(int)WeaponAmmoType::Ammo1].GetCount();
 		Ammo.AmountRocketsAmmo = player.Weapons[(int)LaraWeaponType::RocketLauncher].Ammo[(int)WeaponAmmoType::Ammo1].HasInfinite() ? -1 : player.Weapons[(int)LaraWeaponType::RocketLauncher].Ammo[(int)WeaponAmmoType::Ammo1].GetCount();
-		Ammo.AmountHarpoonAmmo = player.Weapons[(int)LaraWeaponType::HarpoonGun].Ammo[(int)WeaponAmmoType::Ammo1].HasInfinite()? -1 : player.Weapons[(int)LaraWeaponType::HarpoonGun].Ammo[(int)WeaponAmmoType::Ammo1].GetCount();
+		Ammo.AmountHarpoonAmmo = player.Weapons[(int)LaraWeaponType::HarpoonGun].Ammo[(int)WeaponAmmoType::Ammo1].HasInfinite() ? -1 : player.Weapons[(int)LaraWeaponType::HarpoonGun].Ammo[(int)WeaponAmmoType::Ammo1].GetCount();
 		Ammo.AmountGrenadeAmmo1 = player.Weapons[(int)LaraWeaponType::GrenadeLauncher].Ammo[(int)WeaponAmmoType::Ammo1].HasInfinite() ? -1 : player.Weapons[(int)LaraWeaponType::GrenadeLauncher].Ammo[(int)WeaponAmmoType::Ammo1].GetCount();
 		Ammo.AmountGrenadeAmmo2 = player.Weapons[(int)LaraWeaponType::GrenadeLauncher].Ammo[(int)WeaponAmmoType::Ammo2].HasInfinite() ? -1 : player.Weapons[(int)LaraWeaponType::GrenadeLauncher].Ammo[(int)WeaponAmmoType::Ammo2].GetCount();
 		Ammo.AmountGrenadeAmmo3 = player.Weapons[(int)LaraWeaponType::GrenadeLauncher].Ammo[(int)WeaponAmmoType::Ammo3].HasInfinite() ? -1 : player.Weapons[(int)LaraWeaponType::GrenadeLauncher].Ammo[(int)WeaponAmmoType::Ammo3].GetCount();
@@ -2193,20 +2193,20 @@ namespace TEN::Gui
 
 			switch (InventoryItemChosen)
 			{
-				case ID_PISTOLS_ITEM:
-					player.Control.Weapon.RequestGunType = LaraWeaponType::Pistol;
-					break;
+			case ID_PISTOLS_ITEM:
+				player.Control.Weapon.RequestGunType = LaraWeaponType::Pistol;
+				break;
 
-				case ID_UZI_ITEM:
-					player.Control.Weapon.RequestGunType = LaraWeaponType::Uzi;
-					break;
+			case ID_UZI_ITEM:
+				player.Control.Weapon.RequestGunType = LaraWeaponType::Uzi;
+				break;
 
-				case ID_REVOLVER_ITEM:
-					player.Control.Weapon.RequestGunType = LaraWeaponType::Revolver;
-					break;
+			case ID_REVOLVER_ITEM:
+				player.Control.Weapon.RequestGunType = LaraWeaponType::Revolver;
+				break;
 
-				default:
-					return;
+			default:
+				return;
 			}
 
 			if (player.Control.HandStatus == HandStatus::Free &&
@@ -2245,36 +2245,36 @@ namespace TEN::Gui
 
 			switch (InventoryItemChosen)
 			{
-				case ID_SHOTGUN_ITEM:
-					player.Control.Weapon.RequestGunType = LaraWeaponType::Shotgun;
-					break;
+			case ID_SHOTGUN_ITEM:
+				player.Control.Weapon.RequestGunType = LaraWeaponType::Shotgun;
+				break;
 
-				case ID_REVOLVER_ITEM:
-					player.Control.Weapon.RequestGunType = LaraWeaponType::Revolver;
-					break;
+			case ID_REVOLVER_ITEM:
+				player.Control.Weapon.RequestGunType = LaraWeaponType::Revolver;
+				break;
 
-				case ID_HK_ITEM:
-					player.Control.Weapon.RequestGunType = LaraWeaponType::HK;
-					break;
+			case ID_HK_ITEM:
+				player.Control.Weapon.RequestGunType = LaraWeaponType::HK;
+				break;
 
-				case ID_CROSSBOW_ITEM:
-					player.Control.Weapon.RequestGunType = LaraWeaponType::Crossbow;
-					break;
+			case ID_CROSSBOW_ITEM:
+				player.Control.Weapon.RequestGunType = LaraWeaponType::Crossbow;
+				break;
 
-				case ID_GRENADE_GUN_ITEM:
-					player.Control.Weapon.RequestGunType = LaraWeaponType::GrenadeLauncher;
-					break;
+			case ID_GRENADE_GUN_ITEM:
+				player.Control.Weapon.RequestGunType = LaraWeaponType::GrenadeLauncher;
+				break;
 
-				case ID_HARPOON_ITEM:
-					player.Control.Weapon.RequestGunType = LaraWeaponType::HarpoonGun;
-					break;
+			case ID_HARPOON_ITEM:
+				player.Control.Weapon.RequestGunType = LaraWeaponType::HarpoonGun;
+				break;
 
-				case ID_ROCKET_LAUNCHER_ITEM:
-					player.Control.Weapon.RequestGunType = LaraWeaponType::RocketLauncher;
-					break;
+			case ID_ROCKET_LAUNCHER_ITEM:
+				player.Control.Weapon.RequestGunType = LaraWeaponType::RocketLauncher;
+				break;
 
-				default:
-					return;
+			default:
+				return;
 			}
 
 			if (player.Control.HandStatus == HandStatus::Free &&
@@ -2407,9 +2407,9 @@ namespace TEN::Gui
 					SoundEffect(SFX_TR4_MENU_COMBINE, nullptr, SoundEnvironment::Always);
 				}
 				else if (ammoItem >= INV_OBJECT_SMALL_WATERSKIN_EMPTY &&
-						 ammoItem <= INV_OBJECT_SMALL_WATERSKIN_3L &&
-						 invItem >= INV_OBJECT_BIG_WATERSKIN_EMPTY &&
-						 invItem <= INV_OBJECT_BIG_WATERSKIN_5L)
+					ammoItem <= INV_OBJECT_SMALL_WATERSKIN_3L &&
+					invItem >= INV_OBJECT_BIG_WATERSKIN_EMPTY &&
+					invItem <= INV_OBJECT_BIG_WATERSKIN_5L)
 				{
 					if (PerformWaterskinCombine(item, true))
 					{
@@ -2423,9 +2423,9 @@ namespace TEN::Gui
 					CombineRingFadeDir = 2;
 				}
 				else if (invItem >= INV_OBJECT_SMALL_WATERSKIN_EMPTY &&
-						 invItem <= INV_OBJECT_SMALL_WATERSKIN_3L &&
-						 ammoItem >= INV_OBJECT_BIG_WATERSKIN_EMPTY &&
-						 ammoItem <= INV_OBJECT_BIG_WATERSKIN_5L)
+					invItem <= INV_OBJECT_SMALL_WATERSKIN_3L &&
+					ammoItem >= INV_OBJECT_BIG_WATERSKIN_EMPTY &&
+					ammoItem <= INV_OBJECT_BIG_WATERSKIN_5L)
 				{
 					if (PerformWaterskinCombine(item, false))
 					{
@@ -3147,7 +3147,7 @@ namespace TEN::Gui
 					g_Renderer.AddString(PHD_CENTER_X, objectNumber, textBuffer, g_GameFlow->GetSettings()->UI.OptionTextColor, (int)PrintStringFlags::Center | (int)PrintStringFlags::Outline);
 				}
 
-				if (!i && !ring.ObjectListMovement) 
+				if (!i && !ring.ObjectListMovement)
 				{
 					if (invObject.RotFlags & INV_ROT_X)
 						listObject.Orientation.x += ANGLE(5.0f / g_Renderer.GetFramerateMultiplier());
@@ -3486,7 +3486,7 @@ namespace TEN::Gui
 		if (ItemUsed)
 			UseItem(*item, InventoryObjectTable[LastInvItem].ObjectNumber);
 
-		AlterFOV(LastFOV);
+		SetFov(g_Camera.PrevFov);
 		g_Renderer.PrepareScene();
 		g_VideoPlayer.Resume();
 		ResumeAllSounds(SoundPauseMode::Inventory);
@@ -3535,7 +3535,7 @@ namespace TEN::Gui
 		if (!Lara.Inventory.HasCompass)
 			return;
 
-		constexpr auto POS_2D	  = Vector2(130.0f, 450.0f);
+		constexpr auto POS_2D = Vector2(130.0f, 450.0f);
 		constexpr auto LERP_ALPHA = 0.1f;
 
 		auto needleOrient = EulerAngles(0, CompassNeedleAngle, 0);
@@ -3597,7 +3597,7 @@ namespace TEN::Gui
 		constexpr auto DEATH_NO_INPUT_LOAD_TIMEOUT = FPS / 2;
 
 		bool canLoop = g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::SaveLoadOnly ||
-					   g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus;
+			g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus;
 
 		// If load menu is accessed after death, delay input polling to allow player to stop spamming input.
 		if (GetLaraInfo(*LaraItem).Control.Count.Death > 0 && TimeInMenu < DEATH_NO_INPUT_LOAD_TIMEOUT)
@@ -3626,7 +3626,7 @@ namespace TEN::Gui
 	bool GuiController::DoSave()
 	{
 		bool canLoop = g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::SaveLoadOnly ||
-					   g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus;
+			g_Configuration.MenuOptionLoopingMode == MenuOptionLoopingMode::AllMenus;
 		SelectedSaveSlot = GetLoopedSelectedOption(SelectedSaveSlot, SAVEGAME_MAX - 1, canLoop);
 
 		if (GuiIsSelected())
@@ -3707,7 +3707,7 @@ namespace TEN::Gui
 	}
 
 	void GuiController::UseBinoculars(ItemInfo& item)
-	{	
+	{
 		auto& player = GetLaraInfo(item);
 
 		if (((item.Animation.ActiveState == LS_IDLE && item.Animation.AnimNumber == LA_STAND_IDLE) ||
@@ -3715,7 +3715,7 @@ namespace TEN::Gui
 			!UseSpotCam && !TrackCameraInit)
 		{
 			SetScreenFadeIn(OPTICS_FADE_SPEED);
-			BinocularOldCamera = Camera.oldType;
+			g_Camera.PrevBinocularCameraType = g_Camera.oldType;
 			player.Control.Look.OpticRange = OPTICS_RANGE_DEFAULT;
 			player.Control.Look.IsUsingBinoculars = true;
 			player.Inventory.OldBusy = true;

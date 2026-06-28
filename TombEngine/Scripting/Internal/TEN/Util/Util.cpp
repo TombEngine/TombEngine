@@ -26,6 +26,7 @@
 #include "Game/control/volume.h"
 
 using namespace TEN::Collision::Los;
+using namespace TEN::Config;
 using TEN::Renderer::g_Renderer;
 
 namespace TEN::Scripting::Util
@@ -195,7 +196,7 @@ namespace TEN::Scripting::Util
 		auto vector = Vector3i::Zero;
 		int itemNumber = ObjectOnLOS2(&ray.first, &ray.second, &vector, nullptr);
 
-		if (itemNumber == NO_LOS_ITEM || itemNumber < 0)
+		if (itemNumber == NO_VALUE || itemNumber < 0)
 			return sol::nullopt;
 
 		return std::make_unique<Moveable>(itemNumber);
@@ -222,7 +223,7 @@ namespace TEN::Scripting::Util
 		auto vector = Vector3i::Zero;
 		int itemNumber = ObjectOnLOS2(&ray.first, &ray.second, &vector, &mesh, GAME_OBJECT_ID::ID_LARA);
 
-		if (itemNumber == NO_LOS_ITEM || itemNumber >= 0)
+		if (itemNumber == NO_VALUE || itemNumber >= 0)
 			return sol::nullopt;
 
 		return std::make_unique<Static>(*mesh);

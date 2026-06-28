@@ -2,6 +2,7 @@
 #include "Specific/Structures/SpatialHash.h"
 
 #include "Math/Math.h"
+#include "Renderer/Renderer.h"
 
 using namespace TEN::Math;
 

@@ -14,6 +14,7 @@ namespace TEN::Renderer::Structures
 		Vector3	   Translation		 = Vector3::Zero;
 		Matrix	   GlobalTransform	 = Matrix::Identity;
 		Matrix	   Transform		 = Matrix::Identity;
+		Quaternion ExtraAbsRotation	 = Quaternion::Identity;
 		Quaternion ExtraRotation	 = Quaternion::Identity;
 
 		RendererBone*			   Parent	= nullptr;

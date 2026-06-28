@@ -218,10 +218,10 @@ namespace TEN::Entities::Switches
 
 					AddActiveItem(itemNumber);
 
-					ForcedFixedCamera.x = switchItem->Pose.Position.x - BLOCK(1) * phd_sin(switchItem->Pose.Orientation.y + ANGLE(90.0f));
-					ForcedFixedCamera.y = switchItem->Pose.Position.y - BLOCK(1);
-					ForcedFixedCamera.z = switchItem->Pose.Position.z - BLOCK(1) * phd_cos(switchItem->Pose.Orientation.y + ANGLE(90.0f));
-					ForcedFixedCamera.RoomNumber = switchItem->RoomNumber;
+					g_Camera.ForcedFixedCamera.x = switchItem->Pose.Position.x - BLOCK(1) * phd_sin(switchItem->Pose.Orientation.y + ANGLE(90.0f));
+					g_Camera.ForcedFixedCamera.y = switchItem->Pose.Position.y - BLOCK(1);
+					g_Camera.ForcedFixedCamera.z = switchItem->Pose.Position.z - BLOCK(1) * phd_cos(switchItem->Pose.Orientation.y + ANGLE(90.0f));
+					g_Camera.ForcedFixedCamera.RoomNumber = switchItem->RoomNumber;
 				}
 			}
 		}
@@ -269,10 +269,10 @@ namespace TEN::Entities::Switches
 					switchItem->Status = ITEM_ACTIVE;
 					switchItem->Animation.TargetState = SWITCH_ANIMATE;
 
-					ForcedFixedCamera.x = switchItem->Pose.Position.x - BLOCK(1) * phd_sin(switchItem->Pose.Orientation.y + ANGLE(90.0f));
-					ForcedFixedCamera.y = switchItem->Pose.Position.y - BLOCK(1);
-					ForcedFixedCamera.z = switchItem->Pose.Position.z - BLOCK(1) * phd_cos(switchItem->Pose.Orientation.y + ANGLE(90.0f));
-					ForcedFixedCamera.RoomNumber = switchItem->RoomNumber;
+					g_Camera.ForcedFixedCamera.x = switchItem->Pose.Position.x - BLOCK(1) * phd_sin(switchItem->Pose.Orientation.y + ANGLE(90.0f));
+					g_Camera.ForcedFixedCamera.y = switchItem->Pose.Position.y - BLOCK(1);
+					g_Camera.ForcedFixedCamera.z = switchItem->Pose.Position.z - BLOCK(1) * phd_cos(switchItem->Pose.Orientation.y + ANGLE(90.0f));
+					g_Camera.ForcedFixedCamera.RoomNumber = switchItem->RoomNumber;
 				}
 			}
 		}

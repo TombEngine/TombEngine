@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Game/control/control.h"
 #include "Game/Lara/lara_struct.h"
 #include "Specific/clock.h"
@@ -9,17 +10,27 @@ struct ItemInfo;
 constexpr auto LARA_GRAB_THRESHOLD = ANGLE(40.0f);
 constexpr auto FRONT_ARC		   = ANGLE(90.0f);
 
-// Lean rates
-constexpr auto LARA_LEAN_RATE = ANGLE(1.5f);
-constexpr auto LARA_LEAN_MAX  = ANGLE(11.0f);
+// Modern control turn alphas
 
-// Turn rate acceleration rates
+constexpr auto PLAYER_DEFAULT_TURN_ALPHA	  = 0.25f;
+constexpr auto PLAYER_SPRINT_TURN_ALPHA		  = 0.06f;
+constexpr auto PLAYER_CRAWL_TURN_ALPHA		  = 0.1f;
+constexpr auto PLAYER_JUMP_PREPARE_TURN_ALPHA = 0.6f;
+constexpr auto PLAYER_JUMP_TURN_ALPHA		  = 0.02f;
+constexpr auto PLAYER_WADE_TURN_ALPHA		  = 0.15f;
+constexpr auto PLAYER_SWIM_TURN_ALPHA		  = 0.15f;
+constexpr auto PLAYER_FLY_CHEAT_TURN_ALPHA	  = 0.5f;
+constexpr auto PLAYER_TURNAROUND_TURN_ALPHA	  = 0.15f;
+
+// Tank control turn rate acceleration rates
+
 constexpr auto LARA_TURN_RATE_ACCEL			   = ANGLE(0.25f);
 constexpr auto LARA_CRAWL_MOVE_TURN_RATE_ACCEL = ANGLE(0.15f);
 constexpr auto LARA_POLE_TURN_RATE_ACCEL	   = ANGLE(0.25f);
 constexpr auto LARA_SUBSUIT_TURN_RATE_ACCEL	   = ANGLE(0.25f);
 
-// Turn rate maxes
+// Tank control turn rate maxes
+
 constexpr auto LARA_SLOW_TURN_RATE_MAX		  = ANGLE(2.0f);
 constexpr auto LARA_SLOW_MED_TURN_RATE_MAX	  = ANGLE(3.0f);
 constexpr auto LARA_MED_TURN_RATE_MAX		  = ANGLE(4.0f);
@@ -35,9 +46,17 @@ constexpr auto LARA_CRAWL_MOVE_TURN_RATE_MAX  = ANGLE(1.75f);
 constexpr auto LARA_CROUCH_ROLL_TURN_RATE_MAX = ANGLE(0.75f);
 constexpr auto LARA_POLE_TURN_RATE_MAX		  = ANGLE(2.5f);
 
-// Flex rates
+// Tank control lean rates
+
+constexpr auto LARA_LEAN_RATE = ANGLE(1.5f);
+constexpr auto LARA_LEAN_MAX  = ANGLE(11.0f);
+
+// Tank control flex rates
+
 constexpr auto LARA_CRAWL_FLEX_RATE = ANGLE(2.25f);
 constexpr auto LARA_CRAWL_FLEX_MAX	= ANGLE(50.0f) / 2; // 2 = hardcoded number of bones to flex (head and torso).
+
+// Heights
 
 constexpr auto LARA_HEIGHT			  = CLICK(3) - 1; // Height in basic states.
 constexpr auto LARA_HEIGHT_CRAWL	  = 350;		  // Height in crawl states.
@@ -54,6 +73,8 @@ constexpr auto LARA_RADIUS_UNDERWATER = 300;
 constexpr auto LARA_RADIUS_DEATH	  = 400;
 constexpr auto LARA_ALIGN_VELOCITY	  = 12; // TODO: Float.
 
+// Fall velocity thresholds
+
 constexpr auto LARA_FREEFALL_VELOCITY	= 131.0f;
 constexpr auto LARA_DAMAGE_VELOCITY		= 141.0f;
 constexpr auto LARA_DEATH_VELOCITY		= 155.0f;
@@ -63,11 +84,17 @@ constexpr auto LARA_TERMINAL_VELOCITY	= CLICK(10);
 constexpr auto LARA_SWIM_VELOCITY_ACCEL_COEFF		 = 0.04f;
 constexpr auto LARA_SWIM_VELOCITY_DECEL_COEFF		 = 0.03f;
 constexpr auto LARA_TREAD_VELOCITY_MAX_COEFF		 = 0.35f;
+constexpr auto LARA_SWIM_VELOCITY_MAX_COEFF			 = 1.0f;
 constexpr auto LARA_SWIM_INTERTIA_VELOCITY_MIN_COEFF = 0.67f;
 
-constexpr auto PLAYER_POSITION_ADJUST_MAX_TIME = 3 * FPS;  // 3 seconds allowed for position adjustment.
-constexpr auto PLAYER_RUN_JUMP_TIME			   = 22;	   // Frames to count before a running jump is possible.
-constexpr auto PLAYER_SPRINT_JUMP_TIME		   = 46;	   // Frames to count before a sprint jump is possible.
+constexpr auto PLAYER_POSITION_ADJUST_MAX_TIME		  = 3 * FPS;
+constexpr auto PLAYER_POSE_TIME						  = 20 * FPS;
+constexpr auto PLAYER_TANK_CONTROL_RUN_JUMP_TIME	  = 22;
+constexpr auto PLAYER_MODERN_CONTROL_RUN_JUMP_TIME	  = PLAYER_TANK_CONTROL_RUN_JUMP_TIME / 2;
+constexpr auto PLAYER_TANK_CONTROL_SPRINT_JUMP_TIME	  = 46;
+constexpr auto PLAYER_MODERN_CONTROL_SPRINT_JUMP_TIME = PLAYER_TANK_CONTROL_SPRINT_JUMP_TIME / 2;
+
+// Status value maxes
 
 constexpr auto LARA_AIR_MAX			  = 1800.0f;
 constexpr auto LARA_AIR_CRITICAL	  = LARA_AIR_MAX / 4;
@@ -79,6 +106,8 @@ constexpr auto LARA_POISON_MAX		  = 128.0f;
 constexpr auto LARA_STAMINA_MAX		  = 120.0f;
 constexpr auto LARA_STAMINA_MIN       = LARA_STAMINA_MAX / 10;
 constexpr auto LARA_STAMINA_CRITICAL  = LARA_STAMINA_MAX / 2;
+
+// Node value maxes
 
 constexpr auto PLAYER_DRIP_NODE_MAX	  = 64.0f;
 constexpr auto PLAYER_BUBBLE_NODE_MAX = 8.0f;
@@ -92,6 +121,39 @@ constexpr auto WADE_WATER_DEPTH		= STEPUP_HEIGHT;
 constexpr auto SWIM_WATER_DEPTH		= CLICK(2.75f);
 constexpr auto SLOPE_DIFFERENCE		= 60;
 constexpr auto SWAMP_GRAVITY_COEFF	= 3.0f;
+
+static const auto PLAYER_IDLE_STATE_IDS = std::vector<int>
+{
+	LS_IDLE,
+	LS_CROUCH_IDLE,
+	LS_CRAWL_IDLE,
+	LS_MONKEY_IDLE,
+	LS_HANG,
+	LS_LADDER_IDLE,
+	LS_POLE_IDLE,
+	LS_ROPE_IDLE,
+	LS_TIGHTROPE_IDLE,
+	LS_ONWATER_IDLE,
+	LS_UNDERWATER_IDLE
+};
+
+static const auto PLAYER_STRAFE_STATE_IDS = std::vector<int>
+{
+	LS_IDLE,
+	LS_WALK_FORWARD,
+	LS_WALK_BACK,
+	LS_RUN_FORWARD,
+	LS_SKIP_BACK,
+	LS_STEP_LEFT,
+	LS_STEP_RIGHT,
+	LS_TURN_LEFT_SLOW,
+	LS_TURN_RIGHT_SLOW,
+	LS_JUMP_PREPARE,
+	LS_JUMP_FORWARD,
+	LS_JUMP_BACK,
+	LS_JUMP_LEFT,
+	LS_JUMP_RIGHT
+};
 
 extern LaraInfo		 Lara;
 extern ItemHandler	 LaraItem;

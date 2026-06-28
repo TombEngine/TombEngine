@@ -67,6 +67,9 @@
 #include "Specific/Video/Video.h"
 
 using namespace std::chrono;
+using namespace TEN::Collision::Floordata;
+using namespace TEN::Config;
+using namespace TEN::Control::Volumes;
 using namespace TEN::Effects;
 using namespace TEN::Effects::Blood;
 using namespace TEN::Effects::Bubble;
@@ -90,8 +93,6 @@ using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::Traps;
 using namespace TEN::Entities::TR4;
-using namespace TEN::Collision::Floordata;
-using namespace TEN::Control::Volumes;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
@@ -156,7 +157,7 @@ GameStatus GamePhase(bool insideMenu)
 	ClearAllDisplaySprites();
 
 	SetupInterpolation();
-	PrepareCamera();
+	g_Camera.Prepare();
 
 	RegeneratePickups();
 
@@ -266,7 +267,7 @@ GameStatus GamePhase(bool insideMenu)
 		g_GameScript->OnLoop(DELTA_TIME, true);
 	}
 
-	UpdateCamera();
+	g_Camera.Update();
 
 	// Clear savegame loaded flag.
 	JustLoaded = false;
@@ -304,7 +305,7 @@ GameStatus FreezePhase()
 	ClearAllDisplaySprites();
 
 	SetupInterpolation();
-	PrepareCamera();
+	g_Camera.Prepare();
 
 	g_DrawItems.Prepare();
 	g_GameStringsHandler->ProcessDisplayStrings(DELTA_TIME);
@@ -327,7 +328,7 @@ GameStatus FreezePhase()
 		UpdateFadeScreenAndCinematicBars();
 		Weather.Update(true);
 
-		UpdateCamera();
+		//g_Camera.Update()(); // TODO: Restore.
 
 		PlaySoundSources();
 		Sound_UpdateScene();
@@ -535,10 +536,6 @@ void CleanUp()
 {
 	// Reset oscillator seed.
 	Wibble = 0;
-
-	// Reset extra camera angles.
-	Camera.extraAngle = 0;
-	Camera.extraElevation = 0;
 
 	// Clear player lock, otherwise controls will lock if user exits to title while playing flyby with locked controls.
 	Lara.Control.IsLocked = false;
@@ -811,7 +808,7 @@ GameStatus HandleMenuCalls(bool isTitle)
 {
 	auto gameStatus = GameStatus::Normal;
 
-	if (ScreenFading)
+	if (g_ScreenEffect.ScreenFading)
 		return gameStatus;
 
 	if (isTitle)

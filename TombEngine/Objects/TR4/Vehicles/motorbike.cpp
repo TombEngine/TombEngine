@@ -22,6 +22,7 @@
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
+#include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
@@ -1290,7 +1291,7 @@ namespace TEN::Entities::Vehicles
 		AnimateItem(laraItem);
 		SyncItemAnimation(*motorbikeItem, *laraItem);
 
-		Camera.targetElevation = -ANGLE(30.0f);
+		g_Camera.targetElevation = -ANGLE(30.0f);
 
 		if (motorbike->Flags & MOTORBIKE_FLAG_FALLING)
 		{

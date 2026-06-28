@@ -67,10 +67,10 @@ namespace TEN::Math::Geometry
 
 	// Point relation inquirers
 
+	//bool IsPointInFront(const Vector3& origin, const Vector3& target, const Vector3& normal);
 	bool IsPointInFront(const Pose& pose, const Vector3& target);
 	bool IsPointInFront(const Vector3& origin, const Vector3& target, const EulerAngles& orient);
 	bool IsPointInFront(const Vector3& origin, const Vector3& target, const Vector3& refPoint);
-	bool IsPointOnLeft(const Pose& pose, const Vector3& target);
 	bool IsPointOnLeft(const Vector3& origin, const Vector3& target, const EulerAngles& orient);
 	bool IsPointOnLeft(const Vector3& origin, const Vector3& target, const Vector3& refPoint);
 	bool IsPointInBox(const Vector3& point, const BoundingBox& box);

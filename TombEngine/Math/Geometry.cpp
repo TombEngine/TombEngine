@@ -325,6 +325,14 @@ namespace TEN::Math::Geometry
 		return Vector3::Transform(Vector3::UnitZ, quat);
 	}
 
+	// TODO: Identical signature to another overload.
+	/*bool IsPointInFront(const Vector3& origin, const Vector3& target, const Vector3& normal)
+	{
+		auto targetDir = target - origin;
+		float dot = targetDir.Dot(normal);
+		return (dot >= 0.0f);
+	}*/
+
 	bool IsPointInFront(const Pose& pose, const Vector3& target)
 	{
 		return IsPointInFront(pose.Position.ToVector3(), target, pose.Orientation);
@@ -359,11 +367,6 @@ namespace TEN::Math::Geometry
 
 		float dot = headingDir.Dot(targetDir);
 		return (dot > 0.0f);
-	}
-
-	bool IsPointOnLeft(const Pose& pose, const Vector3& target)
-	{
-		return IsPointOnLeft(pose.Position.ToVector3(), target, pose.Orientation);
 	}
 
 	bool IsPointOnLeft(const Vector3& origin, const Vector3& target, const EulerAngles& orient)

@@ -3,25 +3,26 @@
 
 namespace TEN::Renderer
 {
-	RenderView::RenderView(CAMERA_INFO* cam, float roll, float fov, float nearPlane, float farPlane, int w, int h) : Camera(cam, roll, fov, nearPlane, farPlane, w, h) 
+	RenderView::RenderView(const CameraInfo& camera, float roll, float fov, float nearPlane, float farPlane, float width, float height) :
+		Camera(camera, roll, fov, nearPlane, farPlane, width, height) 
 	{
 		Viewport = {};
 		Viewport.X = 0;
 		Viewport.Y = 0;
-		Viewport.Width = w;
-		Viewport.Height = h;
+		Viewport.Width = width;
+		Viewport.Height = height;
 		Viewport.MinDepth = 0;
 		Viewport.MaxDepth = 1;
 	}
 
-	RenderView::RenderView(const Vector3& pos, const Vector3& dir, const Vector3& up, int w, int h, int room, float nearPlane, float farPlane, float fov) : Camera(pos, dir, up, room, w, h, fov, nearPlane, farPlane) 
+	RenderView::RenderView(const Vector3& pos, const Vector3& dir, const Vector3& up, float width, float height, int roomNumber, float nearPlane, float farPlane, float fov) :
+		Camera(pos, dir, up, roomNumber, width, height, fov, nearPlane, farPlane) 
 	{
-
 		Viewport = {};
 		Viewport.X = 0;
 		Viewport.Y = 0;
-		Viewport.Width = w;
-		Viewport.Height = h;
+		Viewport.Width = width;
+		Viewport.Height = height;
 		Viewport.MinDepth = 0;
 		Viewport.MaxDepth = 1;
 	}
@@ -57,12 +58,12 @@ namespace TEN::Renderer
 		Mirrors.clear();
 	}
 
-	RenderViewCamera::RenderViewCamera(CAMERA_INFO* cam, float roll, float fov, float n, float f, int w, int h)
+	RenderViewCamera::RenderViewCamera(const CameraInfo& camera, float roll, float fov, float nearPlane, float farPlane, float width, float height)
 	{
-		RoomNumber = cam->pos.RoomNumber;
-		WorldPosition = Vector3(cam->pos.x, cam->pos.y, cam->pos.z);
+		RoomNumber = camera.RoomNumber;
+		WorldPosition = Vector3(camera.Position.x, camera.Position.y, camera.Position.z);
 
-		auto target = Vector3(cam->target.x, cam->target.y, cam->target.z);
+		auto target = Vector3(camera.LookAt.x, camera.LookAt.y, camera.LookAt.z);
 		
 		// Safety clamps to avoid NaNs in view direction calculation.
 		auto rawDirection = target - WorldPosition;
@@ -81,31 +82,38 @@ namespace TEN::Renderer
 		up = Vector3::Transform(up, upRotation);
 		up.Normalize();
 
+		RoomNumber = camera.RoomNumber;
+		WorldPosition = camera.Position + camera.Offset;
+		WorldDirection = target - WorldPosition;
+		WorldDirection.Normalize();
 		View = Matrix::CreateLookAt(WorldPosition, target, up);
-		Projection = Matrix::CreatePerspectiveFieldOfView(fov, w / (float)h, n, f);
+		Projection = Matrix::CreatePerspectiveFieldOfView(fov, width / height, nearPlane, farPlane);
 		ViewProjection = View * Projection;
-		ViewSize = { (float)w, (float)h };
-		InvViewSize = { 1.0f / w, 1.0f / h };
+		ViewSize = Vector2(width, height);
+		InvViewSize = Vector2::One / Vector2(width, height);
 		Frustum.Update(View, Projection);
-		NearPlane = n;
-		FarPlane = f;
+		NearPlane = nearPlane;
+		FarPlane = farPlane;
 		FOV = fov;
 	}
 
-	RenderViewCamera::RenderViewCamera(const Vector3& pos, const Vector3& dir, const Vector3& up, int room, int width, int height, float fov, float n, float f) 
+	RenderViewCamera::RenderViewCamera(const Vector3& pos, const Vector3& dir, const Vector3& up, int roomNumber, float width, float height, float fov, float nearPlane, float farPlane) 
 	{
-		RoomNumber = room;
+		constexpr auto LOOK_AT_DIST = BLOCK(10);
+
+		float screenAspect = width / height;
+
+		RoomNumber = roomNumber;
 		WorldPosition = pos;
 		WorldDirection = dir;
-		View = Matrix::CreateLookAt(pos, pos + dir * 10240, up);
-		float aspect = (float)width / (float)height;
-		Projection = Matrix::CreatePerspectiveFieldOfView(fov, aspect, n, f);
+		View = Matrix::CreateLookAt(pos, pos + (dir * LOOK_AT_DIST), up);
+		Projection = Matrix::CreatePerspectiveFieldOfView(fov, screenAspect, nearPlane, farPlane);
 		ViewProjection = View * Projection;
-		ViewSize = { (float)width, (float)height };
-		InvViewSize = { 1.0f / width, 1.0f / height };
+		ViewSize = Vector2(width, height);
+		InvViewSize = Vector2::One / Vector2(width, height);
 		Frustum.Update(View, Projection);
-		NearPlane = n;
-		FarPlane = f;
+		NearPlane = nearPlane;
+		FarPlane = farPlane;
 		FOV = fov;
 	}
 }

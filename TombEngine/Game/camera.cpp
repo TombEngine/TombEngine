@@ -3,6 +3,7 @@
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
+#include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
 #include "Game/control/los.h"
 #include "Game/effects/debris.h"
@@ -12,6 +13,7 @@
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/lara_tests.h"
 #include "Game/Lara/Optics.h"
 #include "Game/room.h"
 #include "Game/savegame.h"
@@ -25,117 +27,90 @@
 #include "Specific/level.h"
 #include "Specific/trutils.h"
 
-using namespace TEN::Animation;
+using namespace TEN::Collision::Los;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Input;
 using namespace TEN::Math;
-using namespace TEN::SpotCam;
+using namespace TEN::Utils;
 using TEN::Renderer::g_Renderer;
 
-constexpr auto PARTICLE_FADE_THRESHOLD = BLOCK(14);
-constexpr auto COLL_CHECK_THRESHOLD    = BLOCK(4);
-constexpr auto COLL_CANCEL_THRESHOLD   = BLOCK(2);
-constexpr auto COLL_DISCARD_THRESHOLD  = CLICK(0.5f);
-constexpr auto CAMERA_RADIUS           = CLICK(1);
+constexpr float CAMERA_OBJECT_COLL_DIST_THRESHOLD   = BLOCK(4);
+constexpr float CAMERA_OBJECT_COLL_EXTENT_THRESHOLD = CLICK(0.5f);
 
-constexpr auto MANUAL_ROTATION_THRESHOLD         = 0.01f;
-constexpr auto MANUAL_ROTATION_SPEED             = 6.0f;
-constexpr auto MANUAL_ROTATION_LOWER_ANGLE_LIMIT = ANGLE(-70.0f);
-constexpr auto MANUAL_ROTATION_UPPER_ANGLE_LIMIT = ANGLE(90.0f);
+CameraInfo       g_Camera;
+ScreenEffectData g_ScreenEffect;
 
-struct OLD_CAMERA
+CameraLosCollisionData CameraInfo::GetLos(const Vector3& origin, int roomNumber, const Vector3& dir, float dist) const
 {
-	short ActiveState;
-	short TargetState;
-	int targetDistance;
-	short actualElevation;
-	short targetElevation;
-	short actualAngle;
-	Pose pos;
-	Pose pos2;
-	Vector3i target;
-};
+	auto cameraLos = CameraLosCollisionData{};
 
-bool ItemCameraOn;
-bool UseForcedFixedCamera;
+	// 1) Get raw LOS collision.
+	auto los = GetLosCollision(origin, roomNumber, dir, dist, true, false, true);
 
-GameVector LookCamPosition;
-GameVector LookCamTarget;
-GameVector LastPosition;
-GameVector LastTarget;
-GameVector LastIdeal;
-GameVector Ideals[5];
-GameVector ForcedFixedCamera;
+	// 2) Clip room.
+	cameraLos.Normal = los.Room.Triangle.has_value() ? los.Room.Triangle->Normal : -dir;
+	cameraLos.Position = los.Room.Position;
+	cameraLos.RoomNumber = los.Room.RoomNumber;
+	cameraLos.IsIntersected = los.Room.IsIntersected;
+	cameraLos.Distance = los.Room.Distance;
 
-CAMERA_INFO Camera;
-OLD_CAMERA OldCam;
-
-int CameraSnaps = 0;
-int TargetSnaps = 0;
-
-CameraType BinocularOldCamera;
-
-short CurrentFOV;
-short LastFOV;
-
-int RumbleTimer = 0;
-int RumbleCounter = 0;
-
-bool  ScreenFadedOut = false;
-bool  ScreenFading = false;
-float ScreenFadeSpeed = 0;
-float ScreenFadeStart = 0;
-float ScreenFadeEnd = 0;
-float ScreenFadeCurrent = 0;
-
-float CinematicBarsHeight = 0;
-float CinematicBarsDestinationHeight = 0;
-float CinematicBarsSpeed = 0;
-
-void DoThumbstickCamera()
-{
-	// FIXME: IsHeld and IsClicked isn't working here for some reason.
-	if (IsReleased(In::Look))
+	// 3) Clip item.
+	for (const auto& itemLos : los.Items)
 	{
-		Camera.extraAngle = 0;
-		Camera.extraElevation = 0;
-		return;
+		if (!TestCollidableMoveable(*itemLos.Item))
+			continue;
+
+		if (itemLos.Distance < cameraLos.Distance)
+		{
+			auto normal = itemLos.Item->GetObb().Center - origin;
+			normal.Normalize();
+
+			cameraLos.Normal = normal;
+			cameraLos.Position = itemLos.Position;
+			cameraLos.RoomNumber = itemLos.RoomNumber;
+			cameraLos.IsIntersected = true;
+			cameraLos.Distance = itemLos.Distance;
+			break;
+		}
 	}
 
-	if (!g_Configuration.EnableThumbstickCamera)
-		return;
+	// 4) Clip static.
+	for (const auto& staticLos : los.Statics)
+	{
+		if (!TestCollidableStatic(*staticLos.Static))
+			continue;
 
-	if (g_GameFlow->CurrentFreezeMode == FreezeMode::Spectator)
-		return;
+		if (staticLos.Distance < cameraLos.Distance)
+		{
+			auto normal = staticLos.Static->GetObb().Center - origin;
+			normal.Normalize();
 
-	if (Camera.laraNode != NO_VALUE)
-		return;
+			cameraLos.Normal = normal;
+			cameraLos.Position = staticLos.Position;
+			cameraLos.RoomNumber = staticLos.RoomNumber;
+			cameraLos.IsIntersected = true;
+			cameraLos.Distance = staticLos.Distance;
+			break;
+		}
+	}
 
-	// Only read axis values if overall magnitude is above threshold.
-	auto axisCoeff = Vector2::Zero;
-	if (AxisMap[AxisID::Camera].Length() > MANUAL_ROTATION_THRESHOLD)
-		axisCoeff = AxisMap[AxisID::Camera] * MANUAL_ROTATION_SPEED;
-	
-	// Accumulate extra angles to gradually rotate camera around Lara over time.
-	Camera.extraAngle += ANGLE(axisCoeff.x);
-	Camera.extraElevation += ANGLE(axisCoeff.y);
-
-	// Limit vertical camera movement to avoid clipping.
-	Camera.extraElevation = std::clamp(Camera.extraElevation, MANUAL_ROTATION_LOWER_ANGLE_LIMIT, MANUAL_ROTATION_UPPER_ANGLE_LIMIT);
-
-	// Apply extra angles to target angles instead of actual angles for smooth movement.
-	Camera.targetAngle += Camera.extraAngle;
-	Camera.targetElevation += Camera.extraElevation;
+	// 5) Return camera LOS collision.
+	return cameraLos;
 }
 
-static int GetLookCameraVerticalOffset(const ItemInfo& item, const CollisionInfo& coll)
+Vector3 CameraInfo::GetGeometryOffset() const
 {
-	constexpr auto VERTICAL_OFFSET_DEFAULT		  = -BLOCK(1 / 16.0f);
-	constexpr auto VERTICAL_OFFSET_SWAMP		  = BLOCK(0.4f);
-	constexpr auto VERTICAL_OFFSET_MONKEY_SWING	  = BLOCK(0.25f);
-	constexpr auto VERTICAL_OFFSET_TREADING_WATER = BLOCK(0.5f);
+	return {};
+}
+
+Vector3 CameraInfo::GetPlayerOffset(const ItemInfo& item, const CollisionInfo& coll) const
+{
+	constexpr float VERTICAL_OFFSET_DEFAULT        = -BLOCK(0.05f);
+	constexpr float VERTICAL_OFFSET_SWAMP          = BLOCK(0.4f);
+	constexpr float VERTICAL_OFFSET_MONKEY_SWING   = BLOCK(0.25f);
+	constexpr float VERTICAL_OFFSET_TREADING_WATER = BLOCK(0.5f);
 
 	const auto& player = GetLaraInfo(item);
 
@@ -164,579 +139,774 @@ static int GetLookCameraVerticalOffset(const ItemInfo& item, const CollisionInfo
 	auto pointColl = GetPointCollision(item);
 	int floorToCeilHeight = abs(pointColl.GetCeilingHeight() - pointColl.GetFloorHeight());
 
-	// Return appropriate vertical offset.
-	return -((verticalOffset < floorToCeilHeight) ? verticalOffset : floorToCeilHeight);
+	// Return offset.
+	return Vector3(
+		0.0f,
+		-((verticalOffset < floorToCeilHeight) ? verticalOffset : floorToCeilHeight),
+		0.0f);
 }
 
-void LookCamera(ItemInfo& item, const CollisionInfo& coll)
+EulerAngles CameraInfo::GetControlRotation() const
 {
-	constexpr auto POS_LERP_ALPHA	 = 0.25f;
-	constexpr auto COLL_PUSH		 = BLOCK(0.25f) - BLOCK(1 / 16.0f);
-	constexpr auto LOOK_AT_DIST		 = BLOCK(0.5f);
-	constexpr auto CAMERA_DIST_COEFF = 0.7f;
-	constexpr auto CAMERA_DIST_MAX	 = BLOCK(0.75f);
+	constexpr float SLOW_ROT_COEFF                = 0.4f;
+	constexpr float MOUSE_AXIS_SENSITIVITY_COEFF  = 20.0f;
+	constexpr float CAMERA_AXIS_SENSITIVITY_COEFF = 12.0f;
+	constexpr float SMOOTHING_FACTOR              = 8.0f;
 
-	const auto& player = GetLaraInfo(item);
+	bool isUsingMouse = (GetCameraAxis() == Vector2::Zero);
+	auto axisSign = Vector2(g_Configuration.InvertCameraXAxis ? -1 : 1, g_Configuration.InvertCameraYAxis ? -1 : 1);
 
-	int verticalOffset = GetLookCameraVerticalOffset(item, coll);
-	auto pivotOffset = Vector3i(0, verticalOffset, 0);
+	// Compute axis.
+	auto axis = (isUsingMouse ? GetMouseAxis() : GetCameraAxis()) * axisSign;
+	float sensitivityCoeff = isUsingMouse ? MOUSE_AXIS_SENSITIVITY_COEFF : CAMERA_AXIS_SENSITIVITY_COEFF;
+	float sensitivity = sensitivityCoeff / (1.0f + (abs(axis.x) + abs(axis.y)));
+	axis *= sensitivity * (isUsingMouse ? SMOOTHING_FACTOR : 1.0f);
 
-	float idealDist = -std::max(Camera.targetDistance * CAMERA_DIST_COEFF, CAMERA_DIST_MAX);
-
-	// Define absolute camera orientation.
-	auto orient = player.Control.Look.Orientation +
-		EulerAngles(item.Pose.Orientation.x, item.Pose.Orientation.y, 0) +
-		EulerAngles(0, Camera.targetAngle, 0);
-	orient.x = std::clamp(orient.x, LOOKCAM_ORIENT_CONSTRAINT.first.x, LOOKCAM_ORIENT_CONSTRAINT.second.x);
-
-	// Determine base position.
-	bool isInSwamp = TestEnvironment(ENV_FLAG_SWAMP, item.RoomNumber);
-	auto basePos = Vector3i(
-		item.Pose.Position.x,
-		isInSwamp ? g_Level.Rooms[item.RoomNumber].TopHeight : item.Pose.Position.y,
-		item.Pose.Position.z);
-
-	// Define landmarks.
-	auto pivotPos = Geometry::TranslatePoint(basePos, item.Pose.Orientation.y, pivotOffset);
-	auto idealPos = Geometry::TranslatePoint(pivotPos, orient, idealDist);
-	auto lookAtPos = Geometry::TranslatePoint(pivotPos, orient, LOOK_AT_DIST);
-
-	// Determine best position.
-	auto origin = GameVector(pivotPos, GetPointCollision(item, item.Pose.Orientation.y, pivotOffset.z, pivotOffset.y).GetRoomNumber());
-	auto target = GameVector(idealPos, GetPointCollision(origin.ToVector3i(), origin.RoomNumber, orient.ToDirection(), idealDist).GetRoomNumber());
-
-	// Handle room and object collisions.
-	LOSAndReturnTarget(&origin, &target, 0);
-	CameraCollisionBounds(&target, COLL_PUSH, true);
-	ItemsCollideCamera();
-
-	// Smoothly update camera position.
-	MoveCamera(&target, Camera.speed);
-	Camera.target = GameVector(Camera.target.ToVector3i() + (lookAtPos - Camera.target.ToVector3i()) * POS_LERP_ALPHA, item.RoomNumber);
-
-	LookAt(&Camera, GetCurrentRoll());
-	UpdateMikePos(item);
-	Camera.oldType = Camera.type;
+	// Compute and return rotation.
+	auto rotCoeff = IsHeld(In::Walk) ? SLOW_ROT_COEFF : 1.0f;
+	return EulerAngles(ANGLE(axis.x), ANGLE(axis.y), ANGLE(0.0f)) * rotCoeff;
 }
 
-void LookAt(CAMERA_INFO* cam, short roll)
+void CameraInfo::Prepare()
 {
-	cam->Fov = TO_RAD(CurrentFOV / 1.333333f);
-	cam->Roll = TO_RAD(roll);
-}
-
-void AlterFOV(short value, bool store)
-{
-	if (store)
-		LastFOV = value;
-
-	CurrentFOV = value;
-}
-
-short GetCurrentFOV()
-{
-	return CurrentFOV;
-}
-
-void AlterRoll(short value)
-{
-	Camera.Roll = TO_RAD(value);
-}
-
-short GetCurrentRoll()
-{
-	return FROM_RAD(Camera.Roll);
-}
-
-inline void RumbleFromBounce()
-{
-	Rumble(std::clamp((float)abs(Camera.bounce) / 70.0f, 0.0f, 0.8f), 0.2f);
-}
-
-void CalculateBounce(bool binocularMode)
-{
-	if (Camera.bounce == 0)
+	if (!TrackCameraInit)
 		return;
 
-	if (Camera.bounce <= 0)
+	UseSpotCam = false;
+	SetFov(PrevFov);
+	g_Renderer.RestoreDOF();
+}
+
+void CameraInfo::Update()
+{
+	// HACK: Disable interpolation when switching to/from flyby camera.
+	// When camera structs are converted to a class, this should go to getter/setter. -- Lwmte, 29.10.2024
+	if (UseSpotCam != SpotcamSwitched)
 	{
-		if (binocularMode)
+		DisableInterpolation = true;
+		SpotcamSwitched = UseSpotCam;
+	}
+
+	// Handle flyby cameras.
+	if (UseSpotCam)
+	{
+		CalculateSpotCam();
+	}
+	// Handle standard camera.
+	else
+	{
+		TrackCameraInit = false;
+		CalculateCamera(*LaraItem, LaraCollision);
+	}
+
+	// Update cameras matrices after having done all possible camera logic.
+	g_Renderer.UpdateCameraMatrices(g_Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
+}
+
+void CameraInfo::UpdateMovement(const ItemInfo& playerItem, Vector3 idealPos, int idealRoomNumber, float speed)
+{
+	constexpr float BUFFER = BLOCK(0.2f);
+
+	const auto& player = GetLaraInfo(playerItem);
+
+	if (player.Control.Look.IsUsingBinoculars)
+		speed = 1.0f;
+
+	UpdateAzimuthAngle(playerItem);
+	UpdateListenerPosition(playerItem);
+
+	PrevCamera.pos.Orientation = playerItem.Pose.Orientation;
+	PrevCamera.pos2.Orientation.x = player.ExtraHeadRot.x;
+	PrevCamera.pos2.Orientation.y = player.ExtraHeadRot.y;
+	PrevCamera.pos2.Position.x = player.ExtraTorsoRot.x;
+	PrevCamera.pos2.Position.y = player.ExtraTorsoRot.y;
+	PrevCamera.pos.Position = playerItem.Pose.Position;
+	PrevCamera.ActiveState = playerItem.Animation.ActiveState;
+	PrevCamera.TargetState = playerItem.Animation.TargetState;
+	PrevCamera.targetDistance = targetDistance;
+	PrevCamera.targetElevation = targetElevation;
+	PrevCamera.actualElevation = actualElevation;
+	PrevCamera.actualAngle = actualAngle;
+	PrevCamera.target = LookAt;
+	PrevIdeal = idealPos;
+	PrevIdealRoomNumber = idealRoomNumber;
+
+	// Translate.
+	Position = Vector3::Lerp(Position, idealPos, 1.0f / speed);
+	RoomNumber = idealRoomNumber;
+
+	// Apply geometry offset.
+	Position += GetGeometryOffset();
+	Offset = Vector3::Zero;
+
+	// Get LOS.
+	auto dir = Position - LookAt;
+	dir.Normalize();
+	float dist = Vector3::Distance(LookAt, Position);
+	auto cameraLos = GetLos(LookAt, LookAtRoomNumber, dir, dist);
+
+	// Apply LOS.
+	Position = cameraLos.Position;
+	RoomNumber = cameraLos.RoomNumber;
+
+	Distance = Vector3::Distance(LookAt, Position);
+
+	// TODO: Proper solution.
+	// FAILSAFE: Prevent Position being equal to LookAt.
+	if (Position == LookAt)
+		LookAt += Vector3::One;
+
+	// Bounce.
+	if (bounce != 0)
+	{
+		if (bounce <= 0)
 		{
-			Camera.target.x += (CLICK(0.25f) / 4) * (GetRandomControl() % (-Camera.bounce) - (-Camera.bounce / 2));
-			Camera.target.y += (CLICK(0.25f) / 4) * (GetRandomControl() % (-Camera.bounce) - (-Camera.bounce / 2));
-			Camera.target.z += (CLICK(0.25f) / 4) * (GetRandomControl() % (-Camera.bounce) - (-Camera.bounce / 2));
+			int bounce0 = -bounce;
+			int bounce1 = bounce / 2;
+
+			LookAt.x += Random::GenerateInt() % bounce0 - bounce1;
+			LookAt.y += Random::GenerateInt() % bounce0 - bounce1;
+			LookAt.z += Random::GenerateInt() % bounce0 - bounce1;
+			bounce += 5;
+			RumbleFromBounce();
 		}
 		else
 		{
-			int bounce = -Camera.bounce;
-			int bounce2 = bounce / 2;
-			Camera.target.x += GetRandomControl() % bounce - bounce2;
-			Camera.target.y += GetRandomControl() % bounce - bounce2;
-			Camera.target.z += GetRandomControl() % bounce - bounce2;
+			Position.y += bounce;
+			LookAt.y += bounce;
+			bounce = 0;
 		}
+	}
 
-		Camera.bounce += 5;
-		RumbleFromBounce();
+	// Avoid entering swamp rooms.
+	if (TestEnvironment(ENV_FLAG_SWAMP, RoomNumber))
+		Position.y = g_Level.Rooms[RoomNumber].Position.y - BUFFER;
+
+	RoomNumber = GetPointCollision(Position, RoomNumber).GetRoomNumber();
+	HandleLookAt(*this, 0);
+	oldType = type;
+}
+
+void CameraInfo::UpdateSphere(const ItemInfo& playerItem)
+{
+	constexpr float CONTROLLED_CAMERA_ROT_LERP_ALPHA = 0.5f;
+	constexpr float COMBAT_CAMERA_REBOUND_ALPHA      = 0.3f;
+	constexpr float LOCKED_CAMERA_ALTITUDE_ROT_ALPHA = 1 / 8.0f;
+
+	const auto& player = GetLaraInfo(playerItem);
+
+	if (laraNode != NO_VALUE)
+	{
+		auto origin = GetJointPosition(playerItem, laraNode, Vector3i::Zero);
+		auto target = GetJointPosition(playerItem, laraNode, Vector3i(0, -CLICK(1), BLOCK(2)));
+		auto deltaPos = target - origin;
+
+		actualAngle = targetAngle + FROM_RAD(atan2(deltaPos.x, deltaPos.z));
+		actualElevation += (targetElevation - actualElevation) * LOCKED_CAMERA_ALTITUDE_ROT_ALPHA;
+		Rotation = EulerAngles::Identity;
 	}
 	else
 	{
-		Camera.pos.y += Camera.bounce;
-		Camera.target.y += Camera.bounce;
-		Camera.bounce = 0;
+		// Modern camera.
+		if (g_Configuration.IsUsingModernControls() && !player.Control.IsLocked)
+		{
+			Rotation.Lerp(GetControlRotation(), CONTROLLED_CAMERA_ROT_LERP_ALPHA);
+
+			if (IsPlayerInCombat(playerItem))
+			{
+				short azimuthRot = Geometry::GetShortestAngle(actualAngle, (playerItem.Pose.Orientation.y + targetAngle) + Rotation.x);
+				short altitudeRot = Geometry::GetShortestAngle(actualElevation, targetElevation - Rotation.y);
+
+				actualAngle += azimuthRot * COMBAT_CAMERA_REBOUND_ALPHA;
+				actualElevation += altitudeRot * COMBAT_CAMERA_REBOUND_ALPHA;
+			}
+			else
+			{
+				actualAngle += Rotation.x;
+				actualElevation -= Rotation.y;
+			}
+		}
+		// Tank camera.
+		else
+		{
+			if (CanControlTankCamera(playerItem))
+			{
+				Rotation.Lerp(GetControlRotation(), CONTROLLED_CAMERA_ROT_LERP_ALPHA);
+
+				actualAngle += Rotation.x;
+				actualElevation -= Rotation.y;
+				IsControllingTankCamera = true;
+			}
+			else
+			{
+				actualAngle = playerItem.Pose.Orientation.y + targetAngle;
+				actualElevation += (targetElevation - actualElevation) * LOCKED_CAMERA_ALTITUDE_ROT_ALPHA;
+				Rotation.Lerp(EulerAngles::Identity, CONTROLLED_CAMERA_ROT_LERP_ALPHA);
+				IsControllingTankCamera = false;
+			}
+		}
 	}
+}
+
+void CameraInfo::UpdateListenerPosition(const ItemInfo& item)
+{
+	float persp = ((g_Configuration.ScreenWidth / 2) * phd_cos(Fov / 2)) / phd_sin(Fov / 2);
+	ListenerPosition = Position + (persp * Vector3(phd_sin(actualAngle), 0.0f, phd_cos(actualAngle)));
+}
+
+void CameraInfo::HandleFollow(const ItemInfo& playerItem, bool isCombatCamera)
+{
+	constexpr float MODERN_CAMERA_DIST_LERP_ALPHA   = 0.4f;
+	constexpr short STRAFE_CAMERA_FOV               = ANGLE(86.0f);
+	constexpr float STRAFE_CAMERA_FOV_LERP_ALPHA    = 0.5f;
+	constexpr float STRAFE_CAMERA_DIST_OFFSET_COEFF = 0.5f;
+	constexpr float STRAFE_CAMERA_ZOOM_BUFFER       = BLOCK(0.1f);
+	constexpr int   TANK_CAMERA_SWIVEL_STEP_COUNT   = 4;
+	constexpr float TANK_CAMERA_CLOSE_DIST_MIN      = BLOCK(0.75f);
+
+	const auto& player = GetLaraInfo(playerItem);
+
+	ClampAltitudeAngle(player.Control.WaterStatus == WaterStatus::Underwater);
+
+	// Move camera.
+	if (g_Configuration.IsUsingModernControls() || IsControllingTankCamera)
+	{
+		// Get LOS.
+		auto dir = -EulerAngles(actualElevation, actualAngle, 0).ToDirection();
+		float dist = Lerp(Distance, targetDistance, MODERN_CAMERA_DIST_LERP_ALPHA);
+		auto cameraLos = GetLos(LookAt, LookAtRoomNumber, dir, dist);
+
+		// Define ideal position.
+		auto idealPos = cameraLos.Position;
+		int idealRoomNumber = cameraLos.RoomNumber;
+
+		// Apply strafe camera effects.
+		if (IsPlayerStrafing(playerItem))
+		{
+			SetFov((short)Lerp(Fov, STRAFE_CAMERA_FOV, STRAFE_CAMERA_FOV_LERP_ALPHA));
+
+			// Apply zoom if using Look action to strafe.
+			if (TestStrafeZoom(playerItem))
+			{
+				float dist = std::max(Vector3::Distance(LookAt, idealPos) * STRAFE_CAMERA_DIST_OFFSET_COEFF, STRAFE_CAMERA_ZOOM_BUFFER);
+				idealPos = Geometry::TranslatePoint(LookAt, dir, dist);
+				idealRoomNumber = GetPointCollision(LookAt, LookAtRoomNumber, dir, dist).GetRoomNumber();
+			}
+		}
+		else
+		{
+			SetFov((short)Lerp(Fov, ANGLE(DEFAULT_FOV), STRAFE_CAMERA_FOV_LERP_ALPHA / 2));
+		}
+
+		float speedCoeff = (type != CameraType::Look) ? 0.2f : 1.0f;
+		UpdateMovement(playerItem, idealPos, idealRoomNumber, speed * speedCoeff);
+	}
+	else
+	{
+		auto farthestIdealPos = Position;
+		int farthestIdealRoomNumber = RoomNumber;
+		short farthestIdealAzimuthAngle = actualAngle;
+		float farthestDistSqr = FLT_MAX;
+
+		// Determine ideal position around player.
+		for (int i = 0; i < (TANK_CAMERA_SWIVEL_STEP_COUNT + 1); i++)
+		{
+			// Calcuate azimuth angle and direction of swivel step.
+			short azimuthAngle = (i == 0) ? actualAngle : (ANGLE(360.0f / TANK_CAMERA_SWIVEL_STEP_COUNT) * (i - 1));
+			auto dir = -EulerAngles(actualElevation, azimuthAngle, 0).ToDirection();
+
+			// Get camera LOS.
+			auto cameraLos = GetLos(LookAt, LookAtRoomNumber, dir, targetDistance);
+
+			// Has no LOS intersection.
+			if (!cameraLos.IsIntersected)
+			{
+				// Initial swivel is clear; set ideal.
+				if (i == 0)
+				{
+					farthestIdealPos = cameraLos.Position;
+					farthestIdealAzimuthAngle = azimuthAngle;
+					break;
+				}
+
+				// Track closest ideal.
+				float distSqr = Vector3::DistanceSquared(Position, cameraLos.Position);
+				if (distSqr < farthestDistSqr)
+				{
+					farthestIdealPos = cameraLos.Position;
+					farthestIdealAzimuthAngle = azimuthAngle;
+					farthestDistSqr = distSqr;
+				}
+			}
+			// Has LOS intersection and is initial swivel step.
+			else if (i == 0)
+			{
+				float distSqr = Vector3::DistanceSquared(LookAt, cameraLos.Position);
+				if (distSqr > SQUARE(TANK_CAMERA_CLOSE_DIST_MIN))
+				{
+					farthestIdealPos = cameraLos.Position;
+					farthestIdealAzimuthAngle = azimuthAngle;
+					farthestDistSqr = distSqr;
+					break;
+				}
+			}
+		}
+
+		actualAngle = farthestIdealAzimuthAngle;
+
+		// Snap position of fixed camera.
+		if (isCombatCamera && oldType == CameraType::Fixed)
+			speed = 1.0f;
+
+		UpdateMovement(playerItem, farthestIdealPos, farthestIdealRoomNumber, speed);
+	}
+}
+
+void CameraInfo::RumbleFromBounce()
+{
+	Rumble(std::clamp(abs(bounce) / 70.0f, 0.0f, 0.8f), 0.2f);
+}
+
+void CameraInfo::LookCamera(const ItemInfo& playerItem, const CollisionInfo& coll)
+{
+	constexpr float DIST_COEFF = 0.5f;
+
+	const auto& player = GetLaraInfo(playerItem);
+
+	// Determine base position.
+	bool isInSwamp = TestEnvironment(ENV_FLAG_SWAMP, playerItem.RoomNumber);
+	auto basePos = Vector3(
+		playerItem.Pose.Position.x,
+		isInSwamp ? g_Level.Rooms[playerItem.RoomNumber].TopHeight : playerItem.Pose.Position.y,
+		playerItem.Pose.Position.z);
+
+	// Get camera LOS.
+	auto orient = player.Control.Look.Orientation + EulerAngles(playerItem.Pose.Orientation.x, playerItem.Pose.Orientation.y + targetAngle, 0);
+	orient.x = std::clamp(orient.x, LOOKCAM_ORIENT_CONSTRAINT.first.x, LOOKCAM_ORIENT_CONSTRAINT.second.x);
+	auto cameraLos = GetLos(LookAt, LookAtRoomNumber, -orient.ToDirection(), targetDistance * DIST_COEFF);
+
+	// Update camera.
+	auto lookAtTarget = basePos + GetPlayerOffset(playerItem, coll);
+	LookAt += (lookAtTarget - LookAt) * (1.0f / speed);
+	UpdateMovement(playerItem, cameraLos.Position, cameraLos.RoomNumber, speed);
+}
+
+bool CameraInfo::IsLocked() const
+{
+	// Check if break condition is met.
+	if (type != CameraType::Look && type != CameraType::Combat)
+		return true;
+
+	// Check if there's an active fixed camera.
+	if (number == NO_VALUE)
+		return true;
+
+	// Check if locked bit is set for a given fixed camera.
+	if (!(g_Level.Cameras[number].Flags & (int)LevelCameraFlags::Locked))
+		return false;
+
+	return true;
+}
+
+bool CameraInfo::CanControlTankCamera(const ItemInfo& playerItem) const
+{
+	if (!g_Configuration.EnableTankCameraControl)
+		return false;
+
+	const auto& player = GetLaraInfo(playerItem);
+	if (player.Control.IsLocked)
+		return false;
+
+	bool isUsingMouse = (GetCameraAxis() == Vector2::Zero);
+	const auto& axis = isUsingMouse ? GetMouseAxis() : GetCameraAxis();
+
+	// Look input action resets camera.
+	if (IsReleased(In::Look))
+		return false;
+
+	// Test if player is stationary.
+	if (!IsWakeActionHeld() && (axis != Vector2::Zero || g_Camera.IsControllingTankCamera))
+		return true;
+
+	// Test if player is moving and camera or mouse axis isn't zero.
+	if (IsWakeActionHeld() && axis != Vector2::Zero)
+		return true;
+
+	return false;
+}
+
+bool CameraInfo::TestStrafeZoom(const ItemInfo& playerItem) const
+{
+	const auto& player = GetLaraInfo(playerItem);
+
+	if (!g_Configuration.IsUsingModernControls())
+		return false;
+
+	if (player.Control.HandStatus == HandStatus::WeaponDraw ||
+		player.Control.HandStatus == HandStatus::WeaponReady)
+	{
+		return false;
+	}
+
+	if (IsHeld(In::Look))
+		return true;
+
+	return false;
+}
+
+bool CameraInfo::TestCollidableMoveable(const ItemInfo& mov) const
+{
+	// 1) Check if item is player or bridge.
+	if (mov.IsLara())
+		return false;
+
+	// 2) Test distance.
+	float distSqr = Vector3i::DistanceSquared(mov.Pose.Position, Position);
+	if (distSqr >= SQUARE(CAMERA_OBJECT_COLL_DIST_THRESHOLD))
+		return false;
+
+	// 3) Check object collidability.
+	const auto& object = Objects[mov.ObjectNumber];
+	if (!mov.Collidable/* || !object.usingDrawAnimatingItem*/)
+		return false;
+
+	// 4) Check object attributes.
+	if (object.intelligent || object.isPickup || object.isPuzzleHole || object.collision == nullptr)
+		return false;
+
+	// 5) Test if OBB is collidable.
+	if (!TestCollidableObb(mov.GetObb()))
+		return false;
+
+	return true;
+}
+
+bool CameraInfo::TestCollidableStatic(const StaticMesh& staticObj) const
+{
+	// 1) Test distance.
+	float distSqr = Vector3i::DistanceSquared(Position, staticObj.Pose.Position);
+	if (distSqr >= SQUARE(CAMERA_OBJECT_COLL_DIST_THRESHOLD))
+		return false;
+
+	// 2) Test if OBB is collidable.
+	if (!TestCollidableObb(staticObj.GetObb()))
+		return false;
+
+	return true;
+}
+
+bool CameraInfo::TestCollidableObb(const BoundingOrientedBox& obb) const
+{
+	// Test if any 2 OBB extents are below threshold.
+	if ((abs(obb.Extents.x) < CAMERA_OBJECT_COLL_EXTENT_THRESHOLD && abs(obb.Extents.y) < CAMERA_OBJECT_COLL_EXTENT_THRESHOLD) ||
+		(abs(obb.Extents.x) < CAMERA_OBJECT_COLL_EXTENT_THRESHOLD && abs(obb.Extents.z) < CAMERA_OBJECT_COLL_EXTENT_THRESHOLD) ||
+		(abs(obb.Extents.y) < CAMERA_OBJECT_COLL_EXTENT_THRESHOLD && abs(obb.Extents.z) < CAMERA_OBJECT_COLL_EXTENT_THRESHOLD))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void CameraInfo::UpdateAzimuthAngle(const ItemInfo& item)
+{
+	constexpr auto BASE_VEL					= BLOCK(0.1f);
+	constexpr auto BASE_ANGLE				= ANGLE(90.0f);
+	constexpr auto AUTO_ROT_DELTA_ANGLE_MAX = BASE_ANGLE * 1.5f;
+	constexpr auto AZIMUTH_ANGLE_LERP_ALPHA = 0.075f;
+
+	if (!g_Configuration.IsUsingModernControls() || IsPlayerStrafing(item))
+		return;
+
+	float vel = Vector2(item.Animation.Velocity.x, item.Animation.Velocity.z).Length();
+	if (GetMoveAxis() == Vector2::Zero || vel == 0.0f)
+		return;
+
+	float alpha = std::clamp(vel / BASE_VEL, 0.0f, 1.0f);
+
+	short deltaAngle = Geometry::GetShortestAngle(actualAngle, GetPlayerHeadingAngleY(item));
+	if (abs(deltaAngle) <= BASE_ANGLE)
+	{
+		actualAngle += deltaAngle * (AZIMUTH_ANGLE_LERP_ALPHA * alpha);
+	}
+	else if (abs(deltaAngle) <= AUTO_ROT_DELTA_ANGLE_MAX)
+	{
+		int sign = std::copysign(1, deltaAngle);
+		actualAngle += (BASE_ANGLE * (AZIMUTH_ANGLE_LERP_ALPHA * alpha)) * sign;
+	}
+}
+
+void CameraInfo::ClampAltitudeAngle(bool isUnderwater)
+{
+	constexpr auto ANGLE_CONSTRAINT = std::pair<short, short>(ANGLE(-80.0f), ANGLE(70.0f));
+
+	if (actualElevation > ANGLE_CONSTRAINT.second)
+	{
+		actualElevation = ANGLE_CONSTRAINT.second;
+	}
+	else if (actualElevation < ANGLE_CONSTRAINT.first)
+	{
+		actualElevation = ANGLE_CONSTRAINT.first;
+	}
+}
+
+void UpdatePlayerRefCameraOrient(ItemInfo& item)
+{
+	auto& player = GetLaraInfo(item);
+
+	float vel = Vector2(item.Animation.Velocity.x, item.Animation.Velocity.z).Length();
+
+	bool isSpotCameraSwitch = (UseSpotCam != PrevUseSpotCam); // TODO: Fix this.
+	bool isStopped = (((GetMoveAxis() == Vector2::Zero && !IsHeld(In::StepLeft) && !IsHeld(In::StepRight)) || vel == 0.0f) &&
+					  TestState(item.Animation.ActiveState, PLAYER_IDLE_STATE_IDS));
+
+	// Set lock.
+	if (isSpotCameraSwitch && !isStopped)
+	{
+		player.Control.LockRefCameraOrient = true;
+	}
+	else if (isStopped)
+	{
+		player.Control.LockRefCameraOrient = false;
+	}
+
+	// Update orientation.
+	if (!player.Control.LockRefCameraOrient)
+		player.Control.RefCameraOrient = EulerAngles(g_Camera.actualElevation, g_Camera.actualAngle, 0);
+}
+
+void HandleLookAt(const CameraInfo& camera, short roll)
+{
+	float farView = BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView());
+	g_Renderer.UpdateCameraMatrices(camera, farView);
+}
+
+void SetFov(short fov, bool store)
+{
+	if (store)
+		g_Camera.PrevFov = fov;
+
+	g_Camera.Fov = fov;
 }
 
 void InitializeCamera()
 {
-	Camera.shift = LaraItem->Pose.Position.y - BLOCK(1);
+	g_Camera.shift = LaraItem->Pose.Position.y - BLOCK(1);
 
-	LastTarget = GameVector(
+	g_Camera.PrevTarget = GameVector(
 		LaraItem->Pose.Position.x,
-		Camera.shift,
+		g_Camera.shift,
 		LaraItem->Pose.Position.z,
 		LaraItem->RoomNumber);
 
-	Camera.target = GameVector(
-		LastTarget.x,
-		Camera.shift,
-		LastTarget.z,
-		LaraItem->RoomNumber);
+	g_Camera.LookAt = Vector3(g_Camera.PrevTarget.x, g_Camera.shift, g_Camera.PrevTarget.z);
+	g_Camera.LookAtRoomNumber = LaraItem->RoomNumber;
 
-	Camera.pos = GameVector(
-		LastTarget.x,
-		Camera.shift,
-		LastTarget.z - 100,
-		LaraItem->RoomNumber);
+	g_Camera.Position = Vector3(g_Camera.PrevTarget.x, g_Camera.shift, g_Camera.PrevTarget.z - 100);
+	g_Camera.RoomNumber = LaraItem->RoomNumber;
 
-	Camera.targetDistance = BLOCK(1.5f);
-	Camera.item = nullptr;
-	Camera.type = CameraType::Chase;
-	Camera.speed = 1;
-	Camera.flags = CF_NONE;
-	Camera.bounce = 0;
-	Camera.number = NO_VALUE;
-	Camera.fixedCamera = false;
-	Camera.DisableInterpolation = true;
+	g_Camera.targetDistance = BLOCK(1.5f);
+	g_Camera.Radius = BLOCK(0.05f);
+	g_Camera.item = nullptr;
+	g_Camera.numberFrames = 1;
+	g_Camera.type = CameraType::Chase;
+	g_Camera.speed = 1.0f;
+	g_Camera.flags = CameraFlag::None;
+	g_Camera.bounce = 0;
+	g_Camera.number = NO_VALUE;
+	g_Camera.fixedCamera = false;
 
-	AlterFOV(ANGLE(DEFAULT_FOV));
+	SetFov(ANGLE(DEFAULT_FOV));
 
-	UseForcedFixedCamera = false;
-	CalculateCamera(LaraCollision);
+	g_Camera.UseForcedFixedCamera = false;
+	CalculateCamera(*LaraItem, LaraCollision);
 
 	// Fade in screen.
 	SetScreenFadeIn(FADE_SCREEN_SPEED);
 }
 
-void MoveCamera(GameVector* ideal, int speed, bool force)
+void ObjCamera(ItemInfo* item, int boneID, ItemInfo* targetItem, int targetBoneID, bool cond)
 {
-	if (Lara.Control.Look.IsUsingBinoculars)
-		speed = 1;
+	// item and targetItem remain same object until it becomes possible to extend targetItem to another object.
+	// Activates code below -> void CalculateCamera().
+	g_Camera.ItemCamera.ItemCameraOn = cond;
 
-	if (OldCam.pos.Orientation != LaraItem->Pose.Orientation ||
-		OldCam.pos2.Orientation.x != Lara.ExtraHeadRot.x ||
-		OldCam.pos2.Orientation.y != Lara.ExtraHeadRot.y ||
-		OldCam.pos2.Position.x != Lara.ExtraTorsoRot.x ||
-		OldCam.pos2.Position.y != Lara.ExtraTorsoRot.y ||
-		OldCam.pos.Position != LaraItem->Pose.Position ||
-		OldCam.ActiveState != LaraItem->Animation.ActiveState ||
-		OldCam.TargetState != LaraItem->Animation.TargetState ||
-		OldCam.targetDistance != Camera.targetDistance ||
-		OldCam.targetElevation != Camera.targetElevation ||
-		OldCam.actualElevation != Camera.actualElevation ||
-		OldCam.actualAngle != Camera.actualAngle ||
-		OldCam.target.x != Camera.target.x ||
-		OldCam.target.y != Camera.target.y ||
-		OldCam.target.z != Camera.target.z ||
-		Camera.oldType != Camera.type ||
-		Lara.Control.Look.IsUsingBinoculars ||
-		force)
-	{
-		OldCam.pos.Orientation = LaraItem->Pose.Orientation;
-		OldCam.pos2.Orientation.x = Lara.ExtraHeadRot.x;
-		OldCam.pos2.Orientation.y = Lara.ExtraHeadRot.y;
-		OldCam.pos2.Position.x = Lara.ExtraTorsoRot.x;
-		OldCam.pos2.Position.y = Lara.ExtraTorsoRot.y;
-		OldCam.pos.Position = LaraItem->Pose.Position;
-		OldCam.ActiveState = LaraItem->Animation.ActiveState;
-		OldCam.TargetState = LaraItem->Animation.TargetState;
-		OldCam.targetDistance = Camera.targetDistance;
-		OldCam.targetElevation = Camera.targetElevation;
-		OldCam.actualElevation = Camera.actualElevation;
-		OldCam.actualAngle = Camera.actualAngle;
-		OldCam.target.x = Camera.target.x;
-		OldCam.target.y = Camera.target.y;
-		OldCam.target.z = Camera.target.z;
-		LastIdeal.x = ideal->x;
-		LastIdeal.y = ideal->y;
-		LastIdeal.z = ideal->z;
-		LastIdeal.RoomNumber = ideal->RoomNumber;
-	}
-	else
-	{
-		ideal->x = LastIdeal.x;
-		ideal->y = LastIdeal.y;
-		ideal->z = LastIdeal.z;
-		ideal->RoomNumber = LastIdeal.RoomNumber;
-	}
+	g_Camera.UpdateSphere(*LaraItem);
 
-	Camera.pos.x += (ideal->x - Camera.pos.x) / speed;
-	Camera.pos.y += (ideal->y - Camera.pos.y) / speed;
-	Camera.pos.z += (ideal->z - Camera.pos.z) / speed;
-	Camera.pos.RoomNumber = ideal->RoomNumber;
+	// Get position of bone 0.	
+	auto pos = GetJointPosition(item, 0, Vector3i::Zero);
+	auto target = GameVector(pos, item->RoomNumber);
 
-	CalculateBounce(false);
+	g_Camera.fixedCamera = true;
 
-	int y = Camera.pos.y;
-	if (TestEnvironment(ENV_FLAG_SWAMP, Camera.pos.RoomNumber))
-		y = g_Level.Rooms[Camera.pos.RoomNumber].Position.y - CLICK(1);
-
-	auto pointColl = GetPointCollision(Vector3i(Camera.pos.x, y, Camera.pos.z), Camera.pos.RoomNumber);
-	if (y < pointColl.GetCeilingHeight() ||
-		y > pointColl.GetFloorHeight())
-	{
-		LOSAndReturnTarget(&Camera.target, &Camera.pos, 0);
-
-		if (abs(Camera.pos.x - ideal->x) < BLOCK(0.5f) &&
-			abs(Camera.pos.y - ideal->y) < BLOCK(0.5f) &&
-			abs(Camera.pos.z - ideal->z) < BLOCK(0.5f))
-		{
-			auto origin = *ideal;
-			auto target = Camera.pos;
-			if (!LOSAndReturnTarget(&origin, &target, 0) &&
-				++CameraSnaps >= 8)
-			{
-				Camera.pos = *ideal;
-				CameraSnaps = 0;
-			}
-		}
-	}
-
-	pointColl = GetPointCollision(Camera.pos.ToVector3i(), Camera.pos.RoomNumber);
-
-	int buffer = CLICK(1) - 1;
-	if ((Camera.pos.y - buffer) < pointColl.GetCeilingHeight() &&
-		(Camera.pos.y + buffer) > pointColl.GetFloorHeight() &&
-		pointColl.GetCeilingHeight() < pointColl.GetFloorHeight() &&
-		pointColl.GetCeilingHeight() != NO_HEIGHT &&
-		pointColl.GetFloorHeight() != NO_HEIGHT)
-	{
-		Camera.pos.y = (pointColl.GetFloorHeight() + pointColl.GetCeilingHeight()) / 2;
-	}
-	else if ((Camera.pos.y + buffer) > pointColl.GetFloorHeight() &&
-		pointColl.GetCeilingHeight() < pointColl.GetFloorHeight() &&
-		pointColl.GetCeilingHeight() != NO_HEIGHT &&
-		pointColl.GetFloorHeight() != NO_HEIGHT)
-	{
-		Camera.pos.y = pointColl.GetFloorHeight() - buffer;
-	}
-	else if ((Camera.pos.y - buffer) < pointColl.GetCeilingHeight() &&
-		pointColl.GetCeilingHeight() < pointColl.GetFloorHeight() &&
-		pointColl.GetCeilingHeight() != NO_HEIGHT &&
-		pointColl.GetFloorHeight() != NO_HEIGHT)
-	{
-		Camera.pos.y = pointColl.GetCeilingHeight() + buffer;
-	}
-	else if (pointColl.GetCeilingHeight() >= pointColl.GetFloorHeight() ||
-		pointColl.GetFloorHeight() == NO_HEIGHT ||
-		pointColl.GetCeilingHeight() == NO_HEIGHT)
-	{
-		Camera.pos = *ideal;
-	}
-
-	ItemsCollideCamera();
-
-	Camera.pos.RoomNumber = GetPointCollision(Camera.pos.ToVector3i(), Camera.pos.RoomNumber).GetRoomNumber();
-	LookAt(&Camera, GetCurrentRoll());
-	UpdateMikePos(*LaraItem);
-	Camera.oldType = Camera.type;
-}
-
-void ObjCamera(ItemInfo* camSlotId, int camMeshId, ItemInfo* targetItem, int targetMeshId, bool cond)
-{
-	if (ItemCameraOn != cond)
-		Camera.DisableInterpolation = true;
-
-	//camSlotId and targetItem stay the same object until I know how to expand targetItem to another object.
-	//activates code below ->  void CalculateCamera().
-	ItemCameraOn = cond;
-
-	UpdateCameraElevation();
-
-	//get mesh 0 coordinates.	
-	auto pos = GetJointPosition(camSlotId, camMeshId, Vector3i::Zero);
-	auto dest = Vector3(pos.x, pos.y, pos.z);
-
-	GameVector from = GameVector(dest, camSlotId->RoomNumber);
-	Camera.fixedCamera = true;
-
-	MoveObjCamera(&from, camSlotId, camMeshId, targetItem, targetMeshId);
-	Camera.timer = NO_VALUE;
-	Camera.speed = 1;
+	MoveObjCamera(&target, item, boneID, targetItem, targetBoneID);
+	g_Camera.timer = NO_VALUE;
 }
 
 void ClearObjCamera()
 {
-	ItemCameraOn = false;
+	g_Camera.ItemCamera.ItemCameraOn = false;
 }
 
-void MoveObjCamera(GameVector* ideal, ItemInfo* camSlotId, int camMeshId, ItemInfo* targetItem, int targetMeshId)
+void MoveObjCamera(GameVector* ideal, ItemInfo* item, int boneID, ItemInfo* targetItem, int targetBoneID)
 {
-	int	speed = 1;
-	//Get mesh1 to attach camera to
-	//Vector3i pos = Vector3i::Zero;
-	auto pos = GetJointPosition(camSlotId, camMeshId, Vector3i::Zero);
-	//Get mesh2 to attach target to
-	//Vector3i pos2 = Vector3i::Zero;
-	auto pos2 = GetJointPosition(targetItem, targetMeshId, Vector3i::Zero);
+	constexpr float ANGLE_THRESHOLD_DEG = 100.0f;
 
-	if (OldCam.pos.Position != pos ||
-		OldCam.targetDistance  != Camera.targetDistance  ||
-		OldCam.targetElevation != Camera.targetElevation ||
-		OldCam.actualElevation != Camera.actualElevation ||
-		OldCam.actualAngle != Camera.actualAngle ||
-		OldCam.target != Camera.target.ToVector3i() ||
-		LastTarget.ToVector3i() != pos2 ||
-		Camera.oldType != Camera.type ||
+	auto idealPos = GetJointPosition(item, boneID, Vector3i::Zero).ToVector3();
+	auto lookAt = GetJointPosition(targetItem, targetBoneID, Vector3i::Zero).ToVector3();
+
+	if (g_Camera.PrevCamera.pos.Position != idealPos ||
+		g_Camera.PrevCamera.targetDistance != g_Camera.targetDistance  ||
+		g_Camera.PrevCamera.targetElevation != g_Camera.targetElevation ||
+		g_Camera.PrevCamera.actualElevation != g_Camera.actualElevation ||
+		g_Camera.PrevCamera.actualAngle != g_Camera.actualAngle ||
+		g_Camera.PrevCamera.target != g_Camera.LookAt ||
+		g_Camera.oldType != g_Camera.type ||
 		Lara.Control.Look.IsUsingBinoculars)
 	{
-		OldCam.pos.Position = pos;
-		OldCam.targetDistance = Camera.targetDistance;
-		OldCam.targetElevation = Camera.targetElevation;
-		OldCam.actualElevation = Camera.actualElevation;
-		OldCam.actualAngle = Camera.actualAngle;
-		OldCam.target = Camera.target.ToVector3i();
-		LastIdeal = pos;
-		LastIdeal.RoomNumber = ideal->RoomNumber;
-		LastTarget = pos2;
+		g_Camera.PrevCamera.pos.Position = idealPos;
+		g_Camera.PrevCamera.targetDistance = g_Camera.targetDistance;
+		g_Camera.PrevCamera.targetElevation = g_Camera.targetElevation;
+		g_Camera.PrevCamera.actualElevation = g_Camera.actualElevation;
+		g_Camera.PrevCamera.actualAngle = g_Camera.actualAngle;
+		g_Camera.PrevCamera.target = g_Camera.LookAt;
+		g_Camera.PrevIdeal = idealPos;
+		g_Camera.PrevIdealRoomNumber = ideal->RoomNumber;
+		g_Camera.PrevTarget = Vector3i(lookAt);
 	}
 	else
 	{
-		pos  = LastIdeal.ToVector3i();
-		pos2 = LastTarget.ToVector3i();
-		ideal->RoomNumber = LastIdeal.RoomNumber;
+		idealPos  = g_Camera.PrevIdeal;
+		lookAt = g_Camera.PrevTarget.ToVector3();
+		ideal->RoomNumber = g_Camera.PrevIdealRoomNumber;
 	}
 
-	Camera.pos += (ideal->ToVector3i() - Camera.pos.ToVector3i()) / speed;
-	Camera.pos.RoomNumber = GetPointCollision(Camera.pos.ToVector3i(), Camera.pos.RoomNumber).GetRoomNumber();
-	LookAt(&Camera, GetCurrentRoll());
+	float speedAlpha = 1.0f;
 
-	auto angle = Camera.target.ToVector3i() - Camera.pos.ToVector3i();
-	auto position = Vector3i(Camera.target.ToVector3i() - Camera.pos.ToVector3i());
+	g_Camera.Position = Vector3::Lerp(g_Camera.Position, ideal->ToVector3(), speedAlpha);
+	g_Camera.RoomNumber = GetPointCollision(g_Camera.Position, g_Camera.RoomNumber).GetRoomNumber();
+	HandleLookAt(g_Camera, 0);
 
-	// write last frame camera angle to LastAngle to compare if next frame camera angle has a bigger step than 100.
-	// To make camera movement smoother a speed of 2 is used.
-	// While for big camera angle steps (cuts) -
-	// the speed is set to 1 to make the cut immediatelly.
-	constexpr int angleThresholdDegrees = 100;
+	auto angle = g_Camera.LookAt - g_Camera.Position;
+	auto position = Vector3i(g_Camera.LookAt - g_Camera.Position);
 
-	if (LastTarget.x - Camera.target.x > angleThresholdDegrees ||
-		LastTarget.y - Camera.target.y > angleThresholdDegrees ||
-		LastTarget.z - Camera.target.z > angleThresholdDegrees)
+	// Store previous frame's camera angle to LastAngle to compare if next frame camera angle has bigger step than 100.
+	// To move camera smoothely, speed alpha 0.5 is set.
+	// To cut immediately, speed alpha 1 is set.
+
+	if (g_Camera.PrevTarget.x - g_Camera.LookAt.x > ANGLE_THRESHOLD_DEG ||
+		g_Camera.PrevTarget.y - g_Camera.LookAt.y > ANGLE_THRESHOLD_DEG ||
+		g_Camera.PrevTarget.z - g_Camera.LookAt.z > ANGLE_THRESHOLD_DEG)
 	{
-		speed = 1;
+		speedAlpha = 1.0f;
 	}
 	else
 	{
-		speed = 2;
+		speedAlpha = 0.5f;
 	}
 
-	// Actual movement of the target.
-	Camera.target.x += (pos2.x - Camera.target.x) / speed;
-	Camera.target.y += (pos2.y - Camera.target.y) / speed;
-	Camera.target.z += (pos2.z - Camera.target.z) / speed;
-}
+	// Move lookAt.
+	g_Camera.LookAt = Vector3::Lerp(g_Camera.LookAt, lookAt, speedAlpha);
 
-void RefreshFixedCamera(short camNumber)
-{
-	if (Camera.type != CameraType::Fixed && Camera.type != CameraType::Heavy)
-		return;
-
-	auto& camera = g_Level.Cameras[camNumber];
-
-	auto origin = GameVector(camera.Position, camera.RoomNumber);
-	int moveSpeed = camera.Speed * 8 + 1;
-
-	if (moveSpeed == 1)
-		Camera.DisableInterpolation = true;
-
-	MoveCamera(&origin, moveSpeed, true);
-}
-
-void ChaseCamera(ItemInfo* item)
-{
-	static const unsigned int maxSwivelSteps = 5;
-
-	if (!Camera.targetElevation)
-		Camera.targetElevation = -ANGLE(10.0f);
-
-	Camera.targetElevation += item->Pose.Orientation.x;
-	UpdateCameraElevation();
-
-	// Clamp X orientation.
-	if (Camera.actualElevation > ANGLE(85.0f))
-		Camera.actualElevation = ANGLE(85.0f);
-	else if (Camera.actualElevation < ANGLE(-85.0f))
-		Camera.actualElevation = ANGLE(-85.0f);
-
-	// Force item position after exiting look mode to avoid weird movements near walls.
-	if (Camera.oldType == CameraType::Look)
+	if (g_Camera.ItemCamera.LastAngle != position)
 	{
-		Camera.target.x = item->Pose.Position.x;
-		Camera.target.z = item->Pose.Position.z;
+		g_Camera.ItemCamera.LastAngle = Vector3i(
+			g_Camera.ItemCamera.LastAngle.x = angle.x,
+			g_Camera.ItemCamera.LastAngle.y = angle.y,
+			g_Camera.ItemCamera.LastAngle.z = angle.z);
 	}
+}
 
-	int distance = Camera.targetDistance * phd_cos(Camera.actualElevation);
+void RefreshFixedCamera(int cameraID)
+{
+	const auto& camera = g_Level.Cameras[cameraID];
 
-	auto pointColl = GetPointCollision(Vector3i(Camera.target.x, Camera.target.y + CLICK(1), Camera.target.z), Camera.target.RoomNumber);
+	int speed = (camera.Speed * 8) + 1.0f;
+	g_Camera.UpdateMovement(*LaraItem, camera.Position.ToVector3(), camera.RoomNumber, speed);
+}
+
+void ChaseCamera(const ItemInfo& playerItem)
+{
+	const auto& player = GetLaraInfo(playerItem);
+
+	if (g_Camera.targetElevation == 0)
+		g_Camera.targetElevation = ANGLE(-10.0f);
+
+	g_Camera.targetElevation += playerItem.Pose.Orientation.x;
+	g_Camera.UpdateSphere(playerItem);
+
+	auto pointColl = GetPointCollision(g_Camera.LookAt, g_Camera.LookAtRoomNumber, 0, 0, CLICK(1));
 
 	if (TestEnvironment(ENV_FLAG_SWAMP, pointColl.GetRoomNumber()))
-		Camera.target.y = g_Level.Rooms[pointColl.GetRoomNumber()].TopHeight - CLICK(1);
+		g_Camera.LookAt.y = g_Level.Rooms[pointColl.GetRoomNumber()].TopHeight - CLICK(1);
 
-	int y = Camera.target.y;
-	pointColl = GetPointCollision(Vector3i(Camera.target.x, y, Camera.target.z), Camera.target.RoomNumber);
-	if (((y < pointColl.GetCeilingHeight() || pointColl.GetFloorHeight() < y) || pointColl.GetFloorHeight() <= pointColl.GetCeilingHeight()) ||
+	int vPos = g_Camera.LookAt.y;
+	pointColl = GetPointCollision(Vector3i(g_Camera.LookAt.x, vPos, g_Camera.LookAt.z), g_Camera.LookAtRoomNumber);
+	if (((vPos < pointColl.GetCeilingHeight() || pointColl.GetFloorHeight() < vPos) || pointColl.GetFloorHeight() <= pointColl.GetCeilingHeight()) ||
 		(pointColl.GetFloorHeight() == NO_HEIGHT || pointColl.GetCeilingHeight() == NO_HEIGHT))
 	{
-		TargetSnaps++;
-		Camera.target = LastTarget;
+		g_Camera.TargetSnaps++;
+		g_Camera.LookAt = g_Camera.PrevTarget.ToVector3();
+		g_Camera.LookAtRoomNumber = g_Camera.PrevTarget.RoomNumber;
 	}
 	else
 	{
-		TargetSnaps = 0;
+		g_Camera.TargetSnaps = 0;
 	}
 
-	for (int i = 0; i < maxSwivelSteps; i++)
-		Ideals[i].y = Camera.target.y + (Camera.targetDistance * phd_sin(Camera.actualElevation));
-
-	// Determine best player viewing angle.
-	float farthestDist = FLT_MAX;
-	int indexOfFarthestIdeal = 0;
-	GameVector temp[2];
-	for (int i = 0; i < maxSwivelSteps; i++)
-	{
-		// Incrementally swivel camera position.
-		short angle = (i == 0) ? Camera.actualAngle : ((i - 1) * ANGLE(90.0f));
-
-		// Record ideal position at default distance for given swivel.
-		Ideals[i].x = Camera.target.x - (distance * phd_sin(angle));
-		Ideals[i].z = Camera.target.z - (distance * phd_cos(angle));
-		Ideals[i].RoomNumber = Camera.target.RoomNumber;
-
-		// Assess LOS.
-		if (LOSAndReturnTarget(&Camera.target, &Ideals[i], 200))
-		{
-			temp[0] = Ideals[i];
-			temp[1] = Camera.pos;
-
-			if (i == 0 || LOSAndReturnTarget(&temp[0], &temp[1], 0))
-			{
-				if (i == 0)
-				{
-					indexOfFarthestIdeal = 0;
-					break;
-				}
-
-				float dx = (Camera.pos.x - Ideals[i].x) * (Camera.pos.x - Ideals[i].x);
-				dx += (Camera.pos.z - Ideals[i].z) * (Camera.pos.z - Ideals[i].z);
-				if (dx < farthestDist)
-				{
-					farthestDist = dx;
-					indexOfFarthestIdeal = i;
-				}
-			}
-		}
-		else if (i == 0)
-		{
-			temp[0] = Ideals[i];
-			temp[1] = Camera.pos;
-
-			if (i == 0 || LOSAndReturnTarget(&temp[0], &temp[1], 0))
-			{
-				float dx = (Camera.target.x - Ideals[i].x) * (Camera.target.x - Ideals[i].x);
-				float dz = (Camera.target.z - Ideals[i].z) * (Camera.target.z - Ideals[i].z);
-
-				if ((dx + dz) > SQUARE(BLOCK(0.75f)))
-				{
-					indexOfFarthestIdeal = 0;
-					break;
-				}
-			}
-		}
-	}
-
-	auto ideal = Ideals[indexOfFarthestIdeal];
-	CameraCollisionBounds(&ideal, CLICK(1.5f), 1);
-	MoveCamera(&ideal, Camera.speed);
+	g_Camera.HandleFollow(playerItem, false);
 }
 
-void UpdateCameraElevation()
+void CombatCamera(const ItemInfo& playerItem)
 {
-	DoThumbstickCamera();
+	constexpr float BUFFER = CLICK(0.25f);
 
-	if (Camera.laraNode != NO_VALUE)
+	const auto& player = GetLaraInfo(playerItem);
+
+	g_Camera.LookAt.x = playerItem.Pose.Position.x;
+	g_Camera.LookAt.z = playerItem.Pose.Position.z;
+
+	if (player.TargetEntity != nullptr)
 	{
-		auto pos = GetJointPosition(LaraItem, Camera.laraNode, Vector3i::Zero);
-		auto pos1 = GetJointPosition(LaraItem, Camera.laraNode, Vector3i(0, -CLICK(1), BLOCK(2)));
-		pos = pos1 - pos;
-		Camera.actualAngle = Camera.targetAngle + phd_atan(pos.z, pos.x);
-	}
-	else
-		Camera.actualAngle = LaraItem->Pose.Orientation.y + Camera.targetAngle;
-
-	Camera.actualElevation += (Camera.targetElevation - Camera.actualElevation) / 8;
-}
-
-void CombatCamera(ItemInfo* item)
-{
-	static const unsigned int maxSwivelSteps = 5;
-
-	auto& player = GetLaraInfo(*item);
-
-	Camera.target.x = item->Pose.Position.x;
-	Camera.target.z = item->Pose.Position.z;
-
-	if (player.TargetEntity)
-	{
-		Camera.targetAngle = player.TargetArmOrient.y;
-		Camera.targetElevation = player.TargetArmOrient.x + item->Pose.Orientation.x;
+		g_Camera.targetAngle = player.TargetArmOrient.y;
+		g_Camera.targetElevation = player.TargetArmOrient.x + playerItem.Pose.Orientation.x;
 	}
 	else
 	{
-		Camera.targetAngle = player.ExtraHeadRot.y + player.ExtraTorsoRot.y;
-		Camera.targetElevation = player.ExtraHeadRot.x + player.ExtraTorsoRot.x + item->Pose.Orientation.x - ANGLE(15.0f);
+		g_Camera.targetAngle = player.ExtraHeadRot.y + player.ExtraTorsoRot.y;
+		g_Camera.targetElevation = player.ExtraHeadRot.x + player.ExtraTorsoRot.x + playerItem.Pose.Orientation.x - ANGLE(15.0f);
 	}
 
-	auto pointColl = GetPointCollision(Vector3i(Camera.target.x, Camera.target.y + CLICK(1), Camera.target.z), Camera.target.RoomNumber);
+	auto pointColl = GetPointCollision(g_Camera.LookAt, g_Camera.LookAtRoomNumber, 0, 0, CLICK(1));
 	if (TestEnvironment(ENV_FLAG_SWAMP, pointColl.GetRoomNumber()))
-		Camera.target.y = g_Level.Rooms[pointColl.GetRoomNumber()].TopHeight - CLICK(1);
+		g_Camera.LookAt.y = g_Level.Rooms[pointColl.GetRoomNumber()].Position.y - CLICK(1);
 
-	pointColl = GetPointCollision(Camera.target.ToVector3i(), Camera.target.RoomNumber);
-	Camera.target.RoomNumber = pointColl.GetRoomNumber();
+	pointColl = GetPointCollision(g_Camera.LookAt, g_Camera.LookAtRoomNumber);
+	g_Camera.LookAtRoomNumber = pointColl.GetRoomNumber();
 
-	int buffer = CLICK(0.25f);
-	if ((pointColl.GetCeilingHeight() + buffer) > (pointColl.GetFloorHeight() - buffer) &&
+	if ((pointColl.GetCeilingHeight() + BUFFER) > (pointColl.GetFloorHeight() - BUFFER) &&
 		pointColl.GetFloorHeight() != NO_HEIGHT &&
 		pointColl.GetCeilingHeight() != NO_HEIGHT)
 	{
-		Camera.target.y = (pointColl.GetCeilingHeight() + pointColl.GetFloorHeight()) / 2;
-		Camera.targetElevation = 0;
+		g_Camera.LookAt.y = (pointColl.GetCeilingHeight() + pointColl.GetFloorHeight()) / 2;
+		g_Camera.targetElevation = 0;
 	}
-	else if (Camera.target.y > (pointColl.GetFloorHeight() - buffer) &&
+	else if (g_Camera.LookAt.y > (pointColl.GetFloorHeight() - BUFFER) &&
 		pointColl.GetFloorHeight() != NO_HEIGHT)
 	{
-		Camera.target.y = pointColl.GetFloorHeight() - buffer;
-		Camera.targetElevation = 0;
+		g_Camera.LookAt.y = pointColl.GetFloorHeight() - BUFFER;
+		g_Camera.targetElevation = 0;
 	}
-	else if (Camera.target.y < (pointColl.GetCeilingHeight() + buffer) &&
+	else if (g_Camera.LookAt.y < (pointColl.GetCeilingHeight() + BUFFER) &&
 		pointColl.GetCeilingHeight() != NO_HEIGHT)
 	{
-		Camera.target.y = pointColl.GetCeilingHeight() + buffer;
-		Camera.targetElevation = 0;
+		g_Camera.LookAt.y = pointColl.GetCeilingHeight() + BUFFER;
+		g_Camera.targetElevation = 0;
 	}
 
-	int y = Camera.target.y;
-	pointColl = GetPointCollision(Vector3i(Camera.target.x, y, Camera.target.z), Camera.target.RoomNumber);
-	Camera.target.RoomNumber = pointColl.GetRoomNumber();
+	int y = g_Camera.LookAt.y;
+	pointColl = GetPointCollision(Vector3i(g_Camera.LookAt.x, y, g_Camera.LookAt.z), g_Camera.LookAtRoomNumber);
+	g_Camera.LookAtRoomNumber = pointColl.GetRoomNumber();
 
 	if (y < pointColl.GetCeilingHeight() ||
 		y > pointColl.GetFloorHeight() ||
@@ -744,258 +914,99 @@ void CombatCamera(ItemInfo* item)
 		pointColl.GetFloorHeight() == NO_HEIGHT ||
 		pointColl.GetCeilingHeight() == NO_HEIGHT)
 	{
-		TargetSnaps++;
-		Camera.target = LastTarget;
+		g_Camera.TargetSnaps++;
+		g_Camera.LookAt = g_Camera.PrevTarget.ToVector3();
+		g_Camera.LookAtRoomNumber = g_Camera.PrevTarget.RoomNumber;
 	}
 	else
-		TargetSnaps = 0;
-
-	UpdateCameraElevation();
-
-	Camera.targetDistance = BLOCK(1.5f);
-	int distance = Camera.targetDistance * phd_cos(Camera.actualElevation);
-
-	for (int i = 0; i < maxSwivelSteps; i++)
-		Ideals[i].y = Camera.target.y + (Camera.targetDistance * phd_sin(Camera.actualElevation));
-
-	// Determine best player viewing angle.
-	float farthestDist = FLT_MAX;
-	int indexOfFarthestIdeal = 0;
-	GameVector temp[2];
-	for (int i = 0; i < maxSwivelSteps; i++)
 	{
-		// Incrementally swivel camera position.
-		short angle = (i == 0) ? Camera.actualAngle : ((i - 1) * ANGLE(90.0f));
-
-		// Record ideal position at default distance for given swivel.
-		Ideals[i].x = Camera.target.x - (distance * phd_sin(angle));
-		Ideals[i].z = Camera.target.z - (distance * phd_cos(angle));
-		Ideals[i].RoomNumber = Camera.target.RoomNumber;
-
-		// Assess LOS.
-		if (LOSAndReturnTarget(&Camera.target, &Ideals[i], 200))
-		{
-			temp[0] = Ideals[i];
-			temp[1] = Camera.pos;
-			if (i == 0 || LOSAndReturnTarget(&temp[0], &temp[1], 0))
-			{
-				if (i == 0)
-				{
-					indexOfFarthestIdeal = 0;
-					break;
-				}
-
-				float dx = (Camera.pos.x - Ideals[i].x) * (Camera.pos.x - Ideals[i].x);
-				dx += (Camera.pos.z - Ideals[i].z) * (Camera.pos.z - Ideals[i].z);
-				if (dx < farthestDist)
-				{
-					farthestDist = dx;
-					indexOfFarthestIdeal = i;
-				}
-			}
-		}
-		else if (i == 0)
-		{
-			temp[0] = Ideals[i];
-			temp[1] = Camera.pos;
-			if (i == 0 || LOSAndReturnTarget(&temp[0], &temp[1], 0))
-			{
-				float dx = (Camera.target.x - Ideals[i].x) * (Camera.target.x - Ideals[i].x);
-				float dz = (Camera.target.z - Ideals[i].z) * (Camera.target.z - Ideals[i].z);
-				if ((dx + dz) > SQUARE(BLOCK(0.75f)))
-				{
-					indexOfFarthestIdeal = 0;
-					break;
-				}
-			}
-		}
+		g_Camera.TargetSnaps = 0;
 	}
 
-	// Handle room collision.
-	auto ideal = Ideals[indexOfFarthestIdeal];
-	CameraCollisionBounds(&ideal, CLICK(1.5f), 1);
+	g_Camera.UpdateSphere(playerItem);
 
-	// Snap position of fixed camera type.
-	if (Camera.oldType == CameraType::Fixed)
-		Camera.speed = 1;
+	g_Camera.targetDistance = BLOCK(1.5f);
 
-	MoveCamera(&ideal, Camera.speed);
+	g_Camera.HandleFollow(playerItem, true);
 }
 
-bool CameraCollisionBounds(GameVector* ideal, int push, bool yFirst)
-{
-	int x = ideal->x;
-	int y = ideal->y;
-	int z = ideal->z;
-
-	auto pointColl = GetPointCollision(Vector3i(x, y, z), ideal->RoomNumber);
-	if (yFirst)
-	{
-		int buffer = CLICK(1) - 1;
-		if ((y - buffer) < pointColl.GetCeilingHeight() &&
-			(y + buffer) > pointColl.GetFloorHeight() &&
-			pointColl.GetCeilingHeight() < pointColl.GetFloorHeight() &&
-			pointColl.GetCeilingHeight() != NO_HEIGHT &&
-			pointColl.GetFloorHeight() != NO_HEIGHT)
-		{
-			y = (pointColl.GetFloorHeight() + pointColl.GetCeilingHeight()) / 2;
-		}
-		else if ((y + buffer) > pointColl.GetFloorHeight() &&
-			pointColl.GetCeilingHeight() < pointColl.GetFloorHeight() &&
-			pointColl.GetCeilingHeight() != NO_HEIGHT &&
-			pointColl.GetFloorHeight() != NO_HEIGHT)
-		{
-			y = pointColl.GetFloorHeight() - buffer;
-		}
-		else if ((y - buffer) < pointColl.GetCeilingHeight() &&
-			pointColl.GetCeilingHeight() < pointColl.GetFloorHeight() &&
-			pointColl.GetCeilingHeight() != NO_HEIGHT &&
-			pointColl.GetFloorHeight() != NO_HEIGHT)
-		{
-			y = pointColl.GetCeilingHeight() + buffer;
-		}
-	}
-
-	pointColl = GetPointCollision(Vector3i(x - push, y, z), ideal->RoomNumber);
-	if (y > pointColl.GetFloorHeight() ||
-		pointColl.GetFloorHeight() == NO_HEIGHT ||
-		pointColl.GetCeilingHeight() == NO_HEIGHT ||
-		pointColl.GetCeilingHeight() >= pointColl.GetFloorHeight() ||
-		y < pointColl.GetCeilingHeight())
-	{
-		x = (x & (~1023)) + push;
-	}
-
-	pointColl = GetPointCollision(Vector3i(x, y, z - push), ideal->RoomNumber);
-	if (y > pointColl.GetFloorHeight() ||
-		pointColl.GetFloorHeight() == NO_HEIGHT ||
-		pointColl.GetCeilingHeight() == NO_HEIGHT ||
-		pointColl.GetCeilingHeight() >= pointColl.GetFloorHeight() ||
-		y < pointColl.GetCeilingHeight())
-	{
-		z = (z & (~1023)) + push;
-	}
-
-	pointColl = GetPointCollision(Vector3i(x + push, y, z), ideal->RoomNumber);
-	if (y > pointColl.GetFloorHeight() ||
-		pointColl.GetFloorHeight() == NO_HEIGHT ||
-		pointColl.GetCeilingHeight() == NO_HEIGHT ||
-		pointColl.GetCeilingHeight() >= pointColl.GetFloorHeight() ||
-		y < pointColl.GetCeilingHeight())
-	{
-		x = (x | 1023) - push;
-	}
-
-	pointColl = GetPointCollision(Vector3i(x, y, z + push), ideal->RoomNumber);
-	if (y > pointColl.GetFloorHeight() ||
-		pointColl.GetFloorHeight() == NO_HEIGHT ||
-		pointColl.GetCeilingHeight() == NO_HEIGHT ||
-		pointColl.GetCeilingHeight() >= pointColl.GetFloorHeight() ||
-		y < pointColl.GetCeilingHeight())
-	{
-		z = (z | 1023) - push;
-	}
-
-	if (!yFirst)
-	{
-		pointColl = GetPointCollision(Vector3i(x, y, z), ideal->RoomNumber);
-
-		int buffer = CLICK(1) - 1;
-		if ((y - buffer) < pointColl.GetCeilingHeight() &&
-			(y + buffer) > pointColl.GetFloorHeight() &&
-			pointColl.GetCeilingHeight() < pointColl.GetFloorHeight() &&
-			pointColl.GetCeilingHeight() != NO_HEIGHT &&
-			pointColl.GetFloorHeight() != NO_HEIGHT)
-		{
-			y = (pointColl.GetFloorHeight() + pointColl.GetCeilingHeight()) / 2;
-		}
-		else if ((y + buffer) > pointColl.GetFloorHeight() &&
-			pointColl.GetCeilingHeight() < pointColl.GetFloorHeight() &&
-			pointColl.GetCeilingHeight() != NO_HEIGHT &&
-			pointColl.GetFloorHeight() != NO_HEIGHT)
-		{
-			y = pointColl.GetFloorHeight() - buffer;
-		}
-		else if ((y - buffer) < pointColl.GetCeilingHeight() &&
-			pointColl.GetCeilingHeight() < pointColl.GetFloorHeight() &&
-			pointColl.GetCeilingHeight() != NO_HEIGHT &&
-			pointColl.GetFloorHeight() != NO_HEIGHT)
-		{
-			y = pointColl.GetCeilingHeight() + buffer;
-		}
-	}
-
-	pointColl = GetPointCollision(Vector3i(x, y, z), ideal->RoomNumber);
-	if (y > pointColl.GetFloorHeight() ||
-		y < pointColl.GetCeilingHeight() ||
-		pointColl.GetFloorHeight() == NO_HEIGHT ||
-		pointColl.GetCeilingHeight() == NO_HEIGHT ||
-		pointColl.GetCeilingHeight() >= pointColl.GetFloorHeight())
-	{
-		return true;
-	}
-
-	ideal->RoomNumber = pointColl.GetRoomNumber();
-	ideal->x = x;
-	ideal->y = y;
-	ideal->z = z;
-
-	return false;
-}
-
-void FixedCamera(ItemInfo* item)
+void FixedCamera()
 {
 	// Fixed cameras before TR3 had optional "movement" effect. 
 	// Later for some reason it was forced to always be 1, and actual speed value
-	// from camera trigger was ignored. In TEN, we move speed value out of legacy
-	// floordata trigger to camera itself and make use of it again. Still, by default,
+	// from camera trigger was ignored. In TEN, speed value was moved out out of legacy
+	// floordata trigger to camera itself to make use of it again. Still, by default,
 	// value is 1 for UseForcedFixedCamera hack.
 
-	int moveSpeed = 1;
+	float speed = 1.0f;
 
-	GameVector origin, target;
-	if (UseForcedFixedCamera)
-		origin = ForcedFixedCamera;
+	auto origin = GameVector::Zero;
+	if (g_Camera.UseForcedFixedCamera)
+	{
+		origin = g_Camera.ForcedFixedCamera;
+	}
 	else
 	{
-		auto* camera = &g_Level.Cameras[Camera.number];
+		const auto& camera = g_Level.Cameras[g_Camera.number];
 
-		origin = GameVector(camera->Position, camera->RoomNumber);
-
-		// Multiply original speed by 8 to comply with original bitshifted speed from TR1-2.
-		moveSpeed = camera->Speed * 8 + 1;
+		origin = GameVector(camera.Position, camera.RoomNumber);
+		speed = (camera.Speed * 8) + 1.0f; // Multiply original speed by 8 to comply with original bitshifted speed from TR1-2.
 	}
 
-	Camera.fixedCamera = true;
+	g_Camera.fixedCamera = true;
 
-	MoveCamera(&origin, moveSpeed);
+	g_Camera.UpdateMovement(*LaraItem, origin.ToVector3(), origin.RoomNumber, speed);
 
-	if (Camera.timer > 0)
+	if (g_Camera.timer)
 	{
-		if (!--Camera.timer)
-			Camera.timer = NO_VALUE;
+		if (!--g_Camera.timer)
+			g_Camera.timer = NO_VALUE;
 	}
 }
 
-void BounceCamera(ItemInfo* item, short bounce, short maxDistance)
+void BounceCamera(ItemInfo* item, int bounce, float distMax)
 {
-	float distance = Vector3i::Distance(item->Pose.Position, Camera.pos.ToVector3i());
-	if (distance < maxDistance)
+	float dist = Vector3i::Distance(item->Pose.Position.ToVector3(), g_Camera.Position);
+	if (dist < distMax)
 	{
-		if (maxDistance == NO_VALUE)
-			Camera.bounce = bounce;
+		if (distMax == NO_VALUE)
+		{
+			g_Camera.bounce = bounce;
+		}
 		else
-			Camera.bounce = -(bounce * (maxDistance - distance) / maxDistance);
+		{
+			g_Camera.bounce = -(bounce * (distMax - dist) / distMax);
+		}
 	}
-	else if (maxDistance == NO_VALUE)
-		Camera.bounce = bounce;
+	else if (distMax == NO_VALUE)
+	{
+		g_Camera.bounce = bounce;
+	}
 }
 
 void BinocularCamera(ItemInfo* item)
 {
 	auto& player = GetLaraInfo(*item);
 
-	AlterFOV(7 * (ANGLE(11.5f) - player.Control.Look.OpticRange), false);
+	if (!player.Control.Look.IsUsingLasersight)
+	{
+		if (IsClicked(In::Deselect) ||
+			IsClicked(In::Draw) ||
+			IsClicked(In::Look) ||
+			IsHeld(In::Flare))
+		{
+			ResetPlayerFlex(item);
+			player.Control.Look.OpticRange = 0;
+			player.Control.Look.IsUsingBinoculars = false;
+			player.Inventory.IsBusy = false;
+
+			g_Camera.type = g_Camera.PrevBinocularCameraType;
+			SetFov(g_Camera.PrevFov);
+			return;
+		}
+	}
+
+	SetFov(7 * (ANGLE(11.5f) - player.Control.Look.OpticRange), false);
 
 	int x = item->Pose.Position.x;
 	int y = item->Pose.Position.y + GameBoundingBox(item).Y1;
@@ -1003,71 +1014,93 @@ void BinocularCamera(ItemInfo* item)
 
 	auto pointColl = GetPointCollision(Vector3i(x, y, z), item->RoomNumber);
 
-	Camera.pos.x = x;
-	Camera.pos.y = y;
-	Camera.pos.z = z;
-	Camera.pos.RoomNumber = pointColl.GetRoomNumber();
+	g_Camera.Position.x = x;
+	g_Camera.Position.y = y;
+	g_Camera.Position.z = z;
+	g_Camera.RoomNumber = pointColl.GetRoomNumber();
 
 	float l = BLOCK(20.25f) * phd_cos(player.Control.Look.Orientation.x);
 	float tx = x + l * phd_sin(item->Pose.Orientation.y + player.Control.Look.Orientation.y);
 	float ty = y - BLOCK(20.25f) * phd_sin(player.Control.Look.Orientation.x);
 	float tz = z + l * phd_cos(item->Pose.Orientation.y + player.Control.Look.Orientation.y);
 
-	if (Camera.oldType == CameraType::Fixed)
+	if (g_Camera.oldType == CameraType::Fixed)
 	{
-		Camera.target.x = tx;
-		Camera.target.y = ty;
-		Camera.target.z = tz;
-		Camera.target.RoomNumber = item->RoomNumber;
+		g_Camera.LookAt.x = tx;
+		g_Camera.LookAt.y = ty;
+		g_Camera.LookAt.z = tz;
+		g_Camera.LookAtRoomNumber = item->RoomNumber;
 	}
 	else
 	{
-		Camera.target.x += (tx - Camera.target.x) / 4;
-		Camera.target.y += (ty - Camera.target.y) / 4;
-		Camera.target.z += (tz - Camera.target.z) / 4;
-		Camera.target.RoomNumber = item->RoomNumber;
+		g_Camera.LookAt.x += (tx - g_Camera.LookAt.x) / 4;
+		g_Camera.LookAt.y += (ty - g_Camera.LookAt.y) / 4;
+		g_Camera.LookAt.z += (tz - g_Camera.LookAt.z) / 4;
+		g_Camera.LookAtRoomNumber = item->RoomNumber;
 	}
 
-	if (Camera.type == Camera.oldType)
-		CalculateBounce(true);
+	if (g_Camera.bounce &&
+		g_Camera.type == g_Camera.oldType)
+	{
+		if (g_Camera.bounce <= 0)
+		{
+			g_Camera.LookAt.x += (CLICK(0.25f) / 4) * (Random::GenerateInt() % (-g_Camera.bounce) - (-g_Camera.bounce / 2));
+			g_Camera.LookAt.y += (CLICK(0.25f) / 4) * (Random::GenerateInt() % (-g_Camera.bounce) - (-g_Camera.bounce / 2));
+			g_Camera.LookAt.z += (CLICK(0.25f) / 4) * (Random::GenerateInt() % (-g_Camera.bounce) - (-g_Camera.bounce / 2));
+			g_Camera.bounce += 5;
+			g_Camera.RumbleFromBounce();
+		}
+		else
+		{
+			g_Camera.bounce = 0;
+			g_Camera.LookAt.y += g_Camera.bounce;
+		}
+	}
 
-	Camera.target.RoomNumber = GetPointCollision(Camera.pos.ToVector3i(), Camera.target.RoomNumber).GetRoomNumber();
-	LookAt(&Camera, GetCurrentRoll());
-	UpdateMikePos(*item);
-	Camera.oldType = Camera.type;
+	g_Camera.LookAtRoomNumber = GetPointCollision(g_Camera.Position, g_Camera.LookAtRoomNumber).GetRoomNumber();
+	HandleLookAt(g_Camera, 0);
+	g_Camera.UpdateListenerPosition(*item);
+	g_Camera.oldType = g_Camera.type;
+
+	auto origin0 = GameVector(g_Camera.Position, g_Camera.RoomNumber);
+	auto target0 = GameVector(g_Camera.LookAt, g_Camera.LookAtRoomNumber);
+	GetTargetOnLOS(&origin0, &target0);
+	g_Camera.LookAt = target0.ToVector3();
+	g_Camera.LookAtRoomNumber = target0.RoomNumber;
+
+	if (IsHeld(In::Action))
+	{
+		auto origin = Vector3i(g_Camera.Position);
+		auto target = Vector3i(g_Camera.LookAt);
+		//LaraTorch(&origin, &target, player.ExtraHeadRot.y, 192); // TODO: Restore.
+	}
 }
 
 void ConfirmCameraTargetPos()
 {
-	auto pos = Vector3i(
+	auto pos = Vector3(
 		LaraItem->Pose.Position.x,
 		LaraItem->Pose.Position.y - (LaraCollision.Setup.Height / 2),
 		LaraItem->Pose.Position.z);
 
-	if (Camera.laraNode != NO_VALUE)
+	if (g_Camera.laraNode != NO_VALUE)
 	{
-		Camera.target.x = pos.x;
-		Camera.target.y = pos.y;
-		Camera.target.z = pos.z;
+		g_Camera.LookAt = pos;
 	}
 	else
 	{
-		Camera.target.x = LaraItem->Pose.Position.x;
-		Camera.target.y = (Camera.target.y + pos.y) / 2;
-		Camera.target.z = LaraItem->Pose.Position.z;
+		g_Camera.LookAt = Vector3(LaraItem->Pose.Position.x, (g_Camera.LookAt.y + pos.y) / 2, LaraItem->Pose.Position.z);
 	}
 
-	int y = Camera.target.y;
-	auto pointColl = GetPointCollision(Vector3i(Camera.target.x, y, Camera.target.z), Camera.target.RoomNumber);
+	int y = g_Camera.LookAt.y;
+	auto pointColl = GetPointCollision(Vector3i(g_Camera.LookAt.x, y, g_Camera.LookAt.z), g_Camera.LookAtRoomNumber);
 	if (y < pointColl.GetCeilingHeight() ||
 		pointColl.GetFloorHeight() < y ||
 		pointColl.GetFloorHeight() <= pointColl.GetCeilingHeight() ||
 		pointColl.GetFloorHeight() == NO_HEIGHT ||
 		pointColl.GetCeilingHeight() == NO_HEIGHT)
 	{
-		Camera.target.x = pos.x;
-		Camera.target.y = pos.y;
-		Camera.target.z = pos.z;
+		g_Camera.LookAt = pos;
 	}
 }
 
@@ -1092,556 +1125,252 @@ static bool CalculateDeathCamera(const ItemInfo& item)
 	return false;
 }
 
-void CalculateCamera(const CollisionInfo& coll)
+void CalculateCamera(ItemInfo& playerItem, const CollisionInfo& coll)
 {
-	if (ItemCameraOn)
-		return;
+	auto& player = GetLaraInfo(playerItem);
 
-	if (!HandlePlayerOptics(*LaraItem))
+	if (player.Control.Look.IsUsingBinoculars)
 	{
-		Camera.pos = LastPosition;
-		Camera.target = LastTarget;
-	}
-
-	if (Lara.Control.Look.IsUsingBinoculars)
-	{
-		BinocularCamera(LaraItem);
+		BinocularCamera(&playerItem);
 		return;
 	}
-	else
+
+	if (g_Camera.ItemCamera.ItemCameraOn)
+		return;
+
+	if (g_Camera.UseForcedFixedCamera)
 	{
-		LastPosition = Camera.pos;
+		g_Camera.type = CameraType::Fixed;
+		if (g_Camera.oldType != CameraType::Fixed)
+			g_Camera.speed = 1.0f;
 	}
 
-	if (UseForcedFixedCamera)
-	{
-		Camera.type = CameraType::Fixed;
-		if (Camera.oldType != CameraType::Fixed)
-			Camera.speed = 1;
-	}
-
-	// Camera is in a water room, play water sound effect.
-	if (TestEnvironment(ENV_FLAG_WATER, Camera.pos.RoomNumber))
+	// Play water sound effect if camera is in water room.
+	if (TestEnvironment(ENV_FLAG_WATER, g_Camera.RoomNumber))
 	{
 		SoundEffect(SFX_TR4_UNDERWATER, nullptr, SoundEnvironment::Always);
-		if (Camera.underwater == false)
-			Camera.underwater = true;
+		if (g_Camera.underwater == false)
+			g_Camera.underwater = true;
 	}
 	else
 	{
-		if (Camera.underwater == true)
-			Camera.underwater = false;
+		if (g_Camera.underwater == true)
+			g_Camera.underwater = false;
 	}
 
-	ItemInfo* item = nullptr;
+	const ItemInfo* item = nullptr;
 	bool isFixedCamera = false;
-	if (Camera.item != nullptr &&
-		(Camera.type == CameraType::Fixed || Camera.type == CameraType::Heavy))
+	if (g_Camera.item != nullptr && (g_Camera.type == CameraType::Fixed || g_Camera.type == CameraType::Heavy))
 	{
-		item = Camera.item;
+		item = g_Camera.item;
 		isFixedCamera = true;
 	}
 	else
 	{
-		item = LaraItem;
+		item = &playerItem;
 		isFixedCamera = false;
 	}
 
+	// TODO: Use DX box.
+	auto box = item->GetObb();
 	auto bounds = GameBoundingBox(item);
 
-	int x;
-	int y = item->Pose.Position.y + bounds.Y2 + (3 * (bounds.Y1 - bounds.Y2) / 4);
-	int z;
+	int x = 0;
+	int y = item->Pose.Position.y + bounds.Y2 + ((bounds.Y1 - bounds.Y2) / 2 * 1.5f);
+	int z = 0;
+	if (item->IsLara())
+	{
+		float heightCoeff = g_Configuration.IsUsingModernControls() ? 0.9f : 0.75f;
+		auto offset = g_Camera.GetPlayerOffset(*item, coll) * heightCoeff;
+		y = item->Pose.Position.y + offset.y;
+	}
 
-	if (Camera.item)
+	// Make player look toward target item.
+	if (g_Camera.item != nullptr)
 	{
 		if (!isFixedCamera)
 		{
-			auto deltaPos = Camera.item->Pose.Position - item->Pose.Position;
-			float dist = Vector3i::Distance(Camera.item->Pose.Position, item->Pose.Position);
+			auto deltaPos = g_Camera.item->Pose.Position - item->Pose.Position;
+			float dist = Vector3i::Distance(g_Camera.item->Pose.Position, item->Pose.Position);
 
 			auto lookOrient = EulerAngles(
-				phd_atan(dist, y - (bounds.Y1 + bounds.Y2) / 2 - Camera.item->Pose.Position.y),
+				phd_atan(dist, y - (bounds.Y1 + bounds.Y2) / 2 - g_Camera.item->Pose.Position.y),
 				phd_atan(deltaPos.z, deltaPos.x) - item->Pose.Orientation.y,
 				0) / 2;
 
 			if (lookOrient.y > ANGLE(-50.0f) &&	lookOrient.y < ANGLE(50.0f) &&
 				lookOrient.z > ANGLE(-85.0f) && lookOrient.z < ANGLE(85.0f))
 			{
-				short angleDelta = lookOrient.y - Lara.ExtraHeadRot.y;
+				short angleDelta = lookOrient.y - player.ExtraHeadRot.y;
 				if (angleDelta > ANGLE(4.0f))
 				{
-					Lara.ExtraHeadRot.y += ANGLE(4.0f);
+					player.ExtraHeadRot.y += ANGLE(4.0f);
 				}
 				else if (angleDelta < ANGLE(-4.0f))
 				{
-					Lara.ExtraHeadRot.y -= ANGLE(4.0f);
+					player.ExtraHeadRot.y -= ANGLE(4.0f);
 				}
 				else
 				{
-					Lara.ExtraHeadRot.y += angleDelta;
+					player.ExtraHeadRot.y += angleDelta;
 				}
-				Lara.ExtraTorsoRot.y = Lara.ExtraHeadRot.y;
+				player.ExtraTorsoRot.y = player.ExtraHeadRot.y;
 
-				angleDelta = lookOrient.z - Lara.ExtraHeadRot.x;
+				angleDelta = lookOrient.z - player.ExtraHeadRot.x;
 				if (angleDelta > ANGLE(4.0f))
 				{
-					Lara.ExtraHeadRot.x += ANGLE(4.0f);
+					player.ExtraHeadRot.x += ANGLE(4.0f);
 				}
 				else if (angleDelta < ANGLE(-4.0f))
 				{
-					Lara.ExtraHeadRot.x -= ANGLE(4.0f);
+					player.ExtraHeadRot.x -= ANGLE(4.0f);
 				}
 				else
 				{
-					Lara.ExtraHeadRot.x += angleDelta;
+					player.ExtraHeadRot.x += angleDelta;
 				}
-				Lara.ExtraTorsoRot.x = Lara.ExtraHeadRot.x;
+				player.ExtraTorsoRot.x = player.ExtraHeadRot.x;
 
-				Lara.Control.Look.Orientation = lookOrient;
-				Camera.type = CameraType::Look;
-				Camera.item->LookedAt = true;
+				player.Control.Look.Orientation = lookOrient;
+
+				g_Camera.type = CameraType::Look;
+				g_Camera.item->LookedAt = true;
 			}
 		}
 	}
 
-	if (Camera.type == CameraType::Look ||
-		Camera.type == CameraType::Combat)
+	if (g_Camera.type == CameraType::Look ||
+		g_Camera.type == CameraType::Combat)
 	{
-		if (Camera.type == CameraType::Combat)
+		if (g_Camera.type == CameraType::Combat)
 		{
-			LastTarget.x = Camera.target.x;
-			LastTarget.y = Camera.target.y;
-			LastTarget.z = Camera.target.z;
-			LastTarget.RoomNumber = Camera.target.RoomNumber;
+			g_Camera.PrevTarget = GameVector(g_Camera.LookAt, g_Camera.LookAtRoomNumber);
 
-			y -= CLICK(1);
+			if (!g_Configuration.IsUsingModernControls())
+				y -= CLICK(1);
 		}
 
-		Camera.target.RoomNumber = item->RoomNumber;
+		g_Camera.LookAtRoomNumber = item->RoomNumber;
 
-		if (Camera.fixedCamera || Lara.Control.Look.IsUsingBinoculars)
+		if (g_Camera.fixedCamera || player.Control.Look.IsUsingBinoculars)
 		{
-			Camera.target.y = y;
-			Camera.speed = 1;
+			g_Camera.LookAt.y = y;
+			g_Camera.speed = 1.0f;
 		}
 		else
 		{
-			Camera.target.y += (y - Camera.target.y) / 4;
-			Camera.speed = (Camera.type != CameraType::Look) ? 8 : 4;
+			g_Camera.LookAt.y += (y - g_Camera.LookAt.y) / 4;
+			g_Camera.speed = (g_Camera.type != CameraType::Look) ? 8.0f : 4.0f;
 		}
 
-		Camera.fixedCamera = false;
-		if (Camera.type == CameraType::Look)
+		g_Camera.fixedCamera = false;
+		if (g_Camera.type == CameraType::Look)
 		{
-			LookCamera(*item, coll);
+			g_Camera.LookCamera(*item, coll);
 		}
 		else
 		{
-			CombatCamera(item);
+			CombatCamera(*item);
 		}
 	}
 	else
 	{
-		LastTarget.x = Camera.target.x;
-		LastTarget.y = Camera.target.y;
-		LastTarget.z = Camera.target.z;
-		LastTarget.RoomNumber = Camera.target.RoomNumber;
+		g_Camera.PrevTarget = GameVector(g_Camera.LookAt, g_Camera.LookAtRoomNumber);
 
-		Camera.target.RoomNumber = item->RoomNumber;
-		Camera.target.y = y;
+		g_Camera.LookAtRoomNumber = item->RoomNumber;
+		g_Camera.LookAt.y = y;
 
 		x = item->Pose.Position.x;
 		z = item->Pose.Position.z;
 
-		if (Camera.flags == CF_FOLLOW_CENTER)	//Troye Aug. 7th 2022
+		// -- Troye 2022.8.7
+		if (g_Camera.flags == CameraFlag::FollowCenter)
 		{
-			auto shift = (bounds.Z1 + bounds.Z2) / 2;
+			int shift = (bounds.Z1 + bounds.Z2) / 2;
 			x += shift * phd_sin(item->Pose.Orientation.y);
 			z += shift * phd_cos(item->Pose.Orientation.y);
 		}
 
-		Camera.target.x = x;
-		Camera.target.z = z;
+		g_Camera.LookAt.x = x;
+		g_Camera.LookAt.z = z;
 
-		// CF_FOLLOW_CENTER sets target on the item, ConfirmCameraTargetPos overrides this target, 
-		// hence the flag check. Troye Aug. 7th 2022
-		
-		if (item->IsLara() && Camera.flags != CF_FOLLOW_CENTER)
+		// CameraFlag::FollowCenter sets target on item and
+		// ConfirmCameraTargetPos() overrides this target, hence flag check. -- Troye 2022.8.7
+		if (item->IsLara() && g_Camera.flags != CameraFlag::FollowCenter)
 			ConfirmCameraTargetPos();
 
-		if (isFixedCamera == Camera.fixedCamera)
+		if (isFixedCamera == g_Camera.fixedCamera)
 		{
-			Camera.fixedCamera = false;
-
-			if (Camera.speed != 1 && Camera.oldType != CameraType::Look &&
-				!Lara.Control.Look.IsUsingBinoculars)
+			g_Camera.fixedCamera = false;
+			if (g_Camera.speed != 1.0f &&
+				!player.Control.Look.IsUsingBinoculars)
 			{
-				if (TargetSnaps <= 8)
+				if (g_Camera.TargetSnaps <= 8)
 				{
-					x = LastTarget.x + ((x - LastTarget.x) / 4);
-					y = LastTarget.y + ((y - LastTarget.y) / 4);
-					z = LastTarget.z + ((z - LastTarget.z) / 4);
+					x = g_Camera.PrevTarget.x + ((x - g_Camera.PrevTarget.x) / 4);
+					y = g_Camera.PrevTarget.y + ((y - g_Camera.PrevTarget.y) / 4);
+					z = g_Camera.PrevTarget.z + ((z - g_Camera.PrevTarget.z) / 4);
 
-					Camera.target.x = x;
-					Camera.target.y = y;
-					Camera.target.z = z;
+					g_Camera.LookAt.x = x;
+					g_Camera.LookAt.y = y;
+					g_Camera.LookAt.z = z;
 				}
 				else
 				{
-					TargetSnaps = 0;
+					g_Camera.TargetSnaps = 0;
 				}
 			}
 		}
 		else
 		{
-			Camera.fixedCamera = true;
-			Camera.speed = 1;
+			g_Camera.fixedCamera = true;
+			g_Camera.speed = 1.0f;
 		}
 
-		Camera.target.RoomNumber = GetPointCollision(Vector3i(x, y, z), Camera.target.RoomNumber).GetRoomNumber();
+		g_Camera.LookAtRoomNumber = GetPointCollision(Vector3i(x, y, z), g_Camera.LookAtRoomNumber).GetRoomNumber();
 
-		if (abs(LastTarget.x - Camera.target.x) < 4 &&
-			abs(LastTarget.y - Camera.target.y) < 4 &&
-			abs(LastTarget.z - Camera.target.z) < 4)
+		if (abs(g_Camera.PrevTarget.x - g_Camera.LookAt.x) < 4 &&
+			abs(g_Camera.PrevTarget.y - g_Camera.LookAt.y) < 4 &&
+			abs(g_Camera.PrevTarget.z - g_Camera.LookAt.z) < 4)
 		{
-			Camera.target.x = LastTarget.x;
-			Camera.target.y = LastTarget.y;
-			Camera.target.z = LastTarget.z;
+			g_Camera.LookAt.x = g_Camera.PrevTarget.x;
+			g_Camera.LookAt.y = g_Camera.PrevTarget.y;
+			g_Camera.LookAt.z = g_Camera.PrevTarget.z;
 		}
 
-		if (Camera.type != CameraType::Chase && Camera.flags != CF_CHASE_OBJECT)
+		if (g_Camera.type != CameraType::Chase && g_Camera.flags != CameraFlag::ChaseObject)
 		{
-			FixedCamera(item);
+			FixedCamera();
 		}
 		else
 		{
-			ChaseCamera(item);
+			ChaseCamera(*item);
 		}
 	}
 
-	Camera.fixedCamera = isFixedCamera;
-	Camera.last = Camera.number;
-	Camera.DisableInterpolation = (Camera.DisableInterpolation || Camera.lastType != Camera.type);
-	Camera.lastType = Camera.type;
+	g_Camera.fixedCamera = isFixedCamera;
+	g_Camera.last = g_Camera.number;
 
-	if (CalculateDeathCamera(*LaraItem))
-		return;
-
-	if (Camera.type != CameraType::Heavy || Camera.timer == NO_VALUE)
+	if ((g_Camera.type != CameraType::Heavy || g_Camera.timer == -1) &&
+		playerItem.HitPoints > 0)
 	{
-		Camera.type = CameraType::Chase;
-		Camera.speed = 10;
-		Camera.number = NO_VALUE;
-		Camera.lastItem = Camera.item;
-		Camera.item = nullptr;
-		Camera.targetElevation = 0;
-		Camera.targetAngle = 0;
-		Camera.targetDistance = BLOCK(1.5f);
-		Camera.flags = 0;
-		Camera.laraNode = NO_VALUE;
+		g_Camera.type = CameraType::Chase;
+		g_Camera.speed = 10.0f;
+		g_Camera.number = NO_VALUE;
+		g_Camera.lastItem = g_Camera.item;
+		g_Camera.item = nullptr;
+		g_Camera.targetElevation = 0;
+		g_Camera.targetAngle = 0;
+		g_Camera.targetDistance = BLOCK(1.5f);
+		g_Camera.flags = CameraFlag::None;
+		g_Camera.laraNode = NO_VALUE;
 	}
 }
 
-bool TestBoundsCollideCamera(const GameBoundingBox& bounds, const Pose& pose, short radius)
+bool TestBoundsCollideCamera(const GameBoundingBox& bounds, const Pose& pose, float radius)
 {
-	auto camSphere = BoundingSphere(Camera.pos.ToVector3(), radius);
-	auto boundsSphere = BoundingSphere(pose.Position.ToVector3(), bounds.GetExtents().Length());
-
-	if (!camSphere.Intersects(boundsSphere))
-		return false;
-
-	return camSphere.Intersects(bounds.ToBoundingOrientedBox(pose));
-}
-
-bool TestLockedCamera()
-{
-	// Check if break condition is met.
-	if (Camera.type != CameraType::Look && Camera.type != CameraType::Combat)
-		return true;
-
-	// Check if there's an active fixed camera.
-	if (Camera.number == NO_VALUE)
-		return true;
-
-	// Check if locked bit is set for a given fixed camera.
-	if (!(g_Level.Cameras[Camera.number].Flags & (int)LevelCameraFlags::Locked))
-		return false;
-
-	return true;
-}
-
-float GetParticleDistanceFade(const Vector3i& pos)
-{
-	float dist = Vector3::Distance(Camera.pos.ToVector3(), pos.ToVector3());
-	if (dist <= PARTICLE_FADE_THRESHOLD)
-		return 1.0f;
-
-	return std::clamp(1.0f - ((dist - PARTICLE_FADE_THRESHOLD) / COLL_CHECK_THRESHOLD), 0.0f, 1.0f);
-}
-
-void ItemPushCamera(GameBoundingBox* bounds, Pose* pos, short radius)
-{
-	int dx = Camera.pos.x - pos->Position.x;
-	int dz = Camera.pos.z - pos->Position.z;
-	auto sinY = phd_sin(pos->Orientation.y);
-	auto cosY = phd_cos(pos->Orientation.y);
-	auto x = (dx * cosY) - (dz * sinY);
-	auto z = (dx * sinY) + (dz * cosY);
-
-	int xMin = bounds->X1 - radius;
-	int xMax = bounds->X2 + radius;
-	int zMin = bounds->Z1 - radius;
-	int zMax = bounds->Z2 + radius;
-
-	if (x <= xMin || x >= xMax || z <= zMin || z >= zMax)
-		return;
-
-	auto left = x - xMin;
-	auto right = xMax - x;
-	auto top = zMax - z;
-	auto bottom = z - zMin;
-
-	// Left is closest.
-	if (left <= right && left <= top && left <= bottom)
-		x -= left;
-	// Right is closest.
-	else if (right <= left && right <= top && right <= bottom)
-		x += right;
-	// Top is closest.
-	else if (top <= left && top <= right && top <= bottom)
-		z += top;
-	// Bottom is closest.
-	else
-		z -= bottom;
-
-	Camera.pos.x = pos->Position.x + ((x * cosY) + (z * sinY));
-	Camera.pos.z = pos->Position.z + ((z * cosY) - (x * sinY));
-
-	auto pointColl = GetPointCollision(Camera.pos.ToVector3i(), Camera.pos.RoomNumber);
-	if (pointColl.GetFloorHeight() == NO_HEIGHT || Camera.pos.y > pointColl.GetFloorHeight() || Camera.pos.y < pointColl.GetCeilingHeight())
-		Camera.pos = GameVector(LastPosition.ToVector3i(), pointColl.GetRoomNumber());
-}
-
-bool CheckItemCollideCamera(ItemInfo* item)
-{
-	bool isCloseEnough = Vector3i::Distance(item->Pose.Position, Camera.pos.ToVector3i()) <= COLL_CHECK_THRESHOLD;
-
-	if (!isCloseEnough || !item->Collidable || item->IsLara() || Objects[item->ObjectNumber].Hidden)
-		return false;
-
-	// TODO: Find a better way to define objects which are collidable with camera.
-	auto* object = &Objects[item->ObjectNumber];
-	if (object->intelligent || object->isPickup || object->isPuzzleHole || object->collision == nullptr)
-		return false;
-
-	// Check extents; if any 2 bounds are smaller than threshold, discard.
-	auto extents = GameBoundingBox(item).ToBoundingOrientedBox(item->Pose).Extents;
-	if ((abs(extents.x) < COLL_DISCARD_THRESHOLD && abs(extents.y) < COLL_DISCARD_THRESHOLD) ||
-		(abs(extents.x) < COLL_DISCARD_THRESHOLD && abs(extents.z) < COLL_DISCARD_THRESHOLD) ||
-		(abs(extents.y) < COLL_DISCARD_THRESHOLD && abs(extents.z) < COLL_DISCARD_THRESHOLD))
-	{
-		return false;
-	}
-
-	return true;
-}
-
-static std::vector<int> FillCollideableItemList()
-{
-	auto itemList = std::vector<int>{};
-	auto& roomList = g_Level.Rooms[Camera.pos.RoomNumber].NeighborRoomNumbers;
-
-	for (short i = 0; i < g_Level.NumItems; i++)
-	{
-		const auto& item = g_Level.Items[i];
-
-		if (!TEN::Utils::Contains(roomList, (int)item.RoomNumber))
-			continue;
-
-		if (!g_Level.Rooms[item.RoomNumber].Active())
-			continue;
-
-		if (!CheckItemCollideCamera(&g_Level.Items[i]))
-			continue;
-
-		itemList.push_back(i);
-	}
-
-	return itemList;
-}
-
-bool CheckStaticCollideCamera(StaticMesh* mesh)
-{
-	bool isCloseEnough = Vector3i::Distance(mesh->Pose.Position, Camera.pos.ToVector3i()) <= COLL_CHECK_THRESHOLD;
-	if (!isCloseEnough)
-		return false;
-
-	if (!(mesh->Flags & StaticMeshFlags::SM_VISIBLE))
-		return false;
-
-	const auto& bounds = GetBoundsAccurate(*mesh, false);
-	auto extents = Vector3(
-		abs(bounds.X1 - bounds.X2),
-		abs(bounds.Y1 - bounds.Y2),
-		abs(bounds.Z1 - bounds.Z2));
-
-	// Check extents; if any two bounds are smaller than threshold, discard.
-	if ((abs(extents.x) < COLL_DISCARD_THRESHOLD && abs(extents.y) < COLL_DISCARD_THRESHOLD) ||
-		(abs(extents.x) < COLL_DISCARD_THRESHOLD && abs(extents.z) < COLL_DISCARD_THRESHOLD) ||
-		(abs(extents.y) < COLL_DISCARD_THRESHOLD && abs(extents.z) < COLL_DISCARD_THRESHOLD))
-	{
-		return false;
-	}
-
-	return true;
-}
-
-std::vector<StaticMesh*> FillCollideableStaticsList()
-{
-	std::vector<StaticMesh*> staticList;
-	auto& roomList = g_Level.Rooms[Camera.pos.RoomNumber].NeighborRoomNumbers;
-
-	for (int i : roomList)
-	{
-		auto* room = &g_Level.Rooms[i];
-
-		if (!room->Active())
-			continue;
-
-		for (short j = 0; j < room->mesh.size(); j++)
-		{
-			if (!CheckStaticCollideCamera(&room->mesh[j]))
-				continue;
-
-			staticList.push_back(&room->mesh[j]);
-		}
-	}
-
-	return staticList;
-}
-
-void ItemsCollideCamera()
-{
-	if (!g_GameFlow->GetSettings()->Camera.ObjectCollision)
-		return;
-
-	constexpr auto RADIUS = CLICK(0.5f);
-
-	auto itemList = FillCollideableItemList();
-
-	// Collide with items in the items list.
-	for (int i = 0; i < itemList.size(); i++)
-	{
-		auto* item = &g_Level.Items[itemList[i]];
-		if (!item)
-			return;
-
-		// Break off if camera is stuck behind an object and the player runs off.
-		auto distance = Vector3i::Distance(item->Pose.Position, LaraItem->Pose.Position);
-		if (distance > COLL_CANCEL_THRESHOLD)
-			continue;
-
-		auto bounds = GameBoundingBox(item);
-		if (TestBoundsCollideCamera(bounds, item->Pose, CAMERA_RADIUS))
-			ItemPushCamera(&bounds, &item->Pose, RADIUS);
-
-		if (DebugMode)
-		{
-			DrawDebugBox(
-				bounds.ToBoundingOrientedBox(item->Pose),
-				Vector4(1.0f, 0.0f, 0.0f, 1.0f), RendererDebugPage::CollisionStats);
-		}
-	}
-
-	// Done.
-	itemList.clear();
-
-	// Collide with static meshes.
-	auto staticList = FillCollideableStaticsList();
-	for (auto* mesh : staticList)
-	{
-		if (!mesh)
-			return;
-
-		auto distance = Vector3i::Distance(mesh->Pose.Position, LaraItem->Pose.Position);
-		if (distance > COLL_CANCEL_THRESHOLD)
-			continue;
-
-		auto bounds = GetBoundsAccurate(*mesh, false);
-		if (TestBoundsCollideCamera(bounds, mesh->Pose, CAMERA_RADIUS))
-			ItemPushCamera(&bounds, &mesh->Pose, RADIUS);
-
-		if (DebugMode)
-		{
-			DrawDebugBox(
-				bounds.ToBoundingOrientedBox(mesh->Pose),
-				Vector4(1.0f, 0.0f, 0.0f, 1.0f), RendererDebugPage::CollisionStats);
-		}
-	}
-
-	// Done.
-	staticList.clear();
-}
-
-void PrepareCamera()
-{
-	if (TrackCameraInit)
-	{
-		UseSpotCam = false;
-		AlterFOV(LastFOV);
-		g_Renderer.RestoreDOF();
-	}
-}
-
-void UpdateCamera()
-{
-	// HACK: Disable interpolation when switching to/from flyby camera.
-	// When camera structs are converted to a class, this should go to getter/setter. -- Lwmte, 29.10.2024
-	if (UseSpotCam != SpotcamSwitched)
-	{
-		Camera.DisableInterpolation = true;
-		SpotcamSwitched = UseSpotCam;
-	}
-
-	if (UseSpotCam)
-	{
-		// Draw flyby cameras.
-		CalculateSpotCam();
-	}
-	else
-	{
-		// Do the standard camera.
-		TrackCameraInit = false;
-		CalculateCamera(LaraCollision);
-	}
-
-	// Update cameras matrices there, after having done all the possible camera logic.
-	g_Renderer.UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
-}
-
-void UpdateMikePos(const ItemInfo& item)
-{
-	if (Camera.mikeAtLara)
-	{
-		Camera.mikePos = item.Pose.Position;
-		Camera.actualAngle = item.Pose.Orientation.y;
-
-		if (item.IsLara())
-		{
-			const auto& player = GetLaraInfo(item);
-			Camera.actualAngle += player.ExtraHeadRot.y + player.ExtraTorsoRot.y;
-		}
-	}
-	else
-	{
-		int phdPerspective = g_Configuration.ScreenWidth / 2 * phd_cos(CurrentFOV / 2) / phd_sin(CurrentFOV / 2);
-
-		Camera.actualAngle = phd_atan(Camera.target.z - Camera.pos.z, Camera.target.x - Camera.pos.x);
-		Camera.mikePos.x = Camera.pos.x + phdPerspective * phd_sin(Camera.actualAngle);
-		Camera.mikePos.z = Camera.pos.z + phdPerspective * phd_cos(Camera.actualAngle);
-		Camera.mikePos.y = Camera.pos.y;
-	}
+	auto sphere = BoundingSphere(g_Camera.Position, radius);
+	return sphere.Intersects(bounds.ToBoundingOrientedBox(pose));
 }
 
 void RumbleScreen()
@@ -1650,121 +1379,120 @@ void RumbleScreen()
 		// SFX Enum Changed from TR5 and pitch shift removed. User can set this in their sound XML. Stranger1992 31st August 2024
 		SoundEffect(SFX_TR4_ENVIORONMENT_RUMBLE, nullptr, SoundEnvironment::Land);
 
-	if (RumbleTimer >= 0)
-		RumbleTimer++;
+	if (g_Camera.RumbleTimer >= 0)
+		g_Camera.RumbleTimer++;
 
-	if (RumbleTimer > 450)
+	if (g_Camera.RumbleTimer > 450)
 	{
-		if (!(GetRandomControl() & 0x1FF))
+		if (!(Random::GenerateInt() & 0x1FF))
 		{
-			RumbleCounter = 0;
-			RumbleTimer = -32 - (GetRandomControl() & 0x1F);
+			g_Camera.RumbleCounter = 0;
+			g_Camera.RumbleTimer = -32 - (Random::GenerateInt() & 0x1F);
 			return;
 		}
 	}
 
-	if (RumbleTimer < 0)
+	if (g_Camera.RumbleTimer < 0)
 	{
-		if (RumbleCounter >= abs(RumbleTimer))
+		if (g_Camera.RumbleCounter >= abs(g_Camera.RumbleTimer))
 		{
-			Camera.bounce = -(GetRandomControl() % abs(RumbleTimer));
-			RumbleTimer++;
+			g_Camera.bounce = -(Random::GenerateInt() % abs(g_Camera.RumbleTimer));
+			g_Camera.RumbleTimer++;
 		}
 		else
 		{
-			RumbleCounter++;
-			Camera.bounce = -(GetRandomControl() % RumbleCounter);
+			g_Camera.RumbleCounter++;
+			g_Camera.bounce = -(Random::GenerateInt() % g_Camera.RumbleCounter);
 		}
 	}
 }
 
 void SetScreenFadeOut(float speed, bool force)
 {
-	if (ScreenFading && !force)
+	if (g_ScreenEffect.ScreenFading && !force)
 		return;
 
-	ScreenFading = true;
-	ScreenFadeStart = 1.0f;
-	ScreenFadeEnd = 0;
-	ScreenFadeSpeed = speed;
-	ScreenFadeCurrent = ScreenFadeStart;
+	g_ScreenEffect.ScreenFading = true;
+	g_ScreenEffect.ScreenFadeStart = 1.0f;
+	g_ScreenEffect.ScreenFadeEnd = 0;
+	g_ScreenEffect.ScreenFadeSpeed = speed;
+	g_ScreenEffect.ScreenFadeCurrent = g_ScreenEffect.ScreenFadeStart;
 }
 
 void SetScreenFadeIn(float speed, bool force)
 {
-	if (ScreenFading && !force)
+	if (g_ScreenEffect.ScreenFading && !force)
 		return;
 
-	ScreenFading = true;
-	ScreenFadeStart = 0;
-	ScreenFadeEnd = 1.0f;
-	ScreenFadeSpeed = speed;
-	ScreenFadeCurrent = ScreenFadeStart;
+	g_ScreenEffect.ScreenFading = true;
+	g_ScreenEffect.ScreenFadeStart = 0.0f;
+	g_ScreenEffect.ScreenFadeEnd = 1.0f;
+	g_ScreenEffect.ScreenFadeSpeed = speed;
+	g_ScreenEffect.ScreenFadeCurrent = g_ScreenEffect.ScreenFadeStart;
 }
 
 void SetCinematicBars(float height, float speed)
 {
-	CinematicBarsSpeed = std::abs(CinematicBarsHeight - height) * (speed / (float)FPS);
-	CinematicBarsDestinationHeight = height;
-}
-
-void ClearCinematicBars()
-{
-	CinematicBarsHeight = 0;
-	CinematicBarsDestinationHeight = 0;
-	CinematicBarsSpeed = 0;
+	g_ScreenEffect.CinematicBarsDestinationHeight = height;
+	g_ScreenEffect.CinematicBarsSpeed = speed;
 }
 
 void UpdateFadeScreenAndCinematicBars()
 {
-	constexpr float EASEOUT_DISTANCE = 0.05f;
-
-	float delta = CinematicBarsDestinationHeight - CinematicBarsHeight;
-	float absDelta = std::abs(delta);
-
-	if (absDelta > EPSILON)
+	if (g_ScreenEffect.CinematicBarsDestinationHeight < g_ScreenEffect.CinematicBarsHeight)
 	{
-		float step = CinematicBarsSpeed;
-
-		if (absDelta < EASEOUT_DISTANCE)
-			step *= absDelta / EASEOUT_DISTANCE;
-
-		// keep direction
-		step = (delta > 0.0f ? step : -step);
-
-		CinematicBarsHeight += step;
-
-		// final clamp (prevents overshoot)
-		if ((delta > 0.0f && CinematicBarsHeight > CinematicBarsDestinationHeight) ||
-			(delta < 0.0f && CinematicBarsHeight < CinematicBarsDestinationHeight))
-		{
-			CinematicBarsHeight = CinematicBarsDestinationHeight;
-		}
+		g_ScreenEffect.CinematicBarsHeight -= g_ScreenEffect.CinematicBarsSpeed;
+		if (g_ScreenEffect.CinematicBarsDestinationHeight > g_ScreenEffect.CinematicBarsHeight)
+			g_ScreenEffect.CinematicBarsHeight = g_ScreenEffect.CinematicBarsDestinationHeight;
+	}
+	else if (g_ScreenEffect.CinematicBarsDestinationHeight > g_ScreenEffect.CinematicBarsHeight)
+	{
+		g_ScreenEffect.CinematicBarsHeight += g_ScreenEffect.CinematicBarsSpeed;
+		if (g_ScreenEffect.CinematicBarsDestinationHeight < g_ScreenEffect.CinematicBarsHeight)
+			g_ScreenEffect.CinematicBarsHeight = g_ScreenEffect.CinematicBarsDestinationHeight;
 	}
 
-	int prevScreenFadeCurrent = ScreenFadeCurrent;
+	int prevScreenFadeCurrent = g_ScreenEffect.ScreenFadeCurrent;
 
-	if (ScreenFadeEnd != 0 && ScreenFadeEnd >= ScreenFadeCurrent)
+	if (g_ScreenEffect.ScreenFadeEnd != 0 && g_ScreenEffect.ScreenFadeEnd >= g_ScreenEffect.ScreenFadeCurrent)
 	{
-		ScreenFadeCurrent += ScreenFadeSpeed;
-		if (ScreenFadeCurrent > ScreenFadeEnd)
+		g_ScreenEffect.ScreenFadeCurrent += g_ScreenEffect.ScreenFadeSpeed;
+		if (g_ScreenEffect.ScreenFadeCurrent > g_ScreenEffect.ScreenFadeEnd)
 		{
-			ScreenFadeCurrent = ScreenFadeEnd;
-			if (prevScreenFadeCurrent >= ScreenFadeCurrent)
+			g_ScreenEffect.ScreenFadeCurrent = g_ScreenEffect.ScreenFadeEnd;
+			if (prevScreenFadeCurrent >= g_ScreenEffect.ScreenFadeCurrent)
 			{
-				ScreenFadedOut = true;
-				ScreenFading = false;
+				g_ScreenEffect.ScreenFadedOut = true;
+				g_ScreenEffect.ScreenFading = false;
 			}
 
 		}
 	}
-	else if (ScreenFadeEnd < ScreenFadeCurrent)
+	else if (g_ScreenEffect.ScreenFadeEnd < g_ScreenEffect.ScreenFadeCurrent)
 	{
-		ScreenFadeCurrent -= ScreenFadeSpeed;
-		if (ScreenFadeCurrent < ScreenFadeEnd)
+		g_ScreenEffect.ScreenFadeCurrent -= g_ScreenEffect.ScreenFadeSpeed;
+		if (g_ScreenEffect.ScreenFadeCurrent < g_ScreenEffect.ScreenFadeEnd)
 		{
-			ScreenFadeCurrent = ScreenFadeEnd;
-			ScreenFading = false;
+			g_ScreenEffect.ScreenFadeCurrent = g_ScreenEffect.ScreenFadeEnd;
+			g_ScreenEffect.ScreenFading = false;
 		}
 	}
+}
+
+void ClearCinematicBars()
+{
+	g_ScreenEffect.CinematicBarsHeight = 0.0f;
+	g_ScreenEffect.CinematicBarsDestinationHeight = 0.0f;
+	g_ScreenEffect.CinematicBarsSpeed = 0.0f;
+}
+
+float GetParticleDistanceFade(const Vector3i& pos)
+{
+	constexpr auto PARTICLE_FADE_THRESHOLD = BLOCK(14);
+
+	float dist = Vector3::Distance(g_Camera.Position, pos.ToVector3());
+	if (dist <= PARTICLE_FADE_THRESHOLD)
+		return 1.0f;
+
+	return std::clamp(1.0f - ((dist - PARTICLE_FADE_THRESHOLD) / CAMERA_OBJECT_COLL_DIST_THRESHOLD), 0.0f, 1.0f);
 }

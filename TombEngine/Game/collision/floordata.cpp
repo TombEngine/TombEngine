@@ -196,10 +196,12 @@ std::optional<int> FloorInfo::GetSideRoomNumber() const
 	return std::nullopt;
 }
 
-int FloorInfo::GetSurfaceHeight(int x, int z, bool isFloor) const
+int FloorInfo::GetSurfaceHeight(int x, int z, bool isFloor, int triID) const
 {
 	// Get triangle.
-	const auto& tri = GetSurfaceTriangle(x, z, isFloor);
+	const auto& tri = (triID == NO_VALUE) ?
+		GetSurfaceTriangle(x, z, isFloor) :
+		isFloor ? FloorSurface.Triangles[triID] : CeilingSurface.Triangles[triID];
 
 	// Calculate relative plane height at intersection using plane equation.
 	auto sectorPoint = GetSectorPoint(x, z);
@@ -480,7 +482,7 @@ namespace TEN::Collision::Floordata
 		return roomGridCoords;
 	}
 
-	std::vector<FloorInfo*> GetNeighborSectors(const Vector3i& pos, int roomNumber, unsigned int searchDepth)
+	std::vector<FloorInfo*> GetNeighborSectors(const Vector3i& pos, int roomNumber, unsigned int searchDepth, bool searchNeighborRooms)
 	{
 		auto sectors = std::vector<FloorInfo*>{};
 
@@ -492,6 +494,10 @@ namespace TEN::Collision::Floordata
 			auto roomGridCoords = GetNeighborRoomGridCoords(pos, neighborRoomNumber, searchDepth);
 			for (const auto& roomGridCoord : roomGridCoords)
 				sectors.push_back(&GetFloor(neighborRoomNumber, roomGridCoord));
+
+			// Return sectors of origin room if not searching neighbor rooms.
+			if (!searchNeighborRooms)
+				return sectors;
 		}
 
 		// Return neighbor sectors.
@@ -842,12 +848,12 @@ namespace TEN::Collision::Floordata
 		constexpr auto SECTOR_SEARCH_DEPTH = 2;
 		constexpr auto STRING_SPACING	   = -20.0f;
 
-		constexpr auto STOPPER_COLOR				 = Vector4(1.0f, 0.4f, 0.4f, 1.0f);
-		constexpr auto DEATH_COLOR					 = Vector4(0.4f, 1.0f, 0.4f, 1.0f);
-		constexpr auto MONKEY_SWING_COLOR			 = Vector4(1.0f, 0.4f, 0.4f, 1.0f);
-		constexpr auto BEETLE_MINECART_RIGHT_COLOR	 = Vector4(0.4f, 0.4f, 1.0f, 1.0f);
-		constexpr auto ACTIVATOR_MINECART_LEFT_COLOR = Vector4(1.0f, 0.4f, 1.0f, 1.0f);
-		constexpr auto MINECART_STOP_COLOR			 = Vector4(0.4f, 1.0f, 1.0f, 1.0f);
+		constexpr auto STOPPER_COLOR				 = Color(1.0f, 0.4f, 0.4f);
+		constexpr auto DEATH_COLOR					 = Color(0.4f, 1.0f, 0.4f);
+		constexpr auto MONKEY_SWING_COLOR			 = Color(1.0f, 0.4f, 0.4f);
+		constexpr auto BEETLE_MINECART_RIGHT_COLOR	 = Color(0.4f, 0.4f, 1.0f);
+		constexpr auto ACTIVATOR_MINECART_LEFT_COLOR = Color(1.0f, 0.4f, 1.0f);
+		constexpr auto MINECART_STOP_COLOR			 = Color(0.4f, 1.0f, 1.0f);
 
 		if (g_Renderer.GetCurrentDebugPage() != RendererDebugPage::CollisionStats)
 			return;
@@ -856,7 +862,7 @@ namespace TEN::Collision::Floordata
 		auto pointColl = GetPointCollision(item);
 		auto pos = item.Pose.Position.ToVector3();
 
-		// Run through neighboring rooms.
+		// Run through neighbor rooms.
 		const auto& room = g_Level.Rooms[item.RoomNumber];
 		for (int neighborRoomNumber : room.NeighborRoomNumbers)
 		{

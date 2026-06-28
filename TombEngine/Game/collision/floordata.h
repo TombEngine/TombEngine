@@ -56,7 +56,7 @@ enum class ClimbDirectionFlags
 };
 
 // NOTE: Describes vertical room location.
-class RoomVector 
+class RoomVector
 {
 public:
 	// Fields
@@ -168,7 +168,7 @@ public:
 	std::optional<int> GetNextRoomNumber(const Vector3i& pos, bool isBelow) const;
 	std::optional<int> GetSideRoomNumber() const;
 
-	int GetSurfaceHeight(int x, int z, bool isFloor) const;
+	int GetSurfaceHeight(int x, int z, bool isFloor, int triID = NO_VALUE) const;
 	int GetSurfaceHeight(const Vector3i& pos, bool isFloor) const;
 	int GetBridgeSurfaceHeight(const Vector3i& pos, bool isFloor) const;
 
@@ -197,7 +197,7 @@ namespace TEN::Collision::Floordata
 	Vector2i				GetSectorPoint(int x, int z);
 	Vector2i				GetRoomGridCoord(int roomNumber, int x, int z, bool clampToBounds = true);
 	std::vector<Vector2i>	GetNeighborRoomGridCoords(const Vector3i& pos, int roomNumber, unsigned int searchDepth);
-	std::vector<FloorInfo*> GetNeighborSectors(const Vector3i& pos, int roomNumber, unsigned int searchDepth);
+	std::vector<FloorInfo*> GetNeighborSectors(const Vector3i& pos, int roomNumber, unsigned int searchDepth, bool searchNeighborRooms = true);
 
 	FloorInfo& GetFloor(int roomNumber, const Vector2i& roomGridCoord);
 	FloorInfo& GetFloor(int roomNumber, int x, int z);

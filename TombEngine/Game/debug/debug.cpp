@@ -154,9 +154,8 @@ namespace TEN::Debug
 		constexpr float MIN_SCALE = 0.2f;
 		constexpr float MAX_SCALE = 0.8f;
 
-		float distance = (Camera.pos.ToVector3() - pos).Length();
-		float scale = 1.0f / (distance / BLOCK(2));
-
+		float dist = (g_Camera.Position - pos).Length();
+		float scale = 1.0f / (dist / BLOCK(2));
 		if (scale < MIN_SCALE)
 			return;
 
@@ -234,5 +233,10 @@ namespace TEN::Debug
 	void DrawDebugSphere(const BoundingSphere& sphere, const Color& color, RendererDebugPage page, bool isWireframe)
 	{
 		g_Renderer.AddDebugSphere(sphere, color, page, isWireframe);
+	}
+
+	RendererDebugPage GetDebugPage()
+	{
+		return g_Renderer.GetDebugPage();
 	}
 }

@@ -76,9 +76,9 @@ static void HandlePlayerDebug(const ItemInfo& item)
 	else if (g_Renderer.GetDebugPage() == RendererDebugPage::CollisionMeshStats)
 	{
 		auto bridgeItemNumbers = std::set<int>{};
-		const auto& room = g_Level.Rooms[Camera.pos.RoomNumber];
+		const auto& room = g_Level.Rooms[g_Camera.RoomNumber];
 
-		PrintDebugMessage("Room number: %d", Camera.pos.RoomNumber);
+		PrintDebugMessage("Room number: %d", g_Camera.RoomNumber);
 		PrintDebugMessage("Sectors: %d", room.Sectors.size());
 		PrintDebugMessage("Bridges: %d", room.Bridges.GetIds().size());
 		PrintDebugMessage("Trigger volumes: %d", room.TriggerVolumes.size());
@@ -127,8 +127,8 @@ static void HandlePlayerDebug(const ItemInfo& item)
 	// Portal stats.
 	else if (g_Renderer.GetDebugPage() == RendererDebugPage::PortalStats)
 	{
-		const auto& room = g_Level.Rooms[Camera.pos.RoomNumber];
-		PrintDebugMessage("Portals in room %d: %d", Camera.pos.RoomNumber, room.Portals.size());
+		const auto& room = g_Level.Rooms[g_Camera.RoomNumber];
+		PrintDebugMessage("Portals in room %d: %d", g_Camera.RoomNumber, room.Portals.size());
 
 		for (int neighborRoomNumber : room.NeighborRoomNumbers)
 		{
@@ -142,6 +142,10 @@ static void HandlePlayerDebug(const ItemInfo& item)
 void LaraControl(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
+
+	// Update reference move axis.
+	if (GetMoveAxis() != Vector2::Zero)
+		player.Control.RefMoveAxis = GetMoveAxis();
 
 	// Alert nearby creatures.
 	if (player.Control.Weapon.HasFired)
@@ -204,7 +208,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 			if (water.HeightFromWater == NO_HEIGHT || water.HeightFromWater < WADE_WATER_DEPTH)
 				break;
 
-			Camera.targetElevation = ANGLE(-22.0f);
+			g_Camera.targetElevation = ANGLE(-22.0f);
 
 			// Water is at swim depth; dispatch dive.
 			if (water.WaterDepth >= SWIM_WATER_DEPTH && !water.IsSwamp)
@@ -357,7 +361,7 @@ void LaraControl(ItemInfo* item, CollisionInfo* coll)
 			break;
 
 		case WaterStatus::Wade:
-			Camera.targetElevation = ANGLE(-22.0f);
+			g_Camera.targetElevation = ANGLE(-22.0f);
 
 			if (water.HeightFromWater >= WADE_WATER_DEPTH)
 			{
@@ -450,7 +454,6 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 	}
 	else
 	{
-		// TODO: Extend ResetLaraFlex() to be a catch-all function.
 		ResetPlayerLookAround(*item);
 	}
 	player.Control.Look.Mode = LookMode::None;
@@ -491,9 +494,6 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.IsLow = false;
-	Camera.targetElevation = -ANGLE(22.0f);
-
 	// Reset collision setup.
 	coll->Setup.Mode = CollisionProbeMode::FreeForward;
 	coll->Setup.Radius = LARA_RADIUS;
@@ -511,6 +511,9 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.EnableSpasm = false;
 	coll->Setup.ForceSolidStatics = false;
 	coll->Setup.PrevPosition = item->Pose.Position;
+
+	player.Control.IsLow = false;
+	g_Camera.targetElevation = ANGLE(-22.0f);
 
 	// Handle look-around.
 	if (IsHeld(In::Look) && CanPlayerLookAround(*item))
@@ -531,9 +534,9 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 
 	// TODO: Subsuit gradually slows down at rate of 0.5 degrees. @Sezz 2022.06.23
 	// Apply and reset turn rate.
-	item->Pose.Orientation.y += player.Control.TurnRate;
+	item->Pose.Orientation.y += player.Control.TurnRate.y;
 	if (!(IsHeld(In::Left) || IsHeld(In::Right)))
-		player.Control.TurnRate = 0;
+		player.Control.TurnRate.y = 0;
 
 	if (hasDivesuit)
 		UpdateLaraSubsuitAngles(item);
@@ -546,7 +549,7 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 		LaraWaterCurrent(item, coll);
 
 	AnimateItem(item);
-	item->Pose.Translate(player.Control.MoveAngle, item->Animation.Velocity.y);
+	item->Pose.Translate(player.Control.HeadingOrient.y, item->Animation.Velocity.y);
 
 	DoObjectCollision(item, coll);
 
@@ -565,8 +568,6 @@ void LaraUnderwater(ItemInfo* item, CollisionInfo* coll)
 {
 	auto& player = GetLaraInfo(*item);
 
-	player.Control.IsLow = false;
-
 	// Reset collision setup.
 	coll->Setup.Mode = CollisionProbeMode::Quadrants;
 	coll->Setup.Radius = LARA_RADIUS_UNDERWATER;
@@ -584,6 +585,8 @@ void LaraUnderwater(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.EnableSpasm = false;
 	coll->Setup.ForceSolidStatics = false;
 	coll->Setup.PrevPosition = item->Pose.Position;
+
+	player.Control.IsLow = false;
 
 	// Handle look-around.
 	if (IsHeld(In::Look) && CanPlayerLookAround(*item))
@@ -604,9 +607,9 @@ void LaraUnderwater(ItemInfo* item, CollisionInfo* coll)
 
 	// TODO: Subsuit gradually slowed down at rate of 0.5 degrees. @Sezz 2022.06.23
 	// Apply and reset turn rate.
-	item->Pose.Orientation.y += player.Control.TurnRate;
+	item->Pose.Orientation.y += player.Control.TurnRate.y;
 	if (!(IsHeld(In::Left) || IsHeld(In::Right)))
-		player.Control.TurnRate = 0;
+		player.Control.TurnRate.y = 0;
 
 	if (hasDivesuit)
 		UpdateLaraSubsuitAngles(item);
@@ -708,13 +711,12 @@ void LaraCheat(ItemInfo* item, CollisionInfo* coll)
 
 		if (los.has_value() && los.value().Item)
 		{
-			auto& losValue = los.value();
-			auto objectName = GetObjectName(losValue.Item->ObjectNumber);
+			auto objectName = GetObjectName(los->Item->ObjectNumber);
 
-			if (losValue.Distance <= BLOCK(1.5f) && objectName.find("DOOR") != std::string::npos)
+			if (los->Distance <= BLOCK(1.5f) && objectName.find("DOOR") != std::string::npos)
 			{
-				losValue.Item->Flags |= CODE_BITS;
-				Trigger(losValue.Item->Index);
+				los->Item->Flags |= CODE_BITS;
+				Trigger(los->Item->Index);
 			}
 		}
 	}

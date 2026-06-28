@@ -69,7 +69,7 @@ namespace TEN::Entities::Creatures::TR2
 
 		effectTimer++;
 		if ((effectTimer & 7) == 0)
-			Camera.bounce = item.Timer;
+			g_Camera.bounce = item.Timer;
 
 		// Spawn light.
 		auto lightPos = item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(1), 0.0f);

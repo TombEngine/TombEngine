@@ -1232,7 +1232,7 @@ void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType)
 		if (!IsHeld(In::Action))
 		{
 			player.Control.Weapon.NumShotsFired = 0;
-			Camera.bounce = 0;
+			g_Camera.bounce = 0;
 		}
 	}
 	else
@@ -1245,7 +1245,7 @@ void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType)
 			if (!ammo.HasInfinite())
 				ammo--;
 
-			Camera.bounce = -16 - (GetRandomControl() & 0x1F);
+			g_Camera.bounce = -16 - (GetRandomControl() & 0x1F);
 		}
 		else if (player.Control.Weapon.GunType == LaraWeaponType::Crossbow)
 		{
@@ -1291,7 +1291,7 @@ void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType)
 			if (playSound)
 			{
 				SoundEffect(SFX_TR4_HK_FIRE, nullptr);
-				Camera.bounce = -16 - (GetRandomControl() & 0x1F);
+				g_Camera.bounce = -16 - (GetRandomControl() & 0x1F);
 			}
 
 			if (!ammo.HasInfinite() && isFiring)
@@ -1302,7 +1302,7 @@ void LasersightWeaponHandler(ItemInfo& item, LaraWeaponType weaponType)
 		{
 			SaveGame::Statistics.Level.AmmoUsed++;
 			SaveGame::Statistics.Game.AmmoUsed++;
-			GetTargetOnLOS(&Camera.pos, &Camera.target);
+			GetTargetOnLOS(&GameVector(g_Camera.Position, g_Camera.RoomNumber), &GameVector(g_Camera.LookAt, g_Camera.LookAtRoomNumber));
 		}
 	}
 }
@@ -1327,7 +1327,7 @@ void RifleHandler(ItemInfo& laraItem, LaraWeaponType weaponType)
 	{
 		player.ExtraTorsoRot = player.LeftArm.Orientation;
 
-		if (Camera.oldType != CameraType::Look && player.Control.Look.OpticRange == 0)
+		if (g_Camera.oldType != CameraType::Look && player.Control.Look.OpticRange == 0)
 			player.ExtraHeadRot = EulerAngles::Identity;
 	}
 

@@ -7,10 +7,10 @@
 using namespace TEN::Math;
 using namespace TEN::Physics;
 
-enum GAME_OBJECT_ID : short;
-enum class ReverbType;
 class FloorInfo;
 class GameBoundingBox;
+enum GAME_OBJECT_ID : short;
+enum class ReverbType;
 struct BUCKET;
 struct TriggerVolume;
 

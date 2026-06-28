@@ -327,7 +327,7 @@ namespace TEN::Animation
 				item.Animation.Velocity.y = vel.y;
 		}
 
-		// Bypass vertical translation, if vertical root motion is not enabled.
+		// Bypass vertical translation if vertical root motion is disabled.
 		float vertVelocity = verticalRootMotion ? item.Animation.Velocity.y : 0.0f;
 
 		// Update animation.
@@ -335,12 +335,13 @@ namespace TEN::Animation
 		{
 			const auto& player = GetLaraInfo(item);
 
-			if (player.Control.Rope.Ptr != NO_VALUE)
-				DelAlignLaraToRope(&item);
+			// @modernme This causes a crash.
+			//if (player.Control.Rope.Ptr != NO_VALUE)
+			//	DelAlignLaraToRope(&item);
 
 			if (!player.Control.IsMoving)
 			{
-				item.Pose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, vertVelocity, item.Animation.Velocity.x);
+				item.Pose.Translate(player.Control.HeadingOrient.y, item.Animation.Velocity.z, vertVelocity, item.Animation.Velocity.x);
 				item.Pose.Orientation += rootMotion.Rotation;
 			}
 
