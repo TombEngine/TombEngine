@@ -41,9 +41,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed SNOWMOBILE death being too sensitive to vertical velocity.
 * Fixed BATS_EMITTER targeting issues.
 * Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
+* Fixed SOPHIA_LEIGH_BOSS pathfinding and knockback effect.
 * Fixed TEETH_SPIKES behaviour for OCB 1 and move static TR1-3 mode to pre-activated trigger bit flags.
-* Fixed SOPHIA_LEIGH_BOSS locationAI going negative if player is below her.
-* Fixed SOPHIA_LEIGH_BOSS not performing her knock-back attack whilst moving. 
 * Fixed empty inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed regular spark sprite distance while moving with flare in hand.
@@ -52,7 +51,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed flyby camera flag "Let Lara move in cinematic mode" being ignored.
 * Fixed flyby camera jitter by converting the spline type to floating-point.
 * Fixed occasional flame emitter sprite jitter.
-
 * Fixed incorrect static mesh interpolation after a large position change.
 * Fixed interaction highlighter appearing for underwater pushable objects.
 * Fixed clipping into underwater pushable objects while swimming upwards from the bottom.
