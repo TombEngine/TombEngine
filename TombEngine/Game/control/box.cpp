@@ -2351,11 +2351,11 @@ void FindAITargetObject(CreatureInfo* creature, int objectNumber)
 
 void FindAITargetObject(CreatureInfo* creature, int objectNumber, int ocb, bool checkSameZone)
 {
-	AI_OBJECT* foundObject = nullptr;
 	if (g_Level.AIObjects.empty())
 		return;
 
 	auto& item = g_Level.Items[creature->ItemNumber];
+	AI_OBJECT* foundObject = nullptr;
 
 	for (auto& aiObject : g_Level.AIObjects)
 	{
