@@ -170,10 +170,10 @@ namespace TEN::Entities::Creatures::TR3
 		if (!item.IsLara())
 			return; // Set Lara to fall back.
 
-		SetAnimation(item, LA_FALL_BACK);
+		SetAnimation(item, LA_FALL_BACK, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 	}
 
-	static void TriggerKnockback(ItemInfo& item, int life = 32)
+	static void TriggerKnockback(ItemInfo& item)
 	{
 		auto& creature = *GetCreatureInfo(&item);
 		auto& enemy = *creature.Enemy;
@@ -188,9 +188,9 @@ namespace TEN::Entities::Creatures::TR3
 		auto distance = Vector3::Distance(item.Pose.Position.ToVector3(), enemy.Pose.Position.ToVector3());
 		if (distance <= SOPHIALEIGH_KNOCKBACK_RANGE)
 		{
-			byte red = SOPHIALEIGH_EFFECT_COLOR.x * UCHAR_MAX;
-			byte green = SOPHIALEIGH_EFFECT_COLOR.y * UCHAR_MAX;
-			byte blue = SOPHIALEIGH_EFFECT_COLOR.z * UCHAR_MAX;
+			unsigned char red = SOPHIALEIGH_EFFECT_COLOR.x * UCHAR_MAX;
+			unsigned char green = SOPHIALEIGH_EFFECT_COLOR.y * UCHAR_MAX;
+			unsigned char blue = SOPHIALEIGH_EFFECT_COLOR.z * UCHAR_MAX;
 
 			auto sphere = BoundingSphere(item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(2), 0.0f), BLOCK(1 / 16.0f));
 			auto centerPos = Pose(Random::GeneratePointInSphere(sphere), item.Pose.Orientation);
@@ -334,7 +334,7 @@ namespace TEN::Entities::Creatures::TR3
 			}
 			else if (creature->ReachedGoal && ai.ahead && isValidTarget) // Wait for Lara to be in front before firing.
 			{
-				if (item.ItemFlags[4] == 1) // Charged state, SHOOT IT!
+				if (item.ItemFlags[4] == 1) // State changed, perform shooting.
 				{
 					item.Animation.TargetState = SOPHIALEIGH_STATE_BIG_SHOOT;
 				}
@@ -794,7 +794,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (item.HitPoints <= 0)
 		{
 			if (item.Animation.ActiveState != SOPHIALEIGH_STATE_DEATH)
-				SetAnimation(item, SOPHIALEIGH_ANIM_DEATH);
+				SetAnimation(item, SOPHIALEIGH_ANIM_DEATH, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 
 			int endFrameNumber = GetAnimData(object, SOPHIALEIGH_ANIM_DEATH).EndFrameNumber;
 			if (item.Animation.FrameNumber >= endFrameNumber)
@@ -832,27 +832,31 @@ namespace TEN::Entities::Creatures::TR3
 		if ((item.Animation.ActiveState < SOPHIALEIGH_STATE_CLIMB2 || item.Animation.ActiveState > SOPHIALEIGH_STATE_FALL4CLICK) &&
 			item.Animation.ActiveState != SOPHIALEIGH_STATE_DEATH)
 		{
+			int animNumber = NO_VALUE;
+
 			switch (CreatureVault(itemNumber, data.angle, 2, SOPHIALEIGH_VAULT_SHIFT))
 			{
 			case 2:
-				creature.MaxTurn = 0;
-				SetAnimation(item, SOPHIALEIGH_ANIM_CLIMB2CLICK);
+				animNumber = SOPHIALEIGH_ANIM_CLIMB2CLICK;
 				break;
 
 			case 3:
-				creature.MaxTurn = 0;
-				SetAnimation(item, SOPHIALEIGH_ANIM_CLIMB3CLICK);
+				animNumber = SOPHIALEIGH_ANIM_CLIMB3CLICK;
 				break;
 
 			case 4:
-				creature.MaxTurn = 0;
-				SetAnimation(item, SOPHIALEIGH_ANIM_CLIMB4CLICK);
+				animNumber = SOPHIALEIGH_ANIM_CLIMB4CLICK;
 				break;
 
 			case -4:
-				creature.MaxTurn = 0;
-				SetAnimation(item, SOPHIALEIGH_ANIM_FALL4CLICK);
+				animNumber = SOPHIALEIGH_ANIM_FALL4CLICK;
 				break;
+			}
+
+			if (animNumber != NO_VALUE)
+			{
+				creature.MaxTurn = 0;
+				SetAnimation(item, animNumber, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
 			}
 		}
 		else

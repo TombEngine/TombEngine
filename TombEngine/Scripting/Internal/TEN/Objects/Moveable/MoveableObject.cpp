@@ -699,7 +699,7 @@ void Moveable::SetLocationAI(short value)
 	if (_moveable->IsCreature())
 	{
 		auto creature = (CreatureInfo*)_moveable->Data;
-		value = std::max<short>(value, 0);
+		value = std::max(value, (short)0);
 		creature->LocationAI = value;
 	}
 	else
