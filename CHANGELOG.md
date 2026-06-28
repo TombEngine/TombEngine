@@ -42,7 +42,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed BATS_EMITTER targeting issues.
 * Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
 * Fixed TEETH_SPIKES behaviour for OCB 1 and move static TR1-3 mode to pre-activated trigger bit flags.
-* Fixed SNOWMOBILE vehicle being too sensitive to drops.
 * Fixed empty inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed regular spark sprite distance while moving with flare in hand.
@@ -60,6 +59,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed an issue where the storm effect would stop producing lightning over time.
 * Fixed incorrect aspect ratio when resizing the window in windowed mode.
 * Fixed title level selection dialog not scrolling offscreen entries.
+* Fixed incorrect blend mode application for sprites.
 * Fixed UI bars being affected by the postprocess mode.
 
 ### Lua API changes
