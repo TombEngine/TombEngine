@@ -69,7 +69,7 @@ local strings =
     pm_help_light_gamepad     = {"LStick: Move RT+RStick: Raise/Lower"},
 }
 
-strings.pm_help_nav           = {"Q/E: Switch Tab  Draw: " .. strings.pm_hide_ui[1] .. "  Look/F12: " .. strings.pm_screenshot[1] .. "  Inventory: Exit"}
+strings.pm_help_nav           = {"Q/E: Switch Tab  Look: " .. strings.pm_hide_ui[1] .. "  Draw/F12: " .. strings.pm_screenshot[1] .. "  Inventory: Exit"}
 strings.pm_help_nav_gamepad   = {"LS/RS: Switch Tab  Y: " .. strings.pm_hide_ui[1] .. "  LT: " .. strings.pm_screenshot[1] .. "  Inventory: Exit"}
 
 TEN.Flow.SetStrings(strings)
