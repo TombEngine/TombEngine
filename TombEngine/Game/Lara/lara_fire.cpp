@@ -9,6 +9,7 @@
 #include "Game/control/los.h"
 #include "Game/control/lot.h"
 #include "Game/effects/effects.h"
+#include "Game/effects/Light.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
 #include "Game/Lara/lara_flare.h"
@@ -302,6 +303,27 @@ WeaponInfo Weapons[(int)LaraWeaponType::NumWeapons] =
 	}
 };
 
+const std::unordered_map<LaraWeaponType, HolsterSlot> WEAPON_TO_HOLSTER_SLOT =
+{
+	{ LaraWeaponType::Pistol,          HolsterSlot::Pistols         },
+	{ LaraWeaponType::Uzi,             HolsterSlot::Uzis            },
+	{ LaraWeaponType::Revolver,        HolsterSlot::Revolver        },
+	{ LaraWeaponType::Shotgun,         HolsterSlot::Shotgun         },
+	{ LaraWeaponType::HK,              HolsterSlot::HK              },
+	{ LaraWeaponType::HarpoonGun,      HolsterSlot::Harpoon         },
+	{ LaraWeaponType::Crossbow,        HolsterSlot::Crossbow        },
+	{ LaraWeaponType::GrenadeLauncher, HolsterSlot::GrenadeLauncher },
+	{ LaraWeaponType::RocketLauncher,  HolsterSlot::RocketLauncher  },
+};
+
+const auto HOLSTER_SLOT_TO_WEAPON = []()
+{
+	std::unordered_map<HolsterSlot, LaraWeaponType> reverse;
+	for (const auto& [weapon, slot] : WEAPON_TO_HOLSTER_SLOT)
+		reverse.emplace(slot, weapon);
+	return reverse;
+}();
+
 // TODO: Use map like in GetWeaponAnimData();
 const WeaponInfo& GetWeaponInfo(LaraWeaponType weaponType)
 {
@@ -348,6 +370,8 @@ void InitializeNewWeapon(ItemInfo& laraItem)
 	player.RightArm.Locked = false;
 	player.LeftArm.GunFlash =
 	player.RightArm.GunFlash = 0;
+	player.LeftArm.GunFlashType =
+	player.RightArm.GunFlashType = LaraWeaponType::None;
 
 	switch (player.Control.Weapon.GunType)
 	{
@@ -416,37 +440,74 @@ GameVector GetTargetPoint(ItemInfo& targetEntity)
 
 HolsterSlot GetWeaponHolsterSlot(LaraWeaponType weaponType)
 {
-	switch (weaponType)
+	auto it = WEAPON_TO_HOLSTER_SLOT.find(weaponType);
+	return (it != WEAPON_TO_HOLSTER_SLOT.end()) ? it->second : HolsterSlot::Empty;
+}
+
+LaraWeaponType GetHolsterSlotWeapon(HolsterSlot slot)
+{
+	auto it = HOLSTER_SLOT_TO_WEAPON.find(slot);
+	return (it != HOLSTER_SLOT_TO_WEAPON.end()) ? it->second : LaraWeaponType::None;
+}
+
+void SpawnWeaponFlash(ItemInfo& laraItem, WeaponFlashMode mode, LaraWeaponType weaponType)
+{
+	if (!laraItem.IsLara())
+		return;
+
+	if (weaponType == LaraWeaponType::None ||
+		weaponType == LaraWeaponType::Flare ||
+		weaponType == LaraWeaponType::Torch ||
+		weaponType == LaraWeaponType::Snowmobile)
 	{
-	case LaraWeaponType::Pistol:
-		return HolsterSlot::Pistols;
+		return;
+	}
 
-	case LaraWeaponType::Uzi:
-		return HolsterSlot::Uzis;
+	const auto& settings = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1];
 
-	case LaraWeaponType::Revolver:
-		return HolsterSlot::Revolver;
+	if (!settings.MuzzleFlash)
+		return;
 
-	case LaraWeaponType::Shotgun:
-		return HolsterSlot::Shotgun;
+	auto& player = GetLaraInfo(laraItem);
 
-	case LaraWeaponType::HK:
-		return HolsterSlot::HK;
+	bool isDualWield = mode == WeaponFlashMode::Auto && (weaponType == LaraWeaponType::Pistol || weaponType == LaraWeaponType::Uzi);
 
-	case LaraWeaponType::HarpoonGun:
-		return HolsterSlot::Harpoon;
+	// Reset both arms first to clear any previously set flash from a different weapon type.
+	if (mode == WeaponFlashMode::Auto)
+	{
+		player.LeftArm.GunFlash = player.RightArm.GunFlash = 0;
+		player.LeftArm.GunFlashType = player.RightArm.GunFlashType = LaraWeaponType::None;
+	}
 
-	case LaraWeaponType::Crossbow:
-		return HolsterSlot::Crossbow;
+	if (mode == WeaponFlashMode::Right || mode == WeaponFlashMode::Auto)
+	{
+		player.RightArm.GunFlash = 3;
+		player.RightArm.GunFlashType = weaponType;
+	}
 
-	case LaraWeaponType::GrenadeLauncher:
-		return HolsterSlot::GrenadeLauncher;
+	if (mode == WeaponFlashMode::Left || isDualWield)
+	{
+		player.LeftArm.GunFlash = 3;
+		player.LeftArm.GunFlashType = weaponType;
+	}
 
-	case LaraWeaponType::RocketLauncher:
-		return HolsterSlot::RocketLauncher;
+	// Spawn gunflash light only when weapon is armed, because otherwise it is handled in HandleWeapon function.
+	if (mode == WeaponFlashMode::Auto || player.Control.HandStatus != HandStatus::WeaponReady)
+	{
+		auto color = Color(settings.FlashColor);
 
-	default:
-		return HolsterSlot::Empty;
+		if (isDualWield)
+		{
+			auto lhandPos = GetJointPosition(&laraItem, LM_LHAND).ToVector3();
+			auto rhandPos = GetJointPosition(&laraItem, LM_RHAND).ToVector3();
+			auto basePos = (lhandPos + rhandPos) / 2.0f;
+			SpawnDynamicPointLight(basePos, color, CLICK(settings.FlashRange));
+		}
+		else
+		{
+			auto pos = GetJointPosition(&laraItem, mode == WeaponFlashMode::Left ? LM_LHAND : LM_RHAND);
+			SpawnDynamicPointLight(pos.ToVector3(), color, CLICK(settings.FlashRange));
+		}
 	}
 }
 
@@ -534,11 +595,11 @@ void HandleWeapon(ItemInfo& laraItem)
 {
 	auto& player = *GetLaraInfo(&laraItem);
 
-	if (player.LeftArm.GunFlash > 0)
-		--player.LeftArm.GunFlash;
+	if (player.LeftArm.GunFlash > 0 && --player.LeftArm.GunFlash == 0)
+		player.LeftArm.GunFlashType = LaraWeaponType::None;
 
-	if (player.RightArm.GunFlash > 0)
-		--player.RightArm.GunFlash;
+	if (player.RightArm.GunFlash > 0 && --player.RightArm.GunFlash == 0)
+		player.RightArm.GunFlashType = LaraWeaponType::None;
 
 	if (player.RightArm.GunSmoke > 0)
 		--player.RightArm.GunSmoke;

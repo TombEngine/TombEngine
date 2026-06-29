@@ -166,6 +166,7 @@ static void AnimateWeapon(ItemInfo& laraItem, LaraWeaponType weaponType, bool& h
 						arm.GunSmoke = 28;
 						TriggerGunShell(isRightWeapon ? true : false, ID_GUNSHELL, weaponType);
 						arm.GunFlash = weapon.FlashTime;
+						arm.GunFlashType = weaponType;
 
 						if (weaponType == LaraWeaponType::Uzi)
 							uziBool = true;
