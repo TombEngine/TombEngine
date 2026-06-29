@@ -212,6 +212,7 @@ namespace TEN::Gui
 		void HandleOtherSettingsInput(bool fromPauseMenu);
 		void HandleOptionsInput();
 		void BackupOptions();
+		void RebuildDisplayResolutions();
 		bool DoObjectsCombine(int objectNumber1, int objectNumber2);
 		void InitializeInventory(ItemInfo* item);
 		void FillDisplayOptions();

@@ -698,7 +698,6 @@ namespace TEN::Renderer
 		void RenderScene(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode = SceneRenderMode::Full);
 		void PrepareScene();
 		void ClearScene();
-		void SaveScreenshot();
 		void DrawDisplayPickup(const DisplayPickup& pickup);
 		int  Synchronize();
 		void AddString(int x, int y, const std::string& string, unsigned int color, int flags);
@@ -719,7 +718,7 @@ namespace TEN::Renderer
 		void UpdatePlayerSkinVertices(GAME_OBJECT_ID skinID, GAME_OBJECT_ID skinJointsID, GAME_OBJECT_ID hairPrimaryID, GAME_OBJECT_ID hairSecondaryID);
 		void ToggleFullScreen(bool force = false);
 		void SetFullScreen();
-		bool IsFullsScreen();
+		bool IsFullScreen();
 		void RenderTitleImage();
 
 		void AddLine2D(const Vector2& origin, const Vector2& target, const Color& color, RendererDebugPage page = RendererDebugPage::None);
@@ -755,6 +754,7 @@ namespace TEN::Renderer
 		void SetLoadingScreen(const std::string& fileName);
 		std::unique_ptr<ITexture2D> SetTextureOrDefault(std::string path);
 		std::string GetDefaultAdapterName();
+		std::string SaveScreenshot();
 		const AdapterInfo& GetAdapterInfo() const;
 		void SaveOldState();
 
@@ -783,6 +783,7 @@ namespace TEN::Renderer
 		void			RestoreDOF();
 
 		void SetGraphicsSettingsChanged();
+		void UpdateDumpScreenRenderTarget();
 
 		RendererDebugPage GetDebugPage() const;
 	};

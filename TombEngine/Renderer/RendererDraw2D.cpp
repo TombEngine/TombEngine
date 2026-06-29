@@ -42,7 +42,7 @@ namespace TEN::Renderer
 	constexpr auto HEALTH_BAR_VERT_POS	 = Vector2(DISPLAY_SPACE_RES.x * 0.5f, 50.0f);
 	constexpr auto STAMINA_BAR_VERT_POS  = Vector2(DISPLAY_SPACE_RES.x * 0.5f, 70.0f);
 	constexpr auto EXPOSURE_BAR_VERT_POS = Vector2(DISPLAY_SPACE_RES.x * 0.5f, 90.0f);
-	constexpr auto LOADING_BAR_VERT_POS	 = Vector2(DISPLAY_SPACE_RES.x * 0.5f, 110.0f);
+	constexpr auto LOADING_BAR_VERT_POS	 = Vector2(DISPLAY_SPACE_RES.x * 0.5f, 550.0f);
 
 	static Matrix GetHudBarTransform(IGraphicsDevice& graphicsDevice, const RendererHudBar& bar)
 	{
@@ -51,7 +51,7 @@ namespace TEN::Renderer
 		auto sourcePivot = bar.Position;
 		auto targetPivot = bar.Position;
 
-		if (screenAspect >= DISPLAY_SPACE_ASPECT)
+		if (screenAspect >= 1.0f)
 		{
 			scale.y = screenAspect / DISPLAY_SPACE_ASPECT;
 		}
@@ -603,6 +603,10 @@ namespace TEN::Renderer
 		{
 			// If sprite is a video texture, bypass it if texture is inactive.
 			if (displaySprite.SpriteID == VIDEO_SPRITE_ID && (_videoSprite.Texture == nullptr || !_videoSprite.Texture->IsValid()))
+				continue;
+
+			// If sprite is not a video texture and no sprites present, bypass it.
+			if (displaySprite.SpriteID != VIDEO_SPRITE_ID && _sprites.empty())
 				continue;
 
 			const auto& sprite = displaySprite.SpriteID == VIDEO_SPRITE_ID ? _videoSprite : _sprites[Objects[displaySprite.ObjectID].meshIndex + displaySprite.SpriteID];

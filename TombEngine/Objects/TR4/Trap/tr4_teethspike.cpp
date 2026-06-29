@@ -33,6 +33,10 @@ namespace TEN::Entities::Traps
 		item.Status = ITEM_INVISIBLE;
 		item.ItemFlags[0] = 1024;
 		item.ItemFlags[2] = 0;
+
+		// Immediately set spike state to fully protruded if OCB is 1 and object was pre-activated.
+		if (item.TriggerFlags == 1 && item.Flags & IFLAG_REVERSE)
+			item.ItemFlags[1] = 5120;
 	}
 
 	ContainmentType TestBoundsCollideTeethSpikes(ItemInfo* item, ItemInfo* collidingItem)
@@ -67,12 +71,8 @@ namespace TEN::Entities::Traps
 			int radius = std::max(abs(bounds.X2 - bounds.X1), abs(bounds.Z2 - bounds.Z1)) / 2;
 
 			// Play sound only if spikes are just emerging.
-			if (item.ItemFlags[0] == 1024 && item.TriggerFlags != 1)
+			if (item.ItemFlags[0] == 1024 && item.ItemFlags[1] != 5120)
 				SoundEffect(SFX_TR4_TEETH_SPIKES, &item.Pose);
-
-			// Immediately set spike state to fully protruded if flag is set.
-			if (item.TriggerFlags == 1)
-				item.ItemFlags[1] = 5120;
 
 			// Kill enemies.
 			item.Animation.Velocity.z = VEHICLE_COLLISION_TERMINAL_VELOCITY;
@@ -219,7 +219,10 @@ namespace TEN::Entities::Traps
 				item.ItemFlags[0] += (item.ItemFlags[0] >> 3) + 32;
 				item.ItemFlags[1] -= item.ItemFlags[0];
 				if (item.ItemFlags[1] < 0)
+				{
+					item.ItemFlags[0] = 1024;
 					item.ItemFlags[1] = 0;
+				}
 			}
 		}
 
