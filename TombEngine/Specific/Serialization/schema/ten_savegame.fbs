@@ -709,7 +709,6 @@ table SaveGame {
 	items: [Item];
 	next_item_free: int32;  // for compatibility
 	next_item_active: int32;  // for compatibility
-	room_items: [int32];
 	fish_swarm: [FishData];
 	firefly_swarm: [FireflyData];
 	fxinfos: [FXInfo];
@@ -757,8 +756,6 @@ table SaveGame {
 	callbacks: [CallbackSet];
 	active_items: [int32];
 	free_item_slots: [int32];
-	active_effects: [int32];
-	free_effect_slots: [int32];
 	moveable_type_properties: [TypePropertyMap];
 	static_type_properties: [TypePropertyMap];
 }

@@ -10071,7 +10071,6 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<TEN::Serialization::Save::ItemT>> items{};
   int32_t next_item_free = 0;
   int32_t next_item_active = 0;
-  std::vector<int32_t> room_items{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::FishDataT>> fish_swarm{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::FireflyDataT>> firefly_swarm{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::FXInfoT>> fxinfos{};
@@ -10116,8 +10115,6 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<TEN::Serialization::Save::CallbackSetT>> callbacks{};
   std::vector<int32_t> active_items{};
   std::vector<int32_t> free_item_slots{};
-  std::vector<int32_t> active_effects{};
-  std::vector<int32_t> free_effect_slots{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>> moveable_type_properties{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>> static_type_properties{};
 };
@@ -10139,55 +10136,52 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_ITEMS = 22,
     VT_NEXT_ITEM_FREE = 24,
     VT_NEXT_ITEM_ACTIVE = 26,
-    VT_ROOM_ITEMS = 28,
-    VT_FISH_SWARM = 30,
-    VT_FIREFLY_SWARM = 32,
-    VT_FXINFOS = 34,
-    VT_NEXT_FX_FREE = 36,
-    VT_NEXT_FX_ACTIVE = 38,
-    VT_FIXED_CAMERAS = 40,
-    VT_SINKS = 42,
-    VT_STATIC_MESHES = 44,
-    VT_FLYBY_CAMERAS = 46,
-    VT_PARTICLES = 48,
-    VT_RATS = 50,
-    VT_SPIDERS = 52,
-    VT_SCARABS = 54,
-    VT_BATS = 56,
-    VT_LOCUSTS = 58,
-    VT_DECALS = 60,
-    VT_FLIP_MAPS = 62,
-    VT_FLIP_STATS = 64,
-    VT_FLIP_EFFECT = 66,
-    VT_FLIP_TIMER = 68,
-    VT_FLIP_STATUS = 70,
-    VT_CURRENT_FOV = 72,
-    VT_LAST_INV_ITEM = 74,
-    VT_ACTION_QUEUE = 76,
-    VT_SOUNDTRACKS = 78,
-    VT_CD_FLAGS = 80,
-    VT_VIDEO = 82,
-    VT_POSTPROCESS_MODE = 84,
-    VT_POSTPROCESS_STRENGTH = 86,
-    VT_POSTPROCESS_TINT = 88,
-    VT_DOF_DISTANCE = 90,
-    VT_DOF_RANGE = 92,
-    VT_DOF_STRENGTH = 94,
-    VT_DOF_MODE = 96,
-    VT_ROPE = 98,
-    VT_PENDULUM = 100,
-    VT_ALTERNATE_PENDULUM = 102,
-    VT_VOLUMES = 104,
-    VT_GLOBAL_EVENT_SETS = 106,
-    VT_VOLUME_EVENT_SETS = 108,
-    VT_SCRIPT_VARS = 110,
-    VT_CALLBACKS = 112,
-    VT_ACTIVE_ITEMS = 114,
-    VT_FREE_ITEM_SLOTS = 116,
-    VT_ACTIVE_EFFECTS = 118,
-    VT_FREE_EFFECT_SLOTS = 120,
-    VT_MOVEABLE_TYPE_PROPERTIES = 122,
-    VT_STATIC_TYPE_PROPERTIES = 124
+    VT_FISH_SWARM = 28,
+    VT_FIREFLY_SWARM = 30,
+    VT_FXINFOS = 32,
+    VT_NEXT_FX_FREE = 34,
+    VT_NEXT_FX_ACTIVE = 36,
+    VT_FIXED_CAMERAS = 38,
+    VT_SINKS = 40,
+    VT_STATIC_MESHES = 42,
+    VT_FLYBY_CAMERAS = 44,
+    VT_PARTICLES = 46,
+    VT_RATS = 48,
+    VT_SPIDERS = 50,
+    VT_SCARABS = 52,
+    VT_BATS = 54,
+    VT_LOCUSTS = 56,
+    VT_DECALS = 58,
+    VT_FLIP_MAPS = 60,
+    VT_FLIP_STATS = 62,
+    VT_FLIP_EFFECT = 64,
+    VT_FLIP_TIMER = 66,
+    VT_FLIP_STATUS = 68,
+    VT_CURRENT_FOV = 70,
+    VT_LAST_INV_ITEM = 72,
+    VT_ACTION_QUEUE = 74,
+    VT_SOUNDTRACKS = 76,
+    VT_CD_FLAGS = 78,
+    VT_VIDEO = 80,
+    VT_POSTPROCESS_MODE = 82,
+    VT_POSTPROCESS_STRENGTH = 84,
+    VT_POSTPROCESS_TINT = 86,
+    VT_DOF_DISTANCE = 88,
+    VT_DOF_RANGE = 90,
+    VT_DOF_STRENGTH = 92,
+    VT_DOF_MODE = 94,
+    VT_ROPE = 96,
+    VT_PENDULUM = 98,
+    VT_ALTERNATE_PENDULUM = 100,
+    VT_VOLUMES = 102,
+    VT_GLOBAL_EVENT_SETS = 104,
+    VT_VOLUME_EVENT_SETS = 106,
+    VT_SCRIPT_VARS = 108,
+    VT_CALLBACKS = 110,
+    VT_ACTIVE_ITEMS = 112,
+    VT_FREE_ITEM_SLOTS = 114,
+    VT_MOVEABLE_TYPE_PROPERTIES = 116,
+    VT_STATIC_TYPE_PROPERTIES = 118
   };
   const TEN::Serialization::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Serialization::Save::SaveGameHeader *>(VT_HEADER);
@@ -10224,9 +10218,6 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   int32_t next_item_active() const {
     return GetField<int32_t>(VT_NEXT_ITEM_ACTIVE, 0);
-  }
-  const flatbuffers::Vector<int32_t> *room_items() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ROOM_ITEMS);
   }
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::FishData>> *fish_swarm() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::FishData>> *>(VT_FISH_SWARM);
@@ -10360,12 +10351,6 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<int32_t> *free_item_slots() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_FREE_ITEM_SLOTS);
   }
-  const flatbuffers::Vector<int32_t> *active_effects() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ACTIVE_EFFECTS);
-  }
-  const flatbuffers::Vector<int32_t> *free_effect_slots() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_FREE_EFFECT_SLOTS);
-  }
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *moveable_type_properties() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *>(VT_MOVEABLE_TYPE_PROPERTIES);
   }
@@ -10397,8 +10382,6 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfTables(items()) &&
            VerifyField<int32_t>(verifier, VT_NEXT_ITEM_FREE) &&
            VerifyField<int32_t>(verifier, VT_NEXT_ITEM_ACTIVE) &&
-           VerifyOffset(verifier, VT_ROOM_ITEMS) &&
-           verifier.VerifyVector(room_items()) &&
            VerifyOffset(verifier, VT_FISH_SWARM) &&
            verifier.VerifyVector(fish_swarm()) &&
            verifier.VerifyVectorOfTables(fish_swarm()) &&
@@ -10492,10 +10475,6 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(active_items()) &&
            VerifyOffset(verifier, VT_FREE_ITEM_SLOTS) &&
            verifier.VerifyVector(free_item_slots()) &&
-           VerifyOffset(verifier, VT_ACTIVE_EFFECTS) &&
-           verifier.VerifyVector(active_effects()) &&
-           VerifyOffset(verifier, VT_FREE_EFFECT_SLOTS) &&
-           verifier.VerifyVector(free_effect_slots()) &&
            VerifyOffset(verifier, VT_MOVEABLE_TYPE_PROPERTIES) &&
            verifier.VerifyVector(moveable_type_properties()) &&
            verifier.VerifyVectorOfTables(moveable_type_properties()) &&
@@ -10548,9 +10527,6 @@ struct SaveGameBuilder {
   }
   void add_next_item_active(int32_t next_item_active) {
     fbb_.AddElement<int32_t>(SaveGame::VT_NEXT_ITEM_ACTIVE, next_item_active, 0);
-  }
-  void add_room_items(flatbuffers::Offset<flatbuffers::Vector<int32_t>> room_items) {
-    fbb_.AddOffset(SaveGame::VT_ROOM_ITEMS, room_items);
   }
   void add_fish_swarm(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::FishData>>> fish_swarm) {
     fbb_.AddOffset(SaveGame::VT_FISH_SWARM, fish_swarm);
@@ -10684,12 +10660,6 @@ struct SaveGameBuilder {
   void add_free_item_slots(flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_item_slots) {
     fbb_.AddOffset(SaveGame::VT_FREE_ITEM_SLOTS, free_item_slots);
   }
-  void add_active_effects(flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_effects) {
-    fbb_.AddOffset(SaveGame::VT_ACTIVE_EFFECTS, active_effects);
-  }
-  void add_free_effect_slots(flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_effect_slots) {
-    fbb_.AddOffset(SaveGame::VT_FREE_EFFECT_SLOTS, free_effect_slots);
-  }
   void add_moveable_type_properties(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> moveable_type_properties) {
     fbb_.AddOffset(SaveGame::VT_MOVEABLE_TYPE_PROPERTIES, moveable_type_properties);
   }
@@ -10721,7 +10691,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::Item>>> items = 0,
     int32_t next_item_free = 0,
     int32_t next_item_active = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> room_items = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::FishData>>> fish_swarm = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::FireflyData>>> firefly_swarm = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::FXInfo>>> fxinfos = 0,
@@ -10766,15 +10735,11 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>>> callbacks = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_items = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_item_slots = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_effects = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_effect_slots = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> moveable_type_properties = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> static_type_properties = 0) {
   SaveGameBuilder builder_(_fbb);
   builder_.add_static_type_properties(static_type_properties);
   builder_.add_moveable_type_properties(moveable_type_properties);
-  builder_.add_free_effect_slots(free_effect_slots);
-  builder_.add_active_effects(active_effects);
   builder_.add_free_item_slots(free_item_slots);
   builder_.add_active_items(active_items);
   builder_.add_callbacks(callbacks);
@@ -10818,7 +10783,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
   builder_.add_fxinfos(fxinfos);
   builder_.add_firefly_swarm(firefly_swarm);
   builder_.add_fish_swarm(fish_swarm);
-  builder_.add_room_items(room_items);
   builder_.add_next_item_active(next_item_active);
   builder_.add_next_item_free(next_item_free);
   builder_.add_items(items);
@@ -10854,7 +10818,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::Item>> *items = nullptr,
     int32_t next_item_free = 0,
     int32_t next_item_active = 0,
-    const std::vector<int32_t> *room_items = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::FishData>> *fish_swarm = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::FireflyData>> *firefly_swarm = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::FXInfo>> *fxinfos = nullptr,
@@ -10899,14 +10862,11 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>> *callbacks = nullptr,
     const std::vector<int32_t> *active_items = nullptr,
     const std::vector<int32_t> *free_item_slots = nullptr,
-    const std::vector<int32_t> *active_effects = nullptr,
-    const std::vector<int32_t> *free_effect_slots = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *moveable_type_properties = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *static_type_properties = nullptr) {
   auto rooms__ = rooms ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Room>>(*rooms) : 0;
   auto box_flags__ = box_flags ? _fbb.CreateVector<int32_t>(*box_flags) : 0;
   auto items__ = items ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Item>>(*items) : 0;
-  auto room_items__ = room_items ? _fbb.CreateVector<int32_t>(*room_items) : 0;
   auto fish_swarm__ = fish_swarm ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::FishData>>(*fish_swarm) : 0;
   auto firefly_swarm__ = firefly_swarm ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::FireflyData>>(*firefly_swarm) : 0;
   auto fxinfos__ = fxinfos ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::FXInfo>>(*fxinfos) : 0;
@@ -10932,8 +10892,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
   auto callbacks__ = callbacks ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>>(*callbacks) : 0;
   auto active_items__ = active_items ? _fbb.CreateVector<int32_t>(*active_items) : 0;
   auto free_item_slots__ = free_item_slots ? _fbb.CreateVector<int32_t>(*free_item_slots) : 0;
-  auto active_effects__ = active_effects ? _fbb.CreateVector<int32_t>(*active_effects) : 0;
-  auto free_effect_slots__ = free_effect_slots ? _fbb.CreateVector<int32_t>(*free_effect_slots) : 0;
   auto moveable_type_properties__ = moveable_type_properties ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>(*moveable_type_properties) : 0;
   auto static_type_properties__ = static_type_properties ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>(*static_type_properties) : 0;
   return TEN::Serialization::Save::CreateSaveGame(
@@ -10950,7 +10908,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       items__,
       next_item_free,
       next_item_active,
-      room_items__,
       fish_swarm__,
       firefly_swarm__,
       fxinfos__,
@@ -10995,8 +10952,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       callbacks__,
       active_items__,
       free_item_slots__,
-      active_effects__,
-      free_effect_slots__,
       moveable_type_properties__,
       static_type_properties__);
 }
@@ -14014,7 +13969,6 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = items(); if (_e) { _o->items.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->items[_i] = std::unique_ptr<TEN::Serialization::Save::ItemT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = next_item_free(); _o->next_item_free = _e; }
   { auto _e = next_item_active(); _o->next_item_active = _e; }
-  { auto _e = room_items(); if (_e) { _o->room_items.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->room_items[_i] = _e->Get(_i); } } }
   { auto _e = fish_swarm(); if (_e) { _o->fish_swarm.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->fish_swarm[_i] = std::unique_ptr<TEN::Serialization::Save::FishDataT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = firefly_swarm(); if (_e) { _o->firefly_swarm.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->firefly_swarm[_i] = std::unique_ptr<TEN::Serialization::Save::FireflyDataT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = fxinfos(); if (_e) { _o->fxinfos.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->fxinfos[_i] = std::unique_ptr<TEN::Serialization::Save::FXInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
@@ -14059,8 +14013,6 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = callbacks(); if (_e) { _o->callbacks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks[_i] = std::unique_ptr<TEN::Serialization::Save::CallbackSetT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = active_items(); if (_e) { _o->active_items.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->active_items[_i] = _e->Get(_i); } } }
   { auto _e = free_item_slots(); if (_e) { _o->free_item_slots.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->free_item_slots[_i] = _e->Get(_i); } } }
-  { auto _e = active_effects(); if (_e) { _o->active_effects.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->active_effects[_i] = _e->Get(_i); } } }
-  { auto _e = free_effect_slots(); if (_e) { _o->free_effect_slots.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->free_effect_slots[_i] = _e->Get(_i); } } }
   { auto _e = moveable_type_properties(); if (_e) { _o->moveable_type_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->moveable_type_properties[_i] = std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = static_type_properties(); if (_e) { _o->static_type_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->static_type_properties[_i] = std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
@@ -14085,7 +14037,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _items = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Item>> (_o->items.size(), [](size_t i, _VectorArgs *__va) { return CreateItem(*__va->__fbb, __va->__o->items[i].get(), __va->__rehasher); }, &_va );
   auto _next_item_free = _o->next_item_free;
   auto _next_item_active = _o->next_item_active;
-  auto _room_items = _fbb.CreateVector(_o->room_items);
   auto _fish_swarm = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::FishData>> (_o->fish_swarm.size(), [](size_t i, _VectorArgs *__va) { return CreateFishData(*__va->__fbb, __va->__o->fish_swarm[i].get(), __va->__rehasher); }, &_va );
   auto _firefly_swarm = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::FireflyData>> (_o->firefly_swarm.size(), [](size_t i, _VectorArgs *__va) { return CreateFireflyData(*__va->__fbb, __va->__o->firefly_swarm[i].get(), __va->__rehasher); }, &_va );
   auto _fxinfos = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::FXInfo>> (_o->fxinfos.size(), [](size_t i, _VectorArgs *__va) { return CreateFXInfo(*__va->__fbb, __va->__o->fxinfos[i].get(), __va->__rehasher); }, &_va );
@@ -14130,8 +14081,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _callbacks = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>> (_o->callbacks.size(), [](size_t i, _VectorArgs *__va) { return CreateCallbackSet(*__va->__fbb, __va->__o->callbacks[i].get(), __va->__rehasher); }, &_va );
   auto _active_items = _fbb.CreateVector(_o->active_items);
   auto _free_item_slots = _fbb.CreateVector(_o->free_item_slots);
-  auto _active_effects = _fbb.CreateVector(_o->active_effects);
-  auto _free_effect_slots = _fbb.CreateVector(_o->free_effect_slots);
   auto _moveable_type_properties = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> (_o->moveable_type_properties.size(), [](size_t i, _VectorArgs *__va) { return CreateTypePropertyMap(*__va->__fbb, __va->__o->moveable_type_properties[i].get(), __va->__rehasher); }, &_va );
   auto _static_type_properties = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> (_o->static_type_properties.size(), [](size_t i, _VectorArgs *__va) { return CreateTypePropertyMap(*__va->__fbb, __va->__o->static_type_properties[i].get(), __va->__rehasher); }, &_va );
   return TEN::Serialization::Save::CreateSaveGame(
@@ -14148,7 +14097,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _items,
       _next_item_free,
       _next_item_active,
-      _room_items,
       _fish_swarm,
       _firefly_swarm,
       _fxinfos,
@@ -14193,8 +14141,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _callbacks,
       _active_items,
       _free_item_slots,
-      _active_effects,
-      _free_effect_slots,
       _moveable_type_properties,
       _static_type_properties);
 }

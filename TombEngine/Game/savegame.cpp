@@ -1187,46 +1187,6 @@ const std::vector<byte> SaveGame::Build()
 	}
 	auto decalOffset = fbb.CreateVector(decals);
 
-	// TODO: In future, we should save only active FX, not whole array.
-	// This may come together with Monty's branch merge -- Lwmte, 10.07.22
-
-	/*std::vector<int> activeEffects;
-	for (int fxId : ActiveEffects)
-	{
-		activeEffects.push_back(fxId);
-	}
-	auto activeEffectsOffset = fbb.CreateVector(activeEffects);
-
-	std::vector<int> freeEffectSlots;
-	for (int fxId : FreeEffectSlots)
-	{
-		freeEffectSlots.push_back(fxId);
-	}
-	auto freeEffectSlotsOffset = fbb.CreateVector(freeEffectSlots);
-
-	std::vector<flatbuffers::Offset<Save::FXInfo>> serializedEffects{};
-	for (auto& effectToSerialize : EffectList)
-	{
-		Save::FXInfoBuilder serializedEffect{ fbb };
-
-		serializedEffect.add_pose(&FromPose(effectToSerialize.pos));
-		serializedEffect.add_room_number(effectToSerialize.roomNumber);
-		serializedEffect.add_object_number(effectToSerialize.objectNumber);
-		serializedEffect.add_next_fx(NO_VALUE);
-		serializedEffect.add_next_active(NO_VALUE);
-		serializedEffect.add_speed(effectToSerialize.speed);
-		serializedEffect.add_fall_speed(effectToSerialize.fallspeed);
-		serializedEffect.add_frame_number(effectToSerialize.frameNumber);
-		serializedEffect.add_counter(effectToSerialize.counter);
-		serializedEffect.add_color(&FromVector4(effectToSerialize.color));
-		serializedEffect.add_flag1(effectToSerialize.flag1);
-		serializedEffect.add_flag2(effectToSerialize.flag2);
-
-		auto serializedEffectOffset = serializedEffect.Finish();
-		serializedEffects.push_back(serializedEffectOffset);
-	}
-	auto serializedEffectsOffset = fbb.CreateVector(serializedEffects);*/
-
 	// Soundtrack playheads
 	std::vector<flatbuffers::Offset<Save::Soundtrack>> soundtracks;
 	for (int j = 0; j < (int)SoundTrackType::Count; j++)
@@ -1741,7 +1701,6 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_action_queue(actionQueueOffset);
 	sgb.add_flip_maps(flipMapsOffset);
 	sgb.add_flip_stats(flipStatsOffset);
-	sgb.add_room_items(roomItemsOffset);
 	sgb.add_flip_effect(FlipEffect);
 	sgb.add_flip_status(FlipStatus);
 	sgb.add_current_fov(LastFOV);
