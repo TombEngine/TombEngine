@@ -1516,15 +1516,15 @@ int CreatureCreature(short itemNumber)
 
 	auto* room = &g_Level.Rooms[item->RoomNumber];
 
-	for (int linkNumber : room->itemNumbers)
+	for (int otherItemNumber : room->itemNumbers)
 	{
-		auto* linked = &g_Level.Items[linkNumber];
+		auto& otherItem = g_Level.Items[otherItemNumber];
 
 		// TODO: Deal with LaraItem global.
-		if (linkNumber != itemNumber && linked != LaraItem && linked->IsCreature() && linked->Status == ITEM_ACTIVE && linked->HitPoints > 0)
+		if (otherItemNumber != itemNumber && !otherItem.IsLara() && otherItem.IsCreature() && otherItem.Status == ITEM_ACTIVE && otherItem.HitPoints > 0)
 		{
-			int xDistance = abs(linked->Pose.Position.x - x);
-			int zDistance = abs(linked->Pose.Position.z - z);
+			int xDistance = abs(otherItem.Pose.Position.x - x);
+			int zDistance = abs(otherItem.Pose.Position.z - z);
 
 			int distance;
 			if (xDistance > zDistance)
@@ -1532,8 +1532,8 @@ int CreatureCreature(short itemNumber)
 			else
 				distance = zDistance + (xDistance >> 1);  
 
-			if (distance < radius + Objects[linked->ObjectNumber].radius)
-				return phd_atan(linked->Pose.Position.z - z, linked->Pose.Position.x - x) - item->Pose.Orientation.y;
+			if (distance < radius + Objects[otherItem.ObjectNumber].radius)
+				return phd_atan(otherItem.Pose.Position.z - z, otherItem.Pose.Position.x - x) - item->Pose.Orientation.y;
 		}
 	}
 

@@ -102,8 +102,9 @@ table Item {
 	data: TEN.Serialization.Save.ItemData;
 	
 	base_mesh: int32;
-	skin_index: int32;
 	mesh_index: [int32];
+	skin_object_id: int32;
+	skin_swap_index: int32;
 
 	effect_type: int32;
 	effect_light_colour: TEN.Serialization.Common.Vector3;
@@ -165,6 +166,7 @@ table ArmInfo {
 	rotation: TEN.Serialization.Common.EulerAngles;
 	gun_flash: int32;
 	gun_smoke: int32;
+	gun_flash_type: int32;
 }
 
 table FlareData {

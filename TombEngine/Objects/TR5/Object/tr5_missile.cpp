@@ -205,7 +205,7 @@ void MissileControl(short fxNumber)
 	}
 }
 
-void ExplodeFX(const ItemInfo& fx, int noXZVel, int bits)
+void ExplodeFX(ItemInfo& fx, int noXZVel, int bits)
 {
 	auto& fxInfo = GetFXInfo(fx);
 

@@ -232,6 +232,7 @@ namespace TEN::Renderer
 		// lights should be oversized (eventually ignore lights more than MAX_LIGHTS)
 
 		std::vector<RendererItem> _items;
+		std::vector<RendererEffect> _effects;
 
 		// Debug variables
 
@@ -389,6 +390,9 @@ namespace TEN::Renderer
 		void DrawRooms(RenderView& view, RendererPass rendererPass);
 		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);
 		void DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass);
+		void DrawEffects(RenderView& view, RendererPass rendererPass);
+		void DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass);
+		void CollectEffect(int itemNumber, RendererRoom& room);
 		void DrawWaterfalls(RendererItem* item, RenderView& view, float speed, RendererPass rendererPass);
 		void DrawBaddyGunflashes(RenderView& view);
 		void DrawStatics(RenderView& view, RendererPass rendererPass);
@@ -692,7 +696,6 @@ namespace TEN::Renderer
 		void RenderScene(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode = SceneRenderMode::Full);
 		void PrepareScene();
 		void ClearScene();
-		void SaveScreenshot();
 		void DrawDisplayPickup(const DisplayPickup& pickup);
 		int  Synchronize();
 		void AddString(int x, int y, const std::string& string, unsigned int color, int flags);
@@ -713,7 +716,7 @@ namespace TEN::Renderer
 		void UpdatePlayerSkinVertices(GAME_OBJECT_ID skinID, GAME_OBJECT_ID skinJointsID, GAME_OBJECT_ID hairPrimaryID, GAME_OBJECT_ID hairSecondaryID);
 		void ToggleFullScreen(bool force = false);
 		void SetFullScreen();
-		bool IsFullsScreen();
+		bool IsFullScreen();
 		void RenderTitleImage();
 
 		void AddLine2D(const Vector2& origin, const Vector2& target, const Color& color, RendererDebugPage page = RendererDebugPage::None);
@@ -749,6 +752,7 @@ namespace TEN::Renderer
 		void SetLoadingScreen(const std::string& fileName);
 		std::unique_ptr<ITexture2D> SetTextureOrDefault(std::string path);
 		std::string GetDefaultAdapterName();
+		std::string SaveScreenshot();
 		const AdapterInfo& GetAdapterInfo() const;
 		void SaveOldState();
 
@@ -777,6 +781,7 @@ namespace TEN::Renderer
 		void			RestoreDOF();
 
 		void SetGraphicsSettingsChanged();
+		void UpdateDumpScreenRenderTarget();
 
 		RendererDebugPage GetDebugPage() const;
 	};

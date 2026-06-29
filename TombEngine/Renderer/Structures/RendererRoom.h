@@ -27,6 +27,7 @@ namespace TEN::Renderer::Structures
 		std::vector<RendererLight> Lights;
 		std::vector<RendererStatic> Statics;
 		std::vector<RendererItem*> ItemsToDraw;
+		std::vector<RendererEffect*> EffectsToDraw;
 		std::vector<RendererStatic*> StaticsToDraw;
 		std::vector<RendererLight*> LightsToDraw;
 		std::vector<RendererDecal> Decals;

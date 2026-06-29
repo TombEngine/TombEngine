@@ -185,16 +185,14 @@ void DrawRightPistol(ItemInfo* item)
 
 void ShootLeftGun(ItemInfo* item)
 {
-	auto& player = GetLaraInfo(*item);
-
-	player.LeftArm.GunFlash = 3;
+	SpawnWeaponFlash(*item, WeaponFlashMode::Left);
+	FlipEffect = NO_VALUE;
 }
 
 void ShootRightGun(ItemInfo* item)
 {
-	auto& player = GetLaraInfo(*item);
-
-	player.RightArm.GunFlash = 3;
+	SpawnWeaponFlash(*item, WeaponFlashMode::Right);
+	FlipEffect = NO_VALUE;
 }
 
 void LaraHandsFree(ItemInfo* item)
@@ -212,14 +210,10 @@ void KillActiveBaddys(ItemInfo* item)
 
 		if (Objects[targetItem->ObjectNumber].intelligent)
 		{
+			RemoveActiveItem(itemNumber);
+			DisableEntityAI(itemNumber);
+			targetItem->Flags |= IFLAG_INVISIBLE;
 			targetItem->Status = ITEM_INVISIBLE;
-
-			if (*(int*)&item != 0xABCDEF)
-			{
-				RemoveActiveItem(itemNumber);
-				DisableEntityAI(itemNumber);
-				targetItem->Flags |= IFLAG_INVISIBLE;
-			}
 		}
 	}
 

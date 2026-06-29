@@ -1269,6 +1269,9 @@ void ExplodingDeath(short itemNumber, short flags)
 
 				fx.Pose.Orientation.x = 0;
 				fx.Pose.Orientation.y = Random::GenerateAngle();
+				fx.Pose.Orientation.z = 0;
+				fx.Pose.Scale = Vector3::One;
+
 				fx.RoomNumber = item->RoomNumber;
 
 				if (!(flags & BODY_NO_RAND_VELOCITY))
