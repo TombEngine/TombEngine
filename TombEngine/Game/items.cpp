@@ -53,6 +53,19 @@ bool MoveableAnimBlendData::IsEnabled() const
 	return (FrameCount != 0);
 }
 
+int MoveableModelData::GetSkinGlobalIndex() const
+{
+	if (SkinObjectID == NO_VALUE)
+		return NO_VALUE;
+
+	const auto& obj = Objects[SkinObjectID];
+
+	if (SkinSwapIndex != NO_VALUE)
+		return obj.meshIndex + SkinSwapIndex;
+
+	return obj.skinIndex;
+}
+
 BoundingBox ItemInfo::GetAabb() const
 {
 	return Geometry::GetAabb(GetObb());
@@ -202,7 +215,8 @@ void ItemInfo::ResetModelToDefault()
 	{
 		Model.MeshIndex.resize(object.nmeshes);
 		Model.BaseMesh = object.meshIndex;
-		Model.SkinIndex = object.skinIndex;
+		Model.SkinObjectID = ObjectNumber;
+		Model.SkinSwapIndex = NO_VALUE;
 
 		for (int i = 0; i < Model.MeshIndex.size(); i++)
 			Model.MeshIndex[i] = Model.BaseMesh + i;

@@ -77,7 +77,8 @@ public:
 	short GetLocationAI() const;
 	short GetMeshCount() const;
 	bool GetMeshVisible(int meshId) const;
-	bool GetMeshSwapped(int meshId) const;
+	std::tuple<bool, sol::optional<GAME_OBJECT_ID>> GetMeshSwapped(int meshId) const;
+	sol::optional<std::tuple<GAME_OBJECT_ID, sol::optional<int>>> GetSkinnedMesh() const;
 	bool GetHitStatus() const;
 	bool GetActive() const;
 	short GetStatus() const;
@@ -128,6 +129,7 @@ public:
 	void UnswapMesh(int meshId);
 	void SwapSkinnedMesh(int swapSlotId, sol::optional<int> swapIndex);
 	void UnswapSkinnedMesh();
+	void ClearSkinnedMesh();
 	void AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId);
 	void AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int stateID);
 	void EnableItem(sol::optional<float> timer);
@@ -137,6 +139,12 @@ public:
 	void Shatter();
 	void ShowInteractionHighlight(const TypeOrNil<InteractionType> interactionType);
 	void HideInteractionHighlight();
+
+	// Properties
+
+	sol::object GetProperty(sol::this_state state, const std::string& name) const;
+	void SetProperty(const std::string& name, const sol::object& value);
+	bool HasInstanceProperty(const std::string& name) const;
 
 	// Operators
 

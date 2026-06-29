@@ -2346,17 +2346,15 @@ void FindAITarget(CreatureInfo* creature, short objectNumber)
 void FindAITargetObject(CreatureInfo* creature, int objectNumber)
 {
 	const auto& item = g_Level.Items[creature->ItemNumber];
-
 	FindAITargetObject(creature, objectNumber, item.ItemFlags[3], true);
 }
 
 void FindAITargetObject(CreatureInfo* creature, int objectNumber, int ocb, bool checkSameZone)
 {
-	auto& item = g_Level.Items[creature->ItemNumber];
-
 	if (g_Level.AIObjects.empty())
 		return;
 
+	auto& item = g_Level.Items[creature->ItemNumber];
 	AI_OBJECT* foundObject = nullptr;
 
 	for (auto& aiObject : g_Level.AIObjects)

@@ -190,7 +190,7 @@ namespace TEN::Renderer
 
 		// Copy meshswaps
 		itemToDraw->MeshIndex = nativeItem->Model.MeshIndex;
-		itemToDraw->SkinIndex = nativeItem->Model.SkinIndex;
+		itemToDraw->SkinIndex = nativeItem->Model.GetSkinGlobalIndex();
 
 		if (obj->Animations.empty())
 			return;
@@ -367,7 +367,7 @@ namespace TEN::Renderer
 			BuildHierarchyRecursive(obj, childNode, obj->Skeleton);
 	}
 
-	bool Renderer::IsFullsScreen()
+	bool Renderer::IsFullScreen()
 	{
 		return (!_isWindowed);
 	}
@@ -652,23 +652,33 @@ namespace TEN::Renderer
 		return false;
 	}
 
-	void Renderer::SaveScreenshot()
+	std::string Renderer::SaveScreenshot()
 	{
 		char buffer[64];
 		time_t rawtime;
 
 		time(&rawtime);
 		auto time = localtime(&rawtime);
-		strftime(buffer, sizeof(buffer), "/TEN-%Y-%m-%d_%H-%M-%S.png", time);
+		strftime(buffer, sizeof(buffer), "TEN-%Y-%m-%d_%H-%M-%S.png", time);
 
 		auto screenPath = g_GameFlow->GetGameDir() + "Screenshots";
 
 		if (!std::filesystem::is_directory(screenPath))
 			std::filesystem::create_directory(screenPath);
 
+		screenPath += "/";
 		screenPath += buffer;
-		
-		_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), screenPath);
+
+		if (!_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), screenPath))
+		{
+			TENLog(fmt::format("Failed to save screenshot '{}' to disk.", screenPath), LogLevel::Error);
+			return std::string();
+		}
+		else
+		{
+			TENLog(fmt::format("Saved screenshot to '{}'.", screenPath), LogLevel::Info);
+			return std::string(buffer);
+		}
 	}
 
 	std::optional<Vector2> Renderer::ProjectDisplayItemPointToScreen(const Vector3& worldPos) const

@@ -6,10 +6,12 @@
 #include "Objects/game_object_ids.h"
 #include "Renderer/RendererEnums.h"
 #include "Scripting/Internal/TEN/Logic/CallbackPoint.h"
+#include "Scripting/Internal/TEN/Properties/PropertyMap.h"
 #include "Specific/Structures/newtypes.h"
 #include "Specific/Structures/BitField.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Scripting::Properties;
 using namespace TEN::Math;
 using namespace TEN::Scripting;
 using namespace TEN::Utils;
@@ -103,8 +105,9 @@ struct MoveableAnimData
 
 struct MoveableModelData
 {
-	int BaseMesh  = 0;
-	int SkinIndex = 0;
+	int BaseMesh      = 0;
+	int SkinObjectID  = NO_VALUE;
+	int SkinSwapIndex = NO_VALUE;
 
 	struct JointRotationOverride
 	{
@@ -122,6 +125,8 @@ struct MoveableModelData
 	std::vector<JointRotationOverride> JointRotations = {};
 
 	Vector4 Color = Vector4::Zero;
+
+	int GetSkinGlobalIndex() const;
 };
 
 struct MoveableEffectData
@@ -179,6 +184,8 @@ struct ItemInfo
 	unsigned char AIBits      = 0; // AIObjectFlags enum.
 	short         AfterDeath  = 0;
 	short         CarriedItem = 0;
+
+	PropertyMap Properties = {};
 
 	// Getters
 

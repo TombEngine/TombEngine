@@ -10,6 +10,7 @@
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
 #include "Specific/Structures/newtypes.h"
+#include "Specific/Structures/MaterialData.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Control::Volumes;
@@ -79,22 +80,6 @@ struct SPRITE
 	float y4;
 };
 
-struct MaterialData
-{
-	std::string Name;
-	MaterialShaderType Type;
-	Vector4 Parameters0;
-	Vector4 Parameters1;
-	Vector4 Parameters2;
-	Vector4 Parameters3;
-	bool HasNormalMap;
-	bool HasHeightMap;
-	bool HasAmbientOcclusionMap;
-	bool HasRoughnessMap;
-	bool HasSpecularMap;
-	bool HasEmissiveMap;
-};
-
 struct MESH
 {
 	bool hidden;
@@ -150,17 +135,6 @@ struct LevelData
 	std::vector<SoundSourceInfo> SoundSources = {};
 	std::vector<SampleInfo>		 SoundDetails = {};
 
-	// Misc.
-
-	std::vector<LevelCameraInfo> Cameras   = {};
-	std::vector<SpotCamInfo>	 SpotCams  = {};
-	std::vector<EventSet>		 GlobalEventSets = {};
-	std::vector<EventSet>		 VolumeEventSets = {};
-	std::vector<int>			 LoopedEventSetIndices = {};
-	std::vector<AI_OBJECT>		 AIObjects = {};
-	std::vector<SPRITE>			 Sprites   = {};
-	std::vector<MirrorData>		 Mirrors = {};
-
 	// Texture and materials
 
 	TEXTURE				 SkyTexture		   = {};
@@ -171,6 +145,18 @@ struct LevelData
 	std::vector<TEXTURE> SpritesTextures   = {};
 	std::vector<ANIMATED_TEXTURES_SEQUENCE> AnimatedTexturesSequences = {};
 	std::vector<MaterialData> Materials    = {};
+
+	// Misc.
+
+	std::vector<LevelCameraInfo> Cameras = {};
+	std::vector<SpotCamInfo>	 SpotCams  = {};
+	std::vector<EventSet>		 GlobalEventSets = {};
+	std::vector<EventSet>		 VolumeEventSets = {};
+	std::vector<int>			 LoopedEventSetIndices = {};
+	std::vector<AI_OBJECT>		 AIObjects = {};
+	std::vector<SPRITE>			 Sprites = {};
+	std::vector<MirrorData>		 Mirrors = {};
+	std::string					 PropertyBlob = {};
 };
 
 extern const std::vector<GAME_OBJECT_ID> BRIDGE_OBJECT_IDS;
@@ -200,6 +186,8 @@ void LoadEventSets();
 void LoadAIObjects();
 void LoadMirrors();
 void LoadMaterials();
+void LoadMaterialDefinitions();
+void LoadProperties();
 
 void GetCarriedItems();
 void GetAIPickups();

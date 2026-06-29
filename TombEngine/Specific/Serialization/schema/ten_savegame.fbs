@@ -51,6 +51,7 @@ table LevelData {
 	starfield_meteor_count: int32;
 	starfield_meteor_spawn_density: int32;
 	starfield_meteor_velocity: int32;
+	material_properties: [TEN.Serialization.Common.Vector4];
 }
 
 table Room {
@@ -102,8 +103,9 @@ table Item {
 	data: TEN.Serialization.Save.ItemData;
 	
 	base_mesh: int32;
-	skin_index: int32;
 	mesh_index: [int32];
+	skin_object_id: int32;
+	skin_swap_index: int32;
 
 	effect_type: int32;
 	effect_light_colour: TEN.Serialization.Common.Vector3;
@@ -112,6 +114,7 @@ table Item {
 	effect_count: int32;
 
 	lua_name: string;
+	properties: PropertyMapData;
 	lua_callbacks: [ItemCallback];
 }
 
@@ -166,6 +169,7 @@ table ArmInfo {
 	rotation: TEN.Serialization.Common.EulerAngles;
 	gun_flash: int32;
 	gun_smoke: int32;
+	gun_flash_type: int32;
 }
 
 table FlareData {
@@ -395,6 +399,8 @@ table StaticMeshInfo {
 	color: TEN.Serialization.Common.Vector4;
 	hit_points: int32;
 	flags: int32;
+
+	properties: PropertyMapData;
 }
 
 table ParticleInfo {
@@ -568,6 +574,44 @@ struct KeyValPair {
 	val: uint32;
 }
 
+// Property system tables
+
+table PropertyBool      { value: bool; }
+table PropertyFloat     { value: float; }
+table PropertyString    { value: string; }
+table PropertyVec2      { x: float; y: float; }
+table PropertyVec3      { x: float; y: float; z: float; }
+table PropertyColor     { r: ubyte; g: ubyte; b: ubyte; a: ubyte; }
+table PropertyRotation  { x: float; y: float; z: float; }
+table PropertyTime      { frame_count: int32; }
+
+union PropertyValueUnion {
+	prop_bool: PropertyBool,
+	prop_float: PropertyFloat,
+	prop_string: PropertyString,
+	prop_vec2: PropertyVec2,
+	prop_vec3: PropertyVec3,
+	prop_color: PropertyColor,
+	prop_rotation: PropertyRotation,
+	prop_time: PropertyTime
+}
+
+table PropertyEntry {
+	name: string;
+	value: PropertyValueUnion;
+}
+
+table PropertyMapData {
+	entries: [PropertyEntry];
+}
+
+table TypePropertyMap {
+	type_id: int32;
+	properties: PropertyMapData;
+}
+
+// End property system tables
+
 table ScriptTable {
 	keys_vals: [KeyValPair];
 }
@@ -706,19 +750,18 @@ table SaveGame {
 	dof_range: float;
 	dof_strength: float;
 	dof_mode: int32;
+	
 	rope: Rope;
 	pendulum: Pendulum;
 	alternate_pendulum: Pendulum;
+	
 	volumes: [Volume];
 	global_event_sets: [EventSet];
 	volume_event_sets: [EventSet];
 	script_vars: UnionVec;
-	
-	// At the moment there is no real reason to save the pre_start and
-	// post_start callbacks as OnStart will have already be called when a save
-	// is loaded, but we'll store them anyway for completeness.
-
 	callbacks: [CallbackSet];
+	moveable_type_properties: [TypePropertyMap];
+	static_type_properties: [TypePropertyMap];
 }
 
 root_type TEN.Serialization.Save.SaveGame;
