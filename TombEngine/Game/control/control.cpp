@@ -61,6 +61,7 @@
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/discord.h"
 #include "Specific/EngineMain.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -670,7 +671,7 @@ void InitializeOrLoadGame(bool loadGame)
 {
 	g_Gui.SetInventoryItemChosen(NO_VALUE);
 	g_Gui.SetEnterInventory(NO_VALUE);
-
+	RPC_Init();
 	// Restore game?
 	if (loadGame)
 	{
@@ -727,6 +728,8 @@ GameStatus DoGameLoop(int levelIndex)
 	{
 		g_Synchronizer.Sync();
 
+		RPC_Update();
+
 		if (g_VideoPlayer.Update())
 			continue;
 
@@ -777,6 +780,7 @@ void EndGameLoop(int levelIndex, GameStatus reason)
 	DeInitializeScripting(levelIndex, reason);
 
 	g_VideoPlayer.Stop();
+	RPC_close();
 	StopAllSounds();
 	StopSoundTracks(SOUND_XFADETIME_LEVELJUMP, true);
 	StopRumble();

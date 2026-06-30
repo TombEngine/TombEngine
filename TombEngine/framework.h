@@ -55,6 +55,9 @@
 #include <bass.h>
 #include <bass_fx.h>
 
+// Discord
+#include <cdiscord.h>
+
 // DXTK
 #include <SimpleMath.h>
 
