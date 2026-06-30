@@ -129,7 +129,7 @@ namespace TEN::Renderer::Graphics
 		virtual void SetViewport(RendererViewport viewport) = 0;
 		virtual Vector3 Unproject(Vector3 position, Matrix projection, Matrix view, Matrix world) = 0;
 
-		virtual void SaveScreenshot(IRenderTarget2D* renderTarget, std::string path) = 0;
+		virtual bool SaveScreenshot(IRenderTarget2D* renderTarget, std::string path) = 0;
 
 		virtual void Flush() = 0;
 		virtual void UnbindAllRenderTargets() = 0;
