@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Game/Lara/lara.h"
+#include "Scripting/Internal/LanguageScript.h"
 #include "Scripting/Internal/TEN/Flow/FlowHandler.h"
 
 static bool           gReady = false;
@@ -27,10 +27,17 @@ void RPC_Init()
     Discord_Initialize(APPLICATION_ID, &handlers, 1, nullptr);
 }
 
-static const std::string RPC_GetLevelName()
+// Returns str if non-null and non-empty, otherwise returns fallback.
+static const char* RPC_SafeStr(const char* str, const char* fallback)
+{
+    return (str && str[0]) ? str : fallback;
+}
+
+// Returns the current level display name, or nullptr if not in a level.
+static const char* RPC_GetLevelName()
 {
     if (!g_GameFlow->GetLevel(CurrentLevel))
-        return "In Title";
+        return nullptr;
 
     return g_GameFlow->GetString(g_GameFlow->GetLevel(CurrentLevel)->NameStringKey.c_str());
 }
@@ -42,14 +49,15 @@ void RPC_Update()
     if (!gReady)
         return;
 
-    auto levelName = RPC_GetLevelName();
+    // Details (top row): game window title, e.g. "TombEngine".
+    const char* title = RPC_SafeStr(g_GameFlow->GetString(STRING_WINDOW_TITLE), "TombEngine");
 
-    static char healthBuf[32];
-    sprintf(healthBuf, "Health: %d", LaraItem->HitPoints);
+    // State (second row): current level name, e.g. "The Great Pyramid".
+    const char* levelName = RPC_SafeStr(RPC_GetLevelName(), "In Game");
 
     DiscordRichPresence presence = {};
-    presence.details = levelName.c_str();
-    presence.state   = healthBuf;
+    presence.details = title;
+    presence.state   = levelName;
 
     Discord_UpdatePresence(&presence);
 }
