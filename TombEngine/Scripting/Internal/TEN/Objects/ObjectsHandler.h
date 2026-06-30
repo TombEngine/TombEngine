@@ -182,7 +182,7 @@ private:
 		if (!ValidatePropertyName(name))
 			return sol::nil;
 
-		auto* props = PropertyHandler::FindMoveableProperties((int)objectID);
+		auto* props = PropertyHandler::FindMoveableProperties(objectID);
 		if (props == nullptr)
 			return sol::nil;
 
@@ -197,13 +197,13 @@ private:
 
 		if (value == sol::nil)
 		{
-			PropertyHandler::GetMoveableProperties((int)objectID).Remove(name);
+			PropertyHandler::GetMoveableProperties(objectID).Remove(name);
 		}
 		else
 		{
 			auto propValue = PropertyValueFromLua(value);
 			if (propValue.has_value())
-				PropertyHandler::GetMoveableProperties((int)objectID).Set(name, *propValue);
+				PropertyHandler::GetMoveableProperties(objectID).Set(name, *propValue);
 		}
 	}
 
