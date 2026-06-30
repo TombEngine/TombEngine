@@ -1,20 +1,30 @@
 #include "framework.h"
+#include "Game/Lara/lara.h"
 #include "Scripting/Internal/TEN/Flow/FlowHandler.h"
-#include <Game/savegame.h>
 
-static Discord_Client   gClient;
-static Discord_Activity gActivity;
-static bool             gClientReady = false;
-static constexpr auto   APPLICATION_ID = 1521229664541081730ULL;
+static bool           gReady = false;
+static constexpr auto APPLICATION_ID = "1521229664541081730";
 
 using namespace TEN::Scripting;
 
 void RPC_Init()
 {
-    Discord_Client_Init(&gClient);
-    Discord_Client_SetApplicationId(&gClient, APPLICATION_ID);
-    Discord_Activity_Init(&gActivity);
-    gClientReady = true;
+    DiscordEventHandlers handlers = {};
+    handlers.ready = [](const DiscordUser* /*request*/)
+    {
+        gReady = true;
+    };
+    handlers.errored = [](int errorCode, const char* message)
+    {
+        std::cerr << "Discord RPC error: " << message << " (" << errorCode << ")\n";
+    };
+    handlers.disconnected = [](int errorCode, const char* message)
+    {
+        gReady = false;
+        std::cerr << "Discord RPC disconnected: " << message << " (" << errorCode << ")\n";
+    };
+
+    Discord_Initialize(APPLICATION_ID, &handlers, 1, nullptr);
 }
 
 static const std::string RPC_GetLevelName()
@@ -25,47 +35,28 @@ static const std::string RPC_GetLevelName()
     return g_GameFlow->GetString(g_GameFlow->GetLevel(CurrentLevel)->NameStringKey.c_str());
 }
 
-static const char* RPC_GetTimer()
-{
-    static char buf[64];
-    auto& gameTime = SaveGame::Statistics.Game.TimeTaken;
-    sprintf(buf, "%02d:%02d:%02d", gameTime.GetHours(), gameTime.GetMinutes(), gameTime.GetSeconds());
-    return buf;
-}
-
-static void RPC_UpdateCallback(Discord_ClientResult* result, void* /*userData*/)
-{
-    if (!Discord_ClientResult_Successful(result))
-        std::cerr << "Failed to update Rich Presence\n";
-}
-
 void RPC_Update()
 {
-    if (!gClientReady)
+    Discord_RunCallbacks();
+
+    if (!gReady)
         return;
 
-    auto        levelName = RPC_GetLevelName();
-    const char* timer     = RPC_GetTimer();
+    auto levelName = RPC_GetLevelName();
 
-    Discord_String stateStr;
-    stateStr.ptr  = (uint8_t*)timer;
-    stateStr.size = strlen(timer);
-    Discord_Activity_SetDetails(&gActivity, &stateStr);
+    static char healthBuf[32];
+    sprintf(healthBuf, "Health: %d", LaraItem->HitPoints);
 
-    Discord_String detailsStr;
-    detailsStr.ptr  = (uint8_t*)levelName.c_str();
-    detailsStr.size = levelName.size();
-    Discord_Activity_SetState(&gActivity, &detailsStr);
+    DiscordRichPresence presence = {};
+    presence.details = levelName.c_str();
+    presence.state   = healthBuf;
 
-    Discord_Client_UpdateRichPresence(&gClient, &gActivity, RPC_UpdateCallback, nullptr, nullptr);
+    Discord_UpdatePresence(&presence);
 }
 
 void RPC_close()
 {
-    if (!gClientReady)
-        return;
-
-    Discord_Activity_Drop(&gActivity);
-    Discord_Client_Drop(&gClient);
-    gClientReady = false;
+    Discord_ClearPresence();
+    Discord_Shutdown();
+    gReady = false;
 }

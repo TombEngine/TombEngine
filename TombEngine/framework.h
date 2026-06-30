@@ -56,7 +56,8 @@
 #include <bass_fx.h>
 
 // Discord
-#include <cdiscord.h>
+#define DISCORD_DYNAMIC_LIB
+#include <discord_rpc.h>
 
 // DXTK
 #include <SimpleMath.h>
