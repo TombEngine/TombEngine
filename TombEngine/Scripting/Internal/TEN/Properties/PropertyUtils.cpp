@@ -26,7 +26,7 @@ namespace TEN::Scripting::Properties
 		for (int i = 0; i < g_Level.NumItems; i++)
 		{
 			auto& item = g_Level.Items[i];
-			item.HitPoints = PropertyHandler::Get(item, GetHash("HitPoints"), Objects[item.ObjectNumber].HitPoints);
+			item.HitPoints = PropertyHandler::Get(item, GetHash("HitPoints"), item.HitPoints);
 		}
 
 	}
