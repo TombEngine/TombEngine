@@ -69,12 +69,12 @@ namespace TEN::Scripting::Properties
 		// Looks up global type properties directly, without any instance context.
 
 		// Raw resolution (returns nullptr if not found).
-		static const PropertyValue* Get(int objectID, const std::string& name);
-		static const PropertyValue* Get(int objectID, int hash);
+		static const PropertyValue* Get(GAME_OBJECT_ID objectID, const std::string& name);
+		static const PropertyValue* Get(GAME_OBJECT_ID objectID, int hash);
 
 		// Typed resolution with optional default value fallback.
-		template <typename T> static T Get(int objectID, const std::string& name, const T& defaultValue = T{}) { return ResolveTyped<T>(Get(objectID, name), defaultValue); }
-		template <typename T> static T Get(int objectID, int hash, const T& defaultValue = T{})                { return ResolveTyped<T>(Get(objectID, hash), defaultValue); }
+		template <typename T> static T Get(GAME_OBJECT_ID objectID, const std::string& name, const T& defaultValue = T{}) { return ResolveTyped<T>(Get(objectID, name), defaultValue); }
+		template <typename T> static T Get(GAME_OBJECT_ID objectID, int hash, const T& defaultValue = T{})                { return ResolveTyped<T>(Get(objectID, hash), defaultValue); }
 
 		// Clear all type properties (call on level unload).
 		static void Clear();
