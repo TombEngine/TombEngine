@@ -12,13 +12,6 @@ namespace TEN::Scripting::Properties
 {
 	void InitializeProperties()
 	{
-		// Per-item property application.
-		for (int i = 0; i < g_Level.NumItems; i++)
-		{
-			auto& item = g_Level.Items[i];
-			item.HitPoints = PropertyHandler::Get(item, GetHash("HitPoints"), item.HitPoints);
-		}
-
 		// Global object type property application.
 		for (int objectID = 0; objectID < ID_NUMBER_OBJECTS; objectID++)
 		{
@@ -28,5 +21,13 @@ namespace TEN::Scripting::Properties
 
 			object.HitPoints = PropertyHandler::Get((GAME_OBJECT_ID)objectID, GetHash("HitPoints"), object.HitPoints);
 		}
+
+		// Per-item property application.
+		for (int i = 0; i < g_Level.NumItems; i++)
+		{
+			auto& item = g_Level.Items[i];
+			item.HitPoints = PropertyHandler::Get(item, GetHash("HitPoints"), Objects[item.ObjectNumber].HitPoints);
+		}
+
 	}
 }
