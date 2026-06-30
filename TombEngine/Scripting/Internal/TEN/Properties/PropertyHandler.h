@@ -65,6 +65,17 @@ namespace TEN::Scripting::Properties
 		template <typename T> static T Get(const StaticMesh* staticMesh, const std::string& name, const T& defaultValue = T{}) { return Get<T>(*staticMesh, name, defaultValue); }
 		template <typename T> static T Get(const StaticMesh* staticMesh, int hash, const T& defaultValue = T{})                { return Get<T>(*staticMesh, hash, defaultValue); }
 
+		// --- Type-level only resolution (by object ID) ---
+		// Looks up global type properties directly, without any instance context.
+
+		// Raw resolution (returns nullptr if not found).
+		static const PropertyValue* Get(int objectID, const std::string& name);
+		static const PropertyValue* Get(int objectID, int hash);
+
+		// Typed resolution with optional default value fallback.
+		template <typename T> static T Get(int objectID, const std::string& name, const T& defaultValue = T{}) { return ResolveTyped<T>(Get(objectID, name), defaultValue); }
+		template <typename T> static T Get(int objectID, int hash, const T& defaultValue = T{})                { return ResolveTyped<T>(Get(objectID, hash), defaultValue); }
+
 		// Clear all type properties (call on level unload).
 		static void Clear();
 

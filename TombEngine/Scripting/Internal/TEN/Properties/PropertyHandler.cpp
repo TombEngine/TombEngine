@@ -68,6 +68,18 @@ namespace TEN::Scripting::Properties
 		return typeProps ? typeProps->GetRaw(hash) : nullptr;
 	}
 
+	const PropertyValue* PropertyHandler::Get(int objectID, const std::string& name)
+	{
+		return Get(objectID, GetHash(name));
+	}
+
+	const PropertyValue* PropertyHandler::Get(int objectID, int hash)
+	{
+		// Look up global type property directly (Layer 1 only, no instance context).
+		auto* typeProps = FindMoveableProperties(objectID);
+		return typeProps ? typeProps->GetRaw(hash) : nullptr;
+	}
+
 	void PropertyHandler::Clear()
 	{
 		_moveableProperties.clear();

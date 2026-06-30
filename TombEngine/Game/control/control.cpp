@@ -58,6 +58,7 @@
 #include "Scripting/Include/Strings/ScriptInterfaceStringsHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyUtils.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/EngineMain.h"
@@ -417,6 +418,7 @@ GameStatus DoLevel(int levelIndex, bool loadGame)
 
 	// Initialize scripting.
 	InitializeScripting(levelIndex, loadGame);
+	InitializeProperties();
 	InitializeNodeScripts();
 
 	// Initialize menu and inventory state.
@@ -639,18 +641,6 @@ void InitializeScripting(int levelIndex, bool loadGame)
 	{
 		TENLog("Executing property script blob...", LogLevel::Info);
 		g_GameScript->ExecuteString(g_Level.PropertyBlob);
-	}
-
-	// Global Properties.
-	for (int i = 0; i < g_Level.NumItems; i++)
-	{
-		auto& item = g_Level.Items[i];
-		const auto& object = Objects[item.ObjectNumber];
-
-		if (object.intelligent)
-		{
-			item.HitPoints = PropertyHandler::Get(item, "HitPoints", item.HitPoints);
-		}
 	}
 
 	// Play default background music.
