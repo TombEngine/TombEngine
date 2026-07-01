@@ -49,6 +49,7 @@
 #include "Objects/TR3/Entity/FishSwarm.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
 #include "Objects/TR4/Entity/Locust.h"
+#include "Objects/TR3/Emitter/tr3_bats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_bats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_rats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_spider_emitter.h"
@@ -214,6 +215,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateRats();
 	UpdateRipples();
 	UpdateBats();
+	TEN::Entities::TR3::UpdateTr3Bats();
 	UpdateSpiders();
 	UpdateSparkParticles();
 	UpdateSmokeParticles();

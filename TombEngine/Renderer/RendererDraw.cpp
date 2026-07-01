@@ -21,6 +21,7 @@
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Objects/Generic/Object/rope.h"
+#include "Objects/TR3/Emitter/tr3_bats_emitter.h"
 #include "Objects/TR3/Entity/FishSwarm.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
 #include "Objects/TR4/Entity/Locust.h"
@@ -891,6 +892,160 @@ namespace TEN::Renderer
 					}
 
 					batCount = 0;
+				}
+			}
+		}
+	}
+
+	void Renderer::DrawTr3Bats(RenderView& view, RendererPass rendererPass)
+	{
+		using namespace TEN::Animation;
+
+		if (!Objects[ID_BATS_EMITTER_TR3].loaded)
+			return;
+
+		if (rendererPass == RendererPass::CollectTransparentFaces)
+			return;
+
+		const auto& obj = Objects[ID_BATS_EMITTER_TR3];
+		auto& moveableObj = *_moveableObjects[ID_BATS_EMITTER_TR3];
+
+		if (obj.Animations.empty() || moveableObj.ObjectMeshes.empty())
+			return;
+
+		const auto& anim = obj.Animations[0];
+		int frameCount = anim.EndFrameNumber + 1;
+		if (frameCount <= 0)
+			frameCount = 1;
+
+		int boneCount = (int)moveableObj.AnimationTransforms.size();
+
+		// Scale game time by wing speed multiplier, fold sub-tick factor into the same scale
+		// so animation phase and lerp alpha stay consistent at any FPS.
+		float gameTime = (float)GlobalCounter + GetInterpolationFactor();
+		float scaledTime = gameTime * TEN::Entities::TR3::TR3_BAT_WING_SPEED;
+		int scaledTimeInt = (int)floorf(scaledTime);
+		float subAlpha = scaledTime - (float)scaledTimeInt;
+
+		// Per-frame bone cache shared across bats with identical phase.
+		static std::vector<std::array<Matrix, BONE_COUNT_MAX>> frameBones;
+		static std::vector<bool> framePresent;
+		frameBones.assign(frameCount, {});
+		framePresent.assign(frameCount, false);
+
+		auto cacheFrame = [&](int frame)
+		{
+			if (framePresent[frame])
+				return;
+
+			const auto& interpData = anim.Frames[frame];
+			UpdateAnimation(nullptr, moveableObj, interpData, UINT_MAX);
+			memcpy(frameBones[frame].data(), moveableObj.AnimationTransforms.data(),
+				boneCount * sizeof(Matrix));
+			framePresent[frame] = true;
+		};
+
+		auto batFrame0 = [&](const TEN::Entities::TR3::Tr3BatData& bat)
+		{
+			return ((scaledTimeInt + bat.FrameOffset) % frameCount + frameCount) % frameCount;
+		};
+
+		for (const auto& bat : TEN::Entities::TR3::Tr3Bats)
+		{
+			if (!bat.On)
+				continue;
+
+			int f0 = batFrame0(bat);
+			int f1 = (f0 + 1) % frameCount;
+			cacheFrame(f0);
+			cacheFrame(f1);
+		}
+
+		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+
+		if (rendererPass == RendererPass::GBuffer)
+		{
+			_shaders.Bind(Shader::GBuffer);
+			_shaders.Bind(Shader::GBufferItems);
+		}
+		else
+		{
+			_shaders.Bind(Shader::Items);
+		}
+
+		_stObjects.Skinned = (int)SkinningMode::Classic;
+
+		for (int k = 0; k < (int)moveableObj.ObjectMeshes.size(); k++)
+			_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
+
+		// Per-bat room light bucket, clamped to MAX_LIGHTS_PER_ITEM (same approach as scarabs/beetles).
+		static std::vector<RendererLight*> batLights;
+
+		for (const auto& bat : TEN::Entities::TR3::Tr3Bats)
+		{
+			if (!bat.On)
+				continue;
+
+			if (bat.RoomNumber == NO_VALUE)
+				continue;
+
+			if (IgnoreReflectionPassForRoom(bat.RoomNumber))
+				continue;
+
+			auto& room = _rooms[bat.RoomNumber];
+
+			auto world = Matrix::Lerp(bat.PrevTransform, bat.Transform, GetInterpolationFactor());
+			ReflectMatrixOptionally(world);
+
+			int f0 = batFrame0(bat);
+			int f1 = (f0 + 1) % frameCount;
+			for (int b = 0; b < boneCount; b++)
+				_stObjects.Bones[b] = Matrix::Lerp(frameBones[f0][b], frameBones[f1][b], subAlpha);
+
+			_stObjects.Objects[0].World = world;
+			_stObjects.Objects[0].Color = NEUTRAL_COLOR;
+			_stObjects.Objects[0].AmbientLight = room.AmbientLight;
+
+			if (rendererPass != RendererPass::GBuffer)
+			{
+				batLights.clear();
+				int lightCount = std::min((int)room.LightsToDraw.size(), MAX_LIGHTS_PER_ITEM);
+				for (int i = 0; i < lightCount; i++)
+					batLights.push_back(room.LightsToDraw[i]);
+
+				BindMoveableLights(batLights, bat.RoomNumber, bat.RoomNumber, 1.0f, false);
+			}
+
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+			for (int k = 0; k < (int)moveableObj.ObjectMeshes.size(); k++)
+			{
+				auto* mesh = moveableObj.ObjectMeshes[k];
+
+				for (int animated = 0; animated < 2; animated++)
+				{
+					for (auto& bucket : mesh->Buckets)
+					{
+						if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+							continue;
+
+						auto blendMode = bucket.BlendMode;
+
+						int passes = (rendererPass == RendererPass::Opaque && blendMode == BlendMode::AlphaTest) ? 2 : 1;
+						for (int p = 0; p < passes; p++)
+						{
+							if (!SetupBlendModeAndAlphaTest(blendMode, rendererPass, p))
+								continue;
+
+							BindBucketTextures(bucket, TextureSource::Moveables, animated);
+							BindMaterial(bucket.MaterialIndex, false);
+
+							DrawIndexedTriangles(bucket.NumIndices, bucket.StartIndex, 0);
+
+							_numMoveablesDrawCalls++;
+						}
+					}
 				}
 			}
 		}
@@ -2426,6 +2581,7 @@ namespace TEN::Renderer
 				DrawGunShells(view, pass);
 				DrawSpiders(view, pass);
 				DrawScarabs(view, pass);
+				DrawTr3Bats(view, pass);
 				DrawBats(view, pass);
 				DrawRats(view, pass);
 				DrawLocusts(view, pass);

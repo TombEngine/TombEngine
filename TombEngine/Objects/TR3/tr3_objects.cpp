@@ -40,6 +40,9 @@
 #include "Objects/TR3/Object/Corpse.h"
 #include "Objects/TR3/Object/Fusebox.h"
 
+// Emitters
+#include "Objects/TR3/Emitter/tr3_bats_emitter.h"
+
 // Traps
 #include "Objects/Generic/Traps/Pendulum.h"
 #include "Objects/TR3/Trap/DrillBit.h"
@@ -503,6 +506,17 @@ static void StartObject(ObjectInfo* obj)
 	}
 }
 
+static void StartEmitter(ObjectInfo* obj)
+{
+	obj = &Objects[ID_BATS_EMITTER_TR3];
+	if (obj->loaded)
+	{
+		obj->Hidden = true;
+		obj->Initialize = InitializeTr3BatsEmitter;
+		obj->control = Tr3BatsEmitterControl;
+	}
+}
+
 static void StartTrap(ObjectInfo* obj)
 {
 	obj = &Objects[ID_TRAIN];
@@ -673,6 +687,7 @@ void InitializeTR3Objects()
 	ObjectInfo* objectPtr = nullptr;
 	StartEntity(objectPtr);
 	StartObject(objectPtr);
+	StartEmitter(objectPtr);
 	StartTrap(objectPtr);
 	StartVehicles(objectPtr);
 	StartProjectiles(objectPtr);

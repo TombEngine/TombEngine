@@ -719,6 +719,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\TR4\Vehicles\motorbike.h" />
     <ClInclude Include="Objects\TR4\Vehicles\motorbike_info.h" />
     <ClInclude Include="Objects\TR4\tr4_objects.h" />
+    <ClInclude Include="Objects\TR3\Emitter\tr3_bats_emitter.h" />
     <ClInclude Include="Objects\TR5\Emitter\tr5_smoke_emitter.h" />
     <ClInclude Include="Objects\TR5\Emitter\tr5_bats_emitter.h" />
     <ClInclude Include="Objects\TR5\Emitter\tr5_rats_emitter.h" />
@@ -1341,6 +1342,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\TR4\Trap\tr4_teethspike.cpp" />
     <ClCompile Include="Objects\TR4\Vehicles\jeep.cpp" />
     <ClCompile Include="Objects\TR4\Vehicles\motorbike.cpp" />
+    <ClCompile Include="Objects\TR3\Emitter\tr3_bats_emitter.cpp" />
     <ClCompile Include="Objects\TR5\Emitter\tr5_smoke_emitter.cpp" />
     <ClCompile Include="Objects\TR5\Emitter\tr5_bats_emitter.cpp" />
     <ClCompile Include="Objects\TR5\Emitter\tr5_rats_emitter.cpp" />

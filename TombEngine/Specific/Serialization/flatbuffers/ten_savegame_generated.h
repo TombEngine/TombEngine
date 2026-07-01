@@ -10136,6 +10136,7 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<TEN::Serialization::Save::SwarmObjectInfoT>> spiders{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::SwarmObjectInfoT>> scarabs{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::SwarmObjectInfoT>> bats{};
+  std::vector<std::unique_ptr<TEN::Serialization::Save::SwarmObjectInfoT>> tr3_bats{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::SwarmObjectInfoT>> locusts{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::DecalT>> decals{};
   std::vector<int32_t> flip_maps{};
@@ -10200,36 +10201,37 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_SPIDERS = 52,
     VT_SCARABS = 54,
     VT_BATS = 56,
-    VT_LOCUSTS = 58,
-    VT_DECALS = 60,
-    VT_FLIP_MAPS = 62,
-    VT_FLIP_STATS = 64,
-    VT_FLIP_EFFECT = 66,
-    VT_FLIP_TIMER = 68,
-    VT_FLIP_STATUS = 70,
-    VT_CURRENT_FOV = 72,
-    VT_LAST_INV_ITEM = 74,
-    VT_ACTION_QUEUE = 76,
-    VT_SOUNDTRACKS = 78,
-    VT_CD_FLAGS = 80,
-    VT_VIDEO = 82,
-    VT_POSTPROCESS_MODE = 84,
-    VT_POSTPROCESS_STRENGTH = 86,
-    VT_POSTPROCESS_TINT = 88,
-    VT_DOF_DISTANCE = 90,
-    VT_DOF_RANGE = 92,
-    VT_DOF_STRENGTH = 94,
-    VT_DOF_MODE = 96,
-    VT_ROPE = 98,
-    VT_PENDULUM = 100,
-    VT_ALTERNATE_PENDULUM = 102,
-    VT_VOLUMES = 104,
-    VT_GLOBAL_EVENT_SETS = 106,
-    VT_VOLUME_EVENT_SETS = 108,
-    VT_SCRIPT_VARS = 110,
-    VT_CALLBACKS = 112,
-    VT_MOVEABLE_TYPE_PROPERTIES = 114,
-    VT_STATIC_TYPE_PROPERTIES = 116
+    VT_TR3_BATS = 58,
+    VT_LOCUSTS = 60,
+    VT_DECALS = 62,
+    VT_FLIP_MAPS = 64,
+    VT_FLIP_STATS = 66,
+    VT_FLIP_EFFECT = 68,
+    VT_FLIP_TIMER = 70,
+    VT_FLIP_STATUS = 72,
+    VT_CURRENT_FOV = 74,
+    VT_LAST_INV_ITEM = 76,
+    VT_ACTION_QUEUE = 78,
+    VT_SOUNDTRACKS = 80,
+    VT_CD_FLAGS = 82,
+    VT_VIDEO = 84,
+    VT_POSTPROCESS_MODE = 86,
+    VT_POSTPROCESS_STRENGTH = 88,
+    VT_POSTPROCESS_TINT = 90,
+    VT_DOF_DISTANCE = 92,
+    VT_DOF_RANGE = 94,
+    VT_DOF_STRENGTH = 96,
+    VT_DOF_MODE = 98,
+    VT_ROPE = 100,
+    VT_PENDULUM = 102,
+    VT_ALTERNATE_PENDULUM = 104,
+    VT_VOLUMES = 106,
+    VT_GLOBAL_EVENT_SETS = 108,
+    VT_VOLUME_EVENT_SETS = 110,
+    VT_SCRIPT_VARS = 112,
+    VT_CALLBACKS = 114,
+    VT_MOVEABLE_TYPE_PROPERTIES = 116,
+    VT_STATIC_TYPE_PROPERTIES = 118
   };
   const TEN::Serialization::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Serialization::Save::SaveGameHeader *>(VT_HEADER);
@@ -10311,6 +10313,9 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> *bats() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> *>(VT_BATS);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> *tr3_bats() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> *>(VT_TR3_BATS);
   }
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> *locusts() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> *>(VT_LOCUSTS);
@@ -10467,6 +10472,9 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_BATS) &&
            verifier.VerifyVector(bats()) &&
            verifier.VerifyVectorOfTables(bats()) &&
+           VerifyOffset(verifier, VT_TR3_BATS) &&
+           verifier.VerifyVector(tr3_bats()) &&
+           verifier.VerifyVectorOfTables(tr3_bats()) &&
            VerifyOffset(verifier, VT_LOCUSTS) &&
            verifier.VerifyVector(locusts()) &&
            verifier.VerifyVectorOfTables(locusts()) &&
@@ -10616,6 +10624,9 @@ struct SaveGameBuilder {
   void add_bats(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>> bats) {
     fbb_.AddOffset(SaveGame::VT_BATS, bats);
   }
+  void add_tr3_bats(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>> tr3_bats) {
+    fbb_.AddOffset(SaveGame::VT_TR3_BATS, tr3_bats);
+  }
   void add_locusts(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>> locusts) {
     fbb_.AddOffset(SaveGame::VT_LOCUSTS, locusts);
   }
@@ -10746,6 +10757,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>> spiders = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>> scarabs = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>> bats = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>> tr3_bats = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>> locusts = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::Decal>>> decals = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> flip_maps = 0,
@@ -10806,6 +10818,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
   builder_.add_flip_maps(flip_maps);
   builder_.add_decals(decals);
   builder_.add_locusts(locusts);
+  builder_.add_tr3_bats(tr3_bats);
   builder_.add_bats(bats);
   builder_.add_scarabs(scarabs);
   builder_.add_spiders(spiders);
@@ -10871,6 +10884,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> *spiders = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> *scarabs = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> *bats = nullptr,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> *tr3_bats = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> *locusts = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::Decal>> *decals = nullptr,
     const std::vector<int32_t> *flip_maps = nullptr,
@@ -10917,6 +10931,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
   auto spiders__ = spiders ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>(*spiders) : 0;
   auto scarabs__ = scarabs ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>(*scarabs) : 0;
   auto bats__ = bats ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>(*bats) : 0;
+  auto tr3_bats__ = tr3_bats ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>(*tr3_bats) : 0;
   auto locusts__ = locusts ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>>(*locusts) : 0;
   auto decals__ = decals ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Decal>>(*decals) : 0;
   auto flip_maps__ = flip_maps ? _fbb.CreateVector<int32_t>(*flip_maps) : 0;
@@ -10959,6 +10974,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       spiders__,
       scarabs__,
       bats__,
+      tr3_bats__,
       locusts__,
       decals__,
       flip_maps__,
@@ -14034,6 +14050,7 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = spiders(); if (_e) { _o->spiders.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->spiders[_i] = std::unique_ptr<TEN::Serialization::Save::SwarmObjectInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = scarabs(); if (_e) { _o->scarabs.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->scarabs[_i] = std::unique_ptr<TEN::Serialization::Save::SwarmObjectInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = bats(); if (_e) { _o->bats.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->bats[_i] = std::unique_ptr<TEN::Serialization::Save::SwarmObjectInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = tr3_bats(); if (_e) { _o->tr3_bats.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->tr3_bats[_i] = std::unique_ptr<TEN::Serialization::Save::SwarmObjectInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = locusts(); if (_e) { _o->locusts.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->locusts[_i] = std::unique_ptr<TEN::Serialization::Save::SwarmObjectInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = decals(); if (_e) { _o->decals.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->decals[_i] = std::unique_ptr<TEN::Serialization::Save::DecalT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = flip_maps(); if (_e) { _o->flip_maps.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->flip_maps[_i] = _e->Get(_i); } } }
@@ -14101,6 +14118,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _spiders = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> (_o->spiders.size(), [](size_t i, _VectorArgs *__va) { return CreateSwarmObjectInfo(*__va->__fbb, __va->__o->spiders[i].get(), __va->__rehasher); }, &_va );
   auto _scarabs = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> (_o->scarabs.size(), [](size_t i, _VectorArgs *__va) { return CreateSwarmObjectInfo(*__va->__fbb, __va->__o->scarabs[i].get(), __va->__rehasher); }, &_va );
   auto _bats = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> (_o->bats.size(), [](size_t i, _VectorArgs *__va) { return CreateSwarmObjectInfo(*__va->__fbb, __va->__o->bats[i].get(), __va->__rehasher); }, &_va );
+  auto _tr3_bats = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> (_o->tr3_bats.size(), [](size_t i, _VectorArgs *__va) { return CreateSwarmObjectInfo(*__va->__fbb, __va->__o->tr3_bats[i].get(), __va->__rehasher); }, &_va );
   auto _locusts = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::SwarmObjectInfo>> (_o->locusts.size(), [](size_t i, _VectorArgs *__va) { return CreateSwarmObjectInfo(*__va->__fbb, __va->__o->locusts[i].get(), __va->__rehasher); }, &_va );
   auto _decals = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Decal>> (_o->decals.size(), [](size_t i, _VectorArgs *__va) { return CreateDecal(*__va->__fbb, __va->__o->decals[i].get(), __va->__rehasher); }, &_va );
   auto _flip_maps = _fbb.CreateVector(_o->flip_maps);
@@ -14160,6 +14178,7 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _spiders,
       _scarabs,
       _bats,
+      _tr3_bats,
       _locusts,
       _decals,
       _flip_maps,

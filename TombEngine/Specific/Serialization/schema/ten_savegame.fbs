@@ -729,6 +729,7 @@ table SaveGame {
 	spiders: [SwarmObjectInfo];
 	scarabs: [SwarmObjectInfo];
 	bats: [SwarmObjectInfo];
+	tr3_bats: [SwarmObjectInfo];
 	locusts: [SwarmObjectInfo];
 	decals: [Decal];
 	flip_maps: [int32];
