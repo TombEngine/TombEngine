@@ -1732,9 +1732,51 @@ namespace TEN::Renderer
 
 	void Renderer::DrawEffects(RenderView& view, RendererPass rendererPass)
 	{
-		// Effects are drawn immediately and don't participate in sorted transparency collection.
+		// Sorted-blend faces (e.g. alpha blend) are collected here and drawn later, back-to-front,
+		// in the Transparent pass. Opaque/alpha-test/additive faces are still drawn immediately below.
 		if (rendererPass == RendererPass::CollectTransparentFaces)
+		{
+			for (auto* roomPtr : view.RoomsToDraw)
+			{
+				if (IgnoreReflectionPassForRoom(roomPtr->RoomNumber))
+					continue;
+
+				for (auto* effectPtr : roomPtr->EffectsToDraw)
+				{
+					const auto& object = Objects[effectPtr->ObjectID];
+					if (object.Hidden || !object.loaded || effectPtr->Mesh == nullptr)
+						continue;
+
+					for (auto& bucket : effectPtr->Mesh->Buckets)
+					{
+						if (bucket.NumVertices == 0 || !IsSortedBlendMode(bucket.BlendMode))
+							continue;
+
+						for (int p = 0; p < bucket.Polygons.size(); p++)
+						{
+							auto centre = Vector3::Transform(bucket.Polygons[p].Centre, effectPtr->InterpolatedWorld);
+							int distance = (centre - view.Camera.WorldPosition).Length();
+
+							RendererSortableObject sortableObject;
+							sortableObject.ObjectType = RendererObjectType::Effect;
+							sortableObject.Centre = centre;
+							sortableObject.Distance = distance;
+							sortableObject.BlendMode = bucket.BlendMode;
+							sortableObject.Bucket = &bucket;
+							sortableObject.LightMode = LightMode::Dynamic;
+							sortableObject.Polygon = &bucket.Polygons[p];
+							sortableObject.World = effectPtr->InterpolatedWorld;
+							sortableObject.Effect = effectPtr;
+							sortableObject.Room = &_rooms[effectPtr->RoomNumber];
+
+							view.TransparentObjectsToDraw.push_back(sortableObject);
+						}
+					}
+				}
+			}
+
 			return;
+		}
 
 		_shaders.Bind(Shader::InstancedStatics);
 

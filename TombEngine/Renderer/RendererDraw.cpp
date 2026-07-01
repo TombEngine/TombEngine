@@ -3721,6 +3721,31 @@ namespace TEN::Renderer
 
 				i--;
 			}
+			else if (object->ObjectType == RendererObjectType::Effect)
+			{
+				while (i < view.TransparentObjectsToDraw.size() &&
+					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
+					view.TransparentObjectsToDraw[i].Effect == object->Effect &&
+					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
+					view.TransparentObjectsToDraw[i].Bucket->Animated == object->Bucket->Animated &&
+					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
+					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
+				{
+					auto* currentObject = &view.TransparentObjectsToDraw[i];
+					_sortedPolygonsIndices.bulk_push_back(
+						_moveablesIndices.data(),
+						currentObject->Polygon->BaseIndex,
+						currentObject->Polygon->Shape == 0 ? 6 : 3);
+					i++;
+				}
+
+				DrawEffectSorted(object, lastObjectType, view);
+
+				if (i == view.TransparentObjectsToDraw.size())
+					return;
+
+				i--;
+			}
 			else if (object->ObjectType == RendererObjectType::Sprite)
 			{			
 				while (i < view.TransparentObjectsToDraw.size() &&
@@ -3991,6 +4016,46 @@ namespace TEN::Renderer
 		DrawIndexedInstancedTriangles((int)_sortedPolygonsIndices.size(), 1, 0, 0);
 
 		_numSortedStaticsDrawCalls++;
+		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
+	}
+
+	void Renderer::DrawEffectSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
+	{
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
+		if (lastObjectType != objectInfo->ObjectType)
+		{
+			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+
+			SetDepthState(DepthState::Read);
+			SetCullMode(CullMode::CounterClockwise);
+
+			_shaders.Bind(Shader::InstancedStatics);
+		}
+
+		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
+		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
+
+		auto world = objectInfo->Effect->InterpolatedWorld;
+		_stObjects.Objects[0].World = world;
+
+		_stObjects.Objects[0].Color = objectInfo->Effect->Color;
+		_stObjects.Objects[0].AmbientLight = objectInfo->Effect->AmbientLight;
+		_stObjects.Objects[0].LightMode = (int)LightMode::Dynamic;
+		BindInstancedStaticLights(objectInfo->Effect->LightsToDraw, 0);
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+		SetBlendMode(objectInfo->BlendMode);
+		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
+
+		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
+		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
+
+		DrawIndexedInstancedTriangles((int)_sortedPolygonsIndices.size(), 1, 0, 0);
+
+		_numEffectsDrawCalls++;
 		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
 	}
 
