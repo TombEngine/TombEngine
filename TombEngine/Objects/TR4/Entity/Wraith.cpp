@@ -485,7 +485,8 @@ namespace TEN::Entities::TR4
 						item.ItemFlags[1] = 0;
 				}
 			}
-			else if (wraith4TrapDeath && target->ObjectNumber == ID_WRAITH_TRAP)
+			
+			if (wraith4TrapDeath && target->ObjectNumber == ID_WRAITH_TRAP)
 			{
 				// Spawn effects if WRAITH4 is being sucked by trap object.
 				xl = target->Pose.Position.x - LaraItem->Pose.Position.x;
@@ -521,29 +522,29 @@ namespace TEN::Entities::TR4
 				}
 			}
 
-		// Electric wraith: damage Lara if in same water room.
-		if (wraith4AttackType == (int)Wraith4AttackType::Electric)
-		{
-			if (TestEnvironment(ENV_FLAG_WATER, item.RoomNumber) &&
-				item.RoomNumber == LaraItem->RoomNumber)
+			// Electric wraith: damage Lara if in same water room.
+			if (wraith4AttackType == (int)Wraith4AttackType::Electric)
 			{
-				int distX = LaraItem->Pose.Position.x - item.Pose.Position.x;
-				int distZ = LaraItem->Pose.Position.z - item.Pose.Position.z;
-				int distToLara = SQUARE(distX) + SQUARE(distZ);
+				if (TestEnvironment(ENV_FLAG_WATER, item.RoomNumber) &&
+					item.RoomNumber == LaraItem->RoomNumber)
+				{
+					int distX = LaraItem->Pose.Position.x - item.Pose.Position.x;
+					int distZ = LaraItem->Pose.Position.z - item.Pose.Position.z;
+					int distToLara = SQUARE(distX) + SQUARE(distZ);
 
-				if (distToLara < BLOCK(28.25f) &&
-					(abs(item.Pose.Position.y - LaraItem->Pose.Position.y + CLICK(1.5f))) < CLICK(1))
-				{
-					DoDamage(LaraItem, INT_MAX);
-				}
-				else
-				{
-					DoDamage(LaraItem, 8);
+					if (distToLara < BLOCK(28.25f) &&
+						(abs(item.Pose.Position.y - LaraItem->Pose.Position.y + CLICK(1.5f))) < CLICK(1))
+					{
+						DoDamage(LaraItem, INT_MAX);
+					}
+					else
+					{
+						DoDamage(LaraItem, 8);
+					}
 				}
 			}
 		}
-	}
-	else if (item.ObjectNumber != ID_WRAITH3)
+		else if (item.ObjectNumber != ID_WRAITH3)
 		{
 			// WRAITH1 AND WRAITH2 can die on contact with water.
 			// WRAITH1 simply dies, WRAITH2 triggers flipmap to make ice.
@@ -622,225 +623,225 @@ namespace TEN::Entities::TR4
 			}
 		}
 
-		if (distance < BLOCK(28.25f) &&
-			(abs(item.Pose.Position.y - target->Pose.Position.y + CLICK(1.5f))) < CLICK(1))
+	if (distance < BLOCK(28.25f) &&
+		(abs(item.Pose.Position.y - target->Pose.Position.y + CLICK(1.5f))) < CLICK(1))
+	{
+		if (item.Animation.Velocity.z > 32)
+			item.Animation.Velocity.z -= 12;
+
+		if (target->IsLara())
 		{
-			if (item.Animation.Velocity.z > 32)
-				item.Animation.Velocity.z -= 12;
+			int damage = (wraith4Damage > 0) ? (int)wraith4Damage : (distance / BLOCK(1));
+			DoDamage(target, damage);
 
-			if (target->IsLara())
+			if (item.ObjectNumber == ID_WRAITH4)
 			{
-				int damage = (wraith4Damage > 0) ? (int)wraith4Damage : (distance / BLOCK(1));
-				DoDamage(target, damage);
-
-				if (item.ObjectNumber == ID_WRAITH4)
+				switch ((Wraith4AttackType)wraith4AttackType)
 				{
-					switch ((Wraith4AttackType)wraith4AttackType)
+				case Wraith4AttackType::Electric:
 					{
-					case Wraith4AttackType::Electric:
+						byte elecR = (byte)(wraith4Color.x * UCHAR_MAX);
+						byte elecG = (byte)(wraith4Color.y * UCHAR_MAX);
+						byte elecB = (byte)(wraith4Color.z * UCHAR_MAX);
+
+						ItemBlueElectricBurn(target, 2 * FPS);
+
+						for (int j = 0; j < 3; j++)
 						{
-							byte elecR = (byte)(wraith4Color.x * UCHAR_MAX);
-							byte elecG = (byte)(wraith4Color.y * UCHAR_MAX);
-							byte elecB = (byte)(wraith4Color.z * UCHAR_MAX);
-
-							ItemBlueElectricBurn(target, 2 * FPS);
-
-							for (int j = 0; j < 3; j++)
-							{
-								auto& spark = *GetFreeParticle();
-								spark.on = true;
-								spark.sR = elecR;
-								spark.sG = elecG;
-								spark.sB = elecB;
-								spark.dR = elecR / 2;
-								spark.dG = elecG / 2;
-								spark.dB = elecB / 2;
-								spark.colFadeSpeed = 8;
-								spark.fadeToBlack = 4;
-								spark.blendMode = BlendMode::Additive;
-								spark.life = 12;
-								spark.sLife = 12;
-								spark.x = target->Pose.Position.x + (GetRandomControl() & 0xFF) - 128;
-								spark.y = target->Pose.Position.y + (GetRandomControl() & 0xFF) - 128;
-								spark.z = target->Pose.Position.z + (GetRandomControl() & 0xFF) - 128;
-								spark.xVel = 2 * (GetRandomControl() & 0x1FF) - 512;
-								spark.yVel = 2 * (GetRandomControl() & 0x1FF) - 512;
-								spark.zVel = 2 * (GetRandomControl() & 0x1FF) - 512;
-								spark.friction = 51;
-								spark.maxYvel = 0;
-								spark.gravity = 0;
-								spark.flags = SP_NONE;
-								spark.scalar = 0;
-								spark.sSize = (GetRandomControl() & 7) + 8;
-								spark.size = spark.sSize;
-								spark.dSize = spark.size / 2;
-							}
+							auto& spark = *GetFreeParticle();
+							spark.on = true;
+							spark.sR = elecR;
+							spark.sG = elecG;
+							spark.sB = elecB;
+							spark.dR = elecR / 2;
+							spark.dG = elecG / 2;
+							spark.dB = elecB / 2;
+							spark.colFadeSpeed = 8;
+							spark.fadeToBlack = 4;
+							spark.blendMode = BlendMode::Additive;
+							spark.life = 12;
+							spark.sLife = 12;
+							spark.x = target->Pose.Position.x + (GetRandomControl() & 0xFF) - 128;
+							spark.y = target->Pose.Position.y + (GetRandomControl() & 0xFF) - 128;
+							spark.z = target->Pose.Position.z + (GetRandomControl() & 0xFF) - 128;
+							spark.xVel = 2 * (GetRandomControl() & 0x1FF) - 512;
+							spark.yVel = 2 * (GetRandomControl() & 0x1FF) - 512;
+							spark.zVel = 2 * (GetRandomControl() & 0x1FF) - 512;
+							spark.friction = 51;
+							spark.maxYvel = 0;
+							spark.gravity = 0;
+							spark.flags = SP_NONE;
+							spark.scalar = 0;
+							spark.sSize = (GetRandomControl() & 7) + 8;
+							spark.size = spark.sSize;
+							spark.dSize = spark.size / 2;
 						}
-						break;
+					}
+					break;
 
-					case Wraith4AttackType::Fire:
-						{
-							Vector3 primaryVec3(wraith4Color.x, wraith4Color.y, wraith4Color.z);
-							Vector3 secondaryVec3(
-								std::max(wraith4Color.x - 0.2f, 0.0f),
-								std::max(wraith4Color.y - 0.2f, 0.0f),
-								std::max(wraith4Color.z - 0.2f, 0.0f));
+				case Wraith4AttackType::Fire:
+					{
+						Vector3 primaryVec3(wraith4Color.x, wraith4Color.y, wraith4Color.z);
+						Vector3 secondaryVec3(
+							std::max(wraith4Color.x - 0.2f, 0.0f),
+							std::max(wraith4Color.y - 0.2f, 0.0f),
+							std::max(wraith4Color.z - 0.2f, 0.0f));
 							
-							item.ItemFlags[1] += 400;
-							if (item.ItemFlags[1] > 8000)
-							ItemCustomBurn(target, primaryVec3, secondaryVec3, NO_VALUE);
-						}
-						break;
-
-					case Wraith4AttackType::Poison:
-						Lara.Status.Poison += 1;
-						break;
-
-					default:
-						// Damage only, no special effect.
-						break;
+						item.ItemFlags[1] += 400;
+						if (item.ItemFlags[1] > 8000)
+						ItemCustomBurn(target, primaryVec3, secondaryVec3, NO_VALUE);
 					}
-				}
-				else if (item.ObjectNumber == ID_WRAITH1 && !TestEnvironment(ENV_FLAG_WATER, target->RoomNumber))
-				{
-					// WRAITH1 can burn player.
-					item.ItemFlags[1] += 400;
-					if (item.ItemFlags[1] > 8000)
-						ItemBurn(LaraItem);
+					break;
+
+				case Wraith4AttackType::Poison:
+					Lara.Status.Poison += 1;
+					break;
+
+				default:
+					// Damage only, no special effect.
+					break;
 				}
 			}
-			else if (target->ObjectNumber == ID_WRAITH_TRAP)
+			else if (item.ObjectNumber == ID_WRAITH1 && !TestEnvironment(ENV_FLAG_WATER, target->RoomNumber))
 			{
-				// ID_WRAITH_TRAP can kill WRAITH3 and WRAITH4 (if trap_death).
-				item.ItemFlags[7]++;
+				// WRAITH1 can burn player.
+				item.ItemFlags[1] += 400;
+				if (item.ItemFlags[1] > 8000)
+					ItemBurn(LaraItem);
+			}
+		}
+		else if (target->ObjectNumber == ID_WRAITH_TRAP)
+		{
+			// ID_WRAITH_TRAP can kill WRAITH3 and WRAITH4 (if trap_death).
+			item.ItemFlags[7]++;
 
-				if (item.ItemFlags[7] > 10)
+			if (item.ItemFlags[7] > 10)
+			{
+				item.Pose.Position = target->Pose.Position;
+				item.Pose.Position.y -= CLICK(1.5f);
+
+				SpawnWraithExplosion(item, Vector3(96.0f), -32.0f);
+				SpawnWraithExplosion(item, Vector3(48.0f), 48.0f);
+
+				if (target->TriggerFlags > 0)
+					target->Animation.FrameNumber = 0;
+
+				target->ItemFlags[6] = 0;
+				DoDamage(target, INT_MAX);
+
+				if (item.ObjectNumber == ID_WRAITH4 && wraith4FlipmapOnDeath > 0)
 				{
-					item.Pose.Position = target->Pose.Position;
-					item.Pose.Position.y -= CLICK(1.5f);
-
-					SpawnWraithExplosion(item, Vector3(96.0f), -32.0f);
-					SpawnWraithExplosion(item, Vector3(48.0f), 48.0f);
-
-					if (target->TriggerFlags > 0)
-						target->Animation.FrameNumber = 0;
-
-					target->ItemFlags[6] = 0;
-					DoDamage(target, INT_MAX);
-
-					if (item.ObjectNumber == ID_WRAITH4 && wraith4FlipmapOnDeath > 0)
+					if (!FlipStats[wraith4FlipmapOnDeath])
 					{
-						if (!FlipStats[wraith4FlipmapOnDeath])
-						{
-							DoFlipMap(wraith4FlipmapOnDeath);
-							FlipStats[wraith4FlipmapOnDeath] = true;
-						}
+						DoFlipMap(wraith4FlipmapOnDeath);
+						FlipStats[wraith4FlipmapOnDeath] = true;
 					}
-
-					KillItem(itemNumber);
 				}
-			}
-			else
-			{
-				// Target is another wraith (fire vs ice), they fight to the death.
 
-				target->ItemFlags[7] = 10;
-
-				if (item.ItemFlags[7])
-				{
-					if (item.ObjectNumber == ID_WRAITH1)
-						SpawnWraithExplosion(item, Vector3(1.0f * UCHAR_MAX, 0.6f * UCHAR_MAX, 0.0f * UCHAR_MAX), 48.0f);
-					else
-						SpawnWraithExplosion(item, Vector3(0.0f * UCHAR_MAX, 0.5f * UCHAR_MAX, 1.0f * UCHAR_MAX), 48.0f);
-
-					TriggerExplosionSparks(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, 2, -2, 1, item.RoomNumber);
-
-					target->ItemFlags[6] = 0;
-					target->ItemFlags[7] = 0;
-					item.ItemFlags[6] = 0;
-					target = LaraItem;
-					item.ItemFlags[7] = 0;
-					DoDamage(&item, INT_MAX);
-					KillItem(itemNumber);
-				}
+				KillItem(itemNumber);
 			}
 		}
 		else
 		{
-			if (Wibble & 10)
-			{
-				if (item.Animation.Velocity.z < WRAITH_VELOCITY)
-					item.Animation.Velocity.z++;
+			// Target is another wraith (fire vs ice), they fight to the death.
 
-				if (item.ItemFlags[6])
-				{
-					target->ItemFlags[7]--;
-				}
+			target->ItemFlags[7] = 10;
+
+			if (item.ItemFlags[7])
+			{
+				if (item.ObjectNumber == ID_WRAITH1)
+					SpawnWraithExplosion(item, Vector3(1.0f * UCHAR_MAX, 0.6f * UCHAR_MAX, 0.0f * UCHAR_MAX), 48.0f);
+				else
+					SpawnWraithExplosion(item, Vector3(0.0f * UCHAR_MAX, 0.5f * UCHAR_MAX, 1.0f * UCHAR_MAX), 48.0f);
+
+				TriggerExplosionSparks(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, 2, -2, 1, item.RoomNumber);
+
+				target->ItemFlags[6] = 0;
+				target->ItemFlags[7] = 0;
+				item.ItemFlags[6] = 0;
+				target = LaraItem;
+				item.ItemFlags[7] = 0;
+				DoDamage(&item, INT_MAX);
+				KillItem(itemNumber);
 			}
 		}
-
-		// Check if WRAITH is below floor or above ceiling and spawn wall effect
-		pointColl = GetPointCollision(item);
-
-		if (pointColl.GetFloorHeight() < item.Pose.Position.y ||
-			pointColl.GetCeilingHeight() > item.Pose.Position.y)
+	}
+	else
+	{
+		if (Wibble & 10)
 		{
-			if (!hasHitWall)
-				WraithWallEffect(prevPos, item.Pose.Orientation.y - ANGLE(180.0f), item.ObjectNumber, wraith4Color);
+			if (item.Animation.Velocity.z < WRAITH_VELOCITY)
+				item.Animation.Velocity.z++;
+
+			if (item.ItemFlags[6])
+			{
+				target->ItemFlags[7]--;
+			}
 		}
-		else if (hasHitWall)
+	}
+
+	// Check if WRAITH is below floor or above ceiling and spawn wall effect
+	pointColl = GetPointCollision(item);
+
+	if (pointColl.GetFloorHeight() < item.Pose.Position.y ||
+		pointColl.GetCeilingHeight() > item.Pose.Position.y)
+	{
+		if (!hasHitWall)
+			WraithWallEffect(prevPos, item.Pose.Orientation.y - ANGLE(180.0f), item.ObjectNumber, wraith4Color);
+	}
+	else if (hasHitWall)
+	{
+		WraithWallEffect(item.Pose.Position, item.Pose.Orientation.y, item.ObjectNumber, wraith4Color);
+	}
+
+	// Update WRAITH nodes.
+	auto* wraithPtr = &GetWraithInfo(item);
+
+	int j = 0;
+	for (int i = WRAITH_COUNT - 1; i > 0; i--)
+	{
+		wraithPtr[i - 1].Position += (wraithPtr[i - 1].Velocity / 16);
+		wraithPtr[i - 1].Velocity -= (wraithPtr[i - 1].Velocity / 16);
+
+		wraithPtr[i].Position = wraithPtr[i - 1].Position;
+		wraithPtr[i].Velocity = wraithPtr[i - 1].Velocity;
+
+		if (item.ObjectNumber == ID_WRAITH4)
 		{
-			WraithWallEffect(item.Pose.Position, item.Pose.Orientation.y, item.ObjectNumber, wraith4Color);
+			int baseR = (int)(wraith4Color.x * UCHAR_MAX);
+			int baseG = (int)(wraith4Color.y * UCHAR_MAX);
+			int baseB = (int)(wraith4Color.z * UCHAR_MAX);
+
+			int brightness = (j + 1) * 255 / WRAITH_COUNT;
+			int rVal = (baseR * brightness / 255) + (GetRandomControl() & 0x1F) - 16;
+			int gVal = (baseG * brightness / 255) + (GetRandomControl() & 0x1F) - 16;
+			int bVal = (baseB * brightness / 255) + (GetRandomControl() & 0xF);
+
+			wraithPtr[i].r = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, rVal));
+			wraithPtr[i].g = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, gVal));
+			wraithPtr[i].b = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, bVal));
 		}
-
-		// Update WRAITH nodes.
-		auto* wraithPtr = &GetWraithInfo(item);
-
-		int j = 0;
-		for (int i = WRAITH_COUNT - 1; i > 0; i--)
+		else if (item.ObjectNumber == ID_WRAITH1)
 		{
-			wraithPtr[i - 1].Position += (wraithPtr[i - 1].Velocity / 16);
-			wraithPtr[i - 1].Velocity -= (wraithPtr[i - 1].Velocity / 16);
-
-			wraithPtr[i].Position = wraithPtr[i - 1].Position;
-			wraithPtr[i].Velocity = wraithPtr[i - 1].Velocity;
-
-			if (item.ObjectNumber == ID_WRAITH4)
-			{
-				int baseR = (int)(wraith4Color.x * UCHAR_MAX);
-				int baseG = (int)(wraith4Color.y * UCHAR_MAX);
-				int baseB = (int)(wraith4Color.z * UCHAR_MAX);
-
-				int brightness = (j + 1) * 255 / WRAITH_COUNT;
-				int rVal = (baseR * brightness / 255) + (GetRandomControl() & 0x1F) - 16;
-				int gVal = (baseG * brightness / 255) + (GetRandomControl() & 0x1F) - 16;
-				int bVal = (baseB * brightness / 255) + (GetRandomControl() & 0xF);
-
-				wraithPtr[i].r = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, rVal));
-				wraithPtr[i].g = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, gVal));
-				wraithPtr[i].b = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, bVal));
-			}
-			else if (item.ObjectNumber == ID_WRAITH1)
-			{
-				wraithPtr[i].r = (GetRandomControl() & 0x3F) - 64;
-				wraithPtr[i].g = 16 * (j + 1) + (GetRandomControl() & 0x3F);
-				wraithPtr[i].b = GetRandomControl() & 0xF;
-			}
-			else if (item.ObjectNumber == ID_WRAITH2)
-			{
-				wraithPtr[i].r = GetRandomControl() & 0xF;
-				wraithPtr[i].g = 16 * (j + 1) + (GetRandomControl() & 0x3F);
-				wraithPtr[i].b = (GetRandomControl() & 0x3F) - 64;
-			}
-			else
-			{
-				wraithPtr[i].r = 8 * (j + 2) + (GetRandomControl() & 0x3F);
-				wraithPtr[i].g = wraithPtr[i].r;
-				wraithPtr[i].b = wraithPtr[i].r + (GetRandomControl() & 0xF);
-			}
-
-			j++;
+			wraithPtr[i].r = (GetRandomControl() & 0x3F) - 64;
+			wraithPtr[i].g = 16 * (j + 1) + (GetRandomControl() & 0x3F);
+			wraithPtr[i].b = GetRandomControl() & 0xF;
 		}
+		else if (item.ObjectNumber == ID_WRAITH2)
+		{
+			wraithPtr[i].r = GetRandomControl() & 0xF;
+			wraithPtr[i].g = 16 * (j + 1) + (GetRandomControl() & 0x3F);
+			wraithPtr[i].b = (GetRandomControl() & 0x3F) - 64;
+		}
+		else
+		{
+			wraithPtr[i].r = 8 * (j + 2) + (GetRandomControl() & 0x3F);
+			wraithPtr[i].g = wraithPtr[i].r;
+			wraithPtr[i].b = wraithPtr[i].r + (GetRandomControl() & 0xF);
+		}
+
+		j++;
+	}
 
 		wraithPtr[0].Position = item.Pose.Position;
 		wraithPtr[0].Velocity = (item.Pose.Position - prevPos) * 4;
