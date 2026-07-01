@@ -245,13 +245,13 @@ namespace TEN::Entities::TR4
 		if (item.ObjectNumber == ID_WRAITH4)
 		{
 			auto primaryColor          = PropertyHandler::Get<ScriptColor>(item, HASH_PRIMARY_COLOR, ScriptColor(255, 156, 0));
-			auto wraith4Color	       = Vector4(primaryColor.GetR() / (float)UCHAR_MAX, primaryColor.GetG() / (float)UCHAR_MAX, primaryColor.GetB() / (float)UCHAR_MAX, 1.0f);
-			auto wraith4WaterDeath     = PropertyHandler::Get<bool>(item, HASH_WATER_DEATH, true);
-			auto wraith4TrapDeath	   = PropertyHandler::Get<bool>(item, HASH_TRAP_DEATH, false);
-			auto wraith4FlipmapOnDeath = PropertyHandler::Get<int>(item, HASH_FLIPMAP_ON_DEATH, 0);
-			auto wraith4AttackType     = PropertyHandler::Get<int>(item, HASH_ATTACK_TYPE, 0);
-			auto wraith4Damage         = PropertyHandler::Get<int>(item, HASH_DAMAGE, 1);
-			auto wraith4MeshID         = PropertyHandler::Get<int>(item, HASH_MESH_ID, 0);
+			wraith4Color	           = Vector4(primaryColor.GetR() / (float)UCHAR_MAX, primaryColor.GetG() / (float)UCHAR_MAX, primaryColor.GetB() / (float)UCHAR_MAX, 1.0f);
+			wraith4WaterDeath          = PropertyHandler::Get<bool>(item, HASH_WATER_DEATH, true);
+			wraith4TrapDeath	       = PropertyHandler::Get<bool>(item, HASH_TRAP_DEATH, false);
+			wraith4FlipmapOnDeath      = PropertyHandler::Get<int>(item, HASH_FLIPMAP_ON_DEATH, 0);
+			wraith4AttackType          = PropertyHandler::Get<int>(item, HASH_ATTACK_TYPE, 0);
+			wraith4Damage              = PropertyHandler::Get<int>(item, HASH_DAMAGE, 1);
+			wraith4MeshID              = PropertyHandler::Get<int>(item, HASH_MESH_ID, 0);
 
 			item.MeshBits.ClearAll();
 
@@ -808,9 +808,10 @@ namespace TEN::Entities::TR4
 				int baseG = (int)(wraith4Color.y * UCHAR_MAX);
 				int baseB = (int)(wraith4Color.z * UCHAR_MAX);
 
-				int rVal = baseR + (GetRandomControl() & 0x3F) - 32;
-				int gVal = baseG + (GetRandomControl() & 0x3F) - 32;
-				int bVal = baseB + (GetRandomControl() & 0x1F);
+				int brightness = (j + 1) * 255 / WRAITH_COUNT;
+				int rVal = (baseR * brightness / 255) + (GetRandomControl() & 0x1F) - 16;
+				int gVal = (baseG * brightness / 255) + (GetRandomControl() & 0x1F) - 16;
+				int bVal = (baseB * brightness / 255) + (GetRandomControl() & 0xF);
 
 				wraithPtr[i].r = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, rVal));
 				wraithPtr[i].g = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, gVal));
