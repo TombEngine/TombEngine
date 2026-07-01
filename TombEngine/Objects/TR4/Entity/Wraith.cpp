@@ -461,7 +461,7 @@ namespace TEN::Entities::TR4
 					{
 						if (item.ItemFlags[1] < 30)
 						{
-							if (wraith4FlipmapOnDeath > 0)
+							if (wraith4FlipmapOnDeath > NO_VALUE)
 							{
 								if (!FlipStats[wraith4FlipmapOnDeath])
 								{
@@ -630,7 +630,7 @@ namespace TEN::Entities::TR4
 
 			if (target->IsLara())
 			{
-				int damage = (wraith4Damage > 0.0f) ? (int)wraith4Damage : (distance / BLOCK(1));
+				int damage = (wraith4Damage > 0) ? (int)wraith4Damage : (distance / BLOCK(1));
 				DoDamage(target, damage);
 
 				if (item.ObjectNumber == ID_WRAITH4)
@@ -685,6 +685,9 @@ namespace TEN::Entities::TR4
 								std::max(wraith4Color.x - 0.2f, 0.0f),
 								std::max(wraith4Color.y - 0.2f, 0.0f),
 								std::max(wraith4Color.z - 0.2f, 0.0f));
+							
+							item.ItemFlags[1] += 400;
+							if (item.ItemFlags[1] > 8000)
 							ItemCustomBurn(target, primaryVec3, secondaryVec3, NO_VALUE);
 						}
 						break;
