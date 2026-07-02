@@ -248,7 +248,7 @@ namespace TEN::Entities::TR4
 			wraith4Color	           = Vector4(primaryColor.GetR() / (float)UCHAR_MAX, primaryColor.GetG() / (float)UCHAR_MAX, primaryColor.GetB() / (float)UCHAR_MAX, 1.0f);
 			wraith4WaterDeath          = PropertyHandler::Get<bool>(item, HASH_WATER_DEATH, true);
 			wraith4TrapDeath	       = PropertyHandler::Get<bool>(item, HASH_TRAP_DEATH, false);
-			wraith4FlipmapOnDeath      = PropertyHandler::Get<int>(item, HASH_FLIPMAP_ON_DEATH, 0);
+			wraith4FlipmapOnDeath      = PropertyHandler::Get<int>(item, HASH_FLIPMAP_ON_DEATH, NO_VALUE);
 			wraith4AttackType          = PropertyHandler::Get<int>(item, HASH_ATTACK_TYPE, 0);
 			wraith4Damage              = PropertyHandler::Get<int>(item, HASH_DAMAGE, 0);
 			wraith4MeshID              = PropertyHandler::Get<int>(item, HASH_MESH_ID, 0);
