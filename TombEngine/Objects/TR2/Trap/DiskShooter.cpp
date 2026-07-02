@@ -34,10 +34,10 @@ namespace TEN::Entities::Traps
 
 		if (item.TouchBits.TestAny())
 		{
-			if (PropertyHandler::Get(item, "DiskShooterPoison", item.TriggerFlags < 0))
+			if (PropertyHandler::Get(item, "DiskShooterPoison", false))
 				Lara.Status.Poison += 1;
 
-			DoDamage(LaraItem, PropertyHandler::Get(item, "DiskShooterDamage", item.TriggerFlags ? abs(item.TriggerFlags) : DISK_DEFAULT_HARM_DAMAGE));
+			DoDamage(LaraItem, PropertyHandler::Get(item, "DiskShooterDamage", DISK_DEFAULT_HARM_DAMAGE));
 			DoBloodSplat(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, (GetRandomControl() & 3) + 4, LaraItem->Pose.Orientation.y, LaraItem->RoomNumber);
 			KillItem(itemNumber);
 		}
@@ -109,8 +109,8 @@ namespace TEN::Entities::Traps
 
 			diskItem.Animation.Velocity.z = DISK_DEFAULT_VELOCITY;
 			
-			diskItem.Properties.Set("DiskShooterPoison", PropertyHandler::Get<bool>(item, "DiskShooterPoison", item.TriggerFlags < 0));
-			diskItem.TriggerFlags = item.TriggerFlags;
+			diskItem.Properties.Set("DiskShooterPoison", PropertyHandler::Get<bool>(item, "DiskShooterPoison", false));
+			diskItem.Properties.Set("DiskShooterDamage", (float)PropertyHandler::Get<int>(item, "DiskShooterDamage", DISK_DEFAULT_HARM_DAMAGE));
 			diskItem.Model.Color = item.Model.Color;
 
 			AddActiveItem(diskItemNumber);
