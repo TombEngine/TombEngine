@@ -30,6 +30,7 @@
 #include "Game/Hud/DrawItems/DisplayItem.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_cheat.h"
+#include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
 #include "Game/items.h"
@@ -44,6 +45,7 @@
 #include "Objects/Generic/Object/objects.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/Generic/Switches/generic_switch.h"
+#include "Objects/TR3/Entity/SophiaLeigh.h"
 #include "Objects/TR3/Entity/FishSwarm.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
 #include "Objects/TR4/Entity/Locust.h"
@@ -57,6 +59,8 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/Strings/ScriptInterfaceStringsHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyUtils.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/EngineMain.h"
@@ -94,6 +98,7 @@ using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
 using namespace TEN::Renderer;
+using namespace TEN::Scripting::Properties;
 using namespace TEN::SpotCam;
 using namespace TEN::Video;
 
@@ -322,6 +327,8 @@ GameStatus FreezePhase()
 
 		UpdateAllItems();
 		UpdateGlobalLensFlare();
+		UpdateFadeScreenAndCinematicBars();
+		Weather.Update(true);
 
 		UpdateCamera();
 
@@ -415,6 +422,7 @@ GameStatus DoLevel(int levelIndex, bool loadGame)
 
 	// Initialize scripting.
 	InitializeScripting(levelIndex, loadGame);
+	InitializeProperties();
 	InitializeNodeScripts();
 
 	// Initialize menu and inventory state.
@@ -564,6 +572,7 @@ void CleanUp()
 	ClearSplashes();
 	ClearLaserBarrierEffects();
 	ClearLaserBeamEffects();
+	ClearSophiaLeighEffects();
 	DisableSmokeParticles();
 	DisableSparkParticles();
 	DisableDebris();
@@ -792,6 +801,8 @@ void SetupInterpolation()
 
 void HandleControls(bool isTitle)
 {
+	SetRelativeMouseMode(!isTitle && g_GameFlow->CurrentFreezeMode != FreezeMode::Full);
+
 	// Poll input devices and update input variables.
 	// TODO: To allow cutscene skipping later, don't clear Deselect action.
 	UpdateInputActions(false, true);

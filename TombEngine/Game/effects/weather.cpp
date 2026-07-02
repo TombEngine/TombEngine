@@ -60,9 +60,14 @@ namespace TEN::Effects::Environment
 		Particles.reserve(WEATHER_PARTICLE_COUNT_MAX);
 	}
 
-	void EnvironmentController::Update()
+	void EnvironmentController::Update(bool onlyFlash)
 	{
 		const auto& level = *g_GameFlow->GetLevel(CurrentLevel);
+
+		UpdateFlash(level);
+
+		if (onlyFlash)
+			return;
 
 		UpdateSky(level);
 		UpdateStorm(level);
@@ -195,8 +200,8 @@ namespace TEN::Effects::Environment
 		}
 		else if (StormCount)
 		{
-			StormRand = ((rand() & 0x1FF - StormRand) >> 1) + StormRand;
-			StormSkyColor2 += StormRand * StormSkyColor2 >> 8;
+			StormRand = ((Random::GenerateInt() & 0x1FF - StormRand) >> 1) + StormRand;
+			StormSkyColor2 = std::max(1, StormSkyColor2 + (StormRand * StormSkyColor2 >> 8));
 			StormSkyColor = StormSkyColor2;
 			if (StormSkyColor > UCHAR_MAX)
 				StormSkyColor = UCHAR_MAX;

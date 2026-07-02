@@ -177,7 +177,7 @@ namespace TEN::Effects::Environment
 		short   SkyPosition(int index) { return SkyCurrentPosition[std::clamp(index, 0, 1)]; }
 
 		void Flash(int r, int g, int b, float speed);
-		void Update();
+		void Update(bool onlyFlash = false);
 		void Clear();
 
 		const std::vector<WeatherParticle>& GetParticles() const { return Particles; }
