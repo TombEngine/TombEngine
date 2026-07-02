@@ -644,7 +644,7 @@ namespace TEN::Entities::TR4
 						byte elecG = (byte)(wraith4Color.y * UCHAR_MAX);
 						byte elecB = (byte)(wraith4Color.z * UCHAR_MAX);
 
-						ItemBlueElectricBurn(target, 2 * FPS);
+						ItemElectricBurn(target, 2 * FPS);
 
 						for (int j = 0; j < 3; j++)
 						{
