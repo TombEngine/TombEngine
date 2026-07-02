@@ -4,6 +4,7 @@
 #include "Game/Setup.h"
 #include "Objects/game_object_ids.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/level.h"
 
 using namespace TEN::Utils;
@@ -19,14 +20,14 @@ namespace TEN::Scripting::Properties
 			if (!object.loaded)
 				continue;
 
-			object.HitPoints = PropertyHandler::Get((GAME_OBJECT_ID)objectID, GetHash("HitPoints"), object.HitPoints);
+			object.HitPoints = PropertyHandler::Get((GAME_OBJECT_ID)objectID, GetHash(PropName_HitPoints), object.HitPoints);
 		}
 
 		// Per-item property application.
 		for (int i = 0; i < g_Level.NumItems; i++)
 		{
 			auto& item = g_Level.Items[i];
-			item.HitPoints = PropertyHandler::Get(item, GetHash("HitPoints"), item.HitPoints);
+			item.HitPoints = PropertyHandler::Get(item, GetHash(PropName_HitPoints), item.HitPoints);
 		}
 
 	}
