@@ -1,5 +1,9 @@
 #pragma once
 
+#include "Specific/trutils.h"
+
+using namespace TEN::Utils;
+
 // Common property names.
 
-static constexpr char PropName_HitPoints[] = "HitPoints";
+static const auto PropName_HitPoints = GetHash("HitPoints");
