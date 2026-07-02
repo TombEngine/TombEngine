@@ -655,7 +655,7 @@ namespace TEN::Entities::Vehicles
 				else if (IsHeld(In::Accelerate))
 				{
 					if (IsHeld(In::Faster))
-						maxVelocity = SPEEDBOAT_NORMAL_VELOCITY_MAX;
+						maxVelocity = SPEEDBOAT_FAST_VELOCITY_MAX;
 					else
 						maxVelocity = (IsHeld(In::Slower)) ? SPEEDBOAT_SLOW_VELOCITY_MAX : SPEEDBOAT_NORMAL_VELOCITY_MAX;
 
