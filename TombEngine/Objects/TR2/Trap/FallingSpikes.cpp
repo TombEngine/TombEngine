@@ -71,7 +71,7 @@ namespace TEN::Entities::Traps
 			short headingAngle = (short)orient.y;
 
 			// If "FallingSpikeForwardVelocity" property is true: falls towards the Player.
-			item.ItemFlags[1] = PropertyHandler::Get(item, "FallingSpikeForwardVelocity", item.TriggerFlags > 0) ? item.ItemFlags[1] : 0;
+			item.ItemFlags[1] = PropertyHandler::Get(item, "FallingSpikeForwardVelocity", false) ? item.ItemFlags[1] : 0;
 			item.Pose.Translate(headingAngle, item.ItemFlags[1], item.Animation.Velocity.y);
 
 			int vPos = item.Pose.Position.y;
