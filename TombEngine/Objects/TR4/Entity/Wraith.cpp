@@ -50,7 +50,9 @@ namespace TEN::Entities::TR4
 		Damage,
 		Electric,
 		Fire,
-		Poison
+		Poison,
+		Smoke,
+		Water
 	};
 
 	static WraithInfo& GetWraithInfo(ItemInfo& item)
@@ -644,7 +646,7 @@ namespace TEN::Entities::TR4
 						byte elecG = (byte)(wraith4Color.y * UCHAR_MAX);
 						byte elecB = (byte)(wraith4Color.z * UCHAR_MAX);
 
-						ItemElectricBurn(target, 2 * FPS);
+						ItemElectricBurn(target, wraith4Damage);
 
 						for (int j = 0; j < 3; j++)
 						{
@@ -695,6 +697,15 @@ namespace TEN::Entities::TR4
 
 				case Wraith4AttackType::Poison:
 					Lara.Status.Poison += wraith4Damage;
+					break;
+
+				case Wraith4AttackType::Smoke:
+					ItemSmoke(target, wraith4Damage);
+					break;
+
+				case Wraith4AttackType::Water:
+					for (float& i : Lara.Effect.DripNodes)
+						i = PLAYER_DRIP_NODE_MAX;
 					break;
 
 				default:
