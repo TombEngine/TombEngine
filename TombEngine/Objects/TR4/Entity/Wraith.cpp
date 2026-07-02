@@ -250,7 +250,7 @@ namespace TEN::Entities::TR4
 			wraith4TrapDeath	       = PropertyHandler::Get<bool>(item, HASH_TRAP_DEATH, false);
 			wraith4FlipmapOnDeath      = PropertyHandler::Get<int>(item, HASH_FLIPMAP_ON_DEATH, 0);
 			wraith4AttackType          = PropertyHandler::Get<int>(item, HASH_ATTACK_TYPE, 0);
-			wraith4Damage              = PropertyHandler::Get<int>(item, HASH_DAMAGE, 1);
+			wraith4Damage              = PropertyHandler::Get<int>(item, HASH_DAMAGE, 0);
 			wraith4MeshID              = PropertyHandler::Get<int>(item, HASH_MESH_ID, 0);
 
 			item.MeshBits.ClearAll();
@@ -631,7 +631,7 @@ namespace TEN::Entities::TR4
 
 		if (target->IsLara())
 		{
-			int damage = (wraith4Damage > 0) ? (int)wraith4Damage : (distance / BLOCK(1));
+			int damage = (item.ObjectNumber == ID_WRAITH4) ? wraith4Damage : (distance / BLOCK(1));
 			DoDamage(target, damage);
 
 			if (item.ObjectNumber == ID_WRAITH4)
@@ -694,7 +694,7 @@ namespace TEN::Entities::TR4
 					break;
 
 				case Wraith4AttackType::Poison:
-					Lara.Status.Poison += 1;
+					Lara.Status.Poison += wraith4Damage;
 					break;
 
 				default:
