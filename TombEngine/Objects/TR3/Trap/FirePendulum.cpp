@@ -152,9 +152,9 @@ namespace TEN::Entities::Traps
 
 		if (hasCustomColor)
 		{
-			r = (unsigned char)(colorVec3.x * 255.0f);
-			g = (unsigned char)(colorVec3.y * 255.0f);
-			b = (unsigned char)(colorVec3.z * 255.0f);
+			r = (unsigned char)(colorVec3.x * (float)UCHAR_MAX);
+			g = (unsigned char)(colorVec3.y * (float)UCHAR_MAX);
+			b = (unsigned char)(colorVec3.z * (float)UCHAR_MAX);
 		}
 		else
 		{
@@ -168,12 +168,12 @@ namespace TEN::Entities::Traps
 
 		if (hasCustomColor)
 		{
-			auto sourceColorR = std::clamp((float)r / 255.0f + 0.2f, 0.0f, 1.0f);
-			auto sourceColorG = std::clamp((float)g / 255.0f + 0.2f, 0.0f, 1.0f);
-			auto sourceColorB = std::clamp((float)b / 255.0f + 0.2f, 0.0f, 1.0f);
+			auto sourceColorR = std::clamp((float)r / (float)UCHAR_MAX + 0.2f, 0.0f, 1.0f);
+			auto sourceColorG = std::clamp((float)g / (float)UCHAR_MAX + 0.2f, 0.0f, 1.0f);
+			auto sourceColorB = std::clamp((float)b / (float)UCHAR_MAX + 0.2f, 0.0f, 1.0f);
 
 			flameColor1 = Vector3(sourceColorR, sourceColorG, sourceColorB);
-			flameColor2 = Vector3((float)r / 255.0f, (float)g / 255.0f, (float)b / 255.0f);
+			flameColor2 = Vector3((float)r / (float)UCHAR_MAX, (float)g / (float)UCHAR_MAX, (float)b / (float)UCHAR_MAX);
 		}
 
 		auto flameColorForSpark = colorVec3;
@@ -185,7 +185,7 @@ namespace TEN::Entities::Traps
 
 		auto color = Color(r / (float)UCHAR_MAX, g / (float)UCHAR_MAX, b / (float)UCHAR_MAX);
 
-		if (PropertyHandler::Get(item, "FirePendulumFxFogEffect", item.TriggerFlags > 0))
+		if (PropertyHandler::Get(item, "FirePendulumFxFogEffect", false))
 			SpawnDynamicFogBulb(pos.ToVector3(), PENDULUM_FIRE_FOG_RADIUS, PENDULUM_FIRE_FOG_DENSITY, color);
 
 		TriggerPendulumFlame(itemNumber, pos, color);
@@ -211,9 +211,9 @@ namespace TEN::Entities::Traps
 
 		// FirePendulumColor Property mit Fallback auf ItemFlags
 		auto defaultScriptColor = ScriptColor(
-			(float)item->ItemFlags[PendulumFlags::FireColorRed] / 255.0f,
-			(float)item->ItemFlags[PendulumFlags::FireColorGreen] / 255.0f,
-			(float)item->ItemFlags[PendulumFlags::FireColorBlue] / 255.0f);
+			(float)item->ItemFlags[PendulumFlags::FireColorRed] / (float)UCHAR_MAX,
+			(float)item->ItemFlags[PendulumFlags::FireColorGreen] / (float)UCHAR_MAX,
+			(float)item->ItemFlags[PendulumFlags::FireColorBlue] / (float)UCHAR_MAX);
 
 		auto flameColor = PropertyHandler::Get<ScriptColor>(item, "FirePendulumFlameColor", defaultScriptColor);
 		auto colorVec3 = (Vector3)flameColor;
@@ -238,15 +238,15 @@ namespace TEN::Entities::Traps
 				}
 				else
 				{
-					unsigned char r = (unsigned char)(colorVec3.x * 255.0f);
-					unsigned char g = (unsigned char)(colorVec3.y * 255.0f);
-					unsigned char b = (unsigned char)(colorVec3.z * 255.0f);
+					unsigned char r = (unsigned char)(colorVec3.x * (float)UCHAR_MAX);
+					unsigned char g = (unsigned char)(colorVec3.y * (float)UCHAR_MAX);
+					unsigned char b = (unsigned char)(colorVec3.z * (float)UCHAR_MAX);
 
-					auto sourceColorR = std::clamp((float)r / 255.0f + 0.2f, 0.0f, 1.0f);
-					auto sourceColorG = std::clamp((float)g / 255.0f + 0.2f, 0.0f, 1.0f);
-					auto sourceColorB = std::clamp((float)b / 255.0f + 0.2f, 0.0f, 1.0f);
+					auto sourceColorR = std::clamp((float)r / (float)UCHAR_MAX + 0.2f, 0.0f, 1.0f);
+					auto sourceColorG = std::clamp((float)g / (float)UCHAR_MAX + 0.2f, 0.0f, 1.0f);
+					auto sourceColorB = std::clamp((float)b / (float)UCHAR_MAX + 0.2f, 0.0f, 1.0f);
 
-					ItemCustomBurn(playerItem, Vector3(sourceColorR, sourceColorG, sourceColorB), Vector3((float)r / 255.0f, (float)g / 255.0f, (float)b / 255.0f));
+					ItemCustomBurn(playerItem, Vector3(sourceColorR, sourceColorG, sourceColorB), Vector3((float)r / (float)UCHAR_MAX, (float)g / (float)UCHAR_MAX, (float)b / (float)UCHAR_MAX));
 				}
 			}
 		}
