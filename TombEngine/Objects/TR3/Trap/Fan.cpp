@@ -74,7 +74,7 @@ namespace TEN::Entities::Traps
 			}
 		}
 
-		item.ItemFlags[3] = PropertyHandler::Get(item, "FanDamage", item.TriggerFlags);
+		item.ItemFlags[3] = PropertyHandler::Get(item, "FanDamage", FAN_HARM_DAMAGE);
 
 		AnimateItem(&item);
 	}
