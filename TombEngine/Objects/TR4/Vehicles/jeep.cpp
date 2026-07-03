@@ -328,7 +328,7 @@ namespace TEN::Entities::Vehicles
 		auto jeepLightCastShadow = PropertyHandler::Get(jeepItem, "JeepLightCastShadow", true);
 
 		float lightIntensity = ((jeep->LightPower * 2) - Random::GenerateInt(0, 16)) / (float)UCHAR_MAX;
-		lightIntensity *= PropertyHandler::Get(jeepItem, "MotorbikeLightIntensity", 1.0f);
+		lightIntensity *= PropertyHandler::Get(jeepItem, "JeepLightIntensity", 1.0f);
 
 		auto originLeft = TEN::Math::Geometry::TranslatePoint(
 			jeepItem->Pose.Position.ToVector3(),
