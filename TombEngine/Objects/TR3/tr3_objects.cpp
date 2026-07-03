@@ -230,6 +230,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->HitPoints = 8;
 		obj->radius = 102;
 		obj->intelligent = true;
+		obj->LotType = LotType::Human;
 		obj->pivotLength = 0;
 		obj->SetBoneRotationFlags(0, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(7, ROT_Y);
@@ -293,6 +294,7 @@ static void StartEntity(ObjectInfo* obj)
 	{
 		obj->Initialize = InitializeSophiaLeigh;
 		obj->control = SophiaLeighControl;
+		obj->HitRoutine = SophiaLeighHit;
 		obj->collision = CreatureCollision;
 		obj->shadowType = ShadowMode::All;
 		obj->pivotLength = 50;

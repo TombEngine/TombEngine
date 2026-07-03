@@ -206,7 +206,9 @@ namespace TEN::Entities::Traps
 		if (!HandleItemSphereCollision(item, *playerItem))
 			return;
 
-		if (item.Animation.FrameNumber <= FALLING_BLOCK_IMPACT_FRAME)
+		if (TriggerActive(&item) &&
+			item.Animation.FrameNumber > 0 &&
+			item.Animation.FrameNumber <= FALLING_BLOCK_IMPACT_FRAME)
 		{
 			item.Animation.FrameNumber += FALLING_BLOCK_NEXT_FRAME;
 

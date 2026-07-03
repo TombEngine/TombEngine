@@ -12,12 +12,12 @@ struct BatData
 	short Velocity;
 	short Counter;
 	short LaraTarget;
-	unsigned char XTarget;
-	unsigned char ZTarget;
+	short XTarget;
+	short ZTarget;
 
 	unsigned char Flags;
 	
-	Matrix Transform	 = Matrix::Identity;
+	Matrix Transform = Matrix::Identity;
 	Matrix PrevTransform = Matrix::Identity;
 
 	void StoreInterpolationData()
