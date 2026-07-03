@@ -96,7 +96,7 @@ namespace TEN::Scripting
 			sol::call_constructor, sol::constructors<AnimSettings()>(),
 			sol::meta_function::new_index, NewIndexErrorMaker(AnimSettings, ScriptReserved_AnimSettings),
 
-		/// Turning while doing back jumps.
+		/// Turning while jumping back.
 		// @tfield[opt=false] bool backJumpTurn When enabled, player will be able to turn while performing back jump.
 		"backJumpTurn", &AnimSettings::BackJumpTurn,
 
