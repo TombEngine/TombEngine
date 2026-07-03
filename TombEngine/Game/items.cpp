@@ -855,7 +855,7 @@ void DoItemHit(ItemInfo* target, int damage, bool isExplosive, bool allowBurn)
 		}
 	}
 
-	if (isExplosive && allowBurn && Random::TestProbability(1 / 2.0f))
+	if (isExplosive && allowBurn && g_GameFlow->GetSettings()->Gameplay.SetEnemiesOnFireWithWeapons && Random::TestProbability(1 / 2.0f))
 		ItemBurn(target);
 
 	if (!target->Callbacks[(int)EntityCallbackPoint::Hit].empty())

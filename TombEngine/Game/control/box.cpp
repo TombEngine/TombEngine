@@ -1117,7 +1117,7 @@ void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerExtr
 	auto& player = GetLaraInfo(playerItem);
 
 	SetAnimation(creatureItem, creatureAnimNumber);
-	SetAnimationFromSlot(playerItem, ID_LARA_EXTRA_ANIMS, playerExtraAnimNumber, 0, GetSystemBlendDuration());
+	SetAnimationFromSlot(playerItem, ID_LARA_EXTRA_ANIMS, playerExtraAnimNumber, 0, GetInternalBlendDuration());
 
 	if (creatureState != NO_VALUE)
 		creatureItem->Animation.ActiveState = creatureItem->Animation.TargetState = creatureState;

@@ -171,7 +171,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (!item.IsLara())
 			return; // Set Lara to fall back.
 
-		SetAnimation(item, LA_FALL_BACK, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
+		SetAnimation(item, LA_FALL_BACK, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 	}
 
 	static bool TriggerKnockback(ItemInfo& item, ItemInfo& enemy)
@@ -803,7 +803,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (item.HitPoints <= 0)
 		{
 			if (item.Animation.ActiveState != SOPHIALEIGH_STATE_DEATH)
-				SetAnimation(item, SOPHIALEIGH_ANIM_DEATH, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
+				SetAnimation(item, SOPHIALEIGH_ANIM_DEATH, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 
 			int endFrameNumber = GetAnimData(object, SOPHIALEIGH_ANIM_DEATH).EndFrameNumber;
 			if (item.Animation.FrameNumber >= endFrameNumber)
@@ -865,7 +865,7 @@ namespace TEN::Entities::Creatures::TR3
 			if (animNumber != NO_VALUE)
 			{
 				creature.MaxTurn = 0;
-				SetAnimation(item, animNumber, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
+				SetAnimation(item, animNumber, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 			}
 		}
 		else
