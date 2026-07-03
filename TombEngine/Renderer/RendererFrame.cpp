@@ -2,7 +2,7 @@
 #include "Renderer/Renderer.h"
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/effects/Decal.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/weather.h"

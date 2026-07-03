@@ -135,7 +135,7 @@ namespace TEN::Entities::Creatures::TR5
 		}
 	}
 
-	static void TriggerRomanStatueShockwaveAttackSparks(int x, int y, int z, byte r, byte g, byte b, byte size)
+	static void TriggerRomanStatueShockwaveAttackSparks(int x, int y, int z, unsigned char r, unsigned char g, unsigned char b, unsigned char size)
 	{
 		auto* spark = GetFreeParticle();
 
@@ -193,9 +193,9 @@ namespace TEN::Entities::Creatures::TR5
 		spark->x = (GetRandomControl() & 0x1F) - 16;
 		spark->z = (GetRandomControl() & 0x1F) - 16;
 		spark->yVel = 0;
-		spark->xVel = (byte)GetRandomControl() - 128;
+		spark->xVel = (unsigned char)GetRandomControl() - 128;
 		spark->friction = 4;
-		spark->zVel = (byte)GetRandomControl() - 128;
+		spark->zVel = (unsigned char)GetRandomControl() - 128;
 		spark->flags = SP_NODEATTACH | SP_EXPDEF | SP_ITEM | SP_ROTATE | SP_DEF | SP_SCALE; // 4762;
 		spark->fxObj = itemNum;
 		spark->nodeNumber = 6;
@@ -344,7 +344,7 @@ namespace TEN::Entities::Creatures::TR5
 			creature->MaxTurn = 0;
 
 			Vector3i pos, pos1, pos2;
-			byte color;
+			unsigned char color;
 			int deltaFrame;
 			bool unknown;
 			
@@ -593,12 +593,14 @@ namespace TEN::Entities::Creatures::TR5
 							if (item->ItemFlags[0])
 								item->ItemFlags[0]--;
 
-							TriggerShockwave(&Pose(pos1), 16, 160, 96, 0, color / 2, color, 48, EulerAngles::Identity, 1, true, false, true, (int)ShockwaveStyle::Normal);
+							auto shockwavePose1 = Pose(pos1);
+							TriggerShockwave(&shockwavePose1, 16, 160, 96, 0, color / 2, color, 48, EulerAngles::Identity, 1, true, false, true, (int)ShockwaveStyle::Normal);
 							TriggerRomanStatueShockwaveAttackSparks(pos1.x, pos1.y, pos1.z, 128, 64, 0, 128);
 
 							pos1.y -= 64;
 
-							TriggerShockwave(&Pose(pos1), 16, 160, 64, 0, color / 2, color, 48, EulerAngles::Identity, 1, true, false, true, (int)ShockwaveStyle::Normal);
+							auto shockwavePose2 = Pose(pos1);
+							TriggerShockwave(&shockwavePose2, 16, 160, 64, 0, color / 2, color, 48, EulerAngles::Identity, 1, true, false, true, (int)ShockwaveStyle::Normal);
 							
 							auto lightColor = Color(0.4f, 0.3f, 0.0f);
 							SpawnDynamicPointLight(pos.ToVector3(), lightColor, BLOCK(2.5f));
@@ -757,9 +759,9 @@ namespace TEN::Entities::Creatures::TR5
 
 					for (int i = 0; i < 4; i++)
 					{
-						byte r = (deltaFrame * ((GetRandomControl() & 0x3F) + 128)) / 32;
-						byte g = (deltaFrame * ((GetRandomControl() & 0x3F) + 128)) / 16;
-						byte b = (deltaFrame * ((GetRandomControl() & 0x3F) + 128)) / 32;
+						unsigned char r = (deltaFrame * ((GetRandomControl() & 0x3F) + 128)) / 32;
+						unsigned char g = (deltaFrame * ((GetRandomControl() & 0x3F) + 128)) / 16;
+						unsigned char b = (deltaFrame * ((GetRandomControl() & 0x3F) + 128)) / 32;
 
 						if (i == 0)
 						{

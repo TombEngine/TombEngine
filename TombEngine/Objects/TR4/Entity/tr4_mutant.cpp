@@ -131,7 +131,7 @@ namespace TEN::Entities::TR4
 
 		sptr->gravity = 0;
 		sptr->maxYvel = 0;
-		sptr->fxObj = byte(fxNumber);
+		sptr->fxObj = unsigned char(fxNumber);
 		sptr->scalar = 2;
 		BYTE size = (GetRandomControl() & 0xF) + 128;
 		sptr->size = size;

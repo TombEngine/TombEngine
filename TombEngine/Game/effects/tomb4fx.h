@@ -4,7 +4,7 @@
 #include "Math/Math.h"
 #include "Renderer/RendererEnums.h"
 
-enum class LaraWeaponType;
+enum class LaraWeaponType : int;
 struct CreatureBiteInfo;
 struct ItemInfo;
 
@@ -32,30 +32,30 @@ struct SMOKE_SPARKS
 	int gravity;
 	short rotAng;
 	short flags;
-	byte sSize;
-	byte dSize;
-	byte size;
-	byte friction;
-	byte scalar;
-	byte def;
+	unsigned char sSize;
+	unsigned char dSize;
+	unsigned char size;
+	unsigned char friction;
+	unsigned char scalar;
+	unsigned char def;
 	signed char rotAdd;
 	signed char maxYvel;
-	byte on;
-	byte sShade;
-	byte dShade;
-	byte shade;
-	byte colFadeSpeed;
-	byte fadeToBlack;
+	unsigned char on;
+	unsigned char sShade;
+	unsigned char dShade;
+	unsigned char shade;
+	unsigned char colFadeSpeed;
+	unsigned char fadeToBlack;
 	signed char sLife;
 	signed char life;
 	BlendMode blendMode;
-	byte fxObj;
-	byte nodeNumber;
+	unsigned char fxObj;
+	unsigned char nodeNumber;
 
 	Vector3i PrevPosition = Vector3i::Zero;
-	byte	 PrevShade	  = 0;
-	byte	 PrevSize	  = 0;
-	byte	 PrevScalar	  = 0;
+	unsigned char	 PrevShade	  = 0;
+	unsigned char	 PrevSize	  = 0;
+	unsigned char	 PrevScalar	  = 0;
 	short	 PrevRotAng	  = 0;
 
 	void StoreInterpolationData()
@@ -97,9 +97,9 @@ struct SHOCKWAVE_STRUCT
 
 	short PrevInnerRad = 0;
 	short PrevOuterRad = 0;
-	byte  PrevR		   = 0;
-	byte  PrevG		   = 0;
-	byte  PrevB		   = 0;
+	unsigned char  PrevR		   = 0;
+	unsigned char  PrevG		   = 0;
+	unsigned char  PrevB		   = 0;
 
 	void StoreInterpolationData()
 	{
@@ -134,23 +134,23 @@ struct DRIP_STRUCT
 	int x;
 	int y;
 	int z;
-	byte on;
-	byte r;
-	byte g;
-	byte b;
+	unsigned char on;
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
 	short yVel;
-	byte gravity;
-	byte life;
+	unsigned char gravity;
+	unsigned char life;
 	short roomNumber;
-	byte outside;
-	byte pad;
+	unsigned char outside;
+	unsigned char pad;
 
 	int  PrevX = 0;
 	int  PrevY = 0;
 	int  PrevZ = 0;
-	byte PrevR = 0;
-	byte PrevG = 0;
-	byte PrevB = 0;
+	unsigned char PrevR = 0;
+	unsigned char PrevG = 0;
+	unsigned char PrevB = 0;
 
 	void StoreInterpolationData()
 	{
@@ -173,7 +173,7 @@ struct FIRE_LIST
 	
 	Vector3i PrevPosition = Vector3i::Zero;
 	float	 PrevSize	  = 0.0f;
-	byte	 PrevFade	  = 0;
+	unsigned char	 PrevFade	  = 0;
 
 	void StoreInterpolationData()
 	{
@@ -241,21 +241,21 @@ struct BLOOD_STRUCT
 	unsigned char dSize;
 	unsigned char size;
 	unsigned char friction;
-	byte rotAdd;
+	unsigned char rotAdd;
 	unsigned char on;
 	unsigned char sShade;
 	unsigned char dShade;
 	unsigned char shade;
 	unsigned char colFadeSpeed;
 	unsigned char fadeToBlack;
-	byte sLife;
-	byte life;
-	byte pad;
+	unsigned char sLife;
+	unsigned char life;
+	unsigned char pad;
 
 	Vector3i PrevPosition = Vector3i::Zero;
 	short	 PrevRotAng	  = 0;
-	byte	 PrevShade	  = 0;
-	byte	 PrevSize	  = 0;
+	unsigned char	 PrevShade	  = 0;
+	unsigned char	 PrevSize	  = 0;
 
 	void StoreInterpolationData()
 	{
@@ -318,7 +318,7 @@ void AddFire(Vector3i& pos, int roomNumber, Vector4 color, float size, short fad
 void UpdateFireSparks(bool recursive = false);
 int GetFreeSmokeSpark();
 void UpdateSmoke();
-void TriggerGunSmoke(int x, int y, int z, short xv, short yv, short zv, byte initial, LaraWeaponType weaponType, byte count);
+void TriggerGunSmoke(int x, int y, int z, short xv, short yv, short zv, unsigned char initial, LaraWeaponType weaponType, unsigned char count);
 void TriggerShatterSmoke(int x, int y, int z);
 int GetFreeBlood();
 void TriggerBlood(int x, int y, int z, int unk, int num);

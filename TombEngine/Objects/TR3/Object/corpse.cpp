@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Objects/TR3/Object/Corpse.h"
+#include "Objects/TR3/Object/corpse.h"
 
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
