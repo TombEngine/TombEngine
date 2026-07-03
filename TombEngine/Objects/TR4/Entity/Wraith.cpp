@@ -19,6 +19,7 @@
 #include "Objects/TR4/Entity/WraithInfo.h"
 #include "Objects/objectslist.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
@@ -37,13 +38,9 @@ namespace TEN::Entities::TR4
 	constexpr auto WRAITH_VELOCITY			= 64.0f;
 	constexpr auto WRAITH_TRAP_DISTANCE_MAX = SQUARE(BLOCK(2));
 
-	constexpr auto HASH_PRIMARY_COLOR	 = GetHash("PrimaryColor");
-	constexpr auto HASH_WATER_DEATH		 = GetHash("WaterDeath");
-	constexpr auto HASH_FLIPMAP_ON_DEATH = GetHash("FlipmapDeath");
-	constexpr auto HASH_TRAP_DEATH	     = GetHash("TrapDeath");
-	constexpr auto HASH_ATTACK_TYPE	     = GetHash("AttackType");
-	constexpr auto HASH_DAMAGE		     = GetHash("Damage");
-	constexpr auto HASH_MESH_ID		     = GetHash("MeshID");
+	static const auto PropName_WaterDeath		= GetHash("WaterDeath");
+	static const auto PropName_FlipmapDeath		= GetHash("FlipmapDeath");
+	static const auto PropName_TrapDeath        = GetHash("TrapDeath");
 
 	enum class Wraith4AttackType
 	{
@@ -246,14 +243,14 @@ namespace TEN::Entities::TR4
 
 		if (item.ObjectNumber == ID_WRAITH4)
 		{
-			auto primaryColor          = PropertyHandler::Get<ScriptColor>(item, HASH_PRIMARY_COLOR, ScriptColor(255, 156, 0));
+			auto primaryColor          = PropertyHandler::Get<ScriptColor>(item, PropName_PrimaryColor, ScriptColor(255, 156, 0));
 			wraith4Color	           = Vector4(primaryColor.GetR() / (float)UCHAR_MAX, primaryColor.GetG() / (float)UCHAR_MAX, primaryColor.GetB() / (float)UCHAR_MAX, 1.0f);
-			wraith4WaterDeath          = PropertyHandler::Get<bool>(item, HASH_WATER_DEATH, true);
-			wraith4TrapDeath	       = PropertyHandler::Get<bool>(item, HASH_TRAP_DEATH, false);
-			wraith4FlipmapOnDeath      = PropertyHandler::Get<int>(item, HASH_FLIPMAP_ON_DEATH, NO_VALUE);
-			wraith4AttackType          = PropertyHandler::Get<int>(item, HASH_ATTACK_TYPE, 0);
-			wraith4Damage              = PropertyHandler::Get<int>(item, HASH_DAMAGE, 0);
-			wraith4MeshID              = PropertyHandler::Get<int>(item, HASH_MESH_ID, 0);
+			wraith4WaterDeath          = PropertyHandler::Get<bool>(item, PropName_WaterDeath, true);
+			wraith4TrapDeath	       = PropertyHandler::Get<bool>(item, PropName_TrapDeath, false);
+			wraith4FlipmapOnDeath      = PropertyHandler::Get<int>(item, PropName_FlipmapDeath, NO_VALUE);
+			wraith4AttackType          = PropertyHandler::Get<int>(item, PropName_AttackType, 0);
+			wraith4Damage              = PropertyHandler::Get<int>(item, PropName_Damage, 0);
+			wraith4MeshID              = PropertyHandler::Get<int>(item, PropName_MeshID, 0);
 
 			item.MeshBits.ClearAll();
 
