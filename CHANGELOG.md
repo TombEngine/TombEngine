@@ -148,6 +148,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect HYDRA rotation on activation and keeping its shadow after destroying it.
 * Fixed potential issues with PUNA_BOSS, TONY_BOSS, FISH_SWARM and WRAITH objects on savegame reloading.
 * Fixed WRAITH not using effects near walls and occasional issues with room transitions.
+* Fixed TORCH_ITEM and FLARE_ITEM not having names when being thrown.
 * Fixed occasional wrong LASER_BEAM collision.
 * Fixed several BADDY1/2 issues.
 * Fixed original issue with BADDY1/2 with rolling out animation ignoring player on a distance larger than 1 block.
@@ -162,7 +163,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed weapon unholstering animation when selecting a weapon from the inventory for the first time.
 * Fixed original issue with incorrect arm orientation with unholstered weapons.
 * Fixed original issue with aiming stutter with targets nearly out of sight.
-* Fixed TORCH_ITEM and FLARE_ITEM not having names when being thrown.
 * Fixed incorrect super grenade projectile orientation.
 * Fixed ricochet sparks not being visible at longer distances.
 * Fixed blood particles not being visible for stationary enemies.
