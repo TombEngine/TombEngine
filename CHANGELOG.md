@@ -29,7 +29,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if OCB is above 0 and when the flipeffect "playsound" with the soundID SFX_TR1_SLAMDOOR_CLOSE = 1144 is played.
 * Added hit sounds for TR1 enemies when shot.
 * Added splash and bubble effects for CRUMBLING_FLOOR if it falls into water.
-* Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fxfog effect if OCB value is 0.
+* Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fog effect if OCB value is 0.
 
 ### Bug fixes
 
