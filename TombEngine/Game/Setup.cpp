@@ -6,7 +6,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/control/flipeffect.h"
 #include "Game/effects/effects.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/pickup/pickup.h"

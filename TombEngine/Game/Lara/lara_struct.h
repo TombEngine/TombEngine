@@ -7,7 +7,7 @@
 using namespace TEN::Math;
 
 struct CreatureInfo;
-struct FX_INFO;
+struct FXInfo;
 struct ItemInfo;
 
 using namespace TEN::Entities::Player;
@@ -941,7 +941,7 @@ enum class PlayerWeaponMode
 	Count
 };
 
-enum class LaraWeaponType
+enum class LaraWeaponType : int
 {
 	None,
 	Pistol,
@@ -1026,9 +1026,9 @@ private:
 	bool		 IsInfinite = false;
 
 public:
-	static unsigned int Clamp(long value)
+	static unsigned int Clamp(int value)
 	{
-		return std::clamp<unsigned int>(value, 0, UINT_MAX);
+		return (unsigned int)std::max(0, value);
 	}
 
 	bool HasInfinite() const
@@ -1107,15 +1107,13 @@ public:
 
 	Ammo& operator +=(unsigned int value)
 	{
-		long temp = Count + value;
-		Count = Clamp(temp);
+		Count = Clamp((int)Count + (int)value);
 		return *this;
 	}
 
 	Ammo& operator -=(unsigned int value)
 	{
-		long temp = Count - value;
-		Count = Clamp(temp);
+		Count = Clamp((int)Count - (int)value);
 		return *this;
 	}
 
@@ -1152,9 +1150,10 @@ struct ArmInfo
 	EulerAngles Orientation = EulerAngles::Identity;
 	bool		Locked		= false;
 
-	int GunFlash = 0;
-	int GunSmoke = 0;
-	int AimDelay = 0;
+	int				GunFlash	 = 0;
+	int				GunSmoke	 = 0;
+	int				AimDelay	 = 0;
+	LaraWeaponType	GunFlashType = LaraWeaponType::None;
 };
 
 struct FlareData
@@ -1196,8 +1195,8 @@ struct LookControlData
 
 struct RopeControlData
 {
-	byte Segment = 0;
-	byte Direction = 0;
+	unsigned char Segment = 0;
+	unsigned char Direction = 0;
 
 	short ArcFront = 0;
 	short ArcBack = 0;
@@ -1214,7 +1213,7 @@ struct RopeControlData
 	int Ptr = 0;
 	int Offset = 0;
 	int DownVel = 0;
-	byte Flag = 0;
+	unsigned char Flag = 0;
 	int Count = 0;
 };
 
@@ -1307,10 +1306,10 @@ struct PlayerInventoryData
 	bool IsBusy	 = false;
 	bool OldBusy = false;
 
-	byte BeetleLife;
+	unsigned char BeetleLife;
 	int BeetleComponents; // BeetleComponentFlags enum
-	byte SmallWaterskin;  // 1 = has waterskin, 2 = has waterskin with 1 liter, etc. max value is 4 (has skin + 3 = 4)
-	byte BigWaterskin;	  // 1 = has waterskin, 2 = has waterskin with 1 liter, etc. max value is 6 (has skin + 5 liters = 6)
+	unsigned char SmallWaterskin;  // 1 = has waterskin, 2 = has waterskin with 1 liter, etc. max value is 4 (has skin + 3 = 4)
+	unsigned char BigWaterskin;	  // 1 = has waterskin, 2 = has waterskin with 1 liter, etc. max value is 6 (has skin + 5 liters = 6)
 
 	// TODO: Rename prefixes back to "Num".
 	int TotalSmallMedipacks;

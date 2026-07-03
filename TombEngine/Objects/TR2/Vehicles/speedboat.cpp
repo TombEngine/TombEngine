@@ -308,11 +308,11 @@ namespace TEN::Entities::Vehicles
 
 	void SpeedboatDoBoatShift(ItemInfo* speedboatItem, int itemNumber)
 	{
-		short itemNumber2 = g_Level.Rooms[speedboatItem->RoomNumber].itemNumber;
-		while (itemNumber2 != NO_VALUE)
+		for (int itemNumber2 : g_Level.Rooms[speedboatItem->RoomNumber].itemNumbers)
 		{
 			auto* item = &g_Level.Items[itemNumber2];
 
+			// TODO: Mine and gondola.
 			if (item->ObjectNumber == ID_SPEEDBOAT && itemNumber2 != itemNumber && Lara.Context.Vehicle != itemNumber2)
 			{
 				int x = item->Pose.Position.x - speedboatItem->Pose.Position.x;
@@ -320,6 +320,7 @@ namespace TEN::Entities::Vehicles
 
 				int distance = pow(x, 2) + pow(z, 2);
 				int radius = pow(SPEEDBOAT_RADIUS * 2, 2);
+
 				if (distance < radius)
 				{
 					speedboatItem->Pose.Position.x = item->Pose.Position.x - x * radius / distance;
@@ -328,10 +329,6 @@ namespace TEN::Entities::Vehicles
 
 				return;
 			}
-
-			// TODO: mine and gondola
-
-			itemNumber2 = item->NextItem;
 		}
 	}
 
@@ -780,7 +777,7 @@ namespace TEN::Entities::Vehicles
 		}
 	}
 
-	void SpeedboatSplash(ItemInfo* speedboatItem, long verticalVelocity, long water)
+	void SpeedboatSplash(ItemInfo* speedboatItem, int verticalVelocity, int water)
 	{
 		//OLD SPLASH
 		/*

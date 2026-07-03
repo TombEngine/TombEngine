@@ -234,7 +234,7 @@ enum class ConstantBufferRegister
 	Camera = 0,
 	// Slot 1 is currently unused — was the per-item CB before items folded into CBObjects.
 	PerDraw = 2, // Combined Material + Blending CB (was Material at b2 + Blending at b12).
-	InstancedStatics = 3, // Now holds the unified CBObjects (Bones + Skinned + Objects[N]).
+	Objects = 3, // Now holds the unified CBObjects (Bones + Skinned + Objects[N]).
 	ShadowLight = 4,
 	Room = 5,
 	// Slot 6 is currently unused — was CBAnimatedTexture before frames moved to a structured
@@ -244,7 +244,7 @@ enum class ConstantBufferRegister
 	Hud = 10,
 	HudBar = 11,
 	// Slot 12 is currently unused — was Blending before it merged into PerDraw at b2.
-	InstancedSprites = 13
+	Sprites = 13
 };
 
 enum class AlphaTestMode
@@ -300,6 +300,7 @@ enum class RendererObjectType
 	Static,
 	Sprite,
 	MoveableAsStatic, // For rats, bats, spiders, beetles
+	Effect, // For items carrying FX data (body parts, projectiles)
 	HairPrimary,
 	HairSecondary
 };

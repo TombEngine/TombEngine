@@ -173,6 +173,7 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_GetMeshCount, &Moveable::GetMeshCount,
 		ScriptReserved_GetMeshVisible, &Moveable::GetMeshVisible,
 		ScriptReserved_GetMeshSwapped, &Moveable::GetMeshSwapped,
+		ScriptReserved_GetSkinnedMesh, & Moveable::GetSkinnedMesh,
 		ScriptReserved_GetHitStatus, &Moveable::GetHitStatus,
 		ScriptReserved_GetActive, &Moveable::GetActive,
 		ScriptReserved_GetValid, &Moveable::GetValid,
@@ -215,6 +216,7 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_UnswapMesh, &Moveable::UnswapMesh,
 		ScriptReserved_SwapSkinnedMesh, &Moveable::SwapSkinnedMesh,
 		ScriptReserved_UnswapSkinnedMesh, &Moveable::UnswapSkinnedMesh,
+		ScriptReserved_ClearSkinnedMesh, & Moveable::ClearSkinnedMesh,
 		ScriptReserved_Destroy, &Moveable::Destroy,
 		ScriptReserved_AttachObjCamera, &Moveable::AttachObjCamera,
 		ScriptReserved_AnimFromObject, &Moveable::AnimFromObject,
@@ -377,8 +379,6 @@ Vec3 Moveable::GetPosition() const
 // @bool[opt=true] updateRoom Will room changes be automatically detected? Set to false if you are using overlapping rooms.
 void Moveable::SetPosition(const Vec3& pos, sol::optional<bool> updateRoom)
 {
-	constexpr auto BIG_DISTANCE_THRESHOLD = BLOCK(1);
-
 	auto newPos = pos.ToVector3i();
 	bool bigDistance = Vector3i::Distance(newPos, _moveable->Pose.Position) > BIG_DISTANCE_THRESHOLD;
 	
@@ -699,6 +699,7 @@ void Moveable::SetLocationAI(short value)
 	if (_moveable->IsCreature())
 	{
 		auto creature = (CreatureInfo*)_moveable->Data;
+		value = std::max(value, (short)0);
 		creature->LocationAI = value;
 	}
 	else
@@ -849,10 +850,10 @@ void Moveable::SetFrameNumber(int frameNumber)
 {
 	const auto& anim = GetAnimData(*_moveable);
 
-	bool cond = (frameNumber < anim.EndFrameNumber);
+	bool cond = (frameNumber <= anim.EndFrameNumber);
 	const char* err = "Invalid frame number {}; max frame number for anim {} is {}.";
 
-	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, anim.EndFrameNumber - 1))
+	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, anim.EndFrameNumber))
 	{
 		_moveable->Animation.FrameNumber = frameNumber;
 	}
@@ -1043,15 +1044,31 @@ void Moveable::ShatterMesh(int meshId)
 
 /// Get state of specified mesh swap of a moveable.
 // Returns true if specified mesh is swapped on a moveable, and false if it is not swapped.
+// Also returns the object slot ID the mesh was swapped from, or nil if no swap is active.
 // @function Moveable:GetMeshSwapped
 // @tparam int index Index of a mesh.
 // @treturn bool Mesh swap status.
-bool Moveable::GetMeshSwapped(int meshId) const
+// @treturn[opt] Objects.ObjID Object slot ID the mesh was swapped from. Nil if not swapped.
+std::tuple<bool, sol::optional<GAME_OBJECT_ID>> Moveable::GetMeshSwapped(int meshId) const
 {
 	if (!MeshExists(meshId))
-		return false;
+		return { false, sol::nullopt };
 
-	return _moveable->Model.MeshIndex[meshId] != _moveable->Model.BaseMesh + meshId;
+	auto currentIndex = _moveable->Model.MeshIndex[meshId];
+	if (currentIndex == _moveable->Model.BaseMesh + meshId)
+		return { false, sol::nullopt };
+
+	for (int i = 0; i < ID_NUMBER_OBJECTS; i++)
+	{
+		const auto& obj = Objects[i];
+		if (!obj.loaded || obj.nmeshes <= 0)
+			continue;
+
+		if (currentIndex >= obj.meshIndex && currentIndex < obj.meshIndex + obj.nmeshes)
+			return { true, (GAME_OBJECT_ID)i };
+	}
+
+	return { true, sol::nullopt };
 }
 
 /// Set state of specified mesh swap of a moveable. Use this to swap specified mesh of a moveable.
@@ -1099,6 +1116,24 @@ void Moveable::UnswapMesh(int meshId)
 	_moveable->Model.MeshIndex[meshId] = _moveable->Model.BaseMesh + meshId;
 }
 
+/// Get the skinned mesh swap state of a moveable.
+// Returns the object slot ID and optional swap index of the currently active skinned mesh.
+// @function Moveable:GetSkinnedMesh
+// @treturn[opt] Objects.ObjID Object slot ID of the active skinned mesh. Nil if no swap is active.
+// @treturn[opt] int Swap index within the slot. Nil if using the slot's default skinned mesh.
+sol::optional<std::tuple<GAME_OBJECT_ID, sol::optional<int>>> Moveable::GetSkinnedMesh() const
+{
+	if (_moveable->Model.SkinObjectID == NO_VALUE)
+		return sol::nullopt;
+
+	auto objectID = (GAME_OBJECT_ID)_moveable->Model.SkinObjectID;
+	auto swapIndex = (_moveable->Model.SkinSwapIndex != NO_VALUE)
+		? sol::optional<int>(_moveable->Model.SkinSwapIndex)
+		: sol::nullopt;
+
+	return std::make_tuple(objectID, swapIndex);
+}
+
 /// Swap skinned mesh of a moveable. Use this to replace one skinned mesh with another.
 // @function Moveable:SwapSkinnedMesh
 // @tparam int objectID ID of a slot to get skinned meshswap from.
@@ -1119,15 +1154,14 @@ void Moveable::SwapSkinnedMesh(int objectID, sol::optional<int> swapIndex)
 			TENLog("Specified mesh index does not exist in a " + GetObjectName((GAME_OBJECT_ID)objectID) + " slot!", LogLevel::Error);
 			return;
 		}
-
-		_moveable->Model.SkinIndex = Objects[objectID].meshIndex + swapIndex.value();
-		return;
+	}
+	else if (Objects[objectID].skinIndex == NO_VALUE)
+	{
+		TENLog(GetObjectName((GAME_OBJECT_ID)objectID) + " object has no skinned mesh specified. Skinned mesh will be unset.", LogLevel::Warning);
 	}
 
-	if (Objects[objectID].skinIndex == NO_VALUE)
-		TENLog(GetObjectName((GAME_OBJECT_ID)objectID) + " object has no skinned mesh specified. Skinned mesh will be unset.", LogLevel::Warning);
-
-	_moveable->Model.SkinIndex = Objects[objectID].skinIndex;
+	_moveable->Model.SkinObjectID = objectID;
+	_moveable->Model.SkinSwapIndex = swapIndex.value_or(NO_VALUE);
 }
 
 /// Unset skinned mesh swap of a moveable. Use this to bring back original unswapped skinned mesh.
@@ -1135,7 +1169,16 @@ void Moveable::SwapSkinnedMesh(int objectID, sol::optional<int> swapIndex)
 void Moveable::UnswapSkinnedMesh()
 {
 	int realID = _moveable->ObjectNumber == GAME_OBJECT_ID::ID_LARA ? GAME_OBJECT_ID::ID_LARA_SKIN : _moveable->ObjectNumber;
-	_moveable->Model.SkinIndex = Objects[realID].skinIndex;
+	_moveable->Model.SkinObjectID = realID;
+	_moveable->Model.SkinSwapIndex = NO_VALUE;
+}
+
+/// Clear skinned mesh of a moveable.
+// @function Moveable:ClearSkinnedMesh
+void Moveable::ClearSkinnedMesh()
+{
+	_moveable->Model.SkinObjectID = NO_VALUE;
+	_moveable->Model.SkinSwapIndex = NO_VALUE;
 }
 
 /// Enable the item, as if a trigger for it had been stepped on.

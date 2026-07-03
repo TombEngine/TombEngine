@@ -3,7 +3,7 @@
 
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/effects/simple_particle.h"
 #include "Game/effects/Splash.h"
 #include "Game/effects/Streamer.h"
@@ -263,7 +263,10 @@ namespace TEN::Entities::Vehicles
 				currentVelocity -= std::copysign(currentVelocity * ((waterDepth / VEHICLE_WATER_HEIGHT_MAX) / coeff), currentVelocity);
 
 				if (TEN::Math::Random::GenerateInt(0, 32) > 28)
-					SoundEffect(SFX_TR4_LARA_WADE, &Pose(vehicleItem->Pose.Position), SoundEnvironment::Land, isWater ? 0.8f : 0.7f);
+				{
+					auto wadePose = Pose(vehicleItem->Pose.Position);
+					SoundEffect(SFX_TR4_LARA_WADE, &wadePose, SoundEnvironment::Land, isWater ? 0.8f : 0.7f);
+				}
 
 				if (isWater && PropertyHandler::Get(vehicleItem, "VehicleWake", true))
 				{

@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Scripting/Internal/TEN/View/DisplayItem/ScriptDisplayItem.h"
 
-#include "Game/Animation/animation.h"
+#include "Game/Animation/Animation.h"
 #include "Game/effects/DisplaySprite.h"
 #include "Game/Hud/DrawItems/DrawItems.h"
 #include "Scripting/Internal/LuaHandler.h"

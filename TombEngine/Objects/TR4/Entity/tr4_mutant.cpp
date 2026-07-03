@@ -63,26 +63,28 @@ namespace TEN::Entities::TR4
 		C_WEST_NORTH = 315
 	};
 
-	void TriggerCrocgodMissile(Pose* src, short roomNumber, short counter)
+	void TriggerCrocgodMissile(const Pose& pose, short roomNumber, short counter)
 	{
 		short fxNumber = NO_VALUE;
 
-		fxNumber = CreateNewEffect(roomNumber);
+		fxNumber = CreateNewEffect(roomNumber, ID_ENERGY_BUBBLES, pose);
 		if (fxNumber != NO_VALUE)
 		{
-			auto* fx = &EffectList[fxNumber];
-			fx->pos.Position.x = src->Position.x;
-			fx->pos.Position.y = src->Position.y - (GetRandomControl() & 0x3F) - 32;
-			fx->pos.Position.z = src->Position.z;
-			fx->pos.Orientation.x = src->Orientation.x;
-			fx->pos.Orientation.y = src->Orientation.y;
-			fx->pos.Orientation.z = 0;
-			fx->roomNumber = roomNumber;
-			fx->counter = 16 * counter + 15;
-			fx->objectNumber = ID_ENERGY_BUBBLES;
-			fx->frameNumber = Objects[fx->objectNumber].meshIndex + 5;
-			fx->speed = (GetRandomControl() & 0x1F) + 96;
-			fx->flag1 = 6;
+			auto& fx = g_Level.Items[fxNumber];
+			auto& fxInfo = GetFXInfo(fx);
+
+			fx.Pose.Position.x = pose.Position.x;
+			fx.Pose.Position.y = pose.Position.y - (GetRandomControl() & 0x3F) - 32;
+			fx.Pose.Position.z = pose.Position.z;
+			fx.Pose.Orientation.x = pose.Orientation.x;
+			fx.Pose.Orientation.y = pose.Orientation.y;
+			fx.Pose.Orientation.z = 0;
+			fx.RoomNumber = roomNumber;
+			fx.ObjectNumber = ID_ENERGY_BUBBLES;
+			fx.Model.MeshIndex = { (int)Objects[fx.ObjectNumber].meshIndex + 5 };
+			fx.Animation.Velocity.z = (GetRandomControl() & 0x1F) + 96;
+			fxInfo.Counter = 16 * counter + 15;
+			fxInfo.Flag1 = 6;
 		}
 	}
 
@@ -92,7 +94,7 @@ namespace TEN::Entities::TR4
 		//z = LaraItem->pos.Position.z - Effects[m_fxNumber].pos.Position.z;
 		//if (x >= -0x4000u && x <= 0x4000 && z >= -0x4000u && z <= 0x4000)
 
-		auto* fx = &EffectList[fxNumber];
+		auto& fx = g_Level.Items[fxNumber];
 		auto* sptr = GetFreeParticle();
 
 		sptr->on = true;
@@ -114,9 +116,9 @@ namespace TEN::Entities::TR4
 		sptr->x = (GetRandomControl() & 0xF) - 8;
 		sptr->y = 0;
 		sptr->z = (GetRandomControl() & 0xF) - 8;
-		sptr->x += fx->pos.Position.x;
-		sptr->y += fx->pos.Position.y;
-		sptr->z += fx->pos.Position.z;
+		sptr->x += fx.Pose.Position.x;
+		sptr->y += fx.Pose.Position.y;
+		sptr->z += fx.Pose.Position.z;
 		sptr->xVel = xVel;
 		sptr->yVel = yVel;
 		sptr->zVel = zVel;
@@ -131,7 +133,7 @@ namespace TEN::Entities::TR4
 
 		sptr->gravity = 0;
 		sptr->maxYvel = 0;
-		sptr->fxObj = byte(fxNumber);
+		sptr->fxObj = unsigned char(fxNumber);
 		sptr->scalar = 2;
 		BYTE size = (GetRandomControl() & 0xF) + 128;
 		sptr->size = size;
@@ -139,20 +141,20 @@ namespace TEN::Entities::TR4
 		sptr->dSize = size / 4;
 	}
 
-	void ShootFireball(Pose* src, MissileRotationType rotationType, short roomNumber, int timer)
+	void ShootFireball(Pose& pose, MissileRotationType rotationType, short roomNumber, int timer)
 	{
 		switch (rotationType)
 		{
 		case MissileRotationType::Left:
-			src->Orientation.y -= GetRandomControl() % 0x2000;
+			pose.Orientation.y -= GetRandomControl() % 0x2000;
 			break;
 
 		case MissileRotationType::Right:
-			src->Orientation.y += GetRandomControl() % 0x2000;
+			pose.Orientation.y += GetRandomControl() % 0x2000;
 			break;
 		}
 
-		TriggerCrocgodMissile(src, roomNumber, timer);
+		TriggerCrocgodMissile(pose, roomNumber, timer);
 	}
 
 	bool ShootFrame(ItemInfo* item)
@@ -324,15 +326,15 @@ namespace TEN::Entities::TR4
 				GetTargetPosition(item, &src);
 
 				if (frameNumber == 94)
-					ShootFireball(&src, MissileRotationType::Front, item->RoomNumber, 0);
+					ShootFireball(src, MissileRotationType::Front, item->RoomNumber, 0);
 				else if (frameNumber == 95)
 				{
-					ShootFireball(&src, MissileRotationType::Left, item->RoomNumber, 1);
+					ShootFireball(src, MissileRotationType::Left, item->RoomNumber, 1);
 					//ShootFireball(&src, MissileRotationType::M_LEFT, item->roomNumber, 1);
 				}
 				else if (frameNumber == 96)
 				{
-					ShootFireball(&src, MissileRotationType::Right, item->RoomNumber, 1);
+					ShootFireball(src, MissileRotationType::Right, item->RoomNumber, 1);
 					//ShootFireball(&src, MissileRotationType::M_RIGHT, item->roomNumber, 1);
 				}
 			}
@@ -351,7 +353,7 @@ namespace TEN::Entities::TR4
 			{
 				Pose src;
 				GetTargetPosition(item, &src);
-				ShootFireball(&src, MissileRotationType::Front, item->RoomNumber, 1);
+				ShootFireball(src, MissileRotationType::Front, item->RoomNumber, 1);
 			}
 
 			break;
