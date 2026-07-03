@@ -312,17 +312,17 @@ namespace TEN::Entities::Vehicles
 		if (motorbike->LightPower <= 0)
 			return;
 
-		if (!PropertyHandler::Get(motorbikeItem, "VehicleLight", true))
+		if (!PropertyHandler::Get(motorbikeItem, "MotorbikeLight", true))
 			return;
 
 		auto origin = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.25f), CLICK(1))).ToVector3();
 		auto target = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.25f), BLOCK(1))).ToVector3();
 
 		auto motorbikeLightColor = PropertyHandler::Get(motorbikeItem,"MotorbikeLightColor",ScriptColor(255, 170, 0));
-		auto motorbikeLightRadius = PropertyHandler::Get(motorbikeItem, "VehicleLightRadius", 4);
-		auto motorbikeLightFalloff = PropertyHandler::Get(motorbikeItem, "VehicleLightFalloff", 2);
-		auto motorbikeLightDistance = PropertyHandler::Get(motorbikeItem, "VehicleLightDistance", 10);
-		auto motorbikeLightCastShadow = PropertyHandler::Get(motorbikeItem, "VehicleLightCastShadow", true);
+		auto motorbikeLightRadius = PropertyHandler::Get(motorbikeItem, "MotorbikeLightRadius", 4);
+		auto motorbikeLightFalloff = PropertyHandler::Get(motorbikeItem, "MotorbikeLightFalloff", 2);
+		auto motorbikeLightDistance = PropertyHandler::Get(motorbikeItem, "MotorbikeLightDistance", 10);
+		auto motorbikeLightCastShadow = PropertyHandler::Get(motorbikeItem, "MotorbikeLightCastShadow", true);
 
 		target = target - origin;
 		target.Normalize();
