@@ -4,7 +4,7 @@
 #include "Game/Animation/Animation.h"
 #include "Game/items.h"
 #include "Game/collision/collide_item.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/control/box.h"
 #include "Game/control/lot.h"
 #include "Game/effects/smoke.h"

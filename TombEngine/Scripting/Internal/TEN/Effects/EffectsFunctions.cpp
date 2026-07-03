@@ -4,8 +4,8 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/los.h"
-#include "Game/effects/blood.h"
-#include "Game/effects/Bubble.h"
+#include "Game/effects/Blood.h"
+#include "Game/effects/bubble.h"
 #include "Game/effects/DisplaySprite.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
@@ -93,10 +93,10 @@ namespace TEN::Scripting::Effects
 
 		// Multiply by two since a) lightning loses two "life" each frame, and b) it must be
 		// an even number to avoid overshooting a value of 0 and wrapping around.
-		byte byteLife = lifeInFrames * 2;
+		unsigned char byteLife = lifeInFrames * 2;
 
 		int amp = ValueOr<int>(amplitude, 20);
-		byte byteAmp = std::clamp(amp, 1, 255);
+		unsigned char byteAmp = std::clamp(amp, 1, 255);
 
 		bool isSmooth = ValueOr<bool>(smooth, false);
 		bool isDrift = ValueOr<bool>(endDrift, false);

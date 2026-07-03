@@ -80,26 +80,27 @@ namespace TEN::Entities::TR4
 		HARPY_ANIM_GLIDE = 18
 	};
 
-	void TriggerHarpyMissile(Pose* pose, short roomNumber, short mesh)
+	void TriggerHarpyMissile(const Pose& pose, short roomNumber, short boneID)
 	{
-		short fxNumber = CreateNewEffect(roomNumber);
-		if (fxNumber == -1)
+		int fxNumber = CreateNewEffect(roomNumber, ID_ENERGY_BUBBLES, pose);
+		if (fxNumber == NO_VALUE)
 			return;
 
-		auto* fx = &EffectList[fxNumber];
+		auto& fx = g_Level.Items[fxNumber];
+		auto& fxInfo = GetFXInfo(fx);
 
-		fx->pos.Position.x = pose->Position.x;
-		fx->pos.Position.y = pose->Position.y - (GetRandomControl() & 0x3F) - 32;
-		fx->pos.Position.z = pose->Position.z;
-		fx->pos.Orientation.x = pose->Orientation.x;
-		fx->pos.Orientation.y = pose->Orientation.y;
-		fx->pos.Orientation.z = 0;
-		fx->roomNumber = roomNumber;
-		fx->counter = short(2 * GetRandomControl() + 0x8000);
-		fx->objectNumber = ID_ENERGY_BUBBLES;
-		fx->speed = (GetRandomControl() & 0x1F) + 96;
-		fx->flag1 = mesh;
-		fx->frameNumber = Objects[fx->objectNumber].meshIndex + mesh * 2;
+		fx.Pose.Position.x = pose.Position.x;
+		fx.Pose.Position.y = pose.Position.y - (GetRandomControl() & 0x3F) - 32;
+		fx.Pose.Position.z = pose.Position.z;
+		fx.Pose.Orientation.x = pose.Orientation.x;
+		fx.Pose.Orientation.y = pose.Orientation.y;
+		fx.Pose.Orientation.z = 0;
+		fx.RoomNumber = roomNumber;
+		fxInfo.Counter = 2 * GetRandomControl() + 0x8000;
+		fx.ObjectNumber = ID_ENERGY_BUBBLES;
+		fx.Animation.Velocity.z = (GetRandomControl() & 0x1F) + 96;
+		fxInfo.Flag1 = boneID;
+		fx.Model.MeshIndex = { (int)Objects[fx.ObjectNumber].meshIndex + (boneID * 2) };
 	}
 
 	void DoHarpyEffects(ItemInfo* item, CreatureInfo* creature, short itemNumber)
@@ -153,7 +154,7 @@ namespace TEN::Entities::TR4
 				auto pos3 = GetJointPosition(item, HarpyAttack1.BoneID, Vector3i(HarpyAttack1.Position.x, HarpyAttack1.Position.y * 2, HarpyAttack1.Position.z));
 				auto orient = Geometry::GetOrientToPoint(lr.ToVector3(), rh.ToVector3());
 				auto pose = Pose(rh, orient);
-				TriggerHarpyMissile(&pose, item->RoomNumber, 2);
+				TriggerHarpyMissile(pose, item->RoomNumber, 2);
 			}
 
 			if (item->ItemFlags[0] >= 61 && item->ItemFlags[0] <= 65 && !(GlobalCounter & 1))
@@ -161,7 +162,7 @@ namespace TEN::Entities::TR4
 				auto pos3 = GetJointPosition(item, HarpyAttack2.BoneID, Vector3i(HarpyAttack2.Position.x, HarpyAttack2.Position.y * 2, HarpyAttack2.Position.z));
 				auto orient = Geometry::GetOrientToPoint(lr.ToVector3(), rh.ToVector3());
 				auto pose = Pose(rh, orient);
-				TriggerHarpyMissile(&pose, item->RoomNumber, 2);
+				TriggerHarpyMissile(pose, item->RoomNumber, 2);
 			}
 		}
 	}

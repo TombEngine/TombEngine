@@ -4,7 +4,7 @@
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
-#include "Game/effects/Drip.h"
+#include "Game/effects/drip.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"

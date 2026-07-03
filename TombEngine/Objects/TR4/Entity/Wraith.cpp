@@ -376,7 +376,7 @@ namespace TEN::Entities::TR4
 		if (pointColl.GetRoomNumber() != Camera.pos.RoomNumber || item.RoomNumber != Camera.pos.RoomNumber)
 			ItemNewRoom(itemNumber, Camera.pos.RoomNumber);
 
-		for (int linkItemNumber = g_Level.Rooms[item.RoomNumber].itemNumber; linkItemNumber != NO_VALUE; linkItemNumber = g_Level.Items[linkItemNumber].NextItem)
+		for (int linkItemNumber : g_Level.Rooms[item.RoomNumber].itemNumbers)
 		{
 			auto& targetItem = g_Level.Items[linkItemNumber];
 
@@ -606,7 +606,8 @@ namespace TEN::Entities::TR4
 
 						int amplitude = Random::GenerateInt(1, 16);
 
-						SoundEffect(SFX_TR4_ELECTRIC_ARCING_LOOP, &Pose(Vector3i(arcOrigin)));
+						auto arcPose = Pose(Vector3i(arcOrigin));
+						SoundEffect(SFX_TR4_ELECTRIC_ARCING_LOOP, &arcPose);
 
 						SpawnElectricity(arcOrigin, arcTarget, amplitude, 255, 255, 255, 10, (int)ElectricityFlags::ThinIn, 12, 10);
 						SpawnElectricity(arcOrigin, arcTarget, amplitude, 255, 255, 255, 10, (int)ElectricityFlags::ThinIn, 4, 10);
@@ -918,7 +919,7 @@ namespace TEN::Entities::TR4
 
 		spark.on = true;
 
-		byte color;
+		unsigned char color;
 
 		if (objectNumber == ID_WRAITH4)
 		{
@@ -987,24 +988,16 @@ namespace TEN::Entities::TR4
 
 	void KillWraith(ItemInfo* item)
 	{
-		ItemInfo* item2 = nullptr;
-
-		if (NextItemActive != NO_VALUE)
+		for (int itemNumber : ActiveItems)
 		{
-			for (; NextItemActive != NO_VALUE;)
+			auto* item2 = &g_Level.Items[itemNumber];
+
+			if (item2->ObjectNumber == ID_WRAITH3 && !item2->HitPoints)
 			{
-				auto* item2 = &g_Level.Items[NextItemActive];
-				if (item2->ObjectNumber == ID_WRAITH3 && !item2->HitPoints)
-					break;
-
-				if (item2->NextActive == NO_VALUE)
-				{
-					FlipEffect = NO_VALUE;
-					return;
-				}
+				item2->HitPoints = item->Index;
+				FlipEffect = NO_VALUE;
+				return;
 			}
-
-			item2->HitPoints = item->Index;
 		}
 
 		FlipEffect = NO_VALUE;

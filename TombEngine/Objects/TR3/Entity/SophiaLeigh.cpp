@@ -3,14 +3,15 @@
 
 #include "Game/Animation/Animation.h"
 #include "Game/effects/effects.h"
+#include "Game/effects/spark.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/misc.h"
 #include "Game/people.h"
-#include "Game/Setup.h"
 #include "Game/pickup/pickup.h"
+#include "Game/Setup.h"
 #include "Objects/Effects/Boss.h"
 #include "Objects/Effects/enemy_missile.h"
 #include "Sound/sound.h"
@@ -170,7 +171,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (!item.IsLara())
 			return; // Set Lara to fall back.
 
-		SetAnimation(item, LA_FALL_BACK, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
+		SetAnimation(item, LA_FALL_BACK, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 	}
 
 	static bool TriggerKnockback(ItemInfo& item, ItemInfo& enemy)
@@ -265,33 +266,33 @@ namespace TEN::Entities::Creatures::TR3
 
 	static void SpawnSophiaLeighProjectileBolt(ItemInfo& item, ItemInfo* enemy, const CreatureBiteInfo& bite, SophiaData* data, bool isBoltLarge, short angleAdd)
 	{
-		int fxNumber = CreateNewEffect(item.RoomNumber);
+		int fxNumber = CreateNewEffect(item.RoomNumber, ID_ENERGY_BUBBLES, item.Pose);
 		if (fxNumber == NO_VALUE)
 			return;
 
-		auto& fx = EffectList[fxNumber];
+		auto& fx = g_Level.Items[fxNumber];
+		auto& fxInfo = GetFXInfo(fx);
 
 		auto boltType = isBoltLarge ? (short)MissileType::SophiaLeighLarge : (short)MissileType::SophiaLeighNormal;
 
-		fx.pos.Position = GetJointPosition(&item, bite);
-		fx.pos.Orientation.x = item.Pose.Orientation.x + data->torsoXAngle;
+		fx.Pose.Position = GetJointPosition(&item, bite);
+		fx.Pose.Orientation.x = item.Pose.Orientation.x + data->torsoXAngle;
 
 		if (enemy->IsLara())
 		{
 			const auto& player = *GetLaraInfo(enemy);
 			if (player.Control.IsLow)
-				fx.pos.Orientation.x -= SOPHIALEIGH_LASER_DECREASE_XANGLE_IF_LARA_CROUCH;
+				fx.Pose.Orientation.x -= SOPHIALEIGH_LASER_DECREASE_XANGLE_IF_LARA_CROUCH;
 		}
 
-		fx.pos.Orientation.y = (item.Pose.Orientation.y + data->torsoYAngle) + angleAdd;
-		fx.pos.Orientation.z = 0;
-		fx.roomNumber = item.RoomNumber;
-		fx.counter = 0;
-		fx.flag1 = boltType;
-		fx.flag2 = isBoltLarge ? SOPHIALEIGH_DAMAGE_LARGE_BOLT : SOPHIALEIGH_DAMAGE_SMALL_BOLT; // Damage value.
-		fx.speed = Random::GenerateInt(120, 160);
-		fx.objectNumber = ID_ENERGY_BUBBLES;
-		fx.frameNumber = Objects[fx.objectNumber].meshIndex + (boltType - 1);
+		fx.Pose.Orientation.y = (item.Pose.Orientation.y + data->torsoYAngle) + angleAdd;
+		fx.Pose.Orientation.z = 0;
+		fx.RoomNumber = item.RoomNumber;
+		fx.Animation.Velocity.z = Random::GenerateInt(120, 160);
+		fx.Model.MeshIndex = { (int)Objects[fx.ObjectNumber].meshIndex + (boltType - 1) };
+		fxInfo.Counter = 0;
+		fxInfo.Flag1 = boltType;
+		fxInfo.Flag2 = isBoltLarge ? SOPHIALEIGH_DAMAGE_LARGE_BOLT : SOPHIALEIGH_DAMAGE_SMALL_BOLT; // Damage value
 	}
 
 	// Shared per-frame state-machine logic for tower mode.
@@ -802,7 +803,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (item.HitPoints <= 0)
 		{
 			if (item.Animation.ActiveState != SOPHIALEIGH_STATE_DEATH)
-				SetAnimation(item, SOPHIALEIGH_ANIM_DEATH, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
+				SetAnimation(item, SOPHIALEIGH_ANIM_DEATH, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 
 			int endFrameNumber = GetAnimData(object, SOPHIALEIGH_ANIM_DEATH).EndFrameNumber;
 			if (item.Animation.FrameNumber >= endFrameNumber)
@@ -864,7 +865,7 @@ namespace TEN::Entities::Creatures::TR3
 			if (animNumber != NO_VALUE)
 			{
 				creature.MaxTurn = 0;
-				SetAnimation(item, animNumber, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
+				SetAnimation(item, animNumber, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 			}
 		}
 		else
