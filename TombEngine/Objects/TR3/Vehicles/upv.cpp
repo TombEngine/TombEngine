@@ -229,7 +229,7 @@ namespace TEN::Entities::Vehicles
 		auto origin = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), CLICK(1))).ToVector3();
 		auto target = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), BLOCK(1))).ToVector3();
 
-		auto upvLightColor = PropertyHandler::Get(upvItem, "UPVLightColor", ScriptColor(255, 255, 255));
+		auto upvLightColor = PropertyHandler::Get(upvItem, "UPVLightColor", ScriptColor(UCHAR_MAX, UCHAR_MAX, UCHAR_MAX));
 		auto upvLightIntensity = PropertyHandler::Get(upvItem, "UPVLightIntensity", 0.5f);
 		auto upvLightCastShadow = PropertyHandler::Get(upvItem, "UPVLightCastShadow", true);
 		auto upvLightRadius = PropertyHandler::Get(upvItem, "UPVLightRadius",4);
@@ -245,9 +245,9 @@ namespace TEN::Entities::Vehicles
 			origin,
 			target,
 			Vector4(
-				(upvLightColor.GetR() / 255.0f) * lightIntensity,
-				(upvLightColor.GetG() / 255.0f) * lightIntensity,
-				(upvLightColor.GetB() / 255.0f) * lightIntensity,
+				(upvLightColor.GetR() / (float)UCHAR_MAX) * lightIntensity,
+				(upvLightColor.GetG() / (float)UCHAR_MAX) * lightIntensity,
+				(upvLightColor.GetB() / (float)UCHAR_MAX) * lightIntensity,
 				1.0f),
 			BLOCK(upvLightRadius),
 			BLOCK(upvLightFalloff),
