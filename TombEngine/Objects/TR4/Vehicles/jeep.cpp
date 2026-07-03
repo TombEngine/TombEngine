@@ -318,7 +318,7 @@ namespace TEN::Entities::Vehicles
 		if (jeep->LightPower <= 0)
 			return;
 
-		if (!PropertyHandler::Get(jeepItem, "JeepLight", false))
+		if (!PropertyHandler::Get(jeepItem, "JeepLight", true))
 			return;
 
 		auto jeepLightColor = PropertyHandler::Get(jeepItem, "JeepLightColor", ScriptColor(200, 200, 200));
