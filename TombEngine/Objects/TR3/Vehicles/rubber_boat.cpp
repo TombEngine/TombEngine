@@ -703,9 +703,9 @@ namespace TEN::Entities::Vehicles
 
 		if (snow)
 		{
-			sptr->dR = rBoatMistEndColor.GetR() + 255;
-			sptr->dG = rBoatMistEndColor.GetG() + 255;
-			sptr->dB = rBoatMistEndColor.GetB() + 255;
+			sptr->dR = (unsigned char)std::min<int>(rBoatMistEndColor.GetR() + 255, UCHAR_MAX);
+			sptr->dG = (unsigned char)std::min<int>(rBoatMistEndColor.GetG() + 255, UCHAR_MAX);
+			sptr->dB = (unsigned char)std::min<int>(rBoatMistEndColor.GetB() + 255, UCHAR_MAX);
 		}
 		else
 		{
