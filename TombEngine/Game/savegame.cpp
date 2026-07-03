@@ -1728,7 +1728,6 @@ const std::vector<unsigned char> SaveGame::Build()
 	sgb.add_flip_maps(flipMapsOffset);
 	sgb.add_flip_stats(flipStatsOffset);
 	sgb.add_named_soundtracks(namedSoundtrackOffset);
-	sgb.add_room_items(roomItemsOffset);
 	sgb.add_flip_effect(FlipEffect);
 	sgb.add_flip_status(FlipStatus);
 	sgb.add_current_fov(LastFOV);

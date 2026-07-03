@@ -6721,7 +6721,7 @@ inline flatbuffers::Offset<NamedSoundtrack> CreateNamedSoundtrackDirect(
     float volume = 0.0f) {
   auto channel_name__ = channel_name ? _fbb.CreateString(channel_name) : 0;
   auto track__ = track ? _fbb.CreateString(track) : 0;
-  return TEN::Save::CreateNamedSoundtrack(
+  return TEN::Serialization::Save::CreateNamedSoundtrack(
       _fbb,
       channel_name__,
       track__,
@@ -10294,15 +10294,19 @@ struct SaveGameT : public flatbuffers::NativeTable {
   float dof_range = 0.0f;
   float dof_strength = 0.0f;
   int32_t dof_mode = 0;
-  std::unique_ptr<TEN::Save::RopeT> rope{};
-  std::unique_ptr<TEN::Save::PendulumT> pendulum{};
-  std::unique_ptr<TEN::Save::PendulumT> alternate_pendulum{};
-  std::vector<std::unique_ptr<TEN::Save::VolumeT>> volumes{};
-  std::vector<std::unique_ptr<TEN::Save::EventSetT>> global_event_sets{};
-  std::vector<std::unique_ptr<TEN::Save::EventSetT>> volume_event_sets{};
-  std::unique_ptr<TEN::Save::UnionVecT> script_vars{};
-  std::vector<std::unique_ptr<TEN::Save::CallbackSetT>> callbacks{};
-  std::vector<std::unique_ptr<TEN::Save::NamedSoundtrackT>> named_soundtracks{};
+  std::unique_ptr<TEN::Serialization::Save::RopeT> rope{};
+  std::unique_ptr<TEN::Serialization::Save::PendulumT> pendulum{};
+  std::unique_ptr<TEN::Serialization::Save::PendulumT> alternate_pendulum{};
+  std::vector<std::unique_ptr<TEN::Serialization::Save::VolumeT>> volumes{};
+  std::vector<std::unique_ptr<TEN::Serialization::Save::EventSetT>> global_event_sets{};
+  std::vector<std::unique_ptr<TEN::Serialization::Save::EventSetT>> volume_event_sets{};
+  std::unique_ptr<TEN::Serialization::Save::UnionVecT> script_vars{};
+  std::vector<std::unique_ptr<TEN::Serialization::Save::CallbackSetT>> callbacks{};
+  std::vector<std::unique_ptr<TEN::Serialization::Save::NamedSoundtrackT>> named_soundtracks{};
+  std::vector<int32_t> active_items{};
+  std::vector<int32_t> free_item_slots{};
+  std::vector<std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>> moveable_type_properties{};
+  std::vector<std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>> static_type_properties{};
 };
 
 struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -10322,50 +10326,53 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_ITEMS = 22,
     VT_NEXT_ITEM_FREE = 24,
     VT_NEXT_ITEM_ACTIVE = 26,
-    VT_ROOM_ITEMS = 28,
-    VT_FISH_SWARM = 30,
-    VT_FIREFLY_SWARM = 32,
-    VT_FXINFOS = 34,
-    VT_NEXT_FX_FREE = 36,
-    VT_NEXT_FX_ACTIVE = 38,
-    VT_FIXED_CAMERAS = 40,
-    VT_SINKS = 42,
-    VT_STATIC_MESHES = 44,
-    VT_FLYBY_CAMERAS = 46,
-    VT_PARTICLES = 48,
-    VT_RATS = 50,
-    VT_SPIDERS = 52,
-    VT_SCARABS = 54,
-    VT_BATS = 56,
-    VT_LOCUSTS = 58,
-    VT_DECALS = 60,
-    VT_FLIP_MAPS = 62,
-    VT_FLIP_STATS = 64,
-    VT_FLIP_EFFECT = 66,
-    VT_FLIP_TIMER = 68,
-    VT_FLIP_STATUS = 70,
-    VT_CURRENT_FOV = 72,
-    VT_LAST_INV_ITEM = 74,
-    VT_ACTION_QUEUE = 76,
-    VT_SOUNDTRACKS = 78,
-    VT_CD_FLAGS = 80,
-    VT_VIDEO = 82,
-    VT_POSTPROCESS_MODE = 84,
-    VT_POSTPROCESS_STRENGTH = 86,
-    VT_POSTPROCESS_TINT = 88,
-    VT_DOF_DISTANCE = 90,
-    VT_DOF_RANGE = 92,
-    VT_DOF_STRENGTH = 94,
-    VT_DOF_MODE = 96,
-    VT_ROPE = 98,
-    VT_PENDULUM = 100,
-    VT_ALTERNATE_PENDULUM = 102,
-    VT_VOLUMES = 104,
-    VT_GLOBAL_EVENT_SETS = 106,
-    VT_VOLUME_EVENT_SETS = 108,
-    VT_SCRIPT_VARS = 110,
-    VT_CALLBACKS = 112,
-    VT_NAMED_SOUNDTRACKS = 114
+    VT_FISH_SWARM = 28,
+    VT_FIREFLY_SWARM = 30,
+    VT_FXINFOS = 32,
+    VT_NEXT_FX_FREE = 34,
+    VT_NEXT_FX_ACTIVE = 36,
+    VT_FIXED_CAMERAS = 38,
+    VT_SINKS = 40,
+    VT_STATIC_MESHES = 42,
+    VT_FLYBY_CAMERAS = 44,
+    VT_PARTICLES = 46,
+    VT_RATS = 48,
+    VT_SPIDERS = 50,
+    VT_SCARABS = 52,
+    VT_BATS = 54,
+    VT_LOCUSTS = 56,
+    VT_DECALS = 58,
+    VT_FLIP_MAPS = 60,
+    VT_FLIP_STATS = 62,
+    VT_FLIP_EFFECT = 64,
+    VT_FLIP_TIMER = 66,
+    VT_FLIP_STATUS = 68,
+    VT_CURRENT_FOV = 70,
+    VT_LAST_INV_ITEM = 72,
+    VT_ACTION_QUEUE = 74,
+    VT_SOUNDTRACKS = 76,
+    VT_CD_FLAGS = 78,
+    VT_VIDEO = 80,
+    VT_POSTPROCESS_MODE = 82,
+    VT_POSTPROCESS_STRENGTH = 84,
+    VT_POSTPROCESS_TINT = 86,
+    VT_DOF_DISTANCE = 88,
+    VT_DOF_RANGE = 90,
+    VT_DOF_STRENGTH = 92,
+    VT_DOF_MODE = 94,
+    VT_ROPE = 96,
+    VT_PENDULUM = 98,
+    VT_ALTERNATE_PENDULUM = 100,
+    VT_VOLUMES = 102,
+    VT_GLOBAL_EVENT_SETS = 104,
+    VT_VOLUME_EVENT_SETS = 106,
+    VT_SCRIPT_VARS = 108,
+    VT_CALLBACKS = 110,
+    VT_NAMED_SOUNDTRACKS = 112,
+    VT_ACTIVE_ITEMS = 114,
+    VT_FREE_ITEM_SLOTS = 116,
+    VT_MOVEABLE_TYPE_PROPERTIES = 118,
+    VT_STATIC_TYPE_PROPERTIES = 120
   };
   const TEN::Serialization::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Serialization::Save::SaveGameHeader *>(VT_HEADER);
@@ -10529,6 +10536,9 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>> *callbacks() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>> *>(VT_CALLBACKS);
   }
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::NamedSoundtrack>> *named_soundtracks() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::NamedSoundtrack>> *>(VT_NAMED_SOUNDTRACKS);
+  }
   const flatbuffers::Vector<int32_t> *active_items() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ACTIVE_ITEMS);
   }
@@ -10540,9 +10550,6 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *static_type_properties() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *>(VT_STATIC_TYPE_PROPERTIES);
-  }
-  const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::NamedSoundtrack>> *named_soundtracks() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Save::NamedSoundtrack>> *>(VT_NAMED_SOUNDTRACKS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -10661,6 +10668,16 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_NAMED_SOUNDTRACKS) &&
            verifier.VerifyVector(named_soundtracks()) &&
            verifier.VerifyVectorOfTables(named_soundtracks()) &&
+           VerifyOffset(verifier, VT_ACTIVE_ITEMS) &&
+           verifier.VerifyVector(active_items()) &&
+           VerifyOffset(verifier, VT_FREE_ITEM_SLOTS) &&
+           verifier.VerifyVector(free_item_slots()) &&
+           VerifyOffset(verifier, VT_MOVEABLE_TYPE_PROPERTIES) &&
+           verifier.VerifyVector(moveable_type_properties()) &&
+           verifier.VerifyVectorOfTables(moveable_type_properties()) &&
+           VerifyOffset(verifier, VT_STATIC_TYPE_PROPERTIES) &&
+           verifier.VerifyVector(static_type_properties()) &&
+           verifier.VerifyVectorOfTables(static_type_properties()) &&
            verifier.EndTable();
   }
   SaveGameT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -10834,8 +10851,20 @@ struct SaveGameBuilder {
   void add_callbacks(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>>> callbacks) {
     fbb_.AddOffset(SaveGame::VT_CALLBACKS, callbacks);
   }
-  void add_named_soundtracks(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::NamedSoundtrack>>> named_soundtracks) {
+  void add_named_soundtracks(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::NamedSoundtrack>>> named_soundtracks) {
     fbb_.AddOffset(SaveGame::VT_NAMED_SOUNDTRACKS, named_soundtracks);
+  }
+  void add_active_items(flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_items) {
+    fbb_.AddOffset(SaveGame::VT_ACTIVE_ITEMS, active_items);
+  }
+  void add_free_item_slots(flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_item_slots) {
+    fbb_.AddOffset(SaveGame::VT_FREE_ITEM_SLOTS, free_item_slots);
+  }
+  void add_moveable_type_properties(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> moveable_type_properties) {
+    fbb_.AddOffset(SaveGame::VT_MOVEABLE_TYPE_PROPERTIES, moveable_type_properties);
+  }
+  void add_static_type_properties(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> static_type_properties) {
+    fbb_.AddOffset(SaveGame::VT_STATIC_TYPE_PROPERTIES, static_type_properties);
   }
   explicit SaveGameBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -10896,16 +10925,24 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     float dof_range = 0.0f,
     float dof_strength = 0.0f,
     int32_t dof_mode = 0,
-    flatbuffers::Offset<TEN::Save::Rope> rope = 0,
-    flatbuffers::Offset<TEN::Save::Pendulum> pendulum = 0,
-    flatbuffers::Offset<TEN::Save::Pendulum> alternate_pendulum = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::Volume>>> volumes = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::EventSet>>> global_event_sets = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::EventSet>>> volume_event_sets = 0,
-    flatbuffers::Offset<TEN::Save::UnionVec> script_vars = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::CallbackSet>>> callbacks = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Save::NamedSoundtrack>>> named_soundtracks = 0) {
+    flatbuffers::Offset<TEN::Serialization::Save::Rope> rope = 0,
+    flatbuffers::Offset<TEN::Serialization::Save::Pendulum> pendulum = 0,
+    flatbuffers::Offset<TEN::Serialization::Save::Pendulum> alternate_pendulum = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::Volume>>> volumes = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>>> global_event_sets = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>>> volume_event_sets = 0,
+    flatbuffers::Offset<TEN::Serialization::Save::UnionVec> script_vars = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>>> callbacks = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::NamedSoundtrack>>> named_soundtracks = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_items = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_item_slots = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> moveable_type_properties = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> static_type_properties = 0) {
   SaveGameBuilder builder_(_fbb);
+  builder_.add_static_type_properties(static_type_properties);
+  builder_.add_moveable_type_properties(moveable_type_properties);
+  builder_.add_free_item_slots(free_item_slots);
+  builder_.add_active_items(active_items);
   builder_.add_named_soundtracks(named_soundtracks);
   builder_.add_callbacks(callbacks);
   builder_.add_script_vars(script_vars);
@@ -11017,16 +11054,20 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     float dof_range = 0.0f,
     float dof_strength = 0.0f,
     int32_t dof_mode = 0,
-    flatbuffers::Offset<TEN::Save::Rope> rope = 0,
-    flatbuffers::Offset<TEN::Save::Pendulum> pendulum = 0,
-    flatbuffers::Offset<TEN::Save::Pendulum> alternate_pendulum = 0,
-    const std::vector<flatbuffers::Offset<TEN::Save::Volume>> *volumes = nullptr,
-    const std::vector<flatbuffers::Offset<TEN::Save::EventSet>> *global_event_sets = nullptr,
-    const std::vector<flatbuffers::Offset<TEN::Save::EventSet>> *volume_event_sets = nullptr,
-    flatbuffers::Offset<TEN::Save::UnionVec> script_vars = 0,
-    const std::vector<flatbuffers::Offset<TEN::Save::CallbackSet>> *callbacks = nullptr,
-    const std::vector<flatbuffers::Offset<TEN::Save::NamedSoundtrack>> *named_soundtracks = nullptr) {
-  auto rooms__ = rooms ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::Room>>(*rooms) : 0;
+    flatbuffers::Offset<TEN::Serialization::Save::Rope> rope = 0,
+    flatbuffers::Offset<TEN::Serialization::Save::Pendulum> pendulum = 0,
+    flatbuffers::Offset<TEN::Serialization::Save::Pendulum> alternate_pendulum = 0,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::Volume>> *volumes = nullptr,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>> *global_event_sets = nullptr,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>> *volume_event_sets = nullptr,
+    flatbuffers::Offset<TEN::Serialization::Save::UnionVec> script_vars = 0,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>> *callbacks = nullptr,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::NamedSoundtrack>> *named_soundtracks = nullptr,
+    const std::vector<int32_t> *active_items = nullptr,
+    const std::vector<int32_t> *free_item_slots = nullptr,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *moveable_type_properties = nullptr,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *static_type_properties = nullptr) {
+  auto rooms__ = rooms ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Room>>(*rooms) : 0;
   auto box_flags__ = box_flags ? _fbb.CreateVector<int32_t>(*box_flags) : 0;
   auto items__ = items ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Item>>(*items) : 0;
   auto fish_swarm__ = fish_swarm ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::FishData>>(*fish_swarm) : 0;
@@ -11048,12 +11089,16 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
   auto action_queue__ = action_queue ? _fbb.CreateVector<int32_t>(*action_queue) : 0;
   auto soundtracks__ = soundtracks ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Soundtrack>>(*soundtracks) : 0;
   auto cd_flags__ = cd_flags ? _fbb.CreateVector<int32_t>(*cd_flags) : 0;
-  auto volumes__ = volumes ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::Volume>>(*volumes) : 0;
-  auto global_event_sets__ = global_event_sets ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::EventSet>>(*global_event_sets) : 0;
-  auto volume_event_sets__ = volume_event_sets ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::EventSet>>(*volume_event_sets) : 0;
-  auto callbacks__ = callbacks ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::CallbackSet>>(*callbacks) : 0;
-  auto named_soundtracks__ = named_soundtracks ? _fbb.CreateVector<flatbuffers::Offset<TEN::Save::NamedSoundtrack>>(*named_soundtracks) : 0;
-  return TEN::Save::CreateSaveGame(
+  auto volumes__ = volumes ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Volume>>(*volumes) : 0;
+  auto global_event_sets__ = global_event_sets ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>>(*global_event_sets) : 0;
+  auto volume_event_sets__ = volume_event_sets ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>>(*volume_event_sets) : 0;
+  auto callbacks__ = callbacks ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>>(*callbacks) : 0;
+  auto named_soundtracks__ = named_soundtracks ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::NamedSoundtrack>>(*named_soundtracks) : 0;
+  auto active_items__ = active_items ? _fbb.CreateVector<int32_t>(*active_items) : 0;
+  auto free_item_slots__ = free_item_slots ? _fbb.CreateVector<int32_t>(*free_item_slots) : 0;
+  auto moveable_type_properties__ = moveable_type_properties ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>(*moveable_type_properties) : 0;
+  auto static_type_properties__ = static_type_properties ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>(*static_type_properties) : 0;
+  return TEN::Serialization::Save::CreateSaveGame(
       _fbb,
       header,
       game,
@@ -11109,7 +11154,11 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       volume_event_sets__,
       script_vars,
       callbacks__,
-      named_soundtracks__);
+      named_soundtracks__,
+      active_items__,
+      free_item_slots__,
+      moveable_type_properties__,
+      static_type_properties__);
 }
 
 flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuilder &_fbb, const SaveGameT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -12898,7 +12947,7 @@ inline flatbuffers::Offset<NamedSoundtrack> CreateNamedSoundtrack(flatbuffers::F
   auto _fade_out_time = _o->fade_out_time;
   auto _crossfade_time = _o->crossfade_time;
   auto _volume = _o->volume;
-  return TEN::Save::CreateNamedSoundtrack(
+  return TEN::Serialization::Save::CreateNamedSoundtrack(
       _fbb,
       _channel_name,
       _track,
@@ -14212,15 +14261,19 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = dof_range(); _o->dof_range = _e; }
   { auto _e = dof_strength(); _o->dof_strength = _e; }
   { auto _e = dof_mode(); _o->dof_mode = _e; }
-  { auto _e = rope(); if (_e) _o->rope = std::unique_ptr<TEN::Save::RopeT>(_e->UnPack(_resolver)); }
-  { auto _e = pendulum(); if (_e) _o->pendulum = std::unique_ptr<TEN::Save::PendulumT>(_e->UnPack(_resolver)); }
-  { auto _e = alternate_pendulum(); if (_e) _o->alternate_pendulum = std::unique_ptr<TEN::Save::PendulumT>(_e->UnPack(_resolver)); }
-  { auto _e = volumes(); if (_e) { _o->volumes.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->volumes[_i] = std::unique_ptr<TEN::Save::VolumeT>(_e->Get(_i)->UnPack(_resolver)); } } }
-  { auto _e = global_event_sets(); if (_e) { _o->global_event_sets.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->global_event_sets[_i] = std::unique_ptr<TEN::Save::EventSetT>(_e->Get(_i)->UnPack(_resolver)); } } }
-  { auto _e = volume_event_sets(); if (_e) { _o->volume_event_sets.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->volume_event_sets[_i] = std::unique_ptr<TEN::Save::EventSetT>(_e->Get(_i)->UnPack(_resolver)); } } }
-  { auto _e = script_vars(); if (_e) _o->script_vars = std::unique_ptr<TEN::Save::UnionVecT>(_e->UnPack(_resolver)); }
-  { auto _e = callbacks(); if (_e) { _o->callbacks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks[_i] = std::unique_ptr<TEN::Save::CallbackSetT>(_e->Get(_i)->UnPack(_resolver)); } } }
-  { auto _e = named_soundtracks(); if (_e) { _o->named_soundtracks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->named_soundtracks[_i] = std::unique_ptr<TEN::Save::NamedSoundtrackT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = rope(); if (_e) _o->rope = std::unique_ptr<TEN::Serialization::Save::RopeT>(_e->UnPack(_resolver)); }
+  { auto _e = pendulum(); if (_e) _o->pendulum = std::unique_ptr<TEN::Serialization::Save::PendulumT>(_e->UnPack(_resolver)); }
+  { auto _e = alternate_pendulum(); if (_e) _o->alternate_pendulum = std::unique_ptr<TEN::Serialization::Save::PendulumT>(_e->UnPack(_resolver)); }
+  { auto _e = volumes(); if (_e) { _o->volumes.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->volumes[_i] = std::unique_ptr<TEN::Serialization::Save::VolumeT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = global_event_sets(); if (_e) { _o->global_event_sets.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->global_event_sets[_i] = std::unique_ptr<TEN::Serialization::Save::EventSetT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = volume_event_sets(); if (_e) { _o->volume_event_sets.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->volume_event_sets[_i] = std::unique_ptr<TEN::Serialization::Save::EventSetT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = script_vars(); if (_e) _o->script_vars = std::unique_ptr<TEN::Serialization::Save::UnionVecT>(_e->UnPack(_resolver)); }
+  { auto _e = callbacks(); if (_e) { _o->callbacks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks[_i] = std::unique_ptr<TEN::Serialization::Save::CallbackSetT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = named_soundtracks(); if (_e) { _o->named_soundtracks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->named_soundtracks[_i] = std::unique_ptr<TEN::Serialization::Save::NamedSoundtrackT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = active_items(); if (_e) { _o->active_items.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->active_items[_i] = _e->Get(_i); } } }
+  { auto _e = free_item_slots(); if (_e) { _o->free_item_slots.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->free_item_slots[_i] = _e->Get(_i); } } }
+  { auto _e = moveable_type_properties(); if (_e) { _o->moveable_type_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->moveable_type_properties[_i] = std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = static_type_properties(); if (_e) { _o->static_type_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->static_type_properties[_i] = std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
 inline flatbuffers::Offset<SaveGame> SaveGame::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SaveGameT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -14284,9 +14337,13 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _global_event_sets = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>> (_o->global_event_sets.size(), [](size_t i, _VectorArgs *__va) { return CreateEventSet(*__va->__fbb, __va->__o->global_event_sets[i].get(), __va->__rehasher); }, &_va );
   auto _volume_event_sets = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>> (_o->volume_event_sets.size(), [](size_t i, _VectorArgs *__va) { return CreateEventSet(*__va->__fbb, __va->__o->volume_event_sets[i].get(), __va->__rehasher); }, &_va );
   auto _script_vars = _o->script_vars ? CreateUnionVec(_fbb, _o->script_vars.get(), _rehasher) : 0;
-  auto _callbacks = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::CallbackSet>> (_o->callbacks.size(), [](size_t i, _VectorArgs *__va) { return CreateCallbackSet(*__va->__fbb, __va->__o->callbacks[i].get(), __va->__rehasher); }, &_va );
-  auto _named_soundtracks = _fbb.CreateVector<flatbuffers::Offset<TEN::Save::NamedSoundtrack>> (_o->named_soundtracks.size(), [](size_t i, _VectorArgs *__va) { return CreateNamedSoundtrack(*__va->__fbb, __va->__o->named_soundtracks[i].get(), __va->__rehasher); }, &_va );
-  return TEN::Save::CreateSaveGame(
+  auto _callbacks = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>> (_o->callbacks.size(), [](size_t i, _VectorArgs *__va) { return CreateCallbackSet(*__va->__fbb, __va->__o->callbacks[i].get(), __va->__rehasher); }, &_va );
+  auto _named_soundtracks = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::NamedSoundtrack>> (_o->named_soundtracks.size(), [](size_t i, _VectorArgs *__va) { return CreateNamedSoundtrack(*__va->__fbb, __va->__o->named_soundtracks[i].get(), __va->__rehasher); }, &_va );
+  auto _active_items = _fbb.CreateVector(_o->active_items);
+  auto _free_item_slots = _fbb.CreateVector(_o->free_item_slots);
+  auto _moveable_type_properties = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> (_o->moveable_type_properties.size(), [](size_t i, _VectorArgs *__va) { return CreateTypePropertyMap(*__va->__fbb, __va->__o->moveable_type_properties[i].get(), __va->__rehasher); }, &_va );
+  auto _static_type_properties = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> (_o->static_type_properties.size(), [](size_t i, _VectorArgs *__va) { return CreateTypePropertyMap(*__va->__fbb, __va->__o->static_type_properties[i].get(), __va->__rehasher); }, &_va );
+  return TEN::Serialization::Save::CreateSaveGame(
       _fbb,
       _header,
       _game,
@@ -14342,7 +14399,227 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _volume_event_sets,
       _script_vars,
       _callbacks,
-      _named_soundtracks);
+      _named_soundtracks,
+      _active_items,
+      _free_item_slots,
+      _moveable_type_properties,
+      _static_type_properties);
+}
+
+inline bool VerifyPropertyValueUnion(flatbuffers::Verifier &verifier, const void *obj, PropertyValueUnion type) {
+  switch (type) {
+    case PropertyValueUnion::NONE: {
+      return true;
+    }
+    case PropertyValueUnion::prop_bool: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyBool *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_float: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyFloat *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_string: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyString *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_vec2: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyVec2 *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_vec3: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyVec3 *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_color: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyColor *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_rotation: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyRotation *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_time: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyTime *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    default: return true;
+  }
+}
+
+inline bool VerifyPropertyValueUnionVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types) {
+  if (!values || !types) return !values && !types;
+  if (values->size() != types->size()) return false;
+  for (flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
+    if (!VerifyPropertyValueUnion(
+        verifier,  values->Get(i), types->GetEnum<PropertyValueUnion>(i))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+inline void *PropertyValueUnionUnion::UnPack(const void *obj, PropertyValueUnion type, const flatbuffers::resolver_function_t *resolver) {
+  switch (type) {
+    case PropertyValueUnion::prop_bool: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyBool *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_float: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyFloat *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_string: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyString *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_vec2: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyVec2 *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_vec3: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyVec3 *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_color: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyColor *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_rotation: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyRotation *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_time: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyTime *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    default: return nullptr;
+  }
+}
+
+inline flatbuffers::Offset<void> PropertyValueUnionUnion::Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher) const {
+  switch (type) {
+    case PropertyValueUnion::prop_bool: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyBoolT *>(value);
+      return CreatePropertyBool(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_float: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyFloatT *>(value);
+      return CreatePropertyFloat(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_string: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyStringT *>(value);
+      return CreatePropertyString(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_vec2: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyVec2T *>(value);
+      return CreatePropertyVec2(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_vec3: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyVec3T *>(value);
+      return CreatePropertyVec3(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_color: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyColorT *>(value);
+      return CreatePropertyColor(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_rotation: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyRotationT *>(value);
+      return CreatePropertyRotation(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_time: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyTimeT *>(value);
+      return CreatePropertyTime(_fbb, ptr, _rehasher).Union();
+    }
+    default: return 0;
+  }
+}
+
+inline PropertyValueUnionUnion::PropertyValueUnionUnion(const PropertyValueUnionUnion &u) : type(u.type), value(nullptr) {
+  switch (type) {
+    case PropertyValueUnion::prop_bool: {
+      value = new TEN::Serialization::Save::PropertyBoolT(*reinterpret_cast<TEN::Serialization::Save::PropertyBoolT *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_float: {
+      value = new TEN::Serialization::Save::PropertyFloatT(*reinterpret_cast<TEN::Serialization::Save::PropertyFloatT *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_string: {
+      value = new TEN::Serialization::Save::PropertyStringT(*reinterpret_cast<TEN::Serialization::Save::PropertyStringT *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_vec2: {
+      value = new TEN::Serialization::Save::PropertyVec2T(*reinterpret_cast<TEN::Serialization::Save::PropertyVec2T *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_vec3: {
+      value = new TEN::Serialization::Save::PropertyVec3T(*reinterpret_cast<TEN::Serialization::Save::PropertyVec3T *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_color: {
+      value = new TEN::Serialization::Save::PropertyColorT(*reinterpret_cast<TEN::Serialization::Save::PropertyColorT *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_rotation: {
+      value = new TEN::Serialization::Save::PropertyRotationT(*reinterpret_cast<TEN::Serialization::Save::PropertyRotationT *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_time: {
+      value = new TEN::Serialization::Save::PropertyTimeT(*reinterpret_cast<TEN::Serialization::Save::PropertyTimeT *>(u.value));
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+inline void PropertyValueUnionUnion::Reset() {
+  switch (type) {
+    case PropertyValueUnion::prop_bool: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyBoolT *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_float: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyFloatT *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_string: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyStringT *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_vec2: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyVec2T *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_vec3: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyVec3T *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_color: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyColorT *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_rotation: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyRotationT *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_time: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyTimeT *>(value);
+      delete ptr;
+      break;
+    }
+    default: break;
+  }
+  value = nullptr;
+  type = PropertyValueUnion::NONE;
 }
 
 inline bool VerifyVarUnion(flatbuffers::Verifier &verifier, const void *obj, VarUnion type) {
