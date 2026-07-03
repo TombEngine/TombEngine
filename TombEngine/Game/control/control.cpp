@@ -59,6 +59,8 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/Strings/ScriptInterfaceStringsHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyUtils.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/EngineMain.h"
@@ -96,6 +98,7 @@ using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
 using namespace TEN::Renderer;
+using namespace TEN::Scripting::Properties;
 using namespace TEN::SpotCam;
 using namespace TEN::Video;
 
@@ -419,6 +422,7 @@ GameStatus DoLevel(int levelIndex, bool loadGame)
 
 	// Initialize scripting.
 	InitializeScripting(levelIndex, loadGame);
+	InitializeProperties();
 	InitializeNodeScripts();
 
 	// Initialize menu and inventory state.
