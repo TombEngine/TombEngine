@@ -20,14 +20,14 @@ namespace TEN::Scripting::Properties
 			if (!object.loaded)
 				continue;
 
-			object.HitPoints = PropertyHandler::Get((GAME_OBJECT_ID)objectID, GetHash(PropName_HitPoints), object.HitPoints);
+			object.HitPoints = PropertyHandler::Get((GAME_OBJECT_ID)objectID, PropName_HitPoints, object.HitPoints);
 		}
 
 		// Per-item property application.
 		for (int i = 0; i < g_Level.NumItems; i++)
 		{
 			auto& item = g_Level.Items[i];
-			item.HitPoints = PropertyHandler::Get(item, GetHash(PropName_HitPoints), item.HitPoints);
+			item.HitPoints = PropertyHandler::Get(item, PropName_HitPoints, item.HitPoints);
 		}
 
 	}

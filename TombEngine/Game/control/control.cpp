@@ -8,15 +8,15 @@
 #include "Game/control/volume.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/Blood.h"
-#include "Game/effects/Bubble.h"
+#include "Game/effects/bubble.h"
 #include "Game/effects/Decal.h"
 #include "Game/effects/DisplaySprite.h"
-#include "Game/effects/Drip.h"
+#include "Game/effects/drip.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
 #include "Game/effects/explosion.h"
-#include "Game/effects/Footprint.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/footprint.h"
+#include "Game/effects/hair.h"
 #include "Game/effects/Ripple.h"
 #include "Game/effects/simple_particle.h"
 #include "Game/effects/smoke.h"
@@ -25,7 +25,7 @@
 #include "Game/effects/Streamer.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Hud/DrawItems/DisplayItem.h"
 #include "Game/Lara/lara.h"
@@ -120,10 +120,9 @@ int NextLevel;
 bool  InItemControlLoop;
 short ItemNewRoomNo;
 short ItemNewRooms[MAX_ROOMS];
-short NextItemActive;
-short NextItemFree;
-short NextFxActive;
-short NextFxFree;
+
+std::vector<int> ActiveItems;
+std::vector<int> FreeItemSlots;
 
 int ControlPhaseTime;
 
@@ -184,7 +183,6 @@ GameStatus GamePhase(bool insideMenu)
 	// Item update should happen before camera update, so potential flyby/track camera triggers
 	// are processed correctly.
 	UpdateAllItems();
-	UpdateAllEffects();
 	UpdateLara(LaraItem, isTitle);
 	g_GameScriptEntities->TestCollidingObjects();
 
@@ -414,7 +412,6 @@ GameStatus DoLevel(int levelIndex, bool loadGame)
 
 	// Initialize items, effects, lots, and cameras.
 	HairEffect.Initialize();
-	InitializeFXArray();
 	InitializeCamera();
 	InitializeSpotCamSequences(isTitle);
 	InitializeItemBoxData();
@@ -477,27 +474,6 @@ void KillMoveItems()
 			else
 			{
 				KillItem(itemNumber & 0x7FFF);
-			}
-		}
-	}
-
-	ItemNewRoomNo = 0;
-}
-
-void KillMoveEffects()
-{
-	if (ItemNewRoomNo > 0)
-	{
-		for (int i = 0; i < ItemNewRoomNo; i++)
-		{
-			int itemNumber = ItemNewRooms[i * 2];
-			if (itemNumber >= 0)
-			{
-				EffectNewRoom(itemNumber, ItemNewRooms[(i * 2) + 1]);
-			}
-			else
-			{
-				KillEffect(itemNumber & 0x7FFF);
 			}
 		}
 	}

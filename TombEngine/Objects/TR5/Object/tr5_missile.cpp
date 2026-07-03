@@ -21,52 +21,53 @@ using namespace TEN::Math;
 
 int DebrisFlags;
 
-void MissileControl(short itemNumber)
+void MissileControl(short fxNumber)
 {
-	auto* fx = &EffectList[itemNumber];
+	auto& fx = g_Level.Items[fxNumber];
+	auto& fxInfo = GetFXInfo(fx);
 
-	if (fx->flag1 == 2)
+	if (fxInfo.Flag1 == 2)
 	{
-		fx->pos.Orientation.z += 16 * fx->speed;
+		fx.Pose.Orientation.z += 16 * fx.Animation.Velocity.z;
 
-		if (fx->speed > 64)
-			fx->speed -= 4;
+		if (fx.Animation.Velocity.z > 64)
+			fx.Animation.Velocity.z -= 4;
 
-		if (fx->pos.Orientation.x > -12288)
+		if (fx.Pose.Orientation.x > -12288)
 		{
-			if (fx->fallspeed < 512)
-				fx->fallspeed += 36;
-			fx->pos.Orientation.x -= fx->fallspeed;
+			if (fx.Animation.Velocity.y < 512)
+				fx.Animation.Velocity.y += 36;
+			fx.Pose.Orientation.x -= fx.Animation.Velocity.y;
 		}
 	}
 	else
 	{
 		auto orient = Geometry::GetOrientToPoint(
-			Vector3(fx->pos.Position.x, fx->pos.Position.y + CLICK(1), fx->pos.Position.z),
+			Vector3(fx.Pose.Position.x, fx.Pose.Position.y + CLICK(1), fx.Pose.Position.z),
 			LaraItem->Pose.Position.ToVector3());
 
 		int dh;
-		if (fx->flag1)
-			dh = fx->flag1 != 1 ? 768 : 384;
+		if (fxInfo.Flag1)
+			dh = fxInfo.Flag1 != 1 ? 768 : 384;
 		else
 		{
-			if (fx->counter)
-				fx->counter--;
+			if (fxInfo.Counter)
+				fxInfo.Counter--;
 
 			dh = 256;
 		}
 
-		if (fx->speed < 192)
+		if (fx.Animation.Velocity.z < 192)
 		{
-			if (fx->flag1 == 0 || fx->flag1 == 1)
-				fx->speed++;
+			if (fxInfo.Flag1 == 0 || fxInfo.Flag1 == 1)
+				fx.Animation.Velocity.z++;
 
-			int dy = orient.y - fx->pos.Orientation.y;
+			int dy = orient.y - fx.Pose.Orientation.y;
 			if (abs(dy) > abs(ANGLE(180.0f)))
 				dy = -dy;
 			dy /= 8;
 
-			int dx = orient.x - fx->pos.Orientation.x;
+			int dx = orient.x - fx.Pose.Orientation.x;
 			if (abs(dx) > abs(ANGLE(180.0f)))
 				dx = -dx;
 			dx /= 8;
@@ -87,136 +88,138 @@ void MissileControl(short itemNumber)
 			else
 				dx = dh;
 
-			fx->pos.Orientation.y += dy;
-			fx->pos.Orientation.x += dx;
+			fx.Pose.Orientation.y += dy;
+			fx.Pose.Orientation.x += dx;
 		}
 		
-		fx->pos.Orientation.z += 16 * fx->speed;
+		fx.Pose.Orientation.z += 16 * fx.Animation.Velocity.z;
 
-		if (!fx->flag1)
-			fx->pos.Orientation.z += 16 * fx->speed;
+		if (!fxInfo.Flag1)
+			fx.Pose.Orientation.z += 16 * fx.Animation.Velocity.z;
 	}
 
-	int x = fx->pos.Position.x;
-	int y = fx->pos.Position.y;
-	int z = fx->pos.Position.z;
+	int x = fx.Pose.Position.x;
+	int y = fx.Pose.Position.y;
+	int z = fx.Pose.Position.z;
 
-	int c = fx->speed * phd_cos(fx->pos.Orientation.x);
+	int c = fx.Animation.Velocity.z * phd_cos(fx.Pose.Orientation.x);
 
-	fx->pos.Position.x += c * phd_sin(fx->pos.Orientation.y);
-	fx->pos.Position.y += fx->speed * phd_sin(-fx->pos.Orientation.x);
-	fx->pos.Position.z += c * phd_cos(fx->pos.Orientation.y);
+	fx.Pose.Position.x += c * phd_sin(fx.Pose.Orientation.y);
+	fx.Pose.Position.y += fx.Animation.Velocity.z * phd_sin(-fx.Pose.Orientation.x);
+	fx.Pose.Position.z += c * phd_cos(fx.Pose.Orientation.y);
 
-	auto probe = GetPointCollision(fx->pos.Position, fx->roomNumber);
+	auto probe = GetPointCollision(fx.Pose.Position, fx.RoomNumber);
 	
-	if (fx->pos.Position.y >= probe.GetFloorHeight() || fx->pos.Position.y <= probe.GetCeilingHeight())
+	if (fx.Pose.Position.y >= probe.GetFloorHeight() || fx.Pose.Position.y <= probe.GetCeilingHeight())
 	{
-		fx->pos.Position.x = x;
-		fx->pos.Position.y = y;
-		fx->pos.Position.z = z;
+		fx.Pose.Position.x = x;
+		fx.Pose.Position.y = y;
+		fx.Pose.Position.z = z;
 
-		if (fx->flag1)
+		if (fxInfo.Flag1)
 		{
-			if (fx->flag1 == 1)
+			if (fxInfo.Flag1 == 1)
 			{
-				TriggerExplosionSparks(x, y, z, 3, -2, 2, fx->roomNumber);
-				fx->pos.Position.y -= 64;
-				TriggerShockwave(&fx->pos, 48, 256, 64, 64, 128, 0, 24, EulerAngles::Identity, 1, true, false, false, (int)ShockwaveStyle::Normal);
-				fx->pos.Position.y -= 128;
-				TriggerShockwave(&fx->pos, 48, 256, 48, 64, 128, 0, 24, EulerAngles::Identity, 1, true, false, false, (int)ShockwaveStyle::Normal);
+				TriggerExplosionSparks(x, y, z, 3, -2, 2, fx.RoomNumber);
+				fx.Pose.Position.y -= 64;
+				TriggerShockwave(&fx.Pose, 48, 256, 64, 64, 128, 0, 24, EulerAngles::Identity, 1, true, false, false, (int)ShockwaveStyle::Normal);
+				fx.Pose.Position.y -= 128;
+				TriggerShockwave(&fx.Pose, 48, 256, 48, 64, 128, 0, 24, EulerAngles::Identity, 1, true, false, false, (int)ShockwaveStyle::Normal);
 			}
-			else if (fx->flag1 == 2)
+			else if (fxInfo.Flag1 == 2)
 			{
 				ExplodeFX(fx, 0, 32);
-				SoundEffect(251, &fx->pos);
+				SoundEffect(251, &fx.Pose);
 			}
 		}
 		else
 		{
-			TriggerExplosionSparks(x, y, z, 3, -2, 0, fx->roomNumber);
-			TriggerShockwave(&fx->pos, 48, 240, 48, 128, 64, 0, 24, EulerAngles::Identity, 2, true, false, false, (int)ShockwaveStyle::Normal);
+			TriggerExplosionSparks(x, y, z, 3, -2, 0, fx.RoomNumber);
+			TriggerShockwave(&fx.Pose, 48, 240, 48, 128, 64, 0, 24, EulerAngles::Identity, 2, true, false, false, (int)ShockwaveStyle::Normal);
 		}
 		
-		KillEffect(itemNumber);
+		KillItem(fxNumber);
 	}
-	else if (ItemNearLara(fx->pos.Position, 200))
+	else if (ItemNearLara(fx.Pose.Position, 200))
 	{
-		if (fx->flag1)
+		if (fxInfo.Flag1)
 		{
-			if (fx->flag1 == 1)
+			if (fxInfo.Flag1 == 1)
 			{
 				// ROMAN_GOD hit effect
-				TriggerExplosionSparks(x, y, z, 3, -2, 2, fx->roomNumber);
-				fx->pos.Position.y -= 64;
-				TriggerShockwave(&fx->pos, 48, 256, 64, 0, 128, 64, 24, EulerAngles::Identity, 1, true, false, false, (int)ShockwaveStyle::Normal);
-				fx->pos.Position.y -= 128;
-				TriggerShockwave(&fx->pos, 48, 256, 48, 0, 128, 64, 24, EulerAngles::Identity, 1, true, false, false, (int)ShockwaveStyle::Normal);
-				KillEffect(itemNumber);
+				TriggerExplosionSparks(x, y, z, 3, -2, 2, fx.RoomNumber);
+				fx.Pose.Position.y -= 64;
+				TriggerShockwave(&fx.Pose, 48, 256, 64, 0, 128, 64, 24, EulerAngles::Identity, 1, true, false, false, (int)ShockwaveStyle::Normal);
+				fx.Pose.Position.y -= 128;
+				TriggerShockwave(&fx.Pose, 48, 256, 48, 0, 128, 64, 24, EulerAngles::Identity, 1, true, false, false, (int)ShockwaveStyle::Normal);
+				KillItem(fxNumber);
 				DoDamage(LaraItem, 200);
 			}
 			else
 			{
-				if (fx->flag1 == 2)
+				if (fxInfo.Flag1 == 2)
 				{
 					// IMP hit effect
 					ExplodeFX(fx, 0, 32);
 					DoDamage(LaraItem, 50);
-					DoBloodSplat(fx->pos.Position.x, fx->pos.Position.y, fx->pos.Position.z, (GetRandomControl() & 3) + 2, LaraItem->Pose.Orientation.y, LaraItem->RoomNumber);
-					SoundEffect(SFX_TR5_IMP_STONE_HIT, &fx->pos);
+					DoBloodSplat(fx.Pose.Position.x, fx.Pose.Position.y, fx.Pose.Position.z, (GetRandomControl() & 3) + 2, LaraItem->Pose.Orientation.y, LaraItem->RoomNumber);
+					SoundEffect(SFX_TR5_IMP_STONE_HIT, &fx.Pose);
 					SoundEffect(SFX_TR4_LARA_INJURY, &LaraItem->Pose);
 				}
 				
-				KillEffect(itemNumber);
+				KillItem(fxNumber);
 			}
 		}
 		else
 		{
 			// HYDRA hit effect
-			TriggerExplosionSparks(x, y, z, 3, -2, 0, fx->roomNumber);
-			TriggerShockwave(&fx->pos, 48, 240, 48, 128, 96, 0, 24, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
+			TriggerExplosionSparks(x, y, z, 3, -2, 0, fx.RoomNumber);
+			TriggerShockwave(&fx.Pose, 48, 240, 48, 128, 96, 0, 24, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
 			if (LaraItem->HitPoints >= 500)
 				DoDamage(LaraItem, 300);
 			else
 				ItemBurn(LaraItem);
-			KillEffect(itemNumber);
+			KillItem(fxNumber);
 		}
 	}
 	else
 	{
-		if (probe.GetRoomNumber() != fx->roomNumber)
-			EffectNewRoom(itemNumber, probe.GetRoomNumber());
+		if (probe.GetRoomNumber() != fx.RoomNumber)
+			ItemNewRoom(fxNumber, probe.GetRoomNumber());
 
 		if (GlobalCounter & 1)
 		{
 			auto pos = Vector3i(x, y, z);
-			int xv = x - fx->pos.Position.x;
-			int yv = y - fx->pos.Position.y;
-			int zv = z - fx->pos.Position.z;
+			int xv = x - fx.Pose.Position.x;
+			int yv = y - fx.Pose.Position.y;
+			int zv = z - fx.Pose.Position.z;
 
-			if (fx->flag1 == 1)
-				TriggerRomanStatueMissileSparks(&pos, itemNumber);
+			if (fxInfo.Flag1 == 1)
+				TriggerRomanStatueMissileSparks(&pos, fxNumber);
 			else
 			{
 				TriggerHydraMissileSparks(&pos, 4 * xv, 4 * yv, 4 * zv);
-				TriggerHydraMissileSparks(&fx->pos.Position, 4 * xv, 4 * yv, 4 * zv);
+				TriggerHydraMissileSparks(&fx.Pose.Position, 4 * xv, 4 * yv, 4 * zv);
 			}
 		}
 	}
 }
 
-void ExplodeFX(FX_INFO* fx, int noXZVel, int bits)
+void ExplodeFX(ItemInfo& fx, int noXZVel, int bits)
 {
-	ShatterItem.yRot = fx->pos.Orientation.y;
-	ShatterItem.meshIndex = fx->frameNumber;
-	ShatterItem.color = NEUTRAL_COLOR;
-	ShatterItem.sphere.Center = fx->pos.Position.ToVector3();
-	ShatterItem.bit = 0;
-	ShatterItem.flags = fx->flag2 & 0x1400;
+	auto& fxInfo = GetFXInfo(fx);
 
-	if (fx->flag2 & 0x2000)
+	ShatterItem.yRot = fx.Pose.Orientation.y;
+	ShatterItem.meshIndex = fx.Animation.FrameNumber;
+	ShatterItem.color = NEUTRAL_COLOR;
+	ShatterItem.sphere.Center = fx.Pose.Position.ToVector3();
+	ShatterItem.bit = 0;
+	ShatterItem.flags = fxInfo.Flag2 & 0x1400;
+
+	if (fxInfo.Flag2 & 0x2000)
 		DebrisFlags = 1;
 
-	ShatterObject(&ShatterItem, 0, bits, fx->roomNumber, noXZVel);
+	ShatterObject(&ShatterItem, 0, bits, fx.RoomNumber, noXZVel);
 
 	DebrisFlags = 0;
 }
