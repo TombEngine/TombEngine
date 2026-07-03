@@ -19,7 +19,7 @@ namespace TEN::Renderer::Structures
 		RendererBone*			   Parent	= nullptr;
 		std::vector<RendererBone*> Children = {};
 
-		byte ExtraRotationFlags = 0;
+		unsigned char ExtraRotationFlags = 0;
 
 		RendererBone(int index)
 		{

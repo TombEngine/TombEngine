@@ -13,7 +13,7 @@
 #include "Objects/Effects/Fireflies.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/effects.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Game/effects/weather.h"
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
@@ -39,10 +39,12 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertySavegame.h"
 #include "Sound/sound.h"
+#include "Specific/Serialization/Flatbuffers.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"
-#include "Specific/savegame/flatbuffers/ten_savegame_generated.h"
+#include "Specific/Serialization/flatbuffers/ten_savegame_generated.h"
 #include "Specific/trutils.h"
 #include "Specific/Video/Video.h"
 
@@ -59,11 +61,14 @@ using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
 using namespace TEN::Gui;
 using namespace TEN::Renderer;
+using namespace TEN::Scripting::Properties;
+using namespace TEN::Serialization;
 using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 using namespace TEN::Video;
 
-namespace Save = TEN::Save;
+namespace Common = TEN::Serialization::Common;
+namespace Save = TEN::Serialization::Save;
 
 constexpr auto SAVEGAME_MAX_SLOT    = 99;
 constexpr auto SAVEGAME_PATH	    = "Save/";
@@ -72,7 +77,7 @@ constexpr auto GLOBAL_VARS_FILENAME = "savegame.global";
 
 GameStats SaveGame::Statistics;
 SaveGameHeader SaveGame::Infos[SAVEGAME_MAX];
-std::map<int, std::vector<byte>> SaveGame::Hub;
+std::map<int, std::vector<unsigned char>> SaveGame::Hub;
 
 int SaveGame::LastSaveGame;
 std::string SaveGame::FullSaveDirectory;
@@ -102,91 +107,6 @@ void SaveGame::LoadHeaders()
 		if (Infos[i].Count > LastSaveGame)
 			LastSaveGame = Infos[i].Count;
 	}
-}
-
-static Save::EulerAngles FromEulerAngles(const EulerAngles& eulers)
-{
-	return Save::EulerAngles(eulers.x, eulers.y, eulers.z);
-}
-
-static Save::Vector2 FromVector2(const Vector2& vec)
-{
-	return Save::Vector2(vec.x, vec.y);
-}
-
-static Save::Vector2 FromVector2i(const Vector2i& vec)
-{
-	return Save::Vector2(vec.x, vec.y);
-}
-
-static Save::Vector3 FromVector3(const Vector3& vec)
-{
-	return Save::Vector3(vec.x, vec.y, vec.z);
-}
-
-static Save::Vector3 FromVector3i(const Vector3i& vec)
-{
-	return Save::Vector3(vec.x, vec.y, vec.z);
-}
-
-static Save::Vector4 FromVector4(const Vector4& vec)
-{
-	return Save::Vector4(vec.x, vec.y, vec.z, vec.w);
-}
-
-static Save::GameVector FromGameVector(const GameVector& vec)
-{
-	return Save::GameVector(vec.x, vec.y, vec.z, (int)vec.RoomNumber);
-}
-
-static Save::Pose FromPose(const Pose& pose)
-{
-	return Save::Pose(FromVector3i(pose.Position), FromEulerAngles(pose.Orientation), FromVector3(pose.Scale));
-}
-
-static EulerAngles ToEulerAngles(const Save::EulerAngles* eulers)
-{
-	return EulerAngles((short)round(eulers->x()), (short)round(eulers->y()), (short)round(eulers->z()));
-}
-
-static Vector2 ToVector2(const Save::Vector2* vec)
-{
-	return Vector2(vec->x(), vec->y());
-}
-
-static Vector2i ToVector2i(const Save::Vector2* vec)
-{
-	return Vector2i((int)round(vec->x()), (int)round(vec->y()));
-}
-
-static Vector3i ToVector3i(const Save::Vector3* vec)
-{
-	return Vector3i((int)round(vec->x()), (int)round(vec->y()), (int)round(vec->z()));
-}
-
-static Vector3 ToVector3(const Save::Vector3* vec)
-{
-	return Vector3(vec->x(), vec->y(), vec->z());
-}
-
-static Vector4 ToVector4(const Save::Vector3* vec)
-{
-	return Vector4(vec->x(), vec->y(), vec->z(), 1.0f);
-}
-
-static Vector4 ToVector4(const Save::Vector4* vec)
-{
-	return Vector4(vec->x(), vec->y(), vec->z(), vec->w());
-}
-
-static GameVector ToGameVector(const Save::GameVector* vec)
-{
-	return GameVector(vec->x(), vec->y(), vec->z(), (short)vec->room_number());
-}
-
-static Pose ToPose(const Save::Pose& pose)
-{
-	return Pose(ToVector3i(&pose.position()), ToEulerAngles(&pose.orientation()), ToVector3(&pose.scale()));
 }
 
 bool SaveGame::IsSaveGameSlotValid(int slot)
@@ -242,10 +162,10 @@ std::string SaveGame::GetSavegameFilename(int slot)
 	return (FullSaveDirectory + SAVEGAME_FILE_MASK + std::to_string(slot));
 }
 
-#define SaveVec(Type, Data, TableBuilder, UnionType, SaveType, ConversionFunc) \
+#define SaveVec(Type, Data, TableBuilder, UnionType, ConversionFunc) \
 				auto data = std::get<(int)Type>(Data); \
 				TableBuilder vtb{ fbb }; \
-				SaveType saveVec = ConversionFunc(data); \
+				auto saveVec = ConversionFunc(data); \
 				vtb.add_vec(&saveVec); \
 				auto vecOffset = vtb.Finish(); \
 				putDataInVec(UnionType, vecOffset);
@@ -320,19 +240,19 @@ static std::vector<flatbuffers::Offset<Save::UnionTable>> SerializeScriptVars(Fl
 			{
 			case SavedVarType::Vec2:
 				{
-					SaveVec(SavedVarType::Vec2, s, Save::vec2TableBuilder, Save::VarUnion::vec2, Save::Vector2, FromVector2);
+					SaveVec(SavedVarType::Vec2, s, Save::vec2TableBuilder, Save::VarUnion::vec2, FromVector2);
 					break;
 				}
 				
 			case SavedVarType::Vec3:
 				{
-					SaveVec(SavedVarType::Vec3, s, Save::vec3TableBuilder, Save::VarUnion::vec3, Save::Vector3, FromVector3);
+					SaveVec(SavedVarType::Vec3, s, Save::vec3TableBuilder, Save::VarUnion::vec3, FromVector3);
 					break;
 				}
 
 			case SavedVarType::Rotation:
 				{
-					SaveVec(SavedVarType::Rotation, s, Save::rotationTableBuilder, Save::VarUnion::rotation, Save::Vector3, FromVector3);
+					SaveVec(SavedVarType::Rotation, s, Save::rotationTableBuilder, Save::VarUnion::rotation, FromVector3);
 					break;
 				}
 
@@ -451,7 +371,7 @@ void SaveGame::Init(const std::string& gameDirectory)
 	FullSaveDirectory = gameDirectory + SAVEGAME_PATH;
 }
 
-const std::vector<byte> SaveGame::Build()
+const std::vector<unsigned char> SaveGame::Build()
 {
 	ItemInfo itemToSerialize{};
 	FlatBufferBuilder fbb{};
@@ -574,6 +494,7 @@ const std::vector<byte> SaveGame::Build()
 	leftArm.add_anim_object_id(Lara.LeftArm.AnimObjectID);
 	leftArm.add_anim_number(Lara.LeftArm.AnimNumber);
 	leftArm.add_gun_flash(Lara.LeftArm.GunFlash);
+	leftArm.add_gun_flash_type((int)Lara.LeftArm.GunFlashType);
 	leftArm.add_gun_smoke(Lara.LeftArm.GunSmoke);
 	leftArm.add_frame_number(Lara.LeftArm.FrameNumber);
 	leftArm.add_locked(Lara.LeftArm.Locked);
@@ -584,6 +505,7 @@ const std::vector<byte> SaveGame::Build()
 	rightArm.add_anim_object_id(Lara.RightArm.AnimObjectID);
 	rightArm.add_anim_number(Lara.RightArm.AnimNumber);
 	rightArm.add_gun_flash(Lara.RightArm.GunFlash);
+	rightArm.add_gun_flash_type((int)Lara.RightArm.GunFlashType);
 	rightArm.add_gun_smoke(Lara.RightArm.GunSmoke);
 	rightArm.add_frame_number(Lara.RightArm.FrameNumber);
 	rightArm.add_locked(Lara.RightArm.Locked);
@@ -833,17 +755,34 @@ const std::vector<byte> SaveGame::Build()
 		}
 		auto blockStopperFlagsOffset = fbb.CreateVector(blockStopperFlags);
 
+		auto itemNumbersOffset = fbb.CreateVector(room.itemNumbers);
+
 		Save::RoomBuilder serializedInfo{ fbb };
 		serializedInfo.add_name(nameOffset);
 		serializedInfo.add_index(room.originalRoom);
 		serializedInfo.add_reverb_type((int)room.reverbType);
 		serializedInfo.add_flags(room.flags);
 		serializedInfo.add_block_stopper_flags(blockStopperFlagsOffset);
+		serializedInfo.add_item_numbers(itemNumbersOffset);
 		auto serializedInfoOffset = serializedInfo.Finish();
 
 		rooms.push_back(serializedInfoOffset);
 	}
 	auto roomOffset = fbb.CreateVector(rooms);
+
+	std::vector<int> activeItems;
+	for (int itemId : ActiveItems)
+	{
+		activeItems.push_back(itemId);
+	}
+	auto activeItemsOffset = fbb.CreateVector(activeItems);
+
+	std::vector<int> freeItemSlots;
+	for (int itemId : FreeItemSlots)
+	{
+		freeItemSlots.push_back(itemId);
+	}
+	auto freeItemSlotsOffset = fbb.CreateVector(freeItemSlots);
 
 	std::vector<int> boxFlags;
 	for (auto& box : g_Level.PathfindingBoxes)
@@ -866,6 +805,11 @@ const std::vector<byte> SaveGame::Build()
 		}
 		auto itemCallbackVecOffset = fbb.CreateVector(itemCallbackOffsets);
 
+		// Serialize per-instance properties.
+		flatbuffers::Offset<Save::PropertyMapData> itemPropsOffset;
+		if (!itemToSerialize.Properties.IsEmpty())
+			itemPropsOffset = BuildPropertyMap(fbb, itemToSerialize.Properties);
+
 		std::vector<int> itemFlags;
 		for (int i = 0; i < ITEM_FLAG_COUNT; i++)
 			itemFlags.push_back(itemToSerialize.ItemFlags[i]);
@@ -882,9 +826,10 @@ const std::vector<byte> SaveGame::Build()
 		flatbuffers::Offset<Save::UPV> upvOffset;
 		flatbuffers::Offset<Save::Kayak> kayakOffset;
 		flatbuffers::Offset<Save::Pushable> pushableOffset;
+		flatbuffers::Offset<Save::ItemFXInfo> fxInfoOffset;
 
-		flatbuffers::Offset<Save::Short> shortOffset;
-		flatbuffers::Offset<Save::Int> intOffset;
+		flatbuffers::Offset<Common::Short> shortOffset;
+		flatbuffers::Offset<Common::Int> intOffset;
 
 		if (Objects.CheckID(itemToSerialize.ObjectNumber, true) && 
 			Objects[itemToSerialize.ObjectNumber].intelligent && itemToSerialize.IsCreature())
@@ -1050,23 +995,30 @@ const std::vector<byte> SaveGame::Build()
 
 			pushableOffset = pushableBuilder.Finish();
 		}
+		else if (itemToSerialize.Data.is<FXInfo>())
+		{
+			auto* fx = (FXInfo*)itemToSerialize.Data;
+			Save::ItemFXInfoBuilder fxBuilder{ fbb };
+			fxBuilder.add_counter(fx->Counter);
+			fxBuilder.add_flag1(fx->Flag1);
+			fxBuilder.add_flag2(fx->Flag2);
+			fxInfoOffset = fxBuilder.Finish();
+		}
 		else if (itemToSerialize.Data.is<short>())
 		{
-			Save::ShortBuilder sb{ fbb };
+			Common::ShortBuilder sb{ fbb };
 			sb.add_scalar(short(itemToSerialize.Data));
 			shortOffset = sb.Finish();
 		}
 		else if (itemToSerialize.Data.is<int>())
 		{
-			Save::IntBuilder ib{ fbb };
+			Common::IntBuilder ib{ fbb };
 			ib.add_scalar(int(itemToSerialize.Data));
 			intOffset = ib.Finish();
 		}
 
 		Save::ItemBuilder serializedItem{ fbb };
 
-		serializedItem.add_next_item(itemToSerialize.NextItem);
-		serializedItem.add_next_item_active(itemToSerialize.NextActive);
 		serializedItem.add_anim_number(itemToSerialize.Animation.AnimNumber);
 		serializedItem.add_after_death(itemToSerialize.AfterDeath);
 		serializedItem.add_box_number(itemToSerialize.BoxNumber);
@@ -1082,7 +1034,8 @@ const std::vector<byte> SaveGame::Build()
 		serializedItem.add_mesh_bits(itemToSerialize.MeshBits.ToPackedBits());
 		serializedItem.add_base_mesh(itemToSerialize.Model.BaseMesh);
 		serializedItem.add_mesh_index(meshPointerOffset);
-		serializedItem.add_skin_index(itemToSerialize.Model.SkinIndex);
+		serializedItem.add_skin_object_id(itemToSerialize.Model.SkinObjectID);
+		serializedItem.add_skin_swap_index(itemToSerialize.Model.SkinSwapIndex);
 		serializedItem.add_object_id(itemToSerialize.ObjectNumber);
 		serializedItem.add_pose(&FromPose(itemToSerialize.Pose));
 		serializedItem.add_required_state(itemToSerialize.Animation.RequiredState);
@@ -1136,19 +1089,27 @@ const std::vector<byte> SaveGame::Build()
 			serializedItem.add_data_type(Save::ItemData::Pushable);
 			serializedItem.add_data(pushableOffset.Union());
 		}
+		else if (itemToSerialize.Data.is<FXInfo>())
+		{
+			serializedItem.add_data_type(Save::ItemData::ItemFXInfo);
+			serializedItem.add_data(fxInfoOffset.Union());
+		}
 		else if (itemToSerialize.Data.is<short>())
 		{
-			serializedItem.add_data_type(Save::ItemData::Short);
+			serializedItem.add_data_type(Save::ItemData::TEN_Serialization_Common_Short);
 			serializedItem.add_data(shortOffset.Union());
 		}
 		else if (itemToSerialize.Data.is<int>())
 		{
-			serializedItem.add_data_type(Save::ItemData::Int);
+			serializedItem.add_data_type(Save::ItemData::TEN_Serialization_Common_Int);
 			serializedItem.add_data(intOffset.Union());
 		}
 
 		serializedItem.add_lua_name(luaNameOffset);
 		serializedItem.add_lua_callbacks(itemCallbackVecOffset);
+
+		if (!itemToSerialize.Properties.IsEmpty())
+			serializedItem.add_properties(itemPropsOffset);
 
 		auto serializedItemOffset = serializedItem.Finish();
 		serializedItems.push_back(serializedItemOffset);
@@ -1229,32 +1190,6 @@ const std::vector<byte> SaveGame::Build()
 	}
 	auto decalOffset = fbb.CreateVector(decals);
 
-	// TODO: In future, we should save only active FX, not whole array.
-	// This may come together with Monty's branch merge -- Lwmte, 10.07.22
-
-	std::vector<flatbuffers::Offset<Save::FXInfo>> serializedEffects{};
-	for (auto& effectToSerialize : EffectList)
-	{
-		Save::FXInfoBuilder serializedEffect{ fbb };
-
-		serializedEffect.add_pose(&FromPose(effectToSerialize.pos));
-		serializedEffect.add_room_number(effectToSerialize.roomNumber);
-		serializedEffect.add_object_number(effectToSerialize.objectNumber);
-		serializedEffect.add_next_fx(effectToSerialize.nextFx);
-		serializedEffect.add_next_active(effectToSerialize.nextActive);
-		serializedEffect.add_speed(effectToSerialize.speed);
-		serializedEffect.add_fall_speed(effectToSerialize.fallspeed);
-		serializedEffect.add_frame_number(effectToSerialize.frameNumber);
-		serializedEffect.add_counter(effectToSerialize.counter);
-		serializedEffect.add_color(&FromVector4(effectToSerialize.color));
-		serializedEffect.add_flag1(effectToSerialize.flag1);
-		serializedEffect.add_flag2(effectToSerialize.flag2);
-
-		auto serializedEffectOffset = serializedEffect.Finish();
-		serializedEffects.push_back(serializedEffectOffset);
-	}
-	auto serializedEffectsOffset = fbb.CreateVector(serializedEffects);
-
 	// Soundtrack playheads
 	std::vector<flatbuffers::Offset<Save::Soundtrack>> soundtracks;
 	for (int j = 0; j < (int)SoundTrackType::Count; j++)
@@ -1319,8 +1254,8 @@ const std::vector<byte> SaveGame::Build()
 	auto flipStatsOffset = fbb.CreateVector(flipStats);
 
 	std::vector<int> roomItems;
-	for (auto const& r : g_Level.Rooms)
-		roomItems.push_back(r.itemNumber);
+	//for (auto const& r : g_Level.Rooms)
+	//	roomItems.push_back(r.itemNumber);
 	auto roomItemsOffset = fbb.CreateVector(roomItems);
 
 	// Cameras
@@ -1362,6 +1297,11 @@ const std::vector<byte> SaveGame::Build()
 
 		for (int j = 0; j < room->mesh.size(); j++)
 		{
+			// Serialize per-instance static properties (must be before builder).
+			flatbuffers::Offset<Save::PropertyMapData> staticPropsOffset;
+			if (!room->mesh[j].Properties.IsEmpty())
+				staticPropsOffset = BuildPropertyMap(fbb, room->mesh[j].Properties);
+
 			auto staticObjBuilder = Save::StaticMeshInfoBuilder(fbb);
 
 			staticObjBuilder.add_number(j);
@@ -1370,6 +1310,10 @@ const std::vector<byte> SaveGame::Build()
 			staticObjBuilder.add_color(&FromVector4(room->mesh[j].Color));
 			staticObjBuilder.add_hit_points(room->mesh[j].HitPoints);
 			staticObjBuilder.add_flags(room->mesh[j].Flags);
+
+			if (!room->mesh[j].Properties.IsEmpty())
+				staticObjBuilder.add_properties(staticPropsOffset);
+
 			staticMeshes.push_back(staticObjBuilder.Finish());
 		}
 
@@ -1416,6 +1360,19 @@ const std::vector<byte> SaveGame::Build()
 	}
 	auto staticMeshesOffset = fbb.CreateVector(staticMeshes);
 	auto volumesOffset = fbb.CreateVector(volumes);
+
+	std::vector<Common::Vector4> materialProperties = {};
+	materialProperties.reserve(g_Level.Materials.size() * MaterialData::PropertyCount);
+
+	for (const auto& material : g_Level.Materials)
+	{
+		auto& currentParameters = material.GetProperties();
+
+		for (int i = 0; i < MaterialData::PropertyCount; i++)
+			materialProperties.push_back(FromVector4(currentParameters[i]));
+	}
+
+	auto materialPropertiesOffset = fbb.CreateVectorOfStructs(materialProperties);
 
 	// Level state
 	auto* level = (Level*)g_GameFlow->GetLevel(CurrentLevel);
@@ -1465,6 +1422,7 @@ const std::vector<byte> SaveGame::Build()
 	levelData.add_weather_type((int)level->Weather);
 	levelData.add_weather_strength(level->WeatherStrength);
 	levelData.add_weather_clustering(level->WeatherClustering);
+	levelData.add_material_properties(materialPropertiesOffset);
 
 	auto levelDataOffset = levelData.Finish();
 
@@ -1737,6 +1695,10 @@ const std::vector<byte> SaveGame::Build()
 
 	auto callbacksOffset = fbb.CreateVector(callbackOffsets);
 
+	// Serialize global type properties.
+	auto moveableTypePropsOffset = BuildTypeProperties(fbb, PropertyHandler::GetAllMoveableProperties());
+	auto staticTypePropsOffset = BuildTypeProperties(fbb, PropertyHandler::GetAllStaticProperties());
+
 	Save::SaveGameBuilder sgb{ fbb };
 
 	sgb.add_header(headerOffset);
@@ -1747,16 +1709,15 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_camera(cameraOffset);
 	sgb.add_lara(laraOffset);
 	sgb.add_rooms(roomOffset);
+	sgb.add_active_items(activeItemsOffset);
+	sgb.add_free_item_slots(freeItemSlotsOffset);
+	sgb.add_next_item_free(NO_VALUE);
+	sgb.add_next_item_active(NO_VALUE);
 	sgb.add_box_flags(boxFlagsOffset);
-	sgb.add_next_item_free(NextItemFree);
-	sgb.add_next_item_active(NextItemActive);
 	sgb.add_items(serializedItemsOffset);
 	sgb.add_fish_swarm(fishSwarmOffset);
 	sgb.add_firefly_swarm(fireflySwarmOffset);
 	sgb.add_decals(decalOffset);
-	sgb.add_fxinfos(serializedEffectsOffset);
-	sgb.add_next_fx_free(NextFxFree);
-	sgb.add_next_fx_active(NextFxActive);
 	sgb.add_postprocess_mode((int)g_Renderer.GetPostProcessMode());
 	sgb.add_postprocess_strength(g_Renderer.GetPostProcessStrength());
 	sgb.add_postprocess_tint(&FromVector3(g_Renderer.GetPostProcessTint()));
@@ -1802,13 +1763,16 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_script_vars(unionVecOffset);
 	sgb.add_callbacks(callbacksOffset);
 
+	sgb.add_moveable_type_properties(moveableTypePropsOffset);
+	sgb.add_static_type_properties(staticTypePropsOffset);
+
 	auto sg = sgb.Finish();
 	fbb.Finish(sg);
 
 	auto buffer = fbb.GetBufferPointer();
 	auto size   = fbb.GetSize();
 
-	auto result = std::vector<byte>(buffer, buffer + size);
+	auto result = std::vector<unsigned char>(buffer, buffer + size);
 	return result;
 }
 
@@ -1917,7 +1881,7 @@ bool SaveGame::Load(int slot)
 		file.read(reinterpret_cast<char*>(&size), sizeof(size));
 
 		// Read current level save data.
-		auto saveData = std::vector<byte>(size);
+		auto saveData = std::vector<unsigned char>(size);
 		file.read(reinterpret_cast<char*>(saveData.data()), size);
 
 		// Reset hub data, as it's about to be replaced with saved one.
@@ -1935,7 +1899,7 @@ bool SaveGame::Load(int slot)
 			file.read(reinterpret_cast<char*>(&index), sizeof(index));
 
 			file.read(reinterpret_cast<char*>(&size), sizeof(size));
-			auto hubBuffer = std::vector<byte>(size);
+			auto hubBuffer = std::vector<unsigned char>(size);
 			file.read(reinterpret_cast<char*>(hubBuffer.data()), size);
 
 			Hub[index] = hubBuffer;
@@ -2224,6 +2188,7 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.LeftArm.AnimObjectID = (GAME_OBJECT_ID)s->lara()->left_arm()->anim_object_id();
 	Lara.LeftArm.AnimNumber = s->lara()->left_arm()->anim_number();
 	Lara.LeftArm.GunFlash = s->lara()->left_arm()->gun_flash();
+	Lara.LeftArm.GunFlashType = (LaraWeaponType)s->lara()->left_arm()->gun_flash_type();
 	Lara.LeftArm.GunSmoke = s->lara()->left_arm()->gun_smoke();
 	Lara.LeftArm.FrameNumber = s->lara()->left_arm()->frame_number();
 	Lara.LeftArm.Locked = s->lara()->left_arm()->locked();
@@ -2233,6 +2198,7 @@ static void ParsePlayer(const Save::SaveGame* s)
 	Lara.RightArm.AnimObjectID = (GAME_OBJECT_ID)s->lara()->right_arm()->anim_object_id();
 	Lara.RightArm.AnimNumber = s->lara()->right_arm()->anim_number();
 	Lara.RightArm.GunFlash = s->lara()->right_arm()->gun_flash();
+	Lara.RightArm.GunFlashType = (LaraWeaponType)s->lara()->right_arm()->gun_flash_type();
 	Lara.RightArm.GunSmoke = s->lara()->right_arm()->gun_smoke();
 	Lara.RightArm.FrameNumber = s->lara()->right_arm()->frame_number();
 	Lara.RightArm.Locked = s->lara()->right_arm()->locked();
@@ -2418,6 +2384,22 @@ static void ParseEffects(const Save::SaveGame* s)
 			auto track = s->soundtracks()->Get(i);
 			PlaySoundTrack(track->name()->str(), (SoundTrackType)i, track->position(), SOUND_XFADETIME_LEVELJUMP);
 		}
+	}
+
+	// Restore material properties.
+	auto* materialProperties = s->level_data()->material_properties();
+	TENAssert(materialProperties != nullptr && materialProperties->size() == g_Level.Materials.size() * MaterialData::PropertyCount, "Savegame material property data size mismatch.");
+
+	auto valueIndex = 0;
+	for (auto& material : g_Level.Materials)
+	{
+		std::array<Vector4, MaterialData::PropertyCount> properties = {};
+
+		for (int i = 0; i < MaterialData::PropertyCount; i++)
+			properties[i] = ToVector4(materialProperties->Get(valueIndex++));
+
+		material.SetCurrentProperties(properties);
+		material.StoreInterpolationData();
 	}
 
 	// Restore video playback.
@@ -2612,27 +2594,6 @@ static void ParseEffects(const Save::SaveGame* s)
 		beetle->RoomNumber = beetleInfo->room_number();
 		beetle->Pose = ToPose(*beetleInfo->pose());
 	}
-
-	NextFxFree = s->next_fx_free();
-	NextFxActive = s->next_fx_active();
-
-	for (int i = 0; i < s->fxinfos()->size(); ++i)
-	{
-		auto& fx = EffectList[i];
-		auto fx_saved = s->fxinfos()->Get(i);
-		fx.pos = ToPose(*fx_saved->pose());
-		fx.roomNumber = fx_saved->room_number();
-		fx.objectNumber = fx_saved->object_number();
-		fx.nextFx = fx_saved->next_fx();
-		fx.nextActive = fx_saved->next_active();
-		fx.speed = fx_saved->speed();
-		fx.fallspeed = fx_saved->fall_speed();
-		fx.frameNumber = fx_saved->frame_number();
-		fx.counter = fx_saved->counter();
-		fx.color = ToVector4(fx_saved->color());
-		fx.flag1 = fx_saved->flag1();
-		fx.flag2 = fx_saved->flag2();
-	}
 }
 
 static void ParseLevel(const Save::SaveGame* s, bool hubMode)
@@ -2667,6 +2628,9 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		staticObj.HitPoints = savedStaticObj.hit_points();
 		staticObj.Flags = savedStaticObj.flags();
 		staticObj.Dirty = true;
+
+		// Load per-instance properties.
+		ParsePropertyMap(savedStaticObj.properties(), staticObj.Properties);
 		
 		if (!staticObj.Flags)
 			TestTriggers(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, savedStaticObj.room_number(), true, 0);
@@ -2760,12 +2724,29 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	}
 
 	// Items
+	ActiveItems.clear();
+	FreeItemSlots.clear();
 
-	NextItemFree = s->next_item_free();
-	NextItemActive = s->next_item_active();
+	// Restore room item lists by array position: lists are bound to room slots, not room
+	// contents (see FlipRooms), and flipmaps were already reapplied above.
+	for (int i = 0; i < s->rooms()->size(); i++)
+	{
+		auto& room = g_Level.Rooms[i];
+		room.itemNumbers.clear();
 
-	for(int i = 0; i < s->room_items()->size(); ++i)
-		g_Level.Rooms[i].itemNumber = s->room_items()->Get(i);
+		const auto* savedItemNumbers = s->rooms()->Get(i)->item_numbers();
+		if (savedItemNumbers != nullptr)
+		{
+			for (int j = 0; j < savedItemNumbers->size(); j++)
+				room.itemNumbers.push_back(savedItemNumbers->Get(j));
+		}
+	}
+
+	for (int i = 0; i < s->active_items()->size(); i++)
+		ActiveItems.push_back(s->active_items()->Get(i));
+
+	for (int i = 0; i < s->free_item_slots()->size(); i++)
+		FreeItemSlots.push_back(s->free_item_slots()->Get(i));
 
 	for (int i = 0; i < s->items()->size(); i++)
 	{
@@ -2775,9 +2756,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 
 		auto* item = &g_Level.Items[i];
 		item->ObjectNumber = GAME_OBJECT_ID(savedItem->object_id());
-
-		item->NextItem = savedItem->next_item();
-		item->NextActive = savedItem->next_item_active();
 
 		if (item->ObjectNumber == GAME_OBJECT_ID::ID_NO_OBJECT)
 			continue;
@@ -2803,6 +2781,9 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 					item->Callbacks[type] = entry->name()->str();
 			}
 		}
+
+		// Load per-instance properties.
+		ParsePropertyMap(savedItem->properties(), item->Properties);
 
 		g_GameScriptEntities->TryAddColliding(i);
 
@@ -2833,6 +2814,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 
 		// Position
 		item->Pose = ToPose(*savedItem->pose());
+
 		item->RoomNumber = savedItem->room_number();
 		item->Floor = savedItem->floor();
 		item->BoxNumber = savedItem->box_number();
@@ -2852,7 +2834,8 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		// Mesh stuff
 		item->MeshBits = savedItem->mesh_bits();
 		item->Model.BaseMesh = savedItem->base_mesh();
-		item->Model.SkinIndex = savedItem->skin_index();
+		item->Model.SkinObjectID = savedItem->skin_object_id();
+		item->Model.SkinSwapIndex = savedItem->skin_swap_index();
 
 		item->Model.MeshIndex.resize(savedItem->mesh_index()->size());
 		for (int j = 0; j < savedItem->mesh_index()->size(); j++)
@@ -3065,22 +3048,33 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			pushable->EdgeAttribs[3].IsPushable = savedPushable->pushable_west_pushable();
 			pushable->EdgeAttribs[3].IsClimbable = savedPushable->pushable_west_climbable();
 		}
-		else if (savedItem->data_type() == Save::ItemData::Short)
+		else if (savedItem->data_type() == Save::ItemData::ItemFXInfo)
+		{
+			// Dynamic FX slots have no data after level load, so recreate it.
+			item->Data = FXInfo();
+			auto* fx = (FXInfo*)item->Data;
+			auto* savedFX = (Save::ItemFXInfo*)savedItem->data();
+
+			fx->Counter = savedFX->counter();
+			fx->Flag1 = savedFX->flag1();
+			fx->Flag2 = savedFX->flag2();
+		}
+		else if (savedItem->data_type() == Save::ItemData::TEN_Serialization_Common_Short)
 		{
 			auto* data = savedItem->data();
-			auto* savedData = (Save::Short*)data;
+			const auto* savedData = (Common::Short*)data;
 			item->Data = savedData->scalar();
 		}
-		else if (savedItem->data_type() == Save::ItemData::Int)
+		else if (savedItem->data_type() == Save::ItemData::TEN_Serialization_Common_Int)
 		{
 			auto* data = savedItem->data();
-			auto* savedData = (Save::Int*)data;
+			const auto* savedData = (Common::Int*)data;
 			item->Data = savedData->scalar();
 		}
 	}
 }
 
-void SaveGame::Parse(const std::vector<byte>& buffer, bool hubMode)
+void SaveGame::Parse(const std::vector<unsigned char>& buffer, bool hubMode)
 {
 	if (!Save::VerifySaveGameBuffer(flatbuffers::Verifier(buffer.data(), buffer.size())))
 	{
@@ -3093,6 +3087,11 @@ void SaveGame::Parse(const std::vector<byte>& buffer, bool hubMode)
 	const Save::SaveGame* s = Save::GetSaveGame(buffer.data());
 
 	ParseLevel(s, hubMode);
+
+	// Load global type properties.
+	ParseTypeProperties(s->moveable_type_properties(), PropertyHandler::GetMutableMoveableProperties());
+	ParseTypeProperties(s->static_type_properties(), PropertyHandler::GetMutableStaticProperties());
+
 	ParseLua(s, hubMode);
 	ParseStatistics(s, hubMode);
 
@@ -3260,7 +3259,7 @@ bool SaveGame::LoadGlobalVars()
 
 		file.seekg(0, std::ios::beg);
 
-		auto buffer = std::vector<byte>(size);
+		auto buffer = std::vector<unsigned char>(size);
 		file.read(reinterpret_cast<char*>(buffer.data()), size);
 		file.close();
 

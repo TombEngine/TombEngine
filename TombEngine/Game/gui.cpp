@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
@@ -455,12 +455,32 @@ namespace TEN::Gui
 		return inventoryResult;
 	}
 
-	void GuiController::FillDisplayOptions()
+	void GuiController::RebuildDisplayResolutions()
 	{
-		// Copy configuration to a temporary object
-		BackupOptions();
+		// Rebuild the supported resolution list from the system list and re-inject the current
+		// size if it isn't part of the system modes (windowed mode).
+		g_Configuration.SupportedScreenResolutions = GetAllSupportedScreenResolutions();
 
-		// Get current display mode
+		auto currentSize = Vector2i(CurrentSettings.Configuration.ScreenWidth, CurrentSettings.Configuration.ScreenHeight);
+		if (currentSize.x > 0 && currentSize.y > 0)
+		{
+			auto cmp = [](const Vector2i& a, const Vector2i& b)
+			{
+				return (a.x == b.x) ? (a.y < b.y) : (a.x < b.x);
+			};
+
+			bool alreadyListed = std::any_of(g_Configuration.SupportedScreenResolutions.begin(), g_Configuration.SupportedScreenResolutions.end(),
+				[&](const Vector2i& r) { return r.x == currentSize.x && r.y == currentSize.y; });
+
+			if (!alreadyListed)
+			{
+				auto insertPos = std::upper_bound(g_Configuration.SupportedScreenResolutions.begin(), g_Configuration.SupportedScreenResolutions.end(),
+					currentSize, cmp);
+				g_Configuration.SupportedScreenResolutions.insert(insertPos, currentSize);
+			}
+		}
+
+		// Get current display mode.
 		CurrentSettings.SelectedScreenResolution = 0;
 		for (int i = 0; i < g_Configuration.SupportedScreenResolutions.size(); i++)
 		{
@@ -472,6 +492,12 @@ namespace TEN::Gui
 				break;
 			}
 		}
+	}
+
+	void GuiController::FillDisplayOptions()
+	{
+		BackupOptions();
+		RebuildDisplayResolutions();
 	}
 
 	void GuiController::FillOtherOptions()
@@ -510,6 +536,16 @@ namespace TEN::Gui
 		};
 
 		OptionCount = (int)DisplaySettingsOption::Count - 1;
+
+		// If the window was resized externally while in this menu, bring the working copy back in sync with reality.
+		if (g_Configuration.EnableWindowedMode &&
+			(CurrentSettings.Configuration.ScreenWidth  != g_Configuration.ScreenWidth ||
+			 CurrentSettings.Configuration.ScreenHeight != g_Configuration.ScreenHeight))
+		{
+			CurrentSettings.Configuration.ScreenWidth  = g_Configuration.ScreenWidth;
+			CurrentSettings.Configuration.ScreenHeight = g_Configuration.ScreenHeight;
+			RebuildDisplayResolutions();
+		}
 
 		if (GuiIsPulsed(In::MenuLeft))
 		{
@@ -1456,7 +1492,7 @@ namespace TEN::Gui
 		const auto& invObject = InventoryObjectTable[ring.CurrentObjectList[ring.CurrentObjectInList].InventoryItem];
 
 		int number = 0;
-		unsigned __int64 options = invObject.Options;
+		unsigned long long options = invObject.Options;
 		AmmoSelectorFlag = 0;
 		NumAmmoSlots = 0;
 
@@ -1588,7 +1624,7 @@ namespace TEN::Gui
 
 	void GuiController::InsertObjectIntoList_v2(int objectNumber)
 	{
-		unsigned __int64 options = InventoryObjectTable[objectNumber].Options;
+		unsigned long long options = InventoryObjectTable[objectNumber].Options;
 
 		if (options & (OPT_COMBINABLE | OPT_ALWAYS_COMBINE))
 		{
@@ -2428,7 +2464,7 @@ namespace TEN::Gui
 			}
 
 			int n = 0;
-			unsigned long options;
+			unsigned long long options;
 			if (!AmmoActive)
 			{
 				options = InventoryObjectTable[invRing.CurrentObjectList[invRing.CurrentObjectInList].InventoryItem].Options;
@@ -2444,13 +2480,6 @@ namespace TEN::Gui
 				{
 					CurrentOptions[n].Type = MenuType::Save;
 					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[7].c_str());
-					n++;
-				}
-
-				if (options & OPT_EXAMINABLE)
-				{
-					CurrentOptions[n].Type = MenuType::Examine;
-					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[8].c_str());
 					n++;
 				}
 
@@ -2472,6 +2501,13 @@ namespace TEN::Gui
 				{
 					CurrentOptions[n].Type = MenuType::Equip;
 					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[4].c_str());
+					n++;
+				}
+
+				if (options & OPT_EXAMINABLE)
+				{
+					CurrentOptions[n].Type = MenuType::Examine;
+					CurrentOptions[n].Text = g_GameFlow->GetString(OptionStrings[8].c_str());
 					n++;
 				}
 
@@ -3268,6 +3304,8 @@ namespace TEN::Gui
 			while (g_Synchronizer.Synced())
 			{
 				g_Renderer.PrepareScene();
+				ApplyPendingWindowResize();
+				SetRelativeMouseMode(false);
 
 				if (g_Gui.DoPauseMenu(LaraItem) == InventoryResult::ExitToTitle)
 				{
@@ -3361,6 +3399,8 @@ namespace TEN::Gui
 					exitLoop = true;
 
 				g_Renderer.PrepareScene();
+				ApplyPendingWindowResize();
+				SetRelativeMouseMode(false);
 
 				switch (InvMode)
 				{
@@ -3477,7 +3517,7 @@ namespace TEN::Gui
 		if (GuiIsDeselected())
 		{
 			SoundEffect(SFX_TR4_MENU_SELECT, nullptr, SoundEnvironment::Always);
-			SetInventoryMode(InventoryMode::None);
+			SetInventoryMode(InventoryMode::InGame);
 		}
 	}
 

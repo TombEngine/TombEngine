@@ -41,7 +41,7 @@
 #include "Objects/Generic/Doors/underwater_door.h"
 
 // Traps
-#include "Objects/Generic/Traps/CrumblingPlatform.h"
+#include "Objects/Generic/Traps/crumblingPlatform.h"
 #include "Objects/Generic/Traps/dart_emitter.h"
 #include "Objects/Generic/Traps/falling_block.h"
 
@@ -202,7 +202,7 @@ void StartSwitches(ObjectInfo* object)
 		object->shadowType = ShadowMode::All;
 	}
 
-	for (int objectID = ID_UNDERWATER_WALL_SWITCH1; objectID <= ID_UNDERWATER_WALL_SWITCH2; objectID++)
+	for (int objectID = ID_WALL_SWITCH1; objectID <= ID_WALL_SWITCH2; objectID++)
 	{
 		object = &Objects[objectID];
 		if (object->loaded)
@@ -212,7 +212,7 @@ void StartSwitches(ObjectInfo* object)
 		}
 	}
 
-	for (int objectID = ID_UNDERWATER_CEILING_SWITCH1; objectID <= ID_UNDERWATER_CEILING_SWITCH2; objectID++)
+	for (int objectID = ID_CEILING_SWITCH1; objectID <= ID_CEILING_SWITCH2; objectID++)
 	{
 		object = &Objects[objectID];
 		if (object->loaded)

@@ -268,23 +268,11 @@ namespace TEN::Utils
 
 	int GetHash(const std::string& string)
 	{
-		if (string.empty())
-			return 0;
-
-		unsigned int hash = 2166136261u;
-		for (char c : string)
-		{
-			hash ^= (unsigned char)c;
-			hash *= 16777619u;
-		}
-
-		return (int)hash;
+		return GetHash(string.c_str());
 	}
 
     Vector2 GetAspectCorrect2DPosition(const Vector2& pos)
     {
-       constexpr auto DISPLAY_SPACE_ASPECT = DISPLAY_SPACE_RES.x / DISPLAY_SPACE_RES.y;
-
         auto screenRes = g_Renderer.GetScreenResolution().ToVector2();
         float screenResAspect = screenRes.x / screenRes.y;
         float aspectDelta = screenResAspect - DISPLAY_SPACE_ASPECT;

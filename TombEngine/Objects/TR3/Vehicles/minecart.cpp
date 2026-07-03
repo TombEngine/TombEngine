@@ -5,7 +5,7 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/spark.h"
 #include "Game/effects/tomb4fx.h"
@@ -235,8 +235,8 @@ namespace TEN::Entities::Vehicles
 			if (i)
 			{
 				float mult = Random::GenerateFloat(0.7f, 1.0f);
-				byte r = (byte)(mult * 190.0f);
-				byte g = (byte)(mult * 100.0f);
+				unsigned char r = (unsigned char)(mult * 190.0f);
+				unsigned char g = (unsigned char)(mult * 100.0f);
 				SpawnDynamicLight(pos.x, pos.y, pos.z, 2, r, g, 0);
 			}
 		}
@@ -295,14 +295,12 @@ namespace TEN::Entities::Vehicles
 
 	static void MinecartToEntityCollision(ItemInfo* minecartItem, ItemInfo* laraItem)
 	{
-		for (auto i : g_Level.Rooms[minecartItem->RoomNumber].NeighborRoomNumbers)
+		for (int roomNumber : g_Level.Rooms[minecartItem->RoomNumber].NeighborRoomNumbers)
 		{
-			if (!g_Level.Rooms[i].Active())
+			if (!g_Level.Rooms[roomNumber].Active())
 				continue;
 
-			short itemNumber = g_Level.Rooms[i].itemNumber;
-
-			while (itemNumber != NO_VALUE)
+			for (int itemNumber : g_Level.Rooms[roomNumber].itemNumbers)
 			{
 				auto* item = &g_Level.Items[itemNumber];
 
@@ -311,10 +309,12 @@ namespace TEN::Entities::Vehicles
 					item != laraItem && item != minecartItem)
 				{
 					auto* object = &Objects[item->ObjectNumber];
+
 					if (object->collision &&
 						(object->intelligent || item->ObjectNumber == ID_ROLLINGBALL || item->ObjectNumber == ID_MINECART_SWITCH))
 					{
 						auto direction = minecartItem->Pose.Position - item->Pose.Position;
+
 						if (direction.x > -BLOCK(2) && direction.x < BLOCK(2) &&
 							direction.y > -BLOCK(2) && direction.y < BLOCK(2) &&
 							direction.z > -BLOCK(2) && direction.z < BLOCK(2))
@@ -324,10 +324,10 @@ namespace TEN::Entities::Vehicles
 								if (item->ObjectNumber == ID_MINECART_SWITCH)
 								{
 									if (item->Animation.FrameNumber == 0 &&
-										(laraItem->Animation.ActiveState == MINECART_STATE_SWIPE &&
-											item->Animation.AnimNumber == MINECART_ANIM_SWIPE_WRENCH))
+										(laraItem->Animation.ActiveState == MINECART_STATE_SWIPE && laraItem->Animation.AnimNumber == MINECART_ANIM_SWIPE_WRENCH))
 									{
 										int frame = laraItem->Animation.FrameNumber;
+
 										if (frame >= 12 && frame <= 22)
 										{
 											SoundEffect(SFX_TR3_VEHICLE_MINECART_WRENCH, &item->Pose, SoundEnvironment::Always);
@@ -350,15 +350,12 @@ namespace TEN::Entities::Vehicles
 										minecartItem->Pose.Orientation.y,
 										item->RoomNumber,
 										3);
-
 									DoDamage(item, INT_MAX);
 								}
 							}
 						}
 					}
 				}
-
-				itemNumber = item->NextItem;
 			}
 		}
 	}

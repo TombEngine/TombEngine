@@ -7,6 +7,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### New features
 
+* Added a property system for moveables, static meshes and materials that is intended to supersede the legacy OCB system.
 * Added heat haze for flame emitters and effects.
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
@@ -27,42 +28,89 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added [SWINGING_SPIKE_BAG](https://tombengine.com/asset/traps/swinging-spike-bag/) object from TR2.
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if OCB is above 0 and when the flipeffect "playsound" with the soundID SFX_TR1_SLAMDOOR_CLOSE = 1144 is played.
 * Added hit sounds for TR1 enemies when shot.
-* Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fxfog effect if OCB value is 0.
+* Added splash and bubble effects for CRUMBLING_FLOOR if it falls into water.
+* Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fog effect if OCB value is 0.
 
 ### Bug fixes
 
+* Fixed original bug with bridge objects blocking monkeyswing and ladder flags in the bottom room.
+* Fixed original bug with inactive SQUISHY_BLOCK_VERTICAL killing player.
+* Fixed incorrect application of LARA_DOUBLE damage after using medipacks.
+* Fixed MINECART_SWITCH object not working.
+* Fixed JUMP_SWITCH not activating event sets.
+* Fixed SNOWMOBILE death being too sensitive to vertical velocity.
+* Fixed BATS_EMITTER targeting issues.
+* Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
+* Fixed SOPHIA_LEIGH_BOSS pathfinding and knockback effect.
+* Fixed TEETH_SPIKES behaviour for OCB 1 and move static TR1-3 mode to pre-activated trigger bit flags.
+* Fixed empty inventory screen after exiting examine mode.
+* Fixed USE not being first in the inventory if multiple item actions have been allocated.
+* Fixed regular spark sprite distance while moving with flare in hand.
+* Fixed fireflies emitting bright white light while in fly form (negative OCB).
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
+* Fixed flyby camera flag "Let Lara move in cinematic mode" being ignored.
 * Fixed flyby camera jitter by converting the spline type to floating-point.
 * Fixed occasional flame emitter sprite jitter.
+* Fixed incorrect static mesh interpolation after a large position change.
+* Fixed interaction highlighter appearing for underwater pushable objects.
+* Fixed clipping into underwater pushable objects while swimming upwards from the bottom.
+* Fixed incorrect renderer statistics in the linear inventory.
+* Fixed fades and cinematic bars not progressing in the freeze mode.
+* Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
+* Fixed an issue where the storm effect would stop producing lightning over time.
+* Fixed incorrect aspect ratio when resizing the window in windowed mode.
+* Fixed title level selection dialog not scrolling offscreen entries.
+* Fixed incorrect blend mode application for sprites.
+* Fixed UI bars being affected by the postprocess mode.
 
 ### Lua API changes
 
 * Added ring inventory module.
+* Added photo mode module.
 * Added loading of the `Scripts/Autoexec.lua` script file before every level script is loaded.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
-* Added `Add Flow.GetCurrentLevelIndex` and `Flow.GetTotalLevelCount` functions to get current level index and total level count in gameflow.
-* Added `Flow.Settings.Animation.systemBlendDuration` setting to specify hardcoded animation blend durations.
+* Added `includePlayer` argument for `Collision.Ray` class to detect collisions with Lara.
+* Added `Effects.EmitSplash` for generating splashes.
+* Added `Flow.GetCurrentLevelIndex` and `Flow.GetTotalLevelCount` functions to get current level index and total level count in gameflow.
+* Added `Flow.Settings.Animation.internalBlendDuration` setting to specify hardcoded animation blend durations.
 * Added `Flow.Settings.Effects` category with blood, ricochet and explosion settings.
+* Added `Flow.Settings.Gameplay.setEnemiesOnFireWithWeapons` and `Flow.Settings.Gameplay.setEnemiesOnFireWithDeathFlag` options.
 * Added `Flow.Settings.Graphics.flameHeatHaze` option to toggle heat haze effects for flames.
 * Added `Flow.Settings.Hud.interactionHighlighter` and `Flow.Settings.Hud.targetHighlighter` options to force these settings on or off.
+* Added `Flow.Settings.System.variableFloodProtectionTimeLimit` and `Flow.Settings.System.variableFloodProtectionOverallLimit` to warn about variable table overflows.
 * Added `Flow.Settings.UI.menuBackgroundBlur` option to specify amount of blur for the inventory and pause backgrounds.
 * Added `Flow.Settings.UI.systemTextScale` option to change global system text scale.
 * Added `Input.GetLastInputDevice` function to detect which input device was used last.
 * Added functional key (F1-F12) mappings and raw gamepad input mappings to the `Input.ActionID` and `Input.AxisID` enums.
+* Added `Lara:GetExposure` and `Lara:SetExposure` functions to get or set cold exposure value.
 * Added `Lara:GetLocked` and `Lara:SetLocked` to manage native control lock status.
 * Added `Lara:GetSkin` and `Lara:SetSkin` functions to manage swapping of classic outfits.
+* Added `Lara:SpawnGunFlash` and `Lara:ClearGunFlashes` functions to spawn and clear gunflashes.
+* Added `Lara:GetHolsterWeaponTypes` and `Lara:SetHolsterWeaponTypes` functions to manage holsters.
+* Added `Lara:ResetHair` function to reset character hair. Useful for PhotoMode.
+* Added `Movaeble:GetSkinnedMesh` to get the current active skin and `Moveable:ClearSkinnedMesh` to clear current active skin.
 * Added third argument to `Moveable:SetAnim` function to specify blend frame count.
 * Added `Objects.Creature` class to fetch and set various enemy AI state parameters.
+* Added `Objects.Material` class to fetch and set properties for texture materials.
 * Added `View.GetDOF` and `View.SetDOF` functions to get or set depth of field parameters.
+* Added `View.GetRoll` and `View.SetRoll` functions to get or set camera roll axis value.
 * Added `View.GetPostProcessTint` to get currently set post process tint.
 * Added `View.GetPostProcess` and `View.SetPostProcess` to set/get postprocess mode and strength.
 * Added `constraint` field to `ParticleData` argument table for `Effects.EmitAdvancedParticle` function to create particles with constrained orientation.
 * Added callbacks for item pickup and vehicle enter/leave events.
 * Added `Logic.HasCallback` method for checking if a callback exists.
 * Added `Moveable:SetOnLoop` method.
-* Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
+* Added `Objects.GetMoveableProperty`, `Objects.SetMoveableProperty`, `Objects.GetStaticProperty` and `Objects.SetStaticProperty` functions.
+* Added `Objects.GetMaterialByName` and `Objects.GetMaterialsByObject` functions.
+* Added `Moveable:GetProperty`, `Moveable:SetProperty` and `Moveable:HasInstanceProperty` functions.
+* Added `Static:GetProperty`, `Static:SetProperty` and `Static:HasInstanceProperty` functions.
 * Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
+* Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
+* Fixed incorrect error message when using `Moveable:SetFrame` with a frame number equal to the end frame.
+* Fixed glide camera movement when entering or exiting freeze mode.
+* Fixed `View.DisplayString` not working in the title level.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
+* Fixed notification display bug in `CustomDiary` class.
 
 ## [Version 1.11.1]
 
@@ -102,6 +150,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect HYDRA rotation on activation and keeping its shadow after destroying it.
 * Fixed potential issues with PUNA_BOSS, TONY_BOSS, FISH_SWARM and WRAITH objects on savegame reloading.
 * Fixed WRAITH not using effects near walls and occasional issues with room transitions.
+* Fixed TORCH_ITEM and FLARE_ITEM not having names when being thrown.
 * Fixed occasional wrong LASER_BEAM collision.
 * Fixed several BADDY1/2 issues.
 * Fixed original issue with BADDY1/2 with rolling out animation ignoring player on a distance larger than 1 block.

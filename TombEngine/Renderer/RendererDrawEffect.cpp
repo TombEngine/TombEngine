@@ -7,13 +7,13 @@
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/effects/Blood.h"
-#include "Game/effects/Bubble.h"
+#include "Game/effects/bubble.h"
 #include "Game/effects/debris.h"
-#include "Game/effects/Drip.h"
+#include "Game/effects/drip.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
 #include "Game/effects/explosion.h"
-#include "Game/effects/Footprint.h"
+#include "Game/effects/footprint.h"
 #include "Game/effects/Ripple.h"
 #include "Game/effects/simple_particle.h"
 #include "Game/effects/smoke.h"
@@ -312,7 +312,7 @@ namespace TEN::Renderer
 					auto dir = target - origin;
 					dir.Normalize();
 
-					byte r, g, b;
+					unsigned char r, g, b;
 					if (arc.life >= 16)
 					{
 						r = arc.r;
@@ -327,7 +327,7 @@ namespace TEN::Renderer
 					}
 
 
-					byte oldR, oldG, oldB;
+					unsigned char oldR, oldG, oldB;
 					if (arc.PrevLife >= 16)
 					{
 						oldR = arc.PrevR;
@@ -341,9 +341,9 @@ namespace TEN::Renderer
 						oldB = (arc.PrevLife * arc.PrevB) / 16;
 					}
 
-					r = (byte)Lerp(oldR, r, GetInterpolationFactor());
-					g = (byte)Lerp(oldG, g, GetInterpolationFactor());
-					b = (byte)Lerp(oldB, b, GetInterpolationFactor());
+					r = (unsigned char)Lerp(oldR, r, GetInterpolationFactor());
+					g = (unsigned char)Lerp(oldG, g, GetInterpolationFactor());
+					b = (unsigned char)Lerp(oldB, b, GetInterpolationFactor());
 
 					AddSpriteBillboardConstrained(
 						&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LIGHTHING],
@@ -514,17 +514,16 @@ namespace TEN::Renderer
 
 				if (particle.flags & SP_FX)
 				{
-					const auto& fx = EffectList[particle.fxObj];
+					const auto& fx = g_Level.Items[particle.fxObj];
+					auto& newEffect = _items[particle.fxObj];
 
-					auto& newEffect = _effects[particle.fxObj];
-
-					newEffect.Translation = Matrix::CreateTranslation(fx.pos.Position.ToVector3());
-					newEffect.Rotation = fx.pos.Orientation.ToRotationMatrix();
+					newEffect.Translation = Matrix::CreateTranslation(fx.Pose.Position.ToVector3());
+					newEffect.Rotation = fx.Pose.Orientation.ToRotationMatrix();
 					newEffect.Scale = Matrix::CreateScale(1.0f);
 					newEffect.World = newEffect.Rotation * newEffect.Translation;
-					newEffect.ObjectID = fx.objectNumber;
-					newEffect.RoomNumber = fx.roomNumber;
-					newEffect.Position = fx.pos.Position.ToVector3();
+					newEffect.ObjectID = fx.ObjectNumber;
+					newEffect.RoomNumber = fx.RoomNumber;
+					newEffect.Position = fx.Pose.Position.ToVector3();
 					
 					newEffect.InterpolatedPosition = Vector3::Lerp(newEffect.PrevPosition, newEffect.Position, GetInterpolationFactor());
 					newEffect.InterpolatedTranslation = Matrix::Lerp(newEffect.PrevTranslation, newEffect.Translation, GetInterpolationFactor());
@@ -610,6 +609,10 @@ namespace TEN::Renderer
 				if (particle.SpriteID == VIDEO_SPRITE_ID && (_videoSprite.Texture == nullptr || !_videoSprite.Texture->IsValid()))
 					continue;
 
+				// If sprite is not a video texture and no sprites present, bypass it.
+				if (particle.SpriteID != VIDEO_SPRITE_ID && _sprites.empty())
+					continue;
+
 				// Disallow sprites out of bounds.
 				int spriteIndex = Objects[particle.SpriteSeqID].meshIndex + particle.SpriteID;
 				spriteIndex = std::clamp(spriteIndex, 0, (int)_sprites.size());
@@ -675,7 +678,7 @@ namespace TEN::Renderer
 			if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Splashes rendering"))
 				return;
 
-			byte color = (splash.life >= 32 ? 128 : (byte)((splash.life / 32.0f) * 128));
+			unsigned char color = (splash.life >= 32 ? 128 : (unsigned char)((splash.life / 32.0f) * 128));
 
 			if (!splash.isRipple) 
 			{
@@ -686,7 +689,7 @@ namespace TEN::Renderer
 				}
 			}
 
-			byte prevColor = (splash.PrevLife >= 32 ? 128 : (byte)((splash.PrevLife / 32.0f) * 128));
+			unsigned char prevColor = (splash.PrevLife >= 32 ? 128 : (unsigned char)((splash.PrevLife / 32.0f) * 128));
 
 			if (!splash.isRipple)
 			{
@@ -697,7 +700,7 @@ namespace TEN::Renderer
 				}
 			}
 
-			color = (byte)Lerp(prevColor, color, GetInterpolationFactor());
+			color = (unsigned char)Lerp(prevColor, color, GetInterpolationFactor());
 
 			float xInner;
 			float zInner;
@@ -800,7 +803,7 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareRipples(RenderView& view) 
 	{
-		if (Ripples.empty())
+		if (Ripples.empty() || _sprites.empty())
 			return;
 
 		for (const auto& ripple : Ripples)
@@ -875,7 +878,7 @@ namespace TEN::Renderer
 			if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Shockwaves rendering"))
 				return;
 
-			byte color = shockwave->life * 8;
+			unsigned char color = shockwave->life * 8;
 
 			shockwave->yRot += shockwave->yRot / FPS;
 
@@ -1240,35 +1243,45 @@ namespace TEN::Renderer
 		if (Lara.Control.Look.OpticRange > 0 && _currentMirror == nullptr)
 			return false;
 
-		if (Lara.Control.Weapon.GunType == LaraWeaponType::Flare)
+		const auto& room = _rooms[LaraItem->RoomNumber];
+		auto* itemPtr = &_items[LaraItem->Index];
+
+		// Pre-validate both arms to determine if any will draw.
+		auto leftGunflash = GAME_OBJECT_ID::ID_NO_OBJECT;
+		auto rightGunflash = GAME_OBJECT_ID::ID_NO_OBJECT;
+		const WeaponSettings* leftSettings = nullptr;
+		const WeaponSettings* rightSettings = nullptr;
+
+		if (Lara.LeftArm.GunFlash && Lara.LeftArm.GunFlashType != LaraWeaponType::None && Lara.LeftArm.GunFlashType != LaraWeaponType::Flare)
+		{
+			leftSettings = &g_GameFlow->GetSettings()->Weapons[(int)Lara.LeftArm.GunFlashType - 1];
+			if (leftSettings->MuzzleFlash)
+			{
+				leftGunflash = (Lara.LeftArm.GunFlashType == LaraWeaponType::HK && Objects[GAME_OBJECT_ID::ID_GUN_FLASH2].loaded) ?
+					GAME_OBJECT_ID::ID_GUN_FLASH2 : GAME_OBJECT_ID::ID_GUN_FLASH;
+			}
+		}
+
+		if (Lara.RightArm.GunFlash && Lara.RightArm.GunFlashType != LaraWeaponType::None && Lara.RightArm.GunFlashType != LaraWeaponType::Flare)
+		{
+			rightSettings = &g_GameFlow->GetSettings()->Weapons[(int)Lara.RightArm.GunFlashType - 1];
+			if (rightSettings->MuzzleFlash)
+			{
+				rightGunflash = (Lara.RightArm.GunFlashType == LaraWeaponType::HK && Objects[GAME_OBJECT_ID::ID_GUN_FLASH2].loaded) ?
+					GAME_OBJECT_ID::ID_GUN_FLASH2 : GAME_OBJECT_ID::ID_GUN_FLASH;
+			}
+		}
+
+		if (leftGunflash == GAME_OBJECT_ID::ID_NO_OBJECT && rightGunflash == GAME_OBJECT_ID::ID_NO_OBJECT)
 			return false;
 
-		const auto& settings = g_GameFlow->GetSettings()->Weapons[(int)Lara.Control.Weapon.GunType - 1];
-		if (!settings.MuzzleFlash)
-			return false;
-
-		// Use MP5 flash if available.
-		auto gunflash = GAME_OBJECT_ID::ID_GUN_FLASH;
-		if (Lara.Control.Weapon.GunType == LaraWeaponType::HK && Objects[GAME_OBJECT_ID::ID_GUN_FLASH2].loaded)
-			gunflash = GAME_OBJECT_ID::ID_GUN_FLASH2;
-
-		if (!_moveableObjects[gunflash].has_value())
-			return false;
-
-		const auto& flashMoveable = *_moveableObjects[gunflash];
-		const auto& flashMesh = *flashMoveable.ObjectMeshes[0];
-
+		// Bind GPU state once.
 		_shaders.Bind(Shader::InstancedStatics);
 
 		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
-		const auto& room = _rooms[LaraItem->RoomNumber];
-		auto* itemPtr = &_items[LaraItem->Index];
-
-		// Divide gunflash tint by 2 because tinting uses multiplication and additive color which doesn't look good with overbright color values.
-		_stObjects.Objects[0].Color = settings.ColorizeMuzzleFlash ? settings.FlashColor : NEUTRAL_COLOR;
 		_stObjects.Objects[0].AmbientLight = room.AmbientLight;
 		_stObjects.Objects[0].LightMode = (int)LightMode::Static;
 		BindInstancedStaticLights(itemPtr->LightsToDraw, 0);
@@ -1276,31 +1289,41 @@ namespace TEN::Renderer
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 		SetBlendMode(BlendMode::Additive);
 
-		for (const auto& flashBucket : flashMesh.Buckets) 
+		// Per-arm draw helper: only transform and draw.
+		auto drawArmFlash = [&](const WeaponSettings& settings, GAME_OBJECT_ID gunflash, bool left)
 		{
-			if (flashBucket.BlendMode == BlendMode::Opaque)
-				continue;
+			const auto& flashMoveable = *_moveableObjects[gunflash];
+			const auto& flashMesh = *flashMoveable.ObjectMeshes[0];
 
-			if (flashBucket.Polygons.size() == 0)
-				continue;
+			auto zRot = (gunflash == GAME_OBJECT_ID::ID_GUN_FLASH2) ? 0.0f : TO_RAD((short)std::hash<int>()(GlobalCounter));
 
-			BindBucketTextures(flashBucket, TextureSource::Moveables, false);
-			BindMaterial(flashBucket.MaterialIndex, false);
+			// Divide gunflash tint by 2 because tinting uses multiplication and additive color which doesn't look good with overbright color values.
+			_stObjects.Objects[0].Color = settings.ColorizeMuzzleFlash ? settings.FlashColor : NEUTRAL_COLOR;
 
-			auto meshOffset = Objects[gunflash].Animations.front().Frames.front().RootPosition;
-			auto offset = settings.MuzzleOffset + Vector3(meshOffset.x, meshOffset.z, meshOffset.y); // Offsets are inverted because of bone orientation.
-
-			offset.x = -offset.x;
-			auto tMatrix = Matrix::CreateTranslation(offset);
-
-			auto worldMatrix = Matrix::Identity;
-			auto rotMatrix = Matrix::CreateRotationX(TO_RAD(Lara.Control.Weapon.GunType == LaraWeaponType::Pistol ? -16830 : -14560)); // HACK
-
-			if (Lara.LeftArm.GunFlash)
+			for (const auto& flashBucket : flashMesh.Buckets)
 			{
-				worldMatrix = itemPtr->InterpolatedAnimationTransforms[LM_LHAND] * itemPtr->InterpolatedWorld;
+				if (flashBucket.BlendMode == BlendMode::Opaque)
+					continue;
+
+				if (flashBucket.Polygons.size() == 0)
+					continue;
+
+				BindBucketTextures(flashBucket, TextureSource::Moveables, false);
+				BindMaterial(flashBucket.MaterialIndex, false);
+
+				auto meshOffset = Objects[gunflash].Animations.front().Frames.front().RootPosition;
+				auto offset = settings.MuzzleOffset + Vector3(meshOffset.x, meshOffset.z, meshOffset.y); // Offsets are inverted because of bone orientation.
+
+				offset.x = left ? -offset.x : offset.x;
+
+				auto tMatrix = Matrix::CreateTranslation(offset);
+				auto usedType = left ? Lara.LeftArm.GunFlashType : Lara.RightArm.GunFlashType;
+				auto rotMatrix = Matrix::CreateRotationX(TO_RAD(usedType == LaraWeaponType::Pistol ? ANGLE(268) : ANGLE(280))); // HACK
+
+				auto worldMatrix = itemPtr->InterpolatedAnimationTransforms[left ? LM_LHAND : LM_RHAND] * itemPtr->InterpolatedWorld;
 				worldMatrix = tMatrix * worldMatrix;
 				worldMatrix = rotMatrix * worldMatrix;
+				worldMatrix = Matrix::CreateRotationZ(zRot) * worldMatrix;
 				ReflectMatrixOptionally(worldMatrix);
 
 				_stObjects.Objects[0].World = worldMatrix;
@@ -1310,25 +1333,13 @@ namespace TEN::Renderer
 
 				_numMoveablesDrawCalls++;
 			}
+		};
 
-			offset.x = -offset.x;
-			tMatrix = Matrix::CreateTranslation(offset);
+		if (leftGunflash != GAME_OBJECT_ID::ID_NO_OBJECT)
+			drawArmFlash(*leftSettings, leftGunflash, true);
 
-			if (Lara.RightArm.GunFlash)
-			{
-				worldMatrix = itemPtr->InterpolatedAnimationTransforms[LM_RHAND] * itemPtr->InterpolatedWorld;
-				worldMatrix = tMatrix * worldMatrix;
-				worldMatrix = rotMatrix * worldMatrix;
-				ReflectMatrixOptionally(worldMatrix);
-
-				_stObjects.Objects[0].World = worldMatrix;
-				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
-				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
-
-				_numMoveablesDrawCalls++;
-			}
-		}
+		if (rightGunflash != GAME_OBJECT_ID::ID_NO_OBJECT)
+			drawArmFlash(*rightSettings, rightGunflash, false);
 
 		SetBlendMode(BlendMode::Opaque);
 		return true;
@@ -1339,9 +1350,61 @@ namespace TEN::Renderer
 		_stObjects.Skinned = (int)SkinningMode::Static;
 
 		_shaders.Bind(Shader::InstancedStatics);
-
 		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+
+		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
+		SetBlendMode(BlendMode::Additive);
+
+		// Per-slot draw helper: only transform and draw.
+		auto drawMuzzleFlash = [&](const CreatureMuzzleFlashInfo& flash, RendererItem& rItem, const RendererRoom& rRoom)
+		{
+			if (flash.Delay == 0 || flash.Bite.BoneID == NO_VALUE)
+				return;
+
+			auto flashObjectID = flash.SwitchToMuzzle2 ? (_moveableObjects[ID_GUN_FLASH2].has_value() ? ID_GUN_FLASH2 : ID_GUN_FLASH) : ID_GUN_FLASH;
+			auto zRot = flash.SwitchToMuzzle2 ? 0.0f : TO_RAD((short)std::hash<int>()(GlobalCounter));
+
+			const auto& flashMoveable = *_moveableObjects[flashObjectID];
+			const auto& flashMesh = *flashMoveable.ObjectMeshes[0];
+
+			for (const auto& flashBucket : flashMesh.Buckets)
+			{
+				if (flashBucket.BlendMode == BlendMode::Opaque)
+					continue;
+
+				if (flashBucket.Polygons.size() == 0)
+					continue;
+
+				BindBucketTextures(flashBucket, TextureSource::Moveables, false);
+				BindMaterial(flashBucket.MaterialIndex, false);
+
+				auto tMatrix = Matrix::CreateTranslation(flash.Bite.Position);
+				auto worldMatrix = rItem.InterpolatedAnimationTransforms[flash.Bite.BoneID] * rItem.InterpolatedWorld;
+				worldMatrix = tMatrix * worldMatrix;
+
+				if (flash.ApplyXRotation)
+				{
+					auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
+					worldMatrix = rotMatrixX * worldMatrix;
+				}
+
+				if (flash.ApplyZRotation)
+				{
+					auto rotMatrixZ = Matrix::CreateRotationZ(zRot);
+					worldMatrix = rotMatrixZ * worldMatrix;
+				}
+
+				ReflectMatrixOptionally(worldMatrix);
+
+				_stObjects.Objects[0].World = worldMatrix;
+				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
+
+				_numMoveablesDrawCalls++;
+			}
+		};
 
 		for (auto* rRoomPtr : view.RoomsToDraw)
 		{
@@ -1351,7 +1414,6 @@ namespace TEN::Renderer
 			for (auto* rItemPtr : rRoomPtr->ItemsToDraw)
 			{
 				auto& nativeItem = g_Level.Items[rItemPtr->ItemNumber];
-
 				if (!nativeItem.IsCreature())
 					continue;
 
@@ -1361,97 +1423,10 @@ namespace TEN::Renderer
 				_stObjects.Objects[0].Color = CREATURE_GUNFLASH_COLOR;
 				_stObjects.Objects[0].AmbientLight = rRoom.AmbientLight;
 				_stObjects.Objects[0].LightMode = (int)LightMode::Static;
+				BindInstancedStaticLights(rItemPtr->LightsToDraw, 0);
 
-				BindInstancedStaticLights(rItemPtr->LightsToDraw, 0); // FIXME: Is it really needed for gunflashes? -- Lwmte, 15.07.22
-
-				SetBlendMode(BlendMode::Additive);
-				SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
-
-				if (creature.MuzzleFlash[0].Delay != 0 && creature.MuzzleFlash[0].Bite.BoneID != -1)
-				{
-					auto flashObjectID = creature.MuzzleFlash[0].SwitchToMuzzle2 ?
-						_moveableObjects[ID_GUN_FLASH2].has_value() ? ID_GUN_FLASH2 : ID_GUN_FLASH :
-						ID_GUN_FLASH;
-
-					const auto& flashMoveable = *_moveableObjects[flashObjectID]->ObjectMeshes.at(0);
-					
-					for (const auto& flashBucket : flashMoveable.Buckets)
-					{
-						if (flashBucket.BlendMode == BlendMode::Opaque)
-							continue;
-
-						if (flashBucket.Polygons.size() == 0)
-							continue;
-
-						BindBucketTextures(flashBucket, TextureSource::Moveables, false);
-						BindMaterial(flashBucket.MaterialIndex, false);
-
-						auto tMatrix = Matrix::CreateTranslation(creature.MuzzleFlash[0].Bite.Position);
-						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
-						auto rotMatrixZ = Matrix::CreateRotationZ(TO_RAD(2 * GetRandomControl()));
-
-						auto worldMatrix = rItemPtr->InterpolatedAnimationTransforms[creature.MuzzleFlash[0].Bite.BoneID] * rItemPtr->InterpolatedWorld;
-						worldMatrix = tMatrix * worldMatrix;
-
-						if (creature.MuzzleFlash[0].ApplyXRotation)
-							worldMatrix = rotMatrixX * worldMatrix;
-
-						if (creature.MuzzleFlash[0].ApplyZRotation)
-							worldMatrix = rotMatrixZ * worldMatrix;
-
-						ReflectMatrixOptionally(worldMatrix);
-
-						_stObjects.Objects[0].World = worldMatrix;
-						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
-						DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
-
-						_numMoveablesDrawCalls++;
-					}
-				}
-
-				if (creature.MuzzleFlash[1].Delay != 0 && creature.MuzzleFlash[1].Bite.BoneID != -1)
-				{
-					auto flashObjectID = creature.MuzzleFlash[1].SwitchToMuzzle2 ?
-						_moveableObjects[ID_GUN_FLASH2].has_value() ? ID_GUN_FLASH2 : ID_GUN_FLASH :
-						ID_GUN_FLASH;
-
-					const auto& flashMoveable = *_moveableObjects[flashObjectID]->ObjectMeshes.at(0);
-					
-					for (auto& flashBucket : flashMoveable.Buckets)
-					{
-						if (flashBucket.BlendMode == BlendMode::Opaque)
-							continue;
-
-						if (flashBucket.Polygons.size() == 0)
-							continue;
-
-						BindBucketTextures(flashBucket, TextureSource::Moveables, false);
-						BindMaterial(flashBucket.MaterialIndex, false);
-
-						auto tMatrix = Matrix::CreateTranslation(creature.MuzzleFlash[1].Bite.Position);
-						auto rotMatrixX = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f)));
-						auto rotMatrixZ = Matrix::CreateRotationZ(TO_RAD(2 * GetRandomControl()));
-
-						auto worldMatrix = rItemPtr->InterpolatedAnimationTransforms[creature.MuzzleFlash[1].Bite.BoneID] * rItemPtr->InterpolatedWorld;
-						worldMatrix = tMatrix * worldMatrix;
-
-						if (creature.MuzzleFlash[1].ApplyXRotation)
-							worldMatrix = rotMatrixX * worldMatrix;
-
-						if (creature.MuzzleFlash[1].ApplyZRotation)
-							worldMatrix = rotMatrixZ * worldMatrix;
-
-						ReflectMatrixOptionally(worldMatrix);
-
-						_stObjects.Objects[0].World = worldMatrix;
-						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
-						DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
-
-						_numMoveablesDrawCalls++;
-					}
-				}
+				drawMuzzleFlash(creature.MuzzleFlash[0], *rItemPtr, rRoom);
+				drawMuzzleFlash(creature.MuzzleFlash[1], *rItemPtr, rRoom);
 			}
 		}
 
@@ -1521,76 +1496,6 @@ namespace TEN::Renderer
 		}
 
 		return spriteMatrix;
-	}
-
-	void Renderer::DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass)
-	{
-		_stObjects.Skinned = (int)SkinningMode::Static;
-
-		const auto& room = _rooms[effect->RoomNumber];
-
-		auto world = effect->InterpolatedWorld;
-		ReflectMatrixOptionally(world);
-
-		_stObjects.Objects[0].World = world;
-		_stObjects.Objects[0].Color = effect->Color;
-		_stObjects.Objects[0].AmbientLight = effect->AmbientLight;
-		_stObjects.Objects[0].LightMode = (int)LightMode::Dynamic;
-		BindInstancedStaticLights(effect->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
-		auto& mesh = *effect->Mesh;
-		
-		for (int animated = 0; animated < 2; animated++)
-		{
-			for (auto& bucket : mesh.Buckets)
-			{
-				if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
-				{
-					continue;
-				}
-
-				if (bucket.NumVertices == 0)
-					continue;
-
-				int passes = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
-
-				for (int p = 0; p < passes; p++)
-				{
-					if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
-						continue;
-
-					BindBucketTextures(bucket, TextureSource::Moveables, animated);
-
-					DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
-
-					_numEffectsDrawCalls++;
-				}
-			}
-		}
-	}
-
-	void Renderer::DrawEffects(RenderView& view, RendererPass rendererPass)
-	{
-		_shaders.Bind(Shader::InstancedStatics);
-
-		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
-
-		for (auto* roomPtr : view.RoomsToDraw)
-		{
-			if (IgnoreReflectionPassForRoom(roomPtr->RoomNumber))
-				continue;
-
-			for (auto* effectPtr : roomPtr->EffectsToDraw)
-			{
-				const auto& room = _rooms[effectPtr->RoomNumber];
-				const auto& object = Objects[effectPtr->ObjectID];
-
-				if (!object.Hidden && object.loaded)
-					DrawEffect(view, effectPtr, rendererPass);
-			}
-		}
 	}
 
 	void Renderer::DrawDebris(RenderView& view, RendererPass rendererPass)
@@ -1823,5 +1728,116 @@ namespace TEN::Renderer
 	std::unique_ptr<ITexture2D> Renderer::CreateDefaultTexture(std::vector<unsigned char> color)
 	{
 		return _graphicsDevice->CreateTexture2D(1, 1, SurfaceFormat::SF_RGBA8_Unorm, color.data());
+	}
+
+	void Renderer::DrawEffects(RenderView& view, RendererPass rendererPass)
+	{
+		// Sorted-blend faces (e.g. alpha blend) are collected here and drawn later, back-to-front,
+		// in the Transparent pass. Opaque/alpha-test/additive faces are still drawn immediately below.
+		if (rendererPass == RendererPass::CollectTransparentFaces)
+		{
+			for (auto* roomPtr : view.RoomsToDraw)
+			{
+				if (IgnoreReflectionPassForRoom(roomPtr->RoomNumber))
+					continue;
+
+				for (auto* effectPtr : roomPtr->EffectsToDraw)
+				{
+					const auto& object = Objects[effectPtr->ObjectID];
+					if (object.Hidden || !object.loaded || effectPtr->Mesh == nullptr)
+						continue;
+
+					for (auto& bucket : effectPtr->Mesh->Buckets)
+					{
+						if (bucket.NumVertices == 0 || !IsSortedBlendMode(bucket.BlendMode))
+							continue;
+
+						for (int p = 0; p < bucket.Polygons.size(); p++)
+						{
+							auto centre = Vector3::Transform(bucket.Polygons[p].Centre, effectPtr->InterpolatedWorld);
+							int distance = (centre - view.Camera.WorldPosition).Length();
+
+							RendererSortableObject sortableObject;
+							sortableObject.ObjectType = RendererObjectType::Effect;
+							sortableObject.Centre = centre;
+							sortableObject.Distance = distance;
+							sortableObject.BlendMode = bucket.BlendMode;
+							sortableObject.Bucket = &bucket;
+							sortableObject.LightMode = LightMode::Dynamic;
+							sortableObject.Polygon = &bucket.Polygons[p];
+							sortableObject.World = effectPtr->InterpolatedWorld;
+							sortableObject.Effect = effectPtr;
+							sortableObject.Room = &_rooms[effectPtr->RoomNumber];
+
+							view.TransparentObjectsToDraw.push_back(sortableObject);
+						}
+					}
+				}
+			}
+
+			return;
+		}
+
+		_shaders.Bind(Shader::InstancedStatics);
+
+		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+
+		for (auto* roomPtr : view.RoomsToDraw)
+		{
+			if (IgnoreReflectionPassForRoom(roomPtr->RoomNumber))
+				continue;
+
+			for (auto* effectPtr : roomPtr->EffectsToDraw)
+			{
+				const auto& object = Objects[effectPtr->ObjectID];
+				if (!object.Hidden && object.loaded)
+					DrawEffect(view, effectPtr, rendererPass);
+			}
+		}
+	}
+
+	void Renderer::DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass)
+	{
+		if (effect->Mesh == nullptr)
+			return;
+
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
+		auto world = effect->InterpolatedWorld;
+		ReflectMatrixOptionally(world);
+
+		_stObjects.Objects[0].World = world;
+		_stObjects.Objects[0].Color = effect->Color;
+		_stObjects.Objects[0].AmbientLight = effect->AmbientLight;
+		_stObjects.Objects[0].LightMode = (int)LightMode::Dynamic;
+		BindInstancedStaticLights(effect->LightsToDraw, 0);
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+		const auto& mesh = *effect->Mesh;
+
+		for (int animated = 0; animated < 2; animated++)
+		{
+			for (const auto& bucket : mesh.Buckets)
+			{
+				if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+					continue;
+
+				int passes = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
+				for (int p = 0; p < passes; p++)
+				{
+					if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
+						continue;
+
+					BindBucketTextures(bucket, TextureSource::Moveables, animated);
+					BindMaterial(bucket.MaterialIndex, false);
+
+					DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
+
+					_numEffectsDrawCalls++;
+				}
+			}
+		}
 	}
 }
