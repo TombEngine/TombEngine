@@ -135,10 +135,6 @@ struct ItemInfo
 	ItemStatus Status = ITEM_NOT_ACTIVE;
 	bool	   Active = false;
 
-	// TODO: Refactor linked list.
-	int NextItem   = 0;
-	int NextActive = 0;
-
 	ItemData             Data      = {};
 	MoveableAnimData     Animation = {};
 	MoveableModelData    Model     = {};
@@ -232,7 +228,6 @@ public:
 };
 
 bool TestState(int refState, const std::vector<int>& stateList);
-void EffectNewRoom(short fxNumber, short roomNumber);
 void ItemNewRoom(short itemNumber, short roomNumber);
 bool IsItemInRoom(short itemNumber, short roomNumber);
 void AddActiveItem(short itemNumber);
@@ -240,15 +235,12 @@ short CreateItem();
 void RemoveAllItemsInRoom(short roomNumber, short objectNumber);
 void RemoveActiveItem(short itemNumber, bool killed = true);
 void RemoveDrawnItem(short itemNumber);
-void InitializeFXArray();
-short CreateNewEffect(short roomNumber);
-void KillEffect(short fxNumber);
+short CreateNewEffect(short roomNumber, GAME_OBJECT_ID objectID, const Pose& pose);
 void InitializeItem(short itemNumber);
 void InitializeItemArray(int totalItems);
 void KillItem(short itemNumber);
 bool UpdateItemRoom(short itemNumber);
 void UpdateAllItems();
-void UpdateAllEffects();
 const std::string& GetObjectName(GAME_OBJECT_ID objectID);
 std::vector<int> FindAllItems(GAME_OBJECT_ID objectID);
 std::vector<int> FindCreatedItems(GAME_OBJECT_ID objectID);
@@ -260,3 +252,5 @@ void DefaultItemHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector
 short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID);
 
 void SyncItemAnimation(ItemInfo& item0, const ItemInfo& item1);
+
+void RemoveFromVector(std::vector<int>& vec, int value);

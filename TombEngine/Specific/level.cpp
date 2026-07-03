@@ -168,7 +168,7 @@ int ReadCount(int maxValue = SQUARE(1024))
 	int count = ReadInt32();
 
 	if (count < 0 || count > maxValue)
-		throw std::exception("Level data block has incorrect size. Level version is probably outdated.");
+		throw std::runtime_error("Level data block has incorrect size. Level version is probably outdated.");
 
 	return count;
 }
@@ -388,7 +388,7 @@ void LoadObjects()
 		MoveablesIds.push_back(objectID);
 
 		if (objectID >= GAME_OBJECT_ID::ID_NUMBER_OBJECTS)
-			throw std::exception(("Unsupported object slot " + std::to_string(objectID) + " detected in a level. Make sure to delete unsupported objects from WADs.").c_str());
+			throw std::runtime_error(("Unsupported object slot " + std::to_string(objectID) + " is detected in a level. Make sure to delete unsupported objects from wads.").c_str());
 
 		auto& object = Objects[objectID];
 		object.loaded = true;
@@ -877,7 +877,7 @@ void LoadDynamicRoomData()
 	int roomCount = ReadCount();
 
 	if (g_Level.Rooms.size() != roomCount)
-		throw std::exception("Dynamic room data count is inconsistent with room count.");
+		throw std::runtime_error("Dynamic room data count is inconsistent with room count.");
 
 	for (int i = 0; i < roomCount; i++)
 	{
@@ -954,9 +954,6 @@ void LoadDynamicRoomData()
 		}
 
 		g_GameScriptEntities->AddName(room.Name, room);
-
-		room.itemNumber = NO_VALUE;
-		room.fxNumber = NO_VALUE;
 	}
 }
 
@@ -1592,7 +1589,7 @@ bool LoadLevel(const std::string& path, bool partial)
 		if (SystemNameHash != 0) 
 		{
 			if (SystemNameHash != systemHash)
-				throw std::exception("An attempt was made to use level debug feature on a different system.");
+				throw std::runtime_error("An attempt was made to use level debug feature on a different system.");
 
 			InitializeGame = true;
 			SystemNameHash = 0;
@@ -1971,7 +1968,7 @@ void GetCarriedItems()
 			(item.ObjectNumber >= ID_SEARCH_OBJECT1 && item.ObjectNumber <= ID_SEARCH_OBJECT4) ||
 			(item.ObjectNumber == ID_SARCOPHAGUS))
 		{
-			for (short linkNumber = g_Level.Rooms[item.RoomNumber].itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
+			for (int linkNumber : g_Level.Rooms[item.RoomNumber].itemNumbers)
 			{
 				auto& item2 = g_Level.Items[linkNumber];
 

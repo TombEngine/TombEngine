@@ -153,7 +153,7 @@ namespace TEN::Entities::Creatures::TR3
 		if (creature.Enemy == nullptr)
 			return;
 
-		int plasmaBall = CreateNewEffect(item.RoomNumber);
+		int plasmaBall = CreateNewEffect(item.RoomNumber, ID_ENERGY_BUBBLES, item.Pose);
 		if (plasmaBall == NO_VALUE)
 			return;
 
@@ -167,20 +167,20 @@ namespace TEN::Entities::Creatures::TR3
 			enemyPos.y -= CLICK(2);
 		}
 
-		auto& fx = EffectList[plasmaBall];
+		auto& fx = g_Level.Items[plasmaBall];
+		auto& fxInfo = GetFXInfo(fx);
 
 		auto jointPos = GetJointPosition(item, ClawMutantTailBite.BoneID, ClawMutantTailBite.Position);
 		auto orient = Geometry::GetOrientToPoint(jointPos.ToVector3(), enemyPos.ToVector3());
 
-		fx.pos.Position = jointPos;
-		fx.pos.Orientation.x = orient.x;
-		fx.pos.Orientation.y = orient.y;
-		fx.objectNumber = ID_ENERGY_BUBBLES;
-		fx.color = Vector4::Zero;
-		fx.speed = CLAW_MUTANT_PLASMA_VELOCITY;
-		fx.flag2 = CLAW_MUTANT_PLASMA_ATTACK_DAMAGE;
-		fx.flag1 = (int)MissileType::ClawMutantPlasma;
-		fx.fallspeed = 0;
+		fx.Pose.Position = jointPos;
+		fx.Pose.Orientation = orient;
+		fx.Model.Color = Vector4::One;
+		fx.Model.MeshIndex = { (int)Objects[ID_ENERGY_BUBBLES].meshIndex };
+		fx.Animation.Velocity.z = CLAW_MUTANT_PLASMA_VELOCITY;
+		fxInfo.Flag2 = CLAW_MUTANT_PLASMA_ATTACK_DAMAGE;
+		fxInfo.Flag1 = (int)MissileType::ClawMutantPlasma;
+		fx.Animation.Velocity.y = 0;
 	}
 
 	static void SpawnMutantPlasmaLight(ItemInfo& item)

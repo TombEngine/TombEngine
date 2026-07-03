@@ -408,6 +408,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Game\effects\DisplaySprite.h" />
     <ClInclude Include="Game\effects\Light.h" />
     <ClInclude Include="Game\effects\Splash.h" />
+    <ClInclude Include="Game\itemdata\FXInfo.h" />
     <ClInclude Include="Game\GuiObjects.h" />
     <ClInclude Include="Game\Hud\DrawItems\DisplayItem.h" />
     <ClInclude Include="Game\Hud\Hud.h" />
@@ -930,6 +931,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\Objects\Moveable\InteractionType.h" />
     <ClInclude Include="Scripting\Internal\TEN\Collision\Los.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Lara\WeaponFlashMode.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Properties\PropertyNames.h" />
     <ClInclude Include="Scripting\Internal\TEN\Types\Color\Color.h" />
     <ClInclude Include="Scripting\Internal\TEN\View\DisplayAnchors\ScriptDisplayAnchors.h" />
     <ClInclude Include="Scripting\Internal\TEN\Types\Time\Time.h" />
@@ -974,6 +976,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\Properties\PropertySavegame.h" />
     <ClInclude Include="Scripting\Internal\TEN\Properties\PropertyValue.h" />
     <ClInclude Include="Scripting\Internal\TEN\Properties\PropertyHandler.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Properties\PropertyUtils.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Room\RoomFlags.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Room\RoomObject.h" />
     <ClInclude Include="Scripting\Internal\TEN\Objects\Room\RoomReverbTypes.h" />
@@ -1468,6 +1471,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Scripting\Internal\TEN\Objects\ObjectsHandler.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Properties\PropertyMap.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Properties\PropertyHandler.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Properties\PropertyUtils.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Objects\Room\RoomObject.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Objects\Sink\SinkObject.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Objects\SoundSource\SoundSourceObject.cpp" />

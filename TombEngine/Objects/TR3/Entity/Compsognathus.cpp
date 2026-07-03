@@ -12,7 +12,7 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
-#include "Objects/TR3/Object/Corpse.h"
+#include "Objects/TR3/Object/corpse.h"
 #include "Specific/level.h"
 
 using namespace TEN::Entities::TR3;
