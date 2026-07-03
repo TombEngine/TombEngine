@@ -296,9 +296,9 @@ namespace TEN::Entities::TR4
 				spark->position.x = (GetRandomControl() & 0x1F) + x - 16;
 				spark->position.y = (GetRandomControl() & 0x1F) + y - 16;
 				spark->position.z = (GetRandomControl() & 0x1F) + z - 16;
-				spark->velocity.x = (byte)(GetRandomControl() + 256) * phd_sin(angle);
+				spark->velocity.x = (unsigned char)(GetRandomControl() + 256) * phd_sin(angle);
 				spark->velocity.y = -32 - (GetRandomControl() & 0x3F);
-				spark->velocity.z = (byte)(GetRandomControl() + 256) * phd_cos(angle);
+				spark->velocity.z = (unsigned char)(GetRandomControl() + 256) * phd_cos(angle);
 				spark->friction = 9;
 
 				if (Random::TestProbability(1 / 2.0f))

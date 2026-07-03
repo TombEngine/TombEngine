@@ -7,7 +7,7 @@
 
 #include "Game/control/control.h"
 #include "Game/effects/Decal.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
@@ -342,7 +342,7 @@ namespace TEN::Renderer
 			}
 
 		if (!totalVertices || !totalIndices)
-			throw std::exception("Level has no textured room geometry.");
+			throw std::runtime_error("Level has no textured room geometry.");
 
 		_roomsVertices.resize(totalVertices);
 		_roomsIndices.resize(totalIndices);
@@ -710,7 +710,7 @@ namespace TEN::Renderer
 							int linkY = *(bone++);
 							int linkZ = *(bone++);
 
-							byte flags = opcode & 0x1C;
+							unsigned char flags = opcode & 0x1C;
 
 							moveable.LinearizedBones[j]->ExtraRotationFlags = flags;
 

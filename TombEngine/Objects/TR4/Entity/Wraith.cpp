@@ -104,7 +104,7 @@ namespace TEN::Entities::TR4
 
 	static void WraithWallEffect(Vector3i pos, short yRot, int objectNumber)
 	{
-		byte sR, sG, sB, dR, dG, dB;
+		unsigned char sR, sG, sB, dR, dG, dB;
 
 		if (objectNumber == ID_WRAITH1)
 		{
@@ -459,7 +459,8 @@ namespace TEN::Entities::TR4
 
 						int amplitude = Random::GenerateInt(1, 16);
 
-						SoundEffect(SFX_TR4_ELECTRIC_ARCING_LOOP, &Pose(Vector3i(arcOrigin)));
+						auto arcPose = Pose(Vector3i(arcOrigin));
+						SoundEffect(SFX_TR4_ELECTRIC_ARCING_LOOP, &arcPose);
 
 						SpawnElectricity(arcOrigin, arcTarget, amplitude, 255, 255, 255, 10, (int)ElectricityFlags::ThinIn, 12, 10);
 						SpawnElectricity(arcOrigin, arcTarget, amplitude, 255, 255, 255, 10, (int)ElectricityFlags::ThinIn, 4, 10);
@@ -621,7 +622,7 @@ namespace TEN::Entities::TR4
 		SpawnWraithTails(item);
 
 		// Lighting for wraith.
-		byte r, g, b;
+		unsigned char r, g, b;
 		if (item.ObjectNumber == ID_WRAITH3)
 		{
 			r = wraithPtr[5].r;
@@ -649,7 +650,7 @@ namespace TEN::Entities::TR4
 
 		spark.on = true;
 
-		byte color;
+		unsigned char color;
 
 		if (objectNumber == ID_WRAITH1)
 		{

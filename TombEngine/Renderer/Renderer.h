@@ -4,7 +4,7 @@
 #include "Game/control/box.h"
 #include "Game/items.h"
 #include "Game/Animation/Animation.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/Hud/DrawItems/DrawItems.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Hud/PickupSummary.h"

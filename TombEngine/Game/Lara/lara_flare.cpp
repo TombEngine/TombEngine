@@ -35,6 +35,9 @@ void FlareControl(short itemNumber)
 {
 	auto& flareItem = g_Level.Items[itemNumber];
 
+	if (!flareItem.Data.is<int>())
+		return;
+
 	if (TestEnvironment(ENV_FLAG_SWAMP, &flareItem))
 	{
 		KillItem(itemNumber);

@@ -11,7 +11,7 @@
 #include "Game/effects/effects.h"
 #include "Game/effects/explosion.h"
 #include "Game/effects/Light.h"
-#include "Game/effects/Bubble.h"
+#include "Game/effects/bubble.h"
 #include "Game/Lara/lara.h"
 #include "Game/items.h"
 #include "Game/Setup.h"

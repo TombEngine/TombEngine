@@ -2,7 +2,7 @@
 #include "Objects/TR4/Trap/tr4_mine.h"
 
 #include "Game/collision/collide_item.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"
@@ -47,7 +47,8 @@ namespace TEN::Entities::Traps
 
 						TriggerExplosionSparks(sphere.Center.x, sphere.Center.y, sphere.Center.z, 3, -2, 0, -item.RoomNumber);
 						TriggerExplosionSparks(sphere.Center.x, sphere.Center.y, sphere.Center.z, 3, -1, 0, -item.RoomNumber);
-						TriggerShockwave(&Pose(Vector3i(sphere.Center)), 48, 304, (GetRandomControl() & 0x1F) + 112, 0, 96, 128, 32, EulerAngles(2048, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);
+						auto shockwavePose = Pose(Vector3i(sphere.Center));
+						TriggerShockwave(&shockwavePose, 48, 304, (GetRandomControl() & 0x1F) + 112, 0, 96, 128, 32, EulerAngles(2048, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);
 					}
 				}
 

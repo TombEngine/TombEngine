@@ -52,7 +52,7 @@ namespace TEN::Entities::Traps
 
 		if (!TriggerActive(&item))
 		{
-			*(long*)&item.ItemFlags[0] = 0;
+			*(int*)&item.ItemFlags[0] = 0;
 			return;
 		}
 
@@ -62,11 +62,11 @@ namespace TEN::Entities::Traps
 		{
 			if (frameNumber < HAMMER_CLOSED_FRAME)
 			{
-				*(long*)&item.ItemFlags[0] = RIGHT_HAMMER_BITS;
+				*(int*)&item.ItemFlags[0] = RIGHT_HAMMER_BITS;
 			}
 			else
 			{
-				*(long*)&item.ItemFlags[0] = 0;
+				*(int*)&item.ItemFlags[0] = 0;
 			}
 		}
 		else if (item.Animation.ActiveState == HAMMER_STATE_IDLE && item.Animation.TargetState == HAMMER_STATE_IDLE)
@@ -102,11 +102,11 @@ namespace TEN::Entities::Traps
 
 			if (frameNumber < HAMMER_CLOSED_FRAME)
 			{
-				*(long*)&item.ItemFlags[0] = RIGHT_HAMMER_BITS | LEFT_HAMMER_BITS;
+				*(int*)&item.ItemFlags[0] = RIGHT_HAMMER_BITS | LEFT_HAMMER_BITS;
 			}
 			else
 			{
-				*(long*)&item.ItemFlags[0] = 0;
+				*(int*)&item.ItemFlags[0] = 0;
 			}
 
 			if (frameNumber == HAMMER_HIT_FRAME)

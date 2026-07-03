@@ -161,9 +161,21 @@ namespace TEN::Entities::TR4
 		fx.Animation.Velocity.z = GetRandomControl() / 2048;
 		fx.Animation.Velocity.y = -(GetRandomControl() / 1024);
 		fx.ObjectNumber = ID_BODY_PART;
-		fx.Model.MeshIndex = { (int)Objects[103].meshIndex };
+		fx.Model.MeshIndex = { Objects[GAME_OBJECT_ID::ID_SKELETON].meshIndex };
 		fx.Model.Color = NEUTRAL_COLOR;
-		fxInfo.Flag2 = 0x601;
+		fxInfo.Flag2 = BODY_NO_BOUNCE | BODY_NO_BOUNCE_ALT;
+
+	//	fx->pos.Position.x = (unsigned char)GetRandomControl() + item->Pose.Position.x - 128;
+	//	fx->pos.Position.y = GetPointCollision(*item).GetFloorHeight();
+	//	fx->pos.Position.z = (unsigned char)GetRandomControl() + item->Pose.Position.z - 128;
+	//	fx->roomNumber = item->RoomNumber;
+	//	fx->pos.Orientation.y = 2 * GetRandomControl();
+	//	fx->speed = GetRandomControl() / 2048;
+	//	fx->fallspeed = -(GetRandomControl() / 1024);
+	//	fx->frameNumber = Objects[103].meshIndex;
+	//	fx->objectNumber = ID_BODY_PART;
+	//	fx->color = NEUTRAL_COLOR;
+	//	fx->flag2 = 0x601;
 
 		auto* spark = GetFreeParticle();
 		spark->on = 1;

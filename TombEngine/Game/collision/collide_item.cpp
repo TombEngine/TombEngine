@@ -6,7 +6,7 @@
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/simple_particle.h"
@@ -1303,7 +1303,7 @@ void DoProjectileDynamics(short itemNumber, int x, int y, int z, int xv, int yv,
 
 		if (pointColl.IsSteepFloor() && prevPointColl.GetFloorHeight() < pointColl.GetFloorHeight())
 		{
-			int yAngle = (long)((unsigned short)item->Pose.Orientation.y);
+			int yAngle = (int)((unsigned short)item->Pose.Orientation.y);
 
 			if (floorTilt.x < 0)
 			{
@@ -1336,7 +1336,7 @@ void DoProjectileDynamics(short itemNumber, int x, int y, int z, int xv, int yv,
 		{
 			// Need to know which direction the wall is.
 
-			long xs;
+			int xs;
 
 			if ((x & (~WALL_MASK)) != (item->Pose.Position.x & (~WALL_MASK)) &&	// X crossed boundary?
 				(z & (~WALL_MASK)) != (item->Pose.Position.z & (~WALL_MASK)))	// Z crossed boundary as well?

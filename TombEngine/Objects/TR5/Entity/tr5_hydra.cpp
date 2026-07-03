@@ -145,9 +145,9 @@ namespace TEN::Entities::Creatures::TR5
 		spark->x = (GetRandomControl() & 0xF) - 8;
 		spark->y = 0;
 		spark->z = (GetRandomControl() & 0xF) - 8;
-		spark->xVel = (byte)GetRandomControl() - 128;
+		spark->xVel = (unsigned char)GetRandomControl() - 128;
 		spark->yVel = 0;
-		spark->zVel = (byte)GetRandomControl() - 128;
+		spark->zVel = (unsigned char)GetRandomControl() - 128;
 		spark->friction = 4;
 		spark->flags = 4762;
 		spark->fxObj = itemNumber;
