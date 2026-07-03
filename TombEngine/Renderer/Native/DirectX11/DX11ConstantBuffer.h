@@ -5,7 +5,7 @@
 #include "Renderer/Graphics/IConstantBuffer.h"
 #include <d3d11.h>
 #include <wrl/client.h>
-#include "Game/Debug/Debug.h"
+#include "Game/debug/debug.h"
 
 namespace TEN::Renderer::Native::DirectX11
 {

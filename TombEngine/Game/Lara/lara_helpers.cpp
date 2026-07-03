@@ -1,8 +1,6 @@
 #include "framework.h"
 #include "Game/Lara/lara_helpers.h"
 
-#include <OISKeyboard.h>
-
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/floordata.h"
@@ -10,8 +8,8 @@
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
 #include "Game/items.h"
-#include "Game/effects/Bubble.h"
-#include "Game/effects/Drip.h"
+#include "Game/effects/bubble.h"
+#include "Game/effects/drip.h"
 #include "Game/GuiObjects.h"
 #include "Game/Lara/PlayerContext.h"
 #include "Game/Lara/lara.h"
@@ -549,7 +547,7 @@ bool HandleLaraVehicle(ItemInfo* item, CollisionInfo* coll)
 	{
 		lara->Context.Vehicle = NO_VALUE;
 		item->Animation.IsAirborne = true;
-		SetAnimation(item, LA_FALL_START);
+		SetAnimation(*item, LA_FALL_START, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 		return false;
 	}
 
@@ -805,11 +803,11 @@ void HandlePlayerFlyCheat(ItemInfo& item)
 		return;
 
 	static bool dbFlyCheat = true;
-	if (KeyMap[OIS::KeyCode::KC_O] && dbFlyCheat)
+	if (KeyMap[SDL_SCANCODE_O] && dbFlyCheat)
 	{
 		if (player.Context.Vehicle == NO_VALUE)
 		{
-			if (KeyMap[OIS::KeyCode::KC_LSHIFT] || KeyMap[OIS::KeyCode::KC_RSHIFT])
+			if (KeyMap[SDL_SCANCODE_LSHIFT] || KeyMap[SDL_SCANCODE_RSHIFT])
 				GivePlayerItemsCheat(item);
 
 			GivePlayerWeaponsCheat(item);
@@ -836,7 +834,7 @@ void HandlePlayerFlyCheat(ItemInfo& item)
 			SayNo();
 		}
 	}
-	dbFlyCheat = !KeyMap[OIS::KeyCode::KC_O];
+	dbFlyCheat = !KeyMap[SDL_SCANCODE_O];
 }
 
 void HandlePlayerExtraAnim(ItemInfo& item)
@@ -1503,14 +1501,14 @@ void SetLaraLand(ItemInfo* item, CollisionInfo* coll)
 
 void SetLaraFallAnimation(ItemInfo* item)
 {
-	SetAnimation(item, LA_FALL_START);
+	SetAnimation(*item, LA_FALL_START, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 	item->Animation.IsAirborne = true;
 	item->Animation.Velocity.y = 0.0f;
 }
 
 void SetLaraFallBackAnimation(ItemInfo* item)
 {
-	SetAnimation(item, LA_FALL_BACK);
+	SetAnimation(*item, LA_FALL_BACK, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 	item->Animation.IsAirborne = true;
 	item->Animation.Velocity.y = 0.0f;
 }
@@ -1521,7 +1519,7 @@ void SetLaraMonkeyFallAnimation(ItemInfo* item)
 	if (item->Animation.ActiveState == LS_MONKEY_TURN_180)
 		return;
 
-	SetAnimation(item, LA_MONKEY_TO_FREEFALL);
+	SetAnimation(*item, LA_MONKEY_TO_FREEFALL, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 	SetLaraMonkeyRelease(item);
 }
 
@@ -1558,7 +1556,7 @@ void SetLaraSlideAnimation(ItemInfo* item, CollisionInfo* coll)
 		if (item->Animation.ActiveState == LS_SLIDE_BACK && oldAngle == angle)
 			return;
 
-		SetAnimation(item, LA_SLIDE_BACK_START);
+		SetAnimation(*item, LA_SLIDE_BACK_START, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 		item->Pose.Orientation.y = angle + ANGLE(180.0f);
 	}
 	else
@@ -1566,7 +1564,7 @@ void SetLaraSlideAnimation(ItemInfo* item, CollisionInfo* coll)
 		if (item->Animation.ActiveState == LS_SLIDE_FORWARD && oldAngle == angle)
 			return;
 
-		SetAnimation(item, LA_SLIDE_FORWARD);
+		SetAnimation(*item, LA_SLIDE_FORWARD, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 		item->Pose.Orientation.y = angle;
 	}
 
@@ -1598,7 +1596,7 @@ void newSetLaraSlideAnimation(ItemInfo* item, CollisionInfo* coll)
 		if (item->Animation.ActiveState == LS_SLIDE_FORWARD && abs(deltaAngle) <= ANGLE(180.0f))
 			return;
 
-		SetAnimation(item, LA_SLIDE_FORWARD);
+		SetAnimation(*item, LA_SLIDE_FORWARD, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 	}
 	// Slide backward.
 	else
@@ -1606,7 +1604,7 @@ void newSetLaraSlideAnimation(ItemInfo* item, CollisionInfo* coll)
 		if (item->Animation.ActiveState == LS_SLIDE_BACK && abs((short)(deltaAngle - ANGLE(180.0f))) <= -ANGLE(180.0f))
 			return;
 
-		SetAnimation(item, LA_SLIDE_BACK_START);
+		SetAnimation(*item, LA_SLIDE_BACK_START, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 	}
 }
 
@@ -1643,7 +1641,7 @@ void SetLaraSwimDiveAnimation(ItemInfo* item)
 {
 	auto* lara = GetLaraInfo(item);
 
-	SetAnimation(item, LA_ONWATER_DIVE);
+	SetAnimation(*item, LA_ONWATER_DIVE, 0, GetInternalBlendDuration(), BezierCurve2::EaseInOut);
 	item->Animation.TargetState = LS_UNDERWATER_SWIM_FORWARD;
 	item->Animation.Velocity.y = g_GameFlow->GetSettings()->Physics.SwimVelocity * 0.4f;
 	item->Pose.Orientation.x = -ANGLE(45.0f);
@@ -1672,8 +1670,10 @@ void SetLaraVehicle(ItemInfo* item, ItemInfo* vehicle)
 	}
 	else
 	{
+		if (vehicle->ObjectNumber != ID_SPEEDBOAT && vehicle->ObjectNumber != ID_RUBBER_BOAT) // Boats are activated elsewhere.
+			g_Level.Items[vehicle->Index].Active = true;
+
 		lara->Context.Vehicle = vehicle->Index;
-		g_Level.Items[vehicle->Index].Active = true;
 		g_GameScript->OnVehicleEnter(vehicle->Index, true);
 	}
 }
@@ -1734,7 +1734,7 @@ void RumbleLaraHealthCondition(ItemInfo* item)
 	if (item->HitPoints > LARA_HEALTH_CRITICAL && player.Status.Poison == 0)
 		return;
 
-	if (item->HitPoints == 0)
+	if (item->HitPoints <= 0)
 		return;
 
 	bool doPulse = ((GlobalCounter & 0x0F) % 0x0F == 1);

@@ -139,8 +139,8 @@ namespace TEN::Effects::Environment
 		int	 StormCount		= 0;
 		int	 StormRand		= 0;
 		int	 StormTimer		= 0;
-		byte StormSkyColor	= 1;
-		byte StormSkyColor2 = 1;
+		unsigned char StormSkyColor	= 1;
+		unsigned char StormSkyColor2 = 1;
 
 		// Starfield
 
@@ -161,7 +161,7 @@ namespace TEN::Effects::Environment
 		short   SkyPosition(int index) { return SkyCurrentPosition[std::clamp(index, 0, 1)]; }
 
 		void Flash(int r, int g, int b, float speed);
-		void Update();
+		void Update(bool onlyFlash = false);
 		void Clear();
 
 		const std::vector<WeatherParticle>& GetParticles() const { return Particles; }

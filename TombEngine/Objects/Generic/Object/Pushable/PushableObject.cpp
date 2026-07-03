@@ -93,7 +93,7 @@ namespace TEN::Entities::Generic
 	void InitializePushableBlock(int itemNumber)
 	{
 		auto& pushableItem = g_Level.Items[itemNumber];
-		if (pushableItem.Data == NULL) // First pushableItem.
+		if (!pushableItem.Data.is<PushableInfo>()) // First pushableItem.
 			InitializePushableStacks();
 		
 		auto& pushable = GetPushableInfo(pushableItem);
@@ -187,7 +187,9 @@ namespace TEN::Entities::Generic
 		int quadrant = GetQuadrant(LaraItem->Pose.Orientation.y);
 		auto& pushableSidesAttributes = pushable.EdgeAttribs[quadrant]; // NOTE: 0 = north, 1 = east, 2 = south, 3 = west.
 
-		g_Hud.InteractionHighlighter.Test(*playerItem, pushableItem);
+		if (player.Control.WaterStatus != WaterStatus::TreadWater && player.Control.WaterStatus != WaterStatus::Underwater &&
+			pushableItem.Pose.Position.y == playerItem->Pose.Position.y && pushable.BehaviorState == PushableBehaviorState::Idle)
+			g_Hud.InteractionHighlighter.Test(*playerItem, pushableItem);
 
 		// Align player to pushable.
 		if ((IsHeld(In::Action) &&

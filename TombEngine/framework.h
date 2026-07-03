@@ -21,6 +21,7 @@
 #include <array>
 #include <atomic>
 #include <cctype>
+#include <climits>
 #include <cstdint>
 #include <ctime>
 #include <chrono>
@@ -40,6 +41,7 @@
 #include <set>
 #include <sstream>
 #include <stack>
+#include <stdexcept>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -60,14 +62,6 @@
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
-
-// OIS
-#include <OISException.h>
-#include <OISForceFeedback.h>
-#include <OISInputManager.h>
-#include <OISJoyStick.h>
-#include <OISKeyboard.h>
-#include <OISMouse.h>
 
 // SDL3
 #include <SDL3/SDL.h>
@@ -92,6 +86,6 @@ using namespace DirectX::SimpleMath;
 // =========
 
 #include "Types.h"
-#include "Game/Debug/Debug.h"
+#include "Game/debug/debug.h"
 
 using namespace TEN::Debug;
