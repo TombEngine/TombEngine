@@ -992,17 +992,14 @@ namespace TEN::Entities::Vehicles
 
 	void KayakToItemCollision(ItemInfo* kayakItem, ItemInfo* laraItem)
 	{
-		for (auto i : g_Level.Rooms[kayakItem->RoomNumber].NeighborRoomNumbers)
+		for (int roomNumber : g_Level.Rooms[kayakItem->RoomNumber].NeighborRoomNumbers)
 		{
-			if (!g_Level.Rooms[i].Active())
+			if (!g_Level.Rooms[roomNumber].Active())
 				continue;
 
-			short itemNum = g_Level.Rooms[i].itemNumber;
-
-			while (itemNum != NO_VALUE)
+			for (int itemNumber : g_Level.Rooms[roomNumber].itemNumbers)
 			{
-				auto* item = &g_Level.Items[itemNum];
-				short nextItem = item->NextItem;
+				auto* item = &g_Level.Items[itemNumber];
 
 				if (item->Collidable &&
 					item->Status != ITEM_INVISIBLE &&
@@ -1031,8 +1028,6 @@ namespace TEN::Entities::Vehicles
 						}
 					}
 				}
-
-				itemNum = nextItem;
 			}
 		}
 	}

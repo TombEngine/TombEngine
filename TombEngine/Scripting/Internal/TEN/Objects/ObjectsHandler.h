@@ -72,7 +72,7 @@ private:
 		if (!ScriptAssertF(_nameMap.find(name) != _nameMap.end(), "{} name not found: {}", S, name))
 			return nullptr;
 
-		return std::make_unique<R>(std::get<R::IdentifierType>(_nameMap.at(name)));
+		return std::make_unique<R>(std::get<typename R::IdentifierType>(_nameMap.at(name)));
 	}
 
 	template <typename R>
@@ -182,7 +182,7 @@ private:
 		if (!ValidatePropertyName(name))
 			return sol::nil;
 
-		auto* props = PropertyHandler::FindMoveableProperties((int)objectID);
+		auto* props = PropertyHandler::FindMoveableProperties(objectID);
 		if (props == nullptr)
 			return sol::nil;
 
@@ -197,13 +197,13 @@ private:
 
 		if (value == sol::nil)
 		{
-			PropertyHandler::GetMoveableProperties((int)objectID).Remove(name);
+			PropertyHandler::GetMoveableProperties(objectID).Remove(name);
 		}
 		else
 		{
 			auto propValue = PropertyValueFromLua(value);
 			if (propValue.has_value())
-				PropertyHandler::GetMoveableProperties((int)objectID).Set(name, *propValue);
+				PropertyHandler::GetMoveableProperties(objectID).Set(name, *propValue);
 		}
 	}
 

@@ -1505,7 +1505,7 @@ bool BadFloor(int x, int y, int z, int boxHeight, int nextHeight, short roomNumb
 	return heightResult;
 }
 
-int CreatureCreature(short itemNumber)  
+int CreatureCreature(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
 	auto* object = &Objects[item->ObjectNumber];
@@ -1516,28 +1516,26 @@ int CreatureCreature(short itemNumber)
 
 	auto* room = &g_Level.Rooms[item->RoomNumber];
 
-	short link = room->itemNumber;
-	int distance = 0;
-	do
+	for (int otherItemNumber : room->itemNumbers)
 	{
-		auto* linked = &g_Level.Items[link];
-		
-		if (link != itemNumber && linked != LaraItem && linked->IsCreature() && linked->Status == ITEM_ACTIVE && linked->HitPoints > 0) // TODO: deal with LaraItem global.
+		auto& otherItem = g_Level.Items[otherItemNumber];
+
+		// TODO: Deal with LaraItem global.
+		if (otherItemNumber != itemNumber && !otherItem.IsLara() && otherItem.IsCreature() && otherItem.Status == ITEM_ACTIVE && otherItem.HitPoints > 0)
 		{
-			int xDistance = abs(linked->Pose.Position.x - x);
-			int zDistance = abs(linked->Pose.Position.z - z);
-			
+			int xDistance = abs(otherItem.Pose.Position.x - x);
+			int zDistance = abs(otherItem.Pose.Position.z - z);
+
+			int distance;
 			if (xDistance > zDistance)
 				distance = xDistance + (zDistance >> 1);
 			else
-				distance = xDistance + (zDistance >> 1);
+				distance = zDistance + (xDistance >> 1);  
 
-			if (distance < radius + Objects[linked->ObjectNumber].radius)
-				return phd_atan(linked->Pose.Position.z - z, linked->Pose.Position.x - x) - item->Pose.Orientation.y;
+			if (distance < radius + Objects[otherItem.ObjectNumber].radius)
+				return phd_atan(otherItem.Pose.Position.z - z, otherItem.Pose.Position.x - x) - item->Pose.Orientation.y;
 		}
-
-		link = linked->NextItem;
-	} while (link != NO_VALUE);
+	}
 
 	return 0;
 }
@@ -2346,17 +2344,15 @@ void FindAITarget(CreatureInfo* creature, short objectNumber)
 void FindAITargetObject(CreatureInfo* creature, int objectNumber)
 {
 	const auto& item = g_Level.Items[creature->ItemNumber];
-
 	FindAITargetObject(creature, objectNumber, item.ItemFlags[3], true);
 }
 
 void FindAITargetObject(CreatureInfo* creature, int objectNumber, int ocb, bool checkSameZone)
 {
-	auto& item = g_Level.Items[creature->ItemNumber];
-
 	if (g_Level.AIObjects.empty())
 		return;
 
+	auto& item = g_Level.Items[creature->ItemNumber];
 	AI_OBJECT* foundObject = nullptr;
 
 	for (auto& aiObject : g_Level.AIObjects)
@@ -3348,7 +3344,7 @@ void InitializeItemBoxData()
 	{
 		for (const auto& mesh : room.mesh)
 		{
-			long index = ((mesh.Pose.Position.z - room.Position.z) / BLOCK(1)) + room.ZSize * ((mesh.Pose.Position.x - room.Position.x) / BLOCK(1));
+			int index = ((mesh.Pose.Position.z - room.Position.z) / BLOCK(1)) + room.ZSize * ((mesh.Pose.Position.x - room.Position.x) / BLOCK(1));
 			if (index >= room.Sectors.size())
 				continue;
 

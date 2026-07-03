@@ -53,6 +53,19 @@ bool MoveableAnimBlendData::IsEnabled() const
 	return (FrameCount != 0);
 }
 
+int MoveableModelData::GetSkinGlobalIndex() const
+{
+	if (SkinObjectID == NO_VALUE)
+		return NO_VALUE;
+
+	const auto& obj = Objects[SkinObjectID];
+
+	if (SkinSwapIndex != NO_VALUE)
+		return obj.meshIndex + SkinSwapIndex;
+
+	return obj.skinIndex;
+}
+
 BoundingBox ItemInfo::GetAabb() const
 {
 	return Geometry::GetAabb(GetObb());
@@ -202,7 +215,8 @@ void ItemInfo::ResetModelToDefault()
 	{
 		Model.MeshIndex.resize(object.nmeshes);
 		Model.BaseMesh = object.meshIndex;
-		Model.SkinIndex = object.skinIndex;
+		Model.SkinObjectID = ObjectNumber;
+		Model.SkinSwapIndex = NO_VALUE;
 
 		for (int i = 0; i < Model.MeshIndex.size(); i++)
 			Model.MeshIndex[i] = Model.BaseMesh + i;
@@ -215,6 +229,11 @@ void ItemInfo::ResetModelToDefault()
 	{
 		Model.Mutators.clear();
 		Model.MeshIndex.clear();
+
+		// Reset skinning for mesh-less/virtual objects (e.g. ID_BODY_PART), otherwise a reused item
+		// slot keeps a stale skin index and renders garbage when drawn with the borrowed mesh.
+		Model.SkinObjectID = NO_VALUE;
+		Model.SkinSwapIndex = NO_VALUE;
 	}
 }
 
@@ -355,7 +374,7 @@ void KillItem(short const itemNumber)
 {
 	if (itemNumber < 0 || itemNumber >= g_Level.Items.size())
 	{
-		TENLog(fmt::format("Attempted to moveable item with invalid index {}.", itemNumber), LogLevel::Error);
+		TENLog(fmt::format("Attempted to kill item with invalid index {}.", itemNumber), LogLevel::Error);
 		return;
 	}
 
@@ -363,93 +382,50 @@ void KillItem(short const itemNumber)
 	{
 		ItemNewRooms[2 * ItemNewRoomNo] = itemNumber | 0x8000;
 		ItemNewRoomNo++;
+		return;
 	}
-	else// if (NextItemActive != NO_VALUE)
+
+	auto* item = &g_Level.Items[itemNumber];
+
+	DetatchSpark(itemNumber, SP_ITEM);
+	item->Active = false;
+
+	RemoveFromVector(ActiveItems, itemNumber);
+
+	if (item->RoomNumber != NO_VALUE)
+		RemoveFromVector(g_Level.Rooms[item->RoomNumber].itemNumbers, itemNumber);
+
+	if (item == Lara.TargetEntity)
+		Lara.TargetEntity = nullptr;
+
+	if (item->ObjectNumber != GAME_OBJECT_ID::ID_NO_OBJECT && item->IsBridge())
 	{
-		auto* item = &g_Level.Items[itemNumber];
-
-		DetatchSpark(itemNumber, SP_ITEM);
-		item->Active = false;
-
-		if (NextItemActive == itemNumber)
-		{
-			NextItemActive = item->NextActive;
-		}
-		else
-		{
-			short linkNumber;
-			for (linkNumber = NextItemActive; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextActive)
-			{
-				if (g_Level.Items[linkNumber].NextActive == itemNumber)
-				{
-					g_Level.Items[linkNumber].NextActive = item->NextActive;
-					break;
-				}
-			}
-		}
-
-		if (item->RoomNumber != NO_VALUE)
-		{
-			if (g_Level.Rooms[item->RoomNumber].itemNumber == itemNumber)
-			{
-				g_Level.Rooms[item->RoomNumber].itemNumber = item->NextItem;
-			}
-			else
-			{
-				short linkNumber;
-				for (linkNumber = g_Level.Rooms[item->RoomNumber].itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
-				{
-					if (g_Level.Items[linkNumber].NextItem == itemNumber)
-					{
-						g_Level.Items[linkNumber].NextItem = item->NextItem;
-						break;
-					}
-				}
-			}
-		}
-
-		if (item == Lara.TargetEntity)
-			Lara.TargetEntity = nullptr;
-
-		// AI target generation uses a hack with making a dummy item without ObjectNumber.
-		// Therefore, a check should be done here to prevent access violation.
-		if (item->ObjectNumber != GAME_OBJECT_ID::ID_NO_OBJECT && item->IsBridge())
-		{
-			auto& bridge = GetBridgeObject(*item);
-			bridge.Disable(*item);
-		}
-
-		GameScriptHandleKilled(itemNumber, true);
-
-		if (itemNumber >= g_Level.NumItems)
-		{
-			item->NextItem = NextItemFree;
-			NextItemFree = itemNumber;
-		}
-		else
-		{
-			item->Flags |= IFLAG_KILLED;
-		}
+		auto& bridge = GetBridgeObject(*item);
+		bridge.Disable(*item);
 	}
+
+	GameScriptHandleKilled(itemNumber, true);
+
+	if (itemNumber >= g_Level.NumItems)
+		FreeItemSlots.push_back(itemNumber);
+	else
+		item->Flags |= IFLAG_KILLED;
 }
 
 void RemoveAllItemsInRoom(short roomNumber, short objectNumber)
 {
-	auto* room = &g_Level.Rooms[roomNumber];
+	auto& room = g_Level.Rooms[roomNumber];
 
-	short currentItemNumber = room->itemNumber;
-	while (currentItemNumber != NO_VALUE)
+	for (int itemNumber : room.itemNumbers)
 	{
-		auto* item = &g_Level.Items[currentItemNumber];
+		auto& item = g_Level.Items[itemNumber];
 
-		if (item->ObjectNumber == objectNumber)
+		if (item.ObjectNumber == objectNumber)
 		{
-			RemoveActiveItem(currentItemNumber);
-			item->Status = ITEM_NOT_ACTIVE;
-			item->Flags &= 0xC1;
+			RemoveActiveItem(itemNumber);
+			item.Status = ITEM_NOT_ACTIVE;
+			item.Flags &= 0xC1;
 		}
-
-		currentItemNumber = item->NextItem;
 	}
 }
 
@@ -467,8 +443,7 @@ void AddActiveItem(short itemNumber)
 	if (!item->Active)
 	{
 		item->Active = true;
-		item->NextActive = NextItemActive;
-		NextItemActive = itemNumber;
+		ActiveItems.push_back(itemNumber);
 	}
 }
 
@@ -479,207 +454,53 @@ void ItemNewRoom(short itemNumber, short roomNumber)
 		ItemNewRooms[2 * ItemNewRoomNo] = itemNumber;
 		ItemNewRooms[2 * ItemNewRoomNo + 1] = roomNumber;
 		ItemNewRoomNo++;
+		return;
 	}
-	else
-	{
-		auto* item = &g_Level.Items[itemNumber];
 
-		if (item->RoomNumber != NO_VALUE)
-		{
-			auto* room = &g_Level.Rooms[item->RoomNumber];
+	auto* item = &g_Level.Items[itemNumber];
 
-			if (room->itemNumber == itemNumber)
-				room->itemNumber = item->NextItem;
-			else
-			{
-				for (short linkNumber = room->itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
-				{
-					if (g_Level.Items[linkNumber].NextItem == itemNumber)
-					{
-						g_Level.Items[linkNumber].NextItem = item->NextItem;
-						break;
-					}
-				}
-			}
-		}
+	if (item->RoomNumber != NO_VALUE)
+		RemoveFromVector(g_Level.Rooms[item->RoomNumber].itemNumbers, itemNumber);
 
-		item->RoomNumber = roomNumber;
-		item->NextItem = g_Level.Rooms[roomNumber].itemNumber;
-		g_Level.Rooms[roomNumber].itemNumber = itemNumber;
-	}
+	item->RoomNumber = roomNumber;
+	g_Level.Rooms[roomNumber].itemNumbers.push_back(itemNumber);
 }
 
-void EffectNewRoom(short fxNumber, short roomNumber)
+short CreateNewEffect(short roomNumber, GAME_OBJECT_ID objectID, const Pose& pose)
 {
-	if (InItemControlLoop)
+	int fxNumber = CreateItem();
+
+	if (fxNumber != NO_VALUE)
 	{
-		ItemNewRooms[2 * ItemNewRoomNo] = fxNumber;
-		ItemNewRooms[2 * ItemNewRoomNo + 1] = roomNumber;
-		ItemNewRoomNo++;
-	}
-	else
-	{
-		auto* fx = &EffectList[fxNumber];
-		auto* room = &g_Level.Rooms[fx->roomNumber];
+		auto& fx = g_Level.Items[fxNumber];
 
-		if (room->fxNumber == fxNumber)
-			room->fxNumber = fx->nextFx;
-		else
-		{
-			for (short linkNumber = room->fxNumber; linkNumber != NO_VALUE; linkNumber = EffectList[linkNumber].nextFx)
-			{
-				if (EffectList[linkNumber].nextFx == fxNumber)
-				{
-					EffectList[linkNumber].nextFx = fx->nextFx;
-					break;
-				}
-			}
-		}
+		fx.Data = FXInfo();
+		fx.RoomNumber = roomNumber;
+		fx.Pose = pose;
+		fx.ObjectNumber = objectID;
+		fx.Model.Color = Vector4::One;
 
-		fx->roomNumber = roomNumber;
-		fx->nextFx = g_Level.Rooms[roomNumber].fxNumber;
-		g_Level.Rooms[roomNumber].fxNumber = fxNumber;
-	}
-}
-
-void KillEffect(short fxNumber)
-{
-	if (InItemControlLoop)
-	{
-		ItemNewRooms[2 * ItemNewRoomNo] = fxNumber | 0x8000;
-		ItemNewRoomNo++;
-	}
-	else
-	{
-		auto* fx = &EffectList[fxNumber];
-		DetatchSpark(fxNumber, SP_FX);
-
-		if (NextFxActive == fxNumber)
-			NextFxActive = fx->nextActive;
-		else
-		{
-			for (short linkNumber = NextFxActive; linkNumber != NO_VALUE; linkNumber = EffectList[linkNumber].nextActive)
-			{
-				if (EffectList[linkNumber].nextActive == fxNumber)
-				{
-					EffectList[linkNumber].nextActive = fx->nextActive;
-					break;
-				}
-			}
-		}
-
-		if (g_Level.Rooms[fx->roomNumber].fxNumber == fxNumber)
-			g_Level.Rooms[fx->roomNumber].fxNumber = fx->nextFx;
-		else
-		{
-			for (short linkNumber = g_Level.Rooms[fx->roomNumber].fxNumber; linkNumber != NO_VALUE; linkNumber = EffectList[linkNumber].nextFx)
-			{
-				if (EffectList[linkNumber].nextFx == fxNumber)
-				{
-					EffectList[linkNumber].nextFx = fx->nextFx;
-					break;
-				}
-			}
-		}
-
-		fx->nextFx = NextFxFree;
-		NextFxFree = fxNumber;
-	}
-
-	// HACK: Garbage collect nextFx if no active effects were detected.
-	// This fixes random crashes after spawining multiple FXs (like body part).
-
-	if (NextFxActive == NO_VALUE)
-		InitializeFXArray();
-}
-
-short CreateNewEffect(short roomNumber) 
-{
-	short fxNumber = NextFxFree;
-
-	if (NextFxFree != NO_VALUE)
-	{
-		auto* fx = &EffectList[NextFxFree];
-
-		// HACK: Overcome a self-referencing deadlock by checking if nextFx points to the same index.
-		if (fxNumber == fx->nextFx)
-			return NO_VALUE;
-
-		NextFxFree = fx->nextFx;
-
-		auto* room = &g_Level.Rooms[roomNumber];
-
-		fx->roomNumber = roomNumber;
-		fx->nextFx = room->fxNumber;
-		fx->nextActive = NextFxActive;
-
-		NextFxActive = fxNumber;
-		room->fxNumber = fxNumber;
-
-		fx->speed = 0;
-		fx->color = NEUTRAL_COLOR;
-		fx->fallspeed = 0;
-		fx->frameNumber = 0;
-		fx->counter = 0;
-		fx->flag1 = 0;
-		fx->flag2 = 0;
-		fx->DisableInterpolation = true;
+		InitializeItem(fxNumber);
+		AddActiveItem(fxNumber);
 	}
 
 	return fxNumber;
 }
 
-void InitializeFXArray()
-{
-	NextFxActive = NO_VALUE;
-	NextFxFree = 0;
-
-	for (int i = 0; i < MAX_SPAWNED_ITEM_COUNT; i++)
-		EffectList[i].nextFx = i + 1;
-
-	EffectList[MAX_SPAWNED_ITEM_COUNT - 1].nextFx = NO_VALUE;
-}
-
-void RemoveDrawnItem(short itemNumber) 
+void RemoveDrawnItem(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
-
-	if (g_Level.Rooms[item->RoomNumber].itemNumber == itemNumber)
-		g_Level.Rooms[item->RoomNumber].itemNumber = item->NextItem;
-	else
-	{
-		for (short linkNumber = g_Level.Rooms[item->RoomNumber].itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
-		{
-			if (g_Level.Items[linkNumber].NextItem == itemNumber)
-			{
-				g_Level.Items[linkNumber].NextItem = item->NextItem;
-				break;
-			}
-		}
-	}
+	RemoveFromVector(g_Level.Rooms[item->RoomNumber].itemNumbers, itemNumber);
 }
 
-void RemoveActiveItem(short itemNumber, bool killed) 
+void RemoveActiveItem(short itemNumber, bool killed)
 {
-	if (g_Level.Items[itemNumber].Active)
-	{
-		g_Level.Items[itemNumber].Active = false;
+	auto& item = g_Level.Items[itemNumber];
 
-		if (NextItemActive == itemNumber)
-		{
-			NextItemActive = g_Level.Items[itemNumber].NextActive;
-		}
-		else
-		{
-			for (short linkNumber = NextItemActive; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextActive)
-			{
-				if (g_Level.Items[linkNumber].NextActive == itemNumber)
-				{
-					g_Level.Items[linkNumber].NextActive = g_Level.Items[itemNumber].NextActive;
-					break;
-				}
-			}
-		}
+	if (item.Active)
+	{
+		item.Active = false;
+		RemoveFromVector(ActiveItems, itemNumber);
 
 		if (killed)
 			GameScriptHandleKilled(itemNumber, false);
@@ -689,24 +510,8 @@ void RemoveActiveItem(short itemNumber, bool killed)
 bool IsItemInRoom(short itemNumber, short roomNumber)
 {
 	const auto& room = g_Level.Rooms[roomNumber];
-
-	// Run through items in room.
-	int currentItemNumber = room.itemNumber;
-	while (currentItemNumber != NO_VALUE)
-	{
-		auto& item = g_Level.Items[currentItemNumber];
-
-		if (currentItemNumber == itemNumber)
-			return true;
-
-		// HACK: Prevent possible deadlocks.
-		if (currentItemNumber == item.NextItem)
-			break;
-
-		currentItemNumber = item.NextItem;
-	}
-
-	return false;
+	auto it = std::find(room.itemNumbers.begin(), room.itemNumbers.end(), itemNumber);
+	return (it != room.itemNumbers.end());
 }
 
 void InitializeItem(short itemNumber) 
@@ -769,8 +574,7 @@ void InitializeItem(short itemNumber)
 	}
 
 	auto& room = g_Level.Rooms[item.RoomNumber];
-	item.NextItem = room.itemNumber;
-	room.itemNumber = itemNumber;
+	room.itemNumbers.push_back(itemNumber);
 
 	FloorInfo* floor = GetSector(&room, item.Pose.Position.x - room.Position.x, item.Pose.Position.z - room.Position.z);
 	item.Floor = floor->GetSurfaceHeight(item.Pose.Position.x, item.Pose.Position.z, true);
@@ -784,13 +588,13 @@ void InitializeItem(short itemNumber)
 
 short CreateItem()
 {
-	if (NextItemFree == NO_VALUE)
+	if (FreeItemSlots.empty())
 		return NO_VALUE;
 
-	short itemNumber = NextItemFree;
-	g_Level.Items[NextItemFree].Flags = 0;
-	NextItemFree = g_Level.Items[NextItemFree].NextItem;
+	short itemNumber = FreeItemSlots.back();
+	FreeItemSlots.pop_back();
 
+	g_Level.Items[itemNumber].Flags = 0;
 	g_Level.Items[itemNumber].DisableInterpolation = true;
 
 	return itemNumber;
@@ -800,25 +604,17 @@ void InitializeItemArray(int totalItem)
 {
 	g_Level.Items.clear();
 	g_Level.Items.resize(totalItem);
+	
+	ActiveItems.clear();
+	ActiveItems.reserve(totalItem);
 
 	for (int i = 0; i < totalItem; i++)
 		g_Level.Items[i].Index = i;
 
-	auto* item = &g_Level.Items[g_Level.NumItems];
-
-	if (g_Level.NumItems + 1 < totalItem)
-	{
-		for (int i = g_Level.NumItems + 1; i < totalItem; i++, item++)
-		{
-			item->NextItem = i;
-			item->Active = false;
-			item->Data = nullptr;
-		}
-	}
-
-	item->NextItem = NO_VALUE;
-	NextItemActive = NO_VALUE;
-	NextItemFree = g_Level.NumItems;
+	FreeItemSlots.clear();
+	FreeItemSlots.reserve(totalItem - g_Level.NumItems);
+	for (int i = g_Level.NumItems; i < totalItem; i++)
+		FreeItemSlots.push_back(i);
 }
 
 short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID)
@@ -849,11 +645,10 @@ short SpawnItem(const ItemInfo& item, GAME_OBJECT_ID objectID)
 int GlobalItemReplace(short search, GAME_OBJECT_ID replace)
 {
 	int changed = 0;
-	for (int i = 0; i < g_Level.Rooms.size(); i++)
-	{
-		auto* room = &g_Level.Rooms[i];
 
-		for (short itemNumber = room->itemNumber; itemNumber != NO_VALUE; itemNumber = g_Level.Items[itemNumber].NextItem)
+	for (auto& room : g_Level.Rooms)
+	{
+		for (int itemNumber : room.itemNumbers)
 		{
 			if (g_Level.Items[itemNumber].ObjectNumber == search)
 			{
@@ -894,22 +689,15 @@ std::vector<int> FindAllItems(GAME_OBJECT_ID objectID)
 
 std::vector<int> FindCreatedItems(GAME_OBJECT_ID objectID)
 {
-	auto itemNumbers = std::vector<int>{};
+	std::vector<int> result;
 
-	if (NextItemActive == NO_VALUE)
-		return itemNumbers;
-
-	const auto* itemPtr = &g_Level.Items[NextItemActive];
-
-	for (int nextActive = NextItemActive; nextActive != NO_VALUE; nextActive = itemPtr->NextActive)
+	for (int itemNumber : ActiveItems)
 	{
-		itemPtr = &g_Level.Items[nextActive];
-
-		if (itemPtr->ObjectNumber == objectID)
-			itemNumbers.push_back(nextActive);
+		if (g_Level.Items[itemNumber].ObjectNumber == objectID)
+			result.push_back(itemNumber);
 	}
 
-	return itemNumbers;
+	return result;
 }
 
 ItemInfo* FindItem(GAME_OBJECT_ID objectID)
@@ -941,11 +729,14 @@ void UpdateAllItems()
 {
 	InItemControlLoop = true;
 
-	int itemNumber = NextItemActive;
-	while (itemNumber != NO_VALUE)
+	auto itemsToUpdate = ActiveItems;
+
+	for (int itemNumber : itemsToUpdate)
 	{
 		auto& item = g_Level.Items[itemNumber];
-		itemNumber = item.NextActive;
+
+		if (!item.Active) 
+			continue;
 
 		if (!Objects.CheckID(item.ObjectNumber))
 			continue;
@@ -980,25 +771,6 @@ void UpdateAllItems()
 
 	InItemControlLoop = false;
 	KillMoveItems();
-}
-
-void UpdateAllEffects()
-{
-	InItemControlLoop = true;
-
-	short fxNumber = NextFxActive;
-	while (fxNumber != NO_VALUE)
-	{
-		short nextFx = EffectList[fxNumber].nextActive;
-		auto* fx = &EffectList[fxNumber];
-		if (Objects[fx->objectNumber].control)
-			Objects[fx->objectNumber].control(fxNumber);
-
-		fxNumber = nextFx;
-	}
-
-	InItemControlLoop = false;
-	KillMoveEffects();
 }
 
 bool UpdateItemRoom(short itemNumber)
@@ -1126,4 +898,14 @@ void DefaultItemHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector
 void SyncItemAnimation(ItemInfo& item0, const ItemInfo& item1)
 {
 	SetAnimation(item0, item1.Animation.AnimNumber, item1.Animation.FrameNumber);
+}
+
+void RemoveFromVector(std::vector<int>& vec, int value)
+{
+	auto it = std::find(vec.begin(), vec.end(), value);
+	if (it != vec.end())
+	{
+		*it = vec.back();
+		vec.pop_back();
+	}
 }

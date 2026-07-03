@@ -22,6 +22,13 @@ using TEN::Renderer::g_Renderer;
 
 namespace TEN::Animation
 {
+	static const AnimData DUMMY_ANIM = []()
+	{
+		auto anim = AnimData{};
+		anim.Frames.emplace_back();
+		return anim;
+	}();
+
 	// TODO: Arm anim object in savegame.
 
 	FixedMotionData AnimData::GetFixedMotion(int frameNumber) const
@@ -405,8 +412,13 @@ namespace TEN::Animation
 		if (object.Animations.size() > animNumber)
 			return object.Animations[animNumber];
 
+		// Object has no animations at all (e.g. virtual objects like ID_BODY_PART). Return a static,
+		// motion-free dummy animation instead of falling back to object 0's animation.
+		if (object.Animations.empty())
+			return DUMMY_ANIM;
+
 		TENLog("Attempted to access invalid animation.", LogLevel::Error);
-		return (object.Animations.empty() ? Objects[0].Animations[0] : object.Animations[0]);
+		return object.Animations[0];
 	}
 
 	const AnimData& GetAnimData(GAME_OBJECT_ID objectID, int animNumber)

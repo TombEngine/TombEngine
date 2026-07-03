@@ -4,7 +4,7 @@
 #include "Game/control/box.h"
 #include "Game/items.h"
 #include "Game/Animation/Animation.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/Hud/DrawItems/DrawItems.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Hud/PickupSummary.h"
@@ -373,7 +373,6 @@ namespace TEN::Renderer
 		void CollectLightsForCamera();
 		void CalculateLightFades(RendererItem* item);
 		void CollectDecalsForRoom(short roomNumber, RenderView& renderView);
-		void CollectEffects(short roomNumber);
 		void ClearShadowMap();
 		void CalculateSSAO(RenderView& view);
 		void UpdateItemAnimations(RenderView& view);
@@ -391,6 +390,9 @@ namespace TEN::Renderer
 		void DrawRooms(RenderView& view, RendererPass rendererPass);
 		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);
 		void DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass);
+		void DrawEffects(RenderView& view, RendererPass rendererPass);
+		void DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass);
+		void CollectEffect(int itemNumber, RendererRoom& room);
 		void DrawWaterfalls(RendererItem* item, RenderView& view, float speed, RendererPass rendererPass);
 		void DrawBaddyGunflashes(RenderView& view);
 		void DrawStatics(RenderView& view, RendererPass rendererPass);
@@ -407,8 +409,6 @@ namespace TEN::Renderer
 		void PrepareBubbles(RenderView& view);
 		void DoRenderPass(RendererPass pass, RenderView& view, bool drawMirrors);
 		void DrawObjects(RendererPass pass, RenderView& view, bool player, bool moveables, bool statics, bool sprites);
-		void DrawEffects(RenderView& view, RendererPass rendererPass);
-		void DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass);
 		void PrepareSplashes(RenderView& view);
 		void DrawSprites(RenderView& view, RendererPass rendererPass);
 		void DrawDisplaySprites(RenderView& view, bool negativePriority);
@@ -420,6 +420,7 @@ namespace TEN::Renderer
 		void DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
 		void DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
 		void DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
+		void DrawEffectSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
 		void DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index);
 		void DrawLines2D();
 		void DrawLines3D(RenderView& view);
@@ -696,7 +697,6 @@ namespace TEN::Renderer
 		void RenderScene(IRenderSurface2D* renderTarget, RenderView& view, SceneRenderMode renderMode = SceneRenderMode::Full);
 		void PrepareScene();
 		void ClearScene();
-		void SaveScreenshot();
 		void DrawDisplayPickup(const DisplayPickup& pickup);
 		int  Synchronize();
 		void AddString(int x, int y, const std::string& string, unsigned int color, int flags);
@@ -717,7 +717,7 @@ namespace TEN::Renderer
 		void UpdatePlayerSkinVertices(GAME_OBJECT_ID skinID, GAME_OBJECT_ID skinJointsID, GAME_OBJECT_ID hairPrimaryID, GAME_OBJECT_ID hairSecondaryID);
 		void ToggleFullScreen(bool force = false);
 		void SetFullScreen();
-		bool IsFullsScreen();
+		bool IsFullScreen();
 		void RenderTitleImage();
 
 		void AddLine2D(const Vector2& origin, const Vector2& target, const Color& color, RendererDebugPage page = RendererDebugPage::None);
@@ -753,6 +753,7 @@ namespace TEN::Renderer
 		void SetLoadingScreen(const std::string& fileName);
 		std::unique_ptr<ITexture2D> SetTextureOrDefault(std::string path);
 		std::string GetDefaultAdapterName();
+		std::string SaveScreenshot();
 		const AdapterInfo& GetAdapterInfo() const;
 		void SaveOldState();
 
@@ -781,6 +782,7 @@ namespace TEN::Renderer
 		void			RestoreDOF();
 
 		void SetGraphicsSettingsChanged();
+		void UpdateDumpScreenRenderTarget();
 
 		RendererDebugPage GetDebugPage() const;
 	};

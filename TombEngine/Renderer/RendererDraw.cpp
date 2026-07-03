@@ -11,10 +11,10 @@
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
 #include "Game/effects/DisplaySprite.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -207,6 +207,7 @@ namespace TEN::Renderer
 			shadowProjection.ViewProjection = view * projection;
 			UpdateConstantBuffer(&shadowProjection, _cbCameraMatrices.get());
 			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 			_stShadowMap.LightViewProjections[step] = (view * projection);
 
@@ -250,14 +251,8 @@ namespace TEN::Renderer
 			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
-			for (int k = 0; k < obj.ObjectMeshes.size(); k++)
+			for (int k = 0; k < item->MeshIndex.size(); k++)
 			{
-				if (item->MeshIndex.size() <= k)
-				{
-					TENLog("Mesh structure was not properly initialized for object " + GetObjectName((GAME_OBJECT_ID)item->ObjectID));
-					break;
-				}
-
 				auto* mesh = GetMesh(item->MeshIndex[k]);
 
 				if (skinMode == SkinningMode::Full && g_Level.Meshes[item->MeshIndex[k]].hidden)
@@ -1621,7 +1616,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicSpotLight(const Vector3& pos, const Vector3& dir, float radius, float falloff, float distance, const Color& color, bool castShadows, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
+		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
 			return;
 
 		RendererLight dynamicLight = {};
@@ -1658,7 +1653,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicPointLight(const Vector3& pos, float radius, const Color& color, bool castShadows, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
+		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
 			return;
 
 		if (radius <= EPSILON)
@@ -1686,7 +1681,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicFogBulb(const Vector3& pos, float radius, float density, const Color& color, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
+		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
 			return;
 
 		auto dynamicLight = RendererLight{};
@@ -1757,7 +1752,7 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareScene()
 	{
-		if (g_GameFlow->CurrentFreezeMode == FreezeMode::None &&
+		if (g_GameFlow->CurrentFreezeMode != FreezeMode::Full &&
 			g_Gui.GetInventoryMode() == InventoryMode::None)
 		{
 			_dynamicLightList ^= 1;
@@ -1862,19 +1857,19 @@ namespace TEN::Renderer
 		// Bind constant buffers.
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PerDraw, _cbPerDraw.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Sprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Sky, _cbSky.get());
 
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PerDraw, _cbPerDraw.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Sprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Sky, _cbSky.get());
 
@@ -2028,14 +2023,14 @@ namespace TEN::Renderer
 		// SMAA: RT -> ..., ... -> RT
 		ApplyAntialiasing(_renderTarget.get(), view);
 
+		// Now we can apply the color grade, lens flare, cinematic bars and post process effects
+		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT
+		DrawPostprocess(renderTarget, view, renderMode);
+
 		// Draw text and 2D HUD
 		ClearDrawPhaseDisplaySprites();
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
 			g_Hud.Draw2D(*LaraItem);
-
-		// Now we can apply the color grade, lens flare, cinematic bars and post process effects
-		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT
-		DrawPostprocess(renderTarget, view, renderMode);
 
 		_doingFullscreenPass = false;
 
@@ -2048,7 +2043,11 @@ namespace TEN::Renderer
 			DrawDisplaySprites(view, false);
 
 			DrawDebugRenderTargets(view);
-			DrawAllStrings();
+
+			// HACK: Strings in the title level are drawn in a separate menu pass, so we bypass it here.
+			if (CurrentLevel != 0)
+				DrawAllStrings();
+
 			DrawDisplaySprites(view, true);
 		}
 
@@ -3182,7 +3181,7 @@ namespace TEN::Renderer
 					_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1;
 					_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = 0;
 
-					// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+					// NOTE: Strange packing due to particular HLSL 16-byte alignment requirements.
 					_stInstancedSpriteBuffer.Sprites[i].UV[0].x = rDrawSprite.Sprite->UV[0].x;
 					_stInstancedSpriteBuffer.Sprites[i].UV[0].y = rDrawSprite.Sprite->UV[1].x;
 					_stInstancedSpriteBuffer.Sprites[i].UV[0].z = rDrawSprite.Sprite->UV[2].x;
@@ -3245,7 +3244,7 @@ namespace TEN::Renderer
 						_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1;
 						_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = 0;
 
-						// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+						// NOTE: Strange packing due to particular HLSL 16-byte alignment requirements.
 						_stInstancedSpriteBuffer.Sprites[i].UV[0].x = rDrawSprite.Sprite->UV[0].x;
 						_stInstancedSpriteBuffer.Sprites[i].UV[0].y = rDrawSprite.Sprite->UV[1].x;
 						_stInstancedSpriteBuffer.Sprites[i].UV[0].z = rDrawSprite.Sprite->UV[2].x;
@@ -3357,7 +3356,7 @@ namespace TEN::Renderer
 			_stInstancedSpriteBuffer.Sprites[0].IsBillboard = 1;
 			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = 0;
 
-			// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+			// NOTE: Strange packing due to particular HLSL 16-byte alignment requirements.
 			_stInstancedSpriteBuffer.Sprites[0].UV[0].x = rDrawSprite.Sprite->UV[0].x;
 			_stInstancedSpriteBuffer.Sprites[0].UV[0].y = rDrawSprite.Sprite->UV[1].x;
 			_stInstancedSpriteBuffer.Sprites[0].UV[0].z = rDrawSprite.Sprite->UV[2].x;
@@ -3722,6 +3721,31 @@ namespace TEN::Renderer
 
 				i--;
 			}
+			else if (object->ObjectType == RendererObjectType::Effect)
+			{
+				while (i < view.TransparentObjectsToDraw.size() &&
+					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
+					view.TransparentObjectsToDraw[i].Effect == object->Effect &&
+					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
+					view.TransparentObjectsToDraw[i].Bucket->Animated == object->Bucket->Animated &&
+					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
+					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
+				{
+					auto* currentObject = &view.TransparentObjectsToDraw[i];
+					_sortedPolygonsIndices.bulk_push_back(
+						_moveablesIndices.data(),
+						currentObject->Polygon->BaseIndex,
+						currentObject->Polygon->Shape == 0 ? 6 : 3);
+					i++;
+				}
+
+				DrawEffectSorted(object, lastObjectType, view);
+
+				if (i == view.TransparentObjectsToDraw.size())
+					return;
+
+				i--;
+			}
 			else if (object->ObjectType == RendererObjectType::Sprite)
 			{			
 				while (i < view.TransparentObjectsToDraw.size() &&
@@ -3992,6 +4016,46 @@ namespace TEN::Renderer
 		DrawIndexedInstancedTriangles((int)_sortedPolygonsIndices.size(), 1, 0, 0);
 
 		_numSortedStaticsDrawCalls++;
+		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
+	}
+
+	void Renderer::DrawEffectSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
+	{
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
+		if (lastObjectType != objectInfo->ObjectType)
+		{
+			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+
+			SetDepthState(DepthState::Read);
+			SetCullMode(CullMode::CounterClockwise);
+
+			_shaders.Bind(Shader::InstancedStatics);
+		}
+
+		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
+		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
+
+		auto world = objectInfo->Effect->InterpolatedWorld;
+		_stObjects.Objects[0].World = world;
+
+		_stObjects.Objects[0].Color = objectInfo->Effect->Color;
+		_stObjects.Objects[0].AmbientLight = objectInfo->Effect->AmbientLight;
+		_stObjects.Objects[0].LightMode = (int)LightMode::Dynamic;
+		BindInstancedStaticLights(objectInfo->Effect->LightsToDraw, 0);
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+		SetBlendMode(objectInfo->BlendMode);
+		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
+
+		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
+		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
+
+		DrawIndexedInstancedTriangles((int)_sortedPolygonsIndices.size(), 1, 0, 0);
+
+		_numEffectsDrawCalls++;
 		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
 	}
 

@@ -9,9 +9,9 @@
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/control/los.h"
-#include "Game/effects/Bubble.h"
+#include "Game/effects/bubble.h"
 #include "Game/effects/debris.h"
-#include "Game/effects/Drip.h"
+#include "Game/effects/drip.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/Ripple.h"
@@ -337,6 +337,7 @@ void AnimateShotgun(ItemInfo& laraItem, LaraWeaponType weaponType)
 		player.Control.Weapon.HasFired = true;
 
 		player.RightArm.GunFlash = Weapons[(int)weaponType].FlashTime;
+		player.RightArm.GunFlashType = weaponType;
 		if (weaponType != LaraWeaponType::GrenadeLauncher && weaponType != LaraWeaponType::RocketLauncher)
 			player.LeftArm.GunSmoke = 20;
 
