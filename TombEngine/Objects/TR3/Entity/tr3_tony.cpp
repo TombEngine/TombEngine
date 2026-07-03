@@ -87,32 +87,31 @@ namespace TEN::Entities::Creatures::TR3
 
 	static void TriggerTonyEffect(const TonyFlame& flame)
 	{
-		int fxNumber = CreateNewEffect(flame.RoomNumber);
+		int fxNumber = CreateNewEffect(flame.RoomNumber, ID_TONY_BOSS_FLAME, Pose(flame.Position));
 		if (fxNumber == NO_VALUE)
 			return;
 
-		auto& fx = EffectList[fxNumber];
+		auto& fx = g_Level.Items[fxNumber];
+		auto& fxInfo = GetFXInfo(fx);
 
-		fx.pos.Position = flame.Position;
-		fx.fallspeed = flame.VerticalVelocity;
-		fx.pos.Orientation = EulerAngles(0, flame.yRot, 0);
-		fx.objectNumber = ID_TONY_BOSS_FLAME;
-		fx.flag1 = (short)flame.Type;
-		fx.speed = flame.speed;
-		fx.color = Vector4::Zero;
+		fx.Animation.Velocity.y = flame.VerticalVelocity;
+		fx.Pose.Orientation = EulerAngles(0, flame.yRot, 0);
+		fxInfo.Flag1 = (short)flame.Type;
+		fx.Animation.Velocity.z = flame.speed;
+		fx.Model.Color = Vector4::One;
 
 		switch (flame.Type)
 		{
 		case TonyFlameType::InFrontDebris:
-			fx.flag2 *= 2;
+			fxInfo.Flag2 *= 2;
 			break;
 
 		case TonyFlameType::InFront:
-			fx.flag2 = 0;
+			fxInfo.Flag2 = 0;
 			break;
 
 		default:
-			fx.flag2 = (GetRandomControl() & 3) + 1;
+			fxInfo.Flag2 = (GetRandomControl() & 3) + 1;
 			break;
 		}
 	}
@@ -363,20 +362,21 @@ namespace TEN::Entities::Creatures::TR3
 
 	void ControlTonyFireBall(short fxNumber)
 	{
-		auto& fx = EffectList[fxNumber];
+		auto& fx = g_Level.Items[fxNumber];
+		auto& fxInfo = GetFXInfo(fx);
 
-		auto prevPos = fx.pos.Position;
-		auto type = (TonyFlameType)fx.flag1;
+		auto prevPos = fx.Pose.Position;
+		auto type = (TonyFlameType)fxInfo.Flag1;
 
 		switch (type)
 		{
 		case TonyFlameType::CeilingLeftHand:
 		case TonyFlameType::CeilingRightHand:
-			fx.fallspeed += (fx.fallspeed / 8) + 1;
-			if (fx.fallspeed < -BLOCK(4))
-				fx.fallspeed = -BLOCK(4);
+			fx.Animation.Velocity.y += (fx.Animation.Velocity.y / 8) + 1;
+			if (fx.Animation.Velocity.y < -BLOCK(4))
+				fx.Animation.Velocity.y = -BLOCK(4);
 
-			fx.pos.Position.y += fx.fallspeed;
+			fx.Pose.Position.y += fx.Animation.Velocity.y;
 
 			if (Wibble & 4)
 				TriggerFireBallFlame(fxNumber, type, 0, 0, 0);
@@ -384,8 +384,8 @@ namespace TEN::Entities::Creatures::TR3
 			break;
 
 		case TonyFlameType::ShowerFromCeiling:
-			fx.fallspeed += 2;
-			fx.pos.Position.y += fx.fallspeed;
+			fx.Animation.Velocity.y += 2;
+			fx.Pose.Position.y += fx.Animation.Velocity.y;
 
 			if (Wibble & 4)
 				TriggerFireBallFlame(fxNumber, type, 0, 0, 0);
@@ -395,32 +395,32 @@ namespace TEN::Entities::Creatures::TR3
 		default:
 			if (type != TonyFlameType::InFront)
 			{
-				if (fx.speed > 48)
-					fx.speed--;
+				if (fx.Animation.Velocity.z > 48)
+					fx.Animation.Velocity.z--;
 			}
 
-			fx.fallspeed += fx.flag2;
-			if (fx.fallspeed > CLICK(2))
-				fx.fallspeed = CLICK(2);
+			fx.Animation.Velocity.y += fxInfo.Flag2;
+			if (fx.Animation.Velocity.y > CLICK(2))
+				fx.Animation.Velocity.y = CLICK(2);
 
-			fx.pos.Position.y += fx.fallspeed / 2;
-			fx.pos.Position.z += fx.speed * phd_cos(fx.pos.Orientation.y);
-			fx.pos.Position.x += fx.speed * phd_sin(fx.pos.Orientation.y);
+			fx.Pose.Position.y += fx.Animation.Velocity.y / 2;
+			fx.Pose.Position.z += fx.Animation.Velocity.z * phd_cos(fx.Pose.Orientation.y);
+			fx.Pose.Position.x += fx.Animation.Velocity.z * phd_sin(fx.Pose.Orientation.y);
 
 			if (Wibble & 4)
 			{
 				TriggerFireBallFlame(
 					fxNumber, type,
-					short((prevPos.x - fx.pos.Position.x) * 8), short((prevPos.y - fx.pos.Position.y) * 8), short((prevPos.z - fx.pos.Position.z) * 4));
+					short((prevPos.x - fx.Pose.Position.x) * 8), short((prevPos.y - fx.Pose.Position.y) * 8), short((prevPos.z - fx.Pose.Position.z) * 4));
 			}
 			
 			break;
 		}
 
-		auto pointColl = GetPointCollision(fx.pos.Position, fx.roomNumber);
+		auto pointColl = GetPointCollision(fx.Pose.Position, fx.RoomNumber);
 
-		if (fx.pos.Position.y >= pointColl.GetFloorHeight() ||
-			fx.pos.Position.y < pointColl.GetCeilingHeight())
+		if (fx.Pose.Position.y >= pointColl.GetFloorHeight() ||
+			fx.Pose.Position.y < pointColl.GetCeilingHeight())
 		{
 			Vector3i pos;
 			int debrisCount = type == TonyFlameType::InFront ? 7 : 3;
@@ -430,7 +430,7 @@ namespace TEN::Entities::Creatures::TR3
 			case TonyFlameType::CeilingLeftHand:
 			case TonyFlameType::CeilingRightHand:
 				for (int x = 0; x < 2; x++)
-					TriggerExplosionSparks(prevPos.x, prevPos.y, prevPos.z, 3, -1, 0, fx.roomNumber);
+					TriggerExplosionSparks(prevPos.x, prevPos.y, prevPos.z, 3, -1, 0, fx.RoomNumber);
 
 				pointColl = GetPointCollision(*LaraItem); // TODO: Deal with LaraItem global.
 				pos.y = pointColl.GetCeilingHeight() + CLICK(1);
@@ -442,45 +442,45 @@ namespace TEN::Entities::Creatures::TR3
 
 			case TonyFlameType::InFront:
 			case TonyFlameType::ShowerFromCeiling:
-				TriggerExplosionSparks(prevPos.x, prevPos.y, prevPos.z, 3, -2, 0, fx.roomNumber);
+				TriggerExplosionSparks(prevPos.x, prevPos.y, prevPos.z, 3, -2, 0, fx.RoomNumber);
 				pos = prevPos;
 
 				for (int x = 0; x < debrisCount; x++)
-					TriggerFireBall(nullptr, GetDebrisType(type), &pos, fx.roomNumber, fx.pos.Orientation.y, 32 + (x * 4));
+					TriggerFireBall(nullptr, GetDebrisType(type), &pos, fx.RoomNumber, fx.Pose.Orientation.y, 32 + (x * 4));
 
 				break;
 			}
 
-			KillEffect(fxNumber);
+			KillItem(fxNumber);
 			return;
 		}
 
 		if (TestEnvironment(ENV_FLAG_WATER, pointColl.GetRoomNumber()))
 		{
-			KillEffect(fxNumber);
+			KillItem(fxNumber);
 			return;
 		}
 
 		if (LaraItem->Effect.Type == EffectType::None)
 		{
-			if (ItemNearLara(fx.pos.Position, 200))
+			if (ItemNearLara(fx.Pose.Position, 200))
 			{
 				LaraItem->HitStatus = true;
-				KillEffect(fxNumber);
+				KillItem(fxNumber);
 				DoDamage(LaraItem, 200);
 				ItemBurn(LaraItem);
 				return;
 			}
 		}
 
-		if (pointColl.GetRoomNumber() != fx.roomNumber)
-			EffectNewRoom(fxNumber, LaraItem->RoomNumber);
+		if (pointColl.GetRoomNumber() != fx.RoomNumber)
+			ItemNewRoom(fxNumber, LaraItem->RoomNumber);
 
-		if (LightIntensityTable[fx.flag1])
+		if (LightIntensityTable[fxInfo.Flag1])
 		{
 			SpawnDynamicLight(
-				fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z,
-				LightIntensityTable[fx.flag1],
+				fx.Pose.Position.x, fx.Pose.Position.y, fx.Pose.Position.z,
+				LightIntensityTable[fxInfo.Flag1],
 				31 - ((GetRandomControl() / 16) & 3),
 				24 - ((GetRandomControl() / 64) & 3),
 				GetRandomControl() & 7);

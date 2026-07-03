@@ -954,9 +954,6 @@ void LoadDynamicRoomData()
 		}
 
 		g_GameScriptEntities->AddName(room.Name, room);
-
-		room.itemNumber = NO_VALUE;
-		room.fxNumber = NO_VALUE;
 	}
 }
 
@@ -1971,7 +1968,7 @@ void GetCarriedItems()
 			(item.ObjectNumber >= ID_SEARCH_OBJECT1 && item.ObjectNumber <= ID_SEARCH_OBJECT4) ||
 			(item.ObjectNumber == ID_SARCOPHAGUS))
 		{
-			for (short linkNumber = g_Level.Rooms[item.RoomNumber].itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
+			for (int linkNumber : g_Level.Rooms[item.RoomNumber].itemNumbers)
 			{
 				auto& item2 = g_Level.Items[linkNumber];
 

@@ -182,8 +182,7 @@ namespace TEN::Entities::Vehicles
 		auto* boatItem = &g_Level.Items[itemNumber];
 		auto* lara = GetLaraInfo(laraItem);
 
-		int itemNumber2 = g_Level.Rooms[boatItem->RoomNumber].itemNumber;
-		while (itemNumber2 != NO_VALUE)
+		for (int itemNumber2 : g_Level.Rooms[boatItem->RoomNumber].itemNumbers)
 		{
 			auto* item = &g_Level.Items[itemNumber2];
 
@@ -193,6 +192,7 @@ namespace TEN::Entities::Vehicles
 				int z = item->Pose.Position.z - boatItem->Pose.Position.z;
 
 				int distance = pow(x, 2) + pow(z, 2);
+
 				if (distance < 1000000)
 				{
 					boatItem->Pose.Position.x = item->Pose.Position.x - x * 1000000 / distance;
@@ -201,8 +201,6 @@ namespace TEN::Entities::Vehicles
 
 				return;
 			}
-
-			itemNumber2 = item->NextItem;
 		}
 	}
 

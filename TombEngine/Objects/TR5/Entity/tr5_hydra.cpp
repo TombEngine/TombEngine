@@ -56,26 +56,26 @@ namespace TEN::Entities::Creatures::TR5
 		item->Pose.Position.x -= CLICK(1);
 	}
 
-	static void HydraBubblesAttack(Pose* pos, short roomNumber, int count)
+	static void HydraBubblesAttack(const Pose& pose, short roomNumber, int count)
 	{
-		short fxNumber = CreateNewEffect(roomNumber);
-		if (fxNumber != NO_VALUE)
-		{
-			auto* fx = &EffectList[fxNumber];
+		int fxNumber = CreateNewEffect(roomNumber, ID_BUBBLES, pose);
+		if (fxNumber == NO_VALUE)
+			return;
 
-			fx->pos.Position.x = pos->Position.x;
-			fx->pos.Position.y = pos->Position.y - (GetRandomControl() & 0x3F) - 32;
-			fx->pos.Position.z = pos->Position.z;
-			fx->pos.Orientation.x = pos->Orientation.x;
-			fx->pos.Orientation.y = pos->Orientation.y;
-			fx->pos.Orientation.z = 0;
-			fx->roomNumber = roomNumber;
-			fx->counter = 16 * count + 15;
-			fx->flag1 = 0;
-			fx->objectNumber = ID_BUBBLES;
-			fx->speed = (GetRandomControl() & 0x1F) + 64;
-			fx->frameNumber = Objects[ID_BUBBLES].meshIndex + 8;
-		}
+		auto& fx = g_Level.Items[fxNumber];
+		auto& fxInfo = GetFXInfo(fx);
+
+		fx.Pose.Position.x = pose.Position.x;
+		fx.Pose.Position.y = pose.Position.y - (GetRandomControl() & 0x3F) - 32;
+		fx.Pose.Position.z = pose.Position.z;
+		fx.Pose.Orientation.x = pose.Orientation.x;
+		fx.Pose.Orientation.y = pose.Orientation.y;
+		fx.Pose.Orientation.z = 0;
+		fx.RoomNumber = roomNumber;
+		fx.Animation.Velocity.z = (GetRandomControl() & 0x1F) + 64;
+		fx.Model.MeshIndex = { (int)Objects[ID_BUBBLES].meshIndex + 8 };
+		fxInfo.Counter = (count * 16) + 15;
+		fxInfo.Flag1 = 0;
 	}
 
 	void TriggerHydraMissileSparks(Vector3i* pos, short xv, short yv, short zv)
@@ -345,7 +345,7 @@ namespace TEN::Entities::Creatures::TR5
 					GetFloor(pos2.x, pos2.y, pos2.z, &roomNumber);
 
 					// TEST: uncomment this for making HYDRA not firing bubbles
-					HydraBubblesAttack(&pose, roomNumber, 1);
+					HydraBubblesAttack(pose, roomNumber, 1);
 				}
 
 				break;

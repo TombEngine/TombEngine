@@ -295,14 +295,12 @@ namespace TEN::Entities::Vehicles
 
 	static void MinecartToEntityCollision(ItemInfo* minecartItem, ItemInfo* laraItem)
 	{
-		for (auto i : g_Level.Rooms[minecartItem->RoomNumber].NeighborRoomNumbers)
+		for (int roomNumber : g_Level.Rooms[minecartItem->RoomNumber].NeighborRoomNumbers)
 		{
-			if (!g_Level.Rooms[i].Active())
+			if (!g_Level.Rooms[roomNumber].Active())
 				continue;
 
-			short itemNumber = g_Level.Rooms[i].itemNumber;
-
-			while (itemNumber != NO_VALUE)
+			for (int itemNumber : g_Level.Rooms[roomNumber].itemNumbers)
 			{
 				auto* item = &g_Level.Items[itemNumber];
 
@@ -311,10 +309,12 @@ namespace TEN::Entities::Vehicles
 					item != laraItem && item != minecartItem)
 				{
 					auto* object = &Objects[item->ObjectNumber];
+
 					if (object->collision &&
 						(object->intelligent || item->ObjectNumber == ID_ROLLINGBALL || item->ObjectNumber == ID_MINECART_SWITCH))
 					{
 						auto direction = minecartItem->Pose.Position - item->Pose.Position;
+
 						if (direction.x > -BLOCK(2) && direction.x < BLOCK(2) &&
 							direction.y > -BLOCK(2) && direction.y < BLOCK(2) &&
 							direction.z > -BLOCK(2) && direction.z < BLOCK(2))
@@ -327,6 +327,7 @@ namespace TEN::Entities::Vehicles
 										(laraItem->Animation.ActiveState == MINECART_STATE_SWIPE && laraItem->Animation.AnimNumber == MINECART_ANIM_SWIPE_WRENCH))
 									{
 										int frame = laraItem->Animation.FrameNumber;
+
 										if (frame >= 12 && frame <= 22)
 										{
 											SoundEffect(SFX_TR3_VEHICLE_MINECART_WRENCH, &item->Pose, SoundEnvironment::Always);
@@ -349,15 +350,12 @@ namespace TEN::Entities::Vehicles
 										minecartItem->Pose.Orientation.y,
 										item->RoomNumber,
 										3);
-
 									DoDamage(item, INT_MAX);
 								}
 							}
 						}
 					}
 				}
-
-				itemNumber = item->NextItem;
 			}
 		}
 	}

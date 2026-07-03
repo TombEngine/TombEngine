@@ -46,9 +46,7 @@ namespace TEN::Renderer
 
 		auto item = RendererItem();
 		_items = std::vector<RendererItem>(allocatedItemSize, item);
-
-		auto effect = RendererEffect();
-		_effects = std::vector<RendererEffect>(allocatedItemSize, effect);
+		_effects = std::vector<RendererEffect>(allocatedItemSize, RendererEffect());
 		
 		auto emptyNormalMap = std::vector<unsigned char>{ 128, 128, 255, 255 };
 		auto emptyORSHMap = std::vector<unsigned char>{ 255, 255, 0, 255 };
@@ -364,7 +362,6 @@ namespace TEN::Renderer
 			rendererRoom.RoomNumber = i;
 			rendererRoom.AmbientLight = Vector4(room.ambient.x, room.ambient.y, room.ambient.z, 1.0f);
 			rendererRoom.ItemsToDraw.reserve(MAX_ITEMS_DRAW);
-			rendererRoom.EffectsToDraw.reserve(MAX_ITEMS_DRAW);
 			rendererRoom.Decals.reserve(Decal::COUNT_MAX);
 
 			auto boxMin = Vector3(room.Position.x + BLOCK(1), room.TopHeight - CLICK(1), room.Position.z + BLOCK(1));
@@ -686,13 +683,6 @@ namespace TEN::Renderer
 					auto* mesh = GetRendererMeshFromTrMesh(&moveable, &g_Level.Meshes[obj->skinIndex], 0, false, false, &lastVertex, &lastIndex);
 					_meshes.push_back(mesh);
 				}
-
-				if (objNum == ID_IMP_ROCK || objNum == ID_ENERGY_BUBBLES || objNum == ID_BUBBLES || objNum == ID_BODY_PART)
-				{
-					// HACK: these objects must have nmeshes = 0 because engine will use them in a different way while drawing Effects.
-					// In Core's code this was done in SETUP.C but we must do it here because we need to create renderer's meshes.
-					obj->nmeshes = 0;
-				}
 				else
 				{
 					for (int j = 0; j < obj->nmeshes; j++)
@@ -803,6 +793,22 @@ namespace TEN::Renderer
 					}
 				}
 			}
+		}
+
+		// ID_BODY_PART is a virtual object with no meshes of its own: each instance borrows a single
+		// mesh from the entity that spawned it (set per-instance in ItemInfo::Model.MeshIndex). It still
+		// needs a renderer object, otherwise the item pipeline skips it entirely and no parts are drawn.
+		// A single identity bone is enough since body parts have no animation.
+		if (!_moveableObjects[ID_BODY_PART].has_value())
+		{
+			_moveableObjects[ID_BODY_PART] = RendererObject();
+			auto& bodyPart = *_moveableObjects[ID_BODY_PART];
+			bodyPart.Id = ID_BODY_PART;
+			bodyPart.Hidden = false;
+			bodyPart.ShadowType = ShadowMode::None;
+			bodyPart.Skeleton = nullptr;
+			bodyPart.AnimationTransforms.push_back(Matrix::Identity);
+			bodyPart.BindPoseTransforms.push_back(Matrix::Identity);
 		}
 
 		_moveablesVertexBuffer = _graphicsDevice->CreateVertexBuffer((int)_moveablesVertices.size(), sizeof(Vertex), _moveablesVertices.data());

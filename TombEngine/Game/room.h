@@ -133,8 +133,7 @@ struct RoomData
 	int flippedRoom;
 	int flipNumber;
 
-	short itemNumber;
-	short fxNumber;
+	std::vector<int> itemNumbers;
 
 	//RoomObjectHandler Moveables = RoomObjectHandler(); // TODO: Refactor linked list of items in room to use a BVH instead.
 	//RoomObjectHandler Statics	= RoomObjectHandler(); // TODO: Refactor to use BVH.

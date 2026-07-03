@@ -347,7 +347,6 @@ namespace TEN::Renderer
 			{
 				CollectItems(to, renderView);
 				CollectStatics(to, renderView);
-				CollectEffects(to);
 			}
 		}
 
@@ -431,19 +430,23 @@ namespace TEN::Renderer
 
 		bool isRoomReflected = IsRoomReflected(renderView, roomNumber);
 
-		int itemNumber = NO_VALUE;
-		for (itemNumber = nativeRoom.itemNumber; itemNumber != NO_VALUE; itemNumber = g_Level.Items[itemNumber].NextItem)
+		for (int itemNumber : nativeRoom.itemNumbers)
 		{
 			const auto& item = g_Level.Items[itemNumber];
-
-			if (item.ObjectNumber == ID_LARA && itemNumber == g_Level.Items[itemNumber].NextItem)
-				break;
 
 			if (item.Status == ITEM_INVISIBLE)
 				continue;
 
 			if (item.Model.Color.w < EPSILON)
 				continue;
+
+			// Items carrying FX data (e.g. body parts, projectiles) are drawn through the lightweight
+			// effect path - a single mesh with no skeleton, animation, root motion or frustum culling.
+			if (item.Data.is<FXInfo>())
+			{
+				CollectEffect(itemNumber, rendererRoom);
+				continue;
+			}
 
 			if (item.ObjectNumber == ID_LARA && UseSpotCam && (SpotcamOverlay || SpotcamDontDrawLara))
 				continue;
@@ -461,7 +464,7 @@ namespace TEN::Renderer
 			// Clip object by frustum only if it doesn't cast shadows and is not in mirror room,
 			// otherwise disappearing shadows or reflections may be seen if object gets out of frustum.
 			bool inFrustum = true;
-			
+
 			if (!isRoomReflected && rendererObject.ShadowType == ShadowMode::None)
 			{
 				inFrustum = false;
@@ -541,6 +544,49 @@ namespace TEN::Renderer
 
 			rendererRoom.ItemsToDraw.push_back(&newItem);
 		}
+	}
+
+	void Renderer::CollectEffect(int itemNumber, RendererRoom& room)
+	{
+		const auto& item = g_Level.Items[itemNumber];
+
+		const auto& object = Objects[item.ObjectNumber];
+		if (!object.loaded || item.Model.MeshIndex.empty())
+			return;
+
+		auto& effect = _effects[itemNumber];
+
+		effect.ObjectID = item.ObjectNumber;
+		effect.RoomNumber = item.RoomNumber;
+		effect.Position = item.Pose.Position.ToVector3();
+		effect.Translation = Matrix::CreateTranslation(effect.Position);
+		effect.Rotation = item.Pose.Orientation.ToRotationMatrix();
+		effect.Scale = Matrix::CreateScale(Vector3::One);
+		effect.World = effect.Rotation * effect.Translation;
+		effect.Color = item.Model.Color;
+		effect.AmbientLight = room.AmbientLight;
+		effect.Mesh = GetMesh(item.Model.MeshIndex[0]);
+
+		// On the first frame after spawn (or a teleport) collapse interpolation onto the current pose.
+		if (item.DisableInterpolation)
+		{
+			effect.PrevPosition = effect.Position;
+			effect.PrevTranslation = effect.Translation;
+			effect.PrevRotation = effect.Rotation;
+			effect.PrevWorld = effect.World;
+			effect.PrevScale = effect.Scale;
+		}
+
+		float interpFactor = GetInterpolationFactor();
+		effect.InterpolatedPosition = Vector3::Lerp(effect.PrevPosition, effect.Position, interpFactor);
+		effect.InterpolatedTranslation = Matrix::Lerp(effect.PrevTranslation, effect.Translation, interpFactor);
+		effect.InterpolatedRotation = Matrix::Lerp(effect.InterpolatedRotation, effect.Rotation, interpFactor);
+		effect.InterpolatedWorld = Matrix::Lerp(effect.PrevWorld, effect.World, interpFactor);
+		effect.InterpolatedScale = Matrix::Lerp(effect.PrevScale, effect.Scale, interpFactor);
+
+		CollectLightsForEffect(item.RoomNumber, &effect);
+
+		room.EffectsToDraw.push_back(&effect);
 	}
 
 	void Renderer::CollectStatics(short roomNumber, RenderView& renderView)
@@ -927,60 +973,6 @@ namespace TEN::Renderer
 
 			renderView.LightsToDraw.push_back(light);
 			room.LightsToDraw.push_back(light);
-		}
-	}
-
-	void Renderer::CollectEffects(short roomNumber)
-	{
-		if (_rooms.size() <= roomNumber)
-			return;
-
-		RendererRoom& room = _rooms[roomNumber];
-		RoomData* r = &g_Level.Rooms[room.RoomNumber];
-
-		short fxNum = NO_VALUE;
-		for (fxNum = r->fxNumber; fxNum != NO_VALUE; fxNum = EffectList[fxNum].nextFx)
-		{
-			FX_INFO *fx = &EffectList[fxNum];
-			if (fx->objectNumber < 0 || fx->color.w <= 0)
-				continue;
-
-			ObjectInfo *obj = &Objects[fx->objectNumber];
-
-			RendererEffect *newEffect = &_effects[fxNum];
-
-			newEffect->Translation = Matrix::CreateTranslation(fx->pos.Position.x, fx->pos.Position.y, fx->pos.Position.z);
-			newEffect->Rotation = fx->pos.Orientation.ToRotationMatrix();
-			newEffect->Scale = Matrix::CreateScale(1.0f);
-			newEffect->World = newEffect->Rotation * newEffect->Translation;
-			newEffect->ObjectID = fx->objectNumber;
-			newEffect->RoomNumber = fx->roomNumber;
-			newEffect->Position = fx->pos.Position.ToVector3();
-			newEffect->AmbientLight = room.AmbientLight;
-			newEffect->Color = fx->color;
-			newEffect->Mesh = GetMesh(obj->nmeshes ? obj->meshIndex : fx->frameNumber);
-
-			if (fx->DisableInterpolation)
-			{
-				// In this way the interpolation will return always the same result
-				newEffect->PrevPosition = newEffect->Position;
-				newEffect->PrevTranslation = newEffect->Translation;
-				newEffect->PrevRotation = newEffect->Rotation;
-				newEffect->PrevWorld = newEffect->World;
-				newEffect->PrevScale = newEffect->Scale;
-
-				fx->DisableInterpolation = false;
-			}
-
-			newEffect->InterpolatedPosition = Vector3::Lerp(newEffect->PrevPosition, newEffect->Position, GetInterpolationFactor());
-			newEffect->InterpolatedTranslation = Matrix::Lerp(newEffect->PrevTranslation, newEffect->Translation, GetInterpolationFactor());
-			newEffect->InterpolatedRotation = Matrix::Lerp(newEffect->InterpolatedRotation, newEffect->Rotation, GetInterpolationFactor());
-			newEffect->InterpolatedWorld = Matrix::Lerp(newEffect->PrevWorld, newEffect->World, GetInterpolationFactor());
-			newEffect->InterpolatedScale = Matrix::Lerp(newEffect->PrevScale, newEffect->Scale, GetInterpolationFactor());
-
-			CollectLightsForEffect(fx->roomNumber, newEffect);
-
-			room.EffectsToDraw.push_back(newEffect);
 		}
 	}
 

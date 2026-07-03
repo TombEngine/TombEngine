@@ -162,6 +162,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed weapon unholstering animation when selecting a weapon from the inventory for the first time.
 * Fixed original issue with incorrect arm orientation with unholstered weapons.
 * Fixed original issue with aiming stutter with targets nearly out of sight.
+* Fixed TORCH_ITEM and FLARE_ITEM not having names when being thrown.
 * Fixed incorrect super grenade projectile orientation.
 * Fixed ricochet sparks not being visible at longer distances.
 * Fixed blood particles not being visible for stationary enemies.

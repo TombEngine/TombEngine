@@ -53,9 +53,9 @@ void ShootAtEnemy(Vector3i target, ItemInfo* item, int index)
 		Random::GenerateAngle(ANGLE(-RANDOM_ORIENT), ANGLE(RANDOM_ORIENT)),
 		0);
 
-	auto& fx = EffectList[index];
-	fx.pos.Orientation = Geometry::GetOrientToPoint(fx.pos.Position.ToVector3(), targetWithOffset);
-	fx.pos.Orientation += randomOrient;
+	auto& fx = g_Level.Items[index];
+	fx.Pose.Orientation = Geometry::GetOrientToPoint(fx.Pose.Position.ToVector3(), targetWithOffset);
+	fx.Pose.Orientation += randomOrient;
 }
 
 // TODO: Make ControlMissile() not use LaraItem global. -- TokyoSU 5/8/2022
@@ -64,105 +64,107 @@ void ControlMissile(short fxNumber)
 	static const int hitRadius = 200;
 
 	// TODO: Add fx.target (ItemInfo* target) to get the actual target (if it was really it).
-	auto& fx = EffectList[fxNumber];
+	auto& fx = g_Level.Items[fxNumber];
+	auto& fxInfo = GetFXInfo(fx);
 
-	auto isUnderwater = TestEnvironment(ENV_FLAG_WATER, fx.roomNumber);
+	auto isUnderwater = TestEnvironment(ENV_FLAG_WATER, fx.RoomNumber);
 	auto soundFXType = isUnderwater ? SoundEnvironment::Underwater : SoundEnvironment::Land;
 
 	// Make harpoon arch downwards if not underwater.
-	if (fx.objectNumber == ID_SCUBA_HARPOON && !isUnderwater && fx.pos.Orientation.x > ANGLE(-67.5f))
-		fx.pos.Orientation.x -= ANGLE(1.0f);
+	if (fx.ObjectNumber == ID_SCUBA_HARPOON && !isUnderwater && fx.Pose.Orientation.x > ANGLE(-67.5f))
+		fx.Pose.Orientation.x -= ANGLE(1.0f);
 
-	fx.pos.Translate(fx.pos.Orientation, fx.speed);
+	fx.Pose.Translate(fx.Pose.Orientation, fx.Animation.Velocity.z);
 
-	auto pointColl = GetPointCollision(fx.pos.Position, fx.roomNumber);
-	auto hasHitPlayer = ItemNearLara(fx.pos.Position, hitRadius);
+	auto pointColl = GetPointCollision(fx.Pose.Position, fx.RoomNumber);
+	auto hasHitPlayer = ItemNearLara(fx.Pose.Position, hitRadius);
 
 	// Check whether something was hit.
-	if (fx.pos.Position.y >= pointColl.GetFloorHeight() ||
-		fx.pos.Position.y <= pointColl.GetCeilingHeight() ||
+	if (fx.Pose.Position.y >= pointColl.GetFloorHeight() ||
+		fx.Pose.Position.y <= pointColl.GetCeilingHeight() ||
 		pointColl.IsWall() ||
 		hasHitPlayer)
 	{
-		if (fx.objectNumber == ID_KNIFETHROWER_KNIFE ||
-			fx.objectNumber == ID_SCUBA_HARPOON ||
-			fx.objectNumber == ID_PROJ_SHARD)
+		if (fx.ObjectNumber == ID_KNIFETHROWER_KNIFE ||
+			fx.ObjectNumber == ID_SCUBA_HARPOON ||
+			fx.ObjectNumber == ID_PROJ_SHARD)
 		{
-			SoundEffect((fx.objectNumber == ID_SCUBA_HARPOON) ? SFX_TR4_WEAPON_RICOCHET : SFX_TR2_CIRCLE_BLADE_HIT, &fx.pos, soundFXType);
+			SoundEffect((fx.ObjectNumber == ID_SCUBA_HARPOON) ? SFX_TR4_WEAPON_RICOCHET : SFX_TR2_CIRCLE_BLADE_HIT, &fx.Pose, soundFXType);
 		}
-		else if (fx.objectNumber == ID_PROJ_BOMB)
+		else if (fx.ObjectNumber == ID_PROJ_BOMB)
 		{
-			SpawnDecal(fx.pos.Position.ToVector3(), fx.roomNumber, DecalType::Explosion);
-			SoundEffect(SFX_TR1_ATLANTEAN_EXPLODE, &fx.pos, soundFXType);
-			TriggerExplosionSparks(fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z, 3, -2, 0, fx.roomNumber);
-			TriggerExplosionSparks(fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z, 3, -1, 0, fx.roomNumber);
-			TriggerShockwave(&fx.pos, 48, 304, (GetRandomControl() & 0x1F) + 112, 128, 32, 32, 32, EulerAngles(2048, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);
+			SpawnDecal(fx.Pose.Position.ToVector3(), fx.RoomNumber, DecalType::Explosion);
+			SoundEffect(SFX_TR1_ATLANTEAN_EXPLODE, &fx.Pose, soundFXType);
+			TriggerExplosionSparks(fx.Pose.Position.x, fx.Pose.Position.y, fx.Pose.Position.z, 3, -2, 0, fx.RoomNumber);
+			TriggerExplosionSparks(fx.Pose.Position.x, fx.Pose.Position.y, fx.Pose.Position.z, 3, -1, 0, fx.RoomNumber);
+			TriggerShockwave(&fx.Pose, 48, 304, (GetRandomControl() & 0x1F) + 112, 128, 32, 32, 32, EulerAngles(2048, 0.0f, 0.0f), 0, true, false, false, (int)ShockwaveStyle::Normal);
 		}
 
 		if (hasHitPlayer)
 		{
-			if (fx.objectNumber == ID_KNIFETHROWER_KNIFE)
+			if (fx.ObjectNumber == ID_KNIFETHROWER_KNIFE)
 			{
 				DoDamage(LaraItem, KNIFE_DAMAGE);
 			}
-			else if (fx.objectNumber == ID_SCUBA_HARPOON)
+			else if (fx.ObjectNumber == ID_SCUBA_HARPOON)
 			{
 				DoDamage(LaraItem, DIVER_HARPOON_DAMAGE);
 			}
-			else if (fx.objectNumber == ID_PROJ_BOMB)
+			else if (fx.ObjectNumber == ID_PROJ_BOMB)
 			{
 				DoDamage(LaraItem, MUTANT_BOMB_DAMAGE);
 			}
-			else if (fx.objectNumber == ID_PROJ_SHARD)
+			else if (fx.ObjectNumber == ID_PROJ_SHARD)
 			{
-				TriggerBlood(fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z, 0, 10);
-				SoundEffect(SFX_TR4_BLOOD_LOOP, &fx.pos, soundFXType);
+				TriggerBlood(fx.Pose.Position.x, fx.Pose.Position.y, fx.Pose.Position.z, 0, 10);
+				SoundEffect(SFX_TR4_BLOOD_LOOP, &fx.Pose, soundFXType);
 				DoDamage(LaraItem, MUTANT_SHARD_DAMAGE);
 			}
 
 			LaraItem->HitStatus = true;
-			fx.pos.Orientation.y = LaraItem->Pose.Orientation.y;
-			fx.speed = LaraItem->Animation.Velocity.z;
-			fx.frameNumber = 0;
-			fx.counter = 0;
+			fx.Pose.Orientation.y = LaraItem->Pose.Orientation.y;
+			fx.Animation.Velocity.z = LaraItem->Animation.Velocity.z;
+			fx.Animation.FrameNumber = 0;
+			fxInfo.Counter = 0;
 		}
 
-		KillEffect(fxNumber);
+		KillItem(fxNumber);
 		return;
 	}
 
-	if (pointColl.GetRoomNumber() != fx.roomNumber)
-		EffectNewRoom(fxNumber, pointColl.GetRoomNumber());
+	if (pointColl.GetRoomNumber() != fx.RoomNumber)
+		ItemNewRoom(fxNumber, pointColl.GetRoomNumber());
 
-	if (fx.objectNumber == ID_KNIFETHROWER_KNIFE)
-		fx.pos.Orientation.z += ANGLE(30.0f); // Update knife rotation over time.
+	if (fx.ObjectNumber == ID_KNIFETHROWER_KNIFE)
+		fx.Pose.Orientation.z += ANGLE(30.0f); // Update knife rotation over time.
 
-	switch (fx.objectNumber)
+	switch (fx.ObjectNumber)
 	{
 	case ID_SCUBA_HARPOON:
-		if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, fx.roomNumber))
-			SpawnBubble(fx.pos.Position.ToVector3(), fx.roomNumber);
+		if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, fx.RoomNumber))
+			SpawnBubble(fx.Pose.Position.ToVector3(), fx.RoomNumber);
 
 		break;
 
 	case ID_PROJ_BOMB:
-		SpawnDynamicLight(fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z, 14, 180, 100, 0);
+		SpawnDynamicLight(fx.Pose.Position.x, fx.Pose.Position.y, fx.Pose.Position.z, 14, 180, 100, 0);
 		break;
 	}
 }
 
 void ControlNatlaGun(short fxNumber)
 {
-	auto& fx = EffectList[fxNumber];
+	auto& fx = g_Level.Items[fxNumber];
+	auto& fxInfo = GetFXInfo(fx);
 
-	fx.frameNumber--;
-	if (fx.frameNumber <= Objects[fx.objectNumber].nmeshes)
-		KillEffect(fxNumber);
+	fx.Animation.FrameNumber--;
+	if (fx.Animation.FrameNumber <= Objects[fx.ObjectNumber].nmeshes)
+		KillItem(fxNumber);
 
 	// If first frame, start another explosion at next position.
-	if (fx.frameNumber == -1)
+	if (fx.Animation.FrameNumber == -1)
 	{
-		auto pointColl = GetPointCollision(fx.pos.Position, fx.roomNumber, fx.pos.Orientation.y, fx.speed);
+		auto pointColl = GetPointCollision(fx.Pose.Position, fx.RoomNumber, fx.Pose.Orientation.y, fx.Animation.Velocity.y);
 
 		// Don't create one if hit a wall.
 		if (pointColl.GetPosition().y >= pointColl.GetFloorHeight() ||
@@ -171,34 +173,32 @@ void ControlNatlaGun(short fxNumber)
 			return;
 		}
 
-		fxNumber = CreateNewEffect(pointColl.GetRoomNumber());
+		fxNumber = CreateNewEffect(pointColl.GetRoomNumber(), ID_PROJ_BOMB, fx.Pose.Position);
 		if (fxNumber != NO_VALUE)
 		{
-			auto& fxNew = EffectList[fxNumber];
+			auto& fxNew = g_Level.Items[fxNumber];
 
-			fxNew.pos.Position = pointColl.GetPosition();
-			fxNew.pos.Orientation.y = fx.pos.Orientation.y;
-			fxNew.roomNumber = pointColl.GetRoomNumber();
-			fxNew.speed = fx.speed;
-			fxNew.frameNumber = 0;
-			fxNew.objectNumber = ID_PROJ_BOMB;
+			fxNew.Pose.Position = pointColl.GetPosition();
+			fxNew.Pose.Orientation.y = fx.Pose.Orientation.y;
+			fxNew.RoomNumber = pointColl.GetRoomNumber();
+			fxNew.Animation.Velocity.z = fx.Animation.Velocity.z;
+			fxNew.Animation.FrameNumber = 0;
+			fxNew.ObjectNumber = ID_PROJ_BOMB;
 		}
 	}
 }
 
 short ShardGun(int x, int y, int z, short velocity, short yRot, short roomNumber)
 {
-	int fxNumber = CreateNewEffect(roomNumber);
+	int fxNumber = CreateNewEffect(roomNumber, ID_PROJ_SHARD, Pose(Vector3i(x, y, z), EulerAngles(0, yRot, 0)));
 	if (fxNumber != NO_VALUE)
 	{
-		auto& fx = EffectList[fxNumber];
+		auto& fx = g_Level.Items[fxNumber];
 
-		fx.pos.Position = Vector3i(x, y, z);
-		fx.roomNumber = roomNumber;
-		fx.speed = velocity;
-		fx.frameNumber = 0;
-		fx.objectNumber = ID_PROJ_SHARD;
-		fx.color = NEUTRAL_COLOR;
+		fx.RoomNumber = roomNumber;
+		fx.Animation.Velocity.z = velocity;
+		fx.Animation.FrameNumber = 0;
+		fx.Model.Color = NEUTRAL_COLOR;
 	}
 
 	return fxNumber;
@@ -206,17 +206,15 @@ short ShardGun(int x, int y, int z, short velocity, short yRot, short roomNumber
 
 short BombGun(int x, int y, int z, short velocity, short yRot, short roomNumber)
 {
-	int fxNumber = CreateNewEffect(roomNumber);
+	int fxNumber = CreateNewEffect(roomNumber, ID_PROJ_BOMB, Pose(Vector3i(x, y, z), EulerAngles(0, yRot, 0)));
 	if (fxNumber != NO_VALUE)
 	{
-		auto& fx = EffectList[fxNumber];
+		auto& fx = g_Level.Items[fxNumber];
 
-		fx.pos.Position = Vector3i(x, y, z);
-		fx.roomNumber = roomNumber;
-		fx.speed = velocity;
-		fx.frameNumber = 0;
-		fx.objectNumber = ID_PROJ_BOMB;
-		fx.color = NEUTRAL_COLOR;
+		fx.RoomNumber = roomNumber;
+		fx.Animation.Velocity.z = velocity;
+		fx.Animation.FrameNumber = 0;
+		fx.Model.Color = NEUTRAL_COLOR;
 	}
 
 	return fxNumber;
@@ -224,17 +222,15 @@ short BombGun(int x, int y, int z, short velocity, short yRot, short roomNumber)
 
 short HarpoonGun(int x, int y, int z, short velocity, short yRot, short roomNumber)
 {
-	int fxNumber = CreateNewEffect(roomNumber);
+	int fxNumber = CreateNewEffect(roomNumber, ID_SCUBA_HARPOON, Pose(Vector3i(x, y, z), EulerAngles(0, yRot, 0)));
 	if (fxNumber != NO_VALUE)
 	{
-		auto& fx = EffectList[fxNumber];
+		auto& fx = g_Level.Items[fxNumber];
 
-		fx.pos.Position = Vector3i(x, y, z);
-		fx.roomNumber = roomNumber;
-		fx.speed = velocity;
-		fx.frameNumber = 0;
-		fx.objectNumber = ID_SCUBA_HARPOON;
-		fx.color = NEUTRAL_COLOR;
+		fx.RoomNumber = roomNumber;
+		fx.Animation.Velocity.z = velocity;
+		fx.Animation.FrameNumber = 0;
+		fx.Model.Color = NEUTRAL_COLOR;
 	}
 
 	return fxNumber;

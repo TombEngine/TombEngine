@@ -123,10 +123,11 @@ namespace TEN::Entities::TR4
 
 	void TriggerDemigodMissileFlame(short fxNumber, short xVel, short yVel, short zVel)
 	{
-		auto* fx = &EffectList[fxNumber];
+		auto& fx = g_Level.Items[fxNumber];
+		auto& fxInfo = GetFXInfo(fx);
 
-		int dx = LaraItem->Pose.Position.x - fx->pos.Position.x;
-		int dz = LaraItem->Pose.Position.z - fx->pos.Position.z;
+		int dx = LaraItem->Pose.Position.x - fx.Pose.Position.x;
+		int dz = LaraItem->Pose.Position.z - fx.Pose.Position.z;
 
 		if (dx >= -BLOCK(16) && dx <= BLOCK(16) &&
 			dz >= -BLOCK(16) && dz <= BLOCK(16))
@@ -134,7 +135,7 @@ namespace TEN::Entities::TR4
 			auto* spark = GetFreeParticle();
 
 			spark->on = 1;
-			if (fx->flag1 == 3 || fx->flag1 == 4)
+			if (fxInfo.Flag1 == 3 || fxInfo.Flag1 == 4)
 			{
 				spark->sR = 0;
 				spark->dR = 0;
@@ -181,32 +182,33 @@ namespace TEN::Entities::TR4
 		}
 	}
 
-	void TriggerDemigodMissile(Pose* pose, short roomNumber, int flags)
+	void TriggerDemigodMissile(const Pose& pose, short roomNumber, int flags)
 	{
-		short fxNumber = CreateNewEffect(roomNumber);
+		int fxNumber = CreateNewEffect(roomNumber, ID_ENERGY_BUBBLES, pose);
 		if (fxNumber != -1)
 		{
-			auto* fx = &EffectList[fxNumber];
+			auto& fx = g_Level.Items[fxNumber];
+			auto& fxInfo = GetFXInfo(fx);
 
-			fx->pos.Position.x = pose->Position.x;
-			fx->pos.Position.y = pose->Position.y - (GetRandomControl() & 0x3F) - 32;
-			fx->pos.Position.z = pose->Position.z;
+			fx.Pose.Position.x = pose.Position.x;
+			fx.Pose.Position.y = pose.Position.y - (GetRandomControl() & 0x3F) - 32;
+			fx.Pose.Position.z = pose.Position.z;
 
-			fx->pos.Orientation.x = pose->Orientation.x;
+			fx.Pose.Orientation.x = pose.Orientation.x;
 
 			if (flags < 4)
-				fx->pos.Orientation.y = pose->Orientation.y;
+				fx.Pose.Orientation.y = pose.Orientation.y;
 			else
-				fx->pos.Orientation.y = pose->Orientation.y + (GetRandomControl() & 0x7FF) - 1024;
+				fx.Pose.Orientation.y = pose.Orientation.y + (GetRandomControl() & 0x7FF) - 1024;
 
-			fx->pos.Orientation.z = 0;
+			fx.Pose.Orientation.z = 0;
 
-			fx->roomNumber = roomNumber;
-			fx->counter = 2 * GetRandomControl() + -ANGLE(180.0f);
-			fx->flag1 = flags;
-			fx->speed = (GetRandomControl() & 0x1F) + 96;
-			fx->objectNumber = ID_ENERGY_BUBBLES;
-			fx->frameNumber = Objects[ID_ENERGY_BUBBLES].meshIndex + ((flags >= 4) ? flags - 1 : flags);
+			fx.RoomNumber = roomNumber;
+			fxInfo.Counter = 2 * GetRandomControl() + -ANGLE(180.0f);
+			fxInfo.Flag1 = flags;
+			fx.Animation.Velocity.z = (GetRandomControl() & 0x1F) + 96;
+			fx.ObjectNumber = ID_ENERGY_BUBBLES;
+			fx.Model.MeshIndex = { (int)Objects[ID_ENERGY_BUBBLES].meshIndex + ((flags >= 4) ? flags - 1 : flags) };
 		}
 	}
 
@@ -226,9 +228,9 @@ namespace TEN::Entities::TR4
 
 				auto pose = Pose(origin, orient);
 				if (item->ObjectNumber == ID_DEMIGOD3)
-					TriggerDemigodMissile(&pose, item->RoomNumber, 3);
+					TriggerDemigodMissile(pose, item->RoomNumber, 3);
 				else
-					TriggerDemigodMissile(&pose, item->RoomNumber, 5);
+					TriggerDemigodMissile(pose, item->RoomNumber, 5);
 			}
 		}
 		else if (animNumber == DEMIGOD3_ANIM_SINGLE_PROJECTILE_ATTACK)
@@ -241,9 +243,9 @@ namespace TEN::Entities::TR4
 
 				auto pose = Pose(pos1, orient);
 				if (item->ObjectNumber == ID_DEMIGOD3)
-					TriggerDemigodMissile(&pose, item->RoomNumber, 3);
+					TriggerDemigodMissile(pose, item->RoomNumber, 3);
 				else
-					TriggerDemigodMissile(&pose, item->RoomNumber, 5);
+					TriggerDemigodMissile(pose, item->RoomNumber, 5);
 			}
 		}
 		else if (animNumber == DEMIGOD3_ANIM_RADIAL_PROJECTILE_ATTACK)
@@ -268,7 +270,7 @@ namespace TEN::Entities::TR4
 
 				auto orient = Geometry::GetOrientToPoint(pos1.ToVector3(), pos2.ToVector3());
 				auto pose = Pose(pos1, orient);
-				TriggerDemigodMissile(&pose, item->RoomNumber, 4);
+				TriggerDemigodMissile(pose, item->RoomNumber, 4);
 			}
 		}
 	}

@@ -1054,6 +1054,7 @@ void PickupControl(short itemNumber)
 
 const GameBoundingBox* FindPlinth(ItemInfo* item)
 {
+
 	auto coll = GetLosCollision(item->Pose.Position.ToVector3(), item->RoomNumber, Vector3::UnitY, CLICK(1), true, false, true);
 
 	if (!coll.Statics.empty())

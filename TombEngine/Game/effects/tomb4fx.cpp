@@ -1257,41 +1257,45 @@ void ExplodingDeath(short itemNumber, short flags)
 		{
 			auto bonePos = GetJointPosition(item, i, Vector3i::Zero);
 
-			short fxNumber = CreateNewEffect(item->RoomNumber);
+			short fxNumber = CreateNewEffect(item->RoomNumber, ID_BODY_PART, item->Pose);
 			if (fxNumber != NO_VALUE)
 			{
-				auto* fx = &EffectList[fxNumber];
+				auto& fx = g_Level.Items[fxNumber];
+				auto& fxInfo = GetFXInfo(fx);
 
-				fx->pos.Position.x = bonePos.x;
-				fx->pos.Position.y = bonePos.y - BODY_PART_SPAWN_VERTICAL_OFFSET;
-				fx->pos.Position.z = bonePos.z;
+				fx.Pose.Position.x = bonePos.x;
+				fx.Pose.Position.y = bonePos.y - BODY_PART_SPAWN_VERTICAL_OFFSET;
+				fx.Pose.Position.z = bonePos.z;
 
-				fx->roomNumber = item->RoomNumber;
-				fx->pos.Orientation.x = 0;
-				fx->pos.Orientation.y = Random::GenerateAngle();
+				fx.Pose.Orientation.x = 0;
+				fx.Pose.Orientation.y = Random::GenerateAngle();
+				fx.Pose.Orientation.z = 0;
+				fx.Pose.Scale = Vector3::One;
+
+				fx.RoomNumber = item->RoomNumber;
 
 				if (!(flags & BODY_NO_RAND_VELOCITY))
 				{
 					if (flags & BODY_MORE_RAND_VELOCITY)
-						fx->speed = GetRandomControl() >> 12;
+						fx.Animation.Velocity.z = GetRandomControl() >> 12;
 					else
-						fx->speed = GetRandomControl() >> 8;
+						fx.Animation.Velocity.z = GetRandomControl() >> 8;
 				}
 
 				if (flags & BODY_NO_VERTICAL_VELOCITY)
-					fx->fallspeed = 0;
+					fx.Animation.Velocity.y = 0;
 				else
 				{
 					if (flags & BODY_LESS_IMPULSE)
-						fx->fallspeed = -(GetRandomControl() >> 8);
+						fx.Animation.Velocity.y = -(GetRandomControl() >> 8);
 					else
-						fx->fallspeed = -(GetRandomControl() >> 12);
+						fx.Animation.Velocity.y = -(GetRandomControl() >> 12);
 				}
 
-				fx->objectNumber = ID_BODY_PART;
-				fx->color = item->Model.Color;
-				fx->flag2 = flags;
-				fx->frameNumber = item->Model.MeshIndex[i];
+				fx.ObjectNumber = ID_BODY_PART;
+				fx.Model.Color = item->Model.Color;
+				fx.Model.MeshIndex = { item->Model.MeshIndex[i] };
+				fxInfo.Flag2 = flags;
 			}
 		}
 		else

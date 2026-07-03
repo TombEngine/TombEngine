@@ -7,7 +7,7 @@
 using namespace TEN::Math;
 
 struct CreatureInfo;
-struct FX_INFO;
+struct FXInfo;
 struct ItemInfo;
 
 using namespace TEN::Entities::Player;

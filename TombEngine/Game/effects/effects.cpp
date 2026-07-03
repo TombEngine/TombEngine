@@ -59,8 +59,6 @@ constexpr int WIBBLE_MAX = UCHAR_MAX - WIBBLE_SPEED + 1;
 Particle Particles[MAX_PARTICLES];
 ParticleDynamic ParticleDynamics[MAX_PARTICLE_DYNAMICS];
 
-FX_INFO EffectList[MAX_SPAWNED_ITEM_COUNT];
-
 GameBoundingBox DeadlyBounds;
 
 int Wibble = 0;
@@ -104,11 +102,11 @@ void DetatchSpark(int number, SpriteEnumFlag type)
 						sptr->on = false;
 					else
 					{
-						auto* fx = &EffectList[number];
+						auto* fx = &g_Level.Items[number];
 
-						sptr->x += fx->pos.Position.x;
-						sptr->y += fx->pos.Position.y;
-						sptr->z += fx->pos.Position.z;
+						sptr->x += fx->Pose.Position.x;
+						sptr->y += fx->Pose.Position.y;
+						sptr->z += fx->Pose.Position.z;
 						sptr->flags &= ~SP_FX;
 					}
 
@@ -2055,4 +2053,10 @@ void SpawnPlayerWaterSurfaceEffects(const ItemInfo& item, int waterHeight, int w
 			item.RoomNumber, Random::GenerateFloat(112.0f, 128.0f),
 			flags);
 	}
+}
+
+FXInfo& GetFXInfo(ItemInfo& fx)
+{
+	TENAssert(fx.Data.is<FXInfo>(), "GetFXInfo called on item without FXInfo data.");
+	return static_cast<FXInfo&>(fx.Data);
 }

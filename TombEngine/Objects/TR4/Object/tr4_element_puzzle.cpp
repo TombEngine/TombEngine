@@ -110,13 +110,9 @@ namespace TEN::Entities::TR4
 			return;
 		}
 
-		short currentItemNumber = g_Level.Rooms[item->RoomNumber].itemNumber;
-		if (currentItemNumber == NO_VALUE)
-			return;
-
-		while (currentItemNumber != NO_VALUE)
+		for (int itemNumber : g_Level.Rooms[item->RoomNumber].itemNumbers)
 		{
-			auto* currentItem = &g_Level.Items[currentItemNumber];
+			auto* currentItem = &g_Level.Items[itemNumber];
 
 			if (currentItem->ObjectNumber != ID_FLAME_EMITTER2)
 			{
@@ -127,23 +123,20 @@ namespace TEN::Entities::TR4
 					currentItem->ItemFlags[3] = 90;
 				}
 
-				currentItemNumber = currentItem->NextItem;
 				continue;
 			}
 
 			if (item->ItemFlags[0] != 89)
 			{
 				currentItem->ItemFlags[3] = 255 - GetRandomControl() % (4 * item->ItemFlags[0]);
+
 				if (currentItem->ItemFlags[3] >= 2)
-				{
-					currentItemNumber = currentItem->NextItem;
 					continue;
-				}
 
 				currentItem->ItemFlags[3] = 2;
 			}
 
-			RemoveActiveItem(currentItemNumber);
+			RemoveActiveItem(itemNumber);
 			currentItem->Status = ITEM_NOT_ACTIVE;
 		}
 	}
