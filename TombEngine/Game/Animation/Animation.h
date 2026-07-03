@@ -128,7 +128,7 @@ namespace TEN::Animation
 	int   GetFrameCount(GAME_OBJECT_ID objectID, int animNumber); // TODO: Not needed? Not the "real" frame count anyway since 0 isn't counted.
 	int   GetFrameCount(const ItemInfo& item);
 	float GetEffectiveGravity(float verticalVel);
-	int   GetSystemBlendDuration();
+	int   GetInternalBlendDuration();
 
 	Vector3i   GetJointPosition(const ItemInfo& item, int boneID, const Vector3i& relOffset = Vector3i::Zero);
 	Vector3i   GetJointPosition(ItemInfo* item, int boneID, const Vector3i& relOffset = Vector3i::Zero);

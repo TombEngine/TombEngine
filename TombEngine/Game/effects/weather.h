@@ -139,8 +139,8 @@ namespace TEN::Effects::Environment
 		int	 StormCount		= 0;
 		int	 StormRand		= 0;
 		int	 StormTimer		= 0;
-		byte StormSkyColor	= 1;
-		byte StormSkyColor2 = 1;
+		unsigned char StormSkyColor	= 1;
+		unsigned char StormSkyColor2 = 1;
 
 		// Starfield
 

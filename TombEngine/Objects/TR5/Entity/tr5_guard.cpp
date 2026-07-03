@@ -204,7 +204,6 @@ namespace TEN::Entities::Creatures::TR5
 	void InitializeGuard(short itemNum)
 	{
 		auto* item = &g_Level.Items[itemNum];
-		short roomItemNumber;
 
 		InitializeCreature(itemNum);
 
@@ -226,37 +225,37 @@ namespace TEN::Entities::Creatures::TR5
 			break;
 
 		case GuardOcb::RopeDown:
+		{
 			SetAnimation(item, GUARD_ANIM_ROPE_DOWN);
 			item->SetMeshSwapFlags(9216);
 
-			roomItemNumber = g_Level.Rooms[item->RoomNumber].itemNumber;
-			if (roomItemNumber != NO_VALUE)
+			ItemInfo* item2 = nullptr;
+			bool found = false;
+
+			for (int roomItemNumber : g_Level.Rooms[item->RoomNumber].itemNumbers)
 			{
-				ItemInfo* item2 = nullptr;
-				while (true)
+				item2 = &g_Level.Items[roomItemNumber];
+
+				if (item2->ObjectNumber >= ID_ANIMATING1 &&
+					item2->ObjectNumber <= ID_ANIMATING15 &&
+					item2->RoomNumber == item->RoomNumber &&
+					item2->TriggerFlags == (int)GuardOcb::RopeDown)
 				{
-					item2 = &g_Level.Items[roomItemNumber];
-					if (item2->ObjectNumber >= ID_ANIMATING1 &&
-						item2->ObjectNumber <= ID_ANIMATING15 &&
-						item2->RoomNumber == item->RoomNumber &&
-						item2->TriggerFlags == (int)GuardOcb::RopeDown)
-					{
-						break;
-					}
-
-					roomItemNumber = item2->NextItem;
-					if (roomItemNumber == NO_VALUE)
-					{
-						item->Animation.FrameNumber = 0;
-						item->Animation.ActiveState = item->Animation.TargetState;
-						break;
-					}
+					found = true;
+					break;
 				}
-
-				item2->MeshBits = -5;
 			}
 
-			break;
+			if (!found)
+			{
+				item->Animation.FrameNumber = 0;
+				item->Animation.ActiveState = item->Animation.TargetState;
+			}
+
+			if (item2 != nullptr)
+				item2->MeshBits = -5;
+		}
+		break;
 
 		case GuardOcb::Sleeping:
 			SetAnimation(item, GUARD_ANIM_SLEEPING);
@@ -447,9 +446,7 @@ namespace TEN::Entities::Creatures::TR5
 				LaraItem->RoomNumber);
 
 			bool los = !LOS(&origin, &target) && item->TriggerFlags != (int)GuardOcb::Idle;
-			ItemInfo* currentItem = nullptr;
-			short currentItemNumber;
-
+	
 			switch (item->Animation.ActiveState)
 			{
 			case GUARD_STATE_IDLE:
@@ -756,7 +753,9 @@ namespace TEN::Entities::Creatures::TR5
 
 			case GUARD_STATE_STAND_UP:
 			case GUARD_STATE_AWAKE_FROM_SLEEP:
+			{
 				creature->MaxTurn = 0;
+
 				if (item->Animation.FrameNumber == 0)
 				{
 					TestTriggers(item, true);
@@ -767,28 +766,25 @@ namespace TEN::Entities::Creatures::TR5
 				{
 					item->SetMeshSwapFlags(NO_JOINT_BITS);
 
-					short currentItemNumber = g_Level.Rooms[item->RoomNumber].itemNumber;
-					if (currentItemNumber == NO_VALUE)
-						break;
+					ItemInfo* currentItem = nullptr;
 
-					while (true)
+					for (int itemNumber : g_Level.Rooms[item->RoomNumber].itemNumbers)
 					{
-						currentItem = &g_Level.Items[currentItemNumber];
+						auto* testItem = &g_Level.Items[itemNumber];
 
-						if (currentItem->ObjectNumber >= ID_ANIMATING1 &&
-							currentItem->ObjectNumber <= ID_ANIMATING15 &&
-							currentItem->RoomNumber == item->RoomNumber)
+						if (testItem->ObjectNumber >= ID_ANIMATING1 &&
+							testItem->ObjectNumber <= ID_ANIMATING15 &&
+							testItem->RoomNumber == item->RoomNumber)
 						{
-							if (currentItem->TriggerFlags > (int)GuardOcb::DoorKick && currentItem->TriggerFlags < (int)GuardOcb::RopeDownFast)
+							if (testItem->TriggerFlags > (int)GuardOcb::DoorKick && testItem->TriggerFlags < (int)GuardOcb::RopeDownFast)
+							{
+								currentItem = testItem;
 								break;
+							}
 						}
-
-						currentItemNumber = currentItem->NextItem;
-						if (currentItemNumber == NO_VALUE)
-							break;
 					}
 
-					if (currentItemNumber == NO_VALUE)
+					if (currentItem == nullptr)
 						break;
 
 					currentItem->MeshBits = -3;
@@ -797,9 +793,9 @@ namespace TEN::Entities::Creatures::TR5
 				{
 					item->Pose.Orientation.y -= ANGLE(90.0f);
 				}
-			
-				break;
 
+				break;
+			}
 			case GUARD_STATE_SLEEP_ON_CHAIR_LOOP:
 				creature->MaxTurn = 0;
 				headY = 0;
@@ -849,15 +845,25 @@ namespace TEN::Entities::Creatures::TR5
 				break;
 
 			case GUARD_STATE_USE_KEYPAD:
+			{
 				creature->MaxTurn = 0;
-				currentItem = nullptr;
 
-				for (currentItemNumber = g_Level.Rooms[item->RoomNumber].itemNumber; currentItemNumber != NO_VALUE; currentItemNumber = currentItem->NextItem)
+				ItemInfo* currentItem = nullptr;
+
+				for (int itemNumber : g_Level.Rooms[item->RoomNumber].itemNumbers)
 				{
-					currentItem = &g_Level.Items[currentItemNumber];
-					if (item->ObjectNumber == ID_PUZZLE_HOLE8) // TODO: Avoid hardcoded object number. -- TokyoSU 24/12/2022
+					auto* testItem = &g_Level.Items[itemNumber];
+
+					// TODO: Avoid hardcoded object number. -- TokyoSU 24/12/2022
+					if (testItem->ObjectNumber == ID_PUZZLE_HOLE8)
+					{
+						currentItem = testItem;
 						break;
+					}
 				}
+
+				if (currentItem == nullptr)
+					break;
 
 				if (item->Animation.FrameNumber == 0)
 				{
@@ -881,7 +887,7 @@ namespace TEN::Entities::Creatures::TR5
 					{
 						currentItem->MeshBits = 802621;
 					}
-					else if (item->Animation.FrameNumber ==  157)
+					else if (item->Animation.FrameNumber == 157)
 					{
 						currentItem->MeshBits = 819001;
 					}
@@ -899,6 +905,7 @@ namespace TEN::Entities::Creatures::TR5
 				}
 
 				break;
+			}
 
 			case GUARD_STATE_USE_COMPUTER:
 				creature->MaxTurn = 0;

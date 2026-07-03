@@ -81,9 +81,6 @@ namespace TEN::Renderer
 		for (auto& item : _items)
 			item.LightsToDraw = createVector<RendererLight*>(MAX_LIGHTS_PER_ITEM);
 
-		for (auto& effect : _effects)
-			effect.LightsToDraw = createVector<RendererLight*>(MAX_LIGHTS_PER_ITEM);
-
 		_SMAAAreaTexture = _graphicsDevice->CreateTexture2D(AREATEX_WIDTH, AREATEX_HEIGHT, SurfaceFormat::SF_RG8_Unorm, (unsigned char*)areaTexBytes);
 		_SMAASearchTexture = _graphicsDevice->CreateTexture2D(SEARCHTEX_WIDTH, SEARCHTEX_HEIGHT, SurfaceFormat::SF_R8_Unorm, (unsigned char*)searchTexBytes);
 

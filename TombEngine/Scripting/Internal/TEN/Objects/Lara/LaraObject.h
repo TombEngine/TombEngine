@@ -17,6 +17,8 @@ public:
 	int GetAir() const;
 	void SetStamina(sol::optional<int> value);
 	int GetStamina() const;
+	void SetExposure(sol::optional<int> exposure);
+	int GetExposure() const;
 	void SetWet(sol::optional<int> wetness);
 	int GetWet() const;
 	bool GetAirborne() const;

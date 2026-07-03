@@ -5,7 +5,7 @@
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/Los.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/control/los.h"
 #include "Game/control/lot.h"
 #include "Game/effects/effects.h"

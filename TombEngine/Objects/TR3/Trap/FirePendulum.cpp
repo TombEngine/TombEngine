@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR3/Trap/FirePendulum.h"
 
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/Lara/lara.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"

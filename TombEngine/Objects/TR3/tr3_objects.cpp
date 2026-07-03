@@ -37,7 +37,7 @@
 #include "Objects/Effects/Boss.h"
 
 // Objects
-#include "Objects/TR3/Object/Corpse.h"
+#include "Objects/TR3/Object/corpse.h"
 #include "Objects/TR3/Object/Fusebox.h"
 
 // Traps
@@ -295,6 +295,7 @@ static void StartEntity(ObjectInfo* obj)
 	{
 		obj->Initialize = InitializeSophiaLeigh;
 		obj->control = SophiaLeighControl;
+		obj->HitRoutine = SophiaLeighHit;
 		obj->collision = CreatureCollision;
 		obj->shadowType = ShadowMode::All;
 		obj->pivotLength = 50;

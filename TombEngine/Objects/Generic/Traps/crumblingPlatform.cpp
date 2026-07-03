@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Objects/Generic/Traps/CrumblingPlatform.h"
+#include "Objects/Generic/Traps/crumblingPlatform.h"
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
@@ -11,7 +11,7 @@
 #include "Game/effects/Splash.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
-#include "Game/setup.h"
+#include "Game/Setup.h"
 #include "Math/Random.h"
 #include "Objects/Generic/Object/BridgeObject.h"
 #include "Specific/clock.h"
