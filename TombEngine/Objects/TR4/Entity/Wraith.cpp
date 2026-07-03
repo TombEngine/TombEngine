@@ -37,13 +37,13 @@ namespace TEN::Entities::TR4
 	constexpr auto WRAITH_VELOCITY			= 64.0f;
 	constexpr auto WRAITH_TRAP_DISTANCE_MAX = SQUARE(BLOCK(2));
 
-	constexpr auto HASH_PRIMARY_COLOR	 = GetHash("primaryColor");
-	constexpr auto HASH_WATER_DEATH		 = GetHash("waterDeath");
-	constexpr auto HASH_FLIPMAP_ON_DEATH = GetHash("flipmapDeath");
-	constexpr auto HASH_TRAP_DEATH	     = GetHash("trapDeath");
-	constexpr auto HASH_ATTACK_TYPE	     = GetHash("attackType");
-	constexpr auto HASH_DAMAGE		     = GetHash("damage");
-	constexpr auto HASH_MESH_ID		     = GetHash("meshID");
+	constexpr auto HASH_PRIMARY_COLOR	 = GetHash("PrimaryColor");
+	constexpr auto HASH_WATER_DEATH		 = GetHash("WaterDeath");
+	constexpr auto HASH_FLIPMAP_ON_DEATH = GetHash("FlipmapDeath");
+	constexpr auto HASH_TRAP_DEATH	     = GetHash("TrapDeath");
+	constexpr auto HASH_ATTACK_TYPE	     = GetHash("AttackType");
+	constexpr auto HASH_DAMAGE		     = GetHash("Damage");
+	constexpr auto HASH_MESH_ID		     = GetHash("MeshID");
 
 	enum class Wraith4AttackType
 	{
@@ -110,7 +110,7 @@ namespace TEN::Entities::TR4
 
 	static void WraithWallEffect(Vector3i pos, short yRot, int objectNumber, const Vector4& wraithColor = Vector4::Zero)
 	{
-		byte sR, sG, sB, dR, dG, dB;
+		unsigned char sR, sG, sB, dR, dG, dB;
 
 		if (objectNumber == ID_WRAITH4)
 		{
@@ -122,9 +122,9 @@ namespace TEN::Entities::TR4
 			int gVal = baseG + (GetRandomControl() & 0x3F) - 32;
 			int bVal = baseB + (GetRandomControl() & 0x3F) - 32;
 
-			sR = dR = (byte)std::max(0, std::min((int)UCHAR_MAX, rVal));
-			sG = dG = (byte)std::max(0, std::min((int)UCHAR_MAX, gVal));
-			sB = dB = (byte)std::max(0, std::min((int)UCHAR_MAX, bVal));
+			sR = dR = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, rVal));
+			sG = dG = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, gVal));
+			sB = dB = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, bVal));
 		}
 		else if (objectNumber == ID_WRAITH1)
 		{
@@ -884,12 +884,12 @@ namespace TEN::Entities::TR4
 		SpawnWraithTails(item, tailColor);
 
 		// Lighting for wraith.
-		byte r, g, b;
+		unsigned char r, g, b;
 		if (item.ObjectNumber == ID_WRAITH4)
 		{
-			r = (byte)(wraith4Color.x * UCHAR_MAX);
-			g = (byte)(wraith4Color.y * UCHAR_MAX);
-			b = (byte)(wraith4Color.z * UCHAR_MAX);
+			r = (unsigned char)(wraith4Color.x * UCHAR_MAX);
+			g = (unsigned char)(wraith4Color.y * UCHAR_MAX);
+			b = (unsigned char)(wraith4Color.z * UCHAR_MAX);
 		}
 		else if (item.ObjectNumber == ID_WRAITH3)
 		{
@@ -926,12 +926,12 @@ namespace TEN::Entities::TR4
 			int baseG = (int)(wraith4Color.y * UCHAR_MAX);
 			int baseB = (int)(wraith4Color.z * UCHAR_MAX);
 
-			spark.sR = (byte)std::max(0, std::min((int)UCHAR_MAX, baseR + (GetRandomControl() & 0x1F) - 16));
-			spark.sG = (byte)std::max(0, std::min((int)UCHAR_MAX, baseG + (GetRandomControl() & 0x1F) - 16));
-			spark.sB = (byte)std::max(0, std::min((int)UCHAR_MAX, baseB + (GetRandomControl() & 0x1F) - 16));
-			spark.dR = (byte)std::max(0, std::min((int)UCHAR_MAX, baseR + (GetRandomControl() & 0x1F) - 16));
-			spark.dG = (byte)std::max(0, std::min((int)UCHAR_MAX, baseG + (GetRandomControl() & 0x1F) - 16));
-			spark.dB = (byte)std::max(0, std::min((int)UCHAR_MAX, baseB + (GetRandomControl() & 0x1F) - 16));
+			spark.sR = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, baseR + (GetRandomControl() & 0x1F) - 16));
+			spark.sG = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, baseG + (GetRandomControl() & 0x1F) - 16));
+			spark.sB = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, baseB + (GetRandomControl() & 0x1F) - 16));
+			spark.dR = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, baseR + (GetRandomControl() & 0x1F) - 16));
+			spark.dG = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, baseG + (GetRandomControl() & 0x1F) - 16));
+			spark.dB = (unsigned char)std::max(0, std::min((int)UCHAR_MAX, baseB + (GetRandomControl() & 0x1F) - 16));
 		}
 		else if (objectNumber == ID_WRAITH1)
 		{
