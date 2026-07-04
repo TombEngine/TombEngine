@@ -55,26 +55,32 @@ namespace TEN::Scripting::Properties
 		// ObjectNumber / Slot is derived from the entity reference internally.
 
 		// Raw resolution (returns nullptr if not found in either layer).
-		static const PropertyValue* Get(const ItemInfo& item, const std::string& name);
-		static const PropertyValue* Get(const ItemInfo& item, int hash);
+		static const PropertyValue* Get(const ItemInfo& item, const std::string& name, bool ignoreGlobalProperty = false);
+		static const PropertyValue* Get(const ItemInfo& item, int hash, bool ignoreGlobalProperty = false);
 		static const PropertyValue* Get(const StaticMesh& staticMesh, const std::string& name);
 		static const PropertyValue* Get(const StaticMesh& staticMesh, int hash);
 
 		// Typed resolution with optional default value fallback.
 		// Checks instance first, then type defaults, then returns defaultValue.
-		template <typename T> static T Get(const ItemInfo& item, const std::string& name, const T& defaultValue = T{})         { return ResolveTyped<T>(Get(item, name), defaultValue); }
-		template <typename T> static T Get(const ItemInfo& item, int hash, const T& defaultValue = T{})                        { return ResolveTyped<T>(Get(item, hash), defaultValue); }
+		template <typename T> static T Get(const ItemInfo& item, const std::string& name, const T& defaultValue = T{}, bool prioritizeDefaultValue = false)
+		{ return ResolveTyped<T>(Get(item, name, prioritizeDefaultValue && defaultValue != T{}), defaultValue); }
+		template <typename T> static T Get(const ItemInfo& item, int hash, const T& defaultValue = T{}, bool prioritizeDefaultValue = false)
+		{ return ResolveTyped<T>(Get(item, hash, prioritizeDefaultValue && defaultValue != T{}), defaultValue); }
+
 		template <typename T> static T Get(const StaticMesh& staticMesh, const std::string& name, const T& defaultValue = T{}) { return ResolveTyped<T>(Get(staticMesh, name), defaultValue); }
 		template <typename T> static T Get(const StaticMesh& staticMesh, int hash, const T& defaultValue = T{})                { return ResolveTyped<T>(Get(staticMesh, hash), defaultValue); }
 
 		// Pointer overloads (delegate to reference versions).
-		static const PropertyValue* Get(const ItemInfo* item, const std::string& name)         { return Get(*item, name); }
-		static const PropertyValue* Get(const ItemInfo* item, int hash)                        { return Get(*item, hash); }
-		static const PropertyValue* Get(const StaticMesh* staticMesh, const std::string& name) { return Get(*staticMesh, name); }
-		static const PropertyValue* Get(const StaticMesh* staticMesh, int hash)                { return Get(*staticMesh, hash); }
+		static const PropertyValue* Get(const ItemInfo* item, const std::string& name, bool ignoreGlobalProperty) { return Get(*item, name, ignoreGlobalProperty); }
+		static const PropertyValue* Get(const ItemInfo* item, int hash, bool ignoreGlobalProperty)                { return Get(*item, hash, ignoreGlobalProperty); }
+		static const PropertyValue* Get(const StaticMesh* staticMesh, const std::string& name)                    { return Get(*staticMesh, name); }
+		static const PropertyValue* Get(const StaticMesh* staticMesh, int hash)                                   { return Get(*staticMesh, hash); }
 
-		template <typename T> static T Get(const ItemInfo* item, const std::string& name, const T& defaultValue = T{})         { return Get<T>(*item, name, defaultValue); }
-		template <typename T> static T Get(const ItemInfo* item, int hash, const T& defaultValue = T{})                        { return Get<T>(*item, hash, defaultValue); }
+		template <typename T> static T Get(const ItemInfo* item, const std::string& name, const T& defaultValue = T{}, bool prioritizeDefaultValue = false)
+		{ return Get<T>(*item, name, defaultValue, prioritizeDefaultValue); }
+		template <typename T> static T Get(const ItemInfo* item, int hash, const T& defaultValue = T{}, bool prioritizeDefaultValue = false)
+		{ return Get<T>(*item, hash, defaultValue, prioritizeDefaultValue); }
+
 		template <typename T> static T Get(const StaticMesh* staticMesh, const std::string& name, const T& defaultValue = T{}) { return Get<T>(*staticMesh, name, defaultValue); }
 		template <typename T> static T Get(const StaticMesh* staticMesh, int hash, const T& defaultValue = T{})                { return Get<T>(*staticMesh, hash, defaultValue); }
 
