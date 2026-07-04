@@ -4,7 +4,7 @@
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/control.h"
-#include "Game/effects/Bubble.h"
+#include "Game/effects/bubble.h"
 #include "Game/effects/smoke.h"
 #include "Game/effects/spark.h"
 #include "Game/effects/tomb4fx.h"
@@ -66,7 +66,7 @@ void TriggerChaffEffects(ItemInfo& item, const Vector3i& pos, const Vector3i& ve
 
 	for (int i = 0; i < numSparks; i++)
 	{
-		long dx, dz;
+		int dx, dz;
 
 		dx = item.Pose.Position.x - pos.x;
 		dz = item.Pose.Position.z - pos.z;

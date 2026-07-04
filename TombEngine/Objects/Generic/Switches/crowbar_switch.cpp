@@ -2,7 +2,7 @@
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_item.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"

@@ -3,8 +3,8 @@
 
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
-#include "Game/effects/Hair.h"
-#include "Game/Gui.h"
+#include "Game/effects/hair.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/effects/hair.h"
 #include "Game/effects/item_fx.h"
@@ -131,7 +131,7 @@ int LaraObject::GetWet() const
 
 /// Set the player's stamina value.
 // @function LaraObject:SetStamina
-// @tparam[opt=120] int New stamina value. _Maximum: 120._
+// @tparam[opt=120] int stamina New stamina value. _Maximum: 120._
 // @usage
 // Lara:SetStamina(120)
 void LaraObject::SetStamina(sol::optional<int> value)
@@ -157,6 +157,36 @@ int LaraObject::GetStamina() const
 {
 	auto* lara = GetLaraInfo(_moveable);
 	return lara->Status.Stamina;
+}
+
+/// Set the player's cold exposure value.
+// @function LaraObject:SetExposure
+// @tparam[opt=600] int exposure New exposure value. _Maximum: 600._
+// @usage
+// Lara:SetExposure(600)
+void LaraObject::SetExposure(sol::optional<int> value)
+{
+	auto* lara = GetLaraInfo(_moveable);
+
+	if (value.has_value())
+	{
+		lara->Status.Exposure = std::clamp(value.value(), 0, (int)LARA_EXPOSURE_MAX);
+	}
+	else
+	{
+		lara->Status.Exposure = LARA_EXPOSURE_MAX;
+	}
+}
+
+/// Get the player's cold exposure value.
+// @function LaraObject:GetExposure
+// @treturn int Exposure value.
+// @usage
+// local coldExposure = Lara:GetExposure()
+int LaraObject::GetExposure() const
+{
+	auto* lara = GetLaraInfo(_moveable);
+	return lara->Status.Exposure;
 }
 
 /// Get the player's airborne status (set when jumping and falling).
@@ -1056,6 +1086,8 @@ void LaraObject::Register(sol::table& parent)
 		ScriptReserved_GetWet, &LaraObject::GetWet,
 		ScriptReserved_SetStamina, &LaraObject::SetStamina,
 		ScriptReserved_GetStamina, &LaraObject::GetStamina,
+		ScriptReserved_SetExposure, &LaraObject::SetExposure,
+		ScriptReserved_GetExposure, &LaraObject::GetExposure,
 		ScriptReserved_GetAirborne, &LaraObject::GetAirborne,
 		ScriptReserved_SetAirborne, &LaraObject::SetAirborne,
 		ScriptReserved_GetLocked, &LaraObject::GetLocked,
