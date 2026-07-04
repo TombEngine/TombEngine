@@ -13,7 +13,7 @@
 #include "Objects/Effects/Fireflies.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/effects.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Game/effects/weather.h"
 #include "Game/items.h"
 #include "Game/itemdata/creature_info.h"
@@ -77,7 +77,7 @@ constexpr auto GLOBAL_VARS_FILENAME = "savegame.global";
 
 GameStats SaveGame::Statistics;
 SaveGameHeader SaveGame::Infos[SAVEGAME_MAX];
-std::map<int, std::vector<byte>> SaveGame::Hub;
+std::map<int, std::vector<unsigned char>> SaveGame::Hub;
 
 int SaveGame::LastSaveGame;
 std::string SaveGame::FullSaveDirectory;
@@ -371,7 +371,7 @@ void SaveGame::Init(const std::string& gameDirectory)
 	FullSaveDirectory = gameDirectory + SAVEGAME_PATH;
 }
 
-const std::vector<byte> SaveGame::Build()
+const std::vector<unsigned char> SaveGame::Build()
 {
 	ItemInfo itemToSerialize{};
 	FlatBufferBuilder fbb{};
@@ -755,17 +755,34 @@ const std::vector<byte> SaveGame::Build()
 		}
 		auto blockStopperFlagsOffset = fbb.CreateVector(blockStopperFlags);
 
+		auto itemNumbersOffset = fbb.CreateVector(room.itemNumbers);
+
 		Save::RoomBuilder serializedInfo{ fbb };
 		serializedInfo.add_name(nameOffset);
 		serializedInfo.add_index(room.originalRoom);
 		serializedInfo.add_reverb_type((int)room.reverbType);
 		serializedInfo.add_flags(room.flags);
 		serializedInfo.add_block_stopper_flags(blockStopperFlagsOffset);
+		serializedInfo.add_item_numbers(itemNumbersOffset);
 		auto serializedInfoOffset = serializedInfo.Finish();
 
 		rooms.push_back(serializedInfoOffset);
 	}
 	auto roomOffset = fbb.CreateVector(rooms);
+
+	std::vector<int> activeItems;
+	for (int itemId : ActiveItems)
+	{
+		activeItems.push_back(itemId);
+	}
+	auto activeItemsOffset = fbb.CreateVector(activeItems);
+
+	std::vector<int> freeItemSlots;
+	for (int itemId : FreeItemSlots)
+	{
+		freeItemSlots.push_back(itemId);
+	}
+	auto freeItemSlotsOffset = fbb.CreateVector(freeItemSlots);
 
 	std::vector<int> boxFlags;
 	for (auto& box : g_Level.PathfindingBoxes)
@@ -809,6 +826,7 @@ const std::vector<byte> SaveGame::Build()
 		flatbuffers::Offset<Save::UPV> upvOffset;
 		flatbuffers::Offset<Save::Kayak> kayakOffset;
 		flatbuffers::Offset<Save::Pushable> pushableOffset;
+		flatbuffers::Offset<Save::ItemFXInfo> fxInfoOffset;
 
 		flatbuffers::Offset<Common::Short> shortOffset;
 		flatbuffers::Offset<Common::Int> intOffset;
@@ -977,6 +995,15 @@ const std::vector<byte> SaveGame::Build()
 
 			pushableOffset = pushableBuilder.Finish();
 		}
+		else if (itemToSerialize.Data.is<FXInfo>())
+		{
+			auto* fx = (FXInfo*)itemToSerialize.Data;
+			Save::ItemFXInfoBuilder fxBuilder{ fbb };
+			fxBuilder.add_counter(fx->Counter);
+			fxBuilder.add_flag1(fx->Flag1);
+			fxBuilder.add_flag2(fx->Flag2);
+			fxInfoOffset = fxBuilder.Finish();
+		}
 		else if (itemToSerialize.Data.is<short>())
 		{
 			Common::ShortBuilder sb{ fbb };
@@ -992,8 +1019,6 @@ const std::vector<byte> SaveGame::Build()
 
 		Save::ItemBuilder serializedItem{ fbb };
 
-		serializedItem.add_next_item(itemToSerialize.NextItem);
-		serializedItem.add_next_item_active(itemToSerialize.NextActive);
 		serializedItem.add_anim_number(itemToSerialize.Animation.AnimNumber);
 		serializedItem.add_after_death(itemToSerialize.AfterDeath);
 		serializedItem.add_box_number(itemToSerialize.BoxNumber);
@@ -1063,6 +1088,11 @@ const std::vector<byte> SaveGame::Build()
 		{
 			serializedItem.add_data_type(Save::ItemData::Pushable);
 			serializedItem.add_data(pushableOffset.Union());
+		}
+		else if (itemToSerialize.Data.is<FXInfo>())
+		{
+			serializedItem.add_data_type(Save::ItemData::ItemFXInfo);
+			serializedItem.add_data(fxInfoOffset.Union());
 		}
 		else if (itemToSerialize.Data.is<short>())
 		{
@@ -1160,32 +1190,6 @@ const std::vector<byte> SaveGame::Build()
 	}
 	auto decalOffset = fbb.CreateVector(decals);
 
-	// TODO: In future, we should save only active FX, not whole array.
-	// This may come together with Monty's branch merge -- Lwmte, 10.07.22
-
-	std::vector<flatbuffers::Offset<Save::FXInfo>> serializedEffects{};
-	for (auto& effectToSerialize : EffectList)
-	{
-		Save::FXInfoBuilder serializedEffect{ fbb };
-
-		serializedEffect.add_pose(&FromPose(effectToSerialize.pos));
-		serializedEffect.add_room_number(effectToSerialize.roomNumber);
-		serializedEffect.add_object_number(effectToSerialize.objectNumber);
-		serializedEffect.add_next_fx(effectToSerialize.nextFx);
-		serializedEffect.add_next_active(effectToSerialize.nextActive);
-		serializedEffect.add_speed(effectToSerialize.speed);
-		serializedEffect.add_fall_speed(effectToSerialize.fallspeed);
-		serializedEffect.add_frame_number(effectToSerialize.frameNumber);
-		serializedEffect.add_counter(effectToSerialize.counter);
-		serializedEffect.add_color(&FromVector4(effectToSerialize.color));
-		serializedEffect.add_flag1(effectToSerialize.flag1);
-		serializedEffect.add_flag2(effectToSerialize.flag2);
-
-		auto serializedEffectOffset = serializedEffect.Finish();
-		serializedEffects.push_back(serializedEffectOffset);
-	}
-	auto serializedEffectsOffset = fbb.CreateVector(serializedEffects);
-
 	// Soundtrack playheads
 	std::vector<flatbuffers::Offset<Save::Soundtrack>> soundtracks;
 	for (int j = 0; j < (int)SoundTrackType::Count; j++)
@@ -1227,8 +1231,8 @@ const std::vector<byte> SaveGame::Build()
 	auto flipStatsOffset = fbb.CreateVector(flipStats);
 
 	std::vector<int> roomItems;
-	for (auto const& r : g_Level.Rooms)
-		roomItems.push_back(r.itemNumber);
+	//for (auto const& r : g_Level.Rooms)
+	//	roomItems.push_back(r.itemNumber);
 	auto roomItemsOffset = fbb.CreateVector(roomItems);
 
 	// Cameras
@@ -1682,16 +1686,15 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_camera(cameraOffset);
 	sgb.add_lara(laraOffset);
 	sgb.add_rooms(roomOffset);
+	sgb.add_active_items(activeItemsOffset);
+	sgb.add_free_item_slots(freeItemSlotsOffset);
+	sgb.add_next_item_free(NO_VALUE);
+	sgb.add_next_item_active(NO_VALUE);
 	sgb.add_box_flags(boxFlagsOffset);
-	sgb.add_next_item_free(NextItemFree);
-	sgb.add_next_item_active(NextItemActive);
 	sgb.add_items(serializedItemsOffset);
 	sgb.add_fish_swarm(fishSwarmOffset);
 	sgb.add_firefly_swarm(fireflySwarmOffset);
 	sgb.add_decals(decalOffset);
-	sgb.add_fxinfos(serializedEffectsOffset);
-	sgb.add_next_fx_free(NextFxFree);
-	sgb.add_next_fx_active(NextFxActive);
 	sgb.add_postprocess_mode((int)g_Renderer.GetPostProcessMode());
 	sgb.add_postprocess_strength(g_Renderer.GetPostProcessStrength());
 	sgb.add_postprocess_tint(&FromVector3(g_Renderer.GetPostProcessTint()));
@@ -1701,7 +1704,6 @@ const std::vector<byte> SaveGame::Build()
 	sgb.add_action_queue(actionQueueOffset);
 	sgb.add_flip_maps(flipMapsOffset);
 	sgb.add_flip_stats(flipStatsOffset);
-	sgb.add_room_items(roomItemsOffset);
 	sgb.add_flip_effect(FlipEffect);
 	sgb.add_flip_status(FlipStatus);
 	sgb.add_current_fov(LastFOV);
@@ -1745,7 +1747,7 @@ const std::vector<byte> SaveGame::Build()
 	auto buffer = fbb.GetBufferPointer();
 	auto size   = fbb.GetSize();
 
-	auto result = std::vector<byte>(buffer, buffer + size);
+	auto result = std::vector<unsigned char>(buffer, buffer + size);
 	return result;
 }
 
@@ -1854,7 +1856,7 @@ bool SaveGame::Load(int slot)
 		file.read(reinterpret_cast<char*>(&size), sizeof(size));
 
 		// Read current level save data.
-		auto saveData = std::vector<byte>(size);
+		auto saveData = std::vector<unsigned char>(size);
 		file.read(reinterpret_cast<char*>(saveData.data()), size);
 
 		// Reset hub data, as it's about to be replaced with saved one.
@@ -1872,7 +1874,7 @@ bool SaveGame::Load(int slot)
 			file.read(reinterpret_cast<char*>(&index), sizeof(index));
 
 			file.read(reinterpret_cast<char*>(&size), sizeof(size));
-			auto hubBuffer = std::vector<byte>(size);
+			auto hubBuffer = std::vector<unsigned char>(size);
 			file.read(reinterpret_cast<char*>(hubBuffer.data()), size);
 
 			Hub[index] = hubBuffer;
@@ -2543,27 +2545,6 @@ static void ParseEffects(const Save::SaveGame* s)
 		beetle->RoomNumber = beetleInfo->room_number();
 		beetle->Pose = ToPose(*beetleInfo->pose());
 	}
-
-	NextFxFree = s->next_fx_free();
-	NextFxActive = s->next_fx_active();
-
-	for (int i = 0; i < s->fxinfos()->size(); ++i)
-	{
-		auto& fx = EffectList[i];
-		auto fx_saved = s->fxinfos()->Get(i);
-		fx.pos = ToPose(*fx_saved->pose());
-		fx.roomNumber = fx_saved->room_number();
-		fx.objectNumber = fx_saved->object_number();
-		fx.nextFx = fx_saved->next_fx();
-		fx.nextActive = fx_saved->next_active();
-		fx.speed = fx_saved->speed();
-		fx.fallspeed = fx_saved->fall_speed();
-		fx.frameNumber = fx_saved->frame_number();
-		fx.counter = fx_saved->counter();
-		fx.color = ToVector4(fx_saved->color());
-		fx.flag1 = fx_saved->flag1();
-		fx.flag2 = fx_saved->flag2();
-	}
 }
 
 static void ParseLevel(const Save::SaveGame* s, bool hubMode)
@@ -2694,12 +2675,29 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	}
 
 	// Items
+	ActiveItems.clear();
+	FreeItemSlots.clear();
 
-	NextItemFree = s->next_item_free();
-	NextItemActive = s->next_item_active();
+	// Restore room item lists by array position: lists are bound to room slots, not room
+	// contents (see FlipRooms), and flipmaps were already reapplied above.
+	for (int i = 0; i < s->rooms()->size(); i++)
+	{
+		auto& room = g_Level.Rooms[i];
+		room.itemNumbers.clear();
 
-	for(int i = 0; i < s->room_items()->size(); ++i)
-		g_Level.Rooms[i].itemNumber = s->room_items()->Get(i);
+		const auto* savedItemNumbers = s->rooms()->Get(i)->item_numbers();
+		if (savedItemNumbers != nullptr)
+		{
+			for (int j = 0; j < savedItemNumbers->size(); j++)
+				room.itemNumbers.push_back(savedItemNumbers->Get(j));
+		}
+	}
+
+	for (int i = 0; i < s->active_items()->size(); i++)
+		ActiveItems.push_back(s->active_items()->Get(i));
+
+	for (int i = 0; i < s->free_item_slots()->size(); i++)
+		FreeItemSlots.push_back(s->free_item_slots()->Get(i));
 
 	for (int i = 0; i < s->items()->size(); i++)
 	{
@@ -2709,9 +2707,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 
 		auto* item = &g_Level.Items[i];
 		item->ObjectNumber = GAME_OBJECT_ID(savedItem->object_id());
-
-		item->NextItem = savedItem->next_item();
-		item->NextActive = savedItem->next_item_active();
 
 		if (item->ObjectNumber == GAME_OBJECT_ID::ID_NO_OBJECT)
 			continue;
@@ -2770,6 +2765,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 
 		// Position
 		item->Pose = ToPose(*savedItem->pose());
+
 		item->RoomNumber = savedItem->room_number();
 		item->Floor = savedItem->floor();
 		item->BoxNumber = savedItem->box_number();
@@ -3003,6 +2999,17 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			pushable->EdgeAttribs[3].IsPushable = savedPushable->pushable_west_pushable();
 			pushable->EdgeAttribs[3].IsClimbable = savedPushable->pushable_west_climbable();
 		}
+		else if (savedItem->data_type() == Save::ItemData::ItemFXInfo)
+		{
+			// Dynamic FX slots have no data after level load, so recreate it.
+			item->Data = FXInfo();
+			auto* fx = (FXInfo*)item->Data;
+			auto* savedFX = (Save::ItemFXInfo*)savedItem->data();
+
+			fx->Counter = savedFX->counter();
+			fx->Flag1 = savedFX->flag1();
+			fx->Flag2 = savedFX->flag2();
+		}
 		else if (savedItem->data_type() == Save::ItemData::TEN_Serialization_Common_Short)
 		{
 			auto* data = savedItem->data();
@@ -3018,7 +3025,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	}
 }
 
-void SaveGame::Parse(const std::vector<byte>& buffer, bool hubMode)
+void SaveGame::Parse(const std::vector<unsigned char>& buffer, bool hubMode)
 {
 	if (!Save::VerifySaveGameBuffer(flatbuffers::Verifier(buffer.data(), buffer.size())))
 	{
@@ -3203,7 +3210,7 @@ bool SaveGame::LoadGlobalVars()
 
 		file.seekg(0, std::ios::beg);
 
-		auto buffer = std::vector<byte>(size);
+		auto buffer = std::vector<unsigned char>(size);
 		file.read(reinterpret_cast<char*>(buffer.data()), size);
 		file.close();
 
