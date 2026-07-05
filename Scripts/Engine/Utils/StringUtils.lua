@@ -89,7 +89,7 @@ end
 -- @tparam string str The template string containing `{key}` placeholders.
 -- @tparam[opt={} (empty table)] table vars A table mapping keys to values.
 -- @treturn[1] string The formatted string.
--- @treturn[2] string The original string unchanged if an error occurs.
+-- @treturn[2] any The original input unchanged if an error occurs (with a log message).
 -- @usage
 -- -- Basic usage:
 -- local msg = StringUtils.Format("Hello {name}!", { name = "Lara" })
@@ -182,7 +182,8 @@ end
 -- @tparam table tbl The array-like table to join.
 -- @tparam[opt=", " (comma space)] string separator The separator inserted between elements.
 -- @treturn[1] string The joined string.
--- @treturn[2] string "" An empty string if the table is empty or an error occurs.
+-- @treturn[2] string "" If the table is empty (valid, no error).
+-- @treturn[3] string "" If an error occurs (with a log message).
 -- @usage
 -- -- Basic usage:
 -- local result = StringUtils.Join({"apple", "banana", "cherry"})
@@ -280,7 +281,8 @@ end
 -- @tparam[opt] string chars One or more literal characters to strip instead of whitespace.
 -- If omitted, strips whitespace (spaces, tabs, newlines, carriage returns, form feeds, vertical tabs).
 -- @treturn[1] string The trimmed string.
--- @treturn[2] string "" An empty string if the input is all stripped characters or an error occurs.
+-- @treturn[2] string "" If the input consists entirely of stripped characters (valid, no error).
+-- @treturn[3] string "" If an error occurs (with a log message).
 -- @usage
 -- -- Basic whitespace trim:
 -- local result = StringUtils.Trim("  hello  ")
@@ -350,7 +352,9 @@ StringUtils.Trim = function(str, chars)
     -- Default: whitespace trimming (optimized path, no escaping needed)
     if chars == nil then
         local i = str:find("%S")
-        if not i then return "" end
+        if not i then
+            return ""
+        end
         local j = str:find("%S%s*$", i)
         return str:sub(i, j)
     end
@@ -388,8 +392,8 @@ end
 -- An empty prefix `""` always returns `true` (every string starts with the empty string).
 -- @tparam string str The string to check.
 -- @tparam string prefix The prefix to look for.
--- @treturn[1] bool True if str starts with prefix, false otherwise.
--- @treturn[2] bool false If an error occurs (invalid argument types).
+-- @treturn[1] bool True if str starts with prefix.
+-- @treturn[2] bool false if no match or an error occurs (with a log message).
 -- @usage
 -- -- Basic usage:
 -- local result = StringUtils.StartsWith("hello world", "hello")
@@ -472,8 +476,8 @@ end
 -- An empty suffix `""` always returns `true` (every string ends with the empty string).
 -- @tparam string str The string to check.
 -- @tparam string suffix The suffix to look for.
--- @treturn[1] bool True if str ends with suffix, false otherwise.
--- @treturn[2] bool false If an error occurs (invalid argument types).
+-- @treturn[1] bool True if str ends with suffix.
+-- @treturn[2] bool false if no match or an error occurs (with a log message).
 -- @usage
 -- -- Basic usage:
 -- local result = StringUtils.EndsWith("hello world", "world")
@@ -563,8 +567,8 @@ end
 -- use it when you don't know (or don't care) where the substring appears.
 -- @tparam string str The string to search in.
 -- @tparam string substring The substring to look for.
--- @treturn[1] bool True if str contains substring, false otherwise.
--- @treturn[2] bool false If an error occurs (invalid argument types).
+-- @treturn[1] bool True if str contains substring.
+-- @treturn[2] bool false if no match or an error occurs (with a log message).
 -- @usage
 -- -- Keyword in the middle of a name:
 -- local result = StringUtils.Contains("room_secret_01", "secret")
@@ -657,7 +661,7 @@ end
 -- @tparam[opt] number count Maximum number of replacements. If omitted, replaces all occurrences.
 -- Must be a positive integer (>= 1).
 -- @treturn[1] string The string with replacements applied.
--- @treturn[2] string The original string unchanged if search is not found or an error occurs.
+-- @treturn[2] any The original input unchanged if search is not found or an error occurs (with a log message).
 -- @usage
 -- -- Replace all occurrences (default):
 -- local result = StringUtils.Replace("room_old_old_01", "old", "new")
