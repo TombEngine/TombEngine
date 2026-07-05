@@ -28,8 +28,21 @@ local IsVec2 = Type.IsVec2
 local IsVec3 = Type.IsVec3
 local IsColor = Type.IsColor
 local IsRotation = Type.IsRotation
+
+-- Time format keys
 -- For backward compatibility, deciseconds is still accepted, but centiseconds is preferred. Both keys will work, but if both are present, centiseconds will be used.
 local VALID_KEYS = { hours = true, minutes = true, seconds = true, deciseconds = true, centiseconds = true }
+
+-- Comparison operators constant table. Used for validating operators.
+local COMPARISON_OPS_FUNC =
+{
+    function(a, b) return a == b end,   -- 0: equal
+    function(a, b) return a ~= b end,   -- 1: not equal
+    function(a, b) return a < b end,    -- 2: less than
+    function(a, b) return a <= b end,   -- 3: less than or equal
+    function(a, b) return a > b end,    -- 4: greater than
+    function(a, b) return a >= b end,   -- 5: greater than or equal
+}
 
 local function pad2(n)
     return (n < 10) and ("0" .. n) or tostring(n)
@@ -73,8 +86,48 @@ local function LinearToSrgb(c)
     end
 end
 
+Util.Constants =
+{
+    FPS = 30,              -- Default frames per second for time-frame conversions
+    MAX_DEPTH = 10,        -- Maximum recursion depth for deep operations (prevents stack overflow)
+    MAX_ELEMENTS = 1000,   -- Maximum elements processed in deep operations (prevents performance issues)
+    ZERO = TEN.Time(),     -- Zero time constant for comparisons and resets
+    DEFAULT_TEXT_OPTIONS = -- Default text options for display strings in Time and Stopwatch modules
+    {
+        TEN.Strings.DisplayStringOption.CENTER,
+        TEN.Strings.DisplayStringOption.SHADOW,
+        TEN.Strings.DisplayStringOption.VERTICAL_CENTER
+    },
+    DEFAULT_TIMER_FORMAT = -- Default timer format for Time and Stopwatch modules
+    {
+        minutes = true,
+        seconds = true,
+        centiseconds = true
+    },
+    Operators = -- Comparison operators for easy comparisons
+    {
+        EQUAL = 0,        -- Equal
+        NOT_EQUAL = 1,    -- Not equal
+        LESS = 2,         -- Less than
+        LESS_EQUAL = 3,   -- Less than or equal
+        GREATER = 4,      -- Greater than
+        GREATER_EQUAL = 5 -- Greater than or equal
+    }
+}
+Util.Constants.FRAME_TIME = 1 / Util.Constants.FPS
+
+
 Util.ShortenTENCalls = function()
 	print("Util.ShortenTENCalls is deprecated; its functionality is now performed automatically by TombEngine.")
+end
+
+-- Check if the operator is valid and return the corresponding comparison function.
+Util.CheckOperator = function(operator)
+	if not Type.IsNumber(operator) then
+		return nil
+	end
+    local op = COMPARISON_OPS_FUNC[operator + 1]
+    return Type.IsFunction(op) and op or nil
 end
 
 -- Check if the time format is correct.

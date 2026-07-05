@@ -1,5 +1,5 @@
 -----<style>table.function_list td.name {min-width: 345px;}</style>
---- Lua support functions for string manipulation
+--- Lua support functions for string manipulation.
 ---
 --- **Design Philosophy:**
 --- StringUtils is designed primarily for:
@@ -17,13 +17,13 @@
 ---
 --- To use, include the module with:
 ---
----	local StringUtils = require("Engine.StringUtils")
+---	local StringUtils = require("Engine.Utils.StringUtils")
 -- @luautil StringUtils
 
 local StringUtils = {}
 
 local Type= require("Engine.Type")
-local Util = require("Engine.Util")
+local Utility = require("Engine.Util")
 
 local logLevelError  = TEN.Util.LogLevel.ERROR
 
@@ -31,7 +31,7 @@ local floor = math.floor
 local IsNumber = Type.IsNumber
 local IsString = Type.IsString
 local IsTable = Type.IsTable
-local GetMaxNumericIndex = Util.GetMaxNumericIndex
+local GetMaxNumericIndex = Utility.GetMaxNumericIndex
 local LogMessage  = TEN.Util.PrintLog
 
 --- Split a string into a table using a specified delimiter.

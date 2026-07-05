@@ -17,7 +17,7 @@
 ---
 --- To use, include the module with:
 ---
----	local Transform3DUtils = require("Engine.Transform3DUtils")
+---	local Transform3DUtils = require("Engine.Utils.Transform3DUtils")
 -- @luautil Transform3DUtils
 
 local Transform3DUtils = {}

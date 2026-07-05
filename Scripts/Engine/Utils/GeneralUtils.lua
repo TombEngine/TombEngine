@@ -1,4 +1,4 @@
------<style>table.function_list td.name {min-width: 320px;}</style>
+-----<style>table.function_list td.name {min-width: 416px;}</style>
 --- Lua support functions to simplify operations in scripts.
 ---
 --- **Design Philosophy:**
@@ -17,21 +17,15 @@
 ---
 --- To use, include the module with:
 ---
----	local GeneralUtils = require("Engine.GeneralUtils")
+---	local GeneralUtils = require("Engine.Utils.GeneralUtils")
 -- @luautil GeneralUtils
 
 local Type = require("Engine.Type")
-local MAX_DEPTH = 10        -- Maximum recursion depth for deep operations (prevents stack overflow)
-local MAX_ELEMENTS = 1000   -- Maximum elements processed in deep operations (prevents performance issues)
-local COMPARISON_OPS =
-{
-    function(a, b) return a == b end,   -- 0: equal
-    function(a, b) return a ~= b end,   -- 1: not equal
-    function(a, b) return a < b end,    -- 2: less than
-    function(a, b) return a <= b end,   -- 3: less than or equal
-    function(a, b) return a > b end,    -- 4: greater than
-    function(a, b) return a >= b end,   -- 5: greater than or equal
-}
+local Utility = require("Engine.Util")
+local TableUtils = require("Engine.Utils.TableUtils")
+
+local MAX_DEPTH = Utility.Constants.MAX_DEPTH
+local MAX_ELEMENTS = Utility.Constants.MAX_ELEMENTS
 
 local Vec2 = TEN.Vec2
 local Vec3 = TEN.Vec3
@@ -42,6 +36,7 @@ local logLevelEnums = TEN.Util.LogLevel
 local logLevelError  = logLevelEnums.ERROR
 local logLevelWarning = logLevelEnums.WARNING
 
+local LogMessage  = TEN.Util.PrintLog
 local IsNumber = Type.IsNumber
 local IsVec2 = Type.IsVec2
 local IsVec3 = Type.IsVec3
@@ -50,13 +45,18 @@ local IsTime = Type.IsTime
 local IsRotation = Type.IsRotation
 local IsString = Type.IsString
 local IsTable = Type.IsTable
-local LogMessage  = TEN.Util.PrintLog
+local isNull = Type.IsNull
+local IsBoolean = Type.IsBoolean
+local CheckOperator = Utility.CheckOperator
 
 -- State for deep table copy (CloneValue)
 local _nextCopyId = 1          -- Progressive ID generator for each copy operation
 local _activeCopies = {}       -- Tracks active copy operations: { [id] = { depth, elementCount, visited } }
 
 local GeneralUtils = {}
+
+GeneralUtils.Operators = Utility.Constants.Operators
+TableUtils.SetTableReadOnly(GeneralUtils.Operators)
 
 -- Support function for deep table copy
 local function DeepCopyRecursive(original, copyId)
@@ -97,14 +97,6 @@ local function DeepCopyRecursive(original, copyId)
 
     context.depth = context.depth - 1
     return copy
-end
-
-local CheckOperator = function(operator)
-	if not Type.IsNumber(operator) then
-		return nil
-	end
-    local op = COMPARISON_OPS[operator + 1]
-    return Type.IsFunction(op) and op or nil
 end
 
 --- Clone a value, creating an independent copy.
@@ -272,10 +264,66 @@ end
 -- local settings = { showHUD = false }  -- User explicitly disabled HUD
 -- local showHUD = GeneralUtils.GetOrDefault(settings.showHUD, true)  -- Result: false (respects user choice)
 GeneralUtils.GetOrDefault = function(value, defaultValue)
-    if value == nil then
+    if isNull(value) then
         return defaultValue
     end
     return value
+end
+
+--- Validate a value and return a default if it fails validation or is nil.
+-- Unlike GetOrDefault, this also checks a condition and logs a warning on failure.
+-- @tparam any value The value to validate.
+-- @tparam bool isValid The result of your validation check (evaluated before calling).
+-- @tparam any defaultValue The default value to return if validation fails.
+-- @tparam[opt] string warningMsg A warning message to log on validation failure.
+-- @treturn any The value if valid, otherwise defaultValue.
+-- @usage
+-- -- Instead of:
+-- if a == nil then a = 1.0
+-- elseif not IsNumber(a) or a < 0 or a > 1 then
+--     LogMessage("Warning: ...", logLevelWarning)
+--     a = 1.0
+-- end
+--
+-- -- Write:
+-- local a = GeneralUtils.ValidateOrDefault(hsl.a,
+--     IsNumber(hsl.a) and hsl.a >= 0 and hsl.a <= 1,
+--     1.0,
+--     "Warning: a should be a number in [0, 1].")
+--
+-- -- Silently assign a default value
+-- local a = GeneralUtils.ValidateOrDefault(hsl.a,
+--     IsNumber(hsl.a) and hsl.a >= 0 and hsl.a <= 1,
+--     1.0)
+--
+-- -- Practical use: validate user input
+-- function PlaySound(soundID)
+--     soundID = GeneralUtils.ValidateOrDefault(soundID,
+--         IsNumber(soundID) and soundID > 0 and soundID <= 1000,  -- Example validation: soundID must be in [1, 1000]
+--         1,
+--         "Warning: soundID should be a positive number and less than or equal to 1000.")
+--     -- Play the sound with the validated soundID
+--     TEN.Sound.PlaySound(soundID)
+-- end
+GeneralUtils.ValidateOrDefault = function(value, isValid, defaultValue, warningMsg)
+    if not IsBoolean(isValid) then
+        LogMessage("Error in GeneralUtils.ValidateOrDefault: isValid must be a boolean.", logLevelError)
+        return defaultValue
+    end
+    if isNull(value) then
+        return defaultValue
+    end
+    if isValid then
+        return value
+    end
+    if warningMsg then
+        if IsString(warningMsg) then
+            LogMessage(warningMsg, logLevelWarning)
+        else
+            LogMessage("Error in GeneralUtils.ValidateOrDefault: warningMsg must be a string.", logLevelError)
+        end
+    end
+    return defaultValue
 end
 
 --- Check if a value is empty.
@@ -337,7 +385,7 @@ end
 -- end
 GeneralUtils.IsEmpty = function(value)
     -- Check for nil
-    if value == nil then
+    if isNull(value) then
         return true
     end
 
@@ -361,34 +409,34 @@ end
 --- Compare two values based on the specified operator.
 -- @tparam number|string|Time operand The first value to compare.
 -- @tparam number|string|Time reference The second value to compare against.
--- @tparam number operator The comparison operator<br>0: equal<br> 1: not equal<br> 2: less than<br> 3: less than or equal<br> 4: greater than<br> 5: greater than or equal
+-- @tparam Operators operator The comparison operator to use.
 -- @treturn[1] bool The result of the comparison.
 -- @treturn[2] bool false If an error occurs (invalid operator or type mismatch), with an error message.
 -- @usage
 -- -- Examples with numbers:
--- local isEqual = GeneralUtils.CompareValues(5, 5, 0) -- true (equal)
--- local isLessThan = GeneralUtils.CompareValues(3.5, 4.0, 2) -- true (3.5 < 4.0)
--- local isGreaterThan = GeneralUtils.CompareValues(10, 2, 4) -- true (10 > 2)
+-- local isEqual = GeneralUtils.CompareValues(5, 5, GeneralUtils.Operators.EQUAL) -- true (equal)
+-- local isLessThan = GeneralUtils.CompareValues(3.5, 4.0, GeneralUtils.Operators.LESS) -- true (3.5 < 4.0)
+-- local isGreaterThan = GeneralUtils.CompareValues(10, 2, GeneralUtils.Operators.GREATER) -- true (10 > 2)
 --
 -- -- Examples with strings:
--- local isEqual = GeneralUtils.CompareValues("test", "test", 0) -- true (equal)
+-- local isEqual = GeneralUtils.CompareValues("test", "test", GeneralUtils.Operators.EQUAL) -- true (equal)
 --
--- local isLessThan = GeneralUtils.CompareValues("apple", "banana", 2) -- true 
+-- local isLessThan = GeneralUtils.CompareValues("apple", "banana", GeneralUtils.Operators.LESS) -- true 
 -- -- ("apple" < "banana" in lexicographical order)
 --
--- local isGreaterThan = GeneralUtils.CompareValues("zebra", "ant", 4) -- true
+-- local isGreaterThan = GeneralUtils.CompareValues("zebra", "ant", GeneralUtils.Operators.GREATER) -- true
 -- -- ("zebra" > "ant" in lexicographical order)
 --
--- local sLessThan = GeneralUtils.CompareValues("Z", "a", 2) -- true ("Z" < "a" in ASCII)
+-- local sLessThan = GeneralUtils.CompareValues("Z", "a", GeneralUtils.Operators.LESS) -- true ("Z" < "a" in ASCII)
 --
--- local isLessThan = GeneralUtils.CompareValues("2", "15", 2) -- false 
+-- local isLessThan = GeneralUtils.CompareValues("2", "15", GeneralUtils.Operators.LESS) -- false 
 -- -- ("2" > "15" in lexicographical order, because '2' > '1')
 --
 -- -- Examples with Time:
 -- local time1 = TEN.Time(120)  -- 120 frames
 -- local time2 = TEN.Time(150)  -- 150 frames
--- local isLessThan = GeneralUtils.CompareValues(time1, time2, 2) -- true (120 < 150)
--- local isGreaterThanOrEqual = GeneralUtils.CompareValues(time1, time2, 5) -- false (120 >= 150 is false)
+-- local isLessThan = GeneralUtils.CompareValues(time1, time2, GeneralUtils.Operators.LESS) -- true (120 < 150)
+-- local isGreaterThanOrEqual = GeneralUtils.CompareValues(time1, time2, GeneralUtils.Operators.GREATER_EQUAL) -- false (120 >= 150 is false)
 GeneralUtils.CompareValues = function(operand, reference, operator)
     -- Validate operator
     local op = CheckOperator(operator)
@@ -426,5 +474,21 @@ GeneralUtils.CompareValues = function(operand, reference, operator)
     LogMessage("Error in GeneralUtils.CompareValues: unsupported type.", logLevelError)
     return false
 end
+
+----
+-- Tables
+-- @section tables
+
+---
+-- Constants for operators in @{GeneralUtils.CompareValues}.
+--
+-- Use them as `GeneralUtils.Operators.EQUAL`, `GeneralUtils.Operators.LESS`, etc.
+-- @table Operators
+-- @tfield 0 EQUAL Equal operator.
+-- @tfield 1 NOT_EQUAL Not equal operator.
+-- @tfield 2 LESS Less than operator.
+-- @tfield 3 LESS_EQUAL Less than or equal operator.
+-- @tfield 4 GREATER Greater than operator.
+-- @tfield 5 GREATER_EQUAL Greater than or equal operator.
 
 return GeneralUtils

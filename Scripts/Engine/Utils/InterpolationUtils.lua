@@ -132,27 +132,27 @@
 --
 --- To use, include the module with:
 ---
----	local InterpolationUtils = require("Engine.InterpolationUtils")
+---	local InterpolationUtils = require("Engine.Utils.InterpolationUtils")
 -- @luautil InterpolationUtils
 
 local InterpolationUtils = {}
-local Util = require("Engine.Util")
+local Utility = require("Engine.Util")
 local Type = require("Engine.Type")
 
-local Round = Util.Round
-local WrapAngleRaw = Util.WrapAngleRaw
-local HSLtoColorRaw = Util.HSLtoColorRaw
-local ColorToHSLRaw = Util.ColorToHSLRaw
-local ColorToOKLchRaw = Util.ColorToOKLchRaw
-local OKLchToColorRaw = Util.OKLchToColorRaw
+local Round = Utility.Round
+local WrapAngleRaw = Utility.WrapAngleRaw
+local HSLtoColorRaw = Utility.HSLtoColorRaw
+local ColorToHSLRaw = Utility.ColorToHSLRaw
+local ColorToOKLchRaw = Utility.ColorToOKLchRaw
+local OKLchToColorRaw = Utility.OKLchToColorRaw
 
-local IsValidInterpolationValue = Util.IsValidInterpolationValue
-local LerpRaw = Util.LerpRaw
-local SmoothstepRaw = Util.SmoothstepRaw
-local SmootherstepRaw = Util.SmootherstepRaw
-local EaseInOutRaw = Util.EaseInOutRaw
-local ElasticRaw = Util.ElasticRaw
-local BounceRaw = Util.BounceRaw
+local IsValidInterpolationValue = Utility.IsValidInterpolationValue
+local LerpRaw = Utility.LerpRaw
+local SmoothstepRaw = Utility.SmoothstepRaw
+local SmootherstepRaw = Utility.SmootherstepRaw
+local EaseInOutRaw = Utility.EaseInOutRaw
+local ElasticRaw = Utility.ElasticRaw
+local BounceRaw = Utility.BounceRaw
 
 local IsNumber = Type.IsNumber
 local IsColor = Type.IsColor

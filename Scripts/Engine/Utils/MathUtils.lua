@@ -17,17 +17,18 @@
 ---
 --- To use, include the module with:
 ---
----	local MathUtils = require("Engine.MathUtils")
+---	local MathUtils = require("Engine.Utils.MathUtils")
 -- @luautil MathUtils
 
 local MathUtils = {}
 local Type = require("Engine.Type")
-local Util = require("Engine.Util")
+local Utility = require("Engine.Util")
 
 local logLevelError  = TEN.Util.LogLevel.ERROR
 local logLevelWarning  = TEN.Util.LogLevel.WARNING
-local Round = Util.Round
-local WrapAngleRaw = Util.WrapAngleRaw
+
+local Round = Utility.Round
+local WrapAngleRaw = Utility.WrapAngleRaw
 local IsNumber = Type.IsNumber
 local IsVec2 = Type.IsVec2
 local IsVec3 = Type.IsVec3
@@ -45,6 +46,7 @@ local Rotation = TEN.Rotation
 local Color = TEN.Color
 local Time = TEN.Time
 local LogMessage  = TEN.Util.PrintLog
+
 local errorMessageMax = "Error in MathUtils.Max: all arguments must be the same type."
 local errorMessageMin = "Error in MathUtils.Min: all arguments must be the same type."
 local errorMessageRandom = "Error in MathUtils.Random: minValue and maxValue must be the same type."

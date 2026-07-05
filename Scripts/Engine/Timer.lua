@@ -29,41 +29,29 @@
 
 local Type = require("Engine.Type")
 local Utility = require("Engine.Util")
+local GeneralUtils = require("Engine.Utils.GeneralUtils")
+local TableUtils = require("Engine.Utils.TableUtils")
 
 local Timer = {}
 Timer.__index = Timer
 LevelFuncs.Engine.Timer = {}
 LevelVars.Engine.Timer = {timers = {}}
 
-local ZERO = TEN.Time()
-local DEFAULT_TEXT_OPTIONS = {TEN.Strings.DisplayStringOption.CENTER, TEN.Strings.DisplayStringOption.SHADOW, TEN.Strings.DisplayStringOption.VERTICAL_CENTER}
-local DEFAULT_TIMER_FORMAT = {minutes = true, seconds = true, centiseconds = true}
-local FPS = 30
-local FRAME_TIME = 1 / FPS
-local COMPARISON_OPS =
-{
-    function(a, b) return a == b end,   -- 0: equal
-    function(a, b) return a ~= b end,   -- 1: not equal
-    function(a, b) return a < b end,    -- 2: less than
-    function(a, b) return a <= b end,   -- 3: less than or equal
-    function(a, b) return a > b end,    -- 4: greater than
-    function(a, b) return a >= b end,   -- 5: greater than or equal
-}
-local floor = math.floor
+local ZERO = GeneralUtils.CloneValue(Utility.Constants.ZERO)
+local DEFAULT_TEXT_OPTIONS = GeneralUtils.CloneValue(Utility.Constants.DEFAULT_TEXT_OPTIONS)
+local DEFAULT_TIMER_FORMAT = GeneralUtils.CloneValue(Utility.Constants.DEFAULT_TIMER_FORMAT)
+local FPS = Utility.Constants.FPS
+local FRAME_TIME = Utility.Constants.FRAME_TIME
+
+Timer.Operators = GeneralUtils.CloneValue(Utility.Constants.Operators)
+TableUtils.SetTableReadOnly(Timer.Operators)
+
 local pairs = pairs
 local unpack = table.unpack
 
-local function Round2Decimal(second)
-	return floor(second * 100 + 0.5) / 100
-end
+local Round = Utility.Round
 
-local CheckOperator = function(operator)
-	if not Type.IsNumber(operator) then
-		return nil
-	end
-    local op = COMPARISON_OPS[operator + 1]
-    return Type.IsFunction(op) and op or nil
-end
+local CheckOperator = Utility.CheckOperator
 
 --- Create (but do not start) a new timer.
 -- @tparam string name A label to give this timer; used to retrieve the timer later.<br>__Do not give your timers a name beginning with \_\_TEN, as this is reserved for timers used by other internal libaries__.
@@ -110,7 +98,7 @@ Timer.Create = function (name, totalTime, loop, timerFormat, func, ...)
 	local thisTimer = LevelVars.Engine.Timer.timers[name]
 	thisTimer.name = name
 	thisTimer.isInternal = string.match(name, "__TEN") and true or false
-	thisTimer.totalTime = TEN.Time(Round2Decimal(totalTime) * FPS)
+	thisTimer.totalTime = TEN.Time(Round(totalTime, 2) * FPS)
 	thisTimer.remainingTime = thisTimer.totalTime
 
 	loop = loop or false
@@ -365,42 +353,47 @@ function Timer:SetRemainingTime(remainingTime)
 		TEN.Util.PrintLog("Error in Timer:SetRemainingTime(): wrong value  (" .. tostring(remainingTime) .. ")  for remainingTime in '" .. self.name .. "' timer", TEN.Util.LogLevel.ERROR)
 	else
 		local thisTimer = LevelVars.Engine.Timer.timers[self.name]
-		thisTimer.remainingTime = TEN.Time(Round2Decimal(remainingTime) * FPS)
+		thisTimer.remainingTime = TEN.Time(Round(remainingTime, 2) * FPS)
 	end
 end
 
 --- Compares the remaining time with a value (in seconds).
 --
--- It's recommended to use the *IfRemainingTimeIs()* method to have error-free comparisons
--- @tparam int operator The type of comparison.<br>
--- 0 : If the remaining time is equal to the value<br>
--- 1 : If the remaining time is different from the value<br>
--- 2 : If the remaining time is less than the value<br>
--- 3 : If the remaining time is less or equal to the value<br>
--- 4 : If the remaining time is greater than the value<br>
--- 5 : If the remaining time is greater or equal to the value
--- @tparam float seconds The value in seconds to compare.<br>
--- No negative values allowed. Values are converted to 30 FPS game frames and rounded to the nearest frame.<br>
+-- It's recommended to use the *IfRemainingTimeIs()* method to have error-free comparisons.
+--
 -- Please note: to have continuous control, the remaining time must be controlled within the *OnLoop* event and only when the Timer is active @{Timer.IsActive}.
--- @treturn bool true if comparison is true, false if comparison is false or timer does not exist
+-- @tparam Operators operator The type of comparison.
+-- @tparam float seconds The value in seconds to compare. No negative values allowed. Values are converted to 30 FPS game frames and rounded to the nearest frame.<br>
+-- @treturn[1] bool true/false based on the result of the operation.
+-- @treturn[2] bool false if the timer does not exist or an error occurred.
 -- @usage
--- -- Example: Alternative method to create a sequence of events by checking if the remaining time has specific value.
+-- -- Example1 : Alternative method to create a sequence of events by checking if the remaining time has specific value.
 -- Timer.Create("my_timer", 8.0)
 -- LevelFuncs.OnLoop = function() -- this function is present in the .lua file of the level
 --    if Timer.IfExists("my_timer") and Timer.Get("my_timer"):IsActive() then
---       if Timer.Get("my_timer"):IfRemainingTimeIs(0, 7.0) then
+--       if Timer.Get("my_timer"):IfRemainingTimeIs(Timer.Operators.EQUAL, 7.0) then
 --          -- do something
 --       end
---       if Timer.Get("my_timer"):IfRemainingTimeIs(0, 6.1) then
+--       if Timer.Get("my_timer"):IfRemainingTimeIs(Timer.Operators.EQUAL, 6.1) then
 --          -- do something
 --       end
---       if Timer.Get("my_timer"):IfRemainingTimeIs(0, 3.4) then
+--       if Timer.Get("my_timer"):IfRemainingTimeIs(Timer.Operators.EQUAL, 3.4) then
 --          -- do something
 --       end
---       if Timer.Get("my_timer"):IfRemainingTimeIs(0, 1.1) then
+--       if Timer.Get("my_timer"):IfRemainingTimeIs(Timer.Operators.EQUAL, 1.1) then
 --          -- do something
 --       end
---       if Timer.Get("my_timer"):IfRemainingTimeIs(0, 0.4) then
+--       if Timer.Get("my_timer"):IfRemainingTimeIs(Timer.Operators.EQUAL, 0.4) then
+--          -- do something
+--       end
+--    end
+-- end
+--
+-- -- Example2 : Check if the remaining time is less than 3 seconds
+-- Timer.Create("my_timer", 8.0)
+-- LevelFuncs.OnLoop = function() -- this function is present in the .lua file of the level
+--    if Timer.IfExists("my_timer") and Timer.Get("my_timer"):IsActive() then
+--       if Timer.Get("my_timer"):IfRemainingTimeIs(Timer.Operators.LESS, 3.0) then
 --          -- do something
 --       end
 --    end
@@ -417,7 +410,7 @@ function Timer:IfRemainingTimeIs(operator, seconds)
 	end
 	local timer = LevelVars.Engine.Timer.timers[self.name]
 	local remainingTime = timer.remainingTime
-	local time = TEN.Time(Round2Decimal(seconds) * FPS)
+	local time = TEN.Time(Round(seconds, 2) * FPS)
 	return op(remainingTime, time)
 end
 
@@ -499,26 +492,20 @@ function Timer:SetTotalTime(totalTime)
 	if not Type.IsNumber(totalTime) or totalTime < 0 then
 		TEN.Util.PrintLog("Error in Timer:SetTotalTime(): wrong value (" .. tostring(totalTime) .. ") for totalTime in '" .. self.name .. "' timer", TEN.Util.LogLevel.ERROR)
 	else
-		LevelVars.Engine.Timer.timers[self.name].totalTime = TEN.Time(Round2Decimal(totalTime) * FPS)
+		LevelVars.Engine.Timer.timers[self.name].totalTime = TEN.Time(Round(totalTime, 2) * FPS)
 	end
 end
 
 --- Compares the total time with a value (in seconds).
 --
 -- It's recommended to use the IfTotalTimeIs() method to have error-free comparisons
--- @tparam int operator The type of comparison.<br>
--- 0 : If the total time is equal to the value<br>
--- 1 : If the total time is different from the value<br>
--- 2 : If the total time is less the value<br>
--- 3 : If the total time is less or equal to the value<br>
--- 4 : If the total time is greater the value<br>
--- 5 : If the total time is greater or equal to the value
--- @tparam float seconds the value in seconds to compare.<br>
--- No negative values allowed. Values are converted to 30 FPS game frames and rounded to the nearest frame.
--- @treturn bool true if comparison is true, false if comparison is false or timer does not exist
+-- @tparam Operators operator The type of comparison.
+-- @tparam float seconds the value in seconds to compare. No negative values allowed. Values are converted to 30 FPS game frames and rounded to the nearest frame.
+-- @treturn[1] bool true/false based on the result of the operation.
+-- @treturn[2] bool false if the timer does not exist or an error occurred
 -- @usage
 -- -- Example: this function checks if totalTime is equal to 5.1 seconds
--- if Timer.IfExists("my_timer") and Timer.Get("my_timer"):IfTotalTimeIs(0, 5.1) then
+-- if Timer.IfExists("my_timer") and Timer.Get("my_timer"):IfTotalTimeIs(Timer.Operators.EQUAL, 5.1) then
 --    local currentTotalTime = Timer.Get("my_timer"):GetTotalTime()
 --    Timer.Get("my_timer"):SetTotalTime(currentTotalTime + 1.0)
 -- end
@@ -533,7 +520,7 @@ function Timer:IfTotalTimeIs(operator, seconds)
 		return false
 	end
 	local totalTime = LevelVars.Engine.Timer.timers[self.name].totalTime
-	local time = TEN.Time(Round2Decimal(seconds) * FPS)
+	local time = TEN.Time(Round(seconds, 2) * FPS)
 	return op(totalTime, time)
 end
 
@@ -833,8 +820,10 @@ LevelFuncs.Engine.Timer.UpdateAll = function()
 end
 
 ----
--- Timer format
--- @section Timerformat
+-- Tables
+--
+-- Tables and constants used in various timer methods.
+-- @section tables_constants
 
 ---
 -- Details about the timer format used in various timer methods.<br>
@@ -854,6 +843,18 @@ end
 -- <span class="keyword">local</span> myTimeFormat5 = <span class="keyword">true</span>
 -- <br><span class="comment">-- no remaining time display</span>
 -- <span class="keyword">local</span> myTimeFormat6 = <span class="keyword">false</span></pre>
+
+---
+-- Constants for operators in @{Timer:IfRemainingTimeIs} and @{Timer:IfTotalTimeIs}.
+--
+-- Use them as `Timer.Operators.EQUAL`, `Timer.Operators.LESS`, etc.
+-- @table Operators
+-- @tfield 0 EQUAL Equal operator.
+-- @tfield 1 NOT_EQUAL Not equal operator.
+-- @tfield 2 LESS Less than operator.
+-- @tfield 3 LESS_EQUAL Less than or equal operator.
+-- @tfield 4 GREATER Greater than operator.
+-- @tfield 5 GREATER_EQUAL Greater than or equal operator.
 
 TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.Engine.Timer.Decrease)
 TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.POST_LOOP, LevelFuncs.Engine.Timer.UpdateAll)

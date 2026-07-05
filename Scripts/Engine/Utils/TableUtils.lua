@@ -17,33 +17,28 @@
 ---
 --- To use, include the module with:
 ---
----	local TableUtils = require("Engine.TableUtils")
+---	local TableUtils = require("Engine.Utils.TableUtils")
 -- @luautil TableUtils
 
 local Type = require("Engine.Type")
-local Util = require("Engine.Util")
+local Utility = require("Engine.Util")
 local TableUtils = {}
 
-local TableHasValueRaw = Util.TableHasValue
-local GetMaxNumericIndex = Util.GetMaxNumericIndex
+local _nextCompareId = 1       -- Progressive ID generator for each comparison operation
+local _activeCompares = {}     -- Tracks active comparisons: { [id] = { depth, elementCount, visited } }
+local MAX_DEPTH = Utility.Constants.MAX_DEPTH
+local MAX_ELEMENTS = Utility.Constants.MAX_ELEMENTS
 
+local TableHasValueRaw = Utility.TableHasValue
+local GetMaxNumericIndex = Utility.GetMaxNumericIndex
 local IsTable = Type.IsTable
-
 local LogMessage  = TEN.Util.PrintLog
-local logLevelEnums = TEN.Util.LogLevel
-local logLevelError  = logLevelEnums.ERROR
-local logLevelWarning = logLevelEnums.WARNING
-
+local logLevelError  = TEN.Util.LogLevel.ERROR
+local logLevelWarning = TEN.Util.LogLevel.WARNING
 local pairs = pairs
 local ipairs = ipairs
 local next = next
 local tableRemove = table.remove
-
-local MAX_DEPTH = 10        -- Maximum recursion depth for deep operations (prevents stack overflow)
-local MAX_ELEMENTS = 1000   -- Maximum elements processed in deep operations (prevents performance issues)
-
-local _nextCompareId = 1       -- Progressive ID generator for each comparison operation
-local _activeCompares = {}     -- Tracks active comparisons: { [id] = { depth, elementCount, visited } }
 
 -- Support function for recursive comparison
 local function CompareRecursive(t1, t2, compareId)
