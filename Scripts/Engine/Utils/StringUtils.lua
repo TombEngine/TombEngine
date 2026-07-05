@@ -35,14 +35,24 @@ local GetMaxNumericIndex = Utility.GetMaxNumericIndex
 local LogMessage  = TEN.Util.PrintLog
 
 --- Split a string into a table using a specified delimiter.
+-- Empty fields between consecutive delimiters are preserved (e.g. `"a,,b"` → `{"a", "", "b"}`).
+-- This matches the standard split behavior in JavaScript, Python, C#, and most other languages.
 -- @tparam string inputStr The string to split.
 -- @tparam[opt=" " (space)] string delimiter The delimiter to use for splitting.
 -- @treturn[1] table A table containing the split substrings.
--- @treturn[2] table {} An empty table if an error occurs.
+-- @treturn[2] table {} An empty table if an error occurs, with a warning message.
 -- @usage
 -- local str = "apple,banana,cherry"
 -- local result = StringUtils.SplitString(str, ",")
 -- -- Result: {"apple", "banana", "cherry"}
+--
+-- -- Consecutive delimiters produce empty strings:
+-- local result = StringUtils.SplitString("a,,b,,c", ",")
+-- -- Result: {"a", "", "b", "", "c"}
+--
+-- -- Trailing delimiter produces an empty string at the end:
+-- local result = StringUtils.SplitString("a,b,", ",")
+-- -- Result: {"a", "b", ""}
 StringUtils.SplitString = function(inputStr, delimiter)
     if not IsString(inputStr) then
         LogMessage("Error in StringUtils.SplitString: inputStr is not a string.", logLevelError)
@@ -62,11 +72,11 @@ StringUtils.SplitString = function(inputStr, delimiter)
         local pos = inputStr:find(delimiter, start, true)  -- plain match
         if not pos then
             local last = inputStr:sub(start)
-            if #last > 0 then t[#t + 1] = last end
+            t[#t + 1] = last
             break
         end
         local segment = inputStr:sub(start, pos - 1)
-        if #segment > 0 then t[#t + 1] = segment end
+        t[#t + 1] = segment
         start = pos + delimLen
     end
     return t
