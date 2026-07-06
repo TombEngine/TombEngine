@@ -311,15 +311,14 @@ namespace TEN::Entities::Creatures::TR5
 		}
 
 		// Kollisionsprüfung: Heli darf nicht weiter nach vorne fliegen wenn:
-		// 1. halbes Square vor Pivot + 3 Squares links/rechts Wand/solid geometry
+		// 1. Wand/solid geometry im Weg
 		// 2. raised floor oder lowered ceiling mit Boundingbox im Weg
 
 		bool blocked = false;
+		short earlyBlockRoomNum = item->RoomNumber;
+
 		if (isMoving && moveHLen > 100.0f)
 		{
-			const float safetyDistance = SECTOR_SIZE / 2; // halbes Square vor Pivot
-			const float sideOffset = SECTOR_SIZE * 3;      // 3 Squares links/rechts
-
 			// Vorwärtsrichtung berechnen (aus der Orientierung des Helis)
 			// TR: y=0 zeigt nach -Z (Vorwärts)
 			Vector3 forwardVec(
@@ -328,49 +327,79 @@ namespace TEN::Entities::Creatures::TR5
 				-cosf(item->Pose.Orientation.y));
 			forwardVec.Normalize();
 
-			// Pivotpunkt ist ganz vorne, Checkpoint ist halbes Square vor Pivot
-			Vector3 checkPoint = item->Pose.Position.ToVector3() + forwardVec * safetyDistance;
-
-			// Links und rechts vom Checkpoint prüfen (90° Rotation im Uhrzeigersinn)
-			Vector3 leftPoint = checkPoint + Vector3(forwardVec.z, 0.0f, -forwardVec.x) * sideOffset;
-			Vector3 rightPoint = checkPoint + Vector3(-forwardVec.z, 0.0f, forwardVec.x) * sideOffset;
-
 			// Boundingbox Werte
 			auto& heliFrame = GetFrame(*item);
 			float bottomMeshY = item->Pose.Position.y + heliFrame.BoundingBox.Y1;
 			float topMeshY = item->Pose.Position.y + heliFrame.BoundingBox.Y2;
-			int boxHeight = (int)(topMeshY - bottomMeshY);
 
-			// Prüfe drei Positionen: Mitte, Links, Rechts auf Wand und Deckenhöhe
-			auto checkPointCollision = [&](int x, int z) -> bool
+			// Prüfe drei Checkpoints im Vorfeld (frühes Abbremsen ab ~3-4 Squares)
+			const float safetyDistance = SECTOR_SIZE;         // 1 Square für sofortiges Stoppen
+			const float earlyCheckDistance = SECTOR_SIZE * 3; // 3 Squares für rechtzeitiges Abbremsen
+
+			// Early check: Wenn Wand/Decke in 2 Squars erkannt, bereits targetSpeed reduzieren
+			Vector3 earlyCheckPoint = item->Pose.Position.ToVector3() + forwardVec * earlyCheckDistance;
+			auto pointCollEarly = GetPointCollision(Vector3(earlyCheckPoint.x, (bottomMeshY + topMeshY) / 2, earlyCheckPoint.z), earlyBlockRoomNum);
+
+			if (pointCollEarly.GetSector().IsWall(earlyCheckPoint.x, earlyCheckPoint.z))
+				targetSpeed *= 0.5f; // Schon early abbremsen
+			else
 			{
-				short roomNum = item->RoomNumber;
-				auto pointColl = GetPointCollision(Vector3(x, (bottomMeshY + topMeshY) / 2, z), roomNum);
+				int relCeilHeight = abs(pointCollEarly.GetCeilingHeight() - pointCollEarly.GetFloorHeight());
+				if (relCeilHeight <= (int)(topMeshY - bottomMeshY))
+					targetSpeed *= 0.5f;
+			}
 
-				// Prüfe auf Wand/solid geometry
-				if (pointColl.GetSector().IsWall(x, z))
-					return true;
+			// Prüfe einen Punkt VOR dem Heli (halbes Square vor Pivot)
+			Vector3 checkPoint = item->Pose.Position.ToVector3() + forwardVec * safetyDistance;
 
-				// Prüfe ob Deckenhöhe zu niedrig ist (Heli passt nicht durch)
-				int relCeilHeight = abs(pointColl.GetCeilingHeight() - pointColl.GetFloorHeight());
-				if (relCeilHeight <= boxHeight)
-					return true;
+			// Mitte prüfen
+			short roomNum = item->RoomNumber;
+			auto pointCollCenter = GetPointCollision(Vector3(checkPoint.x, (bottomMeshY + topMeshY) / 2, checkPoint.z), roomNum);
 
-				return false; // Frei
-			};
+			if (pointCollCenter.GetSector().IsWall(checkPoint.x, checkPoint.z))
+				blocked = true;
 
-			blocked = checkPointCollision((int)checkPoint.x, (int)checkPoint.z) ||
-					  checkPointCollision((int)leftPoint.x, (int)leftPoint.z) ||
-					  checkPointCollision((int)rightPoint.x, (int)rightPoint.z);
+			// Prüfe ob Deckenhöhe zu niedrig ist (Heli passt nicht durch)
+			int relCeilHeight = abs(pointCollCenter.GetCeilingHeight() - pointCollCenter.GetFloorHeight());
+			if (!blocked && relCeilHeight <= (int)(topMeshY - bottomMeshY))
+				blocked = true;
+
+			// Prüfe noch 45° links und rechts (halbes Square seitlich)
+			if (!blocked)
+			{
+				const float sideOffset = SECTOR_SIZE / 2;
+				Vector3 leftPoint = checkPoint + Vector3(forwardVec.z, 0.0f, -forwardVec.x) * sideOffset;
+				Vector3 rightPoint = checkPoint + Vector3(-forwardVec.z, 0.0f, forwardVec.x) * sideOffset;
+
+				auto pointCollLeft = GetPointCollision(Vector3(leftPoint.x, (bottomMeshY + topMeshY) / 2, leftPoint.z), roomNum);
+				auto pointCollRight = GetPointCollision(Vector3(rightPoint.x, (bottomMeshY + topMeshY) / 2, rightPoint.z), roomNum);
+
+				if (pointCollLeft.GetSector().IsWall(leftPoint.x, leftPoint.z))
+					blocked = true;
+
+				if (!blocked && pointCollRight.GetSector().IsWall(rightPoint.x, rightPoint.z))
+					blocked = true;
+			}
 		}
 
 		if (blocked)
 		{
 			targetSpeed = 0.0f;
 			isMoving = false;
+			ySpeedTargetGlobal = 0.0f; // Y-Bewegung ebenfalls stoppen
+			currentYSpeed = 0.0f;      // Aktuelle Y-Geschwindigkeit zurücksetzen
+			
+			// Position so justieren dass Heli gerade noch vor dem Wall steht (nicht in ihm hinein)
+			const float moveDist = currentSpeed;
+			if (moveHLen > 1.0f)
+			{
+				item->Pose.Position.x -= (int)((moveHdx / moveHLen) * moveDist);
+				item->Pose.Position.z -= (int)((moveHdz / moveHLen) * moveDist);
+			}
+			
 		}
 
-		if (isMoving && moveHLen > 100.0f && !blocked)
+		if (!blocked && isMoving && moveHLen > 100.0f)
 		{
 			const float moveDist = currentSpeed;
 
@@ -446,141 +475,135 @@ namespace TEN::Entities::Creatures::TR5
 			}
 		}
 
-		// YSpeed lerp
-		currentYSpeed += (ySpeedTargetGlobal - currentYSpeed) * yLerpAlpha;
-
-		// Direkte Y-Bewegung über currentYSpeed
-		item->Pose.Position.y += (int)currentYSpeed;
-
-		// IDLE: Orientierung beibehalten wenn nicht bewegung
-		if (!isMoving && currentState == GunShipState::IDLE)
+		// YSpeed lerp (nur wenn nicht blockiert)
+		if (!blocked)
 		{
-			pitchTarget = (float)DEG_TO_RAD(MAX_PITCH_DEG);
+			currentYSpeed += (ySpeedTargetGlobal - currentYSpeed) * yLerpAlpha;
 
-			auto fwdVec = Vector3(
-				cosf(item->Pose.Orientation.x) * sinf(item->Pose.Orientation.y),
-				sinf(item->Pose.Orientation.x),
-				cosf(item->Pose.Orientation.x) * cosf(item->Pose.Orientation.y));
-			fwdVec.Normalize();
+			// Direkte Y-Bewegung über currentYSpeed
+			item->Pose.Position.y += (int)currentYSpeed;
 
-			Vector3 toMoveTarget;
-			if (hasMoveTargetPos)
-				toMoveTarget = moveTargetPosCopy - item->Pose.Position.ToVector3();
-			else
-				toMoveTarget = moveTargetItem->Pose.Position.ToVector3() - item->Pose.Position.ToVector3();
-			toMoveTarget.y = 0.0f;
-			toMoveTarget.Normalize();
+			// Wenn Heli im Boden/Decke steckt, auf korrekte Höhe setzen
+			auto& frameData = GetFrame(*item);
+			float bottomMeshY = item->Pose.Position.y + frameData.BoundingBox.Y1;
+			FloorInfo* floorCheck2 = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &item->RoomNumber);
+			if (floorCheck2 != nullptr)
+			{
+				const int floorHeight = GetFloorHeight(floorCheck2, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
+				const int ceilingHeight = GetCeiling(floorCheck2, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
 
-			float crossY = fwdVec.z * toMoveTarget.x - fwdVec.x * toMoveTarget.z;
-			bankTarget = DEG_TO_RAD(MAX_BANK_DEG) * crossY;
-		}
+				if (floorHeight != NO_VALUE && bottomMeshY > floorHeight)
+					item->Pose.Position.y = floorHeight - frameData.BoundingBox.Y1;
+				else if (ceilingHeight != NO_VALUE && (item->Pose.Position.y + frameData.BoundingBox.Y2) < ceilingHeight + SECTOR_SIZE / 8)
+					item->Pose.Position.y = ceilingHeight + SECTOR_SIZE / 8 - frameData.BoundingBox.Y2;
+			}
 
-		// Post-position collision: Wall sliding
-		CollisionInfo coll{};
-		auto collObjects = GetCollidedObjects(*item, true, true);
+			// IDLE: Orientierung beibehalten wenn nicht bewegung
+			if (!isMoving && currentState == GunShipState::IDLE)
+			{
+				pitchTarget = (float)DEG_TO_RAD(MAX_PITCH_DEG);
 
-		if (!collObjects.Statics.empty())
-		{
-			for (const StaticMesh* staticMesh : collObjects.Statics)
-				ItemPushStatic(item, *staticMesh, &coll);
-		}
+				auto fwdVec = Vector3(
+					cosf(item->Pose.Orientation.x) * sinf(item->Pose.Orientation.y),
+					sinf(item->Pose.Orientation.x),
+					cosf(item->Pose.Orientation.x) * cosf(item->Pose.Orientation.y));
+				fwdVec.Normalize();
 
-		// Pitch und Bank über ItemFlags interpolieren
-		const float pitchLerpAlpha = 1.0f / powf(2.0f, PITCH_LERP_SPEED);
-		const float bankLerpAlpha = 1.0f / powf(2.0f, BANK_LERP_SPEED);
+				Vector3 toMoveTarget;
+				if (hasMoveTargetPos)
+					toMoveTarget = moveTargetPosCopy - item->Pose.Position.ToVector3();
+				else
+					toMoveTarget = moveTargetItem->Pose.Position.ToVector3() - item->Pose.Position.ToVector3();
+				toMoveTarget.y = 0.0f;
+				toMoveTarget.Normalize();
 
-		float currentPitch = (float)item->ItemFlags[1] / FLOATING_POINT_SCALE;
-		float currentBankAngle = (float)item->ItemFlags[2] / FLOATING_POINT_SCALE;
+				float crossY = fwdVec.z * toMoveTarget.x - fwdVec.x * toMoveTarget.z;
+				bankTarget = DEG_TO_RAD(MAX_BANK_DEG) * crossY;
+			}
 
-		currentPitch += (pitchTarget - currentPitch) * pitchLerpAlpha;
-		currentBankAngle += (bankTarget - currentBankAngle) * bankLerpAlpha;
+			// Pitch und Bank über ItemFlags interpolieren
+			const float pitchLerpAlpha = 1.0f / powf(2.0f, PITCH_LERP_SPEED);
+			const float bankLerpAlpha = 1.0f / powf(2.0f, BANK_LERP_SPEED);
 
-		item->ItemFlags[1] = (int)(currentPitch * FLOATING_POINT_SCALE);
-		item->ItemFlags[2] = (int)(currentBankAngle * FLOATING_POINT_SCALE);
+			float currentPitch = (float)item->ItemFlags[1] / FLOATING_POINT_SCALE;
+			float currentBankAngle = (float)item->ItemFlags[2] / FLOATING_POINT_SCALE;
 
-		if (!isMoving)
-		{
-			currentPitch *= 0.95f;
-			currentBankAngle *= 0.95f;
+			currentPitch += (pitchTarget - currentPitch) * pitchLerpAlpha;
+			currentBankAngle += (bankTarget - currentBankAngle) * bankLerpAlpha;
+
 			item->ItemFlags[1] = (int)(currentPitch * FLOATING_POINT_SCALE);
 			item->ItemFlags[2] = (int)(currentBankAngle * FLOATING_POINT_SCALE);
 
-			if (fabsf(ySpeedTargetGlobal) > 0.1f)
-				currentYSpeed += (ySpeedTargetGlobal - currentYSpeed) * 0.1f;
-			else
-				currentYSpeed *= 0.95f;
-		}
-
-		constexpr int TRACK_SPEED = 3;
-		float lerpAlpha = 1.0f / powf(2.0f, TRACK_SPEED);
-		if (item->ItemFlags[0] == 1)
-			lerpAlpha = 1.0f;
-
-		EulerAngles lerpResult = targetOrient;
-		lerpResult.y += ANGLE(180.0f);
-
-		constexpr float RAD_TO_SHORTS = (float)(65536.0 / (2.0 * PI));
-		lerpResult.x = (short)(currentPitch * RAD_TO_SHORTS);
-		lerpResult.z = (short)(currentBankAngle * RAD_TO_SHORTS);
-
-		EulerAngles lerpResult2 = EulerAngles::Lerp(item->Pose.Orientation, lerpResult, lerpAlpha);
-		item->Pose.Orientation = lerpResult2;
-
-		FloorInfo* floorInfo = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &item->RoomNumber);
-		int ceilingHeight = NO_VALUE;
-		if (floorInfo != nullptr)
-			ceilingHeight = GetCeiling(floorInfo, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
-
-		auto& heliFrame = GetFrame(*item);
-		float heliTopMeshY = item->Pose.Position.y + heliFrame.BoundingBox.Y1;
-
-		FloorInfo* floorCheck = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &item->RoomNumber);
-		if (floorCheck != nullptr)
-		{
-			const int floorHeight = GetFloorHeight(floorCheck, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
-			if (floorHeight != NO_VALUE)
+			if (!isMoving)
 			{
-				auto& heliFrame = GetFrame(*item);
-				const float bottomMeshY = item->Pose.Position.y + heliFrame.BoundingBox.Y1;
-				const int distToFloor = floorHeight - (int)bottomMeshY;
+				currentPitch *= 0.95f;
+				currentBankAngle *= 0.95f;
+				item->ItemFlags[1] = (int)(currentPitch * FLOATING_POINT_SCALE);
+				item->ItemFlags[2] = (int)(currentBankAngle * FLOATING_POINT_SCALE);
 
-				if (distToFloor < SECTOR_SIZE / 8)
-					item->Pose.Position.y += (int)((float)(SECTOR_SIZE / 8 - distToFloor));
-			}
-		}
-
-		item->ItemFlags[0]++;
-
-		// Schussreichweite basierend auf Shoot-Target Distanz prüfen, nur mit explizitem GunshipShootTarget
-		const bool hasShootTargetInRange = targets.hasShootTarget && shootHLen <= maxShotsRange;
-		if (hasShootTargetInRange)
-		{
-			const int frameSinceActivation = item->ItemFlags[0];
-			if (!(GlobalCounter & (FIRE_RATE - 1)) && frameSinceActivation > FIRE_RATE)
-			{
-				SoundEffect(SFX_TR4_HK_FIRE, &item->Pose, SoundEnvironment::Land, 0.8f);
+				if (fabsf(ySpeedTargetGlobal) > 0.1f)
+					currentYSpeed += (ySpeedTargetGlobal - currentYSpeed) * 0.1f;
+				else
+					currentYSpeed *= 0.95f;
 			}
 
-			if (frameSinceActivation <= ROTOR_ACTIVE_THRESHOLD)
-				item->MeshBits |= 0x100;
+			constexpr int TRACK_SPEED = 3;
+			float lerpAlpha = 1.0f / powf(2.0f, TRACK_SPEED);
+			if (item->ItemFlags[0] == 1)
+				lerpAlpha = 1.0f;
+
+			EulerAngles lerpResult = targetOrient;
+			lerpResult.y += ANGLE(180.0f);
+
+			constexpr float RAD_TO_SHORTS = (float)(65536.0 / (2.0 * PI));
+			lerpResult.x = (short)(currentPitch * RAD_TO_SHORTS);
+			lerpResult.z = (short)(currentBankAngle * RAD_TO_SHORTS);
+
+			EulerAngles lerpResult2 = EulerAngles::Lerp(item->Pose.Orientation, lerpResult, lerpAlpha);
+			item->Pose.Orientation = lerpResult2;
+
+			FloorInfo* floorInfo = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &item->RoomNumber);
+			int ceilingHeight = NO_VALUE;
+			if (floorInfo != nullptr)
+				ceilingHeight = GetCeiling(floorInfo, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
+
+			item->ItemFlags[0]++;
+
+			// Post-position collision: Wall sliding
+			CollisionInfo coll{};
+			auto collObjects = GetCollidedObjects(*item, true, true);
+
+			if (!collObjects.Statics.empty())
+			{
+				for (const StaticMesh* staticMesh : collObjects.Statics)
+					ItemPushStatic(item, *staticMesh, &coll);
+			}
+
+			// Schussreichweite basierend auf Shoot-Target Distanz prüfen
+			const bool hasShootTargetInRange = targets.hasShootTarget && shootHLen <= maxShotsRange;
+			if (hasShootTargetInRange)
+			{
+				const int frameSinceActivation = item->ItemFlags[0];
+				if (!(GlobalCounter & (FIRE_RATE - 1)) && frameSinceActivation > FIRE_RATE)
+				{
+					SoundEffect(SFX_TR4_HK_FIRE, &item->Pose, SoundEnvironment::Land, 0.8f);
+				}
+
+				if (frameSinceActivation <= ROTOR_ACTIVE_THRESHOLD)
+					item->MeshBits |= 0x100;
+				else
+					item->MeshBits &= 0xFEFF;
+			}
 			else
+			{
 				item->MeshBits &= 0xFEFF;
+			}
+
+			// YSpeed persistent speichern für den nächsten Frame
+			if (item->ItemFlags[7] != 1)
+				item->ItemFlags[6] = (int)(currentYSpeed * FLOATING_POINT_SCALE);
+			else
+				item->ItemFlags[6] = (int)currentYSpeed;
 		}
-		else
-		{
-			item->MeshBits &= 0xFEFF;
-		}
-
-
-		// YSpeed persistent speichern für den nächsten Frame
-		if (item->ItemFlags[7] != 1)
-			item->ItemFlags[6] = (int)(currentYSpeed * FLOATING_POINT_SCALE);
-		else
-			item->ItemFlags[6] = (int)currentYSpeed;
-
-		// Kollisionsprüfung: Heli darf nicht weiter nach vorne fliegen wenn:
-		// 1. halbes Square vor Pivot + 3 Squares links/rechts Wand/solid geometry
-		// 2. raised floor oder lowered ceiling mit Boundingbox im Weg
-
 	}
 }
