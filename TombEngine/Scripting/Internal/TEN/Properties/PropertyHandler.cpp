@@ -58,9 +58,9 @@ namespace TEN::Scripting::Properties
 		return typeProps ? typeProps->GetRaw(hash) : nullptr;
 	}
 
-	const PropertyValue* PropertyHandler::Get(const ItemInfo& item, const std::string& name)
+	const PropertyValue* PropertyHandler::Get(const ItemInfo& item, const std::string& name, bool ignoreGlobalProperty)
 	{
-		return Get(item, GetHash(name));
+		return Get(item, GetHash(name), ignoreGlobalProperty);
 	}
 
 	const PropertyValue* PropertyHandler::Get(const StaticMesh& staticMesh, const std::string& name)
@@ -68,11 +68,11 @@ namespace TEN::Scripting::Properties
 		return Get(staticMesh, GetHash(name));
 	}
 
-	const PropertyValue* PropertyHandler::Get(const ItemInfo& item, int hash)
+	const PropertyValue* PropertyHandler::Get(const ItemInfo& item, int hash, bool ignoreGlobalProperty)
 	{
 		// Layer 2: Per-instance override takes priority.
 		auto* val = item.Properties.GetRaw(hash);
-		if (val != nullptr)
+		if (val != nullptr || ignoreGlobalProperty)
 			return val;
 
 		// Layer 1: Fall back to global type property.
