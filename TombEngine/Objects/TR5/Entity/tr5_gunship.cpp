@@ -291,7 +291,7 @@ namespace TEN::Entities::Creatures::TR5
 			currentSpeed = 0.0f;
 		item->ItemFlags[3] = (int)(currentSpeed * FLOATING_POINT_SCALE);
 
-		const bool isMoving = currentSpeed > 1.0f;
+		bool isMoving = currentSpeed > 1.0f;
 
 		float pitchTarget = 0.0f;
 		float bankTarget = 0.0f;
@@ -310,7 +310,67 @@ namespace TEN::Entities::Creatures::TR5
 			targetOrient = Geometry::GetOrientToPoint(vecOrigin, vecMoveTarget);
 		}
 
+		// Kollisionsprüfung: Heli darf nicht weiter nach vorne fliegen wenn:
+		// 1. halbes Square vor Pivot + 3 Squares links/rechts Wand/solid geometry
+		// 2. raised floor oder lowered ceiling mit Boundingbox im Weg
+
+		bool blocked = false;
 		if (isMoving && moveHLen > 100.0f)
+		{
+			const float safetyDistance = SECTOR_SIZE / 2; // halbes Square vor Pivot
+			const float sideOffset = SECTOR_SIZE * 3;      // 3 Squares links/rechts
+
+			// Vorwärtsrichtung berechnen (aus der Orientierung des Helis)
+			// TR: y=0 zeigt nach -Z (Vorwärts)
+			Vector3 forwardVec(
+				-sinf(item->Pose.Orientation.y),
+				0.0f,
+				-cosf(item->Pose.Orientation.y));
+			forwardVec.Normalize();
+
+			// Pivotpunkt ist ganz vorne, Checkpoint ist halbes Square vor Pivot
+			Vector3 checkPoint = item->Pose.Position.ToVector3() + forwardVec * safetyDistance;
+
+			// Links und rechts vom Checkpoint prüfen (90° Rotation im Uhrzeigersinn)
+			Vector3 leftPoint = checkPoint + Vector3(forwardVec.z, 0.0f, -forwardVec.x) * sideOffset;
+			Vector3 rightPoint = checkPoint + Vector3(-forwardVec.z, 0.0f, forwardVec.x) * sideOffset;
+
+			// Boundingbox Werte
+			auto& heliFrame = GetFrame(*item);
+			float bottomMeshY = item->Pose.Position.y + heliFrame.BoundingBox.Y1;
+			float topMeshY = item->Pose.Position.y + heliFrame.BoundingBox.Y2;
+			int boxHeight = (int)(topMeshY - bottomMeshY);
+
+			// Prüfe drei Positionen: Mitte, Links, Rechts auf Wand und Deckenhöhe
+			auto checkPointCollision = [&](int x, int z) -> bool
+			{
+				short roomNum = item->RoomNumber;
+				auto pointColl = GetPointCollision(Vector3(x, (bottomMeshY + topMeshY) / 2, z), roomNum);
+
+				// Prüfe auf Wand/solid geometry
+				if (pointColl.GetSector().IsWall(x, z))
+					return true;
+
+				// Prüfe ob Deckenhöhe zu niedrig ist (Heli passt nicht durch)
+				int relCeilHeight = abs(pointColl.GetCeilingHeight() - pointColl.GetFloorHeight());
+				if (relCeilHeight <= boxHeight)
+					return true;
+
+				return false; // Frei
+			};
+
+			blocked = checkPointCollision((int)checkPoint.x, (int)checkPoint.z) ||
+					  checkPointCollision((int)leftPoint.x, (int)leftPoint.z) ||
+					  checkPointCollision((int)rightPoint.x, (int)rightPoint.z);
+		}
+
+		if (blocked)
+		{
+			targetSpeed = 0.0f;
+			isMoving = false;
+		}
+
+		if (isMoving && moveHLen > 100.0f && !blocked)
 		{
 			const float moveDist = currentSpeed;
 
@@ -511,10 +571,16 @@ namespace TEN::Entities::Creatures::TR5
 			item->MeshBits &= 0xFEFF;
 		}
 
+
 		// YSpeed persistent speichern für den nächsten Frame
 		if (item->ItemFlags[7] != 1)
 			item->ItemFlags[6] = (int)(currentYSpeed * FLOATING_POINT_SCALE);
 		else
 			item->ItemFlags[6] = (int)currentYSpeed;
+
+		// Kollisionsprüfung: Heli darf nicht weiter nach vorne fliegen wenn:
+		// 1. halbes Square vor Pivot + 3 Squares links/rechts Wand/solid geometry
+		// 2. raised floor oder lowered ceiling mit Boundingbox im Weg
+
 	}
 }
