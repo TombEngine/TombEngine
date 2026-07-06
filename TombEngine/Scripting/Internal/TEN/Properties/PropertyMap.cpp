@@ -25,7 +25,6 @@ namespace TEN::Scripting::Properties
 
 	void PropertyMap::Set(int hash, const PropertyValue& value)
 	{
-		auto hash = GetRaw(hash);
 		_values[hash] = value;
 		_names[hash] = hash;
 	}
