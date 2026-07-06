@@ -48,6 +48,7 @@
 #include "Objects/TR3/Trap/SpikedFrame.h"
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
+#include "Objects/TR3/Trap/TunnelBorer.h"
 #include "Objects/TR3/Trap/TurningBlade.h"
 #include "Objects/TR3/Trap/FirePendulum.h"
 #include "Objects/TR3/Trap/Fan.h"
@@ -580,6 +581,14 @@ static void StartTrap(ObjectInfo* obj)
 	{
 		obj->control = ControlFan;
 		obj->collision = CollideFan;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_TUNNEL_BORER];
+	if (obj->loaded)
+	{
+		obj->control = ControlTunnelBorer;
+		obj->collision = CollideTunnelBorer;
 		obj->SetHitEffect(true);
 	}
 
