@@ -7,6 +7,7 @@
 #include "Game/effects/item_fx.h"
 #include "Game/collision/collide_item.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/level.h"
 #include "Game/effects/spark.h"
 
@@ -133,7 +134,7 @@ namespace TEN::Entities::Traps
 
 		AnimateItem(item);
 
-		auto flameMesh = PropertyHandler::Get(item, "FirePendulumFlameMesh", item.ItemFlags[PendulumFlags::FlameMesh]);
+		auto flameMesh = PropertyHandler::Get(item, PropName_EffectMeshID, item.ItemFlags[PendulumFlags::FlameMesh]);
 
 		auto pos = GetJointPosition(item, flameMesh, Vector3i(0, 260, 0));
 		auto angle = GetBoneOrientation(item, 5);
@@ -144,7 +145,7 @@ namespace TEN::Entities::Traps
 			item.ItemFlags[PendulumFlags::FireColorGreen],
 			item.ItemFlags[PendulumFlags::FireColorBlue]);
 
-		auto flameColor = PropertyHandler::Get<ScriptColor>(item, "FirePendulumFlameColor", defaultScriptColor);
+		auto flameColor = PropertyHandler::Get<ScriptColor>(item, PropName_EffectColor, defaultScriptColor);
 		auto colorVec3 = (Vector3)flameColor;
 
 		unsigned char r, g, b;
@@ -185,7 +186,7 @@ namespace TEN::Entities::Traps
 
 		auto color = Color(r / (float)UCHAR_MAX, g / (float)UCHAR_MAX, b / (float)UCHAR_MAX);
 
-		if (PropertyHandler::Get(item, "FirePendulumFxFogEffect", false))
+		if (PropertyHandler::Get(item, PropName_FxFogEffect, false))
 			SpawnDynamicFogBulb(pos.ToVector3(), PENDULUM_FIRE_FOG_RADIUS, PENDULUM_FIRE_FOG_DENSITY, color);
 
 		TriggerPendulumFlame(itemNumber, pos, color);
@@ -215,7 +216,7 @@ namespace TEN::Entities::Traps
 			(float)item->ItemFlags[PendulumFlags::FireColorGreen] / (float)UCHAR_MAX,
 			(float)item->ItemFlags[PendulumFlags::FireColorBlue] / (float)UCHAR_MAX);
 
-		auto flameColor = PropertyHandler::Get<ScriptColor>(item, "FirePendulumFlameColor", defaultScriptColor);
+		auto flameColor = PropertyHandler::Get<ScriptColor>(item, PropName_EffectColor, defaultScriptColor);
 		auto colorVec3 = (Vector3)flameColor;
 		bool hasCustomColor = (colorVec3.x != 0.0f || colorVec3.y != 0.0f || colorVec3.z != 0.0f);
 

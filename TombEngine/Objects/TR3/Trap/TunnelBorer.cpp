@@ -12,6 +12,7 @@
 #include "Game/Lara/lara.h"
 #include "Sound/sound.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
@@ -46,7 +47,7 @@ namespace TEN::Entities::Traps
 		int relFloorHeight = pointColl.GetFloorHeight() - item.Pose.Position.y;
 		int relCeilHeight = pointColl.GetCeilingHeight() - item.Pose.Position.y;
 
-		int verticalVel = PropertyHandler::Get(item, "TunnelBorerSpeed", TUNNEL_BORER_DEFAULT_SPEED);
+		int verticalVel = PropertyHandler::Get(item, PropName_VerticalVelocity, TUNNEL_BORER_DEFAULT_SPEED);
 
 		// Stop moving.
 		if ((verticalVel > 0 && relFloorHeight <= upperFloorBound) ||
@@ -90,7 +91,7 @@ namespace TEN::Entities::Traps
 		// Damage entity.
 		if (TestBoundsCollide(&item, playerItem, coll->Setup.Radius))
 		{
-			DoDamage(playerItem, PropertyHandler::Get(item, "TunnelBorerDamage", TUNNEL_BORER_DEFAULT_HARM_DAMAGE));
+			DoDamage(playerItem, PropertyHandler::Get(item, PropName_Damage, TUNNEL_BORER_DEFAULT_HARM_DAMAGE));
 			DoLotsOfBlood(playerItem->Pose.Position.x, playerItem->Pose.Position.y - CLICK(3), playerItem->Pose.Position.z, 4, playerItem->Pose.Orientation.y, playerItem->RoomNumber, 3);
 			playerItem->TouchBits.ClearAll();
 

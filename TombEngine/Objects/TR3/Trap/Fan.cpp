@@ -12,6 +12,7 @@
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
@@ -74,7 +75,7 @@ namespace TEN::Entities::Traps
 			}
 		}
 
-		item.ItemFlags[3] = PropertyHandler::Get(item, "FanDamage", FAN_HARM_DAMAGE);
+		item.ItemFlags[3] = PropertyHandler::Get(item, PropName_Damage, FAN_HARM_DAMAGE);
 
 		AnimateItem(&item);
 	}
