@@ -177,6 +177,53 @@ namespace TEN::Entities::Creatures::TR5
 		float moveTargetY = (hasMoveTargetPos) ? moveTargetPosCopy.y : moveTargetItem->Pose.Position.y;
 		const float yDiff = item->Pose.Position.y - moveTargetY;
 
+		// Kollisionsprüfung für State-Bestimmung (VOR State-Bestimmung!)
+		bool blockedEarly = false;
+		if (!hasMoveTargetPos)
+		{
+			float currentSpeed = fabsf((float)item->ItemFlags[3] / FLOATING_POINT_SCALE);
+			currentSpeed += ((moveHLen > maxShotsRange) ? MAX_MOVE_SPEED : MAX_MOVE_SPEED * 0.25f - currentSpeed) * (1.0f / powf(2.0f, MOVEMENT_LERP_SPEED));
+			bool isMoving = currentSpeed > 1.0f;
+
+			if (isMoving && moveHLen > 100.0f)
+			{
+				Vector3 forwardVec(
+					-sinf(item->Pose.Orientation.y),
+					0.0f,
+					-cosf(item->Pose.Orientation.y));
+				forwardVec.Normalize();
+
+				auto& heliFrame = GetFrame(*item);
+				float bottomMeshY = item->Pose.Position.y + heliFrame.BoundingBox.Y1;
+				float topMeshY = item->Pose.Position.y + heliFrame.BoundingBox.Y2;
+
+				const float safetyDistance = SECTOR_SIZE;
+				Vector3 checkPoint = item->Pose.Position.ToVector3() + forwardVec * safetyDistance;
+
+				auto pointCollCenter = GetPointCollision(Vector3(checkPoint.x, (bottomMeshY + topMeshY) / 2, checkPoint.z), item->RoomNumber);
+
+				if (pointCollCenter.GetSector().IsWall(checkPoint.x, checkPoint.z))
+					blockedEarly = true;
+
+				int relCeilHeight = abs(pointCollCenter.GetCeilingHeight() - pointCollCenter.GetFloorHeight());
+				if (!blockedEarly && relCeilHeight <= (int)(topMeshY - bottomMeshY))
+					blockedEarly = true;
+
+				const float sideOffset = SECTOR_SIZE / 2;
+				Vector3 leftPoint = checkPoint + Vector3(forwardVec.z, 0.0f, -forwardVec.x) * sideOffset;
+				Vector3 rightPoint = checkPoint + Vector3(-forwardVec.z, 0.0f, forwardVec.x) * sideOffset;
+
+				auto pointCollLeft = GetPointCollision(Vector3(leftPoint.x, (bottomMeshY + topMeshY) / 2, leftPoint.z), item->RoomNumber);
+				auto pointCollRight = GetPointCollision(Vector3(rightPoint.x, (bottomMeshY + topMeshY) / 2, rightPoint.z), item->RoomNumber);
+
+				if (pointCollLeft.GetSector().IsWall(leftPoint.x, leftPoint.z))
+					blockedEarly = true;
+
+				if (!blockedEarly && pointCollRight.GetSector().IsWall(rightPoint.x, rightPoint.z))
+					blockedEarly = true;
+			}
+		}
+
 		// Zustand bestimmen: Bei MovementTarget keine EVADE_NEAR basierend auf Distanz
 		int currentState = -1;
 
@@ -187,12 +234,11 @@ namespace TEN::Entities::Creatures::TR5
 		}
 		else
 		{
-			// Ohne MovementTarget: Normaler State-Mechanismus mit EVADE_NEAR
 			if (moveHLen < minDistance)
 				currentState = GunShipState::EVADE_NEAR;
 			else if (moveHLen < maxShotsRange && item->ItemFlags[7] == 0)
 				currentState = GunShipState::IDLE;
-			else
+			else if (!blockedEarly)
 				currentState = GunShipState::FOLLOW;
 		}
 
@@ -389,6 +435,13 @@ namespace TEN::Entities::Creatures::TR5
 			ySpeedTargetGlobal = 0.0f; // Y-Bewegung ebenfalls stoppen
 			currentYSpeed = 0.0f;      // Aktuelle Y-Geschwindigkeit zurücksetzen
 			
+			// In IDLE-Zustand wechseln damit Heli hovert und ausrichtet
+			currentState = GunShipState::IDLE;
+			
+			// Pitch/Bank zurücksetzen damit Heli nicht kippt
+			pitchTarget = 0.0f;
+			bankTarget = 0.0f;
+			
 			// Position so justieren dass Heli gerade noch vor dem Wall steht (nicht in ihm hinein)
 			const float moveDist = currentSpeed;
 			if (moveHLen > 1.0f)
@@ -398,7 +451,6 @@ namespace TEN::Entities::Creatures::TR5
 			}
 			
 		}
-
 		if (!blocked && isMoving && moveHLen > 100.0f)
 		{
 			const float moveDist = currentSpeed;
