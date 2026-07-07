@@ -98,8 +98,8 @@ namespace TEN::Entities::Traps
 
 			auto& diskItem = g_Level.Items[diskItemNumber];
 			diskItem.ObjectNumber = ID_DISK;
-			diskItem.Pose.Position = item.Pose.Position + Vector3i(0, -CLICK(0.9f), 0);
-			diskItem.Pose.Orientation = item.Pose.Orientation + EulerAngles(0, ANGLE(180.0f), 0);
+			diskItem.Pose.Position = GetJointPosition(item, 0, Vector3i(0, 0, CLICK(0.5f)));
+			diskItem.Pose.Orientation = item.Pose.Orientation;
 			diskItem.RoomNumber = item.RoomNumber;
 
 			InitializeItem(diskItemNumber);
