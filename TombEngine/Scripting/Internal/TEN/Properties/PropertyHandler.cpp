@@ -34,41 +34,41 @@ namespace TEN::Scripting::Properties
 		return (it != _staticProperties.end() && !it->second.IsEmpty()) ? &it->second : nullptr;
 	}
 
-	const PropertyValue* PropertyHandler::Get(GAME_OBJECT_ID objectID, const std::string& name)
+	const PropertyValue* PropertyHandler::GetRaw(GAME_OBJECT_ID objectID, const std::string& name)
 	{
-		return Get(objectID, GetHash(name));
+		return GetRaw(objectID, GetHash(name));
 	}
 
-	const PropertyValue* PropertyHandler::Get(GAME_OBJECT_ID objectID, int hash)
+	const PropertyValue* PropertyHandler::GetRaw(GAME_OBJECT_ID objectID, int hash)
 	{
 		// Look up global type property directly (Layer 1 only, no instance context).
 		auto* typeProps = FindMoveableProperties(objectID);
 		return typeProps ? typeProps->GetRaw(hash) : nullptr;
 	}
 
-	const PropertyValue* PropertyHandler::Get(int staticMeshSlot, const std::string& name)
+	const PropertyValue* PropertyHandler::GetRaw(int staticMeshSlot, const std::string& name)
 	{
-		return Get(staticMeshSlot, GetHash(name));
+		return GetRaw(staticMeshSlot, GetHash(name));
 	}
 
-	const PropertyValue* PropertyHandler::Get(int staticMeshSlot, int hash)
+	const PropertyValue* PropertyHandler::GetRaw(int staticMeshSlot, int hash)
 	{
 		// Look up global type property directly (Layer 1 only, no instance context).
 		auto* typeProps = FindStaticProperties(staticMeshSlot);
 		return typeProps ? typeProps->GetRaw(hash) : nullptr;
 	}
 
-	const PropertyValue* PropertyHandler::Get(const ItemInfo& item, const std::string& name, bool ignoreGlobalProperty)
+	const PropertyValue* PropertyHandler::GetRaw(const ItemInfo& item, const std::string& name, bool ignoreGlobalProperty)
 	{
-		return Get(item, GetHash(name), ignoreGlobalProperty);
+		return GetRaw(item, GetHash(name), ignoreGlobalProperty);
 	}
 
-	const PropertyValue* PropertyHandler::Get(const StaticMesh& staticMesh, const std::string& name)
+	const PropertyValue* PropertyHandler::GetRaw(const StaticMesh& staticMesh, const std::string& name)
 	{
-		return Get(staticMesh, GetHash(name));
+		return GetRaw(staticMesh, GetHash(name));
 	}
 
-	const PropertyValue* PropertyHandler::Get(const ItemInfo& item, int hash, bool ignoreGlobalProperty)
+	const PropertyValue* PropertyHandler::GetRaw(const ItemInfo& item, int hash, bool ignoreGlobalProperty)
 	{
 		// Layer 2: Per-instance override takes priority.
 		auto* val = item.Properties.GetRaw(hash);
@@ -76,10 +76,10 @@ namespace TEN::Scripting::Properties
 			return val;
 
 		// Layer 1: Fall back to global type property.
-		return Get(item.ObjectNumber, hash);
+		return GetRaw(item.ObjectNumber, hash);
 	}
 
-	const PropertyValue* PropertyHandler::Get(const StaticMesh& staticMesh, int hash)
+	const PropertyValue* PropertyHandler::GetRaw(const StaticMesh& staticMesh, int hash)
 	{
 		// Layer 2: Per-instance override takes priority.
 		auto* val = staticMesh.Properties.GetRaw(hash);
@@ -87,7 +87,7 @@ namespace TEN::Scripting::Properties
 			return val;
 
 		// Layer 1: Fall back to global type property.
-		return Get(staticMesh.Slot, hash);
+		return GetRaw(staticMesh.Slot, hash);
 	}
 
 	void PropertyHandler::Clear()
