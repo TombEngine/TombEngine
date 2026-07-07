@@ -33,18 +33,20 @@ namespace TEN::Entities::Traps
 		auto pos = Geometry::TranslatePoint(item.Pose.Position, item.Pose.Orientation.y, 510);
 		auto targetGameVector = GameVector(pos + Vector3(0, -510, 0), item.RoomNumber);
 
+		if (PropertyHandler::Get(item, PropName_SparkEffect, (bool)item.TriggerFlags, true))
+		{
 			if (item.Animation.FrameNumber > DRILL_BIT_EFFECT_START_FRAME &&
-				item.Animation.FrameNumber < DRILL_BIT_EFFECT_END_FRAME &&
-				PropertyHandler::Get(item, PropName_SparkEffect))
-			{				
+				item.Animation.FrameNumber < DRILL_BIT_EFFECT_END_FRAME)
+			{
 				TriggerRicochetSpark(targetGameVector, Random::GenerateAngle(), 2, Vector4(1.0f, 0.9f, 0.1f, 1.0f));
 				TriggerRicochetSpark(targetGameVector, Random::GenerateAngle(), 4, Vector4(1.0f, 0.9f, 0.1f, 1.0f));
 				SpawnDynamicLight(targetGameVector.x, targetGameVector.y, targetGameVector.z, Random::GenerateInt(4, 12), 24, 16, 4);
 			}
-			else if (PropertyHandler::Get(item, PropName_SparkEffect, true))
+			else
 			{
 				SpawnGunSmokeParticles(targetGameVector.ToVector3(), Vector3::Zero, item.RoomNumber, 0, LaraWeaponType::Pistol, 14);
 			}
+		}
 
 		AnimateItem(&item);
 	}

@@ -13,14 +13,12 @@ using namespace TEN::Scripting::Properties;
 
 namespace TEN::Entities::Generic
 {
-	constexpr auto PENDULUM_DAMAGE_VALUE = 75;
-
 	void InitializePendulum(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 
 		item.ItemFlags[0] = 2;
-		item.ItemFlags[3] = PropertyHandler::Get(item, PropName_Damage, PENDULUM_DAMAGE_VALUE);
+		item.ItemFlags[3] = PropertyHandler::Get(item, PropName_Damage, item.TriggerFlags, true);
 	}
 
 	void ControlPendulum(short itemNumber)
@@ -54,7 +52,7 @@ namespace TEN::Entities::Generic
 			if (!TriggerActive(item))
 				return;
 
-			DoDamage(playerItem, PropertyHandler::Get(item, PropName_Damage, PENDULUM_DAMAGE_VALUE));
+			DoDamage(playerItem, PropertyHandler::Get(item, PropName_Damage, abs(item->TriggerFlags), true));
 
 			TriggerLaraBlood();
 		}

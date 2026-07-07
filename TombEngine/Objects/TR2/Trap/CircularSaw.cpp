@@ -84,7 +84,7 @@ namespace TEN::Entities::Traps
 				SoundEffect(SFX_TR2_SAW_REVVING, &item.Pose, SoundEnvironment::Land, 2, 4);
 				item.ItemFlags[5]--;
 			}
-			else if (PropertyHandler::Get(item, PropName_SparkEffect, true))
+			else if (PropertyHandler::Get(item, PropName_SparkEffect, (bool)item.TriggerFlags, true))
 			{
 				TriggerSawSparkles(&item);
 				SoundEffect(SFX_TR2_SAW_REVVING, &item.Pose, SoundEnvironment::Land, 2, 3);

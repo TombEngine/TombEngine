@@ -562,7 +562,6 @@ static void StartTrap(ObjectInfo* obj)
 	obj = &Objects[ID_FIRE_PENDULUM];
 	if (obj->loaded)
 	{
-		obj->Initialize = InitializeFirePendulum;
 		obj->control = ControlFirePendulum;
 		obj->collision = CollideFirePendulum;
 		obj->SetHitEffect(true);

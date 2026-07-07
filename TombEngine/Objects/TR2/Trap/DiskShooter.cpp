@@ -14,6 +14,7 @@
 
 using namespace TEN::Scripting::Properties;
 using namespace TEN::Effects::Spark;
+
 // NOTES:
 // ItemFlags[0]: Delay between disks in frame time.
 // ItemFlags[1]: Timer in frame time.
@@ -23,11 +24,6 @@ namespace TEN::Entities::Traps
 	constexpr auto DISK_DEFAULT_HARM_DAMAGE	 = 45;
 	constexpr auto DISK_DEFAULT_VELOCITY	 = BLOCK(0.25f);
 	constexpr auto DISK_DEFAULT_DELAY		 = 32;
-
-	void InitializeDiskShooter(short itemNumber)
-	{
-
-	}
 
 	void ControlDisk(short itemNumber)
 	{
@@ -110,8 +106,8 @@ namespace TEN::Entities::Traps
 
 			diskItem.Animation.Velocity.z = DISK_DEFAULT_VELOCITY;
 			
-			diskItem.Properties.Set(PropName_Poisonous, PropertyHandler::Get(item, PropName_Poisonous, false));
-			diskItem.Properties.Set(PropName_Damage, (float)PropertyHandler::Get(item, PropName_Damage, DISK_DEFAULT_HARM_DAMAGE));
+			diskItem.Properties.Set(PropName_Poisonous, *PropertyHandler::GetRaw(item, PropName_Poisonous, false));
+			diskItem.Properties.Set(PropName_Damage, *PropertyHandler::GetRaw(item, PropName_Damage, DISK_DEFAULT_HARM_DAMAGE));
 			diskItem.Model.Color = item.Model.Color;
 
 			AddActiveItem(diskItemNumber);

@@ -647,7 +647,6 @@ static void StartTrap(ObjectInfo* obj)
 	obj = &Objects[ID_DISK_SHOOTER];
 	if (obj->loaded)
 	{
-		obj->Initialize = InitializeDiskShooter;
 		obj->control = ControlDiskShooter;
 		obj->Hidden = true;
 	}
