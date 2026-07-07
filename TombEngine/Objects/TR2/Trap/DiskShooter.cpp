@@ -106,8 +106,8 @@ namespace TEN::Entities::Traps
 
 			diskItem.Animation.Velocity.z = DISK_DEFAULT_VELOCITY;
 			
-			diskItem.Properties.Set(PropName_Poisonous, *PropertyHandler::GetRaw(item, PropName_Poisonous, false));
-			diskItem.Properties.Set(PropName_Damage, *PropertyHandler::GetRaw(item, PropName_Damage, DISK_DEFAULT_HARM_DAMAGE));
+			diskItem.Properties.Set(PropName_Poisonous, PropertyHandler::Get(item, PropName_Poisonous, false));
+			diskItem.Properties.Set(PropName_Damage, (float)PropertyHandler::Get(item, PropName_Damage, DISK_DEFAULT_HARM_DAMAGE));
 			diskItem.Model.Color = item.Model.Color;
 
 			AddActiveItem(diskItemNumber);

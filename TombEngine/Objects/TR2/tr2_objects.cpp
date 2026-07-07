@@ -648,7 +648,6 @@ static void StartTrap(ObjectInfo* obj)
 	if (obj->loaded)
 	{
 		obj->control = ControlDiskShooter;
-		obj->Hidden = true;
 	}
 }
 
