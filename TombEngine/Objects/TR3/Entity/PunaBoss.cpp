@@ -10,15 +10,13 @@
 #include "Math/Math.h"
 #include "Objects/Effects/Boss.h"
 #include "Objects/TR3/Entity/PunaBoss.h"
-#include "Objects/TR3/Entity/SophiaLeigh.h"
-#include "Objects/TR3/Entity/tr3_tony.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Specific/level.h"
-
 
 using namespace TEN::Effects::Boss;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Items;
+using namespace TEN::Scripting::Properties;
 using namespace TEN::Scripting::Types;
 
 namespace TEN::Entities::Creatures::TR3
