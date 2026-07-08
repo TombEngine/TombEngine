@@ -619,7 +619,14 @@ namespace TEN::Entities
 		{
 			obj->Initialize = InitializeWraith;
 			obj->control = WraithControl;
-		}	
+		}
+
+		obj = &Objects[ID_WRAITH4];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeWraith;
+			obj->control = WraithControl;
+		}
 
 		obj = &Objects[ID_LITTLE_BEETLE];
 		if (obj->loaded)
