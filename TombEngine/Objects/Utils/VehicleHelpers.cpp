@@ -16,6 +16,7 @@
 #include "Math/Random.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Specific/trutils.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 
@@ -26,6 +27,7 @@ using namespace TEN::Effects::Streamer;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
@@ -268,7 +270,7 @@ namespace TEN::Entities::Vehicles
 					SoundEffect(SFX_TR4_LARA_WADE, &wadePose, SoundEnvironment::Land, isWater ? 0.8f : 0.7f);
 				}
 
-				if (isWater && PropertyHandler::Get(vehicleItem, "VehicleWake", true))
+				if (isWater && PropertyHandler::Get(vehicleItem, GetHash("VehicleWake"), true))
 				{
 					int waterHeight = GetPointCollision(*vehicleItem).GetWaterTopHeight();
 					SpawnVehicleWake(*vehicleItem, wakeOffset, waterHeight);
@@ -389,8 +391,8 @@ namespace TEN::Entities::Vehicles
 		constexpr auto EXP_RATE_ON_WATER   = 6.0f;
 		constexpr auto EXP_RATE_UNDERWATER = 1.5f;
 
-		Color wakeStartColor = PropertyHandler::Get(vehicleItem, "WakeStartColor", ScriptColor(COLOR_START));
-		Color wakeEndColor = PropertyHandler::Get(vehicleItem, "WakeEndColor", ScriptColor(COLOR_END));
+		Color wakeStartColor = PropertyHandler::Get(vehicleItem, GetHash("WakeStartColor"), ScriptColor(COLOR_START));
+		Color wakeEndColor = PropertyHandler::Get(vehicleItem, GetHash("WakeEndColor"), ScriptColor(COLOR_END));
 
 		// Vehicle is out of water; return early.
 		if (waterHeight == NO_HEIGHT)

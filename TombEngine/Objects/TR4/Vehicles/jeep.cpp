@@ -21,6 +21,7 @@
 #include "Renderer/RendererEnums.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Specific/trutils.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -28,6 +29,7 @@
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
@@ -318,17 +320,17 @@ namespace TEN::Entities::Vehicles
 		if (jeep->LightPower <= 0)
 			return;
 
-		if (!PropertyHandler::Get(jeepItem, "JeepLight", true))
+		if (!PropertyHandler::Get(jeepItem, GetHash("JeepLight"), true))
 			return;
 
-		auto jeepLightColor = PropertyHandler::Get(jeepItem, "JeepLightColor", ScriptColor(200, 200, 200));
-		auto jeepLightRadius = PropertyHandler::Get(jeepItem, "JeepLightRadius", 4);
-		auto jeepLightFalloff = PropertyHandler::Get(jeepItem, "JeepLightFalloff", 2);
-		auto jeepLightDistance = PropertyHandler::Get(jeepItem, "JeepLightDistance", 10);
-		auto jeepLightCastShadow = PropertyHandler::Get(jeepItem, "JeepLightCastShadow", true);
+		auto jeepLightColor = PropertyHandler::Get(jeepItem, GetHash("JeepLightColor"), ScriptColor(200, 200, 200));
+		auto jeepLightRadius = PropertyHandler::Get(jeepItem, GetHash("JeepLightRadius"), 4);
+		auto jeepLightFalloff = PropertyHandler::Get(jeepItem, GetHash("JeepLightFalloff"), 2);
+		auto jeepLightDistance = PropertyHandler::Get(jeepItem, GetHash("JeepLightDistance"), 10);
+		auto jeepLightCastShadow = PropertyHandler::Get(jeepItem, GetHash("JeepLightCastShadow"), true);
 
 		float lightIntensity = ((jeep->LightPower * 2) - Random::GenerateInt(0, 16)) / (float)UCHAR_MAX;
-		lightIntensity *= PropertyHandler::Get(jeepItem, "JeepLightIntensity", 1.0f);
+		lightIntensity *= PropertyHandler::Get(jeepItem, GetHash("JeepLightIntensity"), 1.0f);
 
 		auto originLeft = TEN::Math::Geometry::TranslatePoint(
 			jeepItem->Pose.Position.ToVector3(),
@@ -1381,7 +1383,7 @@ namespace TEN::Entities::Vehicles
 		{
 			drive = JeepUserControl(jeepItem, laraItem, floorHeight, &pitch);
 
-			bool renderLight = PropertyHandler::Get(jeepItem, "JeepLight", true);
+			bool renderLight = PropertyHandler::Get(jeepItem, GetHash("JeepLight"), true);
 			DrawJeepLight(jeepItem);
 
 			if (renderLight)

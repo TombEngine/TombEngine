@@ -27,6 +27,7 @@
 #include "Specific/level.h"
 #include "Specific/Input/Input.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
@@ -34,6 +35,7 @@ using namespace TEN::Collision::Sphere;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Streamer;
 using namespace TEN::Input;
+using namespace TEN::Utils;
 
 // TODO:
 // Redo water surface dismount.
@@ -223,18 +225,18 @@ namespace TEN::Entities::Vehicles
 
 	static void DrawUPVLight(ItemInfo* upvItem)
 	{
-		if (!PropertyHandler::Get(upvItem, "VehicleLight", true))
+		if (!PropertyHandler::Get(upvItem, GetHash("UPVLight"), true))
 			return;
 
 		auto origin = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), CLICK(1))).ToVector3();
 		auto target = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), BLOCK(1))).ToVector3();
 
-		auto upvLightColor = PropertyHandler::Get(upvItem, "UPVLightColor", ScriptColor(UCHAR_MAX, UCHAR_MAX, UCHAR_MAX));
-		auto upvLightIntensity = PropertyHandler::Get(upvItem, "UPVLightIntensity", 0.5f);
-		auto upvLightCastShadow = PropertyHandler::Get(upvItem, "UPVLightCastShadow", true);
-		auto upvLightRadius = PropertyHandler::Get(upvItem, "UPVLightRadius",4);
-		auto upvLightFalloff = PropertyHandler::Get(upvItem, "UPVLightFalloff", 2);
-		auto upvLightDistance = PropertyHandler::Get(upvItem, "UPVLightDistance", 10);
+		auto upvLightColor = PropertyHandler::Get(upvItem, GetHash("UPVLightColor"), ScriptColor(UCHAR_MAX, UCHAR_MAX, UCHAR_MAX));
+		auto upvLightIntensity = PropertyHandler::Get(upvItem, GetHash("UPVLightIntensity"), 0.5f);
+		auto upvLightCastShadow = PropertyHandler::Get(upvItem, GetHash("UPVLightCastShadow"), true);
+		auto upvLightRadius = PropertyHandler::Get(upvItem, GetHash("UPVLightRadius"),4);
+		auto upvLightFalloff = PropertyHandler::Get(upvItem, GetHash("UPVLightFalloff"), 2);
+		auto upvLightDistance = PropertyHandler::Get(upvItem, GetHash("UPVLightDistance"), 10);
 
 		target = target - origin;
 		target.Normalize();
@@ -274,8 +276,8 @@ namespace TEN::Entities::Vehicles
 	static void TriggerUPVMist(ItemInfo* upv, short itemNumber, int x, int y, int z, int velocity, short angle)
 	{
 		auto* sptr = GetFreeParticle();
-		auto upvMistStartColor = PropertyHandler::Get(upv, "VehicleMistStartColor", ScriptColor(0, 0, 0));
-		auto upvMistEndColor = PropertyHandler::Get(upv, "VehicleMistEndColor", ScriptColor(64, 64, 64));
+		auto upvMistStartColor = PropertyHandler::Get(upv, GetHash("VehicleMistStartColor"), ScriptColor(0, 0, 0));
+		auto upvMistEndColor = PropertyHandler::Get(upv, GetHash("VehicleMistEndColor"), ScriptColor(64, 64, 64));
 
 		sptr->on = 1;
 		sptr->sR = upvMistStartColor.GetR();
@@ -343,7 +345,7 @@ namespace TEN::Entities::Vehicles
 			{
 				auto pos = GetJointPosition(UPVItem, UPVBites[UPV_BITE_TURBINE]).ToVector3();
 
-				if (PropertyHandler::Get(UPVItem, "VehicleMist", true))
+				if (PropertyHandler::Get(UPVItem, GetHash("VehicleMist"), true))
 				{
 					TriggerUPVMist(UPVItem, itemNumber, pos.x, pos.y + UPV_SHIFT, pos.z, abs(UPV->Velocity) / VEHICLE_VELOCITY_SCALE, UPVItem->Pose.Orientation.y + ANGLE(180.0f));
 				};
@@ -360,7 +362,7 @@ namespace TEN::Entities::Vehicles
 			}
 		}
 
-		if (PropertyHandler::Get(UPVItem, "VehicleLight", true))	
+		if (PropertyHandler::Get(UPVItem, GetHash("UPVLight"), true))	
 		{
 			for (int lp = 0; lp < 2; lp++)
 			{

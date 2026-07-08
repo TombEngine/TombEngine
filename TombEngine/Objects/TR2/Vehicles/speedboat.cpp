@@ -16,12 +16,14 @@
 #include "Sound/sound.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Specific/trutils.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
@@ -102,8 +104,8 @@ namespace TEN::Entities::Vehicles
 	{
 		auto& speedboatItem = g_Level.Items[itemNumber];
 
-		auto speedboatMistStartColor = PropertyHandler::Get(speedboatItem, "VehicleMistStartColor", ScriptColor(0, 0, 0));
-		auto speedboatMistEndColor = PropertyHandler::Get(speedboatItem, "VehicleMistEndColor", ScriptColor(64, 64, 64));
+		auto speedboatMistStartColor = PropertyHandler::Get(speedboatItem, GetHash("VehicleMistStartColor"), ScriptColor(0, 0, 0));
+		auto speedboatMistEndColor = PropertyHandler::Get(speedboatItem, GetHash("VehicleMistEndColor"), ScriptColor(64, 64, 64));
 
 		auto& mist = *GetFreeParticle();
 		mist.on = true;
@@ -949,12 +951,12 @@ namespace TEN::Entities::Vehicles
 			if (roomNumber.has_value() &&
 				(TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, *roomNumber) || TestEnvironment(RoomEnvFlags::ENV_FLAG_SWAMP, *roomNumber)))
 			{
-				if (PropertyHandler::Get(speedboatItem, "VehicleFoam", speedboatItem->TriggerFlags == 0))
+				if (PropertyHandler::Get(speedboatItem, GetHash("VehicleFoam"), false))
 				{
 					TEN::Effects::TriggerSpeedboatFoam(speedboatItem, Vector3(0.0f, 0.0f, SPEEDBOAT_BACK));
 				}
 
-				if (PropertyHandler::Get(speedboatItem, "VehicleMist", speedboatItem->TriggerFlags == 1))
+				if (PropertyHandler::Get(speedboatItem, GetHash("VehicleMist"), true))
 				{
 					SpawnSpeedboatBoatMist(
 						itemNumber,
@@ -969,7 +971,7 @@ namespace TEN::Entities::Vehicles
 						speedboatItem->Pose.Orientation.y + ANGLE(180.0f));
 				}
 
-				if (PropertyHandler::Get(speedboatItem, "VehicleWake", speedboatItem->TriggerFlags == 1))
+				if (PropertyHandler::Get(speedboatItem, GetHash("VehicleWake"), true))
 				{
 					int waterHeight = GetPointCollision(*speedboatItem).GetWaterTopHeight();
 					SpawnVehicleWake(*speedboatItem, SPEEDBOAT_WAKE_OFFSET, waterHeight);

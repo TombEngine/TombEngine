@@ -21,6 +21,7 @@
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Specific/trutils.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 #include "Specific/Input/Input.h"
@@ -29,6 +30,7 @@ using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
@@ -1029,8 +1031,8 @@ namespace TEN::Entities::Vehicles
 	{
 		auto* spark = GetFreeParticle();
 
-		auto quadBikeExhaustSmokeStartColor = PropertyHandler::Get(quadBikeItem, "VehicleSmokeStartColor", ScriptColor(0, 0, 0));
-		auto quadBikeExhaustSmokeEndColor = PropertyHandler::Get(quadBikeItem, "VehicleSmokeEndColor", ScriptColor(64, 64, 64));
+		auto quadBikeExhaustSmokeStartColor = PropertyHandler::Get(quadBikeItem, GetHash("VehicleSmokeStartColor"), ScriptColor(0, 0, 0));
+		auto quadBikeExhaustSmokeEndColor = PropertyHandler::Get(quadBikeItem, GetHash("VehicleSmokeEndColor"), ScriptColor(64, 64, 64));
 
 		spark->on = true;
 		spark->sR = quadBikeExhaustSmokeStartColor.GetR();

@@ -17,6 +17,7 @@
 #include "Renderer/RendererEnums.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Specific/trutils.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -25,6 +26,7 @@ using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Input;
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
@@ -691,8 +693,8 @@ namespace TEN::Entities::Vehicles
 	static void TriggerRubberBoatMist(ItemInfo* rBoatItem, short itemNumber, int x, int y, int z, int velocity, short angle, int snow)
 	{
 		auto* sptr = GetFreeParticle();
-		auto rBoatMistStartColor = PropertyHandler::Get(rBoatItem, "VehicleMistStartColor", ScriptColor(0, 0, 0));
-		auto rBoatMistEndColor = PropertyHandler::Get(rBoatItem, "VehicleMistEndColor", ScriptColor(64, 64, 64));
+		auto rBoatMistStartColor = PropertyHandler::Get(rBoatItem, GetHash("VehicleMistStartColor"), ScriptColor(0, 0, 0));
+		auto rBoatMistEndColor = PropertyHandler::Get(rBoatItem, GetHash("VehicleMistEndColor"), ScriptColor(64, 64, 64));
 
 		sptr->on = 1;
 		sptr->sR = rBoatMistStartColor.GetR();
@@ -936,7 +938,7 @@ namespace TEN::Entities::Vehicles
 			height < prop.y &&
 			height != NO_HEIGHT)
 		{
-			if (PropertyHandler::Get(rBoatItem, "VehicleMist", true))
+			if (PropertyHandler::Get(rBoatItem, GetHash("VehicleMist"), true))
 			{
 				TriggerRubberBoatMist(rBoatItem, itemNumber, prop.x, prop.y, prop.z, abs(rBoatItem->Animation.Velocity.z), rBoatItem->Pose.Orientation.y + ANGLE(180.0f), 0);
 			}
@@ -972,7 +974,7 @@ namespace TEN::Entities::Vehicles
 				int cnt = (GetRandomControl() & 3) + 3;
 				for (;cnt>0;cnt--)
 
-				if (PropertyHandler::Get(rBoatItem, "VehicleMist", true))
+				if (PropertyHandler::Get(rBoatItem, GetHash("VehicleMist"), true))
 				{
 					TriggerRubberBoatMist(rBoatItem, itemNumber, prop.x, prop.y, prop.z, ((GetRandomControl() & 15) + 96) * 16, rBoatItem->Pose.Orientation.y + 0x4000 + GetRandomControl(), 1);
 				}
