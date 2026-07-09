@@ -951,12 +951,12 @@ namespace TEN::Entities::Vehicles
 			if (roomNumber.has_value() &&
 				(TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, *roomNumber) || TestEnvironment(RoomEnvFlags::ENV_FLAG_SWAMP, *roomNumber)))
 			{
-				if (PropertyHandler::Get(speedboatItem, GetHash("VehicleFoam"), false))
+				if (PropertyHandler::Get(speedboatItem, GetHash("VehicleFoam"), speedboatItem->TriggerFlags != 1, true))
 				{
 					TEN::Effects::TriggerSpeedboatFoam(speedboatItem, Vector3(0.0f, 0.0f, SPEEDBOAT_BACK));
 				}
 
-				if (PropertyHandler::Get(speedboatItem, GetHash("VehicleMist"), true))
+				if (PropertyHandler::Get(speedboatItem, GetHash("VehicleMist"), speedboatItem->TriggerFlags == 1, true))
 				{
 					SpawnSpeedboatBoatMist(
 						itemNumber,
