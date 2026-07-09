@@ -27,6 +27,12 @@ using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
+	static const auto PropName_VehicleFoam = GetHash("VehicleFoam");
+	static const auto PropName_VehicleMist = GetHash("VehicleMist");
+	static const auto PropName_VehicleMistEndColor = GetHash("VehicleMistEndColor");
+	static const auto PropName_VehicleMistStartColor = GetHash("VehicleMistStartColor");
+	static const auto PropName_VehicleWake = GetHash("VehicleWake");
+
 	constexpr auto SPEEDBOAT_RADIUS = 500;
 	constexpr auto SPEEDBOAT_FRONT = 750;
 	constexpr auto SPEEDBOAT_BACK = -700;
@@ -104,8 +110,8 @@ namespace TEN::Entities::Vehicles
 	{
 		auto& speedboatItem = g_Level.Items[itemNumber];
 
-		auto speedboatMistStartColor = PropertyHandler::Get(speedboatItem, GetHash("VehicleMistStartColor"), ScriptColor(0, 0, 0));
-		auto speedboatMistEndColor = PropertyHandler::Get(speedboatItem, GetHash("VehicleMistEndColor"), ScriptColor(64, 64, 64));
+		auto speedboatMistStartColor = PropertyHandler::Get(speedboatItem, PropName_VehicleMistStartColor, ScriptColor(0, 0, 0));
+		auto speedboatMistEndColor = PropertyHandler::Get(speedboatItem, PropName_VehicleMistEndColor, ScriptColor(64, 64, 64));
 
 		auto& mist = *GetFreeParticle();
 		mist.on = true;
@@ -951,12 +957,12 @@ namespace TEN::Entities::Vehicles
 			if (roomNumber.has_value() &&
 				(TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, *roomNumber) || TestEnvironment(RoomEnvFlags::ENV_FLAG_SWAMP, *roomNumber)))
 			{
-				if (PropertyHandler::Get(speedboatItem, GetHash("VehicleFoam"), speedboatItem->TriggerFlags != 1, true))
+				if (PropertyHandler::Get(speedboatItem, PropName_VehicleFoam, speedboatItem->TriggerFlags != 1, true))
 				{
 					TEN::Effects::TriggerSpeedboatFoam(speedboatItem, Vector3(0.0f, 0.0f, SPEEDBOAT_BACK));
 				}
 
-				if (PropertyHandler::Get(speedboatItem, GetHash("VehicleMist"), speedboatItem->TriggerFlags == 1, true))
+				if (PropertyHandler::Get(speedboatItem, PropName_VehicleMist, speedboatItem->TriggerFlags == 1, true))
 				{
 					SpawnSpeedboatBoatMist(
 						itemNumber,
@@ -971,7 +977,7 @@ namespace TEN::Entities::Vehicles
 						speedboatItem->Pose.Orientation.y + ANGLE(180.0f));
 				}
 
-				if (PropertyHandler::Get(speedboatItem, GetHash("VehicleWake"), true))
+				if (PropertyHandler::Get(speedboatItem, PropName_VehicleWake, true))
 				{
 					int waterHeight = GetPointCollision(*speedboatItem).GetWaterTopHeight();
 					SpawnVehicleWake(*speedboatItem, SPEEDBOAT_WAKE_OFFSET, waterHeight);

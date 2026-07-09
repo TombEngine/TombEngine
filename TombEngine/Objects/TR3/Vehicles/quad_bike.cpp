@@ -34,6 +34,9 @@ using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
+	static const auto PropName_VehicleSmokeEndColor = GetHash("VehicleSmokeEndColor");
+	static const auto PropName_VehicleSmokeStartColor = GetHash("VehicleSmokeStartColor");
+
 	const CreatureBiteInfo QuadBikeEffectsPositions[6] =
 	{
 		CreatureBiteInfo(Vector3(-56, -32, -380), 0),
@@ -1031,8 +1034,8 @@ namespace TEN::Entities::Vehicles
 	{
 		auto* spark = GetFreeParticle();
 
-		auto quadBikeExhaustSmokeStartColor = PropertyHandler::Get(quadBikeItem, GetHash("VehicleSmokeStartColor"), ScriptColor(0, 0, 0));
-		auto quadBikeExhaustSmokeEndColor = PropertyHandler::Get(quadBikeItem, GetHash("VehicleSmokeEndColor"), ScriptColor(64, 64, 64));
+		auto quadBikeExhaustSmokeStartColor = PropertyHandler::Get(quadBikeItem, PropName_VehicleSmokeStartColor, ScriptColor(0, 0, 0));
+		auto quadBikeExhaustSmokeEndColor = PropertyHandler::Get(quadBikeItem, PropName_VehicleSmokeEndColor, ScriptColor(64, 64, 64));
 
 		spark->on = true;
 		spark->sR = quadBikeExhaustSmokeStartColor.GetR();

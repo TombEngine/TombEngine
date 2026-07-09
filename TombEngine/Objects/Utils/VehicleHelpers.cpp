@@ -31,6 +31,10 @@ using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
+	static const auto PropName_VehicleWake = GetHash("VehicleWake");
+	static const auto PropName_WakeEndColor = GetHash("WakeEndColor");
+	static const auto PropName_WakeStartColor = GetHash("WakeStartColor");
+
 	constexpr auto VEHICLE_BASE_HEIGHT = CLICK(2);
 	constexpr auto VEHICLE_FULL_HEIGHT = CLICK(3);
 	constexpr auto VEHICLE_COLLISION_MARGIN_MULTIPLIER = 1.2f;
@@ -270,7 +274,7 @@ namespace TEN::Entities::Vehicles
 					SoundEffect(SFX_TR4_LARA_WADE, &wadePose, SoundEnvironment::Land, isWater ? 0.8f : 0.7f);
 				}
 
-				if (isWater && PropertyHandler::Get(vehicleItem, GetHash("VehicleWake"), true))
+				if (isWater && PropertyHandler::Get(vehicleItem, PropName_VehicleWake, true))
 				{
 					int waterHeight = GetPointCollision(*vehicleItem).GetWaterTopHeight();
 					SpawnVehicleWake(*vehicleItem, wakeOffset, waterHeight);
@@ -391,8 +395,8 @@ namespace TEN::Entities::Vehicles
 		constexpr auto EXP_RATE_ON_WATER   = 6.0f;
 		constexpr auto EXP_RATE_UNDERWATER = 1.5f;
 
-		Color wakeStartColor = PropertyHandler::Get(vehicleItem, GetHash("WakeStartColor"), ScriptColor(COLOR_START));
-		Color wakeEndColor = PropertyHandler::Get(vehicleItem, GetHash("WakeEndColor"), ScriptColor(COLOR_END));
+		Color wakeStartColor = PropertyHandler::Get(vehicleItem, PropName_WakeStartColor, ScriptColor(COLOR_START));
+		Color wakeEndColor = PropertyHandler::Get(vehicleItem, PropName_WakeEndColor, ScriptColor(COLOR_END));
 
 		// Vehicle is out of water; return early.
 		if (waterHeight == NO_HEIGHT)
