@@ -40,6 +40,10 @@ namespace TEN::Renderer
 		_numRequestedMaterialsUpdates = 0;
 		_numExecutedMaterialsUpdates = 0;
 
+		// Invalidate per-frame material state so the first bind of each material recomputes its
+		// (per-frame constant) interpolated properties, while repeated binds are skipped.
+		_lastMaterialIndex = NO_VALUE;
+
 		_currentLineHeight;
 	}
 

@@ -107,16 +107,28 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
 	input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);
 
-	float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(AnisotropicClampSampler, input.UV));
+	// Only sample the ORSH/emissive/normal maps when the material actually provides them.
+	// The branch is uniform across the draw (material flags are CB constants), so plain
+	// materials pay nothing for maps they don't use.
+	float4 ORSH = (MaterialTypeAndFlags & MATERIAL_FLAG_ORSH) ?
+		ConvertAnimOSRH(ORSHTexture.Sample(AnisotropicClampSampler, input.UV)) : float4(1.0f, 1.0f, 0.0f, 1.0f);
 	float ambientOcclusion = ORSH.x;
 	float roughness = ORSH.y;
 	float specular = ORSH.z;
 
-	float3 emissive = EmissiveTexture.Sample(AnisotropicClampSampler, input.UV).xyz * GetEmissiveIntensity();
+	float3 emissive = (MaterialTypeAndFlags & MATERIAL_FLAG_EMISSIVE) ?
+		EmissiveTexture.Sample(AnisotropicClampSampler, input.UV).xyz * GetEmissiveIntensity() : float3(0.0f, 0.0f, 0.0f);
 
-	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
-	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV)));
-	normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
+	float3 normal;
+	if (MaterialTypeAndFlags & MATERIAL_FLAG_NORMALMAP)
+	{
+		float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
+		normal = EnsureNormal(mul(ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV))), TBN), input.WorldPosition);
+	}
+	else
+	{
+		normal = EnsureNormal(input.Normal, input.WorldPosition);
+	}
 
 	float4 tex = Texture.Sample(AnisotropicClampSampler, input.UV);
 	DoAlphaTest(tex);

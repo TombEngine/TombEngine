@@ -242,7 +242,13 @@ namespace TEN::Renderer::Native::DirectX11
 	{
 		auto* d3dShaderResourceView = GetD3D11ShaderResourceView(texture);
 
-		_context->PSSetShaderResources((unsigned int)registerType, 1, &d3dShaderResourceView);
+		unsigned int srvSlot = (unsigned int)registerType;
+		if (srvSlot >= PIXEL_SRV_SLOT_COUNT || _cachedPixelSRVs[srvSlot] != d3dShaderResourceView)
+		{
+			_context->PSSetShaderResources(srvSlot, 1, &d3dShaderResourceView);
+			if (srvSlot < PIXEL_SRV_SLOT_COUNT)
+				_cachedPixelSRVs[srvSlot] = d3dShaderResourceView;
+		}
 
 		ID3D11SamplerState* d3dSamplerState = nullptr;
 		switch (samplerType)
@@ -275,7 +281,13 @@ namespace TEN::Renderer::Native::DirectX11
 			return;
 		}
 
-		_context->PSSetSamplers((unsigned int)samplerType, 1, &d3dSamplerState);
+		unsigned int samplerSlot = (unsigned int)samplerType;
+		if (samplerSlot >= PIXEL_SAMPLER_SLOT_COUNT || _cachedPixelSamplers[samplerSlot] != d3dSamplerState)
+		{
+			_context->PSSetSamplers(samplerSlot, 1, &d3dSamplerState);
+			if (samplerSlot < PIXEL_SAMPLER_SLOT_COUNT)
+				_cachedPixelSamplers[samplerSlot] = d3dSamplerState;
+		}
 	}
 
 	void DX11GraphicsDevice::UnbindTexture(ShaderStage stage, TextureRegister registerType)
@@ -295,6 +307,8 @@ namespace TEN::Renderer::Native::DirectX11
 
 		case ShaderStage::PixelShader:
 			_context->PSSetShaderResources(slot, 1, &nullSRV);
+			if (slot < PIXEL_SRV_SLOT_COUNT)
+				_cachedPixelSRVs[slot] = nullptr;
 			break;
 
 		case ShaderStage::ComputeShader:
@@ -382,6 +396,8 @@ namespace TEN::Renderer::Native::DirectX11
 
 		case ShaderStage::PixelShader:
 			_context->PSSetShaderResources((unsigned int)registerType, 1, &srv);
+			if ((unsigned int)registerType < PIXEL_SRV_SLOT_COUNT)
+				_cachedPixelSRVs[(unsigned int)registerType] = srv;
 			break;
 
 		case ShaderStage::GeometryShader:
@@ -462,6 +478,7 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 				
 		_context->OMSetRenderTargets(1, &d3dRenderTargetView, d3dDepthStencilView);
+		InvalidatePixelSRVCache();
 	}
 
 	void DX11GraphicsDevice::BindRenderTarget(IRenderTargetBinding renderTarget, IDepthTargetBinding depthTarget)
@@ -477,6 +494,7 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 
 		_context->OMSetRenderTargets(1, &d3dRenderTargetView, d3dDepthStencilView);
+		InvalidatePixelSRVCache();
 	}
 
 	void DX11GraphicsDevice::BindRenderTargets(std::vector<IRenderTarget2D*> renderTargets, IDepthTarget* depthTarget)
@@ -498,6 +516,7 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 
 		_context->OMSetRenderTargets((int)d3dRenderTargetViews.size(), d3dRenderTargetViews.data(), d3dDepthStencilView);
+		InvalidatePixelSRVCache();
 	}
 
 	void DX11GraphicsDevice::BindRenderTargets(std::vector<IRenderTargetBinding> renderTargets, IDepthTargetBinding depthTarget)
@@ -519,6 +538,7 @@ namespace TEN::Renderer::Native::DirectX11
 		}
 
 		_context->OMSetRenderTargets((int)d3dRenderTargetViews.size(), d3dRenderTargetViews.data(), d3dDepthStencilView);
+		InvalidatePixelSRVCache();
 	}
 
 	void DX11GraphicsDevice::CopyTextureResource(ITexture2D* src, ITexture2D* dst)

@@ -280,31 +280,39 @@ namespace TEN::Renderer
 	{
 		_numRequestedMaterialsUpdates++;
 
+		// Fast path: same material index as the previous draw this frame. The per-draw constant
+		// buffer and reflection bindings are already set, and interpolated properties are constant
+		// within a frame, so skip the property interpolation and buffer upload entirely.
+		// _lastMaterialIndex is reset each frame (see ResetDebugVariables), keeping this correct
+		// across frames where the interpolation factor changes.
+		if (materialIndex == _lastMaterialIndex && !force)
+			return;
+
 		auto type = g_Level.Materials[materialIndex].Type;
 
+		const auto& material = g_Level.Materials[materialIndex];
 		int materialTypeAndFlags = (int)type;
-		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasHeightMap) << 8;
-		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasAmbientOcclusionMap) << 9;
-		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasEmissiveMap) << 10;
-		auto& materialProperties = g_Level.Materials[materialIndex].GetInterpolatedProperties(GetInterpolationFactor());
+		materialTypeAndFlags |= int(material.HasHeightMap) << 8;
+		materialTypeAndFlags |= int(material.HasAmbientOcclusionMap) << 9;
+		materialTypeAndFlags |= int(material.HasEmissiveMap) << 10;
+		materialTypeAndFlags |= int(material.HasNormalMap) << 11;
+		// ORSH texture holds occlusion/roughness/specular/height; only sample it if any is present.
+		materialTypeAndFlags |= int(material.HasHeightMap || material.HasAmbientOcclusionMap ||
+			material.HasRoughnessMap || material.HasSpecularMap) << 12;
+		const auto& materialProperties = material.GetInterpolatedProperties(GetInterpolationFactor());
 
-		if (materialTypeAndFlags == _stPerDraw.MaterialTypeAndFlags && materialProperties == _stPerDraw.MaterialProperties && !force)
-		{
-			return;
-		}
-
-		// TODO: in the future output from TE directly an optimized list
-		//if (materialIndex != _lastMaterialIndex || force)
+		// A different index may still resolve to identical state; skip the upload if so.
+		if (materialTypeAndFlags != _stPerDraw.MaterialTypeAndFlags || materialProperties != _stPerDraw.MaterialProperties || force)
 		{
 			_stPerDraw.MaterialTypeAndFlags = materialTypeAndFlags;
 			_stPerDraw.MaterialProperties   = materialProperties;
 
 			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
-			_lastMaterialIndex = materialIndex;
-
 			_numExecutedMaterialsUpdates++;
 		}
+
+		_lastMaterialIndex = materialIndex;
 
 		if (type == TextureMaterialType::Reflective)
 			BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, _legacyReflectionsRenderTarget->GetRenderTarget(), SamplerStateRegister::AnisotropicClamp);

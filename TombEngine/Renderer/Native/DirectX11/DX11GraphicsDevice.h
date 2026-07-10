@@ -38,6 +38,16 @@ namespace TEN::Renderer::Native::DirectX11
 		ComPtr<ID3D11DeviceContext> _context = nullptr;
 		ComPtr<IDXGISwapChain> _swapChain = nullptr;
 
+		// Redundant pixel-shader resource binds are a per-bucket hot path; cache the last bound
+		// SRV/sampler per slot and skip identical binds. The SRV cache must be invalidated whenever
+		// SRVs are set outside BindTexture (unbind, render-target-as-texture) or a render target is
+		// bound (which can auto-unbind SRVs). Samplers are never set elsewhere, so they never need it.
+		static constexpr int PIXEL_SRV_SLOT_COUNT     = 18;
+		static constexpr int PIXEL_SAMPLER_SLOT_COUNT = 8;
+		ID3D11ShaderResourceView* _cachedPixelSRVs[PIXEL_SRV_SLOT_COUNT] = {};
+		ID3D11SamplerState* _cachedPixelSamplers[PIXEL_SAMPLER_SLOT_COUNT] = {};
+		void InvalidatePixelSRVCache() { for (auto*& srv : _cachedPixelSRVs) srv = nullptr; }
+
 		std::unique_ptr<CommonStates> _renderStates = nullptr;
 
 		ComPtr <ID3D11SamplerState> _pointWrapSamplerState = nullptr;
