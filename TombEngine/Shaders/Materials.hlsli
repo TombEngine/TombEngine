@@ -89,7 +89,10 @@ float3 CalculateSkyBoxReflections(float3 worldPosition, float3 normal, float spe
     int slice = (d.z <= 0.0f) ? 0 : 1;
     uv.y = 1.0f - uv.y;
     
-    float3 reflectedColor = SkyboxReflectionsTexture.Sample(AnisotropicClampSampler, float3(uv, slice)).rgb;
+    // Reflection UVs have chaotic screen-space derivatives (they follow the reflected vector, which
+    // swings wildly on normal-mapped/curved surfaces), so anisotropic filtering degenerates to its
+    // worst case (up to 16 taps/pixel). Linear-clamp keeps it to ~1-2 taps with no visible difference.
+    float3 reflectedColor = SkyboxReflectionsTexture.Sample(LinearClampSampler, float3(uv, slice)).rgb;
     reflectedColor *= GetReflectionTint();
 
     float reflectionAmount = saturate(specular) * MaterialProperties[0].a * GetReflectionVerticalMask(worldPosition);
@@ -109,8 +112,10 @@ float3 CalculateLegacyReflections(float3 worldPosition, float3 normal, float spe
     // Preserve aspect ratio
     uv = ToCentralSquare(uv, AspectRatio);
 
-    // Sample legacy reflection buffer
-    float3 reflectedColor = LegacyReflectionsTexture.Sample(AnisotropicClampSampler, uv).rgb;
+    // Sample legacy reflection buffer. The legacy RT has no mips, so anisotropic filtering only adds
+    // extra taps along the (chaotic) reflection-vector footprint with no quality gain - linear-clamp
+    // collapses it to a single bilinear tap, which is the dominant win on full-screen water.
+    float3 reflectedColor = LegacyReflectionsTexture.Sample(LinearClampSampler, uv).rgb;
     reflectedColor *= GetReflectionTint();
 
     float reflectionAmount = saturate(specular) * MaterialProperties[0].a * GetReflectionVerticalMask(worldPosition);
