@@ -67,12 +67,12 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Lua API changes
 
 * Added ring inventory module.
-* Added `EmitWeather` to spawn weather at specific position.
 * Added photo mode module.
 * Added loading of the `Scripts/Autoexec.lua` script file before every level script is loaded.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
 * Added `includePlayer` argument for `Collision.Ray` class to detect collisions with Lara.
 * Added `Effects.EmitSplash` for generating splashes.
+* Added `Effects.EmitWeather` to spawn weather at specific position.
 * Added `Flow.GetCurrentLevelIndex` and `Flow.GetTotalLevelCount` functions to get current level index and total level count in gameflow.
 * Added `Flow.Settings.Animation.internalBlendDuration` setting to specify hardcoded animation blend durations.
 * Added `Flow.Settings.Effects` category with blood, ricochet and explosion settings.
