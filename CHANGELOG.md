@@ -23,6 +23,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ROTATING_KNIFE_DISK (ID 475) object from TR3.
 * Added UNDERWATER_MINE (ID 476) from TR2.
 * Added FALLING_SANDBAG (ID 477) from TR2.
+* Added WRAITH4 object. Object supports properties to create custom wraiths.
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
 * Added [DRILL_BIT](https://tombengine.com/asset/traps/drill-bit/) object from TR3.
 * Added [FUSEBOX_SWITCH](https://tombengine.com/asset/switches/fusebox-switch/) object from TR3.
