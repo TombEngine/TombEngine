@@ -67,6 +67,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### Lua API changes
 
 * Added ring inventory module.
+* Added `EmitWeather` to spawn weather at specific position.
 * Added photo mode module.
 * Added loading of the `Scripts/Autoexec.lua` script file before every level script is loaded.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
@@ -107,6 +108,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Static:GetProperty`, `Static:SetProperty` and `Static:HasInstanceProperty` functions.
 * Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
+* Renamed `Snow`, `Rain` and `None` entries in `Flow.WeatherType` enum to `SNOW`, `RAIN` and `NONE`.
 * Fixed incorrect error message when using `Moveable:SetFrame` with a frame number equal to the end frame.
 * Fixed glide camera movement when entering or exiting freeze mode.
 * Fixed `View.DisplayString` not working in the title level.
