@@ -637,7 +637,7 @@ sol::object Moveable::GetProperty(sol::this_state state, const std::string& name
 	if (!ValidatePropertyName(name))
 		return sol::nil;
 
-	auto* val = PropertyHandler::Get(*_moveable, name);
+	auto* val = PropertyHandler::GetRaw(*_moveable, name);
 
 	if (val == nullptr)
 		return sol::nil;
@@ -699,6 +699,7 @@ void Moveable::SetLocationAI(short value)
 	if (_moveable->IsCreature())
 	{
 		auto creature = (CreatureInfo*)_moveable->Data;
+		value = std::max(value, (short)0);
 		creature->LocationAI = value;
 	}
 	else

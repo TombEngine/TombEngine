@@ -96,13 +96,13 @@ bool LaraDeflectEdgeJump(ItemInfo* item, CollisionInfo* coll)
 		{
 			if (coll->Middle.Floor <= CLICK(1))
 			{
-				SetAnimation(*item, LA_LAND, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
+				SetAnimation(*item, LA_LAND, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 				LaraSnapToHeight(item, coll);
 			}
 			// TODO: Demagic. This is Lara's running velocity. Jumps have a minimum of 50.
 			else if (abs(item->Animation.Velocity.z) > 47.0f)
 			{
-				SetAnimation(*item, LA_JUMP_WALL_SMASH_START, 1, GetSystemBlendDuration(), BezierCurve2::EaseOut);
+				SetAnimation(*item, LA_JUMP_WALL_SMASH_START, 1, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 				Rumble(0.5f, 0.15f);
 			}
 
@@ -285,7 +285,7 @@ void LaraCollideStop(ItemInfo* item, CollisionInfo* coll)
 		item->Animation.TargetState = LS_IDLE;
 
 		if (item->Animation.AnimNumber != LA_STAND_IDLE)
-			SetAnimation(*item, LA_STAND_IDLE, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
+			SetAnimation(*item, LA_STAND_IDLE, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 
 		break;
 	}
@@ -318,7 +318,7 @@ void LaraCollideStopCrawl(ItemInfo* item, CollisionInfo* coll)
 		item->Animation.TargetState = LS_CRAWL_IDLE;
 
 		if (item->Animation.AnimNumber != LA_CRAWL_IDLE)
-			SetAnimation(*item, LA_CRAWL_IDLE, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
+			SetAnimation(*item, LA_CRAWL_IDLE, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 
 		break;
 	}
@@ -351,7 +351,7 @@ void LaraCollideStopMonkey(ItemInfo* item, CollisionInfo* coll)
 		item->Animation.TargetState = LS_MONKEY_IDLE;
 
 		if (item->Animation.AnimNumber != LA_MONKEY_IDLE)
-			SetAnimation(*item, LA_MONKEY_IDLE, 0, GetSystemBlendDuration(), BezierCurve2::EaseOut);
+			SetAnimation(*item, LA_MONKEY_IDLE, 0, GetInternalBlendDuration(), BezierCurve2::EaseOut);
 
 		break;
 	}

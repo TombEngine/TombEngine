@@ -2,7 +2,6 @@
 
 namespace TEN::Entities::Traps
 {
-	void InitializeDiskShooter(short itemNumber);
 	void ControlDisk(short itemNumber);
 	void ControlDiskShooter(short itemNumber);
 

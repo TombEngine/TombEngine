@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 
 #include "Game/Lara/lara.h"
 #include "Game/items.h"

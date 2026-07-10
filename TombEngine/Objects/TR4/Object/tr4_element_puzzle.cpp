@@ -4,7 +4,7 @@
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/collide_item.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"
@@ -49,9 +49,9 @@ namespace TEN::Entities::TR4
 		{
 			SoundEffect(SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
 
-			byte r = (GetRandomControl() & 0x3F) + 192;
-			byte g = (GetRandomControl() & 0x1F) + 96;
-			byte b = 0;
+			unsigned char r = (GetRandomControl() & 0x3F) + 192;
+			unsigned char g = (GetRandomControl() & 0x1F) + 96;
+			unsigned char b = 0;
 			short fade = 0;
 
 			if (item->ItemFlags[3])
@@ -110,13 +110,9 @@ namespace TEN::Entities::TR4
 			return;
 		}
 
-		short currentItemNumber = g_Level.Rooms[item->RoomNumber].itemNumber;
-		if (currentItemNumber == NO_VALUE)
-			return;
-
-		while (currentItemNumber != NO_VALUE)
+		for (int itemNumber : g_Level.Rooms[item->RoomNumber].itemNumbers)
 		{
-			auto* currentItem = &g_Level.Items[currentItemNumber];
+			auto* currentItem = &g_Level.Items[itemNumber];
 
 			if (currentItem->ObjectNumber != ID_FLAME_EMITTER2)
 			{
@@ -127,23 +123,20 @@ namespace TEN::Entities::TR4
 					currentItem->ItemFlags[3] = 90;
 				}
 
-				currentItemNumber = currentItem->NextItem;
 				continue;
 			}
 
 			if (item->ItemFlags[0] != 89)
 			{
 				currentItem->ItemFlags[3] = 255 - GetRandomControl() % (4 * item->ItemFlags[0]);
+
 				if (currentItem->ItemFlags[3] >= 2)
-				{
-					currentItemNumber = currentItem->NextItem;
 					continue;
-				}
 
 				currentItem->ItemFlags[3] = 2;
 			}
 
-			RemoveActiveItem(currentItemNumber);
+			RemoveActiveItem(itemNumber);
 			currentItem->Status = ITEM_NOT_ACTIVE;
 		}
 	}

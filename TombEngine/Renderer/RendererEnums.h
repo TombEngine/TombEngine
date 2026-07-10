@@ -300,6 +300,7 @@ enum class RendererObjectType
 	Static,
 	Sprite,
 	MoveableAsStatic, // For rats, bats, spiders, beetles
+	Effect, // For items carrying FX data (body parts, projectiles)
 	HairPrimary,
 	HairSecondary
 };

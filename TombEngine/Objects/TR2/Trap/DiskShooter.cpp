@@ -8,11 +8,13 @@
 #include "Game/Lara/lara.h"
 #include "Renderer/RendererEnums.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
 using namespace TEN::Scripting::Properties;
 using namespace TEN::Effects::Spark;
+
 // NOTES:
 // ItemFlags[0]: Delay between disks in frame time.
 // ItemFlags[1]: Timer in frame time.
@@ -23,21 +25,16 @@ namespace TEN::Entities::Traps
 	constexpr auto DISK_DEFAULT_VELOCITY	 = BLOCK(0.25f);
 	constexpr auto DISK_DEFAULT_DELAY		 = 32;
 
-	void InitializeDiskShooter(short itemNumber)
-	{
-
-	}
-
 	void ControlDisk(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 
 		if (item.TouchBits.TestAny())
 		{
-			if (PropertyHandler::Get(item, "DiskShooterPoison", false))
+			if (PropertyHandler::Get(item, PropName_Poisonous, false))
 				Lara.Status.Poison += 1;
 
-			DoDamage(LaraItem, PropertyHandler::Get(item, "DiskShooterDamage", DISK_DEFAULT_HARM_DAMAGE));
+			DoDamage(LaraItem, PropertyHandler::Get(item, PropName_Damage, DISK_DEFAULT_HARM_DAMAGE));
 			DoBloodSplat(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, (GetRandomControl() & 3) + 4, LaraItem->Pose.Orientation.y, LaraItem->RoomNumber);
 			KillItem(itemNumber);
 		}
@@ -82,7 +79,7 @@ namespace TEN::Entities::Traps
 		{
 			if (item.Active)
 			{
-				short delay = PropertyHandler::Get(item, "DiskShooterDelay", item.ItemFlags[0]);
+				short delay = PropertyHandler::Get(item, PropName_Delay, DISK_DEFAULT_DELAY);
 
 				if (item.ItemFlags[1] > 0)
 				{
@@ -101,16 +98,16 @@ namespace TEN::Entities::Traps
 
 			auto& diskItem = g_Level.Items[diskItemNumber];
 			diskItem.ObjectNumber = ID_DISK;
-			diskItem.Pose.Position = item.Pose.Position + Vector3i(0, -CLICK(0.9f), 0);
-			diskItem.Pose.Orientation = item.Pose.Orientation + EulerAngles(0, ANGLE(180.0f), 0);
+			diskItem.Pose.Position = GetJointPosition(item, 0, Vector3i(0, 0, CLICK(0.5f)));
+			diskItem.Pose.Orientation = item.Pose.Orientation;
 			diskItem.RoomNumber = item.RoomNumber;
 
 			InitializeItem(diskItemNumber);
 
 			diskItem.Animation.Velocity.z = DISK_DEFAULT_VELOCITY;
 			
-			diskItem.Properties.Set("DiskShooterPoison", PropertyHandler::Get(item, "DiskShooterPoison", false));
-			diskItem.Properties.Set("DiskShooterDamage", (float)PropertyHandler::Get(item, "DiskShooterDamage", DISK_DEFAULT_HARM_DAMAGE));
+			diskItem.Properties.Set(PropName_Poisonous, PropertyHandler::Get(item, PropName_Poisonous, false));
+			diskItem.Properties.Set(PropName_Damage, (float)PropertyHandler::Get(item, PropName_Damage, DISK_DEFAULT_HARM_DAMAGE));
 			diskItem.Model.Color = item.Model.Color;
 
 			AddActiveItem(diskItemNumber);

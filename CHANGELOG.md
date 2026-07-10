@@ -23,6 +23,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added ROTATING_KNIFE_DISK (ID 475) object from TR3.
 * Added UNDERWATER_MINE (ID 476) from TR2.
 * Added FALLING_SANDBAG (ID 477) from TR2.
+* Added WRAITH4 object. Object supports properties to create custom wraiths.
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
 * Added [DRILL_BIT](https://tombengine.com/asset/traps/drill-bit/) object from TR3.
 * Added [FUSEBOX_SWITCH](https://tombengine.com/asset/switches/fusebox-switch/) object from TR3.
@@ -38,8 +39,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if OCB is above 0 and when the flipeffect "playsound" with the soundID SFX_TR1_SLAMDOOR_CLOSE = 1144 is played.
 * Added hit sounds for TR1 enemies when shot.
 * Added splash and bubble effects for CRUMBLING_FLOOR if it falls into water.
-* Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fxfog effect if OCB value is 0.
-* Removed FIRE_PENDULUM fxfog effect if OCB value is 0.
+* Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fog effect if OCB value is 0.
 
 ### Bug fixes
 
@@ -51,8 +51,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed SNOWMOBILE death being too sensitive to vertical velocity.
 * Fixed BATS_EMITTER targeting issues.
 * Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
+* Fixed SOPHIA_LEIGH_BOSS pathfinding and knockback effect.
 * Fixed TEETH_SPIKES behaviour for OCB 1 and move static TR1-3 mode to pre-activated trigger bit flags.
-* Fixed SNOWMOBILE vehicle being too sensitive to drops.
 * Fixed empty inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed regular spark sprite distance while moving with flare in hand.
@@ -70,6 +70,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed an issue where the storm effect would stop producing lightning over time.
 * Fixed incorrect aspect ratio when resizing the window in windowed mode.
 * Fixed title level selection dialog not scrolling offscreen entries.
+* Fixed incorrect blend mode application for sprites.
 * Fixed UI bars being affected by the postprocess mode.
 
 ### Lua API changes
@@ -81,14 +82,17 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `includePlayer` argument for `Collision.Ray` class to detect collisions with Lara.
 * Added `Effects.EmitSplash` for generating splashes.
 * Added `Flow.GetCurrentLevelIndex` and `Flow.GetTotalLevelCount` functions to get current level index and total level count in gameflow.
-* Added `Flow.Settings.Animation.systemBlendDuration` setting to specify hardcoded animation blend durations.
+* Added `Flow.Settings.Animation.internalBlendDuration` setting to specify hardcoded animation blend durations.
 * Added `Flow.Settings.Effects` category with blood, ricochet and explosion settings.
+* Added `Flow.Settings.Gameplay.setEnemiesOnFireWithWeapons` and `Flow.Settings.Gameplay.setEnemiesOnFireWithDeathFlag` options.
 * Added `Flow.Settings.Graphics.flameHeatHaze` option to toggle heat haze effects for flames.
 * Added `Flow.Settings.Hud.interactionHighlighter` and `Flow.Settings.Hud.targetHighlighter` options to force these settings on or off.
+* Added `Flow.Settings.System.variableFloodProtectionTimeLimit` and `Flow.Settings.System.variableFloodProtectionOverallLimit` to warn about variable table overflows.
 * Added `Flow.Settings.UI.menuBackgroundBlur` option to specify amount of blur for the inventory and pause backgrounds.
 * Added `Flow.Settings.UI.systemTextScale` option to change global system text scale.
 * Added `Input.GetLastInputDevice` function to detect which input device was used last.
 * Added functional key (F1-F12) mappings and raw gamepad input mappings to the `Input.ActionID` and `Input.AxisID` enums.
+* Added `Lara:GetExposure` and `Lara:SetExposure` functions to get or set cold exposure value.
 * Added `Lara:GetLocked` and `Lara:SetLocked` to manage native control lock status.
 * Added `Lara:GetSkin` and `Lara:SetSkin` functions to manage swapping of classic outfits.
 * Added `Lara:SpawnGunFlash` and `Lara:ClearGunFlashes` functions to spawn and clear gunflashes.
@@ -156,6 +160,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect HYDRA rotation on activation and keeping its shadow after destroying it.
 * Fixed potential issues with PUNA_BOSS, TONY_BOSS, FISH_SWARM and WRAITH objects on savegame reloading.
 * Fixed WRAITH not using effects near walls and occasional issues with room transitions.
+* Fixed TORCH_ITEM and FLARE_ITEM not having names when being thrown.
 * Fixed occasional wrong LASER_BEAM collision.
 * Fixed several BADDY1/2 issues.
 * Fixed original issue with BADDY1/2 with rolling out animation ignoring player on a distance larger than 1 block.

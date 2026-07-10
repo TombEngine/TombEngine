@@ -44,6 +44,7 @@
 #include "Objects/TR4/Entity/tr4_setha.h"
 
 // Objects
+#include "Objects/TR4/Floor/tr4_burningFloor.h"
 #include "Objects/TR4/Object/FireRope.h"
 #include "Objects/TR4/Object/StatuePlinth.h"
 #include "Objects/TR4/Object/WraithTrap.h"
@@ -618,7 +619,14 @@ namespace TEN::Entities
 		{
 			obj->Initialize = InitializeWraith;
 			obj->control = WraithControl;
-		}	
+		}
+
+		obj = &Objects[ID_WRAITH4];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeWraith;
+			obj->control = WraithControl;
+		}
 
 		obj = &Objects[ID_LITTLE_BEETLE];
 		if (obj->loaded)
@@ -775,6 +783,13 @@ namespace TEN::Entities
 			obj->control = WraithTrapControl;
 			obj->collision = ObjectCollision;
 			obj->SetHitEffect(true);
+		}
+
+		obj = &Objects[ID_BURNING_FLOOR];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeBurningFloor;
+			obj->control = BurningFloorControl;
 		}
 
 		for (int objectID = ID_WATERFALL1; objectID <= ID_WATERFALL6; objectID++)
@@ -974,15 +989,6 @@ namespace TEN::Entities
 		{
 			obj->control = ControlFallingSquishyBlock;
 			obj->collision = CollideFallingSquishyBlock;
-			obj->SetHitEffect(true);
-		}
-
-		obj = &Objects[ID_TUNNEL_BORER];
-		if (obj->loaded)
-		{
-			obj->Initialize = InitializeSpikyCeiling;
-			obj->control = ControlSpikyCeiling;
-			obj->collision = CollideSpikyCeiling;
 			obj->SetHitEffect(true);
 		}
 	}

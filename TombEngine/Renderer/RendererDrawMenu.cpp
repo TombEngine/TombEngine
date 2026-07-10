@@ -8,7 +8,7 @@
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
 #include "Game/effects/DisplaySprite.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -20,7 +20,7 @@
 #include "Specific/Input/InputAction.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
-#include "Version.h"
+#include "version.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;

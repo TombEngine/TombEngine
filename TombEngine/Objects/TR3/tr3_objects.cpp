@@ -37,7 +37,7 @@
 #include "Objects/Effects/Boss.h"
 
 // Objects
-#include "Objects/TR3/Object/Corpse.h"
+#include "Objects/TR3/Object/corpse.h"
 #include "Objects/TR3/Object/Fusebox.h"
 
 // Traps
@@ -48,6 +48,7 @@
 #include "Objects/TR3/Trap/SpikedFrame.h"
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
+#include "Objects/TR3/Trap/TunnelBorer.h"
 #include "Objects/TR3/Trap/TurningBlade.h"
 #include "Objects/TR3/Trap/FirePendulum.h"
 #include "Objects/TR3/Trap/Fan.h"
@@ -295,6 +296,7 @@ static void StartEntity(ObjectInfo* obj)
 	{
 		obj->Initialize = InitializeSophiaLeigh;
 		obj->control = SophiaLeighControl;
+		obj->HitRoutine = SophiaLeighHit;
 		obj->collision = CreatureCollision;
 		obj->shadowType = ShadowMode::All;
 		obj->pivotLength = 50;
@@ -560,7 +562,6 @@ static void StartTrap(ObjectInfo* obj)
 	obj = &Objects[ID_FIRE_PENDULUM];
 	if (obj->loaded)
 	{
-		obj->Initialize = InitializeFirePendulum;
 		obj->control = ControlFirePendulum;
 		obj->collision = CollideFirePendulum;
 		obj->SetHitEffect(true);
@@ -579,6 +580,14 @@ static void StartTrap(ObjectInfo* obj)
 	{
 		obj->control = ControlFan;
 		obj->collision = CollideFan;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_TUNNEL_BORER];
+	if (obj->loaded)
+	{
+		obj->control = ControlTunnelBorer;
+		obj->collision = CollideTunnelBorer;
 		obj->SetHitEffect(true);
 	}
 
