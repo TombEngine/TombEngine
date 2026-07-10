@@ -6,7 +6,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/control/flipeffect.h"
 #include "Game/effects/effects.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/pickup/pickup.h"
@@ -173,8 +173,8 @@ void ObjectInfo::SetHitEffect(bool isSolid, bool isAlive)
 
 void InitializeGameFlags()
 {
-	ZeroMemory(FlipMap, MAX_FLIPMAP * sizeof(int));
-	ZeroMemory(FlipStats, MAX_FLIPMAP * sizeof(bool));
+	memset(FlipMap, 0, MAX_FLIPMAP * sizeof(int));
+	memset(FlipStats, 0, MAX_FLIPMAP * sizeof(bool));
 
 	FlipEffect = NO_VALUE;
 	FlipStatus = false;

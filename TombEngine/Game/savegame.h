@@ -1,11 +1,6 @@
 #pragma once
 
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
-#include "Specific/IO/ChunkId.h"
-#include "Specific/IO/ChunkReader.h"
-#include "Specific/IO/ChunkWriter.h"
-#include "Specific/IO/LEB128.h"
-#include "Specific/IO/Streams.h"
 #include "Scripting/Internal/TEN/Types/Time/Time.h"
 #include "Scripting/Internal/TEN/Flow/Statistics/Statistics.h"
 
@@ -39,13 +34,13 @@ class SaveGame
 private:
 	static std::string FullSaveDirectory;
 	static int LastSaveGame;
-	static std::map<int, std::vector<byte>> Hub;
+	static std::map<int, std::vector<unsigned char>> Hub;
 
 	static std::string SaveGame::GetSavegameFilename(int slot);
 	static bool IsSaveGameSlotValid(int slot);
 
-	static const std::vector<byte> Build();
-	static void Parse(const std::vector<byte>& buffer, bool hubMode);
+	static const std::vector<unsigned char> Build();
+	static void Parse(const std::vector<unsigned char>& buffer, bool hubMode);
 
 public:
 	static GameStats Statistics;
@@ -57,6 +52,9 @@ public:
 	static void LoadHeaders();
 	static bool Save(int slot);
 	static void Delete(int slot);
+
+	static bool SaveGlobalVars();
+	static bool LoadGlobalVars();
 
 	static bool DoesSaveGameExist(int slot, bool silent = false);
 	static bool IsLoadGamePossible();

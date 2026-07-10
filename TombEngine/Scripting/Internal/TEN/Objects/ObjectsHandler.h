@@ -4,9 +4,14 @@
 
 #include "Scripting/Internal/LuaHandler.h"
 #include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
+#include "Scripting/Internal/TEN/Objects/Material/MaterialObject.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Scripting/Internal/TEN/Objects/Static/StaticObject.h"
 #include "Scripting/Internal/TEN/Objects/AIObject/AIObject.h"
+#include "Scripting/Internal/TEN/Properties/PropertyLuaConverters.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+
+using namespace TEN::Scripting::Properties;
 
 class ObjectsHandler : public ScriptInterfaceObjectsHandler
 {
@@ -21,7 +26,7 @@ public:
 	{
 		const auto& item = g_Level.Items[id];
 
-		bool hasName = !(item.Callbacks.OnObjectCollided.empty() && item.Callbacks.OnRoomCollided.empty());
+		bool hasName = !(item.Callbacks[(int)EntityCallbackPoint::ObjectCollided].empty() && item.Callbacks[(int)EntityCallbackPoint::RoomCollided].empty());
 		if (hasName && (item.IsLara() || item.Collidable))
 			return _collidingItems.insert(id).second;
 
@@ -32,7 +37,7 @@ public:
 	{
 		const auto& item = g_Level.Items[id];
 
-		bool hasName = !(item.Callbacks.OnObjectCollided.empty() && item.Callbacks.OnRoomCollided.empty());
+		bool hasName = !(item.Callbacks[(int)EntityCallbackPoint::ObjectCollided].empty() && item.Callbacks[(int)EntityCallbackPoint::RoomCollided].empty());
 		if (!force && hasName && (item.IsLara() || item.Collidable))
 			return false;
 
@@ -58,6 +63,8 @@ private:
 	sol::table				_table_objects			= {};
 
 	void AssignPlayer() override;
+	std::vector<std::unique_ptr<Material>> GetMaterialsByObject(const Moveable& moveable);
+	std::vector<std::unique_ptr<Material>> GetMaterialsByObject(const Static& staticObject);
 
 	template <typename R, const char* S>
 	std::unique_ptr<R> GetByName(const std::string& name)
@@ -65,7 +72,7 @@ private:
 		if (!ScriptAssertF(_nameMap.find(name) != _nameMap.end(), "{} name not found: {}", S, name))
 			return nullptr;
 
-		return std::make_unique<R>(std::get<R::IdentifierType>(_nameMap.at(name)));
+		return std::make_unique<R>(std::get<typename R::IdentifierType>(_nameMap.at(name)));
 	}
 
 	template <typename R>
@@ -136,7 +143,8 @@ private:
 		if (_nameMap.find(name) == _nameMap.end())
 			return NO_VALUE;
 
-		return std::get<int>(_nameMap.at(name));
+		const auto& value = _nameMap.at(name);
+		return std::holds_alternative<int>(value) ? std::get<int>(value) : NO_VALUE;
 	}
 
 	bool IsNameInUse(const std::string& key) const
@@ -163,5 +171,69 @@ private:
 		_nameMap.clear();
 		_collidingItemsToRemove.clear();
 		_collidingItems.clear();
+
+		PropertyHandler::Clear();
+	}
+
+	// Global type-level property API (called from Lua)
+
+	sol::object GetMoveableProperty(GAME_OBJECT_ID objectID, const std::string& name)
+	{
+		if (!ValidatePropertyName(name))
+			return sol::nil;
+
+		auto* props = PropertyHandler::FindMoveableProperties(objectID);
+		if (props == nullptr)
+			return sol::nil;
+
+		auto* val = props->GetRaw(name);
+		return val ? PropertyValueToLua(*_handler.GetState(), *val) : sol::nil;
+	}
+
+	void SetMoveableProperty(GAME_OBJECT_ID objectID, const std::string& name, const sol::object& value)
+	{
+		if (!ValidatePropertyName(name))
+			return;
+
+		if (value == sol::nil)
+		{
+			PropertyHandler::GetMoveableProperties(objectID).Remove(name);
+		}
+		else
+		{
+			auto propValue = PropertyValueFromLua(value);
+			if (propValue.has_value())
+				PropertyHandler::GetMoveableProperties(objectID).Set(name, *propValue);
+		}
+	}
+
+	sol::object GetStaticProperty(int slotID, const std::string& name)
+	{
+		if (!ValidatePropertyName(name))
+			return sol::nil;
+
+		auto* props = PropertyHandler::FindStaticProperties(slotID);
+		if (props == nullptr)
+			return sol::nil;
+
+		auto* val = props->GetRaw(name);
+		return val ? PropertyValueToLua(*_handler.GetState(), *val) : sol::nil;
+	}
+
+	void SetStaticProperty(int slotID, const std::string& name, const sol::object& value)
+	{
+		if (!ValidatePropertyName(name))
+			return;
+
+		if (value == sol::nil)
+		{
+			PropertyHandler::GetStaticProperties(slotID).Remove(name);
+		}
+		else
+		{
+			auto propValue = PropertyValueFromLua(value);
+			if (propValue.has_value())
+				PropertyHandler::GetStaticProperties(slotID).Set(name, *propValue);
+		}
 	}
 };

@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_ahmet.h"
 
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/control/lot.h"
@@ -155,7 +155,7 @@ namespace TEN::Entities::TR4
 			AI_INFO AI, laraAI;
 			CreatureAIInfo(item, &AI);
 
-			if (creature->Enemy->IsLara())
+			if (creature->Enemy.IsLara())
 			{
 				laraAI.angle = AI.angle;
 				laraAI.distance = AI.distance;

@@ -7,7 +7,8 @@
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
-#include "Game/Gui.h"
+#include "Game/effects/DisplaySprite.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -19,10 +20,11 @@
 #include "Specific/Input/InputAction.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
-#include "Version.h"
+#include "version.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
+using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Gui;
 using namespace TEN::Hud;
 using namespace TEN::Input;
@@ -49,7 +51,7 @@ namespace TEN::Renderer
 
 	// Vertical menu positioning templates
 	constexpr auto MenuVerticalControls = 30;
-	constexpr auto MenuVerticalDisplaySettings = 130;
+	constexpr auto MenuVerticalDisplaySettings = 110;
 	constexpr auto MenuVerticalOtherSettings = 50;
 	constexpr auto MenuVerticalBottomCenter = 400;
 	constexpr auto MenuVerticalStatisticsTitle = 150;
@@ -88,6 +90,33 @@ namespace TEN::Renderer
 		}
 	}
 
+	inline const int GetEffectiveBoundKeyID(ActionID actionID)
+	{
+		int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, actionID);
+		int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, actionID);
+		return (userKeyID != KEY_UNASSIGNED) ? userKeyID : defaultKeyID;
+	}
+
+	std::vector<bool> GetBindingConflictMask(ActionID baseActionID, int actionCount)
+	{
+		std::vector<bool> conflicts(actionCount, false);
+		std::unordered_map<int, int> firstActionIndexByBinding = {};
+		firstActionIndexByBinding.reserve(actionCount);
+
+		for (int i = 0; i < actionCount; i++)
+		{
+			int keyID = GetEffectiveBoundKeyID((ActionID)((int)baseActionID + i));
+			if (keyID == KEY_UNASSIGNED)
+				continue;
+
+			auto [it, inserted] = firstActionIndexByBinding.try_emplace(keyID, i);
+			if (!inserted)
+				conflicts[it->second] = conflicts[i] = true;
+		}
+
+		return conflicts;
+	}
+
 	// These bars are only used in menus.
 	TEN::Renderer::RendererHudBar* g_MusicVolumeBar = nullptr;
 	TEN::Renderer::RendererHudBar* g_SFXVolumeBar	= nullptr;
@@ -110,9 +139,9 @@ namespace TEN::Renderer
 
 		int shift = MenuVerticalLineSpacing / 2;
 
-		g_MusicVolumeBar = new RendererHudBar(_device.Get(), Vector2(MenuRightSideEntry, y + shift), RendererHudBar::SIZE_DEFAULT, 1, soundSettingColors);
+		g_MusicVolumeBar = new RendererHudBar(_graphicsDevice.get(), Vector2(MenuRightSideEntry, y + shift), RendererHudBar::SIZE_DEFAULT, 1, soundSettingColors);
 		GetNextLinePosition(&y);
-		g_SFXVolumeBar = new RendererHudBar(_device.Get(), Vector2(MenuRightSideEntry, y + shift), RendererHudBar::SIZE_DEFAULT, 1, soundSettingColors);
+		g_SFXVolumeBar = new RendererHudBar(_graphicsDevice.get(), Vector2(MenuRightSideEntry, y + shift), RendererHudBar::SIZE_DEFAULT, 1, soundSettingColors);
 	}
 
 	void Renderer::RenderOptionsMenu(Menu menu, int initialY)
@@ -133,6 +162,9 @@ namespace TEN::Renderer
 		char stringBuffer[32] = {};
 		auto screenResolution = g_Configuration.SupportedScreenResolutions[g_Gui.GetCurrentSettings().SelectedScreenResolution];
 		sprintf(stringBuffer, "%d x %d", screenResolution.x, screenResolution.y);
+
+		char soundDeviceStringBuffer[255] = {};
+		sprintf(soundDeviceStringBuffer, "%s", g_Configuration.SupportedSoundDevices[g_Gui.GetCurrentSettings().SelectedSoundDevice].Name.c_str());
 
 		auto* shadowMode = g_Gui.GetCurrentSettings().Configuration.ShadowType != ShadowMode::None ?
 			(g_Gui.GetCurrentSettings().Configuration.ShadowType == ShadowMode::Player ? STRING_SHADOWS_PLAYER : STRING_SHADOWS_ALL) : STRING_SHADOWS_NONE;
@@ -223,14 +255,19 @@ namespace TEN::Renderer
 			// Enable high framerate
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_HIGH_FRAMERATE), optionColor, SF(titleOption == 7));
 			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableHighFramerate), plainColor, SF(titleOption == 7));
+			GetNextLinePosition(&y);
+
+			// Gamma correction
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_GAMMA), optionColor, SF(titleOption == 8));
+			AddString(MenuRightSideEntry, y, fmt::format("{:.1f}", g_Gui.GetCurrentSettings().Configuration.Gamma).c_str(), plainColor, SF(titleOption == 8));
 			GetNextBlockPosition(&y);
 
 			// Apply
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 8));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 9));
 			GetNextLinePosition(&y);
 
 			// Cancel
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 9));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 10));
 			break;
 
 		case Menu::OtherSettings:
@@ -241,9 +278,15 @@ namespace TEN::Renderer
 			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_OTHER_SETTINGS), headerColor, SF_Center());
 			GetNextBlockPosition(&y);
 
+			// Sound device
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SOUND_DEVICE), PRINTSTRING_COLOR_ORANGE, SF(titleOption == 0));
+			AddString(MenuRightSideEntry, y, soundDeviceStringBuffer, PRINTSTRING_COLOR_WHITE, SF(titleOption == 0));
+			GetNextLinePosition(&y);
+
 			// Enable sound special effects
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_REVERB), optionColor, SF(titleOption == 0));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableReverb), plainColor, SF(titleOption == 0));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_REVERB), optionColor, SF(titleOption == 1));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableReverb), plainColor, SF(titleOption == 1));
+
 			GetNextLinePosition(&y);
 
 			// Initialize bars, if not yet done. Must be done here because we're calculating Y coord on the fly.
@@ -251,67 +294,73 @@ namespace TEN::Renderer
 				InitializeMenuBars(y);
 
 			// Music volume
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MUSIC_VOLUME), optionColor, SF(titleOption == 1));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MUSIC_VOLUME), optionColor, SF(titleOption == 2));
+
 			DrawBar(g_Gui.GetCurrentSettings().Configuration.MusicVolume / 100.0f, *g_MusicVolumeBar, ID_SFX_BAR_TEXTURE, 0, false);
 			GetNextLinePosition(&y);
 
 			// Sound FX volume
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SFX_VOLUME), optionColor, SF(titleOption == 2));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SFX_VOLUME), optionColor, SF(titleOption == 3));
+
 			DrawBar(g_Gui.GetCurrentSettings().Configuration.SfxVolume / 100.0f, *g_SFXVolumeBar, ID_SFX_BAR_TEXTURE, 0, false);
 			GetNextBlockPosition(&y);
 
 			// Subtitles
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SUBTITLES), optionColor, SF(titleOption == 3));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableSubtitles), plainColor, SF(titleOption == 3));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SUBTITLES), optionColor, SF(titleOption == 4));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableSubtitles), plainColor, SF(titleOption == 4));
 			GetNextLinePosition(&y);
 
 			// Auto monkey swing jump
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_MONKEY_SWING_JUMP), optionColor, SF(titleOption == 4));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableAutoMonkeySwingJump), plainColor, SF(titleOption == 4));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_MONKEY_SWING_JUMP), optionColor, SF(titleOption == 5));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableAutoMonkeySwingJump), plainColor, SF(titleOption == 5));
 			GetNextLinePosition(&y);
 
 			// Auto targeting
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_TARGETING), optionColor, SF(titleOption == 5));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableAutoTargeting), plainColor, SF(titleOption == 5));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_TARGETING), optionColor, SF(titleOption == 6));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableAutoTargeting), plainColor, SF(titleOption == 6));
 			GetNextLinePosition(&y);
 
 			// Target highlighter
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TARGET_HIGHLIGHTER), optionColor, SF(titleOption == 6));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableTargetHighlighter), plainColor, SF(titleOption == 6));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TARGET_HIGHLIGHTER), optionColor, SF(titleOption == 7));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableTargetHighlighter),
+				g_GameFlow->GetSettings()->Hud.TargetHighlighter ? plainColor : disabledColor, SF(titleOption == 7));
 			GetNextLinePosition(&y);
 
 			// Interaction highlighter
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INTERACTION_HIGHLIGHTER), optionColor, SF(titleOption == 7));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableInteractionHighlighter), plainColor, SF(titleOption == 7));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INTERACTION_HIGHLIGHTER), optionColor, SF(titleOption == 8));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableInteractionHighlighter),
+				g_GameFlow->GetSettings()->Hud.InteractionHighlighter ? plainColor : disabledColor, SF(titleOption == 8));
 			GetNextLinePosition(&y);
 
 			// Vibration
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RUMBLE), optionColor, SF(titleOption == 8));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableRumble), plainColor, SF(titleOption == 8));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RUMBLE), optionColor, SF(titleOption == 9));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableRumble), plainColor, SF(titleOption == 9));
 			GetNextLinePosition(&y);
 
 			// Thumbstick camera
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_THUMBSTICK_CAMERA), optionColor, SF(titleOption == 9));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableThumbstickCamera), plainColor, SF(titleOption == 9));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_THUMBSTICK_CAMERA), optionColor, SF(titleOption == 10));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableThumbstickCamera), plainColor, SF(titleOption == 10));
 			GetNextBlockPosition(&y);
 
 			// Mouse sensitivity
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MOUSE_SENSITIVITY), optionColor, SF(titleOption == 10));
-			AddString(MenuRightSideEntry, y, std::to_string(g_Gui.GetCurrentSettings().Configuration.MouseSensitivity).c_str(), plainColor, SF(titleOption == 10));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MOUSE_SENSITIVITY), optionColor, SF(titleOption == 11));
+			AddString(MenuRightSideEntry, y, std::to_string(g_Gui.GetCurrentSettings().Configuration.MouseSensitivity).c_str(), plainColor, SF(titleOption == 11));
 			GetNextBlockPosition(&y);
 
 			// Apply
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 11));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 12));
 			GetNextLinePosition(&y);
 
 			// Cancel
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 12));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 13));
+
 			break;
 
 		case Menu::GeneralActions:
 			{
 				// Set up needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Forward, (int)GeneralActionStrings.size());
 
 				// Arrows
 				AddString(RIGHT_ARROW_X_OFFSET, y, RIGHT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -332,11 +381,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)k);
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)k);
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)((int)In::Forward + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (GeneralActionStrings.size() - 1))
@@ -362,6 +408,7 @@ namespace TEN::Renderer
 			{
 				// Set up needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Accelerate, (int)VehicleActionStrings.size());
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -385,11 +432,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)(baseIndex + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (VehicleActionStrings.size() - 1))
@@ -421,6 +465,7 @@ namespace TEN::Renderer
 			{
 				// Set up needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Flare, (int)QuickActionStrings.size());
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -444,11 +489,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)(baseIndex + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (QuickActionStrings.size() - 1))
@@ -474,6 +516,7 @@ namespace TEN::Renderer
 			{
 				// Setup needed parameters.
 				y = MenuVerticalControls;
+				auto bindingConflicts = GetBindingConflictMask(In::Select, (int)MenuActionStrings.size());
 
 				// Arrows
 				AddString(MenuLeftSideEntry, y, LEFT_ARROW_STRING.c_str(), headerColor, SF(true));
@@ -496,11 +539,8 @@ namespace TEN::Renderer
 					}
 					else
 					{
-						int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, (ActionID)(baseIndex + k));
-						int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, (ActionID)(baseIndex + k));
-
-						int key = userKeyID ? userKeyID : defaultKeyID;
-						AddString(MenuRightSideEntry, y, GetKeyName(key).c_str(), optionColor, SF(false));
+						auto actionID = (ActionID)(baseIndex + k);
+						AddString(MenuRightSideEntry, y, GetKeyName(GetEffectiveBoundKeyID(actionID)).c_str(), optionColor, SF(bindingConflicts[k]));
 					}
 
 					if (k < (MenuActionStrings.size() - 1))
@@ -534,22 +574,19 @@ namespace TEN::Renderer
 		auto alignment = g_GameFlow->GetSettings()->UI.TitleMenuAlignment.has_value() ? (1 << (int)g_GameFlow->GetSettings()->UI.TitleMenuAlignment.value()) : 0;
 		auto scale = g_GameFlow->GetSettings()->UI.TitleMenuScale;
 
-		// HACK: fix for Monty's color range slippage. Should be removed after merging color range fix PR.
-		auto plainRawColor = Vector4(plainColor.GetR(), plainColor.GetG(), plainColor.GetB(), UCHAR_MAX) / (float)UCHAR_MAX;
-
 		switch (menu)
 		{
 		case Menu::Title:
 
 			// New game
-			AddString(g_GameFlow->GetString(STRING_NEW_GAME), menuPos.ToVector2(), plainRawColor, scale, SF(titleOption == selectedOption) | alignment);
+			AddString(g_GameFlow->GetString(STRING_NEW_GAME), menuPos.ToVector2(), plainColor, scale, SF(titleOption == selectedOption) | alignment);
 			GetNextLinePosition(&menuPos.y, scale);
 			selectedOption++;
 
 			// Home Level
 			if (g_GameFlow->IsHomeLevelEnabled())
 			{
-				AddString(g_GameFlow->GetString(STRING_HOME_LEVEL), menuPos.ToVector2(), plainRawColor, scale, SF(titleOption == selectedOption) | alignment);
+				AddString(g_GameFlow->GetString(STRING_HOME_LEVEL), menuPos.ToVector2(), plainColor, scale, SF(titleOption == selectedOption) | alignment);
 				GetNextLinePosition(&menuPos.y, scale);
 				selectedOption++;
 			}
@@ -557,18 +594,18 @@ namespace TEN::Renderer
 			// Load game
 			if (g_GameFlow->IsLoadSaveEnabled())
 			{
-				AddString(g_GameFlow->GetString(STRING_LOAD_GAME), menuPos.ToVector2(), plainRawColor, scale, SF(titleOption == selectedOption) | alignment);
+				AddString(g_GameFlow->GetString(STRING_LOAD_GAME), menuPos.ToVector2(), plainColor, scale, SF(titleOption == selectedOption) | alignment);
 				GetNextLinePosition(&menuPos.y, scale);
 				selectedOption++;
 			}
 
 			// Options
-			AddString(g_GameFlow->GetString(STRING_OPTIONS), menuPos.ToVector2(), plainRawColor, scale, SF(titleOption == selectedOption) | alignment);
+			AddString(g_GameFlow->GetString(STRING_OPTIONS), menuPos.ToVector2(), plainColor, scale, SF(titleOption == selectedOption) | alignment);
 			GetNextLinePosition(&menuPos.y, scale);
 			selectedOption++;
 
 			// Exit game
-			AddString(g_GameFlow->GetString(STRING_EXIT_GAME), menuPos.ToVector2(), plainRawColor, scale, SF(titleOption == selectedOption) | alignment);
+			AddString(g_GameFlow->GetString(STRING_EXIT_GAME), menuPos.ToVector2(), plainColor, scale, SF(titleOption == selectedOption) | alignment);
 			break;
 
 		case Menu::LoadGame:
@@ -576,23 +613,7 @@ namespace TEN::Renderer
 			break;
 
 		case Menu::SelectLevel:
-
-			// Setup needed parameters
-			menuPos.y = MenuVerticalLineSpacing;
-
-			// Title
-			AddString(MenuCenterEntry, 26, g_GameFlow->GetString(STRING_SELECT_LEVEL), g_GameFlow->GetSettings()->UI.HeaderTextColor, SF_Center());
-			GetNextBlockPosition(&menuPos.y);
-
-			// Level 0 is always Title Level and level 1 might be Home Level.
-			for (int i = (g_GameFlow->IsHomeLevelEnabled() ? 2 : 1); i < g_GameFlow->GetNumLevels(); i++, selectedOption++)
-			{
-				AddString(
-					MenuCenterEntry, menuPos.y, g_GameFlow->GetString(g_GameFlow->GetLevel(i)->NameStringKey.c_str()),
-					plainColor, SF_Center(titleOption == selectedOption));
-				GetNextNarrowLinePosition(&menuPos.y);
-			}
-
+			RenderSelectLevel();
 			break;
 
 		case Menu::Options:
@@ -606,7 +627,6 @@ namespace TEN::Renderer
 			break;
 		}
 
-		DrawDebugInfo(_gameCamera);
 		DrawAllStrings();
 	}
 
@@ -704,6 +724,119 @@ namespace TEN::Renderer
 		}
 
 		DrawAllStrings();
+	}
+
+	void Renderer::RenderSelectLevel()
+	{
+		constexpr auto SCROLL_EASE	 = 0.3f;
+		constexpr auto FADE_ZONE_H	 = 25.0f;
+		constexpr auto ARROW_MARGIN  = 30.0f;
+		constexpr auto ARROW_SCALE	 = 0.03f;
+
+		int titleOption  = g_Gui.GetSelectedOption();
+		auto plainColor  = g_GameFlow->GetSettings()->UI.PlainTextColor;
+		auto headerColor = g_GameFlow->GetSettings()->UI.HeaderTextColor;
+		auto scale		 = g_GameFlow->GetSettings()->UI.TitleMenuScale;
+
+		// Level 0 is always Title Level and level 1 might be Home Level.
+		int firstLevel = g_GameFlow->IsHomeLevelEnabled() ? 2 : 1;
+		int numLevels  = g_GameFlow->GetNumLevels() - firstLevel;
+
+		if (numLevels <= 0)
+			return;
+
+		float listStartY  = (float)(MenuVerticalLineSpacing + MenuVerticalBlockSpacing);
+		float lineHeight  = (float)MenuVerticalLineSpacing;
+		float totalHeight = (float)numLevels * lineHeight;
+		float visibleH	  = DISPLAY_SPACE_RES.y - listStartY - lineHeight * 2;
+		bool  needsScroll = (totalHeight > visibleH);
+		bool  needsAlpha  = false;
+
+		// Title.
+		AddString(MenuCenterEntry, MenuVerticalLineSpacing, g_GameFlow->GetString(STRING_SELECT_LEVEL), headerColor, SF_Center());
+
+		static float selectLevelScrollY = 0.0f;
+
+		// Compute target scroll and ease toward it.
+		if (needsScroll)
+		{
+			float selectedCenterY = (float)titleOption * lineHeight + lineHeight * 0.5f;
+			float maxScrollY	  = totalHeight - visibleH;
+			float targetScrollY   = selectedCenterY - visibleH * 0.5f;
+
+			if (targetScrollY < 0.0f)
+				targetScrollY = 0.0f;
+			if (targetScrollY > maxScrollY)
+				targetScrollY = maxScrollY;
+
+			auto delta = targetScrollY - selectLevelScrollY;
+			needsAlpha = abs(delta) >= EPSILON;
+
+			selectLevelScrollY += delta * SCROLL_EASE;
+			if (abs(selectLevelScrollY - targetScrollY) < 0.5f)
+				selectLevelScrollY = targetScrollY;
+		}
+		else
+			selectLevelScrollY = 0.0f;
+
+		// Draw level entries.
+		for (int i = 0; i < numLevels; i++)
+		{
+			int levelIndex = firstLevel + i;
+			float entryY = listStartY + (float)i * lineHeight - selectLevelScrollY;
+
+			// Fade entries near clip boundaries.
+			float alpha = 1.0f;
+			if (needsScroll)
+			{
+				float topEdge    = listStartY;
+				float bottomEdge = listStartY + visibleH - lineHeight;
+
+				if (entryY < topEdge)
+					alpha = std::max(0.0f, 1.0f - (topEdge - entryY) / FADE_ZONE_H);
+				else if (entryY > bottomEdge)
+					alpha = std::max(0.0f, 1.0f - (entryY - bottomEdge) / FADE_ZONE_H);
+			}
+
+			// Skip clipped entries.
+			if ((alpha <= 0.0f) || (!needsAlpha && alpha < 1.0f))
+				continue;
+
+			auto color = Color(plainColor);
+			color.w *= alpha;
+
+			AddString(g_GameFlow->GetString(g_GameFlow->GetLevel(levelIndex)->NameStringKey.c_str()),
+				Vector2((float)MenuCenterEntry, entryY), color, scale, SF_Center(titleOption == i));
+		}
+
+		// Draw scroll arrows.
+		if (needsScroll && Objects[GAME_OBJECT_ID::ID_INVENTORY_SPRITES].loaded)
+		{
+			const float xPositions[] = { ARROW_MARGIN, DISPLAY_SPACE_RES.x - ARROW_MARGIN };
+			auto maxScrollY = totalHeight - visibleH;
+
+			for (float x : xPositions)
+			{
+				if (selectLevelScrollY > 1.0f)
+				{
+					TEN::Effects::DisplaySprite::AddDisplaySprite(ID_INVENTORY_SPRITES, 0,
+						Vector2(x, ARROW_MARGIN), 0, Vector2(ARROW_SCALE), headerColor, 0,
+						DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::AlphaBlend, DisplaySpritePhase::Draw);
+				}
+
+				if (selectLevelScrollY < maxScrollY - 1.0f)
+				{
+					TEN::Effects::DisplaySprite::AddDisplaySprite(ID_INVENTORY_SPRITES, 0,
+						Vector2(x, DISPLAY_SPACE_RES.y - ARROW_MARGIN),
+						ANGLE(180), Vector2(ARROW_SCALE), headerColor, 0,
+						DisplaySpriteAlignMode::Center, DisplaySpriteScaleMode::Fit, BlendMode::AlphaBlend, DisplaySpritePhase::Draw);
+				}
+			}
+		}
+
+		CollectDisplaySprites(_gameCamera);
+		DrawDisplaySprites(_gameCamera, false);
+		DrawDisplaySprites(_gameCamera, true);
 	}
 
 	void Renderer::DrawStatistics()
@@ -813,8 +946,7 @@ namespace TEN::Renderer
 	// TODO: Handle opacity
 	void Renderer::DrawObjectIn2DSpace(int objectNumber, Vector2 pos2D, EulerAngles orient, float scale, float opacity, int meshBits)
 	{
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
+		constexpr auto AMBIENT_LIGHT_COLOR = Vector4(0.5f, 0.5f, 0.5f, 1.0f);
 
 		auto screenRes = GetScreenResolution();
 		auto factor = Vector2(
@@ -834,7 +966,7 @@ namespace TEN::Renderer
 		}
 
 		auto viewMatrix = Matrix::CreateLookAt(Vector3(0.0f, 0.0f, BLOCK(2)), Vector3::Zero, Vector3::Down);
-		auto projMatrix = Matrix::CreateOrthographic(_screenWidth, _screenHeight, -BLOCK(1), BLOCK(1));
+		auto projMatrix = Matrix::CreateOrthographic(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), -BLOCK(1), BLOCK(1));
 
 		auto& moveableObject = _moveableObjects[objectNumber];
 		if (!moveableObject.has_value())
@@ -843,21 +975,19 @@ namespace TEN::Renderer
 		const auto& object = Objects[objectNumber];
 		if (!object.Animations.empty())
 		{
-			auto interpData = KeyframeInterpolationData(
-				GetAnimData(object, 0).Keyframes[0],
-				GetAnimData(object, 0).Keyframes[0],
-				0.0f);
-			UpdateAnimation(nullptr, *moveableObject, interpData, UINT_MAX);
+			const auto& frame = GetAnimData(object, 0).Frames.front();
+			UpdateAnimation(nullptr, *moveableObject, frame, UINT_MAX);
 		}
 
-		auto pos = _viewportToolkit.Unproject(Vector3(pos2D.x, pos2D.y, 1.0f), projMatrix, viewMatrix, Matrix::Identity);
-		auto color = Vector4(1.0f, 1.0f, 1.0f, opacity);
+		auto pos = _graphicsDevice->Unproject(Vector3(pos2D.x, pos2D.y, 1.0f), projMatrix, viewMatrix, Matrix::Identity);
+		auto color = NEUTRAL_COLOR;
+		color.w = opacity;
 
 		// Set vertex buffer.
-		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		// Set matrices.
 		auto hudCamera = CCameraMatrixBuffer{};
@@ -865,8 +995,10 @@ namespace TEN::Renderer
 		hudCamera.ViewProjection = viewMatrix * projMatrix;
 		hudCamera.Frame = GlobalCounter;
 		hudCamera.InterpolatedFrame = (float)GlobalCounter + GetInterpolationFactor();
-		UpdateConstantBuffer(hudCamera, _cbCameraMatrices);
-		BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+		hudCamera.Gamma = g_Configuration.Gamma;
+		UpdateConstantBuffer(&hudCamera, _cbCameraMatrices.get());
+		_graphicsDevice->BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+		_graphicsDevice->BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 
 		_shaders.Bind(Shader::Inventory);
 
@@ -878,23 +1010,23 @@ namespace TEN::Renderer
 
 		auto skinMode = GetSkinningMode(*moveableObject, object.skinIndex);
 
-		_stItem.Color = color;
-		_stItem.AmbientLight = g_DrawItems.GetAmbientLight();;
-		_stItem.Skinned = (int)skinMode;
+		_stObjects.Objects[0].Color = color;
+		_stObjects.Objects[0].AmbientLight = g_DrawItems.GetAmbientLight();;
+		_stObjects.Skinned = (int)skinMode;
 
 		if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
 		{
-			_stItem.World = worldMatrix;
+			_stObjects.Objects[0].World = worldMatrix;
 
 			// Calculate bones matrices for skinning
 			for (int m = 0; m < moveableObject->AnimationTransforms.size(); m++)
-				_stItem.BonesMatrices[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
+				_stObjects.Bones[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
 
-			_stItem.BoneLightModes[0] = (int)LightMode::Dynamic;
+			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(_stItem, _cbItem);
-			BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBufferPS(ConstantBufferRegister::Item, _cbItem.get());
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 			// Draw the skin mesh.
 			const auto skinMesh = GetMesh(object.skinIndex);
@@ -922,7 +1054,7 @@ namespace TEN::Renderer
 		}
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
-			_stItem.BonesMatrices[i] = Matrix::Identity;
+			_stObjects.Bones[i] = Matrix::Identity;
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
 		{
@@ -938,19 +1070,19 @@ namespace TEN::Renderer
 
 			if (!object.Animations.empty())
 			{
-				_stItem.World = moveableObject->AnimationTransforms[i] * worldMatrix;
+				_stObjects.Objects[0].World = moveableObject->AnimationTransforms[i] * worldMatrix;
 			}
 			else
 			{
-				_stItem.World = moveableObject->BindPoseTransforms[i] * worldMatrix;
+				_stObjects.Objects[0].World = moveableObject->BindPoseTransforms[i] * worldMatrix;
 			}
 
-			_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
+			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(_stItem, _cbItem);
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
-			BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBufferPS(ConstantBufferRegister::Item, _cbItem.get());
 
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
 
@@ -982,21 +1114,24 @@ namespace TEN::Renderer
 		if (!item.GetVisible())
 			return;
 
-		float alpha = GetInterpolationFactor();
+		float alpha = GetInterpolationFactor(true);
+		auto color = item.GetInterpolatedColor(alpha);
+
+		if (color.A() <= EPSILON)
+			return;
 
 		auto objectNumber = item.GetObjectID();
 		auto pos = item.GetInterpolatedPosition(alpha);
 		auto orient = item.GetInterpolatedOrientation(alpha);
 		auto scale = item.GetInterpolatedScale(alpha);
-		auto color = item.GetInterpolatedColor(alpha);
 		int meshBits = item.GetMeshBits();
 
 		unsigned int stride = sizeof(Vertex);
 		unsigned int offset = 0;
 
-		float aspectRatio = (float)(_screenWidth) / _screenHeight;
+		float aspectRatio = (float)(_graphicsDevice->GetScreenWidth()) / _graphicsDevice->GetScreenHeight();
 
-		auto viewMatrix = Matrix::CreateLookAt(g_DrawItems.GetInterpolatedCameraPosition(alpha), g_DrawItems.GetInterpolatedCameraTargetPosition(alpha), Vector3::Up);
+		auto viewMatrix = Matrix::CreateLookAt(g_DrawItems.GetInterpolatedCameraPosition(alpha), g_DrawItems.GetInterpolatedCameraTargetPosition(alpha), Vector3::Down);
 		auto projMatrix = Matrix::CreatePerspectiveFieldOfView(g_DrawItems.GetInterpolatedFov(alpha), aspectRatio, DISPLAY_ITEM_NEAR_PLANE, DISPLAY_ITEM_FAR_PLANE);
 
 		auto& moveableObject = _moveableObjects[objectNumber];
@@ -1008,13 +1143,7 @@ namespace TEN::Renderer
 		{
 			int animNumber = item.GetAnimNumber();
 			int frameNumber = item.GetFrameNumber();
-			int prevFrameNumber = item.GetPrevFrameNumber();
-
-			auto interpData = KeyframeInterpolationData(
-				GetAnimData(object, animNumber).Keyframes[prevFrameNumber],
-				GetAnimData(object, animNumber).Keyframes[frameNumber],
-				alpha);
-			UpdateAnimation(nullptr, *moveableObject, interpData, UINT_MAX);
+			UpdateAnimation(nullptr, *moveableObject, GetAnimData(object, animNumber).Frames[frameNumber], UINT_MAX);
 		}
 
 		SetBlendMode(BlendMode::Opaque);
@@ -1022,10 +1151,10 @@ namespace TEN::Renderer
 		SetDepthState(DepthState::Write);
 
 		// Set vertex buffer.
-		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		// Set shaders.
 		_shaders.Bind(Shader::Inventory);
@@ -1034,8 +1163,10 @@ namespace TEN::Renderer
 		auto hudCamera = CCameraMatrixBuffer{};
 		hudCamera.CamDirectionWS = -Vector4::UnitZ;
 		hudCamera.ViewProjection = viewMatrix * projMatrix;
-		_cbCameraMatrices.UpdateData(hudCamera, _context.Get());
-		BindConstantBufferVS(ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+		hudCamera.Gamma = g_Configuration.Gamma;
+		UpdateConstantBuffer(&hudCamera, _cbCameraMatrices.get());
+		_graphicsDevice->BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+		_graphicsDevice->BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 
 		_shaders.Bind(Shader::Inventory);
 
@@ -1047,23 +1178,23 @@ namespace TEN::Renderer
 
 		auto skinMode = GetSkinningMode(*moveableObject, object.skinIndex);
 
-		_stItem.Color = color;
-		_stItem.AmbientLight = g_DrawItems.GetAmbientLight();
-		_stItem.Skinned = (int)skinMode;
+		_stObjects.Objects[0].Color = color;
+		_stObjects.Objects[0].AmbientLight = g_DrawItems.GetAmbientLight();
+		_stObjects.Skinned = (int)skinMode;
 
 		if (skinMode == SkinningMode::Full && object.skinIndex >= 0)
 		{
-			_stItem.World = worldMatrix;
+			_stObjects.Objects[0].World = worldMatrix;
 
 			// Calculate bones matrices for skinning.
 			for (int m = 0; m < moveableObject->AnimationTransforms.size(); m++)
-				_stItem.BonesMatrices[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
+				_stObjects.Bones[m] = moveableObject->BindPoseTransforms[m] * moveableObject->AnimationTransforms[m];
 
-			_stItem.BoneLightModes[0] = (int)LightMode::Dynamic;
+			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(_stItem, _cbItem);
-			BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBufferPS(ConstantBufferRegister::Item, _cbItem.get());
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 			// Get skin mesh.
 			const auto* skinMesh = GetMesh(object.skinIndex);
@@ -1092,7 +1223,7 @@ namespace TEN::Renderer
 		}
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
-			_stItem.BonesMatrices[i] = Matrix::Identity;
+			_stObjects.Bones[i] = Matrix::Identity;
 
 		for (int i = 0; i < moveableObject->ObjectMeshes.size(); i++)
 		{
@@ -1107,18 +1238,18 @@ namespace TEN::Renderer
 
 			if (!object.Animations.empty())
 			{
-				_stItem.World = moveableObject->AnimationTransforms[i] * worldMatrix;
+				_stObjects.Objects[0].World = moveableObject->AnimationTransforms[i] * worldMatrix;
 			}
 			else
 			{
-				_stItem.World = moveableObject->BindPoseTransforms[i] * worldMatrix;
+				_stObjects.Objects[0].World = moveableObject->BindPoseTransforms[i] * worldMatrix;
 			}
 
-			_stItem.BoneLightModes[i] = (int)LightMode::Dynamic;
+			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 
-			_cbItem.UpdateData(_stItem, _context.Get());
-			BindConstantBufferVS(ConstantBufferRegister::Item, _cbItem.get());
-			BindConstantBufferPS(ConstantBufferRegister::Item, _cbItem.get());
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 			const auto& mesh = *moveableObject->ObjectMeshes[i];
 
@@ -1148,10 +1279,8 @@ namespace TEN::Renderer
 
 	void Renderer::RenderTitleImage()
 	{
-		auto texture = Texture2D{};
-		SetTextureOrDefault(texture, TEN::Utils::ToWString(g_GameFlow->GetGameDir() + g_GameFlow->IntroImagePath.c_str()));
-
-		if (!texture.Texture)
+		auto texture = SetTextureOrDefault(g_GameFlow->GetGameDir() + g_GameFlow->IntroImagePath.c_str());
+		if (texture == nullptr || !texture->IsValid())
 			return;
 
 		int timeout = 20;
@@ -1175,10 +1304,11 @@ namespace TEN::Renderer
 				currentFade = std::clamp(currentFade -= FADE_FACTOR, 0.0f, 1.0f);
 			}
 
-			DrawFullScreenImage(texture.ShaderResourceView.Get(), Smoothstep(currentFade), _backBuffer.RenderTargetView.Get(), _backBuffer.DepthStencilView.Get());
+			DrawFullScreenImage(texture.get(), Smoothstep(currentFade), _backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
 			Synchronize();
-			_swapChain->Present(1, 0);
-			_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+			_graphicsDevice->Present();
+			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 		}
 	}
 
@@ -1186,7 +1316,7 @@ namespace TEN::Renderer
 	{
 		if (!g_DrawItems.IsEmpty())
 		{
-			_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+			_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 			g_DrawItems.Draw();
 		}
 	}
@@ -1203,16 +1333,16 @@ namespace TEN::Renderer
 
 		auto& object = InventoryObjectTable[invItem];
 
-		if (IsHeld(In::Forward))
+		if (IsHeld(In::MenuUp))
 			orient.x += ANGLE(3.0f / multiplier);
 
-		if (IsHeld(In::Back))
+		if (IsHeld(In::MenuDown))
 			orient.x -= ANGLE(3.0f / multiplier);
 
-		if (IsHeld(In::Left))
+		if (IsHeld(In::MenuLeft))
 			orient.y += ANGLE(3.0f / multiplier);
 
-		if (IsHeld(In::Right))
+		if (IsHeld(In::MenuRight))
 			orient.y -= ANGLE(3.0f / multiplier);
 
 		if (IsHeld(In::Sprint))
@@ -1248,7 +1378,7 @@ namespace TEN::Renderer
 		DrawAllStrings();
 	}
 
-	void Renderer::RenderInventoryScene(RenderTarget2D* renderTarget, TextureBase* background, float backgroundFade)
+	void Renderer::RenderInventoryScene(IRenderSurface2D* renderTarget, ITextureBase* background, float backgroundFade)
 	{
 		// Set basic render states
 		SetBlendMode(BlendMode::Opaque, true);
@@ -1256,31 +1386,28 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise, true);
 
 		// Bind and clear render target
-		ID3D11RenderTargetView* pRenderViewPtrs[2];
-		pRenderViewPtrs[0] = _renderTarget.RenderTargetView.Get();
-		pRenderViewPtrs[1] = _emissiveAndRoughnessRenderTarget.RenderTargetView.Get();
+		std::vector<IRenderTarget2D*> renderTargets;
+		renderTargets.push_back(_renderTarget->GetRenderTarget());
+		renderTargets.push_back(_emissiveAndRoughnessRenderTarget->GetRenderTarget());
 
-		_context->RSSetViewports(1, &_viewport);
-		ResetScissor();
+		_graphicsDevice->SetViewport(_viewport);
+		_graphicsDevice->SetScissor(_viewport);
 
-		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_STENCIL | D3D11_CLEAR_DEPTH, 1.0f, 0);
-		_context->ClearRenderTargetView(_renderTarget.RenderTargetView.Get(), Colors::Black);
-		_context->ClearRenderTargetView(_emissiveAndRoughnessRenderTarget.RenderTargetView.Get(), Colors::Transparent);
-
+		_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), Colors::Black);
+		_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
+		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		
 		if (background != nullptr)
-			DrawFullScreenImage(background->ShaderResourceView.Get(), backgroundFade, _renderTarget.RenderTargetView.Get(), _renderTarget.DepthStencilView.Get());
+			DrawFullScreenImage(background, backgroundFade, _renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 
-		_context->OMSetRenderTargets(2, &pRenderViewPtrs[0], _renderTarget.DepthStencilView.Get());
-		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
-		unsigned int stride = sizeof(Vertex);
-		unsigned int offset = 0;
+		_graphicsDevice->BindRenderTargets(renderTargets, _renderTarget->GetDepthTarget());
+		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
 		// Set vertex buffer.
-		_context->IASetVertexBuffers(0, 1, _moveablesVertexBuffer.Buffer.GetAddressOf(), &stride, &offset);
-		_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		_context->IASetInputLayout(_inputLayout.Get());
-		_context->IASetIndexBuffer(_moveablesIndexBuffer.Buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
 		// Set shaders.
 		_shaders.Bind(Shader::Inventory);
@@ -1290,39 +1417,41 @@ namespace TEN::Renderer
 			auto titleMenu = g_Gui.GetMenuToDisplay();
 			bool drawLogo = (titleMenu == Menu::Title || titleMenu == Menu::Options);
 
-			if (drawLogo && _logo.Texture != nullptr)
+			if (drawLogo && _logo != nullptr)
 			{
+				int screenW = _graphicsDevice->GetScreenWidth();
+				int screenH = _graphicsDevice->GetScreenHeight();
+				float factorX = (float)screenW / DISPLAY_SPACE_RES.x;
+				float factorY = (float)screenH / DISPLAY_SPACE_RES.y;
+
+				// Uniform scale to preserve logo aspect ratio regardless of window aspect.
+				float sizeScale = std::min(factorX, factorY);
+
 				auto& settings = g_GameFlow->GetSettings()->UI;
 
-				float factorX = (float)_screenWidth / DISPLAY_SPACE_RES.x;
-				float factorY = (float)_screenHeight / DISPLAY_SPACE_RES.y;
-				float scale = _screenWidth > _screenHeight ? factorX : factorY;
+				float logoWidthScaled  = _logo->GetWidth()  * settings.TitleLogoScale * sizeScale;
+				float logoHeightScaled = _logo->GetHeight() * settings.TitleLogoScale * sizeScale;
 
-				float logoWidthScaled  = _logo.Width * settings.TitleLogoScale;
-				float logoHeightScaled = _logo.Height * settings.TitleLogoScale;
+				// Position the logo as a percentage of the actual window so it stays anchored
+				// (e.g. centered horizontally at 50%) across any aspect ratio.
+				float centerX = (settings.TitleLogoPosition.x / 100.0f) * screenW;
+				float centerY = (settings.TitleLogoPosition.y / 100.0f) * screenH;
 
-				float centerX = (settings.TitleLogoPosition.x / 100.0f) * DISPLAY_SPACE_RES.x;
-				float centerY = (settings.TitleLogoPosition.y / 100.0f) * DISPLAY_SPACE_RES.y;
-
-				float logoLeft   = centerX - logoWidthScaled  * 0.5f;
-				float logoRight  = centerX + logoWidthScaled  * 0.5f;
-				float logoTop    = centerY - logoHeightScaled * 0.5f;
-				float logoBottom = centerY + logoHeightScaled * 0.5f;
-
-				RECT rect;
-				rect.left   = logoLeft   * scale;
-				rect.right  = logoRight  * scale;
-				rect.top    = logoTop    * scale;
-				rect.bottom = logoBottom * scale;
+				RendererRectangle rect;
+				rect.Left   = centerX - logoWidthScaled  * 0.5f;
+				rect.Right  = centerX + logoWidthScaled  * 0.5f;
+				rect.Top    = centerY - logoHeightScaled * 0.5f;
+				rect.Bottom = centerY + logoHeightScaled * 0.5f;
 
 				// HACK: Color range slippage. Remove in fix color range PR.
 				auto color = Vector4(settings.TitleLogoColor.GetR() / (float)UCHAR_MAX,
-									 settings.TitleLogoColor.GetG() / (float)UCHAR_MAX,
-									 settings.TitleLogoColor.GetB() / (float)UCHAR_MAX,
-									 settings.TitleLogoColor.GetA() / (float)UCHAR_MAX);
+					settings.TitleLogoColor.GetG() / (float)UCHAR_MAX,
+					settings.TitleLogoColor.GetB() / (float)UCHAR_MAX,
+					settings.TitleLogoColor.GetA() / (float)UCHAR_MAX);
 
-				_spriteBatch->Begin(SpriteSortMode_BackToFront, _renderStates->NonPremultiplied());
-				_spriteBatch->Draw(_logo.ShaderResourceView.Get(), rect, color * ScreenFadeCurrent);
+				_spriteBatch->Begin(SpriteSortingMode::BackToFront, BlendMode::AlphaBlend);
+				_spriteBatch->Draw(_logo.get(), rect, color * ScreenFadeCurrent);
+
 				_spriteBatch->End();
 			}
 
@@ -1355,49 +1484,52 @@ namespace TEN::Renderer
 			}
 		}
 
-		_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_STENCIL | D3D11_CLEAR_DEPTH, 1.0f, 0);
+		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
-		ApplyGlow(&_renderTarget, _gameCamera);
-		ApplyAntialiasing(&_renderTarget, _gameCamera);
+		ApplyGlow(_renderTarget.get(), _gameCamera);
+		ApplyAntialiasing(_renderTarget.get(), _gameCamera);
 
-		CopyRenderTarget(&_renderTarget, renderTarget, _gameCamera);
+		CopyRenderTarget(_renderTarget.get(), renderTarget, _gameCamera);
 	}
 
-	void Renderer::SetLoadingScreen(std::wstring& fileName)
+	void Renderer::SetLoadingScreen(const std::string& fileName)
 	{
-		SetTextureOrDefault(_loadingScreenTexture, fileName);
+		_loadingScreenTexture = SetTextureOrDefault(fileName);
 	}
 
 	void Renderer::RenderFreezeMode(float interpFactor, bool staticBackground)
 	{
+		_interpolationFactor = interpFactor;
+
 		if (staticBackground)
 		{
+			ResetDebugVariables();
+			UpdateDumpScreenRenderTarget();
+
 			// Set basic render states.
 			SetBlendMode(BlendMode::Opaque);
 			SetCullMode(CullMode::CounterClockwise);
 
-			// Clear screen.
-			_context->ClearRenderTargetView(_renderTarget.RenderTargetView.Get(), Colors::Black);
-			_context->ClearRenderTargetView(_emissiveAndRoughnessRenderTarget.RenderTargetView.Get(), Colors::Transparent);
-			_context->ClearDepthStencilView(_renderTarget.DepthStencilView.Get(), D3D11_CLEAR_STENCIL | D3D11_CLEAR_DEPTH, 1.0f, 0);
+			// Clear the offscreen scene render targets.
+			_graphicsDevice->ClearRenderTarget2D(_renderTarget->GetRenderTarget(), Colors::Black);
+			_graphicsDevice->ClearRenderTarget2D(_emissiveAndRoughnessRenderTarget->GetRenderTarget(), Colors::Transparent);
+			_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
-			// Bind and clear render target.
-			ID3D11RenderTargetView* pRenderViewPtrs[2];
-			pRenderViewPtrs[0] = _renderTarget.RenderTargetView.Get();
-			pRenderViewPtrs[1] = _emissiveAndRoughnessRenderTarget.RenderTargetView.Get();
+			std::vector<IRenderTarget2D*> renderTargets;
+			renderTargets.push_back(_renderTarget->GetRenderTarget());
+			renderTargets.push_back(_emissiveAndRoughnessRenderTarget->GetRenderTarget());
 
-			// Bind render target.
-			_context->OMSetRenderTargets(2, &pRenderViewPtrs[0], _renderTarget.DepthStencilView.Get());
-			_context->RSSetViewports(1, &_viewport);
-			ResetScissor();
+			_graphicsDevice->BindRenderTargets(renderTargets, _renderTarget->GetDepthTarget());
+			_graphicsDevice->SetViewport(_viewport);
+			_graphicsDevice->SetScissor(_viewport);
 
 			// Draw full screen background.
-			DrawFullScreenQuad(_dumpScreenRenderTarget.ShaderResourceView.Get(), Vector3::One);
+			DrawFullScreenQuad(_dumpScreenRenderTarget->GetRenderTarget(), Vector3::One);
 		}
 		else
 		{
 			InterpolateCamera(interpFactor);
-			RenderScene(&_backBuffer, _gameCamera, SceneRenderMode::NoHud);
+			RenderScene(_backBuffer.get(), _gameCamera, SceneRenderMode::NoHud);
 		}
 
 		// Draw display sprites sorted by priority.
@@ -1409,18 +1541,18 @@ namespace TEN::Renderer
 
 		if (staticBackground)
 		{
-			BindConstantBufferVS(ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
-			BindConstantBufferPS(ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
+			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 
-			ApplyGlow(&_renderTarget, _gameCamera);
-			ApplyAntialiasing(&_renderTarget, _gameCamera);
-			CopyRenderTarget(&_renderTarget, &_backBuffer, _gameCamera);
+			ApplyGlow(_renderTarget.get(), _gameCamera);
+			ApplyAntialiasing(_renderTarget.get(), _gameCamera);
+			CopyRenderTarget(_renderTarget.get(), _backBuffer.get(), _gameCamera);
 		}
 
 		ClearScene();
 
-		_context->ClearState();
-		_swapChain->Present(1, 0);
+		_graphicsDevice->ClearState();
+		_graphicsDevice->Present();
 	}
 
 	void Renderer::RenderLoadingScreen(float percentage)
@@ -1432,29 +1564,29 @@ namespace TEN::Renderer
 		do
 		{
 			// Clear screen.
-			_context->ClearRenderTargetView(_backBuffer.RenderTargetView.Get(), Colors::Black);
-			_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+			_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
+			_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
 			// Bind back buffer.
-			_context->OMSetRenderTargets(1, _backBuffer.RenderTargetView.GetAddressOf(), _backBuffer.DepthStencilView.Get());
-			_context->RSSetViewports(1, &_viewport);
-			ResetScissor();
+			_graphicsDevice->BindRenderTarget(_backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
+			_graphicsDevice->SetViewport(_viewport);
+			_graphicsDevice->SetScissor(_viewport);
 
 			// Draw fullscreen background. If unavailable, draw last dumped game scene.
-			if (_loadingScreenTexture.Texture)
+			if (_loadingScreenTexture)
 			{
-				DrawFullScreenQuad(_loadingScreenTexture.ShaderResourceView.Get(), Vector3(ScreenFadeCurrent, ScreenFadeCurrent, ScreenFadeCurrent));
+				DrawFullScreenQuad(_loadingScreenTexture.get(), Vector3(ScreenFadeCurrent, ScreenFadeCurrent, ScreenFadeCurrent));
 			}
-			else if (_dumpScreenRenderTarget.Texture)
+			else if (_dumpScreenRenderTarget)
 			{
-				DrawFullScreenQuad(_dumpScreenRenderTarget.ShaderResourceView.Get(), Vector3(ScreenFadeCurrent, ScreenFadeCurrent, ScreenFadeCurrent));
+				DrawFullScreenQuad(_dumpScreenRenderTarget->GetRenderTarget(), Vector3(ScreenFadeCurrent, ScreenFadeCurrent, ScreenFadeCurrent));
 			}
 
 			if (ScreenFadeCurrent && percentage > 0.0f && percentage < 100.0f)
 				DrawLoadingBar(percentage);
 
-			_swapChain->Present(1, 0);
-			_context->ClearState();
+			_graphicsDevice->Present();
+			_graphicsDevice->ClearState();
 
 			Synchronize();
 			UpdateFadeScreenAndCinematicBars();
@@ -1464,38 +1596,52 @@ namespace TEN::Renderer
 
 	void Renderer::RenderInventory()
 	{
+		ResetDebugVariables();
+		UpdateDumpScreenRenderTarget();
+
 		if (_graphicsSettingsChanged)
 		{
 			UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
 			Camera.DisableInterpolation = true;
-			DumpGameScene();
+			DumpGameScene(SceneRenderMode::NoHud, g_GameFlow->GetSettings()->UI.MenuBackgroundBlur);
 			_graphicsSettingsChanged = false;
 		}
 
-		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_STENCIL | D3D11_CLEAR_DEPTH, 1.0f, 0);
-		_context->ClearRenderTargetView(_backBuffer.RenderTargetView.Get(), Colors::Black);
+		_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
+		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
-		RenderInventoryScene(&_backBuffer, &_dumpScreenRenderTarget, 0.5f);
+		// Reset GPU state.
+		SetBlendMode(BlendMode::Opaque, true);
+		SetDepthState(DepthState::Write, true);
+		SetCullMode(CullMode::CounterClockwise, true);
 
-		_swapChain->Present(1, 0);
+		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 0.5f);
+
+		_graphicsDevice->Present();
 	}
 
 	void Renderer::RenderTitle(float interpFactor)
 	{
-		_stringsToDraw.clear();
-		_isLocked = false;
-
 		InterpolateCamera(interpFactor);
-		DumpGameScene();
+		DumpGameScene(g_Gui.GetMenuToDisplay() == Menu::SelectLevel ? SceneRenderMode::NoHud : SceneRenderMode::Full);
 
-		_context->ClearDepthStencilView(_backBuffer.DepthStencilView.Get(), D3D11_CLEAR_STENCIL | D3D11_CLEAR_DEPTH, 1.0f, 0);
-		_context->ClearRenderTargetView(_backBuffer.RenderTargetView.Get(), Colors::Black);
+		_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
+		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
-		RenderInventoryScene(&_backBuffer, &_dumpScreenRenderTarget, 1.0f);
+		RenderInventoryScene(_backBuffer.get(), _dumpScreenRenderTarget->GetRenderTarget(), 1.0f);
 		
-		_swapChain->Present(1, 0);
+		_graphicsDevice->Present();
+	}
 
-		_isLocked = true;
+	void Renderer::UpdateDumpScreenRenderTarget()
+	{
+		if (!_graphicsSettingsChanged)
+			return;
+
+		UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
+		Camera.DisableInterpolation = true;
+		DumpGameScene(SceneRenderMode::NoHud, g_GameFlow->GetSettings()->UI.MenuBackgroundBlur);
+		_graphicsSettingsChanged = false;
 	}
 
 	void Renderer::DrawDebugRenderTargets(RenderView& view)
@@ -1503,69 +1649,53 @@ namespace TEN::Renderer
 		if (_debugPage != RendererDebugPage::RendererStats)
 			return;
 
-		float aspectRatio = _screenWidth / (float)_screenHeight;
-		int thumbWidth = _screenWidth / 8;
+		float aspectRatio = _graphicsDevice->GetScreenWidth() / (float)_graphicsDevice->GetScreenHeight();
+		int thumbWidth = _graphicsDevice->GetScreenWidth() / 8;
 		int thumbY = 0;
 
-		auto rect = RECT{};
+		auto rect = RendererRectangle{};
 
-		_spriteBatch->Begin(SpriteSortMode_Deferred, _renderStates->Opaque());
+		_spriteBatch->Begin(SpriteSortingMode::Deferred, BlendMode::Opaque);
 
-		rect.left = _screenWidth - thumbWidth;
-		rect.top = thumbY;
-		rect.right = rect.left + thumbWidth;
-		rect.bottom = rect.top + thumbWidth / aspectRatio;
+		rect.Left = _graphicsDevice->GetScreenWidth() - thumbWidth;
+		rect.Top = thumbY;
+		rect.Right = rect.Left + thumbWidth;
+		rect.Bottom = rect.Top + thumbWidth / aspectRatio;
 
-		_spriteBatch->Draw(_normalsAndMaterialIndexRenderTarget.ShaderResourceView.Get(), rect);
+		_spriteBatch->Draw(_normalsAndMaterialIndexRenderTarget->GetRenderTarget(), rect, Vector4::One);
 		thumbY += thumbWidth / aspectRatio;
 
-		rect.left = _screenWidth - thumbWidth;
-		rect.top = thumbY;
-		rect.right = rect.left + thumbWidth;
-		rect.bottom = rect.top + thumbWidth / aspectRatio;
+		rect.Left = _graphicsDevice->GetScreenWidth() - thumbWidth;
+		rect.Top = thumbY;
+		rect.Right = rect.Left + thumbWidth;
+		rect.Bottom = rect.Top + thumbWidth / aspectRatio;
 
-		rect.left = _screenWidth - thumbWidth;
-		rect.top = thumbY;
-		rect.right = rect.left + thumbWidth;
-		rect.bottom = rect.top + thumbWidth / aspectRatio;
+		rect.Left = _graphicsDevice->GetScreenWidth() - thumbWidth;
+		rect.Top = thumbY;
+		rect.Right = rect.Left + thumbWidth;
+		rect.Bottom = rect.Top + thumbWidth / aspectRatio;
 
-		_spriteBatch->Draw(_SSAOBlurredRenderTarget.ShaderResourceView.Get(), rect);
+		_spriteBatch->Draw(_SSAOBlurredRenderTarget->GetRenderTarget(), rect, Vector4::One);
 		thumbY += thumbWidth / aspectRatio;
 
 		if (g_Configuration.AntialiasingMode > AntialiasingMode::Low)
 		{
-			rect.left = _screenWidth - thumbWidth;
-			rect.top = thumbY;
-			rect.right = rect.left + thumbWidth;
-			rect.bottom = rect.top + thumbWidth / aspectRatio;
+			rect.Left = _graphicsDevice->GetScreenWidth() - thumbWidth;
+			rect.Top = thumbY;
+			rect.Right = rect.Left + thumbWidth;
+			rect.Bottom = rect.Top + thumbWidth / aspectRatio;
 
-			_spriteBatch->Draw(_SMAAEdgesRenderTarget.ShaderResourceView.Get(), rect);
+			_spriteBatch->Draw(_SMAAEdgesRenderTarget->GetRenderTarget(), rect, Vector4::One);
 			thumbY += thumbWidth / aspectRatio;
 
-			rect.left = _screenWidth - thumbWidth;
-			rect.top = thumbY;
-			rect.right = rect.left + thumbWidth;
-			rect.bottom = rect.top + thumbWidth / aspectRatio;
+			rect.Left = _graphicsDevice->GetScreenWidth() - thumbWidth;
+			rect.Top = thumbY;
+			rect.Right = rect.Left + thumbWidth;
+			rect.Bottom = rect.Top + thumbWidth / aspectRatio;
 
-			_spriteBatch->Draw(_SMAABlendRenderTarget.ShaderResourceView.Get(), rect);
+			_spriteBatch->Draw(_SMAABlendRenderTarget->GetRenderTarget(), rect, Vector4::One);
 			thumbY += thumbWidth / aspectRatio;
 		}
-
-		rect.left = _screenWidth - thumbWidth;
-		rect.top = thumbY;
-		rect.right = rect.left + thumbWidth;
-		rect.bottom = rect.top + thumbWidth;
-
-		_spriteBatch->Draw(_roomAmbientMapFront.ShaderResourceView.Get(), rect);
-		thumbY += thumbWidth;
-
-		rect.left = _screenWidth - thumbWidth;
-		rect.top = thumbY;
-		rect.right = rect.left + thumbWidth;
-		rect.bottom = rect.top + thumbWidth;
-
-		_spriteBatch->Draw(_roomAmbientMapBack.ShaderResourceView.Get(), rect);
-		thumbY += thumbWidth;
 
 		_spriteBatch->End();
 	}
@@ -1596,7 +1726,7 @@ namespace TEN::Renderer
 			PrintDebugMessage("RENDERER STATS");
 			PrintDebugMessage(" ");
 			PrintDebugMessage("FPS: %3.2f", _fps);
-			PrintDebugMessage("Resolution: %d x %d", _screenWidth, _screenHeight);
+			PrintDebugMessage("Resolution: %d x %d", _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
 			PrintDebugMessage("GPU: %s", g_Configuration.AdapterName.c_str());
 			PrintDebugMessage("Update time: %d", _timeUpdate);
 			PrintDebugMessage("Frame time: %d", _timeFrame);
@@ -1623,28 +1753,24 @@ namespace TEN::Renderer
 
 		case RendererDebugPage::MemoryStats:
 		{
-			const auto& vram = Graphics::VRAMTracker::Get();
+			auto& vram = Graphics::VRAMTracker::Get();
+			const auto& adapter = vram.GetAdapterInfo();
+			auto toMB = [](size_t bytes) { return bytes / (1024.0f * 1024.0f); };
 
 			PrintDebugMessage("MEMORY STATS");
 			PrintDebugMessage(" ");
-			PrintDebugMessage("Adapter: %s", _adapterInfo.Name.c_str());
-			PrintDebugMessage("Dedicated VRAM: %.2f MB", ToMegabytes(_adapterInfo.DedicatedVideoMemory));
-			PrintDebugMessage("Shared system memory: %.2f MB", ToMegabytes(_adapterInfo.SharedSystemMemory));
+			PrintDebugMessage("GPU: %s", adapter.Name.c_str());
+			PrintDebugMessage("Installed VRAM: %.0f MB", toMB(adapter.DedicatedVideoMemory));
+			PrintDebugMessage("Dedicated System Memory: %.0f MB", toMB(adapter.DedicatedSystemMemory));
+			PrintDebugMessage("Shared System Memory: %.0f MB", toMB(adapter.SharedSystemMemory));
 			PrintDebugMessage(" ");
-			PrintDebugMessage("Total usage: %.2f MB", ToMegabytes(vram.GetTotal()));
-			PrintDebugMessage("  Textures: %.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::Texture)));
-			PrintDebugMessage("  Render targets: %.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::RenderTarget)));
-			PrintDebugMessage("  Vertex buffers: %.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::VertexBuffer)));
-			PrintDebugMessage("  Index buffers: %.2f MB", ToMegabytes(vram.GetCategory(Graphics::VRAMCategory::IndexBuffer)));
-
-			if (_adapterInfo.DedicatedVideoMemory > 0)
-			{
-				float usagePercent = (ToMegabytes(vram.GetTotal()) / ToMegabytes(_adapterInfo.DedicatedVideoMemory)) * 100.0f;
-				PrintDebugMessage(" ");
-				PrintDebugMessage("VRAM usage: %.1f%%", usagePercent);
-			}
-		}
+			PrintDebugMessage("Tracked VRAM Usage: %.2f MB", toMB(vram.GetTotal()));
+			PrintDebugMessage("    Textures: %.2f MB", toMB(vram.GetCategory(Graphics::VRAMCategory::Texture)));
+			PrintDebugMessage("    Render Targets: %.2f MB", toMB(vram.GetCategory(Graphics::VRAMCategory::RenderTarget)));
+			PrintDebugMessage("    Vertex Buffers: %.2f MB", toMB(vram.GetCategory(Graphics::VRAMCategory::VertexBuffer)));
+			PrintDebugMessage("    Index Buffers: %.2f MB", toMB(vram.GetCategory(Graphics::VRAMCategory::IndexBuffer)));
 			break;
+		}
 
 		case RendererDebugPage::DimensionStats:
 			PrintDebugMessage("DIMENSION STATS");

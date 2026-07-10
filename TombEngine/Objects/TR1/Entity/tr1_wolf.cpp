@@ -10,6 +10,7 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Sound/sound.h"
 #include "Specific/level.h"
 
 using namespace TEN::Math;
@@ -132,6 +133,9 @@ namespace TEN::Entities::Creatures::TR1
 
 			if (item.Animation.ActiveState != WOLF_STATE_SLEEP)
 				headingAngle = CreatureTurn(&item, creature.MaxTurn);
+
+			if (item.HitStatus)
+				SoundEffect(SFX_TR1_WOLF_HURT, &item.Pose);
 
 			switch (item.Animation.ActiveState)
 			{

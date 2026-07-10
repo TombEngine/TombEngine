@@ -3,16 +3,23 @@
 
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
-#include "Game/Gui.h"
+#include "Game/effects/hair.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
+#include "Game/effects/hair.h"
 #include "Game/effects/item_fx.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
+#include "Game/Lara/lara_initialise.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/Lara/lara_one_gun.h"
 #include "Game/Lara/lara_two_guns.h"
+#include "Game/Setup.h"
 #include "Objects/Generic/Object/burning_torch.h"
+#include "Renderer/Renderer.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/TEN/Input/ActionIDs.h"
 #include "Scripting/Internal/TEN/Objects/Lara/AmmoTypes.h"
@@ -22,8 +29,10 @@
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Specific/Input/Input.h"
 #include "Specific/Input/InputAction.h"
+#include "Specific/clock.h"
 #include "Specific/level.h"
 
+using namespace TEN::Effects::Hair;
 using namespace TEN::Gui;
 using namespace TEN::Hud;
 using namespace TEN::Input;
@@ -122,7 +131,7 @@ int LaraObject::GetWet() const
 
 /// Set the player's stamina value.
 // @function LaraObject:SetStamina
-// @tparam[opt=120] int New stamina value. _Maximum: 120._
+// @tparam[opt=120] int stamina New stamina value. _Maximum: 120._
 // @usage
 // Lara:SetStamina(120)
 void LaraObject::SetStamina(sol::optional<int> value)
@@ -150,6 +159,36 @@ int LaraObject::GetStamina() const
 	return lara->Status.Stamina;
 }
 
+/// Set the player's cold exposure value.
+// @function LaraObject:SetExposure
+// @tparam[opt=600] int exposure New exposure value. _Maximum: 600._
+// @usage
+// Lara:SetExposure(600)
+void LaraObject::SetExposure(sol::optional<int> value)
+{
+	auto* lara = GetLaraInfo(_moveable);
+
+	if (value.has_value())
+	{
+		lara->Status.Exposure = std::clamp(value.value(), 0, (int)LARA_EXPOSURE_MAX);
+	}
+	else
+	{
+		lara->Status.Exposure = LARA_EXPOSURE_MAX;
+	}
+}
+
+/// Get the player's cold exposure value.
+// @function LaraObject:GetExposure
+// @treturn int Exposure value.
+// @usage
+// local coldExposure = Lara:GetExposure()
+int LaraObject::GetExposure() const
+{
+	auto* lara = GetLaraInfo(_moveable);
+	return lara->Status.Exposure;
+}
+
 /// Get the player's airborne status (set when jumping and falling).
 // @function LaraObject:GetAirborne
 // @treturn bool True if airborne, otherwise false.
@@ -164,6 +203,27 @@ bool LaraObject::GetAirborne() const
 void LaraObject::SetAirborne(bool newAirborne)
 {
 	_moveable->Animation.IsAirborne = newAirborne;
+}
+
+/// Get the player's locked status.
+// Indicates whether the native user input is blocked. Useful to detect whether a game is in the middle of a flyby sequence or a cutscene.
+// @function LaraObject:GetLocked
+// @treturn bool True if locked, otherwise false.
+bool LaraObject::GetLocked() const
+{
+	auto* lara = GetLaraInfo(_moveable);
+	return lara->Control.IsLocked;
+}
+
+/// Set the player's locked status. This status will lock the native user input. Useful for cutscenes and scripted sequences.
+// Scripts will still receive input events even if this parameter is set to true.
+// If this parameter is unset during a flyby sequence which blocks user input, it will override the flyby sequence's setting.
+// @function LaraObject:SetLocked
+// @tparam bool locked New locked status.
+void LaraObject::SetLocked(bool locked)
+{
+	auto* lara = GetLaraInfo(_moveable);
+	lara->Control.IsLocked = locked;
 }
 
 /// Undraw a weapon if it is drawn and throw away a flare if currently holding one.
@@ -300,7 +360,7 @@ bool LaraObject::GetLaserSight(LaraWeaponType weaponType) const
 	case LaraWeaponType::Revolver:
 	case LaraWeaponType::Crossbow:
 	case LaraWeaponType::HK:
-		return lara->Weapons[static_cast<int>(weaponType)].HasLasersight;
+		return lara->Weapons[(int)weaponType].HasLasersight;
 
 	default:
 		return false;
@@ -332,7 +392,7 @@ void LaraObject::SetLaserSight(LaraWeaponType weaponType, TypeOrNil<bool> activa
 		// Check if laser sight is already attached to any other weapon
 		for (LaraWeaponType type : { LaraWeaponType::Revolver, LaraWeaponType::Crossbow, LaraWeaponType::HK })
 		{
-			if (type != weaponType && lara->Weapons[static_cast<int>(type)].HasLasersight)
+			if (type != weaponType && lara->Weapons[(int)type].HasLasersight)
 			{
 				// Laser sight is already in use, do nothing
 				return;
@@ -340,7 +400,7 @@ void LaraObject::SetLaserSight(LaraWeaponType weaponType, TypeOrNil<bool> activa
 		}
 
 		// Attach laser sight
-		lara->Weapons[static_cast<int>(weaponType)].HasLasersight = convertedActivate;
+		lara->Weapons[(int)weaponType].HasLasersight = convertedActivate;
 
 		// Activate weapon if required
 		if (convertedActivate == false)
@@ -365,8 +425,8 @@ int LaraObject::GetAmmoType(TypeOrNil<LaraWeaponType> weaponType) const
 	const auto& player = GetLaraInfo(*_moveable);
 
 	auto weapon = ValueOr<LaraWeaponType>(weaponType, player.Control.Weapon.GunType);
-
 	auto ammoType = std::optional<PlayerAmmoType>(std::nullopt);
+
 	switch (weapon)
 	{
 		case::LaraWeaponType::Pistol:
@@ -510,64 +570,83 @@ int LaraObject::GetAmmoCount() const
 	return (ammo.HasInfinite()) ? -1 : (int)ammo.GetCount();
 }
 
-/// Get player HK weapon mode type.
+/// Get player weapon mode type.
 // @function LaraObject:GetWeaponMode
-// @treturn Objects.WeaponMode Player HK weapon mode type.
-int LaraObject::GetWeaponMode() const
+// @tparam[opt] Objects.WeaponType weaponType Weapon to retrieve weapon mode for. If omitted, the mode of the currently equipped weapon is returned. Only works for HK weapon currently.
+// @treturn Objects.WeaponMode Player weapon mode type.
+int LaraObject::GetWeaponMode(TypeOrNil<LaraWeaponType> weaponType) const
 {
 	const auto& player = GetLaraInfo(*_moveable);
 
+	auto weapon = ValueOr<LaraWeaponType>(weaponType, player.Control.Weapon.GunType);
 	auto weaponMode = std::optional<PlayerWeaponMode>(std::nullopt);
-	auto weapon = player.Weapons[(int)LaraWeaponType::HK].WeaponMode;
 
 	switch (weapon)
 	{
-	case::LaraWeaponTypeCarried::WTYPE_AMMO_1:
-	{
-		weaponMode = PlayerWeaponMode::Rapid;
+	case::LaraWeaponType::HK:
+		if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_1)
+		{
+			weaponMode = PlayerWeaponMode::Rapid;
+			break;
+		}
+		else if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_2)
+		{
+			weaponMode = PlayerWeaponMode::Burst;
+			break;
+		}
+		else if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_3)
+		{
+			weaponMode = PlayerWeaponMode::Sniper;
+			break;
+		}
 		break;
-	}
-	case::LaraWeaponTypeCarried::WTYPE_AMMO_2:
-	{
-		weaponMode = PlayerWeaponMode::Burst;
-		break;
-	}
+
 	default:
-		weaponMode = PlayerWeaponMode::Sniper;
 		break;
 	}
 
 	if (!weaponMode.has_value())
 	{
-		TENLog("GetWeaponMode() error; no weapon mode type.", LogLevel::Warning, LogConfig::All);
+		TENLog("GetWeaponMode: no weapon mode is available for specified weapon.", LogLevel::Warning, LogConfig::All);
 		weaponMode = PlayerWeaponMode::None;
 	}
 
-	return static_cast<int>(weaponMode.value());
+	return (int)weaponMode.value();
 }
 
-/// Set player HK weapon mode type.
+/// Set player weapon mode type.
 // @function LaraObject:SetWeaponMode
-// @tparam Objects.WeaponMode weaponMode Player HK weapon mode type.
-void LaraObject::SetWeaponMode(PlayerWeaponMode weaponMode)
+// @tparam Objects.WeaponType weaponType Weapon to set weapon mode for. Only works for HK weapon currently.
+// @tparam Objects.WeaponMode weaponMode Player weapon mode type.
+void LaraObject::SetWeaponMode(LaraWeaponType weaponType, PlayerWeaponMode weaponMode)
 {
 	auto& player = GetLaraInfo(*_moveable);
 
-	switch (weaponMode)
+	switch (weaponType)
 	{
-	case PlayerWeaponMode::Rapid:
-		player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_1;
-		break;
+	case::LaraWeaponType::HK:
+		switch (weaponMode)
+		{
+		case PlayerWeaponMode::Rapid:
+			player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_1;
+			break;
 
-	case PlayerWeaponMode::Burst:
-		player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_2;
-		break;
+		case PlayerWeaponMode::Burst:
+			player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_2;
+			break;
 
-	case PlayerWeaponMode::Sniper:
-		player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_3;
+		case PlayerWeaponMode::Sniper:
+			player.Weapons[(int)LaraWeaponType::HK].WeaponMode = LaraWeaponTypeCarried::WTYPE_AMMO_3;
+			break;
+
+		default:
+			TENLog("SetWeaponMode: unsupported weapon mode for HK weapon type.", LogLevel::Warning, LogConfig::All);
+			break;
+		}
 		break;
 
 	default:
+		TENLog("SetWeaponMode: no weapon mode supported for weapon type.", LogLevel::Warning, LogConfig::All);
 		break;
 	}
 }
@@ -615,6 +694,88 @@ std::unique_ptr<Moveable> LaraObject::GetPlayerInteractedMoveable() const
 		return nullptr;
 
 	return std::make_unique<Moveable>(player.Context.InteractedItem);
+}
+
+/// Get currently holstered weapon types in left holster, right holster and back holster.
+// @function LaraObject:GetHolsterWeaponTypes
+// @treturn Objects.WeaponType Left holster weapon type.
+// @treturn Objects.WeaponType Right holster weapon type.
+// @treturn Objects.WeaponType Back holster weapon type.
+// @usage
+// local left, right, back = Lara:GetHolsterWeaponTypes()
+std::tuple<LaraWeaponType, LaraWeaponType, LaraWeaponType> LaraObject::GetHolsterWeaponTypes() const
+{
+	const auto& player = GetLaraInfo(*_moveable);
+
+	auto left = GetHolsterSlotWeapon(player.Control.Weapon.HolsterInfo.LeftHolster);
+	auto right = GetHolsterSlotWeapon(player.Control.Weapon.HolsterInfo.RightHolster);
+	auto back = GetHolsterSlotWeapon(player.Control.Weapon.HolsterInfo.BackHolster);
+
+	return std::make_tuple(left, right, back);
+}
+
+/// Set holstered weapon meshes for left holster, right holster and back holster.
+// Pass nil for any slot to leave it unchanged.
+// Use WeaponType.NONE to clear a holster slot.
+// @function LaraObject:SetHolsterWeaponTypes
+// @tparam[opt] Objects.WeaponType left Left holster weapon type (nil to leave unchanged).
+// @tparam[opt] Objects.WeaponType right Right holster weapon type (nil to leave unchanged).
+// @tparam[opt] Objects.WeaponType back Back holster weapon type (nil to leave unchanged).
+// @usage
+// Lara:SetHolsterWeaponTypes(WeaponType.PISTOLS, WeaponType.PISTOLS, WeaponType.SHOTGUN)
+// Lara:SetHolsterWeaponTypes(nil, nil, WeaponType.NONE) -- Clear back holster only.
+void LaraObject::SetHolsterWeaponTypes(TypeOrNil<LaraWeaponType> left, TypeOrNil<LaraWeaponType> right, TypeOrNil<LaraWeaponType> back)
+{
+	auto& player = GetLaraInfo(*_moveable);
+
+	if (std::holds_alternative<LaraWeaponType>(left))
+		player.Control.Weapon.HolsterInfo.LeftHolster = GetWeaponHolsterSlot(std::get<LaraWeaponType>(left));
+
+	if (std::holds_alternative<LaraWeaponType>(right))
+		player.Control.Weapon.HolsterInfo.RightHolster = GetWeaponHolsterSlot(std::get<LaraWeaponType>(right));
+
+	if (std::holds_alternative<LaraWeaponType>(back))
+		player.Control.Weapon.HolsterInfo.BackHolster = GetWeaponHolsterSlot(std::get<LaraWeaponType>(back));
+}
+
+/// Reset player hair to default state.
+// Useful after changing animations in spectator or freeze mode to fix hair positioning.
+// @function LaraObject:ResetHair
+// @usage
+// Lara:ResetHair()
+void LaraObject::ResetHair()
+{
+	for (int i = 0; i < FPS; i++)
+		HairEffect.Update(*_moveable);
+}
+
+/// Spawn a muzzle flash and dynamic point light for the given weapon type at the correct muzzle position.
+// Useful in photo mode or freeze mode to show a gun firing effect without the weapon actually being fired.
+// The weapon type should match the one currently equipped by the player; the renderer uses the active
+// weapon type for the correct mesh offset and rotation. Call only once in freeze mode to maintain the flash.
+// @function LaraObject:SpawnGunFlash
+// @tparam Objects.WeaponType weaponType Weapon type to spawn the flash for.
+// @tparam[opt=TEN.Objects.WeaponFlashMode.AUTO] Objects.WeaponFlashMode weaponFlashType Weapon Flash mode type.
+// @usage
+// Lara:SpawnGunFlash(WeaponType.PISTOLS)
+void LaraObject::SpawnGunFlash(LaraWeaponType weaponType, TypeOrNil<WeaponFlashMode> weaponFlashType)
+{
+	auto convertedFlag = ValueOr<WeaponFlashMode>(weaponFlashType, WeaponFlashMode::Auto);
+	SpawnWeaponFlash(*_moveable, convertedFlag, weaponType);
+}
+
+/// Clear all currently active muzzle flashes.
+// Useful in photo mode or freeze mode to clear active gunflashes.
+// @function LaraObject:ClearGunFlashes
+// @usage
+// Lara:ClearGunFlashes()
+void LaraObject::ClearGunFlashes()
+{
+	auto& player = GetLaraInfo(*_moveable);
+	player.LeftArm.GunFlash = 0;
+	player.LeftArm.GunFlashType = LaraWeaponType::None;
+	player.RightArm.GunFlash = 0;
+	player.RightArm.GunFlashType = LaraWeaponType::None;
 }
 
 /// Check if a held torch is lit.
@@ -677,6 +838,93 @@ void LaraObject::SetWaterSkinStatus(int amount, TypeOrNil<bool> flag)
 		inventory.BigWaterskin = amount;
 	else
 		inventory.SmallWaterskin = amount;
+}
+
+/// Get the player's skin, skin joints, scream head and hair objects.
+// hair 2 is only returned if Young Lara is enabled in the settings.
+// @function LaraObject:GetSkin
+// @treturn table Array table: {skin, skinJoints, skinScream, hair1, hair2}.
+// @usage
+// local s = Lara:GetSkin()
+// print(s[1], s[2], s[3], s[4], s[5])
+sol::table LaraObject::GetSkin(sol::this_state s)
+{
+	sol::state_view lua(s);
+	auto* lara = GetLaraInfo(_moveable);
+	bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
+
+	auto t = lua.create_table();
+	t.add(lara->Skin.Skin);
+	t.add(lara->Skin.SkinJoints);
+	t.add(lara->Skin.SkinScream);
+	t.add(lara->Skin.HairPrimary);
+	
+	if (isYoung)
+		t.add(lara->Skin.HairSecondary);
+
+	return t;
+}
+
+/// Swap the skin, skin joints, scream head and hair objects.
+// Pass nil for any parameter to leave it unchanged.
+// The provided object IDs must correspond to objects loaded in the current level.
+// @function LaraObject:SetSkin
+// @tparam[opt] int skin Object ID of the replacement skin mesh.
+// @tparam[opt] int skinJoints Object ID of the replacement skin joints mesh.
+// @tparam[opt] int skinScream Object ID of the replacement scream head.
+// @tparam[opt] int hair1 Object ID of the replacement primary hair object.
+// @tparam[opt] int hair2 Object ID of the replacement secondary hair object.
+// @usage
+// Lara:SetSkin(TEN.Objects.ObjID.ANIMATING18, TEN.Objects.ObjID.ANIMATING19, TEN.Objects.ObjID.ANIMATING20, nil, nil)
+void LaraObject::SetSkin(sol::optional<GAME_OBJECT_ID> skin, sol::optional<GAME_OBJECT_ID> skinJoints, sol::optional<GAME_OBJECT_ID> skinScream, sol::optional<GAME_OBJECT_ID> hair1, sol::optional<GAME_OBJECT_ID> hair2)
+{
+	auto* lara = GetLaraInfo(_moveable);
+	bool changed = false;
+
+	auto trySetSkinPart = [&](const std::string& paramName, const sol::optional<GAME_OBJECT_ID>& value, GAME_OBJECT_ID referenceID, GAME_OBJECT_ID& target)
+	{
+		if (!value.has_value())
+			return;
+
+		GAME_OBJECT_ID id = value.value();
+		bool isValidID = (id > NO_VALUE && id < ID_NUMBER_OBJECTS && Objects[id].loaded);
+
+		if (!isValidID)
+		{
+			TENLog("SetSkin: " + paramName + " object ID " + GetObjectName(id) + " (" +
+				std::to_string(id) + ") is invalid or not loaded.",
+				LogLevel::Warning, LogConfig::All);
+			return;
+		}
+
+		if (Objects[id].nmeshes != Objects[referenceID].nmeshes)
+		{
+			TENLog("SetSkin: " + paramName + " object ID " + GetObjectName(id) + " (" +
+				std::to_string(id) + ") mesh count (" +
+				std::to_string(Objects[id].nmeshes) + ") does not match " +
+				GetObjectName(referenceID) + " mesh count (" +
+				std::to_string(Objects[referenceID].nmeshes) + ").",
+				LogLevel::Warning, LogConfig::All);
+			return;
+		}
+
+		target = id;
+		changed = true;
+	};
+
+	trySetSkinPart("skin", skin, ID_LARA_SKIN, lara->Skin.Skin);
+	trySetSkinPart("skinJoints", skinJoints, ID_LARA_SKIN, lara->Skin.SkinJoints);
+	trySetSkinPart("skinScream", skinScream, ID_LARA_SKIN, lara->Skin.SkinScream);
+	trySetSkinPart("hair1", hair1, ID_HAIR_PRIMARY, lara->Skin.HairPrimary);
+	trySetSkinPart("hair2", hair2, ID_HAIR_PRIMARY, lara->Skin.HairSecondary);
+
+	if (!changed)
+		return;
+
+	InitializeLaraMeshes(_moveable, false);
+	HairEffect.Initialize();
+	g_Renderer.UpdatePlayerSkinVertices(lara->Skin.Skin, lara->Skin.SkinJoints,
+		lara->Skin.HairPrimary, lara->Skin.HairSecondary);
 }
 
 /// Align the player with a moveable object for interaction.
@@ -822,7 +1070,7 @@ bool LaraObject::TestInteraction(const Moveable& mov,
 	};
 
 	auto& item = g_Level.Items[mov.GetIndex()];
-	return (TestLaraPosition(interactionBasis, &item, _moveable));
+	return TestLaraPosition(interactionBasis, &item, _moveable);
 }
 
 void LaraObject::Register(sol::table& parent)
@@ -838,28 +1086,39 @@ void LaraObject::Register(sol::table& parent)
 		ScriptReserved_GetWet, &LaraObject::GetWet,
 		ScriptReserved_SetStamina, &LaraObject::SetStamina,
 		ScriptReserved_GetStamina, &LaraObject::GetStamina,
+		ScriptReserved_SetExposure, &LaraObject::SetExposure,
+		ScriptReserved_GetExposure, &LaraObject::GetExposure,
 		ScriptReserved_GetAirborne, &LaraObject::GetAirborne,
 		ScriptReserved_SetAirborne, &LaraObject::SetAirborne,
+		ScriptReserved_GetLocked, &LaraObject::GetLocked,
+		ScriptReserved_SetLocked, &LaraObject::SetLocked,
 		ScriptReserved_UndrawWeapon, &LaraObject::UndrawWeapon,
 		ScriptReserved_PlayerDiscardTorch, &LaraObject::DiscardTorch,
 		ScriptReserved_GetHandStatus, &LaraObject::GetHandStatus,
 		ScriptReserved_SetHandStatus, & LaraObject::SetHandStatus,
 		ScriptReserved_GetWeaponType, &LaraObject::GetWeaponType,
 		ScriptReserved_SetWeaponType, &LaraObject::SetWeaponType,
-		ScriptReserved_GetLaserSight, & LaraObject::GetLaserSight,
-		ScriptReserved_SetLaserSight, & LaraObject::SetLaserSight,
+		ScriptReserved_GetLaserSight, &LaraObject::GetLaserSight,
+		ScriptReserved_SetLaserSight, &LaraObject::SetLaserSight,
 		ScriptReserved_GetAmmoType, &LaraObject::GetAmmoType,
 		ScriptReserved_SetAmmoType, & LaraObject::SetAmmoType,
 		ScriptReserved_GetAmmoCount, &LaraObject::GetAmmoCount,
-		ScriptReserved_GetWeaponMode, & LaraObject::GetWeaponMode,
-		ScriptReserved_SetWeaponMode, & LaraObject::SetWeaponMode,
+		ScriptReserved_GetWeaponMode, &LaraObject::GetWeaponMode,
+		ScriptReserved_SetWeaponMode, &LaraObject::SetWeaponMode,
+		ScriptReserved_GetHolsterWeaponTypes, &LaraObject::GetHolsterWeaponTypes,
+		ScriptReserved_SetHolsterWeaponTypes,&LaraObject::SetHolsterWeaponTypes,
+		ScriptReserved_ResetHair, &LaraObject::ResetHair,
+		ScriptReserved_SpawnGunFlash, &LaraObject::SpawnGunFlash,
+		ScriptReserved_ClearGunFlashes, &LaraObject::ClearGunFlashes,
 		ScriptReserved_GetVehicle, &LaraObject::GetVehicle,
 		ScriptReserved_GetTarget, &LaraObject::GetTarget,
 		ScriptReserved_GetPlayerInteractedMoveable, &LaraObject::GetPlayerInteractedMoveable,
 		ScriptReserved_PlayerIsTorchLit, &LaraObject::IsTorchLit,
-		ScriptReserved_GetWaterStatus, & LaraObject::GetWaterStatus,
-		ScriptReserved_GetWaterSkinStatus, & LaraObject::GetWaterSkinStatus,
-		ScriptReserved_SetWaterSkinStatus, & LaraObject::SetWaterSkinStatus,
+		ScriptReserved_GetWaterStatus, &LaraObject::GetWaterStatus,
+		ScriptReserved_GetWaterSkinStatus, &LaraObject::GetWaterSkinStatus,
+		ScriptReserved_SetWaterSkinStatus, &LaraObject::SetWaterSkinStatus,
+		ScriptReserved_GetSkin, &LaraObject::GetSkin,
+		ScriptReserved_SetSkin, &LaraObject::SetSkin,
 		ScriptReserved_PlayerInteract, &LaraObject::Interact,
 		ScriptReserved_PlayerTestInteraction, &LaraObject::TestInteraction,
 

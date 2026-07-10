@@ -73,20 +73,17 @@ namespace TEN::Entities::Creatures::TR2
 
 	short ThrowKnife(int x, int y, int z, float vel, short yRot, int roomNumber)
 	{
-		int fxNumber = CreateNewEffect(roomNumber);
+		int fxNumber = CreateNewEffect(roomNumber, ID_KNIFETHROWER_KNIFE, Pose(Vector3i(x, y, z), EulerAngles(0, yRot, 0)));
 		if (fxNumber == NO_VALUE)
 			return fxNumber;
 
-		auto& fx = EffectList[fxNumber];
+		auto& fx = g_Level.Items[fxNumber];
+		auto& fxInfo = GetFXInfo(fx);
 
-		fx.objectNumber = ID_KNIFETHROWER_KNIFE;
-		fx.pos.Position.x = x;
-		fx.pos.Position.y = y;
-		fx.pos.Position.z = z;
-		fx.speed = vel;
-		fx.fallspeed = 0;
-		fx.flag2 = KNIFE_PROJECTILE_DAMAGE;
-		fx.color = Vector4::One;
+		fx.Animation.Velocity.z = vel;
+		fx.Animation.Velocity.y = 0;
+		fxInfo.Flag2 = KNIFE_PROJECTILE_DAMAGE;
+		fx.Model.Color = NEUTRAL_COLOR;
 
 		return fxNumber;
 	}

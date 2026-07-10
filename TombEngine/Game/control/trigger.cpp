@@ -25,11 +25,13 @@
 #include "Objects/TR3/Vehicles/kayak.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/level.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Switches;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 
 int TriggerTimer;
@@ -423,7 +425,7 @@ void Trigger(short const value, short const flags)
 
 void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bool heavy, int heavyFlags)
 {
-	if (g_GameFlow->CurrentFreezeMode != FreezeMode::None)
+	if (g_GameFlow->LastFreezeMode != FreezeMode::None)
 		return;
 
 	bool switchOff = false;
@@ -431,7 +433,6 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 	int flip = NO_VALUE;
 	int newEffect = NO_VALUE;
 	int keyResult = 0;
-	int spotCamIndex = 0;
 
 	auto data = GetTriggerIndex(floor, x, y, z);
 
@@ -494,7 +495,8 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 			if (!SwitchTrigger(value, timer))
 				return;
 
-			switchOff = (triggerType == TRIGGER_TYPES::SWITCH && timer && g_Level.Items[value].Animation.ActiveState == 1);
+			switchOff = (triggerType == TRIGGER_TYPES::SWITCH && timer &&
+				g_Level.Items[value].Animation.ActiveState == (g_Level.Items[value].ObjectNumber == ID_JUMP_SWITCH ? SWITCH_OFF : SWITCH_ON));
 			break;
 
 		case TRIGGER_TYPES::MONKEY:
@@ -696,28 +698,23 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 			if (triggerType == TRIGGER_TYPES::ANTIPAD ||
 				triggerType == TRIGGER_TYPES::ANTITRIGGER ||
 				triggerType == TRIGGER_TYPES::HEAVYANTITRIGGER)
-				UseSpotCam = false;
-			else
 			{
-				spotCamIndex = 0;
-				if (SpotCamRemap[value] != 0)
-				{
-					for (int i = 0; i < SpotCamRemap[value]; i++)
-					{
-						spotCamIndex += CameraCnt[i];
-					}
-				}
+				UseSpotCam = false;
+			}
+			else if (HasSpotCamSequence(value))
+			{
+				int spotCamIndex = GetSequenceFirstCameraIndex(value);
 
-				if (!(SpotCam[spotCamIndex].flags & SCF_CAMERA_ONE_SHOT))
+				if (spotCamIndex != NO_VALUE && !(g_Level.SpotCams[spotCamIndex].Flags & SCF_CAMERA_ONE_SHOT))
 				{
 					if (trigger & ONESHOT)
-						SpotCam[spotCamIndex].flags |= SCF_CAMERA_ONE_SHOT;
+						g_Level.SpotCams[spotCamIndex].Flags |= SCF_CAMERA_ONE_SHOT;
 
 					if (!UseSpotCam || CurrentLevel == 0)
 					{
-						UseSpotCam = true;
 						if (LastSpotCamSequence != value)
 							TrackCameraInit = false;
+
 						InitializeSpotCam(value);
 					}
 				}
@@ -895,9 +892,10 @@ void ProcessSectorFlags(ItemInfo* item)
 	if (isPlayer)
 	{
 		auto& player = GetLaraInfo(*item);
+		auto& climbSector = pointColl.GetBottomSector(true);
 
 		// Set wall climb status.
-		if (TestLaraNearClimbableWall(item, &sector))
+		if (TestLaraNearClimbableWall(item, &climbSector))
 		{
 			player.Control.CanClimbLadder = true;
 		}
@@ -907,7 +905,7 @@ void ProcessSectorFlags(ItemInfo* item)
 		}
 
 		// Set monkey swing status.
-		player.Control.CanMonkeySwing = sector.Flags.Monkeyswing;
+		player.Control.CanMonkeySwing = climbSector.Flags.Monkeyswing;
 	}
 
 	// Burn or drown item.
@@ -939,7 +937,7 @@ void ProcessSectorFlags(ItemInfo* item)
 				// TODO: Implement correct rapids behaviour for other objects.
 				DoDamage(item, INT_MAX);
 			}
-			else
+			else if (g_GameFlow->GetSettings()->Gameplay.SetEnemiesOnFireWithDeathFlag)
 			{
 				ItemBurn(item);
 			}

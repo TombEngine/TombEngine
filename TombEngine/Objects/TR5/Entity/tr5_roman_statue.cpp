@@ -76,30 +76,29 @@ namespace TEN::Entities::Creatures::TR5
 		MS_HEAVY_DMG  = 0x10510
 	};
 
-	static void RomanStatueHitEffect(ItemInfo* item, Vector3i* pos, int joint)
+	static void RomanStatueHitEffect(ItemInfo* item, Vector3i& pos, int joint)
 	{
-		*pos = GetJointPosition(item, joint, *pos);
+		pos = GetJointPosition(item, joint, pos);
 
 		if (!(GetRandomControl() & 0x1F))
 		{
-			int fxNumber = CreateNewEffect(item->RoomNumber);
+			int fxNumber = CreateNewEffect(item->RoomNumber, ID_BODY_PART, Pose(pos, EulerAngles(0, 2 * GetRandomControl(), 0)));
 			if (fxNumber != NO_VALUE)
 			{
-				auto* fx = &EffectList[fxNumber];
+				auto& fx = g_Level.Items[fxNumber];
+				auto& fxInfo = GetFXInfo(fx);
 
-				fx->pos.Position = *pos;
-				fx->roomNumber = item->RoomNumber;
-				fx->pos.Orientation.z = 0;
-				fx->pos.Orientation.x = 0;
-				fx->pos.Orientation.y = 2 * GetRandomControl();
-				fx->speed = 1;
-				fx->fallspeed = 0;
-				fx->objectNumber = ID_BODY_PART;
-				fx->color = Vector4::One;
-				fx->flag2 = 9729;
-				fx->frameNumber = Objects[ID_BUBBLES].meshIndex + (GetRandomControl() & 7);
-				fx->counter = 0;
-				fx->flag1 = 0;
+				fx.RoomNumber = item->RoomNumber;
+				fx.Pose.Orientation.z = 0;
+				fx.Pose.Orientation.x = 0;
+				fx.Pose.Orientation.y = 2 * GetRandomControl();
+				fx.Animation.Velocity.z = 1;
+				fx.Animation.Velocity.y = 0;
+				fx.Model.Color = NEUTRAL_COLOR;
+				fx.Model.MeshIndex = { (int)Objects[ID_BUBBLES].meshIndex + (GetRandomControl() & 7) };
+				fxInfo.Flag2 = 9729;
+				fxInfo.Counter = 0;
+				fxInfo.Flag1 = 0;
 			}
 		}
 
@@ -115,9 +114,9 @@ namespace TEN::Entities::Creatures::TR5
 			spark->blendMode = BlendMode::Additive;
 			spark->life = spark->sLife = (GetRandomControl() & 3) + 64;
 			spark->position = Vector3i(
-				(GetRandomControl() & 0x1F) + pos->x - 16,
-				(GetRandomControl() & 0x1F) + pos->y - 16,
-				(GetRandomControl() & 0x1F) + pos->z - 16
+				(GetRandomControl() & 0x1F) + pos.x - 16,
+				(GetRandomControl() & 0x1F) + pos.y - 16,
+				(GetRandomControl() & 0x1F) + pos.z - 16
 			);
 			spark->velocity = Vector3i(
 				(GetRandomControl() & 0x7F) - 64,
@@ -135,7 +134,7 @@ namespace TEN::Entities::Creatures::TR5
 		}
 	}
 
-	static void TriggerRomanStatueShockwaveAttackSparks(int x, int y, int z, byte r, byte g, byte b, byte size)
+	static void TriggerRomanStatueShockwaveAttackSparks(int x, int y, int z, unsigned char r, unsigned char g, unsigned char b, unsigned char size)
 	{
 		auto* spark = GetFreeParticle();
 
@@ -193,9 +192,9 @@ namespace TEN::Entities::Creatures::TR5
 		spark->x = (GetRandomControl() & 0x1F) - 16;
 		spark->z = (GetRandomControl() & 0x1F) - 16;
 		spark->yVel = 0;
-		spark->xVel = (byte)GetRandomControl() - 128;
+		spark->xVel = (unsigned char)GetRandomControl() - 128;
 		spark->friction = 4;
-		spark->zVel = (byte)GetRandomControl() - 128;
+		spark->zVel = (unsigned char)GetRandomControl() - 128;
 		spark->flags = SP_NODEATTACH | SP_EXPDEF | SP_ITEM | SP_ROTATE | SP_DEF | SP_SCALE; // 4762;
 		spark->fxObj = itemNum;
 		spark->nodeNumber = 6;
@@ -208,26 +207,25 @@ namespace TEN::Entities::Creatures::TR5
 		spark->sSize = (spark->size = factor * ((GetRandomControl() & 0x1F) + 64)) / 16;
 	}
 
-	static void RomanStatueAttack(Pose* pos, short roomNumber, short count)
+	static void RomanStatueAttack(const Pose& pose, short roomNumber, short count)
 	{
-		int fxNumber = CreateNewEffect(roomNumber);
+		int fxNumber = CreateNewEffect(roomNumber, ID_ENERGY_BUBBLES, pose);
 		if (fxNumber == NO_VALUE)
 			return;
 
-		auto* fx = &EffectList[fxNumber];
+		auto& fx = g_Level.Items[fxNumber];
+		auto& fxInfo = GetFXInfo(fx);
 
-		fx->pos.Position.x = pos->Position.x;
-		fx->pos.Position.y = pos->Position.y;
-		fx->pos.Position.z = pos->Position.z;
-		fx->pos.Orientation.x = pos->Orientation.x;
-		fx->pos.Orientation.y = pos->Orientation.y;
-		fx->pos.Orientation.z = 0;
-		fx->roomNumber = roomNumber;
-		fx->counter = 16 * count + 15;
-		fx->flag1 = 1;
-		fx->objectNumber = ID_BUBBLES;
-		fx->speed = (GetRandomControl() & 0x1F) + 64;
-		fx->frameNumber = Objects[ID_BUBBLES].meshIndex + 8;
+		fx.Pose.Position = pose.Position;
+		fx.Pose.Orientation.x = pose.Orientation.x;
+		fx.Pose.Orientation.y = pose.Orientation.y;
+		fx.Pose.Orientation.z = 0;
+		fx.RoomNumber = roomNumber;
+		fx.ObjectNumber = ID_BUBBLES;
+		fx.Animation.Velocity.z = (GetRandomControl() & 0x1F) + 64;
+		fx.Model.MeshIndex = { (int)Objects[ID_BUBBLES].meshIndex + 8 };
+		fxInfo.Counter = 16 * count + 15;
+		fxInfo.Flag1 = 1;
 	}
 
 	void TriggerRomanStatueMissileSparks(Vector3i* pos, char fxObject)
@@ -274,7 +272,7 @@ namespace TEN::Entities::Creatures::TR5
 		item->Pose.Position.x += 486 * phd_sin(item->Pose.Orientation.y + ANGLE(90.0f));
 		item->Pose.Position.z += 486 * phd_cos(item->Pose.Orientation.y + ANGLE(90.0f));
 
-		ZeroMemory(&RomanStatueData, sizeof(RomanStatueInfo));
+		memset(&RomanStatueData, 0, sizeof(RomanStatueInfo));
 	}
 
 	void RomanStatueControl(short itemNumber)
@@ -344,7 +342,7 @@ namespace TEN::Entities::Creatures::TR5
 			creature->MaxTurn = 0;
 
 			Vector3i pos, pos1, pos2;
-			byte color;
+			unsigned char color;
 			int deltaFrame;
 			bool unknown;
 			
@@ -593,12 +591,14 @@ namespace TEN::Entities::Creatures::TR5
 							if (item->ItemFlags[0])
 								item->ItemFlags[0]--;
 
-							TriggerShockwave(&Pose(pos1), 16, 160, 96, 0, color / 2, color, 48, EulerAngles::Identity, 1, true, false, true, (int)ShockwaveStyle::Normal);
+							auto shockwavePose1 = Pose(pos1);
+							TriggerShockwave(&shockwavePose1, 16, 160, 96, 0, color / 2, color, 48, EulerAngles::Identity, 1, true, false, true, (int)ShockwaveStyle::Normal);
 							TriggerRomanStatueShockwaveAttackSparks(pos1.x, pos1.y, pos1.z, 128, 64, 0, 128);
 
 							pos1.y -= 64;
 
-							TriggerShockwave(&Pose(pos1), 16, 160, 64, 0, color / 2, color, 48, EulerAngles::Identity, 1, true, false, true, (int)ShockwaveStyle::Normal);
+							auto shockwavePose2 = Pose(pos1);
+							TriggerShockwave(&shockwavePose2, 16, 160, 64, 0, color / 2, color, 48, EulerAngles::Identity, 1, true, false, true, (int)ShockwaveStyle::Normal);
 							
 							auto lightColor = Color(0.4f, 0.3f, 0.0f);
 							SpawnDynamicPointLight(pos.ToVector3(), lightColor, BLOCK(2.5f));
@@ -727,7 +727,7 @@ namespace TEN::Entities::Creatures::TR5
 					short roomNumber = item->RoomNumber;
 					GetFloor(pos2.x, pos2.y, pos2.z, &roomNumber);
 
-					RomanStatueAttack(&attackPose, roomNumber, 1);
+					RomanStatueAttack(attackPose, roomNumber, 1);
 
 					TriggerRomanStatueShockwaveAttackSparks(
 						attackPose.Position.x,
@@ -757,9 +757,9 @@ namespace TEN::Entities::Creatures::TR5
 
 					for (int i = 0; i < 4; i++)
 					{
-						byte r = (deltaFrame * ((GetRandomControl() & 0x3F) + 128)) / 32;
-						byte g = (deltaFrame * ((GetRandomControl() & 0x3F) + 128)) / 16;
-						byte b = (deltaFrame * ((GetRandomControl() & 0x3F) + 128)) / 32;
+						unsigned char r = (deltaFrame * ((GetRandomControl() & 0x3F) + 128)) / 32;
+						unsigned char g = (deltaFrame * ((GetRandomControl() & 0x3F) + 128)) / 16;
+						unsigned char b = (deltaFrame * ((GetRandomControl() & 0x3F) + 128)) / 32;
 
 						if (i == 0)
 						{
@@ -851,7 +851,7 @@ namespace TEN::Entities::Creatures::TR5
 				(GetRandomControl() & 0x1F) - 16,
 				86,
 				(GetRandomControl() & 0x1F) - 16);
-			RomanStatueHitEffect(item, &pos, 10);
+			RomanStatueHitEffect(item, pos, 10);
 		}
 
 		if (item->TestMeshSwapFlags(0x10))
@@ -860,7 +860,7 @@ namespace TEN::Entities::Creatures::TR5
 				-40,
 				(GetRandomControl() & 0x7F) + 148,
 				(GetRandomControl() & 0x3F) - 32);
-			RomanStatueHitEffect(item, &pos, 4);
+			RomanStatueHitEffect(item, pos, 4);
 		}
 
 		if (item->TestMeshSwapFlags(0x100))
@@ -869,7 +869,7 @@ namespace TEN::Entities::Creatures::TR5
 				(GetRandomControl() & 0x3F) + 54,
 				-170,
 				(GetRandomControl() & 0x1F) + 27);
-			RomanStatueHitEffect(item, &pos, 8);
+			RomanStatueHitEffect(item, pos, 8);
 		}
 
 		CreatureAnimation(itemNumber, headingAngle, 0);

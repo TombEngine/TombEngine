@@ -4,16 +4,18 @@
 #include "Game/camera.h"
 #include "Game/effects/DisplaySprite.h"
 #include "Game/items.h"
-#include "Game/lara/lara_fire.h"
-#include "Game/lara/lara_helpers.h"
+#include "Game/Lara/lara_fire.h"
+#include "Game/Lara/lara_helpers.h"
 #include "Game/spotcam.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/configuration.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Math;
+using namespace TEN::SpotCam;
 using namespace TEN::Utils;
 using TEN::Renderer::g_Renderer;
 
@@ -170,12 +172,20 @@ namespace TEN::Hud
 		}
 	}
 
+	bool TargetHighlighterController::IsEnabled() const
+	{
+		return g_GameFlow->GetSettings()->Hud.TargetHighlighter && g_Configuration.EnableTargetHighlighter;
+	}
+
 	void TargetHighlighterController::Update(const ItemInfo& playerItem)
 	{
+		if (!IsEnabled())
+			return;
+
 		const auto& player = GetLaraInfo(playerItem);
 
 		// Check if target highlighter is enabled or lasersight is active.
-		if (!g_Configuration.EnableTargetHighlighter || player.Control.Look.IsUsingBinoculars)
+		if (player.Control.Look.IsUsingBinoculars)
 		{
 			if (!_crosshairs.empty())
 				_crosshairs.clear();
@@ -217,6 +227,9 @@ namespace TEN::Hud
 
 	void TargetHighlighterController::Draw() const
 	{
+		if (!IsEnabled())
+			return;
+
 		//DrawDebug();
 
 		// Never highlight if flyby camera is active.

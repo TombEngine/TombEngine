@@ -5,7 +5,7 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Splash.h"
@@ -24,6 +24,8 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Splash;
 
 constexpr auto ROLLING_BALL_MAX_VELOCITY = BLOCK(3);
+constexpr auto ROLLING_BARREL_ROLL_ANIMATION = 0;
+constexpr auto ROLLING_BARREL_STOP_ANIMATION = 1;
 
 void RollingBallCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 {
@@ -43,7 +45,7 @@ void RollingBallCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* c
 		if (!laraItem->Animation.IsAirborne && 
 			!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, laraItem))
 		{
-			SetAnimation(laraItem, LA_BOULDER_DEATH);
+			SetAnimation(laraItem, LA_BOULDER_DEATH, 0, GetInternalBlendDuration());
 
 			Camera.flags = CF_FOLLOW_CENTER;
 			Camera.targetAngle = ANGLE(170.0f);
@@ -376,7 +378,7 @@ void ClassicRollingBallCollision(short itemNum, ItemInfo* lara, CollisionInfo* c
 				lara->Pose.Orientation.y = item->Pose.Orientation.y;
 				lara->Pose.Orientation.x = lara->Pose.Orientation.z = 0;
 
-				SetAnimation(lara, LA_BOULDER_DEATH);
+				SetAnimation(lara, LA_BOULDER_DEATH, 0, GetInternalBlendDuration());
 						
 				Camera.flags = CF_FOLLOW_CENTER;
 				Camera.targetAngle = ANGLE(170.0f);
@@ -403,13 +405,12 @@ void ClassicRollingBallControl(short itemNum)
 {
 	int ydist, dist;
 	GameVector* old;
-	RoomData* r;
-
+	
 	auto* item = &g_Level.Items[itemNum];
 
 	if (item->Status == ITEM_ACTIVE)
 	{
-		if (item->Animation.TargetState == 2)
+		if (item->Animation.ActiveState == 2)
 		{
 			AnimateItem(item);
 			return;
@@ -445,6 +446,31 @@ void ClassicRollingBallControl(short itemNum)
 			item->Pose.Position.y = item->Floor;
 		}
 
+		// Rolling sound effect switch for rolling barrels and boulders.
+		switch (item->ObjectNumber)
+		{
+		case ID_ROLLING_BARRELS:
+			switch (item->Animation.AnimNumber)
+			{
+			case ROLLING_BARREL_ROLL_ANIMATION:
+				SoundEffect(SFX_TR2_ROLLING_BARREL_ROLL, &item->Pose);
+				break;
+
+			case ROLLING_BARREL_STOP_ANIMATION:
+				SoundEffect(SFX_TR2_ROLLING_BARREL_STOP, &item->Pose);
+				break;
+			}
+			break;
+
+		case ID_MULTIPLE_BOULDERS:
+			if (item->Animation.AnimNumber == 0)
+				SoundEffect(SFX_TR2_SNOWBALL_ROLL, &item->Pose);
+
+			if (item->Animation.FrameNumber == 0)
+				SoundEffect(SFX_TR2_SNOWBALL_STOP, &item->Pose);
+			break;
+		}
+
 		if (!item->Animation.IsAirborne && (item->TriggerFlags & 1) != 1) // Flag 1 = silent.
 		{
 			SoundEffect(SFX_TR4_ROLLING_BALL, &item->Pose);
@@ -454,7 +480,7 @@ void ClassicRollingBallControl(short itemNum)
 				Camera.bounce = -40 * (BLOCK(10) - distance) / BLOCK(10);
 		}
 
-		if (item->ObjectNumber == ID_CLASSIC_ROLLING_BALL)
+		if (item->ObjectNumber == ID_CLASSIC_ROLLING_BALL || item->ObjectNumber == ID_ROLLING_BARRELS)
 		{
 			dist = 320;
 			ydist = 832;
@@ -479,13 +505,25 @@ void ClassicRollingBallControl(short itemNum)
 		if (y1 < item->Pose.Position.y || y2 > (item->Pose.Position.y - ydist))
 		{
 			StopSoundEffect(SFX_TR4_ROLLING_BALL);
-			item->Status = ITEM_DEACTIVATED;
 			item->Pose.Position.y = item->Floor;
 			item->Pose.Position.x = oldx;
 			item->Pose.Position.z = oldz;
 			item->Animation.Velocity.z = 0;
 			item->Animation.Velocity.y = 0;
 			item->TouchBits = NO_JOINT_BITS;
+	
+			if (item->ObjectNumber == ID_ROLLING_BARRELS || item->ObjectNumber == ID_MULTIPLE_BOULDERS)
+			{ 
+				if (item->Animation.AnimNumber == 2)
+				{
+					item->Status = ITEM_DEACTIVATED;
+				}
+
+				item->Animation.TargetState = 2;
+			}
+			else
+				item->Status = ITEM_DEACTIVATED;
+
 		}
 	}
 	else if (item->Status == ITEM_DEACTIVATED)
@@ -493,6 +531,7 @@ void ClassicRollingBallControl(short itemNum)
 		if (!TriggerActive(item))
 		{
 			item->Status = ITEM_NOT_ACTIVE;
+
 			old = (GameVector*)item->Data;
 			item->Pose.Position.x = old->x;
 			item->Pose.Position.y = old->y;
@@ -501,17 +540,17 @@ void ClassicRollingBallControl(short itemNum)
 			if (item->RoomNumber != old->RoomNumber)
 			{
 				RemoveDrawnItem(itemNum);
-				r = &g_Level.Rooms[old->RoomNumber];
-				item->NextItem = r->itemNumber;
-				r->itemNumber = itemNum;
+
+				auto& room = g_Level.Rooms[old->RoomNumber];
+				room.itemNumbers.push_back(itemNum);
 				item->RoomNumber = old->RoomNumber;
 			}
 
 			item->Animation.AnimNumber = 0;
 			item->Animation.FrameNumber = 0;
-			item->Animation.ActiveState =
-			item->Animation.TargetState = GetAnimData(*item).StateID;
+			item->Animation.ActiveState = item->Animation.TargetState = GetAnimData(*item).StateID;
 			item->Animation.RequiredState = NO_VALUE;
+
 			RemoveActiveItem(itemNum);
 		}
 	}

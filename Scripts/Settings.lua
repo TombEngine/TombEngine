@@ -5,15 +5,25 @@ local Flow = TEN.Flow
 
 local settings = Flow.Settings.new()
 
+	settings.Animations.backJumpTurn = false
 	settings.Animations.crouchRoll = true
 	settings.Animations.crawlspaceSwandive = true
 	settings.Animations.sprintJump = false
 	settings.Animations.ledgeJumps = false
 	settings.Animations.poseTimeout = 0
+	settings.Animations.internalBlendDuration = 4
 	
 	settings.Camera.binocularLightColor = Color(192, 192, 96)
 	settings.Camera.lasersightLightColor = Color(255, 0, 0)
 	settings.Camera.objectCollision = true
+
+	settings.Effects.bloodColor = Color(255, 0, 0)
+	settings.Effects.bloodBlendMode = TEN.Effects.BlendID.ADDITIVE
+	settings.Effects.bloodSize = 1.0
+	settings.Effects.ricochetColor = Color(255, 153, 0)
+	settings.Effects.ricochetCount = 8
+	settings.Effects.ricochetSound = true
+	settings.Effects.explosionShockwave = true
 	
 	settings.Flare.color = Color(128, 64, 0)
 	settings.Flare.offset = Vec3(0, 0, 41)
@@ -28,15 +38,20 @@ local settings = Flow.Settings.new()
 	
 	settings.Gameplay.enableInventory = true
 	settings.Gameplay.killPoisonedEnemies = true
+	settings.Gameplay.setEnemiesOnFireWithWeapons = true
+	settings.Gameplay.setEnemiesOnFireWithDeathSectors = true
 	settings.Gameplay.targetObjectOcclusion = true
 
 	settings.Graphics.ambientOcclusion = true
+	settings.Graphics.flameHeatHaze = true
 	settings.Graphics.skinning = true
 	
 	settings.Hud.statusBars = true
 	settings.Hud.loadingBar = true
 	settings.Hud.speedometer = true
 	settings.Hud.pickupNotifier = true
+	settings.Hud.interactionHighlighter = true
+	settings.Hud.targetHighlighter = true
 	
 	settings.Pathfinding.mode = PathfindingMode.ASTAR
 	settings.Pathfinding.searchDepth = 5
@@ -57,12 +72,16 @@ local settings = Flow.Settings.new()
 	settings.System.errorMode = Flow.ErrorMode.WARN
 	settings.System.fastReload = true
 	settings.System.multithreaded = true
+	settings.System.variableFloodProtectionTimeLimit = 1000
+	settings.System.variableFloodProtectionOverallLimit = 10000
 	
 	settings.UI.headerTextColor = Color(216, 117, 49)
 	settings.UI.optionTextColor = Color(240, 220, 32)
 	settings.UI.plainTextColor = Color(255, 255, 255)
 	settings.UI.disabledTextColor = Color(128, 128, 128)
 	settings.UI.shadowTextColor = Color(0, 0, 0)
+	settings.UI.menuBackgroundBlur = 0.15
+	settings.UI.systemTextScale = 1.0
 	settings.UI.titleLogoPosition = Vec2(50, 20)
 	settings.UI.titleLogoScale = 0.38
 	settings.UI.titleLogoColor = Color(255, 255, 255)
