@@ -353,6 +353,9 @@ namespace TEN::Effects::Environment
 
 		if (density > 0 && parameters.Type != WeatherType::None)
 		{
+			bool ignoreWindRoom = parameters.Flags == WeatherFlags::IgnoreWindRoom;
+			int baseRoomNumber = ignoreWindRoom ? FindRoomNumber(position) : NO_VALUE;
+
 			while (Particles.size() < WEATHER_PARTICLE_COUNT_MAX)
 			{
 				if (newParticlesCount >= density)
@@ -360,9 +363,15 @@ namespace TEN::Effects::Environment
 				newParticlesCount++;
 
 				auto randPos = Random::GeneratePointInCylinder(position.ToVector3(), parameters.RandomRange, parameters.RandomHeight);
-				auto outsideRoom = IsRoomOutside(randPos.x, randPos.y, randPos.z) || parameters.Flags == WeatherFlags::IgnoreWindRoom;
+				int outsideRoom = IsRoomOutside(randPos.x, randPos.y, randPos.z);
 				if (outsideRoom == NO_VALUE)
-					continue;
+				{
+					// Weather particles spawn only in outside rooms, unless wind room check is ignored.
+					if (!ignoreWindRoom)
+						continue;
+
+					outsideRoom = FindRoomNumber(Vector3i(randPos), baseRoomNumber);
+				}
 
 				if (g_Level.Rooms[outsideRoom].flags & (ENV_FLAG_WATER | ENV_FLAG_SWAMP))
 					continue;
