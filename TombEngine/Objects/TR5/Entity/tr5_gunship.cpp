@@ -75,7 +75,8 @@ namespace TEN::Entities::Creatures::TR5
 		else if (!blockedEarly)
 			return GunShipState::FOLLOW;
 
-		return GunShipState::FOLLOW;
+		// Wenn geblockt -> IDLE statt FOLLOW
+		return GunShipState::IDLE;
 	}
 
 	// Helper: Kollisionsprüfung für early blocking (VOR State-Bestimmung!)
@@ -504,6 +505,24 @@ namespace TEN::Entities::Creatures::TR5
 
 			// Animation trotz blocked status fortsetzen
 			AnimateItem(item);
+			
+			// Kollisionsprüfung nach Ausweichbewegung um zu prüfen ob freie Sicht vorliegt
+			float dummySpeed = MAX_MOVE_SPEED * 0.25f;
+			blocked = CheckForwardCollision(*item, dummySpeed);
+			
+			if (!blocked)
+			{
+				// Kollision behoben -> in IDLE warten bis Ziel wieder in Reichweite
+				currentState = GunShipState::IDLE;
+				item->ItemFlags[3] = 0; // targetSpeed = 0
+			}
+			else
+			{
+				// Noch immer geblockt -> keine Bewegung
+				currentState = GunShipState::IDLE;
+				currentSpeed = 0.0f;
+				item->ItemFlags[3] = 0;
+			}
 		}
 
 		if (!blocked && isMoving)
