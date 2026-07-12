@@ -185,7 +185,7 @@ namespace TEN::Entities::Creatures::TR5
 			currentSpeed += ((moveHLen > maxShotsRange) ? MAX_MOVE_SPEED : MAX_MOVE_SPEED * 0.25f - currentSpeed) * (1.0f / powf(2.0f, MOVEMENT_LERP_SPEED));
 			bool isMoving = currentSpeed > 1.0f;
 
-			if (isMoving && moveHLen > 100.0f)
+		if (isMoving)
 			{
 				Vector3 forwardVec(
 					-sinf(item->Pose.Orientation.y),
@@ -361,9 +361,8 @@ namespace TEN::Entities::Creatures::TR5
 		// 2. raised floor oder lowered ceiling mit Boundingbox im Weg
 
 		bool blocked = false;
-		short earlyBlockRoomNum = item->RoomNumber;
 
-		if (isMoving && moveHLen > 100.0f)
+		if (isMoving)
 		{
 			// Vorwärtsrichtung berechnen (aus der Orientierung des Helis)
 			// TR: y=0 zeigt nach -Z (Vorwärts)
@@ -384,7 +383,7 @@ namespace TEN::Entities::Creatures::TR5
 
 			// Early check: Wenn Wand/Decke in 2 Squars erkannt, bereits targetSpeed reduzieren
 			Vector3 earlyCheckPoint = item->Pose.Position.ToVector3() + forwardVec * earlyCheckDistance;
-			auto pointCollEarly = GetPointCollision(Vector3(earlyCheckPoint.x, (bottomMeshY + topMeshY) / 2, earlyCheckPoint.z), earlyBlockRoomNum);
+			auto pointCollEarly = GetPointCollision(Vector3(earlyCheckPoint.x, (bottomMeshY + topMeshY) / 2, earlyCheckPoint.z), item->RoomNumber);
 
 			if (pointCollEarly.GetSector().IsWall(earlyCheckPoint.x, earlyCheckPoint.z))
 				targetSpeed *= 0.5f; // Schon early abbremsen
@@ -399,7 +398,7 @@ namespace TEN::Entities::Creatures::TR5
 			Vector3 checkPoint = item->Pose.Position.ToVector3() + forwardVec * safetyDistance;
 
 			// Mitte prüfen
-			short roomNum = item->RoomNumber;
+			short roomNum = pointCollEarly.GetRoomNumber();
 			auto pointCollCenter = GetPointCollision(Vector3(checkPoint.x, (bottomMeshY + topMeshY) / 2, checkPoint.z), roomNum);
 
 			if (pointCollCenter.GetSector().IsWall(checkPoint.x, checkPoint.z))
@@ -417,6 +416,7 @@ namespace TEN::Entities::Creatures::TR5
 				Vector3 leftPoint = checkPoint + Vector3(forwardVec.z, 0.0f, -forwardVec.x) * sideOffset;
 				Vector3 rightPoint = checkPoint + Vector3(-forwardVec.z, 0.0f, forwardVec.x) * sideOffset;
 
+				roomNum = pointCollCenter.GetRoomNumber();
 				auto pointCollLeft = GetPointCollision(Vector3(leftPoint.x, (bottomMeshY + topMeshY) / 2, leftPoint.z), roomNum);
 				auto pointCollRight = GetPointCollision(Vector3(rightPoint.x, (bottomMeshY + topMeshY) / 2, rightPoint.z), roomNum);
 
@@ -444,14 +444,35 @@ namespace TEN::Entities::Creatures::TR5
 			
 			// Position so justieren dass Heli gerade noch vor dem Wall steht (nicht in ihm hinein)
 			const float moveDist = currentSpeed;
+			
+			// Geschwindigkeit auf 0 setzen um weiteres Fliegen zu verhindern
+			item->ItemFlags[3] = 0;
 			if (moveHLen > 1.0f)
 			{
 				item->Pose.Position.x -= (int)((moveHdx / moveHLen) * moveDist);
 				item->Pose.Position.z -= (int)((moveHdz / moveHLen) * moveDist);
 			}
+
+			// Y-Position prüfen und korrigieren (Decke/Boden)
+			auto& frameData = GetFrame(*item);
+			float bottomMeshY = item->Pose.Position.y + frameData.BoundingBox.Y1;
+			FloorInfo* floorCheck = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &item->RoomNumber);
+			if (floorCheck != nullptr)
+			{
+				const int floorHeight = GetFloorHeight(floorCheck, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
+				const int ceilingHeight = GetCeiling(floorCheck, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
+
+				if (floorHeight != NO_VALUE && bottomMeshY > floorHeight)
+					item->Pose.Position.y = floorHeight - frameData.BoundingBox.Y1;
+				else if (ceilingHeight != NO_VALUE && (item->Pose.Position.y + frameData.BoundingBox.Y2) < ceilingHeight + SECTOR_SIZE / 8)
+					item->Pose.Position.y = ceilingHeight + SECTOR_SIZE / 8 - frameData.BoundingBox.Y2;
+			}
 			
+			// Pitch/Bank zurücksetzen damit Heli nicht kippt
+			pitchTarget = 0.0f;
+			bankTarget = 0.0f;
 		}
-		if (!blocked && isMoving && moveHLen > 100.0f)
+		if (!blocked && isMoving)
 		{
 			const float moveDist = currentSpeed;
 
@@ -525,6 +546,17 @@ namespace TEN::Entities::Creatures::TR5
 			default:
 				break;
 			}
+
+			// Room update nach Positionsbewegung (nur wenn nicht IDLE)
+			if (currentState != GunShipState::IDLE)
+			{
+				short roomNum = item->RoomNumber;
+				auto probe = GetPointCollision(item->Pose.Position, roomNum);
+				short newRoomNum = probe.GetRoomNumber();
+
+				if (newRoomNum != item->RoomNumber)
+					ItemNewRoom(itemNumber, newRoomNum);
+			}
 		}
 
 		// YSpeed lerp (nur wenn nicht blockiert)
@@ -550,8 +582,8 @@ namespace TEN::Entities::Creatures::TR5
 					item->Pose.Position.y = ceilingHeight + SECTOR_SIZE / 8 - frameData.BoundingBox.Y2;
 			}
 
-			// IDLE: Orientierung beibehalten wenn nicht bewegung
-			if (!isMoving && currentState == GunShipState::IDLE)
+			// IDLE: Orientierung nur berechnen wenn vertikale Bewegung stattfindet
+			if (!isMoving && currentState == GunShipState::IDLE && ySpeedTargetGlobal != 0.0f)
 			{
 				pitchTarget = (float)DEG_TO_RAD(MAX_PITCH_DEG);
 
