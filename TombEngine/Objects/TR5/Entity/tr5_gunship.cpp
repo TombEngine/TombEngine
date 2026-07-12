@@ -232,18 +232,18 @@ namespace TEN::Entities::Creatures::TR5
 			if (floorHeight != NO_VALUE)
 			{
 				const int minGroundClearance = SECTOR_SIZE / 4; // 256 units = 0.25 BLOCK
+				// Wenn Boden des Helis zu tief liegt -> nach oben korrigieren
 				if (bottomMeshY > floorHeight - minGroundClearance)
-				{
 					item->Pose.Position.y = floorHeight - frameData.BoundingBox.Y1 - minGroundClearance;
-					// Wenn YSpeed nach unten gerichtet war -> stoppen
-					if (currentYSpeed < 0.0f)
-						currentYSpeed = 0.0f;
-				}
 			}
 
 			// Mindestabstand zur Decke garantieren
-			if (ceilingHeight != NO_VALUE && topMeshY < ceilingHeight + SECTOR_SIZE / 8)
-				item->Pose.Position.y = ceilingHeight + SECTOR_SIZE / 8 - frameData.BoundingBox.Y2;
+			if (ceilingHeight != NO_VALUE)
+			{
+				const int minCeilingClearance = SECTOR_SIZE / 8; // 128 units = 0.125 BLOCK
+				if (topMeshY < ceilingHeight + minCeilingClearance)
+					item->Pose.Position.y = ceilingHeight + minCeilingClearance - frameData.BoundingBox.Y2;
+			}
 		}
 	}
 
@@ -419,23 +419,22 @@ namespace TEN::Entities::Creatures::TR5
 				}
 				break;
 
-		case GunShipState::IDLE:
-			targetSpeed = 0.0f;
+	case GunShipState::IDLE:
+		targetSpeed = 0.0f;
 
-			{
-				Vector3 targetPosIdle = targetInfo.targetPos;
-				if (!hasMoveTargetPos)
-					targetPosIdle.y += SECTOR_SIZE / 2;
+		currentYSpeed = 0.0f;
 
-				float yDiffIdle = item->Pose.Position.y - targetPosIdle.y;
-				float ySpeedTargetIdle = 0.0f;
+		{
+			Vector3 targetPosIdle = targetInfo.targetPos;
+			
+			float yDiffIdle = item->Pose.Position.y - targetPosIdle.y;
+			float ySpeedTargetIdle = 0.0f;
 				if (fabsf(yDiffIdle) > minYDiff)
-					ySpeedTargetIdle = (targetPosIdle.y > item->Pose.Position.y) ? FLY_DOWN_SPEED * 0.5f : -FLY_UP_SPEED * 0.5f;
+					ySpeedTargetIdle = (targetPosIdle.y > item->Pose.Position.y) ? FLY_DOWN_SPEED : -FLY_UP_SPEED;
 
 				currentYSpeed += (ySpeedTargetIdle - currentYSpeed) * yLerpAlpha;
 			}
 			break;
-
 			case GunShipState::EVADE_NEAR:
 				targetSpeed = maxSpeed * 2.5f;
 
