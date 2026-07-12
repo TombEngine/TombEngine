@@ -132,14 +132,27 @@ PixelShaderOutput PS(PixelShaderInput input)
 
 	DoAlphaTest(color);
 	
-	float4 emissive = EmissiveTexture.Sample(AnisotropicClampSampler, input.UV) * GetEmissiveIntensity();
-	float specular = ORSHTexture.Sample(AnisotropicClampSampler, input.UV).z;
-	
-	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
-	float3 normal = DecodeNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV));
-	normal = EncodeNormal(normalize(mul(mul(normal, TBN), (float3x3)View)));
+	// Only sample the emissive/ORSH/normal maps when the material actually provides them.
+	// The branch is uniform across the draw (material flags are CB constants), so plain
+	// materials pay nothing for maps they don't use.
+	float4 emissive = (MaterialTypeAndFlags & MATERIAL_FLAG_EMISSIVE) ?
+		EmissiveTexture.Sample(AnisotropicClampSampler, input.UV) * GetEmissiveIntensity() : float4(0.0f, 0.0f, 0.0f, 0.0f);
+	float specular = (MaterialTypeAndFlags & MATERIAL_FLAG_ORSH) ?
+		ORSHTexture.Sample(AnisotropicClampSampler, input.UV).z : 0.0f;
 
-	output.Normals.xyz = normal;
+	float3 normal;
+	if (MaterialTypeAndFlags & MATERIAL_FLAG_NORMALMAP)
+	{
+		float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
+		normal = DecodeNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV));
+		normal = mul(normal, TBN);
+	}
+	else
+	{
+		normal = input.Normal;
+	}
+
+	output.Normals.xyz = EncodeNormal(normalize(mul(normal, (float3x3)View)));
 	output.Depth = color.w > 0.0f ? input.PositionCopy.z / input.PositionCopy.w : 0.0f;
     output.Emissive.xyz = DoDistanceFogForPixel(emissive, 0.0f, pow(input.DistanceFog, 2)).xyz;
     output.Emissive.w = specular;

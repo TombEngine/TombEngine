@@ -1486,7 +1486,8 @@ namespace TEN::Renderer
 
 		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
-		ApplyGlow(_renderTarget.get(), _gameCamera);
+		if (_levelHasEmissiveMaterials)
+			ApplyGlow(_renderTarget.get(), _gameCamera);
 		ApplyAntialiasing(_renderTarget.get(), _gameCamera);
 
 		CopyRenderTarget(_renderTarget.get(), renderTarget, _gameCamera);
@@ -1544,7 +1545,8 @@ namespace TEN::Renderer
 			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 
-			ApplyGlow(_renderTarget.get(), _gameCamera);
+			if (_levelHasEmissiveMaterials)
+				ApplyGlow(_renderTarget.get(), _gameCamera);
 			ApplyAntialiasing(_renderTarget.get(), _gameCamera);
 			CopyRenderTarget(_renderTarget.get(), _backBuffer.get(), _gameCamera);
 		}

@@ -1890,8 +1890,9 @@ namespace TEN::Renderer
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 
-		// Draw skybox to paraboloid
-		DrawHorizonAndSkyForReflections(view);
+		// Draw skybox to paraboloid, but only if some material in the level can sample it.
+		if (_levelHasSkyboxReflectiveMaterials)
+			DrawHorizonAndSkyForReflections(view);
 
 		_stPerDraw.Animated = 0;
 		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
@@ -1995,9 +1996,11 @@ namespace TEN::Renderer
 		DrawLines3D(view);
 		DrawTriangles3D(view);
 
-		// Copy current scene to the reflections render target for the next frame.
+		// Copy current scene to the reflections render target for the next frame, but only
+		// if some material in the level can sample it.
 		// RT -> LRRT
-		CopyRenderTargetAndDownscale(_renderTarget.get(), _legacyReflectionsRenderTarget.get(), POSTPROCESS_DOWNSCALE_FACTOR, view);
+		if (_levelHasReflectiveMaterials)
+			CopyRenderTargetAndDownscale(_renderTarget.get(), _legacyReflectionsRenderTarget.get(), POSTPROCESS_DOWNSCALE_FACTOR, view);
 		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 
 		_doingFullscreenPass = true;
@@ -2005,7 +2008,8 @@ namespace TEN::Renderer
 		// Calculate full-screen effects.
 		ApplyDistortion(_renderTarget.get(), view);
 		ApplyDOF(_renderTarget.get(), view);
-		ApplyGlow(_renderTarget.get(), view);
+		if (_levelHasEmissiveMaterials)
+			ApplyGlow(_renderTarget.get(), view);
 
 		// Draw HUD-space object renders after DOF so they are not blurred by scene depth.
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)

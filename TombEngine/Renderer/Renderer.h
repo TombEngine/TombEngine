@@ -303,6 +303,13 @@ namespace TEN::Renderer
 		std::unique_ptr<ITexture2D> _SMAAAreaTexture;
 		std::unique_ptr<ITexture2D> _SMAASearchTexture;
 
+		// Material usage flags, computed at level load. Allow to skip whole render passes
+		// (glow, reflection map generation) when no material in the level needs them.
+
+		bool _levelHasEmissiveMaterials = false;
+		bool _levelHasReflectiveMaterials = false;
+		bool _levelHasSkyboxReflectiveMaterials = false;
+
 		// Post-process
 
 		bool _hasDistortionMask = false;

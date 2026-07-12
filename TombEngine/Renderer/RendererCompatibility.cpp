@@ -32,6 +32,21 @@ namespace TEN::Renderer
 		_lastDepthState = DepthState::Unknown;
 		_lastMaterialIndex = NO_VALUE;
 
+		// Check which material effects are actually used by the level, so that unused
+		// support passes (glow, reflection map generation) can be skipped at render time.
+		_levelHasEmissiveMaterials = false;
+		_levelHasReflectiveMaterials = false;
+		_levelHasSkyboxReflectiveMaterials = false;
+		for (const auto& material : g_Level.Materials)
+		{
+			if (material.HasEmissiveMap)
+				_levelHasEmissiveMaterials = true;
+			if (material.Type == TextureMaterialType::Reflective)
+				_levelHasReflectiveMaterials = true;
+			if (material.Type == TextureMaterialType::SkyboxReflective)
+				_levelHasSkyboxReflectiveMaterials = true;
+		}
+
 		_moveableObjects.resize(ID_NUMBER_OBJECTS);
 		_spriteSequences.resize(ID_NUMBER_OBJECTS);
 		_rooms.resize(g_Level.Rooms.size());
