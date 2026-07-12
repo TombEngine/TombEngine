@@ -215,10 +215,11 @@ namespace TEN::Entities::Creatures::TR5
 	}
 
 	// Helper: Setzt Y-Position basierend auf Decke/Boden
-	void FixYPosition(ItemInfo* item)
+	void FixYPosition(ItemInfo* item, float currentYSpeed = 0.0f)
 	{
 		auto& frameData = GetFrame(*item);
 		float bottomMeshY = item->Pose.Position.y + frameData.BoundingBox.Y1;
+		float topMeshY = item->Pose.Position.y + frameData.BoundingBox.Y2;
 
 		FloorInfo* floorCheck = GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &item->RoomNumber);
 		if (floorCheck != nullptr)
@@ -226,9 +227,21 @@ namespace TEN::Entities::Creatures::TR5
 			const int floorHeight = GetFloorHeight(floorCheck, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
 			const int ceilingHeight = GetCeiling(floorCheck, item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
 
-			if (floorHeight != NO_VALUE && bottomMeshY > floorHeight)
-				item->Pose.Position.y = floorHeight - frameData.BoundingBox.Y1;
-			else if (ceilingHeight != NO_VALUE && (item->Pose.Position.y + frameData.BoundingBox.Y2) < ceilingHeight + SECTOR_SIZE / 8)
+			// Mindestabstand zum Boden garantieren (NIEMALS im Boden versinken!)
+			if (floorHeight != NO_VALUE)
+			{
+				const int minGroundClearance = SECTOR_SIZE / 4; // 256 units = 0.25 BLOCK
+				if (bottomMeshY > floorHeight - minGroundClearance)
+				{
+					item->Pose.Position.y = floorHeight - frameData.BoundingBox.Y1 - minGroundClearance;
+					// Wenn YSpeed nach unten gerichtet war -> stoppen
+					if (currentYSpeed < 0.0f)
+						currentYSpeed = 0.0f;
+				}
+			}
+
+			// Mindestabstand zur Decke garantieren
+			if (ceilingHeight != NO_VALUE && topMeshY < ceilingHeight + SECTOR_SIZE / 8)
 				item->Pose.Position.y = ceilingHeight + SECTOR_SIZE / 8 - frameData.BoundingBox.Y2;
 		}
 	}
@@ -474,21 +487,23 @@ namespace TEN::Entities::Creatures::TR5
 			item->ItemFlags[3] = 0;
 
 			currentState = GunShipState::IDLE;
-			pitchTarget = 0.0f;
-			bankTarget = 0.0f;
-
+			
+			// Position leicht rückwärts verschieben um aus der Kollision herauszukommen
 			if (horizontalDist > 1.0f)
 			{
 				float dx = targetInfo.targetPos.x - item->Pose.Position.x;
 				float dz = targetInfo.targetPos.z - item->Pose.Position.z;
-				item->Pose.Position.x -= (int)((dx / horizontalDist) * currentSpeed);
-				item->Pose.Position.z -= (int)((dz / horizontalDist) * currentSpeed);
+				item->Pose.Position.x -= (int)((dx / horizontalDist) * 32);
+				item->Pose.Position.z -= (int)((dz / horizontalDist) * 32);
 			}
 
 			FixYPosition(item);
 
 			pitchTarget = 0.0f;
 			bankTarget = 0.0f;
+
+			// Animation trotz blocked status fortsetzen
+			AnimateItem(item);
 		}
 
 		if (!blocked && isMoving)
@@ -628,6 +643,8 @@ namespace TEN::Entities::Creatures::TR5
 				item->ItemFlags[6] = (int)(currentYSpeed * FLOATING_POINT_SCALE);
 			else
 				item->ItemFlags[6] = (int)currentYSpeed;
+
+			AnimateItem(item);
 		}
-	}
+}
 }
