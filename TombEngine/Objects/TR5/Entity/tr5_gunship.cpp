@@ -41,7 +41,7 @@ namespace TEN::Entities::Creatures::TR5
 
 	constexpr int MAX_PITCH_DEG = 20;
 	constexpr int MAX_BANK_DEG = 15;
-	constexpr float MAX_MOVE_SPEED = 214.0f;
+	constexpr float MAX_MOVE_SPEED = 64.0f;
 	constexpr float FLY_UP_SPEED = 40.0f;
 	constexpr float FLY_DOWN_SPEED = 40.0f;
 	constexpr float VERTICAL_DODGE_SPEED = 50.0f;
