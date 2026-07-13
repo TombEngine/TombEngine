@@ -93,6 +93,8 @@ public:
     void  SetChannelVolume(const std::string& channelName, float volume);
     float GetChannelVolume(const std::string& channelName) const;
     void  SetShuffleStart(const std::string& channelName, bool enable);
+    void  SetDampBGM(const std::string& channelName, bool enable);
+    bool  GetDampBGM(const std::string& channelName) const;
     void       SetChannelFlags(const std::string& channelName, TrackFlags flags);
     TrackFlags  GetChannelFlags(const std::string& channelName) const;
     void        SetChannelPreset(const std::string& channelName, TrackPreset preset);

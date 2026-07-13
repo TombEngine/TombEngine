@@ -450,6 +450,27 @@ void SoundTrackManager::SetShuffleStart(const std::string& channelName, bool ena
         channel->Flags = channel->Flags & ~TrackFlags::ShuffleStart;
 }
 
+void SoundTrackManager::SetDampBGM(const std::string& channelName, bool enable)
+{
+    auto* channel = FindChannel(channelName);
+    if (!channel)
+        return;
+
+    if (enable)
+        channel->Flags |= TrackFlags::DampBGM;
+    else
+        channel->Flags = channel->Flags & ~TrackFlags::DampBGM;
+}
+
+bool SoundTrackManager::GetDampBGM(const std::string& channelName) const
+{
+    auto* channel = FindChannel(channelName);
+    if (!channel)
+        return false;
+
+    return HasTrackFlag(channel->Flags, TrackFlags::DampBGM);
+}
+
 void SoundTrackManager::SetChannelFlags(const std::string& channelName, TrackFlags flags)
 {
     auto* channel = FindChannel(channelName);

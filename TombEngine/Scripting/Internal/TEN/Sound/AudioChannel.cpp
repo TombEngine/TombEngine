@@ -79,20 +79,26 @@ namespace TEN::Scripting::Sound
             preset);
     }
 
-    void AudioChannel::SetTrack(const std::string& track, sol::optional<int> crossfadeTime)
+    void AudioChannel::SetTrack(const std::string& track, sol::optional<Time> crossfadeTime)
     {
         if (!g_SoundTrackManager)
             return;
 
-        g_SoundTrackManager->SetTrack(_channelName, track, crossfadeTime.value_or(0));
+        int ms = crossfadeTime.has_value()
+            ? (int)(crossfadeTime.value().GetFrameCount() * 1000.0f / FPS)
+            : 0;
+        g_SoundTrackManager->SetTrack(_channelName, track, ms);
     }
 
-    void AudioChannel::Stop(sol::optional<int> fadeOutTime)
+    void AudioChannel::Stop(sol::optional<Time> fadeOutTime)
     {
         if (!g_SoundTrackManager)
             return;
 
-        g_SoundTrackManager->Stop(_channelName, fadeOutTime ? std::optional<int>(fadeOutTime.value()) : std::nullopt);
+        auto ms = fadeOutTime.has_value()
+            ? std::optional<int>((int)(fadeOutTime.value().GetFrameCount() * 1000.0f / FPS))
+            : std::nullopt;
+        g_SoundTrackManager->Stop(_channelName, ms);
     }
 
     void AudioChannel::Pause()
@@ -141,6 +147,22 @@ namespace TEN::Scripting::Sound
             return;
 
         g_SoundTrackManager->SetShuffleStart(_channelName, enable);
+    }
+
+    void AudioChannel::SetDampBGM(bool enable)
+    {
+        if (!g_SoundTrackManager)
+            return;
+
+        g_SoundTrackManager->SetDampBGM(_channelName, enable);
+    }
+
+    bool AudioChannel::GetDampBGM() const
+    {
+        if (!g_SoundTrackManager)
+            return false;
+
+        return g_SoundTrackManager->GetDampBGM(_channelName);
     }
 
     void AudioChannel::SetPosition(const Time& time)
@@ -218,12 +240,12 @@ namespace TEN::Scripting::Sound
         g_SoundTrackManager->SetChannelFlags(_channelName, preset == TrackPreset::BGM ? TrackFlags::Loop : TrackFlags::None);
     }
 
-    void AudioChannel::SetCrossFadeLength(int ms)
+    void AudioChannel::SetCrossFadeLength(const Time& time)
     {
         if (!g_SoundTrackManager)
             return;
 
-        g_SoundTrackManager->SetCrossfadeTime(_channelName, ms);
+        g_SoundTrackManager->SetCrossfadeTime(_channelName, (int)(time.GetFrameCount() * 1000.0f / FPS));
     }
 
     void AudioChannel::Register(sol::state& state, sol::table& parent)
@@ -240,7 +262,7 @@ namespace TEN::Scripting::Sound
 
             /// Stop this channel.
             // @function AudioChannel:Stop
-            // @tparam[opt] int fadeOutTime Fade-out duration in milliseconds.
+            // @tparam[opt] Time fadeOutTime Fade-out duration.
             ScriptReserved_AudioChannelStop, &AudioChannel::Stop,
 
             /// Pause this channel.
@@ -258,7 +280,7 @@ namespace TEN::Scripting::Sound
             /// Set the track without playing it.
             // @function AudioChannel:SetTrack
             // @tparam string track Filename (without extension).
-            // @tparam[opt] int crossfadeTime Crossfade duration in milliseconds.
+            // @tparam[opt] Time crossfadeTime Crossfade duration.
             ScriptReserved_AudioChannelSetTrack, &AudioChannel::SetTrack,
 
             /// Check if the channel is currently playing.
@@ -303,13 +325,23 @@ namespace TEN::Scripting::Sound
 
             /// Set the crossfade duration for looped (LOOPED) channels.
             // @function AudioChannel:SetCrossFadeLength
-            // @tparam int ms Crossfade duration in milliseconds.
+            // @tparam Time time Crossfade duration.
             ScriptReserved_AudioChannelSetCrossFadeLength, &AudioChannel::SetCrossFadeLength,
 
             /// Enable or disable shuffle start.
             // @function AudioChannel:SetShuffleStart
             // @tparam bool enable True to start at a random position.
             ScriptReserved_AudioChannelShuffleStart, &AudioChannel::SetShuffleStart,
+
+            /// Enable or disable dampening the BGM channel while this channel plays.
+            // @function AudioChannel:SetDampBGM
+            // @tparam bool enable True to lower BGM volume while this channel is active.
+            ScriptReserved_AudioChannelSetDampBGM, &AudioChannel::SetDampBGM,
+
+            /// Check if BGM dampening is enabled for this channel.
+            // @function AudioChannel:GetDampBGM
+            // @treturn bool True if BGM dampening is enabled.
+            ScriptReserved_AudioChannelGetDampBGM, &AudioChannel::GetDampBGM,
 
             /// Set the playback position.
             // @function AudioChannel:SetPosition

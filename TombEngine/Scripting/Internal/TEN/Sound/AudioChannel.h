@@ -31,14 +31,16 @@ namespace TEN::Scripting::Sound
 		AudioChannel(const std::string& name);
 
 		void  Play(sol::optional<std::string> track, sol::optional<SoundTrackType> type);
-		void  SetTrack(const std::string& track, sol::optional<int> crossfadeTime);
-		void  Stop(sol::optional<int> fadeOutTime);
+		void  SetTrack(const std::string& track, sol::optional<TEN::Scripting::Time> crossfadeTime);
+		void  Stop(sol::optional<TEN::Scripting::Time> fadeOutTime);
 		void  Pause();
 		void  Resume();
 		void  Clear();
 		void  SetVolume(float volume);
 		float GetVolume() const;
 		void  SetShuffleStart(bool enable);
+		void  SetDampBGM(bool enable);
+		bool  GetDampBGM() const;
 		void  SetPosition(const TEN::Scripting::Time& time);
 		TEN::Scripting::Time GetPosition() const;
 		float GetNormalizedPosition() const;
@@ -48,6 +50,6 @@ namespace TEN::Scripting::Sound
 		float GetLoudness() const;
 		SoundTrackType GetType() const;
 		void  SetType(SoundTrackType type);
-		void  SetCrossFadeLength(int ms);
+		void  SetCrossFadeLength(const TEN::Scripting::Time& time);
 	};
 }
