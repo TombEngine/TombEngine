@@ -37,7 +37,7 @@
 #include "Objects/Effects/Boss.h"
 
 // Objects
-#include "Objects/TR3/Object/Corpse.h"
+#include "Objects/TR3/Object/corpse.h"
 #include "Objects/TR3/Object/Fusebox.h"
 
 // Traps
@@ -48,8 +48,10 @@
 #include "Objects/TR3/Trap/SpikedFrame.h"
 #include "Objects/TR3/Trap/train.h"
 #include "Objects/TR3/Trap/WallMountedBlade.h"
+#include "Objects/TR3/Trap/TunnelBorer.h"
 #include "Objects/TR3/Trap/TurningBlade.h"
 #include "Objects/TR3/Trap/FirePendulum.h"
+#include "Objects/TR3/Trap/Fan.h"
 
 // Vehicles
 #include "Objects/TR3/Vehicles/big_gun.h"
@@ -560,10 +562,49 @@ static void StartTrap(ObjectInfo* obj)
 	obj = &Objects[ID_FIRE_PENDULUM];
 	if (obj->loaded)
 	{
-		obj->Initialize = InitializeFirePendulum;
 		obj->control = ControlFirePendulum;
 		obj->collision = CollideFirePendulum;
 		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_FAN];
+	if (obj->loaded)
+	{
+		obj->control = ControlFan;
+		obj->collision = CollideFan;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_LARGE_FAN];
+	if (obj->loaded)
+	{
+		obj->control = ControlFan;
+		obj->collision = CollideFan;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_TUNNEL_BORER];
+	if (obj->loaded)
+	{
+		obj->control = ControlTunnelBorer;
+		obj->collision = CollideTunnelBorer;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_AIRPLANE_PROPELLER];
+	if (obj->loaded)
+	{
+		obj->control = ControlFan;
+		obj->collision = CollideFan;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_ROTATING_KNIFE_DISK];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeWallMountedBlade;
+		obj->control = WallMountedBladeControl;
+		obj->collision = GenericSphereBoxCollision;
 	}
 
 	obj = &Objects[ID_HEAVY_STAMPER];

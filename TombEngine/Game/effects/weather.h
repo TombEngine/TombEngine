@@ -8,9 +8,9 @@ using namespace TEN::Entities::Effects;
 
 namespace TEN::Effects::Environment 
 {
-	constexpr auto WEATHER_PARTICLE_SPAWN_DENSITY		 = 32;
+	constexpr auto WEATHER_PARTICLE_SPAWN_DENSITY		 = 16;
 	constexpr auto WEATHER_PARTICLE_CLUSTER_MULT		 = 16.0f;
-	constexpr auto WEATHER_PARTICLE_COUNT_MAX			 = 2048;
+	constexpr auto WEATHER_PARTICLE_COUNT_MAX			 = 4096;
 	constexpr auto WEATHER_PARTICLE_COLL_CHECK_DELAY_MAX = 5.0f;
 
 	constexpr auto DUST_SIZE_MAX = 25.0f;
@@ -41,6 +41,25 @@ namespace TEN::Effects::Environment
 	constexpr float WEATHER_SPAWN_DIST_SNOW  = BLOCK(8);
 	constexpr float WEATHER_SPAWN_DIST_RAIN  = BLOCK(5.5f);
 	constexpr float WEATHER_SPAWN_DIST_OTHER = BLOCK(4);
+
+	enum class WeatherFlags : unsigned char
+	{
+		None = 0,
+		IgnoreWindRoom = 1 << 0
+	};
+
+	struct WeatherParameters
+	{
+		WeatherType		Type				= WeatherType::None;
+		WeatherFlags	Flags				= WeatherFlags::None;
+		Vector3			InitialVelocity		= Vector3::Zero;
+		Color			BaseColor			= Color(1.0f, 1.0f, 1.0f, 1.0f);
+		float			Strength			= 1.0f;
+		float			Life				= 1.0f;
+		float			RandomRange			= BLOCK(8);
+		float			RandomHeight		= BLOCK(1);
+		bool			Clustering			= false;
+	};
 
 	struct StarParticle
 	{
@@ -79,19 +98,22 @@ namespace TEN::Effects::Environment
 		WeatherType Type = WeatherType::None;
 		int UniqueID = 0;
 
-		Vector3 Position   = Vector3::Zero;
-		int		RoomNumber = NO_VALUE;
-		Vector3 Velocity   = Vector3::Zero;
+		Vector3 Position	= Vector3::Zero;
+		Vector3 Velocity	= Vector3::Zero;
+		Color   BaseColor	= Color(1.0f, 1.0f, 1.0f, 1.0f);
 
-		float StartLife			  = 0.0f;
-		float Life				  = 0.0f;
-		float CollisionCheckDelay = 0.0f;
-		float Size				  = 0.0f;
-		int   ClusterSize		  = 1;
+		float	Strength				= 1.0f;
+		float	StartLife				= 0.0f;
+		float	Life					= 0.0f;
+		float	CollisionCheckDelay		= 0.0f;
+		float	Size					= 0.0f;
+		int		ClusterSize				= 1;
+		int		RoomNumber				= NO_VALUE;
 
 		bool Enabled = false;
 		bool Stopped = false;
 
+		Color FinalColor() const;
 		float Transparency() const;
 
 		Vector3 PrevPosition = Vector3::Zero;
@@ -99,13 +121,7 @@ namespace TEN::Effects::Environment
 		float	PrevSize	 = 0.0f;
 		float	PrevLife	 = 0.0f;
 
-		void StoreInterpolationData()
-		{
-			PrevPosition = Position;
-			PrevVelocity = Velocity;
-			PrevSize = Size;
-			PrevLife = Life;
-		}
+		void StoreInterpolationData();
 	};
 
 	class EnvironmentController
@@ -139,8 +155,8 @@ namespace TEN::Effects::Environment
 		int	 StormCount		= 0;
 		int	 StormRand		= 0;
 		int	 StormTimer		= 0;
-		byte StormSkyColor	= 1;
-		byte StormSkyColor2 = 1;
+		unsigned char StormSkyColor	= 1;
+		unsigned char StormSkyColor2 = 1;
 
 		// Starfield
 
@@ -168,8 +184,10 @@ namespace TEN::Effects::Environment
 		const std::vector<StarParticle>&	GetStars() const { return Stars; }
 		const std::vector<MeteorParticle>&	GetMeteors() const { return Meteors; }
 
+		void SpawnWeatherParticles(const Vector3i& position, const WeatherParameters& parameters);
+
 	private:
-		void UpdateWeather(const ScriptInterfaceLevel& level);
+		void UpdateWeather();
 		void UpdateSky(const ScriptInterfaceLevel& level);
 		void UpdateWind(const ScriptInterfaceLevel& level);
 		void UpdateFlash(const ScriptInterfaceLevel& level);

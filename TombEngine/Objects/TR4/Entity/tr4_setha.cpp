@@ -638,24 +638,24 @@ namespace TEN::Entities::TR4
 
 	void SethProjectileAttack(const Pose& pose, int roomNumber, int flags)
 	{
-		short fxNumber = CreateNewEffect(roomNumber);
-		if (fxNumber == -1)
+		short fxNumber = CreateNewEffect(roomNumber, ID_ENERGY_BUBBLES, pose);
+		if (fxNumber == NO_VALUE)
 			return;
 
-		auto& fx = EffectList[fxNumber];
+		auto& fx = g_Level.Items[fxNumber];
+		auto& fxInfo = GetFXInfo(fx);
 
-		fx.pos.Position.x = pose.Position.x;
-		fx.pos.Position.y = pose.Position.y - Random::GenerateInt(-32, 32);
-		fx.pos.Position.z = pose.Position.z;
+		fx.Pose.Position.x = pose.Position.x;
+		fx.Pose.Position.y = pose.Position.y - Random::GenerateInt(-32, 32);
+		fx.Pose.Position.z = pose.Position.z;
 
-		fx.pos.Orientation.x = pose.Orientation.x;
-		fx.pos.Orientation.y = pose.Orientation.y;
-		fx.pos.Orientation.z = 0;
-		fx.roomNumber = roomNumber;
-		fx.counter = (GetRandomControl() * 2) - ANGLE(180.0f); // TODO: This isn't an angle. Run tests on what it actually does.
-		fx.flag1 = flags;
-		fx.objectNumber = ID_ENERGY_BUBBLES;
-		fx.speed = Random::GenerateInt(0, 32) - ((flags == 1) ? 64 : 0) + 96;
-		fx.frameNumber = Objects[ID_ENERGY_BUBBLES].meshIndex + flags;
+		fx.Pose.Orientation.x = pose.Orientation.x;
+		fx.Pose.Orientation.y = pose.Orientation.y;
+		fx.Pose.Orientation.z = 0;
+		fx.RoomNumber = roomNumber;
+		fx.Animation.Velocity.z = Random::GenerateInt(0, 32) - ((flags == 1) ? 64 : 0) + 96;
+		fx.Model.MeshIndex = { (int)Objects[ID_ENERGY_BUBBLES].meshIndex + flags };
+		fxInfo.Counter = (GetRandomControl() * 2) - ANGLE(180.0f); // TODO: This isn't an angle. Run tests on what it actually does.
+		fxInfo.Flag1 = flags;
 	}
 }

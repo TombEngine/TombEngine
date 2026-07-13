@@ -44,9 +44,11 @@
 #include "Objects/TR4/Entity/tr4_setha.h"
 
 // Objects
+#include "Objects/TR4/Floor/tr4_burningFloor.h"
 #include "Objects/TR4/Object/FireRope.h"
 #include "Objects/TR4/Object/StatuePlinth.h"
 #include "Objects/TR4/Object/WraithTrap.h"
+#include "Objects/TR4/Floor/tr4_burningfloor.h"
 #include "Objects/TR4/Object/tr4_element_puzzle.h"
 #include "Objects/TR4/Object/tr4_mapper.h"
 #include "Objects/TR4/Object/tr4_sarcophagus.h"
@@ -618,7 +620,14 @@ namespace TEN::Entities
 		{
 			obj->Initialize = InitializeWraith;
 			obj->control = WraithControl;
-		}	
+		}
+
+		obj = &Objects[ID_WRAITH4];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeWraith;
+			obj->control = WraithControl;
+		}
 
 		obj = &Objects[ID_LITTLE_BEETLE];
 		if (obj->loaded)
@@ -710,6 +719,14 @@ namespace TEN::Entities
 			obj->SetHitEffect(true);
 		}
 
+		obj = &Objects[ID_SCALES];
+		if (obj->loaded)
+		{
+			obj->control = ScalesControl;
+			obj->collision = ScalesCollision;
+			obj->SetHitEffect(true);
+		}
+
 		obj = &Objects[ID_STATUE_PLINTH];
 		if (obj->loaded)
 		{
@@ -777,6 +794,13 @@ namespace TEN::Entities
 			obj->SetHitEffect(true);
 		}
 
+		obj = &Objects[ID_BURNING_FLOOR];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeBurningFloor;
+			obj->control = BurningFloorControl;
+		}
+
 		for (int objectID = ID_WATERFALL1; objectID <= ID_WATERFALL6; objectID++)
 		{
 			obj = &Objects[objectID];
@@ -787,6 +811,13 @@ namespace TEN::Entities
 
 	static void StartTrap(ObjectInfo* obj)
 	{
+		obj = &Objects[ID_BURNING_FLOOR];
+		if (obj->loaded)
+		{
+			obj->Initialize = InitializeBurningFloor;
+			obj->control = BurningFloorControl;
+		}
+
 		obj = &Objects[ID_CHAIN];
 		if (obj->loaded)
 		{

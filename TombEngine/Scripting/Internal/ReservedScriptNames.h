@@ -413,6 +413,7 @@ static constexpr char ScriptReserved_EmitFogBulb[]					= "EmitFogBulb";
 static constexpr char ScriptReserved_EmitBlood[]					= "EmitBlood";
 static constexpr char ScriptReserved_EmitAirBubble[]				= "EmitAirBubble";
 static constexpr char ScriptReserved_EmitFire[]						= "EmitFire";
+static constexpr char ScriptReserved_EmitWeather[]					= "EmitWeather";
 static constexpr char ScriptReserved_EmitWaterfallMist[]			= "EmitWaterfallMist";
 static constexpr char ScriptReserved_EmitFlow[]						= "EmitFlow";
 static constexpr char ScriptReserved_EmitStreamer[]					= "EmitStreamer";
