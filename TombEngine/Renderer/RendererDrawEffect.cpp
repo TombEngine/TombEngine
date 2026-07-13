@@ -1102,7 +1102,7 @@ namespace TEN::Renderer
 				AddSpriteBillboard(
 					&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST],
 					pos,
-					Color(1.0f, 1.0f, 1.0f, part.Transparency()),
+					part.FinalColor(),
 					0.0f, 1.0f, Vector2(size),
 					BlendMode::Additive, true, view);
 
@@ -1187,7 +1187,7 @@ namespace TEN::Renderer
 						AddSpriteBillboard(
 							&_sprites[spriteIndex],
 							finalPos,
-							Color(1.0f, 1.0f, 1.0f, part.Transparency()),
+							part.FinalColor(),
 							rot, 1.0f, Vector2(finalScale),
 							BlendMode::Additive, false, view);
 
@@ -1222,7 +1222,7 @@ namespace TEN::Renderer
 						AddSpriteBillboardConstrained(
 							&_sprites[spriteIndex],
 							finalPos,
-							Color(0.8f, 1.0f, 1.0f, part.Transparency()),
+							part.FinalColor(),
 							0.0f, 1.0f,
 							Vector2(width, finalScale),
 							BlendMode::Additive, -v, false, view);

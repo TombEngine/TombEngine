@@ -14,6 +14,16 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added native support for DualShock, DualSense and Switch Pro controllers.
 * Added animation blending support and blended transitions for hardcoded animation changes.
 * Added root motion support.
+* Added DISK_SHOOTER (ID 322) object from TR2.
+* Added FAN (ID 470) object from TR3.
+* Added LARGE_FAN (ID 471) object from TR2.
+* Added FALLING_SPIKES (ID 472) from TR2.
+* Added TUNNEL_BORER (ID 473) object from TR3.
+* Added AIRPLANE_PROPELLER (ID 474) from TR2.
+* Added ROTATING_KNIFE_DISK (ID 475) object from TR3.
+* Added UNDERWATER_MINE (ID 476) from TR2.
+* Added FALLING_SANDBAG (ID 477) from TR2.
+* Added WRAITH4 object. Object supports properties to create custom wraiths.
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
 * Added [DRILL_BIT](https://tombengine.com/asset/traps/drill-bit/) object from TR3.
 * Added [FUSEBOX_SWITCH](https://tombengine.com/asset/switches/fusebox-switch/) object from TR3.
@@ -32,10 +42,10 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fog effect if OCB value is 0.
 
 ### Bug fixes
-
 * Fixed original bug with bridge objects blocking monkeyswing and ladder flags in the bottom room.
 * Fixed original bug with inactive SQUISHY_BLOCK_VERTICAL killing player.
 * Fixed incorrect application of LARA_DOUBLE damage after using medipacks.
+* Fixed BURNING_FLOOR, ELEMENTAL_PUZZLE and SCALES.
 * Fixed MINECART_SWITCH object not working.
 * Fixed JUMP_SWITCH not activating event sets.
 * Fixed SNOWMOBILE death being too sensitive to vertical velocity.
@@ -72,6 +82,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
 * Added `includePlayer` argument for `Collision.Ray` class to detect collisions with Lara.
 * Added `Effects.EmitSplash` for generating splashes.
+* Added `Effects.EmitWeather` to spawn weather at specific position.
 * Added `Flow.GetCurrentLevelIndex` and `Flow.GetTotalLevelCount` functions to get current level index and total level count in gameflow.
 * Added `Flow.Settings.Animation.internalBlendDuration` setting to specify hardcoded animation blend durations.
 * Added `Flow.Settings.Effects` category with blood, ricochet and explosion settings.
@@ -107,6 +118,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Static:GetProperty`, `Static:SetProperty` and `Static:HasInstanceProperty` functions.
 * Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
+* Renamed `Snow`, `Rain` and `None` entries in `Flow.WeatherType` enum to `SNOW`, `RAIN` and `NONE`.
 * Fixed incorrect error message when using `Moveable:SetFrame` with a frame number equal to the end frame.
 * Fixed glide camera movement when entering or exiting freeze mode.
 * Fixed `View.DisplayString` not working in the title level.

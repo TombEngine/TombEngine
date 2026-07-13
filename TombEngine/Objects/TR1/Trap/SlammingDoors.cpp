@@ -7,6 +7,8 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Math/Math.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 
 using namespace TEN::Effects::Spark;
 using namespace TEN::Math;
@@ -67,7 +69,7 @@ namespace TEN::Entities::Traps
 		const auto& anim = GetAnimData(item);
 
 
-		if (IsSoundEffectCommandActive(item, SFX_TR1_SLAMDOOR_CLOSE) && item.TriggerFlags)
+		if (IsSoundEffectCommandActive(item, SFX_TR1_SLAMDOOR_CLOSE) && (PropertyHandler::Get(item, PropName_SparkEffect, (bool)item.TriggerFlags, true)))
 		{
 			SpawnSlammingDoorSparks(Vector3i(130, 0, 560), item);   // right door
 			SpawnSlammingDoorSparks(Vector3i(-130, 0, 560), item);  // left door
