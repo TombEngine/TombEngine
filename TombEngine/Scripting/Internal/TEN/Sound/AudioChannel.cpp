@@ -10,6 +10,13 @@
 
 using namespace TEN::Scripting;
 
+/***
+Audio channel for named soundtrack control.
+
+@tenclass Sound.AudioChannel
+@pragma nostrip
+*/
+
 static TrackPreset ToTrackPreset(SoundTrackType type)
 {
     switch (type)

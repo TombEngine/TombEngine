@@ -6,13 +6,6 @@
 
 namespace sol { class state; }
 
-/***
-Audio channel for named soundtrack control.
-
-@tenclass Sound.AudioChannel
-@pragma nostrip
-*/
-
 namespace TEN::Scripting::Sound
 {
 	class AudioChannel
