@@ -322,7 +322,7 @@ namespace TEN::Entities::Creatures::TR5
 		SoundEffect(SFX_TR4_HELICOPTER_LOOP, &item->Pose);
 
 		const PropertyValue* shootProp = PropertyHandler::Get(*item, "GunshipShootTarget");
-		int shootTargetNum = -1;
+		int shootTargetNum = LaraItem->Index;//-1; Zum Testen auf Lara gestellt
 		if (shootProp != nullptr)
 		{
 			auto val = ExtractValue<int>(*shootProp);
@@ -395,34 +395,19 @@ namespace TEN::Entities::Creatures::TR5
 		if (item->ItemFlags[7] == 1)
 			currentState = GunShipState::EVADE_NEAR;
 
-		float currentSpeed = fabsf((float)item->ItemFlags[3] / FLOATING_POINT_SCALE);
-		const float maxSpeed = MAX_MOVE_SPEED;
-
-		float targetSpeed = 0.0f;
 		float currentYSpeed = (float)item->ItemFlags[6] / FLOATING_POINT_SCALE;
 		const float yLerpAlpha = 1.0f / powf(2.0f, MOVEMENT_LERP_SPEED);
 		const int minYDiff = SECTOR_SIZE;
 
-		if (!inertiaTimer)
-		{
-			switch (currentState)
-			{
-			case GunShipState::FOLLOW:
-				targetSpeed = hasMoveTargetPos ? maxSpeed : (horizontalDist > maxShotsRange) ? maxSpeed : maxSpeed * 0.25f;
-
-				{
-					float ySpeedTargetGlobal = 0.0f;
-					if (fabsf(yDiff) > minYDiff)
-						ySpeedTargetGlobal = (targetInfo.targetPos.y > item->Pose.Position.y) ? FLY_DOWN_SPEED : -FLY_UP_SPEED;
-
-					currentYSpeed += (ySpeedTargetGlobal - currentYSpeed) * yLerpAlpha;
-				}
-				break;
-
+	// TargetSpeed basierend auf State berechnen (immer, nicht nur wenn kein Inertie!)
+	float targetSpeed = 0.0f;
+	switch (currentState)
+	{
+	case GunShipState::FOLLOW:
+		targetSpeed = hasMoveTargetPos ? MAX_MOVE_SPEED : (horizontalDist > maxShotsRange) ? MAX_MOVE_SPEED : MAX_MOVE_SPEED * 0.25f;
+		break;
 	case GunShipState::IDLE:
 		targetSpeed = 0.0f;
-
-		currentYSpeed = 0.0f;
 
 		{
 			Vector3 targetPosIdle = targetInfo.targetPos;
@@ -434,54 +419,61 @@ namespace TEN::Entities::Creatures::TR5
 
 				currentYSpeed += (ySpeedTargetIdle - currentYSpeed) * yLerpAlpha;
 			}
-			break;
-			case GunShipState::EVADE_NEAR:
-				targetSpeed = maxSpeed * 2.5f;
+		break;
+	case GunShipState::EVADE_NEAR:
+		targetSpeed = MAX_MOVE_SPEED * 2.5f;
+		break;
+	}
 
-				{
-					float ySpeedTargetEvade = 0.0f;
-					if (item->ItemFlags[7] == 1)
-						ySpeedTargetEvade = -FLY_UP_SPEED * 2.0f;
-					else if (item->ItemFlags[7] == 2)
-						ySpeedTargetEvade = (targetInfo.targetPos.y > item->Pose.Position.y) ? FLY_DOWN_SPEED : -FLY_DOWN_SPEED;
+	// Inertie anwenden - reduziert targetSpeed bei Stateswitch
+	if (inertiaTimer > 0)
+	{
+		targetSpeed *= 0.15f;
+		inertiaTimer--;
+		item->ItemFlags[5] = inertiaTimer;
+	}
 
-					currentYSpeed += (ySpeedTargetEvade - currentYSpeed) * yLerpAlpha;
-				}
-				break;
-			}
-		}
+	// Pitch aus ItemFlags[1]
+	float currentPitch = (float)item->ItemFlags[1] / FLOATING_POINT_SCALE;
 
-		if (inertiaTimer > 0)
-		{
-			targetSpeed *= 0.15f;
-			inertiaTimer--;
-			item->ItemFlags[5] = inertiaTimer;
-		}
+	// pitchRatio für Geschwindigkeit berechnen
+	float pitchRatio = fabsf(currentPitch) / ((float)MAX_PITCH_DEG * DEG_TO_RAD(1.0f));
 
-		const float speedAlpha = 1.0f / powf(2.0f, MOVEMENT_LERP_SPEED);
-		currentSpeed += (targetSpeed - currentSpeed) * speedAlpha;
+	// currentSpeed aus targetSpeed und pitchRatio
+	float currentSpeed = targetSpeed * pitchRatio;
 
-		if (fabsf(currentSpeed) < 0.5f && targetSpeed == 0.0f)
-			currentSpeed = 0.0f;
+	bool isMoving = currentSpeed > 1.0f;
 
-		item->ItemFlags[3] = (int)(currentSpeed * FLOATING_POINT_SCALE);
+	EulerAngles targetOrient;
+	if (hasShootTarget && shootTargetNum >= 0)
+		targetOrient = Geometry::GetOrientToPoint(item->Pose.Position.ToVector3(), g_Level.Items[shootTargetNum].Pose.Position.ToVector3());
+	else
+		targetOrient = Geometry::GetOrientToPoint(item->Pose.Position.ToVector3(), targetInfo.targetPos);
 
-		bool isMoving = currentSpeed > 1.0f;
+	// Pitch- und Bank-Zielwerte berechnen (IMMER, auch wenn noch nicht bewegt wird!)
+	float pitchTarget = 0.0f;
+	float bankTarget = 0.0f;
+	switch (currentState)
+	{
+	case GunShipState::FOLLOW:
+		pitchTarget = (float)DEG_TO_RAD(MAX_PITCH_DEG);
+		CalculatePitchAndBank(*item, currentState, targetInfo.targetPos, 0.0f, pitchTarget, bankTarget);
+		break;
+	case GunShipState::EVADE_NEAR:
+		pitchTarget = -(float)DEG_TO_RAD(MAX_PITCH_DEG);
+		CalculatePitchAndBank(*item, currentState, targetInfo.targetPos, 0.0f, pitchTarget, bankTarget);
+		break;
+	default:
+		pitchTarget = 0.0f;
+		bankTarget = 0.0f;
+		break;
+	}
 
-		EulerAngles targetOrient;
-		if (hasShootTarget && shootTargetNum >= 0)
-			targetOrient = Geometry::GetOrientToPoint(item->Pose.Position.ToVector3(), g_Level.Items[shootTargetNum].Pose.Position.ToVector3());
-		else
-			targetOrient = Geometry::GetOrientToPoint(item->Pose.Position.ToVector3(), targetInfo.targetPos);
+	bool blocked = false;
+	if (isMoving)
+		blocked = CheckForwardCollision(*item, currentSpeed);
 
-		bool blocked = false;
-		if (isMoving)
-			blocked = CheckForwardCollision(*item, currentSpeed);
-
-		float pitchTarget = 0.0f;
-		float bankTarget = 0.0f;
-
-		if (blocked)
+	if (blocked)
 		{
 			currentSpeed = 0.0f;
 			item->ItemFlags[3] = 0;
@@ -524,49 +516,63 @@ namespace TEN::Entities::Creatures::TR5
 			}
 		}
 
-		if (!blocked && isMoving)
+		if (!blocked)
 		{
-			float moveDist = currentSpeed;
-
+			// Pitch und Bank immer berechnen (auch wenn noch nicht bewegt wird!)
 			switch (currentState)
 			{
 			case GunShipState::FOLLOW:
-				if (horizontalDist > 1.0f)
-				{
-					item->Pose.Position.x += (int)((targetInfo.targetPos.x - item->Pose.Position.x) / horizontalDist * moveDist);
-					item->Pose.Position.z += (int)((targetInfo.targetPos.z - item->Pose.Position.z) / horizontalDist * moveDist);
-				}
-
 				CalculatePitchAndBank(*item, currentState, targetInfo.targetPos, 0.0f, pitchTarget, bankTarget);
-
-				if (item->ItemFlags[7])
-				{
-					float targetY = hasMoveTargetPos ? moveTargetPos.y : moveTargetItem->Pose.Position.y;
-					if (fabsf(item->Pose.Position.y - targetY) < SECTOR_SIZE)
-						item->ItemFlags[7] = 0;
-				}
-
 				break;
-
 			case GunShipState::EVADE_NEAR:
 				pitchTarget = -(float)DEG_TO_RAD(MAX_PITCH_DEG);
-
-				if (horizontalDist > 1.0f)
-				{
-					item->Pose.Position.x -= (int)((targetInfo.targetPos.x - item->Pose.Position.x) / horizontalDist * moveDist);
-					item->Pose.Position.z -= (int)((targetInfo.targetPos.z - item->Pose.Position.z) / horizontalDist * moveDist);
-				}
-
 				CalculatePitchAndBank(*item, currentState, targetInfo.targetPos, 0.0f, pitchTarget, bankTarget);
-
+				break;
+			default:
+				pitchTarget = 0.0f;
+				bankTarget = 0.0f;
 				break;
 			}
 
-			if (currentState != GunShipState::IDLE)
+			// Bewegung nur ausführen wenn isMoving
+			if (isMoving)
 			{
-				short newRoomNum = GetPointCollision(item->Pose.Position, item->RoomNumber).GetRoomNumber();
-				if (newRoomNum != item->RoomNumber)
-					ItemNewRoom(itemNumber, newRoomNum);
+				float moveDist = currentSpeed;
+
+				switch (currentState)
+				{
+				case GunShipState::FOLLOW:
+					if (horizontalDist > 1.0f)
+					{
+						item->Pose.Position.x += (int)((targetInfo.targetPos.x - item->Pose.Position.x) / horizontalDist * moveDist);
+						item->Pose.Position.z += (int)((targetInfo.targetPos.z - item->Pose.Position.z) / horizontalDist * moveDist);
+					}
+
+					if (item->ItemFlags[7])
+					{
+						float targetY = hasMoveTargetPos ? moveTargetPos.y : moveTargetItem->Pose.Position.y;
+						if (fabsf(item->Pose.Position.y - targetY) < SECTOR_SIZE)
+							item->ItemFlags[7] = 0;
+					}
+
+					break;
+
+				case GunShipState::EVADE_NEAR:
+					if (horizontalDist > 1.0f)
+					{
+						item->Pose.Position.x -= (int)((targetInfo.targetPos.x - item->Pose.Position.x) / horizontalDist * moveDist);
+						item->Pose.Position.z -= (int)((targetInfo.targetPos.z - item->Pose.Position.z) / horizontalDist * moveDist);
+					}
+
+					break;
+				}
+
+				if (currentState != GunShipState::IDLE)
+				{
+					short newRoomNum = GetPointCollision(item->Pose.Position, item->RoomNumber).GetRoomNumber();
+					if (newRoomNum != item->RoomNumber)
+						ItemNewRoom(itemNumber, newRoomNum);
+				}
 			}
 		}
 
