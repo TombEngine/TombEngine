@@ -298,12 +298,6 @@ namespace TEN::Scripting::Effects::ParticleGroups
 			return;
 
 		group->InitSubIndex = index;
-
-		for (auto& p : group->Particles)
-		{
-			if (p.Active)
-				p.SubIndex = index;
-		}
 	}
 
 	sol::optional<int> LuaParticleGroup::GetSubIndex() const
@@ -509,7 +503,6 @@ namespace TEN::Scripting::Effects::ParticleGroups
 			ScriptReserved_ParticleGroupSetObjectID, &LuaParticleGroup::SetObjectID,
 
 			/// Set sprite or mesh sub-index for newly emitted particles.
-			// Also updates all currently active particles.
 			// @function ParticleGroup:SetSubIndex
 			// @tparam int index Sprite or mesh sub-index.
 			ScriptReserved_ParticleGroupSetSubIndex, &LuaParticleGroup::SetSubIndex,
