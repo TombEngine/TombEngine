@@ -43,8 +43,12 @@ constexpr auto DISPLAY_SPACE_ASPECT = DISPLAY_SPACE_RES.x / DISPLAY_SPACE_RES.y;
 constexpr auto REFERENCE_FONT_SIZE = 35.0f;
 constexpr auto HUD_ZERO_Y = -DISPLAY_SPACE_RES.y;
 
-constexpr float DISPLAY_ITEM_NEAR_PLANE = 0.1f;
-constexpr float DISPLAY_ITEM_FAR_PLANE = BLOCK(100);
+// Near/far planes for the display item virtual camera. These are intentionally tight to maximise
+// depth buffer precision and prevent z-fighting. Display items are typically rendered ~BLOCK(1)
+// from the camera; the far plane of BLOCK(5) is generous but avoids the catastrophic near/far
+// ratio (previously 1 000 000 : 1) that caused z-fighting between mesh faces.
+constexpr float DISPLAY_ITEM_NEAR_PLANE = 10.0f;
+constexpr float DISPLAY_ITEM_FAR_PLANE  = BLOCK(5);
 
 constexpr auto UNDERWATER_FOG_MIN_DISTANCE = 4;
 constexpr auto UNDERWATER_FOG_MAX_DISTANCE = 30;

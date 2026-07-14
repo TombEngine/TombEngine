@@ -72,6 +72,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed title level selection dialog not scrolling offscreen entries.
 * Fixed incorrect blend mode application for sprites.
 * Fixed UI bars being affected by the postprocess mode.
+* Fixed Z-fighting on DisplayItems.
 
 ### Lua API changes
 
