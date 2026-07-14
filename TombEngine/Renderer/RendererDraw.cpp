@@ -3569,14 +3569,217 @@ namespace TEN::Renderer
 
 	void Renderer::SortTransparentFaces(RenderView& view)
 	{
+		// Group sortable polygons by drawable unit instead of sorting them individually
+		// (issue #1793): rooms form one group per bucket, other types one group per
+		// (instance, bucket) - per (texture, depth band) for sprites. Room groups draw
+		// first, following the portal traversal order of RoomsToDraw (approximate
+		// back-to-front); object groups follow, sorted by their mean polygon distance.
+		// Polygons are depth-sorted only inside their own group, so each group draws as
+		// a single batch instead of one batch per depth interleave.
+
+		if (view.TransparentObjectsToDraw.empty())
+			return;
+
+		// Depth step below which two object groups count as equally distant and fall back
+		// to the blend mode priority for a stable order.
+		static constexpr float GROUP_DEPTH_STEP = 128.0f;
+
+		// Same-texture sprites group together only within this depth band, so a local
+		// cloud batches as one unit without dragging distant sprites out of depth order.
+		constexpr float SPRITE_GROUP_DEPTH_BAND = BLOCK(4);
+
+		struct GroupKey
+		{
+			const void* Primary	  = nullptr;
+			const void* Secondary = nullptr;
+			uint64_t	Extra	  = 0;
+
+			bool operator ==(const GroupKey& key) const
+			{
+				return (Primary == key.Primary && Secondary == key.Secondary && Extra == key.Extra);
+			}
+		};
+
+		struct GroupKeyHash
+		{
+			size_t operator ()(const GroupKey& key) const
+			{
+				uint64_t hash = (uint64_t)(uintptr_t)key.Primary;
+				hash ^= (uint64_t)(uintptr_t)key.Secondary * 0x9E3779B97F4A7C15;
+				hash ^= key.Extra * 0xC2B2AE3D27D4EB4F;
+				hash ^= hash >> 29;
+				return (size_t)hash;
+			}
+		};
+
+		struct SortedGroup
+		{
+			bool  IsRoom		= false;
+			int	  RoomSlot		= 0;
+			float DistanceSum	= 0.0f;
+			int	  PolygonCount	= 0;
+			int	  BlendPriority = 0;
+		};
+
+		// Fixed priority between blend modes of groups at the same depth (issue #1793),
+		// so their relative order is stable and predictable instead of arbitrary.
+		auto getBlendPriority = [](BlendMode blendMode)
+		{
+			switch (blendMode)
+			{
+			case BlendMode::Exclude:	 return 0;
+			case BlendMode::Subtractive: return 1;
+			case BlendMode::Lighten:	 return 2;
+			case BlendMode::Screen:		 return 3;
+			case BlendMode::AlphaBlend:	 return 4;
+			default:					 return 5;
+			}
+		};
+
+		// Position of every room in the back-to-front draw order (portal traversal reversed).
+		auto roomSlots = std::unordered_map<const RendererRoom*, int>{};
+		roomSlots.reserve(view.RoomsToDraw.size());
+		for (int i = 0; i < view.RoomsToDraw.size(); i++)
+			roomSlots[view.RoomsToDraw[i]] = (int)view.RoomsToDraw.size() - 1 - i;
+
+		auto groupIndices = std::unordered_map<GroupKey, int, GroupKeyHash>{};
+		auto groups = std::vector<SortedGroup>{};
+
+		for (auto& object : view.TransparentObjectsToDraw)
+		{
+			auto key = GroupKey{};
+			auto blendMode = object.BlendMode;
+
+			switch (object.ObjectType)
+			{
+			case RendererObjectType::Room:
+				key.Primary = object.Bucket;
+				break;
+
+			case RendererObjectType::Moveable:
+			case RendererObjectType::HairPrimary:
+			case RendererObjectType::HairSecondary:
+				key.Primary = object.Item;
+				key.Secondary = object.Bucket;
+				key.Extra = (uint64_t)object.ObjectType;
+				break;
+
+			case RendererObjectType::Static:
+				key.Primary = object.Static;
+				key.Secondary = object.Bucket;
+				break;
+
+			case RendererObjectType::Effect:
+				key.Primary = object.Effect;
+				key.Secondary = object.Bucket;
+				break;
+
+			case RendererObjectType::MoveableAsStatic:
+				// No stable instance pointer exists for swarm objects: the world translation
+				// tells instances of the same mesh apart (e.g. two bats sharing buckets).
+				key.Primary = object.Bucket;
+				key.Extra =
+					((uint64_t)(std::lround(object.World._41) & 0x1FFFFF)) |
+					((uint64_t)(std::lround(object.World._42) & 0x1FFFFF) << 21) |
+					((uint64_t)(std::lround(object.World._43) & 0x1FFFFF) << 42);
+				break;
+
+			case RendererObjectType::Sprite:
+				blendMode = object.Sprite->BlendMode;
+				key.Primary = object.Sprite->Sprite;
+				key.Extra =
+					(uint64_t)(uint32_t)(int)(object.Distance / SPRITE_GROUP_DEPTH_BAND) |
+					((uint64_t)blendMode << 32) |
+					((uint64_t)object.Sprite->Type << 40) |
+					((uint64_t)object.Sprite->renderType << 48) |
+					((uint64_t)(object.Sprite->SoftParticle ? 1 : 0) << 56);
+				break;
+
+			default:
+				key.Primary = object.Polygon;
+				key.Extra = (uint64_t)object.ObjectType;
+				break;
+			}
+
+			auto [it, isNewGroup] = groupIndices.try_emplace(key, (int)groups.size());
+			if (isNewGroup)
+			{
+				auto& group = groups.emplace_back();
+				group.IsRoom = (object.ObjectType == RendererObjectType::Room);
+				group.BlendPriority = getBlendPriority(blendMode);
+
+				if (group.IsRoom)
+				{
+					auto slot = roomSlots.find(object.Room);
+					group.RoomSlot = (slot != roomSlots.end()) ? slot->second : (int)view.RoomsToDraw.size();
+				}
+			}
+
+			auto& group = groups[it->second];
+			group.DistanceSum += object.Distance;
+			group.PolygonCount++;
+
+			// Temporarily the group index; remapped to the final rank below.
+			object.GroupRank = it->second;
+		}
+
+		auto order = std::vector<int>(groups.size());
+		for (int i = 0; i < order.size(); i++)
+			order[i] = i;
+
+		std::sort(
+			order.begin(), order.end(),
+			[&groups](int index0, int index1)
+			{
+				const auto& group0 = groups[index0];
+				const auto& group1 = groups[index1];
+
+				// Rooms draw first, back to front by portal traversal order.
+				if (group0.IsRoom != group1.IsRoom)
+					return group0.IsRoom;
+
+				float distance0 = group0.DistanceSum / group0.PolygonCount;
+				float distance1 = group1.DistanceSum / group1.PolygonCount;
+
+				if (group0.IsRoom)
+				{
+					if (group0.RoomSlot != group1.RoomSlot)
+						return (group0.RoomSlot < group1.RoomSlot);
+
+					return (distance0 > distance1);
+				}
+
+				// Object groups draw back to front by mean polygon distance.
+				int depth0 = (int)(distance0 / GROUP_DEPTH_STEP);
+				int depth1 = (int)(distance1 / GROUP_DEPTH_STEP);
+				if (depth0 != depth1)
+					return (depth0 > depth1);
+
+				if (group0.BlendPriority != group1.BlendPriority)
+					return (group0.BlendPriority < group1.BlendPriority);
+
+				return (index0 < index1);
+			});
+
+		auto groupRanks = std::vector<int>(groups.size());
+		for (int i = 0; i < order.size(); i++)
+			groupRanks[order[i]] = i;
+
+		for (auto& object : view.TransparentObjectsToDraw)
+			object.GroupRank = groupRanks[object.GroupRank];
+
+		// Make groups contiguous in rank order, keeping polygons depth-sorted inside
+		// their own group.
 		std::sort(
 			view.TransparentObjectsToDraw.begin(),
 			view.TransparentObjectsToDraw.end(),
-			[](RendererSortableObject& a, RendererSortableObject& b)
+			[](const RendererSortableObject& object0, const RendererSortableObject& object1)
 			{
-				return (a.Distance > b.Distance);
-			}
-		);
+				if (object0.GroupRank != object1.GroupRank)
+					return (object0.GroupRank < object1.GroupRank);
+
+				return (object0.Distance > object1.Distance);
+			});
 	}
 
 	void Renderer::DrawSortedFaces(RenderView& view)
@@ -3669,19 +3872,41 @@ namespace TEN::Renderer
 				(int)_sortedPolygonsVertices.size() : (int)_sortedPolygonsIndices.size());
 			int count = 0;
 
-			if (object->ObjectType == RendererObjectType::Room)
+			if (object->ObjectType != RendererObjectType::Sprite)
 			{
+				// All entries of a group share the object type, so the index source only
+				// depends on the group head. Moveables, hair, swarm objects and effects
+				// all reference moveable geometry.
+				int* sourceIndices = nullptr;
+				switch (object->ObjectType)
+				{
+				case RendererObjectType::Room:
+					sourceIndices = _roomsIndices.data();
+					break;
+
+				case RendererObjectType::Static:
+					sourceIndices = _staticsIndices.data();
+					break;
+
+				case RendererObjectType::Moveable:
+				case RendererObjectType::HairPrimary:
+				case RendererObjectType::HairSecondary:
+				case RendererObjectType::MoveableAsStatic:
+				case RendererObjectType::Effect:
+					sourceIndices = _moveablesIndices.data();
+					break;
+
+				default:
+					continue;
+				}
+
 				while (i < view.TransparentObjectsToDraw.size() &&
-					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
-					view.TransparentObjectsToDraw[i].Room->RoomNumber == object->Room->RoomNumber &&
-					view.TransparentObjectsToDraw[i].Bucket->Animated == object->Bucket->Animated &&
-					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
-					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
+					view.TransparentObjectsToDraw[i].GroupRank == object->GroupRank &&
 					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
 				{
 					auto* currentObject = &view.TransparentObjectsToDraw[i];
 					_sortedPolygonsIndices.bulk_push_back(
-						_roomsIndices.data(),
+						sourceIndices,
 						currentObject->Polygon->BaseIndex,
 						currentObject->Polygon->Shape == 0 ? 6 : 3);
 					i++;
@@ -3689,119 +3914,10 @@ namespace TEN::Renderer
 
 				count = (int)_sortedPolygonsIndices.size() - base;
 			}
-			else if (object->ObjectType == RendererObjectType::Moveable)
+			else
 			{
 				while (i < view.TransparentObjectsToDraw.size() &&
-					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
-					view.TransparentObjectsToDraw[i].Item->ItemNumber == object->Item->ItemNumber &&
-					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
-					view.TransparentObjectsToDraw[i].Bucket->Animated == object->Bucket->Animated &&
-					view.TransparentObjectsToDraw[i].Skinned == object->Skinned &&
-					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
-					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
-				{
-					auto* currentObject = &view.TransparentObjectsToDraw[i];
-					_sortedPolygonsIndices.bulk_push_back(
-						_moveablesIndices.data(),
-						currentObject->Polygon->BaseIndex,
-						currentObject->Polygon->Shape == 0 ? 6 : 3);
-					i++;
-				}
-
-				count = (int)_sortedPolygonsIndices.size() - base;
-			}
-			else if (object->ObjectType == RendererObjectType::HairPrimary ||
-					 object->ObjectType == RendererObjectType::HairSecondary)
-			{
-				while (i < view.TransparentObjectsToDraw.size() &&
-					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
-					view.TransparentObjectsToDraw[i].Item->ItemNumber == object->Item->ItemNumber &&
-					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
-					view.TransparentObjectsToDraw[i].Bucket->Animated == object->Bucket->Animated &&
-					view.TransparentObjectsToDraw[i].Skinned == object->Skinned &&
-					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
-					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
-				{
-					auto* currentObject = &view.TransparentObjectsToDraw[i];
-					_sortedPolygonsIndices.bulk_push_back(
-						_moveablesIndices.data(),
-						currentObject->Polygon->BaseIndex,
-						currentObject->Polygon->Shape == 0 ? 6 : 3);
-					i++;
-				}
-
-				count = (int)_sortedPolygonsIndices.size() - base;
-			}
-			else if (object->ObjectType == RendererObjectType::Static)
-			{
-				while (i < view.TransparentObjectsToDraw.size() &&
-					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
-					view.TransparentObjectsToDraw[i].Static->RoomNumber == object->Static->RoomNumber &&
-					view.TransparentObjectsToDraw[i].Static->IndexInRoom == object->Static->IndexInRoom &&
-					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
-					view.TransparentObjectsToDraw[i].Bucket->Animated == object->Bucket->Animated &&
-					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
-					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
-				{
-					auto* currentObject = &view.TransparentObjectsToDraw[i];
-					_sortedPolygonsIndices.bulk_push_back(
-						_staticsIndices.data(),
-						currentObject->Polygon->BaseIndex,
-						currentObject->Polygon->Shape == 0 ? 6 : 3);
-					i++;
-				}
-
-				count = (int)_sortedPolygonsIndices.size() - base;
-			}
-			else if (object->ObjectType == RendererObjectType::MoveableAsStatic)
-			{
-				while (i < view.TransparentObjectsToDraw.size() &&
-					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
-					view.TransparentObjectsToDraw[i].Room->RoomNumber == object->Room->RoomNumber &&
-					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
-					view.TransparentObjectsToDraw[i].Bucket->Animated == object->Bucket->Animated &&
-					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
-					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
-				{
-					auto* currentObject = &view.TransparentObjectsToDraw[i];
-					_sortedPolygonsIndices.bulk_push_back(
-						_staticsIndices.data(),
-						currentObject->Polygon->BaseIndex,
-						currentObject->Polygon->Shape == 0 ? 6 : 3);
-					i++;
-				}
-
-				count = (int)_sortedPolygonsIndices.size() - base;
-			}
-			else if (object->ObjectType == RendererObjectType::Effect)
-			{
-				while (i < view.TransparentObjectsToDraw.size() &&
-					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
-					view.TransparentObjectsToDraw[i].Effect == object->Effect &&
-					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
-					view.TransparentObjectsToDraw[i].Bucket->Animated == object->Bucket->Animated &&
-					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
-					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
-				{
-					auto* currentObject = &view.TransparentObjectsToDraw[i];
-					_sortedPolygonsIndices.bulk_push_back(
-						_moveablesIndices.data(),
-						currentObject->Polygon->BaseIndex,
-						currentObject->Polygon->Shape == 0 ? 6 : 3);
-					i++;
-				}
-
-				count = (int)_sortedPolygonsIndices.size() - base;
-			}
-			else if (object->ObjectType == RendererObjectType::Sprite)
-			{
-				while (i < view.TransparentObjectsToDraw.size() &&
-					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
-					view.TransparentObjectsToDraw[i].Sprite->Type == object->Sprite->Type &&
-					view.TransparentObjectsToDraw[i].Sprite->SoftParticle == object->Sprite->SoftParticle &&
-					view.TransparentObjectsToDraw[i].Sprite->Sprite == object->Sprite->Sprite &&
-					view.TransparentObjectsToDraw[i].Sprite->Sprite->Texture == object->Sprite->Sprite->Texture &&
-					view.TransparentObjectsToDraw[i].Sprite->BlendMode == object->Sprite->BlendMode &&
+					view.TransparentObjectsToDraw[i].GroupRank == object->GroupRank &&
 					_sortedPolygonsVertices.size() + 6 < MAX_TRANSPARENT_VERTICES)
 				{
 					RendererSortableObject* currentObject = &view.TransparentObjectsToDraw[i];
@@ -3877,10 +3993,6 @@ namespace TEN::Renderer
 
 				count = (int)_sortedPolygonsVertices.size() - base;
 			}
-			else
-			{
-				continue;
-			}
 
 			if (count == 0)
 			{
@@ -3897,6 +4009,7 @@ namespace TEN::Renderer
 		}
 
 		flushBatches();
+
 	}
 
 	void Renderer::DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count)
@@ -3960,8 +4073,8 @@ namespace TEN::Renderer
 			_shaders.Bind(Shader::Items);
 		}
 
-		// Rebuild and upload the objects CB only when the item changes: distance sorting often
-		// splits the same item into many batches which would re-upload identical data.
+		// Rebuild and upload the objects CB only when the item changes: grouping splits the
+		// same item into one batch per bucket which would re-upload identical data.
 		if (_lastSortedObjectType != objectInfo->ObjectType || _lastSortedObject != objectInfo->Item)
 		{
 			// Bind main item properties.
@@ -4022,8 +4135,8 @@ namespace TEN::Renderer
 			_shaders.Bind(Shader::InstancedStatics);
 		}
 
-		// Rebuild and upload the objects CB only when the static changes: distance sorting often
-		// splits the same static into many batches which would re-upload identical data.
+		// Rebuild and upload the objects CB only when the static changes: grouping splits the
+		// same static into one batch per bucket which would re-upload identical data.
 		if (_lastSortedObjectType != objectInfo->ObjectType || _lastSortedObject != objectInfo->Static)
 		{
 			_stObjects.Skinned = (int)SkinningMode::Static;
@@ -4111,8 +4224,8 @@ namespace TEN::Renderer
 			_shaders.Bind(Shader::InstancedStatics);
 		}
 
-		// Rebuild and upload the objects CB only when the effect changes: distance sorting often
-		// splits the same effect into many batches which would re-upload identical data.
+		// Rebuild and upload the objects CB only when the effect changes: grouping splits the
+		// same effect into one batch per bucket which would re-upload identical data.
 		if (_lastSortedObjectType != objectInfo->ObjectType || _lastSortedObject != objectInfo->Effect)
 		{
 			_stObjects.Skinned = (int)SkinningMode::Static;
@@ -4164,8 +4277,8 @@ namespace TEN::Renderer
 			_shaders.Bind(Shader::Items);
 		}
 
-		// Rebuild and upload the objects CB only when the hair unit changes: distance sorting
-		// often splits the same unit into many batches which would re-upload identical data.
+		// Rebuild and upload the objects CB only when the hair unit changes: grouping splits
+		// the same unit into one batch per bucket which would re-upload identical data.
 		// The object type distinguishes the primary and secondary units of the same item.
 		if (_lastSortedObjectType != objectInfo->ObjectType || _lastSortedObject != objectInfo->Item)
 		{

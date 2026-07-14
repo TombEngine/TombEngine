@@ -302,9 +302,9 @@ namespace TEN::Renderer
 		int _lastSortedRoomNumber = NO_VALUE;
 
 		// Object whose data currently occupies the objects CB during the sorted faces pass.
-		// Distance sorting splits the same object into many consecutive batches (texture or
-		// blend mode switches); tracking the CB owner lets those batches skip identical
-		// rebuilds and uploads. Reset at the start of every DrawSortedFaces call.
+		// Grouping splits the same object into one batch per bucket (texture or blend mode
+		// switches); tracking the CB owner lets adjacent batches of the same object skip
+		// identical rebuilds and uploads. Reset at the start of every DrawSortedFaces call.
 		RendererObjectType _lastSortedObjectType = RendererObjectType::Unknown;
 		const void* _lastSortedObject = nullptr;
 
