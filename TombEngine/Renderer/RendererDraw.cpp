@@ -795,6 +795,9 @@ namespace TEN::Renderer
 					if (!p.Active)
 						continue;
 
+					if (IgnoreReflectionPassForRoom(p.RoomNumber))
+						continue;
+
 					float dist = Vector3::Distance(p.Position, view.Camera.WorldPosition);
 					if (dist > DEFAULT_RENDER_DISTANCE)
 						continue;
@@ -813,6 +816,10 @@ namespace TEN::Renderer
 					int clampedMeshIndex = std::clamp(p.SubIndex, 0, Objects[p.ObjectID].nmeshes - 1);
 					auto& mesh = *GetMesh(Objects[p.ObjectID].meshIndex + clampedMeshIndex);
 
+					// Transform is identical for all polygons of the particle; compute it once.
+					auto worldMatrix = Matrix::Lerp(p.PrevTransform, p.Transform, GetInterpolationFactor());
+					ReflectMatrixOptionally(worldMatrix);
+
 					for (auto& bucket : mesh.Buckets)
 					{
 						if (!IsSortedBlendMode(bucket.BlendMode))
@@ -820,7 +827,6 @@ namespace TEN::Renderer
 
 						for (auto& poly : bucket.Polygons)
 						{
-							auto worldMatrix = Matrix::Lerp(p.PrevTransform, p.Transform, GetInterpolationFactor());
 							auto center = Vector3::Transform(poly.Centre, worldMatrix);
 							float polyDist = Vector3::Distance(center, view.Camera.WorldPosition);
 
@@ -873,6 +879,11 @@ namespace TEN::Renderer
 					if (!p.Active)
 						continue;
 
+					// In mirror passes, draw only particles in the mirrored room, with the
+					// reflection applied. Lights are reflected by BindLight.
+					if (IgnoreReflectionPassForRoom(p.RoomNumber))
+						continue;
+
 					float dist = Vector3::Distance(p.Position, view.Camera.WorldPosition);
 					if (dist > DEFAULT_RENDER_DISTANCE)
 						continue;
@@ -891,7 +902,10 @@ namespace TEN::Renderer
 					int clampedMeshIndex = std::clamp(p.SubIndex, 0, Objects[p.ObjectID].nmeshes - 1);
 					const auto& mesh = *GetMesh(Objects[p.ObjectID].meshIndex + clampedMeshIndex);
 
-					_stObjects.Objects[0].World = Matrix::Lerp(p.PrevTransform, p.Transform, GetInterpolationFactor());
+					auto worldMatrix = Matrix::Lerp(p.PrevTransform, p.Transform, GetInterpolationFactor());
+					ReflectMatrixOptionally(worldMatrix);
+
+					_stObjects.Objects[0].World = worldMatrix;
 					_stObjects.Objects[0].Color = Vector4(p.ParticleColor.R(), p.ParticleColor.G(), p.ParticleColor.B(), p.ParticleColor.A());
 					_stObjects.Objects[0].AmbientLight = _rooms[p.RoomNumber].AmbientLight;
 					_stObjects.Objects[0].LightMode = (int)mesh.LightMode;
