@@ -519,6 +519,10 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Objects\Effects\LensFlare.h" />
     <ClInclude Include="Objects\TR3\Entity\Whale.h" />
     <ClInclude Include="Objects\TR3\Entity\Willard.h" />
+    <ClInclude Include="Objects\TR2\Trap\DiskShooter.h" />
+    <ClInclude Include="Objects\TR2\Trap\FallingSpikes.h" />
+    <ClInclude Include="Objects\TR3\Trap\Fan.h" />
+    <ClInclude Include="Objects\TR3\Trap\TunnelBorer.h" />
     <ClInclude Include="Objects\TR4\Entity\Locust.h" />
     <ClInclude Include="Objects\Effects\tr5_electricity.h" />
     <ClInclude Include="Objects\Generic\Doors\double_doors.h" />
@@ -1164,7 +1168,11 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Objects\Effects\LensFlare.cpp" />
     <ClCompile Include="Objects\TR3\Entity\Whale.cpp" />
     <ClCompile Include="Objects\TR3\Entity\Willard.cpp" />
+    <ClCompile Include="Objects\TR2\Trap\DiskShooter.cpp" />
+    <ClCompile Include="Objects\TR2\Trap\FallingSpikes.cpp" />
+    <ClCompile Include="Objects\TR3\Trap\Fan.cpp" />
     <ClCompile Include="Objects\TR3\Object\Fusebox.cpp" />
+    <ClCompile Include="Objects\TR3\Trap\TunnelBorer.cpp" />
     <ClCompile Include="Objects\TR4\Entity\Locust.cpp" />
     <ClCompile Include="Objects\Effects\tr5_electricity.cpp" />
     <ClCompile Include="Objects\Generic\Doors\double_doors.cpp" />

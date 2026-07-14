@@ -4,6 +4,8 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Sphere.h"
 #include "Game/effects/effects.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Sphere;
@@ -30,7 +32,7 @@ namespace TEN::Entities::Traps
 		}
 		else
 		{
-			item.ItemFlags[3] = item.TriggerFlags;
+			item.ItemFlags[3] = PropertyHandler::Get(item, PropName_Damage, item.TriggerFlags, true);
 		}
 
 		AnimateItem(&item);

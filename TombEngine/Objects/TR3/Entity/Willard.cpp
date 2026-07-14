@@ -103,22 +103,22 @@ namespace TEN::Entities::Creatures::TR3
 
 	static void SpawnWillardPlasmaBall(ItemInfo* item, const CreatureBiteInfo& bite, short angleAdd)
 	{
-		int fxNumber = CreateNewEffect(item->RoomNumber);
+		auto pose = Pose(
+			GetJointPosition(item, bite),
+			EulerAngles(item->Pose.Orientation.x, item->Pose.Orientation.y + angleAdd, 0));
+
+		int fxNumber = CreateNewEffect(item->RoomNumber, ID_ENERGY_BUBBLES, pose);
 		if (fxNumber == NO_VALUE)
 			return;
 
-		auto& fx = EffectList[fxNumber];
-		fx.pos.Position = GetJointPosition(item, bite);
-		fx.pos.Orientation.x = item->Pose.Orientation.x;
-		fx.pos.Orientation.y = item->Pose.Orientation.y + angleAdd;
-		fx.pos.Orientation.z = 0;
-		fx.roomNumber = item->RoomNumber;
-		fx.counter = 0;
-		fx.flag1 = (short)MissileType::WillardPlasmaBall;
-		fx.flag2 = 0;
-		fx.speed = 16;
-		fx.objectNumber = ID_ENERGY_BUBBLES;
-		fx.frameNumber = Objects[fx.objectNumber].meshIndex;
+		auto& fx = g_Level.Items[fxNumber];
+		auto& fxInfo = GetFXInfo(fx);
+
+		fxInfo.Counter = 0;
+		fxInfo.Flag1 = (short)MissileType::WillardPlasmaBall;
+		fxInfo.Flag2 = 0;
+		fx.Animation.Velocity.z = 16;
+		fx.Model.MeshIndex = { (int)Objects[fx.ObjectNumber].meshIndex };
 	}
 
 	static void InitializeWillardAI(ItemInfo* item)

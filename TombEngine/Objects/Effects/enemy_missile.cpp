@@ -286,8 +286,8 @@ namespace TEN::Entities::Effects
 				break;
 
 			case MissileType::WillardPlasmaBall:
-				TriggerExplosionSparks(prevPos.x, prevPos.y, prevPos.z, 3, -2, 2, fx.roomNumber);
-				TriggerShockwave(&fx.pos, 32, 160, 64, 0, 128, 64, 24, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
+				TriggerExplosionSparks(prevPos.x, prevPos.y, prevPos.z, 3, -2, 2, fx.RoomNumber);
+				TriggerShockwave(&fx.Pose, 32, 160, 64, 0, 128, 64, 24, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
 				break;
 
 			default:
@@ -362,8 +362,8 @@ namespace TEN::Entities::Effects
 
 			case MissileType::WillardPlasmaBall:
 				DoDamage(LaraItem, 100);
-				TriggerExplosionSparks(prevPos.x, prevPos.y, prevPos.z, 3, -2, 2, fx.roomNumber);
-				TriggerShockwave(&fx.pos, 48, 240, 64, 0, 128, 64, 24, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
+				TriggerExplosionSparks(prevPos.x, prevPos.y, prevPos.z, 3, -2, 2, fx.RoomNumber);
+				TriggerShockwave(&fx.Pose, 48, 240, 64, 0, 128, 64, 24, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
 				ItemCustomBurn(LaraItem, Vector3(0.0f, 0.8f, 0.1f), Vector3(0.0f, 0.9f, 0.8f));
 				break;
 
@@ -424,7 +424,6 @@ namespace TEN::Entities::Effects
 
 	void TriggerWillardPlasmaBallFlame(short fxNumber, short xVel, short yVel, short zVel)
 	{
-		const auto& fx = EffectList[fxNumber];
 		auto& flame = *GetFreeParticle();
 
 		flame.on = true;
