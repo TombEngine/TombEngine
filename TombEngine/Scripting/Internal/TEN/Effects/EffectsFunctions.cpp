@@ -747,8 +747,8 @@ namespace TEN::Scripting::Effects
 	// @tfield[opt=Color(255&#44; 255&#44; 255)] Color baseColor Color of the particles.
 	static void EmitWeather(const sol::table& table)
 	{
-		auto pos = table.get_or("position", Vec3(0, 0, 0));
-		if (pos == Vector3::Zero)
+		auto pos = Vec3(table.get_or("position", Vec3(0, 0, 0)));
+		if (pos.ToVector3() == Vector3::Zero)
 		{
 			TENLog("EmitWeather() 'position' not specified, aborting.", LogLevel::Error);
 			return;
