@@ -4241,6 +4241,9 @@ namespace TEN::Renderer
 
 	void Renderer::DrawSortedFaces(RenderView& view)
 	{
+		// Invalidate the room CB cache used by DrawRoomSorted.
+		_lastSortedRoomNumber = NO_VALUE;
+
 		for (int i = 0; i < view.TransparentObjectsToDraw.size(); i++)
 		{
 			auto* object = &view.TransparentObjectsToDraw[i];
@@ -4517,15 +4520,23 @@ namespace TEN::Renderer
 		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
 		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
 
-		RoomData* nativeRoom = &g_Level.Rooms[objectInfo->Room->RoomNumber];
+		// Rebuild and upload the room CB only when the room changes. Consecutive sorted batches
+		// from the same room would produce identical CB contents (lights come from the view, not
+		// the room), and nothing else touches the room CB during the sorted faces pass.
+		if (objectInfo->Room->RoomNumber != _lastSortedRoomNumber)
+		{
+			RoomData* nativeRoom = &g_Level.Rooms[objectInfo->Room->RoomNumber];
 
-		_stRoom.Caustics = int(g_Configuration.EnableCaustics && (nativeRoom->flags & ENV_FLAG_WATER) && !(nativeRoom->flags & ENV_FLAG_NOCAUSTICS));
-		_stRoom.AmbientColor = Vector3(objectInfo->Room->AmbientLight.x, objectInfo->Room->AmbientLight.y, objectInfo->Room->AmbientLight.z);
-		BindRoomLights(view.LightsToDraw);
-		_stRoom.NumRoomDecals = 0; // Don't draw decals on sorted faces to avoid slowdowns.
-		_stRoom.Water = (nativeRoom->flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
-		_stRoom.Outdoor = (nativeRoom->flags & ENV_FLAG_SKYBOX) != 0 ? 1 : 0;
-		UpdateConstantBuffer(&_stRoom, _cbRoom.get());
+			_stRoom.Caustics =  int(g_Configuration.EnableCaustics && (nativeRoom->flags & ENV_FLAG_WATER) && !(nativeRoom->flags & ENV_FLAG_NOCAUSTICS));
+			_stRoom.AmbientColor = Vector3(objectInfo->Room->AmbientLight.x, objectInfo->Room->AmbientLight.y, objectInfo->Room->AmbientLight.z);
+			BindRoomLights(view.LightsToDraw);
+			_stRoom.NumRoomDecals = 0; // Don't draw decals on sorted faces to avoid slowdowns.
+			_stRoom.Water = (nativeRoom->flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
+			_stRoom.Outdoor = (nativeRoom->flags & ENV_FLAG_SKYBOX) != 0 ? 1 : 0;
+			UpdateConstantBuffer(&_stRoom, _cbRoom.get());
+
+			_lastSortedRoomNumber = objectInfo->Room->RoomNumber;
+		}
 
 		SetScissor(objectInfo->Room->ClipBounds);
 
@@ -4579,14 +4590,14 @@ namespace TEN::Renderer
 			memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimationTransforms, sizeof(Matrix) * BONE_COUNT_MAX);
 		}
 
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
 		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
 			_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
 
 		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
 		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+		// Only Objects[0] is used, so upload just the CB prefix.
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
@@ -4626,7 +4637,9 @@ namespace TEN::Renderer
 		_stObjects.Objects[0].AmbientLight = objectInfo->Room->AmbientLight;
 		_stObjects.Objects[0].LightMode = (int)GetStaticRendererObject(objectInfo->Static->ObjectNumber).ObjectMeshes[0]->LightMode;
 		BindInstancedStaticLights(objectInfo->Static->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+		// Only Objects[0] is used, so upload just the CB prefix.
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
@@ -4666,7 +4679,9 @@ namespace TEN::Renderer
 		_stObjects.Objects[0].AmbientLight = objectInfo->Room->AmbientLight;
 		_stObjects.Objects[0].LightMode = (int)objectInfo->LightMode;
 		BindInstancedStaticLights(objectInfo->Room->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+		// Only Objects[0] is used, so upload just the CB prefix.
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
@@ -4706,7 +4721,9 @@ namespace TEN::Renderer
 		_stObjects.Objects[0].AmbientLight = objectInfo->Effect->AmbientLight;
 		_stObjects.Objects[0].LightMode = (int)LightMode::Dynamic;
 		BindInstancedStaticLights(objectInfo->Effect->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+		// Only Objects[0] is used, so upload just the CB prefix.
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
@@ -4769,14 +4786,14 @@ namespace TEN::Renderer
 			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 		}
 
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
 		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
 			_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
 
 		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
 		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+		// Only Objects[0] is used, so upload just the CB prefix.
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
