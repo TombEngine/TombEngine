@@ -296,6 +296,11 @@ namespace TEN::Renderer
 		CullMode _lastCullMode;
 		int _lastMaterialIndex;
 
+		// Room whose data is currently in the room CB during the sorted faces pass. Lets
+		// consecutive sorted batches from the same room skip the light rebind and CB upload.
+		// Reset at the start of every DrawSortedFaces call.
+		int _lastSortedRoomNumber = NO_VALUE;
+
 		std::vector<RendererSpriteBucket> _spriteBuckets;
 
 		// Antialiasing
@@ -579,9 +584,9 @@ namespace TEN::Renderer
 			_numDrawCalls++;
 		}
 
-		inline void UpdateConstantBuffer(void* data, IConstantBuffer* cb) noexcept
+		inline void UpdateConstantBuffer(void* data, IConstantBuffer* cb, int size = 0) noexcept
 		{
-			_graphicsDevice->UpdateConstantBuffer(cb, data);
+			_graphicsDevice->UpdateConstantBuffer(cb, data, size);
 			_numConstantBufferUpdates++;
 		}
 
