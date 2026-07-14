@@ -301,6 +301,13 @@ namespace TEN::Renderer
 		// Reset at the start of every DrawSortedFaces call.
 		int _lastSortedRoomNumber = NO_VALUE;
 
+		// Object whose data currently occupies the objects CB during the sorted faces pass.
+		// Distance sorting splits the same object into many consecutive batches (texture or
+		// blend mode switches); tracking the CB owner lets those batches skip identical
+		// rebuilds and uploads. Reset at the start of every DrawSortedFaces call.
+		RendererObjectType _lastSortedObjectType = RendererObjectType::Unknown;
+		const void* _lastSortedObject = nullptr;
+
 		std::vector<RendererSpriteBucket> _spriteBuckets;
 
 		// Antialiasing
@@ -333,6 +340,16 @@ namespace TEN::Renderer
 
 		fast_vector<Vertex> _sortedPolygonsVertices;
 		fast_vector<int> _sortedPolygonsIndices;
+
+		// Batch of consecutive sortable objects sharing GPU state, recorded by DrawSortedFaces
+		// while it accumulates geometry, and drawn after a single buffer upload per flush.
+		struct RendererSortedBatch
+		{
+			RendererSortableObject* Object; // First object of the batch, provides the shared state.
+			int Base;                       // Base index (base vertex for sprites) into the sorted buffers.
+			int Count;                      // Index count (vertex count for sprites).
+		};
+		std::vector<RendererSortedBatch> _sortedPolygonsBatches;
 		std::unique_ptr<IVertexBuffer> _sortedPolygonsVertexBuffer;
 		std::unique_ptr<IIndexBuffer> _sortedPolygonsIndexBuffer;
 
@@ -420,13 +437,13 @@ namespace TEN::Renderer
 		void DrawDisplayItems();
 		void DrawSortedFaces(RenderView& view);
 		void DrawSingleSprite(RendererSortableObject* object, RendererObjectType lastObjectType, RenderView& view);
-		void DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawItemSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawEffectSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index);
+		void DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
+		void DrawItemSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
+		void DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
+		void DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseVertex, int count);
+		void DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
+		void DrawEffectSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
+		void DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index, int baseIndex, int count);
 		void DrawLines2D();
 		void DrawLines3D(RenderView& view);
 		void DrawTriangles3D(RenderView& view);

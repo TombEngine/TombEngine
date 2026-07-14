@@ -494,7 +494,7 @@ namespace TEN::Renderer
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 	}
 
-	void Renderer::DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
+	void Renderer::DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseVertex, int count)
 	{
 		if (lastObjectType != objectInfo->ObjectType)
 		{
@@ -506,8 +506,6 @@ namespace TEN::Renderer
 
 		}
 
-		_graphicsDevice->UpdateVertexBuffer(_sortedPolygonsVertexBuffer.get(), 0, (int)_sortedPolygonsVertices.size(), _sortedPolygonsVertices.data());
-
 		_stInstancedSpriteBuffer.Sprites[0].World = Matrix::Identity;
 		_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
 		_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = objectInfo->Sprite->SoftParticle ? 1 : 0;
@@ -515,7 +513,8 @@ namespace TEN::Renderer
 
 		PackSpriteTextureCoordinates(0, objectInfo->Sprite->Sprite);
 
-		UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());;
+		// Only Sprites[0] is used, so upload just the CB prefix.
+		UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(), (int)sizeof(InstancedSprite));
 
 		SetDepthState(DepthState::Read);
 		SetCullMode(CullMode::None);
@@ -525,10 +524,10 @@ namespace TEN::Renderer
 		BindTexture(TextureRegister::ColorMap, objectInfo->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);
 		BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
-		DrawInstancedTriangles((int)_sortedPolygonsVertices.size(), 1, 0);
+		DrawInstancedTriangles(count, 1, baseVertex);
 
 		_numSortedSpritesDrawCalls++;
-		_numSortedTriangles += (int)_sortedPolygonsVertices.size() / 3;
+		_numSortedTriangles += count / 3;
 	}
 
 	void Renderer::PackSpriteTextureCoordinates(int instanceId, RendererSprite* sprite)
