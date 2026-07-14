@@ -10,6 +10,7 @@
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Effects/BlendIDs.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
+#include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Specific/level.h"
 
@@ -60,7 +61,9 @@ namespace TEN::Scripting::Effects::ParticleGroups
 		tbl[ParticleKey::AgeNormalized] = p.AgeNormalized;
 		tbl[ParticleKey::SubIndex] = p.SubIndex;
 		tbl[ParticleKey::ObjectID] = p.ObjectID;
-		tbl[ParticleKey::Orientation] = Vec3(p.Orientation.x / RADIAN, p.Orientation.y / RADIAN, p.Orientation.z / RADIAN);
+		// NOTE: Must stay a Rotation: ApplyParticleTable reads this key back as Rotation,
+		// so a different type would be silently dropped on the ForEachParticle round trip.
+		tbl[ParticleKey::Orientation] = Rotation(p.Orientation.x / RADIAN, p.Orientation.y / RADIAN, p.Orientation.z / RADIAN);
 		tbl[ParticleKey::ContactRadius] = p.ContactRadius;
 		tbl[ParticleKey::TouchingPlayer] = p.TouchingPlayer;
 		return tbl;
@@ -525,7 +528,7 @@ namespace TEN::Scripting::Effects::ParticleGroups
 			/// Set initial orientation for mesh particles in degrees (pitch, yaw, roll).
 			// Ignored for sprite groups.
 			// @function ParticleGroup:SetInitialOrientation
-			// @tparam Vec3 orientation Orientation in degrees.
+			// @tparam Rotation orientation Orientation in degrees.
 			ScriptReserved_ParticleGroupSetInitialOrientation, &LuaParticleGroup::SetInitialOrientation,
 
 			/// Set the contact radius used for deadly bounds detection.
@@ -579,7 +582,7 @@ namespace TEN::Scripting::Effects::ParticleGroups
 		// @tfield float ageNormalized Current age as a normalized value between 0 and 1. Recalculated each frame; direct writes are ignored.
 		// @tfield int subIndex Current sprite or mesh sub-index within the object slot.
 		// @tfield Objects.ObjID objectID Object slot used to render this particle. Overrides the group default per particle.
-		// @tfield Vec3 orientation Current orientation in degrees along the X, Y, and Z axes. For mesh particles, controls mesh rotation. For sprite particles, a non-zero orientation renders the sprite as a fixed sprite instead of a camera-facing sprite.
+		// @tfield Rotation orientation Current orientation in degrees along the X, Y, and Z axes. For mesh particles, controls mesh rotation. For sprite particles, a non-zero orientation renders the sprite as a fixed sprite instead of a camera-facing sprite.
 		// @tfield float contactRadius Half-extent in world units used for AABB contact detection. Default is 128.
 		// @tfield bool touchingPlayer Read-only. True if the particle's contact radius overlaps Lara's deadly bounds.
 		// @tfield bool teleport Write-only control. Set to true to suppress interpolation after a large position, size, or rotation change.
