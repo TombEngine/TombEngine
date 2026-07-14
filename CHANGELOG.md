@@ -14,6 +14,15 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added native support for DualShock, DualSense and Switch Pro controllers.
 * Added animation blending support and blended transitions for hardcoded animation changes.
 * Added root motion support.
+* Added DISK_SHOOTER (ID 322) object from TR2.
+* Added FAN (ID 470) object from TR3.
+* Added LARGE_FAN (ID 471) object from TR2.
+* Added FALLING_SPIKES (ID 472) from TR2.
+* Added TUNNEL_BORER (ID 473) object from TR3.
+* Added AIRPLANE_PROPELLER (ID 474) from TR2.
+* Added ROTATING_KNIFE_DISK (ID 475) object from TR3.
+* Added UNDERWATER_MINE (ID 476) from TR2.
+* Added FALLING_SANDBAG (ID 477) from TR2.
 * Added WRAITH4 object. Object supports properties to create custom wraiths.
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
 * Added [DRILL_BIT](https://tombengine.com/asset/traps/drill-bit/) object from TR3.
@@ -63,6 +72,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed title level selection dialog not scrolling offscreen entries.
 * Fixed incorrect blend mode application for sprites.
 * Fixed UI bars being affected by the postprocess mode.
+* Fixed Z-fighting on DisplayItems.
 
 ### Lua API changes
 

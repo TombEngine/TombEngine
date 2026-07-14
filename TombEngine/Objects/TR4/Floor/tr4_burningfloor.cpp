@@ -67,8 +67,7 @@ void BurningFloorControl(short itemNumber)
 	{
 		auto spheres = item->GetSpheres();
 
-		for (short torchNum = g_Level.Rooms[item->RoomNumber].itemNumber; torchNum != NO_VALUE;
-			torchNum = g_Level.Items[torchNum].NextItem)
+		for (int torchNum : g_Level.Rooms[item->RoomNumber].itemNumbers)
 		{
 			auto* torch = &g_Level.Items[torchNum];
 
