@@ -47,8 +47,8 @@ constexpr auto HUD_ZERO_Y = -DISPLAY_SPACE_RES.y;
 // depth buffer precision and prevent z-fighting. Display items are typically rendered ~BLOCK(1)
 // from the camera; the far plane of BLOCK(5) is generous but avoids the catastrophic near/far
 // ratio (previously 1 000 000 : 1) that caused z-fighting between mesh faces.
-constexpr float DISPLAY_ITEM_NEAR_PLANE = 10.0f;
-constexpr float DISPLAY_ITEM_FAR_PLANE  = BLOCK(5);
+constexpr float DISPLAY_ITEM_NEAR_PLANE = 0.01f;
+constexpr float DISPLAY_ITEM_FAR_PLANE  = BLOCK(10);
 
 constexpr auto UNDERWATER_FOG_MIN_DISTANCE = 4;
 constexpr auto UNDERWATER_FOG_MAX_DISTANCE = 30;
