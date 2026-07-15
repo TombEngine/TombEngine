@@ -13,6 +13,8 @@
 #include "Game/people.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
@@ -66,7 +68,8 @@ namespace TEN::Entities::Creatures::TR3
 		PUNK_STATE_FALL3 = 15
 	};
 
-	// ItemFlags[2]: Flame counter (0 = no flame, 1 = permanent flame that sets Lara on fire, >1 = temporary flame)
+	// ItemFlags[2]: Flame on flare enabled ("FlameEnabled" property, legacy OCB as fallback).
+	// ItemFlags[3]: Landed hit counter until Lara is set on fire; 0 = never ("FlameAttackHitCount" property).
 	static void TriggerPunkFlame(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
@@ -141,9 +144,9 @@ namespace TEN::Entities::Creatures::TR3
 			PunkHitBite.Position.z + ((rnd >> 8) & 15) - 8));
 
 		SpawnDynamicLight(pos.x, pos.y, pos.z, 13,
-			31 - ((rnd >> 4) & 3),
-			24 - ((rnd >> 6) & 3),
-			rnd & 7);
+			255 - ((rnd >> 4) & 0x1F),
+			192 - ((rnd >> 6) & 0x1F),
+			rnd & 0x3F);
 	}
 
 	void InitializePunk(short itemNumber)
@@ -153,7 +156,9 @@ namespace TEN::Entities::Creatures::TR3
 		InitializeCreature(itemNumber);
 		SetAnimation(item, PUNK_STOP_ANIM);
 
-		item.ItemFlags[2] = item.TriggerFlags;
+		// Legacy OCB works as fallback default (OCB N = flame lit, Lara set on fire on Nth landed hit).
+		item.ItemFlags[2] = PropertyHandler::Get(item, PropName_FlameEnabled, item.TriggerFlags != 0) ? 1 : 0;
+		item.ItemFlags[3] = PropertyHandler::Get(item, PropName_FlameAttackHitCount, (int)item.TriggerFlags);
 	}
 
 	void ControlPunk(short itemNumber)
@@ -434,11 +439,14 @@ namespace TEN::Entities::Creatures::TR3
 					CreatureEffect(item, PunkHitBite, DoBloodSplat);
 					SoundEffect(SFX_TR4_LARA_THUD, &item->Pose);
 
-					// Flaming torch logic.
-					if (item->ItemFlags[2] == 1)
-						ItemBurn(creature->Enemy);
-					else if (item->ItemFlags[2] > 1)
-						item->ItemFlags[2]--;
+					// Flaming flare logic: Lara catches fire on Nth landed hit (and later ones); 0 = never.
+					if (item->ItemFlags[2] && item->ItemFlags[3])
+					{
+						if (item->ItemFlags[3] == 1)
+							ItemBurn(creature->Enemy);
+						else
+							item->ItemFlags[3]--;
+					}
 
 					creature->Flags = 1;
 				}
@@ -460,11 +468,14 @@ namespace TEN::Entities::Creatures::TR3
 					CreatureEffect(item, PunkHitBite, DoBloodSplat);
 					SoundEffect(SFX_TR4_LARA_THUD, &item->Pose);
 
-					// Flaming torch logic.
-					if (item->ItemFlags[2] == 1)
-						ItemBurn(creature->Enemy);
-					else if (item->ItemFlags[2] > 1)
-						item->ItemFlags[2]--;
+					// Flaming flare logic: Lara catches fire on Nth landed hit (and later ones); 0 = never.
+					if (item->ItemFlags[2] && item->ItemFlags[3])
+					{
+						if (item->ItemFlags[3] == 1)
+							ItemBurn(creature->Enemy);
+						else
+							item->ItemFlags[3]--;
+					}
 
 					creature->Flags = 1;
 				}
@@ -489,11 +500,14 @@ namespace TEN::Entities::Creatures::TR3
 					CreatureEffect(item, PunkHitBite, DoBloodSplat);
 					SoundEffect(SFX_TR4_LARA_THUD, &item->Pose);
 
-					// Flaming torch logic.
-					if (item->ItemFlags[2] == 1)
-						ItemBurn(creature->Enemy);
-					else if (item->ItemFlags[2] > 1)
-						item->ItemFlags[2]--;
+					// Flaming flare logic: Lara catches fire on Nth landed hit (and later ones); 0 = never.
+					if (item->ItemFlags[2] && item->ItemFlags[3])
+					{
+						if (item->ItemFlags[3] == 1)
+							ItemBurn(creature->Enemy);
+						else
+							item->ItemFlags[3]--;
+					}
 
 					creature->Flags = 2;
 				}
