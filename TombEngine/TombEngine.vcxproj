@@ -465,6 +465,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Game\effects\explosion.h" />
     <ClInclude Include="Game\effects\item_fx.h" />
     <ClInclude Include="Game\effects\simple_particle.h" />
+    <ClInclude Include="Game\effects\ParticleGroup.h" />
     <ClInclude Include="Game\effects\smoke.h" />
     <ClInclude Include="Game\effects\spark.h" />
     <ClInclude Include="Game\effects\tomb4fx.h" />
@@ -944,6 +945,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\Effects\BlendIDs.h" />
     <ClInclude Include="Scripting\Internal\TEN\Effects\EffectIDs.h" />
     <ClInclude Include="Scripting\Internal\TEN\Effects\EffectsFunctions.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Effects\ParticleGroupFunctions.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\Settings\Settings.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\FlowHandler.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\Fog\Fog.h" />
@@ -1079,6 +1081,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Game\effects\Light.cpp" />
     <ClCompile Include="Game\effects\Ripple.cpp" />
     <ClCompile Include="Game\effects\simple_particle.cpp" />
+    <ClCompile Include="Game\effects\ParticleGroup.cpp" />
     <ClCompile Include="Game\effects\smoke.cpp" />
     <ClCompile Include="Game\effects\spark.cpp" />
     <ClCompile Include="Game\effects\Splash.cpp" />
@@ -1457,6 +1460,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Scripting\Internal\TEN\View\DisplaySprite\ScriptDisplaySprite.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Objects\Material\MaterialObject.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Effects\EffectsFunctions.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Effects\ParticleGroupFunctions.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\Settings\Settings.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\FlowHandler.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Flow\Fog\Fog.cpp" />
