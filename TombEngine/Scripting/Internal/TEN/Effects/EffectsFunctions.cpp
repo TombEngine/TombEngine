@@ -15,6 +15,7 @@
 #include "Game/effects/Streamer.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
+#include "Game/room.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Utils/object_helper.h"
@@ -23,16 +24,17 @@
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Effects/BlendIDs.h"
 #include "Scripting/Internal/TEN/Effects/EffectIDs.h"
-#include "Scripting/Internal/TEN/Effects/ParticleAnimTypes.h"
 #include "Scripting/Internal/TEN/Effects/FeatherModes.h"
+#include "Scripting/Internal/TEN/Effects/ParticleAnimTypes.h"
+#include "Scripting/Internal/TEN/Effects/ParticleGroupFunctions.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Specific/trutils.h"
-#include <Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h>
 
 
 /// Functions to generate effects.
@@ -858,6 +860,9 @@ namespace TEN::Scripting::Effects
 		tableEffects.set_function(ScriptReserved_MakeExplosion, &MakeExplosion);
 		tableEffects.set_function(ScriptReserved_MakeEarthquake, &Earthquake);
 		tableEffects.set_function(ScriptReserved_GetWind, &GetWind);
+
+		// Particle groups.
+		ParticleGroups::LuaParticleGroup::Register(tableEffects);
 
 		auto handler = LuaHandler(state);
 		handler.MakeReadOnlyTable(tableEffects, ScriptReserved_BlendID, BLEND_IDS);

@@ -14,7 +14,8 @@
 #include "Game/effects/hair.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
-#include "Game/gui.h"
+#include "Game/effects/ParticleGroup.h"
+#include "Game/Gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -756,6 +757,166 @@ namespace TEN::Renderer
 								if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
 									continue;
 	
+								DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
+
+								_numMoveablesDrawCalls++;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void Renderer::DrawParticleGroupMeshes(RenderView& view, RendererPass rendererPass)
+	{
+		using namespace TEN::Effects::ParticleGroups;
+
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
+		for (const auto& group : ParticleGroupList)
+		{
+			if (!group.Active)
+				continue;
+
+			if (!group.IsMeshGroup())
+				continue;
+
+			if (!Objects[group.ObjectID].loaded)
+				continue;
+
+			if (!_moveableObjects[group.ObjectID].has_value())
+				continue;
+
+			if (rendererPass == RendererPass::CollectTransparentFaces)
+			{
+				for (const auto& p : group.Particles)
+				{
+					if (!p.Active)
+						continue;
+
+					float dist = Vector3::Distance(p.Position, view.Camera.WorldPosition);
+					if (dist > DEFAULT_RENDER_DISTANCE)
+						continue;
+
+					// Validate per-particle object ID (if overridden).
+					if (!Objects[p.ObjectID].loaded)
+						continue;
+
+					// Ensure it's a moveable (positive nmeshes) with valid mesh data.
+					if (Objects[p.ObjectID].nmeshes <= 0)
+						continue;
+
+					if (!_moveableObjects[p.ObjectID].has_value())
+						continue;
+
+					int clampedMeshIndex = std::clamp(p.SubIndex, 0, Objects[p.ObjectID].nmeshes - 1);
+					auto& mesh = *GetMesh(Objects[p.ObjectID].meshIndex + clampedMeshIndex);
+
+					for (auto& bucket : mesh.Buckets)
+					{
+						if (!IsSortedBlendMode(bucket.BlendMode))
+							continue;
+
+						for (auto& poly : bucket.Polygons)
+						{
+							auto worldMatrix = Matrix::Lerp(p.PrevTransform, p.Transform, GetInterpolationFactor());
+							auto center = Vector3::Transform(poly.Centre, worldMatrix);
+							float polyDist = Vector3::Distance(center, view.Camera.WorldPosition);
+
+							auto object = RendererSortableObject{};
+							object.ObjectType = RendererObjectType::MoveableAsStatic;
+							object.Centre = center;
+							object.Distance = polyDist;
+							object.BlendMode = bucket.BlendMode;
+							object.Bucket = &bucket;
+							object.LightMode = mesh.LightMode;
+							object.Polygon = &poly;
+							object.World = worldMatrix;
+							object.Room = &_rooms[p.RoomNumber];
+
+							view.TransparentObjectsToDraw.push_back(object);
+						}
+					}
+				}
+			}
+			else
+			{
+				bool doesActiveParticleExist = false;
+				for (const auto& p : group.Particles)
+				{
+					if (p.Active)
+					{
+						doesActiveParticleExist = true;
+						break;
+					}
+				}
+
+				if (!doesActiveParticleExist)
+					continue;
+
+				if (rendererPass == RendererPass::GBuffer)
+				{
+					_shaders.Bind(Shader::GBuffer);
+					_shaders.Bind(Shader::GBufferInstancedStatics);
+				}
+				else
+				{
+					_shaders.Bind(Shader::InstancedStatics);
+				}
+
+				_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+				_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+
+				for (const auto& p : group.Particles)
+				{
+					if (!p.Active)
+						continue;
+
+					float dist = Vector3::Distance(p.Position, view.Camera.WorldPosition);
+					if (dist > DEFAULT_RENDER_DISTANCE)
+						continue;
+
+					// Validate per-particle object ID (if overridden).
+					if (!Objects[p.ObjectID].loaded)
+						continue;
+
+					// Ensure it's a moveable (positive nmeshes) with valid mesh data.
+					if (Objects[p.ObjectID].nmeshes <= 0)
+						continue;
+
+					if (!_moveableObjects[p.ObjectID].has_value())
+						continue;
+
+					int clampedMeshIndex = std::clamp(p.SubIndex, 0, Objects[p.ObjectID].nmeshes - 1);
+					const auto& mesh = *GetMesh(Objects[p.ObjectID].meshIndex + clampedMeshIndex);
+
+					_stObjects.Objects[0].World = Matrix::Lerp(p.PrevTransform, p.Transform, GetInterpolationFactor());
+					_stObjects.Objects[0].Color = Vector4(p.ParticleColor.R(), p.ParticleColor.G(), p.ParticleColor.B(), p.ParticleColor.A());
+					_stObjects.Objects[0].AmbientLight = _rooms[p.RoomNumber].AmbientLight;
+					_stObjects.Objects[0].LightMode = (int)mesh.LightMode;
+
+					if (rendererPass != RendererPass::GBuffer)
+						BindInstancedStaticLights(_rooms[p.RoomNumber].LightsToDraw, 0);
+
+					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+					for (int animated = 0; animated < 2; animated++)
+					{
+						for (const auto& bucket : mesh.Buckets)
+						{
+							if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+								continue;
+
+							BindBucketTextures(bucket, TextureSource::Moveables, animated);
+							BindMaterial(bucket.MaterialIndex, false);
+
+							int passCount = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
+							for (int pass = 0; pass < passCount; pass++)
+							{
+								if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, pass))
+									continue;
+
 								DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
 
 								_numMoveablesDrawCalls++;
@@ -1827,6 +1988,7 @@ namespace TEN::Renderer
 		PrepareSmokes(view);
 		PrepareSmokeParticles(view);
 		PrepareSimpleParticles(view);
+		PrepareParticleGroups(view);
 		PrepareSparkParticles(view);
 		PrepareExplosionParticles(view);
 		PrepareFootprints(view);
@@ -2424,6 +2586,7 @@ namespace TEN::Renderer
 				DrawRats(view, pass);
 				DrawLocusts(view, pass);
 				DrawFishSwarm(view, pass);
+				DrawParticleGroupMeshes(view, pass);
 			}
 			else if (player)
 			{
