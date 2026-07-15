@@ -574,13 +574,23 @@ namespace TEN::Renderer
 							nodePos.z = NodeOffsets[particle.nodeNumber].z;
 
 							int meshIndex = NodeOffsets[particle.nodeNumber].meshNum;
-							if (meshIndex >= 0)
+							if (meshIndex < 0)
 							{
-								nodePos = GetJointPosition(item, meshIndex, nodePos);
+								item = LaraItem;
+								meshIndex = -meshIndex;
+							}
+
+							// Transform offset by interpolated bone matrices so attached particles
+							// stay aligned with the drawn mesh during movement and rotation.
+							const auto& rendererItem = _items[item->Index];
+							if (rendererItem.DoneAnimations)
+							{
+								auto world = rendererItem.InterpolatedAnimationTransforms[meshIndex] * rendererItem.InterpolatedWorld;
+								nodePos = Vector3i(Vector3::Transform(nodePos.ToVector3(), world));
 							}
 							else
 							{
-								nodePos = GetJointPosition(LaraItem, -meshIndex, nodePos);
+								nodePos = GetJointPosition(item, meshIndex, nodePos);
 							}
 
 							NodeOffsets[particle.nodeNumber].itemNumber = particle.fxObj;
