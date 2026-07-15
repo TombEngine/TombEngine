@@ -19,6 +19,7 @@
 #include "Game/effects/hair.h"
 #include "Game/effects/Ripple.h"
 #include "Game/effects/simple_particle.h"
+#include "Game/effects/ParticleGroup.h"
 #include "Game/effects/smoke.h"
 #include "Game/effects/spark.h"
 #include "Game/effects/Splash.h"
@@ -81,6 +82,7 @@ using namespace TEN::Effects::Explosion;
 using namespace TEN::Effects::Fireflies;
 using namespace TEN::Effects::Footprint;
 using namespace TEN::Effects::Hair;
+using namespace TEN::Effects::ParticleGroups;
 using namespace TEN::Effects::Ripple;
 using namespace TEN::Effects::Smoke;
 using namespace TEN::Effects::Spark;
@@ -168,6 +170,9 @@ GameStatus GamePhase(bool insideMenu)
 	// Controls are polled before OnLoop to allow input data to be overwritten by script API methods.
 	HandleControls(isTitle);
 
+	// Snapshot particle group positions before Lua moves them so the renderer can interpolate.
+	StoreParticleGroupsInterpolationData();
+
 	// Pre-loop script and event handling.
 	g_GameScript->OnLoop(DELTA_TIME, false); // TODO: Don't use DELTA_TIME constant with high framerate.
 
@@ -219,6 +224,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateSparkParticles();
 	UpdateSmokeParticles();
 	UpdateSimpleParticles();
+	UpdateParticleGroups();
 	UpdateExplosionParticles();
 	UpdateShockwaves();
 	UpdateBeetleSwarm();

@@ -78,6 +78,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 * Added ring inventory module.
 * Added photo mode module.
+* Added `Effects.ParticleGroup` class for managing particles via lua.
 * Added loading of the `Scripts/Autoexec.lua` script file before every level script is loaded.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
 * Added `includePlayer` argument for `Collision.Ray` class to detect collisions with Lara.
