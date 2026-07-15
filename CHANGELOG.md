@@ -41,7 +41,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added HYBRID_MUTANT (ID 301) object from TR3.
 * Added OILRED (ID 302) object from TR3.
 * Added WHITE_SOLDIER (ID 303) object from TR3.
-* Added PUNK (ID 304) object from TR3.
+* Added PUNK (ID 304) object from TR3. Object supports properties to configure the flame attack.
 * Added LONDON_MERCENARY (ID 305) object from TR3.
 * Added SWAT_GUN (ID 306) object from TR3.
 * Added PRISONER (ID 307) object from TR3.
