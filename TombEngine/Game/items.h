@@ -109,20 +109,8 @@ struct MoveableModelData
 	int SkinObjectID  = NO_VALUE;
 	int SkinSwapIndex = NO_VALUE;
 
-	struct JointRotationOverride
-	{
-		Quaternion Rotation  = Quaternion::Identity;
-		int		   FrameStamp = NO_VALUE;
-
-		bool IsActive(int frame) const
-		{
-			return (FrameStamp == frame);
-		}
-	};
-
 	std::vector<int>		 MeshIndex = {};
 	std::vector<BoneMutator> Mutators = {};
-	std::vector<JointRotationOverride> JointRotations = {};
 
 	Vector4 Color = Vector4::Zero;
 

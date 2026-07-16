@@ -461,22 +461,18 @@ Rotation Moveable::GetRotation() const
 	};
 }
 
-/// Set the moveable's joint rotation for the current game frame.
+/// Set the moveable's joint rotation. The rotation is added on top of the joint's base animation rotation.
+// Set Rotation(0, 0, 0) to reset the joint rotation back to its default.
 // @function Moveable:SetJointRotation
-// @tparam int jointIndex Index of a joint to override.
-// @tparam Rotation rotation Joint rotation override.
+// @tparam int jointIndex Index of a joint to rotate.
+// @tparam Rotation rotation Joint rotation to add.
 void Moveable::SetJointRotation(int jointId, const Rotation& rot)
 {
 	if (!MeshExists(jointId))
 		return;
 
-	auto meshCount = Objects[_moveable->ObjectNumber].nmeshes;
-	if (_moveable->Model.JointRotations.size() != meshCount)
-		_moveable->Model.JointRotations.resize(meshCount);
 
-	auto& jointRotation = _moveable->Model.JointRotations[jointId];
-	jointRotation.Rotation = rot.ToEulerAngles().ToQuaternion();
-	jointRotation.FrameStamp = (GlobalCounter + 1);
+	_moveable->Model.Mutators[jointId].ExtraRotation = rot.ToEulerAngles();
 }
 
 /// Set the moveable's rotation.

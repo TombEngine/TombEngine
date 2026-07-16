@@ -819,6 +819,11 @@ const std::vector<unsigned char> SaveGame::Build()
 		for (auto p : itemToSerialize.Model.MeshIndex)
 			meshPointers.push_back(p);
 		auto meshPointerOffset = fbb.CreateVector(meshPointers);
+
+		std::vector<TEN::Serialization::Common::EulerAngles> mutatorRotations;
+		for (auto& mutator : itemToSerialize.Model.Mutators)
+			mutatorRotations.push_back(FromEulerAngles(mutator.ExtraRotation));
+		auto mutatorRotationsOffset = fbb.CreateVectorOfStructs(mutatorRotations);
 				
 		flatbuffers::Offset<Save::Creature> creatureOffset;
 		flatbuffers::Offset<Save::QuadBike> quadOffset;
@@ -1034,6 +1039,7 @@ const std::vector<unsigned char> SaveGame::Build()
 		serializedItem.add_mesh_bits(itemToSerialize.MeshBits.ToPackedBits());
 		serializedItem.add_base_mesh(itemToSerialize.Model.BaseMesh);
 		serializedItem.add_mesh_index(meshPointerOffset);
+		serializedItem.add_mutator_rotations(mutatorRotationsOffset);
 		serializedItem.add_skin_object_id(itemToSerialize.Model.SkinObjectID);
 		serializedItem.add_skin_swap_index(itemToSerialize.Model.SkinSwapIndex);
 		serializedItem.add_object_id(itemToSerialize.ObjectNumber);
@@ -2791,6 +2797,13 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		item->Model.MeshIndex.resize(savedItem->mesh_index()->size());
 		for (int j = 0; j < savedItem->mesh_index()->size(); j++)
 			item->Model.MeshIndex[j] = savedItem->mesh_index()->Get(j);
+
+		if (savedItem->mutator_rotations() != nullptr)
+		{
+			item->Model.Mutators.resize(savedItem->mutator_rotations()->size());
+			for (int j = 0; j < (int)savedItem->mutator_rotations()->size(); j++)
+				item->Model.Mutators[j].ExtraRotation = ToEulerAngles(savedItem->mutator_rotations()->Get(j));
+		}
 
 		// Flags and timers
 		for (int j = 0; j < ITEM_FLAG_COUNT; j++)

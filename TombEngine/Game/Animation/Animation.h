@@ -90,9 +90,10 @@ namespace TEN::Animation
 
 	struct BoneMutator
 	{
-		Vector3     Offset   = Vector3::Zero;
-		EulerAngles Rotation = EulerAngles::Identity;
-		Vector3     Scale    = Vector3::One;
+		Vector3     Offset        = Vector3::Zero;
+		EulerAngles Rotation      = EulerAngles::Identity;
+		EulerAngles ExtraRotation = EulerAngles::Identity;
+		Vector3     Scale         = Vector3::One;
 
 		bool IsEmpty() const;
 	};

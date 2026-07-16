@@ -169,6 +169,7 @@ namespace TEN::Animation
 	{
 		return (Offset == Vector3::Zero &&
 				Rotation == EulerAngles::Identity &&
+				ExtraRotation == EulerAngles::Identity &&
 				Scale == Vector3::One);
 	};
 

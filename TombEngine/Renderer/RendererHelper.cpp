@@ -105,12 +105,6 @@ namespace TEN::Renderer
 
 				auto translationMatrix = (bone == rendererObject.Skeleton) ? Matrix::CreateTranslation(rootPos) : Matrix::Identity;
 				auto extraRotation = bone->ExtraRotation;
-				if (nativeItem != nullptr && bone->Index < nativeItem->Model.JointRotations.size())
-				{
-					const auto& jointRotation = nativeItem->Model.JointRotations[bone->Index];
-					if (jointRotation.IsActive(GlobalCounter))
-						extraRotation = jointRotation.Rotation;
-				}
 
 				auto extraRotMatrix = Matrix::CreateFromQuaternion(extraRotation);
 
@@ -151,10 +145,11 @@ namespace TEN::Renderer
 					if (mutator.IsEmpty())
 						continue;
 
+					auto extraRotMatrix = mutator.ExtraRotation.ToRotationMatrix();
 					auto rotMatrix = mutator.Rotation.ToRotationMatrix();
 					auto scaleMatrix = Matrix::CreateScale(mutator.Scale);
 					auto translationMatrix = Matrix::CreateTranslation(mutator.Offset);
-					transforms[i] = ((rotMatrix * scaleMatrix) * translationMatrix) * transforms[i];
+					transforms[i] = ((extraRotMatrix * rotMatrix * scaleMatrix) * translationMatrix) * transforms[i];
 				}
 			}
 		}

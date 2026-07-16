@@ -103,6 +103,7 @@ table Item {
 	
 	base_mesh: int32;
 	mesh_index: [int32];
+	mutator_rotations: [TEN.Serialization.Common.EulerAngles];
 	skin_object_id: int32;
 	skin_swap_index: int32;
 
