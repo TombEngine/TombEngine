@@ -103,6 +103,7 @@ static std::unique_ptr<Moveable> Create(GAME_OBJECT_ID objID, const std::string&
 		scriptMov->SetRoomNumber(roomNumber);
 
 		scriptMov->SetRotation(ValueOr<Rotation>(rot, Rotation()));
+		scriptMov->SetScale(Vector3::One);
 		scriptMov->Initialize();
 
 		if (std::holds_alternative<int>(animNumber))

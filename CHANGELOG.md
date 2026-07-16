@@ -119,6 +119,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
 * Renamed `Snow`, `Rain` and `None` entries in `Flow.WeatherType` enum to `SNOW`, `RAIN` and `NONE`.
+* Fixed scale initialization while spawning new `Moveable` via script.
 * Fixed incorrect error message when using `Moveable:SetFrame` with a frame number equal to the end frame.
 * Fixed glide camera movement when entering or exiting freeze mode.
 * Fixed `View.DisplayString` not working in the title level.
