@@ -93,7 +93,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Flow.Settings.UI.systemTextScale` option to change global system text scale.
 * Added `Input.GetLastInputDevice` function to detect which input device was used last.
 * Added functional key (F1-F12) mappings and raw gamepad input mappings to the `Input.ActionID` and `Input.AxisID` enums.
-* Added `Moveable:SetJointRotation` to set joint rotation for a single frame.
+* Added `Moveable:SetJointRotation` to set joint rotation for moveables.
 * Added `Lara:GetExposure` and `Lara:SetExposure` functions to get or set cold exposure value.
 * Added `Lara:GetLocked` and `Lara:SetLocked` to manage native control lock status.
 * Added `Lara:GetSkin` and `Lara:SetSkin` functions to manage swapping of classic outfits.
