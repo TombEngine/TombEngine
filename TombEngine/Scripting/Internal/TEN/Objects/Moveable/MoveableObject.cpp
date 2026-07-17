@@ -103,6 +103,7 @@ static std::unique_ptr<Moveable> Create(GAME_OBJECT_ID objID, const std::string&
 		scriptMov->SetRoomNumber(roomNumber);
 
 		scriptMov->SetRotation(ValueOr<Rotation>(rot, Rotation()));
+		scriptMov->SetScale(Vector3::One);
 		scriptMov->Initialize();
 
 		if (std::holds_alternative<int>(animNumber))
@@ -149,6 +150,9 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_GetPosition, &Moveable::GetPosition,
 		ScriptReserved_GetJointPosition, &Moveable::GetJointPos,
 		ScriptReserved_GetJointRotation, &Moveable::GetJointRot,
+		ScriptReserved_GetJointOffset, &Moveable::GetJointOffset,
+		ScriptReserved_GetJointScale, &Moveable::GetJointScale,
+		ScriptReserved_GetAdditionalJointRotation, &Moveable::GetAdditionalJointRotation,
 		ScriptReserved_GetRoom, &Moveable::GetRoom,
 		ScriptReserved_GetRoomNumber, &Moveable::GetRoomNumber,
 		ScriptReserved_GetRotation, &Moveable::GetRotation,
@@ -183,6 +187,10 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_SetPosition, &Moveable::SetPosition,
 		ScriptReserved_SetScale, &Moveable::SetScale,
 		ScriptReserved_SetRoomNumber, &Moveable::SetRoomNumber,
+		ScriptReserved_SetJointRotation, &Moveable::SetJointRotation,
+		ScriptReserved_SetJointOffset, &Moveable::SetJointOffset,
+		ScriptReserved_SetJointScale, &Moveable::SetJointScale,
+		ScriptReserved_SetAdditionalJointRotation, &Moveable::SetAdditionalJointRotation,
 		ScriptReserved_SetRotation, &Moveable::SetRotation,
 		ScriptReserved_SetColor, &Moveable::SetColor,
 		ScriptReserved_SetVisible, &Moveable::SetVisible,
@@ -458,6 +466,123 @@ Rotation Moveable::GetRotation() const
 		TO_DEGREES(_moveable->Pose.Orientation.y),
 		TO_DEGREES(_moveable->Pose.Orientation.z)
 	};
+}
+
+/// Set the moveable's joint rotation. The rotation is added on top of the joint's base animation rotation.
+// Set Rotation(0, 0, 0) to reset the joint rotation back to its default.
+// @function Moveable:SetJointRotation
+// @tparam int jointIndex Index of a joint to rotate.
+// @tparam Rotation rotation Joint rotation to add.
+void Moveable::SetJointRotation(int jointId, const Rotation& rot)
+{
+	if (!MeshExists(jointId))
+		return;
+
+	auto meshCount = Objects[_moveable->ObjectNumber].nmeshes;
+	if (_moveable->Model.Mutators.size() != meshCount)
+		_moveable->Model.Mutators.resize(meshCount);
+
+	_moveable->Model.Mutators[jointId].Rotation = rot.ToEulerAngles();
+}
+
+/// Get the moveable's joint offset.
+// @function Moveable:GetJointOffset
+// @tparam int jointIndex Index of a joint.
+// @treturn Vec3 Joint offset.
+Vec3 Moveable::GetJointOffset(int jointId) const
+{
+	if (!MeshExists(jointId))
+		return Vec3();
+
+	if (jointId >= _moveable->Model.Mutators.size())
+		return Vec3();
+
+	return Vec3(_moveable->Model.Mutators[jointId].Offset);
+}
+
+/// Set the moveable's joint offset.
+// @function Moveable:SetJointOffset
+// @tparam int jointIndex Index of a joint.
+// @tparam Vec3 offset Joint offset to set.
+void Moveable::SetJointOffset(int jointId, const Vec3& offset)
+{
+	if (!MeshExists(jointId))
+		return;
+
+	auto meshCount = Objects[_moveable->ObjectNumber].nmeshes;
+	if (_moveable->Model.Mutators.size() != meshCount)
+		_moveable->Model.Mutators.resize(meshCount);
+
+	_moveable->Model.Mutators[jointId].Offset = offset.ToVector3();
+}
+
+/// Get the moveable's joint scale.
+// @function Moveable:GetJointScale
+// @tparam int jointIndex Index of a joint.
+// @treturn Vec3 Joint scale.
+Vec3 Moveable::GetJointScale(int jointId) const
+{
+	if (!MeshExists(jointId))
+		return Vec3(1.0f, 1.0f, 1.0f);
+
+	if (jointId >= _moveable->Model.Mutators.size())
+		return Vec3(1.0f, 1.0f, 1.0f);
+
+	return Vec3(_moveable->Model.Mutators[jointId].Scale);
+}
+
+/// Set the moveable's joint scale.
+// @function Moveable:SetJointScale
+// @tparam int jointIndex Index of a joint.
+// @tparam Vec3 scale Joint scale to set.
+void Moveable::SetJointScale(int jointId, const Vec3& scale)
+{
+	if (!MeshExists(jointId))
+		return;
+
+	auto meshCount = Objects[_moveable->ObjectNumber].nmeshes;
+	if (_moveable->Model.Mutators.size() != meshCount)
+		_moveable->Model.Mutators.resize(meshCount);
+
+	_moveable->Model.Mutators[jointId].Scale = scale.ToVector3();
+}
+
+/// Get the moveable's additional joint rotation.
+// @function Moveable:GetAdditionalJointRotation
+// @tparam int jointIndex Index of a joint.
+// @treturn Rotation Additional joint rotation.
+Rotation Moveable::GetAdditionalJointRotation(int jointId) const
+{
+	if (!MeshExists(jointId))
+		return Rotation();
+
+	if (jointId >= _moveable->Model.Mutators.size())
+		return Rotation();
+
+	const auto& eulers = _moveable->Model.Mutators[jointId].Rotation;
+	return
+	{
+		TO_DEGREES(eulers.x),
+		TO_DEGREES(eulers.y),
+		TO_DEGREES(eulers.z)
+	};
+}
+
+/// Set the moveable's additional joint rotation. The rotation is added on top of the joint's base animation rotation.
+// Set Rotation(0, 0, 0) to reset the joint rotation back to its default.
+// @function Moveable:SetAdditionalJointRotation
+// @tparam int jointIndex Index of a joint to rotate.
+// @tparam Rotation rotation Additional joint rotation to add.
+void Moveable::SetAdditionalJointRotation(int jointId, const Rotation& rot)
+{
+	if (!MeshExists(jointId))
+		return;
+
+	auto meshCount = Objects[_moveable->ObjectNumber].nmeshes;
+	if (_moveable->Model.Mutators.size() != meshCount)
+		_moveable->Model.Mutators.resize(meshCount);
+
+	_moveable->Model.Mutators[jointId].Rotation = rot.ToEulerAngles();
 }
 
 /// Set the moveable's rotation.

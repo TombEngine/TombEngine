@@ -1745,7 +1745,9 @@ namespace TEN::Renderer
 			if (!group.Active)
 				continue;
 
-			if (!CheckIfSlotExists(group.ObjectID, "ParticleGroup rendering"))
+			// Silent check: object validity is already reported by CreateParticleGroup and
+			// SetObjectID; logging here would spam the log every frame.
+			if (!Objects[group.ObjectID].loaded)
 				continue;
 
 			// Mesh groups are rendered via DrawParticleGroupMeshes().

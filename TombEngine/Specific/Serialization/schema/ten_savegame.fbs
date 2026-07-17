@@ -68,6 +68,12 @@ table ItemCallback {
 	name: string;
 }
 
+struct MutatorData {
+	offset: TEN.Serialization.Common.Vector3;
+	rotation: TEN.Serialization.Common.EulerAngles;
+	scale: TEN.Serialization.Common.Vector3;
+}
+
 table Item {
 	anim_object_id: int32;
 	active_state: int32;
@@ -103,6 +109,7 @@ table Item {
 	
 	base_mesh: int32;
 	mesh_index: [int32];
+	mutators: [MutatorData];
 	skin_object_id: int32;
 	skin_swap_index: int32;
 
