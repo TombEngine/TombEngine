@@ -8,21 +8,21 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### New features
 
 * Added a property system for moveables, static meshes and materials that is intended to supersede the legacy OCB system.
+* Added optional headlight mesh support for JEEP, toggled together with the headlight.
 * Added heat haze for flame emitters and effects.
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
 * Added native support for DualShock, DualSense and Switch Pro controllers.
 * Added animation blending support and blended transitions for hardcoded animation changes.
 * Added root motion support.
-* Added DISK_SHOOTER (ID 322) object from TR2.
-* Added FAN (ID 470) object from TR3.
-* Added LARGE_FAN (ID 471) object from TR2.
-* Added FALLING_SPIKES (ID 472) from TR2.
-* Added TUNNEL_BORER (ID 473) object from TR3.
-* Added AIRPLANE_PROPELLER (ID 474) from TR2.
-* Added ROTATING_KNIFE_DISK (ID 475) object from TR3.
-* Added UNDERWATER_MINE (ID 476) from TR2.
-* Added FALLING_SANDBAG (ID 477) from TR2.
+* Added [DISK_SHOOTER](https://tombengine.com/asset/traps/disk-shooter/) object from TR2.
+* Added [FAN](https://tombengine.com/asset/traps/fan/) object from TR3.
+* Added [LARGE_FAN](https://tombengine.com/asset/traps/large-fan/) object from TR2.
+* Added [FALLING_SPIKES](https://tombengine.com/asset/traps/falling-spikes/) from TR2.
+* Added [TUNNEL_BORER](https://tombengine.com/asset/traps/tunnel-borer/) object from TR3.
+* Added [AIRPLANE_PROPELLER](https://tombengine.com/asset/traps/airplane-propeller/) from TR2.
+* Added [ROTATING_KNIFE_DISK](https://tombengine.com/asset/traps/rotating-knife-disk/) object from TR3.
+* Added [FALLING_SANDBAG](https://tombengine.com/asset/traps/falling-sandbag/) from TR2.
 * Added WRAITH4 object. Object supports properties to create custom wraiths.
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
 * Added [DRILL_BIT](https://tombengine.com/asset/traps/drill-bit/) object from TR3.
@@ -95,6 +95,9 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Flow.Settings.UI.systemTextScale` option to change global system text scale.
 * Added `Input.GetLastInputDevice` function to detect which input device was used last.
 * Added functional key (F1-F12) mappings and raw gamepad input mappings to the `Input.ActionID` and `Input.AxisID` enums.
+* Added `Moveable:SetAdditionalJointRotation` and `Moveable:GetAdditionalJointRotation`to add joint rotation for moveables.
+* Added `Moveable:SetJointScale` and `Moveable:GetJointScale`to set scale joints for moveables.
+* Added `Moveable:SetJointOffset` and `Moveable:GetJointOffset`to add offset joints for moveables.
 * Added `Lara:GetExposure` and `Lara:SetExposure` functions to get or set cold exposure value.
 * Added `Lara:GetLocked` and `Lara:SetLocked` to manage native control lock status.
 * Added `Lara:GetSkin` and `Lara:SetSkin` functions to manage swapping of classic outfits.
@@ -120,6 +123,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
 * Renamed `Snow`, `Rain` and `None` entries in `Flow.WeatherType` enum to `SNOW`, `RAIN` and `NONE`.
+* Fixed scale initialization while spawning new `Moveable` via script.
 * Fixed incorrect error message when using `Moveable:SetFrame` with a frame number equal to the end frame.
 * Fixed glide camera movement when entering or exiting freeze mode.
 * Fixed `View.DisplayString` not working in the title level.
