@@ -49,7 +49,6 @@ namespace TEN::Renderer
 		// Push skeleton.
 		bones[nextBoneID++] = rendererObject.Skeleton;
 
-		const ItemInfo* nativeItem = (rendererItem != nullptr) ? &g_Level.Items[rendererItem->ItemNumber] : nullptr;
 		auto* transforms = (rendererItem == nullptr) ? rendererObject.AnimationTransforms.data() : &rendererItem->AnimationTransforms[0];
 
 		// Compute blend alpha.
@@ -104,10 +103,8 @@ namespace TEN::Renderer
 					rendererItem->BoneOrientations[bone->Index] = Quaternion::CreateFromRotationMatrix(rotMatrix);
 
 				auto translationMatrix = (bone == rendererObject.Skeleton) ? Matrix::CreateTranslation(rootPos) : Matrix::Identity;
-				auto extraRotation = bone->ExtraRotation;
-
-				auto extraRotMatrix = Matrix::CreateFromQuaternion(extraRotation);
-
+				auto extraRotMatrix = Matrix::CreateFromQuaternion(bone->ExtraRotation);
+				
 				if (useObjectWorldRotation)
 				{
 					auto scale = Vector3::Zero;
@@ -135,13 +132,15 @@ namespace TEN::Renderer
 		}
 
 		// Apply mutators.
-		if (nativeItem != nullptr) 
+		if (rendererItem != nullptr) 
 		{
-			if (nativeItem->Model.Mutators.size() == boneIndices.size())
+			const auto& nativeItem = g_Level.Items[rendererItem->ItemNumber];
+
+			if (nativeItem.Model.Mutators.size() == boneIndices.size())
 			{
 				for (int i : boneIndices)
 				{
-					const auto& mutator = nativeItem->Model.Mutators[i];
+					const auto& mutator = nativeItem.Model.Mutators[i];
 					if (mutator.IsEmpty())
 						continue;
 
