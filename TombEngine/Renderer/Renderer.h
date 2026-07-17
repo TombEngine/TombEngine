@@ -213,6 +213,7 @@ namespace TEN::Renderer
 		RendererViewport _viewport;
 		RendererViewport _distortionViewport;
 		RendererViewport _dofViewport;
+		RendererViewport _SSAOViewport;
 		RendererViewport _shadowMapViewport;
 
 		// Text
