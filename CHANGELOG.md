@@ -8,11 +8,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### New features
 
 * Added a property system for moveables, static meshes and materials that is intended to supersede the legacy OCB system.
-* Added wake effect toggle and color properties for all vehicles.
-* Added mist effect toggle and color properties for SPEEDBOAT, RUBBER_BOAT and UPV.
-* Added foam effect toggle property for SPEEDBOAT.
-* Added exhaust smoke color properties for QUAD.
-* Added headlight properties (color, intensity, radius, falloff, distance and shadow casting) for UPV, MOTORBIKE and JEEP.
 * Added optional headlight mesh support for JEEP, toggled together with the headlight.
 * Added heat haze for flame emitters and effects.
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
