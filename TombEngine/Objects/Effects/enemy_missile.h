@@ -18,5 +18,6 @@ namespace TEN::Entities::Effects
 	};
 
 	void ControlEnemyMissile(short fxNumber);
+	void SpawnWillardScatterPlasmaBall(const Vector3i& pos, int roomNumber, short yaw, short type);
 	void TriggerWillardPlasmaBallFlame(short fxNumber, short xVel, short yVel, short zVel);
 }

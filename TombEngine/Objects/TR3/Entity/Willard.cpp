@@ -6,6 +6,7 @@
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"
+#include "Game/effects/Light.h"
 #include "Game/effects/tomb4fx.h"
 #include "Objects/Effects/Boss.h"
 #include "Game/items.h"
@@ -23,6 +24,7 @@
 using namespace TEN::Animation;
 using namespace TEN::Math;
 using namespace TEN::Effects::Boss;
+using namespace TEN::Effects::Light;
 using namespace TEN::Entities::Effects;
 using namespace TEN::Utils;
 
@@ -58,6 +60,11 @@ namespace TEN::Entities::Creatures::TR3
 
 	const auto WillardBloodSplatFramesLeft  = std::vector<int>{ 0, 43, 95, 105 };
 	const auto WillardBloodSplatFramesRight = std::vector<int>{ 61, 91, 101 };
+
+	const auto WillardExplosionPlasmaBallFrames = std::vector<int>{ 1, 15, 25, 35, 45, 55 };
+
+	constexpr auto WILLARD_HEAD_JOINT				 = 17;
+	constexpr auto WILLARD_SHOOT_CHARGE_INTENSITY_MAX = 16;
 
 	enum WillardState
 	{
@@ -100,6 +107,94 @@ namespace TEN::Entities::Creatures::TR3
 	};
 
 	static WillardData WillardAI;
+
+	static void SpawnWillardPlasma(int itemNumber, int nodeID, int size)
+	{
+		auto& plasma = *GetFreeParticle();
+
+		plasma.on = true;
+		plasma.sR = 48;
+		plasma.sG = 255;
+		plasma.sB = 48 + (GetRandomControl() & 31);
+
+		plasma.dR = 32;
+		plasma.dG = 192 + (GetRandomControl() & 63);
+		plasma.dB = 128 + (GetRandomControl() & 63);
+
+		plasma.colFadeSpeed = 12 + (GetRandomControl() & 3);
+		plasma.fadeToBlack = 8;
+		plasma.sLife =
+		plasma.life = (GetRandomControl() & 7) + 24;
+
+		plasma.blendMode = BlendMode::Additive;
+
+		plasma.extras = 0;
+		plasma.dynamic = -1;
+
+		plasma.x = ((GetRandomControl() & 15) - 8);
+		plasma.y = 0;
+		plasma.z = ((GetRandomControl() & 15) - 8);
+
+		plasma.xVel = ((GetRandomControl() & 31) - 16);
+		plasma.yVel = (GetRandomControl() & 7) + 8;
+		plasma.zVel = ((GetRandomControl() & 31) - 16);
+		plasma.friction = 3;
+
+		if (Random::TestProbability(1 / 2.0f))
+		{
+			plasma.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_ITEM | SP_NODEATTACH;
+			plasma.rotAng = GetRandomControl() & 4095;
+
+			if (Random::TestProbability(1 / 2.0f))
+			{
+				plasma.rotAdd = -(GetRandomControl() & 15) - 16;
+			}
+			else
+			{
+				plasma.rotAdd = (GetRandomControl() & 15) + 16;
+			}
+		}
+		else
+		{
+			plasma.flags = SP_SCALE | SP_DEF | SP_EXPDEF | SP_ITEM | SP_NODEATTACH;
+		}
+
+		plasma.gravity = (GetRandomControl() & 7) + 8;
+		plasma.maxYvel = (GetRandomControl() & 7) + 16;
+
+		plasma.fxObj = itemNumber;
+		plasma.nodeNumber = nodeID;
+
+		plasma.SpriteSeqID = ID_DEFAULT_SPRITES;
+		plasma.SpriteID = 0;
+		plasma.scalar = 1;
+		size += GetRandomControl() & 15;
+		plasma.size =
+		plasma.sSize = size;
+		plasma.dSize = size / 4;
+	}
+
+	static void SpawnWillardShootChargeEffect(ItemInfo& item)
+	{
+		// Intensity ramps up at animation start and down near its end.
+		int intensity = item.Animation.FrameNumber;
+		if (intensity > WILLARD_SHOOT_CHARGE_INTENSITY_MAX)
+		{
+			intensity = GetAnimData(item).EndFrameNumber - item.Animation.FrameNumber;
+			if (intensity > WILLARD_SHOOT_CHARGE_INTENSITY_MAX)
+				intensity = WILLARD_SHOOT_CHARGE_INTENSITY_MAX;
+		}
+
+		auto pos = GetJointPosition(&item, WILLARD_HEAD_JOINT);
+		int random = GetRandomControl();
+		unsigned char r = (intensity * (random & 0x3F)) >> 4;
+		unsigned char g = (intensity * (255 - ((random >> 4) & 0x1F))) >> 4;
+		unsigned char b = (intensity * (192 - ((random >> 6) & 0x1F))) >> 4;
+		SpawnDynamicLight(pos.x, pos.y, pos.z, 12, r, g, b);
+
+		SpawnWillardPlasma(item.Index, ParticleNodeOffsetIDs::NodeWillardBossLeftPlasma, intensity << 2);
+		SpawnWillardPlasma(item.Index, ParticleNodeOffsetIDs::NodeWillardBossRightPlasma, intensity << 2);
+	}
 
 	static void SpawnWillardPlasmaBall(ItemInfo* item, const CreatureBiteInfo& bite, short angleAdd)
 	{
@@ -326,6 +421,7 @@ namespace TEN::Entities::Creatures::TR3
 	{
 		auto& item = g_Level.Items[itemNumber];
 		InitializeCreature(itemNumber);
+		CheckForRequiredObjects(item);
 
 		WillardAI.PathCount = 0;
 		WillardAI.JunctionCount = 0;
@@ -457,6 +553,16 @@ namespace TEN::Entities::Creatures::TR3
 
 					if (item.ItemFlags[7] < 128)
 						item.ItemFlags[7]++;
+
+					// Spray plasma balls from body joints at explosion ticks.
+					if (Contains(WillardExplosionPlasmaBallFrames, (int)item.ItemFlags[7]))
+					{
+						for (int jointIndex = 0; jointIndex < 24; jointIndex += 3)
+						{
+							auto pos = GetJointPosition(&item, jointIndex);
+							SpawnWillardScatterPlasmaBall(pos, item.RoomNumber, (short)(GetRandomControl() << 1), 4);
+						}
+					}
 
 					ExplodeBoss(item, WILLARD_EXPLOSION_NUM_MAX, WILLARD_SHOCKWAVE_COLOR, WILLARD_EXPLOSION_MAIN_COLOR, WILLARD_EXPLOSION_SECOND_COLOR);
 					return;
@@ -611,6 +717,8 @@ namespace TEN::Entities::Creatures::TR3
 					SpawnWillardPlasmaBall(&item, WillardBiteLeft, ANGLE(-11.25f));
 					SpawnWillardPlasmaBall(&item, WillardBiteRight, ANGLE(11.25f));
 				}
+
+				SpawnWillardShootChargeEffect(item);
 				break;
 			}
 
