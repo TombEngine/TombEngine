@@ -4582,11 +4582,10 @@ namespace TEN::Renderer
 		_graphicsDevice->ClearRenderTarget2D(_SSAORenderTarget->GetRenderTarget(), Colors::White);
 		_graphicsDevice->BindRenderTarget(_SSAORenderTarget->GetRenderTarget(), nullptr);
 
-		// Must set correctly viewport because SSAO is done at 1/4 screen resolution.
-		RendererViewport viewport = { 0, 0, _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), 0.0f, 1.0f };
-		_graphicsDevice->SetViewport(viewport);
-		_graphicsDevice->SetScissor(viewport);
-	
+		// Must set correctly viewport because SSAO is done at quarter screen resolution.
+		_graphicsDevice->SetViewport(_SSAOViewport);
+		_graphicsDevice->SetScissor(_SSAOViewport);
+
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->SetInputLayout(_fullScreenVertexInputLayout.get());
 
@@ -4596,8 +4595,8 @@ namespace TEN::Renderer
 		BindRenderTargetAsTexture(static_cast<TextureRegister>(1), _normalsAndMaterialIndexRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 		BindTexture(static_cast<TextureRegister>(2), _SSAONoiseTexture.get(), SamplerStateRegister::PointWrap);
 
-		_stPostProcessBuffer.ViewportSize = Vector2i(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight());
-		_stPostProcessBuffer.TexelSize = Vector2(1.0f / _graphicsDevice->GetScreenWidth(), 1.0f /  _graphicsDevice->GetScreenHeight());
+		_stPostProcessBuffer.ViewportSize = Vector2i(_SSAOViewport.Width, _SSAOViewport.Height);
+		_stPostProcessBuffer.TexelSize = Vector2(1.0f / _SSAOViewport.Width, 1.0f / _SSAOViewport.Height);
 		memcpy(_stPostProcessBuffer.SSAOKernel, _SSAOKernel.data(), 16 * _SSAOKernel.size());
 		UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
 
