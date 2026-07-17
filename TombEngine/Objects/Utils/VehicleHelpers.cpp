@@ -15,6 +15,9 @@
 #include "Game/room.h"
 #include "Math/Random.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
+#include "Specific/trutils.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 
@@ -25,6 +28,7 @@ using namespace TEN::Effects::Streamer;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
@@ -267,7 +271,7 @@ namespace TEN::Entities::Vehicles
 					SoundEffect(SFX_TR4_LARA_WADE, &wadePose, SoundEnvironment::Land, isWater ? 0.8f : 0.7f);
 				}
 
-				if (isWater)
+				if (isWater && PropertyHandler::Get(vehicleItem, PropName_VehicleWake, true))
 				{
 					int waterHeight = GetPointCollision(*vehicleItem).GetWaterTopHeight();
 					SpawnVehicleWake(*vehicleItem, wakeOffset, waterHeight);
@@ -388,6 +392,9 @@ namespace TEN::Entities::Vehicles
 		constexpr auto EXP_RATE_ON_WATER   = 6.0f;
 		constexpr auto EXP_RATE_UNDERWATER = 1.5f;
 
+		Color wakeStartColor = PropertyHandler::Get(vehicleItem, PropName_VehicleWakeStartColor, ScriptColor(COLOR_START));
+		Color wakeEndColor = PropertyHandler::Get(vehicleItem, PropName_VehicleWakeEndColor, ScriptColor(COLOR_END));
+
 		// Vehicle is out of water; return early.
 		if (waterHeight == NO_HEIGHT)
 			return;
@@ -409,14 +416,14 @@ namespace TEN::Entities::Vehicles
 		// Spawn left wake.
 		StreamerEffect.Spawn(
 			vehicleItem.Index, (int)tagLeft,
-			positions.first, dir, orient2D, COLOR_START, COLOR_END,
+			positions.first, dir, orient2D, wakeStartColor, wakeEndColor,
 			0.0f, life, vel, expRate, 0,
 			StreamerFeatherMode::Right, BlendMode::Additive);
 
 		// Spawn right wake.
 		StreamerEffect.Spawn(
 			vehicleItem.Index, (int)tagRight,
-			positions.second, dir, orient2D, COLOR_START, COLOR_END,
+			positions.second, dir, orient2D, wakeStartColor, wakeEndColor,
 			0.0f, life, vel, expRate, 0,
 			StreamerFeatherMode::Left, BlendMode::Additive);
 	}

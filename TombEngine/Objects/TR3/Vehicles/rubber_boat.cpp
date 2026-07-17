@@ -16,6 +16,9 @@
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Renderer/RendererEnums.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
+#include "Specific/trutils.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -24,6 +27,7 @@ using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Input;
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
@@ -687,26 +691,28 @@ namespace TEN::Entities::Vehicles
 		}
 	}
 
-	static void TriggerRubberBoatMist(int x, int y, int z, int velocity, short angle, int snow)
+	static void TriggerRubberBoatMist(ItemInfo* rBoatItem, short itemNumber, int x, int y, int z, int velocity, short angle, int snow)
 	{
 		auto* sptr = GetFreeParticle();
+		auto rBoatMistStartColor = PropertyHandler::Get(rBoatItem, PropName_VehicleMistStartColor, ScriptColor(0, 0, 0));
+		auto rBoatMistEndColor = PropertyHandler::Get(rBoatItem, PropName_VehicleMistEndColor, ScriptColor(64, 64, 64));
 
 		sptr->on = 1;
-		sptr->sR = 0;
-		sptr->sG = 0;
-		sptr->sB = 0;
+		sptr->sR = rBoatMistStartColor.GetR();
+		sptr->sG = rBoatMistStartColor.GetG();
+		sptr->sB = rBoatMistStartColor.GetB();
 
 		if (snow)
 		{
-			sptr->dR = 255;
-			sptr->dG = 255;
-			sptr->dB = 255;
+			sptr->dR = (unsigned char)std::min<int>(rBoatMistEndColor.GetR() + 255, UCHAR_MAX);
+			sptr->dG = (unsigned char)std::min<int>(rBoatMistEndColor.GetG() + 255, UCHAR_MAX);
+			sptr->dB = (unsigned char)std::min<int>(rBoatMistEndColor.GetB() + 255, UCHAR_MAX);
 		}
 		else
 		{
-			sptr->dR = 64;
-			sptr->dG = 64;
-			sptr->dB = 64;
+			sptr->dR = rBoatMistEndColor.GetR();
+			sptr->dG = rBoatMistEndColor.GetG();
+			sptr->dB = rBoatMistEndColor.GetB();
 		}
 
 		sptr->colFadeSpeed = 4 + (GetRandomControl() & 3);
@@ -728,7 +734,7 @@ namespace TEN::Entities::Vehicles
 
 		if (GetRandomControl() & 1)
 		{
-			sptr->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF;
+			sptr->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_HAZE ;
 			sptr->rotAng = GetRandomControl() & 4095;
 
 			if (GetRandomControl() & 1)
@@ -738,7 +744,7 @@ namespace TEN::Entities::Vehicles
 		}
 		else
 		{
-			sptr->flags = SP_SCALE | SP_DEF | SP_EXPDEF;
+			sptr->flags = SP_SCALE | SP_DEF | SP_EXPDEF | SP_HAZE;
 		}
 
 		if (!snow)
@@ -933,7 +939,10 @@ namespace TEN::Entities::Vehicles
 			height < prop.y &&
 			height != NO_HEIGHT)
 		{
-			TriggerRubberBoatMist(prop.x, prop.y, prop.z, abs(rBoatItem->Animation.Velocity.z), rBoatItem->Pose.Orientation.y + ANGLE(180.0f), 0);
+			if (PropertyHandler::Get(rBoatItem, PropName_VehicleMist, true))
+			{
+				TriggerRubberBoatMist(rBoatItem, itemNumber, prop.x, prop.y, prop.z, abs(rBoatItem->Animation.Velocity.z), rBoatItem->Pose.Orientation.y + ANGLE(180.0f), 0);
+			}
 			
 			int waterHeight = GetPointCollision(*rBoatItem).GetWaterTopHeight();
 			SpawnVehicleWake(*rBoatItem, RBOAT_WAKE_OFFSET, waterHeight);
@@ -965,7 +974,11 @@ namespace TEN::Entities::Vehicles
 
 				int cnt = (GetRandomControl() & 3) + 3;
 				for (;cnt>0;cnt--)
-					TriggerRubberBoatMist(prop.x, prop.y, prop.z, ((GetRandomControl() & 15) + 96) * 16, rBoatItem->Pose.Orientation.y + 0x4000 + GetRandomControl(), 1);
+
+				if (PropertyHandler::Get(rBoatItem, PropName_VehicleMist, true))
+				{
+					TriggerRubberBoatMist(rBoatItem, itemNumber, prop.x, prop.y, prop.z, ((GetRandomControl() & 15) + 96) * 16, rBoatItem->Pose.Orientation.y + 0x4000 + GetRandomControl(), 1);
+				}
 			}
 		}
 	}
