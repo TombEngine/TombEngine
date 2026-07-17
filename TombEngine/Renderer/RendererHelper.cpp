@@ -145,11 +145,10 @@ namespace TEN::Renderer
 					if (mutator.IsEmpty())
 						continue;
 
-					auto extraRotMatrix = mutator.ExtraRotation.ToRotationMatrix();
 					auto rotMatrix = mutator.Rotation.ToRotationMatrix();
 					auto scaleMatrix = Matrix::CreateScale(mutator.Scale);
 					auto translationMatrix = Matrix::CreateTranslation(mutator.Offset);
-					transforms[i] = ((extraRotMatrix * rotMatrix * scaleMatrix) * translationMatrix) * transforms[i];
+					transforms[i] = ((rotMatrix * scaleMatrix) * translationMatrix) * transforms[i];
 				}
 			}
 		}

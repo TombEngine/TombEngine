@@ -27,6 +27,8 @@ struct ItemCallback;
 struct ItemCallbackBuilder;
 struct ItemCallbackT;
 
+struct MutatorData;
+
 struct Item;
 struct ItemBuilder;
 struct ItemT;
@@ -769,6 +771,45 @@ FLATBUFFERS_STRUCT_END(RoomVector, 8);
 
 struct RoomVector::Traits {
   using type = RoomVector;
+};
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) MutatorData FLATBUFFERS_FINAL_CLASS {
+ private:
+  TEN::Serialization::Common::Vector3 offset_;
+  TEN::Serialization::Common::EulerAngles rotation_;
+  int16_t padding0__;
+  TEN::Serialization::Common::Vector3 scale_;
+
+ public:
+  struct Traits;
+  MutatorData()
+      : offset_(),
+        rotation_(),
+        padding0__(0),
+        scale_() {
+    (void)padding0__;
+  }
+  MutatorData(const TEN::Serialization::Common::Vector3 &_offset, const TEN::Serialization::Common::EulerAngles &_rotation, const TEN::Serialization::Common::Vector3 &_scale)
+      : offset_(_offset),
+        rotation_(_rotation),
+        padding0__(0),
+        scale_(_scale) {
+    (void)padding0__;
+  }
+  const TEN::Serialization::Common::Vector3 &offset() const {
+    return offset_;
+  }
+  const TEN::Serialization::Common::EulerAngles &rotation() const {
+    return rotation_;
+  }
+  const TEN::Serialization::Common::Vector3 &scale() const {
+    return scale_;
+  }
+};
+FLATBUFFERS_STRUCT_END(MutatorData, 32);
+
+struct MutatorData::Traits {
+  using type = MutatorData;
 };
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) KeyValPair FLATBUFFERS_FINAL_CLASS {
@@ -1574,7 +1615,7 @@ struct ItemT : public flatbuffers::NativeTable {
   TEN::Serialization::Save::ItemDataUnion data{};
   int32_t base_mesh = 0;
   std::vector<int32_t> mesh_index{};
-  std::vector<TEN::Serialization::Common::EulerAngles> mutator_rotations{};
+  std::vector<TEN::Serialization::Save::MutatorData> mutators{};
   int32_t skin_object_id = 0;
   int32_t skin_swap_index = 0;
   int32_t effect_type = 0;
@@ -1625,7 +1666,7 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_DATA = 64,
     VT_BASE_MESH = 66,
     VT_MESH_INDEX = 68,
-    VT_MUTATOR_ROTATIONS = 70,
+    VT_MUTATORS = 70,
     VT_SKIN_OBJECT_ID = 72,
     VT_SKIN_SWAP_INDEX = 74,
     VT_EFFECT_TYPE = 76,
@@ -1803,8 +1844,8 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<int32_t> *mesh_index() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_MESH_INDEX);
   }
-  const flatbuffers::Vector<const TEN::Serialization::Common::EulerAngles *> *mutator_rotations() const {
-    return GetPointer<const flatbuffers::Vector<const TEN::Serialization::Common::EulerAngles *> *>(VT_MUTATOR_ROTATIONS);
+  const flatbuffers::Vector<const TEN::Serialization::Save::MutatorData *> *mutators() const {
+    return GetPointer<const flatbuffers::Vector<const TEN::Serialization::Save::MutatorData *> *>(VT_MUTATORS);
   }
   int32_t skin_object_id() const {
     return GetField<int32_t>(VT_SKIN_OBJECT_ID, 0);
@@ -1874,8 +1915,8 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_BASE_MESH) &&
            VerifyOffset(verifier, VT_MESH_INDEX) &&
            verifier.VerifyVector(mesh_index()) &&
-           VerifyOffset(verifier, VT_MUTATOR_ROTATIONS) &&
-           verifier.VerifyVector(mutator_rotations()) &&
+           VerifyOffset(verifier, VT_MUTATORS) &&
+           verifier.VerifyVector(mutators()) &&
            VerifyField<int32_t>(verifier, VT_SKIN_OBJECT_ID) &&
            VerifyField<int32_t>(verifier, VT_SKIN_SWAP_INDEX) &&
            VerifyField<int32_t>(verifier, VT_EFFECT_TYPE) &&
@@ -2088,8 +2129,8 @@ struct ItemBuilder {
   void add_mesh_index(flatbuffers::Offset<flatbuffers::Vector<int32_t>> mesh_index) {
     fbb_.AddOffset(Item::VT_MESH_INDEX, mesh_index);
   }
-  void add_mutator_rotations(flatbuffers::Offset<flatbuffers::Vector<const TEN::Serialization::Common::EulerAngles *>> mutator_rotations) {
-    fbb_.AddOffset(Item::VT_MUTATOR_ROTATIONS, mutator_rotations);
+  void add_mutators(flatbuffers::Offset<flatbuffers::Vector<const TEN::Serialization::Save::MutatorData *>> mutators) {
+    fbb_.AddOffset(Item::VT_MUTATORS, mutators);
   }
   void add_skin_object_id(int32_t skin_object_id) {
     fbb_.AddElement<int32_t>(Item::VT_SKIN_OBJECT_ID, skin_object_id, 0);
@@ -2167,7 +2208,7 @@ inline flatbuffers::Offset<Item> CreateItem(
     flatbuffers::Offset<void> data = 0,
     int32_t base_mesh = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> mesh_index = 0,
-    flatbuffers::Offset<flatbuffers::Vector<const TEN::Serialization::Common::EulerAngles *>> mutator_rotations = 0,
+    flatbuffers::Offset<flatbuffers::Vector<const TEN::Serialization::Save::MutatorData *>> mutators = 0,
     int32_t skin_object_id = 0,
     int32_t skin_swap_index = 0,
     int32_t effect_type = 0,
@@ -2189,7 +2230,7 @@ inline flatbuffers::Offset<Item> CreateItem(
   builder_.add_effect_type(effect_type);
   builder_.add_skin_swap_index(skin_swap_index);
   builder_.add_skin_object_id(skin_object_id);
-  builder_.add_mutator_rotations(mutator_rotations);
+  builder_.add_mutators(mutators);
   builder_.add_mesh_index(mesh_index);
   builder_.add_base_mesh(base_mesh);
   builder_.add_data(data);
@@ -2266,7 +2307,7 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
     flatbuffers::Offset<void> data = 0,
     int32_t base_mesh = 0,
     const std::vector<int32_t> *mesh_index = nullptr,
-    const std::vector<TEN::Serialization::Common::EulerAngles> *mutator_rotations = nullptr,
+    const std::vector<TEN::Serialization::Save::MutatorData> *mutators = nullptr,
     int32_t skin_object_id = 0,
     int32_t skin_swap_index = 0,
     int32_t effect_type = 0,
@@ -2279,7 +2320,7 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::ItemCallback>> *lua_callbacks = nullptr) {
   auto item_flags__ = item_flags ? _fbb.CreateVector<int32_t>(*item_flags) : 0;
   auto mesh_index__ = mesh_index ? _fbb.CreateVector<int32_t>(*mesh_index) : 0;
-  auto mutator_rotations__ = mutator_rotations ? _fbb.CreateVectorOfStructs<TEN::Serialization::Common::EulerAngles>(*mutator_rotations) : 0;
+  auto mutators__ = mutators ? _fbb.CreateVectorOfStructs<TEN::Serialization::Save::MutatorData>(*mutators) : 0;
   auto lua_name__ = lua_name ? _fbb.CreateString(lua_name) : 0;
   auto lua_callbacks__ = lua_callbacks ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::ItemCallback>>(*lua_callbacks) : 0;
   return TEN::Serialization::Save::CreateItem(
@@ -2317,7 +2358,7 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
       data,
       base_mesh,
       mesh_index__,
-      mutator_rotations__,
+      mutators__,
       skin_object_id,
       skin_swap_index,
       effect_type,
@@ -11240,7 +11281,7 @@ inline void Item::UnPackTo(ItemT *_o, const flatbuffers::resolver_function_t *_r
   { auto _e = data(); if (_e) _o->data.value = TEN::Serialization::Save::ItemDataUnion::UnPack(_e, data_type(), _resolver); }
   { auto _e = base_mesh(); _o->base_mesh = _e; }
   { auto _e = mesh_index(); if (_e) { _o->mesh_index.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->mesh_index[_i] = _e->Get(_i); } } }
-  { auto _e = mutator_rotations(); if (_e) { _o->mutator_rotations.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->mutator_rotations[_i] = *_e->Get(_i); } } }
+  { auto _e = mutators(); if (_e) { _o->mutators.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->mutators[_i] = *_e->Get(_i); } } }
   { auto _e = skin_object_id(); _o->skin_object_id = _e; }
   { auto _e = skin_swap_index(); _o->skin_swap_index = _e; }
   { auto _e = effect_type(); _o->effect_type = _e; }
@@ -11294,7 +11335,7 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
   auto _data = _o->data.Pack(_fbb);
   auto _base_mesh = _o->base_mesh;
   auto _mesh_index = _fbb.CreateVector(_o->mesh_index);
-  auto _mutator_rotations = _fbb.CreateVectorOfStructs(_o->mutator_rotations);
+  auto _mutators = _fbb.CreateVectorOfStructs(_o->mutators);
   auto _skin_object_id = _o->skin_object_id;
   auto _skin_swap_index = _o->skin_swap_index;
   auto _effect_type = _o->effect_type;
@@ -11340,7 +11381,7 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
       _data,
       _base_mesh,
       _mesh_index,
-      _mutator_rotations,
+      _mutators,
       _skin_object_id,
       _skin_swap_index,
       _effect_type,

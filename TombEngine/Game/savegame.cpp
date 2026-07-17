@@ -820,10 +820,10 @@ const std::vector<unsigned char> SaveGame::Build()
 			meshPointers.push_back(p);
 		auto meshPointerOffset = fbb.CreateVector(meshPointers);
 
-		std::vector<TEN::Serialization::Common::EulerAngles> mutatorRotations;
+		std::vector<Save::MutatorData> mutatorDatas;
 		for (auto& mutator : itemToSerialize.Model.Mutators)
-			mutatorRotations.push_back(FromEulerAngles(mutator.ExtraRotation));
-		auto mutatorRotationsOffset = fbb.CreateVectorOfStructs(mutatorRotations);
+			mutatorDatas.push_back(Save::MutatorData(FromVector3(mutator.Offset), FromEulerAngles(mutator.Rotation), FromVector3(mutator.Scale)));
+		auto mutatorDatasOffset = fbb.CreateVectorOfStructs(mutatorDatas);
 				
 		flatbuffers::Offset<Save::Creature> creatureOffset;
 		flatbuffers::Offset<Save::QuadBike> quadOffset;
@@ -1039,7 +1039,7 @@ const std::vector<unsigned char> SaveGame::Build()
 		serializedItem.add_mesh_bits(itemToSerialize.MeshBits.ToPackedBits());
 		serializedItem.add_base_mesh(itemToSerialize.Model.BaseMesh);
 		serializedItem.add_mesh_index(meshPointerOffset);
-		serializedItem.add_mutator_rotations(mutatorRotationsOffset);
+		serializedItem.add_mutators(mutatorDatasOffset);
 		serializedItem.add_skin_object_id(itemToSerialize.Model.SkinObjectID);
 		serializedItem.add_skin_swap_index(itemToSerialize.Model.SkinSwapIndex);
 		serializedItem.add_object_id(itemToSerialize.ObjectNumber);
@@ -2798,11 +2798,16 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		for (int j = 0; j < savedItem->mesh_index()->size(); j++)
 			item->Model.MeshIndex[j] = savedItem->mesh_index()->Get(j);
 
-		if (savedItem->mutator_rotations() != nullptr)
+		if (savedItem->mutators() != nullptr)
 		{
-			item->Model.Mutators.resize(savedItem->mutator_rotations()->size());
-			for (int j = 0; j < (int)savedItem->mutator_rotations()->size(); j++)
-				item->Model.Mutators[j].ExtraRotation = ToEulerAngles(savedItem->mutator_rotations()->Get(j));
+			item->Model.Mutators.resize(savedItem->mutators()->size());
+			for (int j = 0; j < (int)savedItem->mutators()->size(); j++)
+			{
+				auto mutatorData = savedItem->mutators()->Get(j);
+				item->Model.Mutators[j].Offset = ToVector3(&mutatorData->offset());
+				item->Model.Mutators[j].Rotation = ToEulerAngles(&mutatorData->rotation());
+				item->Model.Mutators[j].Scale = ToVector3(&mutatorData->scale());
+			}
 		}
 
 		// Flags and timers
