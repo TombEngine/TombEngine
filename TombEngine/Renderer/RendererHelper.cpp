@@ -104,7 +104,7 @@ namespace TEN::Renderer
 
 				auto translationMatrix = (bone == rendererObject.Skeleton) ? Matrix::CreateTranslation(rootPos) : Matrix::Identity;
 				auto extraRotMatrix = Matrix::CreateFromQuaternion(bone->ExtraRotation);
-				
+
 				if (useObjectWorldRotation)
 				{
 					auto scale = Vector3::Zero;
