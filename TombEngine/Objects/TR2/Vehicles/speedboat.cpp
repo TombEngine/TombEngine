@@ -16,6 +16,7 @@
 #include "Sound/sound.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/trutils.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -27,12 +28,6 @@ using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
-	static const auto PropName_VehicleFoam = GetHash("VehicleFoam");
-	static const auto PropName_VehicleMist = GetHash("VehicleMist");
-	static const auto PropName_VehicleMistEndColor = GetHash("VehicleMistEndColor");
-	static const auto PropName_VehicleMistStartColor = GetHash("VehicleMistStartColor");
-	static const auto PropName_VehicleWake = GetHash("VehicleWake");
-
 	constexpr auto SPEEDBOAT_RADIUS = 500;
 	constexpr auto SPEEDBOAT_FRONT = 750;
 	constexpr auto SPEEDBOAT_BACK = -700;

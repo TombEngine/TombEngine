@@ -27,6 +27,7 @@
 #include "Specific/level.h"
 #include "Specific/Input/Input.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Animation;
@@ -45,17 +46,6 @@ using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
-	static const auto PropName_UPVLight = GetHash("UPVLight");
-	static const auto PropName_UPVLightCastShadow = GetHash("UPVLightCastShadow");
-	static const auto PropName_UPVLightColor = GetHash("UPVLightColor");
-	static const auto PropName_UPVLightDistance = GetHash("UPVLightDistance");
-	static const auto PropName_UPVLightFalloff = GetHash("UPVLightFalloff");
-	static const auto PropName_UPVLightIntensity = GetHash("UPVLightIntensity");
-	static const auto PropName_UPVLightRadius = GetHash("UPVLightRadius");
-	static const auto PropName_VehicleMist = GetHash("VehicleMist");
-	static const auto PropName_VehicleMistEndColor = GetHash("VehicleMistEndColor");
-	static const auto PropName_VehicleMistStartColor = GetHash("VehicleMistStartColor");
-
 	constexpr auto UPV_RADIUS = 300;
 	constexpr auto UPV_HEIGHT = 400;
 	constexpr auto UPV_LENGTH = BLOCK(1);
@@ -236,19 +226,18 @@ namespace TEN::Entities::Vehicles
 
 	static void DrawUPVLight(ItemInfo* upvItem)
 	{
-		if (!PropertyHandler::Get(upvItem, PropName_UPVLight, true))
+		if (!PropertyHandler::Get(upvItem, PropName_SpotLightEnabled, true))
 			return;
 
 		auto origin = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), CLICK(1))).ToVector3();
 		auto target = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), BLOCK(1))).ToVector3();
 
-		auto upvLightColor = PropertyHandler::Get(upvItem, PropName_UPVLightColor, ScriptColor(UCHAR_MAX, UCHAR_MAX, UCHAR_MAX));
-		auto upvLightIntensity = PropertyHandler::Get(upvItem, PropName_UPVLightIntensity, 0.5f);
-		auto upvLightCastShadow = PropertyHandler::Get(upvItem, PropName_UPVLightCastShadow, true);
-		auto upvLightRadius = PropertyHandler::Get(upvItem, PropName_UPVLightRadius,4);
-		auto upvLightFalloff = PropertyHandler::Get(upvItem, PropName_UPVLightFalloff, 2);
-		auto upvLightDistance = PropertyHandler::Get(upvItem, PropName_UPVLightDistance, 10);
-
+		auto upvLightColor = PropertyHandler::Get(upvItem, PropName_SpotLightColor, ScriptColor(UCHAR_MAX, UCHAR_MAX, UCHAR_MAX));
+		auto upvLightIntensity = PropertyHandler::Get(upvItem, PropName_SpotLightIntensity, 0.5f);
+		auto upvLightCastShadow = PropertyHandler::Get(upvItem, PropName_SpotLightCastShadow, true);
+		auto upvLightRadius = PropertyHandler::Get(upvItem, PropName_SpotLightRadius,4);
+		auto upvLightFalloff = PropertyHandler::Get(upvItem, PropName_SpotLightFalloff, 2);
+		auto upvLightDistance = PropertyHandler::Get(upvItem, PropName_SpotLightDistance, 10);
 		target = target - origin;
 		target.Normalize();
 
@@ -373,7 +362,7 @@ namespace TEN::Entities::Vehicles
 			}
 		}
 
-		if (PropertyHandler::Get(UPVItem, PropName_UPVLight, true))	
+		if (PropertyHandler::Get(UPVItem, PropName_PointLightEnabled, true))
 		{
 			for (int lp = 0; lp < 2; lp++)
 			{

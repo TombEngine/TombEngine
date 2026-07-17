@@ -17,6 +17,7 @@
 #include "Renderer/RendererEnums.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/trutils.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
@@ -30,10 +31,6 @@ using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
-	static const auto PropName_VehicleMist = GetHash("VehicleMist");
-	static const auto PropName_VehicleMistEndColor = GetHash("VehicleMistEndColor");
-	static const auto PropName_VehicleMistStartColor = GetHash("VehicleMistStartColor");
-
 	constexpr auto RBOAT_RADIUS = 500;
 	constexpr auto RBOAT_FRONT = 750;
 	constexpr auto RBOAT_SIDE = 300;

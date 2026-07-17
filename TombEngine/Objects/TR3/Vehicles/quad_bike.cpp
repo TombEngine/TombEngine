@@ -21,6 +21,7 @@
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/trutils.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
@@ -34,8 +35,6 @@ using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
-	static const auto PropName_VehicleSmokeEndColor = GetHash("VehicleSmokeEndColor");
-	static const auto PropName_VehicleSmokeStartColor = GetHash("VehicleSmokeStartColor");
 
 	const CreatureBiteInfo QuadBikeEffectsPositions[6] =
 	{

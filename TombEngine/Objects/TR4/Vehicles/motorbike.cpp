@@ -22,6 +22,7 @@
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/trutils.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
@@ -35,14 +36,6 @@ using std::vector;
 
 namespace TEN::Entities::Vehicles
 {
-	static const auto PropName_MotorbikeLight = GetHash("MotorbikeLight");
-	static const auto PropName_MotorbikeLightCastShadow = GetHash("MotorbikeLightCastShadow");
-	static const auto PropName_MotorbikeLightColor = GetHash("MotorbikeLightColor");
-	static const auto PropName_MotorbikeLightDistance = GetHash("MotorbikeLightDistance");
-	static const auto PropName_MotorbikeLightFalloff = GetHash("MotorbikeLightFalloff");
-	static const auto PropName_MotorbikeLightIntensity = GetHash("MotorbikeLightIntensity");
-	static const auto PropName_MotorbikeLightRadius = GetHash("MotorbikeLightRadius");
-
 	const std::vector<unsigned int> MotorbikeJoints = { 0, 1, 2, 4, 5, 6, 7, 8, 9 };
 	const std::vector<unsigned int> MotorbikeBrakeLightJoints = { 10 };
 	const std::vector<unsigned int> MotorbikeHeadLightJoints = { 3 };
@@ -322,23 +315,22 @@ namespace TEN::Entities::Vehicles
 		if (motorbike->LightPower <= 0)
 			return;
 
-		if (!PropertyHandler::Get(motorbikeItem, PropName_MotorbikeLight, true))
+		if (!PropertyHandler::Get(motorbikeItem, PropName_SpotLightEnabled, true))
 			return;
 
 		auto origin = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.25f), CLICK(1))).ToVector3();
 		auto target = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.25f), BLOCK(1))).ToVector3();
 
-		auto motorbikeLightColor = PropertyHandler::Get(motorbikeItem,PropName_MotorbikeLightColor,ScriptColor(255, 170, 0));
-		auto motorbikeLightRadius = PropertyHandler::Get(motorbikeItem, PropName_MotorbikeLightRadius, 4);
-		auto motorbikeLightFalloff = PropertyHandler::Get(motorbikeItem, PropName_MotorbikeLightFalloff, 2);
-		auto motorbikeLightDistance = PropertyHandler::Get(motorbikeItem, PropName_MotorbikeLightDistance, 10);
-		auto motorbikeLightCastShadow = PropertyHandler::Get(motorbikeItem, PropName_MotorbikeLightCastShadow, true);
-
+		auto motorbikeLightColor = PropertyHandler::Get(motorbikeItem,PropName_SpotLightColor,ScriptColor(255, 170, 0));
+		auto motorbikeLightRadius = PropertyHandler::Get(motorbikeItem, PropName_SpotLightRadius, 4);
+		auto motorbikeLightFalloff = PropertyHandler::Get(motorbikeItem, PropName_SpotLightFalloff, 2);
+		auto motorbikeLightDistance = PropertyHandler::Get(motorbikeItem, PropName_SpotLightDistance, 10);
+		auto motorbikeLightCastShadow = PropertyHandler::Get(motorbikeItem, PropName_SpotLightCastShadow, true);
 		target = target - origin;
 		target.Normalize();
 
 		float lightIntensity = ((motorbike->LightPower * 2) - Random::GenerateInt(0, 16)) / (float)UCHAR_MAX;
-		lightIntensity *= PropertyHandler::Get(motorbikeItem, PropName_MotorbikeLightIntensity, 1.0f);
+		lightIntensity *= PropertyHandler::Get(motorbikeItem, PropName_SpotLightIntensity, 1.0f);
 
 		SpawnDynamicSpotLight
 		(
@@ -1245,7 +1237,7 @@ namespace TEN::Entities::Vehicles
 		if (laraItem->Animation.ActiveState < MOTORBIKE_STATE_MOUNT ||
 			laraItem->Animation.ActiveState > MOTORBIKE_STATE_DISMOUNT)
 		{
-			bool renderLight = PropertyHandler::Get(motorbikeItem, PropName_MotorbikeLight, true);
+			bool renderLight = PropertyHandler::Get(motorbikeItem, PropName_SpotLightEnabled, true);
 
 			DrawMotorbikeLight(motorbikeItem);
 

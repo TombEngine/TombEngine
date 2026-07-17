@@ -16,6 +16,7 @@
 #include "Math/Random.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/trutils.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
@@ -31,10 +32,6 @@ using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
-	static const auto PropName_VehicleWake = GetHash("VehicleWake");
-	static const auto PropName_WakeEndColor = GetHash("WakeEndColor");
-	static const auto PropName_WakeStartColor = GetHash("WakeStartColor");
-
 	constexpr auto VEHICLE_BASE_HEIGHT = CLICK(2);
 	constexpr auto VEHICLE_FULL_HEIGHT = CLICK(3);
 	constexpr auto VEHICLE_COLLISION_MARGIN_MULTIPLIER = 1.2f;
@@ -395,8 +392,8 @@ namespace TEN::Entities::Vehicles
 		constexpr auto EXP_RATE_ON_WATER   = 6.0f;
 		constexpr auto EXP_RATE_UNDERWATER = 1.5f;
 
-		Color wakeStartColor = PropertyHandler::Get(vehicleItem, PropName_WakeStartColor, ScriptColor(COLOR_START));
-		Color wakeEndColor = PropertyHandler::Get(vehicleItem, PropName_WakeEndColor, ScriptColor(COLOR_END));
+		Color wakeStartColor = PropertyHandler::Get(vehicleItem, PropName_VehicleWakeStartColor, ScriptColor(COLOR_START));
+		Color wakeEndColor = PropertyHandler::Get(vehicleItem, PropName_VehicleWakeEndColor, ScriptColor(COLOR_END));
 
 		// Vehicle is out of water; return early.
 		if (waterHeight == NO_HEIGHT)
