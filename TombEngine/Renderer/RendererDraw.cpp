@@ -3184,8 +3184,14 @@ namespace TEN::Renderer
 				BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAOBlurredRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 			}
 
-			for (int i = (int)view.RoomsToDraw.size() - 1; i >= 0; i--)
+			// In G-Buffer pass, draw rooms front to back to maximize early depth rejection. Room collector
+			// traverses portals starting from camera's room, so collection order is already front to back.
+			// Other passes keep the reversed order (back to front).
+			int roomCount = (int)view.RoomsToDraw.size();
+			for (int j = 0; j < roomCount; j++)
 			{
+				int i = (rendererPass == RendererPass::GBuffer) ? j : (roomCount - 1 - j);
+
 				const auto& room = *view.RoomsToDraw[i];
 				const auto& nativeRoom = g_Level.Rooms[room.RoomNumber];
 
