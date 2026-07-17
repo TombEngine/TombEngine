@@ -16,6 +16,7 @@
 #include "Game/effects/footprint.h"
 #include "Game/effects/Ripple.h"
 #include "Game/effects/simple_particle.h"
+#include "Game/effects/ParticleGroup.h"
 #include "Game/effects/smoke.h"
 #include "Game/effects/spark.h"
 #include "Game/effects/Splash.h"
@@ -1101,7 +1102,7 @@ namespace TEN::Renderer
 				AddSpriteBillboard(
 					&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST],
 					pos,
-					Color(1.0f, 1.0f, 1.0f, part.Transparency()),
+					part.FinalColor(),
 					0.0f, 1.0f, Vector2(size),
 					BlendMode::Additive, true, view);
 
@@ -1186,7 +1187,7 @@ namespace TEN::Renderer
 						AddSpriteBillboard(
 							&_sprites[spriteIndex],
 							finalPos,
-							Color(1.0f, 1.0f, 1.0f, part.Transparency()),
+							part.FinalColor(),
 							rot, 1.0f, Vector2(finalScale),
 							BlendMode::Additive, false, view);
 
@@ -1221,7 +1222,7 @@ namespace TEN::Renderer
 						AddSpriteBillboardConstrained(
 							&_sprites[spriteIndex],
 							finalPos,
-							Color(0.8f, 1.0f, 1.0f, part.Transparency()),
+							part.FinalColor(),
 							0.0f, 1.0f,
 							Vector2(width, finalScale),
 							BlendMode::Additive, -v, false, view);
@@ -1722,6 +1723,72 @@ namespace TEN::Renderer
 					Lerp(part.PrevSize, part.size, GetInterpolationFactor()),
 					Lerp(part.PrevSize, part.size, GetInterpolationFactor()) / 2),
 				BlendMode::AlphaBlend, true, view);
+		}
+	}
+
+	void Renderer::PrepareParticleGroups(RenderView& view)
+	{
+		using namespace TEN::Effects::ParticleGroups;
+
+		for (const auto& group : ParticleGroupList)
+		{
+			if (!group.Active)
+				continue;
+
+			// Silent check: object validity is already reported by CreateParticleGroup and
+			// SetObjectID; logging here would spam the log every frame.
+			if (!Objects[group.ObjectID].loaded)
+				continue;
+
+			// Mesh groups are rendered via DrawParticleGroupMeshes().
+			if (group.IsMeshGroup())
+				continue;
+
+			for (const auto& p : group.Particles)
+			{
+				if (!p.Active)
+					continue;
+
+				// Validate per-particle object ID.
+				if (!Objects[p.ObjectID].loaded)
+					continue;
+
+				// Validate that it's a sprite sequence (negative nmeshes).
+				if (Objects[p.ObjectID].nmeshes >= 0)
+					continue;
+
+				auto interpPos = Vector3::Lerp(p.PrevPosition, p.Position, GetInterpolationFactor());
+
+				float dist = Vector3::Distance(interpPos, view.Camera.WorldPosition);
+				if (dist > DEFAULT_RENDER_DISTANCE)
+					continue;
+
+				auto interpSize     = Lerp(p.PrevSize, p.Size, GetInterpolationFactor());
+				auto interpRotation = Lerp(p.PrevRotation, p.Rotation, GetInterpolationFactor());
+
+				int spriteCount        = std::max(1, abs(Objects[p.ObjectID].nmeshes));
+				int clampedSpriteIndex = std::clamp(p.SubIndex, 0, spriteCount - 1);
+
+				if (p.Orientation != Vector3::Zero)
+				{
+					AddQuad(
+						&_sprites[Objects[p.ObjectID].meshIndex + clampedSpriteIndex],
+						interpPos,
+						Vector4(p.ParticleColor.R(), p.ParticleColor.G(), p.ParticleColor.B(), p.ParticleColor.A()),
+						interpRotation, 1.0f,
+						interpSize, group.RenderBlendMode, p.Orientation, true, view);
+				}
+				else
+				{
+					AddSpriteBillboard(
+						&_sprites[Objects[p.ObjectID].meshIndex + clampedSpriteIndex],
+						interpPos,
+						Vector4(p.ParticleColor.R(), p.ParticleColor.G(), p.ParticleColor.B(), p.ParticleColor.A()),
+						interpRotation, 1.0f,
+						Vector2(interpSize, interpSize),
+						group.RenderBlendMode, true, view);
+				}
+			}
 		}
 	}
 

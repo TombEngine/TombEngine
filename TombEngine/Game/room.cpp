@@ -729,7 +729,7 @@ int IsRoomOutside(int x, int y, int z)
 				return NO_VALUE;
 
 			if (TestEnvironmentFlags(ENV_FLAG_WATER, room.flags) ||
-				TestEnvironmentFlags(ENV_FLAG_WIND, room.flags))
+			    TestEnvironmentFlags(ENV_FLAG_WIND, room.flags))
 			{
 				return pointColl.GetRoomNumber();
 			}

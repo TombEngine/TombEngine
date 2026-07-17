@@ -29,6 +29,7 @@ namespace TEN::Math::Random
 	Vector3 GeneratePointInSphere(const BoundingSphere& sphere);
 	Vector3 GeneratePointOnSphere(const BoundingSphere& sphere);
 	Vector3 GeneratePointInSpheroid(const Vector3& center, const EulerAngles& orient, const Vector3& semiMajorAxis);
+	Vector3 GeneratePointInCylinder(const Vector3& center, float radius, float height);
 
 	// Probability
 
