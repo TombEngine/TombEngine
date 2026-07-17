@@ -29,15 +29,15 @@ static const auto PropName_SpotLightRadius		= GetHash("SpotLightRadius");
 
 // Vehicle property names.
 
-static const auto PropName_VehicleFoam	= GetHash("VehicleFoam");
+static const auto PropName_VehicleFoam				= GetHash("VehicleFoamEnable");
 
-static const auto PropName_VehicleMist				= GetHash("VehicleMist");
+static const auto PropName_VehicleMist				= GetHash("VehicleMistEnable");
 static const auto PropName_VehicleMistStartColor	= GetHash("VehicleMistStartColor");
 static const auto PropName_VehicleMistEndColor		= GetHash("VehicleMistEndColor");
 
 static const auto PropName_VehicleSmokeStartColor	= GetHash("VehicleSmokeStartColor");
 static const auto PropName_VehicleSmokeEndColor		= GetHash("VehicleSmokeEndColor");
 
-static const auto PropName_VehicleWake				= GetHash("VehicleWake");
+static const auto PropName_VehicleWake				= GetHash("VehicleWakeEnable");
 static const auto PropName_VehicleWakeStartColor	= GetHash("VehicleWakeStartColor");
 static const auto PropName_VehicleWakeEndColor		= GetHash("VehicleWakeEndColor");
