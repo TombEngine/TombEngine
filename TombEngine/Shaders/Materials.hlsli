@@ -214,7 +214,8 @@ float CalculateOcclusion(float2 samplePosition, float alpha)
     if (AmbientOcclusion == 0 || !BlendModeSupportsSSAO() || (MaterialTypeAndFlags & MATERIAL_FLAG_HEIGHTMAP))
 		return 1.0f;
 		
-    float occlusion = pow(SSAOTexture.Sample(PointWrapSampler, samplePosition).x, AmbientOcclusionExponent);
+    // SSAO texture is quarter resolution, sample with bilinear filter for smooth upscaling.
+    float occlusion = pow(SSAOTexture.Sample(LinearClampSampler, samplePosition).x, AmbientOcclusionExponent);
 	
 	if (BlendMode == BLENDMODE_ALPHABLEND)
 		occlusion = lerp(occlusion, 1.0f, alpha);
