@@ -886,6 +886,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Structures\RendererRoomAmbientMap.h" />
     <ClInclude Include="Renderer\Structures\RendererRoomNode.h" />
     <ClInclude Include="Renderer\Structures\RendererSortableObject.h" />
+    <ClInclude Include="Renderer\Structures\RendererSortedBatch.h" />
     <ClInclude Include="Renderer\Structures\RendererSprite.h" />
     <ClInclude Include="Renderer\Structures\RendererSprite2D.h" />
     <ClInclude Include="Renderer\Structures\RendererSpriteBucket.h" />
@@ -1442,6 +1443,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\RendererLara.cpp" />
     <ClCompile Include="Renderer\RendererPostProcess.cpp" />
     <ClCompile Include="Renderer\RendererSettings.cpp" />
+    <ClCompile Include="Renderer\RendererSorted.cpp" />
     <ClCompile Include="Renderer\RendererSprites.cpp" />
     <ClCompile Include="Renderer\RendererString.cpp" />
     <ClCompile Include="Renderer\RendererUtils.cpp" />
