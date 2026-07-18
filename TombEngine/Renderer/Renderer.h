@@ -49,6 +49,7 @@
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Renderer/Structures/RendererRoomAmbientMap.h"
 #include "Renderer/Structures/RendererObject.h"
+#include "Renderer/Structures/RendererSortedBatch.h"
 #include "Renderer/Structures/RendererStar.h"
 #include "Specific/level.h"
 #include "Specific/Structures/fast_vector.h"
@@ -296,16 +297,7 @@ namespace TEN::Renderer
 		DepthState _lastDepthState;
 		CullMode _lastCullMode;
 		int _lastMaterialIndex;
-
-		// Room whose data is currently in the room CB during the sorted faces pass. Lets
-		// consecutive sorted batches from the same room skip the light rebind and CB upload.
-		// Reset at the start of every DrawSortedFaces call.
 		int _lastSortedRoomNumber = NO_VALUE;
-
-		// Object whose data currently occupies the objects CB during the sorted faces pass.
-		// Grouping splits the same object into one batch per bucket (texture or blend mode
-		// switches); tracking the CB owner lets adjacent batches of the same object skip
-		// identical rebuilds and uploads. Reset at the start of every DrawSortedFaces call.
 		RendererObjectType _lastSortedObjectType = RendererObjectType::Unknown;
 		const void* _lastSortedObject = nullptr;
 
@@ -342,14 +334,6 @@ namespace TEN::Renderer
 		fast_vector<Vertex> _sortedPolygonsVertices;
 		fast_vector<int> _sortedPolygonsIndices;
 
-		// Batch of consecutive sortable objects sharing GPU state, recorded by DrawSortedFaces
-		// while it accumulates geometry, and drawn after a single buffer upload per flush.
-		struct RendererSortedBatch
-		{
-			RendererSortableObject* Object; // First object of the batch, provides the shared state.
-			int Base;                       // Base index (base vertex for sprites) into the sorted buffers.
-			int Count;                      // Index count (vertex count for sprites).
-		};
 		std::vector<RendererSortedBatch> _sortedPolygonsBatches;
 		std::unique_ptr<IVertexBuffer> _sortedPolygonsVertexBuffer;
 		std::unique_ptr<IIndexBuffer> _sortedPolygonsIndexBuffer;
