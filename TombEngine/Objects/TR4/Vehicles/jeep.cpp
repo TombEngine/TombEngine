@@ -20,6 +20,9 @@
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Renderer/RendererEnums.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
+#include "Specific/trutils.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -27,6 +30,7 @@
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
@@ -35,6 +39,7 @@ namespace TEN::Entities::Vehicles
 
 	const std::vector<unsigned int> JeepJoints = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16 };
 	const std::vector<unsigned int> JeepBrakeLightJoints = { 15, 16 };
+	const std::vector<unsigned int> JeepHeadLightJoints = { 18 };
 
 	const std::vector<VehicleMountType> JeepMountTypes =
 	{
@@ -57,6 +62,8 @@ namespace TEN::Entities::Vehicles
 	constexpr auto JEEP_CRASH_VELOCITY = 10922;
 
 	constexpr auto JEEP_WAKE_OFFSET = Vector3(BLOCK(0.25f), 0.0f, BLOCK(0.3f));
+
+	constexpr auto JEEP_HEADLIGHT_HASH = 0x1C4B;
 
 	#define JEEP_TURN_RATE_DECEL ANGLE(0.5f)
 
@@ -150,6 +157,7 @@ namespace TEN::Entities::Vehicles
 
 		jeepItem->MeshBits.Set(JeepJoints);
 		jeepItem->MeshBits.Clear(17);
+		jeepItem->MeshBits.Clear(18);
 		jeep->MomentumAngle = jeepItem->Pose.Orientation.y;
 	}
 
@@ -304,6 +312,64 @@ namespace TEN::Entities::Vehicles
 		jeepItem->Pose.Position.x += (old->x - pos->x);
 
 		return 0;
+	}
+
+	static void DrawJeepLight(ItemInfo* jeepItem)
+	{
+		auto jeep = GetJeepInfo(jeepItem);
+
+		if (jeep->LightPower <= 0)
+			return;
+
+		if (!PropertyHandler::Get(jeepItem, PropName_SpotLightEnabled, true))
+			return;
+
+		auto jeepLightColor = PropertyHandler::Get(jeepItem, PropName_SpotLightColor, ScriptColor(200, 200, 200));
+		auto jeepLightRadius = PropertyHandler::Get(jeepItem, PropName_SpotLightRadius, 4);
+		auto jeepLightFalloff = PropertyHandler::Get(jeepItem, PropName_SpotLightFalloff, 2);
+		auto jeepLightDistance = PropertyHandler::Get(jeepItem, PropName_SpotLightDistance, 10);
+		auto jeepLightCastShadow = PropertyHandler::Get(jeepItem, PropName_SpotLightCastShadow, true);
+
+		float lightIntensity = ((jeep->LightPower * 2) - Random::GenerateInt(0, 16)) / (float)UCHAR_MAX;
+		lightIntensity *= PropertyHandler::Get(jeepItem, PropName_SpotLightIntensity, 1.0f);
+
+		auto originLeft = TEN::Math::Geometry::TranslatePoint(
+			jeepItem->Pose.Position.ToVector3(),
+			jeepItem->Pose.Orientation,
+			Vector3(-150.0f, -400.0f, 150.0f));
+
+		auto originRight = TEN::Math::Geometry::TranslatePoint(
+			jeepItem->Pose.Position.ToVector3(),
+			jeepItem->Pose.Orientation,
+			Vector3(150.0f, -400.0f, 150.0f));
+
+		auto direction = jeepItem->Pose.Orientation.ToDirection();
+
+		auto color = Vector4(
+			(jeepLightColor.GetR() / 255.0f) * lightIntensity,
+			(jeepLightColor.GetG() / 255.0f) * lightIntensity,
+			(jeepLightColor.GetB() / 255.0f) * lightIntensity,
+			1.0f);
+
+		SpawnDynamicSpotLight(
+			originLeft,
+			direction,
+			color,
+			BLOCK(jeepLightRadius),
+			BLOCK(jeepLightFalloff),
+			BLOCK(jeepLightDistance),
+			jeepLightCastShadow,
+			JEEP_HEADLIGHT_HASH);
+
+		SpawnDynamicSpotLight(
+			originRight,
+			direction,
+			color,
+			BLOCK(jeepLightRadius),
+			BLOCK(jeepLightFalloff),
+			BLOCK(jeepLightDistance),
+			jeepLightCastShadow,
+			JEEP_HEADLIGHT_HASH + 1);
 	}
 
 	static int DoJeepDynamics(ItemInfo* laraItem, int height, int verticalVelocity, int* yPos, int flags)
@@ -732,6 +798,13 @@ namespace TEN::Entities::Vehicles
 
 		if (laraItem->Animation.ActiveState == JS_DISMOUNT || laraItem->Animation.TargetState == JS_DISMOUNT)
 			ClearAllActions();
+
+		if (jeep->LightPower < 127)
+		{
+			jeep->LightPower += (GetRandomControl() & 7) + 3;
+			if (jeep->LightPower > 127)
+				jeep->LightPower = 127;
+		}
 	
 		if (jeep->Revs <= 16)
 			jeep->Revs = 0;
@@ -1301,14 +1374,24 @@ namespace TEN::Entities::Vehicles
 		int pitch = 0;
 		if (jeep->Flags)
 			collide = 0;
-		else if (laraItem->Animation.ActiveState == JS_MOUNT)
+		else if (laraItem->Animation.ActiveState == JS_MOUNT ||	laraItem->Animation.ActiveState == JS_DISMOUNT)
 		{
+			jeepItem->MeshBits.Clear(18);
 			drive = -1;
 			collide = 0;
 		}
 		else
 		{
 			drive = JeepUserControl(jeepItem, laraItem, floorHeight, &pitch);
+
+			bool renderLight = PropertyHandler::Get(jeepItem, PropName_SpotLightEnabled, true);
+			DrawJeepLight(jeepItem);
+
+			if (renderLight)
+				jeepItem->MeshBits.Set(18);
+			else
+				jeepItem->MeshBits.Clear(18);
+			
 			HandleVehicleSpeedometer(jeepItem->Animation.Velocity.z, JEEP_VELOCITY_MAX / (float)VEHICLE_VELOCITY_SCALE);
 		}
 
