@@ -34,6 +34,6 @@ namespace TEN::Renderer::ConstantBuffers
 	// the whole ~64KB buffer on every batch. Relies on Objects[] being the last field.
 	constexpr int GetObjectsBufferPrefixSize(int objectCount)
 	{
-		return int(offsetof(CObjectsBuffer, Objects) + sizeof(ObjectData) * objectCount);
+		return (int)(offsetof(CObjectsBuffer, Objects) + sizeof(ObjectData) * objectCount);
 	}
 }
