@@ -14,7 +14,8 @@
 #include "Game/effects/hair.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
-#include "Game/gui.h"
+#include "Game/effects/ParticleGroup.h"
+#include "Game/Gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -759,6 +760,231 @@ namespace TEN::Renderer
 								DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
 
 								_numMoveablesDrawCalls++;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void Renderer::DrawParticleGroupMeshes(RenderView& view, RendererPass rendererPass)
+	{
+		using namespace TEN::Effects::ParticleGroups;
+
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
+		for (const auto& group : ParticleGroupList)
+		{
+			if (!group.Active)
+				continue;
+
+			if (!group.IsMeshGroup())
+				continue;
+
+			if (!Objects[group.ObjectID].loaded)
+				continue;
+
+			if (!_moveableObjects[group.ObjectID].has_value())
+				continue;
+
+			if (rendererPass == RendererPass::CollectTransparentFaces)
+			{
+				for (const auto& p : group.Particles)
+				{
+					if (!p.Active)
+						continue;
+
+					if (IgnoreReflectionPassForRoom(p.RoomNumber))
+						continue;
+
+					float dist = Vector3::Distance(p.Position, view.Camera.WorldPosition);
+					if (dist > DEFAULT_RENDER_DISTANCE)
+						continue;
+
+					// Validate per-particle object ID (if overridden).
+					if (!Objects[p.ObjectID].loaded)
+						continue;
+
+					// Ensure it's a moveable (positive nmeshes) with valid mesh data.
+					if (Objects[p.ObjectID].nmeshes <= 0)
+						continue;
+
+					if (!_moveableObjects[p.ObjectID].has_value())
+						continue;
+
+					int clampedMeshIndex = std::clamp(p.SubIndex, 0, Objects[p.ObjectID].nmeshes - 1);
+					auto& mesh = *GetMesh(Objects[p.ObjectID].meshIndex + clampedMeshIndex);
+
+					// Transform is identical for all polygons of the particle; compute it once.
+					auto worldMatrix = Matrix::Lerp(p.PrevTransform, p.Transform, GetInterpolationFactor());
+					ReflectMatrixOptionally(worldMatrix);
+
+					for (auto& bucket : mesh.Buckets)
+					{
+						if (!IsSortedBlendMode(bucket.BlendMode))
+							continue;
+
+						for (auto& poly : bucket.Polygons)
+						{
+							auto center = Vector3::Transform(poly.Centre, worldMatrix);
+							float polyDist = Vector3::Distance(center, view.Camera.WorldPosition);
+
+							auto object = RendererSortableObject{};
+							object.ObjectType = RendererObjectType::MoveableAsStatic;
+							object.Centre = center;
+							object.Distance = polyDist;
+							object.BlendMode = bucket.BlendMode;
+							object.Bucket = &bucket;
+							object.LightMode = mesh.LightMode;
+							object.Polygon = &poly;
+							object.World = worldMatrix;
+							object.Room = &_rooms[p.RoomNumber];
+
+							view.TransparentObjectsToDraw.push_back(object);
+						}
+					}
+				}
+			}
+			else
+			{
+				// Cluster visible particles by (object ID, mesh index): all particles of a
+				// cluster share the same mesh, so they can be drawn with instancing in
+				// batches of up to INSTANCED_STATIC_MESH_BUCKET_SIZE instead of paying a
+				// full constant buffer upload and a draw call per particle.
+				struct ParticleMeshCluster
+				{
+					GAME_OBJECT_ID ObjectID = GAME_OBJECT_ID::ID_NO_OBJECT;
+					int MeshIndex = 0;
+					std::vector<const GroupParticle*> Particles = {};
+				};
+
+				// Keep scratch memory across calls to avoid per-frame reallocations.
+				static auto clusters = std::vector<ParticleMeshCluster>{};
+				for (auto& cluster : clusters)
+					cluster.Particles.clear();
+
+				int clusterCount = 0;
+				for (const auto& p : group.Particles)
+				{
+					if (!p.Active)
+						continue;
+
+					// In mirror passes, draw only particles in the mirrored room, with the
+					// reflection applied. Lights are reflected by BindLight.
+					if (IgnoreReflectionPassForRoom(p.RoomNumber))
+						continue;
+
+					float dist = Vector3::Distance(p.Position, view.Camera.WorldPosition);
+					if (dist > DEFAULT_RENDER_DISTANCE)
+						continue;
+
+					// Validate per-particle object ID (if overridden): must be a loaded
+					// moveable (positive nmeshes) with valid mesh data.
+					if (!Objects[p.ObjectID].loaded || Objects[p.ObjectID].nmeshes <= 0 ||
+						!_moveableObjects[p.ObjectID].has_value())
+					{
+						continue;
+					}
+
+					int clampedMeshIndex = std::clamp(p.SubIndex, 0, Objects[p.ObjectID].nmeshes - 1);
+
+					// Distinct keys are few (usually one per group); linear scan is enough.
+					ParticleMeshCluster* cluster = nullptr;
+					for (int c = 0; c < clusterCount; c++)
+					{
+						if (clusters[c].ObjectID == p.ObjectID && clusters[c].MeshIndex == clampedMeshIndex)
+						{
+							cluster = &clusters[c];
+							break;
+						}
+					}
+
+					if (cluster == nullptr)
+					{
+						if (clusterCount == (int)clusters.size())
+							clusters.emplace_back();
+
+						cluster = &clusters[clusterCount++];
+						cluster->ObjectID = p.ObjectID;
+						cluster->MeshIndex = clampedMeshIndex;
+					}
+
+					cluster->Particles.push_back(&p);
+				}
+
+				if (clusterCount == 0)
+					continue;
+
+				if (rendererPass == RendererPass::GBuffer)
+				{
+					_shaders.Bind(Shader::GBuffer);
+					_shaders.Bind(Shader::GBufferInstancedStatics);
+				}
+				else
+				{
+					_shaders.Bind(Shader::InstancedStatics);
+				}
+
+				_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+				_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+
+				for (int c = 0; c < clusterCount; c++)
+				{
+					const auto& cluster = clusters[c];
+					const auto& mesh = *GetMesh(Objects[cluster.ObjectID].meshIndex + cluster.MeshIndex);
+
+					for (int baseIndex = 0; baseIndex < (int)cluster.Particles.size(); baseIndex += INSTANCED_STATIC_MESH_BUCKET_SIZE)
+					{
+						int instanceCount = std::min((int)cluster.Particles.size() - baseIndex, INSTANCED_STATIC_MESH_BUCKET_SIZE);
+
+						for (int i = 0; i < instanceCount; i++)
+						{
+							const auto& p = *cluster.Particles[baseIndex + i];
+
+							auto worldMatrix = Matrix::Lerp(p.PrevTransform, p.Transform, GetInterpolationFactor());
+							ReflectMatrixOptionally(worldMatrix);
+
+							_stObjects.Objects[i].World = worldMatrix;
+							_stObjects.Objects[i].Color = Vector4(p.ParticleColor.R(), p.ParticleColor.G(), p.ParticleColor.B(), p.ParticleColor.A());
+							_stObjects.Objects[i].AmbientLight = _rooms[p.RoomNumber].AmbientLight;
+							_stObjects.Objects[i].LightMode = (int)mesh.LightMode;
+
+							if (rendererPass != RendererPass::GBuffer)
+								BindInstancedStaticLights(_rooms[p.RoomNumber].LightsToDraw, i);
+						}
+
+						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+						bool bindTexturesAndMaterialsRequired = true;
+
+						for (int animated = 0; animated < 2; animated++)
+						{
+							for (const auto& bucket : mesh.Buckets)
+							{
+								if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+									continue;
+
+								int passCount = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
+								for (int pass = 0; pass < passCount; pass++)
+								{
+									if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, pass))
+										continue;
+
+									if (bindTexturesAndMaterialsRequired)
+									{
+										BindBucketTextures(bucket, TextureSource::Moveables, animated);
+										BindMaterial(bucket.MaterialIndex, false);
+
+										bindTexturesAndMaterialsRequired = false;
+									}
+
+									DrawIndexedInstancedTriangles(bucket.NumIndices, instanceCount, bucket.StartIndex, 0);
+
+									_numMoveablesDrawCalls++;
+								}
+
+								bindTexturesAndMaterialsRequired = true;
 							}
 						}
 					}
@@ -1827,6 +2053,7 @@ namespace TEN::Renderer
 		PrepareSmokes(view);
 		PrepareSmokeParticles(view);
 		PrepareSimpleParticles(view);
+		PrepareParticleGroups(view);
 		PrepareSparkParticles(view);
 		PrepareExplosionParticles(view);
 		PrepareFootprints(view);
@@ -2424,6 +2651,7 @@ namespace TEN::Renderer
 				DrawRats(view, pass);
 				DrawLocusts(view, pass);
 				DrawFishSwarm(view, pass);
+				DrawParticleGroupMeshes(view, pass);
 			}
 			else if (player)
 			{

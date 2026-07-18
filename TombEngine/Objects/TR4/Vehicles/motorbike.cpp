@@ -21,6 +21,9 @@
 #include "Math/Random.h"
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
+#include "Specific/trutils.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
@@ -28,6 +31,7 @@ using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 using namespace TEN::Math::Random;
+using namespace TEN::Utils;
 using std::vector;
 
 namespace TEN::Entities::Vehicles
@@ -65,6 +69,7 @@ namespace TEN::Entities::Vehicles
 	constexpr auto MOTORBIKE_WAKE_OFFSET = Vector3(BLOCK(1 / 16.0f), 0, BLOCK(1 / 8.0f));
 
 	constexpr auto MOTORBIKE_LIGHT_HASH = 0x1F4B;
+	constexpr auto MOTORBIKE_BRAKE_LIGHT_HASH = 0x1F4C;
 
 	#define MOTORBIKE_FORWARD_TURN_ANGLE ANGLE(1.5f)
 	#define MOTORBIKE_BACK_TURN_ANGLE ANGLE(0.5f)
@@ -154,7 +159,6 @@ namespace TEN::Entities::Vehicles
 
 		motorbikeItem->MeshBits.Set(MotorbikeJoints);
 		motorbike->MomentumAngle = motorbikeItem->Pose.Orientation.y;
-
 		motorbikeItem->MeshBits.Clear(MotorbikeHeadLightJoints);
 	}
 
@@ -311,14 +315,39 @@ namespace TEN::Entities::Vehicles
 		if (motorbike->LightPower <= 0)
 			return;
 
+		if (!PropertyHandler::Get(motorbikeItem, PropName_SpotLightEnabled, true))
+			return;
+
 		auto origin = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.25f), CLICK(1))).ToVector3();
 		auto target = GetJointPosition(motorbikeItem, 3, Vector3i(0, -CLICK(0.25f), BLOCK(1))).ToVector3();
 
+		auto motorbikeLightColor = PropertyHandler::Get(motorbikeItem,PropName_SpotLightColor,ScriptColor(255, 170, 0));
+		auto motorbikeLightRadius = PropertyHandler::Get(motorbikeItem, PropName_SpotLightRadius, 4);
+		auto motorbikeLightFalloff = PropertyHandler::Get(motorbikeItem, PropName_SpotLightFalloff, 2);
+		auto motorbikeLightDistance = PropertyHandler::Get(motorbikeItem, PropName_SpotLightDistance, 10);
+		auto motorbikeLightCastShadow = PropertyHandler::Get(motorbikeItem, PropName_SpotLightCastShadow, true);
 		target = target - origin;
 		target.Normalize();
 
-		float random = (motorbike->LightPower * 2) - Random::GenerateInt(0, 16);
-		SpawnDynamicSpotLight(origin, target, Vector4(random / (float)UCHAR_MAX, random / 1.5f / (float)UCHAR_MAX, 0, 1.0f), BLOCK(4), BLOCK(2), BLOCK(10), true, MOTORBIKE_LIGHT_HASH);
+		float lightIntensity = ((motorbike->LightPower * 2) - Random::GenerateInt(0, 16)) / (float)UCHAR_MAX;
+		lightIntensity *= PropertyHandler::Get(motorbikeItem, PropName_SpotLightIntensity, 1.0f);
+
+		SpawnDynamicSpotLight
+		(
+			origin,
+			target,
+			Vector4
+			(
+				(motorbikeLightColor.GetR() / 255.0f) * lightIntensity,
+				(motorbikeLightColor.GetG() / 255.0f) * lightIntensity,
+				(motorbikeLightColor.GetB() / 255.0f) * lightIntensity,
+				1.0f
+			),
+			BLOCK(motorbikeLightRadius),
+			BLOCK(motorbikeLightFalloff),
+			BLOCK(motorbikeLightDistance),
+			motorbikeLightCastShadow,
+			MOTORBIKE_LIGHT_HASH);
 	}
 
 	static void TriggerMotorbikeExhaustSmoke(int x, int y, int z, short angle, short speed, bool moving)
@@ -1051,9 +1080,16 @@ namespace TEN::Entities::Vehicles
 			if (IsHeld(In::Brake))
 			{
 				auto pos = GetJointPosition(motorbikeItem, 0, Vector3i(0, -144, -1024));
-				SpawnDynamicLight(pos.x, pos.y, pos.z, 10, 64, 0, 0);
 
-				motorbikeItem->MeshBits.Set(MotorbikeBrakeLightJoints);
+				SpawnDynamicPointLight
+				(
+					Vector3((float)pos.x, (float)pos.y, (float)pos.z),
+					Color(64 / (float)UCHAR_MAX, 0.0f, 0.0f),
+					10.0f * UCHAR_MAX,
+					true,
+					MOTORBIKE_BRAKE_LIGHT_HASH
+				);
+					motorbikeItem->MeshBits.Set(MotorbikeBrakeLightJoints);	
 			}
 			else
 				motorbikeItem->MeshBits.Clear(MotorbikeBrakeLightJoints);
@@ -1201,8 +1237,14 @@ namespace TEN::Entities::Vehicles
 		if (laraItem->Animation.ActiveState < MOTORBIKE_STATE_MOUNT ||
 			laraItem->Animation.ActiveState > MOTORBIKE_STATE_DISMOUNT)
 		{
+			bool renderLight = PropertyHandler::Get(motorbikeItem, PropName_SpotLightEnabled, true);
+
 			DrawMotorbikeLight(motorbikeItem);
-			motorbikeItem->MeshBits.Set(MotorbikeHeadLightJoints);
+
+			if (renderLight)
+				motorbikeItem->MeshBits.Set(MotorbikeHeadLightJoints);
+			else
+				motorbikeItem->MeshBits.Clear(MotorbikeHeadLightJoints);
 
 			drive = MotorbikeUserControl(motorbikeItem, laraItem, probe.GetFloorHeight(), &pitch);
 			HandleVehicleSpeedometer(motorbikeItem->Animation.Velocity.z, MOTORBIKE_ACCEL_MAX / (float)VEHICLE_VELOCITY_SCALE);
