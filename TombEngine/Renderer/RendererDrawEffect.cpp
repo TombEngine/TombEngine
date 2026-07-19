@@ -525,7 +525,18 @@ namespace TEN::Renderer
 					newEffect.ObjectID = fx.ObjectNumber;
 					newEffect.RoomNumber = fx.RoomNumber;
 					newEffect.Position = fx.Pose.Position.ToVector3();
-					
+
+					// On the frame the effect spawns, the slot's previous transform still belongs
+					// to its last occupant, so collapse interpolation onto the current pose.
+					if (fx.DisableInterpolation)
+					{
+						newEffect.PrevPosition = newEffect.Position;
+						newEffect.PrevTranslation = newEffect.Translation;
+						newEffect.PrevRotation = newEffect.Rotation;
+						newEffect.PrevWorld = newEffect.World;
+						newEffect.PrevScale = newEffect.Scale;
+					}
+
 					newEffect.InterpolatedPosition = Vector3::Lerp(newEffect.PrevPosition, newEffect.Position, GetInterpolationFactor());
 					newEffect.InterpolatedTranslation = Matrix::Lerp(newEffect.PrevTranslation, newEffect.Translation, GetInterpolationFactor());
 					newEffect.InterpolatedRotation = Matrix::Lerp(newEffect.InterpolatedRotation, newEffect.Rotation, GetInterpolationFactor());
