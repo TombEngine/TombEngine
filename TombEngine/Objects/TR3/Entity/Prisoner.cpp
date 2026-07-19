@@ -21,15 +21,17 @@ using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR3
 {
+	constexpr auto PRISONER_HIT_POINTS = 200;
+
 	constexpr auto PRISONER_HIT_DAMAGE   = 40;
 	constexpr auto PRISONER_SWIPE_DAMAGE = 50;
 
 	constexpr auto PRISONER_ATTACK0_RANGE  = SQUARE(BLOCK(0.33f));
 	constexpr auto PRISONER_ATTACK1_RANGE  = SQUARE(BLOCK(0.66f));
 	constexpr auto PRISONER_ATTACK2_RANGE  = SQUARE(BLOCK(0.75f));
-	constexpr auto PRISONER_WALK_RANGE	  = SQUARE(BLOCK(1));
+	constexpr auto PRISONER_WALK_RANGE	   = SQUARE(BLOCK(1));
 	constexpr auto PRISONER_AWARE_DISTANCE = SQUARE(BLOCK(1));
-	constexpr auto PRISONER_HIT_RADIUS	  = CLICK(1);
+	constexpr auto PRISONER_HIT_RADIUS	   = CLICK(1);
 
 	constexpr auto PRISONER_WALK_TURN_RATE_MAX = ANGLE(7.0f);
 	constexpr auto PRISONER_RUN_TURN_RATE_MAX  = ANGLE(11.0f);
@@ -136,7 +138,7 @@ namespace TEN::Entities::Creatures::TR3
 
 			// Indestructible Prisoner with MODIFY flag. "HitPoints" property overrides the refill value.
 			if (item->AIBits == MODIFY)
-				item->HitPoints = PropertyHandler::Get(*item, PropName_HitPoints, 200);
+				item->HitPoints = PropertyHandler::Get(*item, PropName_HitPoints, PRISONER_HIT_POINTS);
 
 			AI_INFO ai;
 			CreatureAIInfo(item, &ai);
