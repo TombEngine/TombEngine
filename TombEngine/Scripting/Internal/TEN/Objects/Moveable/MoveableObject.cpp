@@ -187,7 +187,6 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_SetPosition, &Moveable::SetPosition,
 		ScriptReserved_SetScale, &Moveable::SetScale,
 		ScriptReserved_SetRoomNumber, &Moveable::SetRoomNumber,
-		ScriptReserved_SetJointRotation, &Moveable::SetJointRotation,
 		ScriptReserved_SetJointOffset, &Moveable::SetJointOffset,
 		ScriptReserved_SetJointScale, &Moveable::SetJointScale,
 		ScriptReserved_SetAdditionalJointRotation, &Moveable::SetAdditionalJointRotation,
@@ -468,23 +467,6 @@ Rotation Moveable::GetRotation() const
 	};
 }
 
-/// Set the moveable's joint rotation. The rotation is added on top of the joint's base animation rotation.
-// Set Rotation(0, 0, 0) to reset the joint rotation back to its default.
-// @function Moveable:SetJointRotation
-// @tparam int jointIndex Index of a joint to rotate.
-// @tparam Rotation rotation Joint rotation to add.
-void Moveable::SetJointRotation(int jointId, const Rotation& rot)
-{
-	if (!MeshExists(jointId))
-		return;
-
-	auto meshCount = Objects[_moveable->ObjectNumber].nmeshes;
-	if (_moveable->Model.Mutators.size() != meshCount)
-		_moveable->Model.Mutators.resize(meshCount);
-
-	_moveable->Model.Mutators[jointId].Rotation = rot.ToEulerAngles();
-}
-
 /// Get the moveable's joint offset.
 // @function Moveable:GetJointOffset
 // @tparam int jointIndex Index of a joint.
@@ -500,7 +482,7 @@ Vec3 Moveable::GetJointOffset(int jointId) const
 	return Vec3(_moveable->Model.Mutators[jointId].Offset);
 }
 
-/// Set the moveable's joint offset.
+/// Set the moveable's joint offset. This effect is visual only and does not affect collision.
 // @function Moveable:SetJointOffset
 // @tparam int jointIndex Index of a joint.
 // @tparam Vec3 offset Joint offset to set.
@@ -531,7 +513,7 @@ Vec3 Moveable::GetJointScale(int jointId) const
 	return Vec3(_moveable->Model.Mutators[jointId].Scale);
 }
 
-/// Set the moveable's joint scale.
+/// Set the moveable's joint scale. This effect is visual only and does not affect collision.
 // @function Moveable:SetJointScale
 // @tparam int jointIndex Index of a joint.
 // @tparam Vec3 scale Joint scale to set.
