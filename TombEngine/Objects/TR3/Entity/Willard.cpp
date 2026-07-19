@@ -15,6 +15,8 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
@@ -528,7 +530,7 @@ namespace TEN::Entities::Creatures::TR3
 					break;
 
 				case WILLARD_STATE_GETUP:
-					item.HitPoints = WILLARD_HP_AFTER_KO;
+					item.HitPoints = PropertyHandler::Get(item, PropName_HitPoints, WILLARD_HP_AFTER_KO);
 					if (artifactsCollected == 4)
 						item.ItemFlags[1] = 1;
 					creature->MaxTurn = WILLARD_ATTACK_TURN;

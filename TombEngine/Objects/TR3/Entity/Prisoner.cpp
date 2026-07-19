@@ -12,6 +12,8 @@
 #include "Game/people.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
@@ -132,9 +134,9 @@ namespace TEN::Entities::Creatures::TR3
 				TargetNearestEntity(*item, PrisonerExcludedTargets);
 			}
 
-			// Indestructible Prisoner with MODIFY flag
+			// Indestructible Prisoner with MODIFY flag. "HitPoints" property overrides the refill value.
 			if (item->AIBits == MODIFY)
-				item->HitPoints = 200;
+				item->HitPoints = PropertyHandler::Get(*item, PropName_HitPoints, 200);
 
 			AI_INFO ai;
 			CreatureAIInfo(item, &ai);
