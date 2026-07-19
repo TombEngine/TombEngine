@@ -15,27 +15,27 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added native support for DualShock, DualSense and Switch Pro controllers.
 * Added animation blending support and blended transitions for hardcoded animation changes.
 * Added root motion support.
-* Added [DISK_SHOOTER](https://tombengine.com/asset/traps/disk-shooter/) object from TR2.
-* Added [FAN](https://tombengine.com/asset/traps/fan/) object from TR3.
-* Added [LARGE_FAN](https://tombengine.com/asset/traps/large-fan/) object from TR2.
-* Added [FALLING_SPIKES](https://tombengine.com/asset/traps/falling-spikes/) from TR2.
-* Added [TUNNEL_BORER](https://tombengine.com/asset/traps/tunnel-borer/) object from TR3.
-* Added [AIRPLANE_PROPELLER](https://tombengine.com/asset/traps/airplane-propeller/) from TR2.
-* Added [ROTATING_KNIFE_DISK](https://tombengine.com/asset/traps/rotating-knife-disk/) object from TR3.
-* Added [FALLING_SANDBAG](https://tombengine.com/asset/traps/falling-sandbag/) from TR2.
 * Added WRAITH4 object. Object supports properties to create custom wraiths.
+* Added [AIRPLANE_PROPELLER](https://tombengine.com/asset/traps/airplane-propeller/) from TR2.
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
-* Added [DRILL_BIT](https://tombengine.com/asset/traps/drill-bit/) object from TR3.
-* Added [FUSEBOX_SWITCH](https://tombengine.com/asset/switches/fusebox-switch/) object from TR3.
-* Added [HEAVY_STAMPER](https://tombengine.com/asset/traps/heavy-stamper/) object from TR3.
+* Added [DISK_SHOOTER](https://tombengine.com/asset/traps/disk-shooter/) object from TR2.
+* Added [FALLING_SPIKES](https://tombengine.com/asset/traps/falling-spikes/) from TR2.
+* Added [FALLING_SANDBAG](https://tombengine.com/asset/traps/falling-sandbag/) from TR2.
+* Added [LARGE_FAN](https://tombengine.com/asset/traps/large-fan/) object from TR2.
 * Added [MULTIPLE_BOULDERS](https://tombengine.com/asset/traps/multiple-boulders/) object from TR2.
 * Added [OVERHEAD_PULLEY_HOOK](https://tombengine.com/asset/traps/overheard-pulley-hook/) object from TR2.
 * Added [ROLLING_BARRELS](https://tombengine.com/asset/traps/rolling-barrels/) object from TR2.
-* Added [SPIKED_FRAME](https://tombengine.com/asset/traps/spiked-frame/) object from TR3.
 * Added [SWINGING_BOX](https://tombengine.com/asset/traps/swinging-box/) object from TR2.
-* Added [SWINGING_IRON_ANCHOR](https://tombengine.com/asset/traps/swinging-iron-anchor/) object from TR3.
 * Added [SWINGING_SANDBAG](https://tombengine.com/asset/traps/swinging-sandbag/) object from TR2.
 * Added [SWINGING_SPIKE_BAG](https://tombengine.com/asset/traps/swinging-spike-bag/) object from TR2.
+* Added [DRILL_BIT](https://tombengine.com/asset/traps/drill-bit/) object from TR3.
+* Added [FAN](https://tombengine.com/asset/traps/fan/) object from TR3.
+* Added [FUSEBOX_SWITCH](https://tombengine.com/asset/switches/fusebox-switch/) object from TR3.
+* Added [HEAVY_STAMPER](https://tombengine.com/asset/traps/heavy-stamper/) object from TR3.
+* Added [ROTATING_KNIFE_DISK](https://tombengine.com/asset/traps/rotating-knife-disk/) object from TR3.
+* Added [SPIKED_FRAME](https://tombengine.com/asset/traps/spiked-frame/) object from TR3.
+* Added [SWINGING_IRON_ANCHOR](https://tombengine.com/asset/traps/swinging-iron-anchor/) object from TR3.
+* Added [TUNNEL_BORER](https://tombengine.com/asset/traps/tunnel-borer/) object from TR3.
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if OCB is above 0 and when the flipeffect "playsound" with the soundID SFX_TR1_SLAMDOOR_CLOSE = 1144 is played.
 * Added hit sounds for TR1 enemies when shot.
 * Added splash and bubble effects for CRUMBLING_FLOOR if it falls into water.
@@ -55,6 +55,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed TEETH_SPIKES behaviour for OCB 1 and move static TR1-3 mode to pre-activated trigger bit flags.
 * Fixed empty inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
+* Fixed PC_LOAD_INV_ITEM and PC_SAVE_INV_ITEM presence in the inventory affecting quickload and quicksave hotkey functionality.
 * Fixed regular spark sprite distance while moving with flare in hand.
 * Fixed fireflies emitting bright white light while in fly form (negative OCB).
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
@@ -95,9 +96,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Flow.Settings.UI.systemTextScale` option to change global system text scale.
 * Added `Input.GetLastInputDevice` function to detect which input device was used last.
 * Added functional key (F1-F12) mappings and raw gamepad input mappings to the `Input.ActionID` and `Input.AxisID` enums.
-* Added `Moveable:SetAdditionalJointRotation` and `Moveable:GetAdditionalJointRotation`to add joint rotation for moveables.
-* Added `Moveable:SetJointScale` and `Moveable:GetJointScale`to set scale joints for moveables.
-* Added `Moveable:SetJointOffset` and `Moveable:GetJointOffset`to add offset joints for moveables.
 * Added `Lara:GetExposure` and `Lara:SetExposure` functions to get or set cold exposure value.
 * Added `Lara:GetLocked` and `Lara:SetLocked` to manage native control lock status.
 * Added `Lara:GetSkin` and `Lara:SetSkin` functions to manage swapping of classic outfits.
@@ -105,6 +103,9 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Lara:GetHolsterWeaponTypes` and `Lara:SetHolsterWeaponTypes` functions to manage holsters.
 * Added `Lara:ResetHair` function to reset character hair. Useful for PhotoMode.
 * Added `Movaeble:GetSkinnedMesh` to get the current active skin and `Moveable:ClearSkinnedMesh` to clear current active skin.
+* Added `Moveable:GetAdditionalJointRotation` and `Moveable:SetAdditionalJointRotation`to add joint rotation for moveables.
+* Added `Moveable:GetJointScale` and `Moveable:SetJointScale`to set scale joints for moveables.
+* Added `Moveable:GetJointOffset` and `Moveable:SetJointOffset`to add offset joints for moveables.
 * Added third argument to `Moveable:SetAnim` function to specify blend frame count.
 * Added `Objects.Creature` class to fetch and set various enemy AI state parameters.
 * Added `Objects.Material` class to fetch and set properties for texture materials.

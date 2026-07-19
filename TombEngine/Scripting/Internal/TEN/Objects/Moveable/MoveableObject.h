@@ -58,6 +58,9 @@ public:
 	Vec3 GetPosition() const;
 	Vec3 GetJointPos(int jointID, sol::optional<Vec3> offset) const;
 	Rotation GetJointRot(int index) const;
+	Vec3 GetJointOffset(int jointId) const;
+	Vec3 GetJointScale(int jointId) const;
+	Rotation GetAdditionalJointRotation(int jointId) const;
 	Rotation GetRotation() const;
 	Vec3 GetScale() const;
 	int GetStateNumber() const;
@@ -92,12 +95,8 @@ public:
 	void SetPosition(const Vec3& pos, sol::optional<bool> updateRoom);
 	std::unique_ptr<Room> GetRoom() const;
 	int GetRoomNumber() const;
-	void SetJointRotation(int jointId, const Rotation& rot);
-	Vec3 GetJointOffset(int jointId) const;
 	void SetJointOffset(int jointId, const Vec3& offset);
-	Vec3 GetJointScale(int jointId) const;
 	void SetJointScale(int jointId, const Vec3& scale);
-	Rotation GetAdditionalJointRotation(int jointId) const;
 	void SetAdditionalJointRotation(int jointId, const Rotation& rot);
 	void SetRotation(const Rotation& rot);
 	void SetScale(const Vec3& scale);
