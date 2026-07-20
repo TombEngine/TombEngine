@@ -74,6 +74,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect blend mode application for sprites.
 * Fixed UI bars being affected by the postprocess mode.
 * Fixed Z-fighting on DisplayItems.
+* Fixed crashes when shooting if the gunflash object is missing.
 
 ### Lua API changes
 

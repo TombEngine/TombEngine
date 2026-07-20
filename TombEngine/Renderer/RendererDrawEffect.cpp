@@ -1293,6 +1293,12 @@ namespace TEN::Renderer
 		// Per-arm draw helper: only transform and draw.
 		auto drawArmFlash = [&](const WeaponSettings& settings, GAME_OBJECT_ID gunflash, bool left)
 		{
+			if (!Objects[gunflash].loaded)
+			{
+				TENLog(fmt::format("Gunflash object {} not loaded, skipping draw.", GetObjectName(gunflash)), LogLevel::Warning);
+				return;
+			}
+
 			const auto& flashMoveable = *_moveableObjects[gunflash];
 			const auto& flashMesh = *flashMoveable.ObjectMeshes[0];
 
@@ -1365,6 +1371,12 @@ namespace TEN::Renderer
 
 			auto flashObjectID = flash.SwitchToMuzzle2 ? (_moveableObjects[ID_GUN_FLASH2].has_value() ? ID_GUN_FLASH2 : ID_GUN_FLASH) : ID_GUN_FLASH;
 			auto zRot = flash.SwitchToMuzzle2 ? 0.0f : TO_RAD((short)std::hash<int>()(GlobalCounter));
+
+			if (!Objects[flashObjectID].loaded)
+			{
+				TENLog(fmt::format("Gunflash object {} not loaded for creature {}, skipping draw.", GetObjectName(flashObjectID), GetObjectName((GAME_OBJECT_ID)rItem.ObjectID)), LogLevel::Warning);
+				return;
+			}
 
 			const auto& flashMoveable = *_moveableObjects[flashObjectID];
 			const auto& flashMesh = *flashMoveable.ObjectMeshes[0];
