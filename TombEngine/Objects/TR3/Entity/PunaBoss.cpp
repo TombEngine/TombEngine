@@ -597,6 +597,13 @@ namespace TEN::Entities::Creatures::TR3
 				StopSoundEffect(SFX_TR3_PUNA_BOSS_TURN_CHAIR);
 			}
 		}
+		else
+		{
+			// Ensure any chair rotation sounds are stopped once Puna starts dying.
+			hasTurned = false;
+			StopSoundEffect(SFX_TR3_PUNA_BOSS_CHAIR_2);
+			StopSoundEffect(SFX_TR3_PUNA_BOSS_TURN_CHAIR);
+		}
 	}
 
 	void PunaHit(ItemInfo& target, ItemInfo& source, std::optional<GameVector> pos, int damage, bool isExplosive, int jointIndex)

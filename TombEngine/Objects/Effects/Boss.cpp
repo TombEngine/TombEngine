@@ -97,15 +97,16 @@ namespace TEN::Effects::Boss
 			if (ring.IsActive)
 				continue;
 
-			   ring.IsActive = true;
-			   ring.ColorType = colorType;
-			   ring.Life = BOSS_EXPLOSION_RING_LIFE_MAX;
-			   ring.Speed = speed;
-			   ring.Radius = 0;
-			   ring.XRot = (short)Random::GenerateInt(0, USHRT_MAX);
-			   ring.ZRot = (short)Random::GenerateInt(0, USHRT_MAX);
-			   ring.Position = pos;
-			   return;
+			ring.IsActive = true;
+			ring.ColorType = colorType;
+			ring.Life = BOSS_EXPLOSION_RING_LIFE_MAX;
+			ring.Speed = speed;
+			ring.Radius = 0;
+			ring.XRot = (short)Random::GenerateInt(0, USHRT_MAX);
+			ring.ZRot = (short)Random::GenerateInt(0, USHRT_MAX);
+			ring.Position = pos;
+			ring.StoreInterpolationData();
+			return;
 		}
 	}
 
@@ -296,7 +297,8 @@ namespace TEN::Effects::Boss
 					Vector3(explosionColor2.x, explosionColor2.y, explosionColor2.z));
 			}
 
-			SoundEffect(SFX_TR3_BLAST_CIRCLE, &item.Pose);
+			if (counter != 1)
+				SoundEffect(SFX_TR3_BLAST_CIRCLE, &item.Pose);
 		}
 
 		if (counter > 0 && !(counter % 10))
