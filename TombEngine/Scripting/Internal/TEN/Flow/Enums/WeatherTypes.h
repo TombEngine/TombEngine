@@ -11,15 +11,20 @@ namespace TEN::Scripting
 	static const std::unordered_map<std::string, WeatherType> WEATHER_TYPES
 	{
 		/// No weather.
-		// @mem None
-		{ "None", WeatherType::None },
+		// @mem NONE
+		{ "NONE", WeatherType::None },
 
 		/// Rain weather.
-		// @mem Rain
-		{ "Rain", WeatherType::Rain },
+		// @mem RAIN
+		{ "RAIN", WeatherType::Rain },
 
 		/// Snow weather.
-		// @mem Snow
+		// @mem SNOW
+		{ "SNOW", WeatherType::Snow },
+
+		//COMPATIBILITY
+		{ "None", WeatherType::None },
+		{ "Rain", WeatherType::Rain },
 		{ "Snow", WeatherType::Snow }
 	};
 }

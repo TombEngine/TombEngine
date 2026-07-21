@@ -58,6 +58,9 @@ namespace TEN::Scripting::Properties
 		// Set a property by name. Creates the entry if it doesn't exist.
 		void Set(const std::string& name, const PropertyValue& value);
 
+		// Set a property by hash. Creates the entry if it doesn't exist.
+		void Set(int hash, const PropertyValue& value);
+
 		// Check if a property exists by name.
 		bool Has(const std::string& name) const;
 

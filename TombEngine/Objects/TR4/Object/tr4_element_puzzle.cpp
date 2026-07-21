@@ -8,6 +8,7 @@
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"
+#include "Game/Gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -19,6 +20,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Sphere;
+using namespace TEN::Gui;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Entities::Switches;
@@ -77,68 +79,6 @@ namespace TEN::Entities::TR4
 			SpawnDynamicLight(item->Pose.Position.x, item->Pose.Position.y - 768, item->Pose.Position.z, 12, r, g, b);
 			return;
 		}
-
-		if (item->TriggerFlags != 3)
-			return;
-
-		if (item->ItemFlags[1] > 90)
-			SoundEffect(SFX_TR4_WIND, &item->Pose);
-
-		if (item->ItemFlags[1] < 60)
-		{
-			item->ItemFlags[1]++;
-			return;
-		}
-
-		item->ItemFlags[0]++;
-
-		if (item->ItemFlags[0] == 90)
-		{
-			short itemNos[256];
-			int sw = GetSwitchTrigger(item, itemNos, 0);
-			if (sw > 0)
-			{
-				for (int i = 0; i < sw; i++)
-				{
-					AddActiveItem(itemNos[i]);
-					g_Level.Items[itemNos[i]].Status = ITEM_ACTIVE;
-					g_Level.Items[itemNos[i]].Flags |= CODE_BITS;
-				}
-			}
-
-			KillItem(itemNumber);
-			return;
-		}
-
-		for (int itemNumber : g_Level.Rooms[item->RoomNumber].itemNumbers)
-		{
-			auto* currentItem = &g_Level.Items[itemNumber];
-
-			if (currentItem->ObjectNumber != ID_FLAME_EMITTER2)
-			{
-				if (currentItem->ObjectNumber == ID_ELEMENT_PUZZLE &&
-					currentItem->TriggerFlags == 1 &&
-					!currentItem->ItemFlags[3])
-				{
-					currentItem->ItemFlags[3] = 90;
-				}
-
-				continue;
-			}
-
-			if (item->ItemFlags[0] != 89)
-			{
-				currentItem->ItemFlags[3] = 255 - GetRandomControl() % (4 * item->ItemFlags[0]);
-
-				if (currentItem->ItemFlags[3] >= 2)
-					continue;
-
-				currentItem->ItemFlags[3] = 2;
-			}
-
-			RemoveActiveItem(itemNumber);
-			currentItem->Status = ITEM_NOT_ACTIVE;
-		}
 	}
 
 	void ElementPuzzleDoCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
@@ -155,36 +95,58 @@ namespace TEN::Entities::TR4
 		}
 	}
 
+	// Returns the object ID of the first filled waterskin in inventory, or NO_VALUE if none.
+	static GAME_OBJECT_ID GetFilledWaterskinID(const LaraInfo& player)
+	{
+		if (player.Inventory.SmallWaterskin > 1)
+			return GAME_OBJECT_ID(ID_WATERSKIN1_EMPTY + player.Inventory.SmallWaterskin - 1);
+
+		if (player.Inventory.BigWaterskin > 1)
+			return GAME_OBJECT_ID(ID_WATERSKIN2_EMPTY + player.Inventory.BigWaterskin - 1);
+
+		return (GAME_OBJECT_ID)NO_VALUE;
+	}
+
 	void ElementPuzzleCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 	{
 		auto* laraInfo = GetLaraInfo(laraItem);
 		auto* puzzleItem = &g_Level.Items[itemNumber];
 
+		// Suppress the highlighter once fully done (water/earth = 1, fire torch phase = 2, fire lit = 3).
+		// Fire still needs the torch interaction at ItemFlags[0] == 1, so only early-out for non-fire
+		// or for fire once it's past the torch-lighting phase.
+		if (puzzleItem->ItemFlags[0] &&
+			!(puzzleItem->TriggerFlags == 1 && puzzleItem->ItemFlags[0] <= 2))
+		{
+			ElementPuzzleDoCollision(itemNumber, laraItem, coll);
+			return;
+		}
+
 		g_Hud.InteractionHighlighter.Test(*laraItem, *puzzleItem);
 
-		int flags = 0;
-
-		if (puzzleItem->TriggerFlags)
-		{
-			if (puzzleItem->TriggerFlags == 1)
-				flags = 26;
-			else
-			{
-				if (puzzleItem->TriggerFlags != 2)
-					return;
-			 
-				flags = 27;
-			}
+		// Determine which mesh-swap flag value this element expects on LaraItem->ItemFlags[2].
+		// 0 = water  → ID_LARA_WATER_MESH  (25)
+		// 1 = fire   → ID_LARA_PETROL_MESH (26)
+		// 2 = earth  → ID_LARA_DIRT_MESH   (27)
+		int expectedMeshFlag = 0;
+		if (puzzleItem->TriggerFlags == 0) 
+			expectedMeshFlag = ID_LARA_WATER_MESH;
+		else if (puzzleItem->TriggerFlags == 1) 
+			expectedMeshFlag = ID_LARA_PETROL_MESH;
+		else if (puzzleItem->TriggerFlags == 2) 
+			expectedMeshFlag = ID_LARA_DIRT_MESH;
+		else 
+		{ 
+			ElementPuzzleDoCollision(itemNumber, laraItem, coll); 
+			return; 
 		}
-		else
-			flags = 25;
 
+		// Water / Fire / Earth pour animation in progress — handle frames
 		if ((laraItem->Animation.AnimNumber == LA_WATERSKIN_POUR_LOW ||
 			laraItem->Animation.AnimNumber == LA_WATERSKIN_POUR_HIGH) &&
-			!puzzleItem->ItemFlags[0])
+			LaraItem->ItemFlags[2] == expectedMeshFlag)
 		{
 			auto box = GameBoundingBox(puzzleItem);
-
 			ElementPuzzleBounds.BoundingBox.X1 = box.X1;
 			ElementPuzzleBounds.BoundingBox.X2 = box.X2;
 			ElementPuzzleBounds.BoundingBox.Z1 = box.Z1 - 200;
@@ -195,74 +157,68 @@ namespace TEN::Entities::TR4
 
 			if (TestLaraPosition(ElementPuzzleBounds, puzzleItem, laraItem))
 			{
-				if (laraItem->Animation.AnimNumber == LA_WATERSKIN_POUR_LOW && LaraItem->ItemFlags[2] == flags)
+				// Upgrade low pour to high pour.
+				if (laraItem->Animation.AnimNumber == LA_WATERSKIN_POUR_LOW)
 				{
 					laraItem->Animation.AnimNumber = LA_WATERSKIN_POUR_HIGH;
 					laraItem->Animation.FrameNumber = 0;
 				}
 
-				if (laraItem->Animation.FrameNumber == 74 &&
-					LaraItem->ItemFlags[2] == flags)
+				// Completion frame.
+				if (laraItem->Animation.FrameNumber == 74)
 				{
-					if (!puzzleItem->TriggerFlags)
+					if (puzzleItem->TriggerFlags == 0) // Water
 					{
 						puzzleItem->MeshBits = 48;
 						TestTriggers(puzzleItem, true, puzzleItem->Flags & IFLAG_ACTIVATION_MASK);
-						puzzleItem->ItemFlags[0] = 1;
-						puzzleItem->Pose.Orientation.y = oldRot;
-						return;
 					}
-
-					if (puzzleItem->TriggerFlags == 1)
+					else if (puzzleItem->TriggerFlags == 1) // Fire — torch will ignite it later
 					{
 						puzzleItem->MeshBits = 3;
-						laraInfo->Inventory.Pickups[1]--;
-						puzzleItem->ItemFlags[0] = 1;
-						puzzleItem->Pose.Orientation.y = oldRot;
-						return;
+						laraInfo->Inventory.Pickups[ID_PICKUP_ITEM2 - ID_PICKUP_ITEM1]--;
+					}
+					else // Earth
+					{
+						puzzleItem->MeshBits = 12;
+						TestTriggers(puzzleItem, true, puzzleItem->Flags & IFLAG_ACTIVATION_MASK);
+						laraInfo->Inventory.Pickups[ID_PICKUP_ITEM1 - ID_PICKUP_ITEM1]--;
 					}
 
-					puzzleItem->MeshBits = 12;
-					TestTriggers(puzzleItem, true, puzzleItem->Flags & IFLAG_ACTIVATION_MASK);
-					laraInfo->Inventory.Pickups[0]--;
 					puzzleItem->ItemFlags[0] = 1;
 				}
 			}
 
 			puzzleItem->Pose.Orientation.y = oldRot;
+			return;
 		}
-		else
+
+		// Fire element, step 2: light it with the torch
+		if (puzzleItem->TriggerFlags == 1 && puzzleItem->ItemFlags[0] >= 1 && puzzleItem->ItemFlags[0] <= 2)
 		{
-			if (laraInfo->Control.Weapon.GunType != LaraWeaponType::Torch ||
-				laraInfo->Control.HandStatus != HandStatus::WeaponReady ||
-				laraInfo->LeftArm.Locked ||
-				!IsHeld(In::Action) ||
-				puzzleItem->TriggerFlags != 1 ||
-				puzzleItem->ItemFlags[0] != 1 ||
-				laraItem->Animation.ActiveState != LS_IDLE ||
-				laraItem->Animation.AnimNumber != LA_STAND_IDLE ||
-				!laraInfo->Torch.IsLit ||
-				laraItem->Animation.IsAirborne)
+			// Torch-lighting animation completion.
+			if (laraItem->Animation.AnimNumber == LA_TORCH_LIGHT_3 &&
+				laraItem->Animation.FrameNumber == 16 &&
+				puzzleItem->ItemFlags[0] == 2)
 			{
-				if (laraItem->Animation.AnimNumber != LA_TORCH_LIGHT_3 ||
-					laraItem->Animation.FrameNumber == 16 ||
-					puzzleItem->ItemFlags[0] != 2)
-				{
-					ElementPuzzleDoCollision(itemNumber, laraItem, coll);
-				}
-				else
-				{
-					TestTriggers(puzzleItem, true, puzzleItem->Flags & IFLAG_ACTIVATION_MASK);
-					AddActiveItem(itemNumber);
-					puzzleItem->Status = ITEM_ACTIVE;
-					puzzleItem->ItemFlags[0] = 3;
-					puzzleItem->Flags |= CODE_BITS;
-				}
+				TestTriggers(puzzleItem, true, puzzleItem->Flags & IFLAG_ACTIVATION_MASK);
+				AddActiveItem(itemNumber);
+				puzzleItem->Status = ITEM_ACTIVE;
+				puzzleItem->ItemFlags[0] = 3;
+				puzzleItem->Flags |= CODE_BITS;
+				return;
 			}
-			else
+
+			// Player is ready to light: bearing a lit torch, standing still, action pressed.
+			if (laraInfo->Control.Weapon.GunType == LaraWeaponType::Torch &&
+				laraInfo->Control.HandStatus == HandStatus::WeaponReady &&
+				!laraInfo->LeftArm.Locked &&
+				IsHeld(In::Action) &&
+				laraItem->Animation.ActiveState == LS_IDLE &&
+				laraItem->Animation.AnimNumber == LA_STAND_IDLE &&
+				laraInfo->Torch.IsLit &&
+				!laraItem->Animation.IsAirborne)
 			{
 				auto box = GameBoundingBox(puzzleItem);
-
 				ElementPuzzleBounds.BoundingBox.X1 = box.X1;
 				ElementPuzzleBounds.BoundingBox.X2 = box.X2;
 				ElementPuzzleBounds.BoundingBox.Z1 = box.Z1 - 200;
@@ -273,17 +229,96 @@ namespace TEN::Entities::TR4
 
 				if (TestLaraPosition(ElementPuzzleBounds, puzzleItem, laraItem))
 				{
-					laraItem->Animation.AnimNumber = (abs(puzzleItem->Pose.Position.y - laraItem->Pose.Position.y) >> 8) + LA_TORCH_LIGHT_3;
+					laraItem->Animation.AnimNumber = LA_TORCH_LIGHT_3;
 					laraItem->Animation.FrameNumber = 0;
 					laraItem->Animation.ActiveState = LS_MISC_CONTROL;
-					laraInfo->Flare.ControlLeft = false;
-					laraInfo->LeftArm.Locked = true;
 					puzzleItem->ItemFlags[0] = 2;
 				}
 
 				puzzleItem->Pose.Orientation.y = oldRot;
+				return;
+			}
+
+			ElementPuzzleDoCollision(itemNumber, laraItem, coll);
+			return;
+		}
+
+		// Check proximity and open the inventory to the correct item
+		bool isPlayerIdle = (laraItem->Animation.ActiveState == LS_IDLE &&
+			laraItem->Animation.AnimNumber == LA_STAND_IDLE &&
+			laraInfo->Control.HandStatus == HandStatus::Free);
+
+		if ((IsHeld(In::Action) || g_Gui.GetInventoryItemChosen() != NO_VALUE) && isPlayerIdle)
+		{
+			auto box = GameBoundingBox(puzzleItem);
+			ElementPuzzleBounds.BoundingBox.X1 = box.X1;
+			ElementPuzzleBounds.BoundingBox.X2 = box.X2;
+			ElementPuzzleBounds.BoundingBox.Z1 = box.Z1 - 200;
+			ElementPuzzleBounds.BoundingBox.Z2 = box.Z2 + 200;
+
+			short oldRot = puzzleItem->Pose.Orientation.y;
+			puzzleItem->Pose.Orientation.y = laraItem->Pose.Orientation.y;
+			bool inRange = TestLaraPosition(ElementPuzzleBounds, puzzleItem, laraItem);
+			puzzleItem->Pose.Orientation.y = oldRot;
+
+			if (inRange)
+			{
+				int chosen = g_Gui.GetInventoryItemChosen();
+
+				if (chosen == NO_VALUE)
+				{
+					// Open inventory to the appropriate item.
+					if (puzzleItem->TriggerFlags == 0) // Water
+					{
+						GAME_OBJECT_ID filledSkin = GetFilledWaterskinID(*laraInfo);
+						if (filledSkin != (GAME_OBJECT_ID)NO_VALUE)
+							g_Gui.SetEnterInventory(filledSkin);
+						else if (IsClicked(In::Action))
+							SayNo();
+					}
+					else if (puzzleItem->TriggerFlags == 1) // Fire
+					{
+						if (g_Gui.IsObjectInInventory(ID_PICKUP_ITEM2))
+							g_Gui.SetEnterInventory(ID_PICKUP_ITEM2);
+						else if (IsClicked(In::Action))
+							SayNo();
+					}
+					else // Earth
+					{
+						if (g_Gui.IsObjectInInventory(ID_PICKUP_ITEM1))
+							g_Gui.SetEnterInventory(ID_PICKUP_ITEM1);
+						else if (IsClicked(In::Action))
+							SayNo();
+					}
+
+					return;
+				}
+
+				// Validate that the chosen item is correct for this element.
+				bool validChoice = false;
+				if (puzzleItem->TriggerFlags == 0)
+					validChoice = (chosen >= ID_WATERSKIN1_1 && chosen <= ID_WATERSKIN1_3) ||
+					              (chosen >= ID_WATERSKIN2_1 && chosen <= ID_WATERSKIN2_5);
+				else if (puzzleItem->TriggerFlags == 1)
+					validChoice = (chosen == ID_PICKUP_ITEM2);
+				else
+					validChoice = (chosen == ID_PICKUP_ITEM1);
+
+				g_Gui.SetInventoryItemChosen(NO_VALUE);
+
+				if (!validChoice)
+					return;
+
+				// Set the mesh-swap flag so the pour animation acts on the right element.
+				LaraItem->ItemFlags[2] = expectedMeshFlag;
+				laraItem->Animation.AnimNumber = LA_WATERSKIN_POUR_HIGH;
+				laraItem->Animation.ActiveState = LS_MISC_CONTROL;
+				laraItem->Animation.FrameNumber = 0;
+				return;
 			}
 		}
+
+		ElementPuzzleDoCollision(itemNumber, laraItem, coll);
 	}
 
 	void InitializeElementPuzzle(short itemNumber)

@@ -1085,19 +1085,19 @@ void UpdateGunShells()
 	}
 }
 
-void AddWaterSparks(int x, int y, int z, int num)
+void AddWaterSparks(int x, int y, int z, int num, unsigned char r, unsigned char g, unsigned char b)
 {
 	for (int i = 0; i < num; i++)
 	{
 		auto* spark = GetFreeParticle();
 
 		spark->on = 1;
-		spark->sR = 227;
-		spark->sG = 227;
-		spark->sB = 227;
-		spark->dR = 148;
-		spark->dG = 148;
-		spark->dB = 148;
+		spark->sR = r;
+		spark->sG = g;
+		spark->sB = b;
+		spark->dR = r / 2;
+		spark->dG = g / 2;
+		spark->dB = b / 2;
 		spark->colFadeSpeed = 4;
 		spark->fadeToBlack = 8;
 		spark->life = 10;
