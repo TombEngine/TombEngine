@@ -328,7 +328,7 @@ namespace TEN::Entities::Creatures::TR3
 			}
 
 			auto avgLightPos = lightAccumulator / (float)PunaBossHeadArcBites.size();
-			SpawnDynamicPointLight(avgLightPos, Color(0.0f, 1.0f, 1.0f), BLOCK(2));
+			SpawnDynamicPointLight(avgLightPos, Color(0.0f, 0.5f, 0.5f), BLOCK(3));
 			return;
 		}
 
@@ -357,7 +357,7 @@ namespace TEN::Entities::Creatures::TR3
 			2,
 			5);
 
-		SpawnDynamicPointLight(lightPos, Color(0.0f, 1.0f, 1.0f), BLOCK(2));
+		SpawnDynamicPointLight(lightPos, Color(0.0f, 0.5f, 0.5f), BLOCK(3));
 
 		ringStartIndex++;
 
