@@ -517,6 +517,12 @@ namespace TEN::Renderer
 
 				if (particle.flags & SP_FX)
 				{
+					if (particle.fxObj < 0 || particle.fxObj >= g_Level.Items.size())
+					{
+						TENLog("Particle FX object index is out of bounds.", LogLevel::Warning);
+						continue;
+					}
+
 					const auto& fx = g_Level.Items[particle.fxObj];
 					auto& newEffect = _items[particle.fxObj];
 
