@@ -239,7 +239,7 @@ namespace TEN::Effects::Boss
 		smoke.dSize = Random::GenerateInt(256, 288);
 		smoke.sSize =
 		smoke.size = smoke.dSize / 2;
-		smoke.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF;
+		smoke.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_HAZE;
 	}
 
 	// NOTE: Actual death occurs when countUntilDeath >= 60.
