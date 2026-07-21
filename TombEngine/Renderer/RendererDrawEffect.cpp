@@ -1151,10 +1151,10 @@ namespace TEN::Renderer
 				int next = (j + 1) % NUM_SEGMENTS;
 
 				AddQuad(sprite,
-					outerVerts[j], outerVerts[next],
-					innerVerts[next], innerVerts[j],
-					outerColors[j], outerColors[next],
-					innerColors[next], innerColors[j],
+					innerVerts[j], innerVerts[next],
+					outerVerts[next], outerVerts[j],
+					innerColors[j], innerColors[next],
+					outerColors[next], outerColors[j],
 					0, 1, Vector2::Zero, BlendMode::Additive, false, view);
 			}
 		}
