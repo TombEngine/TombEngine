@@ -1121,7 +1121,7 @@ namespace TEN::Renderer
 			float innerRadius = outerRadius * 0.5f;
 			float lifeFraction = Lerp(ring.PrevLife / BOSS_EXPLOSION_RING_LIFE_MAX, ring.Life / BOSS_EXPLOSION_RING_LIFE_MAX, interpolationFactor);
 
-			constexpr int NUM_SEGMENTS = 16;
+			constexpr int NUM_SEGMENTS = 8;
 			float wibbleOffset = (GlobalCounter & 0x3F) * 0.1f;
 
 			// Generate outer and inner ring vertices with per-vertex random colors.
@@ -1161,7 +1161,7 @@ namespace TEN::Renderer
 					outerVerts[next], outerVerts[j],
 					innerColors[j], innerColors[next],
 					outerColors[next], outerColors[j],
-					0, 1, Vector2::Zero, BlendMode::Additive, false, view);
+					0, 1, Vector2::Zero, BlendMode::Screen, true, view);
 			}
 		}
 	}
