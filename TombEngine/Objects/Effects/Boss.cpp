@@ -12,6 +12,8 @@
 #include "Game/pickup/pickup.h"
 #include "Game/Setup.h"
 #include "Objects/TR3/Entity/PunaBoss.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Spark;
@@ -19,6 +21,10 @@ using namespace TEN::Entities::Creatures::TR3;
 
 namespace TEN::Effects::Boss
 {
+	// Properties
+	static const auto PropName_BossDynamicLight = GetHash("BossDynamicLight");
+	static const auto PropName_BossExplosionSound = GetHash("BossExplosionSound");
+
 	constexpr auto EXPLOSION_RING_SPEED  = 256;
 	constexpr auto EXPLOSION_LIGHT_RANGE = BLOCK(8);
 
@@ -211,7 +217,7 @@ namespace TEN::Effects::Boss
 		auto effectPos = Random::GeneratePointInSphere(sphere);
 
 		smoke.on = true;
-		smoke.blendMode = BlendMode::Additive;
+		smoke.blendMode = BlendMode::Screen;
 
 		smoke.x = effectPos.x;
 		smoke.y = effectPos.y;
@@ -245,6 +251,10 @@ namespace TEN::Effects::Boss
 	// NOTE: Actual death occurs when countUntilDeath >= 60.
 	void ExplodeBoss(ItemInfo& item, int countUntilDeath, const Vector4& color, const Vector4& explosionColor1, const Vector4& explosionColor2, bool allowExplosion)
 	{
+		// Properties
+		auto bossSFX = PropertyHandler::Get(item, PropName_BossExplosionSound, (int)SFX_TR3_BLAST_CIRCLE, true);
+		auto bossDynamicLight = PropertyHandler::Get(item, PropName_BossDynamicLight, false, true);
+
 		// Disable shield.
 		item.SetFlagField((int)BossItemFlags::ShieldIsEnabled, 0);
 		item.HitPoints = NOT_TARGETABLE;
@@ -266,6 +276,7 @@ namespace TEN::Effects::Boss
 
 		// Start explosion (entity will keep duration count).
 		int counter = item.ItemFlags[(int)BossItemFlags::ExplodeCount];
+
 		if (counter == 1)
 		{
 			SoundEffect(SFX_TR4_EXPLOSION2, &item.Pose);
@@ -280,23 +291,27 @@ namespace TEN::Effects::Boss
 
 			auto lightPos = item.Pose.Position.ToVector3();
 			auto lightColor = Color(explosionColor1.x, explosionColor1.y, explosionColor1.z);
-			SpawnDynamicPointLight(lightPos, lightColor, EXPLOSION_LIGHT_RANGE);
+			
+			if (bossDynamicLight)
+			{
+				SpawnDynamicPointLight(lightPos, lightColor, EXPLOSION_LIGHT_RANGE);
+			}
 
 			auto sphere = BoundingSphere(item.Pose.Position.ToVector3() + Vector3(0.0f, -CLICK(3), 0.0f), BLOCK(0.5f));
 			for (int i = 0; i < 3; i++)
 			{
 				auto pos = Random::GeneratePointInSphere(sphere);
-				SpawnExplosionSmoke(pos, color);
+				//SpawnExplosionSmoke(pos, color);
 
 				TriggerExplosionSparks(
 					item.Pose.Position.x + (Random::GenerateInt(0, 127) - 64 * 2),
 					(item.Pose.Position.y - CLICK(2)) + (Random::GenerateInt(0, 127) - 64 * 2),
 					item.Pose.Position.z + (Random::GenerateInt(0, 127) - 64 * 2),
-					2, -3, 0, item.RoomNumber, Vector3(explosionColor1.x, explosionColor1.y, explosionColor1.z), 
+					2, -1, 0, item.RoomNumber, Vector3(explosionColor1.x, explosionColor1.y, explosionColor1.z), 
 					Vector3(explosionColor2.x, explosionColor2.y, explosionColor2.z));
 			}
 
-			SoundEffect(SFX_TR3_BLAST_CIRCLE, &item.Pose);
+			SoundEffect(bossSFX, &item.Pose);
 		}
 
 		if (counter > 0 && !(counter % 10))
@@ -311,21 +326,28 @@ namespace TEN::Effects::Boss
 					item.Pose.Position.x + (Random::GenerateInt(0, 127) - 64 * 2),
 					(item.Pose.Position.y - CLICK(2)) + (Random::GenerateInt(0, 127) - 64 * 2),
 					item.Pose.Position.z + (Random::GenerateInt(0, 127) - 64 * 2),
-					2, -3, 0, item.RoomNumber, Vector3(explosionColor1.x, explosionColor1.y, explosionColor1.z),
+					2, -1, 0, item.RoomNumber, Vector3(explosionColor1.x, explosionColor1.y, explosionColor1.z),
 					Vector3(explosionColor2.x, explosionColor2.y, explosionColor2.z));
 			}
 
 			auto lightPos = item.Pose.Position.ToVector3();
 			auto lightColor = Color(explosionColor1.x, explosionColor1.y, explosionColor1.z);
-			SpawnDynamicPointLight(lightPos, lightColor, EXPLOSION_LIGHT_RANGE);
+
+			if (bossDynamicLight)
+			{
+				SpawnDynamicPointLight(lightPos, lightColor, EXPLOSION_LIGHT_RANGE);
+			}
 		}
 
-		SpawnDynamicLight(
-			item.Pose.Position.x,
-			item.Pose.Position.y - CLICK(2),
-			item.Pose.Position.z,
-			counter / 2,
-			color.x * UCHAR_MAX, color.y * UCHAR_MAX, color.z * UCHAR_MAX);
+		if (bossDynamicLight)
+		{
+			SpawnDynamicLight(
+				item.Pose.Position.x,
+				item.Pose.Position.y - CLICK(2),
+				item.Pose.Position.z,
+				counter / 2,
+				color.x * UCHAR_MAX, color.y * UCHAR_MAX, color.z * UCHAR_MAX);
+		}
 
 		if (counter >= countUntilDeath)
 		{
