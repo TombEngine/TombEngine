@@ -13,7 +13,10 @@
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Effects/Boss.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/level.h"
+
 
 using namespace TEN::Effects::Boss;
 using namespace TEN::Effects::Electricity;
@@ -22,6 +25,9 @@ using namespace TEN::Effects::Light;
 
 namespace TEN::Entities::Creatures::TR3
 {
+	// Properties
+	static const auto PropName_PunaSummonColor = GetHash("PrimaryColor");
+
 	constexpr auto PUNA_LIGHTNING_DAMAGE = 350;
 
 	constexpr auto PUNA_ATTACK_RANGE = BLOCK(20);
@@ -160,11 +166,16 @@ namespace TEN::Entities::Creatures::TR3
 		return false;
 	}
 
-	static void SpawnSummonSmoke(const Vector3& pos)
-	{
+	static void SpawnSummonSmoke(ItemInfo& item, const Vector3& pos)
+	{		
+		auto summonColor = PropertyHandler::Get(item, PropName_PunaSummonColor, ScriptColor(16,64,0));
+
 		auto& smoke = *GetFreeParticle();
 		
 		int scale = Random::GenerateInt(256, 384);
+		auto r = summonColor.GetR();
+		auto g = summonColor.GetG();
+		auto b = summonColor.GetB();
 
 		smoke.on = true;
 		smoke.SpriteSeqID = ID_DEFAULT_SPRITES;
@@ -176,12 +187,12 @@ namespace TEN::Entities::Creatures::TR3
 		smoke.xVel = Random::GenerateInt(-128, 128);
 		smoke.yVel = Random::GenerateInt(-32, -16);
 		smoke.zVel = Random::GenerateInt(-128, 128);
-		smoke.sR = 16;
-		smoke.sG = 64;
-		smoke.sB = 0;
-		smoke.dR = 8;
-		smoke.dG = 32;
-		smoke.dB = 0;
+		smoke.sR = r;
+		smoke.sG = g;
+		smoke.sB = b;
+		smoke.dR = std::max(1, r / 2);
+		smoke.dG = std::max(1, g / 2);
+		smoke.dB = std::max(1, b / 2);
 		smoke.colFadeSpeed = Random::GenerateInt(16, 24);
 		smoke.fadeToBlack = 64;
 		smoke.sLife =
@@ -218,7 +229,7 @@ namespace TEN::Entities::Creatures::TR3
 			auto& currentItem = g_Level.Items[itemNumber];
 
 			for (int i = 0; i < 20; i++)
-				SpawnSummonSmoke(currentItem.Pose.Position.ToVector3());
+				SpawnSummonSmoke(item, currentItem.Pose.Position.ToVector3());
 
 			AddActiveItem(itemNumber);
 			currentItem.ItemFlags[0] = 1; // Flag 1 = spawned lizard.
