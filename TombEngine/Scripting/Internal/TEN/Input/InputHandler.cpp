@@ -172,9 +172,9 @@ namespace TEN::Scripting::Input
 	// @treturn string Name of the key that has been assigned to the ActionID for the specified device.
 	static std::string GetActionBinding(int actionID, sol::optional<InputDevice> device)
 	{
-		auto dev = device.value_or(TEN::Input::GetLastInputDevice());
+		auto device = device.value_or(GetLastInputDevice());
 
-		const BindingProfile& profile = (dev == InputDevice::Gamepad) ?
+		const BindingProfile& profile = (device == InputDevice::Gamepad) ?
 			DEFAULT_GAMEPAD_BINDING_PROFILE : DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
 
 		auto it = profile.find((ActionID)actionID);
