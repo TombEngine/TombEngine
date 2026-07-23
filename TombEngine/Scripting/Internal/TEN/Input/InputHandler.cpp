@@ -164,13 +164,24 @@ namespace TEN::Scripting::Input
 		Rumble(strength, time.value_or(0.3f), RumbleMode::Both);
 	}
 
-	/// Returns the name of the key that has been assigned to specified ActionID.
+	/// Returns the name of the key that has been assigned to specified ActionID for a given input device.
+	// If no device is specified, the last used input device is used.
 	// @function GetActionBinding
 	// @tparam Input.ActionID actionID Action ID to get binding key name for.
-	// @treturn string Name of keyboard key that has been assigned to the ActionID.
-	static std::string GetActionBinding(int actionID)
+	// @tparam[opt] Input.InputDevice device Input device to get the binding for. Defaults to the last used device.
+	// @treturn string Name of the key that has been assigned to the ActionID for the specified device.
+	static std::string GetActionBinding(int actionID, sol::optional<InputDevice> device)
 	{
-		return g_Bindings.GetBoundKeyName((ActionID)actionID);
+		auto dev = device.value_or(TEN::Input::GetLastInputDevice());
+
+		const BindingProfile& profile = (dev == InputDevice::Gamepad) ?
+			DEFAULT_GAMEPAD_BINDING_PROFILE : DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
+
+		auto it = profile.find((ActionID)actionID);
+		if (it != profile.end())
+			return GetKeyName(it->second);
+
+		return GetKeyName(KEY_UNASSIGNED);
 	}
 
 	/// Returns the time for which a key has been held.
