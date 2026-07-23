@@ -8,7 +8,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### New features
 
 * Added a property system for moveables, static meshes and materials that is intended to supersede the legacy OCB system.
-* Added optional headlight mesh support for JEEP, toggled together with the headlight.
 * Added heat haze for flame emitters and effects.
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
@@ -36,7 +35,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added [SPIKED_FRAME](https://tombengine.com/asset/traps/spiked-frame/) object from TR3.
 * Added [SWINGING_IRON_ANCHOR](https://tombengine.com/asset/traps/swinging-iron-anchor/) object from TR3.
 * Added [TUNNEL_BORER](https://tombengine.com/asset/traps/tunnel-borer/) object from TR3.
-* Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if OCB is above 0 and when the flipeffect "playsound" with the soundID SFX_TR1_SLAMDOOR_CLOSE = 1144 is played.
+* Added optional headlight mesh support for JEEP, toggled together with the headlight.
+* Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if property is set and when the sound ID 681 (SFX_TR2_SLAM_DOOR_CLOSE) is playing.
 * Added hit sounds for TR1 enemies when shot.
 * Added splash and bubble effects for CRUMBLING_FLOOR if it falls into water.
 * Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fog effect if OCB value is 0.
