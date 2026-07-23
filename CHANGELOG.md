@@ -35,6 +35,20 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added [SPIKED_FRAME](https://tombengine.com/asset/traps/spiked-frame/) object from TR3.
 * Added [SWINGING_IRON_ANCHOR](https://tombengine.com/asset/traps/swinging-iron-anchor/) object from TR3.
 * Added [TUNNEL_BORER](https://tombengine.com/asset/traps/tunnel-borer/) object from TR3.
+* Added SEAL_MUTANT (ID 299) object from TR3.
+* Added BOO_MUTANT (ID 300) object from TR3.
+* Added HYBRID_MUTANT (ID 301) object from TR3.
+* Added OILRED (ID 302) object from TR3.
+* Added WHITE_SOLDIER (ID 303) object from TR3.
+* Added PUNK (ID 304) object from TR3. Object supports properties to configure the flame attack.
+* Added LONDON_MERCENARY (ID 305) object from TR3.
+* Added SWAT_GUN (ID 306) object from TR3.
+* Added PRISONER (ID 307) object from TR3.
+* Added WASP_MUTANT_EMITTER (ID 308) object from TR3.
+* Added WILLARD (ID 246) object from TR3.
+* Added WHALE (ID 112) object from TR3.
+* Added CIVVY (ID 247) object from TR3.
+* Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if OCB is above 0 and when the flipeffect "playsound" with the soundID SFX_TR1_SLAMDOOR_CLOSE = 1144 is played.
 * Added optional headlight mesh support for JEEP, toggled together with the headlight.
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if property is set and when the sound ID 681 (SFX_TR2_SLAM_DOOR_CLOSE) is playing.
 * Added hit sounds for TR1 enemies when shot.
