@@ -1,7 +1,6 @@
 ---
 -- This module enables classic ring inventory in TEN levels. 
--- Example usage:
---
+-- To enable photo mode in a level, `require` this module once in your level script or in Autoexec.lua:
 --	local RingInventory = require("Engine.RingInventory.Inventory")
 --
 -- Global ring inventory settings.
