@@ -129,6 +129,12 @@ namespace TEN::Entities::Creatures::TR1
 				else
 					SetAnimation(item, BIG_RAT_ANIM_LAND_DEATH);
 			}
+			
+			if (doWaterDeath)
+			{
+				CreatureFloat(itemNumber);
+				return;
+			}
 		}
 		else
 		{
