@@ -202,7 +202,7 @@ namespace TEN::Entities::Creatures::TR3
 			flame.flags = SP_SCALE | SP_DEF | SP_EXPDEF | SP_FX;
 		}
 
-		flame.fxObj = (unsigned char)fxNumber;
+		flame.fxObj = fxNumber;
 		flame.SpriteSeqID = ID_DEFAULT_SPRITES;
 		flame.SpriteID = 0;
 		float size = Random::GenerateInt(64.0f, 96.0f);
