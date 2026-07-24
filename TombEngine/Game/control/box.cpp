@@ -909,7 +909,8 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	// VERTICAL MOVEMENT:
 	// Three modes: Flying/Swimming, Jumping, or Ground.
 
-	if (LOT->Fly != NO_FLYING && item->HitPoints > 0)
+	// NOTE: NOT_TARGETABLE creatures (e.g. whale) must keep swimming/flying despite HitPoints being negative.
+	if (LOT->Fly != NO_FLYING && (item->HitPoints > 0 || item->HitPoints == NOT_TARGETABLE))
 	{
 		// FLYING/SWIMMING: Move toward target Y at fly speed.
 		int deltaY = creature->Target.y - item->Pose.Position.y;
@@ -1070,8 +1071,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
 		ceiling = GetCeiling(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 
-		// Large creatures need special collision height.
-		if (item->ObjectNumber == ID_TYRANNOSAUR || item->ObjectNumber == ID_SHIVA || item->ObjectNumber == ID_MUTANT2)
+		if (item->ObjectNumber == ID_TYRANNOSAUR || item->ObjectNumber == ID_SHIVA || item->ObjectNumber == ID_CLAW_MUTANT)
 			top = CLICK(3);
 		else
 			top = bounds.Y1; // TODO: check if Y1 or Y2

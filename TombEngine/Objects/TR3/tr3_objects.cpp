@@ -9,8 +9,12 @@
 #include "Specific/level.h"
 
 // Creatures
+#include "Objects/TR3/Entity/BooMutant.h"
 #include "Objects/TR3/Entity/Compsognathus.h"
+#include "Objects/TR3/Entity/HybridMutant.h"
 #include "Objects/TR3/Entity/Lizard.h"
+#include "Objects/TR3/Entity/Mercenary.h"
+#include "Objects/TR3/Entity/OilRed.h"
 #include "Objects/TR3/Entity/PunaBoss.h"
 #include "Objects/TR3/Entity/SealMutant.h"
 #include "Objects/TR3/Entity/Shiva.h"
@@ -18,7 +22,11 @@
 #include "Objects/TR3/Entity/Raptor.h"
 #include "Objects/TR3/Entity/TwinAutoGun.h"
 #include "Objects/TR3/Entity/WaspMutant.h"
+#include "Objects/TR3/Entity/WhiteSoldier.h"
 #include "Objects/TR3/Entity/Winston.h"
+#include "Objects/TR3/Entity/Punk.h"
+#include "Objects/TR3/Entity/SwatGun.h"
+#include "Objects/TR3/Entity/Prisoner.h"
 #include "Objects/TR3/Entity/tr3_tony.h"
 #include "Objects/TR3/Entity/tr3_civvy.h"
 #include "Objects/TR3/Entity/tr3_claw_mutant.h"
@@ -32,6 +40,8 @@
 #include "Objects/TR3/Entity/tr3_tiger.h"
 #include "Objects/TR3/Entity/tr3_trex.h"
 #include "Objects/TR3/Entity/tr3_tribesman.h"
+#include "Objects/TR3/Entity/Whale.h"
+#include "Objects/TR3/Entity/Willard.h"
 
 // Effects
 #include "Objects/Effects/Boss.h"
@@ -201,6 +211,37 @@ static void StartEntity(ObjectInfo* obj)
 		obj->LotType = LotType::Water;
 		obj->SetBoneRotationFlags(10, ROT_X | ROT_Y);
 		obj->SetBoneRotationFlags(14, ROT_Y);
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_WHALE];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeCreature;
+		obj->control = WhaleControl;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = NOT_TARGETABLE;
+		obj->pivotLength = 200;
+		obj->radius = 341;
+		obj->intelligent = true;
+		obj->LotType = LotType::Water;
+	};
+
+	obj = &Objects[ID_WILLARD];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeWillard;
+		obj->control = WillardControl;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 200;
+		obj->pivotLength = 50;
+		obj->radius = 128;
+		obj->intelligent = true;
+		obj->LotType = LotType::Human;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
 		obj->SetHitEffect();
 	}
 
@@ -413,7 +454,7 @@ static void StartEntity(ObjectInfo* obj)
 		obj->shadowType = ShadowMode::All;
 		obj->HitPoints = 130;
 		obj->intelligent = true;
-		obj->radius = 204;
+		obj->radius = 256;
 		obj->pivotLength = 0;
 		obj->SetBoneRotationFlags(0, ROT_X | ROT_Z);
 		obj->SetBoneRotationFlags(7, ROT_Y);
@@ -433,6 +474,149 @@ static void StartEntity(ObjectInfo* obj)
 		obj->intelligent = true;
 		obj->SetBoneRotationFlags(8, ROT_X | ROT_Z); // Torso X/Z
 		obj->SetBoneRotationFlags(9, ROT_Y);		 // Head
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_BOO_MUTANT];
+	if (obj->loaded)
+	{
+		obj->control = ControlBooMutant;
+		obj->shadowType = ShadowMode::All;
+	}
+
+	obj = &Objects[ID_HYBRID_MUTANT];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeCreature;
+		obj->control = ControlHybridMutant;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 90;
+		obj->radius = 204;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->LotType = LotType::HumanPlusJump;
+		obj->SetBoneRotationFlags(0, ROT_X | ROT_Z); // Torso
+		obj->SetBoneRotationFlags(7, ROT_Y);		 // Head
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_MERCENARY];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeMercenary;
+		obj->control = ControlMercenary;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 40;
+		obj->radius = 102;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->LotType = LotType::Human;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_OILRED];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeCreature;
+		obj->control = ControlOilRed;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 25;
+		obj->radius = 102;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->LotType = LotType::Human;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_WHITE_SOLDIER];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeWhiteSoldier;
+		obj->control = ControlWhiteSoldier;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 30;
+		obj->radius = 102;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->LotType = LotType::Human;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_PUNK];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializePunk;
+		obj->control = ControlPunk;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 20;
+		obj->radius = 102;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->LotType = LotType::Human;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_SWAT_GUN];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeSwatGun;
+		obj->control = ControlSwatGun;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 26;
+		obj->radius = 102;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->LotType = LotType::Human;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_LONDON_MERCENARY];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeSwatGun;
+		obj->control = ControlSwatGun;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 26;
+		obj->radius = 102;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->LotType = LotType::Human;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
+		obj->SetHitEffect();
+	}
+
+	obj = &Objects[ID_PRISONER];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializePrisoner;
+		obj->control = ControlPrisoner;
+		obj->collision = CreatureCollision;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = 34;
+		obj->radius = 102;
+		obj->pivotLength = 0;
+		obj->intelligent = true;
+		obj->LotType = LotType::Human;
+		obj->SetBoneRotationFlags(6, ROT_X | ROT_Y);
+		obj->SetBoneRotationFlags(13, ROT_Y);
 		obj->SetHitEffect();
 	}
 

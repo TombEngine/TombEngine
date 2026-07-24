@@ -531,7 +531,18 @@ namespace TEN::Renderer
 					newEffect.ObjectID = fx.ObjectNumber;
 					newEffect.RoomNumber = fx.RoomNumber;
 					newEffect.Position = fx.Pose.Position.ToVector3();
-					
+
+					// On the frame the effect spawns, the slot's previous transform still belongs
+					// to its last occupant, so collapse interpolation onto the current pose.
+					if (fx.DisableInterpolation)
+					{
+						newEffect.PrevPosition = newEffect.Position;
+						newEffect.PrevTranslation = newEffect.Translation;
+						newEffect.PrevRotation = newEffect.Rotation;
+						newEffect.PrevWorld = newEffect.World;
+						newEffect.PrevScale = newEffect.Scale;
+					}
+
 					newEffect.InterpolatedPosition = Vector3::Lerp(newEffect.PrevPosition, newEffect.Position, GetInterpolationFactor());
 					newEffect.InterpolatedTranslation = Matrix::Lerp(newEffect.PrevTranslation, newEffect.Translation, GetInterpolationFactor());
 					newEffect.InterpolatedRotation = Matrix::Lerp(newEffect.InterpolatedRotation, newEffect.Rotation, GetInterpolationFactor());
@@ -581,13 +592,23 @@ namespace TEN::Renderer
 							nodePos.z = NodeOffsets[particle.nodeNumber].z;
 
 							int meshIndex = NodeOffsets[particle.nodeNumber].meshNum;
-							if (meshIndex >= 0)
+							if (meshIndex < 0)
 							{
-								nodePos = GetJointPosition(item, meshIndex, nodePos);
+								item = LaraItem;
+								meshIndex = -meshIndex;
+							}
+
+							// Transform offset by interpolated bone matrices so attached particles
+							// stay aligned with the drawn mesh during movement and rotation.
+							const auto& rendererItem = _items[item->Index];
+							if (rendererItem.DoneAnimations)
+							{
+								auto world = rendererItem.InterpolatedAnimationTransforms[meshIndex] * rendererItem.InterpolatedWorld;
+								nodePos = Vector3i(Vector3::Transform(nodePos.ToVector3(), world));
 							}
 							else
 							{
-								nodePos = GetJointPosition(LaraItem, -meshIndex, nodePos);
+								nodePos = GetJointPosition(item, meshIndex, nodePos);
 							}
 
 							NodeOffsets[particle.nodeNumber].itemNumber = particle.fxObj;

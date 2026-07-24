@@ -35,6 +35,19 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added [SPIKED_FRAME](https://tombengine.com/asset/traps/spiked-frame/) object from TR3.
 * Added [SWINGING_IRON_ANCHOR](https://tombengine.com/asset/traps/swinging-iron-anchor/) object from TR3.
 * Added [TUNNEL_BORER](https://tombengine.com/asset/traps/tunnel-borer/) object from TR3.
+* Added SEAL_MUTANT object from TR3.
+* Added BOO_MUTANT object from TR3.
+* Added HYBRID_MUTANT object from TR3.
+* Added OILRED object from TR3.
+* Added WHITE_SOLDIER object from TR3.
+* Added PUNK object from TR3. Object supports properties to configure the flame attack.
+* Added LONDON_MERCENARY object from TR3.
+* Added SWAT_GUN object from TR3.
+* Added PRISONER object from TR3.
+* Added WASP_MUTANT_EMITTER object from TR3.
+* Added WILLARD  object from TR3.
+* Added WHALE object from TR3.
+* Added CIVVY object from TR3.
 * Added optional headlight mesh support for JEEP, toggled together with the headlight.
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if property is set and when the sound ID 681 (SFX_TR2_SLAM_DOOR_CLOSE) is playing.
 * Added hit sounds for TR1 enemies when shot.
@@ -53,7 +66,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
 * Fixed SOPHIA_LEIGH_BOSS pathfinding and knockback effect.
 * Fixed TEETH_SPIKES behaviour for OCB 1 and move static TR1-3 mode to pre-activated trigger bit flags.
-* Fixed empty inventory screen after exiting examine mode.
+* Fixed empty linear inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed PC_LOAD_INV_ITEM and PC_SAVE_INV_ITEM presence in the inventory affecting quickload and quicksave hotkey functionality.
 * Fixed regular spark sprite distance while moving with flare in hand.
