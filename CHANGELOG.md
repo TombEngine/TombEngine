@@ -8,7 +8,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 ### New features
 
 * Added a property system for moveables, static meshes and materials that is intended to supersede the legacy OCB system.
-* Added optional headlight mesh support for JEEP, toggled together with the headlight.
 * Added heat haze for flame emitters and effects.
 * Added ease-in and ease-out to flyby camera movement when the "Freeze camera" flag is set.
 * Added gamma correction setting.
@@ -36,7 +35,21 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added [SPIKED_FRAME](https://tombengine.com/asset/traps/spiked-frame/) object from TR3.
 * Added [SWINGING_IRON_ANCHOR](https://tombengine.com/asset/traps/swinging-iron-anchor/) object from TR3.
 * Added [TUNNEL_BORER](https://tombengine.com/asset/traps/tunnel-borer/) object from TR3.
-* Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if OCB is above 0 and when the flipeffect "playsound" with the soundID SFX_TR1_SLAMDOOR_CLOSE = 1144 is played.
+* Added SEAL_MUTANT object from TR3.
+* Added BOO_MUTANT object from TR3.
+* Added HYBRID_MUTANT object from TR3.
+* Added OILRED object from TR3.
+* Added WHITE_SOLDIER object from TR3.
+* Added PUNK object from TR3. Object supports properties to configure the flame attack.
+* Added LONDON_MERCENARY object from TR3.
+* Added SWAT_GUN object from TR3.
+* Added PRISONER object from TR3.
+* Added WASP_MUTANT_EMITTER object from TR3.
+* Added WILLARD  object from TR3.
+* Added WHALE object from TR3.
+* Added CIVVY object from TR3.
+* Added optional headlight mesh support for JEEP, toggled together with the headlight.
+* Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if property is set and when the sound ID 681 (SFX_TR2_SLAM_DOOR_CLOSE) is playing.
 * Added hit sounds for TR1 enemies when shot.
 * Added splash and bubble effects for CRUMBLING_FLOOR if it falls into water.
 * Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fog effect if OCB value is 0.
@@ -53,8 +66,9 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
 * Fixed SOPHIA_LEIGH_BOSS pathfinding and knockback effect.
 * Fixed TEETH_SPIKES behaviour for OCB 1 and move static TR1-3 mode to pre-activated trigger bit flags.
-* Fixed empty inventory screen after exiting examine mode.
+* Fixed empty linear inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
+* Fixed PC_LOAD_INV_ITEM and PC_SAVE_INV_ITEM presence in the inventory affecting quickload and quicksave hotkey functionality.
 * Fixed regular spark sprite distance while moving with flare in hand.
 * Fixed fireflies emitting bright white light while in fly form (negative OCB).
 * Fixed incorrect dynamic range for vertex colors, ambient light, dynamic lights and particle effects.
@@ -73,6 +87,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect blend mode application for sprites.
 * Fixed UI bars being affected by the postprocess mode.
 * Fixed Z-fighting on DisplayItems.
+* Fixed crashes when shooting if the gunflash object is missing.
 
 ### Lua API changes
 
