@@ -19,7 +19,7 @@ body:
       description: |
         Please select the TombEngine version you are using.
       options:
-        - Development build 
+        - v2.0 Release Candidate 1
         - v1.11 (latest public release)
         - v1.10.1  
     validations:
