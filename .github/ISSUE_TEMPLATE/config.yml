@@ -1,17 +1,1 @@
 blank_issues_enabled: false
-
-# Disable blank issue 
-
-blank_issues_enabled: false
-
-# Bug Report Form
-  name: Bug Report
-  description: File a bug report.
-  title: "[Bug]: "
-  labels: [ "Awaiting Triage" ]
-
-  # Initial Message
-  body:
-  type: markdown
-  attributes:
-  value: Thanks for taking the time to fill out this bug report! Please use the steps below to log the report for the development team.

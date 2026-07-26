@@ -4,7 +4,6 @@ title: "[ Feature Request ] "
 labels: Awaiting Triage
 
 body:
-
 - type: textarea
   attributes:
     label: Is your feature request related to a problem? Please describe.
@@ -15,7 +14,7 @@ body:
 - type: textarea
   attributes:
     label: Describe the solution you'd like
-    placeholder: A clear and concise description of what you want to happen.
+    placeholder: A clear and concise description of what you want to happen. 
   validations:
     required: true
 
@@ -29,6 +28,6 @@ body:
 - type: textarea
   attributes:
     label: Additional context
-    placeholder: Add any other context or screenshots about the feature request here. (as a link to screenshot or drop the screenshot into this textbox)
+    placeholder: Add any other context or screenshots about the feature request here. Video files may need to be uploaded to a file sharing service that does not expire (Google Drive, Dropbox, etc.) and then linked here.
   validations:
     required: false

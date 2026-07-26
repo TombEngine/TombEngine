@@ -30,9 +30,8 @@ body:
       label: Development Version
       description: Are you submitting this report from a development build that has not been officially released?
       options: 
-        - label: "I am using an unofficial development version."
         - label: "I am using an official release."
-        - label: "I am using an official pre-release."
+        - label: "I am using an unofficial development version."
     validations:
       required: true
 
