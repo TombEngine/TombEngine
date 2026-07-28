@@ -401,9 +401,9 @@ namespace TEN::Entities::TR4
 		if (item->ItemFlags[1] != item->RoomNumber)
 		{
 			ItemInfo* currentItem = nullptr;
-			for (short itemNum = g_Level.Rooms[item->RoomNumber].itemNumber; itemNum != NO_VALUE; itemNum = currentItem->NextItem)
+			for (int itemNumber : g_Level.Rooms[item->RoomNumber].itemNumbers)
 			{
-				currentItem = &g_Level.Items[itemNum];
+				auto* currentItem = &g_Level.Items[itemNumber];
 
 				if (SameZone(creature, currentItem) && item->Floor <= item->Pose.Position.y &&
 					(currentItem->ObjectNumber == ID_SMALLMEDI_ITEM || currentItem->ObjectNumber == ID_BIGMEDI_ITEM || currentItem->ObjectNumber == ID_UZI_AMMO_ITEM))

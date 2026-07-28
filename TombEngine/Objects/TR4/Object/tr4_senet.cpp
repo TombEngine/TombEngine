@@ -330,22 +330,18 @@ void SenetPieceExplosionEffect(ItemInfo* item, int color, int speed)
 	item->Pose.Position.y += STEPUP_HEIGHT;
 }
 
-void TriggerItemInRoom(short room_number, int object)//originally this is in deltapak
+void TriggerItemInRoom(short roomNumber, int object)
 {
-	short num = g_Level.Rooms[room_number].itemNumber;
-	while (num != NO_VALUE)
+	for (int itemNumber : g_Level.Rooms[roomNumber].itemNumbers)
 	{
-		auto* item = &g_Level.Items[num];
-		short nex = item->NextItem;
+		auto* item = &g_Level.Items[itemNumber];
 
 		if (item->ObjectNumber == object)
 		{
-			AddActiveItem(num);
+			AddActiveItem(itemNumber);
 			item->Status = ITEM_ACTIVE;
 			item->Flags |= IFLAG_ACTIVATION_MASK;
 		}
-
-		num = nex;
 	}
 }
 

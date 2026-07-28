@@ -8,7 +8,7 @@
 #include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
 #include "Game/effects/debris.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -334,7 +334,7 @@ void DoPickup(ItemInfo* laraItem)
 		lara->Control.Weapon.GunType = LaraWeaponType::Flare;
 		InitializeNewWeapon(*laraItem);
 		lara->Control.HandStatus = HandStatus::Special;
-		lara->Flare.Life = int(pickupItem->Data) & 0x7FFF;
+		lara->Flare.Life = pickupItem->Data.is<int>() ? (int(pickupItem->Data) & 0x7FFF) : 0;
 		KillItem(pickupItemNumber);
 
 		if (laraItem->Animation.ActiveState == LA_UNDERWATER_PICKUP_FLARE)
@@ -1054,6 +1054,7 @@ void PickupControl(short itemNumber)
 
 const GameBoundingBox* FindPlinth(ItemInfo* item)
 {
+
 	auto coll = GetLosCollision(item->Pose.Position.ToVector3(), item->RoomNumber, Vector3::UnitY, CLICK(1), true, false, true);
 
 	if (!coll.Statics.empty())
