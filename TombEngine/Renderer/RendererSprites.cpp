@@ -132,6 +132,16 @@ namespace TEN::Renderer
 		view.SpritesToDraw.push_back(spr);
 	}
 
+	void Renderer::AddQuad(RendererSprite* sprite, const Vector3& pos, const Vector4& color, float orient2D, float scale, float size, BlendMode blendMode, const Vector3& constraintAxis, bool isSoftParticle, RenderView& view, SpriteRenderType renderType)
+	{
+		auto rot = Matrix::CreateFromYawPitchRoll(constraintAxis.y, constraintAxis.x, constraintAxis.z);
+		auto half = size * (float)scale * (float)scale * 0.5f;
+		auto right = Vector3::Transform(Vector3(half, 0.0f, 0.0f), rot);
+		auto up = Vector3::Transform(Vector3(0.0f, half, 0.0f), rot);
+
+		AddQuad(sprite, pos - right + up, pos + right + up,	pos + right - up, pos - right - up, color, orient2D, scale,	Vector2(size, size), blendMode, true, view);
+	}
+
 	void Renderer::AddColoredQuad(const Vector3& vertex0, const Vector3& vertex1, const Vector3& vertex2, const Vector3& vertex3,
 		const Vector4& color, BlendMode blendMode, RenderView& view)
 	{
@@ -266,7 +276,6 @@ namespace TEN::Renderer
 				_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleStrip);
 
 				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
-
 				SetDepthState(DepthState::Read);
 				SetCullMode(CullMode::None);
 
@@ -297,6 +306,7 @@ namespace TEN::Renderer
 			};
 			g_Parallel.AddTasks((int)spriteBucket.SpritesToDraw.size(), prepareSprites).wait();
 
+			SetBlendMode(spriteBucket.BlendMode);
 			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
 			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());;
 
@@ -321,7 +331,6 @@ namespace TEN::Renderer
 				_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 
 				BindRenderTargetAsTexture(TextureRegister::GBufferDepthMap, _depthRenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
-
 				SetDepthState(DepthState::Read);
 				SetCullMode(CullMode::None);
 
@@ -341,10 +350,9 @@ namespace TEN::Renderer
 			_stInstancedSpriteBuffer.Sprites[0].PerVertexColor = 1;
 			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = spriteBucket.IsSoftParticle ? 1.0f : 0.0f;
 
+			SetBlendMode(spriteBucket.BlendMode);
 			PackSpriteTextureCoordinates(0, spriteBucket.Sprite);
-
 			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
-
 			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
 
 			int spritesToDraw = 0;
@@ -525,7 +533,7 @@ namespace TEN::Renderer
 
 	void Renderer::PackSpriteTextureCoordinates(int instanceId, RendererSprite* sprite)
 	{
-		// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+		// NOTE: Strange packing due to particular HLSL 16-byte alignment requirements.
 	
 		_stInstancedSpriteBuffer.Sprites[instanceId].UV[0].x = sprite->UV[0].x;
 		_stInstancedSpriteBuffer.Sprites[instanceId].UV[0].y = sprite->UV[1].x;

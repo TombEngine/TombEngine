@@ -3,7 +3,7 @@
 
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/effects/simple_particle.h"
 #include "Game/effects/Splash.h"
 #include "Game/effects/Streamer.h"
@@ -12,8 +12,12 @@
 #include "Game/Lara/lara_flare.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_struct.h"
-#include "Math/Random.h"
 #include "Game/room.h"
+#include "Math/Random.h"
+#include "Scripting/Include/ScriptInterfaceGame.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
+#include "Specific/trutils.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 
@@ -24,11 +28,13 @@ using namespace TEN::Effects::Streamer;
 using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
 	constexpr auto VEHICLE_BASE_HEIGHT = CLICK(2);
 	constexpr auto VEHICLE_FULL_HEIGHT = CLICK(3);
+	constexpr auto VEHICLE_COLLISION_MARGIN_MULTIPLIER = 1.2f;
 
 	enum class VehicleWakeEffectTag
 	{
@@ -65,13 +71,17 @@ namespace TEN::Entities::Vehicles
 			return VehicleMountType::None;
 
 		// Assess object collision.
-		if (!TestBoundsCollide(vehicleItem, laraItem, coll->Setup.Radius) || !HandleItemSphereCollision(*vehicleItem, *laraItem))
+		if (!TestBoundsCollide(vehicleItem, laraItem, coll->Setup.Radius * VEHICLE_COLLISION_MARGIN_MULTIPLIER) || !HandleItemSphereCollision(*vehicleItem, *laraItem))
 			return VehicleMountType::None;
 
 		bool hasInputAction = IsHeld(In::Action);
 
+		// Vehicles may have shifted bounds, so use OBB center for mount type assessment instead of position.
+		auto vehicleCenter = vehicleItem->GetObb().Center;
+		vehicleCenter.y = vehicleItem->Pose.Position.y;
+
 		short deltaHeadingAngle = vehicleItem->Pose.Orientation.y - laraItem->Pose.Orientation.y;
-		short angleBetweenPositions = vehicleItem->Pose.Orientation.y - Geometry::GetOrientToPoint(laraItem->Pose.Position.ToVector3(), vehicleItem->Pose.Position.ToVector3()).y;
+		short angleBetweenPositions = vehicleItem->Pose.Orientation.y - Geometry::GetOrientToPoint(laraItem->Pose.Position.ToVector3(), vehicleCenter).y;
 		bool onCorrectSide = abs(deltaHeadingAngle - angleBetweenPositions) < ANGLE(45.0f);
 
 		// Assess mount types allowed for vehicle.
@@ -91,7 +101,7 @@ namespace TEN::Entities::Vehicles
 
 			case VehicleMountType::Front:
 				if (hasInputAction &&
-					deltaHeadingAngle > ANGLE(135.0f) && deltaHeadingAngle < -ANGLE(135.0f) &&
+					(deltaHeadingAngle > ANGLE(135.0f) || deltaHeadingAngle < -ANGLE(135.0f)) &&
 					onCorrectSide &&
 					!laraItem->Animation.IsAirborne)
 				{
@@ -146,6 +156,15 @@ namespace TEN::Entities::Vehicles
 			default:
 				return VehicleMountType::None;
 			}
+
+			// Re-evaluate mount type after the callback which may have intercepted the input (e.g. for vehicle keys check).
+			auto oldHandStatus = lara->Control.HandStatus;
+			g_GameScript->OnVehicleEnter(vehicleItem->Index, false);
+			bool mountCanceled = (mountType != VehicleMountType::LevelStart && lara->Control.HandStatus != HandStatus::Free);
+			lara->Control.HandStatus = oldHandStatus;
+			
+			if (mountCanceled)
+				return VehicleMountType::None;
 
 			return mountType;
 		}
@@ -247,9 +266,12 @@ namespace TEN::Entities::Vehicles
 				currentVelocity -= std::copysign(currentVelocity * ((waterDepth / VEHICLE_WATER_HEIGHT_MAX) / coeff), currentVelocity);
 
 				if (TEN::Math::Random::GenerateInt(0, 32) > 28)
-					SoundEffect(SFX_TR4_LARA_WADE, &Pose(vehicleItem->Pose.Position), SoundEnvironment::Land, isWater ? 0.8f : 0.7f);
+				{
+					auto wadePose = Pose(vehicleItem->Pose.Position);
+					SoundEffect(SFX_TR4_LARA_WADE, &wadePose, SoundEnvironment::Land, isWater ? 0.8f : 0.7f);
+				}
 
-				if (isWater)
+				if (isWater && PropertyHandler::Get(vehicleItem, PropName_VehicleWake, true))
 				{
 					int waterHeight = GetPointCollision(*vehicleItem).GetWaterTopHeight();
 					SpawnVehicleWake(*vehicleItem, wakeOffset, waterHeight);
@@ -370,6 +392,9 @@ namespace TEN::Entities::Vehicles
 		constexpr auto EXP_RATE_ON_WATER   = 6.0f;
 		constexpr auto EXP_RATE_UNDERWATER = 1.5f;
 
+		Color wakeStartColor = PropertyHandler::Get(vehicleItem, PropName_VehicleWakeStartColor, ScriptColor(COLOR_START));
+		Color wakeEndColor = PropertyHandler::Get(vehicleItem, PropName_VehicleWakeEndColor, ScriptColor(COLOR_END));
+
 		// Vehicle is out of water; return early.
 		if (waterHeight == NO_HEIGHT)
 			return;
@@ -391,14 +416,14 @@ namespace TEN::Entities::Vehicles
 		// Spawn left wake.
 		StreamerEffect.Spawn(
 			vehicleItem.Index, (int)tagLeft,
-			positions.first, dir, orient2D, COLOR_START, COLOR_END,
+			positions.first, dir, orient2D, wakeStartColor, wakeEndColor,
 			0.0f, life, vel, expRate, 0,
 			StreamerFeatherMode::Right, BlendMode::Additive);
 
 		// Spawn right wake.
 		StreamerEffect.Spawn(
 			vehicleItem.Index, (int)tagRight,
-			positions.second, dir, orient2D, COLOR_START, COLOR_END,
+			positions.second, dir, orient2D, wakeStartColor, wakeEndColor,
 			0.0f, life, vel, expRate, 0,
 			StreamerFeatherMode::Left, BlendMode::Additive);
 	}

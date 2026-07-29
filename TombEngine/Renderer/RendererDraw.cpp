@@ -11,9 +11,10 @@
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
 #include "Game/effects/DisplaySprite.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
+#include "Game/effects/ParticleGroup.h"
 #include "Game/Gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
@@ -207,6 +208,7 @@ namespace TEN::Renderer
 			shadowProjection.ViewProjection = view * projection;
 			UpdateConstantBuffer(&shadowProjection, _cbCameraMatrices.get());
 			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
+			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
 			_stShadowMap.LightViewProjections[step] = (view * projection);
 
@@ -221,13 +223,13 @@ namespace TEN::Renderer
 			_stObjects.Objects[0].AmbientLight = item->AmbientLight;
 			_stObjects.Skinned = (int)skinMode;
 
-			for (int k = 0; k < MAX_BONES; k++)
+			for (int k = 0; k < BONE_COUNT_MAX; k++)
 				_stObjects.BoneLightModes[k] = (int)LightMode::Static;
 
 			if (skinMode == SkinningMode::Full)
 			{
 				for (int m = 0; m < obj.AnimationTransforms.size(); m++)
-					_stObjects.Bones[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+					_stObjects.Bones[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
 				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 				auto* mesh = GetMesh(item->SkinIndex);
@@ -247,17 +249,11 @@ namespace TEN::Renderer
 				}
 			}
 
-			memcpy(_stObjects.Bones, item->InterpolatedAnimTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
+			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
-			for (int k = 0; k < obj.ObjectMeshes.size(); k++)
+			for (int k = 0; k < item->MeshIndex.size(); k++)
 			{
-				if (item->MeshIndex.size() <= k)
-				{
-					TENLog("Mesh structure was not properly initialized for object " + GetObjectName((GAME_OBJECT_ID)item->ObjectID));
-					break;
-				}
-
 				auto* mesh = GetMesh(item->MeshIndex[k]);
 
 				if (skinMode == SkinningMode::Full && g_Level.Meshes[item->MeshIndex[k]].hidden)
@@ -764,6 +760,231 @@ namespace TEN::Renderer
 								DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
 
 								_numMoveablesDrawCalls++;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void Renderer::DrawParticleGroupMeshes(RenderView& view, RendererPass rendererPass)
+	{
+		using namespace TEN::Effects::ParticleGroups;
+
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
+		for (const auto& group : ParticleGroupList)
+		{
+			if (!group.Active)
+				continue;
+
+			if (!group.IsMeshGroup())
+				continue;
+
+			if (!Objects[group.ObjectID].loaded)
+				continue;
+
+			if (!_moveableObjects[group.ObjectID].has_value())
+				continue;
+
+			if (rendererPass == RendererPass::CollectTransparentFaces)
+			{
+				for (const auto& p : group.Particles)
+				{
+					if (!p.Active)
+						continue;
+
+					if (IgnoreReflectionPassForRoom(p.RoomNumber))
+						continue;
+
+					float dist = Vector3::Distance(p.Position, view.Camera.WorldPosition);
+					if (dist > DEFAULT_RENDER_DISTANCE)
+						continue;
+
+					// Validate per-particle object ID (if overridden).
+					if (!Objects[p.ObjectID].loaded)
+						continue;
+
+					// Ensure it's a moveable (positive nmeshes) with valid mesh data.
+					if (Objects[p.ObjectID].nmeshes <= 0)
+						continue;
+
+					if (!_moveableObjects[p.ObjectID].has_value())
+						continue;
+
+					int clampedMeshIndex = std::clamp(p.SubIndex, 0, Objects[p.ObjectID].nmeshes - 1);
+					auto& mesh = *GetMesh(Objects[p.ObjectID].meshIndex + clampedMeshIndex);
+
+					// Transform is identical for all polygons of the particle; compute it once.
+					auto worldMatrix = Matrix::Lerp(p.PrevTransform, p.Transform, GetInterpolationFactor());
+					ReflectMatrixOptionally(worldMatrix);
+
+					for (auto& bucket : mesh.Buckets)
+					{
+						if (!IsSortedBlendMode(bucket.BlendMode))
+							continue;
+
+						for (auto& poly : bucket.Polygons)
+						{
+							auto center = Vector3::Transform(poly.Centre, worldMatrix);
+							float polyDist = Vector3::Distance(center, view.Camera.WorldPosition);
+
+							auto object = RendererSortableObject{};
+							object.ObjectType = RendererObjectType::MoveableAsStatic;
+							object.Centre = center;
+							object.Distance = polyDist;
+							object.BlendMode = bucket.BlendMode;
+							object.Bucket = &bucket;
+							object.LightMode = mesh.LightMode;
+							object.Polygon = &poly;
+							object.World = worldMatrix;
+							object.Room = &_rooms[p.RoomNumber];
+
+							view.TransparentObjectsToDraw.push_back(object);
+						}
+					}
+				}
+			}
+			else
+			{
+				// Cluster visible particles by (object ID, mesh index): all particles of a
+				// cluster share the same mesh, so they can be drawn with instancing in
+				// batches of up to INSTANCED_STATIC_MESH_BUCKET_SIZE instead of paying a
+				// full constant buffer upload and a draw call per particle.
+				struct ParticleMeshCluster
+				{
+					GAME_OBJECT_ID ObjectID = GAME_OBJECT_ID::ID_NO_OBJECT;
+					int MeshIndex = 0;
+					std::vector<const GroupParticle*> Particles = {};
+				};
+
+				// Keep scratch memory across calls to avoid per-frame reallocations.
+				static auto clusters = std::vector<ParticleMeshCluster>{};
+				for (auto& cluster : clusters)
+					cluster.Particles.clear();
+
+				int clusterCount = 0;
+				for (const auto& p : group.Particles)
+				{
+					if (!p.Active)
+						continue;
+
+					// In mirror passes, draw only particles in the mirrored room, with the
+					// reflection applied. Lights are reflected by BindLight.
+					if (IgnoreReflectionPassForRoom(p.RoomNumber))
+						continue;
+
+					float dist = Vector3::Distance(p.Position, view.Camera.WorldPosition);
+					if (dist > DEFAULT_RENDER_DISTANCE)
+						continue;
+
+					// Validate per-particle object ID (if overridden): must be a loaded
+					// moveable (positive nmeshes) with valid mesh data.
+					if (!Objects[p.ObjectID].loaded || Objects[p.ObjectID].nmeshes <= 0 ||
+						!_moveableObjects[p.ObjectID].has_value())
+					{
+						continue;
+					}
+
+					int clampedMeshIndex = std::clamp(p.SubIndex, 0, Objects[p.ObjectID].nmeshes - 1);
+
+					// Distinct keys are few (usually one per group); linear scan is enough.
+					ParticleMeshCluster* cluster = nullptr;
+					for (int c = 0; c < clusterCount; c++)
+					{
+						if (clusters[c].ObjectID == p.ObjectID && clusters[c].MeshIndex == clampedMeshIndex)
+						{
+							cluster = &clusters[c];
+							break;
+						}
+					}
+
+					if (cluster == nullptr)
+					{
+						if (clusterCount == (int)clusters.size())
+							clusters.emplace_back();
+
+						cluster = &clusters[clusterCount++];
+						cluster->ObjectID = p.ObjectID;
+						cluster->MeshIndex = clampedMeshIndex;
+					}
+
+					cluster->Particles.push_back(&p);
+				}
+
+				if (clusterCount == 0)
+					continue;
+
+				if (rendererPass == RendererPass::GBuffer)
+				{
+					_shaders.Bind(Shader::GBuffer);
+					_shaders.Bind(Shader::GBufferInstancedStatics);
+				}
+				else
+				{
+					_shaders.Bind(Shader::InstancedStatics);
+				}
+
+				_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+				_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+
+				for (int c = 0; c < clusterCount; c++)
+				{
+					const auto& cluster = clusters[c];
+					const auto& mesh = *GetMesh(Objects[cluster.ObjectID].meshIndex + cluster.MeshIndex);
+
+					for (int baseIndex = 0; baseIndex < (int)cluster.Particles.size(); baseIndex += INSTANCED_STATIC_MESH_BUCKET_SIZE)
+					{
+						int instanceCount = std::min((int)cluster.Particles.size() - baseIndex, INSTANCED_STATIC_MESH_BUCKET_SIZE);
+
+						for (int i = 0; i < instanceCount; i++)
+						{
+							const auto& p = *cluster.Particles[baseIndex + i];
+
+							auto worldMatrix = Matrix::Lerp(p.PrevTransform, p.Transform, GetInterpolationFactor());
+							ReflectMatrixOptionally(worldMatrix);
+
+							_stObjects.Objects[i].World = worldMatrix;
+							_stObjects.Objects[i].Color = Vector4(p.ParticleColor.R(), p.ParticleColor.G(), p.ParticleColor.B(), p.ParticleColor.A());
+							_stObjects.Objects[i].AmbientLight = _rooms[p.RoomNumber].AmbientLight;
+							_stObjects.Objects[i].LightMode = (int)mesh.LightMode;
+
+							if (rendererPass != RendererPass::GBuffer)
+								BindInstancedStaticLights(_rooms[p.RoomNumber].LightsToDraw, i);
+						}
+
+						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+						bool bindTexturesAndMaterialsRequired = true;
+
+						for (int animated = 0; animated < 2; animated++)
+						{
+							for (const auto& bucket : mesh.Buckets)
+							{
+								if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+									continue;
+
+								int passCount = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
+								for (int pass = 0; pass < passCount; pass++)
+								{
+									if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, pass))
+										continue;
+
+									if (bindTexturesAndMaterialsRequired)
+									{
+										BindBucketTextures(bucket, TextureSource::Moveables, animated);
+										BindMaterial(bucket.MaterialIndex, false);
+
+										bindTexturesAndMaterialsRequired = false;
+									}
+
+									DrawIndexedInstancedTriangles(bucket.NumIndices, instanceCount, bucket.StartIndex, 0);
+
+									_numMoveablesDrawCalls++;
+								}
+
+								bindTexturesAndMaterialsRequired = true;
 							}
 						}
 					}
@@ -1621,7 +1842,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicSpotLight(const Vector3& pos, const Vector3& dir, float radius, float falloff, float distance, const Color& color, bool castShadows, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
+		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
 			return;
 
 		RendererLight dynamicLight = {};
@@ -1658,7 +1879,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicPointLight(const Vector3& pos, float radius, const Color& color, bool castShadows, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
+		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
 			return;
 
 		if (radius <= EPSILON)
@@ -1686,7 +1907,7 @@ namespace TEN::Renderer
 
 	void Renderer::AddDynamicFogBulb(const Vector3& pos, float radius, float density, const Color& color, int hash)
 	{
-		if (_isLocked || g_GameFlow->LastFreezeMode != FreezeMode::None)
+		if (_isLocked || g_GameFlow->LastFreezeMode == FreezeMode::Full)
 			return;
 
 		auto dynamicLight = RendererLight{};
@@ -1757,7 +1978,7 @@ namespace TEN::Renderer
 
 	void Renderer::PrepareScene()
 	{
-		if (g_GameFlow->CurrentFreezeMode == FreezeMode::None &&
+		if (g_GameFlow->CurrentFreezeMode != FreezeMode::Full &&
 			g_Gui.GetInventoryMode() == InventoryMode::None)
 		{
 			_dynamicLightList ^= 1;
@@ -1808,6 +2029,10 @@ namespace TEN::Renderer
 
 		ResetDebugVariables();
 
+		// Sampler slots keep their states for the whole frame; the point filter override is
+		// decided once here.
+		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
+
 		auto& level = *g_GameFlow->GetLevel(CurrentLevel);
 
 		// Prepare scene to draw.
@@ -1832,6 +2057,7 @@ namespace TEN::Renderer
 		PrepareSmokes(view);
 		PrepareSmokeParticles(view);
 		PrepareSimpleParticles(view);
+		PrepareParticleGroups(view);
 		PrepareSparkParticles(view);
 		PrepareExplosionParticles(view);
 		PrepareFootprints(view);
@@ -1862,19 +2088,19 @@ namespace TEN::Renderer
 		// Bind constant buffers.
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PerDraw, _cbPerDraw.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
+		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Sprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Sky, _cbSky.get());
 
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Camera, _cbCameraMatrices.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PerDraw, _cbPerDraw.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedStatics, _cbObjects.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::ShadowLight, _cbShadowMap.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Room, _cbRoom.get());
-		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::InstancedSprites, _cbInstancedSpriteBuffer.get());
+		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Sprites, _cbInstancedSpriteBuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::PostProcess, _cbPostProcessBuffer.get());
 		BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Sky, _cbSky.get());
 
@@ -2028,14 +2254,14 @@ namespace TEN::Renderer
 		// SMAA: RT -> ..., ... -> RT
 		ApplyAntialiasing(_renderTarget.get(), view);
 
+		// Now we can apply the color grade, lens flare, cinematic bars and post process effects
+		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT
+		DrawPostprocess(renderTarget, view, renderMode);
+
 		// Draw text and 2D HUD
 		ClearDrawPhaseDisplaySprites();
 		if (renderMode == SceneRenderMode::Full && g_GameFlow->LastGameStatus == GameStatus::Normal)
 			g_Hud.Draw2D(*LaraItem);
-
-		// Now we can apply the color grade, lens flare, cinematic bars and post process effects
-		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT
-		DrawPostprocess(renderTarget, view, renderMode);
 
 		_doingFullscreenPass = false;
 
@@ -2048,7 +2274,11 @@ namespace TEN::Renderer
 			DrawDisplaySprites(view, false);
 
 			DrawDebugRenderTargets(view);
-			DrawAllStrings();
+
+			// HACK: Strings in the title level are drawn in a separate menu pass, so we bypass it here.
+			if (CurrentLevel != 0)
+				DrawAllStrings();
+
 			DrawDisplaySprites(view, true);
 		}
 
@@ -2425,6 +2655,7 @@ namespace TEN::Renderer
 				DrawRats(view, pass);
 				DrawLocusts(view, pass);
 				DrawFishSwarm(view, pass);
+				DrawParticleGroupMeshes(view, pass);
 			}
 			else if (player)
 			{
@@ -2592,13 +2823,13 @@ namespace TEN::Renderer
 			if (skinMode == SkinningMode::Full)
 			{
 				for (int m = 0; m < moveableObj.AnimationTransforms.size(); m++)
-					_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+					_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
 				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 				DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
 			}
 
-			memcpy(_stObjects.Bones, item->InterpolatedAnimTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
+			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
 			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 		}
 
@@ -3182,7 +3413,7 @@ namespace TEN::Renderer
 					_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1;
 					_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = 0;
 
-					// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+					// NOTE: Strange packing due to particular HLSL 16-byte alignment requirements.
 					_stInstancedSpriteBuffer.Sprites[i].UV[0].x = rDrawSprite.Sprite->UV[0].x;
 					_stInstancedSpriteBuffer.Sprites[i].UV[0].y = rDrawSprite.Sprite->UV[1].x;
 					_stInstancedSpriteBuffer.Sprites[i].UV[0].z = rDrawSprite.Sprite->UV[2].x;
@@ -3245,7 +3476,7 @@ namespace TEN::Renderer
 						_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1;
 						_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = 0;
 
-						// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+						// NOTE: Strange packing due to particular HLSL 16-byte alignment requirements.
 						_stInstancedSpriteBuffer.Sprites[i].UV[0].x = rDrawSprite.Sprite->UV[0].x;
 						_stInstancedSpriteBuffer.Sprites[i].UV[0].y = rDrawSprite.Sprite->UV[1].x;
 						_stInstancedSpriteBuffer.Sprites[i].UV[0].z = rDrawSprite.Sprite->UV[2].x;
@@ -3357,7 +3588,7 @@ namespace TEN::Renderer
 			_stInstancedSpriteBuffer.Sprites[0].IsBillboard = 1;
 			_stInstancedSpriteBuffer.Sprites[0].IsSoftParticle = 0;
 
-			// NOTE: Strange packing due to particular HLSL 16 byte alignment requirements.
+			// NOTE: Strange packing due to particular HLSL 16-byte alignment requirements.
 			_stInstancedSpriteBuffer.Sprites[0].UV[0].x = rDrawSprite.Sprite->UV[0].x;
 			_stInstancedSpriteBuffer.Sprites[0].UV[0].y = rDrawSprite.Sprite->UV[1].x;
 			_stInstancedSpriteBuffer.Sprites[0].UV[0].z = rDrawSprite.Sprite->UV[2].x;
@@ -3405,7 +3636,7 @@ namespace TEN::Renderer
 				{
 					for (int p = 0; p < bucket.Polygons.size(); p++)
 					{
-						auto center = Vector3::Transform(bucket.Polygons[p].Centre, itemToDraw->InterpolatedAnimTransforms[boneIndex] * itemToDraw->InterpolatedWorld);
+						auto center = Vector3::Transform(bucket.Polygons[p].Centre, itemToDraw->InterpolatedAnimationTransforms[boneIndex] * itemToDraw->InterpolatedWorld);
 						int dist = Vector3::Distance(center, Camera.pos.ToVector3());
 
 						auto object = RendererSortableObject{};
@@ -3722,6 +3953,31 @@ namespace TEN::Renderer
 
 				i--;
 			}
+			else if (object->ObjectType == RendererObjectType::Effect)
+			{
+				while (i < view.TransparentObjectsToDraw.size() &&
+					view.TransparentObjectsToDraw[i].ObjectType == object->ObjectType &&
+					view.TransparentObjectsToDraw[i].Effect == object->Effect &&
+					view.TransparentObjectsToDraw[i].Bucket->Texture == object->Bucket->Texture &&
+					view.TransparentObjectsToDraw[i].Bucket->Animated == object->Bucket->Animated &&
+					view.TransparentObjectsToDraw[i].BlendMode == object->BlendMode &&
+					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
+				{
+					auto* currentObject = &view.TransparentObjectsToDraw[i];
+					_sortedPolygonsIndices.bulk_push_back(
+						_moveablesIndices.data(),
+						currentObject->Polygon->BaseIndex,
+						currentObject->Polygon->Shape == 0 ? 6 : 3);
+					i++;
+				}
+
+				DrawEffectSorted(object, lastObjectType, view);
+
+				if (i == view.TransparentObjectsToDraw.size())
+					return;
+
+				i--;
+			}
 			else if (object->ObjectType == RendererObjectType::Sprite)
 			{			
 				while (i < view.TransparentObjectsToDraw.size() &&
@@ -3887,11 +4143,11 @@ namespace TEN::Renderer
 		if (objectInfo->Skinned)
 		{
 			for (int m = 0; m < moveableObj.BindPoseTransforms.size(); m++)
-				_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * objectInfo->Item->InterpolatedAnimTransforms[m];
+				_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * objectInfo->Item->InterpolatedAnimationTransforms[m];
 		}
 		else
 		{
-			memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimTransforms, sizeof(Matrix) * MAX_BONES);
+			memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimationTransforms, sizeof(Matrix) * BONE_COUNT_MAX);
 		}
 		
 		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
@@ -3995,6 +4251,46 @@ namespace TEN::Renderer
 		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
 	}
 
+	void Renderer::DrawEffectSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view)
+	{
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
+		if (lastObjectType != objectInfo->ObjectType)
+		{
+			_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
+
+			SetDepthState(DepthState::Read);
+			SetCullMode(CullMode::CounterClockwise);
+
+			_shaders.Bind(Shader::InstancedStatics);
+		}
+
+		_graphicsDevice->UpdateIndexBuffer(_sortedPolygonsIndexBuffer.get(), (int)_sortedPolygonsIndices.size(), 0, _sortedPolygonsIndices.data());
+		_graphicsDevice->BindIndexBuffer(_sortedPolygonsIndexBuffer.get());
+
+		auto world = objectInfo->Effect->InterpolatedWorld;
+		_stObjects.Objects[0].World = world;
+
+		_stObjects.Objects[0].Color = objectInfo->Effect->Color;
+		_stObjects.Objects[0].AmbientLight = objectInfo->Effect->AmbientLight;
+		_stObjects.Objects[0].LightMode = (int)LightMode::Dynamic;
+		BindInstancedStaticLights(objectInfo->Effect->LightsToDraw, 0);
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+		SetBlendMode(objectInfo->BlendMode);
+		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
+
+		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
+		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
+
+		DrawIndexedInstancedTriangles((int)_sortedPolygonsIndices.size(), 1, 0, 0);
+
+		_numEffectsDrawCalls++;
+		_numSortedTriangles += (int)_sortedPolygonsIndices.size() / 3;
+	}
+
 	void Renderer::DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index)
 	{
 		if (index >= HairEffect.Units.size())
@@ -4028,7 +4324,7 @@ namespace TEN::Renderer
 		const auto& moveableObj = *_moveableObjects[(int)GAME_OBJECT_ID::ID_HAIR_PRIMARY + index];
 
 		_stObjects.Objects[0].World = Matrix::Identity;
-		_stObjects.Bones[0] = objectInfo->Item->InterpolatedAnimTransforms[HairUnit::GetRootMeshID(index)] * objectInfo->Item->InterpolatedWorld;
+		_stObjects.Bones[0] = objectInfo->Item->InterpolatedAnimationTransforms[HairUnit::GetRootMeshID(index)] * objectInfo->Item->InterpolatedWorld;
 		ReflectMatrixOptionally(_stObjects.Bones[0]);
 
 		bool forceValue = g_GameFlow->CurrentFreezeMode == FreezeMode::Player;

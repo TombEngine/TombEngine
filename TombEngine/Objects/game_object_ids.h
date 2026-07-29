@@ -42,7 +42,8 @@ enum GAME_OBJECT_ID : short
 	ID_LARA_TORCH_ANIM,
 	ID_HAIR_PRIMARY,
 	ID_HAIR_SECONDARY,
-	
+	ID_PHOTOMODE_ANIMS,
+
 	ID_SNOWMOBILE_TRACKS = 49,
 	ID_SNOWMOBILE_LARA_ANIMS,
 	ID_SNOWMOBILE,
@@ -187,7 +188,7 @@ enum GAME_OBJECT_ID : short
 	ID_SHIVA_STATUE,
 	ID_WILLARD,
 	ID_CIVVY,
-	ID_MUTANT2,
+	ID_MUTANT2, // ID_CLAW_MUTANT
 	ID_LIZARD,
 	ID_TONY_BOSS,
 	ID_TONY_BOSS_FLAME,
@@ -238,15 +239,15 @@ enum GAME_OBJECT_ID : short
 	ID_SKATEBOARD_KID,
 	ID_WINSTON,
 	ID_SEAL_MUTANT,
-	// 300 reserved for exisiting branch
-	// 301 reserved for exisiting branch
-	// 302 reserved for exisiting branch
-	// 303 reserved for exisiting branch
-	// 304 reserved for exisiting branch
-	// 305 reserved for exisiting branch
-	// 306 reserved for exisiting branch
-	// 307 reserved for exisiting branch
-	// 308 reserved for exisiting branch
+	ID_BOO_MUTANT,
+	ID_HYBRID_MUTANT,
+	ID_OILRED,
+	ID_WHITE_SOLDIER,
+	ID_PUNK,
+	ID_LONDON_MERCENARY,
+	ID_SWAT_GUN,
+	ID_PRISONER,
+	ID_WASP_MUTANT_EMITTER,
 	ID_SPRINGBOARD = 320,
 	ID_ROLLING_SPINDLE,
 	ID_DISK_SHOOTER,
@@ -397,15 +398,15 @@ enum GAME_OBJECT_ID : short
 	ID_CIRCULAR_SAW,
 	ID_ROLLING_BARRELS,
 	ID_MULTIPLE_BOULDERS,
-	// 470 reserved for exisiting branch
-	// 471 reserved for exisiting branch
-	// 472 reserved for exisiting branch
-	// 473 reserved for exisiting branch
-	// 474 reserved for exisiting branch
-	// 475 reserved for exisiting branch
-	// 476 reserved for exisiting branch
-	// 477 reserved for exisiting branch
-	ID_WRECKINGBALL_ANCHOR = 478,
+	ID_FAN,
+	ID_LARGE_FAN,
+	ID_FALLING_SPIKES,
+	ID_TUNNEL_BORER,
+	ID_AIRPLANE_PROPELLER,
+	ID_ROTATING_KNIFE_DISK,
+	ID_UNDERWATER_MINE,
+	ID_FALLING_SANDBAG,
+	ID_WRECKINGBALL_ANCHOR,
 	ID_WRECKINGBALL_CHAIN,
 	ID_PUZZLE_ITEM1 = 500,
 	ID_PUZZLE_ITEM2,
@@ -662,10 +663,10 @@ enum GAME_OBJECT_ID : short
 	ID_SHOOT_SWITCH3,
 	ID_SHOOT_SWITCH4,
 	ID_AIRLOCK_SWITCH,
-	ID_UNDERWATER_WALL_SWITCH1,
-	ID_UNDERWATER_WALL_SWITCH2,
-	ID_UNDERWATER_CEILING_SWITCH1,
-	ID_UNDERWATER_CEILING_SWITCH2,
+	ID_WALL_SWITCH1,
+	ID_WALL_SWITCH2,
+	ID_CEILING_SWITCH1,
+	ID_CEILING_SWITCH2,
 	ID_TURN_SWITCH,
 	ID_COG_SWITCH,
 	ID_LEVER_SWITCH,
@@ -674,6 +675,7 @@ enum GAME_OBJECT_ID : short
 	ID_PULLEY,
 	ID_CROWDOVE_SWITCH,
 	ID_MINECART_SWITCH,
+	ID_FUSEBOX_SWITCH,
 
 	ID_DOOR_TYPE1 = 850,
 	ID_DOOR_TYPE2,
@@ -1051,6 +1053,8 @@ enum GAME_OBJECT_ID : short
 	ID_RAIN_SPRITES,
 	ID_INTERACTION_SPRITES,
 	ID_INVENTORY_SPRITES,
+	ID_PHOTOMODE_SPRITES,
+	ID_PHOTOMODE_FRAMES,
 
 	ID_NUMBER_OBJECTS = 1408 // Compatibility. Remove this constant when slot count is nearing 1408.
 };

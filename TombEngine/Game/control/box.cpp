@@ -106,13 +106,13 @@ static Vector3 GetVelocity(const ItemInfo& item)
 				break;
 
 			default:
-				nextPose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, 0.0f, item.Animation.Velocity.x);
+				nextPose.Translate(player.Control.MoveAngle, item.Animation.Velocity.z, item.Animation.Velocity.y, item.Animation.Velocity.x);
 				break;
 		}
 	}
 	else
 	{
-		nextPose.Translate(item.Pose.Orientation.y, item.Animation.Velocity.z, 0.0f, item.Animation.Velocity.x);
+		nextPose.Translate(item.Pose.Orientation.y, item.Animation.Velocity.z, item.Animation.Velocity.y, item.Animation.Velocity.x);
 	}
 
 	return nextPose.Position.ToVector3() - item.Pose.Position.ToVector3();
@@ -144,6 +144,34 @@ static Vector3 GetBoxCenter(int boxIndex)
 	float z = ((float)currBox.top + (float)(currBox.bottom - currBox.top) / 2.0f) * BLOCK(1);
 
 	return Vector3(z, y, x);
+}
+
+static int GetOverlapFlagsBetweenBoxes(int fromBox, int toBox)
+{
+	if (fromBox == NO_VALUE || toBox == NO_VALUE)
+		return 0;
+
+	if (fromBox < 0 || fromBox >= (int)g_Level.PathfindingBoxes.size())
+		return 0;
+
+	int index = g_Level.PathfindingBoxes[fromBox].overlapIndex;
+	if (index < 0)
+		return 0;
+
+	while (index < (int)g_Level.Overlaps.size())
+	{
+		const auto& overlap = g_Level.Overlaps[index];
+
+		if (overlap.box == toBox)
+			return overlap.flags;
+
+		if (overlap.flags & OVERLAP_END_BIT)
+			break;
+
+		index++;
+	}
+
+	return 0;
 }
 
 static void DrawBox(int boxIndex, const Vector3& color)
@@ -735,12 +763,32 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		nextHeight = g_Level.PathfindingBoxes[nextBox].height;
 
 	bool heightThresholdReached = LOT->Fly == NO_FLYING && !LOT->IsJumping && (boxHeight - height > LOT->Step || boxHeight - height < LOT->Drop);
-	bool zoneIncorrect = item->BoxNumber != NO_VALUE && !LOT->IsJumping && LOT->Zone != ZoneType::Flyer && (zone[item->BoxNumber] != zone[floor->PathfindingBoxID]);
+	bool zoneIncorrect = item->BoxNumber != NO_VALUE && !LOT->IsJumping && !LOT->IsMonkeying && LOT->Zone != ZoneType::Flyer && (zone[item->BoxNumber] != zone[floor->PathfindingBoxID]);
+
+	bool invalidMonkeyTraversal = false;
+	if (LOT->IsMonkeying)
+	{
+		auto pointColl = GetPointCollision(item->Pose.Position, roomNumber);
+
+		// Must remain under actual monkey-swing ceiling.
+		if (!pointColl.GetBottomSector().Flags.Monkeyswing)
+		{
+			invalidMonkeyTraversal = true;
+		}
+		// If we crossed into another box while monkeying, that transition itself
+		// must be a MONKEY overlap.
+		else if (item->BoxNumber != NO_VALUE &&
+			floor->PathfindingBoxID != item->BoxNumber &&
+			(GetOverlapFlagsBetweenBoxes(item->BoxNumber, floor->PathfindingBoxID) & OVERLAP_MONKEY) == 0)
+		{
+			invalidMonkeyTraversal = true;
+		}
+	}
 
 	// ZONE/STEP/DROP VALIDATION:
 	// If creature moved to invalid floor, push back to sector boundary.
 
-	if (floor->PathfindingBoxID == NO_VALUE || heightThresholdReached || zoneIncorrect)
+	if (floor->PathfindingBoxID == NO_VALUE || heightThresholdReached || zoneIncorrect || invalidMonkeyTraversal) 
 	{
 		if (heightThresholdReached)
 			AddBadBox(LOT, floor->PathfindingBoxID);
@@ -750,6 +798,27 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		zPos = item->Pose.Position.z / BLOCK(1);
 		shiftX = prevPos.x / BLOCK(1);
 		shiftZ = prevPos.z / BLOCK(1);
+
+		if (invalidMonkeyTraversal)
+		{
+			item->Pose.Position.x = prevPos.x;
+			item->Pose.Position.z = prevPos.z;
+
+			floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
+
+			if (floor->PathfindingBoxID != NO_VALUE)
+			{
+				height = g_Level.PathfindingBoxes[floor->PathfindingBoxID].height;
+
+				if (!Objects[item->ObjectNumber].nonLot)
+					nextBox = LOT->Node[floor->PathfindingBoxID].exitBox;
+				else
+					nextBox = floor->PathfindingBoxID;
+			}
+
+			nextHeight = (nextBox == NO_VALUE) ? height : g_Level.PathfindingBoxes[nextBox].height;
+		}
+		else
 
 		// Push to sector edge based on movement direction.
 		if (xPos < shiftX)
@@ -909,7 +978,8 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	// VERTICAL MOVEMENT:
 	// Three modes: Flying/Swimming, Jumping, or Ground.
 
-	if (LOT->Fly != NO_FLYING && item->HitPoints > 0)
+	// NOTE: NOT_TARGETABLE creatures (e.g. whale) must keep swimming/flying despite HitPoints being negative.
+	if (LOT->Fly != NO_FLYING && (item->HitPoints > 0 || item->HitPoints == NOT_TARGETABLE))
 	{
 		// FLYING/SWIMMING: Move toward target Y at fly speed.
 		int deltaY = creature->Target.y - item->Pose.Position.y;
@@ -1070,8 +1140,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
 		ceiling = GetCeiling(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 
-		// Large creatures need special collision height.
-		if (item->ObjectNumber == ID_TYRANNOSAUR || item->ObjectNumber == ID_SHIVA || item->ObjectNumber == ID_MUTANT2)
+		if (item->ObjectNumber == ID_TYRANNOSAUR || item->ObjectNumber == ID_SHIVA || item->ObjectNumber == ID_CLAW_MUTANT)
 			top = CLICK(3);
 		else
 			top = bounds.Y1; // TODO: check if Y1 or Y2
@@ -1106,8 +1175,8 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerExtraAnimNumber, int creatureState, int playerKillState)
 {
 	if (!Objects[ID_LARA_EXTRA_ANIMS].loaded ||
-		Objects[ID_LARA_EXTRA_ANIMS].Animations.size() <= playerExtraAnimNumber || Objects[ID_LARA_EXTRA_ANIMS].Animations[playerExtraAnimNumber].Keyframes.size() <= 1 ||
-		Objects[creatureItem->ObjectNumber].Animations.size() <= creatureAnimNumber || Objects[creatureItem->ObjectNumber].Animations[creatureAnimNumber].Keyframes.size() <= 1)
+		Objects[ID_LARA_EXTRA_ANIMS].Animations.size() <= playerExtraAnimNumber || Objects[ID_LARA_EXTRA_ANIMS].Animations[playerExtraAnimNumber].Frames.size() <= 1 ||
+		Objects[creatureItem->ObjectNumber].Animations.size() <= creatureAnimNumber || Objects[creatureItem->ObjectNumber].Animations[creatureAnimNumber].Frames.size() <= 1)
 	{
 		TENLog(fmt::format("Impossible to perform kill animation for object {}: animation data missing.", GetObjectName(creatureItem->ObjectNumber)), LogLevel::Warning);
 		return;
@@ -1117,7 +1186,7 @@ void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerExtr
 	auto& player = GetLaraInfo(playerItem);
 
 	SetAnimation(creatureItem, creatureAnimNumber);
-	SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, playerExtraAnimNumber);
+	SetAnimationFromSlot(playerItem, ID_LARA_EXTRA_ANIMS, playerExtraAnimNumber, 0, GetInternalBlendDuration());
 
 	if (creatureState != NO_VALUE)
 		creatureItem->Animation.ActiveState = creatureItem->Animation.TargetState = creatureState;
@@ -1317,7 +1386,7 @@ short CreatureTurn(ItemInfo* item, short maxTurn)
 		auto leftAngle = item->Pose.Orientation + EulerAngles(0, FEELER_ANGLE, 0);
 		auto rightAngle = item->Pose.Orientation - EulerAngles(0, FEELER_ANGLE, 0);
 		auto feelerPos = item->Pose.Position.ToVector3() + Vector3(0, -CLICK(1), 0);
-		auto radius = GetClosestKeyframe(*item).Aabb.Extents.z * 1.3f; // Increase the radius slightly.
+		auto radius = GetFrame(*item).LocalAabb.Extents.z * 1.3f; // Increase the radius slightly.
 
 		// Spawn feelers for object collision.
 		auto feelMidLos = GetLosCollision(feelerPos, item->RoomNumber, item->Pose.Orientation.ToDirection(), radius, true, false, true);
@@ -1480,7 +1549,7 @@ bool BadFloor(int x, int y, int z, int boxHeight, int nextHeight, short roomNumb
 	if (floor->PathfindingBoxID == NO_VALUE)
 		return true;
 
-	if (LOT->IsJumping)
+	if (LOT->IsJumping || LOT->IsMonkeying)
 		return false;
 
 	auto* box = &g_Level.PathfindingBoxes[floor->PathfindingBoxID];
@@ -1505,7 +1574,7 @@ bool BadFloor(int x, int y, int z, int boxHeight, int nextHeight, short roomNumb
 	return heightResult;
 }
 
-int CreatureCreature(short itemNumber)  
+int CreatureCreature(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
 	auto* object = &Objects[item->ObjectNumber];
@@ -1516,28 +1585,26 @@ int CreatureCreature(short itemNumber)
 
 	auto* room = &g_Level.Rooms[item->RoomNumber];
 
-	short link = room->itemNumber;
-	int distance = 0;
-	do
+	for (int otherItemNumber : room->itemNumbers)
 	{
-		auto* linked = &g_Level.Items[link];
-		
-		if (link != itemNumber && linked != LaraItem && linked->IsCreature() && linked->Status == ITEM_ACTIVE && linked->HitPoints > 0) // TODO: deal with LaraItem global.
+		auto& otherItem = g_Level.Items[otherItemNumber];
+
+		// TODO: Deal with LaraItem global.
+		if (otherItemNumber != itemNumber && !otherItem.IsLara() && otherItem.IsCreature() && otherItem.Status == ITEM_ACTIVE && otherItem.HitPoints > 0)
 		{
-			int xDistance = abs(linked->Pose.Position.x - x);
-			int zDistance = abs(linked->Pose.Position.z - z);
-			
+			int xDistance = abs(otherItem.Pose.Position.x - x);
+			int zDistance = abs(otherItem.Pose.Position.z - z);
+
+			int distance;
 			if (xDistance > zDistance)
 				distance = xDistance + (zDistance >> 1);
 			else
-				distance = xDistance + (zDistance >> 1);
+				distance = zDistance + (xDistance >> 1);  
 
-			if (distance < radius + Objects[linked->ObjectNumber].radius)
-				return phd_atan(linked->Pose.Position.z - z, linked->Pose.Position.x - x) - item->Pose.Orientation.y;
+			if (distance < radius + Objects[otherItem.ObjectNumber].radius)
+				return phd_atan(otherItem.Pose.Position.z - z, otherItem.Pose.Position.x - x) - item->Pose.Orientation.y;
 		}
-
-		link = linked->NextItem;
-	} while (link != NO_VALUE);
+	}
 
 	return 0;
 }
@@ -2229,7 +2296,7 @@ int CreatureVault(short itemNumber, short angle, int vault, int shift)
 
 void GetAITarget(CreatureInfo* creature)
 {
-	auto* enemy = creature->Enemy;
+	auto* enemy = creature->Enemy.Get();
 
 	short enemyObjectNumber;
 	if (enemy)
@@ -2346,17 +2413,15 @@ void FindAITarget(CreatureInfo* creature, short objectNumber)
 void FindAITargetObject(CreatureInfo* creature, int objectNumber)
 {
 	const auto& item = g_Level.Items[creature->ItemNumber];
-
 	FindAITargetObject(creature, objectNumber, item.ItemFlags[3], true);
 }
 
 void FindAITargetObject(CreatureInfo* creature, int objectNumber, int ocb, bool checkSameZone)
 {
-	auto& item = g_Level.Items[creature->ItemNumber];
-
 	if (g_Level.AIObjects.empty())
 		return;
 
+	auto& item = g_Level.Items[creature->ItemNumber];
 	AI_OBJECT* foundObject = nullptr;
 
 	for (auto& aiObject : g_Level.AIObjects)
@@ -2489,11 +2554,11 @@ void CreatureAIInfo(ItemInfo* item, AI_INFO* AI)
 
 	auto* object = &Objects[item->ObjectNumber];
 	auto* creature = GetCreatureInfo(item);
-	auto* enemy = creature->Enemy;
+	auto* enemy = creature->Enemy.Get();
 
 	// Default to player if no enemy set.
 	// TODO: Deal with LaraItem global.
-	if (enemy == nullptr)
+	if (enemy == nullptr && !creature->Friendly)
 	{
 		enemy = LaraItem;
 		creature->Enemy = LaraItem;
@@ -2505,6 +2570,16 @@ void CreatureAIInfo(ItemInfo* item, AI_INFO* AI)
 	// Update creature's current box and zone.
 	item->BoxNumber = GetSector(room, item->Pose.Position.x - room->Position.x, item->Pose.Position.z - room->Position.z)->PathfindingBoxID;
 	AI->zoneNumber = zone[item->BoxNumber];
+
+	// Friendly creature with no valid target: skip AI computation.
+	if (enemy == nullptr)
+	{
+		AI->distance = AI->verticalDistance = INT_MAX;
+		AI->enemyZone = NO_VALUE;
+		AI->ahead = AI->bite = 0;
+		AI->angle = AI->xAngle = AI->enemyFacing = 0;
+		return;
+	}
 
 	// Get enemy's box (if reachable) and zone.
 	enemy->BoxNumber = TargetReachable(item, enemy);
@@ -2597,8 +2672,7 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 
 	auto* creature = GetCreatureInfo(item);
 	auto* LOT = &creature->LOT;
-
-	auto* enemy = creature->Enemy;
+	auto* enemy = creature->Enemy.Get();
 
 	// HACK: Fallback to bored mood from attack or escape mood if enemy was cleared.
 	// Replaces previous "fix" with early exit, because it was breaking friendly NPC pathfinding. -- Lwmte, 24.03.25
@@ -2644,13 +2718,11 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	case MoodType::Attack:
 	{
 	// Flying creatures target enemy's upper body when enemy is not in water.
-	bool isEnemyOnLand = enemy->IsLara()
-		? (GetLaraInfo(*enemy).Control.WaterStatus == WaterStatus::Dry)		 // Lara.
-		: !TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, enemy->RoomNumber); // Other Creatures.
+	bool isEnemyOnLand = enemy->IsLara() ?
+		(GetLaraInfo(*enemy).Control.WaterStatus == WaterStatus::Dry) :
+		!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, enemy->RoomNumber);
 
-	auto targetOffset = (LOT->Zone == ZoneType::Flyer && isEnemyOnLand)
-		? Vector3i(0, GetClosestKeyframe(*enemy).BoundingBox.Y1, 0) : Vector3i(0, 0, 0);
-
+	auto targetOffset = (LOT->Zone == ZoneType::Flyer && isEnemyOnLand) ? Vector3i(0, GetFrame(*enemy).BoundingBox.Y1, 0) : Vector3i::Zero;
 	LOT->Target = PredictTargetPosition(*item, *enemy, targetOffset);
 	LOT->RequiredBox = enemy->BoxNumber;
 
@@ -2728,30 +2800,14 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		int endBox = LOT->Node[item->BoxNumber].exitBox;
 		if (endBox != NO_VALUE)
 		{
-			// Find the overlap that connects current box to exit box.
-			int overlapIndex = g_Level.PathfindingBoxes[item->BoxNumber].overlapIndex;
-			int nextBox = 0;
-			int flags = 0;
+			// Check the traversal flags of the overlap connecting the current box to the exit box.
+			int flags = GetOverlapFlagsBetweenBoxes(item->BoxNumber, endBox);
 
-			// Search through overlaps until we find the one leading to exitBox.
-			if (overlapIndex >= 0)
-			{
-				do
-				{
-					nextBox = g_Level.Overlaps[overlapIndex].box;
-					flags = g_Level.Overlaps[overlapIndex++].flags;
-				} while (nextBox != NO_VALUE && ((flags & OVERLAP_END_BIT) == false) && (nextBox != endBox));
-			}
+			if (flags & OVERLAP_JUMP)
+				creature->JumpAhead = true;
 
-			// If we found the exit overlap, check its traversal flags.
-			if (nextBox == endBox)
-			{
-				if (flags & OVERLAP_JUMP)
-					creature->JumpAhead = true;
-
-				if (flags & OVERLAP_MONKEY)
-					creature->MonkeySwingAhead = true;
-			}
+			if (flags & OVERLAP_MONKEY)
+				creature->MonkeySwingAhead = true;
 		}
 	}
 }
@@ -2783,7 +2839,7 @@ void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		return;
 
 	auto* creature = GetCreatureInfo(item);
-	auto* enemy = creature->Enemy;
+	auto* enemy = creature->Enemy.Get();
 	auto* LOT = &creature->LOT;
 
 	// Clear target if creature is in a blocked box.
@@ -2803,8 +2859,17 @@ void GetCreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 	auto mood = creature->Mood;
 
 	// MOOD DECISION LOGIC
-	// Based on enemy state, creature state, and zone relationships.
-	if (enemy)
+	// Based on mood override, enemy state, creature state, and zone relationships.
+	if (creature->ForcedMood.has_value())
+	{
+		// Override the mood with forced mood.
+		auto forcedMood = creature->ForcedMood.value();
+		if (enemy == nullptr && forcedMood != MoodType::Bored)
+			forcedMood = MoodType::Bored;
+
+		creature->Mood = forcedMood;
+	}
+	else if (enemy)
 	{
 		// Enemy is dead - go back to idle wandering.
 		if (enemy->HitPoints <= 0 && enemy == LaraItem) // TODO: deal with LaraItem global !
@@ -3332,7 +3397,7 @@ void InitializeItemBoxData()
 	{
 		for (const auto& mesh : room.mesh)
 		{
-			long index = ((mesh.Pose.Position.z - room.Position.z) / BLOCK(1)) + room.ZSize * ((mesh.Pose.Position.x - room.Position.x) / BLOCK(1));
+			int index = ((mesh.Pose.Position.z - room.Position.z) / BLOCK(1)) + room.ZSize * ((mesh.Pose.Position.x - room.Position.x) / BLOCK(1));
 			if (index >= room.Sectors.size())
 				continue;
 

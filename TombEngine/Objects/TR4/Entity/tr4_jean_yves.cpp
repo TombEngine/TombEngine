@@ -56,7 +56,7 @@ namespace TEN::Entities::TR4
 			else
 				state = 3 * (GetRandomControl() & 1);
 
-			item->Animation.TargetState = (((byte)(item->Animation.ActiveState) - 1) & 0xC) + state + 1;
+			item->Animation.TargetState = (((unsigned char)(item->Animation.ActiveState) - 1) & 0xC) + state + 1;
 			AnimateItem(item);
 		}
 		else

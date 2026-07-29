@@ -34,7 +34,6 @@ namespace TEN::Renderer
 	void Renderer::FreeRendererData()
 	{
 		_items.resize(0);
-		_effects.resize(0);
 		_moveableObjects.resize(0);
 		_staticObjects.clear();
 		_sprites.resize(0);
@@ -155,17 +154,14 @@ namespace TEN::Renderer
 
 	void Renderer::BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType)
 	{
-		if (g_GameFlow->IsPointFilterEnabled() && samplerType != SamplerStateRegister::ShadowMap)
-		{
-			samplerType = SamplerStateRegister::PointWrap;
-		}
-
-		_graphicsDevice->BindTexture(registerType, texture, samplerType);
+		// Sampler states sit in fixed slots bound once per frame by BindSamplers and shaders
+		// pick them by register, so samplerType takes no part in the bind.
+		_graphicsDevice->BindTexture(registerType, texture);
 	}
 
 	void Renderer::BindRenderTargetAsTexture(TextureRegister registerType, IRenderTarget2D* target, SamplerStateRegister samplerType)
 	{
-		_graphicsDevice->BindTexture(registerType, target, samplerType);
+		_graphicsDevice->BindTexture(registerType, target);
 	}
 
 	int Renderer::BindLight(RendererLight& light, ShaderLight* lights, int index)
@@ -287,13 +283,9 @@ namespace TEN::Renderer
 		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasHeightMap) << 8;
 		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasAmbientOcclusionMap) << 9;
 		materialTypeAndFlags |= int(g_Level.Materials[materialIndex].HasEmissiveMap) << 10;
+		auto& materialProperties = g_Level.Materials[materialIndex].GetInterpolatedProperties(GetInterpolationFactor());
 
-		if (materialTypeAndFlags == _stPerDraw.MaterialTypeAndFlags &&
-			g_Level.Materials[materialIndex].Parameters0 == _stPerDraw.MaterialParameters0 &&
-			g_Level.Materials[materialIndex].Parameters1 == _stPerDraw.MaterialParameters1 &&
-			g_Level.Materials[materialIndex].Parameters2 == _stPerDraw.MaterialParameters2 &&
-			g_Level.Materials[materialIndex].Parameters3 == _stPerDraw.MaterialParameters3 &&
-			!force)
+		if (materialTypeAndFlags == _stPerDraw.MaterialTypeAndFlags && materialProperties == _stPerDraw.MaterialProperties && !force)
 		{
 			return;
 		}
@@ -302,10 +294,7 @@ namespace TEN::Renderer
 		//if (materialIndex != _lastMaterialIndex || force)
 		{
 			_stPerDraw.MaterialTypeAndFlags = materialTypeAndFlags;
-			_stPerDraw.MaterialParameters0  = g_Level.Materials[materialIndex].Parameters0;
-			_stPerDraw.MaterialParameters1  = g_Level.Materials[materialIndex].Parameters1;
-			_stPerDraw.MaterialParameters2  = g_Level.Materials[materialIndex].Parameters2;
-			_stPerDraw.MaterialParameters3  = g_Level.Materials[materialIndex].Parameters3;
+			_stPerDraw.MaterialProperties   = materialProperties;
 
 			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
 
@@ -314,9 +303,9 @@ namespace TEN::Renderer
 			_numExecutedMaterialsUpdates++;
 		}
 
-		if (type == MaterialShaderType::Reflective)
+		if (type == TextureMaterialType::Reflective)
 			BindRenderTargetAsTexture(TextureRegister::LegacyEnvironmentReflections, _legacyReflectionsRenderTarget->GetRenderTarget(), SamplerStateRegister::AnisotropicClamp);
-		else if (type == MaterialShaderType::SkyboxReflective)
+		else if (type == TextureMaterialType::SkyboxReflective)
 			BindTexture(TextureRegister::SkyboxEnvironmentReflections, _skyboxRenderTarget->GetRenderTarget(), SamplerStateRegister::AnisotropicClamp);
 	}
 

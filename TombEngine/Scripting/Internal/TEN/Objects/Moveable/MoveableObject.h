@@ -37,6 +37,8 @@ private:
 	int	 _moveableID  = 0;
 	bool _initialized = false;
 
+	void SetLevelFuncCallback(const TypeOrNil<LevelFunc>& cb, const std::string& callerName, std::string& toModify);
+
 public:
 	using IdentifierType = int;
 
@@ -56,6 +58,9 @@ public:
 	Vec3 GetPosition() const;
 	Vec3 GetJointPos(int jointID, sol::optional<Vec3> offset) const;
 	Rotation GetJointRot(int index) const;
+	Vec3 GetJointOffset(int jointId) const;
+	Vec3 GetJointScale(int jointId) const;
+	Rotation GetAdditionalJointRotation(int jointId) const;
 	Rotation GetRotation() const;
 	Vec3 GetScale() const;
 	int GetStateNumber() const;
@@ -75,7 +80,8 @@ public:
 	short GetLocationAI() const;
 	short GetMeshCount() const;
 	bool GetMeshVisible(int meshId) const;
-	bool GetMeshSwapped(int meshId) const;
+	std::tuple<bool, sol::optional<GAME_OBJECT_ID>> GetMeshSwapped(int meshId) const;
+	sol::optional<std::tuple<GAME_OBJECT_ID, sol::optional<int>>> GetSkinnedMesh() const;
 	bool GetHitStatus() const;
 	bool GetActive() const;
 	short GetStatus() const;
@@ -89,10 +95,13 @@ public:
 	void SetPosition(const Vec3& pos, sol::optional<bool> updateRoom);
 	std::unique_ptr<Room> GetRoom() const;
 	int GetRoomNumber() const;
+	void SetJointOffset(int jointId, const Vec3& offset);
+	void SetJointScale(int jointId, const Vec3& scale);
+	void SetAdditionalJointRotation(int jointId, const Rotation& rot);
 	void SetRotation(const Rotation& rot);
 	void SetScale(const Vec3& scale);
 	void SetStateNumber(int stateNumber);
-	void SetAnimNumber(int animNumber, sol::optional<int> slotIndex);
+	void SetAnimNumber(int animNumber, sol::optional<int> slotIndex, sol::optional<int> blendFrames);
 	void SetFrameNumber(int frameNumber);
 	void SetVelocity(Vec3 velocity);
 	void SetColor(const ScriptColor& color);
@@ -111,10 +120,9 @@ public:
 	void SetStatus(ItemStatus value);
 	void SetOnHit(const TypeOrNil<LevelFunc>& cb);
 	void SetOnKilled(const TypeOrNil<LevelFunc>& cb);
+	void SetOnLoop(const TypeOrNil<LevelFunc>& cb, sol::optional<bool> post);
 	void SetOnCollidedWithObject(const TypeOrNil<LevelFunc>& cb);
 	void SetOnCollidedWithRoom(const TypeOrNil<LevelFunc>& cb);
-
-	friend void SetLevelFuncCallback(const TypeOrNil<LevelFunc>& cb, const std::string& callerName, Moveable& mov, std::string& toModify);
 
 	// Utilities
 
@@ -126,6 +134,7 @@ public:
 	void UnswapMesh(int meshId);
 	void SwapSkinnedMesh(int swapSlotId, sol::optional<int> swapIndex);
 	void UnswapSkinnedMesh();
+	void ClearSkinnedMesh();
 	void AttachObjCamera(short camMeshId, Moveable& mov, short targetMeshId);
 	void AnimFromObject(GAME_OBJECT_ID objectID, int animNumber, int stateID);
 	void EnableItem(sol::optional<float> timer);
@@ -136,6 +145,12 @@ public:
 	void ShowInteractionHighlight(const TypeOrNil<InteractionType> interactionType);
 	void HideInteractionHighlight();
 
+	// Properties
+
+	sol::object GetProperty(sol::this_state state, const std::string& name) const;
+	void SetProperty(const std::string& name, const sol::object& value);
+	bool HasInstanceProperty(const std::string& name) const;
+
 	// Operators
 
 	Moveable& operator =(const Moveable& mov) = delete;
@@ -143,6 +158,5 @@ public:
 
 private:
 	// Helpers
-
 	bool MeshExists(int number) const;
 };

@@ -2,7 +2,7 @@
 #include "Renderer/Renderer.h"
 
 #include "Game/Animation/Animation.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_fire.h"
@@ -10,7 +10,7 @@
 #include "Game/control/control.h"
 #include "Game/spotcam.h"
 #include "Game/camera.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -90,7 +90,7 @@ static int GetNormalizedArmAnimFrame(GAME_OBJECT_ID animObjectID, int frameNumbe
 	{
 		const auto& anim = GetAnimData(animObjectID, i);
 		
-		int currentAnimFrameCount = (int)anim.Keyframes.size();
+		int currentAnimFrameCount = (int)anim.Frames.size();
 		int nextFrameCount = (frameCount + currentAnimFrameCount);
 
 		if (frameNumber < nextFrameCount)
@@ -109,6 +109,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 {
 	auto& rItem = _items[LaraItem->Index];
 	rItem.ItemNumber = LaraItem->Index;
+	const auto& nativeItem = g_Level.Items[rItem.ItemNumber];
 
 	if (!force && rItem.DoneAnimations)
 		return;
@@ -122,8 +123,22 @@ void Renderer::UpdateLaraAnimations(bool force)
 	for (auto* bonePtr : playerObject.LinearizedBones)
 		bonePtr->ExtraRotation = Quaternion::Identity;
 
+	const auto& anim = GetAnimData(nativeItem);
+	auto rootMotionCounteract = anim.GetRootMotionCounteraction(nativeItem.Animation.FrameNumber);
+
+	auto orient = nativeItem.Pose.Orientation + rootMotionCounteract.Rotation;
+	auto rotMatrix = orient.ToRotationMatrix();
+
+	auto pos = nativeItem.Pose.Position.ToVector3() + Vector3::Transform(rootMotionCounteract.Translation, rotMatrix);
+	auto translationMatrix = Matrix::CreateTranslation(pos);
+
+	auto scaleMatrix = Matrix::CreateScale(nativeItem.Pose.Scale);
+
+	// TODO: Should do this instead.
+	//_playerWorldMatrix = LaraItem->Pose.ToMatrix();
+
 	// Set player world matrix.
-	_playerWorldMatrix = LaraItem->Pose.ToMatrix();
+	_playerWorldMatrix = scaleMatrix * rotMatrix * translationMatrix;
 	rItem.World = _playerWorldMatrix;
 
 	// Update extra head and torso rotations.
@@ -134,8 +149,8 @@ void Renderer::UpdateLaraAnimations(bool force)
 	int mask = MESH_BITS(LM_HIPS) | MESH_BITS(LM_LTHIGH) | MESH_BITS(LM_LSHIN) | MESH_BITS(LM_LFOOT) | MESH_BITS(LM_RTHIGH) |
 			   MESH_BITS(LM_RSHIN) | MESH_BITS(LM_RFOOT) | MESH_BITS(LM_TORSO) | MESH_BITS(LM_HEAD);
 	
-	auto frameData = GetFrameInterpData(*LaraItem);
-	UpdateAnimation(&rItem, playerObject, frameData, mask);
+	const auto& frame = GetFrame(*LaraItem);
+	UpdateAnimation(&rItem, playerObject, frame, mask, false, LaraItem->Animation.Blend.IsEnabled() ? &LaraItem->Animation.Blend : nullptr, &rootMotionCounteract);
 
 	auto gunType = Lara.Control.Weapon.GunType;
 	auto handStatus = Lara.Control.HandStatus;
@@ -147,14 +162,13 @@ void Renderer::UpdateLaraAnimations(bool force)
 		handStatus = HandStatus::WeaponReady;
 	}
 
-	// Then the arms, based on current weapon status.
+	// Arms based on current weapon status.
 	if (gunType != LaraWeaponType::Flare && (handStatus == HandStatus::Free || handStatus == HandStatus::Busy) ||
 		gunType == LaraWeaponType::Flare && !Lara.Flare.ControlLeft)
 	{
-		// Both arms
+		// Both arms.
 		mask = MESH_BITS(LM_LINARM) | MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND) | MESH_BITS(LM_RINARM) | MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
-		auto frameData = GetFrameInterpData(*LaraItem);
-		UpdateAnimation(&rItem, playerObject, frameData, mask);
+		UpdateAnimation(&rItem, playerObject, frame, mask, false, LaraItem->Animation.Blend.IsEnabled() ? &LaraItem->Animation.Blend : nullptr);
 	}
 	else
 	{
@@ -191,20 +205,16 @@ void Renderer::UpdateLaraAnimations(bool force)
 			if (ShouldAnimateUpperBody(gunType))
 				mask |= MESH_BITS(LM_TORSO) | MESH_BITS(LM_HEAD);
 
-			const auto& leftArmAnim = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber);
-			const auto& frameLeft = leftArmAnim.GetKeyframeInterpolationData(Lara.LeftArm.FrameNumber).Keyframe0;
-			auto interpDataLeft = KeyframeInterpolationData(frameLeft, frameLeft, 0.0f);
-			UpdateAnimation(&rItem, playerObject, interpDataLeft, mask);
+			const auto& leftArmFrame = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber).Frames[Lara.LeftArm.FrameNumber];
+			UpdateAnimation(&rItem, playerObject, leftArmFrame, mask);
 
 			// Right arm.
 			mask = MESH_BITS(LM_RINARM) | MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
 			if (ShouldAnimateUpperBody(Lara.Control.Weapon.GunType))
 				mask |= MESH_BITS(LM_TORSO) | MESH_BITS(LM_HEAD);
 
-			const auto& rightArmAnim = GetAnimData(Lara.RightArm.AnimObjectID, Lara.RightArm.AnimNumber);
-			const auto& frameRight = rightArmAnim.GetKeyframeInterpolationData(Lara.RightArm.FrameNumber).Keyframe0;
-			auto interpDataRight = KeyframeInterpolationData(frameRight, frameRight, 0.0f);
-			UpdateAnimation(&rItem, playerObject, interpDataRight, mask);
+			const auto& rightArmFrame = GetAnimData(Lara.RightArm.AnimObjectID, Lara.RightArm.AnimNumber).Frames[Lara.RightArm.FrameNumber];
+			UpdateAnimation(&rItem, playerObject, rightArmFrame, mask);
 		}
 		break;
 
@@ -222,22 +232,20 @@ void Renderer::UpdateLaraAnimations(bool force)
 
 			auto leftFrameNumber = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
 			const auto& leftAnim = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber);
-			auto leftFrame = leftAnim.GetKeyframeInterpolationData(leftFrameNumber).Keyframe0;
+			const auto& leftFrame = leftAnim.Frames[leftFrameNumber];
 
 			int upperArmMask = MESH_BITS(LM_LINARM);
 			mask = MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
-			auto interpDataLeft = KeyframeInterpolationData(leftFrame, leftFrame, 0.0f);
-
 			if (transformLeftUpperArm)
 			{
-				UpdateAnimation(&rItem, playerObject, interpDataLeft, upperArmMask, true);
+				UpdateAnimation(&rItem, playerObject, leftFrame, upperArmMask, true);
 			}
 			else
 			{
 				mask |= MESH_BITS(LM_LINARM);
 			}
 
-			UpdateAnimation(&rItem, playerObject, interpDataLeft, mask);
+			UpdateAnimation(&rItem, playerObject, leftFrame, mask);
 
 			// Right arm.
 			movingModifier = !(gunType == LaraWeaponType::Revolver && LaraItem->Animation.Velocity.Length() < EPSILON) && Lara.RightArm.FrameNumber;
@@ -247,22 +255,20 @@ void Renderer::UpdateLaraAnimations(bool force)
 
 			auto rightFrameNumber = GetNormalizedArmAnimFrame(Lara.RightArm.AnimObjectID, Lara.RightArm.FrameNumber);
 			const auto& rightAnim = GetAnimData(Lara.RightArm.AnimObjectID, Lara.RightArm.AnimNumber);
-			auto rightFrame = rightAnim.GetKeyframeInterpolationData(rightFrameNumber).Keyframe0;
+			const auto& rightFrame = rightAnim.Frames[rightFrameNumber];
 
 			upperArmMask = MESH_BITS(LM_RINARM);
 			mask = MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
-			auto interpDataRight = KeyframeInterpolationData(rightFrame, rightFrame, 0.0f);
-
 			if (transformRightUpperArm)
 			{
-				UpdateAnimation(&rItem, playerObject, interpDataRight, upperArmMask, true);
+				UpdateAnimation(&rItem, playerObject, rightFrame, upperArmMask, true);
 			}
 			else
 			{
 				mask |= MESH_BITS(LM_RINARM);
 			}
 
-			UpdateAnimation(&rItem, playerObject, interpDataRight, mask);
+			UpdateAnimation(&rItem, playerObject, rightFrame, mask);
 		}
 		break;
 
@@ -272,7 +278,7 @@ void Renderer::UpdateLaraAnimations(bool force)
 			// Left arm.
 			auto leftFrameNumber = GetNormalizedArmAnimFrame(Lara.LeftArm.AnimObjectID, Lara.LeftArm.FrameNumber);
 			const auto& leftAnim = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber);
-			auto leftFrame = leftAnim.GetKeyframeInterpolationData(leftFrameNumber).Keyframe0;
+			const auto& leftFrame = GetAnimData(Lara.LeftArm.AnimObjectID, Lara.LeftArm.AnimNumber).Frames[leftFrameNumber];
 
 			mask = MESH_BITS(LM_LINARM) | MESH_BITS(LM_LOUTARM) | MESH_BITS(LM_LHAND);
 
@@ -284,14 +290,12 @@ void Renderer::UpdateLaraAnimations(bool force)
 				mask |= MESH_BITS(LM_TORSO) | MESH_BITS(LM_HEAD);
 			}
 
-			auto interpDataLeft = KeyframeInterpolationData(leftFrame, leftFrame, 0.0f);
-			UpdateAnimation(&rItem, playerObject, interpDataLeft, mask);
+			UpdateAnimation(&rItem, playerObject, leftFrame, mask);
 
 			// Right arm.
 			mask = MESH_BITS(LM_RINARM) | MESH_BITS(LM_ROUTARM) | MESH_BITS(LM_RHAND);
-			auto frameDataRight = GetFrameInterpData(*LaraItem);
-			UpdateAnimation(&rItem, playerObject, frameDataRight, mask);
-
+			const auto& rightFrame = GetFrame(*LaraItem);
+			UpdateAnimation(&rItem, playerObject, rightFrame, mask);
 		}
 		break;
 		}
@@ -299,10 +303,10 @@ void Renderer::UpdateLaraAnimations(bool force)
 
 	// Copy matrices in player object.
 	for (int m = 0; m < NUM_LARA_MESHES; m++)
-		playerObject.AnimationTransforms[m] = rItem.AnimTransforms[m];
+		playerObject.AnimationTransforms[m] = rItem.AnimationTransforms[m];
 
 	// Copy meshswap indices.
-	rItem.SkinIndex = LaraItem->Model.SkinIndex;
+	rItem.SkinIndex = LaraItem->Model.GetSkinGlobalIndex();
 	rItem.MeshIndex = LaraItem->Model.MeshIndex;
 	rItem.DoneAnimations = true;
 }
@@ -344,13 +348,13 @@ void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
 	if (skinMode == SkinningMode::Full)
 	{
 		for (int m = 0; m < laraObj.AnimationTransforms.size(); m++)
-			_stObjects.Bones[m] =  laraObj.BindPoseTransforms[m] * item->InterpolatedAnimTransforms[m];
+			_stObjects.Bones[m] =  laraObj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
 		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 		DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
 	}
 
-	memcpy(_stObjects.Bones, item->InterpolatedAnimTransforms, laraObj.AnimationTransforms.size() * sizeof(Matrix));
+	memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, laraObj.AnimationTransforms.size() * sizeof(Matrix));
 	UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 	for (int k = 0; k < item->MeshIndex.size(); k++)
@@ -386,13 +390,13 @@ void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, Render
 			continue;
 
 		bool skinned = object.skinIndex != NO_VALUE && g_GameFlow->GetSettings()->Graphics.Skinning;
-		bool flipped = skinned || (GetJointOffset(unit.ObjectID, 1, false).z < 0);
+		bool flipped = skinned || GetJointOffset(unit.ObjectID, 1, false).z < 0.0f;
 		auto objectType = i ? RendererObjectType::HairSecondary : RendererObjectType::HairPrimary;
 
 		const auto& rendererObject = *_moveableObjects[unit.ObjectID];
 
 		_stObjects.Objects[0].World = Matrix::Identity;
-		_stObjects.Bones[0] = itemToDraw->InterpolatedAnimTransforms[HairUnit::GetRootMeshID(i)] * itemToDraw->InterpolatedWorld;
+		_stObjects.Bones[0] = itemToDraw->InterpolatedAnimationTransforms[HairUnit::GetRootMeshID(i)] * itemToDraw->InterpolatedWorld;
 		_stObjects.Skinned = (int)(skinned ? SkinningMode::Full : SkinningMode::None);
 
 		ReflectMatrixOptionally(_stObjects.Bones[0]);

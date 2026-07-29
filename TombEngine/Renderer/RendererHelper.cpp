@@ -4,7 +4,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/control/control.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
@@ -37,116 +37,117 @@ extern ScriptInterfaceFlowHandler *g_GameFlow;
 
 namespace TEN::Renderer
 {
-	void Renderer::UpdateAnimation(RendererItem* rItem, RendererObject& rObject, const KeyframeInterpolationData& interpData, int mask, bool useObjectWorldRotation)
+	void Renderer::UpdateAnimation(RendererItem* rendererItem, RendererObject& rendererObject, const FrameData& frame, int mask, bool useObjectWorldRotation,
+								   const MoveableAnimBlendData* blend, const RootMotionData* rootMotionOffset)
 	{
 		static auto boneIndices = std::vector<int>{};
 		boneIndices.clear();
 
-		RendererBone* bones[MAX_BONES] = {};
-		int nextBone = 0;
+		auto bones = std::array<RendererBone*, BONE_COUNT_MAX>{};
+		int nextBoneID = 0;
 
-		auto* transforms = ((rItem == nullptr) ? rObject.AnimationTransforms.data() : &rItem->AnimTransforms[0]);
+		// Push skeleton.
+		bones[nextBoneID++] = rendererObject.Skeleton;
 
-		// Push.
-		bones[nextBone++] = rObject.Skeleton;
+		auto* transforms = (rendererItem == nullptr) ? rendererObject.AnimationTransforms.data() : &rendererItem->AnimationTransforms[0];
 
-		while (nextBone != 0)
+		// Compute blend alpha.
+		float blendAlpha = 0.0f;
+		if (blend != nullptr)
+		{
+			blendAlpha = blend->GetAlpha();
+		}
+
+		// Run through bone hierarchy.
+		while (nextBoneID != 0)
 		{
 			// Pop last bone in stack.
-			auto* bonePtr = bones[--nextBone];
+			auto* bone = bones[--nextBoneID];
 
-			// Check nullptr, otherwise inventory crashes.
-			if (bonePtr == nullptr)
+			// Bone is nullptr; return early. NOTE: Avoids inventory crash.
+			if (bone == nullptr)
 				return;
-
-			if (interpData.Keyframe0.BoneOrientations.size() <= bonePtr->Index ||
-				(interpData.Alpha != 0.0f && interpData.Keyframe0.BoneOrientations.size() <= bonePtr->Index))
+			
+			// Bad data; return early.
+			if (frame.BoneOrientations.size() <= bone->Index)
 			{
 				TENLog(
-					"Attempted to animate object with ID " + GetObjectName((GAME_OBJECT_ID)rItem->ObjectID) +
+					"Attempted to animate object with ID " + GetObjectName((GAME_OBJECT_ID)rendererObject.Id) +
 					" using incorrect animation data. Bad animations set for slot?",
 					LogLevel::Error);
 
 				return;
 			}
 
-			bool calculateMatrix = (mask >> bonePtr->Index) & 1;
-			if (calculateMatrix)
+			// Animate bone.
+			bool animateBone = (mask >> bone->Index) & 1;
+			if (animateBone)
 			{
-				auto offset0 = interpData.Keyframe0.RootOffset;
-				auto rotMatrix = Matrix::CreateFromQuaternion(interpData.Keyframe0.BoneOrientations[bonePtr->Index]);
-				
-				if (interpData.Alpha != 0.0f)
+				auto rootPos = frame.RootPosition;
+				auto rotMatrix = Matrix::CreateFromQuaternion(frame.BoneOrientations[bone->Index]);
+
+				// TODO: Address root motion rotation blending if any issues come up later. -- Sezz 2026.04.30
+
+				// Apply blending.
+				if (blend != nullptr)
 				{
-					auto offset1 = interpData.Keyframe1.RootOffset;
-					offset0 = Vector3::Lerp(offset0, offset1, interpData.Alpha);
+					auto offset = (rootMotionOffset != nullptr) ? rootMotionOffset->Translation : Vector3::Zero;
+					rootPos = Vector3::Lerp(blend->RootPosition - offset, rootPos, blendAlpha);
 
-					auto rotMatrix2 = Matrix::CreateFromQuaternion(interpData.Keyframe1.BoneOrientations[bonePtr->Index]);
-
-					auto quat1 = Quaternion::CreateFromRotationMatrix(rotMatrix);
-					auto quat2 = Quaternion::CreateFromRotationMatrix(rotMatrix2);
-					auto quat3 = Quaternion::Slerp(quat1, quat2, interpData.Alpha);
-
-					rotMatrix = Matrix::CreateFromQuaternion(quat3);
+					auto quat = Quaternion::Slerp(blend->BoneOrientations[bone->Index], Quaternion::CreateFromRotationMatrix(rotMatrix), blendAlpha);
+					rotMatrix = Matrix::CreateFromQuaternion(quat);
 				}
 
 				// Store bone orientation on current frame.
-				if (rItem != nullptr)
-					rItem->BoneOrientations[bonePtr->Index] = Quaternion::CreateFromRotationMatrix(rotMatrix);
+				if (rendererItem != nullptr)
+					rendererItem->BoneOrientations[bone->Index] = Quaternion::CreateFromRotationMatrix(rotMatrix);
 
-				auto tMatrix = (bonePtr == rObject.Skeleton) ? Matrix::CreateTranslation(offset0) : Matrix::Identity;
-
-				auto extraRotMatrix = Matrix::CreateFromQuaternion(bonePtr->ExtraRotation);
-
+				auto translationMatrix = (bone == rendererObject.Skeleton) ? Matrix::CreateTranslation(rootPos) : Matrix::Identity;
+				auto extraRotMatrix = Matrix::CreateFromQuaternion(bone->ExtraRotation);
+				
 				if (useObjectWorldRotation)
 				{
 					auto scale = Vector3::Zero;
-					auto inverseQuat = Quaternion::Identity;
+					auto invQuat = Quaternion::Identity;
 					auto translation = Vector3::Zero;
-					transforms[bonePtr->Parent->Index].Invert().Decompose(scale, inverseQuat, translation);
+					transforms[bone->Parent->Index].Invert().Decompose(scale, invQuat, translation);
 
-					rotMatrix = rotMatrix * extraRotMatrix * Matrix::CreateFromQuaternion(inverseQuat);
+					rotMatrix = (rotMatrix * extraRotMatrix) * Matrix::CreateFromQuaternion(invQuat);
 				}
 				else
 				{
 					rotMatrix = extraRotMatrix * rotMatrix;
 				}
 
-				if (bonePtr != rObject.Skeleton)
-					transforms[bonePtr->Index] = rotMatrix * bonePtr->Transform;
-				else
-					transforms[bonePtr->Index] = rotMatrix * tMatrix;
-
-				if (bonePtr != rObject.Skeleton)
-					transforms[bonePtr->Index] = transforms[bonePtr->Index] * transforms[bonePtr->Parent->Index];
+				transforms[bone->Index] = rotMatrix * ((bone == rendererObject.Skeleton) ? translationMatrix : bone->Transform);
+				if (bone != rendererObject.Skeleton)
+					transforms[bone->Index] *= transforms[bone->Parent->Index];
 			}
 
-			boneIndices.push_back(bonePtr->Index);
+			boneIndices.push_back(bone->Index);
 
 			// Push.
-			for (auto*& child : bonePtr->Children)
-				bones[nextBone++] = child;
+			for (auto*& child : bone->Children)
+				bones[nextBoneID++] = child;
 		}
 
-		// Apply mutators on top.
-		if (rItem != nullptr)
+		// Apply mutators.
+		if (rendererItem != nullptr) 
 		{
-			const auto& nativeItem = g_Level.Items[rItem->ItemNumber];
+			const auto& nativeItem = g_Level.Items[rendererItem->ItemNumber];
 
 			if (nativeItem.Model.Mutators.size() == boneIndices.size())
 			{
-				for (const int& i : boneIndices)
+				for (int i : boneIndices)
 				{
 					const auto& mutator = nativeItem.Model.Mutators[i];
-
 					if (mutator.IsEmpty())
 						continue;
 
 					auto rotMatrix = mutator.Rotation.ToRotationMatrix();
 					auto scaleMatrix = Matrix::CreateScale(mutator.Scale);
-					auto tMatrix = Matrix::CreateTranslation(mutator.Offset);
-
-					transforms[i] = rotMatrix * scaleMatrix * tMatrix * transforms[i];
+					auto translationMatrix = Matrix::CreateTranslation(mutator.Offset);
+					transforms[i] = ((rotMatrix * scaleMatrix) * translationMatrix) * transforms[i];
 				}
 			}
 		}
@@ -180,12 +181,20 @@ namespace TEN::Renderer
 
 		auto& moveableObj = *_moveableObjects[nativeItem->ObjectNumber];
 
-		// Copy meshswaps
+		// Copy meshswaps and apply eventually effects.
 		itemToDraw->MeshIndex = nativeItem->Model.MeshIndex;
-		itemToDraw->SkinIndex = nativeItem->Model.SkinIndex;
+		itemToDraw->SkinIndex = nativeItem->Model.GetSkinGlobalIndex();
 
 		if (obj->Animations.empty())
+		{
+			// Objects without animations (e.g. virtual ID_BODY_PART borrowing a single mesh) never get
+			// bone transforms computed. Default them to identity, otherwise meshes are drawn with a zero
+			// matrix and collapse to the origin (a tiny garbage mesh) instead of the item's world pose.
+			for (int i = 0; i < BONE_COUNT_MAX; i++)
+				itemToDraw->AnimationTransforms[i] = Matrix::Identity;
+
 			return;
+		}
 
 		// Apply extra rotations
 		int lastJoint = 0;
@@ -314,8 +323,11 @@ namespace TEN::Renderer
 				});
 		}
 
-		auto frameData = GetFrameInterpData(*nativeItem);
-		UpdateAnimation(itemToDraw, moveableObj, frameData, UINT_MAX);
+		const auto& anim = GetAnimData(*nativeItem);
+		auto rootMotionCounteract = anim.GetRootMotionCounteraction(nativeItem->Animation.FrameNumber);
+
+		const auto& frame = GetFrame(*nativeItem);
+		UpdateAnimation(itemToDraw, moveableObj, frame, UINT_MAX, false, nativeItem->Animation.Blend.IsEnabled() ? &nativeItem->Animation.Blend : nullptr, &rootMotionCounteract);
 	}
 
 	void Renderer::UpdateItemAnimations(RenderView& view)
@@ -356,7 +368,7 @@ namespace TEN::Renderer
 			BuildHierarchyRecursive(obj, childNode, obj->Skeleton);
 	}
 
-	bool Renderer::IsFullsScreen()
+	bool Renderer::IsFullScreen()
 	{
 		return (!_isWindowed);
 	}
@@ -408,6 +420,36 @@ namespace TEN::Renderer
 		}
 	}
 
+	Matrix Renderer::GetWorldMatrixForMoveable(const ItemInfo& item, Matrix* rotationMatrix, Matrix* translationMatrix) const
+	{
+		auto orient = item.Pose.Orientation;
+		auto pos = item.Pose.Position.ToVector3();
+
+		// Apply root motion counteraction only for animated objects. Virtual objects without
+		// animations (e.g. ID_BODY_PART) would otherwise fetch a fallback animation and have their
+		// world matrix polluted by bogus root motion, making them spin erratically.
+		const auto& animObject = Objects[item.Animation.AnimObjectID];
+		if (!animObject.Animations.empty())
+		{
+			const auto& anim = GetAnimData(item);
+			auto rootMotionCounteract = anim.GetRootMotionCounteraction(item.Animation.FrameNumber);
+
+			orient += rootMotionCounteract.Rotation;
+			pos += Vector3::Transform(rootMotionCounteract.Translation, orient.ToRotationMatrix());
+		}
+
+		auto rotMatrix = orient.ToRotationMatrix();
+		auto transMatrix = Matrix::CreateTranslation(pos);
+
+		if (rotationMatrix != nullptr)
+			*rotationMatrix = rotMatrix;
+
+		if (translationMatrix != nullptr)
+			*translationMatrix = transMatrix;
+
+		return Matrix::CreateScale(item.Pose.Scale) * rotMatrix * transMatrix;
+	}
+
 	RendererMesh* Renderer::GetMesh(int meshIndex)
 	{
 		return _meshes[meshIndex];
@@ -434,23 +476,37 @@ namespace TEN::Renderer
 			}
 		}
 
-		auto translationMatrix = Matrix::CreateTranslation(nativeItem->Pose.Position.ToVector3());
-		auto rotMatrix = nativeItem->Pose.Orientation.ToRotationMatrix();
-		auto worldMatrix = rotMatrix * translationMatrix;
-
 		const auto& moveable = GetRendererObject(nativeItem->ObjectNumber);
+		auto worldMatrix = GetWorldMatrixForMoveable(*nativeItem);
 
 		// Collect spheres.
 		auto spheres = std::vector<BoundingSphere>{};
-		for (int i = 0; i < moveable.ObjectMeshes.size(); i++)
+		if (moveable.ObjectMeshes.empty())
 		{
-			const auto& mesh = *moveable.ObjectMeshes[i];
+			// Virtual objects (e.g. ID_BODY_PART) have no object meshes; each instance borrows its
+			// mesh per-instance, so derive the bounding spheres from the item's own mesh list.
+			for (int i = 0; i < itemToDraw.MeshIndex.size(); i++)
+			{
+				const auto& mesh = *GetMesh(itemToDraw.MeshIndex[i]);
 
-			const auto& translationMatrix = itemToDraw.AnimTransforms[i];
-			auto pos = Vector3::Transform(mesh.Sphere.Center, translationMatrix * worldMatrix);
+				const auto& animationTransform = itemToDraw.AnimationTransforms[i];
+				auto pos = Vector3::Transform(mesh.Sphere.Center, animationTransform * worldMatrix);
 
-			auto sphere = BoundingSphere(pos, mesh.Sphere.Radius);
-			spheres.push_back(sphere);
+				spheres.push_back(BoundingSphere(pos, mesh.Sphere.Radius));
+			}
+		}
+		else
+		{
+			for (int i = 0; i < moveable.ObjectMeshes.size(); i++)
+			{
+				const auto& mesh = *moveable.ObjectMeshes[i];
+
+				const auto& animationTransform = itemToDraw.AnimationTransforms[i];
+				auto pos = Vector3::Transform(mesh.Sphere.Center, animationTransform * worldMatrix);
+
+				auto sphere = BoundingSphere(pos, mesh.Sphere.Radius);
+				spheres.push_back(sphere);
+			}
 		}
 
 		return spheres;
@@ -458,21 +514,20 @@ namespace TEN::Renderer
 
 	void Renderer::GetBoneMatrix(short itemNumber, int jointIndex, Matrix* outMatrix)
 	{
+		if (jointIndex >= BONE_COUNT_MAX)
+			jointIndex = 0;
+
+		auto* rendererItem = &_items[itemNumber];
+		auto* nativeItem = &g_Level.Items[itemNumber];
+		auto& object = *_moveableObjects[nativeItem->ObjectNumber];
+
+		if (!rendererItem->DoneAnimations)
+			(itemNumber == LaraItem->Index) ? UpdateLaraAnimations(true) : UpdateItemAnimations(itemNumber, true);
+
 		if (itemNumber == LaraItem->Index)
-		{
-			auto& object = *_moveableObjects[ID_LARA];
 			*outMatrix = object.AnimationTransforms[jointIndex] * _playerWorldMatrix;
-		}
 		else
-		{
-			UpdateItemAnimations(itemNumber, true);
-
-			auto* rendererItem = &_items[itemNumber];
-			auto* nativeItem = &g_Level.Items[itemNumber];
-
-			auto& obj = *_moveableObjects[nativeItem->ObjectNumber];
-			*outMatrix = obj.AnimationTransforms[jointIndex] * rendererItem->World;
-		}
+			*outMatrix = object.AnimationTransforms[jointIndex] * rendererItem->World;
 	}
 
 	SkinningMode Renderer::GetSkinningMode(const RendererObject& obj, int skinIndex)
@@ -590,10 +645,10 @@ namespace TEN::Renderer
 		if (!rendererItem->DoneAnimations)
 			(itemNumber == LaraItem->Index) ? UpdateLaraAnimations(false) : UpdateItemAnimations(itemNumber, false);
 
-		if (boneID >= MAX_BONES)
+		if (boneID >= BONE_COUNT_MAX)
 			boneID = 0;
 
-		auto world = rendererItem->AnimTransforms[boneID] * rendererItem->World;
+		auto world = rendererItem->AnimationTransforms[boneID] * rendererItem->World;
 
 		return Vector3::Transform(relOffset, world);
 	}
@@ -608,7 +663,7 @@ namespace TEN::Renderer
 		if (!rendererItem->DoneAnimations)
 			(itemNumber == LaraItem->Index) ? UpdateLaraAnimations(false) : UpdateItemAnimations(itemNumber, false);
 
-		if (boneID >= MAX_BONES)
+		if (boneID >= BONE_COUNT_MAX)
 			boneID = 0;
 
 		return rendererItem->BoneOrientations[boneID];
@@ -626,23 +681,33 @@ namespace TEN::Renderer
 		return false;
 	}
 
-	void Renderer::SaveScreenshot()
+	std::string Renderer::SaveScreenshot()
 	{
 		char buffer[64];
 		time_t rawtime;
 
 		time(&rawtime);
 		auto time = localtime(&rawtime);
-		strftime(buffer, sizeof(buffer), "/TEN-%Y-%m-%d_%H-%M-%S.png", time);
+		strftime(buffer, sizeof(buffer), "TEN-%Y-%m-%d_%H-%M-%S.png", time);
 
 		auto screenPath = g_GameFlow->GetGameDir() + "Screenshots";
 
 		if (!std::filesystem::is_directory(screenPath))
 			std::filesystem::create_directory(screenPath);
 
+		screenPath += "/";
 		screenPath += buffer;
-		
-		_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), screenPath);
+
+		if (!_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), screenPath))
+		{
+			TENLog(fmt::format("Failed to save screenshot '{}' to disk.", screenPath), LogLevel::Error);
+			return std::string();
+		}
+		else
+		{
+			TENLog(fmt::format("Saved screenshot to '{}'.", screenPath), LogLevel::Info);
+			return std::string(buffer);
+		}
 	}
 
 	std::optional<Vector2> Renderer::ProjectDisplayItemPointToScreen(const Vector3& worldPos) const
@@ -702,12 +767,12 @@ namespace TEN::Renderer
 		const auto& object = Objects[objectID];
 
 		// Loop through meshes.
-		for (int i = 0; i < moveable->ObjectMeshes.size(); ++i)
+		for (int i = 0; i < moveable->ObjectMeshes.size(); i++)
 		{
 			if (item.GetMeshBits() && !item.GetMeshVisible(i))
 				continue;
 
-			const auto& s = moveable->ObjectMeshes[i]->Sphere;
+			const auto& sphere = moveable->ObjectMeshes[i]->Sphere;
 
 			// World matrix per mesh (animation or bind-pose).
 			auto meshWorldMatrix = Matrix::Identity;
@@ -721,8 +786,8 @@ namespace TEN::Renderer
 			}
 
 			// Transform center.
-			auto meshWorldCenter = Vector3::Transform(s.Center, meshWorldMatrix);
-			float meshWorldRadius = s.Radius * scale;
+			auto meshWorldCenter = Vector3::Transform(sphere.Center, meshWorldMatrix);
+			float meshWorldRadius = sphere.Radius * scale;
 
 			// Keep largest for bounding approximation.
 			if (meshWorldRadius > radiusMax)

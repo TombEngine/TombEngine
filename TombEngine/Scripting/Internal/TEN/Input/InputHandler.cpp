@@ -7,6 +7,7 @@
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Input/ActionIDs.h"
 #include "Scripting/Internal/TEN/Input/AxisIDs.h"
+#include "Scripting/Internal/TEN/Input/InputDevices.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Specific/Input/Input.h"
 
@@ -64,6 +65,15 @@ namespace TEN::Scripting::Input
 		auto cursorPos = GetMouse2DPosition();
 		cursorPos = Vector2(cursorPos.x / DISPLAY_SPACE_RES.x, cursorPos.y / DISPLAY_SPACE_RES.y) * 100;
 		return Vec2(cursorPos);
+	}
+
+	/// Get the last input device that was used.
+	// Changes whenever a user input was done on one of the input devices, except mouse movement.
+	// @function GetLastInputDevice
+	// @treturn Input.InputDevice Last input device used for bindable action input.
+	static InputDevice GetLastInputDevice()
+	{
+		return TEN::Input::GetLastInputDevice();
 	}
 
 	/// Check if an action key is being hit.
@@ -157,7 +167,7 @@ namespace TEN::Scripting::Input
 	/// Returns the name of the key that has been assigned to specified ActionID.
 	// @function GetActionBinding
 	// @tparam Input.ActionID actionID Action ID to get binding key name for.
-	// @treturn string Name of keyboard key that has been assigned to the ActionID.
+	// @treturn string Name of keyboard or gamepad key or mouse button that has been assigned to a corresponding ActionID.
 	static std::string GetActionBinding(int actionID)
 	{
 		return g_Bindings.GetBoundKeyName((ActionID)actionID);
@@ -182,6 +192,7 @@ namespace TEN::Scripting::Input
 		parent.set(ScriptReserved_Input, table);
 		table.set_function(ScriptReserved_InputGetAnalogKeyValue, &GetAnalogKeyValue);
 		table.set_function(ScriptReserved_InputGetAnalogAxisValue, &GetAnalogAxisValue);
+		table.set_function(ScriptReserved_InputGetLastInputDevice, &GetLastInputDevice);
 		table.set_function(ScriptReserved_InputGetMouseDisplayPosition, &GetMouseDisplayPosition);
 		table.set_function(ScriptReserved_InputIsKeyHit, &IsKeyHit);
 		table.set_function(ScriptReserved_InputIsKeyHeld, &IsKeyHeld);
@@ -205,5 +216,6 @@ namespace TEN::Scripting::Input
 		auto handler = LuaHandler(state);
 		handler.MakeReadOnlyTable(table, ScriptReserved_InputActionID, ACTION_IDS);
 		handler.MakeReadOnlyTable(table, ScriptReserved_InputAxisID, AXIS_IDS);
+		handler.MakeReadOnlyTable(table, ScriptReserved_InputDevice, INPUT_DEVICE_IDS);
 	}
 }

@@ -15,7 +15,8 @@ namespace TEN::Scripting
 {
 	struct AnimSettings
 	{
-		int PoseTimeout = 20; // AFK pose timeout.
+		int PoseTimeout				= 20; // AFK pose timeout.
+		int InternalBlendDuration	= 4;  // Default blend duration for internal player animation transitions.
 
 		bool SlideExtended	= false; // Extended slope sliding functionality (not ready yet).
 		bool SprintJump		= false; // Sprint jump.
@@ -23,6 +24,7 @@ namespace TEN::Scripting
 		bool CrawlExtended	= true;	 // Extended crawl moveset.
 		bool CrouchRoll		= true;	 // Crouch roll.
 		bool OverhangClimb	= false; // Overhang functionality.
+		bool BackJumpTurn	= false; // Allow turning while jumping back.
 		bool LedgeJumps		= false; // Jump up or back from a ledge.
 
 		static void Register(sol::table& parent);
@@ -57,7 +59,22 @@ namespace TEN::Scripting
 	{
 		bool TargetObjectOcclusion = true;
 		bool KillPoisonedEnemies = true;
+		bool SetEnemiesOnFireWithWeapons = true;
+		bool SetEnemiesOnFireWithDeathFlag = true;
 		bool EnableInventory = true;
+
+		static void Register(sol::table& parent);
+	};
+
+	struct EffectsSettings
+	{
+		ScriptColor	BloodColor			= ScriptColor(255, 0, 0);
+		BlendMode	BloodBlendMode		= BlendMode::Additive;
+		float		BloodSize			= 1.0f;
+		ScriptColor	RicochetColor		= ScriptColor(255, 153, 0);
+		int			RicochetCount		= 8;
+		bool		RicochetSound		= true;
+		bool		ExplosionShockwave	= true;
 
 		static void Register(sol::table& parent);
 	};
@@ -86,6 +103,8 @@ namespace TEN::Scripting
 		bool LoadingBar		= true;
 		bool Speedometer	= true;
 		bool PickupNotifier = true;
+		bool InteractionHighlighter = true;
+		bool TargetHighlighter = true;
 
 		static void Register(sol::table& parent);
 	};
@@ -104,7 +123,7 @@ namespace TEN::Scripting
 		bool	StaticMeshAvoidance			= false;	// Avoid static mesh obstacles.
 		bool	VerticalGeometryAvoidance	= true;		// Avoid geometry obstacles for swimming or flying creatures.
 		bool	WaterSurfaceAvoidance		= true;		// Avoid water surface for swimming or flying creatures.
-		bool	VerticalMovementSmoothing = true;		// Smooth vertical movement for swimming or flying creatures.
+		bool	VerticalMovementSmoothing	= true;		// Smooth vertical movement for swimming or flying creatures.
 
 		static void Register(sol::table& parent);
 	};
@@ -123,6 +142,9 @@ namespace TEN::Scripting
 		bool	  FastReload	= true;
 		bool	  Multithreaded = true;
 
+		int		  VariableFloodProtectionTimeLimit		= 1000;
+		int		  VariableFloodProtectionOverallLimit	= 5000;
+
 		static void Register(sol::table& parent);
 	};
 
@@ -133,6 +155,8 @@ namespace TEN::Scripting
 		ScriptColor PlainTextColor		= ScriptColor(255, 255, 255);	// White
 		ScriptColor DisabledTextColor	= ScriptColor(128, 128, 128);	// Gray
 		ScriptColor ShadowTextColor		= ScriptColor(0, 0, 0);			// Black
+
+		float SystemTextScale = 1.0f;
 
 		Vec2 TitleMenuPosition = Vec2(50, 66);
 		float TitleMenuScale = 1.0f;
@@ -176,6 +200,7 @@ namespace TEN::Scripting
 	{
 		AnimSettings				Animations  = {};
 		CameraSettings				Camera	    = {};
+		EffectsSettings				Effects	    = {};
 		FlareSettings				Flare	    = {};
 		GameplaySettings			Gameplay    = {};
 		GraphicsSettings			Graphics    = {};

@@ -76,7 +76,7 @@ enum class SoundPlayMode
 	Looped
 };
 
-enum class ReverbType
+enum class ReverbType : int
 {
 	Outside,  // 0x00   no reverberation
 	Small,	  // 0x01   little reverberation
@@ -119,9 +119,9 @@ struct SoundTrackSlot
 struct SampleInfo
 {
 	short Number;
-	byte Volume;
-	byte Radius;
-	byte Randomness;
+	unsigned char Volume;
+	unsigned char Radius;
+	unsigned char Randomness;
 	signed char Pitch;
 	short Flags;
 };
