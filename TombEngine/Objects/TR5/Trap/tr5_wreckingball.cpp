@@ -31,13 +31,13 @@ namespace TEN::Entities::Traps
 	constexpr auto WRECKINGBALL_STATE_ATTACK = 2;
 	constexpr auto WRECKINGBALL_STATE_RAISE = 3;
 
-	constexpr auto SPOTLIGHT_ANCHOR_OFFSET_Y = 256.0f;
+	constexpr auto SPOTLIGHT_ANCHOR_OFFSET_Y = 512.0f;
 	
 	// Downward facing spotlight
 		constexpr auto SPOTLIGHT_DOWN_R = 0.7f;
 		constexpr auto SPOTLIGHT_DOWN_G = 0.0f;
 		constexpr auto SPOTLIGHT_DOWN_B = 0.0f;
-		constexpr auto SPOTLIGHT_DOWN_INTENSITY = 15.0f;
+		constexpr auto SPOTLIGHT_DOWN_INTENSITY = 0.5f;
 		constexpr auto SPOTLIGHT_DOWN_RADIUS_RATIO = 3.0f;
 		constexpr auto SPOTLIGHT_DOWN_FALLOFF_RATIO = 4.0f;
 		constexpr auto SPOTLIGHT_DOWN_HASH_OFFSET = 1000;
@@ -55,6 +55,8 @@ namespace TEN::Entities::Traps
 
 		auto SPOTLIGHT_ALARM_FLASH_PERIOD = Random::GenerateInt(15,30);
 		auto SPOTLIGHT_ALARM_FLASH_ON = Random::GenerateInt(2, 20);
+
+		constexpr int MOVE_SPEED = 64;
 
 
 	struct WreckingBallState
@@ -110,7 +112,7 @@ namespace TEN::Entities::Traps
 		if (state.BaseObject < 0 || state.ChainObject < 0)
 		{
 			TENLog(
-				"WreckingBall ERROR: Missing required objects. "
+				"WreckingBall ERROR: Missing required objects. Please place add to map"
 				"Expected Anchor ID=" + std::to_string(ID_WRECKINGBALL_ANCHOR) +
 				" Chain ID=" + std::to_string(ID_WRECKINGBALL_CHAIN) +
 				" | Found Anchor ItemIndex=" + std::to_string(state.BaseObject) +
@@ -317,7 +319,7 @@ namespace TEN::Entities::Traps
 
 				if (flashTimer < SPOTLIGHT_ALARM_FLASH_ON)
 				{
-					SpawnDynamicSpotLight(origin, dir, color, alarmRadius, alarmFalloff, alarmDist, true, hash);
+					SpawnDynamicSpotLight(origin, dir, color, alarmRadius, alarmFalloff, alarmDist, false, hash);
 				}
 			}
 	}
@@ -403,8 +405,6 @@ namespace TEN::Entities::Traps
 			state.PhaseState = WreckingBallState::Phase::IdleAtTop;
 			return;
 		}
-
-		constexpr int MOVE_SPEED = 64;
 
 		auto& anchor = g_Level.Items[state.BaseObject];
 
@@ -636,10 +636,6 @@ namespace TEN::Entities::Traps
 			SoundEffect(SFX_TR5_BASE_CLAW_WINCH_UP_LOOP, &item.Pose);
 		}
 	}
-
-	// ---------------------------------------------------------------------
-	// Main
-	// ---------------------------------------------------------------------
 
 	void ControlWreckingBall(short itemNumber)
 	{
