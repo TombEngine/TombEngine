@@ -363,6 +363,7 @@ local ResetInventorySession = function()
     InventoryData.SetChosenItem()
     InventoryStates.SetInventoryClosed(true)
     InventoryData.ClearAll()
+    LevelFuncs.Engine.RingInventory.RestoreSnapshot()
     Flow.SetFreezeMode(Flow.FreezeMode.NONE)
 end
 
