@@ -107,7 +107,7 @@ LevelFuncs.Engine.RingInventory.RunInventory = function()
     local isNotUsingBinoculars = TEN.View.GetCameraType() ~= CameraType.BINOCULARS
     local controlLocked = Lara:GetLocked()
     
-    if (TEN.Input.IsKeyHeld(TEN.Input.ActionID.INVENTORY, Constants.HOLD_TIME) or TEN.Inventory.GetFocusedItem() ~= Constants.NO_VALUE) and 
+    if (TEN.Input.IsKeyHit(TEN.Input.ActionID.INVENTORY) or TEN.Inventory.GetFocusedItem() ~= Constants.NO_VALUE) and 
        not inventoryOpen and 
        playerHp and isNotUsingBinoculars and
        not controlLocked then
