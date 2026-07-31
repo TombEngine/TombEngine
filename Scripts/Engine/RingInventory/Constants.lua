@@ -13,5 +13,6 @@ Constants.TARGET_START = Vec3(0,    60, 1000)
 Constants.TARGET_END   = Vec3(0,   100,  300)
 Constants.ALPHA_MAX = 255
 Constants.ALPHA_MIN = 0
+Constants.HOLD_TIME = 1/30
 
 return Constants
