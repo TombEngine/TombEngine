@@ -48,11 +48,11 @@ end
 -- unlocked entries (true = has been earned by the player).
 local UNLOCK_KEYS =
 {
-    Accessories = "PhotoModeAccessories",
-    Expressions = "PhotoModeExpressions",
-    Frames      = "PhotoModeFrames",
-    Poses       = "PhotoModePoses",
-    Outfits     = "PhotoModeOutfits",
+    Accessories = "Accessories",
+    Expressions = "Expressions",
+    Frames      = "Frames",
+    Poses       = "Poses",
+    Outfits     = "Outfits",
 }
 
 -- Returns the preset list for a given data type (Accessories/Frames are nested

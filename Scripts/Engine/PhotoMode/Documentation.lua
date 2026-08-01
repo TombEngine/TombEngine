@@ -212,7 +212,7 @@
 
 --- Adding Outfits
 -- @section AddingOutfits
--- Outfits can change Lara's Outfit. Both the classic skins and skinned mesh can be used.  They are defined in <i>Scripts/PhotoModeData.lua</i> file in Outfits table. The first entry is always "Default". Set unlocked = false to hide an outfit until the player earns it, then call @{PhotoMode.UnlockOutfit} to reveal it. Unlocks are saved in GlobalVars.Engine.PhotoMode.PhotoModeOutfits.
+-- Outfits can change Lara's Outfit. Both the classic skins and skinned mesh can be used.  They are defined in <i>Scripts/PhotoModeData.lua</i> file in Outfits table. The first entry is always "Default". Set unlocked = false to hide an outfit until the player earns it, then call @{PhotoMode.UnlockOutfit} to reveal it. Unlocks are saved in GlobalVars.Engine.PhotoMode.Outfits.
 -- @usage
 -- PhotoModeSetup.Outfits =
 -- {
@@ -341,7 +341,7 @@
 -- @section UnlockingContent
 -- All PhotoMode data types (Accessories, Expressions, Frames, Poses and Outfits) support per-entry unlocking.
 -- Set <code>unlocked = false</code> on an entry to hide it until the matching <code>Unlock*</code> function is called.
--- Unlocks persist per type in GlobalVars.Engine.PhotoMode (e.g. <code>GlobalVars.Engine.PhotoMode.PhotoModeOutfits</code>) and remain unlocked in all levels.
+-- Unlocks persist per type in GlobalVars.Engine.PhotoMode (e.g. <code>GlobalVars.Engine.PhotoMode.Outfits</code>) and remain unlocked in all levels.
 -- To remove all unlocks at once use @{PhotoMode.ClearData}.
 
 --- Clear all unlocked PhotoMode content so it no longer appears in the selectors.
