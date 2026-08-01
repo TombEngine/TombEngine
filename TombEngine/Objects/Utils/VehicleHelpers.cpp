@@ -442,12 +442,23 @@ namespace TEN::Entities::Vehicles
 		if (currentRoomNumber == NO_VALUE)
 			currentRoomNumber = vehicleItem->RoomNumber;
 
-		auto finalPos = vehicleItem->Pose.Position;
-		finalPos.y -= VEHICLE_BASE_HEIGHT;
+		// Probe above the hull: a vehicle floating at a water surface with its body in the
+		// room stacked above must be registered there for collision to work.
+		auto elevatedPos = vehicleItem->Pose.Position;
+		elevatedPos.y -= VEHICLE_BASE_HEIGHT;
 
-		auto roomNumber = FindRoomNumber(finalPos, currentRoomNumber, true);
-		if (roomNumber != currentRoomNumber)
-			currentRoomNumber = roomNumber;
+		int elevatedRoomNumber = FindRoomNumber(elevatedPos, currentRoomNumber, true);
+
+		// Accept the elevated result only when the hull itself lies outside that room, i.e.
+		// the boundary between hull and probe point is a vertical stack (floor/ceiling
+		// portal). Horizontal neighbors also claim the probe point where room boxes overlap
+		// at door portals; overriding there would fight the portal traversal result passed
+		// by the caller and strand the vehicle in the previous room.
+		if (elevatedRoomNumber != currentRoomNumber &&
+			!IsPointInRoom(vehicleItem->Pose.Position, elevatedRoomNumber))
+		{
+			currentRoomNumber = elevatedRoomNumber;
+		}
 
 		if (currentRoomNumber != vehicleItem->RoomNumber)
 		{
