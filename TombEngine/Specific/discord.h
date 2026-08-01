@@ -1,7 +1,8 @@
 #pragma once
-#include "framework.h"
-#include "Scripting/Internal/TEN/Flow/FlowHandler.h"
 
-void RPC_Init();
-void RPC_Update();
-void RPC_close();
+namespace TEN::Utils::Discord
+{
+    void InitializeDiscord();
+    void UpdateDiscord();
+    void DeInitializeDiscord();
+}

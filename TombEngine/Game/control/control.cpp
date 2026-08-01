@@ -61,7 +61,7 @@
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
-#include "Specific/discord.h"
+#include "Specific/Discord.h"
 #include "Specific/EngineMain.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -99,6 +99,7 @@ using namespace TEN::Math;
 using namespace TEN::Renderer;
 using namespace TEN::SpotCam;
 using namespace TEN::Video;
+using namespace TEN::Utils::Discord;
 
 constexpr auto DEATH_NO_INPUT_TIMEOUT = 10 * FPS;
 constexpr auto DEATH_INPUT_TIMEOUT	  = 3 * FPS;
@@ -671,7 +672,7 @@ void InitializeOrLoadGame(bool loadGame)
 {
 	g_Gui.SetInventoryItemChosen(NO_VALUE);
 	g_Gui.SetEnterInventory(NO_VALUE);
-	RPC_Init();
+	InitializeDiscord();
 	// Restore game?
 	if (loadGame)
 	{
@@ -728,7 +729,7 @@ GameStatus DoGameLoop(int levelIndex)
 	{
 		g_Synchronizer.Sync();
 
-		RPC_Update();
+		UpdateDiscord();
 
 		if (g_VideoPlayer.Update())
 			continue;
@@ -780,7 +781,7 @@ void EndGameLoop(int levelIndex, GameStatus reason)
 	DeInitializeScripting(levelIndex, reason);
 
 	g_VideoPlayer.Stop();
-	RPC_close();
+	DeInitializeDiscord();
 	StopAllSounds();
 	StopSoundTracks(SOUND_XFADETIME_LEVELJUMP, true);
 	StopRumble();
