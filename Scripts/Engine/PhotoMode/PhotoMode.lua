@@ -28,7 +28,7 @@ local function CopyTable(original)
     local copy = {}
     for k, v in pairs(original) do
         if type(v) == "table" then
-            copy[k] = Utilities.CopyTable(v)
+            copy[k] = CopyTable(v)
         else
             copy[k] = v
         end
@@ -40,13 +40,84 @@ local function ColorCombine(color, alpha)
     return TEN.Color(color.r, color.g, color.b, alpha)
 end
 
-function PhotoMode.UnlockOutfit(name)
-    for _, outfit in ipairs(Configuration.Outfits) do
-        if outfit.name == name then
-            GlobalVars.Engine.PhotoModeOutfits = GlobalVars.Engine.PhotoModeOutfits or {}
-            GlobalVars.Engine.PhotoModeOutfits[name] = true
+-- ============================================================================
+-- Unlock / Clear helpers (all data types)
+-- ============================================================================
+
+-- Maps a PhotoMode data type to the GlobalVars.Engine key used to persist its
+-- unlocked entries (true = has been earned by the player).
+local UNLOCK_KEYS =
+{
+    Accessories = "PhotoModeAccessories",
+    Expressions = "PhotoModeExpressions",
+    Frames      = "PhotoModeFrames",
+    Poses       = "PhotoModePoses",
+    Outfits     = "PhotoModeOutfits",
+}
+
+-- Returns the preset list for a given data type (Accessories/Frames are nested
+-- under their ".presets" tables).
+local PRESET_LISTS =
+{
+    Accessories = function() return Configuration.Accessories.presets end,
+    Expressions = function() return Configuration.Expressions end,
+    Frames      = function() return Configuration.Frames.presets end,
+    Poses       = function() return Configuration.Animations end,
+    Outfits     = function() return Configuration.Outfits end,
+}
+
+local function GetUnlockTable(dataType)
+    GlobalVars.Engine = GlobalVars.Engine or {}
+    GlobalVars.Engine.PhotoMode = GlobalVars.Engine.PhotoMode or {}
+    local key = UNLOCK_KEYS[dataType]
+    GlobalVars.Engine.PhotoMode[key] = GlobalVars.Engine.PhotoMode[key] or {}
+    return GlobalVars.Engine.PhotoMode[key]
+end
+
+local function UnlockPreset(dataType, name)
+    local list = PRESET_LISTS[dataType] and PRESET_LISTS[dataType]()
+    if not list then return end
+    for _, preset in ipairs(list) do
+        if preset.name == name then
+            GetUnlockTable(dataType)[name] = true
             return
         end
+    end
+end
+
+local function ClearPresets(dataType)
+    GlobalVars.Engine = GlobalVars.Engine or {}
+    GlobalVars.Engine.PhotoMode = GlobalVars.Engine.PhotoMode or {}
+    GlobalVars.Engine.PhotoMode[UNLOCK_KEYS[dataType]] = {}
+end
+
+-- Unlock a named entry so it appears in the PhotoMode selector. The entry
+-- remains unlocked in all levels. No-op if the name does not match a preset.
+function PhotoMode.UnlockAccessory(name)
+    UnlockPreset("Accessories", name)
+end
+
+function PhotoMode.UnlockExpression(name) 
+    UnlockPreset("Expressions", name)
+end
+
+function PhotoMode.UnlockFrame(name)      
+    UnlockPreset("Frames", name) 
+end
+
+function PhotoMode.UnlockPose(name)
+    UnlockPreset("Poses", name)
+end
+
+function PhotoMode.UnlockOutfit(name)
+    UnlockPreset("Outfits", name)
+end
+
+-- Clear all unlocked PhotoMode content (accessories, expressions, frames,
+-- poses and outfits) so it no longer appears in the selectors.
+function PhotoMode.ClearData()
+    for typeName in pairs(UNLOCK_KEYS) do
+        ClearPresets(typeName)
     end
 end
 
@@ -54,10 +125,6 @@ local function GetAspectScale()
     local aspectRatio = TEN.View.GetAspectRatio()
 	local refAspectRatio = 16.0 / 9.0
 	return refAspectRatio / aspectRatio
-end
-
-function PhotoMode.ClearOutfits()
-    GlobalVars.Engine.PhotoModeOutfits = {}
 end
 
 function PhotoMode.GetSettings()
@@ -147,41 +214,70 @@ end
 local DOF_MODE_NAMES   = BuildNames(Configuration.DepthOfField.modes)
 local LIGHT_SRC_NAMES  = Configuration.Light.sourceNames
 local FILTER_NAMES     = BuildNames(Configuration.Filters.presets)
-local FRAME_NAMES      = BuildNames(Configuration.Frames.presets)
-local ANIM_NAMES       = BuildNames(Configuration.Animations)
-local EXPRESSION_NAMES = BuildNames(Configuration.Expressions)
-local ACCESSORY_NAMES  = BuildNames(Configuration.Accessories.presets)
 
 -- Color selectors use blank option labels — the actual color is shown via sprite strip.
 local TINT_NAMES  = (function() local t={} for i=1,#Configuration.Filters.tints       do t[i]="" end return t end)()
 local COLOR_NAMES = (function() local t={} for i=1,#Configuration.Light.colorPresets  do t[i]="" end return t end)()
 
--- Outfit and weapon name lists are built dynamically each entry to respect
--- per-outfit unlock flags and live inventory checks.
+-- Selector name lists for character/frame data types are built dynamically on
+-- each menu entry to respect per-preset unlock flags (tracked in GlobalVars).
+-- Menu option indices no longer match preset indices 1:1, so a pair of maps is
+-- kept per type: [menuOptionIdx] -> real preset index, and the reverse.
+local _animMenuMap        = {}  -- Poses
+local _animMenuMapReverse = {}
+local _expressionMenuMap        = {}
+local _expressionMenuMapReverse = {}
+local _accessoryMenuMap        = {}
+local _accessoryMenuMapReverse = {}
+local _frameMenuMap        = {}
+local _frameMenuMapReverse = {}
 local _outfitMenuMap        = {}  -- [menuOptionIdx] -> real Configuration.Outfits index
 local _outfitMenuMapReverse = {}  -- [real Configuration.Outfits index] -> menuOptionIdx
 local _weaponMenuMap        = {}  -- [menuOptionIdx] -> real Configuration.Weapons index
 local _weaponMenuMapReverse = {}  -- [real Configuration.Weapons index] -> menuOptionIdx
 
-local function BuildFilteredOutfitNames()
-    _outfitMenuMap        = {}
-    _outfitMenuMapReverse = {}
-    local names           = {}
-    for i, outfit in ipairs(Configuration.Outfits) do
-        local unlocked = outfit.unlocked
+-- Build a filtered name list for a data type, honouring each preset's
+-- `unlocked` flag: false entries are hidden until Unlock*() marks them in
+-- GlobalVars. nil/true entries are always shown.
+local function BuildFilteredNames(list, dataType, map, mapReverse)
+    map         = map or {}
+    mapReverse  = mapReverse or {}
+    local names       = {}
+    local unlockTable = GlobalVars.Engine and GlobalVars.Engine.PhotoMode and GlobalVars.Engine.PhotoMode[UNLOCK_KEYS[dataType]]
+    for i, preset in ipairs(list) do
+        local unlocked = preset.unlocked
         if unlocked == false then
-            local photoModeOutfits = GlobalVars.Engine and GlobalVars.Engine.PhotoModeOutfits
-            unlocked = photoModeOutfits ~= nil and photoModeOutfits[outfit.name] == true
+            unlocked = unlockTable ~= nil and unlockTable[preset.name] == true
         end
 
         if unlocked ~= false then  -- allows nil and true, blocks false
-            local idx                = #names + 1
-            names[idx]               = outfit.name
-            _outfitMenuMap[idx]      = i
-            _outfitMenuMapReverse[i] = idx
+            local idx     = #names + 1
+            names[idx]    = preset.name
+            map[idx]      = i
+            mapReverse[i] = idx
         end
     end
     return names
+end
+
+local function BuildFilteredAnimationNames()
+    return BuildFilteredNames(Configuration.Animations, "Poses", _animMenuMap, _animMenuMapReverse)
+end
+
+local function BuildFilteredExpressionNames()
+    return BuildFilteredNames(Configuration.Expressions, "Expressions", _expressionMenuMap, _expressionMenuMapReverse)
+end
+
+local function BuildFilteredAccessoryNames()
+    return BuildFilteredNames(Configuration.Accessories.presets, "Accessories", _accessoryMenuMap, _accessoryMenuMapReverse)
+end
+
+local function BuildFilteredFrameNames()
+    return BuildFilteredNames(Configuration.Frames.presets, "Frames", _frameMenuMap, _frameMenuMapReverse)
+end
+
+local function BuildFilteredOutfitNames()
+    return BuildFilteredNames(Configuration.Outfits, "Outfits", _outfitMenuMap, _outfitMenuMapReverse)
 end
 
 local function BuildFilteredWeaponNames()
@@ -252,6 +348,14 @@ local function ApplyTint(state)
             math.floor(128 + (c.g - 128) * i),
             math.floor(128 + (c.b - 128) * i))
         TEN.View.SetPostProcessTint(blended)
+    end
+end
+
+-- Runs a preset's optional onEnter hook (executed when the entry is selected).
+local function TriggerPresetHook(list, index)
+    local preset = list and list[index]
+    if preset and preset.onEnter and type(preset.onEnter) == "function" then
+        preset.onEnter()
     end
 end
 
@@ -355,9 +459,7 @@ local function ApplyOutfit(state)
     end
 
     -- Execute outfit-specific hook if provided.
-    if preset.onEnter and type(preset.onEnter) == "function" then
-        preset.onEnter()
-    end
+    TriggerPresetHook(Configuration.Outfits, state.outfitIndex)
 
     Lara:ResetHair()
 end
@@ -445,13 +547,18 @@ local function ApplyPosePreset(state)
             if state.snapshot then
                 Lara:SetAnim(state.snapshot.laraAnim, state.snapshot.laraAnimSlot)
                 Lara:SetFrame(state.snapshot.laraFrame)
+                Lara:SetHandStatus(state.snapshot.handStatus)
             end
         else
             Lara:SetAnim(preset.animNumber, preset.objID)
             Lara:SetFrame(preset.frameNumber)
+            Lara:SetHandStatus(Objects.HandStatus.FREE)
         end
     end
     Lara:ResetHair()
+
+    -- Execute pose-specific hook if provided.
+    TriggerPresetHook(Configuration.Animations, state.animIndex)
 end
 
 local function ApplyExpression(state)
@@ -468,6 +575,9 @@ local function ApplyExpression(state)
         end
     end
     Lara:ResetHair()
+
+    -- Execute expression-specific hook if provided.
+    TriggerPresetHook(Configuration.Expressions, state.expressionIndex)
 end
 
 local function GetOrCreateAccessoryMesh(state)
@@ -521,6 +631,9 @@ local function ApplyAccessory(state)
         end
         mov:SetColor(TEN.Color(255, 255, 255, 0))
     end
+
+    -- Execute accessory-specific hook if provided.
+    TriggerPresetHook(Configuration.Accessories.presets, state.accessoryIndex)
 end
 
 local function UpdateAccessoryMesh(state)
@@ -781,11 +894,11 @@ local function BuildAllMenus()
         local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
         if name == "pm_reset" then
             ResetCharacter()
-            m:SetOptionIndexForItemName("pm_animation",  state.animIndex)
+            m:SetOptionIndexForItemName("pm_animation",  _animMenuMapReverse[state.animIndex] or 1)
             m:SetOptionIndexForItemName("pm_outfit",     _outfitMenuMapReverse[state.outfitIndex] or 1)
             m:SetOptionIndexForItemName("pm_weapons",    _weaponMenuMapReverse[state.weaponIndex] or 1)
-            m:SetOptionIndexForItemName("pm_expression", state.expressionIndex)
-            m:SetOptionIndexForItemName("pm_accessory",  state.accessoryIndex)
+            m:SetOptionIndexForItemName("pm_expression", _expressionMenuMapReverse[state.expressionIndex] or 1)
+            m:SetOptionIndexForItemName("pm_accessory",  _accessoryMenuMapReverse[state.accessoryIndex] or 1)
             m:SetOptionIndexForItemName("pm_gunflash",   BoolToIndex(state.gunflashEnabled))
         end
     end
@@ -809,7 +922,7 @@ local function BuildAllMenus()
                 mf:SetOptionIndexForItemName("pm_strength",       ValueToOptionIndex(state.filterStrength, 0, 0.05))
                 mf:SetOptionIndexForItemName("pm_tint",           state.tintIndex)
                 mf:SetOptionIndexForItemName("pm_tint_intensity", ValueToOptionIndex(state.tintIntensity, cfg.Filters.minTintIntensity, cfg.Filters.tintIntensityStep))
-                mf:SetOptionIndexForItemName("pm_frame_overlay",  state.frameIndex)
+                mf:SetOptionIndexForItemName("pm_frame_overlay",  _frameMenuMapReverse[state.frameIndex] or 1)
             end
         end
     end
@@ -849,7 +962,7 @@ local function BuildAllMenus()
         if not m then return end
         local name = m:GetCurrentItem() and m:GetCurrentItem().itemName
         if name == "pm_animation" then
-            state.animIndex = m:GetCurrentOptionIndex()
+            state.animIndex = _animMenuMap[m:GetCurrentOptionIndex()] or 1
             ApplyPosePreset(state)
         elseif name == "pm_outfit" then
             state.outfitIndex = _outfitMenuMap[m:GetCurrentOptionIndex()] or 1
@@ -858,10 +971,10 @@ local function BuildAllMenus()
             state.weaponIndex = _weaponMenuMap[m:GetCurrentOptionIndex()] or 1
             ApplyWeapon(state)
         elseif name == "pm_expression" then
-            state.expressionIndex = m:GetCurrentOptionIndex()
+            state.expressionIndex = _expressionMenuMap[m:GetCurrentOptionIndex()] or 1
             ApplyExpression(state)
         elseif name == "pm_accessory" then
-            state.accessoryIndex = m:GetCurrentOptionIndex()
+            state.accessoryIndex = _accessoryMenuMap[m:GetCurrentOptionIndex()] or 1
             ApplyAccessory(state)
         elseif name == "pm_gunflash" then
             state.gunflashEnabled = IndexToBool(m:GetCurrentOptionIndex())
@@ -928,7 +1041,7 @@ local function BuildAllMenus()
             m:SetOptionIndexForItemName("pm_strength",      ValueToOptionIndex(state.filterStrength, 0, 0.05))
             m:SetOptionIndexForItemName("pm_tint",          state.tintIndex)
             m:SetOptionIndexForItemName("pm_tint_intensity", ValueToOptionIndex(state.tintIntensity, cfg.Filters.minTintIntensity, cfg.Filters.tintIntensityStep))
-            m:SetOptionIndexForItemName("pm_frame_overlay", state.frameIndex)
+            m:SetOptionIndexForItemName("pm_frame_overlay", _frameMenuMapReverse[state.frameIndex] or 1)
             local me = Menu.Get(MENU_EFFECTS)
             if me then
                 me:SetOptionIndexForItemName("pm_fov",          ValueToOptionIndex(state.fov, cfg.Lens.minFOV, cfg.Lens.fovStep))
@@ -958,7 +1071,8 @@ local function BuildAllMenus()
             state.tintIntensity = OptionIndexToValue(m:GetCurrentOptionIndex(), cfg.Filters.minTintIntensity, cfg.Filters.tintIntensityStep)
             ApplyTint(state)
         elseif name == "pm_frame_overlay" then
-            state.frameIndex = m:GetCurrentOptionIndex()
+            state.frameIndex = _frameMenuMap[m:GetCurrentOptionIndex()] or 1
+            TriggerPresetHook(Configuration.Frames.presets, state.frameIndex)
         end
     end
 
@@ -967,20 +1081,24 @@ local function BuildAllMenus()
     -- ================================================================
     -- CHARACTER menu
     -- ================================================================
-    local outfitNames = BuildFilteredOutfitNames()
-    local weaponNames = BuildFilteredWeaponNames()
+    local outfitNames     = BuildFilteredOutfitNames()
+    local animNames       = BuildFilteredAnimationNames()
+    local expressionNames = BuildFilteredExpressionNames()
+    local accessoryNames  = BuildFilteredAccessoryNames()
+    local frameNames      = BuildFilteredFrameNames()
+    local weaponNames     = BuildFilteredWeaponNames()
     local characterItems =
     {
-        { itemName = "pm_animation",  options = ANIM_NAMES,       currentOption = state.animIndex },
+        { itemName = "pm_animation",  options = animNames, currentOption = _animMenuMapReverse[state.animIndex] or 1 },
     }
 
     if Settings.Character.outfitsEnabled ~= false then
         characterItems[#characterItems + 1] = { itemName = "pm_outfit", options = outfitNames, currentOption = _outfitMenuMapReverse[state.outfitIndex] or 1 }
     end
-    characterItems[#characterItems + 1] = { itemName = "pm_weapons",    options = weaponNames,      currentOption = _weaponMenuMapReverse[state.weaponIndex] or 1 }
-    characterItems[#characterItems + 1] = { itemName = "pm_expression", options = EXPRESSION_NAMES, currentOption = state.expressionIndex }
+    characterItems[#characterItems + 1] = { itemName = "pm_weapons",    options = weaponNames,     currentOption = _weaponMenuMapReverse[state.weaponIndex] or 1 }
+    characterItems[#characterItems + 1] = { itemName = "pm_expression", options = expressionNames, currentOption = _expressionMenuMapReverse[state.expressionIndex] or 1 }
     if Settings.Character.accessoriesEnabled ~= false then
-        characterItems[#characterItems + 1] = { itemName = "pm_accessory", options = ACCESSORY_NAMES, currentOption = state.accessoryIndex }
+        characterItems[#characterItems + 1] = { itemName = "pm_accessory", options = accessoryNames, currentOption = _accessoryMenuMapReverse[state.accessoryIndex] or 1 }
     end
     characterItems[#characterItems + 1] = { itemName = "pm_gunflash", options = BoolOptions(),    currentOption = BoolToIndex(state.gunflashEnabled) }
     characterItems[#characterItems + 1] = { itemName = "pm_reset",    options = { acceptString }, currentOption = 1 }
@@ -1017,7 +1135,7 @@ local function BuildAllMenus()
     -- ================================================================
     CreateMenu(MENU_FILTERS,
     {
-        { itemName = "pm_frame_overlay", options = FRAME_NAMES, currentOption = state.frameIndex },
+        { itemName = "pm_frame_overlay", options = frameNames, currentOption = _frameMenuMapReverse[state.frameIndex] or 1 },
         { itemName = "pm_preset",        options = FILTER_NAMES, currentOption = state.filterIndex },
         { itemName = "pm_strength",      options = NumberRange(0, 1.0, 0.05, function(v) return string.format("%.2f", v) end),
           currentOption = ValueToOptionIndex(state.filterStrength, 0, 0.05)},
@@ -1445,8 +1563,11 @@ LevelFuncs.Engine.PhotoMode.OnLoop = function()
     local state = States.Get()
     local keySet1 = TEN.Input.IsKeyHeld(TEN.Input.ActionID.F3)
     local keySet2  = TEN.Input.IsKeyHeld(TEN.Input.ActionID.GAMEPAD_LEFT_STICK) and TEN.Input.IsKeyHeld(TEN.Input.ActionID.GAMEPAD_RIGHT_STICK)
+    local playerHp = Lara:GetHP() > 0
+    local isNotUsingBinoculars = TEN.View.GetCameraType() ~= CameraType.BINOCULARS
+    local controlLocked = Lara:GetLocked()
 
-    if keySet1 or keySet2 then
+    if (keySet1 or keySet2) and playerHp and isNotUsingBinoculars and not controlLocked then
         state.entryHoldCount = state.entryHoldCount + 1
         if state.entryHoldCount >= Configuration.Menu.holdFrames then
             state.entryHoldCount = 0

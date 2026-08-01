@@ -138,6 +138,16 @@
 -- @usage
 -- meshIndices = { 0, 4, 9 } — only the listed slot indices are shown
 
+--- Optional function called after the accessory is applied.
+-- @tfield[opt=nil] function onEnter Hook function executed after applying this accessory.
+-- @usage
+-- onEnter = function() -- Function to call when the accessory is selected.
+--      TEN.Sound.PlaySound(42)
+-- end
+
+--- Whether the accessory is visible in the selector menu.
+-- @tfield[opt=true] bool unlocked true or nil makes the accessory visible; false hides it in selection until @{PhotoMode.UnlockAccessory} is called.
+
 --- Adding Expressions
 -- @section AddingExpressions
 -- Expressions swap one or more of Lara's classic mesh slots with meshes sourced from another object. They are defined in <i>Scripts/PhotoModeData.lua</i> file in Expressions table. Use multiple indices to swap more than one mesh at once.
@@ -162,6 +172,16 @@
 -- @usage
 -- meshIndices = { 0, 4, 9 } — only the listed slot indices are swapped
 
+--- Optional function called after the expression is applied.
+-- @tfield[opt=nil] function onEnter Hook function executed after applying this expression.
+-- @usage
+-- onEnter = function() -- Function to call when the expression is selected.
+--      TEN.Sound.PlaySound(42)
+-- end
+
+--- Whether the expression is visible in the selector menu.
+-- @tfield[opt=true] bool unlocked true or nil makes the expression visible; false hides it in selection until @{PhotoMode.UnlockExpression} is called.
+
 --- Adding Frames
 -- @section AddingFrames
 -- Frames are full-screen sprites drawn from the PHOTOMODE_FRAMES object. A spriteID of -1 means "no frame". The first entry should always be "None". They are defined in <i>Scripts/PhotoModeData.lua</i> file in Frames table.
@@ -180,9 +200,19 @@
 --- Scale mode to set for the frame overlay.
 -- @tfield[opt=TEN.View.ScaleMode.STRETCH] View.ScaleMode scaleMode Scale mode for the frame overlay.
 
+--- Optional function called after the frame is selected.
+-- @tfield[opt=nil] function onEnter Hook function executed when this frame overlay is selected.
+-- @usage
+-- onEnter = function() -- Function to call when the frame is selected.
+--      TEN.Sound.PlaySound(42)
+-- end
+
+--- Whether the frame is visible in the selector menu.
+-- @tfield[opt=true] bool unlocked true or nil makes the frame visible; false hides it in selection until @{PhotoMode.UnlockFrame} is called.
+
 --- Adding Outfits
 -- @section AddingOutfits
--- Outfits can change Lara's Outfit. Both the classic skins and skinned mesh can be used.  They are defined in <i>Scripts/PhotoModeData.lua</i> file in Outfits table. The first entry is always "Default". Set unlocked = false to hide an outfit until the player earns it, then call @{PhotoMode.UnlockOutfit} to reveal it. Unlocks are saved in GlobalVars.Engine.PhotoModeOutfits.
+-- Outfits can change Lara's Outfit. Both the classic skins and skinned mesh can be used.  They are defined in <i>Scripts/PhotoModeData.lua</i> file in Outfits table. The first entry is always "Default". Set unlocked = false to hide an outfit until the player earns it, then call @{PhotoMode.UnlockOutfit} to reveal it. Unlocks are saved in GlobalVars.Engine.PhotoMode.PhotoModeOutfits.
 -- @usage
 -- PhotoModeSetup.Outfits =
 -- {
@@ -262,21 +292,6 @@
 --- Whether the outfit is visible in the selector menu.
 -- @tfield[opt=true] bool unlocked true or nil makes the outfit visible; false hides it in selection until @{PhotoMode.UnlockOutfit} is called.
 
---- Unlocking Outfits
--- @section UnlockingOutfits
--- Outfits unlocking and locking can be managed using the @{PhotoMode.UnlockOutfit} and @{PhotoMode.ClearOutfits} functions.
-
---- Clear all unlocked outfits so they no longer appear in the PhotoMode outfit selector.
--- @function PhotoMode.ClearOutfits
--- @usage
--- PhotoMode.ClearOutfits()
-
---- Unlock a named outfit so it appears in the PhotoMode outfit selector. The outfit remains unlocked in all levels.
--- @function PhotoMode.UnlockOutfit
--- @tparam string name The outfit name string as defined in Scripts/PhotoModeData.lua file in Outfits table.
--- @usage
--- PhotoMode.UnlockOutfit("Secret Wetsuit")
-
 --- Adding Poses
 -- @section AddingPoses
 -- Poses are defined in the <i>Scripts/PhotoModeData.lua</i> file in Poses table. Each pose applies an animation from the PHOTOMODE_ANIMS object or any other object in the level.
@@ -311,6 +326,58 @@
 
 --- The starting frame number for that animation (0-based).
 -- @tfield int frameNumber The frame number for that animation to set as pose (0-based).
+
+--- Optional function called after the pose is applied.
+-- @tfield[opt=nil] function onEnter Hook function executed after applying this pose.
+-- @usage
+-- onEnter = function() -- Function to call when the pose is selected.
+--      TEN.Sound.PlaySound(42)
+-- end
+
+--- Whether the pose is visible in the selector menu.
+-- @tfield[opt=true] bool unlocked true or nil makes the pose visible; false hides it in selection until @{PhotoMode.UnlockPose} is called.
+
+--- Unlocking Content
+-- @section UnlockingContent
+-- All PhotoMode data types (Accessories, Expressions, Frames, Poses and Outfits) support per-entry unlocking.
+-- Set <code>unlocked = false</code> on an entry to hide it until the matching <code>Unlock*</code> function is called.
+-- Unlocks persist per type in GlobalVars.Engine.PhotoMode (e.g. <code>GlobalVars.Engine.PhotoMode.PhotoModeOutfits</code>) and remain unlocked in all levels.
+-- To remove all unlocks at once use @{PhotoMode.ClearData}.
+
+--- Clear all unlocked PhotoMode content so it no longer appears in the selectors.
+-- @function PhotoMode.ClearData
+-- @usage
+-- PhotoMode.ClearData()
+
+--- Unlock a named accessory so it appears in the PhotoMode accessory selector. The accessory remains unlocked in all levels.
+-- @function PhotoMode.UnlockAccessory
+-- @tparam string name The accessory name string as defined in Scripts/PhotoModeSetup.lua file in Accessories table.
+-- @usage
+-- PhotoMode.UnlockAccessory("Sunglasses")
+
+--- Unlock a named expression so it appears in the PhotoMode expression selector. The expression remains unlocked in all levels.
+-- @function PhotoMode.UnlockExpression
+-- @tparam string name The expression name string as defined in Scripts/PhotoModeSetup.lua file in Expressions table.
+-- @usage
+-- PhotoMode.UnlockExpression("Scream")
+
+--- Unlock a named frame so it appears in the PhotoMode frame overlay selector. The frame remains unlocked in all levels.
+-- @function PhotoMode.UnlockFrame
+-- @tparam string name The frame name string as defined in Scripts/PhotoModeSetup.lua file in Frames table.
+-- @usage
+-- PhotoMode.UnlockFrame("Recording")
+
+--- Unlock a named outfit so it appears in the PhotoMode outfit selector. The outfit remains unlocked in all levels.
+-- @function PhotoMode.UnlockOutfit
+-- @tparam string name The outfit name string as defined in Scripts/PhotoModeData.lua file in Outfits table.
+-- @usage
+-- PhotoMode.UnlockOutfit("Secret Wetsuit")
+
+--- Unlock a named pose so it appears in the PhotoMode pose selector. The pose remains unlocked in all levels.
+-- @function PhotoMode.UnlockPose
+-- @tparam string name The pose name string as defined in Scripts/PhotoModeSetup.lua file in Poses table.
+-- @usage
+-- PhotoMode.UnlockPose("Victory")
 
 --- Settings
 -- @section Settings
