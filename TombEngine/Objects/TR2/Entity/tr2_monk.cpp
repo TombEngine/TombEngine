@@ -9,8 +9,12 @@
 #include "Game/Lara/lara.h"
 #include "Game/misc.h"
 #include "Game/Setup.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
+
+using namespace TEN::Scripting::Properties;
 
 namespace TEN::Entities::Creatures::TR2
 {
@@ -51,12 +55,27 @@ namespace TEN::Entities::Creatures::TR2
 		}
 		else
 		{
-			TargetNearestEntity(*item, FriendlyCreatures);
+			bool attackPlayer = PropertyHandler::Get(*item, PropName_AttackPlayer, false);
+
+			// Classic TR2 rule: hurting one monk angers every monk in the level. Stored as a
+			// type-level property so it also covers monks triggered later and persists in
+			// savegames; per-instance script overrides still win.
+			if (!attackPlayer && creature->HurtByLara)
+			{
+				PropertyHandler::GetMoveableProperties(ID_MONK1).Set("AttackPlayer", PropertyValue(true));
+				PropertyHandler::GetMoveableProperties(ID_MONK2).Set("AttackPlayer", PropertyValue(true));
+				attackPlayer = PropertyHandler::Get(*item, PropName_AttackPlayer, false);
+			}
+
+			if (attackPlayer)
+				creature->Enemy = LaraItem;
+			else
+				TargetNearestEntity(*item, FriendlyCreatures);
 
 			AI_INFO AI;
 			CreatureAIInfo(item, &AI);
 
-			if (creature->Enemy.IsLara() && !creature->HurtByLara)
+			if (!attackPlayer && creature->Enemy.IsLara())
 				creature->Enemy = nullptr;
 
 			GetCreatureMood(item, &AI, true);
@@ -71,7 +90,7 @@ namespace TEN::Entities::Creatures::TR2
 			case 1:
 				creature->Flags &= 0x0FFF;
 
-				if (!creature->HurtByLara && AI.ahead && Lara.TargetEntity == item)
+				if (!attackPlayer && AI.ahead && Lara.TargetEntity == item)
 					break;
 				else if (creature->Mood == MoodType::Bored)
 					item->Animation.TargetState = 2;
@@ -96,7 +115,7 @@ namespace TEN::Entities::Creatures::TR2
 			case 11:
 				creature->Flags &= 0x0FFF;
 
-				if (!creature->HurtByLara && AI.ahead && Lara.TargetEntity == item)
+				if (!attackPlayer && AI.ahead && Lara.TargetEntity == item)
 					break;
 				else if (creature->Mood == MoodType::Bored)
 					item->Animation.TargetState = 2;
@@ -124,7 +143,7 @@ namespace TEN::Entities::Creatures::TR2
 
 				if (creature->Mood == MoodType::Bored)
 				{
-					if (!creature->HurtByLara && AI.ahead && Lara.TargetEntity == item)
+					if (!attackPlayer && AI.ahead && Lara.TargetEntity == item)
 					{
 						if (GetRandomControl() < 0x4000)
 							item->Animation.TargetState = 1;
@@ -151,7 +170,7 @@ namespace TEN::Entities::Creatures::TR2
 				creature->MaxTurn = ANGLE(4.0f);
 				creature->Flags &= 0x0FFF;
 
-				if (creature->HurtByLara)
+				if (attackPlayer)
 					creature->MaxTurn += ANGLE(1.0f);
 
 				if (creature->Mood == MoodType::Bored)

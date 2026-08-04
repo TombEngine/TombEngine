@@ -17,6 +17,7 @@ static const auto PropName_SparkEffect			= GetHash("SparkEffect");
 static const auto PropName_FlameEnabled			= GetHash("FlameEnabled");
 static const auto PropName_FlameAttackHitCount	= GetHash("FlameAttackHitCount");
 static const auto PropName_Poisonous			= GetHash("Poisonous");
+static const auto PropName_AttackPlayer			= GetHash("AttackPlayer");
 static const auto PropName_Delay				= GetHash("Delay");
 static const auto PropName_AttackType	= GetHash("AttackType");
 static const auto PropName_MeshID		= GetHash("MeshID");
