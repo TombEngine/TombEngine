@@ -7,9 +7,12 @@
 #include "Game/effects/effects.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/level.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Scripting::Properties;
 
 namespace TEN::Entities::Traps
 {
@@ -158,6 +161,11 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 
+		// Normal flow pulls the player in on the intake side and pushes away on the exhaust
+		// side; the InvertFlow property reverses both, e.g. to lift the player with a
+		// floor-mounted vertical propeller.
+		int flowSign = PropertyHandler::Get(item, PropName_InvertFlow, false) ? -1 : 1;
+
 		AnimateItem(item);
 
 		int xChange = 0;
@@ -266,7 +274,7 @@ namespace TEN::Entities::Traps
 							if (item.Animation.ActiveState == 1)
 								dz = speed * dz / 120;
 
-							LaraItem->Pose.Position.z += dz;
+							LaraItem->Pose.Position.z += dz * flowSign;
 						}
 					}
 				}
@@ -293,7 +301,7 @@ namespace TEN::Entities::Traps
 							if (item.Animation.ActiveState == 1)
 								dx = speed * dx / 120;
 
-							LaraItem->Pose.Position.x += dx;
+							LaraItem->Pose.Position.x += dx * flowSign;
 						}
 					}
 				}
@@ -318,14 +326,14 @@ namespace TEN::Entities::Traps
 				if (LaraItem->Pose.Position.z >= effectBounds.Z1 &&
 					LaraItem->Pose.Position.z <= effectBounds.Z2)
 				{
-					int y = effectBounds.Y2;
+					int y = 0;
 
 					if (LaraItem->Pose.Position.y <= effectBounds.Y2)
 					{
 						if (effectBounds.Y1 - LaraItem->Pose.Position.y >= item.ItemFlags[0])
 							return;
 
-						y = 96 * (effectBounds.Y2 - item.ItemFlags[0]) / item.ItemFlags[0];
+						y = 96 * (item.ItemFlags[0] - (effectBounds.Y1 - LaraItem->Pose.Position.y)) / item.ItemFlags[0];
 					}
 					else
 					{
@@ -338,7 +346,7 @@ namespace TEN::Entities::Traps
 					if (item.Animation.ActiveState == 1)
 						y = speed * y / 120;
 
-					LaraItem->Pose.Position.y += y;
+					LaraItem->Pose.Position.y += y * flowSign;
 				}
 			}
 		}
