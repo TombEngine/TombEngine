@@ -12,6 +12,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/room.h"
+#include "Math/Objects/GameBoundingBox.h"
 #include "Objects/TR5/Light/tr5_light.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
@@ -33,11 +34,8 @@ namespace TEN::Entities::Traps
 
 	constexpr int MOVE_SPEED = 64;
 
-	// Distance from the anchor (ceiling) to the ball's center when the ball is fully raised.
+		// Distance from the anchor (ceiling) to the ball's center when the ball is fully raised.
 	constexpr int BALL_HANG_OFFSET_Y = 1644;
-
-	// Distance from the ball's center to the ball's top, where the chain is attached.
-	constexpr int BALL_TOP_OFFSET_Y = CLICK(1);
 
 	constexpr auto SPOTLIGHT_ANCHOR_OFFSET_Y = 512.0f;
 
@@ -378,16 +376,19 @@ namespace TEN::Entities::Traps
 		chain.Pose.Position.z = anchor.Pose.Position.z;
 		chain.Pose.Position.y = anchor.Pose.Position.y;
 
-		// Stretch the chain from the anchor (at the ceiling) down to the top of the ball.
-		// The chain's top stays anchored while its bottom tracks the ball as it drops and rises.
-		float ballTopY = (float)item.Pose.Position.y - (float)BALL_TOP_OFFSET_Y;
-		float distance = ballTopY - (float)anchor.Pose.Position.y;
+		// Stretch the chain from the anchor (at the ceiling) down to the exact top of the ball.
+		// The ball's top is derived from its own bounding box, so the chain never penetrates the
+		// ball or floats above it, regardless of the ball mesh's actual radius.
+		auto ballBox = GameBoundingBox(item).ToBoundingOrientedBox(item.Pose);
+		float ballTopY = ballBox.Center.y - ballBox.Extents.y;
+
+		float distance = (float)anchor.Pose.Position.y - ballTopY;
 		if (distance < 0.0f)
 			distance = 0.0f;
 
 		float scaleY = distance / CHAIN_LENGTH;
-		if (scaleY < 0.1f)
-			scaleY = 0.1f;
+		if (scaleY < 0.05f)
+			scaleY = 0.05f;
 
 		chain.Pose.Scale.y = scaleY;
 
@@ -691,4 +692,5 @@ namespace TEN::Entities::Traps
 		AnimateItem(item);
 }
 }
+
 
