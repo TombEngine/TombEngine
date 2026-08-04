@@ -1,4 +1,4 @@
-﻿#include "framework.h"
+#include "framework.h"
 #include "Objects/TR5/Trap/tr5_wreckingball.h"
 
 #include "Game/Animation/Animation.h"
@@ -12,7 +12,6 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/room.h"
-#include "Math/Objects/GameBoundingBox.h"
 #include "Objects/TR5/Light/tr5_light.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Sound/sound.h"
@@ -30,17 +29,21 @@ namespace TEN::Entities::Traps
 	constexpr auto WRECKINGBALL_STATE_IDLE = 0;
 	constexpr auto WRECKINGBALL_STATE_DROP = 1;
 	constexpr auto WRECKINGBALL_STATE_ATTACK = 2;
-		constexpr auto WRECKINGBALL_STATE_RAISE = 3;
+	constexpr auto WRECKINGBALL_STATE_RAISE = 3;
 
 	constexpr int MOVE_SPEED = 64;
+
+	// Maximum number of individual chain links that can be stacked between the anchor and the ball.
+	constexpr int MAX_CHAIN_LINKS = 64;
 
 		// Distance from the anchor (ceiling) to the ball's center when the ball is fully raised.
 	constexpr int BALL_HANG_OFFSET_Y = 1644;
 
-	constexpr auto SPOTLIGHT_ANCHOR_OFFSET_Y = 512.0f;
+	// Vertical extent of a single chain-link mesh in world units. The links are stacked using this
+	// spacing, so it must match the actual link mesh height for the chain to be continuous.
+	constexpr int CHAIN_LINK_SPACING = CLICK(0.3);
 
-	// The chain mesh's base (unscaled) vertical length in world units.
-		constexpr float CHAIN_LENGTH = 3500.0f;
+	constexpr auto SPOTLIGHT_ANCHOR_OFFSET_Y = 512.0f;
 
 	// Downward facing spotlight
 	constexpr auto SPOTLIGHT_DOWN_R = 0.7f;
@@ -82,7 +85,8 @@ namespace TEN::Entities::Traps
 		int   DropDelay = 0;
 
 		short BaseObject = -1;
-		short ChainObject = -1;
+
+		std::vector<short> Links = {};
 
 		int TargetX = 0;
 		int TargetZ = 0;
@@ -90,126 +94,19 @@ namespace TEN::Entities::Traps
 		float RotatingSpotlightAngle = 0.0f;
 		float PreviousSpotlightAngle = 0.0f;
 		int AlarmFlashTimer = 0;
-
 	};
 
 	static std::unordered_map<short, WreckingBallState> WreckingBallStates;
 
 	// ---------------------------------------------------------------------
-	// Init
-	// ---------------------------------------------------------------------
-
-	void InitializeWreckingBall(short itemNumber)
-	{
-		auto& item = g_Level.Items[itemNumber];
-
-		// Fully reset the state on (re)initialization. This prevents stale phase data from a previous
-		// level load or fast reload from carrying over into the new frame.
-		auto& state = WreckingBallStates[itemNumber];
-		state = WreckingBallState();
-
-		auto pointColl = GetPointCollision(item);
-
-		// The anchor and chain are created automatically so the builder only needs to place the ball
-		// itself. Builder-placed companions (legacy layouts) are still honored when present.
-		auto anchors = FindAllItems(ID_WRECKINGBALL_ANCHOR);
-		if (anchors.empty())
-			anchors.push_back(SpawnItem(item, ID_WRECKINGBALL_ANCHOR));
-		auto chains = FindAllItems(ID_WRECKINGBALL_CHAIN);
-		if (chains.empty())
-			chains.push_back(SpawnItem(item, ID_WRECKINGBALL_CHAIN));
-		state.BaseObject = anchors[0];
-		state.ChainObject = chains[0];
-
-		// Persist the companion item indices in the ball's flags so they can be recovered after a
-		// savegame is loaded (where only the flags are serialized, not this module's static state).
-		item.ItemFlags[0] = state.BaseObject;
-		item.ItemFlags[1] = state.ChainObject;
-
-		if (state.BaseObject < 0 || state.ChainObject < 0)
-		{
-			TENLog(
-				"WreckingBall ERROR: Failed to create required anchor/chain objects. "
-				"Anchor ID=" + std::to_string(ID_WRECKINGBALL_ANCHOR) +
-				" Chain ID=" + std::to_string(ID_WRECKINGBALL_CHAIN) +
-				" | Anchor ItemIndex=" + std::to_string(state.BaseObject) +
-				" Chain ItemIndex=" + std::to_string(state.ChainObject),
-				LogLevel::Error);
-
-			item.Flags |= IFLAG_INVISIBLE;
-			item.Status = ITEM_NOT_ACTIVE;
-			return;
-		}
-
-		// Park the anchor at the ceiling directly above the ball so the rail and chain start there.
-		auto& anchor = g_Level.Items[state.BaseObject];
-		anchor.Pose.Position.x = item.Pose.Position.x;
-		anchor.Pose.Position.z = item.Pose.Position.z;
-		anchor.Pose.Position.y = pointColl.GetCeilingHeight();
-
-		item.Pose.Position.y = pointColl.GetCeilingHeight() + BALL_HANG_OFFSET_Y;
-
-		if (pointColl.GetRoomNumber() != item.RoomNumber)
-			ItemNewRoom(itemNumber, pointColl.GetRoomNumber());
-
-		state.TargetX = item.Pose.Position.x;
-		state.TargetZ = item.Pose.Position.z;
-	}
-
-	// ---------------------------------------------------------------------
-	// Collision
-	// ---------------------------------------------------------------------
-
-	void CollideWreckingBall(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
-	{
-		auto& item = g_Level.Items[itemNumber];
-
-		if (!TestBoundsCollide(&item, playerItem, coll->Setup.Radius))
-			return;
-
-		auto prevPos = playerItem->Pose.Position;
-
-		bool killZone = false;
-		if ((prevPos.x & WALL_MASK) > CLICK(1) &&
-			(prevPos.x & WALL_MASK) < CLICK(3) &&
-			(prevPos.z & WALL_MASK) > CLICK(1) &&
-			(prevPos.z & WALL_MASK) < CLICK(3))
-		{
-			killZone = true;
-		}
-
-		int damage = (item.Animation.Velocity.y > 0.0f) ? 96 : 0;
-
-		if (ItemPushItem(&item, playerItem, coll, coll->Setup.EnableSpasm, 1))
-		{
-			if (killZone)
-				DoDamage(playerItem, INT_MAX);
-			else
-				DoDamage(playerItem, damage);
-
-			prevPos -= playerItem->Pose.Position;
-
-			if (damage != 0)
-			{
-				for (int i = 14 + (GetRandomControl() & 3); i > 0; --i)
-				{
-					TriggerBlood(
-						playerItem->Pose.Position.x + (GetRandomControl() & 63) - 32,
-						playerItem->Pose.Position.y - (GetRandomControl() & 511) - 256,
-						playerItem->Pose.Position.z + (GetRandomControl() & 63) - 32,
-						-1,
-						1);
-				}
-			}
-
-			if (!coll->Setup.EnableObjectPush || killZone)
-				playerItem->Pose.Position += prevPos;
-		}
-	}
-
-	// ---------------------------------------------------------------------
 	// Helpers
 	// ---------------------------------------------------------------------
+
+	static void SetItemInvisible(ItemInfo& item)
+	{
+		item.Flags |= IFLAG_INVISIBLE;
+		item.Status = ITEM_INVISIBLE;
+	}
 
 	static bool IsCeilingSafeForAnchor(const ItemInfo& anchor, int newX, int newZ)
 	{
@@ -220,7 +117,7 @@ namespace TEN::Entities::Traps
 			GetFloor(anchor.Pose.Position.x, y, anchor.Pose.Position.z, &room),
 			anchor.Pose.Position.x, y, anchor.Pose.Position.z);
 
-				room = anchor.RoomNumber;
+		room = anchor.RoomNumber;
 		int newCeiling = GetCeiling(
 			GetFloor(newX, y, newZ, &room),
 			newX, y, newZ);
@@ -234,12 +131,12 @@ namespace TEN::Entities::Traps
 		return (newCeiling <= currentCeiling);
 	}
 
-		static bool FindClosestReachableTile(const ItemInfo& anchor, int& outX, int& outZ)
+	static bool FindClosestReachableTile(const ItemInfo& anchor, int& outX, int& outZ)
 	{
 		if (!LaraItem)
 			return false;
 
-				// Search outward from the ball's own position so the fallback repositions the ball to a nearby
+		// Search outward from the ball's own position so the fallback repositions the ball to a nearby
 		// reachable tile, rather than hopping toward Lara across the room. Among reachable tiles, pick
 		// the one closest to Lara so the ball keeps pushing toward her instead of drifting to a corner.
 		int laraX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
@@ -287,7 +184,7 @@ namespace TEN::Entities::Traps
 			(float)anchor.Pose.Position.y + SPOTLIGHT_ANCHOR_OFFSET_Y,
 			(float)anchor.Pose.Position.z);
 
-		// a) Static downward spotlight — distance scales to floor below ball.
+		// a) Static downward spotlight - distance scales to floor below ball.
 		{
 			int   floorY = GetPointCollision(ball).GetFloorHeight();
 			float dynDist = (float)(floorY - anchor.Pose.Position.y);
@@ -303,12 +200,12 @@ namespace TEN::Entities::Traps
 				SPOTLIGHT_DOWN_G * SPOTLIGHT_DOWN_INTENSITY,
 				SPOTLIGHT_DOWN_B * SPOTLIGHT_DOWN_INTENSITY);
 
-				int hash = anchor.Index + SPOTLIGHT_DOWN_HASH_OFFSET;
+			int hash = anchor.Index + SPOTLIGHT_DOWN_HASH_OFFSET;
 
 			SpawnDynamicSpotLight(origin, dir, color, dynRadius, dynFalloff, dynDist, true, hash);
 		}
 
-		// b) Rotating alarm spotlight — fixed large distance to sweep room walls.
+		// b) Rotating alarm spotlight - fixed large distance to sweep room walls.
 		{
 			angle += SPOTLIGHT_ALARM_ROTATE_SPEED;
 			if (angle > PI_MUL_2)
@@ -330,9 +227,9 @@ namespace TEN::Entities::Traps
 				SPOTLIGHT_ALARM_G * SPOTLIGHT_ALARM_INTENSITY,
 				SPOTLIGHT_ALARM_B * SPOTLIGHT_ALARM_INTENSITY);
 
-				int hash = anchor.Index + SPOTLIGHT_ALARM_HASH_OFFSET;
+			int hash = anchor.Index + SPOTLIGHT_ALARM_HASH_OFFSET;
 
-				flashTimer = (flashTimer + 1) % SPOTLIGHT_ALARM_FLASH_PERIOD;
+			flashTimer = (flashTimer + 1) % SPOTLIGHT_ALARM_FLASH_PERIOD;
 
 			if (flashTimer < SPOTLIGHT_ALARM_FLASH_ON)
 			{
@@ -364,38 +261,56 @@ namespace TEN::Entities::Traps
 		SpawnAnchorSpotlights(anchor, item, state.RotatingSpotlightAngle, state.AlarmFlashTimer);
 	}
 
-	static void UpdateChain(ItemInfo& item, WreckingBallState& state)
-	{
-		if (state.ChainObject < 0 || state.BaseObject < 0)
-			return;
+		static void UpdateChain(ItemInfo& item, WreckingBallState& state)
+		{
+			if (state.BaseObject < 0)
+				return;
 
-		auto& chain = g_Level.Items[state.ChainObject];
-		auto& anchor = g_Level.Items[state.BaseObject];
+			auto& anchor = g_Level.Items[state.BaseObject];
 
-		chain.Pose.Position.x = anchor.Pose.Position.x;
-		chain.Pose.Position.z = anchor.Pose.Position.z;
-		chain.Pose.Position.y = anchor.Pose.Position.y;
+			// The ball's mesh 0 marks the attachment point for the lowest chain link. Stretch the stacked
+			// links from the anchor (ceiling) down to that point so the chain always lines up with the ball.
+			auto attach = GetJointPosition(&item, 0);
 
-		// Stretch the chain from the anchor (at the ceiling) down to the exact top of the ball.
-		// The ball's top is derived from its own bounding box, so the chain never penetrates the
-		// ball or floats above it, regardless of the ball mesh's actual radius.
-		auto ballBox = GameBoundingBox(item).ToBoundingOrientedBox(item.Pose);
-		float ballTopY = ballBox.Center.y - ballBox.Extents.y;
+			float distance = (float)attach.y - (float)anchor.Pose.Position.y;
+			if (distance < 0.0f)
+				distance = 0.0f;
 
-		float distance = (float)anchor.Pose.Position.y - ballTopY;
-		if (distance < 0.0f)
-			distance = 0.0f;
+			// Stack links at an absolute, fixed spacing instead of rescaling every link when the chain
+			// length changes. This keeps the top of the chain anchored and only the bottom link moves, so
+			// the whole stack does not shimmer when the total link count changes each frame.
+			int linkCount = std::min<int>(MAX_CHAIN_LINKS, (int)(distance / CHAIN_LINK_SPACING) + 1);
 
-		float scaleY = distance / CHAIN_LENGTH;
-		if (scaleY < 0.05f)
-			scaleY = 0.05f;
+			for (int i = 0; i < MAX_CHAIN_LINKS; i++)
+			{
+				auto& link = g_Level.Items[state.Links[i]];
+				if (state.Links[i] < 0 || i >= linkCount)
+				{
+					SetItemInvisible(link);
+					continue;
+				}
 
-		chain.Pose.Scale.y = scaleY;
+				// Each link sits centered in its own fixed slot below the anchor, so only the lowest link
+				// changes when the chain length varies. The renderer interpolates each link's position for
+				// smooth, jitter-free movement at high frame rates.
+				float slotTop = (float)anchor.Pose.Position.y + (i * CHAIN_LINK_SPACING);
+				float centerY = slotTop + (CHAIN_LINK_SPACING / 2.0f);
+				float t = (float)i / (float)linkCount;
 
-		short room = chain.RoomNumber;
-		GetFloor(chain.Pose.Position.x, chain.Pose.Position.y, chain.Pose.Position.z, &room);
-		if (room != chain.RoomNumber)
-			ItemNewRoom(state.ChainObject, room);
+				link.Pose.Position.x = (int)(anchor.Pose.Position.x + ((attach.x - anchor.Pose.Position.x) * t));
+				link.Pose.Position.z = (int)(anchor.Pose.Position.z + ((attach.z - anchor.Pose.Position.z) * t));
+				link.Pose.Position.y = (int)centerY;
+				link.Pose.Orientation.y = ((i % 2) == 0) ? ANGLE(0.0f) : ANGLE(90.0f);
+				link.Pose.Scale = Vector3::One;
+
+				link.Flags &= ~IFLAG_INVISIBLE;
+				link.Status = ITEM_ACTIVE;
+
+				short room = link.RoomNumber;
+				GetFloor(link.Pose.Position.x, link.Pose.Position.y, link.Pose.Position.z, &room);
+				if (room != link.RoomNumber)
+					ItemNewRoom(state.Links[i], room);
+		}
 	}
 
 	static void UpdateIdle(ItemInfo& item, WreckingBallState& state)
@@ -418,7 +333,7 @@ namespace TEN::Entities::Traps
 		state.Timer = 0;
 	}
 
-		static void UpdateHorizontalMovement(ItemInfo& item, WreckingBallState& state)
+	static void UpdateHorizontalMovement(ItemInfo& item, WreckingBallState& state)
 	{
 		if (!LaraItem || state.BaseObject < 0)
 		{
@@ -446,7 +361,7 @@ namespace TEN::Entities::Traps
 		int dx = laraX - item.Pose.Position.x;
 		int dz = laraZ - item.Pose.Position.z;
 
-				// Drop once we are alongside Lara's tile; we can never reach her exact center because she
+		// Drop once we are alongside Lara's tile; we can never reach her exact center because she
 		// occupies it, so a proximity test is used instead of pursuing her tile center directly.
 		if (std::abs(dx) <= MOVE_SPEED && std::abs(dz) <= MOVE_SPEED)
 		{
@@ -472,37 +387,37 @@ namespace TEN::Entities::Traps
 		// Move along the dominant axis first, then the other. The ball rides a ceiling rail, so only
 		// the ceiling matters; there is no floor/radius occupancy check, matching the original TR5.
 		auto tryMoveAxis = [&](int axis)
+		{
+			if (axis == 1)
 			{
-				if (axis == 1)
-				{
-					int step = std::clamp(dx, -MOVE_SPEED, MOVE_SPEED);
-					if (step == 0)
-						return false;
-
-					int newX = item.Pose.Position.x + step;
-					int newZ = item.Pose.Position.z;
-
-					if (!IsCeilingSafeForAnchor(anchor, newX, newZ))
-						return false;
-
-					item.Pose.Position.x = newX;
-					SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
-					return true;
-				}
-
-				int step = std::clamp(dz, -MOVE_SPEED, MOVE_SPEED);
+				int step = std::clamp(dx, -MOVE_SPEED, MOVE_SPEED);
 				if (step == 0)
 					return false;
 
-				int newZ = item.Pose.Position.z + step;
+				int newX = item.Pose.Position.x + step;
+				int newZ = item.Pose.Position.z;
 
-				if (!IsCeilingSafeForAnchor(anchor, item.Pose.Position.x, newZ))
+				if (!IsCeilingSafeForAnchor(anchor, newX, newZ))
 					return false;
 
-				item.Pose.Position.z = newZ;
+				item.Pose.Position.x = newX;
 				SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
 				return true;
-			};
+			}
+
+			int step = std::clamp(dz, -MOVE_SPEED, MOVE_SPEED);
+			if (step == 0)
+				return false;
+
+			int newZ = item.Pose.Position.z + step;
+
+			if (!IsCeilingSafeForAnchor(anchor, item.Pose.Position.x, newZ))
+				return false;
+
+			item.Pose.Position.z = newZ;
+			SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
+			return true;
+		};
 
 		// Choose the axis with the greater distance to Lara each time we start a new approach so the
 		// ball homes toward her instead of jittering on an arbitrary first axis.
@@ -531,7 +446,7 @@ namespace TEN::Entities::Traps
 					return;
 				}
 
-								// Reposition to the nearest tile center so the ball does not come to rest mid-tile.
+				// Reposition to the nearest tile center so the ball does not come to rest mid-tile.
 				item.Pose.Position.x = (item.Pose.Position.x & ~0x3FF) | 512;
 				item.Pose.Position.z = (item.Pose.Position.z & ~0x3FF) | 512;
 
@@ -642,21 +557,100 @@ namespace TEN::Entities::Traps
 		}
 	}
 
+	// ---------------------------------------------------------------------
+	// Init
+	// ---------------------------------------------------------------------
+
+	void InitializeWreckingBall(short itemNumber)
+	{
+		auto& item = g_Level.Items[itemNumber];
+
+		// Fully reset the state on (re)initialization. This prevents stale phase data from a previous
+		// level load or fast reload from carrying over into the new frame.
+		auto& state = WreckingBallStates[itemNumber];
+		state = WreckingBallState();
+
+		auto pointColl = GetPointCollision(item);
+
+		// The anchor and chain links are created automatically so the builder only needs to place the
+		// ball itself. Builder-placed companions (legacy layouts) are still honored when present.
+		auto anchors = FindAllItems(ID_WRECKINGBALL_ANCHOR);
+		if (anchors.empty())
+			anchors.push_back(SpawnItem(item, ID_WRECKINGBALL_ANCHOR));
+
+		state.BaseObject = anchors[0];
+
+				// Spawn the pool of chain links. A builder-placed chain object, if any, is reused as the
+		// first link so legacy layouts keep working.
+		bool builderChainUsed = false;
+		for (int i = 0; i < MAX_CHAIN_LINKS; i++)
+		{
+			if (!builderChainUsed)
+			{
+				auto existing = FindAllItems(ID_WRECKINGBALL_CHAIN);
+				if (!existing.empty())
+				{
+					state.Links.push_back(existing[0]);
+					builderChainUsed = true;
+					continue;
+				}
+			}
+
+			state.Links.push_back(SpawnItem(item, ID_WRECKINGBALL_CHAIN));
+		}
+
+		// Enable interpolation on every link so the renderer smoothly eases their motion between
+		// frames. Spawned items default to DisableInterpolation = true, which would otherwise make the
+		// chain snap to new positions instead of gliding, causing visible jitter at high frame rates.
+		for (short link : state.Links)
+			g_Level.Items[link].DisableInterpolation = false;
+
+		// Persist the anchor index in the ball's flags so it can be recovered after a savegame is
+		// loaded (where only the flags are serialized, not this module's static state).
+		item.ItemFlags[0] = state.BaseObject;
+
+		if (state.BaseObject < 0)
+		{
+			TENLog(
+				"WreckingBall ERROR: Failed to create the required anchor object. "
+				"Anchor ID=" + std::to_string(ID_WRECKINGBALL_ANCHOR),
+				LogLevel::Error);
+
+			SetItemInvisible(item);
+			return;
+		}
+
+		// Park the anchor at the ceiling directly above the ball so the rail and chain start there.
+		auto& anchor = g_Level.Items[state.BaseObject];
+		anchor.Pose.Position.x = item.Pose.Position.x;
+		anchor.Pose.Position.z = item.Pose.Position.z;
+		anchor.Pose.Position.y = pointColl.GetCeilingHeight();
+
+		item.Pose.Position.y = pointColl.GetCeilingHeight() + BALL_HANG_OFFSET_Y;
+
+		if (pointColl.GetRoomNumber() != item.RoomNumber)
+			ItemNewRoom(itemNumber, pointColl.GetRoomNumber());
+
+		state.TargetX = item.Pose.Position.x;
+		state.TargetZ = item.Pose.Position.z;
+	}
+
+	// ---------------------------------------------------------------------
+	// Control
+	// ---------------------------------------------------------------------
+
 	void ControlWreckingBall(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
 		auto& state = WreckingBallStates[itemNumber];
 
-		// Recover the companion item indices after a savegame is loaded (only the ball's serialized
-		// flags persist, the static state map is rebuilt empty).
-		if (state.BaseObject < 0 || state.ChainObject < 0)
-		{
+		// Recover the anchor index after a savegame is loaded (only the ball's serialized flag
+		// persists, the static state map is rebuilt empty).
+		if (state.BaseObject < 0)
 			state.BaseObject = item.ItemFlags[0];
-			state.ChainObject = item.ItemFlags[1];
-		}
 
 		// Bail out if the required companion objects are missing.
-		if (state.BaseObject < 0 || state.ChainObject < 0)
+		if (state.BaseObject < 0)
 			return;
 
 		short room = item.RoomNumber;
@@ -690,7 +684,56 @@ namespace TEN::Entities::Traps
 		UpdateAnchor(item, state);
 		UpdateChain(item, state);
 		AnimateItem(item);
-}
-}
+	}
 
+	// ---------------------------------------------------------------------
+	// Collision
+	// ---------------------------------------------------------------------
 
+	void CollideWreckingBall(short itemNumber, ItemInfo* playerItem, CollisionInfo* coll)
+	{
+		auto& item = g_Level.Items[itemNumber];
+
+		if (!TestBoundsCollide(&item, playerItem, coll->Setup.Radius))
+			return;
+
+		auto prevPos = playerItem->Pose.Position;
+
+		bool killZone = false;
+		if ((prevPos.x & WALL_MASK) > CLICK(1) &&
+			(prevPos.x & WALL_MASK) < CLICK(3) &&
+			(prevPos.z & WALL_MASK) > CLICK(1) &&
+			(prevPos.z & WALL_MASK) < CLICK(3))
+		{
+			killZone = true;
+		}
+
+		int damage = (item.Animation.Velocity.y > 0.0f) ? 96 : 0;
+
+		if (ItemPushItem(&item, playerItem, coll, coll->Setup.EnableSpasm, 1))
+		{
+			if (killZone)
+				DoDamage(playerItem, INT_MAX);
+			else
+				DoDamage(playerItem, damage);
+
+			prevPos -= playerItem->Pose.Position;
+
+			if (damage != 0)
+			{
+				for (int i = 14 + (GetRandomControl() & 3); i > 0; --i)
+				{
+					TriggerBlood(
+						playerItem->Pose.Position.x + (GetRandomControl() & 63) - 32,
+						playerItem->Pose.Position.y - (GetRandomControl() & 511) - 256,
+						playerItem->Pose.Position.z + (GetRandomControl() & 63) - 32,
+						-1,
+						1);
+				}
+			}
+
+			if (!coll->Setup.EnableObjectPush || killZone)
+				playerItem->Pose.Position += prevPos;
+		}
+	}
+} // namespace TEN::Entities::Traps
