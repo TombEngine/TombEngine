@@ -112,21 +112,29 @@ namespace TEN::Entities::Traps
 
 		auto pointColl = GetPointCollision(item);
 
+		// The anchor and chain are created automatically so the builder only needs to place the ball
+		// itself. Builder-placed companions (legacy layouts) are still honored when present.
 		auto anchors = FindAllItems(ID_WRECKINGBALL_ANCHOR);
-		if (!anchors.empty())
-			state.BaseObject = anchors[0];
-
+		if (anchors.empty())
+			anchors.push_back(SpawnItem(item, ID_WRECKINGBALL_ANCHOR));
 		auto chains = FindAllItems(ID_WRECKINGBALL_CHAIN);
-		if (!chains.empty())
-			state.ChainObject = chains[0];
+		if (chains.empty())
+			chains.push_back(SpawnItem(item, ID_WRECKINGBALL_CHAIN));
+		state.BaseObject = anchors[0];
+		state.ChainObject = chains[0];
+
+		// Persist the companion item indices in the ball's flags so they can be recovered after a
+		// savegame is loaded (where only the flags are serialized, not this module's static state).
+		item.ItemFlags[0] = state.BaseObject;
+		item.ItemFlags[1] = state.ChainObject;
 
 		if (state.BaseObject < 0 || state.ChainObject < 0)
 		{
 			TENLog(
-				"WreckingBall ERROR: Missing required objects. Please place add to map"
-				"Expected Anchor ID=" + std::to_string(ID_WRECKINGBALL_ANCHOR) +
+				"WreckingBall ERROR: Failed to create required anchor/chain objects. "
+				"Anchor ID=" + std::to_string(ID_WRECKINGBALL_ANCHOR) +
 				" Chain ID=" + std::to_string(ID_WRECKINGBALL_CHAIN) +
-				" | Found Anchor ItemIndex=" + std::to_string(state.BaseObject) +
+				" | Anchor ItemIndex=" + std::to_string(state.BaseObject) +
 				" Chain ItemIndex=" + std::to_string(state.ChainObject),
 				LogLevel::Error);
 
@@ -134,6 +142,12 @@ namespace TEN::Entities::Traps
 			item.Status = ITEM_NOT_ACTIVE;
 			return;
 		}
+
+		// Park the anchor at the ceiling directly above the ball so the rail and chain start there.
+		auto& anchor = g_Level.Items[state.BaseObject];
+		anchor.Pose.Position.x = item.Pose.Position.x;
+		anchor.Pose.Position.z = item.Pose.Position.z;
+		anchor.Pose.Position.y = pointColl.GetCeilingHeight();
 
 		item.Pose.Position.y = pointColl.GetCeilingHeight() + BALL_HANG_OFFSET_Y;
 
@@ -631,6 +645,14 @@ namespace TEN::Entities::Traps
 	{
 		auto& item = g_Level.Items[itemNumber];
 		auto& state = WreckingBallStates[itemNumber];
+
+		// Recover the companion item indices after a savegame is loaded (only the ball's serialized
+		// flags persist, the static state map is rebuilt empty).
+		if (state.BaseObject < 0 || state.ChainObject < 0)
+		{
+			state.BaseObject = item.ItemFlags[0];
+			state.ChainObject = item.ItemFlags[1];
+		}
 
 		// Bail out if the required companion objects are missing.
 		if (state.BaseObject < 0 || state.ChainObject < 0)
