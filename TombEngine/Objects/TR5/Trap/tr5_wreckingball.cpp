@@ -23,6 +23,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Effects::Environment;
+using namespace TEN::Math;
 
 namespace TEN::Entities::Traps
 {
@@ -238,7 +239,7 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	static void UpdateAnchor(ItemInfo& item, WreckingBallState& state)
+		static void UpdateAnchor(ItemInfo& item, WreckingBallState& state)
 	{
 		if (state.BaseObject < 0)
 			return;
@@ -259,6 +260,27 @@ namespace TEN::Entities::Traps
 			ItemNewRoom(state.BaseObject, room);
 
 		SpawnAnchorSpotlights(anchor, item, state.RotatingSpotlightAngle, state.AlarmFlashTimer);
+	}
+
+	// Tilt the ball to the floor normal so it rests flush on slopes. Only the X and Z axes rotate;
+	// the Y heading is preserved.
+	static void AlignBallToSurface(ItemInfo& item, float alpha = 0.15f)
+	{
+		auto floorNormal = GetPointCollision(item).GetFloorNormal();
+		auto orient = Geometry::GetRelOrientToNormal(item.Pose.Orientation.y, floorNormal);
+
+		auto extraRot = orient - item.Pose.Orientation;
+		item.Pose.Orientation += extraRot * alpha;
+	}
+
+	// Ease the ball back to a straight hang so it is vertical on the ceiling rail. Only the X and Z
+	// tilt is reset; the Y heading is preserved.
+	static void ResetBallToVertical(ItemInfo& item, float alpha = 0.1f)
+	{
+		auto vertical = EulerAngles(0, item.Pose.Orientation.y, 0);
+
+		auto extraRot = vertical - item.Pose.Orientation;
+		item.Pose.Orientation += extraRot * alpha;
 	}
 
 	static void UpdateChain(ItemInfo& item, WreckingBallState& state)
@@ -487,10 +509,13 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	static void UpdateDropping(ItemInfo& item, WreckingBallState& state)
+		static void UpdateDropping(ItemInfo& item, WreckingBallState& state)
 	{
 		item.Animation.Velocity.y += 24.0f;
 		item.Pose.Position.y += item.Animation.Velocity.y;
+
+		// Continuously settle the ball toward the floor normal so it comes to rest flush on slopes.
+		AlignBallToSurface(item);
 
 		short room = item.RoomNumber;
 		int   height = GetFloorHeight(
@@ -502,21 +527,21 @@ namespace TEN::Entities::Traps
 		if (height - item.Pose.Position.y < 1536 && item.Animation.ActiveState != WRECKINGBALL_STATE_IDLE)
 			item.Animation.TargetState = WRECKINGBALL_STATE_IDLE;
 
-		if (height < item.Pose.Position.y)
-		{
-			item.Pose.Position.y = height;
+				if (height < item.Pose.Position.y)
+				{
+					item.Pose.Position.y = height;
 
-			if (item.Animation.Velocity.y > 48.0f)
-			{
-				BounceCamera(&item, 64, 8192);
-				item.Animation.Velocity.y = -item.Animation.Velocity.y / 8.0f;
-			}
-			else
-			{
-				item.Animation.Velocity.y = 0.0f;
-				state.PhaseState = WreckingBallState::Phase::WinchUp;
-			}
-		}
+					if (item.Animation.Velocity.y > 48.0f)
+					{
+						BounceCamera(&item, 64, 8192);
+						item.Animation.Velocity.y = -item.Animation.Velocity.y / 8.0f;
+					}
+					else
+					{
+						item.Animation.Velocity.y = 0.0f;
+						state.PhaseState = WreckingBallState::Phase::WinchUp;
+					}
+				}
 	}
 
 	static void UpdateWinchUp(ItemInfo& item, WreckingBallState& state)
@@ -533,6 +558,9 @@ namespace TEN::Entities::Traps
 
 		item.Animation.Velocity.y -= 3;
 		item.Pose.Position.y += item.Animation.Velocity.y;
+
+		// Straighten the ball as it is winched back up off the slope.
+		ResetBallToVertical(item);
 
 		if (item.Pose.Position.y < targetY)
 		{
