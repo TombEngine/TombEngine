@@ -29,10 +29,9 @@ namespace TEN::Entities::Traps
 	constexpr auto WRECKINGBALL_STATE_IDLE = 0;
 	constexpr auto WRECKINGBALL_STATE_DROP = 1;
 	constexpr auto WRECKINGBALL_STATE_ATTACK = 2;
-	constexpr auto WRECKINGBALL_STATE_RAISE = 3;
+		constexpr auto WRECKINGBALL_STATE_RAISE = 3;
 
-		constexpr int MOVE_SPEED = 64;
-		constexpr int BALL_RADIUS = CLICK(1);
+	constexpr int MOVE_SPEED = 64;
 
 	// Distance from the anchor (ceiling) to the ball's center when the ball is fully raised.
 	constexpr int BALL_HANG_OFFSET_Y = 1644;
@@ -209,70 +208,64 @@ namespace TEN::Entities::Traps
 			GetFloor(anchor.Pose.Position.x, y, anchor.Pose.Position.z, &room),
 			anchor.Pose.Position.x, y, anchor.Pose.Position.z);
 
-		room = anchor.RoomNumber;
+				room = anchor.RoomNumber;
 		int newCeiling = GetCeiling(
 			GetFloor(newX, y, newZ, &room),
 			newX, y, newZ);
 
-		return (newCeiling == currentCeiling);
+		if (newCeiling == NO_HEIGHT)
+			return false;
+
+		// Allow the ball to track Lara across tiles with ceilings at or above the anchor's ceiling.
+		// The ball is suspended from a rail, so it can move under taller (lower) ceilings freely.
+		// Only tiles whose ceiling rises above the anchor (blocking the rail) are rejected.
+		return (newCeiling <= currentCeiling);
 	}
 
-	static bool CanOccupyPosition(const ItemInfo& ball, int x, int z)
-	{
-		int   y = ball.Pose.Position.y;
-		short room = ball.RoomNumber;
-
-		auto* floor = GetFloor(x, y, z, &room);
-		int   ceiling = GetCeiling(floor, x, y, z);
-		int   floorY = GetFloorHeight(floor, x, y, z);
-
-		if (y - BALL_RADIUS < ceiling)
-			return false;
-
-		if (y + BALL_RADIUS > floorY)
-			return false;
-
-		if (floorY == NO_HEIGHT)
-			return false;
-
-		return true;
-	}
-
-	static bool FindClosestReachableTile(const ItemInfo& anchor, int& outX, int& outZ)
+		static bool FindClosestReachableTile(const ItemInfo& anchor, int& outX, int& outZ)
 	{
 		if (!LaraItem)
 			return false;
 
-		constexpr int MAX_RADIUS = 8;
+				// Search outward from the ball's own position so the fallback repositions the ball to a nearby
+		// reachable tile, rather than hopping toward Lara across the room. Among reachable tiles, pick
+		// the one closest to Lara so the ball keeps pushing toward her instead of drifting to a corner.
+		int laraX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
+		int laraZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
 
-		// Search outward from the ball's own position so the fallback repositions the ball to a nearby
-		// reachable tile, rather than hopping toward Lara across the room.
 		int ballX = anchor.Pose.Position.x;
 		int ballZ = anchor.Pose.Position.z;
 
-		for (int r = 1; r <= MAX_RADIUS; r++)
+		int bestX = 0;
+		int bestZ = 0;
+		int bestDist = INT_MAX;
+
+		for (int dx = -4; dx <= 4; dx++)
 		{
-			for (int dx = -r; dx <= r; dx++)
+			for (int dz = -4; dz <= 4; dz++)
 			{
-				for (int dz = -r; dz <= r; dz++)
+				int testX = ((ballX + dx * CLICK(1)) & ~0x3FF) | 512;
+				int testZ = ((ballZ + dz * CLICK(1)) & ~0x3FF) | 512;
+
+				if (!IsCeilingSafeForAnchor(anchor, testX, testZ))
+					continue;
+
+				int testDist = std::abs(laraX - testX) + std::abs(laraZ - testZ);
+				if (testDist < bestDist)
 				{
-					if (std::abs(dx) != r && std::abs(dz) != r)
-						continue;
-
-					int testX = ((ballX + dx * CLICK(1)) & ~0x3FF) | 512;
-					int testZ = ((ballZ + dz * CLICK(1)) & ~0x3FF) | 512;
-
-					if (IsCeilingSafeForAnchor(anchor, testX, testZ))
-					{
-						outX = testX;
-						outZ = testZ;
-						return true;
-					}
+					bestDist = testDist;
+					bestX = testX;
+					bestZ = testZ;
 				}
 			}
 		}
 
-		return false;
+		if (bestDist == INT_MAX)
+			return false;
+
+		outX = bestX;
+		outZ = bestZ;
+		return true;
 	}
 
 	static void SpawnAnchorSpotlights(const ItemInfo& anchor, const ItemInfo& ball, float& angle, int& flashTimer)
@@ -410,20 +403,9 @@ namespace TEN::Entities::Traps
 		state.Timer = 0;
 	}
 
-	static void UpdateHorizontalMovement(ItemInfo& item, WreckingBallState& state)
+		static void UpdateHorizontalMovement(ItemInfo& item, WreckingBallState& state)
 	{
-		if (!LaraItem)
-		{
-			state.PhaseState = WreckingBallState::Phase::IdleAtTop;
-			return;
-		}
-
-		auto& anchor = g_Level.Items[state.BaseObject];
-
-		int targetX = (state.TargetX & ~0x3FF) | 512;
-		int targetZ = (state.TargetZ & ~0x3FF) | 512;
-
-		if (!IsCeilingSafeForAnchor(anchor, targetX, targetZ))
+		if (!LaraItem || state.BaseObject < 0)
 		{
 			state.PhaseState = WreckingBallState::Phase::IdleAtTop;
 			state.MoveAxis = 0;
@@ -431,82 +413,33 @@ namespace TEN::Entities::Traps
 			return;
 		}
 
-		int dx = targetX - item.Pose.Position.x;
-		int dz = targetZ - item.Pose.Position.z;
+		auto& anchor = g_Level.Items[state.BaseObject];
 
-		bool movedThisFrame = false;
+		// Re-home on Lara's current tile every frame so the ball tracks her as she moves.
+		int laraX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
+		int laraZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
 
-		auto tryMoveAxis = [&](int axis)
-			{
-				bool moved = false;
-
-				if (axis == 1)
-				{
-					int step = std::clamp(dx, -MOVE_SPEED, MOVE_SPEED);
-					if (step != 0)
-					{
-						int newX = item.Pose.Position.x + step;
-						int newZ = item.Pose.Position.z;
-
-						if (!IsCeilingSafeForAnchor(anchor, newX, newZ))
-							return false;
-
-						int nextX = newX + (step > 0 ? BLOCK(1) : -BLOCK(1));
-						int nextZ = newZ;
-
-						if (!CanOccupyPosition(item, nextX, nextZ))
-							return false;
-						item.Pose.Position.x = newX;
-						SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
-						moved = true;
-					}
-				}
-				else if (axis == 2)
-				{
-					int step = std::clamp(dz, -MOVE_SPEED, MOVE_SPEED);
-					if (step != 0)
-					{
-						int newX = item.Pose.Position.x;
-						int newZ = item.Pose.Position.z + step;
-
-						if (!IsCeilingSafeForAnchor(anchor, newX, newZ))
-							return false;
-
-						int nextX = newX;
-						int nextZ = newZ + (step > 0 ? BLOCK(1) : -BLOCK(1));
-
-						if (!CanOccupyPosition(item, nextX, nextZ))
-							return false;
-						item.Pose.Position.z = newZ;
-						SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
-						moved = true;
-					}
-				}
-
-				return moved;
-			};
-
-		if (state.MoveAxis == 0)
-			state.MoveAxis = (std::abs(dx) > std::abs(dz)) ? 1 : 2;
-
-		if (state.MoveAxis == 1)
+		if (!IsCeilingSafeForAnchor(anchor, laraX, laraZ))
 		{
-			movedThisFrame = tryMoveAxis(1);
-			if (!movedThisFrame)
-				movedThisFrame = tryMoveAxis(2);
-		}
-		else
-		{
-			movedThisFrame = tryMoveAxis(2);
-			if (!movedThisFrame)
-				movedThisFrame = tryMoveAxis(1);
+			// Lara left the traversable region; park the ball back at the top until she returns.
+			state.PhaseState = WreckingBallState::Phase::IdleAtTop;
+			state.MoveAxis = 0;
+			state.Timer = 0;
+			return;
 		}
 
+		int dx = laraX - item.Pose.Position.x;
+		int dz = laraZ - item.Pose.Position.z;
+
+		// Drop once we are alongside Lara's tile; we can never reach her exact center because she
+		// occupies it, so a proximity test is used instead of pursuing her tile center directly.
 		if (std::abs(dx) <= MOVE_SPEED && std::abs(dz) <= MOVE_SPEED)
 		{
 			StopSoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP);
 			SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_C, &item.Pose);
 
+			state.TargetX = laraX;
+			state.TargetZ = laraZ;
 			state.PhaseState = WreckingBallState::Phase::PreparingDrop;
 			state.DropDelay = 30;
 			state.MoveAxis = 0;
@@ -514,14 +447,61 @@ namespace TEN::Entities::Traps
 			return;
 		}
 
+		bool movedThisFrame = false;
+
+		// Move along the dominant axis first, then the other. The ball rides a ceiling rail, so only
+		// the ceiling matters; there is no floor/radius occupancy check, matching the original TR5.
+		auto tryMoveAxis = [&](int axis)
+			{
+				if (axis == 1)
+				{
+					int step = std::clamp(dx, -MOVE_SPEED, MOVE_SPEED);
+					if (step == 0)
+						return false;
+
+					int newX = item.Pose.Position.x + step;
+					int newZ = item.Pose.Position.z;
+
+					if (!IsCeilingSafeForAnchor(anchor, newX, newZ))
+						return false;
+
+					item.Pose.Position.x = newX;
+					SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
+					return true;
+				}
+
+				int step = std::clamp(dz, -MOVE_SPEED, MOVE_SPEED);
+				if (step == 0)
+					return false;
+
+				int newZ = item.Pose.Position.z + step;
+
+				if (!IsCeilingSafeForAnchor(anchor, item.Pose.Position.x, newZ))
+					return false;
+
+				item.Pose.Position.z = newZ;
+				SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
+				return true;
+			};
+
+		// Choose the axis with the greater distance to Lara each time we start a new approach so the
+		// ball homes toward her instead of jittering on an arbitrary first axis.
+		if (state.MoveAxis == 0)
+			state.MoveAxis = (std::abs(dx) > std::abs(dz)) ? 1 : 2;
+
+		movedThisFrame = tryMoveAxis(state.MoveAxis);
+		if (!movedThisFrame)
+			movedThisFrame = tryMoveAxis(state.MoveAxis == 1 ? 2 : 1);
+
 		if (!movedThisFrame)
 		{
 			state.Timer++;
 
+			// We are stuck (e.g. a blocking ceiling edge). Move to the nearest reachable tile that is
+			// closest to Lara. If none is reachable, drop in place rather than drifting to a corner.
 			if (state.Timer > 10)
 			{
 				int bestX, bestZ;
-
 				if (FindClosestReachableTile(anchor, bestX, bestZ))
 				{
 					state.TargetX = bestX;
@@ -531,7 +511,8 @@ namespace TEN::Entities::Traps
 					return;
 				}
 
-				state.PhaseState = WreckingBallState::Phase::IdleAtTop;
+				state.PhaseState = WreckingBallState::Phase::PreparingDrop;
+				state.DropDelay = 30;
 				state.MoveAxis = 0;
 				state.Timer = 0;
 				return;
