@@ -431,10 +431,15 @@ namespace TEN::Entities::Traps
 		int dx = laraX - item.Pose.Position.x;
 		int dz = laraZ - item.Pose.Position.z;
 
-		// Drop once we are alongside Lara's tile; we can never reach her exact center because she
+				// Drop once we are alongside Lara's tile; we can never reach her exact center because she
 		// occupies it, so a proximity test is used instead of pursuing her tile center directly.
 		if (std::abs(dx) <= MOVE_SPEED && std::abs(dz) <= MOVE_SPEED)
 		{
+			// Snap back onto Lara's tile center so the ball rests flush over the tile. This keeps the
+			// ball from coming to rest mid-tile where it can clip into wall segments.
+			item.Pose.Position.x = laraX;
+			item.Pose.Position.z = laraZ;
+
 			StopSoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP);
 			SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_C, &item.Pose);
 
@@ -510,6 +515,10 @@ namespace TEN::Entities::Traps
 					state.Timer = 0;
 					return;
 				}
+
+								// Reposition to the nearest tile center so the ball does not come to rest mid-tile.
+				item.Pose.Position.x = (item.Pose.Position.x & ~0x3FF) | 512;
+				item.Pose.Position.z = (item.Pose.Position.z & ~0x3FF) | 512;
 
 				state.PhaseState = WreckingBallState::Phase::PreparingDrop;
 				state.DropDelay = 30;
