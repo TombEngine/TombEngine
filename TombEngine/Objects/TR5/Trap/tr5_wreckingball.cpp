@@ -108,7 +108,7 @@ namespace TEN::Entities::Traps
 		item.Status = ITEM_INVISIBLE;
 	}
 
-	static bool IsCeilingSafeForAnchor(const ItemInfo& anchor, int newX, int newZ)
+			static bool IsCeilingSafeForAnchor(const ItemInfo& anchor, int newX, int newZ)
 	{
 		int   y = anchor.Pose.Position.y;
 		short room = anchor.RoomNumber;
@@ -122,13 +122,13 @@ namespace TEN::Entities::Traps
 			GetFloor(newX, y, newZ, &room),
 			newX, y, newZ);
 
-		if (newCeiling == NO_HEIGHT)
+		if (newCeiling == NO_HEIGHT || currentCeiling == NO_HEIGHT)
 			return false;
 
-		// Allow the ball to track Lara across tiles with ceilings at or above the anchor's ceiling.
-		// The ball is suspended from a rail, so it can move under taller (lower) ceilings freely.
-		// Only tiles whose ceiling rises above the anchor (blocking the rail) are rejected.
-		return (newCeiling <= currentCeiling);
+		// The ball rides a ceiling rail and is locked to its height, so it can only travel across
+		// tiles whose ceiling is flush with the anchor's rail. A tile with a higher or lower ceiling
+		// would break the rail, so only an exact match lets the ball move onto it.
+		return (newCeiling == currentCeiling);
 	}
 
 	static bool FindClosestReachableTile(const ItemInfo& anchor, int& outX, int& outZ)
@@ -261,56 +261,56 @@ namespace TEN::Entities::Traps
 		SpawnAnchorSpotlights(anchor, item, state.RotatingSpotlightAngle, state.AlarmFlashTimer);
 	}
 
-		static void UpdateChain(ItemInfo& item, WreckingBallState& state)
+	static void UpdateChain(ItemInfo& item, WreckingBallState& state)
+	{
+		if (state.BaseObject < 0)
+			return;
+
+		auto& anchor = g_Level.Items[state.BaseObject];
+
+	// The ball's mesh 0 marks the attachment point for the lowest chain link. Stretch the stacked
+	// links from the anchor (ceiling) down to that point so the chain always lines up with the ball.
+	auto attach = GetJointPosition(&item, 0);
+
+	float distance = (float)attach.y - (float)anchor.Pose.Position.y;
+	if (distance < 0.0f)
+		distance = 0.0f;
+
+	// Stack links at an absolute, fixed spacing instead of rescaling every link when the chain
+	// length changes. This keeps the top of the chain anchored and only the bottom link moves, so
+	// the whole stack does not shimmer when the total link count changes each frame.
+	int linkCount = std::min<int>(MAX_CHAIN_LINKS, (int)(distance / CHAIN_LINK_SPACING) + 1);
+
+	for (int i = 0; i < MAX_CHAIN_LINKS; i++)
+	{
+		auto& link = g_Level.Items[state.Links[i]];
+		if (state.Links[i] < 0 || i >= linkCount)
 		{
-			if (state.BaseObject < 0)
-				return;
-
-			auto& anchor = g_Level.Items[state.BaseObject];
-
-			// The ball's mesh 0 marks the attachment point for the lowest chain link. Stretch the stacked
-			// links from the anchor (ceiling) down to that point so the chain always lines up with the ball.
-			auto attach = GetJointPosition(&item, 0);
-
-			float distance = (float)attach.y - (float)anchor.Pose.Position.y;
-			if (distance < 0.0f)
-				distance = 0.0f;
-
-			// Stack links at an absolute, fixed spacing instead of rescaling every link when the chain
-			// length changes. This keeps the top of the chain anchored and only the bottom link moves, so
-			// the whole stack does not shimmer when the total link count changes each frame.
-			int linkCount = std::min<int>(MAX_CHAIN_LINKS, (int)(distance / CHAIN_LINK_SPACING) + 1);
-
-			for (int i = 0; i < MAX_CHAIN_LINKS; i++)
-			{
-				auto& link = g_Level.Items[state.Links[i]];
-				if (state.Links[i] < 0 || i >= linkCount)
-				{
-					SetItemInvisible(link);
-					continue;
-				}
-
-				// Each link sits centered in its own fixed slot below the anchor, so only the lowest link
-				// changes when the chain length varies. The renderer interpolates each link's position for
-				// smooth, jitter-free movement at high frame rates.
-				float slotTop = (float)anchor.Pose.Position.y + (i * CHAIN_LINK_SPACING);
-				float centerY = slotTop + (CHAIN_LINK_SPACING / 2.0f);
-				float t = (float)i / (float)linkCount;
-
-				link.Pose.Position.x = (int)(anchor.Pose.Position.x + ((attach.x - anchor.Pose.Position.x) * t));
-				link.Pose.Position.z = (int)(anchor.Pose.Position.z + ((attach.z - anchor.Pose.Position.z) * t));
-				link.Pose.Position.y = (int)centerY;
-				link.Pose.Orientation.y = ((i % 2) == 0) ? ANGLE(0.0f) : ANGLE(90.0f);
-				link.Pose.Scale = Vector3::One;
-
-				link.Flags &= ~IFLAG_INVISIBLE;
-				link.Status = ITEM_ACTIVE;
-
-				short room = link.RoomNumber;
-				GetFloor(link.Pose.Position.x, link.Pose.Position.y, link.Pose.Position.z, &room);
-				if (room != link.RoomNumber)
-					ItemNewRoom(state.Links[i], room);
+			SetItemInvisible(link);
+			continue;
 		}
+
+		// Each link sits centered in its own fixed slot below the anchor, so only the lowest link
+		// changes when the chain length varies. The renderer interpolates each link's position for
+		// smooth, jitter-free movement at high frame rates.
+		float slotTop = (float)anchor.Pose.Position.y + (i * CHAIN_LINK_SPACING);
+		float centerY = slotTop + (CHAIN_LINK_SPACING / 2.0f);
+		float t = (float)i / (float)linkCount;
+
+		link.Pose.Position.x = (int)(anchor.Pose.Position.x + ((attach.x - anchor.Pose.Position.x) * t));
+		link.Pose.Position.z = (int)(anchor.Pose.Position.z + ((attach.z - anchor.Pose.Position.z) * t));
+		link.Pose.Position.y = (int)centerY;
+		link.Pose.Orientation.y = ((i % 2) == 0) ? ANGLE(0.0f) : ANGLE(90.0f);
+		link.Pose.Scale = Vector3::One;
+
+		link.Flags &= ~IFLAG_INVISIBLE;
+		link.Status = ITEM_ACTIVE;
+
+		short room = link.RoomNumber;
+		GetFloor(link.Pose.Position.x, link.Pose.Position.y, link.Pose.Position.z, &room);
+		if (room != link.RoomNumber)
+			ItemNewRoom(state.Links[i], room);
+	}
 	}
 
 	static void UpdateIdle(ItemInfo& item, WreckingBallState& state)
@@ -580,7 +580,7 @@ namespace TEN::Entities::Traps
 
 		state.BaseObject = anchors[0];
 
-				// Spawn the pool of chain links. A builder-placed chain object, if any, is reused as the
+			// Spawn the pool of chain links. A builder-placed chain object, if any, is reused as the
 		// first link so legacy layouts keep working.
 		bool builderChainUsed = false;
 		for (int i = 0; i < MAX_CHAIN_LINKS; i++)
