@@ -31,33 +31,42 @@ namespace TEN::Entities::Traps
 	constexpr auto WRECKINGBALL_STATE_ATTACK = 2;
 	constexpr auto WRECKINGBALL_STATE_RAISE = 3;
 
-	constexpr auto SPOTLIGHT_ANCHOR_OFFSET_Y = 512.0f;
-	
-	// Downward facing spotlight
-		constexpr auto SPOTLIGHT_DOWN_R = 0.7f;
-		constexpr auto SPOTLIGHT_DOWN_G = 0.0f;
-		constexpr auto SPOTLIGHT_DOWN_B = 0.0f;
-		constexpr auto SPOTLIGHT_DOWN_INTENSITY = 0.5f;
-		constexpr auto SPOTLIGHT_DOWN_RADIUS_RATIO = 3.0f;
-		constexpr auto SPOTLIGHT_DOWN_FALLOFF_RATIO = 4.0f;
-		constexpr auto SPOTLIGHT_DOWN_HASH_OFFSET = 1000;
-	
-	// Alarm spotlight
-		constexpr auto SPOTLIGHT_ALARM_R = 1.0f;
-		constexpr auto SPOTLIGHT_ALARM_G = 0.0f;
-		constexpr auto SPOTLIGHT_ALARM_B = 0.0f;
-		constexpr auto SPOTLIGHT_ALARM_INTENSITY = 2.0f;
-		constexpr auto SPOTLIGHT_ALARM_RADIUS_RATIO = 0.6f; 
-		constexpr auto SPOTLIGHT_ALARM_ROTATE_SPEED = 0.7f;
-		constexpr auto SPOTLIGHT_ALARM_DIST = 8192.0f;
-		constexpr auto SPOTLIGHT_ALARM_FALLOFF_RATIO = 0.5f;
-		constexpr auto SPOTLIGHT_ALARM_HASH_OFFSET = 500;
-
-		auto SPOTLIGHT_ALARM_FLASH_PERIOD = Random::GenerateInt(15,30);
-		auto SPOTLIGHT_ALARM_FLASH_ON = Random::GenerateInt(2, 20);
-
 		constexpr int MOVE_SPEED = 64;
+		constexpr int BALL_RADIUS = CLICK(1);
 
+	// Distance from the anchor (ceiling) to the ball's center when the ball is fully raised.
+	constexpr int BALL_HANG_OFFSET_Y = 1644;
+
+	// Distance from the ball's center to the ball's top, where the chain is attached.
+	constexpr int BALL_TOP_OFFSET_Y = CLICK(1);
+
+	constexpr auto SPOTLIGHT_ANCHOR_OFFSET_Y = 512.0f;
+
+	// The chain mesh's base (unscaled) vertical length in world units.
+		constexpr float CHAIN_LENGTH = 3500.0f;
+
+	// Downward facing spotlight
+	constexpr auto SPOTLIGHT_DOWN_R = 0.7f;
+	constexpr auto SPOTLIGHT_DOWN_G = 0.0f;
+	constexpr auto SPOTLIGHT_DOWN_B = 0.0f;
+	constexpr auto SPOTLIGHT_DOWN_INTENSITY = 0.5f;
+	constexpr auto SPOTLIGHT_DOWN_RADIUS_RATIO = 3.0f;
+	constexpr auto SPOTLIGHT_DOWN_FALLOFF_RATIO = 4.0f;
+	constexpr auto SPOTLIGHT_DOWN_HASH_OFFSET = 1000;
+
+	// Alarm spotlight
+	constexpr auto SPOTLIGHT_ALARM_R = 1.0f;
+	constexpr auto SPOTLIGHT_ALARM_G = 0.0f;
+	constexpr auto SPOTLIGHT_ALARM_B = 0.0f;
+	constexpr auto SPOTLIGHT_ALARM_INTENSITY = 2.0f;
+	constexpr auto SPOTLIGHT_ALARM_RADIUS_RATIO = 0.6f;
+	constexpr auto SPOTLIGHT_ALARM_ROTATE_SPEED = 0.7f;
+	constexpr auto SPOTLIGHT_ALARM_DIST = 8192.0f;
+	constexpr auto SPOTLIGHT_ALARM_FALLOFF_RATIO = 0.5f;
+	constexpr auto SPOTLIGHT_ALARM_HASH_OFFSET = 500;
+
+	auto SPOTLIGHT_ALARM_FLASH_PERIOD = Random::GenerateInt(15, 30);
+	auto SPOTLIGHT_ALARM_FLASH_ON = std::clamp(Random::GenerateInt(2, 20), 1, SPOTLIGHT_ALARM_FLASH_PERIOD - 1);
 
 	struct WreckingBallState
 	{
@@ -71,7 +80,6 @@ namespace TEN::Entities::Traps
 		};
 
 		Phase PhaseState = Phase::IdleAtTop;
-
 		int   MoveAxis = 0;
 		int   Timer = 0;
 		int   DropDelay = 0;
@@ -97,7 +105,11 @@ namespace TEN::Entities::Traps
 	void InitializeWreckingBall(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
+
+		// Fully reset the state on (re)initialization. This prevents stale phase data from a previous
+		// level load or fast reload from carrying over into the new frame.
 		auto& state = WreckingBallStates[itemNumber];
+		state = WreckingBallState();
 
 		auto pointColl = GetPointCollision(item);
 
@@ -124,7 +136,7 @@ namespace TEN::Entities::Traps
 			return;
 		}
 
-		item.Pose.Position.y = pointColl.GetCeilingHeight() + 1644;
+		item.Pose.Position.y = pointColl.GetCeilingHeight() + BALL_HANG_OFFSET_Y;
 
 		if (pointColl.GetRoomNumber() != item.RoomNumber)
 			ItemNewRoom(itemNumber, pointColl.GetRoomNumber());
@@ -207,8 +219,6 @@ namespace TEN::Entities::Traps
 
 	static bool CanOccupyPosition(const ItemInfo& ball, int x, int z)
 	{
-		constexpr int BALL_RADIUS = CLICK(1);
-
 		int   y = ball.Pose.Position.y;
 		short room = ball.RoomNumber;
 
@@ -235,8 +245,10 @@ namespace TEN::Entities::Traps
 
 		constexpr int MAX_RADIUS = 8;
 
-		int laraX = LaraItem->Pose.Position.x;
-		int laraZ = LaraItem->Pose.Position.z;
+		// Search outward from the ball's own position so the fallback repositions the ball to a nearby
+		// reachable tile, rather than hopping toward Lara across the room.
+		int ballX = anchor.Pose.Position.x;
+		int ballZ = anchor.Pose.Position.z;
 
 		for (int r = 1; r <= MAX_RADIUS; r++)
 		{
@@ -247,8 +259,8 @@ namespace TEN::Entities::Traps
 					if (std::abs(dx) != r && std::abs(dz) != r)
 						continue;
 
-					int testX = ((laraX + dx * CLICK(1)) & ~0x3FF) | 512;
-					int testZ = ((laraZ + dz * CLICK(1)) & ~0x3FF) | 512;
+					int testX = ((ballX + dx * CLICK(1)) & ~0x3FF) | 512;
+					int testZ = ((ballZ + dz * CLICK(1)) & ~0x3FF) | 512;
 
 					if (IsCeilingSafeForAnchor(anchor, testX, testZ))
 					{
@@ -271,57 +283,57 @@ namespace TEN::Entities::Traps
 			(float)anchor.Pose.Position.z);
 
 		// a) Static downward spotlight — distance scales to floor below ball.
-			{
-				int   floorY = GetPointCollision(ball).GetFloorHeight();
-				float dynDist = (float)(floorY - anchor.Pose.Position.y);
-				if (dynDist < 256.0f)
-					dynDist = 256.0f; // FAILSAFE: Prevent zero or negative distance.
+		{
+			int   floorY = GetPointCollision(ball).GetFloorHeight();
+			float dynDist = (float)(floorY - anchor.Pose.Position.y);
+			if (dynDist < 256.0f)
+				dynDist = 256.0f; // FAILSAFE: Prevent zero or negative distance.
 
-				float dynRadius = dynDist * SPOTLIGHT_DOWN_RADIUS_RATIO;
-				float dynFalloff = dynDist * SPOTLIGHT_DOWN_FALLOFF_RATIO;
+			float dynRadius = dynDist * SPOTLIGHT_DOWN_RADIUS_RATIO;
+			float dynFalloff = dynDist * SPOTLIGHT_DOWN_FALLOFF_RATIO;
 
-				Vector3 dir(0.0f, 1.0f, 0.0f);
-				Color color(
-					SPOTLIGHT_DOWN_R * SPOTLIGHT_DOWN_INTENSITY,
-					SPOTLIGHT_DOWN_G * SPOTLIGHT_DOWN_INTENSITY,
-					SPOTLIGHT_DOWN_B * SPOTLIGHT_DOWN_INTENSITY);
+			Vector3 dir(0.0f, 1.0f, 0.0f);
+			Color color(
+				SPOTLIGHT_DOWN_R * SPOTLIGHT_DOWN_INTENSITY,
+				SPOTLIGHT_DOWN_G * SPOTLIGHT_DOWN_INTENSITY,
+				SPOTLIGHT_DOWN_B * SPOTLIGHT_DOWN_INTENSITY);
 
 				int hash = anchor.Index + SPOTLIGHT_DOWN_HASH_OFFSET;
 
-				SpawnDynamicSpotLight(origin, dir, color, dynRadius, dynFalloff, dynDist, true, hash);
-			}
+			SpawnDynamicSpotLight(origin, dir, color, dynRadius, dynFalloff, dynDist, true, hash);
+		}
 
 		// b) Rotating alarm spotlight — fixed large distance to sweep room walls.
-			{
-				angle += SPOTLIGHT_ALARM_ROTATE_SPEED;
-				if (angle > PI_MUL_2)
-					angle -= PI_MUL_2;
+		{
+			angle += SPOTLIGHT_ALARM_ROTATE_SPEED;
+			if (angle > PI_MUL_2)
+				angle -= PI_MUL_2;
 
-				const auto& room = g_Level.Rooms[anchor.RoomNumber];
-				float roomSizeX = (float)room.XSize * BLOCK(1);
-				float roomSizeZ = (float)room.ZSize * BLOCK(1);
-				float alarmDist = std::max(roomSizeX, roomSizeZ);
+			const auto& room = g_Level.Rooms[anchor.RoomNumber];
+			float roomSizeX = (float)room.XSize * BLOCK(1);
+			float roomSizeZ = (float)room.ZSize * BLOCK(1);
+			float alarmDist = std::max(roomSizeX, roomSizeZ);
 
-				float alarmRadius = alarmDist * SPOTLIGHT_ALARM_RADIUS_RATIO;
-				float alarmFalloff = alarmDist * SPOTLIGHT_ALARM_FALLOFF_RATIO;
+			float alarmRadius = alarmDist * SPOTLIGHT_ALARM_RADIUS_RATIO;
+			float alarmFalloff = alarmDist * SPOTLIGHT_ALARM_FALLOFF_RATIO;
 
-				Vector3 dir(sin(angle), 0.0f, cos(angle));
-				dir.Normalize();
+			Vector3 dir(sin(angle), 0.0f, cos(angle));
+			dir.Normalize();
 
-				Color color(
-					SPOTLIGHT_ALARM_R * SPOTLIGHT_ALARM_INTENSITY,
-					SPOTLIGHT_ALARM_G * SPOTLIGHT_ALARM_INTENSITY,
-					SPOTLIGHT_ALARM_B * SPOTLIGHT_ALARM_INTENSITY);
+			Color color(
+				SPOTLIGHT_ALARM_R * SPOTLIGHT_ALARM_INTENSITY,
+				SPOTLIGHT_ALARM_G * SPOTLIGHT_ALARM_INTENSITY,
+				SPOTLIGHT_ALARM_B * SPOTLIGHT_ALARM_INTENSITY);
 
 				int hash = anchor.Index + SPOTLIGHT_ALARM_HASH_OFFSET;
 
 				flashTimer = (flashTimer + 1) % SPOTLIGHT_ALARM_FLASH_PERIOD;
 
-				if (flashTimer < SPOTLIGHT_ALARM_FLASH_ON)
-				{
-					SpawnDynamicSpotLight(origin, dir, color, alarmRadius, alarmFalloff, alarmDist, false, hash);
-				}
+			if (flashTimer < SPOTLIGHT_ALARM_FLASH_ON)
+			{
+				SpawnDynamicSpotLight(origin, dir, color, alarmRadius, alarmFalloff, alarmDist, false, hash);
 			}
+		}
 	}
 
 	static void UpdateAnchor(ItemInfo& item, WreckingBallState& state)
@@ -359,12 +371,12 @@ namespace TEN::Entities::Traps
 		chain.Pose.Position.z = anchor.Pose.Position.z;
 		chain.Pose.Position.y = anchor.Pose.Position.y;
 
-		constexpr float TEST_OFFSET_Y = 1000.0f;
-		float distance = (float)item.Pose.Position.y - (float)anchor.Pose.Position.y - TEST_OFFSET_Y;
+		// Stretch the chain from the anchor (at the ceiling) down to the top of the ball.
+		// The chain's top stays anchored while its bottom tracks the ball as it drops and rises.
+		float ballTopY = (float)item.Pose.Position.y - (float)BALL_TOP_OFFSET_Y;
+		float distance = ballTopY - (float)anchor.Pose.Position.y;
 		if (distance < 0.0f)
 			distance = 0.0f;
-
-		constexpr float CHAIN_LENGTH = 3500.0f;
 
 		float scaleY = distance / CHAIN_LENGTH;
 		if (scaleY < 0.1f)
@@ -380,7 +392,7 @@ namespace TEN::Entities::Traps
 
 	static void UpdateIdle(ItemInfo& item, WreckingBallState& state)
 	{
-		if (!LaraItem)
+		if (!LaraItem || state.BaseObject < 0)
 			return;
 
 		auto& anchor = g_Level.Items[state.BaseObject];
@@ -443,13 +455,7 @@ namespace TEN::Entities::Traps
 						int nextZ = newZ;
 
 						if (!CanOccupyPosition(item, nextX, nextZ))
-						{
-							state.PhaseState = WreckingBallState::Phase::IdleAtTop;
-							state.MoveAxis = 0;
-							state.Timer = 0;
-							return true;
-						}
-
+							return false;
 						item.Pose.Position.x = newX;
 						SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
 						moved = true;
@@ -470,13 +476,7 @@ namespace TEN::Entities::Traps
 						int nextZ = newZ + (step > 0 ? BLOCK(1) : -BLOCK(1));
 
 						if (!CanOccupyPosition(item, nextX, nextZ))
-						{
-							state.PhaseState = WreckingBallState::Phase::IdleAtTop;
-							state.MoveAxis = 0;
-							state.Timer = 0;
-							return true;
-						}
-
+							return false;
 						item.Pose.Position.z = newZ;
 						SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
 						moved = true;
@@ -609,7 +609,7 @@ namespace TEN::Entities::Traps
 		}
 
 		auto& anchor = g_Level.Items[state.BaseObject];
-		int   targetY = anchor.Pose.Position.y + 1644;
+		int   targetY = anchor.Pose.Position.y + BALL_HANG_OFFSET_Y;
 
 		item.Animation.Velocity.y -= 3;
 		item.Pose.Position.y += item.Animation.Velocity.y;
@@ -642,6 +642,10 @@ namespace TEN::Entities::Traps
 		auto& item = g_Level.Items[itemNumber];
 		auto& state = WreckingBallStates[itemNumber];
 
+		// Bail out if the required companion objects are missing.
+		if (state.BaseObject < 0 || state.ChainObject < 0)
+			return;
+
 		short room = item.RoomNumber;
 		GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &room);
 		if (room != item.RoomNumber)
@@ -673,6 +677,6 @@ namespace TEN::Entities::Traps
 		UpdateAnchor(item, state);
 		UpdateChain(item, state);
 		AnimateItem(item);
-
-	}
 }
+}
+
