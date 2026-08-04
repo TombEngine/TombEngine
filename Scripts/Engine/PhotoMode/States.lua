@@ -167,6 +167,7 @@ function States.CaptureSnapshot()
     snap.laraAnimSlot = Lara:GetAnimSlot()
     snap.laraFrame    = Lara:GetFrame()
     snap.laraState    = Lara:GetState()
+    snap.laraHandStatus = Lara:GetHandStatus()
 
     snap.fov  = TEN.View.GetFOV()
     snap.roll = TEN.View.GetRoll()
@@ -229,6 +230,9 @@ function States.RestoreSnapshot()
     Lara:SetAnim(snap.laraAnim, snap.laraAnimSlot)
     Lara:SetFrame(snap.laraFrame)
     Lara:SetState(snap.laraState)
+    if snap.laraHandStatus then
+        Lara:SetHandStatus(snap.laraHandStatus)
+    end
 
     -- Restore classic skin to entry state.
     if snap.skin then

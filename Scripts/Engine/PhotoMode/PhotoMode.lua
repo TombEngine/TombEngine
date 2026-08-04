@@ -440,6 +440,10 @@ end
 local function ApplyPosePreset(state)
     local preset = Configuration.Animations[state.animIndex]
     if preset then
+        -- Detach the aim overlay so the pose fully drives arms, head and torso.
+        -- Hand status is restored from the snapshot when exiting photo mode.
+        Lara:SetHandStatus(TEN.Objects.HandStatus.FREE)
+        Lara:ResetAim()
 
         if preset.name == "Default" then
             if state.snapshot then

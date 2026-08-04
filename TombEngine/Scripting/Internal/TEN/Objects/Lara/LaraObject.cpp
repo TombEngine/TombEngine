@@ -273,6 +273,24 @@ void LaraObject::SetHandStatus(HandStatus status)
 	lara->Control.HandStatus = status;
 }
 
+/// Reset the aim overlay: clears the current weapon target and the extra arm, head and torso
+// rotations applied while aiming. Useful before applying custom poses while weapons are drawn.
+// @function LaraObject:ResetAim
+// @usage
+// Lara:ResetAim()
+void LaraObject::ResetAim()
+{
+	auto* lara = GetLaraInfo(_moveable);
+
+	lara->TargetEntity = nullptr;
+	lara->LeftArm.Locked = false;
+	lara->RightArm.Locked = false;
+	lara->LeftArm.Orientation = EulerAngles::Identity;
+	lara->RightArm.Orientation = EulerAngles::Identity;
+	lara->ExtraHeadRot = EulerAngles::Identity;
+	lara->ExtraTorsoRot = EulerAngles::Identity;
+}
+
 /// Get the player's weapon type.
 // @function LaraObject:GetWeaponType
 // @usage
@@ -1096,6 +1114,7 @@ void LaraObject::Register(sol::table& parent)
 		ScriptReserved_PlayerDiscardTorch, &LaraObject::DiscardTorch,
 		ScriptReserved_GetHandStatus, &LaraObject::GetHandStatus,
 		ScriptReserved_SetHandStatus, & LaraObject::SetHandStatus,
+		ScriptReserved_ResetAim, &LaraObject::ResetAim,
 		ScriptReserved_GetWeaponType, &LaraObject::GetWeaponType,
 		ScriptReserved_SetWeaponType, &LaraObject::SetWeaponType,
 		ScriptReserved_GetLaserSight, &LaraObject::GetLaserSight,
