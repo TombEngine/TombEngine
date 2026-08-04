@@ -54,13 +54,13 @@ namespace TEN::Entities::Traps
 	constexpr auto DOWN_LIGHT_FALLOFF_RATIO = 0.45f;
 	constexpr auto DOWN_LIGHT_HASH_OFFSET = 1000;
 
-		// Alarm light auto-scale ratios and defaults.
+	// Alarm light auto-scale ratios and defaults.
 	constexpr auto ALARM_LIGHT_RADIUS_RATIO = 0.6f;
 	constexpr auto ALARM_LIGHT_FALLOFF_RATIO = 0.5f;
 	constexpr auto ALARM_LIGHT_BLINK_SPEED_DEFAULT = 1.0f;
 	constexpr auto ALARM_LIGHT_HASH_OFFSET = 500;
 
-		// Object-specific property hashes (not meant to be shared engine-wide).
+	// Object-specific property hashes (not meant to be shared engine-wide).
 	static const auto PropName_MovementSpeed = GetHash("MovementSpeed");
 	static const auto PropName_RoamDelay = GetHash("RoamDelay");
 	static const auto PropName_RoamPauseMin = GetHash("RoamPauseMin");
@@ -82,7 +82,7 @@ namespace TEN::Entities::Traps
 
 	struct WreckingBallState
 	{
-				enum class Phase
+		enum class Phase
 		{
 			IdleAtTop,
 			Moving,
@@ -101,15 +101,15 @@ namespace TEN::Entities::Traps
 
 		std::vector<short> Links = {};
 
-				int TargetX = 0;
-				int TargetZ = 0;
+		int TargetX = 0;
+		int TargetZ = 0;
 
-				int RoamTimer = 0;
-				int RoamTargetX = 0;
-				int RoamTargetZ = 0;
-				int RoamWaitTimer = 0;
+		int RoamTimer = 0;
+		int RoamTargetX = 0;
+		int RoamTargetZ = 0;
+		int RoamWaitTimer = 0;
 
-				float RotatingSpotlightAngle = 0.0f;
+		float RotatingSpotlightAngle = 0.0f;
 		float PreviousSpotlightAngle = 0.0f;
 		int AlarmFlashTimer = 0;
 		int AlarmFlashPeriod = 0;
@@ -189,7 +189,7 @@ namespace TEN::Entities::Traps
 			}
 		}
 
-				if (bestDist == INT_MAX)
+		if (bestDist == INT_MAX)
 			return false;
 
 		outX = bestX;
@@ -223,7 +223,7 @@ namespace TEN::Entities::Traps
 		return true;
 	}
 
-		// Moves the ball one step along the ceiling rail toward the given tile center.
+	// Moves the ball one step along the ceiling rail toward the given tile center.
 	// Returns true if the ball moved this frame.
 	static bool MoveAlongRail(ItemInfo& item, WreckingBallState& state, int targetX, int targetZ)
 	{
@@ -276,97 +276,97 @@ namespace TEN::Entities::Traps
 		return moved;
 	}
 
-		static void SpawnAnchorSpotlights(const ItemInfo& anchor, const ItemInfo& wreckingBall, float& angle, int& flashTimer, int alarmFlashPeriod, int alarmFlashOn)
+	static void SpawnAnchorSpotlights(const ItemInfo& anchor, const ItemInfo& wreckingBall, float& angle, int& flashTimer, int alarmFlashPeriod, int alarmFlashOn)
+	{
+		auto origin = Vector3(
+			(float)anchor.Pose.Position.x,
+			(float)anchor.Pose.Position.y + SPOTLIGHT_ANCHOR_OFFSET_Y,
+			(float)anchor.Pose.Position.z);
+
+		// a) Static downward spotlight - distance scales to floor below ball.
+		if (PropertyHandler::Get(wreckingBall, PropName_DownwardLightEnabled, true))
 		{
-			auto origin = Vector3(
-				(float)anchor.Pose.Position.x,
-				(float)anchor.Pose.Position.y + SPOTLIGHT_ANCHOR_OFFSET_Y,
-				(float)anchor.Pose.Position.z);
+			int floorY = GetPointCollision(wreckingBall).GetFloorHeight();
+			float dynDist = (float)(floorY - anchor.Pose.Position.y);
+			if (dynDist < 256.0f)
+				dynDist = 256.0f; // FAILSAFE: Prevent zero or negative distance.
 
-			// a) Static downward spotlight - distance scales to floor below ball.
-			if (PropertyHandler::Get(wreckingBall, PropName_DownwardLightEnabled, true))
+			// Allow distance/radius override via properties; otherwise scale to floor below ball.
+			float propDist = PropertyHandler::Get(wreckingBall, PropName_DownwardLightDistance, 0.0f);
+			if (propDist > 0.0f)
+				dynDist = BLOCK(propDist);
+
+			float dynRadius = PropertyHandler::Get(wreckingBall, PropName_DownwardLightRadius, 0.0f);
+			if (dynRadius <= 0.0f)
+				dynRadius = dynDist * DOWN_LIGHT_RADIUS_RATIO;
+			else
+				dynRadius = BLOCK(dynRadius);
+
+			float dynFalloff = dynDist * DOWN_LIGHT_FALLOFF_RATIO;
+
+			auto downColor = PropertyHandler::Get(wreckingBall, PropName_DownwardLightColor, ScriptColor(128, 128, 128));
+			float intensity = PropertyHandler::Get(wreckingBall, PropName_DownwardLightIntensity, 5.0f);
+
+			Vector3 dir(0.0f, 1.0f, 0.0f);
+			Color color(
+				(downColor.GetR() / (float)UCHAR_MAX) * intensity,
+				(downColor.GetG() / (float)UCHAR_MAX) * intensity,
+				(downColor.GetB() / (float)UCHAR_MAX) * intensity);
+
+			int hash = anchor.Index + DOWN_LIGHT_HASH_OFFSET;
+
+			SpawnDynamicSpotLight(origin, dir, color, dynRadius, dynFalloff, dynDist, true, hash);
+		}
+
+		// b) Rotating alarm spotlight - fixed large distance to sweep room walls.
+		if (PropertyHandler::Get(wreckingBall, PropName_AlarmLightEnabled, true))
+		{
+			float rotateSpeed = PropertyHandler::Get(wreckingBall, PropName_AlarmLightRotationSpeed, 0.7f);
+			angle += rotateSpeed;
+			if (angle > PI_MUL_2)
+				angle -= PI_MUL_2;
+
+			const auto& room = g_Level.Rooms[anchor.RoomNumber];
+
+			float roomSizeX = (float)room.XSize * BLOCK(1);
+			float roomSizeZ = (float)room.ZSize * BLOCK(1);
+			float alarmDist = std::max(roomSizeX, roomSizeZ);
+			float propDist = PropertyHandler::Get(wreckingBall, PropName_AlarmLightDistance, 0.0f);
+			float alarmRadius = PropertyHandler::Get(wreckingBall, PropName_AlarmLightRadius, 0.0f);
+
+			if (propDist > 0.0f)
+				alarmDist = BLOCK(propDist);
+
+			if (alarmRadius <= 0.0f)
+				alarmRadius = alarmDist * ALARM_LIGHT_RADIUS_RATIO;
+			else
+				alarmRadius = BLOCK(alarmRadius);
+
+			float alarmFalloff = alarmDist * ALARM_LIGHT_FALLOFF_RATIO;
+
+			auto alarmColor = PropertyHandler::Get(wreckingBall, PropName_AlarmLightColor, ScriptColor(255, 0, 0));
+			float intensity = PropertyHandler::Get(wreckingBall, PropName_AlarmLightIntensity, 2.0f);
+
+			Vector3 dir(sin(angle), 0.0f, cos(angle));
+			dir.Normalize();
+
+			Color color(
+				(alarmColor.GetR() / (float)UCHAR_MAX) * intensity,
+				(alarmColor.GetG() / (float)UCHAR_MAX) * intensity,
+				(alarmColor.GetB() / (float)UCHAR_MAX) * intensity);
+
+			int hash = anchor.Index + ALARM_LIGHT_HASH_OFFSET;
+
+			flashTimer = (flashTimer + 1) % alarmFlashPeriod;
+
+			if (flashTimer < alarmFlashOn)
 			{
-				int floorY = GetPointCollision(wreckingBall).GetFloorHeight();
-				float dynDist = (float)(floorY - anchor.Pose.Position.y);
-				if (dynDist < 256.0f)
-					dynDist = 256.0f; // FAILSAFE: Prevent zero or negative distance.
-
-				// Allow distance/radius override via properties; otherwise scale to floor below ball.
-				float propDist = PropertyHandler::Get(wreckingBall, PropName_DownwardLightDistance, 0.0f);
-				if (propDist > 0.0f)
-					dynDist = BLOCK(propDist);
-
-				float dynRadius = PropertyHandler::Get(wreckingBall, PropName_DownwardLightRadius, 0.0f);
-				if (dynRadius <= 0.0f)
-					dynRadius = dynDist * DOWN_LIGHT_RADIUS_RATIO;
-				else
-					dynRadius = BLOCK(dynRadius);
-
-				float dynFalloff = dynDist * DOWN_LIGHT_FALLOFF_RATIO;
-
-				auto downColor = PropertyHandler::Get(wreckingBall, PropName_DownwardLightColor, ScriptColor(128, 128, 128));
-				float intensity = PropertyHandler::Get(wreckingBall, PropName_DownwardLightIntensity, 5.0f);
-
-				Vector3 dir(0.0f, 1.0f, 0.0f);
-				Color color(
-					(downColor.GetR() / (float)UCHAR_MAX) * intensity,
-					(downColor.GetG() / (float)UCHAR_MAX) * intensity,
-					(downColor.GetB() / (float)UCHAR_MAX) * intensity);
-
-				int hash = anchor.Index + DOWN_LIGHT_HASH_OFFSET;
-
-				SpawnDynamicSpotLight(origin, dir, color, dynRadius, dynFalloff, dynDist, true, hash);
+				SpawnDynamicSpotLight(origin, dir, color, alarmRadius, alarmFalloff, alarmDist, false, hash);
 			}
-
-			// b) Rotating alarm spotlight - fixed large distance to sweep room walls.
-			if (PropertyHandler::Get(wreckingBall, PropName_AlarmLightEnabled, true))
-			{
-				float rotateSpeed = PropertyHandler::Get(wreckingBall, PropName_AlarmLightRotationSpeed, 0.7f);
-				angle += rotateSpeed;
-				if (angle > PI_MUL_2)
-					angle -= PI_MUL_2;
-
-				const auto& room = g_Level.Rooms[anchor.RoomNumber];
-
-				float roomSizeX = (float)room.XSize * BLOCK(1);
-				float roomSizeZ = (float)room.ZSize * BLOCK(1);
-				float alarmDist = std::max(roomSizeX, roomSizeZ);
-				float propDist = PropertyHandler::Get(wreckingBall, PropName_AlarmLightDistance, 0.0f);
-				float alarmRadius = PropertyHandler::Get(wreckingBall, PropName_AlarmLightRadius, 0.0f);
-
-				if (propDist > 0.0f)
-					alarmDist = BLOCK(propDist);
-
-				if (alarmRadius <= 0.0f)
-					alarmRadius = alarmDist * ALARM_LIGHT_RADIUS_RATIO;
-				else
-					alarmRadius = BLOCK(alarmRadius);
-
-				float alarmFalloff = alarmDist * ALARM_LIGHT_FALLOFF_RATIO;
-
-				auto alarmColor = PropertyHandler::Get(wreckingBall, PropName_AlarmLightColor, ScriptColor(255, 0, 0));
-				float intensity = PropertyHandler::Get(wreckingBall, PropName_AlarmLightIntensity, 2.0f);
-
-				Vector3 dir(sin(angle), 0.0f, cos(angle));
-				dir.Normalize();
-
-				Color color(
-					(alarmColor.GetR() / (float)UCHAR_MAX) * intensity,
-					(alarmColor.GetG() / (float)UCHAR_MAX) * intensity,
-					(alarmColor.GetB() / (float)UCHAR_MAX) * intensity);
-
-				int hash = anchor.Index + ALARM_LIGHT_HASH_OFFSET;
-
-				flashTimer = (flashTimer + 1) % alarmFlashPeriod;
-
-				if (flashTimer < alarmFlashOn)
-				{
-					SpawnDynamicSpotLight(origin, dir, color, alarmRadius, alarmFalloff, alarmDist, false, hash);
-				}
-			}
+		}
 	}
 
-		static void UpdateAnchor(ItemInfo& item, WreckingBallState& state)
+	static void UpdateAnchor(ItemInfo& item, WreckingBallState& state)
 	{
 		if (state.BaseObject < 0)
 			return;
@@ -417,52 +417,52 @@ namespace TEN::Entities::Traps
 
 		auto& anchor = g_Level.Items[state.BaseObject];
 
-	// The ball's mesh 0 marks the attachment point for the lowest chain link. Stretch the stacked
-	// links from the anchor (ceiling) down to that point so the chain always lines up with the ball.
-	auto attach = GetJointPosition(&item, 0);
+		// The ball's mesh 0 marks the attachment point for the lowest chain link. Stretch the stacked
+		// links from the anchor (ceiling) down to that point so the chain always lines up with the ball.
+		auto attach = GetJointPosition(&item, 0);
 
-	float distance = (float)attach.y - (float)anchor.Pose.Position.y;
-	if (distance < 0.0f)
-		distance = 0.0f;
+		float distance = (float)attach.y - (float)anchor.Pose.Position.y;
+		if (distance < 0.0f)
+			distance = 0.0f;
 
-	// Stack links at an absolute, fixed spacing instead of rescaling every link when the chain
-	// length changes. This keeps the top of the chain anchored and only the bottom link moves, so
-	// the whole stack does not shimmer when the total link count changes each frame.
-	int linkCount = std::min<int>(MAX_CHAIN_LINKS, (int)(distance / CHAIN_LINK_SPACING) + 1);
+		// Stack links at an absolute, fixed spacing instead of rescaling every link when the chain
+		// length changes. This keeps the top of the chain anchored and only the bottom link moves, so
+		// the whole stack does not shimmer when the total link count changes each frame.
+		int linkCount = std::min<int>(MAX_CHAIN_LINKS, (int)(distance / CHAIN_LINK_SPACING) + 1);
 
-	for (int i = 0; i < MAX_CHAIN_LINKS; i++)
-	{
-		auto& link = g_Level.Items[state.Links[i]];
-		if (state.Links[i] < 0 || i >= linkCount)
+		for (int i = 0; i < MAX_CHAIN_LINKS; i++)
 		{
-			SetItemInvisible(link);
-			continue;
+			auto& link = g_Level.Items[state.Links[i]];
+			if (state.Links[i] < 0 || i >= linkCount)
+			{
+				SetItemInvisible(link);
+				continue;
+			}
+
+			// Each link sits centered in its own fixed slot below the anchor, so only the lowest link
+			// changes when the chain length varies. The renderer interpolates each link's position for
+			// smooth, jitter-free movement at high frame rates.
+			float slotTop = (float)anchor.Pose.Position.y + (i * CHAIN_LINK_SPACING);
+			float centerY = slotTop + (CHAIN_LINK_SPACING / 2.0f);
+			float t = (float)i / (float)linkCount;
+
+			link.Pose.Position.x = (int)(anchor.Pose.Position.x + ((attach.x - anchor.Pose.Position.x) * t));
+			link.Pose.Position.z = (int)(anchor.Pose.Position.z + ((attach.z - anchor.Pose.Position.z) * t));
+			link.Pose.Position.y = (int)centerY;
+			link.Pose.Orientation.y = ((i % 2) == 0) ? ANGLE(0.0f) : ANGLE(90.0f);
+			link.Pose.Scale = Vector3::One;
+
+			link.Flags &= ~IFLAG_INVISIBLE;
+			link.Status = ITEM_ACTIVE;
+
+			short room = link.RoomNumber;
+			GetFloor(link.Pose.Position.x, link.Pose.Position.y, link.Pose.Position.z, &room);
+			if (room != link.RoomNumber)
+				ItemNewRoom(state.Links[i], room);
 		}
-
-		// Each link sits centered in its own fixed slot below the anchor, so only the lowest link
-		// changes when the chain length varies. The renderer interpolates each link's position for
-		// smooth, jitter-free movement at high frame rates.
-		float slotTop = (float)anchor.Pose.Position.y + (i * CHAIN_LINK_SPACING);
-		float centerY = slotTop + (CHAIN_LINK_SPACING / 2.0f);
-		float t = (float)i / (float)linkCount;
-
-		link.Pose.Position.x = (int)(anchor.Pose.Position.x + ((attach.x - anchor.Pose.Position.x) * t));
-		link.Pose.Position.z = (int)(anchor.Pose.Position.z + ((attach.z - anchor.Pose.Position.z) * t));
-		link.Pose.Position.y = (int)centerY;
-		link.Pose.Orientation.y = ((i % 2) == 0) ? ANGLE(0.0f) : ANGLE(90.0f);
-		link.Pose.Scale = Vector3::One;
-
-		link.Flags &= ~IFLAG_INVISIBLE;
-		link.Status = ITEM_ACTIVE;
-
-		short room = link.RoomNumber;
-		GetFloor(link.Pose.Position.x, link.Pose.Position.y, link.Pose.Position.z, &room);
-		if (room != link.RoomNumber)
-			ItemNewRoom(state.Links[i], room);
-	}
 	}
 
-		static void UpdateIdle(ItemInfo& item, WreckingBallState& state)
+	static void UpdateIdle(ItemInfo& item, WreckingBallState& state)
 	{
 		if (!LaraItem || state.BaseObject < 0)
 			return;
@@ -484,36 +484,36 @@ namespace TEN::Entities::Traps
 			return;
 		}
 
-				// Lara is out of reach. Wait the roam delay, then start roaming the rail area.
-				int roamDelay = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamDelay, 1.0f)) * FPS);
-				if (roamDelay <= 0)
-					roamDelay = 1;
+		// Lara is out of reach. Wait the roam delay, then start roaming the rail area.
+		int roamDelay = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamDelay, 1.0f)) * FPS);
+		if (roamDelay <= 0)
+			roamDelay = 1;
 
-				state.RoamTimer++;
-				if (state.RoamTimer < roamDelay)
-					return;
+		state.RoamTimer++;
+		if (state.RoamTimer < roamDelay)
+			return;
 
-				int roamX, roamZ;
-					if (FindRandomReachableTile(anchor, roamX, roamZ))
-					{
-						int pauseMin = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMin, 0.5f)) * FPS);
-						int pauseMax = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMax, 1.5f)) * FPS);
-						if (pauseMin > pauseMax)
-							std::swap(pauseMin, pauseMax);
-						if (pauseMin == 0)
-							pauseMin = 1;
+		int roamX, roamZ;
+			if (FindRandomReachableTile(anchor, roamX, roamZ))
+			{
+				int pauseMin = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMin, 0.5f)) * FPS);
+				int pauseMax = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMax, 1.5f)) * FPS);
+				if (pauseMin > pauseMax)
+					std::swap(pauseMin, pauseMax);
+				if (pauseMin == 0)
+					pauseMin = 1;
 
-						state.RoamTargetX = roamX;
-						state.RoamTargetZ = roamZ;
-						state.PhaseState = WreckingBallState::Phase::Roaming;
-						state.MoveAxis = 0;
-						state.Timer = 0;
-						state.RoamTimer = 0;
-						state.RoamWaitTimer = Random::GenerateInt(pauseMin, pauseMax);
-					}
+				state.RoamTargetX = roamX;
+				state.RoamTargetZ = roamZ;
+				state.PhaseState = WreckingBallState::Phase::Roaming;
+				state.MoveAxis = 0;
+				state.Timer = 0;
+				state.RoamTimer = 0;
+				state.RoamWaitTimer = Random::GenerateInt(pauseMin, pauseMax);
+			}
 	}
 
-		static void UpdateHorizontalMovement(ItemInfo& item, WreckingBallState& state)
+	static void UpdateHorizontalMovement(ItemInfo& item, WreckingBallState& state)
 	{
 		if (!LaraItem || state.BaseObject < 0)
 		{
@@ -643,32 +643,32 @@ namespace TEN::Entities::Traps
 		int dz = state.RoamTargetZ - item.Pose.Position.z;
 		int moveSpeed = PropertyHandler::Get(item, PropName_MovementSpeed, MOVE_SPEED);
 
-				if (std::abs(dx) <= moveSpeed && std::abs(dz) <= moveSpeed)
-						{
-							int pauseMin = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMin, 0.5f)) * FPS);
-							int pauseMax = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMax, 1.5f)) * FPS);
-							if (pauseMin > pauseMax)
-								std::swap(pauseMin, pauseMax);
-							if (pauseMin == 0)
-								pauseMin = 1;
+		if (std::abs(dx) <= moveSpeed && std::abs(dz) <= moveSpeed)
+		{
+			int pauseMin = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMin, 0.5f)) * FPS);
+			int pauseMax = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMax, 1.5f)) * FPS);
+			if (pauseMin > pauseMax)
+				std::swap(pauseMin, pauseMax);
+			if (pauseMin == 0)
+				pauseMin = 1;
 
-							int roamX, roamZ;
-							if (FindRandomReachableTile(anchor, roamX, roamZ))
-					{
-						state.RoamTargetX = roamX;
-						state.RoamTargetZ = roamZ;
-						state.MoveAxis = 0;
-						state.Timer = 0;
-						state.RoamWaitTimer = Random::GenerateInt(pauseMin, pauseMax);
-					}
-					else
-					{
-						// No reachable tiles left; head home.
-						state.PhaseState = WreckingBallState::Phase::IdleAtTop;
-						state.MoveAxis = 0;
-					}
-					return;
-				}
+			int roamX, roamZ;
+			if (FindRandomReachableTile(anchor, roamX, roamZ))
+			{
+				state.RoamTargetX = roamX;
+				state.RoamTargetZ = roamZ;
+				state.MoveAxis = 0;
+				state.Timer = 0;
+				state.RoamWaitTimer = Random::GenerateInt(pauseMin, pauseMax);
+			}
+			else
+			{
+				// No reachable tiles left; head home.
+				state.PhaseState = WreckingBallState::Phase::IdleAtTop;
+				state.MoveAxis = 0;
+			}
+			return;
+		}
 
 		bool movedThisFrame = MoveAlongRail(item, state, state.RoamTargetX, state.RoamTargetZ);
 
@@ -724,7 +724,7 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-		static void UpdateDropping(ItemInfo& item, WreckingBallState& state)
+	static void UpdateDropping(ItemInfo& item, WreckingBallState& state)
 	{
 		item.Animation.Velocity.y += 24.0f;
 		item.Pose.Position.y += item.Animation.Velocity.y;
@@ -742,21 +742,21 @@ namespace TEN::Entities::Traps
 		if (height - item.Pose.Position.y < 1536 && item.Animation.ActiveState != WRECKINGBALL_STATE_IDLE)
 			item.Animation.TargetState = WRECKINGBALL_STATE_IDLE;
 
-				if (height < item.Pose.Position.y)
-				{
-					item.Pose.Position.y = height;
+		if (height < item.Pose.Position.y)
+		{
+			item.Pose.Position.y = height;
 
-					if (item.Animation.Velocity.y > 48.0f)
-					{
-						BounceCamera(&item, 64, 8192);
-						item.Animation.Velocity.y = -item.Animation.Velocity.y / 8.0f;
-					}
-					else
-					{
-						item.Animation.Velocity.y = 0.0f;
-						state.PhaseState = WreckingBallState::Phase::WinchUp;
-					}
-				}
+			if (item.Animation.Velocity.y > 48.0f)
+			{
+				BounceCamera(&item, 64, 8192);
+				item.Animation.Velocity.y = -item.Animation.Velocity.y / 8.0f;
+			}
+			else
+			{
+				item.Animation.Velocity.y = 0.0f;
+				state.PhaseState = WreckingBallState::Phase::WinchUp;
+			}
+		}
 	}
 
 	static void UpdateWinchUp(ItemInfo& item, WreckingBallState& state)
@@ -810,7 +810,7 @@ namespace TEN::Entities::Traps
 
 		// Fully reset the state on (re)initialization. This prevents stale phase data from a previous
 		// level load or fast reload from carrying over into the new frame.
-				auto& state = WreckingBallStates[itemNumber];
+		auto& state = WreckingBallStates[itemNumber];
 		state = WreckingBallState();
 
 		// Initialize alarm flash timing; blink speed scales the base period.
@@ -892,7 +892,7 @@ namespace TEN::Entities::Traps
 		auto& item = g_Level.Items[itemNumber];
 		auto& state = WreckingBallStates[itemNumber];
 
-				// Recover the anchor index after a savegame is loaded (only the ball's serialized flag
+		// Recover the anchor index after a savegame is loaded (only the ball's serialized flag
 		// persists, the static state map is rebuilt empty).
 		if (state.BaseObject < 0)
 			state.BaseObject = item.ItemFlags[0];
@@ -996,5 +996,5 @@ namespace TEN::Entities::Traps
 				playerItem->Pose.Position += prevPos;
 		}
 	}
-} // namespace TEN::Entities::Traps
+}
 
