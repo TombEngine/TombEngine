@@ -14,6 +14,8 @@
 #include "Game/room.h"
 #include "Objects/TR5/Light/tr5_light.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -46,30 +48,37 @@ namespace TEN::Entities::Traps
 
 	constexpr auto SPOTLIGHT_ANCHOR_OFFSET_Y = 512.0f;
 
-	// Downward facing spotlight
-	constexpr auto SPOTLIGHT_DOWN_B = 0.5f;
-	constexpr auto SPOTLIGHT_DOWN_R = 0.5f;
-	constexpr auto SPOTLIGHT_DOWN_G = 0.5f;
-	constexpr auto SPOTLIGHT_DOWN_INTENSITY = 5.0f;
-	constexpr auto SPOTLIGHT_DOWN_RADIUS_RATIO = 0.2f;
-	constexpr auto SPOTLIGHT_DOWN_FALLOFF_RATIO = 0.45f;
-	constexpr auto SPOTLIGHT_DOWN_HASH_OFFSET = 1000;
+	// Default values for property-controlled parameters.
+	constexpr auto DOWN_LIGHT_INTENSITY_DEFAULT = 5.0f;
+	constexpr auto DOWN_LIGHT_RADIUS_RATIO = 0.2f;
+	constexpr auto DOWN_LIGHT_FALLOFF_RATIO = 0.45f;
+	constexpr auto DOWN_LIGHT_HASH_OFFSET = 1000;
 
-	// Alarm spotlight
-	constexpr auto SPOTLIGHT_ALARM_R = 1.0f;
-	constexpr auto SPOTLIGHT_ALARM_G = 0.0f;
-	constexpr auto SPOTLIGHT_ALARM_B = 0.0f;
-	constexpr auto SPOTLIGHT_ALARM_INTENSITY = 2.0f;
-	constexpr auto SPOTLIGHT_ALARM_RADIUS_RATIO = 0.6f;
-	constexpr auto SPOTLIGHT_ALARM_ROTATE_SPEED = 0.7f;
-	constexpr auto SPOTLIGHT_ALARM_DIST = 8192.0f;
-	constexpr auto SPOTLIGHT_ALARM_FALLOFF_RATIO = 0.5f;
-	constexpr auto SPOTLIGHT_ALARM_HASH_OFFSET = 500;
+	constexpr auto ALARM_LIGHT_INTENSITY_DEFAULT = 2.0f;
+	constexpr auto ALARM_LIGHT_RADIUS_RATIO = 0.6f;
+	constexpr auto ALARM_LIGHT_FALLOFF_RATIO = 0.5f;
+	constexpr auto ALARM_LIGHT_ROTATE_SPEED_DEFAULT = 0.7f;
+	constexpr auto ALARM_LIGHT_BLINK_SPEED_DEFAULT = 1.0f;
+	constexpr auto ALARM_LIGHT_HASH_OFFSET = 500;
 
-	auto SPOTLIGHT_ALARM_FLASH_PERIOD = Random::GenerateInt(15, 30);
-	auto SPOTLIGHT_ALARM_FLASH_ON = std::clamp(Random::GenerateInt(2, 20), 1, SPOTLIGHT_ALARM_FLASH_PERIOD - 1);
+	// Object-specific property hashes (not meant to be shared engine-wide).
+	static const auto PropName_MovementSpeed			= GetHash("MovementSpeed");
 
-	struct WreckingBallState
+	static const auto PropName_DownwardLightEnabled		= GetHash("DownwardLightEnabled");
+	static const auto PropName_DownwardLightColor		= GetHash("DownwardLightColor");
+	static const auto PropName_DownwardLightIntensity	= GetHash("DownwardLightIntensity");
+	static const auto PropName_DownwardLightRadius		= GetHash("DownwardLightRadius");
+	static const auto PropName_DownwardLightDistance	= GetHash("DownwardLightDistance");
+
+	static const auto PropName_AlarmLightEnabled		= GetHash("AlarmLightEnabled");
+	static const auto PropName_AlarmLightColor			= GetHash("AlarmLightColor");
+	static const auto PropName_AlarmLightIntensity		= GetHash("AlarmLightIntensity");
+	static const auto PropName_AlarmLightRadius			= GetHash("AlarmLightRadius");
+	static const auto PropName_AlarmLightDistance		= GetHash("AlarmLightDistance");
+	static const auto PropName_AlarmLightRotationSpeed	= GetHash("AlarmLightRotationSpeed");
+	static const auto PropName_AlarmLightBlinkSpeed		= GetHash("AlarmLightBlinkSpeed");
+
+		struct WreckingBallState
 	{
 		enum class Phase
 		{
@@ -92,9 +101,11 @@ namespace TEN::Entities::Traps
 		int TargetX = 0;
 		int TargetZ = 0;
 
-		float RotatingSpotlightAngle = 0.0f;
+				float RotatingSpotlightAngle = 0.0f;
 		float PreviousSpotlightAngle = 0.0f;
 		int AlarmFlashTimer = 0;
+		int AlarmFlashPeriod = 0;
+		int AlarmFlashOn = 0;
 	};
 
 	static std::unordered_map<short, WreckingBallState> WreckingBallStates;
@@ -178,65 +189,93 @@ namespace TEN::Entities::Traps
 		return true;
 	}
 
-	static void SpawnAnchorSpotlights(const ItemInfo& anchor, const ItemInfo& ball, float& angle, int& flashTimer)
-	{
-		auto origin = Vector3(
-			(float)anchor.Pose.Position.x,
-			(float)anchor.Pose.Position.y + SPOTLIGHT_ANCHOR_OFFSET_Y,
-			(float)anchor.Pose.Position.z);
-
-		// a) Static downward spotlight - distance scales to floor below ball.
+		static void SpawnAnchorSpotlights(const ItemInfo& anchor, const ItemInfo& ball, float& angle, int& flashTimer, int alarmFlashPeriod, int alarmFlashOn)
 		{
-			int floorY = GetPointCollision(ball).GetFloorHeight();
-			float dynDist = (float)(floorY - anchor.Pose.Position.y);
-			if (dynDist < 256.0f)
-				dynDist = 256.0f; // FAILSAFE: Prevent zero or negative distance.
+			auto origin = Vector3(
+				(float)anchor.Pose.Position.x,
+				(float)anchor.Pose.Position.y + SPOTLIGHT_ANCHOR_OFFSET_Y,
+				(float)anchor.Pose.Position.z);
 
-			float dynRadius = dynDist * SPOTLIGHT_DOWN_RADIUS_RATIO;
-			float dynFalloff = dynDist * SPOTLIGHT_DOWN_FALLOFF_RATIO;
-
-			Vector3 dir(0.0f, 1.0f, 0.0f);
-			Color color(
-				SPOTLIGHT_DOWN_R * SPOTLIGHT_DOWN_INTENSITY,
-				SPOTLIGHT_DOWN_G * SPOTLIGHT_DOWN_INTENSITY,
-				SPOTLIGHT_DOWN_B * SPOTLIGHT_DOWN_INTENSITY);
-
-			int hash = anchor.Index + SPOTLIGHT_DOWN_HASH_OFFSET;
-
-			SpawnDynamicSpotLight(origin, dir, color, dynRadius, dynFalloff, dynDist, true, hash);
-		}
-
-		// b) Rotating alarm spotlight - fixed large distance to sweep room walls.
-		{
-			angle += SPOTLIGHT_ALARM_ROTATE_SPEED;
-			if (angle > PI_MUL_2)
-				angle -= PI_MUL_2;
-
-			const auto& room = g_Level.Rooms[anchor.RoomNumber];
-			float roomSizeX = (float)room.XSize * BLOCK(1);
-			float roomSizeZ = (float)room.ZSize * BLOCK(1);
-			float alarmDist = std::max(roomSizeX, roomSizeZ);
-
-			float alarmRadius = alarmDist * SPOTLIGHT_ALARM_RADIUS_RATIO;
-			float alarmFalloff = alarmDist * SPOTLIGHT_ALARM_FALLOFF_RATIO;
-
-			Vector3 dir(sin(angle), 0.0f, cos(angle));
-			dir.Normalize();
-
-			Color color(
-				SPOTLIGHT_ALARM_R * SPOTLIGHT_ALARM_INTENSITY,
-				SPOTLIGHT_ALARM_G * SPOTLIGHT_ALARM_INTENSITY,
-				SPOTLIGHT_ALARM_B * SPOTLIGHT_ALARM_INTENSITY);
-
-			int hash = anchor.Index + SPOTLIGHT_ALARM_HASH_OFFSET;
-
-			flashTimer = (flashTimer + 1) % SPOTLIGHT_ALARM_FLASH_PERIOD;
-
-			if (flashTimer < SPOTLIGHT_ALARM_FLASH_ON)
+						// a) Static downward spotlight - distance scales to floor below ball.
+			if (PropertyHandler::Get(ball, PropName_DownwardLightEnabled, true))
 			{
-				SpawnDynamicSpotLight(origin, dir, color, alarmRadius, alarmFalloff, alarmDist, false, hash);
+				int   floorY = GetPointCollision(ball).GetFloorHeight();
+				float dynDist = (float)(floorY - anchor.Pose.Position.y);
+				if (dynDist < 256.0f)
+					dynDist = 256.0f; // FAILSAFE: Prevent zero or negative distance.
+
+				// Allow distance/radius override via properties; otherwise scale to floor below ball.
+				float propDist = PropertyHandler::Get(ball, PropName_DownwardLightDistance, 0.0f);
+				if (propDist > 0.0f)
+					dynDist = BLOCK(propDist);
+
+				float dynRadius = PropertyHandler::Get(ball, PropName_DownwardLightRadius, 0.0f);
+				if (dynRadius <= 0.0f)
+					dynRadius = dynDist * DOWN_LIGHT_RADIUS_RATIO;
+				else
+					dynRadius = BLOCK(dynRadius);
+
+				float dynFalloff = dynDist * DOWN_LIGHT_FALLOFF_RATIO;
+
+				auto downColor = PropertyHandler::Get(ball, PropName_DownwardLightColor, ScriptColor(128, 128, 128));
+				float intensity = PropertyHandler::Get(ball, PropName_DownwardLightIntensity, DOWN_LIGHT_INTENSITY_DEFAULT);
+
+				Vector3 dir(0.0f, 1.0f, 0.0f);
+				Color color(
+					(downColor.GetR() / (float)UCHAR_MAX) * intensity,
+					(downColor.GetG() / (float)UCHAR_MAX) * intensity,
+					(downColor.GetB() / (float)UCHAR_MAX) * intensity);
+
+				int hash = anchor.Index + DOWN_LIGHT_HASH_OFFSET;
+
+				SpawnDynamicSpotLight(origin, dir, color, dynRadius, dynFalloff, dynDist, true, hash);
 			}
-		}
+
+			// b) Rotating alarm spotlight - fixed large distance to sweep room walls.
+			if (PropertyHandler::Get(ball, PropName_AlarmLightEnabled, true))
+			{
+				float rotateSpeed = PropertyHandler::Get(ball, PropName_AlarmLightRotationSpeed, ALARM_LIGHT_ROTATE_SPEED_DEFAULT);
+				angle += rotateSpeed;
+				if (angle > PI_MUL_2)
+					angle -= PI_MUL_2;
+
+				const auto& room = g_Level.Rooms[anchor.RoomNumber];
+				float roomSizeX = (float)room.XSize * BLOCK(1);
+				float roomSizeZ = (float)room.ZSize * BLOCK(1);
+				float alarmDist = std::max(roomSizeX, roomSizeZ);
+
+								float propDist = PropertyHandler::Get(ball, PropName_AlarmLightDistance, 0.0f);
+				if (propDist > 0.0f)
+					alarmDist = BLOCK(propDist);
+
+				float alarmRadius = PropertyHandler::Get(ball, PropName_AlarmLightRadius, 0.0f);
+				if (alarmRadius <= 0.0f)
+					alarmRadius = alarmDist * ALARM_LIGHT_RADIUS_RATIO;
+				else
+					alarmRadius = BLOCK(alarmRadius);
+
+				float alarmFalloff = alarmDist * ALARM_LIGHT_FALLOFF_RATIO;
+
+				auto alarmColor = PropertyHandler::Get(ball, PropName_AlarmLightColor, ScriptColor(255, 0, 0));
+				float intensity = PropertyHandler::Get(ball, PropName_AlarmLightIntensity, ALARM_LIGHT_INTENSITY_DEFAULT);
+
+				Vector3 dir(sin(angle), 0.0f, cos(angle));
+				dir.Normalize();
+
+				Color color(
+					(alarmColor.GetR() / (float)UCHAR_MAX) * intensity,
+					(alarmColor.GetG() / (float)UCHAR_MAX) * intensity,
+					(alarmColor.GetB() / (float)UCHAR_MAX) * intensity);
+
+				int hash = anchor.Index + ALARM_LIGHT_HASH_OFFSET;
+
+				flashTimer = (flashTimer + 1) % alarmFlashPeriod;
+
+				if (flashTimer < alarmFlashOn)
+				{
+					SpawnDynamicSpotLight(origin, dir, color, alarmRadius, alarmFalloff, alarmDist, false, hash);
+				}
+			}
 	}
 
 		static void UpdateAnchor(ItemInfo& item, WreckingBallState& state)
@@ -259,7 +298,7 @@ namespace TEN::Entities::Traps
 		if (room != anchor.RoomNumber)
 			ItemNewRoom(state.BaseObject, room);
 
-		SpawnAnchorSpotlights(anchor, item, state.RotatingSpotlightAngle, state.AlarmFlashTimer);
+		SpawnAnchorSpotlights(anchor, item, state.RotatingSpotlightAngle, state.AlarmFlashTimer, state.AlarmFlashPeriod, state.AlarmFlashOn);
 	}
 
 	// Tilt the ball to the floor normal so it rests flush on slopes. Only the X and Z axes rotate;
@@ -380,12 +419,13 @@ namespace TEN::Entities::Traps
 			return;
 		}
 
-		int dx = laraX - item.Pose.Position.x;
+				int dx = laraX - item.Pose.Position.x;
 		int dz = laraZ - item.Pose.Position.z;
+		int moveSpeed = PropertyHandler::Get(item, PropName_MovementSpeed, MOVE_SPEED);
 
 		// Drop once we are alongside Lara's tile; we can never reach her exact center because she
 		// occupies it, so a proximity test is used instead of pursuing her tile center directly.
-		if (std::abs(dx) <= MOVE_SPEED && std::abs(dz) <= MOVE_SPEED)
+		if (std::abs(dx) <= moveSpeed && std::abs(dz) <= moveSpeed)
 		{
 			// Snap back onto Lara's tile center so the ball rests flush over the tile. This keeps the
 			// ball from coming to rest mid-tile where it can clip into wall segments.
@@ -408,11 +448,11 @@ namespace TEN::Entities::Traps
 
 		// Move along the dominant axis first, then the other. The ball rides a ceiling rail, so only
 		// the ceiling matters; there is no floor/radius occupancy check, matching the original TR5.
-		auto tryMoveAxis = [&](int axis)
+				auto tryMoveAxis = [&](int axis)
 		{
 			if (axis == 1)
 			{
-				int step = std::clamp(dx, -MOVE_SPEED, MOVE_SPEED);
+				int step = std::clamp(dx, -moveSpeed, moveSpeed);
 				if (step == 0)
 					return false;
 
@@ -427,7 +467,7 @@ namespace TEN::Entities::Traps
 				return true;
 			}
 
-			int step = std::clamp(dz, -MOVE_SPEED, MOVE_SPEED);
+			int step = std::clamp(dz, -moveSpeed, moveSpeed);
 			if (step == 0)
 				return false;
 
@@ -595,8 +635,13 @@ namespace TEN::Entities::Traps
 
 		// Fully reset the state on (re)initialization. This prevents stale phase data from a previous
 		// level load or fast reload from carrying over into the new frame.
-		auto& state = WreckingBallStates[itemNumber];
+				auto& state = WreckingBallStates[itemNumber];
 		state = WreckingBallState();
+
+		// Initialize alarm flash timing; blink speed scales the base period.
+		float blinkSpeed = PropertyHandler::Get(item, PropName_AlarmLightBlinkSpeed, ALARM_LIGHT_BLINK_SPEED_DEFAULT);
+		state.AlarmFlashPeriod = std::max(2, (int)(Random::GenerateInt(15, 30) / blinkSpeed));
+		state.AlarmFlashOn = std::clamp(Random::GenerateInt(2, 20), 1, state.AlarmFlashPeriod - 1);
 
 		auto pointColl = GetPointCollision(item);
 
@@ -672,10 +717,18 @@ namespace TEN::Entities::Traps
 		auto& item = g_Level.Items[itemNumber];
 		auto& state = WreckingBallStates[itemNumber];
 
-		// Recover the anchor index after a savegame is loaded (only the ball's serialized flag
+				// Recover the anchor index after a savegame is loaded (only the ball's serialized flag
 		// persists, the static state map is rebuilt empty).
 		if (state.BaseObject < 0)
 			state.BaseObject = item.ItemFlags[0];
+
+		// Re-initialize alarm flash timing after savegame load if needed.
+		if (state.AlarmFlashPeriod <= 0)
+		{
+			float blinkSpeed = PropertyHandler::Get(item, PropName_AlarmLightBlinkSpeed, ALARM_LIGHT_BLINK_SPEED_DEFAULT);
+			state.AlarmFlashPeriod = std::max(2, (int)(Random::GenerateInt(15, 30) / blinkSpeed));
+			state.AlarmFlashOn = std::clamp(Random::GenerateInt(2, 20), 1, state.AlarmFlashPeriod - 1);
+		}
 
 		// Bail out if the required companion objects are missing.
 		if (state.BaseObject < 0)
@@ -736,7 +789,7 @@ namespace TEN::Entities::Traps
 			killZone = true;
 		}
 
-		int damage = (item.Animation.Velocity.y > 0.0f) ? 96 : 0;
+		int damage = (item.Animation.Velocity.y > 0.0f) ? PropertyHandler::Get(item, PropName_Damage, 96) : 0;
 
 		if (ItemPushItem(&item, playerItem, coll, coll->Setup.EnableSpasm, 1))
 		{
