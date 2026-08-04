@@ -18,6 +18,7 @@
 #include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
+#include "Specific/clock.h"
 #include "Specific/level.h"
 
 #include <algorithm>
@@ -53,13 +54,17 @@ namespace TEN::Entities::Traps
 	constexpr auto DOWN_LIGHT_FALLOFF_RATIO = 0.45f;
 	constexpr auto DOWN_LIGHT_HASH_OFFSET = 1000;
 
-	// Alarm light auto-scale ratios and defaults.
+		// Alarm light auto-scale ratios and defaults.
 	constexpr auto ALARM_LIGHT_RADIUS_RATIO = 0.6f;
 	constexpr auto ALARM_LIGHT_FALLOFF_RATIO = 0.5f;
 	constexpr auto ALARM_LIGHT_BLINK_SPEED_DEFAULT = 1.0f;
 	constexpr auto ALARM_LIGHT_HASH_OFFSET = 500;
-	// Object-specific property hashes (not meant to be shared engine-wide).
+
+		// Object-specific property hashes (not meant to be shared engine-wide).
 	static const auto PropName_MovementSpeed = GetHash("MovementSpeed");
+	static const auto PropName_RoamDelay = GetHash("RoamDelay");
+	static const auto PropName_RoamPauseMin = GetHash("RoamPauseMin");
+	static const auto PropName_RoamPauseMax = GetHash("RoamPauseMax");
 
 	static const auto PropName_DownwardLightEnabled = GetHash("DownwardLightEnabled");
 	static const auto PropName_DownwardLightColor = GetHash("DownwardLightColor");
@@ -77,10 +82,11 @@ namespace TEN::Entities::Traps
 
 	struct WreckingBallState
 	{
-		enum class Phase
+				enum class Phase
 		{
 			IdleAtTop,
 			Moving,
+			Roaming,
 			PreparingDrop,
 			Dropping,
 			WinchUp
@@ -96,9 +102,14 @@ namespace TEN::Entities::Traps
 		std::vector<short> Links = {};
 
 				int TargetX = 0;
-		int TargetZ = 0;
+				int TargetZ = 0;
 
-		float RotatingSpotlightAngle = 0.0f;
+				int RoamTimer = 0;
+				int RoamTargetX = 0;
+				int RoamTargetZ = 0;
+				int RoamWaitTimer = 0;
+
+				float RotatingSpotlightAngle = 0.0f;
 		float PreviousSpotlightAngle = 0.0f;
 		int AlarmFlashTimer = 0;
 		int AlarmFlashPeriod = 0;
@@ -178,12 +189,91 @@ namespace TEN::Entities::Traps
 			}
 		}
 
-		if (bestDist == INT_MAX)
+				if (bestDist == INT_MAX)
 			return false;
 
 		outX = bestX;
 		outZ = bestZ;
 		return true;
+	}
+
+	// Picks a random reachable tile near the anchor. Used for roaming when Lara is out of reach.
+	static bool FindRandomReachableTile(const ItemInfo& anchor, int& outX, int& outZ)
+	{
+		std::vector<std::pair<int, int>> candidates;
+
+		for (int dx = -4; dx <= 4; dx++)
+		{
+			for (int dz = -4; dz <= 4; dz++)
+			{
+				int testX = ((anchor.Pose.Position.x + dx * CLICK(1)) & ~0x3FF) | 512;
+				int testZ = ((anchor.Pose.Position.z + dz * CLICK(1)) & ~0x3FF) | 512;
+
+				if (IsCeilingSafeForAnchor(anchor, testX, testZ))
+					candidates.push_back({ testX, testZ });
+			}
+		}
+
+		if (candidates.empty())
+			return false;
+
+		auto& pick = candidates[Random::GenerateInt(0, (int)candidates.size() - 1)];
+		outX = pick.first;
+		outZ = pick.second;
+		return true;
+	}
+
+		// Moves the ball one step along the ceiling rail toward the given tile center.
+	// Returns true if the ball moved this frame.
+	static bool MoveAlongRail(ItemInfo& item, WreckingBallState& state, int targetX, int targetZ)
+	{
+		auto& anchor = g_Level.Items[state.BaseObject];
+		int  moveSpeed = PropertyHandler::Get(item, PropName_MovementSpeed, MOVE_SPEED);
+
+		int dx = targetX - item.Pose.Position.x;
+		int dz = targetZ - item.Pose.Position.z;
+
+		if (std::abs(dx) <= moveSpeed && std::abs(dz) <= moveSpeed)
+			return false;
+
+		auto tryMoveAxis = [&](int axis)
+		{
+			if (axis == 1)
+			{
+				int step = std::clamp(dx, -moveSpeed, moveSpeed);
+				if (step == 0)
+					return false;
+
+				int newX = item.Pose.Position.x + step;
+				if (!IsCeilingSafeForAnchor(anchor, newX, item.Pose.Position.z))
+					return false;
+
+				item.Pose.Position.x = newX;
+				SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
+				return true;
+			}
+
+			int step = std::clamp(dz, -moveSpeed, moveSpeed);
+			if (step == 0)
+				return false;
+
+			int newZ = item.Pose.Position.z + step;
+			if (!IsCeilingSafeForAnchor(anchor, item.Pose.Position.x, newZ))
+				return false;
+
+			item.Pose.Position.z = newZ;
+			SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
+			return true;
+		};
+
+		if (state.MoveAxis == 0)
+			state.MoveAxis = (std::abs(dx) > std::abs(dz)) ? 1 : 2;
+
+		bool moved = tryMoveAxis(state.MoveAxis);
+		if (!moved)
+			moved = tryMoveAxis(state.MoveAxis == 1 ? 2 : 1);
+
+		return moved;
 	}
 
 		static void SpawnAnchorSpotlights(const ItemInfo& anchor, const ItemInfo& wreckingBall, float& angle, int& flashTimer, int alarmFlashPeriod, int alarmFlashOn)
@@ -372,7 +462,7 @@ namespace TEN::Entities::Traps
 	}
 	}
 
-	static void UpdateIdle(ItemInfo& item, WreckingBallState& state)
+		static void UpdateIdle(ItemInfo& item, WreckingBallState& state)
 	{
 		if (!LaraItem || state.BaseObject < 0)
 			return;
@@ -382,23 +472,55 @@ namespace TEN::Entities::Traps
 		int targetX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
 		int targetZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
 
-		if (!IsCeilingSafeForAnchor(anchor, targetX, targetZ))
+		if (IsCeilingSafeForAnchor(anchor, targetX, targetZ))
+		{
+			// Lara is reachable; chase her.
+			state.TargetX = targetX;
+			state.TargetZ = targetZ;
+			state.PhaseState = WreckingBallState::Phase::Moving;
+			state.MoveAxis = 0;
+			state.Timer = 0;
+			state.RoamTimer = 0;
 			return;
+		}
 
-		state.TargetX = targetX;
-		state.TargetZ = targetZ;
-		state.PhaseState = WreckingBallState::Phase::Moving;
-		state.MoveAxis = 0;
-		state.Timer = 0;
+				// Lara is out of reach. Wait the roam delay, then start roaming the rail area.
+				int roamDelay = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamDelay, 1.0f)) * FPS);
+				if (roamDelay <= 0)
+					roamDelay = 1;
+
+				state.RoamTimer++;
+				if (state.RoamTimer < roamDelay)
+					return;
+
+				int roamX, roamZ;
+					if (FindRandomReachableTile(anchor, roamX, roamZ))
+					{
+						int pauseMin = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMin, 0.5f)) * FPS);
+						int pauseMax = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMax, 1.5f)) * FPS);
+						if (pauseMin > pauseMax)
+							std::swap(pauseMin, pauseMax);
+						if (pauseMin == 0)
+							pauseMin = 1;
+
+						state.RoamTargetX = roamX;
+						state.RoamTargetZ = roamZ;
+						state.PhaseState = WreckingBallState::Phase::Roaming;
+						state.MoveAxis = 0;
+						state.Timer = 0;
+						state.RoamTimer = 0;
+						state.RoamWaitTimer = Random::GenerateInt(pauseMin, pauseMax);
+					}
 	}
 
-	static void UpdateHorizontalMovement(ItemInfo& item, WreckingBallState& state)
+		static void UpdateHorizontalMovement(ItemInfo& item, WreckingBallState& state)
 	{
 		if (!LaraItem || state.BaseObject < 0)
 		{
 			state.PhaseState = WreckingBallState::Phase::IdleAtTop;
 			state.MoveAxis = 0;
 			state.Timer = 0;
+			state.RoamTimer = 0;
 			return;
 		}
 
@@ -410,14 +532,15 @@ namespace TEN::Entities::Traps
 
 		if (!IsCeilingSafeForAnchor(anchor, laraX, laraZ))
 		{
-			// Lara left the traversable region; park the ball back at the top until she returns.
+			// Lara left the traversable region; go back to idle so the roam timer takes over.
 			state.PhaseState = WreckingBallState::Phase::IdleAtTop;
 			state.MoveAxis = 0;
 			state.Timer = 0;
+			state.RoamTimer = 0;
 			return;
 		}
 
-				int dx = laraX - item.Pose.Position.x;
+		int dx = laraX - item.Pose.Position.x;
 		int dz = laraZ - item.Pose.Position.z;
 		int moveSpeed = PropertyHandler::Get(item, PropName_MovementSpeed, MOVE_SPEED);
 
@@ -439,54 +562,11 @@ namespace TEN::Entities::Traps
 			state.DropDelay = 30;
 			state.MoveAxis = 0;
 			state.Timer = 0;
+			state.RoamTimer = 0;
 			return;
 		}
 
-		bool movedThisFrame = false;
-
-		// Move along the dominant axis first, then the other. The ball rides a ceiling rail, so only
-		// the ceiling matters; there is no floor/radius occupancy check, matching the original TR5.
-				auto tryMoveAxis = [&](int axis)
-		{
-			if (axis == 1)
-			{
-				int step = std::clamp(dx, -moveSpeed, moveSpeed);
-				if (step == 0)
-					return false;
-
-				int newX = item.Pose.Position.x + step;
-				int newZ = item.Pose.Position.z;
-
-				if (!IsCeilingSafeForAnchor(anchor, newX, newZ))
-					return false;
-
-				item.Pose.Position.x = newX;
-				SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
-				return true;
-			}
-
-			int step = std::clamp(dz, -moveSpeed, moveSpeed);
-			if (step == 0)
-				return false;
-
-			int newZ = item.Pose.Position.z + step;
-
-			if (!IsCeilingSafeForAnchor(anchor, item.Pose.Position.x, newZ))
-				return false;
-
-			item.Pose.Position.z = newZ;
-			SoundEffect(SFX_TR5_BASE_CLAW_MOTOR_B_LOOP, &item.Pose);
-			return true;
-		};
-
-		// Choose the axis with the greater distance to Lara each time we start a new approach so the
-		// ball homes toward her instead of jittering on an arbitrary first axis.
-		if (state.MoveAxis == 0)
-			state.MoveAxis = (std::abs(dx) > std::abs(dz)) ? 1 : 2;
-
-		movedThisFrame = tryMoveAxis(state.MoveAxis);
-		if (!movedThisFrame)
-			movedThisFrame = tryMoveAxis(state.MoveAxis == 1 ? 2 : 1);
+		bool movedThisFrame = MoveAlongRail(item, state, laraX, laraZ);
 
 		if (!movedThisFrame)
 		{
@@ -515,6 +595,103 @@ namespace TEN::Entities::Traps
 				state.MoveAxis = 0;
 				state.Timer = 0;
 				return;
+			}
+		}
+		else
+		{
+			state.Timer = 0;
+		}
+	}
+
+	// Roams the ceiling rail area when Lara is out of reach. Continually checks whether Lara
+	// has entered a reachable tile; if so, returns to chase mode.
+	static void UpdateRoaming(ItemInfo& item, WreckingBallState& state)
+	{
+		if (!LaraItem || state.BaseObject < 0)
+		{
+			state.PhaseState = WreckingBallState::Phase::IdleAtTop;
+			state.MoveAxis = 0;
+			state.Timer = 0;
+			return;
+		}
+
+		auto& anchor = g_Level.Items[state.BaseObject];
+
+		// If Lara just became reachable, abandon roaming and seek her.
+		int laraX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
+		int laraZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
+		if (IsCeilingSafeForAnchor(anchor, laraX, laraZ))
+		{
+			state.TargetX = laraX;
+			state.TargetZ = laraZ;
+			state.PhaseState = WreckingBallState::Phase::Moving;
+			state.MoveAxis = 0;
+			state.Timer = 0;
+			state.RoamTimer = 0;
+			return;
+		}
+
+		// Pause briefly at each waypoint before continuing.
+		if (state.RoamWaitTimer > 0)
+		{
+			state.RoamWaitTimer--;
+			return;
+		}
+
+		// Arrived at the current roam waypoint? Pick the next one after a pause.
+		int dx = state.RoamTargetX - item.Pose.Position.x;
+		int dz = state.RoamTargetZ - item.Pose.Position.z;
+		int moveSpeed = PropertyHandler::Get(item, PropName_MovementSpeed, MOVE_SPEED);
+
+				if (std::abs(dx) <= moveSpeed && std::abs(dz) <= moveSpeed)
+						{
+							int pauseMin = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMin, 0.5f)) * FPS);
+							int pauseMax = (int)(std::abs(PropertyHandler::Get(item, PropName_RoamPauseMax, 1.5f)) * FPS);
+							if (pauseMin > pauseMax)
+								std::swap(pauseMin, pauseMax);
+							if (pauseMin == 0)
+								pauseMin = 1;
+
+							int roamX, roamZ;
+							if (FindRandomReachableTile(anchor, roamX, roamZ))
+					{
+						state.RoamTargetX = roamX;
+						state.RoamTargetZ = roamZ;
+						state.MoveAxis = 0;
+						state.Timer = 0;
+						state.RoamWaitTimer = Random::GenerateInt(pauseMin, pauseMax);
+					}
+					else
+					{
+						// No reachable tiles left; head home.
+						state.PhaseState = WreckingBallState::Phase::IdleAtTop;
+						state.MoveAxis = 0;
+					}
+					return;
+				}
+
+		bool movedThisFrame = MoveAlongRail(item, state, state.RoamTargetX, state.RoamTargetZ);
+
+		if (!movedThisFrame)
+		{
+			state.Timer++;
+
+			// We are stuck on the rail; pick a new roam destination.
+			if (state.Timer > 10)
+			{
+				int roamX, roamZ;
+				if (FindRandomReachableTile(anchor, roamX, roamZ))
+				{
+					state.RoamTargetX = roamX;
+					state.RoamTargetZ = roamZ;
+					state.MoveAxis = 0;
+					state.Timer = 0;
+				}
+				else
+				{
+					state.PhaseState = WreckingBallState::Phase::IdleAtTop;
+					state.MoveAxis = 0;
+				}
 			}
 		}
 		else
@@ -743,8 +920,12 @@ namespace TEN::Entities::Traps
 			UpdateIdle(item, state);
 			break;
 
-		case WreckingBallState::Phase::Moving:
+				case WreckingBallState::Phase::Moving:
 			UpdateHorizontalMovement(item, state);
+			break;
+
+		case WreckingBallState::Phase::Roaming:
+			UpdateRoaming(item, state);
 			break;
 
 		case WreckingBallState::Phase::PreparingDrop:
