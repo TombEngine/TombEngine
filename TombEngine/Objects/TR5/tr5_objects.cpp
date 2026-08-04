@@ -978,7 +978,6 @@ static void StartSwitch(ObjectInfo *obj)
 		obj->collision = CollideWreckingBall;
 		obj->control = ControlWreckingBall;
 		obj->SetHitEffect(true);
-		obj->shadowType = ShadowMode::All;
 	}
 }
 

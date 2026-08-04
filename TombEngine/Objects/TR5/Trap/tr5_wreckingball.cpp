@@ -32,12 +32,12 @@ namespace TEN::Entities::Traps
 	constexpr auto WRECKINGBALL_STATE_ATTACK = 2;
 	constexpr auto WRECKINGBALL_STATE_RAISE = 3;
 
-	constexpr int MOVE_SPEED = 64;
+	constexpr int MOVE_SPEED = 32;
 
 	// Maximum number of individual chain links that can be stacked between the anchor and the ball.
 	constexpr int MAX_CHAIN_LINKS = 64;
 
-		// Distance from the anchor (ceiling) to the ball's center when the ball is fully raised.
+	// Distance from the anchor (ceiling) to the ball's center when the ball is fully raised.
 	constexpr int BALL_HANG_OFFSET_Y = 1644;
 
 	// Vertical extent of a single chain-link mesh in world units. The links are stacked using this
@@ -47,12 +47,12 @@ namespace TEN::Entities::Traps
 	constexpr auto SPOTLIGHT_ANCHOR_OFFSET_Y = 512.0f;
 
 	// Downward facing spotlight
-	constexpr auto SPOTLIGHT_DOWN_R = 0.7f;
-	constexpr auto SPOTLIGHT_DOWN_G = 0.0f;
-	constexpr auto SPOTLIGHT_DOWN_B = 0.0f;
-	constexpr auto SPOTLIGHT_DOWN_INTENSITY = 0.5f;
-	constexpr auto SPOTLIGHT_DOWN_RADIUS_RATIO = 3.0f;
-	constexpr auto SPOTLIGHT_DOWN_FALLOFF_RATIO = 4.0f;
+	constexpr auto SPOTLIGHT_DOWN_B = 0.5f;
+	constexpr auto SPOTLIGHT_DOWN_R = 0.5f;
+	constexpr auto SPOTLIGHT_DOWN_G = 0.5f;
+	constexpr auto SPOTLIGHT_DOWN_INTENSITY = 5.0f;
+	constexpr auto SPOTLIGHT_DOWN_RADIUS_RATIO = 0.2f;
+	constexpr auto SPOTLIGHT_DOWN_FALLOFF_RATIO = 0.45f;
 	constexpr auto SPOTLIGHT_DOWN_HASH_OFFSET = 1000;
 
 	// Alarm spotlight
@@ -109,7 +109,7 @@ namespace TEN::Entities::Traps
 		item.Status = ITEM_INVISIBLE;
 	}
 
-			static bool IsCeilingSafeForAnchor(const ItemInfo& anchor, int newX, int newZ)
+	static bool IsCeilingSafeForAnchor(const ItemInfo& anchor, int newX, int newZ)
 	{
 		int   y = anchor.Pose.Position.y;
 		short room = anchor.RoomNumber;
@@ -187,7 +187,7 @@ namespace TEN::Entities::Traps
 
 		// a) Static downward spotlight - distance scales to floor below ball.
 		{
-			int   floorY = GetPointCollision(ball).GetFloorHeight();
+			int floorY = GetPointCollision(ball).GetFloorHeight();
 			float dynDist = (float)(floorY - anchor.Pose.Position.y);
 			if (dynDist < 256.0f)
 				dynDist = 256.0f; // FAILSAFE: Prevent zero or negative distance.
