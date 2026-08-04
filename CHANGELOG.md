@@ -89,12 +89,16 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed UI bars being affected by the postprocess mode.
 * Fixed Z-fighting on DisplayItems.
 * Fixed crashes when shooting if the gunflash object is missing.
+* Fixed vehicles disappearing when passing through door portals.
+* Fixed MONK1 and MONK2 not attacking the player when hurt. As in original TR2, hurting one monk now angers all monks in the level.
+* Fixed OVERHEAD_PULLEY_HOOK dealing no damage when no OCB or Damage property is set.
 
 ### Lua API changes
 
 * Added ring inventory module.
 * Added photo mode module.
 * Added `Effects.ParticleGroup` class for managing particles via lua.
+* Added `AttackPlayer` moveable property for MONK1 and MONK2 to control monk aggression towards the player.
 * Added loading of the `Scripts/Autoexec.lua` script file before every level script is loaded.
 * Added `GlobalVars` namespace for globally persistent variables across game sessions, including the title level.
 * Added `includePlayer` argument for `Collision.Ray` class to detect collisions with Lara.
