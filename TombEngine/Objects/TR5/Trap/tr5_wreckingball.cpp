@@ -48,37 +48,34 @@ namespace TEN::Entities::Traps
 
 	constexpr auto SPOTLIGHT_ANCHOR_OFFSET_Y = 512.0f;
 
-	// Default values for property-controlled parameters.
-	constexpr auto DOWN_LIGHT_INTENSITY_DEFAULT = 5.0f;
+	// Downward light auto-scale ratios (used when radius/distance properties are left at 0).
 	constexpr auto DOWN_LIGHT_RADIUS_RATIO = 0.2f;
 	constexpr auto DOWN_LIGHT_FALLOFF_RATIO = 0.45f;
 	constexpr auto DOWN_LIGHT_HASH_OFFSET = 1000;
 
-	constexpr auto ALARM_LIGHT_INTENSITY_DEFAULT = 2.0f;
+	// Alarm light auto-scale ratios and defaults.
 	constexpr auto ALARM_LIGHT_RADIUS_RATIO = 0.6f;
 	constexpr auto ALARM_LIGHT_FALLOFF_RATIO = 0.5f;
-	constexpr auto ALARM_LIGHT_ROTATE_SPEED_DEFAULT = 0.7f;
 	constexpr auto ALARM_LIGHT_BLINK_SPEED_DEFAULT = 1.0f;
 	constexpr auto ALARM_LIGHT_HASH_OFFSET = 500;
-
 	// Object-specific property hashes (not meant to be shared engine-wide).
-	static const auto PropName_MovementSpeed			= GetHash("MovementSpeed");
+	static const auto PropName_MovementSpeed = GetHash("MovementSpeed");
 
-	static const auto PropName_DownwardLightEnabled		= GetHash("DownwardLightEnabled");
-	static const auto PropName_DownwardLightColor		= GetHash("DownwardLightColor");
-	static const auto PropName_DownwardLightIntensity	= GetHash("DownwardLightIntensity");
-	static const auto PropName_DownwardLightRadius		= GetHash("DownwardLightRadius");
-	static const auto PropName_DownwardLightDistance	= GetHash("DownwardLightDistance");
+	static const auto PropName_DownwardLightEnabled = GetHash("DownwardLightEnabled");
+	static const auto PropName_DownwardLightColor = GetHash("DownwardLightColor");
+	static const auto PropName_DownwardLightIntensity = GetHash("DownwardLightIntensity");
+	static const auto PropName_DownwardLightRadius = GetHash("DownwardLightRadius");
+	static const auto PropName_DownwardLightDistance = GetHash("DownwardLightDistance");
 
-	static const auto PropName_AlarmLightEnabled		= GetHash("AlarmLightEnabled");
-	static const auto PropName_AlarmLightColor			= GetHash("AlarmLightColor");
-	static const auto PropName_AlarmLightIntensity		= GetHash("AlarmLightIntensity");
-	static const auto PropName_AlarmLightRadius			= GetHash("AlarmLightRadius");
-	static const auto PropName_AlarmLightDistance		= GetHash("AlarmLightDistance");
-	static const auto PropName_AlarmLightRotationSpeed	= GetHash("AlarmLightRotationSpeed");
-	static const auto PropName_AlarmLightBlinkSpeed		= GetHash("AlarmLightBlinkSpeed");
+	static const auto PropName_AlarmLightEnabled = GetHash("AlarmLightEnabled");
+	static const auto PropName_AlarmLightColor = GetHash("AlarmLightColor");
+	static const auto PropName_AlarmLightIntensity = GetHash("AlarmLightIntensity");
+	static const auto PropName_AlarmLightRadius = GetHash("AlarmLightRadius");
+	static const auto PropName_AlarmLightDistance = GetHash("AlarmLightDistance");
+	static const auto PropName_AlarmLightRotationSpeed = GetHash("AlarmLightRotationSpeed");
+	static const auto PropName_AlarmLightBlinkSpeed = GetHash("AlarmLightBlinkSpeed");
 
-		struct WreckingBallState
+	struct WreckingBallState
 	{
 		enum class Phase
 		{
@@ -98,10 +95,10 @@ namespace TEN::Entities::Traps
 
 		std::vector<short> Links = {};
 
-		int TargetX = 0;
+				int TargetX = 0;
 		int TargetZ = 0;
 
-				float RotatingSpotlightAngle = 0.0f;
+		float RotatingSpotlightAngle = 0.0f;
 		float PreviousSpotlightAngle = 0.0f;
 		int AlarmFlashTimer = 0;
 		int AlarmFlashPeriod = 0;
@@ -122,17 +119,17 @@ namespace TEN::Entities::Traps
 
 	static bool IsCeilingSafeForAnchor(const ItemInfo& anchor, int newX, int newZ)
 	{
-		int   y = anchor.Pose.Position.y;
+		int   anchorPosY = anchor.Pose.Position.y;
 		short room = anchor.RoomNumber;
 
 		int currentCeiling = GetCeiling(
-			GetFloor(anchor.Pose.Position.x, y, anchor.Pose.Position.z, &room),
-			anchor.Pose.Position.x, y, anchor.Pose.Position.z);
+			GetFloor(anchor.Pose.Position.x, anchorPosY, anchor.Pose.Position.z, &room),
+			anchor.Pose.Position.x, anchorPosY, anchor.Pose.Position.z);
 
 		room = anchor.RoomNumber;
 		int newCeiling = GetCeiling(
-			GetFloor(newX, y, newZ, &room),
-			newX, y, newZ);
+			GetFloor(newX, anchorPosY, newZ, &room),
+			newX, anchorPosY, newZ);
 
 		if (newCeiling == NO_HEIGHT || currentCeiling == NO_HEIGHT)
 			return false;
@@ -189,27 +186,27 @@ namespace TEN::Entities::Traps
 		return true;
 	}
 
-		static void SpawnAnchorSpotlights(const ItemInfo& anchor, const ItemInfo& ball, float& angle, int& flashTimer, int alarmFlashPeriod, int alarmFlashOn)
+		static void SpawnAnchorSpotlights(const ItemInfo& anchor, const ItemInfo& wreckingBall, float& angle, int& flashTimer, int alarmFlashPeriod, int alarmFlashOn)
 		{
 			auto origin = Vector3(
 				(float)anchor.Pose.Position.x,
 				(float)anchor.Pose.Position.y + SPOTLIGHT_ANCHOR_OFFSET_Y,
 				(float)anchor.Pose.Position.z);
 
-						// a) Static downward spotlight - distance scales to floor below ball.
-			if (PropertyHandler::Get(ball, PropName_DownwardLightEnabled, true))
+			// a) Static downward spotlight - distance scales to floor below ball.
+			if (PropertyHandler::Get(wreckingBall, PropName_DownwardLightEnabled, true))
 			{
-				int   floorY = GetPointCollision(ball).GetFloorHeight();
+				int floorY = GetPointCollision(wreckingBall).GetFloorHeight();
 				float dynDist = (float)(floorY - anchor.Pose.Position.y);
 				if (dynDist < 256.0f)
 					dynDist = 256.0f; // FAILSAFE: Prevent zero or negative distance.
 
 				// Allow distance/radius override via properties; otherwise scale to floor below ball.
-				float propDist = PropertyHandler::Get(ball, PropName_DownwardLightDistance, 0.0f);
+				float propDist = PropertyHandler::Get(wreckingBall, PropName_DownwardLightDistance, 0.0f);
 				if (propDist > 0.0f)
 					dynDist = BLOCK(propDist);
 
-				float dynRadius = PropertyHandler::Get(ball, PropName_DownwardLightRadius, 0.0f);
+				float dynRadius = PropertyHandler::Get(wreckingBall, PropName_DownwardLightRadius, 0.0f);
 				if (dynRadius <= 0.0f)
 					dynRadius = dynDist * DOWN_LIGHT_RADIUS_RATIO;
 				else
@@ -217,8 +214,8 @@ namespace TEN::Entities::Traps
 
 				float dynFalloff = dynDist * DOWN_LIGHT_FALLOFF_RATIO;
 
-				auto downColor = PropertyHandler::Get(ball, PropName_DownwardLightColor, ScriptColor(128, 128, 128));
-				float intensity = PropertyHandler::Get(ball, PropName_DownwardLightIntensity, DOWN_LIGHT_INTENSITY_DEFAULT);
+				auto downColor = PropertyHandler::Get(wreckingBall, PropName_DownwardLightColor, ScriptColor(128, 128, 128));
+				float intensity = PropertyHandler::Get(wreckingBall, PropName_DownwardLightIntensity, 5.0f);
 
 				Vector3 dir(0.0f, 1.0f, 0.0f);
 				Color color(
@@ -232,23 +229,24 @@ namespace TEN::Entities::Traps
 			}
 
 			// b) Rotating alarm spotlight - fixed large distance to sweep room walls.
-			if (PropertyHandler::Get(ball, PropName_AlarmLightEnabled, true))
+			if (PropertyHandler::Get(wreckingBall, PropName_AlarmLightEnabled, true))
 			{
-				float rotateSpeed = PropertyHandler::Get(ball, PropName_AlarmLightRotationSpeed, ALARM_LIGHT_ROTATE_SPEED_DEFAULT);
+				float rotateSpeed = PropertyHandler::Get(wreckingBall, PropName_AlarmLightRotationSpeed, 0.7f);
 				angle += rotateSpeed;
 				if (angle > PI_MUL_2)
 					angle -= PI_MUL_2;
 
 				const auto& room = g_Level.Rooms[anchor.RoomNumber];
+
 				float roomSizeX = (float)room.XSize * BLOCK(1);
 				float roomSizeZ = (float)room.ZSize * BLOCK(1);
 				float alarmDist = std::max(roomSizeX, roomSizeZ);
+				float propDist = PropertyHandler::Get(wreckingBall, PropName_AlarmLightDistance, 0.0f);
+				float alarmRadius = PropertyHandler::Get(wreckingBall, PropName_AlarmLightRadius, 0.0f);
 
-								float propDist = PropertyHandler::Get(ball, PropName_AlarmLightDistance, 0.0f);
 				if (propDist > 0.0f)
 					alarmDist = BLOCK(propDist);
 
-				float alarmRadius = PropertyHandler::Get(ball, PropName_AlarmLightRadius, 0.0f);
 				if (alarmRadius <= 0.0f)
 					alarmRadius = alarmDist * ALARM_LIGHT_RADIUS_RATIO;
 				else
@@ -256,8 +254,8 @@ namespace TEN::Entities::Traps
 
 				float alarmFalloff = alarmDist * ALARM_LIGHT_FALLOFF_RATIO;
 
-				auto alarmColor = PropertyHandler::Get(ball, PropName_AlarmLightColor, ScriptColor(255, 0, 0));
-				float intensity = PropertyHandler::Get(ball, PropName_AlarmLightIntensity, ALARM_LIGHT_INTENSITY_DEFAULT);
+				auto alarmColor = PropertyHandler::Get(wreckingBall, PropName_AlarmLightColor, ScriptColor(255, 0, 0));
+				float intensity = PropertyHandler::Get(wreckingBall, PropName_AlarmLightIntensity, 2.0f);
 
 				Vector3 dir(sin(angle), 0.0f, cos(angle));
 				dir.Normalize();
@@ -818,3 +816,4 @@ namespace TEN::Entities::Traps
 		}
 	}
 } // namespace TEN::Entities::Traps
+
