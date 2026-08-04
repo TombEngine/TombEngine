@@ -16,6 +16,9 @@ namespace TEN::Entities::Traps
 	constexpr int FIRST_DAMAGE_FRAME_END = 66;
 	constexpr int SECOND_DAMAGE_FRAME_START = 114;
 
+	// Original TR2 damage, applied when neither the Damage property nor the OCB provide a value.
+	constexpr int OVERHEAD_PULLEY_HOOK_DAMAGE = 50;
+
 	const std::vector<unsigned int> OverheadPulleyHookHarmJoints = { 2, 3 };
 
 	void ControlOverheadPulleyHook(short itemNumber)
@@ -32,7 +35,8 @@ namespace TEN::Entities::Traps
 		}
 		else
 		{
-			item.ItemFlags[3] = PropertyHandler::Get(item, PropName_Damage, item.TriggerFlags, true);
+			int defaultDamage = (item.TriggerFlags != 0) ? item.TriggerFlags : OVERHEAD_PULLEY_HOOK_DAMAGE;
+			item.ItemFlags[3] = PropertyHandler::Get(item, PropName_Damage, defaultDamage, item.TriggerFlags != 0);
 		}
 
 		AnimateItem(&item);
