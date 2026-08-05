@@ -5,6 +5,7 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
+#include "Game/effects/debris.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Light.h"
 #include "Game/effects/tomb4fx.h"
@@ -12,6 +13,7 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/room.h"
+#include "Game/Setup.h"
 #include "Objects/TR5/Light/tr5_light.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
@@ -65,6 +67,7 @@ namespace TEN::Entities::Traps
 	static const auto PropName_RoamDelay = GetHash("RoamDelay");
 	static const auto PropName_RoamPauseMin = GetHash("RoamPauseMin");
 	static const auto PropName_RoamPauseMax = GetHash("RoamPauseMax");
+	static const auto PropName_ShatterStatics = GetHash("ShatterStatics");
 
 	static const auto PropName_DownwardLightEnabled = GetHash("DownwardLightEnabled");
 	static const auto PropName_DownwardLightColor = GetHash("DownwardLightColor");
@@ -278,6 +281,38 @@ namespace TEN::Entities::Traps
 		item.Pose.Position.z = (item.Pose.Position.z & ~0x3FF) | 512;
 		return false;
 	}
+
+	// Radius within which the wrecking ball crushes shatterable statics when it lands.
+	constexpr int SHATTER_RADIUS = CLICK(1.5f);
+
+	// Shatters any statics bearing the shatter flag within the ball landing zone. Only runs when
+	// the ball actually drops onto the floor, and is gated by the ShatterStatics property.
+	static void ShatterStaticsOnBallImpact(const ItemInfo& item)
+	{
+		if (!PropertyHandler::Get(item, PropName_ShatterStatics, true))
+			return;
+
+		auto& room = g_Level.Rooms[item.RoomNumber];
+		for (auto& staticObj : room.mesh)
+		{
+			if (!(staticObj.Flags & StaticMeshFlags::SM_VISIBLE) ||
+				Statics[staticObj.Slot].shatterType == ShatterType::None)
+			{
+				continue;
+			}
+
+			if (Vector3i::Distance(item.Pose.Position, staticObj.Pose.Position) > SHATTER_RADIUS)
+				continue;
+
+			// Force the hit points to 0 so debris.cpp actually hides the static after shattering.
+			staticObj.HitPoints = 0;
+
+			SoundEffect(GetShatterSound(staticObj.Slot), &staticObj.Pose);
+			ShatterObject(nullptr, &staticObj, -128, item.RoomNumber, 0);
+			TestTriggers(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, item.RoomNumber, true);
+		}
+	}
+
 	static void SpawnAnchorSpotlights(const ItemInfo& anchor, const ItemInfo& wreckingBall, float& angle, int& flashTimer, int alarmFlashPeriod, int alarmFlashOn)
 	{
 		auto origin = Vector3(
@@ -714,6 +749,9 @@ namespace TEN::Entities::Traps
 
 		if (height < item.Pose.Position.y)
 		{
+			// Crush any shatterable statics beneath the ball as it slams into the floor.
+			ShatterStaticsOnBallImpact(item);
+
 			item.Pose.Position.y = height;
 
 			if (item.Animation.Velocity.y > 48.0f)
