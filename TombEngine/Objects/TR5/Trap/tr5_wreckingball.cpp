@@ -5,9 +5,11 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
+#include "Game/effects/bubble.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Light.h"
+#include "Game/effects/Splash.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
 #include "Game/items.h"
@@ -27,7 +29,9 @@
 #include <unordered_map>
 
 using namespace TEN::Animation;
+using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Environment;
+using namespace TEN::Effects::Splash;
 using namespace TEN::Math;
 
 namespace TEN::Entities::Traps
@@ -310,6 +314,70 @@ namespace TEN::Entities::Traps
 			SoundEffect(GetShatterSound(staticObj.Slot), &staticObj.Pose);
 			ShatterObject(nullptr, &staticObj, -128, item.RoomNumber, 0);
 			TestTriggers(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, item.RoomNumber, true);
+		}
+	}
+
+	// Spawns a splash and a burst of bubbles at the water surface the first frame the ball
+	// submerges. Fire-and-forget: the RoomNumber update elsewhere in the control loop prevents
+	// repeated triggering.
+	static void SpawnWaterSplashOnSubmerge(const ItemInfo& item)
+	{
+		auto pointColl = GetPointCollision(item);
+		int  newRoom = pointColl.GetRoomNumber();
+
+		if (newRoom == item.RoomNumber ||
+			!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, newRoom) ||
+			TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item.RoomNumber))
+		{
+			return;
+		}
+
+		int waterHeight = pointColl.GetWaterTopHeight();
+		if (waterHeight == NO_HEIGHT)
+			return;
+
+		SplashSetup.Position = Vector3(item.Pose.Position.x, waterHeight - 1, item.Pose.Position.z);
+		SplashSetup.SplashPower = item.Animation.Velocity.y * 4;
+		SplashSetup.InnerRadius = 160;
+		SetupSplash(&SplashSetup, newRoom);
+
+		// Emit a large burst of bubbles below the water surface across the ball's footprint.
+		// Bubbles rise (negative Y), so they are spawned at the submerged ball's depth and stream
+		// up to the surface. The count and spread scale to the ball's mass for a dramatic dive
+		// entry, matching the bubble density Lara produces when falling into water from height.
+		int bubbleCount = Random::GenerateInt(90, 140);
+		for (int i = 0; i < bubbleCount; i++)
+		{
+			auto bubblePos = Vector3(
+				item.Pose.Position.x + Random::GenerateFloat(-512.0f, 512.0f),
+				item.Pose.Position.y + Random::GenerateFloat(-512.0f, 64.0f),
+				item.Pose.Position.z + Random::GenerateFloat(-512.0f, 512.0f));
+
+			SpawnBubble(bubblePos, newRoom, Random::GenerateFloat(16.0f, 128.0f), Random::GenerateFloat(96.0f, 256.0f));
+		}
+	}
+
+	// Emits a dense column of bubbles every frame while the ball is submerged during a drop, so
+	// the rising bubbles continuously refill around the plunging ball instead of quickly thinning
+	// out after the initial entry burst.
+	static void SpawnUnderwaterDiveBubbles(const ItemInfo& item)
+	{
+		if (!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, item.RoomNumber))
+			return;
+
+		int waterHeight = GetPointCollision(item).GetWaterTopHeight();
+		if (waterHeight == NO_HEIGHT)
+			return;
+
+		int bubbleCount = Random::GenerateInt(70, 120);
+		for (int i = 0; i < bubbleCount; i++)
+		{
+			auto bubblePos = Vector3(
+				item.Pose.Position.x + Random::GenerateFloat(-512.0f, 512.0f),
+				item.Pose.Position.y + Random::GenerateFloat(-384.0f, 128.0f),
+				item.Pose.Position.z + Random::GenerateFloat(-512.0f, 512.0f));
+
+			SpawnBubble(bubblePos, item.RoomNumber, Random::GenerateFloat(16.0f, 128.0f), Random::GenerateFloat(256.0f, 576.0f));
 		}
 	}
 
@@ -737,6 +805,12 @@ namespace TEN::Entities::Traps
 		// Continuously settle the ball toward the floor normal so it comes to rest flush on slopes.
 		AlignBallToSurface(item);
 
+		// Create a splash if the ball has just submerged into a water room.
+		SpawnWaterSplashOnSubmerge(item);
+
+		// Emit a dense bubble column every frame the ball is underwater during the drop.
+		SpawnUnderwaterDiveBubbles(item);
+
 		short room = item.RoomNumber;
 		int   height = GetFloorHeight(
 			GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &room),
@@ -934,7 +1008,7 @@ namespace TEN::Entities::Traps
 			UpdateIdle(item, state);
 			break;
 
-				case WreckingBallState::Phase::Moving:
+		case WreckingBallState::Phase::Moving:
 			UpdateHorizontalMovement(item, state);
 			break;
 
