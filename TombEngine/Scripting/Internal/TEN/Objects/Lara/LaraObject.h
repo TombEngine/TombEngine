@@ -31,7 +31,6 @@ public:
 	std::unique_ptr<Moveable> GetPlayerInteractedMoveable() const;
 	HandStatus GetHandStatus() const;
 	void SetHandStatus(HandStatus status);
-	void ResetAim();
 	LaraWeaponType GetWeaponType() const;
 	void SetWeaponType(LaraWeaponType weaponType, sol::optional<bool> activate);
 	bool GetLaserSight(LaraWeaponType weaponType) const;
