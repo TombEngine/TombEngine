@@ -151,56 +151,53 @@ namespace TEN::Entities::Traps
 		return (newCeiling == currentCeiling);
 	}
 
-	static bool FindClosestReachableTile(const ItemInfo& anchor, int& outX, int& outZ)
+	// Returns whether the ball can physically travel from its current tile to the given tile along the
+	// ceiling rail, following the same dominant-axis stepping as MoveAlongRail. A target tile with a
+	// flush ceiling but no continuous safe path (a rail gap) is treated as unreachable, so the ball
+	// lets its roam countdown take over instead of grinding at the rail edge.
+	static bool IsTileTravelReachable(const ItemInfo& anchor, int startX, int startZ, int targetX, int targetZ)
 	{
-		if (!LaraItem)
-			return false;
+		int curX = (startX & ~0x3FF) | 512;
+		int curZ = (startZ & ~0x3FF) | 512;
+		int dstX = (targetX & ~0x3FF) | 512;
+		int dstZ = (targetZ & ~0x3FF) | 512;
 
-		// Search outward from the ball's own position so the fallback repositions the ball to a nearby
-		// reachable tile, rather than hopping toward Lara across the room. Among reachable tiles, pick
-		// the one closest to Lara so the ball keeps pushing toward her instead of drifting to a corner.
-		int laraX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
-		int laraZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
-
-		int ballX = anchor.Pose.Position.x;
-		int ballZ = anchor.Pose.Position.z;
-
-		int bestX = 0;
-		int bestZ = 0;
-		int bestDist = INT_MAX;
-
-		for (int dx = -4; dx <= 4; dx++)
+		int guard = 0;
+		while (curX != dstX || curZ != dstZ)
 		{
-			for (int dz = -4; dz <= 4; dz++)
+			if (++guard > 256)
+				return false;
+
+			int dx = dstX - curX;
+			int dz = dstZ - curZ;
+
+			if (std::abs(dx) >= std::abs(dz) && dx != 0)
 			{
-				int testX = ((ballX + dx * CLICK(1)) & ~0x3FF) | 512;
-				int testZ = ((ballZ + dz * CLICK(1)) & ~0x3FF) | 512;
-
-				if (!IsCeilingSafeForAnchor(anchor, testX, testZ))
-					continue;
-
-				int testDist = std::abs(laraX - testX) + std::abs(laraZ - testZ);
-				if (testDist < bestDist)
-				{
-					bestDist = testDist;
-					bestX = testX;
-					bestZ = testZ;
-				}
+				int nextX = curX + (dx > 0 ? CLICK(1) : -CLICK(1));
+				if (!IsCeilingSafeForAnchor(anchor, nextX, curZ))
+					return false;
+				curX = nextX;
+			}
+			else if (dz != 0)
+			{
+				int nextZ = curZ + (dz > 0 ? CLICK(1) : -CLICK(1));
+				if (!IsCeilingSafeForAnchor(anchor, curX, nextZ))
+					return false;
+				curZ = nextZ;
 			}
 		}
-
-		if (bestDist == INT_MAX)
-			return false;
-
-		outX = bestX;
-		outZ = bestZ;
 		return true;
 	}
 
-	// Picks a random reachable tile near the anchor. Used for roaming when Lara is out of reach.
+	// Picks a random tile physically reachable from the ball along the rail. Used for roaming when
+	// Lara is out of reach; only truly reachable tiles are offered so the ball never creeps at a gap.
 	static bool FindRandomReachableTile(const ItemInfo& anchor, int& outX, int& outZ)
 	{
 		std::vector<std::pair<int, int>> candidates;
+
+		// Start point for path checks: the anchor tracks the ball, so it marks the current tile.
+		int startX = anchor.Pose.Position.x;
+		int startZ = anchor.Pose.Position.z;
 
 		for (int dx = -4; dx <= 4; dx++)
 		{
@@ -209,7 +206,7 @@ namespace TEN::Entities::Traps
 				int testX = ((anchor.Pose.Position.x + dx * CLICK(1)) & ~0x3FF) | 512;
 				int testZ = ((anchor.Pose.Position.z + dz * CLICK(1)) & ~0x3FF) | 512;
 
-				if (IsCeilingSafeForAnchor(anchor, testX, testZ))
+				if (IsTileTravelReachable(anchor, startX, startZ, testX, testZ))
 					candidates.push_back({ testX, testZ });
 			}
 		}
@@ -223,27 +220,30 @@ namespace TEN::Entities::Traps
 		return true;
 	}
 
-	// Moves the ball one step along the ceiling rail toward the given tile center.
-	// Returns true if the ball moved this frame.
+	// Moves the ball along the ceiling rail toward the given tile center at a constant speed. The
+	// travel axis is locked at the start of each pursuit, so the ball completes the dominant axis
+	// before taking the other: it always traces a strict L shape and never moves diagonally.
+	// Returns true if the ball moved this frame, false if it is blocked or already settled.
 	static bool MoveAlongRail(ItemInfo& item, WreckingBallState& state, int targetX, int targetZ)
 	{
 		auto& anchor = g_Level.Items[state.BaseObject];
-		int  moveSpeed = PropertyHandler::Get(item, PropName_MovementSpeed, MOVE_SPEED);
+		int   moveSpeed = PropertyHandler::Get(item, PropName_MovementSpeed, MOVE_SPEED);
 
 		int dx = targetX - item.Pose.Position.x;
 		int dz = targetZ - item.Pose.Position.z;
 
-		if (std::abs(dx) <= moveSpeed && std::abs(dz) <= moveSpeed)
-			return false;
+		// Lock the travel axis once per pursuit. Completing it first enforces an L-shaped path.
+		if (state.MoveAxis == 0)
+			state.MoveAxis = (std::abs(dx) > std::abs(dz)) ? 1 : 2;
 
 		auto tryMoveAxis = [&](int axis)
 		{
 			if (axis == 1)
 			{
-				int step = std::clamp(dx, -moveSpeed, moveSpeed);
-				if (step == 0)
+				if (dx == 0)
 					return false;
 
+				int step = std::clamp(dx, -moveSpeed, moveSpeed);
 				int newX = item.Pose.Position.x + step;
 				if (!IsCeilingSafeForAnchor(anchor, newX, item.Pose.Position.z))
 					return false;
@@ -253,10 +253,10 @@ namespace TEN::Entities::Traps
 				return true;
 			}
 
-			int step = std::clamp(dz, -moveSpeed, moveSpeed);
-			if (step == 0)
+			if (dz == 0)
 				return false;
 
+			int step = std::clamp(dz, -moveSpeed, moveSpeed);
 			int newZ = item.Pose.Position.z + step;
 			if (!IsCeilingSafeForAnchor(anchor, item.Pose.Position.x, newZ))
 				return false;
@@ -266,16 +266,18 @@ namespace TEN::Entities::Traps
 			return true;
 		};
 
-		if (state.MoveAxis == 0)
-			state.MoveAxis = (std::abs(dx) > std::abs(dz)) ? 1 : 2;
+		// Traverse the locked axis first; only when it is exhausted move along the other axis. A
+		// single frame therefore moves on only one axis, keeping the path strictly L-shaped.
+		if (tryMoveAxis(state.MoveAxis))
+			return true;
+		if (tryMoveAxis(state.MoveAxis == 1 ? 2 : 1))
+			return true;
 
-		bool moved = tryMoveAxis(state.MoveAxis);
-		if (!moved)
-			moved = tryMoveAxis(state.MoveAxis == 1 ? 2 : 1);
-
-		return moved;
+		// Fully blocked or settled. Stop centered on the current tile rather than on a rail edge.
+		item.Pose.Position.x = (item.Pose.Position.x & ~0x3FF) | 512;
+		item.Pose.Position.z = (item.Pose.Position.z & ~0x3FF) | 512;
+		return false;
 	}
-
 	static void SpawnAnchorSpotlights(const ItemInfo& anchor, const ItemInfo& wreckingBall, float& angle, int& flashTimer, int alarmFlashPeriod, int alarmFlashOn)
 	{
 		auto origin = Vector3(
@@ -472,9 +474,9 @@ namespace TEN::Entities::Traps
 		int targetX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
 		int targetZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
 
-		if (IsCeilingSafeForAnchor(anchor, targetX, targetZ))
+		if (IsTileTravelReachable(anchor, item.Pose.Position.x, item.Pose.Position.z, targetX, targetZ))
 		{
-			// Lara is reachable; chase her.
+			// Lara is reachable along the rail; chase her.
 			state.TargetX = targetX;
 			state.TargetZ = targetZ;
 			state.PhaseState = WreckingBallState::Phase::Moving;
@@ -526,13 +528,16 @@ namespace TEN::Entities::Traps
 
 		auto& anchor = g_Level.Items[state.BaseObject];
 
-		// Re-home on Lara's current tile every frame so the ball tracks her as she moves.
 		int laraX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
 		int laraZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
 
-		if (!IsCeilingSafeForAnchor(anchor, laraX, laraZ))
+		// If the player's tile is not physically reachable along the rail (a gap separates them), don't
+		// chase. Settle centered on the current tile and start the roam countdown immediately.
+		if (!IsTileTravelReachable(anchor, item.Pose.Position.x, item.Pose.Position.z, laraX, laraZ))
 		{
-			// Lara left the traversable region; go back to idle so the roam timer takes over.
+			item.Pose.Position.x = (item.Pose.Position.x & ~0x3FF) | 512;
+			item.Pose.Position.z = (item.Pose.Position.z & ~0x3FF) | 512;
+
 			state.PhaseState = WreckingBallState::Phase::IdleAtTop;
 			state.MoveAxis = 0;
 			state.Timer = 0;
@@ -544,12 +549,9 @@ namespace TEN::Entities::Traps
 		int dz = laraZ - item.Pose.Position.z;
 		int moveSpeed = PropertyHandler::Get(item, PropName_MovementSpeed, MOVE_SPEED);
 
-		// Drop once we are alongside Lara's tile; we can never reach her exact center because she
-		// occupies it, so a proximity test is used instead of pursuing her tile center directly.
+		// Arrived alongside Lara's tile center; stop flush over it, centered on the tile.
 		if (std::abs(dx) <= moveSpeed && std::abs(dz) <= moveSpeed)
 		{
-			// Snap back onto Lara's tile center so the ball rests flush over the tile. This keeps the
-			// ball from coming to rest mid-tile where it can clip into wall segments.
 			item.Pose.Position.x = laraX;
 			item.Pose.Position.z = laraZ;
 
@@ -566,41 +568,9 @@ namespace TEN::Entities::Traps
 			return;
 		}
 
-		bool movedThisFrame = MoveAlongRail(item, state, laraX, laraZ);
-
-		if (!movedThisFrame)
-		{
-			state.Timer++;
-
-			// We are stuck (e.g. a blocking ceiling edge). Move to the nearest reachable tile that is
-			// closest to Lara. If none is reachable, drop in place rather than drifting to a corner.
-			if (state.Timer > 10)
-			{
-				int bestX, bestZ;
-				if (FindClosestReachableTile(anchor, bestX, bestZ))
-				{
-					state.TargetX = bestX;
-					state.TargetZ = bestZ;
-					state.MoveAxis = 0;
-					state.Timer = 0;
-					return;
-				}
-
-				// Reposition to the nearest tile center so the ball does not come to rest mid-tile.
-				item.Pose.Position.x = (item.Pose.Position.x & ~0x3FF) | 512;
-				item.Pose.Position.z = (item.Pose.Position.z & ~0x3FF) | 512;
-
-				state.PhaseState = WreckingBallState::Phase::PreparingDrop;
-				state.DropDelay = 30;
-				state.MoveAxis = 0;
-				state.Timer = 0;
-				return;
-			}
-		}
-		else
-		{
-			state.Timer = 0;
-		}
+		// The player is reachable; move toward her tile center. This never gets stuck on a rail gap
+		// because the reachability gate above already routed inaccessible targets to the roam timer.
+		MoveAlongRail(item, state, laraX, laraZ);
 	}
 
 	// Roams the ceiling rail area when Lara is out of reach. Continually checks whether Lara
@@ -620,7 +590,7 @@ namespace TEN::Entities::Traps
 		// If Lara just became reachable, abandon roaming and seek her.
 		int laraX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
 		int laraZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
-		if (IsCeilingSafeForAnchor(anchor, laraX, laraZ))
+		if (IsTileTravelReachable(anchor, item.Pose.Position.x, item.Pose.Position.z, laraX, laraZ))
 		{
 			state.TargetX = laraX;
 			state.TargetZ = laraZ;
@@ -754,6 +724,8 @@ namespace TEN::Entities::Traps
 			else
 			{
 				item.Animation.Velocity.y = 0.0f;
+				state.MoveAxis = 0;
+				state.Timer = 0;
 				state.PhaseState = WreckingBallState::Phase::WinchUp;
 			}
 		}
@@ -764,6 +736,8 @@ namespace TEN::Entities::Traps
 		if (state.BaseObject < 0)
 		{
 			state.PhaseState = WreckingBallState::Phase::IdleAtTop;
+			state.MoveAxis = 0;
+			state.Timer = 0;
 			item.Animation.Velocity.y = 0;
 			return;
 		}
@@ -791,6 +765,8 @@ namespace TEN::Entities::Traps
 			else
 			{
 				item.Animation.Velocity.y = 0;
+				state.MoveAxis = 0;
+				state.Timer = 0;
 				state.PhaseState = WreckingBallState::Phase::IdleAtTop;
 			}
 		}
