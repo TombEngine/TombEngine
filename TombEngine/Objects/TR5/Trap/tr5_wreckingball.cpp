@@ -43,6 +43,11 @@ namespace TEN::Entities::Traps
 
 	constexpr int MOVE_SPEED = 32;
 
+	// Max number of sectors (tiles) between the ball and Lara within which the claw will pursue
+	// her along the rail. Any positive value bounds the pursuit; used as a default only, so the
+	// builder can override it via the SearchRadius property.
+	constexpr int SEARCH_RADIUS_DEFAULT = 16;
+
 	// Maximum number of individual chain links that can be stacked between the anchor and the ball.
 	constexpr int MAX_CHAIN_LINKS = 1024;
 
@@ -68,6 +73,7 @@ namespace TEN::Entities::Traps
 
 	// Object-specific property hashes (not meant to be shared engine-wide).
 	static const auto PropName_MovementSpeed = GetHash("MovementSpeed");
+	static const auto PropName_SearchRadius = GetHash("SearchRadius");
 	static const auto PropName_RoamDelay = GetHash("RoamDelay");
 	static const auto PropName_RoamPauseMin = GetHash("RoamPauseMin");
 	static const auto PropName_RoamPauseMax = GetHash("RoamPauseMax");
@@ -225,6 +231,20 @@ namespace TEN::Entities::Traps
 		outX = pick.first;
 		outZ = pick.second;
 		return true;
+	}
+
+	// Returns whether Lara is close enough to the ball for the claw to pursue her. A radius of 0
+	// (or negative) means the search is unlimited, so the claw chases however far the rail extends.
+	static bool IsLaraWithinSearchRadius(const ItemInfo& item)
+	{
+		if (!LaraItem)
+			return false;
+
+		int searchRadius = PropertyHandler::Get(item, PropName_SearchRadius, SEARCH_RADIUS_DEFAULT);
+		if (searchRadius <= 0)
+			return true;
+
+		return (Vector3i::Distance(item.Pose.Position, LaraItem->Pose.Position) <= CLICK(searchRadius));
 	}
 
 	// Moves the ball along the ceiling rail toward the given tile center at a constant speed. The
@@ -577,7 +597,8 @@ namespace TEN::Entities::Traps
 		int targetX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
 		int targetZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
 
-		if (IsTileTravelReachable(anchor, item.Pose.Position.x, item.Pose.Position.z, targetX, targetZ))
+		if (IsLaraWithinSearchRadius(item) &&
+			IsTileTravelReachable(anchor, item.Pose.Position.x, item.Pose.Position.z, targetX, targetZ))
 		{
 			// Lara is reachable along the rail; chase her.
 			state.TargetX = targetX;
@@ -630,6 +651,19 @@ namespace TEN::Entities::Traps
 		}
 
 		auto& anchor = g_Level.Items[state.BaseObject];
+
+		// If Lara has left the search radius, stop pursuing and fall back to idle.
+		if (!IsLaraWithinSearchRadius(item))
+		{
+			item.Pose.Position.x = (item.Pose.Position.x & ~0x3FF) | 512;
+			item.Pose.Position.z = (item.Pose.Position.z & ~0x3FF) | 512;
+
+			state.PhaseState = WreckingBallState::Phase::IdleAtTop;
+			state.MoveAxis = 0;
+			state.Timer = 0;
+			state.RoamTimer = 0;
+			return;
+		}
 
 		int laraX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
 		int laraZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
@@ -690,10 +724,11 @@ namespace TEN::Entities::Traps
 
 		auto& anchor = g_Level.Items[state.BaseObject];
 
-		// If Lara just became reachable, abandon roaming and seek her.
+		// If Lara just came within the search radius and is reachable, abandon roaming and seek her.
 		int laraX = (LaraItem->Pose.Position.x & ~0x3FF) | 512;
 		int laraZ = (LaraItem->Pose.Position.z & ~0x3FF) | 512;
-		if (IsTileTravelReachable(anchor, item.Pose.Position.x, item.Pose.Position.z, laraX, laraZ))
+		if (IsLaraWithinSearchRadius(item) &&
+			IsTileTravelReachable(anchor, item.Pose.Position.x, item.Pose.Position.z, laraX, laraZ))
 		{
 			state.TargetX = laraX;
 			state.TargetZ = laraZ;
