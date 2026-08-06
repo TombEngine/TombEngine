@@ -44,7 +44,7 @@ namespace TEN::Entities::Traps
 	constexpr int MOVE_SPEED = 32;
 
 	// Maximum number of individual chain links that can be stacked between the anchor and the ball.
-	constexpr int MAX_CHAIN_LINKS = 64;
+	constexpr int MAX_CHAIN_LINKS = 1024;
 
 	// Distance from the anchor (ceiling) to the ball's center when the ball is fully raised.
 	constexpr int BALL_HANG_OFFSET_Y = 1644;
