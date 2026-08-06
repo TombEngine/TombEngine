@@ -588,9 +588,7 @@ int LaraObject::GetWeaponMode(TypeOrNil<LaraWeaponType> weaponType) const
 		auto mode = player.Weapons[(int)LaraWeaponType::HK].WeaponMode;
 
 		// If the HK weapon mode hasn't been initialized, default to Ammo 1.
-		if (mode != LaraWeaponTypeCarried::WTYPE_AMMO_1 &&
-			mode != LaraWeaponTypeCarried::WTYPE_AMMO_2 &&
-			mode != LaraWeaponTypeCarried::WTYPE_AMMO_3)
+		if (mode == LaraWeaponTypeCarried::WTYPE_MISSING)
 		{
 			mode = LaraWeaponTypeCarried::WTYPE_AMMO_1;
 		}
