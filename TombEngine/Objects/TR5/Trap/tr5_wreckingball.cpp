@@ -71,6 +71,12 @@ namespace TEN::Entities::Traps
 	constexpr auto ALARM_LIGHT_BLINK_SPEED_DEFAULT = 1.0f;
 	constexpr auto ALARM_LIGHT_HASH_OFFSET = 500;
 
+	// Radius within which the wrecking ball crushes shatterable statics when it lands.
+	constexpr int SHATTER_RADIUS = CLICK(1.5f);
+
+	// Radius within which the wrecking ball crushes enemies when it lands.
+	constexpr int ENEMY_KILL_RADIUS = BLOCK(1.0f);
+
 	// Object-specific property hashes (not meant to be shared engine-wide).
 	static const auto PropName_MovementSpeed = GetHash("MovementSpeed");
 	static const auto PropName_SearchRadius = GetHash("SearchRadius");
@@ -79,6 +85,8 @@ namespace TEN::Entities::Traps
 	static const auto PropName_RoamPauseMax = GetHash("RoamPauseMax");
 	static const auto PropName_ShatterStatics = GetHash("ShatterStatics");
 	static const auto PropName_KillEnemies = GetHash("KillEnemies");
+	static const auto PropName_DropDelay = GetHash("DropDelay");
+	static const auto PropName_DropSpeed = GetHash("DropSpeed");
 
 	static const auto PropName_DownwardLightEnabled = GetHash("DownwardLightEnabled");
 	static const auto PropName_DownwardLightColor = GetHash("DownwardLightColor");
@@ -306,12 +314,6 @@ namespace TEN::Entities::Traps
 		item.Pose.Position.z = (item.Pose.Position.z & ~0x3FF) | 512;
 		return false;
 	}
-
-	// Radius within which the wrecking ball crushes shatterable statics when it lands.
-	constexpr int SHATTER_RADIUS = CLICK(1.5f);
-
-	// Radius within which the wrecking ball crushes enemies when it lands.
-	constexpr int ENEMY_KILL_RADIUS = CLICK(1.5f);
 
 	// Shatters any statics bearing the shatter flag within the ball landing zone. Only runs when
 	// the ball actually drops onto the floor, and is gated by the ShatterStatics property.
@@ -745,7 +747,7 @@ namespace TEN::Entities::Traps
 			state.TargetX = laraX;
 			state.TargetZ = laraZ;
 			state.PhaseState = WreckingBallState::Phase::PreparingDrop;
-			state.DropDelay = 30;
+			state.DropDelay = std::max(1, (int)(std::abs(PropertyHandler::Get(item, PropName_DropDelay, 1.0f)) * FPS));
 			state.MoveAxis = 0;
 			state.Timer = 0;
 			state.RoamTimer = 0;
@@ -874,14 +876,16 @@ namespace TEN::Entities::Traps
 			SoundEffect(SFX_TR5_BASE_CLAW_DROP, &item.Pose);
 
 			state.PhaseState = WreckingBallState::Phase::Dropping;
-			item.Animation.Velocity.y = 6.0f;
+			float dropSpeed = std::max(0.25f, std::abs(PropertyHandler::Get(item, PropName_DropSpeed, 1.0f)));
+			item.Animation.Velocity.y = 6.0f * dropSpeed;
 			item.Pose.Position.y += item.Animation.Velocity.y;
 		}
 	}
 
 	static void UpdateDropping(ItemInfo& item, WreckingBallState& state)
 	{
-		item.Animation.Velocity.y += 24.0f;
+		float dropSpeed = std::max(0.25f, std::abs(PropertyHandler::Get(item, PropName_DropSpeed, 1.0f)));
+		item.Animation.Velocity.y += 24.0f * dropSpeed;
 		item.Pose.Position.y += item.Animation.Velocity.y;
 
 		// Continuously settle the ball toward the floor normal so it comes to rest flush on slopes.
