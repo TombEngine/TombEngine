@@ -49,7 +49,7 @@ namespace TEN::Entities::Traps
 	constexpr int SEARCH_RADIUS_DEFAULT = 16;
 
 	// Maximum number of individual chain links that can be stacked between the anchor and the ball.
-	constexpr int MAX_CHAIN_LINKS = 1024;
+	constexpr int MAX_CHAIN_LINKS = 128;
 
 	// Distance from the anchor (ceiling) to the ball's center when the ball is fully raised.
 	constexpr int BALL_HANG_OFFSET_Y = 1644;
@@ -78,6 +78,7 @@ namespace TEN::Entities::Traps
 	static const auto PropName_RoamPauseMin = GetHash("RoamPauseMin");
 	static const auto PropName_RoamPauseMax = GetHash("RoamPauseMax");
 	static const auto PropName_ShatterStatics = GetHash("ShatterStatics");
+	static const auto PropName_KillEnemies = GetHash("KillEnemies");
 
 	static const auto PropName_DownwardLightEnabled = GetHash("DownwardLightEnabled");
 	static const auto PropName_DownwardLightColor = GetHash("DownwardLightColor");
@@ -309,6 +310,9 @@ namespace TEN::Entities::Traps
 	// Radius within which the wrecking ball crushes shatterable statics when it lands.
 	constexpr int SHATTER_RADIUS = CLICK(1.5f);
 
+	// Radius within which the wrecking ball crushes enemies when it lands.
+	constexpr int ENEMY_KILL_RADIUS = CLICK(1.5f);
+
 	// Shatters any statics bearing the shatter flag within the ball landing zone. Only runs when
 	// the ball actually drops onto the floor, and is gated by the ShatterStatics property.
 	static void ShatterStaticsOnBallImpact(const ItemInfo& item)
@@ -334,6 +338,49 @@ namespace TEN::Entities::Traps
 			SoundEffect(GetShatterSound(staticObj.Slot), &staticObj.Pose);
 			ShatterObject(nullptr, &staticObj, -128, item.RoomNumber, 0);
 			TestTriggers(staticObj.Pose.Position.x, staticObj.Pose.Position.y, staticObj.Pose.Position.z, item.RoomNumber, true);
+		}
+	}
+
+	// Kills any enemies caught beneath the ball as it slams into the floor. Gated by the
+	// KillEnemies property, so builders can decide whether Lara can bait the claw onto her foes.
+	static void KillEnemiesOnBallImpact(const ItemInfo& item)
+	{
+		if (!PropertyHandler::Get(item, PropName_KillEnemies, true))
+			return;
+
+		// Collect victims first, then kill them after the loop, so g_Level.Items cannot be
+		// reorganized mid-scan and the winning item reference stays valid throughout.
+		std::vector<int> victims;
+
+		for (const auto& candidate : g_Level.Items)
+		{
+			// Only consider intelligent creatures at all; never Lara or inert moveables.
+			if (!candidate.IsCreature())
+				continue;
+
+			// Discard out-of-range IDs, the ball itself, and items with no room.
+			if (!Objects.CheckID(candidate.ObjectNumber, true) ||
+				candidate.Index == item.Index ||
+				candidate.RoomNumber == NO_VALUE)
+			{
+				continue;
+			}
+
+			// Only crush live creatures still in the ball's landing zone.
+			if (candidate.HitPoints <= 0 ||
+				Vector3i::Distance(item.Pose.Position, candidate.Pose.Position) > ENEMY_KILL_RADIUS)
+			{
+				continue;
+			}
+
+			victims.push_back(candidate.Index);
+		}
+
+		for (int victimIndex : victims)
+		{
+			auto& victim = g_Level.Items[victimIndex];
+			if (victim.HitPoints > 0)
+				DoDamage(&victim, INT_MAX);
 		}
 	}
 
@@ -858,8 +905,9 @@ namespace TEN::Entities::Traps
 
 		if (height < item.Pose.Position.y)
 		{
-			// Crush any shatterable statics beneath the ball as it slams into the floor.
+			// Crush any shatterable statics and enemies beneath the ball as it slams into the floor.
 			ShatterStaticsOnBallImpact(item);
+			KillEnemiesOnBallImpact(item);
 
 			item.Pose.Position.y = height;
 
