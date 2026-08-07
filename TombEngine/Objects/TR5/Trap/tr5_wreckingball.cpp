@@ -5,6 +5,7 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
+#include "Game/control/control.h"
 #include "Game/effects/bubble.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/effects.h"
@@ -1034,6 +1035,11 @@ namespace TEN::Entities::Traps
 		for (short link : state.Links)
 			g_Level.Items[link].DisableInterpolation = false;
 
+		// Hide every chain link until the trap is activated, so an untriggered wrecking ball parked in
+		// the level does not draw its chain. UpdateChain() reveals the links once the trap goes active.
+		for (short link : state.Links)
+			SetItemInvisible(g_Level.Items[link]);
+
 		// Persist the anchor index in the ball's flags so it can be recovered after a savegame is
 		// loaded (where only the flags are serialized, not this module's static state).
 		item.ItemFlags[0] = state.BaseObject;
@@ -1089,6 +1095,16 @@ namespace TEN::Entities::Traps
 		// Bail out if the required companion objects are missing.
 		if (state.BaseObject < 0)
 			return;
+
+		// Hide the chain (and skip running the ball) until the trap is triggered/activated, matching
+		// how other traps gate their control on TriggerActive(). This prevents the chain from being
+		// drawn while the wrecking ball sits idle and untriggered in the level.
+		if (!TriggerActive(&item))
+		{
+			for (short link : state.Links)
+				SetItemInvisible(g_Level.Items[link]);
+			return;
+		}
 
 		short room = item.RoomNumber;
 		GetFloor(item.Pose.Position.x, item.Pose.Position.y, item.Pose.Position.z, &room);
