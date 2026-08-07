@@ -253,7 +253,13 @@ namespace TEN::Entities::Traps
 		if (searchRadius <= 0)
 			return true;
 
-		return (Vector3i::Distance(item.Pose.Position, LaraItem->Pose.Position) <= CLICK(searchRadius));
+		// Search radius is a horizontal ground reach in sectors; omit the ceiling-to-floor Y delta so
+		// Lara standing directly beneath the hanging ball counts as being in range.
+		float distance2D = Vector2i::Distance(
+			Vector2i(item.Pose.Position.x, item.Pose.Position.z),
+			Vector2i(LaraItem->Pose.Position.x, LaraItem->Pose.Position.z));
+
+		return (distance2D <= CLICK(searchRadius));
 	}
 
 	// Moves the ball along the ceiling rail toward the given tile center at a constant speed. The
