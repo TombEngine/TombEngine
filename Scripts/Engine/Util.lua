@@ -6,7 +6,9 @@ local Type = require("Engine.Type")
 local Util = {}
 
 local LogMessage  = TEN.Util.PrintLog
+local logLevelInfo = TEN.Util.LogLevel.INFO
 local logLevelWarning = TEN.Util.LogLevel.WARNING
+local logLevelError = TEN.Util.LogLevel.ERROR
 local Color = TEN.Color
 local IsString = Type.IsString
 local IsTable = Type.IsTable
@@ -32,17 +34,6 @@ local IsRotation = Type.IsRotation
 -- Time format keys
 -- For backward compatibility, deciseconds is still accepted, but centiseconds is preferred. Both keys will work, but if both are present, centiseconds will be used.
 local VALID_KEYS = { hours = true, minutes = true, seconds = true, deciseconds = true, centiseconds = true }
-
--- Comparison operators constant table. Used for validating operators.
-local COMPARISON_OPS_FUNC =
-{
-    function(a, b) return a == b end,   -- 0: equal
-    function(a, b) return a ~= b end,   -- 1: not equal
-    function(a, b) return a < b end,    -- 2: less than
-    function(a, b) return a <= b end,   -- 3: less than or equal
-    function(a, b) return a > b end,    -- 4: greater than
-    function(a, b) return a >= b end,   -- 5: greater than or equal
-}
 
 local function pad2(n)
     return (n < 10) and ("0" .. n) or tostring(n)
@@ -121,13 +112,31 @@ Util.ShortenTENCalls = function()
 	print("Util.ShortenTENCalls is deprecated; its functionality is now performed automatically by TombEngine.")
 end
 
--- Check if the operator is valid and return the corresponding comparison function.
-Util.CheckOperator = function(operator)
-	if not Type.IsNumber(operator) then
-		return nil
-	end
-    local op = COMPARISON_OPS_FUNC[operator + 1]
-    return Type.IsFunction(op) and op or nil
+-- Interpolates {key} placeholders using values from vars table.
+-- Unknown keys are left unchanged (not replaced with empty string).
+Util.Format = function (str, vars)
+    return (str:gsub("{([^}]*)}", function(key)
+        local val = vars[key]
+        if val == nil then
+            return nil
+        end
+        return tostring(val)
+    end))
+end
+
+Util.InfoLog = function (str, vars)
+    local text = vars and Util.Format(str, vars) or str
+    LogMessage(text, logLevelInfo)
+end
+
+Util.ErrorLog = function (str, vars)
+    local text = vars and Util.Format(str, vars) or str
+    LogMessage(text, logLevelError)
+end
+
+Util.WarningLog = function (str, vars)
+    local text = vars and Util.Format(str, vars) or str
+    LogMessage(text, logLevelWarning)
 end
 
 -- Check if the time format is correct.

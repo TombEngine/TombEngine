@@ -1,4 +1,4 @@
------<style>table.function_list td.name {min-width: 416px;}</style>
+-----<style>table.function_list td.name {min-width: 419px;}</style>
 --- Lua support functions to simplify operations in scripts.
 ---
 --- **Design Philosophy:**
@@ -27,16 +27,23 @@ local TableUtils = require("Engine.Utils.TableUtils")
 local MAX_DEPTH = Utility.Constants.MAX_DEPTH
 local MAX_ELEMENTS = Utility.Constants.MAX_ELEMENTS
 
+-- Comparison operators constant table. Used for validating operators.
+local COMPARISON_OPS_FUNC =
+{
+    function(a, b) return a == b end,   -- 0: equal
+    function(a, b) return a ~= b end,   -- 1: not equal
+    function(a, b) return a < b end,    -- 2: less than
+    function(a, b) return a <= b end,   -- 3: less than or equal
+    function(a, b) return a > b end,    -- 4: greater than
+    function(a, b) return a >= b end,   -- 5: greater than or equal
+}
+
 local Vec2 = TEN.Vec2
 local Vec3 = TEN.Vec3
 local Rotation = TEN.Rotation
 local Color = TEN.Color
 local Time = TEN.Time
-local logLevelEnums = TEN.Util.LogLevel
-local logLevelError  = logLevelEnums.ERROR
-local logLevelWarning = logLevelEnums.WARNING
 
-local LogMessage  = TEN.Util.PrintLog
 local IsNumber = Type.IsNumber
 local IsVec2 = Type.IsVec2
 local IsVec3 = Type.IsVec3
@@ -45,18 +52,31 @@ local IsTime = Type.IsTime
 local IsRotation = Type.IsRotation
 local IsString = Type.IsString
 local IsTable = Type.IsTable
-local isNull = Type.IsNull
+local IsNull = Type.IsNull
 local IsBoolean = Type.IsBoolean
-local CheckOperator = Utility.CheckOperator
+
+local InfoLog = Utility.InfoLog
+local ErrorLog = Utility.ErrorLog
+local WarningLog = Utility.WarningLog
 
 -- State for deep table copy (CloneValue)
 local _nextCopyId = 1          -- Progressive ID generator for each copy operation
 local _activeCopies = {}       -- Tracks active copy operations: { [id] = { depth, elementCount, visited } }
 
+local compareErrorMessage = "Error in {context}: operand and reference must be equal types."
+
 local GeneralUtils = {}
 
 GeneralUtils.Operators = Utility.Constants.Operators
 TableUtils.SetTableReadOnly(GeneralUtils.Operators)
+
+local function CheckOperator(operator)
+	if not Type.IsNumber(operator) then
+		return nil
+	end
+    local op = COMPARISON_OPS_FUNC[operator + 1]
+    return Type.IsFunction(op) and op or nil
+end
 
 -- Support function for deep table copy
 local function DeepCopyRecursive(original, copyId)
@@ -64,7 +84,7 @@ local function DeepCopyRecursive(original, copyId)
 
     -- Check maximum depth
     if context.depth >= MAX_DEPTH then
-        LogMessage("Warning in GeneralUtils.CloneValue: Maximum depth (" ..  MAX_DEPTH .. ") exceeded.", logLevelWarning)
+        WarningLog("Warning in GeneralUtils.CloneValue: Maximum depth ({max}) exceeded.", {max = MAX_DEPTH})
         return {}
     end
 
@@ -83,7 +103,7 @@ local function DeepCopyRecursive(original, copyId)
 
         -- Check maximum elements
         if context.elementCount >= MAX_ELEMENTS then
-            LogMessage("Warning in GeneralUtils.CloneValue: Maximum elements (" .. MAX_ELEMENTS .. ") exceeded.", logLevelWarning)
+            WarningLog("Warning in GeneralUtils.CloneValue: Maximum elements ({max}) exceeded.", {max = MAX_ELEMENTS})
             return copy
         end
 
@@ -97,6 +117,63 @@ local function DeepCopyRecursive(original, copyId)
 
     context.depth = context.depth - 1
     return copy
+end
+
+--- Log a info message with optional variable substitution.
+-- @tparam string str The message string, which can contain placeholders like `{varName}`. If the message is not a string, it will be converted to a string using `tostring()`.
+-- @tparam[opt] table vars A table of variables to substitute into the message. If provided, it must be a table. If it is not a table it will be ignored.
+-- @usage
+-- -- Simple usage:
+-- GeneralUtils.InfoLog("Simple info message.")
+-- -- Result: [2026-Jul-16 16:55:01] [info] Simple info message.
+--
+-- -- With table of variables:
+-- -- Tracking player state during development:
+-- GeneralUtils.InfoLog("Player {name} entered room {room}.", {name = "Lara", room = "secret_01"})
+GeneralUtils.InfoLog = function (str, vars)
+    if not IsNull(vars) and not IsTable(vars) then
+        vars = nil
+    end
+    InfoLog(tostring(str), vars)
+end
+
+--- Log a warning message with optional variable substitution.
+-- @tparam string str The message string, which can contain placeholders like `{varName}`. If the message is not a string, it will be converted to a string using `tostring()`.
+-- @tparam[opt] table vars A table of variables to substitute into the message. If provided, it must be a table. If it is not a table it will be ignored
+-- @usage
+-- -- -- Simple usage:
+-- GeneralUtils.WarningLog("This is a warning message.")
+-- -- Result: [2026-Jul-16 16:55:01] [warning] This is a warning message.
+--
+-- -- With table of variables:
+-- -- Warning during module initialization:
+-- local speed = 200
+-- if speed > 100 then
+--     GeneralUtils.WarningLog("Config speed {speed} exceeds maximum, clamping to 100.", {speed = speed})
+--     speed = 100
+-- end
+GeneralUtils.WarningLog = function (str, vars)
+    if not IsNull(vars) and not IsTable(vars) then
+        vars = nil
+    end
+    WarningLog(tostring(str), vars)
+end
+
+--- Log an error message with optional variable substitution.
+-- @tparam string str The message string, which can contain placeholders like `{varName}`. If the message is not a string, it will be converted to a string using `tostring()`.
+-- @tparam[opt] table vars A table of variables to substitute into the message. If provided, it must be a table. If it is not a table it will be ignored.
+-- @usage
+-- -- Simple usage:
+-- GeneralUtils.ErrorLog("This is an error message.")
+-- -- Result: [2026-Jul-16 16:55:01] [error] This is an error message.
+--
+-- -- With table of variables:
+-- GeneralUtils.ErrorLog("Failed to load resource {resource}.lua .", {resource = "MyFunc"})
+GeneralUtils.ErrorLog = function (str, vars)
+    if not IsNull(vars) and not IsTable(vars) then
+        vars = nil
+    end
+    ErrorLog(tostring(str), vars)
 end
 
 --- Clone a value, creating an independent copy.
@@ -216,7 +293,7 @@ GeneralUtils.CloneValue = function(value)
     end
 
     -- Unsupported type
-    LogMessage("Warning in GeneralUtils.CloneValue: unsupported type '" .. valueType .. "'. Returning nil.", logLevelWarning)
+    WarningLog("Warning in GeneralUtils.CloneValue: unsupported type '{valueType}'. Returning nil.", {valueType = valueType})
     return nil
 end
 
@@ -264,7 +341,7 @@ end
 -- local settings = { showHUD = false }  -- User explicitly disabled HUD
 -- local showHUD = GeneralUtils.GetOrDefault(settings.showHUD, true)  -- Result: false (respects user choice)
 GeneralUtils.GetOrDefault = function(value, defaultValue)
-    if isNull(value) then
+    if IsNull(value) then
         return defaultValue
     end
     return value
@@ -275,13 +352,13 @@ end
 -- @tparam any value The value to validate.
 -- @tparam bool isValid The result of your validation check (evaluated before calling).
 -- @tparam any defaultValue The default value to return if validation fails.
--- @tparam[opt] string warningMsg A warning message to log on validation failure.
+-- @tparam[opt=""] string warningMsg A warning message to log on validation failure. If not provided or if warningMsg is not a string, a generic warning is logged.
 -- @treturn any The value if valid, otherwise defaultValue.
 -- @usage
 -- -- Instead of:
 -- if a == nil then a = 1.0
 -- elseif not IsNumber(a) or a < 0 or a > 1 then
---     LogMessage("Warning: ...", logLevelWarning)
+--     TEN.Util.PrintLog("Warning: ...", TEN.Util.LogLevel.WARNING)
 --     a = 1.0
 -- end
 --
@@ -307,21 +384,19 @@ end
 -- end
 GeneralUtils.ValidateOrDefault = function(value, isValid, defaultValue, warningMsg)
     if not IsBoolean(isValid) then
-        LogMessage("Error in GeneralUtils.ValidateOrDefault: isValid must be a boolean.", logLevelError)
+        ErrorLog("Error in GeneralUtils.ValidateOrDefault: isValid must be a boolean.")
         return defaultValue
     end
-    if isNull(value) then
+    if IsNull(value) then
         return defaultValue
     end
     if isValid then
         return value
     end
-    if warningMsg then
-        if IsString(warningMsg) then
-            LogMessage(warningMsg, logLevelWarning)
-        else
-            LogMessage("Error in GeneralUtils.ValidateOrDefault: warningMsg must be a string.", logLevelError)
-        end
+    if warningMsg and IsString(warningMsg) then
+        ErrorLog(warningMsg)
+    else
+        ErrorLog("Error in GeneralUtils.ValidateOrDefault: value failed validation, using default value : {default}", {default = defaultValue})
     end
     return defaultValue
 end
@@ -385,7 +460,7 @@ end
 -- end
 GeneralUtils.IsEmpty = function(value)
     -- Check for nil
-    if isNull(value) then
+    if IsNull(value) then
         return true
     end
 
@@ -410,8 +485,8 @@ end
 -- @tparam number|string|Time operand The first value to compare.
 -- @tparam number|string|Time reference The second value to compare against.
 -- @tparam Operators operator The comparison operator to use.
--- @treturn[1] bool The result of the comparison.
--- @treturn[2] bool false If an error occurs (invalid operator or type mismatch), with an error message.
+-- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
+-- @treturn[1] bool `result`: The result of the comparison or false if an error occurs (invalid operator or type mismatch), with an error message
 -- @usage
 -- -- Examples with numbers:
 -- local isEqual = GeneralUtils.CompareValues(5, 5, GeneralUtils.Operators.EQUAL) -- true (equal)
@@ -437,27 +512,49 @@ end
 -- local time2 = TEN.Time(150)  -- 150 frames
 -- local isLessThan = GeneralUtils.CompareValues(time1, time2, GeneralUtils.Operators.LESS) -- true (120 < 150)
 -- local isGreaterThanOrEqual = GeneralUtils.CompareValues(time1, time2, GeneralUtils.Operators.GREATER_EQUAL) -- false (120 >= 150 is false)
-GeneralUtils.CompareValues = function(operand, reference, operator)
+--
+-- -- Advanced use
+-- -- Cooldown check in an OnLoop callback
+-- local lastAttack = TEN.Time(0)
+-- local cooldown = TEN.Time(90)  -- 3 seconds at 30 FPS
+-- LevelFuncs.OnLoop = function()
+--     local now = TEN.Flow.GetStatistics().timeTaken
+--     local elapsed = now - lastAttack  -- TEN.Time subtraction
+--     if GeneralUtils.CompareValues(elapsed, cooldown, GeneralUtils.Operators.GREATER_EQUAL, "OnLoop") then
+--         -- Cooldown expired, allow next action
+--         lastAttack = now
+--     end
+-- end
+--
+-- -- Difficulty-based damage multiplier
+-- local difficulty = "hard"
+-- local multiplier = 1.0
+-- if GeneralUtils.CompareValues(difficulty, "hard", GeneralUtils.Operators.EQUAL, "SetDifficulty") then
+--     multiplier = 2.0
+-- elseif GeneralUtils.CompareValues(difficulty, "easy", GeneralUtils.Operators.EQUAL, "SetDifficulty") then
+--     multiplier = 0.5
+-- end
+--
+-- -- Threshold check for collectibles counter
+-- local collected = 7
+-- local required = 5
+-- if GeneralUtils.CompareValues(collected, required, GeneralUtils.Operators.GREATER_EQUAL, "CheckProgress") then
+--     GeneralUtils.InfoLog("All {required} items collected, opening door.", {required = required})
+--     -- Trigger door open sequence
+-- end
+GeneralUtils.CompareValues = function(operand, reference, operator, errorContext)
+    errorContext = errorContext or "GeneralUtils.CompareValues"
     -- Validate operator
     local op = CheckOperator(operator)
     if not op then
-        LogMessage("Error in GeneralUtils.CompareValues: invalid operator for comparison", logLevelError)
+        ErrorLog("Error in {context}: invalid operator.", { context = errorContext })
         return false
     end
-    local errorMessage = "Error in GeneralUtils.CompareValues: operand and reference must be equal types."
 
     -- Lazy type checking
     if IsNumber(operand) then
         if not IsNumber(reference) then
-            LogMessage(errorMessage, logLevelError)
-            return false
-        end
-        return op(operand, reference)
-    end
-
-    if IsString(operand) then
-        if not IsString(reference) then
-            LogMessage(errorMessage, logLevelError)
+            ErrorLog(compareErrorMessage, { context = errorContext })
             return false
         end
         return op(operand, reference)
@@ -465,13 +562,21 @@ GeneralUtils.CompareValues = function(operand, reference, operator)
 
     if IsTime(operand) then
         if not IsTime(reference) then
-            LogMessage(errorMessage, logLevelError)
+            ErrorLog(compareErrorMessage, { context = errorContext })
             return false
         end
         return op(operand, reference)
     end
 
-    LogMessage("Error in GeneralUtils.CompareValues: unsupported type.", logLevelError)
+    if IsString(operand) then
+        if not IsString(reference) then
+            ErrorLog(compareErrorMessage, { context = errorContext })
+            return false
+        end
+        return op(operand, reference)
+    end
+
+    ErrorLog("Error in {context}: unsupported type.", { context = errorContext })
     return false
 end
 

@@ -109,13 +109,40 @@ end
 --- Get the number of elements in a table (works for non-sequential tables).
 -- @tparam table tbl The table to count.
 -- @treturn[1] int The number of elements.
--- @treturn[2] int 0 if input is invalid.
+-- @treturn[2] int 0 if table is empty or input is not a table (with a log message).
 -- @usage
+-- -- Example with sequential table:
+-- local tbl = { "apple", "banana", "cherry" }
+-- local count = TableUtils.TableSize(tbl) -- Result: 3
+--
 -- -- Example with non-sequential table:
 -- local tbl = { apple = 1, banana = 2, cherry = 3 }
 -- local count = TableUtils.TableSize(tbl) -- Result: 3
+--
+-- -- Example with sparse table:
+-- local tbl = { [1] = "first", [5] = "fifth" }
+-- local count = TableUtils.TableSize(tbl) -- Result: 2
+--
+-- -- Example with nested table:
+-- local tbl = { x = 1, y = { a = 2, b = 3 } }
+-- local count = TableUtils.TableSize(tbl) -- Result: 2
+--
+-- -- Example with table containing nil values:
+-- local tbl = { a = 1, b = nil, c = 3 }
+-- local count = TableUtils.TableSize(tbl) -- Result: 2
+--
+-- -- Example with mixed keys:
+-- local tbl = { 1, 2, a = 3, b = 4 }
+-- local count = TableUtils.TableSize(tbl) -- Result: 4
+--
+-- -- Example with empty table:
+-- local tbl = {}
+-- local count = TableUtils.TableSize(tbl) -- Result: 0
+--
+-- -- Example with invalid input:
+-- local count = TableUtils.TableSize("not a table") -- Result: 0 (with error logged)
 TableUtils.TableSize = function(tbl)
-    if not Type.IsTable(tbl) then
+    if not IsTable(tbl) then
         LogMessage("Error in TableUtils.TableSize: input must be a table.", logLevelError)
         return 0
     end
@@ -127,17 +154,52 @@ TableUtils.TableSize = function(tbl)
 end
 
 --- Compare two tables for equality.
---- This function checks if both tables have the same keys and corresponding values. Works for shallow comparisons only.
---- @tparam table tbl1 The first table to compare.
---- @tparam table tbl2 The second table to compare.
---- @treturn[1] bool True if the tables are equal, false otherwise.
---- @treturn[2] bool false if an error occurs.
---- @usage
---- local tblA = { a = 1, b = 2 }
---- local tblB = { a = 1, b = 2 }
---- local tblC = { a = 1, b = 3 }
---- local isEqualAB = TableUtils.CompareTables(tblA, tblB) -- Result: true
---- local isEqualAC = TableUtils.CompareTables(tblA, tblC) -- Result: false
+-- This function checks if both tables have the same keys and corresponding values. Works for shallow comparisons only.
+-- @tparam table tbl1 The first table to compare.
+-- @tparam table tbl2 The second table to compare.
+-- @treturn[1] bool True if the tables are equal, false otherwise.
+-- @treturn[2] bool false if an error occurs with a log message.
+-- @usage
+-- -- Example with simple tables:
+-- local tblA = { a = 1, b = 2 }
+-- local tblB = { a = 1, b = 2 }
+-- local tblC = { a = 1, b = 3 }
+-- local isEqualAB = TableUtils.CompareTables(tblA, tblB) -- Result: true
+-- local isEqualAC = TableUtils.CompareTables(tblA, tblC) -- Result: false
+--
+-- -- Example with nested tables (shallow comparison):
+-- local tblD = { a = 1, b = { c = 2 } }
+-- local tblE = { a = 1, b = { c = 2 } }
+-- local isEqualDE = TableUtils.CompareTables(tblD, tblE) -- Result: false (different table references)
+--
+-- -- Example with different keys:
+-- local tblF = { a = 1, b = 2 }
+-- local tblG = { a = 1, c = 2 }
+-- local isEqualFG = TableUtils.CompareTables(tblF, tblG) -- Result: false (different keys)
+--
+-- -- Example with empty tables:
+-- local tblH = {}
+-- local tblI = {}
+-- local isEqualHI = TableUtils.CompareTables(tblH, tblI) -- Result: true
+--
+-- -- Example with nil values:
+-- local tblJ = { a = nil, b = 2 }
+-- local tblK = { a = 1, b = 2 }
+-- local isEqualJK = TableUtils.CompareTables(tblJ, tblK) -- Result: false (different values for key 'a')
+--
+-- -- Example with nil values:
+-- local tblL = { a = nil, b = 2 }
+-- local tblM = { a = nil, b = 2 }
+-- local isEqualLM = TableUtils.CompareTables(tblL, tblM) -- Result: true
+-- -- tblL and tblM are considered equal because they have the same keys and values, even though 'a' is nil.
+--
+-- -- Example with mixed keys:
+-- local tblO = { [1] = "first", [2] = "second", a = 3 }
+-- local tblP = { [1] = "first", [2] = "second", a = 3 }
+-- local isEqualOP = TableUtils.CompareTables(tblO, tblP) -- Result: true
+--
+-- -- Example with non-table input:
+-- local isEqual = TableUtils.CompareTables(tblA, "not a table") -- Result: false (with error logged)
 TableUtils.CompareTables = function (tbl1, tbl2)
     if not (IsTable(tbl1) and IsTable(tbl2)) then
         LogMessage("Error in TableUtils.CompareTables: both inputs must be tables.", logLevelError)
@@ -171,7 +233,7 @@ end
 --- @tparam table tbl1 The first table to compare.
 --- @tparam table tbl2 The second table to compare.
 --- @treturn[1] bool True if the tables are deeply equal, false otherwise.
---- @treturn[2] bool false if an error occurs.
+--- @treturn[2] bool false if an error occurs with a log message.
 --- @usage
 --- local tblA = { a = 1, b = { c = 2, d = 3 } }
 --- local tblB = { a = 1, b = { c = 2, d = 3 } }
@@ -193,7 +255,6 @@ TableUtils.CompareTablesDeep = function (tbl1, tbl2)
         depth = 0,
         elementCount = 0,
         visited = {},  -- Prevents infinite loops on circular tables
-        keysChecked = {}  -- Tracks which keys we've already processed
     }
 
     -- Execute comparison
@@ -256,7 +317,7 @@ end
 --
 -- **Important:** This is a shallow copy. If the original table contains nested tables, both the original and the copy will reference the same nested tables. Modifying a nested table in the copy will affect the original.
 --
--- For a deep copy that also clones nested tables, use `LuaUtils.CloneValue` instead.
+-- For a deep copy that also clones nested tables, use `GeneralUtils.CloneValue` instead.
 -- @tparam table tbl The table to copy.
 -- @treturn[1] table A shallow copy of the input table.
 -- @treturn[2] table An empty table if input is not a table.

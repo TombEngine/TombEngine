@@ -32,6 +32,9 @@ local IsNumber = Type.IsNumber
 local IsString = Type.IsString
 local IsTable = Type.IsTable
 local GetMaxNumericIndex = Utility.GetMaxNumericIndex
+local ErrorLog = Utility.ErrorLog
+local WarningLog = Utility.WarningLog
+local Format = Utility.Format
 local LogMessage  = TEN.Util.PrintLog
 
 --- Split a string into a table using a specified delimiter.
@@ -39,6 +42,7 @@ local LogMessage  = TEN.Util.PrintLog
 -- This matches the standard split behavior in JavaScript, Python, C#, and most other languages.
 -- @tparam string inputStr The string to split.
 -- @tparam[opt=" " (space)] string delimiter The delimiter to use for splitting.
+-- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] table A table containing the split substrings.
 -- @treturn[2] table {} An empty table if an error occurs, with a warning message.
 -- @usage
@@ -53,15 +57,16 @@ local LogMessage  = TEN.Util.PrintLog
 -- -- Trailing delimiter produces an empty string at the end:
 -- local result = StringUtils.SplitString("a,b,", ",")
 -- -- Result: {"a", "b", ""}
-StringUtils.SplitString = function(inputStr, delimiter)
+StringUtils.SplitString = function(inputStr, delimiter, errorContext)
+    errorContext = errorContext or "StringUtils.SplitString"
     if not IsString(inputStr) then
-        LogMessage("Error in StringUtils.SplitString: inputStr is not a string.", logLevelError)
+        ErrorLog("Error in {context}: inputStr is not a string.", { context = errorContext })
         return {}
     end
 
 	delimiter = delimiter or " "
     if not IsString(delimiter) then
-        LogMessage("Error in StringUtils.SplitString: delimiter is not a string.", logLevelError)
+        ErrorLog("Error in {context}: delimiter is not a string.", { context = errorContext })
         return {}
     end
 
@@ -88,8 +93,9 @@ end
 -- Variables explicitly set to `nil` in Lua are not stored in tables, so they also remain as `"{key}"`.
 -- @tparam string str The template string containing `{key}` placeholders.
 -- @tparam[opt={} (empty table)] table vars A table mapping keys to values.
--- @treturn[1] string The formatted string.
--- @treturn[2] any The original input unchanged if an error occurs (with a log message).
+-- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
+-- @treturn[1] string|any The formatted string or the original input unchanged if an error occurs (with a log message)
+-- @treturn[1] bool ok true if formatting is successful, false if an error occurs.
 -- @usage
 -- -- Basic usage:
 -- local msg = StringUtils.Format("Hello {name}!", { name = "Lara" })
@@ -134,7 +140,7 @@ end
 -- -- Result: "Target: nil"
 --
 -- LevelVars.target = 5
--- local msg = StringUtils.Format("Target: {target}", { target = tostring(LevelVars.target) })
+-- local msg = StringUtils.Format("Target: {target}", { target = LevelVars.target })
 -- -- Result: "Target: 5"
 --
 -- -- Practical: debug log
@@ -155,23 +161,32 @@ end
 -- -- Practical: error messages
 -- local msg = StringUtils.Format("Error: {errorMsg}", { errorMsg = "Failed to load resource" })
 -- -- Result: "Error: Failed to load resource"
-StringUtils.Format = function(str, vars)
+--
+-- -- Edge cases and invalid patterns:
+--
+-- -- Unclosed braces
+-- -- Placeholders without a closing brace are left unchanged. No error or warning is emitted.
+-- local msg = StringUtils.Format("Hi {player", {player = "Lara"})
+-- -- Result: "Hi {player"
+--
+-- -- Nested braces
+-- -- Not supported. Content between outer braces is treated as a single key.
+-- local msg = StringUtils.Format("Error {code{value}}", {})
+-- -- Result: "Error {code{value}}" (key "code{value}" not found)
+StringUtils.Format = function(str, vars, errorContext)
+    errorContext = errorContext or "StringUtils.Format"
     if not IsString(str) then
-        LogMessage("Error in StringUtils.Format: str is not a string.", logLevelError)
-        return str
+        ErrorLog("Error in {context}: str is not a string.", { context = errorContext })
+        return str, false
     end
 
     vars = vars or {}
     if not IsTable(vars) then
-        LogMessage("Error in StringUtils.Format: vars is not a table.", logLevelError)
-        return str
+        ErrorLog("Error in {context}: vars is not a table.", { context = errorContext })
+        return str, false
     end
 
-    return (str:gsub("{(.-)}", function(key)
-        local val = vars[key]
-        if val == nil then return "{" .. key .. "}" end
-        return tostring(val)
-    end))
+    return Format(str, vars), true
 end
 
 --- Join array elements into a single string with a separator.

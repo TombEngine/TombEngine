@@ -1,4 +1,4 @@
------<style>table.function_list td.name {min-width: 291px;}</style>
+-----<style>table.function_list td.name {min-width: 367px;}</style>
 --- Lua support functions for converting between different units and formats.
 ---
 --- **Design Philosophy:**
@@ -25,16 +25,15 @@ local Type = require("Engine.Type")
 local Utility = require("Engine.Util")
 
 local FPS = Utility.Constants.FPS
-local logLevelError  = TEN.Util.LogLevel.ERROR
-local logLevelWarning = TEN.Util.LogLevel.WARNING
 
 local Color = TEN.Color
 local Time = TEN.Time
-local LogMessage  = TEN.Util.PrintLog
 local HSLtoColorRaw = Utility.HSLtoColorRaw
 local ColorToHSLRaw = Utility.ColorToHSLRaw
 local ColorToOKLchRaw = Utility.ColorToOKLchRaw
 local OKLchToColorRaw = Utility.OKLchToColorRaw
+local ErrorLog = Utility.ErrorLog
+local WarningLog = Utility.WarningLog
 local IsNumber = Type.IsNumber
 local IsColor = Type.IsColor
 local IsString = Type.IsString
@@ -46,75 +45,131 @@ local min = math.min
 --- Convert seconds to frames (assuming 30 FPS).
 -- @tparam float seconds Time in seconds. Seconds can be a positive float value with two decimal places. No negative values allowed.
 -- @tparam[opt=30] int fps Frames per second.
--- @treturn[1] float Number of frames.
--- @treturn[2] int 0 If an error occurs.
+-- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
+-- @treturn[1] float `result`: Number of frames, or 0 if an error occurs.
+-- @treturn[1] bool `ok`: true if conversion is successful, false if an error occurs.
 -- @usage
+-- -- Basic usage:
 -- local frames = ConversionUtils.SecondsToFrames(2.0) -- Result: 60 for 30 FPS
-ConversionUtils.SecondsToFrames = function(seconds, fps)
+--
+-- -- Advanced: error handling in a module function
+-- local function GetFrameCount(seconds, fps)
+--     local frames, ok = ConversionUtils.SecondsToFrames(seconds, fps, "GetFrameCount")
+--     if not ok then
+--         return 0  -- or fallback value
+--     end
+--     return frames
+-- end
+ConversionUtils.SecondsToFrames = function(seconds, fps, errorContext)
     fps = fps or FPS
+    errorContext = errorContext or "ConversionUtils.SecondsToFrames"
     if not IsNumber(seconds) or not IsNumber(fps) or seconds < 0 or fps < 0 then
-        LogMessage("Error in ConversionUtils.SecondsToFrames: seconds and fps must be positive numbers.", logLevelError)
-        return 0
+        ErrorLog("Error in {context}: seconds and fps must be positive numbers.", {context = errorContext })
+        return 0, false
     end
 
     -- Check if fps is a float and warn user
     if fps ~= floor(fps) then
-        LogMessage("Warning in ConversionUtils.SecondsToFrames: fps should be an integer. Rounding " .. fps .. " to " .. floor(fps + 0.5) .. ".", logLevelWarning)
-        fps = floor(fps + 0.5)
+        local roundFps = floor(fps + 0.5)
+        WarningLog("Warning in {context}: fps should be an integer. Rounding {frames} to {round}", {context = errorContext, fps = fps, round = roundFps})
+        fps = roundFps
     end
 
-    return floor(seconds * fps)
+    return floor(seconds * fps), true
 end
 
 --- Convert frames to seconds (assuming 30 FPS).
 -- @tparam int frames Number of frames. Frames can be a positive integer. No negative values allowed.
 -- @tparam[opt=30] int fps Frames per second. No negative values or zero allowed.
--- @treturn[1] float Time in seconds.
--- @treturn[2] float 0 If an error occurs.
+-- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
+-- @treturn[1] float `result`: Time in seconds, or 0 if an error occurs.
+-- @treturn[1] bool ok true if conversion is successful, false if an error occurs.
 -- @usage
+-- -- Basic usage:
 -- local seconds = ConversionUtils.FramesToSeconds(60) -- Result: 2.0
-ConversionUtils.FramesToSeconds = function(frames, fps)
+--
+-- -- Advanced: error handling in a module function
+-- local function GetDurationInSeconds(frames, fps)
+--     local seconds, ok = ConversionUtils.FramesToSeconds(frames, fps, "GetDurationInSeconds")
+--     if not ok then
+--         return 0  -- or fallback value
+--     end
+--     return seconds
+-- end
+ConversionUtils.FramesToSeconds = function(frames, fps, errorContext)
     fps = fps or FPS
+    errorContext = errorContext or "ConversionUtils.FramesToSeconds"
     if not IsNumber(frames) or frames < 0 then
-        LogMessage("Error in ConversionUtils.FramesToSeconds: frames must be positive numbers", logLevelError)
-        return 0
+        ErrorLog("Error in {context}: frames must be positive numbers", {context = errorContext})
+        return 0, false
     end
-    if fps and (not IsNumber(fps) or fps <= 0) then
-        LogMessage("Error in ConversionUtils.FramesToSeconds: fps must be a positive number and greater than zero.", logLevelError)
-        return 0
+    if not IsNumber(fps) or fps <= 0 then
+        ErrorLog("Error in {context}: fps must be a positive number and greater than zero.", {context = errorContext})
+        return 0, false
     end
 
     -- Check if frames is a float and warn user
     if frames ~= floor(frames) then
-        LogMessage("Warning in ConversionUtils.FramesToSeconds: frames should be an integer. Rounding " .. frames .. " to " .. floor(frames + 0.5) .. ".", logLevelWarning)
-        frames = floor(frames + 0.5)
+        local roundFrames = floor(frames + 0.5)
+        WarningLog("Warning in {context}: frames should be an integer. Rounding {frames} to {round}", {context = errorContext, frames = frames, round = roundFrames})
+        frames = roundFrames
     end
 
     -- Check if fps is a float and warn user
     if fps ~= floor(fps) then
-        LogMessage("Warning in ConversionUtils.FramesToSeconds: fps should be an integer. Rounding " .. fps .. " to " .. floor(fps + 0.5) .. ".", logLevelWarning)
-        fps = floor(fps + 0.5)
+        local roundFps = floor(fps + 0.5)
+        WarningLog("Warning in {context}: fps should be an integer. Rounding {frames} to {round}", { context = errorContext, fps = fps, round = roundFps})
+        fps = roundFps
     end
 
-    return frames / fps
+    return frames / fps , true
 end
 
---- Convert seconds to a TEN.Time object. TEN.Time internally uses game frames at 30 FPS; seconds are converted to frames and rounded to the nearest frame.
+--- Convert seconds to a @{Time} object. TEN.Time internally uses game frames at 30 FPS; seconds are converted to frames and rounded to the nearest frame.
 -- @tparam float seconds Time in seconds. Seconds can be a positive float value with two decimal places. No negative values allowed.
--- @treturn[1] Time The TEN.Time object.
--- @treturn[2] Time (with zero frames) If an error occurs.
-ConversionUtils.SecondsToTime = function (seconds)
+-- @tparam[opt=0] float minimum Minimum allowed value for seconds.
+-- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
+-- @treturn[1] bool `result`: Time Seconds converted to game frames, or 0 game frames if an error occurs (with a log message)
+-- @treturn[1] bool `ok` true if conversion is successful, false if an error occurs.
+-- @usage
+-- -- Example: Convert 2 seconds to a Time object
+-- local time, ok = ConversionUtils.SecondsToTime(2.0) -- Result: Time object representing 60 frames (2 seconds at 30 FPS)
+--
+-- -- Error handling example in a custom module function:
+-- local function SetAnimationDuration(seconds)
+--     local time, ok = ConversionUtils.SecondsToTime(seconds, 0, "SetAnimationDuration")
+--     if not ok then
+--         return  -- or fallback value
+--     end
+--     -- time is guaranteed valid here
+--     animation:SetDuration(time)
+-- end
+--
+-- -- Result of calling with invalid input:
+-- SetAnimationDuration(-1) -- Logs: "Error in SetAnimationDuration: seconds must be greater than or equal to 0."
+ConversionUtils.SecondsToTime = function (seconds, minimum, errorContext)
+    errorContext = errorContext or "ConversionUtils.SecondsToTime"
     if not IsNumber(seconds) or seconds < 0 then
-        LogMessage("Error in ConversionUtils.SecondsToTime: seconds must be positive numbers.", logLevelError)
-        return Time()
+        ErrorLog("Error in {context}: seconds must be a positive number.", {context = errorContext })
+        return Time(), false
     end
-    return Time(floor(seconds * FPS))
+    if minimum and (not IsNumber(minimum) or minimum < 0) then
+        WarningLog("Warning in {context}: minimum should be a number, using default 0.", {context = errorContext})
+        minimum = 0
+    end
+    minimum = minimum or 0
+    if seconds <= minimum then
+        ErrorLog("Error in {context}: seconds must be greater than or equal to {minimum}.", {context = errorContext, minimum = minimum})
+        return Time(), false
+    end
+    return Time(floor(seconds * FPS)), true
 end
 
 --- Convert a hexadecimal color string to a TEN.Color object.
 --
 -- Allowed formats: "#RRGGBB", "RRGGBB", "#RRGGBBAA", "RRGGBBAA" (case-insensitive).
 -- @tparam string hex The hexadecimal color string
+-- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] Color The TEN.Color object.
 -- @treturn[2] nil If the input string is invalid.
 -- @usage
@@ -130,20 +185,22 @@ end
 -- -- Example with 8-digit hex (RGBA):
 -- local color = ConversionUtils.HexToColor("#FF573380") -- Result: TEN.Color(255, 87, 51, 128)
 --
--- -- Error handling example:
--- local color = ConversionUtils.HexToColor("GHIJKL") -- Result: nil (invalid hex string)
--- if color == nil then
---     TEN.Util.PrintLog("Failed to convert hex to color", TEN.Util.LogLevel.ERROR)
---     return  -- or use a fallback value
+-- -- Advanced: load color from config with error handling
+-- local function ApplyThemeColor(sprite, hexColor)
+--     local color = ConversionUtils.HexToColor(hexColor, "ApplyThemeColor")
+--     if not color then
+--         color = TEN.Color(255, 255, 255)  -- fallback: white
+--         -- the error will be generated by HexToColor, no need to log again
+--     end
+--     sprite:SetColor(color)
 -- end
--- -- Apply color to a sprite
--- sprite:SetColor(color)
 --
 -- -- Safe approach with default fallback:
 -- local color = ConversionUtils.HexToColor(hexString) or TEN.Color(255, 255, 255, 255)
-ConversionUtils.HexToColor = function(hex)
+ConversionUtils.HexToColor = function(hex, errorContext)
+    errorContext = errorContext or "ConversionUtils.HexToColor"
     if not IsString(hex) then
-        LogMessage("Error in ConversionUtils.HexToColor: hex must be a string.", logLevelError)
+        ErrorLog("Error in {context}: hex must be a string.", {context = errorContext})
         return nil
     end
 
@@ -155,7 +212,7 @@ ConversionUtils.HexToColor = function(hex)
 
     -- Validate length (6 for RGB, 8 for RGBA)
     if hexLen ~= 6 and hexLen ~= 8 then
-        LogMessage("Error in ConversionUtils.HexToColor: invalid hex string length. Expected 6 or 8 characters.", logLevelError)
+        ErrorLog("Error in {context}: invalid hex string length. Expected 6 or 8 characters.", {context = errorContext})
         return nil
     end
 
@@ -167,7 +224,7 @@ ConversionUtils.HexToColor = function(hex)
 
     -- Validate conversion
     if not (r and g and b and a) then
-        LogMessage("Error in ConversionUtils.HexToColor: invalid hexadecimal values.", logLevelError)
+        ErrorLog("Error in {context}: invalid hexadecimal values.", {context = errorContext})
         return nil
     end
 
@@ -177,6 +234,7 @@ end
 --- Convert a TEN.Color object to HSL (Hue, Saturation, Lightness) values.
 -- Uses the Color:GetHue() method for accurate hue extraction.
 -- @tparam Color color The TEN.Color object to convert.
+-- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] HSLData A table with h, s, l, a values { h = float, s = float, l = float, a = float }.
 -- @treturn[2] nil If the parameter is not a valid TEN Color.
 -- @usage
@@ -190,18 +248,24 @@ end
 -- local hsl = ConversionUtils.ColorToHSL(invalidColor)
 -- -- Result: nil (invalid color)
 --
--- -- Error handling example:
--- local hsl = ConversionUtils.ColorToHSL(invalidColor)
--- if hsl == nil then
---     TEN.Util.PrintLog("Failed to convert color to HSL", TEN.Util.LogLevel.ERROR)
---     return
+-- -- Advanced: desaturate an enemy on defeat
+-- local function DesaturateEnemy(moveable)
+--     local original = moveable:GetColor()
+--     local hsl = ConversionUtils.ColorToHSL(original, "DesaturateEnemy")
+--     if not hsl then 
+--         return
+--         -- the error will be generated by ColorToHSL, no need to log again
+--     end
+--     hsl.s = hsl.s * 0.2  -- Reduce saturation to 20%
+--     moveable:SetColor(ConversionUtils.HSLtoColor(hsl))
 -- end
 --
 -- -- Safe approach with default fallback:
 -- local hsl = ConversionUtils.ColorToHSL(color) or { h = 0, s = 0, l = 0, a = 1.0 }
-ConversionUtils.ColorToHSL = function(color)
+ConversionUtils.ColorToHSL = function(color, errorContext)
+    errorContext = errorContext or "ConversionUtils.ColorToHSL"
     if not IsColor(color) then
-        LogMessage("Error in ConversionUtils.ColorToHSL: color must be a Color object.", logLevelError)
+        ErrorLog("Error in {context}: color must be a Color object.", {context = errorContext})
         return nil
     end
 
@@ -212,6 +276,7 @@ end
 --- Convert an HSL color table to a TEN.Color object. Typically used with the table returned by @{ColorToHSL}.
 -- Out-of-range values are clamped to valid ranges with a warning; only invalid types cause an error.
 -- @tparam HSLData hsl An `HSLData` table with h, s, l, a fields.
+-- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] Color The TEN.Color object (always valid — out-of-range values are clamped with a warning).
 -- @treturn[2] nil If the input is not a table, or if h, s, l are not numbers.
 -- @usage
@@ -257,9 +322,10 @@ end
 -- -- Out-of-range handling: values are clamped with a warning.
 -- local orange = ConversionUtils.HSLtoColor({h = 400, s = 1, l = 0.5}) -- h=400 wrapped to 40°
 -- sprite:SetColor(orange)  -- Always safe with a warning message, no nil check needed
-ConversionUtils.HSLtoColor = function(hsl)
+ConversionUtils.HSLtoColor = function(hsl, errorContext)
+    errorContext = errorContext or "ConversionUtils.HSLtoColor"
     if not IsTable(hsl) then
-        LogMessage("Error in ConversionUtils.HSLtoColor: expected an HSLData table.", logLevelError)
+        ErrorLog("Error in {context}: expected an HSLData table.", {context = errorContext})
         return nil
     end
 
@@ -270,19 +336,19 @@ ConversionUtils.HSLtoColor = function(hsl)
 
     -- Validate parameters
     if not (IsNumber(h) and IsNumber(s) and IsNumber(l)) then
-        LogMessage("Error in ConversionUtils.HSLtoColor: h, s, and l must be numbers.", logLevelError)
+        ErrorLog("Error in {context}: expected an HSLData table.", {context = errorContext})
         return nil
     end
     if h < 0 or h > 360 then
-        LogMessage("Warning in ConversionUtils.HSLtoColor: h = " .. h .. " is outside range [0, 360]. Wrapping to [0, 360).", logLevelWarning)
+        WarningLog("Warning in {context}: h = {h} is outside range [0, 360]. Wrapping to [0, 360).", {context = errorContext, h = h})
         h = h % 360
     end
     if s < 0 or s > 1 then
-        LogMessage("Warning in ConversionUtils.HSLtoColor: s = " .. s .. " is outside range [0, 1]. Clamping.", logLevelWarning)
+        WarningLog("Warning in {context}: s = {s} is outside range [0, 1]. Clamping.", {context = errorContext, s = s})
         s = max(0, min(1, s))
     end
     if l < 0 or l > 1 then
-        LogMessage("Warning in ConversionUtils.HSLtoColor: l = " .. l .. " is outside range [0, 1]. Clamping.", logLevelWarning)
+        WarningLog("Warning in {context}: l = {l} is outside range [0, 1]. Clamping.", {context = errorContext, l = l})
         l = max(0, min(1, l))
     end
 
@@ -290,10 +356,10 @@ ConversionUtils.HSLtoColor = function(hsl)
     if a == nil then
         a = 1.0
     elseif not IsNumber(a) then
-        LogMessage("Warning in ConversionUtils.HSLtoColor: a should be a number. Defaulting to 1.0.", logLevelWarning)
+        WarningLog("Warning in {context}: a should be a number. Defaulting to 1.0.", {context = errorContext})
         a = 1.0
     elseif a < 0 or a > 1 then
-        LogMessage("Warning in ConversionUtils.HSLtoColor: a = " .. a .. " is outside range [0, 1]. Clamping.", logLevelWarning)
+        WarningLog("Warning in {context}: a = {a} is outside range [0, 1]. Clamping.", {context = errorContext, a = a})
         a = max(0, min(1, a))
     end
 
@@ -310,6 +376,7 @@ end
 --
 -- - Rainbow gradients with consistent perceived brightness
 -- @tparam Color color The TEN.Color object to convert.
+-- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] OKLchData A table with l, c, h, a values { l = float (0-1), c = float (0-0.4), h = float (0-360), a = float (0-1) }.
 -- @treturn[2] nil If the parameter is not a valid TEN Color.
 -- @usage
@@ -332,9 +399,10 @@ end
 --
 -- -- Safe approach with default fallback:
 -- local oklch = ConversionUtils.ColorToOKLch(color) or { l = 0.5, c = 0, h = 0, a = 1.0 }
-ConversionUtils.ColorToOKLch = function(color)
+ConversionUtils.ColorToOKLch = function(color, errorContext)
+    errorContext = errorContext or "ConversionUtils.ColorToOKLch"
     if not IsColor(color) then
-        LogMessage("Error in ConversionUtils.ColorToOKLch: color must be a Color object.", logLevelError)
+        ErrorLog("Error in {context}: color must be a Color object.", {context = errorContext})
         return nil
     end
 
@@ -355,8 +423,9 @@ end
 --
 -- - When in doubt, start with c = 0.15 and increase until the result looks right
 --
--- <p style = "margin: 10px 0 0 0px;">For full-spectrum color cycling (e.g. rainbow effects), prefer `HSLtoColor` which always produces displayable colors, at the cost of non-uniform perceived brightness.</p>
+-- For full-spectrum color cycling (e.g. rainbow effects), prefer `HSLtoColor` which always produces displayable colors, at the cost of non-uniform perceived brightness.
 -- @tparam OKLchData oklch An `OKLchData` table with l, c, h, a fields.
+-- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] Color The TEN.Color object (always valid — out-of-range values are clamped with a warning).
 -- @treturn[2] nil If the input is not a table, or if l, c, h are not numbers.
 -- @usage
@@ -369,7 +438,7 @@ end
 -- local gray = ConversionUtils.OKLchToColor({l = 0.5, c = 0, h = 0})  -- Hue irrelevant when c=0
 --
 -- -- Practical example: Desaturate while preserving perceived brightness
--- local vividColor = TEN.Color(255, 0, 128, 255)
+-- local vividColor = TEN.Color(255, 0, 128)
 -- local oklch = ConversionUtils.ColorToOKLch(vividColor) -- convert to OKLch color table
 -- if oklch then
 --     oklch.c = oklch.c * 0.5  -- edit color: Reduce chroma by 50%
@@ -437,9 +506,10 @@ end
 -- local color = ConversionUtils.OKLchToColor({l = -0.2, c = 0.9, h = 400})
 -- -- l=-0.2 clamped to 0, c=0.9 clamped to 0.4, h=400 wrapped to 40°
 -- sprite:SetColor(color)  -- Always safe with a warning message, no nil check needed
-ConversionUtils.OKLchToColor = function(oklch)
+ConversionUtils.OKLchToColor = function(oklch, errorContext)
+    errorContext = errorContext or "ConversionUtils.OKLchToColor"
     if not IsTable(oklch) then
-        LogMessage("Error in ConversionUtils.OKLchToColor: expected an OKLchData table.", logLevelError)
+        ErrorLog("Error in {context}: expected an OKLchData table.", {context = errorContext})
         return nil
     end
 
@@ -450,19 +520,19 @@ ConversionUtils.OKLchToColor = function(oklch)
 
     -- Validate parameters
     if not (IsNumber(l) and IsNumber(c) and IsNumber(h)) then
-        LogMessage("Error in ConversionUtils.OKLchToColor: l, c, h must be numbers.", logLevelError)
+        ErrorLog("Error in {context}: l, c, h must be numbers.", {context = errorContext})
         return nil
     end
     if l < 0 or l > 1 then
-        LogMessage("Warning in ConversionUtils.OKLchToColor: l = " .. l .. " is outside range [0, 1]. Clamping.", logLevelWarning)
+        WarningLog("Warning in {context}: l = {l} is outside range [0, 1]. Clamping.", {context = errorContext, l = l})
         l = max(0, min(1, l))
     end
     if c < 0 or c > 0.4 then
-        LogMessage("Warning in ConversionUtils.OKLchToColor: c = " .. c .. " is outside sRGB safe range [0, 0.4]. Clamping. Colors may be less vivid or shift slightly.", logLevelWarning)
+        WarningLog("Warning in {context}: c = {c} is outside sRGB safe range [0, 0.4]. Clamping. Colors may be less vivid or shift slightly.", {context = errorContext, c = c})
         c = max(0, min(0.4, c))
     end
     if h < 0 or h > 360 then
-        LogMessage("Warning in ConversionUtils.OKLchToColor: h = " .. h .. " is outside range [0, 360]. Wrapping to [0, 360).", logLevelWarning)
+        WarningLog("Warning in {context}: h = {h} is outside range [0, 360]. Wrapping to [0, 360).", {context = errorContext, c = c})
         h = h % 360
     end
 
@@ -470,10 +540,10 @@ ConversionUtils.OKLchToColor = function(oklch)
     if a == nil then
         a = 1.0
     elseif not IsNumber(a) then
-        LogMessage("Warning in ConversionUtils.OKLchToColor: a should be a number. Defaulting to 1.0.", logLevelWarning)
+        WarningLog("Warning in {context}: a should be a number. Defaulting to 1.0.", {context = errorContext})
         a = 1.0
     elseif a < 0 or a > 1 then
-        LogMessage("Warning in ConversionUtils.OKLchToColor: a = " .. a .. " is outside range [0, 1]. Clamping.", logLevelWarning)
+        WarningLog("Warning in {context}: a = {a} is outside range [0, 1]. Clamping.", {context = errorContext, a = a})
         a = max(0, min(1, a))
     end
 
