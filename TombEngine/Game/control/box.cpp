@@ -146,6 +146,34 @@ static Vector3 GetBoxCenter(int boxIndex)
 	return Vector3(z, y, x);
 }
 
+static int GetOverlapFlagsBetweenBoxes(int fromBox, int toBox)
+{
+	if (fromBox == NO_VALUE || toBox == NO_VALUE)
+		return 0;
+
+	if (fromBox < 0 || fromBox >= (int)g_Level.PathfindingBoxes.size())
+		return 0;
+
+	int index = g_Level.PathfindingBoxes[fromBox].overlapIndex;
+	if (index < 0)
+		return 0;
+
+	while (index < (int)g_Level.Overlaps.size())
+	{
+		const auto& overlap = g_Level.Overlaps[index];
+
+		if (overlap.box == toBox)
+			return overlap.flags;
+
+		if (overlap.flags & OVERLAP_END_BIT)
+			break;
+
+		index++;
+	}
+
+	return 0;
+}
+
 static void DrawBox(int boxIndex, const Vector3& color)
 {
 	if (boxIndex <= NO_VALUE || boxIndex >= g_Level.PathfindingBoxes.size())
@@ -735,12 +763,32 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		nextHeight = g_Level.PathfindingBoxes[nextBox].height;
 
 	bool heightThresholdReached = LOT->Fly == NO_FLYING && !LOT->IsJumping && (boxHeight - height > LOT->Step || boxHeight - height < LOT->Drop);
-	bool zoneIncorrect = item->BoxNumber != NO_VALUE && !LOT->IsJumping && LOT->Zone != ZoneType::Flyer && (zone[item->BoxNumber] != zone[floor->PathfindingBoxID]);
+	bool zoneIncorrect = item->BoxNumber != NO_VALUE && !LOT->IsJumping && !LOT->IsMonkeying && LOT->Zone != ZoneType::Flyer && (zone[item->BoxNumber] != zone[floor->PathfindingBoxID]);
+
+	bool invalidMonkeyTraversal = false;
+	if (LOT->IsMonkeying)
+	{
+		auto pointColl = GetPointCollision(item->Pose.Position, roomNumber);
+
+		// Must remain under actual monkey-swing ceiling.
+		if (!pointColl.GetBottomSector().Flags.Monkeyswing)
+		{
+			invalidMonkeyTraversal = true;
+		}
+		// If we crossed into another box while monkeying, that transition itself
+		// must be a MONKEY overlap.
+		else if (item->BoxNumber != NO_VALUE &&
+			floor->PathfindingBoxID != item->BoxNumber &&
+			(GetOverlapFlagsBetweenBoxes(item->BoxNumber, floor->PathfindingBoxID) & OVERLAP_MONKEY) == 0)
+		{
+			invalidMonkeyTraversal = true;
+		}
+	}
 
 	// ZONE/STEP/DROP VALIDATION:
 	// If creature moved to invalid floor, push back to sector boundary.
 
-	if (floor->PathfindingBoxID == NO_VALUE || heightThresholdReached || zoneIncorrect)
+	if (floor->PathfindingBoxID == NO_VALUE || heightThresholdReached || zoneIncorrect || invalidMonkeyTraversal) 
 	{
 		if (heightThresholdReached)
 			AddBadBox(LOT, floor->PathfindingBoxID);
@@ -750,6 +798,27 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		zPos = item->Pose.Position.z / BLOCK(1);
 		shiftX = prevPos.x / BLOCK(1);
 		shiftZ = prevPos.z / BLOCK(1);
+
+		if (invalidMonkeyTraversal)
+		{
+			item->Pose.Position.x = prevPos.x;
+			item->Pose.Position.z = prevPos.z;
+
+			floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
+
+			if (floor->PathfindingBoxID != NO_VALUE)
+			{
+				height = g_Level.PathfindingBoxes[floor->PathfindingBoxID].height;
+
+				if (!Objects[item->ObjectNumber].nonLot)
+					nextBox = LOT->Node[floor->PathfindingBoxID].exitBox;
+				else
+					nextBox = floor->PathfindingBoxID;
+			}
+
+			nextHeight = (nextBox == NO_VALUE) ? height : g_Level.PathfindingBoxes[nextBox].height;
+		}
+		else
 
 		// Push to sector edge based on movement direction.
 		if (xPos < shiftX)
@@ -1480,7 +1549,7 @@ bool BadFloor(int x, int y, int z, int boxHeight, int nextHeight, short roomNumb
 	if (floor->PathfindingBoxID == NO_VALUE)
 		return true;
 
-	if (LOT->IsJumping)
+	if (LOT->IsJumping || LOT->IsMonkeying)
 		return false;
 
 	auto* box = &g_Level.PathfindingBoxes[floor->PathfindingBoxID];
@@ -2731,30 +2800,14 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		int endBox = LOT->Node[item->BoxNumber].exitBox;
 		if (endBox != NO_VALUE)
 		{
-			// Find the overlap that connects current box to exit box.
-			int overlapIndex = g_Level.PathfindingBoxes[item->BoxNumber].overlapIndex;
-			int nextBox = 0;
-			int flags = 0;
+			// Check the traversal flags of the overlap connecting the current box to the exit box.
+			int flags = GetOverlapFlagsBetweenBoxes(item->BoxNumber, endBox);
 
-			// Search through overlaps until we find the one leading to exitBox.
-			if (overlapIndex >= 0)
-			{
-				do
-				{
-					nextBox = g_Level.Overlaps[overlapIndex].box;
-					flags = g_Level.Overlaps[overlapIndex++].flags;
-				} while (nextBox != NO_VALUE && ((flags & OVERLAP_END_BIT) == false) && (nextBox != endBox));
-			}
+			if (flags & OVERLAP_JUMP)
+				creature->JumpAhead = true;
 
-			// If we found the exit overlap, check its traversal flags.
-			if (nextBox == endBox)
-			{
-				if (flags & OVERLAP_JUMP)
-					creature->JumpAhead = true;
-
-				if (flags & OVERLAP_MONKEY)
-					creature->MonkeySwingAhead = true;
-			}
+			if (flags & OVERLAP_MONKEY)
+				creature->MonkeySwingAhead = true;
 		}
 	}
 }

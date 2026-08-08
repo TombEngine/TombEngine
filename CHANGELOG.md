@@ -41,11 +41,11 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added OILRED object from TR3.
 * Added WHITE_SOLDIER object from TR3.
 * Added PUNK object from TR3. Object supports properties to configure the flame attack.
-* Added LONDON_MERCENARY object from TR3.
+* Added [LONDON_MERCENARY](https://tombengine.com/asset/enemy/london-mercenary/) object from TR3.
 * Added SWAT_GUN object from TR3.
 * Added PRISONER object from TR3.
-* Added WASP_MUTANT_EMITTER object from TR3.
-* Added WILLARD  object from TR3.
+* Added [WASP_MUTANT_EMITTER](https://tombengine.com/asset/enemy/wasp/) object from TR3.
+* Added [WILLARD](https://tombengine.com/asset/enemy/willard/)  object from TR3.
 * Added WHALE object from TR3.
 * Added CIVVY object from TR3.
 * Added optional headlight mesh support for JEEP, toggled together with the headlight.
@@ -58,6 +58,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed original bug with bridge objects blocking monkeyswing and ladder flags in the bottom room.
 * Fixed original bug with inactive SQUISHY_BLOCK_VERTICAL killing player.
 * Fixed incorrect application of LARA_DOUBLE damage after using medipacks.
+* Fixed BADDY1 / BADDY2 not monkey-swinging.
 * Fixed BURNING_FLOOR, ELEMENTAL_PUZZLE and SCALES.
 * Fixed MINECART_SWITCH object not working.
 * Fixed JUMP_SWITCH not activating event sets.
