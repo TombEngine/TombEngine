@@ -55,10 +55,9 @@ PixelShaderInput VS(VertexShaderInput input)
 
 	if (CameraUnderwater != Water)
 	{
-		float dist = length(pos - CamPositionWS.xyz);
 		float factor = InterpolatedFrame + (pos.x + pos.z) * 0.2f;
-		float xOffset = (sin(factor * PI / 20.0f)) * (dist / 1024) * 3;
-		float yOffset = (cos(factor * PI / 20.0f)) * (dist / 1024) * 3;
+		float xOffset = (sin(factor * PI / 20.0f)) * (screenPos.z / 1024.0f) * 3.0f;
+		float yOffset = (cos(factor * PI / 20.0f)) * (screenPos.z / 1024.0f) * 3.0f;
 		screenPos.x += xOffset * weight;
 		screenPos.y += yOffset * weight;
 	}
