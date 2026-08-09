@@ -59,6 +59,7 @@ namespace TEN::Entities::Vehicles
 	constexpr auto KAYAK_DRAW_SHIFT = 32;
 	constexpr auto KAYAK_X = 128;
 	constexpr auto KAYAK_Z = 128;
+	constexpr auto KAYAK_SPLASH_RADIUS = 250;
 	constexpr auto KAYAK_MAX_KICK = -80;
 	constexpr auto KAYAK_MIN_BOUNCE = (KAYAK_VELOCITY_MAX / 2) / VEHICLE_VELOCITY_SCALE;
 
@@ -1056,6 +1057,55 @@ namespace TEN::Entities::Vehicles
 		lara->Control.Weapon.GunType = LaraWeaponType::None;
 		lara->ExtraAnim = 1;
 		lara->HitDirection = -1;
+	}
+
+	static void KayakSplash(ItemInfo* kayakItem, int verticalVelocity)
+	{
+		// Restore the classic TR3 kayak splash produced when it drops into water from height.
+		TriggerVehicleSplash(kayakItem, verticalVelocity, KAYAK_SPLASH_RADIUS);
+	}
+
+	void KayakItemControl(short itemNumber)
+	{
+		auto* kayakItem = &g_Level.Items[itemNumber];
+		auto* kayak = GetKayakInfo(kayakItem);
+
+		// While Lara drives the kayak, its tracking is handled by KayakControl() instead.
+		if (LaraItem != nullptr && GetLaraInfo(LaraItem)->Context.Vehicle == itemNumber)
+			return;
+
+		auto* laraItem = LaraItem.Get();
+
+		// Establish the water height first so a freshly dropped kayak falls onto it correctly.
+		auto probe = GetPointCollision(*kayakItem);
+		int water = GetPointCollision(kayakItem->Pose.Position, probe.GetRoomNumber()).GetWaterTopHeight();
+		if (water == NO_HEIGHT)
+		{
+			water = probe.GetFloorHeight();
+			kayak->TrueWater = false;
+		}
+		else
+		{
+			water -= 5;
+			kayak->TrueWater = true;
+		}
+		kayak->WaterHeight = water;
+
+		// Cache the vertical velocity to detect a water impact.
+		int ofs = kayakItem->Animation.Velocity.y;
+
+		KayakToBackground(kayakItem, laraItem);
+
+		// The kayak has just landed on water after a fall; spawn a splash.
+		if (ofs - kayakItem->Animation.Velocity.y > 32 &&
+			kayakItem->Animation.Velocity.y == 0 && water != NO_HEIGHT)
+		{
+			KayakSplash(kayakItem, ofs - kayakItem->Animation.Velocity.y);
+		}
+
+		probe = GetPointCollision(*kayakItem);
+		if (probe.GetRoomNumber() != kayakItem->RoomNumber)
+			ItemNewRoom(itemNumber, probe.GetRoomNumber());
 	}
 
 	bool KayakControl(ItemInfo* laraItem)

@@ -434,6 +434,23 @@ namespace TEN::Entities::Vehicles
 		g_Hud.Speedometer.UpdateValue(value);
 	}
 
+	void TriggerVehicleSplash(ItemInfo* vehicleItem, float fallVelocity, float splashRadius)
+	{
+		auto pointColl = GetPointCollision(*vehicleItem);
+		int room = pointColl.GetRoomNumber();
+
+		int waterHeight = GetPointCollision(vehicleItem->Pose.Position, room).GetWaterTopHeight();
+		if (waterHeight == NO_HEIGHT)
+			return;
+
+		// Spawn a splash at the water's surface proportional to the fall velocity, mimicking the
+		// large splash legacy TR3 boats produced when dropped from a winch into the water.
+		SplashSetup.Position = Vector3(vehicleItem->Pose.Position.x, waterHeight - 1, vehicleItem->Pose.Position.z);
+		SplashSetup.SplashPower = fallVelocity * 4.0f;
+		SplashSetup.InnerRadius = splashRadius;
+		SetupSplash(&SplashSetup, room);
+	}
+
 	void UpdateVehicleRoom(ItemInfo* vehicleItem, ItemInfo* laraItem, int currentRoomNumber)
 	{
 		if (vehicleItem == nullptr)

@@ -489,6 +489,12 @@ namespace TEN::Entities::Vehicles
 		return verticalVelocity;
 	}
 
+	static void RubberBoatSplash(ItemInfo* rBoatItem, int verticalVelocity)
+	{
+		// Restore the classic TR3 rubber boat splash produced when it drops into water from height.
+		TriggerVehicleSplash(rBoatItem, verticalVelocity, RBOAT_RADIUS);
+	}
+
 	bool RubberBoatUserControl(ItemInfo* rBoatItem, ItemInfo* laraItem)
 	{
 		auto* rBoat = GetRubberBoatInfo(rBoatItem);
@@ -870,6 +876,9 @@ namespace TEN::Entities::Vehicles
 		rBoat->RightVerticalVelocity = DoRubberBoatDynamics(heightFrontRight, rBoat->RightVerticalVelocity, (int*)&frontRight.y);
 		ofs = rBoatItem->Animation.Velocity.y;
 		rBoatItem->Animation.Velocity.y = DoRubberBoatDynamics(rBoat->Water, rBoatItem->Animation.Velocity.y, (int*)&rBoatItem->Pose.Position.y);
+
+		if (ofs - rBoatItem->Animation.Velocity.y > 32 && rBoatItem->Animation.Velocity.y == 0 && water != NO_HEIGHT)
+			RubberBoatSplash(rBoatItem, ofs - rBoatItem->Animation.Velocity.y);
 
 		height = frontLeft.y + frontRight.y;
 		if (height < 0)
