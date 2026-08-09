@@ -485,7 +485,7 @@ end
 -- @tparam number|string|Time operand The first value to compare.
 -- @tparam number|string|Time reference The second value to compare against.
 -- @tparam Operators operator The comparison operator to use.
--- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
+-- @tparam[opt="GeneralUtils.CompareValues"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] bool `result`: The result of the comparison or false if an error occurs (invalid operator or type mismatch), with an error message
 -- @usage
 -- -- Examples with numbers:

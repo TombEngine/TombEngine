@@ -45,7 +45,7 @@ local min = math.min
 --- Convert seconds to frames (assuming 30 FPS).
 -- @tparam float seconds Time in seconds. Seconds can be a positive float value with two decimal places. No negative values allowed.
 -- @tparam[opt=30] int fps Frames per second.
--- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
+-- @tparam[opt="ConversionUtils.SecondsToFrames"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] float `result`: Number of frames, or 0 if an error occurs.
 -- @treturn[1] bool `ok`: true if conversion is successful, false if an error occurs.
 -- @usage
@@ -81,7 +81,7 @@ end
 --- Convert frames to seconds (assuming 30 FPS).
 -- @tparam int frames Number of frames. Frames can be a positive integer. No negative values allowed.
 -- @tparam[opt=30] int fps Frames per second. No negative values or zero allowed.
--- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
+-- @tparam[opt="ConversionUtils.FramesToSeconds"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] float `result`: Time in seconds, or 0 if an error occurs.
 -- @treturn[1] bool ok true if conversion is successful, false if an error occurs.
 -- @usage
@@ -128,8 +128,8 @@ end
 --- Convert seconds to a @{Time} object. TEN.Time internally uses game frames at 30 FPS; seconds are converted to frames and rounded to the nearest frame.
 -- @tparam float seconds Time in seconds. Seconds can be a positive float value with two decimal places. No negative values allowed.
 -- @tparam[opt=0] float minimum Minimum allowed value for seconds.
--- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
--- @treturn[1] bool `result`: Time Seconds converted to game frames, or 0 game frames if an error occurs (with a log message)
+-- @tparam[opt="ConversionUtils.SecondsToTime"] string errorContext Context string for error messages (e.g., function name).
+-- @treturn[1] Time `result`: Time Seconds converted to game frames, or 0 game frames if an error occurs (with a log message)
 -- @treturn[1] bool `ok` true if conversion is successful, false if an error occurs.
 -- @usage
 -- -- Example: Convert 2 seconds to a Time object
@@ -158,7 +158,7 @@ ConversionUtils.SecondsToTime = function (seconds, minimum, errorContext)
         minimum = 0
     end
     minimum = minimum or 0
-    if seconds <= minimum then
+    if seconds < minimum then
         ErrorLog("Error in {context}: seconds must be greater than or equal to {minimum}.", {context = errorContext, minimum = minimum})
         return Time(), false
     end
@@ -169,7 +169,7 @@ end
 --
 -- Allowed formats: "#RRGGBB", "RRGGBB", "#RRGGBBAA", "RRGGBBAA" (case-insensitive).
 -- @tparam string hex The hexadecimal color string
--- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
+-- @tparam[opt="ConversionUtils.HexToColor"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] Color The TEN.Color object.
 -- @treturn[2] nil If the input string is invalid.
 -- @usage
@@ -234,7 +234,7 @@ end
 --- Convert a TEN.Color object to HSL (Hue, Saturation, Lightness) values.
 -- Uses the Color:GetHue() method for accurate hue extraction.
 -- @tparam Color color The TEN.Color object to convert.
--- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
+-- @tparam[opt="ConversionUtils.ColorToHSL"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] HSLData A table with h, s, l, a values { h = float, s = float, l = float, a = float }.
 -- @treturn[2] nil If the parameter is not a valid TEN Color.
 -- @usage
@@ -276,7 +276,7 @@ end
 --- Convert an HSL color table to a TEN.Color object. Typically used with the table returned by @{ColorToHSL}.
 -- Out-of-range values are clamped to valid ranges with a warning; only invalid types cause an error.
 -- @tparam HSLData hsl An `HSLData` table with h, s, l, a fields.
--- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
+-- @tparam[opt="ConversionUtils.HSLtoColor"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] Color The TEN.Color object (always valid — out-of-range values are clamped with a warning).
 -- @treturn[2] nil If the input is not a table, or if h, s, l are not numbers.
 -- @usage
@@ -376,7 +376,7 @@ end
 --
 -- - Rainbow gradients with consistent perceived brightness
 -- @tparam Color color The TEN.Color object to convert.
--- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
+-- @tparam[opt="ConversionUtils.ColorToOKLch"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] OKLchData A table with l, c, h, a values { l = float (0-1), c = float (0-0.4), h = float (0-360), a = float (0-1) }.
 -- @treturn[2] nil If the parameter is not a valid TEN Color.
 -- @usage
@@ -428,7 +428,7 @@ end
 --
 -- For full-spectrum color cycling (e.g. rainbow effects), prefer `HSLtoColor` which always produces displayable colors, at the cost of non-uniform perceived brightness.
 -- @tparam OKLchData oklch An `OKLchData` table with l, c, h, a fields.
--- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
+-- @tparam[opt="ConversionUtils.OKLchToColor"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] Color The TEN.Color object (always valid — out-of-range values are clamped with a warning).
 -- @treturn[2] nil If the input is not a table, or if l, c, h are not numbers.
 -- @usage

@@ -25,26 +25,22 @@ local StringUtils = {}
 local Type= require("Engine.Type")
 local Utility = require("Engine.Util")
 
-local logLevelError  = TEN.Util.LogLevel.ERROR
-
 local floor = math.floor
 local IsNumber = Type.IsNumber
 local IsString = Type.IsString
 local IsTable = Type.IsTable
 local GetMaxNumericIndex = Utility.GetMaxNumericIndex
 local ErrorLog = Utility.ErrorLog
-local WarningLog = Utility.WarningLog
 local Format = Utility.Format
-local LogMessage  = TEN.Util.PrintLog
 
 --- Split a string into a table using a specified delimiter.
 -- Empty fields between consecutive delimiters are preserved (e.g. `"a,,b"` → `{"a", "", "b"}`).
 -- This matches the standard split behavior in JavaScript, Python, C#, and most other languages.
 -- @tparam string inputStr The string to split.
 -- @tparam[opt=" " (space)] string delimiter The delimiter to use for splitting.
--- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
+-- @tparam[opt="StringUtils.SplitString"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] table A table containing the split substrings.
--- @treturn[2] table {} An empty table if an error occurs, with a warning message.
+-- @treturn[2] table {} An empty table if an error occurs, with a log message.
 -- @usage
 -- local str = "apple,banana,cherry"
 -- local result = StringUtils.SplitString(str, ",")
@@ -57,16 +53,25 @@ local LogMessage  = TEN.Util.PrintLog
 -- -- Trailing delimiter produces an empty string at the end:
 -- local result = StringUtils.SplitString("a,b,", ",")
 -- -- Result: {"a", "b", ""}
+--
+-- -- Advanced: parse a command string in a module
+-- local function ParseCommand(input)
+--     local parts = StringUtils.SplitString(input, " ", "ParseCommand")
+--     if #parts == 0 then
+--         return nil
+--     end  -- error already logged by SplitString
+--     return parts
+-- end
 StringUtils.SplitString = function(inputStr, delimiter, errorContext)
     errorContext = errorContext or "StringUtils.SplitString"
     if not IsString(inputStr) then
-        ErrorLog("Error in {context}: inputStr is not a string.", { context = errorContext })
+        ErrorLog("Error in {context}: inputStr is not a string.", {context = errorContext})
         return {}
     end
 
 	delimiter = delimiter or " "
     if not IsString(delimiter) then
-        ErrorLog("Error in {context}: delimiter is not a string.", { context = errorContext })
+        ErrorLog("Error in {context}: delimiter is not a string.", {context = errorContext})
         return {}
     end
 
@@ -93,7 +98,7 @@ end
 -- Variables explicitly set to `nil` in Lua are not stored in tables, so they also remain as `"{key}"`.
 -- @tparam string str The template string containing `{key}` placeholders.
 -- @tparam[opt={} (empty table)] table vars A table mapping keys to values.
--- @tparam[opt=""] string errorContext Context string for error messages (e.g., function name).
+-- @tparam[opt="StringUtils.Format"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] string|any The formatted string or the original input unchanged if an error occurs (with a log message)
 -- @treturn[1] bool ok true if formatting is successful, false if an error occurs.
 -- @usage
@@ -150,6 +155,8 @@ end
 --     pos = entity:GetPosition()
 -- })
 -- TEN.Util.PrintLog(msg, TEN.Util.LogLevel.INFO) -- Result: "Frame 120: door_01 moved to {100, 200, 300}"
+-- -- for a info log you can use GeneralUtils.InfoLog instead of PrintLog for convenience
+-- GeneralUtils.InfoLog(msg) -- Result: "Frame 120: door_01 moved to {100, 200, 300}"
 --
 -- -- Practical: UI display
 -- local msg = StringUtils.Format("Timer: {seconds}s | Score: {score}", {
@@ -176,13 +183,13 @@ end
 StringUtils.Format = function(str, vars, errorContext)
     errorContext = errorContext or "StringUtils.Format"
     if not IsString(str) then
-        ErrorLog("Error in {context}: str is not a string.", { context = errorContext })
+        ErrorLog("Error in {context}: str is not a string.", {context = errorContext})
         return str, false
     end
 
     vars = vars or {}
     if not IsTable(vars) then
-        ErrorLog("Error in {context}: vars is not a table.", { context = errorContext })
+        ErrorLog("Error in {context}: vars is not a table.", {context = errorContext})
         return str, false
     end
 
@@ -196,6 +203,7 @@ end
 -- The separator is treated as literal text (special characters like `.`, `%`, `{` are safe).
 -- @tparam table tbl The array-like table to join.
 -- @tparam[opt=", " (comma space)] string separator The separator inserted between elements.
+-- @tparam[opt="StringUtils.Join"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] string The joined string.
 -- @treturn[2] string "" If the table is empty (valid, no error).
 -- @treturn[3] string "" If an error occurs (with a log message).
@@ -256,15 +264,23 @@ end
 -- local items = {"Shotgun", "Medipack", "Key of Anubis"}
 -- local msg = StringUtils.Format("Inventory: {items}", { items = StringUtils.Join(items) })
 -- -- Result: "Inventory: Shotgun, Medipack, Key of Anubis"
-StringUtils.Join = function(tbl, separator)
+--
+-- -- Advanced: build a resource path with error context
+-- local function GetResourcePath(...)
+--     local path = StringUtils.Join({...}, "/", "GetResourcePath")
+--     -- error already logged by Join if arg is not a table
+--     return path
+-- end
+StringUtils.Join = function(tbl, separator, errorContext)
+    errorContext = errorContext or "StringUtils.Join"
     if not IsTable(tbl) then
-        LogMessage("Error in StringUtils.Join: tbl is not a table.", logLevelError)
+        ErrorLog("Error in {context}: tbl is not a table.", {context = errorContext})
         return ""
     end
 
     separator = separator or ", "
     if not IsString(separator) then
-        LogMessage("Error in StringUtils.Join: separator is not a string.", logLevelError)
+        ErrorLog("Error in {context}: separator is not a string.", {context = errorContext})
         return ""
     end
 
@@ -293,8 +309,8 @@ end
 -- Special characters like `.`, `-`, `%`, `^`, `]` are handled automatically.
 -- Multiple characters can be combined: `"._-"` removes dots, underscores and dashes.
 -- @tparam string str The string to trim.
--- @tparam[opt] string chars One or more literal characters to strip instead of whitespace.
--- If omitted, strips whitespace (spaces, tabs, newlines, carriage returns, form feeds, vertical tabs).
+-- @tparam[opt] string chars One or more literal characters to strip instead of whitespace. If omitted, strips whitespace (spaces, tabs, newlines, carriage returns, form feeds, vertical tabs).
+-- @tparam[opt="StringUtils.Trim"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] string The trimmed string.
 -- @treturn[2] string "" If the input consists entirely of stripped characters (valid, no error).
 -- @treturn[3] string "" If an error occurs (with a log message).
@@ -354,9 +370,19 @@ end
 --     parts[i] = StringUtils.Trim(v)
 -- end
 -- -- Result: {"apple", "banana", "cherry"}
-StringUtils.Trim = function(str, chars)
+--
+-- -- Advanced: sanitize user input in a module function
+-- local function SanitizeInput(input)
+--     local cleaned = StringUtils.Trim(input, nil, "SanitizeInput")
+--     if cleaned == "" then
+--         return nil
+--     end
+--     return cleaned
+-- end
+StringUtils.Trim = function(str, chars, errorContext)
+    errorContext = errorContext or "StringUtils.Trim"
     if not IsString(str) then
-        LogMessage("Error in StringUtils.Trim: str is not a string.", logLevelError)
+        ErrorLog("Error in {context}: str is not a string.", {context = errorContext})
         return ""
     end
 
@@ -375,7 +401,7 @@ StringUtils.Trim = function(str, chars)
     end
 
     if not IsString(chars) then
-        LogMessage("Error in StringUtils.Trim: chars is not a string.", logLevelError)
+        ErrorLog("Error in {context}: chars is not a string.", {context = errorContext})
         return ""
     end
 
@@ -407,6 +433,7 @@ end
 -- An empty prefix `""` always returns `true` (every string starts with the empty string).
 -- @tparam string str The string to check.
 -- @tparam string prefix The prefix to look for.
+-- @tparam[opt="StringUtils.StartsWith"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] bool True if str starts with prefix.
 -- @treturn[2] bool false if no match or an error occurs (with a log message).
 -- @usage
@@ -470,14 +497,15 @@ end
 --     end
 -- end
 -- -- Result: {"key_gold", "key_silver", "key_bronze"}
-StringUtils.StartsWith = function(str, prefix)
+StringUtils.StartsWith = function(str, prefix, errorContext)
+    errorContext = errorContext or "StringUtils.StartsWith"
     if not IsString(str) then
-        LogMessage("Error in StringUtils.StartsWith: str is not a string.", logLevelError)
+        ErrorLog("Error in {context}: str is not a string.", {context = errorContext})
         return false
     end
 
     if not IsString(prefix) then
-        LogMessage("Error in StringUtils.StartsWith: prefix is not a string.", logLevelError)
+        ErrorLog("Error in {context}: prefix is not a string.", {context = errorContext})
         return false
     end
 
@@ -491,6 +519,7 @@ end
 -- An empty suffix `""` always returns `true` (every string ends with the empty string).
 -- @tparam string str The string to check.
 -- @tparam string suffix The suffix to look for.
+-- @tparam[opt="StringUtils.EndsWith"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] bool True if str ends with suffix.
 -- @treturn[2] bool false if no match or an error occurs (with a log message).
 -- @usage
@@ -554,14 +583,15 @@ end
 --     end
 -- end
 -- -- Result: {"main.lua", "utils.lua"}
-StringUtils.EndsWith = function(str, suffix)
+StringUtils.EndsWith = function(str, suffix, errorContext)
+    errorContext = errorContext or "StringUtils.EndsWith"
     if not IsString(str) then
-        LogMessage("Error in StringUtils.EndsWith: str is not a string.", logLevelError)
+        ErrorLog("Error in {context}: str is not a string.", {context = errorContext})
         return false
     end
 
     if not IsString(suffix) then
-        LogMessage("Error in StringUtils.EndsWith: suffix is not a string.", logLevelError)
+        ErrorLog("Error in {context}: suffix is not a string.", {context = errorContext})
         return false
     end
 
@@ -582,6 +612,7 @@ end
 -- use it when you don't know (or don't care) where the substring appears.
 -- @tparam string str The string to search in.
 -- @tparam string substring The substring to look for.
+-- @tparam[opt="StringUtils.Contains"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] bool True if str contains substring.
 -- @treturn[2] bool false if no match or an error occurs (with a log message).
 -- @usage
@@ -649,14 +680,15 @@ end
 -- if StringUtils.Contains(description, "golden key") then
 --     -- Highlight item as important
 -- end
-StringUtils.Contains = function(str, substring)
+StringUtils.Contains = function(str, substring, errorContext)
+    errorContext = errorContext or "StringUtils.Contains"
     if not IsString(str) then
-        LogMessage("Error in StringUtils.Contains: str is not a string.", logLevelError)
+        ErrorLog("Error in {context}: str is not a string.", {context = errorContext})
         return false
     end
 
     if not IsString(substring) then
-        LogMessage("Error in StringUtils.Contains: substring is not a string.", logLevelError)
+        ErrorLog("Error in {context}: substring is not a string.", {context = errorContext})
         return false
     end
 
@@ -673,8 +705,8 @@ end
 -- @tparam string str The original string.
 -- @tparam string search The substring to find. Must not be empty.
 -- @tparam string replacement The string to substitute in place of each match.
--- @tparam[opt] number count Maximum number of replacements. If omitted, replaces all occurrences.
--- Must be a positive integer (>= 1).
+-- @tparam[opt] number count Maximum number of replacements. If omitted, replaces all occurrences. Must be a positive integer (>= 1).
+-- @tparam[opt="StringUtils.Replace"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] string The string with replacements applied.
 -- @treturn[2] any The original input unchanged if search is not found or an error occurs (with a log message).
 -- @usage
@@ -724,11 +756,6 @@ end
 -- local tsv = StringUtils.Replace(csv, ";", "\t")
 -- -- Result: "apple\tbanana\tcherry"
 --
--- -- Practical: fix path separators
--- local winPath = "scripts\\levels\\egypt\\main.lua"
--- local unixPath = StringUtils.Replace(winPath, "\\", "/")
--- -- Result: "scripts/levels/egypt/main.lua"
---
 -- -- Practical: build display text from template stored in a variable
 -- local template = "## HP ##/## MAX_HP ##"
 -- local step1 = StringUtils.Replace(template, "## HP ##", tostring(75))
@@ -739,31 +766,37 @@ end
 -- local msg = "The secret door hides a secret passage"
 -- local censored = StringUtils.Replace(msg, "secret", "hidden", 1)
 -- -- Result: "The hidden door hides a secret passage"
-StringUtils.Replace = function(str, search, replacement, count)
+--
+-- -- Practical: fix path separators
+-- local winPath = "scripts\\levels\\egypt\\main.lua"
+-- local unixPath = StringUtils.Replace(winPath, "\\", "/")
+-- -- Result: "scripts/levels/egypt/main.lua"
+StringUtils.Replace = function(str, search, replacement, count, errorContext)
+    errorContext = errorContext or "StringUtils.Replace"
     if not IsString(str) then
-        LogMessage("Error in StringUtils.Replace: str is not a string.", logLevelError)
+        ErrorLog("Error in {context}: str is not a string.", {context = errorContext})
         return str
     end
 
     if not IsString(search) then
-        LogMessage("Error in StringUtils.Replace: search is not a string.", logLevelError)
+        ErrorLog("Error in {context}: search is not a string.", {context = errorContext})
         return str
     end
 
     if not IsString(replacement) then
-        LogMessage("Error in StringUtils.Replace: replacement is not a string.", logLevelError)
+        ErrorLog("Error in {context}: replacement is not a string.", {context = errorContext})
         return str
     end
 
     local searchLen = #search
     if searchLen == 0 then
-        LogMessage("Error in StringUtils.Replace: search string is empty.", logLevelError)
+        ErrorLog("Error in {context}: search string is empty.", {context = errorContext})
         return str
     end
 
     if count ~= nil then
         if not IsNumber(count) or count < 1 or floor(count) ~= count then
-            LogMessage("Error in StringUtils.Replace: count must be a positive integer.", logLevelError)
+            ErrorLog("Error in {context}: count must be a positive integer.", {context = errorContext})
             return str
         end
     end
