@@ -1,4 +1,4 @@
------<style>table.function_list td.name {min-width: 291px;}</style>
+-----<style>table.function_list td.name {min-width: 394px;}</style>
 --- Lua support functions for mathematical operations and rounding.
 ---
 --- **Design Philosophy:**
@@ -24,9 +24,8 @@ local MathUtils = {}
 local Type = require("Engine.Type")
 local Utility = require("Engine.Util")
 
-local logLevelError  = TEN.Util.LogLevel.ERROR
-local logLevelWarning  = TEN.Util.LogLevel.WARNING
-
+local ErrorLog = Utility.ErrorLog
+local WarningLog = Utility.WarningLog
 local Round = Utility.Round
 local WrapAngleRaw = Utility.WrapAngleRaw
 local IsNumber = Type.IsNumber
@@ -45,15 +44,15 @@ local Vec3 = TEN.Vec3
 local Rotation = TEN.Rotation
 local Color = TEN.Color
 local Time = TEN.Time
-local LogMessage  = TEN.Util.PrintLog
 
 local errorMessageMax = "Error in MathUtils.Max: all arguments must be the same type."
 local errorMessageMin = "Error in MathUtils.Min: all arguments must be the same type."
-local errorMessageRandom = "Error in MathUtils.Random: minValue and maxValue must be the same type."
-local errorMessageBase = "Error in MathUtils.Clamp: value, minValue, and maxValue must be the same type."
+local errorMessageRandom = "Error in {context}: minValue and maxValue must be the same type."
+local errorMessageClamp = "Error in {context}: value, minValue, and maxValue must be the same type."
 
 --- Checks if a value is an integer (a number without fractional part).
 -- @tparam number n The value to check
+-- @tparam[opt="MathUtils.IsInteger"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] boolean: true if the value is an integer, false otherwise
 -- @treturn[2] boolean: false if the input is not a number
 -- @usage
@@ -63,9 +62,10 @@ local errorMessageBase = "Error in MathUtils.Clamp: value, minValue, and maxValu
 -- MathUtils.IsInteger(-5)      -- true
 -- MathUtils.IsInteger("10")    -- false
 -- MathUtils.IsInteger(nil)     -- false
-MathUtils.IsInteger = function(n)
+MathUtils.IsInteger = function(n, errorContext)
+    errorContext = errorContext or "MathUtils.IsInteger"
     if not IsNumber(n) then
-        LogMessage("Error in MathUtils.IsInteger: parameter must be a number.", logLevelError)
+        ErrorLog("Error in {context}: parameter must be a number.", {context = errorContext})
         return false
     end
     return (n % 1) == 0
@@ -105,14 +105,14 @@ MathUtils.Min = function(a, b, ...)
 
     if IsNumber(a) then
         if not IsNumber(b) then
-            LogMessage(errorMessageMin, logLevelError)
+            ErrorLog(errorMessageMin)
             return a
         end
         local minVal = a < b and a or b
         for i = 1, extraCount do
             local v = select(i, ...)
             if not IsNumber(v) then
-                LogMessage(errorMessageMin, logLevelError)
+                ErrorLog(errorMessageMin)
                 return a
             end
             if v < minVal then minVal = v end
@@ -121,14 +121,14 @@ MathUtils.Min = function(a, b, ...)
 
     elseif IsVec2(a) then
         if not IsVec2(b) then
-            LogMessage(errorMessageMin, logLevelError)
+            ErrorLog(errorMessageMin)
             return a
         end
         local rx, ry = min(a.x, b.x), min(a.y, b.y)
         for i = 1, extraCount do
             local v = select(i, ...)
             if not IsVec2(v) then
-                LogMessage(errorMessageMin, logLevelError)
+                ErrorLog(errorMessageMin)
                 return a
             end
             rx = min(rx, v.x)
@@ -138,14 +138,14 @@ MathUtils.Min = function(a, b, ...)
 
     elseif IsVec3(a) then
         if not IsVec3(b) then
-            LogMessage(errorMessageMin, logLevelError)
+            ErrorLog(errorMessageMin)
             return a
         end
         local rx, ry, rz = min(a.x, b.x), min(a.y, b.y), min(a.z, b.z)
         for i = 1, extraCount do
             local v = select(i, ...)
             if not IsVec3(v) then
-                LogMessage(errorMessageMin, logLevelError)
+                ErrorLog(errorMessageMin)
                 return a
             end
             rx = min(rx, v.x)
@@ -156,14 +156,14 @@ MathUtils.Min = function(a, b, ...)
 
     elseif IsTime(a) then
         if not IsTime(b) then
-            LogMessage(errorMessageMin, logLevelError)
+            ErrorLog(errorMessageMin)
             return a
         end
         local minTime = a:GetFrameCount() < b:GetFrameCount() and a or b
         for i = 1, extraCount do
             local v = select(i, ...)
             if not IsTime(v) then
-                LogMessage(errorMessageMin, logLevelError)
+                ErrorLog(errorMessageMin)
                 return a
             end
             if v:GetFrameCount() < minTime:GetFrameCount() then minTime = v end
@@ -171,7 +171,7 @@ MathUtils.Min = function(a, b, ...)
         return minTime
     end
 
-    LogMessage("Error in MathUtils.Min: unsupported type.", logLevelError)
+    ErrorLog("Error in MathUtils.Min: unsupported type.")
     return a
 end
 
@@ -208,14 +208,14 @@ MathUtils.Max = function(a, b, ...)
 
     if IsNumber(a) then
         if not IsNumber(b) then
-            LogMessage(errorMessageMax, logLevelError)
+            ErrorLog(errorMessageMax)
             return a
         end
         local maxVal = a > b and a or b
         for i = 1, extraCount do
             local v = select(i, ...)
             if not IsNumber(v) then
-                LogMessage(errorMessageMax, logLevelError)
+                ErrorLog(errorMessageMax)
                 return a
             end
             if v > maxVal then maxVal = v end
@@ -224,14 +224,14 @@ MathUtils.Max = function(a, b, ...)
 
     elseif IsVec2(a) then
         if not IsVec2(b) then
-            LogMessage(errorMessageMax, logLevelError)
+            ErrorLog(errorMessageMax)
             return a
         end
         local rx, ry = max(a.x, b.x), max(a.y, b.y)
         for i = 1, extraCount do
             local v = select(i, ...)
             if not IsVec2(v) then
-                LogMessage(errorMessageMax, logLevelError)
+                ErrorLog(errorMessageMax)
                 return a
             end
             rx = max(rx, v.x)
@@ -241,14 +241,14 @@ MathUtils.Max = function(a, b, ...)
 
     elseif IsVec3(a) then
         if not IsVec3(b) then
-            LogMessage(errorMessageMax, logLevelError)
+            ErrorLog(errorMessageMax)
             return a
         end
         local rx, ry, rz = max(a.x, b.x), max(a.y, b.y), max(a.z, b.z)
         for i = 1, extraCount do
             local v = select(i, ...)
             if not IsVec3(v) then
-                LogMessage(errorMessageMax, logLevelError)
+                ErrorLog(errorMessageMax)
                 return a
             end
             rx = max(rx, v.x)
@@ -259,14 +259,14 @@ MathUtils.Max = function(a, b, ...)
 
     elseif IsTime(a) then
         if not IsTime(b) then
-            LogMessage(errorMessageMax, logLevelError)
+            ErrorLog(errorMessageMax)
             return a
         end
         local maxTime = a:GetFrameCount() > b:GetFrameCount() and a or b
         for i = 1, extraCount do
             local v = select(i, ...)
             if not IsTime(v) then
-                LogMessage(errorMessageMax, logLevelError)
+                ErrorLog(errorMessageMax)
                 return a
             end
             if v:GetFrameCount() > maxTime:GetFrameCount() then maxTime = v end
@@ -274,13 +274,14 @@ MathUtils.Max = function(a, b, ...)
         return maxTime
     end
 
-    LogMessage("Error in MathUtils.Max: unsupported type.", logLevelError)
+    ErrorLog("Error in MathUtils.Max: unsupported type.")
     return a
 end
 
 --- Round a number to a specified number of decimal places.
 -- @tparam float num The number to round.
 -- @tparam[opt=0] float decimals Number of decimal places.
+-- @tparam[opt="MathUtils.Round"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] float The rounded number.
 -- @treturn[2] float 0 If an error occurs.
 -- @usage
@@ -288,10 +289,11 @@ end
 -- local rounded2 = MathUtils.Round(3.14159, 2)    -- Result: 3.14
 -- local rounded3 = MathUtils.Round(2.675, 2)      -- Result: 2.68
 -- local rounded4 = MathUtils.Round(-1.2345, 1)    -- Result: -1.2
-MathUtils.Round = function(num, decimals)
+MathUtils.Round = function(num, decimals, errorContext)
+    errorContext = errorContext or "MathUtils.Round"
     decimals = decimals or 0
     if not IsNumber(num) or not IsNumber(decimals) then
-        LogMessage("Error in MathUtils.Round: num and decimals must be numbers.", logLevelError)
+        ErrorLog("Error in {context}: num and decimals must be numbers.", {context = errorContext})
         return 0
     end
     local mult = 10 ^ decimals
@@ -301,6 +303,7 @@ end
 --- Truncate a number to a specified number of decimal places (without rounding).
 -- @tparam float num The number to truncate.
 -- @tparam[opt=0] float decimals Number of decimal places.
+-- @tparam[opt="MathUtils.Truncate"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] float The truncated number.
 -- @treturn[2] float 0 If an error occurs.
 -- @usage
@@ -309,10 +312,11 @@ end
 -- local truncated3 = MathUtils.Truncate(2.999, 2)      -- Result: 2.99 (not rounded!)
 -- local truncated4 = MathUtils.Truncate(2.99, 0)       -- Result: 2     
 -- local truncated4 = MathUtils.Truncate(-1.2345, 1)    -- Result: -1.2
-MathUtils.Truncate = function(num, decimals)
+MathUtils.Truncate = function(num, decimals, errorContext)
+    errorContext = errorContext or "MathUtils.Truncate"
     decimals = decimals or 0
     if not IsNumber(num) or not IsNumber(decimals) then
-        LogMessage("Error in MathUtils.Truncate: num and decimals must be numbers.", logLevelError)
+        ErrorLog("Error in {context}: num and decimals must be numbers.", {context = errorContext})
         return 0
     end
     local mult = 10 ^ decimals
@@ -334,6 +338,7 @@ end
 -- @tparam float|Vec2|Vec3|Rotation|Color|Time minValue Minimum value.
 -- @tparam float|Vec2|Vec3|Rotation|Color|Time maxValue Maximum value (same type as minValue).
 -- @tparam[opt] float seed Seed for reproducible randomness.
+-- @tparam[opt="MathUtils.Random"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] float|Vec2|Vec3|Rotation|Color|Time Random value between minValue and maxValue.
 -- @treturn[2] nil If an error occurs.
 -- @usage
@@ -376,21 +381,23 @@ end
 --     TEN.Rotation(0, 180, 0)
 -- )
 --
--- -- Error handling example:
--- local randomPos = MathUtils.Random(minVec, maxVec)
--- if randomPos == nil then
---     TEN.Util.PrintLog("Failed to generate random position", TEN.Util.LogLevel.ERROR)
---     return  -- or use a fallback value
+-- -- Advanced: random spawn with error context
+-- local function SpawnEnemy(entity, minPos, maxPos)
+--     local randomPos = MathUtils.Random(minPos, maxPos, nil, "SpawnEnemy")
+--     if not randomPos then
+--         return  -- or use a fallback value (error already logged by Random)
+--     end
+--     entity:SetPosition(randomPos)
 -- end
--- entity:SetPosition(randomPos)
 --
 -- -- Safe approach with default fallback:
 -- local randomColor = MathUtils.Random(color1, color2) or TEN.Color(255, 255, 255, 255)
 -- sprite:SetColor(randomColor)
-MathUtils.Random = function(minValue, maxValue, seed)
+MathUtils.Random = function(minValue, maxValue, seed, errorContext)
+    errorContext = errorContext or "MathUtils.Random"
     if seed then
         if not IsNumber(seed) then
-            LogMessage("Warning: seed must be a number. Will be used current game time in frames", logLevelWarning)
+            WarningLog("Warning in {context}: seed must be a number. Will be used current game time in frames", {context = errorContext})
         else
             randomseed(seed)
             -- Discard first few values to improve randomness of initial seed (common practice with some RNG implementations)
@@ -400,13 +407,13 @@ MathUtils.Random = function(minValue, maxValue, seed)
 
     if IsNumber(minValue) then
         if not IsNumber(maxValue) then
-            LogMessage(errorMessageRandom, logLevelError)
+            ErrorLog(errorMessageRandom, {context = errorContext})
             return nil
         end
         return minValue + random() * (maxValue - minValue)
     elseif IsVec2(minValue) then
         if not IsVec2(maxValue) then
-            LogMessage(errorMessageRandom, logLevelError)
+            ErrorLog(errorMessageRandom, {context = errorContext})
             return nil
         end
         return Vec2(
@@ -415,7 +422,7 @@ MathUtils.Random = function(minValue, maxValue, seed)
         )
     elseif IsVec3(minValue) then
         if not IsVec3(maxValue) then
-            LogMessage(errorMessageRandom, logLevelError)
+            ErrorLog(errorMessageRandom, {context = errorContext})
             return nil
         end
         return Vec3(
@@ -425,7 +432,7 @@ MathUtils.Random = function(minValue, maxValue, seed)
         )
     elseif IsColor(minValue) then
         if not IsColor(maxValue) then
-            LogMessage(errorMessageRandom, logLevelError)
+            ErrorLog(errorMessageRandom, {context = errorContext})
             return nil
         end
         return Color(
@@ -436,7 +443,7 @@ MathUtils.Random = function(minValue, maxValue, seed)
         )
     elseif IsTime(minValue) then
         if not IsTime(maxValue) then
-            LogMessage(errorMessageRandom, logLevelError)
+            ErrorLog(errorMessageRandom, {context = errorContext})
             return nil
         end
         -- Generate random frames between minValue and maxValue (Time objects work with gameFrames)
@@ -446,7 +453,7 @@ MathUtils.Random = function(minValue, maxValue, seed)
         return Time(randomFrames)
     elseif IsRotation(minValue) then
         if not IsRotation(maxValue) then
-            LogMessage(errorMessageRandom, logLevelError)
+            ErrorLog(errorMessageRandom, {context = errorContext})
             return nil
         end
         return Rotation(
@@ -455,7 +462,7 @@ MathUtils.Random = function(minValue, maxValue, seed)
             minValue.z + random() * (maxValue.z - minValue.z)
         )
     end
-    LogMessage("Error in MathUtils.Random: unsupported type", logLevelError)
+    ErrorLog("Error in {context}: unsupported type", {context = errorContext})
     return nil
 end
 
@@ -465,6 +472,7 @@ end
 -- @tparam number|Color|Rotation|Time|Vec2|Vec3 value The value to clamp.
 -- @tparam number|Color|Rotation|Time|Vec2|Vec3 minValue The minimum value (same type as value).
 -- @tparam number|Color|Rotation|Time|Vec2|Vec3 maxValue The maximum value (same type as value).
+-- @tparam[opt="MathUtils.Clamp"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] number|Color|Rotation|Time|Vec2|Vec3 The clamped value.
 -- @treturn[2] number|Color|Rotation|Time|Vec2|Vec3 The original value if an error occurs.
 -- @usage
@@ -513,23 +521,27 @@ end
 -- local clampedRotation = MathUtils.Clamp(rotation, minRotation, maxRotation)
 -- -- Result: TEN.Rotation(15, 90, 0)
 --
--- -- Error handling example:
--- local clampedValue = MathUtils.Clamp(value, min, max)
--- if clampedValue == value then
---     TEN.Util.PrintLog("Failed to clamp value", TEN.Util.LogLevel.ERROR)
---     return  -- or use a fallback value
+-- -- Advanced: clamp entity speed with error context
+-- local function SetPlayerSpeed(entity, speed, minSpeed, maxSpeed)
+--     if Type.IsVec3(speed) then -- use Type module for type checking
+--         local clampedSpeed = MathUtils.Clamp(speed, minSpeed, maxSpeed, "SetPlayerSpeed")
+--         -- if types mismatch, error is already logged and original value is returned
+--         entity:SetVelocity(clampedSpeed)
+--     end
 -- end
+--
 -- -- Safe approach with default fallback:
 -- local clampedValue = MathUtils.Clamp(value, minValue, maxValue) or defaultValue
-MathUtils.Clamp = function(value, minValue, maxValue)
+MathUtils.Clamp = function(value, minValue, maxValue, errorContext)
+    errorContext = errorContext or "MathUtils.Clamp"
     -- Lazy type checking: check only what's needed
     if IsNumber(value) then
         if not (IsNumber(minValue) and IsNumber(maxValue)) then
-            LogMessage(errorMessageBase, logLevelError)
+            ErrorLog(errorMessageClamp, {context = errorContext})
             return value
         end
         if minValue > maxValue then
-            LogMessage("Error in MathUtils.Clamp: minValue cannot be greater than maxValue.", logLevelError)
+            ErrorLog("Error in {context}: minValue cannot be greater than maxValue.", {context = errorContext})
             return value
         end
         return max(minValue, min(maxValue, value))
@@ -537,7 +549,7 @@ MathUtils.Clamp = function(value, minValue, maxValue)
 
     if IsVec2(value) then
         if not (IsVec2(minValue) and IsVec2(maxValue)) then
-            LogMessage(errorMessageBase, logLevelError)
+            ErrorLog(errorMessageClamp, {context = errorContext})
             return value
         end
         return Vec2(
@@ -548,7 +560,7 @@ MathUtils.Clamp = function(value, minValue, maxValue)
 
     if IsVec3(value) then
         if not (IsVec3(minValue) and IsVec3(maxValue)) then
-            LogMessage(errorMessageBase, logLevelError)
+            ErrorLog(errorMessageClamp, {context = errorContext})
             return value
         end
         return Vec3(
@@ -560,7 +572,7 @@ MathUtils.Clamp = function(value, minValue, maxValue)
 
     if IsRotation(value) then
         if not (IsRotation(minValue) and IsRotation(maxValue)) then
-            LogMessage(errorMessageBase, logLevelError)
+            ErrorLog(errorMessageClamp, {context = errorContext})
             return value
         end
         return Rotation(
@@ -572,7 +584,7 @@ MathUtils.Clamp = function(value, minValue, maxValue)
 
     if IsColor(value) then
         if not (IsColor(minValue) and IsColor(maxValue)) then
-            LogMessage(errorMessageBase, logLevelError)
+            ErrorLog(errorMessageClamp, {context = errorContext})
             return value
         end
         return Color(
@@ -585,13 +597,13 @@ MathUtils.Clamp = function(value, minValue, maxValue)
 
     if IsTime(value) then
         if not (IsTime(minValue) and IsTime(maxValue)) then
-            LogMessage(errorMessageBase, logLevelError)
+            ErrorLog(errorMessageClamp, {context = errorContext})
             return value
         end
         return Time(max(minValue:GetFrameCount(), min(maxValue:GetFrameCount(), value:GetFrameCount())))
     end
 
-    LogMessage("Error in MathUtils.Clamp: unsupported type.", logLevelError)
+    ErrorLog("Error in {context}: unsupported type.", {context = errorContext})
     return value
 end
 
@@ -599,6 +611,7 @@ end
 -- @tparam float value The value to check.
 -- @tparam float minValue Minimum value.
 -- @tparam float maxValue Maximum value.
+-- @tparam[opt="MathUtils.IsInRange"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] bool True if value is within range.
 -- @treturn[2] bool false If an error occurs.
 -- @usage
@@ -612,14 +625,15 @@ end
 --
 -- -- This will log an error and return false because value is not a number
 -- local errorCase2 = MathUtils.IsInRange("5", 1, 10)
-MathUtils.IsInRange = function(value, minValue, maxValue)
+MathUtils.IsInRange = function(value, minValue, maxValue, errorContext)
+    errorContext = errorContext or "MathUtils.IsInRange"
     if not (IsNumber(value) and IsNumber(minValue) and IsNumber(maxValue)) then
-        LogMessage("Error in MathUtils.IsInRange: all parameters must be numbers.", logLevelError)   
+        ErrorLog("Error in {context}: all parameters must be numbers.", {context = errorContext})
         return false
     end
 
     if minValue > maxValue then
-        LogMessage("Error in MathUtils.IsInRange: minValue cannot be greater than maxValue.", logLevelError)
+        ErrorLog("Error in {context}: minValue cannot be greater than maxValue.", {context = errorContext})
         return false
     end
 
@@ -632,6 +646,7 @@ end
 -- @tparam float angle The angle to wrap.
 -- @tparam[opt=0] float minValue Minimum value of the range.
 -- @tparam[opt=360] float maxValue Maximum value of the range.
+-- @tparam[opt="MathUtils.WrapAngle"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] float The wrapped angle.
 -- @treturn[2] float The original angle if an error occurs.
 -- @usage
@@ -663,22 +678,22 @@ end
 -- -- Wrapped difference:
 -- local delta = MathUtils.WrapAngle(targetYaw - currentYaw, -180, 180)
 -- -- Result: 20° (correct shortest path: turn right 20°)
-MathUtils.WrapAngle = function(angle, minValue, maxValue)
+MathUtils.WrapAngle = function(angle, minValue, maxValue, errorContext)
+    errorContext = errorContext or "MathUtils.WrapAngle"
     minValue = minValue or 0
     maxValue = maxValue or 360
 
     if not (IsNumber(angle) and IsNumber(minValue) and IsNumber(maxValue)) then
-        LogMessage("Error in MathUtils.WrapAngle: all parameters must be numbers.", logLevelError)
+        ErrorLog("Error in {context}: all parameters must be numbers.", {context = errorContext})
         return angle
     end
 
     local range = maxValue - minValue
     if range == 0 then
-        LogMessage("Error in MathUtils.WrapAngle: minValue cannot equal maxValue.", logLevelError)
+        ErrorLog("Error in {context}: minValue cannot equal maxValue.", {context = errorContext})
         return angle
     end
 
-    -- return angle - range * floor((angle - minValue) / range)
     return WrapAngleRaw(angle, minValue, range)
 end
 
