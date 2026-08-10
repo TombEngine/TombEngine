@@ -273,7 +273,7 @@ namespace TEN::Scripting
 		if (!ValidatePropertyName(name))
 			return sol::nil;
 
-		auto* val = PropertyHandler::Get(_static, name);
+		auto* val = PropertyHandler::GetRaw(_static, name);
 
 		if (val == nullptr)
 			return sol::nil;

@@ -62,7 +62,7 @@ namespace TEN::Renderer
 		if (_isLocked)
 			return;
 
-		auto args = va_list{};
+		va_list args;
 		va_start(args, msg);
 		PrintDebugMessage(msg, args);
 		va_end(args);

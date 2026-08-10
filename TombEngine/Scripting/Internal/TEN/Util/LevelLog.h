@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Game/Debug/Debug.h"
+#include "Game/debug/debug.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 
 /// Constants for LogLevel IDs.

@@ -18,6 +18,7 @@
 #include "Objects/Effects/LensFlare.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Include/Objects/ScriptInterfaceObjectsHandler.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
 #include "Specific/level.h"
@@ -33,6 +34,9 @@ constexpr auto FLARE_DEATH_DELAY = 1.0f * FPS;
 void FlareControl(short itemNumber)
 {
 	auto& flareItem = g_Level.Items[itemNumber];
+
+	if (!flareItem.Data.is<int>())
+		return;
 
 	if (TestEnvironment(ENV_FLAG_SWAMP, &flareItem))
 	{
@@ -382,6 +386,7 @@ void CreateFlare(ItemInfo& laraItem, GAME_OBJECT_ID objectID, bool isThrown)
 	if (objectID == ID_FLARE_ITEM)
 	{
 		flareItem.Data = (int)0;
+		flareItem.Name = fmt::format("FLARE_ITEM_{}", itemNumber);
 		int& life = flareItem.Data;
 
 		if (DoFlareLight(flareItem, flareItem.Pose.Position, lara.Flare.Life))
@@ -395,11 +400,13 @@ void CreateFlare(ItemInfo& laraItem, GAME_OBJECT_ID objectID, bool isThrown)
 	}
 	else
 	{
+		flareItem.Name = fmt::format("BURNING_TORCH_{}", itemNumber);
 		flareItem.ItemFlags[3] = lara.Torch.IsLit;
 		flareItem.Effect.PrimaryEffectColor = lara.Torch.CurrentColor;
 	}
 
 	AddActiveItem(itemNumber);
+	g_GameScriptEntities->AddName(flareItem.Name, itemNumber);
 	flareItem.Status = ITEM_ACTIVE;
 }
 

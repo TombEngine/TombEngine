@@ -15,8 +15,8 @@ namespace TEN::Scripting
 {
 	struct AnimSettings
 	{
-		int PoseTimeout			= 20; // AFK pose timeout.
-		int SystemBlendDuration = 4;  // Default blend duration for internal player animation transitions.
+		int PoseTimeout				= 20; // AFK pose timeout.
+		int InternalBlendDuration	= 4;  // Default blend duration for internal player animation transitions.
 
 		bool SlideExtended	= false; // Extended slope sliding functionality (not ready yet).
 		bool SprintJump		= false; // Sprint jump.
@@ -24,6 +24,7 @@ namespace TEN::Scripting
 		bool CrawlExtended	= true;	 // Extended crawl moveset.
 		bool CrouchRoll		= true;	 // Crouch roll.
 		bool OverhangClimb	= false; // Overhang functionality.
+		bool BackJumpTurn	= false; // Allow turning while jumping back.
 		bool LedgeJumps		= false; // Jump up or back from a ledge.
 
 		static void Register(sol::table& parent);
@@ -58,6 +59,8 @@ namespace TEN::Scripting
 	{
 		bool TargetObjectOcclusion = true;
 		bool KillPoisonedEnemies = true;
+		bool SetEnemiesOnFireWithWeapons = true;
+		bool SetEnemiesOnFireWithDeathFlag = true;
 		bool EnableInventory = true;
 
 		static void Register(sol::table& parent);
@@ -120,7 +123,7 @@ namespace TEN::Scripting
 		bool	StaticMeshAvoidance			= false;	// Avoid static mesh obstacles.
 		bool	VerticalGeometryAvoidance	= true;		// Avoid geometry obstacles for swimming or flying creatures.
 		bool	WaterSurfaceAvoidance		= true;		// Avoid water surface for swimming or flying creatures.
-		bool	VerticalMovementSmoothing = true;		// Smooth vertical movement for swimming or flying creatures.
+		bool	VerticalMovementSmoothing	= true;		// Smooth vertical movement for swimming or flying creatures.
 
 		static void Register(sol::table& parent);
 	};
@@ -138,6 +141,9 @@ namespace TEN::Scripting
 		ErrorMode ErrorMode		= ErrorMode::Warn;
 		bool	  FastReload	= true;
 		bool	  Multithreaded = true;
+
+		int		  VariableFloodProtectionTimeLimit		= 1000;
+		int		  VariableFloodProtectionOverallLimit	= 5000;
 
 		static void Register(sol::table& parent);
 	};

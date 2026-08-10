@@ -59,12 +59,19 @@ table Room {
 	name: string;
 	flags: int32;
 	reverb_type: int32;
+	item_numbers: [int32];
 	block_stopper_flags: [bool];
 }
 
 table ItemCallback {
 	type: int32;
 	name: string;
+}
+
+struct MutatorData {
+	offset: TEN.Serialization.Common.Vector3;
+	rotation: TEN.Serialization.Common.EulerAngles;
+	scale: TEN.Serialization.Common.Vector3;
 }
 
 table Item {
@@ -92,8 +99,6 @@ table Item {
 	after_death: int32;
 	item_flags: [int32];
 	pose: TEN.Serialization.Common.Pose;
-	next_item: int32;
-	next_item_active: int32;
 	active: bool;
 	status: int32;
 	hit_stauts: bool;
@@ -103,8 +108,10 @@ table Item {
 	data: TEN.Serialization.Save.ItemData;
 	
 	base_mesh: int32;
-	skin_index: int32;
 	mesh_index: [int32];
+	mutators: [MutatorData];
+	skin_object_id: int32;
+	skin_swap_index: int32;
 
 	effect_type: int32;
 	effect_light_colour: TEN.Serialization.Common.Vector3;
@@ -121,8 +128,6 @@ table FXInfo {
 	pose : TEN.Serialization.Common.Pose;
 	room_number: int32;
 	object_number: int32;
-	next_fx: int32;
-	next_active: int32;
 	speed: int32;
 	fall_speed: int32;
 	frame_number: int32;
@@ -168,6 +173,7 @@ table ArmInfo {
 	rotation: TEN.Serialization.Common.EulerAngles;
 	gun_flash: int32;
 	gun_smoke: int32;
+	gun_flash_type: int32;
 }
 
 table FlareData {
@@ -710,14 +716,13 @@ table SaveGame {
 	rooms: [Room];
 	box_flags: [int32];
 	items: [Item];
-	next_item_free: int32;
-	next_item_active: int32;
-	room_items: [int32];
+	next_item_free: int32;  // for compatibility
+	next_item_active: int32;  // for compatibility
 	fish_swarm: [FishData];
 	firefly_swarm: [FireflyData];
 	fxinfos: [FXInfo];
-	next_fx_free: int32;
-	next_fx_active: int32;
+	next_fx_free: int32; // for compatibility
+	next_fx_active: int32; // for compatibility
 	fixed_cameras: [FixedCamera];
 	sinks: [Sink];
 	static_meshes: [StaticMeshInfo];
@@ -758,6 +763,8 @@ table SaveGame {
 	volume_event_sets: [EventSet];
 	script_vars: UnionVec;
 	callbacks: [CallbackSet];
+	active_items: [int32];
+	free_item_slots: [int32];
 	moveable_type_properties: [TypePropertyMap];
 	static_type_properties: [TypePropertyMap];
 }

@@ -11,12 +11,10 @@ using namespace TEN::Math;
 
 namespace TEN::Effects::Ripple
 {
-	constexpr auto RIPPLE_COUNT_MAX	  = 1024;
-	constexpr auto RIPPLE_OPACITY_MAX = 0.5f;
 
 	std::vector<Ripple> Ripples = {};
 
-	void SpawnRipple(const Vector3& pos, int roomNumber, float size, int flags, const Vector3& normal)
+	void SpawnRipple(const Vector3& pos, int roomNumber, float size, int flags, const Vector3& normal, const Vector4& color)
 	{
 		constexpr auto LIFE_WATER_SURFACE_MAX = 1.0f;
 		constexpr auto LIFE_WATER_SURFACE_MIN = LIFE_WATER_SURFACE_MAX / 2;
@@ -24,7 +22,6 @@ namespace TEN::Effects::Ripple
 		constexpr auto LIFE_GROUND_MIN		  = LIFE_GROUND_MAX / 2;
 		constexpr auto FADE_FAST_COEFF		  = 1 / 3.0f;
 		constexpr auto FADE_SLOW_COEFF		  = 0.5f;
-		constexpr auto COLOR_WHITE			  = Vector4(1.0f, 1.0f, 1.0f, RIPPLE_OPACITY_MAX);
 
 		auto& ripple = GetNewEffect(Ripples, RIPPLE_COUNT_MAX);
 
@@ -37,7 +34,7 @@ namespace TEN::Effects::Ripple
 		ripple.Position = pos;
 		ripple.RoomNumber = roomNumber;
 		ripple.Normal = normal;
-		ripple.Color = COLOR_WHITE;
+		ripple.Color = color;
 		ripple.Life =
 		ripple.LifeMax = round(lifeInSec * FPS);
 		ripple.Size = size;

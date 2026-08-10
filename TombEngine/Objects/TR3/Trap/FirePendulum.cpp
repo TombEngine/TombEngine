@@ -1,17 +1,20 @@
 #include "framework.h"
 #include "Objects/TR3/Trap/FirePendulum.h"
 
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/Lara/lara.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"
 #include "Game/collision/collide_item.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/level.h"
 #include "Game/effects/spark.h"
 
 using namespace TEN::Collision::Sphere;
 using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Items;
+using namespace TEN::Scripting::Properties;
 
 namespace TEN::Entities::Traps
 {
@@ -111,17 +114,6 @@ namespace TEN::Entities::Traps
 		}
 	}
 
-	void InitializeFirePendulum(short itemNumber)
-	{
-		auto& item = g_Level.Items[itemNumber];
-
-		item.ItemFlags[PendulumFlags::FlameMesh] = 4;
-
-		item.ItemFlags[PendulumFlags::FireColorRed] = 0;
-		item.ItemFlags[PendulumFlags::FireColorGreen] = 0;
-		item.ItemFlags[PendulumFlags::FireColorBlue] = 0;
-	}
-
 	void ControlFirePendulum(short itemNumber)
 	{
 		auto& item = g_Level.Items[itemNumber];
@@ -131,34 +123,45 @@ namespace TEN::Entities::Traps
 
 		AnimateItem(item);
 
-		auto flameMesh = item.ItemFlags[PendulumFlags::FlameMesh];
+		auto flameMesh = PropertyHandler::Get(item, PropName_EffectMeshID, (int)item.ItemFlags[PendulumFlags::FlameMesh], true);
 
 		auto pos = GetJointPosition(item, flameMesh, Vector3i(0, 260, 0));
 		auto angle = GetBoneOrientation(item, 5);
 
-		unsigned char r = item.ItemFlags[PendulumFlags::FireColorRed];
-		unsigned char g = item.ItemFlags[PendulumFlags::FireColorGreen];
-		unsigned char b = item.ItemFlags[PendulumFlags::FireColorBlue];
+		auto defaultScriptColor = ScriptColor(
+			item.ItemFlags[PendulumFlags::FireColorRed],
+			item.ItemFlags[PendulumFlags::FireColorGreen],
+			item.ItemFlags[PendulumFlags::FireColorBlue]);
 
-		auto flameColor1 = Vector3::Zero;
-		auto flameColor2 = Vector3::Zero;
+		auto flameColor = (Vector3)PropertyHandler::Get(item, PropName_EffectColor, defaultScriptColor, true);
 
-		if (item.ItemFlags[PendulumFlags::FireColorRed] == 0 &&
-			item.ItemFlags[PendulumFlags::FireColorGreen] == 0 &&
-			item.ItemFlags[PendulumFlags::FireColorBlue] == 0)
+		unsigned char r, g, b;
+		bool hasCustomColor = (flameColor != Vector3::Zero);
+
+		if (hasCustomColor)
+		{
+			r = (unsigned char)(flameColor.x * (float)UCHAR_MAX);
+			g = (unsigned char)(flameColor.y * (float)UCHAR_MAX);
+			b = (unsigned char)(flameColor.z * (float)UCHAR_MAX);
+		}
+		else
 		{
 			r = 51 - ((GetRandomControl() / 16) & 6);
 			g = 44 - ((GetRandomControl() / 64) & 6);
 			b = GetRandomControl() & 10;
 		}
-		else
+
+		auto flameColor1 = Vector3::Zero;
+		auto flameColor2 = Vector3::Zero;
+
+		if (hasCustomColor)
 		{
-			auto sourceColorR = std::clamp(r + 0.2f, 0.0f, 1.0f);
-			auto sourceColorG = std::clamp(g + 0.2f, 0.0f, 1.0f);
-			auto sourceColorB = std::clamp(b + 0.2f, 0.0f, 1.0f);
+			auto sourceColorR = std::clamp((float)r / (float)UCHAR_MAX + 0.2f, 0.0f, 1.0f);
+			auto sourceColorG = std::clamp((float)g / (float)UCHAR_MAX + 0.2f, 0.0f, 1.0f);
+			auto sourceColorB = std::clamp((float)b / (float)UCHAR_MAX + 0.2f, 0.0f, 1.0f);
 
 			flameColor1 = Vector3(sourceColorR, sourceColorG, sourceColorB);
-			flameColor2 = Vector3(r, g, b);
+			flameColor2 = Vector3((float)r / (float)UCHAR_MAX, (float)g / (float)UCHAR_MAX, (float)b / (float)UCHAR_MAX);
 		}
 
 		SpawnDynamicLight(pos.x, pos.y, pos.z, 12, r, g, b);
@@ -168,7 +171,7 @@ namespace TEN::Entities::Traps
 
 		auto color = Color(r / (float)UCHAR_MAX, g / (float)UCHAR_MAX, b / (float)UCHAR_MAX);
 
-		if (item.TriggerFlags)
+		if (PropertyHandler::Get(item, PropName_FogEffect, false))
 			SpawnDynamicFogBulb(pos.ToVector3(), PENDULUM_FIRE_FOG_RADIUS, PENDULUM_FIRE_FOG_DENSITY, color);
 
 		TriggerPendulumFlame(itemNumber, pos, color);
@@ -192,6 +195,14 @@ namespace TEN::Entities::Traps
 		if (!HandleItemSphereCollision(*item, *playerItem))
 			return;
 
+		auto defaultScriptColor = ScriptColor(
+			item->ItemFlags[PendulumFlags::FireColorRed],
+			item->ItemFlags[PendulumFlags::FireColorGreen],
+			item->ItemFlags[PendulumFlags::FireColorBlue]);
+
+		auto flameColor = (Vector3)PropertyHandler::Get(item, PropName_EffectColor, defaultScriptColor, true);
+		bool hasCustomColor = (flameColor != Vector3::Zero);
+
 		for (int i = 0; i < FirePendulumHarmJoints.size(); i++)
 		{
 			if (item->TouchBits.Test(FirePendulumHarmJoints[i]))
@@ -205,23 +216,21 @@ namespace TEN::Entities::Traps
 					ItemPushItem(item, playerItem, coll, false, 1);
 				}
 
-				if (item->ItemFlags[PendulumFlags::FireColorRed] == 0 &&
-					item->ItemFlags[PendulumFlags::FireColorGreen] == 0 &&
-					item->ItemFlags[PendulumFlags::FireColorBlue] == 0)
+				if (!hasCustomColor)
 				{
 					TEN::Effects::Items::ItemBurn(playerItem);
 				}
 				else
 				{
-					unsigned char r = item->ItemFlags[PendulumFlags::FireColorRed];
-					unsigned char g = item->ItemFlags[PendulumFlags::FireColorGreen];
-					unsigned char b = item->ItemFlags[PendulumFlags::FireColorBlue];
+					unsigned char r = (unsigned char)(flameColor.x * (float)UCHAR_MAX);
+					unsigned char g = (unsigned char)(flameColor.y * (float)UCHAR_MAX);
+					unsigned char b = (unsigned char)(flameColor.z * (float)UCHAR_MAX);
 
-					auto sourceColorR = std::clamp(r + 0.2f, 0.0f, 1.0f);
-					auto sourceColorG = std::clamp(g + 0.2f, 0.0f, 1.0f);
-					auto sourceColorB = std::clamp(b + 0.2f, 0.0f, 1.0f);
+					auto sourceColorR = std::clamp((float)r / (float)UCHAR_MAX + 0.2f, 0.0f, 1.0f);
+					auto sourceColorG = std::clamp((float)g / (float)UCHAR_MAX + 0.2f, 0.0f, 1.0f);
+					auto sourceColorB = std::clamp((float)b / (float)UCHAR_MAX + 0.2f, 0.0f, 1.0f);
 
-					ItemCustomBurn(playerItem, Vector3(sourceColorR, sourceColorG, sourceColorB), Vector3(r, g, b));
+					ItemCustomBurn(playerItem, Vector3(sourceColorR, sourceColorG, sourceColorB), Vector3((float)r / (float)UCHAR_MAX, (float)g / (float)UCHAR_MAX, (float)b / (float)UCHAR_MAX));
 				}
 			}
 		}

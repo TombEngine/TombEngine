@@ -7,6 +7,7 @@
 #include "Game/control/flipeffect.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Hair.h"
+#include "Game/effects/ParticleGroup.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/pickup/pickup.h"
@@ -205,6 +206,7 @@ void InitializeSpecialEffects()
 	TEN::Entities::TR4::ClearBeetleSwarm();
 	TEN::Entities::Creatures::TR3::ClearFishSwarm();
 	TEN::Effects::Fireflies::ClearFireflySwarm();
+	TEN::Effects::ParticleGroups::ClearParticleGroups();
 }
 
 void CustomObjects()

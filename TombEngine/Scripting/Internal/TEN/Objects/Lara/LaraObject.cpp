@@ -3,9 +3,10 @@
 
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
-#include "Game/effects/Hair.h"
-#include "Game/Gui.h"
+#include "Game/effects/hair.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
+#include "Game/effects/hair.h"
 #include "Game/effects/item_fx.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_fire.h"
@@ -28,8 +29,10 @@
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Specific/Input/Input.h"
 #include "Specific/Input/InputAction.h"
+#include "Specific/clock.h"
 #include "Specific/level.h"
 
+using namespace TEN::Effects::Hair;
 using namespace TEN::Gui;
 using namespace TEN::Hud;
 using namespace TEN::Input;
@@ -128,7 +131,7 @@ int LaraObject::GetWet() const
 
 /// Set the player's stamina value.
 // @function LaraObject:SetStamina
-// @tparam[opt=120] int New stamina value. _Maximum: 120._
+// @tparam[opt=120] int stamina New stamina value. _Maximum: 120._
 // @usage
 // Lara:SetStamina(120)
 void LaraObject::SetStamina(sol::optional<int> value)
@@ -154,6 +157,36 @@ int LaraObject::GetStamina() const
 {
 	auto* lara = GetLaraInfo(_moveable);
 	return lara->Status.Stamina;
+}
+
+/// Set the player's cold exposure value.
+// @function LaraObject:SetExposure
+// @tparam[opt=600] int exposure New exposure value. _Maximum: 600._
+// @usage
+// Lara:SetExposure(600)
+void LaraObject::SetExposure(sol::optional<int> value)
+{
+	auto* lara = GetLaraInfo(_moveable);
+
+	if (value.has_value())
+	{
+		lara->Status.Exposure = std::clamp(value.value(), 0, (int)LARA_EXPOSURE_MAX);
+	}
+	else
+	{
+		lara->Status.Exposure = LARA_EXPOSURE_MAX;
+	}
+}
+
+/// Get the player's cold exposure value.
+// @function LaraObject:GetExposure
+// @treturn int Exposure value.
+// @usage
+// local coldExposure = Lara:GetExposure()
+int LaraObject::GetExposure() const
+{
+	auto* lara = GetLaraInfo(_moveable);
+	return lara->Status.Exposure;
 }
 
 /// Get the player's airborne status (set when jumping and falling).
@@ -663,6 +696,88 @@ std::unique_ptr<Moveable> LaraObject::GetPlayerInteractedMoveable() const
 	return std::make_unique<Moveable>(player.Context.InteractedItem);
 }
 
+/// Get currently holstered weapon types in left holster, right holster and back holster.
+// @function LaraObject:GetHolsterWeaponTypes
+// @treturn Objects.WeaponType Left holster weapon type.
+// @treturn Objects.WeaponType Right holster weapon type.
+// @treturn Objects.WeaponType Back holster weapon type.
+// @usage
+// local left, right, back = Lara:GetHolsterWeaponTypes()
+std::tuple<LaraWeaponType, LaraWeaponType, LaraWeaponType> LaraObject::GetHolsterWeaponTypes() const
+{
+	const auto& player = GetLaraInfo(*_moveable);
+
+	auto left = GetHolsterSlotWeapon(player.Control.Weapon.HolsterInfo.LeftHolster);
+	auto right = GetHolsterSlotWeapon(player.Control.Weapon.HolsterInfo.RightHolster);
+	auto back = GetHolsterSlotWeapon(player.Control.Weapon.HolsterInfo.BackHolster);
+
+	return std::make_tuple(left, right, back);
+}
+
+/// Set holstered weapon meshes for left holster, right holster and back holster.
+// Pass nil for any slot to leave it unchanged.
+// Use WeaponType.NONE to clear a holster slot.
+// @function LaraObject:SetHolsterWeaponTypes
+// @tparam[opt] Objects.WeaponType left Left holster weapon type (nil to leave unchanged).
+// @tparam[opt] Objects.WeaponType right Right holster weapon type (nil to leave unchanged).
+// @tparam[opt] Objects.WeaponType back Back holster weapon type (nil to leave unchanged).
+// @usage
+// Lara:SetHolsterWeaponTypes(WeaponType.PISTOLS, WeaponType.PISTOLS, WeaponType.SHOTGUN)
+// Lara:SetHolsterWeaponTypes(nil, nil, WeaponType.NONE) -- Clear back holster only.
+void LaraObject::SetHolsterWeaponTypes(TypeOrNil<LaraWeaponType> left, TypeOrNil<LaraWeaponType> right, TypeOrNil<LaraWeaponType> back)
+{
+	auto& player = GetLaraInfo(*_moveable);
+
+	if (std::holds_alternative<LaraWeaponType>(left))
+		player.Control.Weapon.HolsterInfo.LeftHolster = GetWeaponHolsterSlot(std::get<LaraWeaponType>(left));
+
+	if (std::holds_alternative<LaraWeaponType>(right))
+		player.Control.Weapon.HolsterInfo.RightHolster = GetWeaponHolsterSlot(std::get<LaraWeaponType>(right));
+
+	if (std::holds_alternative<LaraWeaponType>(back))
+		player.Control.Weapon.HolsterInfo.BackHolster = GetWeaponHolsterSlot(std::get<LaraWeaponType>(back));
+}
+
+/// Reset player hair to default state.
+// Useful after changing animations in spectator or freeze mode to fix hair positioning.
+// @function LaraObject:ResetHair
+// @usage
+// Lara:ResetHair()
+void LaraObject::ResetHair()
+{
+	for (int i = 0; i < FPS; i++)
+		HairEffect.Update(*_moveable);
+}
+
+/// Spawn a muzzle flash and dynamic point light for the given weapon type at the correct muzzle position.
+// Useful in photo mode or freeze mode to show a gun firing effect without the weapon actually being fired.
+// The weapon type should match the one currently equipped by the player; the renderer uses the active
+// weapon type for the correct mesh offset and rotation. Call only once in freeze mode to maintain the flash.
+// @function LaraObject:SpawnGunFlash
+// @tparam Objects.WeaponType weaponType Weapon type to spawn the flash for.
+// @tparam[opt=TEN.Objects.WeaponFlashMode.AUTO] Objects.WeaponFlashMode weaponFlashType Weapon Flash mode type.
+// @usage
+// Lara:SpawnGunFlash(WeaponType.PISTOLS)
+void LaraObject::SpawnGunFlash(LaraWeaponType weaponType, TypeOrNil<WeaponFlashMode> weaponFlashType)
+{
+	auto convertedFlag = ValueOr<WeaponFlashMode>(weaponFlashType, WeaponFlashMode::Auto);
+	SpawnWeaponFlash(*_moveable, convertedFlag, weaponType);
+}
+
+/// Clear all currently active muzzle flashes.
+// Useful in photo mode or freeze mode to clear active gunflashes.
+// @function LaraObject:ClearGunFlashes
+// @usage
+// Lara:ClearGunFlashes()
+void LaraObject::ClearGunFlashes()
+{
+	auto& player = GetLaraInfo(*_moveable);
+	player.LeftArm.GunFlash = 0;
+	player.LeftArm.GunFlashType = LaraWeaponType::None;
+	player.RightArm.GunFlash = 0;
+	player.RightArm.GunFlashType = LaraWeaponType::None;
+}
+
 /// Check if a held torch is lit.
 // @function LaraObject:IsTorchLit
 // @treturn bool True if lit, otherwise false (also false if there is no torch in hand).
@@ -763,87 +878,51 @@ sol::table LaraObject::GetSkin(sol::this_state s)
 // Lara:SetSkin(TEN.Objects.ObjID.ANIMATING18, TEN.Objects.ObjID.ANIMATING19, TEN.Objects.ObjID.ANIMATING20, nil, nil)
 void LaraObject::SetSkin(sol::optional<GAME_OBJECT_ID> skin, sol::optional<GAME_OBJECT_ID> skinJoints, sol::optional<GAME_OBJECT_ID> skinScream, sol::optional<GAME_OBJECT_ID> hair1, sol::optional<GAME_OBJECT_ID> hair2)
 {
-
-	auto isValidObjectID = [](int id) -> bool
-	{
-		return (id > NO_VALUE && id < ID_NUMBER_OBJECTS && Objects[id].loaded);
-	};
-
 	auto* lara = GetLaraInfo(_moveable);
-
 	bool changed = false;
 
-	if (skin.has_value())
+	auto trySetSkinPart = [&](const std::string& paramName, const sol::optional<GAME_OBJECT_ID>& value, GAME_OBJECT_ID referenceID, GAME_OBJECT_ID& target)
 	{
-		if (!isValidObjectID(skin.value()))
-		{
-			TENLog("SetSkin: skin object ID " + std::to_string(skin.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
-		}
-		else
-		{
-			lara->Skin.Skin = skin.value();
-			changed = true;
-		}
-	}
+		if (!value.has_value())
+			return;
 
-	if (skinJoints.has_value())
-	{
-		if (!isValidObjectID(skinJoints.value()))
-		{
-			TENLog("SetSkin: skinJoints object ID " + std::to_string(skinJoints.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
-		}
-		else
-		{
-			lara->Skin.SkinJoints = skinJoints.value();
-			changed = true;
-		}
-	}
+		GAME_OBJECT_ID id = value.value();
+		bool isValidID = (id > NO_VALUE && id < ID_NUMBER_OBJECTS && Objects[id].loaded);
 
-	if (skinScream.has_value())
-	{
-		if (!isValidObjectID(skinScream.value()))
+		if (!isValidID)
 		{
-			TENLog("SetSkin: skinScream object ID " + std::to_string(skinScream.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+			TENLog("SetSkin: " + paramName + " object ID " + GetObjectName(id) + " (" +
+				std::to_string(id) + ") is invalid or not loaded.",
+				LogLevel::Warning, LogConfig::All);
+			return;
 		}
-		else
-		{
-			lara->Skin.SkinScream = skinScream.value();
-			changed = true;
-		}
-	}
 
-	if (hair1.has_value())
-	{
-		if (!isValidObjectID(hair1.value()))
+		if (Objects[id].nmeshes != Objects[referenceID].nmeshes)
 		{
-			TENLog("SetSkin: hair1 object ID " + std::to_string(hair1.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
+			TENLog("SetSkin: " + paramName + " object ID " + GetObjectName(id) + " (" +
+				std::to_string(id) + ") mesh count (" +
+				std::to_string(Objects[id].nmeshes) + ") does not match " +
+				GetObjectName(referenceID) + " mesh count (" +
+				std::to_string(Objects[referenceID].nmeshes) + ").",
+				LogLevel::Warning, LogConfig::All);
+			return;
 		}
-		else
-		{
-			lara->Skin.HairPrimary = hair1.value();
-			changed = true;
-		}
-	}
 
-	if (hair2.has_value())
-	{
-		if (!isValidObjectID(hair2.value()))
-		{
-			TENLog("SetSkin: hair2 object ID " + std::to_string(hair2.value()) + " is invalid or not loaded.", LogLevel::Warning, LogConfig::All);
-		}
-		else
-		{
-			lara->Skin.HairSecondary = hair2.value();
-			changed = true;
-		}
-	}
+		target = id;
+		changed = true;
+	};
+
+	trySetSkinPart("skin", skin, ID_LARA_SKIN, lara->Skin.Skin);
+	trySetSkinPart("skinJoints", skinJoints, ID_LARA_SKIN, lara->Skin.SkinJoints);
+	trySetSkinPart("skinScream", skinScream, ID_LARA_SKIN, lara->Skin.SkinScream);
+	trySetSkinPart("hair1", hair1, ID_HAIR_PRIMARY, lara->Skin.HairPrimary);
+	trySetSkinPart("hair2", hair2, ID_HAIR_PRIMARY, lara->Skin.HairSecondary);
 
 	if (!changed)
 		return;
 
 	InitializeLaraMeshes(_moveable, false);
-	TEN::Effects::Hair::HairEffect.Initialize();
-
+	HairEffect.Initialize();
 	g_Renderer.UpdatePlayerSkinVertices(lara->Skin.Skin, lara->Skin.SkinJoints,
 		lara->Skin.HairPrimary, lara->Skin.HairSecondary);
 }
@@ -1007,6 +1086,8 @@ void LaraObject::Register(sol::table& parent)
 		ScriptReserved_GetWet, &LaraObject::GetWet,
 		ScriptReserved_SetStamina, &LaraObject::SetStamina,
 		ScriptReserved_GetStamina, &LaraObject::GetStamina,
+		ScriptReserved_SetExposure, &LaraObject::SetExposure,
+		ScriptReserved_GetExposure, &LaraObject::GetExposure,
 		ScriptReserved_GetAirborne, &LaraObject::GetAirborne,
 		ScriptReserved_SetAirborne, &LaraObject::SetAirborne,
 		ScriptReserved_GetLocked, &LaraObject::GetLocked,
@@ -1017,21 +1098,26 @@ void LaraObject::Register(sol::table& parent)
 		ScriptReserved_SetHandStatus, & LaraObject::SetHandStatus,
 		ScriptReserved_GetWeaponType, &LaraObject::GetWeaponType,
 		ScriptReserved_SetWeaponType, &LaraObject::SetWeaponType,
-		ScriptReserved_GetLaserSight, & LaraObject::GetLaserSight,
-		ScriptReserved_SetLaserSight, & LaraObject::SetLaserSight,
+		ScriptReserved_GetLaserSight, &LaraObject::GetLaserSight,
+		ScriptReserved_SetLaserSight, &LaraObject::SetLaserSight,
 		ScriptReserved_GetAmmoType, &LaraObject::GetAmmoType,
 		ScriptReserved_SetAmmoType, & LaraObject::SetAmmoType,
 		ScriptReserved_GetAmmoCount, &LaraObject::GetAmmoCount,
-		ScriptReserved_GetWeaponMode, & LaraObject::GetWeaponMode,
-		ScriptReserved_SetWeaponMode, & LaraObject::SetWeaponMode,
+		ScriptReserved_GetWeaponMode, &LaraObject::GetWeaponMode,
+		ScriptReserved_SetWeaponMode, &LaraObject::SetWeaponMode,
+		ScriptReserved_GetHolsterWeaponTypes, &LaraObject::GetHolsterWeaponTypes,
+		ScriptReserved_SetHolsterWeaponTypes,&LaraObject::SetHolsterWeaponTypes,
+		ScriptReserved_ResetHair, &LaraObject::ResetHair,
+		ScriptReserved_SpawnGunFlash, &LaraObject::SpawnGunFlash,
+		ScriptReserved_ClearGunFlashes, &LaraObject::ClearGunFlashes,
 		ScriptReserved_GetVehicle, &LaraObject::GetVehicle,
 		ScriptReserved_GetTarget, &LaraObject::GetTarget,
 		ScriptReserved_GetPlayerInteractedMoveable, &LaraObject::GetPlayerInteractedMoveable,
 		ScriptReserved_PlayerIsTorchLit, &LaraObject::IsTorchLit,
-		ScriptReserved_GetWaterStatus, & LaraObject::GetWaterStatus,
-		ScriptReserved_GetWaterSkinStatus, & LaraObject::GetWaterSkinStatus,
-		ScriptReserved_SetWaterSkinStatus, & LaraObject::SetWaterSkinStatus,
-		ScriptReserved_GetSkin, & LaraObject::GetSkin,
+		ScriptReserved_GetWaterStatus, &LaraObject::GetWaterStatus,
+		ScriptReserved_GetWaterSkinStatus, &LaraObject::GetWaterSkinStatus,
+		ScriptReserved_SetWaterSkinStatus, &LaraObject::SetWaterSkinStatus,
+		ScriptReserved_GetSkin, &LaraObject::GetSkin,
 		ScriptReserved_SetSkin, &LaraObject::SetSkin,
 		ScriptReserved_PlayerInteract, &LaraObject::Interact,
 		ScriptReserved_PlayerTestInteraction, &LaraObject::TestInteraction,

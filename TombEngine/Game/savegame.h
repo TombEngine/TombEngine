@@ -34,13 +34,13 @@ class SaveGame
 private:
 	static std::string FullSaveDirectory;
 	static int LastSaveGame;
-	static std::map<int, std::vector<byte>> Hub;
+	static std::map<int, std::vector<unsigned char>> Hub;
 
 	static std::string SaveGame::GetSavegameFilename(int slot);
 	static bool IsSaveGameSlotValid(int slot);
 
-	static const std::vector<byte> Build();
-	static void Parse(const std::vector<byte>& buffer, bool hubMode);
+	static const std::vector<unsigned char> Build();
+	static void Parse(const std::vector<unsigned char>& buffer, bool hubMode);
 
 public:
 	static GameStats Statistics;

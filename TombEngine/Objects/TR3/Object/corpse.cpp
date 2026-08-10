@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Objects/TR3/Object/Corpse.h"
+#include "Objects/TR3/Object/corpse.h"
 
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
@@ -228,7 +228,7 @@ namespace TEN::Entities::TR3
 		}
 		else if (player.Weapons[(int)LaraWeaponType::GrenadeLauncher].SelectedAmmo == WeaponAmmoType::Ammo2)
 		{
-			DoItemHit(&target,0, isExplosive, false);
+			DoItemHit(&target, 0, isExplosive, false);
 		}
 		else
 		{

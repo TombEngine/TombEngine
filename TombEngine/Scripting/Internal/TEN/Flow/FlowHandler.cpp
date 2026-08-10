@@ -3,7 +3,7 @@
 
 #include <filesystem>
 
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/Lara/lara_fire.h"
 #include "Game/pickup/pickup_ammo.h"
 #include "Game/pickup/pickup_consumable.h"

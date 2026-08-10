@@ -224,7 +224,7 @@ bool TestLaraHang(ItemInfo* item, CollisionInfo* coll)
 				z += testShift.y;
 			}
 
-			if (TestLaraNearClimbableWall(item, &GetPointCollision(Vector3i(x, item->Pose.Position.y, z), item->RoomNumber).GetBottomSector()))
+			if (TestLaraNearClimbableWall(item, &GetPointCollision(Vector3i(x, item->Pose.Position.y, z), item->RoomNumber).GetBottomSector(true)))
 			{
 				if (!TestLaraHangOnClimbableWall(item, coll))
 					verticalShift = 0; // Ignore vertical shift if ladder is encountered next block
@@ -461,7 +461,7 @@ bool TestLaraClimbIdle(ItemInfo* item, CollisionInfo* coll)
 bool TestLaraNearClimbableWall(ItemInfo* item, FloorInfo* floor)
 {
 	if (floor == nullptr)
-		floor = &GetPointCollision(*item).GetBottomSector();
+		floor = &GetPointCollision(*item).GetBottomSector(true);
 
 	return ((256 << (GetQuadrant(item->Pose.Orientation.y))) & GetClimbFlags(floor));
 }

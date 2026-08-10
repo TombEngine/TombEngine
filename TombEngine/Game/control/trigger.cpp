@@ -425,7 +425,7 @@ void Trigger(short const value, short const flags)
 
 void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bool heavy, int heavyFlags)
 {
-	if (g_GameFlow->CurrentFreezeMode != FreezeMode::None)
+	if (g_GameFlow->LastFreezeMode != FreezeMode::None)
 		return;
 
 	bool switchOff = false;
@@ -495,7 +495,8 @@ void TestTriggers(int x, int y, int z, FloorInfo* floor, Activator activator, bo
 			if (!SwitchTrigger(value, timer))
 				return;
 
-			switchOff = (triggerType == TRIGGER_TYPES::SWITCH && timer && g_Level.Items[value].Animation.ActiveState == 1);
+			switchOff = (triggerType == TRIGGER_TYPES::SWITCH && timer &&
+				g_Level.Items[value].Animation.ActiveState == (g_Level.Items[value].ObjectNumber == ID_JUMP_SWITCH ? SWITCH_OFF : SWITCH_ON));
 			break;
 
 		case TRIGGER_TYPES::MONKEY:
@@ -891,9 +892,10 @@ void ProcessSectorFlags(ItemInfo* item)
 	if (isPlayer)
 	{
 		auto& player = GetLaraInfo(*item);
+		auto& climbSector = pointColl.GetBottomSector(true);
 
 		// Set wall climb status.
-		if (TestLaraNearClimbableWall(item, &sector))
+		if (TestLaraNearClimbableWall(item, &climbSector))
 		{
 			player.Control.CanClimbLadder = true;
 		}
@@ -903,7 +905,7 @@ void ProcessSectorFlags(ItemInfo* item)
 		}
 
 		// Set monkey swing status.
-		player.Control.CanMonkeySwing = sector.Flags.Monkeyswing;
+		player.Control.CanMonkeySwing = climbSector.Flags.Monkeyswing;
 	}
 
 	// Burn or drown item.
@@ -935,7 +937,7 @@ void ProcessSectorFlags(ItemInfo* item)
 				// TODO: Implement correct rapids behaviour for other objects.
 				DoDamage(item, INT_MAX);
 			}
-			else
+			else if (g_GameFlow->GetSettings()->Gameplay.SetEnemiesOnFireWithDeathFlag)
 			{
 				ItemBurn(item);
 			}

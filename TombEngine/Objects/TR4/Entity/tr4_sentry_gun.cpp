@@ -6,7 +6,7 @@
 #include "Game/control/lot.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/tomb4fx.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
 #include "Game/misc.h"

@@ -15,8 +15,8 @@ struct BatData
 	short XTarget;
 	short ZTarget;
 
-	byte Flags;
-
+	unsigned char Flags;
+	
 	Matrix Transform = Matrix::Identity;
 	Matrix PrevTransform = Matrix::Identity;
 
