@@ -12,6 +12,7 @@
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Game/control/los.h"
 #include "Math/Geometry.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
@@ -21,6 +22,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Math;
+using namespace TEN::Scripting::Properties;
 
 namespace TEN::Entities::Creatures::TR5
 {
@@ -325,7 +327,7 @@ constexpr int GUNSHIP_DAMAGE = 20; // Damage dealt by gunship to Lara when shoot
 
 		SoundEffect(SFX_TR4_HELICOPTER_LOOP, &item->Pose);
 
-		const PropertyValue* shootProp = PropertyHandler::Get(*item, "GunshipShootTarget");
+		const PropertyValue* shootProp = PropertyHandler::Get(item, PropName_ShootTargetDistance, SECTOR_SIZE * 3 + SECTOR_SIZE);
 		int shootTargetNum = LaraItem->Index;//-1; Zum Testen auf Lara gestellt
 		if (shootProp != nullptr)
 		{
