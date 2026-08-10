@@ -47,15 +47,6 @@ extern GUNSHELL_STRUCT Gunshells[MAX_GUNSHELL];
 
 namespace TEN::Renderer
 {
-	void Renderer::UpdateRoomConstantBuffer()
-	{
-		const auto& settings = g_GameFlow->GetSettings()->Effects;
-		_stRoom.WaterEffectStrength = std::clamp(settings.WaterEffectStrength, 0.0f, 1.0f);
-		_stRoom.WaterEffectDepth = std::max(settings.WaterEffectDepth, 1.0f);
-
-		UpdateConstantBuffer(&_stRoom, _cbRoom.get());
-	}
-
 	void Renderer::RenderBlobShadows(RenderView& renderView)
 	{
 		auto nearestSpheres = std::vector<Sphere>{};
@@ -2043,6 +2034,9 @@ namespace TEN::Renderer
 		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
 
 		auto& level = *g_GameFlow->GetLevel(CurrentLevel);
+		const auto& effectSettings = g_GameFlow->GetSettings()->Effects;
+		_stRoom.WaterEffectStrength = std::clamp(effectSettings.WaterEffectStrength, 0.0f, 1.0f);
+		_stRoom.WaterEffectDepth = std::max(effectSettings.WaterEffectDepth, 1.0f);
 
 		// Prepare scene to draw.
 		auto time1 = std::chrono::high_resolution_clock::now();
@@ -2473,7 +2467,7 @@ namespace TEN::Renderer
 			_stRoom.AmbientColor = room->AmbientLight;
 			_stRoom.NumRoomLights = 0;
 			_stRoom.Water = (nativeRoom->flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
-			UpdateRoomConstantBuffer();
+			UpdateConstantBuffer(&_stRoom, _cbRoom);
 
 			for (auto& bucket : room->Buckets)
 			{
@@ -3230,7 +3224,7 @@ namespace TEN::Renderer
 								}
 
 								_stRoom.Water = (nativeRoom.flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
-								UpdateRoomConstantBuffer();
+								UpdateConstantBuffer(&_stRoom, _cbRoom.get());
 
 								SetScissor(room.ClipBounds);
 
@@ -4105,7 +4099,7 @@ namespace TEN::Renderer
 		BindRoomLights(view.LightsToDraw);
 		_stRoom.NumRoomDecals = 0; // Don't draw decals on sorted faces to avoid slowdowns.
 		_stRoom.Water = (nativeRoom->flags & ENV_FLAG_WATER) != 0 ? 1 : 0;
-		UpdateRoomConstantBuffer();
+		UpdateConstantBuffer(&_stRoom, _cbRoom.get());
 
 		SetScissor(objectInfo->Room->ClipBounds);
 
