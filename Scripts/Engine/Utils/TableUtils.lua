@@ -29,24 +29,23 @@ local _activeCompares = {}     -- Tracks active comparisons: { [id] = { depth, e
 local MAX_DEPTH = Utility.Constants.MAX_DEPTH
 local MAX_ELEMENTS = Utility.Constants.MAX_ELEMENTS
 
+local ErrorLog = Utility.ErrorLog
+local WarningLog = Utility.WarningLog
 local TableHasValueRaw = Utility.TableHasValue
 local GetMaxNumericIndex = Utility.GetMaxNumericIndex
 local IsTable = Type.IsTable
-local LogMessage  = TEN.Util.PrintLog
-local logLevelError  = TEN.Util.LogLevel.ERROR
-local logLevelWarning = TEN.Util.LogLevel.WARNING
 local pairs = pairs
 local ipairs = ipairs
 local next = next
 local tableRemove = table.remove
 
 -- Support function for recursive comparison
-local function CompareRecursive(t1, t2, compareId)
+local function CompareRecursive(t1, t2, compareId, errorContext)
     local context = _activeCompares[compareId]
 
     -- Check maximum depth
     if context.depth >= MAX_DEPTH then
-        LogMessage("Warning in TableUtils.CompareTablesDeep: Maximum depth (" .. MAX_DEPTH .. ") exceeded.", logLevelWarning)
+        WarningLog("Warning in {context}: Maximum depth ({max}) exceeded.", {max = MAX_DEPTH, context = errorContext})
         return false
     end
 
@@ -68,7 +67,7 @@ local function CompareRecursive(t1, t2, compareId)
 
         -- Check maximum elements
         if context.elementCount >= MAX_ELEMENTS then
-            LogMessage("Warning in TableUtils.CompareTablesDeep: Maximum elements (" ..  MAX_ELEMENTS .. ") exceeded.", logLevelWarning)
+            WarningLog("Warning in {context}: Maximum elements ({max}) exceeded.", {max = MAX_ELEMENTS, context = errorContext})
             return false
         end
 
@@ -83,7 +82,7 @@ local function CompareRecursive(t1, t2, compareId)
 
         -- Compare values
         if IsTable(value1) and IsTable(value2) then
-            if not CompareRecursive(value1, value2, compareId) then
+            if not CompareRecursive(value1, value2, compareId, errorContext) then
                 context.depth = context.depth - 1
                 return false
             end
@@ -108,6 +107,7 @@ end
 
 --- Get the number of elements in a table (works for non-sequential tables).
 -- @tparam table tbl The table to count.
+-- @tparam[opt="TableUtils.TableSize"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] int The number of elements.
 -- @treturn[2] int 0 if table is empty or input is not a table (with a log message).
 -- @usage
@@ -141,9 +141,10 @@ end
 --
 -- -- Example with invalid input:
 -- local count = TableUtils.TableSize("not a table") -- Result: 0 (with error logged)
-TableUtils.TableSize = function(tbl)
+TableUtils.TableSize = function(tbl, errorContext)
+    errorContext = errorContext or "TableUtils.TableSize"
     if not IsTable(tbl) then
-        LogMessage("Error in TableUtils.TableSize: input must be a table.", logLevelError)
+        ErrorLog("Error in {context}: input must be a table.", {context = errorContext})
         return 0
     end
     local count = 0
@@ -157,6 +158,7 @@ end
 -- This function checks if both tables have the same keys and corresponding values. Works for shallow comparisons only.
 -- @tparam table tbl1 The first table to compare.
 -- @tparam table tbl2 The second table to compare.
+-- @tparam[opt="TableUtils.CompareTables"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] bool True if the tables are equal, false otherwise.
 -- @treturn[2] bool false if an error occurs with a log message.
 -- @usage
@@ -200,9 +202,10 @@ end
 --
 -- -- Example with non-table input:
 -- local isEqual = TableUtils.CompareTables(tblA, "not a table") -- Result: false (with error logged)
-TableUtils.CompareTables = function (tbl1, tbl2)
+TableUtils.CompareTables = function (tbl1, tbl2, errorContext)
+    errorContext = errorContext or "TableUtils.CompareTables"
     if not (IsTable(tbl1) and IsTable(tbl2)) then
-        LogMessage("Error in TableUtils.CompareTables: both inputs must be tables.", logLevelError)
+        ErrorLog("Error in {context}: both inputs must be tables.", {context = errorContext})
         return false
     end
 
@@ -228,21 +231,23 @@ TableUtils.CompareTables = function (tbl1, tbl2)
 end
 
 --- Deeply compare two tables for equality.
---- This function checks if both tables have the same keys and corresponding values, including nested tables.
---- **Limits:** Maximum depth of 10 levels and 1000 total elements processed to prevent performance issues.
---- @tparam table tbl1 The first table to compare.
---- @tparam table tbl2 The second table to compare.
---- @treturn[1] bool True if the tables are deeply equal, false otherwise.
---- @treturn[2] bool false if an error occurs with a log message.
---- @usage
---- local tblA = { a = 1, b = { c = 2, d = 3 } }
---- local tblB = { a = 1, b = { c = 2, d = 3 } }
---- local tblC = { a = 1, b = { c = 2, d = 4 } }
---- local isEqualAB = TableUtils.CompareTablesDeep(tblA, tblB) -- Result: true
---- local isEqualAC = TableUtils.CompareTablesDeep(tblA, tblC) -- Result: false
-TableUtils.CompareTablesDeep = function (tbl1, tbl2)
+-- This function checks if both tables have the same keys and corresponding values, including nested tables.
+-- **Limits:** Maximum depth of 10 levels and 1000 total elements processed to prevent performance issues.
+-- @tparam table tbl1 The first table to compare.
+-- @tparam table tbl2 The second table to compare.
+-- @tparam[opt="TableUtils.CompareTablesDeep"] string errorContext Context string for error messages (e.g., function name).
+-- @treturn[1] bool True if the tables are deeply equal, false otherwise.
+-- @treturn[2] bool false if an error occurs with a log message.
+-- @usage
+-- local tblA = { a = 1, b = { c = 2, d = 3 } }
+-- local tblB = { a = 1, b = { c = 2, d = 3 } }
+-- local tblC = { a = 1, b = { c = 2, d = 4 } }
+-- local isEqualAB = TableUtils.CompareTablesDeep(tblA, tblB) -- Result: true
+-- local isEqualAC = TableUtils.CompareTablesDeep(tblA, tblC) -- Result: false
+TableUtils.CompareTablesDeep = function (tbl1, tbl2, errorContext)
+    errorContext = errorContext or "TableUtils.CompareTablesDeep"
     if not (IsTable(tbl1) and IsTable(tbl2)) then
-        LogMessage("Error in TableUtils.CompareTablesDeep: both inputs must be tables.", logLevelError)
+        ErrorLog("Error in {context}: both inputs must be tables.", {context = errorContext})
         return false
     end
 
@@ -258,7 +263,7 @@ TableUtils.CompareTablesDeep = function (tbl1, tbl2)
     }
 
     -- Execute comparison
-    local result = CompareRecursive(tbl1, tbl2, compareId)
+    local result = CompareRecursive(tbl1, tbl2, compareId, errorContext)
 
     -- Cleanup: remove context for this comparison
     _activeCompares[compareId] = nil
@@ -269,6 +274,7 @@ end
 --- Check if a table contains a specific value.
 -- @tparam table tbl The table to check.
 -- @tparam any val The value to search for.
+-- @tparam[opt="TableUtils.TableHasValue"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] bool True if the value is found, false otherwise.
 -- @treturn[2] bool false if an error occurs.
 -- @usage
@@ -281,9 +287,10 @@ end
 -- local tbl = { "apple", "banana", "cherry" }
 -- local hasBanana = TableUtils.TableHasValue(tbl, "banana") -- Result: true
 -- local hasGrape = TableUtils.TableHasValue(tbl, "grape") -- Result: false
-TableUtils.TableHasValue = function (tbl, val)
+TableUtils.TableHasValue = function (tbl, val, errorContext)
+    errorContext = errorContext or "TableUtils.TableHasValue"
     if not IsTable(tbl) then
-        LogMessage("Error in TableUtils.TableHasValue: input is not a table.", logLevelError)
+        ErrorLog("Error in {context}: input is not a table.", {context = errorContext})
         return false
     end
     return TableHasValueRaw(tbl, val)
@@ -292,6 +299,7 @@ end
 --- Check if a table contains a specific key.
 -- @tparam table tbl The table to check.
 -- @tparam any key The key to search for.
+-- @tparam[opt="TableUtils.TableHasKey"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] bool True if the key is found, false otherwise.
 -- @treturn[2] bool false if an error occurs.
 -- @usage
@@ -304,9 +312,10 @@ end
 -- local tbl = { "apple", "banana", "cherry" }
 -- local hasBananaKey = TableUtils.TableHasKey(tbl, 2) -- Result: true
 -- local hasGrapeKey = TableUtils.TableHasKey(tbl, 4) -- Result: false
-TableUtils.TableHasKey = function (tbl, key)
+TableUtils.TableHasKey = function (tbl, key, errorContext)
+    errorContext = errorContext or "TableUtils.TableHasKey"
     if not IsTable(tbl) then
-        LogMessage("Error in TableUtils.TableHasKey: input is not a table.", logLevelError)
+        ErrorLog("Error in {context}: input is not a table.", {context = errorContext})
         return false
     end
     return tbl[key] ~= nil
@@ -319,6 +328,7 @@ end
 --
 -- For a deep copy that also clones nested tables, use `GeneralUtils.CloneValue` instead.
 -- @tparam table tbl The table to copy.
+-- @tparam[opt="TableUtils.CopyTable"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] table A shallow copy of the input table.
 -- @treturn[2] table An empty table if input is not a table.
 -- @usage
@@ -348,9 +358,10 @@ end
 -- if needRestore then
 --     playerStats = backup
 -- end
-TableUtils.CopyTable = function(tbl)
+TableUtils.CopyTable = function(tbl, errorContext)
+    errorContext = errorContext or "TableUtils.CopyTable"
     if not IsTable(tbl) then
-        LogMessage("Error in TableUtils.CopyTable: input is not a table.", logLevelError)
+        ErrorLog("Error in {context}: input is not a table.", {context = errorContext})
         return {}
     end
 
@@ -366,6 +377,7 @@ end
 -- This is a shallow merge (nested tables are not merged recursively).
 -- @tparam table tbl1 The first table (base table).
 -- @tparam table tbl2 The second table (override table).
+-- @tparam[opt="TableUtils.MergeTables"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] table A new table with merged contents.
 -- @treturn[2] table An empty table if either input is not a table.
 -- @usage
@@ -393,13 +405,14 @@ end
 -- local nightMode = { color = "black", brightness = 50 }
 -- local activeConfig = TableUtils.MergeTables(defaultConfig, nightMode)
 -- -- activeConfig: { speed = 10, color = "black", brightness = 50 }
-TableUtils.MergeTables = function(tbl1, tbl2)
+TableUtils.MergeTables = function(tbl1, tbl2, errorContext)
+    errorContext = errorContext or "TableUtils.MergeTables"
     if not IsTable(tbl1) then
-        LogMessage("Error in TableUtils.MergeTables: tbl1 is not a table.", logLevelError)
+        ErrorLog("Error in {context}: tbl1 is not a table.", {context = errorContext})
         return {}
     end
     if not IsTable(tbl2) then
-        LogMessage("Error in TableUtils.MergeTables: tbl2 is not a table.", logLevelError)
+        ErrorLog("Error in {context}: tbl2 is not a table.", {context = errorContext})
         return {}
     end
 
@@ -427,6 +440,7 @@ end
 -- Note: This function is designed **for array tables (numeric indices)**.
 -- @tparam table tbl The array table from which to remove the value.
 -- @tparam any value The value to search for and remove.
+-- @tparam[opt="TableUtils.RemoveValue"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] bool True if the value was found and removed, false otherwise.
 -- @treturn[2] bool False if the input is not a table.
 -- @usage
@@ -454,9 +468,10 @@ end
 -- local tableA = { "b", false, nil, 45 }
 -- local removed = TableUtils.RemoveValue(tableA, nil) -- Result: true
 -- -- tableA is now: { "b", false, 45 }
-TableUtils.RemoveValue = function(tbl, value)
+TableUtils.RemoveValue = function(tbl, value, errorContext)
+    errorContext = errorContext or "TableUtils.RemoveValue"
     if not IsTable(tbl) then
-        LogMessage("Error in TableUtils.RemoveValue: input is not a table.", logLevelError)
+        ErrorLog("Error in {context}: input is not a table.", {context = errorContext})
         return false
     end
 
@@ -523,6 +538,7 @@ end
 -- Note: This function is designed **for array tables (numeric indices)**.
 -- @tparam table tbl The array table from which to remove all occurrences of the value.
 -- @tparam any value The value to search for and remove.
+-- @tparam[opt="TableUtils.RemoveAllValues"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] int The number of occurrences removed.
 -- @treturn[2] int 0 if the input is not a table.
 -- @usage
@@ -555,9 +571,10 @@ end
 -- local tableA = { "b", false, nil, 45 }
 -- local count = TableUtils.RemoveAllValues(tableA, nil) -- Result: 1
 -- -- tableA is now: { "b", false, 45 }
-TableUtils.RemoveAllValues = function(tbl, value)
+TableUtils.RemoveAllValues = function(tbl, value, errorContext)
+    errorContext = errorContext or "TableUtils.RemoveAllValues"
     if not IsTable(tbl) then
-        LogMessage("Error in TableUtils.RemoveAllValues: input is not a table.", logLevelError)
+        ErrorLog("Error in {context}: input is not a table.", {context = errorContext})
         return 0
     end
 
@@ -609,6 +626,7 @@ end
 -- Works with both associative tables and array tables (using numeric indices).
 -- @tparam table tbl The table from which to remove the key.
 -- @tparam any key The key to remove.
+-- @tparam[opt="TableUtils.RemoveKey"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] bool True if the key existed and was removed, false if the key was not found.
 -- @treturn[2] bool False if the input is not a table.
 -- @usage
@@ -632,9 +650,10 @@ end
 -- local config = { display = { width = 1920, height = 1080 }, sound = { volume = 80 } }
 -- local removed = TableUtils.RemoveKey(config, "sound") -- Result: true
 -- -- config is now: { display = { width = 1920, height = 1080 } }
-TableUtils.RemoveKey = function(tbl, key)
+TableUtils.RemoveKey = function(tbl, key, errorContext)
+    errorContext = errorContext or "TableUtils.RemoveKey"
     if not IsTable(tbl) then
-        LogMessage("Error in TableUtils.RemoveKey: input is not a table.", logLevelError)
+        ErrorLog("Error in {context}: input is not a table.", {context = errorContext})
         return false
     end
 
@@ -651,6 +670,7 @@ end
 -- Works with both associative tables and array tables.
 -- Note: __This function does not create a new table__; it modifies the existing table in place.
 -- @tparam table tbl The table to clear.
+-- @tparam[opt="TableUtils.ClearTable"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] bool True if the table was successfully cleared.
 -- @treturn[2] bool False if the input is not a table.
 -- @usage
@@ -673,9 +693,10 @@ end
 -- local notATable = "I am a string"
 -- local cleared = TableUtils.ClearTable(notATable) -- Result: false (error logged)
 -- -- notATable remains unchanged: "I am a string"
-TableUtils.ClearTable = function(tbl)
+TableUtils.ClearTable = function(tbl, errorContext)
+    errorContext = errorContext or "TableUtils.ClearTable"
     if not IsTable(tbl) then
-        LogMessage("Error in TableUtils.ClearTable: input is not a table.", logLevelError)
+        ErrorLog("Error in {context}: input is not a table.", {context = errorContext})
         return false
     end
 
@@ -694,14 +715,14 @@ end
 -- local readOnlyTable = TableUtils.SetTableReadOnly(originalTable)
 TableUtils.SetTableReadOnly = function(tbl)
     if not IsTable(tbl) then
-        LogMessage("Error in TableUtils.SetTableReadOnly: input is not a table.", logLevelError)
+        ErrorLog("Error in TableUtils.SetTableReadOnly: input is not a table.")
         return {}
     end
 
     return setmetatable({}, {
         __index = tbl,
         __newindex = function(_, key, _)
-            LogMessage("Error, cannot modify '" .. tostring(key) .. "': table is read-only", logLevelError)
+            ErrorLog("Error, cannot modify '{key}': table is read-only", {key = key})
         end,
         __pairs = function() return pairs(tbl) end,
         __ipairs = function() return ipairs(tbl) end,
