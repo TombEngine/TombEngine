@@ -16,6 +16,9 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 
+#include "Game/misc.h"
+#include "Game/effects/tomb4fx.h"
+
 using namespace TEN::Animation;
 using namespace TEN::Math;
 
@@ -31,8 +34,9 @@ namespace TEN::Entities::Creatures::TR5
 	}
 
 	// Konstanten für Verhalten
-	constexpr int ROTOR_ACTIVE_THRESHOLD = 15;
-	constexpr int FIRE_RATE = 30;
+constexpr int ROTOR_ACTIVE_THRESHOLD = 15;
+constexpr int FIRE_RATE = 30;
+constexpr int GUNSHIP_DAMAGE = 20; // Damage dealt by gunship to Lara when shooting
 
 	constexpr float MOVEMENT_LERP_SPEED = 4.0f;
 	constexpr int INERTIA_FRAMES = 25;
@@ -648,20 +652,69 @@ namespace TEN::Entities::Creatures::TR5
 			}
 
 			const bool hasShootTargetInRange = hasShootTarget && shootHLen <= maxShotsRange;
-			if (hasShootTargetInRange)
-			{
-				if (!(GlobalCounter & (FIRE_RATE - 1)) && item->ItemFlags[0] > FIRE_RATE)
-					SoundEffect(SFX_TR4_HK_FIRE, &item->Pose, SoundEnvironment::Land, 0.8f);
+if (hasShootTargetInRange)
+{
+    // Sound for gunfire.
+    if (!(GlobalCounter & (FIRE_RATE - 1)) && item->ItemFlags[0] > FIRE_RATE)
+        SoundEffect(SFX_TR4_HK_FIRE, &item->Pose, SoundEnvironment::Land, 0.8f);
 
-				if (item->ItemFlags[0] <= ROTOR_ACTIVE_THRESHOLD)
-					item->MeshBits |= 0x100;
-				else
-					item->MeshBits &= 0xFEFF;
-			}
-			else
-			{
-				item->MeshBits &= 0xFEFF;
-			}
+    // Gun flash visual and light (always shown when firing).
+    if (item->ItemFlags[0] <= ROTOR_ACTIVE_THRESHOLD)
+        item->MeshBits |= 0x100;
+    else
+        item->MeshBits &= 0xFEFF;
+
+    // Use mesh‑8 (gun neck) joint as muzzle point.
+auto muzzleJoint = GetJointPosition(item, 8, Vector3i::Zero);
+    auto flashPos   = muzzleJoint.ToVector3();
+
+    auto lightColor = Vector3(Random::GenerateFloat(0.75f, 0.85f),
+                              Random::GenerateFloat(0.5f, 0.6f), 0.0f) * 255;
+    SpawnDynamicLight(flashPos.x, flashPos.y, flashPos.z,
+                      10, lightColor.x, lightColor.y, lightColor.z);
+
+    // Spawn gun shell effect at the muzzle (same as Lara’s).
+    TriggerGunShell(0, ID_GUNSHELL, LaraWeaponType::HK);
+
+    // Determine line of sight from the muzzle.
+    auto origin   = GameVector(flashPos, item->RoomNumber);
+    auto targetVec = GameVector(g_Level.Items[shootTargetNum].Pose.Position,
+                               g_Level.Items[shootTargetNum].RoomNumber);
+    bool los = LOS(&origin, &targetVec);
+
+    if (los)
+    {
+        // Apply damage with a miss chance (50% hit probability).
+        if (Random::TestProbability(0.5f))
+            DoDamage(&g_Level.Items[shootTargetNum], GUNSHIP_DAMAGE);
+    }
+    else
+    {
+        // No line of sight – create ricochet spark at impact point.
+        int dx = targetVec.x - origin.x;
+        int dz = targetVec.z - origin.z;
+
+        // Clamp distance to a reasonable length for the spark.
+        while (abs(dx) > BLOCK(12) || abs(dz) > BLOCK(12))
+        {
+            dx /= 2;
+            dz /= 2;
+        }
+
+        GameVector impactPos(
+            origin.x + dx + GetRandomControl() - 128,
+            origin.y,
+            origin.z + dz + GetRandomControl() - 128,
+            item->RoomNumber);
+
+        TriggerRicochetSpark(impactPos, Random::GenerateAngle());
+    }
+}
+else
+{
+    // Not in range – ensure flash is cleared.
+    item->MeshBits &= 0xFEFF;
+}
 
 			if (item->ItemFlags[7] != 1)
 				item->ItemFlags[6] = (int)(currentYSpeed * FLOATING_POINT_SCALE);
