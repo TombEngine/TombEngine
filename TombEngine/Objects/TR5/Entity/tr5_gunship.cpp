@@ -3,6 +3,7 @@
 
 #include "Scripting/Internal/TEN/Objects/Creature/Creature.h"
 #include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
@@ -327,30 +328,13 @@ constexpr int GUNSHIP_DAMAGE = 20; // Damage dealt by gunship to Lara when shoot
 
 		SoundEffect(SFX_TR4_HELICOPTER_LOOP, &item->Pose);
 
-		const PropertyValue* shootProp = PropertyHandler::Get(item, PropName_ShootTargetDistance, SECTOR_SIZE * 3 + SECTOR_SIZE);
-		int shootTargetNum = LaraItem->Index;//-1; Zum Testen auf Lara gestellt
-		if (shootProp != nullptr)
-		{
-			auto val = ExtractValue<int>(*shootProp);
-			if (val.has_value() && val.value() >= 0)
-				shootTargetNum = val.value();
-		}
+		int shootTargetNum = PropertyHandler::Get(*item, PropName_ShootTarget, -1);
+		shootTargetNum = LaraItem->Index;//-1; Zum Testen auf Lara gestellt, zeile wird dann wieder gelöscht
 
 		bool hasShootTarget = (shootTargetNum >= 0);
 
-		const PropertyValue* moveProp = PropertyHandler::Get(*item, "GunshipMovementTarget");
+		bool hasMoveTargetPos = PropertyHandler::Get(*item, "GunshipMovementTarget", false);
 		Vector3 moveTargetPos = Vector3::Zero;
-		bool hasMoveTargetPos = false;
-
-		if (moveProp != nullptr)
-		{
-			auto val = ExtractValue<Vec3>(*moveProp);
-			if (val.has_value())
-			{
-				moveTargetPos = val->ToVector3();
-				hasMoveTargetPos = true;
-			}
-		}
 
 		ItemInfo* moveTargetItem = hasMoveTargetPos ? nullptr : LaraItem.Get();
 		if (!hasMoveTargetPos && hasShootTarget)
@@ -675,8 +659,8 @@ auto muzzleJoint = GetJointPosition(item, 8, Vector3i::Zero);
     SpawnDynamicLight(flashPos.x, flashPos.y, flashPos.z,
                       10, lightColor.x, lightColor.y, lightColor.z);
 
-    // Spawn gun shell effect at the muzzle (same as Lara’s).
-    TriggerGunShell(0, ID_GUNSHELL, LaraWeaponType::HK);
+        // Spawn gun shell effect at the muzzle using generic function.
+        TriggerGunShellAt(Vector3i((int)flashPos.x, (int)flashPos.y, (int)flashPos.z), item->RoomNumber, ID_GUNSHELL, LaraWeaponType::HK);
 
     // Determine line of sight from the muzzle.
     auto origin   = GameVector(flashPos, item->RoomNumber);

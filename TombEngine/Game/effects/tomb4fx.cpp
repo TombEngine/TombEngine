@@ -963,6 +963,29 @@ void TriggerGunShell(short hand, short objNum, LaraWeaponType weaponType)
 	}
 }
 
+ // New generic gun shell trigger for arbitrary position/orientation.
+void TriggerGunShellAt(const Vector3i& pos, short roomNumber, short objNum, LaraWeaponType weaponType, short dirXrot)
+{
+    if (g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].Shell)
+    {
+        auto& gunshell = Gunshells[GetFreeGunshell()];
+
+        gunshell.pos.Position = pos;
+        gunshell.pos.Orientation.x = 0;
+        gunshell.pos.Orientation.y = 0;
+        gunshell.pos.Orientation.z = GetRandomControl();
+        gunshell.roomNumber = roomNumber;
+        gunshell.speed = (GetRandomControl() & 0x1F) + 16;
+        gunshell.fallspeed = -48 - (GetRandomControl() & 7);
+        gunshell.objectNumber = objNum;
+        gunshell.counter = (GetRandomControl() & 0x1F) + 60;
+
+        gunshell.dirXrot = dirXrot; // Caller can specify rotation, default 0.
+    }
+
+    // Note: This function does not create muzzle flash smoke. Call TriggerGunSmoke separately if needed.
+}
+
 void UpdateGunFlashes()
 {
 	if (Lara.Control.Weapon.GunType == LaraWeaponType::None)

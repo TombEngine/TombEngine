@@ -325,6 +325,7 @@ void TriggerBlood(int x, int y, int z, int unk, int num);
 void UpdateBlood();
 int GetFreeGunshell();
 void TriggerGunShell(short hand, short objNum, LaraWeaponType weaponType);
+void TriggerGunShellAt(const Vector3i& pos, short roomNumber, short objNum, LaraWeaponType weaponType, short dirXrot = 0);
 void UpdateGunFlashes();
 void UpdateGunShells();
 void AddWaterSparks(int x, int y, int z, int num, unsigned char r = 227, unsigned char g = 227, unsigned char b = 227);

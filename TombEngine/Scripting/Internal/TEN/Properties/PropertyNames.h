@@ -21,7 +21,7 @@ static const auto PropName_Delay				= GetHash("Delay");
 static const auto PropName_AttackType	= GetHash("AttackType");
 static const auto PropName_MeshID		= GetHash("MeshID");
 static const auto PropName_PrimaryColor = GetHash("PrimaryColor");
-static const auto PropName_ShootTargetDistance = GetHash("ShootTargetDistance");
+static const auto PropName_ShootTarget = GetHash("ShootTargetDistance");
 
 // Effect property names.
 
