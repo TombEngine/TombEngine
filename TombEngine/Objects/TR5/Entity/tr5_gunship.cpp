@@ -16,6 +16,8 @@
 #include "Game/control/los.h"
 #include "Math/Geometry.h"
 #include "Sound/sound.h"
+#include "Game/Setup.h"
+#include "Game/effects/debris.h"
 #include "Specific/level.h"
 
 #include "Game/misc.h"
@@ -663,38 +665,59 @@ constexpr int GUNSHIP_DAMAGE = 20; // Damage dealt by gunship to Lara when shoot
         TriggerGunShellAt(Vector3i(flashPos.x, flashPos.y, flashPos.z), item->RoomNumber, ID_GUNSHELL, weaponType);
 		TriggerGunSmoke(flashPos.x, flashPos.y, flashPos.z, 0, 0, 0, 0, weaponType, 16);
 
-    // Determine line of sight from the muzzle.
-    auto origin   = GameVector(flashPos, item->RoomNumber);
-    auto targetVec = GameVector(g_Level.Items[shootTargetNum].Pose.Position, g_Level.Items[shootTargetNum].RoomNumber);
-    bool los = LOS(&origin, &targetVec);
+// Determine line of sight from the muzzle using ObjectOnLOS2.
+const float aimSpread = BLOCK(0.5f); // 512 world units ≈ 0.5 BLOCK
+auto origin   = GameVector(flashPos, item->RoomNumber);
 
-    if (los)
-    {
-        // Apply damage with a miss chance (50% hit probability).
-        if (Random::TestProbability(0.5f))
-            DoDamage(&g_Level.Items[shootTargetNum], GUNSHIP_DAMAGE);
-    }
-    else
-    {
-        // No line of sight – create ricochet spark at impact point.
-        int dx = targetVec.x - origin.x;
-        int dz = targetVec.z - origin.z;
+Vector3 baseTargetPos = g_Level.Items[shootTargetNum].Pose.Position.ToVector3();
+baseTargetPos += Vector3(0, -512, 0);
+float spreadX = Random::GenerateFloat(-aimSpread, aimSpread);
+float spreadZ = Random::GenerateFloat(-aimSpread, aimSpread);
+Vector3 aimedPos = baseTargetPos + Vector3(spreadX, 0.0f, spreadZ);
 
-        // Clamp distance to a reasonable length for the spark.
-        while (abs(dx) > BLOCK(12) || abs(dz) > BLOCK(12))
-        {
-            dx /= 2;
-            dz /= 2;
-        }
+auto targetVec = GameVector(aimedPos, g_Level.Items[shootTargetNum].RoomNumber);
 
-        GameVector impactPos(
-            origin.x + dx + GetRandomControl() - 128,
-            origin.y,
-            origin.z + dz + GetRandomControl() - 128,
-            item->RoomNumber);
+// Use ObjectOnLOS2 to detect any blocking object.
+StaticMesh* mesh = nullptr;
+Vector3i hitPos = Vector3i::Zero;
+int losResult = ObjectOnLOS2(&origin, &targetVec, &hitPos, &mesh, ID_GUNSHIP);
+bool hasHit = (losResult != NO_LOS_ITEM);
 
-        TriggerRicochetSpark(impactPos, Random::GenerateAngle());
-    }
+DrawDebugLine(origin.ToVector3(), targetVec.ToVector3(), Vector4::One, RendererDebugPage::None);
+
+	if (hasHit)
+	{
+		// Something is in the way.
+		if (losResult < 0)
+		{
+			// Hit static mesh.
+			if (mesh && Statics[mesh->Slot].shatterType != ShatterType::None)
+			{
+				mesh->HitPoints -= GUNSHIP_DAMAGE;
+				ShatterImpactData.impactDirection = Vector3(0, 0, 0);
+				ShatterImpactData.impactLocation = Vector3(hitPos.x, hitPos.y, hitPos.z);
+				int shatterRoomNumber = FindRoomNumber(Vector3i(hitPos), mesh->RoomNumber, true);
+				ShatterObject(nullptr, mesh, 128, shatterRoomNumber, 0);
+				SoundEffect(GetShatterSound(mesh->Slot), &mesh->Pose);
+			}
+			// Ricochet spark at hit position.
+			GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
+			TriggerRicochetSpark(impactPos, Random::GenerateAngle());
+		}
+		else
+		{
+			// Hit an item (creature or object).
+			ItemInfo* hitItem = &g_Level.Items[losResult];
+			if (hitItem->IsLara())
+			{
+				DoDamage(hitItem, GUNSHIP_DAMAGE);
+			}
+
+			GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
+			TriggerRicochetSpark(impactPos, Random::GenerateAngle());
+
+		}
+	}
 }
 else
 {
