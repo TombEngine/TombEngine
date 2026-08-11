@@ -638,34 +638,34 @@ constexpr int GUNSHIP_DAMAGE = 20; // Damage dealt by gunship to Lara when shoot
 			}
 
 			const bool hasShootTargetInRange = hasShootTarget && shootHLen <= maxShotsRange;
-if (hasShootTargetInRange)
-{
-    // Sound for gunfire.
-    if (!(GlobalCounter & (FIRE_RATE - 1)) && item->ItemFlags[0] > FIRE_RATE)
+	if (hasShootTargetInRange)
+	{
+		// Sound for gunfire.
+		if (!(GlobalCounter & (FIRE_RATE - 1)) && item->ItemFlags[0] > FIRE_RATE)
         SoundEffect(SFX_TR4_HK_FIRE, &item->Pose, SoundEnvironment::Land, 0.8f);
 
-    // Gun flash visual and light (always shown when firing).
-    if (item->ItemFlags[0] <= ROTOR_ACTIVE_THRESHOLD)
-        item->MeshBits |= 0x100;
-    else
-        item->MeshBits &= 0xFEFF;
+		// Gun flash visual and light (always shown when firing).
+		if (item->ItemFlags[0] > FIRE_RATE)
+			item->MeshBits |= 0x100;
+		else
+			item->MeshBits &= 0xFEFF;
 
     // Use mesh‑8 (gun neck) joint as muzzle point.
-auto muzzleJoint = GetJointPosition(item, 8, Vector3i::Zero);
+	auto muzzleJoint = GetJointPosition(item, 8, Vector3i::Zero);
     auto flashPos   = muzzleJoint.ToVector3();
 
-    auto lightColor = Vector3(Random::GenerateFloat(0.75f, 0.85f),
-                              Random::GenerateFloat(0.5f, 0.6f), 0.0f) * 255;
-    SpawnDynamicLight(flashPos.x, flashPos.y, flashPos.z,
-                      10, lightColor.x, lightColor.y, lightColor.z);
+    auto lightColor = Vector3(Random::GenerateFloat(0.75f, 0.85f), Random::GenerateFloat(0.5f, 0.6f), 0.0f) * 255;
+    SpawnDynamicLight(flashPos.x, flashPos.y, flashPos.z, 10, lightColor.x, lightColor.y, lightColor.z);
 
+
+	auto weaponType = LaraWeaponType::HK;
         // Spawn gun shell effect at the muzzle using generic function.
-        TriggerGunShellAt(Vector3i((int)flashPos.x, (int)flashPos.y, (int)flashPos.z), item->RoomNumber, ID_GUNSHELL, LaraWeaponType::HK);
+        TriggerGunShellAt(Vector3i(flashPos.x, flashPos.y, flashPos.z), item->RoomNumber, ID_GUNSHELL, weaponType);
+		TriggerGunSmoke(flashPos.x, flashPos.y, flashPos.z, 0, 0, 0, 0, weaponType, 16);
 
     // Determine line of sight from the muzzle.
     auto origin   = GameVector(flashPos, item->RoomNumber);
-    auto targetVec = GameVector(g_Level.Items[shootTargetNum].Pose.Position,
-                               g_Level.Items[shootTargetNum].RoomNumber);
+    auto targetVec = GameVector(g_Level.Items[shootTargetNum].Pose.Position, g_Level.Items[shootTargetNum].RoomNumber);
     bool los = LOS(&origin, &targetVec);
 
     if (los)
