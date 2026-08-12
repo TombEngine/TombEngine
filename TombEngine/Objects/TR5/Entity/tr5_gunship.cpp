@@ -39,9 +39,9 @@ namespace TEN::Entities::Creatures::TR5
 	}
 
 	// Konstanten für Verhalten
-constexpr int ROTOR_ACTIVE_THRESHOLD = 15;
-constexpr int FIRE_RATE = 30;
-constexpr int GUNSHIP_DAMAGE = 20; // Damage dealt by gunship to Lara when shooting
+	constexpr int ROTOR_ACTIVE_THRESHOLD = 15;
+	constexpr int FIRE_RATE = 30;
+	constexpr int GUNSHIP_DAMAGE = 20; // Damage dealt by gunship to Lara when shooting
 
 	constexpr float MOVEMENT_LERP_SPEED = 4.0f;
 	constexpr int INERTIA_FRAMES = 25;
@@ -391,81 +391,83 @@ constexpr int GUNSHIP_DAMAGE = 20; // Damage dealt by gunship to Lara when shoot
 		const float yLerpAlpha = 1.0f / powf(2.0f, MOVEMENT_LERP_SPEED);
 		const int minYDiff = SECTOR_SIZE;
 
-	// TargetSpeed basierend auf State berechnen (immer, nicht nur wenn kein Inertie!)
-	float targetSpeed = 0.0f;
-	switch (currentState)
-	{
-	case GunShipState::FOLLOW:
-		targetSpeed = hasMoveTargetPos ? MAX_MOVE_SPEED : (horizontalDist > maxShotsRange) ? MAX_MOVE_SPEED : MAX_MOVE_SPEED * 0.25f;
-		break;
-	case GunShipState::IDLE:
-		targetSpeed = 0.0f;
+		float ySpeedTargetIdle = 0.0f;
+		Vector3 targetPosIdle = targetInfo.targetPos;
 
+		// TargetSpeed basierend auf State berechnen (immer, nicht nur wenn kein Inertie!)
+		float targetSpeed = 0.0f;
+		switch (currentState)
 		{
-			Vector3 targetPosIdle = targetInfo.targetPos;
-			
-			float yDiffIdle = item->Pose.Position.y - targetPosIdle.y;
-			float ySpeedTargetIdle = 0.0f;
-				if (fabsf(yDiffIdle) > minYDiff)
+			case GunShipState::FOLLOW:
+			targetSpeed = hasMoveTargetPos ? MAX_MOVE_SPEED : (horizontalDist > maxShotsRange) ? MAX_MOVE_SPEED : MAX_MOVE_SPEED * 0.25f;
+			break;
+
+			case GunShipState::IDLE:
+			targetSpeed = 0.0f;
+	
+				if (fabsf(item->Pose.Position.y - targetPosIdle.y) > minYDiff)
 					ySpeedTargetIdle = (targetPosIdle.y > item->Pose.Position.y) ? FLY_DOWN_SPEED : -FLY_UP_SPEED;
 
-				currentYSpeed += (ySpeedTargetIdle - currentYSpeed) * yLerpAlpha;
-			}
-		break;
-	case GunShipState::EVADE_NEAR:
-		targetSpeed = MAX_MOVE_SPEED * 2.5f;
-		break;
-	}
+			currentYSpeed += (ySpeedTargetIdle - currentYSpeed) * yLerpAlpha;
+			
+			break;
 
-	// Inertie anwenden - reduziert targetSpeed bei Stateswitch
-	if (inertiaTimer > 0)
-	{
-		targetSpeed *= 0.15f;
-		inertiaTimer--;
-		item->ItemFlags[5] = inertiaTimer;
-	}
+			case GunShipState::EVADE_NEAR:
+			targetSpeed = MAX_MOVE_SPEED * 2.5f;
+			break;
+		}
 
-	// Pitch aus ItemFlags[1]
-	float currentPitch = (float)item->ItemFlags[1] / FLOATING_POINT_SCALE;
+		// Inertie anwenden - reduziert targetSpeed bei Stateswitch
+		if (inertiaTimer > 0)
+		{
+			targetSpeed *= 0.15f;
+			inertiaTimer--;
+			item->ItemFlags[5] = inertiaTimer;
+		}
 
-	// pitchRatio für Geschwindigkeit berechnen
-	float pitchRatio = fabsf(currentPitch) / ((float)MAX_PITCH_DEG * DEG_TO_RAD(1.0f));
+		// Pitch aus ItemFlags[1]
+		float currentPitch = (float)item->ItemFlags[1] / FLOATING_POINT_SCALE;
 
-	// currentSpeed aus targetSpeed und pitchRatio
-	float currentSpeed = targetSpeed * pitchRatio;
+		// pitchRatio für Geschwindigkeit berechnen
+		float pitchRatio = fabsf(currentPitch) / ((float)MAX_PITCH_DEG * DEG_TO_RAD(1.0f));
 
-	bool isMoving = currentSpeed > 1.0f;
+		// currentSpeed aus targetSpeed und pitchRatio
+		float currentSpeed = targetSpeed * pitchRatio;
 
-	EulerAngles targetOrient;
-	if (hasShootTarget && shootTargetNum >= 0)
-		targetOrient = Geometry::GetOrientToPoint(item->Pose.Position.ToVector3(), g_Level.Items[shootTargetNum].Pose.Position.ToVector3());
-	else
-		targetOrient = Geometry::GetOrientToPoint(item->Pose.Position.ToVector3(), targetInfo.targetPos);
+		bool isMoving = currentSpeed > 1.0f;
 
-	// Pitch- und Bank-Zielwerte berechnen (IMMER, auch wenn noch nicht bewegt wird!)
-	float pitchTarget = 0.0f;
-	float bankTarget = 0.0f;
-	switch (currentState)
-	{
-	case GunShipState::FOLLOW:
-		pitchTarget = (float)DEG_TO_RAD(MAX_PITCH_DEG);
-		CalculatePitchAndBank(*item, currentState, targetInfo.targetPos, 0.0f, pitchTarget, bankTarget);
-		break;
-	case GunShipState::EVADE_NEAR:
-		pitchTarget = -(float)DEG_TO_RAD(MAX_PITCH_DEG);
-		CalculatePitchAndBank(*item, currentState, targetInfo.targetPos, 0.0f, pitchTarget, bankTarget);
-		break;
-	default:
-		pitchTarget = 0.0f;
-		bankTarget = 0.0f;
-		break;
-	}
+		EulerAngles targetOrient;
+		if (hasShootTarget && shootTargetNum >= 0)
+			targetOrient = Geometry::GetOrientToPoint(item->Pose.Position.ToVector3(), g_Level.Items[shootTargetNum].Pose.Position.ToVector3());
+		else
+			targetOrient = Geometry::GetOrientToPoint(item->Pose.Position.ToVector3(), targetInfo.targetPos);
 
-	bool blocked = false;
-	if (isMoving)
-		blocked = CheckForwardCollision(*item, currentSpeed);
+		// Pitch- und Bank-Zielwerte berechnen (IMMER, auch wenn noch nicht bewegt wird!)
+		float pitchTarget = 0.0f;
+		float bankTarget = 0.0f;
+		switch (currentState)
+		{
+			case GunShipState::FOLLOW:
+			pitchTarget = (float)DEG_TO_RAD(MAX_PITCH_DEG);
+			CalculatePitchAndBank(*item, currentState, targetInfo.targetPos, 0.0f, pitchTarget, bankTarget);
+			break;
 
-	if (blocked)
+			case GunShipState::EVADE_NEAR:
+			pitchTarget = -(float)DEG_TO_RAD(MAX_PITCH_DEG);
+			CalculatePitchAndBank(*item, currentState, targetInfo.targetPos, 0.0f, pitchTarget, bankTarget);
+			break;
+
+			default:
+			pitchTarget = 0.0f;
+			bankTarget = 0.0f;
+			break;
+		}
+
+		bool blocked = false;
+			if (isMoving)
+			blocked = CheckForwardCollision(*item, currentSpeed);
+
+		if (blocked)
 		{
 			currentSpeed = 0.0f;
 			item->ItemFlags[3] = 0;
@@ -533,7 +535,7 @@ constexpr int GUNSHIP_DAMAGE = 20; // Damage dealt by gunship to Lara when shoot
 
 				switch (currentState)
 				{
-				case GunShipState::FOLLOW:
+					case GunShipState::FOLLOW:
 					if (horizontalDist > 1.0f)
 					{
 						item->Pose.Position.x += (int)((targetInfo.targetPos.x - item->Pose.Position.x) / horizontalDist * moveDist);
@@ -549,7 +551,7 @@ constexpr int GUNSHIP_DAMAGE = 20; // Damage dealt by gunship to Lara when shoot
 
 					break;
 
-				case GunShipState::EVADE_NEAR:
+					case GunShipState::EVADE_NEAR:
 					if (horizontalDist > 1.0f)
 					{
 						item->Pose.Position.x -= (int)((targetInfo.targetPos.x - item->Pose.Position.x) / horizontalDist * moveDist);
@@ -640,122 +642,125 @@ constexpr int GUNSHIP_DAMAGE = 20; // Damage dealt by gunship to Lara when shoot
 			}
 
 			const bool hasShootTargetInRange = hasShootTarget && shootHLen <= maxShotsRange;
-	if (hasShootTargetInRange)
-	{
-		// Sound for gunfire.
-		if (!(GlobalCounter & (FIRE_RATE - 1)) && item->ItemFlags[0] > FIRE_RATE)
-        SoundEffect(SFX_TR4_HK_FIRE, &item->Pose, SoundEnvironment::Land, 0.8f);
+		
 
-		// Gun flash visual and light (always shown when firing).
-		if (item->ItemFlags[0] > FIRE_RATE)
-			item->MeshBits |= 0x100;
-		else
+			if (hasShootTargetInRange)
+			{
+				// Sound for gunfire.
+				if (!(GlobalCounter & (FIRE_RATE - 1)) && item->ItemFlags[0] > FIRE_RATE)
+					SoundEffect(SFX_TR4_HK_FIRE, &item->Pose, SoundEnvironment::Land, 0.8f);
+
+				// Gun flash visual and light (always shown when firing).
+				if (item->ItemFlags[0] > FIRE_RATE)
+					item->MeshBits |= 0x100;
+				else
+					item->MeshBits &= 0xFEFF;
+
+				// Use mesh‑8 (gun neck) joint as muzzle point.
+				auto muzzleJoint = GetJointPosition(item, 8, Vector3i::Zero);
+				auto flashPos = muzzleJoint.ToVector3();
+
+				auto lightColor = Vector3(Random::GenerateFloat(0.75f, 0.85f), Random::GenerateFloat(0.5f, 0.6f), 0.0f) * 255;
+				SpawnDynamicLight(flashPos.x, flashPos.y, flashPos.z, 10, lightColor.x, lightColor.y, lightColor.z);
+
+
+				auto weaponType = LaraWeaponType::HK;
+				// Spawn gun shell effect at the muzzle using generic function.
+				TriggerGunShellAt(Vector3i(flashPos.x, flashPos.y, flashPos.z), item->RoomNumber, ID_GUNSHELL, weaponType);
+				TriggerGunSmoke(flashPos.x, flashPos.y, flashPos.z, 0, 0, 0, 0, weaponType, 16);
+
+				// Determine line of sight from the muzzle.
+				// Apply a small forward offset so that the gunship’s own hitbox does not block LOS.
+				const float aimSpread = BLOCK(0.2f); // 512 world units ≈ 0.5 BLOCK
+
+				auto rotMatrix = EulerAngles(item->Pose.Orientation.x + ANGLE(8.0f), item->Pose.Orientation.y, item->Pose.Orientation.z).ToRotationMatrix();
+
+				// Use the offset position as LOS origin.
+				auto origin = GameVector(flashPos, item->RoomNumber);
+
+				// Apply aim spread (horizontal) around that forward point.
+				float spreadX = Random::GenerateFloat(-aimSpread, aimSpread);
+				float spreadY = Random::GenerateFloat(-aimSpread, aimSpread);
+				float spreadZ = Random::GenerateFloat(-aimSpread, aimSpread);
+				Vector3 aimedPos = flashPos + Vector3::Transform(Vector3(spreadX, spreadY, spreadZ) + Vector3(0.0f, 0.0f, -maxShotsRange * 2), rotMatrix);
+
+				auto targetVec = GameVector(aimedPos, g_Level.Items[shootTargetNum].RoomNumber);
+
+				// Use ObjectOnLOS2 to detect any blocking object.
+				StaticMesh* mesh = nullptr;
+				Vector3i hitPos = Vector3i::Zero;
+				int losResult = ObjectOnLOS2(&origin, &targetVec, &hitPos, &mesh, ID_LARA, item->Index);
+
+				bool hasHit = (losResult != NO_LOS_ITEM);
+
+				auto target2 = targetVec;
+				int result = LOS(&origin, &target2);
+
+				GetFloor(target2.x, target2.y, target2.z, &target2.RoomNumber);
+
+				DrawDebugLine(origin.ToVector3(), targetVec.ToVector3(), Vector4::One, RendererDebugPage::None);
+
+				if (!hasHit)
+				{
+					if (!result)
+					{
+						SpawnDecal(target2.ToVector3(), target2.RoomNumber, DecalType::BulletHole);
+
+						target2.x -= (target2.x - origin.x) >> 5;
+						target2.y -= (target2.y - origin.y) >> 5;
+						target2.z -= (target2.z - origin.z) >> 5;
+						TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y);
+					}
+
+				}
+				else
+				{
+					// Something is in the way.
+					if (losResult < 0)
+					{
+						// Hit static mesh.
+						if (mesh && Statics[mesh->Slot].shatterType != ShatterType::None)
+						{
+							mesh->HitPoints -= GUNSHIP_DAMAGE;
+							ShatterImpactData.impactDirection = Vector3(0, 0, 0);
+							ShatterImpactData.impactLocation = Vector3(hitPos.x, hitPos.y, hitPos.z);
+							int shatterRoomNumber = FindRoomNumber(Vector3i(hitPos), mesh->RoomNumber, true);
+							ShatterObject(nullptr, mesh, 128, shatterRoomNumber, 0);
+							SoundEffect(GetShatterSound(mesh->Slot), &mesh->Pose);
+						}
+						// Ricochet spark at hit position.
+						GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
+						TriggerRicochetSpark(impactPos, Random::GenerateAngle());
+					}
+					else
+					{
+						// Hit an item (creature or object).test212
+						auto* item1 = &g_Level.Items[losResult];
+
+						if (item1->Index == LaraItem->Index || item1->IsCreature())
+						{
+							DoDamage(item1, GUNSHIP_DAMAGE);
+						}
+
+						GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
+						TriggerRicochetSpark(impactPos, Random::GenerateAngle());
+
+					}
+
+				}
+			}
+
+			// Not in range – ensure flash is cleared.
 			item->MeshBits &= 0xFEFF;
 
-    // Use mesh‑8 (gun neck) joint as muzzle point.
-	auto muzzleJoint = GetJointPosition(item, 8, Vector3i::Zero);
-    auto flashPos   = muzzleJoint.ToVector3();
-
-    auto lightColor = Vector3(Random::GenerateFloat(0.75f, 0.85f), Random::GenerateFloat(0.5f, 0.6f), 0.0f) * 255;
-    SpawnDynamicLight(flashPos.x, flashPos.y, flashPos.z, 10, lightColor.x, lightColor.y, lightColor.z);
-
-
-auto weaponType = LaraWeaponType::HK;
-        // Spawn gun shell effect at the muzzle using generic function.
-        TriggerGunShellAt(Vector3i(flashPos.x, flashPos.y, flashPos.z), item->RoomNumber, ID_GUNSHELL, weaponType);
-		TriggerGunSmoke(flashPos.x, flashPos.y, flashPos.z, 0, 0, 0, 0, weaponType, 16);
-
-// Determine line of sight from the muzzle.
-// Apply a small forward offset so that the gunship’s own hitbox does not block LOS.
-const float aimSpread = BLOCK(0.2f); // 512 world units ≈ 0.5 BLOCK
-
-auto rotMatrix = EulerAngles(item->Pose.Orientation.x + ANGLE(8.0f), item->Pose.Orientation.y, item->Pose.Orientation.z ).ToRotationMatrix();
-
-// Use the offset position as LOS origin.
-auto origin   = GameVector(flashPos, item->RoomNumber);
-
-// Apply aim spread (horizontal) around that forward point.
-float spreadX = Random::GenerateFloat(-aimSpread, aimSpread);
-float spreadY = Random::GenerateFloat(-aimSpread, aimSpread);
-float spreadZ = Random::GenerateFloat(-aimSpread, aimSpread);
-Vector3 aimedPos = flashPos + Vector3::Transform(Vector3(spreadX, spreadY, spreadZ) + Vector3(0.0f, 0.0f, -maxShotsRange * 2), rotMatrix);     //flashPos + Vector3(spreadX, spreadY, spreadZ) + TARGET_DISTANCE;
-
-auto targetVec = GameVector(aimedPos, g_Level.Items[shootTargetNum].RoomNumber);
-
-// Use ObjectOnLOS2 to detect any blocking object.
-StaticMesh* mesh = nullptr;
-Vector3i hitPos = Vector3i::Zero;
-int losResult = ObjectOnLOS2(&origin, &targetVec, &hitPos, &mesh, ID_LARA, item->Index);
-
-bool hasHit = (losResult != NO_LOS_ITEM);
-
-auto target2 = targetVec;
-int result = LOS(&origin, &target2);
-
-GetFloor(target2.x, target2.y, target2.z, &target2.RoomNumber);
-
-DrawDebugLine(origin.ToVector3(), targetVec.ToVector3(), Vector4::One, RendererDebugPage::None);
-
-	if (!hasHit)
-	{
-		if (!result)
-		{
-			SpawnDecal(target2.ToVector3(), target2.RoomNumber, DecalType::BulletHole);
-
-			target2.x -= (target2.x - origin.x) >> 5;
-			target2.y -= (target2.y - origin.y) >> 5;
-			target2.z -= (target2.z - origin.z) >> 5;
-			TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y);
-		}
-
-	}
-	else
-	{
-		// Something is in the way.
-		if (losResult < 0)
-		{
-			// Hit static mesh.
-			if (mesh && Statics[mesh->Slot].shatterType != ShatterType::None)
-			{
-				mesh->HitPoints -= GUNSHIP_DAMAGE;
-				ShatterImpactData.impactDirection = Vector3(0, 0, 0);
-				ShatterImpactData.impactLocation = Vector3(hitPos.x, hitPos.y, hitPos.z);
-				int shatterRoomNumber = FindRoomNumber(Vector3i(hitPos), mesh->RoomNumber, true);
-				ShatterObject(nullptr, mesh, 128, shatterRoomNumber, 0);
-				SoundEffect(GetShatterSound(mesh->Slot), &mesh->Pose);
-			}
-			// Ricochet spark at hit position.
-			GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
-			TriggerRicochetSpark(impactPos, Random::GenerateAngle());
-		}
-		else
-		{
-			// Hit an item (creature or object).test212
-			auto* item1 = &g_Level.Items[losResult];
-
-			if (item1->Index == LaraItem->Index || item1->IsCreature())
-			{
-				DoDamage(item1, GUNSHIP_DAMAGE);
-			}
-
-			GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
-			TriggerRicochetSpark(impactPos, Random::GenerateAngle());
-
-		}
-	}
-}
-else
-{
-    // Not in range – ensure flash is cleared.
-    item->MeshBits &= 0xFEFF;
-}
 
 			if (item->ItemFlags[7] != 1)
-				item->ItemFlags[6] = (int)(currentYSpeed * FLOATING_POINT_SCALE);
+					item->ItemFlags[6] = (int)(currentYSpeed * FLOATING_POINT_SCALE);
 			else
 				item->ItemFlags[6] = (int)currentYSpeed;
 
 			AnimateItem(item);
+			
 		}
-}
+	}
 }
