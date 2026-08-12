@@ -138,6 +138,7 @@
 local InterpolationUtils = {}
 local Utility = require("Engine.Util")
 local Type = require("Engine.Type")
+local TableUtils = require("Engine.Utils.TableUtils")
 
 local Round = Utility.Round
 local WrapAngleRaw = Utility.WrapAngleRaw
@@ -154,6 +155,9 @@ local EaseInOutRaw = Utility.EaseInOutRaw
 local ElasticRaw = Utility.ElasticRaw
 local BounceRaw = Utility.BounceRaw
 
+local ErrorLog = Utility.ErrorLog
+local WarningLog = Utility.WarningLog
+
 local IsNumber = Type.IsNumber
 local IsColor = Type.IsColor
 local IsBoolean = Type.IsBoolean
@@ -168,6 +172,13 @@ local logLevelError  = logLevelEnums.ERROR
 local logLevelWarning = logLevelEnums.WARNING
 
 local Color = TEN.Color
+
+InterpolationUtils.Spaces = {
+    RGB = 0,
+    HSL = 1,
+    OKLch = 2
+}
+TableUtils.SetTableReadOnly(InterpolationUtils.Spaces)
 
 -- Helper function for hue interpolation with different modes
 local function InterpolateHue(h1, h2, t, mode)
@@ -190,17 +201,17 @@ local function InterpolateHue(h1, h2, t, mode)
     return (h1 + delta * t) % 360
 end
 
-local function ValidateAB (a, b, functionName)
+local function ValidateAB (a, b, errorContext)
     if not IsValidInterpolationValue(a) then
-        LogMessage("Error in " .. functionName .. ": value a is not a valid interpolation type.", logLevelError)
+        ErrorLog("Error in {context}: value a is not a valid interpolation type.", {context = errorContext})
         return false
     end
     if not IsValidInterpolationValue(b) then
-        LogMessage("Error in " .. functionName .. ": value b is not a valid interpolation type.", logLevelError)
+        ErrorLog("Error in {context}: value b is not a valid interpolation type.", {context = errorContext})
         return false
     end
     if getmetatable(a) ~= getmetatable(b) then
-        LogMessage("Error in " .. functionName .. ": value a and b are of different types.", logLevelError)
+        ErrorLog("Error in {context}: value a and b are of different types.", {context = errorContext})
         return false
     end
     return true
@@ -215,6 +226,7 @@ end
 -- @tparam float|Color|Rotation|Vec2|Vec3 a The start value (number, Color, Rotation, Vec2, or Vec3).
 -- @tparam float|Color|Rotation|Vec2|Vec3 b The end value (number, Color, Rotation, Vec2, or Vec3).
 -- @tparam float t The interpolation factor (0.0 to 1.0). It will be clamped to this range if out of bounds.
+-- @tparam[opt="InterpolationUtils.Lerp"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] float|Color|Rotation|Vec2|Vec3 The interpolated value.
 -- @treturn[2] float|Color|Rotation|Vec2|Vec3 Value `a` if an error occurs.
 -- @usage
@@ -333,12 +345,13 @@ end
 -- -- ✗ Organic movements (use Smoothstep)
 -- -- ✗ Cinematic camera (use Smootherstep)
 -- -- ✗ Natural phenomena like fog, wind (use Smoothstep/Smootherstep)
-InterpolationUtils.Lerp = function(a, b, t)
-    if not ValidateAB(a, b, "InterpolationUtils.Lerp") then
+InterpolationUtils.Lerp = function(a, b, t, errorContext)
+    errorContext = errorContext or "InterpolationUtils.Lerp"
+    if not ValidateAB(a, b, errorContext) then
         return a
     end
     if not IsNumber(t) then
-        LogMessage("Error in InterpolationUtils.Lerp: interpolation factor t is not a number.", logLevelError)
+        ErrorLog("Error in {context}: interpolation factor t is not a number.", {context = errorContext})
         return a
     end
     local clampedT = max(0, min(1, t))
@@ -354,6 +367,7 @@ end
 -- @tparam float t The interpolation factor (0.0 to 1.0). It will be clamped to this range if out of bounds or if edge0/edge1 are invalid.
 -- @tparam[opt=0] float edge0 Lower edge: the value of t that maps to 0 (start of interpolation range).
 -- @tparam[opt=1] float edge1 Upper edge: the value of t that maps to 1 (end of interpolation range).
+-- @tparam[opt="InterpolationUtils.Smoothstep"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] float|Color|Rotation|Vec2|Vec3 Smoothly interpolated result.
 -- @treturn[2] float|Color|Rotation|Vec2|Vec3 Value `a` if an error occurs.
 -- @usage
@@ -434,8 +448,9 @@ end
 --         animationComplete = true
 --     end
 -- end
-InterpolationUtils.Smoothstep = function (a, b, t, edge0, edge1)
-    if not ValidateAB(a, b, "InterpolationUtils.Smoothstep") then
+InterpolationUtils.Smoothstep = function (a, b, t, edge0, edge1, errorContext)
+    errorContext = errorContext or "InterpolationUtils.Smoothstep"
+    if not ValidateAB(a, b, errorContext) then
         return a
     end
     -- Default edge0 and edge1 if not provided
@@ -443,12 +458,12 @@ InterpolationUtils.Smoothstep = function (a, b, t, edge0, edge1)
     edge1 = edge1 or 1
 
     if not IsNumber(t) then
-        LogMessage("Error in InterpolationUtils.Smoothstep: t must be a number.", logLevelError)
+        ErrorLog("Error in {context}: t must be a number.", {context = errorContext})
         return a
     end
 
     if not (IsNumber(edge0) and IsNumber(edge1)) then
-        LogMessage("Error in InterpolationUtils.Smoothstep: edge0 and edge1 must be numbers.", logLevelError)
+        ErrorLog("Error in {context}: edge0 and edge1 must be numbers.", {context = errorContext})
         return a
     end
 
@@ -456,7 +471,7 @@ InterpolationUtils.Smoothstep = function (a, b, t, edge0, edge1)
 
     -- Check if edge0 and edge1 are equal (division by zero)
     if edgeDelta == 0 then
-        LogMessage("Error in InterpolationUtils.Smoothstep: edge0 and edge1 cannot be equal.", logLevelError)
+        ErrorLog("Error in {context}: edge0 and edge1 cannot be equal.", {context = errorContext})
         return a
     end
 
@@ -473,6 +488,7 @@ end
 -- @tparam float t Interpolation factor (0.0 to 1.0). It will be clamped to this range if out of bounds or if edge0/edge1 are invalid.
 -- @tparam[opt=0] float edge0 Left edge for custom input range (optional, defaults to 0).
 -- @tparam[opt=1] float edge1 Right edge for custom input range (optional, defaults to 1).
+-- @tparam[opt="InterpolationUtils.Smootherstep"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] float|Color|Rotation|Vec2|Vec3 The interpolated value.
 -- @treturn[2] float|Color|Rotation|Vec2|Vec3 Value `a` if an error occurs.
 -- @usage
@@ -704,8 +720,9 @@ end
 -- --
 -- -- Smootherstep is ~15% more expensive computationally than Smoothstep
 -- -- (requires evaluating a degree-5 polynomial vs degree-3)
-InterpolationUtils.Smootherstep = function (a, b, t, edge0, edge1)
-    if not ValidateAB(a, b, "InterpolationUtils.Smootherstep") then
+InterpolationUtils.Smootherstep = function (a, b, t, edge0, edge1, errorContext)
+    errorContext = errorContext or "InterpolationUtils.Smootherstep"
+    if not ValidateAB(a, b, errorContext) then
         return a
     end
     -- Default edge0 and edge1 if not provided
@@ -713,12 +730,12 @@ InterpolationUtils.Smootherstep = function (a, b, t, edge0, edge1)
     edge1 = edge1 or 1
 
     if not IsNumber(t) then
-        LogMessage("Error in InterpolationUtils.Smootherstep: t must be a number.", logLevelError)
+        ErrorLog("Error in {context}: t must be a number.", {context = errorContext})
         return a
     end
 
     if not (IsNumber(edge0) and IsNumber(edge1)) then
-        LogMessage("Error in InterpolationUtils.Smootherstep: edge0 and edge1 must be numbers.", logLevelError)
+        ErrorLog("Error in {context}: edge0 and edge1 must be numbers.", {context = errorContext})
         return a
     end
 
@@ -726,7 +743,7 @@ InterpolationUtils.Smootherstep = function (a, b, t, edge0, edge1)
 
     -- Check if edge0 and edge1 are equal (division by zero)
     if edgeDelta == 0 then
-        LogMessage("Error in InterpolationUtils.Smootherstep: edge0 and edge1 cannot be equal.", logLevelError)
+        ErrorLog("Error in {context}: edge0 and edge1 cannot be equal.", {context = errorContext})
         return a
     end
 
@@ -740,6 +757,7 @@ end
 -- @tparam float|Color|Rotation|Vec2|Vec3 a Start value.
 -- @tparam float|Color|Rotation|Vec2|Vec3 b End value.
 -- @tparam float t Interpolation factor (0.0 to 1.0). It will be clamped to this range if out of bounds.
+-- @tparam[opt="InterpolationUtils.EaseInOut"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] float|Color|Rotation|Vec2|Vec3 The interpolated value.
 -- @treturn[2] float|Color|Rotation|Vec2|Vec3 Value `a` if an error occurs.
 -- @usage
@@ -815,12 +833,13 @@ end
 --         currentFrame = 0
 --     end
 -- end
-InterpolationUtils.EaseInOut = function(a, b, t)
-    if not ValidateAB(a, b, "InterpolationUtils.EaseInOut") then
+InterpolationUtils.EaseInOut = function(a, b, t, errorContext)
+    errorContext = errorContext or "InterpolationUtils.EaseInOut"
+    if not ValidateAB(a, b, errorContext) then
         return a
     end
     if not IsNumber(t) then
-        LogMessage("Error in InterpolationUtils.EaseInOut: interpolation factor t is not a number.", logLevelError)
+        ErrorLog("Error in {context}: interpolation factor t is not a number.", {context = errorContext})
         return a
     end
 
@@ -839,6 +858,7 @@ end
 -- @tparam float t Interpolation factor (0.0 to 1.0). It will be clamped to this range if out of bounds.
 -- @tparam[opt=1.0] float amplitude Controls the overshoot amount (default: 1.0). Higher values = more pronounced bounce.
 -- @tparam[opt=0.3] float period Controls oscillation frequency (default: 0.3). Lower values = faster oscillations.
+-- @tparam[opt="InterpolationUtils.Elastic"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] float|Color|Rotation|Vec2|Vec3 The interpolated value with elastic effect.
 -- @treturn[2] float|Color|Rotation|Vec2|Vec3 Value `a` if an error occurs.
 -- @usage
@@ -935,12 +955,13 @@ end
 --         end
 --     end
 -- end
-InterpolationUtils.Elastic = function(a, b, t, amplitude, period)
-    if not ValidateAB(a, b, "InterpolationUtils.Elastic") then
+InterpolationUtils.Elastic = function(a, b, t, amplitude, period, errorContext)
+    errorContext = errorContext or "InterpolationUtils.Elastic"
+    if not ValidateAB(a, b, errorContext) then
         return a
     end
     if not IsNumber(t) then
-        LogMessage("Error in InterpolationUtils.Elastic: interpolation factor t is not a number.", logLevelError)
+        ErrorLog("Error in {context}: interpolation factor t is not a number.", {context = errorContext})
         return a
     end
 
@@ -949,13 +970,13 @@ InterpolationUtils.Elastic = function(a, b, t, amplitude, period)
     period = period or 0.3
 
     if not IsNumber(amplitude) or not IsNumber(period) then
-        LogMessage("Error in InterpolationUtils.Elastic: amplitude and period must be numbers.", logLevelError)
+        ErrorLog("Error in {context}: amplitude and period must be numbers.", {context = errorContext})
         return a
     end
 
     -- Validate amplitude (must be >= 1.0 for proper elastic effect)
     if amplitude < 1.0 then
-        LogMessage("Warning in InterpolationUtils.Elastic: amplitude should be >= 1.0 for proper elastic effect. Using 1.0.", logLevelWarning)
+        WarningLog("Warning in {context}: amplitude should be >= 1.0 for proper elastic effect. Using 1.0.", {context = errorContext})
         amplitude = 1.0
     end
 
@@ -982,6 +1003,7 @@ end
 -- @tparam float t Interpolation factor (0.0 to 1.0). It will be clamped to this range if out of bounds.
 -- @tparam[opt=4] float bounces Number of bounces (default: 4). Higher values = more bounces before settling.
 -- @tparam[opt=0.5] float damping Bounce intensity/energy loss (default: 0.5, range: 0.0-1.0). Lower values = faster decay, higher values = longer bounces.
+-- @tparam[opt="InterpolationUtils.Bounce"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] float|Color|Rotation|Vec2|Vec3 The interpolated value with bounce effect.
 -- @treturn[2] float|Color|Rotation|Vec2|Vec3 Value `a` if an error occurs.
 -- @usage
@@ -1148,12 +1170,13 @@ end
 --         currentFrame = currentFrame + 1
 --     end
 -- end
-InterpolationUtils.Bounce = function(a, b, t, bounces, damping)
-    if not ValidateAB(a, b, "InterpolationUtils.Bounce") then
+InterpolationUtils.Bounce = function(a, b, t, bounces, damping, errorContext)
+    errorContext = errorContext or "InterpolationUtils.Bounce"
+    if not ValidateAB(a, b, errorContext) then
         return a
     end
     if not IsNumber(t) then
-        LogMessage("Error in InterpolationUtils.Bounce: interpolation factor t is not a number.", logLevelError)
+        ErrorLog("Error in {context}: interpolation factor t is not a number.", {context = errorContext})
         return a
     end
 
@@ -1162,19 +1185,19 @@ InterpolationUtils.Bounce = function(a, b, t, bounces, damping)
     damping = damping or 0.5
 
     if not IsNumber(bounces) or not IsNumber(damping) then
-        LogMessage("Error in InterpolationUtils.Bounce: bounces and damping must be numbers.", logLevelError)
+        ErrorLog("Error in {context}: bounces and damping must be numbers.", {context = errorContext})
         return a
     end
 
     -- Validate bounces (must be positive integer)
     if bounces < 1 or bounces % 1 ~= 0 then
-        LogMessage("Warning in InterpolationUtils.Bounce: bounces should be an integer >= 1. Using 1.", logLevelWarning)
+        WarningLog("Warning in {context}: bounces should be an integer >= 1. Using 1.", {context = errorContext})
         bounces = 1
     end
 
     -- Validate damping (0.0 to 1.0 range)
     if damping < 0.0 or damping > 1.0 then
-        LogMessage("Warning in InterpolationUtils.Bounce: damping should be between 0.0 and 1.0. Clamping.", logLevelWarning)
+        WarningLog("Warning in {context}: damping should be between 0.0 and 1.0. Clamping.", {context = errorContext})
         damping = max(0.0, min(1.0, damping))
     end
     -- Clamp t to [0, 1]
@@ -1242,6 +1265,7 @@ end
 -- @tparam float t Interpolation factor (0.0 to 1.0).
 -- @tparam[opt=0] float minValue Minimum angle of range (default: 0 for 0-360°).
 -- @tparam[opt=360] float maxValue Maximum angle of range (default: 360 for 0-360°).
+-- @tparam[opt="InterpolationUtils.LerpAngle"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] float The interpolated angle, taking the shortest path.
 -- @treturn[2] float Value `a` if an error occurs.
 -- @usage
@@ -1301,22 +1325,23 @@ end
 --     
 --     compassNeedle:Draw()
 -- end
-InterpolationUtils.LerpAngle = function(a, b, t, minValue, maxValue)
+InterpolationUtils.LerpAngle = function(a, b, t, minValue, maxValue, errorContext)
+    errorContext = errorContext or "InterpolationUtils.LerpAngle"
     minValue = minValue or 0
     maxValue = maxValue or 360
 
     if not (IsNumber(a) and IsNumber(b) and IsNumber(t)) then
-        LogMessage("Error in InterpolationUtils.LerpAngle: a, b, and t must be numbers.", logLevelError)
+        ErrorLog("Error in {context}: a, b, and t must be numbers.", {context = errorContext})
         return a
     end
 
     if not (IsNumber(minValue) and IsNumber(maxValue)) then
-        LogMessage("Error in InterpolationUtils.LerpAngle: minValue and maxValue must be numbers.", logLevelError)
+        ErrorLog("Error in {context}: minValue and maxValue must be numbers.", {context = errorContext})
         return a
     end
 
     if minValue >= maxValue then
-        LogMessage("Error in InterpolationUtils.LerpAngle: minValue must be less than maxValue.", logLevelError)
+        ErrorLog("Error in {context}: minValue must be less than maxValue.", {context = errorContext})
         return a
     end
 
@@ -1351,13 +1376,7 @@ end
 -- @tparam Color colorA Starting color.
 -- @tparam Color colorB Ending color.
 -- @tparam float t Interpolation factor (0.0 to 1.0).
--- @tparam[opt=0] int space Color space to use
---
--- 0 = RGB
---
--- 1 = HSL
---
--- 2 = OKLch<br>
+-- @tparam[opt=InterpolationUtils.Spaces.RGB] Spaces space Color space to use for interpolation.
 -- @tparam[opt={}] table options Additional options.
 --
 -- - `huePath` (string): Path for hue interpolation in HSL/OKLch<br>`("shortest", "longest", "increasing", "decreasing")`<br>*Default: "shortest"*.
@@ -1521,5 +1540,16 @@ InterpolationUtils.InterpolateColor = function(colorA, colorB, t, space, options
         return finalColor
     end
 end
+
+----
+-- Tables
+-- @section tables
+
+---
+-- Constants for color spaces in @{InterpolationUtils.InterpolateColor}.
+-- @table Spaces
+-- @tfield 0 RGB RGB color space.
+-- @tfield 1 HSL HSL color space.
+-- @tfield 2 OKLch OKLch color space.
 
 return InterpolationUtils
