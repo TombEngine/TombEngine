@@ -1,6 +1,6 @@
 file = {"../TombEngine/Scripting/Internal", "../Scripts/Engine"}
 new_type("mem", "Members", false)
-new_type("moduleexample", "Examples", false) -- Dedicated non-project-level item kind for documentation examples. Keep it separate from the historical @example tag.
+new_type("sample", "Examples", false) -- Dedicated non-project-level item kind for documentation examples. Keep it separate from the historical @example tag.
 new_type("note", "Notes", false) -- Dedicated non-project-level item kind for notes, overviews, tips, best practices, etc.
 new_type("files", "Script Files", true)
 new_type("entityclass", "Entity classes", true)
