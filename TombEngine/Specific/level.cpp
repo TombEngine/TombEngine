@@ -168,7 +168,7 @@ int ReadCount(int maxValue = SQUARE(1024))
 	int count = ReadInt32();
 
 	if (count < 0 || count > maxValue)
-		throw std::exception("Level data block has incorrect size. Level version is probably outdated.");
+		throw std::runtime_error("Level data block has incorrect size. Level version is probably outdated.");
 
 	return count;
 }
@@ -388,7 +388,7 @@ void LoadObjects()
 		MoveablesIds.push_back(objectID);
 
 		if (objectID >= GAME_OBJECT_ID::ID_NUMBER_OBJECTS)
-			throw std::exception(("Unsupported object slot " + std::to_string(objectID) + " detected in a level. Make sure to delete unsupported objects from WADs.").c_str());
+			throw std::runtime_error(("Unsupported object slot " + std::to_string(objectID) + " is detected in a level. Make sure to delete unsupported objects from wads.").c_str());
 
 		auto& object = Objects[objectID];
 		object.loaded = true;
@@ -877,7 +877,7 @@ void LoadDynamicRoomData()
 	int roomCount = ReadCount();
 
 	if (g_Level.Rooms.size() != roomCount)
-		throw std::exception("Dynamic room data count is inconsistent with room count.");
+		throw std::runtime_error("Dynamic room data count is inconsistent with room count.");
 
 	for (int i = 0; i < roomCount; i++)
 	{
@@ -954,9 +954,6 @@ void LoadDynamicRoomData()
 		}
 
 		g_GameScriptEntities->AddName(room.Name, room);
-
-		room.itemNumber = NO_VALUE;
-		room.fxNumber = NO_VALUE;
 	}
 }
 
@@ -1218,6 +1215,7 @@ void FreeLevel(bool partial)
 	g_Level.Cameras.resize(0);
 	g_Level.Sinks.resize(0);
 	g_Level.SoundSources.resize(0);
+	g_Level.Materials.resize(0);
 	g_Level.VolumeEventSets.resize(0);
 	g_Level.GlobalEventSets.resize(0);
 	g_Level.LoopedEventSetIndices.resize(0);
@@ -1249,7 +1247,6 @@ void FreeLevel(bool partial)
 	g_Level.SoundDetails.resize(0);
 	g_Level.SoundMap.resize(0);
 	g_Level.FloorData.resize(0);
-	g_Level.Materials.resize(0);
 
 	for (int i = 0; i < 2; i++)
 	{
@@ -1408,6 +1405,17 @@ void LoadEventSets()
 
 		g_Level.VolumeEventSets.push_back(eventSet);
 	}
+}
+
+void LoadProperties()
+{
+	int propertyCount = ReadCount();
+	TENLog("Property count: " + std::to_string(propertyCount), LogLevel::Info);
+
+	if (propertyCount > 0)
+		g_Level.PropertyBlob = ReadString();
+	else
+		g_Level.PropertyBlob = {};
 }
 
 static bool Decompress(char* dest, char* compressedRegion, unsigned int totalUncompressedSize)
@@ -1581,7 +1589,7 @@ bool LoadLevel(const std::string& path, bool partial)
 		if (SystemNameHash != 0) 
 		{
 			if (SystemNameHash != systemHash)
-				throw std::exception("An attempt was made to use level debug feature on a different system.");
+				throw std::runtime_error("An attempt was made to use level debug feature on a different system.");
 
 			InitializeGame = true;
 			SystemNameHash = 0;
@@ -1624,7 +1632,7 @@ bool LoadLevel(const std::string& path, bool partial)
 			LoadBoxes();
 			LoadMirrors();
 			LoadAnimatedTextures();
-			LoadMaterials();
+			LoadMaterialDefinitions();
 
 			UpdateProgress(70);
 
@@ -1639,7 +1647,9 @@ bool LoadLevel(const std::string& path, bool partial)
 			LoadAIObjects();
 			LoadCameras();
 			LoadSoundSources();
+			LoadMaterials();
 			LoadEventSets();
+			LoadProperties();
 			UpdateProgress(80, partial);
 
 			FinalizeBlock();
@@ -1802,22 +1812,44 @@ void LoadMirrors()
 	}
 }
 
+void LoadMaterialDefinitions()
+{
+	int materialDefinitionCount = ReadCount();
+	TENLog("Material definition count: " + std::to_string(materialDefinitionCount), LogLevel::Info);
+
+	ResetMaterialPropertyDefinitions();
+
+	for (int i = 0; i < materialDefinitionCount; i++)
+	{
+		auto materialType = (TextureMaterialType)ReadInt32();
+		MaterialPropertyDefinitions definitions = {};
+
+		for (int j = 0; j < MaterialData::PropertyCount; j++)
+		{
+			auto& definition = definitions[j];
+			definition.SetName(ReadString());
+			definition.Type = (MaterialPropertyType)ReadInt32();
+		}
+
+		SetMaterialPropertyDefinitions(materialType, definitions);
+	}
+}
+
 void LoadMaterials()
 {
 	int materialCount = ReadCount();
-	TENLog("Materials count: " + std::to_string(materialCount), LogLevel::Info);
+	TENLog("Material count: " + std::to_string(materialCount), LogLevel::Info);
 	g_Level.Materials.reserve(materialCount);
 
 	for (int i = 0; i < materialCount; i++)
 	{
 		auto& material = g_Level.Materials.emplace_back();
 
-		material.Name = ReadString();
-		material.Type = (MaterialShaderType)ReadInt32();
-		material.Parameters0 = ReadVector4();
-		material.Parameters1 = ReadVector4();
-		material.Parameters2 = ReadVector4();
-		material.Parameters3 = ReadVector4();
+		material.SetName(ReadString());
+		material.Type = (TextureMaterialType)ReadInt32();
+		material.ResetProperties();
+		g_GameScriptEntities->AddName(material.Name, material);
+
 		material.HasNormalMap = ReadBool();
 		material.HasHeightMap = ReadBool();
 		material.HasAmbientOcclusionMap = ReadBool();
@@ -1936,7 +1968,7 @@ void GetCarriedItems()
 			(item.ObjectNumber >= ID_SEARCH_OBJECT1 && item.ObjectNumber <= ID_SEARCH_OBJECT4) ||
 			(item.ObjectNumber == ID_SARCOPHAGUS))
 		{
-			for (short linkNumber = g_Level.Rooms[item.RoomNumber].itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
+			for (int linkNumber : g_Level.Rooms[item.RoomNumber].itemNumbers)
 			{
 				auto& item2 = g_Level.Items[linkNumber];
 
@@ -1961,6 +1993,7 @@ void GetCarriedItems()
 	}
 }
 
+// Customize the AI behaviur of enemies placing AI objects on the same square
 void GetAIPickups()
 {
 	for (int i = 0; i < g_Level.NumItems; ++i)

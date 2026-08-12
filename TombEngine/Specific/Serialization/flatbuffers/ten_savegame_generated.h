@@ -6,8 +6,8 @@
 
 #include "flatbuffers/flatbuffers.h"
 
-#include "ten_itemdata_generated.h"
 #include "ten_common_generated.h"
+#include "ten_itemdata_generated.h"
 
 namespace TEN {
 namespace Serialization {
@@ -26,6 +26,8 @@ struct RoomT;
 struct ItemCallback;
 struct ItemCallbackBuilder;
 struct ItemCallbackT;
+
+struct MutatorData;
 
 struct Item;
 struct ItemBuilder;
@@ -193,6 +195,50 @@ struct FireflyDataT;
 
 struct KeyValPair;
 
+struct PropertyBool;
+struct PropertyBoolBuilder;
+struct PropertyBoolT;
+
+struct PropertyFloat;
+struct PropertyFloatBuilder;
+struct PropertyFloatT;
+
+struct PropertyString;
+struct PropertyStringBuilder;
+struct PropertyStringT;
+
+struct PropertyVec2;
+struct PropertyVec2Builder;
+struct PropertyVec2T;
+
+struct PropertyVec3;
+struct PropertyVec3Builder;
+struct PropertyVec3T;
+
+struct PropertyColor;
+struct PropertyColorBuilder;
+struct PropertyColorT;
+
+struct PropertyRotation;
+struct PropertyRotationBuilder;
+struct PropertyRotationT;
+
+struct PropertyTime;
+struct PropertyTimeBuilder;
+struct PropertyTimeT;
+
+struct PropertyEntry;
+struct PropertyEntryBuilder;
+struct PropertyEntryT;
+
+struct PropertyMapData;
+struct PropertyMapDataBuilder;
+struct PropertyMapDataT;
+
+struct TypePropertyMap;
+struct TypePropertyMapBuilder;
+struct TypePropertyMapT;
+
 struct ScriptTable;
 struct ScriptTableBuilder;
 struct ScriptTableT;
@@ -292,6 +338,194 @@ inline const char *EnumNameTorchState(TorchState e) {
   const size_t index = static_cast<size_t>(e);
   return EnumNamesTorchState()[index];
 }
+
+enum class PropertyValueUnion : uint8_t {
+  NONE = 0,
+  prop_bool = 1,
+  prop_float = 2,
+  prop_string = 3,
+  prop_vec2 = 4,
+  prop_vec3 = 5,
+  prop_color = 6,
+  prop_rotation = 7,
+  prop_time = 8,
+  MIN = NONE,
+  MAX = prop_time
+};
+
+inline const PropertyValueUnion (&EnumValuesPropertyValueUnion())[9] {
+  static const PropertyValueUnion values[] = {
+    PropertyValueUnion::NONE,
+    PropertyValueUnion::prop_bool,
+    PropertyValueUnion::prop_float,
+    PropertyValueUnion::prop_string,
+    PropertyValueUnion::prop_vec2,
+    PropertyValueUnion::prop_vec3,
+    PropertyValueUnion::prop_color,
+    PropertyValueUnion::prop_rotation,
+    PropertyValueUnion::prop_time
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesPropertyValueUnion() {
+  static const char * const names[10] = {
+    "NONE",
+    "prop_bool",
+    "prop_float",
+    "prop_string",
+    "prop_vec2",
+    "prop_vec3",
+    "prop_color",
+    "prop_rotation",
+    "prop_time",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNamePropertyValueUnion(PropertyValueUnion e) {
+  if (flatbuffers::IsOutRange(e, PropertyValueUnion::NONE, PropertyValueUnion::prop_time)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesPropertyValueUnion()[index];
+}
+
+template<typename T> struct PropertyValueUnionTraits {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::NONE;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Serialization::Save::PropertyBool> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_bool;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Serialization::Save::PropertyFloat> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_float;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Serialization::Save::PropertyString> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_string;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Serialization::Save::PropertyVec2> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_vec2;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Serialization::Save::PropertyVec3> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_vec3;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Serialization::Save::PropertyColor> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_color;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Serialization::Save::PropertyRotation> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_rotation;
+};
+
+template<> struct PropertyValueUnionTraits<TEN::Serialization::Save::PropertyTime> {
+  static const PropertyValueUnion enum_value = PropertyValueUnion::prop_time;
+};
+
+struct PropertyValueUnionUnion {
+  PropertyValueUnion type;
+  void *value;
+
+  PropertyValueUnionUnion() : type(PropertyValueUnion::NONE), value(nullptr) {}
+  PropertyValueUnionUnion(PropertyValueUnionUnion&& u) FLATBUFFERS_NOEXCEPT :
+    type(PropertyValueUnion::NONE), value(nullptr)
+    { std::swap(type, u.type); std::swap(value, u.value); }
+  PropertyValueUnionUnion(const PropertyValueUnionUnion &);
+  PropertyValueUnionUnion &operator=(const PropertyValueUnionUnion &u)
+    { PropertyValueUnionUnion t(u); std::swap(type, t.type); std::swap(value, t.value); return *this; }
+  PropertyValueUnionUnion &operator=(PropertyValueUnionUnion &&u) FLATBUFFERS_NOEXCEPT
+    { std::swap(type, u.type); std::swap(value, u.value); return *this; }
+  ~PropertyValueUnionUnion() { Reset(); }
+
+  void Reset();
+
+#ifndef FLATBUFFERS_CPP98_STL
+  template <typename T>
+  void Set(T&& val) {
+    using RT = typename std::remove_reference<T>::type;
+    Reset();
+    type = PropertyValueUnionTraits<typename RT::TableType>::enum_value;
+    if (type != PropertyValueUnion::NONE) {
+      value = new RT(std::forward<T>(val));
+    }
+  }
+#endif  // FLATBUFFERS_CPP98_STL
+
+  static void *UnPack(const void *obj, PropertyValueUnion type, const flatbuffers::resolver_function_t *resolver);
+  flatbuffers::Offset<void> Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher = nullptr) const;
+
+  TEN::Serialization::Save::PropertyBoolT *Asprop_bool() {
+    return type == PropertyValueUnion::prop_bool ?
+      reinterpret_cast<TEN::Serialization::Save::PropertyBoolT *>(value) : nullptr;
+  }
+  const TEN::Serialization::Save::PropertyBoolT *Asprop_bool() const {
+    return type == PropertyValueUnion::prop_bool ?
+      reinterpret_cast<const TEN::Serialization::Save::PropertyBoolT *>(value) : nullptr;
+  }
+  TEN::Serialization::Save::PropertyFloatT *Asprop_float() {
+    return type == PropertyValueUnion::prop_float ?
+      reinterpret_cast<TEN::Serialization::Save::PropertyFloatT *>(value) : nullptr;
+  }
+  const TEN::Serialization::Save::PropertyFloatT *Asprop_float() const {
+    return type == PropertyValueUnion::prop_float ?
+      reinterpret_cast<const TEN::Serialization::Save::PropertyFloatT *>(value) : nullptr;
+  }
+  TEN::Serialization::Save::PropertyStringT *Asprop_string() {
+    return type == PropertyValueUnion::prop_string ?
+      reinterpret_cast<TEN::Serialization::Save::PropertyStringT *>(value) : nullptr;
+  }
+  const TEN::Serialization::Save::PropertyStringT *Asprop_string() const {
+    return type == PropertyValueUnion::prop_string ?
+      reinterpret_cast<const TEN::Serialization::Save::PropertyStringT *>(value) : nullptr;
+  }
+  TEN::Serialization::Save::PropertyVec2T *Asprop_vec2() {
+    return type == PropertyValueUnion::prop_vec2 ?
+      reinterpret_cast<TEN::Serialization::Save::PropertyVec2T *>(value) : nullptr;
+  }
+  const TEN::Serialization::Save::PropertyVec2T *Asprop_vec2() const {
+    return type == PropertyValueUnion::prop_vec2 ?
+      reinterpret_cast<const TEN::Serialization::Save::PropertyVec2T *>(value) : nullptr;
+  }
+  TEN::Serialization::Save::PropertyVec3T *Asprop_vec3() {
+    return type == PropertyValueUnion::prop_vec3 ?
+      reinterpret_cast<TEN::Serialization::Save::PropertyVec3T *>(value) : nullptr;
+  }
+  const TEN::Serialization::Save::PropertyVec3T *Asprop_vec3() const {
+    return type == PropertyValueUnion::prop_vec3 ?
+      reinterpret_cast<const TEN::Serialization::Save::PropertyVec3T *>(value) : nullptr;
+  }
+  TEN::Serialization::Save::PropertyColorT *Asprop_color() {
+    return type == PropertyValueUnion::prop_color ?
+      reinterpret_cast<TEN::Serialization::Save::PropertyColorT *>(value) : nullptr;
+  }
+  const TEN::Serialization::Save::PropertyColorT *Asprop_color() const {
+    return type == PropertyValueUnion::prop_color ?
+      reinterpret_cast<const TEN::Serialization::Save::PropertyColorT *>(value) : nullptr;
+  }
+  TEN::Serialization::Save::PropertyRotationT *Asprop_rotation() {
+    return type == PropertyValueUnion::prop_rotation ?
+      reinterpret_cast<TEN::Serialization::Save::PropertyRotationT *>(value) : nullptr;
+  }
+  const TEN::Serialization::Save::PropertyRotationT *Asprop_rotation() const {
+    return type == PropertyValueUnion::prop_rotation ?
+      reinterpret_cast<const TEN::Serialization::Save::PropertyRotationT *>(value) : nullptr;
+  }
+  TEN::Serialization::Save::PropertyTimeT *Asprop_time() {
+    return type == PropertyValueUnion::prop_time ?
+      reinterpret_cast<TEN::Serialization::Save::PropertyTimeT *>(value) : nullptr;
+  }
+  const TEN::Serialization::Save::PropertyTimeT *Asprop_time() const {
+    return type == PropertyValueUnion::prop_time ?
+      reinterpret_cast<const TEN::Serialization::Save::PropertyTimeT *>(value) : nullptr;
+  }
+};
+
+bool VerifyPropertyValueUnion(flatbuffers::Verifier &verifier, const void *obj, PropertyValueUnion type);
+bool VerifyPropertyValueUnionVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
 
 enum class VarUnion : uint8_t {
   NONE = 0,
@@ -539,6 +773,45 @@ struct RoomVector::Traits {
   using type = RoomVector;
 };
 
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) MutatorData FLATBUFFERS_FINAL_CLASS {
+ private:
+  TEN::Serialization::Common::Vector3 offset_;
+  TEN::Serialization::Common::EulerAngles rotation_;
+  int16_t padding0__;
+  TEN::Serialization::Common::Vector3 scale_;
+
+ public:
+  struct Traits;
+  MutatorData()
+      : offset_(),
+        rotation_(),
+        padding0__(0),
+        scale_() {
+    (void)padding0__;
+  }
+  MutatorData(const TEN::Serialization::Common::Vector3 &_offset, const TEN::Serialization::Common::EulerAngles &_rotation, const TEN::Serialization::Common::Vector3 &_scale)
+      : offset_(_offset),
+        rotation_(_rotation),
+        padding0__(0),
+        scale_(_scale) {
+    (void)padding0__;
+  }
+  const TEN::Serialization::Common::Vector3 &offset() const {
+    return offset_;
+  }
+  const TEN::Serialization::Common::EulerAngles &rotation() const {
+    return rotation_;
+  }
+  const TEN::Serialization::Common::Vector3 &scale() const {
+    return scale_;
+  }
+};
+FLATBUFFERS_STRUCT_END(MutatorData, 32);
+
+struct MutatorData::Traits {
+  using type = MutatorData;
+};
+
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) KeyValPair FLATBUFFERS_FINAL_CLASS {
  private:
   uint32_t key_;
@@ -604,6 +877,7 @@ struct LevelDataT : public flatbuffers::NativeTable {
   int32_t starfield_meteor_count = 0;
   int32_t starfield_meteor_spawn_density = 0;
   int32_t starfield_meteor_velocity = 0;
+  std::vector<TEN::Serialization::Common::Vector4> material_properties{};
 };
 
 struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -645,7 +919,8 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_STARFIELD_STAR_COUNT = 66,
     VT_STARFIELD_METEOR_COUNT = 68,
     VT_STARFIELD_METEOR_SPAWN_DENSITY = 70,
-    VT_STARFIELD_METEOR_VELOCITY = 72
+    VT_STARFIELD_METEOR_VELOCITY = 72,
+    VT_MATERIAL_PROPERTIES = 74
   };
   uint32_t random_seed() const {
     return GetField<uint32_t>(VT_RANDOM_SEED, 0);
@@ -752,6 +1027,9 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t starfield_meteor_velocity() const {
     return GetField<int32_t>(VT_STARFIELD_METEOR_VELOCITY, 0);
   }
+  const flatbuffers::Vector<const TEN::Serialization::Common::Vector4 *> *material_properties() const {
+    return GetPointer<const flatbuffers::Vector<const TEN::Serialization::Common::Vector4 *> *>(VT_MATERIAL_PROPERTIES);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint32_t>(verifier, VT_RANDOM_SEED) &&
@@ -789,6 +1067,8 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_STARFIELD_METEOR_COUNT) &&
            VerifyField<int32_t>(verifier, VT_STARFIELD_METEOR_SPAWN_DENSITY) &&
            VerifyField<int32_t>(verifier, VT_STARFIELD_METEOR_VELOCITY) &&
+           VerifyOffset(verifier, VT_MATERIAL_PROPERTIES) &&
+           verifier.VerifyVector(material_properties()) &&
            verifier.EndTable();
   }
   LevelDataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -905,6 +1185,9 @@ struct LevelDataBuilder {
   void add_starfield_meteor_velocity(int32_t starfield_meteor_velocity) {
     fbb_.AddElement<int32_t>(LevelData::VT_STARFIELD_METEOR_VELOCITY, starfield_meteor_velocity, 0);
   }
+  void add_material_properties(flatbuffers::Offset<flatbuffers::Vector<const TEN::Serialization::Common::Vector4 *>> material_properties) {
+    fbb_.AddOffset(LevelData::VT_MATERIAL_PROPERTIES, material_properties);
+  }
   explicit LevelDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -952,8 +1235,10 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(
     int32_t starfield_star_count = 0,
     int32_t starfield_meteor_count = 0,
     int32_t starfield_meteor_spawn_density = 0,
-    int32_t starfield_meteor_velocity = 0) {
+    int32_t starfield_meteor_velocity = 0,
+    flatbuffers::Offset<flatbuffers::Vector<const TEN::Serialization::Common::Vector4 *>> material_properties = 0) {
   LevelDataBuilder builder_(_fbb);
+  builder_.add_material_properties(material_properties);
   builder_.add_starfield_meteor_velocity(starfield_meteor_velocity);
   builder_.add_starfield_meteor_spawn_density(starfield_meteor_spawn_density);
   builder_.add_starfield_meteor_count(starfield_meteor_count);
@@ -997,6 +1282,85 @@ struct LevelData::Traits {
   static auto constexpr Create = CreateLevelData;
 };
 
+inline flatbuffers::Offset<LevelData> CreateLevelDataDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t random_seed = 0,
+    int32_t level_far_view = 0,
+    bool storm_enabled = false,
+    bool rumble_enabled = false,
+    int32_t weather_type = 0,
+    float weather_strength = 0.0f,
+    bool weather_clustering = false,
+    int32_t fog_color = 0,
+    float fog_min_distance = 0.0f,
+    float fog_max_distance = 0.0f,
+    bool sky_layer_1_enabled = false,
+    int32_t sky_layer_1_color = 0,
+    int32_t sky_layer_1_speed = 0,
+    bool sky_layer_2_enabled = false,
+    int32_t sky_layer_2_color = 0,
+    int32_t sky_layer_2_speed = 0,
+    bool horizon1_enabled = false,
+    int32_t horizon1_object_id = 0,
+    const TEN::Serialization::Common::Vector3 *horizon1_position = 0,
+    const TEN::Serialization::Common::EulerAngles *horizon1_orientation = 0,
+    float horizon1_transparency = 0.0f,
+    bool horizon2_enabled = false,
+    int32_t horizon2_object_id = 0,
+    const TEN::Serialization::Common::Vector3 *horizon2_position = 0,
+    const TEN::Serialization::Common::EulerAngles *horizon2_orientation = 0,
+    float horizon2_transparency = 0.0f,
+    bool lensflare_enabled = false,
+    int32_t lensflare_sprite_id = 0,
+    float lensflare_pitch = 0.0f,
+    float lensflare_yaw = 0.0f,
+    int32_t lensflare_color = 0,
+    int32_t starfield_star_count = 0,
+    int32_t starfield_meteor_count = 0,
+    int32_t starfield_meteor_spawn_density = 0,
+    int32_t starfield_meteor_velocity = 0,
+    const std::vector<TEN::Serialization::Common::Vector4> *material_properties = nullptr) {
+  auto material_properties__ = material_properties ? _fbb.CreateVectorOfStructs<TEN::Serialization::Common::Vector4>(*material_properties) : 0;
+  return TEN::Serialization::Save::CreateLevelData(
+      _fbb,
+      random_seed,
+      level_far_view,
+      storm_enabled,
+      rumble_enabled,
+      weather_type,
+      weather_strength,
+      weather_clustering,
+      fog_color,
+      fog_min_distance,
+      fog_max_distance,
+      sky_layer_1_enabled,
+      sky_layer_1_color,
+      sky_layer_1_speed,
+      sky_layer_2_enabled,
+      sky_layer_2_color,
+      sky_layer_2_speed,
+      horizon1_enabled,
+      horizon1_object_id,
+      horizon1_position,
+      horizon1_orientation,
+      horizon1_transparency,
+      horizon2_enabled,
+      horizon2_object_id,
+      horizon2_position,
+      horizon2_orientation,
+      horizon2_transparency,
+      lensflare_enabled,
+      lensflare_sprite_id,
+      lensflare_pitch,
+      lensflare_yaw,
+      lensflare_color,
+      starfield_star_count,
+      starfield_meteor_count,
+      starfield_meteor_spawn_density,
+      starfield_meteor_velocity,
+      material_properties__);
+}
+
 flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBuilder &_fbb, const LevelDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct RoomT : public flatbuffers::NativeTable {
@@ -1005,6 +1369,7 @@ struct RoomT : public flatbuffers::NativeTable {
   std::string name{};
   int32_t flags = 0;
   int32_t reverb_type = 0;
+  std::vector<int32_t> item_numbers{};
   std::vector<bool> block_stopper_flags{};
 };
 
@@ -1017,7 +1382,8 @@ struct Room FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_NAME = 6,
     VT_FLAGS = 8,
     VT_REVERB_TYPE = 10,
-    VT_BLOCK_STOPPER_FLAGS = 12
+    VT_ITEM_NUMBERS = 12,
+    VT_BLOCK_STOPPER_FLAGS = 14
   };
   int32_t index() const {
     return GetField<int32_t>(VT_INDEX, 0);
@@ -1031,6 +1397,9 @@ struct Room FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t reverb_type() const {
     return GetField<int32_t>(VT_REVERB_TYPE, 0);
   }
+  const flatbuffers::Vector<int32_t> *item_numbers() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ITEM_NUMBERS);
+  }
   const flatbuffers::Vector<uint8_t> *block_stopper_flags() const {
     return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_BLOCK_STOPPER_FLAGS);
   }
@@ -1041,6 +1410,8 @@ struct Room FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyString(name()) &&
            VerifyField<int32_t>(verifier, VT_FLAGS) &&
            VerifyField<int32_t>(verifier, VT_REVERB_TYPE) &&
+           VerifyOffset(verifier, VT_ITEM_NUMBERS) &&
+           verifier.VerifyVector(item_numbers()) &&
            VerifyOffset(verifier, VT_BLOCK_STOPPER_FLAGS) &&
            verifier.VerifyVector(block_stopper_flags()) &&
            verifier.EndTable();
@@ -1066,6 +1437,9 @@ struct RoomBuilder {
   void add_reverb_type(int32_t reverb_type) {
     fbb_.AddElement<int32_t>(Room::VT_REVERB_TYPE, reverb_type, 0);
   }
+  void add_item_numbers(flatbuffers::Offset<flatbuffers::Vector<int32_t>> item_numbers) {
+    fbb_.AddOffset(Room::VT_ITEM_NUMBERS, item_numbers);
+  }
   void add_block_stopper_flags(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> block_stopper_flags) {
     fbb_.AddOffset(Room::VT_BLOCK_STOPPER_FLAGS, block_stopper_flags);
   }
@@ -1086,9 +1460,11 @@ inline flatbuffers::Offset<Room> CreateRoom(
     flatbuffers::Offset<flatbuffers::String> name = 0,
     int32_t flags = 0,
     int32_t reverb_type = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> item_numbers = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> block_stopper_flags = 0) {
   RoomBuilder builder_(_fbb);
   builder_.add_block_stopper_flags(block_stopper_flags);
+  builder_.add_item_numbers(item_numbers);
   builder_.add_reverb_type(reverb_type);
   builder_.add_flags(flags);
   builder_.add_name(name);
@@ -1107,8 +1483,10 @@ inline flatbuffers::Offset<Room> CreateRoomDirect(
     const char *name = nullptr,
     int32_t flags = 0,
     int32_t reverb_type = 0,
+    const std::vector<int32_t> *item_numbers = nullptr,
     const std::vector<uint8_t> *block_stopper_flags = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto item_numbers__ = item_numbers ? _fbb.CreateVector<int32_t>(*item_numbers) : 0;
   auto block_stopper_flags__ = block_stopper_flags ? _fbb.CreateVector<uint8_t>(*block_stopper_flags) : 0;
   return TEN::Serialization::Save::CreateRoom(
       _fbb,
@@ -1116,6 +1494,7 @@ inline flatbuffers::Offset<Room> CreateRoomDirect(
       name__,
       flags,
       reverb_type,
+      item_numbers__,
       block_stopper_flags__);
 }
 
@@ -1227,8 +1606,6 @@ struct ItemT : public flatbuffers::NativeTable {
   int32_t after_death = 0;
   std::vector<int32_t> item_flags{};
   std::unique_ptr<TEN::Serialization::Common::Pose> pose{};
-  int32_t next_item = 0;
-  int32_t next_item_active = 0;
   bool active = false;
   int32_t status = 0;
   bool hit_stauts = false;
@@ -1237,14 +1614,17 @@ struct ItemT : public flatbuffers::NativeTable {
   int32_t ai_bits = 0;
   TEN::Serialization::Save::ItemDataUnion data{};
   int32_t base_mesh = 0;
-  int32_t skin_index = 0;
   std::vector<int32_t> mesh_index{};
+  std::vector<TEN::Serialization::Save::MutatorData> mutators{};
+  int32_t skin_object_id = 0;
+  int32_t skin_swap_index = 0;
   int32_t effect_type = 0;
   std::unique_ptr<TEN::Serialization::Common::Vector3> effect_light_colour{};
   std::unique_ptr<TEN::Serialization::Common::Vector3> effect_primary_colour{};
   std::unique_ptr<TEN::Serialization::Common::Vector3> effect_secondary_colour{};
   int32_t effect_count = 0;
   std::string lua_name{};
+  std::unique_ptr<TEN::Serialization::Save::PropertyMapDataT> properties{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::ItemCallbackT>> lua_callbacks{};
 };
 
@@ -1276,26 +1656,27 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_AFTER_DEATH = 44,
     VT_ITEM_FLAGS = 46,
     VT_POSE = 48,
-    VT_NEXT_ITEM = 50,
-    VT_NEXT_ITEM_ACTIVE = 52,
-    VT_ACTIVE = 54,
-    VT_STATUS = 56,
-    VT_HIT_STAUTS = 58,
-    VT_COLLIDABLE = 60,
-    VT_LOOKED_AT = 62,
-    VT_AI_BITS = 64,
-    VT_DATA_TYPE = 66,
-    VT_DATA = 68,
-    VT_BASE_MESH = 70,
-    VT_SKIN_INDEX = 72,
-    VT_MESH_INDEX = 74,
+    VT_ACTIVE = 50,
+    VT_STATUS = 52,
+    VT_HIT_STAUTS = 54,
+    VT_COLLIDABLE = 56,
+    VT_LOOKED_AT = 58,
+    VT_AI_BITS = 60,
+    VT_DATA_TYPE = 62,
+    VT_DATA = 64,
+    VT_BASE_MESH = 66,
+    VT_MESH_INDEX = 68,
+    VT_MUTATORS = 70,
+    VT_SKIN_OBJECT_ID = 72,
+    VT_SKIN_SWAP_INDEX = 74,
     VT_EFFECT_TYPE = 76,
     VT_EFFECT_LIGHT_COLOUR = 78,
     VT_EFFECT_PRIMARY_COLOUR = 80,
     VT_EFFECT_SECONDARY_COLOUR = 82,
     VT_EFFECT_COUNT = 84,
     VT_LUA_NAME = 86,
-    VT_LUA_CALLBACKS = 88
+    VT_PROPERTIES = 88,
+    VT_LUA_CALLBACKS = 90
   };
   int32_t anim_object_id() const {
     return GetField<int32_t>(VT_ANIM_OBJECT_ID, 0);
@@ -1365,12 +1746,6 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const TEN::Serialization::Common::Pose *pose() const {
     return GetStruct<const TEN::Serialization::Common::Pose *>(VT_POSE);
-  }
-  int32_t next_item() const {
-    return GetField<int32_t>(VT_NEXT_ITEM, 0);
-  }
-  int32_t next_item_active() const {
-    return GetField<int32_t>(VT_NEXT_ITEM_ACTIVE, 0);
   }
   bool active() const {
     return GetField<uint8_t>(VT_ACTIVE, 0) != 0;
@@ -1460,14 +1835,23 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const TEN::Serialization::Save::Minecart *data_as_Minecart() const {
     return data_type() == TEN::Serialization::Save::ItemData::Minecart ? static_cast<const TEN::Serialization::Save::Minecart *>(data()) : nullptr;
   }
+  const TEN::Serialization::Save::ItemFXInfo *data_as_ItemFXInfo() const {
+    return data_type() == TEN::Serialization::Save::ItemData::ItemFXInfo ? static_cast<const TEN::Serialization::Save::ItemFXInfo *>(data()) : nullptr;
+  }
   int32_t base_mesh() const {
     return GetField<int32_t>(VT_BASE_MESH, 0);
   }
-  int32_t skin_index() const {
-    return GetField<int32_t>(VT_SKIN_INDEX, 0);
-  }
   const flatbuffers::Vector<int32_t> *mesh_index() const {
     return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_MESH_INDEX);
+  }
+  const flatbuffers::Vector<const TEN::Serialization::Save::MutatorData *> *mutators() const {
+    return GetPointer<const flatbuffers::Vector<const TEN::Serialization::Save::MutatorData *> *>(VT_MUTATORS);
+  }
+  int32_t skin_object_id() const {
+    return GetField<int32_t>(VT_SKIN_OBJECT_ID, 0);
+  }
+  int32_t skin_swap_index() const {
+    return GetField<int32_t>(VT_SKIN_SWAP_INDEX, 0);
   }
   int32_t effect_type() const {
     return GetField<int32_t>(VT_EFFECT_TYPE, 0);
@@ -1486,6 +1870,9 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const flatbuffers::String *lua_name() const {
     return GetPointer<const flatbuffers::String *>(VT_LUA_NAME);
+  }
+  const TEN::Serialization::Save::PropertyMapData *properties() const {
+    return GetPointer<const TEN::Serialization::Save::PropertyMapData *>(VT_PROPERTIES);
   }
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::ItemCallback>> *lua_callbacks() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::ItemCallback>> *>(VT_LUA_CALLBACKS);
@@ -1516,8 +1903,6 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_ITEM_FLAGS) &&
            verifier.VerifyVector(item_flags()) &&
            VerifyField<TEN::Serialization::Common::Pose>(verifier, VT_POSE) &&
-           VerifyField<int32_t>(verifier, VT_NEXT_ITEM) &&
-           VerifyField<int32_t>(verifier, VT_NEXT_ITEM_ACTIVE) &&
            VerifyField<uint8_t>(verifier, VT_ACTIVE) &&
            VerifyField<int32_t>(verifier, VT_STATUS) &&
            VerifyField<uint8_t>(verifier, VT_HIT_STAUTS) &&
@@ -1528,9 +1913,12 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_DATA) &&
            VerifyItemData(verifier, data(), data_type()) &&
            VerifyField<int32_t>(verifier, VT_BASE_MESH) &&
-           VerifyField<int32_t>(verifier, VT_SKIN_INDEX) &&
            VerifyOffset(verifier, VT_MESH_INDEX) &&
            verifier.VerifyVector(mesh_index()) &&
+           VerifyOffset(verifier, VT_MUTATORS) &&
+           verifier.VerifyVector(mutators()) &&
+           VerifyField<int32_t>(verifier, VT_SKIN_OBJECT_ID) &&
+           VerifyField<int32_t>(verifier, VT_SKIN_SWAP_INDEX) &&
            VerifyField<int32_t>(verifier, VT_EFFECT_TYPE) &&
            VerifyField<TEN::Serialization::Common::Vector3>(verifier, VT_EFFECT_LIGHT_COLOUR) &&
            VerifyField<TEN::Serialization::Common::Vector3>(verifier, VT_EFFECT_PRIMARY_COLOUR) &&
@@ -1538,6 +1926,8 @@ struct Item FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_EFFECT_COUNT) &&
            VerifyOffset(verifier, VT_LUA_NAME) &&
            verifier.VerifyString(lua_name()) &&
+           VerifyOffset(verifier, VT_PROPERTIES) &&
+           verifier.VerifyTable(properties()) &&
            VerifyOffset(verifier, VT_LUA_CALLBACKS) &&
            verifier.VerifyVector(lua_callbacks()) &&
            verifier.VerifyVectorOfTables(lua_callbacks()) &&
@@ -1632,6 +2022,10 @@ template<> inline const TEN::Serialization::Save::Minecart *Item::data_as<TEN::S
   return data_as_Minecart();
 }
 
+template<> inline const TEN::Serialization::Save::ItemFXInfo *Item::data_as<TEN::Serialization::Save::ItemFXInfo>() const {
+  return data_as_ItemFXInfo();
+}
+
 struct ItemBuilder {
   typedef Item Table;
   flatbuffers::FlatBufferBuilder &fbb_;
@@ -1705,12 +2099,6 @@ struct ItemBuilder {
   void add_pose(const TEN::Serialization::Common::Pose *pose) {
     fbb_.AddStruct(Item::VT_POSE, pose);
   }
-  void add_next_item(int32_t next_item) {
-    fbb_.AddElement<int32_t>(Item::VT_NEXT_ITEM, next_item, 0);
-  }
-  void add_next_item_active(int32_t next_item_active) {
-    fbb_.AddElement<int32_t>(Item::VT_NEXT_ITEM_ACTIVE, next_item_active, 0);
-  }
   void add_active(bool active) {
     fbb_.AddElement<uint8_t>(Item::VT_ACTIVE, static_cast<uint8_t>(active), 0);
   }
@@ -1738,11 +2126,17 @@ struct ItemBuilder {
   void add_base_mesh(int32_t base_mesh) {
     fbb_.AddElement<int32_t>(Item::VT_BASE_MESH, base_mesh, 0);
   }
-  void add_skin_index(int32_t skin_index) {
-    fbb_.AddElement<int32_t>(Item::VT_SKIN_INDEX, skin_index, 0);
-  }
   void add_mesh_index(flatbuffers::Offset<flatbuffers::Vector<int32_t>> mesh_index) {
     fbb_.AddOffset(Item::VT_MESH_INDEX, mesh_index);
+  }
+  void add_mutators(flatbuffers::Offset<flatbuffers::Vector<const TEN::Serialization::Save::MutatorData *>> mutators) {
+    fbb_.AddOffset(Item::VT_MUTATORS, mutators);
+  }
+  void add_skin_object_id(int32_t skin_object_id) {
+    fbb_.AddElement<int32_t>(Item::VT_SKIN_OBJECT_ID, skin_object_id, 0);
+  }
+  void add_skin_swap_index(int32_t skin_swap_index) {
+    fbb_.AddElement<int32_t>(Item::VT_SKIN_SWAP_INDEX, skin_swap_index, 0);
   }
   void add_effect_type(int32_t effect_type) {
     fbb_.AddElement<int32_t>(Item::VT_EFFECT_TYPE, effect_type, 0);
@@ -1761,6 +2155,9 @@ struct ItemBuilder {
   }
   void add_lua_name(flatbuffers::Offset<flatbuffers::String> lua_name) {
     fbb_.AddOffset(Item::VT_LUA_NAME, lua_name);
+  }
+  void add_properties(flatbuffers::Offset<TEN::Serialization::Save::PropertyMapData> properties) {
+    fbb_.AddOffset(Item::VT_PROPERTIES, properties);
   }
   void add_lua_callbacks(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::ItemCallback>>> lua_callbacks) {
     fbb_.AddOffset(Item::VT_LUA_CALLBACKS, lua_callbacks);
@@ -1801,8 +2198,6 @@ inline flatbuffers::Offset<Item> CreateItem(
     int32_t after_death = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> item_flags = 0,
     const TEN::Serialization::Common::Pose *pose = 0,
-    int32_t next_item = 0,
-    int32_t next_item_active = 0,
     bool active = false,
     int32_t status = 0,
     bool hit_stauts = false,
@@ -1812,31 +2207,35 @@ inline flatbuffers::Offset<Item> CreateItem(
     TEN::Serialization::Save::ItemData data_type = TEN::Serialization::Save::ItemData::NONE,
     flatbuffers::Offset<void> data = 0,
     int32_t base_mesh = 0,
-    int32_t skin_index = 0,
     flatbuffers::Offset<flatbuffers::Vector<int32_t>> mesh_index = 0,
+    flatbuffers::Offset<flatbuffers::Vector<const TEN::Serialization::Save::MutatorData *>> mutators = 0,
+    int32_t skin_object_id = 0,
+    int32_t skin_swap_index = 0,
     int32_t effect_type = 0,
     const TEN::Serialization::Common::Vector3 *effect_light_colour = 0,
     const TEN::Serialization::Common::Vector3 *effect_primary_colour = 0,
     const TEN::Serialization::Common::Vector3 *effect_secondary_colour = 0,
     int32_t effect_count = 0,
     flatbuffers::Offset<flatbuffers::String> lua_name = 0,
+    flatbuffers::Offset<TEN::Serialization::Save::PropertyMapData> properties = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::ItemCallback>>> lua_callbacks = 0) {
   ItemBuilder builder_(_fbb);
   builder_.add_lua_callbacks(lua_callbacks);
+  builder_.add_properties(properties);
   builder_.add_lua_name(lua_name);
   builder_.add_effect_count(effect_count);
   builder_.add_effect_secondary_colour(effect_secondary_colour);
   builder_.add_effect_primary_colour(effect_primary_colour);
   builder_.add_effect_light_colour(effect_light_colour);
   builder_.add_effect_type(effect_type);
+  builder_.add_skin_swap_index(skin_swap_index);
+  builder_.add_skin_object_id(skin_object_id);
+  builder_.add_mutators(mutators);
   builder_.add_mesh_index(mesh_index);
-  builder_.add_skin_index(skin_index);
   builder_.add_base_mesh(base_mesh);
   builder_.add_data(data);
   builder_.add_ai_bits(ai_bits);
   builder_.add_status(status);
-  builder_.add_next_item_active(next_item_active);
-  builder_.add_next_item(next_item);
   builder_.add_pose(pose);
   builder_.add_item_flags(item_flags);
   builder_.add_after_death(after_death);
@@ -1898,8 +2297,6 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
     int32_t after_death = 0,
     const std::vector<int32_t> *item_flags = nullptr,
     const TEN::Serialization::Common::Pose *pose = 0,
-    int32_t next_item = 0,
-    int32_t next_item_active = 0,
     bool active = false,
     int32_t status = 0,
     bool hit_stauts = false,
@@ -1909,17 +2306,21 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
     TEN::Serialization::Save::ItemData data_type = TEN::Serialization::Save::ItemData::NONE,
     flatbuffers::Offset<void> data = 0,
     int32_t base_mesh = 0,
-    int32_t skin_index = 0,
     const std::vector<int32_t> *mesh_index = nullptr,
+    const std::vector<TEN::Serialization::Save::MutatorData> *mutators = nullptr,
+    int32_t skin_object_id = 0,
+    int32_t skin_swap_index = 0,
     int32_t effect_type = 0,
     const TEN::Serialization::Common::Vector3 *effect_light_colour = 0,
     const TEN::Serialization::Common::Vector3 *effect_primary_colour = 0,
     const TEN::Serialization::Common::Vector3 *effect_secondary_colour = 0,
     int32_t effect_count = 0,
     const char *lua_name = nullptr,
+    flatbuffers::Offset<TEN::Serialization::Save::PropertyMapData> properties = 0,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::ItemCallback>> *lua_callbacks = nullptr) {
   auto item_flags__ = item_flags ? _fbb.CreateVector<int32_t>(*item_flags) : 0;
   auto mesh_index__ = mesh_index ? _fbb.CreateVector<int32_t>(*mesh_index) : 0;
+  auto mutators__ = mutators ? _fbb.CreateVectorOfStructs<TEN::Serialization::Save::MutatorData>(*mutators) : 0;
   auto lua_name__ = lua_name ? _fbb.CreateString(lua_name) : 0;
   auto lua_callbacks__ = lua_callbacks ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::ItemCallback>>(*lua_callbacks) : 0;
   return TEN::Serialization::Save::CreateItem(
@@ -1947,8 +2348,6 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
       after_death,
       item_flags__,
       pose,
-      next_item,
-      next_item_active,
       active,
       status,
       hit_stauts,
@@ -1958,14 +2357,17 @@ inline flatbuffers::Offset<Item> CreateItemDirect(
       data_type,
       data,
       base_mesh,
-      skin_index,
       mesh_index__,
+      mutators__,
+      skin_object_id,
+      skin_swap_index,
       effect_type,
       effect_light_colour,
       effect_primary_colour,
       effect_secondary_colour,
       effect_count,
       lua_name__,
+      properties,
       lua_callbacks__);
 }
 
@@ -1976,8 +2378,6 @@ struct FXInfoT : public flatbuffers::NativeTable {
   std::unique_ptr<TEN::Serialization::Common::Pose> pose{};
   int32_t room_number = 0;
   int32_t object_number = 0;
-  int32_t next_fx = 0;
-  int32_t next_active = 0;
   int32_t speed = 0;
   int32_t fall_speed = 0;
   int32_t frame_number = 0;
@@ -1995,15 +2395,13 @@ struct FXInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_POSE = 4,
     VT_ROOM_NUMBER = 6,
     VT_OBJECT_NUMBER = 8,
-    VT_NEXT_FX = 10,
-    VT_NEXT_ACTIVE = 12,
-    VT_SPEED = 14,
-    VT_FALL_SPEED = 16,
-    VT_FRAME_NUMBER = 18,
-    VT_COUNTER = 20,
-    VT_COLOR = 22,
-    VT_FLAG1 = 24,
-    VT_FLAG2 = 26
+    VT_SPEED = 10,
+    VT_FALL_SPEED = 12,
+    VT_FRAME_NUMBER = 14,
+    VT_COUNTER = 16,
+    VT_COLOR = 18,
+    VT_FLAG1 = 20,
+    VT_FLAG2 = 22
   };
   const TEN::Serialization::Common::Pose *pose() const {
     return GetStruct<const TEN::Serialization::Common::Pose *>(VT_POSE);
@@ -2013,12 +2411,6 @@ struct FXInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   int32_t object_number() const {
     return GetField<int32_t>(VT_OBJECT_NUMBER, 0);
-  }
-  int32_t next_fx() const {
-    return GetField<int32_t>(VT_NEXT_FX, 0);
-  }
-  int32_t next_active() const {
-    return GetField<int32_t>(VT_NEXT_ACTIVE, 0);
   }
   int32_t speed() const {
     return GetField<int32_t>(VT_SPEED, 0);
@@ -2046,8 +2438,6 @@ struct FXInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<TEN::Serialization::Common::Pose>(verifier, VT_POSE) &&
            VerifyField<int32_t>(verifier, VT_ROOM_NUMBER) &&
            VerifyField<int32_t>(verifier, VT_OBJECT_NUMBER) &&
-           VerifyField<int32_t>(verifier, VT_NEXT_FX) &&
-           VerifyField<int32_t>(verifier, VT_NEXT_ACTIVE) &&
            VerifyField<int32_t>(verifier, VT_SPEED) &&
            VerifyField<int32_t>(verifier, VT_FALL_SPEED) &&
            VerifyField<int32_t>(verifier, VT_FRAME_NUMBER) &&
@@ -2074,12 +2464,6 @@ struct FXInfoBuilder {
   }
   void add_object_number(int32_t object_number) {
     fbb_.AddElement<int32_t>(FXInfo::VT_OBJECT_NUMBER, object_number, 0);
-  }
-  void add_next_fx(int32_t next_fx) {
-    fbb_.AddElement<int32_t>(FXInfo::VT_NEXT_FX, next_fx, 0);
-  }
-  void add_next_active(int32_t next_active) {
-    fbb_.AddElement<int32_t>(FXInfo::VT_NEXT_ACTIVE, next_active, 0);
   }
   void add_speed(int32_t speed) {
     fbb_.AddElement<int32_t>(FXInfo::VT_SPEED, speed, 0);
@@ -2118,8 +2502,6 @@ inline flatbuffers::Offset<FXInfo> CreateFXInfo(
     const TEN::Serialization::Common::Pose *pose = 0,
     int32_t room_number = 0,
     int32_t object_number = 0,
-    int32_t next_fx = 0,
-    int32_t next_active = 0,
     int32_t speed = 0,
     int32_t fall_speed = 0,
     int32_t frame_number = 0,
@@ -2135,8 +2517,6 @@ inline flatbuffers::Offset<FXInfo> CreateFXInfo(
   builder_.add_frame_number(frame_number);
   builder_.add_fall_speed(fall_speed);
   builder_.add_speed(speed);
-  builder_.add_next_active(next_active);
-  builder_.add_next_fx(next_fx);
   builder_.add_object_number(object_number);
   builder_.add_room_number(room_number);
   builder_.add_pose(pose);
@@ -2544,6 +2924,7 @@ struct ArmInfoT : public flatbuffers::NativeTable {
   std::unique_ptr<TEN::Serialization::Common::EulerAngles> rotation{};
   int32_t gun_flash = 0;
   int32_t gun_smoke = 0;
+  int32_t gun_flash_type = 0;
 };
 
 struct ArmInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -2557,7 +2938,8 @@ struct ArmInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_LOCKED = 10,
     VT_ROTATION = 12,
     VT_GUN_FLASH = 14,
-    VT_GUN_SMOKE = 16
+    VT_GUN_SMOKE = 16,
+    VT_GUN_FLASH_TYPE = 18
   };
   int32_t anim_number() const {
     return GetField<int32_t>(VT_ANIM_NUMBER, 0);
@@ -2580,6 +2962,9 @@ struct ArmInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t gun_smoke() const {
     return GetField<int32_t>(VT_GUN_SMOKE, 0);
   }
+  int32_t gun_flash_type() const {
+    return GetField<int32_t>(VT_GUN_FLASH_TYPE, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_ANIM_NUMBER) &&
@@ -2589,6 +2974,7 @@ struct ArmInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<TEN::Serialization::Common::EulerAngles>(verifier, VT_ROTATION) &&
            VerifyField<int32_t>(verifier, VT_GUN_FLASH) &&
            VerifyField<int32_t>(verifier, VT_GUN_SMOKE) &&
+           VerifyField<int32_t>(verifier, VT_GUN_FLASH_TYPE) &&
            verifier.EndTable();
   }
   ArmInfoT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -2621,6 +3007,9 @@ struct ArmInfoBuilder {
   void add_gun_smoke(int32_t gun_smoke) {
     fbb_.AddElement<int32_t>(ArmInfo::VT_GUN_SMOKE, gun_smoke, 0);
   }
+  void add_gun_flash_type(int32_t gun_flash_type) {
+    fbb_.AddElement<int32_t>(ArmInfo::VT_GUN_FLASH_TYPE, gun_flash_type, 0);
+  }
   explicit ArmInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -2640,8 +3029,10 @@ inline flatbuffers::Offset<ArmInfo> CreateArmInfo(
     bool locked = false,
     const TEN::Serialization::Common::EulerAngles *rotation = 0,
     int32_t gun_flash = 0,
-    int32_t gun_smoke = 0) {
+    int32_t gun_smoke = 0,
+    int32_t gun_flash_type = 0) {
   ArmInfoBuilder builder_(_fbb);
+  builder_.add_gun_flash_type(gun_flash_type);
   builder_.add_gun_smoke(gun_smoke);
   builder_.add_gun_flash(gun_flash);
   builder_.add_rotation(rotation);
@@ -5473,6 +5864,7 @@ struct StaticMeshInfoT : public flatbuffers::NativeTable {
   std::unique_ptr<TEN::Serialization::Common::Vector4> color{};
   int32_t hit_points = 0;
   int32_t flags = 0;
+  std::unique_ptr<TEN::Serialization::Save::PropertyMapDataT> properties{};
 };
 
 struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -5485,7 +5877,8 @@ struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_ROOM_NUMBER = 8,
     VT_COLOR = 10,
     VT_HIT_POINTS = 12,
-    VT_FLAGS = 14
+    VT_FLAGS = 14,
+    VT_PROPERTIES = 16
   };
   int32_t number() const {
     return GetField<int32_t>(VT_NUMBER, 0);
@@ -5505,6 +5898,9 @@ struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t flags() const {
     return GetField<int32_t>(VT_FLAGS, 0);
   }
+  const TEN::Serialization::Save::PropertyMapData *properties() const {
+    return GetPointer<const TEN::Serialization::Save::PropertyMapData *>(VT_PROPERTIES);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_NUMBER) &&
@@ -5513,6 +5909,8 @@ struct StaticMeshInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<TEN::Serialization::Common::Vector4>(verifier, VT_COLOR) &&
            VerifyField<int32_t>(verifier, VT_HIT_POINTS) &&
            VerifyField<int32_t>(verifier, VT_FLAGS) &&
+           VerifyOffset(verifier, VT_PROPERTIES) &&
+           verifier.VerifyTable(properties()) &&
            verifier.EndTable();
   }
   StaticMeshInfoT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -5542,6 +5940,9 @@ struct StaticMeshInfoBuilder {
   void add_flags(int32_t flags) {
     fbb_.AddElement<int32_t>(StaticMeshInfo::VT_FLAGS, flags, 0);
   }
+  void add_properties(flatbuffers::Offset<TEN::Serialization::Save::PropertyMapData> properties) {
+    fbb_.AddOffset(StaticMeshInfo::VT_PROPERTIES, properties);
+  }
   explicit StaticMeshInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -5560,8 +5961,10 @@ inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(
     int32_t room_number = 0,
     const TEN::Serialization::Common::Vector4 *color = 0,
     int32_t hit_points = 0,
-    int32_t flags = 0) {
+    int32_t flags = 0,
+    flatbuffers::Offset<TEN::Serialization::Save::PropertyMapData> properties = 0) {
   StaticMeshInfoBuilder builder_(_fbb);
+  builder_.add_properties(properties);
   builder_.add_flags(flags);
   builder_.add_hit_points(hit_points);
   builder_.add_color(color);
@@ -7676,6 +8079,858 @@ struct FireflyData::Traits {
 
 flatbuffers::Offset<FireflyData> CreateFireflyData(flatbuffers::FlatBufferBuilder &_fbb, const FireflyDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct PropertyBoolT : public flatbuffers::NativeTable {
+  typedef PropertyBool TableType;
+  bool value = false;
+};
+
+struct PropertyBool FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyBoolT NativeTableType;
+  typedef PropertyBoolBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_VALUE = 4
+  };
+  bool value() const {
+    return GetField<uint8_t>(VT_VALUE, 0) != 0;
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint8_t>(verifier, VT_VALUE) &&
+           verifier.EndTable();
+  }
+  PropertyBoolT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyBoolT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyBool> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyBoolT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyBoolBuilder {
+  typedef PropertyBool Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_value(bool value) {
+    fbb_.AddElement<uint8_t>(PropertyBool::VT_VALUE, static_cast<uint8_t>(value), 0);
+  }
+  explicit PropertyBoolBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyBool> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyBool>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyBool> CreatePropertyBool(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    bool value = false) {
+  PropertyBoolBuilder builder_(_fbb);
+  builder_.add_value(value);
+  return builder_.Finish();
+}
+
+struct PropertyBool::Traits {
+  using type = PropertyBool;
+  static auto constexpr Create = CreatePropertyBool;
+};
+
+flatbuffers::Offset<PropertyBool> CreatePropertyBool(flatbuffers::FlatBufferBuilder &_fbb, const PropertyBoolT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyFloatT : public flatbuffers::NativeTable {
+  typedef PropertyFloat TableType;
+  float value = 0.0f;
+};
+
+struct PropertyFloat FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyFloatT NativeTableType;
+  typedef PropertyFloatBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_VALUE = 4
+  };
+  float value() const {
+    return GetField<float>(VT_VALUE, 0.0f);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<float>(verifier, VT_VALUE) &&
+           verifier.EndTable();
+  }
+  PropertyFloatT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyFloatT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyFloat> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyFloatT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyFloatBuilder {
+  typedef PropertyFloat Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_value(float value) {
+    fbb_.AddElement<float>(PropertyFloat::VT_VALUE, value, 0.0f);
+  }
+  explicit PropertyFloatBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyFloat> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyFloat>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyFloat> CreatePropertyFloat(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    float value = 0.0f) {
+  PropertyFloatBuilder builder_(_fbb);
+  builder_.add_value(value);
+  return builder_.Finish();
+}
+
+struct PropertyFloat::Traits {
+  using type = PropertyFloat;
+  static auto constexpr Create = CreatePropertyFloat;
+};
+
+flatbuffers::Offset<PropertyFloat> CreatePropertyFloat(flatbuffers::FlatBufferBuilder &_fbb, const PropertyFloatT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyStringT : public flatbuffers::NativeTable {
+  typedef PropertyString TableType;
+  std::string value{};
+};
+
+struct PropertyString FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyStringT NativeTableType;
+  typedef PropertyStringBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_VALUE = 4
+  };
+  const flatbuffers::String *value() const {
+    return GetPointer<const flatbuffers::String *>(VT_VALUE);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_VALUE) &&
+           verifier.VerifyString(value()) &&
+           verifier.EndTable();
+  }
+  PropertyStringT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyStringT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyString> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyStringT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyStringBuilder {
+  typedef PropertyString Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_value(flatbuffers::Offset<flatbuffers::String> value) {
+    fbb_.AddOffset(PropertyString::VT_VALUE, value);
+  }
+  explicit PropertyStringBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyString> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyString>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyString> CreatePropertyString(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> value = 0) {
+  PropertyStringBuilder builder_(_fbb);
+  builder_.add_value(value);
+  return builder_.Finish();
+}
+
+struct PropertyString::Traits {
+  using type = PropertyString;
+  static auto constexpr Create = CreatePropertyString;
+};
+
+inline flatbuffers::Offset<PropertyString> CreatePropertyStringDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *value = nullptr) {
+  auto value__ = value ? _fbb.CreateString(value) : 0;
+  return TEN::Serialization::Save::CreatePropertyString(
+      _fbb,
+      value__);
+}
+
+flatbuffers::Offset<PropertyString> CreatePropertyString(flatbuffers::FlatBufferBuilder &_fbb, const PropertyStringT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyVec2T : public flatbuffers::NativeTable {
+  typedef PropertyVec2 TableType;
+  float x = 0.0f;
+  float y = 0.0f;
+};
+
+struct PropertyVec2 FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyVec2T NativeTableType;
+  typedef PropertyVec2Builder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_X = 4,
+    VT_Y = 6
+  };
+  float x() const {
+    return GetField<float>(VT_X, 0.0f);
+  }
+  float y() const {
+    return GetField<float>(VT_Y, 0.0f);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<float>(verifier, VT_X) &&
+           VerifyField<float>(verifier, VT_Y) &&
+           verifier.EndTable();
+  }
+  PropertyVec2T *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyVec2T *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyVec2> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec2T* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyVec2Builder {
+  typedef PropertyVec2 Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_x(float x) {
+    fbb_.AddElement<float>(PropertyVec2::VT_X, x, 0.0f);
+  }
+  void add_y(float y) {
+    fbb_.AddElement<float>(PropertyVec2::VT_Y, y, 0.0f);
+  }
+  explicit PropertyVec2Builder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyVec2> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyVec2>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyVec2> CreatePropertyVec2(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    float x = 0.0f,
+    float y = 0.0f) {
+  PropertyVec2Builder builder_(_fbb);
+  builder_.add_y(y);
+  builder_.add_x(x);
+  return builder_.Finish();
+}
+
+struct PropertyVec2::Traits {
+  using type = PropertyVec2;
+  static auto constexpr Create = CreatePropertyVec2;
+};
+
+flatbuffers::Offset<PropertyVec2> CreatePropertyVec2(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec2T *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyVec3T : public flatbuffers::NativeTable {
+  typedef PropertyVec3 TableType;
+  float x = 0.0f;
+  float y = 0.0f;
+  float z = 0.0f;
+};
+
+struct PropertyVec3 FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyVec3T NativeTableType;
+  typedef PropertyVec3Builder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_X = 4,
+    VT_Y = 6,
+    VT_Z = 8
+  };
+  float x() const {
+    return GetField<float>(VT_X, 0.0f);
+  }
+  float y() const {
+    return GetField<float>(VT_Y, 0.0f);
+  }
+  float z() const {
+    return GetField<float>(VT_Z, 0.0f);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<float>(verifier, VT_X) &&
+           VerifyField<float>(verifier, VT_Y) &&
+           VerifyField<float>(verifier, VT_Z) &&
+           verifier.EndTable();
+  }
+  PropertyVec3T *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyVec3T *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyVec3> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec3T* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyVec3Builder {
+  typedef PropertyVec3 Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_x(float x) {
+    fbb_.AddElement<float>(PropertyVec3::VT_X, x, 0.0f);
+  }
+  void add_y(float y) {
+    fbb_.AddElement<float>(PropertyVec3::VT_Y, y, 0.0f);
+  }
+  void add_z(float z) {
+    fbb_.AddElement<float>(PropertyVec3::VT_Z, z, 0.0f);
+  }
+  explicit PropertyVec3Builder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyVec3> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyVec3>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyVec3> CreatePropertyVec3(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    float x = 0.0f,
+    float y = 0.0f,
+    float z = 0.0f) {
+  PropertyVec3Builder builder_(_fbb);
+  builder_.add_z(z);
+  builder_.add_y(y);
+  builder_.add_x(x);
+  return builder_.Finish();
+}
+
+struct PropertyVec3::Traits {
+  using type = PropertyVec3;
+  static auto constexpr Create = CreatePropertyVec3;
+};
+
+flatbuffers::Offset<PropertyVec3> CreatePropertyVec3(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec3T *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyColorT : public flatbuffers::NativeTable {
+  typedef PropertyColor TableType;
+  uint8_t r = 0;
+  uint8_t g = 0;
+  uint8_t b = 0;
+  uint8_t a = 0;
+};
+
+struct PropertyColor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyColorT NativeTableType;
+  typedef PropertyColorBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_R = 4,
+    VT_G = 6,
+    VT_B = 8,
+    VT_A = 10
+  };
+  uint8_t r() const {
+    return GetField<uint8_t>(VT_R, 0);
+  }
+  uint8_t g() const {
+    return GetField<uint8_t>(VT_G, 0);
+  }
+  uint8_t b() const {
+    return GetField<uint8_t>(VT_B, 0);
+  }
+  uint8_t a() const {
+    return GetField<uint8_t>(VT_A, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint8_t>(verifier, VT_R) &&
+           VerifyField<uint8_t>(verifier, VT_G) &&
+           VerifyField<uint8_t>(verifier, VT_B) &&
+           VerifyField<uint8_t>(verifier, VT_A) &&
+           verifier.EndTable();
+  }
+  PropertyColorT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyColorT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyColor> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyColorT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyColorBuilder {
+  typedef PropertyColor Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_r(uint8_t r) {
+    fbb_.AddElement<uint8_t>(PropertyColor::VT_R, r, 0);
+  }
+  void add_g(uint8_t g) {
+    fbb_.AddElement<uint8_t>(PropertyColor::VT_G, g, 0);
+  }
+  void add_b(uint8_t b) {
+    fbb_.AddElement<uint8_t>(PropertyColor::VT_B, b, 0);
+  }
+  void add_a(uint8_t a) {
+    fbb_.AddElement<uint8_t>(PropertyColor::VT_A, a, 0);
+  }
+  explicit PropertyColorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyColor> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyColor>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyColor> CreatePropertyColor(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    uint8_t r = 0,
+    uint8_t g = 0,
+    uint8_t b = 0,
+    uint8_t a = 0) {
+  PropertyColorBuilder builder_(_fbb);
+  builder_.add_a(a);
+  builder_.add_b(b);
+  builder_.add_g(g);
+  builder_.add_r(r);
+  return builder_.Finish();
+}
+
+struct PropertyColor::Traits {
+  using type = PropertyColor;
+  static auto constexpr Create = CreatePropertyColor;
+};
+
+flatbuffers::Offset<PropertyColor> CreatePropertyColor(flatbuffers::FlatBufferBuilder &_fbb, const PropertyColorT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyRotationT : public flatbuffers::NativeTable {
+  typedef PropertyRotation TableType;
+  float x = 0.0f;
+  float y = 0.0f;
+  float z = 0.0f;
+};
+
+struct PropertyRotation FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyRotationT NativeTableType;
+  typedef PropertyRotationBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_X = 4,
+    VT_Y = 6,
+    VT_Z = 8
+  };
+  float x() const {
+    return GetField<float>(VT_X, 0.0f);
+  }
+  float y() const {
+    return GetField<float>(VT_Y, 0.0f);
+  }
+  float z() const {
+    return GetField<float>(VT_Z, 0.0f);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<float>(verifier, VT_X) &&
+           VerifyField<float>(verifier, VT_Y) &&
+           VerifyField<float>(verifier, VT_Z) &&
+           verifier.EndTable();
+  }
+  PropertyRotationT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyRotationT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyRotation> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyRotationT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyRotationBuilder {
+  typedef PropertyRotation Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_x(float x) {
+    fbb_.AddElement<float>(PropertyRotation::VT_X, x, 0.0f);
+  }
+  void add_y(float y) {
+    fbb_.AddElement<float>(PropertyRotation::VT_Y, y, 0.0f);
+  }
+  void add_z(float z) {
+    fbb_.AddElement<float>(PropertyRotation::VT_Z, z, 0.0f);
+  }
+  explicit PropertyRotationBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyRotation> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyRotation>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyRotation> CreatePropertyRotation(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    float x = 0.0f,
+    float y = 0.0f,
+    float z = 0.0f) {
+  PropertyRotationBuilder builder_(_fbb);
+  builder_.add_z(z);
+  builder_.add_y(y);
+  builder_.add_x(x);
+  return builder_.Finish();
+}
+
+struct PropertyRotation::Traits {
+  using type = PropertyRotation;
+  static auto constexpr Create = CreatePropertyRotation;
+};
+
+flatbuffers::Offset<PropertyRotation> CreatePropertyRotation(flatbuffers::FlatBufferBuilder &_fbb, const PropertyRotationT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyTimeT : public flatbuffers::NativeTable {
+  typedef PropertyTime TableType;
+  int32_t frame_count = 0;
+};
+
+struct PropertyTime FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyTimeT NativeTableType;
+  typedef PropertyTimeBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_FRAME_COUNT = 4
+  };
+  int32_t frame_count() const {
+    return GetField<int32_t>(VT_FRAME_COUNT, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_FRAME_COUNT) &&
+           verifier.EndTable();
+  }
+  PropertyTimeT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyTimeT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyTime> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyTimeT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyTimeBuilder {
+  typedef PropertyTime Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_frame_count(int32_t frame_count) {
+    fbb_.AddElement<int32_t>(PropertyTime::VT_FRAME_COUNT, frame_count, 0);
+  }
+  explicit PropertyTimeBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyTime> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyTime>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyTime> CreatePropertyTime(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t frame_count = 0) {
+  PropertyTimeBuilder builder_(_fbb);
+  builder_.add_frame_count(frame_count);
+  return builder_.Finish();
+}
+
+struct PropertyTime::Traits {
+  using type = PropertyTime;
+  static auto constexpr Create = CreatePropertyTime;
+};
+
+flatbuffers::Offset<PropertyTime> CreatePropertyTime(flatbuffers::FlatBufferBuilder &_fbb, const PropertyTimeT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyEntryT : public flatbuffers::NativeTable {
+  typedef PropertyEntry TableType;
+  std::string name{};
+  TEN::Serialization::Save::PropertyValueUnionUnion value{};
+};
+
+struct PropertyEntry FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyEntryT NativeTableType;
+  typedef PropertyEntryBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAME = 4,
+    VT_VALUE_TYPE = 6,
+    VT_VALUE = 8
+  };
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  TEN::Serialization::Save::PropertyValueUnion value_type() const {
+    return static_cast<TEN::Serialization::Save::PropertyValueUnion>(GetField<uint8_t>(VT_VALUE_TYPE, 0));
+  }
+  const void *value() const {
+    return GetPointer<const void *>(VT_VALUE);
+  }
+  template<typename T> const T *value_as() const;
+  const TEN::Serialization::Save::PropertyBool *value_as_prop_bool() const {
+    return value_type() == TEN::Serialization::Save::PropertyValueUnion::prop_bool ? static_cast<const TEN::Serialization::Save::PropertyBool *>(value()) : nullptr;
+  }
+  const TEN::Serialization::Save::PropertyFloat *value_as_prop_float() const {
+    return value_type() == TEN::Serialization::Save::PropertyValueUnion::prop_float ? static_cast<const TEN::Serialization::Save::PropertyFloat *>(value()) : nullptr;
+  }
+  const TEN::Serialization::Save::PropertyString *value_as_prop_string() const {
+    return value_type() == TEN::Serialization::Save::PropertyValueUnion::prop_string ? static_cast<const TEN::Serialization::Save::PropertyString *>(value()) : nullptr;
+  }
+  const TEN::Serialization::Save::PropertyVec2 *value_as_prop_vec2() const {
+    return value_type() == TEN::Serialization::Save::PropertyValueUnion::prop_vec2 ? static_cast<const TEN::Serialization::Save::PropertyVec2 *>(value()) : nullptr;
+  }
+  const TEN::Serialization::Save::PropertyVec3 *value_as_prop_vec3() const {
+    return value_type() == TEN::Serialization::Save::PropertyValueUnion::prop_vec3 ? static_cast<const TEN::Serialization::Save::PropertyVec3 *>(value()) : nullptr;
+  }
+  const TEN::Serialization::Save::PropertyColor *value_as_prop_color() const {
+    return value_type() == TEN::Serialization::Save::PropertyValueUnion::prop_color ? static_cast<const TEN::Serialization::Save::PropertyColor *>(value()) : nullptr;
+  }
+  const TEN::Serialization::Save::PropertyRotation *value_as_prop_rotation() const {
+    return value_type() == TEN::Serialization::Save::PropertyValueUnion::prop_rotation ? static_cast<const TEN::Serialization::Save::PropertyRotation *>(value()) : nullptr;
+  }
+  const TEN::Serialization::Save::PropertyTime *value_as_prop_time() const {
+    return value_type() == TEN::Serialization::Save::PropertyValueUnion::prop_time ? static_cast<const TEN::Serialization::Save::PropertyTime *>(value()) : nullptr;
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           VerifyField<uint8_t>(verifier, VT_VALUE_TYPE) &&
+           VerifyOffset(verifier, VT_VALUE) &&
+           VerifyPropertyValueUnion(verifier, value(), value_type()) &&
+           verifier.EndTable();
+  }
+  PropertyEntryT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyEntryT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyEntry> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyEntryT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+template<> inline const TEN::Serialization::Save::PropertyBool *PropertyEntry::value_as<TEN::Serialization::Save::PropertyBool>() const {
+  return value_as_prop_bool();
+}
+
+template<> inline const TEN::Serialization::Save::PropertyFloat *PropertyEntry::value_as<TEN::Serialization::Save::PropertyFloat>() const {
+  return value_as_prop_float();
+}
+
+template<> inline const TEN::Serialization::Save::PropertyString *PropertyEntry::value_as<TEN::Serialization::Save::PropertyString>() const {
+  return value_as_prop_string();
+}
+
+template<> inline const TEN::Serialization::Save::PropertyVec2 *PropertyEntry::value_as<TEN::Serialization::Save::PropertyVec2>() const {
+  return value_as_prop_vec2();
+}
+
+template<> inline const TEN::Serialization::Save::PropertyVec3 *PropertyEntry::value_as<TEN::Serialization::Save::PropertyVec3>() const {
+  return value_as_prop_vec3();
+}
+
+template<> inline const TEN::Serialization::Save::PropertyColor *PropertyEntry::value_as<TEN::Serialization::Save::PropertyColor>() const {
+  return value_as_prop_color();
+}
+
+template<> inline const TEN::Serialization::Save::PropertyRotation *PropertyEntry::value_as<TEN::Serialization::Save::PropertyRotation>() const {
+  return value_as_prop_rotation();
+}
+
+template<> inline const TEN::Serialization::Save::PropertyTime *PropertyEntry::value_as<TEN::Serialization::Save::PropertyTime>() const {
+  return value_as_prop_time();
+}
+
+struct PropertyEntryBuilder {
+  typedef PropertyEntry Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(PropertyEntry::VT_NAME, name);
+  }
+  void add_value_type(TEN::Serialization::Save::PropertyValueUnion value_type) {
+    fbb_.AddElement<uint8_t>(PropertyEntry::VT_VALUE_TYPE, static_cast<uint8_t>(value_type), 0);
+  }
+  void add_value(flatbuffers::Offset<void> value) {
+    fbb_.AddOffset(PropertyEntry::VT_VALUE, value);
+  }
+  explicit PropertyEntryBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyEntry> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyEntry>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyEntry> CreatePropertyEntry(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
+    TEN::Serialization::Save::PropertyValueUnion value_type = TEN::Serialization::Save::PropertyValueUnion::NONE,
+    flatbuffers::Offset<void> value = 0) {
+  PropertyEntryBuilder builder_(_fbb);
+  builder_.add_value(value);
+  builder_.add_name(name);
+  builder_.add_value_type(value_type);
+  return builder_.Finish();
+}
+
+struct PropertyEntry::Traits {
+  using type = PropertyEntry;
+  static auto constexpr Create = CreatePropertyEntry;
+};
+
+inline flatbuffers::Offset<PropertyEntry> CreatePropertyEntryDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
+    TEN::Serialization::Save::PropertyValueUnion value_type = TEN::Serialization::Save::PropertyValueUnion::NONE,
+    flatbuffers::Offset<void> value = 0) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  return TEN::Serialization::Save::CreatePropertyEntry(
+      _fbb,
+      name__,
+      value_type,
+      value);
+}
+
+flatbuffers::Offset<PropertyEntry> CreatePropertyEntry(flatbuffers::FlatBufferBuilder &_fbb, const PropertyEntryT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct PropertyMapDataT : public flatbuffers::NativeTable {
+  typedef PropertyMapData TableType;
+  std::vector<std::unique_ptr<TEN::Serialization::Save::PropertyEntryT>> entries{};
+};
+
+struct PropertyMapData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef PropertyMapDataT NativeTableType;
+  typedef PropertyMapDataBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_ENTRIES = 4
+  };
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::PropertyEntry>> *entries() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::PropertyEntry>> *>(VT_ENTRIES);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_ENTRIES) &&
+           verifier.VerifyVector(entries()) &&
+           verifier.VerifyVectorOfTables(entries()) &&
+           verifier.EndTable();
+  }
+  PropertyMapDataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(PropertyMapDataT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<PropertyMapData> Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyMapDataT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct PropertyMapDataBuilder {
+  typedef PropertyMapData Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_entries(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::PropertyEntry>>> entries) {
+    fbb_.AddOffset(PropertyMapData::VT_ENTRIES, entries);
+  }
+  explicit PropertyMapDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<PropertyMapData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<PropertyMapData>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<PropertyMapData> CreatePropertyMapData(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::PropertyEntry>>> entries = 0) {
+  PropertyMapDataBuilder builder_(_fbb);
+  builder_.add_entries(entries);
+  return builder_.Finish();
+}
+
+struct PropertyMapData::Traits {
+  using type = PropertyMapData;
+  static auto constexpr Create = CreatePropertyMapData;
+};
+
+inline flatbuffers::Offset<PropertyMapData> CreatePropertyMapDataDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::PropertyEntry>> *entries = nullptr) {
+  auto entries__ = entries ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::PropertyEntry>>(*entries) : 0;
+  return TEN::Serialization::Save::CreatePropertyMapData(
+      _fbb,
+      entries__);
+}
+
+flatbuffers::Offset<PropertyMapData> CreatePropertyMapData(flatbuffers::FlatBufferBuilder &_fbb, const PropertyMapDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct TypePropertyMapT : public flatbuffers::NativeTable {
+  typedef TypePropertyMap TableType;
+  int32_t type_id = 0;
+  std::unique_ptr<TEN::Serialization::Save::PropertyMapDataT> properties{};
+};
+
+struct TypePropertyMap FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TypePropertyMapT NativeTableType;
+  typedef TypePropertyMapBuilder Builder;
+  struct Traits;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_TYPE_ID = 4,
+    VT_PROPERTIES = 6
+  };
+  int32_t type_id() const {
+    return GetField<int32_t>(VT_TYPE_ID, 0);
+  }
+  const TEN::Serialization::Save::PropertyMapData *properties() const {
+    return GetPointer<const TEN::Serialization::Save::PropertyMapData *>(VT_PROPERTIES);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_TYPE_ID) &&
+           VerifyOffset(verifier, VT_PROPERTIES) &&
+           verifier.VerifyTable(properties()) &&
+           verifier.EndTable();
+  }
+  TypePropertyMapT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(TypePropertyMapT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<TypePropertyMap> Pack(flatbuffers::FlatBufferBuilder &_fbb, const TypePropertyMapT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct TypePropertyMapBuilder {
+  typedef TypePropertyMap Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_type_id(int32_t type_id) {
+    fbb_.AddElement<int32_t>(TypePropertyMap::VT_TYPE_ID, type_id, 0);
+  }
+  void add_properties(flatbuffers::Offset<TEN::Serialization::Save::PropertyMapData> properties) {
+    fbb_.AddOffset(TypePropertyMap::VT_PROPERTIES, properties);
+  }
+  explicit TypePropertyMapBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<TypePropertyMap> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<TypePropertyMap>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<TypePropertyMap> CreateTypePropertyMap(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t type_id = 0,
+    flatbuffers::Offset<TEN::Serialization::Save::PropertyMapData> properties = 0) {
+  TypePropertyMapBuilder builder_(_fbb);
+  builder_.add_properties(properties);
+  builder_.add_type_id(type_id);
+  return builder_.Finish();
+}
+
+struct TypePropertyMap::Traits {
+  using type = TypePropertyMap;
+  static auto constexpr Create = CreateTypePropertyMap;
+};
+
+flatbuffers::Offset<TypePropertyMap> CreateTypePropertyMap(flatbuffers::FlatBufferBuilder &_fbb, const TypePropertyMapT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct ScriptTableT : public flatbuffers::NativeTable {
   typedef ScriptTable TableType;
   std::vector<TEN::Serialization::Save::KeyValPair> keys_vals{};
@@ -8896,7 +10151,6 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<TEN::Serialization::Save::ItemT>> items{};
   int32_t next_item_free = 0;
   int32_t next_item_active = 0;
-  std::vector<int32_t> room_items{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::FishDataT>> fish_swarm{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::FireflyDataT>> firefly_swarm{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::FXInfoT>> fxinfos{};
@@ -8939,6 +10193,10 @@ struct SaveGameT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<TEN::Serialization::Save::EventSetT>> volume_event_sets{};
   std::unique_ptr<TEN::Serialization::Save::UnionVecT> script_vars{};
   std::vector<std::unique_ptr<TEN::Serialization::Save::CallbackSetT>> callbacks{};
+  std::vector<int32_t> active_items{};
+  std::vector<int32_t> free_item_slots{};
+  std::vector<std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>> moveable_type_properties{};
+  std::vector<std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>> static_type_properties{};
 };
 
 struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -8958,49 +10216,52 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_ITEMS = 22,
     VT_NEXT_ITEM_FREE = 24,
     VT_NEXT_ITEM_ACTIVE = 26,
-    VT_ROOM_ITEMS = 28,
-    VT_FISH_SWARM = 30,
-    VT_FIREFLY_SWARM = 32,
-    VT_FXINFOS = 34,
-    VT_NEXT_FX_FREE = 36,
-    VT_NEXT_FX_ACTIVE = 38,
-    VT_FIXED_CAMERAS = 40,
-    VT_SINKS = 42,
-    VT_STATIC_MESHES = 44,
-    VT_FLYBY_CAMERAS = 46,
-    VT_PARTICLES = 48,
-    VT_RATS = 50,
-    VT_SPIDERS = 52,
-    VT_SCARABS = 54,
-    VT_BATS = 56,
-    VT_LOCUSTS = 58,
-    VT_DECALS = 60,
-    VT_FLIP_MAPS = 62,
-    VT_FLIP_STATS = 64,
-    VT_FLIP_EFFECT = 66,
-    VT_FLIP_TIMER = 68,
-    VT_FLIP_STATUS = 70,
-    VT_CURRENT_FOV = 72,
-    VT_LAST_INV_ITEM = 74,
-    VT_ACTION_QUEUE = 76,
-    VT_SOUNDTRACKS = 78,
-    VT_CD_FLAGS = 80,
-    VT_VIDEO = 82,
-    VT_POSTPROCESS_MODE = 84,
-    VT_POSTPROCESS_STRENGTH = 86,
-    VT_POSTPROCESS_TINT = 88,
-    VT_DOF_DISTANCE = 90,
-    VT_DOF_RANGE = 92,
-    VT_DOF_STRENGTH = 94,
-    VT_DOF_MODE = 96,
-    VT_ROPE = 98,
-    VT_PENDULUM = 100,
-    VT_ALTERNATE_PENDULUM = 102,
-    VT_VOLUMES = 104,
-    VT_GLOBAL_EVENT_SETS = 106,
-    VT_VOLUME_EVENT_SETS = 108,
-    VT_SCRIPT_VARS = 110,
-    VT_CALLBACKS = 112
+    VT_FISH_SWARM = 28,
+    VT_FIREFLY_SWARM = 30,
+    VT_FXINFOS = 32,
+    VT_NEXT_FX_FREE = 34,
+    VT_NEXT_FX_ACTIVE = 36,
+    VT_FIXED_CAMERAS = 38,
+    VT_SINKS = 40,
+    VT_STATIC_MESHES = 42,
+    VT_FLYBY_CAMERAS = 44,
+    VT_PARTICLES = 46,
+    VT_RATS = 48,
+    VT_SPIDERS = 50,
+    VT_SCARABS = 52,
+    VT_BATS = 54,
+    VT_LOCUSTS = 56,
+    VT_DECALS = 58,
+    VT_FLIP_MAPS = 60,
+    VT_FLIP_STATS = 62,
+    VT_FLIP_EFFECT = 64,
+    VT_FLIP_TIMER = 66,
+    VT_FLIP_STATUS = 68,
+    VT_CURRENT_FOV = 70,
+    VT_LAST_INV_ITEM = 72,
+    VT_ACTION_QUEUE = 74,
+    VT_SOUNDTRACKS = 76,
+    VT_CD_FLAGS = 78,
+    VT_VIDEO = 80,
+    VT_POSTPROCESS_MODE = 82,
+    VT_POSTPROCESS_STRENGTH = 84,
+    VT_POSTPROCESS_TINT = 86,
+    VT_DOF_DISTANCE = 88,
+    VT_DOF_RANGE = 90,
+    VT_DOF_STRENGTH = 92,
+    VT_DOF_MODE = 94,
+    VT_ROPE = 96,
+    VT_PENDULUM = 98,
+    VT_ALTERNATE_PENDULUM = 100,
+    VT_VOLUMES = 102,
+    VT_GLOBAL_EVENT_SETS = 104,
+    VT_VOLUME_EVENT_SETS = 106,
+    VT_SCRIPT_VARS = 108,
+    VT_CALLBACKS = 110,
+    VT_ACTIVE_ITEMS = 112,
+    VT_FREE_ITEM_SLOTS = 114,
+    VT_MOVEABLE_TYPE_PROPERTIES = 116,
+    VT_STATIC_TYPE_PROPERTIES = 118
   };
   const TEN::Serialization::Save::SaveGameHeader *header() const {
     return GetPointer<const TEN::Serialization::Save::SaveGameHeader *>(VT_HEADER);
@@ -9037,9 +10298,6 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   int32_t next_item_active() const {
     return GetField<int32_t>(VT_NEXT_ITEM_ACTIVE, 0);
-  }
-  const flatbuffers::Vector<int32_t> *room_items() const {
-    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ROOM_ITEMS);
   }
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::FishData>> *fish_swarm() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::FishData>> *>(VT_FISH_SWARM);
@@ -9167,6 +10425,18 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>> *callbacks() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>> *>(VT_CALLBACKS);
   }
+  const flatbuffers::Vector<int32_t> *active_items() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_ACTIVE_ITEMS);
+  }
+  const flatbuffers::Vector<int32_t> *free_item_slots() const {
+    return GetPointer<const flatbuffers::Vector<int32_t> *>(VT_FREE_ITEM_SLOTS);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *moveable_type_properties() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *>(VT_MOVEABLE_TYPE_PROPERTIES);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *static_type_properties() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *>(VT_STATIC_TYPE_PROPERTIES);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_HEADER) &&
@@ -9192,8 +10462,6 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVectorOfTables(items()) &&
            VerifyField<int32_t>(verifier, VT_NEXT_ITEM_FREE) &&
            VerifyField<int32_t>(verifier, VT_NEXT_ITEM_ACTIVE) &&
-           VerifyOffset(verifier, VT_ROOM_ITEMS) &&
-           verifier.VerifyVector(room_items()) &&
            VerifyOffset(verifier, VT_FISH_SWARM) &&
            verifier.VerifyVector(fish_swarm()) &&
            verifier.VerifyVectorOfTables(fish_swarm()) &&
@@ -9283,6 +10551,16 @@ struct SaveGame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_CALLBACKS) &&
            verifier.VerifyVector(callbacks()) &&
            verifier.VerifyVectorOfTables(callbacks()) &&
+           VerifyOffset(verifier, VT_ACTIVE_ITEMS) &&
+           verifier.VerifyVector(active_items()) &&
+           VerifyOffset(verifier, VT_FREE_ITEM_SLOTS) &&
+           verifier.VerifyVector(free_item_slots()) &&
+           VerifyOffset(verifier, VT_MOVEABLE_TYPE_PROPERTIES) &&
+           verifier.VerifyVector(moveable_type_properties()) &&
+           verifier.VerifyVectorOfTables(moveable_type_properties()) &&
+           VerifyOffset(verifier, VT_STATIC_TYPE_PROPERTIES) &&
+           verifier.VerifyVector(static_type_properties()) &&
+           verifier.VerifyVectorOfTables(static_type_properties()) &&
            verifier.EndTable();
   }
   SaveGameT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -9329,9 +10607,6 @@ struct SaveGameBuilder {
   }
   void add_next_item_active(int32_t next_item_active) {
     fbb_.AddElement<int32_t>(SaveGame::VT_NEXT_ITEM_ACTIVE, next_item_active, 0);
-  }
-  void add_room_items(flatbuffers::Offset<flatbuffers::Vector<int32_t>> room_items) {
-    fbb_.AddOffset(SaveGame::VT_ROOM_ITEMS, room_items);
   }
   void add_fish_swarm(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::FishData>>> fish_swarm) {
     fbb_.AddOffset(SaveGame::VT_FISH_SWARM, fish_swarm);
@@ -9459,6 +10734,18 @@ struct SaveGameBuilder {
   void add_callbacks(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>>> callbacks) {
     fbb_.AddOffset(SaveGame::VT_CALLBACKS, callbacks);
   }
+  void add_active_items(flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_items) {
+    fbb_.AddOffset(SaveGame::VT_ACTIVE_ITEMS, active_items);
+  }
+  void add_free_item_slots(flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_item_slots) {
+    fbb_.AddOffset(SaveGame::VT_FREE_ITEM_SLOTS, free_item_slots);
+  }
+  void add_moveable_type_properties(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> moveable_type_properties) {
+    fbb_.AddOffset(SaveGame::VT_MOVEABLE_TYPE_PROPERTIES, moveable_type_properties);
+  }
+  void add_static_type_properties(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> static_type_properties) {
+    fbb_.AddOffset(SaveGame::VT_STATIC_TYPE_PROPERTIES, static_type_properties);
+  }
   explicit SaveGameBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -9484,7 +10771,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::Item>>> items = 0,
     int32_t next_item_free = 0,
     int32_t next_item_active = 0,
-    flatbuffers::Offset<flatbuffers::Vector<int32_t>> room_items = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::FishData>>> fish_swarm = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::FireflyData>>> firefly_swarm = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::FXInfo>>> fxinfos = 0,
@@ -9526,8 +10812,16 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>>> global_event_sets = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>>> volume_event_sets = 0,
     flatbuffers::Offset<TEN::Serialization::Save::UnionVec> script_vars = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>>> callbacks = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>>> callbacks = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> active_items = 0,
+    flatbuffers::Offset<flatbuffers::Vector<int32_t>> free_item_slots = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> moveable_type_properties = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>> static_type_properties = 0) {
   SaveGameBuilder builder_(_fbb);
+  builder_.add_static_type_properties(static_type_properties);
+  builder_.add_moveable_type_properties(moveable_type_properties);
+  builder_.add_free_item_slots(free_item_slots);
+  builder_.add_active_items(active_items);
   builder_.add_callbacks(callbacks);
   builder_.add_script_vars(script_vars);
   builder_.add_volume_event_sets(volume_event_sets);
@@ -9569,7 +10863,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(
   builder_.add_fxinfos(fxinfos);
   builder_.add_firefly_swarm(firefly_swarm);
   builder_.add_fish_swarm(fish_swarm);
-  builder_.add_room_items(room_items);
   builder_.add_next_item_active(next_item_active);
   builder_.add_next_item_free(next_item_free);
   builder_.add_items(items);
@@ -9605,7 +10898,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::Item>> *items = nullptr,
     int32_t next_item_free = 0,
     int32_t next_item_active = 0,
-    const std::vector<int32_t> *room_items = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::FishData>> *fish_swarm = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::FireflyData>> *firefly_swarm = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::FXInfo>> *fxinfos = nullptr,
@@ -9647,11 +10939,14 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>> *global_event_sets = nullptr,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>> *volume_event_sets = nullptr,
     flatbuffers::Offset<TEN::Serialization::Save::UnionVec> script_vars = 0,
-    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>> *callbacks = nullptr) {
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>> *callbacks = nullptr,
+    const std::vector<int32_t> *active_items = nullptr,
+    const std::vector<int32_t> *free_item_slots = nullptr,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *moveable_type_properties = nullptr,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> *static_type_properties = nullptr) {
   auto rooms__ = rooms ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Room>>(*rooms) : 0;
   auto box_flags__ = box_flags ? _fbb.CreateVector<int32_t>(*box_flags) : 0;
   auto items__ = items ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Item>>(*items) : 0;
-  auto room_items__ = room_items ? _fbb.CreateVector<int32_t>(*room_items) : 0;
   auto fish_swarm__ = fish_swarm ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::FishData>>(*fish_swarm) : 0;
   auto firefly_swarm__ = firefly_swarm ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::FireflyData>>(*firefly_swarm) : 0;
   auto fxinfos__ = fxinfos ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::FXInfo>>(*fxinfos) : 0;
@@ -9675,6 +10970,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
   auto global_event_sets__ = global_event_sets ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>>(*global_event_sets) : 0;
   auto volume_event_sets__ = volume_event_sets ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>>(*volume_event_sets) : 0;
   auto callbacks__ = callbacks ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>>(*callbacks) : 0;
+  auto active_items__ = active_items ? _fbb.CreateVector<int32_t>(*active_items) : 0;
+  auto free_item_slots__ = free_item_slots ? _fbb.CreateVector<int32_t>(*free_item_slots) : 0;
+  auto moveable_type_properties__ = moveable_type_properties ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>(*moveable_type_properties) : 0;
+  auto static_type_properties__ = static_type_properties ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>>(*static_type_properties) : 0;
   return TEN::Serialization::Save::CreateSaveGame(
       _fbb,
       header,
@@ -9689,7 +10988,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       items__,
       next_item_free,
       next_item_active,
-      room_items__,
       fish_swarm__,
       firefly_swarm__,
       fxinfos__,
@@ -9731,7 +11029,11 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGameDirect(
       global_event_sets__,
       volume_event_sets__,
       script_vars,
-      callbacks__);
+      callbacks__,
+      active_items__,
+      free_item_slots__,
+      moveable_type_properties__,
+      static_type_properties__);
 }
 
 flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuilder &_fbb, const SaveGameT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -9780,6 +11082,7 @@ inline void LevelData::UnPackTo(LevelDataT *_o, const flatbuffers::resolver_func
   { auto _e = starfield_meteor_count(); _o->starfield_meteor_count = _e; }
   { auto _e = starfield_meteor_spawn_density(); _o->starfield_meteor_spawn_density = _e; }
   { auto _e = starfield_meteor_velocity(); _o->starfield_meteor_velocity = _e; }
+  { auto _e = material_properties(); if (_e) { _o->material_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->material_properties[_i] = *_e->Get(_i); } } }
 }
 
 inline flatbuffers::Offset<LevelData> LevelData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LevelDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -9825,6 +11128,7 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBui
   auto _starfield_meteor_count = _o->starfield_meteor_count;
   auto _starfield_meteor_spawn_density = _o->starfield_meteor_spawn_density;
   auto _starfield_meteor_velocity = _o->starfield_meteor_velocity;
+  auto _material_properties = _fbb.CreateVectorOfStructs(_o->material_properties);
   return TEN::Serialization::Save::CreateLevelData(
       _fbb,
       _random_seed,
@@ -9861,7 +11165,8 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBui
       _starfield_star_count,
       _starfield_meteor_count,
       _starfield_meteor_spawn_density,
-      _starfield_meteor_velocity);
+      _starfield_meteor_velocity,
+      _material_properties);
 }
 
 inline RoomT *Room::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -9877,6 +11182,7 @@ inline void Room::UnPackTo(RoomT *_o, const flatbuffers::resolver_function_t *_r
   { auto _e = name(); if (_e) _o->name = _e->str(); }
   { auto _e = flags(); _o->flags = _e; }
   { auto _e = reverb_type(); _o->reverb_type = _e; }
+  { auto _e = item_numbers(); if (_e) { _o->item_numbers.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->item_numbers[_i] = _e->Get(_i); } } }
   { auto _e = block_stopper_flags(); if (_e) { _o->block_stopper_flags.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->block_stopper_flags[_i] = _e->Get(_i) != 0; } } }
 }
 
@@ -9892,6 +11198,7 @@ inline flatbuffers::Offset<Room> CreateRoom(flatbuffers::FlatBufferBuilder &_fbb
   auto _name = _o->name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->name);
   auto _flags = _o->flags;
   auto _reverb_type = _o->reverb_type;
+  auto _item_numbers = _fbb.CreateVector(_o->item_numbers);
   auto _block_stopper_flags = _fbb.CreateVector(_o->block_stopper_flags);
   return TEN::Serialization::Save::CreateRoom(
       _fbb,
@@ -9899,6 +11206,7 @@ inline flatbuffers::Offset<Room> CreateRoom(flatbuffers::FlatBufferBuilder &_fbb
       _name,
       _flags,
       _reverb_type,
+      _item_numbers,
       _block_stopper_flags);
 }
 
@@ -9963,8 +11271,6 @@ inline void Item::UnPackTo(ItemT *_o, const flatbuffers::resolver_function_t *_r
   { auto _e = after_death(); _o->after_death = _e; }
   { auto _e = item_flags(); if (_e) { _o->item_flags.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->item_flags[_i] = _e->Get(_i); } } }
   { auto _e = pose(); if (_e) _o->pose = std::unique_ptr<TEN::Serialization::Common::Pose>(new TEN::Serialization::Common::Pose(*_e)); }
-  { auto _e = next_item(); _o->next_item = _e; }
-  { auto _e = next_item_active(); _o->next_item_active = _e; }
   { auto _e = active(); _o->active = _e; }
   { auto _e = status(); _o->status = _e; }
   { auto _e = hit_stauts(); _o->hit_stauts = _e; }
@@ -9974,14 +11280,17 @@ inline void Item::UnPackTo(ItemT *_o, const flatbuffers::resolver_function_t *_r
   { auto _e = data_type(); _o->data.type = _e; }
   { auto _e = data(); if (_e) _o->data.value = TEN::Serialization::Save::ItemDataUnion::UnPack(_e, data_type(), _resolver); }
   { auto _e = base_mesh(); _o->base_mesh = _e; }
-  { auto _e = skin_index(); _o->skin_index = _e; }
   { auto _e = mesh_index(); if (_e) { _o->mesh_index.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->mesh_index[_i] = _e->Get(_i); } } }
+  { auto _e = mutators(); if (_e) { _o->mutators.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->mutators[_i] = *_e->Get(_i); } } }
+  { auto _e = skin_object_id(); _o->skin_object_id = _e; }
+  { auto _e = skin_swap_index(); _o->skin_swap_index = _e; }
   { auto _e = effect_type(); _o->effect_type = _e; }
   { auto _e = effect_light_colour(); if (_e) _o->effect_light_colour = std::unique_ptr<TEN::Serialization::Common::Vector3>(new TEN::Serialization::Common::Vector3(*_e)); }
   { auto _e = effect_primary_colour(); if (_e) _o->effect_primary_colour = std::unique_ptr<TEN::Serialization::Common::Vector3>(new TEN::Serialization::Common::Vector3(*_e)); }
   { auto _e = effect_secondary_colour(); if (_e) _o->effect_secondary_colour = std::unique_ptr<TEN::Serialization::Common::Vector3>(new TEN::Serialization::Common::Vector3(*_e)); }
   { auto _e = effect_count(); _o->effect_count = _e; }
   { auto _e = lua_name(); if (_e) _o->lua_name = _e->str(); }
+  { auto _e = properties(); if (_e) _o->properties = std::unique_ptr<TEN::Serialization::Save::PropertyMapDataT>(_e->UnPack(_resolver)); }
   { auto _e = lua_callbacks(); if (_e) { _o->lua_callbacks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->lua_callbacks[_i] = std::unique_ptr<TEN::Serialization::Save::ItemCallbackT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
@@ -10016,8 +11325,6 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
   auto _after_death = _o->after_death;
   auto _item_flags = _fbb.CreateVector(_o->item_flags);
   auto _pose = _o->pose ? _o->pose.get() : 0;
-  auto _next_item = _o->next_item;
-  auto _next_item_active = _o->next_item_active;
   auto _active = _o->active;
   auto _status = _o->status;
   auto _hit_stauts = _o->hit_stauts;
@@ -10027,14 +11334,17 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
   auto _data_type = _o->data.type;
   auto _data = _o->data.Pack(_fbb);
   auto _base_mesh = _o->base_mesh;
-  auto _skin_index = _o->skin_index;
   auto _mesh_index = _fbb.CreateVector(_o->mesh_index);
+  auto _mutators = _fbb.CreateVectorOfStructs(_o->mutators);
+  auto _skin_object_id = _o->skin_object_id;
+  auto _skin_swap_index = _o->skin_swap_index;
   auto _effect_type = _o->effect_type;
   auto _effect_light_colour = _o->effect_light_colour ? _o->effect_light_colour.get() : 0;
   auto _effect_primary_colour = _o->effect_primary_colour ? _o->effect_primary_colour.get() : 0;
   auto _effect_secondary_colour = _o->effect_secondary_colour ? _o->effect_secondary_colour.get() : 0;
   auto _effect_count = _o->effect_count;
   auto _lua_name = _o->lua_name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->lua_name);
+  auto _properties = _o->properties ? CreatePropertyMapData(_fbb, _o->properties.get(), _rehasher) : 0;
   auto _lua_callbacks = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::ItemCallback>> (_o->lua_callbacks.size(), [](size_t i, _VectorArgs *__va) { return CreateItemCallback(*__va->__fbb, __va->__o->lua_callbacks[i].get(), __va->__rehasher); }, &_va );
   return TEN::Serialization::Save::CreateItem(
       _fbb,
@@ -10061,8 +11371,6 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
       _after_death,
       _item_flags,
       _pose,
-      _next_item,
-      _next_item_active,
       _active,
       _status,
       _hit_stauts,
@@ -10072,14 +11380,17 @@ inline flatbuffers::Offset<Item> CreateItem(flatbuffers::FlatBufferBuilder &_fbb
       _data_type,
       _data,
       _base_mesh,
-      _skin_index,
       _mesh_index,
+      _mutators,
+      _skin_object_id,
+      _skin_swap_index,
       _effect_type,
       _effect_light_colour,
       _effect_primary_colour,
       _effect_secondary_colour,
       _effect_count,
       _lua_name,
+      _properties,
       _lua_callbacks);
 }
 
@@ -10095,8 +11406,6 @@ inline void FXInfo::UnPackTo(FXInfoT *_o, const flatbuffers::resolver_function_t
   { auto _e = pose(); if (_e) _o->pose = std::unique_ptr<TEN::Serialization::Common::Pose>(new TEN::Serialization::Common::Pose(*_e)); }
   { auto _e = room_number(); _o->room_number = _e; }
   { auto _e = object_number(); _o->object_number = _e; }
-  { auto _e = next_fx(); _o->next_fx = _e; }
-  { auto _e = next_active(); _o->next_active = _e; }
   { auto _e = speed(); _o->speed = _e; }
   { auto _e = fall_speed(); _o->fall_speed = _e; }
   { auto _e = frame_number(); _o->frame_number = _e; }
@@ -10117,8 +11426,6 @@ inline flatbuffers::Offset<FXInfo> CreateFXInfo(flatbuffers::FlatBufferBuilder &
   auto _pose = _o->pose ? _o->pose.get() : 0;
   auto _room_number = _o->room_number;
   auto _object_number = _o->object_number;
-  auto _next_fx = _o->next_fx;
-  auto _next_active = _o->next_active;
   auto _speed = _o->speed;
   auto _fall_speed = _o->fall_speed;
   auto _frame_number = _o->frame_number;
@@ -10131,8 +11438,6 @@ inline flatbuffers::Offset<FXInfo> CreateFXInfo(flatbuffers::FlatBufferBuilder &
       _pose,
       _room_number,
       _object_number,
-      _next_fx,
-      _next_active,
       _speed,
       _fall_speed,
       _frame_number,
@@ -10298,6 +11603,7 @@ inline void ArmInfo::UnPackTo(ArmInfoT *_o, const flatbuffers::resolver_function
   { auto _e = rotation(); if (_e) _o->rotation = std::unique_ptr<TEN::Serialization::Common::EulerAngles>(new TEN::Serialization::Common::EulerAngles(*_e)); }
   { auto _e = gun_flash(); _o->gun_flash = _e; }
   { auto _e = gun_smoke(); _o->gun_smoke = _e; }
+  { auto _e = gun_flash_type(); _o->gun_flash_type = _e; }
 }
 
 inline flatbuffers::Offset<ArmInfo> ArmInfo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ArmInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -10315,6 +11621,7 @@ inline flatbuffers::Offset<ArmInfo> CreateArmInfo(flatbuffers::FlatBufferBuilder
   auto _rotation = _o->rotation ? _o->rotation.get() : 0;
   auto _gun_flash = _o->gun_flash;
   auto _gun_smoke = _o->gun_smoke;
+  auto _gun_flash_type = _o->gun_flash_type;
   return TEN::Serialization::Save::CreateArmInfo(
       _fbb,
       _anim_number,
@@ -10323,7 +11630,8 @@ inline flatbuffers::Offset<ArmInfo> CreateArmInfo(flatbuffers::FlatBufferBuilder
       _locked,
       _rotation,
       _gun_flash,
-      _gun_smoke);
+      _gun_smoke,
+      _gun_flash_type);
 }
 
 inline FlareDataT *FlareData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -11260,6 +12568,7 @@ inline void StaticMeshInfo::UnPackTo(StaticMeshInfoT *_o, const flatbuffers::res
   { auto _e = color(); if (_e) _o->color = std::unique_ptr<TEN::Serialization::Common::Vector4>(new TEN::Serialization::Common::Vector4(*_e)); }
   { auto _e = hit_points(); _o->hit_points = _e; }
   { auto _e = flags(); _o->flags = _e; }
+  { auto _e = properties(); if (_e) _o->properties = std::unique_ptr<TEN::Serialization::Save::PropertyMapDataT>(_e->UnPack(_resolver)); }
 }
 
 inline flatbuffers::Offset<StaticMeshInfo> StaticMeshInfo::Pack(flatbuffers::FlatBufferBuilder &_fbb, const StaticMeshInfoT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -11276,6 +12585,7 @@ inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(flatbuffers::Fla
   auto _color = _o->color ? _o->color.get() : 0;
   auto _hit_points = _o->hit_points;
   auto _flags = _o->flags;
+  auto _properties = _o->properties ? CreatePropertyMapData(_fbb, _o->properties.get(), _rehasher) : 0;
   return TEN::Serialization::Save::CreateStaticMeshInfo(
       _fbb,
       _number,
@@ -11283,7 +12593,8 @@ inline flatbuffers::Offset<StaticMeshInfo> CreateStaticMeshInfo(flatbuffers::Fla
       _room_number,
       _color,
       _hit_points,
-      _flags);
+      _flags,
+      _properties);
 }
 
 inline ParticleInfoT *ParticleInfo::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -11966,6 +13277,325 @@ inline flatbuffers::Offset<FireflyData> CreateFireflyData(flatbuffers::FlatBuffe
       _rot_ang);
 }
 
+inline PropertyBoolT *PropertyBool::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyBoolT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyBool::UnPackTo(PropertyBoolT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = value(); _o->value = _e; }
+}
+
+inline flatbuffers::Offset<PropertyBool> PropertyBool::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyBoolT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyBool(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyBool> CreatePropertyBool(flatbuffers::FlatBufferBuilder &_fbb, const PropertyBoolT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyBoolT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _value = _o->value;
+  return TEN::Serialization::Save::CreatePropertyBool(
+      _fbb,
+      _value);
+}
+
+inline PropertyFloatT *PropertyFloat::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyFloatT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyFloat::UnPackTo(PropertyFloatT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = value(); _o->value = _e; }
+}
+
+inline flatbuffers::Offset<PropertyFloat> PropertyFloat::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyFloatT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyFloat(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyFloat> CreatePropertyFloat(flatbuffers::FlatBufferBuilder &_fbb, const PropertyFloatT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyFloatT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _value = _o->value;
+  return TEN::Serialization::Save::CreatePropertyFloat(
+      _fbb,
+      _value);
+}
+
+inline PropertyStringT *PropertyString::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyStringT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyString::UnPackTo(PropertyStringT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = value(); if (_e) _o->value = _e->str(); }
+}
+
+inline flatbuffers::Offset<PropertyString> PropertyString::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyStringT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyString(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyString> CreatePropertyString(flatbuffers::FlatBufferBuilder &_fbb, const PropertyStringT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyStringT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _value = _o->value.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->value);
+  return TEN::Serialization::Save::CreatePropertyString(
+      _fbb,
+      _value);
+}
+
+inline PropertyVec2T *PropertyVec2::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyVec2T>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyVec2::UnPackTo(PropertyVec2T *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = x(); _o->x = _e; }
+  { auto _e = y(); _o->y = _e; }
+}
+
+inline flatbuffers::Offset<PropertyVec2> PropertyVec2::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec2T* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyVec2(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyVec2> CreatePropertyVec2(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec2T *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyVec2T* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _x = _o->x;
+  auto _y = _o->y;
+  return TEN::Serialization::Save::CreatePropertyVec2(
+      _fbb,
+      _x,
+      _y);
+}
+
+inline PropertyVec3T *PropertyVec3::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyVec3T>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyVec3::UnPackTo(PropertyVec3T *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = x(); _o->x = _e; }
+  { auto _e = y(); _o->y = _e; }
+  { auto _e = z(); _o->z = _e; }
+}
+
+inline flatbuffers::Offset<PropertyVec3> PropertyVec3::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec3T* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyVec3(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyVec3> CreatePropertyVec3(flatbuffers::FlatBufferBuilder &_fbb, const PropertyVec3T *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyVec3T* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _x = _o->x;
+  auto _y = _o->y;
+  auto _z = _o->z;
+  return TEN::Serialization::Save::CreatePropertyVec3(
+      _fbb,
+      _x,
+      _y,
+      _z);
+}
+
+inline PropertyColorT *PropertyColor::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyColorT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyColor::UnPackTo(PropertyColorT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = r(); _o->r = _e; }
+  { auto _e = g(); _o->g = _e; }
+  { auto _e = b(); _o->b = _e; }
+  { auto _e = a(); _o->a = _e; }
+}
+
+inline flatbuffers::Offset<PropertyColor> PropertyColor::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyColorT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyColor(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyColor> CreatePropertyColor(flatbuffers::FlatBufferBuilder &_fbb, const PropertyColorT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyColorT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _r = _o->r;
+  auto _g = _o->g;
+  auto _b = _o->b;
+  auto _a = _o->a;
+  return TEN::Serialization::Save::CreatePropertyColor(
+      _fbb,
+      _r,
+      _g,
+      _b,
+      _a);
+}
+
+inline PropertyRotationT *PropertyRotation::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyRotationT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyRotation::UnPackTo(PropertyRotationT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = x(); _o->x = _e; }
+  { auto _e = y(); _o->y = _e; }
+  { auto _e = z(); _o->z = _e; }
+}
+
+inline flatbuffers::Offset<PropertyRotation> PropertyRotation::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyRotationT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyRotation(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyRotation> CreatePropertyRotation(flatbuffers::FlatBufferBuilder &_fbb, const PropertyRotationT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyRotationT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _x = _o->x;
+  auto _y = _o->y;
+  auto _z = _o->z;
+  return TEN::Serialization::Save::CreatePropertyRotation(
+      _fbb,
+      _x,
+      _y,
+      _z);
+}
+
+inline PropertyTimeT *PropertyTime::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyTimeT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyTime::UnPackTo(PropertyTimeT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = frame_count(); _o->frame_count = _e; }
+}
+
+inline flatbuffers::Offset<PropertyTime> PropertyTime::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyTimeT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyTime(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyTime> CreatePropertyTime(flatbuffers::FlatBufferBuilder &_fbb, const PropertyTimeT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyTimeT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _frame_count = _o->frame_count;
+  return TEN::Serialization::Save::CreatePropertyTime(
+      _fbb,
+      _frame_count);
+}
+
+inline PropertyEntryT *PropertyEntry::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyEntryT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyEntry::UnPackTo(PropertyEntryT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = name(); if (_e) _o->name = _e->str(); }
+  { auto _e = value_type(); _o->value.type = _e; }
+  { auto _e = value(); if (_e) _o->value.value = TEN::Serialization::Save::PropertyValueUnionUnion::UnPack(_e, value_type(), _resolver); }
+}
+
+inline flatbuffers::Offset<PropertyEntry> PropertyEntry::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyEntryT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyEntry(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyEntry> CreatePropertyEntry(flatbuffers::FlatBufferBuilder &_fbb, const PropertyEntryT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyEntryT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _name = _o->name.empty() ? _fbb.CreateSharedString("") : _fbb.CreateString(_o->name);
+  auto _value_type = _o->value.type;
+  auto _value = _o->value.Pack(_fbb);
+  return TEN::Serialization::Save::CreatePropertyEntry(
+      _fbb,
+      _name,
+      _value_type,
+      _value);
+}
+
+inline PropertyMapDataT *PropertyMapData::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<PropertyMapDataT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void PropertyMapData::UnPackTo(PropertyMapDataT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = entries(); if (_e) { _o->entries.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->entries[_i] = std::unique_ptr<TEN::Serialization::Save::PropertyEntryT>(_e->Get(_i)->UnPack(_resolver)); } } }
+}
+
+inline flatbuffers::Offset<PropertyMapData> PropertyMapData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const PropertyMapDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreatePropertyMapData(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<PropertyMapData> CreatePropertyMapData(flatbuffers::FlatBufferBuilder &_fbb, const PropertyMapDataT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const PropertyMapDataT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _entries = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::PropertyEntry>> (_o->entries.size(), [](size_t i, _VectorArgs *__va) { return CreatePropertyEntry(*__va->__fbb, __va->__o->entries[i].get(), __va->__rehasher); }, &_va );
+  return TEN::Serialization::Save::CreatePropertyMapData(
+      _fbb,
+      _entries);
+}
+
+inline TypePropertyMapT *TypePropertyMap::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::make_unique<TypePropertyMapT>();
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void TypePropertyMap::UnPackTo(TypePropertyMapT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = type_id(); _o->type_id = _e; }
+  { auto _e = properties(); if (_e) _o->properties = std::unique_ptr<TEN::Serialization::Save::PropertyMapDataT>(_e->UnPack(_resolver)); }
+}
+
+inline flatbuffers::Offset<TypePropertyMap> TypePropertyMap::Pack(flatbuffers::FlatBufferBuilder &_fbb, const TypePropertyMapT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateTypePropertyMap(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<TypePropertyMap> CreateTypePropertyMap(flatbuffers::FlatBufferBuilder &_fbb, const TypePropertyMapT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const TypePropertyMapT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _type_id = _o->type_id;
+  auto _properties = _o->properties ? CreatePropertyMapData(_fbb, _o->properties.get(), _rehasher) : 0;
+  return TEN::Serialization::Save::CreateTypePropertyMap(
+      _fbb,
+      _type_id,
+      _properties);
+}
+
 inline ScriptTableT *ScriptTable::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::make_unique<ScriptTableT>();
   UnPackTo(_o.get(), _resolver);
@@ -12428,7 +14058,6 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = items(); if (_e) { _o->items.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->items[_i] = std::unique_ptr<TEN::Serialization::Save::ItemT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = next_item_free(); _o->next_item_free = _e; }
   { auto _e = next_item_active(); _o->next_item_active = _e; }
-  { auto _e = room_items(); if (_e) { _o->room_items.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->room_items[_i] = _e->Get(_i); } } }
   { auto _e = fish_swarm(); if (_e) { _o->fish_swarm.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->fish_swarm[_i] = std::unique_ptr<TEN::Serialization::Save::FishDataT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = firefly_swarm(); if (_e) { _o->firefly_swarm.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->firefly_swarm[_i] = std::unique_ptr<TEN::Serialization::Save::FireflyDataT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = fxinfos(); if (_e) { _o->fxinfos.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->fxinfos[_i] = std::unique_ptr<TEN::Serialization::Save::FXInfoT>(_e->Get(_i)->UnPack(_resolver)); } } }
@@ -12471,6 +14100,10 @@ inline void SaveGame::UnPackTo(SaveGameT *_o, const flatbuffers::resolver_functi
   { auto _e = volume_event_sets(); if (_e) { _o->volume_event_sets.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->volume_event_sets[_i] = std::unique_ptr<TEN::Serialization::Save::EventSetT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = script_vars(); if (_e) _o->script_vars = std::unique_ptr<TEN::Serialization::Save::UnionVecT>(_e->UnPack(_resolver)); }
   { auto _e = callbacks(); if (_e) { _o->callbacks.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->callbacks[_i] = std::unique_ptr<TEN::Serialization::Save::CallbackSetT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = active_items(); if (_e) { _o->active_items.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->active_items[_i] = _e->Get(_i); } } }
+  { auto _e = free_item_slots(); if (_e) { _o->free_item_slots.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->free_item_slots[_i] = _e->Get(_i); } } }
+  { auto _e = moveable_type_properties(); if (_e) { _o->moveable_type_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->moveable_type_properties[_i] = std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = static_type_properties(); if (_e) { _o->static_type_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->static_type_properties[_i] = std::unique_ptr<TEN::Serialization::Save::TypePropertyMapT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
 inline flatbuffers::Offset<SaveGame> SaveGame::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SaveGameT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -12493,7 +14126,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _items = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::Item>> (_o->items.size(), [](size_t i, _VectorArgs *__va) { return CreateItem(*__va->__fbb, __va->__o->items[i].get(), __va->__rehasher); }, &_va );
   auto _next_item_free = _o->next_item_free;
   auto _next_item_active = _o->next_item_active;
-  auto _room_items = _fbb.CreateVector(_o->room_items);
   auto _fish_swarm = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::FishData>> (_o->fish_swarm.size(), [](size_t i, _VectorArgs *__va) { return CreateFishData(*__va->__fbb, __va->__o->fish_swarm[i].get(), __va->__rehasher); }, &_va );
   auto _firefly_swarm = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::FireflyData>> (_o->firefly_swarm.size(), [](size_t i, _VectorArgs *__va) { return CreateFireflyData(*__va->__fbb, __va->__o->firefly_swarm[i].get(), __va->__rehasher); }, &_va );
   auto _fxinfos = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::FXInfo>> (_o->fxinfos.size(), [](size_t i, _VectorArgs *__va) { return CreateFXInfo(*__va->__fbb, __va->__o->fxinfos[i].get(), __va->__rehasher); }, &_va );
@@ -12536,6 +14168,10 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
   auto _volume_event_sets = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::EventSet>> (_o->volume_event_sets.size(), [](size_t i, _VectorArgs *__va) { return CreateEventSet(*__va->__fbb, __va->__o->volume_event_sets[i].get(), __va->__rehasher); }, &_va );
   auto _script_vars = _o->script_vars ? CreateUnionVec(_fbb, _o->script_vars.get(), _rehasher) : 0;
   auto _callbacks = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::CallbackSet>> (_o->callbacks.size(), [](size_t i, _VectorArgs *__va) { return CreateCallbackSet(*__va->__fbb, __va->__o->callbacks[i].get(), __va->__rehasher); }, &_va );
+  auto _active_items = _fbb.CreateVector(_o->active_items);
+  auto _free_item_slots = _fbb.CreateVector(_o->free_item_slots);
+  auto _moveable_type_properties = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> (_o->moveable_type_properties.size(), [](size_t i, _VectorArgs *__va) { return CreateTypePropertyMap(*__va->__fbb, __va->__o->moveable_type_properties[i].get(), __va->__rehasher); }, &_va );
+  auto _static_type_properties = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Save::TypePropertyMap>> (_o->static_type_properties.size(), [](size_t i, _VectorArgs *__va) { return CreateTypePropertyMap(*__va->__fbb, __va->__o->static_type_properties[i].get(), __va->__rehasher); }, &_va );
   return TEN::Serialization::Save::CreateSaveGame(
       _fbb,
       _header,
@@ -12550,7 +14186,6 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _items,
       _next_item_free,
       _next_item_active,
-      _room_items,
       _fish_swarm,
       _firefly_swarm,
       _fxinfos,
@@ -12592,7 +14227,227 @@ inline flatbuffers::Offset<SaveGame> CreateSaveGame(flatbuffers::FlatBufferBuild
       _global_event_sets,
       _volume_event_sets,
       _script_vars,
-      _callbacks);
+      _callbacks,
+      _active_items,
+      _free_item_slots,
+      _moveable_type_properties,
+      _static_type_properties);
+}
+
+inline bool VerifyPropertyValueUnion(flatbuffers::Verifier &verifier, const void *obj, PropertyValueUnion type) {
+  switch (type) {
+    case PropertyValueUnion::NONE: {
+      return true;
+    }
+    case PropertyValueUnion::prop_bool: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyBool *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_float: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyFloat *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_string: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyString *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_vec2: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyVec2 *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_vec3: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyVec3 *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_color: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyColor *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_rotation: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyRotation *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PropertyValueUnion::prop_time: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyTime *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    default: return true;
+  }
+}
+
+inline bool VerifyPropertyValueUnionVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types) {
+  if (!values || !types) return !values && !types;
+  if (values->size() != types->size()) return false;
+  for (flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
+    if (!VerifyPropertyValueUnion(
+        verifier,  values->Get(i), types->GetEnum<PropertyValueUnion>(i))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+inline void *PropertyValueUnionUnion::UnPack(const void *obj, PropertyValueUnion type, const flatbuffers::resolver_function_t *resolver) {
+  switch (type) {
+    case PropertyValueUnion::prop_bool: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyBool *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_float: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyFloat *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_string: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyString *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_vec2: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyVec2 *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_vec3: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyVec3 *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_color: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyColor *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_rotation: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyRotation *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case PropertyValueUnion::prop_time: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyTime *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    default: return nullptr;
+  }
+}
+
+inline flatbuffers::Offset<void> PropertyValueUnionUnion::Pack(flatbuffers::FlatBufferBuilder &_fbb, const flatbuffers::rehasher_function_t *_rehasher) const {
+  switch (type) {
+    case PropertyValueUnion::prop_bool: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyBoolT *>(value);
+      return CreatePropertyBool(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_float: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyFloatT *>(value);
+      return CreatePropertyFloat(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_string: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyStringT *>(value);
+      return CreatePropertyString(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_vec2: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyVec2T *>(value);
+      return CreatePropertyVec2(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_vec3: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyVec3T *>(value);
+      return CreatePropertyVec3(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_color: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyColorT *>(value);
+      return CreatePropertyColor(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_rotation: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyRotationT *>(value);
+      return CreatePropertyRotation(_fbb, ptr, _rehasher).Union();
+    }
+    case PropertyValueUnion::prop_time: {
+      auto ptr = reinterpret_cast<const TEN::Serialization::Save::PropertyTimeT *>(value);
+      return CreatePropertyTime(_fbb, ptr, _rehasher).Union();
+    }
+    default: return 0;
+  }
+}
+
+inline PropertyValueUnionUnion::PropertyValueUnionUnion(const PropertyValueUnionUnion &u) : type(u.type), value(nullptr) {
+  switch (type) {
+    case PropertyValueUnion::prop_bool: {
+      value = new TEN::Serialization::Save::PropertyBoolT(*reinterpret_cast<TEN::Serialization::Save::PropertyBoolT *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_float: {
+      value = new TEN::Serialization::Save::PropertyFloatT(*reinterpret_cast<TEN::Serialization::Save::PropertyFloatT *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_string: {
+      value = new TEN::Serialization::Save::PropertyStringT(*reinterpret_cast<TEN::Serialization::Save::PropertyStringT *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_vec2: {
+      value = new TEN::Serialization::Save::PropertyVec2T(*reinterpret_cast<TEN::Serialization::Save::PropertyVec2T *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_vec3: {
+      value = new TEN::Serialization::Save::PropertyVec3T(*reinterpret_cast<TEN::Serialization::Save::PropertyVec3T *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_color: {
+      value = new TEN::Serialization::Save::PropertyColorT(*reinterpret_cast<TEN::Serialization::Save::PropertyColorT *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_rotation: {
+      value = new TEN::Serialization::Save::PropertyRotationT(*reinterpret_cast<TEN::Serialization::Save::PropertyRotationT *>(u.value));
+      break;
+    }
+    case PropertyValueUnion::prop_time: {
+      value = new TEN::Serialization::Save::PropertyTimeT(*reinterpret_cast<TEN::Serialization::Save::PropertyTimeT *>(u.value));
+      break;
+    }
+    default:
+      break;
+  }
+}
+
+inline void PropertyValueUnionUnion::Reset() {
+  switch (type) {
+    case PropertyValueUnion::prop_bool: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyBoolT *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_float: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyFloatT *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_string: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyStringT *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_vec2: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyVec2T *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_vec3: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyVec3T *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_color: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyColorT *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_rotation: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyRotationT *>(value);
+      delete ptr;
+      break;
+    }
+    case PropertyValueUnion::prop_time: {
+      auto ptr = reinterpret_cast<TEN::Serialization::Save::PropertyTimeT *>(value);
+      delete ptr;
+      break;
+    }
+    default: break;
+  }
+  value = nullptr;
+  type = PropertyValueUnion::NONE;
 }
 
 inline bool VerifyVarUnion(flatbuffers::Verifier &verifier, const void *obj, VarUnion type) {

@@ -68,7 +68,7 @@ namespace TEN::Scripting::Input
 	}
 
 	/// Get the last input device that was used.
-	// Last input device is only updated when an actual action binding is triggered for a given input. Raw input does not update this value.
+	// Changes whenever a user input was done on one of the input devices, except mouse movement.
 	// @function GetLastInputDevice
 	// @treturn Input.InputDevice Last input device used for bindable action input.
 	static InputDevice GetLastInputDevice()
@@ -167,7 +167,7 @@ namespace TEN::Scripting::Input
 	/// Returns the name of the key that has been assigned to specified ActionID.
 	// @function GetActionBinding
 	// @tparam Input.ActionID actionID Action ID to get binding key name for.
-	// @treturn string Name of keyboard key that has been assigned to the ActionID.
+	// @treturn string Name of keyboard or gamepad key or mouse button that has been assigned to a corresponding ActionID.
 	static std::string GetActionBinding(int actionID)
 	{
 		return g_Bindings.GetBoundKeyName((ActionID)actionID);

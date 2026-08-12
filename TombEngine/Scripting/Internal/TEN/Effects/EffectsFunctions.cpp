@@ -4,16 +4,18 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/los.h"
-#include "Game/effects/blood.h"
-#include "Game/effects/Bubble.h"
+#include "Game/effects/Blood.h"
+#include "Game/effects/bubble.h"
 #include "Game/effects/DisplaySprite.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
 #include "Game/effects/explosion.h"
 #include "Game/effects/spark.h"
+#include "Game/effects/Splash.h"
 #include "Game/effects/Streamer.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
+#include "Game/room.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Utils/object_helper.h"
@@ -22,16 +24,17 @@
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Effects/BlendIDs.h"
 #include "Scripting/Internal/TEN/Effects/EffectIDs.h"
-#include "Scripting/Internal/TEN/Effects/ParticleAnimTypes.h"
 #include "Scripting/Internal/TEN/Effects/FeatherModes.h"
+#include "Scripting/Internal/TEN/Effects/ParticleAnimTypes.h"
+#include "Scripting/Internal/TEN/Effects/ParticleGroupFunctions.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Specific/trutils.h"
-#include <Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h>
 
 
 /// Functions to generate effects.
@@ -46,6 +49,7 @@ using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Explosion;
 using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Streamer;
+using namespace TEN::Effects::Splash;
 using namespace TEN::Math;
 using namespace TEN::Scripting::Types;
 
@@ -91,10 +95,10 @@ namespace TEN::Scripting::Effects
 
 		// Multiply by two since a) lightning loses two "life" each frame, and b) it must be
 		// an even number to avoid overshooting a value of 0 and wrapping around.
-		byte byteLife = lifeInFrames * 2;
+		unsigned char byteLife = lifeInFrames * 2;
 
 		int amp = ValueOr<int>(amplitude, 20);
-		byte byteAmp = std::clamp(amp, 1, 255);
+		unsigned char byteAmp = std::clamp(amp, 1, 255);
 
 		bool isSmooth = ValueOr<bool>(smooth, false);
 		bool isDrift = ValueOr<bool>(endDrift, false);
@@ -689,6 +693,93 @@ namespace TEN::Scripting::Effects
 		part.sSize = part.size = part.dSize = Random::GenerateFloat(convertedMaxSize / 2, convertedMaxSize);
 	}
 
+	/// Emit weather particles.
+	// @function EmitWeather
+	// @tparam WeatherParameters weatherParameters table with weather parameters.
+	// @usage
+	// -- Example 1: Simple use to emit rain (Use wind room flag to spawn)
+	// local weatherParams = {
+	//     position = Vec3(4608, -1408, 11776),
+	//     initialVelocity = Vec3(0, 10, 0),
+	// }
+	// 
+	// LevelFuncs.OnLoop = function()
+	//    TEN.Effects.EmitWeather(weatherParams)
+	// end
+	// 
+	// -- Example 2: Emit snow at camera target position
+	// local delay = 0
+	// local delay_count = 1
+	// local weatherParams = {
+	//     position = Vec3(0, 0, 0),
+	//     initialVelocity = Vec3(0, 15, 0),
+	//     type = TEN.Flow.WeatherType.SNOW,
+	//     randomRange = 4096,
+	//     enableClustering = true,
+	//     checkWindFlag = false,
+	//     baseColor = TEN.Color(255, 100, 255),
+	// }
+	// 
+	// function SpawnSnow()
+	//    if (delay <= 0) then
+	//        local pos = TEN.Objects.GetMoveableByName("camera_target_7"):GetPosition()
+	//        weatherParams.position = pos
+	//        TEN.Effects.EmitWeather(weatherParams)
+	//        delay = delay_count
+	//    else
+	//        delay = delay - 1
+	//    end
+	// end
+	// 
+	// LevelFuncs.OnLoop = function()
+	//    SpawnSnow()
+	// end
+
+	/// Structure for `EmitWeather` table.
+	// @table WeatherParameters
+	// @tfield Vec3 position World position.
+	// @tfield Vec3 initialVelocity Initial velocity of the particles. initialVelocity should be positive and have a low value, otherwise the particle could be too fast.
+	// @tfield[opt=TEN.Flow.WeatherType.RAIN] Flow.WeatherType type Type of weather effect.
+	// @tfield[opt=8192] float randomRange XZ Range in blocks around the position where particles will be spawned. (1 block = 1024 world units, 8 blocks by default)
+	// @tfield[opt=1024] float randomHeight Y range in blocks around the randomRange where particles will be spawned. (1 block = 1024 world units, 1 block by default)
+	// @tfield[opt=1] float life Lifetime in seconds. Avoid very high values to avoid performance issues.
+	// @tfield[opt=1] float strength Strength of the effect. Clamped to [0.1, 2]
+	// @tfield[opt=false] bool enableClustering Whether to enable clustering of particles.
+	// @tfield[opt=true] bool checkWindFlag Whether to check wind room flag when trying to spawn.
+	// @tfield[opt=Color(255&#44; 255&#44; 255)] Color baseColor Color of the particles.
+	static void EmitWeather(const sol::table& table)
+	{
+		auto pos = Vec3(table.get_or("position", Vec3(0, 0, 0)));
+		if (pos.ToVector3() == Vector3::Zero)
+		{
+			TENLog("EmitWeather() 'position' not specified, aborting.", LogLevel::Error);
+			return;
+		}
+
+		WeatherParameters params;
+		params.Type = table.get_or("type", WeatherType::Rain);
+		params.InitialVelocity = table.get_or("initialVelocity", Vec3(0, 0, 0));
+		params.Life = table.get_or("life", 1.0f);
+		params.Strength = std::clamp((float)table.get_or("strength", 1.0f), 0.1f, 2.0f);
+		params.RandomRange = table.get_or("randomRange", BLOCK(8));
+		params.RandomHeight = table.get_or("randomHeight", BLOCK(1));
+		params.Clustering = table.get_or("enableClustering", false);
+		params.Flags = table.get_or("checkWindFlag", true) ? WeatherFlags::None : WeatherFlags::IgnoreWindRoom;
+		params.BaseColor = table.get_or("baseColor", params.Type == WeatherType::Rain ? ScriptColor(204, 255, 255, 255) : ScriptColor(255, 255, 255, 255)); // Rain default color is light blueish.
+		Weather.SpawnWeatherParticles(pos.ToVector3i(), params);
+	}	
+	/// Emit a splash effect. Consists of a ripple effect and a splash ring.
+	// @function EmitSplash
+	// @tparam Vec3 pos World position. Needs to be inside a water room.
+	// @tparam[opt=128] int power Determines the splash ring height, ranging from 0 to 1024.
+	static void EmitSplash(const Vec3& pos, TypeOrNil<int> power)
+	{
+		int roomNumber = FindRoomNumber(pos.ToVector3i());
+		auto convertedPower = std::clamp(ValueOr<int>(power, 128), 0, 1024);
+
+		Splash(pos.ToVector3i(), roomNumber, convertedPower);
+	}
+
 	/// Make an explosion. Does not hurt Lara
 	// @function MakeExplosion 
 	// @tparam Vec3 pos World position.
@@ -762,11 +853,16 @@ namespace TEN::Scripting::Effects
 		tableEffects.set_function(ScriptReserved_EmitAirBubble, &EmitAirBubble);
 		tableEffects.set_function(ScriptReserved_EmitStreamer, &EmitStreamer);
 		tableEffects.set_function(ScriptReserved_EmitFire, &EmitFire);
+		tableEffects.set_function(ScriptReserved_EmitWeather, &EmitWeather);
 		tableEffects.set_function(ScriptReserved_EmitWaterfallMist, &EmitWaterfallMist);
 		tableEffects.set_function(ScriptReserved_EmitFlow, &EmitFlow);
+		tableEffects.set_function(ScriptReserved_EmitSplash, &EmitSplash);
 		tableEffects.set_function(ScriptReserved_MakeExplosion, &MakeExplosion);
 		tableEffects.set_function(ScriptReserved_MakeEarthquake, &Earthquake);
 		tableEffects.set_function(ScriptReserved_GetWind, &GetWind);
+
+		// Particle groups.
+		ParticleGroups::LuaParticleGroup::Register(tableEffects);
 
 		auto handler = LuaHandler(state);
 		handler.MakeReadOnlyTable(tableEffects, ScriptReserved_BlendID, BLEND_IDS);

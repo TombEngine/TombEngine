@@ -16,6 +16,8 @@
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Logic/LevelFunc.h"
 #include "Scripting/Internal/TEN/Objects/ObjectsHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyLuaConverters.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
@@ -24,6 +26,7 @@
 using namespace TEN::Collision::Floordata;
 using namespace TEN::Effects::Items;
 using namespace TEN::Math;
+using namespace TEN::Scripting::Properties;
 using namespace TEN::Scripting::Types;
 
 /// Represents a moveable object in the game world.
@@ -100,6 +103,7 @@ static std::unique_ptr<Moveable> Create(GAME_OBJECT_ID objID, const std::string&
 		scriptMov->SetRoomNumber(roomNumber);
 
 		scriptMov->SetRotation(ValueOr<Rotation>(rot, Rotation()));
+		scriptMov->SetScale(Vector3::One);
 		scriptMov->Initialize();
 
 		if (std::holds_alternative<int>(animNumber))
@@ -146,6 +150,9 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_GetPosition, &Moveable::GetPosition,
 		ScriptReserved_GetJointPosition, &Moveable::GetJointPos,
 		ScriptReserved_GetJointRotation, &Moveable::GetJointRot,
+		ScriptReserved_GetJointOffset, &Moveable::GetJointOffset,
+		ScriptReserved_GetJointScale, &Moveable::GetJointScale,
+		ScriptReserved_GetAdditionalJointRotation, &Moveable::GetAdditionalJointRotation,
 		ScriptReserved_GetRoom, &Moveable::GetRoom,
 		ScriptReserved_GetRoomNumber, &Moveable::GetRoomNumber,
 		ScriptReserved_GetRotation, &Moveable::GetRotation,
@@ -170,6 +177,7 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_GetMeshCount, &Moveable::GetMeshCount,
 		ScriptReserved_GetMeshVisible, &Moveable::GetMeshVisible,
 		ScriptReserved_GetMeshSwapped, &Moveable::GetMeshSwapped,
+		ScriptReserved_GetSkinnedMesh, & Moveable::GetSkinnedMesh,
 		ScriptReserved_GetHitStatus, &Moveable::GetHitStatus,
 		ScriptReserved_GetActive, &Moveable::GetActive,
 		ScriptReserved_GetValid, &Moveable::GetValid,
@@ -179,6 +187,9 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_SetPosition, &Moveable::SetPosition,
 		ScriptReserved_SetScale, &Moveable::SetScale,
 		ScriptReserved_SetRoomNumber, &Moveable::SetRoomNumber,
+		ScriptReserved_SetJointOffset, &Moveable::SetJointOffset,
+		ScriptReserved_SetJointScale, &Moveable::SetJointScale,
+		ScriptReserved_SetAdditionalJointRotation, &Moveable::SetAdditionalJointRotation,
 		ScriptReserved_SetRotation, &Moveable::SetRotation,
 		ScriptReserved_SetColor, &Moveable::SetColor,
 		ScriptReserved_SetVisible, &Moveable::SetVisible,
@@ -212,11 +223,16 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		ScriptReserved_UnswapMesh, &Moveable::UnswapMesh,
 		ScriptReserved_SwapSkinnedMesh, &Moveable::SwapSkinnedMesh,
 		ScriptReserved_UnswapSkinnedMesh, &Moveable::UnswapSkinnedMesh,
+		ScriptReserved_ClearSkinnedMesh, & Moveable::ClearSkinnedMesh,
 		ScriptReserved_Destroy, &Moveable::Destroy,
 		ScriptReserved_AttachObjCamera, &Moveable::AttachObjCamera,
 		ScriptReserved_AnimFromObject, &Moveable::AnimFromObject,
 		ScriptReserved_ShowInteractionHighlight, &Moveable::ShowInteractionHighlight,
-		ScriptReserved_HideInteractionHighlight, &Moveable::HideInteractionHighlight);
+		ScriptReserved_HideInteractionHighlight, &Moveable::HideInteractionHighlight,
+
+		ScriptReserved_GetProperty, &Moveable::GetProperty,
+		ScriptReserved_SetProperty, &Moveable::SetProperty,
+		ScriptReserved_HasInstanceProperty, &Moveable::HasInstanceProperty);
 }
 
 Moveable::Moveable(int movID, bool alreadyInitialized)
@@ -370,8 +386,6 @@ Vec3 Moveable::GetPosition() const
 // @bool[opt=true] updateRoom Will room changes be automatically detected? Set to false if you are using overlapping rooms.
 void Moveable::SetPosition(const Vec3& pos, sol::optional<bool> updateRoom)
 {
-	constexpr auto BIG_DISTANCE_THRESHOLD = BLOCK(1);
-
 	auto newPos = pos.ToVector3i();
 	bool bigDistance = Vector3i::Distance(newPos, _moveable->Pose.Position) > BIG_DISTANCE_THRESHOLD;
 	
@@ -451,6 +465,106 @@ Rotation Moveable::GetRotation() const
 		TO_DEGREES(_moveable->Pose.Orientation.y),
 		TO_DEGREES(_moveable->Pose.Orientation.z)
 	};
+}
+
+/// Get the moveable's joint offset.
+// @function Moveable:GetJointOffset
+// @tparam int jointIndex Index of a joint.
+// @treturn Vec3 Joint offset.
+Vec3 Moveable::GetJointOffset(int jointId) const
+{
+	if (!MeshExists(jointId))
+		return Vec3();
+
+	if (jointId >= _moveable->Model.Mutators.size())
+		return Vec3();
+
+	return Vec3(_moveable->Model.Mutators[jointId].Offset);
+}
+
+/// Set the moveable's joint offset. This effect is visual only and does not affect collision.
+// @function Moveable:SetJointOffset
+// @tparam int jointIndex Index of a joint.
+// @tparam Vec3 offset Joint offset to set.
+void Moveable::SetJointOffset(int jointId, const Vec3& offset)
+{
+	if (!MeshExists(jointId))
+		return;
+
+	auto meshCount = Objects[_moveable->ObjectNumber].nmeshes;
+	if (_moveable->Model.Mutators.size() != meshCount)
+		_moveable->Model.Mutators.resize(meshCount);
+
+	_moveable->Model.Mutators[jointId].Offset = offset.ToVector3();
+}
+
+/// Get the moveable's joint scale.
+// @function Moveable:GetJointScale
+// @tparam int jointIndex Index of a joint.
+// @treturn Vec3 Joint scale.
+Vec3 Moveable::GetJointScale(int jointId) const
+{
+	if (!MeshExists(jointId))
+		return Vec3(1.0f, 1.0f, 1.0f);
+
+	if (jointId >= _moveable->Model.Mutators.size())
+		return Vec3(1.0f, 1.0f, 1.0f);
+
+	return Vec3(_moveable->Model.Mutators[jointId].Scale);
+}
+
+/// Set the moveable's joint scale. This effect is visual only and does not affect collision.
+// @function Moveable:SetJointScale
+// @tparam int jointIndex Index of a joint.
+// @tparam Vec3 scale Joint scale to set.
+void Moveable::SetJointScale(int jointId, const Vec3& scale)
+{
+	if (!MeshExists(jointId))
+		return;
+
+	auto meshCount = Objects[_moveable->ObjectNumber].nmeshes;
+	if (_moveable->Model.Mutators.size() != meshCount)
+		_moveable->Model.Mutators.resize(meshCount);
+
+	_moveable->Model.Mutators[jointId].Scale = scale.ToVector3();
+}
+
+/// Get the moveable's additional joint rotation.
+// @function Moveable:GetAdditionalJointRotation
+// @tparam int jointIndex Index of a joint.
+// @treturn Rotation Additional joint rotation.
+Rotation Moveable::GetAdditionalJointRotation(int jointId) const
+{
+	if (!MeshExists(jointId))
+		return Rotation();
+
+	if (jointId >= _moveable->Model.Mutators.size())
+		return Rotation();
+
+	const auto& eulers = _moveable->Model.Mutators[jointId].Rotation;
+	return
+	{
+		TO_DEGREES(eulers.x),
+		TO_DEGREES(eulers.y),
+		TO_DEGREES(eulers.z)
+	};
+}
+
+/// Set the moveable's additional joint rotation. The rotation is added on top of the joint's base animation rotation.
+// Set Rotation(0, 0, 0) to reset the joint rotation back to its default.
+// @function Moveable:SetAdditionalJointRotation
+// @tparam int jointIndex Index of a joint to rotate.
+// @tparam Rotation rotation Additional joint rotation to add.
+void Moveable::SetAdditionalJointRotation(int jointId, const Rotation& rot)
+{
+	if (!MeshExists(jointId))
+		return;
+
+	auto meshCount = Objects[_moveable->ObjectNumber].nmeshes;
+	if (_moveable->Model.Mutators.size() != meshCount)
+		_moveable->Model.Mutators.resize(meshCount);
+
+	_moveable->Model.Mutators[jointId].Rotation = rot.ToEulerAngles();
 }
 
 /// Set the moveable's rotation.
@@ -620,6 +734,59 @@ void Moveable::SetItemFlags(short value, int index)
 	_moveable->ItemFlags[index] = value;
 }
 
+/// Get a property value.
+// Tries to get an instance property first, then falls back to global object ID property. Returns nil if the property does not exist.
+// @function Moveable:GetProperty
+// @tparam string name The property name.
+// @treturn any The property value, or nil if not set. You can use @{Type} module functions to determine return value type.
+sol::object Moveable::GetProperty(sol::this_state state, const std::string& name) const
+{
+	if (!ValidatePropertyName(name))
+		return sol::nil;
+
+	auto* val = PropertyHandler::GetRaw(*_moveable, name);
+
+	if (val == nullptr)
+		return sol::nil;
+
+	return PropertyValueToLua(state, *val);
+}
+
+/// Set a property value.
+// Will be set only for this moveable instance. If property does not exist, creates it.
+// If value is nil, the instance property is removed. Does not affect global object ID property set by @{Objects.SetMoveableProperty}.
+// @function Moveable:SetProperty
+// @tparam string name The property name.
+// @tparam any value The value of any given type: nil, bool, float, string, @{Vec2}, @{Vec3}, @{Color}, @{Rotation}, @{Time}.
+void Moveable::SetProperty(const std::string& name, const sol::object& value)
+{
+	if (!ValidatePropertyName(name))
+		return;
+
+	if (value == sol::nil)
+	{
+		_moveable->Properties.Remove(name);
+	}
+	else
+	{
+		auto propValue = PropertyValueFromLua(value);
+		if (propValue.has_value())
+			_moveable->Properties.Set(name, *propValue);
+	}
+}
+
+/// Check if a property value was individually set for a given moveable instance.
+// @function Moveable:HasInstanceProperty
+// @tparam string name The property name.
+// @treturn bool True if an instance property exists.
+bool Moveable::HasInstanceProperty(const std::string& name) const
+{
+	if (!ValidatePropertyName(name))
+		return false;
+
+	return _moveable->Properties.Has(name);
+}
+
 // COMPATIBILITY. Do not restore the documentation for this method.
 short Moveable::GetLocationAI() const
 {
@@ -639,6 +806,7 @@ void Moveable::SetLocationAI(short value)
 	if (_moveable->IsCreature())
 	{
 		auto creature = (CreatureInfo*)_moveable->Data;
+		value = std::max(value, (short)0);
 		creature->LocationAI = value;
 	}
 	else
@@ -789,10 +957,10 @@ void Moveable::SetFrameNumber(int frameNumber)
 {
 	const auto& anim = GetAnimData(*_moveable);
 
-	bool cond = (frameNumber < anim.EndFrameNumber);
+	bool cond = (frameNumber <= anim.EndFrameNumber);
 	const char* err = "Invalid frame number {}; max frame number for anim {} is {}.";
 
-	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, anim.EndFrameNumber - 1))
+	if (ScriptAssertF(cond, err, frameNumber, _moveable->Animation.AnimNumber, anim.EndFrameNumber))
 	{
 		_moveable->Animation.FrameNumber = frameNumber;
 	}
@@ -983,15 +1151,31 @@ void Moveable::ShatterMesh(int meshId)
 
 /// Get state of specified mesh swap of a moveable.
 // Returns true if specified mesh is swapped on a moveable, and false if it is not swapped.
+// Also returns the object slot ID the mesh was swapped from, or nil if no swap is active.
 // @function Moveable:GetMeshSwapped
 // @tparam int index Index of a mesh.
 // @treturn bool Mesh swap status.
-bool Moveable::GetMeshSwapped(int meshId) const
+// @treturn[opt] Objects.ObjID Object slot ID the mesh was swapped from. Nil if not swapped.
+std::tuple<bool, sol::optional<GAME_OBJECT_ID>> Moveable::GetMeshSwapped(int meshId) const
 {
 	if (!MeshExists(meshId))
-		return false;
+		return { false, sol::nullopt };
 
-	return _moveable->Model.MeshIndex[meshId] != _moveable->Model.BaseMesh + meshId;
+	auto currentIndex = _moveable->Model.MeshIndex[meshId];
+	if (currentIndex == _moveable->Model.BaseMesh + meshId)
+		return { false, sol::nullopt };
+
+	for (int i = 0; i < ID_NUMBER_OBJECTS; i++)
+	{
+		const auto& obj = Objects[i];
+		if (!obj.loaded || obj.nmeshes <= 0)
+			continue;
+
+		if (currentIndex >= obj.meshIndex && currentIndex < obj.meshIndex + obj.nmeshes)
+			return { true, (GAME_OBJECT_ID)i };
+	}
+
+	return { true, sol::nullopt };
 }
 
 /// Set state of specified mesh swap of a moveable. Use this to swap specified mesh of a moveable.
@@ -1039,6 +1223,24 @@ void Moveable::UnswapMesh(int meshId)
 	_moveable->Model.MeshIndex[meshId] = _moveable->Model.BaseMesh + meshId;
 }
 
+/// Get the skinned mesh swap state of a moveable.
+// Returns the object slot ID and optional swap index of the currently active skinned mesh.
+// @function Moveable:GetSkinnedMesh
+// @treturn[opt] Objects.ObjID Object slot ID of the active skinned mesh. Nil if no swap is active.
+// @treturn[opt] int Swap index within the slot. Nil if using the slot's default skinned mesh.
+sol::optional<std::tuple<GAME_OBJECT_ID, sol::optional<int>>> Moveable::GetSkinnedMesh() const
+{
+	if (_moveable->Model.SkinObjectID == NO_VALUE)
+		return sol::nullopt;
+
+	auto objectID = (GAME_OBJECT_ID)_moveable->Model.SkinObjectID;
+	auto swapIndex = (_moveable->Model.SkinSwapIndex != NO_VALUE)
+		? sol::optional<int>(_moveable->Model.SkinSwapIndex)
+		: sol::nullopt;
+
+	return std::make_tuple(objectID, swapIndex);
+}
+
 /// Swap skinned mesh of a moveable. Use this to replace one skinned mesh with another.
 // @function Moveable:SwapSkinnedMesh
 // @tparam int objectID ID of a slot to get skinned meshswap from.
@@ -1059,15 +1261,14 @@ void Moveable::SwapSkinnedMesh(int objectID, sol::optional<int> swapIndex)
 			TENLog("Specified mesh index does not exist in a " + GetObjectName((GAME_OBJECT_ID)objectID) + " slot!", LogLevel::Error);
 			return;
 		}
-
-		_moveable->Model.SkinIndex = Objects[objectID].meshIndex + swapIndex.value();
-		return;
+	}
+	else if (Objects[objectID].skinIndex == NO_VALUE)
+	{
+		TENLog(GetObjectName((GAME_OBJECT_ID)objectID) + " object has no skinned mesh specified. Skinned mesh will be unset.", LogLevel::Warning);
 	}
 
-	if (Objects[objectID].skinIndex == NO_VALUE)
-		TENLog(GetObjectName((GAME_OBJECT_ID)objectID) + " object has no skinned mesh specified. Skinned mesh will be unset.", LogLevel::Warning);
-
-	_moveable->Model.SkinIndex = Objects[objectID].skinIndex;
+	_moveable->Model.SkinObjectID = objectID;
+	_moveable->Model.SkinSwapIndex = swapIndex.value_or(NO_VALUE);
 }
 
 /// Unset skinned mesh swap of a moveable. Use this to bring back original unswapped skinned mesh.
@@ -1075,7 +1276,16 @@ void Moveable::SwapSkinnedMesh(int objectID, sol::optional<int> swapIndex)
 void Moveable::UnswapSkinnedMesh()
 {
 	int realID = _moveable->ObjectNumber == GAME_OBJECT_ID::ID_LARA ? GAME_OBJECT_ID::ID_LARA_SKIN : _moveable->ObjectNumber;
-	_moveable->Model.SkinIndex = Objects[realID].skinIndex;
+	_moveable->Model.SkinObjectID = realID;
+	_moveable->Model.SkinSwapIndex = NO_VALUE;
+}
+
+/// Clear skinned mesh of a moveable.
+// @function Moveable:ClearSkinnedMesh
+void Moveable::ClearSkinnedMesh()
+{
+	_moveable->Model.SkinObjectID = NO_VALUE;
+	_moveable->Model.SkinSwapIndex = NO_VALUE;
 }
 
 /// Enable the item, as if a trigger for it had been stepped on.
