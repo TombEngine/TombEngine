@@ -667,27 +667,18 @@ auto weaponType = LaraWeaponType::HK;
 
 // Determine line of sight from the muzzle.
 // Apply a small forward offset so that the gunship’s own hitbox does not block LOS.
-const float aimSpread = BLOCK(0.5f); // 512 world units ≈ 0.5 BLOCK
+const float aimSpread = BLOCK(0.2f); // 512 world units ≈ 0.5 BLOCK
 
-// Compute forward direction based on item orientation (same as used elsewhere).
-Vector3 fwdVec(
-    -sinf(item->Pose.Orientation.y),
-    0.0f,
-    -cosf(item->Pose.Orientation.y));
-fwdVec.Normalize();
-
-// Offset distance (16 world units) – adjust if needed.
-constexpr float MUNITION_OFFSET = 16.0f;
-Vector3 muzzlePos = flashPos + fwdVec * MUNITION_OFFSET;
+auto rotMatrix = EulerAngles(item->Pose.Orientation.x + ANGLE(8.0f), item->Pose.Orientation.y, item->Pose.Orientation.z ).ToRotationMatrix();
 
 // Use the offset position as LOS origin.
-auto origin   = GameVector(muzzlePos, item->RoomNumber);
+auto origin   = GameVector(flashPos, item->RoomNumber);
 
-Vector3 baseTargetPos = g_Level.Items[shootTargetNum].Pose.Position.ToVector3();
-baseTargetPos += Vector3(0, -512, 0);
+// Apply aim spread (horizontal) around that forward point.
 float spreadX = Random::GenerateFloat(-aimSpread, aimSpread);
+float spreadY = Random::GenerateFloat(-aimSpread, aimSpread);
 float spreadZ = Random::GenerateFloat(-aimSpread, aimSpread);
-Vector3 aimedPos = baseTargetPos + Vector3(spreadX, 0.0f, spreadZ);
+Vector3 aimedPos = flashPos + Vector3::Transform(Vector3(spreadX, spreadY, spreadZ) + Vector3(0.0f, 0.0f, -maxShotsRange * 2), rotMatrix);     //flashPos + Vector3(spreadX, spreadY, spreadZ) + TARGET_DISTANCE;
 
 auto targetVec = GameVector(aimedPos, g_Level.Items[shootTargetNum].RoomNumber);
 
