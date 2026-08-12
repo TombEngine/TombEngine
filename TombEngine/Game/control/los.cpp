@@ -392,7 +392,7 @@ static bool DoRayBox(const GameVector& origin, const GameVector& target, const G
 	return true;
 }
 
-int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, StaticMesh** staticObj, GAME_OBJECT_ID priorityObjectID)
+int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, StaticMesh** staticObj, GAME_OBJECT_ID priorityObjectID, int excludeItemIndex)
 {
 	ClosestItem = NO_LOS_ITEM;
 	ClosestDist = (int)Vector3i::Distance(origin->ToVector3i(), target->ToVector3i());
@@ -439,6 +439,9 @@ int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, StaticMe
 
 			if (item.ObjectNumber == ID_LARA && priorityObjectID != ID_LARA)
 				continue;
+
+			if (itemNumber == excludeItemIndex)
+				continue;        
 
 			auto bounds = GameBoundingBox(&item);
 			pose = Pose(item.Pose.Position, EulerAngles(0, item.Pose.Orientation.y, 0));

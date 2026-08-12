@@ -660,14 +660,28 @@ constexpr int GUNSHIP_DAMAGE = 20; // Damage dealt by gunship to Lara when shoot
     SpawnDynamicLight(flashPos.x, flashPos.y, flashPos.z, 10, lightColor.x, lightColor.y, lightColor.z);
 
 
-	auto weaponType = LaraWeaponType::HK;
+auto weaponType = LaraWeaponType::HK;
         // Spawn gun shell effect at the muzzle using generic function.
         TriggerGunShellAt(Vector3i(flashPos.x, flashPos.y, flashPos.z), item->RoomNumber, ID_GUNSHELL, weaponType);
 		TriggerGunSmoke(flashPos.x, flashPos.y, flashPos.z, 0, 0, 0, 0, weaponType, 16);
 
-// Determine line of sight from the muzzle using ObjectOnLOS2.
+// Determine line of sight from the muzzle.
+// Apply a small forward offset so that the gunship’s own hitbox does not block LOS.
 const float aimSpread = BLOCK(0.5f); // 512 world units ≈ 0.5 BLOCK
-auto origin   = GameVector(flashPos, item->RoomNumber);
+
+// Compute forward direction based on item orientation (same as used elsewhere).
+Vector3 fwdVec(
+    -sinf(item->Pose.Orientation.y),
+    0.0f,
+    -cosf(item->Pose.Orientation.y));
+fwdVec.Normalize();
+
+// Offset distance (16 world units) – adjust if needed.
+constexpr float MUNITION_OFFSET = 16.0f;
+Vector3 muzzlePos = flashPos + fwdVec * MUNITION_OFFSET;
+
+// Use the offset position as LOS origin.
+auto origin   = GameVector(muzzlePos, item->RoomNumber);
 
 Vector3 baseTargetPos = g_Level.Items[shootTargetNum].Pose.Position.ToVector3();
 baseTargetPos += Vector3(0, -512, 0);
@@ -680,12 +694,31 @@ auto targetVec = GameVector(aimedPos, g_Level.Items[shootTargetNum].RoomNumber);
 // Use ObjectOnLOS2 to detect any blocking object.
 StaticMesh* mesh = nullptr;
 Vector3i hitPos = Vector3i::Zero;
-int losResult = ObjectOnLOS2(&origin, &targetVec, &hitPos, &mesh, ID_GUNSHIP);
+int losResult = ObjectOnLOS2(&origin, &targetVec, &hitPos, &mesh, ID_LARA, item->Index);
+
 bool hasHit = (losResult != NO_LOS_ITEM);
+
+auto target2 = targetVec;
+int result = LOS(&origin, &target2);
+
+GetFloor(target2.x, target2.y, target2.z, &target2.RoomNumber);
 
 DrawDebugLine(origin.ToVector3(), targetVec.ToVector3(), Vector4::One, RendererDebugPage::None);
 
-	if (hasHit)
+	if (!hasHit)
+	{
+		if (!result)
+		{
+			SpawnDecal(target2.ToVector3(), target2.RoomNumber, DecalType::BulletHole);
+
+			target2.x -= (target2.x - origin.x) >> 5;
+			target2.y -= (target2.y - origin.y) >> 5;
+			target2.z -= (target2.z - origin.z) >> 5;
+			TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y);
+		}
+
+	}
+	else
 	{
 		// Something is in the way.
 		if (losResult < 0)
@@ -706,11 +739,12 @@ DrawDebugLine(origin.ToVector3(), targetVec.ToVector3(), Vector4::One, RendererD
 		}
 		else
 		{
-			// Hit an item (creature or object).
-			ItemInfo* hitItem = &g_Level.Items[losResult];
-			if (hitItem->IsLara())
+			// Hit an item (creature or object).test212
+			auto* item1 = &g_Level.Items[losResult];
+
+			if (item1->Index == LaraItem->Index || item1->IsCreature())
 			{
-				DoDamage(hitItem, GUNSHIP_DAMAGE);
+				DoDamage(item1, GUNSHIP_DAMAGE);
 			}
 
 			GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
