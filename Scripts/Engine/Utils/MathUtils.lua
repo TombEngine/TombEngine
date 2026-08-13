@@ -688,11 +688,12 @@ MathUtils.WrapAngle = function(angle, minValue, maxValue, errorContext)
         return angle
     end
 
-    local range = maxValue - minValue
-    if range == 0 then
-        ErrorLog("Error in {context}: minValue cannot equal maxValue.", {context = errorContext})
+    if minValue >= maxValue then
+        ErrorLog("Error in {context}: minValue must be less than maxValue.", {context = errorContext})
         return angle
     end
+
+    local range = maxValue - minValue
 
     return WrapAngleRaw(angle, minValue, range)
 end
