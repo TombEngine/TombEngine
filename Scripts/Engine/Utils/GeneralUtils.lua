@@ -522,17 +522,18 @@ end
 -- local isGreaterThanOrEqual = GeneralUtils.CompareValues(time1, time2, GeneralUtils.Operators.GREATER_EQUAL) -- false (120 >= 150 is false)
 --
 -- -- Advanced use
--- -- Cooldown check in an OnLoop callback
+-- -- Cooldown check in a PRE_LOOP callback
 -- local lastAttack = TEN.Time(0)
 -- local cooldown = TEN.Time(90)  -- 3 seconds at 30 FPS
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.CheckCooldown = function()
 --     local now = TEN.Flow.GetStatistics().timeTaken
 --     local elapsed = now - lastAttack  -- TEN.Time subtraction
---     if GeneralUtils.CompareValues(elapsed, cooldown, GeneralUtils.Operators.GREATER_EQUAL, "OnLoop") then
+--     if GeneralUtils.CompareValues(elapsed, cooldown, GeneralUtils.Operators.GREATER_EQUAL, "CheckCooldown") then
 --         -- Cooldown expired, allow next action
 --         lastAttack = now
 --     end
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.CheckCooldown)
 --
 -- -- Difficulty-based damage multiplier
 -- local difficulty = "hard"

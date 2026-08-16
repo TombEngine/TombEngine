@@ -686,11 +686,12 @@ end
 --
 -- -- Practical example: Continuous rotation without overflow
 -- local currentAngle = 0
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.RotateEntity = function()
 --     currentAngle = currentAngle + 5  -- Rotate 5° per frame
 --     currentAngle = MathUtils.WrapAngle(currentAngle, 0, 360)  -- Keep in 0-360
 --     entity:SetRotation(TEN.Rotation(0, currentAngle, 0))
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.RotateEntity)
 --
 -- -- Example: Calculate shortest rotation path
 -- local currentYaw = 350  -- Facing almost north

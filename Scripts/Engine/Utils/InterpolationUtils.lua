@@ -110,27 +110,20 @@
 -- - Use `InterpolateColor` for: color transitions, fades between colors
 --
 -- <h3>Note about practical examples:</h3>
--- All examples below use `LevelFuncs.OnLoop` to demonstrate the interpolation logic.
--- 
+-- Each example below registers its own **callback** with `Logic.AddCallback`
+-- at the `PRE_LOOP` point, which runs every frame (30 FPS) while the game is active.
+-- This keeps examples self-contained: you can copy several of them into your level
+-- script without merging them into a single function.
 --
--- **Important:**
--- - `LevelFuncs.OnLoop` is a **single function** in your level's Lua file (e.g., `level1.lua`)
--- - You **cannot** have multiple `OnLoop` functions
--- - These examples show different use cases **separately** for clarity
--- 
--- **In your actual level script, you would combine logic like this:**
--- 
--- <pre class="example">
---LevelFuncs.OnLoop = <span class="keyword">function</span>()
---<span class="comment">   -- Update fog (from Lerp example)</span>
---<span class="comment">   -- Copy the fog interpolation code from the Lerp example</span><br>
---<span class="comment">   -- Update elevator (from EaseInOut example)</span>
---<span class="comment">   -- Copy the elevator interpolation code from the EaseInOut example</span><br>
---<span class="comment">   -- Update door (from LerpAngle example)</span>
---<span class="comment">   -- Copy the door interpolation code from the LerpAngle example</span>
---<span class="keyword">end</span></pre>
+-- **Using LevelFuncs.OnLoop instead:**
 --
---- To use, include the module with:
+-- - `LevelFuncs.OnLoop` is the predefined per-frame function in your level's Lua file.
+--
+-- - You can still use it: just move the body of any example into your `OnLoop`.
+--
+-- - The examples avoid `OnLoop` only so that copying multiple examples does not overwrite each other.
+--
+--- <br>To use, include the module with:
 ---
 ---	local InterpolationUtils = require("Engine.Utils.InterpolationUtils")
 -- @luautil InterpolationUtils
@@ -275,7 +268,7 @@ end
 -- local currentFrame = 0
 -- local animationComplete = false
 --
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.MovePlatform = function()
 --     if not animationComplete then
 --         if currentFrame <= animationDuration then
 --             local t = currentFrame / animationDuration  -- 0.0 to 1.0
@@ -303,6 +296,7 @@ end
 --     end
 --     -- After animation completes, platform remains at final position
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.MovePlatform)
 --
 -- -- Why Lerp for platforms?
 -- -- ✓ Constant speed is predictable for players (they can time jumps)
@@ -404,7 +398,7 @@ end
 -- local animationDuration = Conversion Utils.SecondsToFrames(3)  -- 3 seconds = 90 frames @ 30fps
 -- local currentFrame = 0
 -- local animationComplete = false
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.MoveBridge = function()
 --     if not animationComplete and currentFrame <= animationDuration then
 --         local t = currentFrame / animationDuration
 --         local offset = InterpolationUtils.Smoothstep(startPos, endPos, t)
@@ -416,6 +410,7 @@ end
 --         animationComplete = true
 --     end
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.MoveBridge)
 InterpolationUtils.Smoothstep = function (a, b, t, edge0, edge1, errorContext)
     errorContext = errorContext or "InterpolationUtils.Smoothstep"
     if not ValidateAB(a, b, errorContext) then
@@ -538,7 +533,7 @@ end
 -- local currentFrame = 0
 -- local animationActive = true
 -- 
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.CameraFlyThrough = function()
 --     if animationActive and currentFrame <= animationDuration then
 --         local t = currentFrame / animationDuration
 --         local cameraPos = InterpolationUtils.Smootherstep(waypoint1, waypoint2, t)
@@ -549,6 +544,7 @@ end
 --         animationActive = false
 --     end
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.CameraFlyThrough)
 --
 -- -- Practical example 2: Dynamic fog transition (ultra-smooth fog density change over 8 seconds)
 -- -- Creates a smooth, professional environmental effect
@@ -559,7 +555,7 @@ end
 -- local fogFrame = 0
 -- local fogActive = true
 -- 
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.TransitionFog = function()
 --     if fogActive and fogFrame <= fogDuration then
 --         local t = fogFrame / fogDuration
 --         
@@ -588,6 +584,7 @@ end
 --         fogActive = false
 --     end
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.TransitionFog)
 --
 -- -- Practical example 3: Ultra-smooth particle color fade (for premium visual effects)
 -- -- Creates particles that smoothly fade from bright yellow to dark red
@@ -596,7 +593,7 @@ end
 -- local startColor = TEN.Color(255, 255, 100, 255)  -- Bright yellow
 -- local endColor = TEN.Color(180, 20, 0, 0)         -- Dark red, transparent
 -- 
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.FadeParticles = function()
 --     particleAge = particleAge + (1.0 / 30.0)  -- Assuming 30 FPS
 --     
 --     if particleAge <= particleLifetime then
@@ -626,6 +623,7 @@ end
 --         --   t=1.0  → Dark red (180,20,0,0) - invisible
 --     end
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.FadeParticles)
 --
 -- -- Practical example 4: Smooth dynamic light intensity (pulsing light effect)
 -- -- Creates a smooth, professional breathing light effect
@@ -637,7 +635,7 @@ end
 -- local pulseFrame = 0
 -- local pulseDirection = 1  -- 1 = expanding, -1 = contracting
 -- 
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.PulseLight = function()
 --     local t = pulseFrame / pulseDuration
 --     
 --     -- Use smootherstep for ultra-smooth radius transition
@@ -670,6 +668,7 @@ end
 --     --   t=1.0  → radius=12 (full brightness)
 --     -- Then reverses smoothly back to radius=5
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.PulseLight)
 --
 -- -- When to use Smootherstep vs Smoothstep:
 -- -- 
@@ -789,7 +788,7 @@ end
 -- local animationDuration = ConversionUtils.SecondsToFrames(4)  -- 4 seconds = 120 frames @ 30fps
 -- local currentFrame = 0
 -- local animationComplete = false
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.MoveElevator = function()
 --     if currentFrame <= animationDuration then
 --         local t = currentFrame / animationDuration
 --         local newPos = InterpolationUtils.EaseInOut(startPos, endPos, t)
@@ -801,6 +800,7 @@ end
 --         currentFrame = 0
 --     end
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.MoveElevator)
 InterpolationUtils.EaseInOut = function(a, b, t, errorContext)
     errorContext = errorContext or "InterpolationUtils.EaseInOut"
     if not ValidateAB(a, b, errorContext) then
@@ -904,7 +904,7 @@ end
 -- local animationDuration = ConversionUtils.SecondsToFrames(1.0)  -- 1 second
 -- local currentFrame = 0
 -- local giveItem = false
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.AnimatePickup = function()
 --     if currentFrame <= animationDuration then
 --         local t = currentFrame / animationDuration
 --         local pos = InterpolationUtils.Elastic(startPos, playerPos, t, 1.3, 0.25)
@@ -923,6 +923,7 @@ end
 --         end
 --     end
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.AnimatePickup)
 InterpolationUtils.Elastic = function(a, b, t, amplitude, period, errorContext)
     errorContext = errorContext or "InterpolationUtils.Elastic"
     if not ValidateAB(a, b, errorContext) then
@@ -1058,7 +1059,7 @@ end
 -- local endPos = TEN.Vec3(startPos.x, groundY, startPos.z)
 -- local animationDuration = ConversionUtils.SecondsToFrames(2.0)  -- 2 second drop
 -- local currentFrame = 0
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.DropItem = function()
 --     if currentFrame <= animationDuration then
 --         local t = currentFrame / animationDuration
 --         -- Item falls and bounces realistically on impact:
@@ -1075,6 +1076,7 @@ end
 --         currentFrame = currentFrame + 1
 --     end
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.DropItem)
 --
 -- -- Practical example 2: An object simulates a slamming door with collision effects
 -- -- Using aggressive parameters (low bounces, low damping) to simulate hard impacts
@@ -1083,7 +1085,7 @@ end
 -- local endPos = startPos + TEN.Vec3(-1024, 0, 0)  -- Door drops 1024 units
 -- local animationDuration = ConversionUtils.SecondsToFrames(1.5)  -- 1.5 second slam
 -- local currentFrame = 0
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.SlamDoor = function()
 --     if currentFrame <= animationDuration then
 --         local t = currentFrame / animationDuration
 --         
@@ -1099,6 +1101,7 @@ end
 --         currentFrame = currentFrame + 1
 --     end
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.SlamDoor)
 --
 -- -- Practical example 3: 2 objects simulate double door lock with collision effect
 -- -- Both objects move toward each other and "bounce" on collision
@@ -1116,7 +1119,7 @@ end
 -- local animationDuration = ConversionUtils.SecondsToFrames(1.5)
 -- local currentFrame = 0
 -- 
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.DoubleDoorCollision = function()
 --     if currentFrame <= animationDuration then
 --         local t = currentFrame / animationDuration
 --         
@@ -1138,6 +1141,7 @@ end
 --         currentFrame = currentFrame + 1
 --     end
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.DoubleDoorCollision)
 InterpolationUtils.Bounce = function(a, b, t, bounces, damping, errorContext)
     errorContext = errorContext or "InterpolationUtils.Bounce"
     if not ValidateAB(a, b, errorContext) then
@@ -1255,7 +1259,7 @@ end
 -- local arrowSprite = TEN.View.DisplaySprite(1354, 16, TEN.Vec2(400, 300), 0, TEN.Vec2(3, 3))
 -- local rotationSpeed = 0.1  -- How fast the arrow rotates (0.0-1.0)
 --
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.PointArrowAtMouse = function()
 --     local mousePos = TEN.Input.GetMouseDisplayPosition()
 --     local arrowPos = arrowSprite:GetPosition()
 --     
@@ -1271,6 +1275,7 @@ end
 --     
 --     arrowSprite:Draw()
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.PointArrowAtMouse)
 --
 -- -- Real-world example 2: HUD compass needle rotating to point north
 -- -- Perfect for 2D UI elements that need smooth rotation
@@ -1278,7 +1283,7 @@ end
 -- local objID = TEN.Objects.ObjID.SPEEDOMETER_GRAPHICS
 -- local compassNeedle = TEN.View.DisplaySprite(objID, 1, TEN.Vec2(80, 80), 0, TEN.Vec2(20, 20))
 --
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.RotateCompassNeedle = function()
 --     -- Get player's current yaw (facing direction)
 --     local playerYaw = Lara:GetRotation().y
 --     
@@ -1293,6 +1298,7 @@ end
 --     
 --     compassNeedle:Draw()
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.RotateCompassNeedle)
 InterpolationUtils.LerpAngle = function(a, b, t, minValue, maxValue, errorContext)
     errorContext = errorContext or "InterpolationUtils.LerpAngle"
     minValue = minValue or 0

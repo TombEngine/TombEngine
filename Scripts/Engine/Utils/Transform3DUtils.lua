@@ -108,12 +108,13 @@ end
 -- local customAxis = TEN.Vec3(1, 0, 1)  -- Diagonal axis XZ (automatically normalized)
 -- local angle = 0
 -- local rotationSpeed = 360 / ConversionUtils.SecondsToFrames(10)  -- Complete rotation in 10 seconds
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.RotateSatelliteDiagonal = function()
 --     angle = (angle + rotationSpeed) % 360
 --     -- IMPORTANT: Rotate the INITIAL position (startPos), not current position!
 --     local newPos = Transform3DUtils.RotatePointAroundAxis(startPos, pivot, customAxis, angle)
 --     satellite:SetPosition(newPos)
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.RotateSatelliteDiagonal)
 --
 -- -- Example: Orbital animation around Y axis - Complete working example
 -- local satellite = TEN.Objects.GetMoveableByName("Satellite1")
@@ -122,7 +123,7 @@ end
 -- local pivot = planet:GetPosition()
 -- local angle = 0
 -- local rotationSpeed = 360 / ConversionUtils.SecondsToFrames(8)  -- 8 seconds per orbit
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.OrbitSatelliteY = function()
 --     angle = (angle + rotationSpeed) % 360
 --     local newPos = Transform3DUtils.RotatePointAroundAxis(startPos, pivot, "y", angle)
 --     satellite:SetPosition(newPos)
@@ -131,6 +132,7 @@ end
 --     local lookDir = (pivot - newPos):Normalize()
 --     satellite:SetRotation(TEN.Rotation(lookDir))
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.OrbitSatelliteY)
 --
 -- -- Example: Swing/pendulum animation - Complete working example
 -- local pendulum = TEN.Objects.GetMoveableByName("Pendulum")
@@ -138,7 +140,7 @@ end
 -- local restPos = pendulum:GetPosition()  -- Rest position below anchor
 -- local swingAngle = 0
 -- local swingSpeed = 360 / ConversionUtils.SecondsToFrames(2)  -- 2 second period
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.SwingPendulum = function()
 --     swingAngle = swingAngle + swingSpeed
 --     -- Sine wave creates back-and-forth motion: -45° to +45°
 --     local currentAngle = 45 * math.sin(math.rad(swingAngle))
@@ -148,6 +150,7 @@ end
 --     -- Rotate the pendulum object to match swing angle (realistic pendulum motion)
 --     pendulum:SetRotation(TEN.Rotation(0, 0, currentAngle))
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.SwingPendulum)
 --
 -- -- Example: Look at pivot while rotating
 -- local rotatedPos = Transform3DUtils.RotatePointAroundAxis(pos, pivot, "y", angle)
@@ -240,7 +243,7 @@ end
 -- local radius = 2048
 -- local angle = 0
 -- local rotationSpeed = 360 / ConversionUtils.SecondsToFrames(10)  -- 10 seconds per orbit
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.OrbitSatelliteXZ = function()
 --     angle = (angle + rotationSpeed) % 360
 --     local orbitPos = Transform3DUtils.OrbitPosition(center, radius, angle, "y")
 --     satellite:SetPosition(orbitPos)
@@ -249,6 +252,7 @@ end
 --     local lookDir = (center - orbitPos):Normalize()
 --     satellite:SetRotation(TEN.Rotation(lookDir))
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.OrbitSatelliteXZ)
 --
 -- -- Example: Orbit on XY plane (vertical orbit) - Complete working example
 -- local satellite = TEN.Objects.GetMoveableByName("Satellite1")
@@ -256,11 +260,12 @@ end
 -- local radius = 1536
 -- local angle = 0
 -- local rotationSpeed = 360 / ConversionUtils.SecondsToFrames(6)  -- 6 seconds per orbit
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.OrbitSatelliteXY = function()
 --     angle = (angle + rotationSpeed) % 360
 --     local orbitPos = Transform3DUtils.OrbitPosition(center, radius, angle, "z")  -- Z axis = XY plane
 --     satellite:SetPosition(orbitPos)
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.OrbitSatelliteXY)
 --
 -- -- Example: Multiple satellites with phase offset - Complete working example
 -- local sat1 = TEN.Objects.GetMoveableByName("Satellite1")
@@ -273,7 +278,7 @@ end
 -- local phaseOffset = 360 / #satellites  -- 120° spacing (360/3)
 -- local baseAngle = 0
 -- local rotationSpeed = 360 / ConversionUtils.SecondsToFrames(12)  -- 12 seconds per orbit
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.OrbitMultipleSatellites = function()
 --     baseAngle = (baseAngle + rotationSpeed) % 360
 --     for i, sat in ipairs(satellites) do
 --         local angle = (baseAngle + (i - 1) * phaseOffset) % 360
@@ -281,6 +286,7 @@ end
 --         sat:SetPosition(orbitPos)
 --     end
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.OrbitMultipleSatellites)
 --
 -- -- Example: Custom diagonal orbital plane - Complete working example
 -- local satellite = TEN.Objects.GetMoveableByName("Satellite1")
@@ -289,11 +295,12 @@ end
 -- local customAxis = TEN.Vec3(1, 1, 0)  -- Diagonal XY axis (automatically normalized)
 -- local angle = 0
 -- local rotationSpeed = 360 / ConversionUtils.SecondsToFrames(8)  -- 8 seconds per orbit
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.OrbitDiagonalPlane = function()
 --     angle = (angle + rotationSpeed) % 360
 --     local orbitPos = Transform3DUtils.OrbitPosition(center, radius, angle, customAxis)
 --     satellite:SetPosition(orbitPos)
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.OrbitDiagonalPlane)
 --
 -- -- Error handling example:
 -- local orbitPos = Transform3DUtils.OrbitPosition(center, radius, angle, "y")
@@ -417,10 +424,11 @@ end
 -- -- Example: Dynamic arrangement in loop (moving center)
 -- local hub = TEN.Objects.GetMoveableByName("Hub")
 -- local satellites = { ... }
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.ArrangeCircleDynamic = function()
 --     -- Rearrange every frame as hub moves
 --     Transform3DUtils.ArrangeInCircle(hub, satellites, 1024, {faceDirection = "center"})
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.ArrangeCircleDynamic)
 Transform3DUtils.ArrangeInCircle = function(center, objects, radius, options, errorContext)
     errorContext = errorContext or "Transform3DUtils.ArrangeInCircle"
     -- Parse center (Vec3, Moveable, or Static)
@@ -563,13 +571,14 @@ end
 -- local parent = TEN.Objects.GetMoveableByName("Ship")
 -- local child = TEN.Objects.GetMoveableByName("Turret")
 -- local localOffset = TEN.Vec3(0, 300, -500)  -- Behind and above
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.AttachTurret = function()
 --     local parentPos = parent:GetPosition()
 --     local parentRot = parent:GetRotation()
 --     local worldPos, worldRot = Transform3DUtils.TransformLocalToWorld(parentPos, parentRot, localOffset, TEN.Rotation(0, 0, 0))
 --     child:SetPosition(worldPos)
 --     child:SetRotation(worldRot)
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.AttachTurret)
 --
 -- -- Error handling example:
 -- local worldPos, worldRot = Transform3DUtils.TransformLocalToWorld(parentPos, parentRot, localOffset)
@@ -627,9 +636,10 @@ end
 -- local localOffset = Transform3DUtils.CalculateLocalOffset(parent, child)
 -- 
 -- -- STEP 2: Use offset every frame
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.AttachWheel = function()
 --     Transform3DUtils.AttachToObject(parent, child, localOffset, true)
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.AttachWheel)
 --
 -- -- Example: Multiple children with different offsets
 -- local ship = TEN.Objects.GetMoveableByName("Ship")
@@ -637,18 +647,20 @@ end
 -- local turret2 = TEN.Objects.GetMoveableByName("Turret2")
 -- local offset1 = Transform3DUtils.CalculateLocalOffset(ship, turret1)
 -- local offset2 = Transform3DUtils.CalculateLocalOffset(ship, turret2)
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.AttachTurrets = function()
 --     Transform3DUtils.AttachToObject(ship, turret1, offset1, true)
 --     Transform3DUtils.AttachToObject(ship, turret2, offset2, true)
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.AttachTurrets)
 --
 -- -- Example: Static object attachment
 -- local platform = TEN.Objects.GetStaticByName("Platform")
 -- local crate = TEN.Objects.GetMoveableByName("Crate")
 -- local offset = Transform3DUtils.CalculateLocalOffset(platform, crate)
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.AttachStaticCrate = function()
 --     Transform3DUtils.AttachToObject(platform, crate, offset, false)
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.AttachStaticCrate)
 --
 -- -- Error handling example:
 -- local offset = Transform3DUtils.CalculateLocalOffset(parent, child)
@@ -705,18 +717,20 @@ end
 -- local vehicle = TEN.Objects.GetMoveableByName("Vehicle")
 -- local crate = TEN.Objects.GetMoveableByName("Crate")
 -- local offset = Transform3DUtils.CalculateLocalOffset(vehicle, crate)  -- Setup ONCE
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.AttachCrateToVehicle = function()
 --     Transform3DUtils.AttachToObject(vehicle, crate, offset, false)  -- Every frame
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.AttachCrateToVehicle)
 --
 -- -- Example: Attachment with rotation inheritance - Complete working example
 -- local ship = TEN.Objects.GetMoveableByName("Ship")
 -- local turret = TEN.Objects.GetMoveableByName("Turret")
 -- local offset = TEN.Vec3(0, 300, 0)  -- 300 units above ship
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.AttachTurretToShip = function()
 --     -- Turret follows ship position AND rotation
 --     Transform3DUtils.AttachToObject(ship, turret, offset, true)
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.AttachTurretToShip)
 --
 -- -- Example: Multiple satellites orbiting with attachment - Complete working example
 -- local planet = TEN.Objects.GetMoveableByName("Planet")
@@ -726,7 +740,7 @@ end
 -- local offset2 = TEN.Vec3(-2048, 0, 0)  -- Left side
 -- local angle = 0
 -- local rotationSpeed = 360 / ConversionUtils.SecondsToFrames(20)  -- 20 seconds per rotation
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.AttachSatellites = function()
 --     -- Rotate planet
 --     angle = (angle + rotationSpeed) % 360
 --     planet:SetRotation(TEN.Rotation(0, angle, 0))
@@ -735,33 +749,37 @@ end
 --     Transform3DUtils.AttachToObject(planet, sat1, offset1, false)
 --     Transform3DUtils.AttachToObject(planet, sat2, offset2, false)
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.AttachSatellites)
 --
 -- -- Example: Weapon held by character - Complete working example
 -- local lara = Lara
 -- local torch = TEN.Objects.GetMoveableByName("Torch")
 -- local weaponOffset = TEN.Vec3(150, 300, 50)  -- Right hand position
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.HoldTorch = function()
 --     -- Torch follows Lara's position and rotation
 --     Transform3DUtils.AttachToObject(lara, torch, weaponOffset, true)
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.HoldTorch)
 --
 -- -- Example: Cart pulled by horse - Complete working example
 -- local horse = TEN.Objects.GetMoveableByName("Horse")
 -- local cart = TEN.Objects.GetMoveableByName("Cart")
 -- local offset = Transform3DUtils.CalculateLocalOffset(horse, cart)  -- Setup ONCE
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.PullCart = function()
 --     -- Cart follows horse with original offset, inherits rotation
 --     Transform3DUtils.AttachToObject(horse, cart, offset, true)
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.PullCart)
 --
 -- -- Example: Platform with crate (Static parent) - Complete working example
 -- local platform = TEN.Objects.GetStaticByName("MovingPlatform")
 -- local crate = TEN.Objects.GetMoveableByName("Crate")
 -- local offset = TEN.Vec3(0, 256, 0)  -- On top of platform
--- LevelFuncs.OnLoop = function()
+-- LevelFuncs.CrateOnPlatform = function()
 --     -- Crate stays on platform as it moves
 --     Transform3DUtils.AttachToObject(platform, crate, offset, false)
 -- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.CrateOnPlatform)
 --
 -- -- Error handling example:
 -- local success = Transform3DUtils.AttachToObject(parent, child, offset, true)
