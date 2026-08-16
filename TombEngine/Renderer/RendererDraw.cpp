@@ -230,7 +230,7 @@ namespace TEN::Renderer
 			{
 				for (int m = 0; m < obj.AnimationTransforms.size(); m++)
 					_stObjects.Bones[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
-				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+				UpdateObjectsBuffer();
 
 				auto* mesh = GetMesh(item->SkinIndex);
 
@@ -250,7 +250,7 @@ namespace TEN::Renderer
 			}
 
 			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			UpdateObjectsBuffer();
 
 			for (int k = 0; k < item->MeshIndex.size(); k++)
 			{
@@ -347,7 +347,7 @@ namespace TEN::Renderer
 			SetBlendMode(BlendMode::Opaque);
 			SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			UpdateObjectsBuffer(gunShellCount);
 
 			const auto& mesh = *moveableObject.ObjectMeshes[0];
 			for (const auto& bucket : mesh.Buckets)
@@ -622,7 +622,7 @@ namespace TEN::Renderer
 						if (rendererPass != RendererPass::GBuffer)
 							BindInstancedStaticLights(_rooms[rat->RoomNumber].LightsToDraw, 0);
 
-						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+						UpdateObjectsBuffer();
 
 						for (int animated = 0; animated < 2; animated++)
 						{
@@ -739,7 +739,7 @@ namespace TEN::Renderer
 					if (rendererPass != RendererPass::GBuffer)
 						BindInstancedStaticLights(_rooms[fish.RoomNumber].LightsToDraw, 0);
 
-					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+					UpdateObjectsBuffer();
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -954,7 +954,7 @@ namespace TEN::Renderer
 								BindInstancedStaticLights(_rooms[p.RoomNumber].LightsToDraw, i);
 						}
 
-						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+						UpdateObjectsBuffer(instanceCount);
 
 						bool bindTexturesAndMaterialsRequired = true;
 
@@ -1085,7 +1085,7 @@ namespace TEN::Renderer
 					_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
-					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+					UpdateObjectsBuffer(batCount);
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -1215,7 +1215,7 @@ namespace TEN::Renderer
 					_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
-					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+					UpdateObjectsBuffer(beetleCount);
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -1346,7 +1346,7 @@ namespace TEN::Renderer
 					if (rendererPass != RendererPass::GBuffer)
 						BindInstancedStaticLights(_rooms[locust.RoomNumber].LightsToDraw, 0);
 
-					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+					UpdateObjectsBuffer();
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -2384,7 +2384,7 @@ namespace TEN::Renderer
 					_stObjects.Objects[0].NumLights = 0;
 					_stObjects.Objects[0].ApplyFogBulbs = s == 0 ? 1 : 0;
 
-					UpdateConstantBuffer(&_stObjects, _cbObjects);
+					UpdateObjectsBuffer();
 
 					DrawIndexedInstancedTriangles(SKY_INDICES_COUNT, 1, 0, 0);
 				}
@@ -2407,7 +2407,7 @@ namespace TEN::Renderer
 				_stObjects.Objects[0].NumLights = 0;
 				_stObjects.Objects[0].ApplyFogBulbs = 1;
 
-				UpdateConstantBuffer(&_stObjects, _cbObjects);
+				UpdateObjectsBuffer();
 
 				for (const auto* mesh : moveableObj.ObjectMeshes)
 				{
@@ -2824,13 +2824,13 @@ namespace TEN::Renderer
 			{
 				for (int m = 0; m < moveableObj.AnimationTransforms.size(); m++)
 					_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
-				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+				UpdateObjectsBuffer();
 
 				DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
 			}
 
 			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			UpdateObjectsBuffer();
 		}
 
 		for (int k = 0; k < item->MeshIndex.size(); k++)
@@ -3009,7 +3009,7 @@ namespace TEN::Renderer
 
 					if (instancesCount > 0)
 					{
-						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+						UpdateObjectsBuffer(instancesCount);
 
 						bool bindTextureAndMaterialsRequired = true;
 
@@ -4149,15 +4149,16 @@ namespace TEN::Renderer
 		{
 			memcpy(_stObjects.Bones, objectInfo->Item->InterpolatedAnimationTransforms, sizeof(Matrix) * BONE_COUNT_MAX);
 		}
-		
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
 
 		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
 			_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
 
 		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
 		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+		// Upload once, after every field is filled in. Bones, light modes and lights above only
+		// touch the CPU-side struct, so a single upload before the draw is all that is needed.
+		UpdateObjectsBuffer();
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
@@ -4197,7 +4198,7 @@ namespace TEN::Renderer
 		_stObjects.Objects[0].AmbientLight = objectInfo->Room->AmbientLight;
 		_stObjects.Objects[0].LightMode = (int)GetStaticRendererObject(objectInfo->Static->ObjectNumber).ObjectMeshes[0]->LightMode;
 		BindInstancedStaticLights(objectInfo->Static->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+		UpdateObjectsBuffer();
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
@@ -4237,7 +4238,7 @@ namespace TEN::Renderer
 		_stObjects.Objects[0].AmbientLight = objectInfo->Room->AmbientLight;
 		_stObjects.Objects[0].LightMode = (int)objectInfo->LightMode;
 		BindInstancedStaticLights(objectInfo->Room->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+		UpdateObjectsBuffer();
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
@@ -4277,7 +4278,7 @@ namespace TEN::Renderer
 		_stObjects.Objects[0].AmbientLight = objectInfo->Effect->AmbientLight;
 		_stObjects.Objects[0].LightMode = (int)LightMode::Dynamic;
 		BindInstancedStaticLights(objectInfo->Effect->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+		UpdateObjectsBuffer();
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);
@@ -4340,14 +4341,15 @@ namespace TEN::Renderer
 			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 		}
 
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
 		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
 			_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
 
 		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
 		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+		// Upload once, after every field is filled in. Bones, light modes and lights above only
+		// touch the CPU-side struct, so a single upload before the draw is all that is needed.
+		UpdateObjectsBuffer();
 
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::None, ALPHA_TEST_THRESHOLD);

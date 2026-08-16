@@ -1024,7 +1024,7 @@ namespace TEN::Renderer
 
 			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			UpdateObjectsBuffer();
 			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
@@ -1079,7 +1079,7 @@ namespace TEN::Renderer
 
 			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			UpdateObjectsBuffer();
 			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
@@ -1192,7 +1192,7 @@ namespace TEN::Renderer
 
 			_stObjects.BoneLightModes[0] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			UpdateObjectsBuffer();
 			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 
@@ -1247,7 +1247,7 @@ namespace TEN::Renderer
 
 			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+			UpdateObjectsBuffer();
 			BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::Objects, _cbObjects.get());
 			BindConstantBuffer(ShaderStage::PixelShader, ConstantBufferRegister::Objects, _cbObjects.get());
 

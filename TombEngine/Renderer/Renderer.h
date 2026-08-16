@@ -581,10 +581,16 @@ namespace TEN::Renderer
 			_numDrawCalls++;
 		}
 
-		inline void UpdateConstantBuffer(void* data, IConstantBuffer* cb) noexcept
+		inline void UpdateConstantBuffer(void* data, IConstantBuffer* cb, int size = -1) noexcept
 		{
-			_graphicsDevice->UpdateConstantBuffer(cb, data);
+			_graphicsDevice->UpdateConstantBuffer(cb, data, size);
 			_numConstantBufferUpdates++;
+		}
+
+		inline void UpdateObjectsBuffer(int instanceCount = 1) noexcept
+		{
+			UpdateConstantBuffer(&_stObjects, _cbObjects.get(),
+				OBJECTS_BUFFER_HEADER_SIZE + (instanceCount * (int)sizeof(ObjectData)));
 		}
 
 		template <typename CBuff>

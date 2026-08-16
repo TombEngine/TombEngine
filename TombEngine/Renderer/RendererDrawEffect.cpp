@@ -1361,7 +1361,7 @@ namespace TEN::Renderer
 				ReflectMatrixOptionally(worldMatrix);
 
 				_stObjects.Objects[0].World = worldMatrix;
-				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+				UpdateObjectsBuffer();
 
 				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1438,7 +1438,7 @@ namespace TEN::Renderer
 				ReflectMatrixOptionally(worldMatrix);
 
 				_stObjects.Objects[0].World = worldMatrix;
-				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+				UpdateObjectsBuffer();
 
 				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1610,7 +1610,7 @@ namespace TEN::Renderer
 						_stObjects.Objects[0].AmbientLight = _rooms[deb.roomNumber].AmbientLight;
 						_stObjects.Objects[0].LightMode = (int)deb.lightMode;
 
-						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+						UpdateObjectsBuffer();
 					}
 
 					auto matrix = Matrix::Lerp(deb.PrevTransform, deb.Transform, GetInterpolationFactor());
@@ -1919,7 +1919,7 @@ namespace TEN::Renderer
 		_stObjects.Objects[0].AmbientLight = effect->AmbientLight;
 		_stObjects.Objects[0].LightMode = (int)LightMode::Dynamic;
 		BindInstancedStaticLights(effect->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+		UpdateObjectsBuffer();
 
 		const auto& mesh = *effect->Mesh;
 

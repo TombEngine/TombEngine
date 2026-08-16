@@ -76,7 +76,10 @@ namespace TEN::Renderer::Graphics
 		virtual void UnbindTexture(ShaderStage stage, TextureRegister registerType) = 0;
 		
 		virtual std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::string name) = 0;
-		virtual void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data) = 0;
+		// Uploads `size` bytes from `data` into the buffer, or the whole buffer when `size` is
+		// negative. A partial upload leaves the remaining bytes undefined, so it is only valid
+		// when the draw does not read past that prefix.
+		virtual void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data, int size = -1) = 0;
 		virtual void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) = 0;
 
 		virtual std::unique_ptr<IStructuredBuffer> CreateStructuredBuffer(int stride, int elementCount, std::wstring name) = 0;

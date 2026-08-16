@@ -21,14 +21,21 @@ namespace TEN::Renderer::Native::DirectX11
 		_buffer->SetPrivateData(WKPDID_D3DDebugObjectName, (unsigned int)name.size(), name.c_str());
 	}
 
-	void DX11ConstantBuffer::UpdateData(void* data, ID3D11DeviceContext* ctx) 
+	void DX11ConstantBuffer::UpdateData(void* data, ID3D11DeviceContext* ctx, int size)
 	{
+		// A negative size means "upload everything". Callers that only fill a prefix of the
+		// buffer pass its byte count instead: WRITE_DISCARD hands back a renamed allocation
+		// whose contents are undefined anyway, so leaving the tail unwritten is legal as long
+		// as no shader reads it. This matters for large buffers such as CObjectsBuffer, where
+		// a single-instance draw would otherwise memcpy all 64 KB.
+		int uploadSize = (size < 0) ? _size : std::min(size, _size);
+
 		auto mappedResource = D3D11_MAPPED_SUBRESOURCE{};
 		auto res = ctx->Map(_buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		if (SUCCEEDED(res))
 		{
 			void* dataPtr = (mappedResource.pData);
-			memcpy(dataPtr, data, _size);
+			memcpy(dataPtr, data, uploadSize);
 			ctx->Unmap(_buffer.Get(), 0);
 		}
 		else

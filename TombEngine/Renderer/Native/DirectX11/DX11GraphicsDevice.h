@@ -133,7 +133,7 @@ namespace TEN::Renderer::Native::DirectX11
 		void UnbindTexture(ShaderStage stage, TextureRegister registerType) override;
 
 		std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::string name) override;
-		void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data) override;
+		void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data, int size = -1) override;
 		void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) override;
 
 		std::unique_ptr<IStructuredBuffer> CreateStructuredBuffer(int stride, int elementCount, std::wstring name) override;
