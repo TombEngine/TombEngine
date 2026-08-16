@@ -26,7 +26,6 @@ local Utility = require("Engine.Util")
 
 local ErrorLog = Utility.ErrorLog
 local WarningLog = Utility.WarningLog
-local Round = Utility.Round
 local WrapAngleRaw = Utility.WrapAngleRaw
 local IsNumber = Type.IsNumber
 local IsVec2 = Type.IsVec2
@@ -282,45 +281,67 @@ end
 -- @tparam float num The number to round.
 -- @tparam[opt=0] float decimals Number of decimal places.
 -- @tparam[opt="MathUtils.Round"] string errorContext Context string for error messages (e.g., function name).
--- @treturn[1] float The rounded number.
--- @treturn[2] float 0 If an error occurs.
+-- @treturn[1] float The rounded number, or 0 if an error occurs.
+-- @treturn[1] bool `ok`: true if operation is successful, false if an error occurs.
 -- @usage
 -- local rounded1 = MathUtils.Round(3.14159)       -- Result: 3
 -- local rounded2 = MathUtils.Round(3.14159, 2)    -- Result: 3.14
 -- local rounded3 = MathUtils.Round(2.675, 2)      -- Result: 2.68
 -- local rounded4 = MathUtils.Round(-1.2345, 1)    -- Result: -1.2
+--
+-- -- Real-world example: safely round a value that may be invalid (e.g., from a node or external input)
+-- local function FormatPercentage(rawValue)
+--     local rounded, ok = MathUtils.Round(rawValue, 1, "FormatPercentage")
+--     if not ok then
+--         return "0.0"  -- fallback: rawValue is not a number (error already logged)
+--     end
+--     return rounded .. "%"
+-- end
+-- -- FormatPercentage(87.654) -- Result: "87.7%"
+-- -- FormatPercentage(nil)    -- Result: "0.0%" (error logged, fallback used)
 MathUtils.Round = function(num, decimals, errorContext)
     errorContext = errorContext or "MathUtils.Round"
     decimals = decimals or 0
     if not IsNumber(num) or not IsNumber(decimals) then
         ErrorLog("Error in {context}: num and decimals must be numbers.", {context = errorContext})
-        return 0
+        return 0, false
     end
     local mult = 10 ^ decimals
-    return Round(num, mult)
+    return floor(num * mult + 0.5) / mult, true
 end
 
 --- Truncate a number to a specified number of decimal places (without rounding).
 -- @tparam float num The number to truncate.
 -- @tparam[opt=0] float decimals Number of decimal places.
 -- @tparam[opt="MathUtils.Truncate"] string errorContext Context string for error messages (e.g., function name).
--- @treturn[1] float The truncated number.
--- @treturn[2] float 0 If an error occurs.
+-- @treturn[1] float The truncated number, or 0 if an error occurs.
+-- @treturn[1] bool `ok`: true if operation is successful, false if an error occurs.
 -- @usage
 -- local truncated1 = MathUtils.Truncate(3.14159)       -- Result: 3
 -- local truncated2 = MathUtils.Truncate(3.14159, 2)    -- Result: 3.14
 -- local truncated3 = MathUtils.Truncate(2.999, 2)      -- Result: 2.99 (not rounded!)
 -- local truncated4 = MathUtils.Truncate(2.99, 0)       -- Result: 2     
 -- local truncated4 = MathUtils.Truncate(-1.2345, 1)    -- Result: -1.2
+--
+-- -- Real-world example: display a countdown value truncated (never rounded up)
+-- local function FormatCooldown(secondsRemaining)
+--     local truncated, ok = MathUtils.Truncate(secondsRemaining, 2, "FormatCooldown")
+--     if not ok then
+--         return "0.00"  -- fallback: invalid input (error already logged)
+--     end
+--     return truncated .. "s"
+-- end
+-- -- FormatCooldown(3.999) -- Result: "3.99s" (truncated, not 4.00)
+-- -- FormatCooldown(nil)   -- Result: "0.00s" (error logged, fallback used)
 MathUtils.Truncate = function(num, decimals, errorContext)
     errorContext = errorContext or "MathUtils.Truncate"
     decimals = decimals or 0
     if not IsNumber(num) or not IsNumber(decimals) then
         ErrorLog("Error in {context}: num and decimals must be numbers.", {context = errorContext})
-        return 0
+        return 0, false
     end
     local mult = 10 ^ decimals
-        local result
+    local result
     if num >= 0 then
         result = floor(num * mult) / mult
     else
@@ -329,7 +350,7 @@ MathUtils.Truncate = function(num, decimals, errorContext)
     if decimals == 0 then
         result = floor(result)
     end
-    return result
+    return result, true
 end
 
 --- Generate a random number or vector/color/time with optional seed.
@@ -647,8 +668,8 @@ end
 -- @tparam[opt=0] float minValue Minimum value of the range.
 -- @tparam[opt=360] float maxValue Maximum value of the range.
 -- @tparam[opt="MathUtils.WrapAngle"] string errorContext Context string for error messages (e.g., function name).
--- @treturn[1] float The wrapped angle.
--- @treturn[2] float The original angle if an error occurs.
+-- @treturn[1] float The wrapped angle, or the original angle if an error occurs.
+-- @treturn[1] bool `ok`: true if operation is successful, false if an error occurs.
 -- @usage
 -- -- Normalize angles to 0-360 range:
 -- local wrapped1 = MathUtils.WrapAngle(450, 0, 360)  -- Result: 90
@@ -678,6 +699,17 @@ end
 -- -- Wrapped difference:
 -- local delta = MathUtils.WrapAngle(targetYaw - currentYaw, -180, 180)
 -- -- Result: 20° (correct shortest path: turn right 20°)
+--
+-- -- Real-world example: safely normalize an angle when the range may be misconfigured
+-- local function NormalizeYaw(yaw, minAngle, maxAngle)
+--     local wrapped, ok = MathUtils.WrapAngle(yaw, minAngle, maxAngle, "NormalizeYaw")
+--     if not ok then
+--         return yaw  -- fallback: keep the original angle (error already logged)
+--     end
+--     return wrapped
+-- end
+-- -- NormalizeYaw(450, 0, 360) -- Result: 90 (wrapped into range)
+-- -- NormalizeYaw(450, 360, 0) -- Result: 450 (invalid range, error logged, original kept)
 MathUtils.WrapAngle = function(angle, minValue, maxValue, errorContext)
     errorContext = errorContext or "MathUtils.WrapAngle"
     minValue = minValue or 0
@@ -685,17 +717,17 @@ MathUtils.WrapAngle = function(angle, minValue, maxValue, errorContext)
 
     if not (IsNumber(angle) and IsNumber(minValue) and IsNumber(maxValue)) then
         ErrorLog("Error in {context}: all parameters must be numbers.", {context = errorContext})
-        return angle
+        return angle, false
     end
 
     if minValue >= maxValue then
         ErrorLog("Error in {context}: minValue must be less than maxValue.", {context = errorContext})
-        return angle
+        return angle, false
     end
 
     local range = maxValue - minValue
 
-    return WrapAngleRaw(angle, minValue, range)
+    return WrapAngleRaw(angle, minValue, range), true
 end
 
 LevelFuncs.StartRandomSeed = function()
