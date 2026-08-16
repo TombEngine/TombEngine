@@ -1,6 +1,17 @@
 -- ldignore
 
--- Internal functions specific to modules. These are not intended for end users. These functions are not documented in the API reference.
+-- Internal shared helpers for the official TombEngine modules.
+--
+-- Contents:
+--   * Raw computation functions: no type checking, no argument validation,
+--     no error logging. Used by the public utility modules to keep their
+--     safe wrappers thin and fast.
+--   * Shared constants: frame rate, limits, default text and timer options.
+--
+-- Not intended for end users and not documented in the API reference.
+-- Use these functions only if you are writing an official TombEngine
+-- module, or if you fully understand the contract: inputs are assumed valid,
+-- and invalid inputs may produce errors or undefined results.
 
 local Type = require("Engine.Type")
 local Util = {}
@@ -199,8 +210,8 @@ Util.GenerateTimeFormattedString = function(time, timerFormat)
     end
 
     if timerFormat.minutes then
-		local agretedMinutes = timerFormat.hours and m or (m + (60 * h))
-		out = (out == "" and pad2(agretedMinutes)) or (out .. ":" .. pad2(agretedMinutes))
+		local aggregatedMinutes = timerFormat.hours and m or (m + (60 * h))
+		out = (out == "" and pad2(aggregatedMinutes)) or (out .. ":" .. pad2(aggregatedMinutes))
 	end
 
     if timerFormat.seconds then
