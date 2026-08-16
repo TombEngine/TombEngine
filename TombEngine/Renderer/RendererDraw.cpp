@@ -4341,8 +4341,11 @@ namespace TEN::Renderer
 			_stObjects.BoneLightModes[i] = (int)LightMode::Dynamic;
 		}
 
-		for (int k = 0; k < moveableObj.ObjectMeshes.size(); k++)
-			_stObjects.BoneLightModes[k] = (int)moveableObj.ObjectMeshes[k]->LightMode;
+		// Hair is lit per segment, not per mesh: every bone stays on LightMode::Dynamic, matching
+		// the opaque path in DrawLaraHair. Copying the meshes' own light modes over them here
+		// (as DrawItemSorted correctly does for moveables) made alpha-blended hair fall back to
+		// StaticLight whenever a hair mesh was authored as LightMode::Static, so it rendered flat
+		// while the same hair drawn opaque was lit.
 
 		bool acceptsShadows = moveableObj.ShadowType == ShadowMode::None;
 		BindMoveableLights(objectInfo->Item->LightsToDraw, objectInfo->Item->RoomNumber, objectInfo->Item->PrevRoomNumber, objectInfo->Item->LightFade, acceptsShadows);
