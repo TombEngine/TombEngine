@@ -18,7 +18,7 @@ using namespace TEN::Effects::ParticleGroups;
 using namespace TEN::Math;
 using namespace TEN::Scripting::Types;
 
-/// Functions to generate effects.
+/// Create and manage particle groups.
 // @tenclass Effects.ParticleGroups 
 // @pragma nostrip
 
@@ -61,8 +61,6 @@ namespace TEN::Scripting::Effects::ParticleGroups
 		tbl[ParticleKey::AgeNormalized] = p.AgeNormalized;
 		tbl[ParticleKey::SubIndex] = p.SubIndex;
 		tbl[ParticleKey::ObjectID] = p.ObjectID;
-		// NOTE: Must stay a Rotation: ApplyParticleTable reads this key back as Rotation,
-		// so a different type would be silently dropped on the ForEachParticle round trip.
 		tbl[ParticleKey::Orientation] = Rotation(p.Orientation.x / RADIAN, p.Orientation.y / RADIAN, p.Orientation.z / RADIAN);
 		tbl[ParticleKey::ContactRadius] = p.ContactRadius;
 		tbl[ParticleKey::TouchingPlayer] = p.TouchingPlayer;
@@ -103,7 +101,7 @@ namespace TEN::Scripting::Effects::ParticleGroups
 
 	LuaParticleGroup::LuaParticleGroup(GAME_OBJECT_ID objectID, int maxParticles)
 	{
-		if (!CheckIfSlotExists(objectID, "CreateParticleGroup"))
+		if (!CheckIfSlotExists(objectID, "ParticleGroup"))
 			return;
 
 		int id = CreateParticleGroup(objectID, maxParticles);
@@ -389,113 +387,170 @@ namespace TEN::Scripting::Effects::ParticleGroups
 
 	void LuaParticleGroup::Register(sol::table& parent)
 	{
+		using ctors = sol::constructors<LuaParticleGroup(GAME_OBJECT_ID, int)>;
+
+		/// Create a ParticleGroup for managing collections of particles with Lua-driven behavior.
+		// If the specified object ID is a sprite sequence, particles render as sprites.
+		// If it is a mesh object (moveable), particles render as 3D meshes, and the sub index
+		// selects which mesh within the object to draw.
+		// @function ParticleGroup
+		// @tparam Objects.ObjID objectID Object slot ID (sprite sequence or mesh object).
+		// @tparam int maxParticles Maximum number of particles in the group.
+		// @treturn ParticleGroup A new ParticleGroup.
+		// @usage
+		// local group = TEN.Effects.ParticleGroup(TEN.Objects.ObjID.DEFAULT_SPRITES, 200)
+		//  group:SetPosition(Vec3(0, 0, 1024))
+		//  group:Start()
 		parent.new_usertype<LuaParticleGroup>(
 			ScriptReserved_ParticleGroup,
-			sol::no_constructor,
+			ctors(),
+			sol::call_constructor, ctors(),
 
 			/// Start emitting particles.
 			// @function ParticleGroup:Start
+			// @usage
+			// group:Start()
 			ScriptReserved_ParticleGroupStart, &LuaParticleGroup::Start,
 
 			/// Stop emitting particles. Existing particles continue until they expire.
 			// @function ParticleGroup:Stop
+			// @usage
+			// group:Stop()
 			ScriptReserved_ParticleGroupStop, &LuaParticleGroup::Stop,
 
 			/// Pause the group. Stops emission and freezes all existing particles in place.
 			// @function ParticleGroup:Pause
+			// @usage
+			// group:Pause()
 			ScriptReserved_ParticleGroupPause, &LuaParticleGroup::Pause,
 
 			/// Resume a paused group.
 			// @function ParticleGroup:Resume
+			// @usage
+			// group:Resume()
 			ScriptReserved_ParticleGroupResume, &LuaParticleGroup::Resume,
 
 			/// Emit a burst of particles immediately.
 			// @function ParticleGroup:EmitBurst
 			// @tparam int count Number of particles to emit.
+			// @usage
+			// group:EmitBurst(50)
 			ScriptReserved_ParticleGroupEmitBurst, &LuaParticleGroup::EmitBurst,
 
 			/// Get number of active particles.
 			// @function ParticleGroup:GetActiveCount
 			// @treturn int Number of active particles.
+			// @usage
+			// local count = group:GetActiveCount()
 			ScriptReserved_ParticleGroupGetActiveCount, &LuaParticleGroup::GetActiveCount,
 
 			/// Set the emission rate in particles per second.
 			// @function ParticleGroup:SetEmissionRate
 			// @tparam float rate Particles per second.
+			// @usage
+			// group:SetEmissionRate(60)
 			ScriptReserved_ParticleGroupSetEmissionRate, &LuaParticleGroup::SetEmissionRate,
 
 			/// Set the emitter position.
 			// @function ParticleGroup:SetPosition
 			// @tparam Vec3 pos World position.
+			// @usage
+			// group:SetPosition(Vec3(0, 0, 1024))
 			ScriptReserved_ParticleGroupSetPosition, &LuaParticleGroup::SetPosition,
 
 			/// Get the emitter position.
 			// @function ParticleGroup:GetPosition
 			// @treturn Vec3 World position.
+			// @usage
+			// local pos = group:GetPosition()
 			ScriptReserved_ParticleGroupGetPosition, &LuaParticleGroup::GetPosition,
 
 			/// Set initial velocity for new particles.
 			// @function ParticleGroup:SetInitialVelocity
 			// @tparam Vec3 vel Velocity vector in world units per second.
+			// @usage
+			// group:SetInitialVelocity(Vec3(0, 200, 0))
 			ScriptReserved_ParticleGroupSetInitialVelocity, &LuaParticleGroup::SetInitialVelocity,
 
 			/// Set random range added to initial velocity.
 			// @function ParticleGroup:SetInitialVelocityRandom
 			// @tparam Vec3 range Per-axis random range (+/- range).
+			// @usage
+			// group:SetInitialVelocityRandom(Vec3(300, 40, 300))
 			ScriptReserved_ParticleGroupSetVelocityRandom, &LuaParticleGroup::SetInitialVelocityRandom,
 
 			/// Set initial acceleration for new particles.
 			// @function ParticleGroup:SetInitialAcceleration
 			// @tparam Vec3 accel Acceleration vector in world units per second squared.
+			// @usage
+			// group:SetInitialAcceleration(Vec3(0, 30, 0))
 			ScriptReserved_ParticleGroupSetInitialAcceleration, &LuaParticleGroup::SetInitialAcceleration,
 
 			/// Set a fixed lifetime for new particles.
 			// @function ParticleGroup:SetLifetime
 			// @tparam float seconds Lifetime in seconds.
+			// @usage
+			// group:SetLifetime(3.0)
 			ScriptReserved_ParticleGroupSetLifetime, &LuaParticleGroup::SetLifetime,
 
 			/// Set lifetime range for new particles.
 			// @function ParticleGroup:SetLifetimeRange
 			// @tparam float minSeconds Minimum lifetime.
 			// @tparam float maxSeconds Maximum lifetime.
+			// @usage
+			// group:SetLifetimeRange(2.0, 5.0)
 			ScriptReserved_ParticleGroupSetLifetimeRange, &LuaParticleGroup::SetLifetimeRange,
 
 			/// Set a fixed initial size for new particles.
 			// @function ParticleGroup:SetInitialSize
 			// @tparam float size Particle size in world units.
+			// @usage
+			// group:SetInitialSize(128)
 			ScriptReserved_ParticleGroupSetInitialSize, &LuaParticleGroup::SetInitialSize,
 
 			/// Set initial size range for new particles.
 			// @function ParticleGroup:SetInitialSizeRange
 			// @tparam float min Minimum size.
 			// @tparam float max Maximum size.
+			// @usage
+			// group:SetInitialSizeRange(48, 128)
 			ScriptReserved_ParticleGroupSetInitialSizeRange, &LuaParticleGroup::SetInitialSizeRange,
 
 			/// Set initial color for new particles.
 			// @function ParticleGroup:SetInitialColor
 			// @tparam Color color Particle color.
+			// @usage
+			// group:SetInitialColor(Color(255, 160, 50))
 			ScriptReserved_ParticleGroupSetInitialColor, &LuaParticleGroup::SetInitialColor,
 
 			/// Set initial color range for new particles.
 			// @function ParticleGroup:SetInitialColorRange
 			// @tparam Color min Minimum color.
 			// @tparam Color max Maximum color.
+			// @usage
+			// group:SetInitialColorRange(Color(255, 100, 20), Color(255, 200, 80))
 			ScriptReserved_ParticleGroupSetInitialColorRange, &LuaParticleGroup::SetInitialColorRange,
 
 			/// Set initial rotation for new particles in degrees.
 			// @function ParticleGroup:SetInitialRotation
 			// @tparam float rotation Rotation in degrees.
+			// @usage
+			// group:SetInitialRotation(90)
 			ScriptReserved_ParticleGroupSetInitialRotation, &LuaParticleGroup::SetInitialRotation,
 
 			/// Set initial rotational velocity for new particles.
 			// @function ParticleGroup:SetInitialRotationVelocity
 			// @tparam float rotVel Rotational velocity in degrees per second.
+			// @usage
+			// group:SetInitialRotationVelocity(45)
 			ScriptReserved_ParticleGroupSetInitialRotVel, &LuaParticleGroup::SetInitialRotationVelocity,
 
 			/// Set blend mode for rendering. Applies to sprite groups only.
 			// Mesh groups use per-material blend modes.
 			// @function ParticleGroup:SetBlendMode
 			// @tparam Effects.BlendID mode Blend mode.
+			// @usage
+			// group:SetBlendMode(TEN.Effects.BlendID.ADDITIVE)
 			ScriptReserved_ParticleGroupSetBlendMode, &LuaParticleGroup::SetBlendMode,
 
 			/// Set the object slot (sprite sequence or mesh object) for the group.
@@ -503,32 +558,44 @@ namespace TEN::Scripting::Effects::ParticleGroups
 			// For mesh objects, the sub-index selects which mesh to draw.
 			// @function ParticleGroup:SetObjectID
 			// @tparam Objects.ObjID objectID Object slot ID.
+			// @usage
+			// group:SetObjectID(TEN.Objects.ObjID.DEFAULT_SPRITES)
 			ScriptReserved_ParticleGroupSetObjectID, &LuaParticleGroup::SetObjectID,
 
 			/// Set sprite or mesh sub-index for newly emitted particles.
 			// @function ParticleGroup:SetSubIndex
 			// @tparam int index Sprite or mesh sub-index.
+			// @usage
+			// group:SetSubIndex(2)
 			ScriptReserved_ParticleGroupSetSubIndex, &LuaParticleGroup::SetSubIndex,
 
 			/// Get the current sprite or mesh sub-index used for new particles.
 			// @function ParticleGroup:GetSubIndex
 			// @treturn int Current sub-index.
+			// @usage
+			// local idx = group:GetSubIndex()
 			ScriptReserved_ParticleGroupGetSubIndex, &LuaParticleGroup::GetSubIndex,
 
 			/// Get the current object slot ID.
 			// @function ParticleGroup:GetObjectID
 			// @treturn Objects.ObjID Current object slot ID.
+			// @usage
+			// local objID = group:GetObjectID()
 			ScriptReserved_ParticleGroupGetObjectID, &LuaParticleGroup::GetObjectID,
 
 			/// Check if this group renders 3D meshes.
 			// @function ParticleGroup:IsMeshGroup
 			// @treturn bool True if particles render as 3D meshes, false for sprites.
+			// @usage
+			// local isMesh = group:IsMeshGroup()
 			ScriptReserved_ParticleGroupIsMeshGroup, &LuaParticleGroup::IsMeshGroup,
 
 			/// Set initial orientation for mesh particles in degrees (pitch, yaw, roll).
-			// Ignored for sprite groups.
+			// For sprite groups it fixes the orientation of the sprites.
 			// @function ParticleGroup:SetInitialOrientation
 			// @tparam Rotation orientation Orientation in degrees.
+			// @usage
+			// group:SetInitialOrientation(Rotation(0, 90, 0))
 			ScriptReserved_ParticleGroupSetInitialOrientation, &LuaParticleGroup::SetInitialOrientation,
 
 			/// Set the contact radius used for deadly bounds detection.
@@ -536,6 +603,8 @@ namespace TEN::Scripting::Effects::ParticleGroups
 			// New particles inherit this value.
 			// @function ParticleGroup:SetContactRadius
 			// @tparam float radius Distance in world units. Must be greater than 0.
+			// @usage
+			// group:SetContactRadius(256)
 			ScriptReserved_ParticleGroupSetContactRadius, &LuaParticleGroup::SetContactRadius,
 
 			/// Get a specific particle's data as a table.
@@ -543,6 +612,8 @@ namespace TEN::Scripting::Effects::ParticleGroups
 			// @function ParticleGroup:GetParticle
 			// @tparam int index Particle index (0-based).
 			// @treturn table|nil Particle data table.
+			// @usage
+			// local p = group:GetParticle(0)
 			ScriptReserved_ParticleGroupGetParticle, &LuaParticleGroup::GetParticle,
 
 			/// Set a specific particle's properties from a table.
@@ -551,6 +622,8 @@ namespace TEN::Scripting::Effects::ParticleGroups
 			// @function ParticleGroup:SetParticle
 			// @tparam int index Particle index (0-based).
 			// @tparam table data Table with properties to set.
+			// @usage
+			// group:SetParticle(0, { position = Vec3(0, 1024, 0), size = 256 })
 			ScriptReserved_ParticleGroupSetParticle, &LuaParticleGroup::SetParticle,
 
 			/// Iterate over all active particles, calling a function for each.
@@ -558,15 +631,11 @@ namespace TEN::Scripting::Effects::ParticleGroups
 			// All rotation and orientation values are in degrees.
 			// @function ParticleGroup:ForEachParticle
 			// @tparam function callback Function receiving (index, particleTable) for each active particle.
+			// @usage
+			// group:ForEachParticle(function(index, particle)
+			//     return { position = particle.position + Vec3(0, 10, 0) }
+			// end)
 			ScriptReserved_ParticleGroupForEachParticle, &LuaParticleGroup::ForEachParticle,
-
-			/// (int) Unique group ID. Read-only. Returns -1 if the handle is stale.
-			// @mem id
-			ScriptReserved_ParticleGroupId, sol::property(&LuaParticleGroup::GetID),
-
-			/// (bool) Whether the handle refers to a valid active group.
-			// @mem active
-			ScriptReserved_ParticleGroupActive, sol::property(&LuaParticleGroup::IsActive));
 
 		/// Structure for a Particle table.
 		// @table Particle
@@ -586,18 +655,5 @@ namespace TEN::Scripting::Effects::ParticleGroups
 		// @tfield float contactRadius Half-extent in world units used for AABB contact detection. Default is 128.
 		// @tfield bool touchingPlayer Read-only. True if the particle's contact radius overlaps Lara's deadly bounds.
 		// @tfield bool teleport Write-only control. Set to true to suppress interpolation after a large position, size, or rotation change.
-
-		/// Create a particle group for managing collections of particles with Lua-driven behavior.
-		// If the specified object ID is a sprite sequence, particles render as sprites.
-		// If it is a mesh object (moveable), particles render as 3D meshes, and the sprite index
-		// selects which mesh within the object to draw.
-		// @function CreateParticleGroup
-		// @tparam Objects.ObjID objectID Object slot ID (sprite sequence or mesh object).
-		// @tparam int maxParticles Maximum number of particles in the group.
-		// @treturn ParticleGroup A new ParticleGroup handle, or a stale handle on failure.
-		parent.set_function(ScriptReserved_CreateParticleGroup, [](GAME_OBJECT_ID objectID, int maxParticles)
-		{
-			return LuaParticleGroup(objectID, maxParticles);
-		});
 	}
 }

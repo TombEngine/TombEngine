@@ -197,6 +197,9 @@ namespace TEN::Entities::Vehicles
 		kayak->WaterHeight = kayakItem->Pose.Position.y;
 		kayak->Flags = 0;
 
+		if (mountType == VehicleMountType::LevelStart)
+			KayakPaddleTake(kayak, laraItem);
+
 		AnimateItem(laraItem);
 	}
 
