@@ -67,7 +67,15 @@ local compareErrorMessage = "Error in {context}: operand and reference must be e
 
 local GeneralUtils = {}
 
-GeneralUtils.Operators = Utility.Constants.Operators
+GeneralUtils.Operators = -- Comparison operators for easy comparisons
+    {
+        EQUAL = 0,        -- Equal
+        NOT_EQUAL = 1,    -- Not equal
+        LESS = 2,         -- Less than
+        LESS_EQUAL = 3,   -- Less than or equal
+        GREATER = 4,      -- Greater than
+        GREATER_EQUAL = 5 -- Greater than or equal
+    }
 TableUtils.SetTableReadOnly(GeneralUtils.Operators)
 
 local function CheckOperator(operator)

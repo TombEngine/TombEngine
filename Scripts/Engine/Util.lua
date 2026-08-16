@@ -77,6 +77,15 @@ local function LinearToSrgb(c)
     end
 end
 
+-- Core interpolation that handles different types (number, color, rotation, vector) without clamping t.
+-- Clamping is handled by the caller to allow for extrapolation if desired.
+local InterpolateValuesRaw = function(a, b, t)
+    if IsNumber(a) then
+        return a + (b - a) * t
+    end
+    return a:Lerp(b, t)
+end
+
 Util.Constants =
 {
     FPS = 30,              -- Default frames per second for time-frame conversions
@@ -94,15 +103,6 @@ Util.Constants =
         minutes = true,
         seconds = true,
         centiseconds = true
-    },
-    Operators = -- Comparison operators for easy comparisons
-    {
-        EQUAL = 0,        -- Equal
-        NOT_EQUAL = 1,    -- Not equal
-        LESS = 2,         -- Less than
-        LESS_EQUAL = 3,   -- Less than or equal
-        GREATER = 4,      -- Greater than
-        GREATER_EQUAL = 5 -- Greater than or equal
     }
 }
 Util.Constants.FRAME_TIME = 1 / Util.Constants.FPS
@@ -363,15 +363,6 @@ Util.IsValidInterpolationValue = function(value)
            IsRotation(value) or
            IsVec2(value) or
            IsVec3(value)
-end
-
--- Core interpolation that handles different types (number, color, rotation, vector) without clamping t.
--- Clamping is handled by the caller to allow for extrapolation if desired.
-local InterpolateValuesRaw = function(a, b, t)
-    if IsNumber(a) then
-        return a + (b - a) * t
-    end
-    return a:Lerp(b, t)
 end
 
 -- Linear interpolation (no type checking, used internally)
