@@ -635,7 +635,7 @@ namespace TEN::Scripting::Effects::ParticleGroups
 			// group:ForEachParticle(function(index, particle)
 			//     return { position = particle.position + Vec3(0, 10, 0) }
 			// end)
-			ScriptReserved_ParticleGroupForEachParticle, &LuaParticleGroup::ForEachParticle,
+			ScriptReserved_ParticleGroupForEachParticle, &LuaParticleGroup::ForEachParticle);
 
 		/// Structure for a Particle table.
 		// @table Particle
