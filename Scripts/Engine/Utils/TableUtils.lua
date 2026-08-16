@@ -1,4 +1,4 @@
------<style>table.function_list td.name {min-width: 300px;}</style>
+-----<style>table.function_list td.name {min-width: 318px;}</style>
 --- Lua support functions for working with tables.
 ---
 --- **Design Philosophy:**
