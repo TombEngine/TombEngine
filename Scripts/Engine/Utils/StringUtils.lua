@@ -1,4 +1,4 @@
------<style>table.function_list td.name {min-width: 345px;}</style>
+-----<style>table.function_list td.name {min-width: 395px;}</style>
 --- Lua support functions for string manipulation.
 ---
 --- **Design Philosophy:**

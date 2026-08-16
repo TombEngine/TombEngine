@@ -1,4 +1,4 @@
------<style>table.function_list td.name {min-width: 365px;}</style>
+-----<style>table.function_list td.name {min-width: 468px;}</style>
 --- Lua support functions for interpolating between values.
 -- Different interpolation methods provide various speed curves and behaviors.
 --
@@ -1352,6 +1352,7 @@ end
 --
 -- - `preserveLightness` (boolean): If true, preserves starting lightness in HSL/OKLch.<br>*Default: false*.
 --
+-- @tparam[opt="InterpolationUtils.InterpolateColor"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] Color The interpolated color.
 -- @treturn[2] Color `colorA` if an error occurs.
 -- @usage
@@ -1370,7 +1371,7 @@ end
 -- --  1.00  | 0   | 0 | 255
 --
 -- -- Example with HSL interpolation (shortest hue path):
--- local hslColor = InterpolationUtils.InterpolateColor(color1, color2, 0.5, 1)
+-- local hslColor = InterpolationUtils.InterpolateColor(color1, color2, 0.5, InterpolationUtils.Spaces.HSL)
 -- --   t    | R   | G   | B
 -- --  ------|-----|-----|-----
 -- --  0.00  | 255 | 0   | 0
@@ -1380,7 +1381,7 @@ end
 -- --  1.00  | 0   | 0   | 255
 --
 -- -- Example with HSL interpolation (longest hue path):
--- local hslLongColor = InterpolationUtils.InterpolateColor(color1, color2, 0.5, 1, { huePath = "longest" })
+-- local hslLongColor = InterpolationUtils.InterpolateColor(color1, color2, 0.5, InterpolationUtils.Spaces.HSL, { huePath = "longest" })
 -- --   t    | R   | G   | B
 -- --  ------|-----|-----|-----
 -- --  0.00  | 255 | 0   | 0
@@ -1390,7 +1391,7 @@ end
 -- --  1.00  | 0   | 0   | 255
 --
 -- -- Example with OKLch interpolation (shortest hue path):
--- local oklchShortColor = InterpolationUtils.InterpolateColor(color1, color2, 0.5, 2)
+-- local oklchShortColor = InterpolationUtils.InterpolateColor(color1, color2, 0.5, InterpolationUtils.Spaces.OKLch)
 -- --   t    | R   | G   | B
 -- --  ------|-----|-----|-----
 -- --  0.00  | 255 | 0   | 0
@@ -1400,7 +1401,7 @@ end
 -- --  1.00  | 0   | 0   | 255
 --
 -- -- Example with OKLch interpolation (preserving saturation):
--- local oklchColor = InterpolationUtils.InterpolateColor(color1, color2, 0.5, 2, { preserveSaturation = true })
+-- local oklchColor = InterpolationUtils.InterpolateColor(color1, color2, 0.5, InterpolationUtils.Spaces.OKLch, { preserveSaturation = true })
 -- --   t    | R   | G   | B
 -- --  ------|-----|-----|-----
 -- --  0.00  | 255 | 0   | 0
@@ -1411,7 +1412,7 @@ end
 -- -- Note: Enabling preserveSaturation, with t = 1 does not yield pure blue due to saturation preservation.
 --
 -- -- Example with OKLch interpolation (preserving lightness):
--- local oklchLightColor = InterpolationUtils.InterpolateColor(color1, color2, 0.5, 2, { preserveLightness = true })
+-- local oklchLightColor = InterpolationUtils.InterpolateColor(color1, color2, 0.5, InterpolationUtils.Spaces.OKLch, { preserveLightness = true })
 -- --   t    | R   | G   | B
 -- --  ------|-----|-----|-----
 -- --  0.00  | 255 | 0   | 0
@@ -1420,15 +1421,27 @@ end
 -- --  0.75  | 159 | 62  | 255
 -- --  1.00  | 28  | 103 | 255
 -- -- Note: Enabling preserveLightness, with t = 1 does not yield pure blue due to lightness preservation.
-InterpolationUtils.InterpolateColor = function(colorA, colorB, t, space, options)
+--
+-- -- Real-world example: wrap InterpolateColor in your own helper and pass errorContext
+-- local function BlendFogColor(fromColor, toColor, progress)
+--     -- Pass "BlendFogColor" so warnings/errors are reported with your function's name
+--     local blended = InterpolationUtils.InterpolateColor(fromColor, toColor, progress, InterpolationUtils.Spaces.HSL, { huePath = "shortest" }, "BlendFogColor")
+--     return blended
+-- end
+--
+-- local red = TEN.Color(255, 0, 0)
+-- local blue = TEN.Color(0, 0, 255)
+-- BlendFogColor(red, blue, 0.5) -- smooth HSL blend; any error logs as "Error in BlendFogColor: ..."
+InterpolationUtils.InterpolateColor = function(colorA, colorB, t, space, options, errorContext)
+    errorContext = errorContext or "InterpolationUtils.InterpolateColor"
     -- Validate input parameters
     if not IsColor(colorA) or not IsColor(colorB) then
-        ErrorLog("Error in InterpolationUtils.InterpolateColor: colorA and colorB must be TEN.Color.")
+        ErrorLog("Error in {context}: colorA and colorB must be TEN.Color.", {context = errorContext})
         return colorA
     end
 
     if not IsNumber(t) then
-        ErrorLog("Error in InterpolationUtils.InterpolateColor: t must be a number.")
+        ErrorLog("Error in {context}: t must be a number.", {context = errorContext})
         return colorA
     end
 
@@ -1437,7 +1450,7 @@ InterpolationUtils.InterpolateColor = function(colorA, colorB, t, space, options
     space = space or InterpolationUtils.Spaces.RGB
 
     if not IsNumber(space) or (space ~= InterpolationUtils.Spaces.RGB and space ~= InterpolationUtils.Spaces.HSL and space ~= InterpolationUtils.Spaces.OKLch) then
-        WarningLog("Warning in InterpolationUtils.InterpolateColor: invalid colorSpace, using RGB.")
+        WarningLog("Warning in {context}: invalid colorSpace, using RGB.", {context = errorContext})
         space = InterpolationUtils.Spaces.RGB
     end
 
@@ -1449,21 +1462,21 @@ InterpolationUtils.InterpolateColor = function(colorA, colorB, t, space, options
     local huePath = options.huePath
     if huePath ~= "shortest" and huePath ~= "longest" and huePath ~= "increasing" and huePath ~= "decreasing" then
         if huePath ~= nil then
-            WarningLog("Warning in InterpolationUtils.InterpolateColor: invalid huePath, using 'shortest'.")
+            WarningLog("Warning in {context}: invalid huePath, using 'shortest'.", {context = errorContext})
         end
         huePath = "shortest"
     end
 
     local preserveS = options.preserveSaturation
     if preserveS ~= nil and not IsBoolean(preserveS) then
-        WarningLog("Warning in InterpolationUtils.InterpolateColor: preserveSaturation must be boolean. Using false.")
+        WarningLog("Warning in {context}: preserveSaturation must be boolean. Using false.", {context = errorContext})
         preserveS = false
     end
     preserveS = preserveS or false
 
     local preserveL = options.preserveLightness
     if preserveL ~= nil and not IsBoolean(preserveL) then
-        WarningLog("Warning in InterpolationUtils.InterpolateColor: preserveLightness must be boolean. Using false.")
+        WarningLog("Warning in {context}: preserveLightness must be boolean. Using false.", {context = errorContext})
         preserveL = false
     end
     preserveL = preserveL or false
@@ -1472,8 +1485,8 @@ InterpolationUtils.InterpolateColor = function(colorA, colorB, t, space, options
 end
 
 ----
--- Tables
--- @section tables
+-- Color space table
+-- @section spaceTable
 
 ---
 -- Constants for color spaces in @{InterpolationUtils.InterpolateColor}.

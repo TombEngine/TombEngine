@@ -1,4 +1,4 @@
------<style>table.function_list td.name {min-width: 515px;}</style>
+-----<style>table.function_list td.name {min-width: 620px;}</style>
 --- Lua support functions for 3D point and vector transformations.
 ---
 --- **Design Philosophy:**
@@ -22,8 +22,7 @@
 
 local Transform3DUtils = {}
 local Type = require("Engine.Type")
-
-local logLevelError  = TEN.Util.LogLevel.ERROR
+local Utility = require("Engine.Util")
 
 local IsNumber = Type.IsNumber
 local IsVec3 = Type.IsVec3
@@ -31,11 +30,11 @@ local IsRotation = Type.IsRotation
 local IsBoolean = Type.IsBoolean
 local IsString = Type.IsString
 local IsTable = Type.IsTable
+local ErrorLog = Utility.ErrorLog
 local abs = math.abs
 local sin = math.sin
 local cos = math.cos
 local rad = math.rad
-local LogMessage  = TEN.Util.PrintLog
 local Vec3 = TEN.Vec3
 local Rotation = TEN.Rotation
 
@@ -85,6 +84,7 @@ end
 -- @tparam Vec3 pivot The pivot point (center of rotation).
 -- @tparam string|Vec3 axis The rotation axis. Can be "x", "y", "z" (case-insensitive) or a custom Vec3 direction.
 -- @tparam float angle The rotation angle in degrees.
+-- @tparam[opt="Transform3DUtils.RotatePointAroundAxis"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] Vec3 The rotated point.
 -- @treturn[2] nil If an error occurs.
 -- @usage
@@ -165,18 +165,19 @@ end
 --
 -- -- Safe approach with default fallback:
 -- local rotated = Transform3DUtils.RotatePointAroundAxis(point, pivot, "y", angle) or point
-Transform3DUtils.RotatePointAroundAxis = function(point, pivot, axis, angle)
+Transform3DUtils.RotatePointAroundAxis = function(point, pivot, axis, angle, errorContext)
+    errorContext = errorContext or "Transform3DUtils.RotatePointAroundAxis"
     -- Type validation
     if not IsVec3(point) then
-        LogMessage("Error in Transform3DUtils.RotatePointAroundAxis: point must be a Vec3.", logLevelError)
+        ErrorLog("Error in {context}: point must be a Vec3.", {context = errorContext})
         return nil
     end
     if not IsVec3(pivot) then
-        LogMessage("Error in Transform3DUtils.RotatePointAroundAxis: pivot must be a Vec3.", logLevelError)
+        ErrorLog("Error in {context}: pivot must be a Vec3.", {context = errorContext})
         return nil
     end
     if not IsNumber(angle) then
-        LogMessage("Error in Transform3DUtils.RotatePointAroundAxis: angle must be a number.", logLevelError)
+        ErrorLog("Error in {context}: angle must be a number.", {context = errorContext})
         return nil
     end
 
@@ -195,7 +196,7 @@ Transform3DUtils.RotatePointAroundAxis = function(point, pivot, axis, angle)
         elseif axisLower == "z" then
             rotation = Rotation(0, 0, angle)
         else
-            LogMessage("Error in Transform3DUtils.RotatePointAroundAxis: axis string must be 'x', 'y', or 'z'.", logLevelError)
+            ErrorLog("Error in {context}: axis string must be 'x', 'y', or 'z'.", {context = errorContext})
             return nil
         end
         rotatedLocal = localPoint:Rotate(rotation)
@@ -212,7 +213,7 @@ Transform3DUtils.RotatePointAroundAxis = function(point, pivot, axis, angle)
 
         rotatedLocal = localPoint * cosTheta + kCrossV * sinTheta + k * (kDotV * (1 - cosTheta))
     else
-        LogMessage("Error in Transform3DUtils.RotatePointAroundAxis: axis must be a string ('x', 'y', 'z') or Vec3.", logLevelError)
+        ErrorLog("Error in {context}: axis must be a string ('x', 'y', 'z') or Vec3.", {context = errorContext})
         return nil
     end
 
@@ -228,6 +229,7 @@ end
 -- @tparam float radius The radius of the orbit.
 -- @tparam float angle The parametric angle in degrees (0-360).
 -- @tparam[opt="y"] string|Vec3 axis The orbital plane axis. Can be "x", "y", "z" (case-insensitive) or custom Vec3.
+-- @tparam[opt="Transform3DUtils.OrbitPosition"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] Vec3 The calculated orbital position.
 -- @treturn[2] nil If an error occurs.
 -- @usage
@@ -303,17 +305,18 @@ end
 --
 -- -- Safe approach with default fallback:
 -- local orbitPos = Transform3DUtils.OrbitPosition(center, radius, angle, "y") or center
-Transform3DUtils.OrbitPosition = function(center, radius, angle, axis)
+Transform3DUtils.OrbitPosition = function(center, radius, angle, axis, errorContext)
+    errorContext = errorContext or "Transform3DUtils.OrbitPosition"
     if not IsVec3(center) then
-        LogMessage("Error in Transform3DUtils.OrbitPosition: center must be a Vec3.", logLevelError)
+        ErrorLog("Error in {context}: center must be a Vec3.", {context = errorContext})
         return nil
     end
     if not IsNumber(radius) then
-        LogMessage("Error in Transform3DUtils.OrbitPosition: radius must be a number.", logLevelError)
+        ErrorLog("Error in {context}: radius must be a number.", {context = errorContext})
         return nil
     end
     if not IsNumber(angle) then
-        LogMessage("Error in Transform3DUtils.OrbitPosition: angle must be a number.", logLevelError)
+        ErrorLog("Error in {context}: angle must be a number.", {context = errorContext})
         return nil
     end
 
@@ -322,11 +325,11 @@ Transform3DUtils.OrbitPosition = function(center, radius, angle, axis)
     if IsString(axis) then
         axis = axis:lower()
         if axis ~= "x" and axis ~= "y" and axis ~= "z" then
-            LogMessage("Error in Transform3DUtils.OrbitPosition: axis string must be 'x', 'y', or 'z'.", logLevelError)
+            ErrorLog("Error in {context}: axis string must be 'x', 'y', or 'z'.", {context = errorContext})
             return nil
         end
     elseif not IsVec3(axis) then
-        LogMessage("Error in Transform3DUtils.OrbitPosition: axis must be a string ('x', 'y', 'z') or Vec3.", logLevelError)
+        ErrorLog("Error in {context}: axis must be a string ('x', 'y', 'z') or Vec3.", {context = errorContext})
         return nil
     end
 
@@ -343,6 +346,7 @@ end
 --   - axis (string|Vec3): Orbital plane axis ("x"/"y"/"z" or custom Vec3, default "y")
 --   - startAngle (number): Starting angle in degrees (default 0)
 --   - faceDirection (string): "center" = face inward, "outward" = face outward, nil = no rotation
+-- @tparam[opt="Transform3DUtils.ArrangeInCircle"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] bool True if successful.
 -- @treturn[2] bool False if an error occurs.
 -- @usage
@@ -417,7 +421,8 @@ end
 --     -- Rearrange every frame as hub moves
 --     Transform3DUtils.ArrangeInCircle(hub, satellites, 1024, {faceDirection = "center"})
 -- end
-Transform3DUtils.ArrangeInCircle = function(center, objects, radius, options)
+Transform3DUtils.ArrangeInCircle = function(center, objects, radius, options, errorContext)
+    errorContext = errorContext or "Transform3DUtils.ArrangeInCircle"
     -- Parse center (Vec3, Moveable, or Static)
     local centerPos
     if IsVec3(center) then
@@ -425,32 +430,34 @@ Transform3DUtils.ArrangeInCircle = function(center, objects, radius, options)
     elseif center and center.GetPosition then
         centerPos = center:GetPosition()
     else
-        LogMessage("Error in Transform3DUtils.ArrangeInCircle: center must be a Vec3, Moveable, or Static object.", logLevelError)
+        ErrorLog("Error in {context}: center must be a Vec3, Moveable, or Static object.", {context = errorContext})
         return false
     end
 
     -- Validate objects array
     if not IsTable(objects) then
-        LogMessage("Error in Transform3DUtils.ArrangeInCircle: objects must be a table.", logLevelError)
+        ErrorLog("Error in {context}: objects must be a table.", {context = errorContext})
         return false
     end
     if #objects == 0 then
-        LogMessage("Error in Transform3DUtils.ArrangeInCircle: objects table is empty.", logLevelError)
+        ErrorLog("Error in {context}: objects table is empty.", {context = errorContext})
         return false
     end
 
     -- Validate radius
     if not IsNumber(radius) then
-        LogMessage("Error in Transform3DUtils.ArrangeInCircle: radius must be a number.", logLevelError)
+        ErrorLog("Error in {context}: radius must be a number.", {context = errorContext})
         return false
     end
     if radius <= 0 then
-        LogMessage("Error in Transform3DUtils.ArrangeInCircle: radius must be positive.", logLevelError)
+        ErrorLog("Error in {context}: radius must be positive.", {context = errorContext})
         return false
     end
 
     -- Parse options with defaults
-    options = options or {}
+    if not IsTable(options) then
+        options = {}
+    end
     local axis = options.axis or "y"
     local startAngle = options.startAngle or 0
     local faceDirection = options.faceDirection
@@ -459,28 +466,28 @@ Transform3DUtils.ArrangeInCircle = function(center, objects, radius, options)
     if IsString(axis) then
         axis = axis:lower()
         if axis ~= "x" and axis ~= "y" and axis ~= "z" then
-            LogMessage("Error in Transform3DUtils.ArrangeInCircle: axis string must be 'x', 'y', or 'z'.", logLevelError)
+            ErrorLog("Error in {context}: axis string must be 'x', 'y', or 'z'.", {context = errorContext})
             return false
         end
     elseif IsVec3(axis) then
         if axis:Length() < 0.001 then
-            LogMessage("Error in Transform3DUtils.ArrangeInCircle: axis Vec3 cannot be zero.", logLevelError)
+            ErrorLog("Error in {context}: axis Vec3 cannot be zero.", {context = errorContext})
             return false
         end
     else
-        LogMessage("Error in Transform3DUtils.ArrangeInCircle: axis must be a string ('x', 'y', 'z') or Vec3.", logLevelError)
+        ErrorLog("Error in {context}: axis must be a string ('x', 'y', 'z') or Vec3.", {context = errorContext})
         return false
     end
 
     -- Validate startAngle
     if not IsNumber(startAngle) then
-        LogMessage("Error in Transform3DUtils.ArrangeInCircle: startAngle must be a number.", logLevelError)
+        ErrorLog("Error in {context}: startAngle must be a number.", {context = errorContext})
         return false
     end
 
     -- Validate faceDirection
     if faceDirection ~= nil and faceDirection ~= "center" and faceDirection ~= "outward" then
-        LogMessage("Error in Transform3DUtils.ArrangeInCircle: faceDirection must be nil, 'center', or 'outward'.", logLevelError)
+        ErrorLog("Error in {context}: faceDirection must be nil, 'center', or 'outward'.", {context = errorContext})
         return false
     end
 
@@ -497,7 +504,7 @@ Transform3DUtils.ArrangeInCircle = function(center, objects, radius, options)
 
         -- Set position
         if not obj or not obj.SetPosition then
-            LogMessage("Error in Transform3DUtils.ArrangeInCircle: object " .. i .. " is invalid or missing SetPosition method.", logLevelError)
+            ErrorLog("Error in {context}: object {objectIndex} is invalid or missing SetPosition method.", {context = errorContext, objectIndex = i})
             return false
         end
         obj:SetPosition(position)
@@ -531,6 +538,7 @@ end
 -- @tparam Rotation parentRot Parent's world rotation.
 -- @tparam Vec3 localOffset Offset in parent's local space.
 -- @tparam[opt] Rotation localRotation Rotation in parent's local space (optional).
+-- @tparam[opt="Transform3DUtils.TransformLocalToWorld"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] Vec3 World position.
 -- @treturn[1] Rotation World rotation (or nil if localRotation not provided).
 -- @treturn[2] nil If an error occurs.
@@ -573,21 +581,22 @@ end
 --
 -- -- Safe approach with fallback:
 -- local worldPos = Transform3DUtils.TransformLocalToWorld(parentPos, parentRot, localOffset) or parentPos
-Transform3DUtils.TransformLocalToWorld = function(parentPos, parentRot, localOffset, localRotation)
+Transform3DUtils.TransformLocalToWorld = function(parentPos, parentRot, localOffset, localRotation, errorContext)
+    errorContext = errorContext or "Transform3DUtils.TransformLocalToWorld"
     if not IsVec3(parentPos) then
-        LogMessage("Error in Transform3DUtils.TransformLocalToWorld: parentPos must be a Vec3.", logLevelError)
+        ErrorLog("Error in {context}: parentPos must be a Vec3.", {context = errorContext})
         return nil
     end
     if not IsRotation(parentRot) then
-        LogMessage("Error in Transform3DUtils.TransformLocalToWorld: parentRot must be a Rotation.", logLevelError)
+        ErrorLog("Error in {context}: parentRot must be a Rotation.", {context = errorContext})
         return nil
     end
     if not IsVec3(localOffset) then
-        LogMessage("Error in Transform3DUtils.TransformLocalToWorld: localOffset must be a Vec3.", logLevelError)
+        ErrorLog("Error in {context}: localOffset must be a Vec3.", {context = errorContext})
         return nil
     end
     if localRotation and not IsRotation(localRotation) then
-        LogMessage("Error in Transform3DUtils.TransformLocalToWorld: localRotation must be a Rotation or nil.", logLevelError)
+        ErrorLog("Error in {context}: localRotation must be a Rotation or nil.", {context = errorContext})
         return nil
     end
 
@@ -600,6 +609,7 @@ end
 -- Works with both Moveable and Static objects.
 -- @tparam Objects.Moveable|Objects.Static parent Parent object.
 -- @tparam Objects.Moveable|Objects.Static child Child object to calculate offset for.
+-- @tparam[opt="Transform3DUtils.CalculateLocalOffset"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] Vec3 Local offset in parent's space.
 -- @treturn[2] nil If an error occurs.
 -- @usage
@@ -650,10 +660,11 @@ end
 --
 -- -- Safe approach with fallback:
 -- local offset = Transform3DUtils.CalculateLocalOffset(parent, child) or TEN.Vec3(0, 0, 0)
-Transform3DUtils.CalculateLocalOffset = function(parent, child)
+Transform3DUtils.CalculateLocalOffset = function(parent, child, errorContext)
+    errorContext = errorContext or "Transform3DUtils.CalculateLocalOffset"
     -- Type validation (check for GetPosition and GetRotation methods)
     if not parent or not child then
-        LogMessage("Error in Transform3DUtils.CalculateLocalOffset: parent and child cannot be nil.", logLevelError)
+        ErrorLog("Error in {context}: parent and child cannot be nil.", {context = errorContext})
         return nil
     end
 
@@ -662,7 +673,7 @@ Transform3DUtils.CalculateLocalOffset = function(parent, child)
     local childPos = child.GetPosition and child:GetPosition()
 
     if not parentPos or not parentRot or not childPos then
-        LogMessage("Error in Transform3DUtils.CalculateLocalOffset: parent and child must have GetPosition() and GetRotation() methods.", logLevelError)
+        ErrorLog("Error in {context}: parent and child must have GetPosition() and GetRotation() methods.", {context = errorContext})
         return nil
     end
 
@@ -686,6 +697,7 @@ end
 -- @tparam Objects.Moveable|Objects.Static child Child object to attach.
 -- @tparam Vec3 localOffset Offset in parent's local space.
 -- @tparam[opt=false] bool inheritRotation If true, child inherits parent's rotation.
+-- @tparam[opt="Transform3DUtils.AttachToObject"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] bool True if successful.
 -- @treturn[2] bool False if an error occurs.
 -- @usage
@@ -756,18 +768,19 @@ end
 -- if not success then
 --     TEN.Util.PrintLog("Failed to attach object", TEN.Util.LogLevel.ERROR)
 -- end
-Transform3DUtils.AttachToObject = function(parent, child, localOffset, inheritRotation)
+Transform3DUtils.AttachToObject = function(parent, child, localOffset, inheritRotation, errorContext)
+    errorContext = errorContext or "Transform3DUtils.AttachToObject"
     -- Type validation
     if not parent or not child then
-        LogMessage("Error in Transform3DUtils.AttachToObject: parent and child cannot be nil.", logLevelError)
+        ErrorLog("Error in {context}: parent and child cannot be nil.", {context = errorContext})
         return false
     end
     if not IsVec3(localOffset) then
-        LogMessage("Error in Transform3DUtils.AttachToObject: localOffset must be a Vec3.", logLevelError)
+        ErrorLog("Error in {context}: localOffset must be a Vec3.", {context = errorContext})
         return false
     end
     if inheritRotation ~= nil and not IsBoolean(inheritRotation) then
-        LogMessage("Error in Transform3DUtils.AttachToObject: inheritRotation must be a boolean or nil.", logLevelError)
+        ErrorLog("Error in {context}: inheritRotation must be a boolean or nil.", {context = errorContext})
         return false
     end
 
@@ -776,13 +789,13 @@ Transform3DUtils.AttachToObject = function(parent, child, localOffset, inheritRo
     local parentRot = parent.GetRotation and parent:GetRotation()
 
     if not parentPos or not parentRot then
-        LogMessage("Error in Transform3DUtils.AttachToObject: parent must have GetPosition() and GetRotation() methods.", logLevelError)
+        ErrorLog("Error in {context}: parent must have GetPosition() and GetRotation() methods.", {context = errorContext})
         return false
     end
 
     -- Check child has SetPosition
     if not child.SetPosition then
-        LogMessage("Error in Transform3DUtils.AttachToObject: child must have SetPosition() method.", logLevelError)
+        ErrorLog("Error in {context}: child must have SetPosition() method.", {context = errorContext})
         return false
     end
 
