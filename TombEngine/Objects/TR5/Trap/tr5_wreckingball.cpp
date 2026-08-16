@@ -609,12 +609,20 @@ namespace TEN::Entities::Traps
 		// Stack links at an absolute, fixed spacing instead of rescaling every link when the chain
 		// length changes. This keeps the top of the chain anchored and only the bottom link moves, so
 		// the whole stack does not shimmer when the total link count changes each frame.
-		int linkCount = std::min<int>(MAX_CHAIN_LINKS, (int)(distance / CHAIN_LINK_SPACING) + 1);
+		int totalLinks = (int)state.Links.size();
+		if (totalLinks <= 0)
+			return;
 
-		for (int i = 0; i < MAX_CHAIN_LINKS; i++)
+		int linkCount = std::min<int>(totalLinks, (int)(distance / CHAIN_LINK_SPACING) + 1);
+
+		for (int i = 0; i < totalLinks; i++)
 		{
-			auto& link = g_Level.Items[state.Links[i]];
-			if (state.Links[i] < 0 || i >= linkCount)
+			short linkNumber = state.Links[i];
+			if (linkNumber < 0)
+				continue;
+
+			auto& link = g_Level.Items[linkNumber];
+			if (i >= linkCount)
 			{
 				SetItemInvisible(link);
 				continue;
@@ -639,7 +647,7 @@ namespace TEN::Entities::Traps
 			short room = link.RoomNumber;
 			GetFloor(link.Pose.Position.x, link.Pose.Position.y, link.Pose.Position.z, &room);
 			if (room != link.RoomNumber)
-				ItemNewRoom(state.Links[i], room);
+				ItemNewRoom(linkNumber, room);
 		}
 	}
 
@@ -1026,7 +1034,11 @@ namespace TEN::Entities::Traps
 				}
 			}
 
-			state.Links.push_back(SpawnItem(item, ID_WRECKINGBALL_CHAIN));
+			short linkNumber = SpawnItem(item, ID_WRECKINGBALL_CHAIN);
+			if (linkNumber < 0)
+				break;
+
+			state.Links.push_back(linkNumber);
 		}
 
 		// Enable interpolation on every link so the renderer smoothly eases their motion between
@@ -1194,4 +1206,3 @@ namespace TEN::Entities::Traps
 		}
 	}
 }
-
