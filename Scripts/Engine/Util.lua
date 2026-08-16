@@ -77,6 +77,27 @@ local function LinearToSrgb(c)
     end
 end
 
+-- Helper function for hue interpolation with different modes (no type checking, used internally)
+local function InterpolateHue(h1, h2, t, mode)
+    local delta = h2 - h1
+
+    if mode == "shortest" then
+        delta = ((delta + 180) % 360) - 180
+
+    elseif mode == "longest" then
+        delta = ((delta + 180) % 360) - 180
+        if delta > 0 then delta = delta - 360 else delta = delta + 360 end
+
+    elseif mode == "increasing" then
+        if delta < 0 then delta = delta + 360 end
+
+    elseif mode == "decreasing" then
+        if delta > 0 then delta = delta - 360 end
+    end
+
+    return (h1 + delta * t) % 360
+end
+
 -- Core interpolation that handles different types (number, color, rotation, vector) without clamping t.
 -- Clamping is handled by the caller to allow for extrapolation if desired.
 local InterpolateValuesRaw = function(a, b, t)
@@ -356,6 +377,42 @@ Util.OKLchToColorRaw = function(L, C, h, a)
     return Color(r, g, b, alpha)
 end
 
+-- Color interpolation (no type checking, used internally)
+-- space: 0 = RGB, 1 = HSL, 2 = OKLch. All parameters are assumed valid and t clamped to [0, 1].
+Util.InterpolateColorRaw = function(colorA, colorB, t, space, huePath, preserveS, preserveL)
+    if space == 0 then -- RGB
+        local inv = 1 - t
+        return Color(
+            floor(colorA.r * inv + colorB.r * t + 0.5),
+            floor(colorA.g * inv + colorB.g * t + 0.5),
+            floor(colorA.b * inv + colorB.b * t + 0.5),
+            floor(colorA.a * inv + colorB.a * t + 0.5)
+        )
+
+    elseif space == 1 then -- HSL
+        local hA, sA, lA = Util.ColorToHSLRaw(colorA)
+        local hB, sB, lB = Util.ColorToHSLRaw(colorB)
+
+        local h = InterpolateHue(hA, hB, t, huePath)
+        local s = preserveS and sA or (sA + (sB - sA) * t)
+        local l = preserveL and lA or (lA + (lB - lA) * t)
+
+        local alpha = (colorA.a + (colorB.a - colorA.a) * t) / 255
+        return Util.HSLtoColorRaw(h, s, l, alpha)
+
+    else -- OKLch (space == 2)
+        local lA, cA, hA = Util.ColorToOKLchRaw(colorA)
+        local lB, cB, hB = Util.ColorToOKLchRaw(colorB)
+
+        local l = preserveL and lA or (lA + (lB - lA) * t)
+        local c = preserveS and cA or (cA + (cB - cA) * t)
+        local h = InterpolateHue(hA, hB, t, huePath)
+
+        local alpha = (colorA.a + (colorB.a - colorA.a) * t) / 255
+        return Util.OKLchToColorRaw(l, c, h, alpha)
+    end
+end
+
 -- Check if a value is valid for interpolation (number, color, rotation, or vector)
 Util.IsValidInterpolationValue = function(value)
     return IsNumber(value) or
@@ -470,11 +527,6 @@ Util.BounceRaw = function(a, b, t, bounces, damping)
     local oscillation = abs(cos(t * pi * bounces))
     local easedT = 1 - (oscillation * decay)
     return InterpolateValuesRaw(a, b, easedT)
-end
-
--- Support function for rounding numbers to a specified number of decimal places
-Util.Round = function(num, mult)
-    return floor(num * mult + 0.5) / mult
 end
 
 return Util

@@ -297,8 +297,8 @@ end
 --     end
 --     return rounded .. "%"
 -- end
--- -- FormatPercentage(87.654) -- Result: "87.7%"
--- -- FormatPercentage(nil)    -- Result: "0.0%" (error logged, fallback used)
+-- FormatPercentage(87.654) -- Result: "87.7%"
+-- FormatPercentage(nil)    -- Result: "0.0%" (error logged, fallback used)
 MathUtils.Round = function(num, decimals, errorContext)
     errorContext = errorContext or "MathUtils.Round"
     decimals = decimals or 0
@@ -331,8 +331,8 @@ end
 --     end
 --     return truncated .. "s"
 -- end
--- -- FormatCooldown(3.999) -- Result: "3.99s" (truncated, not 4.00)
--- -- FormatCooldown(nil)   -- Result: "0.00s" (error logged, fallback used)
+-- FormatCooldown(3.999) -- Result: "3.99s" (truncated, not 4.00)
+-- FormatCooldown(nil)   -- Result: "0.00s" (error logged, fallback used)
 MathUtils.Truncate = function(num, decimals, errorContext)
     errorContext = errorContext or "MathUtils.Truncate"
     decimals = decimals or 0
@@ -708,8 +708,8 @@ end
 --     end
 --     return wrapped
 -- end
--- -- NormalizeYaw(450, 0, 360) -- Result: 90 (wrapped into range)
--- -- NormalizeYaw(450, 360, 0) -- Result: 450 (invalid range, error logged, original kept)
+-- NormalizeYaw(450, 0, 360) -- Result: 90 (wrapped into range)
+-- NormalizeYaw(450, 360, 0) -- Result: 450 (invalid range, error logged, original kept)
 MathUtils.WrapAngle = function(angle, minValue, maxValue, errorContext)
     errorContext = errorContext or "MathUtils.WrapAngle"
     minValue = minValue or 0

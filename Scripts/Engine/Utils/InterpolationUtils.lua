@@ -140,12 +140,8 @@ local Utility = require("Engine.Util")
 local Type = require("Engine.Type")
 local TableUtils = require("Engine.Utils.TableUtils")
 
-local Round = Utility.Round
 local WrapAngleRaw = Utility.WrapAngleRaw
-local HSLtoColorRaw = Utility.HSLtoColorRaw
-local ColorToHSLRaw = Utility.ColorToHSLRaw
-local ColorToOKLchRaw = Utility.ColorToOKLchRaw
-local OKLchToColorRaw = Utility.OKLchToColorRaw
+local InterpolateColorRaw = Utility.InterpolateColorRaw
 
 local IsValidInterpolationValue = Utility.IsValidInterpolationValue
 local LerpRaw = Utility.LerpRaw
@@ -166,40 +162,12 @@ local IsTable = Type.IsTable
 local max = math.max
 local min = math.min
 
-local LogMessage  = TEN.Util.PrintLog
-local logLevelEnums = TEN.Util.LogLevel
-local logLevelError  = logLevelEnums.ERROR
-local logLevelWarning = logLevelEnums.WARNING
-
-local Color = TEN.Color
-
 InterpolationUtils.Spaces = {
     RGB = 0,
     HSL = 1,
     OKLch = 2
 }
 TableUtils.SetTableReadOnly(InterpolationUtils.Spaces)
-
--- Helper function for hue interpolation with different modes
-local function InterpolateHue(h1, h2, t, mode)
-    local delta = h2 - h1
-
-    if mode == "shortest" then
-        delta = ((delta + 180) % 360) - 180
-
-    elseif mode == "longest" then
-        delta = ((delta + 180) % 360) - 180
-        if delta > 0 then delta = delta - 360 else delta = delta + 360 end
-
-    elseif mode == "increasing" then
-        if delta < 0 then delta = delta + 360 end
-
-    elseif mode == "decreasing" then
-        if delta > 0 then delta = delta - 360 end
-    end
-
-    return (h1 + delta * t) % 360
-end
 
 local function ValidateAB (a, b, errorContext)
     if not IsValidInterpolationValue(a) then
@@ -1453,25 +1421,24 @@ end
 -- --  1.00  | 28  | 103 | 255
 -- -- Note: Enabling preserveLightness, with t = 1 does not yield pure blue due to lightness preservation.
 InterpolationUtils.InterpolateColor = function(colorA, colorB, t, space, options)
-
     -- Validate input parameters
     if not IsColor(colorA) or not IsColor(colorB) then
-        LogMessage("Error in InterpolationUtils.InterpolateColor: colorA and colorB must be TEN.Color.", logLevelError)
+        ErrorLog("Error in InterpolationUtils.InterpolateColor: colorA and colorB must be TEN.Color.")
         return colorA
     end
 
     if not IsNumber(t) then
-        LogMessage("Error in InterpolationUtils.InterpolateColor: t must be a number.", logLevelError)
+        ErrorLog("Error in InterpolationUtils.InterpolateColor: t must be a number.")
         return colorA
     end
 
     t = max(0, min(1, t))  -- Clamp t to [0, 1]
 
-    space = space or 0
+    space = space or InterpolationUtils.Spaces.RGB
 
-    if not IsNumber(space) or (space ~= 0  and space ~= 1 and space ~= 2) then
-        LogMessage("Warning in InterpolationUtils.InterpolateColor: invalid colorSpace, using RGB.", logLevelWarning)
-        space = 0
+    if not IsNumber(space) or (space ~= InterpolationUtils.Spaces.RGB and space ~= InterpolationUtils.Spaces.HSL and space ~= InterpolationUtils.Spaces.OKLch) then
+        WarningLog("Warning in InterpolationUtils.InterpolateColor: invalid colorSpace, using RGB.")
+        space = InterpolationUtils.Spaces.RGB
     end
 
     -- Validate options (optional parameter)
@@ -1482,63 +1449,26 @@ InterpolationUtils.InterpolateColor = function(colorA, colorB, t, space, options
     local huePath = options.huePath
     if huePath ~= "shortest" and huePath ~= "longest" and huePath ~= "increasing" and huePath ~= "decreasing" then
         if huePath ~= nil then
-            LogMessage("Warning in InterpolationUtils.InterpolateColor: invalid huePath, using 'shortest'.", logLevelWarning)
+            WarningLog("Warning in InterpolationUtils.InterpolateColor: invalid huePath, using 'shortest'.")
         end
         huePath = "shortest"
     end
 
     local preserveS = options.preserveSaturation
     if preserveS ~= nil and not IsBoolean(preserveS) then
-        LogMessage("Warning in InterpolationUtils.InterpolateColor: preserveSaturation must be boolean. Using false.", logLevelWarning)
+        WarningLog("Warning in InterpolationUtils.InterpolateColor: preserveSaturation must be boolean. Using false.")
         preserveS = false
     end
     preserveS = preserveS or false
 
     local preserveL = options.preserveLightness
     if preserveL ~= nil and not IsBoolean(preserveL) then
-        LogMessage("Warning in InterpolationUtils.InterpolateColor: preserveLightness must be boolean. Using false.", logLevelWarning)
+        WarningLog("Warning in InterpolationUtils.InterpolateColor: preserveLightness must be boolean. Using false.")
         preserveL = false
     end
     preserveL = preserveL or false
 
-    -- RGB
-    if space == 0 then
-        local inv = 1 - t
-        return Color(
-            Round(colorA.r * inv + colorB.r * t, 1),
-            Round(colorA.g * inv + colorB.g * t, 1),
-            Round(colorA.b * inv + colorB.b * t, 1),
-            Round(colorA.a * inv + colorB.a * t, 1)
-        )
-    end
-
-    -- HSL
-    if space == 1 then
-        local hA, sA, lA = ColorToHSLRaw(colorA)
-        local hB, sB, lB = ColorToHSLRaw(colorB)
-
-        local h = InterpolateHue(hA, hB, t, huePath)
-        local s = preserveS and sA or (sA + (sB - sA) * t)
-        local l = preserveL and lA or (lA + (lB - lA) * t)
-
-        local finalColor = HSLtoColorRaw(h, s, l, 1)
-        finalColor.a = colorA.a + (colorB.a - colorA.a) * t
-        return finalColor
-    end
-
-    -- OKLch
-    if space == 2 then
-        local lA, cA, hA = ColorToOKLchRaw(colorA)
-        local lB, cB, hB = ColorToOKLchRaw(colorB)
-
-        local l = preserveL and lA or (lA + (lB - lA) * t)
-        local c = preserveS and cA or (cA + (cB - cA) * t)
-        local h = InterpolateHue(hA, hB, t, huePath)
-
-        local finalColor = OKLchToColorRaw(l, c, h, 1)
-        finalColor.a = colorA.a + (colorB.a - colorA.a) * t
-        return finalColor
-    end
+    return InterpolateColorRaw(colorA, colorB, t, space, huePath, preserveS, preserveL)
 end
 
 ----
