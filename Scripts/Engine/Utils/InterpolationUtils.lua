@@ -12,18 +12,18 @@
 -- <tr><td>`Smootherstep`</td><td>Ultra-smooth S-curve</td><td>Very gentle ease-in/out (C² continuity)</td><td>Cinematic effects, premium visuals</td></tr>
 -- <tr><td>`EaseInOut`</td><td>Quadratic curve</td><td>Pronounced acceleration/deceleration</td><td>Dramatic movements, elevators</td></tr>
 -- <tr><td>`Elastic`</td><td>Spring oscillation</td><td>Overshoot with smooth bounce back</td><td>Playful UI, cartoon effects</td></tr>
--- <tr><td>`Bounce`</td><td>Damped oscillation</td><td>Smooth bounces with energy decay</td><td>Falling objects, ball physics, collision effects</td></tr>
+-- <tr><td>`Bounce`</td><td>Standard Penner</td><td>4 peaks with diminishing troughs (industry standard)</td><td>Falling objects, ball physics, UI bounce</td></tr>
 -- </table>
 --
 -- <br>Comparison of interpolation methods (0 to 10):
 -- <table class="tableSP">
 -- <tr><th>t</th><th>Lerp</th><th>Smoothstep</th><th>Smootherstep</th><th>EaseInOut</th><th>Elastic</th><th>Bounce</th></tr>
 -- <tr><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td></tr>
--- <tr><td>0.10</td><td>1.00</td><td>0.28</td><td>0.16</td><td>0.20</td><td>-0.04</td><td>0.95</td></tr>
--- <tr><td>0.25</td><td>2.50</td><td>1.56</td><td>1.04</td><td>1.25</td><td>0.44</td><td>3.75</td></tr>
--- <tr><td>0.50</td><td>5.00</td><td>5.00</td><td>5.00</td><td>5.00</td><td>5.00</td><td>7.50</td></tr>
--- <tr><td>0.75</td><td>7.50</td><td>8.44</td><td>8.96</td><td>8.75</td><td>9.56</td><td>9.82</td></tr>
--- <tr><td>0.90</td><td>9.00</td><td>9.72</td><td>9.84</td><td>9.80</td><td>10.04</td><td>9.98</td></tr>
+-- <tr><td>0.10</td><td>1.00</td><td>0.28</td><td>0.16</td><td>0.20</td><td>-0.04</td><td>0.76</td></tr>
+-- <tr><td>0.25</td><td>2.50</td><td>1.56</td><td>1.04</td><td>1.25</td><td>0.44</td><td>4.73</td></tr>
+-- <tr><td>0.50</td><td>5.00</td><td>5.00</td><td>5.00</td><td>5.00</td><td>5.00</td><td>7.66</td></tr>
+-- <tr><td>0.75</td><td>7.50</td><td>8.44</td><td>8.96</td><td>8.75</td><td>9.56</td><td>9.73</td></tr>
+-- <tr><td>0.90</td><td>9.00</td><td>9.72</td><td>9.84</td><td>9.80</td><td>10.04</td><td>9.88</td></tr>
 -- <tr><td>1.00</td><td>10.00</td><td>10.00</td><td>10.00</td><td>10.00</td><td>10.00</td><td>10.00</td></tr>
 -- </table>
 --
@@ -45,10 +45,12 @@
 --</span>obj:SetRotation(newRot)</pre>
 --
 -- <h3>Special interpolations:</h3>
--- There are two special interpolation functions for specific use cases:
+-- These take additional parameters or operate on specialized data types. Use them
+-- when you need a specific effect the standard ones can't provide.
 -- <table class="tableSP">
 -- <tr><th>Method</th><th>Speed curve</th><th>Behavior</th><th>Use case</th></tr>
 -- <tr><td>`LerpAngle`</td><td>Linear (shortest)</td><td>Constant speed, wraps around 0°/360°</td><td>2D UI sprites (compass, indicators)</td></tr>
+-- <tr><td>`Slam`</td><td>Damped oscillation (parameterized)</td><td>Impact effect with tunable bounces and decay</td><td>Doors, collisions, elastic landings</td></tr>
 -- <tr><td>`InterpolateColor`</td><td>Configurable (Linear/HSL/OKLch)</td><td>Component-wise color interpolation</td><td>Color transitions, fades</td></tr>
 -- </table>
 --
@@ -79,6 +81,15 @@
 --currentRot.y = InterpolationUtils.LerpAngle(currentRot.y, targetRot.y, <span class="number">0.5</span>)  <span class="comment">-- Redundant!
 --</span>obj:SetRotation(currentRot)</pre>
 --
+-- <br>**Slam** is a parameterized impact effect for cases that don't match
+-- the standard Penner Bounce curve. The `bounces` and `bounciness` parameters
+-- control the number of visible oscillations and how long they persist.
+-- For common configurations, use the `SlamPresets` table.
+--
+-- _Bounce vs Slam:_ use `Bounce` for standard physical bouncing balls
+-- (universally recognized curve). Use `Slam` for impacts, hard collisions,
+-- elastic landings, or any case where you need to tune the oscillation pattern.
+--
 -- <br>**InterpolateColor** supports multiple color spaces for different use cases:
 -- 
 -- When to use each color space:
@@ -105,8 +116,9 @@
 -- - Use `Smootherstep` for: cinematic camera movements, premium effects, AAA-quality visuals
 -- - Use `EaseInOut` for: dramatic movements, pronounced acceleration/deceleration
 -- - Use `Elastic` for: bouncy UI, cartoon effects, playful feedback, spring animations
--- - Use `Bounce` for: falling objects, ball physics, collision effects (with aggressive parameters)
+-- - Use `Bounce` for: falling objects, ball physics, UI bounce (standard physical bounce)
 -- - Use `LerpAngle` for: 2D UI sprite rotations (DisplaySprite with single float angles)
+-- - Use `Slam` for: doors, collisions, hard impacts, elastic landings (parameterized impact)
 -- - Use `InterpolateColor` for: color transitions, fades between colors
 --
 -- <h3>Note about practical examples:</h3>
@@ -143,6 +155,7 @@ local SmootherstepRaw = Utility.SmootherstepRaw
 local EaseInOutRaw = Utility.EaseInOutRaw
 local ElasticRaw = Utility.ElasticRaw
 local BounceRaw = Utility.BounceRaw
+local SlamRaw = Utility.SlamRaw
 
 local ErrorLog = Utility.ErrorLog
 local WarningLog = Utility.WarningLog
@@ -155,12 +168,22 @@ local IsTable = Type.IsTable
 local max = math.max
 local min = math.min
 
+-- Constants tables for the functions below. See the "Special Tables" section
+-- at the bottom of this file for the full LDoc documentation.
 InterpolationUtils.Spaces = {
     RGB = 0,
     HSL = 1,
     OKLch = 2
 }
 TableUtils.SetTableReadOnly(InterpolationUtils.Spaces)
+
+InterpolationUtils.SlamPresets = {
+    SmoothApproach = { bounces = 1, bounciness = 0.0 },
+    Slam           = { bounces = 2, bounciness = 0.2 },
+    Elastic        = { bounces = 4, bounciness = 0.5 },
+    VeryElastic    = { bounces = 6, bounciness = 0.7 },
+}
+TableUtils.SetTableReadOnly(InterpolationUtils.SlamPresets)
 
 local function ValidateAB (a, b, errorContext)
     if not IsValidInterpolationValue(a) then
@@ -395,7 +418,7 @@ end
 -- local startPos = TEN.Vec3(0, 0, 0)
 -- local endPos = TEN.Vec3(-512, 0, 0)  -- Move left 512 units
 -- local bridgeInitialPos = bridge:GetPosition()
--- local animationDuration = ConversionUtils.SecondsToFrames(3)  -- 3 seconds = 90 frames @ 30fps
+-- local animationDuration = Conversion Utils.SecondsToFrames(3)  -- 3 seconds = 90 frames @ 30fps
 -- local currentFrame = 0
 -- local animationComplete = false
 -- LevelFuncs.MoveBridge = function()
@@ -955,102 +978,74 @@ InterpolationUtils.Elastic = function(a, b, t, amplitude, period, errorContext)
     return ElasticRaw(a, b, t, amplitude, period)
 end
 
---- Bounce interpolation with damped oscillation physics.
--- Creates a bouncing animation that simulates objects hitting surfaces with decreasing intensity.
--- Perfect for falling objects, ball physics, and collision effects with proper parameter tuning.
--- Uses an exponential decay curve with cosine waves to approximate bounce physics.
+--- Bounce interpolation with the industry-standard Penner easeOutBounce curve.
+-- Creates the classic "bouncing ball" animation: the value hits the target 4 times
+-- with diminishing troughs (0.75, 0.9375, 0.984) between peaks. This is the same
+-- formula used by jQuery, GSAP, Godot, CSS easing, and virtually every other
+-- animation library. Zero parameters, because "bounce" has a single universally
+-- recognized shape.
 --
--- **Note on physics simulation:**
--- This is an easing function (mathematical curve), not a physics engine.
--- It approximates bouncing behavior for visual effects. For realistic physics:
---
--- - Use low `bounces` (2-3) and low `damping` (0.3-0.4) for hard collisions
---
--- - Use high `bounces` (5-7) and high `damping` (0.6-0.8) for elastic bouncing
+-- For parameterized impact effects (slam, hard collision, elastic landing with
+-- custom parameters), use `Slam` instead. `Bounce` is reserved for the standard
+-- physical bouncing ball.
 -- @tparam float|Color|Rotation|Vec2|Vec3 a Start value.
 -- @tparam float|Color|Rotation|Vec2|Vec3 b End value.
 -- @tparam float t Interpolation factor (0.0 to 1.0). It will be clamped to this range if out of bounds.
--- @tparam[opt=4] float bounces Number of bounces (default: 4). Higher values = more bounces before settling.
--- @tparam[opt=0.5] float damping Bounce intensity/energy loss (default: 0.5, range: 0.0-1.0). Lower values = faster decay, higher values = longer bounces.
 -- @tparam[opt="InterpolationUtils.Bounce"] string errorContext Context string for error messages (e.g., function name).
--- @treturn[1] float|Color|Rotation|Vec2|Vec3 The interpolated value with bounce effect.
+-- @treturn[1] float|Color|Rotation|Vec2|Vec3 The interpolated value with the standard bounce curve.
 -- @treturn[2] float|Color|Rotation|Vec2|Vec3 Value `a` if an error occurs.
 -- @usage
--- -- Most common usage (numbers with default parameters):
--- local bounceValue = InterpolationUtils.Bounce(0, 100, 0.75) -- Result: ~100 with bounce oscillations
+-- -- Most common usage (numbers):
+-- local bounceValue = InterpolationUtils.Bounce(0, 100, 0.75) -- Result: ~92 (between second and third peak)
 --
--- -- Demonstration of bounce progression (0 to 10, bounces=4, damping=0.5):
+-- -- Penner bounce progression (0 to 10):
 -- --   t    | result
 -- --  ------|--------
 -- --  0.00  | 0.00
--- --  0.10  | 0.95   (accelerating toward target)
--- --  0.25  | 3.75   (moving toward target)
--- --  0.50  | 7.50   (approaching target)
--- --  0.70  | 9.70   (first impact, slight overshoot)
--- --  0.75  | 9.82   (small bounce back)
--- --  0.85  | 9.95   (second smaller bounce)
--- --  0.95  | 9.99   (tiny final bounce)
+-- --  0.10  | 0.76   (rising)
+-- --  0.25  | 4.73
+-- --  0.36  | 9.80   (just before first peak)
+-- --  0.36  | 10.00  (first peak at t=1/2.75 ≈ 0.3636, hits target)
+-- --  0.50  | 7.66
+-- --  0.55  | 7.50   (first trough at t=1.5/2.75 ≈ 0.5454)
+-- --  0.73  | 9.96   (just before second peak)
+-- --  0.73  | 10.00  (second peak at t=2/2.75 ≈ 0.7272, hits target)
+-- --  0.82  | 9.38   (second trough at t=2.25/2.75 ≈ 0.8181)
+-- --  0.91  | 9.99   (just past third peak at t=2.5/2.75 ≈ 0.9090)
+-- --  0.95  | 9.84   (third trough at t=2.625/2.75 ≈ 0.9545)
 -- --  1.00  | 10.00  (settled at target)
---
--- -- Example with more bounces (energetic ball):
--- local energeticBounce = InterpolationUtils.Bounce(0, 100, 0.8, 6, 0.6)
--- -- More bounces with slower decay:
--- --   t    | result (bounces=6, damping=0.6)
--- --  ------|--------------------------------
--- --  0.70  | 97.2   (first bounce)
--- --  0.80  | 99.5   (second bounce)
--- --  0.90  | 99.9   (third bounce)
--- --  0.95  | 100.0  (still bouncing slightly)
---
--- -- Example with fewer bounces (heavy object):
--- local heavyBounce = InterpolationUtils.Bounce(0, 100, 0.8, 2, 0.3)
--- -- Fewer, sharper bounces with fast decay:
--- --   t    | result (bounces=2, damping=0.3)
--- --  ------|--------------------------------
--- --  0.75  | 98.5   (quick first bounce)
--- --  0.90  | 99.8   (small second bounce)
--- --  1.00  | 100.0  (settled quickly)
+-- --
+-- -- Visual pattern: rises sharply to the target, dips to 0.75, rises to target,
+-- -- dips to 0.9375, rises, dips to 0.984, rises, settles. Classic ball bounce.
 --
 -- -- Example with Colors (bouncing color transition red → blue):
 -- local color1 = TEN.Color(255, 0, 0, 255)  -- Red
 -- local color2 = TEN.Color(0, 0, 255, 255)  -- Blue
--- 
--- --   t    | R   | G | B   (bouncing color)
+-- --   t    | R   | G | B
 -- --  ------|-----|---|-----
 -- --  0.00  | 255 | 0 | 0
--- --  0.50  | 127 | 0 | 127
--- --  0.75  | 5   | 0 | 250  (approaching blue with bounce)
--- --  0.85  | 10  | 0 | 245  (bounce back slightly)
+-- --  0.36  | 0   | 0 | 255  (first hit: pure blue, at peak)
+-- --  0.55  | 64  | 0 | 191  (first bounce back, at trough)
+-- --  0.73  | 0   | 0 | 255  (second hit, at peak)
 -- --  1.00  | 0   | 0 | 255  (settled at blue)
--- local bounceColor = InterpolationUtils.Bounce(color1, color2, 0.75, 4, 0.5)
+-- local bounceColor = InterpolationUtils.Bounce(color1, color2, 0.5)
 --
 -- -- Example with Vec3 (ball bouncing toward ground):
 -- local startPos = TEN.Vec3(0, 1000, 0)  -- High in air
 -- local endPos = TEN.Vec3(0, 0, 0)       -- Ground level
--- 
--- --   t    | X | Y     | Z (bouncing ball)
+-- --   t    | X | Y     | Z
 -- --  ------|---|-------|---
 -- --  0.00  | 0 | 1000  | 0
--- --  0.50  | 0 | 500   | 0   (falling)
--- --  0.75  | 0 | 20    | 0   (first bounce up)
--- --  0.85  | 0 | 5     | 0   (second smaller bounce)
--- --  0.95  | 0 | 1     | 0   (tiny final bounce)
--- --  1.00  | 0 | 0     | 0   (settled on ground)
--- local bouncePos = InterpolationUtils.Bounce(startPos, endPos, 0.75, 4, 0.5)
+-- --  0.36  | 0 | 0     | 0   (first impact on ground, at peak)
+-- --  0.55  | 0 | 250   | 0   (bounces back up, at trough)
+-- --  0.73  | 0 | 0     | 0   (second impact, at peak)
+-- --  1.00  | 0 | 0     | 0   (settled)
+-- local bouncePos = InterpolationUtils.Bounce(startPos, endPos, 0.5)
 --
--- -- Example with Rotation (door slamming with bounces):
--- local rot1 = TEN.Rotation(0, 90, 0)   -- Door open
--- local rot2 = TEN.Rotation(0, 0, 0)    -- Door closed
--- 
--- --   t    | X | Y    | Z (door slamming)
--- --  ------|---|------|---
--- --  0.00  | 0 | 90   | 0
--- --  0.50  | 0 | 45   | 0   (closing)
--- --  0.75  | 0 | 2    | 0   (first impact, bounces open slightly)
--- --  0.85  | 0 | 0.5  | 0   (second bounce)
--- --  0.95  | 0 | 0.1  | 0   (final tiny bounce)
--- --  1.00  | 0 | 0    | 0   (fully closed)
--- local bounceRot = InterpolationUtils.Bounce(rot1, rot2, 0.75, 3, 0.4)
+-- -- Example with Rotation (door with standard bounce):
+-- local openRot = TEN.Rotation(0, 90, 0)
+-- local closedRot = TEN.Rotation(0, 0, 0)
+-- local bounceRot = InterpolationUtils.Bounce(openRot, closedRot, 0.5)
 --
 -- -- Practical example 1: Dropping item with realistic bounce physics
 -- local item = TEN.Objects.GetMoveableByName("dropped_item")
@@ -1062,87 +1057,26 @@ end
 -- LevelFuncs.DropItem = function()
 --     if currentFrame <= animationDuration then
 --         local t = currentFrame / animationDuration
---         -- Item falls and bounces realistically on impact:
---         -- - Falls smoothly toward ground
---         -- - First impact creates largest bounce
---         -- - Each subsequent bounce is smaller
---         -- - Eventually settles on ground
---         local pos = InterpolationUtils.Bounce(startPos, endPos, t, 5, 0.6)
+--         -- Standard Penner bounce: 4 hits, classic ball physics
+--         local pos = InterpolationUtils.Bounce(startPos, endPos, t)
 --         item:SetPosition(pos)
---         
---         -- Optional: Play impact sound on each bounce peak
---         -- (detect when position Y changes direction)
---         
 --         currentFrame = currentFrame + 1
 --     end
 -- end
 -- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.DropItem)
 --
--- -- Practical example 2: An object simulates a slamming door with collision effects
--- -- Using aggressive parameters (low bounces, low damping) to simulate hard impacts
--- local stoneDoor = TEN.Objects.GetStaticByName("static_mesh_18")
--- local startPos = stoneDoor:GetPosition()
--- local endPos = startPos + TEN.Vec3(-1024, 0, 0)  -- Door drops 1024 units
--- local animationDuration = ConversionUtils.SecondsToFrames(1.5)  -- 1.5 second slam
--- local currentFrame = 0
--- LevelFuncs.SlamDoor = function()
---     if currentFrame <= animationDuration then
---         local t = currentFrame / animationDuration
---         
---         -- Door slams down with quick, hard bounces:
---         -- - Use bounces=2 for just a couple of impacts
---         -- - Use damping=0.3 for fast energy loss (hard surface)
---         -- This creates a "slamming" effect rather than elastic bouncing
---         local pos = InterpolationUtils.Bounce(startPos, endPos, t, 2, 0.3)
---         stoneDoor:SetPosition(pos)
---         
---         -- Optional: Play slam sound when door reaches/bounces off endPos
---         
---         currentFrame = currentFrame + 1
---     end
+-- -- Practical example 2: UI bounce effect (button feedback, pickup indicator)
+-- local indicator = TEN.View.DisplaySprite(1354, 16, TEN.Vec2(400, 300), 0, TEN.Vec2(3, 3))
+-- local startScale = TEN.Vec2(0, 0)
+-- local endScale = TEN.Vec2(1, 1)
+-- LevelFuncs.PopInIndicator = function()
+--     local t = math.min(1, TEN.Flow.GetStatistics().timeTaken:GetFrameCount() / 30)
+--     local scale = InterpolationUtils.Bounce(startScale, endScale, t)
+--     indicator:SetScale(scale)
+--     indicator:Draw()
 -- end
--- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.SlamDoor)
---
--- -- Practical example 3: 2 objects simulate double door lock with collision effect
--- -- Both objects move toward each other and "bounce" on collision
--- local leftObject = TEN.Objects.GetStaticByName("static_mesh_19")
--- local rightObject = TEN.Objects.GetStaticByName("static_mesh_20")
--- local leftStart = leftObject:GetPosition()
--- local rightStart = rightObject:GetPosition()
--- 
--- -- Each object moves 1024 units (1 sector) toward the other
--- -- Objects are 1024 wide and initially 2048 apart (2 sectors gap)
--- -- After moving 1024 each, they meet in the middle without overlapping
--- local leftEnd = TEN.Vec3(leftStart.x, leftStart.y, leftStart.z + 1024)
--- local rightEnd = TEN.Vec3(rightStart.x, rightStart.y, rightStart.z - 1024)
--- 
--- local animationDuration = ConversionUtils.SecondsToFrames(1.5)
--- local currentFrame = 0
--- 
--- LevelFuncs.DoubleDoorCollision = function()
---     if currentFrame <= animationDuration then
---         local t = currentFrame / animationDuration
---         
---         -- Aggressive parameters for collision effect:
---         -- bounces=3: A few quick impacts
---         -- damping=0.4: Quick energy loss for "slamming" feel
---         -- Both objects follow same curve toward their endpoints
---         
---         local leftPos = InterpolationUtils.Bounce(leftStart, leftEnd, t, 3, 0.4)
---         local rightPos = InterpolationUtils.Bounce(rightStart, rightEnd, t, 3, 0.4)
---         
---         leftObject:SetPosition(leftPos)
---         rightObject:SetPosition(rightPos)
---         
---         -- Optional: Calculate when objects are closest to detect "collision"
---         -- local distance = math.abs(leftPos.z - rightPos.z)
---         -- if distance < 10 then -- Play slam sound end
---         
---         currentFrame = currentFrame + 1
---     end
--- end
--- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.DoubleDoorCollision)
-InterpolationUtils.Bounce = function(a, b, t, bounces, damping, errorContext)
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.PopInIndicator)
+InterpolationUtils.Bounce = function(a, b, t, errorContext)
     errorContext = errorContext or "InterpolationUtils.Bounce"
     if not ValidateAB(a, b, errorContext) then
         return a
@@ -1151,34 +1085,13 @@ InterpolationUtils.Bounce = function(a, b, t, bounces, damping, errorContext)
         ErrorLog("Error in {context}: interpolation factor t is not a number.", {context = errorContext})
         return a
     end
-
-    -- Set default values and validate optional parameters
-    bounces = bounces or 4
-    damping = damping or 0.5
-
-    if not IsNumber(bounces) or not IsNumber(damping) then
-        ErrorLog("Error in {context}: bounces and damping must be numbers.", {context = errorContext})
-        return a
-    end
-
-    -- Validate bounces (must be positive integer)
-    if bounces < 1 or bounces % 1 ~= 0 then
-        WarningLog("Warning in {context}: bounces should be an integer >= 1. Using 1.", {context = errorContext})
-        bounces = 1
-    end
-
-    -- Validate damping (0.0 to 1.0 range)
-    if damping < 0.0 or damping > 1.0 then
-        WarningLog("Warning in {context}: damping should be between 0.0 and 1.0. Clamping.", {context = errorContext})
-        damping = max(0.0, min(1.0, damping))
-    end
-    -- Clamp t to [0, 1]
     t = max(0, min(1, t))
-
-    return BounceRaw(a, b, t, bounces, damping)
+    return BounceRaw(a, b, t)
 end
 
---- Special Interpolation functions
+--- Specialized interpolations for specific use cases.
+-- Unlike the standard interpolations above, these functions take additional
+-- parameters and/or operate on specialized data types. Use them when you need a specific effect that the standard ones can't provide (angle wrapping, parameterized impact effects or custom color spaces).
 -- @section Sinterpolations
 
 --- Linearly interpolate between two angles, taking the shortest path.
@@ -1345,6 +1258,181 @@ InterpolationUtils.LerpAngle = function(a, b, t, minValue, maxValue, errorContex
     return WrapAngleRaw(result, minValue, range)
 end
 
+--- Damped oscillation for impact effects (slam, hard collision, elastic landing).
+-- A customizable damped oscillation that can produce both slam-like impacts and
+-- elastic bounces depending on the parameters. This is NOT the standard Penner
+-- "bounce" curve: it's a smooth approach with diminishing overshoots controlled
+-- by `bounces` and `bounciness`.
+--
+-- **When to use Slam vs Bounce:**
+--
+-- - Use `Bounce` (Penner) for: physical bouncing balls, standard "bounce" pattern,
+--   UI bounces, animations that must look like a real ball bouncing.
+-- - Use `Slam` for: door slams, hard impacts, collisions, elastic landings, any
+--   impact where you want to tune the number of visible oscillations and how
+--   long they persist.
+--
+-- For common configurations, use the `SlamPresets` table:
+-- `SlamPresets.SmoothApproach`, `SlamPresets.Slam`, `SlamPresets.Elastic`, `SlamPresets.VeryElastic`.
+-- @tparam float|Color|Rotation|Vec2|Vec3 a Start value.
+-- @tparam float|Color|Rotation|Vec2|Vec3 b End value.
+-- @tparam float t Interpolation factor (0.0 to 1.0). It will be clamped to this range if out of bounds.
+-- @tparam[opt=4] int bounces Number of visible oscillations (default: 4, range: 1+).
+--   1 = no oscillation, 2 = one small dip, 4 = visible bounce, 6+ = strong elastic.
+-- @tparam[opt=0.5] float bounciness How long oscillations persist (default: 0.5, range: 0.0-1.0).
+--   0 = instant settle, 1 = long decay.
+-- @tparam[opt="InterpolationUtils.Slam"] string errorContext Context string for error messages (e.g., function name).
+-- @treturn[1] float|Color|Rotation|Vec2|Vec3 The interpolated value with the damped oscillation effect.
+-- @treturn[2] float|Color|Rotation|Vec2|Vec3 Value `a` if an error occurs.
+-- @usage
+-- -- Most common usage (numbers with default parameters: elastic bounce):
+-- local slamValue = InterpolationUtils.Slam(0, 100, 0.5) -- Result: ~68 (approaching with oscillation)
+--
+-- -- Slam progression (0 to 10, bounces=4, bounciness=0.5):
+-- --   t    | result
+-- --  ------|--------
+-- --  0.00  | 0.00
+-- --  0.10  | 7.41   (fast initial approach)
+-- --  0.25  | 3.81   (first dip)
+-- --  0.50  | 6.85   (back up)
+-- --  0.75  | 9.01   (approaching target)
+-- --  0.90  | 9.93
+-- --  1.00  | 10.00  (settled)
+--
+-- -- Slam with aggressive parameters (bounces=2, bounciness=0.3) - hard impact:
+-- local hardSlam = InterpolationUtils.Slam(0, 100, 0.5, 2, 0.3)
+-- --   t    | result
+-- --  ------|--------
+-- --  0.00  | 0.00
+-- --  0.10  | 35.8   (still building up)
+-- --  0.25  | 100.0  (first impact: hits target)
+-- --  0.50  | 82.3   (small bounce back)
+-- --  0.75  | 100.0  (settles)
+-- --  1.00  | 100.0
+--
+-- -- Smooth approach (bounces=1, bounciness=0.0) - no visible oscillation:
+-- local smoothValue = InterpolationUtils.Slam(0, 100, 0.5, 1, 0.0)
+-- --   t    | result
+-- --  ------|--------
+-- --  0.00  | 0.00
+-- --  0.10  | 66.8
+-- --  0.25  | 96.0
+-- --  0.50  | 99.9
+-- --  1.00  | 100.0
+--
+-- -- Using SlamPresets (recommended for non-pro builders):
+-- local preset = InterpolationUtils.SlamPresets.Slam  -- { bounces = 2, bounciness = 0.2 }
+-- local pos = InterpolationUtils.Slam(startY, endY, t, preset.bounces, preset.bounciness)
+--
+-- -- Example with Vec3 (sliding block with hard impact):
+-- local startPos = TEN.Vec3(0, 0, 0)
+-- local endPos = TEN.Vec3(1024, 0, 0)
+-- local slamPos = InterpolationUtils.Slam(startPos, endPos, 0.5, 2, 0.3)
+--
+-- -- Example with Rotation (door with slam impact):
+-- local openRot = TEN.Rotation(0, 90, 0)
+-- local closedRot = TEN.Rotation(0, 0, 0)
+-- local slamRot = InterpolationUtils.Slam(openRot, closedRot, 0.5, 2, 0.3)
+--
+-- -- Practical example 1: Door slam (hard impact with brief settle)
+-- local stoneDoor = TEN.Objects.GetStaticByName("static_mesh_18")
+-- local startPos = stoneDoor:GetPosition()
+-- local endPos = startPos + TEN.Vec3(-1024, 0, 0)  -- Door drops 1024 units
+-- local animationDuration = ConversionUtils.SecondsToFrames(1.5)  -- 1.5 second slam
+-- local currentFrame = 0
+-- LevelFuncs.SlamDoor = function()
+--     if currentFrame <= animationDuration then
+--         local t = currentFrame / animationDuration
+--         -- Hard impact: few bounces (2), fast settle (low bounciness 0.2)
+--         local preset = InterpolationUtils.SlamPresets.Slam
+--         local pos = InterpolationUtils.Slam(startPos, endPos, t, preset.bounces, preset.bounciness)
+--         stoneDoor:SetPosition(pos)
+--         currentFrame = currentFrame + 1
+--     end
+-- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.SlamDoor)
+--
+-- -- Practical example 2: Double door collision (two objects meeting with impact)
+-- local leftObject = TEN.Objects.GetStaticByName("static_mesh_19")
+-- local rightObject = TEN.Objects.GetStaticByName("static_mesh_20")
+-- local leftStart = leftObject:GetPosition()
+-- local rightStart = rightObject:GetPosition()
+-- local leftEnd = TEN.Vec3(leftStart.x, leftStart.y, leftStart.z + 1024)
+-- local rightEnd = TEN.Vec3(rightStart.x, rightStart.y, rightStart.z - 1024)
+-- local animationDuration = ConversionUtils.SecondsToFrames(1.5)
+-- local currentFrame = 0
+-- LevelFuncs.DoubleDoorCollision = function()
+--     if currentFrame <= animationDuration then
+--         local t = currentFrame / animationDuration
+--         -- Aggressive parameters: few bounces (3) with quick settle (bounciness 0.4)
+--         local leftPos = InterpolationUtils.Slam(leftStart, leftEnd, t, 3, 0.4)
+--         local rightPos = InterpolationUtils.Slam(rightStart, rightEnd, t, 3, 0.4)
+--         leftObject:SetPosition(leftPos)
+--         rightObject:SetPosition(rightPos)
+--         currentFrame = currentFrame + 1
+--     end
+-- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.DoubleDoorCollision)
+--
+-- -- Practical example 3: Elastic landing (item bouncing with persistence)
+-- local item = TEN.Objects.GetMoveableByName("dropped_item")
+-- local startPos = item:GetPosition()
+-- local groundY = 0
+-- local endPos = TEN.Vec3(startPos.x, groundY, startPos.z)
+-- local animationDuration = ConversionUtils.SecondsToFrames(2.0)
+-- local currentFrame = 0
+-- LevelFuncs.ElasticLanding = function()
+--     if currentFrame <= animationDuration then
+--         local t = currentFrame / animationDuration
+--         -- Many bounces (5) with long decay (bounciness 0.6) for elastic feel
+--         local pos = InterpolationUtils.Slam(startPos, endPos, t, 5, 0.6)
+--         item:SetPosition(pos)
+--         currentFrame = currentFrame + 1
+--     end
+-- end
+-- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.ElasticLanding)
+--
+-- -- Choosing the right preset:
+-- -- SlamPresets.SmoothApproach (bounces=1, bounciness=0.0) - smooth approach, no oscillation
+-- -- SlamPresets.Slam           (bounces=2, bounciness=0.2) - hard impact, brief settle
+-- -- SlamPresets.Elastic        (bounces=4, bounciness=0.5) - default elastic bounce
+-- -- SlamPresets.VeryElastic    (bounces=6, bounciness=0.7) - strong elastic oscillation
+InterpolationUtils.Slam = function(a, b, t, bounces, bounciness, errorContext)
+    errorContext = errorContext or "InterpolationUtils.Slam"
+    if not ValidateAB(a, b, errorContext) then
+        return a
+    end
+    if not IsNumber(t) then
+        ErrorLog("Error in {context}: interpolation factor t is not a number.", {context = errorContext})
+        return a
+    end
+
+    -- Set default values and validate optional parameters
+    bounces = bounces or 4
+    bounciness = bounciness or 0.5
+
+    if not IsNumber(bounces) or not IsNumber(bounciness) then
+        ErrorLog("Error in {context}: bounces and bounciness must be numbers.", {context = errorContext})
+        return a
+    end
+
+    -- Validate bounces (must be positive integer)
+    if bounces < 1 or bounces % 1 ~= 0 then
+        WarningLog("Warning in {context}: bounces should be an integer >= 1. Using 1.", {context = errorContext})
+        bounces = 1
+    end
+
+    -- Validate bounciness (0.0 to 1.0 range)
+    if bounciness < 0.0 or bounciness > 1.0 then
+        WarningLog("Warning in {context}: bounciness should be between 0.0 and 1.0. Clamping.", {context = errorContext})
+        bounciness = max(0.0, min(1.0, bounciness))
+    end
+    -- Clamp t to [0, 1]
+    t = max(0, min(1, t))
+
+    return SlamRaw(a, b, t, bounces, bounciness)
+end
+
 --- Interpolates between two colors in specified color space with options.
 -- Supports RGB, HSL, and OKLch color spaces with customizable hue interpolation paths and saturation/lightness preservation.
 -- @tparam Color colorA Starting color.
@@ -1491,8 +1579,8 @@ InterpolationUtils.InterpolateColor = function(colorA, colorB, t, space, options
 end
 
 ----
--- Color space table
--- @section spaceTable
+-- Special Tables
+-- @section specialTable
 
 ---
 -- Constants for color spaces in @{InterpolationUtils.InterpolateColor}.
@@ -1500,5 +1588,27 @@ end
 -- @tfield 0 RGB RGB color space.
 -- @tfield 1 HSL HSL color space.
 -- @tfield 2 OKLch OKLch color space.
+
+--- Preset configurations for common @{InterpolationUtils.Slam} use cases.
+-- Use these instead of hand-tuning `bounces` and `bounciness`:
+--
+-- local preset = InterpolationUtils.SlamPresets.Slam
+-- local pos = InterpolationUtils.Slam(a, b, t, preset.bounces, preset.bounciness)
+--
+-- Each preset is designed for a specific visual effect:
+--
+-- - SmoothApproach: no visible oscillation, smooth ease toward target
+--   (use for: gentle approach, no impact feel)
+-- - Slam:           hard impact with brief settle, one or two small dips
+--   (use for: doors, collisions, hard hits)
+-- - Elastic:        visible bounce pattern, classic damped oscillation
+--   (use for: elastic landings, bouncy pickups)
+-- - VeryElastic:    strong oscillation that persists, jelly-like feel
+--   (use for: soft materials, jelly cubes, squishy objects)
+-- @table SlamPresets
+-- @tfield table SmoothApproach Smooth approach with no oscillation. {bounces=1, bounciness=0.0}.
+-- @tfield table Slam Hard impact with brief settle. {bounces=2, bounciness=0.2}.
+-- @tfield table Elastic Visible bounce pattern (default). {bounces=4, bounciness=0.5}.
+-- @tfield table VeryElastic Strong elastic oscillation, jelly-like. {bounces=6, bounciness=0.7}.
 
 return InterpolationUtils

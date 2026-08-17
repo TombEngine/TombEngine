@@ -46,6 +46,21 @@ local IsRotation = Type.IsRotation
 -- For backward compatibility, deciseconds is still accepted, but centiseconds is preferred. Both keys will work, but if both are present, centiseconds will be used.
 local VALID_KEYS = { hours = true, minutes = true, seconds = true, deciseconds = true, centiseconds = true }
 
+-- Constants for the Penner easeOutBounce formula, precomputed at module load
+-- to avoid recomputing the same divisions on every call. The values come from
+-- Robert Penner's original formula (1999), adopted by GSAP, jQuery, Godot, and
+-- virtually every other animation library.
+local BOUNCE_C1 = 1 / 2.75          -- 0.3636... (end of first peak)
+local BOUNCE_C2 = 2 / 2.75          -- 0.7272... (end of first trough)
+local BOUNCE_C3 = 2.5 / 2.75        -- 0.9090... (end of second peak)
+local BOUNCE_T1 = 1.5 / 2.75        -- 0.5454... (first trough position)
+local BOUNCE_T2 = 2.25 / 2.75       -- 0.8181... (second trough position)
+local BOUNCE_T3 = 2.625 / 2.75      -- 0.9545... (third trough position)
+local BOUNCE_K  = 7.5625            -- parabola coefficient (= 2.75^2)
+local BOUNCE_V1 = 0.75              -- first trough value
+local BOUNCE_V2 = 0.9375            -- second trough value
+local BOUNCE_V3 = 0.984375          -- third trough value
+
 local function pad2(n)
     return (n < 10) and ("0" .. n) or tostring(n)
 end
@@ -510,33 +525,67 @@ Util.ElasticRaw  = function(a, b, t, amplitude, period)
     return InterpolateValuesRaw(a, b, easedT)
 end
 
--- Bounce interpolation (no type checking, used internally)
--- This function creates a bouncing effect, where the value bounces towards the target before settling.
--- The bounces parameter controls how many times it bounces, while the damping parameter controls how quickly the bounces decrease in amplitude.
-Util.BounceRaw = function(a, b, t, bounces, damping)
-    -- Handle edge cases
+-- Penner easeOutBounce: piecewise quadratic with 4 peaks (industry standard).
+-- Returns a bounce-eased value in [0, 1]. No t clamp: caller must pass t in [0, 1].
+-- This is the de-facto standard "bounce" curve: the value hits the target 4 times
+-- with diminishing troughs (0.75, 0.9375, 0.984) between peaks.
+Util.BounceRaw = function(a, b, t)
     if t == 0 then
         return a
-    elseif t == 1 then
+    end
+    if t == 1 then
         return b
     end
 
-    -- Bounce formula:
-    -- Uses exponential decay combined with sine wave for bounce oscillations
-    -- Formula: easedT = 1 - (cos(t * π * bounces) * (1 - t)^(1/damping))
-    -- 
-    -- The formula works as follows:
-    -- 1. cos(t * π * bounces): Creates oscillations (bounces)
-    -- 2. (1 - t)^(1/damping): Exponential decay envelope
-    --    - damping controls decay speed
-    --    - Lower damping = faster energy loss
-    --    - Higher damping = longer bounces
-    -- 3. Multiply them: Bounces that decrease in amplitude
-    -- 4. (1 - result): Invert so we approach target value instead of 0
+    local s = t
+    local easedT
+    if s < BOUNCE_C1 then
+        easedT = BOUNCE_K * s * s
+    elseif s < BOUNCE_C2 then
+        s = s - BOUNCE_T1
+        easedT = BOUNCE_K * s * s + BOUNCE_V1
+    elseif s < BOUNCE_C3 then
+        s = s - BOUNCE_T2
+        easedT = BOUNCE_K * s * s + BOUNCE_V2
+    else
+        s = s - BOUNCE_T3
+        easedT = BOUNCE_K * s * s + BOUNCE_V3
+    end
+    return InterpolateValuesRaw(a, b, easedT)
+end
 
-    local decay = (1 - t) ^ (1 / (damping + 0.1))  -- Add 0.1 to prevent division issues
+-- Damped oscillation for impact effects (slam, hit, elastic landing).
+-- This is NOT the standard Penner "bounce" curve: it's a customizable
+-- damped oscillation that can produce both slam-like impacts and elastic
+-- bounces depending on the parameters. Use Slam for impacts and other
+-- non-standard effects; use Bounce (Penner) when you need a physical
+-- bouncing ball.
+--
+-- Formula: easedT = 1 - |cos(t * pi * bounces)| * (1 - t)^(1 / (bounciness + 0.1))
+--
+-- - bounces: number of visible oscillations across the [0, 1] range
+--   - 1 = no visible oscillation (smooth approach with slight overshoot)
+--   - 2 = one small dip (slam-like)
+--   - 4 = visible bounce pattern
+--   - 6+ = strong elastic oscillation
+--
+-- - bounciness: how long oscillations persist (0 = instant settle, 1 = long decay)
+--   - low: envelope drops fast, few visible oscillations
+--   - high: envelope drops slowly, oscillations visible longer
+--
+-- The +0.1 in the exponent is a numerical safety net to avoid division by
+-- zero when bounciness = 0. It is not a tunable parameter.
+Util.SlamRaw = function(a, b, t, bounces, bounciness)
+    if t == 0 then
+        return a
+    end
+    if t == 1 then
+        return b
+    end
+
+    local envelope = (1 - t) ^ (1 / (bounciness + 0.1))
     local oscillation = abs(cos(t * pi * bounces))
-    local easedT = 1 - (oscillation * decay)
+    local easedT = 1 - (oscillation * envelope)
     return InterpolateValuesRaw(a, b, easedT)
 end
 
