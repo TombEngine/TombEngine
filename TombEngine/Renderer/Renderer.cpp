@@ -67,6 +67,10 @@ namespace TEN::Renderer
 		_staticTextures.clear();
 		_spritesTextures.clear();
 		_animatedTextures.clear();
+		_moveablesNormalsCache.clear();
+		_staticsNormalsCache.clear();
+		_roomsNormalsCache.clear();
+		_debugNormalsCacheInitialized = false;
 
 		_videoSprite = {};
 	}

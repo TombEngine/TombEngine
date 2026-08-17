@@ -398,6 +398,8 @@ namespace TEN::Renderer
 		_loadingBarBorder = SetTextureOrDefault(GetAssetPath("Textures/LoadingBarBorder.png"));
 		_loadingBarInner = SetTextureOrDefault(GetAssetPath("Textures/LoadingBarInner.png"));
 		_whiteTexture = SetTextureOrDefault(GetAssetPath("Textures/WhiteSprite.png"));
+		_defaultNormalTexture = CreateDefaultTexture({ 128, 128, 255, 255 });
+		_blackTexture = CreateDefaultTexture({ 0, 0, 0, 255 });
 
 		_whiteSprite.Height = _whiteTexture->GetHeight();
 		_whiteSprite.Width = _whiteTexture->GetWidth();
