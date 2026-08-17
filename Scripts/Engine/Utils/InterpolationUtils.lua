@@ -395,7 +395,7 @@ end
 -- local startPos = TEN.Vec3(0, 0, 0)
 -- local endPos = TEN.Vec3(-512, 0, 0)  -- Move left 512 units
 -- local bridgeInitialPos = bridge:GetPosition()
--- local animationDuration = Conversion Utils.SecondsToFrames(3)  -- 3 seconds = 90 frames @ 30fps
+-- local animationDuration = ConversionUtils.SecondsToFrames(3)  -- 3 seconds = 90 frames @ 30fps
 -- local currentFrame = 0
 -- local animationComplete = false
 -- LevelFuncs.MoveBridge = function()
