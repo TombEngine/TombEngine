@@ -24,6 +24,19 @@ local Type = require("Engine.Type")
 local Utility = require("Engine.Util")
 local TableUtils = {}
 
+-- State for deep table comparison (used by CompareTablesDeep).
+--
+-- Why module-level state instead of passing it as a parameter:
+-- the recursive helper signature would otherwise need to carry the
+-- (depth, elementCount, visited) state explicitly through every call,
+-- polluting the public API. We trade thread-safety for API simplicity:
+-- CompareTablesDeep is NOT reentrant in TombEngine's single-threaded Lua.
+--
+-- Cleanup: the entry in _activeCompares is removed unconditionally after
+-- CompareRecursive returns, so even on early termination (depth or
+-- element limit) the state is freed. In TombEngine's pcall environment,
+-- runtime errors are caught by the engine, so this cleanup is guaranteed
+-- to execute for every successful CompareTablesDeep call.
 local _nextCompareId = 1       -- Progressive ID generator for each comparison operation
 local _activeCompares = {}     -- Tracks active comparisons: { [id] = { depth, elementCount, visited } }
 local MAX_DEPTH = Utility.Constants.MAX_DEPTH

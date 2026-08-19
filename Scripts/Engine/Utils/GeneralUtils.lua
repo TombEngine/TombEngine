@@ -59,7 +59,19 @@ local InfoLog = Utility.InfoLog
 local ErrorLog = Utility.ErrorLog
 local WarningLog = Utility.WarningLog
 
--- State for deep table copy (CloneValue)
+-- State for deep table copy (used by CloneValue).
+--
+-- Why module-level state instead of passing it as a parameter:
+-- the recursive helper signature would otherwise need to carry the
+-- (depth, elementCount, visited) state explicitly through every call,
+-- polluting the public API. We trade thread-safety for API simplicity:
+-- CloneValue is NOT reentrant in TombEngine's single-threaded Lua.
+--
+-- Cleanup: the entry in _activeCopies is removed unconditionally after
+-- DeepCopyRecursive returns, so even on early termination (depth or
+-- element limit) the state is freed. In TombEngine's pcall environment,
+-- runtime errors are caught by the engine, so this cleanup is guaranteed
+-- to execute for every successful CloneValue call.
 local _nextCopyId = 1          -- Progressive ID generator for each copy operation
 local _activeCopies = {}       -- Tracks active copy operations: { [id] = { depth, elementCount, visited } }
 

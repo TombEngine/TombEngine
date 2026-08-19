@@ -409,8 +409,10 @@ StringUtils.Trim = function(str, chars, errorContext)
         return str  -- Nothing to trim
     end
 
-    -- Escape special Lua pattern characters for safe use inside []
-    -- Only these are special inside []: ] ^ - %
+    -- Escape special Lua pattern characters that are special inside a character
+    -- class []: only ] ^ - % are special there (unlike outside [], where
+    -- several other characters have meaning). The escape %1 refers to the
+    -- captured group (the original character), prepending % to it.
     local escaped = chars:gsub("([%]%^%-%%])", "%%%1")
 
     -- Build patterns using [] for both positions (safe for any character)

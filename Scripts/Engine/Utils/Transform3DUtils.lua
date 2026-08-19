@@ -57,6 +57,11 @@ local function orbitPositionRaw(center, radius, angle, axis)
 
     -- Vec3 custom axis
     local axisN = axis:Normalize()
+
+    -- Pick an arbitrary vector guaranteed to be non-parallel to axisN.
+    -- If axisN is close to the Y axis (|y| > 0.99), use (1, 0, 0) as the
+    -- arbitrary vector; otherwise (0, 1, 0). The threshold 0.99 avoids
+    -- numerical instability from cross products of near-parallel vectors.
     local arbitrary = (abs(axisN.y) > 0.99) and Vec3(1, 0, 0) or Vec3(0, 1, 0)
     local perp1 = axisN:Cross(arbitrary):Normalize()
     local perp2 = axisN:Cross(perp1):Normalize()
