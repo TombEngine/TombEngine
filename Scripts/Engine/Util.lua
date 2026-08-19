@@ -104,7 +104,16 @@ local function LinearToSrgb(c)
     end
 end
 
--- Helper function for hue interpolation with different modes (no type checking, used internally)
+-- Helper function for hue interpolation with 4 path modes. (no type checking, used internally)
+-- Given h1 (start hue, degrees) and h2 (end hue, degrees), returns the
+-- interpolated hue at t in [0, 1].
+--
+-- Modes:
+--   "shortest"  - shortest angular path (default behavior for most color wheels)
+--   "longest"   - longest angular path (useful for "the long way around" effects)
+--   "increasing" - always rotates 0° → 360° (clockwise in standard convention)
+--   "decreasing" - always rotates 0° → -360° (counter-clockwise)
+-- Used by Util.InterpolateColorRaw
 local function InterpolateHue(h1, h2, t, mode)
     local delta = h2 - h1
 
