@@ -21,6 +21,7 @@ local logLevelInfo = TEN.Util.LogLevel.INFO
 local logLevelWarning = TEN.Util.LogLevel.WARNING
 local logLevelError = TEN.Util.LogLevel.ERROR
 local Color = TEN.Color
+local Vec3 = TEN.Vec3
 local IsString = Type.IsString
 local IsTable = Type.IsTable
 local IsBoolean = Type.IsBoolean
@@ -154,7 +155,6 @@ Util.Constants =
 }
 Util.Constants.FRAME_TIME = 1 / Util.Constants.FPS
 
-
 Util.ShortenTENCalls = function()
 	print("Util.ShortenTENCalls is deprecated; its functionality is now performed automatically by TombEngine.")
 end
@@ -279,6 +279,31 @@ end
 -- Used by: MathUtils.lua
 Util.WrapAngleRaw = function(angle, minVal, range)
     return angle - range * floor((angle - minVal) / range)
+end
+
+-- Apply the inverse of a Rotation to a Vec3 (no type checking, used internally).
+--
+-- Why this exists: For Euler angles, negating each component is NOT the correct
+-- inverse of the rotation. It only works for rotations around a single axis.
+-- For multi-axis rotations, the inverse depends on the rotation order, which is
+-- not documented in the public API of TEN.
+--
+-- The mathematically correct inverse is the transpose of the rotation matrix.
+-- We can build this without knowing the rotation order by applying the
+-- parent's rotation to the three unit basis vectors. Since rotation matrices
+-- are orthogonal, M^(-1) = M^T, and applying M^(-1) to a vector w reduces to
+-- the dot product of w with each rotated basis vector.
+--
+-- Used by: Transform3DUtils.lua (CalculateLocalOffset)
+Util.RotationInverseRaw = function(rot, v)
+    local xAxis = Vec3(1, 0, 0):Rotate(rot)
+    local yAxis = Vec3(0, 1, 0):Rotate(rot)
+    local zAxis = Vec3(0, 0, 1):Rotate(rot)
+    return Vec3(
+        v:Dot(xAxis),
+        v:Dot(yAxis),
+        v:Dot(zAxis)
+    )
 end
 
 -- HSL to Color conversion (no type checking, used internally)

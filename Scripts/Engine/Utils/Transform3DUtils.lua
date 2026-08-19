@@ -31,6 +31,7 @@ local IsBoolean = Type.IsBoolean
 local IsString = Type.IsString
 local IsTable = Type.IsTable
 local ErrorLog = Utility.ErrorLog
+local RotationInverseRaw = Utility.RotationInverseRaw
 local abs = math.abs
 local sin = math.sin
 local cos = math.cos
@@ -75,6 +76,41 @@ local function transformLocalToWorldRaw(parentPos, parentRot, localOffset, local
         )
     end
     return worldPos, nil
+end
+
+--- Apply the inverse of a Rotation to a Vec3.
+-- Returns the Vec3 as if it had been rotated by the inverse of `rot`.
+--
+-- **When to use:** converting a world-space vector (position, velocity,
+-- direction) into the local space of a rotated object, or "undoing" a
+-- rotation. For multi-axis rotations, this is the mathematically correct
+-- inverse (the transpose of the rotation matrix). Negating each component
+-- of `rot` would only be correct for rotations around a single axis.
+--
+-- **Common use cases:** converting a world-space velocity into the local
+-- frame of a moving object, finding a target's offset in a parent's
+-- coordinate space, undoing a rotation that was applied to a vector.
+-- @tparam Rotation rot The rotation whose inverse should be applied.
+-- @tparam Vec3 vec The vector to apply the inverse rotation to.
+-- @tparam[opt="Transform3DUtils.RotationInverse"] string errorContext Context string for error messages (e.g., function name).
+-- @treturn[1] Vec3 The vector with the inverse rotation applied.
+-- @treturn[2] Vec3 The original `vec` if an error occurs.
+-- @usage
+-- -- Convert a world-space velocity into the parent's local space:
+-- local worldVelocity = TEN.Vec3(0, 0, 100)  -- forward in world
+-- local parentRot = TEN.Rotation(0, 45, 0)   -- parent facing 45° yaw
+-- local localVelocity = Transform3DUtils.RotationInverse(parentRot, worldVelocity)
+Transform3DUtils.RotationInverse = function(rot, vec, errorContext)
+    errorContext = errorContext or "Transform3DUtils.RotationInverse"
+    if not IsRotation(rot) then
+        ErrorLog("Error in {context}: rot must be a Rotation.", {context = errorContext})
+        return vec
+    end
+    if not IsVec3(vec) then
+        ErrorLog("Error in {context}: vec must be a Vec3.", {context = errorContext})
+        return vec
+    end
+    return RotationInverseRaw(rot, vec)
 end
 
 --- Rotate a point around an arbitrary axis passing through a pivot point.
@@ -692,10 +728,11 @@ Transform3DUtils.CalculateLocalOffset = function(parent, child, errorContext)
     -- Calculate world offset
     local worldOffset = childPos - parentPos
 
-    -- Convert world offset to parent's local space
-    -- This is the inverse of Vec3:Rotate() - we need to rotate by inverse parent rotation
-    local inverseRot = Rotation(-parentRot.x, -parentRot.y, -parentRot.z)
-    local localOffset = worldOffset:Rotate(inverseRot)
+    -- Convert world offset to parent's local space.
+    -- Use RotationInverseRaw (mathematically correct inverse, see Util.lua for
+    -- details). Negating each Rotation component is NOT correct for multi-axis
+    -- rotations because the inverse depends on the rotation order.
+    local localOffset = RotationInverseRaw(parentRot, worldOffset)
 
     return localOffset
 end

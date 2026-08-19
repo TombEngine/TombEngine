@@ -71,7 +71,13 @@ MathUtils.IsInteger = function(n, errorContext)
 end
 
 --- Get the minimum value between multiple arguments (supports numbers, Vec2, Vec3, Time).
--- For Vec2/Vec3, returns component-wise minimum. Values to compare (at least 2)
+-- For Vec2/Vec3, returns component-wise minimum. Values to compare (at least 2).
+--
+-- **Note:** unlike most other functions in this module, _Min_ does not accept
+-- an `errorContext` parameter because it uses varargs (`...`) to support an
+-- arbitrary number of input values. Error messages therefore include the
+-- function name directly (e.g., "Error in MathUtils.Min: ...") instead of
+-- the caller's context.
 -- @tparam number|Vec2|Vec3|Time a
 -- @tparam number|Vec2|Vec3|Time b (same type as a)
 -- @tparam number|Vec2|Vec3|Time ... (same type as a and b)
@@ -176,6 +182,11 @@ end
 
 --- Get the maximum value between multiple arguments (supports numbers, Vec2, Vec3, Time).
 -- For Vec2/Vec3, returns component-wise maximum. Values to compare (at least 2)
+--
+-- **Note:** unlike most other functions in this module, _Max_ does not accept
+-- an `errorContext` parameter because it uses varargs (`...`) to support an
+-- arbitrary number of input values. Error messages therefore include the
+-- function name directly (e.g., "Error in MathUtils.Max: ...") instead of
 -- @tparam number|Vec2|Vec3|Time a
 -- @tparam number|Vec2|Vec3|Time b (same type as a)
 -- @tparam number|Vec2|Vec3|Time ... (same type as a and b)
