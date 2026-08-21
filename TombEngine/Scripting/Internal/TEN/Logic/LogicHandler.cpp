@@ -1131,6 +1131,13 @@ void LogicHandler::OnFreeze()
 	HandleAllGlobalEvents(EventType::Freeze, (Activator)short(LaraItem->Index));
 }
 
+void LogicHandler::OnAudioChannelPlaying(const std::string& channelName)
+{
+	PerformCallbacks(CallbackPoint::PreAudioChannel, channelName);
+	PerformLevelFuncCallback(LevelFuncCallbackPoint::AudioChannelPlay, channelName);
+	PerformCallbacks(CallbackPoint::PostAudioChannel, channelName);
+}
+
 void LogicHandler::InitCallbacks()
 {
 	auto assignCB = [this](sol::protected_function& func, const std::string& luaFunc)
