@@ -170,20 +170,22 @@ local min = math.min
 
 -- Constants tables for the functions below. See the "Special Tables" section
 -- at the bottom of this file for the full LDoc documentation.
-InterpolationUtils.Spaces = {
-    RGB = 0,
-    HSL = 1,
-    OKLch = 2
-}
-TableUtils.SetTableReadOnly(InterpolationUtils.Spaces)
+InterpolationUtils.Spaces = TableUtils.SetTableReadOnly(
+    {
+        RGB = 0,
+        HSL = 1,
+        OKLch = 2
+    }
+)
 
-InterpolationUtils.SlamPresets = {
-    SmoothApproach = { bounces = 1, bounciness = 0.0 },
-    Slam           = { bounces = 2, bounciness = 0.2 },
-    Elastic        = { bounces = 4, bounciness = 0.5 },
-    VeryElastic    = { bounces = 6, bounciness = 0.7 },
-}
-TableUtils.SetTableReadOnly(InterpolationUtils.SlamPresets)
+InterpolationUtils.SlamPresets = TableUtils.SetTableReadOnly(
+    {
+        SmoothApproach = { bounces = 1, bounciness = 0.0 },
+        Slam           = { bounces = 2, bounciness = 0.2 },
+        Elastic        = { bounces = 4, bounciness = 0.5 },
+        VeryElastic    = { bounces = 6, bounciness = 0.7 },
+    }
+)
 
 local function ValidateAB (a, b, errorContext)
     if not IsValidInterpolationValue(a) then
@@ -970,6 +972,11 @@ InterpolationUtils.Elastic = function(a, b, t, amplitude, period, errorContext)
     if amplitude < 1.0 then
         WarningLog("Warning in {context}: amplitude should be >= 1.0 for proper elastic effect. Using 1.0.", {context = errorContext})
         amplitude = 1.0
+    end
+
+    if period <= 0 then
+        WarningLog("Warning in {context}: period must be > 0. Using default value of 0.3.", {context = errorContext})
+        period = 0.3
     end
 
     -- Clamp t to [0, 1]

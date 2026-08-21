@@ -79,7 +79,8 @@ local compareErrorMessage = "Error in {context}: operand and reference must be e
 
 local GeneralUtils = {}
 
-GeneralUtils.Operators = -- Comparison operators for easy comparisons
+-- Comparison operators for easy comparisons
+GeneralUtils.Operators = TableUtils.SetTableReadOnly(
     {
         EQUAL = 0,        -- Equal
         NOT_EQUAL = 1,    -- Not equal
@@ -88,7 +89,7 @@ GeneralUtils.Operators = -- Comparison operators for easy comparisons
         GREATER = 4,      -- Greater than
         GREATER_EQUAL = 5 -- Greater than or equal
     }
-TableUtils.SetTableReadOnly(GeneralUtils.Operators)
+)
 
 local function CheckOperator(operator)
 	if not Type.IsNumber(operator) then
