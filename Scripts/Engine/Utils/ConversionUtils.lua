@@ -71,7 +71,7 @@ ConversionUtils.SecondsToFrames = function(seconds, fps, errorContext)
     -- Check if fps is a float and warn user
     if fps ~= floor(fps) then
         local roundFps = floor(fps + 0.5)
-        WarningLog("Warning in {context}: fps should be an integer. Rounding {frames} to {round}", {context = errorContext, fps = fps, round = roundFps})
+        WarningLog("Warning in {context}: fps should be an integer. Rounding {fps} to {round}", {context = errorContext, fps = fps, round = roundFps})
         fps = roundFps
     end
 
