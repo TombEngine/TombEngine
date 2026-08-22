@@ -721,6 +721,9 @@ TableUtils.ClearTable = function(tbl, errorContext)
 end
 
 --- Create a read-only version of a table.
+-- This function returns a new table that behaves like the original table but prevents any modifications. Any attempt to add, change, or remove keys will result in an error log message.
+--
+-- **Note:** This is a shallow read-only wrapper. Nested tables are not made read-only; they remain mutable.
 -- @tparam table tbl The table to make read-only.
 -- @treturn[1] table A read-only version of the input table.
 -- @treturn[2] table An empty table if the input is not a table.
