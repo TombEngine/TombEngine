@@ -118,7 +118,7 @@ ConversionUtils.FramesToSeconds = function(frames, fps, errorContext)
     -- Check if fps is a float and warn user
     if fps ~= floor(fps) then
         local roundFps = floor(fps + 0.5)
-        WarningLog("Warning in {context}: fps should be an integer. Rounding {frames} to {round}", { context = errorContext, fps = fps, round = roundFps})
+        WarningLog("Warning in {context}: fps should be an integer. Rounding {fps} to {round}", { context = errorContext, fps = fps, round = roundFps})
         fps = roundFps
     end
 
@@ -293,7 +293,7 @@ end
 -- local hsl = ConversionUtils.ColorToHSL(originalColor) -- convert to HSL color table
 -- if hsl then
 --     hsl.s = hsl.s * 0.5  -- edit color: Reduce saturation by 50%
---     local desaturatedColor = ConversionUtils.HSLtoColor(hsl) -- recorverted in TEN.Color
+--     local desaturatedColor = ConversionUtils.HSLtoColor(hsl) -- converted back to TEN.Color
 --     sprite:SetColor(desaturatedColor)
 -- end
 --
@@ -302,7 +302,7 @@ end
 -- local hsl = ConversionUtils.ColorToHSL(darkColor)
 -- if hsl then
 --     hsl.l = math.min(1.0, hsl.l + 0.2)  -- edit color: Increase lightness by 20%
---     local brighterColor = ConversionUtils.HSLtoColor(hsl) -- recorverted in TEN.Color
+--     local brighterColor = ConversionUtils.HSLtoColor(hsl) -- converted back to TEN.Color
 --     sprite:SetColor(brighterColor)
 -- end
 --
@@ -314,7 +314,7 @@ end
 -- LevelFuncs.Rainbow = function()
 --     hueAngle = (hueAngle + hueSpeed) % 360
 --     hsl.h = hueAngle -- edit color: Update hue for rainbow effect
---     local color = ConversionUtils.HSLtoColor(hsl) -- recorverted in TEN.Color
+--     local color = ConversionUtils.HSLtoColor(hsl) -- converted back to TEN.Color
 --     obj:SetColor(color)
 -- end
 -- TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.Rainbow)

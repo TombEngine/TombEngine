@@ -356,7 +356,7 @@ end
 -- local copy = TableUtils.CopyTable(original)
 -- copy.inventory.sword = 5
 -- -- WARNING: original.inventory.sword is now also 5! (nested table is shared)
--- -- For nested tables, use TableUtils.CloneValue instead
+-- -- For nested tables, use GeneralUtils.CloneValue instead
 --
 -- -- Example with array:
 -- local original = { "red", "green", "blue" }
