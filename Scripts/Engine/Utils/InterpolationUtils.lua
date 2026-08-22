@@ -1284,10 +1284,8 @@ end
 -- @tparam float|Color|Rotation|Vec2|Vec3 a Start value.
 -- @tparam float|Color|Rotation|Vec2|Vec3 b End value.
 -- @tparam float t Interpolation factor (0.0 to 1.0). It will be clamped to this range if out of bounds.
--- @tparam[opt=4] int bounces Number of visible oscillations (default: 4, range: 1+).
---   1 = no oscillation, 2 = one small dip, 4 = visible bounce, 6+ = strong elastic.
--- @tparam[opt=0.5] float bounciness How long oscillations persist (default: 0.5, range: 0.0-1.0).
---   0 = instant settle, 1 = long decay.
+-- @tparam[opt=4] int bounces Number of visible oscillations (range: 1+). 1 = no oscillation, 2 = one small dip, 4 = visible bounce, 6+ = strong elastic.
+-- @tparam[opt=0.5] float bounciness How long oscillations persist (range: 0.0-1.0). 0 = instant settle, 1 = long decay.
 -- @tparam[opt="InterpolationUtils.Slam"] string errorContext Context string for error messages (e.g., function name).
 -- @treturn[1] float|Color|Rotation|Vec2|Vec3 The interpolated value with the damped oscillation effect.
 -- @treturn[2] float|Color|Rotation|Vec2|Vec3 Value `a` if an error occurs.
@@ -1592,30 +1590,20 @@ end
 ---
 -- Constants for color spaces in @{InterpolationUtils.InterpolateColor}.
 -- @table Spaces
--- @tfield 0 RGB RGB color space.
--- @tfield 1 HSL HSL color space.
--- @tfield 2 OKLch OKLch color space.
+-- @tfield int RGB RGB color space. Value: _0_
+-- @tfield int HSL HSL color space. Value: _1_
+-- @tfield int OKLch OKLch color space. Value: _2_
 
 --- Preset configurations for common @{InterpolationUtils.Slam} use cases.
--- Use these instead of hand-tuning `bounces` and `bounciness`:
---
+-- Use these instead of hand-tuning `bounces` and `bounciness`. Each preset is designed for a specific visual effect.
+-- @table SlamPresets
+-- @tfield table SmoothApproach No visible oscillation, smooth ease toward target (use for: gentle approach, no impact feel). Value: _{bounces=1, bounciness=0.0}_.
+-- @tfield table Slam Hard impact with brief settle, one or two small dips (use for: doors, collisions, hard hits). Value: _{bounces=2, bounciness=0.2}_.
+-- @tfield table Elastic Visible bounce pattern, classic damped oscillation (use for: elastic landings, bouncy pickups). Value (default): _{bounces=4, bounciness=0.5}_.
+-- @tfield table VeryElastic Strong oscillation that persists, jelly-like feel (use for: soft materials, jelly cubes, squishy objects). Value: _{bounces=6, bounciness=0.7}_.
+-- @usage
+-- -- Example of use
 -- local preset = InterpolationUtils.SlamPresets.Slam
 -- local pos = InterpolationUtils.Slam(a, b, t, preset.bounces, preset.bounciness)
---
--- Each preset is designed for a specific visual effect:
---
--- - SmoothApproach: no visible oscillation, smooth ease toward target
---   (use for: gentle approach, no impact feel)
--- - Slam:           hard impact with brief settle, one or two small dips
---   (use for: doors, collisions, hard hits)
--- - Elastic:        visible bounce pattern, classic damped oscillation
---   (use for: elastic landings, bouncy pickups)
--- - VeryElastic:    strong oscillation that persists, jelly-like feel
---   (use for: soft materials, jelly cubes, squishy objects)
--- @table SlamPresets
--- @tfield table SmoothApproach Smooth approach with no oscillation. {bounces=1, bounciness=0.0}.
--- @tfield table Slam Hard impact with brief settle. {bounces=2, bounciness=0.2}.
--- @tfield table Elastic Visible bounce pattern (default). {bounces=4, bounciness=0.5}.
--- @tfield table VeryElastic Strong elastic oscillation, jelly-like. {bounces=6, bounciness=0.7}.
 
 return InterpolationUtils

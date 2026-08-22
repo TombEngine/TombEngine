@@ -539,7 +539,7 @@ end
 -- local lastAttack = TEN.Time(0)
 -- local cooldown = TEN.Time(90)  -- 3 seconds at 30 FPS
 -- LevelFuncs.CheckCooldown = function()
---     local now = TEN.Flow.GetStatistics().timeTaken
+--     local now = TEN.Flow.GetGlobalGameTime() -- Get current game time
 --     local elapsed = now - lastAttack  -- TEN.Time subtraction
 --     if GeneralUtils.CompareValues(elapsed, cooldown, GeneralUtils.Operators.GREATER_EQUAL, "CheckCooldown") then
 --         -- Cooldown expired, allow next action
@@ -611,11 +611,11 @@ end
 --
 -- Use them as `GeneralUtils.Operators.EQUAL`, `GeneralUtils.Operators.LESS`, etc.
 -- @table Operators
--- @tfield 0 EQUAL Equal operator.
--- @tfield 1 NOT_EQUAL Not equal operator.
--- @tfield 2 LESS Less than operator.
--- @tfield 3 LESS_EQUAL Less than or equal operator.
--- @tfield 4 GREATER Greater than operator.
--- @tfield 5 GREATER_EQUAL Greater than or equal operator.
+-- @tfield int EQUAL Equal operator. Value: _0_.
+-- @tfield int NOT_EQUAL Not equal operator. Value: _1_.
+-- @tfield int LESS Less than operator. Value: _2_.
+-- @tfield int LESS_EQUAL Less than or equal operator. Value: _3_.
+-- @tfield int GREATER Greater than operator. Value: _4_.
+-- @tfield int GREATER_EQUAL Greater than or equal operator. Value: _5_.
 
 return GeneralUtils
