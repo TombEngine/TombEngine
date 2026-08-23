@@ -78,6 +78,12 @@ StringUtils.SplitString = function(inputStr, delimiter, errorContext)
     local t = {}
     local start = 1
     local delimLen = #delimiter
+
+    if delimLen == 0 then
+        ErrorLog("Error in {context}: delimiter is an empty string.", {context = errorContext})
+        return {}
+    end
+
     while true do
         local pos = inputStr:find(delimiter, start, true)  -- plain match
         if not pos then

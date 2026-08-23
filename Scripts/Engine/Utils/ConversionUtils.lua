@@ -570,7 +570,7 @@ end
 -- @section tables_color_conversion
 
 ---
--- Table setup for creating HSL colors.
+-- Table representing an HSL color
 -- @table HSLData
 -- @tfield float h Hue value (0.0 to 360.0 degrees)
 -- @tfield float s Saturation value (0.0 to 1.0)
@@ -578,7 +578,7 @@ end
 -- @tfield[opt=1.0] float a Alpha value (0.0 to 1.0)
 
 ---
--- Table setup for creating OKLch colors.
+-- Table representing an OKLch color
 -- @table OKLchData
 -- @tfield float l Lightness value (0.0 to 1.0)
 -- @tfield float c Chroma value (0.0 to ~0.4)
