@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Specific/Structures/RGBAColor8Byte.h"
+#include "Scripting/Internal/ScriptUtil.h"
 
 namespace sol { class state; }
 namespace sol { template <typename T> struct as_table_t; }
@@ -18,6 +19,7 @@ namespace TEN::Scripting::Types
 		static void Register(sol::table& parent);
 
 		// Constructors
+
 		ScriptColor();
 		ScriptColor(unsigned char r, unsigned char g, unsigned char b);
 		ScriptColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
@@ -42,6 +44,13 @@ namespace TEN::Scripting::Types
 		// Methods
 
 		ScriptColor PremultiplyAlpha();
+		float GetBrightness() const;
+		float GetSaturation() const;
+		float GetHue() const;
+		ScriptColor ToGrayscale() const;
+		ScriptColor Invert(TypeOrNil<bool> keepAlpha) const;
+		ScriptColor Screen(const ScriptColor& color, TypeOrNil<bool> keepAlpha) const;
+		ScriptColor Lerp(const ScriptColor& color, float alpha) const;
 
 		// Converters
 
@@ -54,5 +63,6 @@ namespace TEN::Scripting::Types
 		operator Vector4() const;
 		operator D3DCOLOR() const;
 		operator RGBAColor8Byte() const;
+		bool operator ==(const ScriptColor& other) const;
 	};
 }

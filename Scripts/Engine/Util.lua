@@ -1,23 +1,198 @@
 -- ldignore
 
--- Internal functions specific to modules. These are not intended for end users. These functions are not documented in the API reference.
+-- Internal shared helpers for the official TombEngine modules.
+--
+-- Contents:
+--   * Raw computation functions: no type checking, no argument validation,
+--     no error logging. Used by the public utility modules to keep their
+--     safe wrappers thin and fast.
+--   * Shared constants: frame rate, limits, default text and timer options.
+--
+-- Not intended for end users and not documented in the API reference.
+-- Use these functions only if you are writing an official TombEngine
+-- module, or if you fully understand the contract: inputs are assumed valid,
+-- and invalid inputs may produce errors or undefined results.
 
-local Util = {}
 local Type = require("Engine.Type")
--- For backward compatibility, deciseconds is still accepted, but centiseconds is preferred. Both keys will work, but if both are present, centiseconds will be used.
-local VALID_KEYS = { hours = true, minutes = true, seconds = true, deciseconds = true, centiseconds = true }
+local Util = {}
+
 local LogMessage  = TEN.Util.PrintLog
+local logLevelInfo = TEN.Util.LogLevel.INFO
 local logLevelWarning = TEN.Util.LogLevel.WARNING
+local logLevelError = TEN.Util.LogLevel.ERROR
+local Color = TEN.Color
+local Vec3 = TEN.Vec3
 local IsString = Type.IsString
 local IsTable = Type.IsTable
 local IsBoolean = Type.IsBoolean
+local floor = math.floor
+local max = math.max
+local min = math.min
+local abs = math.abs
+local sin = math.sin
+local cos = math.cos
+local asin = math.asin
+local atan = math.atan
+local deg = math.deg
+local sqrt = math.sqrt
+local rad = math.rad
+local pi = math.pi
+local IsNumber = Type.IsNumber
+local IsVec2 = Type.IsVec2
+local IsVec3 = Type.IsVec3
+local IsColor = Type.IsColor
+local IsRotation = Type.IsRotation
+
+-- Time format keys
+-- For backward compatibility, deciseconds is still accepted, but centiseconds is preferred. Both keys will work, but if both are present, centiseconds will be used.
+local VALID_KEYS = { hours = true, minutes = true, seconds = true, deciseconds = true, centiseconds = true }
+
+-- Constants for the Penner easeOutBounce formula, precomputed at module load
+-- to avoid recomputing the same divisions on every call. The values come from
+-- Robert Penner's original formula (1999), adopted by GSAP, jQuery, Godot, and
+-- virtually every other animation library.
+local BOUNCE_C1 = 1 / 2.75          -- 0.3636... (end of first peak)
+local BOUNCE_C2 = 2 / 2.75          -- 0.7272... (end of first trough)
+local BOUNCE_C3 = 2.5 / 2.75        -- 0.9090... (end of second peak)
+local BOUNCE_T1 = 1.5 / 2.75        -- 0.5454... (first trough position)
+local BOUNCE_T2 = 2.25 / 2.75       -- 0.8181... (second trough position)
+local BOUNCE_T3 = 2.625 / 2.75      -- 0.9545... (third trough position)
+local BOUNCE_K  = 7.5625            -- parabola coefficient (= 2.75^2)
+local BOUNCE_V1 = 0.75              -- first trough value
+local BOUNCE_V2 = 0.9375            -- second trough value
+local BOUNCE_V3 = 0.984375          -- third trough value
+
+local function pad2(n)
+    return (n < 10) and ("0" .. n) or tostring(n)
+end
+
+-- HSL to RGB conversion
+local function HueToRgb(p, q, t)
+    if t < 0 then
+        t = t + 1
+    end
+    if t > 1 then
+        t = t - 1
+    end
+    if t < 1 / 6 then
+        return p + (q - p) * 6 * t
+    end
+    if t < 1 / 2 then
+        return q
+    end
+    if t < 2 / 3 then
+        return p + (q - p) * (2 / 3 - t) * 6
+    end
+    return p
+end
+
+-- sRGB and Linear color space conversion
+local function SrgbToLinear(c)
+    if c <= 0.04045 then
+        return c / 12.92
+    else
+        return ((c + 0.055) / 1.055) ^ 2.4
+    end
+end
+
+-- Linear to sRGB color space conversion
+local function LinearToSrgb(c)
+    if c <= 0.0031308 then
+        return c * 12.92
+    else
+        return 1.055 * (c ^ (1 / 2.4)) - 0.055
+    end
+end
+
+-- Helper function for hue interpolation with 4 path modes. (no type checking, used internally)
+-- Given h1 (start hue, degrees) and h2 (end hue, degrees), returns the
+-- interpolated hue at t in [0, 1].
+--
+-- Modes:
+--   "shortest"  - shortest angular path (default behavior for most color wheels)
+--   "longest"   - longest angular path (useful for "the long way around" effects)
+--   "increasing" - always rotates 0° → 360° (clockwise in standard convention)
+--   "decreasing" - always rotates 0° → -360° (counter-clockwise)
+-- Used by Util.InterpolateColorRaw
+local function InterpolateHue(h1, h2, t, mode)
+    local delta = h2 - h1
+
+    if mode == "shortest" then
+        delta = ((delta + 180) % 360) - 180
+
+    elseif mode == "longest" then
+        delta = ((delta + 180) % 360) - 180
+        if delta > 0 then delta = delta - 360 else delta = delta + 360 end
+
+    elseif mode == "increasing" then
+        if delta < 0 then delta = delta + 360 end
+
+    elseif mode == "decreasing" then
+        if delta > 0 then delta = delta - 360 end
+    end
+
+    return (h1 + delta * t) % 360
+end
+
+-- Core interpolation that handles different types (number, color, rotation, vector) without clamping t.
+-- Clamping is handled by the caller to allow for extrapolation if desired.
+local InterpolateValuesRaw = function(a, b, t)
+    if IsNumber(a) then
+        return a + (b - a) * t
+    end
+    return a:Lerp(b, t)
+end
+
+Util.Constants =
+{
+    FPS = 30,              -- Default frames per second for time-frame conversions
+    MAX_DEPTH = 10,        -- Maximum recursion depth for deep operations (prevents stack overflow)
+    MAX_ELEMENTS = 1000,   -- Maximum elements processed in deep operations (prevents performance issues)
+    ZERO = TEN.Time(),     -- Zero time constant for comparisons and resets
+    DEFAULT_TEXT_OPTIONS = -- Default text options for display strings in Time and Stopwatch modules
+    {
+        TEN.Strings.DisplayStringOption.CENTER,
+        TEN.Strings.DisplayStringOption.SHADOW,
+        TEN.Strings.DisplayStringOption.VERTICAL_CENTER
+    },
+    DEFAULT_TIMER_FORMAT = -- Default timer format for Time and Stopwatch modules
+    {
+        minutes = true,
+        seconds = true,
+        centiseconds = true
+    }
+}
+Util.Constants.FRAME_TIME = 1 / Util.Constants.FPS
 
 Util.ShortenTENCalls = function()
 	print("Util.ShortenTENCalls is deprecated; its functionality is now performed automatically by TombEngine.")
 end
 
-local function pad2(n)
-    return (n < 10) and ("0" .. n) or tostring(n)
+-- Interpolates {key} placeholders using values from vars table.
+-- Unknown keys are left unchanged (not replaced with empty string).
+Util.Format = function (str, vars)
+    return (str:gsub("{([^}]*)}", function(key)
+        local val = vars[key]
+        if val == nil then
+            return nil
+        end
+        return tostring(val)
+    end))
+end
+
+Util.InfoLog = function (str, vars)
+    local text = vars and Util.Format(str, vars) or str
+    LogMessage(text, logLevelInfo)
+end
+
+Util.ErrorLog = function (str, vars)
+    local text = vars and Util.Format(str, vars) or str
+    LogMessage(text, logLevelError)
+end
+
+Util.WarningLog = function (str, vars)
+    local text = vars and Util.Format(str, vars) or str
+    LogMessage(text, logLevelWarning)
 end
 
 -- Check if the time format is correct.
@@ -59,8 +234,8 @@ Util.GenerateTimeFormattedString = function(time, timerFormat)
     end
 
     if timerFormat.minutes then
-		local agretedMinutes = timerFormat.hours and m or (m + (60 * h))
-		out = (out == "" and pad2(agretedMinutes)) or (out .. ":" .. pad2(agretedMinutes))
+		local aggregatedMinutes = timerFormat.hours and m or (m + (60 * h))
+		out = (out == "" and pad2(aggregatedMinutes)) or (out .. ":" .. pad2(aggregatedMinutes))
 	end
 
     if timerFormat.seconds then
@@ -94,6 +269,358 @@ Util.TableHasValue = function(tbl, val)
 		end
 	end
 	return false
+end
+
+-- Get the maximum positive integer index in a table.
+-- Used by array-like operations that must work with sparse tables.
+-- Used by: StringUtils.lua,
+Util.GetMaxNumericIndex = function(tbl)
+    local maxIndex = 0
+    for key, _ in next, tbl do
+        if type(key) == "number" and key > 0 and floor(key) == key and key > maxIndex then
+            maxIndex = key
+        end
+    end
+    return maxIndex
+end
+
+-- Angle wrapping (used in interpolation)
+-- Used by: MathUtils.lua
+Util.WrapAngleRaw = function(angle, minVal, range)
+    return angle - range * floor((angle - minVal) / range)
+end
+
+-- Apply the inverse of a Rotation to a Vec3 (no type checking, used internally).
+--
+-- Why this exists: For Euler angles, negating each component is NOT the correct
+-- inverse of the rotation. It only works for rotations around a single axis.
+-- For multi-axis rotations, the inverse depends on the rotation order, which is
+-- not documented in the public API of TEN.
+--
+-- The mathematically correct inverse is the transpose of the rotation matrix.
+-- We can build this without knowing the rotation order by applying the
+-- parent's rotation to the three unit basis vectors. Since rotation matrices
+-- are orthogonal, M^(-1) = M^T, and applying M^(-1) to a vector w reduces to
+-- the dot product of w with each rotated basis vector.
+--
+-- Used by: Transform3DUtils.lua (CalculateLocalOffset)
+Util.RotationInverseRaw = function(rot, v)
+    local xAxis = Vec3(1, 0, 0):Rotate(rot)
+    local yAxis = Vec3(0, 1, 0):Rotate(rot)
+    local zAxis = Vec3(0, 0, 1):Rotate(rot)
+    return Vec3(
+        v:Dot(xAxis),
+        v:Dot(yAxis),
+        v:Dot(zAxis)
+    )
+end
+
+-- HSL to Color conversion (no type checking, used internally)
+-- Takes h, s, l, a as separate parameters to avoid table allocation
+-- Returns a Color object directly
+Util.HSLtoColorRaw = function(h, s, l, a)
+    local r, g, b
+
+    if s == 0 then
+        r, g, b = l, l, l  -- Achromatic (gray)
+    else
+        local q = l < 0.5 and l * (1 + s) or l + s - l * s
+        local p = 2 * l - q
+        local hk = h / 360
+        r = HueToRgb(p, q, hk + 1/3)
+        g = HueToRgb(p, q, hk)
+        b = HueToRgb(p, q, hk - 1/3)
+    end
+
+    -- Round to nearest integer and convert to 0-255 range
+    return Color(
+        floor(r * 255 + 0.5),
+        floor(g * 255 + 0.5),
+        floor(b * 255 + 0.5),
+        floor(a * 255 + 0.5)
+    )
+end
+
+-- Color to HSL conversion (no type checking, used internally)
+-- Returns h, s, l as multiple values (no table allocation)
+Util.ColorToHSLRaw = function(color)
+    local r = color.r / 255
+    local g = color.g / 255
+    local b = color.b / 255
+
+    local h = color:GetHue()
+
+    local maxValue = max(r, g, b)
+    local minValue = min(r, g, b)
+    local l = (maxValue + minValue) / 2
+
+    local s
+    if maxValue == minValue then
+        s = 0
+    else
+        local delta = maxValue - minValue
+        s = l > 0.5 and delta / (2 - maxValue - minValue) or delta / (maxValue + minValue)
+    end
+
+    return h, s, l
+end
+
+-- Color to OKLch conversion (no type checking, used internally)
+-- Returns L, C, h as multiple values (no table allocation)
+Util.ColorToOKLchRaw = function(color)
+    local r = SrgbToLinear(color.r / 255)
+    local g = SrgbToLinear(color.g / 255)
+    local b = SrgbToLinear(color.b / 255)
+
+    local l_ = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b
+    local m_ = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b
+    local s_ = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b
+
+    local l_cbrt = l_ >= 0 and l_ ^ (1/3) or -((-l_) ^ (1/3))
+    local m_cbrt = m_ >= 0 and m_ ^ (1/3) or -((-m_) ^ (1/3))
+    local s_cbrt = s_ >= 0 and s_ ^ (1/3) or -((-s_) ^ (1/3))
+
+    local L = 0.2104542553 * l_cbrt + 0.7936177850 * m_cbrt - 0.0040720468 * s_cbrt
+    local A = 1.9779984951 * l_cbrt - 2.4285922050 * m_cbrt + 0.4505937099 * s_cbrt
+    local B = 0.0259040371 * l_cbrt + 0.7827717662 * m_cbrt - 0.8086757660 * s_cbrt
+
+    local C = sqrt(A * A + B * B)
+    local h = deg(atan(B, A))
+    if h < 0 then
+        h = h + 360
+    end
+
+    return L, C, h
+end
+
+-- OKLch to Color conversion (no type checking, used internally)
+-- Takes L, C, h, a as separate parameters to avoid table allocation
+-- Returns a Color object directly
+Util.OKLchToColorRaw = function(L, C, h, a)
+
+    -- Convert back to OKLab
+    local hRad = rad(h)
+    local A = C * cos(hRad)
+    local B = C * sin(hRad)
+
+    -- OKLab to LMS (inverse matrix)
+    local l_cbrt = L + 0.3963377774 * A + 0.2158037573 * B
+    local m_cbrt = L - 0.1055613458 * A - 0.0638541728 * B
+    local s_cbrt = L - 0.0894841775 * A - 1.2914855480 * B
+
+    -- Cube (inverse of cube root)
+    local l_ = l_cbrt * l_cbrt * l_cbrt
+    local m_ = m_cbrt * m_cbrt * m_cbrt
+    local s_ = s_cbrt * s_cbrt * s_cbrt
+
+    -- LMS to linear RGB (inverse matrix)
+    local r_lin =  4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_
+    local g_lin = -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_
+    local b_lin = -0.0041960863 * l_ - 0.7034186147 * m_ + 1.7076147010 * s_
+
+    -- Clamp to valid range before gamma correction
+    r_lin = max(0, min(1, r_lin))
+    g_lin = max(0, min(1, g_lin))
+    b_lin = max(0, min(1, b_lin))
+
+    -- Linear RGB to sRGB
+    local r = LinearToSrgb(r_lin)
+    local g = LinearToSrgb(g_lin)
+    local b = LinearToSrgb(b_lin)
+
+    -- Clamp and convert to 0-255 range
+    r = floor(r * 255 + 0.5)
+    g = floor(g * 255 + 0.5)
+    b = floor(b * 255 + 0.5)
+    local alpha = floor(max(0, min(1, a)) * 255 + 0.5)
+
+    return Color(r, g, b, alpha)
+end
+
+-- Color interpolation (no type checking, used internally)
+-- space: 0 = RGB, 1 = HSL, 2 = OKLch. All parameters are assumed valid and t clamped to [0, 1].
+Util.InterpolateColorRaw = function(colorA, colorB, t, space, huePath, preserveS, preserveL)
+    if space == 0 then -- RGB
+        local inv = 1 - t
+        return Color(
+            floor(colorA.r * inv + colorB.r * t + 0.5),
+            floor(colorA.g * inv + colorB.g * t + 0.5),
+            floor(colorA.b * inv + colorB.b * t + 0.5),
+            floor(colorA.a * inv + colorB.a * t + 0.5)
+        )
+
+    elseif space == 1 then -- HSL
+        local hA, sA, lA = Util.ColorToHSLRaw(colorA)
+        local hB, sB, lB = Util.ColorToHSLRaw(colorB)
+
+        local h = InterpolateHue(hA, hB, t, huePath)
+        local s = preserveS and sA or (sA + (sB - sA) * t)
+        local l = preserveL and lA or (lA + (lB - lA) * t)
+
+        local alpha = (colorA.a + (colorB.a - colorA.a) * t) / 255
+        return Util.HSLtoColorRaw(h, s, l, alpha)
+
+    else -- OKLch (space == 2)
+        local lA, cA, hA = Util.ColorToOKLchRaw(colorA)
+        local lB, cB, hB = Util.ColorToOKLchRaw(colorB)
+
+        local l = preserveL and lA or (lA + (lB - lA) * t)
+        local c = preserveS and cA or (cA + (cB - cA) * t)
+        local h = InterpolateHue(hA, hB, t, huePath)
+
+        local alpha = (colorA.a + (colorB.a - colorA.a) * t) / 255
+        return Util.OKLchToColorRaw(l, c, h, alpha)
+    end
+end
+
+-- Check if a value is valid for interpolation (number, color, rotation, or vector)
+Util.IsValidInterpolationValue = function(value)
+    return IsNumber(value) or
+           IsColor(value) or
+           IsRotation(value) or
+           IsVec2(value) or
+           IsVec3(value)
+end
+
+-- Linear interpolation (no type checking, used internally)
+Util.LerpRaw = function (a, b, t)
+    return InterpolateValuesRaw(a, b, t)
+end
+
+-- Smoothstep interpolation (no type checking, used internally)
+-- edge0 and edgeDelta are used to scale and bias t before applying the smoothstep formula
+-- edgeDelta is the difference between edge1 and edge0, which defines the range over which the smoothstep transition occurs
+Util.SmoothstepRaw = function(a, b, t, edge0, edgeDelta)
+    -- Scale, bias and saturate t to 0..1 range
+    t = max(0, min(1, (t - edge0) / edgeDelta))
+
+    -- Evaluate polynomial
+    -- Smoothstep formula: t²(3 - 2t) = 3t² - 2t³
+    t = t * t * (3 - 2 * t)
+    return InterpolateValuesRaw(a, b, t)
+end
+
+-- Smootherstep interpolation (no type checking, used internally)
+-- edge0 and edgeDelta are used to scale and bias t before applying the smootherstep formula
+-- edgeDelta is the difference between edge1 and edge0, which defines the range over which the smootherstep transition occurs
+Util.SmootherstepRaw  = function(a, b, t, edge0, edgeDelta)
+    -- Scale, bias and saturate t to 0..1 range
+    t = max(0, min(1, (t - edge0) / edgeDelta))
+
+    -- Ken Perlin's smootherstep polynomial: 6t⁵ - 15t⁴ + 10t³
+    -- This is identical to LevelFuncs.Engine.Node.Smoothstep
+    t = t * t * t * (t * (t * 6 - 15) + 10)
+    return InterpolateValuesRaw(a, b, t)
+end
+
+-- Ease-in-out interpolation (no type checking, used internally)
+-- Uses the easeInOutQuad formula, which provides a smooth acceleration and deceleration.
+Util.EaseInOutRaw  = function(a, b, t)
+    -- EaseInOutQuad formula
+    local easedT
+    if t < 0.5 then
+        easedT = 2 * t * t  -- Ease in: acceleration
+    else
+        easedT = 1 - 2 * (1 - t) * (1 - t)  -- Ease out: deceleration
+    end
+    return InterpolateValuesRaw(a, b, easedT)
+end
+
+-- Ease-in-out elastic interpolation (no type checking, used internally)
+-- This function creates an elastic easing effect, where the value overshoots and oscillates before settling at the target.
+-- The amplitude controls the height of the overshoot, while the period controls the frequency of the oscillations.
+Util.ElasticRaw  = function(a, b, t, amplitude, period)
+    -- Handle edge cases (no oscillation at start/end)
+    if t == 0 then
+        return a
+    elseif t == 1 then
+        return b
+    end
+
+    -- EaseInOutElastic formula
+    local twoPi = 2 * pi
+
+    -- Calculate phase shift 's' to adjust the sine wave's starting point
+    -- The phase shift ensures the elastic curve starts at 0 and ends at 1
+    -- Formula: s = period / (2π) * arcsin(1 / amplitude)
+    local s = period / (2 * pi) * asin(1 / amplitude)
+    local periodOverTwoPi = twoPi / period
+    local easedT
+
+    if t < 0.5 then
+        -- Ease In (first half) - undershoot at start
+        t = t * 2
+        easedT = -(amplitude * (2 ^ (10 * (t - 1))) * sin((t - 1 - s) * periodOverTwoPi)) / 2
+    else
+        -- Ease Out (second half) - overshoot at end
+        t = t * 2 - 1
+        easedT = (amplitude * (2 ^ (-10 * t)) * sin((t - s) * periodOverTwoPi)) / 2 + 1
+    end
+    return InterpolateValuesRaw(a, b, easedT)
+end
+
+-- Penner easeOutBounce: piecewise quadratic with 4 peaks (industry standard).
+-- Returns a bounce-eased value in [0, 1]. No t clamp: caller must pass t in [0, 1].
+-- This is the de-facto standard "bounce" curve: the value hits the target 4 times
+-- with diminishing troughs (0.75, 0.9375, 0.984) between peaks.
+Util.BounceRaw = function(a, b, t)
+    if t == 0 then
+        return a
+    end
+    if t == 1 then
+        return b
+    end
+
+    local s = t
+    local easedT
+    if s < BOUNCE_C1 then
+        easedT = BOUNCE_K * s * s
+    elseif s < BOUNCE_C2 then
+        s = s - BOUNCE_T1
+        easedT = BOUNCE_K * s * s + BOUNCE_V1
+    elseif s < BOUNCE_C3 then
+        s = s - BOUNCE_T2
+        easedT = BOUNCE_K * s * s + BOUNCE_V2
+    else
+        s = s - BOUNCE_T3
+        easedT = BOUNCE_K * s * s + BOUNCE_V3
+    end
+    return InterpolateValuesRaw(a, b, easedT)
+end
+
+-- Damped oscillation for impact effects (slam, hit, elastic landing).
+-- This is NOT the standard Penner "bounce" curve: it's a customizable
+-- damped oscillation that can produce both slam-like impacts and elastic
+-- bounces depending on the parameters. Use Slam for impacts and other
+-- non-standard effects; use Bounce (Penner) when you need a physical
+-- bouncing ball.
+--
+-- Formula: easedT = 1 - |cos(t * pi * bounces)| * (1 - t)^(1 / (bounciness + 0.1))
+--
+-- - bounces: number of visible oscillations across the [0, 1] range
+--   - 1 = no visible oscillation (smooth approach with slight overshoot)
+--   - 2 = one small dip (slam-like)
+--   - 4 = visible bounce pattern
+--   - 6+ = strong elastic oscillation
+--
+-- - bounciness: how long oscillations persist (0 = instant settle, 1 = long decay)
+--   - low: envelope drops fast, few visible oscillations
+--   - high: envelope drops slowly, oscillations visible longer
+--
+-- The +0.1 in the exponent is a numerical safety net to avoid division by
+-- zero when bounciness = 0. It is not a tunable parameter.
+Util.SlamRaw = function(a, b, t, bounces, bounciness)
+    if t == 0 then
+        return a
+    end
+    if t == 1 then
+        return b
+    end
+
+    local envelope = (1 - t) ^ (1 / (bounciness + 0.1))
+    local oscillation = abs(cos(t * pi * bounces))
+    local easedT = 1 - (oscillation * envelope)
+    return InterpolateValuesRaw(a, b, easedT)
 end
 
 return Util
