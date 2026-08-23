@@ -90,6 +90,11 @@ public:
 	void		EnableHomeLevel(bool enable);
 	bool		IsLoadSaveEnabled() const;
 	void		EnableLoadSave(bool enable);
+	void		EnableTitleMenu(bool enable);
+	void		RequestTitleNewGame();
+	void		RequestTitleHomeLevel();
+	void		RequestTitleLoadGame();
+	void		RequestTitleExitGame();
 	
 	Settings*	GetSettings();
 	void		SetSettings(const Settings& src);

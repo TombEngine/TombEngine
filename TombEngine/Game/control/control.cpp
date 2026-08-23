@@ -802,7 +802,18 @@ GameStatus HandleMenuCalls(bool isTitle)
 
 	if (isTitle)
 	{
-		auto invStatus = g_Gui.TitleOptions(LaraItem);
+		InventoryResult invStatus;
+		if (g_Gui.IsTitleMenuEnabled() || g_Gui.GetMenuToDisplay() != Menu::Title)
+		{
+			// Stock sub-menus (LoadGame/SelectLevel/Options) must still process input, even when
+			// the base title menu is hidden, so script-opened sub-menus remain fully usable.
+			invStatus = g_Gui.TitleOptions(LaraItem);
+		}
+		else
+		{
+			// Base title screen is script-driven: only honor explicit script requests.
+			invStatus = g_Gui.ConsumeTitleRequestResult();
+		}
 
 		switch (invStatus)
 		{

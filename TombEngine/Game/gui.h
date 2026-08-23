@@ -163,6 +163,8 @@ namespace TEN::Gui
 		int EnterInventory;
 		int LastInvItem;
 		AmmoData Ammo;
+		bool TitleMenuEnabled = true;
+		InventoryResult TitleRequestResult = InventoryResult::None;
 
 	public:
 		int CompassNeedleAngle;
@@ -196,6 +198,8 @@ namespace TEN::Gui
 		SettingsData& GetCurrentSettings();
 		int GetLoadSaveSelection();
 		int GetLoopedSelectedOption(int selectedOption, int optionCount, bool canLoop);
+		bool IsTitleMenuEnabled();
+		InventoryResult ConsumeTitleRequestResult();
 
 		// Setters
 
@@ -205,6 +209,13 @@ namespace TEN::Gui
 		void SetEnterInventory(int number);
 		void SetInventoryItemChosen(int number);
 		void SetLastInventoryItem(int itemNumber);
+		void SetTitleMenuEnabled(bool enabled);
+		void SetTitleRequestResult(InventoryResult result);
+		void RequestTitleNewGame();
+		void RequestTitleHomeLevel();
+		void RequestTitleLoadGame();
+		void RequestTitleOptions();
+		void RequestTitleExitGame();
 
 	private:
 		void HandleDisplaySettingsInput(bool fromPauseMenu);
@@ -245,3 +256,4 @@ namespace TEN::Gui
 	extern std::vector<std::string> QuickActionStrings;
 	extern std::vector<std::string> MenuActionStrings;
 }
+

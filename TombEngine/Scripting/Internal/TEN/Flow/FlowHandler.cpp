@@ -109,6 +109,32 @@ Must be true or false
 */
 	tableFlow.set_function(ScriptReserved_EnableLoadSave, &FlowHandler::EnableLoadSave, this);
 
+/*** Enable or disable the stock title menu so a script can draw its own title screen over it.
+@function EnableTitleMenu
+@tparam bool enabled True or false.
+*/
+	tableFlow.set_function(ScriptReserved_EnableTitleMenu, &FlowHandler::EnableTitleMenu, this);
+
+/*** Request starting a new game from the title screen.
+@function RequestTitleNewGame
+*/
+	tableFlow.set_function(ScriptReserved_RequestTitleNewGame, &FlowHandler::RequestTitleNewGame, this);
+
+/*** Request going to the Home Level from the title screen.
+@function RequestTitleHomeLevel
+*/
+	tableFlow.set_function(ScriptReserved_RequestTitleHomeLevel, &FlowHandler::RequestTitleHomeLevel, this);
+
+/*** Open the stock Load/Save menu from the title screen so the player can pick a savegame.
+@function RequestTitleLoadGame
+*/
+	tableFlow.set_function(ScriptReserved_RequestTitleLoadGame, &FlowHandler::RequestTitleLoadGame, this);
+
+/*** Request exiting the game from the title screen.
+@function RequestTitleExitGame
+*/
+	tableFlow.set_function(ScriptReserved_RequestTitleExitGame, &FlowHandler::RequestTitleExitGame, this);
+
 /*** gameflow.lua or level scripts.
 @section FlowluaOrScripts
 */
@@ -809,6 +835,31 @@ bool FlowHandler::IsLoadSaveEnabled() const
 void FlowHandler::EnableLoadSave(bool enable)
 {
 	LoadSave = enable;
+}
+
+void FlowHandler::EnableTitleMenu(bool enable)
+{
+	g_Gui.SetTitleMenuEnabled(enable);
+}
+
+void FlowHandler::RequestTitleNewGame()
+{
+	g_Gui.RequestTitleNewGame();
+}
+
+void FlowHandler::RequestTitleHomeLevel()
+{
+	g_Gui.RequestTitleHomeLevel();
+}
+
+void FlowHandler::RequestTitleLoadGame()
+{
+	g_Gui.RequestTitleLoadGame();
+}
+
+void FlowHandler::RequestTitleExitGame()
+{
+	g_Gui.RequestTitleExitGame();
 }
 
 void FlowHandler::PrepareInventoryObjects()

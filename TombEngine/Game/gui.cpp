@@ -273,6 +273,52 @@ namespace TEN::Gui
 		LastInvItem = itemNumber;
 	}
 
+	bool GuiController::IsTitleMenuEnabled()
+	{
+		return TitleMenuEnabled;
+	}
+
+	void GuiController::SetTitleMenuEnabled(bool enabled)
+	{
+		TitleMenuEnabled = enabled;
+	}
+
+	void GuiController::SetTitleRequestResult(InventoryResult result)
+	{
+		TitleRequestResult = result;
+	}
+
+	InventoryResult GuiController::ConsumeTitleRequestResult()
+	{
+		auto result = TitleRequestResult;
+		TitleRequestResult = InventoryResult::None;
+		return result;
+	}
+
+	void GuiController::RequestTitleNewGame()
+	{
+		SetTitleRequestResult(InventoryResult::NewGame);
+	}
+
+	void GuiController::RequestTitleHomeLevel()
+	{
+		SetTitleRequestResult(InventoryResult::HomeLevel);
+	}
+
+	void GuiController::RequestTitleLoadGame()
+	{
+		// Open the stock load/save menu so the player can browse and pick a slot;
+		// DoLoad() will resolve the action once a slot is selected.
+		SelectedOption = 0;
+		MenuToDisplay = Menu::LoadGame;
+		SaveGame::LoadHeaders();
+	}
+
+	void GuiController::RequestTitleExitGame()
+	{
+		SetTitleRequestResult(InventoryResult::ExitGame);
+	}
+
 	void GuiController::DrawInventory()
 	{
 		g_Renderer.RenderInventory();

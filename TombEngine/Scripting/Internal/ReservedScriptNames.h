@@ -305,6 +305,11 @@ static constexpr char ScriptReserved_EnableLaraInTitle[]		= "EnableLaraInTitle";
 static constexpr char ScriptReserved_EnableLevelSelect[]		= "EnableLevelSelect";
 static constexpr char ScriptReserved_EnableHomeLevel[]			= "EnableHomeLevel";
 static constexpr char ScriptReserved_EnableLoadSave[]			= "EnableLoadSave";
+static constexpr char ScriptReserved_EnableTitleMenu[]			= "EnableTitleMenu";
+static constexpr char ScriptReserved_RequestTitleNewGame[]		= "RequestTitleNewGame";
+static constexpr char ScriptReserved_RequestTitleHomeLevel[]	= "RequestTitleHomeLevel";
+static constexpr char ScriptReserved_RequestTitleLoadGame[]		= "RequestTitleLoadGame";
+static constexpr char ScriptReserved_RequestTitleExitGame[]		= "RequestTitleExitGame";
 static constexpr char ScriptReserved_EnablePointFilter[]		= "EnablePointFilter";
 
 // Creature Functions

@@ -1419,7 +1419,7 @@ namespace TEN::Renderer
 		if (CurrentLevel == 0)
 		{
 			auto titleMenu = g_Gui.GetMenuToDisplay();
-			bool drawLogo = (titleMenu == Menu::Title || titleMenu == Menu::Options);
+			bool drawLogo = g_Gui.IsTitleMenuEnabled() && (titleMenu == Menu::Title || titleMenu == Menu::Options);
 
 			if (drawLogo && _logo != nullptr)
 			{
@@ -1459,7 +1459,31 @@ namespace TEN::Renderer
 				_spriteBatch->End();
 			}
 
-			RenderTitleMenu(titleMenu);
+			if (g_Gui.IsTitleMenuEnabled() || titleMenu != Menu::Title)
+			{
+				RenderTitleMenu(titleMenu);
+			}
+			else
+			{
+				// Base title is script-driven: RenderTitleMenu() is skipped, so flush its strings here.
+				DrawAllStrings();
+			}
+
+			// Flush script-contributed 2D sprites and 3D display items onto the title
+			// screen so Lua can composite custom content over the stock menu.
+			// Strings are already flushed by RenderTitleMenu/RenderSelectLevel/RenderLoadSaveMenu.
+			DrawDisplayItems();
+
+			// SelectLevel() already flushes its own scroll-arrow sprites.
+			if (titleMenu != Menu::SelectLevel)
+			{
+				// The flyby scene pass already collected its own sprites into _gameCamera; clear the
+				// list so we only draw the script-contributed overlay sprites, not stale scene entries.
+				_gameCamera.DisplaySpritesToDraw.clear();
+				CollectDisplaySprites(_gameCamera);
+				DrawDisplaySprites(_gameCamera, false);
+				DrawDisplaySprites(_gameCamera, true);
+			}
 		}
 		else
 		{
