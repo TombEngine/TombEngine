@@ -63,7 +63,7 @@ local min = math.min
 ConversionUtils.SecondsToFrames = function(seconds, fps, errorContext)
     fps = fps or FPS
     errorContext = errorContext or "ConversionUtils.SecondsToFrames"
-    if not IsNumber(seconds) or not IsNumber(fps) or seconds < 0 or fps < 0 then
+    if not IsNumber(seconds) or not IsNumber(fps) or seconds <= 0 or fps <= 0 then
         ErrorLog("Error in {context}: seconds and fps must be positive numbers.", {context = errorContext })
         return 0, false
     end

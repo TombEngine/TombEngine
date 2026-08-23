@@ -245,6 +245,10 @@ Transform3DUtils.RotatePointAroundAxis = function(point, pivot, axis, angle, err
         end
         rotatedLocal = localPoint:Rotate(rotation)
     elseif IsVec3(axis) then
+        if axis:Length() < 0.001 then
+            ErrorLog("Error in {context}: axis Vec3 cannot be zero.", {context = errorContext})
+            return nil
+        end
         -- Custom axis: use Rodrigues' rotation formula
         -- v_rot = v*cos(θ) + (k × v)*sin(θ) + k*(k·v)*(1-cos(θ))
         local k = axis:Normalize()
