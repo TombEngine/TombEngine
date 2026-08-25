@@ -2293,6 +2293,13 @@ namespace TEN::Gui
 			if (player.Control.HandStatus != HandStatus::Free)
 				return;
 
+			// Prevent flare drawing whilst using Kayak
+			if (player.Context.Vehicle != NO_VALUE &&
+				g_Level.Items[player.Context.Vehicle].ObjectNumber == ID_KAYAK)
+			{
+				return;
+			}
+
 			if (!TestState(item.Animation.ActiveState, CRAWL_STATES))
 			{
 				if (player.Control.Weapon.GunType != LaraWeaponType::Flare)

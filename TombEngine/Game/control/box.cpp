@@ -819,17 +819,18 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 			nextHeight = (nextBox == NO_VALUE) ? height : g_Level.PathfindingBoxes[nextBox].height;
 		}
 		else
+		{
+			// Push to sector edge based on movement direction.
+			if (xPos < shiftX)
+				item->Pose.Position.x = prevPos.x & (~WALL_MASK);
+			else if (xPos > shiftX)
+				item->Pose.Position.x = prevPos.x | WALL_MASK;
 
-		// Push to sector edge based on movement direction.
-		if (xPos < shiftX)
-			item->Pose.Position.x = prevPos.x & (~WALL_MASK);
-		else if (xPos > shiftX)
-			item->Pose.Position.x = prevPos.x | WALL_MASK;
-
-		if (zPos < shiftZ)
-			item->Pose.Position.z = prevPos.z & (~WALL_MASK);
-		else if (zPos > shiftZ)
-			item->Pose.Position.z = prevPos.z | WALL_MASK;
+			if (zPos < shiftZ)
+				item->Pose.Position.z = prevPos.z & (~WALL_MASK);
+			else if (zPos > shiftZ)
+				item->Pose.Position.z = prevPos.z | WALL_MASK;
+		}
 
 		// Re-get floor info at corrected position.
 		floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
