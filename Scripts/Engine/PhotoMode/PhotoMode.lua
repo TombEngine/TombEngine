@@ -351,11 +351,11 @@ local function ApplyTint(state)
     end
 end
 
--- Runs a preset's optional onEnter hook (executed when the entry is selected).
+-- Runs a preset's optional onSelect hook (executed when the entry is selected).
 local function TriggerPresetHook(list, index)
     local preset = list and list[index]
-    if preset and preset.onEnter and type(preset.onEnter) == "function" then
-        preset.onEnter()
+    if preset and preset.onSelect and type(preset.onSelect) == "function" then
+        preset.onSelect()
     end
 end
 

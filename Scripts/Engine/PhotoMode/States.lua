@@ -157,7 +157,7 @@ end
 function States.CaptureSnapshot()
     local snap = {}
 
-    --save all settings in case user overrides settings for outfits via onEnter
+    --save all settings in case user overrides settings for outfits via onSelect
     snap.settings = TEN.Flow.GetSettings()
 
     snap.laraPos      = Lara:GetPosition()

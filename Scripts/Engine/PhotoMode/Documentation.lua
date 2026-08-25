@@ -139,9 +139,9 @@
 -- meshIndices = { 0, 4, 9 } — only the listed slot indices are shown
 
 --- Optional function called after the accessory is applied.
--- @tfield[opt=nil] function onEnter Hook function executed after applying this accessory.
+-- @tfield[opt=nil] function onSelect Hook function executed after applying this accessory.
 -- @usage
--- onEnter = function() -- Function to call when the accessory is selected.
+-- onSelect = function() -- Function to call when the accessory is selected.
 --      TEN.Sound.PlaySound(42)
 -- end
 
@@ -173,9 +173,9 @@
 -- meshIndices = { 0, 4, 9 } — only the listed slot indices are swapped
 
 --- Optional function called after the expression is applied.
--- @tfield[opt=nil] function onEnter Hook function executed after applying this expression.
+-- @tfield[opt=nil] function onSelect Hook function executed after applying this expression.
 -- @usage
--- onEnter = function() -- Function to call when the expression is selected.
+-- onSelect = function() -- Function to call when the expression is selected.
 --      TEN.Sound.PlaySound(42)
 -- end
 
@@ -201,9 +201,9 @@
 -- @tfield[opt=TEN.View.ScaleMode.STRETCH] View.ScaleMode scaleMode Scale mode for the frame overlay.
 
 --- Optional function called after the frame is selected.
--- @tfield[opt=nil] function onEnter Hook function executed when this frame overlay is selected.
+-- @tfield[opt=nil] function onSelect Hook function executed when this frame overlay is selected.
 -- @usage
--- onEnter = function() -- Function to call when the frame is selected.
+-- onSelect = function() -- Function to call when the frame is selected.
 --      TEN.Sound.PlaySound(42)
 -- end
 
@@ -236,10 +236,10 @@
 --    {
 --       name             = "Remastered",
 --       skinnedMesh      = TEN.Objects.ObjID.ANIMATING14,
---       skinnedMeshIndex = 0,      -- Optional sub-index.
+--       skinnedMeshIndex = nil,      -- Optional sub-index.
 --       meshVisible      = "none", -- Hide classic meshes
 --       unlocked         = false,
---       onEnter = function() -- Function to call when outfit is selected.
+--       onSelect = function() -- Optional function to call when outfit is selected.
 --         local s = TEN.Flow.GetSettings()
 --         s.Hair[1].offset = Vec3(-4, 3, -28)
 --         TEN.Flow.SetSettings(s)
@@ -280,9 +280,9 @@
 -- - { 0, 4, 9 } -- Only the listed slot indices stay visible; rest are hidden.
 
 --- Optional function called after the outfit is applied.
--- @tfield[opt=nil] function onEnter Hook function executed after applying this outfit. Can be used to change hair offsets.
+-- @tfield[opt=nil] function onSelect Hook function executed after applying this outfit. Can be used to change hair offsets.
 -- @usage
--- onEnter = function() -- Function to call when outfit is selected.
+-- onSelect = function() -- Function to call when outfit is selected.
 --      local s = TEN.Flow.GetSettings()
 --      s.Hair[1].offset = Vec3(-4, 3, -28)
 --      TEN.Flow.SetSettings(s)
@@ -328,9 +328,9 @@
 -- @tfield int frameNumber The frame number for that animation to set as pose (0-based).
 
 --- Optional function called after the pose is applied.
--- @tfield[opt=nil] function onEnter Hook function executed after applying this pose.
+-- @tfield[opt=nil] function onSelect Hook function executed after applying this pose.
 -- @usage
--- onEnter = function() -- Function to call when the pose is selected.
+-- onSelect = function() -- Function to call when the pose is selected.
 --      TEN.Sound.PlaySound(42)
 -- end
 
