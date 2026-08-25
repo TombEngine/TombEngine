@@ -9,10 +9,14 @@ using namespace TEN::Scripting;
 namespace TEN::Utils::Discord
 {
     static bool DiscordReady = false;
+    static bool DiscordInitialized = false;
     static constexpr auto APPLICATION_ID = "1521229664541081730";
 
     void InitializeDiscord()
     {
+        if (DiscordInitialized)
+            return;
+
         DiscordEventHandlers handlers = {};
         handlers.ready = [](const DiscordUser*)
         {
@@ -29,6 +33,7 @@ namespace TEN::Utils::Discord
         };
 
         Discord_Initialize(APPLICATION_ID, &handlers, 1, nullptr);
+        DiscordInitialized = true;
     }
 
     void UpdateDiscord()
@@ -58,8 +63,12 @@ namespace TEN::Utils::Discord
 
     void DeInitializeDiscord()
     {
+        if (!DiscordInitialized)
+            return;
+
         Discord_ClearPresence();
         Discord_Shutdown();
         DiscordReady = false;
+        DiscordInitialized = false;
     }
 }

@@ -658,7 +658,7 @@ void InitializeOrLoadGame(bool loadGame)
 {
 	g_Gui.SetInventoryItemChosen(NO_VALUE);
 	g_Gui.SetEnterInventory(NO_VALUE);
-	InitializeDiscord();
+
 	// Restore game?
 	if (loadGame)
 	{
@@ -767,7 +767,6 @@ void EndGameLoop(int levelIndex, GameStatus reason)
 	DeInitializeScripting(levelIndex, reason);
 
 	g_VideoPlayer.Stop();
-	DeInitializeDiscord();
 	StopAllSounds();
 	StopSoundTracks(SOUND_XFADETIME_LEVELJUMP, true);
 	StopRumble();
