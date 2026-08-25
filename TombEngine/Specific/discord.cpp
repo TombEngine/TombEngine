@@ -14,7 +14,7 @@ namespace TEN::Utils::Discord
     void InitializeDiscord()
     {
         DiscordEventHandlers handlers = {};
-        handlers.ready = [](const DiscordUser* /*request*/)
+        handlers.ready = [](const DiscordUser*)
         {
             DiscordReady = true;
         };
@@ -31,15 +31,6 @@ namespace TEN::Utils::Discord
         Discord_Initialize(APPLICATION_ID, &handlers, 1, nullptr);
     }
 
-    // Returns the current level display name, or nullptr if not in a level.
-    static const char* GetLevelName()
-    {
-        if (!g_GameFlow->GetLevel(CurrentLevel))
-            return nullptr;
-
-        return g_GameFlow->GetString(g_GameFlow->GetLevel(CurrentLevel)->NameStringKey.c_str());
-    }
-
     void UpdateDiscord()
     {
         Discord_RunCallbacks();
@@ -51,7 +42,12 @@ namespace TEN::Utils::Discord
         const char* title = g_GameFlow->GetString(STRING_WINDOW_TITLE);
 
         // State (second row): current level name, e.g. "The Great Pyramid".
-        const char* levelName = GetLevelName();
+        const char* levelName;
+
+        if (!g_GameFlow->GetLevel(CurrentLevel))
+            levelName = nullptr;
+        else
+            levelName = g_GameFlow->GetString(g_GameFlow->GetLevel(CurrentLevel)->NameStringKey.c_str());
 
         DiscordRichPresence presence = {};
         presence.details = (title && title[0]) ? title : "TombEngine";
