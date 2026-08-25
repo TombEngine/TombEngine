@@ -7,15 +7,16 @@
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/effects/Blood.h"
-#include "Game/effects/Bubble.h"
+#include "Game/effects/bubble.h"
 #include "Game/effects/debris.h"
-#include "Game/effects/Drip.h"
+#include "Game/effects/drip.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
 #include "Game/effects/explosion.h"
-#include "Game/effects/Footprint.h"
+#include "Game/effects/footprint.h"
 #include "Game/effects/Ripple.h"
 #include "Game/effects/simple_particle.h"
+#include "Game/effects/ParticleGroup.h"
 #include "Game/effects/smoke.h"
 #include "Game/effects/spark.h"
 #include "Game/effects/Splash.h"
@@ -312,7 +313,7 @@ namespace TEN::Renderer
 					auto dir = target - origin;
 					dir.Normalize();
 
-					byte r, g, b;
+					unsigned char r, g, b;
 					if (arc.life >= 16)
 					{
 						r = arc.r;
@@ -327,7 +328,7 @@ namespace TEN::Renderer
 					}
 
 
-					byte oldR, oldG, oldB;
+					unsigned char oldR, oldG, oldB;
 					if (arc.PrevLife >= 16)
 					{
 						oldR = arc.PrevR;
@@ -341,9 +342,9 @@ namespace TEN::Renderer
 						oldB = (arc.PrevLife * arc.PrevB) / 16;
 					}
 
-					r = (byte)Lerp(oldR, r, GetInterpolationFactor());
-					g = (byte)Lerp(oldG, g, GetInterpolationFactor());
-					b = (byte)Lerp(oldB, b, GetInterpolationFactor());
+					r = (unsigned char)Lerp(oldR, r, GetInterpolationFactor());
+					g = (unsigned char)Lerp(oldG, g, GetInterpolationFactor());
+					b = (unsigned char)Lerp(oldB, b, GetInterpolationFactor());
 
 					AddSpriteBillboardConstrained(
 						&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LIGHTHING],
@@ -514,18 +515,34 @@ namespace TEN::Renderer
 
 				if (particle.flags & SP_FX)
 				{
-					const auto& fx = EffectList[particle.fxObj];
+					if (particle.fxObj < 0 || particle.fxObj >= g_Level.Items.size())
+					{
+						TENLog("Particle FX object index is out of bounds.", LogLevel::Warning);
+						continue;
+					}
 
-					auto& newEffect = _effects[particle.fxObj];
+					const auto& fx = g_Level.Items[particle.fxObj];
+					auto& newEffect = _items[particle.fxObj];
 
-					newEffect.Translation = Matrix::CreateTranslation(fx.pos.Position.ToVector3());
-					newEffect.Rotation = fx.pos.Orientation.ToRotationMatrix();
+					newEffect.Translation = Matrix::CreateTranslation(fx.Pose.Position.ToVector3());
+					newEffect.Rotation = fx.Pose.Orientation.ToRotationMatrix();
 					newEffect.Scale = Matrix::CreateScale(1.0f);
 					newEffect.World = newEffect.Rotation * newEffect.Translation;
-					newEffect.ObjectID = fx.objectNumber;
-					newEffect.RoomNumber = fx.roomNumber;
-					newEffect.Position = fx.pos.Position.ToVector3();
-					
+					newEffect.ObjectID = fx.ObjectNumber;
+					newEffect.RoomNumber = fx.RoomNumber;
+					newEffect.Position = fx.Pose.Position.ToVector3();
+
+					// On the frame the effect spawns, the slot's previous transform still belongs
+					// to its last occupant, so collapse interpolation onto the current pose.
+					if (fx.DisableInterpolation)
+					{
+						newEffect.PrevPosition = newEffect.Position;
+						newEffect.PrevTranslation = newEffect.Translation;
+						newEffect.PrevRotation = newEffect.Rotation;
+						newEffect.PrevWorld = newEffect.World;
+						newEffect.PrevScale = newEffect.Scale;
+					}
+
 					newEffect.InterpolatedPosition = Vector3::Lerp(newEffect.PrevPosition, newEffect.Position, GetInterpolationFactor());
 					newEffect.InterpolatedTranslation = Matrix::Lerp(newEffect.PrevTranslation, newEffect.Translation, GetInterpolationFactor());
 					newEffect.InterpolatedRotation = Matrix::Lerp(newEffect.InterpolatedRotation, newEffect.Rotation, GetInterpolationFactor());
@@ -575,13 +592,23 @@ namespace TEN::Renderer
 							nodePos.z = NodeOffsets[particle.nodeNumber].z;
 
 							int meshIndex = NodeOffsets[particle.nodeNumber].meshNum;
-							if (meshIndex >= 0)
+							if (meshIndex < 0)
 							{
-								nodePos = GetJointPosition(item, meshIndex, nodePos);
+								item = LaraItem;
+								meshIndex = -meshIndex;
+							}
+
+							// Transform offset by interpolated bone matrices so attached particles
+							// stay aligned with the drawn mesh during movement and rotation.
+							const auto& rendererItem = _items[item->Index];
+							if (rendererItem.DoneAnimations)
+							{
+								auto world = rendererItem.InterpolatedAnimationTransforms[meshIndex] * rendererItem.InterpolatedWorld;
+								nodePos = Vector3i(Vector3::Transform(nodePos.ToVector3(), world));
 							}
 							else
 							{
-								nodePos = GetJointPosition(LaraItem, -meshIndex, nodePos);
+								nodePos = GetJointPosition(item, meshIndex, nodePos);
 							}
 
 							NodeOffsets[particle.nodeNumber].itemNumber = particle.fxObj;
@@ -679,7 +706,7 @@ namespace TEN::Renderer
 			if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Splashes rendering"))
 				return;
 
-			byte color = (splash.life >= 32 ? 128 : (byte)((splash.life / 32.0f) * 128));
+			unsigned char color = (splash.life >= 32 ? 128 : (unsigned char)((splash.life / 32.0f) * 128));
 
 			if (!splash.isRipple) 
 			{
@@ -690,7 +717,7 @@ namespace TEN::Renderer
 				}
 			}
 
-			byte prevColor = (splash.PrevLife >= 32 ? 128 : (byte)((splash.PrevLife / 32.0f) * 128));
+			unsigned char prevColor = (splash.PrevLife >= 32 ? 128 : (unsigned char)((splash.PrevLife / 32.0f) * 128));
 
 			if (!splash.isRipple)
 			{
@@ -701,7 +728,7 @@ namespace TEN::Renderer
 				}
 			}
 
-			color = (byte)Lerp(prevColor, color, GetInterpolationFactor());
+			color = (unsigned char)Lerp(prevColor, color, GetInterpolationFactor());
 
 			float xInner;
 			float zInner;
@@ -879,7 +906,7 @@ namespace TEN::Renderer
 			if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Shockwaves rendering"))
 				return;
 
-			byte color = shockwave->life * 8;
+			unsigned char color = shockwave->life * 8;
 
 			shockwave->yRot += shockwave->yRot / FPS;
 
@@ -1102,7 +1129,7 @@ namespace TEN::Renderer
 				AddSpriteBillboard(
 					&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_UNDERWATERDUST],
 					pos,
-					Color(1.0f, 1.0f, 1.0f, part.Transparency()),
+					part.FinalColor(),
 					0.0f, 1.0f, Vector2(size),
 					BlendMode::Additive, true, view);
 
@@ -1187,7 +1214,7 @@ namespace TEN::Renderer
 						AddSpriteBillboard(
 							&_sprites[spriteIndex],
 							finalPos,
-							Color(1.0f, 1.0f, 1.0f, part.Transparency()),
+							part.FinalColor(),
 							rot, 1.0f, Vector2(finalScale),
 							BlendMode::Additive, false, view);
 
@@ -1222,7 +1249,7 @@ namespace TEN::Renderer
 						AddSpriteBillboardConstrained(
 							&_sprites[spriteIndex],
 							finalPos,
-							Color(0.8f, 1.0f, 1.0f, part.Transparency()),
+							part.FinalColor(),
 							0.0f, 1.0f,
 							Vector2(width, finalScale),
 							BlendMode::Additive, -v, false, view);
@@ -1293,6 +1320,12 @@ namespace TEN::Renderer
 		// Per-arm draw helper: only transform and draw.
 		auto drawArmFlash = [&](const WeaponSettings& settings, GAME_OBJECT_ID gunflash, bool left)
 		{
+			if (!Objects[gunflash].loaded)
+			{
+				TENLog(fmt::format("Gunflash object {} not loaded, skipping draw.", GetObjectName(gunflash)), LogLevel::Warning);
+				return;
+			}
+
 			const auto& flashMoveable = *_moveableObjects[gunflash];
 			const auto& flashMesh = *flashMoveable.ObjectMeshes[0];
 
@@ -1365,6 +1398,12 @@ namespace TEN::Renderer
 
 			auto flashObjectID = flash.SwitchToMuzzle2 ? (_moveableObjects[ID_GUN_FLASH2].has_value() ? ID_GUN_FLASH2 : ID_GUN_FLASH) : ID_GUN_FLASH;
 			auto zRot = flash.SwitchToMuzzle2 ? 0.0f : TO_RAD((short)std::hash<int>()(GlobalCounter));
+
+			if (!Objects[flashObjectID].loaded)
+			{
+				TENLog(fmt::format("Gunflash object {} not loaded for creature {}, skipping draw.", GetObjectName(flashObjectID), GetObjectName((GAME_OBJECT_ID)rItem.ObjectID)), LogLevel::Warning);
+				return;
+			}
 
 			const auto& flashMoveable = *_moveableObjects[flashObjectID];
 			const auto& flashMesh = *flashMoveable.ObjectMeshes[0];
@@ -1497,76 +1536,6 @@ namespace TEN::Renderer
 		}
 
 		return spriteMatrix;
-	}
-
-	void Renderer::DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass)
-	{
-		_stObjects.Skinned = (int)SkinningMode::Static;
-
-		const auto& room = _rooms[effect->RoomNumber];
-
-		auto world = effect->InterpolatedWorld;
-		ReflectMatrixOptionally(world);
-
-		_stObjects.Objects[0].World = world;
-		_stObjects.Objects[0].Color = effect->Color;
-		_stObjects.Objects[0].AmbientLight = effect->AmbientLight;
-		_stObjects.Objects[0].LightMode = (int)LightMode::Dynamic;
-		BindInstancedStaticLights(effect->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
-
-		auto& mesh = *effect->Mesh;
-		
-		for (int animated = 0; animated < 2; animated++)
-		{
-			for (auto& bucket : mesh.Buckets)
-			{
-				if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
-				{
-					continue;
-				}
-
-				if (bucket.NumVertices == 0)
-					continue;
-
-				int passes = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
-
-				for (int p = 0; p < passes; p++)
-				{
-					if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
-						continue;
-
-					BindBucketTextures(bucket, TextureSource::Moveables, animated);
-
-					DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
-
-					_numEffectsDrawCalls++;
-				}
-			}
-		}
-	}
-
-	void Renderer::DrawEffects(RenderView& view, RendererPass rendererPass)
-	{
-		_shaders.Bind(Shader::InstancedStatics);
-
-		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
-		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
-
-		for (auto* roomPtr : view.RoomsToDraw)
-		{
-			if (IgnoreReflectionPassForRoom(roomPtr->RoomNumber))
-				continue;
-
-			for (auto* effectPtr : roomPtr->EffectsToDraw)
-			{
-				const auto& room = _rooms[effectPtr->RoomNumber];
-				const auto& object = Objects[effectPtr->ObjectID];
-
-				if (!object.Hidden && object.loaded)
-					DrawEffect(view, effectPtr, rendererPass);
-			}
-		}
 	}
 
 	void Renderer::DrawDebris(RenderView& view, RendererPass rendererPass)
@@ -1796,8 +1765,185 @@ namespace TEN::Renderer
 		}
 	}
 
+	void Renderer::PrepareParticleGroups(RenderView& view)
+	{
+		using namespace TEN::Effects::ParticleGroups;
+
+		for (const auto& group : ParticleGroupList)
+		{
+			if (!group.Active)
+				continue;
+
+			// Silent check: object validity is already reported by CreateParticleGroup and
+			// SetObjectID; logging here would spam the log every frame.
+			if (!Objects[group.ObjectID].loaded)
+				continue;
+
+			// Mesh groups are rendered via DrawParticleGroupMeshes().
+			if (group.IsMeshGroup())
+				continue;
+
+			for (const auto& p : group.Particles)
+			{
+				if (!p.Active)
+					continue;
+
+				// Validate per-particle object ID.
+				if (!Objects[p.ObjectID].loaded)
+					continue;
+
+				// Validate that it's a sprite sequence (negative nmeshes).
+				if (Objects[p.ObjectID].nmeshes >= 0)
+					continue;
+
+				auto interpPos = Vector3::Lerp(p.PrevPosition, p.Position, GetInterpolationFactor());
+
+				float dist = Vector3::Distance(interpPos, view.Camera.WorldPosition);
+				if (dist > DEFAULT_RENDER_DISTANCE)
+					continue;
+
+				auto interpSize     = Lerp(p.PrevSize, p.Size, GetInterpolationFactor());
+				auto interpRotation = Lerp(p.PrevRotation, p.Rotation, GetInterpolationFactor());
+
+				int spriteCount        = std::max(1, abs(Objects[p.ObjectID].nmeshes));
+				int clampedSpriteIndex = std::clamp(p.SubIndex, 0, spriteCount - 1);
+
+				if (p.Orientation != Vector3::Zero)
+				{
+					AddQuad(
+						&_sprites[Objects[p.ObjectID].meshIndex + clampedSpriteIndex],
+						interpPos,
+						Vector4(p.ParticleColor.R(), p.ParticleColor.G(), p.ParticleColor.B(), p.ParticleColor.A()),
+						interpRotation, 1.0f,
+						interpSize, group.RenderBlendMode, p.Orientation, true, view);
+				}
+				else
+				{
+					AddSpriteBillboard(
+						&_sprites[Objects[p.ObjectID].meshIndex + clampedSpriteIndex],
+						interpPos,
+						Vector4(p.ParticleColor.R(), p.ParticleColor.G(), p.ParticleColor.B(), p.ParticleColor.A()),
+						interpRotation, 1.0f,
+						Vector2(interpSize, interpSize),
+						group.RenderBlendMode, true, view);
+				}
+			}
+		}
+	}
+
 	std::unique_ptr<ITexture2D> Renderer::CreateDefaultTexture(std::vector<unsigned char> color)
 	{
 		return _graphicsDevice->CreateTexture2D(1, 1, SurfaceFormat::SF_RGBA8_Unorm, color.data());
+	}
+
+	void Renderer::DrawEffects(RenderView& view, RendererPass rendererPass)
+	{
+		// Sorted-blend faces (e.g. alpha blend) are collected here and drawn later, back-to-front,
+		// in the Transparent pass. Opaque/alpha-test/additive faces are still drawn immediately below.
+		if (rendererPass == RendererPass::CollectTransparentFaces)
+		{
+			for (auto* roomPtr : view.RoomsToDraw)
+			{
+				if (IgnoreReflectionPassForRoom(roomPtr->RoomNumber))
+					continue;
+
+				for (auto* effectPtr : roomPtr->EffectsToDraw)
+				{
+					const auto& object = Objects[effectPtr->ObjectID];
+					if (object.Hidden || !object.loaded || effectPtr->Mesh == nullptr)
+						continue;
+
+					for (auto& bucket : effectPtr->Mesh->Buckets)
+					{
+						if (bucket.NumVertices == 0 || !IsSortedBlendMode(bucket.BlendMode))
+							continue;
+
+						for (int p = 0; p < bucket.Polygons.size(); p++)
+						{
+							auto centre = Vector3::Transform(bucket.Polygons[p].Centre, effectPtr->InterpolatedWorld);
+							int distance = (centre - view.Camera.WorldPosition).Length();
+
+							RendererSortableObject sortableObject;
+							sortableObject.ObjectType = RendererObjectType::Effect;
+							sortableObject.Centre = centre;
+							sortableObject.Distance = distance;
+							sortableObject.BlendMode = bucket.BlendMode;
+							sortableObject.Bucket = &bucket;
+							sortableObject.LightMode = LightMode::Dynamic;
+							sortableObject.Polygon = &bucket.Polygons[p];
+							sortableObject.World = effectPtr->InterpolatedWorld;
+							sortableObject.Effect = effectPtr;
+							sortableObject.Room = &_rooms[effectPtr->RoomNumber];
+
+							view.TransparentObjectsToDraw.push_back(sortableObject);
+						}
+					}
+				}
+			}
+
+			return;
+		}
+
+		_shaders.Bind(Shader::InstancedStatics);
+
+		_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
+		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
+		_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
+
+		for (auto* roomPtr : view.RoomsToDraw)
+		{
+			if (IgnoreReflectionPassForRoom(roomPtr->RoomNumber))
+				continue;
+
+			for (auto* effectPtr : roomPtr->EffectsToDraw)
+			{
+				const auto& object = Objects[effectPtr->ObjectID];
+				if (!object.Hidden && object.loaded)
+					DrawEffect(view, effectPtr, rendererPass);
+			}
+		}
+	}
+
+	void Renderer::DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass)
+	{
+		if (effect->Mesh == nullptr)
+			return;
+
+		_stObjects.Skinned = (int)SkinningMode::Static;
+
+		auto world = effect->InterpolatedWorld;
+		ReflectMatrixOptionally(world);
+
+		_stObjects.Objects[0].World = world;
+		_stObjects.Objects[0].Color = effect->Color;
+		_stObjects.Objects[0].AmbientLight = effect->AmbientLight;
+		_stObjects.Objects[0].LightMode = (int)LightMode::Dynamic;
+		BindInstancedStaticLights(effect->LightsToDraw, 0);
+		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+
+		const auto& mesh = *effect->Mesh;
+
+		for (int animated = 0; animated < 2; animated++)
+		{
+			for (const auto& bucket : mesh.Buckets)
+			{
+				if ((animated == 1) ^ bucket.Animated || bucket.NumVertices == 0)
+					continue;
+
+				int passes = (rendererPass == RendererPass::Opaque && bucket.BlendMode == BlendMode::AlphaTest) ? 2 : 1;
+				for (int p = 0; p < passes; p++)
+				{
+					if (!SetupBlendModeAndAlphaTest(bucket.BlendMode, rendererPass, p))
+						continue;
+
+					BindBucketTextures(bucket, TextureSource::Moveables, animated);
+					BindMaterial(bucket.MaterialIndex, false);
+
+					DrawIndexedInstancedTriangles(bucket.NumIndices, 1, bucket.StartIndex, 0);
+
+					_numEffectsDrawCalls++;
+				}
+			}
+		}
 	}
 }

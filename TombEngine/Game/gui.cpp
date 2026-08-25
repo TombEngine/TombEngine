@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
@@ -1492,7 +1492,7 @@ namespace TEN::Gui
 		const auto& invObject = InventoryObjectTable[ring.CurrentObjectList[ring.CurrentObjectInList].InventoryItem];
 
 		int number = 0;
-		unsigned __int64 options = invObject.Options;
+		unsigned long long options = invObject.Options;
 		AmmoSelectorFlag = 0;
 		NumAmmoSlots = 0;
 
@@ -1624,7 +1624,7 @@ namespace TEN::Gui
 
 	void GuiController::InsertObjectIntoList_v2(int objectNumber)
 	{
-		unsigned __int64 options = InventoryObjectTable[objectNumber].Options;
+		unsigned long long options = InventoryObjectTable[objectNumber].Options;
 
 		if (options & (OPT_COMBINABLE | OPT_ALWAYS_COMBINE))
 		{
@@ -2293,6 +2293,13 @@ namespace TEN::Gui
 			if (player.Control.HandStatus != HandStatus::Free)
 				return;
 
+			// Prevent flare drawing whilst using Kayak
+			if (player.Context.Vehicle != NO_VALUE &&
+				g_Level.Items[player.Context.Vehicle].ObjectNumber == ID_KAYAK)
+			{
+				return;
+			}
+
 			if (!TestState(item.Animation.ActiveState, CRAWL_STATES))
 			{
 				if (player.Control.Weapon.GunType != LaraWeaponType::Flare)
@@ -2464,7 +2471,7 @@ namespace TEN::Gui
 			}
 
 			int n = 0;
-			unsigned long options;
+			unsigned long long options;
 			if (!AmmoActive)
 			{
 				options = InventoryObjectTable[invRing.CurrentObjectList[invRing.CurrentObjectInList].InventoryItem].Options;

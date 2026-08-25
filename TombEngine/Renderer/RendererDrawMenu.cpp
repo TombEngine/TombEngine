@@ -8,7 +8,7 @@
 #include "Game/control/control.h"
 #include "Game/control/volume.h"
 #include "Game/effects/DisplaySprite.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
@@ -20,7 +20,7 @@
 #include "Specific/Input/InputAction.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
-#include "Version.h"
+#include "version.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
@@ -1283,6 +1283,8 @@ namespace TEN::Renderer
 		if (texture == nullptr || !texture->IsValid())
 			return;
 
+		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
+
 		int timeout = 20;
 		float currentFade = FADE_FACTOR;
 
@@ -1380,6 +1382,8 @@ namespace TEN::Renderer
 
 	void Renderer::RenderInventoryScene(IRenderSurface2D* renderTarget, ITextureBase* background, float backgroundFade)
 	{
+		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
+
 		// Set basic render states
 		SetBlendMode(BlendMode::Opaque, true);
 		SetDepthState(DepthState::Write, true);
@@ -1557,6 +1561,8 @@ namespace TEN::Renderer
 
 	void Renderer::RenderLoadingScreen(float percentage)
 	{
+		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
+
 		// Set basic render states.
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);

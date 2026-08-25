@@ -146,6 +146,34 @@ static Vector3 GetBoxCenter(int boxIndex)
 	return Vector3(z, y, x);
 }
 
+static int GetOverlapFlagsBetweenBoxes(int fromBox, int toBox)
+{
+	if (fromBox == NO_VALUE || toBox == NO_VALUE)
+		return 0;
+
+	if (fromBox < 0 || fromBox >= (int)g_Level.PathfindingBoxes.size())
+		return 0;
+
+	int index = g_Level.PathfindingBoxes[fromBox].overlapIndex;
+	if (index < 0)
+		return 0;
+
+	while (index < (int)g_Level.Overlaps.size())
+	{
+		const auto& overlap = g_Level.Overlaps[index];
+
+		if (overlap.box == toBox)
+			return overlap.flags;
+
+		if (overlap.flags & OVERLAP_END_BIT)
+			break;
+
+		index++;
+	}
+
+	return 0;
+}
+
 static void DrawBox(int boxIndex, const Vector3& color)
 {
 	if (boxIndex <= NO_VALUE || boxIndex >= g_Level.PathfindingBoxes.size())
@@ -735,12 +763,32 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		nextHeight = g_Level.PathfindingBoxes[nextBox].height;
 
 	bool heightThresholdReached = LOT->Fly == NO_FLYING && !LOT->IsJumping && (boxHeight - height > LOT->Step || boxHeight - height < LOT->Drop);
-	bool zoneIncorrect = item->BoxNumber != NO_VALUE && !LOT->IsJumping && LOT->Zone != ZoneType::Flyer && (zone[item->BoxNumber] != zone[floor->PathfindingBoxID]);
+	bool zoneIncorrect = item->BoxNumber != NO_VALUE && !LOT->IsJumping && !LOT->IsMonkeying && LOT->Zone != ZoneType::Flyer && (zone[item->BoxNumber] != zone[floor->PathfindingBoxID]);
+
+	bool invalidMonkeyTraversal = false;
+	if (LOT->IsMonkeying)
+	{
+		auto pointColl = GetPointCollision(item->Pose.Position, roomNumber);
+
+		// Must remain under actual monkey-swing ceiling.
+		if (!pointColl.GetBottomSector().Flags.Monkeyswing)
+		{
+			invalidMonkeyTraversal = true;
+		}
+		// If we crossed into another box while monkeying, that transition itself
+		// must be a MONKEY overlap.
+		else if (item->BoxNumber != NO_VALUE &&
+			floor->PathfindingBoxID != item->BoxNumber &&
+			(GetOverlapFlagsBetweenBoxes(item->BoxNumber, floor->PathfindingBoxID) & OVERLAP_MONKEY) == 0)
+		{
+			invalidMonkeyTraversal = true;
+		}
+	}
 
 	// ZONE/STEP/DROP VALIDATION:
 	// If creature moved to invalid floor, push back to sector boundary.
 
-	if (floor->PathfindingBoxID == NO_VALUE || heightThresholdReached || zoneIncorrect)
+	if (floor->PathfindingBoxID == NO_VALUE || heightThresholdReached || zoneIncorrect || invalidMonkeyTraversal) 
 	{
 		if (heightThresholdReached)
 			AddBadBox(LOT, floor->PathfindingBoxID);
@@ -751,16 +799,38 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		shiftX = prevPos.x / BLOCK(1);
 		shiftZ = prevPos.z / BLOCK(1);
 
-		// Push to sector edge based on movement direction.
-		if (xPos < shiftX)
-			item->Pose.Position.x = prevPos.x & (~WALL_MASK);
-		else if (xPos > shiftX)
-			item->Pose.Position.x = prevPos.x | WALL_MASK;
+		if (invalidMonkeyTraversal)
+		{
+			item->Pose.Position.x = prevPos.x;
+			item->Pose.Position.z = prevPos.z;
 
-		if (zPos < shiftZ)
-			item->Pose.Position.z = prevPos.z & (~WALL_MASK);
-		else if (zPos > shiftZ)
-			item->Pose.Position.z = prevPos.z | WALL_MASK;
+			floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
+
+			if (floor->PathfindingBoxID != NO_VALUE)
+			{
+				height = g_Level.PathfindingBoxes[floor->PathfindingBoxID].height;
+
+				if (!Objects[item->ObjectNumber].nonLot)
+					nextBox = LOT->Node[floor->PathfindingBoxID].exitBox;
+				else
+					nextBox = floor->PathfindingBoxID;
+			}
+
+			nextHeight = (nextBox == NO_VALUE) ? height : g_Level.PathfindingBoxes[nextBox].height;
+		}
+		else
+		{
+			// Push to sector edge based on movement direction.
+			if (xPos < shiftX)
+				item->Pose.Position.x = prevPos.x & (~WALL_MASK);
+			else if (xPos > shiftX)
+				item->Pose.Position.x = prevPos.x | WALL_MASK;
+
+			if (zPos < shiftZ)
+				item->Pose.Position.z = prevPos.z & (~WALL_MASK);
+			else if (zPos > shiftZ)
+				item->Pose.Position.z = prevPos.z | WALL_MASK;
+		}
 
 		// Re-get floor info at corrected position.
 		floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
@@ -909,7 +979,8 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 	// VERTICAL MOVEMENT:
 	// Three modes: Flying/Swimming, Jumping, or Ground.
 
-	if (LOT->Fly != NO_FLYING && item->HitPoints > 0)
+	// NOTE: NOT_TARGETABLE creatures (e.g. whale) must keep swimming/flying despite HitPoints being negative.
+	if (LOT->Fly != NO_FLYING && (item->HitPoints > 0 || item->HitPoints == NOT_TARGETABLE))
 	{
 		// FLYING/SWIMMING: Move toward target Y at fly speed.
 		int deltaY = creature->Target.y - item->Pose.Position.y;
@@ -1070,8 +1141,7 @@ bool CreaturePathfind(ItemInfo* item, Vector3i prevPos, short angle, short tilt)
 		floor = GetFloor(item->Pose.Position.x, y, item->Pose.Position.z, &roomNumber);
 		ceiling = GetCeiling(floor, item->Pose.Position.x, y, item->Pose.Position.z);
 
-		// Large creatures need special collision height.
-		if (item->ObjectNumber == ID_TYRANNOSAUR || item->ObjectNumber == ID_SHIVA || item->ObjectNumber == ID_MUTANT2)
+		if (item->ObjectNumber == ID_TYRANNOSAUR || item->ObjectNumber == ID_SHIVA || item->ObjectNumber == ID_CLAW_MUTANT)
 			top = CLICK(3);
 		else
 			top = bounds.Y1; // TODO: check if Y1 or Y2
@@ -1117,7 +1187,7 @@ void CreatureKill(ItemInfo* creatureItem, int creatureAnimNumber, int playerExtr
 	auto& player = GetLaraInfo(playerItem);
 
 	SetAnimation(creatureItem, creatureAnimNumber);
-	SetAnimationFromSlot(playerItem, ID_LARA_EXTRA_ANIMS, playerExtraAnimNumber, 0, GetSystemBlendDuration());
+	SetAnimationFromSlot(playerItem, ID_LARA_EXTRA_ANIMS, playerExtraAnimNumber, 0, GetInternalBlendDuration());
 
 	if (creatureState != NO_VALUE)
 		creatureItem->Animation.ActiveState = creatureItem->Animation.TargetState = creatureState;
@@ -1480,7 +1550,7 @@ bool BadFloor(int x, int y, int z, int boxHeight, int nextHeight, short roomNumb
 	if (floor->PathfindingBoxID == NO_VALUE)
 		return true;
 
-	if (LOT->IsJumping)
+	if (LOT->IsJumping || LOT->IsMonkeying)
 		return false;
 
 	auto* box = &g_Level.PathfindingBoxes[floor->PathfindingBoxID];
@@ -1505,7 +1575,7 @@ bool BadFloor(int x, int y, int z, int boxHeight, int nextHeight, short roomNumb
 	return heightResult;
 }
 
-int CreatureCreature(short itemNumber)  
+int CreatureCreature(short itemNumber)
 {
 	auto* item = &g_Level.Items[itemNumber];
 	auto* object = &Objects[item->ObjectNumber];
@@ -1516,28 +1586,26 @@ int CreatureCreature(short itemNumber)
 
 	auto* room = &g_Level.Rooms[item->RoomNumber];
 
-	short link = room->itemNumber;
-	int distance = 0;
-	do
+	for (int otherItemNumber : room->itemNumbers)
 	{
-		auto* linked = &g_Level.Items[link];
-		
-		if (link != itemNumber && linked != LaraItem && linked->IsCreature() && linked->Status == ITEM_ACTIVE && linked->HitPoints > 0) // TODO: deal with LaraItem global.
+		auto& otherItem = g_Level.Items[otherItemNumber];
+
+		// TODO: Deal with LaraItem global.
+		if (otherItemNumber != itemNumber && !otherItem.IsLara() && otherItem.IsCreature() && otherItem.Status == ITEM_ACTIVE && otherItem.HitPoints > 0)
 		{
-			int xDistance = abs(linked->Pose.Position.x - x);
-			int zDistance = abs(linked->Pose.Position.z - z);
-			
+			int xDistance = abs(otherItem.Pose.Position.x - x);
+			int zDistance = abs(otherItem.Pose.Position.z - z);
+
+			int distance;
 			if (xDistance > zDistance)
 				distance = xDistance + (zDistance >> 1);
 			else
-				distance = xDistance + (zDistance >> 1);
+				distance = zDistance + (xDistance >> 1);  
 
-			if (distance < radius + Objects[linked->ObjectNumber].radius)
-				return phd_atan(linked->Pose.Position.z - z, linked->Pose.Position.x - x) - item->Pose.Orientation.y;
+			if (distance < radius + Objects[otherItem.ObjectNumber].radius)
+				return phd_atan(otherItem.Pose.Position.z - z, otherItem.Pose.Position.x - x) - item->Pose.Orientation.y;
 		}
-
-		link = linked->NextItem;
-	} while (link != NO_VALUE);
+	}
 
 	return 0;
 }
@@ -2733,30 +2801,14 @@ void CreatureMood(ItemInfo* item, AI_INFO* AI, bool isViolent)
 		int endBox = LOT->Node[item->BoxNumber].exitBox;
 		if (endBox != NO_VALUE)
 		{
-			// Find the overlap that connects current box to exit box.
-			int overlapIndex = g_Level.PathfindingBoxes[item->BoxNumber].overlapIndex;
-			int nextBox = 0;
-			int flags = 0;
+			// Check the traversal flags of the overlap connecting the current box to the exit box.
+			int flags = GetOverlapFlagsBetweenBoxes(item->BoxNumber, endBox);
 
-			// Search through overlaps until we find the one leading to exitBox.
-			if (overlapIndex >= 0)
-			{
-				do
-				{
-					nextBox = g_Level.Overlaps[overlapIndex].box;
-					flags = g_Level.Overlaps[overlapIndex++].flags;
-				} while (nextBox != NO_VALUE && ((flags & OVERLAP_END_BIT) == false) && (nextBox != endBox));
-			}
+			if (flags & OVERLAP_JUMP)
+				creature->JumpAhead = true;
 
-			// If we found the exit overlap, check its traversal flags.
-			if (nextBox == endBox)
-			{
-				if (flags & OVERLAP_JUMP)
-					creature->JumpAhead = true;
-
-				if (flags & OVERLAP_MONKEY)
-					creature->MonkeySwingAhead = true;
-			}
+			if (flags & OVERLAP_MONKEY)
+				creature->MonkeySwingAhead = true;
 		}
 	}
 }
@@ -3346,7 +3398,7 @@ void InitializeItemBoxData()
 	{
 		for (const auto& mesh : room.mesh)
 		{
-			long index = ((mesh.Pose.Position.z - room.Position.z) / BLOCK(1)) + room.ZSize * ((mesh.Pose.Position.x - room.Position.x) / BLOCK(1));
+			int index = ((mesh.Pose.Position.z - room.Position.z) / BLOCK(1)) + room.ZSize * ((mesh.Pose.Position.x - room.Position.x) / BLOCK(1));
 			if (index >= room.Sectors.size())
 				continue;
 

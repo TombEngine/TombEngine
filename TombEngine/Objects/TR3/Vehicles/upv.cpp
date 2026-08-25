@@ -6,10 +6,10 @@
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/control/box.h"
 #include "Game/control/los.h"
-#include "Game/effects/Bubble.h"
+#include "Game/effects/bubble.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Streamer.h"
 #include "Game/items.h"
@@ -26,6 +26,9 @@
 #include "Sound/sound.h"
 #include "Specific/level.h"
 #include "Specific/Input/Input.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
+#include "Specific/trutils.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
@@ -33,6 +36,7 @@ using namespace TEN::Collision::Sphere;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Streamer;
 using namespace TEN::Input;
+using namespace TEN::Utils;
 
 // TODO:
 // Redo water surface dismount.
@@ -222,16 +226,37 @@ namespace TEN::Entities::Vehicles
 
 	static void DrawUPVLight(ItemInfo* upvItem)
 	{
-		auto* upv = GetUPVInfo(upvItem);
+		if (!PropertyHandler::Get(upvItem, PropName_SpotLightEnabled, true))
+			return;
 
 		auto origin = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), CLICK(1))).ToVector3();
 		auto target = GetJointPosition(upvItem, 0, Vector3i(0, -CLICK(0.5f), BLOCK(1))).ToVector3();
 
+		auto upvLightColor = PropertyHandler::Get(upvItem, PropName_SpotLightColor, ScriptColor(UCHAR_MAX, UCHAR_MAX, UCHAR_MAX));
+		auto upvLightIntensity = PropertyHandler::Get(upvItem, PropName_SpotLightIntensity, 0.5f);
+		auto upvLightCastShadow = PropertyHandler::Get(upvItem, PropName_SpotLightCastShadow, true);
+		auto upvLightRadius = PropertyHandler::Get(upvItem, PropName_SpotLightRadius,4);
+		auto upvLightFalloff = PropertyHandler::Get(upvItem, PropName_SpotLightFalloff, 2);
+		auto upvLightDistance = PropertyHandler::Get(upvItem, PropName_SpotLightDistance, 10);
 		target = target - origin;
 		target.Normalize();
 
-		float lightIntensity = 0.5f + Random::GenerateFloat(0.0f, 0.1f);
-		SpawnDynamicSpotLight(origin, target, Vector4(lightIntensity, lightIntensity, lightIntensity, 1.0f), BLOCK(4), BLOCK(2), BLOCK(10), true, UPV_LIGHT_HASH);
+		float lightIntensity = upvLightIntensity + Random::GenerateFloat(0.0f, 0.1f);
+		SpawnDynamicSpotLight
+		(
+			origin,
+			target,
+			Vector4(
+				(upvLightColor.GetR() / (float)UCHAR_MAX) * lightIntensity,
+				(upvLightColor.GetG() / (float)UCHAR_MAX) * lightIntensity,
+				(upvLightColor.GetB() / (float)UCHAR_MAX) * lightIntensity,
+				1.0f),
+			BLOCK(upvLightRadius),
+			BLOCK(upvLightFalloff),
+			BLOCK(upvLightDistance),
+			upvLightCastShadow,
+			UPV_LIGHT_HASH
+		);
 	}
 
 	static void FireUPVHarpoon(ItemInfo* UPVItem, ItemInfo* laraItem)
@@ -248,18 +273,20 @@ namespace TEN::Entities::Vehicles
 		upv.HarpoonLeft = !upv.HarpoonLeft;
 	}
 
-	static void TriggerUPVMist(long x, long y, long z, long velocity, short angle)
+	static void TriggerUPVMist(ItemInfo* upv, short itemNumber, int x, int y, int z, int velocity, short angle)
 	{
 		auto* sptr = GetFreeParticle();
+		auto upvMistStartColor = PropertyHandler::Get(upv, PropName_VehicleMistStartColor, ScriptColor(0, 0, 0));
+		auto upvMistEndColor = PropertyHandler::Get(upv, PropName_VehicleMistEndColor, ScriptColor(64, 64, 64));
 
 		sptr->on = 1;
-		sptr->sR = 0;
-		sptr->sG = 0;
-		sptr->sB = 0;
+		sptr->sR = upvMistStartColor.GetR();
+		sptr->sG = upvMistStartColor.GetG();
+		sptr->sB = upvMistStartColor.GetB();
 
-		sptr->dR = 64;
-		sptr->dG = 64;
-		sptr->dB = 64;
+		sptr->dR = upvMistEndColor.GetR();
+		sptr->dG = upvMistEndColor.GetG();
+		sptr->dB = upvMistEndColor.GetB();
 
 		sptr->colFadeSpeed = 4 + (GetRandomControl() & 3);
 		sptr->fadeToBlack = 12;
@@ -271,8 +298,8 @@ namespace TEN::Entities::Vehicles
 		sptr->x = x + ((GetRandomControl() & 15) - 8);
 		sptr->y = y + ((GetRandomControl() & 15) - 8);
 		sptr->z = z + ((GetRandomControl() & 15) - 8);
-		long zv = velocity * phd_cos(angle) / 4;
-		long xv = velocity * phd_sin(angle) / 4;
+		int zv = velocity * phd_cos(angle) / 4;
+		int xv = velocity * phd_sin(angle) / 4;
 		sptr->xVel = xv + ((GetRandomControl() & 127) - 64);
 		sptr->yVel = 0;
 		sptr->zVel = zv + ((GetRandomControl() & 127) - 64);
@@ -280,7 +307,7 @@ namespace TEN::Entities::Vehicles
 
 		if (GetRandomControl() & 1)
 		{
-			sptr->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF;
+			sptr->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_HAZE;
 			sptr->rotAng = GetRandomControl() & 4095;
 
 			if (GetRandomControl() & 1)
@@ -289,11 +316,11 @@ namespace TEN::Entities::Vehicles
 				sptr->rotAdd = (GetRandomControl() & 15) + 16;
 		}
 		else
-			sptr->flags = SP_SCALE | SP_DEF | SP_EXPDEF;
+			sptr->flags = SP_SCALE | SP_DEF | SP_EXPDEF | SP_HAZE;
 
 		sptr->scalar = 3;
 		sptr->gravity = sptr->maxYvel = 0;
-		long size = (GetRandomControl() & 7) + (velocity / 2) + 16;
+		int size = (GetRandomControl() & 7) + (velocity / 2) + 16;
 		sptr->size = sptr->sSize = size / 4;
 		sptr->dSize = size;
 	}
@@ -317,7 +344,11 @@ namespace TEN::Entities::Vehicles
 			if (UPV->Velocity)
 			{
 				auto pos = GetJointPosition(UPVItem, UPVBites[UPV_BITE_TURBINE]).ToVector3();
-				TriggerUPVMist(pos.x, pos.y + UPV_SHIFT, pos.z, abs(UPV->Velocity) / VEHICLE_VELOCITY_SCALE, UPVItem->Pose.Orientation.y + ANGLE(180.0f));
+
+				if (PropertyHandler::Get(UPVItem, PropName_VehicleMist, true))
+				{
+					TriggerUPVMist(UPVItem, itemNumber, pos.x, pos.y + UPV_SHIFT, pos.z, abs(UPV->Velocity) / VEHICLE_VELOCITY_SCALE, UPVItem->Pose.Orientation.y + ANGLE(180.0f));
+				};
 
 				auto sphere = BoundingSphere(pos, BLOCK(1 / 32.0f));
 				if (Random::TestProbability(1 / 2.0f))
@@ -330,27 +361,38 @@ namespace TEN::Entities::Vehicles
 				}
 			}
 		}
-	
-		for (int lp = 0; lp < 2; lp++)
+
+		if (PropertyHandler::Get(UPVItem, PropName_PointLightEnabled, true))
 		{
-			int random = 31 - (GetRandomControl() & 3);
-			auto pos = GetJointPosition(UPVItem, UPVBites[UPV_BITE_FRONT_LIGHT].BoneID, Vector3i(
-				UPVBites[UPV_BITE_FRONT_LIGHT].Position.x,
-				UPVBites[UPV_BITE_FRONT_LIGHT].Position.y,
-				(int)UPVBites[UPV_BITE_FRONT_LIGHT].Position.z << (lp * 6)
-			));
-
-			GameVector origin;
-			if (lp == 1)
+			for (int lp = 0; lp < 2; lp++)
 			{
-				auto target = GameVector(pos, UPVItem->RoomNumber);
-				LOS(&origin, &target);
-				pos = Vector3i(target.x, target.y, target.z);
-			}
-			else
-				origin = GameVector(pos, UPVItem->RoomNumber);
+				int random = 31 - (GetRandomControl() & 3);
+				auto pos = GetJointPosition(UPVItem, UPVBites[UPV_BITE_FRONT_LIGHT].BoneID, Vector3i(
+					UPVBites[UPV_BITE_FRONT_LIGHT].Position.x,
+					UPVBites[UPV_BITE_FRONT_LIGHT].Position.y,
+					(int)UPVBites[UPV_BITE_FRONT_LIGHT].Position.z << (lp * 6)
+				));
 
-			SpawnDynamicLight(pos.x, pos.y, pos.z, 16 + (lp << 3), random, random, random);
+				GameVector origin;
+				if (lp == 1)
+				{
+					auto target = GameVector(pos, UPVItem->RoomNumber);
+					LOS(&origin, &target);
+					pos = Vector3i(target.x, target.y, target.z);
+				}
+				else
+				{
+					origin = GameVector(pos, UPVItem->RoomNumber);
+				}					
+
+				float lightValue = random / (float)UCHAR_MAX;
+				SpawnDynamicPointLight(
+					pos.ToVector3(),
+					Vector4(lightValue, lightValue, lightValue, 1.0f),
+					16.0f + (lp << 3),
+					false,
+					UPV_LIGHT_HASH + lp);
+			}
 		}
 
 		if (UPV->HarpoonTimer)

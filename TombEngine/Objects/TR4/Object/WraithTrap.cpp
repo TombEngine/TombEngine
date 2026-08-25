@@ -37,7 +37,8 @@ namespace TEN::Entities::TR4
 			{
 				auto pos = GetJointPosition(&item, 0, Vector3i::Zero);
 
-				SoundEffect(SFX_TR4_LIGHT_BEAM_LOOP, &Pose(pos));
+				auto wraithPose = Pose(pos);
+				SoundEffect(SFX_TR4_LIGHT_BEAM_LOOP, &wraithPose);
 
 				auto color = Vector3(255.0f);
 				TriggerAttackSpark(pos.ToVector3(), color);
