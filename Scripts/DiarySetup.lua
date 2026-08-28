@@ -107,6 +107,7 @@ return {
         pageIndex = 2,
         text = "You can edit the diary by\nediting the file\nDiarySetup.lua in script\nfolder.",
         textPos = TEN.Vec2(52,10),
+        area = TEN.Vec2(40, 25),
         textOptions = {TEN.Strings.DisplayStringOption.SHADOW},
         textScale = 1,
         textColor = TEN.Color(128, 255, 128)
