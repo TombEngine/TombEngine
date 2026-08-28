@@ -95,6 +95,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Lua API changes
 
+* Added `CustomDiary:UnlockPage` function to unlock individual diary pages in the order the function is called. The unlock mode is detected automatically on the first unlock call.
+* Added optional `area` parameter for text entries in the diary module to enable automatic word wrapping.
 * Added ring inventory module.
 * Added photo mode module.
 * Added `Effects.ParticleGroup` class for managing particles via lua.
