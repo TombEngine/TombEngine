@@ -462,13 +462,13 @@ namespace TEN::Scripting::Effects
 	// @function EmitLight
 	// @tparam Vec3 pos World position of the light.
 	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Light color.
-	// @tparam[opt=20] int radius Measured in "clicks" or 256 world units.
+	// @tparam[opt=20] float radius Light radius in clicks (256 world units per click). Accepts fractional values for smooth resizing.
 	// @tparam[opt=false] bool shadows Determines whether light should generate dynamic shadows for applicable moveables.
 	// @tparam[opt] string name If provided, engine will interpolate this light for high framerate mode (be careful not to use same name for different lights).
-	static void EmitLight(Vec3 pos, TypeOrNil<ScriptColor> col, TypeOrNil<int> radius, TypeOrNil<bool> castShadows, TypeOrNil<std::string> name)
+	static void EmitLight(Vec3 pos, TypeOrNil<ScriptColor> col, TypeOrNil<float> radius, TypeOrNil<bool> castShadows, TypeOrNil<std::string> name)
 	{
 		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255)).PremultiplyAlpha();
-		int rad = (float)(ValueOr<int>(radius, 20) * BLOCK(0.25f));
+		float rad = ValueOr<float>(radius, 20.0f) * CLICK(1);
 		SpawnDynamicPointLight(pos.ToVector3(), color, rad, ValueOr<bool>(castShadows, false), GetHash(ValueOr<std::string>(name, std::string())));
 	}
 
@@ -478,17 +478,17 @@ namespace TEN::Scripting::Effects
 	// @tparam Vec3 pos World position of the light.
 	// @tparam Vec3 dir Normal which indicates light direction.
 	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Light color.
-	// @tparam[opt=10] int radius Overall radius at the endpoint of a light cone, measured in "clicks" or 256 world units.
-	// @tparam[opt=5] int falloff Radius, at which light starts to fade out, measured in "clicks".
-	// @tparam[opt=20] int distance Distance, at which light cone fades out, measured in "clicks".
+	// @tparam[opt=10] float radius Overall radius of the light cone in clicks (256 world units per click). Accepts fractional values.
+	// @tparam[opt=5] float falloff Radius, at which light starts to fade out, in clicks (256 world units per click). Accepts fractional values.
+	// @tparam[opt=20] float distance Distance, at which light cone fades out, in clicks (256 world units per click). Accepts fractional values.
 	// @tparam[opt=false] bool shadows Determines whether light should generate dynamic shadows for applicable moveables.
 	// @tparam[opt] string name If provided, engine will interpolate this light for high framerate mode (be careful not to use same name for different lights).
-	static void EmitSpotLight(Vec3 pos, Vec3 dir, TypeOrNil<ScriptColor> col, TypeOrNil<int> radius, TypeOrNil<int> falloff, TypeOrNil<int> distance, TypeOrNil<bool> castShadows, TypeOrNil<std::string> name)
+	static void EmitSpotLight(Vec3 pos, Vec3 dir, TypeOrNil<ScriptColor> col, TypeOrNil<float> radius, TypeOrNil<float> falloff, TypeOrNil<float> distance, TypeOrNil<bool> castShadows, TypeOrNil<std::string> name)
 	{
 		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255)).PremultiplyAlpha();
-		int rad =	  (float)(ValueOr<int>(radius,   10) * BLOCK(0.25f));
-		int fallOff = (float)(ValueOr<int>(falloff,   5) * BLOCK(0.25f));
-		int dist =	  (float)(ValueOr<int>(distance, 20) * BLOCK(0.25f));
+		float rad = ValueOr<float>(radius,   10.0f) * CLICK(1);
+		float fallOff = ValueOr<float>(falloff,   5.0f) * CLICK(1);
+		float dist = ValueOr<float>(distance, 20.0f) * CLICK(1);
 		SpawnDynamicSpotLight(pos.ToVector3(), dir.ToVector3(), color, rad, fallOff, dist, ValueOr<bool>(castShadows, false), GetHash(ValueOr<std::string>(name, std::string())));
 	}
 
@@ -496,16 +496,16 @@ namespace TEN::Scripting::Effects
 	// If you want a fog bulb that sticks around, you must call this each frame.
 	// @function EmitFogBulb
 	// @tparam Vec3 pos Position of the fog bulb.
-	// @tparam[opt=20] int radius Radius measured in "clicks" or 256 world units.
+	// @tparam[opt=20] float radius Fog bulb radius in clicks (256 world units per click). Accepts fractional values for smooth resizing.
 	// @tparam[opt=255] int density Density, ranging from 0 to 255.
 	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Color.
 	// @tparam[opt] string name If provided, engine will interpolate this fog bulb for high framerate mode (be careful not to use same name for different fogbulbs)
-	static void EmitFogBulb(Vec3 pos, TypeOrNil<int> radius, TypeOrNil<int> density, TypeOrNil<ScriptColor> col, TypeOrNil<std::string> name)
+	static void EmitFogBulb(Vec3 pos, TypeOrNil<float> radius, TypeOrNil<int> density, TypeOrNil<ScriptColor> col, TypeOrNil<std::string> name)
 	{
 		constexpr auto DEFAULT_DENSITY = 255;
 
 		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255)).PremultiplyAlpha();
-		int rad = (float)(ValueOr<int>(radius, 20));
+		float rad = ValueOr<float>(radius, 20.0f);
 		int dens = (float)(ValueOr<int>(density, DEFAULT_DENSITY));
 		SpawnDynamicFogBulb(pos.ToVector3(), rad, dens, color, GetHash(ValueOr<std::string>(name, std::string())));
 	}

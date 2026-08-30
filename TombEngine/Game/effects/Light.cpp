@@ -22,8 +22,8 @@ namespace TEN::Effects::Light
 		g_Renderer.AddDynamicPointLight(Vector3(x, y, z), float(falloff * UCHAR_MAX), Color(r / (float)UCHAR_MAX, g / (float)UCHAR_MAX, b / (float)UCHAR_MAX), false);
 	}
 
-	void SpawnDynamicFogBulb(const Vector3& pos, short radius, short density, const Color& color, int hash)
+	void SpawnDynamicFogBulb(const Vector3& pos, float radius, short density, const Color& color, int hash)
 	{
-		g_Renderer.AddDynamicFogBulb(pos, float(radius * UCHAR_MAX), float(density / (float)UCHAR_MAX), color, hash);
+		g_Renderer.AddDynamicFogBulb(pos, radius * UCHAR_MAX, float(density / (float)UCHAR_MAX), color, hash);
 	}
 }
