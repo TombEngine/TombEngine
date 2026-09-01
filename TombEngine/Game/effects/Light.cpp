@@ -24,6 +24,6 @@ namespace TEN::Effects::Light
 
 	void SpawnDynamicFogBulb(const Vector3& pos, float radius, short density, const Color& color, int hash)
 	{
-		g_Renderer.AddDynamicFogBulb(pos, radius * UCHAR_MAX, float(density / (float)UCHAR_MAX), color, hash);
+		g_Renderer.AddDynamicFogBulb(pos, radius * CLICK(1), float(density / (float)UCHAR_MAX), color, hash);
 	}
 }
