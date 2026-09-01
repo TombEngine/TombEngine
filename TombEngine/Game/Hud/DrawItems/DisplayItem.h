@@ -1,9 +1,11 @@
 #pragma once
 
+#include "Game/Animation/Animation.h"
 #include "Math/Constants.h"
 #include "Objects/game_object_ids.h"
 #include "Specific/Structures/BitField.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 using namespace TEN::Utils;
 
@@ -33,6 +35,11 @@ namespace TEN::Hud
 		int _animNumber      = 0;
 		int _frameNumber     = 0;
 		int _prevFrameNumber = 0;
+
+		// Effective animation frame data (current and previous), used for high framerate interpolation.
+
+		FrameData _frameData     = {};
+		FrameData _prevFrameData = {};
 
 		Vector3                              _prevPosition         = Vector3::Zero;
 		EulerAngles                          _prevOrientation      = EulerAngles::Identity;
@@ -73,6 +80,7 @@ namespace TEN::Hud
 		Vector3     GetInterpolatedScale(float alpha) const;
 		Color       GetInterpolatedColor(float alpha) const;
 		EulerAngles GetInterpolatedMeshRotation(int meshIndex, float alpha) const;
+		FrameData   GetInterpolatedFrame(float alpha) const;
 
 		// Setters
 
@@ -95,6 +103,13 @@ namespace TEN::Hud
 
 		// Utilities
 
+		void Animate();
 		void StoreInterpolationData();
+
+	private:
+		// Helpers
+
+		void RecomputeFrameData();
+		static FrameData LerpFrameData(const FrameData& from, const FrameData& to, float alpha);
 	};
 }
