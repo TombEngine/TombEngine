@@ -123,6 +123,16 @@ namespace TEN::Math::Random
 		return (box.Center + Vector3::Transform(relPoint, rotMatrix));
 	}
 
+	Vector3 GeneratePointInBox(const Vector3& center, const Vector3& extents)
+	{
+		auto relPoint = Vector3(
+			GenerateFloat(-extents.x, extents.x),
+			GenerateFloat(-extents.y, extents.y),
+			GenerateFloat(-extents.z, extents.z));
+
+		return (center + relPoint);
+	}
+
 	Vector3 GeneratePointInSphere(const BoundingSphere& sphere)
 	{
 		// Use rejection sampling method.
