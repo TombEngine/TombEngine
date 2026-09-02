@@ -56,8 +56,7 @@ namespace TEN::Effects::Environment
 		Color			BaseColor			= Color(1.0f, 1.0f, 1.0f, 1.0f);
 		float			Strength			= 1.0f;
 		float			Life				= 1.0f;
-		float			RandomRange			= BLOCK(8);
-		float			RandomHeight		= BLOCK(1);
+		Vector3			RandomRange			= Vector3(BLOCK(8), BLOCK(1), BLOCK(8));
 		bool			Clustering			= false;
 	};
 

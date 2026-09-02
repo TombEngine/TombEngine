@@ -714,7 +714,7 @@ namespace TEN::Scripting::Effects
 	//     position = Vec3(0, 0, 0),
 	//     initialVelocity = Vec3(0, 15, 0),
 	//     type = TEN.Flow.WeatherType.SNOW,
-	//     randomRange = 4096,
+	//     randomRange = Vec3(4096, 1024, 4096),
 	//     enableClustering = true,
 	//     checkWindFlag = false,
 	//     baseColor = TEN.Color(255, 100, 255),
@@ -734,14 +734,22 @@ namespace TEN::Scripting::Effects
 	// LevelFuncs.OnLoop = function()
 	//    SpawnSnow()
 	// end
+	// 
+	// -- Example 3: Emit weather inside a trigger volume
+	// local vol = TEN.Objects.GetVolumeByName("weather_zone")
+	// local weatherParams = {
+	//     position = vol:GetPosition(),
+	//     randomRange = vol:GetScale(),
+	//     type = TEN.Flow.WeatherType.SNOW,
+	// }
+	// TEN.Effects.EmitWeather(weatherParams)
 
 	/// Structure for `EmitWeather` table.
 	// @table WeatherParameters
 	// @tfield Vec3 position World position.
 	// @tfield Vec3 initialVelocity Initial velocity of the particles. initialVelocity should be positive and have a low value, otherwise the particle could be too fast.
 	// @tfield[opt=TEN.Flow.WeatherType.RAIN] Flow.WeatherType type Type of weather effect.
-	// @tfield[opt=8192] float randomRange XZ Range in blocks around the position where particles will be spawned. (1 block = 1024 world units, 8 blocks by default)
-	// @tfield[opt=1024] float randomHeight Y range in blocks around the randomRange where particles will be spawned. (1 block = 1024 world units, 1 block by default)
+	// @tfield[opt=Vec3(8192&#44; 1024&#44; 8192)] Vec3 randomRange Range from position along each axis (X, Y, Z) in which particles are spawned. Can be set to a volume's scale. (1 block = 1024 world units)
 	// @tfield[opt=1] float life Lifetime in seconds. Avoid very high values to avoid performance issues.
 	// @tfield[opt=1] float strength Strength of the effect. Clamped to [0.1, 2]
 	// @tfield[opt=false] bool enableClustering Whether to enable clustering of particles.
@@ -761,8 +769,7 @@ namespace TEN::Scripting::Effects
 		params.InitialVelocity = table.get_or("initialVelocity", Vec3(0, 0, 0));
 		params.Life = table.get_or("life", 1.0f);
 		params.Strength = std::clamp((float)table.get_or("strength", 1.0f), 0.1f, 2.0f);
-		params.RandomRange = table.get_or("randomRange", BLOCK(8));
-		params.RandomHeight = table.get_or("randomHeight", BLOCK(1));
+		params.RandomRange = table.get_or("randomRange", Vec3(BLOCK(8), BLOCK(1), BLOCK(8)));
 		params.Clustering = table.get_or("enableClustering", false);
 		params.Flags = table.get_or("checkWindFlag", true) ? WeatherFlags::None : WeatherFlags::IgnoreWindRoom;
 		params.BaseColor = table.get_or("baseColor", params.Type == WeatherType::Rain ? ScriptColor(204, 255, 255, 255) : ScriptColor(255, 255, 255, 255)); // Rain default color is light blueish.
