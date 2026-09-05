@@ -1153,6 +1153,15 @@ void CalculateCamera(const CollisionInfo& coll)
 	int y = item->Pose.Position.y + bounds.Y2 + (3 * (bounds.Y1 - bounds.Y2) / 4);
 	int z;
 
+	// Releasing the Look key while a forced look target is active permanently dismisses it and returns to the normal chase camera.
+	if (Camera.item != nullptr && !isFixedCamera && IsReleased(In::Look))
+	{
+		Camera.item->LookedAt = true;
+		Camera.item = nullptr;
+		Camera.type = CameraType::Chase;
+		Lara.Control.Look.Orientation = EulerAngles::Identity;
+	}
+
 	if (Camera.item)
 	{
 		if (!isFixedCamera)
