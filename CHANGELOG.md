@@ -92,6 +92,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed vertex move effect speed in water rooms while turning camera on the x-axis
 * Fixed flares being selected from inventory whilst riding the kayak.
 * Fixed kayak paddle and minecart wrench not being drawn when starting a level.
+* Fixed Lara not focusing on camera targets properly when at a different height.
 
 ### Lua API changes
 
