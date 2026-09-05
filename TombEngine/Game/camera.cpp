@@ -1175,7 +1175,8 @@ void CalculateCamera(const CollisionInfo& coll)
 				0) / 2;
 
 			if (lookOrient.y > ANGLE(-50.0f) &&	lookOrient.y < ANGLE(50.0f) &&
-				lookOrient.x > ANGLE(-85.0f) && lookOrient.x < ANGLE(85.0f))
+				lookOrient.x > LOOKCAM_ORIENT_CONSTRAINT.first.x &&
+				lookOrient.x < LOOKCAM_ORIENT_CONSTRAINT.second.x)
 			{
 				// Head turns the full way toward the target.
 				short angleDelta = lookOrient.y - Lara.ExtraHeadRot.y;
