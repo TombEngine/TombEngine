@@ -1193,20 +1193,7 @@ void CalculateCamera(const CollisionInfo& coll)
 					Lara.ExtraHeadRot.y += angleDelta;
 				}
 
-				angleDelta = (lookOrient.y / 2) - Lara.ExtraTorsoRot.y;
-				
-				if (angleDelta > ANGLE(4.0f))
-				{
-					Lara.ExtraTorsoRot.y += ANGLE(4.0f);
-				}
-				else if (angleDelta < ANGLE(-4.0f))
-				{
-					Lara.ExtraTorsoRot.y -= ANGLE(4.0f);
-				}
-				else
-				{
-					Lara.ExtraTorsoRot.y += angleDelta;
-				}
+				Lara.ExtraTorsoRot.y = Lara.ExtraHeadRot.y / 2;
 
 				// Head pitches the full way toward the target.
 				angleDelta = lookOrient.x - Lara.ExtraHeadRot.x;
@@ -1223,20 +1210,7 @@ void CalculateCamera(const CollisionInfo& coll)
 					Lara.ExtraHeadRot.x += angleDelta;
 				}
 
-				// Torso pitches halfway.
-				angleDelta = (lookOrient.x / 2) - Lara.ExtraTorsoRot.x;
-				if (angleDelta > ANGLE(4.0f))
-				{
-					Lara.ExtraTorsoRot.x += ANGLE(4.0f);
-				}
-				else if (angleDelta < ANGLE(-4.0f))
-				{
-					Lara.ExtraTorsoRot.x -= ANGLE(4.0f);
-				}
-				else
-				{
-					Lara.ExtraTorsoRot.x += angleDelta;
-				}
+				Lara.ExtraTorsoRot.x = Lara.ExtraHeadRot.x / 2;
 
 				Lara.Control.Look.Orientation = lookOrient;
 				Camera.type = CameraType::Look;
