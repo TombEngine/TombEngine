@@ -1167,12 +1167,21 @@ void CalculateCamera(const CollisionInfo& coll)
 		if (!isFixedCamera)
 		{
 			auto deltaPos = Camera.item->Pose.Position - item->Pose.Position;
-			float dist = Vector3i::Distance(Camera.item->Pose.Position, item->Pose.Position);
+			int horizontalDist = (int)sqrt((double)SQUARE(deltaPos.x) + (double)SQUARE(deltaPos.z));
 
-			auto lookOrient = EulerAngles(
-				phd_atan(dist, y - (bounds.Y1 + bounds.Y2) / 2 - Camera.item->Pose.Position.y),
+			// Use the camera target's own vertical centre as the reference height rather than the
+			// player bounds, and project onto the horizontal plane so nearby but elevated targets
+			// still yield a steep enough required pitch.
+			const auto& targetBounds = GameBoundingBox(Camera.item);
+
+			// Full pitch/heading required to centre the target on the view axis.
+			auto fullOrient = EulerAngles(
+				phd_atan(horizontalDist, y - (targetBounds.Y1 + targetBounds.Y2) / 2 - Camera.item->Pose.Position.y),
 				phd_atan(deltaPos.z, deltaPos.x) - item->Pose.Orientation.y,
-				0) / 2;
+				0);
+
+			// Split the required angle in half across the head and torso bones.
+			auto lookOrient = fullOrient / 2;
 
 			if (lookOrient.y > ANGLE(-50.0f) &&	lookOrient.y < ANGLE(50.0f) &&
 				lookOrient.x > LOOKCAM_ORIENT_CONSTRAINT.first.x &&
@@ -1193,7 +1202,8 @@ void CalculateCamera(const CollisionInfo& coll)
 					Lara.ExtraHeadRot.y += angleDelta;
 				}
 
-				Lara.ExtraTorsoRot.y = Lara.ExtraHeadRot.y / 2;
+				// Torso mirrors the head so both bones contribute equally toward the target.
+				Lara.ExtraTorsoRot.y = Lara.ExtraHeadRot.y;
 
 				// Head pitches the full way toward the target.
 				angleDelta = lookOrient.x - Lara.ExtraHeadRot.x;
@@ -1210,9 +1220,10 @@ void CalculateCamera(const CollisionInfo& coll)
 					Lara.ExtraHeadRot.x += angleDelta;
 				}
 
-				Lara.ExtraTorsoRot.x = Lara.ExtraHeadRot.x / 2;
+				Lara.ExtraTorsoRot.x = Lara.ExtraHeadRot.x;
 
-				Lara.Control.Look.Orientation = lookOrient;
+				// Aim the camera at the full angle so the target lands on the screen centre.
+				Lara.Control.Look.Orientation = fullOrient;
 				Camera.type = CameraType::Look;
 				Camera.item->LookedAt = true;
 			}
