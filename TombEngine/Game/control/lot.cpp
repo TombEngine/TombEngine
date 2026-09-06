@@ -34,6 +34,28 @@ using namespace TEN::Collision::Room;
 // Faster than flying since water provides more resistance/control
 #define DEFAULT_SWIM_UPDOWN_SPEED 32
 
+// A list of friendly creature IDs that won't be attacked by other similar creatures.
+const std::vector<GAME_OBJECT_ID> FriendlyCreatures =
+{
+	ID_TROOPS,
+	ID_CIVVY,
+	ID_GUIDE,
+	ID_VON_CROY,
+	ID_SCIENTIST,
+	ID_MONK1,
+	ID_MONK2,
+	ID_WHALE,
+	ID_WINSTON
+};
+
+// Same as above, including player.
+const std::vector<GAME_OBJECT_ID> FriendlyCreaturesWithPlayer = []()
+{
+	std::vector<GAME_OBJECT_ID> result = FriendlyCreatures;
+	result.push_back(ID_LARA);
+	return result;
+}();
+
 /**
  * @brief Global list of all currently active creature indices.
  *
@@ -314,6 +336,26 @@ void InitializeSlot(short itemNumber, bool makeTarget)
 }
 
 /**
+ * @brief Gets a list of friendly creature object IDs with or without player.
+ *
+ * Returns a list of friendly creatures containing player, if a creature was
+ * not hurt by them, otherwise excludes player from the list.
+ *
+ * @param item The creature looking for a friendly creature list.
+ */
+const std::vector<GAME_OBJECT_ID> GetFriendlyCreatureIDs(ItemInfo& item)
+{
+	if (!item.IsCreature())
+	{
+		TENLog("Attempt to fetch friendly creature list for a non-creature item", LogLevel::Warning);
+		return FriendlyCreatures;
+	}
+
+	auto& creature = *GetCreatureInfo(&item);
+	return creature.HurtByLara ? FriendlyCreatures : FriendlyCreaturesWithPlayer;
+}
+
+/**
  * @brief Finds and sets the nearest valid entity as the creature's enemy.
  *
  * Searches through all active creatures and the player to find the closest
@@ -325,6 +367,12 @@ void InitializeSlot(short itemNumber, bool makeTarget)
  */
 void TargetNearestEntity(ItemInfo& item, const std::vector<GAME_OBJECT_ID>& keyObjectIds, bool ignoreKeyObjectIds)
 {
+	if (!item.IsCreature())
+	{
+		TENLog("Attempt to use entity targeting with a non-creature item", LogLevel::Warning);
+		return;
+	}
+
 	auto& creature = *GetCreatureInfo(&item);
 	creature.Enemy = nullptr;
 
