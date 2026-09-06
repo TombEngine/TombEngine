@@ -66,8 +66,7 @@ bool ShotLara(ItemInfo* item, AI_INFO* AI, const CreatureBiteInfo& gun, short ex
 			CreatureEffect(item, gun, &GunShot);
 			if (hasHit)
 			{
-				enemy->HitStatus = true;
-				enemy->HitPoints += damage / -10;
+				DoDamage(enemy, (int)std::ceil((float)damage / ENEMY_SHOT_DAMAGE_DIVIDER));
 
 				int random = GetRandomControl() & 0xF;
 				if (random > 14)
