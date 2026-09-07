@@ -98,6 +98,7 @@ short GetCurrentFOV();
 void AlterRoll(short value);
 short GetCurrentRoll();
 void InitializeCamera();
+void RecenterChaseCamera();
 void MoveCamera(GameVector* ideal, int speed, bool force = false);
 void ChaseCamera(ItemInfo* item);
 void UpdateCameraElevation();

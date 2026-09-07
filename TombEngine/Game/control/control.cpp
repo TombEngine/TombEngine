@@ -694,6 +694,10 @@ void InitializeOrLoadGame(bool loadGame)
 		}
 
 		g_GameScript->OnStart();
+
+		// A fresh level has no saved camera to restore, so settle the chase camera behind Lara now
+		// that her final spawn and any start-up scripts have been applied.
+		RecenterChaseCamera();
 	}
 }
 
