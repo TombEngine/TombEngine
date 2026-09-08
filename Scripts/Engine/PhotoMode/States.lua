@@ -157,7 +157,7 @@ end
 function States.CaptureSnapshot()
     local snap = {}
 
-    --save all settings in case user overrides settings for outfits via onEnter
+    --save all settings in case user overrides settings for outfits via onSelect
     snap.settings = TEN.Flow.GetSettings()
 
     snap.laraPos      = Lara:GetPosition()
@@ -167,6 +167,7 @@ function States.CaptureSnapshot()
     snap.laraAnimSlot = Lara:GetAnimSlot()
     snap.laraFrame    = Lara:GetFrame()
     snap.laraState    = Lara:GetState()
+    snap.handStatus   = Lara:GetHandStatus()
 
     snap.fov  = TEN.View.GetFOV()
     snap.roll = TEN.View.GetRoll()
@@ -229,7 +230,8 @@ function States.RestoreSnapshot()
     Lara:SetAnim(snap.laraAnim, snap.laraAnimSlot)
     Lara:SetFrame(snap.laraFrame)
     Lara:SetState(snap.laraState)
-
+    Lara:SetHandStatus(snap.handStatus)
+    
     -- Restore classic skin to entry state.
     if snap.skin then
         Lara:SetSkin(snap.skin[1], snap.skin[2], snap.skin[3], snap.skin[4], snap.skin[5])
