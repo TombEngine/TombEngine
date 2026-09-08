@@ -93,6 +93,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed flares being selected from inventory whilst riding the kayak.
 * Fixed kayak paddle and minecart wrench not being drawn when starting a level.
 * Fixed Lara not focusing on camera targets properly when at a different height.
+* Fixed look key not breaking out of a camera target once it was triggered.
+* Fixed camera sliding into position at the start of a level.
 
 ### Lua API changes
 

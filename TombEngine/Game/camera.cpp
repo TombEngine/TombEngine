@@ -90,9 +90,7 @@ float ScreenFadeStart = 0;
 float ScreenFadeEnd = 0;
 float ScreenFadeCurrent = 0;
 
-// Guards the post-load level intro fade. A fresh level keeps the screen black for a few
-// frames so the chase camera (and Lara/hair, which update ahead of it) finish settling before
-// the world is revealed. Loaded games restore a stationary camera and fade in immediately.
+// State of the level intro fade. Applies to both new levels and savegame restores.
 static bool FadeInPending = false;
 static int FadeInSteadyFrames = 0;
 static int FadeInWarmupFrames = 0;
@@ -295,8 +293,9 @@ void CalculateBounce(bool binocularMode)
 	}
 }
 
-// Arm the level intro fade. The screen is kept black for a few frames so that the chase camera,
+// Arm the level intro fade. The screen is held black for a few frames so that the chase camera,
 // and the player and hair which update ahead of it, finish settling before the world is revealed.
+// Armed on every level entry, including savegame restores.
 
 static void ArmLevelFadeIn()
 {
@@ -1234,7 +1233,7 @@ void CalculateCamera(const CollisionInfo& coll)
 		if (!isFixedCamera)
 		{
 			auto deltaPos = Camera.item->Pose.Position - item->Pose.Position;
-			int horizontalDist = (int)std::sqrt((double)SQUARE(deltaPos.x) + (double)SQUARE(deltaPos.z));
+			int horizontalDist = (int)Vector2(deltaPos.x, deltaPos.z).Length();
 
 			// Use the camera target's own vertical centre as the reference height rather than the
 			// player bounds, and project onto the horizontal plane so nearby but elevated targets
