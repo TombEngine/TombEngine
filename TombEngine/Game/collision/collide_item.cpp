@@ -387,6 +387,40 @@ bool AlignLaraPosition(const Vector3i& offset, ItemInfo* item, ItemInfo* laraIte
 	return false;
 }
 
+// Determine an underwater pickup alignment target the player can actually reach. Pickup offsets are
+// authored as a plain distance above and behind the item, but PickupCollision() pitches the item to
+// orient the player, which tilts that offset upward as well and can push the target into a low
+// ceiling. Rebuild the position using yaw alone, then fit it into the free space so that alignment
+// converges instead of fighting ceiling collision until it times out.
+
+static Pose GetUnderwaterPickupTarget(const Vector3i& offset, const ItemInfo& item, const ItemInfo& laraItem)
+{
+	auto rotMatrix = EulerAngles(0, item.Pose.Orientation.y, 0).ToRotationMatrix();
+	auto relPos = Vector3i(Vector3::Transform(offset.ToVector3(), rotMatrix));
+	auto target = Pose(item.Pose.Position + relPos, item.Pose.Orientation);
+
+	auto pointColl = GetPointCollision(target.Position, laraItem.RoomNumber);
+	int floorHeight = pointColl.GetFloorHeight();
+	int ceilingHeight = pointColl.GetCeilingHeight();
+
+	if (floorHeight == NO_HEIGHT || ceilingHeight == NO_HEIGHT)
+		return target;
+
+	// Match the vertical space LaraSwimCollision() reserves for the player at the target pitch.
+	int height = std::max((int)abs(LARA_HEIGHT * phd_sin(target.Orientation.x)), LARA_HEIGHT_UNDERWATER);
+
+	if ((floorHeight - ceilingHeight) >= height)
+	{
+		target.Position.y = std::clamp(target.Position.y, ceilingHeight + (height / 2), floorHeight - (height / 2));
+	}
+	else
+	{
+		target.Position.y = (floorHeight + ceilingHeight) / 2;
+	}
+
+	return target;
+}
+
 bool MoveLaraPosition(const Vector3i& offset, ItemInfo* item, ItemInfo* laraItem)
 {
 	auto* lara = GetLaraInfo(laraItem);
@@ -395,8 +429,13 @@ bool MoveLaraPosition(const Vector3i& offset, ItemInfo* item, ItemInfo* laraItem
 	auto pos = Vector3::Transform(offset.ToVector3(), rotMatrix);
 	auto target = Pose(item->Pose.Position + Vector3i(pos), item->Pose.Orientation);
 
-	if (!Objects[item->ObjectNumber].isPickup || lara->Control.WaterStatus == WaterStatus::Underwater)
+	if (!Objects[item->ObjectNumber].isPickup)
 	{
+		return Move3DPosTo3DPos(laraItem, laraItem->Pose, target, LARA_ALIGN_VELOCITY, ANGLE(2.0f));
+	}
+	else if (lara->Control.WaterStatus == WaterStatus::Underwater)
+	{
+		target = GetUnderwaterPickupTarget(offset, *item, *laraItem);
 		return Move3DPosTo3DPos(laraItem, laraItem->Pose, target, LARA_ALIGN_VELOCITY, ANGLE(2.0f));
 	}
 	else

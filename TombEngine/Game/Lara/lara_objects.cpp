@@ -49,9 +49,23 @@ void lara_as_pickup(ItemInfo* item, CollisionInfo* coll)
 
 void lara_col_pickup(ItemInfo* item, CollisionInfo* coll)
 {
+	const auto& player = GetLaraInfo(*item);
+
 	// HACK: Pickup state is shared between different animations, such as crawl, crouch
 	// and underwater, so we can't clearly define coarse collision height.
-	coll->Setup.Height = (int)(item->GetAabb().Extents.y * 2.0f);
+	auto aabb = item->GetAabb();
+
+	if (player.Control.WaterStatus == WaterStatus::Underwater)
+	{
+		// Underwater the pivot sits near the middle of a horizontal body rather than at the AABB
+		// bottom, so measure up to the AABB top instead. Doubling the extents there puts the
+		// ceiling probe above the head and shifts the player into the floor in low tunnels.
+		coll->Setup.Height = std::max(0, (int)(item->Pose.Position.y - (aabb.Center.y - aabb.Extents.y)));
+	}
+	else
+	{
+		coll->Setup.Height = (int)(aabb.Extents.y * 2.0f);
+	}
 
 	LaraDefaultCollision(item, coll);
 	ShiftItem(item, coll);
