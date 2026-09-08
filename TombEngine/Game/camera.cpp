@@ -94,6 +94,12 @@ float ScreenFadeCurrent = 0;
 static bool FadeInPending = false;
 static int FadeInWarmupFrames = 0;
 
+// One-shot anchor of the chase camera for the level intro: for exactly the first frame the chase is
+// snapped to its freshly (re)positioned pose with interpolation disabled, so the opening view is not
+// swept by a stale interpolation baseline. The chase tracks the player as normal from the very next
+// frame. Re-armed by ArmLevelFadeIn() on every level entry, including savegame restores.
+static bool IntroCamFrozen = false;
+
 float CinematicBarsHeight = 0;
 float CinematicBarsDestinationHeight = 0;
 float CinematicBarsSpeed = 0;
@@ -298,6 +304,7 @@ void ArmLevelFadeIn()
 {
 	FadeInPending = true;
 	FadeInWarmupFrames = 0;
+	IntroCamFrozen = false;
 }
 
 static void UpdateLevelFadeIn()
@@ -1688,7 +1695,27 @@ void UpdateCamera()
 	{
 		// Do the standard camera.
 		TrackCameraInit = false;
-		CalculateCamera(LaraCollision);
+
+		// Level intro: on the very first frame only, snap the chase onto its freshly (re)positioned pose
+		// with interpolation disabled, so the view is anchored dead-static for exactly that one frame.
+		if (FadeInPending && !IntroCamFrozen)
+		{
+			// Snap the chase to its rest pose and lock it in for this one frame. CalculateCamera at speed 1
+			// parks it there; DisableInterpolation keeps the render crisp instead of sweeping from the stale
+			// baseline.
+			Camera.speed = 1;
+			CalculateCamera(LaraCollision);
+			Camera.speed = 10;
+			Camera.DisableInterpolation = true;
+
+			// Consume the one-shot so live tracking resumes from the very next frame.
+			IntroCamFrozen = true;
+		}
+		else
+		{
+			// Normal live chase, converging at default speed and tracking the player freely.
+			CalculateCamera(LaraCollision);
+		}
 	}
 
 	// Update cameras matrices there, after having done all the possible camera logic.
