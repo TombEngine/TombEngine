@@ -92,10 +92,7 @@ float ScreenFadeCurrent = 0;
 
 // State of the level intro fade. Applies to both new levels and savegame restores.
 static bool FadeInPending = false;
-static int FadeInSteadyFrames = 0;
 static int FadeInWarmupFrames = 0;
-static GameVector FadeInPrevPos;
-static GameVector FadeInPrevTarget;
 
 float CinematicBarsHeight = 0;
 float CinematicBarsDestinationHeight = 0;
@@ -297,43 +294,24 @@ void CalculateBounce(bool binocularMode)
 // and the player and hair which update ahead of it, finish settling before the world is revealed.
 // Armed on every level entry, including savegame restores.
 
-static void ArmLevelFadeIn()
+void ArmLevelFadeIn()
 {
 	FadeInPending = true;
-	FadeInSteadyFrames = 0;
 	FadeInWarmupFrames = 0;
-	FadeInPrevPos = Camera.pos;
-	FadeInPrevTarget = Camera.target;
 }
 
 static void UpdateLevelFadeIn()
 {
-	constexpr auto MIN_STEADY_FRAMES	 = 3;
-	constexpr auto MIN_WARMUP_FRAMES	 = 1;
-	constexpr auto MAX_WARMUP_FRAMES	 = 5;
-	constexpr auto SETTLE_MOVE_TOLERANCE = 3.0f;
+	// Hold the screen black for a short fixed window at the start of the level so the chase camera,
+	// and the player and hair which update ahead of it, finish settling before the world is revealed.
+	// The window is intentionally kept short; a flyby (which moves every frame) otherwise forces the
+	// reveal at the same point anyway, so camera-steadiness tracking adds no signal over a fixed count.
+	constexpr int FADE_IN_DELAY_FRAMES = 5;
 
 	if (!FadeInPending)
 		return;
 
-	FadeInWarmupFrames++;
-
-	float posDelta = Vector3i::Distance(Camera.pos.ToVector3i(), FadeInPrevPos.ToVector3i());
-	float targetDelta = Vector3i::Distance(Camera.target.ToVector3i(), FadeInPrevTarget.ToVector3i());
-	FadeInPrevPos = Camera.pos;
-	FadeInPrevTarget = Camera.target;
-
-	if (posDelta < SETTLE_MOVE_TOLERANCE && targetDelta < SETTLE_MOVE_TOLERANCE)
-	{
-		FadeInSteadyFrames++;
-	}
-	else
-	{
-		FadeInSteadyFrames = 0;
-	}
-
-	bool isSettled = (FadeInSteadyFrames >= MIN_STEADY_FRAMES && FadeInWarmupFrames >= MIN_WARMUP_FRAMES);
-	if (!isSettled && FadeInWarmupFrames < MAX_WARMUP_FRAMES)
+	if (++FadeInWarmupFrames < FADE_IN_DELAY_FRAMES)
 		return;
 
 	FadeInPending = false;
@@ -343,12 +321,11 @@ static void UpdateLevelFadeIn()
 void InitializeCamera()
 {
 	AlterFOV(ANGLE(DEFAULT_FOV));
-	RecenterChaseCamera();
 }
 
 // Anchor the chase camera directly behind the player instead of letting it glide into position on
-// the opening frames. Also called once startup scripts have run, because a fresh level has no
-// saved camera to seed from, unlike a savegame restore.
+// the opening frames. A fresh level has no saved camera to seed from, unlike a savegame restore, so
+// this is invoked from the control phase once Lara's final spawn and any startup scripts have run.
 
 void RecenterChaseCamera()
 {
@@ -1219,12 +1196,15 @@ void CalculateCamera(const CollisionInfo& coll)
 	int y = item->Pose.Position.y + bounds.Y2 + (3 * (bounds.Y1 - bounds.Y2) / 4);
 	int z;
 
-	// Releasing the Look key while a forced look target is active permanently dismisses it and returns to the normal chase camera.
+	// Releasing the Look key while a forced look target is active permanently dismisses it. Return to the
+	// normal chase camera, but keep the combat camera if a weapon is drawn so aiming isn't dropped for a frame.
 	if (Camera.item != nullptr && !isFixedCamera && IsReleased(In::Look))
 	{
 		Camera.item->LookedAt = true;
 		Camera.item = nullptr;
-		Camera.type = CameraType::Chase;
+
+		bool isCombatAim = (Lara.Control.HandStatus == HandStatus::WeaponReady ||Lara.Control.HandStatus == HandStatus::WeaponDraw);
+		Camera.type = isCombatAim ? CameraType::Combat : CameraType::Chase;
 		Lara.Control.Look.Orientation = EulerAngles::Identity;
 	}
 
@@ -1249,9 +1229,13 @@ void CalculateCamera(const CollisionInfo& coll)
 			// Split the required angle in half across the head and torso bones.
 			auto lookOrient = fullOrient / 2;
 
-			if (lookOrient.y > ANGLE(-50.0f) &&	lookOrient.y < ANGLE(50.0f) &&
-				lookOrient.x > LOOKCAM_ORIENT_CONSTRAINT.first.x &&
-				lookOrient.x < LOOKCAM_ORIENT_CONSTRAINT.second.x)
+			// Gate on the full angle actually applied to the camera aim so it can never swing past the
+			// hard look constraint; LookCamera only clamps pitch, so yaw under or over is otherwise passed
+			// through unclamped and the camera can aim further than Lara's head can follow.
+			if (fullOrient.y > LOOKCAM_ORIENT_CONSTRAINT.first.y &&
+				fullOrient.y < LOOKCAM_ORIENT_CONSTRAINT.second.y &&
+				fullOrient.x > LOOKCAM_ORIENT_CONSTRAINT.first.x &&
+				fullOrient.x < LOOKCAM_ORIENT_CONSTRAINT.second.x)
 			{
 				// Head turns the full way toward the target.
 				short angleDelta = lookOrient.y - Lara.ExtraHeadRot.y;
