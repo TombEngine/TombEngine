@@ -45,11 +45,6 @@ constexpr auto MANUAL_ROTATION_SPEED             = 6.0f;
 constexpr auto MANUAL_ROTATION_LOWER_ANGLE_LIMIT = ANGLE(-70.0f);
 constexpr auto MANUAL_ROTATION_UPPER_ANGLE_LIMIT = ANGLE(90.0f);
 
-constexpr int MIN_STEADY_FRAMES = 3;
-constexpr int MIN_WARMUP_FRAMES = 1;
-constexpr int MAX_WARMUP_FRAMES = 5;
-constexpr int SETTLE_MOVE_TOLERANCE = 3;
-
 struct OLD_CAMERA
 {
 	short ActiveState;
@@ -300,55 +295,11 @@ void CalculateBounce(bool binocularMode)
 	}
 }
 
-void InitializeCamera()
+// Arm the level intro fade. The screen is kept black for a few frames so that the chase camera,
+// and the player and hair which update ahead of it, finish settling before the world is revealed.
+
+static void ArmLevelFadeIn()
 {
-	Camera.shift = LaraItem->Pose.Position.y - BLOCK(1);
-
-	LastTarget = GameVector(
-		LaraItem->Pose.Position.x,
-		Camera.shift,
-		LaraItem->Pose.Position.z,
-		LaraItem->RoomNumber);
-
-	Camera.target = GameVector(
-		LastTarget.x,
-		Camera.shift,
-		LastTarget.z,
-		LaraItem->RoomNumber);
-
-	Camera.targetDistance = BLOCK(1.5f);
-	Camera.item = nullptr;
-	Camera.type = CameraType::Chase;
-	Camera.speed = 1;
-	Camera.flags = CF_NONE;
-	Camera.bounce = 0;
-	Camera.number = NO_VALUE;
-	Camera.fixedCamera = false;
-	Camera.DisableInterpolation = true;
-
-	// Start the chase camera settled directly behind Lara (facing forward alongside her)
-	// rather than letting it glide into position on the opening frames.
-	Camera.targetElevation = -ANGLE(10.0f);
-	Camera.actualElevation = Camera.targetElevation;
-	Camera.targetAngle = 0;
-	Camera.actualAngle = LaraItem->Pose.Orientation.y;
-
-	int horizontalDistance = (int)(Camera.targetDistance * phd_cos(Camera.actualElevation));
-	Camera.pos = GameVector(
-		Camera.target.x - horizontalDistance * phd_sin(Camera.actualAngle),
-		Camera.target.y + (int)(Camera.targetDistance * phd_sin(Camera.actualElevation)),
-		Camera.target.z - horizontalDistance * phd_cos(Camera.actualAngle),
-				LaraItem->RoomNumber);
-
-	AlterFOV(ANGLE(DEFAULT_FOV));
-
-	UseForcedFixedCamera = false;
-	CalculateCamera(LaraCollision);
-
-	LastTarget = Camera.target;
-	LastIdeal = Camera.pos;
-
-	// Keep the screen black until the camera (and hair) settle, then begin the level fade in.
 	FadeInPending = true;
 	FadeInSteadyFrames = 0;
 	FadeInWarmupFrames = 0;
@@ -356,10 +307,52 @@ void InitializeCamera()
 	FadeInPrevTarget = Camera.target;
 }
 
+static void UpdateLevelFadeIn()
+{
+	constexpr auto MIN_STEADY_FRAMES	 = 3;
+	constexpr auto MIN_WARMUP_FRAMES	 = 1;
+	constexpr auto MAX_WARMUP_FRAMES	 = 5;
+	constexpr auto SETTLE_MOVE_TOLERANCE = 3.0f;
+
+	if (!FadeInPending)
+		return;
+
+	FadeInWarmupFrames++;
+
+	float posDelta = Vector3i::Distance(Camera.pos.ToVector3i(), FadeInPrevPos.ToVector3i());
+	float targetDelta = Vector3i::Distance(Camera.target.ToVector3i(), FadeInPrevTarget.ToVector3i());
+	FadeInPrevPos = Camera.pos;
+	FadeInPrevTarget = Camera.target;
+
+	if (posDelta < SETTLE_MOVE_TOLERANCE && targetDelta < SETTLE_MOVE_TOLERANCE)
+	{
+		FadeInSteadyFrames++;
+	}
+	else
+	{
+		FadeInSteadyFrames = 0;
+	}
+
+	bool isSettled = (FadeInSteadyFrames >= MIN_STEADY_FRAMES && FadeInWarmupFrames >= MIN_WARMUP_FRAMES);
+	if (!isSettled && FadeInWarmupFrames < MAX_WARMUP_FRAMES)
+		return;
+
+	FadeInPending = false;
+	SetScreenFadeIn(FADE_SCREEN_SPEED);
+}
+
+void InitializeCamera()
+{
+	AlterFOV(ANGLE(DEFAULT_FOV));
+	RecenterChaseCamera();
+}
+
+// Anchor the chase camera directly behind the player instead of letting it glide into position on
+// the opening frames. Also called once startup scripts have run, because a fresh level has no
+// saved camera to seed from, unlike a savegame restore.
+
 void RecenterChaseCamera()
 {
-	// Re-anchor the chase camera behind Lara using her final spawn state. This mirrors what a
-	// savegame restore does for a loaded level; a fresh/new level has no saved camera to seed.
 	Camera.shift = LaraItem->Pose.Position.y - BLOCK(1);
 
 	LastTarget = GameVector(
@@ -380,7 +373,6 @@ void RecenterChaseCamera()
 	Camera.fixedCamera = false;
 	Camera.DisableInterpolation = true;
 
-	// Start the chase camera settled directly behind Lara (facing forward alongside her).
 	Camera.targetElevation = -ANGLE(10.0f);
 	Camera.actualElevation = Camera.targetElevation;
 	Camera.targetAngle = 0;
@@ -391,21 +383,15 @@ void RecenterChaseCamera()
 		Camera.target.x - horizontalDistance * phd_sin(Camera.actualAngle),
 		Camera.target.y + (int)(Camera.targetDistance * phd_sin(Camera.actualElevation)),
 		Camera.target.z - horizontalDistance * phd_cos(Camera.actualAngle),
-				LaraItem->RoomNumber);
+		LaraItem->RoomNumber);
 
-	Camera.DisableInterpolation = true;
 	UseForcedFixedCamera = false;
 	CalculateCamera(LaraCollision);
 
 	LastTarget = Camera.target;
 	LastIdeal = Camera.pos;
 
-	// Re-arm the intro fade baseline now that Lara's final fresh-level spawn is known.
-	FadeInPending = true;
-	FadeInSteadyFrames = 0;
-	FadeInWarmupFrames = 0;
-	FadeInPrevPos = Camera.pos;
-	FadeInPrevTarget = Camera.target;
+	ArmLevelFadeIn();
 }
 
 void MoveCamera(GameVector* ideal, int speed, bool force)
@@ -1248,12 +1234,12 @@ void CalculateCamera(const CollisionInfo& coll)
 		if (!isFixedCamera)
 		{
 			auto deltaPos = Camera.item->Pose.Position - item->Pose.Position;
-			int horizontalDist = (int)sqrt((double)SQUARE(deltaPos.x) + (double)SQUARE(deltaPos.z));
+			int horizontalDist = (int)std::sqrt((double)SQUARE(deltaPos.x) + (double)SQUARE(deltaPos.z));
 
 			// Use the camera target's own vertical centre as the reference height rather than the
 			// player bounds, and project onto the horizontal plane so nearby but elevated targets
 			// still yield a steep enough required pitch.
-			const auto& targetBounds = GameBoundingBox(Camera.item);
+			auto targetBounds = GameBoundingBox(Camera.item);
 
 			// Full pitch/heading required to centre the target on the view axis.
 			auto fullOrient = EulerAngles(
@@ -1725,30 +1711,7 @@ void UpdateCamera()
 	// Update cameras matrices there, after having done all the possible camera logic.
 	g_Renderer.UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
 
-	if (FadeInPending)
-	{
-		// Let the camera (and Lara/hair, already updated this phase) finish their opening settle
-		// behind a black screen, then begin the level fade in so nothing is seen sliding in.
-
-		FadeInWarmupFrames++;
-
-		auto posDelta = Vector3i::Distance(Camera.pos.ToVector3i(), FadeInPrevPos.ToVector3i());
-		auto targetDelta = Vector3i::Distance(Camera.target.ToVector3i(), FadeInPrevTarget.ToVector3i());
-		FadeInPrevPos = Camera.pos;
-		FadeInPrevTarget = Camera.target;
-
-		if (posDelta < SETTLE_MOVE_TOLERANCE && targetDelta < SETTLE_MOVE_TOLERANCE)
-			FadeInSteadyFrames++;
-		else
-			FadeInSteadyFrames = 0;
-
-		if ((FadeInSteadyFrames >= MIN_STEADY_FRAMES && FadeInWarmupFrames >= MIN_WARMUP_FRAMES) ||
-			FadeInWarmupFrames >= MAX_WARMUP_FRAMES)
-		{
-			FadeInPending = false;
-			SetScreenFadeIn(FADE_SCREEN_SPEED);
-		}
-	}
+	UpdateLevelFadeIn();
 }
 
 void UpdateMikePos(const ItemInfo& item)
