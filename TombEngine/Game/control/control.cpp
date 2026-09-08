@@ -717,6 +717,11 @@ GameStatus DoGameLoop(int levelIndex)
 	// various runtime shenanigangs (e.g. hair or freeze mode initialization).
 	status = GamePhase(false);
 
+	// Settle freshly re-initialized hair before the world is revealed so its tail doesn't sling
+	// sideways on the first visible frames (it is spawned as a stiff vertical spike on level/save load).
+	for (int i = 0; i < FPS; i++)
+		HairEffect.Update(*LaraItem);
+
 	g_Synchronizer.Init();
 	bool legacy30FpsDoneDraw = false;
 
