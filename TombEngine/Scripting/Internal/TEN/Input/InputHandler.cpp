@@ -164,10 +164,10 @@ namespace TEN::Scripting::Input
 		Rumble(strength, time.value_or(0.3f), RumbleMode::Both);
 	}
 
-	/// Returns the name of the key that has been assigned to specified ActionID.
+	/// Returns the name of the key that has been assigned to specified ActionID for the last used input device.
 	// @function GetActionBinding
 	// @tparam Input.ActionID actionID Action ID to get binding key name for.
-	// @treturn string Name of keyboard or gamepad key or mouse button that has been assigned to a corresponding ActionID.
+	// @treturn string Name of the key that has been assigned to the ActionID.
 	static std::string GetActionBinding(int actionID)
 	{
 		return g_Bindings.GetBoundKeyName((ActionID)actionID);
