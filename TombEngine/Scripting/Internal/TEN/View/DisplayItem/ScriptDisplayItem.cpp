@@ -335,6 +335,8 @@ namespace TEN::Scripting::DisplayItem
 	}
 
 	/// Set the animation number of a display item.
+	// The animation plays automatically, advancing one frame per game tick and following the animation's
+	// Next animation once it reaches its end frame, just like moveable animations.
 	// @function DisplayItem:SetAnim
 	// @tparam int animNumber Animation number to set.
 	// @usage

@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Game/Hud/DrawItems/DisplayItem.h"
 
+#include "Game/Animation/Animation.h"
 #include "Math/Math.h"
 #include "Objects/game_object_ids.h"
 #include "Renderer/Renderer.h"
@@ -21,6 +22,10 @@ namespace TEN::Hud
 		_prevPosition = pos;
 		_prevOrientation = orient;
 		_prevScale = scale;
+
+		// Initialize animation state.
+		RecomputeFrameData();
+		_prevFrameData = _frameData;
 	}
 
 	unsigned int DisplayItem::GetID() const
@@ -135,9 +140,20 @@ namespace TEN::Hud
 		return EulerAngles::Lerp(prevIt->second, it->second, alpha);
 	}
 
+	FrameData DisplayItem::GetInterpolatedFrame(float alpha) const
+	{
+		return LerpFrameData(_prevFrameData, _frameData, alpha);
+	}
+
 	void DisplayItem::SetObjectID(GAME_OBJECT_ID objectID)
 	{
 		_objectID = objectID;
+
+		// Reset animation state for the new object.
+		_animNumber = 0;
+		_frameNumber = 0;
+		RecomputeFrameData();
+		_prevFrameData = _frameData;
 	}
 
 	void DisplayItem::SetPosition(const Vector3& pos, bool disableInterpolation)
@@ -218,26 +234,24 @@ namespace TEN::Hud
 	{
 		const auto& object = Objects[_objectID];
 		if (animNumber >= 0 && animNumber < object.Animations.size())
-		{
 			_animNumber = animNumber;
-		}
 		else
-		{
 			_animNumber = 0;
-		}
+
+		// Start playback from the beginning and snap interpolation.
+		_frameNumber = 0;
+		RecomputeFrameData();
+		_prevFrameData = _frameData;
 	}
 
 	void DisplayItem::SetFrame(int frameNumber)
-	{	
-		int endFrameNumber = GetEndFrameNumber();
-		if (frameNumber <= endFrameNumber)
-		{
-			_frameNumber = frameNumber;
-		}
-		else
-		{
-			_frameNumber = endFrameNumber;
-		}
+	{
+		const auto& anim = GetAnimData(_objectID, _animNumber);
+		_frameNumber = std::clamp(frameNumber, 0, anim.EndFrameNumber);
+
+		// Snap interpolation so the frame takes effect immediately.
+		RecomputeFrameData();
+		_prevFrameData = _frameData;
 	}
 
 	bool DisplayItem::GetVisible() const
@@ -273,6 +287,54 @@ namespace TEN::Hud
 		_prevColor = _color;
 		_prevMeshOrientations = _meshOrientations;
 		_prevFrameNumber = _frameNumber;
+		_prevFrameData = _frameData;
 		_wasInterpolated = true;
+	}
+
+	void DisplayItem::Animate()
+	{
+		// Objects without animations have nothing to advance.
+		if (Objects[_objectID].Animations.empty())
+			return;
+
+		int prevAnimNumber = _animNumber;
+
+		// Advance frame number.
+		_frameNumber++;
+
+		// Handle end frame link transition.
+		const auto& anim = GetAnimData(_objectID, _animNumber);
+		if (_frameNumber > anim.EndFrameNumber)
+		{
+			_animNumber = anim.NextAnimNumber;
+			_frameNumber = anim.NextFrameNumber;
+		}
+
+		// Recompute effective frame data.
+		RecomputeFrameData();
+
+		// Snap interpolation across animation transitions to avoid cross-animation artifacts.
+		if (_animNumber != prevAnimNumber)
+			_prevFrameData = _frameData;
+	}
+
+	void DisplayItem::RecomputeFrameData()
+	{
+		const auto& anim = GetAnimData(_objectID, _animNumber);
+		int frameNumber = std::clamp(_frameNumber, 0, (int)std::max((int)anim.Frames.size() - 1, 0));
+		_frameData = anim.Frames[frameNumber];
+	}
+
+	FrameData DisplayItem::LerpFrameData(const FrameData& from, const FrameData& to, float alpha)
+	{
+		auto result = FrameData{};
+		result.RootPosition = Vector3::Lerp(from.RootPosition, to.RootPosition, alpha);
+
+		int count = (int)std::min(from.BoneOrientations.size(), to.BoneOrientations.size());
+		result.BoneOrientations.resize(count);
+		for (int i = 0; i < count; i++)
+			result.BoneOrientations[i] = Quaternion::Slerp(from.BoneOrientations[i], to.BoneOrientations[i], alpha);
+
+		return result;
 	}
 }
