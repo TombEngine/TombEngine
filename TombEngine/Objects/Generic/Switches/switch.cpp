@@ -22,11 +22,15 @@ void ProcessShootSwitch(ItemInfo* item)
 	if (item->Flags & IFLAG_SWITCH_ONESHOT)
 		return;
 
-	if (item->ObjectNumber == ID_SHOOT_SWITCH1 || item->ObjectNumber == ID_SHOOT_SWITCH2)
+	if (item->ObjectNumber == ID_SHOOT_SWITCH1)
 		ExplodeItemNode(item, Objects[item->ObjectNumber].nmeshes - 1, 0, 64);
 
+	// TR5 ID_SWITCH_TYPE_8. Only shatters with OCB 444, which swaps the intact mesh hidden by
+	// InitializeShootSwitch() in. Without it, the switch just plays its regular hit animation.
 	if (item->ObjectNumber == ID_SHOOT_SWITCH2 && item->TriggerFlags == 444)
 	{
+		ExplodeItemNode(item, Objects[item->ObjectNumber].nmeshes - 1, 0, 64);
+
 		auto pos = GetJointPosition(item, 0);
 		TestTriggers(pos.x, pos.y, pos.z, item->RoomNumber, true);
 		item->MeshBits |= 1 << ((Objects[item->ObjectNumber].nmeshes & 0xFF) - 2);
