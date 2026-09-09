@@ -44,6 +44,7 @@ void TestForObjectOnLedge(ItemInfo* item, CollisionInfo* coll);
 bool TestLaraPosition(const ObjectCollisionBounds& bounds, ItemInfo* item, ItemInfo* laraItem);
 bool AlignLaraPosition(const Vector3i& offset, ItemInfo* item, ItemInfo* laraItem);
 bool MoveLaraPosition(const Vector3i& offset, ItemInfo* item, ItemInfo* laraItem);
+bool MoveLaraPositionUnderwaterPickup(const Vector3i& offset, ItemInfo* item, ItemInfo* laraItem);
 
 bool ItemNearLara(const Vector3i& origin, int radius);
 bool ItemNearTarget(const Vector3i& origin, ItemInfo* targetEntity, int radius);

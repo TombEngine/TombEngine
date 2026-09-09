@@ -421,6 +421,14 @@ static Pose GetUnderwaterPickupTarget(const Vector3i& offset, const ItemInfo& it
 	return target;
 }
 
+// NOTE: Used by underwater pickups only. Every other interaction, including underwater doors and
+// breakable walls, must keep going through MoveLaraPosition().
+bool MoveLaraPositionUnderwaterPickup(const Vector3i& offset, ItemInfo* item, ItemInfo* laraItem)
+{
+	auto target = GetUnderwaterPickupTarget(offset, *item, *laraItem);
+	return Move3DPosTo3DPos(laraItem, laraItem->Pose, target, LARA_ALIGN_VELOCITY, ANGLE(2.0f));
+}
+
 bool MoveLaraPosition(const Vector3i& offset, ItemInfo* item, ItemInfo* laraItem)
 {
 	auto* lara = GetLaraInfo(laraItem);
@@ -429,13 +437,8 @@ bool MoveLaraPosition(const Vector3i& offset, ItemInfo* item, ItemInfo* laraItem
 	auto pos = Vector3::Transform(offset.ToVector3(), rotMatrix);
 	auto target = Pose(item->Pose.Position + Vector3i(pos), item->Pose.Orientation);
 
-	if (!Objects[item->ObjectNumber].isPickup)
+	if (!Objects[item->ObjectNumber].isPickup || lara->Control.WaterStatus == WaterStatus::Underwater)
 	{
-		return Move3DPosTo3DPos(laraItem, laraItem->Pose, target, LARA_ALIGN_VELOCITY, ANGLE(2.0f));
-	}
-	else if (lara->Control.WaterStatus == WaterStatus::Underwater)
-	{
-		target = GetUnderwaterPickupTarget(offset, *item, *laraItem);
 		return Move3DPosTo3DPos(laraItem, laraItem->Pose, target, LARA_ALIGN_VELOCITY, ANGLE(2.0f));
 	}
 	else

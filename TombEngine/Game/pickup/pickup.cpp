@@ -448,7 +448,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 			{
 				if (TestLaraPosition(PickUpBoundsUW, item, laraItem))
 				{
-					if (MoveLaraPosition(PickUpPositionUW, item, laraItem))
+					if (MoveLaraPositionUnderwaterPickup(PickUpPositionUW, item, laraItem))
 					{
 						if (item->ObjectNumber == ID_FLARE_ITEM && item->Active)
 						{
