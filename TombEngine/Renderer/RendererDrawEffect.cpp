@@ -28,6 +28,7 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Objects/Effects/Boss.h"
 #include "Objects/Effects/Fireflies.h"
 #include "Objects/TR5/Trap/LaserBarrier.h"
 #include "Objects/TR5/Trap/LaserBeam.h"
@@ -40,6 +41,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Effects::Blood;
+using namespace TEN::Effects::Boss;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Electricity;
@@ -728,7 +730,27 @@ namespace TEN::Renderer
 				}
 			}
 
-			color = (unsigned char)Lerp(prevColor, color, GetInterpolationFactor());
+			float interpolationFactor = GetInterpolationFactor();
+			color = (unsigned char)Lerp(prevColor, color, interpolationFactor);
+			auto position = Vector3::Lerp(splash.PrevPosition, splash.Position, interpolationFactor);
+			float height = Lerp(splash.PrevHeight, splash.height, interpolationFactor);
+
+			if (splash.isRipple)
+			{
+				AddSpriteBillboardConstrainedLookAt(
+					&_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_RIPPLES],
+					position,
+					Vector4(color / 255.0f, color / 255.0f, color / 255.0f, 1.0f),
+					0.0f,
+					1.0f,
+					Vector2(Lerp(splash.PrevOuterRadius, splash.OuterRadius, interpolationFactor) * 2.0f),
+					BlendMode::Additive,
+					Vector3::Down,
+					true,
+					view);
+
+				continue;
+			}
 
 			float xInner;
 			float zInner;
@@ -1062,6 +1084,105 @@ namespace TEN::Renderer
 
 				p1 = p2;
 				p4 = p3;
+			}
+		}
+	}
+
+	// Generates a randomized vertex color for boss explosion rings, matching classic TR3 per-boss color patterns.
+	static Vector4 GenerateRingVertexColor(BossExplosionRingColor colorType, float lifeFraction)
+	{
+		float r = 0.0f;
+		float g = 0.0f;
+		float b = 0.0f;
+
+		switch (colorType)
+		{
+		case BossExplosionRingColor::Tony:
+			r = (Random::GenerateInt(0, 31) + 224) / 255.0f;
+			g = (Random::GenerateInt(0, 31) + 64) / 255.0f;
+			break;
+
+		case BossExplosionRingColor::Sophia:
+			g = (Random::GenerateInt(0, 31) + 224) / 255.0f;
+			b = Random::GenerateInt(0, 63) / 255.0f;
+			break;
+
+		case BossExplosionRingColor::Puna:
+			b = (Random::GenerateInt(0, 63) + 224) / 255.0f;
+			g = Random::GenerateInt(0, 63) / 255.0f;
+			break;
+
+		default:
+			g = (Random::GenerateInt(0, 31) + 224) / 255.0f;
+			b = (Random::GenerateInt(0, 31) + 96) / 255.0f;
+			break;
+		}
+
+		return Vector4(r * lifeFraction, g * lifeFraction, b * lifeFraction, 1.0f);
+	}
+
+	void Renderer::PrepareBossExplosionRings(RenderView& view)
+	{
+		for (int i = 0; i < MAX_BOSS_EXPLOSION_RINGS; i++)
+		{
+			const auto& ring = BossExplosionRings[i];
+
+			if (!ring.IsActive)
+				continue;
+
+			if (!CheckIfSlotExists(ID_DEFAULT_SPRITES, "Boss explosion rings rendering"))
+				return;
+
+			auto rotMatrix =
+				Matrix::CreateRotationZ(TO_RAD(ring.ZRot)) *
+				Matrix::CreateRotationX(TO_RAD(ring.XRot));
+
+			float interpolationFactor = GetInterpolationFactor();
+			float outerRadius = Lerp((float)ring.PrevRadius, (float)ring.Radius, interpolationFactor);
+			float innerRadius = outerRadius * 0.5f;
+			float lifeFraction = Lerp(ring.PrevLife / BOSS_EXPLOSION_RING_LIFE_MAX, ring.Life / BOSS_EXPLOSION_RING_LIFE_MAX, interpolationFactor);
+
+			constexpr int NUM_SEGMENTS = 8;
+			float wibbleOffset = (GlobalCounter & 0x3F) * 0.1f;
+
+			// Generate outer and inner ring vertices with per-vertex random colors.
+			Vector3 outerVerts[NUM_SEGMENTS];
+			Vector3 innerVerts[NUM_SEGMENTS];
+			Vector4 outerColors[NUM_SEGMENTS];
+			Vector4 innerColors[NUM_SEGMENTS];
+
+			for (int j = 0; j < NUM_SEGMENTS; j++)
+			{
+				float angle = (j * PI * 2.0f / NUM_SEGMENTS) + wibbleOffset;
+				float cx = cos(angle);
+				float sz = sin(angle);
+
+				auto outerPos = Vector3(outerRadius * cx, 0.0f, outerRadius * sz);
+				auto innerPos = Vector3(innerRadius * cx, 0.0f, innerRadius * sz);
+
+				outerVerts[j] = Vector3::Transform(outerPos, rotMatrix) + ring.Position;
+				innerVerts[j] = Vector3::Transform(innerPos, rotMatrix) + ring.Position;
+
+				// Generate outer ring vertex color based on boss type.
+				outerColors[j] = GenerateRingVertexColor(ring.ColorType, lifeFraction);
+
+				// Generate inner ring vertex color (independent random).
+				innerColors[j] = GenerateRingVertexColor(ring.ColorType, lifeFraction);
+			}
+
+			// Draw quads connecting outer and inner ring vertices.
+			auto* sprite = &_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_SPLASH];
+
+			for (int j = 0; j < NUM_SEGMENTS; j++)
+			{
+				int next = (j + 1) % NUM_SEGMENTS;
+
+				AddQuad(sprite,
+					innerVerts[j], innerVerts[next],
+					outerVerts[next], outerVerts[j],
+					innerColors[j], innerColors[next],
+					outerColors[next], outerColors[j],
+					0, 1, Vector2::Zero, BlendMode::Screen, true, view);
 			}
 		}
 	}
