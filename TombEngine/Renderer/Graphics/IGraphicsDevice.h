@@ -69,14 +69,11 @@ namespace TEN::Renderer::Graphics
 		// slot receives the point-wrap state (shadow map excluded).
 		virtual void BindSamplers(bool pointFilter) = 0;
 
-		// Clears the SRV bound at `registerType` for the given shader stage.
-		// Used to drop SRV bindings before re-binding the same resource as RTV/copy dest,
-		// which would otherwise trip D3D11 hazard warnings. On stateless backends
-		// (SDL_GPU/Vulkan) this is typically a no-op since bindings are scoped to a pass.
 		virtual void UnbindTexture(ShaderStage stage, TextureRegister registerType) = 0;
 		
 		virtual std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::string name) = 0;
-		virtual void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data) = 0;
+
+		virtual void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data, int size = 0) = 0;
 		virtual void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) = 0;
 
 		virtual std::unique_ptr<IStructuredBuffer> CreateStructuredBuffer(int stride, int elementCount, std::wstring name) = 0;

@@ -325,8 +325,12 @@ namespace TEN::Renderer
 		_normalsAndMaterialIndexRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_emissiveAndRoughnessRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 
-		_SSAORenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
-		_SSAOBlurredRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		// SSAO is calculated at quarter resolution (half width and height).
+		int ssaoW = (w + 1) / 2;
+		int ssaoH = (h + 1) / 2;
+		_SSAOViewport = { 0, 0, ssaoW, ssaoH, 0.0f, 1.0f };
+		_SSAORenderTarget = _graphicsDevice->CreateRenderSurface2D(ssaoW, ssaoH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+		_SSAOBlurredRenderTarget = _graphicsDevice->CreateRenderSurface2D(ssaoW, ssaoH, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 
 		int downscaledW = (w + POSTPROCESS_DOWNSCALE_FACTOR - 1) / POSTPROCESS_DOWNSCALE_FACTOR;
 		int downscaledH = (h + POSTPROCESS_DOWNSCALE_FACTOR - 1) / POSTPROCESS_DOWNSCALE_FACTOR;
