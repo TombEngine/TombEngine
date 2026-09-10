@@ -16,6 +16,10 @@ cbuffer CBRoom : register(b5)
     float3 AmbientColor;
     float RoomPadding0;
 	//--
+    float WaterEffectStrength;
+    float WaterEffectDepth;
+    float2 RoomPadding1;
+	//--
     ShaderLight RoomLights[MAX_LIGHTS_PER_ROOM];
 	//--
     ShaderDecal RoomDecals[MAX_DECALS_PER_ROOM];
