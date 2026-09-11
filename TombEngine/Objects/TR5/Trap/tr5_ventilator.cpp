@@ -325,7 +325,7 @@ namespace TEN::Entities::Traps
 						if (effectBounds.Y1 - LaraItem->Pose.Position.y >= item.ItemFlags[0])
 							return;
 
-						y = 96 * (effectBounds.Y2 - item.ItemFlags[0]) / item.ItemFlags[0];
+						y = -96 * (item.ItemFlags[0] - (effectBounds.Y1 - LaraItem->Pose.Position.y)) / item.ItemFlags[0];
 					}
 					else
 					{
