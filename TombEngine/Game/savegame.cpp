@@ -25,6 +25,7 @@
 #include "Game/room.h"
 #include "Game/Setup.h"
 #include "Game/StaticMesh.h"
+#include "Objects/Generic/Doors/generic_doors.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/Generic/Switches/fullblock_switch.h"
 #include "Objects/Generic/puzzles_keys.h"
@@ -56,6 +57,7 @@ using namespace TEN::Effects::Fireflies;
 using namespace TEN::Effects::Hair;
 using namespace TEN::Effects::Items;
 using namespace TEN::Entities::Creatures::TR3;
+using namespace TEN::Entities::Doors;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::TR4;
@@ -2684,21 +2686,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	ActiveItems.clear();
 	FreeItemSlots.clear();
 
-	// Restore room item lists by array position: lists are bound to room slots, not room
-	// contents (see FlipRooms), and flipmaps were already reapplied above.
-	for (int i = 0; i < s->rooms()->size(); i++)
-	{
-		auto& room = g_Level.Rooms[i];
-		room.itemNumbers.clear();
-
-		const auto* savedItemNumbers = s->rooms()->Get(i)->item_numbers();
-		if (savedItemNumbers != nullptr)
-		{
-			for (int j = 0; j < savedItemNumbers->size(); j++)
-				room.itemNumbers.push_back(savedItemNumbers->Get(j));
-		}
-	}
-
 	for (int i = 0; i < s->active_items()->size(); i++)
 		ActiveItems.push_back(s->active_items()->Get(i));
 
@@ -2775,6 +2762,11 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 		item->RoomNumber = savedItem->room_number();
 		item->Floor = savedItem->floor();
 		item->BoxNumber = savedItem->box_number();
+
+		// Doors created at runtime are absent from the level file, so nothing reapplies their
+		// sector data on load. Reinitialize them here, before saved state is restored on top.
+		if (isDynamicItem && IsDoorObject(item->ObjectNumber))
+			InitializeDoor(i);
 
 		// Animations
 		item->Animation.AnimObjectID = GAME_OBJECT_ID(savedItem->anim_object_id());
@@ -3039,6 +3031,22 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 			auto* data = savedItem->data();
 			const auto* savedData = (Common::Int*)data;
 			item->Data = savedData->scalar();
+		}
+	}
+
+	// Restore room item lists by array position: lists are bound to room slots, not room
+	// contents (see FlipRooms), and flipmaps were already reapplied above. Must be done after
+	// items are parsed, as initializing a dynamic item may move it between room lists.
+	for (int i = 0; i < s->rooms()->size(); i++)
+	{
+		auto& room = g_Level.Rooms[i];
+		room.itemNumbers.clear();
+
+		const auto* savedItemNumbers = s->rooms()->Get(i)->item_numbers();
+		if (savedItemNumbers != nullptr)
+		{
+			for (int j = 0; j < savedItemNumbers->size(); j++)
+				room.itemNumbers.push_back(savedItemNumbers->Get(j));
 		}
 	}
 }

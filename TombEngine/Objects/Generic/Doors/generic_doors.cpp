@@ -57,6 +57,16 @@ namespace TEN::Entities::Doors
 		return (DOOR_DATA&)item.Data;
 	}
 
+	bool IsDoorObject(GAME_OBJECT_ID objectID)
+	{
+		return (objectID >= ID_DOOR_TYPE1 && objectID <= ID_DOOR_TYPE30) ||
+			(objectID >= ID_DOUBLE_DOORS1 && objectID <= ID_DOUBLE_DOORS4) ||
+			(objectID >= ID_UNDERWATER_DOOR1 && objectID <= ID_UNDERWATER_DOOR4) ||
+			(objectID >= ID_PUSHPULL_DOOR1 && objectID <= ID_KICK_DOOR4) ||
+			objectID == ID_LIFT_DOORS1 || objectID == ID_LIFT_DOORS2 ||
+			objectID == ID_SEQUENCE_DOOR1 || objectID == ID_BREAKABLE_WALL;
+	}
+
 	void InitializeDoor(short itemNumber)
 	{
 		auto& doorItem = g_Level.Items[itemNumber];
