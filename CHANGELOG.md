@@ -156,6 +156,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed `View.DisplayString` not working in the title level.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 * Fixed notification display bug in `CustomDiary` class.
+* Fixed ring inventory opening despite `Input.ClearAllKeys` being called in the `OnLoop` callback.
 
 ## [Version 1.11.1]
 

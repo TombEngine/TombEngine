@@ -359,6 +359,6 @@ end
 -- @tfield[opt=true] bool gameStats If true, full game statistics are show in Statistics mode in Inventory.
 
 TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_FREEZE, LevelFuncs.Engine.RingInventory.UpdateInventory)
-TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.PRE_LOOP, LevelFuncs.Engine.RingInventory.RunInventory)
+TEN.Logic.AddCallback(TEN.Logic.CallbackPoint.POST_LOOP, LevelFuncs.Engine.RingInventory.RunInventory)
 
 return InventoryModule
