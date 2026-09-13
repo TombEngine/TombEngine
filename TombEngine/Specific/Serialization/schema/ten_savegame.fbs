@@ -462,6 +462,17 @@ table Soundtrack {
     position: uint64;
 }
 
+table NamedSoundtrack {
+    channel_name:   string;
+    track:          string;
+    position:       uint64;
+    preset:         int32;
+    flags:          int32;
+    fade_out_time:  int32;
+    crossfade_time: int32;
+    volume:         float;
+}
+
 table VideoInfo {
 	name: string;
 	position: float;
@@ -763,6 +774,7 @@ table SaveGame {
 	volume_event_sets: [EventSet];
 	script_vars: UnionVec;
 	callbacks: [CallbackSet];
+	named_soundtracks: [NamedSoundtrack];
 	active_items: [int32];
 	free_item_slots: [int32];
 	moveable_type_properties: [TypePropertyMap];
