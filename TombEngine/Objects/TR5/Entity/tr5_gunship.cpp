@@ -93,50 +93,40 @@ namespace TEN::Entities::Creatures::TR5
 		return GunShipState::IDLE;
 	}
 
-	// Helper: Kollisionsprüfung für early blocking (VOR State-Bestimmung!)
-	bool CheckEarlyBlocking(const ItemInfo& item, float horizontalDistanceToTarget)
+	// Helper: Richtungs-unabhaengiger Kollisions-Fussabdruck-Check.
+	// Prueft, ob der um `displacement` verschobene Bodenebenen-Fussabdruck des Helikopters (4 Ecken)
+	// gegen Wand-Sektoren, erhohte Squares / abgesenkte Decken (Clearance) stoesst.
+	bool CheckFootprintCollision(const ItemInfo& item, const Vector3& displacement)
 	{
-		float currentSpeed = fabsf((float)item.ItemFlags[3] / FLOATING_POINT_SCALE);
-		currentSpeed += ((horizontalDistanceToTarget > 0) ? MAX_MOVE_SPEED : MAX_MOVE_SPEED * 0.25f - currentSpeed) * (1.0f / powf(2.0f, MOVEMENT_LERP_SPEED));
-		bool isMoving = currentSpeed > 1.0f;
-
-		if (!isMoving)
-			return false;
-
-		Vector3 forwardVec(
-			-sinf(item.Pose.Orientation.y),
-			0.0f,
-			-cosf(item.Pose.Orientation.y));
-		forwardVec.Normalize();
-
 		auto& heliFrame = GetFrame(item);
 		float bottomMeshY = item.Pose.Position.y + heliFrame.BoundingBox.Y1;
 		float topMeshY = item.Pose.Position.y + heliFrame.BoundingBox.Y2;
+		int bandHeight = (int)(topMeshY - bottomMeshY);
+		float midY = (bottomMeshY + topMeshY) / 2.0f;
 
-		const float safetyDistance = SECTOR_SIZE;
-		Vector3 checkPoint = item.Pose.Position.ToVector3() + forwardVec * safetyDistance;
+		float yawCos = cosf(item.Pose.Orientation.y);
+		float yawSin = sinf(item.Pose.Orientation.y);
+		float posX = item.Pose.Position.x;
+		float posZ = item.Pose.Position.z;
 
-		auto pointCollCenter = GetPointCollision(Vector3(checkPoint.x, (bottomMeshY + topMeshY) / 2, checkPoint.z), item.RoomNumber);
+		// Vier Ecken des Bodenebenen-Fussabdrucks (lokal, relativ zum Pose-Ort).
+		int cornerX[4] = { heliFrame.BoundingBox.X1, heliFrame.BoundingBox.X2, heliFrame.BoundingBox.X1, heliFrame.BoundingBox.X2 };
+		int cornerZ[4] = { heliFrame.BoundingBox.Z1, heliFrame.BoundingBox.Z1, heliFrame.BoundingBox.Z2, heliFrame.BoundingBox.Z2 };
 
-		if (pointCollCenter.GetSector().IsWall(checkPoint.x, checkPoint.z))
-			return true;
+		for (int i = 0; i < 4; i++)
+		{
+			// Yaw-Rotation (um Y) + World-Translation + vorgeschlagene Verschiebung.
+			float worldX = posX + (cornerX[i] * yawCos + cornerZ[i] * yawSin) + displacement.x;
+			float worldZ = posZ + (-cornerX[i] * yawSin + cornerZ[i] * yawCos) + displacement.z;
 
-		int relCeilHeight = abs(pointCollCenter.GetCeilingHeight() - pointCollCenter.GetFloorHeight());
-		if (relCeilHeight <= (int)(topMeshY - bottomMeshY))
-			return true;
+			auto pointColl = GetPointCollision(Vector3(worldX, midY, worldZ), item.RoomNumber);
 
-		const float sideOffset = SECTOR_SIZE / 2;
-		Vector3 leftPoint = checkPoint + Vector3(forwardVec.z, 0.0f, -forwardVec.x) * sideOffset;
-		Vector3 rightPoint = checkPoint + Vector3(-forwardVec.z, 0.0f, forwardVec.x) * sideOffset;
+			if (pointColl.IsWall())
+				return true;
 
-		auto pointCollLeft = GetPointCollision(Vector3(leftPoint.x, (bottomMeshY + topMeshY) / 2, leftPoint.z), item.RoomNumber);
-		auto pointCollRight = GetPointCollision(Vector3(rightPoint.x, (bottomMeshY + topMeshY) / 2, rightPoint.z), item.RoomNumber);
-
-		if (pointCollLeft.GetSector().IsWall(leftPoint.x, leftPoint.z))
-			return true;
-
-		if (pointCollRight.GetSector().IsWall(rightPoint.x, rightPoint.z))
-			return true;
+			if (abs(pointColl.GetCeilingHeight() - pointColl.GetFloorHeight()) <= bandHeight)
+				return true;
+		}
 
 		return false;
 	}
@@ -169,65 +159,6 @@ namespace TEN::Entities::Creatures::TR5
 			verticalDifference = item->Pose.Position.y - targetPos.y;
 		}
 	};
-
-	// Helper: Prüft Kollisionen vor dem Helikopter
-	bool CheckForwardCollision(const ItemInfo& item, float& outTargetSpeed)
-	{
-		Vector3 forwardVec(
-			-sinf(item.Pose.Orientation.y),
-			0.0f,
-			-cosf(item.Pose.Orientation.y));
-		forwardVec.Normalize();
-
-		auto& heliFrame = GetFrame(item);
-		float bottomMeshY = item.Pose.Position.y + heliFrame.BoundingBox.Y1;
-		float topMeshY = item.Pose.Position.y + heliFrame.BoundingBox.Y2;
-
-		const float earlyCheckDistance = SECTOR_SIZE * 3;
-		Vector3 earlyCheckPoint = item.Pose.Position.ToVector3() + forwardVec * earlyCheckDistance;
-		auto pointCollEarly = GetPointCollision(Vector3(earlyCheckPoint.x, (bottomMeshY + topMeshY) / 2, earlyCheckPoint.z), item.RoomNumber);
-
-		if (pointCollEarly.GetSector().IsWall(earlyCheckPoint.x, earlyCheckPoint.z))
-		{
-			outTargetSpeed *= 0.5f;
-			return false;
-		}
-
-		int relCeilHeight = abs(pointCollEarly.GetCeilingHeight() - pointCollEarly.GetFloorHeight());
-		if (relCeilHeight <= (int)(topMeshY - bottomMeshY))
-		{
-			outTargetSpeed *= 0.5f;
-			return false;
-		}
-
-		const float safetyDistance = SECTOR_SIZE;
-		Vector3 checkPoint = item.Pose.Position.ToVector3() + forwardVec * safetyDistance;
-
-		short roomNum = pointCollEarly.GetRoomNumber();
-		auto pointCollCenter = GetPointCollision(Vector3(checkPoint.x, (bottomMeshY + topMeshY) / 2, checkPoint.z), roomNum);
-
-		if (pointCollCenter.GetSector().IsWall(checkPoint.x, checkPoint.z))
-			return true;
-
-		relCeilHeight = abs(pointCollCenter.GetCeilingHeight() - pointCollCenter.GetFloorHeight());
-		if (relCeilHeight <= (int)(topMeshY - bottomMeshY))
-			return true;
-
-		const float sideOffset = SECTOR_SIZE / 2;
-		Vector3 leftPoint = checkPoint + Vector3(forwardVec.z, 0.0f, -forwardVec.x) * sideOffset;
-		Vector3 rightPoint = checkPoint + Vector3(-forwardVec.z, 0.0f, forwardVec.x) * sideOffset;
-
-		auto pointCollLeft = GetPointCollision(Vector3(leftPoint.x, (bottomMeshY + topMeshY) / 2, leftPoint.z), roomNum);
-		auto pointCollRight = GetPointCollision(Vector3(rightPoint.x, (bottomMeshY + topMeshY) / 2, rightPoint.z), roomNum);
-
-		if (pointCollLeft.GetSector().IsWall(leftPoint.x, leftPoint.z))
-			return true;
-
-		if (pointCollRight.GetSector().IsWall(rightPoint.x, rightPoint.z))
-			return true;
-
-		return false;
-	}
 
 	// Helper: Setzt Y-Position basierend auf Decke/Boden
 	void FixYPosition(ItemInfo* item, float currentYSpeed = 0.0f)
@@ -381,8 +312,12 @@ namespace TEN::Entities::Creatures::TR5
 		float horizontalDist = targetInfo.horizontalDistance;
 
 		bool blockedEarly = false;
-		if (!hasMoveTargetPos)
-			blockedEarly = CheckEarlyBlocking(*item, horizontalDist);
+		if (!hasMoveTargetPos && horizontalDist > 1.0f)
+		{
+			Vector3 dirToTarget(targetInfo.targetPos.x - item->Pose.Position.x, 0.0f, targetInfo.targetPos.z - item->Pose.Position.z);
+			dirToTarget.Normalize();
+			blockedEarly = CheckFootprintCollision(*item, dirToTarget * SECTOR_SIZE);
+		}
 
 		GunShipState currentState = DetermineGunShipState(*item, horizontalDist, hasMoveTargetPos, blockedEarly);
 
@@ -512,9 +447,24 @@ namespace TEN::Entities::Creatures::TR5
 			break;
 		}
 
+		// Bewegungsrichtung (FOLLOW: zum Ziel, EVADE: vom Ziel weg), normalisiert.
+		Vector3 moveDir(0.0f, 0.0f, 0.0f);
+		if (horizontalDist > 1.0f)
+		{
+			moveDir = Vector3(targetInfo.targetPos.x - item->Pose.Position.x, 0.0f, targetInfo.targetPos.z - item->Pose.Position.z);
+			moveDir = moveDir * (1.0f / horizontalDist);
+			if (currentState == GunShipState::EVADE_NEAR)
+				moveDir = -moveDir;
+		}
+
 		bool blocked = false;
-			if (isMoving)
-			blocked = CheckForwardCollision(*item, currentSpeed);
+		if (isMoving)
+		{
+			blocked = CheckFootprintCollision(*item, moveDir * currentSpeed);
+
+			if (!blocked && CheckFootprintCollision(*item, moveDir * currentSpeed * 2.0f))
+				currentSpeed *= 0.5f;
+		}
 
 		if (blocked)
 		{
@@ -541,8 +491,7 @@ namespace TEN::Entities::Creatures::TR5
 			AnimateItem(item);
 			
 			// Kollisionsprüfung nach Ausweichbewegung um zu prüfen ob freie Sicht vorliegt
-			float dummySpeed = MAX_MOVE_SPEED * 0.25f;
-			blocked = CheckForwardCollision(*item, dummySpeed);
+			blocked = CheckFootprintCollision(*item, moveDir * SECTOR_SIZE);
 			
 			if (!blocked)
 			{

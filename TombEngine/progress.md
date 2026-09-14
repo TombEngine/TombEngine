@@ -1,25 +1,28 @@
 # Progress
 
 ## Current Task
-Gunship (TR5): Feuersperre – Heli soll NUR schießen, wenn Lara in der Schusslinie ist und keine Wand dazwischen (keine Effekte mehr sonst).
+Gunship (TR5): Kollisions-Refactoring – richtungs-unabhängiger Bounding-Box-Fussabdruck-Check. FOLLOW-UP: (a) `BLOCKABLE`-Check entfernt (falsch-positiv bei 1-Square-Schritten), (b) Probe-Distanz auf `currentSpeed` (Tunneling bei EVADE behoben).
 
 ## Completed Work
-- **Analyse Pitch-Konvention:** Engine-Math = `DirectX::SimpleMath::Matrix::CreateFromYawPitchRoll` (via `using namespace DirectX::SimpleMath` in framework.h). Heli-Pose-Yaw = Ziel-Yaw + 180° (fliegt "hinter dem" Ziel her). Heckwaffe schießt entlang Modellachse `-Z` (+ fester 8° im Firing-Code) → **Waffen-Abguerung = Pose-Pitch + 8°**: positives Pitch = Nase oben = Waffe zeigt nach UNTEN; negatives Pitch = Waffe nach oben.
-- **Root Cause verfehlter Schüsse:** Im IDLE überschrieb `UpdateIdleOrientation` (dotForward < 0 wegen Yaw+180) den Pitch konstant mit `-MAX_PITCH` (-20°) → Waffe 12° nach OBEN → alle Schüsse über Laras Kopf. Zusätzlich drückte die `*0.95`-Dämpfung (`!isMoving`) jeden bleibenden IDLE-Pitch gegen 0 (Gleichgewicht ≈ 37% des Ziels).
-- **Fix 1:** Neuer Helper `CalculateIdlePitch`: `atan2(Unterschenkel-Höhe - HeliY, hDist) - 8°`, geclampt auf `[0, MAX_PITCH]`. Zielpunkt = 0.25 Sektor über Ziel-Pivot (`LOWER_LEG_OFFSET`).
-- **Fix 2:** Beide Pitch-Switches in `ControlGunShip` setzen IDLE jetzt auf `CalculateIdlePitch` statt 0.
-- **Fix 3:** `UpdateIdleOrientation` wird nur noch bei `currentState != IDLE` aufgerufen (überschreibt sonst Bewegungs-Pitch ±MAX_PITCH).
-- **Fix 4:** Pitch/Bank-Rückstellung (`*0.95`) bei `!isMoving` wird bei IDLE übersprungen → IDLE hält den Zielpitch (Y-Speed-Dämpfung bleibt in allen States aktiv).
-- **Root Cause Durchschuss durch Wände:** `ObjectOnLOS2` iteriert das GLOBALE `LosRoomNumbers`, das erst durch `LOS()` gefüllt wird (Prüft nur Items/Statics; Wände prüft nur `LOS()` → `GetRoomLosCollision`). Der Firing-Code rief `ObjectOnLOS2` VOR `LOS()` auf → stale Room-Liste → Lara hinter Wand wurde "gefunden" → Schaden.
-- **LOS-Fix:** Erst `LOS()` (klammt an Wand + füllt `LosRoomNumbers`), dann `ObjectOnLOS2` mit geclamptem Target → Treffer nur im wandbegrenzten Segment.
-- **Feuersperre (neuester Stand):** Firing-Block startet jetzt mit Gate: `gateMuzzle` (Joint 8) → `gateRot` (Pose-Pitch + 8°) → `gateAimed` (8 Sektor entlang -Z) → `LOS()` + `ObjectOnLOS2(..., ID_LARA, ...)` → `canFire = (gateResult != NO_LOS_ITEM)`. DARUNTER: (a) Sound + Flash-MeshBit, (b) Light + Hülse + Rauch stehen beide in `if (canFire)`; (c) Treffer-Logik (Static-Zerbrechen / Lara-Schaden / Funken) nur in `if (hasHit)`. Alter Wand-Decal-Zweig (`!hasHit && !result`) ist ENTFERN → Wand ohne Ziel = kompletter Stillstand (kein Sound, kein Decal). Nebeneffekt-fix: Flash-MeshBit wird nicht mehr gesetzt, wenn nicht geschossen wird.
-- **Aufräumen:** Sonderzeichen-Kommentare bereinigt (U+2011, U+2019); `aimSpread`-Kommentar mit `≈`/U+202F + falscher "512 world units"-Anmerkung bleibt (Match-Probleme mit Editor-Tool, harmlos).
+- **Root Cause:** Kollisions-Proben (`CheckEarlyBlocking`, `CheckForwardCollision`) liefen entlang der MODELL-Vorwärtsrichtung (`forwardVec` aus `Pose.Orientation.y`) statt der tatsächlichen Bewegungsrichtung (`dirToTarget`). Bei FOLLOW/EVADE-Bewegung zum/vom Ziel blieben Wände/Boxen in der Bewegungsrichtung unentdeckt.
+- **Neuer Helper `CheckFootprintCollision(item, displacement)`:** Wandert die um `displacement` verschobene Bodenebene des Helikopters (4 Yaw-rotierte Bounding-Box-Ecken) gegen:
+  - `pointColl.IsWall()` (Wand-Sektor),
+  - Clearance: `abs(Ceiling - Floor) <= bandHeight` (erhohte Squares / abgesenkte Decken).
+- **FOLLOW-UP Bugfix 1 (falsch-positiv bei niedrigen Schritten):** `BLOCKABLE`-Pathfinding-Box-Prüfung ENTFERNT. BLOCKABLE ist ein Begehbarkeits-Konzept (Walkability) für Laufkreaturen – falsch für einen FLIEGENDEN Heli. Niedrige Schritte (1 Square) sind oft als BLOCKABLE markiert → Heli stoppte fälschlich, obwohl er locker drüberfliegen könnte. Jetzt fliegt der Heli über niedrige Geometrie.
+- **Rotation:** Ecken manuell um Yaw rotiert (`worldX = lx·cosθ + lz·sinθ`, `worldZ = -lx·sinθ + lz·cosθ`) – abgeleitet vom Ground-Truth-Forward-Vektor `(-sinθ, 0, -cosθ)` (lokal −Z = Forward). `GameBoundingBox::operator+` rotiert NICHT.
+- **Build-Fix (C4838):** `heliFrame.BoundingBox.X1/X2/Z1/Z2` sind `const int` → Eck-Arrays als `int` deklariert (nicht `float`), um Narrowing in Brace-Initialisierung zu vermeiden. Float-Mathematik läuft im Loop über `yawCos`/`yawSin`.
+- **Aufrufstellen refactored:**
+  - `blocked` → `moveDir` (FOLLOW = zum Ziel, EVADE = weg, normalisiert); hart `×currentSpeed` → `blocked`, weich `×2·currentSpeed` → `currentSpeed *= 0.5f`.
+  - Recheck nach Back-off → `CheckFootprintCollision(*item, moveDir * SECTOR_SIZE)` (fix, da nach Block `currentSpeed = 0`).
+- **FOLLOW-UP Bugfix 2 (Tunneling durch Wände, v. a. EVADE):** Probe-Distanz von fixem `SECTOR_SIZE` auf `currentSpeed` gesetzt. `EVADE_NEAR` = `MAX_MOVE_SPEED * 2.5f` → Heli bewegt sich >1 Sektor/Frame → tunnelt durch den 1-Sektor-Probe. Jetzt Probe ≥ Bewegungs-Distanz → kein Tunneling.
+- **Aufräumen:** `CheckEarlyBlocking`, `CheckForwardCollision`, `dummySpeed` entfernt.
+- **Skalar-Division vermieden:** `moveDir * (1.0f / horizontalDist)` statt `Vector3 / float` (Skalar-Division im Codebase nicht belegt → sicherer).
 
 ## Modified Files
 - `Objects/TR5/Entity/tr5_gunship.cpp`
 
 ## Next Step
-- In Szene testen: (a) Lara außerhalb der Schusslinie (seitlich/abgewandt) → KEIN Schuss (kein Sound/Blitz/Hülse); (b) Wand dazwischen → KEIN Schuss, kein Decal; (c) freier Blick → normales Feuer + Treffer an den Unterschenkeln; (d) Static in der Schusslinie → feuert, Static wird getroffen.
+- In Szene testen: (a) Heli fliegt auf Ziel zu → fliegt über 1-Square-Schritte (kein falsch-positiver Stopp), stoppt VOR Wänden/hoher Geometrie; (b) EVADE (Rückwärts) → erkennt Wände in Rückwärtsrichtung, kein Tunneling; (c) Hohe Geometrie (erhohte Squares) → Heli stoppt (Clearance-Check).
 
 ## Blockers
 - Keine.
