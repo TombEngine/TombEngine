@@ -22,6 +22,7 @@
 - Level-Dateien werden in einem eigenen Format verwaltet.
 - Physik-System mit kollisionserkennung und character controller.
 - Scripting über Lua mit sol2 — viele Skripte in `/Scripts/`.
+- **LOS-Kette (Game/control/los.cpp):** `LOS()` = Geometrie (Wände/Collision-Mesh geschlossener Sektoren, Doors, Brücken, Portale via `GetRoomLosCollision`), klappt `target` auf den Wand-Treffer ab und füllt das GLOBALE `LosRoomNumbers`. `ObjectOnLOS2` = Items/Statics NUR – iteriert genau dieses `LosRoomNumbers`. **Regel:** `LOS()` muss IMMER vor `ObjectOnLOS2` laufen (Reihenfolge = `GetTargetOnLOS`); sonst wird eine stale Room-Liste des letzten Aufrufs genutzt → Durchschläge durch Wände möglich.
 
 ### Coordinate System
 - Y positiv ist downwards (im TEN-Koordinatensystem).

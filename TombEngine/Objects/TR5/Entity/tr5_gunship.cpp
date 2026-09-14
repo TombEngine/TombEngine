@@ -743,17 +743,18 @@ namespace TEN::Entities::Creatures::TR5
 
 				auto targetVec = GameVector(aimedPos, g_Level.Items[shootTargetNum].RoomNumber);
 
-				// Use ObjectOnLOS2 to detect any blocking object.
-				StaticMesh* mesh = nullptr;
-				Vector3i hitPos = Vector3i::Zero;
-				int losResult = ObjectOnLOS2(&origin, &targetVec, &hitPos, &mesh, ID_LARA, item->Index);
-
-				bool hasHit = (losResult != NO_LOS_ITEM);
-
+				// Geometrie-Check zuerst: LOS klappt den Strahl an der Wand ab und fuellt LosRoomNumbers (wird von ObjectOnLOS2 genutzt).
 				auto target2 = targetVec;
 				int result = LOS(&origin, &target2);
 
 				GetFloor(target2.x, target2.y, target2.z, &target2.RoomNumber);
+
+				// Objekt-Treffer (Lara/Statics) nur innerhalb des wandbegrenzten Segments -> kein Durchschuss durch Waende.
+				StaticMesh* mesh = nullptr;
+				Vector3i hitPos = Vector3i::Zero;
+				int losResult = ObjectOnLOS2(&origin, &target2, &hitPos, &mesh, ID_LARA, item->Index);
+
+				bool hasHit = (losResult != NO_LOS_ITEM);
 
 				DrawDebugLine(origin.ToVector3(), targetVec.ToVector3(), Vector4::One, RendererDebugPage::None);
 
