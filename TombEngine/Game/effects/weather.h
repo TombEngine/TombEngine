@@ -57,6 +57,7 @@ namespace TEN::Effects::Environment
 		float			Strength			= 1.0f;
 		float			Life				= 1.0f;
 		Vector3			RandomRange			= Vector3(BLOCK(8), BLOCK(1), BLOCK(8));
+		Quaternion		RandomRotation		= Quaternion::Identity;
 		bool			Clustering			= false;
 	};
 

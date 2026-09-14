@@ -362,7 +362,8 @@ namespace TEN::Effects::Environment
 					break;
 				newParticlesCount++;
 
-				auto randPos = Random::GeneratePointInBox(position.ToVector3(), parameters.RandomRange);
+				auto randBox = BoundingOrientedBox(position.ToVector3(), parameters.RandomRange, parameters.RandomRotation);
+				auto randPos = Random::GeneratePointInBox(randBox);
 				int outsideRoom = IsRoomOutside(randPos.x, randPos.y, randPos.z);
 				if (outsideRoom == NO_VALUE)
 				{

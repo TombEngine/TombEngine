@@ -714,7 +714,6 @@ namespace TEN::Scripting::Effects
 	//     position = Vec3(0, 0, 0),
 	//     initialVelocity = Vec3(0, 15, 0),
 	//     type = TEN.Flow.WeatherType.SNOW,
-	//     randomRange = Vec3(4096, 1024, 4096),
 	//     enableClustering = true,
 	//     checkWindFlag = false,
 	//     baseColor = TEN.Color(255, 100, 255),
@@ -740,6 +739,7 @@ namespace TEN::Scripting::Effects
 	// local weatherParams = {
 	//     position = vol:GetPosition(),
 	//     randomRange = vol:GetScale(),
+	//     randomRotation = vol:GetRot(),
 	//     type = TEN.Flow.WeatherType.SNOW,
 	// }
 	// TEN.Effects.EmitWeather(weatherParams)
@@ -749,7 +749,8 @@ namespace TEN::Scripting::Effects
 	// @tfield Vec3 position World position.
 	// @tfield Vec3 initialVelocity Initial velocity of the particles. initialVelocity should be positive and have a low value, otherwise the particle could be too fast.
 	// @tfield[opt=TEN.Flow.WeatherType.RAIN] Flow.WeatherType type Type of weather effect.
-	// @tfield[opt=Vec3(8192&#44; 1024&#44; 8192)] Vec3 randomRange Range from position along each axis (X, Y, Z) in which particles are spawned. Can be set to a volume's scale. (1 block = 1024 world units)
+	// @tfield[opt=Vec3(8192&#44; 1024&#44; 8192)] Vec3 randomRange Range from position along each axis (X, Y, Z) in which particles are spawned. (1 block = 1024 world units)
+	// @tfield[opt=Rotation(0&#44; 0&#44; 0)] Rotation randomRotation Rotation of the random range cuboid around position. Should only be set from a volume's rotation.
 	// @tfield[opt=1] float life Lifetime in seconds. Avoid very high values to avoid performance issues.
 	// @tfield[opt=1] float strength Strength of the effect. Clamped to [0.1, 2]
 	// @tfield[opt=false] bool enableClustering Whether to enable clustering of particles.
@@ -770,6 +771,7 @@ namespace TEN::Scripting::Effects
 		params.Life = table.get_or("life", 1.0f);
 		params.Strength = std::clamp((float)table.get_or("strength", 1.0f), 0.1f, 2.0f);
 		params.RandomRange = table.get_or("randomRange", Vec3(BLOCK(8), BLOCK(1), BLOCK(8)));
+		params.RandomRotation = table.get_or("randomRotation", Rotation(0, 0, 0)).ToEulerAngles().ToQuaternion();
 		params.Clustering = table.get_or("enableClustering", false);
 		params.Flags = table.get_or("checkWindFlag", true) ? WeatherFlags::None : WeatherFlags::IgnoreWindRoom;
 		params.BaseColor = table.get_or("baseColor", params.Type == WeatherType::Rain ? ScriptColor(204, 255, 255, 255) : ScriptColor(255, 255, 255, 255)); // Rain default color is light blueish.
