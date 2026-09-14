@@ -323,6 +323,30 @@ namespace TEN::Entities::Creatures::TR5
 			bankTarget = DEG_TO_RAD(MAX_BANK_DEG) * crossY;
 	}
 
+	// Helper: IDLE-Pitch, mit dem die Heckwaffe auf Unterschenkel-Hohe des Ziels zielt.
+	// Positives Pitch = Nase nach oben = Heckwaffe (Modellachse -Z) zeigt nach unten (abgueringelt: Pitch + 8 Grad).
+	float CalculateIdlePitch(const ItemInfo& item, const Vector3& targetPos)
+	{
+		float dx = targetPos.x - item.Pose.Position.x;
+		float dz = targetPos.z - item.Pose.Position.z;
+		float hDist = sqrtf(dx * dx + dz * dz);
+		if (hDist < 1.0f)
+			hDist = 1.0f;
+
+		// Unterschenkel liegen leicht ueber dem Pivot des Ziels (Y positiv = nach unten).
+		constexpr float LOWER_LEG_OFFSET = SECTOR_SIZE * 0.25f;
+		float dy = (targetPos.y - LOWER_LEG_OFFSET) - item.Pose.Position.y;
+
+		float pitch = atan2f(dy, hDist) - (float)DEG_TO_RAD(8.0f);
+
+		const float maxPitch = (float)DEG_TO_RAD(MAX_PITCH_DEG);
+		if (pitch > maxPitch)
+			pitch = maxPitch;
+		if (pitch < 0.0f)
+			pitch = 0.0f;
+		return pitch;
+	}
+
 	void ControlGunShip(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
@@ -476,6 +500,12 @@ namespace TEN::Entities::Creatures::TR5
 			CalculatePitchAndBank(*item, currentState, targetInfo.targetPos, 0.0f, pitchTarget, bankTarget);
 			break;
 
+			case GunShipState::IDLE:
+			// Heli neigt sich so, dass die Heckwaffe auf die Unterschenkel des Ziels zeigt.
+			pitchTarget = CalculateIdlePitch(*item, targetInfo.targetPos);
+			bankTarget = 0.0f;
+			break;
+
 			default:
 			pitchTarget = 0.0f;
 			bankTarget = 0.0f;
@@ -541,6 +571,11 @@ namespace TEN::Entities::Creatures::TR5
 				pitchTarget = -(float)DEG_TO_RAD(MAX_PITCH_DEG);
 				CalculatePitchAndBank(*item, currentState, targetInfo.targetPos, 0.0f, pitchTarget, bankTarget);
 				break;
+			case GunShipState::IDLE:
+				// Heli neigt sich so, dass die Heckwaffe auf die Unterschenkel des Ziels zeigt.
+				pitchTarget = CalculateIdlePitch(*item, targetInfo.targetPos);
+				bankTarget = 0.0f;
+				break;
 			default:
 				pitchTarget = 0.0f;
 				bankTarget = 0.0f;
@@ -595,9 +630,8 @@ namespace TEN::Entities::Creatures::TR5
 
 			FixYPosition(item);
 
-			UpdateIdleOrientation(item, targetInfo.targetPos, currentYSpeed, pitchTarget, bankTarget);
-
-			if (!isMoving && currentState == GunShipState::IDLE && currentYSpeed != 0.0f)
+			// Nur fuer FOLLOW/EVADE: setzt Bewegungs-Pitch (+/- MAX_PITCH) und wuerde den IDLE-Zielpitch ueberschreiben.
+			if (currentState != GunShipState::IDLE)
 				UpdateIdleOrientation(item, targetInfo.targetPos, currentYSpeed, pitchTarget, bankTarget);
 
 			const float pitchLerpAlpha = 1.0f / powf(2.0f, PITCH_LERP_SPEED);
@@ -614,10 +648,14 @@ namespace TEN::Entities::Creatures::TR5
 
 			if (!isMoving)
 			{
-				currentPitch *= 0.95f;
-				currentBankAngle *= 0.95f;
-				item->ItemFlags[1] = (int)(currentPitch * FLOATING_POINT_SCALE);
-				item->ItemFlags[2] = (int)(currentBankAngle * FLOATING_POINT_SCALE);
+				// Pitch/Bank-Rueckstellung auf waagerecht nur außerhalb von IDLE: IDLE haelt den Zielpitch auf die Unterschenkel.
+				if (currentState != GunShipState::IDLE)
+				{
+					currentPitch *= 0.95f;
+					currentBankAngle *= 0.95f;
+					item->ItemFlags[1] = (int)(currentPitch * FLOATING_POINT_SCALE);
+					item->ItemFlags[2] = (int)(currentBankAngle * FLOATING_POINT_SCALE);
+				}
 
 				if (fabsf(currentYSpeed) > 0.1f)
 					currentYSpeed += (-currentYSpeed) * 0.1f; // Ziel ist 0
