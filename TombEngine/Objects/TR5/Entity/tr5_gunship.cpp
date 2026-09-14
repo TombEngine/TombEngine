@@ -81,9 +81,12 @@ namespace TEN::Entities::Creatures::TR5
 
 		if (horizontalDistance < minDistance)
 			return GunShipState::EVADE_NEAR;
-		else if (horizontalDistance < maxShotsRange && item.ItemFlags[7] == 0)
+
+		// Innerhalb der Schussreichweite: immer stabil schweben, unabhaengig von Evade-Flag oder Blockade.
+		if (horizontalDistance < maxShotsRange)
 			return GunShipState::IDLE;
-		else if (!blockedEarly)
+
+		if (!blockedEarly)
 			return GunShipState::FOLLOW;
 
 		// Wenn geblockt -> IDLE statt FOLLOW
@@ -372,14 +375,9 @@ namespace TEN::Entities::Creatures::TR5
 		if (currentState == GunShipState::EVADE_NEAR && item->ItemFlags[7] == 0 && horizontalDist < SECTOR_SIZE * 3 && yDiff >= -SECTOR_SIZE * 6)
 			item->ItemFlags[7] = 1;
 
-		if (item->ItemFlags[7] == 1 && horizontalDist > maxShotsRange * 1.5f && currentState != GunShipState::EVADE_NEAR)
-		{
-			item->ItemFlags[7] = 2;
-			inertiaTimer = 0;
-			item->ItemFlags[5] = 0;
-		}
-
-		if (item->ItemFlags[7] == 2 && fabsf(yDiff) < SECTOR_SIZE * 0.5f)
+		// Evade abgeschlossen (Heli wieder ausserhalb der Schussreichweite) -> Evade-Flag zuruecksetzen.
+		// Sonst schaltet der Heli in Reichweite nie sauber in IDLE (FOLLOW/EVADE-Loop).
+		if (item->ItemFlags[7] == 1 && horizontalDist > maxShotsRange && currentState != GunShipState::EVADE_NEAR)
 		{
 			item->ItemFlags[7] = 0;
 			inertiaTimer = 0;

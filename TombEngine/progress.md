@@ -1,20 +1,21 @@
 # Progress
 
 ## Current Task
-Gunship (TR5): Heli steigt nicht über die Spielfigur, wenn sie auf eine höhere Plattform klettert (Follow & Idle). Root Cause: FOLLOW-State verfehlte Y-Verfolgung + Decken-Clamp zu restriktiv.
+Gunship (TR5): Heli wechselt in Schussreichweite bei stationärer Spielfigur zwischen FOLLOW und IDLE (vorwärts fliegen ~1 s, Stopp, wieder vorwärts) statt stabil im IDLE zu bleiben.
 
 ## Completed Work
-- **Root Cause (neues Problem):** Im `FOLLOW`-State wurde `currentYSpeed` nicht aktualisiert (nur `targetSpeed`). Der Heli behielt seine alte Y-Geschwindigkeit und stieg nicht nach, wenn Lara hinaufkletterte → blieb tief (unterhalb der Spielfigur). `IDLE`/`EVADE` hatten die Y-Verfolgung bereits korrekt.
-- **Fix FOLLOW-Y:** `FOLLOW`-Zweig aktualisiert jetzt `currentYSpeed` identisch wie `IDLE`: konvergiert auf `targetPosIdle.y - HOVER_HEIGHT_OFFSET` (1.5 Sektoren über dem Ziel). Damit folgt der Heli in **allen** drei States der Höhe des Ziels und überragt es.
-- **Decken-Clamp (FixYPosition):** `minCeilingClearance` von `SECTOR_SIZE/8` (128) auf `SECTOR_SIZE/16` (64) reduziert → die Oberkante des Helis darf näher an die Decke, die Mitte sinkt dadurch nicht unter das Ziel. (Decken-Check selbst war logisch korrekt, aber bei hohen Modellen zu konservativ.)
-- **Erledigt (vorher):** EVADE-Rise Skalen-Bug, `HOVER_HEIGHT_OFFSET` (IDLE), C2360-Fix.
+- **Root Cause 1:** `DetermineGunShipState` erlaubte IDLE in Reichweite nur bei `ItemFlags[7] == 0`. War das Evade-Flag einmal gesetzt, wurde der Heli in Reichweite zu FOLLOW → EVADE an der minDistance-Grenze → FOLLOW → … (Endlos-Loop).
+- **Root Cause 2:** Evade-Flag-Maschine war defekt: Übergang `2 → 0` verlangte `|yDiff| < 0.5 * SECTOR_SIZE`, aber die Y-Verfolgung hält den Heli auf `ZielY - 1.5 * SECTOR_SIZE` (Hover-Offset) → Bedingung nie erfüllbar → Flag lief nie zurück.
+- **Rhythmik-Ursache:** Jeder State-Wechsel resetet `inertiaTimer` (25 Frames ≈ 0.4–1 s) + `currentSpeed = targetSpeed * pitchRatio` (Pitch lerpt langsam) → sichtbare ~1-s-Vorwärtsimpulse.
+- **Fix 1:** `DetermineGunShipState`: `horizontalDistance < maxShotsRange` → immer `IDLE` (unabhängig von Evade-Flag/Blockade) → stabiles Schweben in Reichweite.
+- **Fix 2:** Evade-Flag wird direkt auf 0 zurückgesetzt, sobald `horizontalDist > maxShotsRange && state != EVADE_NEAR` (Wert `2` wird nicht mehr verwendet) → sauberes Re-Engagement nach Evade.
 
 ## Modified Files
 - `Objects/TR5/Entity/tr5_gunship.cpp`
 
 ## Next Step
-- In Szene testen: Lara klettert auf 12-Klick-Plattform (Decke 39 Klicks) → Heli sollte in Follow UND Idle flüssig aufsteigen und Lara deutlich überragen.
-- Ggf. `HOVER_HEIGHT_OFFSET` (1.5 Sektoren) tunen, falls die Höhe in bestimmter Geometrie unpassend ist.
+- In Szene testen: Heli auf Schussreichweite anfliegen, Lara stehen lassen → Heli soll sauber in IDLE schweben (kein Vorwärts/Stopp-Puls).
+- Evade testen: Lara nähert sich unter minDistance → eine Evade, danach Heli stabil in Reichweite.
 
 ## Blockers
 - Keine.
