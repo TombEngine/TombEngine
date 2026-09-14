@@ -31,9 +31,10 @@
 ### TR5 Gunship (`Objects/TR5/Entity/tr5_gunship.cpp`)
 - State-Machine: `FOLLOW` / `IDLE` / `EVADE_NEAR` (enum `GunShipState`), Persistenz über `ItemFlags`.
 - Vertikale Bewegung über persistenten `currentYSpeed` (`ItemFlags[6]`): geschrieben mit `* FLOATING_POINT_SCALE`, gelesen mit `/ FLOATING_POINT_SCALE`. Die Skala muss beidseitig stimmen, sonst bricht die Lerp-Akkumulation zusammen (früherer Bug: im EVADE-Zweig ohne `*1000` → Heli stieg nicht auf).
-- `IDLE`: Heli schwebt ~`HOVER_HEIGHT_OFFSET` (1.5 Sektoren) über dem Ziel, damit er beim Schießen nach unten zielen kann (statt auf Zielhöhe).
-- `EVADE_NEAR`: Heli pitcht nose-up und fliegt vom Ziel weg; Zielhöhe `EVADE_RAISE_HEIGHT` (1.5 Sektoren) über Ziel. Trigger: `horizontalDist < minDistance` UND `yDiff >= -6 Sektoren` (Ziel nicht >6 Sektoren über Heli).
-- `FixYPosition` clampt Boden-/Deckenabstand; Decke begrenzt den Aufstieg.
+- **Y-Zielhöhe in ALLEN drei States:** `FOLLOW`, `IDLE` und `EVADE_NEAR` konvergieren alle auf `targetPos.y - OFFSET` (je `HOVER_HEIGHT_OFFSET` bzw. `EVADE_RAISE_HEIGHT`, beide 1.5 Sektoren). Der Heli überragt das Ziel dadurch immer, damit er nach unten zielen kann. WICHTIG: `FOLLOW` hatte ursprünglich KEINE Y-Verfolgung (nur `targetSpeed`) → Heli blieb auf alter Höhe, wenn Lara hinaufkletterte. Jetzt in allen drei Cases identisch.
+- Logik-Prinzip Y-Verfolgung: `if (fabsf(posY - targetY) > minYDiff) ySpeed = (targetY > posY) ? FLY_DOWN_SPEED : -FLY_UP_SPEED;` (Y-down: größeres Y = tiefer; Ziel tiefer → runter, Ziel höher → rauf).
+- `FixYPosition` clampt Boden-/Deckenabstand (Boden: `SECTOR_SIZE/4`, Decke: `SECTOR_SIZE/16`). Die Decke begrenzt den Aufstieg bei hohen Modellen – bei zu tiefer Mitte (unter dem Ziel) `minCeilingClearance` ggf. weiter senken.
+- Weltereinheiten: `BLOCK(x)=1024*x`, `CLICK(x)=256*x` (1 Block = 4 Klicks), `SECTOR_SIZE=1024` lokal definiert.
 
 ## Known Issues & TODOs
 *(zu vervollständigen)*

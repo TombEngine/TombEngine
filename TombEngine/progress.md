@@ -1,19 +1,20 @@
 # Progress
 
 ## Current Task
-Gunship (TR5): (1) Heli steigt beim Evaden nicht auf – Root Cause gefunden & behoben. (2) Heli soll immer etwas über dem Ziel fliegen, damit er beim Schießen nach unten zielen kann.
+Gunship (TR5): Heli steigt nicht über die Spielfigur, wenn sie auf eine höhere Plattform klettert (Follow & Idle). Root Cause: FOLLOW-State verfehlte Y-Verfolgung + Decken-Clamp zu restriktiv.
 
 ## Completed Work
-- **Root Cause EVADE-Rise:** `ItemFlags[6]` (persistente Y-Geschwindigkeit) wurde im EVADE-Zweig (`ItemFlags[7]==1`) **ohne** `* FLOATING_POINT_SCALE` geschrieben, aber in Zeile ~391 mit `/ FLOATING_POINT_SCALE` gelesen → Lerp startete jeden Frame fast bei 0 → Aufstieg ~2.5 Einheiten/Frame (unsichtbar). Behoben: `ItemFlags[6]` wird nun immer mit `* FLOATING_POINT_SCALE` geschrieben (Skalen-Bug entfernt).
-- **Hover über Ziel:** Neue Konstante `HOVER_HEIGHT_OFFSET` (1.5 Sektoren). `IDLE`-Zweig peilt jetzt `targetPosIdle.y - HOVER_HEIGHT_OFFSET` an → Heli schwebt immer ~1.5 Sektoren über dem Ziel (mindestens ~0.5 Sektor, wegen `minYDiff`-Deadband).
-- **C2360-Fix:** `idleTargetY` vor dem `switch` deklariert (Initialisierung in `case` würde an der folgenden `case`-Bezeichnung vorbeigehen); im IDLE-Fall nur noch zugewiesen.
+- **Root Cause (neues Problem):** Im `FOLLOW`-State wurde `currentYSpeed` nicht aktualisiert (nur `targetSpeed`). Der Heli behielt seine alte Y-Geschwindigkeit und stieg nicht nach, wenn Lara hinaufkletterte → blieb tief (unterhalb der Spielfigur). `IDLE`/`EVADE` hatten die Y-Verfolgung bereits korrekt.
+- **Fix FOLLOW-Y:** `FOLLOW`-Zweig aktualisiert jetzt `currentYSpeed` identisch wie `IDLE`: konvergiert auf `targetPosIdle.y - HOVER_HEIGHT_OFFSET` (1.5 Sektoren über dem Ziel). Damit folgt der Heli in **allen** drei States der Höhe des Ziels und überragt es.
+- **Decken-Clamp (FixYPosition):** `minCeilingClearance` von `SECTOR_SIZE/8` (128) auf `SECTOR_SIZE/16` (64) reduziert → die Oberkante des Helis darf näher an die Decke, die Mitte sinkt dadurch nicht unter das Ziel. (Decken-Check selbst war logisch korrekt, aber bei hohen Modellen zu konservativ.)
+- **Erledigt (vorher):** EVADE-Rise Skalen-Bug, `HOVER_HEIGHT_OFFSET` (IDLE), C2360-Fix.
 
 ## Modified Files
 - `Objects/TR5/Entity/tr5_gunship.cpp`
 
 ## Next Step
-- In Szene testen: (a) Heli steigt beim Evaden jetzt sichtbar/fließend auf, (b) Heli schwebt über Lara auch wenn sie hinaufklettert und trifft beim Schießen.
-- Ggf. `HOVER_HEIGHT_OFFSET` (1.5 Sektoren) bei Bedarf tunen.
+- In Szene testen: Lara klettert auf 12-Klick-Plattform (Decke 39 Klicks) → Heli sollte in Follow UND Idle flüssig aufsteigen und Lara deutlich überragen.
+- Ggf. `HOVER_HEIGHT_OFFSET` (1.5 Sektoren) tunen, falls die Höhe in bestimmter Geometrie unpassend ist.
 
 ## Blockers
 - Keine.

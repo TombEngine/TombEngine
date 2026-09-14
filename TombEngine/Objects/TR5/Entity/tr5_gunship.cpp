@@ -251,7 +251,7 @@ namespace TEN::Entities::Creatures::TR5
 			// Mindestabstand zur Decke garantieren
 			if (ceilingHeight != NO_VALUE)
 			{
-				const int minCeilingClearance = SECTOR_SIZE / 8; // 128 units = 0.125 BLOCK
+				const int minCeilingClearance = SECTOR_SIZE / 16; // 64 units = 0.0625 BLOCK, Heli soll so nah wie möglich an die Decke dürfen
 				if (topMeshY < ceilingHeight + minCeilingClearance)
 					item->Pose.Position.y = ceilingHeight + minCeilingClearance - frameData.BoundingBox.Y2;
 			}
@@ -403,6 +403,13 @@ namespace TEN::Entities::Creatures::TR5
 		{
 			case GunShipState::FOLLOW:
 			targetSpeed = hasMoveTargetPos ? MAX_MOVE_SPEED : (horizontalDist > maxShotsRange) ? MAX_MOVE_SPEED : MAX_MOVE_SPEED * 0.25f;
+			
+			// FOLLOW: Heli folgt der Höhe des Ziels, um es zu überragen (wie in IDLE/EVADE).
+			idleTargetY = targetPosIdle.y - HOVER_HEIGHT_OFFSET;
+			if (fabsf(item->Pose.Position.y - idleTargetY) > minYDiff)
+				ySpeedTargetIdle = (idleTargetY > item->Pose.Position.y) ? FLY_DOWN_SPEED : -FLY_UP_SPEED;
+			currentYSpeed += (ySpeedTargetIdle - currentYSpeed) * yLerpAlpha;
+			
 			break;
 
 			case GunShipState::IDLE:
