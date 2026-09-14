@@ -703,31 +703,49 @@ namespace TEN::Entities::Creatures::TR5
 
 			if (hasShootTargetInRange)
 			{
-				// Sound for gunfire.
-				if (!(GlobalCounter & (FIRE_RATE - 1)) && item->ItemFlags[0] > FIRE_RATE)
-					SoundEffect(SFX_TR4_HK_FIRE, &item->Pose, SoundEnvironment::Land, 0.8f);
+				// Feuersperre: nur abfeuern, wenn ein Ziel (Lara/Static) in der Schusslinie ist und keine Wand dazwischen.
+				auto gateMuzzle = GetJointPosition(item, 8, Vector3i::Zero);
+				auto gateOrigin = GameVector(gateMuzzle.ToVector3(), item->RoomNumber);
+				auto gateRot = EulerAngles(item->Pose.Orientation.x + ANGLE(8.0f), item->Pose.Orientation.y, item->Pose.Orientation.z).ToRotationMatrix();
+				Vector3 gateAimed = gateMuzzle.ToVector3() + Vector3::Transform(Vector3(0.0f, 0.0f, -maxShotsRange * 2), gateRot);
+				auto gateTarget = GameVector(gateAimed, g_Level.Items[shootTargetNum].RoomNumber);
+				auto gateClamped = gateTarget;
+				LOS(&gateOrigin, &gateClamped);
 
-				// Gun flash visual and light (always shown when firing).
-				if (item->ItemFlags[0] > FIRE_RATE)
-					item->MeshBits |= 0x100;
-				else
-					item->MeshBits &= 0xFEFF;
+				StaticMesh* gateMesh = nullptr;
+				Vector3i gateHitPos = Vector3i::Zero;
+				int gateResult = ObjectOnLOS2(&gateOrigin, &gateClamped, &gateHitPos, &gateMesh, ID_LARA, item->Index);
+				const bool canFire = (gateResult != NO_LOS_ITEM);
 
-				// Use mesh‑8 (gun neck) joint as muzzle point.
+				// Sound for gunfire + gun flash visual (nur beim Abfeuern).
+				if (canFire)
+				{
+					if (!(GlobalCounter & (FIRE_RATE - 1)) && item->ItemFlags[0] > FIRE_RATE)
+						SoundEffect(SFX_TR4_HK_FIRE, &item->Pose, SoundEnvironment::Land, 0.8f);
+
+					if (item->ItemFlags[0] > FIRE_RATE)
+						item->MeshBits |= 0x100;
+					else
+						item->MeshBits &= 0xFEFF;
+				}
+
+				// Use mesh 8 (gun neck) joint as muzzle point.
 				auto muzzleJoint = GetJointPosition(item, 8, Vector3i::Zero);
 				auto flashPos = muzzleJoint.ToVector3();
 
-				auto lightColor = Vector3(Random::GenerateFloat(0.75f, 0.85f), Random::GenerateFloat(0.5f, 0.6f), 0.0f) * 255;
-				SpawnDynamicLight(flashPos.x, flashPos.y, flashPos.z, 10, lightColor.x, lightColor.y, lightColor.z);
+				if (canFire)
+				{
+					auto lightColor = Vector3(Random::GenerateFloat(0.75f, 0.85f), Random::GenerateFloat(0.5f, 0.6f), 0.0f) * 255;
+					SpawnDynamicLight(flashPos.x, flashPos.y, flashPos.z, 10, lightColor.x, lightColor.y, lightColor.z);
 
-
-				auto weaponType = LaraWeaponType::HK;
-				// Spawn gun shell effect at the muzzle using generic function.
-				TriggerGunShellAt(Vector3i(flashPos.x, flashPos.y, flashPos.z), item->RoomNumber, ID_GUNSHELL, weaponType);
-				TriggerGunSmoke(flashPos.x, flashPos.y, flashPos.z, 0, 0, 0, 0, weaponType, 16);
+					auto weaponType = LaraWeaponType::HK;
+					// Spawn gun shell effect at the muzzle using generic function.
+					TriggerGunShellAt(Vector3i(flashPos.x, flashPos.y, flashPos.z), item->RoomNumber, ID_GUNSHELL, weaponType);
+					TriggerGunSmoke(flashPos.x, flashPos.y, flashPos.z, 0, 0, 0, 0, weaponType, 16);
+				}
 
 				// Determine line of sight from the muzzle.
-				// Apply a small forward offset so that the gunship’s own hitbox does not block LOS.
+				// Apply a small forward offset so that the gunships own hitbox does not block LOS.
 				const float aimSpread = BLOCK(0.2f); // 512 world units ≈ 0.5 BLOCK
 
 				auto rotMatrix = EulerAngles(item->Pose.Orientation.x + ANGLE(8.0f), item->Pose.Orientation.y, item->Pose.Orientation.z).ToRotationMatrix();
@@ -745,7 +763,7 @@ namespace TEN::Entities::Creatures::TR5
 
 				// Geometrie-Check zuerst: LOS klappt den Strahl an der Wand ab und fuellt LosRoomNumbers (wird von ObjectOnLOS2 genutzt).
 				auto target2 = targetVec;
-				int result = LOS(&origin, &target2);
+				LOS(&origin, &target2);
 
 				GetFloor(target2.x, target2.y, target2.z, &target2.RoomNumber);
 
@@ -758,20 +776,8 @@ namespace TEN::Entities::Creatures::TR5
 
 				DrawDebugLine(origin.ToVector3(), targetVec.ToVector3(), Vector4::One, RendererDebugPage::None);
 
-				if (!hasHit)
-				{
-					if (!result)
-					{
-						SpawnDecal(target2.ToVector3(), target2.RoomNumber, DecalType::BulletHole);
-
-						target2.x -= (target2.x - origin.x) >> 5;
-						target2.y -= (target2.y - origin.y) >> 5;
-						target2.z -= (target2.z - origin.z) >> 5;
-						TriggerRicochetSpark(target2, LaraItem->Pose.Orientation.y);
-					}
-
-				}
-				else
+				// Nur bei Treffer auf ein Ziel in der Schusslinie weiterverarbeiten (Wand davor -> kein Schuss, kein Decal).
+				if (hasHit)
 				{
 					// Something is in the way.
 					if (losResult < 0)

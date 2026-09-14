@@ -1,7 +1,7 @@
 # Progress
 
 ## Current Task
-Gunship (TR5): Schüsse dürfen keine Wände (closed sectors) durchdringen – LOS-Check im Firing-Code korrigiert.
+Gunship (TR5): Feuersperre – Heli soll NUR schießen, wenn Lara in der Schusslinie ist und keine Wand dazwischen (keine Effekte mehr sonst).
 
 ## Completed Work
 - **Analyse Pitch-Konvention:** Engine-Math = `DirectX::SimpleMath::Matrix::CreateFromYawPitchRoll` (via `using namespace DirectX::SimpleMath` in framework.h). Heli-Pose-Yaw = Ziel-Yaw + 180° (fliegt "hinter dem" Ziel her). Heckwaffe schießt entlang Modellachse `-Z` (+ fester 8° im Firing-Code) → **Waffen-Abguerung = Pose-Pitch + 8°**: positives Pitch = Nase oben = Waffe zeigt nach UNTEN; negatives Pitch = Waffe nach oben.
@@ -10,16 +10,16 @@ Gunship (TR5): Schüsse dürfen keine Wände (closed sectors) durchdringen – L
 - **Fix 2:** Beide Pitch-Switches in `ControlGunShip` setzen IDLE jetzt auf `CalculateIdlePitch` statt 0.
 - **Fix 3:** `UpdateIdleOrientation` wird nur noch bei `currentState != IDLE` aufgerufen (überschreibt sonst Bewegungs-Pitch ±MAX_PITCH).
 - **Fix 4:** Pitch/Bank-Rückstellung (`*0.95`) bei `!isMoving` wird bei IDLE übersprungen → IDLE hält den Zielpitch (Y-Speed-Dämpfung bleibt in allen States aktiv).
-- Erwartete Werte: bei 3–4 Sektoren Distanz + 1.5 Sektor Hover → Pitch ≈ +9°…+15° → Abguerung ≈ +17°…+23° → Treffer um die Unterschenkel.
-- **Root Cause Durchschuss durch Wände:** `ObjectOnLOS2` iteriert das GLOBALE `LosRoomNumbers`, das erst durch `LOS()` gefüllt wird (Prüft nur Items/Statics; Wände prüft nur `LOS()` → `GetRoomLosCollision`). Der Firing-Code rief `ObjectOnLOS2` VOR `LOS()` auf → nutzte die STALE Room-Liste des letzten `LOS()`-Aufrufs (anderes Entity/Frame). Lag Laras Raum in der alten Liste, traf `DoRayBox` Lara auf dem 8-Sektor-Strahl → `hasHit=true` → Schaden, obwohl `LOS()` (Wand) danach `false` geliefert hätte – der Wand-Ergebnis wurde im Hit-Zweig nie geprüft.
-- **LOS-Fix:** Reihenfolge getauscht: erst `LOS(&origin, &target2)` (klammt Strahl an die Wand + füllt `LosRoomNumbers`), dann `ObjectOnLOS2(&origin, &target2, ...)` mit dem geclampten `target2` → Lara/Statics nur im wandbegrenzten Segment (deckt auch Wand im selben Raum ab). Referenzmuster = `GetTargetOnLOS` (los.cpp).
+- **Root Cause Durchschuss durch Wände:** `ObjectOnLOS2` iteriert das GLOBALE `LosRoomNumbers`, das erst durch `LOS()` gefüllt wird (Prüft nur Items/Statics; Wände prüft nur `LOS()` → `GetRoomLosCollision`). Der Firing-Code rief `ObjectOnLOS2` VOR `LOS()` auf → stale Room-Liste → Lara hinter Wand wurde "gefunden" → Schaden.
+- **LOS-Fix:** Erst `LOS()` (klammt an Wand + füllt `LosRoomNumbers`), dann `ObjectOnLOS2` mit geclamptem Target → Treffer nur im wandbegrenzten Segment.
+- **Feuersperre (neuester Stand):** Firing-Block startet jetzt mit Gate: `gateMuzzle` (Joint 8) → `gateRot` (Pose-Pitch + 8°) → `gateAimed` (8 Sektor entlang -Z) → `LOS()` + `ObjectOnLOS2(..., ID_LARA, ...)` → `canFire = (gateResult != NO_LOS_ITEM)`. DARUNTER: (a) Sound + Flash-MeshBit, (b) Light + Hülse + Rauch stehen beide in `if (canFire)`; (c) Treffer-Logik (Static-Zerbrechen / Lara-Schaden / Funken) nur in `if (hasHit)`. Alter Wand-Decal-Zweig (`!hasHit && !result`) ist ENTFERN → Wand ohne Ziel = kompletter Stillstand (kein Sound, kein Decal). Nebeneffekt-fix: Flash-MeshBit wird nicht mehr gesetzt, wenn nicht geschossen wird.
+- **Aufräumen:** Sonderzeichen-Kommentare bereinigt (U+2011, U+2019); `aimSpread`-Kommentar mit `≈`/U+202F + falscher "512 world units"-Anmerkung bleibt (Match-Probleme mit Editor-Tool, harmlos).
 
 ## Modified Files
 - `Objects/TR5/Entity/tr5_gunship.cpp`
 
 ## Next Step
-- In Szene testen: (a) Heli im Nachbarraum, Lara hinter Wand → Bullet-Hole-Decal + Funken an der Wand, KEIN Schaden an Lara; (b) freie Sicht → Treffer an den Unterschenkeln; (c) Statics hinter Wand nicht zerbrechbar.
-- Falls zu hoch/tief: `LOWER_LEG_OFFSET` (0.25 Sektor) anpassen. Falls Richtung falsch (Waffe nach oben): Vorzeichen in `CalculateIdlePitch` umdrehen.
+- In Szene testen: (a) Lara außerhalb der Schusslinie (seitlich/abgewandt) → KEIN Schuss (kein Sound/Blitz/Hülse); (b) Wand dazwischen → KEIN Schuss, kein Decal; (c) freier Blick → normales Feuer + Treffer an den Unterschenkeln; (d) Static in der Schusslinie → feuert, Static wird getroffen.
 
 ## Blockers
 - Keine.
