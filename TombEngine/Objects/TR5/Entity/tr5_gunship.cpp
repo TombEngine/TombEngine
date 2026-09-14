@@ -57,6 +57,8 @@ namespace TEN::Entities::Creatures::TR5
 
 	constexpr int SECTOR_SIZE = 1024;
 	constexpr int FLOATING_POINT_SCALE = 1000;
+	constexpr float EVADE_RAISE_HEIGHT = SECTOR_SIZE * 1.5f; // ~1.5 BLOCK, Aufstieg beim Evaden, damit das Heck den Boden nicht berührt
+	constexpr float HOVER_HEIGHT_OFFSET = SECTOR_SIZE * 1.5f; // Heli schwebt ~1.5 Sektoren über dem Ziel, damit er beim Schießen nach unten zielen kann
 
 	// Enum für Helikopter-Status
 	enum class GunShipState : short
@@ -396,6 +398,7 @@ namespace TEN::Entities::Creatures::TR5
 
 		// TargetSpeed basierend auf State berechnen (immer, nicht nur wenn kein Inertie!)
 		float targetSpeed = 0.0f;
+		float idleTargetY = 0.0f;
 		switch (currentState)
 		{
 			case GunShipState::FOLLOW:
@@ -405,8 +408,10 @@ namespace TEN::Entities::Creatures::TR5
 			case GunShipState::IDLE:
 			targetSpeed = 0.0f;
 	
-				if (fabsf(item->Pose.Position.y - targetPosIdle.y) > minYDiff)
-					ySpeedTargetIdle = (targetPosIdle.y > item->Pose.Position.y) ? FLY_DOWN_SPEED : -FLY_UP_SPEED;
+				// Heli schwebt etwas über dem Ziel, damit er beim Schießen nach unten zielen kann.
+				idleTargetY = targetPosIdle.y - HOVER_HEIGHT_OFFSET;
+				if (fabsf(item->Pose.Position.y - idleTargetY) > minYDiff)
+					ySpeedTargetIdle = (idleTargetY > item->Pose.Position.y) ? FLY_DOWN_SPEED : -FLY_UP_SPEED;
 
 			currentYSpeed += (ySpeedTargetIdle - currentYSpeed) * yLerpAlpha;
 			
@@ -414,6 +419,15 @@ namespace TEN::Entities::Creatures::TR5
 
 			case GunShipState::EVADE_NEAR:
 			targetSpeed = MAX_MOVE_SPEED * 2.5f;
+			
+			// Beim Evaden (Rückwärtsfliegen) leicht aufsteigen, damit das Heck beim Nachhintenkippen nicht in den Boden stößt.
+				float evadeTargetY = targetPosIdle.y - EVADE_RAISE_HEIGHT;
+				if (fabsf(item->Pose.Position.y - evadeTargetY) > minYDiff)
+					ySpeedTargetIdle = (evadeTargetY > item->Pose.Position.y) ? FLY_DOWN_SPEED : -FLY_UP_SPEED;
+				else
+					ySpeedTargetIdle = 0.0f;
+			
+			currentYSpeed += (ySpeedTargetIdle - currentYSpeed) * yLerpAlpha;
 			break;
 		}
 
@@ -754,10 +768,8 @@ namespace TEN::Entities::Creatures::TR5
 			item->MeshBits &= 0xFEFF;
 
 
-			if (item->ItemFlags[7] != 1)
-					item->ItemFlags[6] = (int)(currentYSpeed * FLOATING_POINT_SCALE);
-			else
-				item->ItemFlags[6] = (int)currentYSpeed;
+			// Y-Geschwindigkeit immer mit FLOATING_POINT_SCALE persistieren (ItemFlags[6] wird mit /FLOATING_POINT_SCALE gelesen).
+			item->ItemFlags[6] = (int)(currentYSpeed * FLOATING_POINT_SCALE);
 
 			AnimateItem(item);
 			

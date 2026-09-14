@@ -27,7 +27,13 @@
 - Y positiv ist downwards (im TEN-Koordinatensystem).
 
 ## Key Files & Modules
-*(zu vervollständigen)*
+
+### TR5 Gunship (`Objects/TR5/Entity/tr5_gunship.cpp`)
+- State-Machine: `FOLLOW` / `IDLE` / `EVADE_NEAR` (enum `GunShipState`), Persistenz über `ItemFlags`.
+- Vertikale Bewegung über persistenten `currentYSpeed` (`ItemFlags[6]`): geschrieben mit `* FLOATING_POINT_SCALE`, gelesen mit `/ FLOATING_POINT_SCALE`. Die Skala muss beidseitig stimmen, sonst bricht die Lerp-Akkumulation zusammen (früherer Bug: im EVADE-Zweig ohne `*1000` → Heli stieg nicht auf).
+- `IDLE`: Heli schwebt ~`HOVER_HEIGHT_OFFSET` (1.5 Sektoren) über dem Ziel, damit er beim Schießen nach unten zielen kann (statt auf Zielhöhe).
+- `EVADE_NEAR`: Heli pitcht nose-up und fliegt vom Ziel weg; Zielhöhe `EVADE_RAISE_HEIGHT` (1.5 Sektoren) über Ziel. Trigger: `horizontalDist < minDistance` UND `yDiff >= -6 Sektoren` (Ziel nicht >6 Sektoren über Heli).
+- `FixYPosition` clampt Boden-/Deckenabstand; Decke begrenzt den Aufstieg.
 
 ## Known Issues & TODOs
 *(zu vervollständigen)*
