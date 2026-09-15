@@ -497,13 +497,19 @@ function CustomDiary.ImportDiary(fileName)
                 return
             end
 
+            if entry.area ~= nil and not Type.IsVec2(entry.area) then
+                TEN.Util.PrintLog("'area' is not a Vec2. Error in template data for text entry for page: "..tostring(entry.pageIndex)..". Import Stopped for file: "..tostring(fileName), Util.LogLevel.WARNING)
+                return
+            end
+
             importDiary:AddTextEntry(
                 entry.pageIndex,
                 entry.text,
                 entry.textPos,
                 entry.textOptions,
                 entry.textScale,
-                entry.textColor
+                entry.textColor,
+                entry.area
             )
         elseif entry.type == "narration" then
 
@@ -528,8 +534,8 @@ function CustomDiary.ImportDiary(fileName)
         end
     end
     
-    --Unlock the pages as per the template
-    importDiary:UnlockPages(unlockCount, false)
+    --Unlock the initial pages as per the template. The unlock mode is determined by the first unlock call made during gameplay.
+    importDiary:UnlockInitialPages(unlockCount)
     DebugPrint("External diary from file: "..tostring(fileName).." imported")
 end
 
@@ -642,6 +648,8 @@ CustomDiary.Create = function(object, objectIdBg, spriteIdBg, colorBg, pos, rot,
     GameVars.Engine.Diaries[dataName].Name			        = dataName
 	GameVars.Engine.Diaries[dataName].CurrentPageIndex     = 1
     GameVars.Engine.Diaries[dataName].UnlockedPages        = 1
+    GameVars.Engine.Diaries[dataName].UnlockOrder          = {1}
+    GameVars.Engine.Diaries[dataName].UnlockMode           = nil
 	GameVars.Engine.Diaries[dataName].Pages  		        = {NarrationTrack=nil,TextEntries={},ImageEntries={}}
 	GameVars.Engine.Diaries[dataName].Object		        = object
     GameVars.Engine.Diaries[dataName].CurrentAlpha		    = 0
@@ -746,6 +754,7 @@ function CustomDiary:ShowDiary(pageIndex)
 end
 
 --- The function returns the number of unlocked pages in the diary.
+-- In per-page unlock mode, this returns the total number of pages unlocked individually via UnlockPage.
 -- @treturn int Total number of unlocked pages in the diary.
 function CustomDiary:GetUnlockedPageCount()
 
@@ -757,10 +766,18 @@ end
 --- The function unlocks the specified diary up to the given page number. 
 -- This value can be overridden to lock or unlock pages as needed.
 -- A lower number can be set to restrict access to previously unlocked pages.
+-- This function sets the diary to sequential unlock mode. Once UnlockPage has been used for the diary, this function cannot be used.
 -- @tparam int pageIndex The page number up to which the diary should be unlocked.
 -- @tparam bool notification If true, and notification has been defined, a notification icon and sound will be played.
 function CustomDiary:UnlockPages(pageIndex, notification)
     if GameVars.Engine.Diaries[self.Name] then
+
+        local diary = GameVars.Engine.Diaries[self.Name]
+
+        if diary.UnlockMode == "SPECIFIC" then
+            TEN.Util.PrintLog("UnlockPages cannot be used while the diary is in per-page unlock mode (UnlockPage) for the diary system: "..tostring(self.Name), Util.LogLevel.WARNING)
+            return
+        end
 
         if not Type.IsNumber(pageIndex) or pageIndex > #GameVars.Engine.Diaries[self.Name].Pages or pageIndex <= 0 then
             TEN.Util.PrintLog("'pageIndex' is in an incorrect format or not a valid page number. Expected a number type in function 'unlockPages' for the diary system: "..tostring(self.Name), Util.LogLevel.WARNING)
@@ -772,8 +789,12 @@ function CustomDiary:UnlockPages(pageIndex, notification)
             return
         end
 
-        local diary = GameVars.Engine.Diaries[self.Name]
-		diary.UnlockedPages = pageIndex
+        diary.UnlockMode = "SEQUENTIAL"
+        diary.UnlockOrder = {}
+        for i = 1, pageIndex do
+            table.insert(diary.UnlockOrder, i)
+        end
+        diary.UnlockedPages = pageIndex
         diary.CurrentPageIndex = pageIndex
         diary.NextPageIndex = pageIndex
         DebugPrint("UnlockPages: currentPageIndex = " .. tostring(diary.CurrentPageIndex))
@@ -786,6 +807,81 @@ function CustomDiary:UnlockPages(pageIndex, notification)
             GameVars.Engine.LastUsedDiary = diary.Object
             diary.NotificationVisible = true
         end
+    end
+end
+
+--- The function unlocks the specified page for the diary.
+-- Pages are unlocked in the order this function is called, and the diary displays pages in that order.
+-- This function sets the diary to per-page unlock mode. Once used, UnlockPages cannot be used for the same diary.
+-- If the page is already unlocked, the call is ignored and its position in the unlock order is preserved.
+-- @tparam int pageIndex The page number to unlock.
+-- @tparam bool notification If true, and notification has been defined, a notification icon and sound will be played.
+function CustomDiary:UnlockPage(pageIndex, notification)
+    if GameVars.Engine.Diaries[self.Name] then
+
+        local diary = GameVars.Engine.Diaries[self.Name]
+
+        if diary.UnlockMode == "SEQUENTIAL" then
+            TEN.Util.PrintLog("UnlockPage cannot be used while the diary is in sequential unlock mode (UnlockPages) for the diary system: "..tostring(self.Name), Util.LogLevel.WARNING)
+            return
+        end
+
+        if not Type.IsNumber(pageIndex) or pageIndex > #GameVars.Engine.Diaries[self.Name].Pages or pageIndex <= 0 then
+            TEN.Util.PrintLog("'pageIndex' is in an incorrect format or not a valid page number. Expected a number type in function 'unlockPage' for the diary system: "..tostring(self.Name), Util.LogLevel.WARNING)
+            return
+        end
+
+        -- Page is already unlocked. Preserve its existing position in the unlock order.
+        for _, unlockedPage in ipairs(diary.UnlockOrder) do
+            if unlockedPage == pageIndex then
+                return
+            end
+        end
+
+        if not Type.IsBoolean(notification) then
+            TEN.Util.PrintLog("'notification' is in an incorrect format. Expected a bool type in function 'unlockPage' for the diary system: "..tostring(self.Name), Util.LogLevel.WARNING)
+            return
+        end
+
+        diary.UnlockMode = "SPECIFIC"
+        table.insert(diary.UnlockOrder, pageIndex)
+        diary.UnlockedPages = #diary.UnlockOrder
+        diary.CurrentPageIndex = pageIndex
+        diary.NextPageIndex = pageIndex
+        DebugPrint("UnlockPage: currentPageIndex = " .. tostring(diary.CurrentPageIndex))
+
+        if notification and diary.Notification and next(diary.Notification) then
+            TEN.Sound.PlaySound(diary.Notification.NotificationSound)
+            diary.Notification.ElapsedTime = 0
+            diary.TargetAlpha = 255
+            diary.CurrentAlpha = 1
+            GameVars.Engine.LastUsedDiary = diary.Object
+            diary.NotificationVisible = true
+        end
+    end
+end
+
+-- !Ignore
+--- Unlocks the initial set of pages (1 to count) in order, without setting the diary's unlock mode.
+-- Used by the import process so the mode is determined by the first unlock call made during gameplay.
+function CustomDiary:UnlockInitialPages(count)
+    if GameVars.Engine.Diaries[self.Name] then
+
+        local diary = GameVars.Engine.Diaries[self.Name]
+
+        if not Type.IsNumber(count) or count > #GameVars.Engine.Diaries[self.Name].Pages or count <= 0 then
+            TEN.Util.PrintLog("'count' is in an incorrect format or not a valid page number. Expected a number type in function 'unlockInitialPages' for the diary system: "..tostring(self.Name), Util.LogLevel.WARNING)
+            return
+        end
+
+        diary.UnlockOrder = {}
+        for i = 1, count do
+            table.insert(diary.UnlockOrder, i)
+        end
+        diary.UnlockedPages = count
+        diary.CurrentPageIndex = count
+        diary.NextPageIndex = count
+        DebugPrint("UnlockInitialPages: currentPageIndex = " .. tostring(diary.CurrentPageIndex))
     end
 end
 
@@ -811,7 +907,8 @@ end
 -- @tparam Strings.DisplayStringOption textOptions Alignment and effects for the text. Note that text is automatically aligned to the left.
 -- @tparam float textScale Scale factor for the text.
 -- @tparam Color textColor Color of the text.
-function CustomDiary:AddTextEntry(pageIndex, text, textPos, textOptions, textScale, textColor)
+-- @tparam[opt] Vec2 area Rectangular area in screen percent (0-100) to perform word wrapping. No word wrapping occurs if omitted.
+function CustomDiary:AddTextEntry(pageIndex, text, textPos, textOptions, textScale, textColor, area)
     local textEntry = {}
 
     if not Type.IsString(text) then
@@ -849,6 +946,12 @@ function CustomDiary:AddTextEntry(pageIndex, text, textPos, textOptions, textSca
         return
     end
     textEntry.textColor = textColor
+
+    if area ~= nil and not Type.IsVec2(area) then
+        TEN.Util.PrintLog("'area' is in an incorrect format. Expected a Vec2 type in function 'addTextEntry' for the diary system: "..tostring(self.Name), Util.LogLevel.WARNING)
+        return
+    end
+    textEntry.area = area
 
     if Type.IsNumber(pageIndex) and pageIndex > 0 then
         if not GameVars.Engine.Diaries[self.Name].Pages[pageIndex] then
@@ -1362,6 +1465,17 @@ LevelFuncs.Engine.Diaries.ShowDiary = function()
         end
         local currentIndex      = diary.CurrentPageIndex
         local maxPages          = diary.UnlockedPages
+        local currentPageNumber = nil
+        if diary.UnlockMode == "SPECIFIC" then
+            for position, unlockedPage in ipairs(diary.UnlockOrder) do
+                if unlockedPage == currentIndex then
+                    currentPageNumber = position
+                    break
+                end
+            end
+        else
+            currentPageNumber = currentIndex
+        end
         local narrationTrack    = diary.Pages[currentIndex].NarrationTrack
         local alphaDelta        = diary.AlphaBlendSpeed
 
@@ -1402,17 +1516,17 @@ LevelFuncs.Engine.Diaries.ShowDiary = function()
             end
         elseif TEN.Input.IsKeyHit(ActionID.LEFT) and not (diary.EntryFadingOut or diary.EntryFadingIn) then
             -- Initiate fade-out to switch to the previous page
-                if currentIndex > 1 then
+                if currentPageNumber and currentPageNumber > 1 then
                     diary.EntryFadingOut = true
-                    diary.NextPageIndex = math.max(1, currentIndex - 1)
+                    diary.NextPageIndex = diary.UnlockOrder[currentPageNumber - 1]
                     TEN.Sound.StopAudioTrack(Sound.SoundTrackType.VOICE)
                     TEN.Sound.PlaySound(diary.PageSound)
                 end
         elseif TEN.Input.IsKeyHit(ActionID.RIGHT) and not (diary.EntryFadingOut or diary.EntryFadingIn) then
                 -- Initiate fade-out to switch to the next page
-                if currentIndex < maxPages then
+                if currentPageNumber and currentPageNumber < maxPages then
                     diary.EntryFadingOut = true
-                    diary.NextPageIndex = math.min(maxPages, currentIndex + 1)
+                    diary.NextPageIndex = diary.UnlockOrder[currentPageNumber + 1]
                     TEN.Sound.StopAudioTrack(Sound.SoundTrackType.VOICE)
                     TEN.Sound.PlaySound(diary.PageSound)
                 end
@@ -1460,10 +1574,10 @@ LevelFuncs.Engine.Diaries.ShowDiary = function()
                 if narrationTrack then
                     table.insert(controlTexts, diary.Controls.text1)
                 end
-                if currentIndex > 1 then
+                if currentPageNumber and currentPageNumber > 1 then
                     table.insert(controlTexts, diary.Controls.text2)
                 end
-                if currentIndex < maxPages then
+                if currentPageNumber and currentPageNumber < maxPages then
                     table.insert(controlTexts, diary.Controls.text3)
                 end
 
@@ -1482,12 +1596,12 @@ LevelFuncs.Engine.Diaries.ShowDiary = function()
 
 
             --Draw Page Numbers
-            if diary.PageNumbers and next(diary.PageNumbers) then
+            if diary.PageNumbers and next(diary.PageNumbers) and currentPageNumber then
 
                 local pageNo = diary.PageNumbers
-                local pageNumbers = tostring(currentIndex)
+                local pageNumbers = tostring(currentPageNumber)
                 if pageNo.pageNoType == 2 then
-                    pageNumbers = pageNo.prefix .. currentIndex  .. pageNo.separator .. diary.UnlockedPages
+                    pageNumbers = pageNo.prefix .. currentPageNumber  .. pageNo.separator .. diary.UnlockedPages
                 end
 
                 local pageNoPosInPixel = TEN.Vec2(TEN.Util.PercentToScreen(pageNo.textPos.x, pageNo.textPos.y))
@@ -1507,7 +1621,12 @@ LevelFuncs.Engine.Diaries.ShowDiary = function()
                     local IsString = TEN.Flow.IsStringPresent(entry.text)
                     local textColor = TEN.Color(entry.textColor.r, entry.textColor.g, entry.textColor.b, diary.EntryCurrentAlpha)
 
-                    local entryText = TEN.Strings.DisplayString(entry.text, entryPosInPixel, entry.textScale, textColor, IsString, entry.textOptions)
+                    local entryArea = nil
+                    if entry.area then
+                        entryArea = TEN.Vec2(TEN.Util.PercentToScreen(entry.area.x, entry.area.y))
+                    end
+
+                    local entryText = TEN.Strings.DisplayString(entry.text, entryPosInPixel, entry.textScale, textColor, IsString, entry.textOptions, entryArea)
                     TEN.Strings.ShowString(entryText, 1 / 30)
 
                 end
