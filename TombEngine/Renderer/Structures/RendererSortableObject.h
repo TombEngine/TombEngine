@@ -23,6 +23,10 @@ namespace TEN::Renderer::Structures
 		BlendMode BlendMode = BlendMode::Opaque;
 		LightMode LightMode = LightMode::Dynamic;
 
+		// Position of the object's draw group in the sorted pass order, assigned by
+		// SortTransparentFaces. Polygons sharing the rank draw as a single batch.
+		int GroupRank = 0;
+
 		bool Skinned = false;
 
 		RendererRoom*	 Room	 = nullptr;

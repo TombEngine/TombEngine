@@ -49,6 +49,7 @@
 #include "Renderer/Structures/RendererHudBar.h"
 #include "Renderer/Structures/RendererRoomAmbientMap.h"
 #include "Renderer/Structures/RendererObject.h"
+#include "Renderer/Structures/RendererSortedBatch.h"
 #include "Renderer/Structures/RendererStar.h"
 #include "Specific/level.h"
 #include "Specific/Structures/fast_vector.h"
@@ -150,6 +151,7 @@ namespace TEN::Renderer
 		RendererViewport _viewport;
 		RendererViewport _distortionViewport;
 		RendererViewport _dofViewport;
+		RendererViewport _SSAOViewport;
 		RendererViewport _shadowMapViewport;
 
 		// Text
@@ -295,6 +297,9 @@ namespace TEN::Renderer
 		DepthState _lastDepthState;
 		CullMode _lastCullMode;
 		int _lastMaterialIndex;
+		int _lastSortedRoomNumber = NO_VALUE;
+		RendererObjectType _lastSortedObjectType = RendererObjectType::Unknown;
+		const void* _lastSortedObject = nullptr;
 
 		std::vector<RendererSpriteBucket> _spriteBuckets;
 
@@ -328,6 +333,8 @@ namespace TEN::Renderer
 
 		fast_vector<Vertex> _sortedPolygonsVertices;
 		fast_vector<int> _sortedPolygonsIndices;
+
+		std::vector<RendererSortedBatch> _sortedPolygonsBatches;
 		std::unique_ptr<IVertexBuffer> _sortedPolygonsVertexBuffer;
 		std::unique_ptr<IIndexBuffer> _sortedPolygonsIndexBuffer;
 
@@ -415,13 +422,13 @@ namespace TEN::Renderer
 		void DrawDisplayItems();
 		void DrawSortedFaces(RenderView& view);
 		void DrawSingleSprite(RendererSortableObject* object, RendererObjectType lastObjectType, RenderView& view);
-		void DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawItemSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawEffectSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view);
-		void DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index);
+		void DrawRoomSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
+		void DrawItemSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
+		void DrawStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
+		void DrawSpriteSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseVertex, int count);
+		void DrawMoveableAsStaticSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
+		void DrawEffectSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int baseIndex, int count);
+		void DrawHairSorted(RendererSortableObject* objectInfo, RendererObjectType lastObjectType, RenderView& view, int index, int baseIndex, int count);
 		void DrawLines2D();
 		void DrawLines3D(RenderView& view);
 		void DrawTriangles3D(RenderView& view);
@@ -581,9 +588,9 @@ namespace TEN::Renderer
 			_numDrawCalls++;
 		}
 
-		inline void UpdateConstantBuffer(void* data, IConstantBuffer* cb) noexcept
+		inline void UpdateConstantBuffer(void* data, IConstantBuffer* cb, int size = 0) noexcept
 		{
-			_graphicsDevice->UpdateConstantBuffer(cb, data);
+			_graphicsDevice->UpdateConstantBuffer(cb, data, size);
 			_numConstantBufferUpdates++;
 		}
 
