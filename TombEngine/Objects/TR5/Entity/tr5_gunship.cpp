@@ -69,7 +69,8 @@ namespace TEN::Entities::Creatures::TR5
 	{
 		FOLLOW = 0,
 		IDLE = 1,
-		EVADE_NEAR = 2
+		EVADE_NEAR = 2,
+		ESCAPE = 3
 	};
 
 	// Statische Orbit-Daten zum Ausweichen. Nicht im Savegame persistiert;
@@ -108,7 +109,8 @@ namespace TEN::Entities::Creatures::TR5
 
 		if (hasMoveTargetPos)
 		{
-			return (horizontalDistance < 100.0f) ? GunShipState::IDLE : GunShipState::FOLLOW;
+			// Escape-Flug: eigener State (freie Bewegung, Y frei innerhalb Raum-Bounds).
+			return GunShipState::ESCAPE;
 		}
 
 		if (horizontalDistance < minDistance)
@@ -428,6 +430,7 @@ namespace TEN::Entities::Creatures::TR5
 		switch (state)
 		{
 		case GunShipState::FOLLOW:
+		case GunShipState::ESCAPE:
 			pitchTarget = (float)DEG_TO_RAD(MAX_PITCH_DEG);
 			break;
 		case GunShipState::EVADE_NEAR:
@@ -580,7 +583,7 @@ namespace TEN::Entities::Creatures::TR5
 			item->ItemFlags[5] = 0;
 		}
 
-		if (item->ItemFlags[7] == 1)
+		if (item->ItemFlags[7] == 1 && currentState != GunShipState::ESCAPE)
 			currentState = GunShipState::EVADE_NEAR;
 
 		float currentYSpeed = (float)item->ItemFlags[6] / FLOATING_POINT_SCALE;
@@ -599,7 +602,12 @@ namespace TEN::Entities::Creatures::TR5
 			targetSpeed = hasMoveTargetPos ? MAX_MOVE_SPEED : (horizontalDist > maxShotsRange) ? MAX_MOVE_SPEED : MAX_MOVE_SPEED * 0.25f;
 			
 			// FOLLOW: Heli folgt der Höhe des Ziels, um es zu überragen (wie in IDLE/EVADE).
-			idleTargetY = targetPosIdle.y - HOVER_HEIGHT_OFFSET;
+			// Escape/MoveTarget: auf Ziel-Höhe fliegen (keine Hover-Offset) -> waagerechter, natuerlicher Anflug
+			// (sonst steigt/fällt der Heli langsam -> sieht aus wie am Seil hochgezogen).
+			if (hasMoveTargetPos)
+				idleTargetY = moveTargetPos.y;
+			else
+				idleTargetY = targetPosIdle.y - HOVER_HEIGHT_OFFSET;
 			if (fabsf(item->Pose.Position.y - idleTargetY) > minYDiff)
 				ySpeedTargetIdle = (idleTargetY > item->Pose.Position.y) ? FLY_DOWN_SPEED : -FLY_UP_SPEED;
 			currentYSpeed += (ySpeedTargetIdle - currentYSpeed) * yLerpAlpha;
@@ -619,6 +627,7 @@ namespace TEN::Entities::Creatures::TR5
 			break;
 
 			case GunShipState::EVADE_NEAR:
+			{
 			targetSpeed = MAX_MOVE_SPEED * 2.5f;
 			
 			// Beim Evaden (Rückwärtsfliegen) leicht aufsteigen, damit das Heck beim Nachhintenkippen nicht in den Boden stößt.
@@ -628,6 +637,17 @@ namespace TEN::Entities::Creatures::TR5
 				else
 					ySpeedTargetIdle = 0.0f;
 			
+			currentYSpeed += (ySpeedTargetIdle - currentYSpeed) * yLerpAlpha;
+			break;
+			}
+
+			case GunShipState::ESCAPE:
+			targetSpeed = MAX_MOVE_SPEED;
+			
+			// Escape: Y frei an das Ziel anfliegen (nur FixYPosition clampt auf Raumdecke/-boden).
+			idleTargetY = moveTargetPos.y;
+			if (fabsf(item->Pose.Position.y - idleTargetY) > minYDiff)
+				ySpeedTargetIdle = (idleTargetY > item->Pose.Position.y) ? FLY_DOWN_SPEED : -FLY_UP_SPEED;
 			currentYSpeed += (ySpeedTargetIdle - currentYSpeed) * yLerpAlpha;
 			break;
 		}
@@ -663,6 +683,12 @@ namespace TEN::Entities::Creatures::TR5
 		switch (currentState)
 		{
 			case GunShipState::FOLLOW:
+			pitchTarget = (float)DEG_TO_RAD(MAX_PITCH_DEG);
+			CalculatePitchAndBank(*item, currentState, targetInfo.targetPos, 0.0f, pitchTarget, bankTarget);
+			break;
+
+			case GunShipState::ESCAPE:
+			// Escape: Pitch wie FOLLOW (Nase leicht hoch), damit currentSpeed > 0 bleibt und der Heli sich bewegt.
 			pitchTarget = (float)DEG_TO_RAD(MAX_PITCH_DEG);
 			CalculatePitchAndBank(*item, currentState, targetInfo.targetPos, 0.0f, pitchTarget, bankTarget);
 			break;
@@ -766,6 +792,7 @@ namespace TEN::Entities::Creatures::TR5
 				{
 					GunShipEscape.Active = true;
 					GunShipEscape.TargetPos = escapeTarget;
+					item->ItemFlags[7] = 0; // Evade-Flag zuruecksetzen, damit der ESCAPE-State nicht auf EVADE_NEAR gezwungen wird.
 				}
 			}
 
@@ -817,6 +844,7 @@ namespace TEN::Entities::Creatures::TR5
 			switch (currentState)
 			{
 			case GunShipState::FOLLOW:
+			case GunShipState::ESCAPE:
 				CalculatePitchAndBank(*item, currentState, targetInfo.targetPos, 0.0f, pitchTarget, bankTarget);
 				break;
 			case GunShipState::EVADE_NEAR:
@@ -862,6 +890,16 @@ namespace TEN::Entities::Creatures::TR5
 					if (horizontalDist > 1.0f)
 					{
 						// moveDir enthaelt die aktive Ausweich-Richtung (Rueckwaerts, lateral oder Overfly).
+						item->Pose.Position.x += (int)(moveDir.x * moveDist);
+						item->Pose.Position.z += (int)(moveDir.z * moveDist);
+					}
+
+					break;
+
+					case GunShipState::ESCAPE:
+					if (horizontalDist > 1.0f)
+					{
+						// Escape: direkt zum Escapetarget fliegen (XZ; Y wird separat behandelt).
 						item->Pose.Position.x += (int)(moveDir.x * moveDist);
 						item->Pose.Position.z += (int)(moveDir.z * moveDist);
 					}

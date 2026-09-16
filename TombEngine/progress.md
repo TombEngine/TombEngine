@@ -1,9 +1,19 @@
 # Progress
 
 ## Current Task
-Gunship (TR5): Auto-Escape-Bugfix – Heli blieb im Escapetarget-Flug in IDLE stecken und schoss nicht mehr. **Root Cause:** Im `FOLLOW` schwebt der Heli ~`HOVER_HEIGHT_OFFSET` (1,5 Sektoren) UNTER dem Ziel, aber der One-Shot-Clear prüfte die 3D-Distanz → wegen der Vertikal-Offset nie < Radius → Escape-Zustand wurde nie geklärt. **Fix:** (a) One-Shot-Clear jetzt per HORIZONTALE Distanz (konsistent mit `DetermineGunShipState`), (b) Timeout `MAX_ESCAPE_FRAMES` als Sicherheitsnetz bei nicht erreichbarem Ziel. Fertig – wartet auf Build/In-Szene-Test.
+Gunship (TR5): Heli blieb im Escape stecken (FOLLOW/EVADE-Loop, bewegte sich nicht). **Root Cause:** Evade-Flag (`ItemFlags[7]`) wurde beim Escape-Trigger nicht zurückgesetzt → Zeile 585 zwang den State auf `EVADE_NEAR`. **Fix:** Neuer `ESCAPE`-State (frei fliegen, Y frei innerhalb Raum-Bounds via `FixYPosition`), Evade-Flag beim Trigger zurückgesetzt, State-Override auf `ESCAPE` deaktiviert. Fertig – wartet auf In-Szene-Test.
 
 ## Completed Work
+- **Gunship (TR5): ESCAPE-State für den Escape-Flug (`tr5_gunship.cpp`):**
+  - **Neuer `GunShipState::ESCAPE` (=3):** eigener State für den Escape-Flug (statt FOLLOW-Reuse). `DetermineGunShipState`: `hasMoveTargetPos` → `ESCAPE`.
+  - **Bug-Fix (Stuck):** Evade-Flag (`ItemFlags[7]`) wurde beim Escape-Trigger NICHT zurückgesetzt → `if (ItemFlags[7]==1) currentState=EVADE_NEAR` zwang den State auf EVADE_NEAR → Heli steckte im EVADE-Loop. Fix: (a) `ItemFlags[7]=0` im Escape-Trigger, (b) Override-Bedingung `&& currentState != ESCAPE`.
+  - **ESCAPE-Bewegung:** `targetSpeed=MAX_MOVE_SPEED`, Y auf Ziel-Höhe (frei; `FixYPosition` clampt auf Raumdecke/-boden), Pitch wie FOLLOW (`CalculatePitchAndBank`: ESCAPE→FOLLOW-Fall, damit `currentSpeed>0`), XZ-Bewegung zum Escapetarget.
+  - **Build-Fix (C2360):** `float evadeTargetY` im `EVADE_NEAR`-Case wurde durch den `ESCAPE`-Case-Label übersprungen → `EVADE_NEAR`-Case jetzt in `{}` eingeschlossen (scope-local).
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage; Build-Errors meldet der Nutzer).
+- **Gunship (TR5): Escape-Anflug „Seil" – Rückbau + waagerechter Flug (`tr5_gunship.cpp`):**
+  - **Rückbau:** `targetOrient`-Bedingung `!hasMoveTargetPos` entfernt → Nase zeigt wieder auf **Lara** (Nase→Flugziel sah im Test SCHLECHTER aus).
+  - **Waagerechter Anflug:** `FOLLOW`-Fall: bei `hasMoveTargetPos` → `idleTargetY = moveTargetPos.y` (Ziel-Höhe), sonst `targetPosIdle.y - HOVER_HEIGHT_OFFSET`. So fliegt der Heli waagerecht statt mit Hover-Offset auf-/zufallen → kein „langsam hochgezogen".
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage; Build-Errors meldet der Nutzer).
 - **Gunship (TR5): Auto-Escape „steckt in IDLE fest" Bugfix (`tr5_gunship.cpp`):**
   - **Root Cause:** Im `FOLLOW` schwebt der Heli `idleTargetY = targetPosIdle.y - HOVER_HEIGHT_OFFSET` (1,5 Sektoren) UNTER dem Ziel. Der One-Shot-Clear prüfte aber die **3D-Distanz** (`dmx²+dmy²+dmz²`) < `MOVE_TARGET_REACH_RADIUS`(100) → wegen der ~1536er Vertikal-Offset nie < 100 → Escape-Zustand (`hasMoveTargetPos`/`GunShipEscape.Active`) wurde nie geklärt → `DetermineGunShipState` zwingt IDLE + Feuersperre bleibt aktiv → Heli steckt fest, feuert nicht mehr.
   - **Fix 1 (primär):** One-Shot-Clear jetzt per **horizontaler** Distanz (`dmx²+dmz²` < Radius) – konsistent mit `DetermineGunShipState` (`horizontalDistance < 100`). Heli erreicht das Escapetarget horizontal → State wird geklärt → Kampf wird fortgesetzt.
@@ -60,7 +70,7 @@ Gunship (TR5): Auto-Escape-Bugfix – Heli blieb im Escapetarget-Flug in IDLE st
 - `Objects/TR5/Entity/tr5_gunship.cpp`
 
 ## Next Step
-- Build (Nutzer) + In-Szene-Test: Heli EVADE → Blockade → fliegt zum Escapetarget → **erreicht es → setzt den Kampf fort (annähert Lara + feuert wieder)** – kein IDLE-Stuck, kein Firing-Loss. Timeout greift nur, wenn das Ziel wirklich nicht erreichbar ist. Dann: Free Space / Portal / schmales Portal / kleine Räume.
+- In-Szene-Test: Heli EVADE → Blockade → **ESCAPE-State** → fliegt zum Escapetarget (frei, Y frei innerhalb Raum-Bounds) → Kampf wird fortgesetzt. Kein EVADE-Loop, kein Stuck. Falls noch Stuck: Escape-Pfad-Check in `FindEscapeTarget` (Ziel muss erreichbar sein).
 
 ## Blockers
 - Keine.
