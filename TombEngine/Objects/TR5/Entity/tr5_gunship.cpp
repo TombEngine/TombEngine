@@ -12,6 +12,7 @@
 #include "Game/control/control.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
+#include "Game/room.h"
 #include "Game/Lara/lara.h"
 #include "Game/control/los.h"
 #include "Math/Geometry.h"
@@ -59,6 +60,9 @@ namespace TEN::Entities::Creatures::TR5
 	constexpr int FLOATING_POINT_SCALE = 1000;
 	constexpr float EVADE_RAISE_HEIGHT = SECTOR_SIZE * 1.5f; // ~1.5 BLOCK, Aufstieg beim Evaden, damit das Heck den Boden nicht berührt
 	constexpr float HOVER_HEIGHT_OFFSET = SECTOR_SIZE * 1.5f; // Heli schwebt ~1.5 Sektoren über dem Ziel, damit er beim Schießen nach unten zielen kann
+	constexpr float EVADE_OVERFLY_HEIGHT = SECTOR_SIZE * 3.0f; // Overfly: Heli steigt so weit ueber Lara, dass Rumpf-Heck frei bleibt
+	constexpr float MOVE_TARGET_REACH_RADIUS = 100.0f; // moveTargetPos: One-Shot-Radius (horizontal), danach wird der Escape-/MoveTarget-Zustand geleert
+	constexpr int MAX_ESCAPE_FRAMES = 280; // Auto-Escape: max. Frames, bevor der Escape-Flug aufgegeben wird (Kampf wird fortgesetzt)
 
 	// Enum für Helikopter-Status
 	enum class GunShipState : short
@@ -67,6 +71,34 @@ namespace TEN::Entities::Creatures::TR5
 		IDLE = 1,
 		EVADE_NEAR = 2
 	};
+
+	// Statische Orbit-Daten zum Ausweichen. Nicht im Savegame persistiert;
+	// der Heli richtet sich nach einem Neuladen automatisch neu aus.
+	struct GunShipOrbitData
+	{
+		int Direction = 1;      // +1 / -1: Umlaufrichtung beim Evaden.
+		bool Initialized = false;
+	};
+
+	static GunShipOrbitData GunShipOrbit;
+
+	// Nicht-persistenter Auto-Escape-Zustand: wenn aktiv, dient das Escapetarget als MoveTarget.
+	// Wird gesetzt, wenn der Heli in EVADE blockiert ist, und geleert, wenn er das Ziel erreicht hat.
+	struct GunShipEscapeData
+	{
+		bool Active = false;
+		Vector3 TargetPos = Vector3::Zero;
+		int Frames = 0;
+
+		void Reset()
+		{
+			Active = false;
+			TargetPos = Vector3::Zero;
+			Frames = 0;
+		}
+	};
+
+	static GunShipEscapeData GunShipEscape;
 
 	// Helper: Bestimmt den aktuellen Status basierend auf Distanz und Kollisionen
 	GunShipState DetermineGunShipState(const ItemInfo& item, float horizontalDistance, bool hasMoveTargetPos, bool blockedEarly)
@@ -93,14 +125,36 @@ namespace TEN::Entities::Creatures::TR5
 		return GunShipState::IDLE;
 	}
 
+	// Helper: Liefert den Raum, in dem eine Probe-Position liegt: aktueller Raum oder ein direkt
+	// verbundener Nachbarraum (per Portal, aus NeighborRoomNumbers). NO_VALUE = ausserhalb der
+	// gueltigen, verbundenen Room-Geometrie (z.B. Horizon / Open Area ohne verbundenen Room).
+	int ResolveProbeRoom(const Vector3& probePos, int startRoomNumber)
+	{
+		Vector3i probe(probePos.x, probePos.y, probePos.z);
+		if (IsPointInRoom(probe, startRoomNumber))
+			return startRoomNumber;
+
+		const auto& room = g_Level.Rooms[startRoomNumber];
+		for (int neighborRoomNumber : room.NeighborRoomNumbers)
+		{
+			if (IsPointInRoom(probe, neighborRoomNumber))
+				return neighborRoomNumber;
+		}
+
+		return NO_VALUE;
+	}
+
 	// Helper: Richtungs-unabhaengiger Kollisions-Fussabdruck-Check.
-	// Prueft, ob der um `displacement` verschobene Bodenebenen-Fussabdruck des Helikopters (4 Ecken)
+	// Prueft, ob der um `displacement` verschobene Bodenebenen-Fussabdruck des Helikopters
 	// gegen Wand-Sektoren, erhohte Squares / abgesenkte Decken (Clearance) stoesst.
+	// Ein Gitter von Stichproben ueber die gesamte Fussabdruck-Flaeche (Ecken, Kanten- und Innenpunkte)
+	// wird geprueft, damit auch innere Waende erkannt werden - nicht nur die 4 Ecken.
+	// Jeder Punkt muss zudem in einem gueltigen, verbundenen Raum liegen (kein Horizon, kein unverbundenes Aussenland).
 	bool CheckFootprintCollision(const ItemInfo& item, const Vector3& displacement)
 	{
 		auto& heliFrame = GetFrame(item);
-		float bottomMeshY = item.Pose.Position.y + heliFrame.BoundingBox.Y1;
-		float topMeshY = item.Pose.Position.y + heliFrame.BoundingBox.Y2;
+		float bottomMeshY = item.Pose.Position.y + heliFrame.BoundingBox.Y1 + displacement.y;
+		float topMeshY = item.Pose.Position.y + heliFrame.BoundingBox.Y2 + displacement.y;
 		int bandHeight = (int)(topMeshY - bottomMeshY);
 		float midY = (bottomMeshY + topMeshY) / 2.0f;
 
@@ -109,26 +163,174 @@ namespace TEN::Entities::Creatures::TR5
 		float posX = item.Pose.Position.x;
 		float posZ = item.Pose.Position.z;
 
-		// Vier Ecken des Bodenebenen-Fussabdrucks (lokal, relativ zum Pose-Ort).
-		int cornerX[4] = { heliFrame.BoundingBox.X1, heliFrame.BoundingBox.X2, heliFrame.BoundingBox.X1, heliFrame.BoundingBox.X2 };
-		int cornerZ[4] = { heliFrame.BoundingBox.Z1, heliFrame.BoundingBox.Z1, heliFrame.BoundingBox.Z2, heliFrame.BoundingBox.Z2 };
+		// Gitter ueber die Fussabdruck-Flaeche (lokal, relativ zum Pose-Ort): 4x4 = 16 Stichproben.
+		constexpr int FOOTPRINT_GRID = 4;
+		float xSpan = (float)heliFrame.BoundingBox.X2 - (float)heliFrame.BoundingBox.X1;
+		float zSpan = (float)heliFrame.BoundingBox.Z2 - (float)heliFrame.BoundingBox.Z1;
 
-		for (int i = 0; i < 4; i++)
+		for (int gx = 0; gx < FOOTPRINT_GRID; gx++)
 		{
-			// Yaw-Rotation (um Y) + World-Translation + vorgeschlagene Verschiebung.
-			float worldX = posX + (cornerX[i] * yawCos + cornerZ[i] * yawSin) + displacement.x;
-			float worldZ = posZ + (-cornerX[i] * yawSin + cornerZ[i] * yawCos) + displacement.z;
+			for (int gz = 0; gz < FOOTPRINT_GRID; gz++)
+			{
+				float fx = (float)gx / (float)(FOOTPRINT_GRID - 1);
+				float fz = (float)gz / (float)(FOOTPRINT_GRID - 1);
+				float localX = (float)heliFrame.BoundingBox.X1 + fx * xSpan;
+				float localZ = (float)heliFrame.BoundingBox.Z1 + fz * zSpan;
 
-			auto pointColl = GetPointCollision(Vector3(worldX, midY, worldZ), item.RoomNumber);
+				// Yaw-Rotation (um Y) + World-Translation + vorgeschlagene Verschiebung.
+				float worldX = posX + (localX * yawCos + localZ * yawSin) + displacement.x;
+				float worldZ = posZ + (-localX * yawSin + localZ * yawCos) + displacement.z;
 
-			if (pointColl.IsWall())
-				return true;
+				Vector3 probePos(worldX, midY, worldZ);
 
-			if (abs(pointColl.GetCeilingHeight() - pointColl.GetFloorHeight()) <= bandHeight)
-				return true;
+				// Punkt muss in einem gueltigen, verbundenen Raum liegen (kein Horizon, kein unverbundenes Aussenland).
+				int probeRoom = ResolveProbeRoom(probePos, item.RoomNumber);
+				if (probeRoom == NO_VALUE)
+					return true;
+
+				auto pointColl = GetPointCollision(probePos, probeRoom);
+
+				if (pointColl.IsWall())
+					return true;
+
+				// Exakte Durchdringung: Fussabdruck-Unterkante unter dem Boden oder Oberkante ueber der Decke.
+				int floorHeight = pointColl.GetFloorHeight();
+				int ceilingHeight = pointColl.GetCeilingHeight();
+				if (floorHeight != NO_HEIGHT && floorHeight < bottomMeshY)
+					return true;
+				if (ceilingHeight != NO_HEIGHT && ceilingHeight > topMeshY)
+					return true;
+
+				if (abs(ceilingHeight - floorHeight) <= bandHeight)
+					return true;
+			}
 		}
 
 		return false;
+	}
+
+	// Unterstrukturierter Kollisions-Check: prueft den Fussabdruck entlang des
+	// kompletten Verschiebungspfades (x+y+z) in kleinen Sub-Schritten. true = frei.
+	bool SweptFootprintClear(const ItemInfo& item, const Vector3& displacement)
+	{
+		float stepLength = displacement.Length();
+		if (stepLength < 1.0f)
+			return !CheckFootprintCollision(item, displacement);
+
+		// Sub-Schritte, max. SECTOR/4, damit keine Wand bei schneller Bewegung durchflogen wird.
+		constexpr float MAX_SUBSTEP = (float)SECTOR_SIZE * 0.25f;
+		int steps = (int)(stepLength / MAX_SUBSTEP + 1.0f);
+
+		Vector3 dir = displacement * (1.0f / stepLength);
+		for (int i = 1; i <= steps; i++)
+		{
+			Vector3 offset = dir * (stepLength * ((float)i / (float)steps));
+			if (CheckFootprintCollision(item, offset))
+				return false;
+		}
+
+		return true;
+	}
+
+	// Helper: Sucht eine freie Flug-Richtung nahe der bevorzugten Richtung (XZ-Ebene).
+	// Testet fuenf symmetrische Kandidaten (0, +/-45, +/-90 Grad) um preferredDir und waehlt die
+	// kollisionsfreie Richtung mit dem kleinsten Abstand zur bevorzugten Richtung.
+	// Ein Continuity-Bias bevorzugt die zuletzt gewaehlte Ausweich-Seite (verhindert Hin-/Her-Kippen).
+	// true = freie Richtung gefunden (in outDir), false = keine Richtung frei.
+	bool FindBestAvoidanceDirection(const ItemInfo& item, const Vector3& preferredDir, float probeDistance, Vector3& outDir)
+	{
+		// Fuenf Kandidaten in Grad, symmetrisch um die bevorzugte Richtung.
+		const float candidateAngles[5] = { 0.0f, 45.0f, -45.0f, 90.0f, -90.0f };
+		const float RAD_PER_DEG = 0.0174532925f; // PI / 180
+
+		float bestScore = 1000.0f;
+		Vector3 bestDir = preferredDir;
+		bool found = false;
+
+		int orbitSide = (GunShipOrbit.Direction > 0) ? 1 : -1;
+
+		for (int i = 0; i < 5; i++)
+		{
+			float theta = candidateAngles[i] * RAD_PER_DEG;
+			float cosT = cosf(theta);
+			float sinT = sinf(theta);
+
+			// 2D-Rotation um Y (nur XZ-Komponenten).
+			Vector3 cand(preferredDir.x * cosT - preferredDir.z * sinT, 0.0f, preferredDir.x * sinT + preferredDir.z * cosT);
+			cand.Normalize();
+
+			if (!SweptFootprintClear(item, cand * probeDistance))
+				continue;
+
+			// Scoring: Abstand zur bevorzugten Richtung, mit Continuity-Bias auf die letzte Ausweich-Seite.
+			float score = fabsf(candidateAngles[i]);
+			int candidateSide = (candidateAngles[i] > 0.0f) ? 1 : ((candidateAngles[i] < 0.0f) ? -1 : 0);
+			if (GunShipOrbit.Initialized && candidateSide != 0 && candidateSide != orbitSide)
+				score += 0.5f;
+
+			if (score < bestScore)
+			{
+				bestScore = score;
+				bestDir = cand;
+				found = true;
+				if (candidateSide != 0)
+					GunShipOrbit.Direction = candidateSide;
+			}
+		}
+
+		if (!found)
+			return false;
+
+		GunShipOrbit.Initialized = true;
+		outDir = bestDir;
+		return true;
+	}
+
+	// Helper: Sucht ein Escapetarget in gueltiger, verbundener Raum-Geometrie, das mindestens
+	// minEscapeDist vom Shoot-Target entfernt ist und ausreichende Flug-Clearance bietet
+	// (inkl. Decken-Hoehe). Wird bei Blockade in EVADE verwendet, um aus einer Sackgasse zu fliegen.
+	// true = Escapetarget gefunden (in outPos), false = kein gueltiger Punkt.
+	bool FindEscapeTarget(const ItemInfo& item, const Vector3& shootTargetPos, float minEscapeDist, Vector3& outPos)
+	{
+		Vector3 heliPos = item.Pose.Position.ToVector3();
+		float bestScore = 10000000.0f;
+		bool found = false;
+
+		// Ring von Kandidaten im Umkreis des Shoot-Targets (horizontal), auf der aktuellen Heli-Hoehe.
+		constexpr int DIRS = 12;
+		constexpr float TWO_PI = 6.28318530718f;
+
+		for (int k = 0; k < DIRS; k++)
+		{
+			float angle = ((float)k / (float)DIRS) * TWO_PI;
+			Vector3 cand(
+				shootTargetPos.x + cosf(angle) * minEscapeDist,
+				heliPos.y,
+				shootTargetPos.z + sinf(angle) * minEscapeDist);
+
+			Vector3 disp = cand - heliPos;
+			if (disp.Length() < (float)SECTOR_SIZE)
+				continue; // zu nah am Heli, kein sinnvoller Fluchtpunkt
+
+			// Destination muss Clearance + verbundene Geometrie bieten (ResolveProbeRoom + Waende/Decke).
+			if (CheckFootprintCollision(item, disp))
+				continue;
+
+			// Grobe Pfad-Mitte muss frei sein, damit das Ziel realistisch erreichbar ist.
+			if (CheckFootprintCollision(item, disp * 0.5f))
+				continue;
+
+			// Naechster gueltige Punkt (wenigste Fluggestrecke) bevorzugt.
+			float score = disp.Length();
+			if (score < bestScore)
+			{
+				bestScore = score;
+				outPos = cand;
+				found = true;
+			}
+		}
+
+		return found;
 	}
 
 	// Helper: Berechnet die Distanz und Richtung zum Ziel
@@ -270,7 +472,7 @@ namespace TEN::Entities::Creatures::TR5
 
 		float pitch = atan2f(dy, hDist) - (float)DEG_TO_RAD(8.0f);
 
-		const float maxPitch = (float)DEG_TO_RAD(MAX_PITCH_DEG);
+		constexpr float maxPitch = (float)DEG_TO_RAD(MAX_PITCH_DEG);
 		if (pitch > maxPitch)
 			pitch = maxPitch;
 		if (pitch < 0.0f)
@@ -295,8 +497,43 @@ namespace TEN::Entities::Creatures::TR5
 
 		bool hasShootTarget = (shootTargetNum >= 0);
 
-		bool hasMoveTargetPos = PropertyHandler::Get(*item, "GunshipMovementTarget", false);
+		// moveTargetPos (hoechste Prioritaet): Zielposition als Vec3. One-Shot: wird beim Erreichen geleert.
+		//Vector3 moveTargetPos = (Vector3)PropertyHandler::Get(*item, "GunshipMoveTarget", Vec3());
+		//bool hasMoveTargetPos = (moveTargetPos != Vector3::Zero);
+
 		Vector3 moveTargetPos = Vector3::Zero;
+		bool hasMoveTargetPos = (moveTargetPos != Vector3::Zero);
+
+		// Auto-Escape (nicht-persistent): wenn aktiv, dient das Escapetarget als MoveTarget (Vorrang vor Shoot-Target).
+		if (GunShipEscape.Active)
+		{
+			moveTargetPos = GunShipEscape.TargetPos;
+			hasMoveTargetPos = true;
+
+			// Timeout: Escape darf nicht ewig laufen (z.B. Pfad blockiert / Ziel nicht erreichbar) -> dann Kampf fortsetzen.
+			if (++GunShipEscape.Frames > MAX_ESCAPE_FRAMES)
+			{
+				GunShipEscape.Reset();
+				hasMoveTargetPos = false;
+				moveTargetPos = Vector3::Zero;
+			}
+		}
+
+		// One-Shot: moveTargetPos (HORIZONTAL) erreicht -> Property leeren, Escape-Zustand zuruecksetzen, normaler Kampf-Modus.
+		// Horizontal statt 3D: im FOLLOW schwebt der Heli ~HOVER_HEIGHT_OFFSET unter dem Ziel und wuerde die 3D-Distanz
+		// nie < Radius senken -> der Escape-Zustand wuerde sonst nie geleert (Heli steckt in IDLE fest, feuert nicht).
+		if (hasMoveTargetPos)
+		{
+			float dmx = moveTargetPos.x - item->Pose.Position.x;
+			float dmz = moveTargetPos.z - item->Pose.Position.z;
+			if (sqrtf(dmx * dmx + dmz * dmz) < MOVE_TARGET_REACH_RADIUS)
+			{
+				item->Properties.Set("GunshipMoveTarget", Vec3());
+				GunShipEscape.Reset();
+				hasMoveTargetPos = false;
+				moveTargetPos = Vector3::Zero;
+			}
+		}
 
 		ItemInfo* moveTargetItem = hasMoveTargetPos ? nullptr : LaraItem.Get();
 		if (!hasMoveTargetPos && hasShootTarget)
@@ -458,28 +695,94 @@ namespace TEN::Entities::Creatures::TR5
 		}
 
 		bool blocked = false;
-		if (isMoving)
+		bool overfly = false;
+		if (isMoving && horizontalDist > 1.0f)
 		{
-			blocked = CheckFootprintCollision(*item, moveDir * currentSpeed);
+			// Probedistanz: bewegungsgeschwindigkeit-basiert, mindestens 1 Sektor (kein Wand-Tunneling).
+			float probeDistance = (currentSpeed > (float)SECTOR_SIZE) ? currentSpeed : (float)SECTOR_SIZE;
 
-			if (!blocked && CheckFootprintCollision(*item, moveDir * currentSpeed * 2.0f))
+			// Preferred Richtung (Combat-Distanz / MoveTo) auf Flight-Clearance testen.
+			if (!SweptFootprintClear(*item, moveDir * probeDistance))
+			{
+				// Preferred blockiert -> nahe Ausweich-Richtung waehlen (FOLLOW/MoveTo UND EVADE).
+				// Collision-Vermeidung hat Vorrang vor Combat-Distanz.
+				Vector3 avoidDir = moveDir;
+				if (!FindBestAvoidanceDirection(*item, moveDir, probeDistance, avoidDir))
+				{
+					// Keine freie horizontale Richtung -> vertikal ueberfliegen (nur mit Decken-Clearance).
+					if (SweptFootprintClear(*item, moveDir * probeDistance + Vector3(0.0f, -EVADE_OVERFLY_HEIGHT, 0.0f)))
+						overfly = true;
+					else
+						blocked = true;
+				}
+				else
+				{
+					moveDir = avoidDir;
+				}
+			}
+			else if (!SweptFootprintClear(*item, moveDir * probeDistance * 2.0f))
+			{
+				// Weiche Blockade weiter vorne -> Tempo reduzieren.
 				currentSpeed *= 0.5f;
+			}
+
+			// Nose-Orientierung: Overfly -> in Bewegungsrichtung anvisen (sonst Ziel bleibt anvisiert).
+			if (overfly)
+			{
+				Vector3 overPoint = item->Pose.Position.ToVector3() + moveDir * probeDistance;
+				overPoint.y = targetInfo.targetPos.y - EVADE_OVERFLY_HEIGHT;
+				targetOrient = Geometry::GetOrientToPoint(item->Pose.Position.ToVector3(), overPoint);
+			}
+		}
+
+		// Finale Validierung der tatsaechlichen Bewegung (fixt Wand-Durchflug).
+		// Overfly: Bewegung ist horizontal + vertikal, daher den erhohten Endpunkt validieren.
+		if (isMoving && !blocked)
+		{
+			Vector3 finalDisplacement = moveDir * currentSpeed;
+			if (overfly)
+				finalDisplacement += Vector3(0.0f, -EVADE_OVERFLY_HEIGHT, 0.0f);
+
+			if (!SweptFootprintClear(*item, finalDisplacement))
+				blocked = true;
 		}
 
 		if (blocked)
 		{
+			const GunShipState blockedState = currentState;
+
 			currentSpeed = 0.0f;
 			item->ItemFlags[3] = 0;
 
 			currentState = GunShipState::IDLE;
-			
-			// Position leicht rückwärts verschieben um aus der Kollision herauszukommen
-			if (horizontalDist > 1.0f)
+
+			// Auto-Escape: Heli kann nicht weiter (Wand / Roombound) -> Escapetarget (>= Shoot-Reichweite,
+			// in erreichbaren Raumen, mit Clearance) suchen und dorthin fliegen (via MoveTarget). Dort
+			// angekommen wird der Escape-Zustand geleert und der Kampf automatisch fortgesetzt.
+			if (blockedState == GunShipState::EVADE_NEAR && hasShootTarget && shootTargetNum >= 0)
+			{
+				Vector3 escapeTarget = Vector3::Zero;
+				if (FindEscapeTarget(*item, g_Level.Items[shootTargetNum].Pose.Position.ToVector3(), (float)(maxShotsRange + SECTOR_SIZE), escapeTarget))
+				{
+					GunShipEscape.Active = true;
+					GunShipEscape.TargetPos = escapeTarget;
+				}
+			}
+
+			// Position leicht zurueckschieben um aus der Kollision herauszukommen.
+			// Nur in FOLLOW (Escape = weg vom Ziel) und nur wenn der Rueckweg frei ist.
+			// In EVADE waere der Rueckdruck in die blockierende Wand -> Heli bleibt stehen statt einzudringen.
+			if (blockedState == GunShipState::FOLLOW && horizontalDist > 1.0f)
 			{
 				float dx = targetInfo.targetPos.x - item->Pose.Position.x;
 				float dz = targetInfo.targetPos.z - item->Pose.Position.z;
-				item->Pose.Position.x -= (int)((dx / horizontalDist) * 32);
-				item->Pose.Position.z -= (int)((dz / horizontalDist) * 32);
+				Vector3 escapeDir(-dx / horizontalDist, 0.0f, -dz / horizontalDist);
+
+				if (!CheckFootprintCollision(*item, escapeDir * 32.0f))
+				{
+					item->Pose.Position.x += (int)(escapeDir.x * 32.0f);
+					item->Pose.Position.z += (int)(escapeDir.z * 32.0f);
+				}
 			}
 
 			FixYPosition(item);
@@ -541,8 +844,9 @@ namespace TEN::Entities::Creatures::TR5
 					case GunShipState::FOLLOW:
 					if (horizontalDist > 1.0f)
 					{
-						item->Pose.Position.x += (int)((targetInfo.targetPos.x - item->Pose.Position.x) / horizontalDist * moveDist);
-						item->Pose.Position.z += (int)((targetInfo.targetPos.z - item->Pose.Position.z) / horizontalDist * moveDist);
+						// moveDir enthaelt die aktive Flug-Richtung (Preferred Richtung oder Ausweich-Richtung).
+						item->Pose.Position.x += (int)(moveDir.x * moveDist);
+						item->Pose.Position.z += (int)(moveDir.z * moveDist);
 					}
 
 					if (item->ItemFlags[7])
@@ -557,8 +861,9 @@ namespace TEN::Entities::Creatures::TR5
 					case GunShipState::EVADE_NEAR:
 					if (horizontalDist > 1.0f)
 					{
-						item->Pose.Position.x -= (int)((targetInfo.targetPos.x - item->Pose.Position.x) / horizontalDist * moveDist);
-						item->Pose.Position.z -= (int)((targetInfo.targetPos.z - item->Pose.Position.z) / horizontalDist * moveDist);
+						// moveDir enthaelt die aktive Ausweich-Richtung (Rueckwaerts, lateral oder Overfly).
+						item->Pose.Position.x += (int)(moveDir.x * moveDist);
+						item->Pose.Position.z += (int)(moveDir.z * moveDist);
 					}
 
 					break;
@@ -575,7 +880,19 @@ namespace TEN::Entities::Creatures::TR5
 
 		if (!blocked)
 		{
-			item->Pose.Position.y += (int)currentYSpeed;
+			// Y-Schritt nur anwenden, wenn der verschobene Fussabdruck frei ist (seitliche Waende/Erhohungen).
+			int yDelta = (int)currentYSpeed;
+			if (overfly)
+			{
+				// Overfly: auf die erhohte Hohe ueber Lara steigen.
+				float overflyTargetY = targetInfo.targetPos.y - EVADE_OVERFLY_HEIGHT;
+				float dy = overflyTargetY - (float)item->Pose.Position.y;
+				yDelta = (fabsf(dy) > 1.0f) ? ((dy < 0.0f) ? -FLY_UP_SPEED : FLY_DOWN_SPEED) : 0;
+			}
+			if (yDelta != 0 && CheckFootprintCollision(*item, Vector3(0.0f, (float)yDelta, 0.0f)))
+				yDelta = 0;
+
+			item->Pose.Position.y += yDelta;
 
 			FixYPosition(item);
 
@@ -647,7 +964,8 @@ namespace TEN::Entities::Creatures::TR5
 				shootHLen = sqrtf(shootHdx * shootHdx + shootHdz * shootHdz);
 			}
 
-			const bool hasShootTargetInRange = hasShootTarget && shootHLen <= maxShotsRange;
+			// Waehrend eines MoveTarget/Escape-Flugs NICHT auf das Shoot-Target feuern (Heli fliegt dorthin, statt zu angreifen).
+		const bool hasShootTargetInRange = hasShootTarget && !hasMoveTargetPos && shootHLen <= maxShotsRange;
 		
 
 			if (hasShootTargetInRange)
