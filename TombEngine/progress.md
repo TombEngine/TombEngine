@@ -1,9 +1,29 @@
 # Progress
 
 ## Current Task
-Gunship (TR5): Heli blieb im Escape stecken (FOLLOW/EVADE-Loop, bewegte sich nicht). **Root Cause:** Evade-Flag (`ItemFlags[7]`) wurde beim Escape-Trigger nicht zurückgesetzt → Zeile 585 zwang den State auf `EVADE_NEAR`. **Fix:** Neuer `ESCAPE`-State (frei fliegen, Y frei innerhalb Raum-Bounds via `FixYPosition`), Evade-Flag beim Trigger zurückgesetzt, State-Override auf `ESCAPE` deaktiviert. Fertig – wartet auf In-Szene-Test.
+Gunship (TR5): Escape-Stuck-Loop behoben. Wenn der Heli WÄHREND des ESCAPE-Flugs blockiert ist, wurde `TargetPos` nie neu gewählt (Trigger feuerte nur bei `blockedState == EVADE_NEAR`) → deterministische `FindEscapeTarget` wählte nach Timeout denselben unerreichbaren Punkt → Endlos-Loop. **Fix:** Re-Targeting jetzt auch im ESCAPE-State, Ausschluss des letzten fehlgeschlagenen Targets, robusterer Pfad-Check. Fertig – wartet auf In-Szene-Test.
 
 ## Completed Work
+- **Gunship (TR5): Escape-Stuck-Loop-Fix (`tr5_gunship.cpp`):**
+  - **Trigger erweitert (Zeile ~810):** `blockedState == EVADE_NEAR || blockedState == ESCAPE` → bei Blockade im Escape-Flug wird neu gesucht.
+  - **Neue Signature `FindEscapeTarget`:** zusätzlich `const Vector3& excludePos, float excludeRadius` → Kandidaten im Ausschlussradius (XZ) um `excludePos` werden übersprungen. Aufruf gibt `GunShipEscape.TargetPos` als excludePos → letztes fehlgeschlagenes Ziel wird nicht erneut gewählt.
+  - **Neue Konstante `ESCAPE_EXCLUDE_RADIUS = SECTOR_SIZE * 2.0f`** (nach `MOVE_TARGET_REACH_RADIUS`).
+  - **Pfad-Check verstärkt:** `disp * 0.5f` ersetzt durch `disp * 0.33f` ODER `disp * 0.66f` ODER `disp * 0.9f` → Blockade im letzten Stück vor dem Ziel wird erkannt.
+  - **`GunShipEscape.Frames = 0`** beim Escape-Trigger → frisches Timeout-Fenster pro neuem Ziel.
+  - **Aufgeräumt:** kaputtes `if (cand == outPos) { Vector3 disp = cand - heliPos/2; }`-Fragment (Re-Deklaration, nicht kompilierbar) durch den Ausschluss-Block ersetzt.
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage; Build-Errors meldet der Nutzer).
+  - **Stand der Konstanten (benutzerseitig):** `MOVE_TARGET_REACH_RADIUS = SECTOR_SIZE * 0.5f` (~0,5 Block horizontale Toleranz), `disp.Length() < SECTOR_SIZE * 2.0f` als Mindest-Fluchtdistanz in `FindEscapeTarget`.
+
+## Modified Files
+- `Objects/TR5/Entity/tr5_gunship.cpp`
+
+## Next Step
+- In-Szene-Test: Heli EVADE → Blockade → ESCAPE → (optional) Blockade im Escape-Flug → **neues** Escapetarget (altes ausgeschlossen) → Ankunft (Radius ~0,5 Block) → Kampf wird fortgesetzt. Kein Stuck-Loop mehr.
+
+## Blockers
+- Keine.
+
+## Previous Completed Work
 - **Gunship (TR5): ESCAPE-State für den Escape-Flug (`tr5_gunship.cpp`):**
   - **Neuer `GunShipState::ESCAPE` (=3):** eigener State für den Escape-Flug (statt FOLLOW-Reuse). `DetermineGunShipState`: `hasMoveTargetPos` → `ESCAPE`.
   - **Bug-Fix (Stuck):** Evade-Flag (`ItemFlags[7]`) wurde beim Escape-Trigger NICHT zurückgesetzt → `if (ItemFlags[7]==1) currentState=EVADE_NEAR` zwang den State auf EVADE_NEAR → Heli steckte im EVADE-Loop. Fix: (a) `ItemFlags[7]=0` im Escape-Trigger, (b) Override-Bedingung `&& currentState != ESCAPE`.
@@ -65,12 +85,3 @@ Gunship (TR5): Heli blieb im Escape stecken (FOLLOW/EVADE-Loop, bewegte sich nic
 - **FOLLOW-UP Bugfix 2 (Tunneling durch Wände, v. a. EVADE):** Probe-Distanz von fixem `SECTOR_SIZE` auf `currentSpeed` gesetzt. `EVADE_NEAR` = `MAX_MOVE_SPEED * 2.5f` → Heli bewegt sich >1 Sektor/Frame → tunnelt durch den 1-Sektor-Probe. Jetzt Probe ≥ Bewegungs-Distanz → kein Tunneling.
 - **Aufräumen:** `CheckEarlyBlocking`, `CheckForwardCollision`, `dummySpeed` entfernt.
 - **Skalar-Division vermieden:** `moveDir * (1.0f / horizontalDist)` statt `Vector3 / float` (Skalar-Division im Codebase nicht belegt → sicherer).
-
-## Modified Files
-- `Objects/TR5/Entity/tr5_gunship.cpp`
-
-## Next Step
-- In-Szene-Test: Heli EVADE → Blockade → **ESCAPE-State** → fliegt zum Escapetarget (frei, Y frei innerhalb Raum-Bounds) → Kampf wird fortgesetzt. Kein EVADE-Loop, kein Stuck. Falls noch Stuck: Escape-Pfad-Check in `FindEscapeTarget` (Ziel muss erreichbar sein).
-
-## Blockers
-- Keine.

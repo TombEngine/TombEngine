@@ -61,7 +61,8 @@ namespace TEN::Entities::Creatures::TR5
 	constexpr float EVADE_RAISE_HEIGHT = SECTOR_SIZE * 1.5f; // ~1.5 BLOCK, Aufstieg beim Evaden, damit das Heck den Boden nicht berührt
 	constexpr float HOVER_HEIGHT_OFFSET = SECTOR_SIZE * 1.5f; // Heli schwebt ~1.5 Sektoren über dem Ziel, damit er beim Schießen nach unten zielen kann
 	constexpr float EVADE_OVERFLY_HEIGHT = SECTOR_SIZE * 3.0f; // Overfly: Heli steigt so weit ueber Lara, dass Rumpf-Heck frei bleibt
-	constexpr float MOVE_TARGET_REACH_RADIUS = 100.0f; // moveTargetPos: One-Shot-Radius (horizontal), danach wird der Escape-/MoveTarget-Zustand geleert
+	constexpr float MOVE_TARGET_REACH_RADIUS = SECTOR_SIZE * 0.5f; // moveTargetPos: One-Shot-Radius (horizontal), danach wird der Escape-/MoveTarget-Zustand geleert
+	constexpr float ESCAPE_EXCLUDE_RADIUS = SECTOR_SIZE * 2.0f; // Ausschlussradius: das zuletzt fehlgeschlagene Escapetarget wird bei der Neu-Suche nicht erneut gewaehlt
 	constexpr int MAX_ESCAPE_FRAMES = 280; // Auto-Escape: max. Frames, bevor der Escape-Flug aufgegeben wird (Kampf wird fortgesetzt)
 
 	// Enum für Helikopter-Status
@@ -290,9 +291,11 @@ namespace TEN::Entities::Creatures::TR5
 
 	// Helper: Sucht ein Escapetarget in gueltiger, verbundener Raum-Geometrie, das mindestens
 	// minEscapeDist vom Shoot-Target entfernt ist und ausreichende Flug-Clearance bietet
-	// (inkl. Decken-Hoehe). Wird bei Blockade in EVADE verwendet, um aus einer Sackgasse zu fliegen.
+	// (inkl. Decken-Hoehe). Wird bei Blockade in EVADE_NEAR/ESCAPE verwendet, um aus einer Sackgasse zu fliegen.
+	// Kandidaten in excludeRadius um excludePos werden ausgespart, damit ein fehlgeschlagenes
+	// Escapetarget nicht erneut gewaehlt wird (verhindert den Stuck-Loop).
 	// true = Escapetarget gefunden (in outPos), false = kein gueltiger Punkt.
-	bool FindEscapeTarget(const ItemInfo& item, const Vector3& shootTargetPos, float minEscapeDist, Vector3& outPos)
+	bool FindEscapeTarget(const ItemInfo& item, const Vector3& shootTargetPos, float minEscapeDist, const Vector3& excludePos, float excludeRadius, Vector3& outPos)
 	{
 		Vector3 heliPos = item.Pose.Position.ToVector3();
 		float bestScore = 10000000.0f;
@@ -311,16 +314,29 @@ namespace TEN::Entities::Creatures::TR5
 				shootTargetPos.z + sinf(angle) * minEscapeDist);
 
 			Vector3 disp = cand - heliPos;
-			if (disp.Length() < (float)SECTOR_SIZE)
+			if (disp.Length() < (float)SECTOR_SIZE * 2.0f)
 				continue; // zu nah am Heli, kein sinnvoller Fluchtpunkt
 
 			// Destination muss Clearance + verbundene Geometrie bieten (ResolveProbeRoom + Waende/Decke).
 			if (CheckFootprintCollision(item, disp))
 				continue;
 
-			// Grobe Pfad-Mitte muss frei sein, damit das Ziel realistisch erreichbar ist.
-			if (CheckFootprintCollision(item, disp * 0.5f))
+			// Pfad muss an mehreren Zwischenpunkten frei sein, damit das Ziel realistisch erreichbar ist.
+			// (Nur die Pfad-Mitte zu pruefen verpasst Blockaden im letzten Stueck vor dem Ziel.)
+			if (CheckFootprintCollision(item, disp * 0.33f) ||
+				CheckFootprintCollision(item, disp * 0.66f) ||
+				CheckFootprintCollision(item, disp * 0.9f))
 				continue;
+
+			// Zuletzt fehlgeschlagenes Escapetarget nicht erneut waehlen (sonst gleicher Stuck-Loop).
+			// Nur horizontal (XZ) vergleichen, da der Ring auf der Heli-Hoehe liegt.
+			if (excludePos != Vector3::Zero)
+			{
+				float exx = cand.x - excludePos.x;
+				float exz = cand.z - excludePos.z;
+				if (sqrtf(exx * exx + exz * exz) < excludeRadius)
+					continue;
+			}
 
 			// Naechster gueltige Punkt (wenigste Fluggestrecke) bevorzugt.
 			float score = disp.Length();
@@ -329,6 +345,9 @@ namespace TEN::Entities::Creatures::TR5
 				bestScore = score;
 				outPos = cand;
 				found = true;
+
+				
+
 			}
 		}
 
@@ -519,6 +538,9 @@ namespace TEN::Entities::Creatures::TR5
 				GunShipEscape.Reset();
 				hasMoveTargetPos = false;
 				moveTargetPos = Vector3::Zero;
+				GunShipEscape.Active = false;
+				GunShipEscape.TargetPos = Vector3::Zero;
+				GunShipEscape.Frames = 0;
 			}
 		}
 
@@ -785,16 +807,20 @@ namespace TEN::Entities::Creatures::TR5
 			// Auto-Escape: Heli kann nicht weiter (Wand / Roombound) -> Escapetarget (>= Shoot-Reichweite,
 			// in erreichbaren Raumen, mit Clearance) suchen und dorthin fliegen (via MoveTarget). Dort
 			// angekommen wird der Escape-Zustand geleert und der Kampf automatisch fortgesetzt.
-			if (blockedState == GunShipState::EVADE_NEAR && hasShootTarget && shootTargetNum >= 0)
+			if ((blockedState == GunShipState::EVADE_NEAR || blockedState == GunShipState::ESCAPE) && hasShootTarget && shootTargetNum >= 0)
 			{
 				Vector3 escapeTarget = Vector3::Zero;
-				if (FindEscapeTarget(*item, g_Level.Items[shootTargetNum].Pose.Position.ToVector3(), (float)(maxShotsRange + SECTOR_SIZE), escapeTarget))
+				if (FindEscapeTarget(*item, g_Level.Items[shootTargetNum].Pose.Position.ToVector3(), (float)(maxShotsRange + SECTOR_SIZE), GunShipEscape.TargetPos, ESCAPE_EXCLUDE_RADIUS, escapeTarget))
 				{
 					GunShipEscape.Active = true;
 					GunShipEscape.TargetPos = escapeTarget;
+					GunShipEscape.Frames = 0; // Neues Ziel -> frisches Timeout-Fenster (sonst laeuft Frames aus dem Reset mit).
 					item->ItemFlags[7] = 0; // Evade-Flag zuruecksetzen, damit der ESCAPE-State nicht auf EVADE_NEAR gezwungen wird.
 				}
 			}
+
+			if (GunShipEscape.TargetPos != Vector3::Zero)
+				DrawDebugSphere(GunShipEscape.TargetPos, 43, Vector4::One, RendererDebugPage::None);
 
 			// Position leicht zurueckschieben um aus der Kollision herauszukommen.
 			// Nur in FOLLOW (Escape = weg vom Ziel) und nur wenn der Rueckweg frei ist.
