@@ -1101,7 +1101,7 @@ namespace TEN::Entities::Vehicles
 
 		// The kayak has just landed on water after a fall; spawn a splash.
 		if (ofs - kayakItem->Animation.Velocity.y > 32 &&
-			kayakItem->Animation.Velocity.y == 0 && water != NO_HEIGHT)
+			kayakItem->Animation.Velocity.y == 0 && kayak->TrueWater)
 		{
 			KayakSplash(kayakItem, ofs - kayakItem->Animation.Velocity.y);
 		}
