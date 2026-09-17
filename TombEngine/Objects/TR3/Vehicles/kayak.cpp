@@ -499,7 +499,9 @@ namespace TEN::Entities::Vehicles
 		kayakItem->Pose.Position.z += kayakItem->Animation.Velocity.z * phd_cos(kayakItem->Pose.Orientation.y);
 		kayakItem->Pose.Orientation.y += kayak->TurnRate;
 
-		KayakDoCurrent(kayakItem, laraItem);
+		// Water current state belongs to the player, so only apply it while the player is driving this kayak.
+		if (GetLaraInfo(laraItem)->Context.Vehicle == kayakItem->Index)
+			KayakDoCurrent(kayakItem, laraItem);
 
 		kayak->LeftVerticalVelocity = KayakDoDynamics(leftHeight, kayak->LeftVerticalVelocity, &leftPos.y);
 		kayak->RightVerticalVelocity = KayakDoDynamics(rightHeight, kayak->RightVerticalVelocity, &rightPos.y);
