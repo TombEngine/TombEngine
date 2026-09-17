@@ -56,8 +56,8 @@ namespace TEN::Effects::Environment
 		Color			BaseColor			= Color(1.0f, 1.0f, 1.0f, 1.0f);
 		float			Strength			= 1.0f;
 		float			Life				= 1.0f;
-		Vector3			RandomRange			= Vector3(BLOCK(8), BLOCK(1), BLOCK(8));
-		Quaternion		RandomRotation		= Quaternion::Identity;
+		Vector3			SpawnRange			= Vector3(BLOCK(8), BLOCK(1), BLOCK(8));
+		Quaternion		SpawnRotation		= Quaternion::Identity;
 		bool			Clustering			= false;
 	};
 

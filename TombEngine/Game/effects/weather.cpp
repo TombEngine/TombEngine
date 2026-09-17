@@ -362,7 +362,7 @@ namespace TEN::Effects::Environment
 					break;
 				newParticlesCount++;
 
-				auto randBox = BoundingOrientedBox(position.ToVector3(), parameters.RandomRange, parameters.RandomRotation);
+				auto randBox = BoundingOrientedBox(position.ToVector3(), parameters.SpawnRange, parameters.SpawnRotation);
 				auto randPos = Random::GeneratePointInBox(randBox);
 				int outsideRoom = IsRoomOutside(randPos.x, randPos.y, randPos.z);
 				if (outsideRoom == NO_VALUE)
@@ -677,14 +677,14 @@ namespace TEN::Effects::Environment
 		switch (params.Type)
 		{
 		case WeatherType::Snow:
-			params.RandomRange = Vector3(WEATHER_SPAWN_DIST_SNOW, BLOCK(1), WEATHER_SPAWN_DIST_SNOW);
+			params.SpawnRange = Vector3(WEATHER_SPAWN_DIST_SNOW, BLOCK(1), WEATHER_SPAWN_DIST_SNOW);
 			break;
 		case WeatherType::Rain:
-			params.RandomRange = Vector3(WEATHER_SPAWN_DIST_RAIN, BLOCK(1), WEATHER_SPAWN_DIST_RAIN);
+			params.SpawnRange = Vector3(WEATHER_SPAWN_DIST_RAIN, BLOCK(1), WEATHER_SPAWN_DIST_RAIN);
 			params.BaseColor.x = 0.8f; // Light blue tint for rain.
 			break;
 		default:
-			params.RandomRange = Vector3(WEATHER_SPAWN_DIST_OTHER, BLOCK(1), WEATHER_SPAWN_DIST_OTHER);
+			params.SpawnRange = Vector3(WEATHER_SPAWN_DIST_OTHER, BLOCK(1), WEATHER_SPAWN_DIST_OTHER);
 			break;
 		}
 		params.Life = 1.0f;
