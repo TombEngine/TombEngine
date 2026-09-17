@@ -1,11 +1,9 @@
 #pragma once
 
-#include "Game/Animation/Animation.h"
 #include "Math/Constants.h"
 #include "Objects/game_object_ids.h"
 #include "Specific/Structures/BitField.h"
 
-using namespace TEN::Animation;
 using namespace TEN::Math;
 using namespace TEN::Utils;
 
@@ -32,14 +30,14 @@ namespace TEN::Hud
 		BitField                             _meshBits         = BitField::Default;
 		std::unordered_map<int, EulerAngles> _meshOrientations = {};
 
+		// Animation state.
+
+		bool _animationEnabled = false;
+
 		int _animNumber      = 0;
 		int _frameNumber     = 0;
+		int _prevAnimNumber  = 0;
 		int _prevFrameNumber = 0;
-
-		// Effective animation frame data (current and previous), used for high framerate interpolation.
-
-		FrameData _frameData     = {};
-		FrameData _prevFrameData = {};
 
 		Vector3                              _prevPosition         = Vector3::Zero;
 		EulerAngles                          _prevOrientation      = EulerAngles::Identity;
@@ -73,6 +71,7 @@ namespace TEN::Hud
 		int  GetAnimNumber() const;
 		int  GetFrameNumber() const;
 		int  GetEndFrameNumber() const;
+		int  GetPrevAnimNumber() const;
 		int  GetPrevFrameNumber() const;
 
 		Vector3     GetInterpolatedPosition(float alpha) const;
@@ -80,7 +79,6 @@ namespace TEN::Hud
 		Vector3     GetInterpolatedScale(float alpha) const;
 		Color       GetInterpolatedColor(float alpha) const;
 		EulerAngles GetInterpolatedMeshRotation(int meshIndex, float alpha) const;
-		FrameData   GetInterpolatedFrame(float alpha) const;
 
 		// Setters
 
@@ -96,6 +94,8 @@ namespace TEN::Hud
 		void SetMeshOrientation(int meshIndex, const EulerAngles& orient, bool disableInterpolation);
 		void SetAnimation(int animNumber);
 		void SetFrame(int frameNumber);
+		void Enable();
+		void Disable();
 
 		// Inquirers
 
@@ -105,11 +105,5 @@ namespace TEN::Hud
 
 		void Animate();
 		void StoreInterpolationData();
-
-	private:
-		// Helpers
-
-		void RecomputeFrameData();
-		static FrameData LerpFrameData(const FrameData& from, const FrameData& to, float alpha);
 	};
 }

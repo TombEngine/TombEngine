@@ -8,6 +8,7 @@
 #include "Specific/clock.h"
 #include "Specific/Structures/BitField.h"
 
+using namespace TEN::Animation;
 using namespace TEN::Math;
 
 namespace TEN::Hud
@@ -22,10 +23,6 @@ namespace TEN::Hud
 		_prevPosition = pos;
 		_prevOrientation = orient;
 		_prevScale = scale;
-
-		// Initialize animation state.
-		RecomputeFrameData();
-		_prevFrameData = _frameData;
 	}
 
 	unsigned int DisplayItem::GetID() const
@@ -101,6 +98,11 @@ namespace TEN::Hud
 		return (anim.EndFrameNumber);
 	}
 
+	int DisplayItem::GetPrevAnimNumber() const
+	{
+		return _prevAnimNumber;
+	}
+
 	int DisplayItem::GetPrevFrameNumber() const
 	{
 		return _prevFrameNumber;
@@ -140,11 +142,6 @@ namespace TEN::Hud
 		return EulerAngles::Lerp(prevIt->second, it->second, alpha);
 	}
 
-	FrameData DisplayItem::GetInterpolatedFrame(float alpha) const
-	{
-		return LerpFrameData(_prevFrameData, _frameData, alpha);
-	}
-
 	void DisplayItem::SetObjectID(GAME_OBJECT_ID objectID)
 	{
 		_objectID = objectID;
@@ -152,8 +149,6 @@ namespace TEN::Hud
 		// Reset animation state for the new object.
 		_animNumber = 0;
 		_frameNumber = 0;
-		RecomputeFrameData();
-		_prevFrameData = _frameData;
 	}
 
 	void DisplayItem::SetPosition(const Vector3& pos, bool disableInterpolation)
@@ -237,21 +232,22 @@ namespace TEN::Hud
 			_animNumber = animNumber;
 		else
 			_animNumber = 0;
-
-		// Start playback from the beginning and snap interpolation.
-		_frameNumber = 0;
-		RecomputeFrameData();
-		_prevFrameData = _frameData;
 	}
 
 	void DisplayItem::SetFrame(int frameNumber)
 	{
 		const auto& anim = GetAnimData(_objectID, _animNumber);
 		_frameNumber = std::clamp(frameNumber, 0, anim.EndFrameNumber);
+	}
 
-		// Snap interpolation so the frame takes effect immediately.
-		RecomputeFrameData();
-		_prevFrameData = _frameData;
+	void DisplayItem::Enable()
+	{
+		_animationEnabled = true;
+	}
+
+	void DisplayItem::Disable()
+	{
+		_animationEnabled = false;
 	}
 
 	bool DisplayItem::GetVisible() const
@@ -286,18 +282,20 @@ namespace TEN::Hud
 		_prevScale = _scale;
 		_prevColor = _color;
 		_prevMeshOrientations = _meshOrientations;
+		_prevAnimNumber = _animNumber;
 		_prevFrameNumber = _frameNumber;
-		_prevFrameData = _frameData;
 		_wasInterpolated = true;
 	}
 
 	void DisplayItem::Animate()
 	{
+		// Animations only advance while enabled.
+		if (!_animationEnabled)
+			return;
+
 		// Objects without animations have nothing to advance.
 		if (Objects[_objectID].Animations.empty())
 			return;
-
-		int prevAnimNumber = _animNumber;
 
 		// Advance frame number.
 		_frameNumber++;
@@ -309,32 +307,5 @@ namespace TEN::Hud
 			_animNumber = anim.NextAnimNumber;
 			_frameNumber = anim.NextFrameNumber;
 		}
-
-		// Recompute effective frame data.
-		RecomputeFrameData();
-
-		// Snap interpolation across animation transitions to avoid cross-animation artifacts.
-		if (_animNumber != prevAnimNumber)
-			_prevFrameData = _frameData;
-	}
-
-	void DisplayItem::RecomputeFrameData()
-	{
-		const auto& anim = GetAnimData(_objectID, _animNumber);
-		int frameNumber = std::clamp(_frameNumber, 0, (int)std::max((int)anim.Frames.size() - 1, 0));
-		_frameData = anim.Frames[frameNumber];
-	}
-
-	FrameData DisplayItem::LerpFrameData(const FrameData& from, const FrameData& to, float alpha)
-	{
-		auto result = FrameData{};
-		result.RootPosition = Vector3::Lerp(from.RootPosition, to.RootPosition, alpha);
-
-		int count = (int)std::min(from.BoneOrientations.size(), to.BoneOrientations.size());
-		result.BoneOrientations.resize(count);
-		for (int i = 0; i < count; i++)
-			result.BoneOrientations[i] = Quaternion::Slerp(from.BoneOrientations[i], to.BoneOrientations[i], alpha);
-
-		return result;
 	}
 }

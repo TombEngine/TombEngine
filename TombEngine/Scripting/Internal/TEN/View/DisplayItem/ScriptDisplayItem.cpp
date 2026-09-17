@@ -49,6 +49,8 @@ namespace TEN::Scripting::DisplayItem
 			ScriptReserved_SetJointRotation, &ScriptDisplayItem::SetMeshRotation,
 			ScriptReserved_SetAnimNumber, &ScriptDisplayItem::SetAnimNumber,
 			ScriptReserved_SetFrameNumber, &ScriptDisplayItem::SetFrameNumber,
+			ScriptReserved_Enable, &ScriptDisplayItem::Enable,
+			ScriptReserved_Disable, &ScriptDisplayItem::Disable,
 
 			ScriptReserved_DisplayItemSetMeshBits, &ScriptDisplayItem::SetMeshBits,
 
@@ -335,8 +337,8 @@ namespace TEN::Scripting::DisplayItem
 	}
 
 	/// Set the animation number of a display item.
-	// The animation plays automatically, advancing one frame per game tick and following the animation's
-	// Next animation once it reaches its end frame, just like moveable animations.
+	// While enabled, the animation advances one frame per game tick and follows its Next animation
+	// once it reaches its end frame, just like moveable animations.
 	// @function DisplayItem:SetAnim
 	// @tparam int animNumber Animation number to set.
 	// @usage
@@ -345,6 +347,26 @@ namespace TEN::Scripting::DisplayItem
 	{
 		if (auto* item = TryGetItem())
 			item->SetAnimation(animNumber);
+	}
+
+	/// Enable the display item's animation playback.
+	// @function DisplayItem:Enable
+	// @usage
+	// item:Enable()
+	void ScriptDisplayItem::Enable()
+	{
+		if (auto* item = TryGetItem())
+			item->Enable();
+	}
+
+	/// Disable the display item's animation playback, holding the current frame.
+	// @function DisplayItem:Disable
+	// @usage
+	// item:Disable()
+	void ScriptDisplayItem::Disable()
+	{
+		if (auto* item = TryGetItem())
+			item->Disable();
 	}
 
 	/// Set the frame number of a display item's current animation.
