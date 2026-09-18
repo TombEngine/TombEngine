@@ -82,7 +82,7 @@ namespace TEN::Hud
 		// Update life.
 		Life -= 1.0f;
 		if (!isHead)
-			Life = std::max(Life, round(LIFE_BUFFER * FPS));
+			Life = std::max(Life, (float)round(LIFE_BUFFER * FPS));
 	}
 
 	void PickupSummaryController::AddDisplayPickup(GAME_OBJECT_ID objectID, const Vector2& origin, unsigned int count)

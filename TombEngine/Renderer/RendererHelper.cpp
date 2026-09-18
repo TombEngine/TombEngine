@@ -4,7 +4,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/control/control.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
@@ -104,7 +104,7 @@ namespace TEN::Renderer
 
 				auto translationMatrix = (bone == rendererObject.Skeleton) ? Matrix::CreateTranslation(rootPos) : Matrix::Identity;
 				auto extraRotMatrix = Matrix::CreateFromQuaternion(bone->ExtraRotation);
-
+				
 				if (useObjectWorldRotation)
 				{
 					auto scale = Vector3::Zero;
@@ -181,12 +181,20 @@ namespace TEN::Renderer
 
 		auto& moveableObj = *_moveableObjects[nativeItem->ObjectNumber];
 
-		// Copy meshswaps
+		// Copy meshswaps and apply eventually effects.
 		itemToDraw->MeshIndex = nativeItem->Model.MeshIndex;
 		itemToDraw->SkinIndex = nativeItem->Model.GetSkinGlobalIndex();
 
 		if (obj->Animations.empty())
+		{
+			// Objects without animations (e.g. virtual ID_BODY_PART borrowing a single mesh) never get
+			// bone transforms computed. Default them to identity, otherwise meshes are drawn with a zero
+			// matrix and collapse to the origin (a tiny garbage mesh) instead of the item's world pose.
+			for (int i = 0; i < BONE_COUNT_MAX; i++)
+				itemToDraw->AnimationTransforms[i] = Matrix::Identity;
+
 			return;
+		}
 
 		// Apply extra rotations
 		int lastJoint = 0;
@@ -414,12 +422,23 @@ namespace TEN::Renderer
 
 	Matrix Renderer::GetWorldMatrixForMoveable(const ItemInfo& item, Matrix* rotationMatrix, Matrix* translationMatrix) const
 	{
-		const auto& anim = GetAnimData(item);
-		auto rootMotionCounteract = anim.GetRootMotionCounteraction(item.Animation.FrameNumber);
+		auto orient = item.Pose.Orientation;
+		auto pos = item.Pose.Position.ToVector3();
 
-		auto orient = item.Pose.Orientation + rootMotionCounteract.Rotation;
+		// Apply root motion counteraction only for animated objects. Virtual objects without
+		// animations (e.g. ID_BODY_PART) would otherwise fetch a fallback animation and have their
+		// world matrix polluted by bogus root motion, making them spin erratically.
+		const auto& animObject = Objects[item.Animation.AnimObjectID];
+		if (!animObject.Animations.empty())
+		{
+			const auto& anim = GetAnimData(item);
+			auto rootMotionCounteract = anim.GetRootMotionCounteraction(item.Animation.FrameNumber);
+
+			orient += rootMotionCounteract.Rotation;
+			pos += Vector3::Transform(rootMotionCounteract.Translation, orient.ToRotationMatrix());
+		}
+
 		auto rotMatrix = orient.ToRotationMatrix();
-		auto pos = item.Pose.Position.ToVector3() + Vector3::Transform(rootMotionCounteract.Translation, rotMatrix);
 		auto transMatrix = Matrix::CreateTranslation(pos);
 
 		if (rotationMatrix != nullptr)
@@ -462,15 +481,32 @@ namespace TEN::Renderer
 
 		// Collect spheres.
 		auto spheres = std::vector<BoundingSphere>{};
-		for (int i = 0; i < moveable.ObjectMeshes.size(); i++)
+		if (moveable.ObjectMeshes.empty())
 		{
-			const auto& mesh = *moveable.ObjectMeshes[i];
+			// Virtual objects (e.g. ID_BODY_PART) have no object meshes; each instance borrows its
+			// mesh per-instance, so derive the bounding spheres from the item's own mesh list.
+			for (int i = 0; i < itemToDraw.MeshIndex.size(); i++)
+			{
+				const auto& mesh = *GetMesh(itemToDraw.MeshIndex[i]);
 
-			const auto& animationTransform = itemToDraw.AnimationTransforms[i];
-			auto pos = Vector3::Transform(mesh.Sphere.Center, animationTransform * worldMatrix);
+				const auto& animationTransform = itemToDraw.AnimationTransforms[i];
+				auto pos = Vector3::Transform(mesh.Sphere.Center, animationTransform * worldMatrix);
 
-			auto sphere = BoundingSphere(pos, mesh.Sphere.Radius);
-			spheres.push_back(sphere);
+				spheres.push_back(BoundingSphere(pos, mesh.Sphere.Radius));
+			}
+		}
+		else
+		{
+			for (int i = 0; i < moveable.ObjectMeshes.size(); i++)
+			{
+				const auto& mesh = *moveable.ObjectMeshes[i];
+
+				const auto& animationTransform = itemToDraw.AnimationTransforms[i];
+				auto pos = Vector3::Transform(mesh.Sphere.Center, animationTransform * worldMatrix);
+
+				auto sphere = BoundingSphere(pos, mesh.Sphere.Radius);
+				spheres.push_back(sphere);
+			}
 		}
 
 		return spheres;

@@ -115,12 +115,12 @@ namespace TEN::Effects::Smoke
 
 	//TODO: add additional "Weapon Special" param or something. Currently initial == 2 means Rocket Launcher backwards smoke.
 	//TODO: Refactor different weapon types out of it
-	void TriggerGunSmokeParticles(int x, int y, int z, int xv, int yv, int zv, byte initial, LaraWeaponType weaponType, byte count)
+	void TriggerGunSmokeParticles(int x, int y, int z, int xv, int yv, int zv, unsigned char initial, LaraWeaponType weaponType, unsigned char count)
 	{
 		SpawnGunSmokeParticles(Vector3(x, y, z), Vector3(xv, yv, zv), LaraItem->RoomNumber, initial, weaponType, count);
 	}
 
-	void SpawnGunSmokeParticles(const Vector3& pos, const Vector3& direction, int roomNumber, byte initial, LaraWeaponType weaponType, int count)
+	void SpawnGunSmokeParticles(const Vector3& pos, const Vector3& direction, int roomNumber, unsigned char initial, LaraWeaponType weaponType, int count)
 	{
 		if (!g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].Smoke)
 			return;
@@ -244,7 +244,7 @@ namespace TEN::Effects::Smoke
 		s.angularDrag = Random::GenerateFloat(0.87f, 0.99f);
 	}
 
-	void TriggerBreathSmoke(long x, long y, long z, short angle)
+	void TriggerBreathSmoke(int x, int y, int z, short angle)
 	{
 		auto& s = GetFreeSmokeParticle();
 		s = {};

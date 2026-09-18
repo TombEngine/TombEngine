@@ -4,8 +4,8 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/los.h"
-#include "Game/effects/blood.h"
-#include "Game/effects/Bubble.h"
+#include "Game/effects/Blood.h"
+#include "Game/effects/bubble.h"
 #include "Game/effects/DisplaySprite.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
@@ -15,6 +15,7 @@
 #include "Game/effects/Streamer.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
+#include "Game/room.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/Utils/object_helper.h"
@@ -23,16 +24,17 @@
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Effects/BlendIDs.h"
 #include "Scripting/Internal/TEN/Effects/EffectIDs.h"
-#include "Scripting/Internal/TEN/Effects/ParticleAnimTypes.h"
 #include "Scripting/Internal/TEN/Effects/FeatherModes.h"
+#include "Scripting/Internal/TEN/Effects/ParticleAnimTypes.h"
+#include "Scripting/Internal/TEN/Effects/ParticleGroupFunctions.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Rotation/Rotation.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 #include "Specific/trutils.h"
-#include <Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h>
 
 
 /// Functions to generate effects.
@@ -93,10 +95,10 @@ namespace TEN::Scripting::Effects
 
 		// Multiply by two since a) lightning loses two "life" each frame, and b) it must be
 		// an even number to avoid overshooting a value of 0 and wrapping around.
-		byte byteLife = lifeInFrames * 2;
+		unsigned char byteLife = lifeInFrames * 2;
 
 		int amp = ValueOr<int>(amplitude, 20);
-		byte byteAmp = std::clamp(amp, 1, 255);
+		unsigned char byteAmp = std::clamp(amp, 1, 255);
 
 		bool isSmooth = ValueOr<bool>(smooth, false);
 		bool isDrift = ValueOr<bool>(endDrift, false);
@@ -460,13 +462,13 @@ namespace TEN::Scripting::Effects
 	// @function EmitLight
 	// @tparam Vec3 pos World position of the light.
 	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Light color.
-	// @tparam[opt=20] int radius Measured in "clicks" or 256 world units.
+	// @tparam[opt=20] float radius Light radius in clicks (256 world units per click). Accepts fractional values.
 	// @tparam[opt=false] bool shadows Determines whether light should generate dynamic shadows for applicable moveables.
 	// @tparam[opt] string name If provided, engine will interpolate this light for high framerate mode (be careful not to use same name for different lights).
-	static void EmitLight(Vec3 pos, TypeOrNil<ScriptColor> col, TypeOrNil<int> radius, TypeOrNil<bool> castShadows, TypeOrNil<std::string> name)
+	static void EmitLight(Vec3 pos, TypeOrNil<ScriptColor> col, TypeOrNil<float> radius, TypeOrNil<bool> castShadows, TypeOrNil<std::string> name)
 	{
 		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255)).PremultiplyAlpha();
-		int rad = (float)(ValueOr<int>(radius, 20) * BLOCK(0.25f));
+		float rad = ValueOr<float>(radius, 20.0f) * CLICK(1);
 		SpawnDynamicPointLight(pos.ToVector3(), color, rad, ValueOr<bool>(castShadows, false), GetHash(ValueOr<std::string>(name, std::string())));
 	}
 
@@ -476,17 +478,17 @@ namespace TEN::Scripting::Effects
 	// @tparam Vec3 pos World position of the light.
 	// @tparam Vec3 dir Normal which indicates light direction.
 	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Light color.
-	// @tparam[opt=10] int radius Overall radius at the endpoint of a light cone, measured in "clicks" or 256 world units.
-	// @tparam[opt=5] int falloff Radius, at which light starts to fade out, measured in "clicks".
-	// @tparam[opt=20] int distance Distance, at which light cone fades out, measured in "clicks".
+	// @tparam[opt=10] float radius Overall radius of the light cone in clicks (256 world units per click). Accepts fractional values.
+	// @tparam[opt=5] float falloff Radius, at which light starts to fade out, in clicks (256 world units per click). Accepts fractional values.
+	// @tparam[opt=20] float distance Distance, at which light cone fades out, in clicks (256 world units per click). Accepts fractional values.
 	// @tparam[opt=false] bool shadows Determines whether light should generate dynamic shadows for applicable moveables.
 	// @tparam[opt] string name If provided, engine will interpolate this light for high framerate mode (be careful not to use same name for different lights).
-	static void EmitSpotLight(Vec3 pos, Vec3 dir, TypeOrNil<ScriptColor> col, TypeOrNil<int> radius, TypeOrNil<int> falloff, TypeOrNil<int> distance, TypeOrNil<bool> castShadows, TypeOrNil<std::string> name)
+	static void EmitSpotLight(Vec3 pos, Vec3 dir, TypeOrNil<ScriptColor> col, TypeOrNil<float> radius, TypeOrNil<float> falloff, TypeOrNil<float> distance, TypeOrNil<bool> castShadows, TypeOrNil<std::string> name)
 	{
 		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255)).PremultiplyAlpha();
-		int rad =	  (float)(ValueOr<int>(radius,   10) * BLOCK(0.25f));
-		int fallOff = (float)(ValueOr<int>(falloff,   5) * BLOCK(0.25f));
-		int dist =	  (float)(ValueOr<int>(distance, 20) * BLOCK(0.25f));
+		float rad = ValueOr<float>(radius, 10.0f) * CLICK(1);
+		float fallOff = ValueOr<float>(falloff, 5.0f) * CLICK(1);
+		float dist = ValueOr<float>(distance, 20.0f) * CLICK(1);
 		SpawnDynamicSpotLight(pos.ToVector3(), dir.ToVector3(), color, rad, fallOff, dist, ValueOr<bool>(castShadows, false), GetHash(ValueOr<std::string>(name, std::string())));
 	}
 
@@ -494,16 +496,16 @@ namespace TEN::Scripting::Effects
 	// If you want a fog bulb that sticks around, you must call this each frame.
 	// @function EmitFogBulb
 	// @tparam Vec3 pos Position of the fog bulb.
-	// @tparam[opt=20] int radius Radius measured in "clicks" or 256 world units.
+	// @tparam[opt=20] float radius Fog bulb radius in clicks (256 world units per click). Accepts fractional values.
 	// @tparam[opt=255] int density Density, ranging from 0 to 255.
 	// @tparam[opt=Color(255&#44; 255&#44; 255)] Color color Color.
 	// @tparam[opt] string name If provided, engine will interpolate this fog bulb for high framerate mode (be careful not to use same name for different fogbulbs)
-	static void EmitFogBulb(Vec3 pos, TypeOrNil<int> radius, TypeOrNil<int> density, TypeOrNil<ScriptColor> col, TypeOrNil<std::string> name)
+	static void EmitFogBulb(Vec3 pos, TypeOrNil<float> radius, TypeOrNil<int> density, TypeOrNil<ScriptColor> col, TypeOrNil<std::string> name)
 	{
 		constexpr auto DEFAULT_DENSITY = 255;
 
 		auto color = ValueOr<ScriptColor>(col, ScriptColor(255, 255, 255)).PremultiplyAlpha();
-		int rad = (float)(ValueOr<int>(radius, 20));
+		float rad = ValueOr<float>(radius, 20.0f);
 		int dens = (float)(ValueOr<int>(density, DEFAULT_DENSITY));
 		SpawnDynamicFogBulb(pos.ToVector3(), rad, dens, color, GetHash(ValueOr<std::string>(name, std::string())));
 	}
@@ -691,6 +693,90 @@ namespace TEN::Scripting::Effects
 		part.sSize = part.size = part.dSize = Random::GenerateFloat(convertedMaxSize / 2, convertedMaxSize);
 	}
 
+	/// Emit weather particles.
+	// @function EmitWeather
+	// @tparam WeatherParameters weatherParameters table with weather parameters.
+	// @usage
+	// -- Example 1: Simple use to emit rain (Use wind room flag to spawn)
+	// local weatherParams = {
+	//     position = Vec3(4608, -1408, 11776),
+	//     initialVelocity = Vec3(0, 10, 0),
+	// }
+	// 
+	// LevelFuncs.OnLoop = function()
+	//    TEN.Effects.EmitWeather(weatherParams)
+	// end
+	// 
+	// -- Example 2: Emit snow at camera target position
+	// local delay = 0
+	// local delay_count = 1
+	// local weatherParams = {
+	//     position = Vec3(0, 0, 0),
+	//     initialVelocity = Vec3(0, 15, 0),
+	//     type = TEN.Flow.WeatherType.SNOW,
+	//     enableClustering = true,
+	//     checkWindFlag = false,
+	//     baseColor = TEN.Color(255, 100, 255),
+	// }
+	// 
+	// function SpawnSnow()
+	//    if (delay <= 0) then
+	//        local pos = TEN.Objects.GetMoveableByName("camera_target_7"):GetPosition()
+	//        weatherParams.position = pos
+	//        TEN.Effects.EmitWeather(weatherParams)
+	//        delay = delay_count
+	//    else
+	//        delay = delay - 1
+	//    end
+	// end
+	// 
+	// LevelFuncs.OnLoop = function()
+	//    SpawnSnow()
+	// end
+	// 
+	// -- Example 3: Emit weather inside a trigger volume
+	// local vol = TEN.Objects.GetVolumeByName("weather_zone")
+	// local weatherParams = {
+	//     position = vol:GetPosition(),
+	//     spawnRange = vol:GetScale(),
+	//     spawnRotation = vol:GetRot(),
+	//     type = TEN.Flow.WeatherType.SNOW,
+	// }
+	// TEN.Effects.EmitWeather(weatherParams)
+
+	/// Structure for `EmitWeather` table.
+	// @table WeatherParameters
+	// @tfield Vec3 position World position.
+	// @tfield Vec3 initialVelocity Initial velocity of the particles. initialVelocity should be positive and have a low value, otherwise the particle could be too fast.
+	// @tfield[opt=TEN.Flow.WeatherType.RAIN] Flow.WeatherType type Type of weather effect.
+	// @tfield[opt=Vec3(8192&#44; 1024&#44; 8192)] Vec3 spawnRange Range from position along each axis (X, Y, Z) in which particles are spawned. (1 block = 1024 world units)
+	// @tfield[opt=Rotation(0&#44; 0&#44; 0)] Rotation spawnRotation Rotation of the spawn range cuboid around position. Should only be set from a volume's rotation.
+	// @tfield[opt=1] float life Lifetime in seconds. Avoid very high values to avoid performance issues.
+	// @tfield[opt=1] float strength Strength of the effect. Clamped to [0.1, 2]
+	// @tfield[opt=false] bool enableClustering Whether to enable clustering of particles.
+	// @tfield[opt=true] bool checkWindFlag Whether to check wind room flag when trying to spawn.
+	// @tfield[opt=Color(255&#44; 255&#44; 255)] Color baseColor Color of the particles.
+	static void EmitWeather(const sol::table& table)
+	{
+		auto pos = Vec3(table.get_or("position", Vec3(0, 0, 0)));
+		if (pos.ToVector3() == Vector3::Zero)
+		{
+			TENLog("EmitWeather() 'position' not specified, aborting.", LogLevel::Error);
+			return;
+		}
+
+		WeatherParameters params;
+		params.Type = table.get_or("type", WeatherType::Rain);
+		params.InitialVelocity = table.get_or("initialVelocity", Vec3(0, 0, 0));
+		params.Life = table.get_or("life", 1.0f);
+		params.Strength = std::clamp((float)table.get_or("strength", 1.0f), 0.1f, 2.0f);
+		params.SpawnRange = table.get_or("spawnRange", Vec3(BLOCK(8), BLOCK(1), BLOCK(8)));
+		params.SpawnRotation = table.get_or("spawnRotation", Rotation(0, 0, 0)).ToEulerAngles().ToQuaternion();
+		params.Clustering = table.get_or("enableClustering", false);
+		params.Flags = table.get_or("checkWindFlag", true) ? WeatherFlags::None : WeatherFlags::IgnoreWindRoom;
+		params.BaseColor = table.get_or("baseColor", params.Type == WeatherType::Rain ? ScriptColor(204, 255, 255, 255) : ScriptColor(255, 255, 255, 255)); // Rain default color is light blueish.
+		Weather.SpawnWeatherParticles(pos.ToVector3i(), params);
+	}	
 	/// Emit a splash effect. Consists of a ripple effect and a splash ring.
 	// @function EmitSplash
 	// @tparam Vec3 pos World position. Needs to be inside a water room.
@@ -776,12 +862,16 @@ namespace TEN::Scripting::Effects
 		tableEffects.set_function(ScriptReserved_EmitAirBubble, &EmitAirBubble);
 		tableEffects.set_function(ScriptReserved_EmitStreamer, &EmitStreamer);
 		tableEffects.set_function(ScriptReserved_EmitFire, &EmitFire);
+		tableEffects.set_function(ScriptReserved_EmitWeather, &EmitWeather);
 		tableEffects.set_function(ScriptReserved_EmitWaterfallMist, &EmitWaterfallMist);
 		tableEffects.set_function(ScriptReserved_EmitFlow, &EmitFlow);
 		tableEffects.set_function(ScriptReserved_EmitSplash, &EmitSplash);
 		tableEffects.set_function(ScriptReserved_MakeExplosion, &MakeExplosion);
 		tableEffects.set_function(ScriptReserved_MakeEarthquake, &Earthquake);
 		tableEffects.set_function(ScriptReserved_GetWind, &GetWind);
+
+		// Particle groups.
+		ParticleGroups::LuaParticleGroup::Register(tableEffects);
 
 		auto handler = LuaHandler(state);
 		handler.MakeReadOnlyTable(tableEffects, ScriptReserved_BlendID, BLEND_IDS);

@@ -1,3 +1,4 @@
+-- ldignore
 local Weapons =
 {
     {

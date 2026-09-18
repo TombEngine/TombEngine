@@ -67,7 +67,7 @@ namespace TEN::Effects::Electricity
 	}
 
 	// TODO: Pass const Vector4& for color.
-	void SpawnElectricity(const Vector3& origin, const Vector3& target, float amplitude, byte r, byte g, byte b, float life, int flags, float width, unsigned int numSegments)
+	void SpawnElectricity(const Vector3& origin, const Vector3& target, float amplitude, unsigned char r, unsigned char g, unsigned char b, float life, int flags, float width, unsigned int numSegments)
 	{
 		auto arc = Electricity();
 
@@ -104,7 +104,7 @@ namespace TEN::Effects::Electricity
 		ElectricityArcs.push_back(arc);
 	}
 
-	void SpawnElectricityGlow(const Vector3& pos, float scale, byte r, byte g, byte b)
+	void SpawnElectricityGlow(const Vector3& pos, float scale, unsigned char r, unsigned char g, unsigned char b)
 	{
 		auto& spark = *GetFreeParticle();
 

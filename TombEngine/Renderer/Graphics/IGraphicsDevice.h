@@ -61,7 +61,13 @@ namespace TEN::Renderer::Graphics
 		virtual void SetScissor(RendererRectangle rectangle) = 0;
 		virtual void SetScissor(RendererViewport viewport) = 0;
 
-		virtual void BindTexture(TextureRegister registerType, ITextureBase* texture, SamplerStateRegister samplerType) = 0;
+		virtual void BindTexture(TextureRegister registerType, ITextureBase* texture) = 0;
+
+		// Binds the full sampler set to the fixed slots declared in Samplers.hlsli. Called once
+		// per frame: shaders address samplers by register, so this is the single point where
+		// the point filter override can reach them. When `pointFilter` is true every filtering
+		// slot receives the point-wrap state (shadow map excluded).
+		virtual void BindSamplers(bool pointFilter) = 0;
 
 		// Clears the SRV bound at `registerType` for the given shader stage.
 		// Used to drop SRV bindings before re-binding the same resource as RTV/copy dest,

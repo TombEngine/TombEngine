@@ -316,7 +316,7 @@ namespace TEN::Scripting::Collision
 	// @treturn bool Monkey swing sector status. _true: is a monkey swing, false: isn't a monkey swing._
 	bool Probe::IsMonkeySwing()
 	{
-		const auto& sector = _pointCollision.GetTopSector();
+		const auto& sector = _pointCollision.GetBottomSector();
 		return sector.Flags.Monkeyswing;
 	}
 

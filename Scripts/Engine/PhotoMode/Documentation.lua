@@ -5,7 +5,7 @@
 -- appearance, sets up a light, applies post-process filters, and can overlay
 -- frame sprites before taking an in-game screenshot.
 --
--- To enable photo mode in a level, `require` this module once in your level script:
+-- To enable photo mode in a level, `require` this module once in your level script or in Autoexec.lua:
 --	local PhotoMode = require("Engine.PhotoMode.PhotoMode")
 -- The module self-registers via callbacks, so no further scripting is needed.
 --
@@ -87,12 +87,12 @@
 -- </tr>
 -- <tr>
 --   <td>Hide UI</td>
---   <td>Draw</td>
+--   <td>Look (NumPad 0) / F12</td>
 --   <td>Triangle / Y</td>
 -- </tr>
 -- <tr>
 --   <td>Take Photo</td>
---   <td>Look (NumPad 0) / F12</td>
+--   <td>Draw</td>
 --   <td>LT</td>
 -- </tr>
 -- <tr>

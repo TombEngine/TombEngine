@@ -11,7 +11,7 @@ namespace TEN::Entities::TR4
 		int VerticalVelocity;
 		bool On;
 
-		byte Flags;
+		unsigned char Flags;
 
 		Matrix Transform	 = Matrix::Identity;
 		Matrix PrevTransform = Matrix::Identity;

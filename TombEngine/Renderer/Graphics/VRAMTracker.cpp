@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <sstream>
 
-#include "Game/Debug/Debug.h"
+#include "Game/debug/debug.h"
 
 using namespace TEN::Debug;
 

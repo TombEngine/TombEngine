@@ -14,6 +14,7 @@
 #include "Game/effects/tomb4fx.h"
 #include "Math/Random.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include <Specific/level.h>
 
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Splash;
@@ -25,90 +26,92 @@ constexpr auto BODY_PART_EXPLODE_DAMAGE = 50;
 constexpr auto BODY_PART_EXPLODE_DAMAGE_RANGE = CLICK(3.0f);
 
 // TODO: Remove LaraItem global - TokyoSU: 12/6/2023
-static void BodyPartExplode(FX_INFO& fx)
+static void BodyPartExplode(ItemInfo& fx)
 {
-	TriggerExplosionSparks(fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z, 3, -2, 0, fx.roomNumber);
-	TriggerExplosionSparks(fx.pos.Position.x, fx.pos.Position.y, fx.pos.Position.z, 3, -1, 0, fx.roomNumber);
+	TriggerExplosionSparks(fx.Pose.Position.x, fx.Pose.Position.y, fx.Pose.Position.z, 3, -2, 0, fx.RoomNumber);
+	TriggerExplosionSparks(fx.Pose.Position.x, fx.Pose.Position.y, fx.Pose.Position.z, 3, -1, 0, fx.RoomNumber);
 
 	// Lift explosion effect a little to make shockwave visible on flat floors.
-	auto pose = fx.pos;
+	auto pose = fx.Pose;
 	pose.Position.y -= CLICK(0.5f);
 
 	TriggerShockwave(&pose, 48, 304, (GetRandomControl() & 0x1F) + 112, 128, 32, 32, 32, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
 	
-	if (ItemNearLara(fx.pos.Position, BODY_PART_EXPLODE_DAMAGE_RANGE))
+	if (ItemNearLara(fx.Pose.Position, BODY_PART_EXPLODE_DAMAGE_RANGE))
 		DoDamage(LaraItem, BODY_PART_EXPLODE_DAMAGE);
 }
 
 void ControlBodyPart(short fxNumber)
 {
-	FX_INFO* fx = &EffectList[fxNumber];
-	int x = fx->pos.Position.x;
-	int y = fx->pos.Position.y;
-	int z = fx->pos.Position.z;
+	auto& fx = g_Level.Items[fxNumber];
+	auto& fxInfo = GetFXInfo(fx);
 
-	if (fx->counter <= 0)
+	int x = fx.Pose.Position.x;
+	int y = fx.Pose.Position.y;
+	int z = fx.Pose.Position.z;
+
+	if (fxInfo.Counter <= 0)
 	{
-		if (fx->speed)
-			fx->pos.Orientation.x += 4 * fx->fallspeed;
+		if (fx.Animation.Velocity.z)
+			fx.Pose.Orientation.x += 4 * fx.Animation.Velocity.y;
 
-		fx->fallspeed += g_GameFlow->GetSettings()->Physics.Gravity;
+		fx.Animation.Velocity.y += g_GameFlow->GetSettings()->Physics.Gravity;
 	}
 	else
 	{
-		int modulus = 62 - fx->counter;
+		int modulus = 62 - fxInfo.Counter;
 		int random = modulus <= 1 ? 0 : 2 * GetRandomControl() % modulus;
 		if (fxNumber & 1)
 		{
-			fx->pos.Orientation.z -= random;
-			fx->pos.Orientation.x += random;
+			fx.Pose.Orientation.z -= random;
+			fx.Pose.Orientation.x += random;
 		}
 		else
 		{
-			fx->pos.Orientation.z += random;
-			fx->pos.Orientation.x -= random;
+			fx.Pose.Orientation.z += random;
+			fx.Pose.Orientation.x -= random;
 		}
 
-		if (--fx->counter < 8)
-			fx->fallspeed += 2;
+		if (--fxInfo.Counter < 8)
+			fx.Animation.Velocity.y += 2;
 	}
 
-	int fallspeed = TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, fx->roomNumber) ? fx->fallspeed / 4 : fx->fallspeed;
-	int speed = TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, fx->roomNumber) ? fx->speed / 4 : fx->speed;
+	int fallspeed = TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, fx.RoomNumber) ? fx.Animation.Velocity.y / 4 : fx.Animation.Velocity.y;
+	int speed = TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, fx.RoomNumber) ? fx.Animation.Velocity.z / 4 : fx.Animation.Velocity.z;
 
-	fx->pos.Position.x += speed * phd_sin(fx->pos.Orientation.y);
-	fx->pos.Position.y += fallspeed;
-	fx->pos.Position.z += speed * phd_cos(fx->pos.Orientation.y);
+	fx.Pose.Position.x += speed * phd_sin(fx.Pose.Orientation.y);
+	fx.Pose.Position.y += fallspeed;
+	fx.Pose.Position.z += speed * phd_cos(fx.Pose.Orientation.y);
 
-	if ((fx->flag2 & BODY_DO_EXPLOSION) && !(fx->flag2 & BODY_NO_FLAME) &&
-		!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, fx->roomNumber))
+	if ((fxInfo.Flag2 & BODY_DO_EXPLOSION) && !(fxInfo.Flag2 & BODY_NO_FLAME) &&
+		!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, fx.RoomNumber))
 	{
-		if (GenerateInt(0, 10) > (abs(fx->fallspeed) > 0 ? 5 : 8))
-			TriggerFireFlame(fx->pos.Position.x, fx->pos.Position.y, fx->pos.Position.z, FlameType::Medium);
+		if (GenerateInt(0, 10) > (abs(fx.Animation.Velocity.y) > 0 ? 5 : 8))
+			TriggerFireFlame(fx.Pose.Position.x, fx.Pose.Position.y, fx.Pose.Position.z, FlameType::Medium);
 	}
 
-	auto pointColl = GetPointCollision(fx->pos.Position, fx->roomNumber);
+	auto pointColl = GetPointCollision(fx.Pose.Position, fx.RoomNumber);
 
-	if (!fx->counter)
+	if (!fxInfo.Counter)
 	{
-		if (fx->pos.Position.y < pointColl.GetCeilingHeight())
+		if (fx.Pose.Position.y < pointColl.GetCeilingHeight())
 		{
-			fx->pos.Position.y = pointColl.GetCeilingHeight();
-			fx->fallspeed = -fx->fallspeed;
-			fx->speed -= (fx->speed / 8);
+			fx.Pose.Position.y = pointColl.GetCeilingHeight();
+			fx.Animation.Velocity.y = -fx.Animation.Velocity.y;
+			fx.Animation.Velocity.z -= (fx.Animation.Velocity.z / 8);
 		}
 
-		if (fx->pos.Position.y >= pointColl.GetFloorHeight())
+		if (fx.Pose.Position.y >= pointColl.GetFloorHeight())
 		{
-			if (fx->flag2 & BODY_NO_BOUNCE)
+			if (fxInfo.Flag2 & BODY_NO_BOUNCE)
 			{
-				fx->pos.Position.x = x;
-				fx->pos.Position.y = y;
-				fx->pos.Position.z = z;
+				fx.Pose.Position.x = x;
+				fx.Pose.Position.y = y;
+				fx.Pose.Position.z = z;
 
-				if (!(fx->flag2 & BODY_NO_SHATTER_EFFECT))
+				if (!(fxInfo.Flag2 & BODY_NO_SHATTER_EFFECT))
 				{
-					if (fx->flag2 & BODY_NO_BOUNCE_ALT)
+					if (fxInfo.Flag2 & BODY_NO_BOUNCE_ALT)
 					{
 						ExplodeFX(fx, -2, 32);
 					}
@@ -119,13 +122,13 @@ void ControlBodyPart(short fxNumber)
 				}
 				
 				// Remove if touched floor (no bounce mode).
-				if (fx->flag2 & BODY_PART_EXPLODE)
-					BodyPartExplode(*fx);
+				if (fxInfo.Flag2 & BODY_PART_EXPLODE)
+					BodyPartExplode(fx);
 
-				KillEffect(fxNumber);
+				KillItem(fxNumber);
 
-				if (fx->flag2 & BODY_STONE_SOUND)
-					SoundEffect(SFX_TR4_ROCK_FALL_LAND, &fx->pos);
+				if (fxInfo.Flag2 & BODY_STONE_SOUND)
+					SoundEffect(SFX_TR4_ROCK_FALL_LAND, &fx.Pose);
 
 				return;
 			}
@@ -133,111 +136,111 @@ void ControlBodyPart(short fxNumber)
 			if (y <= pointColl.GetFloorHeight())
 			{
 				// Remove if touched floor (no bounce mode).
-				if (fx->flag2 & BODY_PART_EXPLODE)
+				if (fxInfo.Flag2 & BODY_PART_EXPLODE)
 				{
-					BodyPartExplode(*fx);
-					KillEffect(fxNumber);
+					BodyPartExplode(fx);
+					KillItem(fxNumber);
 				}
 
-				if (fx->fallspeed <= BOUNCE_FALLSPEED)
+				if (fx.Animation.Velocity.y <= BOUNCE_FALLSPEED)
 				{
-					fx->fallspeed = 0;
+					fx.Animation.Velocity.y = 0;
 				}
 				else
 				{
-					fx->fallspeed = -fx->fallspeed / 4;
+					fx.Animation.Velocity.y = -fx.Animation.Velocity.y / 4;
 
-					if (!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, fx->roomNumber))
+					if (!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, fx.RoomNumber))
 					{
-						if (fx->flag2 & BODY_STONE_SOUND)
+						if (fxInfo.Flag2 & BODY_STONE_SOUND)
 						{
-							SoundEffect(SFX_TR4_ROCK_FALL_LAND, &fx->pos);
+							SoundEffect(SFX_TR4_ROCK_FALL_LAND, &fx.Pose);
 						}
-						else if (fx->flag2 & BODY_GIBS)
+						else if (fxInfo.Flag2 & BODY_GIBS)
 						{
-							SoundEffect(SFX_TR4_LARA_THUD, &fx->pos, SoundEnvironment::Land, GenerateFloat(0.8f, 1.2f));
+							SoundEffect(SFX_TR4_LARA_THUD, &fx.Pose, SoundEnvironment::Land, GenerateFloat(0.8f, 1.2f));
 						}
 					}
 				}
 			}
 			else
 			{
-				fx->pos.Orientation.y += -ANGLE(180);
-				fx->pos.Position.x = x;
-				fx->pos.Position.z = z;
+				fx.Pose.Orientation.y += -ANGLE(180);
+				fx.Pose.Position.x = x;
+				fx.Pose.Position.z = z;
 			}
 
-			fx->speed -= (fx->speed / 4);
-			if (abs(fx->speed) < 4)
-				fx->speed = 0;
+			fx.Animation.Velocity.z -= (fx.Animation.Velocity.z / 4);
+			if (abs(fx.Animation.Velocity.z) < 4)
+				fx.Animation.Velocity.z = 0;
 
-			fx->pos.Position.y = y;
+			fx.Pose.Position.y = y;
 		}
 		else
 		{
-			fx->pos.Orientation.x += ANGLE(5);
-			fx->pos.Orientation.z += ANGLE(10);
+			fx.Pose.Orientation.x += ANGLE(5);
+			fx.Pose.Orientation.z += ANGLE(10);
 		}
 
-		if (!fx->speed && ++fx->flag1 > BODY_PART_LIFE)
+		if (!fx.Animation.Velocity.z && ++fxInfo.Flag1 > BODY_PART_LIFE)
 		{
-			if (!(fx->flag2 & BODY_NO_SMOKE))
+			if (!(fxInfo.Flag2 & BODY_NO_SMOKE))
 			{
 				for (int i = 0; i < 6; i++)
 				{
 					TriggerFlashSmoke(
-						fx->pos.Position.x + GenerateInt(-16, 16),
-						fx->pos.Position.y + GenerateInt(16, 32),
-						fx->pos.Position.z + GenerateInt(-16, 16), fx->roomNumber);
+						fx.Pose.Position.x + GenerateInt(-16, 16),
+						fx.Pose.Position.y + GenerateInt(16, 32),
+						fx.Pose.Position.z + GenerateInt(-16, 16), fx.RoomNumber);
 				}
 			}
 
-			if (fx->flag2 & BODY_PART_EXPLODE)
-				BodyPartExplode(*fx);
+			if (fxInfo.Flag2 & BODY_PART_EXPLODE)
+				BodyPartExplode(fx);
 
-			if (!(fx->flag2 & BODY_NO_SHATTER_EFFECT))
+			if (!(fxInfo.Flag2 & BODY_NO_SHATTER_EFFECT))
 				ExplodeFX(fx, -1, 32);
 
-			KillEffect(fxNumber);
+			KillItem(fxNumber);
 			return;
 		}
 
-		if ((fx->flag2 & BODY_GIBS) && (GetRandomControl() & 1))
+		if ((fxInfo.Flag2 & BODY_GIBS) && (GetRandomControl() & 1))
 		{
-			for (int i = 0; i < (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, fx->roomNumber) ? 1 : 6); i++)
+			for (int i = 0; i < (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, fx.RoomNumber) ? 1 : 6); i++)
 			{
 				DoBloodSplat(
-					(GetRandomControl() & 0x3F) + fx->pos.Position.x - 32,
-					(GetRandomControl() & 0x1F) + fx->pos.Position.y - 16,
-					(GetRandomControl() & 0x3F) + fx->pos.Position.z - 32,
+					(GetRandomControl() & 0x3F) + fx.Pose.Position.x - 32,
+					(GetRandomControl() & 0x1F) + fx.Pose.Position.y - 16,
+					(GetRandomControl() & 0x3F) + fx.Pose.Position.z - 32,
 					1,
 					2 * GetRandomControl(),
-					fx->roomNumber);
+					fx.RoomNumber);
 			}
 		}
 	}
 
-	if (pointColl.GetRoomNumber() != fx->roomNumber)
+	if (pointColl.GetRoomNumber() != fx.RoomNumber)
 	{
 		if (TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, pointColl.GetRoomNumber()) &&
-			!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, fx->roomNumber))
+			!TestEnvironment(RoomEnvFlags::ENV_FLAG_WATER, fx.RoomNumber))
 		{
-			int waterHeight = GetPointCollision(fx->pos.Position, pointColl.GetRoomNumber()).GetWaterTopHeight();
+			int waterHeight = GetPointCollision(fx.Pose.Position, pointColl.GetRoomNumber()).GetWaterTopHeight();
 
-			SplashSetup.Position = Vector3(fx->pos.Position.x, waterHeight - 1, fx->pos.Position.z);
-			SplashSetup.SplashPower = fx->fallspeed;
+			SplashSetup.Position = Vector3(fx.Pose.Position.x, waterHeight - 1, fx.Pose.Position.z);
+			SplashSetup.SplashPower = fx.Animation.Velocity.y;
 			SplashSetup.InnerRadius = 48;
 			SetupSplash(&SplashSetup, pointColl.GetRoomNumber());
 
 			// Remove if touched water.
-			if (fx->flag2 & BODY_PART_EXPLODE)
+			if (fxInfo.Flag2 & BODY_PART_EXPLODE)
 			{
-				BodyPartExplode(*fx);
-				KillEffect(fxNumber);
+				BodyPartExplode(fx);
+				KillItem(fxNumber);
 				return;
 			}
 		}
 
-		EffectNewRoom(fxNumber, pointColl.GetRoomNumber());
+		ItemNewRoom(fxNumber, pointColl.GetRoomNumber());
 	}
 }

@@ -41,7 +41,7 @@
 #include "Objects/Generic/Doors/underwater_door.h"
 
 // Traps
-#include "Objects/Generic/Traps/CrumblingPlatform.h"
+#include "Objects/Generic/Traps/crumblingPlatform.h"
 #include "Objects/Generic/Traps/dart_emitter.h"
 #include "Objects/Generic/Traps/falling_block.h"
 

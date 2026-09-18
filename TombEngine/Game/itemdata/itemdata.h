@@ -7,6 +7,7 @@
 #include "Game/collision/collide_room.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/itemdata/door_data.h"
+#include "Game/itemdata/FXInfo.h"
 #include "Game/Lara/lara_struct.h"
 #include "Math/Math.h"
 #include "Objects/Generic/Object/BridgeObject.h"
@@ -73,7 +74,8 @@ class ItemData
 		RubberBoatInfo,
 		MinecartInfo,
 		ElectricalLightInfo,
-		BridgeObject
+		BridgeObject,
+		FXInfo
 	> data;
 	public:
 	ItemData();

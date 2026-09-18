@@ -7,7 +7,7 @@
 
 #include "Game/control/control.h"
 #include "Game/effects/Decal.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 #include "Game/Lara/lara_struct.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
@@ -46,9 +46,7 @@ namespace TEN::Renderer
 
 		auto item = RendererItem();
 		_items = std::vector<RendererItem>(allocatedItemSize, item);
-
-		auto effect = RendererEffect();
-		_effects = std::vector<RendererEffect>(allocatedItemSize, effect);
+		_effects = std::vector<RendererEffect>(allocatedItemSize, RendererEffect());
 		
 		auto emptyNormalMap = std::vector<unsigned char>{ 128, 128, 255, 255 };
 		auto emptyORSHMap = std::vector<unsigned char>{ 255, 255, 0, 255 };
@@ -344,7 +342,7 @@ namespace TEN::Renderer
 			}
 
 		if (!totalVertices || !totalIndices)
-			throw std::exception("Level has no textured room geometry.");
+			throw std::runtime_error("Level has no textured room geometry.");
 
 		_roomsVertices.resize(totalVertices);
 		_roomsIndices.resize(totalIndices);
@@ -364,7 +362,6 @@ namespace TEN::Renderer
 			rendererRoom.RoomNumber = i;
 			rendererRoom.AmbientLight = Vector4(room.ambient.x, room.ambient.y, room.ambient.z, 1.0f);
 			rendererRoom.ItemsToDraw.reserve(MAX_ITEMS_DRAW);
-			rendererRoom.EffectsToDraw.reserve(MAX_ITEMS_DRAW);
 			rendererRoom.Decals.reserve(Decal::COUNT_MAX);
 
 			auto boxMin = Vector3(room.Position.x + BLOCK(1), room.TopHeight - CLICK(1), room.Position.z + BLOCK(1));
@@ -661,13 +658,13 @@ namespace TEN::Renderer
 			if (obj->nmeshes > 0)
 			{
 				_moveableObjects[MoveablesIds[i]] = RendererObject();
-				RendererObject &moveable = *_moveableObjects[MoveablesIds[i]];
+				RendererObject& moveable = *_moveableObjects[MoveablesIds[i]];
 				moveable.Id = MoveablesIds[i];
 				moveable.Hidden = obj->Hidden;
 				moveable.ShadowType = obj->shadowType;
-													   
+
 				for (int j = 0; j < obj->nmeshes; j++)
-				{              
+				{
 					// HACK: mesh pointer 0 is the placeholder for Lara's body parts and is right hand with pistols
 					// We need to override the bone index because the engine will take mesh 0 while drawing pistols anim,
 					// and vertices have bone index 0 and not 10.
@@ -687,122 +684,129 @@ namespace TEN::Renderer
 					_meshes.push_back(mesh);
 				}
 
-				if (objNum == ID_IMP_ROCK || objNum == ID_ENERGY_BUBBLES || objNum == ID_BUBBLES || objNum == ID_BODY_PART)
+				for (int j = 0; j < obj->nmeshes; j++)
 				{
-					// HACK: these objects must have nmeshes = 0 because engine will use them in a different way while drawing Effects.
-					// In Core's code this was done in SETUP.C but we must do it here because we need to create renderer's meshes.
-					obj->nmeshes = 0;
+					moveable.LinearizedBones.push_back(new RendererBone(j));
+					moveable.AnimationTransforms.push_back(Matrix::Identity);
+					moveable.BindPoseTransforms.push_back(Matrix::Identity);
 				}
-				else
+
+				if (obj->nmeshes > 1)
 				{
-					for (int j = 0; j < obj->nmeshes; j++)
+					int* bone = &g_Level.Bones[obj->boneIndex];
+
+					std::stack<RendererBone*> stack;
+
+					RendererBone* currentBone = moveable.LinearizedBones[0];
+					RendererBone* stackBone = moveable.LinearizedBones[0];
+
+					for (int mi = 0; mi < obj->nmeshes - 1; mi++)
 					{
-						moveable.LinearizedBones.push_back(new RendererBone(j));
-						moveable.AnimationTransforms.push_back(Matrix::Identity);
-						moveable.BindPoseTransforms.push_back(Matrix::Identity);
-					}
+						int j = mi + 1;
 
-					if (obj->nmeshes > 1)
-					{
-						int *bone = &g_Level.Bones[obj->boneIndex];
+						int opcode = *(bone++);
+						int linkX = *(bone++);
+						int linkY = *(bone++);
+						int linkZ = *(bone++);
 
-						std::stack<RendererBone *> stack;
+						unsigned char flags = opcode & 0x1C;
 
-						RendererBone *currentBone = moveable.LinearizedBones[0];
-						RendererBone *stackBone = moveable.LinearizedBones[0];
+						moveable.LinearizedBones[j]->ExtraRotationFlags = flags;
 
-						for (int mi = 0; mi < obj->nmeshes - 1; mi++)
+						switch (opcode & 0x03)
 						{
-							int j = mi + 1;
+						case 0:
+							moveable.LinearizedBones[j]->Parent = currentBone;
+							moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
+							currentBone->Children.push_back(moveable.LinearizedBones[j]);
+							currentBone = moveable.LinearizedBones[j];
+							break;
 
-							int opcode = *(bone++);
-							int linkX = *(bone++);
-							int linkY = *(bone++);
-							int linkZ = *(bone++);
+						case 1:
+							if (stack.empty())
+								continue;
 
-							byte flags = opcode & 0x1C;
+							currentBone = stack.top();
+							stack.pop();
 
-							moveable.LinearizedBones[j]->ExtraRotationFlags = flags;
+							moveable.LinearizedBones[j]->Parent = currentBone;
+							moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
+							currentBone->Children.push_back(moveable.LinearizedBones[j]);
+							currentBone = moveable.LinearizedBones[j];
+							break;
 
-							switch (opcode & 0x03)
-							{
-							case 0:
-								moveable.LinearizedBones[j]->Parent = currentBone;
-								moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
-								currentBone->Children.push_back(moveable.LinearizedBones[j]);
-								currentBone = moveable.LinearizedBones[j];
-								break;
+						case 2:
+							stack.push(currentBone);
 
-							case 1:
-								if (stack.empty())
-									continue;
+							moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
+							moveable.LinearizedBones[j]->Parent = currentBone;
+							currentBone->Children.push_back(moveable.LinearizedBones[j]);
+							currentBone = moveable.LinearizedBones[j];
+							break;
 
-								currentBone = stack.top();
-								stack.pop();
+						case 3:
+							if (stack.empty())
+								continue;
 
-								moveable.LinearizedBones[j]->Parent = currentBone;
-								moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
-								currentBone->Children.push_back(moveable.LinearizedBones[j]);
-								currentBone = moveable.LinearizedBones[j];
-								break;
+							RendererBone* theBone = stack.top();
+							stack.pop();
 
-							case 2:
-								stack.push(currentBone);
-
-								moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
-								moveable.LinearizedBones[j]->Parent = currentBone;
-								currentBone->Children.push_back(moveable.LinearizedBones[j]);
-								currentBone = moveable.LinearizedBones[j];
-								break;
-
-							case 3:
-								if (stack.empty())
-									continue;
-
-								RendererBone *theBone = stack.top();
-								stack.pop();
-
-								moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
-								moveable.LinearizedBones[j]->Parent = theBone;
-								theBone->Children.push_back(moveable.LinearizedBones[j]);
-								currentBone = moveable.LinearizedBones[j];
-								stack.push(theBone);
-								break;
-							}
+							moveable.LinearizedBones[j]->Translation = Vector3(linkX, linkY, linkZ);
+							moveable.LinearizedBones[j]->Parent = theBone;
+							theBone->Children.push_back(moveable.LinearizedBones[j]);
+							currentBone = moveable.LinearizedBones[j];
+							stack.push(theBone);
+							break;
 						}
 					}
+				}
 
-					for (int n = 0; n < obj->nmeshes; n++)
-					{
-						moveable.LinearizedBones[n]->Transform = Matrix::CreateTranslation(
-							moveable.LinearizedBones[n]->Translation.x,
-							moveable.LinearizedBones[n]->Translation.y,
-							moveable.LinearizedBones[n]->Translation.z);
-					}
+				for (int n = 0; n < obj->nmeshes; n++)
+				{
+					moveable.LinearizedBones[n]->Transform = Matrix::CreateTranslation(
+						moveable.LinearizedBones[n]->Translation.x,
+						moveable.LinearizedBones[n]->Translation.y,
+						moveable.LinearizedBones[n]->Translation.z);
+				}
 
-					moveable.Skeleton = moveable.LinearizedBones[0];
-					BuildHierarchy(&moveable);
+				moveable.Skeleton = moveable.LinearizedBones[0];
+				BuildHierarchy(&moveable);
 
-					// Fix player skin joints and hair units.
-					if (MoveablesIds[i] == ID_LARA_SKIN_JOINTS)
-					{
-						BackupObjectVertices(ID_LARA_SKIN_JOINTS);
-						isSkinPresent = true;
+				// Fix player skin joints and hair units.
+				if (MoveablesIds[i] == ID_LARA_SKIN_JOINTS)
+				{
+					BackupObjectVertices(ID_LARA_SKIN_JOINTS);
+					isSkinPresent = true;
 
-						auto& jointsMoveable = moveable;
-						auto& skinMoveable = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
-						ProcessSkinJoints(jointsMoveable, const_cast<RendererObject&>(skinMoveable), *obj);
-					}
-					else if ((MoveablesIds[i] == ID_HAIR_PRIMARY || MoveablesIds[i] == ID_HAIR_SECONDARY) && isSkinPresent)
-					{
-						BackupObjectVertices((GAME_OBJECT_ID)MoveablesIds[i]);
-						bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
-						bool isSecond = isYoung && MoveablesIds[i] == ID_HAIR_SECONDARY;
-						auto& skinMoveable = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
-						ProcessHair((GAME_OBJECT_ID)MoveablesIds[i], const_cast<RendererObject&>(skinMoveable), isSecond);
-					}
+					auto& jointsMoveable = moveable;
+					auto& skinMoveable = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
+					ProcessSkinJoints(jointsMoveable, const_cast<RendererObject&>(skinMoveable), *obj);
+				}
+				else if ((MoveablesIds[i] == ID_HAIR_PRIMARY || MoveablesIds[i] == ID_HAIR_SECONDARY) && isSkinPresent)
+				{
+					BackupObjectVertices((GAME_OBJECT_ID)MoveablesIds[i]);
+					bool isYoung = (g_GameFlow->GetLevel(CurrentLevel)->GetLaraType() == LaraType::Young);
+					bool isSecond = isYoung && MoveablesIds[i] == ID_HAIR_SECONDARY;
+					auto& skinMoveable = GetRendererObject(GAME_OBJECT_ID::ID_LARA_SKIN);
+					ProcessHair((GAME_OBJECT_ID)MoveablesIds[i], const_cast<RendererObject&>(skinMoveable), isSecond);
 				}
 			}
+		}
+
+		// ID_BODY_PART is a virtual object with no meshes of its own: each instance borrows a single
+		// mesh from the entity that spawned it (set per-instance in ItemInfo::Model.MeshIndex). It still
+		// needs a renderer object, otherwise the item pipeline skips it entirely and no parts are drawn.
+		// A single identity bone is enough since body parts have no animation.
+		if (!_moveableObjects[ID_BODY_PART].has_value())
+		{
+			_moveableObjects[ID_BODY_PART] = RendererObject();
+			auto& bodyPart = *_moveableObjects[ID_BODY_PART];
+			bodyPart.Id = ID_BODY_PART;
+			bodyPart.Hidden = false;
+			bodyPart.ShadowType = ShadowMode::None;
+			bodyPart.Skeleton = nullptr;
+			bodyPart.AnimationTransforms.push_back(Matrix::Identity);
+			bodyPart.BindPoseTransforms.push_back(Matrix::Identity);
 		}
 
 		_moveablesVertexBuffer = _graphicsDevice->CreateVertexBuffer((int)_moveablesVertices.size(), sizeof(Vertex), _moveablesVertices.data());

@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/hair.h"
 
 #include "Game/Animation/Animation.h"
 #include "Game/collision/collide_room.h"

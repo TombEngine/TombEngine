@@ -8,7 +8,7 @@ using namespace TEN::Math;
 using namespace TEN::Physics;
 
 enum GAME_OBJECT_ID : short;
-enum class ReverbType;
+enum class ReverbType : int;
 class FloorInfo;
 class GameBoundingBox;
 struct BUCKET;
@@ -59,7 +59,7 @@ struct RoomLightData
 	float length;         // Range of light
 	float cutoff;         // Range of light
 	float dx, dy, dz;    // Direction - used only by sun and spot lights
-	byte type;
+	unsigned char type;
 	bool castShadows;
 };
 
@@ -133,8 +133,7 @@ struct RoomData
 	int flippedRoom;
 	int flipNumber;
 
-	short itemNumber;
-	short fxNumber;
+	std::vector<int> itemNumbers;
 
 	//RoomObjectHandler Moveables = RoomObjectHandler(); // TODO: Refactor linked list of items in room to use a BVH instead.
 	//RoomObjectHandler Statics	= RoomObjectHandler(); // TODO: Refactor to use BVH.

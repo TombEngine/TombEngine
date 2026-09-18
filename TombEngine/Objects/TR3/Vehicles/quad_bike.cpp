@@ -20,6 +20,9 @@
 #include "Objects/TR3/Vehicles/quad_bike_info.h"
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
+#include "Specific/trutils.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
 #include "Specific/Input/Input.h"
@@ -28,9 +31,11 @@ using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Input;
 using namespace TEN::Math;
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
+
 	const CreatureBiteInfo QuadBikeEffectsPositions[6] =
 	{
 		CreatureBiteInfo(Vector3(-56, -32, -380), 0),
@@ -1024,19 +1029,21 @@ namespace TEN::Entities::Vehicles
 		return drive;
 	}
 
-	static void TriggerQuadExhaustSmoke(int x, int y, int z, short angle, int speed, int moving)
+	static void TriggerQuadExhaustSmoke(ItemInfo* quadBikeItem, int x, int y, int z, short angle, int speed, int moving)
 	{
 		auto* spark = GetFreeParticle();
 
+		auto quadBikeExhaustSmokeStartColor = PropertyHandler::Get(quadBikeItem, PropName_VehicleSmokeStartColor, ScriptColor(0, 0, 0));
+		auto quadBikeExhaustSmokeEndColor = PropertyHandler::Get(quadBikeItem, PropName_VehicleSmokeEndColor, ScriptColor(64, 64, 64));
+
 		spark->on = true;
-		spark->sR = 0;
-		spark->sG = 0;
-		spark->sB = 0;
+		spark->sR = quadBikeExhaustSmokeStartColor.GetR();
+		spark->sG = quadBikeExhaustSmokeStartColor.GetG();
+		spark->sB = quadBikeExhaustSmokeStartColor.GetB();
 
-		spark->dR = 96;
-		spark->dG = 96;
-		spark->dB = 128;
-
+		spark->dR = quadBikeExhaustSmokeEndColor.GetR();
+		spark->dG = quadBikeExhaustSmokeEndColor.GetG();
+		spark->dB = quadBikeExhaustSmokeEndColor.GetB();
 		if (moving)
 		{
 			spark->dR = (spark->dR * speed) / 32;
@@ -1048,8 +1055,7 @@ namespace TEN::Entities::Vehicles
 		if (spark->sLife < 9)
 			spark->sLife = spark->life = 9;
 
-		// TODO: Switch back to screen blend mode once rendering for it is refactored. -- Sezz 2023.01.14
-		spark->blendMode = BlendMode::Additive;
+		spark->blendMode = BlendMode::Screen;
 		spark->colFadeSpeed = 4;
 		spark->fadeToBlack = 4;
 		spark->extras = 0;
@@ -1066,7 +1072,7 @@ namespace TEN::Entities::Vehicles
 
 		if (GetRandomControl() & 1)
 		{
-			spark->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF;
+			spark->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_HAZE;
 			spark->rotAng = GetRandomControl() & 4095;
 			if (GetRandomControl() & 1)
 				spark->rotAdd = -(GetRandomControl() & 7) - 24;
@@ -1074,7 +1080,7 @@ namespace TEN::Entities::Vehicles
 				spark->rotAdd = (GetRandomControl() & 7) + 24;
 		}
 		else
-			spark->flags = SP_SCALE | SP_DEF | SP_EXPDEF;
+			spark->flags = SP_SCALE | SP_DEF | SP_EXPDEF | SP_HAZE;
 
 		spark->SpriteSeqID = ID_DEFAULT_SPRITES;
 		spark->SpriteID = 0;
@@ -1218,7 +1224,7 @@ namespace TEN::Entities::Vehicles
 					if (quadBikeItem->Animation.Velocity.z < 64)
 					{
 						speed = 64 - quadBikeItem->Animation.Velocity.z;
-						TriggerQuadExhaustSmoke(pos.x, pos.y, pos.z, angle, speed, 1);
+						TriggerQuadExhaustSmoke(quadBikeItem, pos.x, pos.y, pos.z, angle, speed, 1);
 					}
 				}
 				else
@@ -1235,7 +1241,7 @@ namespace TEN::Entities::Vehicles
 					else
 						speed = 0;
 
-					TriggerQuadExhaustSmoke(pos.x, pos.y, pos.z, angle, speed, 0);
+					TriggerQuadExhaustSmoke(quadBikeItem, pos.x, pos.y, pos.z, angle, speed, 0);
 				}
 			}
 		}

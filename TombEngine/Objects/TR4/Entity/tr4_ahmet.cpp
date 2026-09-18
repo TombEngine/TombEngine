@@ -1,7 +1,7 @@
 #include "framework.h"
 #include "Objects/TR4/Entity/tr4_ahmet.h"
 
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
 #include "Game/control/lot.h"
