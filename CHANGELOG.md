@@ -93,12 +93,12 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed vertex move effect speed in water rooms while turning camera on the x-axis
 * Fixed flares being selected from inventory whilst riding the kayak.
 * Fixed kayak paddle and minecart wrench not being drawn when starting a level.
-* Fixed Lara sinking into the floor or being unable to pick up items underwater in low tunnels.
-* Fixed SHOOT_SWITCH2 shattering without OCB 444.
-* Fixed MULTIPLE_BOULDERS stopping a sector short of obstacles or immediately when placed above the floor.
-* Fixed PROPELLER_V pushing player in an arbitrary direction determined by the room height instead of away from the propeller.
-* Fixed OVERHEAD_PULLEY_HOOK not damaging player unless a damage value was explicitly set.
-* Fixed doors and BREAKABLE_WALL created by script losing their collision after loading a savegame.
+* Fixed Lara sinking into the floor or being unable to pick up items underwater in low tunnels ([#2111](https://github.com/TombEngine/TombEngine/issues/2111)).
+* Fixed SHOOT_SWITCH2 shattering without OCB 444 ([#2102](https://github.com/TombEngine/TombEngine/issues/2102)).
+* Fixed MULTIPLE_BOULDERS stopping a sector short of obstacles or immediately when placed above the floor ([#2101](https://github.com/TombEngine/TombEngine/issues/2101)).
+* Fixed PROPELLER_V pushing player in an arbitrary direction determined by the room height instead of away from the propeller ([#2078](https://github.com/TombEngine/TombEngine/issues/2078)).
+* Fixed OVERHEAD_PULLEY_HOOK not damaging player unless a damage value was explicitly set ([#2083](https://github.com/TombEngine/TombEngine/issues/2083)).
+* Fixed doors and BREAKABLE_WALL created by script losing their collision after loading a savegame ([#2089](https://github.com/TombEngine/TombEngine/issues/2089)).
 
 ### Lua API changes
 
@@ -156,7 +156,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed `View.DisplayString` not working in the title level.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 * Fixed notification display bug in `CustomDiary` class.
-* Fixed ring inventory opening despite `Input.ClearAllKeys` being called in the `OnLoop` callback.
+* Fixed ring inventory opening despite `Input.ClearAllKeys` being called in the `OnLoop` callback ([#2075](https://github.com/TombEngine/TombEngine/issues/2075)).
 
 ## [Version 1.11.1]
 
