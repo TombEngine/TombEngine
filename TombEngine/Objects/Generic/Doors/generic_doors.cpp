@@ -61,9 +61,6 @@ namespace TEN::Entities::Doors
 	{
 		auto& doorItem = g_Level.Items[itemNumber];
 
-		if (doorItem.ObjectNumber == ID_SEQUENCE_DOOR1)
-			doorItem.Flags &= 0xBFFFu;
-
 		if (doorItem.ObjectNumber == ID_LIFT_DOORS1 || doorItem.ObjectNumber == ID_LIFT_DOORS2)
 			doorItem.ItemFlags[0] = 4096;
 
