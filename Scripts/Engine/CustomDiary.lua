@@ -25,6 +25,8 @@ end
 
 local Type = require("Engine.Type")
 
+local diaryActivated = false
+
 local CustomDiary = {}
 CustomDiary.__index = CustomDiary
 
@@ -1547,8 +1549,8 @@ LevelFuncs.Engine.Diaries.ShowDiary = function()
             diary.Visible = false
             TEN.Sound.StopAudioTrack(Sound.SoundTrackType.VOICE)
             TEN.Sound.PlaySound(diary.ExitSound)
-            Flow.SetFreezeMode(Flow.FreezeMode.NONE)
             GameVars.Engine.Diaries[dataName].DiaryVisible   = false
+            Flow.SetFreezeMode(Flow.FreezeMode.NONE)
             return
         end
 
@@ -1654,10 +1656,7 @@ LevelFuncs.Engine.Diaries.ActivateDiary = function(objectNumber)
 	if GameVars.Engine.Diaries[dataName] then
         GameVars.Engine.LastUsedDiary = objectNumber
         TEN.Inventory.ClearUsedItem()
-        GameVars.Engine.Diaries[dataName].TargetAlpha = 255
-        GameVars.Engine.Diaries[dataName].EntryTargetAlpha = 255
-        GameVars.Engine.Diaries[dataName].DiaryVisible  = true
-        Flow.SetFreezeMode(Flow.FreezeMode.FULL)
+        diaryActivated = true
 	end
 
 end
@@ -1673,6 +1672,14 @@ LevelFuncs.Engine.Diaries.ShowNotification = function()
     end
 
     local dataName = objectNumber .. "_diarydata"
+
+    if diaryActivated then
+        GameVars.Engine.Diaries[dataName].TargetAlpha = 255
+        GameVars.Engine.Diaries[dataName].EntryTargetAlpha = 255
+        GameVars.Engine.Diaries[dataName].DiaryVisible  = true
+        diaryActivated = false
+        Flow.SetFreezeMode(Flow.FreezeMode.FULL)
+    end
 
     if GameVars.Engine.Diaries[dataName] then
 
