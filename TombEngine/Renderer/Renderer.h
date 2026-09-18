@@ -214,7 +214,6 @@ namespace TEN::Renderer
 		RendererViewport _viewport;
 		RendererViewport _distortionViewport;
 		RendererViewport _dofViewport;
-		RendererViewport _SSAOViewport;
 		RendererViewport _shadowMapViewport;
 
 		// Text
@@ -363,6 +362,7 @@ namespace TEN::Renderer
 		int _lastSortedRoomNumber = NO_VALUE;
 		RendererObjectType _lastSortedObjectType = RendererObjectType::Unknown;
 		const void* _lastSortedObject = nullptr;
+		bool _lastSortedSkinned = false;
 
 		std::vector<RendererSpriteBucket> _spriteBuckets;
 
