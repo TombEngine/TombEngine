@@ -73,7 +73,7 @@ local STATS_TEXT =
 
 local GetLevelHeader = function(type)
     if type then
-        return TEN.Flow.GetString("game_title")
+        return TEN.Flow.GetString("window_title")
     else
         local level = TEN.Flow.GetCurrentLevel()
         return TEN.Flow.GetString(level.nameKey)

@@ -269,11 +269,16 @@ namespace TEN::Input
 
 	const std::string& BindingManager::GetBoundKeyName(ActionID actionID)
 	{
-		int defaultKeyID = GetBoundKeyID(BindingProfileID::Default, actionID);
-		int userKeyID = GetBoundKeyID(BindingProfileID::Custom, actionID);
-		int boundKey = (userKeyID != KEY_UNASSIGNED) ? userKeyID : defaultKeyID;
+		auto device = GetLastInputDevice();
+		const BindingProfile& profile = (device == InputDevice::Gamepad) ?
+			DEFAULT_GAMEPAD_BINDING_PROFILE : DEFAULT_KEYBOARD_MOUSE_BINDING_PROFILE;
+		
+		auto it = profile.find(actionID);
 
-		return GetKeyName(boundKey);
+		if (it != profile.end())
+			return GetKeyName(it->second);
+
+		return GetKeyName(KEY_UNASSIGNED);
 	}
 
 	void BindingManager::SetKeyBinding(BindingProfileID profileID, ActionID actionID, int keyID)

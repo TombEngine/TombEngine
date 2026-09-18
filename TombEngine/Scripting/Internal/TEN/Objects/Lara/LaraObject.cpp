@@ -579,24 +579,27 @@ int LaraObject::GetWeaponMode(TypeOrNil<LaraWeaponType> weaponType) const
 	const auto& player = GetLaraInfo(*_moveable);
 
 	auto weapon = ValueOr<LaraWeaponType>(weaponType, player.Control.Weapon.GunType);
-	auto weaponMode = std::optional<PlayerWeaponMode>(std::nullopt);
+	std::optional<PlayerWeaponMode> weaponMode;
 
 	switch (weapon)
 	{
 	case::LaraWeaponType::HK:
-		if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_1)
+		switch (player.Weapons[(int)LaraWeaponType::HK].WeaponMode)
 		{
+		case LaraWeaponTypeCarried::WTYPE_AMMO_1:
 			weaponMode = PlayerWeaponMode::Rapid;
 			break;
-		}
-		else if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_2)
-		{
+
+		case LaraWeaponTypeCarried::WTYPE_AMMO_2:
 			weaponMode = PlayerWeaponMode::Burst;
 			break;
-		}
-		else if (player.Weapons[(int)LaraWeaponType::HK].WeaponMode == LaraWeaponTypeCarried::WTYPE_AMMO_3)
-		{
+
+		case LaraWeaponTypeCarried::WTYPE_AMMO_3:
 			weaponMode = PlayerWeaponMode::Sniper;
+			break;
+
+		default:
+			weaponMode = PlayerWeaponMode::Rapid;
 			break;
 		}
 		break;
