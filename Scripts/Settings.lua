@@ -39,7 +39,7 @@ local settings = Flow.Settings.new()
 	settings.Gameplay.enableInventory = true
 	settings.Gameplay.killPoisonedEnemies = true
 	settings.Gameplay.setEnemiesOnFireWithWeapons = true
-	settings.Gameplay.setEnemiesOnFireWithDeathSectors = true
+	settings.Gameplay.setEnemiesOnFireWithDeathFlag = true
 	settings.Gameplay.targetObjectOcclusion = true
 
 	settings.Graphics.ambientOcclusion = true

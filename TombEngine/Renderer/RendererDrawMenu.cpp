@@ -1283,6 +1283,8 @@ namespace TEN::Renderer
 		if (texture == nullptr || !texture->IsValid())
 			return;
 
+		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
+
 		int timeout = 20;
 		float currentFade = FADE_FACTOR;
 
@@ -1380,6 +1382,8 @@ namespace TEN::Renderer
 
 	void Renderer::RenderInventoryScene(IRenderSurface2D* renderTarget, ITextureBase* background, float backgroundFade)
 	{
+		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
+
 		// Set basic render states
 		SetBlendMode(BlendMode::Opaque, true);
 		SetDepthState(DepthState::Write, true);
@@ -1557,6 +1561,8 @@ namespace TEN::Renderer
 
 	void Renderer::RenderLoadingScreen(float percentage)
 	{
+		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
+
 		// Set basic render states.
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);

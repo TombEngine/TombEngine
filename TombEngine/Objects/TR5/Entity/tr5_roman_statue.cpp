@@ -228,7 +228,7 @@ namespace TEN::Entities::Creatures::TR5
 		fxInfo.Flag1 = 1;
 	}
 
-	void TriggerRomanStatueMissileSparks(Vector3i* pos, char fxObject)
+	void TriggerRomanStatueMissileSparks(Vector3i* pos, int fxObject)
 	{
 		auto* spark = GetFreeParticle();
 

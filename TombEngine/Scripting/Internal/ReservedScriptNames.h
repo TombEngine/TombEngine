@@ -427,7 +427,6 @@ static constexpr char ScriptReserved_EmitSplash[]					= "EmitSplash";
 static constexpr char ScriptReserved_MakeExplosion[]				= "MakeExplosion";
 static constexpr char ScriptReserved_MakeEarthquake[]				= "MakeEarthquake";
 static constexpr char ScriptReserved_GetWind[]						= "GetWind";
-static constexpr char ScriptReserved_CreateParticleGroup[]					= "CreateParticleGroup";
 static constexpr char ScriptReserved_ParticleGroup[]						= "ParticleGroup";
 static constexpr char ScriptReserved_ParticleGroupStart[]					= "Start";
 static constexpr char ScriptReserved_ParticleGroupStop[]					= "Stop";
@@ -460,8 +459,6 @@ static constexpr char ScriptReserved_ParticleGroupSetContactRadius[]		= "SetCont
 static constexpr char ScriptReserved_ParticleGroupGetParticle[]				= "GetParticle";
 static constexpr char ScriptReserved_ParticleGroupSetParticle[]				= "SetParticle";
 static constexpr char ScriptReserved_ParticleGroupForEachParticle[]			= "ForEachParticle";
-static constexpr char ScriptReserved_ParticleGroupId[]						= "id";
-static constexpr char ScriptReserved_ParticleGroupActive[]					= "active";
 
 static constexpr char ScriptReserved_FlashScreen[]					= "FlashScreen";
 static constexpr char ScriptReserved_SaveScreenshot[]				= "SaveScreenshot";

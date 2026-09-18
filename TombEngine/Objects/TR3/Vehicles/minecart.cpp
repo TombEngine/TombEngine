@@ -223,6 +223,9 @@ namespace TEN::Entities::Vehicles
 		minecart->VerticalVelocity = 0;
 		minecart->Gradient = 0;
 		minecart->Flags = 0;
+
+		if (mountType == VehicleMountType::LevelStart)
+			MinecartWrenchTake(minecart, laraItem);
 	}
 
 	static void TriggerWheelSparkles(ItemInfo* minecartItem, bool left)

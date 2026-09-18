@@ -11,6 +11,7 @@
 #include "Game/effects/tomb4fx.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
+#include "Game/Setup.h"
 #include "Math/Math.h"
 #include "Objects/TR3/Entity/tr3_claw_mutant.h"
 #include "Objects/TR4/Entity/tr4_mutant.h"
@@ -129,6 +130,25 @@ namespace TEN::Entities::Effects
 		ShatterObject(&ShatterItem, 0, param2, fx.RoomNumber, param1);
 	}
 
+	void SpawnWillardScatterPlasmaBall(const Vector3i& pos, int roomNumber, short yaw, short type)
+	{
+		auto pose = Pose(pos, EulerAngles(0, yaw, 0));
+
+		int fxNumber = CreateNewEffect(roomNumber, ID_ENERGY_BUBBLES, pose);
+		if (fxNumber == NO_VALUE)
+			return;
+
+		auto& fx = g_Level.Items[fxNumber];
+		auto& fxInfo = GetFXInfo(fx);
+
+		fxInfo.Counter = 0;
+		fxInfo.Flag1 = (short)MissileType::WillardPlasmaBall;
+		fxInfo.Flag2 = type;
+		fx.Animation.Velocity.z = (GetRandomControl() & 0x1F) + 16;
+		fx.Animation.Velocity.y = -16 * type;
+		fx.Model.MeshIndex = { (int)Objects[fx.ObjectNumber].meshIndex };
+	}
+
 	void ControlEnemyMissile(short fxNumber)
 	{
 		auto& fx = g_Level.Items[fxNumber];
@@ -140,6 +160,9 @@ namespace TEN::Entities::Effects
 
 		int maxRotation = 0;
 		int maxVelocity = 0;
+
+		// Willard scatter balls (Flag2 != 0) arc under gravity and don't home in.
+		bool isWillardScatterBall = (fxInfo.Flag1 == (int)MissileType::WillardPlasmaBall && fxInfo.Flag2 != 0);
 
 		if (fxInfo.Flag1 == (int)MissileType::SethLarge)
 		{
@@ -163,7 +186,11 @@ namespace TEN::Entities::Effects
 			maxVelocity = CLICK(0.75f);
 		}
 
-		if (fx.Animation.Velocity.z < maxVelocity)
+		if (isWillardScatterBall)
+		{
+			fx.Animation.Velocity.y += (fxInfo.Flag2 != 1) + 1;
+		}
+		else if (fx.Animation.Velocity.z < maxVelocity)
 		{
 			if (fxInfo.Flag1 == (int)MissileType::CrocgodMutant)
 			{
@@ -175,7 +202,7 @@ namespace TEN::Entities::Effects
 			}
 		}
 
-		if (fx.Animation.Velocity.z < maxVelocity &&
+		if (fx.Animation.Velocity.z < maxVelocity && !isWillardScatterBall &&
 			fxInfo.Flag1 != (int)MissileType::SophiaLeighNormal &&
 			fxInfo.Flag1 != (int)MissileType::SophiaLeighLarge &&
 			fxInfo.Flag1 != (int)MissileType::ClawMutantPlasma)
@@ -285,6 +312,19 @@ namespace TEN::Entities::Effects
 
 				break;
 
+			case MissileType::WillardPlasmaBall:
+				// Primary ball splits into small scatter balls bouncing back on impact.
+				if (!fxInfo.Flag2)
+				{
+					int ballCount = (GetRandomControl() & 3) + 2;
+					for (int i = 0; i < ballCount; i++)
+						SpawnWillardScatterPlasmaBall(prevPos, fx.RoomNumber, (short)(fx.Pose.Orientation.y + ANGLE(135.0f) + (GetRandomControl() & 0x3FFF)), 1);
+				}
+
+				TriggerExplosionSparks(prevPos.x, prevPos.y, prevPos.z, 3, -2, 2, fx.RoomNumber);
+				TriggerShockwave(&fx.Pose, 32, 160, 64, 0, 128, 64, 24, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
+				break;
+
 			default:
 				TriggerShockwave(&fx.Pose, 32, 160, 64, 0, 128, 64, 16, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
 				BubblesShatterFunction(fx, 0, -32);
@@ -295,7 +335,7 @@ namespace TEN::Entities::Effects
 			return;
 		}
 
-		if (ItemNearLara(fx.Pose.Position, 200))
+		if (ItemNearLara(fx.Pose.Position, 200) && !isWillardScatterBall)
 		{
 			LaraItem->HitStatus = true;
 			switch ((MissileType)fxInfo.Flag1)
@@ -355,6 +395,13 @@ namespace TEN::Entities::Effects
 				ItemBurn(LaraItem);
 				break;
 
+			case MissileType::WillardPlasmaBall:
+				DoDamage(LaraItem, 100);
+				TriggerExplosionSparks(prevPos.x, prevPos.y, prevPos.z, 3, -2, 2, fx.RoomNumber);
+				TriggerShockwave(&fx.Pose, 48, 240, 64, 0, 128, 64, 24, EulerAngles::Identity, 0, true, false, false, (int)ShockwaveStyle::Normal);
+				ItemCustomBurn(LaraItem, Vector3(0.0f, 0.8f, 0.1f), Vector3(0.0f, 0.9f, 0.8f));
+				break;
+
 			default:
 				TriggerShockwave(&fx.Pose, 24, 88, 48, 0, 128, 64, 16, EulerAngles::Identity, 1, true, false, false, (int)ShockwaveStyle::Normal);
 				break;
@@ -394,6 +441,11 @@ namespace TEN::Entities::Effects
 
 					break;
 
+				case MissileType::WillardPlasmaBall:
+					TriggerWillardPlasmaBallFlame(fxNumber, deltaPos.x * 16, deltaPos.y * 16, deltaPos.z * 16);
+					break;
+
+
 				case MissileType::CrocgodMutant:
 					TriggerCrocgodMissileFlame(fxNumber, deltaPos.x * 16, deltaPos.y * 16, deltaPos.z * 16);
 					break;
@@ -401,7 +453,45 @@ namespace TEN::Entities::Effects
 			}
 		}
 
-		if (fxInfo.Flag1 == (int)MissileType::ClawMutantPlasma)
+		if (fxInfo.Flag1 == (int)MissileType::ClawMutantPlasma || fxInfo.Flag1 == (int)MissileType::WillardPlasmaBall)
 			SpawnDynamicLight(fx.Pose.Position.x, fx.Pose.Position.y, fx.Pose.Position.z, 8, 0, 64, 128);
+	}
+
+	void TriggerWillardPlasmaBallFlame(short fxNumber, short xVel, short yVel, short zVel)
+	{
+		auto& flame = *GetFreeParticle();
+
+		flame.on = true;
+		flame.sR = 48;
+		flame.sG = 255;
+		flame.sB = 48 + (GetRandomControl() & 31);
+		flame.dR = 32;
+		flame.dG = 192 + (GetRandomControl() & 63);
+		flame.dB = 128 + (GetRandomControl() & 63);
+		flame.fadeToBlack = 8;
+		flame.colFadeSpeed = (GetRandomControl() & 3) + 12;
+		flame.blendMode = BlendMode::Additive;
+		flame.life = flame.sLife = (GetRandomControl() & 7) + 24;
+		flame.y = 0;
+		flame.x = (GetRandomControl() & 0xF) - 8;
+		flame.xVel = xVel;
+		flame.yVel = yVel;
+		flame.z = (GetRandomControl() & 0xF) - 8;
+		flame.zVel = zVel;
+		flame.friction = 68;
+		flame.flags = 602;
+		flame.rotAng = GetRandomControl() & 0xFFF;
+
+		if (GetRandomControl() & 1)
+			flame.rotAdd = -32 - (GetRandomControl() & 0x1F);
+		else
+			flame.rotAdd = (GetRandomControl() & 0x1F) + 32;
+
+		flame.gravity = 0;
+		flame.maxYvel = 0;
+		flame.fxObj = fxNumber;
+		flame.scalar = 2;
+		flame.sSize = flame.size = (GetRandomControl() & 7) + 64;
+		flame.dSize = flame.size / 32;
 	}
 }

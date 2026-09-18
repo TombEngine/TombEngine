@@ -2029,6 +2029,10 @@ namespace TEN::Renderer
 
 		ResetDebugVariables();
 
+		// Sampler slots keep their states for the whole frame; the point filter override is
+		// decided once here.
+		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
+
 		auto& level = *g_GameFlow->GetLevel(CurrentLevel);
 
 		// Prepare scene to draw.
