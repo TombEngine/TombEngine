@@ -99,6 +99,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed PROPELLER_V pushing player in an arbitrary direction determined by the room height instead of away from the propeller ([#2078](https://github.com/TombEngine/TombEngine/issues/2078)).
 * Fixed OVERHEAD_PULLEY_HOOK not damaging player unless a damage value was explicitly set ([#2083](https://github.com/TombEngine/TombEngine/issues/2083)).
 * Fixed doors and BREAKABLE_WALL created by script losing their collision after loading a savegame ([#2089](https://github.com/TombEngine/TombEngine/issues/2089)).
+* Fixed KAYAK sticking to slopes out of water instead of sliding down them ([#2122](https://github.com/TombEngine/TombEngine/issues/2122)).
 
 ### Lua API changes
 

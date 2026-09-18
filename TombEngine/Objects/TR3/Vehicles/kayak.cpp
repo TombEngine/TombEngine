@@ -468,6 +468,37 @@ namespace TEN::Entities::Vehicles
 		return 0;
 	}
 
+	// Out of water the kayak has no buoyancy holding it up, so let gravity carry it down slopes
+	// instead of letting it rest on them.
+
+	static void KayakDoSlopeSlide(ItemInfo* kayakItem)
+	{
+		constexpr auto SLOPE_ANGLE_MIN		  = ANGLE(11.0f);
+		constexpr auto SLIDE_VELOCITY_MAX	  = 32.0f;
+		constexpr auto FLOOR_HEIGHT_TOLERANCE = CLICK(0.5f);
+
+		auto pointColl = GetPointCollision(*kayakItem);
+
+		// In water the kayak floats and follows the surface instead.
+		if (pointColl.GetWaterTopHeight() != NO_HEIGHT)
+			return;
+
+		// An airborne kayak falls first; only a grounded one slides.
+		if ((pointColl.GetFloorHeight() - kayakItem->Pose.Position.y) > FLOOR_HEIGHT_TOLERANCE)
+			return;
+
+		short slopeAngle = Geometry::GetSurfaceSlopeAngle(pointColl.GetFloorNormal());
+		if (slopeAngle < SLOPE_ANGLE_MIN)
+			return;
+
+		// Steeper slopes carry the kayak away faster.
+		float velocity = SLIDE_VELOCITY_MAX * phd_sin(slopeAngle);
+		short headingAngle = Geometry::GetSurfaceAspectAngle(pointColl.GetFloorNormal());
+
+		kayakItem->Pose.Position.x += velocity * phd_sin(headingAngle);
+		kayakItem->Pose.Position.z += velocity * phd_cos(headingAngle);
+	}
+
 	void KayakToBackground(ItemInfo* kayakItem, ItemInfo* laraItem)
 	{
 		auto* kayak = GetKayakInfo(kayakItem);
@@ -497,6 +528,8 @@ namespace TEN::Entities::Vehicles
 		kayakItem->Pose.Position.x += kayakItem->Animation.Velocity.z * phd_sin(kayakItem->Pose.Orientation.y);
 		kayakItem->Pose.Position.z += kayakItem->Animation.Velocity.z * phd_cos(kayakItem->Pose.Orientation.y);
 		kayakItem->Pose.Orientation.y += kayak->TurnRate;
+
+		KayakDoSlopeSlide(kayakItem);
 
 		KayakDoCurrent(kayakItem, laraItem);
 
