@@ -228,11 +228,11 @@ namespace TEN::Renderer
 
 	void Renderer::DrawSortedFaces(RenderView& view)
 	{
-		// Invalidate the room CB cache used by DrawRoomSorted.
 		// Invalidate the CB caches used by the sorted draw functions.
 		_lastSortedRoomNumber = NO_VALUE;
 		_lastSortedObjectType = RendererObjectType::Unknown;
 		_lastSortedObject = nullptr;
+		_lastSortedSkinned = false;
 
 		_sortedPolygonsVertices.clear();
 		_sortedPolygonsIndices.clear();
@@ -518,8 +518,12 @@ namespace TEN::Renderer
 		}
 
 		// Rebuild and upload the objects CB only when the item changes: grouping splits the
-		// same item into one batch per bucket which would re-upload identical data.
-		if (_lastSortedObjectType != objectInfo->ObjectType || _lastSortedObject != objectInfo->Item)
+		// same item into one batch per bucket which would re-upload identical data. The skinning
+		// mode is part of the key because a single item draws its skin mesh skinned and its other
+		// meshes rigid, and the two need different bone transforms.
+		if (_lastSortedObjectType != objectInfo->ObjectType ||
+			_lastSortedObject != objectInfo->Item ||
+			_lastSortedSkinned != objectInfo->Skinned)
 		{
 			// Bind main item properties.
 			Matrix world = objectInfo->Item->InterpolatedWorld;
@@ -551,6 +555,7 @@ namespace TEN::Renderer
 
 			_lastSortedObjectType = objectInfo->ObjectType;
 			_lastSortedObject = objectInfo->Item;
+			_lastSortedSkinned = objectInfo->Skinned;
 		}
 
 		SetBlendMode(objectInfo->BlendMode);
@@ -724,7 +729,9 @@ namespace TEN::Renderer
 		// Rebuild and upload the objects CB only when the hair unit changes: grouping splits
 		// the same unit into one batch per bucket which would re-upload identical data.
 		// The object type distinguishes the primary and secondary units of the same item.
-		if (_lastSortedObjectType != objectInfo->ObjectType || _lastSortedObject != objectInfo->Item)
+		if (_lastSortedObjectType != objectInfo->ObjectType ||
+			_lastSortedObject != objectInfo->Item ||
+			_lastSortedSkinned != objectInfo->Skinned)
 		{
 			// Bind main item properties.
 			Matrix world = objectInfo->Item->InterpolatedWorld;
@@ -761,6 +768,7 @@ namespace TEN::Renderer
 
 			_lastSortedObjectType = objectInfo->ObjectType;
 			_lastSortedObject = objectInfo->Item;
+			_lastSortedSkinned = objectInfo->Skinned;
 		}
 
 		SetBlendMode(objectInfo->BlendMode);
