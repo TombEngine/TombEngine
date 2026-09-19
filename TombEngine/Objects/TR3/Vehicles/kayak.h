@@ -27,4 +27,5 @@ namespace TEN::Entities::Vehicles
 	void KayakToItemCollision(ItemInfo* kayakItem, ItemInfo* laraItem);
 	void KayakLaraRapidsDrown(ItemInfo* laraItem);
 	bool KayakControl(ItemInfo* laraItem);
+	void KayakItemControl(short itemNumber);
 }
