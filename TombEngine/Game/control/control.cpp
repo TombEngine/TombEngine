@@ -41,6 +41,7 @@
 #include "Game/Setup.h"
 #include "Game/spotcam.h"
 #include "Math/Math.h"
+#include "Objects/Effects/Boss.h"
 #include "Objects/Effects/LensFlare.h"
 #include "Objects/Effects/Fireflies.h"
 #include "Objects/Generic/Object/objects.h"
@@ -72,6 +73,7 @@
 using namespace std::chrono;
 using namespace TEN::Effects;
 using namespace TEN::Effects::Blood;
+using namespace TEN::Effects::Boss;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Effects::Decal;
 using namespace TEN::Effects::DisplaySprite;
@@ -227,6 +229,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateParticleGroups();
 	UpdateExplosionParticles();
 	UpdateShockwaves();
+	UpdateBossExplosionRings();
 	UpdateBeetleSwarm();
 	UpdateLocusts();
 	UpdateUnderwaterBloodParticles();
