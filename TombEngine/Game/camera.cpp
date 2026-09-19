@@ -90,6 +90,16 @@ float ScreenFadeStart = 0;
 float ScreenFadeEnd = 0;
 float ScreenFadeCurrent = 0;
 
+// State of the level intro fade. Applies to both new levels and savegame restores.
+static bool FadeInPending = false;
+static int FadeInWarmupFrames = 0;
+
+// One-shot anchor of the chase camera for the level intro: for exactly the first frame the chase is
+// snapped to its freshly (re)positioned pose with interpolation disabled, so the opening view is not
+// swept by a stale interpolation baseline. The chase tracks the player as normal from the very next
+// frame. Re-armed by ArmLevelFadeIn() on every level entry, including savegame restores.
+static bool IntroCamFrozen = false;
+
 float CinematicBarsHeight = 0;
 float CinematicBarsDestinationHeight = 0;
 float CinematicBarsSpeed = 0;
@@ -286,7 +296,45 @@ void CalculateBounce(bool binocularMode)
 	}
 }
 
+// Arm the level intro fade. The screen is held black for a few frames so that the chase camera,
+// and the player and hair which update ahead of it, finish settling before the world is revealed.
+// Armed on every level entry, including savegame restores.
+
+void ArmLevelFadeIn()
+{
+	FadeInPending = true;
+	FadeInWarmupFrames = 0;
+	IntroCamFrozen = false;
+}
+
+static void UpdateLevelFadeIn()
+{
+	// Hold the screen black for a short fixed window at the start of the level so the chase camera,
+	// and the player and hair which update ahead of it, finish settling before the world is revealed.
+	// The window is intentionally kept short; a flyby (which moves every frame) otherwise forces the
+	// reveal at the same point anyway, so camera-steadiness tracking adds no signal over a fixed count.
+	constexpr int FADE_IN_DELAY_FRAMES = 5;
+
+	if (!FadeInPending)
+		return;
+
+	if (++FadeInWarmupFrames < FADE_IN_DELAY_FRAMES)
+		return;
+
+	FadeInPending = false;
+	SetScreenFadeIn(FADE_SCREEN_SPEED);
+}
+
 void InitializeCamera()
+{
+	AlterFOV(ANGLE(DEFAULT_FOV));
+}
+
+// Anchor the chase camera directly behind the player instead of letting it glide into position on
+// the opening frames. A fresh level has no saved camera to seed from, unlike a savegame restore, so
+// this is invoked from the control phase once Lara's final spawn and any startup scripts have run.
+
+void RecenterChaseCamera()
 {
 	Camera.shift = LaraItem->Pose.Position.y - BLOCK(1);
 
@@ -296,17 +344,7 @@ void InitializeCamera()
 		LaraItem->Pose.Position.z,
 		LaraItem->RoomNumber);
 
-	Camera.target = GameVector(
-		LastTarget.x,
-		Camera.shift,
-		LastTarget.z,
-		LaraItem->RoomNumber);
-
-	Camera.pos = GameVector(
-		LastTarget.x,
-		Camera.shift,
-		LastTarget.z - 100,
-		LaraItem->RoomNumber);
+	Camera.target = LastTarget;
 
 	Camera.targetDistance = BLOCK(1.5f);
 	Camera.item = nullptr;
@@ -318,13 +356,25 @@ void InitializeCamera()
 	Camera.fixedCamera = false;
 	Camera.DisableInterpolation = true;
 
-	AlterFOV(ANGLE(DEFAULT_FOV));
+	Camera.targetElevation = -ANGLE(10.0f);
+	Camera.actualElevation = Camera.targetElevation;
+	Camera.targetAngle = 0;
+	Camera.actualAngle = LaraItem->Pose.Orientation.y;
+
+	int horizontalDistance = (int)(Camera.targetDistance * phd_cos(Camera.actualElevation));
+	Camera.pos = GameVector(
+		Camera.target.x - horizontalDistance * phd_sin(Camera.actualAngle),
+		Camera.target.y + (int)(Camera.targetDistance * phd_sin(Camera.actualElevation)),
+		Camera.target.z - horizontalDistance * phd_cos(Camera.actualAngle),
+		LaraItem->RoomNumber);
 
 	UseForcedFixedCamera = false;
 	CalculateCamera(LaraCollision);
 
-	// Fade in screen.
-	SetScreenFadeIn(FADE_SCREEN_SPEED);
+	LastTarget = Camera.target;
+	LastIdeal = Camera.pos;
+
+	ArmLevelFadeIn();
 }
 
 void MoveCamera(GameVector* ideal, int speed, bool force)
@@ -1153,21 +1203,48 @@ void CalculateCamera(const CollisionInfo& coll)
 	int y = item->Pose.Position.y + bounds.Y2 + (3 * (bounds.Y1 - bounds.Y2) / 4);
 	int z;
 
+	// Releasing the Look key while a forced look target is active permanently dismisses it. Return to the
+	// normal chase camera, but keep the combat camera if a weapon is drawn so aiming isn't dropped for a frame.
+	if (Camera.item != nullptr && !isFixedCamera && IsReleased(In::Look))
+	{
+		Camera.item->LookedAt = true;
+		Camera.item = nullptr;
+
+		bool isCombatAim = (Lara.Control.HandStatus == HandStatus::WeaponReady ||Lara.Control.HandStatus == HandStatus::WeaponDraw);
+		Camera.type = isCombatAim ? CameraType::Combat : CameraType::Chase;
+		Lara.Control.Look.Orientation = EulerAngles::Identity;
+	}
+
 	if (Camera.item)
 	{
 		if (!isFixedCamera)
 		{
 			auto deltaPos = Camera.item->Pose.Position - item->Pose.Position;
-			float dist = Vector3i::Distance(Camera.item->Pose.Position, item->Pose.Position);
+			int horizontalDist = (int)Vector2(deltaPos.x, deltaPos.z).Length();
 
-			auto lookOrient = EulerAngles(
-				phd_atan(dist, y - (bounds.Y1 + bounds.Y2) / 2 - Camera.item->Pose.Position.y),
+			// Use the camera target's own vertical centre as the reference height rather than the
+			// player bounds, and project onto the horizontal plane so nearby but elevated targets
+			// still yield a steep enough required pitch.
+			auto targetBounds = GameBoundingBox(Camera.item);
+
+			// Full pitch/heading required to centre the target on the view axis.
+			auto fullOrient = EulerAngles(
+				phd_atan(horizontalDist, y - (targetBounds.Y1 + targetBounds.Y2) / 2 - Camera.item->Pose.Position.y),
 				phd_atan(deltaPos.z, deltaPos.x) - item->Pose.Orientation.y,
-				0) / 2;
+				0);
 
-			if (lookOrient.y > ANGLE(-50.0f) &&	lookOrient.y < ANGLE(50.0f) &&
-				lookOrient.z > ANGLE(-85.0f) && lookOrient.z < ANGLE(85.0f))
+			// Split the required angle in half across the head and torso bones.
+			auto lookOrient = fullOrient / 2;
+
+			// Gate on the full angle actually applied to the camera aim so it can never swing past the
+			// hard look constraint; LookCamera only clamps pitch, so yaw under or over is otherwise passed
+			// through unclamped and the camera can aim further than Lara's head can follow.
+			if (fullOrient.y > LOOKCAM_ORIENT_CONSTRAINT.first.y &&
+				fullOrient.y < LOOKCAM_ORIENT_CONSTRAINT.second.y &&
+				fullOrient.x > LOOKCAM_ORIENT_CONSTRAINT.first.x &&
+				fullOrient.x < LOOKCAM_ORIENT_CONSTRAINT.second.x)
 			{
+				// Head turns the full way toward the target.
 				short angleDelta = lookOrient.y - Lara.ExtraHeadRot.y;
 				if (angleDelta > ANGLE(4.0f))
 				{
@@ -1181,9 +1258,12 @@ void CalculateCamera(const CollisionInfo& coll)
 				{
 					Lara.ExtraHeadRot.y += angleDelta;
 				}
+
+				// Torso mirrors the head so both bones contribute equally toward the target.
 				Lara.ExtraTorsoRot.y = Lara.ExtraHeadRot.y;
 
-				angleDelta = lookOrient.z - Lara.ExtraHeadRot.x;
+				// Head pitches the full way toward the target.
+				angleDelta = lookOrient.x - Lara.ExtraHeadRot.x;
 				if (angleDelta > ANGLE(4.0f))
 				{
 					Lara.ExtraHeadRot.x += ANGLE(4.0f);
@@ -1196,9 +1276,11 @@ void CalculateCamera(const CollisionInfo& coll)
 				{
 					Lara.ExtraHeadRot.x += angleDelta;
 				}
+
 				Lara.ExtraTorsoRot.x = Lara.ExtraHeadRot.x;
 
-				Lara.Control.Look.Orientation = lookOrient;
+				// Aim the camera at the full angle so the target lands on the screen centre.
+				Lara.Control.Look.Orientation = fullOrient;
 				Camera.type = CameraType::Look;
 				Camera.item->LookedAt = true;
 			}
@@ -1613,11 +1695,33 @@ void UpdateCamera()
 	{
 		// Do the standard camera.
 		TrackCameraInit = false;
-		CalculateCamera(LaraCollision);
+
+		// Level intro: on the very first frame only, snap the chase onto its freshly (re)positioned pose
+		// with interpolation disabled, so the view is anchored dead-static for exactly that one frame.
+		if (FadeInPending && !IntroCamFrozen)
+		{
+			// Snap the chase to its rest pose and lock it in for this one frame. CalculateCamera at speed 1
+			// parks it there; DisableInterpolation keeps the render crisp instead of sweeping from the stale
+			// baseline.
+			Camera.speed = 1;
+			CalculateCamera(LaraCollision);
+			Camera.speed = 10;
+			Camera.DisableInterpolation = true;
+
+			// Consume the one-shot so live tracking resumes from the very next frame.
+			IntroCamFrozen = true;
+		}
+		else
+		{
+			// Normal live chase, converging at default speed and tracking the player freely.
+			CalculateCamera(LaraCollision);
+		}
 	}
 
 	// Update cameras matrices there, after having done all the possible camera logic.
 	g_Renderer.UpdateCameraMatrices(&Camera, BLOCK(g_GameFlow->GetLevel(CurrentLevel)->GetFarView()));
+
+	UpdateLevelFadeIn();
 }
 
 void UpdateMikePos(const ItemInfo& item)
