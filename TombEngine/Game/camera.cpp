@@ -1170,7 +1170,7 @@ void CalculateCamera(const CollisionInfo& coll)
 		if (!isFixedCamera)
 		{
 			auto deltaPos = Camera.item->Pose.Position - item->Pose.Position;
-			int horizontalDist = (int)sqrt((double)SQUARE(deltaPos.x) + (double)SQUARE(deltaPos.z));
+			int horizontalDist = (int)Vector2(deltaPos.x, deltaPos.z).Length();
 
 			// Use the camera target's own vertical centre as the reference height rather than the
 			// player bounds, and project onto the horizontal plane so nearby but elevated targets
