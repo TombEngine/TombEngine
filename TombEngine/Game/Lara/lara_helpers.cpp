@@ -523,7 +523,7 @@ void HandlePlayerLookAround(ItemInfo& item, bool invertXAxis)
 		0);
 
 	// Visually adapt head and torso orientations.
-	player.ExtraHeadRot.Lerp(player.Control.Look.Orientation / 2, 0.2f);
+	player.ExtraHeadRot = player.Control.Look.Orientation / 2;
 
 	if (player.Control.HandStatus != HandStatus::Busy &&
 		!player.Control.IsLow &&

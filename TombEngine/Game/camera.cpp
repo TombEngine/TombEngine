@@ -1154,7 +1154,7 @@ void CalculateCamera(const CollisionInfo& coll)
 	int z;
 
 	// Releasing the Look key while a forced look target is active permanently dismisses it and returns to the normal chase camera.
-	if (Camera.item != nullptr && !isFixedCamera && IsClicked(In::Look))
+	if (Camera.item != nullptr && !isFixedCamera && IsReleased(In::Look))
 	{
 		Camera.item->LookedAt = true;
 		Camera.item = nullptr;
@@ -1172,7 +1172,7 @@ void CalculateCamera(const CollisionInfo& coll)
 			// Use the camera target's own vertical centre as the reference height rather than the
 			// player bounds, and project onto the horizontal plane so nearby but elevated targets
 			// still yield a steep enough required pitch.
-			const auto& targetBounds = GameBoundingBox(Camera.item);
+			auto targetBounds = GameBoundingBox(Camera.item);
 
 			// Full pitch/heading required to centre the target on the view axis.
 			auto fullOrient = EulerAngles(
@@ -1180,47 +1180,13 @@ void CalculateCamera(const CollisionInfo& coll)
 				phd_atan(deltaPos.z, deltaPos.x) - item->Pose.Orientation.y,
 				0);
 
-			// Split the required angle in half across the head and torso bones.
-			auto lookOrient = fullOrient / 2;
-
-			if (lookOrient.y > ANGLE(-50.0f) &&	lookOrient.y < ANGLE(50.0f) &&
-				lookOrient.x > LOOKCAM_ORIENT_CONSTRAINT.first.x &&
-				lookOrient.x < LOOKCAM_ORIENT_CONSTRAINT.second.x)
+			// Validate the full required angle is within the camera's look constraints.
+			if (fullOrient.y > ANGLE(-100.0f) && fullOrient.y < ANGLE(100.0f) &&
+				fullOrient.x > LOOKCAM_ORIENT_CONSTRAINT.first.x &&
+				fullOrient.x < LOOKCAM_ORIENT_CONSTRAINT.second.x)
 			{
-				// Head turns the full way toward the target.
-				short angleDelta = lookOrient.y - Lara.ExtraHeadRot.y;
-				if (angleDelta > ANGLE(4.0f))
-				{
-					Lara.ExtraHeadRot.y += ANGLE(4.0f);
-				}
-				else if (angleDelta < ANGLE(-4.0f))
-				{
-					Lara.ExtraHeadRot.y -= ANGLE(4.0f);
-				}
-				else
-				{
-					Lara.ExtraHeadRot.y += angleDelta;
-				}
-
-				// Torso mirrors the head so both bones contribute equally toward the target.
-				Lara.ExtraTorsoRot.y = Lara.ExtraHeadRot.y;
-
-				// Head pitches the full way toward the target.
-				angleDelta = lookOrient.x - Lara.ExtraHeadRot.x;
-				if (angleDelta > ANGLE(4.0f))
-				{
-					Lara.ExtraHeadRot.x += ANGLE(4.0f);
-				}
-				else if (angleDelta < ANGLE(-4.0f))
-				{
-					Lara.ExtraHeadRot.x -= ANGLE(4.0f);
-				}
-				else
-				{
-					Lara.ExtraHeadRot.x += angleDelta;
-				}
-
-				Lara.ExtraTorsoRot.x = Lara.ExtraHeadRot.x;
+				Lara.ExtraHeadRot = fullOrient / 2;
+				Lara.ExtraTorsoRot = Lara.ExtraHeadRot;
 
 				// Aim the camera at the full angle so the target lands on the screen centre.
 				Lara.Control.Look.Orientation = fullOrient;
