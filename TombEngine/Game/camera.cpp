@@ -1154,7 +1154,7 @@ void CalculateCamera(const CollisionInfo& coll)
 	int z;
 
 	// Releasing the Look key while a forced look target is active permanently dismisses it and returns to the normal chase camera.
-	if (Camera.item != nullptr && !isFixedCamera && IsReleased(In::Look))
+	if (Camera.item != nullptr && !isFixedCamera && IsClicked(In::Look))
 	{
 		Camera.item->LookedAt = true;
 		Camera.item = nullptr;

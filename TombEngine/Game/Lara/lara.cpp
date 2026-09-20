@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include "Game/Lara/lara.h"
 
 #include "Game/Animation/Animation.h"
@@ -441,8 +441,9 @@ void LaraAboveWater(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.PrevFrameNumber = item->Animation.FrameNumber;
 	coll->Setup.PrevState = item->Animation.ActiveState;
 
-	// Handle look-around.
-	if (((IsHeld(In::Look) && CanPlayerLookAround(*item)) ||
+	// Handle look-around. Suppress manual look while a forced camera target is active so holding
+	// the Look key does not override the target's head/torso rotation.
+	if (((IsHeld(In::Look) && Camera.item == nullptr && CanPlayerLookAround(*item)) ||
 			(player.Control.Look.IsUsingBinoculars || player.Control.Look.IsUsingLasersight)) &&
 		player.ExtraAnim == NO_VALUE)
 	{
@@ -512,8 +513,8 @@ void LaraWaterSurface(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.ForceSolidStatics = false;
 	coll->Setup.PrevPosition = item->Pose.Position;
 
-	// Handle look-around.
-	if (IsHeld(In::Look) && CanPlayerLookAround(*item))
+	// Handle look-around. Suppress while a forced camera target is active.
+	if (IsHeld(In::Look) && Camera.item == nullptr && CanPlayerLookAround(*item))
 	{
 		HandlePlayerLookAround(*item);
 	}
@@ -585,8 +586,8 @@ void LaraUnderwater(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.ForceSolidStatics = false;
 	coll->Setup.PrevPosition = item->Pose.Position;
 
-	// Handle look-around.
-	if (IsHeld(In::Look) && CanPlayerLookAround(*item))
+	// Handle look-around. Suppress while a forced camera target is active.
+	if (IsHeld(In::Look) && Camera.item == nullptr && CanPlayerLookAround(*item))
 	{
 		HandlePlayerLookAround(*item);
 	}
