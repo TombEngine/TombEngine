@@ -1153,15 +1153,12 @@ void CalculateCamera(const CollisionInfo& coll)
 	int y = item->Pose.Position.y + bounds.Y2 + (3 * (bounds.Y1 - bounds.Y2) / 4);
 	int z;
 
-	// Releasing the Look key while a forced look target is active permanently dismisses it. Return to the
-	// normal chase camera, but keep the combat camera if a weapon is drawn so aiming isn't dropped for a frame.
+	// Releasing the Look key while a forced look target is active permanently dismisses it and returns to the normal chase camera.
 	if (Camera.item != nullptr && !isFixedCamera && IsReleased(In::Look))
 	{
 		Camera.item->LookedAt = true;
 		Camera.item = nullptr;
-
-		bool isCombatAim = (Lara.Control.HandStatus == HandStatus::WeaponReady || Lara.Control.HandStatus == HandStatus::WeaponDraw);
-		Camera.type = isCombatAim ? CameraType::Combat : CameraType::Chase;
+		Camera.type = CameraType::Chase;
 		Lara.Control.Look.Orientation = EulerAngles::Identity;
 	}
 
@@ -1170,7 +1167,7 @@ void CalculateCamera(const CollisionInfo& coll)
 		if (!isFixedCamera)
 		{
 			auto deltaPos = Camera.item->Pose.Position - item->Pose.Position;
-			int horizontalDist = (int)Vector2(deltaPos.x, deltaPos.z).Length();
+			int horizontalDist = (int)sqrt((double)SQUARE(deltaPos.x) + (double)SQUARE(deltaPos.z));
 
 			// Use the camera target's own vertical centre as the reference height rather than the
 			// player bounds, and project onto the horizontal plane so nearby but elevated targets
@@ -1186,11 +1183,7 @@ void CalculateCamera(const CollisionInfo& coll)
 			// Split the required angle in half across the head and torso bones.
 			auto lookOrient = fullOrient / 2;
 
-			// Gate yaw on the full aim angle so the camera cannot yaw past the hard look constraint
-			// (LookCamera only clamps pitch). Gate pitch on the halved head angle so high or low
-			// targets still trigger the look; the actual camera pitch is clamped by LookCamera.
-			if (fullOrient.y > LOOKCAM_ORIENT_CONSTRAINT.first.y &&
-				fullOrient.y < LOOKCAM_ORIENT_CONSTRAINT.second.y &&
+			if (lookOrient.y > ANGLE(-50.0f) &&	lookOrient.y < ANGLE(50.0f) &&
 				lookOrient.x > LOOKCAM_ORIENT_CONSTRAINT.first.x &&
 				lookOrient.x < LOOKCAM_ORIENT_CONSTRAINT.second.x)
 			{
