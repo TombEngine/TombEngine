@@ -434,6 +434,11 @@ GameStatus DoLevel(int levelIndex, bool loadGame)
 	// Initialize game variables and optionally load game.
 	InitializeOrLoadGame(loadGame);
 
+		// Hold the screen black for the opening frames so the freshly restored or seeded world settles before
+	// being revealed. Always arm it on level entry: even when an opening flyby is already driving the camera,
+	// its own first frame may lack a screen-fade-in flag, so an unconditional reveal keeps it from wedging black.
+	ArmLevelFadeIn();
+
 	// DoGameLoop() returns only when level has ended.
 	return DoGameLoop(levelIndex);
 }
@@ -694,6 +699,12 @@ void InitializeOrLoadGame(bool loadGame)
 		}
 
 		g_GameScript->OnStart();
+
+		// A fresh level has no saved camera to restore, so settle the chase camera behind Lara now
+		// that her final spawn and any start-up scripts have been applied. Skip the seed when a flyby or
+		// object camera is already driving the intro, so it is not clobbered (e.g. the title flyby).
+		if (!UseSpotCam && !ItemCameraOn)
+			RecenterChaseCamera();
 	}
 }
 
@@ -705,6 +716,11 @@ GameStatus DoGameLoop(int levelIndex)
 	// Before entering actual game loop, GamePhase() must be called once to sort out
 	// various runtime shenanigangs (e.g. hair or freeze mode initialization).
 	status = GamePhase(false);
+
+	// Settle freshly re-initialized hair before the world is revealed so its tail doesn't sling
+	// sideways on the first visible frames (it is spawned as a stiff vertical spike on level/save load).
+	for (int i = 0; i < FPS; i++)
+		HairEffect.Update(*LaraItem);
 
 	g_Synchronizer.Init();
 	bool legacy30FpsDoneDraw = false;
