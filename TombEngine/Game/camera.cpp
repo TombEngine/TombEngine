@@ -1186,13 +1186,13 @@ void CalculateCamera(const CollisionInfo& coll)
 			// Split the required angle in half across the head and torso bones.
 			auto lookOrient = fullOrient / 2;
 
-			// Gate on the full angle actually applied to the camera aim so it can never swing past the
-			// hard look constraint; LookCamera only clamps pitch, so yaw under or over is otherwise passed
-			// through unclamped and the camera can aim further than Lara's head can follow.
+			// Gate yaw on the full aim angle so the camera cannot yaw past the hard look constraint
+			// (LookCamera only clamps pitch). Gate pitch on the halved head angle so high or low
+			// targets still trigger the look; the actual camera pitch is clamped by LookCamera.
 			if (fullOrient.y > LOOKCAM_ORIENT_CONSTRAINT.first.y &&
 				fullOrient.y < LOOKCAM_ORIENT_CONSTRAINT.second.y &&
-				fullOrient.x > LOOKCAM_ORIENT_CONSTRAINT.first.x &&
-				fullOrient.x < LOOKCAM_ORIENT_CONSTRAINT.second.x)
+				lookOrient.x > LOOKCAM_ORIENT_CONSTRAINT.first.x &&
+				lookOrient.x < LOOKCAM_ORIENT_CONSTRAINT.second.x)
 			{
 				// Head turns the full way toward the target.
 				short angleDelta = lookOrient.y - Lara.ExtraHeadRot.y;
