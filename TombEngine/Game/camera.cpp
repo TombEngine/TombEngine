@@ -1153,12 +1153,15 @@ void CalculateCamera(const CollisionInfo& coll)
 	int y = item->Pose.Position.y + bounds.Y2 + (3 * (bounds.Y1 - bounds.Y2) / 4);
 	int z;
 
-	// Releasing the Look key while a forced look target is active permanently dismisses it and returns to the normal chase camera.
+	// Releasing the Look key while a forced look target is active permanently dismisses it. Return to the
+	// normal chase camera, but keep the combat camera if a weapon is drawn so aiming isn't dropped for a frame.
 	if (Camera.item != nullptr && !isFixedCamera && IsReleased(In::Look))
 	{
 		Camera.item->LookedAt = true;
 		Camera.item = nullptr;
-		Camera.type = CameraType::Chase;
+
+		bool isCombatAim = (Lara.Control.HandStatus == HandStatus::WeaponReady || Lara.Control.HandStatus == HandStatus::WeaponDraw);
+		Camera.type = isCombatAim ? CameraType::Combat : CameraType::Chase;
 		Lara.Control.Look.Orientation = EulerAngles::Identity;
 	}
 
@@ -1183,9 +1186,13 @@ void CalculateCamera(const CollisionInfo& coll)
 			// Split the required angle in half across the head and torso bones.
 			auto lookOrient = fullOrient / 2;
 
-			if (lookOrient.y > ANGLE(-50.0f) &&	lookOrient.y < ANGLE(50.0f) &&
-				lookOrient.x > LOOKCAM_ORIENT_CONSTRAINT.first.x &&
-				lookOrient.x < LOOKCAM_ORIENT_CONSTRAINT.second.x)
+			// Gate on the full angle actually applied to the camera aim so it can never swing past the
+			// hard look constraint; LookCamera only clamps pitch, so yaw under or over is otherwise passed
+			// through unclamped and the camera can aim further than Lara's head can follow.
+			if (fullOrient.y > LOOKCAM_ORIENT_CONSTRAINT.first.y &&
+				fullOrient.y < LOOKCAM_ORIENT_CONSTRAINT.second.y &&
+				fullOrient.x > LOOKCAM_ORIENT_CONSTRAINT.first.x &&
+				fullOrient.x < LOOKCAM_ORIENT_CONSTRAINT.second.x)
 			{
 				// Head turns the full way toward the target.
 				short angleDelta = lookOrient.y - Lara.ExtraHeadRot.y;
