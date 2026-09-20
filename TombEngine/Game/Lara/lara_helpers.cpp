@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include "Game/Lara/lara_helpers.h"
 
 #include "Game/camera.h"
@@ -523,7 +523,7 @@ void HandlePlayerLookAround(ItemInfo& item, bool invertXAxis)
 		0);
 
 	// Visually adapt head and torso orientations.
-	player.ExtraHeadRot = player.Control.Look.Orientation / 2;
+	player.ExtraHeadRot.Lerp(player.Control.Look.Orientation / 2, 0.2f);
 
 	if (player.Control.HandStatus != HandStatus::Busy &&
 		!player.Control.IsLow &&
