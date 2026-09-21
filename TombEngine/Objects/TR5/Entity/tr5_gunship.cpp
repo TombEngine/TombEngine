@@ -75,25 +75,25 @@ namespace TEN::Entities::Creatures::TR5
 		ESCAPE = 3
 	};
 
-	// Statische Orbit-Daten zum Ausweichen. Nicht im Savegame persistiert;
-	// der Heli richtet sich nach einem Neuladen automatisch neu aus.
-	struct GunShipOrbitData
+	// Nicht-persistenter Laufzeit-Zustand des Helikopters (Orbit/Ausweichen, Auto-Escape, gecachtes LOS).
+	// Nicht im Savegame persistiert; nach einem Neuladen wird er automatisch neu initialisiert.
+	struct GunshipData
 	{
-		int Direction = 1;      // +1 / -1: Umlaufrichtung beim Evaden.
+		// Orbit/Ausweichen: +1 / -1 = Umlaufrichtung beim Evaden.
+		int Direction = 1;
 		bool Initialized = false;
-	};
 
-	static GunShipOrbitData GunShipOrbit;
-
-	// Nicht-persistenter Auto-Escape-Zustand: wenn aktiv, dient das Escapetarget als MoveTarget.
-	// Wird gesetzt, wenn der Heli in EVADE blockiert ist, und geleert, wenn er das Ziel erreicht hat.
-	struct GunShipEscapeData
-	{
+		// Auto-Escape: wenn aktiv, dient das Escapetarget als MoveTarget.
 		bool Active = false;
 		Vector3 TargetPos = Vector3::Zero;
 		int Frames = 0;
 
-		void Reset()
+		// Gecachtes LOS-Ergebnis Heli->Shoot-Target + letzter Test-Frame (teuer, ~1x/Sek. gecacht).
+		int LastTestFrame = -1000000; // Sentinel: erster Aufruf testet immer (kein 1s-Blindefenster).
+		bool Clear = true;            // true = freie Sicht (keine Geometrie dazwischen).
+
+		// Escape-Zustand zuruecksetzen (Ziel weg, frisches Timeout-Fenster).
+		void ResetEscape()
 		{
 			Active = false;
 			TargetPos = Vector3::Zero;
@@ -101,16 +101,7 @@ namespace TEN::Entities::Creatures::TR5
 		}
 	};
 
-	static GunShipEscapeData GunShipEscape;
-
-	// Nicht-persistent: gecachtes LOS-Ergebnis Heli->Shoot-Target + letzter Test-Frame.
-	// LOS ist teuer -> nur ~1x/Sek. neu testen (LOS_TEST_INTERVAL), sonst gecachten Wert liefern.
-	struct GunShipLosData
-	{
-		int  LastTestFrame = -1000000; // Sentinel: beim ersten Aufruf immer echten Test erzwingen (kein 1s-Blindefenster).
-		bool Clear         = true;     // true = freie Sicht (keine Geometrie dazwischen).
-	};
-	static GunShipLosData GunShipLos;
+	static GunshipData GunShip;
 
 	// Helper: Bestimmt den aktuellen Status basierend auf Distanz und Kollisionen
 	GunShipState DetermineGunShipState(const ItemInfo& item, float horizontalDistance, bool hasMoveTargetPos)
@@ -258,7 +249,7 @@ namespace TEN::Entities::Creatures::TR5
 		Vector3 bestDir = preferredDir;
 		bool found = false;
 
-		int orbitSide = (GunShipOrbit.Direction > 0) ? 1 : -1;
+		int orbitSide = (GunShip.Direction > 0) ? 1 : -1;
 
 		for (int i = 0; i < 5; i++)
 		{
@@ -276,7 +267,7 @@ namespace TEN::Entities::Creatures::TR5
 			// Scoring: Abstand zur bevorzugten Richtung, mit Continuity-Bias auf die letzte Ausweich-Seite.
 			float score = fabsf(candidateAngles[i]);
 			int candidateSide = (candidateAngles[i] > 0.0f) ? 1 : ((candidateAngles[i] < 0.0f) ? -1 : 0);
-			if (GunShipOrbit.Initialized && candidateSide != 0 && candidateSide != orbitSide)
+			if (GunShip.Initialized && candidateSide != 0 && candidateSide != orbitSide)
 				score += 0.5f;
 
 			if (score < bestScore)
@@ -285,14 +276,14 @@ namespace TEN::Entities::Creatures::TR5
 				bestDir = cand;
 				found = true;
 				if (candidateSide != 0)
-					GunShipOrbit.Direction = candidateSide;
+					GunShip.Direction = candidateSide;
 			}
 		}
 
 		if (!found)
 			return false;
 
-		GunShipOrbit.Initialized = true;
+		GunShip.Initialized = true;
 		outDir = bestDir;
 		return true;
 	}
@@ -374,10 +365,10 @@ namespace TEN::Entities::Creatures::TR5
 	// true = freie Sicht (keine Geometrie dazwischen).
 	bool GetGunShipLosToShootTarget(const ItemInfo& item, int shootTargetNum)
 	{
-		if (GlobalCounter - GunShipLos.LastTestFrame < LOS_TEST_INTERVAL)
-			return GunShipLos.Clear;
+		if (GlobalCounter - GunShip.LastTestFrame < LOS_TEST_INTERVAL)
+			return GunShip.Clear;
 
-		GunShipLos.LastTestFrame = GlobalCounter;
+		GunShip.LastTestFrame = GlobalCounter;
 
 		auto origin = GameVector(item.Pose.Position.ToVector3(), item.RoomNumber);
 		auto target = GameVector(g_Level.Items[shootTargetNum].Pose.Position.ToVector3(), g_Level.Items[shootTargetNum].RoomNumber);
@@ -387,8 +378,8 @@ namespace TEN::Entities::Creatures::TR5
 		DrawDebugLine(origin.ToVector3(), target.ToVector3(), Vector4(255,0,255,1), RendererDebugPage::None);
 
 		auto clamped = target;
-		GunShipLos.Clear = LOS(&origin, &clamped);
-		return GunShipLos.Clear;
+		GunShip.Clear = LOS(&origin, &clamped);
+		return GunShip.Clear;
 	}
 
 	// Helper: Berechnet die Distanz und Richtung zum Ziel
@@ -564,20 +555,20 @@ namespace TEN::Entities::Creatures::TR5
 		bool hasMoveTargetPos = (moveTargetPos != Vector3::Zero);
 
 		// Auto-Escape (nicht-persistent): wenn aktiv, dient das Escapetarget als MoveTarget (Vorrang vor Shoot-Target).
-		if (GunShipEscape.Active)
+		if (GunShip.Active)
 		{
-			moveTargetPos = GunShipEscape.TargetPos;
+			moveTargetPos = GunShip.TargetPos;
 			hasMoveTargetPos = true;
 
 			// Timeout: Escape darf nicht ewig laufen (z.B. Pfad blockiert / Ziel nicht erreichbar) -> dann Kampf fortsetzen.
-			if (++GunShipEscape.Frames > MAX_ESCAPE_FRAMES)
+			if (++GunShip.Frames > MAX_ESCAPE_FRAMES)
 			{
-				GunShipEscape.Reset();
+				GunShip.ResetEscape();
 				hasMoveTargetPos = false;
 				moveTargetPos = Vector3::Zero;
-				GunShipEscape.Active = false;
-				GunShipEscape.TargetPos = Vector3::Zero;
-				GunShipEscape.Frames = 0;
+				GunShip.Active = false;
+				GunShip.TargetPos = Vector3::Zero;
+				GunShip.Frames = 0;
 			}
 		}
 
@@ -591,7 +582,7 @@ namespace TEN::Entities::Creatures::TR5
 			if (sqrtf(dmx * dmx + dmz * dmz) < MOVE_TARGET_REACH_RADIUS)
 			{
 				item->Properties.Set("GunshipMoveTarget", Vec3());
-				GunShipEscape.Reset();
+				GunShip.ResetEscape();
 				hasMoveTargetPos = false;
 				moveTargetPos = Vector3::Zero;
 			}
@@ -645,6 +636,11 @@ namespace TEN::Entities::Creatures::TR5
 		if (engaging && hasShootTarget && shootTargetNum >= 0 && !GetGunShipLosToShootTarget(*item, shootTargetNum))
 			currentState = GunShipState::IDLE;
 
+		// Lara taucht (unter Wasser, WaterStatus::Underwater) -> Heli haelt in IDLE und
+		// wartet, bis sie auftaucht (Oberflaeche/TreadWater) oder wieder an Land ist.
+		if (engaging && hasShootTarget && shootTargetNum >= 0 && Lara.Control.WaterStatus == WaterStatus::Underwater)
+			currentState = GunShipState::IDLE;
+
 		float currentYSpeed = (float)item->ItemFlags[6] / FLOATING_POINT_SCALE;
 		const float yLerpAlpha = 1.0f / powf(2.0f, MOVEMENT_LERP_SPEED);
 		const int minYDiff = SECTOR_SIZE;
@@ -676,11 +672,18 @@ namespace TEN::Entities::Creatures::TR5
 			case GunShipState::IDLE:
 			targetSpeed = 0.0f;
 	
-				// Heli schwebt etwas über dem Ziel, damit er beim Schießen nach unten zielen kann.
-				idleTargetY = targetPosIdle.y - HOVER_HEIGHT_OFFSET;
-				if (fabsf(item->Pose.Position.y - idleTargetY) > minYDiff)
-					ySpeedTargetIdle = (idleTargetY > item->Pose.Position.y) ? FLY_DOWN_SPEED : -FLY_UP_SPEED;
-
+				// Lara taucht (unter Wasser) -> Heli haelt seine Hoehe und sinkt nicht nach (schwebt nur waagerecht).
+				if (Lara.Control.WaterStatus == WaterStatus::Underwater)
+				{
+					ySpeedTargetIdle = 0.0f;
+				}
+				else
+				{
+					// Heli schwebt etwas über dem Ziel, damit er beim Schießen nach unten zielen kann.
+					idleTargetY = targetPosIdle.y - HOVER_HEIGHT_OFFSET;
+					if (fabsf(item->Pose.Position.y - idleTargetY) > minYDiff)
+						ySpeedTargetIdle = (idleTargetY > item->Pose.Position.y) ? FLY_DOWN_SPEED : -FLY_UP_SPEED;
+				}
 			currentYSpeed += (ySpeedTargetIdle - currentYSpeed) * yLerpAlpha;
 			
 			break;
@@ -843,8 +846,8 @@ namespace TEN::Entities::Creatures::TR5
 
 		// Debug: Escapetarget (weisse Kugel) immer anzeigen, solange Escape aktiv ist
 		// (auch waehrend des ESCAPE-Flugs, nicht nur bei Blockade) -> Ziel-Beobachtung beim Test.
-		if (GunShipEscape.TargetPos != Vector3::Zero)
-			DrawDebugSphere(GunShipEscape.TargetPos, 43, Vector4::One, RendererDebugPage::None);
+		if (GunShip.TargetPos != Vector3::Zero)
+			DrawDebugSphere(GunShip.TargetPos, 43, Vector4::One, RendererDebugPage::None);
 
 		if (blocked)
 		{
@@ -864,11 +867,11 @@ namespace TEN::Entities::Creatures::TR5
 			if (blockedState == GunShipState::EVADE_NEAR && hasShootTarget && shootTargetNum >= 0)
 			{
 				Vector3 escapeTarget = Vector3::Zero;
-				if (FindEscapeTarget(*item, g_Level.Items[shootTargetNum].Pose.Position.ToVector3(), (float)(maxShotsRange + SECTOR_SIZE), GunShipEscape.TargetPos, ESCAPE_EXCLUDE_RADIUS, escapeTarget))
+				if (FindEscapeTarget(*item, g_Level.Items[shootTargetNum].Pose.Position.ToVector3(), (float)(maxShotsRange + SECTOR_SIZE), GunShip.TargetPos, ESCAPE_EXCLUDE_RADIUS, escapeTarget))
 				{
-					GunShipEscape.Active = true;
-					GunShipEscape.TargetPos = escapeTarget;
-					GunShipEscape.Frames = 0; // Neues Ziel -> frisches Timeout-Fenster (sonst laeuft Frames aus dem Reset mit).
+					GunShip.Active = true;
+					GunShip.TargetPos = escapeTarget;
+					GunShip.Frames = 0; // Neues Ziel -> frisches Timeout-Fenster (sonst laeuft Frames aus dem Reset mit).
 					item->ItemFlags[7] = 0; // Evade-Flag zuruecksetzen, damit der ESCAPE-State nicht auf EVADE_NEAR gezwungen wird.
 				}
 			}
