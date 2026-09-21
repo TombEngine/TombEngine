@@ -1361,7 +1361,7 @@ namespace TEN::Renderer
 				ReflectMatrixOptionally(worldMatrix);
 
 				_stObjects.Objects[0].World = worldMatrix;
-				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1438,7 +1438,7 @@ namespace TEN::Renderer
 				ReflectMatrixOptionally(worldMatrix);
 
 				_stObjects.Objects[0].World = worldMatrix;
-				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 				DrawIndexedInstancedTriangles(flashBucket.NumIndices, 1, flashBucket.StartIndex, 0);
 
@@ -1563,7 +1563,7 @@ namespace TEN::Renderer
 
 			SetCullMode(CullMode::None);
 
-			_primitiveBatch->Begin();
+            BeginPrimitiveBatch();
 
 			bool lastAnimated = false;
 			int lastTexture = NO_VALUE;
@@ -1581,8 +1581,8 @@ namespace TEN::Renderer
 
 					if (!firstDebris && (lastTexture != deb.mesh.tex || lastAnimated != deb.mesh.Animated))
 					{
-						_primitiveBatch->End();
-						_primitiveBatch->Begin();
+                        EndPrimitiveBatch();
+                        BeginPrimitiveBatch();
 					}
 
 					if (deb.mesh.Animated)
@@ -1610,7 +1610,7 @@ namespace TEN::Renderer
 						_stObjects.Objects[0].AmbientLight = _rooms[deb.roomNumber].AmbientLight;
 						_stObjects.Objects[0].LightMode = (int)deb.lightMode;
 
-						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                        UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 					}
 
 					auto matrix = Matrix::Lerp(deb.PrevTransform, deb.Transform, GetInterpolationFactor());
@@ -1646,7 +1646,7 @@ namespace TEN::Renderer
 				}
 			}
 
-			_primitiveBatch->End();
+            EndPrimitiveBatch();
 
 			// TODO: temporary fix, we need to remove every use of SpriteBatch and PrimitiveBatch because
 			// they mess up render states cache.
@@ -1906,7 +1906,7 @@ namespace TEN::Renderer
 
 	void Renderer::DrawEffect(RenderView& view, RendererEffect* effect, RendererPass rendererPass)
 	{
-		if (effect->Mesh == nullptr)
+        if (effect->Mesh == nullptr || !HasMeshForPass(*effect->Mesh, rendererPass))
 			return;
 
 		_stObjects.Skinned = (int)SkinningMode::Static;
@@ -1919,7 +1919,7 @@ namespace TEN::Renderer
 		_stObjects.Objects[0].AmbientLight = effect->AmbientLight;
 		_stObjects.Objects[0].LightMode = (int)LightMode::Dynamic;
 		BindInstancedStaticLights(effect->LightsToDraw, 0);
-		UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+        UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 		const auto& mesh = *effect->Mesh;
 

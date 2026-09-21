@@ -308,7 +308,7 @@ namespace TEN::Renderer
 
 			SetBlendMode(spriteBucket.BlendMode);
 			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
-			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());;
+            UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(), (int)sizeof(InstancedSprite) * (int)spriteBucket.SpritesToDraw.size());
 
 			// Draw sprites with instancing.
 			DrawInstancedTriangles(4, (int)spriteBucket.SpritesToDraw.size(), 0);
@@ -352,7 +352,7 @@ namespace TEN::Renderer
 
 			SetBlendMode(spriteBucket.BlendMode);
 			PackSpriteTextureCoordinates(0, spriteBucket.Sprite);
-			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
+            UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(), (int)sizeof(InstancedSprite));
 			BindTexture(TextureRegister::ColorMap, spriteBucket.Sprite->Texture, SamplerStateRegister::LinearClamp);
 
 			int spritesToDraw = 0;

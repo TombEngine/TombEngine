@@ -327,6 +327,10 @@ namespace TEN::Renderer
 		int _numGetVisibleRoomsCalls = 0;
 
 		int _numConstantBufferUpdates = 0;
+        unsigned long long _numConstantBufferBytes = 0;
+        int _numPerDrawUpdates = 0;
+        bool _perDrawBufferDirty = true;
+        bool _primitiveBatchActive = false;
 
 		int _numExecutedMaterialsUpdates = 0;
 		int _numRequestedMaterialsUpdates = 0;
@@ -630,6 +634,13 @@ namespace TEN::Renderer
 		void SetAlphaTest(AlphaTestMode mode, float threshold, bool force = false);
 		void SetScissor(RendererRectangle rectangle);
 		bool SetupBlendModeAndAlphaTest(BlendMode blendMode, RendererPass rendererPass, int drawPass);
+        void InvalidatePerDrawBuffer();
+        void FlushPerDrawBuffer();
+        void BeginPrimitiveBatch();
+        void EndPrimitiveBatch();
+        static bool IsBlendModeSupported(BlendMode blendMode, RendererPass rendererPass);
+        static bool HasMeshForPass(const RendererMesh& mesh, RendererPass rendererPass, float alpha = 1.0f);
+        bool HasItemForPass(RendererItem& item, RendererObject& object, RendererPass rendererPass);
 		void SortAndPrepareSprites(RenderView& view);
 		void SortTransparentFaces(RenderView& view);
 		void ResetItems();
@@ -710,6 +721,7 @@ namespace TEN::Renderer
 
 		inline void DrawIndexedTriangles(int count, int baseIndex, int baseVertex)
 		{
+            FlushPerDrawBuffer();
 			_graphicsDevice->DrawIndexedTriangles(count, baseIndex, baseVertex);
 			_numTriangles += count / 3;
 			_numDrawCalls++;
@@ -717,6 +729,7 @@ namespace TEN::Renderer
 
 		inline void DrawIndexedInstancedTriangles(int count, int instances, int baseIndex, int baseVertex)
 		{
+            FlushPerDrawBuffer();
 			_graphicsDevice->DrawIndexedInstancedTriangles(count, instances, baseIndex, baseVertex);
 			_numTriangles += (count / 3 * instances) * (count % 4 == 0 ? 2 : 1);
 			_numDrawCalls++;
@@ -724,6 +737,7 @@ namespace TEN::Renderer
 
 		inline void DrawInstancedTriangles(int count, int instances, int baseVertex)
 		{
+            FlushPerDrawBuffer();
 			_graphicsDevice->DrawInstancedTriangles(count, instances, baseVertex);
 			_numTriangles += (count / 3 * instances) * (count % 4 == 0 ? 2 : 1);
 			_numDrawCalls++;
@@ -731,15 +745,18 @@ namespace TEN::Renderer
 
 		inline void DrawTriangles(int count, int baseVertex)
 		{
+            FlushPerDrawBuffer();
 			_graphicsDevice->DrawTriangles(count, baseVertex);
 			_numTriangles += count / 3;
 			_numDrawCalls++;
 		}
 
-		inline void UpdateConstantBuffer(void* data, IConstantBuffer* cb, int size = 0) noexcept
+        template <typename CBuff>
+        inline void UpdateConstantBuffer(CBuff* data, IConstantBuffer* cb, int size = 0) noexcept
 		{
 			_graphicsDevice->UpdateConstantBuffer(cb, data, size);
 			_numConstantBufferUpdates++;
+            _numConstantBufferBytes += (size > 0 && size < (int)sizeof(CBuff)) ? size : (int)sizeof(CBuff);
 		}
 
 		template <typename CBuff>
@@ -778,7 +795,7 @@ namespace TEN::Renderer
 			if (_stPerDraw.Animated == 0)
 				return;
 			_stPerDraw.Animated = 0;
-			UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+            InvalidatePerDrawBuffer();
 		}
 
 		static inline bool IsWaterfall(short objectNumber)
