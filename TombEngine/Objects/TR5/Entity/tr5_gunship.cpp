@@ -64,6 +64,7 @@ namespace TEN::Entities::Creatures::TR5
 	constexpr float MOVE_TARGET_REACH_RADIUS = SECTOR_SIZE * 0.5f; // moveTargetPos: One-Shot-Radius (horizontal), danach wird der Escape-/MoveTarget-Zustand geleert
 	constexpr float ESCAPE_EXCLUDE_RADIUS = SECTOR_SIZE * 2.0f; // Ausschlussradius: das zuletzt fehlgeschlagene Escapetarget wird bei der Neu-Suche nicht erneut gewaehlt
 	constexpr int MAX_ESCAPE_FRAMES = 280; // Auto-Escape: max. Frames, bevor der Escape-Flug aufgegeben wird (Kampf wird fortgesetzt)
+	constexpr int LOS_TEST_INTERVAL = FPS; // ~1 Sekunde: Throttling des teuren LOS-Tests Heli->Shoot-Target (gilt fuer alle Distanzen)
 
 	// Enum für Helikopter-Status
 	enum class GunShipState : short
@@ -101,6 +102,15 @@ namespace TEN::Entities::Creatures::TR5
 	};
 
 	static GunShipEscapeData GunShipEscape;
+
+	// Nicht-persistent: gecachtes LOS-Ergebnis Heli->Shoot-Target + letzter Test-Frame.
+	// LOS ist teuer -> nur ~1x/Sek. neu testen (LOS_TEST_INTERVAL), sonst gecachten Wert liefern.
+	struct GunShipLosData
+	{
+		int  LastTestFrame = -1000000; // Sentinel: beim ersten Aufruf immer echten Test erzwingen (kein 1s-Blindefenster).
+		bool Clear         = true;     // true = freie Sicht (keine Geometrie dazwischen).
+	};
+	static GunShipLosData GunShipLos;
 
 	// Helper: Bestimmt den aktuellen Status basierend auf Distanz und Kollisionen
 	GunShipState DetermineGunShipState(const ItemInfo& item, float horizontalDistance, bool hasMoveTargetPos)
@@ -326,6 +336,13 @@ namespace TEN::Entities::Creatures::TR5
 				CheckFootprintCollision(item, disp * 0.9f))
 				continue;
 
+			// LOS: zwischen Heli und Escapetarget darf keine Geometrie (Wand) liegen -> sonst ist der
+			// Escapetarget unerreichbar (Flug duerch Waende). FindEscapeTarget waehlt dann naechsten Kandidaten.
+			auto losOrigin = GameVector(heliPos, item.RoomNumber);
+			auto losTarget = GameVector(cand, item.RoomNumber);
+			if (!LOS(&losOrigin, &losTarget))
+				continue;
+
 			// Zuletzt fehlgeschlagenes Escapetarget nicht erneut waehlen (sonst gleicher Stuck-Loop).
 			// Nur horizontal (XZ) vergleichen, da der Ring auf der Heli-Hoehe liegt.
 			if (excludePos != Vector3::Zero)
@@ -350,6 +367,28 @@ namespace TEN::Entities::Creatures::TR5
 		}
 
 		return found;
+	}
+
+	// Gecachter LOS-Test Heli->Shoot-Target (GEOMETRIE-Check: ist eine Wand dazwischen?).
+	// LOS ist teuer -> nur ~1x/Sek. neu testen (LOS_TEST_INTERVAL), sonst gecachten Wert liefern.
+	// true = freie Sicht (keine Geometrie dazwischen).
+	bool GetGunShipLosToShootTarget(const ItemInfo& item, int shootTargetNum)
+	{
+		if (GlobalCounter - GunShipLos.LastTestFrame < LOS_TEST_INTERVAL)
+			return GunShipLos.Clear;
+
+		GunShipLos.LastTestFrame = GlobalCounter;
+
+		auto origin = GameVector(item.Pose.Position.ToVector3(), item.RoomNumber);
+		auto target = GameVector(g_Level.Items[shootTargetNum].Pose.Position.ToVector3(), g_Level.Items[shootTargetNum].RoomNumber);
+
+		target += GameVector(0, -512, 0, target.RoomNumber);
+
+		DrawDebugLine(origin.ToVector3(), target.ToVector3(), Vector4(255,0,255,1), RendererDebugPage::None);
+
+		auto clamped = target;
+		GunShipLos.Clear = LOS(&origin, &clamped);
+		return GunShipLos.Clear;
 	}
 
 	// Helper: Berechnet die Distanz und Richtung zum Ziel
@@ -597,6 +636,14 @@ namespace TEN::Entities::Creatures::TR5
 
 		if (item->ItemFlags[7] == 1 && currentState != GunShipState::ESCAPE)
 			currentState = GunShipState::EVADE_NEAR;
+
+		// LOS-basiertes Warten: Der Heli setzt nur nach/angreift (FOLLOW/IDLE), wenn er freie Sicht auf
+		// das Shoot-Target hat. Ohne LOS (Wand dazwischen) -> in IDLE warten, bis die Sicht wieder frei ist.
+		// EVADE_NEAR bleibt unberuehrt (Escape-Pfad erhalten). Gilt fuer alle Distanzen (auch auesserhalb
+		// der Schussdistanz); Performance via Throttling ~1x/Sek. (teure Abfrage, gecacht).
+		bool engaging = (currentState == GunShipState::FOLLOW || currentState == GunShipState::IDLE);
+		if (engaging && hasShootTarget && shootTargetNum >= 0 && !GetGunShipLosToShootTarget(*item, shootTargetNum))
+			currentState = GunShipState::IDLE;
 
 		float currentYSpeed = (float)item->ItemFlags[6] / FLOATING_POINT_SCALE;
 		const float yLerpAlpha = 1.0f / powf(2.0f, MOVEMENT_LERP_SPEED);
