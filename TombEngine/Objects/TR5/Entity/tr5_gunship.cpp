@@ -103,7 +103,7 @@ namespace TEN::Entities::Creatures::TR5
 	static GunShipEscapeData GunShipEscape;
 
 	// Helper: Bestimmt den aktuellen Status basierend auf Distanz und Kollisionen
-	GunShipState DetermineGunShipState(const ItemInfo& item, float horizontalDistance, bool hasMoveTargetPos, bool blockedEarly)
+	GunShipState DetermineGunShipState(const ItemInfo& item, float horizontalDistance, bool hasMoveTargetPos)
 	{
 		int minDistance = (item.TriggerFlags > 0) ? item.TriggerFlags * SECTOR_SIZE : SECTOR_SIZE * 3;
 		int maxShotsRange = minDistance + SECTOR_SIZE;
@@ -121,11 +121,9 @@ namespace TEN::Entities::Creatures::TR5
 		if (horizontalDistance < maxShotsRange)
 			return GunShipState::IDLE;
 
-		if (!blockedEarly)
-			return GunShipState::FOLLOW;
-
-		// Wenn geblockt -> IDLE statt FOLLOW
-		return GunShipState::IDLE;
+		// TEST (FOLLOW): Wand-Check vorlaeufig deaktiviert – der Heli fliegt im FOLLOW-Zweig
+		// auch durch Waende (bewusst, fuer den Test). Neuen Wall-Check spaeter neu bauen.
+		return GunShipState::FOLLOW;
 	}
 
 	// Helper: Liefert den Raum, in dem eine Probe-Position liegt: aktueller Raum oder ein direkt
@@ -573,15 +571,7 @@ namespace TEN::Entities::Creatures::TR5
 		float yDiff = targetInfo.verticalDifference;
 		float horizontalDist = targetInfo.horizontalDistance;
 
-		bool blockedEarly = false;
-		if (!hasMoveTargetPos && horizontalDist > 1.0f)
-		{
-			Vector3 dirToTarget(targetInfo.targetPos.x - item->Pose.Position.x, 0.0f, targetInfo.targetPos.z - item->Pose.Position.z);
-			dirToTarget.Normalize();
-			blockedEarly = CheckFootprintCollision(*item, dirToTarget * SECTOR_SIZE);
-		}
-
-		GunShipState currentState = DetermineGunShipState(*item, horizontalDist, hasMoveTargetPos, blockedEarly);
+		GunShipState currentState = DetermineGunShipState(*item, horizontalDist, hasMoveTargetPos);
 
 		int prevStates = item->ItemFlags[4];
 		int inertiaTimer = item->ItemFlags[5];
@@ -747,9 +737,12 @@ namespace TEN::Entities::Creatures::TR5
 
 		bool blocked = false;
 		bool overfly = false;
-		// Ausweich-Kaskade (SweptFootprintClear + FindBestAvoidanceDirection + Overfly) NUR fuer EVADE_NEAR/ESCAPE.
-		// FOLLOW (Vorwaertsflug) nutzt ausschliesslich System 1 (blockedEarly); bei Wand bleibt er in IDLE.
-		if (isMoving && horizontalDist > 1.0f && currentState != GunShipState::FOLLOW)
+		// Ausweich-Kaskade (SweptFootprintClear + FindBestAvoidanceDirection + Overfly) NUR fuer EVADE_NEAR.
+		// FOLLOW (Vorwaertsflug) hat aktuell KEINEN Wand-Check (testweise deaktiviert); bei Wand fliegt er durch.
+		// ESCAPE: kein Wand-/Ausweich-Check -> verpflichtender, gerader Notflug zum (vorher validierten) Escapetarget,
+		// notfalls durch Wand/Geometrie. Sonst blockiert die Kaskade in engen Spaenen (Waende links/rechts/hinten) die
+		// Flucht und der Heli steht still, statt in den freien Raum zu gelangen (z.B. ueber Lara hinwegfliegen).
+		if (isMoving && horizontalDist > 1.0f && currentState != GunShipState::FOLLOW && currentState != GunShipState::ESCAPE)
 		{
 			// Probedistanz: bewegungsgeschwindigkeit-basiert, mindestens 1 Sektor (kein Wand-Tunneling).
 			float probeDistance = (currentSpeed > (float)SECTOR_SIZE) ? currentSpeed : (float)SECTOR_SIZE;
@@ -757,7 +750,7 @@ namespace TEN::Entities::Creatures::TR5
 			// Preferred Richtung (Combat-Distanz / MoveTo) auf Flight-Clearance testen.
 			if (!SweptFootprintClear(*item, moveDir * probeDistance))
 			{
-				// Preferred blockiert -> nahe Ausweich-Richtung waehlen (EVADE_NEAR/ESCAPE).
+				// Preferred blockiert -> nahe Ausweich-Richtung waehlen (EVADE_NEAR).
 				// Collision-Vermeidung hat Vorrang vor Combat-Distanz.
 				Vector3 avoidDir = moveDir;
 				if (!FindBestAvoidanceDirection(*item, moveDir, probeDistance, avoidDir))
@@ -788,10 +781,10 @@ namespace TEN::Entities::Creatures::TR5
 			}
 		}
 
-		// Finale Validierung der tatsaechlichen Bewegung (fixt Wand-Durchflug) NUR fuer EVADE_NEAR/ESCAPE.
+		// Finale Validierung der tatsaechlichen Bewegung (fixt Wand-Durchflug) NUR fuer EVADE_NEAR.
 		// Overfly: Bewegung ist horizontal + vertikal, daher den erhohten Endpunkt validieren.
-		// FOLLOW: uebersprungen (nutzt nur blockedEarly; bei Wand -> IDLE, kein Vorwaertsflug).
-		if (isMoving && !blocked && currentState != GunShipState::FOLLOW)
+		// FOLLOW/ESCAPE: uebersprungen (kein Wand-Check; bei Wand -> fliegt er durch, kein Vorwaertsflug-Stop).
+		if (isMoving && !blocked && currentState != GunShipState::FOLLOW && currentState != GunShipState::ESCAPE)
 		{
 			Vector3 finalDisplacement = moveDir * currentSpeed;
 			if (overfly)
@@ -800,6 +793,11 @@ namespace TEN::Entities::Creatures::TR5
 			if (!SweptFootprintClear(*item, finalDisplacement))
 				blocked = true;
 		}
+
+		// Debug: Escapetarget (weisse Kugel) immer anzeigen, solange Escape aktiv ist
+		// (auch waehrend des ESCAPE-Flugs, nicht nur bei Blockade) -> Ziel-Beobachtung beim Test.
+		if (GunShipEscape.TargetPos != Vector3::Zero)
+			DrawDebugSphere(GunShipEscape.TargetPos, 43, Vector4::One, RendererDebugPage::None);
 
 		if (blocked)
 		{
@@ -813,7 +811,10 @@ namespace TEN::Entities::Creatures::TR5
 			// Auto-Escape: Heli kann nicht weiter (Wand / Roombound) -> Escapetarget (>= Shoot-Reichweite,
 			// in erreichbaren Raumen, mit Clearance) suchen und dorthin fliegen (via MoveTarget). Dort
 			// angekommen wird der Escape-Zustand geleert und der Kampf automatisch fortgesetzt.
-			if ((blockedState == GunShipState::EVADE_NEAR || blockedState == GunShipState::ESCAPE) && hasShootTarget && shootTargetNum >= 0)
+			// NUR aus EVADE_NEAR neu loesen: Im ESCAPE-Flug bleibt der Heli am aktuellen Ziel verpflichtet
+			// (bis Erreichen/Timeout) und tauscht es nicht mehr permanent aus -> verhindert den
+			// EVADE_NEAR<->ESCAPE-Stuck-Loop (Heli springt sonst ohne Fortschritt zwischen beiden hin und her).
+			if (blockedState == GunShipState::EVADE_NEAR && hasShootTarget && shootTargetNum >= 0)
 			{
 				Vector3 escapeTarget = Vector3::Zero;
 				if (FindEscapeTarget(*item, g_Level.Items[shootTargetNum].Pose.Position.ToVector3(), (float)(maxShotsRange + SECTOR_SIZE), GunShipEscape.TargetPos, ESCAPE_EXCLUDE_RADIUS, escapeTarget))
@@ -824,9 +825,6 @@ namespace TEN::Entities::Creatures::TR5
 					item->ItemFlags[7] = 0; // Evade-Flag zuruecksetzen, damit der ESCAPE-State nicht auf EVADE_NEAR gezwungen wird.
 				}
 			}
-
-			if (GunShipEscape.TargetPos != Vector3::Zero)
-				DrawDebugSphere(GunShipEscape.TargetPos, 43, Vector4::One, RendererDebugPage::None);
 
 			FixYPosition(item);
 

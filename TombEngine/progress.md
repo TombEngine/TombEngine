@@ -1,9 +1,28 @@
 # Progress
 
 ## Current Task
-Gunship (TR5): ESCAPE-Stuck-Fix (`tr5_gunship.cpp`). Im ESCAPE-Modus wählte der Heli ein Ziel (weiße Kugel), blieb aber stehen statt es anzufliegen. Root Cause: `currentSpeed = targetSpeed * pitchRatio` koppelt die Geschwindigkeit an den Pitch. Beim ESCAPE-Austritt aus einem blockierten/„pitch-null"-State ist der Pitch ~0 → Geschwindigkeit ~0 → `isMoving=false` → keine Bewegung. Der Pitch-Ramp (Alpha 1/32) wird zusätzlich von Inertie (`targetSpeed*=0.15`) + `!isMoving`-Dämpfung (`currentPitch*=0.95`) unterdrückt → Heli crawlt/steht still. Fix: Für ESCAPE die Geschwindigkeit vom Pitch entkoppeln (`currentSpeed = targetSpeed`). Fertig – wartet auf In-Szene-Test.
+Gunship (TR5): ESCAPE-Standstill-Fix (`tr5_gunship.cpp`). ESCAPE (verpflichtender Notflug zum validierten Escapetarget) wurde in engen Spalten (Wände links/rechts/hinten) durch die Ausweich-/Overfly-Kaskade geblockt → Heli stand still (Screenshot: Heli + weiße Kugel, keine Bewegung). Fix: Wand-/Ausweich-Check für ESCAPE deaktiviert (wie FOLLOW, Test-Modus) → gerader Notflug zum Ziel, notfalls durch Geometrie; EVADE_NEAR behält die Kaskade. Debug-Kugel jetzt immer sichtbar, wenn Escape aktiv. Wartet auf In-Szene-Test.
 
 ## Completed Work
+- **Gunship (TR5): ESCAPE-Standstill-Fix (`tr5_gunship.cpp`):**
+  - **Root Cause:** ESCAPE-Steuerung lief durch die Ausweich-Kaskade (`SweptFootprintClear` + `FindBestAvoidanceDirection` + Overfly). In engen Spalten (Wände links/rechts/hinten) waren Preferred, alle 5 Ausweich-Kandidaten UND der Overfly-Punkt (1 Sektor voraus + 3 Sektoren hoch) blockiert → `blocked=true` → Heli auf IDLE + `currentSpeed=0` → **steht still**. Auto-Escape feuert (vorheriger Fix) nur aus EVADE_NEAR → kein neues Ziel → Standstill bis 280-Frame-Timeout.
+  - **Fix:** Ausweich-Kaskade + finale Validierung jetzt NUR für `EVADE_NEAR` (Gates `currentState != FOLLOW && currentState != ESCAPE`). ESCAPE = verpflichtender, gerader Notflug zum (vor `FindEscapeTarget` validierten) Escapetarget, notfalls durch Wand/Geometrie (Test-Modus wie FOLLOW). EVADE_NEAR behält die Kaskade (Combat-Orbit). 280-Frame-Timeout + One-Shot bleiben als Sicherheitsnetz.
+  - **Debug:** `DrawDebugSphere(GunShipEscape.TargetPos, ...)` von der `blocked`-Spitze auf Top-Ebene geholt → weiße Kugel immer sichtbar, solange Escape aktiv (auch während des Flugs), nicht nur bei Blockade.
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage; Build-Errors meldet der Nutzer).
+- **Gunship (TR5): ESCAPE/EVADE_NEAR-Stuck-Loop fix (`tr5_gunship.cpp`):**
+  - **Root Cause:** Auto-Escape-Trigger im `blocked`-Zweig (Zeile ~809) feuerte `FindEscapeTarget` bei `blockedState == EVADE_NEAR || ESCAPE`. Bei Blockade (Escapetarget zu nah an Wand) → Ziel jedes Frame neu + `GunShipEscape.Frames=0` → Timeout lief nie aus, One-Shot nie erreicht → `Active` pendelte false→true→false, Heli kippte zwischen EVADE_NEAR und ESCAPE hin und her ohne Bewegung.
+  - **Fix:** Bedingung auf `blockedState == GunShipState::EVADE_NEAR` reduziert → im ESCAPE-Flug bleibt der Heli am aktuellen Escapetarget verpflichtet (bis Erreichen/Timeout) und tauscht es nicht permanent aus. EVADE_NEAR wird während des Escape-Flugs nicht (neu) aktiv.
+  - **Hinweis:** „Keine Bewegung"-Ursache (Wand/kein freier Pfad) bleibt bestehen. Ist das Ziel unerreikbaar, hält der Heli ESCAPE bis Timeout (280 Frames), dann neu aus EVADE_NEAR. Ggf. Wand-Check auch in ESCAPE/EVADE_NEAR testweise deaktivieren (wie FOLLOW) oder Escapetarget in freier Zone wählen.
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage).
+- **Gunship (TR5): FOLLOW-Wall-Checks testweise deaktiviert (`tr5_gunship.cpp`):**
+  - **Zurücknahme:** FOLLOW-Pitch-Entkopplung (letzte Änderung) rückgängig → `currentSpeed = (currentState == GunShipState::ESCAPE) ? targetSpeed : targetSpeed * pitchRatio;` (ESCAPE-only wiederhergestellt).
+  - **Wand-Check deaktiviert:** `blockedEarly` testweise auf `false` gesetzt (der `if`-Block mit `CheckFootprintCollision(dirToTarget * SECTOR_SIZE)` entfernt, `dirToTarget` nicht mehr verwendet). In `DetermineGunShipState` wird bei `horizontalDistance >= maxShotsRange` jetzt immer `FOLLOW` zurückgegeben → Heli fliegt im FOLLOW-State durch Wände (bewusst, für den Test).
+  - **Unverändert (erhalten):** Ausweich-Kaskade (`SweptFootprintClear` + `FindBestAvoidanceDirection` + Overfly) + `if (blocked)`-Block + Y-Position-Prüfung – alle nur für ESCAPE/EVADE_NEAR aktiv (`currentState != FOLLOW`).
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage).
+- **Gunship (TR5): FOLLOW-Stuck-Fix (`tr5_gunship.cpp`):**
+  - **Root Cause (gleiche wie ESCAPE):** `currentSpeed = targetSpeed * pitchRatio` koppelt die Flug-Geschwindigkeit an den aktuellen Pitch (`ItemFlags[1]`). FOLLOW-Austritt aus IDLE mit niedrigem Pitch → `currentSpeed~0` → `isMoving=false` → keine Bewegung; Pitch-Ramp (Lerp-Alpha `1/powf(2,5)=1/32`) wird von Inertie (25 Frames `targetSpeed*=0.15`) + `!isMoving`-Dämpfung (`currentPitch*=0.95`) unterdrückt → Heli crawlt (~1-2 Unit/Frame) bzw. steht still (Symptom: FOLLOW + geneigt + Platz, aber keine Bewegung).
+  - **Fix:** `float currentSpeed = (currentState == GunShipState::ESCAPE || currentState == GunShipState::FOLLOW) ? targetSpeed : targetSpeed * pitchRatio;` → FOLLOW fliegt mit voller `targetSpeed` (MAX_MOVE_SPEED=64) vorwärts, unabhängig vom Pitch. In FOLLOW `isMoving` immer true → Dämpfung greift nie, Pitch baut sich frei auf. „Anhalten an Wand" bleibt via `blockedEarly`→IDLE (unverändert). EVADE_NEAR behält die „Lean=Speed"-Kopplung (laut Nutzer ok).
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage).
 - **Gunship (TR5): ESCAPE-Stuck-Fix (`tr5_gunship.cpp`):**
   - **Root Cause:** `currentSpeed = targetSpeed * pitchRatio` (Zeile ~687) koppelt die Geschwindigkeit an den aktuellen Pitch (`ItemFlags[1]`). ESCAPE-Austritt aus blockiertem/„pitch-null"-State → Pitch ~0 → `currentSpeed ~0` → `isMoving=false` → keine Bewegung. Pitch-Ramp (Lerp-Alpha `1/powf(2,5)=1/32`) wird zusätzlich unterdrückt durch (a) Inertie (erste 25 Frames `targetSpeed*=0.15`) und (b) `!isMoving`-Dämpfung (`currentPitch*=0.95` pro Frame) → Heli crawlt (~1 Unit/Frame) bzw. bleibt vor der Wand stehen.
   - **Fix:** `float currentSpeed = (currentState == GunShipState::ESCAPE) ? targetSpeed : targetSpeed * pitchRatio;` → ESCAPE fliegt mit voller `targetSpeed` (64) zum Escapetarget, unabhängig vom Pitch-Ramp. Konsequenz: `isMoving` ist in ESCAPE immer true (64>1, bzw. 9.6>1 mit Inertie) → `!isMoving`-Dämpfung greift nie, Pitch baut sich frei auf (Nase). FOLLOW/EVADE_NEAR behalten die „Lean=Speed"-Kopplung.
@@ -21,7 +40,7 @@ Gunship (TR5): ESCAPE-Stuck-Fix (`tr5_gunship.cpp`). Im ESCAPE-Modus wählte der
 - `Objects/TR5/Entity/tr5_gunship.cpp`
 
 ## Next Step
-- In-Szene-Test (ESCAPE): Heli in ESCAPE (Ziel = weiße Kugel) fliegt jetzt entschlossen mit voller Geschwindigkeit zum Escapetarget (kein Crawling, kein Stehenbleiben vor der Wand). FOLLOW/EVADE_NEAR unverändert (Lean=Speed).
+- In-Szene-Test (FOLLOW): Heli in FOLLOW fliegt jetzt auch durch Wände (Wand-Check deaktiviert). Beobachten: Fliegt er jetzt entschlossen vorwärts? Bleibt er noch an bestimmten Stellen hängen? Danach: komplett neuen Wall-Check für FOLLOW programmieren (in einem neuen Prompt).
 
 ## Blockers
 - Keine.
