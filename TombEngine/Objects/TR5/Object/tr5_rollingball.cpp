@@ -148,17 +148,17 @@ void RollingBallControl(short itemNumber)
 	leftX  = item->Pose.Position.x - bigRadius;
 	leftZ  = item->Pose.Position.z;
 
-	auto fronFarFloor  = GetPointCollision(Vector3i(frontX, item->Pose.Position.y, frontZ), item->RoomNumber);
+	auto frontFarFloor  = GetPointCollision(Vector3i(frontX, item->Pose.Position.y, frontZ), item->RoomNumber);
 	auto backFarFloor  = GetPointCollision(Vector3i(backX,  item->Pose.Position.y, backZ),  item->RoomNumber);
 	auto rightFarFloor = GetPointCollision(Vector3i(rightX, item->Pose.Position.y, rightZ), item->RoomNumber);
 	auto leftFarFloor  = GetPointCollision(Vector3i(leftX,  item->Pose.Position.y, leftZ),  item->RoomNumber);
 
-	int frontFarHeight = fronFarFloor.GetFloorHeight()  - (fronFarFloor.IsWall()  ? 0 : bigRadius);
+	int frontFarHeight = frontFarFloor.GetFloorHeight()  - (frontFarFloor.IsWall()  ? 0 : bigRadius);
 	int backFarHeight  = backFarFloor.GetFloorHeight()  - (backFarFloor.IsWall()  ? 0 : bigRadius);
 	int rightFarHeight = rightFarFloor.GetFloorHeight() - (rightFarFloor.IsWall() ? 0 : bigRadius);
 	int leftFarHeight  = leftFarFloor.GetFloorHeight()  - (leftFarFloor.IsWall()  ? 0 : bigRadius);
 
-	int frontFarCeiling = fronFarFloor.GetCeilingHeight()  + (fronFarFloor.IsWall()  ? 0 : bigRadius);
+	int frontFarCeiling = frontFarFloor.GetCeilingHeight()  + (frontFarFloor.IsWall()  ? 0 : bigRadius);
 	int backFarCeiling  = backFarFloor.GetCeilingHeight()  + (backFarFloor.IsWall()  ? 0 : bigRadius);
 	int rightFarCeiling = rightFarFloor.GetCeilingHeight() + (rightFarFloor.IsWall() ? 0 : bigRadius);
 	int leftFarCeiling  = leftFarFloor.GetCeilingHeight()  + (leftFarFloor.IsWall()  ? 0 : bigRadius);
@@ -168,7 +168,7 @@ void RollingBallControl(short itemNumber)
 		item->Pose.Position.y - rightFarHeight >= CLICK(2) ||
 		item->Pose.Position.y - backFarHeight >= CLICK(2) ||
 		item->Pose.Position.y - leftFarHeight >= CLICK(2) ||
-		fronFarFloor.IsWall() ||
+		frontFarFloor.IsWall() ||
 		rightFarFloor.IsWall() ||
 		backFarFloor.IsWall() ||
 		leftFarFloor.IsWall())
