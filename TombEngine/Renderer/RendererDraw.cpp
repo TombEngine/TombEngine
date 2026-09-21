@@ -230,7 +230,7 @@ namespace TEN::Renderer
 			{
 				for (int m = 0; m < obj.AnimationTransforms.size(); m++)
 					_stObjects.Bones[m] = obj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
-				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 				auto* mesh = GetMesh(item->SkinIndex);
 
@@ -250,7 +250,7 @@ namespace TEN::Renderer
 			}
 
 			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+            UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 			for (int k = 0; k < item->MeshIndex.size(); k++)
 			{
@@ -347,7 +347,7 @@ namespace TEN::Renderer
 			SetBlendMode(BlendMode::Opaque);
 			SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+            UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(gunShellCount));
 
 			const auto& mesh = *moveableObject.ObjectMeshes[0];
 			for (const auto& bucket : mesh.Buckets)
@@ -419,7 +419,7 @@ namespace TEN::Renderer
 
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::LineList);
 
-		_primitiveBatch->Begin();
+        BeginPrimitiveBatch();
 
 		for (const auto& line : _lines2DToDraw)
 		{
@@ -444,7 +444,7 @@ namespace TEN::Renderer
 			_numDrawCalls++;
 		}
 
-		_primitiveBatch->End();
+        EndPrimitiveBatch();
 
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
@@ -622,7 +622,7 @@ namespace TEN::Renderer
 						if (rendererPass != RendererPass::GBuffer)
 							BindInstancedStaticLights(_rooms[rat->RoomNumber].LightsToDraw, 0);
 
-						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                        UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 						for (int animated = 0; animated < 2; animated++)
 						{
@@ -739,7 +739,7 @@ namespace TEN::Renderer
 					if (rendererPass != RendererPass::GBuffer)
 						BindInstancedStaticLights(_rooms[fish.RoomNumber].LightsToDraw, 0);
 
-					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                    UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -954,7 +954,7 @@ namespace TEN::Renderer
 								BindInstancedStaticLights(_rooms[p.RoomNumber].LightsToDraw, i);
 						}
 
-						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                        UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(instanceCount));
 
 						bool bindTexturesAndMaterialsRequired = true;
 
@@ -1085,7 +1085,7 @@ namespace TEN::Renderer
 					_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
-					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                    UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(batCount));
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -1215,7 +1215,7 @@ namespace TEN::Renderer
 					_graphicsDevice->BindVertexBuffer(_moveablesVertexBuffer.get());
 					_graphicsDevice->BindIndexBuffer(_moveablesIndexBuffer.get());
 
-					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                    UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(beetleCount));
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -1346,7 +1346,7 @@ namespace TEN::Renderer
 					if (rendererPass != RendererPass::GBuffer)
 						BindInstancedStaticLights(_rooms[locust.RoomNumber].LightsToDraw, 0);
 
-					UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                    UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 					for (int animated = 0; animated < 2; animated++)
 					{
@@ -1383,7 +1383,7 @@ namespace TEN::Renderer
 		_shaders.Bind(Shader::Solid);
 
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::LineList);
-		_primitiveBatch->Begin();
+        BeginPrimitiveBatch();
 
 		for (const auto& line : _lines3DToDraw)
 		{
@@ -1401,7 +1401,7 @@ namespace TEN::Renderer
 			_numDrawCalls++;
 		}
 
-		_primitiveBatch->End();
+        EndPrimitiveBatch();
 
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
@@ -1417,7 +1417,7 @@ namespace TEN::Renderer
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-		_primitiveBatch->Begin();
+        BeginPrimitiveBatch();
 
 		for (const auto& tri : _triangles3DToDraw)
 		{
@@ -1439,7 +1439,7 @@ namespace TEN::Renderer
 			_numDrawCalls++;
 		}
 
-		_primitiveBatch->End();
+        EndPrimitiveBatch();
 
 		SetBlendMode(BlendMode::Opaque);
 		SetCullMode(CullMode::CounterClockwise);
@@ -2115,7 +2115,7 @@ namespace TEN::Renderer
 		BindMaterial(0, true);
 
 		_stPerDraw.Animated = 0;
-		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+        InvalidatePerDrawBuffer();
 
 		// Set up vertex parameters.
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
@@ -2125,7 +2125,7 @@ namespace TEN::Renderer
 		DrawHorizonAndSkyForReflections(view);
 
 		_stPerDraw.Animated = 0;
-		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+        InvalidatePerDrawBuffer();
 
 		// Bind and clear render target.
 		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
@@ -2779,7 +2779,7 @@ namespace TEN::Renderer
 		_stPerDraw.AnimType = 1; // UVRotate
 		_stPerDraw.Animated = 1;
 		_stPerDraw.IsWaterfall = 1;
-		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+        InvalidatePerDrawBuffer();
 
 		// We need only top/bottom Y coordinate for UVRotate, but we pass whole
 		// rectangle anyway, in case later we may want to implement different UVRotate modes.
@@ -2793,7 +2793,7 @@ namespace TEN::Renderer
 
 		// Reset animated metadata after rendering just in case.
 		_stPerDraw.AnimFps = _stPerDraw.NumAnimFrames = _stPerDraw.AnimType = 0;
-		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+        InvalidatePerDrawBuffer();
 	}
 
 	void Renderer::DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass)
@@ -2803,6 +2803,9 @@ namespace TEN::Renderer
 		RendererObject& moveableObj = *_moveableObjects[item->ObjectID];
 
 		auto skinMode = GetSkinningMode(moveableObj, item->SkinIndex);
+
+        if (rendererPass != RendererPass::CollectTransparentFaces && !HasItemForPass(*item, moveableObj, rendererPass))
+            return;
 
 		if (rendererPass != RendererPass::CollectTransparentFaces)
 		{
@@ -2824,13 +2827,13 @@ namespace TEN::Renderer
 			{
 				for (int m = 0; m < moveableObj.AnimationTransforms.size(); m++)
 					_stObjects.Bones[m] = moveableObj.BindPoseTransforms[m] * item->InterpolatedAnimationTransforms[m];
-				UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
 				DrawMesh(item, GetMesh(item->SkinIndex), RendererObjectType::Moveable, 0, true, view, rendererPass);
 			}
 
 			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, moveableObj.AnimationTransforms.size() * sizeof(Matrix));
-			UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+            UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 		}
 
 		for (int k = 0; k < item->MeshIndex.size(); k++)
@@ -2971,6 +2974,9 @@ namespace TEN::Renderer
 
 				auto* refMesh = refStaticObj.ObjectMeshes[0];
 
+                if (!HasMeshForPass(*refMesh, rendererPass))
+                    continue;
+
 				int staticsCount = (int)statics.size();
 				int bucketSize = INSTANCED_STATIC_MESH_BUCKET_SIZE;
 				int baseStaticIndex = 0;
@@ -3009,7 +3015,7 @@ namespace TEN::Renderer
 
 					if (instancesCount > 0)
 					{
-						UpdateConstantBuffer(&_stObjects, _cbObjects.get());
+                        UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(instancesCount));
 
 						bool bindTextureAndMaterialsRequired = true;
 
@@ -3430,7 +3436,7 @@ namespace TEN::Renderer
 					_stInstancedSpriteBuffer.Sprites[i].UV[1].w = rDrawSprite.Sprite->UV[3].y;
 				}
 
-				UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
+                UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(), (int)sizeof(InstancedSprite) * starsToDraw);
 
 				// Draw sprites with instancing.
 				DrawInstancedTriangles(4, starsToDraw, 0);
@@ -3493,7 +3499,7 @@ namespace TEN::Renderer
 						_stInstancedSpriteBuffer.Sprites[i].UV[1].w = rDrawSprite.Sprite->UV[3].y;
 					}
 
-					UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
+                    UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(), (int)sizeof(InstancedSprite) * meteorsToDraw);
 
 					// Draw sprites with instancing.
 					DrawInstancedTriangles(4, meteorsToDraw, 0);
@@ -3606,7 +3612,7 @@ namespace TEN::Renderer
 
 			BindTexture(TextureRegister::ColorMap, rDrawSprite.Sprite->Texture, SamplerStateRegister::LinearClamp);
 
-			UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());
+            UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(), (int)sizeof(InstancedSprite) * 1);
 
 			// Draw sprites with instancing.
 			DrawInstancedTriangles(4, 1, 0);
@@ -3727,16 +3733,12 @@ namespace TEN::Renderer
 
 	bool Renderer::SetupBlendModeAndAlphaTest(BlendMode blendMode, RendererPass rendererPass, int drawPass)
 	{
+        if (!IsBlendModeSupported(blendMode, rendererPass))
+            return false;
+
 		switch (rendererPass)
 		{
 		case RendererPass::GBuffer:
-			if (blendMode != BlendMode::Opaque &&
-				blendMode != BlendMode::AlphaTest &&
-				blendMode != BlendMode::FastAlphaBlend)
-			{
-				return false;
-			}
-
 			if (blendMode == BlendMode::Opaque)
 			{ 
 				SetBlendMode(BlendMode::Opaque);
@@ -3750,12 +3752,6 @@ namespace TEN::Renderer
 			break;
 
 		case RendererPass::Opaque:
-			if (blendMode != BlendMode::Opaque &&
-				blendMode != BlendMode::AlphaTest)
-			{
-				return false;
-			}
-
 			if (blendMode == BlendMode::Opaque)
 			{
 				SetBlendMode(BlendMode::Opaque);
@@ -3777,21 +3773,11 @@ namespace TEN::Renderer
 			break;
 
 		case RendererPass::Additive:
-			if (blendMode != BlendMode::Additive)
-			{
-				return false;
-			}
-
 			SetBlendMode(blendMode);
 			SetAlphaTest(AlphaTestMode::None, 1.0f);
 			break;
 
 		case RendererPass::Distortion:
-			if (blendMode != BlendMode::Distortion)
-			{
-				return false;
-			}
-
 			_hasDistortionMask = true;
 			SetBlendMode(blendMode);
 			SetAlphaTest(AlphaTestMode::None, 1.0f);
@@ -3807,6 +3793,7 @@ namespace TEN::Renderer
 
 	void Renderer::CalculateSSAO(RenderView& view)
 	{
+        _graphicsDevice->BeginGpuTiming(GpuTimingScope::Ssao);
 		_doingFullscreenPass = true;
 
 		SetBlendMode(BlendMode::Opaque);
@@ -3819,10 +3806,9 @@ namespace TEN::Renderer
 		// SSAO pixel shader.
 		_shaders.Bind(Shader::Ssao);
 
-		_graphicsDevice->ClearRenderTarget2D(_SSAORenderTarget->GetRenderTarget(), Colors::White);
 		_graphicsDevice->BindRenderTarget(_SSAORenderTarget->GetRenderTarget(), nullptr);
 
-		// Must set correctly viewport because SSAO is done at 1/4 screen resolution.
+        // Both passes cover every pixel at full resolution.
 		RendererViewport viewport = { 0, 0, _graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), 0.0f, 1.0f };
 		_graphicsDevice->SetViewport(viewport);
 		_graphicsDevice->SetScissor(viewport);
@@ -3844,14 +3830,16 @@ namespace TEN::Renderer
 		DrawTriangles(3, 0);
 
 		// Blur step.
+        _graphicsDevice->EndGpuTiming(GpuTimingScope::Ssao);
+        _graphicsDevice->BeginGpuTiming(GpuTimingScope::SsaoBlur);
 		_shaders.Bind(Shader::SsaoBlur);
 
-		_graphicsDevice->ClearRenderTarget2D(_SSAOBlurredRenderTarget->GetRenderTarget(), Colors::Black);
 		_graphicsDevice->BindRenderTarget(_SSAOBlurredRenderTarget->GetRenderTarget(), nullptr);
 
 		BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAORenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
  
 		DrawTriangles(3, 0);
+        _graphicsDevice->EndGpuTiming(GpuTimingScope::SsaoBlur);
 
 		_doingFullscreenPass = false;
 	}
@@ -3945,7 +3933,7 @@ namespace TEN::Renderer
 			frameCount = std::min<int>(set.NumTextures, (int)_animatedFrames.size());
 		}
 
-		UpdateConstantBuffer(&_stPerDraw, _cbPerDraw.get());
+        InvalidatePerDrawBuffer();
 		_graphicsDevice->UpdateStructuredBuffer(_animatedFramesBuffer.get(), _animatedFrames.data(), frameCount);
 	}
 

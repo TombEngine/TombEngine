@@ -107,6 +107,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
 	input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);
 
+    float4 tex = Texture.Sample(AnisotropicClampSampler, input.UV);
+    DoAlphaTest(tex);
+
 	float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(AnisotropicClampSampler, input.UV));
 	float ambientOcclusion = ORSH.x;
 	float roughness = ORSH.y;
@@ -117,9 +120,6 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV)));
 	normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
-
-	float4 tex = Texture.Sample(AnisotropicClampSampler, input.UV);
-	DoAlphaTest(tex);
 
 	// Material effects
 	tex.xyz = CalculateReflections(input.WorldPosition, tex.xyz, normal, specular);

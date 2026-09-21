@@ -88,6 +88,9 @@ PixelShaderOutput PS(PixelShaderInput input)
     float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
     input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);                	  
 
+    output.Color = Texture.Sample(AnisotropicClampSampler, input.UV);
+    DoAlphaTest(output.Color);
+
 	float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(AnisotropicClampSampler, input.UV));
     float ambientOcclusion = ORSH.x;
     float roughness = ORSH.y;
@@ -98,9 +101,6 @@ PixelShaderOutput PS(PixelShaderInput input)
     float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV)));
     normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
-
-	output.Color = Texture.Sample(AnisotropicClampSampler, input.UV);
-	DoAlphaTest(output.Color);
 
     // Material effects
 	float3 blendedNormal = normalize(lerp(input.FaceNormal, normal, 0.1f)); // TODO: Make alpha customizable

@@ -31,9 +31,18 @@ using namespace DirectX::SimpleMath;
 
 namespace TEN::Renderer::Graphics
 {
+    enum class GpuTimingScope
+    {
+        Ssao,
+        SsaoBlur
+    };
+
 	class IGraphicsDevice
 	{
 	public:
+        virtual void BeginGpuTiming(GpuTimingScope scope) {}
+        virtual void EndGpuTiming(GpuTimingScope scope) {}
+
 		virtual std::unique_ptr<IVertexBuffer> CreateVertexBuffer(int numVertices, int vertexSize, void* data) = 0;
 		virtual void UpdateVertexBuffer(IVertexBuffer* vertexBuffer, int startVertex, int count, void* data) = 0;
 		virtual void BindVertexBuffer(IVertexBuffer* vertexBuffer) = 0;

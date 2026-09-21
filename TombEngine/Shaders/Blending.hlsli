@@ -31,18 +31,16 @@ inline bool BlendModeSupportsSSAO()
 
 void DoAlphaTest(float4 inputColor)
 {
-	if (AlphaTest == ALPHATEST_GREATER_THAN && inputColor.w < AlphaThreshold)
-	{
-		discard;
-	}
-	else if (AlphaTest == ALPHATEST_LESS_THAN && inputColor.w > AlphaThreshold)
-	{
-		discard;
-	}
-	else
-	{
-		return;
-	}
+    if (AlphaTest == ALPHATEST_GREATER_THAN && inputColor.w < AlphaThreshold)
+    {
+        discard;
+    }
+    else if (AlphaTest == ALPHATEST_LESS_THAN &&
+             (inputColor.w > AlphaThreshold ||
+              (BlendMode == BLENDMODE_ALPHABLEND && inputColor.w <= 0.0f)))
+    {
+        discard;
+    }
 }
 
 float4 DoDistanceFogForPixel(float4 sourceColor, float4 fogColor, float value)

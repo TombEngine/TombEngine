@@ -18,6 +18,18 @@ using namespace TEN::Renderer::Graphics;
 
 namespace TEN::Renderer::Native::DirectX11
 {
+    void DX11GraphicsDevice::BeginGpuTiming(GpuTimingScope scope)
+    {
+        auto& timer = (scope == GpuTimingScope::Ssao) ? _ssaoTimer : _ssaoBlurTimer;
+        timer.Begin(_device.Get(), _context.Get(), (scope == GpuTimingScope::Ssao) ? "SSAO" : "SSAO blur");
+    }
+
+    void DX11GraphicsDevice::EndGpuTiming(GpuTimingScope scope)
+    {
+        auto& timer = (scope == GpuTimingScope::Ssao) ? _ssaoTimer : _ssaoBlurTimer;
+        timer.End(_context.Get());
+    }
+
 	std::unique_ptr<IVertexBuffer> DX11GraphicsDevice::CreateVertexBuffer(int numVertices, int vertexSize, void* data)
 	{
 		return std::make_unique<DX11VertexBuffer>(_device.Get(), numVertices, vertexSize, data);

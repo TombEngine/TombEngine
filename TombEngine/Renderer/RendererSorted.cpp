@@ -805,7 +805,7 @@ namespace TEN::Renderer
 
 		PackSpriteTextureCoordinates(0, object->Sprite->Sprite);
 
-		UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get());;
+        UpdateConstantBuffer(&_stInstancedSpriteBuffer, _cbInstancedSpriteBuffer.get(), (int)sizeof(InstancedSprite));
 
 		BindTexture(TextureRegister::ColorMap, object->Sprite->Sprite->Texture, SamplerStateRegister::LinearClamp);
 		
