@@ -688,8 +688,11 @@ namespace TEN::Entities::Creatures::TR5
 		// pitchRatio für Geschwindigkeit berechnen
 		float pitchRatio = fabsf(currentPitch) / ((float)MAX_PITCH_DEG * DEG_TO_RAD(1.0f));
 
-		// currentSpeed aus targetSpeed und pitchRatio
-		float currentSpeed = targetSpeed * pitchRatio;
+		// currentSpeed aus targetSpeed und pitchRatio.
+		// ESCAPE ist ein entschlossener Notfall-Ausflug: Geschwindigkeit ist vom (kosmetischen)
+		// Pitch-Ramp entkoppelt. Sonst crawlt der Heli (Pitch-Ramp + Inertie + !isMoving-Daempfung)
+		// und bleibt vor der Wand stehen, statt zum Escapetarget zu fliegen.
+		float currentSpeed = (currentState == GunShipState::ESCAPE) ? targetSpeed : targetSpeed * pitchRatio;
 
 		bool isMoving = currentSpeed > 1.0f;
 
@@ -744,7 +747,9 @@ namespace TEN::Entities::Creatures::TR5
 
 		bool blocked = false;
 		bool overfly = false;
-		if (isMoving && horizontalDist > 1.0f)
+		// Ausweich-Kaskade (SweptFootprintClear + FindBestAvoidanceDirection + Overfly) NUR fuer EVADE_NEAR/ESCAPE.
+		// FOLLOW (Vorwaertsflug) nutzt ausschliesslich System 1 (blockedEarly); bei Wand bleibt er in IDLE.
+		if (isMoving && horizontalDist > 1.0f && currentState != GunShipState::FOLLOW)
 		{
 			// Probedistanz: bewegungsgeschwindigkeit-basiert, mindestens 1 Sektor (kein Wand-Tunneling).
 			float probeDistance = (currentSpeed > (float)SECTOR_SIZE) ? currentSpeed : (float)SECTOR_SIZE;
@@ -752,7 +757,7 @@ namespace TEN::Entities::Creatures::TR5
 			// Preferred Richtung (Combat-Distanz / MoveTo) auf Flight-Clearance testen.
 			if (!SweptFootprintClear(*item, moveDir * probeDistance))
 			{
-				// Preferred blockiert -> nahe Ausweich-Richtung waehlen (FOLLOW/MoveTo UND EVADE).
+				// Preferred blockiert -> nahe Ausweich-Richtung waehlen (EVADE_NEAR/ESCAPE).
 				// Collision-Vermeidung hat Vorrang vor Combat-Distanz.
 				Vector3 avoidDir = moveDir;
 				if (!FindBestAvoidanceDirection(*item, moveDir, probeDistance, avoidDir))
@@ -783,9 +788,10 @@ namespace TEN::Entities::Creatures::TR5
 			}
 		}
 
-		// Finale Validierung der tatsaechlichen Bewegung (fixt Wand-Durchflug).
+		// Finale Validierung der tatsaechlichen Bewegung (fixt Wand-Durchflug) NUR fuer EVADE_NEAR/ESCAPE.
 		// Overfly: Bewegung ist horizontal + vertikal, daher den erhohten Endpunkt validieren.
-		if (isMoving && !blocked)
+		// FOLLOW: uebersprungen (nutzt nur blockedEarly; bei Wand -> IDLE, kein Vorwaertsflug).
+		if (isMoving && !blocked && currentState != GunShipState::FOLLOW)
 		{
 			Vector3 finalDisplacement = moveDir * currentSpeed;
 			if (overfly)
@@ -821,22 +827,6 @@ namespace TEN::Entities::Creatures::TR5
 
 			if (GunShipEscape.TargetPos != Vector3::Zero)
 				DrawDebugSphere(GunShipEscape.TargetPos, 43, Vector4::One, RendererDebugPage::None);
-
-			// Position leicht zurueckschieben um aus der Kollision herauszukommen.
-			// Nur in FOLLOW (Escape = weg vom Ziel) und nur wenn der Rueckweg frei ist.
-			// In EVADE waere der Rueckdruck in die blockierende Wand -> Heli bleibt stehen statt einzudringen.
-			if (blockedState == GunShipState::FOLLOW && horizontalDist > 1.0f)
-			{
-				float dx = targetInfo.targetPos.x - item->Pose.Position.x;
-				float dz = targetInfo.targetPos.z - item->Pose.Position.z;
-				Vector3 escapeDir(-dx / horizontalDist, 0.0f, -dz / horizontalDist);
-
-				if (!CheckFootprintCollision(*item, escapeDir * 32.0f))
-				{
-					item->Pose.Position.x += (int)(escapeDir.x * 32.0f);
-					item->Pose.Position.z += (int)(escapeDir.z * 32.0f);
-				}
-			}
 
 			FixYPosition(item);
 

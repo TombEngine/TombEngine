@@ -1,29 +1,40 @@
 # Progress
 
 ## Current Task
-Gunship (TR5): Escape-Stuck-Loop behoben. Wenn der Heli WÄHREND des ESCAPE-Flugs blockiert ist, wurde `TargetPos` nie neu gewählt (Trigger feuerte nur bei `blockedState == EVADE_NEAR`) → deterministische `FindEscapeTarget` wählte nach Timeout denselben unerreichbaren Punkt → Endlos-Loop. **Fix:** Re-Targeting jetzt auch im ESCAPE-State, Ausschluss des letzten fehlgeschlagenen Targets, robusterer Pfad-Check. Fertig – wartet auf In-Szene-Test.
+Gunship (TR5): ESCAPE-Stuck-Fix (`tr5_gunship.cpp`). Im ESCAPE-Modus wählte der Heli ein Ziel (weiße Kugel), blieb aber stehen statt es anzufliegen. Root Cause: `currentSpeed = targetSpeed * pitchRatio` koppelt die Geschwindigkeit an den Pitch. Beim ESCAPE-Austritt aus einem blockierten/„pitch-null"-State ist der Pitch ~0 → Geschwindigkeit ~0 → `isMoving=false` → keine Bewegung. Der Pitch-Ramp (Alpha 1/32) wird zusätzlich von Inertie (`targetSpeed*=0.15`) + `!isMoving`-Dämpfung (`currentPitch*=0.95`) unterdrückt → Heli crawlt/steht still. Fix: Für ESCAPE die Geschwindigkeit vom Pitch entkoppeln (`currentSpeed = targetSpeed`). Fertig – wartet auf In-Szene-Test.
 
 ## Completed Work
-- **Gunship (TR5): Escape-Stuck-Loop-Fix (`tr5_gunship.cpp`):**
-  - **Trigger erweitert (Zeile ~810):** `blockedState == EVADE_NEAR || blockedState == ESCAPE` → bei Blockade im Escape-Flug wird neu gesucht.
-  - **Neue Signature `FindEscapeTarget`:** zusätzlich `const Vector3& excludePos, float excludeRadius` → Kandidaten im Ausschlussradius (XZ) um `excludePos` werden übersprungen. Aufruf gibt `GunShipEscape.TargetPos` als excludePos → letztes fehlgeschlagenes Ziel wird nicht erneut gewählt.
-  - **Neue Konstante `ESCAPE_EXCLUDE_RADIUS = SECTOR_SIZE * 2.0f`** (nach `MOVE_TARGET_REACH_RADIUS`).
-  - **Pfad-Check verstärkt:** `disp * 0.5f` ersetzt durch `disp * 0.33f` ODER `disp * 0.66f` ODER `disp * 0.9f` → Blockade im letzten Stück vor dem Ziel wird erkannt.
-  - **`GunShipEscape.Frames = 0`** beim Escape-Trigger → frisches Timeout-Fenster pro neuem Ziel.
-  - **Aufgeräumt:** kaputtes `if (cand == outPos) { Vector3 disp = cand - heliPos/2; }`-Fragment (Re-Deklaration, nicht kompilierbar) durch den Ausschluss-Block ersetzt.
+- **Gunship (TR5): ESCAPE-Stuck-Fix (`tr5_gunship.cpp`):**
+  - **Root Cause:** `currentSpeed = targetSpeed * pitchRatio` (Zeile ~687) koppelt die Geschwindigkeit an den aktuellen Pitch (`ItemFlags[1]`). ESCAPE-Austritt aus blockiertem/„pitch-null"-State → Pitch ~0 → `currentSpeed ~0` → `isMoving=false` → keine Bewegung. Pitch-Ramp (Lerp-Alpha `1/powf(2,5)=1/32`) wird zusätzlich unterdrückt durch (a) Inertie (erste 25 Frames `targetSpeed*=0.15`) und (b) `!isMoving`-Dämpfung (`currentPitch*=0.95` pro Frame) → Heli crawlt (~1 Unit/Frame) bzw. bleibt vor der Wand stehen.
+  - **Fix:** `float currentSpeed = (currentState == GunShipState::ESCAPE) ? targetSpeed : targetSpeed * pitchRatio;` → ESCAPE fliegt mit voller `targetSpeed` (64) zum Escapetarget, unabhängig vom Pitch-Ramp. Konsequenz: `isMoving` ist in ESCAPE immer true (64>1, bzw. 9.6>1 mit Inertie) → `!isMoving`-Dämpfung greift nie, Pitch baut sich frei auf (Nase). FOLLOW/EVADE_NEAR behalten die „Lean=Speed"-Kopplung.
   - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage; Build-Errors meldet der Nutzer).
-  - **Stand der Konstanten (benutzerseitig):** `MOVE_TARGET_REACH_RADIUS = SECTOR_SIZE * 0.5f` (~0,5 Block horizontale Toleranz), `disp.Length() < SECTOR_SIZE * 2.0f` als Mindest-Fluchtdistanz in `FindEscapeTarget`.
+- **Gunship (TR5): FOLLOW-Wand-Logik (`tr5_gunship.cpp`):**
+  - **Ausweich-Kaskade für FOLLOW abgeschaltet (Zeile ~749):** `if (isMoving && horizontalDist > 1.0f && currentState != GunShipState::FOLLOW)` → SweptFootprintClear + FindBestAvoidanceDirection + Overfly laufen NUR in EVADE_NEAR/ESCAPE.
+  - **Finale Validierung für FOLLOW abgeschaltet (Zeile ~791):** `if (isMoving && !blocked && currentState != GunShipState::FOLLOW)` → SweptFootprintClear-Endpunkt-Check NUR in EVADE_NEAR/ESCAPE.
+  - **FOLLOW-Rückdruck ENTFERNT (ehem. Zeile ~828–843):** war tot, da `blocked` in FOLLOW nach obigen Gates nie mehr true werden kann. `blockedState` bleibt (Escape-Trigger Zeile 813).
+  - **Kommentare angepasst (747–748, 757, 788–790):** „FOLLOW/MoveTo UND EVADE" → „EVADE_NEAR/ESCAPE".
+  - **Nicht angetastet:** `blockedEarly` (576–582), `DetermineGunShipState` (106–129, IDLE→FOLLOW-Gate bleibt erhalten), EVADE_NEAR/ESCAPE-Bewegung, `FindEscapeTarget`, `FixYPosition`, Y-Schritt-Check (956), Feuersperre.
+  - **Ergebnis:** FOLLOW + Wand → IDLE (kein Vorwärtsflug, kein Tunneling); IDLE + Wand → bleibt IDLE; EVADE_NEAR/ESCAPE unverändert (Ausweich-Kaskade + Fluchtroute).
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage; Build-Errors meldet der Nutzer).
 
 ## Modified Files
 - `Objects/TR5/Entity/tr5_gunship.cpp`
 
 ## Next Step
-- In-Szene-Test: Heli EVADE → Blockade → ESCAPE → (optional) Blockade im Escape-Flug → **neues** Escapetarget (altes ausgeschlossen) → Ankunft (Radius ~0,5 Block) → Kampf wird fortgesetzt. Kein Stuck-Loop mehr.
+- In-Szene-Test (ESCAPE): Heli in ESCAPE (Ziel = weiße Kugel) fliegt jetzt entschlossen mit voller Geschwindigkeit zum Escapetarget (kein Crawling, kein Stehenbleiben vor der Wand). FOLLOW/EVADE_NEAR unverändert (Lean=Speed).
 
 ## Blockers
 - Keine.
 
 ## Previous Completed Work
+- **Gunship (TR5): Escape-Stuck-Loop-Fix (`tr5_gunship.cpp`):**
+  - **Zusammenfassung:** Wenn der Heli WÄHREND des ESCAPE-Flugs blockiert ist, wurde `TargetPos` nie neu gewählt (Trigger feuerte nur bei `blockedState == EVADE_NEAR`) → deterministische `FindEscapeTarget` wählte nach Timeout denselben unerreichbaren Punkt → Endlos-Loop. Fix: Re-Targeting auch im ESCAPE-State, Ausschluss des letzten fehlgeschlagenen Targets, robusterer Pfad-Check.
+  - **Trigger erweitert (Zeile ~810):** `blockedState == EVADE_NEAR || blockedState == ESCAPE`.
+  - **Neue Signature `FindEscapeTarget`:** zusätzlich `const Vector3& excludePos, float excludeRadius`.
+  - **Neue Konstante `ESCAPE_EXCLUDE_RADIUS = SECTOR_SIZE * 2.0f`.**
+  - **Pfad-Check verstärkt:** `disp * 0.33f` ODER `disp * 0.66f` ODER `disp * 0.9f`.
+  - **`GunShipEscape.Frames = 0`** beim Escape-Trigger.
+  - **Stand der Konstanten (benutzerseitig):** `MOVE_TARGET_REACH_RADIUS = SECTOR_SIZE * 0.5f`, `disp.Length() < SECTOR_SIZE * 2.0f`.
 - **Gunship (TR5): ESCAPE-State für den Escape-Flug (`tr5_gunship.cpp`):**
   - **Neuer `GunShipState::ESCAPE` (=3):** eigener State für den Escape-Flug (statt FOLLOW-Reuse). `DetermineGunShipState`: `hasMoveTargetPos` → `ESCAPE`.
   - **Bug-Fix (Stuck):** Evade-Flag (`ItemFlags[7]`) wurde beim Escape-Trigger NICHT zurückgesetzt → `if (ItemFlags[7]==1) currentState=EVADE_NEAR` zwang den State auf EVADE_NEAR → Heli steckte im EVADE-Loop. Fix: (a) `ItemFlags[7]=0` im Escape-Trigger, (b) Override-Bedingung `&& currentState != ESCAPE`.
