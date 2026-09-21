@@ -166,8 +166,12 @@ void RollingBallControl(short itemNumber)
 	if (item->Pose.Position.y - dh > -CLICK(1) ||
 		item->Pose.Position.y - frontFarHeight >= CLICK(2) ||
 		item->Pose.Position.y - rightFarHeight >= CLICK(2) ||
-		item->Pose.Position.y - backFarHeight  >= CLICK(2) ||
-		item->Pose.Position.y - leftFarHeight  >= CLICK(2))
+		item->Pose.Position.y - backFarHeight >= CLICK(2) ||
+		item->Pose.Position.y - leftFarHeight >= CLICK(2) ||
+		fronFarFloor.IsWall() ||
+		rightFarFloor.IsWall() ||
+		backFarFloor.IsWall() ||
+		leftFarFloor.IsWall())
 	{
 		int counterZ = 0;
 
