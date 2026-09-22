@@ -261,3 +261,13 @@ Vec2::operator Vector2() const
 {
 	return ToVector2();
 };
+
+bool Vec2::operator==(const Vec2& other) const
+{
+	return x == other.x && y == other.y;
+}
+
+bool Vec2::operator!=(const Vec2& other) const
+{
+	return !(*this == other);
+}

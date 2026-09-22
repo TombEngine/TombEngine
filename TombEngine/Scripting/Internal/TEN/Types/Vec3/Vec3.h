@@ -65,4 +65,6 @@ public:
 	// Operators
 
 	operator Vector3() const;
+	bool operator==(const Vec3& other) const;
+	bool operator!=(const Vec3& other) const;
 };

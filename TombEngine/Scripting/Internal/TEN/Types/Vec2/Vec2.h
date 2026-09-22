@@ -55,4 +55,6 @@ public:
 	// Operators
 
 	operator Vector2() const;
+	bool operator==(const Vec2& other) const;
+	bool operator!=(const Vec2& other) const;
 };

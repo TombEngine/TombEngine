@@ -541,7 +541,7 @@ namespace TEN::Entities::Creatures::TR5
 		bool hasShootTarget = (shootTargetNum >= 0);
 
 		//moveTargetPos (hoechste Prioritaet): Zielposition als Vec3. One-Shot: wird beim Erreichen geleert.
-		Vector3 moveTargetPos = (Vector3)PropertyHandler::Get(*item, PropName_GoToTarget, ScriptColor(0, 0, 0));
+		Vector3 moveTargetPos = (Vector3)PropertyHandler::Get(*item, PropName_GoToTarget, Vec3());
 		bool hasMoveTargetPos = (moveTargetPos != Vector3::Zero);
 
 		// Auto-Escape (nicht-persistent): wenn aktiv, dient das Escapetarget als MoveTarget (Vorrang vor Shoot-Target).

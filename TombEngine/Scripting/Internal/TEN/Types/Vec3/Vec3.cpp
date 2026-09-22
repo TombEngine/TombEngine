@@ -306,3 +306,13 @@ Vec3::operator Vector3() const
 {
 	return ToVector3();
 };
+
+bool Vec3::operator==(const Vec3& other) const
+{
+	return x == other.x && y == other.y && z == other.z;
+}
+
+bool Vec3::operator!=(const Vec3& other) const
+{
+	return !(*this == other);
+}
