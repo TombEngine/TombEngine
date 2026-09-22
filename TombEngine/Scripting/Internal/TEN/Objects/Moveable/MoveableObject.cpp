@@ -145,6 +145,7 @@ void Moveable::Register(sol::state& state, sol::table& parent)
 		sol::meta_function::equal_to, std::equal_to<const Moveable>(),
 
 		ScriptReserved_GetName, &Moveable::GetName,
+		ScriptReserved_GetIndex, &Moveable::GetIndex,
 		ScriptReserved_GetObjectID, &Moveable::GetObjectID,
 		ScriptReserved_GetStatus, &Moveable::GetStatus,
 		ScriptReserved_GetPosition, &Moveable::GetPosition,
@@ -286,6 +287,9 @@ void Moveable::Initialize()
 	_initialized = true;
 }
 
+/// Retrieve the item index of the moveable (its position in the level's item list).
+// @function Moveable:GetIndex
+// @treturn int The item index of the moveable.
 int Moveable::GetIndex() const
 {
 	return _moveableID;

@@ -59,7 +59,7 @@ namespace TEN::Entities::Creatures::TR5
 	constexpr int SECTOR_SIZE = 1024;
 	constexpr int FLOATING_POINT_SCALE = 1000;
 	constexpr float EVADE_RAISE_HEIGHT = SECTOR_SIZE * 1.5f; // ~1.5 BLOCK, Aufstieg beim Evaden, damit das Heck den Boden nicht berührt
-	constexpr float HOVER_HEIGHT_OFFSET = SECTOR_SIZE * 1.5f; // Heli schwebt ~1.5 Sektoren über dem Ziel, damit er beim Schießen nach unten zielen kann
+	constexpr float HOVER_HEIGHT_OFFSET = SECTOR_SIZE * 2.0f; // Heli schwebt ~1.5 Sektoren über dem Ziel, damit er beim Schießen nach unten zielen kann
 	constexpr float EVADE_OVERFLY_HEIGHT = SECTOR_SIZE * 3.0f; // Overfly: Heli steigt so weit ueber Lara, dass Rumpf-Heck frei bleibt
 	constexpr float MOVE_TARGET_REACH_RADIUS = SECTOR_SIZE * 0.5f; // moveTargetPos: One-Shot-Radius (horizontal), danach wird der Escape-/MoveTarget-Zustand geleert
 	constexpr float ESCAPE_EXCLUDE_RADIUS = SECTOR_SIZE * 2.0f; // Ausschlussradius: das zuletzt fehlgeschlagene Escapetarget wird bei der Neu-Suche nicht erneut gewaehlt
@@ -351,9 +351,6 @@ namespace TEN::Entities::Creatures::TR5
 				bestScore = score;
 				outPos = cand;
 				found = true;
-
-				
-
 			}
 		}
 
@@ -374,8 +371,6 @@ namespace TEN::Entities::Creatures::TR5
 		auto target = GameVector(g_Level.Items[shootTargetNum].Pose.Position.ToVector3(), g_Level.Items[shootTargetNum].RoomNumber);
 
 		target += GameVector(0, -512, 0, target.RoomNumber);
-
-		DrawDebugLine(origin.ToVector3(), target.ToVector3(), Vector4(255,0,255,1), RendererDebugPage::None);
 
 		auto clamped = target;
 		GunShip.Clear = LOS(&origin, &clamped);
@@ -542,16 +537,11 @@ namespace TEN::Entities::Creatures::TR5
 
 		SoundEffect(SFX_TR4_HELICOPTER_LOOP, &item->Pose);
 
-		int shootTargetNum = PropertyHandler::Get(*item, PropName_ShootTarget, -1);
-		shootTargetNum = LaraItem->Index;//-1; Zum Testen auf Lara gestellt, zeile wird dann wieder gelöscht
-
+		int shootTargetNum = PropertyHandler::Get(*item, PropName_EnemyTarget, LaraItem->Index);
 		bool hasShootTarget = (shootTargetNum >= 0);
 
-		// moveTargetPos (hoechste Prioritaet): Zielposition als Vec3. One-Shot: wird beim Erreichen geleert.
-		//Vector3 moveTargetPos = (Vector3)PropertyHandler::Get(*item, "GunshipMoveTarget", Vec3());
-		//bool hasMoveTargetPos = (moveTargetPos != Vector3::Zero);
-
-		Vector3 moveTargetPos = Vector3::Zero;
+		//moveTargetPos (hoechste Prioritaet): Zielposition als Vec3. One-Shot: wird beim Erreichen geleert.
+		Vector3 moveTargetPos = (Vector3)PropertyHandler::Get(*item, PropName_GoToTarget, ScriptColor(0, 0, 0));
 		bool hasMoveTargetPos = (moveTargetPos != Vector3::Zero);
 
 		// Auto-Escape (nicht-persistent): wenn aktiv, dient das Escapetarget als MoveTarget (Vorrang vor Shoot-Target).
@@ -1076,15 +1066,15 @@ namespace TEN::Entities::Creatures::TR5
 				auto gateMuzzle = GetJointPosition(item, 8, Vector3i::Zero);
 				auto gateOrigin = GameVector(gateMuzzle.ToVector3(), item->RoomNumber);
 				auto gateRot = EulerAngles(item->Pose.Orientation.x + ANGLE(8.0f), item->Pose.Orientation.y, item->Pose.Orientation.z).ToRotationMatrix();
-				Vector3 gateAimed = gateMuzzle.ToVector3() + Vector3::Transform(Vector3(0.0f, 0.0f, -maxShotsRange * 2), gateRot);
+				Vector3 gateAimed = gateMuzzle.ToVector3() + Vector3::Transform(Vector3(0.0f, -512.0f, -maxShotsRange * 2), gateRot);
 				auto gateTarget = GameVector(gateAimed, g_Level.Items[shootTargetNum].RoomNumber);
 				auto gateClamped = gateTarget;
 				LOS(&gateOrigin, &gateClamped);
 
-				StaticMesh* gateMesh = nullptr;
 				Vector3i gateHitPos = Vector3i::Zero;
-				int gateResult = ObjectOnLOS2(&gateOrigin, &gateClamped, &gateHitPos, &gateMesh, ID_LARA, item->Index);
-				const bool canFire = (gateResult != NO_LOS_ITEM);
+				int gateItems[1];
+				int gateCount = ObjectOnLOS3(&gateOrigin, &gateClamped, &gateHitPos, gateItems, 1, false, item->Index);
+				const bool canFire = (gateCount > 0);
 
 				// Sound for gunfire + gun flash visual (nur beim Abfeuern).
 				if (canFire)
@@ -1109,6 +1099,7 @@ namespace TEN::Entities::Creatures::TR5
 
 					auto weaponType = LaraWeaponType::HK;
 					// Spawn gun shell effect at the muzzle using generic function.
+					if (Random::TestProbability(1.0f / 4.0f))
 					TriggerGunShellAt(Vector3i(flashPos.x, flashPos.y, flashPos.z), item->RoomNumber, ID_GUNSHELL, weaponType);
 					TriggerGunSmoke(flashPos.x, flashPos.y, flashPos.z, 0, 0, 0, 0, weaponType, 16);
 				}
@@ -1136,50 +1127,70 @@ namespace TEN::Entities::Creatures::TR5
 
 				GetFloor(target2.x, target2.y, target2.z, &target2.RoomNumber);
 
-				// Objekt-Treffer (Lara/Statics) nur innerhalb des wandbegrenzten Segments -> kein Durchschuss durch Waende.
-				StaticMesh* mesh = nullptr;
+				// Objekt-Treffer (Items/Statics) nur innerhalb des wandbegrenzten Segments -> kein Durchschuss durch Waende.
 				Vector3i hitPos = Vector3i::Zero;
-				int losResult = ObjectOnLOS2(&origin, &target2, &hitPos, &mesh, ID_LARA, item->Index);
+				int shotItems[1];
+				int shotCount = ObjectOnLOS3(&origin, &target2, &hitPos, shotItems, 1, false, item->Index);
 
-				bool hasHit = (losResult != NO_LOS_ITEM);
+				DrawDebugLine(origin.ToVector3(), target2.ToVector3(), Vector4::One, RendererDebugPage::None);
 
-				DrawDebugLine(origin.ToVector3(), targetVec.ToVector3(), Vector4::One, RendererDebugPage::None);
+				bool hasHit = (shotCount > 0);
 
 				// Nur bei Treffer auf ein Ziel in der Schusslinie weiterverarbeiten (Wand davor -> kein Schuss, kein Decal).
 				if (hasHit)
 				{
-					// Something is in the way.
-					if (losResult < 0)
+					if (shotItems[0] < 0)
 					{
 						// Hit static mesh.
-						if (mesh && Statics[mesh->Slot].shatterType != ShatterType::None)
+						int slot = -1 - shotItems[0];
+						auto& hitRoom = g_Level.Rooms[target2.RoomNumber];
+
+						StaticMesh* mesh = nullptr;
+						float bestDist = FLT_MAX;
+						for (int m = 0; m < hitRoom.mesh.size(); m++)
 						{
-							mesh->HitPoints -= GUNSHIP_DAMAGE;
-							ShatterImpactData.impactDirection = Vector3(0, 0, 0);
-							ShatterImpactData.impactLocation = Vector3(hitPos.x, hitPos.y, hitPos.z);
-							int shatterRoomNumber = FindRoomNumber(Vector3i(hitPos), mesh->RoomNumber, true);
-							ShatterObject(nullptr, mesh, 128, shatterRoomNumber, 0);
-							SoundEffect(GetShatterSound(mesh->Slot), &mesh->Pose);
+							if (hitRoom.mesh[m].Slot != slot)
+								continue;
+
+							float d = Vector3::Distance(
+								hitRoom.mesh[m].Pose.Position.ToVector3(),
+								Vector3(hitPos.x, hitPos.y, hitPos.z));
+							if (d < bestDist)
+							{
+								bestDist = d;
+								mesh = &hitRoom.mesh[m];
+							}
 						}
-						// Ricochet spark at hit position.
-						GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
-						TriggerRicochetSpark(impactPos, Random::GenerateAngle());
+
+						if (mesh)
+						{
+							if (Statics[slot].shatterType != ShatterType::None)
+							{
+								mesh->HitPoints -= GUNSHIP_DAMAGE;
+								ShatterImpactData.impactDirection = Vector3(0, 0, 0);
+								ShatterImpactData.impactLocation = Vector3(hitPos.x, hitPos.y, hitPos.z);
+								int shatterRoomNumber = FindRoomNumber(Vector3i(hitPos), mesh->RoomNumber, true);
+								ShatterObject(nullptr, mesh, 128, shatterRoomNumber, 0);
+								SoundEffect(GetShatterSound(slot), &mesh->Pose);
+							}
+
+							GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
+							TriggerRicochetSpark(impactPos, Random::GenerateAngle());
+						}
 					}
 					else
 					{
-						// Hit an item (creature or object).test212
-						auto* item1 = &g_Level.Items[losResult];
+						// Hit an item (creature or object).
+						auto* hitItem = &g_Level.Items[shotItems[0]];
 
-						if (item1->Index == LaraItem->Index || item1->IsCreature())
+						if (hitItem->Index == LaraItem->Index || hitItem->IsCreature())
 						{
-							DoDamage(item1, GUNSHIP_DAMAGE);
+							DoDamage(hitItem, GUNSHIP_DAMAGE);
 						}
 
 						GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
 						TriggerRicochetSpark(impactPos, Random::GenerateAngle());
-
 					}
-
 				}
 			}
 

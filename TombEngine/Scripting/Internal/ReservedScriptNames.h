@@ -244,6 +244,7 @@ static constexpr char ScriptReserved_SetRoomNumber[]			= "SetRoomNumber";
 static constexpr char ScriptReserved_GetStrength[]				= "GetStrength";
 static constexpr char ScriptReserved_SetStrength[]				= "SetStrength";
 static constexpr char ScriptReserved_GetValid[]					= "GetValid";
+static constexpr char ScriptReserved_GetIndex[]					= "GetIndex";
 static constexpr char ScriptReserved_SetEffect[]				= "SetEffect";
 static constexpr char ScriptReserved_GetEffect[]				= "GetEffect";
 static constexpr char ScriptReserved_SetCustomEffect[]			= "SetCustomEffect";
