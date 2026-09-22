@@ -6,6 +6,7 @@
 #include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Game/Animation/Animation.h"
 #include "Game/camera.h"
+#include "Game/collision/Los.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/collide_room.h"
 #include "Game/control/box.h"
@@ -25,6 +26,7 @@
 #include "Game/effects/tomb4fx.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Collision::Los;
 using namespace TEN::Math;
 using namespace TEN::Scripting::Properties;
 
@@ -1064,17 +1066,33 @@ namespace TEN::Entities::Creatures::TR5
 			{
 				// Feuersperre: nur abfeuern, wenn ein Ziel (Lara/Static) in der Schusslinie ist und keine Wand dazwischen.
 				auto gateMuzzle = GetJointPosition(item, 8, Vector3i::Zero);
-				auto gateOrigin = GameVector(gateMuzzle.ToVector3(), item->RoomNumber);
+				auto gateOriginVec = gateMuzzle.ToVector3();
 				auto gateRot = EulerAngles(item->Pose.Orientation.x + ANGLE(8.0f), item->Pose.Orientation.y, item->Pose.Orientation.z).ToRotationMatrix();
 				Vector3 gateAimed = gateMuzzle.ToVector3() + Vector3::Transform(Vector3(0.0f, -512.0f, -maxShotsRange * 2), gateRot);
-				auto gateTarget = GameVector(gateAimed, g_Level.Items[shootTargetNum].RoomNumber);
-				auto gateClamped = gateTarget;
-				LOS(&gateOrigin, &gateClamped);
+				auto gateDir = gateAimed - gateOriginVec;
+				float gateDist = gateDir.Length();
+				gateDir.Normalize();
 
-				Vector3i gateHitPos = Vector3i::Zero;
-				int gateItems[1];
-				int gateCount = ObjectOnLOS3(&gateOrigin, &gateClamped, &gateHitPos, gateItems, 1, false, item->Index);
-				const bool canFire = (gateCount > 0);
+				item->Collidable = false;
+				auto gateLos = GetLosCollision(gateOriginVec, item->RoomNumber, gateDir, gateDist, true, false, true, true);
+				item->Collidable = true;
+
+				bool canFire = false;
+				for (auto& itemLos : gateLos.Items)
+				{
+					if (itemLos.Item == item)
+						continue;
+					canFire = true;
+					break;
+				}
+				if (!canFire)
+				{
+					for (auto& staticLos : gateLos.Statics)
+					{
+						canFire = true;
+						break;
+					}
+				}
 
 				// Sound for gunfire + gun flash visual (nur beim Abfeuern).
 				if (canFire)
@@ -1119,70 +1137,73 @@ namespace TEN::Entities::Creatures::TR5
 				float spreadZ = Random::GenerateFloat(-aimSpread, aimSpread);
 				Vector3 aimedPos = flashPos + Vector3::Transform(Vector3(spreadX, spreadY, spreadZ) + Vector3(0.0f, 0.0f, -maxShotsRange * 2), rotMatrix);
 
-				auto targetVec = GameVector(aimedPos, g_Level.Items[shootTargetNum].RoomNumber);
+				auto shotDir = aimedPos - flashPos;
+				float shotDist = shotDir.Length();
 
-				// Geometrie-Check zuerst: LOS klappt den Strahl an der Wand ab und fuellt LosRoomNumbers (wird von ObjectOnLOS2 genutzt).
-				auto target2 = targetVec;
-				LOS(&origin, &target2);
+				shotDir.Normalize();
+				item->Collidable = false;
+				auto shotLos = GetLosCollision(flashPos, item->RoomNumber, shotDir, shotDist, true, false, true, true);
+				item->Collidable = true;
 
-				GetFloor(target2.x, target2.y, target2.z, &target2.RoomNumber);
+				DrawDebugLine(flashPos, aimedPos, Vector4::One, RendererDebugPage::None);
 
-				// Objekt-Treffer (Items/Statics) nur innerhalb des wandbegrenzten Segments -> kein Durchschuss durch Waende.
-				Vector3i hitPos = Vector3i::Zero;
-				int shotItems[1];
-				int shotCount = ObjectOnLOS3(&origin, &target2, &hitPos, shotItems, 1, false, item->Index);
+				// Determine nearest hit (skip self).
+				float bestDist = shotDist;
+				bool hitIsItem = false;
+				ItemInfo* hitItem = nullptr;
+				StaticMesh* hitStatic = nullptr;
+				Vector3 hitPos = Vector3::Zero;
 
-				DrawDebugLine(origin.ToVector3(), target2.ToVector3(), Vector4::One, RendererDebugPage::None);
+				for (auto& itemLos : shotLos.Items)
+				{
+					if (itemLos.Item == item)
+						continue;
+					if (itemLos.Distance < bestDist)
+					{
+						bestDist = itemLos.Distance;
+						hitIsItem = true;
+						hitItem = itemLos.Item;
+						hitPos = itemLos.Position;
+					}
+				}
 
-				bool hasHit = (shotCount > 0);
+				for (auto& staticLos : shotLos.Statics)
+				{
+					if (staticLos.Distance < bestDist)
+					{
+						bestDist = staticLos.Distance;
+						hitIsItem = false;
+						hitStatic = staticLos.Static;
+						hitPos = staticLos.Position;
+					}
+				}
 
-				// Nur bei Treffer auf ein Ziel in der Schusslinie weiterverarbeiten (Wand davor -> kein Schuss, kein Decal).
+				bool hasHit = (hitItem != nullptr || hitStatic != nullptr);
+
 				if (hasHit)
 				{
-					if (shotItems[0] < 0)
+					if (!hitIsItem)
 					{
 						// Hit static mesh.
-						int slot = -1 - shotItems[0];
-						auto& hitRoom = g_Level.Rooms[target2.RoomNumber];
+						auto* mesh = hitStatic;
+						int slot = mesh->Slot;
 
-						StaticMesh* mesh = nullptr;
-						float bestDist = FLT_MAX;
-						for (int m = 0; m < hitRoom.mesh.size(); m++)
+						if (Statics[slot].shatterType != ShatterType::None)
 						{
-							if (hitRoom.mesh[m].Slot != slot)
-								continue;
-
-							float d = Vector3::Distance(
-								hitRoom.mesh[m].Pose.Position.ToVector3(),
-								Vector3(hitPos.x, hitPos.y, hitPos.z));
-							if (d < bestDist)
-							{
-								bestDist = d;
-								mesh = &hitRoom.mesh[m];
-							}
+							mesh->HitPoints -= GUNSHIP_DAMAGE;
+							ShatterImpactData.impactDirection = Vector3(0, 0, 0);
+							ShatterImpactData.impactLocation = hitPos;
+							int shatterRoomNumber = FindRoomNumber(Vector3i(hitPos), mesh->RoomNumber, true);
+							ShatterObject(nullptr, mesh, 128, shatterRoomNumber, 0);
+							SoundEffect(GetShatterSound(slot), &mesh->Pose);
 						}
 
-						if (mesh)
-						{
-							if (Statics[slot].shatterType != ShatterType::None)
-							{
-								mesh->HitPoints -= GUNSHIP_DAMAGE;
-								ShatterImpactData.impactDirection = Vector3(0, 0, 0);
-								ShatterImpactData.impactLocation = Vector3(hitPos.x, hitPos.y, hitPos.z);
-								int shatterRoomNumber = FindRoomNumber(Vector3i(hitPos), mesh->RoomNumber, true);
-								ShatterObject(nullptr, mesh, 128, shatterRoomNumber, 0);
-								SoundEffect(GetShatterSound(slot), &mesh->Pose);
-							}
-
-							GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
-							TriggerRicochetSpark(impactPos, Random::GenerateAngle());
-						}
+						GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
+						TriggerRicochetSpark(impactPos, Random::GenerateAngle());
 					}
 					else
 					{
 						// Hit an item (creature or object).
-						auto* hitItem = &g_Level.Items[shotItems[0]];
-
 						if (hitItem->Index == LaraItem->Index || hitItem->IsCreature())
 						{
 							DoDamage(hitItem, GUNSHIP_DAMAGE);
@@ -1192,17 +1213,23 @@ namespace TEN::Entities::Creatures::TR5
 						TriggerRicochetSpark(impactPos, Random::GenerateAngle());
 					}
 				}
+				else if (shotLos.Room.IsIntersected)
+				{
+					// Hit room geometry (wall/floor/ceiling) → ricochet at impact point.
+					hitPos = shotLos.Room.Position;
+					GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, shotLos.Room.RoomNumber);
+					TriggerRicochetSpark(impactPos, Random::GenerateAngle());
+				}
+			
 			}
-
 			// Not in range – ensure flash is cleared.
+			else
 			item->MeshBits &= 0xFEFF;
-
 
 			// Y-Geschwindigkeit immer mit FLOATING_POINT_SCALE persistieren (ItemFlags[6] wird mit /FLOATING_POINT_SCALE gelesen).
 			item->ItemFlags[6] = (int)(currentYSpeed * FLOATING_POINT_SCALE);
 
 			AnimateItem(item);
-			
 		}
 	}
 }

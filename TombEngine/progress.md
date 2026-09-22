@@ -1,7 +1,7 @@
 # Progress
 
 ## Current Task
-**ERLEDIGT (2026-09-22):** (1) `ObjectOnLOS3` implementiert — Items + Statics, kein ObjectID-Filter, `multiHit` + `excludeSelf`. (2) Gunship auf `ObjectOnLOS3` umgestellt (Gate + Schuss + Shatter). (3) `operator==` / `operator!=` zu `Vec2` + `Vec3` hinzugefügt → `PropertyHandler::Get<T>` funktioniert jetzt mit Vector-Typen. (4) Gunship GoToTarget-Fix: `ScriptColor(0,0,0)` → `Vec3()` als Default (Lua speichert Vec3, C++ liest jetzt korrekten Typ). **Nicht kompiliert.**
+**ERLEDIGT (2026-09-22):** (1) `operator==` / `operator!=` zu `Vec2` + `Vec3` hinzugefügt. (2) Gunship GoToTarget-Fix: `Vec3()` als Default. (3) Gunship Gate + Schuss auf `TEN::Collision::Los::GetLosCollision` (Low-Level) umgestellt — `collidePlayer=true` → Lara wird in `los.Items` aufgenommen. (4) Selbst-Okklusion: `item->Collidable = false` vor LOS, `true` nachher + `itemLos.Item == item` Skip. (5) Geometrie-Ricochet-Fallback: `shotLos.Room.IsIntersected` → `TriggerRicochetSpark` am Wand-Trefferpunkt. **Nicht kompiliert.**
 
 ## Completed Work
 - **`Vec2` + `Vec3`: `operator==` und `operator!=` hinzugefügt** (`Vec2.h`/`Vec2.cpp` + `Vec3.h`/`Vec3.cpp`): Erlaubt die Nutzung beider Typen als Template-Default in `PropertyHandler::Get<T>` (intern `defaultValue != T{}`). Bisher nur `ScriptColor`/`float`/`int` etc. möglich.
