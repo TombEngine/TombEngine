@@ -2003,6 +2003,13 @@ void SpawnCreatureGunEffect(const ItemInfo& item, const CreatureMuzzleFlashInfo&
 	}
 }
 
+void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
+{
+	// Temporary test draw: red line from muzzle origin to impact point.
+	// Replaced by the actual bullet tracer effect once ready.
+	DrawDebugLine(origin.ToVector3(), target.ToVector3(), Vector4(255, 0, 0, 1), RendererDebugPage::None);
+}
+
 void SpawnPlayerWaterSurfaceEffects(const ItemInfo& item, int waterHeight, int waterDepth)
 {
 	const auto& player = GetLaraInfo(item);

@@ -287,3 +287,5 @@ void UpdateWibble();
 
 void SpawnCreatureGunEffect(const ItemInfo& item, const CreatureMuzzleFlashInfo& muzzleFlash);
 void SpawnPlayerWaterSurfaceEffects(const ItemInfo& item, int waterHeight, int waterDepth);
+
+void TriggerBulletTracer(const GameVector& origin, const GameVector& target);

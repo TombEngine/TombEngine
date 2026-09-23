@@ -70,7 +70,7 @@ GAME_OBJECT_ID	  GetWeaponObjectMeshID(ItemInfo& laraItem, LaraWeaponType weapon
 void HandleWeapon(ItemInfo& laraItem);
 void AimWeapon(ItemInfo& laraItem, ArmInfo& arm, const WeaponInfo& weaponInfo);
 void SpawnWeaponFlash(ItemInfo& laraItem, WeaponFlashMode mode, LaraWeaponType weaponType = LaraWeaponType::Pistol);
-FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, ItemInfo& laraItem, const EulerAngles& armOrient);
+FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, ItemInfo& laraItem, const EulerAngles& armOrient, bool isRightWeapon = true);
 
 void FindNewTarget(ItemInfo& laraItem, const WeaponInfo& weaponInfo);
 void LaraTargetInfo(ItemInfo& laraItem, const WeaponInfo& weaponInfo);

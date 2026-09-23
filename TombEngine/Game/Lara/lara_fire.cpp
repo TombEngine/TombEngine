@@ -895,7 +895,7 @@ void AimWeapon(ItemInfo& laraItem, ArmInfo& arm, const WeaponInfo& weaponInfo)
 }
 
 // TODO: Include snowmobile gun in GetAmmo(), otherwise the player won't be able to shoot while controlling it. -- TokyoSU 2023.04.21
-FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, ItemInfo& laraItem, const EulerAngles& armOrient)
+FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, ItemInfo& laraItem, const EulerAngles& armOrient, bool isRightWeapon)
 {
 	auto& player = *GetLaraInfo(&laraItem);
 	auto& ammo = GetAmmo(player, weaponType);
@@ -929,10 +929,18 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	GetFloor(pos.x, pos.y, pos.z, &roomNumber);
 	vOrigin.RoomNumber = roomNumber;
 
+	// Compute per-hand muzzle position for the bullet tracer origin.
+	auto tracerJoint = isRightWeapon ? LM_RHAND : LM_LHAND;
+	auto tracerMuzzleOffset = g_GameFlow->GetSettings()->Weapons[(int)weaponType - 1].MuzzleOffset.ToVector3i();
+	if (!isRightWeapon)
+		tracerMuzzleOffset.x = -tracerMuzzleOffset.x;
+	auto tracerOrigin = GameVector(GetJointPosition(&laraItem, tracerJoint, tracerMuzzleOffset), laraItem.RoomNumber);
+
 	if (targetEntity == nullptr)
 	{
 		auto vTarget = GameVector(target);
 		GetTargetOnLOS(&vOrigin, &vTarget);
+		TriggerBulletTracer(tracerOrigin, vTarget);
 		return FireWeaponType::Miss;
 	}
 
@@ -965,6 +973,7 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 	{
 		auto vTarget = GameVector(target);
 		GetTargetOnLOS(&vOrigin, &vTarget);
+		TriggerBulletTracer(tracerOrigin, vTarget);
 		return FireWeaponType::Miss;
 	}
 	else
@@ -977,6 +986,7 @@ FireWeaponType FireWeapon(LaraWeaponType weaponType, ItemInfo* targetEntity, Ite
 		if (!GetTargetOnLOS(&vOrigin, &vTarget))
 			HitTarget(&laraItem, targetEntity, &vTarget, weapon.Damage, false, closestJointIndex);
 
+		TriggerBulletTracer(tracerOrigin, vTarget);
 		return FireWeaponType::PossibleHit;
 	}
 }

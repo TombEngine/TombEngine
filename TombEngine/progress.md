@@ -1,9 +1,15 @@
 # Progress
 
 ## Current Task
-**ERLEDIGT (2026-09-22):** (1) `operator==` / `operator!=` zu `Vec2` + `Vec3` hinzugefügt. (2) Gunship GoToTarget-Fix: `Vec3()` als Default. (3) Gunship Gate + Schuss auf `TEN::Collision::Los::GetLosCollision` (Low-Level) umgestellt — `collidePlayer=true` → Lara wird in `los.Items` aufgenommen. (4) Selbst-Okklusion: `item->Collidable = false` vor LOS, `true` nachher + `itemLos.Item == item` Skip. (5) Geometrie-Ricochet-Fallback: `shotLos.Room.IsIntersected` → `TriggerRicochetSpark` am Wand-Trefferpunkt. **Nicht kompiliert.**
+**Bullet Tracer – Grundlage (2026-09-23):** Generische `TriggerBulletTracer(origin, target)`-Funktion angelegt (aktuell nur roter Debug-Linien-Test, transient = 1 Frame pro Schuss). In Laras `FireWeapon` integriert (pro-Hand-Mündungs-Origin). Projektil-Waffen (Bogen/Harpune/Granate/Rakete) automatisch ausgeschlossen (feuern nicht via `FireWeapon`). **Nicht kompiliert.**
 
 ## Completed Work
+- **Bullet Tracer – Grundlage + Debug-Test:**
+  - `effects.h`: neue generische Deklaration `void TriggerBulletTracer(const GameVector& origin, const GameVector& target);` (von jedem Objekt aufrufbar).
+  - `effects.cpp`: Implementation = Test-Draw `DrawDebugLine(origin.ToVector3(), target.ToVector3(), Vector4(255,0,0,1), RendererDebugPage::None);` (transient: `_lines3DToDraw` wird pro Frame in `Renderer::PrepareScene()` geleert → Linie erscheint nur im Schuss-Frame).
+  - `lara_fire.h` + `lara_fire.cpp`: `FireWeapon` um `bool isRightWeapon = true` erweitert. In `FireWeapon` pro-Hand-Mündungs-Origin berechnet (`LM_RHAND`/`LM_LHAND` + Waffen-`MuzzleOffset`, linke Hand X gespiegelt). `TriggerBulletTracer(tracerOrigin, vTarget)` in allen 3 Ergebnis-Zweigen (kein Ziel / Fehlschuss / Treffer) aufgerufen; alte Einzel-Debug-Linie ersetzt.
+  - `lara_two_guns.cpp:151`: `isRightWeapon` an `FireWeapon` durchgereicht → linke Hand eigener Tracer (Dual-Wield).
+  - **Nicht kompiliert** (Build nur auf Anfrage).
 - **`Vec2` + `Vec3`: `operator==` und `operator!=` hinzugefügt** (`Vec2.h`/`Vec2.cpp` + `Vec3.h`/`Vec3.cpp`): Erlaubt die Nutzung beider Typen als Template-Default in `PropertyHandler::Get<T>` (intern `defaultValue != T{}`). Bisher nur `ScriptColor`/`float`/`int` etc. möglich.
 - **`tr5_gunship.cpp` GoToTarget-Fix:** `PropertyHandler::Get(*item, PropName_GoToTarget, Vec3())` — liest jetzt den korrekten Variant-Typ (`Vec3`) statt `ScriptColor`. Lua `SetProperty("GoToTarget", position)` funktioniert jetzt.
 - **`ObjectOnLOS3` — Neue LOS-Item/Static-Funktion (`los.h` + `los.cpp`):** Signatur: `int ObjectOnLOS3(GameVector* origin, GameVector* target, Vector3i* hitPos, int* outItems, int maxResults, bool multiHit, int excludeSelf)`. Prüft Items UND Statics, respektiert `Collidable`/`Hidden`/Status/`SM_VISIBLE`, keine `priorityObjectID`-Beschränkung → trifft JEDES Collidable-Objekt inkl. Lara. `outItems`: positiv = Item-Index, negativ = Static (`-1 - Slot`). `multiHit=false`: nächster Treffer. `multiHit=true`: alle, sortiert nach Distanz (max 32). Rückgabe: Hit-Count. `excludeSelf`: Item-Index zu überspringen. Wiederverwendet `LosRoomNumbers` (Prereq: `LOS()` vorher). Stack-basiert (kein Heap), lokale `HitEntry[32]`-Array. Für zukünftige Multi-Target-Effekte (Laser) gedacht.
