@@ -2041,7 +2041,7 @@ void SpawnCreatureGunEffect(const ItemInfo& item, const CreatureMuzzleFlashInfo&
 // Spark (bullet visual – classic Particle).
 constexpr float BULLET_SPARK_SIZE_START = 48.0f;  // Start size (sprite scale).
 constexpr float BULLET_SPARK_SIZE_END   = 44.0f;   // End size (shrinks).
-constexpr int BULLET_SPARK_VEL = 480000;                          // Rohwert für xVel (short-safe).
+constexpr int BULLET_SPARK_VEL = 500000;                          // Rohwert für xVel (short-safe).
 constexpr int BULLET_SPARK_SPEED = BULLET_SPARK_VEL >> 6;        // = 937 units/frame (effektiv).
 
 //constexpr int BULLET_SPARK_SPEED = 10000;//30000;
@@ -2125,7 +2125,7 @@ void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
 	p->sSize = -100.0f;           // → Vector2(4, 100) × scalar = langer Strich.
 	p->dSize = 30.0f;
 	p->scalar = 3;
-	p->sLife = (int)(distance / ((BULLET_SPARK_SPEED * 5) >> 5)) + 1;  // distance / 500 + 1.
+	p->sLife = (int)(distance / ((BULLET_SPARK_SPEED * 4) >> 5)) + 1;  // distance / 500 + 1.
 	p->life = p->sLife;
 	//p->sLife = 15;
 	//p->life = 15;
@@ -2201,7 +2201,7 @@ void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
 	d->sSize = -100.0f;           // → Vector2(4, 100) × scalar = langer Strich.
 	d->dSize = 30.0f;
 	d->scalar = 3;
-	d->sLife = (int)(distance / (BULLET_SPARK_SPEED >> 5)) + 1;  // distance / 500 + 1.
+	d->sLife = (int)(distance / ((BULLET_SPARK_SPEED ) >> 5)) + 1;  // distance / 500 + 1.
 	d->life = d->sLife;
 	//p->sLife = 15;
 	//p->life = 15;
@@ -2236,10 +2236,7 @@ void UpdateBulletTracers()
 		float remaining = (tracer.target - tracer.position).Dot(tracer.dir);
 		if (remaining <= 0.0f)
 		{
-			StreamerEffect.ClearPool(BULLET_TRACER_GROUP, BULLET_TRACER_HAZE_TAG_BASE + tracer.tag);
-			tracer.active = false;
-			tracer.framesLeft = 0;
-			continue;
+
 		}
 
 		tracer.framesLeft--;
