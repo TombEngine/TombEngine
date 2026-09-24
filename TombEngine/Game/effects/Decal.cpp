@@ -11,6 +11,34 @@ namespace TEN::Effects::Decal
 {
 	std::vector<Decal> Decals;
 
+// --- Pending Decals ---
+
+struct PendingDecal
+{
+	Vector3 pos;
+	int room;
+	DecalType type;
+	int framesLeft;
+	bool active = false;
+};
+
+constexpr auto MAX_PENDING_DECALS = 16;
+static PendingDecal s_PendingDecals[MAX_PENDING_DECALS];
+
+static void UpdatePendingDecals()
+{
+	for (auto& p : s_PendingDecals)
+	{
+		if (!p.active)
+			continue;
+		if (--p.framesLeft <= 0)
+		{
+			p.active = false;
+			SpawnDecal(p.pos, p.room, p.type);
+		}
+	}
+}
+
 	void Decal::UpdateNeighbors()
 	{
 		Neighbors.fill(NO_VALUE);
@@ -29,8 +57,24 @@ namespace TEN::Effects::Decal
 		}
 	}
 
-	void SpawnDecal(Vector3 pos, int roomNumber, DecalType type)
+	void SpawnDecal(Vector3 pos, int roomNumber, DecalType type, int delayFrames)
 	{
+		if (delayFrames > 0)
+		{
+			for (auto& p : s_PendingDecals)
+			{
+				if (p.active)
+					continue;
+				p.pos = pos;
+				p.room = roomNumber;
+				p.type = type;
+				p.framesLeft = delayFrames;
+				p.active = true;
+				return;
+			}
+			// Queue full – spawn immediately as fallback.
+		}
+
 		if (!g_Configuration.EnableDecals)
 			return;
 
@@ -73,6 +117,7 @@ namespace TEN::Effects::Decal
 
 	void UpdateDecals()
 	{
+		UpdatePendingDecals();
 		if (Decals.empty())
 			return;
 

@@ -24,6 +24,33 @@ constexpr auto MAX_PARTICLE_DYNAMICS = 8;
 constexpr auto CREATURE_GUNFLASH_COLOR = Vector4(0.5f, 0.25f, 0.05f, 1.0f);
 constexpr auto FLAME_HEAT_HAZE_SCALE = 2.5f;
 
+// Bullet tracer: a fast spark projectile (classic Particle, Lighten) + optional heat-distortion trail (Streamer).
+// Spark = visible bullet. Trail = distortion only (subtle, behind the spark).
+
+// Spark (bullet visual – classic Particle).
+constexpr float BULLET_SPARK_SIZE_START = 48.0f;  // Start size (sprite scale).
+constexpr float BULLET_SPARK_SIZE_END   = 44.0f;  // End size (shrinks).
+constexpr int BULLET_SPARK_VEL = 500000;          // Rohwert für xVel (short-safe).
+constexpr int BULLET_SPARK_SPEED = BULLET_SPARK_VEL >> 6; // Effektive units/frame.
+
+constexpr unsigned char BULLET_SPARK_R = 255, BULLET_SPARK_G = 217, BULLET_SPARK_B = 77;
+constexpr unsigned char BULLET_SPARK_DR = 179, BULLET_SPARK_DG = 64, BULLET_SPARK_DB = 5;
+
+// Trail (distortion).
+constexpr float BULLET_TRAIL_WIDTH  = 60.0f;      // Trail segment width (world units).
+constexpr int   BULLET_TRAIL_FRAMES = 4;          // Trail segment life (frames).
+
+// Shared.
+constexpr float BULLET_TRACER_ORIGIN_OFFSET = BLOCK(0.5f);   // Fixed muzzle offset.
+constexpr float BULLET_TRACER_SMOKE_ORIGIN_OFFSET = BLOCK(0.1f);
+constexpr float BULLET_TRACER_HAZE_ORIGIN_OFFSET = BLOCK(0.0f);
+constexpr int BULLET_SMOKE_SPARK_VEL = 80000;    // Rohwert für xVel (short-safe).
+constexpr int BULLET_SMOKE_SPARK_SPEED = BULLET_SPARK_VEL >> 5;
+constexpr int   BULLET_TRACER_MAX = 64;           // Active tracer slots.
+constexpr int   BULLET_TRACER_TRAVEL_FRAMES = 60; // Safety cap (frames).
+constexpr int   BULLET_TRACER_GROUP = 0x7F000000; // Streamer group key (distortion).
+constexpr int   BULLET_TRACER_HAZE_TAG_BASE = 0x00FF0000; // Distortion tag range.
+
 extern int Wibble;
 
 enum SpriteEnumFlag
@@ -260,7 +287,8 @@ void SetAdvancedSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID, Part
 
 void DetatchSpark(int num, SpriteEnumFlag type);
 void UpdateSparks();
-void TriggerRicochetSpark(const GameVector& pos, short angle, bool sound = true);
+void TriggerRicochetSpark(const GameVector& pos, short angle, bool sound = true, int delayFrames = 0);
+int GetBulletTravelFrames(float distance);
 void TriggerCyborgSpark(int x, int y, int z, short xv, short yv, short zv);
 void TriggerGlow(const GameVector& pos, const Vector3& color, int scale);
 void TriggerExplosionSparks(int x, int y, int z, int extraTrig, int dynamic, int uw, int roomNumber, const Vector3& mainColor = Vector3::Zero, const Vector3& secondColor = Vector3::Zero);

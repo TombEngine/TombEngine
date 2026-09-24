@@ -1,9 +1,16 @@
 # Progress
 
 ## Current Task
-**Bullet Tracer – LOS + Tunneling-Fix (2026-09-24):** `TriggerBulletTracer` macht selbst `LOS()` (clampet Ziel zur Wand). `HandleBulletTracerParticle()` killt 1 Frame VOR targetPos (kein Tunneling). `sLife = 30` = Safety-Cap. Path 2 (SP_NONE, velocity-oriented).
+**Bullet Tracer – Delayed Ricochet/Decal (2026-09-25):** `TriggerRicochetSpark` + `SpawnDecal` akzeptieren jetzt `delayFrames`. `GetBulletTravelFrames(distance)` berechnet Verzögerung aus `BULLET_SPARK_SPEED`. Pending-Queues in `effects.cpp` (Ricochet) + `Decal.cpp` (Decal). `los.cpp` übergibt Distanz-basierte Frames. Bullet + Ricochet/Decal treffen jetzt gleichzeitig ein.
 
 ## Completed Work
+- **Delayed Ricochet/Decal (2026-09-25):**
+  - `effects.h`: Bullet-Tracer-Konstanten (constexpr) + `TriggerRicochetSpark(..., int delayFrames = 0)` + `GetBulletTravelFrames(float distance)`.
+  - `effects.cpp`: Pending-Ricochet-Queue (16 Slots), `UpdatePendingRicochets()` in `UpdateSparks()`, `GetBulletTravelFrames()` nutzt `BULLET_SPARK_SPEED` direkt.
+  - `Decal.h`: `SpawnDecal(..., int delayFrames = 0)`.
+  - `Decal.cpp`: Pending-Decal-Queue (16 Slots), `UpdatePendingDecals()` in `UpdateDecals()`.
+  - `los.cpp`: `GetTargetOnLOS` berechnet `delayFrames` aus Distanz und übergibt an beide.
+  - Alle bestehenden Caller (ohne 4. Arg) bleiben unverändert (`delayFrames = 0` = sofort).
 - **Bullet Tracer – fester Mündungs-Offset (Start weiter vorn, 2026-09-23):**
   - `effects.cpp`: neue Konstante `BULLET_TRACER_ORIGIN_OFFSET = BLOCK(0.5f)` (fest, unabhängig von Schuss-Distanz; Nutzer tuned die Größe selbst).
   - `TriggerBulletTracer`: Startpunkt entlang der Reise-Richtung nach vorn verschoben → `startVec = originVec + dir * offset` (geclampt `offset <= distance`), `distance -= offset`, `tracer.origin = startVec`. Nebeneffekt: kürzerer Schwanz (kleinere Gesamtdistanz). **Nicht kompiliert** (Build nur auf Anfrage).

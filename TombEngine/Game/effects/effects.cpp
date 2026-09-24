@@ -307,9 +307,12 @@ static bool HandleBulletTracerParticle(Particle& particle)
 	return false;
 }
 
+static void UpdatePendingRicochets();
+
 void UpdateSparks()
 {
 	GetLaraDeadlyBounds();
+	UpdatePendingRicochets();
 
 	for (int i = 0; i < MAX_PARTICLES; i++)
 	{
@@ -624,16 +627,76 @@ void UpdateSparks()
 	}
 }
 
-void TriggerRicochetSpark(const GameVector& pos, short angle, bool sound)
-{
-	int maxCount = g_GameFlow->GetSettings()->Effects.RicochetCount;
-	int count = Random::GenerateInt(maxCount / 2, maxCount);
-	TriggerRicochetSpark(pos, angle, count);
+// --- Pending Ricochet ---
 
-	if (sound && g_GameFlow->GetSettings()->Effects.RicochetSound)
+struct PendingRicochet
+{
+	GameVector pos;
+	short angle;
+	bool sound;
+	int framesLeft;
+	bool active = false;
+};
+
+constexpr auto MAX_PENDING_RICOCHETS = 16;
+static PendingRicochet g_PendingRicochets[MAX_PENDING_RICOCHETS];
+
+static void UpdatePendingRicochets()
+{
+	for (auto& p : g_PendingRicochets)
 	{
-		auto soundPose = Pose(pos.ToVector3i());
-		SoundEffect(SFX_TR4_WEAPON_RICOCHET, &soundPose);
+		if (!p.active)
+			continue;
+		if (--p.framesLeft <= 0)
+		{
+			p.active = false;
+			int maxCount = g_GameFlow->GetSettings()->Effects.RicochetCount;
+			int count = Random::GenerateInt(maxCount / 2, maxCount);
+			TEN::Effects::Spark::TriggerRicochetSpark(p.pos, p.angle, count);
+			if (p.sound && g_GameFlow->GetSettings()->Effects.RicochetSound)
+			{
+				auto soundPose = Pose(p.pos.ToVector3i());
+				SoundEffect(SFX_TR4_WEAPON_RICOCHET, &soundPose);
+			}
+		}
+	}
+}
+
+int GetBulletTravelFrames(float distance)
+{
+	int speedPerFrame = BULLET_SPARK_SPEED;
+	if (speedPerFrame < 1)
+		speedPerFrame = 1;
+
+	return (int)(distance / ((BULLET_SPARK_SPEED * 2) >> 5)) ; // speedPerFrame) * FPS;
+}
+
+void TriggerRicochetSpark(const GameVector& pos, short angle, bool sound, int delayFrames)
+{
+	if (delayFrames <= 0)
+	{
+		int maxCount = g_GameFlow->GetSettings()->Effects.RicochetCount;
+		int count = Random::GenerateInt(maxCount / 2, maxCount);
+		TEN::Effects::Spark::TriggerRicochetSpark(pos, angle, count);
+
+		if (sound && g_GameFlow->GetSettings()->Effects.RicochetSound)
+		{
+			auto soundPose = Pose(pos.ToVector3i());
+			SoundEffect(SFX_TR4_WEAPON_RICOCHET, &soundPose);
+		}
+		return;
+	}
+
+	for (auto& p : g_PendingRicochets)
+	{
+		if (p.active)
+			continue;
+		p.pos = pos;
+		p.angle = angle;
+		p.sound = sound;
+		p.framesLeft = delayFrames;
+		p.active = true;
+		return;
 	}
 }
 
@@ -2035,34 +2098,7 @@ void SpawnCreatureGunEffect(const ItemInfo& item, const CreatureMuzzleFlashInfo&
 	}
 }
 
-// Bullet tracer: a fast spark projectile (classic Particle, Lighten) + optional heat-distortion trail (Streamer).
-// Spark = visible bullet. Trail = distortion only (subtle, behind the spark).
-
-// Spark (bullet visual – classic Particle).
-constexpr float BULLET_SPARK_SIZE_START = 48.0f;  // Start size (sprite scale).
-constexpr float BULLET_SPARK_SIZE_END   = 44.0f;   // End size (shrinks).
-constexpr int BULLET_SPARK_VEL = 500000;                          // Rohwert für xVel (short-safe).
-constexpr int BULLET_SPARK_SPEED = BULLET_SPARK_VEL >> 6;        // = 937 units/frame (effektiv).
-
-//constexpr int BULLET_SPARK_SPEED = 10000;//30000;
-
-constexpr unsigned char BULLET_SPARK_R = 255, BULLET_SPARK_G = 217, BULLET_SPARK_B = 77;
-constexpr unsigned char BULLET_SPARK_DR = 179, BULLET_SPARK_DG = 64, BULLET_SPARK_DB = 5;
-
-// Trail (distortion).
-constexpr float BULLET_TRAIL_WIDTH  = 60.0f;    // Trail segment width (world units).
-constexpr int   BULLET_TRAIL_FRAMES = 4;        // Trail segment life (frames).
-
-// Shared.
-constexpr float BULLET_TRACER_ORIGIN_OFFSET = BLOCK(0.5f); // Fixed muzzle offset.
-constexpr float BULLET_TRACER_SMOKE_ORIGIN_OFFSET = BLOCK(0.1f); // Fixed muzzle offset.
-constexpr float BULLET_TRACER_HAZE_ORIGIN_OFFSET = BLOCK(0.0f); // Fixed muzzle offset.
-constexpr int BULLET_SMOKE_SPARK_VEL = 80000;                          // Rohwert für xVel (short-safe).
-constexpr int BULLET_SMOKE_SPARK_SPEED = BULLET_SPARK_VEL >> 5;        // = 937 units/frame (effektiv).
-constexpr int   BULLET_TRACER_MAX = 64;             // Active tracer slots.
-constexpr int   BULLET_TRACER_TRAVEL_FRAMES = 60;   // Safety cap (frames).
-constexpr int   BULLET_TRACER_GROUP = 0x7F000000;   // Streamer group key (distortion).
-constexpr int   BULLET_TRACER_HAZE_TAG_BASE = 0x00FF0000; // Distortion tag range.
+// Bullet tracer state.
 
 struct BulletTracer
 {
@@ -2122,10 +2158,10 @@ void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
 	p->fadeToBlack = 1;
 	p->colFadeSpeed = 8;
 	p->maxYvel = 0;
-	p->sSize = -100.0f;           // → Vector2(4, 100) × scalar = langer Strich.
+	p->sSize = -120.0f;           // → Vector2(4, 100) × scalar = langer Strich.
 	p->dSize = 30.0f;
 	p->scalar = 3;
-	p->sLife = (int)(distance / ((BULLET_SPARK_SPEED * 4) >> 5)) + 1;  // distance / 500 + 1.
+	p->sLife = (int)(distance / ((BULLET_SPARK_SPEED * 2) >> 5)) + 1;  // distance / 500 + 1.
 	p->life = p->sLife;
 	//p->sLife = 15;
 	//p->life = 15;
