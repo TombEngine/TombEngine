@@ -85,6 +85,9 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed running jumps being stopped when platforming near steep slopes.
 * Fixed pickup of underwater items in vertically narrow passages.
 * Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
+* Fixed flares being selected from inventory whilst riding the kayak.
+* Fixed kayak paddle and minecart wrench not being drawn when starting a level.
+* Fixed slow turning on parallel bars while holding the left or right key.
 * Fixed incorrect renderer statistics in the linear inventory.
 * Fixed fades and cinematic bars not progressing in the freeze mode.
 * Fixed an issue where the storm effect would stop producing lightning over time.
@@ -95,8 +98,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed Z-fighting on DisplayItems.
 * Fixed crashes when shooting if the gunflash object is missing.
 * Fixed vertex move effect speed in water rooms while turning camera on the x-axis
-* Fixed flares being selected from inventory whilst riding the kayak.
-* Fixed kayak paddle and minecart wrench not being drawn when starting a level.
 
 ### Lua API changes
 
