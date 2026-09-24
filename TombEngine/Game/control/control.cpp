@@ -201,6 +201,7 @@ GameStatus GamePhase(bool insideMenu)
 	Weather.Update();
 
 	// Update effects.
+	UpdateBulletTracers();
 	StreamerEffect.Update();
 	UpdateWibble();
 	UpdateSparks();

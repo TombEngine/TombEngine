@@ -17,6 +17,7 @@
 #include "Game/effects/smoke.h"
 #include "Game/effects/spark.h"
 #include "Game/effects/Splash.h"
+#include "Game/effects/Streamer.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
 #include "Game/items.h"
@@ -46,6 +47,7 @@ using namespace TEN::Effects::Ripple;
 using namespace TEN::Effects::Smoke;
 using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Splash;
+using namespace TEN::Effects::Streamer;
 using namespace TEN::Effects::WaterfallEmitter;
 using namespace TEN::Math;
 using namespace TEN::Math::Random;
@@ -97,35 +99,35 @@ void DetatchSpark(int number, SpriteEnumFlag type)
 		{
 			switch (type)
 			{
-				case SP_FX:
-					if (sptr->flags & SP_DAMAGE)
-						sptr->on = false;
-					else
-					{
-						auto* fx = &g_Level.Items[number];
+			case SP_FX:
+				if (sptr->flags & SP_DAMAGE)
+					sptr->on = false;
+				else
+				{
+					auto* fx = &g_Level.Items[number];
 
-						sptr->x += fx->Pose.Position.x;
-						sptr->y += fx->Pose.Position.y;
-						sptr->z += fx->Pose.Position.z;
-						sptr->flags &= ~SP_FX;
-					}
+					sptr->x += fx->Pose.Position.x;
+					sptr->y += fx->Pose.Position.y;
+					sptr->z += fx->Pose.Position.z;
+					sptr->flags &= ~SP_FX;
+				}
 
-					break;
+				break;
 
-				case SP_ITEM:
-					if (sptr->flags & SP_DAMAGE)
-						sptr->on = false;
-					else
-					{
-						auto* item = &g_Level.Items[number];
+			case SP_ITEM:
+				if (sptr->flags & SP_DAMAGE)
+					sptr->on = false;
+				else
+				{
+					auto* item = &g_Level.Items[number];
 
-						sptr->x += item->Pose.Position.x;
-						sptr->y += item->Pose.Position.y;
-						sptr->z += item->Pose.Position.z;
-						sptr->flags &= ~SP_ITEM;
-					}
+					sptr->x += item->Pose.Position.x;
+					sptr->y += item->Pose.Position.y;
+					sptr->z += item->Pose.Position.z;
+					sptr->flags &= ~SP_ITEM;
+				}
 
-					break;
+				break;
 			}
 		}
 	}
@@ -183,8 +185,8 @@ void SetSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID)
 	}
 
 	float particleAge = particle.sLife - particle.life;
-	if (particleAge > particle.life )
-		return;	
+	if (particleAge > particle.life)
+		return;
 
 	int spriteCount = -Objects[objectID].nmeshes - 1;
 	float normalizedAge = particleAge / particle.life;
@@ -192,7 +194,7 @@ void SetSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID)
 	particle.SpriteID = (int)round(Lerp(0.0f, spriteCount, normalizedAge));
 }
 
-void SetAdvancedSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID,	ParticleAnimType animationType, float frameRate)
+void SetAdvancedSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID, ParticleAnimType animationType, float frameRate)
 {
 	// Ensure valid lifespan
 	if (particle.life <= 0)
@@ -278,6 +280,33 @@ void UpdateWibble()
 	Wibble = (Wibble + WIBBLE_SPEED) & WIBBLE_MAX;
 }
 
+static bool HandleBulletTracerParticle(Particle& particle)
+{
+	if (particle.SpriteSeqID != ID_BULLET_TRACE_SPRITES)
+		return false;
+	if (particle.targetPos == Vector3::Zero)
+		return false;
+
+	auto pos = Vector3(particle.x, particle.y, particle.z);
+	auto toTarget = particle.targetPos - pos;
+	auto vel = Vector3(particle.xVel, particle.yVel, particle.zVel);
+	float velLen = vel.Length();
+	if (velLen < 1.0f)
+		return false;
+
+	// Kill one frame before reaching target (prevents tunneling through wall).
+	float speedPerFrame = velLen / 32.0f;
+	float distAlongVel = toTarget.Dot(vel) / velLen;
+
+	if (distAlongVel < speedPerFrame)
+	{
+		particle.life = 0;
+		particle.on = false;
+		return true;
+	}
+	return false;
+}
+
 void UpdateSparks()
 {
 	GetLaraDeadlyBounds();
@@ -303,7 +332,10 @@ void UpdateSparks()
 
 			if (HandleWaterfallParticle(spark))
 				continue;
-			
+
+			if (HandleBulletTracerParticle(spark))
+				continue;
+
 			int life = spark.sLife - spark.life;
 			if (life < spark.colFadeSpeed)
 			{
@@ -341,7 +373,7 @@ void UpdateSparks()
 				spark.rotAng = (spark.rotAng + spark.rotAdd) & 0x0FFF;
 
 			if (spark.sLife - spark.life == spark.extras >> 3 &&
-					spark.extras & 7)
+				spark.extras & 7)
 			{
 				int explosionType;
 
@@ -432,7 +464,7 @@ void UpdateSparks()
 			{
 				auto animationType = (ParticleAnimType)spark.animationType;
 				auto spriteObject = (GAME_OBJECT_ID)spark.SpriteSeqID;
-				SetAdvancedSpriteSequence(spark, spriteObject,  animationType, spark.framerate);
+				SetAdvancedSpriteSequence(spark, spriteObject, animationType, spark.framerate);
 			}
 
 			if (spark.flags & SP_SOUND)
@@ -479,7 +511,7 @@ void UpdateSparks()
 			}
 
 			if ((spark.flags & SP_FIRE && LaraItem->Effect.Type == EffectType::None) ||
-				(spark.flags & SP_DAMAGE) || 
+				(spark.flags & SP_DAMAGE) ||
 				(spark.flags & SP_POISON))
 			{
 				int ds = spark.size * (spark.scalar / 2.0);
@@ -518,7 +550,7 @@ void UpdateSparks()
 		if (spark.on && spark.dynamic != -1)
 		{
 			auto* dynsp = &ParticleDynamics[spark.dynamic];
-			
+
 			if (dynsp->Flags & 3)
 			{
 				int random = GetRandomControl();
@@ -650,7 +682,7 @@ void TriggerCyborgSpark(int x, int y, int z, short xv, short yv, short zv)
 		auto* spark = GetFreeParticle();
 
 		int random = rand();
-		
+
 		spark->sR = -1;
 		spark->sB = -1;
 		spark->sG = -1;
@@ -681,7 +713,7 @@ void TriggerCyborgSpark(int x, int y, int z, short xv, short yv, short zv)
 
 void TriggerExplosionSparks(int x, int y, int z, int extraTrig, int dynamic, int uw, int roomNumber, const Vector3& mainColor, const Vector3& secondColor)
 {
-	constexpr auto LIFE_MAX		= 44.0f;
+	constexpr auto LIFE_MAX = 44.0f;
 	constexpr auto ROTATION_MAX = ANGLE(0.15f);
 
 	static const auto EXTRAS_TABLE = std::array<unsigned char, 4>{ 0, 4, 7, 10 };
@@ -708,11 +740,11 @@ void TriggerExplosionSparks(int x, int y, int z, int extraTrig, int dynamic, int
 
 		if (mainColor == Vector3::Zero)
 		{
-		spark.sG = (GetRandomControl() & 0x3F) + 128;
-		spark.sB = 32;
-		spark.dR = 192;
-		spark.dG = (GetRandomControl() & 0x1F) + 64;
-		spark.dB = 0;
+			spark.sG = (GetRandomControl() & 0x3F) + 128;
+			spark.sB = 32;
+			spark.dR = 192;
+			spark.dG = (GetRandomControl() & 0x1F) + 64;
+			spark.dB = 0;
 		}
 		else
 		{
@@ -779,11 +811,11 @@ void TriggerExplosionSparks(int x, int y, int z, int extraTrig, int dynamic, int
 
 				spark.dynamic = (char)i;
 				break;
-			}							
+			}
 		}
-		
+
 		if (i == 8)
-			spark.dynamic = -1;			
+			spark.dynamic = -1;
 	}
 
 	spark.xVel = (GetRandomControl() & 0xFFF) - 2048;
@@ -942,7 +974,7 @@ void TriggerExplosionBubbles(int x, int y, int z, short roomNumber, const Vector
 		spark->yVel = 0;
 		spark->zVel = 0;
 		spark->friction = 0;
-		spark->flags = SP_UNDERWEXP | SP_DEF | SP_SCALE; 
+		spark->flags = SP_UNDERWEXP | SP_DEF | SP_SCALE;
 		spark->SpriteSeqID = ID_DEFAULT_SPRITES;
 		spark->SpriteID = SPR_BUBBLES;
 		spark->scalar = 3;
@@ -992,7 +1024,7 @@ void TriggerExplosionSmokeEnd(int x, int y, int z, int uw)
 
 	spark->colFadeSpeed = 8;
 	spark->fadeToBlack = 64;
-	spark->life = spark->sLife= (GetRandomControl() & 0x1F) + 96;
+	spark->life = spark->sLife = (GetRandomControl() & 0x1F) + 96;
 
 	if (uw)
 		spark->blendMode = BlendMode::Additive;
@@ -1014,7 +1046,7 @@ void TriggerExplosionSmokeEnd(int x, int y, int z, int uw)
 	}
 	else
 		spark->friction = 6;
-	
+
 	spark->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF;
 	spark->rotAng = GetRandomControl() & 0xFFF;
 
@@ -1045,7 +1077,7 @@ void TriggerExplosionSmoke(int x, int y, int z, int uw)
 {
 	int dx = LaraItem->Pose.Position.x - x;
 	int dz = LaraItem->Pose.Position.z - z;
-	
+
 	if (dx >= -BLOCK(16) && dx <= BLOCK(16) &&
 		dz >= -BLOCK(16) && dz <= BLOCK(16))
 	{
@@ -1113,8 +1145,8 @@ void TriggerSuperJetFlame(ItemInfo* item, int yvel, int deadly)
 			auto colorD = item->Model.Color * UCHAR_MAX;
 			auto luma = Luma((Vector3)item->Model.Color) * 0.85f * UCHAR_MAX;
 			auto colorS = Vector3(0.15f * colorD.x + luma,
-								  0.15f * colorD.y + luma,
-								  0.15f * colorD.z + luma);
+				0.15f * colorD.y + luma,
+				0.15f * colorD.z + luma);
 
 			sptr->sR = colorS.x;
 			sptr->sG = colorS.y;
@@ -1163,7 +1195,7 @@ void TriggerSuperJetFlame(ItemInfo* item, int yvel, int deadly)
 
 		float xAngle = item->Pose.Orientation.x + ANGLE(180); // Nullmesh is rotated 180 degrees in editor
 		float yAngle = item->Pose.Orientation.y;
-		
+
 		Vector3 dir;
 		dir.x = phd_cos(xAngle) * phd_sin(yAngle);
 		dir.y = phd_sin(xAngle);
@@ -1214,7 +1246,7 @@ void TriggerLaraBlood()
 	{
 		if (node & LaraItem->TouchBits.ToPackedBits())
 		{
-			auto vec = GetJointPosition(LaraItem, 
+			auto vec = GetJointPosition(LaraItem,
 				i,
 				Vector3i(
 					(GetRandomControl() & 31) - 16,
@@ -1241,7 +1273,7 @@ void ControlWaterfallMist(short itemNumber)
 
 	if (!TriggerActive(item))
 		return;
-	
+
 	TriggerWaterfallMist(*item);
 	SoundEffect(SFX_TR4_WATERFALL_LOOP, &item->Pose);
 }
@@ -1262,7 +1294,7 @@ void TriggerWaterfallMist(const ItemInfo& item)
 	auto pos = item.Pose.Position.ToVector3();
 
 	TriggerWaterfallMist(pos, size, width, angle, color);
-	
+
 }
 
 void TriggerWaterfallMist(Vector3 pos, int size, int width, float angle, Vector4 color)
@@ -1397,7 +1429,7 @@ void TriggerRocketFlame(int x, int y, int z, int xv, int yv, int zv, int itemNum
 		sptr->flags = SP_SCALE | SP_DEF | SP_ITEM | SP_EXPDEF;
 		sptr->fxObj = itemNumber;
 	}
-	
+
 	sptr->gravity = 0;
 	sptr->maxYvel = 0;
 
@@ -1509,7 +1541,7 @@ void TriggerFlashSmoke(int x, int y, int z, short roomNumber)
 		spark->rotAdd = -16 - (GetRandomControl() & 0xF);
 	else
 		spark->rotAdd = (GetRandomControl() & 0xF) + 16;
-	
+
 	spark->maxYvel = 0;
 	spark->gravity = 0;
 	spark->sSize = spark->size = (GetRandomControl() & 0x1F) + 64;
@@ -1712,8 +1744,8 @@ void TriggerMetalSparks(int x, int y, int z, int xv, int yv, int zv, const Vecto
 
 		auto* spark = GetFreeParticle();
 
-		spark->dG =  colorG;
-		spark->dB =  colorB;
+		spark->dG = colorG;
+		spark->dB = colorB;
 		spark->life = 10;
 		spark->sLife = 10;
 		spark->sR = colorR;
@@ -1780,8 +1812,8 @@ void TriggerMetalSparks(int x, int y, int z, int xv, int yv, int zv, const Vecto
 			spark->scalar = 2;
 			spark->maxYvel = -4 - (r >> 6 & 3);
 			spark->sSize = (((r >> 8) & 0xF) + 24) >> 3;
-			spark->size  = (((r >> 8) & 0xF) + 24) >> 3;
-			spark->dSize =  ((r >> 8) & 0xF) + 24;
+			spark->size = (((r >> 8) & 0xF) + 24) >> 3;
+			spark->dSize = ((r >> 8) & 0xF) + 24;
 		}
 	}
 }
@@ -1803,9 +1835,9 @@ void ProcessEffects(ItemInfo* item)
 
 		if (!item->Effect.Count)
 		{
-			if (item->Effect.Type == EffectType::Fire || 
-				item->Effect.Type == EffectType::Custom || 
-				item->Effect.Type == EffectType::ElectricIgnite || 
+			if (item->Effect.Type == EffectType::Fire ||
+				item->Effect.Type == EffectType::Custom ||
+				item->Effect.Type == EffectType::ElectricIgnite ||
 				item->Effect.Type == EffectType::RedIgnite)
 			{
 				item->Effect.Type = EffectType::Smoke;
@@ -1829,11 +1861,11 @@ void ProcessEffects(ItemInfo* item)
 		case EffectType::Fire:
 			if (TestProbability(1 / 8.0f))
 				TriggerFireFlame(pos.x, pos.y, pos.z, TestProbability(1 / 10.0f) ? FlameType::Trail : FlameType::Medium);
-			
+
 			break;
 
 		case EffectType::Custom:
-			if (TestProbability(1 / 8.0f))			
+			if (TestProbability(1 / 8.0f))
 			{
 				TriggerFireFlame(
 					pos.x, pos.y, pos.z, TestProbability(1 / 10.0f) ? FlameType::Trail : FlameType::Medium,
@@ -1885,7 +1917,7 @@ void ProcessEffects(ItemInfo* item)
 		case EffectType::Smoke:
 			if (TestProbability(1 / 32.0f))
 				TriggerRocketSmoke(pos.x, pos.y, pos.z);
-			
+
 			break;
 
 		}
@@ -1911,7 +1943,7 @@ void ProcessEffects(ItemInfo* item)
 		SoundEffect(SOUND_EFFECTS::SFX_TR4_LARA_ELECTRIC_CRACKLES, &item->Pose);
 		break;
 
-	case EffectType::Fire: 
+	case EffectType::Fire:
 	case EffectType::Custom:
 		SoundEffect(SOUND_EFFECTS::SFX_TR4_LOOP_FOR_SMALL_FIRES, &item->Pose);
 		break;
@@ -1925,7 +1957,7 @@ void ProcessEffects(ItemInfo* item)
 			DoDamage(item, item->IsLara() ? BURN_HEALTH_LARA : BURN_HEALTH_NPC);
 		}
 	}
-	
+
 	if (item->Effect.Type != EffectType::Sparks && item->Effect.Type != EffectType::Smoke)
 	{
 		const auto& bounds = GameBoundingBox(item);
@@ -2003,11 +2035,227 @@ void SpawnCreatureGunEffect(const ItemInfo& item, const CreatureMuzzleFlashInfo&
 	}
 }
 
+// Bullet tracer: a fast spark projectile (classic Particle, Lighten) + optional heat-distortion trail (Streamer).
+// Spark = visible bullet. Trail = distortion only (subtle, behind the spark).
+
+// Spark (bullet visual – classic Particle).
+constexpr float BULLET_SPARK_SIZE_START = 48.0f;  // Start size (sprite scale).
+constexpr float BULLET_SPARK_SIZE_END   = 44.0f;   // End size (shrinks).
+constexpr int BULLET_SPARK_VEL = 480000;                          // Rohwert für xVel (short-safe).
+constexpr int BULLET_SPARK_SPEED = BULLET_SPARK_VEL >> 6;        // = 937 units/frame (effektiv).
+
+//constexpr int BULLET_SPARK_SPEED = 10000;//30000;
+
+constexpr unsigned char BULLET_SPARK_R = 255, BULLET_SPARK_G = 217, BULLET_SPARK_B = 77;
+constexpr unsigned char BULLET_SPARK_DR = 179, BULLET_SPARK_DG = 64, BULLET_SPARK_DB = 5;
+
+// Trail (distortion).
+constexpr float BULLET_TRAIL_WIDTH  = 60.0f;    // Trail segment width (world units).
+constexpr int   BULLET_TRAIL_FRAMES = 4;        // Trail segment life (frames).
+
+// Shared.
+constexpr float BULLET_TRACER_ORIGIN_OFFSET = BLOCK(0.5f); // Fixed muzzle offset.
+constexpr float BULLET_TRACER_SMOKE_ORIGIN_OFFSET = BLOCK(0.1f); // Fixed muzzle offset.
+constexpr float BULLET_TRACER_HAZE_ORIGIN_OFFSET = BLOCK(0.0f); // Fixed muzzle offset.
+constexpr int BULLET_SMOKE_SPARK_VEL = 80000;                          // Rohwert für xVel (short-safe).
+constexpr int BULLET_SMOKE_SPARK_SPEED = BULLET_SPARK_VEL >> 5;        // = 937 units/frame (effektiv).
+constexpr int   BULLET_TRACER_MAX = 64;             // Active tracer slots.
+constexpr int   BULLET_TRACER_TRAVEL_FRAMES = 60;   // Safety cap (frames).
+constexpr int   BULLET_TRACER_GROUP = 0x7F000000;   // Streamer group key (distortion).
+constexpr int   BULLET_TRACER_HAZE_TAG_BASE = 0x00FF0000; // Distortion tag range.
+
+struct BulletTracer
+{
+	bool    active = false;
+	int     framesLeft = 0;
+	Vector3 dir = Vector3::Zero;
+	Vector3 target = Vector3::Zero;
+	Vector3 position = Vector3::Zero;
+	int     tag = 0;
+};
+
+static BulletTracer g_BulletTracers[BULLET_TRACER_MAX];
+static int g_BulletTracerCursor = 0;
+
 void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
 {
-	// Temporary test draw: red line from muzzle origin to impact point.
-	// Replaced by the actual bullet tracer effect once ready.
-	DrawDebugLine(origin.ToVector3(), target.ToVector3(), Vector4(255, 0, 0, 1), RendererDebugPage::None);
+	// Clamp target to nearest wall (self-contained LOS).
+	auto clampedOrigin = origin;
+	auto clampedTarget = target;
+	LOS(&clampedOrigin, &clampedTarget);
+
+	auto originVec = clampedOrigin.ToVector3();
+	auto targetVec = clampedTarget.ToVector3();
+	auto dir = targetVec - originVec;
+	float distance = dir.Length();
+	if (distance < 0.5f)
+		return;
+	dir.Normalize();
+
+	// Shift start forward (muzzle offset).
+	float offset = BULLET_TRACER_ORIGIN_OFFSET;
+	if (offset > distance)
+		offset = distance;
+	auto startVec = originVec + dir * offset;
+	distance -= offset;
+
+	int tag = g_BulletTracerCursor;
+	g_BulletTracerCursor = (g_BulletTracerCursor + 1) % BULLET_TRACER_MAX;
+
+	auto& tracer = g_BulletTracers[tag];
+	tracer.active = true;
+	tracer.framesLeft = BULLET_TRACER_TRAVEL_FRAMES;
+	tracer.dir = dir;
+	tracer.target = targetVec;
+	tracer.position = startVec;
+	tracer.tag = tag;
+
+	// Spawn the bullet spark (classic Particle with Lighten blend).
+	auto* p = GetFreeParticle();
+	p->on = true;
+	p->x = (int)startVec.x;
+	p->y = (int)startVec.y;
+	p->z = (int)startVec.z;
+	p->xVel = (short)(dir.x * BULLET_SPARK_SPEED);
+	p->yVel = (short)(dir.y * BULLET_SPARK_SPEED);
+	p->zVel = (short)(dir.z * BULLET_SPARK_SPEED);
+	p->fadeToBlack = 1;
+	p->colFadeSpeed = 8;
+	p->maxYvel = 0;
+	p->sSize = -100.0f;           // → Vector2(4, 100) × scalar = langer Strich.
+	p->dSize = 30.0f;
+	p->scalar = 3;
+	p->sLife = (int)(distance / ((BULLET_SPARK_SPEED * 5) >> 5)) + 1;  // distance / 500 + 1.
+	p->life = p->sLife;
+	//p->sLife = 15;
+	//p->life = 15;
+	p->sR = BULLET_SPARK_R; p->sG = BULLET_SPARK_G; p->sB = BULLET_SPARK_B;
+	p->dR = BULLET_SPARK_DR; p->dG = BULLET_SPARK_DG; p->dB = BULLET_SPARK_DB;
+	p->blendMode = BlendMode::Additive;
+	p->gravity = 0;
+	p->friction = 0;
+	p->roomNumber = origin.RoomNumber;
+	p->SpriteSeqID = ID_BULLET_TRACE_SPRITES;
+	p->SpriteID = 0;
+	p->flags = SP_NONE;
+	p->targetPos = targetVec;
+
+	//DrawDebugLine(originVec, targetVec, Vector4::One, RendererDebugPage::None);
+
+	
+
+	offset = BULLET_TRACER_SMOKE_ORIGIN_OFFSET;
+	if (offset > distance)
+		offset = distance;
+	startVec = originVec + dir * offset;
+	distance -= offset;
+
+
+	// Spawn the bullet spark (classic Particle with Lighten blend).
+	auto* s = GetFreeParticle();
+	s->on = true;
+	s->x = (int)startVec.x;
+	s->y = (int)startVec.y;
+	s->z = (int)startVec.z;
+	s->xVel = (short)(dir.x * BULLET_SMOKE_SPARK_SPEED);
+	s->yVel = (short)(dir.y * BULLET_SMOKE_SPARK_SPEED);
+	s->zVel = (short)(dir.z * BULLET_SMOKE_SPARK_SPEED);
+	s->fadeToBlack = 40;
+	s->colFadeSpeed = 3;
+	s->maxYvel = 0;
+	s->sSize = -100.0f;           // → Vector2(4, 100) × scalar = langer Strich.
+	s->dSize = 30.0f;
+	s->scalar = 3;
+	s->sLife = (int)(distance / ((BULLET_SMOKE_SPARK_SPEED * 2) >> 5)) + 1;  // distance / 500 + 1.
+	s->life = s->sLife;
+	//p->sLife = 15;
+	//p->life = 15;
+	s->sR = 80; s->sG = 50; s->sB = 50;
+	s->dR = 30; s->dG = 30; s->dB = 30;
+	s->blendMode = BlendMode::Subtractive;
+	s->gravity = 0;
+	s->friction = 0;
+	s->roomNumber = origin.RoomNumber;
+	s->SpriteSeqID = ID_BULLET_TRACE_SPRITES;
+	s->SpriteID = 0;
+	s->flags = SP_NONE | SP_HAZE;
+	s->targetPos = targetVec;
+
+	offset = BULLET_TRACER_HAZE_ORIGIN_OFFSET;
+	if (offset > distance)
+		offset = distance;
+	startVec = originVec + dir * offset;
+	distance -= offset;
+
+	auto* d = GetFreeParticle();
+	d->on = true;
+	d->x = (int)startVec.x;
+	d->y = (int)startVec.y;
+	d->z = (int)startVec.z;
+	d->xVel = (short)(dir.x * BULLET_SPARK_SPEED);
+	d->yVel = (short)(dir.y * BULLET_SPARK_SPEED);
+	d->zVel = (short)(dir.z * BULLET_SPARK_SPEED);
+	d->fadeToBlack = 40;
+	d->colFadeSpeed = 3;
+	d->maxYvel = 0;
+	d->sSize = -100.0f;           // → Vector2(4, 100) × scalar = langer Strich.
+	d->dSize = 30.0f;
+	d->scalar = 3;
+	d->sLife = (int)(distance / (BULLET_SPARK_SPEED >> 5)) + 1;  // distance / 500 + 1.
+	d->life = d->sLife;
+	//p->sLife = 15;
+	//p->life = 15;
+	d->sR = 80; d->sG = 50; d->sB = 50;
+	d->dR = 30; d->dG = 30; d->dB = 30;
+	d->blendMode = BlendMode::Additive;
+	d->gravity = 0;
+	d->friction = 0;
+	d->roomNumber = origin.RoomNumber;
+	d->SpriteSeqID = ID_BULLET_TRACE_SPRITES;
+	d->SpriteID = 0;
+	d->flags = SP_NONE | SP_HAZE;
+	d->targetPos = targetVec;
+
+}
+
+void UpdateBulletTracers()
+{
+	constexpr float vel = BULLET_SPARK_SPEED;
+	constexpr float trailLife = (float)BULLET_TRAIL_FRAMES / (float)FPS;
+
+	for (int i = 0; i < BULLET_TRACER_MAX; i++)
+	{
+		auto& tracer = g_BulletTracers[i];
+		if (!tracer.active || tracer.framesLeft <= 0)
+		{
+			tracer.active = false;
+			continue;
+		}
+
+		// Head reached target → stop trail.
+		float remaining = (tracer.target - tracer.position).Dot(tracer.dir);
+		if (remaining <= 0.0f)
+		{
+			StreamerEffect.ClearPool(BULLET_TRACER_GROUP, BULLET_TRACER_HAZE_TAG_BASE + tracer.tag);
+			tracer.active = false;
+			tracer.framesLeft = 0;
+			continue;
+		}
+
+		tracer.framesLeft--;
+
+		// Spawn trail segment (distortion only, vel=0, stationary).
+		/*StreamerEffect.Spawn(
+			BULLET_TRACER_GROUP, BULLET_TRACER_HAZE_TAG_BASE + tracer.tag,
+			tracer.position, tracer.dir, 0,
+			Color(0.20f, 0.20f, 0.20f, 0.0f), Color(0.20f, 0.20f, 0.20f, 0.0f),
+			BULLET_TRAIL_WIDTH, trailLife, 0.0f, 0.0f, 0,
+			StreamerFeatherMode::Center, BlendMode::Additive);*/
+
+		// Advance trail head.
+		float step = vel < remaining ? vel : remaining;
+		tracer.position += tracer.dir * step;
+	}
 }
 
 void SpawnPlayerWaterSurfaceEffects(const ItemInfo& item, int waterHeight, int waterDepth)

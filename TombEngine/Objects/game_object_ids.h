@@ -1054,6 +1054,7 @@ enum GAME_OBJECT_ID : short
 	ID_INVENTORY_SPRITES,
 	ID_PHOTOMODE_SPRITES,
 	ID_PHOTOMODE_FRAMES,
+	ID_BULLET_TRACE_SPRITES,
 
 	ID_NUMBER_OBJECTS = 1408 // Compatibility. Remove this constant when slot count is nearing 1408.
 };

@@ -1,9 +1,23 @@
 # Progress
 
 ## Current Task
-**Bullet Tracer – Grundlage (2026-09-23):** Generische `TriggerBulletTracer(origin, target)`-Funktion angelegt (aktuell nur roter Debug-Linien-Test, transient = 1 Frame pro Schuss). In Laras `FireWeapon` integriert (pro-Hand-Mündungs-Origin). Projektil-Waffen (Bogen/Harpune/Granate/Rakete) automatisch ausgeschlossen (feuern nicht via `FireWeapon`). **Nicht kompiliert.**
+**Bullet Tracer – LOS + Tunneling-Fix (2026-09-24):** `TriggerBulletTracer` macht selbst `LOS()` (clampet Ziel zur Wand). `HandleBulletTracerParticle()` killt 1 Frame VOR targetPos (kein Tunneling). `sLife = 30` = Safety-Cap. Path 2 (SP_NONE, velocity-oriented).
 
 ## Completed Work
+- **Bullet Tracer – fester Mündungs-Offset (Start weiter vorn, 2026-09-23):**
+  - `effects.cpp`: neue Konstante `BULLET_TRACER_ORIGIN_OFFSET = BLOCK(0.5f)` (fest, unabhängig von Schuss-Distanz; Nutzer tuned die Größe selbst).
+  - `TriggerBulletTracer`: Startpunkt entlang der Reise-Richtung nach vorn verschoben → `startVec = originVec + dir * offset` (geclampt `offset <= distance`), `distance -= offset`, `tracer.origin = startVec`. Nebeneffekt: kürzerer Schwanz (kleinere Gesamtdistanz). **Nicht kompiliert** (Build nur auf Anfrage).
+- **Bullet Tracer – warmer Komet mit wanderndem Kopf (Rework, 2026-09-23):**
+  - **Symptom „weiße Debug-Linie":** `BlendMode::Additive` addiert Farbe zum Framebuffer → grau `(0.6,0.6,0.6)` clippt auf Weiß; Orange-`ColorEnd` (α=0) trägt keine Farbe bei; `Streamer::Extend` `FADE_IN_COEFF=3` schiebt `opacityMax` sofort auf ≈1 → durchgehender, bleibender Streifen (~25 Frames).
+  - **Fix (Komet):** `UpdateBulletTracers()` spawnt pro Frame am **wandernden Kopf** `headPos = origin + dir * distance * progress` (`progress` 0→1 über `TRAVEL_FRAMES=8`, `vel=0`); Segmente verbleiben + verblassen (`TAIL_FRAMES=8` → ~2-3 Segmente wegen Drossel `SEGMENT_SPAWN_INTERVAL_TIME=3`). Warmes Spektrum: Kopf amber `(1,0.80,0.45,1)` (fresh) → Schwanz orange `(1,0.50,0.15,0)` (alt). `WIDTH=10` (war 18).
+  - **Hitzenebel:** Distortion-Spawn wieder aktiv (war auskommentiert), am selben Kopf, hinter `g_GameFlow->GetSettings()->Graphics.FlameHeatHaze` + nullptr-Guard.
+  - **Struct:** `BulletTracer` — `vel`/`life` entfernt, `distance` hinzugefügt (eigener Feature-Struct, frei modifizierbar). `TriggerBulletTracer` speichert jetzt `distance`.
+  - **Tuner:** `TRAVEL_FRAMES`, `TAIL_FRAMES`, `WIDTH`, `HAZE_WIDTH`, Head/Tail-Farben. **Nicht kompiliert** (Regel: Build nur auf Anfrage).
+- **Bullet Tracer – sichtbarer Komet + Hitzenebel (Streamer-Integration, 2026-09-23):**
+  - `effects.h`: `void UpdateBulletTracers();` deklariert (neben `TriggerBulletTracer`).
+  - `effects.cpp`: `#include "Game/effects/Streamer.h"` + `using namespace TEN::Effects::Streamer;`. File-scope-Block: `BULLET_TRACER_*`-Konstanten, `struct BulletTracer`, `static g_BulletTracers[8]` + `g_BulletTracerCursor`. `TriggerBulletTracer` = Slot befüllen (`vel=distance/6`, `life=6/FPS`, `framesLeft=6`, `tag` via Cursor). `UpdateBulletTracers()` = 6 Frames lang `StreamerEffect.Spawn`/Slot: Additive-Komet (`Additive`, grau→orange) + optional Distortion-Hitzenebel (`Distortion`, `tag`-Base `0x00FF0000`, hinter `g_GameFlow->GetSettings()->Graphics.FlameHeatHaze`). Debug-`DrawDebugLine` entfernt.
+  - `control.cpp`: `UpdateBulletTracers();` direkt vor `StreamerEffect.Update();` (~Zeile 204).
+  - **Verifiziert (Quelle):** Farbmodell `Color=EaseInOutSine(ColorEnd,ColorStart,Life/LifeMax)` (frisch=ColorStart); Komet=Spawn an fixer Mündung + `vel` Richtung Ziel; Drossel `TestGlobalTimeInterval(3,offset)` (~2/3 Segmente/Frame); Referenz Wraith-Tail. **Nicht kompiliert** (Regel: Build nur auf Anfrage).
 - **Bullet Tracer – Grundlage + Debug-Test:**
   - `effects.h`: neue generische Deklaration `void TriggerBulletTracer(const GameVector& origin, const GameVector& target);` (von jedem Objekt aufrufbar).
   - `effects.cpp`: Implementation = Test-Draw `DrawDebugLine(origin.ToVector3(), target.ToVector3(), Vector4(255,0,0,1), RendererDebugPage::None);` (transient: `_lines3DToDraw` wird pro Frame in `Renderer::PrepareScene()` geleert → Linie erscheint nur im Schuss-Frame).
