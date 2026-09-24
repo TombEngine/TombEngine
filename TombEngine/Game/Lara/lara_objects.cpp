@@ -54,7 +54,10 @@ void lara_col_pickup(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.Height = (int)(item->GetAabb().Extents.y * 2.0f);
 
 	LaraDefaultCollision(item, coll);
-	ShiftItem(item, coll);
+
+	// Only shift player if not underwater to avoid faulty collision shifts.
+	if (GetLaraInfo(item)->Control.WaterStatus != WaterStatus::Underwater)
+		ShiftItem(item, coll);
 }
 
 // State:		LS_PICKUP_FLARE (67)
