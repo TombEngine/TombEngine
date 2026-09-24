@@ -83,6 +83,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed interaction highlighter appearing for underwater pushable objects.
 * Fixed clipping into underwater pushable objects while swimming upwards from the bottom.
 * Fixed running jumps being stopped when platforming near steep slopes.
+* Fixed incorrect slide directions and projectile physics around steep slopes.
 * Fixed incorrect renderer statistics in the linear inventory.
 * Fixed fades and cinematic bars not progressing in the freeze mode.
 * Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.

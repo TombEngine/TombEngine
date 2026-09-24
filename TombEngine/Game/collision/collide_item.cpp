@@ -1289,9 +1289,6 @@ void DoProjectileDynamics(short itemNumber, int x, int y, int z, int xv, int yv,
 	auto prevPointColl = GetPointCollision(Vector3i(x, y, z), item->RoomNumber);
 	auto pointColl = GetPointCollision(*item);
 
-	// TODO: Use floor normal directly.
-	auto floorTilt = GetSurfaceTilt(pointColl.GetFloorNormal(), true);
-
 	auto bounds = GameBoundingBox(item);
 	int radius = bounds.GetHeight();
 
@@ -1299,38 +1296,28 @@ void DoProjectileDynamics(short itemNumber, int x, int y, int z, int xv, int yv,
 
 	if (item->Pose.Position.y >= pointColl.GetFloorHeight())
 	{
-		int bs = 0;
+		auto floorNormal = pointColl.GetFloorNormal();
+		short slopeHeading = Geometry::GetSurfaceAspectAngle(floorNormal);
+
+		// Check if a heading points into the slope described by the floor normal.
+		auto isHeadingIntoSlope = [&floorNormal](short headingAngle)
+		{
+			// Horizontal projection of a floor normal points downhill, so a negative dot product means going uphill.
+			auto headingDir = Vector3(phd_sin(headingAngle), 0.0f, phd_cos(headingAngle));
+			auto downhillDir = Vector3(floorNormal.x, 0.0f, floorNormal.z);
+
+			return (headingDir.Dot(downhillDir) < 0.0f);
+		};
+
+		// Check if item is heading into a steep slope, in which case it is handled as a slope, not a wall.
+		bool isUphill = false;
 
 		if (pointColl.IsSteepFloor() && prevPointColl.GetFloorHeight() < pointColl.GetFloorHeight())
-		{
-			int yAngle = (int)((unsigned short)item->Pose.Orientation.y);
-
-			if (floorTilt.x < 0)
-			{
-				if (yAngle >= ANGLE(180.0f))
-					bs = 1;
-			}
-			else if (floorTilt.x > 0)
-			{
-				if (yAngle <= ANGLE(180.0f))
-					bs = 1;
-			}
-
-			if (floorTilt.y < 0)
-			{
-				if (yAngle >= ANGLE(90.0f) && yAngle <= ANGLE(270.0f))
-					bs = 1;
-			}
-			else if (floorTilt.y > 0)
-			{
-				if (yAngle <= ANGLE(90.0f) || yAngle >= ANGLE(270.0f))
-					bs = 1;
-			}
-		}
+			isUphill = isHeadingIntoSlope(item->Pose.Orientation.y);
 
 		// If last position of item was also below this floor height, we've hit a wall, else we've hit a floor.
 
-		if (y > (pointColl.GetFloorHeight() + 32) && bs == 0 &&
+		if (y > (pointColl.GetFloorHeight() + 32) && !isUphill &&
 			(((x / BLOCK(1)) != (item->Pose.Position.x / BLOCK(1))) ||
 				((z / BLOCK(1)) != (item->Pose.Position.z / BLOCK(1)))))
 		{
@@ -1372,282 +1359,41 @@ void DoProjectileDynamics(short itemNumber, int x, int y, int z, int xv, int yv,
 		// Hit a steep slope?
 		else if (pointColl.IsSteepFloor())
 		{
-			// Need to know which direction the slope is.
+			constexpr auto SLOPE_SPEED_THRESHOLD = 32.0f;
+			constexpr auto SLOPE_ACCELERATION	 = 8.0f;
+			constexpr auto SLOPE_NUDGE_ANGLE	 = ANGLE(22.5f);
 
+			// Slow down on the slope.
 			item->Animation.Velocity.z -= (item->Animation.Velocity.z / 4);
 
-			// Hit angle = ANGLE(90.0f)
-			if (floorTilt.x < 0 && ((abs(floorTilt.x)) - (abs(floorTilt.y)) >= 2))
+			if (isHeadingIntoSlope(item->Pose.Orientation.y))
 			{
-				if (((unsigned short)item->Pose.Orientation.y) > ANGLE(180.0f))
-				{
-					item->Pose.Orientation.y = ANGLE(90.0f) + (ANGLE(270.0f) - (unsigned short)item->Pose.Orientation.y - 1);
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
-				}
-				else
-				{
-					if (item->Animation.Velocity.z < 32)
-					{
-						item->Animation.Velocity.z -= floorTilt.x * 2;
-						if ((unsigned short)item->Pose.Orientation.y > ANGLE(90.0f) && (unsigned short)item->Pose.Orientation.y < ANGLE(270.0f))
-						{
-							item->Pose.Orientation.y -= ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y < ANGLE(90.0f))
-								item->Pose.Orientation.y = ANGLE(90.0f);
-						}
-						else if ((unsigned short)item->Pose.Orientation.y < ANGLE(90.0f))
-						{
-							item->Pose.Orientation.y += ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y > ANGLE(90.0f))
-								item->Pose.Orientation.y = ANGLE(90.0f);
-						}
-					}
+				// Going uphill; reflect heading about the slope's downhill axis.
+				item->Pose.Orientation.y = (short)((slopeHeading * 2) + ANGLE(180.0f) - item->Pose.Orientation.y);
 
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
-					else
-						item->Animation.Velocity.y = 0;
-				}
+				if (item->Animation.Velocity.y > 0)
+					item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
 			}
-			// Hit angle = ANGLE(270.0f)
-			else if (floorTilt.x > 0 && ((abs(floorTilt.x)) - (abs(floorTilt.y)) >= 2))
+			else
 			{
-				if (((unsigned short)item->Pose.Orientation.y) < ANGLE(180.0f))
+				// Going downhill; align item with the slope aspect and accelerate it along the slope.
+				if (item->Animation.Velocity.z < SLOPE_SPEED_THRESHOLD)
 				{
-					item->Pose.Orientation.y = ANGLE(270.0f) + (ANGLE(90.0f) - (unsigned short)item->Pose.Orientation.y - 1);
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
-				}
-				else
-				{
-					if (item->Animation.Velocity.z < 32)
-					{
-						item->Animation.Velocity.z += floorTilt.x * 2;
-						if ((unsigned short)item->Pose.Orientation.y > ANGLE(270.0f) || (unsigned short)item->Pose.Orientation.y < ANGLE(90.0f))
-						{
-							item->Pose.Orientation.y -= ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y < ANGLE(270.0f))
-								item->Pose.Orientation.y = ANGLE(270.0f);
-						}
-						else if ((unsigned short)item->Pose.Orientation.y < ANGLE(270.0f))
-						{
-							item->Pose.Orientation.y += ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y > ANGLE(270.0f))
-								item->Pose.Orientation.y = ANGLE(270.0f);
-						}
-					}
+					item->Animation.Velocity.z += SLOPE_ACCELERATION * Vector2(floorNormal.x, floorNormal.z).Length();
 
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
+					// Step heading toward the slope aspect, without overshooting it.
+					auto headingDelta = Geometry::GetShortestAngle(item->Pose.Orientation.y, slopeHeading);
+
+					if (abs(headingDelta) <= SLOPE_NUDGE_ANGLE)
+						item->Pose.Orientation.y = slopeHeading;
 					else
-						item->Animation.Velocity.y = 0;
+						item->Pose.Orientation.y += (short)((headingDelta > 0) ? SLOPE_NUDGE_ANGLE : -SLOPE_NUDGE_ANGLE);
 				}
-			}
-			// Hit angle = 0
-			else if (floorTilt.y < 0 && ((abs(floorTilt.y)) - (abs(floorTilt.x)) >= 2))
-			{
-				if (((unsigned short)item->Pose.Orientation.y) > ANGLE(90.0f) && ((unsigned short)item->Pose.Orientation.y) < ANGLE(270.0f))
-				{
-					item->Pose.Orientation.y = ANGLE(180.0f) - item->Pose.Orientation.y - 1;
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
-				}
+
+				if (item->Animation.Velocity.y > 0)
+					item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
 				else
-				{
-					if (item->Animation.Velocity.z < 32)
-					{
-						item->Animation.Velocity.z -= floorTilt.y * 2;
-
-						if ((unsigned short)item->Pose.Orientation.y < ANGLE(180.0f))
-						{
-							item->Pose.Orientation.y -= ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y > ANGLE(337.5))
-								item->Pose.Orientation.y = 0;
-						}
-						else if ((unsigned short)item->Pose.Orientation.y >= ANGLE(180.0f))
-						{
-							item->Pose.Orientation.y += ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y < ANGLE(22.5f))
-								item->Pose.Orientation.y = 0;
-						}
-					}
-
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
-					else
-						item->Animation.Velocity.y = 0;
-				}
-			}
-			// Hit angle = ANGLE(180.0f)
-			else if (floorTilt.y > 0 && ((abs(floorTilt.y)) - (abs(floorTilt.x)) >= 2))
-			{
-				if (((unsigned short)item->Pose.Orientation.y) > ANGLE(270.0f) || ((unsigned short)item->Pose.Orientation.y) < ANGLE(90.0f))
-				{
-					item->Pose.Orientation.y = ANGLE(180.0f) - item->Pose.Orientation.y - 1;
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
-				}
-				else
-				{
-					if (item->Animation.Velocity.z < 32)
-					{
-						item->Animation.Velocity.z += floorTilt.y * 2;
-
-						if ((unsigned short)item->Pose.Orientation.y > ANGLE(180.0f))
-						{
-							item->Pose.Orientation.y -= ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y < ANGLE(180.0f))
-								item->Pose.Orientation.y = ANGLE(180.0f);
-						}
-						else if ((unsigned short)item->Pose.Orientation.y < ANGLE(180.0f))
-						{
-							item->Pose.Orientation.y += ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y > ANGLE(180.0f))
-								item->Pose.Orientation.y = ANGLE(180.0f);
-						}
-					}
-
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
-					else
-						item->Animation.Velocity.y = 0;
-				}
-			}
-			else if (floorTilt.x < 0 && floorTilt.y < 0)	// Hit angle = 0x2000
-			{
-				if (((unsigned short)item->Pose.Orientation.y) > ANGLE(135.0f) && ((unsigned short)item->Pose.Orientation.y) < ANGLE(315.0f))
-				{
-					item->Pose.Orientation.y = ANGLE(45.0f) + (ANGLE(225.0f) - (unsigned short)item->Pose.Orientation.y - 1);
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
-				}
-				else
-				{
-					if (item->Animation.Velocity.z < 32)
-					{
-						item->Animation.Velocity.z += -floorTilt.x + -floorTilt.y;
-						if ((unsigned short)item->Pose.Orientation.y > ANGLE(45.0f) && (unsigned short)item->Pose.Orientation.y < ANGLE(225.0f))
-						{
-							item->Pose.Orientation.y -= ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y < ANGLE(45.0f))
-								item->Pose.Orientation.y = ANGLE(45.0f);
-						}
-						else if ((unsigned short)item->Pose.Orientation.y != ANGLE(45.0f))
-						{
-							item->Pose.Orientation.y += ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y > ANGLE(45.0f))
-								item->Pose.Orientation.y = ANGLE(45.0f);
-						}
-					}
-
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
-					else
-						item->Animation.Velocity.y = 0;
-				}
-			}
-			// Hit angle = ANGLE(135.0f)
-			else if (floorTilt.x < 0 && floorTilt.y > 0)
-			{
-				if (((unsigned short)item->Pose.Orientation.y) > ANGLE(225.0f) || ((unsigned short)item->Pose.Orientation.y) < ANGLE(45.0f))
-				{
-					item->Pose.Orientation.y = ANGLE(135.0f) + (ANGLE(315.0f) - (unsigned short)item->Pose.Orientation.y - 1);
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
-				}
-				else
-				{
-					if (item->Animation.Velocity.z < 32)
-					{
-						item->Animation.Velocity.z += (-floorTilt.x) + floorTilt.y;
-						if ((unsigned short)item->Pose.Orientation.y < ANGLE(315.0f) && (unsigned short)item->Pose.Orientation.y > ANGLE(135.0f))
-						{
-							item->Pose.Orientation.y -= ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y < ANGLE(135.0f))
-								item->Pose.Orientation.y = ANGLE(135.0f);
-						}
-						else if ((unsigned short)item->Pose.Orientation.y != ANGLE(135.0f))
-						{
-							item->Pose.Orientation.y += ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y > ANGLE(135.0f))
-								item->Pose.Orientation.y = ANGLE(135.0f);
-						}
-					}
-
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
-					else
-						item->Animation.Velocity.y = 0;
-				}
-			}
-			// Hit angle = ANGLE(225.5f)
-			else if (floorTilt.x > 0 && floorTilt.y > 0)
-			{
-				if (((unsigned short)item->Pose.Orientation.y) > ANGLE(315.0f) || ((unsigned short)item->Pose.Orientation.y) < ANGLE(135.0f))
-				{
-					item->Pose.Orientation.y = ANGLE(225.5f) + (ANGLE(45.0f) - (unsigned short)item->Pose.Orientation.y - 1);
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
-				}
-				else
-				{
-					if (item->Animation.Velocity.z < 32)
-					{
-						item->Animation.Velocity.z += floorTilt.x + floorTilt.y;
-						if ((unsigned short)item->Pose.Orientation.y < ANGLE(45.0f) || (unsigned short)item->Pose.Orientation.y > ANGLE(225.5f))
-						{
-							item->Pose.Orientation.y -= ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y < ANGLE(225.5f))
-								item->Pose.Orientation.y = ANGLE(225.5f);
-						}
-						else if ((unsigned short)item->Pose.Orientation.y != ANGLE(225.5f))
-						{
-							item->Pose.Orientation.y += ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y > ANGLE(225.5f))
-								item->Pose.Orientation.y = ANGLE(225.5f);
-						}
-					}
-
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
-					else
-						item->Animation.Velocity.y = 0;
-				}
-			}
-			// Hit angle = ANGLE(315.0f)
-			else if (floorTilt.x > 0 && floorTilt.y < 0)
-			{
-				if (((unsigned short)item->Pose.Orientation.y) > ANGLE(45.0f) && ((unsigned short)item->Pose.Orientation.y) < ANGLE(225.5f))
-				{
-					item->Pose.Orientation.y = ANGLE(315.0f) + (ANGLE(135.0f)- (unsigned short)item->Pose.Orientation.y - 1);
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -item->Animation.Velocity.y / 2;
-				}
-				else
-				{
-					if (item->Animation.Velocity.z < 32)
-					{
-						item->Animation.Velocity.z += floorTilt.x + (-floorTilt.y);
-						if ((unsigned short)item->Pose.Orientation.y < ANGLE(135.0f) || (unsigned short)item->Pose.Orientation.y > ANGLE(315.0f))
-						{
-							item->Pose.Orientation.y -= ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y < ANGLE(315.0f))
-								item->Pose.Orientation.y = ANGLE(315.0f);
-						}
-						else if ((unsigned short)item->Pose.Orientation.y != ANGLE(315.0f))
-						{
-							item->Pose.Orientation.y += ANGLE(22.5f);
-							if ((unsigned short)item->Pose.Orientation.y > ANGLE(315.0f))
-								item->Pose.Orientation.y = ANGLE(315.0f);
-						}
-					}
-
-					if (item->Animation.Velocity.y > 0)
-						item->Animation.Velocity.y = -(item->Animation.Velocity.y / 2);
-					else
-						item->Animation.Velocity.y = 0;
-				}
+					item->Animation.Velocity.y = 0;
 			}
 
 			// Move item back to its previous position.
@@ -1666,7 +1412,7 @@ void DoProjectileDynamics(short itemNumber, int x, int y, int z, int xv, int yv,
 						item->Animation.Velocity.y = -(item->Animation.Velocity.y - (item->Animation.Velocity.y / 2));
 					else
 					{
-						item->Animation.Velocity.y = -(item->Animation.Velocity.y / 2);
+						item->Animation.Velocity.y = -(item->Animation.Velocity.y / 4);
 						if (item->Animation.Velocity.y < -100)
 							item->Animation.Velocity.y = -100;
 					}
@@ -1701,10 +1447,6 @@ void DoProjectileDynamics(short itemNumber, int x, int y, int z, int xv, int yv,
 			pointColl = GetPointCollision(*item);
 
 			// Bounce off floor.
-
-			// Removed weird OnObject global check from here which didnt make sense because OnObject
-			// was always set to 0 by GetHeight() function which was called before the check.
-			// Possibly a mistake or unfinished feature by Core? -- Lwmte, 27.08.21
 
 			if (item->Pose.Position.y >= prevPointColl.GetFloorHeight())
 			{
@@ -1750,6 +1492,7 @@ void DoProjectileDynamics(short itemNumber, int x, int y, int z, int xv, int yv,
 
 			if (item->Pose.Position.y < pointColl.GetCeilingHeight())
 			{
+				// Hit a ceiling wall?
 				if (y < pointColl.GetCeilingHeight() &&
 					(((x / BLOCK(1)) != (item->Pose.Position.x / BLOCK(1))) ||
 						((z / BLOCK(1)) != (item->Pose.Position.z / BLOCK(1)))))
@@ -1777,12 +1520,35 @@ void DoProjectileDynamics(short itemNumber, int x, int y, int z, int xv, int yv,
 					item->Pose.Position.x = x;
 					item->Pose.Position.y = y;
 					item->Pose.Position.z = z;
+
+					if (item->Animation.Velocity.y < 0)
+						item->Animation.Velocity.y = -item->Animation.Velocity.y;
+				}
+				// Hit a sloped ceiling? Ricochet off its surface normal.
+				else if (item->Animation.Velocity.y < 0 && pointColl.IsSteepCeiling())
+				{
+					auto ceilingNormal = pointColl.GetCeilingNormal();
+
+					// Reflect velocity about the ceiling normal.
+					auto headingDir = Vector3(phd_sin(item->Pose.Orientation.y), 0.0f, phd_cos(item->Pose.Orientation.y));
+					auto velocity = (headingDir * item->Animation.Velocity.z) + Vector3(0.0f, item->Animation.Velocity.y, 0.0f);
+					auto reflection = velocity - (ceilingNormal * (velocity.Dot(ceilingNormal) * 2.0f));
+
+					item->Animation.Velocity.y = reflection.y;
+					item->Animation.Velocity.z = Vector2(reflection.x, reflection.z).Length();
+
+					if (item->Animation.Velocity.z > 0.0f)
+						item->Pose.Orientation.y = FROM_RAD(atan2(reflection.x, reflection.z));
+
+					item->Pose.Position.y = pointColl.GetCeilingHeight();
 				}
 				else
+				{
 					item->Pose.Position.y = pointColl.GetCeilingHeight();
 
-				if (item->Animation.Velocity.y < 0)
-					item->Animation.Velocity.y = -item->Animation.Velocity.y;
+					if (item->Animation.Velocity.y < 0)
+						item->Animation.Velocity.y = -item->Animation.Velocity.y;
+				}
 			}
 		}
 	}
