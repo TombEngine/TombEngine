@@ -373,6 +373,28 @@ void Renderer::DrawLara(RenderView& view, RendererPass rendererPass)
 
 	DrawLaraHolsters(item, room, view, rendererPass);
 	DrawLaraHair(item, room, view, rendererPass);
+
+	if (_debugPage == RendererDebugPage::CollisionMeshStats && rendererPass == RendererPass::Opaque)
+	{
+		if (!_debugNormalsCacheInitialized)
+			InitializeDebugNormalsCache();
+
+		for (int k = 0; k < item->MeshIndex.size(); k++)
+		{
+			if (!nativeItem->MeshBits.Test(k))
+				continue;
+
+			if (skinMode == SkinningMode::Full && g_Level.Meshes[nativeItem->Model.MeshIndex[k]].hidden)
+				continue;
+
+			auto* mesh = GetMesh(item->MeshIndex[k]);
+			auto worldMatrix = item->InterpolatedAnimTransforms[k] * item->InterpolatedWorld;
+			ReflectMatrixOptionally(worldMatrix);
+
+			for (const auto& bucket : mesh->Buckets)
+				DrawDebugNormalsForBucket(bucket, _moveablesVertices, _moveablesIndices, _moveablesNormalsCache, worldMatrix, BLOCK(0.01f));
+		}
+	}
 }
 
 void Renderer::DrawLaraHair(RendererItem* itemToDraw, RendererRoom* room, RenderView& view, RendererPass rendererPass)
