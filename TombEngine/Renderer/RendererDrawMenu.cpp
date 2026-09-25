@@ -1592,12 +1592,11 @@ namespace TEN::Renderer
 
 		// Centered text just above the loading bar, using the engine's string system.
 		_stringsToDraw.clear();
-		AddString(
-			"Pre-compiling shaders...",
-			Vector2(DISPLAY_SPACE_RES.x * 0.5f, DISPLAY_SPACE_RES.y * 0.80f),
-			Color(1.0f, 1.0f, 1.0f, 1.0f),
-			1.0f,
-			(int)PrintStringFlags::Center | (int)PrintStringFlags::Blink);
+		AddString(g_GameFlow->GetString(STRING_COMPILING_SHADERS),
+			Vector2(DISPLAY_SPACE_RES.x * 0.5f, DISPLAY_SPACE_RES.y * 0.90f),
+			Color(0.5f, 0.5f, 0.5f, 0.5f),
+			0.5f,
+			(int)PrintStringFlags::Center);
 		DrawAllStrings();
 
 		ScreenFadeCurrent = prevScreenFade;
