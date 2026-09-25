@@ -1593,7 +1593,7 @@ namespace TEN::Renderer
 		// Centered text just above the loading bar, using the engine's string system.
 		_stringsToDraw.clear();
 		AddString(g_GameFlow->GetString(STRING_COMPILING_SHADERS),
-			Vector2(DISPLAY_SPACE_RES.x * 0.5f, DISPLAY_SPACE_RES.y * 0.90f),
+			Vector2(DISPLAY_SPACE_RES.x * 0.5f, DISPLAY_SPACE_RES.y * 0.85f),
 			Color(0.5f, 0.5f, 0.5f, 0.5f),
 			0.5f,
 			(int)PrintStringFlags::Center);
