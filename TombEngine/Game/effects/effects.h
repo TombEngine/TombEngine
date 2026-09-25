@@ -41,15 +41,19 @@ constexpr float BULLET_TRAIL_WIDTH  = 60.0f;      // Trail segment width (world 
 constexpr int   BULLET_TRAIL_FRAMES = 4;          // Trail segment life (frames).
 
 // Shared.
-constexpr float BULLET_TRACER_ORIGIN_OFFSET = BLOCK(0.5f);   // Fixed muzzle offset.
+constexpr float BULLET_TRACER_ORIGIN_OFFSET = BLOCK(0.5f);   // Fixed muzzle offset (base).
 constexpr float BULLET_TRACER_SMOKE_ORIGIN_OFFSET = BLOCK(0.1f);
 constexpr float BULLET_TRACER_HAZE_ORIGIN_OFFSET = BLOCK(0.0f);
-constexpr int BULLET_SMOKE_SPARK_VEL = 80000;    // Rohwert für xVel (short-safe).
-constexpr int BULLET_SMOKE_SPARK_SPEED = BULLET_SPARK_VEL >> 5;
 constexpr int   BULLET_TRACER_MAX = 64;           // Active tracer slots.
 constexpr int   BULLET_TRACER_TRAVEL_FRAMES = 60; // Safety cap (frames).
 constexpr int   BULLET_TRACER_GROUP = 0x7F000000; // Streamer group key (distortion).
 constexpr int   BULLET_TRACER_HAZE_TAG_BASE = 0x00FF0000; // Distortion tag range.
+
+// Layer offsets (behind the bullet) and speed scales.
+constexpr float BULLET_SMOKE_OFFSET = BLOCK(0.15f);  // Smoke spawns behind bullet.
+constexpr float BULLET_DUST_OFFSET  = BLOCK(0.15f);  // Dust spawns behind smoke.
+constexpr float BULLET_SMOKE_SPEED_SCALE = 0.85f;    // Smoke moves slower than bullet.
+constexpr float BULLET_DUST_SPEED_SCALE  = 0.70f;    // Dust moves slower than smoke.
 
 extern int Wibble;
 

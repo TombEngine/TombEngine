@@ -2065,12 +2065,26 @@ void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
 		return;
 	dir.Normalize();
 
-	// Shift start forward (muzzle offset).
+	// Start slightly behind midpoint (45% of distance) – always visible travel.
 	float offset = BULLET_TRACER_ORIGIN_OFFSET;
-	if (offset > distance)
-		offset = distance;
+	float midOffset = distance * 0.15f;  //45
+	if (midOffset > offset)
+		offset = midOffset;
+	if (offset >= distance)
+		offset = 0;
 	auto startVec = originVec + dir * offset;
-	distance -= offset;
+	float bulletDist = distance - offset;
+
+	// Layer positions (behind the bullet).
+	auto smokePos = startVec - dir * BULLET_SMOKE_OFFSET;
+	auto dustPos = startVec - dir * (BULLET_SMOKE_OFFSET + BULLET_DUST_OFFSET);
+	float smokeDist = bulletDist + BULLET_SMOKE_OFFSET;
+	float dustDist = bulletDist + BULLET_SMOKE_OFFSET + BULLET_DUST_OFFSET;
+
+	// Layer speeds (scaled).
+	int bulletSpeed = BULLET_SPARK_SPEED;
+	int smokeSpeed = (int)(BULLET_SPARK_SPEED * BULLET_SMOKE_SPEED_SCALE);
+	int dustSpeed = (int)(BULLET_SPARK_SPEED * BULLET_DUST_SPEED_SCALE);
 
 	int tag = g_BulletTracerCursor;
 	g_BulletTracerCursor = (g_BulletTracerCursor + 1) % BULLET_TRACER_MAX;
@@ -2083,25 +2097,23 @@ void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
 	tracer.position = startVec;
 	tracer.tag = tag;
 
-	// Spawn the bullet spark (classic Particle with Lighten blend).
+	// BULLET Spark (front, fastest).
 	auto* p = GetFreeParticle();
 	p->on = true;
 	p->x = (int)startVec.x;
 	p->y = (int)startVec.y;
 	p->z = (int)startVec.z;
-	p->xVel = (short)(dir.x * BULLET_SPARK_SPEED);
-	p->yVel = (short)(dir.y * BULLET_SPARK_SPEED);
-	p->zVel = (short)(dir.z * BULLET_SPARK_SPEED);
+	p->xVel = (short)(dir.x * bulletSpeed);
+	p->yVel = (short)(dir.y * bulletSpeed);
+	p->zVel = (short)(dir.z * bulletSpeed);
 	p->fadeToBlack = 1;
 	p->colFadeSpeed = 8;
 	p->maxYvel = 0;
-	p->sSize = -120.0f;           // → Vector2(4, 100) × scalar = langer Strich.
+	p->sSize = -120.0f;
 	p->dSize = 30.0f;
 	p->scalar = 3;
-	p->sLife = (int)(distance / ((BULLET_SPARK_SPEED * 2) >> 5)) + 1;  // distance / 500 + 1.
+	p->sLife = (int)(bulletDist / (bulletSpeed >> 5)) + 1;
 	p->life = p->sLife;
-	//p->sLife = 15;
-	//p->life = 15;
 	p->sR = BULLET_SPARK_R; p->sG = BULLET_SPARK_G; p->sB = BULLET_SPARK_B;
 	p->dR = BULLET_SPARK_DR; p->dG = BULLET_SPARK_DG; p->dB = BULLET_SPARK_DB;
 	p->blendMode = BlendMode::Additive;
@@ -2113,36 +2125,23 @@ void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
 	p->flags = SP_NONE;
 	p->targetPos = targetVec;
 
-	//DrawDebugLine(originVec, targetVec, Vector4::One, RendererDebugPage::None);
-
-	
-
-	offset = BULLET_TRACER_SMOKE_ORIGIN_OFFSET;
-	if (offset > distance)
-		offset = distance;
-	startVec = originVec + dir * offset;
-	distance -= offset;
-
-
-	// Spawn the bullet spark (classic Particle with Lighten blend).
+	// SMOKE Trace (behind bullet, slower).
 	auto* s = GetFreeParticle();
 	s->on = true;
-	s->x = (int)startVec.x;
-	s->y = (int)startVec.y;
-	s->z = (int)startVec.z;
-	s->xVel = (short)(dir.x * BULLET_SMOKE_SPARK_SPEED);
-	s->yVel = (short)(dir.y * BULLET_SMOKE_SPARK_SPEED);
-	s->zVel = (short)(dir.z * BULLET_SMOKE_SPARK_SPEED);
+	s->x = (int)smokePos.x;
+	s->y = (int)smokePos.y;
+	s->z = (int)smokePos.z;
+	s->xVel = (short)(dir.x * smokeSpeed);
+	s->yVel = (short)(dir.y * smokeSpeed);
+	s->zVel = (short)(dir.z * smokeSpeed);
 	s->fadeToBlack = 40;
 	s->colFadeSpeed = 3;
 	s->maxYvel = 0;
-	s->sSize = -100.0f;           // → Vector2(4, 100) × scalar = langer Strich.
+	s->sSize = -100.0f;
 	s->dSize = 30.0f;
 	s->scalar = 3;
-	s->sLife = (int)(distance / ((BULLET_SMOKE_SPARK_SPEED * 2) >> 5)) + 1;  // distance / 500 + 1.
+	s->sLife = (int)(smokeDist / (smokeSpeed >> 5)) + 1;
 	s->life = s->sLife;
-	//p->sLife = 15;
-	//p->life = 15;
 	s->sR = 80; s->sG = 50; s->sB = 50;
 	s->dR = 30; s->dG = 30; s->dB = 30;
 	s->blendMode = BlendMode::Subtractive;
@@ -2154,30 +2153,23 @@ void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
 	s->flags = SP_NONE | SP_HAZE;
 	s->targetPos = targetVec;
 
-	offset = BULLET_TRACER_HAZE_ORIGIN_OFFSET;
-	if (offset > distance)
-		offset = distance;
-	startVec = originVec + dir * offset;
-	distance -= offset;
-
+	// DUST Trace (behind smoke, slowest).
 	auto* d = GetFreeParticle();
 	d->on = true;
-	d->x = (int)startVec.x;
-	d->y = (int)startVec.y;
-	d->z = (int)startVec.z;
-	d->xVel = (short)(dir.x * BULLET_SPARK_SPEED);
-	d->yVel = (short)(dir.y * BULLET_SPARK_SPEED);
-	d->zVel = (short)(dir.z * BULLET_SPARK_SPEED);
+	d->x = (int)dustPos.x;
+	d->y = (int)dustPos.y;
+	d->z = (int)dustPos.z;
+	d->xVel = (short)(dir.x * dustSpeed);
+	d->yVel = (short)(dir.y * dustSpeed);
+	d->zVel = (short)(dir.z * dustSpeed);
 	d->fadeToBlack = 40;
 	d->colFadeSpeed = 3;
 	d->maxYvel = 0;
-	d->sSize = -100.0f;           // → Vector2(4, 100) × scalar = langer Strich.
+	d->sSize = -100.0f;
 	d->dSize = 30.0f;
 	d->scalar = 3;
-	d->sLife = (int)(distance / ((BULLET_SPARK_SPEED ) >> 5)) + 1;  // distance / 500 + 1.
+	d->sLife = (int)(dustDist / (dustSpeed >> 5)) + 1;
 	d->life = d->sLife;
-	//p->sLife = 15;
-	//p->life = 15;
 	d->sR = 80; d->sG = 50; d->sB = 50;
 	d->dR = 30; d->dG = 30; d->dB = 30;
 	d->blendMode = BlendMode::Additive;

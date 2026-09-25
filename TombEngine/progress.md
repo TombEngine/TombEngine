@@ -1,7 +1,7 @@
 # Progress
 
 ## Current Task
-**Bullet Tracer – Delayed Ricochet/Decal (2026-09-25):** `TriggerRicochetSpark` + `SpawnDecal` akzeptieren jetzt `delayFrames`. `GetBulletTravelFrames(distance)` berechnet Verzögerung aus `BULLET_SPARK_SPEED`. Pending-Queues in `effects.cpp` (Ricochet) + `Decal.cpp` (Decal). `los.cpp` übergibt Distanz-basierte Frames. Bullet + Ricochet/Decal treffen jetzt gleichzeitig ein.
+**Bullet Tracer – Layered Traces (2026-09-25):** Bullet/Smoke/Dust spawnen mit gestaffeltem Offset hinter der Mitte (45%). Smoke = 0.25Bl hinter Bullet, 85% Speed. Dust = 0.25Bl hinter Smoke, 70% Speed. Alle Konstanten in `effects.h`.
 
 ## Completed Work
 - **Delayed Ricochet/Decal (2026-09-25):**
