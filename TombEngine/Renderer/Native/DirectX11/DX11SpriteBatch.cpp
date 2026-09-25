@@ -13,6 +13,17 @@ namespace TEN::Renderer::Native::DirectX11
 	{
 		_spriteBatch = std::make_unique<SpriteBatch>(context);
 		_renderStates = std::make_unique<CommonStates>(device);
+
+		auto rasterizerStateDesc = D3D11_RASTERIZER_DESC{};
+		rasterizerStateDesc.CullMode = D3D11_CULL_NONE;
+		rasterizerStateDesc.FillMode = D3D11_FILL_SOLID;
+		rasterizerStateDesc.DepthClipEnable = true;
+		rasterizerStateDesc.MultisampleEnable = true;
+		rasterizerStateDesc.AntialiasedLineEnable = true;
+		rasterizerStateDesc.ScissorEnable = true;
+
+		if (FAILED(device->CreateRasterizerState(&rasterizerStateDesc, _scissorRasterizerState.GetAddressOf())))
+			throw std::runtime_error("Failed to create sprite batch scissor rasterizer state.");
 	}
 
 	ID3D11ShaderResourceView* DX11SpriteBatch::GetD3D11ShaderResourceView(ITextureBase* texture)
@@ -31,7 +42,7 @@ namespace TEN::Renderer::Native::DirectX11
 		return srv;
 	}
 
-	void DX11SpriteBatch::Begin(SpriteSortingMode sortingMode, BlendMode blendMode)
+	void DX11SpriteBatch::Begin(SpriteSortingMode sortingMode, BlendMode blendMode, bool useScissor)
 	{
 		SpriteSortMode mode;
 		switch (sortingMode)
@@ -86,7 +97,14 @@ namespace TEN::Renderer::Native::DirectX11
 			break;
 		}
 
-		_spriteBatch->Begin(mode, blendState);
+		if (useScissor)
+		{
+			_spriteBatch->Begin(mode, blendState, nullptr, nullptr, _scissorRasterizerState.Get());
+		}
+		else
+		{
+			_spriteBatch->Begin(mode, blendState);
+		}
 	}
 
 	void DX11SpriteBatch::End()

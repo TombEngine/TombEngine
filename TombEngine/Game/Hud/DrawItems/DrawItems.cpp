@@ -1,12 +1,15 @@
 #include "framework.h"
 #include "Game/Hud/DrawItems/DrawItems.h"
 
+#include "Game/effects/DisplaySprite.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/clock.h"
 
+using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Math;
+using namespace TEN::Renderer::Structures;
 using TEN::Renderer::g_Renderer;
 
 namespace TEN::Hud
@@ -205,7 +208,23 @@ namespace TEN::Hud
 			return;
 
 		for (const auto& item : _displayItems)
+		{
+			if (item.GetHasScissor())
+			{
+				auto screenRes = g_Renderer.GetScreenResolution();
+				auto rect = GetDisplaySpriteScissorRectangle(
+					screenRes.ToVector2(),
+					item.GetScissorPos(),
+					item.GetScissorSize(),
+					item.GetScissorAlignMode());
+				g_Renderer.SetDisplayScissor(rect);
+			}
+
 			g_Renderer.DrawObjectIn3DSpace(item);
+
+			if (item.GetHasScissor())
+				g_Renderer.ResetDisplayScissor();
+		}
 	}
 
 	void DrawItemsController::Clear()
