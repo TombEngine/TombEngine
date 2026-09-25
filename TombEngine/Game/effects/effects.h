@@ -287,8 +287,7 @@ void SetAdvancedSpriteSequence(Particle& particle, GAME_OBJECT_ID objectID, Part
 
 void DetatchSpark(int num, SpriteEnumFlag type);
 void UpdateSparks();
-void TriggerRicochetSpark(const GameVector& pos, short angle, bool sound = true, int delayFrames = 0);
-int GetBulletTravelFrames(float distance);
+void TriggerRicochetSpark(const GameVector& pos, short angle, bool sound = true);
 void TriggerCyborgSpark(int x, int y, int z, short xv, short yv, short zv);
 void TriggerGlow(const GameVector& pos, const Vector3& color, int scale);
 void TriggerExplosionSparks(int x, int y, int z, int extraTrig, int dynamic, int uw, int roomNumber, const Vector3& mainColor = Vector3::Zero, const Vector3& secondColor = Vector3::Zero);

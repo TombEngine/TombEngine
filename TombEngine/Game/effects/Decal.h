@@ -34,7 +34,7 @@ namespace TEN::Effects::Decal
 
 	extern std::vector<Decal> Decals;
 
-	void SpawnDecal(Vector3 pos, int roomNumber, DecalType type, int delayFrames = 0);
+	void SpawnDecal(Vector3 pos, int roomNumber, DecalType type);
 
 	void UpdateDecals();
 	void ClearDecals();

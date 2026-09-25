@@ -307,12 +307,9 @@ static bool HandleBulletTracerParticle(Particle& particle)
 	return false;
 }
 
-static void UpdatePendingRicochets();
-
 void UpdateSparks()
 {
 	GetLaraDeadlyBounds();
-	UpdatePendingRicochets();
 
 	for (int i = 0; i < MAX_PARTICLES; i++)
 	{
@@ -627,76 +624,16 @@ void UpdateSparks()
 	}
 }
 
-// --- Pending Ricochet ---
-
-struct PendingRicochet
+void TriggerRicochetSpark(const GameVector& pos, short angle, bool sound)
 {
-	GameVector pos;
-	short angle;
-	bool sound;
-	int framesLeft;
-	bool active = false;
-};
+	int maxCount = g_GameFlow->GetSettings()->Effects.RicochetCount;
+	int count = Random::GenerateInt(maxCount / 2, maxCount);
+	TriggerRicochetSpark(pos, angle, count);
 
-constexpr auto MAX_PENDING_RICOCHETS = 16;
-static PendingRicochet g_PendingRicochets[MAX_PENDING_RICOCHETS];
-
-static void UpdatePendingRicochets()
-{
-	for (auto& p : g_PendingRicochets)
+	if (sound && g_GameFlow->GetSettings()->Effects.RicochetSound)
 	{
-		if (!p.active)
-			continue;
-		if (--p.framesLeft <= 0)
-		{
-			p.active = false;
-			int maxCount = g_GameFlow->GetSettings()->Effects.RicochetCount;
-			int count = Random::GenerateInt(maxCount / 2, maxCount);
-			TEN::Effects::Spark::TriggerRicochetSpark(p.pos, p.angle, count);
-			if (p.sound && g_GameFlow->GetSettings()->Effects.RicochetSound)
-			{
-				auto soundPose = Pose(p.pos.ToVector3i());
-				SoundEffect(SFX_TR4_WEAPON_RICOCHET, &soundPose);
-			}
-		}
-	}
-}
-
-int GetBulletTravelFrames(float distance)
-{
-	int speedPerFrame = BULLET_SPARK_SPEED;
-	if (speedPerFrame < 1)
-		speedPerFrame = 1;
-
-	return (int)(distance / ((BULLET_SPARK_SPEED * 2) >> 5)) ; // speedPerFrame) * FPS;
-}
-
-void TriggerRicochetSpark(const GameVector& pos, short angle, bool sound, int delayFrames)
-{
-	if (delayFrames <= 0)
-	{
-		int maxCount = g_GameFlow->GetSettings()->Effects.RicochetCount;
-		int count = Random::GenerateInt(maxCount / 2, maxCount);
-		TEN::Effects::Spark::TriggerRicochetSpark(pos, angle, count);
-
-		if (sound && g_GameFlow->GetSettings()->Effects.RicochetSound)
-		{
-			auto soundPose = Pose(pos.ToVector3i());
-			SoundEffect(SFX_TR4_WEAPON_RICOCHET, &soundPose);
-		}
-		return;
-	}
-
-	for (auto& p : g_PendingRicochets)
-	{
-		if (p.active)
-			continue;
-		p.pos = pos;
-		p.angle = angle;
-		p.sound = sound;
-		p.framesLeft = delayFrames;
-		p.active = true;
-		return;
+		auto soundPose = Pose(pos.ToVector3i());
+		SoundEffect(SFX_TR4_WEAPON_RICOCHET, &soundPose);
 	}
 }
 
