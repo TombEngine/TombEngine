@@ -139,6 +139,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `View.GetRoll` and `View.SetRoll` functions to get or set camera roll axis value.
 * Added `View.GetPostProcessTint` to get currently set post process tint.
 * Added `View.GetPostProcess` and `View.SetPostProcess` to set/get postprocess mode and strength.
+* Added automatic animation playback for `View.DisplayItem`, following animation links and interpolated at high framerate.
 * Added `constraint` field to `ParticleData` argument table for `Effects.EmitAdvancedParticle` function to create particles with constrained orientation.
 * Added callbacks for item pickup and vehicle enter/leave events.
 * Added `Logic.HasCallback` method for checking if a callback exists.
