@@ -345,7 +345,7 @@ void lara_col_run_forward(ItemInfo* item, CollisionInfo* coll)
 	coll->Setup.LowerFloorBound = IsHeld(In::Walk) ? STEPUP_HEIGHT : NO_LOWER_BOUND;
 	coll->Setup.UpperFloorBound = -STEPUP_HEIGHT;
 	coll->Setup.LowerCeilingBound = 0;
-	coll->Setup.BlockFloorSlopeUp = true;
+	coll->Setup.BlockFloorSlopeUp  = !IsHeld(In::Jump);
 	coll->Setup.BlockFloorSlopeDown = IsHeld(In::Walk);
 	coll->Setup.BlockDeathFloorDown = IsHeld(In::Walk);
 	coll->Setup.ForwardAngle = player.Control.MoveAngle;
