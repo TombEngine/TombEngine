@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include "Specific/EngineMain.h"
 
 #include "Game/control/control.h"
@@ -407,6 +407,9 @@ int main(int argc, char* argv[])
 
 	g_Platform->SetSDL3Window(sdlWindow);
 
+	SDL_ShowWindow(sdlWindow);
+	SDL_RaiseWindow(sdlWindow);
+
 	try
 	{
 		// Initialize audio (should be called prior to initializing renderer, because video handler needs it).
@@ -420,9 +423,6 @@ int main(int argc, char* argv[])
 
 		// Load level if specified in command line.
 		CurrentLevel = g_GameFlow->GetLevelNumber(levelFile);
-
-		SDL_ShowWindow(sdlWindow);
-		SDL_RaiseWindow(sdlWindow);
 	}
 	catch (std::exception& ex)
 	{

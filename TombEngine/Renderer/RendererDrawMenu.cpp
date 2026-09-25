@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/Graphics/VRAMTracker.h"
 
@@ -1557,6 +1557,53 @@ namespace TEN::Renderer
 
 		_graphicsDevice->ClearState();
 		_graphicsDevice->Present();
+	}
+
+	void Renderer::RenderShaderCompileScreen(float percentage)
+	{
+		// Keep the window responsive so Windows does not show a "not responding" cursor
+		// while shaders are compiled on the main thread.
+		SDL_PumpEvents();
+
+		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
+
+		_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
+		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		_graphicsDevice->BindRenderTarget(_backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
+		_graphicsDevice->SetViewport(_viewport);
+
+		// Update the engine's built-in blink value (same formula as Renderer::PrepareScene).
+		constexpr auto BLINK_VALUE_MAX = 1.0f;
+		constexpr auto BLINK_VALUE_MIN = 0.1f;
+		constexpr auto BLINK_TIME_STEP = 0.2f;
+		float blink = ((sin(_blinkTime) + BLINK_VALUE_MAX) * 0.5f) + BLINK_VALUE_MIN;
+		_blinkColorValue = Vector4(blink, blink, blink, 1.0f);
+		_blinkTime += BLINK_TIME_STEP;
+		if (_blinkTime > PI_MUL_2)
+			_blinkTime -= PI_MUL_2;
+
+		// The string renderer multiplies by ScreenFadeCurrent (0 until gameplay starts),
+		// so temporarily force full opacity so the pre-compile text is visible.
+		float prevScreenFade = ScreenFadeCurrent;
+		ScreenFadeCurrent = 1.0f;
+
+		// Blinking, centered text just above the loading bar, using the engine's string system.
+		_stringsToDraw.clear();
+		AddString(
+			"Pre-compiling shaders...",
+			Vector2(DISPLAY_SPACE_RES.x * 0.5f, DISPLAY_SPACE_RES.y * 0.80f),
+			Color(1.0f, 1.0f, 1.0f, 1.0f),
+			1.0f,
+			(int)PrintStringFlags::Center | (int)PrintStringFlags::Blink);
+		DrawAllStrings();
+
+		// Reuse the engine's loading bar (same visuals as the level loading screen).
+		DrawLoadingBar(percentage);
+
+		ScreenFadeCurrent = prevScreenFade;
+
+		_graphicsDevice->Present();
+		_graphicsDevice->ClearState();
 	}
 
 	void Renderer::RenderLoadingScreen(float percentage)
