@@ -211,7 +211,7 @@ local UpdateActionLabel = function(itemSelected, override, transitionType)
         string = Flow.GetString("actions_select")
     end
 
-    local actionString = Input.GetActionBinding(ActionID.SELECT)..": "..string
+    local actionString = Flow.GetString("actions_action")..": "..string
 
     Text.SetText("CONTROLS_SELECT", actionString, true, transitionType)
 end
@@ -252,7 +252,7 @@ local UpdateBackLabel = function(label)
         backstring = "close"
     end
 
-    local string = Input.GetActionBinding(ActionID.DESELECT)..": "..Flow.GetString(backstring)
+    local string = Flow.GetString("actions_inventory")..": "..Flow.GetString(backstring)
     Text.SetText("CONTROLS_BACK", string, true)
 end
 
