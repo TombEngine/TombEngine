@@ -2050,6 +2050,9 @@ struct BulletTracer
 static BulletTracer g_BulletTracers[BULLET_TRACER_MAX];
 static int g_BulletTracerCursor = 0;
 
+constexpr int   BULLET_SPEED_MIN = 300000;              // At BULLET_SPEED_MIN_DIST.
+constexpr int   BULLET_SPEED_MAX = 1000000;              // At BULLET_SPEED_MAX_DIST.
+
 void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
 {
 	// Clamp target to nearest wall (self-contained LOS).
@@ -2065,13 +2068,16 @@ void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
 		return;
 	dir.Normalize();
 
-	// Start slightly behind midpoint (45% of distance) – always visible travel.
+	// Start slightly behind midpoint – always visible travel.
 	float offset = BULLET_TRACER_ORIGIN_OFFSET;
-	float midOffset = distance * 0.15f;  //45
-	if (midOffset > offset)
-		offset = midOffset;
-	if (offset >= distance)
-		offset = 0;
+	float midOffset = distance * 0.5f;
+	float maxMidOffset = BULLET_SPEED_MAX_DIST * 0.5f;
+	if (midOffset > maxMidOffset)
+		midOffset = maxMidOffset;
+	//if (midOffset > offset)
+	//	offset = midOffset;
+	//if (offset >= distance)
+	//	offset = 0;
 	auto startVec = originVec + dir * offset;
 	float bulletDist = distance - offset;
 
@@ -2081,10 +2087,15 @@ void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
 	float smokeDist = bulletDist + BULLET_SMOKE_OFFSET;
 	float dustDist = bulletDist + BULLET_SMOKE_OFFSET + BULLET_DUST_OFFSET;
 
-	// Layer speeds (scaled).
-	int bulletSpeed = BULLET_SPARK_SPEED;
-	int smokeSpeed = (int)(BULLET_SPARK_SPEED * BULLET_SMOKE_SPEED_SCALE);
-	int dustSpeed = (int)(BULLET_SPARK_SPEED * BULLET_DUST_SPEED_SCALE);
+	
+
+	// Layer speeds (distance-based, scaled).
+	float t = (distance - BULLET_SPEED_MIN_DIST) / (BULLET_SPEED_MAX_DIST - BULLET_SPEED_MIN_DIST);
+	if (t < 0.0f) t = 0.0f;
+	if (t > 1.0f) t = 1.0f;
+	int bulletSpeed = (int)((BULLET_SPEED_MIN >> 5) + t * ((BULLET_SPEED_MAX >> 5) - (BULLET_SPEED_MIN >> 5)));
+	int smokeSpeed = (int)(bulletSpeed * BULLET_SMOKE_SPEED_SCALE);
+	int dustSpeed = (int)(bulletSpeed * BULLET_DUST_SPEED_SCALE);
 
 	int tag = g_BulletTracerCursor;
 	g_BulletTracerCursor = (g_BulletTracerCursor + 1) % BULLET_TRACER_MAX;
@@ -2110,7 +2121,7 @@ void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
 	p->colFadeSpeed = 8;
 	p->maxYvel = 0;
 	p->sSize = -120.0f;
-	p->dSize = 30.0f;
+	p->dSize = -8.0f;
 	p->scalar = 3;
 	p->sLife = (int)(bulletDist / (bulletSpeed >> 5)) + 1;
 	p->life = p->sLife;
@@ -2138,7 +2149,7 @@ void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
 	s->colFadeSpeed = 3;
 	s->maxYvel = 0;
 	s->sSize = -100.0f;
-	s->dSize = 30.0f;
+	s->dSize = -8.0f;
 	s->scalar = 3;
 	s->sLife = (int)(smokeDist / (smokeSpeed >> 5)) + 1;
 	s->life = s->sLife;
@@ -2166,7 +2177,7 @@ void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
 	d->colFadeSpeed = 3;
 	d->maxYvel = 0;
 	d->sSize = -100.0f;
-	d->dSize = 30.0f;
+	d->dSize = -15.0f;
 	d->scalar = 3;
 	d->sLife = (int)(dustDist / (dustSpeed >> 5)) + 1;
 	d->life = d->sLife;
@@ -2185,7 +2196,9 @@ void TriggerBulletTracer(const GameVector& origin, const GameVector& target)
 
 void UpdateBulletTracers()
 {
-	constexpr float vel = BULLET_SPARK_SPEED;
+
+
+	constexpr float vel = BULLET_SPEED_MAX >> 5;
 	constexpr float trailLife = (float)BULLET_TRAIL_FRAMES / (float)FPS;
 
 	for (int i = 0; i < BULLET_TRACER_MAX; i++)

@@ -30,8 +30,11 @@ constexpr auto FLAME_HEAT_HAZE_SCALE = 2.5f;
 // Spark (bullet visual – classic Particle).
 constexpr float BULLET_SPARK_SIZE_START = 48.0f;  // Start size (sprite scale).
 constexpr float BULLET_SPARK_SIZE_END   = 44.0f;  // End size (shrinks).
-constexpr int BULLET_SPARK_VEL = 500000;          // Rohwert für xVel (short-safe).
-constexpr int BULLET_SPARK_SPEED = BULLET_SPARK_VEL >> 6; // Effektive units/frame.
+
+// Distance-based speed (raw xVel value, engine divides by >> 5).
+
+constexpr float BULLET_SPEED_MIN_DIST = BLOCK(2.0f);    // Close range.
+constexpr float BULLET_SPEED_MAX_DIST = BLOCK(20.0f);   // Far range.
 
 constexpr unsigned char BULLET_SPARK_R = 255, BULLET_SPARK_G = 217, BULLET_SPARK_B = 77;
 constexpr unsigned char BULLET_SPARK_DR = 179, BULLET_SPARK_DG = 64, BULLET_SPARK_DB = 5;

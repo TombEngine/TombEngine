@@ -1,7 +1,7 @@
 # Progress
 
 ## Current Task
-**Bullet Tracer – Layered Traces (2026-09-25):** Bullet/Smoke/Dust spawnen mit gestaffeltem Offset hinter der Mitte (45%). Smoke = 0.25Bl hinter Bullet, 85% Speed. Dust = 0.25Bl hinter Smoke, 70% Speed. Alle Konstanten in `effects.h`.
+**Bullet Tracer – Distance-based Speed + Layered Traces (2026-09-25):** Speed skaliert linear mit Distanz (2Bl=160k, 20Bl=800k raw). Smoke 85%, Dust 70% des Bullet-Speeds. Offsets: Smoke 0.15Bl, Dust 0.15Bl hinter Bullet. `midOffset = distance * 0.5f` (kommentiert aus, Base-Offset aktiv).
 
 ## Completed Work
 - **Delayed Ricochet/Decal (2026-09-25):**

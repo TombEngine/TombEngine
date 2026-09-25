@@ -1145,7 +1145,7 @@ namespace TEN::Entities::Creatures::TR5
 				auto shotLos = GetLosCollision(flashPos, item->RoomNumber, shotDir, shotDist, true, false, true, true);
 				item->Collidable = true;
 
-				//if (Random::TestProbability(1.0f / 4.0f))
+				if (Random::TestProbability(1.0f / 4.0f))
 				TriggerBulletTracer(origin, GameVector(aimedPos, item->RoomNumber));
 				//DrawDebugLine(flashPos, aimedPos, Vector4::One, RendererDebugPage::None);
 
