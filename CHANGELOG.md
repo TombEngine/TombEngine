@@ -69,6 +69,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed SOPHIA_LEIGH_BOSS pathfinding and knockback effect.
 * Fixed ROLLINGBALL falling through walls in some remaining cases.
 * Fixed TEETH_SPIKES behaviour for OCB 1 and move static TR1-3 mode to pre-activated trigger bit flags.
+* Fixed SHOOT_SWITCH2 shattering without OCB 444.
 * Fixed empty linear inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed PC_LOAD_INV_ITEM and PC_SAVE_INV_ITEM presence in the inventory affecting quickload and quicksave hotkey functionality.
