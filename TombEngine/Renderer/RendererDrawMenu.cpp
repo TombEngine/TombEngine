@@ -1571,23 +1571,26 @@ namespace TEN::Renderer
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 		_graphicsDevice->BindRenderTarget(_backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
 		_graphicsDevice->SetViewport(_viewport);
+		_graphicsDevice->SetScissor(_viewport);
 
-		// Update the engine's built-in blink value (same formula as Renderer::PrepareScene).
-		constexpr auto BLINK_VALUE_MAX = 1.0f;
-		constexpr auto BLINK_VALUE_MIN = 0.1f;
-		constexpr auto BLINK_TIME_STEP = 0.2f;
-		float blink = ((sin(_blinkTime) + BLINK_VALUE_MAX) * 0.5f) + BLINK_VALUE_MIN;
-		_blinkColorValue = Vector4(blink, blink, blink, 1.0f);
-		_blinkTime += BLINK_TIME_STEP;
-		if (_blinkTime > PI_MUL_2)
-			_blinkTime -= PI_MUL_2;
+		// Text opacity must be consistent; the engine's flash (_blinkColorValue) is normally
+		// advanced once per game frame in Renderer::PrepareScene, which does not run yet during
+		// synchronous shader compilation. Keep it at full opacity.
+		_blinkColorValue = Vector4::One;
+
+		// Reuse the engine's loading bar (same visuals as the level loading screen). Force the
+		// opaque render states so the fill is not affected by state left over from prior frames.
+		SetBlendMode(BlendMode::Opaque, true);
+		SetCullMode(CullMode::None, true);
+		SetDepthState(DepthState::None, true);
+		DrawLoadingBar(percentage);
 
 		// The string renderer multiplies by ScreenFadeCurrent (0 until gameplay starts),
 		// so temporarily force full opacity so the pre-compile text is visible.
 		float prevScreenFade = ScreenFadeCurrent;
 		ScreenFadeCurrent = 1.0f;
 
-		// Blinking, centered text just above the loading bar, using the engine's string system.
+		// Centered text just above the loading bar, using the engine's string system.
 		_stringsToDraw.clear();
 		AddString(
 			"Pre-compiling shaders...",
@@ -1597,12 +1600,16 @@ namespace TEN::Renderer
 			(int)PrintStringFlags::Center | (int)PrintStringFlags::Blink);
 		DrawAllStrings();
 
-		// Reuse the engine's loading bar (same visuals as the level loading screen).
-		DrawLoadingBar(percentage);
-
 		ScreenFadeCurrent = prevScreenFade;
 
 		_graphicsDevice->Present();
+
+		// Restore a clean full-window render state so later passes (notably the intro FMV's
+		// fullscreen quad) are not affected by the scissor/blend state this screen left behind.
+		ResetScissor();
+		SetBlendMode(BlendMode::Opaque, true);
+		SetDepthState(DepthState::Write, true);
+		SetCullMode(CullMode::CounterClockwise, true);
 		_graphicsDevice->ClearState();
 	}
 

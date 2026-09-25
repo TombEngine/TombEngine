@@ -114,9 +114,6 @@ namespace TEN::Renderer
 		g_VideoPlayer.Initialize(gameDir, _graphicsDevice.get());
 
 		_primitiveBatch = _graphicsDevice->InitializePrimitiveBatch();
-
-		// Final paint so the pre-compile screen is fully rendered before the game loop begins.
-		RenderShaderCompileScreen(100.0f);
 	}
 
 	void Renderer::InitializePostProcess()
