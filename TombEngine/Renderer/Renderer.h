@@ -441,6 +441,7 @@ namespace TEN::Renderer
 		void DrawFullScreenImage(ITextureBase* texture, float fade, IRenderTarget2D* target,
 			IDepthTarget* depthTarget);
 		void PrepareShockwaves(RenderView& view);
+		void PrepareBossExplosionRings(RenderView& view);
 		void PrepareRipples(RenderView& view);
 		void PrepareUnderwaterBloodParticles(RenderView& view);
 		void DrawFullScreenQuad(ITextureBase* texture, Vector3 color, bool fit = true, float customAspect = 0.0f);
