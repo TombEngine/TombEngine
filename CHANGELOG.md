@@ -52,6 +52,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if property is set and when the sound ID 681 (SFX_TR2_SLAM_DOOR_CLOSE) is playing.
 * Added hit sounds for TR1 enemies when shot.
 * Added splash and bubble effects for CRUMBLING_FLOOR if it falls into water.
+* Added compiling shaders screen.
 * Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fog effect if OCB value is 0.
 
 ### Bug fixes
