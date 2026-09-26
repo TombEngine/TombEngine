@@ -417,8 +417,8 @@ namespace TEN::Entities::Creatures::TR5
 			creature->Enemy = LaraItem;
 
 			if ((laraAI.distance < GUARD_ALERT_RANGE && LaraItem->Animation.Velocity.z > 20) ||
-				item->HitStatus ||
-				TargetVisible(item, &laraAI))
+				(TargetVisible(item, &laraAI) && (GuardOcb)item->TriggerFlags != GuardOcb::Sleeping) ||
+				item->HitStatus)
 			{
 				if (!(item->AIBits & FOLLOW) &&
 					item->ObjectNumber != ID_SCIENTIST &&
