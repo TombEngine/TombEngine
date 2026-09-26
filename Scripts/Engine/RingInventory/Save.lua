@@ -15,11 +15,12 @@ local Save = {}
 local saveMenu = false --Checks if to create save or load menu
 local quickSave = false --checks if quicksave is enabled
 local saveSelected = false --checks if saveslot has been selected
-local saveSlotSelected = 1 --index of save slot selected
+GameVars.Engine.RingInventory = GameVars.Engine.RingInventory or {}
+GameVars.Engine.RingInventory.SaveSlotSelected = 1 --index of save slot selected
 
 local function DoSave()
     local slot = Menu.Get("SaveMenu2"):GetCurrentItemIndex()
-    saveSlotSelected = slot
+    GameVars.Engine.RingInventory.SaveSlotSelected = slot
     Flow.SaveGame(slot - 1)
     saveSelected = true
     local InventoryStates = require("Engine.RingInventory.InventoryStates")
@@ -32,7 +33,7 @@ local function DoLoad()
     local slot = Menu.Get("SaveMenu2"):GetCurrentItemIndex()
 
     if Flow.DoesSaveGameExist(slot - 1) then
-        saveSlotSelected = slot
+        GameVars.Engine.RingInventory.SaveSlotSelected = slot
         Flow.LoadGame(slot - 1)
         saveSelected = true
         local InventoryStates = require("Engine.RingInventory.InventoryStates")
@@ -130,7 +131,7 @@ function Save.CreateSaveMenu()
         saveList:SetSelectedItemFlags(selectedFlags[index])
         saveList:SetItemsTranslate(translate)
         saveList:SetSoundEffects(soundMap[index].select, soundMap[index].choose)
-        saveList:SetCurrentItem(saveSlotSelected)
+        saveList:SetCurrentItem(GameVars.Engine.RingInventory.SaveSlotSelected)
     end
 end
 
