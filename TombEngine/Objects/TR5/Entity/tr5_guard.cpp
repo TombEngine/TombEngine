@@ -416,6 +416,8 @@ namespace TEN::Entities::Creatures::TR5
 			angle = CreatureTurn(item, creature->MaxTurn);
 			creature->Enemy = LaraItem;
 
+			bool laraMakingNoise = LaraItem->Animation.Velocity.z > 20 || IsWeaponFiredNearby(LaraItem->Pose);
+
 			if ((laraAI.distance < GUARD_ALERT_RANGE && LaraItem->Animation.Velocity.z > 20) ||
 				(TargetVisible(item, &laraAI) && (GuardOcb)item->TriggerFlags != GuardOcb::Sleeping) ||
 				item->HitStatus)
