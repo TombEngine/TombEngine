@@ -1,9 +1,18 @@
 # Progress
 
 ## Current Task
-**Gunship Fire-Rate (2026-09-26):** Burst-/Phasen-Bug behoben (Bitmaske → Modulo). Nächster Schritt: Nutzer testet im Spiel. Danach: zweiter Gunship-Modus.
+**Gunship State-Architektur (2026-09-26):** FINAL (siehe Completed Work). RomanStatue-Pattern (geteilte globale 'GunShip') + per-Heli-State in ItemFlags; 'ItemFlags[0]' (und [3]) frei und fuer den Nutzer reserviert. Naechster Schritt: Nutzer kompiliert/testet (Build-Errors meldet der Nutzer). Danach: zweiter Gunship-Modus.
 
 ## Completed Work
+- **Gunship State-Architektur final (2026-09-26, ersetzt den Map-Ansatz):**
+  - Nutzer-Entscheidung: RomanStatue-Pattern statt per-Item-Map: geteilte globale 'GunShip' fuer die 'unwichtigen' (teilbaren) Werte + per-Heli-State in 'ItemFlags' (per-Item, persistiert wie bei LaserHead). Die 'item.Data'-Alternative (flatbuffers Save-Union) passt NICHT: die waere im Savegame + braeuchte eine neue Tabelle.
+  - 'tr5_gunship.cpp': 'struct GunshipData' (geteilt) = Direction/Initialized (Orbit), Active/TargetPos/Frames (Auto-Escape), LastTestFrame/Clear (LOS-Cache), FireFrameCounter (Feuer-Warmup) + 'ResetEscape()'; 'static GunshipData GunShip;'; 'InitializeGunShip' setzt 'GunShip = GunshipData{}' neu (wie 'InitializeRomanStatue'). 'GunShips'-Map + 'GetGunShip'-Helper entfernt.
+  - ItemFlags pro Heli: [1] CurrentPitch (Rad x1000), [2] CurrentBankAngle (Rad x1000), [4] PrevState, [5] InertiaTimer, [6] CurrentYSpeed (Units/Frame x100 - x1000 wuerde das short ueberlaufen!), [7] EvadeActive (0/1).
+  - **FREIE SLOTS: 'ItemFlags[0]' ist fuer den Nutzer reserviert (zweiter Gunship-Modus); [3] ist ebenfalls frei.**
+  - Helper ('FindBestAvoidanceDirection', 'GetGunShipLosToShootTarget') verwenden die globale 'GunShip' direkt (ohne Daten-Parameter).
+  - Tradeoff (nur bei 2+ gleichzeitigen Helis, vom Nutzer akzeptiert): geteilter Escape-Flug (gemeinsames Target, Ankunft beendet beide), geteilter LOS-Cache, gemeinsame Orbit-Seite, gemeinsamer Feuer-Warmup.
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrueckliche Anfrage); 0 verbleibende 'gunShip'/Map-Referenzen verifiziert.
+  - 4 ungenutzte Konstanten entfernt (Nutzer-OK): DEFAULT_FLY_UPDOWN_SPEED, NO_FLYING, ROTOR_ACTIVE_THRESHOLD, VERTICAL_DODGE_SPEED.
 - **Gunship Fire-Rate – Burst-Bug behoben (2026-09-26):**
   - **Symptom:** Heli feuerte in Phasen: ein paar Bolts, kurze Pause, Burst. Mit `FIRE_RATE=5`: 4er-Burst alle 8 Frames. Mit dem Original-`FIRE_RATE=30` war es ein 2er-Burst alle 32 Frames — **Bug war also schon vor der FIRE_RATE-Änderung da**.
   - **Root Cause:** `!(GlobalCounter & (FIRE_RATE - 1))` ist eine Bitmaske und liefert nur dann exakt 1 Frame pro N, wenn FIRE_RATE eine 2er-Potenz ist (Maske = durchgehende Low-Bits). Bei 5 → Maske `0b100` (nur Bit 2) → 4 von 8 Frames offen; bei 30 → Maske `0b11101` (Bit 1 fehlt) → GC mod 32 ∈ {0,2} offen.

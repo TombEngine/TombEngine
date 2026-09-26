@@ -32,53 +32,9 @@ using namespace TEN::Scripting::Properties;
 
 namespace TEN::Entities::Creatures::TR5
 {
-	constexpr short DEFAULT_FLY_UPDOWN_SPEED = BLOCK(4);
-	constexpr short NO_FLYING = -1;
-
-	void InitializeGunShip(short itemNumber)
-	{
-		auto* item = &g_Level.Items[itemNumber];
-		InitializeCreature(itemNumber);
-	}
-
-	// Konstanten für Verhalten
-	constexpr int ROTOR_ACTIVE_THRESHOLD = 15;
-	constexpr int FIRE_RATE = 2;
-	constexpr int GUNSHIP_DAMAGE = 20; // Damage dealt by gunship to Lara when shooting
-
-	constexpr float MOVEMENT_LERP_SPEED = 4.0f;
-	constexpr int INERTIA_FRAMES = 25;
-	constexpr float PITCH_LERP_SPEED = 5.0f;
-	constexpr float BANK_LERP_SPEED = 3.0f;
-
-	constexpr int MAX_PITCH_DEG = 20;
-	constexpr int MAX_BANK_DEG = 15;
-	constexpr float MAX_MOVE_SPEED = 64.0f;
-	constexpr float FLY_UP_SPEED = 40.0f;
-	constexpr float FLY_DOWN_SPEED = 40.0f;
-	constexpr float VERTICAL_DODGE_SPEED = 50.0f;
-
-	constexpr int SECTOR_SIZE = 1024;
-	constexpr int FLOATING_POINT_SCALE = 1000;
-	constexpr float EVADE_RAISE_HEIGHT = SECTOR_SIZE * 1.5f; // ~1.5 BLOCK, Aufstieg beim Evaden, damit das Heck den Boden nicht berührt
-	constexpr float HOVER_HEIGHT_OFFSET = SECTOR_SIZE * 2.0f; // Heli schwebt ~1.5 Sektoren über dem Ziel, damit er beim Schießen nach unten zielen kann
-	constexpr float EVADE_OVERFLY_HEIGHT = SECTOR_SIZE * 3.0f; // Overfly: Heli steigt so weit ueber Lara, dass Rumpf-Heck frei bleibt
-	constexpr float MOVE_TARGET_REACH_RADIUS = SECTOR_SIZE * 0.5f; // moveTargetPos: One-Shot-Radius (horizontal), danach wird der Escape-/MoveTarget-Zustand geleert
-	constexpr float ESCAPE_EXCLUDE_RADIUS = SECTOR_SIZE * 2.0f; // Ausschlussradius: das zuletzt fehlgeschlagene Escapetarget wird bei der Neu-Suche nicht erneut gewaehlt
-	constexpr int MAX_ESCAPE_FRAMES = 280; // Auto-Escape: max. Frames, bevor der Escape-Flug aufgegeben wird (Kampf wird fortgesetzt)
-	constexpr int LOS_TEST_INTERVAL = FPS; // ~1 Sekunde: Throttling des teuren LOS-Tests Heli->Shoot-Target (gilt fuer alle Distanzen)
-
-	// Enum für Helikopter-Status
-	enum class GunShipState : short
-	{
-		FOLLOW = 0,
-		IDLE = 1,
-		EVADE_NEAR = 2,
-		ESCAPE = 3
-	};
-
-	// Nicht-persistenter Laufzeit-Zustand des Helikopters (Orbit/Ausweichen, Auto-Escape, gecachtes LOS).
-	// Nicht im Savegame persistiert; nach einem Neuladen wird er automatisch neu initialisiert.
+	// Geteilter Laufzeit-State (RomanStatue-Pattern: eine globale Instanz, wie RomanStatueData).
+	// Enthalt nur Dinge, bei denen es egal ist, wenn mehrere Helis sie teilen (Escape-Flug, LOS-Cache,
+	// Orbit-Continuity, Feuer-Warmup). Pro-Heli-State liegt in den ItemFlags (siehe Tabelle unten).
 	struct GunshipData
 	{
 		// Orbit/Ausweichen: +1 / -1 = Umlaufrichtung beim Evaden.
@@ -94,6 +50,9 @@ namespace TEN::Entities::Creatures::TR5
 		int LastTestFrame = -1000000; // Sentinel: erster Aufruf testet immer (kein 1s-Blindefenster).
 		bool Clear = true;            // true = freie Sicht (keine Geometrie dazwischen).
 
+		// Feuer-Warmup + erster-Frame-Orient-Snap (war ItemFlags[0]).
+		int FireFrameCounter = 0;
+
 		// Escape-Zustand zuruecksetzen (Ziel weg, frisches Timeout-Fenster).
 		void ResetEscape()
 		{
@@ -104,6 +63,59 @@ namespace TEN::Entities::Creatures::TR5
 	};
 
 	static GunshipData GunShip;
+
+	enum class GunshipMode : short
+	{
+		Normal = 0,		// like in TR5 Red alert.
+		Boss = 1,		// Free flying and shooting.
+	};
+
+	// Enum für Helikopter-Status
+	enum class GunShipState : short
+	{
+		FOLLOW = 0,
+		IDLE = 1,
+		EVADE_NEAR = 2,
+		ESCAPE = 3
+	};
+
+	// ItemFlags-Allokation (pro Heli); [0] und [3] sind FREI - [0] ist fuer externen Code reserviert.
+	// [1] = CurrentPitch (Rad x 1000)          [2] = CurrentBankAngle (Rad x 1000)
+	// [4] = PrevState                          [5] = InertiaTimer
+	// [6] = CurrentYSpeed (Units/Frame x 100)  [7] = EvadeActive (0/1)
+
+	void InitializeGunShip(short itemNumber)
+	{
+		auto* item = &g_Level.Items[itemNumber];
+		InitializeCreature(itemNumber);
+		//GunShip = GunshipData{}; // Frischer geteilter State (RomanStatue-Pattern, wie InitializeRomanStatue).
+		item->ItemFlags[0] = PropertyHandler::Get(*item, PropName_AttackType, (short)GunshipMode::Normal);
+
+	}
+
+	// Konstanten für Verhalten
+	constexpr int FIRE_RATE = 2;
+	constexpr int GUNSHIP_DAMAGE = 20; // Damage dealt by gunship to Lara when shooting
+
+	constexpr float MOVEMENT_LERP_SPEED = 4.0f;
+	constexpr int INERTIA_FRAMES = 25;
+	constexpr float PITCH_LERP_SPEED = 5.0f;
+	constexpr float BANK_LERP_SPEED = 3.0f;
+
+	constexpr int MAX_PITCH_DEG = 20;
+	constexpr int MAX_BANK_DEG = 15;
+	constexpr float MAX_MOVE_SPEED = 64.0f;
+	constexpr float FLY_UP_SPEED = 40.0f;
+	constexpr float FLY_DOWN_SPEED = 40.0f;
+
+	constexpr int SECTOR_SIZE = 1024;
+	constexpr float EVADE_RAISE_HEIGHT = SECTOR_SIZE * 1.5f; // ~1.5 BLOCK, Aufstieg beim Evaden, damit das Heck den Boden nicht berührt
+	constexpr float HOVER_HEIGHT_OFFSET = SECTOR_SIZE * 2.0f; // Heli schwebt ~1.5 Sektoren über dem Ziel, damit er beim Schießen nach unten zielen kann
+	constexpr float EVADE_OVERFLY_HEIGHT = SECTOR_SIZE * 3.0f; // Overfly: Heli steigt so weit ueber Lara, dass Rumpf-Heck frei bleibt
+	constexpr float MOVE_TARGET_REACH_RADIUS = SECTOR_SIZE * 0.5f; // moveTargetPos: One-Shot-Radius (horizontal), danach wird der Escape-/MoveTarget-Zustand geleert
+	constexpr float ESCAPE_EXCLUDE_RADIUS = SECTOR_SIZE * 2.0f; // Ausschlussradius: das zuletzt fehlgeschlagene Escapetarget wird bei der Neu-Suche nicht erneut gewaehlt
+	constexpr int MAX_ESCAPE_FRAMES = 280; // Auto-Escape: max. Frames, bevor der Escape-Flug aufgegeben wird (Kampf wird fortgesetzt)
+	constexpr int LOS_TEST_INTERVAL = FPS; // ~1 Sekunde: Throttling des teuren LOS-Tests Heli->Shoot-Target (gilt fuer alle Distanzen)
 
 	// Helper: Bestimmt den aktuellen Status basierend auf Distanz und Kollisionen
 	GunShipState DetermineGunShipState(const ItemInfo& item, float horizontalDistance, bool hasMoveTargetPos)
@@ -674,6 +686,12 @@ namespace TEN::Entities::Creatures::TR5
 
 		SoundEffect(SFX_TR4_HELICOPTER_LOOP, &item->Pose);
 
+		if (item->ItemFlags[0] == (short)GunshipMode::Normal)
+		{
+			ControlOriginalGunShip(itemNumber);
+			return;
+		}
+
 		int shootTargetNum = PropertyHandler::Get(*item, PropName_EnemyTarget, LaraItem->Index);
 		bool hasShootTarget = (shootTargetNum >= 0);
 
@@ -733,26 +751,26 @@ namespace TEN::Entities::Creatures::TR5
 		int prevStates = item->ItemFlags[4];
 		int inertiaTimer = item->ItemFlags[5];
 
-		if (prevStates != (int)currentState && item->ItemFlags[7] == 0)
+		if (prevStates != (int)currentState && !item->ItemFlags[7])
 		{
 			inertiaTimer = INERTIA_FRAMES;
 			item->ItemFlags[4] = (int)currentState;
 			item->ItemFlags[5] = INERTIA_FRAMES;
 		}
 
-		if (currentState == GunShipState::EVADE_NEAR && item->ItemFlags[7] == 0 && horizontalDist < SECTOR_SIZE * 3 && yDiff >= -SECTOR_SIZE * 6)
+		if (currentState == GunShipState::EVADE_NEAR && !item->ItemFlags[7] && horizontalDist < SECTOR_SIZE * 3 && yDiff >= -SECTOR_SIZE * 6)
 			item->ItemFlags[7] = 1;
 
 		// Evade abgeschlossen (Heli wieder ausserhalb der Schussreichweite) -> Evade-Flag zuruecksetzen.
 		// Sonst schaltet der Heli in Reichweite nie sauber in IDLE (FOLLOW/EVADE-Loop).
-		if (item->ItemFlags[7] == 1 && horizontalDist > maxShotsRange && currentState != GunShipState::EVADE_NEAR)
+		if (item->ItemFlags[7] && horizontalDist > maxShotsRange && currentState != GunShipState::EVADE_NEAR)
 		{
 			item->ItemFlags[7] = 0;
 			inertiaTimer = 0;
 			item->ItemFlags[5] = 0;
 		}
 
-		if (item->ItemFlags[7] == 1 && currentState != GunShipState::ESCAPE)
+		if (item->ItemFlags[7] && currentState != GunShipState::ESCAPE)
 			currentState = GunShipState::EVADE_NEAR;
 
 		// LOS-basiertes Warten: Der Heli setzt nur nach/angreift (FOLLOW/IDLE), wenn er freie Sicht auf
@@ -760,7 +778,7 @@ namespace TEN::Entities::Creatures::TR5
 		// EVADE_NEAR bleibt unberuehrt (Escape-Pfad erhalten). Gilt fuer alle Distanzen (auch auesserhalb
 		// der Schussdistanz); Performance via Throttling ~1x/Sek. (teure Abfrage, gecacht).
 		bool engaging = (currentState == GunShipState::FOLLOW || currentState == GunShipState::IDLE);
-		if (engaging && hasShootTarget && shootTargetNum >= 0 && !GetGunShipLosToShootTarget(*item, shootTargetNum))
+			if (engaging && hasShootTarget && shootTargetNum >= 0 && !GetGunShipLosToShootTarget(*item, shootTargetNum))
 			currentState = GunShipState::IDLE;
 
 		// Lara taucht (unter Wasser, WaterStatus::Underwater) -> Heli haelt in IDLE und
@@ -768,7 +786,7 @@ namespace TEN::Entities::Creatures::TR5
 		if (engaging && hasShootTarget && shootTargetNum >= 0 && Lara.Control.WaterStatus == WaterStatus::Underwater)
 			currentState = GunShipState::IDLE;
 
-		float currentYSpeed = (float)item->ItemFlags[6] / FLOATING_POINT_SCALE;
+		float currentYSpeed = item->ItemFlags[6] / 100.0f; // x100 (x1000 wuerde das short ueberlaufen)
 		const float yLerpAlpha = 1.0f / powf(2.0f, MOVEMENT_LERP_SPEED);
 		const int minYDiff = SECTOR_SIZE;
 
@@ -849,8 +867,8 @@ namespace TEN::Entities::Creatures::TR5
 			item->ItemFlags[5] = inertiaTimer;
 		}
 
-		// Pitch aus ItemFlags[1]
-		float currentPitch = (float)item->ItemFlags[1] / FLOATING_POINT_SCALE;
+		// Pitch aus Laufzeitdaten
+		float currentPitch = item->ItemFlags[1] / 1000.0f; // Rad x1000
 
 		// pitchRatio für Geschwindigkeit berechnen
 		float pitchRatio = fabsf(currentPitch) / ((float)MAX_PITCH_DEG * DEG_TO_RAD(1.0f));
@@ -981,7 +999,6 @@ namespace TEN::Entities::Creatures::TR5
 			const GunShipState blockedState = currentState;
 
 			currentSpeed = 0.0f;
-			item->ItemFlags[3] = 0;
 
 			currentState = GunShipState::IDLE;
 
@@ -1018,14 +1035,12 @@ namespace TEN::Entities::Creatures::TR5
 			{
 				// Kollision behoben -> in IDLE warten bis Ziel wieder in Reichweite
 				currentState = GunShipState::IDLE;
-				item->ItemFlags[3] = 0; // targetSpeed = 0
 			}
 			else
 			{
 				// Noch immer geblockt -> keine Bewegung
 				currentState = GunShipState::IDLE;
 				currentSpeed = 0.0f;
-				item->ItemFlags[3] = 0;
 			}
 		}
 
@@ -1132,14 +1147,14 @@ namespace TEN::Entities::Creatures::TR5
 			const float pitchLerpAlpha = 1.0f / powf(2.0f, PITCH_LERP_SPEED);
 			const float bankLerpAlpha = 1.0f / powf(2.0f, BANK_LERP_SPEED);
 
-			float currentPitch = (float)item->ItemFlags[1] / FLOATING_POINT_SCALE;
-			float currentBankAngle = (float)item->ItemFlags[2] / FLOATING_POINT_SCALE;
+			float currentPitch = item->ItemFlags[1] / 1000.0f; // Rad x1000
+			float currentBankAngle = item->ItemFlags[2] / 1000.0f; // Rad x1000
 
 			currentPitch += (pitchTarget - currentPitch) * pitchLerpAlpha;
 			currentBankAngle += (bankTarget - currentBankAngle) * bankLerpAlpha;
 
-			item->ItemFlags[1] = (int)(currentPitch * FLOATING_POINT_SCALE);
-			item->ItemFlags[2] = (int)(currentBankAngle * FLOATING_POINT_SCALE);
+			item->ItemFlags[1] = (short)(currentPitch * 1000.0f);
+			item->ItemFlags[2] = (short)(currentBankAngle * 1000.0f);
 
 			if (!isMoving)
 			{
@@ -1148,8 +1163,8 @@ namespace TEN::Entities::Creatures::TR5
 				{
 					currentPitch *= 0.95f;
 					currentBankAngle *= 0.95f;
-					item->ItemFlags[1] = (int)(currentPitch * FLOATING_POINT_SCALE);
-					item->ItemFlags[2] = (int)(currentBankAngle * FLOATING_POINT_SCALE);
+					item->ItemFlags[1] = (short)(currentPitch * 1000.0f);
+					item->ItemFlags[2] = (short)(currentBankAngle * 1000.0f);
 				}
 
 				if (fabsf(currentYSpeed) > 0.1f)
@@ -1159,7 +1174,7 @@ namespace TEN::Entities::Creatures::TR5
 			}
 
 			float lerpAlpha = 1.0f / powf(2.0f, 3);
-			if (item->ItemFlags[0] == 1)
+			if (GunShip.FireFrameCounter == 1)
 				lerpAlpha = 1.0f;
 
 			EulerAngles orientResult = targetOrient;
@@ -1174,7 +1189,7 @@ namespace TEN::Entities::Creatures::TR5
 			if (GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &item->RoomNumber) != nullptr)
 				GetCeiling(GetFloor(item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z, &item->RoomNumber), item->Pose.Position.x, item->Pose.Position.y, item->Pose.Position.z);
 
-			item->ItemFlags[0]++;
+			GunShip.FireFrameCounter++;
 
 			CollisionInfo coll{};
 			auto collObjects = GetCollidedObjects(*item, true, true);
@@ -1209,24 +1224,29 @@ namespace TEN::Entities::Creatures::TR5
 			// Muenze-Blitz (MeshBit) solange Feuer moeglich.
 			if (canFire)
 			{
-				if (item->ItemFlags[0] > FIRE_RATE)
+				if (GunShip.FireFrameCounter > FIRE_RATE)
 					item->MeshBits |= 0x100;
 				else
 					item->MeshBits &= 0xFEFF;
 			}
 
 			// Ein Schuss alle FIRE_RATE Frames (nach Anfangsverzoegerung).
-			if (canFire && (GlobalCounter % FIRE_RATE) == 0 && item->ItemFlags[0] > FIRE_RATE)
+			if (canFire && (GlobalCounter % FIRE_RATE) == 0 && GunShip.FireFrameCounter > FIRE_RATE)
 				FireShot(item, muzzlePos, fireOrientation, maxShotsRange, GUNSHIP_DAMAGE, LaraWeaponType::HK, SFX_TR4_HK_FIRE);
 		}
 		// Not in range: ensure flash is cleared.
 		else
 			item->MeshBits &= 0xFEFF;
 
-			// Y-Geschwindigkeit immer mit FLOATING_POINT_SCALE persistieren (ItemFlags[6] wird mit /FLOATING_POINT_SCALE gelesen).
-			item->ItemFlags[6] = (int)(currentYSpeed * FLOATING_POINT_SCALE);
+			// Y-Geschwindigkeit pro Heli persistieren (naechsten Frame als Startwert gelesen).
+			item->ItemFlags[6] = (short)(currentYSpeed * 100.0f); // x100 (x1000 wuerde das short ueberlaufen)
 
 			AnimateItem(item);
 		}
+	}
+
+	void ControlOriginalGunShip(short itemNumber)
+	{
+
 	}
 }
