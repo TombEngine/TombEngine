@@ -650,7 +650,7 @@ namespace TEN::Renderer
 		SetBlendMode(objectInfo->BlendMode);
 		SetAlphaTest(AlphaTestMode::GreatherThan, ALPHA_TEST_THRESHOLD);
 
-		BindBucketTextures(*objectInfo->Bucket, TextureSource::Statics, objectInfo->Bucket->Animated);
+		BindBucketTextures(*objectInfo->Bucket, TextureSource::Moveables, objectInfo->Bucket->Animated);
 		BindMaterial(objectInfo->Bucket->MaterialIndex, false);
 
 		DrawIndexedInstancedTriangles(count, 1, baseIndex, 0);
