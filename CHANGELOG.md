@@ -59,6 +59,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed original bug with inactive SQUISHY_BLOCK_VERTICAL killing player.
 * Fixed incorrect application of LARA_DOUBLE damage after using medipacks.
 * Fixed BADDY1 / BADDY2 not monkey-swinging.
+* Fixed GUARD with OCB 4 incorrectly alerting other guards while sleeping.
 * Fixed BURNING_FLOOR, ELEMENTAL_PUZZLE and SCALES.
 * Fixed MINECART_SWITCH object not working.
 * Fixed JUMP_SWITCH not activating event sets.
@@ -69,6 +70,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed SOPHIA_LEIGH_BOSS pathfinding and knockback effect.
 * Fixed ROLLINGBALL falling through walls in some remaining cases.
 * Fixed TEETH_SPIKES behaviour for OCB 1 and move static TR1-3 mode to pre-activated trigger bit flags.
+* Fixed SHOOT_SWITCH2 shattering without OCB 444.
 * Fixed empty linear inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed PC_LOAD_INV_ITEM and PC_SAVE_INV_ITEM presence in the inventory affecting quickload and quicksave hotkey functionality.
@@ -84,9 +86,13 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed clipping into underwater pushable objects while swimming upwards from the bottom.
 * Fixed running jumps being stopped when platforming near steep slopes.
 * Fixed incorrect slide directions and projectile physics around steep slopes.
+* Fixed pickup of underwater items in vertically narrow passages.
+* Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
+* Fixed flares being selected from inventory whilst riding the kayak.
+* Fixed kayak paddle and minecart wrench not being drawn when starting a level.
+* Fixed slow turning on parallel bars while holding the left or right key.
 * Fixed incorrect renderer statistics in the linear inventory.
 * Fixed fades and cinematic bars not progressing in the freeze mode.
-* Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
 * Fixed an issue where the storm effect would stop producing lightning over time.
 * Fixed incorrect aspect ratio when resizing the window in windowed mode.
 * Fixed title level selection dialog not scrolling offscreen entries.
@@ -94,9 +100,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed UI bars being affected by the postprocess mode.
 * Fixed Z-fighting on DisplayItems.
 * Fixed crashes when shooting if the gunflash object is missing.
-* Fixed vertex move effect speed in water rooms while turning camera on the x-axis
-* Fixed flares being selected from inventory whilst riding the kayak.
-* Fixed kayak paddle and minecart wrench not being drawn when starting a level.
+* Fixed vertex move effect speed in water rooms while turning camera on the x-axis.
 
 ### Lua API changes
 

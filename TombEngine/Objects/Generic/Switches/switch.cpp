@@ -22,10 +22,12 @@ void ProcessShootSwitch(ItemInfo* item)
 	if (item->Flags & IFLAG_SWITCH_ONESHOT)
 		return;
 
-	if (item->ObjectNumber == ID_SHOOT_SWITCH1 || item->ObjectNumber == ID_SHOOT_SWITCH2)
+	bool isLegacyShootSwitch = item->ObjectNumber == ID_SHOOT_SWITCH2 && item->TriggerFlags == 444;
+
+	if (item->ObjectNumber == ID_SHOOT_SWITCH1 || isLegacyShootSwitch)
 		ExplodeItemNode(item, Objects[item->ObjectNumber].nmeshes - 1, 0, 64);
 
-	if (item->ObjectNumber == ID_SHOOT_SWITCH2 && item->TriggerFlags == 444)
+	if (isLegacyShootSwitch)
 	{
 		auto pos = GetJointPosition(item, 0);
 		TestTriggers(pos.x, pos.y, pos.z, item->RoomNumber, true);
