@@ -387,15 +387,10 @@ namespace TEN::Collision::Floordata
 	// NOTE: Tilts are deprecated, but until all conversions are complete this function will remain useful.
 	Vector2i GetSurfaceTilt(const Vector3& normal, bool isFloor)
 	{
-		// Scale normal to original fake plane length.
-		float scaleFactor = 1.0f / normal.y;
-		auto scaledNormal = normal * scaleFactor;
-
-		// Calculate and return tilt.
-		auto sign = isFloor ? 1 : -1;
+		auto sign = isFloor ? -1 : 1;
 		return Vector2i(
-			(round(scaledNormal.x) * 4),
-			(round(scaledNormal.z) * 4)) * sign;
+			(round(normal.x) * 4),
+			(round(normal.z) * 4)) * sign;
 	}
 
 	Vector3i GetNearestSectorCenter(const Vector3i& pos)
