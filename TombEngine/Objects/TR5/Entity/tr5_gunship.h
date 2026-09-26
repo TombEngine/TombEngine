@@ -2,10 +2,19 @@
 
 #include "Game/items.h"
 
+enum class LaraWeaponType : int;
+
 namespace TEN::Entities::Creatures::TR5
 {
 	void InitializeGunShip(short itemNumber);
 	void ControlGunShip(short itemNumber);
+
+	// Feuersperre: Kann der Schuetzer von der Muenze aus feuern? (Ziel in der Schusslinie, eigenes Item wird uebersprungen.)
+	bool CanFireShot(ItemInfo* shooter, const Vector3& muzzlePos, const EulerAngles& orientation, float range);
+
+	// Ein kompletter Schuss (Hitscan): Feuersperre + Schall + Muenzen-Effekte (Licht/Huelse/Rauch) +
+	// Tracer + Schuss-Ray mit Treffer-Aufloesung (Static: Schaden/Zerbrechen, Item: Schaden, Wand: Ricochet).
+	void FireShot(ItemInfo* shooter, const Vector3& muzzlePos, const EulerAngles& orientation, float range, int damage, LaraWeaponType weaponType, int sfxID);
 
 	struct GunShipStateInfo
 	{

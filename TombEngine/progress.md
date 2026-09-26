@@ -1,9 +1,25 @@
 # Progress
 
 ## Current Task
-**Bullet Tracer – Distance-based Speed + Layered Traces (2026-09-25):** Speed skaliert linear mit Distanz (2Bl=160k, 20Bl=800k raw). Smoke 85%, Dust 70% des Bullet-Speeds. Offsets: Smoke 0.15Bl, Dust 0.15Bl hinter Bullet. `midOffset = distance * 0.5f` (kommentiert aus, Base-Offset aktiv).
+**Gunship Fire-Rate (2026-09-26):** Burst-/Phasen-Bug behoben (Bitmaske → Modulo). Nächster Schritt: Nutzer testet im Spiel. Danach: zweiter Gunship-Modus.
 
 ## Completed Work
+- **Gunship Fire-Rate – Burst-Bug behoben (2026-09-26):**
+  - **Symptom:** Heli feuerte in Phasen: ein paar Bolts, kurze Pause, Burst. Mit `FIRE_RATE=5`: 4er-Burst alle 8 Frames. Mit dem Original-`FIRE_RATE=30` war es ein 2er-Burst alle 32 Frames — **Bug war also schon vor der FIRE_RATE-Änderung da**.
+  - **Root Cause:** `!(GlobalCounter & (FIRE_RATE - 1))` ist eine Bitmaske und liefert nur dann exakt 1 Frame pro N, wenn FIRE_RATE eine 2er-Potenz ist (Maske = durchgehende Low-Bits). Bei 5 → Maske `0b100` (nur Bit 2) → 4 von 8 Frames offen; bei 30 → Maske `0b11101` (Bit 1 fehlt) → GC mod 32 ∈ {0,2} offen.
+  - **Fix:** `tr5_gunship.cpp` Zeile 1219 → `(GlobalCounter % FIRE_RATE) == 0` — funktioniert für jeden N-Wert (exakt 1 Schuss pro N Frames). `FIRE_RATE=5` = saubere 6 Schüsse/Sek, keine Phasen.
+  - **Nutzer-Tuning (eingeflossen):** `FIRE_RATE` = 5 (war 30); 1/4-Zufalls-Gates vor `TriggerGunShellAt` und `TriggerBulletTracer` in `FireShot` entfernt → **1 Schuss = 1 Hülse = 1 Tracer** (veralteter Kommentar "Huelse (1/4)" korrigiert).
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage).
+- **Gunship FireShot/CanFireShot – Schussmechanik extrahiert (2026-09-26):**
+  - Ziel: Gunship-Hitscan-Schuss für einen zweiten (geplanten) Gunship-Modus wiederverwendbar machen; Funktionen im `tr5_gunship`-Modul (kein neues Game-Modul, keine anderen Objects).
+  - `tr5_gunship.h`: Forward-Decl `enum class LaraWeaponType : int;` (global, wie `tomb4fx.h`) + Deklarationen `CanFireShot` und `FireShot` (Namespace `TEN::Entities::Creatures::TR5`).
+  - `tr5_gunship.cpp` (vor `ControlGunShip` eingefügt):
+    - `bool CanFireShot(ItemInfo* shooter, const Vector3& muzzlePos, const EulerAngles& orientation, float range)` – Feuersperre: Mündungs-Ray (`GetLosCollision`, `collidePlayer=true`, Self-Skip, `Collidable` umgeschaltet), true bei Item/Static in der Linie.
+    - `void FireShot(ItemInfo*, muzzlePos, orientation, float range, int damage, LaraWeaponType weaponType, int sfxID)` – ein kompletter Schuss: Gate (Early-Return) + Schall (`SoundEffect(sfxID, ...)`, `SoundEnvironment::Land`, 0.8) + Mündungseffekte (Dynamic-Light, Hülse 1/4, Rauch) + Tracer (1/4) + Schuss-Ray (Aim-Spread `BLOCK(0.2f)`, Distanz `range*2`) + Treffer-Auflösung (Static: Damage + Shatter (`ShatterObject`, `GetShatterSound`), Item: `DoDamage` (Lara/Kreatur), Wand: Ricochet).
+  - `ControlGunShip`: ~180 Zeilen Schusscode (alte Zeilen 1053–1230) → ~25 Zeilen: Range-Check, Mündung Joint 8, Fire-Orientierung `Orientation.x + ANGLE(8.0f)` und MeshBit-Flash (`0x100`) bleiben beim Caller (Semantik unverändert); `FireShot` wird feuerrate-gegated aufgerufen (`!(GlobalCounter & (FIRE_RATE-1))`, `ItemFlags[0] > FIRE_RATE`).
+  - **Verhaltensänderung (bewusst, im Plan abgestimmt):** Mündungseffekte + Ray + Damage laufen jetzt pro Schuss (alle `FIRE_RATE=30` Frames ≈ 2/Sek) statt pro Frame (zuvor ≈ 30/Sek). Sound- und Flash-Semantik identisch.
+  - Verifiziert: `git diff` zeigt nur die intendierten Änderungen (167 insertions / 170 deletions, 1237 → 1234 Zeilen); keine doppelten Leerzeilen; Tabs/Indentation intakt; UTF-8 ohne BOM + CRLF beibehalten.
+  - **Nicht kompiliert** (Regel: Build nur auf Anfrage; Build-Errors meldet der Nutzer).
 - **Delayed Ricochet/Decal (2026-09-25):**
   - `effects.h`: Bullet-Tracer-Konstanten (constexpr) + `TriggerRicochetSpark(..., int delayFrames = 0)` + `GetBulletTravelFrames(float distance)`.
   - `effects.cpp`: Pending-Ricochet-Queue (16 Slots), `UpdatePendingRicochets()` in `UpdateSparks()`, `GetBulletTravelFrames()` nutzt `BULLET_SPARK_SPEED` direkt.

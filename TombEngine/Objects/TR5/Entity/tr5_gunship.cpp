@@ -43,7 +43,7 @@ namespace TEN::Entities::Creatures::TR5
 
 	// Konstanten für Verhalten
 	constexpr int ROTOR_ACTIVE_THRESHOLD = 15;
-	constexpr int FIRE_RATE = 30;
+	constexpr int FIRE_RATE = 2;
 	constexpr int GUNSHIP_DAMAGE = 20; // Damage dealt by gunship to Lara when shooting
 
 	constexpr float MOVEMENT_LERP_SPEED = 4.0f;
@@ -525,6 +525,141 @@ namespace TEN::Entities::Creatures::TR5
 		if (pitch < 0.0f)
 			pitch = 0.0f;
 		return pitch;
+	}
+
+	// Feuersperre: Kann der Schuetzer von der Muenze aus feuern?
+	// true = Ein Ziel (Item/Static) liegt in der Schusslinie (eigenes Item wird uebersprungen).
+	bool CanFireShot(ItemInfo* shooter, const Vector3& muzzlePos, const EulerAngles& orientation, float range)
+	{
+		auto rot = orientation.ToRotationMatrix();
+		Vector3 aimed = muzzlePos + Vector3::Transform(Vector3(0.0f, -512.0f, -range * 2), rot);
+		auto dir = aimed - muzzlePos;
+		float dist = dir.Length();
+		dir.Normalize();
+
+		shooter->Collidable = false;
+		auto los = GetLosCollision(muzzlePos, shooter->RoomNumber, dir, dist, true, false, true, true);
+		shooter->Collidable = true;
+
+		for (auto& itemLos : los.Items)
+		{
+			if (itemLos.Item == shooter)
+				continue;
+			return true;
+		}
+
+		return !los.Statics.empty();
+	}
+
+	// Ein kompletter Schuss (Hitscan): Feuersperre + Schall + Muenzen-Effekte (Licht/Huelse/Rauch) +
+	// Tracer + Schuss-Ray mit Treffer-Aufloesung (Static: Schaden/Zerbrechen, Item: Schaden, Wand: Ricochet).
+	void FireShot(ItemInfo* shooter, const Vector3& muzzlePos, const EulerAngles& orientation, float range, int damage, LaraWeaponType weaponType, int sfxID)
+	{
+		if (!CanFireShot(shooter, muzzlePos, orientation, range))
+			return;
+
+		// Schall.
+		SoundEffect(sfxID, &shooter->Pose, SoundEnvironment::Land, 0.8f);
+
+		// Muenzen-Effekte: Licht, Huelse, Rauch.
+		auto lightColor = Vector3(Random::GenerateFloat(0.75f, 0.85f), Random::GenerateFloat(0.5f, 0.6f), 0.0f) * 255;
+		SpawnDynamicLight(muzzlePos.x, muzzlePos.y, muzzlePos.z, 10, lightColor.x, lightColor.y, lightColor.z);
+
+		TriggerGunShellAt(Vector3i(muzzlePos.x, muzzlePos.y, muzzlePos.z), shooter->RoomNumber, ID_GUNSHELL, weaponType);
+
+		TriggerGunSmoke(muzzlePos.x, muzzlePos.y, muzzlePos.z, 0, 0, 0, 0, weaponType, 16);
+
+		// Schuss-Ray: Aim-Spread um die Forward-Richtung, Distanz = doppelte Reichweite.
+		const float aimSpread = BLOCK(0.2f); // 512 World-Units = 0.5 BLOCK
+		auto rot = orientation.ToRotationMatrix();
+		auto origin = GameVector(muzzlePos, shooter->RoomNumber);
+
+		float spreadX = Random::GenerateFloat(-aimSpread, aimSpread);
+		float spreadY = Random::GenerateFloat(-aimSpread, aimSpread);
+		float spreadZ = Random::GenerateFloat(-aimSpread, aimSpread);
+		Vector3 aimedPos = muzzlePos + Vector3::Transform(Vector3(spreadX, spreadY, spreadZ) + Vector3(0.0f, 0.0f, -range * 2), rot);
+
+		auto shotDir = aimedPos - muzzlePos;
+		float shotDist = shotDir.Length();
+		shotDir.Normalize();
+
+		shooter->Collidable = false;
+		auto shotLos = GetLosCollision(muzzlePos, shooter->RoomNumber, shotDir, shotDist, true, false, true, true);
+		shooter->Collidable = true;
+
+		TriggerBulletTracer(origin, GameVector(aimedPos, shooter->RoomNumber));
+
+		// Naechsten Treffer bestimmen (eigenes Item ueberspringen).
+		float bestDist = shotDist;
+		bool hitIsItem = false;
+		ItemInfo* hitItem = nullptr;
+		StaticMesh* hitStatic = nullptr;
+		Vector3 hitPos = Vector3::Zero;
+
+		for (auto& itemLos : shotLos.Items)
+		{
+			if (itemLos.Item == shooter)
+				continue;
+			if (itemLos.Distance < bestDist)
+			{
+				bestDist = itemLos.Distance;
+				hitIsItem = true;
+				hitItem = itemLos.Item;
+				hitPos = itemLos.Position;
+			}
+		}
+
+		for (auto& staticLos : shotLos.Statics)
+		{
+			if (staticLos.Distance < bestDist)
+			{
+				bestDist = staticLos.Distance;
+				hitIsItem = false;
+				hitStatic = staticLos.Static;
+				hitPos = staticLos.Position;
+			}
+		}
+
+		bool hasHit = (hitItem != nullptr || hitStatic != nullptr);
+
+		if (hasHit)
+		{
+			if (!hitIsItem)
+			{
+				// Static-Mesh getroffen.
+				auto* mesh = hitStatic;
+				int slot = mesh->Slot;
+
+				if (Statics[slot].shatterType != ShatterType::None)
+				{
+					mesh->HitPoints -= damage;
+					ShatterImpactData.impactDirection = Vector3(0, 0, 0);
+					ShatterImpactData.impactLocation = hitPos;
+					int shatterRoomNumber = FindRoomNumber(Vector3i(hitPos), mesh->RoomNumber, true);
+					ShatterObject(nullptr, mesh, 128, shatterRoomNumber, 0);
+					SoundEffect(GetShatterSound(slot), &mesh->Pose);
+				}
+
+				GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
+				TriggerRicochetSpark(impactPos, Random::GenerateAngle());
+			}
+			else
+			{
+				// Item getroffen (Kreatur oder Objekt).
+				if (hitItem->Index == LaraItem->Index || hitItem->IsCreature())
+					DoDamage(hitItem, damage);
+
+				GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
+				TriggerRicochetSpark(impactPos, Random::GenerateAngle());
+			}
+		}
+		else if (shotLos.Room.IsIntersected)
+		{
+			// Raum-Geometrie getroffen (Wand/Boden/Decke) -> Ricochet an der Trefferstelle.
+			hitPos = shotLos.Room.Position;
+			GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, shotLos.Room.RoomNumber);
+			TriggerRicochetSpark(impactPos, Random::GenerateAngle());
+		}
 	}
 
 	void ControlGunShip(short itemNumber)
@@ -1050,182 +1185,42 @@ namespace TEN::Entities::Creatures::TR5
 					ItemPushStatic(item, *staticMesh, &coll);
 			}
 
-			int shootHdx = 0.0f, shootHdz = 0.0f, shootHLen = 0.0f;
-			if (hasShootTarget && shootTargetNum >= 0)
-			{
-				shootHdx = g_Level.Items[shootTargetNum].Pose.Position.x - item->Pose.Position.x;
-				shootHdz = g_Level.Items[shootTargetNum].Pose.Position.z - item->Pose.Position.z;
-				shootHLen = sqrtf(shootHdx * shootHdx + shootHdz * shootHdz);
-			}
+		int shootHdx = 0.0f, shootHdz = 0.0f, shootHLen = 0.0f;
+		if (hasShootTarget && shootTargetNum >= 0)
+		{
+			shootHdx = g_Level.Items[shootTargetNum].Pose.Position.x - item->Pose.Position.x;
+			shootHdz = g_Level.Items[shootTargetNum].Pose.Position.z - item->Pose.Position.z;
+			shootHLen = sqrtf(shootHdx * shootHdx + shootHdz * shootHdz);
+		}
 
-			// Waehrend eines MoveTarget/Escape-Flugs NICHT auf das Shoot-Target feuern (Heli fliegt dorthin, statt zu angreifen).
+		// Waehrend eines MoveTarget/Escape-Flugs NICHT auf das Shoot-Target feuern (Heli fliegt dorthin, statt zu angreifen).
 		const bool hasShootTargetInRange = hasShootTarget && !hasMoveTargetPos && shootHLen <= maxShotsRange;
-		
 
-			if (hasShootTargetInRange)
+		if (hasShootTargetInRange)
+		{
+			// Muenze (Waffen-Neck-Joint 8) + Feuer-Orientierung (leichtes Nicken nach unten).
+			auto muzzleJoint = GetJointPosition(item, 8, Vector3i::Zero);
+			auto muzzlePos = muzzleJoint.ToVector3();
+			auto fireOrientation = EulerAngles(item->Pose.Orientation.x + ANGLE(8.0f), item->Pose.Orientation.y, item->Pose.Orientation.z);
+
+			// Feuersperre: Nur abfeuern, wenn ein Ziel (Lara/Static) in der Schusslinie ist und keine Wand dazwischen.
+			bool canFire = CanFireShot(item, muzzlePos, fireOrientation, maxShotsRange);
+
+			// Muenze-Blitz (MeshBit) solange Feuer moeglich.
+			if (canFire)
 			{
-				// Feuersperre: nur abfeuern, wenn ein Ziel (Lara/Static) in der Schusslinie ist und keine Wand dazwischen.
-				auto gateMuzzle = GetJointPosition(item, 8, Vector3i::Zero);
-				auto gateOriginVec = gateMuzzle.ToVector3();
-				auto gateRot = EulerAngles(item->Pose.Orientation.x + ANGLE(8.0f), item->Pose.Orientation.y, item->Pose.Orientation.z).ToRotationMatrix();
-				Vector3 gateAimed = gateMuzzle.ToVector3() + Vector3::Transform(Vector3(0.0f, -512.0f, -maxShotsRange * 2), gateRot);
-				auto gateDir = gateAimed - gateOriginVec;
-				float gateDist = gateDir.Length();
-				gateDir.Normalize();
-
-				item->Collidable = false;
-				auto gateLos = GetLosCollision(gateOriginVec, item->RoomNumber, gateDir, gateDist, true, false, true, true);
-				item->Collidable = true;
-
-				bool canFire = false;
-				for (auto& itemLos : gateLos.Items)
-				{
-					if (itemLos.Item == item)
-						continue;
-					canFire = true;
-					break;
-				}
-				if (!canFire)
-				{
-					for (auto& staticLos : gateLos.Statics)
-					{
-						canFire = true;
-						break;
-					}
-				}
-
-				// Sound for gunfire + gun flash visual (nur beim Abfeuern).
-				if (canFire)
-				{
-					if (!(GlobalCounter & (FIRE_RATE - 1)) && item->ItemFlags[0] > FIRE_RATE)
-						SoundEffect(SFX_TR4_HK_FIRE, &item->Pose, SoundEnvironment::Land, 0.8f);
-
-					if (item->ItemFlags[0] > FIRE_RATE)
-						item->MeshBits |= 0x100;
-					else
-						item->MeshBits &= 0xFEFF;
-				}
-
-				// Use mesh 8 (gun neck) joint as muzzle point.
-				auto muzzleJoint = GetJointPosition(item, 8, Vector3i::Zero);
-				auto flashPos = muzzleJoint.ToVector3();
-
-				if (canFire)
-				{
-					auto lightColor = Vector3(Random::GenerateFloat(0.75f, 0.85f), Random::GenerateFloat(0.5f, 0.6f), 0.0f) * 255;
-					SpawnDynamicLight(flashPos.x, flashPos.y, flashPos.z, 10, lightColor.x, lightColor.y, lightColor.z);
-
-					auto weaponType = LaraWeaponType::HK;
-					// Spawn gun shell effect at the muzzle using generic function.
-					if (Random::TestProbability(1.0f / 4.0f))
-					TriggerGunShellAt(Vector3i(flashPos.x, flashPos.y, flashPos.z), item->RoomNumber, ID_GUNSHELL, weaponType);
-					TriggerGunSmoke(flashPos.x, flashPos.y, flashPos.z, 0, 0, 0, 0, weaponType, 16);
-				}
-
-				// Determine line of sight from the muzzle.
-				// Apply a small forward offset so that the gunships own hitbox does not block LOS.
-				const float aimSpread = BLOCK(0.2f); // 512 world units ≈ 0.5 BLOCK
-
-				auto rotMatrix = EulerAngles(item->Pose.Orientation.x + ANGLE(8.0f), item->Pose.Orientation.y, item->Pose.Orientation.z).ToRotationMatrix();
-
-				// Use the offset position as LOS origin.
-				auto origin = GameVector(flashPos, item->RoomNumber);
-
-				// Apply aim spread (horizontal) around that forward point.
-				float spreadX = Random::GenerateFloat(-aimSpread, aimSpread);
-				float spreadY = Random::GenerateFloat(-aimSpread, aimSpread);
-				float spreadZ = Random::GenerateFloat(-aimSpread, aimSpread);
-				Vector3 aimedPos = flashPos + Vector3::Transform(Vector3(spreadX, spreadY, spreadZ) + Vector3(0.0f, 0.0f, -maxShotsRange * 2), rotMatrix);
-
-				auto shotDir = aimedPos - flashPos;
-				float shotDist = shotDir.Length();
-
-				shotDir.Normalize();
-				item->Collidable = false;
-				auto shotLos = GetLosCollision(flashPos, item->RoomNumber, shotDir, shotDist, true, false, true, true);
-				item->Collidable = true;
-
-				if (Random::TestProbability(1.0f / 4.0f))
-				TriggerBulletTracer(origin, GameVector(aimedPos, item->RoomNumber));
-				//DrawDebugLine(flashPos, aimedPos, Vector4::One, RendererDebugPage::None);
-
-				// Determine nearest hit (skip self).
-				float bestDist = shotDist;
-				bool hitIsItem = false;
-				ItemInfo* hitItem = nullptr;
-				StaticMesh* hitStatic = nullptr;
-				Vector3 hitPos = Vector3::Zero;
-
-				for (auto& itemLos : shotLos.Items)
-				{
-					if (itemLos.Item == item)
-						continue;
-					if (itemLos.Distance < bestDist)
-					{
-						bestDist = itemLos.Distance;
-						hitIsItem = true;
-						hitItem = itemLos.Item;
-						hitPos = itemLos.Position;
-					}
-				}
-
-				for (auto& staticLos : shotLos.Statics)
-				{
-					if (staticLos.Distance < bestDist)
-					{
-						bestDist = staticLos.Distance;
-						hitIsItem = false;
-						hitStatic = staticLos.Static;
-						hitPos = staticLos.Position;
-					}
-				}
-
-				bool hasHit = (hitItem != nullptr || hitStatic != nullptr);
-
-				if (hasHit)
-				{
-					if (!hitIsItem)
-					{
-						// Hit static mesh.
-						auto* mesh = hitStatic;
-						int slot = mesh->Slot;
-
-						if (Statics[slot].shatterType != ShatterType::None)
-						{
-							mesh->HitPoints -= GUNSHIP_DAMAGE;
-							ShatterImpactData.impactDirection = Vector3(0, 0, 0);
-							ShatterImpactData.impactLocation = hitPos;
-							int shatterRoomNumber = FindRoomNumber(Vector3i(hitPos), mesh->RoomNumber, true);
-							ShatterObject(nullptr, mesh, 128, shatterRoomNumber, 0);
-							SoundEffect(GetShatterSound(slot), &mesh->Pose);
-						}
-
-						GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
-						TriggerRicochetSpark(impactPos, Random::GenerateAngle());
-					}
-					else
-					{
-						// Hit an item (creature or object).
-						if (hitItem->Index == LaraItem->Index || hitItem->IsCreature())
-						{
-							DoDamage(hitItem, GUNSHIP_DAMAGE);
-						}
-
-						GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, origin.RoomNumber);
-						TriggerRicochetSpark(impactPos, Random::GenerateAngle());
-					}
-				}
-				else if (shotLos.Room.IsIntersected)
-				{
-					// Hit room geometry (wall/floor/ceiling) → ricochet at impact point.
-					hitPos = shotLos.Room.Position;
-					GameVector impactPos(hitPos.x, hitPos.y, hitPos.z, shotLos.Room.RoomNumber);
-					TriggerRicochetSpark(impactPos, Random::GenerateAngle());
-				}
-			
+				if (item->ItemFlags[0] > FIRE_RATE)
+					item->MeshBits |= 0x100;
+				else
+					item->MeshBits &= 0xFEFF;
 			}
-			// Not in range – ensure flash is cleared.
-			else
+
+			// Ein Schuss alle FIRE_RATE Frames (nach Anfangsverzoegerung).
+			if (canFire && (GlobalCounter % FIRE_RATE) == 0 && item->ItemFlags[0] > FIRE_RATE)
+				FireShot(item, muzzlePos, fireOrientation, maxShotsRange, GUNSHIP_DAMAGE, LaraWeaponType::HK, SFX_TR4_HK_FIRE);
+		}
+		// Not in range: ensure flash is cleared.
+		else
 			item->MeshBits &= 0xFEFF;
 
 			// Y-Geschwindigkeit immer mit FLOATING_POINT_SCALE persistieren (ItemFlags[6] wird mit /FLOATING_POINT_SCALE gelesen).
