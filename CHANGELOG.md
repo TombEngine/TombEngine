@@ -35,19 +35,18 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added [SPIKED_FRAME](https://tombengine.com/asset/traps/spiked-frame/) object from TR3.
 * Added [SWINGING_IRON_ANCHOR](https://tombengine.com/asset/traps/swinging-iron-anchor/) object from TR3.
 * Added [TUNNEL_BORER](https://tombengine.com/asset/traps/tunnel-borer/) object from TR3.
-* Added SEAL_MUTANT object from TR3.
-* Added BOO_MUTANT object from TR3.
-* Added HYBRID_MUTANT object from TR3.
-* Added OILRED object from TR3.
-* Added WHITE_SOLDIER object from TR3.
-* Added PUNK object from TR3. Object supports properties to configure the flame attack.
+* Added [SEAL_MUTANT / BOO_MUTANT](https://tombengine.com/asset/enemy/seal-mutant/)object from TR3.
+* Added [HYBRID_MUTANT](https://tombengine.com/asset/enemy/hybrid-mutant/) object from TR3.
+* Added [OILRED](https://tombengine.com/asset/enemy/rx-tech-worker-red/) object from TR3.
+* Added [WHITE_SOLDIER](https://tombengine.com/asset/enemy/rx-tech-worker-white/) object from TR3.
+* Added [PUNK](https://tombengine.com/asset/enemy/damned-gang-member/) object from TR3. Object supports properties to configure the flame attack.
 * Added [LONDON_MERCENARY](https://tombengine.com/asset/enemy/london-mercenary/) object from TR3.
 * Added SWAT_GUN object from TR3.
 * Added PRISONER object from TR3.
 * Added [WASP_MUTANT_EMITTER](https://tombengine.com/asset/enemy/wasp/) object from TR3.
 * Added [WILLARD](https://tombengine.com/asset/enemy/willard/)  object from TR3.
 * Added WHALE object from TR3.
-* Added CIVVY object from TR3.
+* Added [CIVVY](https://tombengine.com/asset/enemy/nevada-gang-member/) object from TR3.
 * Added optional headlight mesh support for JEEP, toggled together with the headlight.
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if property is set and when the sound ID 681 (SFX_TR2_SLAM_DOOR_CLOSE) is playing.
 * Added hit sounds for TR1 enemies when shot.
