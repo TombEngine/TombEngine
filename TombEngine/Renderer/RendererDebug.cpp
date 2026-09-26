@@ -36,6 +36,8 @@ namespace TEN::Renderer
 		_numGetVisibleRoomsCalls = 0;
 
 		_numConstantBufferUpdates = 0;
+        _numConstantBufferBytes = 0;
+        _numPerDrawUpdates = 0;
 
 		_numRequestedMaterialsUpdates = 0;
 		_numExecutedMaterialsUpdates = 0;
