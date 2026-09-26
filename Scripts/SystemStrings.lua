@@ -61,6 +61,7 @@ local strings =
 	close = { "Close" },
 	combine = { "Combine" },
 	combine_with = { "Combine With" },
+	compiling_shaders = { "Compiling Shaders" },
 	controls = { "Controls" },
 	decals = { "Weapon Decals" },
 	disabled = { "Disabled" },
