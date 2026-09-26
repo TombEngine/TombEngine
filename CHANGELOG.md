@@ -59,6 +59,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed original bug with inactive SQUISHY_BLOCK_VERTICAL killing player.
 * Fixed incorrect application of LARA_DOUBLE damage after using medipacks.
 * Fixed BADDY1 / BADDY2 not monkey-swinging.
+* Fixed GUARD with OCB 4 incorrectly alerting other guards while sleeping.
 * Fixed BURNING_FLOOR, ELEMENTAL_PUZZLE and SCALES.
 * Fixed MINECART_SWITCH object not working.
 * Fixed JUMP_SWITCH not activating event sets.
@@ -69,6 +70,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed SOPHIA_LEIGH_BOSS pathfinding and knockback effect.
 * Fixed ROLLINGBALL falling through walls in some remaining cases.
 * Fixed TEETH_SPIKES behaviour for OCB 1 and move static TR1-3 mode to pre-activated trigger bit flags.
+* Fixed SHOOT_SWITCH2 shattering without OCB 444.
 * Fixed empty linear inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed PC_LOAD_INV_ITEM and PC_SAVE_INV_ITEM presence in the inventory affecting quickload and quicksave hotkey functionality.
@@ -97,7 +99,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed UI bars being affected by the postprocess mode.
 * Fixed Z-fighting on DisplayItems.
 * Fixed crashes when shooting if the gunflash object is missing.
-* Fixed vertex move effect speed in water rooms while turning camera on the x-axis
+* Fixed vertex move effect speed in water rooms while turning camera on the x-axis.
 
 ### Lua API changes
 
