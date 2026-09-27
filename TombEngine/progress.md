@@ -1,9 +1,40 @@
 # Progress
 
 ## Current Task
-**Gunship State-Architektur (2026-09-26):** FINAL (siehe Completed Work). RomanStatue-Pattern (geteilte globale 'GunShip') + per-Heli-State in ItemFlags; 'ItemFlags[0]' (und [3]) frei und fuer den Nutzer reserviert. Naechster Schritt: Nutzer kompiliert/testet (Build-Errors meldet der Nutzer). Danach: zweiter Gunship-Modus.
+**Gunship Normal-Modus (ControlOriginalGunShip) – Range-Gate (2026-09-27):** Heli feuert jetzt nur noch innerhalb `maxShotsRange` (Distanz Heli→Lara-Hüften; `LM_HIPS` vom Nutzer gewählt), ausserhalb: kein Feuer + MeshBit-Blitz aus. Leading-Aim (3x-Extrapolation) + Schieß-Bug-Fix wie zuvor. Debug-Linie (Zeile 746) noch aktiv – nach Test entfernen. Naechster Schritt: Nutzer kompiliert/testet (Build-Errors meldet der Nutzer).
 
 ## Completed Work
+- **Gunship Normal-Modus – Range-Gate (2026-09-27):**
+  - `tr5_gunship.cpp` `ControlOriginalGunShip`: `inRange = Vector3::Distance(heliPos, laraPos) <= maxShotsRange` → gateet Schuss + Muenze-Blitz (MeshBit 0x100 ein/aus).
+  - Nutzer-Änderung: Ziel-Joint = `LM_HIPS` (Laras Hüften, "passt so").
+  - **Hinweis (offener Punkt):** `GlobalCounter % FIRE_RATE == 0` hat Operator-Precedence-Bug (`==` bindet stärker als `%` → `GlobalCounter % (FIRE_RATE==0)`). Nur bei 2er-Potenz-FIRE_RATE zufällig okay; korrekt wäre `(GlobalCounter % FIRE_RATE) == 0` (Boss-Modus nutzt das).
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage; Build-Errors meldet der Nutzer).
+- **Gunship Normal-Modus – Original-Aim nachgebaut (Option A, 2026-09-27):**
+  - **Ziel:** TR5-Original-Verhalten abbilden – Heli zielt NICHT auf Lara-Origin, sondern auf Lara-Rumpf extrapoliert (Leading-Aim, schießt "vorbei" Lara).
+  - `tr5_gunship.cpp` `ControlOriginalGunShip` (Zeile 728–753):
+    - `laraPos = GetJointPosition(LaraItem, LM_TORSO, randomOffset)` – Lara-Rumpf + Zufalls-Offset (entspricht `pos` im Original; `randomOffset` = `Vector3i(Random::GenerateInt(-255,255) x3)`).
+    - `aimPoint = 3.0f * laraPos - 2.0f * item->Pose.Position.ToVector3()` – Extrapolation 2x ueber Lara hinaus (`3*pos - 2*origin`).
+    - `fireOrientation = GetOrientToPoint(muzzlePos, aimPoint)` + `ANGLE(180.0f)` Flip (damit -Z/Modell-Nase auf aimPoint zeigt).
+    - Debug-Linie `DrawDebugLine(muzzlePos, aimPoint, ...)` (Zeile 746) – **nach Test entfernen**.
+  - **Unverändert:** Bewegung (EMA, Lerp 1/32), MeshBit-Blitz permanent, konditionslos feuern (`GlobalCounter % FIRE_RATE == 0`), `FireShot`/`CanFireShot`-Funktionen, Boss-Modus.
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage; Build-Errors meldet der Nutzer).
+- **Gunship Normal-Modus – "Schießt nicht" behoben (2026-09-27):**
+  - **Root Cause:** `Geometry::GetOrientToPoint` richtet die **+Z**-Achse auf das Ziel, aber `CanFireShot`/`FireShot` schießen in **-Z** (Schuss-Vektor `Vector3(0, -512, -range*2)`). `CanFireShot` (LOS-Check in -Z, weg von Lara) lieferte daher fast immer `false` → Feuer-Counter `ItemFlags[3]` lief gegen unendlich → Feuer-Bedingung `ItemFlags[3] < 15` nie erfüllt → `FireShot` nie aufgerufen.
+  - **Fix (Option A, im Plan abgestimmt):**
+    - `tr5_gunship.cpp` Zeile 733 (Nutzer): `fireOrientation.y += ANGLE(180.0f);` – wie im Boss-Modus (Zeile 1264), damit -Z (Modell-Nase) auf Lara zeigt.
+    - `tr5_gunship.cpp` (Zeile 737–742, mich): `CanFireShot`-Gate + `ItemFlags[3]`-Counter entfernt; Muenze-Blitz (MeshBit 0x100) jetzt permanent; **konditionslos feuern** (`!(GlobalCounter & 1)` = 1 Schuss alle 2 Frames) – Original-Red-Alert-Verhalten.
+    - Header-Kommentar der Funktion (Zeile 681–683) aktualisiert (kein Feuer-Counter mehr, konditionslos).
+  - `CanFireShot`-Funktion + Boss-Modus-Nutzung (Zeile ~1305) unverändert.
+  - Debug-Linie `DrawDebugLine(muzzlePos, playerPos, ...)` (Zeile 735) ist aktiv (vom Nutzer gewünscht) – **nach Test entfernen**.
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage; Build-Errors meldet der Nutzer).
+- **Gunship Normal-Modus (ControlOriginalGunShip) implementiert (2026-09-26):**
+  - **Ziel:** TR5-Original-Gunship (Red-Alert-Verhalten: Heli fliegt zu Lara, schießt) als zweiter Modus (Normal-Modus) in `ControlOriginalGunShip`; Boss-Modus = bestehender Code.
+  - `tr5_gunship.cpp` (vor `ControlGunShip`, Zeile 677): `void ControlOriginalGunShip(short itemNumber)` angelegt.
+    - Bewegung: Lara-Position + Random-Offset, geglattet ueber EMA (`ItemFlags[1,2,4]`); Heli fliegt zu Lara (Lerp 1/32, X/Z je nach `TriggerFlags`).
+    - Schießen: Muenze (Joint 8), Orientierung auf Lara (`Geometry::GetOrientToPoint`), **Spread ueber `FireShot` (wie Boss-Modus)**.
+    - Feuer-Counter (pro Heli) in `ItemFlags[3]`: Sicht -> 1, sonst ++; Muenze-Blitz (MeshBit 0x100) bei Counter <= 15; Schuss alle 2 Frames (Counter < 15).
+    - `ItemFlags[0]` (Modus) wird NICHT beruehrt.
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrueckliche Anfrage; Build-Errors meldet der Nutzer).
 - **Gunship State-Architektur final (2026-09-26, ersetzt den Map-Ansatz):**
   - Nutzer-Entscheidung: RomanStatue-Pattern statt per-Item-Map: geteilte globale 'GunShip' fuer die 'unwichtigen' (teilbaren) Werte + per-Heli-State in 'ItemFlags' (per-Item, persistiert wie bei LaserHead). Die 'item.Data'-Alternative (flatbuffers Save-Union) passt NICHT: die waere im Savegame + braeuchte eine neue Tabelle.
   - 'tr5_gunship.cpp': 'struct GunshipData' (geteilt) = Direction/Initialized (Orbit), Active/TargetPos/Frames (Auto-Escape), LastTestFrame/Clear (LOS-Cache), FireFrameCounter (Feuer-Warmup) + 'ResetEscape()'; 'static GunshipData GunShip;'; 'InitializeGunShip' setzt 'GunShip = GunshipData{}' neu (wie 'InitializeRomanStatue'). 'GunShips'-Map + 'GetGunShip'-Helper entfernt.

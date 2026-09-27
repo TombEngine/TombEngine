@@ -64,10 +64,10 @@ namespace TEN::Entities::Creatures::TR5
 
 	static GunshipData GunShip;
 
-	enum class GunshipMode : short
+	enum class GunshipAxis : short
 	{
-		Normal = 0,		// like in TR5 Red alert.
-		Boss = 1,		// Free flying and shooting.
+		ZAxis = 0,		// like in TR5 Red alert.
+		XAxis = 1,		// Free flying and shooting.		
 	};
 
 	// Enum für Helikopter-Status
@@ -89,7 +89,7 @@ namespace TEN::Entities::Creatures::TR5
 		auto* item = &g_Level.Items[itemNumber];
 		InitializeCreature(itemNumber);
 		//GunShip = GunshipData{}; // Frischer geteilter State (RomanStatue-Pattern, wie InitializeRomanStatue).
-		item->ItemFlags[0] = PropertyHandler::Get(*item, PropName_AttackType, (short)GunshipMode::Normal);
+		
 
 	}
 
@@ -120,7 +120,8 @@ namespace TEN::Entities::Creatures::TR5
 	// Helper: Bestimmt den aktuellen Status basierend auf Distanz und Kollisionen
 	GunShipState DetermineGunShipState(const ItemInfo& item, float horizontalDistance, bool hasMoveTargetPos)
 	{
-		int minDistance = (item.TriggerFlags > 0) ? item.TriggerFlags * SECTOR_SIZE : SECTOR_SIZE * 3;
+		int minDistance = PropertyHandler::Get(item, PropName_ShootTargetDistance, 3);
+		minDistance = minDistance * SECTOR_SIZE;
 		int maxShotsRange = minDistance + SECTOR_SIZE;
 
 		if (hasMoveTargetPos)
@@ -567,8 +568,8 @@ namespace TEN::Entities::Creatures::TR5
 	// Tracer + Schuss-Ray mit Treffer-Aufloesung (Static: Schaden/Zerbrechen, Item: Schaden, Wand: Ricochet).
 	void FireShot(ItemInfo* shooter, const Vector3& muzzlePos, const EulerAngles& orientation, float range, int damage, LaraWeaponType weaponType, int sfxID)
 	{
-		if (!CanFireShot(shooter, muzzlePos, orientation, range))
-			return;
+		//if (!CanFireShot(shooter, muzzlePos, orientation, range))
+//			return;
 
 		// Schall.
 		SoundEffect(sfxID, &shooter->Pose, SoundEnvironment::Land, 0.8f);
@@ -674,6 +675,91 @@ namespace TEN::Entities::Creatures::TR5
 		}
 	}
 
+	// =========================================================================
+	// Gunship - Original (Normal-Modus, TR5 Red-Alert-Verhalten)
+	// =========================================================================
+	// ItemFlags (pro Heli): [1]=Offset.x, [2]=Offset.y, [4]=Offset.z (Gleit-Smoothen).
+	// [0]=Modus (von ControlGunShip gelesen) wird NICHT beruehrt.
+	// Schießen konditionslos ueber FireShot (Original-Red-Alert, Spread wie im Boss-Modus).
+	void ControlOriginalGunShip(short itemNumber)
+	{
+		auto* item = &g_Level.Items[itemNumber];
+
+		if (!TriggerActive(item))
+			return;
+
+		SoundEffect(SFX_TR4_HELICOPTER_LOOP, &item->Pose);
+
+		// Zielposition: Lara-Position + Random-Offset (Heli schwebt um Lara herum).
+		auto playerPos = g_Level.Items[LaraItem->Index].Pose.Position.ToVector3();
+		auto pos = GameVector(
+			playerPos + Vector3(
+				Random::GenerateFloat(-255.0f, 255.0f),
+				Random::GenerateFloat(-255.0f, 255.0f),
+				Random::GenerateFloat(-255.0f, 255.0f)),
+			LaraItem->RoomNumber);
+
+		// Glitten-Offset initialisieren (nur beim ersten Frame).
+		if (!item->ItemFlags[1] && !item->ItemFlags[2] && !item->ItemFlags[4])
+		{
+			item->ItemFlags[1] = pos.x / 16;
+			item->ItemFlags[2] = pos.y / 16;
+			item->ItemFlags[4] = pos.z / 16;
+		}
+
+		// Glitten-Offset aktualisieren (EMA).
+		pos.x = (pos.x + 80 * item->ItemFlags[1]) / 6;
+		pos.y = (pos.y + 80 * item->ItemFlags[2]) / 6;
+		pos.z = (pos.z + 80 * item->ItemFlags[4]) / 6;
+
+		item->ItemFlags[1] = pos.x / 16;
+		item->ItemFlags[2] = pos.y / 16;
+		item->ItemFlags[4] = pos.z / 16;
+
+		// Heli fliegt zu Lara (Lerp-Faktor 1/32).
+		short movementAxis = PropertyHandler::Get(*item, PropName_HorizontalVelocity, (short)GunshipAxis::XAxis);
+
+		if (movementAxis == (short)GunshipAxis::ZAxis)
+			item->Pose.Position.z += (pos.z - item->Pose.Position.z) / 32;
+		else
+			item->Pose.Position.x += (pos.x - item->Pose.Position.x) / 32;
+		item->Pose.Position.y += (pos.y - item->Pose.Position.y - 256) / 32;
+
+		// Schießen: Muenze (Joint 8), Original-Red-Alert: Ziel = Lara-Hüften (LM_HIPS) mit
+		// Zufalls-Offset, extrapoliert 2x ueber Lara hinaus (target = 3*pos - 2*origin, wie im TR5-Original).
+		float maxShotsRange = PropertyHandler::Get(item, PropName_ShootTargetDistance, 3);
+		maxShotsRange = maxShotsRange * SECTOR_SIZE;
+		auto muzzlePos = GetJointPosition(item, 8, Vector3i::Zero).ToVector3();
+
+		// Lara-Rumpf + Zufalls-Offset (entspricht pos im Original).
+		Vector3i randomOffset(
+			Random::GenerateInt(-125, 125),
+			Random::GenerateInt(-125, 125),
+			Random::GenerateInt(-125, 125));
+		auto laraPos = GetJointPosition(LaraItem, LM_HIPS, randomOffset).ToVector3();
+		laraPos.y += 125;
+		// Extrapolation: 2x ueber Lara hinaus (3*pos - 2*origin, Leading-Aim wie im Original).
+		auto aimPoint = 3.0f * laraPos - 2.0f * item->Pose.Position.ToVector3();
+		auto fireOrientation = Geometry::GetOrientToPoint(muzzlePos, aimPoint);
+		fireOrientation.y += ANGLE(180.0f);
+
+		// Nur innerhalb der Schussreichweite feuern (Distanz Heli -> Lara).
+		float distanceToLara = Vector3::Distance(item->Pose.Position.ToVector3(), laraPos);
+		bool inRange = distanceToLara <= maxShotsRange;
+
+		// Muenze-Blitz (MeshBit) nur in Reichweite.
+		if (inRange)
+			item->MeshBits |= 0x100;
+		else
+			item->MeshBits &= 0xFEFF;
+
+		// Ein Schuss alle FIRE_RATE Frames, nur in Reichweite.
+		if (inRange && GlobalCounter % FIRE_RATE == 0)
+			FireShot(item, muzzlePos, fireOrientation, maxShotsRange, GUNSHIP_DAMAGE, LaraWeaponType::HK, SFX_TR4_HK_FIRE);
+
+		AnimateItem(item);
+	}
+
 	void ControlGunShip(short itemNumber)
 	{
 		auto* item = &g_Level.Items[itemNumber];
@@ -686,7 +772,9 @@ namespace TEN::Entities::Creatures::TR5
 
 		SoundEffect(SFX_TR4_HELICOPTER_LOOP, &item->Pose);
 
-		if (item->ItemFlags[0] == (short)GunshipMode::Normal)
+		item->ItemFlags[0] = PropertyHandler::Get(*item, PropName_AttackType, false);
+
+		if (item->ItemFlags[0] == 1)
 		{
 			ControlOriginalGunShip(itemNumber);
 			return;
@@ -726,7 +814,7 @@ namespace TEN::Entities::Creatures::TR5
 			float dmz = moveTargetPos.z - item->Pose.Position.z;
 			if (sqrtf(dmx * dmx + dmz * dmz) < MOVE_TARGET_REACH_RADIUS)
 			{
-				item->Properties.Set("GunshipMoveTarget", Vec3());
+				item->Properties.Set(PropName_GoToTarget, Vec3());
 				GunShip.ResetEscape();
 				hasMoveTargetPos = false;
 				moveTargetPos = Vector3::Zero;
@@ -737,7 +825,8 @@ namespace TEN::Entities::Creatures::TR5
 		if (!hasMoveTargetPos && hasShootTarget)
 			moveTargetItem = &g_Level.Items[shootTargetNum];
 
-		int minDistance = (item->TriggerFlags > 0) ? item->TriggerFlags * SECTOR_SIZE : SECTOR_SIZE * 3;
+		int minDistance = PropertyHandler::Get(item, PropName_ShootTargetDistance, 3);
+		minDistance = minDistance * SECTOR_SIZE;
 		int maxShotsRange = minDistance + SECTOR_SIZE;
 
 		GunShipTargetInfo targetInfo;
@@ -1243,10 +1332,5 @@ namespace TEN::Entities::Creatures::TR5
 
 			AnimateItem(item);
 		}
-	}
-
-	void ControlOriginalGunShip(short itemNumber)
-	{
-
 	}
 }

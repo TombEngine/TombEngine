@@ -22,6 +22,7 @@
 - **Expression-Arrays in PowerShell vermeiden:** `@( $a+$b+'x', $a+$b+'y' )` kollabiert zu EINEM Element (Elemente mit Leerzeichen getrennt, `@($arr).Count` = 1) → Multi-Line-Edits zerfallen zu einer Zeile. Für Array-Zeilen **Plain-Strings** `@("`t`tcode", "`t`tcode")` nutzen (` `t ` = Tab in Double-Quoted-Strings; `\t` wäre nur wörtlich). Vor `WriteAllLines` immer `@($arr).Count` verifizieren. Indentation zuverlässig mit `[char]9`-Kombination oder `` `t ``-Plain-Strings – NICHT mit `$t+$t+'...'`-Expressions in Arrays.
 
 ### Engine Architecture
+- **Schuss-/Ziel-Konvention (wichtig, alle Hitscan-Waffen):** `EulerAngles(Vector3 dir)` / `Geometry::GetOrientToPoint(origin, target)` richtet die **+Z**-Achse auf das Ziel (`EulerAngles.cpp:15`). Die Hitscan-Helfer in `tr5_gunship.cpp` (`CanFireShot`/`FireShot`) schießen aber in **-Z** (Schuss-Vektor `Vector3(0, -512, -range*2)`). → Wer `GetOrientToPoint(heli, ziel)` als Fire-Orientierung nutzt, muss **`orient.y += ANGLE(180.0f)`** flippen, sonst schießt es weg vom Ziel. Ohne Flip + `CanFireShot`-Gate = "schießt nie"-Bug (Feuer-Counter läuft durch).
 - TombEngine implementiert klassische Lara-Croft-Physik (pre-TL1).
 - Level-Dateien werden in einem eigenen Format verwaltet.
 - Physik-System mit kollisionserkennung und character controller.
