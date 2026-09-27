@@ -5,7 +5,7 @@
 namespace TEN::Scripting::Effects
 {
 	/// Constants for blend mode IDs.
-	// All blending modes except `OPAQUE`, `ADDITIVE` and `ALPHA_BLEND` will use depth sorting for applicable polygons.
+	// All blending modes except `OPAQUE`, `ADDITIVE`, `DISTORTION` and `ALPHA_TEST` will use depth sorting for applicable polygons.
 	// This may reduce engine performance, so it is preferable to minimize usage of other blending modes.
 	// @enum Effects.BlendID
 	// @pragma nostrip
@@ -24,17 +24,13 @@ namespace TEN::Scripting::Effects
 		// @mem ADDITIVE
 		{ "ADDITIVE", BlendMode::Additive },
 
-		/// No depth test blending.
-		// @mem NO_DEPTH_TEST
-		{ "NO_DEPTH_TEST", BlendMode::NoDepthTest },
+		/// Heat haze / distortion effect using luminance to drive optical displacement. Applied as a post-process pass.
+		// @mem DISTORTION
+		{ "DISTORTION", BlendMode::Distortion },
 
 		/// Subtractive blending, with brighter texture areas making everything darker behind them.
 		// @mem SUBTRACTIVE
 		{ "SUBTRACTIVE", BlendMode::Subtractive },
-
-		/// Wireframe mode.
-		// @mem WIREFRAME
-		{ "WIREFRAME", BlendMode::Wireframe },
 
 		/// Produces "inversion" effect.
 		// @mem EXCLUDE
@@ -51,6 +47,10 @@ namespace TEN::Scripting::Effects
 		/// True alpha blending. Should be used for textures with gradually changing alpha values.
 		// @mem ALPHA_BLEND
 		{ "ALPHA_BLEND", BlendMode::AlphaBlend },
+
+		// DEPRECATED
+		{ "NO_DEPTH_TEST", BlendMode::NoDepthTest },
+		{ "WIREFRAME", BlendMode::Wireframe },
 
 		// COMPATIBILITY
 		{ "ALPHATEST", BlendMode::AlphaTest },

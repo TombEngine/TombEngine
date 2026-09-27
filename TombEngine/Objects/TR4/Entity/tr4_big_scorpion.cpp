@@ -94,20 +94,16 @@ namespace TEN::Entities::TR4
 					item->Status = ITEM_INVISIBLE;
 					creature->MaxTurn = 0;
 
-					short linkNumber = g_Level.Rooms[item->RoomNumber].itemNumber;
-					if (linkNumber != NO_VALUE)
+					for (int itemNumber : g_Level.Rooms[item->RoomNumber].itemNumbers)
 					{
-						for (linkNumber = g_Level.Rooms[item->RoomNumber].itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
-						{
-							auto* currentItem = &g_Level.Items[linkNumber];
+						auto* currentItem = &g_Level.Items[itemNumber];
 
-							if (currentItem->ObjectNumber == ID_TROOPS && currentItem->TriggerFlags == 1)
-							{
-								DisableEntityAI(linkNumber);
-								KillItem(linkNumber);
-								currentItem->Flags |= IFLAG_KILLED;
-								break;
-							}
+						if (currentItem->ObjectNumber == ID_TROOPS && currentItem->TriggerFlags == 1)
+						{
+							DisableEntityAI(itemNumber);
+							KillItem(itemNumber);
+							currentItem->Flags |= IFLAG_KILLED;
+							break;
 						}
 					}
 				}
@@ -248,7 +244,7 @@ namespace TEN::Entities::TR4
 				if (creature->Flags != 0)
 					break;
 
-				if (creature->Enemy && !creature->Enemy->IsLara() && ai.distance < BIG_SCORPION_ATTACK_RANGE)
+				if (creature->Enemy && !creature->Enemy.IsLara() && ai.distance < BIG_SCORPION_ATTACK_RANGE)
 				{
 					DoDamage(creature->Enemy, BIG_SCORPION_TROOP_ATTACK_DAMAGE);
 					CreatureEffect2(item, BigScorpionBite1, 10, item->Pose.Orientation.y - ANGLE(180.0f), DoBloodSplat);
@@ -266,7 +262,7 @@ namespace TEN::Entities::TR4
 
 					if (item->Animation.ActiveState == BSCORPION_STATE_STINGER_ATTACK)
 					{
-						if (creature->Enemy->IsLara())
+						if (creature->Enemy.IsLara())
 							GetLaraInfo(creature->Enemy)->Status.Poison += BIG_SCORPION_STINGER_POISON_POTENCY;
 
 						CreatureEffect2(item, BigScorpionBite1, 10, item->Pose.Orientation.y - ANGLE(180.0f), DoBloodSplat);
@@ -278,7 +274,7 @@ namespace TEN::Entities::TR4
 
 					creature->Flags = 1;
 
-					if (creature->Enemy->IsLara() && creature->Enemy->HitPoints <= 0)
+					if (creature->Enemy.IsLara() && creature->Enemy->HitPoints <= 0)
 					{
 						CreatureKill(item, BSCORPION_ANIM_KILL, LEA_BIG_SCORPION_DEATH, BSCORPION_STATE_KILL, LS_DEATH);
 						creature->MaxTurn = 0;

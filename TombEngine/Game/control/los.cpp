@@ -5,7 +5,7 @@
 #include "Game/collision/collide_room.h"
 #include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/debris.h"
 #include "Game/items.h"
@@ -160,11 +160,14 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 		Lara.RightArm.GunFlash = Weapons[(int)Lara.Control.Weapon.GunType].FlashTime;
 
 		if (Lara.Control.Weapon.GunType == LaraWeaponType::Revolver)
+		{
 			SoundEffect(SFX_TR4_REVOLVER_FIRE, nullptr);
-
+			Lara.RightArm.GunFlashType = LaraWeaponType::Revolver;
+		}
 		if (Lara.Control.Weapon.GunType == LaraWeaponType::Crossbow)
 		{
 			FireCrossBowFromLaserSight(*LaraItem, origin, &target2);
+			Lara.RightArm.GunFlashType = LaraWeaponType::Crossbow;
 			return false;
 		}
 	}
@@ -219,7 +222,7 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 	{
 		auto* item = &g_Level.Items[itemNumber];
 
-		if (item->ObjectNumber < ID_SHOOT_SWITCH1 || item->ObjectNumber > ID_SHOOT_SWITCH4)
+		if ((item->ObjectNumber < ID_SHOOT_SWITCH1 || item->ObjectNumber > ID_SHOOT_SWITCH4) && item->ObjectNumber != ID_FUSEBOX_SWITCH)
 		{
 			if ((Objects[item->ObjectNumber].explodableMeshbits & ShatterItem.bit) &&
 				Lara.Control.Look.IsUsingLasersight)
@@ -273,7 +276,12 @@ bool GetTargetOnLOS(GameVector* origin, GameVector* target)
 		}
 		else
 		{
-			if (ShatterItem.bit == 1 << (Objects[item->ObjectNumber].nmeshes - 1))
+			if (item->ObjectNumber == ID_FUSEBOX_SWITCH)
+			{
+				ProcessShootSwitch(item);
+				hitProcessed = true;
+			}
+			else if (ShatterItem.bit == 1 << (Objects[item->ObjectNumber].nmeshes - 1))
 			{
 				ProcessShootSwitch(item);
 				hitProcessed = true;
@@ -392,9 +400,9 @@ int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, StaticMe
 	for (int roomNumber : LosRoomNumbers)
 	{
 		auto& room = g_Level.Rooms[roomNumber];
-
 		auto pose = Pose::Zero;
 
+		// Check statics.
 		if (staticObj != nullptr)
 		{
 			for (int m = 0; m < room.mesh.size(); m++)
@@ -415,9 +423,10 @@ int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, StaticMe
 			}
 		}
 
-		for (int linkNumber = room.itemNumber; linkNumber != NO_VALUE; linkNumber = g_Level.Items[linkNumber].NextItem)
+		// Check items.
+		for (int itemNumber : room.itemNumbers)
 		{
-			const auto& item = g_Level.Items[linkNumber];
+			const auto& item = g_Level.Items[itemNumber];
 
 			if (item.Status == ITEM_DEACTIVATED || item.Status == ITEM_INVISIBLE)
 				continue;
@@ -434,7 +443,7 @@ int ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, StaticMe
 			auto bounds = GameBoundingBox(&item);
 			pose = Pose(item.Pose.Position, EulerAngles(0, item.Pose.Orientation.y, 0));
 
-			if (DoRayBox(*origin, *target, bounds, pose, *vec, linkNumber))
+			if (DoRayBox(*origin, *target, bounds, pose, *vec, itemNumber))
 				target->RoomNumber = roomNumber;
 		}
 	}

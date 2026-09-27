@@ -16,7 +16,6 @@ namespace TEN::Renderer::ConstantBuffers
 		float Out;
 		float InRange;
 		float OutRange;
-
-		float padding;
+		int ShaderLight_Padding0;
 	};
 }

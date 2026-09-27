@@ -1,0 +1,50 @@
+namespace TEN.Serialization.Common;
+
+table Short {
+	scalar: short;
+}
+
+table Int {
+	scalar: int32;
+}
+
+table Float {
+	scalar: double;
+}
+
+struct EulerAngles {
+	x: short;
+	y: short;
+	z: short;
+}
+
+struct Vector2 {
+	x: float;
+	y: float;
+}
+
+struct Vector3 {
+	x: float;
+	y: float;
+	z: float;
+}
+
+struct Vector4 {
+	x: float;
+	y: float;
+	z: float;
+	w: float;
+}
+
+struct GameVector {
+	x: int32;
+	y: int32;
+	z: int32;
+	room_number: int32;
+}
+
+struct Pose {
+	position: Vector3;
+	orientation: EulerAngles;
+	scale: Vector3;
+}

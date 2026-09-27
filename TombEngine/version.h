@@ -1,9 +1,9 @@
 #pragma once
 
-#define TEN_MAJOR_VERSION   1
-#define TEN_MINOR_VERSION   11
+#define TEN_MAJOR_VERSION   2
+#define TEN_MINOR_VERSION   0
 #define TEN_BUILD_NUMBER    0
-#define TEN_REVISION_NUMBER 1
+#define TEN_REVISION_NUMBER 0
 
 #define TEST_BUILD 0
 

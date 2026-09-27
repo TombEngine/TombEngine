@@ -67,7 +67,7 @@ LevelFuncs.Engine.EventSequence.CallNext = function(sequenceName, nextTimerName,
 	if not thisES then
 		return
 	end
-	
+
 	if thisES.stopRequested then
 		thisES.stopRequested = false
 		return
@@ -249,7 +249,7 @@ EventSequence.Get = function(name)
 		TEN.Util.PrintLog("Error in EventSequence.Get(): invalid name", TEN.Util.LogLevel.ERROR)
 		return nil
 	end
-	
+
 	local thisES = LevelVars.Engine.EventSequence.sequences[name]
 	if not thisES then
 		TEN.Util.PrintLog("Warning in EventSequence.Get(): sequence with name '".. name .."' not found", TEN.Util.LogLevel.WARNING)

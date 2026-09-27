@@ -12,6 +12,7 @@
 #include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Sound/sound.h"
 #include "Specific/level.h"
 
 using namespace TEN::Collision::Point;
@@ -144,7 +145,10 @@ namespace TEN::Entities::Creatures::TR1
 			headingAngle = CreatureTurn(&item, creature.MaxTurn);
 
 			if (item.HitStatus)
+			{
+				SoundEffect(SFX_TR1_BEAR_HURT, &item.Pose);
 				creature.Flags = 1;
+			}
 
 			bool isPlayerDead = LaraItem->HitPoints <= 0;
 

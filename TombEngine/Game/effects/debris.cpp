@@ -2,7 +2,7 @@
 #include "Game/effects/debris.h"
 
 #include "Game/collision/collide_room.h"
-#include "Game/collision/Sphere.h"
+#include "Game/collision/sphere.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"

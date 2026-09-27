@@ -10,12 +10,14 @@
 #include "Game/spotcam.h"
 #include "Math/Math.h"
 #include "Renderer/Renderer.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/configuration.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Collision::Los;
-using namespace TEN::Math;
 using namespace TEN::Effects::DisplaySprite;
+using namespace TEN::Math;
+using namespace TEN::SpotCam;
 using TEN::Renderer::g_Renderer;
 
 namespace TEN::Hud
@@ -32,6 +34,11 @@ namespace TEN::Hud
 	constexpr float INTERACTION_ANGLE = TO_RAD(ANGLE(35.0f));
 
 	constexpr float PICKUP_OFFSET = CLICK(0.75f);
+
+	bool InteractionHighlighterController::IsEnabled() const
+	{
+		return g_GameFlow->GetSettings()->Hud.InteractionHighlighter && g_Configuration.EnableInteractionHighlighter;
+	}
 
 	bool InteractionHighlighterController::TestInteractionConditions(ItemInfo& player, ItemInfo& item, InteractionMode mode)
 	{
@@ -118,7 +125,7 @@ namespace TEN::Hud
 	void InteractionHighlighterController::Test(ItemInfo& player, ItemInfo& item, InteractionMode mode, InteractionType type, Vector3 offset)
 	{
 		// Interaction highlighter is disabled, don't do tests to conserve CPU.
-		if (!g_Configuration.EnableInteractionHighlighter)
+		if (!IsEnabled())
 			return;
 
 		// Another interaction highlight takes priority.
@@ -279,7 +286,7 @@ namespace TEN::Hud
 
 	void InteractionHighlighterController::Draw() const
 	{
-		if (!g_Configuration.EnableInteractionHighlighter)
+		if (!IsEnabled())
 			return;
 
 		if (_previous.Fade == 0.0f && _current.Fade == 0.0f)
@@ -329,6 +336,9 @@ namespace TEN::Hud
 
 	void InteractionHighlighterController::Update()
 	{
+		if (!IsEnabled())
+			return;
+
 		if (_isActive)
 		{
 			_current.Fade = std::min(1.0f, _current.Fade + FADE_SPEED);

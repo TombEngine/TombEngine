@@ -32,9 +32,16 @@
 #include "Objects/TR2/Entity/tr2_yeti.h" // OK
 
 // Traps
+#include "Objects/Generic/Traps/Pendulum.h"
+#include "Objects/TR2/Trap/CircularSaw.h"
+#include "Objects/TR2/Trap/DiskShooter.h"
+#include "Objects/TR2/Trap/OverheadPulleyHook.h"
 #include "Objects/TR2/Trap/tr2_spinningblade.h"
 #include "Objects/TR2/Trap/tr2_springboard.h"
 #include "Objects/TR2/Trap/tr2_killerstatue.h"
+#include "Objects/TR2/Trap/FallingSpikes.h"
+#include "Objects/TR5/Trap/tr5_fallingceiling.h"
+#include "Objects/TR5/Object/tr5_rollingball.h"
 
 // Vehicles
 #include "Objects/TR2/Vehicles/speedboat.h"
@@ -551,12 +558,101 @@ static void StartTrap(ObjectInfo* obj)
 		obj->collision = ObjectCollision;
 		obj->SetHitEffect(true);
 	}
+
+	obj = &Objects[ID_FALLING_SPIKES];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeFallingSpikes;
+		obj->control = ControlFallingSpikes;
+		obj->collision = CollideFallingSpikes;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_FALLING_SANDBAG];
+	if (obj->loaded)
+	{
+		obj->collision = TrapCollision;
+		obj->control = ControlFallingCeiling;
+	}
+
+	obj = &Objects[ID_SWINGING_SANDBAG];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializePendulum;
+		obj->control = ControlPendulum;
+		obj->collision = CollidePendulum;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_SWINGING_BOX];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializePendulum;
+		obj->control = ControlPendulum;
+		obj->collision = CollidePendulum;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_SWINGING_SPIKE_BAG];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializePendulum;
+		obj->control = ControlPendulum;
+		obj->collision = CollidePendulum;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_OVERHEAD_PULLEY_HOOK];
+	if (obj->loaded)
+	{
+		obj->control = ControlOverheadPulleyHook;
+		obj->collision = CollideOverheadPulleyHook;
+	}
+
+	obj = &Objects[ID_CIRCULAR_SAW];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeCircularSaw;
+		obj->control = ControlCircularSaw;
+		obj->collision = CollideCircularSaw;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_ROLLING_BARRELS];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeClassicRollingBall;
+		obj->control = ClassicRollingBallControl;
+		obj->collision = ClassicRollingBallCollision;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_MULTIPLE_BOULDERS];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeClassicRollingBall;
+		obj->control = ClassicRollingBallControl;
+		obj->collision = ClassicRollingBallCollision;
+		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_DISK];
+	if (obj->loaded)
+	{
+		obj->collision = ObjectCollision;
+		obj->control = ControlDisk;
+		obj->shadowType = ShadowMode::All;
+	}
+
+	obj = &Objects[ID_DISK_SHOOTER];
+	if (obj->loaded)
+	{
+		obj->control = ControlDiskShooter;
+	}
 }
 
-// boat, snowmobile, snowmobile gun
 static void StartVehicles(ObjectInfo* obj)
 {
-	// TODO: Fix BoatControl() not using BoatControl().
 	obj = &Objects[ID_SPEEDBOAT];
 	if (obj->loaded)
 	{
@@ -567,7 +663,6 @@ static void StartVehicles(ObjectInfo* obj)
 		obj->SetHitEffect(true);
 	}
 
-	// TODO: Create a new renderer for the skidoo with animated track.
 	obj = &Objects[ID_SNOWMOBILE];
 	if (obj->loaded)
 	{

@@ -190,7 +190,8 @@ namespace TEN::Entities::Creatures::TR2
 					extraTorsoRot.y = ai.angle;
 				}
 
-				if ((GlobalCounter & 1) == (item->Index & 1)) // Reduce shooting rate deterministically.
+				// Reduce shooting rate deterministically.
+				if ((GlobalCounter & 1) == (item->Index & 1))
 				{
 					if (!ShotLara(item, &ai, MercenaryUziBite, extraTorsoRot.y, 8))
 						item->Animation.TargetState = 1;
@@ -209,7 +210,8 @@ namespace TEN::Entities::Creatures::TR2
 					extraTorsoRot.y = ai.angle;
 				}
 
-				if ((GlobalCounter & 1) == (item->Index & 1)) // Reduce shooting rate deterministically.
+				// Reduce shooting rate deterministically.
+				if ((GlobalCounter & 1) == (item->Index & 1))
 				{
 					if (!ShotLara(item, &ai, MercenaryUziBite, extraTorsoRot.y, 8))
 						item->Animation.TargetState = 1;

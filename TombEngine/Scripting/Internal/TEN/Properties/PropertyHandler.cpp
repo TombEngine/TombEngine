@@ -1,0 +1,118 @@
+#include "framework.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+
+#include "Game/items.h"
+#include "Game/StaticMesh.h"
+#include "Specific/trutils.h"
+
+using namespace TEN::Utils;
+
+namespace TEN::Scripting::Properties
+{
+	std::unordered_map<GAME_OBJECT_ID, PropertyMap> PropertyHandler::_moveableProperties = {};
+	std::unordered_map<int, PropertyMap> PropertyHandler::_staticProperties   = {};
+
+	PropertyMap& PropertyHandler::GetMoveableProperties(GAME_OBJECT_ID objectID)
+	{
+		return _moveableProperties[objectID];
+	}
+
+	const PropertyMap* PropertyHandler::FindMoveableProperties(GAME_OBJECT_ID objectID)
+	{
+		auto it = _moveableProperties.find(objectID);
+		return (it != _moveableProperties.end() && !it->second.IsEmpty()) ? &it->second : nullptr;
+	}
+
+	PropertyMap& PropertyHandler::GetStaticProperties(int slotID)
+	{
+		return _staticProperties[slotID];
+	}
+
+	const PropertyMap* PropertyHandler::FindStaticProperties(int slotID)
+	{
+		auto it = _staticProperties.find(slotID);
+		return (it != _staticProperties.end() && !it->second.IsEmpty()) ? &it->second : nullptr;
+	}
+
+	const PropertyValue* PropertyHandler::GetRaw(GAME_OBJECT_ID objectID, const std::string& name)
+	{
+		return GetRaw(objectID, GetHash(name));
+	}
+
+	const PropertyValue* PropertyHandler::GetRaw(GAME_OBJECT_ID objectID, int hash)
+	{
+		// Look up global type property directly (Layer 1 only, no instance context).
+		auto* typeProps = FindMoveableProperties(objectID);
+		return typeProps ? typeProps->GetRaw(hash) : nullptr;
+	}
+
+	const PropertyValue* PropertyHandler::GetRaw(int staticMeshSlot, const std::string& name)
+	{
+		return GetRaw(staticMeshSlot, GetHash(name));
+	}
+
+	const PropertyValue* PropertyHandler::GetRaw(int staticMeshSlot, int hash)
+	{
+		// Look up global type property directly (Layer 1 only, no instance context).
+		auto* typeProps = FindStaticProperties(staticMeshSlot);
+		return typeProps ? typeProps->GetRaw(hash) : nullptr;
+	}
+
+	const PropertyValue* PropertyHandler::GetRaw(const ItemInfo& item, const std::string& name, bool ignoreGlobalProperty)
+	{
+		return GetRaw(item, GetHash(name), ignoreGlobalProperty);
+	}
+
+	const PropertyValue* PropertyHandler::GetRaw(const StaticMesh& staticMesh, const std::string& name)
+	{
+		return GetRaw(staticMesh, GetHash(name));
+	}
+
+	const PropertyValue* PropertyHandler::GetRaw(const ItemInfo& item, int hash, bool ignoreGlobalProperty)
+	{
+		// Layer 2: Per-instance override takes priority.
+		auto* val = item.Properties.GetRaw(hash);
+		if (val != nullptr || ignoreGlobalProperty)
+			return val;
+
+		// Layer 1: Fall back to global type property.
+		return GetRaw(item.ObjectNumber, hash);
+	}
+
+	const PropertyValue* PropertyHandler::GetRaw(const StaticMesh& staticMesh, int hash)
+	{
+		// Layer 2: Per-instance override takes priority.
+		auto* val = staticMesh.Properties.GetRaw(hash);
+		if (val != nullptr)
+			return val;
+
+		// Layer 1: Fall back to global type property.
+		return GetRaw(staticMesh.Slot, hash);
+	}
+
+	void PropertyHandler::Clear()
+	{
+		_moveableProperties.clear();
+		_staticProperties.clear();
+	}
+
+	const std::unordered_map<GAME_OBJECT_ID, PropertyMap>& PropertyHandler::GetAllMoveableProperties()
+	{
+		return _moveableProperties;
+	}
+
+	const std::unordered_map<int, PropertyMap>& PropertyHandler::GetAllStaticProperties()
+	{
+		return _staticProperties;
+	}
+
+	std::unordered_map<GAME_OBJECT_ID, PropertyMap>& PropertyHandler::GetMutableMoveableProperties()
+	{
+		return _moveableProperties;
+	}
+
+	std::unordered_map<int, PropertyMap>& PropertyHandler::GetMutableStaticProperties()
+	{
+		return _staticProperties;
+	}
+}

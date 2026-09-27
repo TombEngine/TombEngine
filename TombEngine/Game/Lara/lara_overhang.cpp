@@ -368,7 +368,7 @@ void lara_col_slopeclimb(ItemInfo* item, CollisionInfo* coll)
 		}
 
 		// Test for slope to overhead ladder transition (convex).
-		if (GetClimbFlags(&probeUp.GetBottomSector()) & slopeData.ClimbOrient &&
+		if (GetClimbFlags(&probeUp.GetBottomSector(true)) & slopeData.ClimbOrient &&
 			InStrip(item->Pose.Position.x, item->Pose.Position.z, item->Pose.Orientation.y, CLICK(3), CLICK(4)))
 		{
 			//if (GetPointCollision(probeUp.Block, up.x, up.y, up.z).GetCeilingHeight() - item->Pose.Position.y <= (BLOCK(1.5f) - 80))  // Check if a wall is actually there.
@@ -379,7 +379,7 @@ void lara_col_slopeclimb(ItemInfo* item, CollisionInfo* coll)
 		}
 
 		// Test for monkey at next position.
-		if (probeUp.GetBottomSector().Flags.Monkeyswing)
+		if (probeUp.GetBottomSector(true).Flags.Monkeyswing)
 		{
 			int yDelta = probeUp.GetCeilingHeight() - probeNow.GetCeilingHeight();
 
@@ -424,7 +424,7 @@ void lara_col_slopeclimb(ItemInfo* item, CollisionInfo* coll)
 		//	return;
 		//}
 
-		if (probeDown.GetBottomSector().Flags.Monkeyswing)
+		if (probeDown.GetBottomSector(true).Flags.Monkeyswing)
 		{
 			int height;
 			int yDiff = probeDown.GetCeilingHeight() - probeNow.GetCeilingHeight();
@@ -533,7 +533,7 @@ void lara_col_slopehang(ItemInfo* item, CollisionInfo* coll)
 
 			auto probeShimmy = GetPointCollision(shimmy, item->RoomNumber);
 
-			if (probeShimmy.GetBottomSector().Flags.Monkeyswing)
+			if (probeShimmy.GetBottomSector(true).Flags.Monkeyswing)
 			{
 				int yDiff = probeShimmy.GetCeilingHeight() - probeNow.GetCeilingHeight();
 
@@ -589,7 +589,7 @@ void lara_col_slopeshimmy(ItemInfo* item, CollisionInfo* coll)
 	auto probeShimmy = GetPointCollision(shimmy, item->RoomNumber);
 
 	bool cancelShimmy = true;
-	if (probeShimmy.GetBottomSector().Flags.Monkeyswing)
+	if (probeShimmy.GetBottomSector(true).Flags.Monkeyswing)
 	{
 		int yDiff = probeShimmy.GetCeilingHeight() - probeNow.GetCeilingHeight();
 
@@ -888,7 +888,7 @@ void SlopeReachExtra(ItemInfo* item, CollisionInfo* coll)
 	
 	int ceilDist = item->Pose.Position.y - probeNow.GetCeilingHeight();
 
-	if (probeNow.GetBottomSector().Flags.Monkeyswing && ceilDist <= CLICK(3.5f))
+	if (probeNow.GetBottomSector(true).Flags.Monkeyswing && ceilDist <= CLICK(3.5f))
 	{
 		int height;
 		short bridge = FindBridge(4, slopeData.GoalOrient, now, &height, -CLICK(4), -CLICK(2.5f));
@@ -929,7 +929,7 @@ void SlopeClimbExtra(ItemInfo* item, CollisionInfo* coll)
 		{
 			int ceilDist = probeNow.GetCeilingHeight() - item->Pose.Position.y;
 
-			if (probeNow.GetBottomSector().Flags.Monkeyswing && ceilDist >= -CLICK(4) && ceilDist <= -CLICK(3))
+			if (probeNow.GetBottomSector(true).Flags.Monkeyswing && ceilDist >= -CLICK(4) && ceilDist <= -CLICK(3))
 			{
 				short facing = item->Pose.Orientation.y + ANGLE(45.0f);
 				facing &= ANGLE(270.0f);
@@ -949,7 +949,7 @@ void SlopeClimbExtra(ItemInfo* item, CollisionInfo* coll)
 		{
 			int ceilDist = probeDown.GetCeilingHeight() - item->Pose.Position.y;
 
-			if (probeDown.GetBottomSector().Flags.Monkeyswing && ceilDist >= 0 && ceilDist <= CLICK(1))
+			if (probeDown.GetBottomSector(true).Flags.Monkeyswing && ceilDist >= 0 && ceilDist <= CLICK(1))
 			{
 				short facing = item->Pose.Orientation.y + ANGLE(45.0f);
 				facing &= ANGLE(270.0f);
@@ -975,7 +975,7 @@ bool LadderMonkeyExtra(ItemInfo* item, CollisionInfo* coll)
 	if (probe.IsSteepCeiling())
 		return false;
 
-	if (probe.GetBottomSector().Flags.Monkeyswing && (item->Pose.Position.y - coll->Setup.Height - CLICK(0.5f) <= probe.GetCeilingHeight()))
+	if (probe.GetBottomSector(true).Flags.Monkeyswing && (item->Pose.Position.y - coll->Setup.Height - CLICK(0.5f) <= probe.GetCeilingHeight()))
 	{
 		item->Animation.TargetState = LS_MONKEY_IDLE;
 		return true;
@@ -1002,7 +1002,7 @@ void SlopeClimbDownExtra(ItemInfo* item, CollisionInfo* coll)
 		{
 			int ceilDist = probeDown.GetCeilingHeight() - item->Pose.Position.y;
 
-			if (probeDown.GetBottomSector().Flags.Monkeyswing && ceilDist >= 0 && ceilDist <= CLICK(1))
+			if (probeDown.GetBottomSector(true).Flags.Monkeyswing && ceilDist >= 0 && ceilDist <= CLICK(1))
 			{
 				short facing = item->Pose.Orientation.y + ANGLE(45.0f);
 				facing &= ANGLE(270.0f);
@@ -1064,7 +1064,7 @@ void SlopeMonkeyExtra(ItemInfo* item, CollisionInfo* coll)
 	{
 		int ceilDist = item->Pose.Position.y - probeNow.GetCeilingHeight();
 
-		if (probeNow.GetBottomSector().Flags.Monkeyswing && ceilDist <= CLICK(3.5f))
+		if (probeNow.GetBottomSector(true).Flags.Monkeyswing && ceilDist <= CLICK(3.5f))
 		{
 			short facing = item->Pose.Orientation.y + ANGLE(45.0f);
 			facing &= 0xC000;
@@ -1086,7 +1086,7 @@ void SlopeMonkeyExtra(ItemInfo* item, CollisionInfo* coll)
 
 	if (IsHeld(In::Forward)) // Monkey to slope transitions.
 	{
-		if (probeNow.GetBottomSector().Flags.Monkeyswing &&
+		if (probeNow.GetBottomSector(true).Flags.Monkeyswing &&
 			((item->Animation.AnimNumber == LA_REACH_TO_MONKEY && item->Animation.FrameNumber >= 54) || item->Animation.AnimNumber == LA_MONKEY_IDLE))
 		{
 			if (abs(OrientDelta(slopeData.GoalOrient, item->Pose.Orientation.y)) <= ANGLE(30.0f) &&
@@ -1127,7 +1127,7 @@ void SlopeMonkeyExtra(ItemInfo* item, CollisionInfo* coll)
 			int y = item->Pose.Position.y - coll->Setup.Height;
 			auto probe = GetPointCollision(Vector3i(down.x, item->Pose.Position.y - coll->Setup.Height, down.z), item->RoomNumber);
 
-			if (probe.GetBottomSector().Flags.IsWallClimbable(GetClimbDirectionFlags(item->Pose.Orientation.y + ANGLE(180.0f))) &&
+			if (probe.GetBottomSector(true).Flags.IsWallClimbable(GetClimbDirectionFlags(item->Pose.Orientation.y + ANGLE(180.0f))) &&
 				probe.GetFloorHeight() >= (item->Pose.Position.y - CLICK(1)) &&
 				probe.GetCeilingHeight() <= (y - CLICK(1)))
 			{

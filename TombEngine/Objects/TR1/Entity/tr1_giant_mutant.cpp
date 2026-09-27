@@ -106,6 +106,9 @@ namespace TEN::Entities::Creatures::TR1
 
 			headingAngle = (short)phd_atan(creature->Target.z - item->Pose.Position.z, creature->Target.x - item->Pose.Position.x) - item->Pose.Orientation.y;
 
+			if (item->HitStatus)
+				SoundEffect(SFX_TR1_GIANT_MUTANT_HIT, &item->Pose);
+
 			if (item->TouchBits.TestAny())
 				DoDamage(creature->Enemy, MUTANT_CONTACT_DAMAGE);
 

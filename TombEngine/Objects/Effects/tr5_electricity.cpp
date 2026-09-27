@@ -22,7 +22,7 @@ using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Items;
 using namespace TEN::Effects::Ripple;
 
-void TriggerElectricityWireSparks(int x, int z, byte objNum, byte node, bool glow)
+void TriggerElectricityWireSparks(int x, int z, unsigned char objNum, unsigned char node, bool glow)
 {
 	auto* spark = GetFreeParticle();
 	spark->on = true;
@@ -98,7 +98,7 @@ void TriggerElectricitySparks(ItemInfo* item, int joint, int flame)
 	spark->on = 1;
 	spark->dR = 0;
 	spark->colFadeSpeed = 8;
-	byte color = (GetRandomControl() & 0x3F) - 64;
+	unsigned char color = (GetRandomControl() & 0x3F) - 64;
 	spark->sR = color;
 	spark->sB = color;
 	spark->sG = color;

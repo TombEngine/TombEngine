@@ -30,7 +30,8 @@ namespace TEN::Scripting::Collision
 			Ray(const Vec3&, int, const Vec3&, float),
 			Ray(const Vec3&, int, const Vec3&, float, ScriptIntersectionType),
 			Ray(const Vec3&, int, const Vec3&, float, ScriptIntersectionType, ScriptIntersectionType),
-			Ray(const Vec3&, int, const Vec3&, float, ScriptIntersectionType, ScriptIntersectionType, bool)>;
+			Ray(const Vec3&, int, const Vec3&, float, ScriptIntersectionType, ScriptIntersectionType, bool),
+			Ray(const Vec3&, int, const Vec3&, float, ScriptIntersectionType, ScriptIntersectionType, bool, bool)>;
 
 		// Register type.
 		parent.new_usertype<Ray>(
@@ -70,6 +71,7 @@ namespace TEN::Scripting::Collision
 	// @tparam[opt=Collision.IntersectionType.BOX] Collision.IntersectionType hitMoveables Collide with moveables. Disable when not needed or required to optimize performance.
 	// @tparam[opt=Collision.IntersectionType.BOX] Collision.IntersectionType hitStatics Collide with static meshes. Disable when not needed or required to optimize performance.
 	// @tparam[opt=false] bool penetrate Continue the ray test after the first hit. Enable this when you need to collect all collision information beyond the first occlusion point.
+	// @tparam[opt=false] bool includePlayer Include player model in calculations. Requires `hitMoveables` to be set.
 	// @treturn Ray A new ray object.
 	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist) :
 		Ray(origin, roomNumber, dir, dist, ScriptIntersectionType::Box, ScriptIntersectionType::Box, false) { }
@@ -80,7 +82,10 @@ namespace TEN::Scripting::Collision
 	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, ScriptIntersectionType hitMoveables, ScriptIntersectionType hitStatics) :
 		Ray(origin, roomNumber, dir, dist, hitMoveables, hitStatics, false) { }
 
-	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, ScriptIntersectionType hitMoveables, ScriptIntersectionType hitStatics, bool penetrate)
+	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, ScriptIntersectionType hitMoveables, ScriptIntersectionType hitStatics, bool penetrate) :
+		Ray(origin, roomNumber, dir, dist, hitMoveables, hitStatics, penetrate, false) { }
+
+	Ray::Ray(const Vec3& origin, int roomNumber, const Vec3& dir, float dist, ScriptIntersectionType hitMoveables, ScriptIntersectionType hitStatics, bool penetrate, bool includePlayer)
 	{
 		bool collideItemBoxes = hitMoveables != ScriptIntersectionType::None;
 		bool collideItemSpheres = hitMoveables == ScriptIntersectionType::BoxAndSphere;
@@ -89,7 +94,7 @@ namespace TEN::Scripting::Collision
 		if (hitStatics == ScriptIntersectionType::BoxAndSphere)
 			TENLog("Ray collision with static mesh spheres is not supported at the moment. Using IntersectionType.BOX instead.", LogLevel::Warning);
 
-		_los = GetLosCollision(origin, roomNumber, dir, dist, collideItemBoxes, collideItemSpheres, collideStaticBoxes);
+		_los = GetLosCollision(origin, roomNumber, dir, dist, collideItemBoxes, collideItemSpheres, collideStaticBoxes, includePlayer);
 		_origin = origin;
 		_direction = dir;
 		_distance = dist;

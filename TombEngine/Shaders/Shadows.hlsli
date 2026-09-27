@@ -1,6 +1,7 @@
 #include "./Blending.hlsli"
 #include "./Math.hlsli"
 #include "./ShaderLight.hlsli"
+#include "./Samplers.hlsli"
 
 #define SHADOW_INTENSITY (0.6f)
 #define SHADOW_BLUR      (2.0f)
@@ -23,7 +24,6 @@ cbuffer ShadowLightBuffer : register(b4)
 };
 
 Texture2DArray ShadowMap : register(t3);
-SamplerComparisonState ShadowMapSampler : register(s3);
 
 float2 TexOffset(int u, int v) 
 {

@@ -23,6 +23,14 @@ namespace TEN::Scripting::Input
 
 		/// Raw mouse input analog axis.
 		// @mem MOUSE
-		{ "MOUSE", AxisID::Mouse }
+		{ "MOUSE", AxisID::Mouse },
+
+		/// Raw gamepad left stick analog axis.
+		// @mem STICK_LEFT
+		{ "STICK_LEFT", AxisID::StickLeft },
+
+		/// Raw gamepad right stick analog axis.
+		// @mem STICK_RIGHT
+		{ "STICK_RIGHT", AxisID::StickRight }
 	};
 }

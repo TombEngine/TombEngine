@@ -25,7 +25,7 @@ bool AssignObjectAnimations(ObjectInfo& object, int requiredObjectID, const std:
 {
 	// Check if object has at least 1 animation with more than 1 frame.
 	const auto& anim = GetAnimData(object, 0);
-	if (anim.Keyframes.size() > 1)
+	if (anim.Frames.size() > 1)
 		return true;
 
 	// Use slot if loaded.

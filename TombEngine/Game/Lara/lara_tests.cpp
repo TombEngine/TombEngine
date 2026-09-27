@@ -224,7 +224,7 @@ bool TestLaraHang(ItemInfo* item, CollisionInfo* coll)
 				z += testShift.y;
 			}
 
-			if (TestLaraNearClimbableWall(item, &GetPointCollision(Vector3i(x, item->Pose.Position.y, z), item->RoomNumber).GetBottomSector()))
+			if (TestLaraNearClimbableWall(item, &GetPointCollision(Vector3i(x, item->Pose.Position.y, z), item->RoomNumber).GetBottomSector(true)))
 			{
 				if (!TestLaraHangOnClimbableWall(item, coll))
 					verticalShift = 0; // Ignore vertical shift if ladder is encountered next block
@@ -461,7 +461,7 @@ bool TestLaraClimbIdle(ItemInfo* item, CollisionInfo* coll)
 bool TestLaraNearClimbableWall(ItemInfo* item, FloorInfo* floor)
 {
 	if (floor == nullptr)
-		floor = &GetPointCollision(*item).GetBottomSector();
+		floor = &GetPointCollision(*item).GetBottomSector(true);
 
 	return ((256 << (GetQuadrant(item->Pose.Orientation.y))) & GetClimbFlags(floor));
 }
@@ -1109,7 +1109,8 @@ void TestLaraWaterDepth(ItemInfo* item, CollisionInfo* coll)
 		item->Animation.Velocity.y = 0.0f;
 		item->Pose.Position = coll->Setup.PrevPosition;
 	}
-	else if (pointColl.GetWaterBottomHeight() <= (LARA_HEIGHT - (LARA_HEADROOM / 2)))
+	else if (TestEnvironment(ENV_FLAG_WATER, pointColl.GetRoomNumber()) &&
+			 pointColl.GetWaterBottomHeight() <= (LARA_HEIGHT - (LARA_HEADROOM / 2)))
 	{
 		SetAnimation(item, LA_UNDERWATER_TO_STAND);
 		ResetPlayerLean(item);

@@ -12,6 +12,7 @@
 
 using namespace TEN::Animation;
 using namespace TEN::Entities::Switches;
+using namespace TEN::SpotCam;
 
 void InitializeRaisingCog(short itemNumber)
 {
@@ -94,7 +95,6 @@ void RaisingCogControl(short itemNumber)
 				if (!item->ItemFlags[2])
 				{
 					InitializeSpotCam(item->ItemFlags[2]);
-					UseSpotCam = true;
 				}
 
 				int flags = 0;

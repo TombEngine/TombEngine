@@ -2,6 +2,7 @@
 #include "./VertexInput.hlsli"
 #include "./CBCamera.hlsli"
 #include "./CBPostProcess.hlsli"
+#include "./Samplers.hlsli"
 
 #define SIGMA 3.0
 #define BSIGMA 0.3
@@ -14,16 +15,9 @@ struct PixelShaderInput
 };
 
 Texture2D DepthTexture : register(t0);
-SamplerState DepthSampler : register(s0);
-
 Texture2D NormalsTexture : register(t1);
-SamplerState NormalsSampler : register(s1);
-
 Texture2D NoiseTexture : register(t2);
-SamplerState NoiseSampler : register(s2);
-
 Texture2D SSAOTexture : register(t9);
-SamplerState SSAOSampler : register(s9);
 
 float3 DecodeNormal(float3 n)
 {
@@ -34,7 +28,7 @@ float3 ReconstructPositionFromDepth(float2 uv)
 {
     float x = uv.x * 2.0f - 1.0f;
     float y = (1.0f - uv.y) * 2.0f - 1.0f;
-    float z = DepthTexture.Sample(DepthSampler, uv).x;
+    float z = DepthTexture.Sample(PointWrapSampler, uv).x;
 
     float4 projectedPosition = float4(x, y, z, 1.0f);
     float4 position = mul(projectedPosition, InverseProjection);
@@ -49,7 +43,7 @@ float PS(PixelShaderInput input) : SV_Target
     float2 noiseScale = ViewportSize / 4.0f;
 
     float3 position = ReconstructPositionFromDepth(input.UV);
-    float3 encodedNormal = NormalsTexture.Sample(NormalsSampler, input.UV).xyz;
+    float3 encodedNormal = NormalsTexture.Sample(PointWrapSampler, input.UV).xyz;
 
     float farMask = step(40960.0f, length(position)); // 1 if too far
     float noNormalMask = step(length(encodedNormal), 0.0001f); // 1 if normal is too small
@@ -59,7 +53,7 @@ float PS(PixelShaderInput input) : SV_Target
         return float4(1.0f, 1.0f, 1.0f, 1.0f);
 
     float3 normal = DecodeNormal(encodedNormal);
-    float3 randomVec = NoiseTexture.Sample(NoiseSampler, input.UV * noiseScale).xyz;
+    float3 randomVec = NoiseTexture.Sample(PointWrapSampler, input.UV * noiseScale).xyz;
 
     float3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
     float3 bitangent = SafeNormalize(cross(normal, tangent));
@@ -114,7 +108,7 @@ float PSBlur(PixelShaderInput input) : SV_Target
     }
 
     float color;
-    float baseColor = SSAOTexture.Sample(SSAOSampler, input.UV).x;
+    float baseColor = SSAOTexture.Sample(PointWrapSampler, input.UV).x;
     float gfactor;
     float bfactor;
     float bZnorm = 1.0 / normpdf(0.0, BSIGMA);
@@ -126,7 +120,7 @@ float PSBlur(PixelShaderInput input) : SV_Target
         {
             // Color at pixel in the neighborhood
             float2 offset = float2(i, j) * texelSize;
-            color = SSAOTexture.Sample(SSAOSampler, input.UV + offset).x;
+            color = SSAOTexture.Sample(PointWrapSampler, input.UV + offset).x;
 
             // Compute both the gaussian smoothed and bilateral
             gfactor = kernel[kernelSize + j] * kernel[kernelSize + i];

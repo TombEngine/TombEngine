@@ -40,7 +40,7 @@ bool TryModifyMiscCount(LaraInfo & lara, GAME_OBJECT_ID objectID, std::optional<
 
 	bool add = ModificationType::Add == modType || ((ModificationType::Set == modType) && amount != 0);
 
-	auto modifyWaterSkinAmount = [&](byte& currentFlag, byte newFlag)
+	auto modifyWaterSkinAmount = [&](unsigned char& currentFlag, unsigned char newFlag)
 	{
 		if (add)
 			currentFlag = newFlag;

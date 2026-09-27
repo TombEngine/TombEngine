@@ -1,6 +1,6 @@
 #pragma once
 #include "Math/Math.h"
-#include "Specific/newtypes.h"
+#include "Specific/Structures/newtypes.h"
 
 using namespace TEN::Math;
 

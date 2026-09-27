@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Game/Effects/DisplaySprite.h"
+#include "Game/effects/DisplaySprite.h"
 
 using namespace TEN::Effects::DisplaySprite;
 

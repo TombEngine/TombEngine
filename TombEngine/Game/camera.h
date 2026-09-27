@@ -1,7 +1,7 @@
 #pragma once
 #include "Game/items.h"
 #include "Math/Math.h"
-#include "Specific/Clock.h"
+#include "Specific/clock.h"
 
 struct CollisionInfo;
 
@@ -95,6 +95,8 @@ void LookCamera(ItemInfo& item, const CollisionInfo& coll);
 void LookAt(CAMERA_INFO* cam, short roll);
 void AlterFOV(short value, bool store = true);
 short GetCurrentFOV();
+void AlterRoll(short value);
+short GetCurrentRoll();
 void InitializeCamera();
 void MoveCamera(GameVector* ideal, int speed, bool force = false);
 void ChaseCamera(ItemInfo* item);

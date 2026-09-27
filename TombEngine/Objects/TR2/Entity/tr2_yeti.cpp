@@ -260,7 +260,7 @@ namespace TEN::Entities::Creatures::TR2
 					creature->Flags = 1;
 
 					if (LaraItem->HitPoints <= 0)
-						CreatureKill(item, YETI_ANIM_KILL, LEA_YETI_DEATH, YETI_ANIM_DEATH, LS_DEATH);
+						CreatureKill(item, YETI_ANIM_KILL, LEA_YETI_DEATH, YETI_STATE_KILL, LS_DEATH);
 				}
 
 				break;
@@ -284,7 +284,7 @@ namespace TEN::Entities::Creatures::TR2
 					creature->Flags = 1;
 
 					if (LaraItem->HitPoints <= 0)
-						CreatureKill(item, YETI_ANIM_KILL, LEA_YETI_DEATH, YETI_ANIM_DEATH, LS_DEATH);
+						CreatureKill(item, YETI_ANIM_KILL, LEA_YETI_DEATH, YETI_STATE_KILL, LS_DEATH);
 				}
 
 				break;
@@ -306,7 +306,7 @@ namespace TEN::Entities::Creatures::TR2
 					creature->Flags = 1;
 
 					if (LaraItem->HitPoints <= 0)
-						CreatureKill(item, YETI_ANIM_KILL, LEA_YETI_DEATH, YETI_ANIM_DEATH, LS_DEATH);
+						CreatureKill(item, YETI_ANIM_KILL, LEA_YETI_DEATH, YETI_STATE_KILL, LS_DEATH);
 				}
 
 				break;

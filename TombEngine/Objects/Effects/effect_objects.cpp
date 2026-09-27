@@ -5,6 +5,7 @@
 #include "Objects/Effects/enemy_missile.h"
 #include "Objects/Effects/flame_emitters.h"
 #include "Objects/Effects/LensFlare.h"
+#include "Objects/Utils/object_helper.h"
 
 using namespace TEN::Entities::Effects;
 
@@ -45,12 +46,7 @@ void InitializeEffectsObjects()
 		obj->Hidden = true;
 	}
 
-	obj = &Objects[ID_ENERGY_BUBBLES];
-	{
-		obj->Initialize = nullptr;
-		obj->collision = nullptr;
-		obj->control = ControlEnemyMissile;
-	}
+	InitProjectile(obj, ControlEnemyMissile, ID_ENERGY_BUBBLES, true);
 
 	obj = &Objects[ID_LENS_FLARE];
 	if (obj->loaded)

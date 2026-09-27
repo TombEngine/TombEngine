@@ -186,7 +186,7 @@ namespace TEN::Entities::Creatures::TR3
 					DoDamage(creature->Enemy, COBRA_BITE_ATTACK_DAMAGE);
 					CreatureEffect(item, CobraBite, DoBloodSplat);
 
-					if (creature->Enemy && creature->Enemy->IsLara())
+					if (creature->Enemy.IsLara())
 						GetLaraInfo(creature->Enemy)->Status.Poison += COBRA_BITE_POISON_POTENCY;
 				}
 

@@ -8,28 +8,30 @@
 #include "Game/control/volume.h"
 #include "Game/effects/debris.h"
 #include "Game/effects/Blood.h"
-#include "Game/effects/Bubble.h"
+#include "Game/effects/bubble.h"
 #include "Game/effects/Decal.h"
 #include "Game/effects/DisplaySprite.h"
-#include "Game/effects/Drip.h"
+#include "Game/effects/drip.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/Electricity.h"
 #include "Game/effects/explosion.h"
-#include "Game/effects/Footprint.h"
-#include "Game/effects/Hair.h"
+#include "Game/effects/footprint.h"
+#include "Game/effects/hair.h"
 #include "Game/effects/Ripple.h"
 #include "Game/effects/simple_particle.h"
+#include "Game/effects/ParticleGroup.h"
 #include "Game/effects/smoke.h"
 #include "Game/effects/spark.h"
 #include "Game/effects/Splash.h"
 #include "Game/effects/Streamer.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/weather.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/Hud/DrawItems/DisplayItem.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_cheat.h"
+#include "Game/Lara/lara_fire.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Lara/lara_one_gun.h"
 #include "Game/items.h"
@@ -44,6 +46,7 @@
 #include "Objects/Generic/Object/objects.h"
 #include "Objects/Generic/Object/rope.h"
 #include "Objects/Generic/Switches/generic_switch.h"
+#include "Objects/TR3/Entity/SophiaLeigh.h"
 #include "Objects/TR3/Entity/FishSwarm.h"
 #include "Objects/TR4/Entity/tr4_beetle_swarm.h"
 #include "Objects/TR4/Entity/Locust.h"
@@ -57,12 +60,14 @@
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Scripting/Include/Strings/ScriptInterfaceStringsHandler.h"
 #include "Scripting/Internal/TEN/Flow/Level/FlowLevel.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyUtils.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/EngineMain.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
 #include "Specific/Video/Video.h"
-#include "Specific/winmain.h"
 
 using namespace std::chrono;
 using namespace TEN::Effects;
@@ -74,14 +79,17 @@ using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Environment;
 using namespace TEN::Effects::Explosion;
+using namespace TEN::Effects::Fireflies;
 using namespace TEN::Effects::Footprint;
 using namespace TEN::Effects::Hair;
+using namespace TEN::Effects::ParticleGroups;
 using namespace TEN::Effects::Ripple;
 using namespace TEN::Effects::Smoke;
 using namespace TEN::Effects::Spark;
 using namespace TEN::Effects::Splash;
 using namespace TEN::Effects::Streamer;
 using namespace TEN::Entities::Creatures::TR3;
+using namespace TEN::Entities::Effects;
 using namespace TEN::Entities::Generic;
 using namespace TEN::Entities::Switches;
 using namespace TEN::Entities::Traps;
@@ -92,9 +100,8 @@ using namespace TEN::Hud;
 using namespace TEN::Input;
 using namespace TEN::Math;
 using namespace TEN::Renderer;
-using namespace TEN::Entities::Creatures::TR3;
-using namespace TEN::Entities::Effects;
-using namespace TEN::Effects::Fireflies;
+using namespace TEN::Scripting::Properties;
+using namespace TEN::SpotCam;
 using namespace TEN::Video;
 
 constexpr auto DEATH_NO_INPUT_TIMEOUT = 10 * FPS;
@@ -115,10 +122,9 @@ int NextLevel;
 bool  InItemControlLoop;
 short ItemNewRoomNo;
 short ItemNewRooms[MAX_ROOMS];
-short NextItemActive;
-short NextItemFree;
-short NextFxActive;
-short NextFxFree;
+
+std::vector<int> ActiveItems;
+std::vector<int> FreeItemSlots;
 
 int ControlPhaseTime;
 
@@ -138,6 +144,7 @@ void DrawPhase(bool isTitle, float interpolationFactor)
 	}
 
 	g_Renderer.Lock();
+	ApplyPendingWindowResize();
 }
 
 GameStatus GamePhase(bool insideMenu)
@@ -163,9 +170,11 @@ GameStatus GamePhase(bool insideMenu)
 	// Controls are polled before OnLoop to allow input data to be overwritten by script API methods.
 	HandleControls(isTitle);
 
+	// Snapshot particle group positions before Lua moves them so the renderer can interpolate.
+	StoreParticleGroupsInterpolationData();
+
 	// Pre-loop script and event handling.
 	g_GameScript->OnLoop(DELTA_TIME, false); // TODO: Don't use DELTA_TIME constant with high framerate.
-	HandleAllGlobalEvents(EventType::Loop, (Activator)short(LaraItem->Index));
 
 	// Queued input actions are read again after OnLoop, so that remaining control loop can immediately register
 	// emulated keypresses from the script.
@@ -179,7 +188,6 @@ GameStatus GamePhase(bool insideMenu)
 	// Item update should happen before camera update, so potential flyby/track camera triggers
 	// are processed correctly.
 	UpdateAllItems();
-	UpdateAllEffects();
 	UpdateLara(LaraItem, isTitle);
 	g_GameScriptEntities->TestCollidingObjects();
 
@@ -216,6 +224,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateSparkParticles();
 	UpdateSmokeParticles();
 	UpdateSimpleParticles();
+	UpdateParticleGroups();
 	UpdateExplosionParticles();
 	UpdateShockwaves();
 	UpdateBeetleSwarm();
@@ -224,6 +233,7 @@ GameStatus GamePhase(bool insideMenu)
 	UpdateFishSwarm();
 	UpdateFireflySwarm();
 	UpdateGlobalLensFlare();
+	UpdateMaterials();
 
 	// Update HUD.
 	g_Hud.Update(*LaraItem);
@@ -256,7 +266,6 @@ GameStatus GamePhase(bool insideMenu)
 		// Call post-loop callbacks last time and end level.
 		g_GameScript->OnLoop(DELTA_TIME, true);
 		g_GameScript->OnEnd(gameStatus);
-		HandleAllGlobalEvents(EventType::End, (Activator)short(LaraItem->Index));
 	}
 	else
 	{
@@ -313,7 +322,6 @@ GameStatus FreezePhase()
 	// Poll controls and call scripting events.
 	HandleControls(false);
 	g_GameScript->OnFreeze();
-	HandleAllGlobalEvents(EventType::Freeze, (Activator)short(LaraItem->Index));
 
 	// Partially update scene if not using full freeze mode.
 	if (g_GameFlow->LastFreezeMode != FreezeMode::Full)
@@ -323,6 +331,8 @@ GameStatus FreezePhase()
 
 		UpdateAllItems();
 		UpdateGlobalLensFlare();
+		UpdateFadeScreenAndCinematicBars();
+		Weather.Update(true);
 
 		UpdateCamera();
 
@@ -361,7 +371,7 @@ GameStatus ControlPhase(bool insideMenu)
 	}
 }
 
-unsigned CALLBACK GameMain(void *)
+int SDLCALL GameMain(void *)
 {
 	TENLog("Starting GameMain()...", LogLevel::Info);
 
@@ -389,9 +399,11 @@ unsigned CALLBACK GameMain(void *)
 	DeInitialize();
 	DoTheGame = false;
 
-	// Finish thread.
-	PostMessage(WindowsHandle, WM_CLOSE, NULL, NULL);
-	return true;
+	SDL_Event ev{};
+	ev.type = SDL_EVENT_QUIT;
+	SDL_PushEvent(&ev);
+
+	return 0;
 }
 
 GameStatus DoLevel(int levelIndex, bool loadGame)
@@ -406,7 +418,6 @@ GameStatus DoLevel(int levelIndex, bool loadGame)
 
 	// Initialize items, effects, lots, and cameras.
 	HairEffect.Initialize();
-	InitializeFXArray();
 	InitializeCamera();
 	InitializeSpotCamSequences(isTitle);
 	InitializeItemBoxData();
@@ -414,6 +425,7 @@ GameStatus DoLevel(int levelIndex, bool loadGame)
 
 	// Initialize scripting.
 	InitializeScripting(levelIndex, loadGame);
+	InitializeProperties();
 	InitializeNodeScripts();
 
 	// Initialize menu and inventory state.
@@ -468,27 +480,6 @@ void KillMoveItems()
 			else
 			{
 				KillItem(itemNumber & 0x7FFF);
-			}
-		}
-	}
-
-	ItemNewRoomNo = 0;
-}
-
-void KillMoveEffects()
-{
-	if (ItemNewRoomNo > 0)
-	{
-		for (int i = 0; i < ItemNewRoomNo; i++)
-		{
-			int itemNumber = ItemNewRooms[i * 2];
-			if (itemNumber >= 0)
-			{
-				EffectNewRoom(itemNumber, ItemNewRooms[(i * 2) + 1]);
-			}
-			else
-			{
-				KillEffect(itemNumber & 0x7FFF);
 			}
 		}
 	}
@@ -563,6 +554,7 @@ void CleanUp()
 	ClearSplashes();
 	ClearLaserBarrierEffects();
 	ClearLaserBeamEffects();
+	ClearSophiaLeighEffects();
 	DisableSmokeParticles();
 	DisableSparkParticles();
 	DisableDebris();
@@ -581,7 +573,8 @@ void CleanUp()
 	g_Renderer.ClearScene();
 	g_Renderer.SetPostProcessMode(PostProcessMode::None);
 	g_Renderer.SetPostProcessStrength(1.0f);
-	g_Renderer.SetPostProcessTint(Vector3::One);
+	g_Renderer.SetPostProcessTint((Vector3)NEUTRAL_COLOR);
+	g_Renderer.SetDOF({});
 
 	// Reset Itemcamera
 	ClearObjCamera();
@@ -589,19 +582,27 @@ void CleanUp()
 
 void InitializeScripting(int levelIndex, bool loadGame)
 {
-	TENLog("Loading level script...", LogLevel::Info);
-
 	g_GameStringsHandler->ClearDisplayStrings();
 	g_GameScript->ResetScripts(!levelIndex || loadGame);
+
+	auto gameDir = g_GameFlow->GetGameDir();
+	auto autoexecScriptFileName = gameDir + "Scripts/Autoexec.lua";
+
+	if (std::filesystem::is_regular_file(autoexecScriptFileName))
+	{
+		TENLog("Loading autoexec script...", LogLevel::Info);
+		g_GameScript->ExecuteScriptFile(gameDir + "Scripts/Autoexec.lua");
+	}
 
 	const auto& level = *g_GameFlow->GetLevel(levelIndex);
 
 	// Run level script if it exists.
 	if (!level.ScriptFileName.empty())
 	{
-		auto levelScriptName = g_GameFlow->GetGameDir() + level.ScriptFileName;
+		auto levelScriptName = gameDir + level.ScriptFileName;
 		if (std::filesystem::is_regular_file(levelScriptName))
 		{
+			TENLog("Loading level script...", LogLevel::Info);
 			g_GameScript->ExecuteScriptFile(levelScriptName);
 		}
 		else
@@ -622,6 +623,13 @@ void InitializeScripting(int levelIndex, bool loadGame)
 		});
 	}
 
+	// Execute property script blob.
+	if (!g_Level.PropertyBlob.empty())
+	{
+		TENLog("Executing property script blob...", LogLevel::Info);
+		g_GameScript->ExecuteString(g_Level.PropertyBlob);
+	}
+
 	// Play default background music.
 	if (!loadGame)
 		PlaySoundTrack(level.GetAmbientTrack(), SoundTrackType::BGM, 0, SOUND_XFADETIME_LEVELJUMP);
@@ -639,6 +647,9 @@ void DeInitializeScripting(int levelIndex, GameStatus reason)
 	// If level index is 0, it means we are in a title level and game variables should be cleared.
 	if (levelIndex == 0)
 		g_GameScript->ResetScripts(true);
+
+	// Always save global variables on any script deinit event.
+	SaveGame::SaveGlobalVars();
 }
 
 void InitializeOrLoadGame(bool loadGame)
@@ -660,7 +671,6 @@ void InitializeOrLoadGame(bool loadGame)
 		g_Hud.StatusBars.Clamp(*LaraItem);
 		g_GameFlow->SelectedSaveGame = 0;
 		g_GameScript->OnLoad();
-		HandleAllGlobalEvents(EventType::Load, (Activator)short(LaraItem->Index));
 	}
 	else
 	{
@@ -684,7 +694,6 @@ void InitializeOrLoadGame(bool loadGame)
 		}
 
 		g_GameScript->OnStart();
-		HandleAllGlobalEvents(EventType::Start, (Activator)short(LaraItem->Index));
 	}
 }
 
@@ -746,7 +755,7 @@ GameStatus DoGameLoop(int levelIndex)
 void EndGameLoop(int levelIndex, GameStatus reason)
 {
 	// Save last screenshot for loading screen.
-	g_Renderer.DumpGameScene();
+	g_Renderer.DumpGameScene(SceneRenderMode::Full);
 
 	if (reason == GameStatus::LevelComplete)
 		SaveGame::SaveHub(levelIndex);
@@ -774,6 +783,8 @@ void SetupInterpolation()
 
 void HandleControls(bool isTitle)
 {
+	SetRelativeMouseMode(!isTitle && g_GameFlow->CurrentFreezeMode != FreezeMode::Full);
+
 	// Poll input devices and update input variables.
 	// TODO: To allow cutscene skipping later, don't clear Deselect action.
 	UpdateInputActions(false, true);
@@ -823,13 +834,13 @@ GameStatus HandleMenuCalls(bool isTitle)
 	bool doInventory = (IsClicked(In::Inventory) || g_Gui.GetEnterInventory() != NO_VALUE) && playerAlive;
 
 	// Handle inventory.
-	if (doSave && g_GameFlow->IsLoadSaveEnabled() && Lara.Inventory.HasSave && g_Gui.GetInventoryMode() != InventoryMode::Save && inventoryEnabled)
+	if (doSave && g_GameFlow->IsLoadSaveEnabled() && g_Gui.GetInventoryMode() != InventoryMode::Save && inventoryEnabled)
 	{
 		SaveGame::LoadHeaders();
 		g_Gui.SetInventoryMode(InventoryMode::Save);
 		g_Gui.CallInventory(LaraItem, false);
 	}
-	else if (doLoad && g_GameFlow->IsLoadSaveEnabled() && Lara.Inventory.HasLoad && g_Gui.GetInventoryMode() != InventoryMode::Load && inventoryEnabled)
+	else if (doLoad && g_GameFlow->IsLoadSaveEnabled() && g_Gui.GetInventoryMode() != InventoryMode::Load && inventoryEnabled)
 	{
 		SaveGame::LoadHeaders();
 		g_Gui.SetInventoryMode(InventoryMode::Load);

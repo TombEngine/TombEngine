@@ -1,7 +1,8 @@
 #pragma once
 
 // This file is generated automatically, do not edit it.
-// Last generated on 24/12/2025.
+
+// Last generated on 12-06-2026.
 
 #include <unordered_map>
 #include <string>
@@ -129,6 +130,9 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	/// Object ID.
 	// @mem HAIR_SECONDARY
 	{ "HAIR_SECONDARY", ID_HAIR_SECONDARY },
+	/// Object ID.
+	// @mem PHOTOMODE_ANIMS
+	{ "PHOTOMODE_ANIMS", ID_PHOTOMODE_ANIMS },
 	/// Object ID.
 	// @mem SNOWMOBILE_TRACKS
 	{ "SNOWMOBILE_TRACKS", ID_SNOWMOBILE_TRACKS },
@@ -697,6 +701,33 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	// @mem SEAL_MUTANT
 	{ "SEAL_MUTANT", ID_SEAL_MUTANT },
 	/// Object ID.
+	// @mem BOO_MUTANT
+	{ "BOO_MUTANT", ID_BOO_MUTANT },
+	/// Object ID.
+	// @mem HYBRID_MUTANT
+	{ "HYBRID_MUTANT", ID_HYBRID_MUTANT },
+	/// Object ID.
+	// @mem OILRED
+	{ "OILRED", ID_OILRED },
+	/// Object ID.
+	// @mem WHITE_SOLDIER
+	{ "WHITE_SOLDIER", ID_WHITE_SOLDIER },
+	/// Object ID.
+	// @mem PUNK
+	{ "PUNK", ID_PUNK },
+	/// Object ID.
+	// @mem LONDON_MERCENARY
+	{ "LONDON_MERCENARY", ID_LONDON_MERCENARY },
+	/// Object ID.
+	// @mem SWAT_GUN
+	{ "SWAT_GUN", ID_SWAT_GUN },
+	/// Object ID.
+	// @mem PRISONER
+	{ "PRISONER", ID_PRISONER },
+	/// Object ID.
+	// @mem WASP_MUTANT_EMITTER
+	{ "WASP_MUTANT_EMITTER", ID_WASP_MUTANT_EMITTER },
+	/// Object ID.
 	// @mem SPRINGBOARD
 	{ "SPRINGBOARD", ID_SPRINGBOARD },
 	/// Object ID.
@@ -1113,6 +1144,63 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	/// Object ID.
 	// @mem FIRE_PENDULUM
 	{ "FIRE_PENDULUM", ID_FIRE_PENDULUM },
+	/// Object ID.
+	// @mem HEAVY_STAMPER
+	{ "HEAVY_STAMPER", ID_HEAVY_STAMPER },
+	/// Object ID.
+	// @mem DRILL_BIT
+	{ "DRILL_BIT", ID_DRILL_BIT },
+	/// Object ID.
+	// @mem SPIKED_FRAME
+	{ "SPIKED_FRAME", ID_SPIKED_FRAME },
+	/// Object ID.
+	// @mem SWINGING_SANDBAG
+	{ "SWINGING_SANDBAG", ID_SWINGING_SANDBAG },
+	/// Object ID.
+	// @mem SWINGING_BOX
+	{ "SWINGING_BOX", ID_SWINGING_BOX },
+	/// Object ID.
+	// @mem OVERHEAD_PULLEY_HOOK
+	{ "OVERHEAD_PULLEY_HOOK", ID_OVERHEAD_PULLEY_HOOK },
+	/// Object ID.
+	// @mem SWINGING_IRON_ANCHOR
+	{ "SWINGING_IRON_ANCHOR", ID_SWINGING_IRON_ANCHOR },
+	/// Object ID.
+	// @mem SWINGING_SPIKE_BAG
+	{ "SWINGING_SPIKE_BAG", ID_SWINGING_SPIKE_BAG },
+	/// Object ID.
+	// @mem CIRCULAR_SAW
+	{ "CIRCULAR_SAW", ID_CIRCULAR_SAW },
+	/// Object ID.
+	// @mem ROLLING_BARRELS
+	{ "ROLLING_BARRELS", ID_ROLLING_BARRELS },
+	/// Object ID.
+	// @mem MULTIPLE_BOULDERS
+	{ "MULTIPLE_BOULDERS", ID_MULTIPLE_BOULDERS },
+	/// Object ID.
+	// @mem FAN
+	{ "FAN", ID_FAN },
+	/// Object ID.
+	// @mem LARGE_FAN
+	{ "LARGE_FAN", ID_LARGE_FAN },
+	/// Object ID.
+	// @mem FALLING_SPIKES
+	{ "FALLING_SPIKES", ID_FALLING_SPIKES },
+	/// Object ID.
+	// @mem TUNNEL_BORER
+	{ "TUNNEL_BORER", ID_TUNNEL_BORER },
+	/// Object ID.
+	// @mem AIRPLANE_PROPELLER
+	{ "AIRPLANE_PROPELLER", ID_AIRPLANE_PROPELLER },
+	/// Object ID.
+	// @mem ROTATING_KNIFE_DISK
+	{ "ROTATING_KNIFE_DISK", ID_ROTATING_KNIFE_DISK },
+	/// Object ID.
+	// @mem UNDERWATER_MINE
+	{ "UNDERWATER_MINE", ID_UNDERWATER_MINE },
+	/// Object ID.
+	// @mem FALLING_SANDBAG
+	{ "FALLING_SANDBAG", ID_FALLING_SANDBAG },
 	/// Pickup Object ID.
 	// @mem PUZZLE_ITEM1
 	{ "PUZZLE_ITEM1", ID_PUZZLE_ITEM1 },
@@ -1873,17 +1961,17 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	// @mem AIRLOCK_SWITCH
 	{ "AIRLOCK_SWITCH", ID_AIRLOCK_SWITCH },
 	/// Object ID.
-	// @mem UNDERWATER_WALL_SWITCH1
-	{ "UNDERWATER_WALL_SWITCH1", ID_UNDERWATER_WALL_SWITCH1 },
+	// @mem WALL_SWITCH1
+	{ "WALL_SWITCH1", ID_WALL_SWITCH1 },
 	/// Object ID.
-	// @mem UNDERWATER_WALL_SWITCH2
-	{ "UNDERWATER_WALL_SWITCH2", ID_UNDERWATER_WALL_SWITCH2 },
+	// @mem WALL_SWITCH2
+	{ "WALL_SWITCH2", ID_WALL_SWITCH2 },
 	/// Object ID.
-	// @mem UNDERWATER_CEILING_SWITCH1
-	{ "UNDERWATER_CEILING_SWITCH1", ID_UNDERWATER_CEILING_SWITCH1 },
+	// @mem CEILING_SWITCH1
+	{ "CEILING_SWITCH1", ID_CEILING_SWITCH1 },
 	/// Object ID.
-	// @mem UNDERWATER_CEILING_SWITCH2
-	{ "UNDERWATER_CEILING_SWITCH2", ID_UNDERWATER_CEILING_SWITCH2 },
+	// @mem CEILING_SWITCH2
+	{ "CEILING_SWITCH2", ID_CEILING_SWITCH2 },
 	/// Object ID.
 	// @mem TURN_SWITCH
 	{ "TURN_SWITCH", ID_TURN_SWITCH },
@@ -2993,5 +3081,14 @@ static const std::unordered_map<std::string, GAME_OBJECT_ID> GAME_OBJECT_IDS {
 	{ "RAIN_SPRITES", ID_RAIN_SPRITES },
 	/// Sprite Object ID.
 	// @mem INTERACTION_SPRITES
-	{ "INTERACTION_SPRITES", ID_INTERACTION_SPRITES }
+	{ "INTERACTION_SPRITES", ID_INTERACTION_SPRITES },
+	/// Sprite Object ID.
+	// @mem INVENTORY_SPRITES
+	{ "INVENTORY_SPRITES", ID_INVENTORY_SPRITES },
+	/// Sprite Object ID.
+	// @mem PHOTOMODE_SPRITES
+	{ "PHOTOMODE_SPRITES", ID_PHOTOMODE_SPRITES },
+	/// Object ID.
+	// @mem PHOTOMODE_FRAMES
+	{ "PHOTOMODE_FRAMES", ID_PHOTOMODE_FRAMES }
 };

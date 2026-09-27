@@ -3,7 +3,7 @@
 
 #include "./Blending.hlsli"
 #include "./CBCamera.hlsli"
-#include "./CBMaterial.hlsli"
+#include "./CBPerDraw.hlsli"
 
 #define MATERIAL_DEFAULT           0
 #define MATERIAL_REFLECTIVE        1
@@ -22,20 +22,37 @@
 #define POM_MIN_ANGLE 0.4f
 #define POM_HEIGHT_SCALE 0.0035f
 
+#include "./Samplers.hlsli"
+
 Texture2D SSAOTexture : register(t9);
-SamplerState SSAOSampler : register(s9);
-
 Texture2D ORSHTexture : register(t10);
-SamplerState ORSHSampler : register(s10);
-
 Texture2D EmissiveTexture : register(t11);
-SamplerState EmissiveSampler : register(s11);
-
 Texture2D LegacyReflectionsTexture : register(t12);
-SamplerState LegacyReflectionsSampler : register(s12);
-
 Texture2DArray SkyboxReflectionsTexture : register(t13);
-SamplerState SkyboxReflectionsSampler : register(s13);
+
+float GetEmissiveIntensity()
+{
+    int materialType = MaterialTypeAndFlags & MATERIAL_FLAG_MASK;
+    return (materialType == MATERIAL_DEFAULT) ? MaterialProperties[0].x : 1.0f;
+}
+
+float3 GetReflectionTint()
+{
+    return saturate(MaterialProperties[0].rgb);
+}
+
+float GetReflectionVerticalMask(float3 worldPosition)
+{
+    float verticalOffset = MaterialProperties[1].x;
+    float verticalBias = MaterialProperties[2].x;
+
+    if (abs(verticalBias) <= EPSILON)
+        return 1.0f;
+
+    float feather = abs(verticalBias);
+    float signedDistance = (verticalBias < 0.0f) ? (worldPosition.y - verticalOffset) : (verticalOffset - worldPosition.y);
+    return saturate(signedDistance / feather);
+}
 
 float2 ToCentralSquare(float2 uvEnv, float aspect)
 {
@@ -70,8 +87,11 @@ float3 CalculateSkyBoxReflections(float3 worldPosition, float3 normal, float spe
     int slice = (d.z <= 0.0f) ? 0 : 1;
     uv.y = 1.0f - uv.y;
     
-    float3 reflectedColor = SkyboxReflectionsTexture.Sample(SkyboxReflectionsSampler, float3(uv, slice)).rgb;
-    return lerp(pixelColor, reflectedColor, saturate(specular));
+    float3 reflectedColor = SkyboxReflectionsTexture.Sample(AnisotropicClampSampler, float3(uv, slice)).rgb;
+    reflectedColor *= GetReflectionTint();
+
+    float reflectionAmount = saturate(specular) * MaterialProperties[0].a * GetReflectionVerticalMask(worldPosition);
+    return lerp(pixelColor, reflectedColor, reflectionAmount);
 }
 
 float3 CalculateLegacyReflections(float3 worldPosition, float3 normal, float specular, float3 pixelColor)
@@ -88,8 +108,11 @@ float3 CalculateLegacyReflections(float3 worldPosition, float3 normal, float spe
     uv = ToCentralSquare(uv, AspectRatio);
 
     // Sample legacy reflection buffer
-    float3 reflectedColor = LegacyReflectionsTexture.Sample(LegacyReflectionsSampler, uv).rgb;
-    return lerp(pixelColor, reflectedColor, specular);
+    float3 reflectedColor = LegacyReflectionsTexture.Sample(AnisotropicClampSampler, uv).rgb;
+    reflectedColor *= GetReflectionTint();
+
+    float reflectionAmount = saturate(specular) * MaterialProperties[0].a * GetReflectionVerticalMask(worldPosition);
+    return lerp(pixelColor, reflectedColor, reflectionAmount);
 }
 
 
@@ -156,7 +179,7 @@ float2 ParallaxOcclusionMapping(float3x3 TBN, float3 pos, float2 baseUV)
     float currentDepth = 0.0f;
     float2 currentUV = baseUV;
     float2 wrappedUV = frac(currentUV);
-    float currentMapDepth = 1.0f - ORSHTexture.Sample(ORSHSampler, wrappedUV).w;
+    float currentMapDepth = 1.0f - ORSHTexture.Sample(AnisotropicClampSampler, wrappedUV).w;
 
     [loop]
     for (int i = 0; i < numSamples; i++)
@@ -168,13 +191,13 @@ float2 ParallaxOcclusionMapping(float3x3 TBN, float3 pos, float2 baseUV)
         currentDepth += layerDepth;
 
         wrappedUV = frac(currentUV);
-        currentMapDepth = 1.0f - ORSHTexture.Sample(ORSHSampler, wrappedUV).w;
+        currentMapDepth = 1.0f - ORSHTexture.Sample(AnisotropicClampSampler, wrappedUV).w;
     }
 
     // Linear refinement between last two steps.
     float2 prevUV = currentUV - deltaUV;
     float2 wrappedPrevUV = frac(prevUV);
-    float mapDepthPrev = 1.0f - ORSHTexture.Sample(ORSHSampler, wrappedPrevUV).w;
+    float mapDepthPrev = 1.0f - ORSHTexture.Sample(AnisotropicClampSampler, wrappedPrevUV).w;
 
     float afterDepth = currentMapDepth - currentDepth;
     float beforeDepth = mapDepthPrev - (currentDepth - layerDepth);
@@ -191,7 +214,7 @@ float CalculateOcclusion(float2 samplePosition, float alpha)
     if (AmbientOcclusion == 0 || !BlendModeSupportsSSAO() || (MaterialTypeAndFlags & MATERIAL_FLAG_HEIGHTMAP))
 		return 1.0f;
 		
-	float occlusion = pow(SSAOTexture.Sample(SSAOSampler, samplePosition).x, AmbientOcclusionExponent);
+    float occlusion = pow(SSAOTexture.Sample(PointWrapSampler, samplePosition).x, AmbientOcclusionExponent);
 	
 	if (BlendMode == BLENDMODE_ALPHABLEND)
 		occlusion = lerp(occlusion, 1.0f, alpha);

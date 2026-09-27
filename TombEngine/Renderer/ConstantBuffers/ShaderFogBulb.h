@@ -16,6 +16,6 @@ namespace TEN::Renderer::ConstantBuffers
 		Vector3 FogBulbToCameraVector;
 		float SquaredCameraToFogBulbDistance;
 		// --------------------------
-		Vector4 Padding;
+		Vector4 ShaderFogBulb_Padding0;
 	};
 }

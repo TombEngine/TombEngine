@@ -5,7 +5,7 @@
 #include "Game/collision/floordata.h"
 #include "Game/collision/Los.h"
 #include "Game/collision/Point.h"
-#include "Game/control/Los.h"
+#include "Game/control/los.h"
 #include "Game/effects/effects.h"
 #include "Game/effects/item_fx.h"
 #include "Game/effects/spark.h"
@@ -191,7 +191,7 @@ namespace TEN::Entities::Traps
 			if (beam.IsLethal)
 				SpawnLaserSpark(beam.Target, Random::GenerateAngle(), 6, beam.Color);
 
-			SpawnLaserBeamLight(beam.Target.ToVector3(), beam.Target.RoomNumber, item.Model.Color, LASER_BEAM_LIGHT_INTENSITY * item.Model.Color.w, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
+			SpawnLaserBeamLight(beam.Target.ToVector3(), beam.Target.RoomNumber, beam.Color, LASER_BEAM_LIGHT_INTENSITY * beam.Color.w, LASER_BEAM_LIGHT_AMPLITUDE_MAX);
 		}
 
 		SoundEffect(SFX_TR5_DOOR_BEAM, &item.Pose);
@@ -222,7 +222,7 @@ namespace TEN::Entities::Traps
 			if (beam.IsLethal && playerItem->HitPoints > 0 && playerItem->Effect.Type != EffectType::Smoke)
 			{
 				ItemRedLaserBurn(playerItem, FPS * 2);
-				DoDamage(playerItem, MAXINT);
+				DoDamage(playerItem, INT_MAX);
 			}
 			else if (beam.IsHeavyActivator)
 			{

@@ -310,13 +310,13 @@ namespace TEN::Entities::Creatures::TR3
 			CreatureMood(item, &ai, true);
 
 			// Shiva isn't fearful.
-			if (creature.Mood == MoodType::Escape)
+			if (creature.Enemy && creature.Mood == MoodType::Escape)
 			{
 				creature.Target.x = creature.Enemy->Pose.Position.x;
 				creature.Target.z = creature.Enemy->Pose.Position.z;
 			}
 
-			bool isPlayerAlive = (creature.Enemy->HitPoints > 0);
+			bool isPlayerAlive = (creature.Enemy && creature.Enemy->HitPoints > 0);
 			headingAngle = CreatureTurn(item, creature.MaxTurn);
 
 			switch (item->Animation.ActiveState)

@@ -15,7 +15,7 @@ namespace TEN::Entities::Creatures::TR5
 		std::array<Electricity*, GUARDIAN_FIRE_ARC_COUNT> fireArcs = {}; // elptr
 		std::array<Electricity*, GUARDIAN_CHARGE_ARC_COUNT> chargeArcs = {}; // blptr
 		bool LOS[2];
-		byte trackSpeed;
+		unsigned char trackSpeed;
 		bool trackLara;
 		short xRot;
 		short yRot;

@@ -61,12 +61,13 @@ float4 DoLaserBarrierEffect(float3 input, float4 output, float2 uv, float faceFa
 
 	color.rgb *= noiseValue2 + 0.6f;
 	color.rgb += noiseValue3;
+
 	color.a *= noiseValue + 0.01f;
 
 	color.rgb -= shadowx + 0.1f;
 
-	color.a *= noiseValue2 + 0.9f;
-	color.a *= noiseValue3 + 2.0f;
+	color.a *=  noiseValue2 + 0.9f;
+	color.a *=  noiseValue3 + 2.0f;
 
 	float fade0 = faceFactor * max(0.0, 1.0 - dot(float2(BLENDING, BLENDING), float2(gradL, gradT)));
 	float fade1 = faceFactor * max(0.0, 1.0 - dot(float2(BLENDING, BLENDING), float2(gradL, gradB)));
@@ -94,10 +95,11 @@ float4 DoLaserBarrierEffect(float3 input, float4 output, float2 uv, float faceFa
 	{
 		decayFactor = (1.0f - uv.y) / 2;
 	}
+	float fadeMask = scale * decayFactor;
 	color *= decayFactor;
 
-	color.rgb = smoothstep(ZERO, EIGHT_FIVE, color.rgb);
-	return color;
+	color.rgb = smoothstep(ZERO, EIGHT_FIVE, color.rgb) * 0.8f;
+	return float4(color.rgb + (output.rgb * 1.5f * fadeMask), color.a);
 }
 
 float4 DoLaserBeamEffect(float3 input, float4 output, float2 uv, float faceFactor, float timeUniform)

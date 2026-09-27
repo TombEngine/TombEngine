@@ -523,7 +523,7 @@ namespace TEN::Entities::Creatures::TR5
 	{
 		auto* guardian = &GetGuardianInfo(*item);
 
-		byte size = item->ItemFlags[3];
+		unsigned char size = item->ItemFlags[3];
 
 		auto color = Vector3(
 			0.0f,

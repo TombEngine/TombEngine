@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Game/Lara/lara_struct.h"
+#include "Game/Lara/lara_fire.h"
 #include "Scripting/Internal/TEN/Input/ActionIDs.h"
 #include "Scripting/Internal/TEN/Objects/Moveable/MoveableObject.h"
 
@@ -16,10 +17,14 @@ public:
 	int GetAir() const;
 	void SetStamina(sol::optional<int> value);
 	int GetStamina() const;
+	void SetExposure(sol::optional<int> exposure);
+	int GetExposure() const;
 	void SetWet(sol::optional<int> wetness);
 	int GetWet() const;
 	bool GetAirborne() const;
 	void SetAirborne(bool newAirborne);
+	bool GetLocked() const;
+	void SetLocked(bool locked);
 
 	std::unique_ptr<Moveable> GetVehicle() const;
 	std::unique_ptr<Moveable> GetTarget() const;
@@ -33,8 +38,14 @@ public:
 	int GetAmmoType(TypeOrNil<LaraWeaponType> weaponType) const;
 	void SetAmmoType(PlayerAmmoType ammoType);
 	int GetAmmoCount() const;
-	int GetWeaponMode() const;
-	void SetWeaponMode(PlayerWeaponMode weaponMode);
+	int GetWeaponMode(TypeOrNil<LaraWeaponType> weaponType) const;
+	void SetWeaponMode(LaraWeaponType weaponType, PlayerWeaponMode weaponMode);
+
+	std::tuple<LaraWeaponType, LaraWeaponType, LaraWeaponType> GetHolsterWeaponTypes() const;
+	void SetHolsterWeaponTypes(TypeOrNil<LaraWeaponType> left, TypeOrNil<LaraWeaponType> right, TypeOrNil<LaraWeaponType> back);
+	void ResetHair();
+	void SpawnGunFlash(LaraWeaponType weaponType, TypeOrNil<WeaponFlashMode> weaponFlashType);
+	void ClearGunFlashes();
 
 	void UndrawWeapon();
 	void DiscardTorch();
@@ -44,7 +55,8 @@ public:
 
 	int GetWaterSkinStatus(TypeOrNil<bool> flag) const;
 	void SetWaterSkinStatus(int amount, TypeOrNil<bool> flag);
-
+	sol::table GetSkin(sol::this_state s);
+	void SetSkin(sol::optional<GAME_OBJECT_ID> skin, sol::optional<GAME_OBJECT_ID> skinJoints, sol::optional<GAME_OBJECT_ID> skinScream, sol::optional<GAME_OBJECT_ID> hair1, sol::optional<GAME_OBJECT_ID> hair2);
 	void Interact(const Moveable& mov, TypeOrNil<int> animNumber,
 				  const TypeOrNil<Vec3>& offset, const TypeOrNil<Vec3>& offsetConstraintMin, const TypeOrNil<Vec3>& offsetConstraintMax,
 				  const TypeOrNil<Rotation>& rotConstraintMin, const TypeOrNil<Rotation>& rotConstraintMax, TypeOrNil<ActionID> actionID,

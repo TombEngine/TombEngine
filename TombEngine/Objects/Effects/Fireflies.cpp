@@ -76,9 +76,9 @@ namespace TEN::Effects::Fireflies
         if (triggerFlags >= 0)
         {
             float brightnessShift = Random::GenerateFloat(-0.1f, 0.1f);
-            r = std::clamp(item.Model.Color.x / 2.0f + brightnessShift, 0.0f, 1.0f) * UCHAR_MAX;
-            g = std::clamp(item.Model.Color.y / 2.0f + brightnessShift, 0.0f, 1.0f) * UCHAR_MAX;
-            b = std::clamp(item.Model.Color.z / 2.0f + brightnessShift, 0.0f, 1.0f) * UCHAR_MAX;
+            r = std::clamp(item.Model.Color.x + brightnessShift, 0.0f, 1.0f) * UCHAR_MAX;
+            g = std::clamp(item.Model.Color.y + brightnessShift, 0.0f, 1.0f) * UCHAR_MAX;
+            b = std::clamp(item.Model.Color.z + brightnessShift, 0.0f, 1.0f) * UCHAR_MAX;
 
             firefly.SpriteSeqID = ID_FIREFLY_SPRITES;
             firefly.SpriteID = 0;
@@ -219,7 +219,8 @@ namespace TEN::Effects::Fireflies
                 }
 
                 if ((targetItem->ItemFlags[FirefliesItemFlags::LightIndex1] == firefly.Number || targetItem->ItemFlags[FirefliesItemFlags::LightIndex2] == firefly.Number) &&
-                    targetItem->ItemFlags[FirefliesItemFlags::Light] == 1)
+                    targetItem->ItemFlags[FirefliesItemFlags::Light] == 1 &&
+                    targetItem->ItemFlags[FirefliesItemFlags::TriggerFlags] >= 0)
                 {
                     float totalCycleDuration = 2 * (LIGHT_ALPHA_CYCLE_DURATION + ALPHA_PAUSE_DURATION);
                     float alphaTime = fmod(frameCounter, totalCycleDuration);
@@ -244,9 +245,9 @@ namespace TEN::Effects::Fireflies
                     }
 
                     SpawnDynamicLight(firefly.Position.x, firefly.Position.y, firefly.Position.z, 3,
-                        static_cast<unsigned char>(std::clamp(firefly.r * alphaFactor, 0.0f, (float)firefly.r)),
-                        static_cast<unsigned char>(std::clamp(firefly.g * alphaFactor, 0.0f, (float)firefly.g)),
-                        static_cast<unsigned char>(std::clamp(firefly.b * alphaFactor, 0.0f, (float)firefly.b)));
+                        (unsigned char)std::clamp(firefly.r * alphaFactor, 0.0f, (float)firefly.r),
+                        (unsigned char)std::clamp(firefly.g * alphaFactor, 0.0f, (float)firefly.g),
+                        (unsigned char)std::clamp(firefly.b * alphaFactor, 0.0f, (float)firefly.b));
                 }
             }
         }
@@ -343,9 +344,9 @@ namespace TEN::Effects::Fireflies
                 alphaFactor = (alphaTime - 2 * ALPHA_PAUSE_DURATION - LIGHT_ALPHA_CYCLE_DURATION) / LIGHT_ALPHA_CYCLE_DURATION;
             }
 
-            firefly.r = static_cast<unsigned char>(firefly.rB * alphaFactor);
-            firefly.g = static_cast<unsigned char>(firefly.gB * alphaFactor);
-            firefly.b = static_cast<unsigned char>(firefly.bB * alphaFactor);
+            firefly.r = (unsigned char)(firefly.rB * alphaFactor);
+            firefly.g = (unsigned char)(firefly.gB * alphaFactor);
+            firefly.b = (unsigned char)(firefly.bB * alphaFactor);
 
             for (const auto& otherFirefly : FireflySwarm)
             {

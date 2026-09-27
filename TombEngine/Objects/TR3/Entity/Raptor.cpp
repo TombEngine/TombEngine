@@ -301,7 +301,7 @@ namespace TEN::Entities::Creatures::TR3
 
 				if (creature.Enemy != nullptr)
 				{
-					if (creature.Enemy->IsLara() && !(creature.Flags & 1) &&
+					if (creature.Enemy.IsLara() && !(creature.Flags & 1) &&
 						item.TouchBits.Test(RaptorAttackJoints))
 					{
 						DoDamage(creature.Enemy, RAPTOR_ATTACK_DAMAGE);
@@ -335,7 +335,7 @@ namespace TEN::Entities::Creatures::TR3
 
 				if (creature.Enemy != nullptr)
 				{
-					if (creature.Enemy->IsLara() && !(creature.Flags & 1) &&
+					if (creature.Enemy.IsLara() && !(creature.Flags & 1) &&
 						item.TouchBits.Test(RaptorAttackJoints))
 					{
 						DoDamage(creature.Enemy, RAPTOR_ATTACK_DAMAGE);
@@ -369,7 +369,7 @@ namespace TEN::Entities::Creatures::TR3
 
 				if (creature.Enemy != nullptr)
 				{
-					if (creature.Enemy->IsLara() && !(creature.Flags & 1) &&
+					if (creature.Enemy.IsLara() && !(creature.Flags & 1) &&
 						item.TouchBits.Test(RaptorAttackJoints))
 					{
 						DoDamage(creature.Enemy, RAPTOR_ATTACK_DAMAGE);

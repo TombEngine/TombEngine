@@ -10,4 +10,5 @@ cbuffer CBSky : register(b8)
     float4 AmbientLight;
 	//--
     int ApplyFogBulbs;
+    float3 CSkyBuffer_Padding0;
 };

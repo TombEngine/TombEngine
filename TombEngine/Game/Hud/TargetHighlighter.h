@@ -94,5 +94,6 @@ namespace TEN::Hud
 		void		   ClearInactiveCrosshairs();
 
 		void DrawDebug() const;
+		bool IsEnabled() const;
 	};
 }

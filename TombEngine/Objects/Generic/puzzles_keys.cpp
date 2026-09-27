@@ -6,7 +6,7 @@
 #include "Game/collision/collide_item.h"
 #include "Game/control/control.h"
 #include "Game/control/trigger.h"
-#include "Game/Gui.h"
+#include "Game/gui.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"

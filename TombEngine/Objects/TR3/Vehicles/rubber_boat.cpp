@@ -5,7 +5,7 @@
 #include "Game/camera.h"
 #include "Game/collision/collide_item.h"
 #include "Game/collision/Point.h"
-#include "Game/effects/Bubble.h"
+#include "Game/effects/bubble.h"
 #include "Game/effects/effects.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
@@ -16,6 +16,9 @@
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Renderer/RendererEnums.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
+#include "Specific/trutils.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -24,6 +27,7 @@ using namespace TEN::Animation;
 using namespace TEN::Collision::Point;
 using namespace TEN::Effects::Bubble;
 using namespace TEN::Input;
+using namespace TEN::Utils;
 
 namespace TEN::Entities::Vehicles
 {
@@ -128,7 +132,7 @@ namespace TEN::Entities::Vehicles
 		}
 		else
 		{
-			lara->Context.Vehicle = itemNumber;
+			SetLaraVehicle(laraItem, rBoatItem);
 			DoRubberBoatMount(rBoatItem, laraItem, mountType);
 
 			if (g_Level.Items[itemNumber].Status != ITEM_ACTIVE)
@@ -147,19 +151,19 @@ namespace TEN::Entities::Vehicles
 		{
 		default:
 		case VehicleMountType::LevelStart:
-			SetAnimation(laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_IDLE);
+			SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_IDLE);
 			break;
 
 		case VehicleMountType::Left:
-			SetAnimation(laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_MOUNT_LEFT);
+			SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_MOUNT_LEFT);
 			break;
 
 		case VehicleMountType::Right:
-			SetAnimation(laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_MOUNT_RIGHT);
+			SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_MOUNT_RIGHT);
 			break;
 
 		case VehicleMountType::Jump:
-			SetAnimation(laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_MOUNT_JUMP);
+			SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_MOUNT_JUMP);
 			break;
 		}
 
@@ -182,8 +186,7 @@ namespace TEN::Entities::Vehicles
 		auto* boatItem = &g_Level.Items[itemNumber];
 		auto* lara = GetLaraInfo(laraItem);
 
-		int itemNumber2 = g_Level.Rooms[boatItem->RoomNumber].itemNumber;
-		while (itemNumber2 != NO_VALUE)
+		for (int itemNumber2 : g_Level.Rooms[boatItem->RoomNumber].itemNumbers)
 		{
 			auto* item = &g_Level.Items[itemNumber2];
 
@@ -193,6 +196,7 @@ namespace TEN::Entities::Vehicles
 				int z = item->Pose.Position.z - boatItem->Pose.Position.z;
 
 				int distance = pow(x, 2) + pow(z, 2);
+
 				if (distance < 1000000)
 				{
 					boatItem->Pose.Position.x = item->Pose.Position.x - x * 1000000 / distance;
@@ -201,8 +205,6 @@ namespace TEN::Entities::Vehicles
 
 				return;
 			}
-
-			itemNumber2 = item->NextItem;
 		}
 	}
 
@@ -312,8 +314,8 @@ namespace TEN::Entities::Vehicles
 			float sinY = phd_sin(rBoatItem->Pose.Orientation.y);
 			float cosY = phd_cos(rBoatItem->Pose.Orientation.y);
 
-			long front = (moved->z * cosY) + (moved->x * sinY);
-			long side = (moved->z * -sinY) + (moved->x * cosY);
+			int front = (moved->z * cosY) + (moved->x * sinY);
+			int side = (moved->z * -sinY) + (moved->x * cosY);
 
 			if (abs(front) > abs(side))
 			{
@@ -621,18 +623,18 @@ namespace TEN::Entities::Vehicles
 		if (laraItem->HitPoints <= 0)
 		{
 			if (laraItem->Animation.ActiveState != RBOAT_STATE_DEATH)
-				SetAnimation(laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_IDLE_DEATH);
+				SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_IDLE_DEATH);
 		}
 		else if (rBoatItem->Pose.Position.y < (rBoat->Water - CLICK(0.5f)) &&
 			rBoatItem->Animation.Velocity.y > 0)
 		{
 			if (laraItem->Animation.ActiveState != RBOAT_STATE_FALL)
-				SetAnimation(laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_LEAP_START);
+				SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, RBOAT_ANIM_LEAP_START);
 		}
 		else if (collide)
 		{
 			if (laraItem->Animation.ActiveState != RBOAT_STATE_HIT)
-				SetAnimation(laraItem, ID_RUBBER_BOAT_LARA_ANIMS, collide);
+				SetAnimationFromSlot(*laraItem, ID_RUBBER_BOAT_LARA_ANIMS, collide);
 		}
 		else
 		{
@@ -689,26 +691,28 @@ namespace TEN::Entities::Vehicles
 		}
 	}
 
-	static void TriggerRubberBoatMist(long x, long y, long z, long velocity, short angle, long snow)
+	static void TriggerRubberBoatMist(ItemInfo* rBoatItem, short itemNumber, int x, int y, int z, int velocity, short angle, int snow)
 	{
 		auto* sptr = GetFreeParticle();
+		auto rBoatMistStartColor = PropertyHandler::Get(rBoatItem, PropName_VehicleMistStartColor, ScriptColor(0, 0, 0));
+		auto rBoatMistEndColor = PropertyHandler::Get(rBoatItem, PropName_VehicleMistEndColor, ScriptColor(64, 64, 64));
 
 		sptr->on = 1;
-		sptr->sR = 0;
-		sptr->sG = 0;
-		sptr->sB = 0;
+		sptr->sR = rBoatMistStartColor.GetR();
+		sptr->sG = rBoatMistStartColor.GetG();
+		sptr->sB = rBoatMistStartColor.GetB();
 
 		if (snow)
 		{
-			sptr->dR = 255;
-			sptr->dG = 255;
-			sptr->dB = 255;
+			sptr->dR = (unsigned char)std::min<int>(rBoatMistEndColor.GetR() + 255, UCHAR_MAX);
+			sptr->dG = (unsigned char)std::min<int>(rBoatMistEndColor.GetG() + 255, UCHAR_MAX);
+			sptr->dB = (unsigned char)std::min<int>(rBoatMistEndColor.GetB() + 255, UCHAR_MAX);
 		}
 		else
 		{
-			sptr->dR = 64;
-			sptr->dG = 64;
-			sptr->dB = 64;
+			sptr->dR = rBoatMistEndColor.GetR();
+			sptr->dG = rBoatMistEndColor.GetG();
+			sptr->dB = rBoatMistEndColor.GetB();
 		}
 
 		sptr->colFadeSpeed = 4 + (GetRandomControl() & 3);
@@ -721,8 +725,8 @@ namespace TEN::Entities::Vehicles
 		sptr->x = x + ((GetRandomControl() & 15) - 8);
 		sptr->y = y + ((GetRandomControl() & 15) - 8);
 		sptr->z = z + ((GetRandomControl() & 15) - 8);
-		long zv = velocity * phd_cos(angle) / 4;
-		long xv = velocity * phd_sin(angle) / 4;
+		int zv = velocity * phd_cos(angle) / 4;
+		int xv = velocity * phd_sin(angle) / 4;
 		sptr->xVel = xv + ((GetRandomControl() & 127) - 64);
 		sptr->yVel = 0;
 		sptr->zVel = zv + ((GetRandomControl() & 127) - 64);
@@ -730,7 +734,7 @@ namespace TEN::Entities::Vehicles
 
 		if (GetRandomControl() & 1)
 		{
-			sptr->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF;
+			sptr->flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_HAZE ;
 			sptr->rotAng = GetRandomControl() & 4095;
 
 			if (GetRandomControl() & 1)
@@ -740,7 +744,7 @@ namespace TEN::Entities::Vehicles
 		}
 		else
 		{
-			sptr->flags = SP_SCALE | SP_DEF | SP_EXPDEF;
+			sptr->flags = SP_SCALE | SP_DEF | SP_EXPDEF | SP_HAZE;
 		}
 
 		if (!snow)
@@ -773,7 +777,7 @@ namespace TEN::Entities::Vehicles
 			laraItem->Animation.IsAirborne = true;
 			laraItem->Animation.Velocity.z = 20;
 			laraItem->Animation.Velocity.y = -40;
-			lara->Context.Vehicle = NO_VALUE; // Leave vehicle itself active for inertia.
+			SetLaraVehicle(laraItem, nullptr);
 
 			int x = laraItem->Pose.Position.x + 360 * phd_sin(laraItem->Pose.Orientation.y);
 			int y = laraItem->Pose.Position.y - 90;
@@ -935,7 +939,10 @@ namespace TEN::Entities::Vehicles
 			height < prop.y &&
 			height != NO_HEIGHT)
 		{
-			TriggerRubberBoatMist(prop.x, prop.y, prop.z, abs(rBoatItem->Animation.Velocity.z), rBoatItem->Pose.Orientation.y + ANGLE(180.0f), 0);
+			if (PropertyHandler::Get(rBoatItem, PropName_VehicleMist, true))
+			{
+				TriggerRubberBoatMist(rBoatItem, itemNumber, prop.x, prop.y, prop.z, abs(rBoatItem->Animation.Velocity.z), rBoatItem->Pose.Orientation.y + ANGLE(180.0f), 0);
+			}
 			
 			int waterHeight = GetPointCollision(*rBoatItem).GetWaterTopHeight();
 			SpawnVehicleWake(*rBoatItem, RBOAT_WAKE_OFFSET, waterHeight);
@@ -965,9 +972,13 @@ namespace TEN::Entities::Vehicles
 				pos.y = prop.y;
 				pos.z = prop.z;
 
-				long cnt = (GetRandomControl() & 3) + 3;
+				int cnt = (GetRandomControl() & 3) + 3;
 				for (;cnt>0;cnt--)
-					TriggerRubberBoatMist(prop.x, prop.y, prop.z, ((GetRandomControl() & 15) + 96) * 16, rBoatItem->Pose.Orientation.y + 0x4000 + GetRandomControl(), 1);
+
+				if (PropertyHandler::Get(rBoatItem, PropName_VehicleMist, true))
+				{
+					TriggerRubberBoatMist(rBoatItem, itemNumber, prop.x, prop.y, prop.z, ((GetRandomControl() & 15) + 96) * 16, rBoatItem->Pose.Orientation.y + 0x4000 + GetRandomControl(), 1);
+				}
 			}
 		}
 	}

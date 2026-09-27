@@ -1,12 +1,12 @@
 #include "framework.h"
 #include "CameraObject.h"
-#include "Game/camera.h"
 
+#include "Game/camera.h"
+#include "Game/LevelCamera.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/ScriptUtil.h"
 #include "Scripting/Internal/TEN/Types/Vec3/Vec3.h"
-#include "Specific/LevelCameraInfo.h"
 #include "Specific/level.h"
 
 /***
@@ -120,8 +120,8 @@ int CameraObject::GetRoomNumber() const
 
 void CameraObject::SetRoomNumber(short room)
 {	
-	const size_t nRooms = g_Level.Rooms.size();
-	if (room < 0 || static_cast<size_t>(room) >= nRooms)
+	const auto nRooms = g_Level.Rooms.size();
+	if (room < 0 || (size_t)room >= nRooms)
 	{
 		ScriptAssertF(false, "Invalid room number: {}. Value must be in range [0, {})", room, nRooms);
 		TENLog("Room number will not be set", LogLevel::Warning, LogConfig::All);

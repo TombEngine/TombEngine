@@ -16,5 +16,6 @@ namespace TEN::Renderer::ConstantBuffers
 		Vector4 Ambient;
 		//--
 		int ApplyFogBulbs;
+		Vector3 CSkyBuffer_Padding0;
 	};
 }
