@@ -96,10 +96,7 @@ void SaveGame::LoadHeaders()
 	// Try loading savegame.
 	for (int i = 0; i < SAVEGAME_MAX; i++)
 	{
-		if (!DoesSaveGameExist(i, true))
-			continue;
-
-		if (!SaveGame::LoadHeader(i, &Infos[i]))
+		if (!SaveGame::LoadHeader(i, &Infos[i], true))
 			continue;
 
 		Infos[i].Present = true;
@@ -122,15 +119,8 @@ bool SaveGame::IsSaveGameSlotValid(int slot)
 
 bool SaveGame::DoesSaveGameExist(int slot, bool silent)
 {
-	if (!std::filesystem::is_regular_file(GetSavegameFilename(slot)))
-	{
-		if (!silent)
-			TENLog(fmt::format("Attempted to access missing savegame slot {}.", slot), LogLevel::Warning);
-
-		return false;
-	}
-
-	return true;
+	SaveGameHeader header;
+	return LoadHeader(slot, &header, silent);
 }
 
 bool SaveGame::IsSaveGameValid(int slot)
@@ -3074,15 +3064,20 @@ void SaveGame::Parse(const std::vector<unsigned char>& buffer, bool hubMode)
 	ParsePlayer(s);
 }
 
-bool SaveGame::LoadHeader(int slot, SaveGameHeader* header)
+bool SaveGame::LoadHeader(int slot, SaveGameHeader* header, bool silent)
 {
 	if (!IsSaveGameSlotValid(slot))
 		return false;
 
-	if (!DoesSaveGameExist(slot))
-		return false;
-
 	auto fileName = GetSavegameFilename(slot);
+
+	if (!std::filesystem::is_regular_file(fileName))
+	{
+		if (!silent)
+			TENLog(fmt::format("Attempted to access missing savegame slot {}.", slot), LogLevel::Warning);
+
+		return false;
+	}
 
 	std::ifstream file;
 	file.open(std::filesystem::path{fileName}, std::ios_base::app | std::ios_base::binary);
@@ -3122,7 +3117,6 @@ bool SaveGame::LoadHeader(int slot, SaveGameHeader* header)
 		header->Hours = s->header()->hours();
 		header->Minutes = s->header()->minutes();
 		header->Seconds = s->header()->seconds();
-		header->Level = s->header()->level();
 		header->Timer = s->header()->timer();
 		header->Count = s->header()->count();
 

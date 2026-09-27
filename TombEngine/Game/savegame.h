@@ -48,7 +48,7 @@ public:
 
 	static void Init(const std::string& dir);
 	static bool Load(int slot);
-	static bool LoadHeader(int slot, SaveGameHeader* header);
+	static bool LoadHeader(int slot, SaveGameHeader* header, bool silent = false);
 	static void LoadHeaders();
 	static bool Save(int slot);
 	static void Delete(int slot);
