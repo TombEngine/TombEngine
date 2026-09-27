@@ -18,6 +18,8 @@
 #include "Game/pickup/pickup.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Specific/clock.h"
 #include "Specific/Input/Input.h"
 
@@ -39,6 +41,12 @@ using namespace TEN::Effects::Decal;
 
 namespace TEN::Entities::Creatures::TR2
 {
+    // Properties unique to this entity.
+    static const auto PropName_FlameStartColor = GetHash("FlameStartColor");
+    static const auto PropName_FlameEndColor = GetHash("FlameEndColor");
+    static const auto PropName_EmberStartColor = GetHash("EmberStartColor");
+    static const auto PropName_EmberEndColor = GetHash("EmberEndColor");
+
     auto DragonDaggerBounds = ObjectCollisionBounds
     {
         GameBoundingBox::Zero,
@@ -64,6 +72,8 @@ namespace TEN::Entities::Creatures::TR2
         Vector3 vel;
         short roomNumber;
         int life;
+        ScriptColor startColor;
+        ScriptColor endColor;
     };
 
     auto DragonDaggerPos = Vector3i::Zero;
@@ -238,7 +248,7 @@ namespace TEN::Entities::Creatures::TR2
     }
     // Creates a visual spark particle AND a logical ember physics object.
 // The logical ember is updated separately in UpdateDragonEmbers().
-    static void SpawnDragonFlameEmber(const Particle& fire, const Vector3& dir, short roomNumber)
+    static void SpawnDragonFlameEmber(const Particle& fire, const Vector3& dir, short roomNumber, const ScriptColor& emberStartColor, const ScriptColor& emberEndColor)
     {
         auto& ember = *GetFreeParticle();
         ember.on = true;
@@ -250,13 +260,13 @@ namespace TEN::Entities::Creatures::TR2
         ember.y = fire.y + Random::GenerateFloat(-12.0f, 12.0f);
         ember.z = fire.z + Random::GenerateFloat(-12.0f, 12.0f);
 
-        ember.sR = Random::GenerateFloat(0.9f, 1.0f) * UCHAR_MAX;
-        ember.sG = Random::GenerateFloat(0.4f, 0.6f) * UCHAR_MAX;
-        ember.sB = Random::GenerateFloat(0.1f, 0.2f) * UCHAR_MAX;
+        ember.sR = emberStartColor.GetR();
+        ember.sG = emberStartColor.GetG();
+        ember.sB = emberStartColor.GetB();
 
-        ember.dR = 0.8f * UCHAR_MAX;
-        ember.dG = 0.6f * UCHAR_MAX;
-        ember.dB = 0.3f * UCHAR_MAX;
+        ember.dR = emberEndColor.GetR();
+        ember.dG = emberEndColor.GetG();
+        ember.dB = emberEndColor.GetB();
 
         ember.colFadeSpeed = 10;
         ember.fadeToBlack = 6;
@@ -291,6 +301,8 @@ namespace TEN::Entities::Creatures::TR2
         e.vel = Vector3(ember.xVel, ember.yVel, ember.zVel);
         e.roomNumber = roomNumber;
         e.life = ember.life;
+        e.startColor = emberStartColor;
+        e.endColor = emberEndColor;
 
         DragonEmbers.push_back(e);
     }
@@ -343,6 +355,12 @@ namespace TEN::Entities::Creatures::TR2
         int lifeTicks = int(travelTimeSeconds * FPS);
         lifeTicks = std::max(lifeTicks, 4);
 
+        // Resolve configurable flame colors once per attack, not per particle.
+        auto flameStartColor = PropertyHandler::Get(item, PropName_FlameStartColor, ScriptColor(153, 63, 13));
+        auto flameEndColor = PropertyHandler::Get(item, PropName_FlameEndColor, ScriptColor(89, 38, 5));
+        auto emberStartColor = PropertyHandler::Get(item, PropName_EmberStartColor, ScriptColor(230, 102, 26));
+        auto emberEndColor = PropertyHandler::Get(item, PropName_EmberEndColor, ScriptColor(204, 153, 77));
+
         for (int i = 0; i < FIRE_COUNT; i++)
         {
             BoundingSphere sphere(origin, SPHERE_RADIUS);
@@ -371,13 +389,13 @@ namespace TEN::Entities::Creatures::TR2
             fire.SpriteSeqID = ID_FIRE_SPRITES;
             fire.SpriteID = Random::GenerateInt(0, 35);
 
-            fire.sR = Random::GenerateFloat(0.65f, 0.8f) * UCHAR_MAX;
-            fire.sG = Random::GenerateFloat(0.25f, 0.35f) * UCHAR_MAX;
-            fire.sB = Random::GenerateFloat(0.05f, 0.12f) * UCHAR_MAX;
+            fire.sR = flameStartColor.GetR();
+            fire.sG = flameStartColor.GetG();
+            fire.sB = flameStartColor.GetB();
 
-            fire.dR = Random::GenerateFloat(0.35f, 0.55f) * UCHAR_MAX;
-            fire.dG = Random::GenerateFloat(0.15f, 0.25f) * UCHAR_MAX;
-            fire.dB = Random::GenerateFloat(0.02f, 0.08f) * UCHAR_MAX;
+            fire.dR = flameEndColor.GetR();
+            fire.dG = flameEndColor.GetG();
+            fire.dB = flameEndColor.GetB();
 
             fire.colFadeSpeed = 12;
             fire.fadeToBlack = 8;
@@ -396,7 +414,7 @@ namespace TEN::Entities::Creatures::TR2
             fire.sSize = fire.dSize * 0.5f;
             fire.size = fire.dSize;
 
-            SpawnDragonFlameEmber(fire, dir, item.RoomNumber);
+            SpawnDragonFlameEmber(fire, dir, item.RoomNumber, emberStartColor, emberEndColor);
         }
     }
 
@@ -542,13 +560,13 @@ namespace TEN::Entities::Creatures::TR2
             ember.SpriteSeqID = ID_SPARK_SPRITE;
             ember.SpriteID = 0;
 
-            ember.sR = 255;
-            ember.sG = 180;
-            ember.sB = 80;
+            ember.sR = e.startColor.GetR();
+            ember.sG = e.startColor.GetG();
+            ember.sB = e.startColor.GetB();
 
-            ember.dR = 128;
-            ember.dG = 64;
-            ember.dB = 32;
+            ember.dR = e.endColor.GetR();
+            ember.dG = e.endColor.GetG();
+            ember.dB = e.endColor.GetB();
 
             ember.colFadeSpeed = 10;
             ember.fadeToBlack = 6;
