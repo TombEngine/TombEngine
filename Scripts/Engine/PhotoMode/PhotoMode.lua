@@ -223,18 +223,18 @@ local COLOR_NAMES = (function() local t={} for i=1,#Configuration.Light.colorPre
 -- each menu entry to respect per-preset unlock flags (tracked in GlobalVars).
 -- Menu option indices no longer match preset indices 1:1, so a pair of maps is
 -- kept per type: [menuOptionIdx] -> real preset index, and the reverse.
-local _animMenuMap        = {}  -- Poses
-local _animMenuMapReverse = {}
+local _animMenuMap              = {}  -- Poses
+local _animMenuMapReverse       = {}
 local _expressionMenuMap        = {}
 local _expressionMenuMapReverse = {}
-local _accessoryMenuMap        = {}
-local _accessoryMenuMapReverse = {}
-local _frameMenuMap        = {}
-local _frameMenuMapReverse = {}
-local _outfitMenuMap        = {}  -- [menuOptionIdx] -> real Configuration.Outfits index
-local _outfitMenuMapReverse = {}  -- [real Configuration.Outfits index] -> menuOptionIdx
-local _weaponMenuMap        = {}  -- [menuOptionIdx] -> real Configuration.Weapons index
-local _weaponMenuMapReverse = {}  -- [real Configuration.Weapons index] -> menuOptionIdx
+local _accessoryMenuMap         = {}
+local _accessoryMenuMapReverse  = {}
+local _frameMenuMap             = {}
+local _frameMenuMapReverse      = {}
+local _outfitMenuMap            = {}  -- [menuOptionIdx] -> real Configuration.Outfits index
+local _outfitMenuMapReverse     = {}  -- [real Configuration.Outfits index] -> menuOptionIdx
+local _weaponMenuMap            = {}  -- [menuOptionIdx] -> real Configuration.Weapons index
+local _weaponMenuMapReverse     = {}  -- [real Configuration.Weapons index] -> menuOptionIdx
 
 -- Build a filtered name list for a data type, honouring each preset's
 -- `unlocked` flag: false entries are hidden until Unlock*() marks them in
