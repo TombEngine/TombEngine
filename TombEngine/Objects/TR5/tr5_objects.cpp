@@ -650,6 +650,7 @@ static void StartEntity(ObjectInfo *obj)
 		obj->control = ControlGunShip;
 		obj->shadowType = ShadowMode::All;
 		obj->HitPoints = 100;
+		obj->HitRoutine = HitGunship;
 		obj->pivotLength = 200;
 		obj->radius = 512;
 		obj->intelligent = true;

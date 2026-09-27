@@ -1,9 +1,14 @@
 # Progress
 
 ## Current Task
-**Gunship Normal-Modus (ControlOriginalGunShip) – Range-Gate (2026-09-27):** Heli feuert jetzt nur noch innerhalb `maxShotsRange` (Distanz Heli→Lara-Hüften; `LM_HIPS` vom Nutzer gewählt), ausserhalb: kein Feuer + MeshBit-Blitz aus. Leading-Aim (3x-Extrapolation) + Schieß-Bug-Fix wie zuvor. Debug-Linie (Zeile 746) noch aktiv – nach Test entfernen. Naechster Schritt: Nutzer kompiliert/testet (Build-Errors meldet der Nutzer).
+**Gunship BOSS-Modus (ControlGunShip) – Escape-Feuer (2026-09-27):** Heli feuert jetzt auch während des Escape-/Repositionierungs-Flugs (`hasMoveTargetPos=true`) auf sein Shoot-Target, solange es in Reichweite (`shootHLen <= maxShotsRange`). `!hasMoveTargetPos`-Gate in `hasShootTargetInRange` entfernt. Nächster Schritt: Nutzer kompiliert/testet (Build-Errors meldet der Nutzer).
 
 ## Completed Work
+- **Gunship BOSS-Modus – Escape-Feuer (2026-09-27):**
+  - `tr5_gunship.cpp` `ControlGunShip` (Zeile 1318): `hasShootTargetInRange = hasShootTarget && shootHLen <= maxShotsRange` (war `hasShootTarget && !hasMoveTargetPos && shootHLen <= maxShotsRange`) → feuert jetzt auch im ESCAPE / GoToTarget-Flug.
+  - Orientierung war bereits korrekt: `targetOrient` auf das Shoot-Target (Zeile 991–992) + `ANGLE(180.0f)`-Flip (Zeile 1287) → `-Z`/Heckwaffe zeigt auf das Target → `CanFireShot`/`FireShot` (schießen in `-Z`) treffen.
+  - Reichweiten-Gate `shootHLen <= maxShotsRange` bewusst behalten: feuert während des Escape-Flugs, bis der Heli aus der Waffengrenze kommt („retreat & shoot").
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage; Build-Errors meldet der Nutzer).
 - **Gunship Normal-Modus – Range-Gate (2026-09-27):**
   - `tr5_gunship.cpp` `ControlOriginalGunShip`: `inRange = Vector3::Distance(heliPos, laraPos) <= maxShotsRange` → gateet Schuss + Muenze-Blitz (MeshBit 0x100 ein/aus).
   - Nutzer-Änderung: Ziel-Joint = `LM_HIPS` (Laras Hüften, "passt so").

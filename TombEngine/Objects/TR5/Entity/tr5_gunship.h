@@ -9,6 +9,7 @@ namespace TEN::Entities::Creatures::TR5
 	void InitializeGunShip(short itemNumber);
 	void ControlGunShip(short itemNumber);
 	void ControlOriginalGunShip(short itemNumber);
+	void HitGunship(ItemInfo& target, ItemInfo& source, std::optional<GameVector> pos, int damage, bool isExplosive, int jointIndex);
 
 	// Feuersperre: Kann der Schuetzer von der Muenze aus feuern? (Ziel in der Schusslinie, eigenes Item wird uebersprungen.)
 	bool CanFireShot(ItemInfo* shooter, const Vector3& muzzlePos, const EulerAngles& orientation, float range);

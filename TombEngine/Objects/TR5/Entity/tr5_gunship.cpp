@@ -11,10 +11,12 @@
 #include "Game/collision/collide_room.h"
 #include "Game/control/box.h"
 #include "Game/control/control.h"
+#include "Game/control/lot.h"
 #include "Game/itemdata/creature_info.h"
 #include "Game/items.h"
 #include "Game/room.h"
 #include "Game/Lara/lara.h"
+#include "Game/Lara/lara_helpers.h"
 #include "Game/control/los.h"
 #include "Math/Geometry.h"
 #include "Sound/sound.h"
@@ -88,9 +90,6 @@ namespace TEN::Entities::Creatures::TR5
 	{
 		auto* item = &g_Level.Items[itemNumber];
 		InitializeCreature(itemNumber);
-		//GunShip = GunshipData{}; // Frischer geteilter State (RomanStatue-Pattern, wie InitializeRomanStatue).
-		
-
 	}
 
 	// Konstanten für Verhalten
@@ -116,6 +115,7 @@ namespace TEN::Entities::Creatures::TR5
 	constexpr float ESCAPE_EXCLUDE_RADIUS = SECTOR_SIZE * 2.0f; // Ausschlussradius: das zuletzt fehlgeschlagene Escapetarget wird bei der Neu-Suche nicht erneut gewaehlt
 	constexpr int MAX_ESCAPE_FRAMES = 280; // Auto-Escape: max. Frames, bevor der Escape-Flug aufgegeben wird (Kampf wird fortgesetzt)
 	constexpr int LOS_TEST_INTERVAL = FPS; // ~1 Sekunde: Throttling des teuren LOS-Tests Heli->Shoot-Target (gilt fuer alle Distanzen)
+	constexpr auto DAMAGE_LIMITER = 2.0f;
 
 	// Helper: Bestimmt den aktuellen Status basierend auf Distanz und Kollisionen
 	GunShipState DetermineGunShipState(const ItemInfo& item, float horizontalDistance, bool hasMoveTargetPos)
@@ -688,6 +688,8 @@ namespace TEN::Entities::Creatures::TR5
 		if (!TriggerActive(item))
 			return;
 
+		item->HitPoints = NOT_TARGETABLE;
+
 		SoundEffect(SFX_TR4_HELICOPTER_LOOP, &item->Pose);
 
 		// Zielposition: Lara-Position + Random-Offset (Heli schwebt um Lara herum).
@@ -778,6 +780,23 @@ namespace TEN::Entities::Creatures::TR5
 		{
 			ControlOriginalGunShip(itemNumber);
 			return;
+		}
+
+		if (item->HitPoints <= 0)
+		{
+			ExplodingDeath(itemNumber, BODY_DO_EXPLOSION | BODY_NO_BOUNCE);
+			DisableEntityAI(itemNumber);
+			KillItem(itemNumber);
+
+			item->Flags |= 1;
+			item->Status = ITEM_DEACTIVATED;
+
+			TriggerExplosionSparks(item->Pose.Position.x, item->Pose.Position.y - CLICK(3), item->Pose.Position.z, 3, -2, 0, item->RoomNumber);
+			for (int i = 0; i < 2; i++)
+				TriggerExplosionSparks(item->Pose.Position.x, item->Pose.Position.y - CLICK(3), item->Pose.Position.z, 3, -1, 0, item->RoomNumber);
+
+			SoundEffect(SFX_TR4_EXPLOSION1, &item->Pose, SoundEnvironment::Land, 1.5f);
+			SoundEffect(SFX_TR4_EXPLOSION2, &item->Pose);
 		}
 
 		int shootTargetNum = PropertyHandler::Get(*item, PropName_EnemyTarget, LaraItem->Index);
@@ -1297,8 +1316,8 @@ namespace TEN::Entities::Creatures::TR5
 			shootHLen = sqrtf(shootHdx * shootHdx + shootHdz * shootHdz);
 		}
 
-		// Waehrend eines MoveTarget/Escape-Flugs NICHT auf das Shoot-Target feuern (Heli fliegt dorthin, statt zu angreifen).
-		const bool hasShootTargetInRange = hasShootTarget && !hasMoveTargetPos && shootHLen <= maxShotsRange;
+		// Auch waehrend eines MoveTarget/Escape-Flugs auf das Shoot-Target feuern, solange es in Reichweite ist (Heli posiert um und feuert zugleich).
+		const bool hasShootTargetInRange = hasShootTarget && shootHLen <= maxShotsRange;
 
 		if (hasShootTargetInRange)
 		{
@@ -1332,5 +1351,15 @@ namespace TEN::Entities::Creatures::TR5
 
 			AnimateItem(item);
 		}
+	}
+
+	void HitGunship(ItemInfo& target, ItemInfo& source, std::optional<GameVector> pos, int damage, bool isExplosive, int jointIndex)
+	{
+		const auto& player = *GetLaraInfo(&source);
+
+		if (player.Control.Weapon.GunType == LaraWeaponType::Uzi ||	player.Control.Weapon.GunType == LaraWeaponType::HK || player.Control.Weapon.GunType == LaraWeaponType::Revolver)
+			DefaultItemHit(target, source, pos, damage / DAMAGE_LIMITER, isExplosive, jointIndex);
+		else
+			DefaultItemHit(target, source, pos, damage, isExplosive, jointIndex);
 	}
 }
