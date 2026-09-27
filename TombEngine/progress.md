@@ -1,9 +1,22 @@
 # Progress
 
 ## Current Task
-**Gunship BOSS-Modus (ControlGunShip) – Escape-Feuer (2026-09-27):** Heli feuert jetzt auch während des Escape-/Repositionierungs-Flugs (`hasMoveTargetPos=true`) auf sein Shoot-Target, solange es in Reichweite (`shootHLen <= maxShotsRange`). `!hasMoveTargetPos`-Gate in `hasShootTargetInRange` entfernt. Nächster Schritt: Nutzer kompiliert/testet (Build-Errors meldet der Nutzer).
+**Gunship StopMovement (2026-09-27):** `ItemFlags[3]` als Stop-Flag für den Boss-Modus implementiert. Property `StopMovement` (read-only) befüllt den Flag per-Frame; Auto-Stop setzt den Flag auf 1 beim Erreichen des Movement-Targets; bei Flag=1 wird `currentState` auf IDLE gezwungen (Hover + Shoot, keine Bewegung). Nächster Schritt: Nutzer kompiliert/testet (Build-Errors meldet der Nutzer).
 
 ## Completed Work
+- **Gunship StopMovement – ItemFlags[3] als Stop-Flag (2026-09-27):**
+  - `tr5_gunship.cpp` `ControlGunShip` (Boss-Modus):
+    - **Per-Frame-Sync** (Zeile 827-829): `item->ItemFlags[3] = item->ItemFlags[3] || PropertyHandler::Get(*item, PropName_StopMovement, false);` – **Latch** (nicht Override): Flag wird von der Property ODER vom Heli gesetzt, bleibt 1 bis explicit cleared (neues Target).
+    - **Auto-Stop** (Zeile 845-846): in der One-Shot-Clear-Logik – wenn der Heli das Movement-Target erreicht, wird `item->ItemFlags[3] = 1` gesetzt (latch).
+    - **Stop-Verhalten** (Zeile 866-868): `if (item->ItemFlags[3] == 1) currentState = GunShipState::IDLE;` – Heli hovers + schießt, keine X/Z-Bewegung.
+    - **Y-Stop** (Zeile 981-983): `if (item->ItemFlags[3] == 1) currentYSpeed = 0.0f;` – keine vertikale Bewegung.
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage; Build-Errors meldet der Nutzer).
+- **Gunship-Kommentare ins Englische übersetzt (2026-09-27):**
+  - `tr5_gunship.cpp`: alle deutschen `//`-Kommentare auf Englisch (Struktur `GunshipData`, Konstanten, Helper `ResolveProbeRoom`/`CheckFootprintCollision`/`SweptFootprintClear`/`FindBestAvoidanceDirection`/`FindEscapeTarget`/`GetGunShipLosToShootTarget`/`GunShipTargetInfo`/`FixYPosition`/`UpdateIdleOrientation`/`CalculatePitchAndBank`/`CalculateIdlePitch`/`CanFireShot`/`FireShot`, `ControlOriginalGunShip`, `ControlGunShip`).
+  - `tr5_gunship.h`: `CanFireShot`- + `FireShot`-Dokukommentare auf Englisch.
+  - **Nur Kommentare geändert** (ASCII-only, `//`-Style, Indentation/Tabs erhalten); keine Code-/Logik-/Layout-Änderungen.
+  - Verifiziert: Umlautsuche `[äöüß]` + deutsche-Wörter-Suche → keine Treffer mehr in `tr5_gunship.cpp`/`.h` (Treffer nur progress.md/memory.md/andere Dateien).
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage; Build-Errors meldet der Nutzer).
 - **Gunship BOSS-Modus – Escape-Feuer (2026-09-27):**
   - `tr5_gunship.cpp` `ControlGunShip` (Zeile 1318): `hasShootTargetInRange = hasShootTarget && shootHLen <= maxShotsRange` (war `hasShootTarget && !hasMoveTargetPos && shootHLen <= maxShotsRange`) → feuert jetzt auch im ESCAPE / GoToTarget-Flug.
   - Orientierung war bereits korrekt: `targetOrient` auf das Shoot-Target (Zeile 991–992) + `ANGLE(180.0f)`-Flip (Zeile 1287) → `-Z`/Heckwaffe zeigt auf das Target → `CanFireShot`/`FireShot` (schießen in `-Z`) treffen.

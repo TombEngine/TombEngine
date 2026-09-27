@@ -11,11 +11,11 @@ namespace TEN::Entities::Creatures::TR5
 	void ControlOriginalGunShip(short itemNumber);
 	void HitGunship(ItemInfo& target, ItemInfo& source, std::optional<GameVector> pos, int damage, bool isExplosive, int jointIndex);
 
-	// Feuersperre: Kann der Schuetzer von der Muenze aus feuern? (Ziel in der Schusslinie, eigenes Item wird uebersprungen.)
+	// Fire block: can the shooter fire from the muzzle? (target in the line of fire, own item is skipped.)
 	bool CanFireShot(ItemInfo* shooter, const Vector3& muzzlePos, const EulerAngles& orientation, float range);
 
-	// Ein kompletter Schuss (Hitscan): Feuersperre + Schall + Muenzen-Effekte (Licht/Huelse/Rauch) +
-	// Tracer + Schuss-Ray mit Treffer-Aufloesung (Static: Schaden/Zerbrechen, Item: Schaden, Wand: Ricochet).
+	// A complete shot (hitscan): fire block + sound + muzzle effects (light/casing/smoke) +
+	// tracer + shot ray with hit resolution (static: damage/shatter, item: damage, wall: ricochet).
 	void FireShot(ItemInfo* shooter, const Vector3& muzzlePos, const EulerAngles& orientation, float range, int damage, LaraWeaponType weaponType, int sfxID);
 
 	struct GunShipStateInfo

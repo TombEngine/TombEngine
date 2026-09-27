@@ -24,6 +24,7 @@ static const auto PropName_PrimaryColor = GetHash("PrimaryColor");
 static const auto PropName_ShootTargetDistance = GetHash("ShootTargetDistance");
 static const auto PropName_EnemyTarget = GetHash("EnemyTarget");
 static const auto PropName_GoToTarget = GetHash("GoToTarget");
+static const auto PropName_StopMovement = GetHash("StopMovement");
 
 // Effect property names.
 
