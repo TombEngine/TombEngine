@@ -579,7 +579,7 @@ int LaraObject::GetWeaponMode(TypeOrNil<LaraWeaponType> weaponType) const
 	const auto& player = GetLaraInfo(*_moveable);
 
 	auto weapon = ValueOr<LaraWeaponType>(weaponType, player.Control.Weapon.GunType);
-	std::optional<PlayerWeaponMode> weaponMode;
+	auto weaponMode = std::optional<PlayerWeaponMode>(std::nullopt);
 
 	switch (weapon)
 	{
