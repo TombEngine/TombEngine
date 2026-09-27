@@ -125,6 +125,13 @@ function CustomDiary.ImportDiary(fileName)
                 return
             end
 
+            local dataName = entry.object .. "_diarydata"
+
+            if GameVars.Engine.Diaries[dataName] then
+                TEN.Util.PrintLog("Diary already exists for object: "..tostring(TEN.Objects.GetSlotName(entry.object))..". Import Stopped for file: "..tostring(fileName)..".", Util.LogLevel.WARNING)
+                return
+            end
+
             CustomDiary.Create(
                 entry.object,
                 entry.objectIdBg,
@@ -1672,18 +1679,19 @@ LevelFuncs.Engine.Diaries.ShowNotification = function()
     end
 
     local dataName = objectNumber .. "_diarydata"
+    local diary = GameVars.Engine.Diaries[dataName]
 
     if diaryActivated then
-        GameVars.Engine.Diaries[dataName].TargetAlpha = 255
-        GameVars.Engine.Diaries[dataName].EntryTargetAlpha = 255
-        GameVars.Engine.Diaries[dataName].DiaryVisible  = true
+        diary.TargetAlpha = 255
+        diary.EntryTargetAlpha = 255
+        diary.DiaryVisible  = true
         diaryActivated = false
+        diary.NotificationVisible = false
+        diary.Notification.ElapsedTime = 0
         Flow.SetFreezeMode(Flow.FreezeMode.FULL)
     end
 
-    if GameVars.Engine.Diaries[dataName] then
-
-        local diary = GameVars.Engine.Diaries[dataName]
+    if diary then
         
         if not diary.NotificationVisible then
             return
@@ -1699,9 +1707,9 @@ LevelFuncs.Engine.Diaries.ShowNotification = function()
 
         end
 
-        GameVars.Engine.Diaries[dataName].Notification.ElapsedTime  = GameVars.Engine.Diaries[dataName].Notification.ElapsedTime + deltaTime
+        diary.Notification.ElapsedTime  = diary.Notification.ElapsedTime + deltaTime
 
-        if GameVars.Engine.Diaries[dataName].Notification.ElapsedTime <= GameVars.Engine.Diaries[dataName].Notification.NotificationTime then
+        if diary.Notification.ElapsedTime <= diary.Notification.NotificationTime then
             diary.TargetAlpha = 255
         else
             diary.TargetAlpha = 0
@@ -1711,7 +1719,7 @@ LevelFuncs.Engine.Diaries.ShowNotification = function()
             LevelFuncs.Engine.Diaries.PrepareNotification()
         elseif diary.CurrentAlpha == 0 then
             diary.Notification.ElapsedTime = 0
-            GameVars.Engine.Diaries[dataName].NotificationVisible = false
+            diary.NotificationVisible = false
             return
         end
 	end
