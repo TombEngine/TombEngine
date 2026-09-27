@@ -803,33 +803,32 @@ namespace TEN::Entities::Creatures::TR5
 		int shootTargetNum = PropertyHandler::Get(*item, PropName_EnemyTarget, LaraItem->Index);
 		bool hasShootTarget = (shootTargetNum >= 0);
 
-		//moveTargetPos (highest priority): target position as Vec3. One-shot: cleared upon reaching it.
+		// Lua move target (GoToTarget): highest priority. One-shot: cleared upon reaching it.
 		Vector3 moveTargetPos = (Vector3)PropertyHandler::Get(*item, PropName_GoToTarget, Vec3());
-		bool hasMoveTargetPos = (moveTargetPos != Vector3::Zero);
+		bool hasLuaTarget = (moveTargetPos != Vector3::Zero);
 
-		// Auto-escape (non-persistent): when active, the escape target acts as the move target (priority over the shoot target).
-		if (GunShip.Active)
+		// Auto-escape: when active and no Lua target, the escape target acts as the move target.
+		// A Lua target (GoToTarget) has priority: it makes the heli fly to its point even during an escape.
+		if (!hasLuaTarget && GunShip.Active)
 		{
 			moveTargetPos = GunShip.TargetPos;
-			hasMoveTargetPos = true;
 
 			// Timeout: escape must not run forever (e.g. path blocked / target unreachable) - then resume combat.
 			if (++GunShip.Frames > MAX_ESCAPE_FRAMES)
 			{
 				GunShip.ResetEscape();
-				hasMoveTargetPos = false;
+				item->ItemFlags[3] = 0;
 				moveTargetPos = Vector3::Zero;
-				GunShip.Active = false;
-				GunShip.TargetPos = Vector3::Zero;
-				GunShip.Frames = 0;
 			}
 		}
 
-		// StopMovement: latching sync - the flag is set by the property (manual stop) OR the heli (auto-stop).
-		// Once set to 1, it stays 1 until explicitly cleared (e.g. new target).
-			item->ItemFlags[3] = PropertyHandler::Get(*item, PropName_StopMovement, item->ItemFlags[3]);
+		bool hasMoveTargetPos = (moveTargetPos != Vector3::Zero);
 
-		// One-shot: moveTargetPos (HORIZONTAL) reached - clear the property, reset the escape state, normal combat mode.
+		// StopMovement: latching sync - the flag is set by the property (manual stop) OR the heli (auto-stop on a reached Lua target).
+		// Once set to 1, it stays 1 until explicitly cleared (e.g. new target).
+		item->ItemFlags[3] = PropertyHandler::Get(*item, PropName_StopMovement, item->ItemFlags[3]);
+
+		// One-shot: moveTargetPos (HORIZONTAL) reached - clear the state; normal combat resumes.
 		// Horizontal instead of 3D: in FOLLOW the heli hovers ~HOVER_HEIGHT_OFFSET below the target and would never
 		// bring the 3D distance below the radius - the escape state would otherwise never clear (heli stuck in IDLE, not firing).
 		if (hasMoveTargetPos)
@@ -838,13 +837,17 @@ namespace TEN::Entities::Creatures::TR5
 			float dmz = moveTargetPos.z - item->Pose.Position.z;
 			if (sqrtf(dmx * dmx + dmz * dmz) < MOVE_TARGET_REACH_RADIUS)
 			{
-				item->Properties.Set(PropName_GoToTarget, Vec3());
 				GunShip.ResetEscape();
 				hasMoveTargetPos = false;
 				moveTargetPos = Vector3::Zero;
 
-				// Auto-stop: the heli reached the movement target - latch the stop flag.
-				item->ItemFlags[3] = 1;
+				if (hasLuaTarget)
+				{
+					// Lua target reached: clear the property + latch the stop flag (heli parks & hovers/shoots).
+					item->Properties.Set(PropName_GoToTarget, Vec3());
+					item->ItemFlags[3] = 1;
+				}
+				// Escape target reached: NO stop - combat resumes automatically (heli keeps flying).
 			}
 		}
 

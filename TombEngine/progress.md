@@ -1,15 +1,22 @@
 # Progress
 
 ## Current Task
-**Gunship StopMovement (2026-09-27):** `ItemFlags[3]` als Stop-Flag für den Boss-Modus implementiert. Property `StopMovement` (read-only) befüllt den Flag per-Frame; Auto-Stop setzt den Flag auf 1 beim Erreichen des Movement-Targets; bei Flag=1 wird `currentState` auf IDLE gezwungen (Hover + Shoot, keine Bewegung). Nächster Schritt: Nutzer kompiliert/testet (Build-Errors meldet der Nutzer).
+**Gunship Stop/Escape-Priorität (2026-09-27):** Boss-Modus – `moveTargetPos` jetzt sauber getrennt: `hasLuaTarget` (GoToTarget, höchste Priorität) vs. Auto-Escape. Escapetarget erreicht → KEIN Stop (nur `ResetEscape`, Kampf läuft weiter); Lua-Target erreicht → `ItemFlags[3]=1` (Auto-Stop). Lua-Target überschreibt Escape (Heli fliegt sofort zum Lua-Punkt, auch im Escape-Modus). Nächster Schritt: Nutzer kompiliert/testet (Build-Errors meldet der Nutzer).
 
 ## Completed Work
+- **Gunship Escape/Lua-Target-Priorität + Stop-Trennung (2026-09-27):** `tr5_gunship.cpp` `ControlGunShip` (Boss-Modus, Zeilen 806-852):
+  - **Neu `hasLuaTarget`:** `GoToTarget`-Property ≠ Zero (vor dem Escape-Override gemessen) = Lua/Builder-Flugziel, **höchste Priorität**.
+  - **Escape-Gating:** Auto-Escape greift nur bei `!hasLuaTarget && GunShip.Active` → Lua-Target überschreibt den Escape.
+  - **Stop-Trennung (Bugfix):** „erreicht"-Block setzt `ItemFlags[3]=1` (Auto-Stop) jetzt **nur bei `hasLuaTarget`**. Escapetarget erreicht → KEIN Stop, nur `GunShip.ResetEscape()` + Kampf läuft weiter (davor: „erreicht"-Logik stoppte auch beim Escapetarget → Heli stand still; Zeilen 811 vs. 836 „bekämpften" sich).
+  - **Sonst:** `hasMoveTargetPos`-Deklaration nach dem Escape-Block; `StopMovement`-Per-Frame-Sync unverändert (setzt einen manuellen Builder-Stop nach einem Escape-Timeout korrekt wieder an); `ResetEscape()` im erreicht-Block immer (räumt Escape-Status, auch wenn Lua-Target aktiv war).
+  - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage; Build-Errors meldet der Nutzer).
 - **Gunship StopMovement – ItemFlags[3] als Stop-Flag (2026-09-27):**
   - `tr5_gunship.cpp` `ControlGunShip` (Boss-Modus):
-    - **Per-Frame-Sync** (Zeile 827-829): `item->ItemFlags[3] = item->ItemFlags[3] || PropertyHandler::Get(*item, PropName_StopMovement, false);` – **Latch** (nicht Override): Flag wird von der Property ODER vom Heli gesetzt, bleibt 1 bis explicit cleared (neues Target).
-    - **Auto-Stop** (Zeile 845-846): in der One-Shot-Clear-Logik – wenn der Heli das Movement-Target erreicht, wird `item->ItemFlags[3] = 1` gesetzt (latch).
-    - **Stop-Verhalten** (Zeile 866-868): `if (item->ItemFlags[3] == 1) currentState = GunShipState::IDLE;` – Heli hovers + schießt, keine X/Z-Bewegung.
-    - **Y-Stop** (Zeile 981-983): `if (item->ItemFlags[3] == 1) currentYSpeed = 0.0f;` – keine vertikale Bewegung.
+    - **Per-Frame-Sync** (Zeile 829-831): `item->ItemFlags[3] = item->ItemFlags[3] || PropertyHandler::Get(*item, PropName_StopMovement, false);` – **Latch**: bleibt 1 bis explicitly cleared.
+    - **Auto-Stop** (Zeile 847-848): Movement-Target (User) erreicht → `item->ItemFlags[3] = 1`.
+    - **Escape-Target erreicht** (Zeile 820): `item->ItemFlags[3] = 0` – Heli fährt WIEDER (kein Stop).
+    - **Stop-Verhalten**: `if (item->ItemFlags[3] == 1) currentState = GunShipState::IDLE;`
+    - **Y-Stop**: `if (item->ItemFlags[3] == 1) currentYSpeed = 0.0f;`
   - **Nicht kompiliert** (Regel: Build nur auf ausdrückliche Anfrage; Build-Errors meldet der Nutzer).
 - **Gunship-Kommentare ins Englische übersetzt (2026-09-27):**
   - `tr5_gunship.cpp`: alle deutschen `//`-Kommentare auf Englisch (Struktur `GunshipData`, Konstanten, Helper `ResolveProbeRoom`/`CheckFootprintCollision`/`SweptFootprintClear`/`FindBestAvoidanceDirection`/`FindEscapeTarget`/`GetGunShipLosToShootTarget`/`GunShipTargetInfo`/`FixYPosition`/`UpdateIdleOrientation`/`CalculatePitchAndBank`/`CalculateIdlePitch`/`CanFireShot`/`FireShot`, `ControlOriginalGunShip`, `ControlGunShip`).
