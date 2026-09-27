@@ -24,9 +24,10 @@ using namespace TEN::Math;
 
 namespace TEN::Entities::Creatures::TR5
 {
-	constexpr auto GUARD_ALERT_RANGE  = SQUARE(BLOCK(1));
-	constexpr auto GUARD_WALK_RANGE	  = SQUARE(BLOCK(3));
-	constexpr auto GUARD_ATTACK_RANGE = SQUARE(BLOCK(4));
+	constexpr auto GUARD_HEARING_RANGE = SQUARE(BLOCK(3));
+	constexpr auto GUARD_ALERT_RANGE   = SQUARE(BLOCK(1));
+	constexpr auto GUARD_WALK_RANGE	   = SQUARE(BLOCK(3));
+	constexpr auto GUARD_ATTACK_RANGE  = SQUARE(BLOCK(4));
 
 	constexpr auto GUARD_WALK_TURN_RATE_MAX	   = ANGLE(5.0f);
 	constexpr auto GUARD_RUN_TURN_RATE_MAX	   = ANGLE(10.0f);
@@ -416,11 +417,13 @@ namespace TEN::Entities::Creatures::TR5
 			angle = CreatureTurn(item, creature->MaxTurn);
 			creature->Enemy = LaraItem;
 
-			bool laraMakingNoise = LaraItem->Animation.Velocity.z > 20 || IsWeaponFiredNearby(LaraItem->Pose);
+			bool laraInAdjacentRoom = TEN::Utils::Contains(g_Level.Rooms[item->RoomNumber].NeighborRoomNumbers, (int)LaraItem->RoomNumber);
 
-			if ((laraAI.distance < GUARD_ALERT_RANGE && LaraItem->Animation.Velocity.z > 20) ||
-				(TargetVisible(item, &laraAI) && (GuardOcb)item->TriggerFlags != GuardOcb::Sleeping) ||
-				item->HitStatus)
+			bool laraRunning = laraInAdjacentRoom && laraAI.distance < GUARD_ALERT_RANGE && LaraItem->Animation.Velocity.z > 40;
+			bool laraMakingNoise = laraInAdjacentRoom && laraAI.distance < GUARD_HEARING_RANGE && IsWeaponFiredNearby(LaraItem->Pose);
+
+			if ((TargetVisible(item, &laraAI) && (GuardOcb)item->TriggerFlags != GuardOcb::Sleeping) ||
+				laraRunning || laraMakingNoise || item->HitStatus)
 			{
 				if (!(item->AIBits & FOLLOW) &&
 					item->ObjectNumber != ID_SCIENTIST &&
@@ -802,12 +805,8 @@ namespace TEN::Entities::Creatures::TR5
 				creature->MaxTurn = 0;
 				headY = 0;
 
-				if (!item->HitStatus &&
-					LaraItem->Animation.Velocity.z < 40 &&
-					!Lara.Control.Weapon.HasFired)
-				{
+				if (!item->HitStatus && !laraRunning && !laraMakingNoise)
 					creature->Alerted = false;
-				}
 
 				if (creature->Alerted)
 					item->Animation.TargetState = GUARD_STATE_AWAKE_FROM_SLEEP;
