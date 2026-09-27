@@ -277,7 +277,7 @@ namespace TEN::Entities::Creatures::TR2
         ember.gravity = fire.gravity;
         ember.maxYvel = 0;
 
-        ember.flags = SP_SCALE | SP_DEF | SP_ROTATE;
+        ember.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_HAZE;
 
         ember.sSize = Random::GenerateFloat(6.0f, 10.0f);
         ember.dSize = ember.sSize * Random::GenerateFloat(0.4f, 0.7f);
@@ -389,7 +389,7 @@ namespace TEN::Entities::Creatures::TR2
             fire.gravity = 0;
             fire.maxYvel = 0;
 
-            fire.flags = SP_FIRE | SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF;
+            fire.flags = SP_FIRE | SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_HAZE;
 
             fire.scalar = 4;
             fire.dSize = Random::GenerateFloat(28.0f, 40.0f);
@@ -1004,7 +1004,7 @@ namespace TEN::Entities::Creatures::TR2
 
                 if (MoveLaraPosition(DragonDaggerPos, &item, &playerItem))
                 {
-                    SetAnimation(playerItem, ID_LARA_EXTRA_ANIMS, LEA_PULL_DAGGER_FROM_DRAGON);
+                    SetAnimationFromSlot(playerItem, ID_LARA_EXTRA_ANIMS, LEA_PULL_DAGGER_FROM_DRAGON);
                     playerItem.Pose = item.Pose;
 
                     ResetPlayerFlex(&playerItem);
