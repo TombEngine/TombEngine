@@ -389,7 +389,7 @@ namespace TEN::Entities::Creatures::TR2
             fire.gravity = 0;
             fire.maxYvel = 0;
 
-            fire.flags = SP_FIRE | SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_HAZE;
+            fire.flags = SP_FIRE | SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_LIGHT;
 
             fire.scalar = 4;
             fire.dSize = Random::GenerateFloat(28.0f, 40.0f);
