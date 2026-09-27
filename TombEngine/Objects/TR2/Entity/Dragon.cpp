@@ -6,6 +6,7 @@
 #include "Game/collision/Point.h"
 #include "Game/control/lot.h"
 #include "Game/effects/effects.h"
+#include "Game/effects/item_fx.h"
 #include "Game/effects/tomb4fx.h"
 #include "Game/effects/smoke.h"
 #include "Game/effects/spark.h"
@@ -29,6 +30,7 @@ using namespace TEN::Input;
 using namespace TEN::Math;
 using namespace TEN::Effects::Smoke;
 using namespace TEN::Effects::Spark;
+using namespace TEN::Effects::Items;
 using namespace TEN::Collision::Los;
 using namespace TEN::Effects::Decal;
 
@@ -63,6 +65,9 @@ namespace TEN::Entities::Creatures::TR2
         short roomNumber = 0;
         int life = 0;
         bool blocked = false;
+        Vector3 burnStartColor;
+        Vector3 burnEndColor;
+        short targetItem = NO_VALUE;
     };
 
     // Ember particle logic (physics-only). Visual spark is spawned separately.
@@ -310,7 +315,7 @@ namespace TEN::Entities::Creatures::TR2
     // Main flame attack logic.
     // Performs LOS to determine flame length, spawns flame particles,
     // spawns logical flame projectiles (for scorch decals), and spawns ember sparks.
-    static void SpawnDragonFireBreathEffect(const ItemInfo& item, const CreatureBiteInfo& bite)
+    static void SpawnDragonFireBreathEffect(const ItemInfo& item, const CreatureBiteInfo& bite, ItemInfo* enemy)
     {
         constexpr auto FIRE_COUNT = 6;
         constexpr auto SPHERE_RADIUS = BLOCK(0.2f);
@@ -318,7 +323,19 @@ namespace TEN::Entities::Creatures::TR2
         constexpr auto MAX_RANGE = BLOCK(16.0f);
 
         Vector3 origin = GetJointPosition(item, bite.BoneID, bite.Position).ToVector3();
-        Vector3 target = GetJointPosition(LaraItem, LM_HIPS).ToVector3();
+        // Aim at the dragon's current target; fall back to Lara if none.
+        Vector3 target;
+        if (enemy)
+        {
+            if (enemy->IsLara())
+                target = GetJointPosition(enemy, LM_HIPS).ToVector3();
+            else
+                target = GetJointPosition(enemy, 0).ToVector3();
+        }
+        else
+        {
+            target = GetJointPosition(LaraItem, LM_HIPS).ToVector3();
+        }
 
         Vector3 dir = target - origin;
         if (dir.LengthSquared() < 1.0f)
@@ -371,6 +388,9 @@ namespace TEN::Entities::Creatures::TR2
             p.vel = dir * FLAME_SPEED;
             p.life = lifeTicks;
             p.roomNumber = item.RoomNumber;
+            p.targetItem = enemy ? enemy->Index : NO_VALUE;
+            p.burnStartColor = Vector3(flameStartColor.GetR() / (float)UCHAR_MAX, flameStartColor.GetG() / (float)UCHAR_MAX, flameStartColor.GetB() / (float)UCHAR_MAX);
+            p.burnEndColor = Vector3(flameEndColor.GetR() / (float)UCHAR_MAX, flameEndColor.GetG() / (float)UCHAR_MAX, flameEndColor.GetB() / (float)UCHAR_MAX);
             FlameProjectiles.push_back(p);
 
             auto& fire = *GetFreeParticle();
@@ -407,7 +427,7 @@ namespace TEN::Entities::Creatures::TR2
             fire.gravity = 0;
             fire.maxYvel = 0;
 
-            fire.flags = SP_FIRE | SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_LIGHT;
+            fire.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_LIGHT | SP_HAZE;
 
             fire.scalar = 4;
             fire.dSize = Random::GenerateFloat(28.0f, 40.0f);
@@ -478,6 +498,13 @@ namespace TEN::Entities::Creatures::TR2
             }
 
             p.pos = next;
+
+            if (p.targetItem != NO_VALUE && p.targetItem < (int)g_Level.Items.size())
+            {
+                auto* target = &g_Level.Items[p.targetItem];
+                if ((p.pos - target->Pose.Position.ToVector3()).Length() < BLOCK(0.5f))
+                    ItemCustomBurn(target, p.burnStartColor, p.burnEndColor);
+            }
 
             short newRoom = p.roomNumber;
             GetFloor((int)p.pos.x, (int)p.pos.y, (int)p.pos.z, &newRoom);
@@ -967,7 +994,7 @@ namespace TEN::Entities::Creatures::TR2
                 if (creature.Flags)
                 {
                     if (ai.ahead)
-                        SpawnDragonFireBreathEffect(item, DragonMouthBite);
+                        SpawnDragonFireBreathEffect(item, DragonMouthBite, creature.Enemy.Get());
 
                     creature.Flags--;
                 }
