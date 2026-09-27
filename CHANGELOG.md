@@ -35,19 +35,18 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added [SPIKED_FRAME](https://tombengine.com/asset/traps/spiked-frame/) object from TR3.
 * Added [SWINGING_IRON_ANCHOR](https://tombengine.com/asset/traps/swinging-iron-anchor/) object from TR3.
 * Added [TUNNEL_BORER](https://tombengine.com/asset/traps/tunnel-borer/) object from TR3.
-* Added SEAL_MUTANT object from TR3.
-* Added BOO_MUTANT object from TR3.
-* Added HYBRID_MUTANT object from TR3.
-* Added OILRED object from TR3.
-* Added WHITE_SOLDIER object from TR3.
-* Added PUNK object from TR3. Object supports properties to configure the flame attack.
+* Added [SEAL_MUTANT / BOO_MUTANT](https://tombengine.com/asset/enemy/seal-mutant/)object from TR3.
+* Added [HYBRID_MUTANT](https://tombengine.com/asset/enemy/hybrid-mutant/) object from TR3.
+* Added [OILRED](https://tombengine.com/asset/enemy/rx-tech-worker-red/) object from TR3.
+* Added [WHITE_SOLDIER](https://tombengine.com/asset/enemy/rx-tech-worker-white/) object from TR3.
+* Added [PUNK](https://tombengine.com/asset/enemy/damned-gang-member/) object from TR3. Object supports properties to configure the flame attack.
 * Added [LONDON_MERCENARY](https://tombengine.com/asset/enemy/london-mercenary/) object from TR3.
 * Added SWAT_GUN object from TR3.
 * Added PRISONER object from TR3.
 * Added [WASP_MUTANT_EMITTER](https://tombengine.com/asset/enemy/wasp/) object from TR3.
 * Added [WILLARD](https://tombengine.com/asset/enemy/willard/)  object from TR3.
 * Added WHALE object from TR3.
-* Added CIVVY object from TR3.
+* Added [CIVVY](https://tombengine.com/asset/enemy/nevada-gang-member/) object from TR3.
 * Added optional headlight mesh support for JEEP, toggled together with the headlight.
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if property is set and when the sound ID 681 (SFX_TR2_SLAM_DOOR_CLOSE) is playing.
 * Added hit sounds for TR1 enemies when shot.
@@ -59,6 +58,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed original bug with inactive SQUISHY_BLOCK_VERTICAL killing player.
 * Fixed incorrect application of LARA_DOUBLE damage after using medipacks.
 * Fixed BADDY1 / BADDY2 not monkey-swinging.
+* Fixed GUARD with OCB 4 incorrectly alerting other guards while sleeping.
 * Fixed BURNING_FLOOR, ELEMENTAL_PUZZLE and SCALES.
 * Fixed MINECART_SWITCH object not working.
 * Fixed JUMP_SWITCH not activating event sets.
@@ -83,6 +83,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect static mesh interpolation after a large position change.
 * Fixed interaction highlighter appearing for underwater pushable objects.
 * Fixed clipping into underwater pushable objects while swimming upwards from the bottom.
+* Fixed underwater transition into dry room after jumping out of water room.
 * Fixed running jumps being stopped when platforming near steep slopes.
 * Fixed pickup of underwater items in vertically narrow passages.
 * Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
@@ -98,8 +99,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed UI bars being affected by the postprocess mode.
 * Fixed Z-fighting on DisplayItems.
 * Fixed crashes when shooting if the gunflash object is missing.
-* Fixed vertex move effect speed in water rooms while turning camera on the x-axis
-* Fixed an issue with Lara's underwater transition into dry rooms.
+* Fixed vertex move effect speed in water rooms while turning camera on the x-axis.
 
 ### Lua API changes
 
