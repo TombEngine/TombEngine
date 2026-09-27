@@ -83,6 +83,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect static mesh interpolation after a large position change.
 * Fixed interaction highlighter appearing for underwater pushable objects.
 * Fixed clipping into underwater pushable objects while swimming upwards from the bottom.
+* Fixed underwater transition into dry room after jumping out of water room.
 * Fixed running jumps being stopped when platforming near steep slopes.
 * Fixed pickup of underwater items in vertically narrow passages.
 * Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
