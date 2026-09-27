@@ -96,6 +96,9 @@ void SaveGame::LoadHeaders()
 	// Try loading savegame.
 	for (int i = 0; i < SAVEGAME_MAX; i++)
 	{
+		if (!DoesSaveGameExist(i, true))
+			continue;
+
 		if (!SaveGame::LoadHeader(i, &Infos[i]))
 			continue;
 

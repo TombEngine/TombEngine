@@ -586,6 +586,7 @@ int LaraObject::GetWeaponMode(TypeOrNil<LaraWeaponType> weaponType) const
 	case::LaraWeaponType::HK:
 		switch (player.Weapons[(int)LaraWeaponType::HK].WeaponMode)
 		{
+		default:
 		case LaraWeaponTypeCarried::WTYPE_AMMO_1:
 			weaponMode = PlayerWeaponMode::Rapid;
 			break;
@@ -596,10 +597,6 @@ int LaraObject::GetWeaponMode(TypeOrNil<LaraWeaponType> weaponType) const
 
 		case LaraWeaponTypeCarried::WTYPE_AMMO_3:
 			weaponMode = PlayerWeaponMode::Sniper;
-			break;
-
-		default:
-			weaponMode = PlayerWeaponMode::Rapid;
 			break;
 		}
 		break;
