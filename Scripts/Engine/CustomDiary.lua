@@ -732,6 +732,23 @@ CustomDiary.Debug = function (status)
     debug = status or false
 end
 
+-- !Ignore
+-- Checks whether the given page is unlocked for the diary.
+-- Sequential mode unlocks every page up to UnlockedPages, while per-page mode only unlocks the pages listed in UnlockOrder.
+function CustomDiary.IsPageUnlocked(diary, pageIndex)
+
+    if diary.UnlockMode == "SPECIFIC" then
+        for _, unlockedPage in ipairs(diary.UnlockOrder or {}) do
+            if unlockedPage == pageIndex then
+                return true
+            end
+        end
+        return false
+    end
+
+    return pageIndex <= diary.UnlockedPages
+end
+
 --- The function checks whether the specified diary is currently visible.
 -- @treturn bool `true` if the diary is visible and `false` if it is not.
 function CustomDiary:IsVisible()
@@ -747,15 +764,21 @@ function CustomDiary:ShowDiary(pageIndex)
 
 	if GameVars.Engine.Diaries[self.Name] then
 
-		local object = GameVars.Engine.Diaries[self.Name].Object
+        local diary = GameVars.Engine.Diaries[self.Name]
+		local object = diary.Object
 
-        if not Type.IsNumber(pageIndex) or pageIndex > #GameVars.Engine.Diaries[self.Name].Pages or pageIndex <=0 then
+        if not Type.IsNumber(pageIndex) or pageIndex > #diary.Pages or pageIndex <= 0 then
             TEN.Util.PrintLog("'pageIndex' is in an incorrect format or not a valid page number. Expected a number type in function 'showDiary' for the diary system: "..tostring(self.Name), Util.LogLevel.WARNING)
             return
         end
 
-        GameVars.Engine.Diaries[self.Name].CurrentPageIndex    = pageIndex
-        GameVars.Engine.Diaries[self.Name].NextPageIndex       = pageIndex
+        if not CustomDiary.IsPageUnlocked(diary, pageIndex) then
+            TEN.Util.PrintLog("'pageIndex' is not an unlocked page in function 'ShowDiary' for the diary system: "..tostring(self.Name), Util.LogLevel.WARNING)
+            return
+        end
+
+        diary.CurrentPageIndex    = pageIndex
+        diary.NextPageIndex       = pageIndex
 
         LevelFuncs.Engine.Diaries.ActivateDiary(object)
 
