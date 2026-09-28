@@ -49,6 +49,8 @@ namespace TEN::Entities::Creatures::TR2
     static const auto PropName_EmberStartColor = GetHash("EmberStartColor");
     static const auto PropName_EmberEndColor = GetHash("EmberEndColor");
 	static const auto PropName_ShockwaveToggle = GetHash("ShockwaveEnabled");
+    static const auto PropName_DragonSwipeAttackDamage = GetHash("DragonSwipeAttackDamage");
+	static const auto PropName_DragonContactDamage = GetHash("DragonContactDamage");
 
     auto DragonDaggerBounds = ObjectCollisionBounds
     {
@@ -784,6 +786,9 @@ namespace TEN::Entities::Creatures::TR2
 
         bool isTargetAhead = false;
 
+        auto dragonSwipeAttackDamage = PropertyHandler::Get(item, PropName_DragonSwipeAttackDamage, DRAGON_SWIPE_ATTACK_DAMAGE);
+		auto dragonContactDamage = PropertyHandler::Get(item, PropName_DragonContactDamage, DRAGON_CONTACT_DAMAGE);
+
         // The dragon should not attempt the flame attack while Lara is underwater.
         bool laraUnderwater = (GetLaraInfo(LaraItem)->Control.WaterStatus == WaterStatus::Underwater);
 
@@ -858,7 +863,7 @@ namespace TEN::Entities::Creatures::TR2
             isTargetAhead = (ai.ahead && ai.distance > DRAGON_NEAR_RANGE && ai.distance < DRAGON_IDLE_RANGE);
 
             if (item.TouchBits.TestAny())
-                DoDamage(creature.Enemy, DRAGON_CONTACT_DAMAGE);
+                DoDamage(creature.Enemy, dragonContactDamage);
 
             switch (item.Animation.ActiveState)
             {
@@ -907,7 +912,7 @@ namespace TEN::Entities::Creatures::TR2
             case DRAGON_STATE_SWIPE_ATTACK_LEFT:
                 if (item.TouchBits.Test(DragonSwipeAttackJointsLeft))
                 {
-                    DoDamage(creature.Enemy, DRAGON_SWIPE_ATTACK_DAMAGE);
+					DoDamage(creature.Enemy, dragonSwipeAttackDamage);
                     creature.Flags = 0;
                 }
 
@@ -917,7 +922,7 @@ namespace TEN::Entities::Creatures::TR2
             case DRAGON_STATE_SWIPE_ATTACK_RIGHT:
                 if (item.TouchBits.Test(DragonSwipeAttackJointsRight))
                 {
-                    DoDamage(creature.Enemy, DRAGON_SWIPE_ATTACK_DAMAGE);
+                    DoDamage(creature.Enemy, dragonSwipeAttackDamage);
                     creature.Flags = 0;
                 }
 
