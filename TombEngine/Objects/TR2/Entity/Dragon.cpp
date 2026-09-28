@@ -51,6 +51,7 @@ namespace TEN::Entities::Creatures::TR2
 	static const auto PropName_ShockwaveToggle = GetHash("ShockwaveEnabled");
     static const auto PropName_DragonSwipeAttackDamage = GetHash("DragonSwipeAttackDamage");
 	static const auto PropName_DragonContactDamage = GetHash("DragonContactDamage");
+	static const auto PropName_DragonDeathOption = GetHash("DragonDeathOption");
 
     auto DragonDaggerBounds = ObjectCollisionBounds
     {
@@ -157,10 +158,10 @@ namespace TEN::Entities::Creatures::TR2
         DRAGON_ANIM_RECOVER = 23
     };
 
-    enum DragonOCB
+    enum DragonDeath
     {
-        DRAGON_OCB_NORMAL = 0,
-        DRAGON_OCB_DAGGER = 1
+        DRAGON_DEATH_NORMAL = 0,
+        DRAGON_DEATH_DAGGER = 1
     };
 
     static void InitializeDragonBones(const ItemInfo& item)
@@ -788,11 +789,12 @@ namespace TEN::Entities::Creatures::TR2
 
         auto dragonSwipeAttackDamage = PropertyHandler::Get(item, PropName_DragonSwipeAttackDamage, DRAGON_SWIPE_ATTACK_DAMAGE);
 		auto dragonContactDamage = PropertyHandler::Get(item, PropName_DragonContactDamage, DRAGON_CONTACT_DAMAGE);
+        auto dragonDeathOption = PropertyHandler::Get(item, PropName_DragonDeathOption, (int)DRAGON_DEATH_NORMAL);
 
         // The dragon should not attempt the flame attack while Lara is underwater.
         bool laraUnderwater = (GetLaraInfo(LaraItem)->Control.WaterStatus == WaterStatus::Underwater);
 
-        bool flagDaggerDeath = (item.TriggerFlags == DRAGON_OCB_DAGGER);
+        bool flagDaggerDeath = (item.TriggerFlags == DRAGON_DEATH_DAGGER || dragonDeathOption == (int)DRAGON_DEATH_DAGGER);
 
         if (item.HitPoints <= 0)
         {
@@ -1032,7 +1034,7 @@ namespace TEN::Entities::Creatures::TR2
     {
         auto& player = GetLaraInfo(playerItem);
 
-        g_Hud.InteractionHighlighter.Test(playerItem, item);
+        g_Hud.InteractionHighlighter.Test(playerItem, item, InteractionMode::Always, InteractionType::Use);
 
         if ((IsHeld(In::Action) &&
             (item.Animation.AnimNumber == DRAGON_ANIM_DEFEATED ||
@@ -1095,8 +1097,10 @@ namespace TEN::Entities::Creatures::TR2
         auto& item = g_Level.Items[itemNumber];
         const auto& player = *GetLaraInfo(playerItem);
 
-        if (item.Animation.ActiveState == DRAGON_STATE_DEFEAT &&
-            item.TriggerFlags == DRAGON_OCB_DAGGER)
+        auto dragonDeathOption = PropertyHandler::Get(item, PropName_DragonDeathOption, (int)DRAGON_DEATH_NORMAL);
+        bool flagDaggerDeath = (item.TriggerFlags == DRAGON_DEATH_DAGGER || dragonDeathOption == (int)DRAGON_DEATH_DAGGER);
+
+        if (item.Animation.ActiveState == DRAGON_STATE_DEFEAT && flagDaggerDeath)
         {
             HandleDaggerPickup(item, *playerItem);
 
