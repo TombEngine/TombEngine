@@ -772,6 +772,9 @@ namespace TEN::Entities::Creatures::TR2
 
         bool isTargetAhead = false;
 
+        // The dragon should not attempt the flame attack while Lara is underwater.
+        bool laraUnderwater = (GetLaraInfo(LaraItem)->Control.WaterStatus == WaterStatus::Underwater);
+
         bool flagDaggerDeath = (item.TriggerFlags == DRAGON_OCB_DAGGER);
 
         if (item.HitPoints <= 0)
@@ -882,7 +885,7 @@ namespace TEN::Entities::Creatures::TR2
                         item.Animation.TargetState = DRAGON_STATE_TURN_RIGHT;
                     }
                 }
-                else
+                else if (!laraUnderwater)
                 {
                     item.Animation.TargetState = DRAGON_STATE_AIM_1;
                 }
@@ -962,7 +965,7 @@ namespace TEN::Entities::Creatures::TR2
                 // NEW: Charging smoke
                 SpawnDragonSmokeBreathEffect(item, DragonMouthBite);
 
-                if (isTargetAhead)
+                if (isTargetAhead && !laraUnderwater)
                 {
                     item.Animation.TargetState = DRAGON_STATE_FIRE_1;
                     creature.Flags = 30;
