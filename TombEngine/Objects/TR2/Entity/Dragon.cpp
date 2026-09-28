@@ -68,6 +68,7 @@ namespace TEN::Entities::Creatures::TR2
         Vector3 burnStartColor;
         Vector3 burnEndColor;
         short targetItem = NO_VALUE;
+        bool hasCustomColor = false;
     };
 
     // Ember particle logic (physics-only). Visual spark is spawned separately.
@@ -252,7 +253,7 @@ namespace TEN::Entities::Creatures::TR2
         }
     }
     // Creates a visual spark particle AND a logical ember physics object.
-// The logical ember is updated separately in UpdateDragonEmbers().
+    // The logical ember is updated separately in UpdateDragonEmbers().
     static void SpawnDragonFlameEmber(const Particle& fire, const Vector3& dir, short roomNumber, const ScriptColor& emberStartColor, const ScriptColor& emberEndColor)
     {
         auto& ember = *GetFreeParticle();
@@ -265,13 +266,14 @@ namespace TEN::Entities::Creatures::TR2
         ember.y = fire.y + Random::GenerateFloat(-12.0f, 12.0f);
         ember.z = fire.z + Random::GenerateFloat(-12.0f, 12.0f);
 
-        ember.sR = emberStartColor.GetR();
-        ember.sG = emberStartColor.GetG();
-        ember.sB = emberStartColor.GetB();
+        // Per-particle random variation, reproducing the original pre-custom ranges as fractions of the configured colour.
+        ember.sR = Random::GenerateFloat(0.9f, 1.0f) * emberStartColor.GetR();
+        ember.sG = Random::GenerateFloat(0.4f, 0.6f) * emberStartColor.GetG();
+        ember.sB = Random::GenerateFloat(0.1f, 0.2f) * emberStartColor.GetB();
 
-        ember.dR = emberEndColor.GetR();
-        ember.dG = emberEndColor.GetG();
-        ember.dB = emberEndColor.GetB();
+        ember.dR = 0.8f * emberEndColor.GetR();
+        ember.dG = 0.6f * emberEndColor.GetG();
+        ember.dB = 0.3f * emberEndColor.GetB();
 
         ember.colFadeSpeed = 10;
         ember.fadeToBlack = 6;
@@ -373,10 +375,21 @@ namespace TEN::Entities::Creatures::TR2
         lifeTicks = std::max(lifeTicks, 4);
 
         // Resolve configurable flame colors once per attack, not per particle.
-        auto flameStartColor = PropertyHandler::Get(item, PropName_FlameStartColor, ScriptColor(153, 63, 13));
-        auto flameEndColor = PropertyHandler::Get(item, PropName_FlameEndColor, ScriptColor(89, 38, 5));
+        const auto defaultFlameStartColor = ScriptColor(153, 63, 13);
+        const auto defaultFlameEndColor = ScriptColor(89, 38, 5);
+        auto flameStartColor = PropertyHandler::Get(item, PropName_FlameStartColor, defaultFlameStartColor);
+        auto flameEndColor = PropertyHandler::Get(item, PropName_FlameEndColor, defaultFlameEndColor);
         auto emberStartColor = PropertyHandler::Get(item, PropName_EmberStartColor, ScriptColor(230, 102, 26));
         auto emberEndColor = PropertyHandler::Get(item, PropName_EmberEndColor, ScriptColor(204, 153, 77));
+
+        // A custom burn colour is in use only if the resolved flame colour differs from the default.
+        const bool hasCustomColor =
+            flameStartColor.GetR() != defaultFlameStartColor.GetR() ||
+            flameStartColor.GetG() != defaultFlameStartColor.GetG() ||
+            flameStartColor.GetB() != defaultFlameStartColor.GetB() ||
+            flameEndColor.GetR() != defaultFlameEndColor.GetR() ||
+            flameEndColor.GetG() != defaultFlameEndColor.GetG() ||
+            flameEndColor.GetB() != defaultFlameEndColor.GetB();
 
         for (int i = 0; i < FIRE_COUNT; i++)
         {
@@ -389,6 +402,7 @@ namespace TEN::Entities::Creatures::TR2
             p.life = lifeTicks;
             p.roomNumber = item.RoomNumber;
             p.targetItem = enemy ? enemy->Index : NO_VALUE;
+            p.hasCustomColor = hasCustomColor;
             p.burnStartColor = Vector3(flameStartColor.GetR() / (float)UCHAR_MAX, flameStartColor.GetG() / (float)UCHAR_MAX, flameStartColor.GetB() / (float)UCHAR_MAX);
             p.burnEndColor = Vector3(flameEndColor.GetR() / (float)UCHAR_MAX, flameEndColor.GetG() / (float)UCHAR_MAX, flameEndColor.GetB() / (float)UCHAR_MAX);
             FlameProjectiles.push_back(p);
@@ -409,13 +423,14 @@ namespace TEN::Entities::Creatures::TR2
             fire.SpriteSeqID = ID_DEFAULT_SPRITES;
             fire.SpriteID = Random::GenerateInt(0, 3);
             
-            fire.sR = flameStartColor.GetR();
-            fire.sG = flameStartColor.GetG();
-            fire.sB = flameStartColor.GetB();
+            // Per-particle random variation, reproducing the original pre-custom ranges as fractions of the configured colour.
+            fire.sR = Random::GenerateFloat(0.65f, 0.8f) * flameStartColor.GetR();
+            fire.sG = Random::GenerateFloat(0.25f, 0.35f) * flameStartColor.GetG();
+            fire.sB = Random::GenerateFloat(0.05f, 0.12f) * flameStartColor.GetB();
 
-            fire.dR = flameEndColor.GetR();
-            fire.dG = flameEndColor.GetG();
-            fire.dB = flameEndColor.GetB();
+            fire.dR = Random::GenerateFloat(0.35f, 0.55f) * flameEndColor.GetR();
+            fire.dG = Random::GenerateFloat(0.15f, 0.25f) * flameEndColor.GetG();
+            fire.dB = Random::GenerateFloat(0.02f, 0.08f) * flameEndColor.GetB();
 
             fire.colFadeSpeed = 12;
             fire.fadeToBlack = 8;
@@ -504,7 +519,13 @@ namespace TEN::Entities::Creatures::TR2
             {
                 auto* target = &g_Level.Items[p.targetItem];
                 if ((p.pos - target->Pose.Position.ToVector3()).Length() < BLOCK(0.5f))
-                    ItemCustomBurn(target, p.burnStartColor, p.burnEndColor);
+                {
+                    // Fall back to the standard engine burn when the default colour is in use.
+                    if (p.hasCustomColor)
+                        ItemCustomBurn(target, p.burnStartColor, p.burnEndColor);
+                    else
+                        ItemBurn(target);
+                }
             }
 
             short newRoom = p.roomNumber;
