@@ -99,6 +99,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed Z-fighting on DisplayItems.
 * Fixed crashes when shooting if the gunflash object is missing.
 * Fixed vertex move effect speed in water rooms while turning camera on the x-axis.
+* Fixed flickering of `GOLDROSE_ITEM`, `FLARE_ITEM`, and `HAMMER_ITEM` in pickup summary.
 
 ### Lua API changes
 
