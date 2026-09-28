@@ -153,6 +153,7 @@ namespace TEN::Renderer
 		std::unique_ptr<IConstantBuffer> _cbInstancedSpriteBuffer;
 		CPerDrawBuffer _stPerDraw;
 		std::unique_ptr<IConstantBuffer> _cbPerDraw;
+		bool _perDrawBufferDirty = true;
 		CSMAABuffer _stSMAABuffer;
 		std::unique_ptr<IConstantBuffer> _cbSMAABuffer;
 		CSkyBuffer _stSky;
@@ -210,6 +211,8 @@ namespace TEN::Renderer
 		VolumetricCloud::CloudRuntimeState _cloudStateB;
 
 		// Primitive batches
+
+		bool _primitiveBatchActive = false;
 
 		RendererViewport _viewport;
 		RendererViewport _distortionViewport;
@@ -329,8 +332,6 @@ namespace TEN::Renderer
 		int _numConstantBufferUpdates = 0;
         unsigned long long _numConstantBufferBytes = 0;
         int _numPerDrawUpdates = 0;
-        bool _perDrawBufferDirty = true;
-        bool _primitiveBatchActive = false;
 
 		int _numExecutedMaterialsUpdates = 0;
 		int _numRequestedMaterialsUpdates = 0;
