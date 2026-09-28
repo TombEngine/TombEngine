@@ -73,6 +73,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed empty linear inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed PC_LOAD_INV_ITEM and PC_SAVE_INV_ITEM presence in the inventory affecting quickload and quicksave hotkey functionality.
+* Fixed flickering of GOLDROSE_ITEM, FLARE_ITEM, and HAMMER_ITEM in the pickup summary.
 * Fixed enemy gunfire not affecting other enemies in some cases.
 * Fixed regular spark sprite distance while moving with flare in hand.
 * Fixed fireflies emitting bright white light while in fly form (negative OCB).
@@ -99,7 +100,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed Z-fighting on DisplayItems.
 * Fixed crashes when shooting if the gunflash object is missing.
 * Fixed vertex move effect speed in water rooms while turning camera on the x-axis.
-* Fixed flickering of `GOLDROSE_ITEM`, `FLARE_ITEM`, and `HAMMER_ITEM` in pickup summary.
 
 ### Lua API changes
 
