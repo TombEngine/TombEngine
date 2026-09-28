@@ -153,12 +153,14 @@ PixelShaderOutput PS(PixelShaderInput input)
 			roughness) :
 		StaticLight(ModulateColor(input.Color.xyz * instanceColor), tex.xyz, input.FogBulbs.w, emissive);
 
-	// Items use a SHADOWABLE_MASK bit packed into NumLights to gate shadow blending. For
-	// statics the mask is always clear, so the lerp is a uniform pass-through.
-	float shadowable = step(0.5f, float((numLights & SHADOWABLE_MASK) == SHADOWABLE_MASK));
-	float3 shadow = DoShadow(input.WorldPosition, normal, color, -0.5f);
-	shadow = DoBlobShadows(input.WorldPosition, shadow);
-	color = lerp(color, shadow, shadowable);
+	// Only items set the SHADOWABLE_MASK bit packed into NumLights. Statics, effects and swarm
+	// objects never receive shadows, so skip shadow map sampling for them entirely. The branch
+	// is uniform across the draw call.
+	if ((numLights & SHADOWABLE_MASK) == SHADOWABLE_MASK)
+	{
+		color = DoShadow(input.WorldPosition, normal, color, -0.5f);
+		color = DoBlobShadows(input.WorldPosition, color);
+	}
 
 	output.Color = saturate(float4(color * occlusion, tex.w));
 	output.Color = DoFogBulbsForPixel(output.Color, float4(input.FogBulbs.xyz, 1.0f));
