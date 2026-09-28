@@ -48,6 +48,7 @@ namespace TEN::Entities::Creatures::TR2
     static const auto PropName_FlameEndColor = GetHash("FlameEndColor");
     static const auto PropName_EmberStartColor = GetHash("EmberStartColor");
     static const auto PropName_EmberEndColor = GetHash("EmberEndColor");
+	static const auto PropName_ShockwaveToggle = GetHash("ShockwaveEnabled");
 
     auto DragonDaggerBounds = ObjectCollisionBounds
     {
@@ -730,6 +731,11 @@ namespace TEN::Entities::Creatures::TR2
 
     static void SpawnDragonShockwaveEffect(const ItemInfo& item, int jointIndex)
     {
+		auto shockwaveEnabled = PropertyHandler::Get(item, PropName_ShockwaveToggle, true);
+
+        if (!shockwaveEnabled)
+            return;
+
         auto pos = GetJointPosition(item, jointIndex, Vector3i(0, -8, 0));
 
         if (item.Animation.AnimNumber == DRAGON_ANIM_ATTACK_LEFT_2 ||
@@ -748,8 +754,14 @@ namespace TEN::Entities::Creatures::TR2
                     pos.y = pointColl.GetFloorHeight() - CLICK(0.5f);
                 }
 
-                auto pose = Pose(pos, EulerAngles::Identity);
-                TriggerShockwave(&pose, 24, 88, 256, 128, 128, 128, 32,
+				auto shockwaveColor = PropertyHandler::Get(item, PropName_PrimaryColor, ScriptColor(128, 128, 128));
+                
+                auto r = shockwaveColor.GetR();
+				auto g = shockwaveColor.GetG();
+				auto b = shockwaveColor.GetB();
+
+				auto pose = Pose(pos, EulerAngles::Identity);
+                TriggerShockwave(&pose, 24, 88, 256, r, g, b, 32,
                     EulerAngles::Identity, 8, true, false, false,
                     (int)ShockwaveStyle::Normal);
 
