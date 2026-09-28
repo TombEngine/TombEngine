@@ -393,7 +393,7 @@ bool MoveLaraPosition(const Vector3i& offset, ItemInfo* item, ItemInfo* laraItem
 
 	auto rotMatrix = item->Pose.Orientation.ToRotationMatrix();
 	auto pos = Vector3::Transform(offset.ToVector3(), rotMatrix);
-	auto target = Pose(item->Pose.Position + Vector3i(pos), item->Pose.Orientation);
+	auto target = Pose(item->Pose.Position + Vector3i(pos.x, offset.y, pos.z), item->Pose.Orientation);
 
 	if (!Objects[item->ObjectNumber].isPickup || lara->Control.WaterStatus == WaterStatus::Underwater)
 	{
