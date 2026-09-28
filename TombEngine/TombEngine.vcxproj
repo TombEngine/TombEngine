@@ -132,7 +132,6 @@
       <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static_d.lib;sdl3.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
-      <StackReserveSize>8388608</StackReserveSize>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       <StackReserveSize>8388608</StackReserveSize>
     </Link>
@@ -199,7 +198,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static_d.lib;sdl3.lib;spdlogd.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
-      <StackReserveSize>8388608</StackReserveSize>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       <StackReserveSize>8388608</StackReserveSize>
     </Link>
@@ -276,7 +274,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlog.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
-      <StackReserveSize>8388608</StackReserveSize>
       <TargetMachine>MachineX86</TargetMachine>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <StackReserveSize>8388608</StackReserveSize>
@@ -359,7 +356,6 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <AdditionalDependencies>comctl32.lib;lua53.lib;bass.lib;bassmix.lib;bass_fx.lib;D3DCompiler.lib;dbghelp.lib;dxgi.lib;dxguid.lib;d3d11.lib;version.lib;liblz4_static.lib;sdl3.lib;spdlog.lib;libvlc.lib;libvlccore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
-      <StackReserveSize>8388608</StackReserveSize>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <StackReserveSize>8388608</StackReserveSize>
     </Link>
