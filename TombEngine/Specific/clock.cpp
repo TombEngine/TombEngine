@@ -25,6 +25,8 @@ void HighFramerateSynchronizer::Init()
 
 void HighFramerateSynchronizer::Sync()
 {
+	WaitIfGamePaused();
+
 	if (ResetClock)
 	{
 		ResetClock = false;
