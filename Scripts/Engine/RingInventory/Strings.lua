@@ -8,7 +8,6 @@ local strings =
     compass = {"Compass"},
     compass_item_text = {"Item Compass"},
     game_statistics = {"Game Statistics"},
-    game_title = {"INSERT GAME TITLE HERE"},
     kills = {"Kills"},
     level_statistics = {"Level Statistics"},
     pickups = {"Pickups"},
