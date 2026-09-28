@@ -103,8 +103,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 
 ### Lua API changes
 
-* Added `CustomDiary:UnlockPage` function to unlock individual diary pages in the order the function is called. The unlock mode is detected automatically on the first unlock call.
-* Added optional `area` parameter for text entries in the diary module to enable automatic word wrapping.
 * Added ring inventory module.
 * Added photo mode module.
 * Added `Effects.ParticleGroup` class for managing particles via lua.
@@ -149,6 +147,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Objects.GetMaterialByName` and `Objects.GetMaterialsByObject` functions.
 * Added `Moveable:GetProperty`, `Moveable:SetProperty` and `Moveable:HasInstanceProperty` functions.
 * Added `Static:GetProperty`, `Static:SetProperty` and `Static:HasInstanceProperty` functions.
+* Added `CustomDiary:UnlockPage` function to unlock individual pages in the order the function is called. The unlock mode is detected automatically on the first unlock call.
 * Updated `EmitLight()`, `EmitSpotLight()` and `EmitFogBulb()` to accept fractional values, allowing smooth scaling of radius/falloff/distance.
 * Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
@@ -159,6 +158,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed `View.DisplayString` not working in the title level.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 * Fixed notification display bug in `CustomDiary` class.
+* Added optional `area` parameter for text entries in the `CustomDiary` module to enable automatic word wrapping.
 
 ## [Version 1.11.1]
 
