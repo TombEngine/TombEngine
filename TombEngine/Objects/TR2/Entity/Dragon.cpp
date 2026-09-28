@@ -404,11 +404,11 @@ namespace TEN::Entities::Creatures::TR2
             fire.yVel = p.vel.y;
             fire.zVel = p.vel.z;
 
-            fire.animationType = ParticleAnimType::Loop;
+            fire.animationType = ParticleAnimType::LifetimeSpread;
             fire.framerate = Random::GenerateFloat(0.5f, 1.5f);
-            fire.SpriteSeqID = ID_FIRE_SPRITES;
-            fire.SpriteID = Random::GenerateInt(0, 35);
-
+            fire.SpriteSeqID = ID_DEFAULT_SPRITES;
+            fire.SpriteID = Random::GenerateInt(0, 3);
+            
             fire.sR = flameStartColor.GetR();
             fire.sG = flameStartColor.GetG();
             fire.sB = flameStartColor.GetB();
@@ -429,7 +429,8 @@ namespace TEN::Entities::Creatures::TR2
 
             fire.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_EXPDEF | SP_LIGHT | SP_HAZE;
 
-            fire.scalar = 4;
+            fire.scalar = 8;
+            fire.lightRadius = 4;
             fire.dSize = Random::GenerateFloat(28.0f, 40.0f);
             fire.sSize = fire.dSize * 0.5f;
             fire.size = fire.dSize;
