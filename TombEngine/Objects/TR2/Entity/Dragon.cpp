@@ -284,7 +284,7 @@ namespace TEN::Entities::Creatures::TR2
     // spawns logical flame projectiles (for scorch decals), and spawns ember sparks.
     static void SpawnDragonFireBreathEffect(const ItemInfo& item, const CreatureBiteInfo& bite, ItemInfo* enemy)
     {
-        constexpr auto FIRE_COUNT = 12;
+        constexpr auto FIRE_COUNT = 6;
         constexpr auto SPHERE_RADIUS = BLOCK(0.2f);
         constexpr auto FLAME_SPEED = BLOCK(10.0f);
         constexpr auto MAX_RANGE = BLOCK(16.0f);
@@ -399,7 +399,7 @@ namespace TEN::Entities::Creatures::TR2
 
             fire.colFadeSpeed = 12;
             fire.fadeToBlack = 8;
-            fire.blendMode = BlendMode::Screen;
+            fire.blendMode = BlendMode::Additive;
 
             fire.life = fire.sLife = lifeTicks;
 
