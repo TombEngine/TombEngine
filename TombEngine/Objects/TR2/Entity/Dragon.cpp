@@ -252,62 +252,27 @@ namespace TEN::Entities::Creatures::TR2
         break;
         }
     }
-    // Creates a visual spark particle AND a logical ember physics object.
-    // The logical ember is updated separately in UpdateDragonEmbers().
+    // Creates a logical ember physics object. The visible spark is drawn by UpdateDragonEmbers().
     static void SpawnDragonFlameEmber(const Particle& fire, const Vector3& dir, short roomNumber, const ScriptColor& emberStartColor, const ScriptColor& emberEndColor)
     {
-        auto& ember = *GetFreeParticle();
-        ember.on = true;
+        // Small random offset around the source fire particle.
+        auto pos = Vector3(
+            fire.x + Random::GenerateFloat(-12.0f, 12.0f),
+            fire.y + Random::GenerateFloat(-12.0f, 12.0f),
+            fire.z + Random::GenerateFloat(-12.0f, 12.0f));
 
-        ember.SpriteSeqID = ID_SPARK_SPRITE;
-        ember.SpriteID = 0;
-
-        ember.x = fire.x + Random::GenerateFloat(-12.0f, 12.0f);
-        ember.y = fire.y + Random::GenerateFloat(-12.0f, 12.0f);
-        ember.z = fire.z + Random::GenerateFloat(-12.0f, 12.0f);
-
-        // Per-particle random variation, reproducing the original pre-custom ranges as fractions of the configured colour.
-        ember.sR = Random::GenerateFloat(0.9f, 1.0f) * emberStartColor.GetR();
-        ember.sG = Random::GenerateFloat(0.4f, 0.6f) * emberStartColor.GetG();
-        ember.sB = Random::GenerateFloat(0.1f, 0.2f) * emberStartColor.GetB();
-
-        ember.dR = 0.8f * emberEndColor.GetR();
-        ember.dG = 0.6f * emberEndColor.GetG();
-        ember.dB = 0.3f * emberEndColor.GetB();
-
-        ember.colFadeSpeed = 10;
-        ember.fadeToBlack = 6;
-        ember.blendMode = BlendMode::Additive;
-
-        ember.life = ember.sLife = Random::GenerateInt(10, 18);
-
+        // Inherit the fire particle's velocity, plus a random spread.
         float emberSpeed = Random::GenerateFloat(0.8f, 1.2f);
-        ember.xVel = fire.xVel * emberSpeed;
-        ember.yVel = fire.yVel * emberSpeed;
-        ember.zVel = fire.zVel * emberSpeed;
-
-        ember.xVel += Random::GenerateFloat(-40.0f, 40.0f);
-        ember.yVel += Random::GenerateFloat(-20.0f, 20.0f);
-        ember.zVel += Random::GenerateFloat(-40.0f, 40.0f);
-
-        ember.friction = 90;
-        ember.gravity = fire.gravity;
-        ember.maxYvel = 0;
-
-        ember.flags = SP_SCALE | SP_DEF | SP_ROTATE | SP_HAZE;
-
-        ember.sSize = Random::GenerateFloat(6.0f, 10.0f);
-        ember.dSize = ember.sSize * Random::GenerateFloat(0.4f, 0.7f);
-        ember.size = ember.sSize;
-
-        ember.rotAng = Random::GenerateFloat(0.0f, PI * 2.0f);
-        ember.rotAdd = Random::GenerateFloat(-0.2f, 0.2f);
+        auto vel = Vector3(
+            fire.xVel * emberSpeed + Random::GenerateFloat(-40.0f, 40.0f),
+            fire.yVel * emberSpeed + Random::GenerateFloat(-20.0f, 20.0f),
+            fire.zVel * emberSpeed + Random::GenerateFloat(-40.0f, 40.0f));
 
         DragonEmber e;
-        e.pos = Vector3(ember.x, ember.y, ember.z);
-        e.vel = Vector3(ember.xVel, ember.yVel, ember.zVel);
+        e.pos = pos;
+        e.vel = vel;
         e.roomNumber = roomNumber;
-        e.life = ember.life;
+        e.life = Random::GenerateInt(30, 45);
         e.startColor = emberStartColor;
         e.endColor = emberEndColor;
 
@@ -319,7 +284,7 @@ namespace TEN::Entities::Creatures::TR2
     // spawns logical flame projectiles (for scorch decals), and spawns ember sparks.
     static void SpawnDragonFireBreathEffect(const ItemInfo& item, const CreatureBiteInfo& bite, ItemInfo* enemy)
     {
-        constexpr auto FIRE_COUNT = 6;
+        constexpr auto FIRE_COUNT = 12;
         constexpr auto SPHERE_RADIUS = BLOCK(0.2f);
         constexpr auto FLAME_SPEED = BLOCK(10.0f);
         constexpr auto MAX_RANGE = BLOCK(16.0f);
@@ -434,7 +399,7 @@ namespace TEN::Entities::Creatures::TR2
 
             fire.colFadeSpeed = 12;
             fire.fadeToBlack = 8;
-            fire.blendMode = BlendMode::Additive;
+            fire.blendMode = BlendMode::Screen;
 
             fire.life = fire.sLife = lifeTicks;
 
@@ -571,17 +536,19 @@ namespace TEN::Entities::Creatures::TR2
                 {
                     e.pos = roomLos.Position;
 
+                    // Slide along the surface instead of bouncing: cancel the surface-normal velocity component.
                     Vector3 N = -rayDir;
-                    e.vel = e.vel - 2.0f * (e.vel.Dot(N)) * N;
-                    e.vel *= 0.4f;
+                    e.vel = e.vel - (e.vel.Dot(N)) * N;
+                    e.vel *= 0.8f;
                 }
                 else if (staticLos)
                 {
                     e.pos = staticLos->Position;
 
+                    // Slide along the surface instead of bouncing: cancel the surface-normal velocity component.
                     Vector3 N = -rayDir;
-                    e.vel = e.vel - 2.0f * (e.vel.Dot(N)) * N;
-                    e.vel *= 0.4f;
+                    e.vel = e.vel - (e.vel.Dot(N)) * N;
+                    e.vel *= 0.8f;
                 }
                 else
                 {
@@ -609,13 +576,14 @@ namespace TEN::Entities::Creatures::TR2
             ember.SpriteSeqID = ID_SPARK_SPRITE;
             ember.SpriteID = 0;
 
-            ember.sR = e.startColor.GetR();
-            ember.sG = e.startColor.GetG();
-            ember.sB = e.startColor.GetB();
+            // Per-particle random variation, reproducing the original pre-custom ranges as fractions of the configured colour.
+            ember.sR = Random::GenerateFloat(0.9f, 1.0f) * e.startColor.GetR();
+            ember.sG = Random::GenerateFloat(0.4f, 0.6f) * e.startColor.GetG();
+            ember.sB = Random::GenerateFloat(0.1f, 0.2f) * e.startColor.GetB();
 
-            ember.dR = e.endColor.GetR();
-            ember.dG = e.endColor.GetG();
-            ember.dB = e.endColor.GetB();
+            ember.dR = 0.8f * e.endColor.GetR();
+            ember.dG = 0.6f * e.endColor.GetG();
+            ember.dB = 0.3f * e.endColor.GetB();
 
             ember.colFadeSpeed = 10;
             ember.fadeToBlack = 6;
@@ -759,6 +727,7 @@ namespace TEN::Entities::Creatures::TR2
             }
         }
     }
+
     static void SpawnDragonShockwaveEffect(const ItemInfo& item, int jointIndex)
     {
         auto pos = GetJointPosition(item, jointIndex, Vector3i(0, -8, 0));
@@ -1038,6 +1007,7 @@ namespace TEN::Entities::Creatures::TR2
         UpdateDragonFlameProjectiles();
         UpdateDragonEmbers();
     }
+
     static void HandleDaggerPickup(ItemInfo& item, ItemInfo& playerItem)
     {
         auto& player = GetLaraInfo(playerItem);
