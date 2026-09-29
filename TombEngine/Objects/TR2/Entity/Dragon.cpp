@@ -826,8 +826,9 @@ namespace TEN::Entities::Creatures::TR2
                 }
                 else
                 {
-                    if (timer > -20)
+                    if (timer > -20 && !flagDaggerDeath)
                         SpawnDragonLightEffect(item, DragonLightEffectType::Red);
+                        DropPickups(&item);
 
                     if (timer == -100)
                     {
@@ -840,9 +841,6 @@ namespace TEN::Entities::Creatures::TR2
                     else if (timer == -200)
                     {
                         DisableEntityAI(itemNumber);
-
-                        if (!flagDaggerDeath)
-                            DropPickups(&item);
 
                         if (dragonSkeletonEnabled)
                         {
