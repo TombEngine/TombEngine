@@ -52,6 +52,7 @@ namespace TEN::Entities::Creatures::TR2
     static const auto PropName_DragonSwipeAttackDamage = GetHash("DragonSwipeAttackDamage");
 	static const auto PropName_DragonContactDamage = GetHash("DragonContactDamage");
 	static const auto PropName_DragonDeathOption = GetHash("DragonDeathOption");
+	static const auto PropName_DragonSkeleton = GetHash("DragonSkeleton");
 
     auto DragonDaggerBounds = ObjectCollisionBounds
     {
@@ -790,6 +791,7 @@ namespace TEN::Entities::Creatures::TR2
         auto dragonSwipeAttackDamage = PropertyHandler::Get(item, PropName_DragonSwipeAttackDamage, DRAGON_SWIPE_ATTACK_DAMAGE);
 		auto dragonContactDamage = PropertyHandler::Get(item, PropName_DragonContactDamage, DRAGON_CONTACT_DAMAGE);
         auto dragonDeathOption = PropertyHandler::Get(item, PropName_DragonDeathOption, (int)DRAGON_DEATH_NORMAL);
+        auto dragonSkeletonEnabled = PropertyHandler::Get(item, PropName_DragonSkeleton, true);
 
         // The dragon should not attempt the flame attack while Lara is underwater.
         bool laraUnderwater = (GetLaraInfo(LaraItem)->Control.WaterStatus == WaterStatus::Underwater);
@@ -829,7 +831,8 @@ namespace TEN::Entities::Creatures::TR2
 
                     if (timer == -100)
                     {
-                        InitializeDragonBones(item);
+                        if (dragonSkeletonEnabled)
+                            InitializeDragonBones(item);
 
                         if (flagDaggerDeath)
                             CollectCarriedItems(&item);
@@ -837,19 +840,26 @@ namespace TEN::Entities::Creatures::TR2
                     else if (timer == -200)
                     {
                         DisableEntityAI(itemNumber);
-                        KillItem(itemNumber);
 
                         if (!flagDaggerDeath)
                             DropPickups(&item);
 
-                        item.Status = ITEM_DEACTIVATED;
+                        if (dragonSkeletonEnabled)
+                        {
+                            KillItem(itemNumber);
+                            item.Status = ITEM_DEACTIVATED;
+                        }
+
+                        timer = -200;
                     }
                     else if (timer < -100)
                     {
-                        item.Pose.Position.y += 10;
+                        if (dragonSkeletonEnabled)
+                            item.Pose.Position.y += 10;
                     }
 
-                    timer--;
+                    if (item.Status != ITEM_DEACTIVATED)
+                        timer--;
                 }
             }
         }
