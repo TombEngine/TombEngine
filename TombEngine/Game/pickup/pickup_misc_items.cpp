@@ -98,11 +98,26 @@ bool TryModifyMiscCount(LaraInfo & lara, GAME_OBJECT_ID objectID, std::optional<
 		break;
 
 	case ID_GOLDROSE_ITEM:
-		lara.Inventory.HasGoldRose = add;
+        switch (modType)
+		{
+		case ModificationType::Set:
+			lara.Inventory.TotalGoldRoses = std::max(0, amount.value_or(0));
+			break;
+
+		default:
+		{
+			int delta = amount.value_or(1);
+			if (modType == ModificationType::Remove)
+				delta = -delta;
+
+			lara.Inventory.TotalGoldRoses = std::max(0, lara.Inventory.TotalGoldRoses + delta);
+			break;
+		}
+		}
 		break;
 
 	case ID_HAMMER_ITEM:
-		lara.Inventory.HasHammer = add;
+     lara.Inventory.HasHammer = (modType == ModificationType::Set) ? (amount.value_or(0) != 0) : add;
 		break;
 
 	case ID_WATERSKIN1_EMPTY:
@@ -164,14 +179,14 @@ bool TryModifyMiscCount(LaraInfo & lara, GAME_OBJECT_ID objectID, std::optional<
 	return true;
 }
 
-bool TryAddMiscItem(LaraInfo& lara, GAME_OBJECT_ID objectID)
+bool TryAddMiscItem(LaraInfo& lara, GAME_OBJECT_ID objectID, std::optional<int> amount)
 {
-	return TryModifyMiscCount(lara, objectID, std::nullopt, ModificationType::Add);
+ return TryModifyMiscCount(lara, objectID, amount, ModificationType::Add);
 }
 
-bool TryRemoveMiscItem(LaraInfo& lara, GAME_OBJECT_ID objectID)
+bool TryRemoveMiscItem(LaraInfo& lara, GAME_OBJECT_ID objectID, std::optional<int> amount)
 {
-	return TryModifyMiscCount(lara, objectID, std::nullopt, ModificationType::Remove);
+  return TryModifyMiscCount(lara, objectID, amount, ModificationType::Remove);
 }
 
 std::optional<bool> HasMiscItem(LaraInfo& lara, GAME_OBJECT_ID objectID)
@@ -211,6 +226,12 @@ std::optional<bool> HasMiscItem(LaraInfo& lara, GAME_OBJECT_ID objectID)
 
 	case ID_COMPASS_ITEM:
 		return lara.Inventory.HasCompass;
+
+	case ID_GOLDROSE_ITEM:
+		return (lara.Inventory.TotalGoldRoses > 0);
+
+	case ID_HAMMER_ITEM:
+		return lara.Inventory.HasHammer;
 
 	case ID_WATERSKIN1_EMPTY:
 		return lara.Inventory.SmallWaterskin == 1;
