@@ -14,7 +14,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added native support for DualShock, DualSense and Switch Pro controllers.
 * Added animation blending support and blended transitions for hardcoded animation changes.
 * Added root motion support.
-* Added WRAITH4 object. Object supports properties to create custom wraiths.
+* Added [WRAITH4](https://tombengine.com/asset/enemy/wraith-and-wraith-trap/) object. Object supports properties to create custom wraiths.
 * Added [AIRPLANE_PROPELLER](https://tombengine.com/asset/traps/airplane-propeller/) from TR2.
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
 * Added [DISK_SHOOTER](https://tombengine.com/asset/traps/disk-shooter/) object from TR2.
@@ -41,11 +41,11 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added [WHITE_SOLDIER](https://tombengine.com/asset/enemy/rx-tech-worker-white/) object from TR3.
 * Added [PUNK](https://tombengine.com/asset/enemy/damned-gang-member/) object from TR3. Object supports properties to configure the flame attack.
 * Added [LONDON_MERCENARY](https://tombengine.com/asset/enemy/london-mercenary/) object from TR3.
-* Added SWAT_GUN object from TR3.
-* Added PRISONER object from TR3.
+* Added [SWAT_GUN](https://tombengine.com/asset/enemy/s-w-a-t/) object from TR3.
+* Added [PRISONER](https://tombengine.com/asset/enemy/prisoner/) object from TR3.
 * Added [WASP_MUTANT_EMITTER](https://tombengine.com/asset/enemy/wasp/) object from TR3.
 * Added [WILLARD](https://tombengine.com/asset/enemy/willard/)  object from TR3.
-* Added WHALE object from TR3.
+* Added [WHALE](https://tombengine.com/asset/interactables/whale/) object from TR3.
 * Added [CIVVY](https://tombengine.com/asset/enemy/nevada-gang-member/) object from TR3.
 * Added optional headlight mesh support for JEEP, toggled together with the headlight.
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if property is set and when the sound ID 681 (SFX_TR2_SLAM_DOOR_CLOSE) is playing.
@@ -73,6 +73,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed empty linear inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed PC_LOAD_INV_ITEM and PC_SAVE_INV_ITEM presence in the inventory affecting quickload and quicksave hotkey functionality.
+* Fixed GOLDROSE_ITEM, FLARE_ITEM, and HAMMER_ITEM flickering in the pickup summary.
 * Fixed enemy gunfire not affecting other enemies in some cases.
 * Fixed regular spark sprite distance while moving with flare in hand.
 * Fixed fireflies emitting bright white light while in fly form (negative OCB).
@@ -83,7 +84,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect static mesh interpolation after a large position change.
 * Fixed interaction highlighter appearing for underwater pushable objects.
 * Fixed clipping into underwater pushable objects while swimming upwards from the bottom.
-* Fixed underwater transition into dry room after jumping out of water room.
 * Fixed running jumps being stopped when platforming near steep slopes.
 * Fixed pickup of underwater items in vertically narrow passages.
 * Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
@@ -147,6 +147,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Objects.GetMaterialByName` and `Objects.GetMaterialsByObject` functions.
 * Added `Moveable:GetProperty`, `Moveable:SetProperty` and `Moveable:HasInstanceProperty` functions.
 * Added `Static:GetProperty`, `Static:SetProperty` and `Static:HasInstanceProperty` functions.
+* Added `CustomDiary:UnlockPage` function to unlock individual pages in the order the function is called. The unlock mode is detected automatically on the first unlock call.
 * Updated `EmitLight()`, `EmitSpotLight()` and `EmitFogBulb()` to accept fractional values, allowing smooth scaling of radius/falloff/distance.
 * Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
@@ -157,6 +158,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed `View.DisplayString` not working in the title level.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 * Fixed notification display bug in `CustomDiary` class.
+* Added optional `area` parameter for text entries in the `CustomDiary` module to enable automatic word wrapping.
 
 ## [Version 1.11.1]
 
