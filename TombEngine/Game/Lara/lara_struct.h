@@ -1327,6 +1327,8 @@ struct PlayerInventoryData
 	bool HasTorch	   = false;
 	bool HasLasersight = false;
 	bool HasSilencer   = false; // TODO: Unused.
+	bool HasGoldRose   = false;
+	bool HasHammer	   = false;
 
 	int Puzzles[NUM_PUZZLES]			= {};
 	int Keys[NUM_KEYS]					= {};

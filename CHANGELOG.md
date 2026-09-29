@@ -74,6 +74,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed PC_LOAD_INV_ITEM and PC_SAVE_INV_ITEM presence in the inventory affecting quickload and quicksave hotkey functionality.
 * Fixed GOLDROSE_ITEM, FLARE_ITEM, and HAMMER_ITEM flickering in the pickup summary.
+* Fixed GOLDROSE_ITEM and HAMMER_ITEM not appearing in the inventory.
 * Fixed enemy gunfire not affecting other enemies in some cases.
 * Fixed regular spark sprite distance while moving with flare in hand.
 * Fixed fireflies emitting bright white light while in fly form (negative OCB).

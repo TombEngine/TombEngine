@@ -83,6 +83,8 @@ PICKUP_DATA.CONSTANTS =
 	{ TEN.Objects.ObjID.SMALLMEDI_ITEM, 0, 0.7, Rotation(112.0, 180.0, 0), ItemAction.USE, "small_medipack", NO_JOINT_BITS, INV_ROT_Y, PICKUP_DATA.TYPE.MEDIPACK, false, RING_TYPE.MAIN},
 	{ TEN.Objects.ObjID.BINOCULARS_ITEM, -1, 0.5, Rotation(10.0, 180.0, 0), ItemAction.USE, "binoculars", NO_JOINT_BITS, INV_ROT_Y, PICKUP_DATA.TYPE.TOOL, false, RING_TYPE.MAIN},
 	{ TEN.Objects.ObjID.FLARE_INV_ITEM, 52, 0.8, Rotation(0, 0, 0), ItemAction.USE, "flares", NO_JOINT_BITS, INV_ROT_Y, PICKUP_DATA.TYPE.TOOL, false, RING_TYPE.MAIN},
+	{ TEN.Objects.ObjID.GOLDROSE_ITEM,  0, 0.7, Rotation(0, 0, 0), ItemAction.USE, "goldrose", NO_JOINT_BITS, INV_ROT_Y, PICKUP_DATA.TYPE.TOOL, false, RING_TYPE.PUZZLE},
+	{ TEN.Objects.ObjID.HAMMER_ITEM,  0, 0.7, Rotation(0, 0, 0), ItemAction.USE, "hammer", NO_JOINT_BITS, INV_ROT_Y, PICKUP_DATA.TYPE.TOOL, false, RING_TYPE.PUZZLE},
 	{ TEN.Objects.ObjID.PC_LOAD_INV_ITEM, 52, 0.3, Rotation(0, 180.0, 0), ItemAction.LOAD, "load_game", NO_JOINT_BITS, INV_ROT_Y, PICKUP_DATA.TYPE.SAVE, false, RING_TYPE.OPTIONS},
 	{ TEN.Objects.ObjID.PC_SAVE_INV_ITEM, 52, 0.3, Rotation(0, 180.0, 0), ItemAction.SAVE, "save_game", NO_JOINT_BITS, INV_ROT_Y, PICKUP_DATA.TYPE.SAVE, false, RING_TYPE.OPTIONS},
 	{ TEN.Objects.ObjID.BURNING_TORCH_ITEM, 14, 0.5, Rotation(90.0, 0, 0), ItemAction.USE, "torch", NO_JOINT_BITS, INV_ROT_Y, PICKUP_DATA.TYPE.TOOL, false, RING_TYPE.PUZZLE},

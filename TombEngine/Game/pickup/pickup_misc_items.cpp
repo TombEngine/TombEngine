@@ -97,6 +97,14 @@ bool TryModifyMiscCount(LaraInfo & lara, GAME_OBJECT_ID objectID, std::optional<
 		lara.Inventory.HasCompass = add;
 		break;
 
+	case ID_GOLDROSE_ITEM:
+		lara.Inventory.HasGoldRose = add;
+		break;
+
+	case ID_HAMMER_ITEM:
+		lara.Inventory.HasHammer = add;
+		break;
+
 	case ID_WATERSKIN1_EMPTY:
 		modifyWaterSkinAmount(lara.Inventory.SmallWaterskin, 1);
 		break;
