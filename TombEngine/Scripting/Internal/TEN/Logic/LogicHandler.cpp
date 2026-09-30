@@ -207,6 +207,7 @@ Arguments:
 - The callbacks `PRE_END` and `POST_END` receive a @{Logic.EndReason} argument.
 - The callbacks `PRE_USE_ITEM` and `POST_USE_ITEM` receive an @{Objects.ObjID} argument.
 - The callbacks `PRE_PICKUP`, `POST_PICKUP`, `PRE_VEHICLE_ENTER`, `POST_VEHICLE_ENTER`, `PRE_VEHICLE_LEAVE`, and `POST_VEHICLE_LEAVE` receive a @{Objects.Moveable} argument.
+- The callbacks `PRE_AUDIO_CHANNEL` and `POST_AUDIO_CHANNEL` receive a string argument with the name of the audio channel.
 - The argument for `PRE_LOOP` and `POST_LOOP` is deprecated and should not be used.
 
 @function AddCallback
@@ -1129,6 +1130,21 @@ void LogicHandler::OnFreeze()
 	PerformLevelFuncCallback(LevelFuncCallbackPoint::Freeze);
 	PerformCallbacks(CallbackPoint::PostFreeze);
 	HandleAllGlobalEvents(EventType::Freeze, (Activator)short(LaraItem->Index));
+}
+
+void LogicHandler::OnAudioChannelStarted(const std::string& channelName)
+{
+	PerformCallbacks(CallbackPoint::PreAudioChannel, channelName);
+}
+
+void LogicHandler::OnAudioChannelPlaying(const std::string& channelName)
+{
+	PerformLevelFuncCallback(LevelFuncCallbackPoint::AudioChannelPlay, channelName);
+}
+
+void LogicHandler::OnAudioChannelStopped(const std::string& channelName)
+{
+	PerformCallbacks(CallbackPoint::PostAudioChannel, channelName);
 }
 
 void LogicHandler::InitCallbacks()

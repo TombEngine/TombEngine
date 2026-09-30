@@ -65,6 +65,9 @@ public:
 	virtual void OnVehicleEnter(short itemNumber, bool postLoop) = 0;
 	virtual void OnVehicleLeave(short itemNumber, bool postLoop) = 0;
 	virtual void OnFreeze() = 0;
+	virtual void OnAudioChannelStarted(const std::string& channelName) = 0;
+	virtual void OnAudioChannelPlaying(const std::string& channelName) = 0;
+	virtual void OnAudioChannelStopped(const std::string& channelName) = 0;
 
 	virtual void AddConsoleInput(const std::string& input) = 0;
 	virtual void ShortenTENCalls() = 0;
