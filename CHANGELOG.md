@@ -87,6 +87,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed running jumps being stopped when platforming near steep slopes.
 * Fixed pickup of underwater items in vertically narrow passages.
 * Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
+* Fixed pickups taking priority over binocular mode.
 * Fixed flares being selected from inventory whilst riding the kayak.
 * Fixed kayak paddle and minecart wrench not being drawn when starting a level.
 * Fixed slow turning on parallel bars while holding the left or right key.
