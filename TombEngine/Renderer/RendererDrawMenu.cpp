@@ -1,4 +1,4 @@
-#include "framework.h"
+﻿#include "framework.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/Graphics/VRAMTracker.h"
 
@@ -1557,6 +1557,59 @@ namespace TEN::Renderer
 
 		_graphicsDevice->ClearState();
 		_graphicsDevice->Present();
+	}
+
+	void Renderer::RenderShaderCompileScreen(float percentage)
+	{
+		// Keep the window responsive so Windows does not show a "not responding" cursor
+		// while shaders are compiled on the main thread.
+		SDL_PumpEvents();
+
+		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
+
+		_graphicsDevice->ClearRenderTarget2D(_backBuffer->GetRenderTarget(), Colors::Black);
+		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
+		_graphicsDevice->BindRenderTarget(_backBuffer->GetRenderTarget(), _backBuffer->GetDepthTarget());
+		_graphicsDevice->SetViewport(_viewport);
+		_graphicsDevice->SetScissor(_viewport);
+
+		// Text opacity must be consistent; the engine's flash (_blinkColorValue) is normally
+		// advanced once per game frame in Renderer::PrepareScene, which does not run yet during
+		// synchronous shader compilation. Keep it at full opacity.
+		_blinkColorValue = Vector4::One;
+
+		// Reuse the engine's loading bar (same visuals as the level loading screen). Force the
+		// opaque render states so the fill is not affected by state left over from prior frames.
+		SetBlendMode(BlendMode::Opaque, true);
+		SetCullMode(CullMode::None, true);
+		SetDepthState(DepthState::None, true);
+		DrawLoadingBar(percentage);
+
+		// The string renderer multiplies by ScreenFadeCurrent (0 until gameplay starts),
+		// so temporarily force full opacity so the pre-compile text is visible.
+		float prevScreenFade = ScreenFadeCurrent;
+		ScreenFadeCurrent = 1.0f;
+
+		// Centered text just above the loading bar, using the engine's string system.
+		_stringsToDraw.clear();
+		AddString(g_GameFlow->GetString(STRING_COMPILING_SHADERS),
+			Vector2(DISPLAY_SPACE_RES.x * 0.5f, DISPLAY_SPACE_RES.y * 0.85f),
+			Color(0.5f, 0.5f, 0.5f, 0.5f),
+			0.5f,
+			(int)PrintStringFlags::Center);
+		DrawAllStrings();
+
+		ScreenFadeCurrent = prevScreenFade;
+
+		_graphicsDevice->Present();
+
+		// Restore a clean full-window render state so later passes (notably the intro FMV's
+		// fullscreen quad) are not affected by the scissor/blend state this screen left behind.
+		ResetScissor();
+		SetBlendMode(BlendMode::Opaque, true);
+		SetDepthState(DepthState::Write, true);
+		SetCullMode(CullMode::CounterClockwise, true);
+		_graphicsDevice->ClearState();
 	}
 
 	void Renderer::RenderLoadingScreen(float percentage)

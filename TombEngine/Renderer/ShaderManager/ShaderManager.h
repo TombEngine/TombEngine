@@ -1,6 +1,7 @@
-#pragma once
+﻿#pragma once
 
 #include "Renderer/Graphics/IGraphicsDevice.h"
+#include <functional>
 
 using namespace TEN::Renderer::Graphics;
 
@@ -12,6 +13,7 @@ namespace TEN::Renderer::Utils
 		IGraphicsDevice* _graphicsDevice							   = nullptr;
 
 		int											_compileCounter	   = 0;
+		std::function<void(float)>					_progressCallback  = nullptr;
 		std::array<std::unique_ptr<IShader>, (int)Shader::Count>	_shaders		   = {};
 
 	public:
@@ -21,7 +23,8 @@ namespace TEN::Renderer::Utils
 		const IShader* Get(Shader shader);
 
 		void Initialize(IGraphicsDevice* graphicsDevice);
-		void LoadShaders(int width, int height, bool recompileAAShaders = false);
+		void LoadBootstrapShaders();
+		void LoadShaders(int width, int height, bool recompileAAShaders = false, std::function<void(float)> progressCallback = nullptr);
 		void Bind(Shader shader, bool forceNull = false);
 
 	private:
