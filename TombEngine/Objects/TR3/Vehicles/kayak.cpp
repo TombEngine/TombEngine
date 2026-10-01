@@ -8,12 +8,14 @@
 #include "Game/collision/Point.h"
 #include "Game/control/control.h"
 #include "Game/effects/effects.h"
+#include "Game/effects/tomb4fx.h"
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_flare.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Setup.h"
 #include "Game/Sink.h"
+#include "Objects/TR2/Trap/AquaticMine.h"
 #include "Objects/TR3/Vehicles/kayak_info.h"
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -1012,6 +1014,7 @@ namespace TEN::Entities::Vehicles
 
 					if (object->collision &&
 						(item->ObjectNumber == ID_TEETH_SPIKES ||
+							item->ObjectNumber == ID_UNDERWATER_MINE ||
 							item->ObjectNumber == ID_DARTS &&
 							item->Animation.ActiveState != 1))
 					{
@@ -1025,6 +1028,28 @@ namespace TEN::Entities::Vehicles
 						{
 							if (TestBoundsCollide(item, kayakItem, KAYAK_TO_ENTITY_RADIUS))
 							{
+								if (item->ObjectNumber == ID_UNDERWATER_MINE)
+								{
+									TEN::Entities::Traps::TriggerMineExplosion(item->Index);
+
+									auto* lara = GetLaraInfo(laraItem);
+									if (lara->Context.Vehicle == kayakItem->Index)
+									{
+										ExplodeVehicle(laraItem, kayakItem);
+									}
+									else
+									{
+										TriggerUnderwaterExplosion(kayakItem, false);
+										kayakItem->Status = ITEM_DEACTIVATED;
+										KillItem(kayakItem->Index);
+
+										TriggerExplosionSparks(kayakItem->Pose.Position.x, kayakItem->Pose.Position.y, kayakItem->Pose.Position.z, 3, -2, 0, kayakItem->RoomNumber);
+										for (int i = 0; i < 2; i++)
+											TriggerExplosionSparks(kayakItem->Pose.Position.x, kayakItem->Pose.Position.y, kayakItem->Pose.Position.z, 3, -1, 0, kayakItem->RoomNumber);
+									}
+									return;
+								}
+
 								DoLotsOfBlood(laraItem->Pose.Position.x, laraItem->Pose.Position.y - CLICK(1), laraItem->Pose.Position.z, kayakItem->Animation.Velocity.z, kayakItem->Pose.Orientation.y, laraItem->RoomNumber, 3);
 								DoDamage(laraItem, 5);
 							}

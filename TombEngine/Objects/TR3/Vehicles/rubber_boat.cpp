@@ -11,8 +11,10 @@
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Setup.h"
+#include "Objects/TR2/Trap/AquaticMine.h"
 #include "Objects/TR3/Vehicles/rubber_boat_info.h"
 #include "Objects/TR3/Vehicles/upv.h"
+#include "Objects/TR3/Vehicles/kayak.h"
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Renderer/RendererEnums.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -981,5 +983,7 @@ namespace TEN::Entities::Vehicles
 				}
 			}
 		}
+
+		KayakToItemCollision(rBoatItem, laraItem);
 	}
 }

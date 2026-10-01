@@ -11,7 +11,9 @@
 #include "Game/Lara/lara.h"
 #include "Game/Lara/lara_helpers.h"
 #include "Game/Setup.h"
+#include "Objects/TR2/Trap/AquaticMine.h"
 #include "Objects/TR2/Vehicles/speedboat_info.h"
+#include "Objects/TR3/Vehicles/kayak.h"
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Sound/sound.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
@@ -982,6 +984,8 @@ namespace TEN::Entities::Vehicles
 				SpawnVehicleWake(*speedboatItem, SPEEDBOAT_WAKE_OFFSET, waterHeight);
 			}
 		}
+
+		KayakToItemCollision(speedboatItem, laraItem);
 
 		if (lara->Context.Vehicle != itemNumber)
 			return;

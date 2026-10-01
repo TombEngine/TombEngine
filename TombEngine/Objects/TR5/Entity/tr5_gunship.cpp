@@ -1116,11 +1116,6 @@ namespace TEN::Entities::Creatures::TR5
 				blocked = true;
 		}
 
-		// Debug: always show the escape target (white sphere) while escape is active
-		// (also during the ESCAPE flight, not only on blockage) - target observation during testing.
-		if (GunShip.TargetPos != Vector3::Zero)
-			DrawDebugSphere(GunShip.TargetPos, 43, Vector4::One, RendererDebugPage::None);
-
 		if (blocked)
 		{
 			const GunShipState blockedState = currentState;

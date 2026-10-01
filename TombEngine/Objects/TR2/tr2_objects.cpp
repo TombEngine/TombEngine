@@ -33,6 +33,7 @@
 
 // Traps
 #include "Objects/Generic/Traps/Pendulum.h"
+#include "Objects/TR2/Trap/AquaticMine.h"
 #include "Objects/TR2/Trap/CircularSaw.h"
 #include "Objects/TR2/Trap/DiskShooter.h"
 #include "Objects/TR2/Trap/OverheadPulleyHook.h"
@@ -616,6 +617,15 @@ static void StartTrap(ObjectInfo* obj)
 		obj->control = ControlCircularSaw;
 		obj->collision = CollideCircularSaw;
 		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_UNDERWATER_MINE];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeAquaticMine;
+		obj->control = ControlAquaticMine;
+		obj->collision = CollideAquaticMine;
+		obj->intelligent = true;
 	}
 
 	obj = &Objects[ID_ROLLING_BARRELS];

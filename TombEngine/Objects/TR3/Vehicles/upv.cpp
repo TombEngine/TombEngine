@@ -22,6 +22,7 @@
 #include "Game/Setup.h"
 #include "Game/Sink.h"
 #include "Objects/TR3/Vehicles/upv_info.h"
+#include "Objects/TR3/Vehicles/kayak.h"
 #include "Objects/Utils/VehicleHelpers.h"
 #include "Sound/sound.h"
 #include "Specific/level.h"
@@ -995,6 +996,7 @@ namespace TEN::Entities::Vehicles
 
 		TestTriggers(UPVItem, false);
 		UPVEffects(lara->Context.Vehicle);
+		KayakToItemCollision(UPVItem, laraItem);
 
 		if (UPV->Velocity || IsDirectionalActionHeld())
 		{

@@ -7,6 +7,7 @@ using namespace TEN::Utils;
 // Common property names.
 
 static const auto PropName_HitPoints			= GetHash("HitPoints");
+static const auto PropName_HarmPlayer			= GetHash("HarmPlayer");
 static const auto PropName_Damage				= GetHash("Damage");
 static const auto PropName_VerticalVelocity		= GetHash("VerticalVelocity");
 static const auto PropName_HorizontalVelocity	= GetHash("HorizontalVelocity");
