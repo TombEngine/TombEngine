@@ -2034,6 +2034,9 @@ namespace TEN::Renderer
 		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
 
 		auto& level = *g_GameFlow->GetLevel(CurrentLevel);
+		const auto& effectSettings = g_GameFlow->GetSettings()->Effects;
+		_stRoom.WaterEffectStrength = std::clamp(effectSettings.WaterEffectStrength, 0.0f, 1.0f);
+		_stRoom.WaterEffectDepth = std::max(effectSettings.WaterEffectDepth, 1.0f);
 
 		// Prepare scene to draw.
 		auto time1 = std::chrono::high_resolution_clock::now();

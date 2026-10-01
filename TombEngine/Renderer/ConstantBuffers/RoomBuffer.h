@@ -22,6 +22,10 @@ namespace TEN::Renderer::ConstantBuffers
 		Vector3 AmbientColor;
 		float RoomPadding0;
 		//--
+		float WaterEffectStrength;
+		float WaterEffectDepth;
+		Vector2 RoomPadding1;
+		//--
 		ShaderLight RoomLights[MAX_LIGHTS_PER_ROOM];
 		//--
 		ShaderDecal RoomDecals[Decal::COUNT_MAX];
