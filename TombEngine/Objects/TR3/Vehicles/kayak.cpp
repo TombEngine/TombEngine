@@ -1035,6 +1035,7 @@ namespace TEN::Entities::Vehicles
 									auto* lara = GetLaraInfo(laraItem);
 									if (lara->Context.Vehicle == kayakItem->Index)
 									{
+										laraItem->MeshBits.Set(KayakLaraLegJoints);
 										ExplodeVehicle(laraItem, kayakItem);
 									}
 									else
