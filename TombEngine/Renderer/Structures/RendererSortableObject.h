@@ -12,13 +12,13 @@
 
 namespace TEN::Renderer::Structures
 {
+	// Draw state shared by every sorted polygon of one object bucket (or by a single sprite).
+	// Polygons reference it through RendererSortablePolygon::ObjectIndex.
 	struct RendererSortableObject
 	{
 		RendererObjectType ObjectType;
 
-		Matrix	World	 = Matrix::Identity;
-		Vector3 Centre	 = Vector3::Zero; // TODO: Rename to Center.
-		int		Distance = 0;
+		Matrix World = Matrix::Identity;
 
 		BlendMode BlendMode = BlendMode::Opaque;
 		LightMode LightMode = LightMode::Dynamic;
@@ -29,9 +29,8 @@ namespace TEN::Renderer::Structures
 
 		bool Skinned = false;
 
-		RendererRoom*	 Room	 = nullptr;
-		RendererBucket*	 Bucket	 = nullptr;
-		RendererPolygon* Polygon = nullptr;
+		RendererRoom*	Room   = nullptr;
+		RendererBucket* Bucket = nullptr;
 
 		union
 		{
@@ -40,5 +39,21 @@ namespace TEN::Renderer::Structures
 			RendererEffect*		  Effect;
 			RendererSpriteToDraw* Sprite;
 		};
+	};
+
+	// Per-polygon entry of the transparent pass. Sprites use a single entry with no polygon.
+	struct RendererSortablePolygon
+	{
+		RendererPolygon* Polygon	 = nullptr;
+		int				 Distance	 = 0;
+		int				 ObjectIndex = 0;
+	};
+
+	// Compact sort entry for the transparent pass. Key packs group rank (high 32 bits) and
+	// inverted distance (low 32 bits); Index points into RenderView::TransparentPolygonsToDraw.
+	struct RendererSortKey
+	{
+		unsigned long long Key	 = 0;
+		int				   Index = 0;
 	};
 }

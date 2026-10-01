@@ -239,13 +239,11 @@ namespace TEN::Renderer
 			{
 				int distance = (rDrawSprite.pos - Camera.pos.ToVector3()).Length();
 
-				RendererSortableObject object;
+				auto object = RendererSortableObject{};
 				object.ObjectType = RendererObjectType::Sprite;
-				object.Centre = rDrawSprite.pos;
-				object.Distance = distance;
 				object.Sprite = &rDrawSprite;
 
-				view.TransparentObjectsToDraw.push_back(object);
+				CollectSortedSprite(view, object, distance);
 			}
 			else
 			{

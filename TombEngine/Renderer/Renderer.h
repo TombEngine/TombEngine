@@ -346,6 +346,9 @@ namespace TEN::Renderer
 		int _timeRoomsCollector;
 		int _timeDraw;
 		int _timeFrame;
+		float _timeSortedCollect = 0.0f;
+		float _timeSortedSort = 0.0f;
+		float _timeSortedDraw = 0.0f;
 		float _fps;
 		int _currentCausticsFrame;
 
@@ -403,6 +406,7 @@ namespace TEN::Renderer
 		fast_vector<int> _sortedPolygonsIndices;
 
 		std::vector<RendererSortedBatch> _sortedPolygonsBatches;
+		std::vector<RendererSortKey> _sortKeysScratch;
 		std::unique_ptr<IVertexBuffer> _sortedPolygonsVertexBuffer;
 		std::unique_ptr<IIndexBuffer> _sortedPolygonsIndexBuffer;
 
@@ -644,6 +648,8 @@ namespace TEN::Renderer
         bool HasItemForPass(RendererItem& item, RendererObject& object, RendererPass rendererPass);
 		void SortAndPrepareSprites(RenderView& view);
 		void SortTransparentFaces(RenderView& view);
+		void CollectSortedBucket(RenderView& view, const RendererSortableObject& object, const Matrix* world, const Vector3& cameraPosition);
+		void CollectSortedSprite(RenderView& view, const RendererSortableObject& object, int distance);
 		void ResetItems();
 		void ResetScissor();
 		void ResetDebugVariables();

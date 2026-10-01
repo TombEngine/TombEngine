@@ -60,39 +60,16 @@ namespace TEN::Renderer
 		int	  BlendPriority = 0;
 	};
 
-	void Renderer::SortTransparentFaces(RenderView& view)
+	static BlendMode GetSortedBlendMode(const RendererSortableObject& object)
 	{
-		if (view.TransparentObjectsToDraw.empty())
-			return;
-
-		// Fixed priority between blend modes of groups at the same depth (issue #1793),
-		// so their relative order is stable and predictable instead of arbitrary.
-		auto getBlendPriority = [](BlendMode blendMode)
-		{
-			switch (blendMode)
-			{
-			case BlendMode::Exclude:	 return 0;
-			case BlendMode::Subtractive: return 1;
-			case BlendMode::Lighten:	 return 2;
-			case BlendMode::Screen:		 return 3;
-			case BlendMode::AlphaBlend:	 return 4;
-			default:					 return 5;
+		return ((object.ObjectType == RendererObjectType::Sprite) ? object.Sprite->BlendMode : object.BlendMode);
 			}
-		};
 
-		// Position of every room in the back-to-front draw order (portal traversal reversed).
-		auto roomSlots = std::unordered_map<const RendererRoom*, int>{};
-		roomSlots.reserve(view.RoomsToDraw.size());
-		for (int i = 0; i < view.RoomsToDraw.size(); i++)
-			roomSlots[view.RoomsToDraw[i]] = (int)view.RoomsToDraw.size() - 1 - i;
-
-		auto groupIndices = std::unordered_map<GroupKey, int, GroupKeyHash>{};
-		auto groups = std::vector<SortedGroup>{};
-
-		for (auto& object : view.TransparentObjectsToDraw)
+	// Identity of the draw group an object belongs to. Distance only matters for sprites, which
+	// group by texture within a depth band.
+	static GroupKey GetSortedGroupKey(const RendererSortableObject& object, int distance)
 		{
 			auto key = GroupKey{};
-			auto blendMode = object.BlendMode;
 
 			switch (object.ObjectType)
 			{
@@ -129,28 +106,122 @@ namespace TEN::Renderer
 				break;
 
 			case RendererObjectType::Sprite:
-				blendMode = object.Sprite->BlendMode;
 				key.Primary = object.Sprite->Sprite;
 				key.Extra =
-					(unsigned long long)(unsigned int)(int)(object.Distance / SPRITE_GROUP_DEPTH_BAND) |
-					((unsigned long long)blendMode << 32) |
+				(unsigned long long)(unsigned int)(int)(distance / SPRITE_GROUP_DEPTH_BAND) |
+				((unsigned long long)object.Sprite->BlendMode << 32) |
 					((unsigned long long)object.Sprite->Type << 40) |
 					((unsigned long long)object.Sprite->renderType << 48) |
 					((unsigned long long)(object.Sprite->SoftParticle ? 1 : 0) << 56);
 				break;
 
 			default:
-				key.Primary = object.Polygon;
+			key.Primary = &object;
 				key.Extra = (unsigned long long)object.ObjectType;
 				break;
 			}
+
+		return key;
+	}
+
+	// Stable LSD radix sort of 64-bit keys in 8-bit digits. Digits shared by all entries are
+	// skipped, so small group ranks and distances only pay for the passes their bit width needs.
+	static void RadixSortKeys(std::vector<RendererSortKey>& keys, std::vector<RendererSortKey>& scratch)
+	{
+		constexpr auto DIGIT_COUNT	= 8;
+		constexpr auto BUCKET_COUNT = 256;
+
+		int count = (int)keys.size();
+		if (count < 2)
+			return;
+
+		scratch.resize(count);
+
+		int histograms[DIGIT_COUNT][BUCKET_COUNT] = {};
+		for (const auto& entry : keys)
+		{
+			for (int digit = 0; digit < DIGIT_COUNT; digit++)
+				histograms[digit][(entry.Key >> (digit * 8)) & 0xFF]++;
+		}
+
+		auto* source = keys.data();
+		auto* dest = scratch.data();
+
+		for (int digit = 0; digit < DIGIT_COUNT; digit++)
+		{
+			int shift = digit * 8;
+			auto* histogram = histograms[digit];
+
+			if (histogram[(source[0].Key >> shift) & 0xFF] == count)
+				continue;
+
+			int offset = 0;
+			for (int bucket = 0; bucket < BUCKET_COUNT; bucket++)
+			{
+				int bucketSize = histogram[bucket];
+				histogram[bucket] = offset;
+				offset += bucketSize;
+			}
+
+			for (int i = 0; i < count; i++)
+				dest[histogram[(source[i].Key >> shift) & 0xFF]++] = source[i];
+
+			std::swap(source, dest);
+		}
+
+		if (source != keys.data())
+			std::memcpy(keys.data(), source, sizeof(RendererSortKey) * count);
+	}
+
+	void Renderer::SortTransparentFaces(RenderView& view)
+	{
+		view.TransparentSortKeys.clear();
+
+		if (view.TransparentPolygonsToDraw.empty())
+			return;
+
+		// Fixed priority between blend modes of groups at the same depth (issue #1793),
+		// so their relative order is stable and predictable instead of arbitrary.
+		auto getBlendPriority = [](BlendMode blendMode)
+		{
+			switch (blendMode)
+			{
+			case BlendMode::Exclude:	 return 0;
+			case BlendMode::Subtractive: return 1;
+			case BlendMode::Lighten:	 return 2;
+			case BlendMode::Screen:		 return 3;
+			case BlendMode::AlphaBlend:	 return 4;
+			default:					 return 5;
+			}
+		};
+
+		// Position of every room in the back-to-front draw order (portal traversal reversed).
+		auto roomSlots = std::unordered_map<const RendererRoom*, int>{};
+		roomSlots.reserve(view.RoomsToDraw.size());
+		for (int i = 0; i < view.RoomsToDraw.size(); i++)
+			roomSlots[view.RoomsToDraw[i]] = (int)view.RoomsToDraw.size() - 1 - i;
+
+		auto groupIndices = std::unordered_map<GroupKey, int, GroupKeyHash>{};
+		auto groups = std::vector<SortedGroup>{};
+
+		// Polygons of one object are contiguous, so the group is resolved once per object and the
+		// per-polygon work is reduced to accumulating its distance.
+		int lastObjectIndex = NO_VALUE;
+		int groupIndex = 0;
+
+		for (const auto& polygon : view.TransparentPolygonsToDraw)
+		{
+			if (polygon.ObjectIndex != lastObjectIndex)
+			{
+				auto& object = view.TransparentObjectsToDraw[polygon.ObjectIndex];
+				auto key = GetSortedGroupKey(object, polygon.Distance);
 
 			auto [it, isNewGroup] = groupIndices.try_emplace(key, (int)groups.size());
 			if (isNewGroup)
 			{
 				auto& group = groups.emplace_back();
 				group.IsRoom = (object.ObjectType == RendererObjectType::Room);
-				group.BlendPriority = getBlendPriority(blendMode);
+					group.BlendPriority = getBlendPriority(GetSortedBlendMode(object));
 
 				if (group.IsRoom)
 				{
@@ -159,12 +230,16 @@ namespace TEN::Renderer
 				}
 			}
 
-			auto& group = groups[it->second];
-			group.DistanceSum += object.Distance;
-			group.PolygonCount++;
+				groupIndex = it->second;
+				lastObjectIndex = polygon.ObjectIndex;
 
 			// Temporarily the group index; remapped to the final rank below.
-			object.GroupRank = it->second;
+				object.GroupRank = groupIndex;
+			}
+
+			auto& group = groups[groupIndex];
+			group.DistanceSum += polygon.Distance;
+			group.PolygonCount++;
 		}
 
 		auto order = std::vector<int>(groups.size());
@@ -212,18 +287,66 @@ namespace TEN::Renderer
 		for (auto& object : view.TransparentObjectsToDraw)
 			object.GroupRank = groupRanks[object.GroupRank];
 
-		// Make groups contiguous in rank order, keeping polygons depth-sorted inside
-		// their own group.
-		std::sort(
-			view.TransparentObjectsToDraw.begin(),
-			view.TransparentObjectsToDraw.end(),
-			[](const RendererSortableObject& object0, const RendererSortableObject& object1)
-			{
-				if (object0.GroupRank != object1.GroupRank)
-					return (object0.GroupRank < object1.GroupRank);
+		// Make groups contiguous in rank order, keeping polygons depth-sorted (far to near) inside
+		// their own group. Only compact keys are sorted; objects and polygons never move.
+		const auto* objects = view.TransparentObjectsToDraw.data();
+		int polygonCount = (int)view.TransparentPolygonsToDraw.size();
+		view.TransparentSortKeys.resize(polygonCount);
 
-				return (object0.Distance > object1.Distance);
-			});
+		for (int i = 0; i < polygonCount; i++)
+		{
+			const auto& polygon = view.TransparentPolygonsToDraw[i];
+			int groupRank = objects[polygon.ObjectIndex].GroupRank;
+
+			auto invertedDistance = (unsigned int)(INT_MAX - std::max(polygon.Distance, 0));
+			view.TransparentSortKeys[i].Key = ((unsigned long long)groupRank << 32) | invertedDistance;
+			view.TransparentSortKeys[i].Index = i;
+		}
+
+		RadixSortKeys(view.TransparentSortKeys, _sortKeysScratch);
+	}
+
+	void Renderer::CollectSortedBucket(RenderView& view, const RendererSortableObject& object, const Matrix* world, const Vector3& cameraPosition)
+	{
+		if (object.Bucket->Polygons.empty())
+			return;
+
+		int objectIndex = (int)view.TransparentObjectsToDraw.size();
+		view.TransparentObjectsToDraw.push_back(object);
+
+		auto& polygons = object.Bucket->Polygons;
+		int polygonCount = (int)polygons.size();
+
+		int firstEntry = (int)view.TransparentPolygonsToDraw.size();
+		view.TransparentPolygonsToDraw.resize(firstEntry + polygonCount);
+		auto* entries = &view.TransparentPolygonsToDraw[firstEntry];
+
+		// Room geometry is already in world space. Transform is expanded by hand (row vector times
+		// matrix, as Vector3::Transform) to keep the per-polygon cost low in debug builds as well.
+		auto matrix = (world != nullptr) ? *world : Matrix::Identity;
+		auto* sourcePolygons = polygons.data();
+
+		for (int i = 0; i < polygonCount; i++)
+		{
+			const auto& centre = sourcePolygons[i].Centre;
+			float x = centre.x * matrix._11 + centre.y * matrix._21 + centre.z * matrix._31 + matrix._41 - cameraPosition.x;
+			float y = centre.x * matrix._12 + centre.y * matrix._22 + centre.z * matrix._32 + matrix._42 - cameraPosition.y;
+			float z = centre.x * matrix._13 + centre.y * matrix._23 + centre.z * matrix._33 + matrix._43 - cameraPosition.z;
+
+			entries[i].Polygon = &sourcePolygons[i];
+			entries[i].Distance = (int)sqrt(x * x + y * y + z * z);
+			entries[i].ObjectIndex = objectIndex;
+		}
+	}
+
+	void Renderer::CollectSortedSprite(RenderView& view, const RendererSortableObject& object, int distance)
+	{
+		int objectIndex = (int)view.TransparentObjectsToDraw.size();
+		view.TransparentObjectsToDraw.push_back(object);
+
+		auto& entry = view.TransparentPolygonsToDraw.emplace_back();
+		entry.Distance = distance;
+		entry.ObjectIndex = objectIndex;
 	}
 
 	void Renderer::DrawSortedFaces(RenderView& view)
@@ -304,9 +427,15 @@ namespace TEN::Renderer
 			_sortedPolygonsVertices.clear();
 		};
 
-		for (int i = 0; i < view.TransparentObjectsToDraw.size(); i++)
+		// Polygons are visited in sorted order through the compact keys built by SortTransparentFaces.
+		int sortedCount = (int)view.TransparentSortKeys.size();
+		const auto* sortKeys = view.TransparentSortKeys.data();
+		const auto* polygons = view.TransparentPolygonsToDraw.data();
+		auto* objects = view.TransparentObjectsToDraw.data();
+
+		for (int i = 0; i < sortedCount; i++)
 		{
-			auto* object = &view.TransparentObjectsToDraw[i];
+			auto* object = &objects[polygons[sortKeys[i].Index].ObjectIndex];
 
 			if (_currentMirror != nullptr && object->ObjectType == RendererObjectType::Room)
 				continue;
@@ -344,15 +473,18 @@ namespace TEN::Renderer
 					continue;
 				}
 
-				while (i < view.TransparentObjectsToDraw.size() &&
-					view.TransparentObjectsToDraw[i].GroupRank == object->GroupRank &&
-					_sortedPolygonsIndices.size() + (view.TransparentObjectsToDraw[i].Polygon->Shape == 0 ? 6 : 3) < MAX_TRANSPARENT_VERTICES)
+				while (i < sortedCount)
 				{
-					auto* currentObject = &view.TransparentObjectsToDraw[i];
-					_sortedPolygonsIndices.bulk_push_back(
-						sourceIndices,
-						currentObject->Polygon->BaseIndex,
-						currentObject->Polygon->Shape == 0 ? 6 : 3);
+					const auto& currentPolygon = polygons[sortKeys[i].Index];
+					int indexCount = (currentPolygon.Polygon->Shape == 0) ? 6 : 3;
+
+					if (objects[currentPolygon.ObjectIndex].GroupRank != object->GroupRank ||
+						_sortedPolygonsIndices.size() + indexCount >= MAX_TRANSPARENT_VERTICES)
+					{
+						break;
+					}
+
+					_sortedPolygonsIndices.bulk_push_back(sourceIndices, currentPolygon.Polygon->BaseIndex, indexCount);
 					i++;
 				}
 
@@ -360,11 +492,11 @@ namespace TEN::Renderer
 			}
 			else
 			{
-				while (i < view.TransparentObjectsToDraw.size() &&
-					view.TransparentObjectsToDraw[i].GroupRank == object->GroupRank &&
+				while (i < sortedCount &&
+					objects[polygons[sortKeys[i].Index].ObjectIndex].GroupRank == object->GroupRank &&
 					_sortedPolygonsVertices.size() + 6 < MAX_TRANSPARENT_VERTICES)
 				{
-					RendererSortableObject* currentObject = &view.TransparentObjectsToDraw[i];
+					auto* currentObject = &objects[polygons[sortKeys[i].Index].ObjectIndex];
 					RendererSpriteToDraw* spr = currentObject->Sprite;
 
 					Vector3 p0t;

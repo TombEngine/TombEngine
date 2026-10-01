@@ -1858,25 +1858,16 @@ namespace TEN::Renderer
 						if (bucket.NumVertices == 0 || !IsSortedBlendMode(bucket.BlendMode))
 							continue;
 
-						for (int p = 0; p < bucket.Polygons.size(); p++)
-						{
-							auto centre = Vector3::Transform(bucket.Polygons[p].Centre, effectPtr->InterpolatedWorld);
-							int distance = (centre - view.Camera.WorldPosition).Length();
+						auto sortableObject = RendererSortableObject{};
+						sortableObject.ObjectType = RendererObjectType::Effect;
+						sortableObject.BlendMode = bucket.BlendMode;
+						sortableObject.Bucket = &bucket;
+						sortableObject.LightMode = LightMode::Dynamic;
+						sortableObject.World = effectPtr->InterpolatedWorld;
+						sortableObject.Effect = effectPtr;
+						sortableObject.Room = &_rooms[effectPtr->RoomNumber];
 
-							RendererSortableObject sortableObject;
-							sortableObject.ObjectType = RendererObjectType::Effect;
-							sortableObject.Centre = centre;
-							sortableObject.Distance = distance;
-							sortableObject.BlendMode = bucket.BlendMode;
-							sortableObject.Bucket = &bucket;
-							sortableObject.LightMode = LightMode::Dynamic;
-							sortableObject.Polygon = &bucket.Polygons[p];
-							sortableObject.World = effectPtr->InterpolatedWorld;
-							sortableObject.Effect = effectPtr;
-							sortableObject.Room = &_rooms[effectPtr->RoomNumber];
-
-							view.TransparentObjectsToDraw.push_back(sortableObject);
-						}
+						CollectSortedBucket(view, sortableObject, &effectPtr->InterpolatedWorld, view.Camera.WorldPosition);
 					}
 				}
 			}
