@@ -7,6 +7,7 @@
 #include "Specific/clock.h"
 #include "Specific/Structures/BitField.h"
 
+using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Math;
 
 namespace TEN::Hud
@@ -191,6 +192,19 @@ namespace TEN::Hud
 		_meshBits = meshBits;
 	}
 
+	void DisplayItem::SetScissor(const Vector2& pos, const Vector2& size, DisplaySpriteAlignMode alignMode)
+	{
+		_hasScissor       = true;
+		_scissorPos       = pos;
+		_scissorSize      = size;
+		_scissorAlignMode = alignMode;
+	}
+
+	void DisplayItem::ClearScissor()
+	{
+		_hasScissor = false;
+	}
+
 	void DisplayItem::SetMeshVisible(int meshIndex, bool isVisible)
 	{
 		if (!MeshExists(meshIndex))
@@ -244,6 +258,11 @@ namespace TEN::Hud
 	{
 		return _visible;
 	}
+
+	bool DisplayItem::GetHasScissor() const  { return _hasScissor; }
+	Vector2 DisplayItem::GetScissorPos() const  { return _scissorPos; }
+	Vector2 DisplayItem::GetScissorSize() const { return _scissorSize; }
+	DisplaySpriteAlignMode DisplayItem::GetScissorAlignMode() const { return _scissorAlignMode; }
 
 	bool DisplayItem::GetDisposing() const
 	{

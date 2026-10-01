@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Game/control/control.h"
+#include "Game/effects/DisplaySprite.h"
 #include "Scripting/Internal/TEN/Types/Color/Color.h"
 #include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 
@@ -73,6 +74,11 @@ private:
 	D3DCOLOR	_color	  = 0xFFFFFFFF;
 	FlagArray	_flags	  = {};
 
+	bool _hasScissor       = false;
+	Vec2 _scissorPos       = Vec2(0.0f, 0.0f);
+	Vec2 _scissorSize      = Vec2(100.0f, 100.0f);
+	TEN::Effects::DisplaySprite::DisplaySpriteAlignMode _scissorAlignMode = TEN::Effects::DisplaySprite::DisplaySpriteAlignMode::TopLeft;
+
 	float _timeRemaining = 0.0f; // NOTE: Seconds.
 
 	bool _isInfinite	 = false;
@@ -125,6 +131,8 @@ public:
 	void SetColor(const ScriptColor&);
 	void SetTranslated(bool isTranslated);
 	void SetFlags(const sol::table& flags);
+	void SetScissor(const Vec2& pos, const Vec2& size, sol::optional<TEN::Effects::DisplaySprite::DisplaySpriteAlignMode> alignMode);
+	void ClearScissor();
 
 	// Routines
 	static SetItemCallback	  SetItemCallbackRoutine;

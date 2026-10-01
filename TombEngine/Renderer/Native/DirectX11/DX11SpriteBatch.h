@@ -25,6 +25,7 @@ namespace TEN::Renderer::Native::DirectX11
 	private:
 		std::unique_ptr<SpriteBatch>  _spriteBatch  = nullptr;
 		std::unique_ptr<CommonStates> _renderStates = nullptr;
+		ComPtr<ID3D11RasterizerState> _scissorRasterizerState = nullptr;
 
 	public:
 		~DX11SpriteBatch() = default;
@@ -35,7 +36,7 @@ namespace TEN::Renderer::Native::DirectX11
 
 		ID3D11ShaderResourceView* GetD3D11ShaderResourceView(ITextureBase* texture);
 
-		void Begin(SpriteSortingMode sortingMode, BlendMode blendMode) override;
+		void Begin(SpriteSortingMode sortingMode, BlendMode blendMode, bool useScissor = false) override;
 		void End() override;
 		void Draw(ITextureBase* texture, RendererRectangle area, Vector4 color) override;
 	};
