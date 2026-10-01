@@ -13,6 +13,7 @@ static const auto PropName_VerticalVelocity		= GetHash("VerticalVelocity");
 static const auto PropName_HorizontalVelocity	= GetHash("HorizontalVelocity");
 static const auto PropName_EffectMeshID			= GetHash("EffectMeshID");
 static const auto PropName_EffectColor			= GetHash("EffectColor");
+static const auto PropName_EffectDuration = GetHash("EffectDuration");
 static const auto PropName_FogEffect			= GetHash("FogEffect");
 static const auto PropName_SparkEffect			= GetHash("SparkEffect");
 static const auto PropName_FlameEnabled			= GetHash("FlameEnabled");

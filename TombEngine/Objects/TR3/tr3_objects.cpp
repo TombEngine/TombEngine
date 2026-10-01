@@ -62,6 +62,7 @@
 #include "Objects/TR3/Trap/TurningBlade.h"
 #include "Objects/TR3/Trap/FirePendulum.h"
 #include "Objects/TR3/Trap/Fan.h"
+#include "Objects/TR3/Trap/FireBreathingStatue.h"
 
 // Vehicles
 #include "Objects/TR3/Vehicles/big_gun.h"
@@ -765,6 +766,15 @@ static void StartTrap(ObjectInfo* obj)
 		obj->control = ControlFan;
 		obj->collision = CollideFan;
 		obj->SetHitEffect(true);
+	}
+
+	obj = &Objects[ID_FIRE_BREATHING_STATUE];
+	if (obj->loaded)
+	{
+		obj->Initialize = InitializeFireBreathingStatue;
+		obj->control = FireBreathingStatueControl;
+		obj->shadowType = ShadowMode::All;
+		obj->HitPoints = NOT_TARGETABLE;
 	}
 
 	obj = &Objects[ID_TUNNEL_BORER];
