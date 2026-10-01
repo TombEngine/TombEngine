@@ -1751,6 +1751,10 @@ namespace TEN::Renderer
 			PrintDebugMessage("    Movables: %d", _numSortedMoveablesDrawCalls);
 			PrintDebugMessage("    Statics: %d", _numSortedStaticsDrawCalls);
 			PrintDebugMessage("    Sprites: %d", _numSortedSpritesDrawCalls);
+			PrintDebugMessage("SORTED faces: %d", (int)view.TransparentSortKeys.size());
+			PrintDebugMessage("    Collect: %.3f ms", _timeSortedCollect);
+			PrintDebugMessage("    Sort: %.3f ms", _timeSortedSort);
+			PrintDebugMessage("    Draw: %.3f ms", _timeSortedDraw);
 			PrintDebugMessage("SHADOW MAP draw calls: %d", _numShadowMapDrawCalls);
 			PrintDebugMessage("DEBRIS draw calls: %d", _numDebrisDrawCalls);
             PrintDebugMessage("Constant buffer updates: %d (PerDraw: %d)", _numConstantBufferUpdates, _numPerDrawUpdates);

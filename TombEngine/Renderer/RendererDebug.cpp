@@ -9,6 +9,9 @@ namespace TEN::Renderer
 		_timeDraw = 0;
 		_timeFrame = 0;
 		_timeRoomsCollector = 0;
+		_timeSortedCollect = 0.0f;
+		_timeSortedSort = 0.0f;
+		_timeSortedDraw = 0.0f;
 		_numDrawCalls = 0;
 
 		_numRoomsDrawCalls = 0;

@@ -544,25 +544,15 @@ namespace TEN::Renderer
 
 						if (IsSortedBlendMode(bucket.BlendMode))
 						{
-							for (int p = 0; p < bucket.Polygons.size(); p++)
-							{
-								auto centre = Vector3::Transform(
-									bucket.Polygons[p].Centre, rat->Transform);
-								int distance = (centre - view.Camera.WorldPosition).Length();
+							auto object = RendererSortableObject{};
+							object.ObjectType = RendererObjectType::MoveableAsStatic;
+							object.BlendMode = bucket.BlendMode;
+							object.Bucket = &bucket;
+							object.LightMode = mesh->LightMode;
+							object.World = rat->Transform;
+							object.Room = &_rooms[rat->RoomNumber];
 
-								RendererSortableObject object;
-								object.ObjectType = RendererObjectType::MoveableAsStatic;
-								object.Centre = centre;
-								object.Distance = distance;
-								object.BlendMode = bucket.BlendMode;
-								object.Bucket = &bucket;
-								object.LightMode = mesh->LightMode;
-								object.Polygon = &bucket.Polygons[p];
-								object.World = rat->Transform;
-								object.Room = &_rooms[rat->RoomNumber];
-
-								view.TransparentObjectsToDraw.push_back(object);
-							}
+							CollectSortedBucket(view, object, &object.World, view.Camera.WorldPosition);
 						}
 					}
 				}
@@ -668,30 +658,22 @@ namespace TEN::Renderer
 					continue;
 
 				auto& mesh = *GetMesh(Objects[ID_FISH_EMITTER].meshIndex + fish.MeshIndex);
+				auto worldMatrix = Matrix::Lerp(fish.PrevTransform, fish.Transform, GetInterpolationFactor());
+
 				for (auto& bucket : mesh.Buckets)
 				{
 					if (!IsSortedBlendMode(bucket.BlendMode))
 						continue;
-						
-					for (auto& poly : bucket.Polygons)
-					{
-						auto worldMatrix = Matrix::Lerp(fish.PrevTransform, fish.Transform, GetInterpolationFactor());
-						auto center = Vector3::Transform(poly.Centre, worldMatrix);
-						float dist = Vector3::Distance(center, view.Camera.WorldPosition);
 
-						auto object = RendererSortableObject{};
-						object.ObjectType = RendererObjectType::MoveableAsStatic;
-						object.Centre = center;
-						object.Distance = dist;
-						object.BlendMode = bucket.BlendMode;
-						object.Bucket = &bucket;
-						object.LightMode = mesh.LightMode;
-						object.Polygon = &poly;
-						object.World = worldMatrix;
-						object.Room = &_rooms[fish.RoomNumber];
+					auto object = RendererSortableObject{};
+					object.ObjectType = RendererObjectType::MoveableAsStatic;
+					object.BlendMode = bucket.BlendMode;
+					object.Bucket = &bucket;
+					object.LightMode = mesh.LightMode;
+					object.World = worldMatrix;
+					object.Room = &_rooms[fish.RoomNumber];
 
-						view.TransparentObjectsToDraw.push_back(object);
-					}
+					CollectSortedBucket(view, object, &worldMatrix, view.Camera.WorldPosition);
 				}
 			}
 		}
@@ -825,24 +807,15 @@ namespace TEN::Renderer
 						if (!IsSortedBlendMode(bucket.BlendMode))
 							continue;
 
-						for (auto& poly : bucket.Polygons)
-						{
-							auto center = Vector3::Transform(poly.Centre, worldMatrix);
-							float polyDist = Vector3::Distance(center, view.Camera.WorldPosition);
+						auto object = RendererSortableObject{};
+						object.ObjectType = RendererObjectType::MoveableAsStatic;
+						object.BlendMode = bucket.BlendMode;
+						object.Bucket = &bucket;
+						object.LightMode = mesh.LightMode;
+						object.World = worldMatrix;
+						object.Room = &_rooms[p.RoomNumber];
 
-							auto object = RendererSortableObject{};
-							object.ObjectType = RendererObjectType::MoveableAsStatic;
-							object.Centre = center;
-							object.Distance = polyDist;
-							object.BlendMode = bucket.BlendMode;
-							object.Bucket = &bucket;
-							object.LightMode = mesh.LightMode;
-							object.Polygon = &poly;
-							object.World = worldMatrix;
-							object.Room = &_rooms[p.RoomNumber];
-
-							view.TransparentObjectsToDraw.push_back(object);
-						}
+						CollectSortedBucket(view, object, &worldMatrix, view.Camera.WorldPosition);
 					}
 				}
 			}
@@ -1012,30 +985,22 @@ namespace TEN::Renderer
 				if (IgnoreReflectionPassForRoom(bat.RoomNumber))
 					continue;
 
+				auto transformMatrix = Matrix::Lerp(bat.PrevTransform, bat.Transform, GetInterpolationFactor());
+
 				for (auto& bucket : mesh.Buckets)
 				{
 					if (!IsSortedBlendMode(bucket.BlendMode))
 						continue;
 
-					for (int p = 0; p < bucket.Polygons.size(); p++)
-					{
-						auto transformMatrix = Matrix::Lerp(bat.PrevTransform, bat.Transform, GetInterpolationFactor());
-						auto centre = Vector3::Transform(bucket.Polygons[p].Centre, transformMatrix);
-						float dist = (centre - view.Camera.WorldPosition).Length();
+					auto object = RendererSortableObject{};
+					object.ObjectType = RendererObjectType::MoveableAsStatic;
+					object.BlendMode = bucket.BlendMode;
+					object.Bucket = &bucket;
+					object.LightMode = mesh.LightMode;
+					object.World = transformMatrix;
+					object.Room = &_rooms[bat.RoomNumber];
 
-						auto object = RendererSortableObject{};
-						object.ObjectType = RendererObjectType::MoveableAsStatic;
-						object.Centre = centre;
-						object.Distance = dist;
-						object.BlendMode = bucket.BlendMode;
-						object.Bucket = &bucket;
-						object.LightMode = mesh.LightMode;
-						object.Polygon = &bucket.Polygons[p];
-						object.World = transformMatrix;
-						object.Room = &_rooms[bat.RoomNumber];
-
-						view.TransparentObjectsToDraw.push_back(object);
-					}
+					CollectSortedBucket(view, object, &transformMatrix, view.Camera.WorldPosition);
 				}
 			}
 		}
@@ -1142,24 +1107,15 @@ namespace TEN::Renderer
 					if (!IsSortedBlendMode(bucket.BlendMode))
 						continue;
 
-					for (int p = 0; p < bucket.Polygons.size(); p++)
-					{
-						auto centre = Vector3::Transform(bucket.Polygons[p].Centre, transformMatrix);
-						float dist = (centre - view.Camera.WorldPosition).Length();
+					auto object = RendererSortableObject{};
+					object.ObjectType = RendererObjectType::MoveableAsStatic;
+					object.BlendMode = bucket.BlendMode;
+					object.Bucket = &bucket;
+					object.LightMode = mesh.LightMode;
+					object.World = transformMatrix;
+					object.Room = &_rooms[beetle.RoomNumber];
 
-						auto object = RendererSortableObject{};
-						object.ObjectType = RendererObjectType::MoveableAsStatic;
-						object.Centre = centre;
-						object.Distance = dist;
-						object.BlendMode = bucket.BlendMode;
-						object.Bucket = &bucket;
-						object.LightMode = mesh.LightMode;
-						object.Polygon = &bucket.Polygons[p];
-						object.World = transformMatrix;
-						object.Room = &_rooms[beetle.RoomNumber];
-
-						view.TransparentObjectsToDraw.push_back(object);
-					}
+					CollectSortedBucket(view, object, &transformMatrix, view.Camera.WorldPosition);
 				}
 			}
 		}
@@ -1267,31 +1223,22 @@ namespace TEN::Renderer
 					continue;
 
 				auto& mesh = *GetMesh(Objects[ID_LOCUSTS].meshIndex + (-locust.Counter & 3));
+				auto transformMatrix = Matrix::Lerp(locust.PrevTransform, locust.Transform, GetInterpolationFactor());
 
 				for (auto& bucket : mesh.Buckets)
 				{
 					if (!IsSortedBlendMode(bucket.BlendMode))
 						continue;
 
-					for (int p = 0; p < bucket.Polygons.size(); p++)
-					{
-						auto transformMatrix = Matrix::Lerp(locust.PrevTransform, locust.Transform, GetInterpolationFactor());
-						auto centre = Vector3::Transform(bucket.Polygons[p].Centre, transformMatrix);
-						float dist = (centre - view.Camera.WorldPosition).Length();
+					auto object = RendererSortableObject{};
+					object.ObjectType = RendererObjectType::MoveableAsStatic;
+					object.BlendMode = bucket.BlendMode;
+					object.Bucket = &bucket;
+					object.LightMode = mesh.LightMode;
+					object.World = transformMatrix;
+					object.Room = &_rooms[locust.RoomNumber];
 
-						auto object = RendererSortableObject{};
-						object.ObjectType = RendererObjectType::MoveableAsStatic;
-						object.Centre = centre;
-						object.Distance = dist;
-						object.BlendMode = bucket.BlendMode;
-						object.Bucket = &bucket;
-						object.LightMode = mesh.LightMode;
-						object.Polygon = &bucket.Polygons[p];
-						object.World = transformMatrix;
-						object.Room = &_rooms[locust.RoomNumber];
-
-						view.TransparentObjectsToDraw.push_back(object);
-					}
+					CollectSortedBucket(view, object, &transformMatrix, view.Camera.WorldPosition);
 				}
 			}
 		}
@@ -2216,10 +2163,22 @@ namespace TEN::Renderer
 		DoRenderPass(RendererPass::Opaque, view, true);
 		DoRenderPass(RendererPass::Additive, view, true);
 		DoRenderPass(RendererPass::Distortion, view, true);
+
+		using ms = std::chrono::duration<float, std::milli>;
+
+		auto sortedTime0 = std::chrono::high_resolution_clock::now();
 		DoRenderPass(RendererPass::CollectTransparentFaces, view, false);
+		auto sortedTime1 = std::chrono::high_resolution_clock::now();
 		SortTransparentFaces(view);
+		auto sortedTime2 = std::chrono::high_resolution_clock::now();
 
 		DoRenderPass(RendererPass::Transparent, view, true);
+		auto sortedTime3 = std::chrono::high_resolution_clock::now();
+
+		_timeSortedCollect = ms(sortedTime1 - sortedTime0).count();
+		_timeSortedSort = ms(sortedTime2 - sortedTime1).count();
+		_timeSortedDraw = ms(sortedTime3 - sortedTime2).count();
+
 		DoRenderPass(RendererPass::GunFlashes, view, true); // HACK: Gunflashes are drawn after everything because they are near camera.
 
 		// Draw 3D debug lines and triangles.
@@ -2965,7 +2924,7 @@ namespace TEN::Renderer
 
 			for (auto it = view.SortedStaticsToDraw.begin(); it != view.SortedStaticsToDraw.end(); it++)
 			{
-				auto statics = it->second;
+				const auto& statics = it->second;
 
 				auto* refStatic = statics[0];
 				auto& refStaticObj = GetStaticRendererObject(refStatic->ObjectNumber);
@@ -3060,7 +3019,7 @@ namespace TEN::Renderer
 			// Collect sorted blend modes faces ordered by room if doing transparent pass.
 			for (auto it = view.SortedStaticsToDraw.begin(); it != view.SortedStaticsToDraw.end(); it++)
 			{
-				auto statics = it->second;
+				const auto& statics = it->second;
 
 				auto* refStatic = statics[0];
 				auto& refStaticObj = GetStaticRendererObject(refStatic->ObjectNumber);
@@ -3082,22 +3041,15 @@ namespace TEN::Renderer
 
 						if (IsSortedBlendMode(blendMode) || statics[i]->Color.w < ALPHA_BLEND_THRESHOLD)
 						{
-							for (int p = 0; p < bucket.Polygons.size(); p++)
-							{
-								auto object = RendererSortableObject{};
+							auto object = RendererSortableObject{};
+							object.ObjectType = RendererObjectType::Static;
+							object.Bucket = &bucket;
+							object.Static = statics[i];
+							object.BlendMode = blendMode;
+							object.LightMode = refMesh->LightMode;
+							object.Room = &_rooms[statics[i]->RoomNumber];
 
-								object.ObjectType = RendererObjectType::Static;
-								object.Bucket = &bucket;
-								object.Static = statics[i];
-								object.Centre = Vector3::Transform(bucket.Polygons[p].Centre, statics[i]->World);
-								object.Distance = Vector3::Distance(object.Centre, view.Camera.WorldPosition);
-								object.BlendMode = blendMode;
-								object.LightMode = refMesh->LightMode;
-								object.Polygon = &bucket.Polygons[p];
-								object.Room = &_rooms[object.Static->RoomNumber];
-
-								view.TransparentObjectsToDraw.push_back(object);
-							}
+							CollectSortedBucket(view, object, &statics[i]->World, view.Camera.WorldPosition);
 						}
 					}
 				}
@@ -3120,20 +3072,13 @@ namespace TEN::Renderer
 
 					if (IsSortedBlendMode(bucket.BlendMode))
 					{
-						for (int p = 0; p < bucket.Polygons.size(); p++)
-						{
-							RendererSortableObject object;
+						auto object = RendererSortableObject{};
+						object.ObjectType = RendererObjectType::Room;
+						object.BlendMode = bucket.BlendMode;
+						object.Bucket = &bucket;
+						object.Room = room;
 
-							object.ObjectType = RendererObjectType::Room;
-							object.Centre = bucket.Centre;
-							object.Distance = Vector3::Distance(view.Camera.WorldPosition, bucket.Polygons[p].Centre);
-							object.BlendMode = bucket.BlendMode;
-							object.Bucket = &bucket;
-							object.Room = room;
-							object.Polygon = &bucket.Polygons[p];
-
-							view.TransparentObjectsToDraw.push_back(object);
-						}
+						CollectSortedBucket(view, object, nullptr, view.Camera.WorldPosition);
 					}
 				}
 			}
@@ -3637,34 +3582,27 @@ namespace TEN::Renderer
 	{
 		if (rendererPass == RendererPass::CollectTransparentFaces)
 		{
+			auto world = itemToDraw->InterpolatedAnimationTransforms[boneIndex] * itemToDraw->InterpolatedWorld;
+			auto cameraPosition = Camera.pos.ToVector3();
+
 			for (auto& bucket : mesh->Buckets)
 			{
 				if (bucket.NumVertices == 0)
 					continue;
 
 				auto blendMode = GetBlendModeFromAlpha(bucket.BlendMode, itemToDraw->Color.w);
+				if (!IsSortedBlendMode(blendMode))
+					continue;
 
-				if (IsSortedBlendMode(blendMode))
-				{
-					for (int p = 0; p < bucket.Polygons.size(); p++)
-					{
-						auto center = Vector3::Transform(bucket.Polygons[p].Centre, itemToDraw->InterpolatedAnimationTransforms[boneIndex] * itemToDraw->InterpolatedWorld);
-						int dist = Vector3::Distance(center, Camera.pos.ToVector3());
+				auto object = RendererSortableObject{};
+				object.ObjectType = type;
+				object.Skinned = skinned;
+				object.BlendMode = blendMode;
+				object.Bucket = &bucket;
+				object.Item = itemToDraw;
+				object.LightMode = mesh->LightMode;
 
-						auto object = RendererSortableObject{};
-						object.ObjectType = type;
-						object.Centre = center;
-						object.Distance = dist;
-						object.Skinned = skinned;
-						object.BlendMode = blendMode;
-						object.Bucket = &bucket;
-						object.Item = itemToDraw;
-						object.LightMode = mesh->LightMode;
-						object.Polygon = &bucket.Polygons[p];
-
-						view.TransparentObjectsToDraw.push_back(object);
-					}
-				}
+				CollectSortedBucket(view, object, &world, cameraPosition);
 			}
 		}
 		else
