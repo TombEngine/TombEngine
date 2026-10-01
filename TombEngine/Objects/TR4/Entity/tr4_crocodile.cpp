@@ -95,12 +95,10 @@ namespace TEN::Entities::TR4
 
 		auto pointColl = GetPointCollision(*item);
 		int waterSurface = pointColl.GetWaterTopHeight();
-		int waterDepth = pointColl.GetWaterBottomHeight();
+		int waterDepth   = pointColl.GetWaterBottomHeight();
 
-		return (waterSurface != NO_HEIGHT &&
-			waterDepth != NO_HEIGHT &&
-			waterDepth > CLICK(0.75f) &&
-			waterSurface <= (item->Pose.Position.y + bounds.Y2));
+		return (waterSurface != NO_HEIGHT && waterSurface <= (item->Pose.Position.y + bounds.Y2) && 
+				waterDepth   != NO_HEIGHT && waterDepth > CLICK(0.75f));
 	}
 
 	static void SetCrocodileWater(ItemInfo* item)

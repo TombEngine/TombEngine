@@ -493,7 +493,7 @@ void PickupCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 	}
 	
 	if (!IsHeld(In::Action) && (g_Gui.GetInventoryItemChosen() == NO_VALUE || triggerFlags != 2) || 
-		lara->Control.Look.IsUsingLasersight ||
+		lara->Control.Look.IsUsingLasersight || lara->Control.Look.IsUsingBinoculars ||
 		(laraItem->Animation.ActiveState != LS_IDLE || laraItem->Animation.AnimNumber != LA_STAND_IDLE || lara->Control.HandStatus != HandStatus::Free) &&
 		(laraItem->Animation.ActiveState != LS_CROUCH_IDLE || laraItem->Animation.AnimNumber != LA_CROUCH_IDLE || lara->Control.HandStatus != HandStatus::Free) &&
 		(laraItem->Animation.ActiveState != LS_CRAWL_IDLE || laraItem->Animation.AnimNumber != LA_CRAWL_IDLE))

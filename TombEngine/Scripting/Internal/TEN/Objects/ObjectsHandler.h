@@ -56,6 +56,11 @@ private:
 	std::unordered_map<std::string, VarMapVal>					 _nameMap	   = {};
 	std::unordered_map<std::string, int>	 					 _itemsMapName = {};
 
+	// Material names are kept in a separate map, because they can't be validated against
+	// other object type names at level building stage.
+
+	std::unordered_map<std::string, VarMapVal> _materialNameMap = {};
+
 	// Map of moveables that are visible, collidable, and have Lua OnCollide callbacks.
 
 	std::unordered_set<int> _collidingItems			= {};
@@ -69,10 +74,13 @@ private:
 	template <typename R, const char* S>
 	std::unique_ptr<R> GetByName(const std::string& name)
 	{
-		if (!ScriptAssertF(_nameMap.find(name) != _nameMap.end(), "{} name not found: {}", S, name))
+		const auto& nameMap = std::is_same_v<R, Material> ? _materialNameMap : _nameMap;
+		auto it = nameMap.find(name);
+
+		if (!ScriptAssertF(it != nameMap.end(), "{} name not found: {}", S, name))
 			return nullptr;
 
-		return std::make_unique<R>(std::get<typename R::IdentifierType>(_nameMap.at(name)));
+		return std::make_unique<R>(std::get<typename R::IdentifierType>(it->second));
 	}
 
 	template <typename R>
@@ -158,7 +166,8 @@ private:
 			return false;
 
 		auto p = std::pair<const std::string&, VarMapVal>(key, val);
-		return _nameMap.insert(p).second;
+		auto& nameMap = std::holds_alternative<std::reference_wrapper<MaterialData>>(val) ? _materialNameMap : _nameMap;
+		return nameMap.insert(p).second;
 	}
 
 	bool RemoveName(const std::string& key)
@@ -169,6 +178,7 @@ private:
 	void FreeEntities() override
 	{
 		_nameMap.clear();
+		_materialNameMap.clear();
 		_collidingItemsToRemove.clear();
 		_collidingItems.clear();
 

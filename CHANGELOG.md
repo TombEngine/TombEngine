@@ -14,7 +14,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added native support for DualShock, DualSense and Switch Pro controllers.
 * Added animation blending support and blended transitions for hardcoded animation changes.
 * Added root motion support.
-* Added WRAITH4 object. Object supports properties to create custom wraiths.
+* Added [WRAITH4](https://tombengine.com/asset/enemy/wraith-and-wraith-trap/) object. Object supports properties to create custom wraiths.
 * Added [AIRPLANE_PROPELLER](https://tombengine.com/asset/traps/airplane-propeller/) from TR2.
 * Added [CIRCULAR_SAW](https://tombengine.com/asset/traps/circular-saw/) object from TR2.
 * Added [DISK_SHOOTER](https://tombengine.com/asset/traps/disk-shooter/) object from TR2.
@@ -35,19 +35,18 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added [SPIKED_FRAME](https://tombengine.com/asset/traps/spiked-frame/) object from TR3.
 * Added [SWINGING_IRON_ANCHOR](https://tombengine.com/asset/traps/swinging-iron-anchor/) object from TR3.
 * Added [TUNNEL_BORER](https://tombengine.com/asset/traps/tunnel-borer/) object from TR3.
-* Added SEAL_MUTANT object from TR3.
-* Added BOO_MUTANT object from TR3.
-* Added HYBRID_MUTANT object from TR3.
-* Added OILRED object from TR3.
-* Added WHITE_SOLDIER object from TR3.
-* Added PUNK object from TR3. Object supports properties to configure the flame attack.
+* Added [SEAL_MUTANT / BOO_MUTANT](https://tombengine.com/asset/enemy/seal-mutant/)object from TR3.
+* Added [HYBRID_MUTANT](https://tombengine.com/asset/enemy/hybrid-mutant/) object from TR3.
+* Added [OILRED](https://tombengine.com/asset/enemy/rx-tech-worker-red/) object from TR3.
+* Added [WHITE_SOLDIER](https://tombengine.com/asset/enemy/rx-tech-worker-white/) object from TR3.
+* Added [PUNK](https://tombengine.com/asset/enemy/damned-gang-member/) object from TR3. Object supports properties to configure the flame attack.
 * Added [LONDON_MERCENARY](https://tombengine.com/asset/enemy/london-mercenary/) object from TR3.
-* Added SWAT_GUN object from TR3.
-* Added PRISONER object from TR3.
+* Added [SWAT_GUN](https://tombengine.com/asset/enemy/s-w-a-t/) object from TR3.
+* Added [PRISONER](https://tombengine.com/asset/enemy/prisoner/) object from TR3.
 * Added [WASP_MUTANT_EMITTER](https://tombengine.com/asset/enemy/wasp/) object from TR3.
 * Added [WILLARD](https://tombengine.com/asset/enemy/willard/)  object from TR3.
-* Added WHALE object from TR3.
-* Added CIVVY object from TR3.
+* Added [WHALE](https://tombengine.com/asset/interactables/whale/) object from TR3.
+* Added [CIVVY](https://tombengine.com/asset/enemy/nevada-gang-member/) object from TR3.
 * Added optional headlight mesh support for JEEP, toggled together with the headlight.
 * Added spark effect to [SLAMMING_DOORS](https://tombengine.com/asset/traps/slamming-doors/) if property is set and when the sound ID 681 (SFX_TR2_SLAM_DOOR_CLOSE) is playing.
 * Added hit sounds for TR1 enemies when shot.
@@ -55,21 +54,32 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fog effect if OCB value is 0.
 
 ### Bug fixes
+
 * Fixed original bug with bridge objects blocking monkeyswing and ladder flags in the bottom room.
 * Fixed original bug with inactive SQUISHY_BLOCK_VERTICAL killing player.
 * Fixed incorrect application of LARA_DOUBLE damage after using medipacks.
 * Fixed BADDY1 / BADDY2 not monkey-swinging.
+* Fixed GUARD with OCB 4 incorrectly alerting other guards while sleeping.
 * Fixed BURNING_FLOOR, ELEMENTAL_PUZZLE and SCALES.
 * Fixed MINECART_SWITCH object not working.
 * Fixed JUMP_SWITCH not activating event sets.
 * Fixed SNOWMOBILE death being too sensitive to vertical velocity.
+* Fixed KAYAK sticking to slopes out of water instead of sliding down them.
 * Fixed BATS_EMITTER targeting issues.
+* Fixed CROCODILE not swimming in certain water room configurations.
 * Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
 * Fixed SOPHIA_LEIGH_BOSS pathfinding and knockback effect.
+* Fixed ROLLINGBALL falling through walls in some remaining cases.
 * Fixed TEETH_SPIKES behaviour for OCB 1 and move static TR1-3 mode to pre-activated trigger bit flags.
+* Fixed SHOOT_SWITCH2 shattering without OCB 444.
+* Fixed MULTIPLE_BOULDERS stopping a sector short of obstacles or immediately when placed above the floor.
+* Fixed PROPELLER_V pushing player in an arbitrary direction determined by the room height instead of away from the propeller.
+* Fixed OVERHEAD_PULLEY_HOOK not damaging player unless a damage value was explicitly set.
+* Fixed doors and BREAKABLE_WALL created by script losing their collision after loading a savegame.
 * Fixed empty linear inventory screen after exiting examine mode.
 * Fixed USE not being first in the inventory if multiple item actions have been allocated.
 * Fixed PC_LOAD_INV_ITEM and PC_SAVE_INV_ITEM presence in the inventory affecting quickload and quicksave hotkey functionality.
+* Fixed GOLDROSE_ITEM, FLARE_ITEM, and HAMMER_ITEM flickering in the pickup summary.
 * Fixed enemy gunfire not affecting other enemies in some cases.
 * Fixed regular spark sprite distance while moving with flare in hand.
 * Fixed fireflies emitting bright white light while in fly form (negative OCB).
@@ -80,9 +90,16 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed incorrect static mesh interpolation after a large position change.
 * Fixed interaction highlighter appearing for underwater pushable objects.
 * Fixed clipping into underwater pushable objects while swimming upwards from the bottom.
+* Fixed running jumps being stopped when platforming near steep slopes.
+* Fixed incorrect slide directions and projectile physics around steep slopes.
+* Fixed pickup of underwater items in vertically narrow passages.
+* Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
+* Fixed pickups taking priority over binocular mode.
+* Fixed flares being selected from inventory whilst riding the kayak.
+* Fixed kayak paddle and minecart wrench not being drawn when starting a level.
+* Fixed slow turning on parallel bars while holding the left or right key.
 * Fixed incorrect renderer statistics in the linear inventory.
 * Fixed fades and cinematic bars not progressing in the freeze mode.
-* Fixed pickup of items placed on a pedestal (OCB 4) while Lara is underwater.
 * Fixed an issue where the storm effect would stop producing lightning over time.
 * Fixed incorrect aspect ratio when resizing the window in windowed mode.
 * Fixed title level selection dialog not scrolling offscreen entries.
@@ -91,15 +108,6 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed Z-fighting on DisplayItems.
 * Fixed crashes when shooting if the gunflash object is missing.
 * Fixed vertex move effect speed in water rooms while turning camera on the x-axis
-* Fixed flares being selected from inventory whilst riding the kayak.
-* Fixed kayak paddle and minecart wrench not being drawn when starting a level.
-* Fixed Lara sinking into the floor or being unable to pick up items underwater in low tunnels ([#2111](https://github.com/TombEngine/TombEngine/issues/2111)).
-* Fixed SHOOT_SWITCH2 shattering without OCB 444 ([#2102](https://github.com/TombEngine/TombEngine/issues/2102)).
-* Fixed MULTIPLE_BOULDERS stopping a sector short of obstacles or immediately when placed above the floor ([#2101](https://github.com/TombEngine/TombEngine/issues/2101)).
-* Fixed PROPELLER_V pushing player in an arbitrary direction determined by the room height instead of away from the propeller ([#2078](https://github.com/TombEngine/TombEngine/issues/2078)).
-* Fixed OVERHEAD_PULLEY_HOOK not damaging player unless a damage value was explicitly set ([#2083](https://github.com/TombEngine/TombEngine/issues/2083)).
-* Fixed doors and BREAKABLE_WALL created by script losing their collision after loading a savegame ([#2089](https://github.com/TombEngine/TombEngine/issues/2089)).
-* Fixed KAYAK sticking to slopes out of water instead of sliding down them ([#2122](https://github.com/TombEngine/TombEngine/issues/2122)).
 
 ### Lua API changes
 
@@ -147,6 +155,8 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added `Objects.GetMaterialByName` and `Objects.GetMaterialsByObject` functions.
 * Added `Moveable:GetProperty`, `Moveable:SetProperty` and `Moveable:HasInstanceProperty` functions.
 * Added `Static:GetProperty`, `Static:SetProperty` and `Static:HasInstanceProperty` functions.
+* Added `CustomDiary:UnlockPage` function to unlock individual pages in the order the function is called. The unlock mode is detected automatically on the first unlock call.
+* Added optional `area` parameter for text entries in the `CustomDiary` module to enable automatic word wrapping.
 * Updated `EmitLight()`, `EmitSpotLight()` and `EmitFogBulb()` to accept fractional values, allowing smooth scaling of radius/falloff/distance.
 * Removed `View.SetPostProcessMode` and `View.SetPostProcessStrength` functions superseded by `View.SetPostProcess` method.
 * Renamed `ENTER`, `INSIDE` and `LEAVE` entries in `Logic.EventType` enum to `VOLUME_ENTER`, `VOLUME_INSIDE` and `VOLUME_LEAVE`.
@@ -157,7 +167,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed `View.DisplayString` not working in the title level.
 * Fixed incorrect behaviour of `DisplayItem.SetFOV` function.
 * Fixed notification display bug in `CustomDiary` class.
-* Fixed ring inventory opening despite `Input.ClearAllKeys` being called in the `OnLoop` callback ([#2075](https://github.com/TombEngine/TombEngine/issues/2075)).
+* Fixed ring inventory opening despite `Input.ClearAllKeys` being called in the `OnLoop` callback.
 
 ## [Version 1.11.1]
 

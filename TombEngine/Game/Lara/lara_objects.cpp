@@ -68,7 +68,10 @@ void lara_col_pickup(ItemInfo* item, CollisionInfo* coll)
 	}
 
 	LaraDefaultCollision(item, coll);
-	ShiftItem(item, coll);
+
+	// Only shift player if not underwater to avoid faulty collision shifts.
+	if (GetLaraInfo(item)->Control.WaterStatus != WaterStatus::Underwater)
+		ShiftItem(item, coll);
 }
 
 // State:		LS_PICKUP_FLARE (67)
@@ -247,15 +250,24 @@ void lara_as_pushable_edge_slip(ItemInfo* item, CollisionInfo* coll)
 // Collision:	lara_default_col()
 void lara_as_horizontal_bar_swing(ItemInfo* item, CollisionInfo* coll)
 {
-	auto* lara = GetLaraInfo(item);
+	ModulateLaraTurnRateY(item, 0, 0, 0);
 
 	if (IsHeld(In::Action))
 	{
 		if (IsHeld(In::Jump))
+		{
 			item->Animation.TargetState = LS_HORIZONTAL_BAR_LEAP;
+		}
+		else if (IsHeld(In::Roll) || IsHeld(In::Back))
+		{
+			item->Animation.TargetState = LS_TURN_180;
+		}
+		else
+		{
+			item->Animation.TargetState = LS_HORIZONTAL_BAR_SWING;
+		}
 
-		item->Animation.TargetState = LS_HORIZONTAL_BAR_SWING;
-		lara->Control.HandStatus = HandStatus::Busy;
+		GetLaraInfo(item)->Control.HandStatus = HandStatus::Busy;
 		return;
 	}
 
