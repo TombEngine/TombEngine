@@ -48,6 +48,16 @@ namespace TEN::Utils
 	Vector2 Convert2DPositionToNDC(const Vector2& pos);
 	Vector2 ConvertNDCTo2DPosition(const Vector2& ndc);
 
+	// Templates
+
+	template <typename R, typename... Args>
+	bool IsFunction(const std::function<R(Args...)>& f, R(*func)(Args...)
+	)
+	{
+		auto ptr = f.template target<R(*)(Args...)>();
+		return ptr && *ptr == func;
+	}
+
 	template <typename TElement>
 	bool Contains(const std::vector<TElement>& vector, const TElement& element)
 	{
@@ -61,7 +71,8 @@ namespace TEN::Utils
 		vector.erase(vector.begin() + elementId);
 	}
 
-	// Miscellanea utilities
+	// Miscellaneous utilities
+
 	#define SAFE_DELETE(x) if (x != nullptr) x.reset();
 	#define ARGB_TO_UINT(a,r,g,b) \
 		((D3DCOLOR)((((unsigned int)(a) & 0xFF) << 24) | \

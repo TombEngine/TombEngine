@@ -13,8 +13,6 @@ namespace TEN::Entities::Doors
 	const DOOR_DATA& GetDoorObject(const ItemInfo& item);
 	DOOR_DATA&		 GetDoorObject(ItemInfo& item);
 
-	bool IsDoorObject(GAME_OBJECT_ID objectID);
-
 	void InitializeDoor(short itemNumber);
 	void DoorCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll);
 	void DoorControl(short itemNumber);

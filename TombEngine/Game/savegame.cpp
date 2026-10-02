@@ -2765,7 +2765,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 
 		// Doors created at runtime are absent from the level file, so nothing reapplies their
 		// sector data on load. Reinitialize them here, before saved state is restored on top.
-		if (isDynamicItem && IsDoorObject(item->ObjectNumber))
+		if (isDynamicItem && IsFunction(Objects[item->ObjectNumber].Initialize, InitializeDoor))
 			InitializeDoor(i);
 
 		// Animations
