@@ -23,9 +23,15 @@ namespace TEN::Renderer::Structures
 		BlendMode BlendMode = BlendMode::Opaque;
 		LightMode LightMode = LightMode::Dynamic;
 
-		// Position of the object's draw group in the sorted pass order, assigned by
-		// SortTransparentFaces. Polygons sharing the rank draw as a single batch.
-		int GroupRank = 0;
+		// Draw group of the object, assigned by SortTransparentFaces. Consecutive sorted polygons
+		// sharing the group draw as a single batch.
+		int GroupIndex = 0;
+
+		// Depth range and normalized screen rectangle (min x, min y, max x, max y) of the polygon
+		// centres, used to find overlapping objects whose polygons must be interleaved.
+		int		MinDistance	 = INT_MAX;
+		int		MaxDistance	 = 0;
+		Vector4 ScreenBounds = Vector4(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX);
 
 		bool Skinned = false;
 

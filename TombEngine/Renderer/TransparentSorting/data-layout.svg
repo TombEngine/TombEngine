@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 330" role="img" aria-label="Memory layout. Before: a 136-byte RendererSortableObject per polygon, 13,000 of them, about 1.7 MB, where only Centre, Distance and Polygon vary. After: a 136-byte object per object bucket that also carries depth range and screen rectangle, a 16-byte polygon entry per polygon pointing to its object by index, and a 16-byte sort key pointing to the polygon entry.">
+  <title>Memory layout. Before: a 136-byte RendererSortableObject per polygon, 13,000 of them, about 1.7 MB, where only Centre, Distance and Polygon vary. After: a 136-byte object per object bucket that also carries depth range and screen rectangle, a 16-byte polygon entry per polygon pointing to its object by index, and a 16-byte sort key pointing to the polygon entry.</title>
+  <style>
+    text { font-family: "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif; font-size: 12px; fill: #18202B; }
+    .small { font-size: 11px; }
+    .label { font-weight: 600; }
+    .mono { font-family: Consolas, "JetBrains Mono", Menlo, monospace; font-size: 11px; }
+    .muted { fill: #5B6676; }
+    .on { fill: #FFFFFF; }
+    .t-before { fill: #C4572E; }
+    .t-after { fill: #127E73; }
+    .cell, .before, .before-soft, .after, .after-soft, .skip, .obj-a, .obj-b { stroke: #FFFFFF; stroke-width: 1.5; }
+    .cell { fill: #E3E9F0; }
+    .skip { fill: #E3E9F0; opacity: 0.55; }
+    .before { fill: #C4572E; }
+    .before-soft { fill: #EBC3B3; }
+    .after { fill: #127E73; }
+    .after-soft { fill: #B5DDD7; }
+    .obj-a { fill: #2B62D9; }
+    .obj-b { fill: #B07A12; }
+    .box { fill: #F4F6F9; stroke: #9AA5B4; stroke-width: 1.2; }
+    .rule { stroke: #D3DAE3; stroke-width: 1; fill: none; }
+    .wire { stroke: #18202B; stroke-width: 1.4; fill: none; }
+    .wire-after { stroke: #127E73; stroke-width: 1.6; fill: none; }
+    .tick-before { stroke: #C4572E; stroke-width: 1.6; fill: none; }
+    .head { fill: #18202B; }
+    .head-after { fill: #127E73; }
+    @media (prefers-color-scheme: dark) {
+      text { fill: #E4E9F0; }
+      .muted { fill: #9AA5B4; }
+      .on { fill: #11151B; }
+      .t-before { fill: #E07A52; }
+      .t-after { fill: #3FB8A8; }
+      .cell, .before, .before-soft, .after, .after-soft, .skip, .obj-a, .obj-b { stroke: #181E26; }
+      .cell { fill: #263040; }
+      .skip { fill: #263040; }
+      .before { fill: #E07A52; }
+      .before-soft { fill: #5A3326; }
+      .after { fill: #3FB8A8; }
+      .after-soft { fill: #1F4A45; }
+      .obj-a { fill: #6E9BF0; }
+      .obj-b { fill: #E0A93E; }
+      .box { fill: #181E26; stroke: #5B6676; }
+      .rule { stroke: #2E3846; }
+      .wire { stroke: #E4E9F0; }
+      .wire-after { stroke: #3FB8A8; }
+      .tick-before { stroke: #E07A52; }
+      .head { fill: #E4E9F0; }
+      .head-after { fill: #3FB8A8; }
+    }
+  </style>
+  <defs>
+    <marker id="arrow-up" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" class="head-after"/>
+    </marker>
+  </defs>
+
+  <text x="20" y="22" class="label t-before">BEFORE</text>
+  <text x="150" y="22" class="small muted">RendererSortableObject, 136 B, one per polygon (4 px = 1 byte)</text>
+  <rect x="150" y="32" width="16" height="30" class="cell"/>
+  <rect x="166" y="32" width="256" height="30" class="cell"/>
+  <text x="294" y="51" text-anchor="middle">World (64 B)</text>
+  <rect x="422" y="32" width="48" height="30" class="before"/>
+  <text x="446" y="51" text-anchor="middle" class="on small">Centre</text>
+  <rect x="470" y="32" width="16" height="30" class="before"/>
+  <rect x="486" y="32" width="32" height="30" class="cell"/>
+  <rect x="518" y="32" width="16" height="30" class="cell"/>
+  <rect x="534" y="32" width="32" height="30" class="cell"/>
+  <rect x="566" y="32" width="32" height="30" class="cell"/>
+  <text x="582" y="51" text-anchor="middle" class="small">Room</text>
+  <rect x="598" y="32" width="32" height="30" class="cell"/>
+  <text x="614" y="51" text-anchor="middle" class="small">Bkt</text>
+  <rect x="630" y="32" width="32" height="30" class="before"/>
+  <text x="646" y="51" text-anchor="middle" class="on small">Poly</text>
+  <rect x="662" y="32" width="32" height="30" class="cell"/>
+  <text x="678" y="51" text-anchor="middle" class="small">Item</text>
+  <line class="tick-before" x1="478" y1="62" x2="478" y2="72"/>
+  <text x="478" y="84" text-anchor="middle" class="small t-before">Distance</text>
+  <text x="20" y="51" class="small muted">x 13,000</text>
+  <text x="150" y="108" class="small">Red fields vary per polygon. 13,000 x 136 B = <tspan class="label">1.7 MB</tspan> per frame, moved again by <tspan class="mono">std::sort</tspan>.</text>
+
+  <line class="rule" x1="20" y1="128" x2="720" y2="128"/>
+
+  <text x="20" y="154" class="label t-after">AFTER</text>
+  <text x="150" y="154" class="small muted">RendererSortableObject, 136 B, one per object x bucket (x 11 = 1.5 KB)</text>
+  <rect x="150" y="164" width="16" height="30" class="cell"/>
+  <rect x="166" y="164" width="256" height="30" class="cell"/>
+  <text x="294" y="183" text-anchor="middle">World (64 B)</text>
+  <rect x="422" y="164" width="32" height="30" class="cell"/>
+  <rect x="454" y="164" width="16" height="30" class="cell"/>
+  <rect x="470" y="164" width="32" height="30" class="after-soft"/>
+  <text x="486" y="183" text-anchor="middle" class="small">Depth</text>
+  <rect x="502" y="164" width="64" height="30" class="after-soft"/>
+  <text x="534" y="183" text-anchor="middle" class="small">Screen</text>
+  <rect x="566" y="164" width="32" height="30" class="cell"/>
+  <rect x="598" y="164" width="32" height="30" class="cell"/>
+  <text x="614" y="183" text-anchor="middle" class="small">Room</text>
+  <rect x="630" y="164" width="32" height="30" class="cell"/>
+  <text x="646" y="183" text-anchor="middle" class="small">Bkt</text>
+  <rect x="662" y="164" width="32" height="30" class="cell"/>
+  <text x="678" y="183" text-anchor="middle" class="small">Item</text>
+  <text x="20" y="183" class="small muted">x 11</text>
+
+  <text x="150" y="226" class="small muted">RendererSortablePolygon, 16 B, one per polygon</text>
+  <rect x="150" y="236" width="32" height="30" class="after"/>
+  <text x="166" y="255" text-anchor="middle" class="on small">Poly</text>
+  <rect x="182" y="236" width="16" height="30" class="after"/>
+  <rect x="198" y="236" width="16" height="30" class="after-soft"/>
+  <text x="20" y="255" class="small muted">x 13,000</text>
+  <text x="224" y="248" class="small">Distance, ObjectIndex</text>
+  <text x="224" y="262" class="small muted">203 KB, written once</text>
+  <path class="wire-after" d="M206 236 V214 H420 V198" marker-end="url(#arrow-up)"/>
+  <text x="314" y="208" text-anchor="middle" class="small t-after">ObjectIndex</text>
+
+  <text x="420" y="226" class="small muted">RendererSortKey, 16 B, one per polygon</text>
+  <rect x="420" y="236" width="32" height="30" class="after"/>
+  <text x="436" y="255" text-anchor="middle" class="on small">Key</text>
+  <rect x="452" y="236" width="16" height="30" class="after-soft"/>
+  <rect x="468" y="236" width="16" height="30" class="cell"/>
+  <text x="494" y="248" class="small">Index (+4 B padding)</text>
+  <text x="494" y="262" class="small muted">the only array the sort moves</text>
+  <path class="wire-after" d="M460 266 V300 H166 V270" marker-end="url(#arrow-up)"/>
+  <text x="313" y="316" text-anchor="middle" class="small t-after">Index</text>
+</svg>

@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 196" role="img" aria-label="A stream of 18 polygon entries belonging to four objects. Originally every entry built a group key and did a hash lookup. Now only the first entry of each object does, 4 lookups in total; the others only compare ObjectIndex and add their distance to the group.">
+  <title>A stream of 18 polygon entries belonging to four objects. Originally every entry built a group key and did a hash lookup. Now only the first entry of each object does, 4 lookups in total; the others only compare ObjectIndex and add their distance to the group.</title>
+  <style>
+    text { font-family: "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif; font-size: 12px; fill: #18202B; }
+    .small { font-size: 11px; }
+    .label { font-weight: 600; }
+    .mono { font-family: Consolas, "JetBrains Mono", Menlo, monospace; font-size: 11px; }
+    .muted { fill: #5B6676; }
+    .on { fill: #FFFFFF; }
+    .t-before { fill: #C4572E; }
+    .t-after { fill: #127E73; }
+    .cell, .before, .before-soft, .after, .after-soft, .skip, .obj-a, .obj-b { stroke: #FFFFFF; stroke-width: 1.5; }
+    .cell { fill: #E3E9F0; }
+    .skip { fill: #E3E9F0; opacity: 0.55; }
+    .before { fill: #C4572E; }
+    .before-soft { fill: #EBC3B3; }
+    .after { fill: #127E73; }
+    .after-soft { fill: #B5DDD7; }
+    .obj-a { fill: #2B62D9; }
+    .obj-b { fill: #B07A12; }
+    .box { fill: #F4F6F9; stroke: #9AA5B4; stroke-width: 1.2; }
+    .rule { stroke: #D3DAE3; stroke-width: 1; fill: none; }
+    .wire { stroke: #18202B; stroke-width: 1.4; fill: none; }
+    .wire-after { stroke: #127E73; stroke-width: 1.6; fill: none; }
+    .tick-before { stroke: #C4572E; stroke-width: 1.6; fill: none; }
+    .head { fill: #18202B; }
+    .head-after { fill: #127E73; }
+    @media (prefers-color-scheme: dark) {
+      text { fill: #E4E9F0; }
+      .muted { fill: #9AA5B4; }
+      .on { fill: #11151B; }
+      .t-before { fill: #E07A52; }
+      .t-after { fill: #3FB8A8; }
+      .cell, .before, .before-soft, .after, .after-soft, .skip, .obj-a, .obj-b { stroke: #181E26; }
+      .cell { fill: #263040; }
+      .skip { fill: #263040; }
+      .before { fill: #E07A52; }
+      .before-soft { fill: #5A3326; }
+      .after { fill: #3FB8A8; }
+      .after-soft { fill: #1F4A45; }
+      .obj-a { fill: #6E9BF0; }
+      .obj-b { fill: #E0A93E; }
+      .box { fill: #181E26; stroke: #5B6676; }
+      .rule { stroke: #2E3846; }
+      .wire { stroke: #E4E9F0; }
+      .wire-after { stroke: #3FB8A8; }
+      .tick-before { stroke: #E07A52; }
+      .head { fill: #E4E9F0; }
+      .head-after { fill: #3FB8A8; }
+    }
+  </style>
+  <text x="20" y="40" class="label">Polygon stream</text>
+  <text x="20" y="56" class="small muted">ObjectIndex</text>
+  <rect x="150" y="30" width="30" height="30" class="after"/><text x="165" y="50" text-anchor="middle" class="on mono">0</text>
+  <rect x="180" y="30" width="30" height="30" class="after-soft"/><text x="195" y="50" text-anchor="middle" class="mono">0</text>
+  <rect x="210" y="30" width="30" height="30" class="after-soft"/><text x="225" y="50" text-anchor="middle" class="mono">0</text>
+  <rect x="240" y="30" width="30" height="30" class="after-soft"/><text x="255" y="50" text-anchor="middle" class="mono">0</text>
+  <rect x="270" y="30" width="30" height="30" class="after-soft"/><text x="285" y="50" text-anchor="middle" class="mono">0</text>
+  <rect x="300" y="30" width="30" height="30" class="after"/><text x="315" y="50" text-anchor="middle" class="on mono">1</text>
+  <rect x="330" y="30" width="30" height="30" class="after-soft"/><text x="345" y="50" text-anchor="middle" class="mono">1</text>
+  <rect x="360" y="30" width="30" height="30" class="after-soft"/><text x="375" y="50" text-anchor="middle" class="mono">1</text>
+  <rect x="390" y="30" width="30" height="30" class="after-soft"/><text x="405" y="50" text-anchor="middle" class="mono">1</text>
+  <rect x="420" y="30" width="30" height="30" class="after"/><text x="435" y="50" text-anchor="middle" class="on mono">2</text>
+  <rect x="450" y="30" width="30" height="30" class="after-soft"/><text x="465" y="50" text-anchor="middle" class="mono">2</text>
+  <rect x="480" y="30" width="30" height="30" class="after-soft"/><text x="495" y="50" text-anchor="middle" class="mono">2</text>
+  <rect x="510" y="30" width="30" height="30" class="after-soft"/><text x="525" y="50" text-anchor="middle" class="mono">2</text>
+  <rect x="540" y="30" width="30" height="30" class="after-soft"/><text x="555" y="50" text-anchor="middle" class="mono">2</text>
+  <rect x="570" y="30" width="30" height="30" class="after-soft"/><text x="585" y="50" text-anchor="middle" class="mono">2</text>
+  <rect x="600" y="30" width="30" height="30" class="after"/><text x="615" y="50" text-anchor="middle" class="on mono">3</text>
+  <rect x="630" y="30" width="30" height="30" class="after-soft"/><text x="645" y="50" text-anchor="middle" class="mono">3</text>
+  <rect x="660" y="30" width="30" height="30" class="after-soft"/><text x="675" y="50" text-anchor="middle" class="mono">3</text>
+
+  <text x="20" y="104" class="label t-before">Before</text>
+  <text x="20" y="120" class="small muted">18 lookups</text>
+  <g class="tick-before">
+    <line x1="165" y1="92" x2="165" y2="116"/><line x1="195" y1="92" x2="195" y2="116"/><line x1="225" y1="92" x2="225" y2="116"/>
+    <line x1="255" y1="92" x2="255" y2="116"/><line x1="285" y1="92" x2="285" y2="116"/><line x1="315" y1="92" x2="315" y2="116"/>
+    <line x1="345" y1="92" x2="345" y2="116"/><line x1="375" y1="92" x2="375" y2="116"/><line x1="405" y1="92" x2="405" y2="116"/>
+    <line x1="435" y1="92" x2="435" y2="116"/><line x1="465" y1="92" x2="465" y2="116"/><line x1="495" y1="92" x2="495" y2="116"/>
+    <line x1="525" y1="92" x2="525" y2="116"/><line x1="555" y1="92" x2="555" y2="116"/><line x1="585" y1="92" x2="585" y2="116"/>
+    <line x1="615" y1="92" x2="615" y2="116"/><line x1="645" y1="92" x2="645" y2="116"/><line x1="675" y1="92" x2="675" y2="116"/>
+  </g>
+  <text x="700" y="110" class="small t-before">build key + hash</text>
+
+  <text x="20" y="160" class="label t-after">Now</text>
+  <text x="20" y="176" class="small muted">4 lookups</text>
+  <g class="wire-after">
+    <line x1="165" y1="148" x2="165" y2="172"/><line x1="315" y1="148" x2="315" y2="172"/>
+    <line x1="435" y1="148" x2="435" y2="172"/><line x1="615" y1="148" x2="615" y2="172"/>
+  </g>
+  <line class="rule" x1="180" y1="160" x2="300" y2="160" stroke-dasharray="2 4"/>
+  <line class="rule" x1="330" y1="160" x2="420" y2="160" stroke-dasharray="2 4"/>
+  <line class="rule" x1="450" y1="160" x2="600" y2="160" stroke-dasharray="2 4"/>
+  <line class="rule" x1="630" y1="160" x2="690" y2="160" stroke-dasharray="2 4"/>
+  <text x="700" y="156" class="small t-after">hash on</text>
+  <text x="700" y="170" class="small t-after">new object</text>
+</svg>
