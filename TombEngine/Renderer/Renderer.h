@@ -269,6 +269,7 @@ namespace TEN::Renderer
 		int _numConstantBufferUpdates = 0;
 		unsigned long long _numConstantBufferBytes = 0;
 		int _numPerDrawUpdates = 0;
+		int _numInterleavedSortedGroups = 0;
 
 		int _numExecutedMaterialsUpdates = 0;
 		int _numRequestedMaterialsUpdates = 0;

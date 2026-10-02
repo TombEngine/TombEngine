@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 180" role="img" aria-label="A 64-bit sort key split into eight 8-bit digits. Digits 7 to 4 hold the cluster rank, digits 3 to 0 hold INT_MAX minus distance. In the vase scene only digit 4 and digits 1 and 0 vary; the other five are skipped, so the radix sort runs 3 passes instead of 8.">
+  <title>A 64-bit sort key split into eight 8-bit digits. Digits 7 to 4 hold the cluster rank, digits 3 to 0 hold INT_MAX minus distance. In the vase scene only digit 4 and digits 1 and 0 vary; the other five are skipped, so the radix sort runs 3 passes instead of 8.</title>
+  <style>
+    text { font-family: "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif; font-size: 12px; fill: #18202B; }
+    .small { font-size: 11px; }
+    .label { font-weight: 600; }
+    .mono { font-family: Consolas, "JetBrains Mono", Menlo, monospace; font-size: 11px; }
+    .muted { fill: #5B6676; }
+    .on { fill: #FFFFFF; }
+    .t-before { fill: #C4572E; }
+    .t-after { fill: #127E73; }
+    .cell, .before, .before-soft, .after, .after-soft, .skip, .obj-a, .obj-b { stroke: #FFFFFF; stroke-width: 1.5; }
+    .cell { fill: #E3E9F0; }
+    .skip { fill: #E3E9F0; opacity: 0.55; }
+    .before { fill: #C4572E; }
+    .before-soft { fill: #EBC3B3; }
+    .after { fill: #127E73; }
+    .after-soft { fill: #B5DDD7; }
+    .obj-a { fill: #2B62D9; }
+    .obj-b { fill: #B07A12; }
+    .box { fill: #F4F6F9; stroke: #9AA5B4; stroke-width: 1.2; }
+    .rule { stroke: #D3DAE3; stroke-width: 1; fill: none; }
+    .wire { stroke: #18202B; stroke-width: 1.4; fill: none; }
+    .wire-after { stroke: #127E73; stroke-width: 1.6; fill: none; }
+    .tick-before { stroke: #C4572E; stroke-width: 1.6; fill: none; }
+    .head { fill: #18202B; }
+    .head-after { fill: #127E73; }
+    @media (prefers-color-scheme: dark) {
+      text { fill: #E4E9F0; }
+      .muted { fill: #9AA5B4; }
+      .on { fill: #11151B; }
+      .t-before { fill: #E07A52; }
+      .t-after { fill: #3FB8A8; }
+      .cell, .before, .before-soft, .after, .after-soft, .skip, .obj-a, .obj-b { stroke: #181E26; }
+      .cell { fill: #263040; }
+      .skip { fill: #263040; }
+      .before { fill: #E07A52; }
+      .before-soft { fill: #5A3326; }
+      .after { fill: #3FB8A8; }
+      .after-soft { fill: #1F4A45; }
+      .obj-a { fill: #6E9BF0; }
+      .obj-b { fill: #E0A93E; }
+      .box { fill: #181E26; stroke: #5B6676; }
+      .rule { stroke: #2E3846; }
+      .wire { stroke: #E4E9F0; }
+      .wire-after { stroke: #3FB8A8; }
+      .tick-before { stroke: #E07A52; }
+      .head { fill: #E4E9F0; }
+      .head-after { fill: #3FB8A8; }
+    }
+  </style>
+  <text x="150" y="22" class="small muted">bit 63</text>
+  <text x="694" y="22" text-anchor="end" class="small muted">bit 0</text>
+  <text x="20" y="54" class="label">64-bit key</text>
+
+  <rect x="150" y="32" width="68" height="34" class="skip"/><text x="184" y="54" text-anchor="middle" class="mono muted">d7</text>
+  <rect x="218" y="32" width="68" height="34" class="skip"/><text x="252" y="54" text-anchor="middle" class="mono muted">d6</text>
+  <rect x="286" y="32" width="68" height="34" class="skip"/><text x="320" y="54" text-anchor="middle" class="mono muted">d5</text>
+  <rect x="354" y="32" width="68" height="34" class="after"/><text x="388" y="54" text-anchor="middle" class="mono on">d4</text>
+  <rect x="422" y="32" width="68" height="34" class="skip"/><text x="456" y="54" text-anchor="middle" class="mono muted">d3</text>
+  <rect x="490" y="32" width="68" height="34" class="skip"/><text x="524" y="54" text-anchor="middle" class="mono muted">d2</text>
+  <rect x="558" y="32" width="68" height="34" class="after"/><text x="592" y="54" text-anchor="middle" class="mono on">d1</text>
+  <rect x="626" y="32" width="68" height="34" class="after"/><text x="660" y="54" text-anchor="middle" class="mono on">d0</text>
+
+  <path class="wire" d="M150 78 V84 H422 V78"/>
+  <text x="286" y="100" text-anchor="middle" class="label">Cluster rank</text>
+  <text x="286" y="116" text-anchor="middle" class="small muted">ascending = draw order</text>
+  <path class="wire" d="M422 78 V84 H694 V78"/>
+  <text x="558" y="100" text-anchor="middle" class="label mono">INT_MAX - distance</text>
+  <text x="558" y="116" text-anchor="middle" class="small muted">ascending = far to near</text>
+
+  <text x="20" y="150" class="small"><tspan class="t-after label">3 passes of 8</tspan> in the vase scene.</text>
+  <text x="20" y="168" class="small muted">Under 256 clusters leave d5 to d7 at zero; distances under 65,536 units (64 sectors) keep d2 and d3 constant.</text>
+</svg>

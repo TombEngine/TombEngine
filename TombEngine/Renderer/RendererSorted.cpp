@@ -50,14 +50,25 @@ namespace TEN::Renderer
 		}
 	};
 
-	// Per-group data accumulated by SortTransparentFaces to establish the draw order.
+	// Clusters of overlapping objects interleave their polygons in exact depth order. A cluster
+	// that would need more draw group switches than this falls back to group order.
+	constexpr int MAX_CLUSTER_GROUP_SWITCHES = 64;
+
+	// Per-group data accumulated by SortTransparentFaces to establish the draw order. A cluster
+	// is identified by the index of one of its groups; ungrouped groups form their own cluster.
 	struct SortedGroup
 	{
 		bool  IsRoom		= false;
+		bool  CanInterleave = false;
 		int	  RoomSlot		= 0;
 		float DistanceSum	= 0.0f;
 		int	  PolygonCount	= 0;
 		int	  BlendPriority = 0;
+		int	  Cluster		= 0;
+
+		int		MinDistance	 = INT_MAX;
+		int		MaxDistance	 = 0;
+		Vector4 ScreenBounds = Vector4(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX);
 	};
 
 	static BlendMode GetSortedBlendMode(const RendererSortableObject& object)
@@ -173,6 +184,227 @@ namespace TEN::Renderer
 			std::memcpy(keys.data(), source, sizeof(RendererSortKey) * count);
 	}
 
+	static bool CanInterleaveObject(const RendererSortableObject& object)
+	{
+		return (object.ObjectType != RendererObjectType::Room && object.ObjectType != RendererObjectType::Sprite);
+	}
+
+	static void MergeSortedBounds(SortedGroup& group, const RendererSortableObject& object)
+	{
+		group.MinDistance = std::min(group.MinDistance, object.MinDistance);
+		group.MaxDistance = std::max(group.MaxDistance, object.MaxDistance);
+		group.ScreenBounds.x = std::min(group.ScreenBounds.x, object.ScreenBounds.x);
+		group.ScreenBounds.y = std::min(group.ScreenBounds.y, object.ScreenBounds.y);
+		group.ScreenBounds.z = std::max(group.ScreenBounds.z, object.ScreenBounds.z);
+		group.ScreenBounds.w = std::max(group.ScreenBounds.w, object.ScreenBounds.w);
+	}
+
+	static int FindSortedCluster(std::vector<int>& parents, int index)
+	{
+		while (parents[index] != index)
+		{
+			parents[index] = parents[parents[index]];
+			index = parents[index];
+		}
+
+		return index;
+	}
+
+	static bool ScreenBoundsOverlap(const Vector4& bounds0, const Vector4& bounds1)
+	{
+		return (bounds0.x <= bounds1.z && bounds1.x <= bounds0.z &&
+				bounds0.y <= bounds1.w && bounds1.y <= bounds0.w);
+	}
+
+	// Grows a normalized screen rectangle by a projected world point. Points behind the camera
+	// have no meaningful projection and conservatively cover the whole screen.
+	static void ExpandScreenBounds(Vector4& bounds, const Matrix& viewProjection, float x, float y, float z)
+	{
+		float clipX = x * viewProjection._11 + y * viewProjection._21 + z * viewProjection._31 + viewProjection._41;
+		float clipY = x * viewProjection._12 + y * viewProjection._22 + z * viewProjection._32 + viewProjection._42;
+		float clipW = x * viewProjection._14 + y * viewProjection._24 + z * viewProjection._34 + viewProjection._44;
+
+		float minX = -1.0f;
+		float minY = -1.0f;
+		float maxX = 1.0f;
+		float maxY = 1.0f;
+
+		if (clipW > EPSILON)
+		{
+			minX = maxX = clipX / clipW;
+			minY = maxY = clipY / clipW;
+		}
+
+		bounds.x = std::min(bounds.x, minX);
+		bounds.y = std::min(bounds.y, minY);
+		bounds.z = std::max(bounds.z, maxX);
+		bounds.w = std::max(bounds.w, maxY);
+	}
+
+	// Joins object groups that overlap both in depth and on screen: only there can polygon order
+	// across objects change the image. Candidates are swept by near depth, so each group is only
+	// tested against the groups that start before it ends.
+	static void BuildSortedClusters(std::vector<SortedGroup>& groups)
+	{
+		int groupCount = (int)groups.size();
+
+		auto parents = std::vector<int>(groupCount);
+		auto candidates = std::vector<int>{};
+		for (int i = 0; i < groupCount; i++)
+		{
+			parents[i] = i;
+			if (groups[i].CanInterleave)
+				candidates.push_back(i);
+		}
+
+		std::sort(
+			candidates.begin(), candidates.end(),
+			[&groups](int index0, int index1) { return (groups[index0].MinDistance < groups[index1].MinDistance); });
+
+		for (int i = 0; i < candidates.size(); i++)
+		{
+			const auto& group = groups[candidates[i]];
+
+			for (int j = i + 1; j < candidates.size(); j++)
+			{
+				const auto& other = groups[candidates[j]];
+				if (other.MinDistance > group.MaxDistance)
+					break;
+
+				if (!ScreenBoundsOverlap(group.ScreenBounds, other.ScreenBounds))
+					continue;
+
+				parents[FindSortedCluster(parents, candidates[j])] = FindSortedCluster(parents, candidates[i]);
+			}
+		}
+
+		for (int i = 0; i < groupCount; i++)
+			groups[i].Cluster = FindSortedCluster(parents, i);
+	}
+
+	// Returns the draw order position of every cluster, indexed by cluster id. Clusters are ordered
+	// with the rules previously applied to single groups, so an isolated group keeps its old place.
+	static std::vector<int> RankSortedClusters(const std::vector<SortedGroup>& groups)
+	{
+		int groupCount = (int)groups.size();
+
+		auto clusters = std::vector<SortedGroup>(groupCount);
+		auto isCluster = std::vector<bool>(groupCount, false);
+		for (const auto& group : groups)
+		{
+			auto& cluster = clusters[group.Cluster];
+			if (!isCluster[group.Cluster])
+			{
+				cluster = group;
+				cluster.DistanceSum = 0.0f;
+				cluster.PolygonCount = 0;
+				isCluster[group.Cluster] = true;
+			}
+
+			cluster.DistanceSum += group.DistanceSum;
+			cluster.PolygonCount += group.PolygonCount;
+			cluster.BlendPriority = std::min(cluster.BlendPriority, group.BlendPriority);
+		}
+
+		auto order = std::vector<int>{};
+		for (int i = 0; i < groupCount; i++)
+		{
+			if (isCluster[i])
+				order.push_back(i);
+		}
+
+		std::sort(
+			order.begin(), order.end(),
+			[&clusters](int index0, int index1)
+			{
+				const auto& cluster0 = clusters[index0];
+				const auto& cluster1 = clusters[index1];
+
+				// Rooms draw first, back to front by portal traversal order.
+				if (cluster0.IsRoom != cluster1.IsRoom)
+					return cluster0.IsRoom;
+
+				float distance0 = cluster0.DistanceSum / cluster0.PolygonCount;
+				float distance1 = cluster1.DistanceSum / cluster1.PolygonCount;
+
+				if (cluster0.IsRoom)
+				{
+					if (cluster0.RoomSlot != cluster1.RoomSlot)
+						return (cluster0.RoomSlot < cluster1.RoomSlot);
+
+					return (distance0 > distance1);
+				}
+
+				// Object clusters draw back to front by mean polygon distance.
+				int depth0 = (int)(distance0 / GROUP_DEPTH_STEP);
+				int depth1 = (int)(distance1 / GROUP_DEPTH_STEP);
+				if (depth0 != depth1)
+					return (depth0 > depth1);
+
+				if (cluster0.BlendPriority != cluster1.BlendPriority)
+					return (cluster0.BlendPriority < cluster1.BlendPriority);
+
+				return (index0 < index1);
+			});
+
+		auto ranks = std::vector<int>(groupCount, 0);
+		for (int i = 0; i < order.size(); i++)
+			ranks[order[i]] = i;
+
+		return ranks;
+	}
+
+	// Keys order clusters first and distance (far to near) second, so polygons of a single-group
+	// cluster stay contiguous while polygons of overlapping objects interleave by depth.
+	static void BuildSortKeys(RenderView& view, const std::vector<SortedGroup>& groups, const std::vector<int>& clusterRanks)
+	{
+		const auto* objects = view.TransparentObjectsToDraw.data();
+		int polygonCount = (int)view.TransparentPolygonsToDraw.size();
+		view.TransparentSortKeys.resize(polygonCount);
+
+		for (int i = 0; i < polygonCount; i++)
+		{
+			const auto& polygon = view.TransparentPolygonsToDraw[i];
+			int clusterRank = clusterRanks[groups[objects[polygon.ObjectIndex].GroupIndex].Cluster];
+
+			auto invertedDistance = (unsigned int)(INT_MAX - std::max(polygon.Distance, 0));
+			view.TransparentSortKeys[i].Key = ((unsigned long long)clusterRank << 32) | invertedDistance;
+			view.TransparentSortKeys[i].Index = i;
+		}
+	}
+
+	// Dissolves clusters whose interleaved order would switch draw groups too often, returning
+	// their groups to group order. Returns true when keys must be rebuilt.
+	static bool SplitBusyClusters(const RenderView& view, std::vector<SortedGroup>& groups)
+	{
+		const auto* objects = view.TransparentObjectsToDraw.data();
+		const auto* polygons = view.TransparentPolygonsToDraw.data();
+
+		auto switches = std::vector<int>(groups.size(), 0);
+		int lastGroup = NO_VALUE;
+
+		for (const auto& key : view.TransparentSortKeys)
+		{
+			int group = objects[polygons[key.Index].ObjectIndex].GroupIndex;
+			if (lastGroup != NO_VALUE && group != lastGroup && groups[group].Cluster == groups[lastGroup].Cluster)
+				switches[groups[group].Cluster]++;
+
+			lastGroup = group;
+		}
+
+		bool isSplit = false;
+		for (int i = 0; i < groups.size(); i++)
+		{
+			if (switches[groups[i].Cluster] <= MAX_CLUSTER_GROUP_SWITCHES)
+				continue;
+
+			groups[i].Cluster = i;
+			isSplit = true;
+		}
+
+		return isSplit;
+	}
+
 	void Renderer::SortTransparentFaces(RenderView& view)
 	{
 		view.TransparentSortKeys.clear();
@@ -221,6 +453,7 @@ namespace TEN::Renderer
 				{
 					auto& group = groups.emplace_back();
 					group.IsRoom = (object.ObjectType == RendererObjectType::Room);
+					group.CanInterleave = CanInterleaveObject(object);
 					group.BlendPriority = getBlendPriority(GetSortedBlendMode(object));
 
 					if (group.IsRoom)
@@ -233,8 +466,8 @@ namespace TEN::Renderer
 				groupIndex = it->second;
 				lastObjectIndex = polygon.ObjectIndex;
 
-				// Temporarily the group index; remapped to the final rank below.
-				object.GroupRank = groupIndex;
+				object.GroupIndex = groupIndex;
+				MergeSortedBounds(groups[groupIndex], object);
 			}
 
 			auto& group = groups[groupIndex];
@@ -242,68 +475,28 @@ namespace TEN::Renderer
 			group.PolygonCount++;
 		}
 
-		auto order = std::vector<int>(groups.size());
-		for (int i = 0; i < order.size(); i++)
-			order[i] = i;
+		BuildSortedClusters(groups);
 
-		std::sort(
-			order.begin(), order.end(),
-			[&groups](int index0, int index1)
-			{
-				const auto& group0 = groups[index0];
-				const auto& group1 = groups[index1];
+		// Only compact keys are sorted; objects and polygons never move. A second pass is needed
+		// only when a cluster had to be dissolved for switching draw groups too often.
+		BuildSortKeys(view, groups, RankSortedClusters(groups));
+		RadixSortKeys(view.TransparentSortKeys, _sortKeysScratch);
 
-				// Rooms draw first, back to front by portal traversal order.
-				if (group0.IsRoom != group1.IsRoom)
-					return group0.IsRoom;
-
-				float distance0 = group0.DistanceSum / group0.PolygonCount;
-				float distance1 = group1.DistanceSum / group1.PolygonCount;
-
-				if (group0.IsRoom)
-				{
-					if (group0.RoomSlot != group1.RoomSlot)
-						return (group0.RoomSlot < group1.RoomSlot);
-
-					return (distance0 > distance1);
-				}
-
-				// Object groups draw back to front by mean polygon distance.
-				int depth0 = (int)(distance0 / GROUP_DEPTH_STEP);
-				int depth1 = (int)(distance1 / GROUP_DEPTH_STEP);
-				if (depth0 != depth1)
-					return (depth0 > depth1);
-
-				if (group0.BlendPriority != group1.BlendPriority)
-					return (group0.BlendPriority < group1.BlendPriority);
-
-				return (index0 < index1);
-			});
-
-		auto groupRanks = std::vector<int>(groups.size());
-		for (int i = 0; i < order.size(); i++)
-			groupRanks[order[i]] = i;
-
-		for (auto& object : view.TransparentObjectsToDraw)
-			object.GroupRank = groupRanks[object.GroupRank];
-
-		// Make groups contiguous in rank order, keeping polygons depth-sorted (far to near) inside
-		// their own group. Only compact keys are sorted; objects and polygons never move.
-		const auto* objects = view.TransparentObjectsToDraw.data();
-		int polygonCount = (int)view.TransparentPolygonsToDraw.size();
-		view.TransparentSortKeys.resize(polygonCount);
-
-		for (int i = 0; i < polygonCount; i++)
+		if (SplitBusyClusters(view, groups))
 		{
-			const auto& polygon = view.TransparentPolygonsToDraw[i];
-			int groupRank = objects[polygon.ObjectIndex].GroupRank;
-
-			auto invertedDistance = (unsigned int)(INT_MAX - std::max(polygon.Distance, 0));
-			view.TransparentSortKeys[i].Key = ((unsigned long long)groupRank << 32) | invertedDistance;
-			view.TransparentSortKeys[i].Index = i;
+			BuildSortKeys(view, groups, RankSortedClusters(groups));
+			RadixSortKeys(view.TransparentSortKeys, _sortKeysScratch);
 		}
 
-		RadixSortKeys(view.TransparentSortKeys, _sortKeysScratch);
+		auto clusterSizes = std::vector<int>(groups.size(), 0);
+		for (const auto& group : groups)
+			clusterSizes[group.Cluster]++;
+
+		for (const auto& group : groups)
+		{
+			if (clusterSizes[group.Cluster] > 1)
+				_numInterleavedSortedGroups++;
+		}
 	}
 
 	void Renderer::CollectSortedBucket(RenderView& view, const RendererSortableObject& object, const Matrix* world, const Vector3& cameraPosition)
@@ -321,22 +514,41 @@ namespace TEN::Renderer
 		view.TransparentPolygonsToDraw.resize(firstEntry + polygonCount);
 		auto* entries = &view.TransparentPolygonsToDraw[firstEntry];
 
-		// Room geometry is already in world space. Transform is expanded by hand (row vector times
+		// Room geometry is already in world space. Transforms are expanded by hand (row vector times
 		// matrix, as Vector3::Transform) to keep the per-polygon cost low in debug builds as well.
 		auto matrix = (world != nullptr) ? *world : Matrix::Identity;
+		const auto& viewProjection = view.Camera.ViewProjection;
 		auto* sourcePolygons = polygons.data();
+
+		int minDistance = INT_MAX;
+		int maxDistance = 0;
+		auto screenBounds = Vector4(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX);
 
 		for (int i = 0; i < polygonCount; i++)
 		{
 			const auto& centre = sourcePolygons[i].Centre;
-			float x = centre.x * matrix._11 + centre.y * matrix._21 + centre.z * matrix._31 + matrix._41 - cameraPosition.x;
-			float y = centre.x * matrix._12 + centre.y * matrix._22 + centre.z * matrix._32 + matrix._42 - cameraPosition.y;
-			float z = centre.x * matrix._13 + centre.y * matrix._23 + centre.z * matrix._33 + matrix._43 - cameraPosition.z;
+			float worldX = centre.x * matrix._11 + centre.y * matrix._21 + centre.z * matrix._31 + matrix._41;
+			float worldY = centre.x * matrix._12 + centre.y * matrix._22 + centre.z * matrix._32 + matrix._42;
+			float worldZ = centre.x * matrix._13 + centre.y * matrix._23 + centre.z * matrix._33 + matrix._43;
+
+			float deltaX = worldX - cameraPosition.x;
+			float deltaY = worldY - cameraPosition.y;
+			float deltaZ = worldZ - cameraPosition.z;
+			int distance = (int)sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ);
 
 			entries[i].Polygon = &sourcePolygons[i];
-			entries[i].Distance = (int)sqrt(x * x + y * y + z * z);
+			entries[i].Distance = distance;
 			entries[i].ObjectIndex = objectIndex;
+
+			minDistance = std::min(minDistance, distance);
+			maxDistance = std::max(maxDistance, distance);
+			ExpandScreenBounds(screenBounds, viewProjection, worldX, worldY, worldZ);
 		}
+
+		auto& storedObject = view.TransparentObjectsToDraw[objectIndex];
+		storedObject.MinDistance = minDistance;
+		storedObject.MaxDistance = maxDistance;
+		storedObject.ScreenBounds = screenBounds;
 	}
 
 	void Renderer::CollectSortedSprite(RenderView& view, const RendererSortableObject& object, int distance)
@@ -478,7 +690,7 @@ namespace TEN::Renderer
 					const auto& currentPolygon = polygons[sortKeys[i].Index];
 					int indexCount = (currentPolygon.Polygon->Shape == 0) ? 6 : 3;
 
-					if (objects[currentPolygon.ObjectIndex].GroupRank != object->GroupRank ||
+					if (objects[currentPolygon.ObjectIndex].GroupIndex != object->GroupIndex ||
 						_sortedPolygonsIndices.size() + indexCount >= MAX_TRANSPARENT_VERTICES)
 					{
 						break;
@@ -493,7 +705,7 @@ namespace TEN::Renderer
 			else
 			{
 				while (i < sortedCount &&
-					objects[polygons[sortKeys[i].Index].ObjectIndex].GroupRank == object->GroupRank &&
+					objects[polygons[sortKeys[i].Index].ObjectIndex].GroupIndex == object->GroupIndex &&
 					_sortedPolygonsVertices.size() + 6 < MAX_TRANSPARENT_VERTICES)
 				{
 					auto* currentObject = &objects[polygons[sortKeys[i].Index].ObjectIndex];
