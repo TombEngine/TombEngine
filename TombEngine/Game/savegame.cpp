@@ -2696,8 +2696,6 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	{
 		const Save::Item* savedItem = s->items()->Get(i);
 
-		bool isDynamicItem = (i >= g_Level.NumItems);
-
 		auto* item = &g_Level.Items[i];
 		item->ObjectNumber = GAME_OBJECT_ID(savedItem->object_id());
 
@@ -2765,6 +2763,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 
 		// Doors created at runtime are absent from the level file, so nothing reapplies their
 		// sector data on load. Reinitialize them here, before saved state is restored on top.
+		bool isDynamicItem = (i >= g_Level.NumItems);
 		if (isDynamicItem && IsFunction(Objects[item->ObjectNumber].Initialize, InitializeDoor))
 			InitializeDoor(i);
 
