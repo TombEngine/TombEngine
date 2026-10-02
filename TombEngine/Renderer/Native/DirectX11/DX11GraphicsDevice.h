@@ -23,6 +23,7 @@
 #include "Renderer/Native/DirectX11/DX11PrimitiveBatch.h"
 #include "Renderer/Native/DirectX11/DX11SpriteFont.h"
 #include "Renderer/Native/DirectX11/DX11GpuReadbackBuffer.h"
+#include "Renderer/Native/DirectX11/DX11GpuTimer.h"
 
 using namespace TEN::Renderer::Graphics;
 using namespace TEN::Renderer::Structures;
@@ -34,6 +35,9 @@ namespace TEN::Renderer::Native::DirectX11
 	class DX11GraphicsDevice final : public IGraphicsDevice
 	{
 	private:
+        DX11GpuTimer _ssaoTimer;
+        DX11GpuTimer _ssaoBlurTimer;
+
 		ComPtr<ID3D11Device> _device = nullptr;
 		ComPtr<ID3D11DeviceContext> _context = nullptr;
 		ComPtr<IDXGISwapChain> _swapChain = nullptr;
@@ -110,6 +114,8 @@ namespace TEN::Renderer::Native::DirectX11
 		std::unique_ptr<IIndexBuffer> CreateIndexBuffer(int numIndices, int* data) override;
 		void UpdateIndexBuffer(IIndexBuffer* indexBuffer, int numIndices, int startIndex, int* data) override;
 		void BindIndexBuffer(IIndexBuffer* indexBuffer) override;
+        void BeginGpuTiming(GpuTimingScope scope) override;
+        void EndGpuTiming(GpuTimingScope scope) override;
 
 		std::unique_ptr<IRenderSurface2D> CreateRenderSurface2D(int width, int height, SurfaceFormat colorFormat, bool isTypeless, DepthFormat depthFormat) override;
 		std::unique_ptr<IRenderSurface2D> CreateRenderSurface2D(int width, int height, int arraySize, SurfaceFormat colorFormat, DepthFormat depthFormat) override;
@@ -133,7 +139,7 @@ namespace TEN::Renderer::Native::DirectX11
 		void UnbindTexture(ShaderStage stage, TextureRegister registerType) override;
 
 		std::unique_ptr<IConstantBuffer> CreateConstantBuffer(int size, std::string name) override;
-		void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data) override;
+		void UpdateConstantBuffer(IConstantBuffer* constantBuffer, void* data, int size = 0) override;
 		void BindConstantBuffer(ShaderStage shaderStage, ConstantBufferRegister constantBufferType, IConstantBuffer* buffer) override;
 
 		std::unique_ptr<IStructuredBuffer> CreateStructuredBuffer(int stride, int elementCount, std::wstring name) override;

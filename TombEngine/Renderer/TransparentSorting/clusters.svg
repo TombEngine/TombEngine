@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 320" role="img" aria-label="Top-down view of two cases. Left: two vases side by side at the same distance overlap in depth but not on screen, so they stay separate groups and draw as two contiguous batches. Right: one vase behind the other overlaps both in depth and on screen, so the two groups form a cluster and their polygons are interleaved in exact depth order.">
+  <title>Top-down view of two cases. Left: two vases side by side at the same distance overlap in depth but not on screen, so they stay separate groups and draw as two contiguous batches. Right: one vase behind the other overlaps both in depth and on screen, so the two groups form a cluster and their polygons are interleaved in exact depth order.</title>
+  <style>
+    text { font-family: "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif; font-size: 12px; fill: #18202B; }
+    .small { font-size: 11px; }
+    .label { font-weight: 600; }
+    .mono { font-family: Consolas, "JetBrains Mono", Menlo, monospace; font-size: 11px; }
+    .muted { fill: #5B6676; }
+    .on { fill: #FFFFFF; }
+    .t-before { fill: #C4572E; }
+    .t-after { fill: #127E73; }
+    .cell, .before, .before-soft, .after, .after-soft, .skip, .obj-a, .obj-b { stroke: #FFFFFF; stroke-width: 1.5; }
+    .cell { fill: #E3E9F0; }
+    .skip { fill: #E3E9F0; opacity: 0.55; }
+    .before { fill: #C4572E; }
+    .before-soft { fill: #EBC3B3; }
+    .after { fill: #127E73; }
+    .after-soft { fill: #B5DDD7; }
+    .obj-a { fill: #2B62D9; }
+    .obj-b { fill: #B07A12; }
+    .box { fill: #F4F6F9; stroke: #9AA5B4; stroke-width: 1.2; }
+    .rule { stroke: #D3DAE3; stroke-width: 1; fill: none; }
+    .wire { stroke: #18202B; stroke-width: 1.4; fill: none; }
+    .wire-after { stroke: #127E73; stroke-width: 1.6; fill: none; }
+    .tick-before { stroke: #C4572E; stroke-width: 1.6; fill: none; }
+    .head { fill: #18202B; }
+    .head-after { fill: #127E73; }
+    @media (prefers-color-scheme: dark) {
+      text { fill: #E4E9F0; }
+      .muted { fill: #9AA5B4; }
+      .on { fill: #11151B; }
+      .t-before { fill: #E07A52; }
+      .t-after { fill: #3FB8A8; }
+      .cell, .before, .before-soft, .after, .after-soft, .skip, .obj-a, .obj-b { stroke: #181E26; }
+      .cell { fill: #263040; }
+      .skip { fill: #263040; }
+      .before { fill: #E07A52; }
+      .before-soft { fill: #5A3326; }
+      .after { fill: #3FB8A8; }
+      .after-soft { fill: #1F4A45; }
+      .obj-a { fill: #6E9BF0; }
+      .obj-b { fill: #E0A93E; }
+      .box { fill: #181E26; stroke: #5B6676; }
+      .rule { stroke: #2E3846; }
+      .wire { stroke: #E4E9F0; }
+      .wire-after { stroke: #3FB8A8; }
+      .tick-before { stroke: #E07A52; }
+      .head { fill: #E4E9F0; }
+      .head-after { fill: #3FB8A8; }
+    }
+  </style>
+  <text x="20" y="22" class="label">Side by side</text>
+  <text x="20" y="38" class="small muted">depth overlaps, screen does not</text>
+  <line class="rule" x1="200" y1="200" x2="40" y2="50"/>
+  <line class="rule" x1="200" y1="200" x2="360" y2="50"/>
+  <path d="M192 212 L200 198 L208 212 z" class="head"/>
+  <text x="200" y="228" text-anchor="middle" class="small muted">camera</text>
+  <circle cx="140" cy="110" r="24" class="obj-a"/>
+  <text x="140" y="114" text-anchor="middle" class="on label">A</text>
+  <circle cx="260" cy="110" r="24" class="obj-b"/>
+  <text x="260" y="114" text-anchor="middle" class="on label">B</text>
+  <rect x="372" y="86" width="6" height="48" class="obj-a"/>
+  <rect x="380" y="86" width="6" height="48" class="obj-b"/>
+  <text x="379" y="78" text-anchor="middle" class="small muted">depth</text>
+
+  <text x="20" y="252" class="small muted">screen</text>
+  <rect x="96" y="243" width="64" height="10" class="obj-a"/>
+  <rect x="240" y="243" width="64" height="10" class="obj-b"/>
+  <text x="20" y="280" class="small muted">draw order</text>
+  <rect x="96" y="268" width="16" height="16" class="obj-a"/><rect x="112" y="268" width="16" height="16" class="obj-a"/>
+  <rect x="128" y="268" width="16" height="16" class="obj-a"/><rect x="144" y="268" width="16" height="16" class="obj-a"/>
+  <rect x="160" y="268" width="16" height="16" class="obj-b"/><rect x="176" y="268" width="16" height="16" class="obj-b"/>
+  <rect x="192" y="268" width="16" height="16" class="obj-b"/><rect x="208" y="268" width="16" height="16" class="obj-b"/>
+  <text x="96" y="306" class="small">Separate groups: 2 batches, group order</text>
+
+  <line class="rule" x1="410" y1="12" x2="410" y2="310"/>
+
+  <text x="430" y="22" class="label">One behind the other</text>
+  <text x="430" y="38" class="small muted">depth and screen overlap</text>
+  <line class="rule" x1="610" y1="200" x2="450" y2="50"/>
+  <line class="rule" x1="610" y1="200" x2="770" y2="50"/>
+  <path d="M602 212 L610 198 L618 212 z" class="head"/>
+  <text x="610" y="228" text-anchor="middle" class="small muted">camera</text>
+  <circle cx="640" cy="82" r="30" class="obj-b"/>
+  <text x="640" y="86" text-anchor="middle" class="on label">B</text>
+  <circle cx="596" cy="128" r="24" class="obj-a"/>
+  <text x="596" y="132" text-anchor="middle" class="on label">A</text>
+  <rect x="782" y="104" width="6" height="48" class="obj-a"/>
+  <rect x="790" y="52" width="6" height="60" class="obj-b"/>
+  <text x="789" y="44" text-anchor="middle" class="small muted">depth</text>
+
+  <text x="430" y="252" class="small muted">screen</text>
+  <rect x="540" y="243" width="80" height="10" class="obj-a"/>
+  <rect x="592" y="231" width="96" height="10" class="obj-b"/>
+  <text x="430" y="280" class="small muted">draw order</text>
+  <rect x="540" y="268" width="16" height="16" class="obj-b"/><rect x="556" y="268" width="16" height="16" class="obj-b"/>
+  <rect x="572" y="268" width="16" height="16" class="obj-a"/><rect x="588" y="268" width="16" height="16" class="obj-b"/>
+  <rect x="604" y="268" width="16" height="16" class="obj-a"/><rect x="620" y="268" width="16" height="16" class="obj-b"/>
+  <rect x="636" y="268" width="16" height="16" class="obj-a"/><rect x="652" y="268" width="16" height="16" class="obj-a"/>
+  <text x="540" y="306" class="small">One cluster: polygons interleaved by depth</text>
+</svg>

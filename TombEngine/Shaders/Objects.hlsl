@@ -107,6 +107,9 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3x3 TBNf = float3x3(input.Tangent, input.Binormal, input.FaceNormal);
 	input.UV = ParallaxOcclusionMapping(TBNf, input.WorldPosition, input.UV);
 
+    float4 tex = Texture.Sample(AnisotropicClampSampler, input.UV);
+    DoAlphaTest(tex);
+
 	float4 ORSH = ConvertAnimOSRH(ORSHTexture.Sample(AnisotropicClampSampler, input.UV));
 	float ambientOcclusion = ORSH.x;
 	float roughness = ORSH.y;
@@ -117,9 +120,6 @@ PixelShaderOutput PS(PixelShaderInput input)
 	float3x3 TBN = float3x3(input.Tangent, input.Binormal, input.Normal);
 	float3 normal = ConvertAnimNormal(UnpackNormalMap(NormalTexture.Sample(AnisotropicClampSampler, input.UV)));
 	normal = EnsureNormal(mul(normal, TBN), input.WorldPosition);
-
-	float4 tex = Texture.Sample(AnisotropicClampSampler, input.UV);
-	DoAlphaTest(tex);
 
 	// Material effects
 	tex.xyz = CalculateReflections(input.WorldPosition, tex.xyz, normal, specular);
@@ -153,12 +153,14 @@ PixelShaderOutput PS(PixelShaderInput input)
 			roughness) :
 		StaticLight(ModulateColor(input.Color.xyz * instanceColor), tex.xyz, input.FogBulbs.w, emissive);
 
-	// Items use a SHADOWABLE_MASK bit packed into NumLights to gate shadow blending. For
-	// statics the mask is always clear, so the lerp is a uniform pass-through.
-	float shadowable = step(0.5f, float((numLights & SHADOWABLE_MASK) == SHADOWABLE_MASK));
-	float3 shadow = DoShadow(input.WorldPosition, normal, color, -0.5f);
-	shadow = DoBlobShadows(input.WorldPosition, shadow);
-	color = lerp(color, shadow, shadowable);
+	// Statics, effects and swarms always receive shadows. Items receive them only when the
+	// SHADOWABLE_MASK bit packed into NumLights is set, so objects casting a shadow do not
+	// shadow themselves. The branch is uniform across the draw call.
+	if (Skinned == 0 || (numLights & SHADOWABLE_MASK) == SHADOWABLE_MASK)
+	{
+		color = DoShadow(input.WorldPosition, normal, color, -0.5f);
+		color = DoBlobShadows(input.WorldPosition, color);
+	}
 
 	output.Color = saturate(float4(color * occlusion, tex.w));
 	output.Color = DoFogBulbsForPixel(output.Color, float4(input.FogBulbs.xyz, 1.0f));

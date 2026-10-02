@@ -21,14 +21,18 @@ namespace TEN::Renderer::Native::DirectX11
 		_buffer->SetPrivateData(WKPDID_D3DDebugObjectName, (unsigned int)name.size(), name.c_str());
 	}
 
-	void DX11ConstantBuffer::UpdateData(void* data, ID3D11DeviceContext* ctx) 
+	void DX11ConstantBuffer::UpdateData(void* data, ID3D11DeviceContext* ctx, int size)
 	{
 		auto mappedResource = D3D11_MAPPED_SUBRESOURCE{};
 		auto res = ctx->Map(_buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 		if (SUCCEEDED(res))
 		{
 			void* dataPtr = (mappedResource.pData);
-			memcpy(dataPtr, data, _size);
+
+			// Partial upload: copy only the requested prefix. Map with DISCARD leaves the tail
+			// undefined, so callers passing a size must ensure the shader reads only the prefix.
+			memcpy(dataPtr, data, (size > 0 && size < _size) ? size : _size);
+
 			ctx->Unmap(_buffer.Get(), 0);
 		}
 		else

@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 214" role="img" aria-label="Debug frame times on a 0 to 16 ms scale before the rework: 4 ms without the vases, 16 ms with them. The sorted path cost 11 ms of CPU (collect 9, sort 2), while the whole GPU frame took 7.2 ms of which the sorted draws were 0.42 ms.">
+  <title>Debug frame times on a 0 to 16 ms scale before the rework: 4 ms without the vases, 16 ms with them. The sorted path cost 11 ms of CPU (collect 9, sort 2), while the whole GPU frame took 7.2 ms of which the sorted draws were 0.42 ms.</title>
+  <style>
+    text { font-family: "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif; font-size: 12px; fill: #18202B; }
+    .small { font-size: 11px; }
+    .label { font-weight: 600; }
+    .mono { font-family: Consolas, "JetBrains Mono", Menlo, monospace; font-size: 11px; }
+    .muted { fill: #5B6676; }
+    .on { fill: #FFFFFF; }
+    .t-before { fill: #C4572E; }
+    .t-after { fill: #127E73; }
+    .cell, .before, .before-soft, .after, .after-soft, .skip, .obj-a, .obj-b { stroke: #FFFFFF; stroke-width: 1.5; }
+    .cell { fill: #E3E9F0; }
+    .skip { fill: #E3E9F0; opacity: 0.55; }
+    .before { fill: #C4572E; }
+    .before-soft { fill: #EBC3B3; }
+    .after { fill: #127E73; }
+    .after-soft { fill: #B5DDD7; }
+    .obj-a { fill: #2B62D9; }
+    .obj-b { fill: #B07A12; }
+    .box { fill: #F4F6F9; stroke: #9AA5B4; stroke-width: 1.2; }
+    .rule { stroke: #D3DAE3; stroke-width: 1; fill: none; }
+    .wire { stroke: #18202B; stroke-width: 1.4; fill: none; }
+    .wire-after { stroke: #127E73; stroke-width: 1.6; fill: none; }
+    .tick-before { stroke: #C4572E; stroke-width: 1.6; fill: none; }
+    .head { fill: #18202B; }
+    .head-after { fill: #127E73; }
+    @media (prefers-color-scheme: dark) {
+      text { fill: #E4E9F0; }
+      .muted { fill: #9AA5B4; }
+      .on { fill: #11151B; }
+      .t-before { fill: #E07A52; }
+      .t-after { fill: #3FB8A8; }
+      .cell, .before, .before-soft, .after, .after-soft, .skip, .obj-a, .obj-b { stroke: #181E26; }
+      .cell { fill: #263040; }
+      .skip { fill: #263040; }
+      .before { fill: #E07A52; }
+      .before-soft { fill: #5A3326; }
+      .after { fill: #3FB8A8; }
+      .after-soft { fill: #1F4A45; }
+      .obj-a { fill: #6E9BF0; }
+      .obj-b { fill: #E0A93E; }
+      .box { fill: #181E26; stroke: #5B6676; }
+      .rule { stroke: #2E3846; }
+      .wire { stroke: #E4E9F0; }
+      .wire-after { stroke: #3FB8A8; }
+      .tick-before { stroke: #E07A52; }
+      .head { fill: #E4E9F0; }
+      .head-after { fill: #3FB8A8; }
+    }
+  </style>
+  <line class="rule" x1="220" y1="14" x2="220" y2="176"/>
+  <line class="rule" x1="332" y1="14" x2="332" y2="176" stroke-dasharray="2 4"/>
+  <line class="rule" x1="444" y1="14" x2="444" y2="176" stroke-dasharray="2 4"/>
+  <line class="rule" x1="556" y1="14" x2="556" y2="176" stroke-dasharray="2 4"/>
+  <line class="rule" x1="668" y1="14" x2="668" y2="176" stroke-dasharray="2 4"/>
+
+  <text x="210" y="35" text-anchor="end" class="label">Frame, no vases</text>
+  <rect x="220" y="20" width="112" height="22" class="cell"/>
+  <text x="340" y="35">4 ms</text>
+
+  <text x="210" y="75" text-anchor="end" class="label">Frame, with vases</text>
+  <rect x="220" y="60" width="448" height="22" class="before"/>
+  <text x="676" y="75">16 ms</text>
+
+  <text x="210" y="115" text-anchor="end" class="label">Sorted path, CPU</text>
+  <rect x="220" y="100" width="252" height="22" class="before"/>
+  <text x="230" y="115" class="on">Collect 9 ms</text>
+  <rect x="472" y="100" width="56" height="22" class="before-soft"/>
+  <text x="480" y="115">Sort 2</text>
+  <text x="536" y="115">11 ms</text>
+
+  <text x="210" y="155" text-anchor="end" class="label">GPU, whole frame</text>
+  <rect x="220" y="140" width="190" height="22" class="cell"/>
+  <rect x="410" y="140" width="12" height="22" class="after"/>
+  <text x="430" y="155">7.2 ms, sorted draws 0.42 ms</text>
+
+  <text x="220" y="196" text-anchor="middle" class="small muted">0</text>
+  <text x="332" y="196" text-anchor="middle" class="small muted">4</text>
+  <text x="444" y="196" text-anchor="middle" class="small muted">8</text>
+  <text x="556" y="196" text-anchor="middle" class="small muted">12</text>
+  <text x="668" y="196" text-anchor="middle" class="small muted">16 ms</text>
+</svg>

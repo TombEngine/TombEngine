@@ -54,6 +54,8 @@ namespace TEN::Renderer
 		FogBulbsToDraw.clear();
 		LensFlaresToDraw.clear();
 		TransparentObjectsToDraw.clear();
+		TransparentPolygonsToDraw.clear();
+		TransparentSortKeys.clear();
 		Mirrors.clear();
 	}
 
