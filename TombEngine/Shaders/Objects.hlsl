@@ -153,10 +153,10 @@ PixelShaderOutput PS(PixelShaderInput input)
 			roughness) :
 		StaticLight(ModulateColor(input.Color.xyz * instanceColor), tex.xyz, input.FogBulbs.w, emissive);
 
-	// Only items set the SHADOWABLE_MASK bit packed into NumLights. Statics, effects and swarm
-	// objects never receive shadows, so skip shadow map sampling for them entirely. The branch
-	// is uniform across the draw call.
-	if ((numLights & SHADOWABLE_MASK) == SHADOWABLE_MASK)
+	// Statics, effects and swarms always receive shadows. Items receive them only when the
+	// SHADOWABLE_MASK bit packed into NumLights is set, so objects casting a shadow do not
+	// shadow themselves. The branch is uniform across the draw call.
+	if (Skinned == 0 || (numLights & SHADOWABLE_MASK) == SHADOWABLE_MASK)
 	{
 		color = DoShadow(input.WorldPosition, normal, color, -0.5f);
 		color = DoBlobShadows(input.WorldPosition, color);
