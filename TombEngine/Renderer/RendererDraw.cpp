@@ -4159,7 +4159,6 @@ namespace TEN::Renderer
 
 	void Renderer::CalculateSSAO(RenderView& view)
 	{
-        _graphicsDevice->BeginGpuTiming(GpuTimingScope::Ssao);
 		_doingFullscreenPass = true;
 
 		SetBlendMode(BlendMode::Opaque);
@@ -4196,8 +4195,6 @@ namespace TEN::Renderer
 		DrawTriangles(3, 0);
 
 		// Blur step.
-        _graphicsDevice->EndGpuTiming(GpuTimingScope::Ssao);
-        _graphicsDevice->BeginGpuTiming(GpuTimingScope::SsaoBlur);
 		_shaders.Bind(Shader::SsaoBlur);
 
 		_graphicsDevice->BindRenderTarget(_SSAOBlurredRenderTarget->GetRenderTarget(), nullptr);
@@ -4205,7 +4202,6 @@ namespace TEN::Renderer
 		BindRenderTargetAsTexture(TextureRegister::SSAO, _SSAORenderTarget->GetRenderTarget(), SamplerStateRegister::PointWrap);
 
 		DrawTriangles(3, 0);
-        _graphicsDevice->EndGpuTiming(GpuTimingScope::SsaoBlur);
 
 		_doingFullscreenPass = false;
 	}
