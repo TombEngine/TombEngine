@@ -468,11 +468,11 @@ namespace TEN::Entities::Vehicles
 		return 0;
 	}
 
-	// Out of water the kayak has no buoyancy holding it up, so let gravity carry it down slopes
-	// instead of letting it rest on them.
-
 	static void KayakDoSlopeSlide(ItemInfo* kayakItem)
 	{
+		// Out of water the kayak has no buoyancy holding it up, so let gravity carry it down slopes
+		// instead of letting it rest on them.
+
 		constexpr auto SLOPE_ANGLE_MIN		  = ANGLE(11.0f);
 		constexpr auto SLIDE_VELOCITY_MAX	  = 32.0f;
 		constexpr auto FLOOR_HEIGHT_TOLERANCE = CLICK(0.5f);
@@ -530,7 +530,6 @@ namespace TEN::Entities::Vehicles
 		kayakItem->Pose.Orientation.y += kayak->TurnRate;
 
 		KayakDoSlopeSlide(kayakItem);
-
 		KayakDoCurrent(kayakItem, laraItem);
 
 		kayak->LeftVerticalVelocity = KayakDoDynamics(leftHeight, kayak->LeftVerticalVelocity, &leftPos.y);

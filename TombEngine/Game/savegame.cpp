@@ -3036,6 +3036,7 @@ static void ParseLevel(const Save::SaveGame* s, bool hubMode)
 	// Restore room item lists by array position: lists are bound to room slots, not room
 	// contents (see FlipRooms), and flipmaps were already reapplied above. Must be done after
 	// items are parsed, as initializing a dynamic item may move it between room lists.
+
 	for (int i = 0; i < s->rooms()->size(); i++)
 	{
 		auto& room = g_Level.Rooms[i];

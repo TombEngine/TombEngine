@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Objects/game_object_ids.h"
-
 struct CollisionInfo;
 struct DOORPOS_DATA;
 struct DOOR_DATA;
