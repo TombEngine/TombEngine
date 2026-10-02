@@ -499,8 +499,11 @@ void ClassicRollingBallControl(short itemNum)
 		}
 		else
 		{
-			dist = BLOCK(1);
-			ydist = BLOCK(1);
+			// Derive probe reach from the object bounds itself instead a fixed sector-sized reach,
+			// which stops smaller objects such as ID_MULTIPLE_BOULDERS a whole sector short of any obstacle.
+			auto bounds = GameBoundingBox(item);
+			dist = bounds.GetDepth() / 2;
+			ydist = bounds.GetHeight();
 		}
 
 		int x = item->Pose.Position.x + dist * phd_sin(item->Pose.Orientation.y);
