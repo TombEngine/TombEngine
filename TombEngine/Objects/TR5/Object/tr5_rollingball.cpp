@@ -28,6 +28,11 @@ constexpr auto ROLLING_BALL_MAX_VELOCITY = BLOCK(3);
 constexpr auto ROLLING_BARREL_ROLL_ANIMATION = 0;
 constexpr auto ROLLING_BARREL_STOP_ANIMATION = 1;
 
+constexpr auto CLASSIC_ROLLING_BALL_RADIUS = CLICK(1.25f);
+constexpr auto CLASSIC_ROLLING_BALL_HEIGHT = CLICK(3.25f);
+constexpr auto BIG_ROLLING_BALL_RADIUS = CLICK(4.25f);
+constexpr auto BIG_ROLLING_BALL_HEIGHT = CLICK(8.25f);
+
 void RollingBallCollision(short itemNumber, ItemInfo* laraItem, CollisionInfo* coll)
 {
 	auto* ballItem = &g_Level.Items[itemNumber];
@@ -409,10 +414,7 @@ void ClassicRollingBallCollision(short itemNum, ItemInfo* lara, CollisionInfo* c
 }
 
 void ClassicRollingBallControl(short itemNum)
-{
-	int ydist, dist;
-	GameVector* old;
-	
+{	
 	auto* item = &g_Level.Items[itemNum];
 
 	if (item->Status == ITEM_ACTIVE)
@@ -487,23 +489,28 @@ void ClassicRollingBallControl(short itemNum)
 				Camera.bounce = -40 * (BLOCK(10) - distance) / BLOCK(10);
 		}
 
-		if (item->ObjectNumber == ID_CLASSIC_ROLLING_BALL || item->ObjectNumber == ID_ROLLING_BARRELS)
+		int dist, ydist;
+
+		switch (item->ObjectNumber)
 		{
-			dist = 320;
-			ydist = 832;
-		}
-		else if (item->ObjectNumber == ID_BIG_ROLLING_BALL)
-		{
-			dist = 1088;
-			ydist = 2112;
-		}
-		else
-		{
-			// Derive probe reach from the object bounds itself instead a fixed sector-sized reach,
-			// which stops smaller objects such as ID_MULTIPLE_BOULDERS a whole sector short of any obstacle.
-			auto bounds = GameBoundingBox(item);
-			dist = bounds.GetDepth() / 2;
-			ydist = bounds.GetHeight();
+			case ID_BIG_ROLLING_BALL:
+				dist = BIG_ROLLING_BALL_RADIUS;
+				ydist = BIG_ROLLING_BALL_HEIGHT;
+				break;
+
+			case ID_CLASSIC_ROLLING_BALL:
+			case ID_ROLLING_BARRELS:
+				dist = CLASSIC_ROLLING_BALL_RADIUS;
+				ydist = CLASSIC_ROLLING_BALL_HEIGHT;
+				break;
+
+			default:
+			{
+				auto bounds = GameBoundingBox(item);
+				dist = bounds.GetDepth();
+				ydist = bounds.GetHeight();
+				break;
+			}
 		}
 
 		int x = item->Pose.Position.x + dist * phd_sin(item->Pose.Orientation.y);
@@ -512,7 +519,7 @@ void ClassicRollingBallControl(short itemNum)
 		int y1 = GetPointCollision(Vector3i(x, item->Pose.Position.y, z), item->RoomNumber).GetFloorHeight();
 		int y2 = GetPointCollision(Vector3i(x, item->Pose.Position.y - ydist, z), item->RoomNumber).GetCeilingHeight();
 
-		if (y1 < item->Pose.Position.y || y2 > (item->Pose.Position.y - ydist))
+		if (y1 < item->Pose.Position.y || (!item->Animation.IsAirborne && y2 > (item->Pose.Position.y - ydist)))
 		{
 			StopSoundEffect(SFX_TR4_ROLLING_BALL);
 			item->Pose.Position.y = item->Floor;
@@ -542,7 +549,7 @@ void ClassicRollingBallControl(short itemNum)
 		{
 			item->Status = ITEM_NOT_ACTIVE;
 
-			old = (GameVector*)item->Data;
+			auto old = (GameVector*)item->Data;
 			item->Pose.Position.x = old->x;
 			item->Pose.Position.y = old->y;
 			item->Pose.Position.z = old->z;
