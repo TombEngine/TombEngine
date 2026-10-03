@@ -8,8 +8,10 @@
 #include "Game/items.h"
 #include "Game/Lara/lara.h"
 #include "Specific/level.h"
+#include "Game/collision/Point.h"
 
 using namespace TEN::Animation;
+using namespace TEN::Collision::Point;
 
 namespace TEN::Entities::Traps
 {
@@ -338,7 +340,9 @@ namespace TEN::Entities::Traps
 					if (item.Animation.ActiveState == 1)
 						y = speed * y / 120;
 
-					LaraItem->Pose.Position.y += y;
+					int waterHeight = GetPointCollision(*LaraItem).GetWaterSurfaceHeight();
+					if (waterHeight < LaraItem->Pose.Position.y)
+						LaraItem->Pose.Position.y = std::max(LaraItem->Pose.Position.y + y, waterHeight);
 				}
 			}
 		}
