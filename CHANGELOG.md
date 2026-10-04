@@ -73,7 +73,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed TEETH_SPIKES behaviour for OCB 1 and move static TR1-3 mode to pre-activated trigger bit flags.
 * Fixed SHOOT_SWITCH2 shattering without OCB 444.
 * Fixed MULTIPLE_BOULDERS stopping a sector short of obstacles or immediately when placed above the floor.
-* Fixed PROPELLER_V pushing player in an arbitrary direction determined by the room height instead of away from the propeller.
+* Fixed PROPELLER_V player knockback direction and particle fading near water surface.
 * Fixed OVERHEAD_PULLEY_HOOK not damaging player unless a damage value was explicitly set.
 * Fixed doors and BREAKABLE_WALL created by script losing their collision after loading a savegame.
 * Fixed empty linear inventory screen after exiting examine mode.

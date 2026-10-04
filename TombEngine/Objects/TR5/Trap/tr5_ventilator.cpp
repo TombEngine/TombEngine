@@ -15,7 +15,59 @@ using namespace TEN::Collision::Point;
 
 namespace TEN::Entities::Traps
 {
-	void VentilatorEffect(GameBoundingBox* bounds, int intensity, short rot, int speed)
+	// Adjust particle lifetime so it fades out and is canceled at the water surface above the emitter.
+	static void FadeParticleAtWaterSurface(Particle& part)
+	{
+		int yStep = part.yVel >> 5;
+
+		// Only particles moving upwards can reach water lying above the emitter.
+		if (yStep >= 0)
+			return;
+
+		// Probe at start, mid and end points, since solid portals may make a single probe return NO_HEIGHT.
+		int midY = part.y + (yStep * part.sLife / 2);
+		int endY = part.y + (yStep * part.sLife);
+		int startWaterHeight = GetPointCollision(Vector3i(part.x, part.y, part.z), part.roomNumber).GetWaterSurfaceHeight();
+		int midWaterHeight   = GetPointCollision(Vector3i(part.x, midY, part.z), FindRoomNumber(Vector3i(part.x, midY, part.z))).GetWaterSurfaceHeight();
+		int endWaterHeight   = GetPointCollision(Vector3i(part.x, endY, part.z), FindRoomNumber(Vector3i(part.x, endY, part.z))).GetWaterSurfaceHeight();
+
+		int waterSurfaceHeight = NO_HEIGHT;
+		if (startWaterHeight != NO_HEIGHT && startWaterHeight < part.y)
+		{
+			waterSurfaceHeight = startWaterHeight;
+		}
+		else if (midWaterHeight != NO_HEIGHT && midWaterHeight < part.y)
+		{
+			waterSurfaceHeight = midWaterHeight;
+		}
+		else if (endWaterHeight != NO_HEIGHT && endWaterHeight < part.y)
+		{
+			waterSurfaceHeight = endWaterHeight;
+		}
+
+		// No water above the emitter; keep behaviour as is.
+		if (waterSurfaceHeight == NO_HEIGHT)
+			return;
+
+		int distanceToWater = part.y - waterSurfaceHeight;
+		int maxReach = -yStep * part.sLife;
+
+		// Water lies beyond the particle's maximum reach; keep behaviour as is.
+		if (distanceToWater >= maxReach)
+			return;
+
+		// Shorten lifetime in proportion to the distance to the water surface and fade over the remaining life.
+		int newLife = (part.sLife * distanceToWater) / maxReach;
+		if (newLife < 2)
+			newLife = 2;
+
+		part.life = part.sLife = newLife;
+
+		if (part.fadeToBlack > part.life)
+			part.fadeToBlack = (unsigned char)part.life;
+	}
+
+	static void VentilatorEffect(GameBoundingBox* bounds, int intensity, short rot, int speed)
 	{
 		constexpr auto DUST_SIZE_MAX = 64.0f;
 
@@ -145,6 +197,8 @@ namespace TEN::Entities::Traps
 		part.rotAdd = ANGLE(0.0f) >> 4;
 		part.scalar = 0.5;
 		part.sSize = part.size = part.dSize = Random::GenerateFloat(DUST_SIZE_MAX / 2, DUST_SIZE_MAX);
+
+		FadeParticleAtWaterSurface(part);
 	}
 
 	void InitializeVentilator(short itemNumber)
