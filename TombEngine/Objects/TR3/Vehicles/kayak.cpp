@@ -1070,7 +1070,7 @@ namespace TEN::Entities::Vehicles
 	void KayakLaraRapidsDrown(ItemInfo* laraItem)
 	{
 		// Already drowning...
-		if (laraItem->HitPoints == -1)
+		if (laraItem->HitPoints == NO_VALUE)
 			return;
 
 		auto* lara = GetLaraInfo(laraItem);
@@ -1083,7 +1083,7 @@ namespace TEN::Entities::Vehicles
 		laraItem->Animation.IsAirborne = false;
 		laraItem->Animation.Velocity.z = 0;
 		laraItem->Animation.Velocity.y = 0;
-		laraItem->HitPoints = -1;
+		laraItem->HitPoints = NO_VALUE;
 
 		AnimateItem(laraItem);
 
