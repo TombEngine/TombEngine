@@ -31,6 +31,10 @@ namespace TEN::Entities::Vehicles
 	constexpr auto KAYAK_MOUNT_DISTANCE = CLICK(1.5f);
 	constexpr auto KAYAK_DISMOUNT_DISTANCE = CLICK(3); // TODO: Find accurate distance.
 
+	constexpr auto KAYAK_SLOPE_ANGLE_MIN = ANGLE(45.0f);
+	constexpr auto KAYAK_SLIDE_VELOCITY_MAX = 32.0f;
+	constexpr auto KAYAK_FLOOR_HEIGHT_TOLERANCE = CLICK(0.5f);
+
 	constexpr int KAYAK_VELOCITY_FORWARD_ACCEL = 24 * VEHICLE_VELOCITY_SCALE;
 	constexpr int KAYAK_VELOCITY_LR_ACCEL = 16 * VEHICLE_VELOCITY_SCALE;
 	constexpr int KAYAK_VELOCITY_HOLD_TURN_DECEL = 0.5f * VEHICLE_VELOCITY_SCALE;
@@ -470,13 +474,6 @@ namespace TEN::Entities::Vehicles
 
 	static void KayakDoSlopeSlide(ItemInfo* kayakItem)
 	{
-		// Out of water the kayak has no buoyancy holding it up, so let gravity carry it down slopes
-		// instead of letting it rest on them.
-
-		constexpr auto SLOPE_ANGLE_MIN		  = ANGLE(11.0f);
-		constexpr auto SLIDE_VELOCITY_MAX	  = 32.0f;
-		constexpr auto FLOOR_HEIGHT_TOLERANCE = CLICK(0.5f);
-
 		auto pointColl = GetPointCollision(*kayakItem);
 
 		// In water the kayak floats and follows the surface instead.
@@ -484,15 +481,15 @@ namespace TEN::Entities::Vehicles
 			return;
 
 		// An airborne kayak falls first; only a grounded one slides.
-		if ((pointColl.GetFloorHeight() - kayakItem->Pose.Position.y) > FLOOR_HEIGHT_TOLERANCE)
+		if ((pointColl.GetFloorHeight() - kayakItem->Pose.Position.y) > KAYAK_FLOOR_HEIGHT_TOLERANCE)
 			return;
 
 		short slopeAngle = Geometry::GetSurfaceSlopeAngle(pointColl.GetFloorNormal());
-		if (slopeAngle < SLOPE_ANGLE_MIN)
+		if (slopeAngle < KAYAK_SLOPE_ANGLE_MIN)
 			return;
 
 		// Steeper slopes carry the kayak away faster.
-		float velocity = SLIDE_VELOCITY_MAX * phd_sin(slopeAngle);
+		float velocity = KAYAK_SLIDE_VELOCITY_MAX * phd_sin(slopeAngle);
 		short headingAngle = Geometry::GetSurfaceAspectAngle(pointColl.GetFloorNormal());
 
 		kayakItem->Pose.Position.x += velocity * phd_sin(headingAngle);
@@ -602,13 +599,14 @@ namespace TEN::Entities::Vehicles
 			kayakPos.z = kayak->OldPose.Position.z;
 			kayakPos.RoomNumber = kayakItem->RoomNumber;
 
-			CameraCollisionBounds(&kayakPos, CLICK(1), false);
-			{
-				kayakItem->Pose.Position.x = kayakPos.x;
-				kayakItem->Pose.Position.y = kayakPos.y;
-				kayakItem->Pose.Position.z = kayakPos.z;
-				kayakItem->RoomNumber = kayakPos.RoomNumber;
-			}
+			probe = GetPointCollision(kayak->OldPose.Position, kayakPos.RoomNumber);
+			bool steepSlope = Geometry::GetSurfaceSlopeAngle(probe.GetFloorNormal()) > KAYAK_SLOPE_ANGLE_MIN;
+			CameraCollisionBounds(&kayakPos, CLICK(1), steepSlope);
+
+			kayakItem->Pose.Position.x = kayakPos.x;
+			kayakItem->Pose.Position.y = kayakPos.y;
+			kayakItem->Pose.Position.z = kayakPos.z;
+			kayakItem->RoomNumber = kayakPos.RoomNumber;
 		}
 
 		DoVehicleCollision(kayakItem, KAYAK_Z); // FIXME: kayak is thin, what should we do about it?

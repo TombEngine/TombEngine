@@ -64,7 +64,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Fixed MINECART_SWITCH object not working.
 * Fixed JUMP_SWITCH not activating event sets.
 * Fixed SNOWMOBILE death being too sensitive to vertical velocity.
-* Fixed KAYAK sticking to slopes out of water instead of sliding down them.
+* Fixed KAYAK sticking to steep slopes out of water instead of sliding down them.
 * Fixed BATS_EMITTER targeting issues.
 * Fixed CROCODILE not swimming in certain water room configurations.
 * Fixed MONKEY not picking up SMALLMEDI_ITEM and KEY_ITEM4 (latter is possible by using AI_MODIFY on the monkey).
