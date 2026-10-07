@@ -52,7 +52,7 @@ TombEngine releases are located in this repository (alongside with Tomb Editor):
 * Added hit sounds for TR1 enemies when shot.
 * Added splash and bubble effects for CRUMBLING_FLOOR if it falls into water.
 * Added correct depth sorting of overlapping transparent objects, such as alpha blended meshes placed behind one another.
-* Increased renderer performance for alpha blended and other transparent geometry.
+* Increased renderer performance for alpha blended and other transparent geometry, and for static meshes in scenes with dynamic shadows.
 * Removed [FIRE_PENDULUM](https://tombengine.com/asset/traps/fire-pendulum/) fog effect if OCB value is 0.
 
 ### Bug fixes
