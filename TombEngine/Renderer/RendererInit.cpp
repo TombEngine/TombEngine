@@ -327,6 +327,7 @@ namespace TEN::Renderer
 
 		_SSAORenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
 		_SSAOBlurredRenderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::None);
+        TENLog(fmt::format("SSAO: {}x{}, 64 samples, bilateral 5x5; asynchronous GPU timings every 120 valid samples.", w, h), LogLevel::Info);
 
 		int downscaledW = (w + POSTPROCESS_DOWNSCALE_FACTOR - 1) / POSTPROCESS_DOWNSCALE_FACTOR;
 		int downscaledH = (h + POSTPROCESS_DOWNSCALE_FACTOR - 1) / POSTPROCESS_DOWNSCALE_FACTOR;

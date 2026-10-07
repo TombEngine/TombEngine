@@ -337,9 +337,9 @@ namespace TEN::Renderer
 			_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 			_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-			_primitiveBatch->Begin();
+            BeginPrimitiveBatch();
 			_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);
-			_primitiveBatch->End();
+            EndPrimitiveBatch();
 		}
 		else
 		{
@@ -380,15 +380,15 @@ namespace TEN::Renderer
 				_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 				_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-				_primitiveBatch->Begin();
+                BeginPrimitiveBatch();
 
 				BindTexture(TextureRegister::ColorMap, spriteToDraw.SpritePtr->Texture, SamplerStateRegister::AnisotropicClamp);
 				SetBlendMode(spriteToDraw.BlendMode);
 			}
 			else if (texture2DPtr != spriteToDraw.SpritePtr->Texture || _lastBlendMode != spriteToDraw.BlendMode)
 			{
-				_primitiveBatch->End();
-				_primitiveBatch->Begin();
+                EndPrimitiveBatch();
+                BeginPrimitiveBatch();
 
 				BindTexture(TextureRegister::ColorMap, spriteToDraw.SpritePtr->Texture, SamplerStateRegister::AnisotropicClamp);
 				SetBlendMode(spriteToDraw.BlendMode);
@@ -434,7 +434,7 @@ namespace TEN::Renderer
 		}
 		
 		if (texture2DPtr != nullptr)
-			_primitiveBatch->End();
+            EndPrimitiveBatch();
 	}
 
 	void Renderer::DrawFullScreenQuad(ITextureBase* texture, Vector3 color, bool fit, float customAspect)
@@ -494,9 +494,9 @@ namespace TEN::Renderer
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-		_primitiveBatch->Begin();
+        BeginPrimitiveBatch();
 		_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);
-		_primitiveBatch->End();
+        EndPrimitiveBatch();
 	}
 
 	void Renderer::DrawFullScreenSprite(RendererSprite* sprite, DirectX::SimpleMath::Vector3 color, bool fit)
@@ -568,9 +568,9 @@ namespace TEN::Renderer
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
 
-		_primitiveBatch->Begin();
+        BeginPrimitiveBatch();
 		_primitiveBatch->DrawQuad(vertices[0], vertices[1], vertices[2], vertices[3]);
-		_primitiveBatch->End();
+        EndPrimitiveBatch();
 	}
 
 	void Renderer::AddDisplaySprite(const RendererSprite& sprite, const Vector2& pos2D, short orient, const Vector2& size, const Vector4& color,
