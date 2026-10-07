@@ -1210,6 +1210,29 @@ const std::vector<unsigned char> SaveGame::Build()
 	}
 	auto soundtrackOffset = fbb.CreateVector(soundtracks);
 
+	// Named soundtrack channels.
+	std::vector<flatbuffers::Offset<Save::NamedSoundtrack>> namedSoundtracks;
+	if (g_SoundTrackManager)
+	{
+		for (const auto& state : g_SoundTrackManager->GetAllChannelStates())
+		{
+			auto channelNameOffset = fbb.CreateString(state.Name);
+			auto trackNameOffset   = fbb.CreateString(state.Track);
+
+			Save::NamedSoundtrackBuilder ns{ fbb };
+			ns.add_channel_name(channelNameOffset);
+			ns.add_track(trackNameOffset);
+			ns.add_position(state.SavedPosition);
+			ns.add_preset((int)state.Preset);
+			ns.add_flags((int)state.Flags);
+			ns.add_fade_out_time(state.FadeOutTime);
+			ns.add_crossfade_time(state.CrossfadeTime);
+			ns.add_volume(state.Volume);
+			namedSoundtracks.push_back(ns.Finish());
+		}
+	}
+	auto namedSoundtrackOffset = fbb.CreateVector(namedSoundtracks);
+
 	// Legacy soundtrack map
 	std::vector<int> soundTrackMap;
 	for (auto& track : SoundTracks) 
@@ -1710,6 +1733,7 @@ const std::vector<unsigned char> SaveGame::Build()
 	sgb.add_action_queue(actionQueueOffset);
 	sgb.add_flip_maps(flipMapsOffset);
 	sgb.add_flip_stats(flipStatsOffset);
+	sgb.add_named_soundtracks(namedSoundtrackOffset);
 	sgb.add_flip_effect(FlipEffect);
 	sgb.add_flip_status(FlipStatus);
 	sgb.add_current_fov(LastFOV);
@@ -2334,6 +2358,39 @@ static void ParseEffects(const Save::SaveGame* s)
 	g_Renderer.SetPostProcessStrength(s->postprocess_strength());
 	g_Renderer.SetPostProcessTint(ToVector3(s->postprocess_tint()));
 
+	// Restore named soundtrack channels (new saves).
+	if (g_SoundTrackManager && s->named_soundtracks() && s->named_soundtracks()->size() > 0)
+	{
+		auto states = std::vector<TrackChannel>{};
+		for (unsigned int i = 0; i < s->named_soundtracks()->size(); i++)
+		{
+			auto* ns    = s->named_soundtracks()->Get(i);
+			auto  state = TrackChannel{};
+			state.Name          = ns->channel_name()->str();
+			state.Track         = ns->track()->str();
+			state.SavedPosition = ns->position();
+			state.Preset        = (TrackPreset)ns->preset();
+			state.Flags         = (TrackFlags)ns->flags();
+			state.FadeOutTime   = ns->fade_out_time();
+			state.CrossfadeTime = ns->crossfade_time();
+			state.Volume        = ns->volume();
+			states.push_back(state);
+		}
+
+		g_SoundTrackManager->RestoreFromSave(states);
+	}
+	else
+	{
+		// Legacy save format: restore by SoundTrackType index.
+		for (int i = 0; i < s->soundtracks()->size(); i++)
+		{
+			TENAssert(i < (int)SoundTrackType::Count, "Soundtrack type count was changed");
+
+			auto track = s->soundtracks()->Get(i);
+			PlaySoundTrack(track->name()->str(), (SoundTrackType)i, track->position(), SOUND_XFADETIME_LEVELJUMP);
+		}
+	}
+
 	// Restore material properties.
 	auto* materialProperties = s->level_data()->material_properties();
 	TENAssert(materialProperties != nullptr && materialProperties->size() == g_Level.Materials.size() * MaterialData::PropertyCount, "Savegame material property data size mismatch.");
@@ -2348,15 +2405,6 @@ static void ParseEffects(const Save::SaveGame* s)
 
 		material.SetCurrentProperties(properties);
 		material.StoreInterpolationData();
-	}
-
-	// Restore soundtracks.
-	for (int i = 0; i < s->soundtracks()->size(); i++)
-	{
-		TENAssert(i < (int)SoundTrackType::Count, "Soundtrack type count was changed.");
-
-		auto track = s->soundtracks()->Get(i);
-		PlaySoundTrack(track->name()->str(), (SoundTrackType)i, track->position(), SOUND_XFADETIME_LEVELJUMP);
 	}
 
 	// Restore video playback.
