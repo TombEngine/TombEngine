@@ -529,6 +529,7 @@ namespace TEN::Gui
 			AmbientOcclusion,
 			HighFramerate,
 			Gamma,
+			SkyQuality,
 			Save,
 			Cancel,
 
@@ -622,6 +623,16 @@ namespace TEN::Gui
 				}
 				break;
 
+			case DisplaySettingsOption::SkyQuality:
+				if ((int)CurrentSettings.Configuration.AtmosphericSkyQuality > (int)AtmosphericSkyQuality::Low)
+				{
+					CurrentSettings.Configuration.AtmosphericSkyQuality =
+						(AtmosphericSkyQuality)((int)CurrentSettings.Configuration.AtmosphericSkyQuality - 1);
+					g_Configuration.AtmosphericSkyQuality = CurrentSettings.Configuration.AtmosphericSkyQuality;
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				}
+				break;
+
 			}
 		}
 
@@ -698,6 +709,16 @@ namespace TEN::Gui
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				}
 				break;
+
+			case DisplaySettingsOption::SkyQuality:
+				if ((int)CurrentSettings.Configuration.AtmosphericSkyQuality < (int)AtmosphericSkyQuality::High)
+				{
+					CurrentSettings.Configuration.AtmosphericSkyQuality =
+						(AtmosphericSkyQuality)((int)CurrentSettings.Configuration.AtmosphericSkyQuality + 1);
+					g_Configuration.AtmosphericSkyQuality = CurrentSettings.Configuration.AtmosphericSkyQuality;
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				}
+				break;
 			}
 		}
 
@@ -741,6 +762,7 @@ namespace TEN::Gui
 			else if (SelectedOption == DisplaySettingsOption::Cancel)
 			{
 				g_Configuration.Gamma = BackupGamma;
+				g_Configuration.AtmosphericSkyQuality = BackupAtmoSkyQuality;
 				g_Renderer.SetGraphicsSettingsChanged();
 				MenuToDisplay = Menu::Options;
 				SelectedOption = 0;
@@ -981,6 +1003,7 @@ namespace TEN::Gui
 	{
 		CurrentSettings.Configuration = g_Configuration;
 		BackupGamma = g_Configuration.Gamma;
+		BackupAtmoSkyQuality = g_Configuration.AtmosphericSkyQuality;
 	}
 
 	void GuiController::HandleOptionsInput()

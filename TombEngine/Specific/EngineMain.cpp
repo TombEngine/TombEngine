@@ -4,6 +4,7 @@
 #include "Game/control/control.h"
 #include "Game/savegame.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/ImGuiIntegration.h"
 #include "resource.h"
 #include "Sound/sound.h"
 #include "Specific/configuration.h"
@@ -417,6 +418,9 @@ int main(int argc, char* argv[])
 		// Initialize renderer.
 		g_Renderer.Initialize(GameDirectory, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight, g_Configuration.EnableWindowedMode);
 
+		// Initialize ImGui (debug overlay) — must come after the D3D11 device exists.
+		TEN::Renderer::ImGuiInit(sdlWindow);
+
 		// Initialize input.
 		InitializeInput();
 
@@ -474,6 +478,13 @@ int main(int argc, char* argv[])
 		auto event = SDL_Event{};
 		while (SDL_PollEvent(&event))
 		{
+			// Let ImGui see every event first; it returns true when the overlay
+			// has focus and the event must not propagate to gameplay (so e.g. a
+			// click on a debug window doesn't also fire in the game world). The
+			// F8 toggle is handled here too.
+			if (TEN::Renderer::ImGuiProcessEvent(event))
+				continue;
+
 			switch (event.type)
 			{
 			case SDL_EVENT_QUIT:
@@ -521,6 +532,9 @@ int main(int argc, char* argv[])
 		SDL_Delay(1);
 
 	TENLog("Cleaning up and exiting...", LogLevel::Info);
+
+	// Tear ImGui down before the renderer / window: backends hold raw D3D11 + SDL handles.
+	TEN::Renderer::ImGuiShutdown();
 
 	SDL_DestroyWindow(sdlWindow);
 	EngineClose();

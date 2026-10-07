@@ -39,6 +39,7 @@
 #include "Game/room.h"
 #include "Game/savegame.h"
 #include "Game/Setup.h"
+#include "Game/Sky/SkyCloudSystem.h"
 #include "Game/spotcam.h"
 #include "Math/Math.h"
 #include "Objects/Effects/LensFlare.h"
@@ -78,6 +79,7 @@ using namespace TEN::Effects::DisplaySprite;
 using namespace TEN::Effects::Drip;
 using namespace TEN::Effects::Electricity;
 using namespace TEN::Effects::Environment;
+using namespace TEN::Sky;
 using namespace TEN::Effects::Explosion;
 using namespace TEN::Effects::Fireflies;
 using namespace TEN::Effects::Footprint;
@@ -199,6 +201,9 @@ GameStatus GamePhase(bool insideMenu)
 
 	// Update weather.
 	Weather.Update();
+
+	// Update layered sky/cloud/weather system.
+	g_SkyCloudSystem.Update(1.0f / 30.0f); // TEN runs at 30 ticks/sec.
 
 	// Update effects.
 	StreamerEffect.Update();
@@ -531,6 +536,10 @@ void CleanUp()
 
 	// Resets lightning and wind parameters to avoid holding over previous weather to new level.
 	Weather.Clear();
+	g_Renderer.GetDustStormSettings() = {};
+
+	// Reset the layered sky/cloud/weather system to default state for the new level.
+	g_SkyCloudSystem.Initialize();
 
 	// Clear creatures, otherwise list of active creatures from previous level will spill into new level.
 	ActiveCreatures.clear();
@@ -660,6 +669,10 @@ void InitializeOrLoadGame(bool loadGame)
 	// Restore game?
 	if (loadGame)
 	{
+		// Cancel any in-progress transitions before restoring the saved state,
+		// so the saved sky/preset takes effect cleanly without interference.
+		g_SkyCloudSystem.StopAllTransitions();
+
 		if (!SaveGame::Load(g_GameFlow->SelectedSaveGame))
 		{
 			NextLevel = g_GameFlow->GetNumLevels();
@@ -754,6 +767,10 @@ GameStatus DoGameLoop(int levelIndex)
 
 void EndGameLoop(int levelIndex, GameStatus reason)
 {
+	// Stop all sky transitions so the loading-screen screenshot and any remaining
+	// frames are free of mid-transition artefacts.
+	g_SkyCloudSystem.StopAllTransitions();
+
 	// Save last screenshot for loading screen.
 	g_Renderer.DumpGameScene(SceneRenderMode::Full);
 

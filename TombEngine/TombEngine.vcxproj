@@ -111,7 +111,7 @@
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;TombEngine_EXPORTS;_WINDOWS;_USRDLL;NOMINMAX;CREATURE_AI_PRIORITY_OPTIMIZATION;SPDLOG_COMPILED_LIB;SOL_SAFE_USERTYPE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)TombEngine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)TombEngine;$(SolutionDir)Libs\imgui;$(SolutionDir)Libs\imgui\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -177,7 +177,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;TombEngine_EXPORTS;_WINDOWS;_USRDLL;NOMINMAX;CREATURE_AI_PRIORITY_OPTIMIZATION;SPDLOG_COMPILED_LIB;SOL_SAFE_USERTYPE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)TombEngine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)TombEngine;$(SolutionDir)Libs\imgui;$(SolutionDir)Libs\imgui\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -190,6 +190,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <DisableSpecificWarnings>4018;4244;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -243,7 +244,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;TombEngine_EXPORTS;_WINDOWS;_USRDLL;NOMINMAX;CREATURE_AI_PRIORITY_OPTIMIZATION;SPDLOG_COMPILED_LIB;SOL_SAFE_USERTYPE;SOL_SAFE_FUNCTION_CALLS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)TombEngine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)TombEngine;$(SolutionDir)Libs\imgui;$(SolutionDir)Libs\imgui\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -325,7 +326,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;TombEngine_EXPORTS;_WINDOWS;_USRDLL;NOMINMAX;SPDLOG_COMPILED_LIB;SOL_SAFE_USERTYPE;SOL_SAFE_FUNCTION_CALLS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)TombEngine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)TombEngine;$(SolutionDir)Libs\imgui;$(SolutionDir)Libs\imgui\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -498,6 +499,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Game\savegame.h" />
     <ClInclude Include="Game\Setup.h" />
     <ClInclude Include="Game\Sink.h" />
+    <ClInclude Include="Game\Effects\LensFlareDebug.h" />
+    <ClInclude Include="Game\Sky\SkyCloudDebug.h" />
+    <ClInclude Include="Game\Sky\SkyCloudSystem.h" />
     <ClInclude Include="Game\spotcam.h" />
     <ClInclude Include="Game\StaticMesh.h" />
     <ClInclude Include="Math\Constants.h" />
@@ -812,6 +816,11 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\ConstantBuffers\ShadowLightBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\SkyBuffer.h" />
     <ClInclude Include="Renderer\ConstantBuffers\SMAABuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\VolumetricCloudBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\AtmosphericSkyBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\GodRayBuffer.h" />
+    <ClInclude Include="Renderer\ConstantBuffers\DustStormBuffer.h" />
+    <ClInclude Include="Renderer\AtmosphericSky\AtmosphericSkySettings.h" />
     <ClInclude Include="Renderer\Frustum.h" />
     <ClInclude Include="Renderer\Graphics\IRenderSurface2D.h" />
     <ClInclude Include="Renderer\Graphics\AdapterInfo.h" />
@@ -838,6 +847,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Graphics\Vertices\PostProcessVertex.h" />
     <ClInclude Include="Renderer\Graphics\Vertices\SpriteVertex.h" />
     <ClInclude Include="Renderer\Graphics\Vertices\Vertex.h" />
+    <ClInclude Include="Renderer\ImGuiIntegration.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11Utils.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11ErrorHelper.h" />
     <ClInclude Include="Renderer\Native\DirectX11\DX11ConstantBuffer.h" />
@@ -905,6 +915,11 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Structures\RendererStatic.h" />
     <ClInclude Include="Renderer\Structures\RendererStringToDraw.h" />
     <ClInclude Include="Renderer\Structures\RendererTriangle3D.h" />
+    <ClInclude Include="Renderer\VolumetricCloud\VolumetricCloud.h" />
+    <ClInclude Include="Renderer\VolumetricCloud\CloudNoiseTexture.h" />
+    <ClInclude Include="Renderer\GodRay\GodRaySettings.h" />
+    <ClInclude Include="Renderer\DustStorm\DustStormSettings.h" />
+    <ClInclude Include="Renderer\SkyQuality.h" />
     <ClInclude Include="Renderer\Structures\RendererViewport.h" />
     <ClInclude Include="Scripting\Include\Flow\ScriptInterfaceFlowHandler.h" />
     <ClInclude Include="Scripting\Include\Objects\ScriptInterfaceObjectsHandler.h" />
@@ -918,6 +933,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\LaraTypes.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\PathfindingAlgorithms.h" />
     <ClInclude Include="Scripting\Internal\TEN\Flow\Enums\WeatherTypes.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\DynamicSky\DynamicSky.h" />
+    <ClInclude Include="Scripting\Internal\TEN\Flow\Weather\WeatherPreset.h" />
     <ClInclude Include="Scripting\Internal\TEN\Input\AxisIDs.h" />
     <ClInclude Include="Scripting\Internal\AudioTracks.h" />
     <ClInclude Include="Scripting\Internal\LanguageScript.h" />
@@ -1151,6 +1168,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Game\room.cpp" />
     <ClCompile Include="Game\savegame.cpp" />
     <ClCompile Include="Game\Setup.cpp" />
+    <ClCompile Include="Game\Effects\LensFlareDebug.cpp" />
+    <ClCompile Include="Game\Sky\SkyCloudDebug.cpp" />
+    <ClCompile Include="Game\Sky\SkyCloudSystem.cpp" />
     <ClCompile Include="Game\spotcam.cpp" />
     <ClCompile Include="Game\StaticMesh.cpp" />
     <ClCompile Include="Math\Geometry.cpp" />
@@ -1450,12 +1470,14 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\Native\DirectX11\DX11VertexBuffer.cpp" />
     <ClCompile Include="Renderer\Renderer.cpp" />
     <ClCompile Include="Renderer\RendererAntialiasing.cpp" />
+    <ClCompile Include="Renderer\ImGuiIntegration.cpp" />
     <ClCompile Include="Renderer\RendererCompatibility.cpp" />
     <ClCompile Include="Renderer\RendererDebug.cpp" />
     <ClCompile Include="Renderer\RendererDraw.cpp" />
     <ClCompile Include="Renderer\RendererDraw2D.cpp" />
     <ClCompile Include="Renderer\RendererDrawEffect.cpp" />
     <ClCompile Include="Renderer\RendererDrawMenu.cpp" />
+    <ClCompile Include="Renderer\RendererDualClouds.cpp" />
     <ClCompile Include="Renderer\RendererFrame.cpp" />
     <ClCompile Include="Renderer\RendererHelper.cpp" />
     <ClCompile Include="Renderer\RendererInit.cpp" />
@@ -1465,6 +1487,30 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\RendererSprites.cpp" />
     <ClCompile Include="Renderer\RendererString.cpp" />
     <ClCompile Include="Renderer\RendererUtils.cpp" />
+    <ClCompile Include="..\Libs\imgui\imgui.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\Libs\imgui\imgui_draw.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\Libs\imgui\imgui_tables.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\Libs\imgui\imgui_widgets.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\Libs\imgui\backends\imgui_impl_dx11.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\Libs\imgui\backends\imgui_impl_sdl3.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Renderer\RendererVolumetricClouds.cpp" />
+    <ClCompile Include="Renderer\VolumetricCloud\CloudNoiseTexture.cpp" />
+    <ClCompile Include="Renderer\RendererAtmosphericSky.cpp" />
+    <ClCompile Include="Renderer\RendererGodRay.cpp" />
+    <ClCompile Include="Renderer\RendererDustStorm.cpp" />
+    <ClCompile Include="Renderer\SkyQuality.cpp" />
     <ClCompile Include="Renderer\RenderView.cpp" />
     <ClCompile Include="Renderer\ShaderManager\ShaderManager.cpp" />
     <ClCompile Include="Scripting\Internal\LuaHandler.cpp" />
@@ -1477,6 +1523,8 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Scripting\Internal\TEN\Flow\Statistics\Statistics.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Objects\Creature\Creature.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Collision\Los.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\DynamicSky\DynamicSky.cpp" />
+    <ClCompile Include="Scripting\Internal\TEN\Flow\Weather\WeatherPreset.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Types\Color\Color.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\View\DisplayAnchors\ScriptDisplayAnchors.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\Types\Time\Time.cpp" />
@@ -1578,6 +1626,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="Shaders\DOF.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
+    <None Include="Shaders\CBVolumetricCloud.hlsli" />
+    <None Include="Shaders\CBGodRay.hlsli" />
+    <None Include="Shaders\CBDustStorm.hlsli" />
     <None Include="Shaders\Materials.hlsli">
       <DeploymentContent>true</DeploymentContent>
     </None>
@@ -1815,6 +1866,13 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <None Include="Shaders\Glow.hlsl">
       <DeploymentContent>true</DeploymentContent>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\VolumetricClouds.hlsl" />
+    <None Include="Shaders\AtmosphericSkyDome.hlsl" />
+    <None Include="Shaders\GodRay.hlsl" />
+    <None Include="Shaders\DustStorm.hlsl" />
+    <None Include="Shaders\CBAtmosphericSky.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -878,6 +878,8 @@ struct LevelDataT : public flatbuffers::NativeTable {
   int32_t starfield_meteor_spawn_density = 0;
   int32_t starfield_meteor_velocity = 0;
   std::vector<TEN::Serialization::Common::Vector4> material_properties{};
+  int32_t lensflare_color_b = 0;
+  int32_t lensflare_color_mode = 0;
 };
 
 struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -920,7 +922,9 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_STARFIELD_METEOR_COUNT = 68,
     VT_STARFIELD_METEOR_SPAWN_DENSITY = 70,
     VT_STARFIELD_METEOR_VELOCITY = 72,
-    VT_MATERIAL_PROPERTIES = 74
+    VT_MATERIAL_PROPERTIES = 74,
+    VT_LENSFLARE_COLOR_B = 76,
+    VT_LENSFLARE_COLOR_MODE = 78
   };
   uint32_t random_seed() const {
     return GetField<uint32_t>(VT_RANDOM_SEED, 0);
@@ -1030,6 +1034,12 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<const TEN::Serialization::Common::Vector4 *> *material_properties() const {
     return GetPointer<const flatbuffers::Vector<const TEN::Serialization::Common::Vector4 *> *>(VT_MATERIAL_PROPERTIES);
   }
+  int32_t lensflare_color_b() const {
+    return GetField<int32_t>(VT_LENSFLARE_COLOR_B, 0);
+  }
+  int32_t lensflare_color_mode() const {
+    return GetField<int32_t>(VT_LENSFLARE_COLOR_MODE, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint32_t>(verifier, VT_RANDOM_SEED) &&
@@ -1069,6 +1079,8 @@ struct LevelData FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_STARFIELD_METEOR_VELOCITY) &&
            VerifyOffset(verifier, VT_MATERIAL_PROPERTIES) &&
            verifier.VerifyVector(material_properties()) &&
+           VerifyField<int32_t>(verifier, VT_LENSFLARE_COLOR_B) &&
+           VerifyField<int32_t>(verifier, VT_LENSFLARE_COLOR_MODE) &&
            verifier.EndTable();
   }
   LevelDataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1188,6 +1200,12 @@ struct LevelDataBuilder {
   void add_material_properties(flatbuffers::Offset<flatbuffers::Vector<const TEN::Serialization::Common::Vector4 *>> material_properties) {
     fbb_.AddOffset(LevelData::VT_MATERIAL_PROPERTIES, material_properties);
   }
+  void add_lensflare_color_b(int32_t lensflare_color_b) {
+    fbb_.AddElement<int32_t>(LevelData::VT_LENSFLARE_COLOR_B, lensflare_color_b, 0);
+  }
+  void add_lensflare_color_mode(int32_t lensflare_color_mode) {
+    fbb_.AddElement<int32_t>(LevelData::VT_LENSFLARE_COLOR_MODE, lensflare_color_mode, 0);
+  }
   explicit LevelDataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1236,8 +1254,12 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(
     int32_t starfield_meteor_count = 0,
     int32_t starfield_meteor_spawn_density = 0,
     int32_t starfield_meteor_velocity = 0,
-    flatbuffers::Offset<flatbuffers::Vector<const TEN::Serialization::Common::Vector4 *>> material_properties = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<const TEN::Serialization::Common::Vector4 *>> material_properties = 0,
+    int32_t lensflare_color_b = 0,
+    int32_t lensflare_color_mode = 0) {
   LevelDataBuilder builder_(_fbb);
+  builder_.add_lensflare_color_mode(lensflare_color_mode);
+  builder_.add_lensflare_color_b(lensflare_color_b);
   builder_.add_material_properties(material_properties);
   builder_.add_starfield_meteor_velocity(starfield_meteor_velocity);
   builder_.add_starfield_meteor_spawn_density(starfield_meteor_spawn_density);
@@ -1319,7 +1341,9 @@ inline flatbuffers::Offset<LevelData> CreateLevelDataDirect(
     int32_t starfield_meteor_count = 0,
     int32_t starfield_meteor_spawn_density = 0,
     int32_t starfield_meteor_velocity = 0,
-    const std::vector<TEN::Serialization::Common::Vector4> *material_properties = nullptr) {
+    const std::vector<TEN::Serialization::Common::Vector4> *material_properties = nullptr,
+    int32_t lensflare_color_b = 0,
+    int32_t lensflare_color_mode = 0) {
   auto material_properties__ = material_properties ? _fbb.CreateVectorOfStructs<TEN::Serialization::Common::Vector4>(*material_properties) : 0;
   return TEN::Serialization::Save::CreateLevelData(
       _fbb,
@@ -1358,7 +1382,9 @@ inline flatbuffers::Offset<LevelData> CreateLevelDataDirect(
       starfield_meteor_count,
       starfield_meteor_spawn_density,
       starfield_meteor_velocity,
-      material_properties__);
+      material_properties__,
+      lensflare_color_b,
+      lensflare_color_mode);
 }
 
 flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBuilder &_fbb, const LevelDataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -11083,6 +11109,8 @@ inline void LevelData::UnPackTo(LevelDataT *_o, const flatbuffers::resolver_func
   { auto _e = starfield_meteor_spawn_density(); _o->starfield_meteor_spawn_density = _e; }
   { auto _e = starfield_meteor_velocity(); _o->starfield_meteor_velocity = _e; }
   { auto _e = material_properties(); if (_e) { _o->material_properties.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->material_properties[_i] = *_e->Get(_i); } } }
+  { auto _e = lensflare_color_b(); _o->lensflare_color_b = _e; }
+  { auto _e = lensflare_color_mode(); _o->lensflare_color_mode = _e; }
 }
 
 inline flatbuffers::Offset<LevelData> LevelData::Pack(flatbuffers::FlatBufferBuilder &_fbb, const LevelDataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -11129,6 +11157,8 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBui
   auto _starfield_meteor_spawn_density = _o->starfield_meteor_spawn_density;
   auto _starfield_meteor_velocity = _o->starfield_meteor_velocity;
   auto _material_properties = _fbb.CreateVectorOfStructs(_o->material_properties);
+  auto _lensflare_color_b = _o->lensflare_color_b;
+  auto _lensflare_color_mode = _o->lensflare_color_mode;
   return TEN::Serialization::Save::CreateLevelData(
       _fbb,
       _random_seed,
@@ -11166,7 +11196,9 @@ inline flatbuffers::Offset<LevelData> CreateLevelData(flatbuffers::FlatBufferBui
       _starfield_meteor_count,
       _starfield_meteor_spawn_density,
       _starfield_meteor_velocity,
-      _material_properties);
+      _material_properties,
+      _lensflare_color_b,
+      _lensflare_color_mode);
 }
 
 inline RoomT *Room::UnPack(const flatbuffers::resolver_function_t *_resolver) const {

@@ -169,6 +169,7 @@ namespace TEN::Renderer
 				lensFlareToDraw.SpriteID = lensFlare.SpriteID;
 				lensFlareToDraw.Direction = lensFlareToCamera;
 				lensFlareToDraw.IsGlobal = lensFlare.IsGlobal;
+				lensFlareToDraw.EffectsEnabled = lensFlare.EffectsEnabled;
 
 				tempLensFlares.push_back(lensFlareToDraw);
 			}

@@ -23,6 +23,18 @@
 #include "Renderer/ConstantBuffers/PostProcessBuffer.h"
 #include "Renderer/ConstantBuffers/SMAABuffer.h"
 #include "Renderer/ConstantBuffers/SkyBuffer.h"
+#include "Renderer/ConstantBuffers/VolumetricCloudBuffer.h"
+#include "Renderer/ConstantBuffers/AtmosphericSkyBuffer.h"
+#include "Renderer/ConstantBuffers/GodRayBuffer.h"
+#include "Renderer/ConstantBuffers/DustStormBuffer.h"
+#include "Renderer/AtmosphericSky/AtmosphericSkySettings.h"
+#include "Renderer/Aurora/AuroraSettings.h"
+#include "Renderer/UnderwaterSky/UnderwaterSkySettings.h"
+#include "Renderer/DustStorm/DustStormSettings.h"
+#include "Renderer/GodRay/GodRaySettings.h"
+#include "Renderer/Moon/MoonSettings.h"
+#include "Renderer/VolumetricCloud/VolumetricCloud.h"
+#include "Renderer/VolumetricCloud/CloudNoiseTexture.h"
 #include "Renderer/Frustum.h"
 #include "Renderer/Graphics/IGraphicsDevice.h"
 #include "Renderer/Graphics/Vertices/PostProcessVertex.h"
@@ -90,7 +102,6 @@ namespace TEN::Renderer
 		AdapterInfo _adapterInfo = {};
 
 		// Render targets
-
 		std::unique_ptr<IRenderSurface2D> _normalsAndMaterialIndexRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _depthRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _emissiveAndRoughnessRenderTarget;
@@ -115,6 +126,7 @@ namespace TEN::Renderer
 		std::unique_ptr<IRenderSurface2D> _SMAABlendRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _skyboxRenderTarget;
 		std::unique_ptr<IRenderSurface2D> _backBuffer;
+		std::unique_ptr<IRenderSurface2D> _outdoorMaskRenderTarget;
 
 		// Constant buffers
 
@@ -144,6 +156,57 @@ namespace TEN::Renderer
 		std::unique_ptr<IConstantBuffer> _cbSMAABuffer;
 		CSkyBuffer _stSky;
 		std::unique_ptr<IConstantBuffer> _cbSky;
+
+		// Volumetric clouds
+		ConstantBuffers::CVolumetricCloudBuffer _stVolumetricCloud;
+		std::unique_ptr<IConstantBuffer> _cbVolumetricCloud;
+		VolumetricCloud::CloudNoiseTextures _cloudNoiseTextures;
+		std::unique_ptr<IRenderSurface2D> _cloudRenderTarget;
+		std::unique_ptr<IRenderSurface2D> _cloudPrevFrameRT;              // Previous frame's cloud result for temporal checkerboard
+		std::unique_ptr<IRenderSurface2D> _cloudOcclusionTarget;
+		std::unique_ptr<IGpuReadbackBuffer> _cloudOcclusionReadback;
+		std::unique_ptr<IRenderSurface2D> _scenePreCloudBackup;          // Full-res copy of scene before cloud composite
+
+		// Atmospheric sky dome
+		ConstantBuffers::CAtmosphericSkyBuffer _stAtmosphericSky;
+		std::unique_ptr<IConstantBuffer> _cbAtmosphericSky;
+		AtmosphericSkySettings _atmosphericSkySettings;
+		VolumetricCloud::CloudRenderSettings _volumetricCloudSettings;
+		VolumetricCloud::CloudRuntimeState _cloudState;
+
+		// Moon system
+		Moon::MoonSettings _moonSettings;
+
+		// Aurora system
+		Aurora::AuroraSettings _auroraSettings;
+		std::unique_ptr<IRenderSurface2D> _auroraHalfResRenderTarget;   // Half-res offscreen RT for Low quality rendering.
+		float _auroraTime        = 0.0f;   // Accumulated animation time.
+		float _auroraPresetFade  = 0.0f;   // [0,1] fade multiplier driven by preset selection.
+		float _auroraPresetFadeDuration = 5.0f; // Duration in seconds for aurora to fade in/out on preset change.
+
+		// Underwater sky system (Layer A preset, mutually exclusive with Aurora).
+		UnderwaterSky::UnderwaterSkySettings _underwaterSkySettings;
+		float _underwaterTime              = 0.0f;
+		float _underwaterPresetFade        = 0.0f;
+
+		// God rays
+		ConstantBuffers::CGodRayBuffer _stGodRay;
+		std::unique_ptr<IConstantBuffer> _cbGodRay;
+		std::unique_ptr<IRenderSurface2D> _godRayRenderTarget;
+		std::unique_ptr<IRenderSurface2D> _horizonMaskRenderTarget;
+		GodRay::GodRaySettings _godRaySettings;
+
+		// Volumetric dust storm
+		ConstantBuffers::CDustStormBuffer _stDustStorm;
+		std::unique_ptr<IConstantBuffer> _cbDustStorm;
+		DustStorm::DustStormSettings _dustStormSettings;
+
+		// Dual volumetric cloud layer B (layer A reuses the members above).
+		std::unique_ptr<IRenderSurface2D> _cloudRenderTargetB;
+		std::unique_ptr<IRenderSurface2D> _cloudPrevFrameRTB;   // Layer B previous-frame RT for temporal checkerboard
+		std::unique_ptr<IRenderSurface2D> _cloudOcclusionTargetB;
+		std::unique_ptr<IGpuReadbackBuffer> _cloudOcclusionReadbackB;
+		VolumetricCloud::CloudRuntimeState _cloudStateB;
 
 		// Primitive batches
 
@@ -387,6 +450,91 @@ namespace TEN::Renderer
 		void PrepareSingleLaserBeam(RenderView& view);
 		void DrawHorizonAndSky(IDepthTarget* depthTarget, RenderView& renderView, int arrayIndex = 0, bool reflectionPass = false);
 		void DrawHorizonAndSkyForReflections(RenderView& renderView);
+		void DrawHorizonDepth(RenderView& renderView);
+		void DrawHorizonMask(RenderView& renderView);
+		void RenderHorizonMeshLayers(RenderView& renderView);
+
+		// Atmospheric sky dome
+		void InitializeAtmosphericSky();
+		void UpdateAtmosphericSkyBuffer(RenderView& renderView);
+		void DrawAtmosphericSkyDome(RenderView& renderView);
+		void DrawAurora(RenderView& renderView);
+		void DrawSunMoonDisc(RenderView& renderView);
+	public:
+		float ComputeDayNightBlend(float sunElevation) const;
+		float ComputeStarfieldVisibility(float sunElevation) const;
+		float ComputeMoonPhase(const DirectX::SimpleMath::Vector3& sunDir, const DirectX::SimpleMath::Vector3& moonDir) const;
+		float ComputeMoonVisibility(float sunElevation) const;
+		AtmosphericSkySettings& GetAtmosphericSkySettings() { return _atmosphericSkySettings; }
+		const AtmosphericSkySettings& GetAtmosphericSkySettings() const { return _atmosphericSkySettings; }
+		Moon::MoonSettings& GetMoonSettings() { return _moonSettings; }
+		const Moon::MoonSettings& GetMoonSettings() const { return _moonSettings; }
+		Aurora::AuroraSettings& GetAuroraSettings() { return _auroraSettings; }
+		const Aurora::AuroraSettings& GetAuroraSettings() const { return _auroraSettings; }
+		float  GetAuroraPresetFade() const { return _auroraPresetFade; }
+		float& GetAuroraPresetFadeDuration() { return _auroraPresetFadeDuration; }
+		float  GetAuroraPresetFadeDuration() const { return _auroraPresetFadeDuration; }
+		UnderwaterSky::UnderwaterSkySettings& GetUnderwaterSkySettings() { return _underwaterSkySettings; }
+		const UnderwaterSky::UnderwaterSkySettings& GetUnderwaterSkySettings() const { return _underwaterSkySettings; }
+		float  GetUnderwaterSkyPresetFade() const { return _underwaterPresetFade; }
+	private:
+
+		// God rays
+		void InitializeGodRays();
+		void UpdateGodRayBuffer(RenderView& renderView);
+		void DrawGodRays(RenderView& renderView);
+	public:
+		GodRay::GodRaySettings& GetGodRaySettings() { return _godRaySettings; }
+		const GodRay::GodRaySettings& GetGodRaySettings() const { return _godRaySettings; }
+		const ConstantBuffers::CGodRayBuffer& GetGodRayBuffer() const { return _stGodRay; }
+	private:
+
+		// Volumetric dust storm
+		void InitializeDustStorm();
+		void UpdateDustStormBuffer(RenderView& view);
+		void DrawDustStorm(RenderView& view);
+	public:
+		DustStorm::DustStormSettings& GetDustStormSettings() { return _dustStormSettings; }
+		const DustStorm::DustStormSettings& GetDustStormSettings() const { return _dustStormSettings; }
+	private:
+
+		// Volumetric clouds
+		void InitializeVolumetricClouds();
+		void ResizeVolumetricCloudTargets();
+		void UpdateVolumetricCloudBuffer(const VolumetricCloud::CloudRenderSettings& settings,
+		                                 const VolumetricCloud::CloudRuntimeState& runtimeState,
+		                                 RenderView& view);
+		void UpdateCloudLensFlareOcclusion(RenderView& renderView);
+		void UpdateLightningThunder(const VolumetricCloud::CloudRenderSettings& settings, VolumetricCloud::CloudRuntimeState& state, float dt);
+		const VolumetricCloud::CloudRenderSettings* GetActiveVolumetricCloudSettings() const;
+	public:
+		float GetCloudLensFlareOcclusion() const;
+
+		// Diagnostic getters — used by the ImGui debug overlay to display live CB values.
+		const ConstantBuffers::CVolumetricCloudBuffer& GetVolumetricCloudCB() const { return _stVolumetricCloud; }
+		int GetCloudFrameCounterA() const { return _cloudState.FrameCounter; }
+		int GetCloudFrameCounterB() const { return _cloudStateB.FrameCounter; }
+
+		// Dual volumetric cloud layers (new layered system).
+		void InitializeDualVolumetricClouds();
+		void ResizeDualCloudTargets();
+		void DrawDualVolumetricClouds(RenderView& renderView);
+		void DrawSingleVolumetricCloudLayer(
+			const VolumetricCloud::CloudRenderSettings& settings,
+			VolumetricCloud::CloudRuntimeState& state,
+			IRenderSurface2D* renderTarget,
+			RenderView& renderView,
+			IRenderSurface2D* prevFrameRT = nullptr,
+			bool advanceState = true,
+			bool skipRaymarch = false);
+		void UpdateDualCloudLensFlareOcclusion(RenderView& renderView);
+		float ComputeSingleLayerOcclusion(
+			const VolumetricCloud::CloudRenderSettings& settings,
+			VolumetricCloud::CloudRuntimeState& state,
+			IRenderSurface2D* occlusionTarget,
+			IRenderSurface2D* cloudColorTarget,
+			IGpuReadbackBuffer* readback,
+			RenderView& renderView);
 		void DrawRooms(RenderView& view, RendererPass rendererPass);
 		void DrawItems(RenderView& view, RendererPass rendererPass, bool onlyPlayer = false);
 		void DrawAnimatingItem(RendererItem* item, RenderView& view, RendererPass rendererPass);
@@ -687,6 +835,10 @@ namespace TEN::Renderer
 		void DrawBar(float percent, const RendererHudBar& bar, GAME_OBJECT_ID textureSlot, int frame, bool poison);
 		void Create();
 		void Initialize(const std::string& gameDir, int w, int h, bool windowed);
+
+		// Backend escape hatch — used by ImGui DX11 init. Returns the underlying
+		// IGraphicsDevice; callers must downcast to the concrete backend type.
+		IGraphicsDevice* GetGraphicsDevice() const { return _graphicsDevice.get(); }
 		void ReloadShaders(bool recompileAAShaders = false);
 		void Render(float interpFactor);
 		void RenderTitle(float interpFactor);

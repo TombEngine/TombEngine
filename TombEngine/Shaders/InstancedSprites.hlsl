@@ -1,4 +1,5 @@
 #include "./CBCamera.hlsli"
+#include "./CBAtmosphericSky.hlsli"
 #include "./Blending.hlsli"
 #include "./VertexInput.hlsli"
 #include "./Math.hlsli"
@@ -42,6 +43,11 @@ cbuffer InstancedSpriteBuffer : register(b13)
 Texture2D Texture : register(t0);
 Texture2D DepthTexture : register(t6);
 
+// Cloud render targets for per-pixel star occlusion.
+// Only bound during the star draw call; null bindings return (0,0,0,0) - no occlusion.
+Texture2D CloudRenderTargetA : register(t10);
+Texture2D CloudRenderTargetB : register(t11);
+
 PixelShaderInput VS(VertexShaderInput input, uint InstanceID : SV_InstanceID)
 {
 	PixelShaderInput output;
@@ -80,6 +86,34 @@ float4 PS(PixelShaderInput input) : SV_TARGET
 	DoAlphaTest(output);
 
     InstancedSprite sprite = Sprites[input.InstanceID];
+
+    // Sky-object-only effects (RenderType == 3: stars and meteors).
+    if (sprite.RenderType == 3)
+    {
+        // Moon disk occlusion: discard star/meteor pixels that fall inside the moon.
+        // Reconstruct world-space view direction from clip-space position.
+        // PositionCopy is the VS clip-space output (before rasterizer), so
+        // PositionCopy.y/w > 0 already means "top of screen" - NO Y flip is needed.
+        if (AtmoMoonEnabled > 0.5f && AtmoMoonVisibility > 0.01f)
+        {
+            float2 ndc    = input.PositionCopy.xy / input.PositionCopy.w;
+            float4 vPos   = mul(float4(ndc.x, ndc.y, 1.0f, 1.0f), InverseProjection);
+            vPos.xyz     /= vPos.w;
+            float3 viewDir = normalize(mul(float4(vPos.xyz, 0.0f), InverseView).xyz);
+            if (dot(viewDir, normalize(AtmoMoonDirection)) > AtmoMoonDiskCosRadius)
+                discard;
+        }
+
+        // Per-pixel cloud occlusion: sample cloud render targets at this pixel's screen position.
+        // Null bindings return (0,0,0,0), so cloudCoverage = 0 and no attenuation is applied.
+        float2 screenUV = float2(
+            input.PositionCopy.x / input.PositionCopy.w *  0.5f + 0.5f,
+            input.PositionCopy.y / input.PositionCopy.w * -0.5f + 0.5f);
+        float covA = CloudRenderTargetA.Sample(LinearClampSampler, screenUV).a;
+        float covB = CloudRenderTargetB.Sample(LinearClampSampler, screenUV).a;
+        float cloudCoverage = saturate(covA + covB - covA * covB);
+        output.a *= (1.0f - cloudCoverage);
+    }
 	
     if (sprite.IsSoftParticle == 1)
 	{

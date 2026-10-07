@@ -233,8 +233,23 @@ namespace TEN::Effects::Environment
 
 		WindAngle = (WindAngle + ((WindDAngle - WindAngle) >> 3)) & 0x1FFE;
 
-		WindX = WindCurrent * phd_sin(WindAngle << 3);
-		WindZ = WindCurrent * phd_cos(WindAngle << 3);
+		// Random walk gives a fluctuating component around zero.
+		float flucX = WindCurrent * phd_sin(WindAngle << 3);
+		float flucZ = WindCurrent * phd_cos(WindAngle << 3);
+
+		// Scale fluctuation by base wind strength so a calm sky (base == 0)
+		// produces no perceptible wind on particles or hair.
+		float baseMag = std::sqrt(BaseWindX * BaseWindX + BaseWindZ * BaseWindZ);
+		float flucScale = std::min(1.0f, baseMag / MAX_BASE_WIND_STRENGTH);
+
+		WindX = (int)(BaseWindX + flucX * flucScale);
+		WindZ = (int)(BaseWindZ + flucZ * flucScale);
+	}
+
+	void EnvironmentController::SetBaseWind(float x, float z)
+	{
+		BaseWindX = std::clamp(x, -MAX_BASE_WIND_STRENGTH, MAX_BASE_WIND_STRENGTH);
+		BaseWindZ = std::clamp(z, -MAX_BASE_WIND_STRENGTH, MAX_BASE_WIND_STRENGTH);
 	}
 
 	void EnvironmentController::UpdateFlash(const ScriptInterfaceLevel& level)
@@ -401,8 +416,9 @@ namespace TEN::Effects::Environment
 					break;
 				}
 
-				part.Velocity.x = parameters.InitialVelocity.x + Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
-				part.Velocity.z = parameters.InitialVelocity.z + Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY);
+				auto windVel = GetBaseWindSpawnVelocity(parameters.Type);
+				part.Velocity.x = parameters.InitialVelocity.x + windVel.x;
+				part.Velocity.z = parameters.InitialVelocity.z + windVel.y;
 				part.Type = parameters.Type;
 				part.RoomNumber = outsideRoom;
 				part.Position = randPos;
@@ -415,6 +431,26 @@ namespace TEN::Effects::Environment
 				Particles.push_back(part);
 			}
 		}
+	}
+
+	// Initial horizontal velocity pre-seeded close to base wind steady-state target,
+	// so particles look wind-blown immediately after spawning.
+	Vector2 EnvironmentController::GetBaseWindSpawnVelocity(WeatherType type) const
+	{
+		float windMag = std::sqrt(BaseWindX * BaseWindX + BaseWindZ * BaseWindZ);
+		if (windMag <= 0.0f)
+		{
+			return Vector2(
+				Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY),
+				Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY));
+		}
+
+		float windFrac = std::min(1.0f, windMag / MAX_BASE_WIND_STRENGTH);
+		float speed = (type == WeatherType::Rain) ?
+			(windFrac * windFrac * 970.0f + Random::GenerateFloat(5.0f, 15.0f)) :
+			(windFrac * windFrac * 130.0f + Random::GenerateFloat(WEATHER_PARTICLE_HORIZONTAL_VELOCITY / 2, WEATHER_PARTICLE_HORIZONTAL_VELOCITY));
+
+		return Vector2(BaseWindX / windMag, BaseWindZ / windMag) * speed;
 	}
 
 	void EnvironmentController::UpdateWeather()
@@ -554,50 +590,17 @@ namespace TEN::Effects::Environment
 				}
 			}
 
-			const auto& room = g_Level.Rooms[part.RoomNumber];
-			auto windOffset = Vector2i(WindX, WindZ);
-			auto windRandFloat = Vector2(0.5f, 2.5f);
-			auto windForce = std::clamp(part.Strength, 0.5f, 2.0f);
-			auto windY = std::clamp(part.Strength, 0.6f, 1.0f);
-
-			if (room.flags & ENV_FLAG_WIND)
+			// Steady base wind (set via scripts or debug menu) takes precedence over legacy random wind.
+			if (BaseWindX != 0.0f || BaseWindZ != 0.0f)
 			{
-				if (part.Type == WeatherType::Snow)
-					windRandFloat.y = 5.0f;
-				windOffset.x <<= 2;
-				windOffset.y <<= 2;
+				ApplyBaseWind(part);
 			}
 			else
 			{
-				if (part.Type == WeatherType::Snow)
-				{
-					windRandFloat.x = 0.25f;
-					windRandFloat.y = 1.0f;
-				}
-				else
-				{
-					windRandFloat.x = 0.1f;
-					windRandFloat.y = 0.4f;
-				}
+				ApplyLegacyWind(part);
 			}
 
-			if (part.Velocity.x < (float)windOffset.x)
-			{
-				part.Velocity.x += Random::GenerateFloat(windRandFloat.x, windRandFloat.y) * windForce;
-			}
-			else if (part.Velocity.x > (float)windOffset.x)
-			{
-				part.Velocity.x -= Random::GenerateFloat(windRandFloat.x, windRandFloat.y) * windForce;
-			}
-
-			if (part.Velocity.z < (float)windOffset.y)
-			{
-				part.Velocity.z += Random::GenerateFloat(windRandFloat.x, windRandFloat.y) * windForce;
-			}
-			else if (part.Velocity.z > (float)windOffset.y)
-			{
-				part.Velocity.z -= Random::GenerateFloat(windRandFloat.x, windRandFloat.y) * windForce;
-			}
+			float windY = std::clamp(part.Strength, 0.6f, 1.0f);
 
 			switch (part.Type)
 			{
@@ -606,6 +609,7 @@ namespace TEN::Effects::Environment
 					part.Velocity.y += part.Size / 5.0f;
 
 				break;
+
 			case WeatherType::Rain:
 				if (part.Velocity.y < part.Size * 2 * windY)
 					part.Velocity.y += part.Size / 5.0f;
@@ -613,6 +617,80 @@ namespace TEN::Effects::Environment
 				break;
 			}
 		}
+	}
+
+	void EnvironmentController::ApplyLegacyWind(WeatherParticle& part) const
+	{
+		const auto& room = g_Level.Rooms[part.RoomNumber];
+		auto windOffset = Vector2i(WindX, WindZ);
+		auto windRandFloat = Vector2(0.5f, 2.5f);
+		auto windForce = std::clamp(part.Strength, 0.5f, 2.0f);
+
+		if (room.flags & ENV_FLAG_WIND)
+		{
+			if (part.Type == WeatherType::Snow)
+				windRandFloat.y = 5.0f;
+			windOffset.x <<= 2;
+			windOffset.y <<= 2;
+		}
+		else
+		{
+			if (part.Type == WeatherType::Snow)
+			{
+				windRandFloat.x = 0.25f;
+				windRandFloat.y = 1.0f;
+			}
+			else
+			{
+				windRandFloat.x = 0.1f;
+				windRandFloat.y = 0.4f;
+			}
+		}
+
+		if (part.Velocity.x < (float)windOffset.x)
+		{
+			part.Velocity.x += Random::GenerateFloat(windRandFloat.x, windRandFloat.y) * windForce;
+		}
+		else if (part.Velocity.x > (float)windOffset.x)
+		{
+			part.Velocity.x -= Random::GenerateFloat(windRandFloat.x, windRandFloat.y) * windForce;
+		}
+
+		if (part.Velocity.z < (float)windOffset.y)
+		{
+			part.Velocity.z += Random::GenerateFloat(windRandFloat.x, windRandFloat.y) * windForce;
+		}
+		else if (part.Velocity.z > (float)windOffset.y)
+		{
+			part.Velocity.z -= Random::GenerateFloat(windRandFloat.x, windRandFloat.y) * windForce;
+		}
+	}
+
+	// Steers particle towards a target velocity derived from the steady base wind with a quadratic curve,
+	// so tilt builds slowly at low wind and gets near horizontal (~10 deg) only at full wind.
+	// Step is clamped to the remaining distance to prevent zigzagging around the target.
+	void EnvironmentController::ApplyBaseWind(WeatherParticle& part) const
+	{
+		constexpr auto SNOW_MAX_TARGET = 150.0f;
+		constexpr auto RAIN_MAX_TARGET = 1080.0f;
+
+		bool isRain = (part.Type == WeatherType::Rain);
+		float maxTarget = isRain ? RAIN_MAX_TARGET : SNOW_MAX_TARGET;
+		float minStep = isRain ? 60.0f : 3.0f;
+		float maxStep = isRain ? 100.0f : 8.0f;
+
+		float fracX = BaseWindX / MAX_BASE_WIND_STRENGTH;
+		float fracZ = BaseWindZ / MAX_BASE_WIND_STRENGTH;
+		float targetX = (float)(int)(fracX * std::abs(fracX) * maxTarget);
+		float targetZ = (float)(int)(fracZ * std::abs(fracZ) * maxTarget);
+
+		float deltaX = targetX - part.Velocity.x;
+		float stepX = Random::GenerateFloat(minStep, maxStep);
+		part.Velocity.x += (deltaX >= 0.0f) ? std::min(deltaX, stepX) : std::max(deltaX, -stepX);
+
+		float deltaZ = targetZ - part.Velocity.z;
+		float stepZ = Random::GenerateFloat(minStep, maxStep);
+		part.Velocity.z += (deltaZ >= 0.0f) ? std::min(deltaZ, stepZ) : std::max(deltaZ, -stepZ);
 	}
 
 	void EnvironmentController::SpawnDustParticles(const ScriptInterfaceLevel& level)
@@ -690,7 +768,18 @@ namespace TEN::Effects::Environment
 		params.Life = 1.0f;
 		params.Flags = WeatherFlags::None; // Don't ignore wind room for global weather.
 
-		SpawnWeatherParticles(Camera.pos.ToVector3i(), params);
+		// Shift spawn area upwind so particles drift across camera view instead of blowing off to one side.
+		// At full wind, center moves by 90% of spawn radius upwind.
+		auto spawnPos = Camera.pos.ToVector3();
+		float windMag = std::sqrt(BaseWindX * BaseWindX + BaseWindZ * BaseWindZ);
+		if (windMag > 0.0f)
+		{
+			float windFrac = std::min(1.0f, windMag / MAX_BASE_WIND_STRENGTH);
+			spawnPos.x -= (BaseWindX / windMag) * windFrac * params.SpawnRange.x * 0.9f;
+			spawnPos.z -= (BaseWindZ / windMag) * windFrac * params.SpawnRange.z * 0.9f;
+		}
+
+		SpawnWeatherParticles(Vector3i(spawnPos), params);
 	}
 
 	void EnvironmentController::SpawnMeteorParticles(const ScriptInterfaceLevel& level)

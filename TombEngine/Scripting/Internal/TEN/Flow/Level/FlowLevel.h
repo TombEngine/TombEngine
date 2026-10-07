@@ -1,4 +1,8 @@
 #pragma once
+#include <optional>
+#include <string>
+#include <vector>
+#include "Scripting/Internal/TEN/Flow/DynamicSky/DynamicSky.h"
 #include "Scripting/Internal/TEN/Flow/Horizon/Horizon.h"
 #include "Scripting/Internal/TEN/Flow/LensFlare/LensFlare.h"
 #include "Scripting/Internal/TEN/Flow/SkyLayer/SkyLayer.h"
@@ -6,6 +10,7 @@
 #include "Scripting/Internal/TEN/Flow/Fog/Fog.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Scripting/Internal/TEN/Flow/InventoryItem/InventoryItem.h"
+#include "Scripting/Internal/TEN/Types/Vec2/Vec2.h"
 
 using namespace TEN::Scripting;
 
@@ -17,16 +22,32 @@ struct Level : public ScriptInterfaceLevel
 
 	SkyLayer Layer1 = {};
 	SkyLayer Layer2 = {};
+
+	// Dynamic sky container: atmospheric sky dome, aurora and volumetric clouds.
+	TEN::Scripting::DynamicSky DynamicSky = {};
 	TEN::Scripting::Horizon Horizon1 = {};
 	TEN::Scripting::Horizon Horizon2 = {};
 	TEN::Scripting::LensFlare LensFlare = {};
+	TEN::Scripting::MoonLens  MoonLens  = {};
 	TEN::Scripting::Starfield Starfield = {};
+
+	// Per-level dust storm config (level.dustStorm).
+	TEN::Scripting::LevelDustStorm DustStorm = {};
+
+	// Per-level underwater sky config (level.underwaterSky).
+	TEN::Scripting::LevelUnderwaterSky UnderwaterSky = {};
 
 	WeatherType Weather				= WeatherType::None;
 	float		WeatherStrength		= 1.0f;
 	bool		WeatherClustering	= true;
 	bool		Storm				= false;
 	bool		Rumble				= false;
+
+	// Steady wind for this level. WindSpeed <= 0 means no override (keeps
+	// any wind set globally from Settings.lua via Flow.SetCloudWind).
+	// WindSpeed range 0..8 maps to cloud drift and particle / hair movement.
+	float		WindSpeed			= -1.0f;
+	Vec2		WindDirection		= Vec2(1.0f, 0.0f);
 
 	LaraType Type = LaraType::Normal;
 	int LevelSecrets = 0;
@@ -71,10 +92,16 @@ struct Level : public ScriptInterfaceLevel
 
 	// Lens flare getters
 	bool  GetLensFlareEnabled() const override;
+	bool  GetLensFlareEffects() const override;
 	int	  GetLensFlareSunSpriteID() const override;
 	short GetLensFlarePitch() const override;
 	short GetLensFlareYaw() const override;
 	Color GetLensFlareColor() const override;
+	Color GetLensFlareEvaluatedColor() const override;
+	int   GetLensFlareColorMode() const override;
+
+	// Lens flare mutable access (for debug UI).
+	TEN::Scripting::LensFlare& GetMutableLensFlare();
 
 	// Starfield getters
 	int	  GetStarfieldStarCount() const override;

@@ -15,6 +15,7 @@
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Math/Math.h"
+#include "Renderer/ImGuiIntegration.h"
 #include "Scripting/Internal/TEN/Flow//Level/FlowLevel.h"
 #include "Specific/configuration.h"
 #include "Specific/Input/InputAction.h"
@@ -260,14 +261,26 @@ namespace TEN::Renderer
 			// Gamma correction
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_GAMMA), optionColor, SF(titleOption == 8));
 			AddString(MenuRightSideEntry, y, fmt::format("{:.1f}", g_Gui.GetCurrentSettings().Configuration.Gamma).c_str(), plainColor, SF(titleOption == 8));
+			GetNextLinePosition(&y);
+
+			// Atmospheric Sky Quality
+			{
+				auto q = g_Gui.GetCurrentSettings().Configuration.AtmosphericSkyQuality;
+				const char* qStr =
+					(q == AtmosphericSkyQuality::Low)    ? STRING_QUALITY_LOW :
+					(q == AtmosphericSkyQuality::Medium) ? STRING_QUALITY_MEDIUM :
+					                                       STRING_QUALITY_HIGH;
+				AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_ATMOSPHERIC_SKY_QUALITY), optionColor, SF(titleOption == 9));
+				AddString(MenuRightSideEntry, y, g_GameFlow->GetString(qStr), plainColor, SF(titleOption == 9));
+			}
 			GetNextBlockPosition(&y);
 
 			// Apply
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 9));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 10));
 			GetNextLinePosition(&y);
 
 			// Cancel
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 10));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 11));
 			break;
 
 		case Menu::OtherSettings:
@@ -1920,6 +1933,10 @@ namespace TEN::Renderer
 			PrintDebugMessage("WIREFRAME MODE");
 			break;
 
+		case RendererDebugPage::SkyDebug:
+			// Shown via the ImGui overlay window activated by SwitchDebugPage.
+			break;
+
 		default:
 			break;
 		}
@@ -1932,6 +1949,10 @@ namespace TEN::Renderer
 
 	void Renderer::SwitchDebugPage(bool goBack)
 	{
+		// Hide ImGui overlay if leaving the sky debug page.
+		if (_debugPage == RendererDebugPage::SkyDebug && ImGuiIsOverlayVisible())
+			ImGuiToggleOverlay();
+
 		int page = (int)_debugPage;
 		goBack ? --page : ++page;
 
@@ -1945,5 +1966,9 @@ namespace TEN::Renderer
 		}
 
 		_debugPage = (RendererDebugPage)page;
+
+		// Show ImGui overlay when entering the sky debug page.
+		if (_debugPage == RendererDebugPage::SkyDebug && !ImGuiIsOverlayVisible())
+			ImGuiToggleOverlay();
 	}
 }
