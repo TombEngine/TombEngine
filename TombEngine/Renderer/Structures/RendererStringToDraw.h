@@ -1,6 +1,8 @@
 #pragma once
 #include <SimpleMath.h>
 
+#include "Renderer/Structures/RendererRectangle.h"
+
 namespace TEN::Renderer::Structures
 {
 	using namespace DirectX::SimpleMath;
@@ -13,5 +15,8 @@ namespace TEN::Renderer::Structures
 		std::string String;
 		Vector4 Color;
 		float Scale;
+
+		bool              HasScissor = false;
+		RendererRectangle Scissor    = {};
 	};
 }

@@ -2,6 +2,8 @@
 #include "Scripting/Internal/TEN/Strings/StringsHandler.h"
 #include "Scripting/Internal/ScriptAssert.h"
 #include "Scripting/Internal/TEN/Flow/FlowHandler.h"
+#include "Game/effects/DisplaySprite.h"
+#include "Renderer/Renderer.h"
 #include "Renderer/RendererEnums.h"
 #include "Scripting/Internal/ReservedScriptNames.h"
 #include "Scripting/Internal/ScriptAssert.h"
@@ -12,6 +14,10 @@ Display strings.
 @tentable Strings 
 @pragma nostrip
 */
+
+using namespace TEN::Effects::DisplaySprite;
+using namespace TEN::Renderer::Structures;
+using TEN::Renderer::g_Renderer;
 
 StringsHandler::StringsHandler(sol::state* lua, sol::table& parent) :
 	LuaHandler(lua)
@@ -135,7 +141,19 @@ void StringsHandler::ProcessDisplayStrings(float deltaTime)
 				if (str._flags[(size_t)DisplayStringOptions::VerticalBottom])
 					flags |= (int)PrintStringFlags::VerticalBottom;
 
+				if (str._hasScissor)
+				{
+					auto screenRes = g_Renderer.GetScreenResolution();
+					auto pos  = Vector2(str._scissorPos.x, str._scissorPos.y);
+					auto size = Vector2(str._scissorSize.x, str._scissorSize.y);
+					auto rect = GetDisplaySpriteScissorRectangle(screenRes.ToVector2(), pos, size, str._scissorAlignMode);
+					g_Renderer.SetPendingStringScissor(rect);
+				}
+
 				m_callbackDrawSring(cstr, str._color, str._position, str._area, str._scale, flags);
+
+				if (str._hasScissor)
+					g_Renderer.ClearPendingStringScissor();
 
 				str._timeRemaining -= deltaTime;
 			}
