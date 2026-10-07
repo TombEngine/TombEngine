@@ -49,6 +49,8 @@ namespace TEN::Scripting::DisplayItem
 		void SetMeshRotation(int meshIndex, Rotation angles, TypeOrNil<bool> disableInterpolation);
 		void SetAnimNumber(int animNumber);
 		void SetFrameNumber(int frameNumber);
+		void Enable();
+		void Disable();
 		void SetMeshBits(int meshbits);
 
 		// Getters
