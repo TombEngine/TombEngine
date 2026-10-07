@@ -37,6 +37,10 @@ namespace TEN::Renderer
 		_rooms.resize(g_Level.Rooms.size());
 
 		_meshes.clear();
+		_moveablesNormalsCache.clear();
+		_staticsNormalsCache.clear();
+		_roomsNormalsCache.clear();
+		_debugNormalsCacheInitialized = false;
 
 		_dynamicLightList = 0;
 		for (auto& dynamicLightList : _dynamicLights)
