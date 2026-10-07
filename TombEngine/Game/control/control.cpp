@@ -64,6 +64,7 @@
 #include "Scripting/Internal/TEN/Properties/PropertyUtils.h"
 #include "Sound/sound.h"
 #include "Specific/clock.h"
+#include "Specific/Discord.h"
 #include "Specific/EngineMain.h"
 #include "Specific/Input/Input.h"
 #include "Specific/level.h"
@@ -103,6 +104,7 @@ using namespace TEN::Renderer;
 using namespace TEN::Scripting::Properties;
 using namespace TEN::SpotCam;
 using namespace TEN::Video;
+using namespace TEN::Utils::Discord;
 
 constexpr auto DEATH_NO_INPUT_TIMEOUT = 10 * FPS;
 constexpr auto DEATH_INPUT_TIMEOUT	  = 3 * FPS;
@@ -712,6 +714,8 @@ GameStatus DoGameLoop(int levelIndex)
 	while (DoTheGame)
 	{
 		g_Synchronizer.Sync();
+
+		UpdateDiscord();
 
 		if (g_VideoPlayer.Update())
 			continue;
