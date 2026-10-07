@@ -52,6 +52,12 @@ float Wibble(uint effect, int hash)
     return wibble * enabled;
 }
 
+float GetWaterEffectDepthFactor(float3 position, float3 cameraPosition, float effectDepth)
+{
+    float depth = max(0.0f, position.y - cameraPosition.y);
+    return saturate(depth / max(effectDepth, 1.0f));
+}
+
 float3 Glow(float3 color, uint effect, float wibble)
 {
     float glow = DecodeGlow(effect);
