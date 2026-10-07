@@ -25,9 +25,9 @@ local TAG_MULTI,TAG_ID,TAG_SINGLE,TAG_TYPE,TAG_FLAG,TAG_MULTI_LINE = 'M','id','S
 local known_tags = {
    param = 'M', see = 'M', comment = 'M', advancedDesc = 'ML', usage = 'ML', ['return'] = 'M', field = 'M', author='M',set='M';
    class = 'id', name = 'id', pragma = 'id', alias = 'id',
-   copyright = 'S', summary = 'S', description = 'S', release = 'S', license = 'S',
+   copyright = 'S', summary = 'S', description = 'S', release = 'S', license = 'S', ten_ldoc_display_name = 'S',
    fixme = 'S', todo = 'S', warning = 'S', raise = 'S', charset = 'S', within = 'S', inherits = 'S',
-   ['local'] = 'N', export = 'N', private = 'N', constructor = 'N', static = 'N',include = 'S',
+   ['local'] = 'N', export = 'N', private = 'N', constructor = 'N', static = 'N',include = 'S', summaryonly = 'N',
    -- project-level
    module = 'T', script = 'T', example = 'T', topic = 'T', submodule='T', classmod='T', file='T',
    -- module-level
@@ -551,6 +551,16 @@ function Item.check_tag(tags,tag, value, modifiers)
    end
    local ttype = known_tags[tag]
    if ttype == TAG_TYPE then
+      if not doc.project_level(tag) and not doc.section_tag(tag) then
+         local identifier, rest = tools.extract_identifier(value)
+         if identifier then
+            local display_name, trailing_rest = tools.extract_quoted_name(rest)
+            if display_name and display_name ~= '' then
+               tags:add('ten_ldoc_display_name', display_name)
+               value = identifier .. trailing_rest
+            end
+         end
+      end
       tags:add('class',tag)
       tag = 'name'
    end
@@ -614,6 +624,8 @@ function Item:finish()
    self.modifiers = extract_tag_modifiers(tags)
    self.usage = read_del(tags,'usage')
    self.advancedDesc = read_del(tags,'advancedDesc')
+   self.display_name = read_del(tags,'ten_ldoc_display_name')
+   self.summary_only = read_del(tags,'summaryonly') or false
    tags.see = read_del(tags,'see')
    if tags.see then
       tags.see = tools.identifier_list(tags.see)
