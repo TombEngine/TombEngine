@@ -520,7 +520,8 @@ namespace TEN::Renderer
 					bucket.Polygons.push_back(newPoly);
 				}
 
-				bucket.Centre /= bucket.NumIndices;
+				if (bucket.NumVertices > 0)
+					bucket.Centre /= (float)bucket.NumVertices;
 
 				rendererRoom.Buckets.push_back(bucket);		
 			}
