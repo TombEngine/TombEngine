@@ -869,6 +869,7 @@ namespace TEN::Renderer::Next
         }
 
         CollectPlayer(interpolationFactor);
+        CollectEffectMeshes(view, interpolationFactor);
     }
 
     int NextRenderer::AddInstance(const Matrix& world, const Vector4& color, const Vector4& ambientLight, LightMode lightMode, int lightOffset, int lightCount, int boneOffset, int skinningMode)
@@ -896,12 +897,12 @@ namespace TEN::Renderer::Next
         return offset;
     }
 
-    void NextRenderer::AddMeshDraws(const RendererMesh& mesh, int instance)
+    void NextRenderer::AddMeshDraws(const RendererMesh& mesh, int firstInstance, int instanceCount)
     {
         for (const auto& bucket : mesh.Buckets)
         {
             if (bucket.NumIndices > 0)
-                _objectDraws.push_back(ObjectDraw{ MeshSource::Moveables, &bucket, instance, 1 });
+                _objectDraws.push_back(ObjectDraw{ MeshSource::Moveables, &bucket, firstInstance, instanceCount });
         }
     }
 

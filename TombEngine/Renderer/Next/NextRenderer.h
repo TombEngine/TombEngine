@@ -83,6 +83,13 @@ namespace TEN::Renderer::Next
             std::unique_ptr<RHI::ITexture> EmissiveMap = nullptr;
         };
 
+        // Instance waiting to be grouped with the other instances of its mesh.
+        struct QueuedMeshInstance
+        {
+            const Structures::RendererMesh* Mesh     = nullptr;
+            GpuObjectInstance               Instance = {};
+        };
+
         // Draw state of consecutive bucket draws; pushes and binds are skipped when unchanged.
         struct BucketBindState
         {
@@ -232,6 +239,9 @@ namespace TEN::Renderer::Next
         std::vector<unsigned char>    _instanceData        = {};
         std::vector<unsigned char>    _lightData           = {};
         std::vector<ObjectDraw>       _objectDraws         = {};
+        std::vector<QueuedMeshInstance> _queuedMeshInstances = {};
+        std::vector<std::pair<int, int>> _roomLightSlices    = {};
+        std::vector<int>              _roomLightSliceList  = {};
         FrameStorageBuffer            _sortedIndexBuffer   = {};
         std::vector<unsigned char>    _sortedIndexData     = {};
         std::vector<SortedDraw>       _sortedDraws         = {};
@@ -274,7 +284,14 @@ namespace TEN::Renderer::Next
         void CollectPlayerHair(const Structures::RendererItem& item, const Vector4& ambientLight, int lightOffset, int lightCount, float interpolationFactor);
         int  AddInstance(const Matrix& world, const Vector4& color, const Vector4& ambientLight, LightMode lightMode, int lightOffset, int lightCount, int boneOffset, int skinningMode);
         int  AddBones(const Matrix* bones, int count);
-        void AddMeshDraws(const Structures::RendererMesh& mesh, int instance);
+        void AddMeshDraws(const Structures::RendererMesh& mesh, int firstInstance, int instanceCount = 1);
+
+        // Mesh effects, gun shells and swarms (NextRendererEffects.cpp).
+        void GetRoomLightSlice(int roomNumber, float interpolationFactor, int& lightOffset, int& lightCount);
+        void QueueMeshInstance(const Structures::RendererMesh& mesh, const Matrix& world, const Vector4& color, const Vector4& ambientLight,
+                               LightMode lightMode, int lightOffset, int lightCount);
+        void FlushMeshInstances();
+        void CollectEffectMeshes(const RenderView& view, float interpolationFactor);
         int  AddLights(const std::vector<Structures::RendererLight*>& lights, float interpolationFactor, int roomNumber, int prevRoomNumber, float fade, int& lightOffset);
         void UploadFrameStorage(RHI::ICopyPass& copyPass, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name);
         void UploadFrameData(RHI::ICommandBuffer& commandBuffer);
