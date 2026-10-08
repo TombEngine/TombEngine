@@ -3779,7 +3779,7 @@ namespace TEN::Renderer
 	{
 		auto renderStartTime = std::chrono::steady_clock::now();
 
-		bool captureScreenshots = TEN::Benchmark::ConsumeBenchmarkScreenshotRequest();
+		bool captureScreenshots = TEN::Benchmark::ConsumeBenchmarkScreenshotRequest(GlobalCounter);
 		if (captureScreenshots && Next::g_NextRenderer.IsActive())
 			Next::g_NextRenderer.RequestScreenshot(g_GameFlow->GetGameDir() + "Logs/Compare_Next.png");
 

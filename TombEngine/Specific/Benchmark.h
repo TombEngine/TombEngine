@@ -37,6 +37,7 @@ namespace TEN::Benchmark
     void UpdateBenchmark();
     void RecordBenchmarkFrame(const BenchmarkFrameStats& stats);
 
-    // True once, at a fixed frame of the recording, so renderers can capture comparable screenshots.
-    bool ConsumeBenchmarkScreenshotRequest();
+    // True once, when the game frame counter reaches a fixed value, so renderers and backends capture
+    // the same game state for comparison.
+    bool ConsumeBenchmarkScreenshotRequest(int gameFrame);
 }

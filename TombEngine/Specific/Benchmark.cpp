@@ -7,7 +7,7 @@ namespace TEN::Benchmark
 {
     constexpr auto BENCHMARK_WARMUP_TIME = 3.0f;
     constexpr auto BENCHMARK_FLUSH_FRAMES = 60;
-    constexpr auto BENCHMARK_SCREENSHOT_FRAME = 150;
+    constexpr auto BENCHMARK_SCREENSHOT_GAME_FRAME = 240;
 
     static bool _isActive = false;
     static bool _isStarted = false;
@@ -138,9 +138,9 @@ namespace TEN::Benchmark
         return _isActive;
     }
 
-    bool ConsumeBenchmarkScreenshotRequest()
+    bool ConsumeBenchmarkScreenshotRequest(int gameFrame)
     {
-        if (!_isActive || _isScreenshotTaken || _recordedFrames < BENCHMARK_SCREENSHOT_FRAME)
+        if (!_isActive || _isScreenshotTaken || gameFrame < BENCHMARK_SCREENSHOT_GAME_FRAME)
             return false;
 
         _isScreenshotTaken = true;
