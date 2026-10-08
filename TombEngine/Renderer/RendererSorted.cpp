@@ -687,14 +687,14 @@ namespace TEN::Renderer
 
 				while (i < sortedCount)
 				{
+					// Check the group first: entries of other groups may be sprites without a polygon.
 					const auto& currentPolygon = polygons[sortKeys[i].Index];
-					int indexCount = (currentPolygon.Polygon->Shape == 0) ? 6 : 3;
-
-					if (objects[currentPolygon.ObjectIndex].GroupIndex != object->GroupIndex ||
-						_sortedPolygonsIndices.size() + indexCount >= MAX_TRANSPARENT_VERTICES)
-					{
+					if (objects[currentPolygon.ObjectIndex].GroupIndex != object->GroupIndex)
 						break;
-					}
+
+					int indexCount = (currentPolygon.Polygon->Shape == 0) ? 6 : 3;
+					if (_sortedPolygonsIndices.size() + indexCount >= MAX_TRANSPARENT_VERTICES)
+						break;
 
 					_sortedPolygonsIndices.bulk_push_back(sourceIndices, currentPolygon.Polygon->BaseIndex, indexCount);
 					i++;
