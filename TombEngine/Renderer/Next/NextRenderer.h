@@ -281,6 +281,7 @@ namespace TEN::Renderer::Next
         void CollectSortedFaces(const RenderView& view, float interpolationFactor);
         int  GetSortedObjectInstance(const Structures::RendererSortableObject& object, float interpolationFactor);
         void DrawSortedFaces(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
+        void LogGpuTimings();
         bool CreateSkyGeometry();
         void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass);
@@ -304,7 +305,7 @@ namespace TEN::Renderer::Next
         void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, ScenePass pass);
 
     public:
-        bool Initialize(SDL_Window* window, RHI::Backend backend, const std::string& gameDirectory);
+        bool Initialize(SDL_Window* window, RHI::Backend backend, const std::string& gameDirectory, bool preferLowPowerGpu);
         void Shutdown();
         bool IsActive() const;
 

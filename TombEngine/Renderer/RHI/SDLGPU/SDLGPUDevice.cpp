@@ -1068,7 +1068,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         }
     };
 
-    std::unique_ptr<IDevice> CreateSDLGPUDevice(SDL_Window* window, const char* driverName, bool debugMode)
+    std::unique_ptr<IDevice> CreateSDLGPUDevice(SDL_Window* window, const char* driverName, bool debugMode, bool preferLowPower)
     {
         bool isDirect3D12 = (std::string(driverName) == "direct3d12");
         auto shaderFormat = isDirect3D12 ? ShaderFormat::Dxil : ShaderFormat::Spirv;
@@ -1080,7 +1080,14 @@ namespace TEN::Renderer::RHI::SDLGPU
             return nullptr;
         }
 
-        auto* device = SDL_CreateGPUDevice(sdlShaderFormat, debugMode, driverName);
+        auto props = SDL_CreateProperties();
+        SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, debugMode);
+        SDL_SetBooleanProperty(props, SDL_PROP_GPU_DEVICE_CREATE_PREFERLOWPOWER_BOOLEAN, preferLowPower);
+        SDL_SetBooleanProperty(props, isDirect3D12 ? SDL_PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN : SDL_PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, true);
+        SDL_SetStringProperty(props, SDL_PROP_GPU_DEVICE_CREATE_NAME_STRING, driverName);
+
+        auto* device = SDL_CreateGPUDeviceWithProperties(props);
+        SDL_DestroyProperties(props);
         if (device == nullptr)
         {
             TENLog(std::string("SDL GPU: cannot create device on ") + driverName + ": " + SDL_GetError(), LogLevel::Warning);

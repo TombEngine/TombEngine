@@ -297,6 +297,160 @@ namespace TEN::Renderer::RHI::DirectX11
 
     class DX11CommandBuffer;
 
+    // Timestamp queries around the outermost debug group (the frame) and the groups directly inside it.
+    // Results are read a few frames later without stalling; frames still pending when their slot is reused are dropped.
+    class DX11GpuProfiler
+    {
+    private:
+        static constexpr int FRAME_LATENCY = 4;
+        static constexpr int SCOPES_MAX    = 32;
+
+        struct Scope
+        {
+            std::string         Name  = {};
+            ComPtr<ID3D11Query> Begin = nullptr;
+            ComPtr<ID3D11Query> End   = nullptr;
+        };
+
+        struct Frame
+        {
+            ComPtr<ID3D11Query> Disjoint   = nullptr;
+            Scope               Scopes[SCOPES_MAX] = {};
+            int                 ScopeCount = 0;
+            bool                IsPending  = false;
+        };
+
+        ID3D11Device*        _device       = nullptr;
+        ID3D11DeviceContext* _context      = nullptr;
+        Frame                _frames[FRAME_LATENCY] = {};
+        int                  _frameIndex   = 0;
+        int                  _openScopes[2] = { -1, -1 };
+        std::vector<GpuTiming> _totals     = {};
+
+        ComPtr<ID3D11Query> CreateQuery(D3D11_QUERY type)
+        {
+            auto desc = D3D11_QUERY_DESC{ type, 0 };
+            auto query = ComPtr<ID3D11Query>{};
+            _device->CreateQuery(&desc, query.GetAddressOf());
+            return query;
+        }
+
+        void Accumulate(const std::string& name, float milliseconds)
+        {
+            for (auto& total : _totals)
+            {
+                if (total.Name == name)
+                {
+                    total.Milliseconds += milliseconds;
+                    total.Samples++;
+                    return;
+                }
+            }
+
+            _totals.push_back(GpuTiming{ name, milliseconds, 1 });
+        }
+
+        void Resolve(Frame& frame)
+        {
+            frame.IsPending = false;
+
+            auto disjoint = D3D11_QUERY_DATA_TIMESTAMP_DISJOINT{};
+            if (_context->GetData(frame.Disjoint.Get(), &disjoint, sizeof(disjoint), D3D11_ASYNC_GETDATA_DONOTFLUSH) != S_OK || disjoint.Disjoint)
+                return;
+
+            for (int i = 0; i < frame.ScopeCount; i++)
+            {
+                UINT64 begin = 0;
+                UINT64 end = 0;
+                if (_context->GetData(frame.Scopes[i].Begin.Get(), &begin, sizeof(begin), D3D11_ASYNC_GETDATA_DONOTFLUSH) != S_OK ||
+                    _context->GetData(frame.Scopes[i].End.Get(), &end, sizeof(end), D3D11_ASYNC_GETDATA_DONOTFLUSH) != S_OK)
+                {
+                    return;
+                }
+
+                Accumulate(frame.Scopes[i].Name, (float)((double)(end - begin) * 1000.0 / (double)disjoint.Frequency));
+            }
+        }
+
+        void BeginScope(Frame& frame, int level, const char* name)
+        {
+            if (frame.ScopeCount >= SCOPES_MAX)
+                return;
+
+            auto& scope = frame.Scopes[frame.ScopeCount];
+            if (scope.Begin == nullptr)
+            {
+                scope.Begin = CreateQuery(D3D11_QUERY_TIMESTAMP);
+                scope.End = CreateQuery(D3D11_QUERY_TIMESTAMP);
+            }
+
+            scope.Name = name;
+            _context->End(scope.Begin.Get());
+            _openScopes[level] = frame.ScopeCount++;
+        }
+
+        void EndScope(Frame& frame, int level)
+        {
+            if (_openScopes[level] >= 0)
+                _context->End(frame.Scopes[_openScopes[level]].End.Get());
+
+            _openScopes[level] = -1;
+        }
+
+    public:
+        void Initialize(ID3D11Device* device, ID3D11DeviceContext* context)
+        {
+            _device = device;
+            _context = context;
+            for (auto& frame : _frames)
+                frame.Disjoint = CreateQuery(D3D11_QUERY_TIMESTAMP_DISJOINT);
+        }
+
+        void OnPushGroup(int depth, const char* name)
+        {
+            if (_device == nullptr || depth > 2)
+                return;
+
+            auto& frame = _frames[_frameIndex];
+            if (depth == 1)
+            {
+                if (frame.IsPending)
+                    Resolve(frame);
+
+                frame.ScopeCount = 0;
+                _context->Begin(frame.Disjoint.Get());
+            }
+
+            BeginScope(frame, depth - 1, name);
+        }
+
+        void OnPopGroup(int depth)
+        {
+            if (_device == nullptr || depth > 2)
+                return;
+
+            auto& frame = _frames[_frameIndex];
+            EndScope(frame, depth - 1);
+
+            if (depth == 1)
+            {
+                _context->End(frame.Disjoint.Get());
+                frame.IsPending = true;
+                _frameIndex = (_frameIndex + 1) % FRAME_LATENCY;
+            }
+        }
+
+        std::vector<GpuTiming> Consume()
+        {
+            auto result = std::move(_totals);
+            _totals.clear();
+            for (auto& timing : result)
+                timing.Milliseconds /= (float)std::max(timing.Samples, 1);
+
+            return result;
+        }
+    };
+
     class DX11RenderPass : public IRenderPass
     {
     public:
@@ -566,6 +720,8 @@ namespace TEN::Renderer::RHI::DirectX11
         DX11ComputePass                      ComputePass = {};
         bool                                 HasSwapchainTexture = false;
         int                                  NumComputeUavs = 0;
+        int                                  DebugGroupDepth = 0;
+        DX11GpuProfiler                      Profiler = {};
 
         ITexture* AcquireSwapchainTexture() override;
         void      Submit() override;
@@ -713,12 +869,16 @@ namespace TEN::Renderer::RHI::DirectX11
         {
             if (Annotation != nullptr)
                 Annotation->BeginEvent(TEN::Utils::ToWString(name).c_str());
+
+            Profiler.OnPushGroup(++DebugGroupDepth, name);
         }
 
         void PopDebugGroup() override
         {
             if (Annotation != nullptr)
                 Annotation->EndEvent();
+
+            Profiler.OnPopGroup(DebugGroupDepth--);
         }
 
         void InsertDebugLabel(const char* name) override
@@ -827,6 +987,7 @@ namespace TEN::Renderer::RHI::DirectX11
             _commandBuffer.Owner = this;
             _commandBuffer.Device = device.Get();
             _commandBuffer.Context = context.Get();
+            _commandBuffer.Profiler.Initialize(device.Get(), context.Get());
             context.As(&_commandBuffer.Annotation);
             device.As(&_infoQueue);
 
@@ -871,6 +1032,11 @@ namespace TEN::Renderer::RHI::DirectX11
         ITexture* GetSwapchainTexture()
         {
             return &_swapchainTexture;
+        }
+
+        std::vector<GpuTiming> ConsumeGpuTimings() override
+        {
+            return _commandBuffer.Profiler.Consume();
         }
 
         void Present()
@@ -1316,22 +1482,23 @@ namespace TEN::Renderer::RHI::DirectX11
         HasSwapchainTexture = false;
     }
 
-    // Same policy as SDL GPU: prefer the high performance adapter on hybrid graphics systems,
-    // otherwise let the runtime pick the default one.
-    static ComPtr<IDXGIAdapter1> GetHighPerformanceAdapter()
+    // Same policy as SDL GPU: the high performance adapter on hybrid graphics systems unless low power is requested;
+    // the runtime default when the preference query is not available.
+    static ComPtr<IDXGIAdapter1> GetPreferredAdapter(bool preferLowPower)
     {
         ComPtr<IDXGIFactory6> factory;
         if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(factory.GetAddressOf()))))
             return nullptr;
 
         ComPtr<IDXGIAdapter1> adapter;
-        if (FAILED(factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(adapter.GetAddressOf()))))
+        auto preference = preferLowPower ? DXGI_GPU_PREFERENCE_MINIMUM_POWER : DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
+        if (FAILED(factory->EnumAdapterByGpuPreference(0, preference, IID_PPV_ARGS(adapter.GetAddressOf()))))
             return nullptr;
 
         return adapter;
     }
 
-    std::unique_ptr<IDevice> CreateDX11Device(SDL_Window* window, bool debugMode)
+    std::unique_ptr<IDevice> CreateDX11Device(SDL_Window* window, bool debugMode, bool preferLowPower)
     {
         auto props = SDL_GetWindowProperties(window);
         auto hwnd = (HWND)SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
@@ -1341,7 +1508,7 @@ namespace TEN::Renderer::RHI::DirectX11
         UINT flags = debugMode ? D3D11_CREATE_DEVICE_DEBUG : 0;
         D3D_FEATURE_LEVEL levels[] = { D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0 };
 
-        auto preferredAdapter = GetHighPerformanceAdapter();
+        auto preferredAdapter = GetPreferredAdapter(preferLowPower);
         auto* adapterToUse = preferredAdapter.Get();
         auto driverType = (adapterToUse != nullptr) ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE;
 
@@ -1402,7 +1569,7 @@ namespace TEN::Renderer::RHI::DirectX11
 
 namespace TEN::Renderer::RHI::DirectX11
 {
-    std::unique_ptr<IDevice> CreateDX11Device(SDL_Window* window, bool debugMode)
+    std::unique_ptr<IDevice> CreateDX11Device(SDL_Window* window, bool debugMode, bool preferLowPower)
     {
         return nullptr;
     }

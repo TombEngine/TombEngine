@@ -78,7 +78,7 @@ namespace TEN::Renderer::RHI
         return blocksX * blocksY * depth * GetFormatBlockSize(format);
     }
 
-    std::unique_ptr<IDevice> CreateDevice(Backend preferredBackend, SDL_Window* window, bool debugMode)
+    std::unique_ptr<IDevice> CreateDevice(Backend preferredBackend, SDL_Window* window, bool debugMode, bool preferLowPower)
     {
         // Try the requested backend first, then fall back in order of preference: Vulkan, D3D12, DX11.
         Backend order[] = { preferredBackend, Backend::Vulkan, Backend::Direct3D12, Backend::DirectX11 };
@@ -90,15 +90,15 @@ namespace TEN::Renderer::RHI
             switch (backend)
             {
             case Backend::Vulkan:
-                device = SDLGPU::CreateSDLGPUDevice(window, "vulkan", debugMode);
+                device = SDLGPU::CreateSDLGPUDevice(window, "vulkan", debugMode, preferLowPower);
                 break;
 
             case Backend::Direct3D12:
-                device = SDLGPU::CreateSDLGPUDevice(window, "direct3d12", debugMode);
+                device = SDLGPU::CreateSDLGPUDevice(window, "direct3d12", debugMode, preferLowPower);
                 break;
 
             case Backend::DirectX11:
-                device = DirectX11::CreateDX11Device(window, debugMode);
+                device = DirectX11::CreateDX11Device(window, debugMode, preferLowPower);
                 break;
 
             default:

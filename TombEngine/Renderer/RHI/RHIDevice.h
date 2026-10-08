@@ -160,7 +160,12 @@ namespace TEN::Renderer::RHI
 
         // SDL GPU requires swapchain acquisition on the thread that created the window.
         virtual bool RequiresWindowThreadPresent() const = 0;
+
+        // Average GPU time of the debug groups directly inside the outermost one, plus the outermost group itself,
+        // since the previous call. Empty when the backend has no timestamp queries (SDL GPU).
+        virtual std::vector<GpuTiming> ConsumeGpuTimings() { return {}; }
     };
 
-    std::unique_ptr<IDevice> CreateDevice(Backend preferredBackend, SDL_Window* window, bool debugMode);
+    // With preferLowPower, hybrid graphics systems use the integrated GPU instead of the discrete one.
+    std::unique_ptr<IDevice> CreateDevice(Backend preferredBackend, SDL_Window* window, bool debugMode, bool preferLowPower = false);
 }

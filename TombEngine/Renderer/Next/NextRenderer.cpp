@@ -35,9 +35,9 @@ namespace TEN::Renderer::Next
 
     NextRenderer g_NextRenderer;
 
-    bool NextRenderer::Initialize(SDL_Window* window, Backend backend, const std::string& gameDirectory)
+    bool NextRenderer::Initialize(SDL_Window* window, Backend backend, const std::string& gameDirectory, bool preferLowPowerGpu)
     {
-        _device = CreateDevice(backend, window, true);
+        _device = CreateDevice(backend, window, DEBUG_BUILD, preferLowPowerGpu);
         if (_device == nullptr)
             return false;
 
@@ -79,6 +79,8 @@ namespace TEN::Renderer::Next
         _instanceIndexBuffer = nullptr;
         _animatedFramesBuffer = nullptr;
         _animatedSetsBuffer = nullptr;
+        LogGpuTimings();
+
         for (auto& shaderPipelines : _scenePipelines)
         {
             for (auto& pipeline : shaderPipelines)
@@ -1518,6 +1520,23 @@ namespace TEN::Renderer::Next
         }
 
         commandBuffer.PopDebugGroup();
+    }
+
+    void NextRenderer::LogGpuTimings()
+    {
+        if (_device == nullptr)
+            return;
+
+        auto timings = _device->ConsumeGpuTimings();
+        if (timings.empty())
+            return;
+
+        auto message = std::string("Next renderer GPU time per pass:");
+        for (const auto& timing : timings)
+            message += fmt::format(" {} {:.3f} ms,", timing.Name, timing.Milliseconds);
+
+        message.back() = '.';
+        TENLog(message + fmt::format(" ({} frames)", timings.front().Samples), LogLevel::Info);
     }
 
     const NextFrameStats& NextRenderer::GetFrameStats() const

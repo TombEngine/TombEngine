@@ -275,6 +275,7 @@ int main(int argc, char* argv[])
 	float benchmarkDuration = 0.0f;
 	auto rhiTestBackend = std::string();
 	auto previewBackend = std::string();
+	bool isPreviewOnLowPowerGpu = false;
 	SDL_Window* previewWindow = nullptr;
 
 	for (int i = 1; i < argc; ++i)
@@ -308,6 +309,11 @@ int main(int argc, char* argv[])
 		else if (ArgEquals(arg.c_str(), "preview") && i + 1 < argc)
 		{
 			previewBackend = argv[++i];
+		}
+		else if (ArgEquals(arg.c_str(), "previewlowpower"))
+		{
+			// Runs the preview on the integrated GPU of hybrid systems, for comparisons on the same GPU.
+			isPreviewOnLowPowerGpu = true;
 		}
 	}
 
@@ -480,7 +486,7 @@ int main(int argc, char* argv[])
 		if (!previewBackend.empty())
 		{
 			previewWindow = SDL_CreateWindow("TombEngine - Next renderer preview", width, height, SDL_WINDOW_RESIZABLE);
-			if (previewWindow == nullptr || !TEN::Renderer::Next::g_NextRenderer.Initialize(previewWindow, ParseRHIBackend(previewBackend), GameDirectory))
+			if (previewWindow == nullptr || !TEN::Renderer::Next::g_NextRenderer.Initialize(previewWindow, ParseRHIBackend(previewBackend), GameDirectory, isPreviewOnLowPowerGpu))
 				TENLog("Next renderer preview could not be started.", LogLevel::Error);
 		}
 	}

@@ -398,6 +398,13 @@ namespace TEN::Renderer::RHI
         unsigned char ClearStencil = 0;
     };
 
+    struct GpuTiming
+    {
+        std::string Name         = {};
+        float       Milliseconds = 0.0f;
+        int         Samples      = 0;
+    };
+
     struct BufferBinding
     {
         IBuffer* Buffer = nullptr;
