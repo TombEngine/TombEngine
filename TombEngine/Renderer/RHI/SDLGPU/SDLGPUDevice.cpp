@@ -502,6 +502,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         SDL_GPUDevice*        Device           = nullptr;
         SDL_Window*           Window           = nullptr;
         SDL_GPUCommandBuffer* Handle           = nullptr;
+        std::atomic<bool>     IsInUse          = false; // Read by other threads looking for a free wrapper.
         SDLGPUTexture         SwapchainTexture = {};
         SDLGPURenderPass      RenderPass       = {};
         SDLGPUCopyPass        CopyPass         = {};
@@ -659,8 +660,25 @@ namespace TEN::Renderer::RHI::SDLGPU
                 TENLog(std::string("SDL GPU: command buffer submission failed: ") + SDL_GetError(), LogLevel::Error);
 
             Handle = nullptr;
+            IsInUse = false;
         }
     };
+
+    static SDL_PropertiesID CreateNameProperties(const char* property, const std::string& name)
+    {
+        if (name.empty())
+            return 0;
+
+        auto props = SDL_CreateProperties();
+        SDL_SetStringProperty(props, property, name.c_str());
+        return props;
+    }
+
+    static void DestroyNameProperties(SDL_PropertiesID props)
+    {
+        if (props != 0)
+            SDL_DestroyProperties(props);
+    }
 
     class SDLGPUDevice : public IDevice
     {
@@ -717,19 +735,19 @@ namespace TEN::Renderer::RHI::SDLGPU
 
         std::unique_ptr<IBuffer> CreateBuffer(const BufferDesc& desc) override
         {
+            // Names are passed at creation: SDL_SetGPUBufferName is not thread safe.
             auto createInfo = SDL_GPUBufferCreateInfo{};
             createInfo.usage = ToSDLBufferUsage(desc.Usage);
             createInfo.size = desc.Size;
+            createInfo.props = CreateNameProperties(SDL_PROP_GPU_BUFFER_CREATE_NAME_STRING, desc.Name);
 
             auto* handle = SDL_CreateGPUBuffer(_device, &createInfo);
+            DestroyNameProperties(createInfo.props);
             if (handle == nullptr)
             {
                 TENLog("SDL GPU: cannot create buffer " + desc.Name + ": " + SDL_GetError(), LogLevel::Error);
                 return nullptr;
             }
-
-            if (!desc.Name.empty())
-                SDL_SetGPUBufferName(_device, handle, desc.Name.c_str());
 
             auto buffer = std::make_unique<SDLGPUBuffer>();
             buffer->Device = _device;
@@ -750,16 +768,15 @@ namespace TEN::Renderer::RHI::SDLGPU
             createInfo.layer_count_or_depth = desc.DepthOrLayers;
             createInfo.num_levels = desc.MipLevels;
             createInfo.sample_count = ToSDLSampleCount(desc.SampleCount);
+            createInfo.props = CreateNameProperties(SDL_PROP_GPU_TEXTURE_CREATE_NAME_STRING, desc.Name);
 
             auto* handle = SDL_CreateGPUTexture(_device, &createInfo);
+            DestroyNameProperties(createInfo.props);
             if (handle == nullptr)
             {
                 TENLog("SDL GPU: cannot create texture " + desc.Name + ": " + SDL_GetError(), LogLevel::Error);
                 return nullptr;
             }
-
-            if (!desc.Name.empty())
-                SDL_SetGPUTextureName(_device, handle, desc.Name.c_str());
 
             auto texture = std::make_unique<SDLGPUTexture>();
             texture->Device = _device;
@@ -986,7 +1003,7 @@ namespace TEN::Renderer::RHI::SDLGPU
             SDLGPUCommandBuffer* commandBuffer = nullptr;
             for (auto& candidate : _commandBuffers)
             {
-                if (candidate->Handle == nullptr)
+                if (!candidate->IsInUse)
                 {
                     commandBuffer = candidate.get();
                     break;
@@ -1005,6 +1022,8 @@ namespace TEN::Renderer::RHI::SDLGPU
                 TENLog(std::string("SDL GPU: cannot acquire command buffer: ") + SDL_GetError(), LogLevel::Error);
                 return nullptr;
             }
+
+            commandBuffer->IsInUse = true;
 
             return commandBuffer;
         }
