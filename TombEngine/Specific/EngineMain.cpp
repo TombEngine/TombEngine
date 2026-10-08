@@ -591,8 +591,9 @@ int main(int argc, char* argv[])
 
 	ThreadEnded = true;
 
-	while (DoTheGame)
-		SDL_Delay(1);
+	// The game thread may still render a last frame (EndGameLoop) after DoTheGame was cleared here,
+	// so it must finish before renderers and windows are released.
+	WaitForGameThread();
 
 	TENLog("Cleaning up and exiting...", LogLevel::Info);
 
@@ -640,19 +641,24 @@ void ApplyPendingWindowResize()
 	SaveConfiguration();
 }
 
+void WaitForGameThread()
+{
+	if (GameThread == nullptr)
+		return;
+
+	int status = 0;
+	SDL_LockMutex(GamePauseMutex);
+	GamePaused = false;
+	SDL_BroadcastCondition(GamePauseCond);
+	SDL_UnlockMutex(GamePauseMutex);
+
+	SDL_WaitThread(GameThread, &status);
+	GameThread = nullptr;
+}
+
 void EngineClose()
 {
-	if (GameThread)
-	{
-		int status = 0;
-		SDL_LockMutex(GamePauseMutex);
-		GamePaused = false;
-		SDL_BroadcastCondition(GamePauseCond);
-		SDL_UnlockMutex(GamePauseMutex);
-
-		SDL_WaitThread(GameThread, &status);
-		GameThread = nullptr;
-	}
+	WaitForGameThread();
 
 	if (GamePauseCond)
 	{
