@@ -912,7 +912,7 @@ namespace TEN::Renderer::Next
         }
     }
 
-    void NextRenderer::UploadFrameStorage(ICommandBuffer& commandBuffer, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name)
+    void NextRenderer::UploadFrameStorage(ICopyPass& copyPass, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name)
     {
         // Storage buffers cannot be empty, so the smallest buffer holds one element.
         int dataSize = std::max((int)data.size(), stride);
@@ -930,9 +930,23 @@ namespace TEN::Renderer::Next
         memcpy(_device->MapTransferBuffer(storage.Transfer.get(), true), data.data(), data.size());
         _device->UnmapTransferBuffer(storage.Transfer.get());
 
+        copyPass.UploadToBuffer(storage.Transfer.get(), 0, storage.Buffer.get(), 0, (int)data.size(), true);
+    }
+
+    // All per-frame data goes to the GPU in a single copy pass before the scene pass.
+    void NextRenderer::UploadFrameData(ICommandBuffer& commandBuffer)
+    {
+        commandBuffer.PushDebugGroup("Upload frame data");
         auto* copyPass = commandBuffer.BeginCopyPass();
-        copyPass->UploadToBuffer(storage.Transfer.get(), 0, storage.Buffer.get(), 0, (int)data.size(), true);
+
+        UploadFrameStorage(*copyPass, _instanceBuffer, _instanceData, (int)sizeof(GpuObjectInstance), BufferUsage::GraphicsStorageRead, "Frame.Instances");
+        UploadFrameStorage(*copyPass, _lightBuffer, _lightData, (int)sizeof(GpuLight), BufferUsage::GraphicsStorageRead, "Frame.Lights");
+        UploadFrameStorage(*copyPass, _boneBuffer, _boneData, (int)sizeof(Matrix), BufferUsage::GraphicsStorageRead, "Frame.Bones");
+        UploadFrameStorage(*copyPass, _sortedIndexBuffer, _sortedIndexData, (int)sizeof(int), BufferUsage::Index, "Frame.SortedIndices");
+        UploadFrameStorage(*copyPass, _spriteBuffer, _spriteData, (int)sizeof(GpuSprite), BufferUsage::GraphicsStorageRead, "Frame.Sprites");
+
         commandBuffer.EndCopyPass();
+        commandBuffer.PopDebugGroup();
     }
 
     void NextRenderer::DrawObjects(ICommandBuffer& commandBuffer, IRenderPass& renderPass, bool additive)
@@ -1452,13 +1466,7 @@ namespace TEN::Renderer::Next
         CollectSprites(view);
         CollectSortedFaces(view, environment.InterpolationFactor);
 
-        commandBuffer->PushDebugGroup("Upload frame data");
-        UploadFrameStorage(*commandBuffer, _instanceBuffer, _instanceData, (int)sizeof(GpuObjectInstance), BufferUsage::GraphicsStorageRead, "Frame.Instances");
-        UploadFrameStorage(*commandBuffer, _lightBuffer, _lightData, (int)sizeof(GpuLight), BufferUsage::GraphicsStorageRead, "Frame.Lights");
-        UploadFrameStorage(*commandBuffer, _boneBuffer, _boneData, (int)sizeof(Matrix), BufferUsage::GraphicsStorageRead, "Frame.Bones");
-        UploadFrameStorage(*commandBuffer, _sortedIndexBuffer, _sortedIndexData, (int)sizeof(int), BufferUsage::Index, "Frame.SortedIndices");
-        UploadFrameStorage(*commandBuffer, _spriteBuffer, _spriteData, (int)sizeof(GpuSprite), BufferUsage::GraphicsStorageRead, "Frame.Sprites");
-        commandBuffer->PopDebugGroup();
+        UploadFrameData(*commandBuffer);
 
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = _colorTarget.get();
