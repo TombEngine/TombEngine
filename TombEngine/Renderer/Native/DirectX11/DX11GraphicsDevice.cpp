@@ -8,6 +8,7 @@
 #include "Specific/EngineMain.h"
 #include "Specific/configuration.h"
 #include "Specific/trutils.h"
+#include <dxgi1_6.h>
 #include <wincodec.h>
 #include <ScreenGrab.h>
 #include <ctime>
@@ -18,6 +19,27 @@ using namespace TEN::Renderer::Graphics;
 
 namespace TEN::Renderer::Native::DirectX11
 {
+	// Hybrid graphics systems expose the integrated GPU as adapter 0, and the NvOptimusEnablement and
+	// AmdPowerXpressRequestHighPerformance exports are not always honored, so the discrete GPU is requested
+	// explicitly. Falls back to adapter 0 when the preference query is not available.
+	static ComPtr<IDXGIAdapter1> GetPreferredAdapter()
+	{
+		ComPtr<IDXGIAdapter1> adapter;
+
+		ComPtr<IDXGIFactory6> factory6;
+		if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(factory6.GetAddressOf()))) &&
+			SUCCEEDED(factory6->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(adapter.GetAddressOf()))))
+		{
+			return adapter;
+		}
+
+		ComPtr<IDXGIFactory1> factory;
+		if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(factory.GetAddressOf()))))
+			factory->EnumAdapters1(0, adapter.GetAddressOf());
+
+		return adapter;
+	}
+
     void DX11GraphicsDevice::BeginGpuTiming(GpuTimingScope scope)
     {
         if (scope == GpuTimingScope::Frame)
@@ -834,50 +856,41 @@ namespace TEN::Renderer::Native::DirectX11
 		D3D_FEATURE_LEVEL featureLevel;
 		HRESULT res;
 
+		auto adapter = GetPreferredAdapter();
+		auto driverType = (adapter != nullptr) ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE;
+
 		if constexpr (DEBUG_BUILD)
 		{
-			res = D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, D3D11_CREATE_DEVICE_DEBUG,
+			res = D3D11CreateDevice(adapter.Get(), driverType, NULL, D3D11_CREATE_DEVICE_DEBUG,
 				levels, 1, D3D11_SDK_VERSION, &_device, &featureLevel, &_context);
 		}
 		else
 		{
-			res = D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, NULL,
+			res = D3D11CreateDevice(adapter.Get(), driverType, NULL, NULL,
 				levels, 1, D3D11_SDK_VERSION, &_device, &featureLevel, &_context);
 		}
 
 		throwIfFailed(res);
+		TENLog("Graphics adapter: " + GetDefaultAdapterName(), LogLevel::Info);
 	}
 
 	std::string DX11GraphicsDevice::GetDefaultAdapterName()
 	{
-		IDXGIFactory* dxgiFactory = NULL;
-		throwIfFailed(CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&dxgiFactory));
-
-		IDXGIAdapter* dxgiAdapter = NULL;
-
-		dxgiFactory->EnumAdapters(0, &dxgiAdapter);
+		auto adapter = GetPreferredAdapter();
+		if (adapter == nullptr)
+			return {};
 
 		DXGI_ADAPTER_DESC adapterDesc = {};
-
-		dxgiAdapter->GetDesc(&adapterDesc);
-		dxgiFactory->Release();
-
+		adapter->GetDesc(&adapterDesc);
 		return TEN::Utils::ToString(adapterDesc.Description);
 	}
 
 	AdapterInfo DX11GraphicsDevice::GetAdapterInfo()
 	{
-		IDXGIFactory* dxgiFactory = NULL;
-		throwIfFailed(CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&dxgiFactory));
-
-		IDXGIAdapter* dxgiAdapter = NULL;
-		dxgiFactory->EnumAdapters(0, &dxgiAdapter);
-
 		DXGI_ADAPTER_DESC adapterDesc = {};
-		dxgiAdapter->GetDesc(&adapterDesc);
-
-		dxgiAdapter->Release();
-		dxgiFactory->Release();
+		auto adapter = GetPreferredAdapter();
+		if (adapter != nullptr)
+			adapter->GetDesc(&adapterDesc);
 
 		auto info = AdapterInfo{};
 		info.Name = TEN::Utils::ToString(adapterDesc.Description);
