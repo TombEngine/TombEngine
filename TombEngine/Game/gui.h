@@ -75,12 +75,13 @@ namespace TEN::Gui
 		SelectLevel,
 		LoadGame,
 		Options,
+		Gameplay,
 		Display,
 		GeneralActions,
 		VehicleActions,
 		QuickActions,
 		MenuActions,
-		OtherSettings
+		Sound
 	};
 
 	struct MenuOption
@@ -208,16 +209,17 @@ namespace TEN::Gui
 		void SetLastInventoryItem(int itemNumber);
 
 	private:
+		void HandleGameplaySettingsInput(bool fromPauseMenu);
 		void HandleDisplaySettingsInput(bool fromPauseMenu);
 		void HandleControlSettingsInput(ItemInfo* item, bool fromPauseMenu);
-		void HandleOtherSettingsInput(bool fromPauseMenu);
+		void HandleSoundSettingsInput(bool fromPauseMenu);
 		void HandleOptionsInput();
 		void BackupOptions();
 		void RebuildDisplayResolutions();
 		bool DoObjectsCombine(int objectNumber1, int objectNumber2);
 		void InitializeInventory(ItemInfo* item);
 		void FillDisplayOptions();
-		void FillOtherOptions();
+		void FillSoundOptions();
 		bool IsItemCurrentlyCombinable(int objectNumber);
 		bool IsItemInInventory(int objectNumber);
 		void CombineObjects(ItemInfo* item, int objectNumber1, int objectNumber2);

@@ -142,6 +142,10 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 	int gamepadType = std::clamp(config->last_gamepad_type(), 0, (int)GamepadType::Count - 1);
 	g_Configuration.LastGamepadType = (GamepadType)gamepadType;
 
+	// Remastered controls: reads the control mode, falling back to a valid value if the file holds an unknown one. -- divezzi, 08.10.26
+	int controlMode = std::clamp(config->control_mode(), 0, (int)ControlMode::Count - 1);
+	g_Configuration.ControlMode = (ControlMode)controlMode;
+
 	if (config->bindings() != nullptr)
 	{
 		for (const auto* binding : *config->bindings())
@@ -198,6 +202,7 @@ void InitDefaultConfiguration()
 	g_Configuration.MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
 	g_Configuration.LastGamepadType = GamepadType::Xbox;
 	g_Configuration.Bindings = {};
+	g_Configuration.ControlMode = ControlMode::Classic;
 
 	g_Configuration.SupportedScreenResolutions = GetAllSupportedScreenResolutions();
 	g_Configuration.AdapterName = g_Renderer.GetDefaultAdapterName();
@@ -268,6 +273,7 @@ static std::vector<unsigned char> BuildConfigurationBuffer()
 	builder.add_menu_option_looping_mode((int)g_Configuration.MenuOptionLoopingMode);
 	builder.add_last_gamepad_type((int)g_Configuration.LastGamepadType);
 	builder.add_bindings(bindingsOffset);
+	builder.add_control_mode((int)g_Configuration.ControlMode);
 
 	auto config = builder.Finish();
 	FinishConfigurationBuffer(fbb, config);

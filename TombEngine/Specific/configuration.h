@@ -15,6 +15,15 @@ enum class MenuOptionLoopingMode
 	Disabled
 };
 
+// Remastered controls: selects between the stock control scheme and the Remastered-style scheme. -- divezzi, 08.10.26
+enum class ControlMode
+{
+	Classic,
+	RemasteredControls,
+
+	Count
+};
+
 struct GameConfiguration
 {
 	static constexpr auto DEFAULT_SHADOW_MAP_SIZE	= 1024;
@@ -59,10 +68,14 @@ struct GameConfiguration
 	MenuOptionLoopingMode MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
 	GamepadType			  LastGamepadType		= GamepadType::Xbox;
 	BindingProfile		  Bindings				= {};
+	ControlMode			  ControlMode			= ControlMode::Classic;
 
 	std::vector<Vector2i>	SupportedScreenResolutions	= {};
 	std::string				AdapterName					= {};
 	std::vector<BassDevice> SupportedSoundDevices				= {};
+
+	bool IsUsingClassicControls() const			{ return ControlMode == ControlMode::Classic; }
+	bool IsUsingRemasteredControls() const		{ return ControlMode == ControlMode::RemasteredControls; }
 };
 
 void InitDefaultConfiguration();

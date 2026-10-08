@@ -51,8 +51,9 @@ namespace TEN::Renderer
 
 	// Vertical menu positioning templates
 	constexpr auto MenuVerticalControls = 30;
+	constexpr auto MenuVerticalGameplaySettings = 110;
 	constexpr auto MenuVerticalDisplaySettings = 110;
-	constexpr auto MenuVerticalOtherSettings = 50;
+	constexpr auto MenuVerticalSoundSettings = 180;
 	constexpr auto MenuVerticalBottomCenter = 400;
 	constexpr auto MenuVerticalStatisticsTitle = 150;
 	constexpr auto MenuVerticalOptionsTitle = 350;
@@ -88,6 +89,11 @@ namespace TEN::Renderer
 			case MenuOptionLoopingMode::Disabled:
 				return g_GameFlow->GetString(STRING_MENU_OPT_LOOP_DISABLED);
 		}
+	}
+
+	inline const std::string Str_ControlMode(ControlMode controlMode)
+	{
+		return g_GameFlow->GetString(controlMode == ControlMode::RemasteredControls ? STRING_CONTROL_MODE_REMASTERED : STRING_CONTROL_MODE_CLASSIC);
 	}
 
 	inline const int GetEffectiveBoundKeyID(ActionID actionID)
@@ -196,16 +202,83 @@ namespace TEN::Renderer
 			// Setup needed parameters
 			y = initialY;
 
-			// Display
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_DISPLAY), plainColor, SF_Center(titleOption == 0));
+			// Sound
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_SOUND), plainColor, SF_Center(titleOption == 0));
 			GetNextLinePosition(&y);
 
-			// Other options
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_OTHER_SETTINGS), plainColor, SF_Center(titleOption == 1));
+			// Display
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_DISPLAY), plainColor, SF_Center(titleOption == 1));
+			GetNextLinePosition(&y);
+
+			// Gameplay
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_GAMEPLAY), plainColor, SF_Center(titleOption == 2));
 			GetNextLinePosition(&y);
 
 			// Controls
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CONTROLS), plainColor, SF_Center(titleOption == 2));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CONTROLS), plainColor, SF_Center(titleOption == 3));
+			break;
+
+		case Menu::Gameplay:
+			// Setup needed parameters
+			y = MenuVerticalGameplaySettings;
+
+			// Title
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_GAMEPLAY), headerColor, SF_Center());
+			GetNextBlockPosition(&y);
+
+			// Subtitles
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SUBTITLES), optionColor, SF(titleOption == 0));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableSubtitles), plainColor, SF(titleOption == 0));
+			GetNextLinePosition(&y);
+
+			// Remastered controls: draws the control mode row. -- divezzi, 08.10.26
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_CONTROL_MODE), optionColor, SF(titleOption == 1));
+			AddString(MenuRightSideEntry, y, Str_ControlMode(g_Gui.GetCurrentSettings().Configuration.ControlMode), plainColor, SF(titleOption == 1));
+			GetNextLinePosition(&y);
+
+			// Auto monkey swing jump
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_MONKEY_SWING_JUMP), optionColor, SF(titleOption == 2));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableAutoMonkeySwingJump), plainColor, SF(titleOption == 2));
+			GetNextLinePosition(&y);
+
+			// Auto targeting
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_TARGETING), optionColor, SF(titleOption == 3));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableAutoTargeting), plainColor, SF(titleOption == 3));
+			GetNextLinePosition(&y);
+
+			// Target highlighter
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TARGET_HIGHLIGHTER), optionColor, SF(titleOption == 4));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableTargetHighlighter),
+				g_GameFlow->GetSettings()->Hud.TargetHighlighter ? plainColor : disabledColor, SF(titleOption == 4));
+			GetNextLinePosition(&y);
+
+			// Interaction highlighter
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INTERACTION_HIGHLIGHTER), optionColor, SF(titleOption == 5));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableInteractionHighlighter),
+				g_GameFlow->GetSettings()->Hud.InteractionHighlighter ? plainColor : disabledColor, SF(titleOption == 5));
+			GetNextLinePosition(&y);
+
+			// Vibration
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RUMBLE), optionColor, SF(titleOption == 6));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableRumble), plainColor, SF(titleOption == 6));
+			GetNextLinePosition(&y);
+
+			// Thumbstick camera
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_THUMBSTICK_CAMERA), optionColor, SF(titleOption == 7));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableThumbstickCamera), plainColor, SF(titleOption == 7));
+			GetNextLinePosition(&y);
+
+			// Mouse sensitivity
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MOUSE_SENSITIVITY), optionColor, SF(titleOption == 8));
+			AddString(MenuRightSideEntry, y, std::to_string(g_Gui.GetCurrentSettings().Configuration.MouseSensitivity).c_str(), plainColor, SF(titleOption == 8));
+			GetNextBlockPosition(&y);
+
+			// Apply
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 9));
+			GetNextLinePosition(&y);
+
+			// Cancel
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 10));
 			break;
 
 		case Menu::Display:
@@ -270,12 +343,12 @@ namespace TEN::Renderer
 			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 10));
 			break;
 
-		case Menu::OtherSettings:
+		case Menu::Sound:
 			// Setup needed parameters
-			y = MenuVerticalOtherSettings;
+			y = MenuVerticalSoundSettings;
 
 			// Title
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_OTHER_SETTINGS), headerColor, SF_Center());
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_SOUND), headerColor, SF_Center());
 			GetNextBlockPosition(&y);
 
 			// Sound device
@@ -305,54 +378,12 @@ namespace TEN::Renderer
 			DrawBar(g_Gui.GetCurrentSettings().Configuration.SfxVolume / 100.0f, *g_SFXVolumeBar, ID_SFX_BAR_TEXTURE, 0, false);
 			GetNextBlockPosition(&y);
 
-			// Subtitles
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_SUBTITLES), optionColor, SF(titleOption == 4));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableSubtitles), plainColor, SF(titleOption == 4));
-			GetNextLinePosition(&y);
-
-			// Auto monkey swing jump
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_MONKEY_SWING_JUMP), optionColor, SF(titleOption == 5));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableAutoMonkeySwingJump), plainColor, SF(titleOption == 5));
-			GetNextLinePosition(&y);
-
-			// Auto targeting
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_AUTO_TARGETING), optionColor, SF(titleOption == 6));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableAutoTargeting), plainColor, SF(titleOption == 6));
-			GetNextLinePosition(&y);
-
-			// Target highlighter
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_TARGET_HIGHLIGHTER), optionColor, SF(titleOption == 7));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableTargetHighlighter),
-				g_GameFlow->GetSettings()->Hud.TargetHighlighter ? plainColor : disabledColor, SF(titleOption == 7));
-			GetNextLinePosition(&y);
-
-			// Interaction highlighter
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INTERACTION_HIGHLIGHTER), optionColor, SF(titleOption == 8));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableInteractionHighlighter),
-				g_GameFlow->GetSettings()->Hud.InteractionHighlighter ? plainColor : disabledColor, SF(titleOption == 8));
-			GetNextLinePosition(&y);
-
-			// Vibration
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_RUMBLE), optionColor, SF(titleOption == 9));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableRumble), plainColor, SF(titleOption == 9));
-			GetNextLinePosition(&y);
-
-			// Thumbstick camera
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_THUMBSTICK_CAMERA), optionColor, SF(titleOption == 10));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableThumbstickCamera), plainColor, SF(titleOption == 10));
-			GetNextBlockPosition(&y);
-
-			// Mouse sensitivity
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MOUSE_SENSITIVITY), optionColor, SF(titleOption == 11));
-			AddString(MenuRightSideEntry, y, std::to_string(g_Gui.GetCurrentSettings().Configuration.MouseSensitivity).c_str(), plainColor, SF(titleOption == 11));
-			GetNextBlockPosition(&y);
-
 			// Apply
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 12));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 4));
 			GetNextLinePosition(&y);
 
 			// Cancel
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 13));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 5));
 
 			break;
 
@@ -617,12 +648,13 @@ namespace TEN::Renderer
 			break;
 
 		case Menu::Options:
+		case Menu::Gameplay:
 		case Menu::GeneralActions:
 		case Menu::VehicleActions:
 		case Menu::QuickActions:
 		case Menu::MenuActions:
 		case Menu::Display:
-		case Menu::OtherSettings:
+		case Menu::Sound:
 			RenderOptionsMenu(menu, MenuVerticalOptionsTitle);
 			break;
 		}
@@ -664,12 +696,13 @@ namespace TEN::Renderer
 			break;
 
 		case Menu::Options:
+		case Menu::Gameplay:
 		case Menu::GeneralActions:
 		case Menu::VehicleActions:
 		case Menu::QuickActions:
 		case Menu::MenuActions:
 		case Menu::Display:
-		case Menu::OtherSettings:
+		case Menu::Sound:
 			RenderOptionsMenu(menu, MenuVerticalOptionsPause);
 			break;
 		}
