@@ -440,8 +440,11 @@ namespace TEN::Renderer::RHI::DirectX11
             bool is3D = (desc.Type == TextureType::Texture3D);
             int arraySlice = is3D ? 0 : destination.Layer;
             int subresource = D3D11CalcSubresource(destination.MipLevel, arraySlice, desc.MipLevels);
+            // Block compressed mips smaller than a block still cover a whole block.
+            int alignedWidth = ((destination.Width + blockDimension - 1) / blockDimension) * blockDimension;
+            int alignedHeight = ((destination.Height + blockDimension - 1) / blockDimension) * blockDimension;
             auto box = D3D11_BOX{ (UINT)destination.X, (UINT)destination.Y, (UINT)destination.Z,
-                (UINT)(destination.X + destination.Width), (UINT)(destination.Y + destination.Height), (UINT)(destination.Z + destination.Depth) };
+                (UINT)(destination.X + alignedWidth), (UINT)(destination.Y + alignedHeight), (UINT)(destination.Z + destination.Depth) };
 
             Context->UpdateSubresource(texture->Handle.Get(), subresource, &box, data.data() + source.Offset, rowPitch, depthPitch);
         }
@@ -809,6 +812,10 @@ namespace TEN::Renderer::RHI::DirectX11
         DX11Texture       _swapchainTexture = {};
         DX11CommandBuffer _commandBuffer    = {};
 
+        // Debug layer messages, forwarded to the log once per message ID.
+        ComPtr<ID3D11InfoQueue>  _infoQueue      = nullptr;
+        std::unordered_set<int>  _loggedMessages = {};
+
     public:
         DX11Device(ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext> context, ComPtr<IDXGISwapChain1> swapChain, SDL_Window* window, const std::string& adapterName) :
             _device(device),
@@ -821,6 +828,7 @@ namespace TEN::Renderer::RHI::DirectX11
             _commandBuffer.Device = device.Get();
             _commandBuffer.Context = context.Get();
             context.As(&_commandBuffer.Annotation);
+            device.As(&_infoQueue);
 
             auto uniformDesc = D3D11_BUFFER_DESC{};
             uniformDesc.ByteWidth = UNIFORM_BUFFER_SIZE;
@@ -868,6 +876,32 @@ namespace TEN::Renderer::RHI::DirectX11
         void Present()
         {
             _swapChain->Present(_syncInterval, 0);
+        }
+
+        void FlushDebugMessages()
+        {
+            if (_infoQueue == nullptr)
+                return;
+
+            auto count = _infoQueue->GetNumStoredMessages();
+            for (UINT64 i = 0; i < count; i++)
+            {
+                SIZE_T size = 0;
+                _infoQueue->GetMessage(i, nullptr, &size);
+
+                auto buffer = std::vector<unsigned char>(size);
+                auto* message = (D3D11_MESSAGE*)buffer.data();
+                if (FAILED(_infoQueue->GetMessage(i, message, &size)) || message->Severity > D3D11_MESSAGE_SEVERITY_WARNING)
+                    continue;
+
+                if (!_loggedMessages.insert((int)message->ID).second)
+                    continue;
+
+                auto level = (message->Severity == D3D11_MESSAGE_SEVERITY_WARNING) ? LogLevel::Warning : LogLevel::Error;
+                TENLog("DX11 debug layer: " + std::string(message->pDescription), level);
+            }
+
+            _infoQueue->ClearStoredMessages();
         }
 
         Backend GetBackend() const override
@@ -1274,6 +1308,8 @@ namespace TEN::Renderer::RHI::DirectX11
 
     void DX11CommandBuffer::Submit()
     {
+        Owner->FlushDebugMessages();
+
         if (HasSwapchainTexture)
             Owner->Present();
 

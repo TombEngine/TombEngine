@@ -14,7 +14,7 @@
 TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
 TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
 TEN_VS_STORAGE_BUFFER(ObjectInstance, Instances, 2);
-TEN_VS_STORAGE_BUFFER(float4x4, Bones, 3);
+TEN_VS_STORAGE_BUFFER(BoneTransform, Bones, 3);
 
 TEN_PS_TEXTURE(Texture2D, ColorMap, 0);
 TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 1);
