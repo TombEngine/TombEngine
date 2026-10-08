@@ -61,6 +61,14 @@ namespace TEN::Renderer::Next
         float        InterpolationFactor = 0.0f;
         bool         IsCameraUnderwater  = false;
         bool         IsAmbientOcclusionEnabled = false;
+
+        // Post-process values of the legacy renderer.
+        Vector3      Tint                = Vector3(0.5f);
+        float        Gamma               = 1.0f;
+        int          ColorScheme         = 0;
+        float        ColorSchemeStrength = 1.0f;
+        float        ScreenFade          = 1.0f;
+        float        CinematicBarsHeight = 0.0f;
     };
 
     struct NextFrameStats
@@ -191,6 +199,12 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IBuffer>           _spriteCornerBuffer  = nullptr;
         std::unique_ptr<RHI::ISampler>          _linearClampSampler  = nullptr;
 
+        // Post-process (NextRendererPostProcess.cpp). The scene renders into _sceneTarget, post-process into _colorTarget.
+        std::unique_ptr<RHI::IShader>           _postProcessVertexShader = nullptr;
+        std::unique_ptr<RHI::IShader>           _postProcessPixelShader  = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _postProcessPipeline     = nullptr;
+        std::unique_ptr<RHI::ITexture>          _sceneTarget             = nullptr;
+
         // Depth and normals prepass and screen space ambient occlusion (NextRendererSSAO.cpp).
         std::unique_ptr<RHI::IShader>           _roomsPrepassPixelShader    = nullptr;
         std::unique_ptr<RHI::IShader>           _objectsPrepassPixelShader  = nullptr;
@@ -302,6 +316,11 @@ namespace TEN::Renderer::Next
         bool CreateSkyGeometry();
         void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass);
+
+        // Post-process (NextRendererPostProcess.cpp).
+        std::unique_ptr<RHI::IGraphicsPipeline> CreateFullscreenPipeline(RHI::IShader* vertexShader, RHI::IShader* pixelShader, RHI::PixelFormat format, const char* name);
+        bool CreatePostProcessResources();
+        void RenderPostProcess(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
 
         // Prepass and ambient occlusion (NextRendererSSAO.cpp).
         bool  CreateSSAOResources();

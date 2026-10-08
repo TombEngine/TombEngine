@@ -46,23 +46,9 @@ namespace TEN::Renderer::Next
             return false;
         }
 
-        auto createFullscreenPipeline = [&](IShader* pixelShader, const char* name)
-        {
-            auto desc = GraphicsPipelineDesc{};
-            desc.VertexShader = _ssaoVertexShader.get();
-            desc.PixelShader = pixelShader;
-            desc.Rasterizer.Cull = RHI::CullMode::None;
-            desc.DepthStencil.EnableDepthTest = false;
-            desc.DepthStencil.EnableDepthWrite = false;
-            desc.NumColorTargets = 1;
-            desc.ColorTargets[0].Format = PixelFormat::R8Unorm;
-            desc.Name = name;
-            return _device->CreateGraphicsPipeline(desc);
-        };
-
-        _ssaoPipeline = createFullscreenPipeline(_ssaoPixelShader.get(), "SSAO");
-        _ssaoBlurHorizontalPipeline = createFullscreenPipeline(_ssaoBlurHorizontalShader.get(), "SSAO.BlurHorizontal");
-        _ssaoBlurVerticalPipeline = createFullscreenPipeline(_ssaoBlurVerticalShader.get(), "SSAO.BlurVertical");
+        _ssaoPipeline = CreateFullscreenPipeline(_ssaoVertexShader.get(), _ssaoPixelShader.get(), PixelFormat::R8Unorm, "SSAO");
+        _ssaoBlurHorizontalPipeline = CreateFullscreenPipeline(_ssaoVertexShader.get(), _ssaoBlurHorizontalShader.get(), PixelFormat::R8Unorm, "SSAO.BlurHorizontal");
+        _ssaoBlurVerticalPipeline = CreateFullscreenPipeline(_ssaoVertexShader.get(), _ssaoBlurVerticalShader.get(), PixelFormat::R8Unorm, "SSAO.BlurVertical");
         if (_ssaoPipeline == nullptr || _ssaoBlurHorizontalPipeline == nullptr || _ssaoBlurVerticalPipeline == nullptr)
             return false;
 

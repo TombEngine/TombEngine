@@ -107,6 +107,10 @@ namespace TEN::Renderer::Next
         _skyIndexBuffer = nullptr;
         _skyVertexShader = nullptr;
         _skyPixelShader = nullptr;
+        _postProcessPipeline = nullptr;
+        _postProcessVertexShader = nullptr;
+        _postProcessPixelShader = nullptr;
+        _sceneTarget = nullptr;
         _ssaoPipeline = nullptr;
         _ssaoBlurHorizontalPipeline = nullptr;
         _ssaoBlurVerticalPipeline = nullptr;
@@ -154,7 +158,7 @@ namespace TEN::Renderer::Next
         if (_skyVertexShader == nullptr || _skyPixelShader == nullptr || !CreateSkyGeometry())
             return false;
 
-        if (!CreateSpriteResources() || !CreateSSAOResources())
+        if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources())
             return false;
 
         if (GetScenePipeline(SceneShader::Rooms, BlendMode::Opaque) == nullptr ||
@@ -379,8 +383,11 @@ namespace TEN::Renderer::Next
         colorDesc.Height = height;
         colorDesc.Format = _device->GetSwapchainFormat();
         colorDesc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
-        colorDesc.Name = "Scene.Color";
+        colorDesc.Name = "Frame.Color";
         _colorTarget = _device->CreateTexture(colorDesc);
+
+        colorDesc.Name = "Scene.Color";
+        _sceneTarget = _device->CreateTexture(colorDesc);
 
         auto depthDesc = TextureDesc{};
         depthDesc.Width = width;
@@ -390,7 +397,7 @@ namespace TEN::Renderer::Next
         depthDesc.Name = "Scene.Depth";
         _depthTarget = _device->CreateTexture(depthDesc);
 
-        return (_colorTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height));
+        return (_colorTarget != nullptr && _sceneTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height));
     }
 
     void NextRenderer::UploadBuffer(IBuffer* buffer, const void* data, int size)
@@ -1605,7 +1612,7 @@ namespace TEN::Renderer::Next
         }
 
         auto colorTarget = ColorTargetInfo{};
-        colorTarget.Texture = _colorTarget.get();
+        colorTarget.Texture = _sceneTarget.get();
         colorTarget.ClearColor[0] = environment.FogColor.x;
         colorTarget.ClearColor[1] = environment.FogColor.y;
         colorTarget.ClearColor[2] = environment.FogColor.z;
@@ -1627,6 +1634,8 @@ namespace TEN::Renderer::Next
         DrawSortedFaces(*commandBuffer, *renderPass);
         commandBuffer->EndRenderPass();
         commandBuffer->PopDebugGroup();
+
+        RenderPostProcess(*commandBuffer, environment);
 
         if (!_device->RequiresWindowThreadPresent())
         {

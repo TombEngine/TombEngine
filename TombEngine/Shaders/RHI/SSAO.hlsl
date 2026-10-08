@@ -7,6 +7,7 @@
 // from the depth and view space normals of the prepass, then blurred with a separable bilateral filter.
 
 #include "./ShaderInterop.hlsli"
+#include "./Fullscreen.hlsli"
 
 #define SSAO_KERNEL_SIZE 32
 #define BLUR_SIZE        5
@@ -31,21 +32,11 @@ TEN_PS_TEXTURE(Texture2D, SourceMap, 0);
 TEN_PS_TEXTURE(Texture2D, NormalMap, 1);
 TEN_PS_TEXTURE(Texture2D, NoiseMap, 2);
 
-struct PixelInput
-{
-    float4 Position : SV_POSITION;
-    float2 UV       : TEXCOORD0;
-};
+typedef FullscreenPixelInput PixelInput;
 
-// Fullscreen triangle without vertex buffers.
 PixelInput VS(uint vertexId : SV_VertexID)
 {
-    float2 uv = float2((vertexId << 1) & 2, vertexId & 2);
-
-    PixelInput output;
-    output.Position = float4(uv * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f), 0.0f, 1.0f);
-    output.UV = uv;
-    return output;
+    return FullscreenVS(vertexId);
 }
 
 float3 ReconstructViewPosition(float2 uv)

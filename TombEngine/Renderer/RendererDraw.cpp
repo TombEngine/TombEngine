@@ -2314,6 +2314,12 @@ namespace TEN::Renderer
 			environment.InterpolationFactor = GetInterpolationFactor();
 			environment.IsCameraUnderwater = (cameraConstantBuffer.CameraUnderwater != 0);
 			environment.IsAmbientOcclusionEnabled = (cameraConstantBuffer.AmbientOcclusion != 0);
+			environment.Tint = _postProcessTint;
+			environment.Gamma = g_Configuration.Gamma;
+			environment.ColorScheme = (int)_postProcessMode;
+			environment.ColorSchemeStrength = _postProcessStrength;
+			environment.ScreenFade = ScreenFadeCurrent;
+			environment.CinematicBarsHeight = CinematicBarsHeight;
 			Next::g_NextRenderer.RenderFrame(view, environment);
 		}
 
