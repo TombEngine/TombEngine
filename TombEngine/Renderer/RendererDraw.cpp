@@ -2007,7 +2007,9 @@ namespace TEN::Renderer
 		_stPerDraw.AlphaThreshold = NO_VALUE;
 
 		CollectLightsForCamera();
+		_graphicsDevice->BeginGpuTiming(GpuTimingScope::Shadows);
 		RenderItemShadows(view);
+		_graphicsDevice->EndGpuTiming(GpuTimingScope::Shadows);
 
 		// Prepare all sprites for later.
 		PrepareFires(view);
@@ -2079,7 +2081,9 @@ namespace TEN::Renderer
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 
 		// Draw skybox to paraboloid
+		_graphicsDevice->BeginGpuTiming(GpuTimingScope::SkyReflections);
 		DrawHorizonAndSkyForReflections(view);
+		_graphicsDevice->EndGpuTiming(GpuTimingScope::SkyReflections);
 
 		_stPerDraw.Animated = 0;
         InvalidatePerDrawBuffer();
@@ -2140,14 +2144,18 @@ namespace TEN::Renderer
 		UpdateConstantBuffer(&cameraConstantBuffer, _cbCameraMatrices.get());
 
 		// Draw horizon and sky.
+		_graphicsDevice->BeginGpuTiming(GpuTimingScope::Sky);
 		DrawHorizonAndSky(_renderTarget->GetDepthTarget(), view);
+		_graphicsDevice->EndGpuTiming(GpuTimingScope::Sky);
 
 		// Horizon-mesh depth was preserved at end of DrawHorizonAndSky (for aurora occlusion).
 		// Clear now so that DrawGodRays and the GBuffer pass start with uniform depth.
 		_graphicsDevice->ClearDepthStencil(_renderTarget->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 1.0f, 0);
 
 		// Draw god rays (radial light shafts from sun through cloud gaps).
+		_graphicsDevice->BeginGpuTiming(GpuTimingScope::GodRays);
 		DrawGodRays(view);
+		_graphicsDevice->EndGpuTiming(GpuTimingScope::GodRays);
 
 		// Ensure the correct mesh input layout is active before the GBuffer pass.
 		// (The cloud pass uses _fullscreenTriangleInputLayout which must not leak here.)
@@ -2169,11 +2177,17 @@ namespace TEN::Renderer
 		_graphicsDevice->BindRenderTargets(gbuffer, _renderTarget->GetDepthTarget());
 
 		// Render G-Buffer pass.
+		_graphicsDevice->BeginGpuTiming(GpuTimingScope::GBuffer);
 		DoRenderPass(RendererPass::GBuffer, view, true);
+		_graphicsDevice->EndGpuTiming(GpuTimingScope::GBuffer);
 
 		// Calculate ambient occlusion.
 		if (g_GameFlow->GetSettings()->Graphics.AmbientOcclusion && g_Configuration.EnableAmbientOcclusion)
+		{
+			_graphicsDevice->BeginGpuTiming(GpuTimingScope::Ssao);
 			CalculateSSAO(view);
+			_graphicsDevice->EndGpuTiming(GpuTimingScope::Ssao);
+		}
 
 		_graphicsDevice->SetPrimitiveType(PrimitiveType::TriangleList);
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());
@@ -2184,9 +2198,11 @@ namespace TEN::Renderer
 		// Bind main render target again. Main depth buffer is already filled and avoids overdraw in following steps.
 		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 
+		_graphicsDevice->BeginGpuTiming(GpuTimingScope::Opaque);
 		DoRenderPass(RendererPass::Opaque, view, true);
 		DoRenderPass(RendererPass::Additive, view, true);
 		DoRenderPass(RendererPass::Distortion, view, true);
+		_graphicsDevice->EndGpuTiming(GpuTimingScope::Opaque);
 
 		using ms = std::chrono::duration<float, std::milli>;
 
@@ -2196,7 +2212,9 @@ namespace TEN::Renderer
 		SortTransparentFaces(view);
 		auto sortedTime2 = std::chrono::high_resolution_clock::now();
 
+		_graphicsDevice->BeginGpuTiming(GpuTimingScope::Transparent);
 		DoRenderPass(RendererPass::Transparent, view, true);
+		_graphicsDevice->EndGpuTiming(GpuTimingScope::Transparent);
 		auto sortedTime3 = std::chrono::high_resolution_clock::now();
 
 		_timeSortedCollect = ms(sortedTime1 - sortedTime0).count();
@@ -2208,7 +2226,9 @@ namespace TEN::Renderer
 		// Volumetric dust storm: full-screen raymarched pass that uses the now-final
 		// depth buffer to clamp marching against scene geometry. Gated by camera-room
 		// outdoor flag to match rain / snow.
+		_graphicsDevice->BeginGpuTiming(GpuTimingScope::DustStorm);
 		DrawDustStorm(view);
+		_graphicsDevice->EndGpuTiming(GpuTimingScope::DustStorm);
 
 		// Draw 3D debug lines and triangles.
 		DrawLines3D(view);
@@ -2216,6 +2236,7 @@ namespace TEN::Renderer
 
 		// Copy current scene to the reflections render target for the next frame.
 		// RT -> LRRT
+		_graphicsDevice->BeginGpuTiming(GpuTimingScope::PostProcess);
 		CopyRenderTargetAndDownscale(_renderTarget.get(), _legacyReflectionsRenderTarget.get(), POSTPROCESS_DOWNSCALE_FACTOR, view);
 		_graphicsDevice->BindRenderTarget(_renderTarget->GetRenderTarget(), _renderTarget->GetDepthTarget());
 
@@ -2245,6 +2266,8 @@ namespace TEN::Renderer
 		// Now we can apply the color grade, lens flare, cinematic bars and post process effects
 		// RT -> PPRT0, [PPRT0 -> PPRT1], PPRT1 -> PPRT0, PPRT0 -> RT
 		DrawPostprocess(renderTarget, view, renderMode);
+		_graphicsDevice->EndGpuTiming(GpuTimingScope::PostProcess);
+		_graphicsDevice->BeginGpuTiming(GpuTimingScope::Hud);
 
 		// Draw text and 2D HUD
 		ClearDrawPhaseDisplaySprites();
@@ -2273,6 +2296,8 @@ namespace TEN::Renderer
 		time2 = std::chrono::high_resolution_clock::now();
 		_timeFrame = (std::chrono::duration_cast<ns>(time2 - time1)).count() / 1000000;
 		time1 = time2;
+
+		_graphicsDevice->EndGpuTiming(GpuTimingScope::Hud);
 
 		CollectFrameStats(view);
 		ClearScene();
@@ -3740,7 +3765,11 @@ namespace TEN::Renderer
 		auto renderStartTime = std::chrono::steady_clock::now();
 
 		InterpolateCamera(interpFactor);
+
+		_graphicsDevice->BeginGpuTiming(GpuTimingScope::Frame);
+		_graphicsDevice->BeginGpuTiming(GpuTimingScope::Scene);
 		RenderScene(_backBuffer.get(), _gameCamera);
+		_graphicsDevice->EndGpuTiming(GpuTimingScope::Scene);
 
 		// ImGui debug overlay: NewFrame -> draw windows -> render.
 		// Must happen after RenderScene (so it draws on top) and before ClearState/Present.
@@ -3750,6 +3779,8 @@ namespace TEN::Renderer
 			TEN::Sky::DrawSkyDebugWindow();
 		}
 		ImGuiRenderFrame();
+
+		_graphicsDevice->EndGpuTiming(GpuTimingScope::Frame);
 
 		auto presentStartTime = std::chrono::steady_clock::now();
 		_graphicsDevice->ClearState();

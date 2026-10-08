@@ -33,8 +33,26 @@ namespace TEN::Renderer::Graphics
 {
     enum class GpuTimingScope
     {
+        Frame,
+        Shadows,
+        SkyReflections,
+        Sky,
+        GodRays,
+        GBuffer,
         Ssao,
-        SsaoBlur
+        Opaque,
+        Transparent,
+        DustStorm,
+        PostProcess,
+        Hud,
+        Scene,
+
+        Count
+    };
+
+    constexpr const char* GPU_TIMING_SCOPE_NAMES[(int)GpuTimingScope::Count] =
+    {
+        "frame", "shadows", "sky_reflections", "sky", "god_rays", "gbuffer", "ssao", "opaque", "transparent", "dust_storm", "post_process", "hud", "scene"
     };
 
 	class IGraphicsDevice
@@ -42,6 +60,7 @@ namespace TEN::Renderer::Graphics
 	public:
         virtual void BeginGpuTiming(GpuTimingScope scope) {}
         virtual void EndGpuTiming(GpuTimingScope scope) {}
+        virtual float GetGpuTime(GpuTimingScope scope) { return -1.0f; }
 
 		virtual std::unique_ptr<IVertexBuffer> CreateVertexBuffer(int numVertices, int vertexSize, void* data) = 0;
 		virtual void UpdateVertexBuffer(IVertexBuffer* vertexBuffer, int startVertex, int count, void* data) = 0;

@@ -35,8 +35,7 @@ namespace TEN::Renderer::Native::DirectX11
 	class DX11GraphicsDevice final : public IGraphicsDevice
 	{
 	private:
-        DX11GpuTimer _ssaoTimer;
-        DX11GpuTimer _ssaoBlurTimer;
+        DX11GpuTimer _gpuTimer;
 
 		ComPtr<ID3D11Device> _device = nullptr;
 		ComPtr<ID3D11DeviceContext> _context = nullptr;
@@ -120,6 +119,7 @@ namespace TEN::Renderer::Native::DirectX11
 		void BindIndexBuffer(IIndexBuffer* indexBuffer) override;
         void BeginGpuTiming(GpuTimingScope scope) override;
         void EndGpuTiming(GpuTimingScope scope) override;
+        float GetGpuTime(GpuTimingScope scope) override;
 
 		std::unique_ptr<IRenderSurface2D> CreateRenderSurface2D(int width, int height, SurfaceFormat colorFormat, bool isTypeless, DepthFormat depthFormat) override;
 		std::unique_ptr<IRenderSurface2D> CreateRenderSurface2D(int width, int height, int arraySize, SurfaceFormat colorFormat, DepthFormat depthFormat) override;

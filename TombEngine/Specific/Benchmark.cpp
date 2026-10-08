@@ -64,6 +64,17 @@ namespace TEN::Benchmark
         return std::chrono::duration<float>(std::chrono::steady_clock::now() - _startTime).count();
     }
 
+    static void WriteHeader(const BenchmarkFrameStats& stats)
+    {
+        _file << "frame,time_s,cpu_frame_ms,cpu_render_ms,present_ms,draw_calls,shadow_draw_calls,triangles,"
+                 "cb_updates,cb_bytes,perdraw_updates,rooms,sorted_faces,sorted_collect_ms,sorted_sort_ms,sorted_draw_ms";
+
+        for (int i = 0; i < stats.GpuPassCount; i++)
+            _file << ",gpu_" << stats.GpuPassNames[i] << "_ms";
+
+        _file << '\n';
+    }
+
     static void WriteSummary()
     {
         if (_recordedFrames == 0)
@@ -96,9 +107,6 @@ namespace TEN::Benchmark
             TENLog("Benchmark disabled: cannot create " + filePath.string(), LogLevel::Error);
             return;
         }
-
-        _file << "frame,time_s,cpu_frame_ms,cpu_render_ms,present_ms,draw_calls,shadow_draw_calls,triangles,"
-                 "cb_updates,cb_bytes,perdraw_updates,rooms,sorted_faces,sorted_collect_ms,sorted_sort_ms,sorted_draw_ms\n";
 
         _isActive = true;
         _isStarted = false;
@@ -167,12 +175,20 @@ namespace TEN::Benchmark
         if (time < 0.0f || time > _duration)
             return;
 
+        if (_recordedFrames == 0)
+            WriteHeader(stats);
+
         _file << _recordedFrames << ',' << time << ','
               << stats.CpuFrameTime << ',' << stats.CpuRenderTime << ',' << stats.PresentTime << ','
               << stats.DrawCalls << ',' << stats.ShadowMapDrawCalls << ',' << stats.Triangles << ','
               << stats.ConstantBufferUpdates << ',' << stats.ConstantBufferBytes << ',' << stats.PerDrawUpdates << ','
               << stats.RoomsDrawn << ',' << stats.SortedFaces << ','
-              << stats.SortedCollectTime << ',' << stats.SortedSortTime << ',' << stats.SortedDrawTime << '\n';
+              << stats.SortedCollectTime << ',' << stats.SortedSortTime << ',' << stats.SortedDrawTime;
+
+        for (int i = 0; i < stats.GpuPassCount; i++)
+            _file << ',' << stats.GpuPassTimes[i];
+
+        _file << '\n';
 
         _frameTimes.push_back(stats.CpuFrameTime);
         _renderTimes.push_back(stats.CpuRenderTime);

@@ -20,14 +20,23 @@ namespace TEN::Renderer::Native::DirectX11
 {
     void DX11GraphicsDevice::BeginGpuTiming(GpuTimingScope scope)
     {
-        auto& timer = (scope == GpuTimingScope::Ssao) ? _ssaoTimer : _ssaoBlurTimer;
-        timer.Begin(_device.Get(), _context.Get(), (scope == GpuTimingScope::Ssao) ? "SSAO" : "SSAO blur");
+        if (scope == GpuTimingScope::Frame)
+            _gpuTimer.BeginFrame(_device.Get(), _context.Get());
+
+        _gpuTimer.BeginScope(_context.Get(), (int)scope);
     }
 
     void DX11GraphicsDevice::EndGpuTiming(GpuTimingScope scope)
     {
-        auto& timer = (scope == GpuTimingScope::Ssao) ? _ssaoTimer : _ssaoBlurTimer;
-        timer.End(_context.Get());
+        _gpuTimer.EndScope(_context.Get(), (int)scope);
+
+        if (scope == GpuTimingScope::Frame)
+            _gpuTimer.EndFrame(_context.Get());
+    }
+
+    float DX11GraphicsDevice::GetGpuTime(GpuTimingScope scope)
+    {
+        return (float)_gpuTimer.GetMilliseconds((int)scope);
     }
 
 	std::unique_ptr<IVertexBuffer> DX11GraphicsDevice::CreateVertexBuffer(int numVertices, int vertexSize, void* data)
