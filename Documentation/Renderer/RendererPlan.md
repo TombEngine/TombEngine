@@ -31,13 +31,13 @@ I valori "oggi" vanno confermati con la baseline (Fase 0).
 
 ---
 
-## 1b. Risultati della baseline (Release, RTX 3050, 1728x1083)
+## 1b. Risultati della baseline (Release, 1728x1083)
 
 Dettagli in `Baseline.md`.
-- **Il renderer e' limitato dalla GPU, non dalla CPU.** Il submit CPU costa circa 0,5 ms per frame.
-- **La SSAO prende la maggior parte del frame GPU:** 21-26 ms su 30-36 ms. Con il commit di `develop_ssao_performance` (32 campioni, blur separabile) scende a 10,8-13,3 ms, e il frame a 20-23 ms. Resta comunque oltre meta' del frame.
-- Post-process circa 4,8 ms, opachi 2-3 ms, GBuffer circa 1 ms, cielo sotto 1 ms.
-- Conseguenza per l'ordine di lavoro: nel nuovo renderer la priorita' va al costo GPU per pixel (SSAO a risoluzione ridotta, post-process, overdraw) prima che al numero di draw call.
+- **Correzione:** le prime misure erano sulla GPU integrata AMD, non sulla RTX 3050. Il renderer legacy creava il device sull'adapter 0, che sui portatili ibridi e' l'integrata, e l'export `NvOptimusEnablement` non veniva rispettato. Ora (`3cd8e79f4`) chiede esplicitamente l'adapter ad alte prestazioni: il frame GPU passa da 30-36 ms a 3,3-3,5 ms.
+- **Sulla GPU integrata** il renderer e' limitato dalla GPU e la SSAO prende oltre meta' del frame (10,8-13,3 ms dopo il commit di `develop_ssao_performance`).
+- **Sulla RTX 3050** il renderer legacy e' limitato dalla CPU: circa 3 ms per frame, di cui 0,3 ms per le facce ordinate. GPU: SSAO 0,9-1,1 ms, opachi 0,7-0,85 ms, post-process 0,7 ms, trasparenti 0,3-0,4 ms.
+- Conseguenza per l'ordine di lavoro: costo per pixel basso (SSAO a mezza risoluzione, post-process, overdraw) per le GPU integrate, e CPU per frame bassa per le dedicate.
 
 ## 2. Stato attuale (sintesi)
 
@@ -245,7 +245,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 - [ ] Illuminazione clustered (Forward+) **non** prevista: si valuta solo se le misure mostrano un collo di bottiglia nelle liste di luci.
 
 ### 8.4 Pass principali
-- [ ] **Depth + normali** (stanze, statiche, moveable; alpha test con una permutazione dedicata) per SSAO ed early-z: sostituisce il GBuffer a 4 MRT con il minimo indispensabile.
+- [x] **Depth + normali** (stanze, statiche, moveable; alpha test con una permutazione dedicata) per SSAO ed early-z: sostituisce il GBuffer a 4 MRT con il minimo indispensabile. *(una sola uscita: normali in view space; la depth del prepass e' riusata dal pass di scena con LessOrEqual)*
 - [ ] **Opaque** con `DepthCompare=Equal` e senza depth write: nessun overdraw di pixel shading.
 - [ ] Additive e Distortion con draw packet propri, senza riattraversare la scena.
 - [ ] **Instancing ovunque**: statiche (tutte le mesh, senza limite di 100), moveable non skinned con lo stesso oggetto, sciami, bossoli, debris.
@@ -259,7 +259,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 
 ### 8.6 Post-process
 - [ ] Post-process come pass della lista con target transienti condivisi: distortion, DOF, glow, color grading, lens flare, SMAA/FXAA.
-- [ ] Effetti a bassa frequenza a mezza o un quarto di risoluzione con upsample bilaterale (SSAO, glow, nuvole, aurora, god ray) dove la qualita' regge.
+- [ ] Effetti a bassa frequenza a mezza o un quarto di risoluzione con upsample bilaterale (SSAO, glow, nuvole, aurora, god ray) dove la qualita' regge. *(SSAO fatta: mezza risoluzione, blur bilaterale H/V, upsample bilineare; 0,15-0,33 ms contro 0,9-1,1 ms del legacy sulla RTX 3050)*
 - [ ] Compute shader (CS 5.0) solo per i blur separabili e le riduzioni, dove battono il pixel shader.
 - [ ] HDR lineare (`RGBA16F` + tonemapping) **non** previsto ora: cambia il look e aggiunge rischio. Da valutare dopo la parita'.
 
@@ -315,7 +315,9 @@ Il renderer nuovo gira in una seconda finestra accanto a quello vecchio, sugli s
 - [x] Effetti di vertice (Move/Glow/Wibble) e rifrazione delle stanze d'acqua.
 - [ ] Soft particle, sprite laser, distorsione, specchi.
 - [ ] Cielo atmosferico, nuvole, aurora, sole e stelle (Tomo).
-- [ ] Normal map, specular, riflessi, caustiche, decal, SSAO, ombre, fog bulb.
+- [x] Materiali: normal map, ORSH, emissive, parallax, specular e sheen.
+- [x] SSAO a mezza risoluzione con prepass depth + normali.
+- [ ] Riflessi (materiali riflettenti), caustiche, decal, ombre, fog bulb.
 - [ ] Post-process, HUD, 2D, inventario e menu.
 
 ## 12. Decisioni prese
