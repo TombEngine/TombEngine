@@ -156,6 +156,8 @@ if not exist %ScriptsDir% mkdir %ScriptsDir%
 if not exist %EngineDir% mkdir %EngineDir%
 
 xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
+powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\RHI\CompileShaders.ps1" -OutputDir "%ShaderDir%\RHI\Bin" -DebugInfo
+if errorlevel 1 exit 1
 
 xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x86\*.dll" "$(TargetDir)"
@@ -223,6 +225,8 @@ if not exist %ScriptsDir% mkdir %ScriptsDir%
 if not exist %EngineDir% mkdir %EngineDir%
 
 xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
+powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\RHI\CompileShaders.ps1" -OutputDir "%ShaderDir%\RHI\Bin" -DebugInfo
+if errorlevel 1 exit 1
 
 xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
@@ -303,6 +307,8 @@ if not exist %ScriptsDir% mkdir %ScriptsDir%
 if not exist %EngineDir% mkdir %EngineDir%
 
 xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" %ShaderDir%
+powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\RHI\CompileShaders.ps1" -OutputDir "%ShaderDir%\RHI\Bin"
+if errorlevel 1 exit 1
 
 xcopy /Y "$(SolutionDir)Libs\bass\x86\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x86\*.dll" "$(TargetDir)"
@@ -384,6 +390,8 @@ if not exist "%ScriptsDir%" mkdir "%ScriptsDir%"
 if not exist "%EngineDir%" mkdir "%EngineDir%"
 
 xcopy /D /Y /I /E "$(ProjectDir)Shaders\*.*" "%ShaderDir%"
+powershell -ExecutionPolicy Bypass -File "$(ProjectDir)Shaders\RHI\CompileShaders.ps1" -OutputDir "%ShaderDir%\RHI\Bin"
+if errorlevel 1 exit 1
 
 xcopy /Y "$(SolutionDir)Libs\bass\x64\*.dll" "$(TargetDir)"
 xcopy /Y "$(SolutionDir)Libs\lua\x64\*.dll" "$(TargetDir)"
@@ -907,6 +915,12 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\Structures\RendererRoomNode.h" />
     <ClInclude Include="Renderer\Structures\RendererSortableObject.h" />
     <ClInclude Include="Renderer\Structures\RendererSortedBatch.h" />
+    <ClInclude Include="Renderer\RHI\RHITypes.h" />
+    <ClInclude Include="Renderer\RHI\RHIDevice.h" />
+    <ClInclude Include="Renderer\RHI\DirectX11\DX11Device.h" />
+    <ClInclude Include="Renderer\RHI\SDLGPU\SDLGPUDevice.h" />
+    <ClInclude Include="Renderer\RHI\ShaderLibrary.h" />
+    <ClInclude Include="Renderer\RHI\RHITest.h" />
     <ClInclude Include="Renderer\Structures\RendererSprite.h" />
     <ClInclude Include="Renderer\Structures\RendererSprite2D.h" />
     <ClInclude Include="Renderer\Structures\RendererSpriteBucket.h" />
@@ -1487,6 +1501,11 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\RendererPostProcess.cpp" />
     <ClCompile Include="Renderer\RendererSettings.cpp" />
     <ClCompile Include="Renderer\RendererSorted.cpp" />
+    <ClCompile Include="Renderer\RHI\RHIDevice.cpp" />
+    <ClCompile Include="Renderer\RHI\DirectX11\DX11Device.cpp" />
+    <ClCompile Include="Renderer\RHI\SDLGPU\SDLGPUDevice.cpp" />
+    <ClCompile Include="Renderer\RHI\ShaderLibrary.cpp" />
+    <ClCompile Include="Renderer\RHI\RHITest.cpp" />
     <ClCompile Include="Renderer\RendererSprites.cpp" />
     <ClCompile Include="Renderer\RendererString.cpp" />
     <ClCompile Include="Renderer\RendererUtils.cpp" />
