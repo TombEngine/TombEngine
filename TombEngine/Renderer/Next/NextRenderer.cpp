@@ -6,6 +6,8 @@
 #include "Renderer/RHI/ShaderLibrary.h"
 #include "Renderer/RHI/TextureCapture.h"
 #include "Game/Animation/Animation.h"
+#include "Game/control/control.h"
+#include "Game/effects/weather.h"
 #include "Game/effects/hair.h"
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
@@ -17,6 +19,7 @@
 #include "Renderer/Structures/RendererRoom.h"
 #include "Renderer/Structures/RendererSortableObject.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Specific/level.h"
 
 using namespace TEN::Renderer::RHI;
@@ -178,6 +181,11 @@ namespace TEN::Renderer::Next
         _roomsPixelShader = nullptr;
         _anisotropicSampler = nullptr;
         _whiteTexture = nullptr;
+        _skyTexture = nullptr;
+        _skyVertexBuffer = nullptr;
+        _skyIndexBuffer = nullptr;
+        _skyVertexShader = nullptr;
+        _skyPixelShader = nullptr;
         _device = nullptr;
     }
 
@@ -197,6 +205,11 @@ namespace TEN::Renderer::Next
         _objectsVertexShader = LoadShader(*_device, _shaderDirectory, "Objects", "VS");
         _objectsPixelShader = LoadShader(*_device, _shaderDirectory, "Objects", "PS");
         if (_objectsVertexShader == nullptr || _objectsPixelShader == nullptr)
+            return false;
+
+        _skyVertexShader = LoadShader(*_device, _shaderDirectory, "Sky", "VS");
+        _skyPixelShader = LoadShader(*_device, _shaderDirectory, "Sky", "PS");
+        if (_skyVertexShader == nullptr || _skyPixelShader == nullptr || !CreateSkyGeometry())
             return false;
 
         if (GetScenePipeline(SceneShader::Rooms, BlendMode::Opaque) == nullptr ||
@@ -316,10 +329,11 @@ namespace TEN::Renderer::Next
             return pipeline.get();
 
         bool isObjects = (shader == SceneShader::Objects);
+        bool isSky = (shader == SceneShader::Sky);
 
         auto desc = GraphicsPipelineDesc{};
-        desc.VertexShader = isObjects ? _objectsVertexShader.get() : _roomsVertexShader.get();
-        desc.PixelShader = isObjects ? _objectsPixelShader.get() : _roomsPixelShader.get();
+        desc.VertexShader = isObjects ? _objectsVertexShader.get() : (isSky ? _skyVertexShader.get() : _roomsVertexShader.get());
+        desc.PixelShader = isObjects ? _objectsPixelShader.get() : (isSky ? _skyPixelShader.get() : _roomsPixelShader.get());
         desc.Layout.NumBuffers = isObjects ? 2 : 1;
         desc.Layout.Buffers[0] = VertexBufferLayout{ 0, (int)sizeof(Vertex), VertexInputRate::Vertex };
         desc.Layout.Buffers[1] = VertexBufferLayout{ 1, (int)sizeof(unsigned int), VertexInputRate::Instance };
@@ -348,9 +362,10 @@ namespace TEN::Renderer::Next
         desc.NumColorTargets = 1;
         desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
         desc.ColorTargets[0].Blend = GetBlendState((BlendMode)modeIndex);
-        desc.DepthStencil.EnableDepthWrite = (modeIndex == (int)BlendMode::Opaque);
+        desc.DepthStencil.EnableDepthWrite = (modeIndex == (int)BlendMode::Opaque) && !isSky;
+        desc.DepthStencil.EnableDepthTest = !isSky;
         desc.DepthFormat = PixelFormat::D32Float;
-        desc.Name = std::string(isObjects ? "Objects" : "Rooms") + ".BlendMode" + std::to_string(modeIndex);
+        desc.Name = std::string(isObjects ? "Objects" : (isSky ? "Sky" : "Rooms")) + ".BlendMode" + std::to_string(modeIndex);
 
         pipeline = _device->CreateGraphicsPipeline(desc);
         if (pipeline == nullptr)
@@ -480,6 +495,7 @@ namespace TEN::Renderer::Next
         LoadTextureSet(g_Level.StaticsTextures, _staticTextures, "StaticAtlas");
         LoadTextureSet(g_Level.MoveablesTextures, _moveableTextures, "MoveableAtlas");
         LoadAnimatedTextures(geometry);
+        _skyTexture = CreateLevelTexture(g_Level.SkyTexture.colorMapData, "Sky");
 
         CreateGeometryBuffers(_staticGeometry, *geometry.StaticVertices, *geometry.StaticIndices, "Statics");
         CreateGeometryBuffers(_moveableGeometry, *geometry.MoveableVertices, *geometry.MoveableIndices, "Moveables");
@@ -1272,6 +1288,167 @@ namespace TEN::Renderer::Next
         commandBuffer.PopDebugGroup();
     }
 
+    // Same grid as the legacy InitializeSky: 20x20 tiles of 512 units in the XZ plane.
+    bool NextRenderer::CreateSkyGeometry()
+    {
+        auto vertices = std::vector<Vertex>{};
+        auto indices = std::vector<int>{};
+        vertices.reserve(SKY_VERTICES_COUNT);
+        indices.reserve(SKY_INDICES_COUNT);
+
+        auto addVertex = [&](int x, int z)
+        {
+            auto vertex = Vertex{};
+            vertex.Position = Vector3(-SKY_SIZE / 2.0f + x * 512.0f, 0.0f, -SKY_SIZE / 2.0f + z * 512.0f);
+            vertex.UV = Vector2(x / 20.0f, z / 20.0f);
+            vertex.Color = 0xFFFFFFFF;
+            vertices.push_back(vertex);
+        };
+
+        for (int x = 0; x < SKY_TILES_COUNT; x++)
+        {
+            for (int z = 0; z < SKY_TILES_COUNT; z++)
+            {
+                int base = (int)vertices.size();
+                addVertex(x, z + 1);
+                addVertex(x + 1, z + 1);
+                addVertex(x + 1, z);
+                addVertex(x, z);
+
+                int quad[6] = { base, base + 1, base + 2, base, base + 2, base + 3 };
+                indices.insert(indices.end(), quad, quad + 6);
+            }
+        }
+
+        int vertexSize = (int)(vertices.size() * sizeof(Vertex));
+        int indexSize = (int)(indices.size() * sizeof(int));
+        _skyVertexBuffer = _device->CreateBuffer(BufferDesc{ vertexSize, 0, BufferUsage::Vertex, "Sky.Vertices" });
+        _skyIndexBuffer = _device->CreateBuffer(BufferDesc{ indexSize, 0, BufferUsage::Index, "Sky.Indices" });
+        if (_skyVertexBuffer == nullptr || _skyIndexBuffer == nullptr)
+            return false;
+
+        UploadBuffer(_skyVertexBuffer.get(), vertices.data(), vertexSize);
+        UploadBuffer(_skyIndexBuffer.get(), indices.data(), indexSize);
+        return true;
+    }
+
+    // Classic sky: two scrolling layers (additive) and up to two horizon meshes (alpha blended) around the
+    // camera, drawn without depth before the rooms, as in the legacy DrawHorizonAndSky.
+    void NextRenderer::DrawSky(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, float interpolationFactor)
+    {
+        using namespace TEN::Effects::Environment;
+
+        bool isAnyRoomOutside = false;
+        for (const auto* room : view.RoomsToDraw)
+        {
+            if (g_Level.Rooms[room->RoomNumber].flags & ENV_FLAG_SKYBOX)
+            {
+                isAnyRoomOutside = true;
+                break;
+            }
+        }
+
+        if (!isAnyRoomOutside)
+            return;
+
+        commandBuffer.PushDebugGroup("Sky");
+
+        IBuffer* storageBuffers[2] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get() };
+        auto drawUniforms = DrawVertexUniforms{ NO_VALUE };
+        commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &drawUniforms, sizeof(drawUniforms));
+
+        // Layers.
+        renderPass.BindPipeline(GetScenePipeline(SceneShader::Sky, BlendMode::Additive));
+        renderPass.BindVertexStorageBuffers(0, storageBuffers, 2);
+
+        auto skyVertexBinding = BufferBinding{ _skyVertexBuffer.get(), 0 };
+        renderPass.BindVertexBuffers(0, &skyVertexBinding, 1);
+        renderPass.BindIndexBuffer(BufferBinding{ _skyIndexBuffer.get(), 0 }, IndexSize::Bits32);
+
+        auto skyTextureBinding = TextureSamplerBinding{ (_skyTexture != nullptr) ? _skyTexture.get() : _whiteTexture.get(), _anisotropicSampler.get() };
+        renderPass.BindPixelSamplers(0, &skyTextureBinding, 1);
+
+        auto rotation = Matrix::CreateRotationX(PI);
+        for (int layer = 0; layer < 2; layer++)
+        {
+            auto color = Weather.SkyColor(layer);
+            if (Vector3(color) == Vector3::Zero)
+                continue;
+
+            commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &color, sizeof(color));
+
+            for (int tile = 0; tile < 2; tile++)
+            {
+                auto translation = Matrix::CreateTranslation(
+                    view.Camera.WorldPosition.x + Weather.SkyPosition(layer) - tile * SKY_SIZE,
+                    view.Camera.WorldPosition.y - 1536.0f,
+                    view.Camera.WorldPosition.z);
+
+                auto world = rotation * translation;
+                commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &world, sizeof(world));
+                renderPass.DrawIndexed(SKY_INDICES_COUNT, 1, 0, 0, 0);
+            }
+        }
+
+        // Horizon meshes.
+        auto* level = g_GameFlow->GetLevel(CurrentLevel);
+        for (int layer = 0; layer < 2; layer++)
+        {
+            float alpha = level->GetHorizonTransparency(layer);
+            if (!level->GetHorizonEnabled(layer) || alpha <= EPSILON)
+                continue;
+
+            const auto& horizonObject = (*_legacyGeometry.MoveableObjects)[level->GetHorizonObjectID(layer)];
+            if (!horizonObject.has_value())
+                continue;
+
+            auto position = Vector3::Lerp(level->GetHorizonPrevPosition(layer), level->GetHorizonPosition(layer), interpolationFactor);
+            auto orientation = EulerAngles::Lerp(level->GetHorizonPrevOrientation(layer), level->GetHorizonOrientation(layer), interpolationFactor);
+            auto world = orientation.ToRotationMatrix() * Matrix::CreateTranslation(position) * Matrix::CreateTranslation(view.Camera.WorldPosition);
+            auto color = Vector4(1.0f, 1.0f, 1.0f, alpha);
+
+            commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &world, sizeof(world));
+            commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &color, sizeof(color));
+
+            auto moveableVertexBinding = BufferBinding{ _moveableGeometry.Vertices.get(), 0 };
+            renderPass.BindVertexBuffers(0, &moveableVertexBinding, 1);
+            renderPass.BindIndexBuffer(BufferBinding{ _moveableGeometry.Indices.get(), 0 }, IndexSize::Bits32);
+
+            int lastAnimatedSet = INT_MIN;
+            for (const auto* mesh : horizonObject->ObjectMeshes)
+            {
+                for (const auto& bucket : mesh->Buckets)
+                {
+                    if (bucket.NumIndices == 0)
+                        continue;
+
+                    // Horizons always blend; alpha test buckets blend as alpha.
+                    auto blendMode = (bucket.BlendMode == BlendMode::AlphaTest || bucket.BlendMode == BlendMode::Opaque) ? BlendMode::AlphaBlend : bucket.BlendMode;
+                    renderPass.BindPipeline(GetScenePipeline(SceneShader::Sky, blendMode));
+                    renderPass.BindVertexStorageBuffers(0, storageBuffers, 2);
+
+                    int animatedSet = bucket.Animated ? bucket.Texture : NO_VALUE;
+                    if (animatedSet != lastAnimatedSet)
+                    {
+                        auto vertexUniforms = DrawVertexUniforms{ animatedSet };
+                        commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &vertexUniforms, sizeof(vertexUniforms));
+                        lastAnimatedSet = animatedSet;
+                    }
+
+                    const auto& textures = bucket.Animated ? _animatedTextures : _moveableTextures;
+                    auto* texture = (bucket.Texture >= 0 && bucket.Texture < (int)textures.size() && textures[bucket.Texture].ColorMap != nullptr) ?
+                        textures[bucket.Texture].ColorMap.get() : _whiteTexture.get();
+
+                    auto binding = TextureSamplerBinding{ texture, _anisotropicSampler.get() };
+                    renderPass.BindPixelSamplers(0, &binding, 1);
+                    renderPass.DrawIndexed(bucket.NumIndices, 1, bucket.StartIndex, 0, 0);
+                }
+            }
+        }
+
+        commandBuffer.PopDebugGroup();
+    }
+
     void NextRenderer::RenderFrame(const RenderView& view, const FrameEnvironment& environment)
     {
         if (_device == nullptr || !_isLevelLoaded)
@@ -1328,6 +1505,7 @@ namespace TEN::Renderer::Next
 
         commandBuffer->PushDebugGroup("Scene");
         auto* renderPass = commandBuffer->BeginRenderPass(&colorTarget, 1, &depthTarget);
+        DrawSky(*commandBuffer, *renderPass, view, environment.InterpolationFactor);
         DrawRooms(*commandBuffer, *renderPass, view, false);
         DrawObjects(*commandBuffer, *renderPass, false);
         DrawRooms(*commandBuffer, *renderPass, view, true);

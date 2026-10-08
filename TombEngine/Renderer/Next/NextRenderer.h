@@ -94,6 +94,7 @@ namespace TEN::Renderer::Next
         {
             Rooms,
             Objects,
+            Sky,
 
             Count
         };
@@ -125,6 +126,11 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IGraphicsPipeline> _scenePipelines[(int)SceneShader::Count][16] = {};
         std::unique_ptr<RHI::IShader>           _objectsVertexShader = nullptr;
         std::unique_ptr<RHI::IShader>           _objectsPixelShader  = nullptr;
+        std::unique_ptr<RHI::IShader>           _skyVertexShader     = nullptr;
+        std::unique_ptr<RHI::IShader>           _skyPixelShader      = nullptr;
+        std::unique_ptr<RHI::IBuffer>           _skyVertexBuffer     = nullptr;
+        std::unique_ptr<RHI::IBuffer>           _skyIndexBuffer      = nullptr;
+        std::unique_ptr<RHI::ITexture>          _skyTexture          = nullptr;
 
         std::unique_ptr<RHI::ISampler>          _anisotropicSampler  = nullptr;
         std::unique_ptr<RHI::ITexture>          _whiteTexture        = nullptr;
@@ -186,6 +192,8 @@ namespace TEN::Renderer::Next
         void CollectSortedFaces(const RenderView& view, float interpolationFactor);
         int  GetSortedObjectInstance(const Structures::RendererSortableObject& object, float interpolationFactor);
         void DrawSortedFaces(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
+        bool CreateSkyGeometry();
+        void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool additive);
         void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, bool additive);
 
