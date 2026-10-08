@@ -1010,11 +1010,11 @@ namespace TEN::Renderer::Native::DirectX11
 
 		if (req.Type == ShaderType::Pixel || req.Type == ShaderType::PixelAndVertex)
 		{
-			auto blob = nativeShader->GetD3D10Blob();
-			compileOne("PS", req.EntryPoint, "ps_5_0", &blob);
+			ComPtr<ID3D10Blob> psBlob;
+			compileOne("PS", req.EntryPoint, "ps_5_0", psBlob.GetAddressOf());
 			ComPtr<ID3D11PixelShader> ps;
-			throwIfFailed(_device->CreatePixelShader(blob->GetBufferPointer(),
-				blob->GetBufferSize(),
+			throwIfFailed(_device->CreatePixelShader(psBlob->GetBufferPointer(),
+				psBlob->GetBufferSize(),
 				nullptr,
 				&ps));
 			nativeShader->SetD3D11PixelShader(ps);
@@ -1058,8 +1058,6 @@ namespace TEN::Renderer::Native::DirectX11
 		{
 			if (forceNull)
 			{
-				_context->VSSetShader(nullptr, nullptr, 0);
-
 				switch (shaderStage)
 				{
 				case ShaderStage::VertexShader:
