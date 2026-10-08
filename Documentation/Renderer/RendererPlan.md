@@ -272,8 +272,8 @@ L'algoritmo di develop_performance (bucket come unita', entry compatte, radix so
 - [ ] Raccolta dentro Prepare, in parallelo per oggetto con buffer per thread; centri dei poligoni calcolati al caricamento (7.1).
 - [ ] Profondita' sempre dalla camera della vista.
 - [ ] **Blend mode commutativi fuori dal sort**: Additive, Lighten (MAX), Subtractive e Screen danno lo stesso risultato in qualunque ordine e vanno disegnati in batch non ordinati. Restano ordinati solo AlphaBlend e Premultiplied (ed Exclude, da verificare).
-- [ ] **Cambio di oggetto gratuito**: ogni run ordinato e' un draw con indice d'istanza; dati dell'oggetto, ossa e luci dai buffer persistenti e per frame. Nessun upload per run.
-- [ ] **Un solo upload per frame** degli indici ordinati (ring), ogni run usa `firstIndex`.
+- [x] **Cambio di oggetto gratuito**: ogni run ordinato e' un draw con indice d'istanza; dati dell'oggetto, ossa e luci dai buffer persistenti e per frame. Nessun upload per run. *(renderer nuovo: un'istanza per oggetto per frame, anche se i cluster lo spezzano in piu' run)*
+- [x] **Un solo upload per frame** degli indici ordinati (ring), ogni run usa `firstIndex`. *(indici copiati dagli array CPU del livello in un index buffer per frame con transfer buffer ciclato)*
 - [ ] Run di stanze fusi per {pipeline, array e layer di texture}: con le liste di luci indicizzate la stanza non e' piu' parte della chiave.
 - [ ] Sprite dentro i cluster (particelle viste attraverso il vetro), disegnati come istanze in ordine di profondita'.
 - [ ] Rettangoli dei cluster dai bounding box invece che dai centri dei poligoni.
@@ -300,6 +300,21 @@ L'algoritmo di develop_performance (bucket come unita', entry compatte, radix so
 - [ ] Vulkan diventa default solo se e' >= DX11 su tutti i benchmark.
 
 ---
+
+## 11b. Stato del renderer nuovo (anteprima `preview <backend>`)
+
+Il renderer nuovo gira in una seconda finestra accanto a quello vecchio, sugli stessi dati di `RenderView`; il benchmark salva `Logs/Compare_Legacy.png` e `Logs/Compare_Next.png` allo stesso frame di gioco.
+
+- [x] Stanze opache e additive, texture animate (frame e UV rotate), nebbia di distanza.
+- [x] Statiche raggruppate per mesh con un draw istanziato per bucket; moveable rigidi per mesh.
+- [x] Luci dinamiche di stanze e oggetti (un buffer di luci per frame, slice per oggetto).
+- [x] Lara: palette di ossa per frame (classica e pelle completa), fondine, capelli.
+- [x] Facce ordinate (stanze, statiche, moveable, effetti) con pipeline per blend mode.
+- [x] Cielo classico (due strati) e orizzonte.
+- [ ] Sprite ed effetti, acqua e distorsione, specchi.
+- [ ] Cielo atmosferico, nuvole, aurora, sole e stelle (Tomo).
+- [ ] Normal map, specular, SSAO, ombre, fog bulb, effetti di vertice (Move/Glow/Wibble).
+- [ ] Post-process, HUD, 2D, inventario e menu.
 
 ## 12. Decisioni prese
 
