@@ -659,7 +659,7 @@ namespace TEN::Renderer
 		void ResetScissor();
 		void ResetDebugVariables();
 		void CollectFrameStats(const RenderView& view);
-		void RecordBenchmarkFrame(std::chrono::steady_clock::time_point renderStartTime);
+		void RecordBenchmarkFrame(std::chrono::steady_clock::time_point renderStartTime, std::chrono::steady_clock::time_point presentStartTime);
 		float CalculateFrameRate();
 		void InterpolateCamera(float interpFactor);
 		void CopyRenderTarget(IRenderSurface2D* source, IRenderSurface2D* dest, RenderView& view);

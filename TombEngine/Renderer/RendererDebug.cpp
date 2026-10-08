@@ -67,7 +67,7 @@ namespace TEN::Renderer
 		_frameStats.SortedFaces = (int)view.TransparentSortKeys.size();
 	}
 
-	void Renderer::RecordBenchmarkFrame(std::chrono::steady_clock::time_point renderStartTime)
+	void Renderer::RecordBenchmarkFrame(std::chrono::steady_clock::time_point renderStartTime, std::chrono::steady_clock::time_point presentStartTime)
 	{
 		if (!TEN::Benchmark::IsBenchmarkActive())
 			return;
@@ -75,7 +75,8 @@ namespace TEN::Renderer
 		using ms = std::chrono::duration<float, std::milli>;
 
 		auto now = std::chrono::steady_clock::now();
-		_frameStats.CpuRenderTime = ms(now - renderStartTime).count();
+		_frameStats.CpuRenderTime = ms(presentStartTime - renderStartTime).count();
+		_frameStats.PresentTime = ms(now - presentStartTime).count();
 		_frameStats.CpuFrameTime = (_lastPresentTime.time_since_epoch().count() == 0) ? 0.0f : ms(now - _lastPresentTime).count();
 		_lastPresentTime = now;
 
