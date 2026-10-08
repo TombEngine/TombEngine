@@ -22,6 +22,8 @@ namespace TEN::Renderer::Structures
     struct RendererLight;
     struct RendererItem;
     struct RendererSortableObject;
+    struct RendererSprite;
+    struct RendererSpriteToDraw;
 }
 
 namespace TEN::Renderer::Next
@@ -43,6 +45,7 @@ namespace TEN::Renderer::Next
         const std::vector<std::optional<Structures::RendererObject>>*  MoveableObjects  = nullptr;
         const std::vector<Structures::RendererMesh*>*                  Meshes           = nullptr;
         const std::vector<Structures::RendererItem>*                   Items            = nullptr;
+        const std::vector<Structures::RendererSprite>*                 Sprites          = nullptr;
     };
 
     // Per-frame values owned by the game and the legacy renderer.
@@ -95,20 +98,33 @@ namespace TEN::Renderer::Next
             Rooms,
             Objects,
             Sky,
+            Sprites,
 
             Count
         };
 
-        // Run of consecutive sorted polygons sharing one draw group, drawn with one call.
+        // Instanced draw of consecutive sprites sharing texture and blend mode.
+        struct SpriteDraw
+        {
+            RHI::ITexture* Texture     = nullptr;
+            BlendMode      BlendMode   = BlendMode::Additive;
+            int            FirstSprite = 0;
+            int            SpriteCount = 0;
+        };
+
+        // Run of consecutive sorted polygons sharing one draw group, drawn with one call. Sprite runs
+        // use the sprite draw instead of the index range.
         struct SortedDraw
         {
             MeshSource                        Source     = MeshSource::Statics;
             bool                              IsRoom     = false;
+            bool                              IsSprite   = false;
             const Structures::RendererBucket* Bucket     = nullptr;
             BlendMode                         BlendMode  = BlendMode::AlphaBlend;
             int                               FirstIndex = 0;
             int                               IndexCount = 0;
             int                               Instance   = 0;
+            SpriteDraw                        Sprites    = {};
         };
 
         struct GeometryBuffers
@@ -131,6 +147,10 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IBuffer>           _skyVertexBuffer     = nullptr;
         std::unique_ptr<RHI::IBuffer>           _skyIndexBuffer      = nullptr;
         std::unique_ptr<RHI::ITexture>          _skyTexture          = nullptr;
+        std::unique_ptr<RHI::IShader>           _spritesVertexShader = nullptr;
+        std::unique_ptr<RHI::IShader>           _spritesPixelShader  = nullptr;
+        std::unique_ptr<RHI::IBuffer>           _spriteCornerBuffer  = nullptr;
+        std::unique_ptr<RHI::ISampler>          _linearClampSampler  = nullptr;
 
         std::unique_ptr<RHI::ISampler>          _anisotropicSampler  = nullptr;
         std::unique_ptr<RHI::ITexture>          _whiteTexture        = nullptr;
@@ -146,6 +166,7 @@ namespace TEN::Renderer::Next
         GeometryBuffers               _moveableGeometry = {};
         std::vector<RoomTexture>      _staticTextures   = {};
         std::vector<RoomTexture>      _moveableTextures = {};
+        std::vector<RoomTexture>      _spriteTextures   = {};
         LegacyLevelGeometry           _legacyGeometry   = {};
 
         // Frame instance data: collected on the CPU, uploaded once per frame before the scene pass.
@@ -161,6 +182,9 @@ namespace TEN::Renderer::Next
         std::vector<unsigned char>    _sortedIndexData     = {};
         std::vector<SortedDraw>       _sortedDraws         = {};
         std::unordered_map<const void*, int> _sortedInstances = {};
+        FrameStorageBuffer            _spriteBuffer        = {};
+        std::vector<unsigned char>    _spriteData          = {};
+        std::vector<SpriteDraw>       _spriteDraws         = {};
         int                           _roomLightCount      = 0;
         bool                          _isLevelLoaded    = false;
 
@@ -195,6 +219,14 @@ namespace TEN::Renderer::Next
         bool CreateSkyGeometry();
         void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool additive);
+
+        // Sprites (NextRendererSprites.cpp).
+        bool           CreateSpriteResources();
+        RHI::ITexture* GetSpriteTexture(const Structures::RendererSprite* sprite) const;
+        bool           AddSprite(const Structures::RendererSpriteToDraw& sprite, const RenderView& view);
+        void           CollectSprites(const RenderView& view);
+        void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture);
+        void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
         void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, bool additive);
 
     public:

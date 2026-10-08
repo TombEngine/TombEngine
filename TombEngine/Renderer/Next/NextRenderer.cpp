@@ -1,23 +1,25 @@
 #include "framework.h"
 #include "Renderer/Next/NextRenderer.h"
 
+#include "Game/Animation/Animation.h"
+#include "Game/control/control.h"
+#include "Game/effects/hair.h"
+#include "Game/effects/weather.h"
+#include "Game/Lara/lara.h"
+#include "Game/Setup.h"
+#include "Objects/game_object_ids.h"
+#include "Renderer/Next/GpuTypes.h"
 #include "Renderer/Next/TextureLoader.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/RHI/ShaderLibrary.h"
 #include "Renderer/RHI/TextureCapture.h"
-#include "Game/Animation/Animation.h"
-#include "Game/control/control.h"
-#include "Game/effects/weather.h"
-#include "Game/effects/hair.h"
-#include "Game/Lara/lara.h"
-#include "Game/Setup.h"
-#include "Objects/game_object_ids.h"
 #include "Renderer/Structures/RendererAnimatedTextureSet.h"
 #include "Renderer/Structures/RendererLight.h"
 #include "Renderer/Structures/RendererMesh.h"
 #include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererRoom.h"
 #include "Renderer/Structures/RendererSortableObject.h"
+#include "Renderer/Structures/RendererSpriteToDraw.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Specific/level.h"
@@ -28,97 +30,9 @@ using TEN::Renderer::Graphics::Vertices::Vertex;
 
 namespace TEN::Renderer::Next
 {
-    constexpr auto ALPHA_TEST_THRESHOLD      = 0.5f;
-    constexpr auto INSTANCE_INDEX_COUNT      = 65536;
     constexpr auto INITIAL_INSTANCE_CAPACITY = 4096;
 
     NextRenderer g_NextRenderer;
-
-    // Uniform layouts mirror the cbuffers in Shaders/RHI/Rooms.hlsl.
-    struct FrameVertexUniforms
-    {
-        Matrix       ViewProjection    = Matrix::Identity;
-        Vector3      CameraPosition    = Vector3::Zero;
-        float        FogMinDistance    = 0.0f;
-        float        FogMaxDistance    = 0.0f;
-        unsigned int Frame             = 0;
-        float        InterpolatedFrame = 0.0f;
-        float        Padding           = 0.0f;
-    };
-
-    struct DrawVertexUniforms
-    {
-        int   AnimatedSetIndex = NO_VALUE;
-        float Padding[3]       = {};
-    };
-
-    struct FramePixelUniforms
-    {
-        Vector4 FogColor = Vector4::Zero;
-    };
-
-    struct DrawPixelUniforms
-    {
-        float        AlphaThreshold = 0.0f;
-        unsigned int BlendMode      = 0;
-        unsigned int LightOffset    = 0;
-        unsigned int LightCount     = 0;
-    };
-
-    // Same layout as the legacy ShaderLight and GpuLight in Lighting.hlsli.
-    struct GpuLight
-    {
-        Vector3      Position  = Vector3::Zero;
-        unsigned int Type      = 0;
-        Vector3      Color     = Vector3::Zero;
-        float        Intensity = 0.0f;
-        Vector3      Direction = Vector3::Zero;
-        float        In        = 0.0f;
-        float        Out       = 0.0f;
-        float        InRange   = 0.0f;
-        float        OutRange  = 0.0f;
-        float        Padding   = 0.0f;
-    };
-
-    static_assert(sizeof(GpuLight) == 64, "GpuLight must match Lighting.hlsli.");
-
-    struct GpuAnimatedFrame
-    {
-        Vector2 Corners[4];
-    };
-
-    struct GpuAnimatedSet
-    {
-        unsigned int FirstFrame        = 0;
-        unsigned int NumFrames         = 0;
-        unsigned int Fps               = 0;
-        unsigned int Type              = 0;
-        float        UVRotateDirection = 0.0f;
-        float        UVRotateSpeed     = 0.0f;
-        float        Padding[2]        = {};
-    };
-
-    struct GpuObjectInstance
-    {
-        Matrix       World        = Matrix::Identity;
-        Vector4      Color        = Vector4::One;
-        Vector4      AmbientLight = Vector4::One;
-        unsigned int LightMode    = 0;
-        unsigned int LightOffset  = 0;
-        unsigned int LightCount   = 0;
-        unsigned int Skinning     = 0;
-    };
-
-    // Skinning modes of ObjectInstance.Skinning, matching Skinning.hlsli.
-    constexpr auto SKINNING_NONE    = 0;
-    constexpr auto SKINNING_RIGID   = 1;
-    constexpr auto SKINNING_CLASSIC = 3;
-    constexpr auto SKINNING_FULL    = 2;
-
-    static_assert(sizeof(GpuObjectInstance) == 112, "GpuObjectInstance must match ObjectInstance in Common.hlsli.");
-    static_assert(sizeof(FrameVertexUniforms) == 96, "FrameVertexUniforms must match Rooms.hlsl.");
-    static_assert(sizeof(GpuAnimatedFrame) == 32, "GpuAnimatedFrame must match Common.hlsli.");
-    static_assert(sizeof(GpuAnimatedSet) == 32, "GpuAnimatedSet must match Common.hlsli.");
 
     bool NextRenderer::Initialize(SDL_Window* window, Backend backend, const std::string& gameDirectory)
     {
@@ -186,6 +100,12 @@ namespace TEN::Renderer::Next
         _skyIndexBuffer = nullptr;
         _skyVertexShader = nullptr;
         _skyPixelShader = nullptr;
+        _spritesVertexShader = nullptr;
+        _spritesPixelShader = nullptr;
+        _spriteCornerBuffer = nullptr;
+        _linearClampSampler = nullptr;
+        _spriteBuffer = {};
+        _spriteTextures.clear();
         _device = nullptr;
     }
 
@@ -210,6 +130,9 @@ namespace TEN::Renderer::Next
         _skyVertexShader = LoadShader(*_device, _shaderDirectory, "Sky", "VS");
         _skyPixelShader = LoadShader(*_device, _shaderDirectory, "Sky", "PS");
         if (_skyVertexShader == nullptr || _skyPixelShader == nullptr || !CreateSkyGeometry())
+            return false;
+
+        if (!CreateSpriteResources())
             return false;
 
         if (GetScenePipeline(SceneShader::Rooms, BlendMode::Opaque) == nullptr ||
@@ -330,12 +253,17 @@ namespace TEN::Renderer::Next
 
         bool isObjects = (shader == SceneShader::Objects);
         bool isSky = (shader == SceneShader::Sky);
+        bool isSprites = (shader == SceneShader::Sprites);
+
+        IShader* vertexShaders[(int)SceneShader::Count] = { _roomsVertexShader.get(), _objectsVertexShader.get(), _skyVertexShader.get(), _spritesVertexShader.get() };
+        IShader* pixelShaders[(int)SceneShader::Count] = { _roomsPixelShader.get(), _objectsPixelShader.get(), _skyPixelShader.get(), _spritesPixelShader.get() };
+        const char* names[(int)SceneShader::Count] = { "Rooms", "Objects", "Sky", "Sprites" };
 
         auto desc = GraphicsPipelineDesc{};
-        desc.VertexShader = isObjects ? _objectsVertexShader.get() : (isSky ? _skyVertexShader.get() : _roomsVertexShader.get());
-        desc.PixelShader = isObjects ? _objectsPixelShader.get() : (isSky ? _skyPixelShader.get() : _roomsPixelShader.get());
-        desc.Layout.NumBuffers = isObjects ? 2 : 1;
-        desc.Layout.Buffers[0] = VertexBufferLayout{ 0, (int)sizeof(Vertex), VertexInputRate::Vertex };
+        desc.VertexShader = vertexShaders[(int)shader];
+        desc.PixelShader = pixelShaders[(int)shader];
+        desc.Layout.NumBuffers = (isObjects || isSprites) ? 2 : 1;
+        desc.Layout.Buffers[0] = VertexBufferLayout{ 0, isSprites ? (int)sizeof(unsigned int) : (int)sizeof(Vertex), VertexInputRate::Vertex };
         desc.Layout.Buffers[1] = VertexBufferLayout{ 1, (int)sizeof(unsigned int), VertexInputRate::Instance };
 
         auto& attributes = desc.Layout.Attributes;
@@ -345,7 +273,14 @@ namespace TEN::Renderer::Next
         attributes[3] = VertexAttribute{ 3, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, Effects) };
         attributes[4] = VertexAttribute{ 4, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, AnimationFrameOffsetIndexHash) };
 
-        if (isObjects)
+        if (isSprites)
+        {
+            attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::UInt, 0 };
+            attributes[1] = VertexAttribute{ 1, 1, VertexElementFormat::UInt, 0 };
+            desc.Layout.NumAttributes = 2;
+            desc.Rasterizer.Cull = RHI::CullMode::None;
+        }
+        else if (isObjects)
         {
             attributes[5] = VertexAttribute{ 5, 1, VertexElementFormat::UInt, 0 };
             attributes[6] = VertexAttribute{ 6, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Normal) };
@@ -362,10 +297,10 @@ namespace TEN::Renderer::Next
         desc.NumColorTargets = 1;
         desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
         desc.ColorTargets[0].Blend = GetBlendState((BlendMode)modeIndex);
-        desc.DepthStencil.EnableDepthWrite = (modeIndex == (int)BlendMode::Opaque) && !isSky;
+        desc.DepthStencil.EnableDepthWrite = (modeIndex == (int)BlendMode::Opaque) && !isSky && !isSprites;
         desc.DepthStencil.EnableDepthTest = !isSky;
         desc.DepthFormat = PixelFormat::D32Float;
-        desc.Name = std::string(isObjects ? "Objects" : (isSky ? "Sky" : "Rooms")) + ".BlendMode" + std::to_string(modeIndex);
+        desc.Name = std::string(names[(int)shader]) + ".BlendMode" + std::to_string(modeIndex);
 
         pipeline = _device->CreateGraphicsPipeline(desc);
         if (pipeline == nullptr)
@@ -494,6 +429,7 @@ namespace TEN::Renderer::Next
         LoadTextureSet(g_Level.RoomTextures, _roomTextures, "RoomAtlas");
         LoadTextureSet(g_Level.StaticsTextures, _staticTextures, "StaticAtlas");
         LoadTextureSet(g_Level.MoveablesTextures, _moveableTextures, "MoveableAtlas");
+        LoadTextureSet(g_Level.SpritesTextures, _spriteTextures, "SpriteAtlas");
         LoadAnimatedTextures(geometry);
         _skyTexture = CreateLevelTexture(g_Level.SkyTexture.colorMapData, "Sky");
 
@@ -1155,6 +1091,28 @@ namespace TEN::Renderer::Next
         {
             const auto& object = objects[polygons[sortKeys[i].Index].ObjectIndex];
 
+            if (object.ObjectType == RendererObjectType::Sprite)
+            {
+                auto draw = SortedDraw{};
+                draw.IsSprite = true;
+                draw.Sprites.Texture = GetSpriteTexture(object.Sprite->Sprite);
+                draw.Sprites.BlendMode = object.Sprite->BlendMode;
+                draw.Sprites.FirstSprite = (int)(_spriteData.size() / sizeof(GpuSprite));
+
+                while (i < sortedCount && objects[polygons[sortKeys[i].Index].ObjectIndex].GroupIndex == object.GroupIndex)
+                {
+                    if (draw.Sprites.Texture != nullptr && AddSprite(*objects[polygons[sortKeys[i].Index].ObjectIndex].Sprite, view))
+                        draw.Sprites.SpriteCount++;
+
+                    i++;
+                }
+
+                if (draw.Sprites.SpriteCount > 0)
+                    _sortedDraws.push_back(draw);
+
+                continue;
+            }
+
             const std::vector<int>* sourceIndices = nullptr;
             auto source = MeshSource::Moveables;
             switch (object.ObjectType)
@@ -1215,12 +1173,13 @@ namespace TEN::Renderer::Next
 
     void NextRenderer::DrawSortedFaces(ICommandBuffer& commandBuffer, IRenderPass& renderPass)
     {
-        if (_sortedDraws.empty() || _sortedIndexBuffer.Buffer == nullptr)
+        if (_sortedDraws.empty())
             return;
 
         commandBuffer.PushDebugGroup("Sorted transparent faces");
 
-        renderPass.BindIndexBuffer(BufferBinding{ _sortedIndexBuffer.Buffer.get(), 0 }, IndexSize::Bits32);
+        if (!_sortedIndexData.empty())
+            renderPass.BindIndexBuffer(BufferBinding{ _sortedIndexBuffer.Buffer.get(), 0 }, IndexSize::Bits32);
 
         IBuffer* lightBuffer = _lightBuffer.Buffer.get();
         IBuffer* objectStorageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get(), _boneBuffer.Buffer.get() };
@@ -1232,6 +1191,13 @@ namespace TEN::Renderer::Next
 
         for (const auto& draw : _sortedDraws)
         {
+            if (draw.IsSprite)
+            {
+                DrawSpriteRun(commandBuffer, renderPass, draw.Sprites, lastPipeline, lastTexture);
+                lastSource = NO_VALUE;
+                continue;
+            }
+
             const auto& bucket = *draw.Bucket;
             auto shader = draw.IsRoom ? SceneShader::Rooms : SceneShader::Objects;
 
@@ -1483,6 +1449,7 @@ namespace TEN::Renderer::Next
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 0, &framePixelUniforms, sizeof(framePixelUniforms));
 
         CollectObjects(view, environment.InterpolationFactor);
+        CollectSprites(view);
         CollectSortedFaces(view, environment.InterpolationFactor);
 
         commandBuffer->PushDebugGroup("Upload frame data");
@@ -1490,6 +1457,7 @@ namespace TEN::Renderer::Next
         UploadFrameStorage(*commandBuffer, _lightBuffer, _lightData, (int)sizeof(GpuLight), BufferUsage::GraphicsStorageRead, "Frame.Lights");
         UploadFrameStorage(*commandBuffer, _boneBuffer, _boneData, (int)sizeof(Matrix), BufferUsage::GraphicsStorageRead, "Frame.Bones");
         UploadFrameStorage(*commandBuffer, _sortedIndexBuffer, _sortedIndexData, (int)sizeof(int), BufferUsage::Index, "Frame.SortedIndices");
+        UploadFrameStorage(*commandBuffer, _spriteBuffer, _spriteData, (int)sizeof(GpuSprite), BufferUsage::GraphicsStorageRead, "Frame.Sprites");
         commandBuffer->PopDebugGroup();
 
         auto colorTarget = ColorTargetInfo{};
@@ -1510,6 +1478,7 @@ namespace TEN::Renderer::Next
         DrawObjects(*commandBuffer, *renderPass, false);
         DrawRooms(*commandBuffer, *renderPass, view, true);
         DrawObjects(*commandBuffer, *renderPass, true);
+        DrawSprites(*commandBuffer, *renderPass);
         DrawSortedFaces(*commandBuffer, *renderPass);
         commandBuffer->EndRenderPass();
         commandBuffer->PopDebugGroup();

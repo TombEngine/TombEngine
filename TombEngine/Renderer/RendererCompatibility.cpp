@@ -911,6 +911,7 @@ namespace TEN::Renderer
 			geometry.MoveableObjects = &_moveableObjects;
 			geometry.Meshes = &_meshes;
 			geometry.Items = &_items;
+			geometry.Sprites = &_sprites;
 			Next::g_NextRenderer.LoadLevel(geometry);
 		}
 
