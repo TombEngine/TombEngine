@@ -311,9 +311,11 @@ Il renderer nuovo gira in una seconda finestra accanto a quello vecchio, sugli s
 - [x] Lara: palette di ossa per frame (classica e pelle completa), fondine, capelli.
 - [x] Facce ordinate (stanze, statiche, moveable, effetti) con pipeline per blend mode.
 - [x] Cielo classico (due strati) e orizzonte.
-- [ ] Sprite ed effetti, acqua e distorsione, specchi.
+- [x] Sprite istanziati e ordinati (un'istanza da 96 B per sprite, un draw per run).
+- [x] Effetti di vertice (Move/Glow/Wibble) e rifrazione delle stanze d'acqua.
+- [ ] Soft particle, sprite laser, distorsione, specchi.
 - [ ] Cielo atmosferico, nuvole, aurora, sole e stelle (Tomo).
-- [ ] Normal map, specular, SSAO, ombre, fog bulb, effetti di vertice (Move/Glow/Wibble).
+- [ ] Normal map, specular, riflessi, caustiche, decal, SSAO, ombre, fog bulb.
 - [ ] Post-process, HUD, 2D, inventario e menu.
 
 ## 12. Decisioni prese
