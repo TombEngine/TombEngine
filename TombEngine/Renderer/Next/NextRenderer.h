@@ -21,6 +21,7 @@ namespace TEN::Renderer::Structures
     struct RendererObject;
     struct RendererLight;
     struct RendererItem;
+    struct RendererSortableObject;
 }
 
 namespace TEN::Renderer::Next
@@ -89,6 +90,26 @@ namespace TEN::Renderer::Next
             int                                   Capacity = 0;
         };
 
+        enum class SceneShader
+        {
+            Rooms,
+            Objects,
+
+            Count
+        };
+
+        // Run of consecutive sorted polygons sharing one draw group, drawn with one call.
+        struct SortedDraw
+        {
+            MeshSource                        Source     = MeshSource::Statics;
+            bool                              IsRoom     = false;
+            const Structures::RendererBucket* Bucket     = nullptr;
+            BlendMode                         BlendMode  = BlendMode::AlphaBlend;
+            int                               FirstIndex = 0;
+            int                               IndexCount = 0;
+            int                               Instance   = 0;
+        };
+
         struct GeometryBuffers
         {
             std::unique_ptr<RHI::IBuffer> Vertices = nullptr;
@@ -101,12 +122,10 @@ namespace TEN::Renderer::Next
 
         std::unique_ptr<RHI::IShader>           _roomsVertexShader   = nullptr;
         std::unique_ptr<RHI::IShader>           _roomsPixelShader    = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _roomsPipeline       = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _roomsAdditivePipeline = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _scenePipelines[(int)SceneShader::Count][16] = {};
         std::unique_ptr<RHI::IShader>           _objectsVertexShader = nullptr;
         std::unique_ptr<RHI::IShader>           _objectsPixelShader  = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _objectsPipeline     = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _objectsAdditivePipeline = nullptr;
+
         std::unique_ptr<RHI::ISampler>          _anisotropicSampler  = nullptr;
         std::unique_ptr<RHI::ITexture>          _whiteTexture        = nullptr;
 
@@ -132,6 +151,10 @@ namespace TEN::Renderer::Next
         std::vector<unsigned char>    _instanceData        = {};
         std::vector<unsigned char>    _lightData           = {};
         std::vector<ObjectDraw>       _objectDraws         = {};
+        FrameStorageBuffer            _sortedIndexBuffer   = {};
+        std::vector<unsigned char>    _sortedIndexData     = {};
+        std::vector<SortedDraw>       _sortedDraws         = {};
+        std::unordered_map<const void*, int> _sortedInstances = {};
         int                           _roomLightCount      = 0;
         bool                          _isLevelLoaded    = false;
 
@@ -149,8 +172,7 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::ITexture> CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name);
         void UploadBuffer(RHI::IBuffer* buffer, const void* data, int size);
         void LoadAnimatedTextures(const LegacyLevelGeometry& geometry);
-        std::unique_ptr<RHI::IGraphicsPipeline> CreateRoomsPipeline(bool additive);
-        std::unique_ptr<RHI::IGraphicsPipeline> CreateObjectsPipeline(bool additive);
+        RHI::IGraphicsPipeline* GetScenePipeline(SceneShader shader, BlendMode blendMode);
         void LoadTextureSet(const std::vector<::TEXTURE>& source, std::vector<RoomTexture>& destination, const std::string& name);
         void CreateGeometryBuffers(GeometryBuffers& buffers, const std::vector<Graphics::Vertices::Vertex>& vertices, const std::vector<int>& indices, const std::string& name);
         void CollectObjects(const RenderView& view, float interpolationFactor);
@@ -159,7 +181,10 @@ namespace TEN::Renderer::Next
         int  AddBones(const Matrix* bones, int count);
         void AddMeshDraws(const Structures::RendererMesh& mesh, int instance);
         int  AddLights(const std::vector<Structures::RendererLight*>& lights, float interpolationFactor, int roomNumber, int prevRoomNumber, float fade, int& lightOffset);
-        void UploadFrameStorage(RHI::ICommandBuffer& commandBuffer, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, const char* name);
+        void UploadFrameStorage(RHI::ICommandBuffer& commandBuffer, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name);
+        void CollectSortedFaces(const RenderView& view, float interpolationFactor);
+        int  GetSortedObjectInstance(const Structures::RendererSortableObject& object, float interpolationFactor);
+        void DrawSortedFaces(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool additive);
         void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, bool additive);
 

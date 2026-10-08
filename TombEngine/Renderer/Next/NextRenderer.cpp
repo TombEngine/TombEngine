@@ -13,6 +13,7 @@
 #include "Renderer/Structures/RendererMesh.h"
 #include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererRoom.h"
+#include "Renderer/Structures/RendererSortableObject.h"
 #include "Specific/level.h"
 
 using namespace TEN::Renderer::RHI;
@@ -104,6 +105,7 @@ namespace TEN::Renderer::Next
 
     // Skinning modes of ObjectInstance.Skinning, matching Skinning.hlsli.
     constexpr auto SKINNING_NONE    = 0;
+    constexpr auto SKINNING_RIGID   = 1;
     constexpr auto SKINNING_CLASSIC = 3;
     constexpr auto SKINNING_FULL    = 2;
 
@@ -156,16 +158,19 @@ namespace TEN::Renderer::Next
         _instanceIndexBuffer = nullptr;
         _animatedFramesBuffer = nullptr;
         _animatedSetsBuffer = nullptr;
-        _objectsPipeline = nullptr;
-        _objectsAdditivePipeline = nullptr;
+        for (auto& shaderPipelines : _scenePipelines)
+        {
+            for (auto& pipeline : shaderPipelines)
+                pipeline = nullptr;
+        }
+
+        _sortedIndexBuffer = {};
         _objectsVertexShader = nullptr;
         _objectsPixelShader = nullptr;
-        _roomsAdditivePipeline = nullptr;
         _roomVertexBuffer = nullptr;
         _roomIndexBuffer = nullptr;
         _colorTarget = nullptr;
         _depthTarget = nullptr;
-        _roomsPipeline = nullptr;
         _roomsVertexShader = nullptr;
         _roomsPixelShader = nullptr;
         _anisotropicSampler = nullptr;
@@ -185,20 +190,17 @@ namespace TEN::Renderer::Next
         if (_roomsVertexShader == nullptr || _roomsPixelShader == nullptr)
             return false;
 
-        _roomsPipeline = CreateRoomsPipeline(false);
-        _roomsAdditivePipeline = CreateRoomsPipeline(true);
-        if (_roomsPipeline == nullptr || _roomsAdditivePipeline == nullptr)
-            return false;
 
         _objectsVertexShader = LoadShader(*_device, _shaderDirectory, "Objects", "VS");
         _objectsPixelShader = LoadShader(*_device, _shaderDirectory, "Objects", "PS");
         if (_objectsVertexShader == nullptr || _objectsPixelShader == nullptr)
             return false;
 
-        _objectsPipeline = CreateObjectsPipeline(false);
-        _objectsAdditivePipeline = CreateObjectsPipeline(true);
-        if (_objectsPipeline == nullptr || _objectsAdditivePipeline == nullptr)
+        if (GetScenePipeline(SceneShader::Rooms, BlendMode::Opaque) == nullptr ||
+            GetScenePipeline(SceneShader::Objects, BlendMode::Opaque) == nullptr)
+        {
             return false;
+        }
 
         // Instance index stream: entry N holds N, so with an instance-rate fetch the shader receives
         // firstInstance + instance on every backend, unlike SV_InstanceID.
@@ -240,74 +242,118 @@ namespace TEN::Renderer::Next
         return true;
     }
 
-    std::unique_ptr<IGraphicsPipeline> NextRenderer::CreateRoomsPipeline(bool additive)
+    // Blend states of the legacy DX11 renderer, per blend mode.
+    static BlendState GetBlendState(BlendMode blendMode)
     {
-        auto desc = GraphicsPipelineDesc{};
-        desc.VertexShader = _roomsVertexShader.get();
-        desc.PixelShader = _roomsPixelShader.get();
-        desc.Layout.NumBuffers = 1;
-        desc.Layout.Buffers[0] = VertexBufferLayout{ 0, (int)sizeof(Vertex), VertexInputRate::Vertex };
-        desc.Layout.NumAttributes = 6;
-        desc.Layout.Attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::Float3, (int)offsetof(Vertex, Position) };
-        desc.Layout.Attributes[1] = VertexAttribute{ 1, 0, VertexElementFormat::Float2, (int)offsetof(Vertex, UV) };
-        desc.Layout.Attributes[2] = VertexAttribute{ 2, 0, VertexElementFormat::UByte4Norm, (int)offsetof(Vertex, Color) };
-        desc.Layout.Attributes[3] = VertexAttribute{ 3, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, Effects) };
-        desc.Layout.Attributes[4] = VertexAttribute{ 4, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, AnimationFrameOffsetIndexHash) };
-        desc.Layout.Attributes[5] = VertexAttribute{ 5, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Normal) };
-        desc.NumColorTargets = 1;
-        desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
-        desc.DepthFormat = PixelFormat::D32Float;
-        desc.Name = additive ? "Rooms.Additive" : "Rooms.Opaque";
+        auto state = BlendState{};
+        state.EnableBlend = true;
 
-        if (additive)
+        switch (blendMode)
         {
-            auto& blend = desc.ColorTargets[0].Blend;
-            blend.EnableBlend = true;
-            blend.SrcColor = BlendFactor::SrcAlpha;
-            blend.DstColor = BlendFactor::One;
-            blend.SrcAlpha = BlendFactor::SrcAlpha;
-            blend.DstAlpha = BlendFactor::One;
-            desc.DepthStencil.EnableDepthWrite = false;
+        case BlendMode::Additive:
+            state.SrcColor = state.SrcAlpha = BlendFactor::SrcAlpha;
+            state.DstColor = state.DstAlpha = BlendFactor::One;
+            break;
+
+        case BlendMode::AlphaBlend:
+            state.SrcColor = state.SrcAlpha = BlendFactor::SrcAlpha;
+            state.DstColor = state.DstAlpha = BlendFactor::OneMinusSrcAlpha;
+            break;
+
+        case BlendMode::PremultipliedAlphaBlend:
+            state.SrcColor = state.SrcAlpha = BlendFactor::One;
+            state.DstColor = state.DstAlpha = BlendFactor::OneMinusSrcAlpha;
+            break;
+
+        case BlendMode::Subtractive:
+            state.SrcColor = BlendFactor::SrcAlpha;
+            state.DstColor = BlendFactor::One;
+            state.ColorOp = BlendOp::ReverseSubtract;
+            state.SrcAlpha = BlendFactor::SrcAlpha;
+            state.DstAlpha = BlendFactor::OneMinusSrcAlpha;
+            break;
+
+        case BlendMode::Screen:
+            state.SrcColor = BlendFactor::One;
+            state.DstColor = BlendFactor::OneMinusSrcColor;
+            state.SrcAlpha = BlendFactor::One;
+            state.DstAlpha = BlendFactor::OneMinusSrcAlpha;
+            break;
+
+        case BlendMode::Lighten:
+            state.SrcColor = BlendFactor::One;
+            state.DstColor = BlendFactor::One;
+            state.ColorOp = BlendOp::Max;
+            state.SrcAlpha = BlendFactor::SrcAlpha;
+            state.DstAlpha = BlendFactor::DstAlpha;
+            break;
+
+        case BlendMode::Exclude:
+            state.SrcColor = BlendFactor::OneMinusDstColor;
+            state.DstColor = BlendFactor::OneMinusSrcColor;
+            state.ColorOp = BlendOp::Subtract;
+            state.SrcAlpha = BlendFactor::One;
+            state.DstAlpha = BlendFactor::Zero;
+            break;
+
+        default:
+            state.EnableBlend = false;
+            break;
         }
 
-        return _device->CreateGraphicsPipeline(desc);
+        return state;
     }
 
-    std::unique_ptr<IGraphicsPipeline> NextRenderer::CreateObjectsPipeline(bool additive)
+    // Pipelines are created on first use per shader and blend mode; opaque and alpha test share one.
+    IGraphicsPipeline* NextRenderer::GetScenePipeline(SceneShader shader, BlendMode blendMode)
     {
+        int modeIndex = (blendMode == BlendMode::AlphaTest) ? (int)BlendMode::Opaque : std::clamp((int)blendMode, 0, 15);
+        auto& pipeline = _scenePipelines[(int)shader][modeIndex];
+        if (pipeline != nullptr)
+            return pipeline.get();
+
+        bool isObjects = (shader == SceneShader::Objects);
+
         auto desc = GraphicsPipelineDesc{};
-        desc.VertexShader = _objectsVertexShader.get();
-        desc.PixelShader = _objectsPixelShader.get();
-        desc.Layout.NumBuffers = 2;
+        desc.VertexShader = isObjects ? _objectsVertexShader.get() : _roomsVertexShader.get();
+        desc.PixelShader = isObjects ? _objectsPixelShader.get() : _roomsPixelShader.get();
+        desc.Layout.NumBuffers = isObjects ? 2 : 1;
         desc.Layout.Buffers[0] = VertexBufferLayout{ 0, (int)sizeof(Vertex), VertexInputRate::Vertex };
         desc.Layout.Buffers[1] = VertexBufferLayout{ 1, (int)sizeof(unsigned int), VertexInputRate::Instance };
-        desc.Layout.NumAttributes = 9;
-        desc.Layout.Attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::Float3, (int)offsetof(Vertex, Position) };
-        desc.Layout.Attributes[1] = VertexAttribute{ 1, 0, VertexElementFormat::Float2, (int)offsetof(Vertex, UV) };
-        desc.Layout.Attributes[2] = VertexAttribute{ 2, 0, VertexElementFormat::UByte4Norm, (int)offsetof(Vertex, Color) };
-        desc.Layout.Attributes[3] = VertexAttribute{ 3, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, Effects) };
-        desc.Layout.Attributes[4] = VertexAttribute{ 4, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, AnimationFrameOffsetIndexHash) };
-        desc.Layout.Attributes[5] = VertexAttribute{ 5, 1, VertexElementFormat::UInt, 0 };
-        desc.Layout.Attributes[6] = VertexAttribute{ 6, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Normal) };
-        desc.Layout.Attributes[7] = VertexAttribute{ 7, 0, VertexElementFormat::UByte4, (int)offsetof(Vertex, BoneIndex) };
-        desc.Layout.Attributes[8] = VertexAttribute{ 8, 0, VertexElementFormat::UByte4Norm, (int)offsetof(Vertex, BoneWeight) };
-        desc.NumColorTargets = 1;
-        desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
-        desc.DepthFormat = PixelFormat::D32Float;
-        desc.Name = additive ? "Objects.Additive" : "Objects.Opaque";
 
-        if (additive)
+        auto& attributes = desc.Layout.Attributes;
+        attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::Float3, (int)offsetof(Vertex, Position) };
+        attributes[1] = VertexAttribute{ 1, 0, VertexElementFormat::Float2, (int)offsetof(Vertex, UV) };
+        attributes[2] = VertexAttribute{ 2, 0, VertexElementFormat::UByte4Norm, (int)offsetof(Vertex, Color) };
+        attributes[3] = VertexAttribute{ 3, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, Effects) };
+        attributes[4] = VertexAttribute{ 4, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, AnimationFrameOffsetIndexHash) };
+
+        if (isObjects)
         {
-            auto& blend = desc.ColorTargets[0].Blend;
-            blend.EnableBlend = true;
-            blend.SrcColor = BlendFactor::SrcAlpha;
-            blend.DstColor = BlendFactor::One;
-            blend.SrcAlpha = BlendFactor::SrcAlpha;
-            blend.DstAlpha = BlendFactor::One;
-            desc.DepthStencil.EnableDepthWrite = false;
+            attributes[5] = VertexAttribute{ 5, 1, VertexElementFormat::UInt, 0 };
+            attributes[6] = VertexAttribute{ 6, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Normal) };
+            attributes[7] = VertexAttribute{ 7, 0, VertexElementFormat::UByte4, (int)offsetof(Vertex, BoneIndex) };
+            attributes[8] = VertexAttribute{ 8, 0, VertexElementFormat::UByte4Norm, (int)offsetof(Vertex, BoneWeight) };
+            desc.Layout.NumAttributes = 9;
+        }
+        else
+        {
+            attributes[5] = VertexAttribute{ 5, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Normal) };
+            desc.Layout.NumAttributes = 6;
         }
 
-        return _device->CreateGraphicsPipeline(desc);
+        desc.NumColorTargets = 1;
+        desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
+        desc.ColorTargets[0].Blend = GetBlendState((BlendMode)modeIndex);
+        desc.DepthStencil.EnableDepthWrite = (modeIndex == (int)BlendMode::Opaque);
+        desc.DepthFormat = PixelFormat::D32Float;
+        desc.Name = std::string(isObjects ? "Objects" : "Rooms") + ".BlendMode" + std::to_string(modeIndex);
+
+        pipeline = _device->CreateGraphicsPipeline(desc);
+        if (pipeline == nullptr)
+            TENLog("Next renderer: cannot create pipeline " + desc.Name, LogLevel::Error);
+
+        return pipeline.get();
     }
 
     bool NextRenderer::EnsureRenderTargets(int width, int height)
@@ -536,7 +582,7 @@ namespace TEN::Renderer::Next
     {
         commandBuffer.PushDebugGroup(additive ? "Rooms additive" : "Rooms opaque");
 
-        renderPass.BindPipeline(additive ? _roomsAdditivePipeline.get() : _roomsPipeline.get());
+        renderPass.BindPipeline(GetScenePipeline(SceneShader::Rooms, additive ? BlendMode::Additive : BlendMode::Opaque));
 
         auto vertexBinding = BufferBinding{ _roomVertexBuffer.get(), 0 };
         renderPass.BindVertexBuffers(0, &vertexBinding, 1);
@@ -855,14 +901,14 @@ namespace TEN::Renderer::Next
         addHolster(Lara.Control.Weapon.HolsterInfo.BackHolster, LM_TORSO, true);
     }
 
-    void NextRenderer::UploadFrameStorage(ICommandBuffer& commandBuffer, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, const char* name)
+    void NextRenderer::UploadFrameStorage(ICommandBuffer& commandBuffer, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name)
     {
         // Storage buffers cannot be empty, so the smallest buffer holds one element.
         int dataSize = std::max((int)data.size(), stride);
         if (dataSize > storage.Capacity || storage.Buffer == nullptr)
         {
             storage.Capacity = std::max(dataSize * 2, stride * INITIAL_INSTANCE_CAPACITY);
-            storage.Buffer = _device->CreateBuffer(BufferDesc{ storage.Capacity, stride, BufferUsage::GraphicsStorageRead, name });
+            storage.Buffer = _device->CreateBuffer(BufferDesc{ storage.Capacity, stride, usage, name });
             storage.Transfer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, storage.Capacity);
         }
 
@@ -884,7 +930,7 @@ namespace TEN::Renderer::Next
             return;
 
         commandBuffer.PushDebugGroup(additive ? "Objects additive" : "Objects opaque");
-        renderPass.BindPipeline(additive ? _objectsAdditivePipeline.get() : _objectsPipeline.get());
+        renderPass.BindPipeline(GetScenePipeline(SceneShader::Objects, additive ? BlendMode::Additive : BlendMode::Opaque));
 
         IBuffer* storageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get(), _boneBuffer.Buffer.get() };
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 4);
@@ -948,6 +994,225 @@ namespace TEN::Renderer::Next
         commandBuffer.PopDebugGroup();
     }
 
+    // Instance of a sorted object, created once per frame even when interleaved clusters split the object
+    // into several runs. Mirrors the per-type state of the legacy Draw*Sorted functions.
+    int NextRenderer::GetSortedObjectInstance(const RendererSortableObject& object, float interpolationFactor)
+    {
+        const void* key = (object.ObjectType == RendererObjectType::Static) ? (const void*)object.Static :
+                          (object.ObjectType == RendererObjectType::Effect) ? (const void*)object.Effect :
+                          (object.ObjectType == RendererObjectType::Moveable) ? (const void*)object.Item : (const void*)&object;
+
+        auto it = _sortedInstances.find(key);
+        if (it != _sortedInstances.end())
+            return it->second;
+
+        int instance = 0;
+        int lightOffset = 0;
+        int lightCount = 0;
+
+        switch (object.ObjectType)
+        {
+        case RendererObjectType::Moveable:
+        {
+            const auto* item = object.Item;
+            const auto& moveableObject = (*_legacyGeometry.MoveableObjects)[item->ObjectID];
+            int boneCount = moveableObject.has_value() ? (int)moveableObject->AnimationTransforms.size() : 0;
+
+            int boneOffset = 0;
+            if (object.Skinned && moveableObject.has_value())
+            {
+                Matrix skinBones[BONE_COUNT_MAX];
+                for (int i = 0; i < boneCount; i++)
+                    skinBones[i] = moveableObject->BindPoseTransforms[i] * item->InterpolatedAnimationTransforms[i];
+
+                boneOffset = AddBones(skinBones, boneCount);
+            }
+            else
+            {
+                boneOffset = AddBones(item->InterpolatedAnimationTransforms, BONE_COUNT_MAX);
+            }
+
+            lightCount = AddLights(item->LightsToDraw, interpolationFactor, item->RoomNumber, item->PrevRoomNumber, item->LightFade, lightOffset);
+            instance = AddInstance(item->InterpolatedWorld, item->Color, item->AmbientLight, object.LightMode, lightOffset, lightCount, boneOffset,
+                object.Skinned ? SKINNING_FULL : SKINNING_RIGID);
+            break;
+        }
+
+        case RendererObjectType::Static:
+            lightCount = AddLights(object.Static->LightsToDraw, interpolationFactor, NO_VALUE, NO_VALUE, 1.0f, lightOffset);
+            instance = AddInstance(object.Static->World, object.Static->Color, object.Room->AmbientLight, object.LightMode, lightOffset, lightCount, 0, SKINNING_NONE);
+            break;
+
+        case RendererObjectType::MoveableAsStatic:
+            lightCount = AddLights(object.Room->LightsToDraw, interpolationFactor, NO_VALUE, NO_VALUE, 1.0f, lightOffset);
+            instance = AddInstance(object.World, Vector4::One, object.Room->AmbientLight, object.LightMode, lightOffset, lightCount, 0, SKINNING_NONE);
+            break;
+
+        case RendererObjectType::Effect:
+            lightCount = AddLights(object.Effect->LightsToDraw, interpolationFactor, NO_VALUE, NO_VALUE, 1.0f, lightOffset);
+            instance = AddInstance(object.Effect->InterpolatedWorld, object.Effect->Color, object.Effect->AmbientLight, LightMode::Dynamic, lightOffset, lightCount, 0, SKINNING_NONE);
+            break;
+
+        default:
+            break;
+        }
+
+        _sortedInstances[key] = instance;
+        return instance;
+    }
+
+    // Walks the transparent polygons in the order computed by the legacy SortTransparentFaces and turns each
+    // group run into one draw. All indices go into a single frame index buffer, so a run costs one draw call
+    // and object state comes from the instance buffer instead of per-run constant buffer uploads.
+    void NextRenderer::CollectSortedFaces(const RenderView& view, float interpolationFactor)
+    {
+        _sortedIndexData.clear();
+        _sortedDraws.clear();
+        _sortedInstances.clear();
+
+        int sortedCount = (int)view.TransparentSortKeys.size();
+        const auto* sortKeys = view.TransparentSortKeys.data();
+        const auto* polygons = view.TransparentPolygonsToDraw.data();
+        const auto* objects = view.TransparentObjectsToDraw.data();
+
+        int i = 0;
+        while (i < sortedCount)
+        {
+            const auto& object = objects[polygons[sortKeys[i].Index].ObjectIndex];
+
+            const std::vector<int>* sourceIndices = nullptr;
+            auto source = MeshSource::Moveables;
+            switch (object.ObjectType)
+            {
+            case RendererObjectType::Room:
+                sourceIndices = _legacyGeometry.RoomIndices;
+                break;
+
+            case RendererObjectType::Static:
+                sourceIndices = _legacyGeometry.StaticIndices;
+                source = MeshSource::Statics;
+                break;
+
+            case RendererObjectType::Moveable:
+            case RendererObjectType::MoveableAsStatic:
+            case RendererObjectType::Effect:
+                sourceIndices = _legacyGeometry.MoveableIndices;
+                break;
+
+            default:
+                break;
+            }
+
+            // Sprites and hair are ported in a later milestone; skip their whole run.
+            if (sourceIndices == nullptr)
+            {
+                int groupIndex = object.GroupIndex;
+                while (i < sortedCount && objects[polygons[sortKeys[i].Index].ObjectIndex].GroupIndex == groupIndex)
+                    i++;
+
+                continue;
+            }
+
+            int firstIndex = (int)(_sortedIndexData.size() / sizeof(int));
+            while (i < sortedCount)
+            {
+                const auto& polygon = polygons[sortKeys[i].Index];
+                if (objects[polygon.ObjectIndex].GroupIndex != object.GroupIndex)
+                    break;
+
+                int indexCount = (polygon.Polygon->Shape == 0) ? 6 : 3;
+                const auto* bytes = (const unsigned char*)(sourceIndices->data() + polygon.Polygon->BaseIndex);
+                _sortedIndexData.insert(_sortedIndexData.end(), bytes, bytes + (indexCount * sizeof(int)));
+                i++;
+            }
+
+            auto draw = SortedDraw{};
+            draw.Source = source;
+            draw.IsRoom = (object.ObjectType == RendererObjectType::Room);
+            draw.Bucket = object.Bucket;
+            draw.BlendMode = object.BlendMode;
+            draw.FirstIndex = firstIndex;
+            draw.IndexCount = (int)(_sortedIndexData.size() / sizeof(int)) - firstIndex;
+            draw.Instance = draw.IsRoom ? 0 : GetSortedObjectInstance(object, interpolationFactor);
+            _sortedDraws.push_back(draw);
+        }
+    }
+
+    void NextRenderer::DrawSortedFaces(ICommandBuffer& commandBuffer, IRenderPass& renderPass)
+    {
+        if (_sortedDraws.empty() || _sortedIndexBuffer.Buffer == nullptr)
+            return;
+
+        commandBuffer.PushDebugGroup("Sorted transparent faces");
+
+        renderPass.BindIndexBuffer(BufferBinding{ _sortedIndexBuffer.Buffer.get(), 0 }, IndexSize::Bits32);
+
+        IBuffer* lightBuffer = _lightBuffer.Buffer.get();
+        IBuffer* objectStorageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get(), _boneBuffer.Buffer.get() };
+
+        const IGraphicsPipeline* lastPipeline = nullptr;
+        int lastSource = NO_VALUE;
+        int lastAnimatedSet = INT_MIN;
+        const ITexture* lastTexture = nullptr;
+
+        for (const auto& draw : _sortedDraws)
+        {
+            const auto& bucket = *draw.Bucket;
+            auto shader = draw.IsRoom ? SceneShader::Rooms : SceneShader::Objects;
+
+            auto* pipeline = GetScenePipeline(shader, draw.BlendMode);
+            if (pipeline != lastPipeline)
+            {
+                renderPass.BindPipeline(pipeline);
+                renderPass.BindVertexStorageBuffers(0, objectStorageBuffers, draw.IsRoom ? 2 : 4);
+                renderPass.BindPixelStorageBuffers(0, &lightBuffer, 1);
+                lastPipeline = pipeline;
+                lastSource = NO_VALUE;
+                lastTexture = nullptr;
+            }
+
+            int source = draw.IsRoom ? -1 : (int)draw.Source;
+            if (source != lastSource)
+            {
+                auto* vertices = draw.IsRoom ? _roomVertexBuffer.get() :
+                    ((draw.Source == MeshSource::Statics) ? _staticGeometry.Vertices.get() : _moveableGeometry.Vertices.get());
+
+                BufferBinding vertexBindings[2] = { { vertices, 0 }, { _instanceIndexBuffer.get(), 0 } };
+                renderPass.BindVertexBuffers(0, vertexBindings, draw.IsRoom ? 1 : 2);
+                lastSource = source;
+            }
+
+            auto pixelUniforms = DrawPixelUniforms{};
+            pixelUniforms.BlendMode = (unsigned int)draw.BlendMode;
+            pixelUniforms.LightCount = draw.IsRoom ? (unsigned int)_roomLightCount : 0;
+            commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &pixelUniforms, sizeof(pixelUniforms));
+
+            int animatedSet = bucket.Animated ? bucket.Texture : NO_VALUE;
+            if (animatedSet != lastAnimatedSet)
+            {
+                auto vertexUniforms = DrawVertexUniforms{ animatedSet };
+                commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &vertexUniforms, sizeof(vertexUniforms));
+                lastAnimatedSet = animatedSet;
+            }
+
+            const auto& textures = bucket.Animated ? _animatedTextures :
+                (draw.IsRoom ? _roomTextures : ((draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures));
+            auto* texture = (bucket.Texture >= 0 && bucket.Texture < (int)textures.size() && textures[bucket.Texture].ColorMap != nullptr) ?
+                textures[bucket.Texture].ColorMap.get() : _whiteTexture.get();
+
+            if (texture != lastTexture)
+            {
+                auto binding = TextureSamplerBinding{ texture, _anisotropicSampler.get() };
+                renderPass.BindPixelSamplers(0, &binding, 1);
+                lastTexture = texture;
+            }
+
+            renderPass.DrawIndexed(draw.IndexCount, 1, draw.FirstIndex, 0, draw.Instance);
+        }
+
+        commandBuffer.PopDebugGroup();
+    }
+
     void NextRenderer::RenderFrame(const RenderView& view, const FrameEnvironment& environment)
     {
         if (_device == nullptr || !_isLevelLoaded)
@@ -982,11 +1247,13 @@ namespace TEN::Renderer::Next
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 0, &framePixelUniforms, sizeof(framePixelUniforms));
 
         CollectObjects(view, environment.InterpolationFactor);
+        CollectSortedFaces(view, environment.InterpolationFactor);
 
         commandBuffer->PushDebugGroup("Upload frame data");
-        UploadFrameStorage(*commandBuffer, _instanceBuffer, _instanceData, (int)sizeof(GpuObjectInstance), "Frame.Instances");
-        UploadFrameStorage(*commandBuffer, _lightBuffer, _lightData, (int)sizeof(GpuLight), "Frame.Lights");
-        UploadFrameStorage(*commandBuffer, _boneBuffer, _boneData, (int)sizeof(Matrix), "Frame.Bones");
+        UploadFrameStorage(*commandBuffer, _instanceBuffer, _instanceData, (int)sizeof(GpuObjectInstance), BufferUsage::GraphicsStorageRead, "Frame.Instances");
+        UploadFrameStorage(*commandBuffer, _lightBuffer, _lightData, (int)sizeof(GpuLight), BufferUsage::GraphicsStorageRead, "Frame.Lights");
+        UploadFrameStorage(*commandBuffer, _boneBuffer, _boneData, (int)sizeof(Matrix), BufferUsage::GraphicsStorageRead, "Frame.Bones");
+        UploadFrameStorage(*commandBuffer, _sortedIndexBuffer, _sortedIndexData, (int)sizeof(int), BufferUsage::Index, "Frame.SortedIndices");
         commandBuffer->PopDebugGroup();
 
         auto colorTarget = ColorTargetInfo{};
@@ -1006,6 +1273,7 @@ namespace TEN::Renderer::Next
         DrawObjects(*commandBuffer, *renderPass, false);
         DrawRooms(*commandBuffer, *renderPass, view, true);
         DrawObjects(*commandBuffer, *renderPass, true);
+        DrawSortedFaces(*commandBuffer, *renderPass);
         commandBuffer->EndRenderPass();
         commandBuffer->PopDebugGroup();
 
