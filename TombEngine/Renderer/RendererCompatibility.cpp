@@ -910,6 +910,7 @@ namespace TEN::Renderer
 			geometry.StaticObjects = &_staticObjects;
 			geometry.MoveableObjects = &_moveableObjects;
 			geometry.Meshes = &_meshes;
+			geometry.Items = &_items;
 			Next::g_NextRenderer.LoadLevel(geometry);
 		}
 

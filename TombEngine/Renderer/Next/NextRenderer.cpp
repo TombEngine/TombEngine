@@ -5,6 +5,7 @@
 #include "Renderer/RenderView.h"
 #include "Renderer/RHI/ShaderLibrary.h"
 #include "Renderer/RHI/TextureCapture.h"
+#include "Game/Lara/lara.h"
 #include "Game/Setup.h"
 #include "Objects/game_object_ids.h"
 #include "Renderer/Structures/RendererAnimatedTextureSet.h"
@@ -98,8 +99,13 @@ namespace TEN::Renderer::Next
         unsigned int LightMode    = 0;
         unsigned int LightOffset  = 0;
         unsigned int LightCount   = 0;
-        unsigned int Padding      = 0;
+        unsigned int Skinning     = 0;
     };
+
+    // Skinning modes of ObjectInstance.Skinning, matching Skinning.hlsli.
+    constexpr auto SKINNING_NONE    = 0;
+    constexpr auto SKINNING_CLASSIC = 3;
+    constexpr auto SKINNING_FULL    = 2;
 
     static_assert(sizeof(GpuObjectInstance) == 112, "GpuObjectInstance must match ObjectInstance in Common.hlsli.");
     static_assert(sizeof(FrameVertexUniforms) == 96, "FrameVertexUniforms must match Rooms.hlsl.");
@@ -146,6 +152,7 @@ namespace TEN::Renderer::Next
         _moveableGeometry = {};
         _instanceBuffer = {};
         _lightBuffer = {};
+        _boneBuffer = {};
         _instanceIndexBuffer = nullptr;
         _animatedFramesBuffer = nullptr;
         _animatedSetsBuffer = nullptr;
@@ -274,7 +281,7 @@ namespace TEN::Renderer::Next
         desc.Layout.NumBuffers = 2;
         desc.Layout.Buffers[0] = VertexBufferLayout{ 0, (int)sizeof(Vertex), VertexInputRate::Vertex };
         desc.Layout.Buffers[1] = VertexBufferLayout{ 1, (int)sizeof(unsigned int), VertexInputRate::Instance };
-        desc.Layout.NumAttributes = 7;
+        desc.Layout.NumAttributes = 9;
         desc.Layout.Attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::Float3, (int)offsetof(Vertex, Position) };
         desc.Layout.Attributes[1] = VertexAttribute{ 1, 0, VertexElementFormat::Float2, (int)offsetof(Vertex, UV) };
         desc.Layout.Attributes[2] = VertexAttribute{ 2, 0, VertexElementFormat::UByte4Norm, (int)offsetof(Vertex, Color) };
@@ -282,6 +289,8 @@ namespace TEN::Renderer::Next
         desc.Layout.Attributes[4] = VertexAttribute{ 4, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, AnimationFrameOffsetIndexHash) };
         desc.Layout.Attributes[5] = VertexAttribute{ 5, 1, VertexElementFormat::UInt, 0 };
         desc.Layout.Attributes[6] = VertexAttribute{ 6, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Normal) };
+        desc.Layout.Attributes[7] = VertexAttribute{ 7, 0, VertexElementFormat::UByte4, (int)offsetof(Vertex, BoneIndex) };
+        desc.Layout.Attributes[8] = VertexAttribute{ 8, 0, VertexElementFormat::UByte4Norm, (int)offsetof(Vertex, BoneWeight) };
         desc.NumColorTargets = 1;
         desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
         desc.DepthFormat = PixelFormat::D32Float;
@@ -669,21 +678,7 @@ namespace TEN::Renderer::Next
         int roomLightOffset = 0;
         _roomLightCount = AddLights(view.LightsToDraw, interpolationFactor, NO_VALUE, NO_VALUE, 1.0f, roomLightOffset);
 
-        int instanceCount = 0;
-        auto addInstance = [&](const Matrix& world, const Vector4& color, const Vector4& ambientLight, LightMode lightMode, int lightOffset, int lightCount)
-        {
-            auto instance = GpuObjectInstance{};
-            instance.World = world;
-            instance.Color = color;
-            instance.AmbientLight = ambientLight;
-            instance.LightMode = (unsigned int)lightMode;
-            instance.LightOffset = (unsigned int)lightOffset;
-            instance.LightCount = (unsigned int)lightCount;
-
-            const auto* bytes = (const unsigned char*)&instance;
-            _instanceData.insert(_instanceData.end(), bytes, bytes + sizeof(instance));
-            return instanceCount++;
-        };
+        _boneData.clear();
 
         for (const auto& [objectNumber, statics] : view.SortedStaticsToDraw)
         {
@@ -699,12 +694,12 @@ namespace TEN::Renderer::Next
                 continue;
 
             const auto* mesh = object->ObjectMeshes[0];
-            int firstInstance = instanceCount;
+            int firstInstance = (int)(_instanceData.size() / sizeof(GpuObjectInstance));
             for (const auto* staticMesh : statics)
             {
                 int lightOffset = 0;
                 int lightCount = AddLights(staticMesh->LightsToDraw, interpolationFactor, NO_VALUE, NO_VALUE, 1.0f, lightOffset);
-                addInstance(staticMesh->World, staticMesh->Color, staticMesh->AmbientLight, mesh->LightMode, lightOffset, lightCount);
+                AddInstance(staticMesh->World, staticMesh->Color, staticMesh->AmbientLight, mesh->LightMode, lightOffset, lightCount, 0, SKINNING_NONE);
             }
 
             for (const auto& bucket : mesh->Buckets)
@@ -741,16 +736,123 @@ namespace TEN::Renderer::Next
 
                     const auto* mesh = (*_legacyGeometry.Meshes)[item->MeshIndex[meshIndex]];
                     auto world = item->InterpolatedAnimationTransforms[meshIndex] * item->InterpolatedWorld;
-                    int instance = addInstance(world, item->Color, item->AmbientLight, mesh->LightMode, lightOffset, lightCount);
-
-                    for (const auto& bucket : mesh->Buckets)
-                    {
-                        if (bucket.NumIndices > 0)
-                            _objectDraws.push_back(ObjectDraw{ MeshSource::Moveables, &bucket, instance, 1 });
-                    }
+                    int instance = AddInstance(world, item->Color, item->AmbientLight, mesh->LightMode, lightOffset, lightCount, 0, SKINNING_NONE);
+                    AddMeshDraws(*mesh, instance);
                 }
             }
         }
+
+        CollectPlayer(interpolationFactor);
+    }
+
+    int NextRenderer::AddInstance(const Matrix& world, const Vector4& color, const Vector4& ambientLight, LightMode lightMode, int lightOffset, int lightCount, int boneOffset, int skinningMode)
+    {
+        auto instance = GpuObjectInstance{};
+        instance.World = world;
+        instance.Color = color;
+        instance.AmbientLight = ambientLight;
+        instance.LightMode = (unsigned int)lightMode;
+        instance.LightOffset = (unsigned int)lightOffset;
+        instance.LightCount = (unsigned int)lightCount;
+        instance.Skinning = ((unsigned int)boneOffset & 0xFFFFFF) | ((unsigned int)skinningMode << 24);
+
+        int index = (int)(_instanceData.size() / sizeof(GpuObjectInstance));
+        const auto* bytes = (const unsigned char*)&instance;
+        _instanceData.insert(_instanceData.end(), bytes, bytes + sizeof(instance));
+        return index;
+    }
+
+    int NextRenderer::AddBones(const Matrix* bones, int count)
+    {
+        int offset = (int)(_boneData.size() / sizeof(Matrix));
+        const auto* bytes = (const unsigned char*)bones;
+        _boneData.insert(_boneData.end(), bytes, bytes + (count * sizeof(Matrix)));
+        return offset;
+    }
+
+    void NextRenderer::AddMeshDraws(const RendererMesh& mesh, int instance)
+    {
+        for (const auto& bucket : mesh.Buckets)
+        {
+            if (bucket.NumIndices > 0)
+                _objectDraws.push_back(ObjectDraw{ MeshSource::Moveables, &bucket, instance, 1 });
+        }
+    }
+
+    // Player meshes are skinned in the vertex shader against the animation bone palette, as in the
+    // legacy DrawLara: rigid parts and classic joints blend per-vertex bone indices, the full skin uses
+    // bind pose corrected bones. Hair is ported in a later milestone.
+    void NextRenderer::CollectPlayer(float interpolationFactor)
+    {
+        if (LaraItem == nullptr || Lara.Control.Look.OpticRange != 0)
+            return;
+
+        const auto& nativeItem = g_Level.Items[LaraItem->Index];
+        if (nativeItem.Flags & IFLAG_INVISIBLE)
+            return;
+
+        const auto& laraObject = (*_legacyGeometry.MoveableObjects)[ID_LARA];
+        const auto* item = _legacyGeometry.Items != nullptr ? &(*_legacyGeometry.Items)[LaraItem->Index] : nullptr;
+        if (!laraObject.has_value() || item == nullptr)
+            return;
+
+        int lightOffset = 0;
+        int lightCount = AddLights(item->LightsToDraw, interpolationFactor, item->RoomNumber, item->PrevRoomNumber, item->LightFade, lightOffset);
+
+        int boneCount = (int)laraObject->AnimationTransforms.size();
+        int animationBones = AddBones(item->InterpolatedAnimationTransforms, boneCount);
+        auto lightMode = (*_legacyGeometry.Meshes)[item->MeshIndex[0]]->LightMode;
+
+        bool isFullSkin = (item->SkinIndex != NO_VALUE);
+        if (isFullSkin)
+        {
+            Matrix skinBones[BONE_COUNT_MAX];
+            for (int i = 0; i < boneCount; i++)
+                skinBones[i] = laraObject->BindPoseTransforms[i] * item->InterpolatedAnimationTransforms[i];
+
+            int skinBoneOffset = AddBones(skinBones, boneCount);
+            int skinInstance = AddInstance(item->InterpolatedWorld, item->Color, item->AmbientLight, lightMode, lightOffset, lightCount, skinBoneOffset, SKINNING_FULL);
+            AddMeshDraws(*(*_legacyGeometry.Meshes)[item->SkinIndex], skinInstance);
+        }
+
+        int instance = AddInstance(item->InterpolatedWorld, item->Color, item->AmbientLight, lightMode, lightOffset, lightCount, animationBones, SKINNING_CLASSIC);
+
+        for (int meshIndex = 0; meshIndex < (int)item->MeshIndex.size(); meshIndex++)
+        {
+            if (!nativeItem.MeshBits.Test(meshIndex))
+                continue;
+
+            if (isFullSkin && g_Level.Meshes[nativeItem.Model.MeshIndex[meshIndex]].hidden)
+                continue;
+
+            AddMeshDraws(*(*_legacyGeometry.Meshes)[item->MeshIndex[meshIndex]], instance);
+        }
+
+        if (!isFullSkin)
+        {
+            const auto& joints = (*_legacyGeometry.MoveableObjects)[Lara.Skin.SkinJoints];
+            if (joints.has_value())
+            {
+                for (int meshIndex = 1; meshIndex < (int)joints->ObjectMeshes.size(); meshIndex++)
+                    AddMeshDraws(*joints->ObjectMeshes[meshIndex], instance);
+            }
+        }
+
+        // Left and right holsters always draw their slot object (the empty slot is the empty holster mesh),
+        // the back holster only when occupied, as in the legacy DrawLaraHolsters.
+        auto addHolster = [&](HolsterSlot slot, int boneIndex, bool skipEmpty)
+        {
+            if (skipEmpty && slot == HolsterSlot::Empty)
+                return;
+
+            const auto& holster = (*_legacyGeometry.MoveableObjects)[(int)slot];
+            if (holster.has_value() && boneIndex < (int)holster->ObjectMeshes.size())
+                AddMeshDraws(*holster->ObjectMeshes[boneIndex], instance);
+        };
+
+        addHolster(Lara.Control.Weapon.HolsterInfo.LeftHolster, LM_LTHIGH, false);
+        addHolster(Lara.Control.Weapon.HolsterInfo.RightHolster, LM_RTHIGH, false);
+        addHolster(Lara.Control.Weapon.HolsterInfo.BackHolster, LM_TORSO, true);
     }
 
     void NextRenderer::UploadFrameStorage(ICommandBuffer& commandBuffer, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, const char* name)
@@ -784,8 +886,8 @@ namespace TEN::Renderer::Next
         commandBuffer.PushDebugGroup(additive ? "Objects additive" : "Objects opaque");
         renderPass.BindPipeline(additive ? _objectsAdditivePipeline.get() : _objectsPipeline.get());
 
-        IBuffer* storageBuffers[3] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get() };
-        renderPass.BindVertexStorageBuffers(0, storageBuffers, 3);
+        IBuffer* storageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get(), _boneBuffer.Buffer.get() };
+        renderPass.BindVertexStorageBuffers(0, storageBuffers, 4);
 
         IBuffer* lightBuffer = _lightBuffer.Buffer.get();
         renderPass.BindPixelStorageBuffers(0, &lightBuffer, 1);
@@ -884,6 +986,7 @@ namespace TEN::Renderer::Next
         commandBuffer->PushDebugGroup("Upload frame data");
         UploadFrameStorage(*commandBuffer, _instanceBuffer, _instanceData, (int)sizeof(GpuObjectInstance), "Frame.Instances");
         UploadFrameStorage(*commandBuffer, _lightBuffer, _lightData, (int)sizeof(GpuLight), "Frame.Lights");
+        UploadFrameStorage(*commandBuffer, _boneBuffer, _boneData, (int)sizeof(Matrix), "Frame.Bones");
         commandBuffer->PopDebugGroup();
 
         auto colorTarget = ColorTargetInfo{};

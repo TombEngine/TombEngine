@@ -20,6 +20,7 @@ namespace TEN::Renderer::Structures
     struct RendererMesh;
     struct RendererObject;
     struct RendererLight;
+    struct RendererItem;
 }
 
 namespace TEN::Renderer::Next
@@ -40,6 +41,7 @@ namespace TEN::Renderer::Next
         const std::vector<std::optional<Structures::RendererObject>>*  StaticObjects    = nullptr;
         const std::vector<std::optional<Structures::RendererObject>>*  MoveableObjects  = nullptr;
         const std::vector<Structures::RendererMesh*>*                  Meshes           = nullptr;
+        const std::vector<Structures::RendererItem>*                   Items            = nullptr;
     };
 
     // Per-frame values owned by the game and the legacy renderer.
@@ -125,6 +127,8 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IBuffer> _instanceIndexBuffer = nullptr;
         FrameStorageBuffer            _instanceBuffer      = {};
         FrameStorageBuffer            _lightBuffer         = {};
+        FrameStorageBuffer            _boneBuffer          = {};
+        std::vector<unsigned char>    _boneData            = {};
         std::vector<unsigned char>    _instanceData        = {};
         std::vector<unsigned char>    _lightData           = {};
         std::vector<ObjectDraw>       _objectDraws         = {};
@@ -150,6 +154,10 @@ namespace TEN::Renderer::Next
         void LoadTextureSet(const std::vector<::TEXTURE>& source, std::vector<RoomTexture>& destination, const std::string& name);
         void CreateGeometryBuffers(GeometryBuffers& buffers, const std::vector<Graphics::Vertices::Vertex>& vertices, const std::vector<int>& indices, const std::string& name);
         void CollectObjects(const RenderView& view, float interpolationFactor);
+        void CollectPlayer(float interpolationFactor);
+        int  AddInstance(const Matrix& world, const Vector4& color, const Vector4& ambientLight, LightMode lightMode, int lightOffset, int lightCount, int boneOffset, int skinningMode);
+        int  AddBones(const Matrix* bones, int count);
+        void AddMeshDraws(const Structures::RendererMesh& mesh, int instance);
         int  AddLights(const std::vector<Structures::RendererLight*>& lights, float interpolationFactor, int roomNumber, int prevRoomNumber, float fade, int& lightOffset);
         void UploadFrameStorage(RHI::ICommandBuffer& commandBuffer, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, const char* name);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool additive);

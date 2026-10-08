@@ -1,4 +1,4 @@
-// TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=3 uniform_buffers=2
+// TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=2
 // TEN_SHADER: Pixel PS samplers=1 storage_textures=0 storage_buffers=1 uniform_buffers=2
 
 // Static meshes and rigid moveable meshes. Every draw is instanced: the instance index stream
@@ -9,10 +9,12 @@
 #include "./Common.hlsli"
 #include "./FrameUniforms.hlsli"
 #include "./Lighting.hlsli"
+#include "./Skinning.hlsli"
 
 TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
 TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
 TEN_VS_STORAGE_BUFFER(ObjectInstance, Instances, 2);
+TEN_VS_STORAGE_BUFFER(float4x4, Bones, 3);
 
 TEN_PS_TEXTURE(Texture2D, ColorMap, 0);
 TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 1);
@@ -26,6 +28,8 @@ struct VertexInput
     TEN_LOCATION(4) uint   AnimationData : TEXCOORD4;
     TEN_LOCATION(5) uint   InstanceIndex : TEXCOORD5;
     TEN_LOCATION(6) float4 Normal        : TEXCOORD6;
+    TEN_LOCATION(7) uint4  BoneIndices   : TEXCOORD7;
+    TEN_LOCATION(8) float4 BoneWeights   : TEXCOORD8;
 };
 
 struct PixelInput
@@ -70,7 +74,13 @@ float3 CombineLights(float3 ambient, float3 vertexLight, float3 texel, float3 po
 PixelInput VS(VertexInput input)
 {
     ObjectInstance instance = Instances[input.InstanceIndex];
-    float4 worldPosition = mul(float4(input.Position, 1.0f), instance.World);
+
+    float4x4 world = instance.World;
+    uint skinningMode = instance.Skinning >> 24;
+    if (skinningMode != SKINNING_NONE)
+        world = mul(BlendBones(Bones, instance.Skinning & 0xFFFFFF, input.BoneIndices, input.BoneWeights, skinningMode), instance.World);
+
+    float4 worldPosition = mul(float4(input.Position, 1.0f), world);
 
     PixelInput output;
     output.Position = mul(worldPosition, ViewProjection);
@@ -96,7 +106,7 @@ PixelInput VS(VertexInput input)
     output.LightMode = instance.LightMode;
     output.LightSlice = uint2(instance.LightOffset, instance.LightCount);
     output.WorldPosition = worldPosition.xyz;
-    output.Normal = mul(input.Normal.xyz, (float3x3)instance.World);
+    output.Normal = mul(input.Normal.xyz, (float3x3)world);
     output.Fog = GetDistanceFog(worldPosition.xyz, CameraPosition, FogMinDistance, FogMaxDistance);
     return output;
 }

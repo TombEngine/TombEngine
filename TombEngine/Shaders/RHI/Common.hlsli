@@ -49,7 +49,7 @@ struct ObjectInstance
     uint     LightMode;
     uint     LightOffset;
     uint     LightCount; // Light count in the low 16 bits, light type mask in the high bits.
-    uint     Padding;
+    uint     Skinning;   // Bone palette offset in the low 24 bits, skinning mode in the high 8 bits.
 };
 
 float Luma(float3 color)
