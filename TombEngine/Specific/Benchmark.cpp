@@ -69,7 +69,8 @@ namespace TEN::Benchmark
     static void WriteHeader(const BenchmarkFrameStats& stats)
     {
         _file << "frame,time_s,cpu_frame_ms,cpu_render_ms,present_ms,draw_calls,shadow_draw_calls,triangles,"
-                 "cb_updates,cb_bytes,perdraw_updates,rooms,sorted_faces,sorted_collect_ms,sorted_sort_ms,sorted_draw_ms";
+                 "cb_updates,cb_bytes,perdraw_updates,rooms,sorted_faces,sorted_collect_ms,sorted_sort_ms,sorted_draw_ms,"
+                 "next_cpu_ms,next_draw_calls";
 
         for (int i = 0; i < stats.GpuPassCount; i++)
             _file << ",gpu_" << stats.GpuPassNames[i] << "_ms";
@@ -194,7 +195,8 @@ namespace TEN::Benchmark
               << stats.DrawCalls << ',' << stats.ShadowMapDrawCalls << ',' << stats.Triangles << ','
               << stats.ConstantBufferUpdates << ',' << stats.ConstantBufferBytes << ',' << stats.PerDrawUpdates << ','
               << stats.RoomsDrawn << ',' << stats.SortedFaces << ','
-              << stats.SortedCollectTime << ',' << stats.SortedSortTime << ',' << stats.SortedDrawTime;
+              << stats.SortedCollectTime << ',' << stats.SortedSortTime << ',' << stats.SortedDrawTime << ','
+              << stats.NextRenderTime << ',' << stats.NextDrawCalls;
 
         for (int i = 0; i < stats.GpuPassCount; i++)
             _file << ',' << stats.GpuPassTimes[i];

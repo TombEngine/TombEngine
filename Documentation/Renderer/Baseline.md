@@ -9,8 +9,9 @@ Build\<Config>\Bin\x64\TombEngine.exe debug level Data/<level>.ten benchmark <se
 ```
 
 Working directory: `Build\<Config>`. The level must be registered in `Scripts/Gameflow.lua`; the benchmark
-scenario script (`Scripts/Levels/Benchmark.lua`) keeps the player alive and turns her slowly, so the chase
-camera sweeps the scene. Timing starts with the first rendered gameplay frame, the first 3 seconds are
+scenario script (`Scripts/Levels/Benchmark.lua`, a copy is in `Documentation/Renderer/Benchmark.lua`) keeps the
+player alive and turns her slowly, so the chase camera sweeps the scene. Since 2026-10-09 it also emits additive
+and alpha blended particles around the player, so the sprite and sorted transparency paths are measured too. Timing starts with the first rendered gameplay frame, the first 3 seconds are
 discarded, then per-frame data goes to `Logs/Benchmark_<timestamp>.csv` and a summary to the TEN log.
 
 CSV columns:
@@ -44,6 +45,24 @@ commands in the session notes); their textures, sky and sounds are taken from `E
 
 With the GPU saturated, the 30 FPS cap is not reached and `present_ms` drops to about 0.2 ms.
 In an earlier run with the GPU below its limit, CPU render time was 0.42-0.50 ms (p99 1.1-1.8 ms).
+
+## 2026-10-09, Release x64, coastal with particles
+
+Legacy renderer alone, GPU per pass (DX11 timestamps):
+
+| GPU frame | SSAO | Opaque | Transparent | Post-process | GBuffer | Sky | Draw calls |
+|---|---|---|---|---|---|---|---|
+| 31.5 ms | 13.3 ms | 7.9 ms | 4.4 ms | 4.2 ms | 1.0 ms | 0.4 ms | 229 |
+
+Next renderer preview (`preview <backend>`) on the same frames, rooms, objects, player, sky, sprites and sorted faces
+(no SSAO, shadows or post-process yet). CPU time covers collection, upload and command recording:
+
+| Backend | CPU per frame | Draw calls |
+|---|---|---|
+| Vulkan (RTX 3050) | 0.91 ms | 111 |
+| DX11 (RTX 3050) | 0.55 ms | 111 |
+
+The legacy `cpu_render_ms` in these runs excludes the preview time (`next_cpu_ms` column).
 
 ## Findings
 

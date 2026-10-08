@@ -60,6 +60,12 @@ namespace TEN::Renderer::Next
         float        InterpolationFactor = 0.0f;
     };
 
+    struct NextFrameStats
+    {
+        float CpuTime   = 0.0f; // Milliseconds spent collecting, uploading and recording the frame.
+        int   DrawCalls = 0;
+    };
+
     // New RHI-based renderer. During the migration it draws into a separate preview window, fed by the
     // legacy renderer's culling results, so the two outputs can be compared side by side.
     class NextRenderer
@@ -186,6 +192,7 @@ namespace TEN::Renderer::Next
         std::vector<unsigned char>    _spriteData          = {};
         std::vector<SpriteDraw>       _spriteDraws         = {};
         int                           _roomLightCount      = 0;
+        NextFrameStats                _frameStats          = {};
         bool                          _isLevelLoaded    = false;
 
         // Offscreen frame handed from the render thread to the window thread.
@@ -239,6 +246,8 @@ namespace TEN::Renderer::Next
         void RenderFrame(const RenderView& view, const FrameEnvironment& environment);
         void PresentOnWindowThread();
         void RequestScreenshot(const std::string& path);
+
+        const NextFrameStats& GetFrameStats() const;
     };
 
     extern NextRenderer g_NextRenderer;

@@ -185,6 +185,7 @@ namespace TEN::Renderer::Next
             lastTexture = draw.Texture;
         }
 
+        _frameStats.DrawCalls++;
         renderPass.Draw(6, draw.SpriteCount, 0, draw.FirstSprite);
     }
 

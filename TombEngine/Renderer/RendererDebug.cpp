@@ -1,6 +1,8 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
+#include "Renderer/Next/NextRenderer.h"
+
 namespace TEN::Renderer
 {
 	void Renderer::ResetDebugVariables()
@@ -83,6 +85,12 @@ namespace TEN::Renderer
 			_frameStats.GpuPassTimes[i] = _graphicsDevice->GetGpuTime((GpuTimingScope)i);
 		_frameStats.CpuFrameTime = (_lastPresentTime.time_since_epoch().count() == 0) ? 0.0f : ms(now - _lastPresentTime).count();
 		_lastPresentTime = now;
+
+		// The preview frame is recorded inside RenderScene; keep the legacy render time free of it.
+		const auto& nextStats = Next::g_NextRenderer.GetFrameStats();
+		_frameStats.NextRenderTime = Next::g_NextRenderer.IsActive() ? nextStats.CpuTime : 0.0f;
+		_frameStats.NextDrawCalls = Next::g_NextRenderer.IsActive() ? nextStats.DrawCalls : 0;
+		_frameStats.CpuRenderTime -= _frameStats.NextRenderTime;
 
 		TEN::Benchmark::RecordBenchmarkFrame(_frameStats);
 	}

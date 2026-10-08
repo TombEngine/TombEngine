@@ -4,7 +4,7 @@
 #ifdef SDL_PLATFORM_WIN32
 
 #include <d3d11_1.h>
-#include <dxgi1_2.h>
+#include <dxgi1_6.h>
 #include <wrl/client.h>
 
 #include "Specific/trutils.h"
@@ -1316,6 +1316,21 @@ namespace TEN::Renderer::RHI::DirectX11
         HasSwapchainTexture = false;
     }
 
+    // Same policy as SDL GPU: prefer the high performance adapter on hybrid graphics systems,
+    // otherwise let the runtime pick the default one.
+    static ComPtr<IDXGIAdapter1> GetHighPerformanceAdapter()
+    {
+        ComPtr<IDXGIFactory6> factory;
+        if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(factory.GetAddressOf()))))
+            return nullptr;
+
+        ComPtr<IDXGIAdapter1> adapter;
+        if (FAILED(factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(adapter.GetAddressOf()))))
+            return nullptr;
+
+        return adapter;
+    }
+
     std::unique_ptr<IDevice> CreateDX11Device(SDL_Window* window, bool debugMode)
     {
         auto props = SDL_GetWindowProperties(window);
@@ -1326,13 +1341,17 @@ namespace TEN::Renderer::RHI::DirectX11
         UINT flags = debugMode ? D3D11_CREATE_DEVICE_DEBUG : 0;
         D3D_FEATURE_LEVEL levels[] = { D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0 };
 
+        auto preferredAdapter = GetHighPerformanceAdapter();
+        auto* adapterToUse = preferredAdapter.Get();
+        auto driverType = (adapterToUse != nullptr) ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE;
+
         ComPtr<ID3D11Device> device;
         ComPtr<ID3D11DeviceContext> context;
-        auto result = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, flags, levels, 2, D3D11_SDK_VERSION, device.GetAddressOf(), nullptr, context.GetAddressOf());
+        auto result = D3D11CreateDevice(adapterToUse, driverType, nullptr, flags, levels, 2, D3D11_SDK_VERSION, device.GetAddressOf(), nullptr, context.GetAddressOf());
 
         // The debug layer is optional; retry without it when the SDK layers are not installed.
         if (FAILED(result) && debugMode)
-            result = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, levels, 2, D3D11_SDK_VERSION, device.GetAddressOf(), nullptr, context.GetAddressOf());
+            result = D3D11CreateDevice(adapterToUse, driverType, nullptr, 0, levels, 2, D3D11_SDK_VERSION, device.GetAddressOf(), nullptr, context.GetAddressOf());
 
         if (FAILED(result))
         {

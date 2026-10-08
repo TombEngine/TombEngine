@@ -600,6 +600,7 @@ namespace TEN::Renderer::Next
                     lastTexture = texture;
                 }
 
+                _frameStats.DrawCalls++;
                 renderPass.DrawIndexed(bucket.NumIndices, 1, bucket.StartIndex, 0, 0);
             }
         }
@@ -1013,6 +1014,7 @@ namespace TEN::Renderer::Next
                 lastTexture = texture;
             }
 
+            _frameStats.DrawCalls++;
             renderPass.DrawIndexed(bucket.NumIndices, draw.InstanceCount, bucket.StartIndex, 0, draw.FirstInstance);
         }
 
@@ -1262,6 +1264,7 @@ namespace TEN::Renderer::Next
                 lastTexture = texture;
             }
 
+            _frameStats.DrawCalls++;
             renderPass.DrawIndexed(draw.IndexCount, 1, draw.FirstIndex, 0, draw.Instance);
         }
 
@@ -1366,6 +1369,7 @@ namespace TEN::Renderer::Next
 
                 auto world = rotation * translation;
                 commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &world, sizeof(world));
+                _frameStats.DrawCalls++;
                 renderPass.DrawIndexed(SKY_INDICES_COUNT, 1, 0, 0, 0);
             }
         }
@@ -1421,12 +1425,18 @@ namespace TEN::Renderer::Next
 
                     auto binding = TextureSamplerBinding{ texture, _anisotropicSampler.get() };
                     renderPass.BindPixelSamplers(0, &binding, 1);
+                    _frameStats.DrawCalls++;
                     renderPass.DrawIndexed(bucket.NumIndices, 1, bucket.StartIndex, 0, 0);
                 }
             }
         }
 
         commandBuffer.PopDebugGroup();
+    }
+
+    const NextFrameStats& NextRenderer::GetFrameStats() const
+    {
+        return _frameStats;
     }
 
     void NextRenderer::RenderFrame(const RenderView& view, const FrameEnvironment& environment)
@@ -1442,6 +1452,9 @@ namespace TEN::Renderer::Next
         auto lock = std::lock_guard<std::mutex>(_frameMutex);
         if (!EnsureRenderTargets(width, height))
             return;
+
+        auto startTime = std::chrono::steady_clock::now();
+        _frameStats.DrawCalls = 0;
 
         auto* commandBuffer = _device->AcquireCommandBuffer();
         if (commandBuffer == nullptr)
@@ -1499,6 +1512,9 @@ namespace TEN::Renderer::Next
         }
 
         commandBuffer->PopDebugGroup();
+
+        // Submit is excluded: on DX11 it also presents and may wait for vsync.
+        _frameStats.CpuTime = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - startTime).count();
         commandBuffer->Submit();
 
         if (!_screenshotPath.empty())
