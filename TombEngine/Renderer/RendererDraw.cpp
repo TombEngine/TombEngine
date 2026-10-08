@@ -3757,7 +3757,7 @@ namespace TEN::Renderer
 		if (rendererPass == RendererPass::CollectTransparentFaces)
 		{
 			auto world = itemToDraw->InterpolatedAnimationTransforms[boneIndex] * itemToDraw->InterpolatedWorld;
-			auto cameraPosition = Camera.pos.ToVector3();
+			const auto& cameraPosition = view.Camera.WorldPosition;
 
 			for (auto& bucket : mesh->Buckets)
 			{
