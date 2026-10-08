@@ -30,7 +30,11 @@ namespace TEN::Renderer::Next
 
     struct FramePixelUniforms
     {
-        Vector4 FogColor = Vector4::Zero;
+        Vector4 FogColor        = Vector4::Zero;
+        Vector3 CameraPosition  = Vector3::Zero;
+        float   Padding0        = 0.0f;
+        Vector3 CameraDirection = Vector3::Zero;
+        float   Padding1        = 0.0f;
     };
 
     struct DrawPixelUniforms
@@ -39,7 +43,19 @@ namespace TEN::Renderer::Next
         unsigned int BlendMode      = 0;
         unsigned int LightOffset    = 0;
         unsigned int LightCount     = 0;
+        unsigned int MaterialIndex  = 0;
+        unsigned int Padding[3]     = {};
     };
+
+    // Same layout as GpuMaterial in Materials.hlsli; properties are interpolated every frame.
+    struct GpuMaterial
+    {
+        Vector4      Properties[4] = {};
+        unsigned int TypeAndFlags  = 0;
+        unsigned int Padding[3]    = {};
+    };
+
+    static_assert(sizeof(GpuMaterial) == 80, "GpuMaterial must match Materials.hlsli.");
 
     // Same layout as the legacy ShaderLight and GpuLight in Lighting.hlsli.
     struct GpuLight
@@ -96,7 +112,7 @@ namespace TEN::Renderer::Next
     static_assert(sizeof(GpuAnimatedFrame) == 32, "GpuAnimatedFrame must match Common.hlsli.");
     static_assert(sizeof(GpuAnimatedSet) == 32, "GpuAnimatedSet must match Common.hlsli.");
 
-    // Sprite corners expanded to world space; the color is RGBA8 packed into the w component.
+    // Sprite corners expanded to world space, with a packed RGBA8 color.
     struct GpuSpriteCorner
     {
         Vector3      Position = Vector3::Zero;

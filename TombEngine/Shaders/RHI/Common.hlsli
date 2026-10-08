@@ -81,6 +81,11 @@ float DecodeMove(uint effects)
     return (float)((effects >> 8) & 0xFF) / 255.0f;
 }
 
+float DecodeSheen(uint effects)
+{
+    return (float)((effects >> 16) & 0xFF) / 255.0f;
+}
+
 float DecodeWeight(uint effects)
 {
     return (float)((effects >> 24) & 0x1);

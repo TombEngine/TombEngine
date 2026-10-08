@@ -1,14 +1,15 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=2
-// TEN_SHADER: Pixel PS samplers=1 storage_textures=0 storage_buffers=1 uniform_buffers=2
+// TEN_SHADER: Pixel PS samplers=4 storage_textures=0 storage_buffers=2 uniform_buffers=2
 
 // Static meshes and rigid moveable meshes. Every draw is instanced: the instance index stream
 // selects the per-instance world matrix, colors and light mode from a storage buffer.
-// Lighting follows the legacy CombineLights / StaticLight model (diffuse terms; specular comes later).
+// Lighting follows the legacy CombineLights / StaticLight model with material maps and specular.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
 #include "./FrameUniforms.hlsli"
 #include "./Lighting.hlsli"
+#include "./Materials.hlsli"
 #include "./Skinning.hlsli"
 
 TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
@@ -16,8 +17,7 @@ TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
 TEN_VS_STORAGE_BUFFER(ObjectInstance, Instances, 2);
 TEN_VS_STORAGE_BUFFER(BoneTransform, Bones, 3);
 
-TEN_PS_TEXTURE(Texture2D, ColorMap, 0);
-TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 1);
+TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 4);
 
 struct VertexInput
 {
@@ -30,6 +30,8 @@ struct VertexInput
     TEN_LOCATION(6) float4 Normal        : TEXCOORD6;
     TEN_LOCATION(7) uint4  BoneIndices   : TEXCOORD7;
     TEN_LOCATION(8) float4 BoneWeights   : TEXCOORD8;
+    TEN_LOCATION(9) float4 Tangent       : TEXCOORD9;
+    TEN_LOCATION(10) float4 FaceNormal   : TEXCOORD10;
 };
 
 struct PixelInput
@@ -44,30 +46,48 @@ struct PixelInput
     nointerpolation uint2  LightSlice   : TEXCOORD6;
     float3 WorldPosition                : TEXCOORD7;
     float3 Normal                       : TEXCOORD8;
+    float3 Tangent                      : TEXCOORD9;
+    float3 Binormal                     : TEXCOORD10;
+    float3 FaceNormal                   : TEXCOORD11;
+    float  Sheen                        : TEXCOORD12;
 };
 
-float3 CombineLights(float3 ambient, float3 vertexLight, float3 texel, float3 position, float3 normal, uint2 lightSlice)
+float3 CombineLights(float3 ambient, float3 vertexLight, float3 position, Surface surface, float sheen, uint2 lightSlice)
 {
     float3 diffuse = 0.0f;
     float3 shadow = 0.0f;
+    float3 specular = 0.0f;
 
+    float3 normal = surface.Normal;
     uint count = lightSlice.y & LT_MASK;
     for (uint i = 0; i < count; i++)
     {
         GpuLight light = Lights[lightSlice.x + i];
 
         if (light.Type == LT_SUN)
-            diffuse += DoDirectionalLight(normal, light) * COLOR_MODULATION_SCALE;
+        {
+            diffuse += DoDirectionalLight(normal, light);
+            specular += DoSpecularSun(normal, CameraDirection, light, sheen, surface.Specular, surface.Roughness);
+        }
         else if (light.Type == LT_POINT)
-            diffuse += DoPointLight(position, normal, light) * COLOR_MODULATION_SCALE;
+        {
+            diffuse += DoPointLight(position, normal, light);
+            specular += DoSpecularPoint(position, normal, CameraDirection, light, sheen, surface.Specular, surface.Roughness);
+        }
         else if (light.Type == LT_SPOT)
-            diffuse += DoSpotLight(position, normal, light) * COLOR_MODULATION_SCALE;
+        {
+            diffuse += DoSpotLight(position, normal, light);
+            specular += DoSpecularSpot(position, normal, CameraDirection, light, sheen, surface.Specular, surface.Roughness);
+        }
         else if (light.Type == LT_SHADOW)
-            shadow += DoShadowLight(position, normal, light) * COLOR_MODULATION_SCALE;
+        {
+            shadow += DoShadowLight(position, normal, light);
+        }
     }
 
-    shadow = saturate(shadow);
-    float3 combined = (ambient - shadow) * texel + diffuse * texel;
+    shadow = saturate(shadow * COLOR_MODULATION_SCALE);
+    float3 texel = surface.Color.rgb;
+    float3 combined = (ambient - shadow) * texel + diffuse * COLOR_MODULATION_SCALE * texel + specular * COLOR_MODULATION_SCALE + surface.Emissive;
     return saturate(combined * vertexLight);
 }
 
@@ -107,24 +127,28 @@ PixelInput VS(VertexInput input)
     output.LightMode = instance.LightMode;
     output.LightSlice = uint2(instance.LightOffset, instance.LightCount);
     output.WorldPosition = worldPosition.xyz;
-    output.Normal = mul(input.Normal.xyz, (float3x3)world);
+    output.Normal = normalize(mul(input.Normal.xyz, (float3x3)world));
+    output.Tangent = normalize(mul(input.Tangent.xyz, (float3x3)world));
+    output.Binormal = mul(cross(input.Normal.xyz, input.Tangent.xyz), (float3x3)world);
+    output.Binormal *= rsqrt(max(dot(output.Binormal, output.Binormal), 1e-8f));
+    output.FaceNormal = normalize(mul(input.FaceNormal.xyz, (float3x3)world));
+    output.Sheen = DecodeSheen(input.Effects);
     output.Fog = GetDistanceFog(worldPosition.xyz, CameraPosition, FogMinDistance, FogMaxDistance);
     return output;
 }
 
 float4 PS(PixelInput input) : SV_TARGET
 {
-    float2 uv = ApplyUVScroll(input.UV, input.UVScroll);
-
-    float4 texel = ColorMap.Sample(ColorMapSampler, uv);
-    clip(texel.a - AlphaThreshold);
+    GpuMaterial material = Materials[MaterialIndex];
+    Surface surface = SampleSurface(material, ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition, PixelCameraPosition,
+                                    input.Normal, input.Tangent, input.Binormal, input.FaceNormal);
 
     float3 vertexLight = input.Color.rgb * COLOR_MODULATION_SCALE;
     float3 color = (input.LightMode == LIGHT_MODE_DYNAMIC) ?
-        CombineLights(input.AmbientLight * COLOR_MODULATION_SCALE, vertexLight, texel.rgb, input.WorldPosition, normalize(input.Normal), input.LightSlice) :
-        saturate(texel.rgb * vertexLight);
+        CombineLights(input.AmbientLight * COLOR_MODULATION_SCALE, vertexLight, input.WorldPosition, surface, input.Sheen, input.LightSlice) :
+        saturate(surface.Color.rgb * vertexLight + surface.Emissive);
 
-    float4 result = ApplyDistanceFog(float4(color, texel.a), FogColor, input.Fog, BlendMode);
+    float4 result = ApplyDistanceFog(float4(saturate(color * surface.Occlusion), surface.Color.a), FogColor, input.Fog, BlendMode);
     result.a *= input.Color.a;
     return result;
 }

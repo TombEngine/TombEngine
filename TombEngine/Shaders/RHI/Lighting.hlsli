@@ -1,7 +1,7 @@
 #ifndef TEN_LIGHTING
 #define TEN_LIGHTING
 
-// Diffuse light model of the legacy renderer (Shaders/ShaderLight.hlsli), ported unchanged.
+// Light model of the legacy renderer (Shaders/ShaderLight.hlsli), ported unchanged.
 // Light lists are slices of the frame light buffer: rooms pass offset and count per room,
 // object instances store them in their instance data.
 
@@ -19,6 +19,7 @@
 #define LT_MASK_SHADOW (1 << (31 - LT_SHADOW))
 
 #define ROOM_LIGHT_COEFF 0.7f
+#define SPEC_FACTOR      64.0f
 
 // Same layout as ShaderLight in the legacy renderer; spot ranges are stored as cosines.
 struct GpuLight
@@ -80,6 +81,54 @@ float3 DoDirectionalLight(float3 normal, GpuLight light)
 {
     float d = saturate(dot(-light.Direction, normal));
     return light.Color * light.Intensity * d;
+}
+
+// Specular terms. A positive strength (vertex sheen) overrides the material specular intensity and
+// roughness. The legacy model uses the camera direction rather than the per-pixel view vector.
+
+float RoughnessToExponentMultiplier(float roughness)
+{
+    float gloss = 1.0f - max(saturate(roughness), 0.04f);
+    return lerp(0.04f, 4.0f, gloss * gloss);
+}
+
+float GetSpecularTerm(float3 lightDirection, float3 normal, float3 cameraDirection, float strength, float roughness)
+{
+    float m = saturate(sign(strength));
+    float exponentMultiplier = lerp(RoughnessToExponentMultiplier(roughness), 1.0f, m);
+    float exponent = max(lerp(1.0f, strength, m) * SPEC_FACTOR * exponentMultiplier, 1.0f);
+    return pow(saturate(dot(cameraDirection, reflect(lightDirection, normal))), exponent);
+}
+
+float GetSpecularIntensity(GpuLight light, float strength, float specular)
+{
+    return lerp(saturate(specular), 1.0f, saturate(sign(strength))) * light.Intensity;
+}
+
+float3 DoSpecularPoint(float3 position, float3 normal, float3 cameraDirection, GpuLight light, float strength, float specular, float roughness)
+{
+    float attenuation = saturate((light.Out - distance(light.Position, position)) / max(light.Out, 0.001f));
+    float3 lightDirection = normalize(light.Position - position);
+    return attenuation * GetSpecularTerm(lightDirection, normal, cameraDirection, strength, roughness) * light.Color * GetSpecularIntensity(light, strength, specular);
+}
+
+float3 DoSpecularSun(float3 normal, float3 cameraDirection, GpuLight light, float strength, float specular, float roughness)
+{
+    float3 lightDirection = -normalize(light.Direction);
+    return GetSpecularTerm(lightDirection, normal, cameraDirection, strength, roughness) * light.Color * GetSpecularIntensity(light, strength, specular);
+}
+
+float3 DoSpecularSpot(float3 position, float3 normal, float3 cameraDirection, GpuLight light, float strength, float specular, float roughness)
+{
+    float lightDistance = distance(light.Position, position);
+    float3 lightDirection = normalize(light.Position - position);
+
+    float cosine = dot(-lightDirection, light.Direction);
+    float angleAttenuation = saturate((cosine - light.OutRange) / (light.InRange - light.OutRange));
+    float distanceAttenuation = saturate((light.Out - lightDistance) / (light.Out - light.In));
+
+    return angleAttenuation * distanceAttenuation * GetSpecularTerm(lightDirection, normal, cameraDirection, strength, roughness) *
+           light.Color * GetSpecularIntensity(light, strength, specular);
 }
 
 #endif // TEN_LIGHTING

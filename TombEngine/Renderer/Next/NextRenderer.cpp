@@ -23,6 +23,7 @@
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Specific/level.h"
+#include "Specific/Structures/MaterialData.h"
 
 using namespace TEN::Renderer::RHI;
 using namespace TEN::Renderer::Structures;
@@ -95,6 +96,10 @@ namespace TEN::Renderer::Next
         _roomsPixelShader = nullptr;
         _anisotropicSampler = nullptr;
         _whiteTexture = nullptr;
+        _flatNormalTexture = nullptr;
+        _defaultORSHTexture = nullptr;
+        _blackTexture = nullptr;
+        _materialBuffer = {};
         _skyTexture = nullptr;
         _skyVertexBuffer = nullptr;
         _skyIndexBuffer = nullptr;
@@ -157,28 +162,44 @@ namespace TEN::Renderer::Next
         samplerDesc.Name = "AnisotropicClamp";
         _anisotropicSampler = _device->CreateSampler(samplerDesc);
 
-        unsigned char whitePixel[4] = { 255, 255, 255, 255 };
-        auto whiteTextureDesc = TextureDesc{};
-        whiteTextureDesc.Name = "White";
-        _whiteTexture = _device->CreateTexture(whiteTextureDesc);
-        if (_whiteTexture == nullptr || _anisotropicSampler == nullptr)
-            return false;
+        // Defaults of the legacy renderer for atlas pages without material maps.
+        constexpr unsigned char WHITE_PIXEL[4]       = { 255, 255, 255, 255 };
+        constexpr unsigned char FLAT_NORMAL_PIXEL[4] = { 128, 128, 255, 255 };
+        constexpr unsigned char ORSH_PIXEL[4]        = { 255, 255, 0, 255 };
+        constexpr unsigned char BLACK_PIXEL[4]       = { 0, 0, 0, 0 };
 
-        auto transferBuffer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, sizeof(whitePixel));
-        memcpy(_device->MapTransferBuffer(transferBuffer.get(), false), whitePixel, sizeof(whitePixel));
+        _whiteTexture = CreateSolidTexture(WHITE_PIXEL, "White");
+        _flatNormalTexture = CreateSolidTexture(FLAT_NORMAL_PIXEL, "FlatNormal");
+        _defaultORSHTexture = CreateSolidTexture(ORSH_PIXEL, "DefaultORSH");
+        _blackTexture = CreateSolidTexture(BLACK_PIXEL, "Black");
+
+        return (_anisotropicSampler != nullptr && _whiteTexture != nullptr && _flatNormalTexture != nullptr &&
+                _defaultORSHTexture != nullptr && _blackTexture != nullptr);
+    }
+
+    std::unique_ptr<ITexture> NextRenderer::CreateSolidTexture(const unsigned char color[4], const std::string& name)
+    {
+        auto desc = TextureDesc{};
+        desc.Name = name;
+        auto texture = _device->CreateTexture(desc);
+        if (texture == nullptr)
+            return nullptr;
+
+        auto transferBuffer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, 4);
+        memcpy(_device->MapTransferBuffer(transferBuffer.get(), false), color, 4);
         _device->UnmapTransferBuffer(transferBuffer.get());
 
         auto* commandBuffer = _device->AcquireCommandBuffer();
         auto* copyPass = commandBuffer->BeginCopyPass();
         auto region = TextureRegion{};
-        region.Texture = _whiteTexture.get();
+        region.Texture = texture.get();
         region.Width = region.Height = 1;
         copyPass->UploadToTexture(TextureTransferInfo{ transferBuffer.get(), 0, 0, 0 }, region, false);
         commandBuffer->EndCopyPass();
         commandBuffer->Submit();
         _device->WaitIdle();
 
-        return true;
+        return texture;
     }
 
     // Blend states of the legacy DX11 renderer, per blend mode.
@@ -286,12 +307,20 @@ namespace TEN::Renderer::Next
             attributes[6] = VertexAttribute{ 6, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Normal) };
             attributes[7] = VertexAttribute{ 7, 0, VertexElementFormat::UByte4, (int)offsetof(Vertex, BoneIndex) };
             attributes[8] = VertexAttribute{ 8, 0, VertexElementFormat::UByte4Norm, (int)offsetof(Vertex, BoneWeight) };
-            desc.Layout.NumAttributes = 9;
+            attributes[9] = VertexAttribute{ 9, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Tangent) };
+            attributes[10] = VertexAttribute{ 10, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, FaceNormal) };
+            desc.Layout.NumAttributes = 11;
+        }
+        else if (isSky)
+        {
+            desc.Layout.NumAttributes = 5;
         }
         else
         {
             attributes[5] = VertexAttribute{ 5, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Normal) };
-            desc.Layout.NumAttributes = 6;
+            attributes[6] = VertexAttribute{ 6, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Tangent) };
+            attributes[7] = VertexAttribute{ 7, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, FaceNormal) };
+            desc.Layout.NumAttributes = 8;
         }
 
         desc.NumColorTargets = 1;
@@ -468,8 +497,19 @@ namespace TEN::Renderer::Next
         destination.clear();
         for (int i = 0; i < (int)source.size(); i++)
         {
+            auto pageName = name + "[" + std::to_string(i) + "]";
+
             auto texture = RoomTexture{};
-            texture.ColorMap = CreateLevelTexture(source[i].colorMapData, name + "[" + std::to_string(i) + "].Color");
+            texture.ColorMap = CreateLevelTexture(source[i].colorMapData, pageName + ".Color");
+            if (!source[i].normalMapData.empty())
+                texture.NormalMap = CreateLevelTexture(source[i].normalMapData, pageName + ".Normal");
+
+            if (!source[i].ORSHMapData.empty())
+                texture.ORSHMap = CreateLevelTexture(source[i].ORSHMapData, pageName + ".ORSH");
+
+            if (!source[i].emissiveMapData.empty())
+                texture.EmissiveMap = CreateLevelTexture(source[i].emissiveMapData, pageName + ".Emissive");
+
             destination.push_back(std::move(texture));
         }
     }
@@ -533,6 +573,84 @@ namespace TEN::Renderer::Next
         UploadBuffer(_animatedSetsBuffer.get(), sets.data(), setsSize);
     }
 
+    // Material properties can be animated by scripts, so the whole table is rebuilt every frame.
+    void NextRenderer::CollectMaterials(float interpolationFactor)
+    {
+        _materialData.resize(g_Level.Materials.size() * sizeof(GpuMaterial));
+        auto* materials = (GpuMaterial*)_materialData.data();
+
+        for (int i = 0; i < (int)g_Level.Materials.size(); i++)
+        {
+            const auto& material = g_Level.Materials[i];
+            auto properties = material.GetInterpolatedProperties(interpolationFactor);
+
+            auto& gpuMaterial = materials[i];
+            gpuMaterial = GpuMaterial{};
+            for (int j = 0; j < MaterialData::PropertyCount; j++)
+                gpuMaterial.Properties[j] = properties[j];
+
+            gpuMaterial.TypeAndFlags = (unsigned int)material.Type |
+                                       ((unsigned int)material.HasHeightMap << 8) |
+                                       ((unsigned int)material.HasAmbientOcclusionMap << 9) |
+                                       ((unsigned int)material.HasEmissiveMap << 10);
+        }
+    }
+
+    void NextRenderer::BindScenePixelStorage(IRenderPass& renderPass)
+    {
+        IBuffer* buffers[2] = { _lightBuffer.Buffer.get(), _materialBuffer.Buffer.get() };
+        renderPass.BindPixelStorageBuffers(0, buffers, 2);
+    }
+
+    void NextRenderer::BindTexturePage(IRenderPass& renderPass, const RoomTexture* page)
+    {
+        auto getMap = [&](const std::unique_ptr<ITexture>* map, ITexture* fallback)
+        {
+            return (page != nullptr && *map != nullptr) ? map->get() : fallback;
+        };
+
+        auto* sampler = _anisotropicSampler.get();
+        TextureSamplerBinding bindings[4] =
+        {
+            { getMap(page ? &page->ColorMap : nullptr, _whiteTexture.get()), sampler },
+            { getMap(page ? &page->NormalMap : nullptr, _flatNormalTexture.get()), sampler },
+            { getMap(page ? &page->ORSHMap : nullptr, _defaultORSHTexture.get()), sampler },
+            { getMap(page ? &page->EmissiveMap : nullptr, _blackTexture.get()), sampler }
+        };
+        renderPass.BindPixelSamplers(0, bindings, 4);
+    }
+
+    void NextRenderer::BindBucket(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RendererBucket& bucket, const std::vector<RoomTexture>& pages,
+                                  BlendMode blendMode, unsigned int lightCount, unsigned int isWaterRoom, BucketBindState& state)
+    {
+        auto pixelUniforms = DrawPixelUniforms{};
+        pixelUniforms.AlphaThreshold = (bucket.BlendMode == BlendMode::AlphaTest) ? ALPHA_TEST_THRESHOLD : 0.0f;
+        pixelUniforms.BlendMode = (unsigned int)blendMode;
+        pixelUniforms.LightCount = lightCount;
+        pixelUniforms.MaterialIndex = (bucket.MaterialIndex >= 0 && bucket.MaterialIndex < (int)g_Level.Materials.size()) ? (unsigned int)bucket.MaterialIndex : 0;
+        if (memcmp(&pixelUniforms, &state.PixelUniforms, sizeof(pixelUniforms)) != 0)
+        {
+            commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &pixelUniforms, sizeof(pixelUniforms));
+            state.PixelUniforms = pixelUniforms;
+        }
+
+        auto vertexUniforms = DrawVertexUniforms{ bucket.Animated ? bucket.Texture : NO_VALUE, isWaterRoom };
+        if (vertexUniforms.AnimatedSetIndex != state.VertexUniforms.AnimatedSetIndex || vertexUniforms.IsWaterRoom != state.VertexUniforms.IsWaterRoom)
+        {
+            commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &vertexUniforms, sizeof(vertexUniforms));
+            state.VertexUniforms = vertexUniforms;
+        }
+
+        const auto& sourcePages = bucket.Animated ? _animatedTextures : pages;
+        const auto* page = (bucket.Texture >= 0 && bucket.Texture < (int)sourcePages.size()) ? &sourcePages[bucket.Texture] : nullptr;
+        if (!state.IsPageBound || page != state.Page)
+        {
+            BindTexturePage(renderPass, page);
+            state.Page = page;
+            state.IsPageBound = true;
+        }
+    }
+
     void NextRenderer::DrawRooms(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, bool additive)
     {
         commandBuffer.PushDebugGroup(additive ? "Rooms additive" : "Rooms opaque");
@@ -546,12 +664,8 @@ namespace TEN::Renderer::Next
         IBuffer* storageBuffers[2] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get() };
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 2);
 
-        IBuffer* lightBuffer = _lightBuffer.Buffer.get();
-        renderPass.BindPixelStorageBuffers(0, &lightBuffer, 1);
-
-        auto lastPixelUniforms = DrawPixelUniforms{ -1.0f };
-        auto lastVertexUniforms = DrawVertexUniforms{ INT_MIN };
-        const ITexture* lastTexture = nullptr;
+        BindScenePixelStorage(renderPass);
+        auto state = BucketBindState{};
 
         // Opaque rooms are drawn front to back (portal traversal order) for early depth rejection,
         // additive rooms back to front.
@@ -571,34 +685,7 @@ namespace TEN::Renderer::Next
                 if ((additive && !isAdditive) || (!additive && !isOpaque))
                     continue;
 
-                auto pixelUniforms = DrawPixelUniforms{};
-                pixelUniforms.AlphaThreshold = (bucket.BlendMode == BlendMode::AlphaTest) ? ALPHA_TEST_THRESHOLD : 0.0f;
-                pixelUniforms.BlendMode = (unsigned int)bucket.BlendMode;
-                pixelUniforms.LightOffset = 0;
-                pixelUniforms.LightCount = (unsigned int)_roomLightCount;
-                if (pixelUniforms.AlphaThreshold != lastPixelUniforms.AlphaThreshold || pixelUniforms.BlendMode != lastPixelUniforms.BlendMode)
-                {
-                    commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &pixelUniforms, sizeof(pixelUniforms));
-                    lastPixelUniforms = pixelUniforms;
-                }
-
-                auto vertexUniforms = DrawVertexUniforms{ bucket.Animated ? bucket.Texture : NO_VALUE, isWaterRoom };
-                if (vertexUniforms.AnimatedSetIndex != lastVertexUniforms.AnimatedSetIndex || vertexUniforms.IsWaterRoom != lastVertexUniforms.IsWaterRoom)
-                {
-                    commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &vertexUniforms, sizeof(vertexUniforms));
-                    lastVertexUniforms = vertexUniforms;
-                }
-
-                const auto& textures = bucket.Animated ? _animatedTextures : _roomTextures;
-                auto* texture = (bucket.Texture >= 0 && bucket.Texture < (int)textures.size() && textures[bucket.Texture].ColorMap != nullptr) ?
-                    textures[bucket.Texture].ColorMap.get() : _whiteTexture.get();
-
-                if (texture != lastTexture)
-                {
-                    auto binding = TextureSamplerBinding{ texture, _anisotropicSampler.get() };
-                    renderPass.BindPixelSamplers(0, &binding, 1);
-                    lastTexture = texture;
-                }
+                BindBucket(commandBuffer, renderPass, bucket, _roomTextures, bucket.BlendMode, (unsigned int)_roomLightCount, isWaterRoom, state);
 
                 _frameStats.DrawCalls++;
                 renderPass.DrawIndexed(bucket.NumIndices, 1, bucket.StartIndex, 0, 0);
@@ -945,6 +1032,7 @@ namespace TEN::Renderer::Next
         UploadFrameStorage(*copyPass, _boneBuffer, _boneData, (int)sizeof(Matrix), BufferUsage::GraphicsStorageRead, "Frame.Bones");
         UploadFrameStorage(*copyPass, _sortedIndexBuffer, _sortedIndexData, (int)sizeof(int), BufferUsage::Index, "Frame.SortedIndices");
         UploadFrameStorage(*copyPass, _spriteBuffer, _spriteData, (int)sizeof(GpuSprite), BufferUsage::GraphicsStorageRead, "Frame.Sprites");
+        UploadFrameStorage(*copyPass, _materialBuffer, _materialData, (int)sizeof(GpuMaterial), BufferUsage::GraphicsStorageRead, "Frame.Materials");
 
         commandBuffer.EndCopyPass();
         commandBuffer.PopDebugGroup();
@@ -961,13 +1049,10 @@ namespace TEN::Renderer::Next
         IBuffer* storageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get(), _boneBuffer.Buffer.get() };
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 4);
 
-        IBuffer* lightBuffer = _lightBuffer.Buffer.get();
-        renderPass.BindPixelStorageBuffers(0, &lightBuffer, 1);
+        BindScenePixelStorage(renderPass);
 
         auto lastSource = (MeshSource)-1;
-        auto lastPixelUniforms = DrawPixelUniforms{ -1.0f };
-        int lastAnimatedSet = INT_MIN;
-        const ITexture* lastTexture = nullptr;
+        auto state = BucketBindState{};
 
         for (const auto& draw : _objectDraws)
         {
@@ -986,33 +1071,8 @@ namespace TEN::Renderer::Next
                 lastSource = draw.Source;
             }
 
-            auto pixelUniforms = DrawPixelUniforms{};
-            pixelUniforms.AlphaThreshold = (bucket.BlendMode == BlendMode::AlphaTest) ? ALPHA_TEST_THRESHOLD : 0.0f;
-            pixelUniforms.BlendMode = (unsigned int)bucket.BlendMode;
-            if (pixelUniforms.AlphaThreshold != lastPixelUniforms.AlphaThreshold || pixelUniforms.BlendMode != lastPixelUniforms.BlendMode)
-            {
-                commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &pixelUniforms, sizeof(pixelUniforms));
-                lastPixelUniforms = pixelUniforms;
-            }
-
-            int animatedSet = bucket.Animated ? bucket.Texture : NO_VALUE;
-            if (animatedSet != lastAnimatedSet)
-            {
-                auto vertexUniforms = DrawVertexUniforms{ animatedSet };
-                commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &vertexUniforms, sizeof(vertexUniforms));
-                lastAnimatedSet = animatedSet;
-            }
-
-            const auto& textures = bucket.Animated ? _animatedTextures : ((draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures);
-            auto* texture = (bucket.Texture >= 0 && bucket.Texture < (int)textures.size() && textures[bucket.Texture].ColorMap != nullptr) ?
-                textures[bucket.Texture].ColorMap.get() : _whiteTexture.get();
-
-            if (texture != lastTexture)
-            {
-                auto binding = TextureSamplerBinding{ texture, _anisotropicSampler.get() };
-                renderPass.BindPixelSamplers(0, &binding, 1);
-                lastTexture = texture;
-            }
+            const auto& pages = (draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures;
+            BindBucket(commandBuffer, renderPass, bucket, pages, bucket.BlendMode, 0, 0, state);
 
             _frameStats.DrawCalls++;
             renderPass.DrawIndexed(bucket.NumIndices, draw.InstanceCount, bucket.StartIndex, 0, draw.FirstInstance);
@@ -1198,20 +1258,25 @@ namespace TEN::Renderer::Next
         if (!_sortedIndexData.empty())
             renderPass.BindIndexBuffer(BufferBinding{ _sortedIndexBuffer.Buffer.get(), 0 }, IndexSize::Bits32);
 
-        IBuffer* lightBuffer = _lightBuffer.Buffer.get();
         IBuffer* objectStorageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get(), _boneBuffer.Buffer.get() };
 
         const IGraphicsPipeline* lastPipeline = nullptr;
-        int lastSource = NO_VALUE;
-        auto lastVertexUniforms = DrawVertexUniforms{ INT_MIN };
-        const ITexture* lastTexture = nullptr;
+        const ITexture* lastSpriteTexture = nullptr;
+        // Vertex source of the last bound geometry: a mesh source, rooms, or nothing after a pipeline change.
+        constexpr auto ROOM_SOURCE    = (int)MeshSource::Moveables + 1;
+        constexpr auto UNBOUND_SOURCE = INT_MIN;
+
+        int lastSource = UNBOUND_SOURCE;
+        auto state = BucketBindState{};
 
         for (const auto& draw : _sortedDraws)
         {
+            // Sprite runs overwrite the sampler and pixel uniform slots used by bucket draws.
             if (draw.IsSprite)
             {
-                DrawSpriteRun(commandBuffer, renderPass, draw.Sprites, lastPipeline, lastTexture);
-                lastSource = NO_VALUE;
+                DrawSpriteRun(commandBuffer, renderPass, draw.Sprites, lastPipeline, lastSpriteTexture);
+                lastSource = UNBOUND_SOURCE;
+                state = BucketBindState{};
                 continue;
             }
 
@@ -1223,13 +1288,14 @@ namespace TEN::Renderer::Next
             {
                 renderPass.BindPipeline(pipeline);
                 renderPass.BindVertexStorageBuffers(0, objectStorageBuffers, draw.IsRoom ? 2 : 4);
-                renderPass.BindPixelStorageBuffers(0, &lightBuffer, 1);
+                BindScenePixelStorage(renderPass);
                 lastPipeline = pipeline;
-                lastSource = NO_VALUE;
-                lastTexture = nullptr;
+                lastSource = UNBOUND_SOURCE;
+                lastSpriteTexture = nullptr;
+                state = BucketBindState{};
             }
 
-            int source = draw.IsRoom ? -1 : (int)draw.Source;
+            int source = draw.IsRoom ? ROOM_SOURCE : (int)draw.Source;
             if (source != lastSource)
             {
                 auto* vertices = draw.IsRoom ? _roomVertexBuffer.get() :
@@ -1240,29 +1306,9 @@ namespace TEN::Renderer::Next
                 lastSource = source;
             }
 
-            auto pixelUniforms = DrawPixelUniforms{};
-            pixelUniforms.BlendMode = (unsigned int)draw.BlendMode;
-            pixelUniforms.LightCount = draw.IsRoom ? (unsigned int)_roomLightCount : 0;
-            commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &pixelUniforms, sizeof(pixelUniforms));
-
-            auto vertexUniforms = DrawVertexUniforms{ bucket.Animated ? bucket.Texture : NO_VALUE, draw.IsWaterRoom ? 1u : 0u };
-            if (vertexUniforms.AnimatedSetIndex != lastVertexUniforms.AnimatedSetIndex || vertexUniforms.IsWaterRoom != lastVertexUniforms.IsWaterRoom)
-            {
-                commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &vertexUniforms, sizeof(vertexUniforms));
-                lastVertexUniforms = vertexUniforms;
-            }
-
-            const auto& textures = bucket.Animated ? _animatedTextures :
-                (draw.IsRoom ? _roomTextures : ((draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures));
-            auto* texture = (bucket.Texture >= 0 && bucket.Texture < (int)textures.size() && textures[bucket.Texture].ColorMap != nullptr) ?
-                textures[bucket.Texture].ColorMap.get() : _whiteTexture.get();
-
-            if (texture != lastTexture)
-            {
-                auto binding = TextureSamplerBinding{ texture, _anisotropicSampler.get() };
-                renderPass.BindPixelSamplers(0, &binding, 1);
-                lastTexture = texture;
-            }
+            const auto& pages = draw.IsRoom ? _roomTextures : ((draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures);
+            BindBucket(commandBuffer, renderPass, bucket, pages, draw.BlendMode, draw.IsRoom ? (unsigned int)_roomLightCount : 0,
+                       draw.IsWaterRoom ? 1 : 0, state);
 
             _frameStats.DrawCalls++;
             renderPass.DrawIndexed(draw.IndexCount, 1, draw.FirstIndex, 0, draw.Instance);
@@ -1473,9 +1519,13 @@ namespace TEN::Renderer::Next
         frameVertexUniforms.CameraUnderwater = environment.IsCameraUnderwater ? 1 : 0;
         commandBuffer->PushUniforms(RHI::ShaderStage::Vertex, 0, &frameVertexUniforms, sizeof(frameVertexUniforms));
 
-        auto framePixelUniforms = FramePixelUniforms{ environment.FogColor };
+        auto framePixelUniforms = FramePixelUniforms{};
+        framePixelUniforms.FogColor = environment.FogColor;
+        framePixelUniforms.CameraPosition = environment.CameraPosition;
+        framePixelUniforms.CameraDirection = view.Camera.WorldDirection;
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 0, &framePixelUniforms, sizeof(framePixelUniforms));
 
+        CollectMaterials(environment.InterpolationFactor);
         CollectObjects(view, environment.InterpolationFactor);
         CollectSprites(view);
         CollectSortedFaces(view, environment.InterpolationFactor);

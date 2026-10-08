@@ -1,19 +1,20 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=2
-// TEN_SHADER: Pixel PS samplers=1 storage_textures=0 storage_buffers=1 uniform_buffers=2
+// TEN_SHADER: Pixel PS samplers=4 storage_textures=0 storage_buffers=2 uniform_buffers=2
 
-// Room geometry: baked vertex lighting plus the room's dynamic lights, animated textures, vertex effects,
-// water refraction and distance fog. Normal maps, specular, shadows, decals and fog bulbs are ported later.
+// Room geometry: baked vertex lighting plus the room's dynamic lights with specular, material maps (normal,
+// ORSH, emissive, parallax), animated textures, vertex effects, water refraction and distance fog.
+// Reflections, SSAO, shadows, caustics, decals and fog bulbs are ported later.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
 #include "./FrameUniforms.hlsli"
 #include "./Lighting.hlsli"
+#include "./Materials.hlsli"
 
 TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
 TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
 
-TEN_PS_TEXTURE(Texture2D, ColorMap, 0);
-TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 1);
+TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 4);
 
 struct VertexInput
 {
@@ -23,6 +24,8 @@ struct VertexInput
     TEN_LOCATION(3) uint   Effects       : TEXCOORD3;
     TEN_LOCATION(4) uint   AnimationData : TEXCOORD4;
     TEN_LOCATION(5) float4 Normal        : TEXCOORD5;
+    TEN_LOCATION(6) float4 Tangent       : TEXCOORD6;
+    TEN_LOCATION(7) float4 FaceNormal    : TEXCOORD7;
 };
 
 struct PixelInput
@@ -34,6 +37,9 @@ struct PixelInput
     nointerpolation float3 UVScroll : TEXCOORD3;
     float3 WorldPosition            : TEXCOORD4;
     float3 Normal                   : TEXCOORD5;
+    float3 Tangent                  : TEXCOORD6;
+    float3 Binormal                 : TEXCOORD7;
+    float3 FaceNormal               : TEXCOORD8;
 };
 
 PixelInput VS(VertexInput input)
@@ -73,11 +79,15 @@ PixelInput VS(VertexInput input)
     output.Color = float4(Glow(input.Color.rgb, input.Effects, wibble), input.Color.a);
     output.WorldPosition = position;
     output.Normal = input.Normal.xyz;
+    output.Tangent = input.Tangent.xyz;
+    output.Binormal = cross(input.Normal.xyz, input.Tangent.xyz);
+    output.FaceNormal = input.FaceNormal.xyz;
     output.Fog = GetDistanceFog(position, CameraPosition, FogMinDistance, FogMaxDistance);
     return output;
 }
 
-float3 GetRoomLighting(float3 vertexColor, float3 position, float3 normal)
+// Legacy quirk kept for parity: with mixed light types, point lights get the spot specular term.
+float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface)
 {
     float3 lighting = vertexColor * COLOR_MODULATION_SCALE;
 
@@ -88,23 +98,29 @@ float3 GetRoomLighting(float3 vertexColor, float3 position, float3 normal)
     {
         GpuLight light = Lights[LightOffset + i];
 
-        if (onlyPointLights || light.Type == LT_POINT)
-            lighting += DoPointLight(position, normal, light) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
-        else if (light.Type == LT_SPOT)
-            lighting += DoSpotLight(position, normal, light) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
+        if (onlyPointLights)
+        {
+            lighting += DoPointLight(position, surface.Normal, light) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
+            lighting += DoSpecularPoint(position, surface.Normal, CameraDirection, light, 0.0f, surface.Specular, surface.Roughness) * COLOR_MODULATION_SCALE;
+        }
+        else if (light.Type == LT_POINT || light.Type == LT_SPOT)
+        {
+            float3 diffuse = (light.Type == LT_POINT) ? DoPointLight(position, surface.Normal, light) : DoSpotLight(position, surface.Normal, light);
+            float3 specular = DoSpecularSpot(position, surface.Normal, CameraDirection, light, 0.0f, surface.Specular, surface.Roughness);
+            lighting += saturate(diffuse) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF + specular * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
+        }
     }
 
-    return lighting;
+    return lighting + surface.Emissive;
 }
 
 float4 PS(PixelInput input) : SV_TARGET
 {
-    float2 uv = ApplyUVScroll(input.UV, input.UVScroll);
+    GpuMaterial material = Materials[MaterialIndex];
+    Surface surface = SampleSurface(material, ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition, PixelCameraPosition,
+                                    input.Normal, input.Tangent, input.Binormal, input.FaceNormal);
 
-    float4 color = ColorMap.Sample(ColorMapSampler, uv);
-    clip(color.a - AlphaThreshold);
-
-    float3 lighting = GetRoomLighting(input.Color.rgb, input.WorldPosition, normalize(input.Normal));
-    color.rgb = saturate(color.rgb * lighting);
+    float3 lighting = GetRoomLighting(input.Color.rgb, input.WorldPosition, surface);
+    float4 color = float4(saturate(surface.Color.rgb * lighting * surface.Occlusion), surface.Color.a);
     return ApplyDistanceFog(color, FogColor, input.Fog, BlendMode);
 }

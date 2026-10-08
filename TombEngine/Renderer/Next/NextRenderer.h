@@ -3,6 +3,7 @@
 #include <mutex>
 
 #include "Renderer/Graphics/Vertices/Vertex.h"
+#include "Renderer/Next/GpuTypes.h"
 #include "Renderer/RHI/RHIDevice.h"
 
 struct TEXTURE;
@@ -72,9 +73,22 @@ namespace TEN::Renderer::Next
     class NextRenderer
     {
     private:
+        // Atlas page with the maps of the legacy material system; missing maps use the default textures.
         struct RoomTexture
         {
-            std::unique_ptr<RHI::ITexture> ColorMap = nullptr;
+            std::unique_ptr<RHI::ITexture> ColorMap    = nullptr;
+            std::unique_ptr<RHI::ITexture> NormalMap   = nullptr;
+            std::unique_ptr<RHI::ITexture> ORSHMap     = nullptr;
+            std::unique_ptr<RHI::ITexture> EmissiveMap = nullptr;
+        };
+
+        // Draw state of consecutive bucket draws; pushes and binds are skipped when unchanged.
+        struct BucketBindState
+        {
+            DrawPixelUniforms  PixelUniforms  = { -1.0f };
+            DrawVertexUniforms VertexUniforms = { INT_MIN };
+            const RoomTexture* Page           = nullptr;
+            bool               IsPageBound    = false;
         };
 
         enum class MeshSource
@@ -162,6 +176,9 @@ namespace TEN::Renderer::Next
 
         std::unique_ptr<RHI::ISampler>          _anisotropicSampler  = nullptr;
         std::unique_ptr<RHI::ITexture>          _whiteTexture        = nullptr;
+        std::unique_ptr<RHI::ITexture>          _flatNormalTexture   = nullptr;
+        std::unique_ptr<RHI::ITexture>          _defaultORSHTexture  = nullptr;
+        std::unique_ptr<RHI::ITexture>          _blackTexture        = nullptr;
 
         std::unique_ptr<RHI::IBuffer> _roomVertexBuffer = nullptr;
         std::unique_ptr<RHI::IBuffer> _roomIndexBuffer  = nullptr;
@@ -190,6 +207,8 @@ namespace TEN::Renderer::Next
         std::vector<unsigned char>    _sortedIndexData     = {};
         std::vector<SortedDraw>       _sortedDraws         = {};
         std::unordered_map<const void*, int> _sortedInstances = {};
+        FrameStorageBuffer            _materialBuffer      = {};
+        std::vector<unsigned char>    _materialData        = {};
         FrameStorageBuffer            _spriteBuffer        = {};
         std::vector<unsigned char>    _spriteData          = {};
         std::vector<SpriteDraw>       _spriteDraws         = {};
@@ -209,6 +228,12 @@ namespace TEN::Renderer::Next
         bool CreatePipelines();
         bool EnsureRenderTargets(int width, int height);
         std::unique_ptr<RHI::ITexture> CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name);
+        std::unique_ptr<RHI::ITexture> CreateSolidTexture(const unsigned char color[4], const std::string& name);
+        void CollectMaterials(float interpolationFactor);
+        void BindTexturePage(RHI::IRenderPass& renderPass, const RoomTexture* page);
+        void BindBucket(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const Structures::RendererBucket& bucket, const std::vector<RoomTexture>& pages,
+                        BlendMode blendMode, unsigned int lightCount, unsigned int isWaterRoom, BucketBindState& state);
+        void BindScenePixelStorage(RHI::IRenderPass& renderPass);
         void UploadBuffer(RHI::IBuffer* buffer, const void* data, int size);
         void LoadAnimatedTextures(const LegacyLevelGeometry& geometry);
         RHI::IGraphicsPipeline* GetScenePipeline(SceneShader shader, BlendMode blendMode);

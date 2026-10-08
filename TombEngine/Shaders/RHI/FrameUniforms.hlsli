@@ -27,6 +27,10 @@ TEN_VS_UNIFORMS(DrawVertexUniforms, 1)
 TEN_PS_UNIFORMS(FramePixelUniforms, 0)
 {
     float4 FogColor;
+    float3 PixelCameraPosition;
+    float  FramePixelPadding0;
+    float3 CameraDirection;
+    float  FramePixelPadding1;
 };
 
 TEN_PS_UNIFORMS(DrawPixelUniforms, 1)
@@ -35,6 +39,8 @@ TEN_PS_UNIFORMS(DrawPixelUniforms, 1)
     uint  BlendMode;
     uint  LightOffset; // Rooms only: slice of the frame light buffer.
     uint  LightCount;  // Light count in the low 16 bits, light type mask in the high bits.
+    uint  MaterialIndex;
+    uint3 DrawPixelPadding;
 };
 
 #endif // TEN_FRAME_UNIFORMS
