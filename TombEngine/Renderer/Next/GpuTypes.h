@@ -8,6 +8,7 @@ namespace TEN::Renderer::Next
 
     constexpr auto ALPHA_TEST_THRESHOLD = 0.5f;
     constexpr auto INSTANCE_INDEX_COUNT = 65536;
+    constexpr auto SSAO_KERNEL_SIZE     = 32;
 
     // Uniform layouts mirror the cbuffers in Shaders/RHI/Rooms.hlsl.
     struct FrameVertexUniforms
@@ -30,12 +31,17 @@ namespace TEN::Renderer::Next
 
     struct FramePixelUniforms
     {
-        Vector4 FogColor        = Vector4::Zero;
-        Vector3 CameraPosition  = Vector3::Zero;
-        float   Padding0        = 0.0f;
-        Vector3 CameraDirection = Vector3::Zero;
-        float   Padding1        = 0.0f;
+        Vector4 FogColor                 = Vector4::Zero;
+        Vector3 CameraPosition           = Vector3::Zero;
+        float   AmbientOcclusionExponent = 0.0f;
+        Vector3 CameraDirection          = Vector3::Zero;
+        float   Padding0                 = 0.0f;
+        Matrix  View                     = Matrix::Identity;
+        Vector2 InverseViewportSize      = Vector2::Zero;
+        Vector2 Padding1                 = Vector2::Zero;
     };
+
+    static_assert(sizeof(FramePixelUniforms) == 128, "FramePixelUniforms must match FrameUniforms.hlsli.");
 
     struct DrawPixelUniforms
     {

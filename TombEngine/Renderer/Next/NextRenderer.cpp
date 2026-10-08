@@ -105,6 +105,21 @@ namespace TEN::Renderer::Next
         _skyIndexBuffer = nullptr;
         _skyVertexShader = nullptr;
         _skyPixelShader = nullptr;
+        _ssaoPipeline = nullptr;
+        _ssaoBlurHorizontalPipeline = nullptr;
+        _ssaoBlurVerticalPipeline = nullptr;
+        _ssaoVertexShader = nullptr;
+        _ssaoPixelShader = nullptr;
+        _ssaoBlurHorizontalShader = nullptr;
+        _ssaoBlurVerticalShader = nullptr;
+        _roomsPrepassPixelShader = nullptr;
+        _objectsPrepassPixelShader = nullptr;
+        _ssaoNoiseTexture = nullptr;
+        _normalTarget = nullptr;
+        _ssaoTarget = nullptr;
+        _ssaoBlurTarget = nullptr;
+        _pointClampSampler = nullptr;
+        _pointWrapSampler = nullptr;
         _spritesVertexShader = nullptr;
         _spritesPixelShader = nullptr;
         _spriteCornerBuffer = nullptr;
@@ -137,7 +152,7 @@ namespace TEN::Renderer::Next
         if (_skyVertexShader == nullptr || _skyPixelShader == nullptr || !CreateSkyGeometry())
             return false;
 
-        if (!CreateSpriteResources())
+        if (!CreateSpriteResources() || !CreateSSAOResources())
             return false;
 
         if (GetScenePipeline(SceneShader::Rooms, BlendMode::Opaque) == nullptr ||
@@ -182,24 +197,29 @@ namespace TEN::Renderer::Next
         auto desc = TextureDesc{};
         desc.Name = name;
         auto texture = _device->CreateTexture(desc);
-        if (texture == nullptr)
-            return nullptr;
+        if (texture != nullptr)
+            UploadTexture(texture.get(), color, 4);
 
-        auto transferBuffer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, 4);
-        memcpy(_device->MapTransferBuffer(transferBuffer.get(), false), color, 4);
+        return texture;
+    }
+
+    // Synchronous upload of the first mip level, for small textures created at initialization.
+    void NextRenderer::UploadTexture(ITexture* texture, const void* data, int size)
+    {
+        auto transferBuffer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, size);
+        memcpy(_device->MapTransferBuffer(transferBuffer.get(), false), data, size);
         _device->UnmapTransferBuffer(transferBuffer.get());
 
         auto* commandBuffer = _device->AcquireCommandBuffer();
         auto* copyPass = commandBuffer->BeginCopyPass();
         auto region = TextureRegion{};
-        region.Texture = texture.get();
-        region.Width = region.Height = 1;
+        region.Texture = texture;
+        region.Width = texture->GetDesc().Width;
+        region.Height = texture->GetDesc().Height;
         copyPass->UploadToTexture(TextureTransferInfo{ transferBuffer.get(), 0, 0, 0 }, region, false);
         commandBuffer->EndCopyPass();
         commandBuffer->Submit();
         _device->WaitIdle();
-
-        return texture;
     }
 
     // Blend states of the legacy DX11 renderer, per blend mode.
@@ -272,13 +292,22 @@ namespace TEN::Renderer::Next
         if (pipeline != nullptr)
             return pipeline.get();
 
-        bool isObjects = (shader == SceneShader::Objects);
+        bool isObjects = (shader == SceneShader::Objects || shader == SceneShader::ObjectsPrepass);
         bool isSky = (shader == SceneShader::Sky);
         bool isSprites = (shader == SceneShader::Sprites);
+        bool isPrepass = (shader == SceneShader::RoomsPrepass || shader == SceneShader::ObjectsPrepass);
 
-        IShader* vertexShaders[(int)SceneShader::Count] = { _roomsVertexShader.get(), _objectsVertexShader.get(), _skyVertexShader.get(), _spritesVertexShader.get() };
-        IShader* pixelShaders[(int)SceneShader::Count] = { _roomsPixelShader.get(), _objectsPixelShader.get(), _skyPixelShader.get(), _spritesPixelShader.get() };
-        const char* names[(int)SceneShader::Count] = { "Rooms", "Objects", "Sky", "Sprites" };
+        IShader* vertexShaders[(int)SceneShader::Count] =
+        {
+            _roomsVertexShader.get(), _objectsVertexShader.get(), _skyVertexShader.get(), _spritesVertexShader.get(),
+            _roomsVertexShader.get(), _objectsVertexShader.get()
+        };
+        IShader* pixelShaders[(int)SceneShader::Count] =
+        {
+            _roomsPixelShader.get(), _objectsPixelShader.get(), _skyPixelShader.get(), _spritesPixelShader.get(),
+            _roomsPrepassPixelShader.get(), _objectsPrepassPixelShader.get()
+        };
+        const char* names[(int)SceneShader::Count] = { "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass" };
 
         auto desc = GraphicsPipelineDesc{};
         desc.VertexShader = vertexShaders[(int)shader];
@@ -324,8 +353,8 @@ namespace TEN::Renderer::Next
         }
 
         desc.NumColorTargets = 1;
-        desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
-        desc.ColorTargets[0].Blend = GetBlendState((BlendMode)modeIndex);
+        desc.ColorTargets[0].Format = isPrepass ? PixelFormat::RGBA8Unorm : _device->GetSwapchainFormat();
+        desc.ColorTargets[0].Blend = GetBlendState(isPrepass ? BlendMode::Opaque : (BlendMode)modeIndex);
         desc.DepthStencil.EnableDepthWrite = (modeIndex == (int)BlendMode::Opaque) && !isSky && !isSprites;
         desc.DepthStencil.EnableDepthTest = !isSky;
         desc.DepthFormat = PixelFormat::D32Float;
@@ -355,11 +384,11 @@ namespace TEN::Renderer::Next
         depthDesc.Width = width;
         depthDesc.Height = height;
         depthDesc.Format = PixelFormat::D32Float;
-        depthDesc.Usage = TextureUsage::DepthStencilTarget;
+        depthDesc.Usage = TextureUsage::DepthStencilTarget | TextureUsage::Sampler;
         depthDesc.Name = "Scene.Depth";
         _depthTarget = _device->CreateTexture(depthDesc);
 
-        return (_colorTarget != nullptr && _depthTarget != nullptr);
+        return (_colorTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height));
     }
 
     void NextRenderer::UploadBuffer(IBuffer* buffer, const void* data, int size)
@@ -610,14 +639,16 @@ namespace TEN::Renderer::Next
         };
 
         auto* sampler = _anisotropicSampler.get();
-        TextureSamplerBinding bindings[4] =
+        auto* ambientOcclusion = _isAmbientOcclusionActive ? _ssaoTarget.get() : _whiteTexture.get();
+        TextureSamplerBinding bindings[5] =
         {
             { getMap(page ? &page->ColorMap : nullptr, _whiteTexture.get()), sampler },
             { getMap(page ? &page->NormalMap : nullptr, _flatNormalTexture.get()), sampler },
             { getMap(page ? &page->ORSHMap : nullptr, _defaultORSHTexture.get()), sampler },
-            { getMap(page ? &page->EmissiveMap : nullptr, _blackTexture.get()), sampler }
+            { getMap(page ? &page->EmissiveMap : nullptr, _blackTexture.get()), sampler },
+            { ambientOcclusion, _linearClampSampler.get() }
         };
-        renderPass.BindPixelSamplers(0, bindings, 4);
+        renderPass.BindPixelSamplers(0, bindings, 5);
     }
 
     void NextRenderer::BindBucket(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RendererBucket& bucket, const std::vector<RoomTexture>& pages,
@@ -651,11 +682,15 @@ namespace TEN::Renderer::Next
         }
     }
 
-    void NextRenderer::DrawRooms(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, bool additive)
+    void NextRenderer::DrawRooms(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, ScenePass pass)
     {
-        commandBuffer.PushDebugGroup(additive ? "Rooms additive" : "Rooms opaque");
+        constexpr const char* GROUP_NAMES[] = { "Rooms prepass", "Rooms opaque", "Rooms additive" };
 
-        renderPass.BindPipeline(GetScenePipeline(SceneShader::Rooms, additive ? BlendMode::Additive : BlendMode::Opaque));
+        bool additive = (pass == ScenePass::Additive);
+        commandBuffer.PushDebugGroup(GROUP_NAMES[(int)pass]);
+
+        auto shader = (pass == ScenePass::Prepass) ? SceneShader::RoomsPrepass : SceneShader::Rooms;
+        renderPass.BindPipeline(GetScenePipeline(shader, additive ? BlendMode::Additive : BlendMode::Opaque));
 
         auto vertexBinding = BufferBinding{ _roomVertexBuffer.get(), 0 };
         renderPass.BindVertexBuffers(0, &vertexBinding, 1);
@@ -1038,13 +1073,18 @@ namespace TEN::Renderer::Next
         commandBuffer.PopDebugGroup();
     }
 
-    void NextRenderer::DrawObjects(ICommandBuffer& commandBuffer, IRenderPass& renderPass, bool additive)
+    void NextRenderer::DrawObjects(ICommandBuffer& commandBuffer, IRenderPass& renderPass, ScenePass pass)
     {
+        constexpr const char* GROUP_NAMES[] = { "Objects prepass", "Objects opaque", "Objects additive" };
+
         if (_objectDraws.empty() || _instanceBuffer.Buffer == nullptr)
             return;
 
-        commandBuffer.PushDebugGroup(additive ? "Objects additive" : "Objects opaque");
-        renderPass.BindPipeline(GetScenePipeline(SceneShader::Objects, additive ? BlendMode::Additive : BlendMode::Opaque));
+        bool additive = (pass == ScenePass::Additive);
+        commandBuffer.PushDebugGroup(GROUP_NAMES[(int)pass]);
+
+        auto shader = (pass == ScenePass::Prepass) ? SceneShader::ObjectsPrepass : SceneShader::Objects;
+        renderPass.BindPipeline(GetScenePipeline(shader, additive ? BlendMode::Additive : BlendMode::Opaque));
 
         IBuffer* storageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get(), _boneBuffer.Buffer.get() };
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 4);
@@ -1509,8 +1549,11 @@ namespace TEN::Renderer::Next
         commandBuffer->PushDebugGroup("Frame");
 
         // Projection is rebuilt for the preview window aspect ratio; position and orientation follow the game camera.
+        auto projection = Matrix::CreatePerspectiveFieldOfView(view.Camera.FOV, (float)width / (float)height, view.Camera.NearPlane, view.Camera.FarPlane);
+        _isAmbientOcclusionActive = environment.IsAmbientOcclusionEnabled;
+
         auto frameVertexUniforms = FrameVertexUniforms{};
-        frameVertexUniforms.ViewProjection = view.Camera.View * Matrix::CreatePerspectiveFieldOfView(view.Camera.FOV, (float)width / (float)height, view.Camera.NearPlane, view.Camera.FarPlane);
+        frameVertexUniforms.ViewProjection = view.Camera.View * projection;
         frameVertexUniforms.CameraPosition = environment.CameraPosition;
         frameVertexUniforms.FogMinDistance = environment.FogMinDistance;
         frameVertexUniforms.FogMaxDistance = environment.FogMaxDistance;
@@ -1523,6 +1566,9 @@ namespace TEN::Renderer::Next
         framePixelUniforms.FogColor = environment.FogColor;
         framePixelUniforms.CameraPosition = environment.CameraPosition;
         framePixelUniforms.CameraDirection = view.Camera.WorldDirection;
+        framePixelUniforms.AmbientOcclusionExponent = GetAmbientOcclusionExponent();
+        framePixelUniforms.View = view.Camera.View;
+        framePixelUniforms.InverseViewportSize = Vector2(1.0f / width, 1.0f / height);
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 0, &framePixelUniforms, sizeof(framePixelUniforms));
 
         CollectMaterials(environment.InterpolationFactor);
@@ -1531,6 +1577,12 @@ namespace TEN::Renderer::Next
         CollectSortedFaces(view, environment.InterpolationFactor);
 
         UploadFrameData(*commandBuffer);
+
+        if (_isAmbientOcclusionActive)
+        {
+            RenderDepthPrepass(*commandBuffer, view);
+            RenderSSAO(*commandBuffer, projection);
+        }
 
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = _colorTarget.get();
@@ -1541,15 +1593,16 @@ namespace TEN::Renderer::Next
 
         auto depthTarget = DepthTargetInfo{};
         depthTarget.Texture = _depthTarget.get();
+        depthTarget.Load = _isAmbientOcclusionActive ? LoadOp::Load : LoadOp::Clear;
         depthTarget.Store = StoreOp::DontCare;
 
         commandBuffer->PushDebugGroup("Scene");
         auto* renderPass = commandBuffer->BeginRenderPass(&colorTarget, 1, &depthTarget);
         DrawSky(*commandBuffer, *renderPass, view, environment.InterpolationFactor);
-        DrawRooms(*commandBuffer, *renderPass, view, false);
-        DrawObjects(*commandBuffer, *renderPass, false);
-        DrawRooms(*commandBuffer, *renderPass, view, true);
-        DrawObjects(*commandBuffer, *renderPass, true);
+        DrawRooms(*commandBuffer, *renderPass, view, ScenePass::Opaque);
+        DrawObjects(*commandBuffer, *renderPass, ScenePass::Opaque);
+        DrawRooms(*commandBuffer, *renderPass, view, ScenePass::Additive);
+        DrawObjects(*commandBuffer, *renderPass, ScenePass::Additive);
         DrawSprites(*commandBuffer, *renderPass);
         DrawSortedFaces(*commandBuffer, *renderPass);
         commandBuffer->EndRenderPass();
@@ -1575,6 +1628,12 @@ namespace TEN::Renderer::Next
 
             bool saved = SaveTextureToPng(*_device, _colorTarget.get(), _screenshotPath);
             TENLog("Next renderer screenshot " + _screenshotPath + (saved ? " saved." : " failed."), LogLevel::Info);
+
+            if (_isAmbientOcclusionActive)
+            {
+                auto occlusionPath = _screenshotPath.substr(0, _screenshotPath.find_last_of('.')) + "_AO.png";
+                SaveTextureToPng(*_device, _ssaoTarget.get(), occlusionPath);
+            }
             _screenshotPath.clear();
         }
 

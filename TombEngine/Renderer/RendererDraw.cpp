@@ -2313,6 +2313,7 @@ namespace TEN::Renderer
 			environment.InterpolatedFrame = cameraConstantBuffer.InterpolatedFrame;
 			environment.InterpolationFactor = GetInterpolationFactor();
 			environment.IsCameraUnderwater = (cameraConstantBuffer.CameraUnderwater != 0);
+			environment.IsAmbientOcclusionEnabled = (cameraConstantBuffer.AmbientOcclusion != 0);
 			Next::g_NextRenderer.RenderFrame(view, environment);
 		}
 

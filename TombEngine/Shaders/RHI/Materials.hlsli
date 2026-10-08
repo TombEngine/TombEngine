@@ -3,7 +3,8 @@
 
 // Surface sampling of the legacy material system (Shaders/Materials.hlsli): color, normal, ORSH and emissive
 // maps of an atlas page, parallax occlusion mapping and per-material properties from a frame storage buffer.
-// Pixel textures use slots 0-3; storage buffers start at index 4 (lights) and 5 (materials).
+// Pixel textures use slots 0-3, slot 4 is the screen space ambient occlusion; storage buffers follow at
+// index 5 (lights) and 6 (materials).
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -36,7 +37,8 @@ TEN_PS_TEXTURE(Texture2D, ColorMap, 0);
 TEN_PS_TEXTURE(Texture2D, NormalMap, 1);
 TEN_PS_TEXTURE(Texture2D, ORSHMap, 2);
 TEN_PS_TEXTURE(Texture2D, EmissiveMap, 3);
-TEN_PS_STORAGE_BUFFER(GpuMaterial, Materials, 5);
+TEN_PS_TEXTURE(Texture2D, AmbientOcclusionMap, 4);
+TEN_PS_STORAGE_BUFFER(GpuMaterial, Materials, 6);
 
 struct Surface
 {
@@ -145,6 +147,33 @@ Surface SampleSurface(GpuMaterial material, float2 uv, float alphaThreshold, flo
     float3x3 tangentFrame = float3x3(tangent, binormal, normal);
     surface.Normal = EnsureNormal(mul(UnpackNormalMap(NormalMap.Sample(NormalMapSampler, uv)), tangentFrame), position, cameraPosition);
     return surface;
+}
+
+// Color alpha test and perturbed normal only, for the depth and normals prepass.
+float3 SampleSurfaceNormal(GpuMaterial material, float2 uv, float alphaThreshold, float3 position, float3 cameraPosition,
+                           float3 normal, float3 tangent, float3 binormal, float3 faceNormal)
+{
+    uv = ParallaxOcclusionMapping(material, tangent, binormal, faceNormal, position, cameraPosition, uv);
+    clip(ColorMap.Sample(ColorMapSampler, uv).a - alphaThreshold);
+
+    float3x3 tangentFrame = float3x3(tangent, binormal, normal);
+    return EnsureNormal(mul(UnpackNormalMap(NormalMap.Sample(NormalMapSampler, uv)), tangentFrame), position, cameraPosition);
+}
+
+// Legacy CalculateOcclusion: blended surfaces fade the occlusion with their alpha, parallax surfaces skip it.
+float GetAmbientOcclusion(GpuMaterial material, float2 screenUV, float exponent, uint blendMode, float alpha)
+{
+    bool isSupported = (blendMode == BLENDMODE_OPAQUE || blendMode == BLENDMODE_ALPHATEST || blendMode == BLENDMODE_ALPHABLEND);
+    if (exponent <= 0.0f || !isSupported || (material.TypeAndFlags & MATERIAL_FLAG_HEIGHTMAP))
+        return 1.0f;
+
+    float occlusion = pow(AmbientOcclusionMap.Sample(AmbientOcclusionMapSampler, screenUV).x, exponent);
+    return (blendMode == BLENDMODE_ALPHABLEND) ? lerp(occlusion, 1.0f, alpha) : occlusion;
+}
+
+float3 EncodeViewNormal(float3 normal, float4x4 view)
+{
+    return normalize(mul(normal, (float3x3)view)) * 0.5f + 0.5f;
 }
 
 #endif // TEN_MATERIALS

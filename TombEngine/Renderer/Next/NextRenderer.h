@@ -60,6 +60,7 @@ namespace TEN::Renderer::Next
         float        InterpolatedFrame   = 0.0f;
         float        InterpolationFactor = 0.0f;
         bool         IsCameraUnderwater  = false;
+        bool         IsAmbientOcclusionEnabled = false;
     };
 
     struct NextFrameStats
@@ -120,8 +121,17 @@ namespace TEN::Renderer::Next
             Objects,
             Sky,
             Sprites,
+            RoomsPrepass,
+            ObjectsPrepass,
 
             Count
+        };
+
+        enum class ScenePass
+        {
+            Prepass,
+            Opaque,
+            Additive
         };
 
         // Instanced draw of consecutive sprites sharing texture and blend mode.
@@ -173,6 +183,25 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IShader>           _spritesPixelShader  = nullptr;
         std::unique_ptr<RHI::IBuffer>           _spriteCornerBuffer  = nullptr;
         std::unique_ptr<RHI::ISampler>          _linearClampSampler  = nullptr;
+
+        // Depth and normals prepass and screen space ambient occlusion (NextRendererSSAO.cpp).
+        std::unique_ptr<RHI::IShader>           _roomsPrepassPixelShader    = nullptr;
+        std::unique_ptr<RHI::IShader>           _objectsPrepassPixelShader  = nullptr;
+        std::unique_ptr<RHI::IShader>           _ssaoVertexShader           = nullptr;
+        std::unique_ptr<RHI::IShader>           _ssaoPixelShader            = nullptr;
+        std::unique_ptr<RHI::IShader>           _ssaoBlurHorizontalShader   = nullptr;
+        std::unique_ptr<RHI::IShader>           _ssaoBlurVerticalShader     = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _ssaoPipeline               = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _ssaoBlurHorizontalPipeline = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _ssaoBlurVerticalPipeline   = nullptr;
+        std::unique_ptr<RHI::ITexture>          _ssaoNoiseTexture           = nullptr;
+        std::unique_ptr<RHI::ITexture>          _normalTarget               = nullptr;
+        std::unique_ptr<RHI::ITexture>          _ssaoTarget                 = nullptr;
+        std::unique_ptr<RHI::ITexture>          _ssaoBlurTarget             = nullptr;
+        std::unique_ptr<RHI::ISampler>          _pointClampSampler          = nullptr;
+        std::unique_ptr<RHI::ISampler>          _pointWrapSampler           = nullptr;
+        Vector4                                 _ssaoKernel[SSAO_KERNEL_SIZE] = {};
+        bool                                    _isAmbientOcclusionActive   = false;
 
         std::unique_ptr<RHI::ISampler>          _anisotropicSampler  = nullptr;
         std::unique_ptr<RHI::ITexture>          _whiteTexture        = nullptr;
@@ -229,6 +258,7 @@ namespace TEN::Renderer::Next
         bool EnsureRenderTargets(int width, int height);
         std::unique_ptr<RHI::ITexture> CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name);
         std::unique_ptr<RHI::ITexture> CreateSolidTexture(const unsigned char color[4], const std::string& name);
+        void UploadTexture(RHI::ITexture* texture, const void* data, int size);
         void CollectMaterials(float interpolationFactor);
         void BindTexturePage(RHI::IRenderPass& renderPass, const RoomTexture* page);
         void BindBucket(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const Structures::RendererBucket& bucket, const std::vector<RoomTexture>& pages,
@@ -253,7 +283,16 @@ namespace TEN::Renderer::Next
         void DrawSortedFaces(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
         bool CreateSkyGeometry();
         void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor);
-        void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool additive);
+        void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass);
+
+        // Prepass and ambient occlusion (NextRendererSSAO.cpp).
+        bool  CreateSSAOResources();
+        bool  EnsureSSAOTargets(int width, int height);
+        float GetAmbientOcclusionExponent() const;
+        void  RenderDepthPrepass(RHI::ICommandBuffer& commandBuffer, const RenderView& view);
+        void  RenderSSAO(RHI::ICommandBuffer& commandBuffer, const Matrix& projection);
+        void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target, RHI::ITexture* source,
+                                   RHI::ISampler* sourceSampler, const char* name);
 
         // Sprites (NextRendererSprites.cpp).
         bool           CreateSpriteResources();
@@ -262,7 +301,7 @@ namespace TEN::Renderer::Next
         void           CollectSprites(const RenderView& view);
         void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture);
         void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
-        void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, bool additive);
+        void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, ScenePass pass);
 
     public:
         bool Initialize(SDL_Window* window, RHI::Backend backend, const std::string& gameDirectory);

@@ -26,11 +26,14 @@ TEN_VS_UNIFORMS(DrawVertexUniforms, 1)
 
 TEN_PS_UNIFORMS(FramePixelUniforms, 0)
 {
-    float4 FogColor;
-    float3 PixelCameraPosition;
-    float  FramePixelPadding0;
-    float3 CameraDirection;
-    float  FramePixelPadding1;
+    float4   FogColor;
+    float3   PixelCameraPosition;
+    float    AmbientOcclusionExponent; // Zero when ambient occlusion is disabled.
+    float3   CameraDirection;
+    float    FramePixelPadding0;
+    float4x4 View;
+    float2   InverseViewportSize;
+    float2   FramePixelPadding1;
 };
 
 TEN_PS_UNIFORMS(DrawPixelUniforms, 1)

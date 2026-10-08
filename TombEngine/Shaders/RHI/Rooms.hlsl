@@ -1,9 +1,11 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=2
-// TEN_SHADER: Pixel PS samplers=4 storage_textures=0 storage_buffers=2 uniform_buffers=2
+// TEN_SHADER: Pixel PS samplers=5 storage_textures=0 storage_buffers=2 uniform_buffers=2
+// TEN_SHADER: Pixel PSDepthNormal samplers=5 storage_textures=0 storage_buffers=2 uniform_buffers=2
 
 // Room geometry: baked vertex lighting plus the room's dynamic lights with specular, material maps (normal,
 // ORSH, emissive, parallax), animated textures, vertex effects, water refraction and distance fog.
-// Reflections, SSAO, shadows, caustics, decals and fog bulbs are ported later.
+// Screen space ambient occlusion comes from the prepass (PSDepthNormal). Reflections, shadows, caustics,
+// decals and fog bulbs are ported later.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -14,7 +16,7 @@
 TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
 TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
 
-TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 4);
+TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 5);
 
 struct VertexInput
 {
@@ -120,7 +122,15 @@ float4 PS(PixelInput input) : SV_TARGET
     Surface surface = SampleSurface(material, ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition, PixelCameraPosition,
                                     input.Normal, input.Tangent, input.Binormal, input.FaceNormal);
 
+    float occlusion = surface.Occlusion * GetAmbientOcclusion(material, input.Position.xy * InverseViewportSize, AmbientOcclusionExponent, BlendMode, surface.Color.a);
     float3 lighting = GetRoomLighting(input.Color.rgb, input.WorldPosition, surface);
-    float4 color = float4(saturate(surface.Color.rgb * lighting * surface.Occlusion), surface.Color.a);
+    float4 color = float4(saturate(surface.Color.rgb * lighting * occlusion), surface.Color.a);
     return ApplyDistanceFog(color, FogColor, input.Fog, BlendMode);
+}
+
+float4 PSDepthNormal(PixelInput input) : SV_TARGET
+{
+    float3 normal = SampleSurfaceNormal(Materials[MaterialIndex], ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition,
+                                        PixelCameraPosition, input.Normal, input.Tangent, input.Binormal, input.FaceNormal);
+    return float4(EncodeViewNormal(normal, View), 1.0f);
 }
