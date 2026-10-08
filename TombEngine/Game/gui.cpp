@@ -868,7 +868,11 @@ namespace TEN::Gui
 								break;
 							}
 
-							g_Bindings.SetKeyBinding(BindingProfileID::Custom, ActionID(baseIndex + SelectedOption), selectedKeyID);
+							// Remastered controls: stores a gamepad key in the custom gamepad profile. -- divezzi, 08.10.26
+							bool isRemasteredGamepadKey = g_Configuration.IsUsingRemasteredControls() && selectedKeyID >= KEY_OFFSET_GAMEPAD;
+							auto profileID = isRemasteredGamepadKey ? BindingProfileID::CustomGamepad : BindingProfileID::Custom;
+
+							g_Bindings.SetKeyBinding(profileID, ActionID(baseIndex + SelectedOption), selectedKeyID);
 							DefaultConflict();
 
 							CurrentSettings.NewKeyWaitTimer = 0;
@@ -961,13 +965,35 @@ namespace TEN::Gui
 
 				if (SelectedOption == (OptionCount - 1) || GuiIsDeselected()) // Apply.
 				{
-					CurrentSettings.Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
-					g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+					// Remastered controls: saves the Remastered profiles, leaving the classic bindings untouched. -- divezzi, 08.10.26
+					if (g_Configuration.IsUsingRemasteredControls())
+					{
+						g_Configuration.RemasteredBindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+						g_Configuration.RemasteredGamepadBindings = g_Bindings.GetBindingProfile(BindingProfileID::CustomGamepad);
+						CurrentSettings.Configuration.RemasteredBindings = g_Configuration.RemasteredBindings;
+						CurrentSettings.Configuration.RemasteredGamepadBindings = g_Configuration.RemasteredGamepadBindings;
+					}
+					else
+					{
+						CurrentSettings.Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+						g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Custom);
+					}
+
 					SaveConfiguration();
 				}
 				else if (SelectedOption == OptionCount) // Cancel.
 				{
-					g_Bindings.SetBindingProfile(BindingProfileID::Custom, CurrentSettings.Configuration.Bindings);
+					// Remastered controls: restores both Remastered profiles. -- divezzi, 08.10.26
+					if (g_Configuration.IsUsingRemasteredControls())
+					{
+						g_Configuration.RemasteredBindings = CurrentSettings.Configuration.RemasteredBindings;
+						g_Configuration.RemasteredGamepadBindings = CurrentSettings.Configuration.RemasteredGamepadBindings;
+						RefreshBindingsForControlMode();
+					}
+					else
+					{
+						g_Bindings.SetBindingProfile(BindingProfileID::Custom, CurrentSettings.Configuration.Bindings);
+					}
 				}
 				else if (SelectedOption == (OptionCount - 2)) // Defaults.
 				{
@@ -1148,9 +1174,15 @@ namespace TEN::Gui
 			{
 				// Was rumble setting changed?
 				bool indicateRumble = CurrentSettings.Configuration.EnableRumble && !g_Configuration.EnableRumble;
+				bool hasControlModeChanged = CurrentSettings.Configuration.ControlMode != g_Configuration.ControlMode;
 
 				// Save the configuration.
 				g_Configuration = CurrentSettings.Configuration;
+
+				// Remastered controls: loads the binding profiles of the newly selected control mode. -- divezzi, 08.10.26
+				if (hasControlModeChanged)
+					RefreshBindingsForControlMode();
+
 				SaveConfiguration();
 
 				// Rumble if setting was changed.

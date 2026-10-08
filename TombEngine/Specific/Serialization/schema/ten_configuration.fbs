@@ -40,6 +40,8 @@ table Configuration {
 
 	// Appended at the end: slots are positional, so existing config files stay valid.
 	control_mode: int32;
+	remastered_bindings: [Binding];
+	remastered_gamepad_bindings: [Binding];
 }
 
 root_type Configuration;

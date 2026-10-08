@@ -118,6 +118,8 @@ struct ConfigurationT : public flatbuffers::NativeTable {
   int32_t last_gamepad_type = 0;
   std::vector<std::unique_ptr<TEN::Serialization::Config::BindingT>> bindings{};
   int32_t control_mode = 0;
+  std::vector<std::unique_ptr<TEN::Serialization::Config::BindingT>> remastered_bindings{};
+  std::vector<std::unique_ptr<TEN::Serialization::Config::BindingT>> remastered_gamepad_bindings{};
 };
 
 struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -153,7 +155,9 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_MENU_OPTION_LOOPING_MODE = 54,
     VT_LAST_GAMEPAD_TYPE = 56,
     VT_BINDINGS = 58,
-    VT_CONTROL_MODE = 60
+    VT_CONTROL_MODE = 60,
+    VT_REMASTERED_BINDINGS = 62,
+    VT_REMASTERED_GAMEPAD_BINDINGS = 64
   };
   int32_t screen_width() const {
     return GetField<int32_t>(VT_SCREEN_WIDTH, 0);
@@ -242,6 +246,12 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t control_mode() const {
     return GetField<int32_t>(VT_CONTROL_MODE, 0);
   }
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *remastered_bindings() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *>(VT_REMASTERED_BINDINGS);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *remastered_gamepad_bindings() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *>(VT_REMASTERED_GAMEPAD_BINDINGS);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_SCREEN_WIDTH) &&
@@ -276,6 +286,12 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(bindings()) &&
            verifier.VerifyVectorOfTables(bindings()) &&
            VerifyField<int32_t>(verifier, VT_CONTROL_MODE) &&
+           VerifyOffset(verifier, VT_REMASTERED_BINDINGS) &&
+           verifier.VerifyVector(remastered_bindings()) &&
+           verifier.VerifyVectorOfTables(remastered_bindings()) &&
+           VerifyOffset(verifier, VT_REMASTERED_GAMEPAD_BINDINGS) &&
+           verifier.VerifyVector(remastered_gamepad_bindings()) &&
+           verifier.VerifyVectorOfTables(remastered_gamepad_bindings()) &&
            verifier.EndTable();
   }
   ConfigurationT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -374,6 +390,12 @@ struct ConfigurationBuilder {
   void add_control_mode(int32_t control_mode) {
     fbb_.AddElement<int32_t>(Configuration::VT_CONTROL_MODE, control_mode, 0);
   }
+  void add_remastered_bindings(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> remastered_bindings) {
+    fbb_.AddOffset(Configuration::VT_REMASTERED_BINDINGS, remastered_bindings);
+  }
+  void add_remastered_gamepad_bindings(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> remastered_gamepad_bindings) {
+    fbb_.AddOffset(Configuration::VT_REMASTERED_GAMEPAD_BINDINGS, remastered_gamepad_bindings);
+  }
   explicit ConfigurationBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -415,8 +437,12 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(
     int32_t menu_option_looping_mode = 0,
     int32_t last_gamepad_type = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> bindings = 0,
-    int32_t control_mode = 0) {
+    int32_t control_mode = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> remastered_bindings = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> remastered_gamepad_bindings = 0) {
   ConfigurationBuilder builder_(_fbb);
+  builder_.add_remastered_gamepad_bindings(remastered_gamepad_bindings);
+  builder_.add_remastered_bindings(remastered_bindings);
   builder_.add_control_mode(control_mode);
   builder_.add_bindings(bindings);
   builder_.add_last_gamepad_type(last_gamepad_type);
@@ -484,9 +510,13 @@ inline flatbuffers::Offset<Configuration> CreateConfigurationDirect(
     int32_t menu_option_looping_mode = 0,
     int32_t last_gamepad_type = 0,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *bindings = nullptr,
-    int32_t control_mode = 0) {
+    int32_t control_mode = 0,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *remastered_bindings = nullptr,
+    const std::vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *remastered_gamepad_bindings = nullptr) {
   auto adapter_name__ = adapter_name ? _fbb.CreateString(adapter_name) : 0;
   auto bindings__ = bindings ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>(*bindings) : 0;
+  auto remastered_bindings__ = remastered_bindings ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>(*remastered_bindings) : 0;
+  auto remastered_gamepad_bindings__ = remastered_gamepad_bindings ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>(*remastered_gamepad_bindings) : 0;
   return TEN::Serialization::Config::CreateConfiguration(
       _fbb,
       screen_width,
@@ -517,7 +547,9 @@ inline flatbuffers::Offset<Configuration> CreateConfigurationDirect(
       menu_option_looping_mode,
       last_gamepad_type,
       bindings__,
-      control_mode);
+      control_mode,
+      remastered_bindings__,
+      remastered_gamepad_bindings__);
 }
 
 flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatBufferBuilder &_fbb, const ConfigurationT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -589,6 +621,8 @@ inline void Configuration::UnPackTo(ConfigurationT *_o, const flatbuffers::resol
   { auto _e = last_gamepad_type(); _o->last_gamepad_type = _e; }
   { auto _e = bindings(); if (_e) { _o->bindings.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->bindings[_i] = std::unique_ptr<TEN::Serialization::Config::BindingT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = control_mode(); _o->control_mode = _e; }
+  { auto _e = remastered_bindings(); if (_e) { _o->remastered_bindings.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->remastered_bindings[_i] = std::unique_ptr<TEN::Serialization::Config::BindingT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = remastered_gamepad_bindings(); if (_e) { _o->remastered_gamepad_bindings.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->remastered_gamepad_bindings[_i] = std::unique_ptr<TEN::Serialization::Config::BindingT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
 inline flatbuffers::Offset<Configuration> Configuration::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConfigurationT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -628,6 +662,8 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatB
   auto _last_gamepad_type = _o->last_gamepad_type;
   auto _bindings = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> (_o->bindings.size(), [](size_t i, _VectorArgs *__va) { return CreateBinding(*__va->__fbb, __va->__o->bindings[i].get(), __va->__rehasher); }, &_va );
   auto _control_mode = _o->control_mode;
+  auto _remastered_bindings = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> (_o->remastered_bindings.size(), [](size_t i, _VectorArgs *__va) { return CreateBinding(*__va->__fbb, __va->__o->remastered_bindings[i].get(), __va->__rehasher); }, &_va );
+  auto _remastered_gamepad_bindings = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> (_o->remastered_gamepad_bindings.size(), [](size_t i, _VectorArgs *__va) { return CreateBinding(*__va->__fbb, __va->__o->remastered_gamepad_bindings[i].get(), __va->__rehasher); }, &_va );
   return TEN::Serialization::Config::CreateConfiguration(
       _fbb,
       _screen_width,
@@ -658,7 +694,9 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatB
       _menu_option_looping_mode,
       _last_gamepad_type,
       _bindings,
-      _control_mode);
+      _control_mode,
+      _remastered_bindings,
+      _remastered_gamepad_bindings);
 }
 
 inline const TEN::Serialization::Config::Configuration *GetConfiguration(const void *buf) {

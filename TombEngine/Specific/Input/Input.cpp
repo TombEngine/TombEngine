@@ -55,8 +55,42 @@ namespace TEN::Input
 		return true;
 	}
 
+	static bool RestoreRemasteredDefaultBindings(DefaultBindingType bindingType, bool force)
+	{
+		bool isGamepad = (bindingType == DefaultBindingType::Gamepad);
+		if (isGamepad && ActiveGamepad == nullptr)
+			return false;
+
+		if (!isGamepad && !force && ActiveGamepad != nullptr)
+			return false;
+
+		// Both devices stay live, so connecting or disconnecting a gamepad only updates the gamepad options,
+		// and only while they still hold the other device's defaults.
+		if (!force)
+		{
+			bool hasKeyboardMouseOptions = !g_Configuration.EnableRumble && !g_Configuration.EnableThumbstickCamera;
+			if (isGamepad != hasKeyboardMouseOptions)
+				return false;
+		}
+		else
+		{
+			g_Configuration.RemasteredBindings = DEFAULT_KEYBOARD_MOUSE_REMASTERED_BINDING_PROFILE;
+			g_Configuration.RemasteredGamepadBindings = DEFAULT_GAMEPAD_REMASTERED_BINDING_PROFILE;
+			g_Bindings.SetBindingProfile(BindingProfileID::Custom, g_Configuration.RemasteredBindings);
+			g_Bindings.SetBindingProfile(BindingProfileID::CustomGamepad, g_Configuration.RemasteredGamepadBindings);
+		}
+
+		g_Configuration.EnableRumble = isGamepad && ActiveGamepadHasRumble;
+		g_Configuration.EnableThumbstickCamera = isGamepad;
+		return true;
+	}
+
 	static bool RestoreDefaultBindings(DefaultBindingType bindingType, bool force)
 	{
+		// Remastered controls: restores both Remastered profiles instead of swapping one profile per device. -- divezzi, 08.10.26
+		if (g_Configuration.IsUsingRemasteredControls())
+			return RestoreRemasteredDefaultBindings(bindingType, force);
+
 		const BindingProfile* previousBindings = nullptr;
 		const BindingProfile* defaultBindings = nullptr;
 		bool enableRumble = false;
@@ -316,6 +350,16 @@ namespace TEN::Input
 			}
 		}
 
+		// Remastered controls: also checks the gamepad profiles, which are empty under classic controls. -- divezzi, 08.10.26
+		for (auto profileID : { BindingProfileID::CustomGamepad, BindingProfileID::DefaultGamepad })
+		{
+			for (int j = 0; j < (int)ActionID::Count; j++)
+			{
+				if (g_Bindings.GetBoundKeyID(profileID, (ActionID)j) == keyID)
+					return true;
+			}
+		}
+
 		return false;
 	}
 
@@ -331,6 +375,30 @@ namespace TEN::Input
 		}
 
 		return source;
+	}
+
+	static void DefaultGamepadConflict()
+	{
+		for (const auto& actionIDGroup : ACTION_ID_GROUPS)
+		{
+			for (auto actionID : actionIDGroup)
+			{
+				g_Bindings.SetConflict(actionID, false, BindingProfileID::DefaultGamepad);
+
+				int key = g_Bindings.GetBoundKeyID(BindingProfileID::DefaultGamepad, actionID);
+				if (key == KEY_UNASSIGNED)
+					continue;
+
+				for (auto conflictActionID : actionIDGroup)
+				{
+					if (key != g_Bindings.GetBoundKeyID(BindingProfileID::CustomGamepad, conflictActionID))
+						continue;
+
+					g_Bindings.SetConflict(actionID, true, BindingProfileID::DefaultGamepad);
+					break;
+				}
+			}
+		}
 	}
 
 	void DefaultConflict()
@@ -352,6 +420,73 @@ namespace TEN::Input
 				}
 			}
 		}
+
+		// Remastered controls: marks gamepad defaults overridden by custom gamepad bindings. -- divezzi, 08.10.26
+		if (g_Configuration.IsUsingRemasteredControls())
+			DefaultGamepadConflict();
+	}
+
+	static void SetRemasteredDPadAxisValues(int keyID)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls() || TestBoundKey(keyID))
+			return;
+
+		switch (keyID)
+		{
+		case GK_DPAD_UP:
+			AxisMap[AxisID::Move].y = 1.0f;
+			break;
+
+		case GK_DPAD_DOWN:
+			AxisMap[AxisID::Move].y = -1.0f;
+			break;
+
+		case GK_DPAD_LEFT:
+			AxisMap[AxisID::Move].x = -1.0f;
+			break;
+
+		case GK_DPAD_RIGHT:
+			AxisMap[AxisID::Move].x = 1.0f;
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	static int GetRemasteredDPadKeyID(ActionID actionID)
+	{
+		if (!g_Configuration.IsUsingRemasteredControls())
+			return KEY_UNASSIGNED;
+
+		int keyID = KEY_UNASSIGNED;
+		switch (actionID)
+		{
+		case In::Forward:
+			keyID = GK_DPAD_UP;
+			break;
+
+		case In::Back:
+			keyID = GK_DPAD_DOWN;
+			break;
+
+		case In::Left:
+			keyID = GK_DPAD_LEFT;
+			break;
+
+		case In::Right:
+			keyID = GK_DPAD_RIGHT;
+			break;
+
+		default:
+			return KEY_UNASSIGNED;
+		}
+
+		// A D-pad button bound to an action stops moving Lara.
+		if (KeyMap[keyID] == 0.0f || TestBoundKey(keyID))
+			return KEY_UNASSIGNED;
+
+		return keyID;
 	}
 
 	static void SetDiscreteAxisValues(unsigned int keyID)
@@ -469,7 +604,12 @@ namespace TEN::Input
 			KeyMap[keyID] = pressed ? 1.0f : 0.0f;
 
 			if (pressed)
+			{
 				SetDiscreteAxisValues(keyID);
+
+				// Remastered controls: the D-pad drives the move axis like the left stick. -- divezzi, 08.10.26
+				SetRemasteredDPadAxisValues(keyID);
+			}
 		}
 
 		// Axes.
@@ -521,19 +661,22 @@ namespace TEN::Input
 
 			int usedKeyID = (normalizedValue < 0) ? negKeyID : posKeyID;
 
-			if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Forward) == usedKeyID)
+			// Remastered controls: reads stick directions from the custom gamepad profile. -- divezzi, 08.10.26
+			auto stickProfileID = g_Configuration.IsUsingRemasteredControls() ? BindingProfileID::CustomGamepad : BindingProfileID::Custom;
+
+			if (g_Bindings.GetBoundKeyID(stickProfileID, In::Forward) == usedKeyID)
 			{
 				AxisMap[AxisID::Move].y = std::abs(scaledValue);
 			}
-			else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Back) == usedKeyID)
+			else if (g_Bindings.GetBoundKeyID(stickProfileID, In::Back) == usedKeyID)
 			{
 				AxisMap[AxisID::Move].y = -std::abs(scaledValue);
 			}
-			else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Left) == usedKeyID)
+			else if (g_Bindings.GetBoundKeyID(stickProfileID, In::Left) == usedKeyID)
 			{
 				AxisMap[AxisID::Move].x = -std::abs(scaledValue);
 			}
-			else if (g_Bindings.GetBoundKeyID(BindingProfileID::Custom, In::Right) == usedKeyID)
+			else if (g_Bindings.GetBoundKeyID(stickProfileID, In::Right) == usedKeyID)
 			{
 				AxisMap[AxisID::Move].x = std::abs(scaledValue);
 			}
@@ -615,6 +758,10 @@ namespace TEN::Input
 			if (profileID == BindingProfileID::Default && g_Bindings.TestConflict(actionID))
 				continue;
 
+			// Remastered controls: skips a gamepad default overridden by a custom gamepad binding. -- divezzi, 08.10.26
+			if (profileID == BindingProfileID::DefaultGamepad && g_Bindings.TestConflict(actionID, BindingProfileID::DefaultGamepad))
+				continue;
+
 			int newKeyID = g_Bindings.GetBoundKeyID(profileID, actionID);
 			if (newKeyID == KEY_UNASSIGNED)
 				continue;
@@ -625,6 +772,10 @@ namespace TEN::Input
 				break;
 			}
 		}
+
+		// Remastered controls: the D-pad moves Lara like the movement keys. -- divezzi, 08.10.26
+		if (keyID == KEY_UNASSIGNED)
+			keyID = GetRemasteredDPadKeyID(actionID);
 
 		float value = (keyID == KEY_UNASSIGNED) ? 0.0f : KeyMap[keyID];
 		if (keyID != KEY_UNASSIGNED && ActionMap[actionID].IsClicked())
@@ -802,6 +953,29 @@ namespace TEN::Input
 	bool RestoreDefaultBindings(DefaultBindingType bindingType)
 	{
 		return RestoreDefaultBindings(bindingType, false);
+	}
+
+	void RefreshBindingsForControlMode()
+	{
+		if (g_Configuration.IsUsingRemasteredControls())
+		{
+			const auto& bindings = g_Configuration.RemasteredBindings.empty() ?
+				DEFAULT_KEYBOARD_MOUSE_REMASTERED_BINDING_PROFILE : g_Configuration.RemasteredBindings;
+			const auto& gamepadBindings = g_Configuration.RemasteredGamepadBindings.empty() ?
+				DEFAULT_GAMEPAD_REMASTERED_BINDING_PROFILE : g_Configuration.RemasteredGamepadBindings;
+
+			g_Bindings.SetBindingProfile(BindingProfileID::Default, DEFAULT_KEYBOARD_MOUSE_REMASTERED_BINDING_PROFILE);
+			g_Bindings.SetBindingProfile(BindingProfileID::Custom, bindings);
+			g_Bindings.SetBindingProfile(BindingProfileID::DefaultGamepad, DEFAULT_GAMEPAD_REMASTERED_BINDING_PROFILE);
+			g_Bindings.SetBindingProfile(BindingProfileID::CustomGamepad, gamepadBindings);
+		}
+		else
+		{
+			g_Bindings.SetDefaultBindingProfile(BindingProfileID::Default);
+			g_Bindings.SetBindingProfile(BindingProfileID::Custom, g_Configuration.Bindings);
+			g_Bindings.SetBindingProfile(BindingProfileID::DefaultGamepad, {});
+			g_Bindings.SetBindingProfile(BindingProfileID::CustomGamepad, {});
+		}
 	}
 
 	InputDevice GetLastInputDevice()

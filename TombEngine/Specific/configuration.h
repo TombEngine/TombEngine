@@ -70,6 +70,9 @@ struct GameConfiguration
 	BindingProfile		  Bindings				= {};
 	ControlMode			  ControlMode			= ControlMode::Classic;
 
+	BindingProfile RemasteredBindings		 = {};
+	BindingProfile RemasteredGamepadBindings = {};
+
 	std::vector<Vector2i>	SupportedScreenResolutions	= {};
 	std::string				AdapterName					= {};
 	std::vector<BassDevice> SupportedSoundDevices				= {};

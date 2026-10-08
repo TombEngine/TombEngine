@@ -98,8 +98,13 @@ namespace TEN::Renderer
 
 	inline const int GetEffectiveBoundKeyID(ActionID actionID)
 	{
-		int defaultKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Default, actionID);
-		int userKeyID = g_Bindings.GetBoundKeyID(BindingProfileID::Custom, actionID);
+		// Remastered controls: shows the gamepad bindings when the gamepad was used last. -- divezzi, 08.10.26
+		bool isGamepadShown = g_Configuration.IsUsingRemasteredControls() && GetLastInputDevice() == InputDevice::Gamepad;
+		auto defaultProfileID = isGamepadShown ? BindingProfileID::DefaultGamepad : BindingProfileID::Default;
+		auto customProfileID = isGamepadShown ? BindingProfileID::CustomGamepad : BindingProfileID::Custom;
+
+		int defaultKeyID = g_Bindings.GetBoundKeyID(defaultProfileID, actionID);
+		int userKeyID = g_Bindings.GetBoundKeyID(customProfileID, actionID);
 		return (userKeyID != KEY_UNASSIGNED) ? userKeyID : defaultKeyID;
 	}
 

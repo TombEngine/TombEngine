@@ -92,6 +92,33 @@ static void LoadBinding(int actionId, int keyId)
 	g_Bindings.SetKeyBinding(BindingProfileID::Custom, action, keyId);
 }
 
+static void LoadBindingProfile(const flatbuffers::Vector<flatbuffers::Offset<Binding>>* bindings, BindingProfile& profile)
+{
+	if (bindings == nullptr)
+		return;
+
+	for (const auto* binding : *bindings)
+	{
+		int actionId = binding->action_id();
+		int keyId = binding->key_id();
+		if (actionId < 0 || keyId < 0 || actionId >= (int)ActionID::Count)
+			continue;
+
+		profile.insert({ (ActionID)actionId, keyId });
+	}
+}
+
+static flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Binding>>> CreateBindingProfileOffset(flatbuffers::FlatBufferBuilder& fbb, const BindingProfile& profile)
+{
+	auto bindings = std::vector<flatbuffers::Offset<Binding>>();
+	bindings.reserve(profile.size());
+
+	for (const auto& [action, keyId] : profile)
+		bindings.push_back(CreateBinding(fbb, (int)action, keyId));
+
+	return fbb.CreateVector(bindings);
+}
+
 static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 {
 	auto buffer = std::vector<unsigned char>();
@@ -155,6 +182,10 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 	if (g_Configuration.Bindings.empty())
 		g_Configuration.Bindings = g_Bindings.GetBindingProfile(BindingProfileID::Default);
 
+	// Remastered controls: reads the Remastered keyboard/mouse and gamepad bindings, stored apart from the classic ones. -- divezzi, 08.10.26
+	LoadBindingProfile(config->remastered_bindings(), g_Configuration.RemasteredBindings);
+	LoadBindingProfile(config->remastered_gamepad_bindings(), g_Configuration.RemasteredGamepadBindings);
+
 	return true;
 }
 
@@ -203,6 +234,8 @@ void InitDefaultConfiguration()
 	g_Configuration.LastGamepadType = GamepadType::Xbox;
 	g_Configuration.Bindings = {};
 	g_Configuration.ControlMode = ControlMode::Classic;
+	g_Configuration.RemasteredBindings = {};
+	g_Configuration.RemasteredGamepadBindings = {};
 
 	g_Configuration.SupportedScreenResolutions = GetAllSupportedScreenResolutions();
 	g_Configuration.AdapterName = g_Renderer.GetDefaultAdapterName();
@@ -225,6 +258,11 @@ bool LoadConfiguration()
 
 	g_Configuration.EnableSound = g_Configuration.SoundDevice > 0;
 	SetAudioConfiguration(g_Configuration);
+
+	// Remastered controls: loads the Remastered binding profiles in place of the classic ones. -- divezzi, 08.10.26
+	if (g_Configuration.IsUsingRemasteredControls())
+		RefreshBindingsForControlMode();
+
 	DefaultConflict();
 	SaveConfiguration();
 
@@ -243,6 +281,8 @@ static std::vector<unsigned char> BuildConfigurationBuffer()
 		bindings.push_back(CreateBinding(fbb, (int)action, keyId));
 
 	auto bindingsOffset = fbb.CreateVector(bindings);
+	auto remasteredBindingsOffset = CreateBindingProfileOffset(fbb, g_Configuration.RemasteredBindings);
+	auto remasteredGamepadBindingsOffset = CreateBindingProfileOffset(fbb, g_Configuration.RemasteredGamepadBindings);
 
 	ConfigurationBuilder builder{ fbb };
 	builder.add_screen_width(g_Configuration.ScreenWidth);
@@ -274,6 +314,8 @@ static std::vector<unsigned char> BuildConfigurationBuffer()
 	builder.add_last_gamepad_type((int)g_Configuration.LastGamepadType);
 	builder.add_bindings(bindingsOffset);
 	builder.add_control_mode((int)g_Configuration.ControlMode);
+	builder.add_remastered_bindings(remasteredBindingsOffset);
+	builder.add_remastered_gamepad_bindings(remasteredGamepadBindingsOffset);
 
 	auto config = builder.Finish();
 	FinishConfigurationBuffer(fbb, config);
