@@ -29,6 +29,8 @@
 #include "Objects/Generic/Object/burning_torch.h"
 #include "Objects/TR4/Object/tr4_clockwork_beetle.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyHandler.h"
+#include "Scripting/Internal/TEN/Properties/PropertyNames.h"
 #include "Scripting/Include/ScriptInterfaceGame.h"
 #include "Sound/sound.h"
 #include "Specific/Input/Input.h"
@@ -145,7 +147,9 @@ static void DispatchPrePickupCallback(short itemNumber)
 
 static void RegisterSecretForGoldRosePickup(const ItemInfo& item)
 {
-	if (item.ObjectNumber != ID_GOLDROSE_ITEM)
+	auto goldRoseSecret = PropertyHandler::Get(item, PropName_GenericBool, false);
+
+	if (!goldRoseSecret)
 		return;
 
 	PlaySecretTrack();
