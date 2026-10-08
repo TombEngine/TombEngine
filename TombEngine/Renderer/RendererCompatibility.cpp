@@ -12,6 +12,7 @@
 #include "Game/savegame.h"
 #include "Game/Setup.h"
 #include "Objects/Generic/Object/objects.h"
+#include "Renderer/Next/NextRenderer.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
 #include "Specific/level.h"
@@ -894,6 +895,9 @@ namespace TEN::Renderer
 				_spriteSequences[SpriteSequencesIds[i]] = sequence;
 			}
 		}
+
+		if (Next::g_NextRenderer.IsActive())
+			Next::g_NextRenderer.LoadLevel(Next::LegacyLevelGeometry{ &_roomsVertices, &_roomsIndices, &_rooms, &_animatedTextureSets });
 
 		return true;
 	}

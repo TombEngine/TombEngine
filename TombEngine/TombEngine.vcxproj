@@ -921,6 +921,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Renderer\RHI\SDLGPU\SDLGPUDevice.h" />
     <ClInclude Include="Renderer\RHI\ShaderLibrary.h" />
     <ClInclude Include="Renderer\RHI\RHITest.h" />
+    <ClInclude Include="Renderer\RHI\TextureCapture.h" />
+    <ClInclude Include="Renderer\Next\NextRenderer.h" />
+    <ClInclude Include="Renderer\Next\TextureLoader.h" />
     <ClInclude Include="Renderer\Structures\RendererSprite.h" />
     <ClInclude Include="Renderer\Structures\RendererSprite2D.h" />
     <ClInclude Include="Renderer\Structures\RendererSpriteBucket.h" />
@@ -1506,6 +1509,9 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\RHI\SDLGPU\SDLGPUDevice.cpp" />
     <ClCompile Include="Renderer\RHI\ShaderLibrary.cpp" />
     <ClCompile Include="Renderer\RHI\RHITest.cpp" />
+    <ClCompile Include="Renderer\RHI\TextureCapture.cpp" />
+    <ClCompile Include="Renderer\Next\NextRenderer.cpp" />
+    <ClCompile Include="Renderer\Next\TextureLoader.cpp" />
     <ClCompile Include="Renderer\RendererSprites.cpp" />
     <ClCompile Include="Renderer\RendererString.cpp" />
     <ClCompile Include="Renderer\RendererUtils.cpp" />

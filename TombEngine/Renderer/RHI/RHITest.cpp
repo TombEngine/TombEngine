@@ -3,6 +3,7 @@
 
 #include "Renderer/RHI/RHIDevice.h"
 #include "Renderer/RHI/ShaderLibrary.h"
+#include "Renderer/RHI/TextureCapture.h"
 
 namespace TEN::Renderer::RHI
 {
@@ -238,35 +239,6 @@ namespace TEN::Renderer::RHI
         commandBuffer.PopDebugGroup();
     }
 
-    static bool SaveTargetToPng(IDevice& device, TestResources& resources, const std::string& path)
-    {
-        const auto& desc = resources.ColorTarget->GetDesc();
-        int size = GetTextureDataSize(desc.Format, desc.Width, desc.Height, 1);
-        auto transferBuffer = device.CreateTransferBuffer(TransferBufferUsage::Download, size);
-
-        auto* commandBuffer = device.AcquireCommandBuffer();
-        auto* copyPass = commandBuffer->BeginCopyPass();
-
-        auto region = TextureRegion{};
-        region.Texture = resources.ColorTarget.get();
-        region.Width = desc.Width;
-        region.Height = desc.Height;
-        copyPass->DownloadFromTexture(region, TextureTransferInfo{ transferBuffer.get(), 0, 0, 0 });
-
-        commandBuffer->EndCopyPass();
-        commandBuffer->Submit();
-        device.WaitIdle();
-
-        auto* data = device.MapTransferBuffer(transferBuffer.get(), false);
-        auto pixelFormat = (desc.Format == PixelFormat::BGRA8Unorm) ? SDL_PIXELFORMAT_BGRA32 : SDL_PIXELFORMAT_RGBA32;
-        auto* surface = SDL_CreateSurfaceFrom(desc.Width, desc.Height, pixelFormat, data, desc.Width * 4);
-        bool result = (surface != nullptr) && SDL_SavePNG(surface, path.c_str());
-        SDL_DestroySurface(surface);
-        device.UnmapTransferBuffer(transferBuffer.get());
-
-        return result;
-    }
-
     bool RunRHITest(SDL_Window* window, Backend backend, const std::string& gameDirectory, int frameCount)
     {
         auto device = CreateDevice(backend, window, true);
@@ -321,7 +293,7 @@ namespace TEN::Renderer::RHI
         float elapsed = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - startTime).count();
 
         auto path = gameDirectory + "Logs/RHITest_" + GetBackendName(backend) + ".png";
-        bool saved = SaveTargetToPng(*device, resources, path);
+        bool saved = SaveTextureToPng(*device, resources.ColorTarget.get(), path);
         TENLog(fmt::format("RHI test on {} ({}): {} frames in {:.1f} ms, screenshot {} {}.",
             GetBackendName(backend), device->GetDeviceName(), frameCount, elapsed, path, saved ? "saved" : "FAILED"), LogLevel::Info);
 

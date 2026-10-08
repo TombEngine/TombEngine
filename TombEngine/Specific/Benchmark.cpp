@@ -7,6 +7,7 @@ namespace TEN::Benchmark
 {
     constexpr auto BENCHMARK_WARMUP_TIME = 3.0f;
     constexpr auto BENCHMARK_FLUSH_FRAMES = 60;
+    constexpr auto BENCHMARK_SCREENSHOT_FRAME = 150;
 
     static bool _isActive = false;
     static bool _isStarted = false;
@@ -14,6 +15,7 @@ namespace TEN::Benchmark
     static float _duration = 0.0f;
     static std::chrono::steady_clock::time_point _startTime = {};
     static int _recordedFrames = 0;
+    static bool _isScreenshotTaken = false;
     static std::ofstream _file;
     static std::mutex _mutex;
     static std::vector<float> _frameTimes = {};
@@ -134,6 +136,15 @@ namespace TEN::Benchmark
     bool IsBenchmarkActive()
     {
         return _isActive;
+    }
+
+    bool ConsumeBenchmarkScreenshotRequest()
+    {
+        if (!_isActive || _isScreenshotTaken || _recordedFrames < BENCHMARK_SCREENSHOT_FRAME)
+            return false;
+
+        _isScreenshotTaken = true;
+        return true;
     }
 
     void UpdateBenchmark()

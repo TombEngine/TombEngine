@@ -5,6 +5,7 @@
 #include "Game/savegame.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/ImGuiIntegration.h"
+#include "Renderer/Next/NextRenderer.h"
 #include "Renderer/RHI/RHITest.h"
 #include "resource.h"
 #include "Sound/sound.h"
@@ -61,6 +62,17 @@ bool ArgEquals(const char* incomingArg, const std::string& name)
 	}
 
 	return arg == lowerName;
+}
+
+TEN::Renderer::RHI::Backend ParseRHIBackend(const std::string& name)
+{
+	if (name == "dx11")
+		return TEN::Renderer::RHI::Backend::DirectX11;
+
+	if (name == "d3d12")
+		return TEN::Renderer::RHI::Backend::Direct3D12;
+
+	return TEN::Renderer::RHI::Backend::Vulkan;
 }
 
 Vector2i GetScreenResolution()
@@ -262,6 +274,8 @@ int main(int argc, char* argv[])
 	auto gameDir = std::string();
 	float benchmarkDuration = 0.0f;
 	auto rhiTestBackend = std::string();
+	auto previewBackend = std::string();
+	SDL_Window* previewWindow = nullptr;
 
 	for (int i = 1; i < argc; ++i)
 	{
@@ -290,6 +304,10 @@ int main(int argc, char* argv[])
 		else if (ArgEquals(arg.c_str(), "rhitest") && i + 1 < argc)
 		{
 			rhiTestBackend = argv[++i];
+		}
+		else if (ArgEquals(arg.c_str(), "preview") && i + 1 < argc)
+		{
+			previewBackend = argv[++i];
 		}
 	}
 
@@ -428,11 +446,7 @@ int main(int argc, char* argv[])
 	// Backend validation run: render the RHI test scene, save a screenshot and quit.
 	if (!rhiTestBackend.empty())
 	{
-		auto backend = TEN::Renderer::RHI::Backend::Vulkan;
-		if (rhiTestBackend == "dx11")
-			backend = TEN::Renderer::RHI::Backend::DirectX11;
-		else if (rhiTestBackend == "d3d12")
-			backend = TEN::Renderer::RHI::Backend::Direct3D12;
+		auto backend = ParseRHIBackend(rhiTestBackend);
 
 		SDL_ShowWindow(sdlWindow);
 		bool result = TEN::Renderer::RHI::RunRHITest(sdlWindow, backend, GameDirectory, 120);
@@ -461,6 +475,14 @@ int main(int argc, char* argv[])
 
 		SDL_ShowWindow(sdlWindow);
 		SDL_RaiseWindow(sdlWindow);
+
+		// New renderer preview: a second window rendered by the RHI renderer from the same game state.
+		if (!previewBackend.empty())
+		{
+			previewWindow = SDL_CreateWindow("TombEngine - Next renderer preview", width, height, SDL_WINDOW_RESIZABLE);
+			if (previewWindow == nullptr || !TEN::Renderer::Next::g_NextRenderer.Initialize(previewWindow, ParseRHIBackend(previewBackend), GameDirectory))
+				TENLog("Next renderer preview could not be started.", LogLevel::Error);
+		}
 	}
 	catch (std::exception& ex)
 	{
@@ -508,6 +530,7 @@ int main(int argc, char* argv[])
 	while (running && !ThreadEnded && DoTheGame)
 	{
 		TEN::Benchmark::UpdateBenchmark();
+		TEN::Renderer::Next::g_NextRenderer.PresentOnWindowThread();
 
 		auto event = SDL_Event{};
 		while (SDL_PollEvent(&event))
@@ -571,6 +594,10 @@ int main(int argc, char* argv[])
 
 	// Tear ImGui down before the renderer / window: backends hold raw D3D11 + SDL handles.
 	TEN::Renderer::ImGuiShutdown();
+
+	TEN::Renderer::Next::g_NextRenderer.Shutdown();
+	if (previewWindow != nullptr)
+		SDL_DestroyWindow(previewWindow);
 
 	SDL_DestroyWindow(sdlWindow);
 	EngineClose();

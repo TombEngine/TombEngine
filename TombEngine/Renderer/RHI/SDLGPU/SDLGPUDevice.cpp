@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Renderer/RHI/SDLGPU/SDLGPUDevice.h"
 
+#include <mutex>
 #include <SDL3/SDL_gpu.h>
 
 namespace TEN::Renderer::RHI::SDLGPU
@@ -620,6 +621,23 @@ namespace TEN::Renderer::RHI::SDLGPU
             }
         }
 
+        void BlitTexture(ITexture* source, ITexture* destination) override
+        {
+            const auto& sourceDesc = source->GetDesc();
+            const auto& destinationDesc = destination->GetDesc();
+
+            auto blitInfo = SDL_GPUBlitInfo{};
+            blitInfo.source.texture = GetHandle(source);
+            blitInfo.source.w = sourceDesc.Width;
+            blitInfo.source.h = sourceDesc.Height;
+            blitInfo.destination.texture = GetHandle(destination);
+            blitInfo.destination.w = destinationDesc.Width;
+            blitInfo.destination.h = destinationDesc.Height;
+            blitInfo.load_op = SDL_GPU_LOADOP_DONT_CARE;
+            blitInfo.filter = SDL_GPU_FILTER_LINEAR;
+            SDL_BlitGPUTexture(Handle, &blitInfo);
+        }
+
         void PushDebugGroup(const char* name) override
         {
             SDL_PushGPUDebugGroup(Handle, name);
@@ -654,7 +672,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         PresentMode    _presentMode  = PresentMode::Vsync;
 
         std::vector<std::unique_ptr<SDLGPUCommandBuffer>> _commandBuffers = {};
-        int _nextCommandBuffer = 0;
+        std::mutex _commandBufferMutex = {};
 
     public:
         SDLGPUDevice(SDL_GPUDevice* device, SDL_Window* window, Backend backend, ShaderFormat shaderFormat) :
@@ -960,10 +978,26 @@ namespace TEN::Renderer::RHI::SDLGPU
             SDL_GenerateMipmapsForGPUTexture(((SDLGPUCommandBuffer*)commandBuffer)->Handle, GetHandle(texture));
         }
 
+        // Command buffers can be recorded on different threads, so acquisition picks a wrapper not in use.
         ICommandBuffer* AcquireCommandBuffer() override
         {
-            auto& commandBuffer = _commandBuffers[_nextCommandBuffer];
-            _nextCommandBuffer = (_nextCommandBuffer + 1) % COMMAND_BUFFER_POOL_SIZE;
+            auto lock = std::lock_guard<std::mutex>(_commandBufferMutex);
+
+            SDLGPUCommandBuffer* commandBuffer = nullptr;
+            for (auto& candidate : _commandBuffers)
+            {
+                if (candidate->Handle == nullptr)
+                {
+                    commandBuffer = candidate.get();
+                    break;
+                }
+            }
+
+            if (commandBuffer == nullptr)
+            {
+                TENLog("SDL GPU: too many command buffers recorded at once.", LogLevel::Error);
+                return nullptr;
+            }
 
             commandBuffer->Handle = SDL_AcquireGPUCommandBuffer(_device);
             if (commandBuffer->Handle == nullptr)
@@ -972,7 +1006,7 @@ namespace TEN::Renderer::RHI::SDLGPU
                 return nullptr;
             }
 
-            return commandBuffer.get();
+            return commandBuffer;
         }
 
         PixelFormat GetSwapchainFormat() const override
@@ -1007,6 +1041,11 @@ namespace TEN::Renderer::RHI::SDLGPU
         bool SupportsTextureFormat(PixelFormat format, TextureType type, unsigned int usage) const override
         {
             return SDL_GPUTextureSupportsFormat(_device, ToSDL(format), ToSDL(type), ToSDLTextureUsage(usage));
+        }
+
+        bool RequiresWindowThreadPresent() const override
+        {
+            return true;
         }
     };
 

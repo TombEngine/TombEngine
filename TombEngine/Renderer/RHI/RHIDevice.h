@@ -115,6 +115,10 @@ namespace TEN::Renderer::RHI
         // Each slot maps to register b<slot> of the given stage.
         virtual void PushUniforms(ShaderStage stage, int slot, const void* data, int size) = 0;
 
+        // Copies the whole source texture to the whole destination, scaling with linear filtering
+        // when sizes differ. Must be called outside of passes.
+        virtual void BlitTexture(ITexture* source, ITexture* destination) = 0;
+
         virtual void PushDebugGroup(const char* name) = 0;
         virtual void PopDebugGroup() = 0;
         virtual void InsertDebugLabel(const char* name) = 0;
@@ -153,6 +157,9 @@ namespace TEN::Renderer::RHI
         virtual void        WaitIdle() = 0;
 
         virtual bool SupportsTextureFormat(PixelFormat format, TextureType type, unsigned int usage) const = 0;
+
+        // SDL GPU requires swapchain acquisition on the thread that created the window.
+        virtual bool RequiresWindowThreadPresent() const = 0;
     };
 
     std::unique_ptr<IDevice> CreateDevice(Backend preferredBackend, SDL_Window* window, bool debugMode);

@@ -28,6 +28,7 @@
 #include "Objects/TR5/Emitter/tr5_bats_emitter.h"
 #include "Objects/TR5/Emitter/tr5_rats_emitter.h"
 #include "Renderer/ImGuiIntegration.h"
+#include "Renderer/Next/NextRenderer.h"
 #include "Game/Sky/SkyCloudDebug.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/Renderer.h"
@@ -2300,6 +2301,19 @@ namespace TEN::Renderer
 		_graphicsDevice->EndGpuTiming(GpuTimingScope::Hud);
 
 		CollectFrameStats(view);
+
+		if (Next::g_NextRenderer.IsActive() && renderMode == SceneRenderMode::Full)
+		{
+			auto environment = Next::FrameEnvironment{};
+			environment.CameraPosition = Vector3(cameraConstantBuffer.CamPositionWS.x, cameraConstantBuffer.CamPositionWS.y, cameraConstantBuffer.CamPositionWS.z);
+			environment.FogColor = cameraConstantBuffer.FogColor;
+			environment.FogMinDistance = cameraConstantBuffer.FogMinDistance;
+			environment.FogMaxDistance = cameraConstantBuffer.FogMaxDistance;
+			environment.Frame = cameraConstantBuffer.Frame;
+			environment.InterpolatedFrame = cameraConstantBuffer.InterpolatedFrame;
+			Next::g_NextRenderer.RenderFrame(view, environment);
+		}
+
 		ClearScene();
 		CalculateFrameRate();
 	}
@@ -3764,6 +3778,10 @@ namespace TEN::Renderer
 	{
 		auto renderStartTime = std::chrono::steady_clock::now();
 
+		bool captureScreenshots = TEN::Benchmark::ConsumeBenchmarkScreenshotRequest();
+		if (captureScreenshots && Next::g_NextRenderer.IsActive())
+			Next::g_NextRenderer.RequestScreenshot(g_GameFlow->GetGameDir() + "Logs/Compare_Next.png");
+
 		InterpolateCamera(interpFactor);
 
 		_graphicsDevice->BeginGpuTiming(GpuTimingScope::Frame);
@@ -3781,6 +3799,9 @@ namespace TEN::Renderer
 		ImGuiRenderFrame();
 
 		_graphicsDevice->EndGpuTiming(GpuTimingScope::Frame);
+
+		if (captureScreenshots)
+			_graphicsDevice->SaveScreenshot(_backBuffer->GetRenderTarget(), g_GameFlow->GetGameDir() + "Logs/Compare_Legacy.png");
 
 		auto presentStartTime = std::chrono::steady_clock::now();
 		_graphicsDevice->ClearState();

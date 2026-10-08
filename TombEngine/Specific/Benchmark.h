@@ -36,4 +36,7 @@ namespace TEN::Benchmark
     bool IsBenchmarkActive();
     void UpdateBenchmark();
     void RecordBenchmarkFrame(const BenchmarkFrameStats& stats);
+
+    // True once, at a fixed frame of the recording, so renderers can capture comparable screenshots.
+    bool ConsumeBenchmarkScreenshotRequest();
 }

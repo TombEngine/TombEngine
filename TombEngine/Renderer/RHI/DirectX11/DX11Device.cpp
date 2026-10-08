@@ -695,6 +695,17 @@ namespace TEN::Renderer::RHI::DirectX11
             }
         }
 
+        // Same-size copy only; the new renderer keeps its offscreen target at swapchain size.
+        void BlitTexture(ITexture* source, ITexture* destination) override
+        {
+            const auto& sourceDesc = source->GetDesc();
+            const auto& destinationDesc = destination->GetDesc();
+            if (sourceDesc.Width != destinationDesc.Width || sourceDesc.Height != destinationDesc.Height)
+                return;
+
+            Context->CopySubresourceRegion(((DX11Texture*)destination)->Handle.Get(), 0, 0, 0, 0, ((DX11Texture*)source)->Handle.Get(), 0, nullptr);
+        }
+
         void PushDebugGroup(const char* name) override
         {
             if (Annotation != nullptr)
@@ -1247,6 +1258,11 @@ namespace TEN::Renderer::RHI::DirectX11
                 return false;
 
             return true;
+        }
+
+        bool RequiresWindowThreadPresent() const override
+        {
+            return false;
         }
     };
 
