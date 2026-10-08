@@ -257,8 +257,13 @@ namespace TEN::Renderer
 			memcpy(_stObjects.Bones, item->InterpolatedAnimationTransforms, sizeof(Matrix) * obj.AnimationTransforms.size());
             UpdateConstantBuffer(&_stObjects, _cbObjects.get(), GetObjectsBufferPrefixSize(1));
 
+			const auto& nativeItem = g_Level.Items[item->ItemNumber];
+
 			for (int k = 0; k < item->MeshIndex.size(); k++)
 			{
+				if (!nativeItem.MeshBits.Test(k))
+					continue;
+
 				auto* mesh = GetMesh(item->MeshIndex[k]);
 
 				if (skinMode == SkinningMode::Full && g_Level.Meshes[item->MeshIndex[k]].hidden)
