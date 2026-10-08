@@ -5,7 +5,8 @@ namespace TEN::Benchmark
     struct BenchmarkFrameStats
     {
         float CpuFrameTime       = 0.0f; // Milliseconds between consecutive presented frames.
-        float CpuRenderTime      = 0.0f; // Milliseconds spent in Renderer::Render.
+        float CpuRenderTime      = 0.0f; // Milliseconds spent in Renderer::Render before presenting.
+        float PresentTime        = 0.0f; // Milliseconds blocked in present (vsync, frame pacing, GPU).
         float SortedCollectTime  = 0.0f;
         float SortedSortTime     = 0.0f;
         float SortedDrawTime     = 0.0f;

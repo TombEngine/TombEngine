@@ -3577,10 +3577,11 @@ namespace TEN::Renderer
 		InterpolateCamera(interpFactor);
 		RenderScene(_backBuffer.get(), _gameCamera);
 
+		auto presentStartTime = std::chrono::steady_clock::now();
 		_graphicsDevice->ClearState();
 		_graphicsDevice->Present(); // 1 0
 
-		RecordBenchmarkFrame(renderStartTime);
+		RecordBenchmarkFrame(renderStartTime, presentStartTime);
 	}
 
 	void Renderer::DrawMesh(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view, RendererPass rendererPass)

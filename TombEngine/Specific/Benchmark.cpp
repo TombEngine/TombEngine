@@ -97,7 +97,7 @@ namespace TEN::Benchmark
             return;
         }
 
-        _file << "frame,time_s,cpu_frame_ms,cpu_render_ms,draw_calls,shadow_draw_calls,triangles,"
+        _file << "frame,time_s,cpu_frame_ms,cpu_render_ms,present_ms,draw_calls,shadow_draw_calls,triangles,"
                  "cb_updates,cb_bytes,perdraw_updates,rooms,sorted_faces,sorted_collect_ms,sorted_sort_ms,sorted_draw_ms\n";
 
         _isActive = true;
@@ -168,7 +168,7 @@ namespace TEN::Benchmark
             return;
 
         _file << _recordedFrames << ',' << time << ','
-              << stats.CpuFrameTime << ',' << stats.CpuRenderTime << ','
+              << stats.CpuFrameTime << ',' << stats.CpuRenderTime << ',' << stats.PresentTime << ','
               << stats.DrawCalls << ',' << stats.ShadowMapDrawCalls << ',' << stats.Triangles << ','
               << stats.ConstantBufferUpdates << ',' << stats.ConstantBufferBytes << ',' << stats.PerDrawUpdates << ','
               << stats.RoomsDrawn << ',' << stats.SortedFaces << ','
