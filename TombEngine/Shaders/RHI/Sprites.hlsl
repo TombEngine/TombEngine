@@ -8,11 +8,19 @@
 #include "./Common.hlsli"
 #include "./FrameUniforms.hlsli"
 
+// Colors are real uint fields: integer bits stored in float components can be altered by drivers
+// that canonicalize NaN patterns (opaque RGBA8 colors are NaN when read as float).
+struct SpriteCorner
+{
+    float3 Position;
+    uint   Color; // Packed RGBA8.
+};
+
 struct SpriteInstance
 {
-    float4 Corners[4]; // xyz = world position, w = packed RGBA8 color.
-    float4 UVX;
-    float4 UVY;
+    SpriteCorner Corners[4];
+    float4       UVX;
+    float4       UVY;
 };
 
 TEN_VS_STORAGE_BUFFER(SpriteInstance, Sprites, 0);
@@ -41,13 +49,13 @@ float4 UnpackColor(uint packedColor)
 PixelInput VS(VertexInput input)
 {
     SpriteInstance sprite = Sprites[input.InstanceIndex];
-    float4 corner = sprite.Corners[input.Corner];
+    SpriteCorner corner = sprite.Corners[input.Corner];
 
     PixelInput output;
-    output.Position = mul(float4(corner.xyz, 1.0f), ViewProjection);
+    output.Position = mul(float4(corner.Position, 1.0f), ViewProjection);
     output.UV = float2(sprite.UVX[input.Corner], sprite.UVY[input.Corner]);
-    output.Color = UnpackColor(asuint(corner.w));
-    output.Fog = GetDistanceFog(corner.xyz, CameraPosition, FogMinDistance, FogMaxDistance);
+    output.Color = UnpackColor(corner.Color);
+    output.Fog = GetDistanceFog(corner.Position, CameraPosition, FogMinDistance, FogMaxDistance);
     return output;
 }
 
