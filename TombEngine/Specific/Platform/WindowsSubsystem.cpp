@@ -99,7 +99,21 @@ namespace TEN::Platform
 
 		// Try to resolve symbol name from address.
 		auto process = GetCurrentProcess();
+		SymSetOptions(SymGetOptions() | SYMOPT_LOAD_LINES);
 		SymInitialize(process, nullptr, TRUE);
+
+		// Source file and line, when debug symbols are available.
+		auto getSourceLocation = [&](DWORD64 codeAddress)
+		{
+			auto line = IMAGEHLP_LINE64{};
+			line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+
+			DWORD displacement = 0;
+			if (!SymGetLineFromAddr64(process, codeAddress, &displacement, &line))
+				return std::string();
+
+			return " " + std::string(line.FileName) + ":" + std::to_string(line.LineNumber);
+		};
 
 		DWORD64 address = (DWORD64)exceptionInfo->ExceptionRecord->ExceptionAddress;
 		char symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME];
@@ -111,7 +125,7 @@ namespace TEN::Platform
 		auto oss = std::ostringstream();
 		if (SymFromAddr(process, address, 0, symbol))
 		{
-			oss << "address " << symbol->Name << " (0x" << std::hex << address << ")";
+			oss << "address " << symbol->Name << " (0x" << std::hex << address << ")" << getSourceLocation(address);
 		}
 		else
 		{
@@ -161,7 +175,7 @@ namespace TEN::Platform
 					break;
 
 				if (SymFromAddr(process, stack.AddrPC.Offset, 0, symbol))
-					oss << "  [" << frame << "] " << symbol->Name << " (0x" << std::hex << stack.AddrPC.Offset << ")\n";
+					oss << "  [" << frame << "] " << symbol->Name << " (0x" << std::hex << stack.AddrPC.Offset << ")" << getSourceLocation(stack.AddrPC.Offset) << "\n";
 				else
 					oss << "  [" << frame << "] " << "0x" << std::hex << stack.AddrPC.Offset << "\n";
 			}
