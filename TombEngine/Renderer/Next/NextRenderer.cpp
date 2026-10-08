@@ -5,6 +5,8 @@
 #include "Renderer/RenderView.h"
 #include "Renderer/RHI/ShaderLibrary.h"
 #include "Renderer/RHI/TextureCapture.h"
+#include "Game/Animation/Animation.h"
+#include "Game/effects/hair.h"
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
 #include "Objects/game_object_ids.h"
@@ -14,6 +16,7 @@
 #include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererRoom.h"
 #include "Renderer/Structures/RendererSortableObject.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/level.h"
 
 using namespace TEN::Renderer::RHI;
@@ -899,6 +902,62 @@ namespace TEN::Renderer::Next
         addHolster(Lara.Control.Weapon.HolsterInfo.LeftHolster, LM_LTHIGH, false);
         addHolster(Lara.Control.Weapon.HolsterInfo.RightHolster, LM_RTHIGH, false);
         addHolster(Lara.Control.Weapon.HolsterInfo.BackHolster, LM_TORSO, true);
+
+        CollectPlayerHair(*item, item->AmbientLight, lightOffset, lightCount, interpolationFactor);
+    }
+
+    // Hair units use their own bone palette: the head attachment followed by one matrix per simulated
+    // segment, as in the legacy DrawLaraHair. The legacy renderer updates segment interpolation data while
+    // drawing, so the matrices are only read here.
+    void NextRenderer::CollectPlayerHair(const RendererItem& item, const Vector4& ambientLight, int lightOffset, int lightCount, float interpolationFactor)
+    {
+        using namespace TEN::Effects::Hair;
+
+        for (int unitIndex = 0; unitIndex < (int)HairEffect.Units.size(); unitIndex++)
+        {
+            const auto& unit = HairEffect.Units[unitIndex];
+            if (!unit.IsEnabled || !Objects[unit.ObjectID].loaded)
+                continue;
+
+            const auto& hairObject = (*_legacyGeometry.MoveableObjects)[unit.ObjectID];
+            if (!hairObject.has_value())
+                continue;
+
+            bool isSkinned = (Objects[unit.ObjectID].skinIndex != NO_VALUE && g_GameFlow->GetSettings()->Graphics.Skinning);
+            bool isFlipped = isSkinned || GetJointOffset(unit.ObjectID, 1, false).z < 0.0f;
+
+            Matrix bones[BONE_COUNT_MAX];
+            int boneCount = 1;
+            bones[0] = item.InterpolatedAnimationTransforms[HairUnit::GetRootMeshID(unitIndex)] * item.InterpolatedWorld;
+
+            for (const auto& segment : unit.Segments)
+            {
+                if (boneCount >= BONE_COUNT_MAX)
+                    break;
+
+                auto world = Matrix::CreateFromQuaternion(Quaternion::Lerp(segment.PrevOrientation, segment.Orientation, interpolationFactor)) *
+                             Matrix::CreateTranslation(Vector3::Lerp(segment.PrevPosition, segment.Position, interpolationFactor));
+
+                if (isFlipped)
+                    world = Matrix::CreateRotationY(PI) * world;
+
+                bones[boneCount++] = world;
+            }
+
+            int boneOffset = AddBones(bones, boneCount);
+            int instance = AddInstance(Matrix::Identity, item.Color, ambientLight, LightMode::Dynamic, lightOffset, lightCount, boneOffset,
+                isSkinned ? SKINNING_FULL : SKINNING_RIGID);
+
+            if (isSkinned)
+            {
+                AddMeshDraws(*(*_legacyGeometry.Meshes)[Objects[unit.ObjectID].skinIndex], instance);
+            }
+            else
+            {
+                for (const auto* mesh : hairObject->ObjectMeshes)
+                    AddMeshDraws(*mesh, instance);
+            }
+        }
     }
 
     void NextRenderer::UploadFrameStorage(ICommandBuffer& commandBuffer, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name)

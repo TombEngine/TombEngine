@@ -177,6 +177,7 @@ namespace TEN::Renderer::Next
         void CreateGeometryBuffers(GeometryBuffers& buffers, const std::vector<Graphics::Vertices::Vertex>& vertices, const std::vector<int>& indices, const std::string& name);
         void CollectObjects(const RenderView& view, float interpolationFactor);
         void CollectPlayer(float interpolationFactor);
+        void CollectPlayerHair(const Structures::RendererItem& item, const Vector4& ambientLight, int lightOffset, int lightCount, float interpolationFactor);
         int  AddInstance(const Matrix& world, const Vector4& color, const Vector4& ambientLight, LightMode lightMode, int lightOffset, int lightCount, int boneOffset, int skinningMode);
         int  AddBones(const Matrix* bones, int count);
         void AddMeshDraws(const Structures::RendererMesh& mesh, int instance);
