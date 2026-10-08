@@ -19,6 +19,7 @@ namespace TEN::Renderer::Structures
     struct RendererBucket;
     struct RendererMesh;
     struct RendererObject;
+    struct RendererLight;
 }
 
 namespace TEN::Renderer::Next
@@ -48,8 +49,9 @@ namespace TEN::Renderer::Next
         Vector4      FogColor          = Vector4::Zero;
         float        FogMinDistance    = 0.0f;
         float        FogMaxDistance    = 0.0f;
-        unsigned int Frame             = 0;
-        float        InterpolatedFrame = 0.0f;
+        unsigned int Frame               = 0;
+        float        InterpolatedFrame   = 0.0f;
+        float        InterpolationFactor = 0.0f;
     };
 
     // New RHI-based renderer. During the migration it draws into a separate preview window, fed by the
@@ -75,6 +77,14 @@ namespace TEN::Renderer::Next
             const Structures::RendererBucket* Bucket        = nullptr;
             int                               FirstInstance = 0;
             int                               InstanceCount = 0;
+        };
+
+        // GPU buffer rewritten every frame from CPU data through a cycled transfer buffer.
+        struct FrameStorageBuffer
+        {
+            std::unique_ptr<RHI::IBuffer>         Buffer   = nullptr;
+            std::unique_ptr<RHI::ITransferBuffer> Transfer = nullptr;
+            int                                   Capacity = 0;
         };
 
         struct GeometryBuffers
@@ -112,12 +122,13 @@ namespace TEN::Renderer::Next
         LegacyLevelGeometry           _legacyGeometry   = {};
 
         // Frame instance data: collected on the CPU, uploaded once per frame before the scene pass.
-        std::unique_ptr<RHI::IBuffer>         _instanceIndexBuffer    = nullptr;
-        std::unique_ptr<RHI::IBuffer>         _instanceBuffer         = nullptr;
-        std::unique_ptr<RHI::ITransferBuffer> _instanceTransferBuffer = nullptr;
-        int                                   _instanceCapacity       = 0;
-        std::vector<unsigned char>            _instanceData           = {};
-        std::vector<ObjectDraw>               _objectDraws            = {};
+        std::unique_ptr<RHI::IBuffer> _instanceIndexBuffer = nullptr;
+        FrameStorageBuffer            _instanceBuffer      = {};
+        FrameStorageBuffer            _lightBuffer         = {};
+        std::vector<unsigned char>    _instanceData        = {};
+        std::vector<unsigned char>    _lightData           = {};
+        std::vector<ObjectDraw>       _objectDraws         = {};
+        int                           _roomLightCount      = 0;
         bool                          _isLevelLoaded    = false;
 
         // Offscreen frame handed from the render thread to the window thread.
@@ -138,8 +149,9 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IGraphicsPipeline> CreateObjectsPipeline(bool additive);
         void LoadTextureSet(const std::vector<::TEXTURE>& source, std::vector<RoomTexture>& destination, const std::string& name);
         void CreateGeometryBuffers(GeometryBuffers& buffers, const std::vector<Graphics::Vertices::Vertex>& vertices, const std::vector<int>& indices, const std::string& name);
-        void CollectObjects(const RenderView& view);
-        void UploadInstances(RHI::ICommandBuffer& commandBuffer);
+        void CollectObjects(const RenderView& view, float interpolationFactor);
+        int  AddLights(const std::vector<Structures::RendererLight*>& lights, float interpolationFactor, int roomNumber, int prevRoomNumber, float fade, int& lightOffset);
+        void UploadFrameStorage(RHI::ICommandBuffer& commandBuffer, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, const char* name);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool additive);
         void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, bool additive);
 

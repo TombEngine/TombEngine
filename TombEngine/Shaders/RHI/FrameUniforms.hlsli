@@ -30,9 +30,10 @@ TEN_PS_UNIFORMS(FramePixelUniforms, 0)
 
 TEN_PS_UNIFORMS(DrawPixelUniforms, 1)
 {
-    float  AlphaThreshold;
-    uint   BlendMode;
-    float2 PixelPadding;
+    float AlphaThreshold;
+    uint  BlendMode;
+    uint  LightOffset; // Rooms only: slice of the frame light buffer.
+    uint  LightCount;  // Light count in the low 16 bits, light type mask in the high bits.
 };
 
 #endif // TEN_FRAME_UNIFORMS

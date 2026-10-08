@@ -1,17 +1,19 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=2
-// TEN_SHADER: Pixel PS samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=2
+// TEN_SHADER: Pixel PS samplers=1 storage_textures=0 storage_buffers=1 uniform_buffers=2
 
-// Room geometry with baked vertex lighting, animated textures and distance fog.
-// Dynamic lights, fog bulbs and materials are ported in later milestones.
+// Room geometry: baked vertex lighting plus the room's dynamic lights, animated textures and distance fog.
+// Normal maps, specular, shadows, decals and fog bulbs are ported in later milestones.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
 #include "./FrameUniforms.hlsli"
+#include "./Lighting.hlsli"
 
 TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
 TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
 
 TEN_PS_TEXTURE(Texture2D, ColorMap, 0);
+TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 1);
 
 struct VertexInput
 {
@@ -20,15 +22,18 @@ struct VertexInput
     TEN_LOCATION(2) float4 Color         : TEXCOORD2;
     TEN_LOCATION(3) uint   Effects       : TEXCOORD3;
     TEN_LOCATION(4) uint   AnimationData : TEXCOORD4;
+    TEN_LOCATION(5) float4 Normal        : TEXCOORD5;
 };
 
 struct PixelInput
 {
-    float4 Position             : SV_POSITION;
-    float2 UV                   : TEXCOORD0;
-    float4 Color                : TEXCOORD1;
-    float  Fog                  : TEXCOORD2;
-    nointerpolation float3 UVScroll : TEXCOORD3; // xy: scroll offset, z: 1 when UV rotation applies.
+    float4 Position                 : SV_POSITION;
+    float2 UV                       : TEXCOORD0;
+    float4 Color                    : TEXCOORD1;
+    float  Fog                      : TEXCOORD2;
+    nointerpolation float3 UVScroll : TEXCOORD3;
+    float3 WorldPosition            : TEXCOORD4;
+    float3 Normal                   : TEXCOORD5;
 };
 
 PixelInput VS(VertexInput input)
@@ -53,8 +58,30 @@ PixelInput VS(VertexInput input)
     }
 
     output.Color = input.Color;
+    output.WorldPosition = input.Position;
+    output.Normal = input.Normal.xyz;
     output.Fog = GetDistanceFog(input.Position, CameraPosition, FogMinDistance, FogMaxDistance);
     return output;
+}
+
+float3 GetRoomLighting(float3 vertexColor, float3 position, float3 normal)
+{
+    float3 lighting = vertexColor * COLOR_MODULATION_SCALE;
+
+    uint count = LightCount & LT_MASK;
+    bool onlyPointLights = (LightCount & ~LT_MASK) == LT_MASK_POINT;
+
+    for (uint i = 0; i < count; i++)
+    {
+        GpuLight light = Lights[LightOffset + i];
+
+        if (onlyPointLights || light.Type == LT_POINT)
+            lighting += DoPointLight(position, normal, light) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
+        else if (light.Type == LT_SPOT)
+            lighting += DoSpotLight(position, normal, light) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
+    }
+
+    return lighting;
 }
 
 float4 PS(PixelInput input) : SV_TARGET
@@ -64,6 +91,7 @@ float4 PS(PixelInput input) : SV_TARGET
     float4 color = ColorMap.Sample(ColorMapSampler, uv);
     clip(color.a - AlphaThreshold);
 
-    color.rgb = saturate(color.rgb * input.Color.rgb * COLOR_MODULATION_SCALE);
+    float3 lighting = GetRoomLighting(input.Color.rgb, input.WorldPosition, normalize(input.Normal));
+    color.rgb = saturate(color.rgb * lighting);
     return ApplyDistanceFog(color, FogColor, input.Fog, BlendMode);
 }

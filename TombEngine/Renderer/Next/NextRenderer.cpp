@@ -8,6 +8,7 @@
 #include "Game/Setup.h"
 #include "Objects/game_object_ids.h"
 #include "Renderer/Structures/RendererAnimatedTextureSet.h"
+#include "Renderer/Structures/RendererLight.h"
 #include "Renderer/Structures/RendererMesh.h"
 #include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererRoom.h"
@@ -52,8 +53,26 @@ namespace TEN::Renderer::Next
     {
         float        AlphaThreshold = 0.0f;
         unsigned int BlendMode      = 0;
-        float        Padding[2]     = {};
+        unsigned int LightOffset    = 0;
+        unsigned int LightCount     = 0;
     };
+
+    // Same layout as the legacy ShaderLight and GpuLight in Lighting.hlsli.
+    struct GpuLight
+    {
+        Vector3      Position  = Vector3::Zero;
+        unsigned int Type      = 0;
+        Vector3      Color     = Vector3::Zero;
+        float        Intensity = 0.0f;
+        Vector3      Direction = Vector3::Zero;
+        float        In        = 0.0f;
+        float        Out       = 0.0f;
+        float        InRange   = 0.0f;
+        float        OutRange  = 0.0f;
+        float        Padding   = 0.0f;
+    };
+
+    static_assert(sizeof(GpuLight) == 64, "GpuLight must match Lighting.hlsli.");
 
     struct GpuAnimatedFrame
     {
@@ -77,7 +96,9 @@ namespace TEN::Renderer::Next
         Vector4      Color        = Vector4::One;
         Vector4      AmbientLight = Vector4::One;
         unsigned int LightMode    = 0;
-        unsigned int Padding[3]   = {};
+        unsigned int LightOffset  = 0;
+        unsigned int LightCount   = 0;
+        unsigned int Padding      = 0;
     };
 
     static_assert(sizeof(GpuObjectInstance) == 112, "GpuObjectInstance must match ObjectInstance in Common.hlsli.");
@@ -123,8 +144,8 @@ namespace TEN::Renderer::Next
         _moveableTextures.clear();
         _staticGeometry = {};
         _moveableGeometry = {};
-        _instanceBuffer = nullptr;
-        _instanceTransferBuffer = nullptr;
+        _instanceBuffer = {};
+        _lightBuffer = {};
         _instanceIndexBuffer = nullptr;
         _animatedFramesBuffer = nullptr;
         _animatedSetsBuffer = nullptr;
@@ -219,12 +240,13 @@ namespace TEN::Renderer::Next
         desc.PixelShader = _roomsPixelShader.get();
         desc.Layout.NumBuffers = 1;
         desc.Layout.Buffers[0] = VertexBufferLayout{ 0, (int)sizeof(Vertex), VertexInputRate::Vertex };
-        desc.Layout.NumAttributes = 5;
+        desc.Layout.NumAttributes = 6;
         desc.Layout.Attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::Float3, (int)offsetof(Vertex, Position) };
         desc.Layout.Attributes[1] = VertexAttribute{ 1, 0, VertexElementFormat::Float2, (int)offsetof(Vertex, UV) };
         desc.Layout.Attributes[2] = VertexAttribute{ 2, 0, VertexElementFormat::UByte4Norm, (int)offsetof(Vertex, Color) };
         desc.Layout.Attributes[3] = VertexAttribute{ 3, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, Effects) };
         desc.Layout.Attributes[4] = VertexAttribute{ 4, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, AnimationFrameOffsetIndexHash) };
+        desc.Layout.Attributes[5] = VertexAttribute{ 5, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Normal) };
         desc.NumColorTargets = 1;
         desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
         desc.DepthFormat = PixelFormat::D32Float;
@@ -252,13 +274,14 @@ namespace TEN::Renderer::Next
         desc.Layout.NumBuffers = 2;
         desc.Layout.Buffers[0] = VertexBufferLayout{ 0, (int)sizeof(Vertex), VertexInputRate::Vertex };
         desc.Layout.Buffers[1] = VertexBufferLayout{ 1, (int)sizeof(unsigned int), VertexInputRate::Instance };
-        desc.Layout.NumAttributes = 6;
+        desc.Layout.NumAttributes = 7;
         desc.Layout.Attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::Float3, (int)offsetof(Vertex, Position) };
         desc.Layout.Attributes[1] = VertexAttribute{ 1, 0, VertexElementFormat::Float2, (int)offsetof(Vertex, UV) };
         desc.Layout.Attributes[2] = VertexAttribute{ 2, 0, VertexElementFormat::UByte4Norm, (int)offsetof(Vertex, Color) };
         desc.Layout.Attributes[3] = VertexAttribute{ 3, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, Effects) };
         desc.Layout.Attributes[4] = VertexAttribute{ 4, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, AnimationFrameOffsetIndexHash) };
         desc.Layout.Attributes[5] = VertexAttribute{ 5, 1, VertexElementFormat::UInt, 0 };
+        desc.Layout.Attributes[6] = VertexAttribute{ 6, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Normal) };
         desc.NumColorTargets = 1;
         desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
         desc.DepthFormat = PixelFormat::D32Float;
@@ -513,6 +536,9 @@ namespace TEN::Renderer::Next
         IBuffer* storageBuffers[2] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get() };
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 2);
 
+        IBuffer* lightBuffer = _lightBuffer.Buffer.get();
+        renderPass.BindPixelStorageBuffers(0, &lightBuffer, 1);
+
         auto lastPixelUniforms = DrawPixelUniforms{ -1.0f };
         int lastAnimatedSet = INT_MIN;
         const ITexture* lastTexture = nullptr;
@@ -537,6 +563,8 @@ namespace TEN::Renderer::Next
                 auto pixelUniforms = DrawPixelUniforms{};
                 pixelUniforms.AlphaThreshold = (bucket.BlendMode == BlendMode::AlphaTest) ? ALPHA_TEST_THRESHOLD : 0.0f;
                 pixelUniforms.BlendMode = (unsigned int)bucket.BlendMode;
+                pixelUniforms.LightOffset = 0;
+                pixelUniforms.LightCount = (unsigned int)_roomLightCount;
                 if (pixelUniforms.AlphaThreshold != lastPixelUniforms.AlphaThreshold || pixelUniforms.BlendMode != lastPixelUniforms.BlendMode)
                 {
                     commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &pixelUniforms, sizeof(pixelUniforms));
@@ -571,19 +599,86 @@ namespace TEN::Renderer::Next
 
     // Builds the frame instance data and the instanced draw list. Statics are grouped by object type, so each
     // mesh bucket of a type is a single draw; rigid moveable meshes get one instance each.
-    void NextRenderer::CollectObjects(const RenderView& view)
+    // Appends lights to the frame light buffer as the legacy BindLight does: interpolated positions, spot
+    // ranges as cosines and, for moveables, intensity faded between the current and previous room.
+    // Returns the light count with the light type mask in the high bits.
+    int NextRenderer::AddLights(const std::vector<RendererLight*>& lights, float interpolationFactor, int roomNumber, int prevRoomNumber, float fade, int& lightOffset)
+    {
+        lightOffset = (int)(_lightData.size() / sizeof(GpuLight));
+
+        int count = 0;
+        int typeMask = 0;
+        for (const auto* light : lights)
+        {
+            float fadeCoeff = 1.0f;
+            if (!light->AffectNeighbourRooms && roomNumber != NO_VALUE && light->RoomNumber != NO_VALUE)
+            {
+                if (light->RoomNumber == roomNumber)
+                    fadeCoeff = fade;
+                else if (light->RoomNumber == prevRoomNumber)
+                    fadeCoeff = 1.0f - fade;
+                else
+                    continue;
+            }
+
+            if (fadeCoeff == 0.0f)
+                continue;
+
+            auto gpuLight = GpuLight{};
+            gpuLight.Position = light->Position;
+            gpuLight.Type = (unsigned int)light->Type;
+            gpuLight.Color = light->Color;
+            gpuLight.Intensity = light->Intensity * fadeCoeff;
+            gpuLight.Direction = light->Direction;
+            gpuLight.In = light->In;
+            gpuLight.Out = light->Out;
+            gpuLight.InRange = light->InRange;
+            gpuLight.OutRange = light->OutRange;
+
+            if (light->Type == LightType::Spot)
+            {
+                gpuLight.InRange = cos(light->InRange * (PI / 180.0f));
+                gpuLight.OutRange = cos(light->OutRange * (PI / 180.0f));
+            }
+
+            if (light->Hash != 0)
+            {
+                gpuLight.Position = Vector3::Lerp(light->PrevPosition, light->Position, interpolationFactor);
+                gpuLight.Direction = Vector3::Lerp(light->PrevDirection, light->Direction, interpolationFactor);
+            }
+
+            gpuLight.Direction.Normalize();
+
+            const auto* bytes = (const unsigned char*)&gpuLight;
+            _lightData.insert(_lightData.end(), bytes, bytes + sizeof(gpuLight));
+
+            typeMask |= (1 << (31 - (int)light->Type));
+            count++;
+        }
+
+        return count | typeMask;
+    }
+
+    void NextRenderer::CollectObjects(const RenderView& view, float interpolationFactor)
     {
         _instanceData.clear();
+        _lightData.clear();
         _objectDraws.clear();
 
+        // Rooms share the view light list, as in the legacy renderer.
+        int roomLightOffset = 0;
+        _roomLightCount = AddLights(view.LightsToDraw, interpolationFactor, NO_VALUE, NO_VALUE, 1.0f, roomLightOffset);
+
         int instanceCount = 0;
-        auto addInstance = [&](const Matrix& world, const Vector4& color, const Vector4& ambientLight, LightMode lightMode)
+        auto addInstance = [&](const Matrix& world, const Vector4& color, const Vector4& ambientLight, LightMode lightMode, int lightOffset, int lightCount)
         {
             auto instance = GpuObjectInstance{};
             instance.World = world;
             instance.Color = color;
             instance.AmbientLight = ambientLight;
             instance.LightMode = (unsigned int)lightMode;
+            instance.LightOffset = (unsigned int)lightOffset;
+            instance.LightCount = (unsigned int)lightCount;
 
             const auto* bytes = (const unsigned char*)&instance;
             _instanceData.insert(_instanceData.end(), bytes, bytes + sizeof(instance));
@@ -606,7 +701,11 @@ namespace TEN::Renderer::Next
             const auto* mesh = object->ObjectMeshes[0];
             int firstInstance = instanceCount;
             for (const auto* staticMesh : statics)
-                addInstance(staticMesh->World, staticMesh->Color, staticMesh->AmbientLight, mesh->LightMode);
+            {
+                int lightOffset = 0;
+                int lightCount = AddLights(staticMesh->LightsToDraw, interpolationFactor, NO_VALUE, NO_VALUE, 1.0f, lightOffset);
+                addInstance(staticMesh->World, staticMesh->Color, staticMesh->AmbientLight, mesh->LightMode, lightOffset, lightCount);
+            }
 
             for (const auto& bucket : mesh->Buckets)
             {
@@ -631,6 +730,10 @@ namespace TEN::Renderer::Next
                     continue;
 
                 const auto& nativeItem = g_Level.Items[item->ItemNumber];
+
+                int lightOffset = 0;
+                int lightCount = AddLights(item->LightsToDraw, interpolationFactor, item->RoomNumber, item->PrevRoomNumber, item->LightFade, lightOffset);
+
                 for (int meshIndex = 0; meshIndex < (int)item->MeshIndex.size(); meshIndex++)
                 {
                     if (!nativeItem.MeshBits.Test(meshIndex))
@@ -638,7 +741,7 @@ namespace TEN::Renderer::Next
 
                     const auto* mesh = (*_legacyGeometry.Meshes)[item->MeshIndex[meshIndex]];
                     auto world = item->InterpolatedAnimationTransforms[meshIndex] * item->InterpolatedWorld;
-                    int instance = addInstance(world, item->Color, item->AmbientLight, mesh->LightMode);
+                    int instance = addInstance(world, item->Color, item->AmbientLight, mesh->LightMode, lightOffset, lightCount);
 
                     for (const auto& bucket : mesh->Buckets)
                     {
@@ -650,42 +753,42 @@ namespace TEN::Renderer::Next
         }
     }
 
-    void NextRenderer::UploadInstances(ICommandBuffer& commandBuffer)
+    void NextRenderer::UploadFrameStorage(ICommandBuffer& commandBuffer, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, const char* name)
     {
-        int instanceCount = (int)(_instanceData.size() / sizeof(GpuObjectInstance));
-        if (instanceCount == 0)
-            return;
-
-        if (instanceCount > _instanceCapacity || _instanceBuffer == nullptr)
+        // Storage buffers cannot be empty, so the smallest buffer holds one element.
+        int dataSize = std::max((int)data.size(), stride);
+        if (dataSize > storage.Capacity || storage.Buffer == nullptr)
         {
-            _instanceCapacity = std::max(INITIAL_INSTANCE_CAPACITY, instanceCount * 2);
-            int capacitySize = _instanceCapacity * (int)sizeof(GpuObjectInstance);
-            _instanceBuffer = _device->CreateBuffer(BufferDesc{ capacitySize, (int)sizeof(GpuObjectInstance), BufferUsage::GraphicsStorageRead, "Frame.Instances" });
-            _instanceTransferBuffer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, capacitySize);
+            storage.Capacity = std::max(dataSize * 2, stride * INITIAL_INSTANCE_CAPACITY);
+            storage.Buffer = _device->CreateBuffer(BufferDesc{ storage.Capacity, stride, BufferUsage::GraphicsStorageRead, name });
+            storage.Transfer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, storage.Capacity);
         }
 
-        // Cycling renames buffers still in use by previous frames instead of stalling.
-        int dataSize = (int)_instanceData.size();
-        memcpy(_device->MapTransferBuffer(_instanceTransferBuffer.get(), true), _instanceData.data(), dataSize);
-        _device->UnmapTransferBuffer(_instanceTransferBuffer.get());
+        if (data.empty())
+            return;
 
-        commandBuffer.PushDebugGroup("Upload instances");
+        // Cycling renames buffers still in use by previous frames instead of stalling.
+        memcpy(_device->MapTransferBuffer(storage.Transfer.get(), true), data.data(), data.size());
+        _device->UnmapTransferBuffer(storage.Transfer.get());
+
         auto* copyPass = commandBuffer.BeginCopyPass();
-        copyPass->UploadToBuffer(_instanceTransferBuffer.get(), 0, _instanceBuffer.get(), 0, dataSize, true);
+        copyPass->UploadToBuffer(storage.Transfer.get(), 0, storage.Buffer.get(), 0, (int)data.size(), true);
         commandBuffer.EndCopyPass();
-        commandBuffer.PopDebugGroup();
     }
 
     void NextRenderer::DrawObjects(ICommandBuffer& commandBuffer, IRenderPass& renderPass, bool additive)
     {
-        if (_objectDraws.empty() || _instanceBuffer == nullptr)
+        if (_objectDraws.empty() || _instanceBuffer.Buffer == nullptr)
             return;
 
         commandBuffer.PushDebugGroup(additive ? "Objects additive" : "Objects opaque");
         renderPass.BindPipeline(additive ? _objectsAdditivePipeline.get() : _objectsPipeline.get());
 
-        IBuffer* storageBuffers[3] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.get() };
+        IBuffer* storageBuffers[3] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get() };
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 3);
+
+        IBuffer* lightBuffer = _lightBuffer.Buffer.get();
+        renderPass.BindPixelStorageBuffers(0, &lightBuffer, 1);
 
         auto lastSource = (MeshSource)-1;
         auto lastPixelUniforms = DrawPixelUniforms{ -1.0f };
@@ -776,8 +879,12 @@ namespace TEN::Renderer::Next
         auto framePixelUniforms = FramePixelUniforms{ environment.FogColor };
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 0, &framePixelUniforms, sizeof(framePixelUniforms));
 
-        CollectObjects(view);
-        UploadInstances(*commandBuffer);
+        CollectObjects(view, environment.InterpolationFactor);
+
+        commandBuffer->PushDebugGroup("Upload frame data");
+        UploadFrameStorage(*commandBuffer, _instanceBuffer, _instanceData, (int)sizeof(GpuObjectInstance), "Frame.Instances");
+        UploadFrameStorage(*commandBuffer, _lightBuffer, _lightData, (int)sizeof(GpuLight), "Frame.Lights");
+        commandBuffer->PopDebugGroup();
 
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = _colorTarget.get();

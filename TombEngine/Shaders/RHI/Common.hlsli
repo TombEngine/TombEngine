@@ -47,7 +47,9 @@ struct ObjectInstance
     float4   Color;
     float4   AmbientLight;
     uint     LightMode;
-    uint3    Padding;
+    uint     LightOffset;
+    uint     LightCount; // Light count in the low 16 bits, light type mask in the high bits.
+    uint     Padding;
 };
 
 float Luma(float3 color)

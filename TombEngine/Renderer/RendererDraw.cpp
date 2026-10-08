@@ -2311,6 +2311,7 @@ namespace TEN::Renderer
 			environment.FogMaxDistance = cameraConstantBuffer.FogMaxDistance;
 			environment.Frame = cameraConstantBuffer.Frame;
 			environment.InterpolatedFrame = cameraConstantBuffer.InterpolatedFrame;
+			environment.InterpolationFactor = GetInterpolationFactor();
 			Next::g_NextRenderer.RenderFrame(view, environment);
 		}
 
