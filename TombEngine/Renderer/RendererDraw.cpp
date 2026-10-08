@@ -2241,6 +2241,7 @@ namespace TEN::Renderer
 		_timeFrame = (std::chrono::duration_cast<ns>(time2 - time1)).count() / 1000000;
 		time1 = time2;
 
+		CollectFrameStats(view);
 		ClearScene();
 		CalculateFrameRate();
 	}
@@ -3571,11 +3572,15 @@ namespace TEN::Renderer
 
 	void Renderer::Render(float interpFactor)
 	{
+		auto renderStartTime = std::chrono::steady_clock::now();
+
 		InterpolateCamera(interpFactor);
 		RenderScene(_backBuffer.get(), _gameCamera);
 
 		_graphicsDevice->ClearState();
 		_graphicsDevice->Present(); // 1 0
+
+		RecordBenchmarkFrame(renderStartTime);
 	}
 
 	void Renderer::DrawMesh(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view, RendererPass rendererPass)

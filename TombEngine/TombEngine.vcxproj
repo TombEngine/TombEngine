@@ -1032,6 +1032,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClInclude Include="Specific\Platform\WindowsSubsystem.h" />
     <ClInclude Include="Specific\Structures\RGBAColor8Byte.h" />
     <ClInclude Include="Specific\Serialization\Flatbuffers.h" />
+    <ClInclude Include="Specific\Benchmark.h" />
     <ClInclude Include="Specific\clock.h" />
     <ClInclude Include="Specific\configuration.h" />
     <ClInclude Include="Specific\Serialization\flatbuffers\ten_configuration_generated.h" />
@@ -1520,6 +1521,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Scripting\Internal\TEN\Types\Vec3\Vec3.cpp" />
     <ClCompile Include="Scripting\Internal\TEN\View\ViewHandler.cpp" />
     <ClCompile Include="Sound\sound.cpp" />
+    <ClCompile Include="Specific\Benchmark.cpp" />
     <ClCompile Include="Specific\clock.cpp" />
     <ClCompile Include="Specific\configuration.cpp" />
     <ClCompile Include="Specific\Serialization\Flatbuffers.cpp" />
