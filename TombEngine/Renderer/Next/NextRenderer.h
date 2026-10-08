@@ -58,6 +58,7 @@ namespace TEN::Renderer::Next
         unsigned int Frame               = 0;
         float        InterpolatedFrame   = 0.0f;
         float        InterpolationFactor = 0.0f;
+        bool         IsCameraUnderwater  = false;
     };
 
     struct NextFrameStats
@@ -125,6 +126,7 @@ namespace TEN::Renderer::Next
             MeshSource                        Source     = MeshSource::Statics;
             bool                              IsRoom     = false;
             bool                              IsSprite   = false;
+            bool                              IsWaterRoom = false;
             const Structures::RendererBucket* Bucket     = nullptr;
             BlendMode                         BlendMode  = BlendMode::AlphaBlend;
             int                               FirstIndex = 0;

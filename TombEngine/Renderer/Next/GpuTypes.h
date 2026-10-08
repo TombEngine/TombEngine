@@ -18,13 +18,14 @@ namespace TEN::Renderer::Next
         float        FogMaxDistance    = 0.0f;
         unsigned int Frame             = 0;
         float        InterpolatedFrame = 0.0f;
-        float        Padding           = 0.0f;
+        unsigned int CameraUnderwater  = 0;
     };
 
     struct DrawVertexUniforms
     {
-        int   AnimatedSetIndex = NO_VALUE;
-        float Padding[3]       = {};
+        int          AnimatedSetIndex = NO_VALUE;
+        unsigned int IsWaterRoom      = 0;
+        float        Padding[2]       = {};
     };
 
     struct FramePixelUniforms

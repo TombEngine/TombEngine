@@ -550,7 +550,7 @@ namespace TEN::Renderer::Next
         renderPass.BindPixelStorageBuffers(0, &lightBuffer, 1);
 
         auto lastPixelUniforms = DrawPixelUniforms{ -1.0f };
-        int lastAnimatedSet = INT_MIN;
+        auto lastVertexUniforms = DrawVertexUniforms{ INT_MIN };
         const ITexture* lastTexture = nullptr;
 
         // Opaque rooms are drawn front to back (portal traversal order) for early depth rejection,
@@ -559,6 +559,7 @@ namespace TEN::Renderer::Next
         for (int roomIndex = 0; roomIndex < roomCount; roomIndex++)
         {
             const auto* room = view.RoomsToDraw[additive ? (roomCount - 1 - roomIndex) : roomIndex];
+            unsigned int isWaterRoom = (g_Level.Rooms[room->RoomNumber].flags & ENV_FLAG_WATER) ? 1 : 0;
 
             for (const auto& bucket : room->Buckets)
             {
@@ -581,12 +582,11 @@ namespace TEN::Renderer::Next
                     lastPixelUniforms = pixelUniforms;
                 }
 
-                int animatedSet = bucket.Animated ? bucket.Texture : NO_VALUE;
-                if (animatedSet != lastAnimatedSet)
+                auto vertexUniforms = DrawVertexUniforms{ bucket.Animated ? bucket.Texture : NO_VALUE, isWaterRoom };
+                if (vertexUniforms.AnimatedSetIndex != lastVertexUniforms.AnimatedSetIndex || vertexUniforms.IsWaterRoom != lastVertexUniforms.IsWaterRoom)
                 {
-                    auto vertexUniforms = DrawVertexUniforms{ animatedSet };
                     commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &vertexUniforms, sizeof(vertexUniforms));
-                    lastAnimatedSet = animatedSet;
+                    lastVertexUniforms = vertexUniforms;
                 }
 
                 const auto& textures = bucket.Animated ? _animatedTextures : _roomTextures;
@@ -1178,6 +1178,7 @@ namespace TEN::Renderer::Next
             auto draw = SortedDraw{};
             draw.Source = source;
             draw.IsRoom = (object.ObjectType == RendererObjectType::Room);
+            draw.IsWaterRoom = draw.IsRoom && (g_Level.Rooms[object.Room->RoomNumber].flags & ENV_FLAG_WATER);
             draw.Bucket = object.Bucket;
             draw.BlendMode = object.BlendMode;
             draw.FirstIndex = firstIndex;
@@ -1202,7 +1203,7 @@ namespace TEN::Renderer::Next
 
         const IGraphicsPipeline* lastPipeline = nullptr;
         int lastSource = NO_VALUE;
-        int lastAnimatedSet = INT_MIN;
+        auto lastVertexUniforms = DrawVertexUniforms{ INT_MIN };
         const ITexture* lastTexture = nullptr;
 
         for (const auto& draw : _sortedDraws)
@@ -1244,12 +1245,11 @@ namespace TEN::Renderer::Next
             pixelUniforms.LightCount = draw.IsRoom ? (unsigned int)_roomLightCount : 0;
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &pixelUniforms, sizeof(pixelUniforms));
 
-            int animatedSet = bucket.Animated ? bucket.Texture : NO_VALUE;
-            if (animatedSet != lastAnimatedSet)
+            auto vertexUniforms = DrawVertexUniforms{ bucket.Animated ? bucket.Texture : NO_VALUE, draw.IsWaterRoom ? 1u : 0u };
+            if (vertexUniforms.AnimatedSetIndex != lastVertexUniforms.AnimatedSetIndex || vertexUniforms.IsWaterRoom != lastVertexUniforms.IsWaterRoom)
             {
-                auto vertexUniforms = DrawVertexUniforms{ animatedSet };
                 commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &vertexUniforms, sizeof(vertexUniforms));
-                lastAnimatedSet = animatedSet;
+                lastVertexUniforms = vertexUniforms;
             }
 
             const auto& textures = bucket.Animated ? _animatedTextures :
@@ -1470,6 +1470,7 @@ namespace TEN::Renderer::Next
         frameVertexUniforms.FogMaxDistance = environment.FogMaxDistance;
         frameVertexUniforms.Frame = environment.Frame;
         frameVertexUniforms.InterpolatedFrame = environment.InterpolatedFrame;
+        frameVertexUniforms.CameraUnderwater = environment.IsCameraUnderwater ? 1 : 0;
         commandBuffer->PushUniforms(RHI::ShaderStage::Vertex, 0, &frameVertexUniforms, sizeof(frameVertexUniforms));
 
         auto framePixelUniforms = FramePixelUniforms{ environment.FogColor };

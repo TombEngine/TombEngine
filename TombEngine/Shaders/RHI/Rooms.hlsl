@@ -1,8 +1,8 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=2
 // TEN_SHADER: Pixel PS samplers=1 storage_textures=0 storage_buffers=1 uniform_buffers=2
 
-// Room geometry: baked vertex lighting plus the room's dynamic lights, animated textures and distance fog.
-// Normal maps, specular, shadows, decals and fog bulbs are ported in later milestones.
+// Room geometry: baked vertex lighting plus the room's dynamic lights, animated textures, vertex effects,
+// water refraction and distance fog. Normal maps, specular, shadows, decals and fog bulbs are ported later.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -38,8 +38,21 @@ struct PixelInput
 
 PixelInput VS(VertexInput input)
 {
+    // The weight bit keeps portal vertices still and enables refraction.
+    float weight = DecodeWeight(input.Effects);
+    float wibble = Wibble(input.Effects, DecodeHash(input.AnimationData), InterpolatedFrame);
+    float3 position = Move(input.Position, (weight > 0.0f) ? input.Effects : 0, wibble);
+
+    float4 clipPosition = mul(float4(position, 1.0f), ViewProjection);
+    if (CameraUnderwater != IsWaterRoom)
+    {
+        float factor = (InterpolatedFrame + (position.x + position.z) * 0.2f) * 3.14159265359f / 20.0f;
+        clipPosition.x += sin(factor) * (clipPosition.z / 1024.0f) * 3.0f * weight;
+        clipPosition.y += cos(factor) * (clipPosition.z / 1024.0f) * 3.0f * weight;
+    }
+
     PixelInput output;
-    output.Position = mul(float4(input.Position, 1.0f), ViewProjection);
+    output.Position = clipPosition;
     output.UV = input.UV;
     output.UVScroll = float3(0.0f, 0.0f, 0.0f);
 
@@ -57,10 +70,10 @@ PixelInput VS(VertexInput input)
         }
     }
 
-    output.Color = input.Color;
-    output.WorldPosition = input.Position;
+    output.Color = float4(Glow(input.Color.rgb, input.Effects, wibble), input.Color.a);
+    output.WorldPosition = position;
     output.Normal = input.Normal.xyz;
-    output.Fog = GetDistanceFog(input.Position, CameraPosition, FogMinDistance, FogMaxDistance);
+    output.Fog = GetDistanceFog(position, CameraPosition, FogMinDistance, FogMaxDistance);
     return output;
 }
 

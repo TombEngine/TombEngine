@@ -67,6 +67,49 @@ uint DecodeAnimationFrameOffset(uint animationData)
     return (animationData >> 24) & 0xFF;
 }
 
+// Vertex effects, ported from the legacy VertexEffects.hlsli.
+
+#define WIBBLE_FRAME_PERIOD 64.0f
+
+float DecodeGlow(uint effects)
+{
+    return (float)(effects & 0xFF) / 255.0f;
+}
+
+float DecodeMove(uint effects)
+{
+    return (float)((effects >> 8) & 0xFF) / 255.0f;
+}
+
+float DecodeWeight(uint effects)
+{
+    return (float)((effects >> 24) & 0x1);
+}
+
+uint DecodeHash(uint animationData)
+{
+    return animationData & 0xFF;
+}
+
+float Wibble(uint effects, uint hash, float interpolatedFrame)
+{
+    float enabled = ((DecodeGlow(effects) + DecodeMove(effects)) > 0.0f) ? 1.0f : 0.0f;
+    float phase = frac(interpolatedFrame / WIBBLE_FRAME_PERIOD + (float)hash / 256.0f);
+    return sin(phase * 6.28318530718f) * enabled;
+}
+
+float3 Glow(float3 color, uint effects, float wibble)
+{
+    float intensity = DecodeGlow(effects) * lerp(-0.5f, 1.0f, wibble * 0.5f + 0.5f) * 0.5f;
+    return color + intensity;
+}
+
+float3 Move(float3 position, uint effects, float wibble)
+{
+    float offset = wibble * DecodeMove(effects) * DecodeWeight(effects) * 128.0f;
+    return position + float3(0.0f, offset, 0.0f);
+}
+
 uint GetAnimatedFrameIndex(AnimatedSet set, uint frame, uint frameOffset)
 {
     float speed = (float)set.Fps / 30.0f;

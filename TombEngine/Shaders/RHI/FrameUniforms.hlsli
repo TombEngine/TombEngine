@@ -14,13 +14,14 @@ TEN_VS_UNIFORMS(FrameVertexUniforms, 0)
     float    FogMaxDistance;
     uint     Frame;
     float    InterpolatedFrame;
-    float    FramePadding;
+    uint     CameraUnderwater;
 };
 
 TEN_VS_UNIFORMS(DrawVertexUniforms, 1)
 {
     int    AnimatedSetIndex;
-    float3 DrawPadding;
+    uint   IsWaterRoom; // Rooms only: water rooms seen from outside the water are refracted.
+    float2 DrawPadding;
 };
 
 TEN_PS_UNIFORMS(FramePixelUniforms, 0)

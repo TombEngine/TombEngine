@@ -80,7 +80,8 @@ PixelInput VS(VertexInput input)
     if (skinningMode != SKINNING_NONE)
         world = mul(BlendBones(Bones, instance.Skinning & 0xFFFFFF, input.BoneIndices, input.BoneWeights, skinningMode), instance.World);
 
-    float4 worldPosition = mul(float4(input.Position, 1.0f), world);
+    float wibble = Wibble(input.Effects, DecodeHash(input.AnimationData), InterpolatedFrame);
+    float4 worldPosition = mul(float4(Move(input.Position, input.Effects, wibble), 1.0f), world);
 
     PixelInput output;
     output.Position = mul(worldPosition, ViewProjection);
@@ -101,7 +102,7 @@ PixelInput VS(VertexInput input)
         }
     }
 
-    output.Color = float4(input.Color.rgb * instance.Color.rgb, input.Color.a * instance.Color.a);
+    output.Color = float4(Glow(input.Color.rgb, input.Effects, wibble) * instance.Color.rgb, input.Color.a * instance.Color.a);
     output.AmbientLight = instance.AmbientLight.rgb;
     output.LightMode = instance.LightMode;
     output.LightSlice = uint2(instance.LightOffset, instance.LightCount);
