@@ -545,7 +545,7 @@ namespace TEN::Renderer
 
 					newEffect.InterpolatedPosition = Vector3::Lerp(newEffect.PrevPosition, newEffect.Position, GetInterpolationFactor());
 					newEffect.InterpolatedTranslation = Matrix::Lerp(newEffect.PrevTranslation, newEffect.Translation, GetInterpolationFactor());
-					newEffect.InterpolatedRotation = Matrix::Lerp(newEffect.InterpolatedRotation, newEffect.Rotation, GetInterpolationFactor());
+					newEffect.InterpolatedRotation = Matrix::Lerp(newEffect.PrevRotation, newEffect.Rotation, GetInterpolationFactor());
 					newEffect.InterpolatedWorld = Matrix::Lerp(newEffect.PrevWorld, newEffect.World, GetInterpolationFactor());
 					newEffect.InterpolatedScale = Matrix::Lerp(newEffect.PrevScale, newEffect.Scale, GetInterpolationFactor());
 

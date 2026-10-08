@@ -527,8 +527,8 @@ namespace TEN::Renderer
 
 			newItem.InterpolatedPosition = Vector3::Lerp(newItem.PrevPosition, newItem.Position, interpFactor);
 			newItem.InterpolatedTranslation = Matrix::Lerp(newItem.PrevTranslation, newItem.Translation, interpFactor);
-			newItem.InterpolatedRotation = Matrix::Lerp(newItem.InterpolatedRotation, newItem.Rotation, interpFactor);
-			newItem.InterpolatedScale = Matrix::Lerp(newItem.InterpolatedScale, newItem.Scale, interpFactor);
+			newItem.InterpolatedRotation = Matrix::Lerp(newItem.PrevRotation, newItem.Rotation, interpFactor);
+			newItem.InterpolatedScale = Matrix::Lerp(newItem.PrevScale, newItem.Scale, interpFactor);
 			newItem.InterpolatedWorld = Matrix::Lerp(newItem.PrevWorld, newItem.World, interpFactor);
 			
 			for (int j = 0; j < BONE_COUNT_MAX; j++)
@@ -581,7 +581,7 @@ namespace TEN::Renderer
 		float interpFactor = GetInterpolationFactor();
 		effect.InterpolatedPosition = Vector3::Lerp(effect.PrevPosition, effect.Position, interpFactor);
 		effect.InterpolatedTranslation = Matrix::Lerp(effect.PrevTranslation, effect.Translation, interpFactor);
-		effect.InterpolatedRotation = Matrix::Lerp(effect.InterpolatedRotation, effect.Rotation, interpFactor);
+		effect.InterpolatedRotation = Matrix::Lerp(effect.PrevRotation, effect.Rotation, interpFactor);
 		effect.InterpolatedWorld = Matrix::Lerp(effect.PrevWorld, effect.World, interpFactor);
 		effect.InterpolatedScale = Matrix::Lerp(effect.PrevScale, effect.Scale, interpFactor);
 
