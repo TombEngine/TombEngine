@@ -5,7 +5,11 @@
 #include "Renderer/RenderView.h"
 #include "Renderer/RHI/ShaderLibrary.h"
 #include "Renderer/RHI/TextureCapture.h"
+#include "Game/Setup.h"
+#include "Objects/game_object_ids.h"
 #include "Renderer/Structures/RendererAnimatedTextureSet.h"
+#include "Renderer/Structures/RendererMesh.h"
+#include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererRoom.h"
 #include "Specific/level.h"
 
@@ -15,7 +19,9 @@ using TEN::Renderer::Graphics::Vertices::Vertex;
 
 namespace TEN::Renderer::Next
 {
-    constexpr auto ALPHA_TEST_THRESHOLD = 0.5f;
+    constexpr auto ALPHA_TEST_THRESHOLD      = 0.5f;
+    constexpr auto INSTANCE_INDEX_COUNT      = 65536;
+    constexpr auto INITIAL_INSTANCE_CAPACITY = 4096;
 
     NextRenderer g_NextRenderer;
 
@@ -65,6 +71,16 @@ namespace TEN::Renderer::Next
         float        Padding[2]        = {};
     };
 
+    struct GpuObjectInstance
+    {
+        Matrix       World        = Matrix::Identity;
+        Vector4      Color        = Vector4::One;
+        Vector4      AmbientLight = Vector4::One;
+        unsigned int LightMode    = 0;
+        unsigned int Padding[3]   = {};
+    };
+
+    static_assert(sizeof(GpuObjectInstance) == 112, "GpuObjectInstance must match ObjectInstance in Common.hlsli.");
     static_assert(sizeof(FrameVertexUniforms) == 96, "FrameVertexUniforms must match Rooms.hlsl.");
     static_assert(sizeof(GpuAnimatedFrame) == 32, "GpuAnimatedFrame must match Common.hlsli.");
     static_assert(sizeof(GpuAnimatedSet) == 32, "GpuAnimatedSet must match Common.hlsli.");
@@ -102,6 +118,21 @@ namespace TEN::Renderer::Next
 
         _device->WaitIdle();
         _roomTextures.clear();
+        _animatedTextures.clear();
+        _staticTextures.clear();
+        _moveableTextures.clear();
+        _staticGeometry = {};
+        _moveableGeometry = {};
+        _instanceBuffer = nullptr;
+        _instanceTransferBuffer = nullptr;
+        _instanceIndexBuffer = nullptr;
+        _animatedFramesBuffer = nullptr;
+        _animatedSetsBuffer = nullptr;
+        _objectsPipeline = nullptr;
+        _objectsAdditivePipeline = nullptr;
+        _objectsVertexShader = nullptr;
+        _objectsPixelShader = nullptr;
+        _roomsAdditivePipeline = nullptr;
         _roomVertexBuffer = nullptr;
         _roomIndexBuffer = nullptr;
         _colorTarget = nullptr;
@@ -130,6 +161,26 @@ namespace TEN::Renderer::Next
         _roomsAdditivePipeline = CreateRoomsPipeline(true);
         if (_roomsPipeline == nullptr || _roomsAdditivePipeline == nullptr)
             return false;
+
+        _objectsVertexShader = LoadShader(*_device, _shaderDirectory, "Objects", "VS");
+        _objectsPixelShader = LoadShader(*_device, _shaderDirectory, "Objects", "PS");
+        if (_objectsVertexShader == nullptr || _objectsPixelShader == nullptr)
+            return false;
+
+        _objectsPipeline = CreateObjectsPipeline(false);
+        _objectsAdditivePipeline = CreateObjectsPipeline(true);
+        if (_objectsPipeline == nullptr || _objectsAdditivePipeline == nullptr)
+            return false;
+
+        // Instance index stream: entry N holds N, so with an instance-rate fetch the shader receives
+        // firstInstance + instance on every backend, unlike SV_InstanceID.
+        auto instanceIndices = std::vector<unsigned int>(INSTANCE_INDEX_COUNT);
+        for (int i = 0; i < INSTANCE_INDEX_COUNT; i++)
+            instanceIndices[i] = i;
+
+        int instanceIndexSize = INSTANCE_INDEX_COUNT * (int)sizeof(unsigned int);
+        _instanceIndexBuffer = _device->CreateBuffer(BufferDesc{ instanceIndexSize, 0, BufferUsage::Vertex, "InstanceIndices" });
+        UploadBuffer(_instanceIndexBuffer.get(), instanceIndices.data(), instanceIndexSize);
 
         auto samplerDesc = SamplerDesc{};
         samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW = AddressMode::ClampToEdge;
@@ -178,6 +229,40 @@ namespace TEN::Renderer::Next
         desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
         desc.DepthFormat = PixelFormat::D32Float;
         desc.Name = additive ? "Rooms.Additive" : "Rooms.Opaque";
+
+        if (additive)
+        {
+            auto& blend = desc.ColorTargets[0].Blend;
+            blend.EnableBlend = true;
+            blend.SrcColor = BlendFactor::SrcAlpha;
+            blend.DstColor = BlendFactor::One;
+            blend.SrcAlpha = BlendFactor::SrcAlpha;
+            blend.DstAlpha = BlendFactor::One;
+            desc.DepthStencil.EnableDepthWrite = false;
+        }
+
+        return _device->CreateGraphicsPipeline(desc);
+    }
+
+    std::unique_ptr<IGraphicsPipeline> NextRenderer::CreateObjectsPipeline(bool additive)
+    {
+        auto desc = GraphicsPipelineDesc{};
+        desc.VertexShader = _objectsVertexShader.get();
+        desc.PixelShader = _objectsPixelShader.get();
+        desc.Layout.NumBuffers = 2;
+        desc.Layout.Buffers[0] = VertexBufferLayout{ 0, (int)sizeof(Vertex), VertexInputRate::Vertex };
+        desc.Layout.Buffers[1] = VertexBufferLayout{ 1, (int)sizeof(unsigned int), VertexInputRate::Instance };
+        desc.Layout.NumAttributes = 6;
+        desc.Layout.Attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::Float3, (int)offsetof(Vertex, Position) };
+        desc.Layout.Attributes[1] = VertexAttribute{ 1, 0, VertexElementFormat::Float2, (int)offsetof(Vertex, UV) };
+        desc.Layout.Attributes[2] = VertexAttribute{ 2, 0, VertexElementFormat::UByte4Norm, (int)offsetof(Vertex, Color) };
+        desc.Layout.Attributes[3] = VertexAttribute{ 3, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, Effects) };
+        desc.Layout.Attributes[4] = VertexAttribute{ 4, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, AnimationFrameOffsetIndexHash) };
+        desc.Layout.Attributes[5] = VertexAttribute{ 5, 1, VertexElementFormat::UInt, 0 };
+        desc.NumColorTargets = 1;
+        desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
+        desc.DepthFormat = PixelFormat::D32Float;
+        desc.Name = additive ? "Objects.Additive" : "Objects.Opaque";
 
         if (additive)
         {
@@ -297,6 +382,8 @@ namespace TEN::Renderer::Next
         _isLevelLoaded = false;
         _roomTextures.clear();
         _animatedTextures.clear();
+        _staticTextures.clear();
+        _moveableTextures.clear();
 
         int vertexDataSize = (int)(geometry.RoomVertices->size() * sizeof(Vertex));
         int indexDataSize = (int)(geometry.RoomIndices->size() * sizeof(int));
@@ -308,14 +395,14 @@ namespace TEN::Renderer::Next
         UploadBuffer(_roomVertexBuffer.get(), geometry.RoomVertices->data(), vertexDataSize);
         UploadBuffer(_roomIndexBuffer.get(), geometry.RoomIndices->data(), indexDataSize);
 
-        for (int i = 0; i < (int)g_Level.RoomTextures.size(); i++)
-        {
-            auto roomTexture = RoomTexture{};
-            roomTexture.ColorMap = CreateLevelTexture(g_Level.RoomTextures[i].colorMapData, "RoomAtlas[" + std::to_string(i) + "].Color");
-            _roomTextures.push_back(std::move(roomTexture));
-        }
-
+        LoadTextureSet(g_Level.RoomTextures, _roomTextures, "RoomAtlas");
+        LoadTextureSet(g_Level.StaticsTextures, _staticTextures, "StaticAtlas");
+        LoadTextureSet(g_Level.MoveablesTextures, _moveableTextures, "MoveableAtlas");
         LoadAnimatedTextures(geometry);
+
+        CreateGeometryBuffers(_staticGeometry, *geometry.StaticVertices, *geometry.StaticIndices, "Statics");
+        CreateGeometryBuffers(_moveableGeometry, *geometry.MoveableVertices, *geometry.MoveableIndices, "Moveables");
+        _legacyGeometry = geometry;
 
         _isLevelLoaded = true;
 
@@ -341,6 +428,33 @@ namespace TEN::Renderer::Next
         float elapsed = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - startTime).count();
         TENLog(fmt::format("Next renderer: level data uploaded in {:.1f} ms ({} room vertices, {} room textures).",
             elapsed, geometry.RoomVertices->size(), _roomTextures.size()), LogLevel::Info);
+    }
+
+    void NextRenderer::LoadTextureSet(const std::vector<::TEXTURE>& source, std::vector<RoomTexture>& destination, const std::string& name)
+    {
+        destination.clear();
+        for (int i = 0; i < (int)source.size(); i++)
+        {
+            auto texture = RoomTexture{};
+            texture.ColorMap = CreateLevelTexture(source[i].colorMapData, name + "[" + std::to_string(i) + "].Color");
+            destination.push_back(std::move(texture));
+        }
+    }
+
+    void NextRenderer::CreateGeometryBuffers(GeometryBuffers& buffers, const std::vector<Vertex>& vertices, const std::vector<int>& indices, const std::string& name)
+    {
+        buffers.Vertices = nullptr;
+        buffers.Indices = nullptr;
+
+        int vertexDataSize = (int)(vertices.size() * sizeof(Vertex));
+        int indexDataSize = (int)(indices.size() * sizeof(int));
+        if (vertexDataSize == 0 || indexDataSize == 0)
+            return;
+
+        buffers.Vertices = _device->CreateBuffer(BufferDesc{ vertexDataSize, 0, BufferUsage::Vertex, name + ".Vertices" });
+        buffers.Indices = _device->CreateBuffer(BufferDesc{ indexDataSize, 0, BufferUsage::Index, name + ".Indices" });
+        UploadBuffer(buffers.Vertices.get(), vertices.data(), vertexDataSize);
+        UploadBuffer(buffers.Indices.get(), indices.data(), indexDataSize);
     }
 
     // All animated texture sets live in two static storage buffers, so drawing an animated bucket only
@@ -455,6 +569,180 @@ namespace TEN::Renderer::Next
         commandBuffer.PopDebugGroup();
     }
 
+    // Builds the frame instance data and the instanced draw list. Statics are grouped by object type, so each
+    // mesh bucket of a type is a single draw; rigid moveable meshes get one instance each.
+    void NextRenderer::CollectObjects(const RenderView& view)
+    {
+        _instanceData.clear();
+        _objectDraws.clear();
+
+        int instanceCount = 0;
+        auto addInstance = [&](const Matrix& world, const Vector4& color, const Vector4& ambientLight, LightMode lightMode)
+        {
+            auto instance = GpuObjectInstance{};
+            instance.World = world;
+            instance.Color = color;
+            instance.AmbientLight = ambientLight;
+            instance.LightMode = (unsigned int)lightMode;
+
+            const auto* bytes = (const unsigned char*)&instance;
+            _instanceData.insert(_instanceData.end(), bytes, bytes + sizeof(instance));
+            return instanceCount++;
+        };
+
+        for (const auto& [objectNumber, statics] : view.SortedStaticsToDraw)
+        {
+            if (statics.empty())
+                continue;
+
+            int objectIndex = Statics.GetIndex(objectNumber);
+            if (objectIndex < 0 || objectIndex >= (int)_legacyGeometry.StaticObjects->size())
+                continue;
+
+            const auto& object = (*_legacyGeometry.StaticObjects)[objectIndex];
+            if (!object.has_value() || object->ObjectMeshes.empty())
+                continue;
+
+            const auto* mesh = object->ObjectMeshes[0];
+            int firstInstance = instanceCount;
+            for (const auto* staticMesh : statics)
+                addInstance(staticMesh->World, staticMesh->Color, staticMesh->AmbientLight, mesh->LightMode);
+
+            for (const auto& bucket : mesh->Buckets)
+            {
+                if (bucket.NumIndices > 0)
+                    _objectDraws.push_back(ObjectDraw{ MeshSource::Statics, &bucket, firstInstance, (int)statics.size() });
+            }
+        }
+
+        for (const auto* room : view.RoomsToDraw)
+        {
+            for (const auto* item : room->ItemsToDraw)
+            {
+                // The player, waterfalls and skinned objects are ported in a later milestone.
+                if (item->ObjectID == ID_LARA || item->SkinIndex != NO_VALUE ||
+                    (item->ObjectID >= ID_WATERFALL1 && item->ObjectID <= ID_WATERFALLSS2))
+                {
+                    continue;
+                }
+
+                const auto& object = (*_legacyGeometry.MoveableObjects)[item->ObjectID];
+                if (!object.has_value() || object->Hidden)
+                    continue;
+
+                const auto& nativeItem = g_Level.Items[item->ItemNumber];
+                for (int meshIndex = 0; meshIndex < (int)item->MeshIndex.size(); meshIndex++)
+                {
+                    if (!nativeItem.MeshBits.Test(meshIndex))
+                        continue;
+
+                    const auto* mesh = (*_legacyGeometry.Meshes)[item->MeshIndex[meshIndex]];
+                    auto world = item->InterpolatedAnimationTransforms[meshIndex] * item->InterpolatedWorld;
+                    int instance = addInstance(world, item->Color, item->AmbientLight, mesh->LightMode);
+
+                    for (const auto& bucket : mesh->Buckets)
+                    {
+                        if (bucket.NumIndices > 0)
+                            _objectDraws.push_back(ObjectDraw{ MeshSource::Moveables, &bucket, instance, 1 });
+                    }
+                }
+            }
+        }
+    }
+
+    void NextRenderer::UploadInstances(ICommandBuffer& commandBuffer)
+    {
+        int instanceCount = (int)(_instanceData.size() / sizeof(GpuObjectInstance));
+        if (instanceCount == 0)
+            return;
+
+        if (instanceCount > _instanceCapacity || _instanceBuffer == nullptr)
+        {
+            _instanceCapacity = std::max(INITIAL_INSTANCE_CAPACITY, instanceCount * 2);
+            int capacitySize = _instanceCapacity * (int)sizeof(GpuObjectInstance);
+            _instanceBuffer = _device->CreateBuffer(BufferDesc{ capacitySize, (int)sizeof(GpuObjectInstance), BufferUsage::GraphicsStorageRead, "Frame.Instances" });
+            _instanceTransferBuffer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, capacitySize);
+        }
+
+        // Cycling renames buffers still in use by previous frames instead of stalling.
+        int dataSize = (int)_instanceData.size();
+        memcpy(_device->MapTransferBuffer(_instanceTransferBuffer.get(), true), _instanceData.data(), dataSize);
+        _device->UnmapTransferBuffer(_instanceTransferBuffer.get());
+
+        commandBuffer.PushDebugGroup("Upload instances");
+        auto* copyPass = commandBuffer.BeginCopyPass();
+        copyPass->UploadToBuffer(_instanceTransferBuffer.get(), 0, _instanceBuffer.get(), 0, dataSize, true);
+        commandBuffer.EndCopyPass();
+        commandBuffer.PopDebugGroup();
+    }
+
+    void NextRenderer::DrawObjects(ICommandBuffer& commandBuffer, IRenderPass& renderPass, bool additive)
+    {
+        if (_objectDraws.empty() || _instanceBuffer == nullptr)
+            return;
+
+        commandBuffer.PushDebugGroup(additive ? "Objects additive" : "Objects opaque");
+        renderPass.BindPipeline(additive ? _objectsAdditivePipeline.get() : _objectsPipeline.get());
+
+        IBuffer* storageBuffers[3] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.get() };
+        renderPass.BindVertexStorageBuffers(0, storageBuffers, 3);
+
+        auto lastSource = (MeshSource)-1;
+        auto lastPixelUniforms = DrawPixelUniforms{ -1.0f };
+        int lastAnimatedSet = INT_MIN;
+        const ITexture* lastTexture = nullptr;
+
+        for (const auto& draw : _objectDraws)
+        {
+            const auto& bucket = *draw.Bucket;
+            bool isAdditive = (bucket.BlendMode == BlendMode::Additive);
+            bool isOpaque = (bucket.BlendMode == BlendMode::Opaque || bucket.BlendMode == BlendMode::AlphaTest);
+            if ((additive && !isAdditive) || (!additive && !isOpaque))
+                continue;
+
+            if (draw.Source != lastSource)
+            {
+                const auto& geometry = (draw.Source == MeshSource::Statics) ? _staticGeometry : _moveableGeometry;
+                BufferBinding vertexBindings[2] = { { geometry.Vertices.get(), 0 }, { _instanceIndexBuffer.get(), 0 } };
+                renderPass.BindVertexBuffers(0, vertexBindings, 2);
+                renderPass.BindIndexBuffer(BufferBinding{ geometry.Indices.get(), 0 }, IndexSize::Bits32);
+                lastSource = draw.Source;
+            }
+
+            auto pixelUniforms = DrawPixelUniforms{};
+            pixelUniforms.AlphaThreshold = (bucket.BlendMode == BlendMode::AlphaTest) ? ALPHA_TEST_THRESHOLD : 0.0f;
+            pixelUniforms.BlendMode = (unsigned int)bucket.BlendMode;
+            if (pixelUniforms.AlphaThreshold != lastPixelUniforms.AlphaThreshold || pixelUniforms.BlendMode != lastPixelUniforms.BlendMode)
+            {
+                commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &pixelUniforms, sizeof(pixelUniforms));
+                lastPixelUniforms = pixelUniforms;
+            }
+
+            int animatedSet = bucket.Animated ? bucket.Texture : NO_VALUE;
+            if (animatedSet != lastAnimatedSet)
+            {
+                auto vertexUniforms = DrawVertexUniforms{ animatedSet };
+                commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &vertexUniforms, sizeof(vertexUniforms));
+                lastAnimatedSet = animatedSet;
+            }
+
+            const auto& textures = bucket.Animated ? _animatedTextures : ((draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures);
+            auto* texture = (bucket.Texture >= 0 && bucket.Texture < (int)textures.size() && textures[bucket.Texture].ColorMap != nullptr) ?
+                textures[bucket.Texture].ColorMap.get() : _whiteTexture.get();
+
+            if (texture != lastTexture)
+            {
+                auto binding = TextureSamplerBinding{ texture, _anisotropicSampler.get() };
+                renderPass.BindPixelSamplers(0, &binding, 1);
+                lastTexture = texture;
+            }
+
+            renderPass.DrawIndexed(bucket.NumIndices, draw.InstanceCount, bucket.StartIndex, 0, draw.FirstInstance);
+        }
+
+        commandBuffer.PopDebugGroup();
+    }
+
     void NextRenderer::RenderFrame(const RenderView& view, const FrameEnvironment& environment)
     {
         if (_device == nullptr || !_isLevelLoaded)
@@ -488,6 +776,9 @@ namespace TEN::Renderer::Next
         auto framePixelUniforms = FramePixelUniforms{ environment.FogColor };
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 0, &framePixelUniforms, sizeof(framePixelUniforms));
 
+        CollectObjects(view);
+        UploadInstances(*commandBuffer);
+
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = _colorTarget.get();
         colorTarget.ClearColor[0] = environment.FogColor.x;
@@ -502,7 +793,9 @@ namespace TEN::Renderer::Next
         commandBuffer->PushDebugGroup("Scene");
         auto* renderPass = commandBuffer->BeginRenderPass(&colorTarget, 1, &depthTarget);
         DrawRooms(*commandBuffer, *renderPass, view, false);
+        DrawObjects(*commandBuffer, *renderPass, false);
         DrawRooms(*commandBuffer, *renderPass, view, true);
+        DrawObjects(*commandBuffer, *renderPass, true);
         commandBuffer->EndRenderPass();
         commandBuffer->PopDebugGroup();
 

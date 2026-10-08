@@ -37,6 +37,19 @@ struct AnimatedSet
     float2 Padding;
 };
 
+#define LIGHT_MODE_DYNAMIC 0
+#define LIGHT_MODE_STATIC  1
+
+// Per-instance data of statics and moveable meshes, read through the instance index stream.
+struct ObjectInstance
+{
+    float4x4 World;
+    float4   Color;
+    float4   AmbientLight;
+    uint     LightMode;
+    uint3    Padding;
+};
+
 float Luma(float3 color)
 {
     return (color.x * 0.2126f) + (color.y * 0.7152f) + (color.z * 0.0722f);

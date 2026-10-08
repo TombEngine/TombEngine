@@ -897,7 +897,21 @@ namespace TEN::Renderer
 		}
 
 		if (Next::g_NextRenderer.IsActive())
-			Next::g_NextRenderer.LoadLevel(Next::LegacyLevelGeometry{ &_roomsVertices, &_roomsIndices, &_rooms, &_animatedTextureSets });
+		{
+			auto geometry = Next::LegacyLevelGeometry{};
+			geometry.RoomVertices = &_roomsVertices;
+			geometry.RoomIndices = &_roomsIndices;
+			geometry.Rooms = &_rooms;
+			geometry.AnimatedTextureSets = &_animatedTextureSets;
+			geometry.StaticVertices = &_staticsVertices;
+			geometry.StaticIndices = &_staticsIndices;
+			geometry.MoveableVertices = &_moveablesVertices;
+			geometry.MoveableIndices = &_moveablesIndices;
+			geometry.StaticObjects = &_staticObjects;
+			geometry.MoveableObjects = &_moveableObjects;
+			geometry.Meshes = &_meshes;
+			Next::g_NextRenderer.LoadLevel(geometry);
+		}
 
 		return true;
 	}

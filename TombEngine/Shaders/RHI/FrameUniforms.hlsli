@@ -1,0 +1,38 @@
+#ifndef TEN_FRAME_UNIFORMS
+#define TEN_FRAME_UNIFORMS
+
+// Uniform blocks shared by the scene shaders. Slot 0 is pushed once per frame, slot 1 per draw.
+// Layouts are mirrored by the C++ structs in Renderer/Next/NextRenderer.cpp.
+
+#include "./ShaderInterop.hlsli"
+
+TEN_VS_UNIFORMS(FrameVertexUniforms, 0)
+{
+    float4x4 ViewProjection;
+    float3   CameraPosition;
+    float    FogMinDistance;
+    float    FogMaxDistance;
+    uint     Frame;
+    float    InterpolatedFrame;
+    float    FramePadding;
+};
+
+TEN_VS_UNIFORMS(DrawVertexUniforms, 1)
+{
+    int    AnimatedSetIndex;
+    float3 DrawPadding;
+};
+
+TEN_PS_UNIFORMS(FramePixelUniforms, 0)
+{
+    float4 FogColor;
+};
+
+TEN_PS_UNIFORMS(DrawPixelUniforms, 1)
+{
+    float  AlphaThreshold;
+    uint   BlendMode;
+    float2 PixelPadding;
+};
+
+#endif // TEN_FRAME_UNIFORMS
