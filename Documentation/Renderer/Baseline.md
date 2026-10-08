@@ -25,7 +25,11 @@ Benchmark levels: `Benchmark_tut1_water`, `Benchmark_karnak`, `Benchmark_coastal
 compiled from `Build/Debug/TE Test Levels/*.prj2` with the headless TombLib compiler (see the recompile
 commands in the session notes); their textures, sky and sounds are taken from `E:\trle`.
 
-## 2026-10-08, Release x64, RTX 3050, 1728x1083
+## 2026-10-08, Release x64, AMD Radeon integrated GPU, 1728x1083
+
+These runs were labeled RTX 3050 at first, but the legacy renderer created its device on DXGI adapter 0, which is
+the integrated GPU on this hybrid laptop (the NvOptimusEnablement export was not honored). `3cd8e79f4` makes the
+legacy renderer request the high performance adapter; see the 2026-10-09 RTX 3050 section.
 
 ### Before SSAO optimization (`8aebc26e0` without `0a200191e`)
 
@@ -46,7 +50,32 @@ commands in the session notes); their textures, sky and sounds are taken from `E
 With the GPU saturated, the 30 FPS cap is not reached and `present_ms` drops to about 0.2 ms.
 In an earlier run with the GPU below its limit, CPU render time was 0.42-0.50 ms (p99 1.1-1.8 ms).
 
-## 2026-10-09, Release x64, coastal with particles
+## 2026-10-09, Release x64, RTX 3050, 1728x1083, with particles
+
+With `3cd8e79f4` both renderers run on the RTX 3050. Legacy renderer alone, GPU per pass:
+
+| Level | GPU frame | SSAO | Opaque | Transparent | Post-process | GBuffer | Sky | CPU render | Sorted faces |
+|---|---|---|---|---|---|---|---|---|---|
+| coastal | 3.43 ms | 1.09 ms | 0.85 ms | 0.28 ms | 0.69 ms | 0.27 ms | 0.06 ms | 3.3 ms | 178 |
+| karnak | 3.27 ms | 0.92 ms | 0.72 ms | 0.38 ms | 0.71 ms | 0.19 ms | 0.12 ms | 3.0 ms | 5674 |
+| tut1_water | 3.51 ms | 0.92 ms | 0.71 ms | 0.41 ms | 0.78 ms | 0.31 ms | 0.12 ms | 3.6 ms | 5388 |
+
+On the discrete GPU the legacy renderer is CPU bound: about 3 ms of CPU per frame, of which the sorted faces
+(collect, sort, draw) take about 0.3 ms.
+
+Next renderer preview on DX11 (`preview dx11`, GPU time from the DX11 RHI timestamps, logged at exit). It has rooms,
+objects, player, sky, sprites, sorted faces, materials and SSAO, but no shadows or post-process yet:
+
+| Level | GPU frame | Depth and normals prepass | SSAO (half resolution) | Scene | CPU per frame | Draw calls |
+|---|---|---|---|---|---|---|
+| coastal | 1.53 ms | 0.14 ms | 0.19 ms | 1.13 ms | 0.10 ms | 187 |
+| karnak | 1.43 ms | 0.11 ms | 0.15 ms | 1.11 ms | 0.12 ms | 107 |
+| tut1_water | 1.79 ms | 0.24 ms | 0.33 ms | 1.01 ms | 0.12 ms | 108 |
+
+Half resolution SSAO costs 0.15-0.33 ms against 0.92-1.09 ms for the legacy full resolution pass.
+With a preview open both renderers share the GPU, so legacy timings in those runs are higher.
+
+## 2026-10-09, Release x64, coastal with particles (legacy on the integrated GPU)
 
 Legacy renderer alone, GPU per pass (DX11 timestamps):
 
@@ -62,17 +91,20 @@ Next renderer preview (`preview <backend>`) on the same frames, rooms, objects, 
 | Vulkan (RTX 3050) | 0.91 ms | 111 |
 | DX11 (RTX 3050) | 0.55 ms | 111 |
 
-The legacy `cpu_render_ms` in these runs excludes the preview time (`next_cpu_ms` column).
+The legacy `cpu_render_ms` in these runs excludes the preview time (`next_cpu_ms` column). The preview devices were
+still created with debug layers in these runs; without them the CPU time is 0.10-0.15 ms.
 
 ## Findings
 
-- The renderer is GPU-bound on this hardware. CPU submission is small (about 0.5 ms) for these scenes.
-- SSAO is the dominant cost (54-58% of the GPU frame even after optimization). Candidates: half resolution
-  with bilateral upsample, fewer samples with per-pixel rotation, smaller radius in screen space.
-- Post-process costs about 4.8 ms and needs its own breakdown (distortion, DOF, glow, SMAA, final pass).
+- On the integrated GPU the legacy renderer is GPU bound and SSAO dominates (54-58% of the GPU frame). On the
+  RTX 3050 it is CPU bound (about 3 ms per frame) and the GPU frame is 3.3-3.5 ms.
+- Requesting the high performance adapter (`3cd8e79f4`) is by far the largest gain on hybrid laptops: about 10x.
+- Half resolution SSAO in the next renderer is 3-6x cheaper than the legacy full resolution pass.
+- Post-process costs about 0.7 ms on the RTX 3050 and needs its own breakdown (distortion, DOF, glow, SMAA, final pass).
 - Shadows, god rays and dust storm are inactive in these scenes.
 
 ## Limitations
 
 - Starting views show 4-29 rooms; scenes with more geometry and transparency are still needed.
 - GPU timing is DX11 only; SDL GPU has no timestamp queries (use RenderDoc, Nsight or RGP for Vulkan).
+- `previewlowpower` runs the preview on the integrated GPU, for comparisons on that GPU.
