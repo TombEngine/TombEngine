@@ -72,6 +72,12 @@ namespace TEN::Renderer::Next
         float        CinematicBarsHeight = 0.0f;
         int          AntialiasingMode    = 0; // Legacy AntialiasingMode; SMAA levels use FXAA for now.
 
+        // Depth of field of the legacy renderer (DOFState).
+        int          DofMode             = 0;
+        float        DofDistance         = 0.0f;
+        float        DofRange            = 0.0f;
+        float        DofStrength         = 0.0f;
+
         // Lens flares of the legacy renderer, with colors already attenuated by clouds and horizon.
         Vector3      LensFlarePositions[LENS_FLARES_MAX] = {};
         Vector3      LensFlareColors[LENS_FLARES_MAX]    = {};
@@ -271,6 +277,15 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IGraphicsPipeline> _glowDownscalePipeline   = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _glowBlurPipeline        = nullptr;
         bool                                    _hasEmissiveMaps         = false;
+
+        static constexpr int DOF_PASS_COUNT   = 4;
+        static constexpr int DOF_TARGET_COUNT = 3;
+
+        std::unique_ptr<RHI::IShader>           _dofVertexShader                   = nullptr;
+        std::unique_ptr<RHI::IShader>           _dofPixelShaders[DOF_PASS_COUNT]   = {};
+        std::unique_ptr<RHI::IGraphicsPipeline> _dofPipelines[DOF_PASS_COUNT]      = {};
+        std::unique_ptr<RHI::ITexture>          _dofTargets[DOF_TARGET_COUNT]      = {}; // Near blur, far blur, dilated.
+        bool                                    _isDofActive                       = false;
         bool                                    _hasDistortion           = false;
         float                                   _nearPlane               = 1.0f;
         float                                   _farPlane                = 1.0f;
@@ -447,6 +462,10 @@ namespace TEN::Renderer::Next
         // Prepass and ambient occlusion (NextRendererSSAO.cpp).
         bool  CreateSSAOResources();
         bool  EnsureSSAOTargets(int width, int height);
+        bool  CreateDOFResources();
+        bool  EnsureDOFTargets(int width, int height);
+        static bool IsDOFActive(const FrameEnvironment& environment);
+        void  RenderDOF(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
         bool  CreateGlowResources();
         bool  EnsureGlowTargets(int width, int height);
         void  RenderGlow(RHI::ICommandBuffer& commandBuffer);

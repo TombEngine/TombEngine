@@ -1,5 +1,5 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
-// TEN_SHADER: Pixel PS samplers=4 storage_textures=0 storage_buffers=0 uniform_buffers=3
+// TEN_SHADER: Pixel PS samplers=6 storage_textures=0 storage_buffers=0 uniform_buffers=3
 // TEN_SHADER: Pixel PSDepthCopy samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 // TEN_SHADER: Pixel PSFXAA samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
@@ -34,6 +34,10 @@ TEN_PS_UNIFORMS(PostProcessUniforms, 2)
     float  Time;
     uint   LensFlareCount;
     uint   IsGlowActive;
+    uint   IsDofActive;
+    float  PostProcessPadding1;
+    float  PostProcessPadding2;
+    float  PostProcessPadding3;
     float4 LensFlarePositions[LENS_FLARES_MAX]; // Normalized device xy, depth.
     float4 LensFlareColors[LENS_FLARES_MAX];
 };
@@ -42,6 +46,8 @@ TEN_PS_TEXTURE(Texture2D, SceneMap, 0);
 TEN_PS_TEXTURE(Texture2D, DistortionMap, 1);
 TEN_PS_TEXTURE(Texture2D, DepthMap, 2);
 TEN_PS_TEXTURE(Texture2D, GlowMap, 3);
+TEN_PS_TEXTURE(Texture2D, NearBlurMap, 4); // Depth of field, half resolution, alpha is the circle of confusion.
+TEN_PS_TEXTURE(Texture2D, FarBlurMap, 5);
 
 // Distortion constants of the legacy PSDistortion (Shaders/PostProcess.hlsl).
 #define DISTORTION_MIN_WEIGHT                       0.001f
@@ -231,6 +237,15 @@ float4 PS(FullscreenPixelInput input) : SV_Target
 
     float2 uv = IsDistortionActive ? GetDistortedUV(input.UV) : input.UV;
     float3 color = SceneMap.SampleLevel(SceneMapSampler, uv, 0.0f).rgb;
+
+    // Legacy PSDOFComposite: far blur, then near blur on top.
+    if (IsDofActive)
+    {
+        float4 farBlur = FarBlurMap.SampleLevel(FarBlurMapSampler, input.UV, 0.0f);
+        float4 nearBlur = NearBlurMap.SampleLevel(NearBlurMapSampler, input.UV, 0.0f);
+        color = lerp(color, farBlur.rgb, saturate(farBlur.a));
+        color = lerp(color, nearBlur.rgb, saturate(nearBlur.a));
+    }
 
     // Legacy PSGlowCombine with soft add.
     if (IsGlowActive)

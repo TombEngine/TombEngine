@@ -148,6 +148,16 @@ namespace TEN::Renderer::Next
         _glowVertexShader = nullptr;
         _glowDownscaleShader = nullptr;
         _glowBlurShader = nullptr;
+        for (int i = 0; i < DOF_PASS_COUNT; i++)
+        {
+            _dofPipelines[i] = nullptr;
+            _dofPixelShaders[i] = nullptr;
+        }
+
+        for (auto& target : _dofTargets)
+            target = nullptr;
+
+        _dofVertexShader = nullptr;
         _ssaoBlurTarget = nullptr;
         _pointClampSampler = nullptr;
         _pointWrapSampler = nullptr;
@@ -183,7 +193,7 @@ namespace TEN::Renderer::Next
         if (_skyVertexShader == nullptr || _skyPixelShader == nullptr || !CreateSkyGeometry())
             return false;
 
-        if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources())
+        if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources())
             return false;
 
         if (GetScenePipeline(SceneShader::Rooms, BlendMode::Opaque) == nullptr ||
@@ -452,7 +462,7 @@ namespace TEN::Renderer::Next
         depthDesc.Name = "Scene.Depth";
         _depthTarget = _device->CreateTexture(depthDesc);
 
-        return (_colorTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _distortionTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height) && EnsureGlowTargets(width, height));
+        return (_colorTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _distortionTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height) && EnsureGlowTargets(width, height) && EnsureDOFTargets(width, height));
     }
 
     void NextRenderer::UploadBuffer(IBuffer* buffer, const void* data, int size)
@@ -1964,6 +1974,10 @@ namespace TEN::Renderer::Next
         DrawGunFlashes(*commandBuffer, *renderPass);
         commandBuffer->EndRenderPass();
         commandBuffer->PopDebugGroup();
+
+        _isDofActive = IsDOFActive(environment);
+        if (_isDofActive)
+            RenderDOF(*commandBuffer, environment);
 
         if (_hasEmissiveMaps)
             RenderGlow(*commandBuffer);

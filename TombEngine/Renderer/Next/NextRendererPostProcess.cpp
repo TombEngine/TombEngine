@@ -29,11 +29,13 @@ namespace TEN::Renderer::Next
         float        Time                = 0.0f;
         unsigned int LensFlareCount      = 0;
         unsigned int IsGlowActive        = 0;
+        unsigned int IsDofActive         = 0;
+        float        Padding[3]          = {};
         Vector4      LensFlarePositions[LENS_FLARES_MAX] = {}; // Normalized device xy, depth.
         Vector4      LensFlareColors[LENS_FLARES_MAX]    = {};
     };
 
-    static_assert(sizeof(PostProcessUniforms) == 320, "PostProcessUniforms must match PostProcess.hlsl.");
+    static_assert(sizeof(PostProcessUniforms) == 336, "PostProcessUniforms must match PostProcess.hlsl.");
 
     std::unique_ptr<IGraphicsPipeline> NextRenderer::CreateFullscreenPipeline(IShader* vertexShader, IShader* pixelShader, PixelFormat format, const char* name)
     {
@@ -150,6 +152,7 @@ namespace TEN::Renderer::Next
         uniforms.IsDistortionActive = _hasDistortion ? 1 : 0;
         uniforms.Time = _time;
         uniforms.IsGlowActive = _hasEmissiveMaps ? 1 : 0;
+        uniforms.IsDofActive = _isDofActive ? 1 : 0;
 
         // Flares are projected here; the legacy collection already dropped those behind the camera.
         for (int i = 0; i < environment.LensFlareCount; i++)
@@ -174,14 +177,16 @@ namespace TEN::Renderer::Next
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
         renderPass->BindPipeline(_postProcessPipeline.get());
 
-        TextureSamplerBinding bindings[4] =
+        TextureSamplerBinding bindings[6] =
         {
             { _sceneTarget.get(), _linearClampSampler.get() },
             { _distortionTarget.get(), _linearClampSampler.get() },
             { _sceneDepthCopy.get(), _pointClampSampler.get() },
-            { _glowTargets[0].get(), _linearClampSampler.get() }
+            { _glowTargets[0].get(), _linearClampSampler.get() },
+            { _dofTargets[0].get(), _linearClampSampler.get() },
+            { _dofTargets[1].get(), _linearClampSampler.get() }
         };
-        renderPass->BindPixelSamplers(0, bindings, 4);
+        renderPass->BindPixelSamplers(0, bindings, 6);
 
         _frameStats.DrawCalls++;
         renderPass->Draw(3, 1, 0, 0);

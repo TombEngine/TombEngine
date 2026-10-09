@@ -3,7 +3,10 @@
 
 local frame = 0
 
-LevelFuncs.OnStart = function() end
+-- Depth of field focused on the player exercises the depth of field passes.
+LevelFuncs.OnStart = function()
+	TEN.View.SetDOF(TEN.View.DOFMode.FULL, 1536, 1024, 0.8)
+end
 LevelFuncs.OnLoad = function() end
 LevelFuncs.OnSave = function() end
 LevelFuncs.OnEnd = function() end

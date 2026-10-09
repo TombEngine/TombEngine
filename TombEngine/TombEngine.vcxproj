@@ -1513,6 +1513,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\RHI\TextureCapture.cpp" />
     <ClCompile Include="Renderer\Next\NextRenderer.cpp" />
     <ClCompile Include="Renderer\Next\NextRendererDebris.cpp" />
+    <ClCompile Include="Renderer\Next\NextRendererDOF.cpp" />
     <ClCompile Include="Renderer\Next\NextRendererGlow.cpp" />
     <ClCompile Include="Renderer\Next\NextRendererEffects.cpp" />
     <ClCompile Include="Renderer\Next\NextRendererPostProcess.cpp" />

@@ -2327,6 +2327,11 @@ namespace TEN::Renderer
 			environment.CinematicBarsHeight = CinematicBarsHeight;
 			environment.AntialiasingMode = (int)g_Configuration.AntialiasingMode;
 
+			environment.DofMode = (int)_currentDOF.Mode;
+			environment.DofDistance = _currentDOF.Distance;
+			environment.DofRange = _currentDOF.Range;
+			environment.DofStrength = _currentDOF.Strength;
+
 			float cloudOcclusion = GetLensFlareCloudOcclusion();
 			environment.LensFlareCount = std::min((int)view.LensFlaresToDraw.size(), Next::LENS_FLARES_MAX);
 			for (int i = 0; i < environment.LensFlareCount; i++)
