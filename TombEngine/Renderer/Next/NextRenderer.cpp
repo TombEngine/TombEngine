@@ -914,12 +914,9 @@ namespace TEN::Renderer::Next
         {
             for (const auto* item : room->ItemsToDraw)
             {
-                // The player, waterfalls and skinned objects are ported in a later milestone.
-                if (item->ObjectID == ID_LARA || item->SkinIndex != NO_VALUE ||
-                    (item->ObjectID >= ID_WATERFALL1 && item->ObjectID <= ID_WATERFALLSS2))
-                {
+                // The player has its own path; waterfalls are ported in a later milestone.
+                if (item->ObjectID == ID_LARA || (item->ObjectID >= ID_WATERFALL1 && item->ObjectID <= ID_WATERFALLSS2))
                     continue;
-                }
 
                 const auto& object = (*_legacyGeometry.MoveableObjects)[item->ObjectID];
                 if (!object.has_value() || object->Hidden)
@@ -932,9 +929,28 @@ namespace TEN::Renderer::Next
                 lightCount |= GetShadowReceiverMask(item->ObjectID);
 
                 int firstDraw = (int)_objectDraws.size();
+
+                // Full skin: the skin mesh with bind pose corrected bones, and only the rigid meshes not hidden by it.
+                bool isFullSkin = (item->SkinIndex != NO_VALUE);
+                if (isFullSkin)
+                {
+                    Matrix skinBones[BONE_COUNT_MAX];
+                    int boneCount = std::min((int)object->AnimationTransforms.size(), (int)BONE_COUNT_MAX);
+                    for (int i = 0; i < boneCount; i++)
+                        skinBones[i] = object->BindPoseTransforms[i] * item->InterpolatedAnimationTransforms[i];
+
+                    const auto* skinMesh = (*_legacyGeometry.Meshes)[item->SkinIndex];
+                    int skinInstance = AddInstance(item->InterpolatedWorld, item->Color, item->AmbientLight, skinMesh->LightMode, lightOffset, lightCount,
+                                                   AddBones(skinBones, boneCount), SKINNING_FULL);
+                    AddMeshDraws(*skinMesh, skinInstance);
+                }
+
                 for (int meshIndex = 0; meshIndex < (int)item->MeshIndex.size(); meshIndex++)
                 {
                     if (!nativeItem.MeshBits.Test(meshIndex))
+                        continue;
+
+                    if (isFullSkin && g_Level.Meshes[nativeItem.Model.MeshIndex[meshIndex]].hidden)
                         continue;
 
                     const auto* mesh = (*_legacyGeometry.Meshes)[item->MeshIndex[meshIndex]];
