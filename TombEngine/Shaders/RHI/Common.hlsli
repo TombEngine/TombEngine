@@ -8,6 +8,7 @@
 #define BLENDMODE_OPAQUE     0
 #define BLENDMODE_ALPHATEST  1
 #define BLENDMODE_ADDITIVE   2
+#define BLENDMODE_DISTORTION 3
 #define BLENDMODE_SUBTRACTIVE 5
 #define BLENDMODE_EXCLUDE    8
 #define BLENDMODE_SCREEN     9
@@ -204,6 +205,18 @@ float4 ApplyDistanceFog(float4 color, float4 fogColor, float fog, uint blendMode
 
     fogColor.w = min(fogColor.w, color.w);
     return lerp(color, fogColor, fog);
+}
+
+// Distortion payload of the legacy EncodeDistortionPayload (Shaders/Blending.hlsli): strength, view depth split in
+// two bytes and emitter type (0 billboard, 1 surface), all premultiplied by strength for additive accumulation.
+float4 EncodeDistortionPayload(float4 color, float viewDepth, float emitterType)
+{
+    float strength = saturate(saturate(Luma(color.rgb)) * color.a);
+    if (strength <= 1e-6f)
+        return 0.0f;
+
+    float depth = floor(clamp(viewDepth, 0.0f, 65535.0f));
+    return float4(strength, floor(depth / 256.0f) / 255.0f * strength, fmod(depth, 256.0f) / 255.0f * strength, emitterType * strength);
 }
 
 #endif // TEN_COMMON

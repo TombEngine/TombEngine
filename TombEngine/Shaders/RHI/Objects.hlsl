@@ -175,6 +175,9 @@ float4 PS(PixelInput input) : SV_TARGET
     float4 result = ApplyFogBulbs(float4(saturate(color * occlusion), surface.Color.a), input.FogBulbs.rgb, BlendMode);
     result = ApplyDistanceFog(result, FogColor, input.Fog, BlendMode);
     result.a *= input.Color.a;
+    if (BlendMode == BLENDMODE_DISTORTION)
+        return EncodeDistortionPayload(result, dot(input.WorldPosition - PixelCameraPosition, CameraDirection), 1.0f);
+
     return result;
 }
 

@@ -2,9 +2,13 @@
 #include "Renderer/Next/NextRenderer.h"
 
 #include "Renderer/Next/GpuTypes.h"
+#include "Renderer/RenderView.h"
 #include "Renderer/RHI/ShaderLibrary.h"
+#include "Renderer/Structures/RendererBucket.h"
+#include "Renderer/Structures/RendererRoom.h"
 
 using namespace TEN::Renderer::RHI;
+using namespace TEN::Renderer::Structures;
 
 namespace TEN::Renderer::Next
 {
@@ -18,10 +22,15 @@ namespace TEN::Renderer::Next
         float        ScreenFade          = 1.0f;
         float        CinematicBarsHeight = 0.0f;
         float        ViewportHeight      = 1.0f;
-        float        Padding[3]          = {};
+        float        ViewportWidth       = 1.0f;
+        float        NearPlane           = 1.0f;
+        float        FarPlane            = 1.0f;
+        unsigned int IsDistortionActive  = 0;
+        float        Time                = 0.0f;
+        float        Padding[2]          = {};
     };
 
-    static_assert(sizeof(PostProcessUniforms) == 48, "PostProcessUniforms must match PostProcess.hlsl.");
+    static_assert(sizeof(PostProcessUniforms) == 64, "PostProcessUniforms must match PostProcess.hlsl.");
 
     std::unique_ptr<IGraphicsPipeline> NextRenderer::CreateFullscreenPipeline(IShader* vertexShader, IShader* pixelShader, PixelFormat format, const char* name)
     {
@@ -60,6 +69,52 @@ namespace TEN::Renderer::Next
         return (_postProcessPipeline != nullptr && _depthCopyPipeline != nullptr && _fxaaPipeline != nullptr);
     }
 
+    bool NextRenderer::HasDistortionDraws(const RenderView& view) const
+    {
+        for (const auto& draw : _spriteDraws)
+        {
+            if (draw.BlendMode == BlendMode::Distortion)
+                return true;
+        }
+
+        for (const auto& draw : _objectDraws)
+        {
+            if (draw.Bucket->BlendMode == BlendMode::Distortion)
+                return true;
+        }
+
+        for (const auto* room : view.RoomsToDraw)
+        {
+            for (const auto& bucket : room->Buckets)
+            {
+                if (bucket.BlendMode == BlendMode::Distortion && bucket.NumIndices > 0)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Distortion surfaces and sprites accumulate their payload against the prepass depth, before the scene pass.
+    void NextRenderer::RenderDistortion(ICommandBuffer& commandBuffer, const RenderView& view)
+    {
+        auto colorTarget = ColorTargetInfo{};
+        colorTarget.Texture = _distortionTarget.get();
+
+        auto depthTarget = DepthTargetInfo{};
+        depthTarget.Texture = _depthTarget.get();
+        depthTarget.Load = LoadOp::Load;
+        depthTarget.Store = StoreOp::Store;
+
+        commandBuffer.PushDebugGroup("Distortion");
+        auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, &depthTarget);
+        DrawRooms(commandBuffer, *renderPass, view, ScenePass::Distortion);
+        DrawObjects(commandBuffer, *renderPass, ScenePass::Distortion);
+        DrawSprites(commandBuffer, *renderPass, true);
+        commandBuffer.EndRenderPass();
+        commandBuffer.PopDebugGroup();
+    }
+
     // The scene pass keeps the prepass depth as its target, so effects reading the depth (soft particles) use a copy.
     void NextRenderer::CopySceneDepth(ICommandBuffer& commandBuffer)
     {
@@ -91,6 +146,11 @@ namespace TEN::Renderer::Next
         uniforms.ScreenFade = environment.ScreenFade;
         uniforms.CinematicBarsHeight = environment.CinematicBarsHeight;
         uniforms.ViewportHeight = (float)_colorTarget->GetDesc().Height;
+        uniforms.ViewportWidth = (float)_colorTarget->GetDesc().Width;
+        uniforms.NearPlane = _nearPlane;
+        uniforms.FarPlane = _farPlane;
+        uniforms.IsDistortionActive = _hasDistortion ? 1 : 0;
+        uniforms.Time = _time;
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
 
         bool isAntialiased = (environment.AntialiasingMode != 0);
@@ -103,13 +163,19 @@ namespace TEN::Renderer::Next
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
         renderPass->BindPipeline(_postProcessPipeline.get());
 
-        auto binding = TextureSamplerBinding{ _sceneTarget.get(), _pointClampSampler.get() };
-        renderPass->BindPixelSamplers(0, &binding, 1);
+        TextureSamplerBinding bindings[3] =
+        {
+            { _sceneTarget.get(), _linearClampSampler.get() },
+            { _distortionTarget.get(), _linearClampSampler.get() },
+            { _sceneDepthCopy.get(), _pointClampSampler.get() }
+        };
+        renderPass->BindPixelSamplers(0, bindings, 3);
 
         _frameStats.DrawCalls++;
         renderPass->Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
 
+        auto binding = TextureSamplerBinding{};
         if (isAntialiased)
         {
             colorTarget.Texture = _colorTarget.get();

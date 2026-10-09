@@ -155,7 +155,11 @@ float4 PS(PixelInput input) : SV_TARGET
     float3 lighting = GetRoomLighting(input.Color.rgb, input.WorldPosition, surface, input.Tangent, input.Binormal) - input.FogBulbs.w;
     float4 color = float4(saturate(surface.Color.rgb * lighting * occlusion), surface.Color.a);
     color = ApplyFogBulbs(color, input.FogBulbs.rgb, BlendMode);
-    return ApplyDistanceFog(color, FogColor, input.Fog, BlendMode);
+    float4 result = ApplyDistanceFog(color, FogColor, input.Fog, BlendMode);
+    if (BlendMode == BLENDMODE_DISTORTION)
+        return EncodeDistortionPayload(result, dot(input.WorldPosition - PixelCameraPosition, CameraDirection), 1.0f);
+
+    return result;
 }
 
 float4 PSDepthNormal(PixelInput input) : SV_TARGET

@@ -189,7 +189,8 @@ namespace TEN::Renderer::Next
             Prepass,
             Opaque,
             AlphaEdges, // Legacy second pass of alpha tested buckets: blended texels below the threshold.
-            Additive
+            Additive,
+            Distortion  // Payload accumulated in the distortion target, applied by the post-process.
         };
 
         // Instanced draw of consecutive sprites sharing texture and blend mode.
@@ -256,6 +257,8 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::ITexture>          _antialiasingSource      = nullptr; // Post-processed image before FXAA.
         std::unique_ptr<RHI::IGraphicsPipeline> _depthCopyPipeline       = nullptr;
         std::unique_ptr<RHI::ITexture>          _sceneDepthCopy          = nullptr; // R32 float copy of the prepass depth.
+        std::unique_ptr<RHI::ITexture>          _distortionTarget        = nullptr;
+        bool                                    _hasDistortion           = false;
         float                                   _nearPlane               = 1.0f;
         float                                   _farPlane                = 1.0f;
         float                                   _time                    = 0.0f;
@@ -407,6 +410,7 @@ namespace TEN::Renderer::Next
         bool CreateSkyGeometry();
         void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass);
+        static BlendMode GetPassBlendMode(ScenePass pass);
         static bool IsBucketInPass(const Structures::RendererBucket& bucket, ScenePass pass);
 
         // Post-process (NextRendererPostProcess.cpp).
@@ -414,6 +418,8 @@ namespace TEN::Renderer::Next
         bool CreatePostProcessResources();
         void RenderPostProcess(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
         void CopySceneDepth(RHI::ICommandBuffer& commandBuffer);
+        bool HasDistortionDraws(const RenderView& view) const;
+        void RenderDistortion(RHI::ICommandBuffer& commandBuffer, const RenderView& view);
 
         // Shadow map (NextRendererShadows.cpp).
         bool         CreateShadowResources();
@@ -439,7 +445,7 @@ namespace TEN::Renderer::Next
         bool           AddSprite(const Structures::RendererSpriteToDraw& sprite, const RenderView& view);
         void           CollectSprites(const RenderView& view);
         void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture);
-        void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
+        void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool isDistortion);
         void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, ScenePass pass);
 
     public:

@@ -109,5 +109,9 @@ float4 PS(PixelInput input) : SV_TARGET
         color = DoLaserBeamEffect(input.Position.xyz, float4(texel.rgb * COLOR_MODULATION_SCALE, texel.a), input.UV, LASER_FADE_FACTOR, Time);
 
     color.rgb = saturate(color.rgb * (1.0f - Luma(input.FogBulbs)));
-    return ApplyDistanceFog(color, float4(0.0f, 0.0f, 0.0f, 0.0f), input.Fog, BlendMode);
+    color = ApplyDistanceFog(color, float4(0.0f, 0.0f, 0.0f, 0.0f), input.Fog, BlendMode);
+    if (BlendMode == BLENDMODE_DISTORTION)
+        return EncodeDistortionPayload(color, input.ClipPosition.w, 0.0f);
+
+    return color;
 }

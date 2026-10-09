@@ -27,4 +27,7 @@ LevelFuncs.OnLoop = function()
 		local blend = (i % 2 == 0) and TEN.Effects.BlendID.ADDITIVE or TEN.Effects.BlendID.ALPHA_BLEND
 		TEN.Effects.EmitParticle(pos + offset, Vec3(0, -4, 0), 0, 2, 30, TEN.Color(255, 160, 64), TEN.Color(64, 64, 255), blend, 64, 16, 3)
 	end
+
+	-- A large distortion particle in front of the player exercises the distortion pass.
+	TEN.Effects.EmitParticle(pos + Vec3(0, -640, 0), Vec3(0, 0, 0), 0, 0, 0, TEN.Color(255, 255, 255), TEN.Color(255, 255, 255), TEN.Effects.BlendID.DISTORTION, 512, 512, 2)
 end

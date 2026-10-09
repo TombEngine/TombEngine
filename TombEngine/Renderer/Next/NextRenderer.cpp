@@ -122,6 +122,7 @@ namespace TEN::Renderer::Next
         _postProcessPixelShader = nullptr;
         _sceneTarget = nullptr;
         _sceneDepthCopy = nullptr;
+        _distortionTarget = nullptr;
         _antialiasingSource = nullptr;
         _fxaaPipeline = nullptr;
         _fxaaPixelShader = nullptr;
@@ -254,6 +255,11 @@ namespace TEN::Renderer::Next
         {
         case BlendMode::Additive:
             state.SrcColor = state.SrcAlpha = BlendFactor::SrcAlpha;
+            state.DstColor = state.DstAlpha = BlendFactor::One;
+            break;
+
+        case BlendMode::Distortion:
+            state.SrcColor = state.SrcAlpha = BlendFactor::One;
             state.DstColor = state.DstAlpha = BlendFactor::One;
             break;
 
@@ -411,6 +417,9 @@ namespace TEN::Renderer::Next
         colorDesc.Name = "Scene.Color";
         _sceneTarget = _device->CreateTexture(colorDesc);
 
+        colorDesc.Name = "Scene.Distortion";
+        _distortionTarget = _device->CreateTexture(colorDesc);
+
         colorDesc.Name = "PostProcess.Result";
         _antialiasingSource = _device->CreateTexture(colorDesc);
 
@@ -426,7 +435,7 @@ namespace TEN::Renderer::Next
         depthDesc.Name = "Scene.Depth";
         _depthTarget = _device->CreateTexture(depthDesc);
 
-        return (_colorTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height));
+        return (_colorTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _distortionTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height));
     }
 
     void NextRenderer::UploadBuffer(IBuffer* buffer, const void* data, int size)
@@ -820,6 +829,24 @@ namespace TEN::Renderer::Next
         }
     }
 
+    BlendMode NextRenderer::GetPassBlendMode(ScenePass pass)
+    {
+        switch (pass)
+        {
+        case ScenePass::AlphaEdges:
+            return BlendMode::AlphaBlend;
+
+        case ScenePass::Additive:
+            return BlendMode::Additive;
+
+        case ScenePass::Distortion:
+            return BlendMode::Distortion;
+
+        default:
+            return BlendMode::Opaque;
+        }
+    }
+
     bool NextRenderer::IsBucketInPass(const RendererBucket& bucket, ScenePass pass)
     {
         switch (pass)
@@ -834,6 +861,9 @@ namespace TEN::Renderer::Next
         case ScenePass::Additive:
             return (bucket.BlendMode == BlendMode::Additive);
 
+        case ScenePass::Distortion:
+            return (bucket.BlendMode == BlendMode::Distortion);
+
         default:
             return false;
         }
@@ -841,14 +871,14 @@ namespace TEN::Renderer::Next
 
     void NextRenderer::DrawRooms(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, ScenePass pass)
     {
-        constexpr const char* GROUP_NAMES[] = { "Rooms prepass", "Rooms opaque", "Rooms alpha edges", "Rooms additive" };
+        constexpr const char* GROUP_NAMES[] = { "Rooms prepass", "Rooms opaque", "Rooms alpha edges", "Rooms additive", "Rooms distortion" };
 
         bool additive = (pass == ScenePass::Additive);
         bool isAlphaEdges = (pass == ScenePass::AlphaEdges);
         commandBuffer.PushDebugGroup(GROUP_NAMES[(int)pass]);
 
         auto shader = (pass == ScenePass::Prepass) ? SceneShader::RoomsPrepass : SceneShader::Rooms;
-        renderPass.BindPipeline(GetScenePipeline(shader, additive ? BlendMode::Additive : (isAlphaEdges ? BlendMode::AlphaBlend : BlendMode::Opaque)));
+        renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass)));
 
         auto vertexBinding = BufferBinding{ _roomVertexBuffer.get(), 0 };
         renderPass.BindVertexBuffers(0, &vertexBinding, 1);
@@ -1278,7 +1308,7 @@ namespace TEN::Renderer::Next
 
     void NextRenderer::DrawObjects(ICommandBuffer& commandBuffer, IRenderPass& renderPass, ScenePass pass)
     {
-        constexpr const char* GROUP_NAMES[] = { "Objects prepass", "Objects opaque", "Objects alpha edges", "Objects additive" };
+        constexpr const char* GROUP_NAMES[] = { "Objects prepass", "Objects opaque", "Objects alpha edges", "Objects additive", "Objects distortion" };
 
         if (_objectDraws.empty() || _instanceBuffer.Buffer == nullptr)
             return;
@@ -1288,7 +1318,7 @@ namespace TEN::Renderer::Next
         commandBuffer.PushDebugGroup(GROUP_NAMES[(int)pass]);
 
         auto shader = (pass == ScenePass::Prepass) ? SceneShader::ObjectsPrepass : SceneShader::Objects;
-        renderPass.BindPipeline(GetScenePipeline(shader, additive ? BlendMode::Additive : (isAlphaEdges ? BlendMode::AlphaBlend : BlendMode::Opaque)));
+        renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass)));
 
         IBuffer* storageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get(), _boneBuffer.Buffer.get() };
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 4);
@@ -1891,6 +1921,10 @@ namespace TEN::Renderer::Next
         // Slot 2 is shared with the screen space passes, so the shadow uniforms are pushed right before the scene.
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
 
+        _hasDistortion = HasDistortionDraws(view);
+        if (_hasDistortion)
+            RenderDistortion(*commandBuffer, view);
+
         commandBuffer->PushDebugGroup("Scene");
         auto* renderPass = commandBuffer->BeginRenderPass(&colorTarget, 1, &depthTarget);
         DrawSky(*commandBuffer, *renderPass, view, environment.InterpolationFactor);
@@ -1902,7 +1936,7 @@ namespace TEN::Renderer::Next
         DrawRooms(*commandBuffer, *renderPass, view, ScenePass::Additive);
         DrawObjects(*commandBuffer, *renderPass, ScenePass::Additive);
         DrawDebris(*commandBuffer, *renderPass, DebrisPass::Additive);
-        DrawSprites(*commandBuffer, *renderPass);
+        DrawSprites(*commandBuffer, *renderPass, false);
         DrawSortedFaces(*commandBuffer, *renderPass);
         DrawDebris(*commandBuffer, *renderPass, DebrisPass::Blended);
         DrawGunFlashes(*commandBuffer, *renderPass);

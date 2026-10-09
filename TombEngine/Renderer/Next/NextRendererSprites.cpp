@@ -147,8 +147,11 @@ namespace TEN::Renderer::Next
 
         for (const auto& sprite : view.SpritesToDraw)
         {
-            if (sprite.BlendMode != BlendMode::Opaque && sprite.BlendMode != BlendMode::AlphaTest && sprite.BlendMode != BlendMode::Additive)
+            if (sprite.BlendMode != BlendMode::Opaque && sprite.BlendMode != BlendMode::AlphaTest &&
+                sprite.BlendMode != BlendMode::Additive && sprite.BlendMode != BlendMode::Distortion)
+            {
                 continue;
+            }
 
             auto* texture = GetSpriteTexture(sprite.Sprite);
             if (texture == nullptr)
@@ -211,17 +214,20 @@ namespace TEN::Renderer::Next
         renderPass.Draw(6, draw.SpriteCount, 0, draw.FirstSprite);
     }
 
-    void NextRenderer::DrawSprites(ICommandBuffer& commandBuffer, IRenderPass& renderPass)
+    void NextRenderer::DrawSprites(ICommandBuffer& commandBuffer, IRenderPass& renderPass, bool isDistortion)
     {
         if (_spriteDraws.empty())
             return;
 
-        commandBuffer.PushDebugGroup("Sprites");
+        commandBuffer.PushDebugGroup(isDistortion ? "Distortion sprites" : "Sprites");
 
         const IGraphicsPipeline* lastPipeline = nullptr;
         const ITexture* lastTexture = nullptr;
         for (const auto& draw : _spriteDraws)
-            DrawSpriteRun(commandBuffer, renderPass, draw, lastPipeline, lastTexture);
+        {
+            if ((draw.BlendMode == BlendMode::Distortion) == isDistortion)
+                DrawSpriteRun(commandBuffer, renderPass, draw, lastPipeline, lastTexture);
+        }
 
         commandBuffer.PopDebugGroup();
     }
