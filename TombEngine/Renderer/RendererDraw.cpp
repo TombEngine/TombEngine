@@ -2374,6 +2374,8 @@ namespace TEN::Renderer
 				environment.LensFlarePositions[i] = view.LensFlaresToDraw[i].Position;
 				environment.LensFlareColors[i] = GetLensFlareColor(view.LensFlaresToDraw[i], cloudOcclusion);
 			}
+			environment.DebugLines = &_lines3DToDraw;
+			environment.DebugTriangles = &_triangles3DToDraw;
 			environment.ShadowLight = _shadowLight;
 			environment.IsShadowMapEnabled = (g_Configuration.ShadowType != ShadowMode::None);
 			environment.IsPlayerShadowOnly = (g_Configuration.ShadowType == ShadowMode::Player);

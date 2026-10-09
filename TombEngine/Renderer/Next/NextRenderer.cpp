@@ -113,6 +113,11 @@ namespace TEN::Renderer::Next
         _decalBuffer = {};
         _debrisVertexBuffer = {};
         _debrisInstanceBuffer = {};
+        _debugVertexBuffer = {};
+        _debugLinePipeline = nullptr;
+        _debugTrianglePipeline = nullptr;
+        _debugVertexShader = nullptr;
+        _debugPixelShader = nullptr;
         _skyPage = {};
         _textureArrayGroups.clear();
         for (auto& map : _defaultMapArrays)
@@ -337,7 +342,8 @@ namespace TEN::Renderer::Next
             return false;
 
         if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources() ||
-            !CreateSkyReflectionResources() || !CreateAtmosphereResources() || !CreateOverlayResources(TEN::Renderer::Utils::GetAssetPath("Textures/Font.spritefont")))
+            !CreateSkyReflectionResources() || !CreateAtmosphereResources() || !CreateOverlayResources(TEN::Renderer::Utils::GetAssetPath("Textures/Font.spritefont")) ||
+            !CreateDebugPrimitiveResources())
             return false;
 
         if (!LoadNoAlphaTestShaders())
@@ -1665,6 +1671,7 @@ namespace TEN::Renderer::Next
         UploadFrameStorage(_decalBuffer, _decalData, (int)sizeof(GpuDecal), BufferUsage::GraphicsStorageRead, "Frame.Decals");
         UploadFrameStorage(_debrisVertexBuffer, _debrisVertexData, (int)sizeof(Vertex), BufferUsage::Vertex, "Frame.DebrisVertices");
         UploadFrameStorage(_debrisInstanceBuffer, _debrisInstanceData, (int)sizeof(unsigned int), BufferUsage::Vertex, "Frame.DebrisInstances");
+        UploadFrameStorage(_debugVertexBuffer, _debugVertexData, (int)sizeof(DebugVertex), BufferUsage::Vertex, "Frame.DebugVertices");
         UploadVideoFrame(environment.VideoFrame, environment.VideoWidth, environment.VideoHeight);
 
         _uploadRing.End();
@@ -2353,6 +2360,7 @@ namespace TEN::Renderer::Next
         DrawSortedFaces(commandBuffer, *renderPass, true);
         DrawDebris(commandBuffer, *renderPass, DebrisPass::Blended);
         DrawGunFlashes(commandBuffer, *renderPass);
+        DrawDebugPrimitives(commandBuffer, *renderPass);
         commandBuffer.EndRenderPass();
     }
 
@@ -2437,6 +2445,7 @@ namespace TEN::Renderer::Next
         CollectSkySprites(view, environment);
         CollectSortedFaces(view, environment.InterpolationFactor);
         CollectMirroredSorted(view);
+        CollectDebugPrimitives(environment);
 
         UploadFrameData(*commandBuffer, environment);
 

@@ -33,6 +33,8 @@ namespace TEN::Renderer::Structures
     struct RendererSortableObject;
     struct RendererSprite;
     struct RendererSpriteToDraw;
+    struct RendererLine3D;
+    struct RendererTriangle3D;
 }
 
 namespace TEN::Renderer::Next
@@ -105,6 +107,10 @@ namespace TEN::Renderer::Next
         Vector3      LensFlarePositions[LENS_FLARES_MAX] = {};
         Vector3      LensFlareColors[LENS_FLARES_MAX]    = {};
         int          LensFlareCount      = 0;
+
+        // Debug lines and triangles of the legacy renderer, null when none are drawn.
+        const std::vector<Structures::RendererLine3D>*     DebugLines     = nullptr;
+        const std::vector<Structures::RendererTriangle3D>* DebugTriangles = nullptr;
 
         // Shadows of the legacy renderer: shadow casting light (null when none) and blob spheres.
         const Structures::RendererLight* ShadowLight = nullptr;
@@ -468,6 +474,13 @@ namespace TEN::Renderer::Next
             std::unique_ptr<RHI::ITexture>               Texture          = nullptr;
         };
 
+        // Debug line and triangle vertex in world space.
+        struct DebugVertex
+        {
+            Vector3      Position = Vector3::Zero;
+            unsigned int Color    = 0;
+        };
+
         struct OverlayVertex
         {
             Vector2      Position = Vector2::Zero; // Pixels from the top left corner of the target.
@@ -613,6 +626,14 @@ namespace TEN::Renderer::Next
         std::vector<unsigned char>    _debrisVertexData     = {};
         std::vector<unsigned char>    _debrisInstanceData   = {};
         std::vector<DebrisDraw>       _debrisDraws          = {};
+        FrameStorageBuffer            _debugVertexBuffer    = {};
+        std::vector<unsigned char>    _debugVertexData      = {};
+        int                           _debugLineVertexCount     = 0;
+        int                           _debugTriangleVertexCount = 0;
+        std::unique_ptr<RHI::IShader>           _debugVertexShader     = nullptr;
+        std::unique_ptr<RHI::IShader>           _debugPixelShader      = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _debugLinePipeline     = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _debugTrianglePipeline = nullptr;
         std::vector<ObjectDraw>       _gunFlashDraws        = {};
         std::vector<ObjectDraw>       _mirrorDraws          = {};
         std::vector<InstanceOrigin>   _instanceOrigins      = {}; // One per instance.
@@ -719,6 +740,11 @@ namespace TEN::Renderer::Next
         void AddGunFlash(GAME_OBJECT_ID flashObjectID, const Matrix& world, const Vector4& color, const Vector4& ambientLight);
         void CollectGunFlashes(const RenderView& view);
         void DrawGunFlashes(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
+
+        // Debug primitives (NextRendererDebug.cpp).
+        bool CreateDebugPrimitiveResources();
+        void CollectDebugPrimitives(const FrameEnvironment& environment);
+        void DrawDebugPrimitives(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
 
         // Debris (NextRendererDebris.cpp).
         void CollectDebris(float interpolationFactor);
