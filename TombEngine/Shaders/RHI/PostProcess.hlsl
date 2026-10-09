@@ -22,7 +22,9 @@ TEN_PS_UNIFORMS(PostProcessUniforms, 2)
     float  ScreenFade;
     float  CinematicBarsHeight;
     float  ViewportHeight;
-    float3 PostProcessPadding;
+    float  PostProcessPadding0;
+    float  PostProcessPadding1;
+    float  PostProcessPadding2;
 };
 
 TEN_PS_TEXTURE(Texture2D, SceneMap, 0);

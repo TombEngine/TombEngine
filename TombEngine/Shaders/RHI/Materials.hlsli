@@ -3,8 +3,8 @@
 
 // Surface sampling of the legacy material system (Shaders/Materials.hlsli): color, normal, ORSH and emissive
 // maps of an atlas page, parallax occlusion mapping and per-material properties from a frame storage buffer.
-// Pixel textures use slots 0-3, slot 4 is the screen space ambient occlusion; storage buffers follow at
-// index 5 (lights) and 6 (materials).
+// Pixel textures use slots 0-3, slot 4 is the screen space ambient occlusion and slot 5 the shadow map
+// (Shadows.hlsli); storage buffers follow at index 6 (lights) and 7 (materials).
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -30,7 +30,9 @@ struct GpuMaterial
 {
     float4 Properties[4];
     uint   TypeAndFlags;
-    uint3  Padding;
+    uint   Padding0; // Scalars: a uint3 at offset 68 breaks the Vulkan buffer layout rules.
+    uint   Padding1;
+    uint   Padding2;
 };
 
 TEN_PS_TEXTURE(Texture2D, ColorMap, 0);
@@ -38,7 +40,7 @@ TEN_PS_TEXTURE(Texture2D, NormalMap, 1);
 TEN_PS_TEXTURE(Texture2D, ORSHMap, 2);
 TEN_PS_TEXTURE(Texture2D, EmissiveMap, 3);
 TEN_PS_TEXTURE(Texture2D, AmbientOcclusionMap, 4);
-TEN_PS_STORAGE_BUFFER(GpuMaterial, Materials, 6);
+TEN_PS_STORAGE_BUFFER(GpuMaterial, Materials, 7);
 
 struct Surface
 {

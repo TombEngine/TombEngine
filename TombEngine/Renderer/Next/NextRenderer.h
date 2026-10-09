@@ -69,6 +69,14 @@ namespace TEN::Renderer::Next
         float        ColorSchemeStrength = 1.0f;
         float        ScreenFade          = 1.0f;
         float        CinematicBarsHeight = 0.0f;
+
+        // Shadows of the legacy renderer: shadow casting light (null when none) and blob spheres.
+        const Structures::RendererLight* ShadowLight = nullptr;
+        bool         IsShadowMapEnabled  = false;
+        bool         IsPlayerShadowOnly  = false;
+        int          ShadowMapSize       = 1024;
+        Vector4      ShadowSpheres[SHADOW_SPHERES_MAX] = {};
+        int          ShadowSphereCount   = 0;
     };
 
     struct NextFrameStats
@@ -138,6 +146,7 @@ namespace TEN::Renderer::Next
             Sprites,
             RoomsPrepass,
             ObjectsPrepass,
+            ObjectsShadow,
 
             Count
         };
@@ -204,6 +213,17 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IShader>           _postProcessPixelShader  = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _postProcessPipeline     = nullptr;
         std::unique_ptr<RHI::ITexture>          _sceneTarget             = nullptr;
+
+        // Shadow map (NextRendererShadows.cpp).
+        std::unique_ptr<RHI::IShader>           _objectsShadowPixelShader = nullptr;
+        std::unique_ptr<RHI::ITexture>          _shadowMap                = nullptr;
+        std::unique_ptr<RHI::ITexture>          _dummyShadowMap           = nullptr;
+        std::unique_ptr<RHI::ITexture>          _shadowDepth              = nullptr;
+        std::vector<ObjectDraw>                 _shadowDraws              = {};
+        GpuShadowUniforms                       _shadowUniforms           = {};
+        bool                                    _isShadowMapActive        = false;
+        bool                                    _isPlayerShadowOnly       = false;
+        bool                                    _isRenderingShadowMap     = false;
 
         // Depth and normals prepass and screen space ambient occlusion (NextRendererSSAO.cpp).
         std::unique_ptr<RHI::IShader>           _roomsPrepassPixelShader    = nullptr;
@@ -307,6 +327,7 @@ namespace TEN::Renderer::Next
         void FlushMeshInstances();
         void CollectEffectMeshes(const RenderView& view, float interpolationFactor);
         int  AddLights(const std::vector<Structures::RendererLight*>& lights, float interpolationFactor, int roomNumber, int prevRoomNumber, float fade, int& lightOffset);
+        static GpuLight ToGpuLight(const Structures::RendererLight& light, float interpolationFactor, float fade);
         void UploadFrameStorage(RHI::ICopyPass& copyPass, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name);
         void UploadFrameData(RHI::ICommandBuffer& commandBuffer);
         void CollectSortedFaces(const RenderView& view, float interpolationFactor);
@@ -321,6 +342,15 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IGraphicsPipeline> CreateFullscreenPipeline(RHI::IShader* vertexShader, RHI::IShader* pixelShader, RHI::PixelFormat format, const char* name);
         bool CreatePostProcessResources();
         void RenderPostProcess(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
+
+        // Shadow map (NextRendererShadows.cpp).
+        bool         CreateShadowResources();
+        bool         EnsureShadowMap(int size);
+        bool         IsShadowCaster(int objectID) const;
+        unsigned int GetShadowReceiverMask(int objectID) const;
+        void         MarkShadowCasterDraws(int firstDraw);
+        void         PrepareShadows(const FrameEnvironment& environment, float interpolationFactor);
+        void         RenderShadowMap(RHI::ICommandBuffer& commandBuffer, const FrameVertexUniforms& cameraUniforms);
 
         // Prepass and ambient occlusion (NextRendererSSAO.cpp).
         bool  CreateSSAOResources();

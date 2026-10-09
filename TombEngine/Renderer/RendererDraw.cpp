@@ -2325,6 +2325,13 @@ namespace TEN::Renderer
 			environment.ColorSchemeStrength = _postProcessStrength;
 			environment.ScreenFade = ScreenFadeCurrent;
 			environment.CinematicBarsHeight = CinematicBarsHeight;
+			environment.ShadowLight = _shadowLight;
+			environment.IsShadowMapEnabled = (g_Configuration.ShadowType != ShadowMode::None);
+			environment.IsPlayerShadowOnly = (g_Configuration.ShadowType == ShadowMode::Player);
+			environment.ShadowMapSize = g_Configuration.ShadowMapSize;
+			environment.ShadowSphereCount = std::min(_stShadowMap.NumSpheres, Next::SHADOW_SPHERES_MAX);
+			for (int i = 0; i < environment.ShadowSphereCount; i++)
+				environment.ShadowSpheres[i] = Vector4(_stShadowMap.Spheres[i].position.x, _stShadowMap.Spheres[i].position.y, _stShadowMap.Spheres[i].position.z, _stShadowMap.Spheres[i].radius);
 			Next::g_NextRenderer.RenderFrame(view, environment);
 		}
 

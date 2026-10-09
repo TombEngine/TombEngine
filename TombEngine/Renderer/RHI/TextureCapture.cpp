@@ -3,7 +3,7 @@
 
 namespace TEN::Renderer::RHI
 {
-    bool SaveTextureToPng(IDevice& device, ITexture* texture, const std::string& path)
+    bool SaveTextureToPng(IDevice& device, ITexture* texture, const std::string& path, int layer)
     {
         const auto& desc = texture->GetDesc();
         int size = GetTextureDataSize(desc.Format, desc.Width, desc.Height, 1);
@@ -16,6 +16,7 @@ namespace TEN::Renderer::RHI
 
         auto region = TextureRegion{};
         region.Texture = texture;
+        region.Layer = layer;
         region.Width = desc.Width;
         region.Height = desc.Height;
         copyPass->DownloadFromTexture(region, TextureTransferInfo{ transferBuffer.get(), 0, 0, 0 });
@@ -28,12 +29,16 @@ namespace TEN::Renderer::RHI
 
         // Single channel targets are saved as grayscale.
         auto expanded = std::vector<unsigned char>{};
-        if (desc.Format == PixelFormat::R8Unorm)
+        if (desc.Format == PixelFormat::R8Unorm || desc.Format == PixelFormat::R32Float)
         {
             expanded.resize(desc.Width * desc.Height * 4);
             for (int i = 0; i < desc.Width * desc.Height; i++)
             {
-                expanded[i * 4 + 0] = expanded[i * 4 + 1] = expanded[i * 4 + 2] = data[i];
+                // Depth values crowd near 1, so R32 float is stretched with a power curve.
+                auto value = (desc.Format == PixelFormat::R8Unorm) ? data[i] :
+                    (unsigned char)(std::pow(std::clamp(((const float*)data)[i], 0.0f, 1.0f), 64.0f) * 255.0f);
+
+                expanded[i * 4 + 0] = expanded[i * 4 + 1] = expanded[i * 4 + 2] = value;
                 expanded[i * 4 + 3] = 255;
             }
         }

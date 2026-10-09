@@ -43,7 +43,9 @@ TEN_PS_UNIFORMS(DrawPixelUniforms, 1)
     uint  LightOffset; // Rooms only: slice of the frame light buffer.
     uint  LightCount;  // Light count in the low 16 bits, light type mask in the high bits.
     uint  MaterialIndex;
-    uint3 DrawPixelPadding;
+    uint  DrawPixelPadding0;
+    uint  DrawPixelPadding1;
+    uint  DrawPixelPadding2;
 };
 
 #endif // TEN_FRAME_UNIFORMS

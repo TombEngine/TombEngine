@@ -107,6 +107,10 @@ namespace TEN::Renderer::Next
         _skyIndexBuffer = nullptr;
         _skyVertexShader = nullptr;
         _skyPixelShader = nullptr;
+        _objectsShadowPixelShader = nullptr;
+        _shadowMap = nullptr;
+        _dummyShadowMap = nullptr;
+        _shadowDepth = nullptr;
         _postProcessPipeline = nullptr;
         _postProcessVertexShader = nullptr;
         _postProcessPixelShader = nullptr;
@@ -158,7 +162,7 @@ namespace TEN::Renderer::Next
         if (_skyVertexShader == nullptr || _skyPixelShader == nullptr || !CreateSkyGeometry())
             return false;
 
-        if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources())
+        if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources())
             return false;
 
         if (GetScenePipeline(SceneShader::Rooms, BlendMode::Opaque) == nullptr ||
@@ -302,18 +306,20 @@ namespace TEN::Renderer::Next
         bool isSky = (shader == SceneShader::Sky);
         bool isSprites = (shader == SceneShader::Sprites);
         bool isPrepass = (shader == SceneShader::RoomsPrepass || shader == SceneShader::ObjectsPrepass);
+        bool isShadow = (shader == SceneShader::ObjectsShadow);
+        isObjects = isObjects || isShadow;
 
         IShader* vertexShaders[(int)SceneShader::Count] =
         {
             _roomsVertexShader.get(), _objectsVertexShader.get(), _skyVertexShader.get(), _spritesVertexShader.get(),
-            _roomsVertexShader.get(), _objectsVertexShader.get()
+            _roomsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get()
         };
         IShader* pixelShaders[(int)SceneShader::Count] =
         {
             _roomsPixelShader.get(), _objectsPixelShader.get(), _skyPixelShader.get(), _spritesPixelShader.get(),
-            _roomsPrepassPixelShader.get(), _objectsPrepassPixelShader.get()
+            _roomsPrepassPixelShader.get(), _objectsPrepassPixelShader.get(), _objectsShadowPixelShader.get()
         };
-        const char* names[(int)SceneShader::Count] = { "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass" };
+        const char* names[(int)SceneShader::Count] = { "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow" };
 
         auto desc = GraphicsPipelineDesc{};
         desc.VertexShader = vertexShaders[(int)shader];
@@ -359,8 +365,8 @@ namespace TEN::Renderer::Next
         }
 
         desc.NumColorTargets = 1;
-        desc.ColorTargets[0].Format = isPrepass ? PixelFormat::RGBA8Unorm : _device->GetSwapchainFormat();
-        desc.ColorTargets[0].Blend = GetBlendState(isPrepass ? BlendMode::Opaque : (BlendMode)modeIndex);
+        desc.ColorTargets[0].Format = isPrepass ? PixelFormat::RGBA8Unorm : (isShadow ? PixelFormat::R32Float : _device->GetSwapchainFormat());
+        desc.ColorTargets[0].Blend = GetBlendState((isPrepass || isShadow) ? BlendMode::Opaque : (BlendMode)modeIndex);
         desc.DepthStencil.EnableDepthWrite = (modeIndex == (int)BlendMode::Opaque) && !isSky && !isSprites;
         desc.DepthStencil.EnableDepthTest = !isSky;
         desc.DepthFormat = PixelFormat::D32Float;
@@ -649,15 +655,17 @@ namespace TEN::Renderer::Next
 
         auto* sampler = _anisotropicSampler.get();
         auto* ambientOcclusion = _isAmbientOcclusionActive ? _ssaoTarget.get() : _whiteTexture.get();
-        TextureSamplerBinding bindings[5] =
+        auto* shadowMap = _isRenderingShadowMap ? _dummyShadowMap.get() : _shadowMap.get();
+        TextureSamplerBinding bindings[6] =
         {
             { getMap(page ? &page->ColorMap : nullptr, _whiteTexture.get()), sampler },
             { getMap(page ? &page->NormalMap : nullptr, _flatNormalTexture.get()), sampler },
             { getMap(page ? &page->ORSHMap : nullptr, _defaultORSHTexture.get()), sampler },
             { getMap(page ? &page->EmissiveMap : nullptr, _blackTexture.get()), sampler },
-            { ambientOcclusion, _linearClampSampler.get() }
+            { ambientOcclusion, _linearClampSampler.get() },
+            { shadowMap, _pointClampSampler.get() }
         };
-        renderPass.BindPixelSamplers(0, bindings, 5);
+        renderPass.BindPixelSamplers(0, bindings, 6);
     }
 
     void NextRenderer::BindBucket(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RendererBucket& bucket, const std::vector<RoomTexture>& pages,
@@ -739,10 +747,37 @@ namespace TEN::Renderer::Next
         commandBuffer.PopDebugGroup();
     }
 
-    // Builds the frame instance data and the instanced draw list. Statics are grouped by object type, so each
-    // mesh bucket of a type is a single draw; rigid moveable meshes get one instance each.
-    // Appends lights to the frame light buffer as the legacy BindLight does: interpolated positions, spot
-    // ranges as cosines and, for moveables, intensity faded between the current and previous room.
+    // Same conversion as the legacy BindLight: interpolated positions and spot ranges as cosines.
+    GpuLight NextRenderer::ToGpuLight(const RendererLight& light, float interpolationFactor, float fade)
+    {
+        auto gpuLight = GpuLight{};
+        gpuLight.Position = light.Position;
+        gpuLight.Type = (unsigned int)light.Type;
+        gpuLight.Color = light.Color;
+        gpuLight.Intensity = light.Intensity * fade;
+        gpuLight.Direction = light.Direction;
+        gpuLight.In = light.In;
+        gpuLight.Out = light.Out;
+        gpuLight.InRange = light.InRange;
+        gpuLight.OutRange = light.OutRange;
+
+        if (light.Type == LightType::Spot)
+        {
+            gpuLight.InRange = cos(light.InRange * (PI / 180.0f));
+            gpuLight.OutRange = cos(light.OutRange * (PI / 180.0f));
+        }
+
+        if (light.Hash != 0)
+        {
+            gpuLight.Position = Vector3::Lerp(light.PrevPosition, light.Position, interpolationFactor);
+            gpuLight.Direction = Vector3::Lerp(light.PrevDirection, light.Direction, interpolationFactor);
+        }
+
+        gpuLight.Direction.Normalize();
+        return gpuLight;
+    }
+
+    // Appends lights to the frame light buffer, with moveable intensity faded between the current and previous room.
     // Returns the light count with the light type mask in the high bits.
     int NextRenderer::AddLights(const std::vector<RendererLight*>& lights, float interpolationFactor, int roomNumber, int prevRoomNumber, float fade, int& lightOffset)
     {
@@ -766,30 +801,7 @@ namespace TEN::Renderer::Next
             if (fadeCoeff == 0.0f)
                 continue;
 
-            auto gpuLight = GpuLight{};
-            gpuLight.Position = light->Position;
-            gpuLight.Type = (unsigned int)light->Type;
-            gpuLight.Color = light->Color;
-            gpuLight.Intensity = light->Intensity * fadeCoeff;
-            gpuLight.Direction = light->Direction;
-            gpuLight.In = light->In;
-            gpuLight.Out = light->Out;
-            gpuLight.InRange = light->InRange;
-            gpuLight.OutRange = light->OutRange;
-
-            if (light->Type == LightType::Spot)
-            {
-                gpuLight.InRange = cos(light->InRange * (PI / 180.0f));
-                gpuLight.OutRange = cos(light->OutRange * (PI / 180.0f));
-            }
-
-            if (light->Hash != 0)
-            {
-                gpuLight.Position = Vector3::Lerp(light->PrevPosition, light->Position, interpolationFactor);
-                gpuLight.Direction = Vector3::Lerp(light->PrevDirection, light->Direction, interpolationFactor);
-            }
-
-            gpuLight.Direction.Normalize();
+            auto gpuLight = ToGpuLight(*light, interpolationFactor, fadeCoeff);
 
             const auto* bytes = (const unsigned char*)&gpuLight;
             _lightData.insert(_lightData.end(), bytes, bytes + sizeof(gpuLight));
@@ -801,11 +813,14 @@ namespace TEN::Renderer::Next
         return count | typeMask;
     }
 
+    // Builds the frame instance data and the instanced draw list. Statics are grouped by object type, so each
+    // mesh bucket of a type is a single draw; rigid moveable meshes get one instance each.
     void NextRenderer::CollectObjects(const RenderView& view, float interpolationFactor)
     {
         _instanceData.clear();
         _lightData.clear();
         _objectDraws.clear();
+        _shadowDraws.clear();
 
         // Rooms share the view light list, as in the legacy renderer.
         int roomLightOffset = 0;
@@ -861,7 +876,9 @@ namespace TEN::Renderer::Next
 
                 int lightOffset = 0;
                 int lightCount = AddLights(item->LightsToDraw, interpolationFactor, item->RoomNumber, item->PrevRoomNumber, item->LightFade, lightOffset);
+                lightCount |= GetShadowReceiverMask(item->ObjectID);
 
+                int firstDraw = (int)_objectDraws.size();
                 for (int meshIndex = 0; meshIndex < (int)item->MeshIndex.size(); meshIndex++)
                 {
                     if (!nativeItem.MeshBits.Test(meshIndex))
@@ -872,6 +889,9 @@ namespace TEN::Renderer::Next
                     int instance = AddInstance(world, item->Color, item->AmbientLight, mesh->LightMode, lightOffset, lightCount, 0, SKINNING_NONE);
                     AddMeshDraws(*mesh, instance);
                 }
+
+                if (IsShadowCaster(item->ObjectID))
+                    MarkShadowCasterDraws(firstDraw);
             }
         }
 
@@ -932,6 +952,8 @@ namespace TEN::Renderer::Next
 
         int lightOffset = 0;
         int lightCount = AddLights(item->LightsToDraw, interpolationFactor, item->RoomNumber, item->PrevRoomNumber, item->LightFade, lightOffset);
+        lightCount |= GetShadowReceiverMask(ID_LARA);
+        int firstDraw = (int)_objectDraws.size();
 
         int boneCount = (int)laraObject->AnimationTransforms.size();
         int animationBones = AddBones(item->InterpolatedAnimationTransforms, boneCount);
@@ -989,6 +1011,9 @@ namespace TEN::Renderer::Next
         addHolster(Lara.Control.Weapon.HolsterInfo.BackHolster, LM_TORSO, true);
 
         CollectPlayerHair(*item, item->AmbientLight, lightOffset, lightCount, interpolationFactor);
+
+        if (IsShadowCaster(ID_LARA))
+            MarkShadowCasterDraws(firstDraw);
     }
 
     // Hair units use their own bone palette: the head attachment followed by one matrix per simulated
@@ -1578,6 +1603,8 @@ namespace TEN::Renderer::Next
         // Projection is rebuilt for the preview window aspect ratio; position and orientation follow the game camera.
         auto projection = Matrix::CreatePerspectiveFieldOfView(view.Camera.FOV, (float)width / (float)height, view.Camera.NearPlane, view.Camera.FarPlane);
         _isAmbientOcclusionActive = environment.IsAmbientOcclusionEnabled;
+        _isShadowMapActive = environment.IsShadowMapEnabled && (environment.ShadowLight != nullptr);
+        _isPlayerShadowOnly = environment.IsPlayerShadowOnly;
 
         auto frameVertexUniforms = FrameVertexUniforms{};
         frameVertexUniforms.ViewProjection = view.Camera.View * projection;
@@ -1605,6 +1632,9 @@ namespace TEN::Renderer::Next
 
         UploadFrameData(*commandBuffer);
 
+        PrepareShadows(environment, environment.InterpolationFactor);
+        RenderShadowMap(*commandBuffer, frameVertexUniforms);
+
         if (_isAmbientOcclusionActive)
         {
             RenderDepthPrepass(*commandBuffer, view);
@@ -1622,6 +1652,9 @@ namespace TEN::Renderer::Next
         depthTarget.Texture = _depthTarget.get();
         depthTarget.Load = _isAmbientOcclusionActive ? LoadOp::Load : LoadOp::Clear;
         depthTarget.Store = StoreOp::DontCare;
+
+        // Slot 2 is shared with the screen space passes, so the shadow uniforms are pushed right before the scene.
+        commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
 
         commandBuffer->PushDebugGroup("Scene");
         auto* renderPass = commandBuffer->BeginRenderPass(&colorTarget, 1, &depthTarget);
@@ -1662,6 +1695,15 @@ namespace TEN::Renderer::Next
             {
                 auto occlusionPath = _screenshotPath.substr(0, _screenshotPath.find_last_of('.')) + "_AO.png";
                 SaveTextureToPng(*_device, _ssaoTarget.get(), occlusionPath);
+            }
+
+            if (_shadowUniforms.CastShadows)
+            {
+                for (int face = 0; face < 6; face++)
+                {
+                    auto shadowPath = _screenshotPath.substr(0, _screenshotPath.find_last_of('.')) + "_Shadow" + std::to_string(face) + ".png";
+                    SaveTextureToPng(*_device, _shadowMap.get(), shadowPath, face);
+                }
             }
             _screenshotPath.clear();
         }

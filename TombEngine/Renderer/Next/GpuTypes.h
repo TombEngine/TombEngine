@@ -9,6 +9,8 @@ namespace TEN::Renderer::Next
     constexpr auto ALPHA_TEST_THRESHOLD = 0.5f;
     constexpr auto INSTANCE_INDEX_COUNT = 65536;
     constexpr auto SSAO_KERNEL_SIZE     = 32;
+    constexpr auto SHADOW_SPHERES_MAX   = 16;
+    constexpr auto SHADOWABLE_MASK      = 1u << 16; // Light count flag of instances receiving shadows.
 
     // Uniform layouts mirror the cbuffers in Shaders/RHI/Rooms.hlsl.
     struct FrameVertexUniforms
@@ -79,6 +81,20 @@ namespace TEN::Renderer::Next
     };
 
     static_assert(sizeof(GpuLight) == 64, "GpuLight must match Lighting.hlsli.");
+
+    // Same layout as ShadowUniforms in Shadows.hlsli.
+    struct GpuShadowUniforms
+    {
+        GpuLight Light                   = {};
+        Matrix   LightViewProjections[6] = {};
+        int      CastShadows             = 0;
+        int      SphereCount             = 0;
+        int      ShadowMapSize           = 1;
+        int      Padding                 = 0;
+        Vector4  Spheres[SHADOW_SPHERES_MAX] = {};
+    };
+
+    static_assert(sizeof(GpuShadowUniforms) == 720, "GpuShadowUniforms must match Shadows.hlsli.");
 
     struct GpuAnimatedFrame
     {

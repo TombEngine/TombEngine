@@ -1,22 +1,23 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=2
-// TEN_SHADER: Pixel PS samplers=5 storage_textures=0 storage_buffers=2 uniform_buffers=2
-// TEN_SHADER: Pixel PSDepthNormal samplers=5 storage_textures=0 storage_buffers=2 uniform_buffers=2
+// TEN_SHADER: Pixel PS samplers=6 storage_textures=0 storage_buffers=2 uniform_buffers=3
+// TEN_SHADER: Pixel PSDepthNormal samplers=6 storage_textures=0 storage_buffers=2 uniform_buffers=3
 
 // Room geometry: baked vertex lighting plus the room's dynamic lights with specular, material maps (normal,
 // ORSH, emissive, parallax), animated textures, vertex effects, water refraction and distance fog.
-// Screen space ambient occlusion comes from the prepass (PSDepthNormal). Reflections, shadows, caustics,
-// decals and fog bulbs are ported later.
+// Screen space ambient occlusion comes from the prepass (PSDepthNormal); shadows from the cube shadow map and
+// blob spheres. Reflections, caustics, decals and fog bulbs are ported later.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
 #include "./FrameUniforms.hlsli"
 #include "./Lighting.hlsli"
 #include "./Materials.hlsli"
+#include "./Shadows.hlsli"
 
 TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
 TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
 
-TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 5);
+TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 6);
 
 struct VertexInput
 {
@@ -92,6 +93,8 @@ PixelInput VS(VertexInput input)
 float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface)
 {
     float3 lighting = vertexColor * COLOR_MODULATION_SCALE;
+    lighting = DoShadow(position, surface.Normal, lighting, -2.5f, BlendMode);
+    lighting = DoBlobShadows(position, lighting);
 
     uint count = LightCount & LT_MASK;
     bool onlyPointLights = (LightCount & ~LT_MASK) == LT_MASK_POINT;

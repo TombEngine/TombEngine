@@ -1,6 +1,7 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=2
-// TEN_SHADER: Pixel PS samplers=5 storage_textures=0 storage_buffers=2 uniform_buffers=2
-// TEN_SHADER: Pixel PSDepthNormal samplers=5 storage_textures=0 storage_buffers=2 uniform_buffers=2
+// TEN_SHADER: Pixel PS samplers=6 storage_textures=0 storage_buffers=2 uniform_buffers=3
+// TEN_SHADER: Pixel PSDepthNormal samplers=6 storage_textures=0 storage_buffers=2 uniform_buffers=3
+// TEN_SHADER: Pixel PSShadow samplers=6 storage_textures=0 storage_buffers=2 uniform_buffers=3
 
 // Static meshes and rigid moveable meshes. Every draw is instanced: the instance index stream
 // selects the per-instance world matrix, colors and light mode from a storage buffer.
@@ -11,6 +12,7 @@
 #include "./FrameUniforms.hlsli"
 #include "./Lighting.hlsli"
 #include "./Materials.hlsli"
+#include "./Shadows.hlsli"
 #include "./Skinning.hlsli"
 
 TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
@@ -18,7 +20,7 @@ TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
 TEN_VS_STORAGE_BUFFER(ObjectInstance, Instances, 2);
 TEN_VS_STORAGE_BUFFER(BoneTransform, Bones, 3);
 
-TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 5);
+TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 6);
 
 struct VertexInput
 {
@@ -149,6 +151,13 @@ float4 PS(PixelInput input) : SV_TARGET
         CombineLights(input.AmbientLight * COLOR_MODULATION_SCALE, vertexLight, input.WorldPosition, surface, input.Sheen, input.LightSlice) :
         saturate(surface.Color.rgb * vertexLight + surface.Emissive);
 
+    // Only instances that do not cast shadows receive them, as in the legacy renderer.
+    if (input.LightSlice.y & SHADOWABLE_MASK)
+    {
+        color = DoShadow(input.WorldPosition, surface.Normal, color, -0.5f, BlendMode);
+        color = DoBlobShadows(input.WorldPosition, color);
+    }
+
     float occlusion = surface.Occlusion * GetAmbientOcclusion(material, input.Position.xy * InverseViewportSize, AmbientOcclusionExponent, BlendMode, surface.Color.a);
     float4 result = ApplyDistanceFog(float4(saturate(color * occlusion), surface.Color.a), FogColor, input.Fog, BlendMode);
     result.a *= input.Color.a;
@@ -160,4 +169,11 @@ float4 PSDepthNormal(PixelInput input) : SV_TARGET
     float3 normal = SampleSurfaceNormal(Materials[MaterialIndex], ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition,
                                         PixelCameraPosition, input.Normal, input.Tangent, input.Binormal, input.FaceNormal);
     return float4(EncodeViewNormal(normal, View), 1.0f);
+}
+
+// Shadow map pass: writes the light space depth; the alpha test keeps cut-out geometry out of the shadow.
+float PSShadow(PixelInput input) : SV_TARGET
+{
+    clip(ColorMap.Sample(ColorMapSampler, ApplyUVScroll(input.UV, input.UVScroll)).a - AlphaThreshold);
+    return input.Position.z;
 }
