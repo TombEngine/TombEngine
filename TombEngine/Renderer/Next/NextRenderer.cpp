@@ -605,6 +605,15 @@ namespace TEN::Renderer::Next
         bool isDistortion = (modeIndex == (int)BlendMode::Distortion);
         desc.DepthStencil.EnableDepthWrite = ((modeIndex == (int)BlendMode::Opaque) && !isSky) || isInventory;
         desc.DepthStencil.EnableDepthTest = !isSky && !isDistortion;
+
+        // Opaque rooms and objects of the scene pass are the same draws as the prepass, so they shade only the texels
+        // whose depth the prepass kept.
+        if ((shader == SceneShader::Rooms || shader == SceneShader::Objects) && modeIndex == (int)BlendMode::Opaque)
+        {
+            desc.DepthStencil.EnableDepthWrite = false;
+            desc.DepthStencil.DepthCompare = CompareOp::Equal;
+        }
+
         desc.DepthFormat = (isDistortion || isParaboloid) ? PixelFormat::Unknown : PixelFormat::D32Float;
         desc.Name = std::string(names[(int)shader]) + ".BlendMode" + std::to_string(modeIndex) + ((variant == 0) ? ".NoAlphaTest" : "");
 
