@@ -20,6 +20,15 @@ namespace TEN::Renderer::Next
         ConstantBuffers::CVolumetricCloudBuffer Uniforms = {};
     };
 
+    // Atmospheric sky passes the legacy renderer drew this frame, with the uniform block it filled for them.
+    struct SkyEffectFlags
+    {
+        bool IsDomeDrawn            = false;
+        bool IsSunMoonDiscDrawn     = false;
+        bool IsAuroraDrawn          = false;
+        bool IsAuroraHalfResolution = false; // Low sky quality: the aurora is drawn at half resolution and upscaled.
+    };
+
     // Tileable cloud noise generated once by the legacy renderer: 3D RGBA8 noise and 2D RG8 Worley noise.
     struct CloudNoiseData
     {

@@ -102,6 +102,7 @@ namespace TEN::Renderer::Next
         // Volumetric cloud draws of the legacy renderer in draw order, and the cloud noise it generated.
         const std::vector<CloudLayerDraw>* CloudDraws = nullptr;
         CloudNoiseData                     CloudNoise = {};
+        SkyEffectFlags                     SkyEffects = {};
 
         // Depth of field of the legacy renderer (DOFState).
         int          DofMode             = 0;
@@ -457,6 +458,13 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IShader>           _atmosphericSkyVertexShader = nullptr;
         std::unique_ptr<RHI::IShader>           _atmosphericSkyPixelShader  = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _atmosphericSkyPipeline     = nullptr;
+        std::unique_ptr<RHI::IShader>           _skyDiscPixelShader         = nullptr;
+        std::unique_ptr<RHI::IShader>           _auroraPixelShader          = nullptr;
+        std::unique_ptr<RHI::IShader>           _skyCopyPixelShader         = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _skyDiscPipeline            = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _auroraPipeline             = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _auroraHalfPipeline         = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _auroraUpscalePipeline      = nullptr;
         const void*                             _atmosphericSkyUniforms     = nullptr;
 
         // Same layout as the glyphs of a DirectXTK .spritefont file.
@@ -827,6 +835,11 @@ namespace TEN::Renderer::Next
         void DrawImGui(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui);
 
         void DrawAtmosphericSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
+        void PushSkyUniforms(RHI::ICommandBuffer& commandBuffer);
+        bool HasSkyDiscsOrAurora() const;
+        void DrawSkyDiscsAndAurora(RHI::ICommandBuffer& commandBuffer);
+        RHI::ITexture* DrawHalfResolutionAurora(RHI::ICommandBuffer& commandBuffer, const RHI::TextureSamplerBinding& coverageBinding);
+        void DrawFullscreen(RHI::IRenderPass& renderPass, RHI::IGraphicsPipeline* pipeline, const RHI::TextureSamplerBinding& binding);
         void RenderSkyReflections(RHI::ICommandBuffer& commandBuffer);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
         void DrawObjectBuckets(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const std::vector<ObjectDraw>& draws, ScenePass pass,

@@ -2357,7 +2357,8 @@ namespace TEN::Renderer
 			environment.CloudDraws = &_nextCloudDraws;
 			environment.CloudNoise = Next::CloudNoiseData{ _cloudNoiseTextures.Noise3DData.data(), _cloudNoiseTextures.Noise3DResolution, _cloudNoiseTextures.Worley2DData.data(), _cloudNoiseTextures.Worley2DResolution };
 
-			if (_atmosphericSkySettings.Enabled)
+			environment.SkyEffects = _nextSkyEffects;
+			if (_nextSkyEffects.IsDomeDrawn || _nextSkyEffects.IsSunMoonDiscDrawn || _nextSkyEffects.IsAuroraDrawn)
 			{
 				environment.AtmosphericSkyUniforms = &_stAtmosphericSky;
 				environment.AtmosphericSkyUniformsSize = (int)sizeof(_stAtmosphericSky);
@@ -3259,7 +3260,10 @@ namespace TEN::Renderer
 		auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
 
 		if (!reflectionPass)
+		{
 			_nextCloudDraws.clear();
+			_nextSkyEffects = {};
+		}
 
 		bool anyOutsideRooms = false;
 		for (int k = 0; k < renderView.RoomsToDraw.size(); k++)

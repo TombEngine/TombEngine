@@ -178,6 +178,13 @@ namespace TEN::Renderer::Next
         _imGuiIndexBuffer = {};
         _skyReflectionTarget = nullptr;
         _atmosphericSkyPipeline = nullptr;
+        _skyDiscPipeline = nullptr;
+        _auroraPipeline = nullptr;
+        _auroraHalfPipeline = nullptr;
+        _auroraUpscalePipeline = nullptr;
+        _skyDiscPixelShader = nullptr;
+        _auroraPixelShader = nullptr;
+        _skyCopyPixelShader = nullptr;
         _overlayPipeline = nullptr;
         _overlayBarPipeline = nullptr;
         _overlayBarPixelShader = nullptr;

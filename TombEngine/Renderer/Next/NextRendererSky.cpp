@@ -263,10 +263,13 @@ namespace TEN::Renderer::Next
         }
 
         DrawSkyBackground(commandBuffer, *renderPass, view, 0);
-        if (HasCloudDraws(false))
+        if (HasCloudDraws(false) || HasSkyDiscsOrAurora())
         {
             commandBuffer.EndRenderPass();
-            DrawCloudLayers(commandBuffer, false);
+            if (HasCloudDraws(false))
+                DrawCloudLayers(commandBuffer, false);
+
+            DrawSkyDiscsAndAurora(commandBuffer);
             renderPass = BeginSkyRenderPass(commandBuffer, LoadOp::Load);
         }
 

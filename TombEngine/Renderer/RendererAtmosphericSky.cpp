@@ -377,6 +377,8 @@ namespace TEN::Renderer
 		if (!_atmosphericSkySettings.Enabled)
 			return;
 
+		_nextSkyEffects.IsDomeDrawn = true;
+
 		// Update constant buffer with current sun/sky state.
 		UpdateAtmosphericSkyBuffer(renderView);
 
@@ -416,6 +418,8 @@ namespace TEN::Renderer
 		if (_stAtmosphericSky.AuroraVisibility < 0.001f)
 			return;
 
+		_nextSkyEffects.IsAuroraDrawn = true;
+
 		// Bind CB to b12 (same slot used by sky dome).
 		auto* buf = _cbAtmosphericSky.get();
 		BindConstantBuffer(ShaderStage::VertexShader, ConstantBufferRegister::AtmosphericSky, buf);
@@ -444,6 +448,7 @@ namespace TEN::Renderer
 		_graphicsDevice->BindVertexBuffer(_fullscreenTriangleVertexBuffer.get());
 
 		bool useHalfRes = (_stAtmosphericSky.SkyQualityLevel < 0.5f) && (_auroraHalfResRenderTarget != nullptr);
+		_nextSkyEffects.IsAuroraHalfResolution = useHalfRes;
 
 		if (useHalfRes)
 		{
@@ -504,6 +509,8 @@ namespace TEN::Renderer
 		// not bleed through as an additive disc on top of the caustics.
 		if (g_SkyCloudSystem.IsUnderwaterSkyPresetActive())
 			return;
+
+		_nextSkyEffects.IsSunMoonDiscDrawn = true;
 
 		// Bind atmospheric sky CB to register b12.
 		auto* buf = _cbAtmosphericSky.get();
