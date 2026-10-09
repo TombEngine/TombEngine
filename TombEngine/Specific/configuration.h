@@ -62,6 +62,7 @@ struct GameConfiguration
 	bool EnableInteractionHighlighter	= false;
 	bool EnableRumble					= false;
 	bool EnableThumbstickCamera			= false;
+	bool InvertCameraYAxis				= false;
 
 	// Input
 	int					  MouseSensitivity		= DEFAULT_MOUSE_SENSITIVITY;

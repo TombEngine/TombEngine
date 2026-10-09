@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "Game/Lara/lara_initialise.h"
 
+#include "Game/camera.h"
 #include "Game/collision/Point.h"
 #include "Game/Hud/Hud.h"
 #include "Game/items.h"
@@ -114,6 +115,9 @@ void InitializeLara(bool restore)
 
 	// Player anim init should happen after leveljump init.
 	InitializeLaraAnims(LaraItem);
+
+	// Remastered controls: starts the camera behind Lara. -- divezzi, 08.10.26
+	ResetRemasteredCameraOrient(*LaraItem);
 
 	g_Hud.StatusBars.Initialize(*LaraItem);
 }

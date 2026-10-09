@@ -12,5 +12,6 @@ constexpr auto NO_LOS_ITEM = INT_MAX;
 
 bool LOS(const GameVector* origin, GameVector* target);
 bool LOSAndReturnTarget(GameVector* origin, GameVector* target, int push);
+bool LOSAndReturnTargetPrecise(GameVector* origin, GameVector* target, int push, int stepCount);
 bool GetTargetOnLOS(GameVector* origin, GameVector* target);
 int	 ObjectOnLOS2(GameVector* origin, GameVector* target, Vector3i* vec, StaticMesh** mesh, GAME_OBJECT_ID priorityObjectID = GAME_OBJECT_ID::ID_NO_OBJECT);

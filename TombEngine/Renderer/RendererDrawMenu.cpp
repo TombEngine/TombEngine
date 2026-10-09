@@ -270,20 +270,28 @@ namespace TEN::Renderer
 
 			// Thumbstick camera
 			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_THUMBSTICK_CAMERA), optionColor, SF(titleOption == 7));
-			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableThumbstickCamera), plainColor, SF(titleOption == 7));
+			// Remastered controls: value grayed out under Remastered controls. -- divezzi, 08.10.26
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.EnableThumbstickCamera),
+				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? disabledColor : plainColor, SF(titleOption == 7));
+			GetNextLinePosition(&y);
+
+			// Remastered controls: invert camera Y row, grayed out under Classic. -- divezzi, 08.10.26
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_INVERT_CAMERA_Y_AXIS), optionColor, SF(titleOption == 8));
+			AddString(MenuRightSideEntry, y, Str_Enabled(g_Gui.GetCurrentSettings().Configuration.InvertCameraYAxis),
+				g_Gui.GetCurrentSettings().Configuration.IsUsingRemasteredControls() ? plainColor : disabledColor, SF(titleOption == 8));
 			GetNextLinePosition(&y);
 
 			// Mouse sensitivity
-			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MOUSE_SENSITIVITY), optionColor, SF(titleOption == 8));
-			AddString(MenuRightSideEntry, y, std::to_string(g_Gui.GetCurrentSettings().Configuration.MouseSensitivity).c_str(), plainColor, SF(titleOption == 8));
+			AddString(MenuLeftSideEntry, y, g_GameFlow->GetString(STRING_MOUSE_SENSITIVITY), optionColor, SF(titleOption == 9));
+			AddString(MenuRightSideEntry, y, std::to_string(g_Gui.GetCurrentSettings().Configuration.MouseSensitivity).c_str(), plainColor, SF(titleOption == 9));
 			GetNextBlockPosition(&y);
 
 			// Apply
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 9));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_APPLY), optionColor, SF_Center(titleOption == 10));
 			GetNextLinePosition(&y);
 
 			// Cancel
-			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 10));
+			AddString(MenuCenterEntry, y, g_GameFlow->GetString(STRING_CANCEL), optionColor, SF_Center(titleOption == 11));
 			break;
 
 		case Menu::Display:

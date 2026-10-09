@@ -92,6 +92,7 @@
 #define STRING_INTERACTION_HIGHLIGHTER	"interaction_highlighter"
 #define STRING_RUMBLE					"rumble"
 #define STRING_THUMBSTICK_CAMERA		"thumbstick_camera"
+#define STRING_INVERT_CAMERA_Y_AXIS		"invert_camera_y_axis"
 #define STRING_SUBTITLES				"subtitles"
 #define STRING_MENU_OPT_LOOP			"menu_option_looping"
 #define STRING_MENU_OPT_LOOP_ALL_MENUS	"menu_option_looping_all_menus"

@@ -83,6 +83,7 @@ local strings =
 	high = { "High" },
 	high_framerate = { "High Framerate" },
 	interaction_highlighter = { "Interaction Highlighter" },
+	invert_camera_y_axis = { "Invert Camera Y" },
 	level_secrets_found = { "Secrets Found in Level" },
 	load_game = { "Load Game" },
 	low = { "Low" },

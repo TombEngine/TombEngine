@@ -42,6 +42,7 @@ table Configuration {
 	control_mode: int32;
 	remastered_bindings: [Binding];
 	remastered_gamepad_bindings: [Binding];
+	invert_camera_y_axis: bool;
 }
 
 root_type Configuration;

@@ -1063,6 +1063,7 @@ namespace TEN::Gui
 			InteractionHighlighter,
 			ToggleRumble,
 			ThumbstickCameraControl,
+			InvertCameraYAxisOption,
 			MouseSensitivity,
 
 			Apply,
@@ -1124,8 +1125,26 @@ namespace TEN::Gui
 				break;
 
 			case GameplaySettingsOption::ThumbstickCameraControl:
+				// Remastered controls: locked, as the Remastered camera does not read it. -- divezzi, 08.10.26
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
+					break;
+				}
+
 				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				CurrentSettings.Configuration.EnableThumbstickCamera = !CurrentSettings.Configuration.EnableThumbstickCamera;
+				break;
+
+			// Remastered controls: toggles invert camera Y (Remastered camera only). -- divezzi, 08.10.26
+			case GameplaySettingsOption::InvertCameraYAxisOption:
+				if (CurrentSettings.Configuration.IsUsingRemasteredControls())
+				{
+					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+					CurrentSettings.Configuration.InvertCameraYAxis = !CurrentSettings.Configuration.InvertCameraYAxis;
+				}
+				else
+					SoundEffect(SFX_TR4_LARA_NO_ENGLISH, nullptr, SoundEnvironment::Always);
 				break;
 			}
 		}
@@ -1184,6 +1203,10 @@ namespace TEN::Gui
 					RefreshBindingsForControlMode();
 
 				SaveConfiguration();
+
+				// Remastered controls: puts the camera behind Lara on a mode change. -- divezzi, 08.10.26
+				if (hasControlModeChanged && LaraItem != nullptr)
+					ResetRemasteredCameraOrient(*LaraItem);
 
 				// Rumble if setting was changed.
 				if (indicateRumble)

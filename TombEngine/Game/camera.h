@@ -101,6 +101,7 @@ void InitializeCamera();
 void MoveCamera(GameVector* ideal, int speed, bool force = false);
 void ChaseCamera(ItemInfo* item);
 void UpdateCameraElevation();
+void ResetRemasteredCameraOrient(const ItemInfo& item);
 void CombatCamera(ItemInfo* item);
 bool CameraCollisionBounds(GameVector* ideal, int push, bool yFirst);
 void FixedCamera(ItemInfo* item);

@@ -162,6 +162,7 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 	g_Configuration.EnableInteractionHighlighter = config->enable_interaction_highlighter();
 	g_Configuration.EnableRumble = config->enable_rumble();
 	g_Configuration.EnableThumbstickCamera = config->enable_thumbstick_camera();
+	g_Configuration.InvertCameraYAxis = config->invert_camera_y_axis();
 
 	g_Configuration.MouseSensitivity = config->mouse_sensitivity();
 	g_Configuration.MenuOptionLoopingMode = (MenuOptionLoopingMode)config->menu_option_looping_mode();
@@ -228,6 +229,7 @@ void InitDefaultConfiguration()
 	g_Configuration.EnableInteractionHighlighter = true;
 	g_Configuration.EnableRumble = true;
 	g_Configuration.EnableThumbstickCamera = false;
+	g_Configuration.InvertCameraYAxis = false;
 
 	g_Configuration.MouseSensitivity = GameConfiguration::DEFAULT_MOUSE_SENSITIVITY;
 	g_Configuration.MenuOptionLoopingMode = MenuOptionLoopingMode::SaveLoadOnly;
@@ -316,6 +318,7 @@ static std::vector<unsigned char> BuildConfigurationBuffer()
 	builder.add_control_mode((int)g_Configuration.ControlMode);
 	builder.add_remastered_bindings(remasteredBindingsOffset);
 	builder.add_remastered_gamepad_bindings(remasteredGamepadBindingsOffset);
+	builder.add_invert_camera_y_axis(g_Configuration.InvertCameraYAxis);
 
 	auto config = builder.Finish();
 	FinishConfigurationBuffer(fbb, config);
