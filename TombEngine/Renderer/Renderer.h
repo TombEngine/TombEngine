@@ -476,6 +476,7 @@ namespace TEN::Renderer
 		void InitializeSky();
 		void DrawAllStrings();
 		void GetResolvedStrings(std::vector<Next::OverlayText>& texts);
+		const RendererSprite* GetOpticOverlaySprite() const;
 		std::vector<Next::OverlayBar> _nextBars = {}; // Bars drawn this frame, for the next renderer.
 		void PrepareDynamicLight(RendererLight& light);
 		void PrepareLaserBarriers(RenderView& view);

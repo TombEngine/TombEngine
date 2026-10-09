@@ -277,6 +277,15 @@ namespace TEN::Renderer
 		_lines2DToDraw.push_back(line);
 	}
 
+	// Binocular or laser sight sprite while looking through optics outside the title level, null otherwise.
+	const RendererSprite* Renderer::GetOpticOverlaySprite() const
+	{
+		if (CurrentLevel == 0 || Lara.Control.Look.OpticRange == 0)
+			return nullptr;
+
+		return &_sprites[Objects[Lara.Control.Look.IsUsingLasersight ? ID_LASERSIGHT_GRAPHICS : ID_BINOCULAR_GRAPHICS].meshIndex];
+	}
+
 	void Renderer::DrawOverlays(RenderView& view)
 	{
 		auto flashColor = Weather.FlashColor();

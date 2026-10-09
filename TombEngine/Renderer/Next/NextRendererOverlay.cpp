@@ -1,8 +1,10 @@
 #include "framework.h"
 #include "Renderer/Next/NextRenderer.h"
 
+#include "Renderer/RenderView.h"
 #include "Renderer/RHI/ShaderLibrary.h"
 #include "Renderer/Structures/RendererSprite.h"
+#include "Renderer/Structures/RendererSprite2D.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Renderer::RHI;
@@ -121,6 +123,7 @@ namespace TEN::Renderer::Next
         blend.DstColor = blend.DstAlpha = BlendFactor::OneMinusSrcAlpha;
         desc.Name = "Overlay";
         _overlayPipeline = _device->CreateGraphicsPipeline(desc);
+        _overlayPipelineDesc = desc;
 
         // Bars are opaque, as in the legacy renderer.
         desc.PixelShader = _overlayBarPixelShader.get();
@@ -131,30 +134,128 @@ namespace TEN::Renderer::Next
         return (_overlayPipeline != nullptr && _overlayBarPipeline != nullptr && LoadFont(fontPath));
     }
 
-    // Quad in target pixels with texture coordinates, merged into the previous run when the texture matches.
-    void NextRenderer::AddOverlayQuad(ITexture* texture, const Vector2& position, const Vector2& size, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color)
+    // Overlay pipelines share the layout and shaders of the text pipeline and differ by legacy blend mode.
+    IGraphicsPipeline* NextRenderer::GetOverlayPipeline(BlendMode blendMode)
+    {
+        if (blendMode == BlendMode::PremultipliedAlphaBlend)
+            return _overlayPipeline.get();
+
+        auto& pipeline = _overlayPipelines[std::clamp((int)blendMode, 0, 15)];
+        if (pipeline == nullptr)
+        {
+            auto desc = _overlayPipelineDesc;
+            desc.ColorTargets[0].Blend = GetBlendState(blendMode);
+            desc.Name = "Overlay.BlendMode" + std::to_string((int)blendMode);
+            pipeline = _device->CreateGraphicsPipeline(desc);
+        }
+
+        return pipeline.get();
+    }
+
+    // Quad from four corners in target pixels, merged into the previous run when texture and blend mode match.
+    void NextRenderer::AddOverlayCorners(ITexture* texture, const Vector2* corners, const Vector2* uvs, const Vector4& color, BlendMode blendMode)
     {
         unsigned int packedColor = PackOverlayColor(color);
-        OverlayVertex corners[4] =
-        {
-            { position, uvMin, packedColor },
-            { Vector2(position.x + size.x, position.y), Vector2(uvMax.x, uvMin.y), packedColor },
-            { position + size, uvMax, packedColor },
-            { Vector2(position.x, position.y + size.y), Vector2(uvMin.x, uvMax.y), packedColor }
-        };
-
         int firstVertex = (int)(_overlayVertexData.size() / sizeof(OverlayVertex));
         const int order[6] = { 0, 1, 2, 0, 2, 3 };
         for (int index : order)
         {
-            const auto* bytes = (const unsigned char*)&corners[index];
+            auto vertex = OverlayVertex{ corners[index], uvs[index], packedColor };
+            const auto* bytes = (const unsigned char*)&vertex;
             _overlayVertexData.insert(_overlayVertexData.end(), bytes, bytes + sizeof(OverlayVertex));
         }
 
-        if (_overlayDraws.empty() || _overlayDraws.back().Texture != texture || _overlayDraws.back().IsBar)
-            _overlayDraws.push_back(OverlayDraw{ texture, firstVertex, 0 });
+        const auto* last = _overlayDraws.empty() ? nullptr : &_overlayDraws.back();
+        if (last == nullptr || last->Texture != texture || last->IsBar || last->BlendMode != blendMode)
+        {
+            auto draw = OverlayDraw{ texture, firstVertex, 0 };
+            draw.BlendMode = blendMode;
+            _overlayDraws.push_back(draw);
+        }
 
         _overlayDraws.back().VertexCount += 6;
+    }
+
+    void NextRenderer::AddOverlayQuad(ITexture* texture, const Vector2& position, const Vector2& size, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color,
+                                      BlendMode blendMode)
+    {
+        Vector2 corners[4] = { position, Vector2(position.x + size.x, position.y), position + size, Vector2(position.x, position.y + size.y) };
+        Vector2 uvs[4] = { uvMin, Vector2(uvMax.x, uvMin.y), uvMax, Vector2(uvMin.x, uvMax.y) };
+        AddOverlayCorners(texture, corners, uvs, color, blendMode);
+    }
+
+    // Legacy DrawDisplaySprites: sprites rotated about their center in the 800x600 display space, 180 degrees turned
+    // for +Y down, with their aspect correction; negative priorities are drawn before the strings.
+    void NextRenderer::AddDisplaySprites(const RenderView& view, bool isPositivePriority)
+    {
+        constexpr auto DISPLAY_WIDTH = 800.0f;
+        constexpr auto DISPLAY_HEIGHT = 600.0f;
+
+        const auto& desc = _colorTarget->GetDesc();
+        auto displayToTarget = Vector2(desc.Width / DISPLAY_WIDTH, desc.Height / DISPLAY_HEIGHT);
+        for (const auto& sprite : view.DisplaySpritesToDraw)
+        {
+            if ((sprite.Priority >= 0) != isPositivePriority)
+                continue;
+
+            auto* texture = GetSpriteTexture(sprite.SpritePtr);
+            if (texture == nullptr)
+                continue;
+
+            Vector2 corners[4] =
+            {
+                sprite.Size / 2.0f,
+                Vector2(-sprite.Size.x, sprite.Size.y) / 2.0f,
+                -sprite.Size / 2.0f,
+                Vector2(sprite.Size.x, -sprite.Size.y) / 2.0f
+            };
+
+            auto rotation = Matrix::CreateRotationZ(TO_RAD(sprite.Orientation + ANGLE(180.0f)));
+            for (auto& corner : corners)
+                corner = (Vector2::Transform(corner, rotation) * sprite.AspectCorrection + sprite.Position) * displayToTarget;
+
+            AddOverlayCorners(texture, corners, sprite.SpritePtr->UV, sprite.Color, sprite.BlendMode);
+        }
+    }
+
+    // Legacy DrawOverlays: additive lightning flash, then the binocular or laser sight sprite fitted to the screen
+    // with the red aiming point of the laser sight.
+    void NextRenderer::AddScreenOverlays(const FrameEnvironment& environment)
+    {
+        const auto& desc = _colorTarget->GetDesc();
+        auto targetSize = Vector2((float)desc.Width, (float)desc.Height);
+
+        if (environment.FlashColor != Vector3::Zero)
+        {
+            auto color = Vector4(environment.FlashColor.x, environment.FlashColor.y, environment.FlashColor.z, 1.0f);
+            AddOverlayQuad(_whiteTexture.get(), Vector2::Zero, targetSize, Vector2::Zero, Vector2::One, color, BlendMode::Additive);
+        }
+
+        auto* opticTexture = GetSpriteTexture(environment.OpticSprite);
+        if (opticTexture == nullptr)
+            return;
+
+        // Legacy DrawFullScreenSprite fits the laser sight sprite to the screen aspect; the binocular one is stretched.
+        const auto& sprite = *environment.OpticSprite;
+        auto uvStart = Vector2::Zero;
+        auto uvEnd = Vector2::One;
+        if (environment.IsLaserSight)
+        {
+            float screenAspect = targetSize.x / targetSize.y;
+            float imageAspect = sprite.Width / (float)sprite.Height;
+            float difference = (screenAspect > imageAspect) ? ((screenAspect - imageAspect) / screenAspect / 2.0f) : ((imageAspect - screenAspect) / imageAspect / 2.0f);
+            auto& start = (screenAspect > imageAspect) ? uvStart.y : uvStart.x;
+            auto& end = (screenAspect > imageAspect) ? uvEnd.y : uvEnd.x;
+            start += difference;
+            end -= difference;
+        }
+
+        auto scale = Vector2(sprite.Width / (float)opticTexture->GetDesc().Width, sprite.Height / (float)opticTexture->GetDesc().Height);
+        AddOverlayQuad(opticTexture, Vector2::Zero, targetSize, uvStart * scale + sprite.UV[0], uvEnd * scale + sprite.UV[0], Vector4::One, BlendMode::AlphaBlend);
+
+        // Aiming point: 4 by 4 pixels at the screen center, as the legacy NDC quad of half extent 4 / screen size.
+        if (environment.IsLaserSight)
+            AddOverlayQuad(_whiteTexture.get(), targetSize / 2.0f - Vector2(2.0f), Vector2(4.0f), Vector2::Zero, Vector2::One, Vector4(1.0f, 0.0f, 0.0f, 1.0f), BlendMode::Opaque);
     }
 
     // Glyph layout of DirectXTK SpriteFont::DrawString without rotation: offsets accumulate per glyph, whitespace
@@ -284,8 +385,9 @@ namespace TEN::Renderer::Next
         addQuad(innerTexture, innerUniforms, bar.Position, bar.Position + bar.Size, Vector2::Zero, Vector2::One);
     }
 
-    // 2D layer of the frame. Legacy coordinates are in its own screen resolution and are scaled to this target.
-    void NextRenderer::CollectOverlay(const FrameEnvironment& environment)
+    // 2D layer of the frame, in the legacy order: bars, screen overlays, display sprites of negative priority,
+    // strings, then the other display sprites. Legacy string coordinates are in its own screen resolution.
+    void NextRenderer::CollectOverlay(const RenderView& view, const FrameEnvironment& environment)
     {
         _overlayVertexData.clear();
         _overlayDraws.clear();
@@ -293,17 +395,21 @@ namespace TEN::Renderer::Next
         if (environment.Texts == nullptr || environment.ScreenWidth <= 0 || environment.ScreenHeight <= 0 || _colorTarget == nullptr)
             return;
 
-        // Bars are drawn before the strings, as in the legacy HUD.
         if (environment.Bars != nullptr)
         {
             for (const auto& bar : *environment.Bars)
                 AddOverlayBar(bar);
         }
 
+        AddScreenOverlays(environment);
+        AddDisplaySprites(view, false);
+
         const auto& desc = _colorTarget->GetDesc();
         auto scale = Vector2((float)desc.Width / environment.ScreenWidth, (float)desc.Height / environment.ScreenHeight);
         for (const auto& text : *environment.Texts)
             AddOverlayText(text, scale);
+
+        AddDisplaySprites(view, true);
     }
 
     void NextRenderer::RenderOverlay(ICommandBuffer& commandBuffer)
@@ -326,7 +432,7 @@ namespace TEN::Renderer::Next
         const IGraphicsPipeline* lastPipeline = nullptr;
         for (const auto& draw : _overlayDraws)
         {
-            auto* pipeline = draw.IsBar ? _overlayBarPipeline.get() : _overlayPipeline.get();
+            auto* pipeline = draw.IsBar ? _overlayBarPipeline.get() : GetOverlayPipeline(draw.BlendMode);
             if (pipeline != lastPipeline)
             {
                 renderPass->BindPipeline(pipeline);

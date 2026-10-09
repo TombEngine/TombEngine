@@ -149,6 +149,9 @@ namespace TEN::Renderer::Next
         _atmosphericSkyPipeline = nullptr;
         _overlayPipeline = nullptr;
         _overlayBarPipeline = nullptr;
+        for (auto& pipeline : _overlayPipelines)
+            pipeline = nullptr;
+
         _overlayBarPixelShader = nullptr;
         _overlayVertexShader = nullptr;
         _overlayPixelShader = nullptr;
@@ -287,7 +290,7 @@ namespace TEN::Renderer::Next
     }
 
     // Blend states of the legacy DX11 renderer, per blend mode.
-    static BlendState GetBlendState(BlendMode blendMode)
+    BlendState GetBlendState(BlendMode blendMode)
     {
         auto state = BlendState{};
         state.EnableBlend = true;
@@ -2087,7 +2090,7 @@ namespace TEN::Renderer::Next
         CollectObjects(view, environment.InterpolationFactor);
         CollectSprites(view);
         CollectSkySprites(view, environment);
-        CollectOverlay(environment);
+        CollectOverlay(view, environment);
         CollectSortedFaces(view, environment.InterpolationFactor);
         CollectMirroredSorted(view);
 

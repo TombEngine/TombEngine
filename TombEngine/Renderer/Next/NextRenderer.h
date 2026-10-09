@@ -90,6 +90,11 @@ namespace TEN::Renderer::Next
         const std::vector<OverlayText>* Texts        = nullptr;
         const std::vector<OverlayBar>*  Bars         = nullptr;
 
+        // Screen overlays of the legacy DrawOverlays: lightning flash and binocular or laser sight sprite.
+        Vector3                           FlashColor  = Vector3::Zero;
+        const Structures::RendererSprite* OpticSprite = nullptr;
+        bool                              IsLaserSight = false;
+
         // Stars, meteors and sun sprite of the classic sky, drawn additively between the sky layers and horizons.
         const std::vector<Structures::RendererSpriteToDraw>* SkySprites = nullptr;
 
@@ -121,6 +126,9 @@ namespace TEN::Renderer::Next
 
     // New RHI-based renderer. During the migration it draws into a separate preview window, fed by the
     // legacy renderer's culling results, so the two outputs can be compared side by side.
+    // Blend states of the legacy DX11 renderer, per blend mode.
+    RHI::BlendState GetBlendState(BlendMode blendMode);
+
     class NextRenderer
     {
     private:
@@ -403,6 +411,7 @@ namespace TEN::Renderer::Next
             int                VertexCount = 0;
             bool               IsBar       = false;
             OverlayBarUniforms Bar         = {};
+            BlendMode          BlendMode   = BlendMode::PremultipliedAlphaBlend;
         };
 
         FontData                                _font                       = {};
@@ -411,6 +420,8 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IGraphicsPipeline> _overlayPipeline            = nullptr;
         std::unique_ptr<RHI::IShader>           _overlayBarPixelShader      = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _overlayBarPipeline         = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _overlayPipelines[16]       = {}; // Per legacy blend mode, created on first use.
+        RHI::GraphicsPipelineDesc               _overlayPipelineDesc        = {};
         std::vector<unsigned char>              _overlayVertexData          = {};
         std::vector<OverlayDraw>                _overlayDraws               = {};
         int                                     _atmosphericSkyUniformsSize = 0;
@@ -584,10 +595,15 @@ namespace TEN::Renderer::Next
         bool CreateAtmosphereResources();
         bool LoadFont(const std::string& path);
         bool CreateOverlayResources(const std::string& fontPath);
-        void AddOverlayQuad(RHI::ITexture* texture, const Vector2& position, const Vector2& size, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color);
+        void AddOverlayQuad(RHI::ITexture* texture, const Vector2& position, const Vector2& size, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color,
+                            BlendMode blendMode = BlendMode::PremultipliedAlphaBlend);
+        void AddOverlayCorners(RHI::ITexture* texture, const Vector2* corners, const Vector2* uvs, const Vector4& color, BlendMode blendMode);
+        void AddDisplaySprites(const RenderView& view, bool isPositivePriority);
+        void AddScreenOverlays(const FrameEnvironment& environment);
+        RHI::IGraphicsPipeline* GetOverlayPipeline(BlendMode blendMode);
+        void CollectOverlay(const RenderView& view, const FrameEnvironment& environment);
         void AddOverlayText(const OverlayText& text, const Vector2& scale);
         void AddOverlayBar(const OverlayBar& bar);
-        void CollectOverlay(const FrameEnvironment& environment);
         void RenderOverlay(RHI::ICommandBuffer& commandBuffer);
         void DrawAtmosphericSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
         void RenderSkyReflections(RHI::ICommandBuffer& commandBuffer, const RenderView& view, float interpolationFactor);

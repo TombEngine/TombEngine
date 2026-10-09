@@ -2367,6 +2367,9 @@ namespace TEN::Renderer
 			environment.ScreenHeight = screenResolution.y;
 			environment.Texts = &overlayTexts;
 			environment.Bars = &_nextBars;
+			environment.FlashColor = Weather.FlashColor();
+			environment.OpticSprite = GetOpticOverlaySprite();
+			environment.IsLaserSight = Lara.Control.Look.IsUsingLasersight;
 
 			if (_atmosphericSkySettings.Enabled)
 			{
