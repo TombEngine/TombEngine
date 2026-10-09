@@ -70,7 +70,7 @@ namespace TEN::Renderer::Next
         float        ColorSchemeStrength = 1.0f;
         float        ScreenFade          = 1.0f;
         float        CinematicBarsHeight = 0.0f;
-        int          AntialiasingMode    = 0; // Legacy AntialiasingMode; SMAA levels use FXAA for now.
+        int          AntialiasingMode    = 0; // Legacy AntialiasingMode: FXAA for low, SMAA for medium and high.
 
         // Depth of field of the legacy renderer (DOFState).
         int          DofMode             = 0;
@@ -286,6 +286,22 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IGraphicsPipeline> _dofPipelines[DOF_PASS_COUNT]      = {};
         std::unique_ptr<RHI::ITexture>          _dofTargets[DOF_TARGET_COUNT]      = {}; // Near blur, far blur, dilated.
         bool                                    _isDofActive                       = false;
+
+        static constexpr int SMAA_PRESET_COUNT = 2; // Medium and ultra.
+        static constexpr int SMAA_PASS_COUNT   = 3;
+
+        struct SmaaPreset
+        {
+            std::unique_ptr<RHI::IShader>           VertexShader                  = nullptr;
+            std::unique_ptr<RHI::IShader>           PixelShaders[SMAA_PASS_COUNT] = {};
+            std::unique_ptr<RHI::IGraphicsPipeline> Pipelines[SMAA_PASS_COUNT]    = {};
+        };
+
+        SmaaPreset                              _smaaPresets[SMAA_PRESET_COUNT] = {};
+        std::unique_ptr<RHI::ITexture>          _smaaAreaTexture                = nullptr;
+        std::unique_ptr<RHI::ITexture>          _smaaSearchTexture              = nullptr;
+        std::unique_ptr<RHI::ITexture>          _smaaEdgesTarget                = nullptr;
+        std::unique_ptr<RHI::ITexture>          _smaaWeightsTarget              = nullptr;
         bool                                    _hasDistortion           = false;
         float                                   _nearPlane               = 1.0f;
         float                                   _farPlane                = 1.0f;
@@ -475,7 +491,10 @@ namespace TEN::Renderer::Next
         void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target, RHI::ITexture* source,
                                    RHI::ISampler* sourceSampler, const char* name);
         void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target,
-                                   const RHI::TextureSamplerBinding* bindings, int bindingCount, const char* name);
+                                   const RHI::TextureSamplerBinding* bindings, int bindingCount, const char* name, RHI::LoadOp load = RHI::LoadOp::DontCare);
+        bool  CreateSMAAResources();
+        bool  EnsureSMAATargets(int width, int height);
+        void  RenderAntialiasing(RHI::ICommandBuffer& commandBuffer, int antialiasingMode);
 
         // Sprites (NextRendererSprites.cpp).
         bool           CreateSpriteResources();

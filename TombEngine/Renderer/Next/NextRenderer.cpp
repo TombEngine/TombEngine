@@ -158,6 +158,13 @@ namespace TEN::Renderer::Next
             target = nullptr;
 
         _dofVertexShader = nullptr;
+        for (auto& preset : _smaaPresets)
+            preset = SmaaPreset{};
+
+        _smaaAreaTexture = nullptr;
+        _smaaSearchTexture = nullptr;
+        _smaaEdgesTarget = nullptr;
+        _smaaWeightsTarget = nullptr;
         _ssaoBlurTarget = nullptr;
         _pointClampSampler = nullptr;
         _pointWrapSampler = nullptr;
@@ -193,7 +200,7 @@ namespace TEN::Renderer::Next
         if (_skyVertexShader == nullptr || _skyPixelShader == nullptr || !CreateSkyGeometry())
             return false;
 
-        if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources())
+        if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources())
             return false;
 
         if (GetScenePipeline(SceneShader::Rooms, BlendMode::Opaque) == nullptr ||
@@ -462,7 +469,7 @@ namespace TEN::Renderer::Next
         depthDesc.Name = "Scene.Depth";
         _depthTarget = _device->CreateTexture(depthDesc);
 
-        return (_colorTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _distortionTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height) && EnsureGlowTargets(width, height) && EnsureDOFTargets(width, height));
+        return (_colorTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _distortionTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height) && EnsureGlowTargets(width, height) && EnsureDOFTargets(width, height) && EnsureSMAATargets(width, height));
     }
 
     void NextRenderer::UploadBuffer(IBuffer* buffer, const void* data, int size)

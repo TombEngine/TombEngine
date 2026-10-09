@@ -151,11 +151,12 @@ namespace TEN::Renderer::Next
         RenderFullscreenPass(commandBuffer, pipeline, target, bindings, 3, name);
     }
 
-    void NextRenderer::RenderFullscreenPass(ICommandBuffer& commandBuffer, IGraphicsPipeline* pipeline, ITexture* target, const TextureSamplerBinding* bindings, int bindingCount, const char* name)
+    void NextRenderer::RenderFullscreenPass(ICommandBuffer& commandBuffer, IGraphicsPipeline* pipeline, ITexture* target, const TextureSamplerBinding* bindings, int bindingCount,
+                                            const char* name, LoadOp load)
     {
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = target;
-        colorTarget.Load = LoadOp::DontCare;
+        colorTarget.Load = load;
 
         commandBuffer.PushDebugGroup(name);
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);

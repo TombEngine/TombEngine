@@ -192,21 +192,9 @@ namespace TEN::Renderer::Next
         renderPass->Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
 
-        auto binding = TextureSamplerBinding{};
-        if (isAntialiased)
-        {
-            colorTarget.Texture = _colorTarget.get();
-            renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
-            renderPass->BindPipeline(_fxaaPipeline.get());
-
-            binding = TextureSamplerBinding{ _antialiasingSource.get(), _linearClampSampler.get() };
-            renderPass->BindPixelSamplers(0, &binding, 1);
-
-            _frameStats.DrawCalls++;
-            renderPass->Draw(3, 1, 0, 0);
-            commandBuffer.EndRenderPass();
-        }
-
         commandBuffer.PopDebugGroup();
+
+        if (isAntialiased)
+            RenderAntialiasing(commandBuffer, environment.AntialiasingMode);
     }
 }
