@@ -277,6 +277,8 @@ int main(int argc, char* argv[])
 	auto previewBackend = std::string();
 	bool isPreviewOnLowPowerGpu = false;
 	SDL_Window* previewWindow = nullptr;
+	auto nextBackend = std::string();
+	SDL_Window* legacyWindow = nullptr;
 
 	for (int i = 1; i < argc; ++i)
 	{
@@ -309,6 +311,11 @@ int main(int argc, char* argv[])
 		else if (ArgEquals(arg.c_str(), "preview") && i + 1 < argc)
 		{
 			previewBackend = argv[++i];
+		}
+		else if (ArgEquals(arg.c_str(), "next") && i + 1 < argc)
+		{
+			// The next renderer draws the main window; the legacy renderer still prepares every frame in a hidden window.
+			nextBackend = argv[++i];
 		}
 		else if (ArgEquals(arg.c_str(), "previewlowpower"))
 		{
@@ -468,6 +475,12 @@ int main(int argc, char* argv[])
 		Sound_Init(GameDirectory);
 
 		// Initialize renderer.
+		if (!nextBackend.empty())
+		{
+			legacyWindow = SDL_CreateWindow("TombEngine - legacy renderer", width, height, SDL_WINDOW_HIDDEN);
+			g_Renderer.SetSwapchainWindow(legacyWindow, false);
+		}
+
 		g_Renderer.Initialize(GameDirectory, g_Configuration.ScreenWidth, g_Configuration.ScreenHeight, g_Configuration.EnableWindowedMode);
 
 		// Initialize ImGui (debug overlay) — must come after the D3D11 device exists.
@@ -481,6 +494,9 @@ int main(int argc, char* argv[])
 
 		SDL_ShowWindow(sdlWindow);
 		SDL_RaiseWindow(sdlWindow);
+
+		if (!nextBackend.empty() && !TEN::Renderer::Next::g_NextRenderer.Initialize(sdlWindow, ParseRHIBackend(nextBackend), GameDirectory, isPreviewOnLowPowerGpu))
+			throw std::runtime_error("The next renderer could not be started on the " + nextBackend + " backend.");
 
 		// New renderer preview: a second window rendered by the RHI renderer from the same game state.
 		if (!previewBackend.empty())
@@ -605,6 +621,9 @@ int main(int argc, char* argv[])
 	TEN::Renderer::Next::g_NextRenderer.Shutdown();
 	if (previewWindow != nullptr)
 		SDL_DestroyWindow(previewWindow);
+
+	if (legacyWindow != nullptr)
+		SDL_DestroyWindow(legacyWindow);
 
 	SDL_DestroyWindow(sdlWindow);
 	EngineClose();

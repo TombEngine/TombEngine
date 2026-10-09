@@ -97,6 +97,13 @@ namespace TEN::Renderer
 		_videoSprite = {};
 	}
 
+	// With the next renderer as main renderer, the legacy renderer draws into a hidden window and does not present.
+	void Renderer::SetSwapchainWindow(SDL_Window* window, bool isPresented)
+	{
+		_swapchainWindow = window;
+		_isPresented = isPresented;
+	}
+
 	void Renderer::ReloadShaders(bool recompileAAShaders)
 	{
 		try

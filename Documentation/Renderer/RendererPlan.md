@@ -285,7 +285,7 @@ L'algoritmo di develop_performance (bucket come unita', entry compatte, radix so
 ## 10. Fase 6 - Porting delle feature e sostituzione
 
 - [ ] Ordine di porting: UI/HUD/2D -> post-process -> cielo, nuvole, aurora, god ray, dust storm (coordinarsi con Tomo) -> stanze -> statiche -> moveable e Lara (pelle, capelli) -> sprite ed effetti -> ombre -> trasparenti -> specchi -> inventario e menu.
-- [ ] Il renderer vecchio resta compilato dietro un flag finche' il nuovo non raggiunge la parita'.
+- [x] Il renderer vecchio resta compilato dietro un flag finche' il nuovo non raggiunge la parita'. *(`next <vulkan|dx11>`: il renderer nuovo disegna la finestra principale; il legacy prepara ancora viste, ordinamento e layer 2D e disegna in una finestra nascosta senza presentare. Senza flag resta il legacy, con `preview` i due affiancati)*
 - [ ] **Test di parita' visiva** automatici con l'harness headless: screenshot dello stesso frame (vecchio renderer, nuovo DX11, nuovo Vulkan), diff con soglia, su tutti i livelli di benchmark.
 - [ ] Zero errori di validation Vulkan e del debug layer D3D11. *(renderer nuovo: zero sui livelli di benchmark; il debug layer D3D11 e la validazione Vulkan finiscono nel log o in stderr)*
 - [ ] Rimozione del renderer vecchio e di `IGraphicsDevice`.

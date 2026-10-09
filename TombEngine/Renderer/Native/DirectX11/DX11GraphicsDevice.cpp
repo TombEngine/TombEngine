@@ -786,9 +786,9 @@ namespace TEN::Renderer::Native::DirectX11
 		throwIfFailed(_device->CreateSamplerState(&samplerStateDesc, _pointWrapSamplerState.GetAddressOf()));
 	}
 
-	std::unique_ptr<IRenderSurface2D> DX11GraphicsDevice::InitializeSwapChain(int width, int height)
+	std::unique_ptr<IRenderSurface2D> DX11GraphicsDevice::InitializeSwapChain(SDL_Window* window, int width, int height)
 	{
-		auto props = SDL_GetWindowProperties(g_Platform->GetSDL3Window());
+		auto props = SDL_GetWindowProperties(window);
 		_handle = (HWND)SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
 
 		DXGI_SWAP_CHAIN_DESC sd;

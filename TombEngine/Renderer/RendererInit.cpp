@@ -318,7 +318,7 @@ namespace TEN::Renderer
 		SAFE_DELETE(_SMAAEdgesRenderTarget);
 		SAFE_DELETE(_SMAABlendRenderTarget);
 		
-		_backBuffer = _graphicsDevice->InitializeSwapChain(w, h);
+		_backBuffer = _graphicsDevice->InitializeSwapChain((_swapchainWindow != nullptr) ? _swapchainWindow : g_Platform->GetSDL3Window(), w, h);
 		                
 		_renderTarget = _graphicsDevice->CreateRenderSurface2D(w, h, SurfaceFormat::SF_RGBA8_Unorm, false, DepthFormat::Depth32);
 

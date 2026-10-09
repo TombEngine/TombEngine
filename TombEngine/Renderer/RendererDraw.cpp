@@ -3971,7 +3971,8 @@ namespace TEN::Renderer
 		_nextUi.OpticSprite = nullptr;
 		_nextUi.IsLaserSight = false;
 
-		_graphicsDevice->Present();
+		if (_isPresented)
+			_graphicsDevice->Present();
 	}
 
 	void Renderer::DrawMesh(RendererItem* itemToDraw, RendererMesh* mesh, RendererObjectType type, int boneIndex, bool skinned, RenderView& view, RendererPass rendererPass)

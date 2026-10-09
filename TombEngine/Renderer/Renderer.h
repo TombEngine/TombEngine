@@ -103,6 +103,8 @@ namespace TEN::Renderer
 	{
 	private:
 		std::unique_ptr<IGraphicsDevice> _graphicsDevice;
+		SDL_Window* _swapchainWindow = nullptr; // Window of the swapchain; the platform window when null.
+		bool        _isPresented     = true;    // False while the next renderer presents the main window.
 
 		std::unique_ptr<IInputLayout> _vertexInputLayout;
 		std::unique_ptr<IInputLayout> _fullScreenVertexInputLayout;
@@ -902,6 +904,7 @@ namespace TEN::Renderer
 		// IGraphicsDevice; callers must downcast to the concrete backend type.
 		IGraphicsDevice* GetGraphicsDevice() const { return _graphicsDevice.get(); }
 		void ReloadShaders(bool recompileAAShaders = false);
+		void SetSwapchainWindow(SDL_Window* window, bool isPresented);
 		void Render(float interpFactor);
 		void RenderTitle(float interpFactor);
 		void Lock();

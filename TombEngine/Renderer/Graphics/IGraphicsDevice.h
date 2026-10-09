@@ -25,6 +25,8 @@
 #include "Renderer/Structures/RendererViewport.h"
 #include "Specific/Structures/fast_vector.h"
 
+struct SDL_Window;
+
 using namespace TEN::Renderer::Structures;
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -154,7 +156,7 @@ namespace TEN::Renderer::Graphics
 
 		virtual void CreateDevice() = 0;
 		virtual void Initialize() = 0;
-		virtual std::unique_ptr<IRenderSurface2D> InitializeSwapChain(int width, int height) = 0;
+		virtual std::unique_ptr<IRenderSurface2D> InitializeSwapChain(SDL_Window* window, int width, int height) = 0;
 		virtual std::string GetDefaultAdapterName() = 0;
 		virtual AdapterInfo GetAdapterInfo() = 0;
 		virtual void ResizeSwapChain(int width, int height) = 0;
