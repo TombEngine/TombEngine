@@ -4,8 +4,8 @@
 // Surface sampling of the legacy material system (Shaders/Materials.hlsli): color, normal, ORSH and emissive
 // maps of an atlas page, parallax occlusion mapping and per-material properties from a frame storage buffer.
 // Pixel textures use slots 0-3, slot 4 is the screen space ambient occlusion, slot 5 the shadow map
-// (Shadows.hlsli) and slot 6 the caustics; storage buffers follow at index 7 (lights), 8 (materials) and
-// 9 (decals, Decals.hlsli).
+// (Shadows.hlsli), slot 6 the caustics and slot 7 the reflections; storage buffers follow at index 8 (lights),
+// 9 (materials) and 10 (decals, Decals.hlsli).
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -42,7 +42,8 @@ TEN_PS_TEXTURE(Texture2D, ORSHMap, 2);
 TEN_PS_TEXTURE(Texture2D, EmissiveMap, 3);
 TEN_PS_TEXTURE(Texture2D, AmbientOcclusionMap, 4);
 TEN_PS_TEXTURE(Texture2D, CausticsMap, 6);
-TEN_PS_STORAGE_BUFFER(GpuMaterial, Materials, 8);
+TEN_PS_TEXTURE(Texture2D, ReflectionMap, 7); // Previous frame, half resolution.
+TEN_PS_STORAGE_BUFFER(GpuMaterial, Materials, 9);
 
 struct Surface
 {
@@ -137,8 +138,7 @@ float2 ParallaxOcclusionMapping(GpuMaterial material, float3 tangent, float3 bin
     return lerp(baseUV, lerp(frac(currentUV), frac(previousUV), weight), fade);
 }
 
-// Samples every map of the bucket's atlas page. The normal is perturbed by the normal map in the
-// tangent frame; reflections are not ported yet.
+// Samples every map of the bucket's atlas page. The normal is perturbed by the normal map in the tangent frame.
 Surface SampleSurface(GpuMaterial material, float2 uv, float alphaThreshold, float3 position, float3 cameraPosition,
                       float3 normal, float3 tangent, float3 binormal, float3 faceNormal)
 {
@@ -159,7 +159,6 @@ Surface SampleSurface(GpuMaterial material, float2 uv, float alphaThreshold, flo
     return surface;
 }
 
-// Color alpha test and perturbed normal only, for the depth and normals prepass.
 // Prepass surface: normal and emissive, the latter feeding the glow as the legacy GBuffer emissive target.
 float3 SampleSurfaceNormal(GpuMaterial material, float2 uv, float alphaThreshold, float3 position, float3 cameraPosition,
                            float3 normal, float3 tangent, float3 binormal, float3 faceNormal, out float3 emissive)
@@ -182,6 +181,36 @@ float GetAmbientOcclusion(GpuMaterial material, float2 screenUV, float exponent,
 
     float occlusion = pow(AmbientOcclusionMap.Sample(AmbientOcclusionMapSampler, screenUV).x, exponent);
     return (blendMode == BLENDMODE_ALPHABLEND) ? lerp(occlusion, 1.0f, alpha) : occlusion;
+}
+
+// Legacy CalculateLegacyReflections: the view space reflection vector picks a texel of the previous frame,
+// cropped to its central square. Skybox reflections are not ported yet.
+float3 ApplyReflections(GpuMaterial material, float3 color, float3 position, float3 cameraPosition, float3 normal, float specular,
+                        float4x4 view, float aspectRatio)
+{
+    if ((material.TypeAndFlags & MATERIAL_TYPE_MASK) != MATERIAL_REFLECTIVE)
+        return color;
+
+    float3 viewNormal = normalize(mul(float4(normal, 0.0f), view).xyz);
+    float3 viewVector = normalize(mul(float4(cameraPosition - position, 0.0f), view).xyz);
+    float3 reflection = reflect(-viewVector, viewNormal);
+
+    float2 uv = reflection.xy * 0.5f + 0.5f;
+    uv.y = 1.0f - uv.y;
+    if (aspectRatio >= 1.0f)
+        uv.x = uv.x / aspectRatio + (0.5f - 0.5f / aspectRatio);
+    else
+        uv.y = uv.y * aspectRatio + (0.5f - 0.5f * aspectRatio);
+
+    float3 reflectedColor = ReflectionMap.Sample(ReflectionMapSampler, uv).rgb * saturate(material.Properties[0].rgb);
+
+    // Vertical mask: offset in Properties[1].x, signed feather in Properties[2].x.
+    float mask = 1.0f;
+    float bias = material.Properties[2].x;
+    if (abs(bias) > 1e-6f)
+        mask = saturate(((bias < 0.0f) ? (position.y - material.Properties[1].x) : (material.Properties[1].x - position.y)) / abs(bias));
+
+    return lerp(color, reflectedColor, saturate(specular) * material.Properties[0].a * mask);
 }
 
 struct PrepassOutput

@@ -141,6 +141,7 @@ namespace TEN::Renderer::Next
         _normalTarget = nullptr;
         _ssaoTarget = nullptr;
         _emissiveTarget = nullptr;
+        _reflectionTarget = nullptr;
         _glowTargets[0] = nullptr;
         _glowTargets[1] = nullptr;
         _glowDownscalePipeline = nullptr;
@@ -732,6 +733,7 @@ namespace TEN::Renderer::Next
     {
         _materialData.resize(g_Level.Materials.size() * sizeof(GpuMaterial));
         auto* materials = (GpuMaterial*)_materialData.data();
+        _hasReflectiveMaterials = false;
 
         for (int i = 0; i < (int)g_Level.Materials.size(); i++)
         {
@@ -742,6 +744,10 @@ namespace TEN::Renderer::Next
             gpuMaterial = GpuMaterial{};
             for (int j = 0; j < MaterialData::PropertyCount; j++)
                 gpuMaterial.Properties[j] = properties[j];
+
+            // Scripts can change material types at runtime.
+            if (material.Type == TextureMaterialType::Reflective)
+                _hasReflectiveMaterials = true;
 
             gpuMaterial.TypeAndFlags = (unsigned int)material.Type |
                                        ((unsigned int)material.HasHeightMap << 8) |
@@ -811,7 +817,8 @@ namespace TEN::Renderer::Next
         auto* ambientOcclusion = _isAmbientOcclusionActive ? _ssaoTarget.get() : _whiteTexture.get();
         auto* shadowMap = _isRenderingShadowMap ? _dummyShadowMap.get() : _shadowMap.get();
         auto* caustics = (_causticsTexture != nullptr) ? _causticsTexture : _whiteTexture.get();
-        TextureSamplerBinding bindings[7] =
+        auto* reflections = _hasReflectiveMaterials ? _reflectionTarget.get() : _blackTexture.get();
+        TextureSamplerBinding bindings[8] =
         {
             { getMap(page ? &page->ColorMap : nullptr, _whiteTexture.get()), sampler },
             { getMap(page ? &page->NormalMap : nullptr, _flatNormalTexture.get()), sampler },
@@ -819,9 +826,10 @@ namespace TEN::Renderer::Next
             { getMap(page ? &page->EmissiveMap : nullptr, _blackTexture.get()), sampler },
             { ambientOcclusion, _linearClampSampler.get() },
             { shadowMap, _pointClampSampler.get() },
-            { caustics, sampler }
+            { caustics, sampler },
+            { reflections, _linearClampSampler.get() }
         };
-        renderPass.BindPixelSamplers(0, bindings, 7);
+        renderPass.BindPixelSamplers(0, bindings, 8);
     }
 
     void NextRenderer::BindBucket(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RendererBucket& bucket, const std::vector<RoomTexture>& pages,
@@ -1985,6 +1993,10 @@ namespace TEN::Renderer::Next
         _isDofActive = IsDOFActive(environment);
         if (_isDofActive)
             RenderDOF(*commandBuffer, environment);
+
+        // Reflective materials sample the scene of the previous frame, as in the legacy renderer.
+        if (_hasReflectiveMaterials)
+            DownscaleTexture(*commandBuffer, _sceneTarget.get(), _reflectionTarget.get(), "Reflections");
 
         if (_hasEmissiveMaps)
             RenderGlow(*commandBuffer);

@@ -1,6 +1,6 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=4
-// TEN_SHADER: Pixel PS samplers=7 storage_textures=0 storage_buffers=3 uniform_buffers=3
-// TEN_SHADER: Pixel PSDepthNormal samplers=7 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Pixel PS samplers=8 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Pixel PSDepthNormal samplers=8 storage_textures=0 storage_buffers=3 uniform_buffers=3
 
 // Room geometry: baked vertex lighting plus the room's dynamic lights with specular, material maps (normal,
 // ORSH, emissive, parallax), animated textures, vertex effects, water refraction and distance fog.
@@ -19,7 +19,7 @@
 TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
 TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
 
-TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 7);
+TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 8);
 
 struct VertexInput
 {
@@ -150,6 +150,9 @@ float4 PS(PixelInput input) : SV_TARGET
     GpuMaterial material = Materials[MaterialIndex];
     Surface surface = SampleSurface(material, ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition, PixelCameraPosition,
                                     input.Normal, input.Tangent, input.Binormal, input.FaceNormal);
+    surface.Color.rgb = ApplyReflections(material, surface.Color.rgb, input.WorldPosition, PixelCameraPosition,
+                                         normalize(lerp(input.FaceNormal, surface.Normal, 0.1f)), surface.Specular, View,
+                                         InverseViewportSize.y / InverseViewportSize.x);
 
     float occlusion = surface.Occlusion * GetAmbientOcclusion(material, input.Position.xy * InverseViewportSize, AmbientOcclusionExponent, BlendMode, surface.Color.a);
     float3 lighting = GetRoomLighting(input.Color.rgb, input.WorldPosition, surface, input.Tangent, input.Binormal) - input.FogBulbs.w;

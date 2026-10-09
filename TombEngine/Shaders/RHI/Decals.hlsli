@@ -16,7 +16,7 @@ struct GpuDecal
     float2 Padding;
 };
 
-TEN_PS_STORAGE_BUFFER(GpuDecal, Decals, 9);
+TEN_PS_STORAGE_BUFFER(GpuDecal, Decals, 10);
 
 float GetDecalMask(float3 position, float3 tangent, float3 binormal, uint decalOffset, uint decalCount)
 {

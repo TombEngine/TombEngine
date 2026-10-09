@@ -1,7 +1,7 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=4
-// TEN_SHADER: Pixel PS samplers=7 storage_textures=0 storage_buffers=3 uniform_buffers=3
-// TEN_SHADER: Pixel PSDepthNormal samplers=7 storage_textures=0 storage_buffers=3 uniform_buffers=3
-// TEN_SHADER: Pixel PSShadow samplers=7 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Pixel PS samplers=8 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Pixel PSDepthNormal samplers=8 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Pixel PSShadow samplers=8 storage_textures=0 storage_buffers=3 uniform_buffers=3
 
 // Static meshes and rigid moveable meshes. Every draw is instanced: the instance index stream
 // selects the per-instance world matrix, colors and light mode from a storage buffer.
@@ -22,7 +22,7 @@ TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
 TEN_VS_STORAGE_BUFFER(ObjectInstance, Instances, 2);
 TEN_VS_STORAGE_BUFFER(BoneTransform, Bones, 3);
 
-TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 7);
+TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 8);
 
 struct VertexInput
 {
@@ -158,6 +158,8 @@ float4 PS(PixelInput input) : SV_TARGET
     GpuMaterial material = Materials[MaterialIndex];
     Surface surface = SampleSurface(material, ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition, PixelCameraPosition,
                                     input.Normal, input.Tangent, input.Binormal, input.FaceNormal);
+    surface.Color.rgb = ApplyReflections(material, surface.Color.rgb, input.WorldPosition, PixelCameraPosition, surface.Normal,
+                                         surface.Specular, View, InverseViewportSize.y / InverseViewportSize.x);
 
     float3 vertexLight = input.Color.rgb * COLOR_MODULATION_SCALE;
     float3 color = (input.LightMode == LIGHT_MODE_DYNAMIC) ?

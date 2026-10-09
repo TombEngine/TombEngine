@@ -277,6 +277,8 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IGraphicsPipeline> _glowDownscalePipeline   = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _glowBlurPipeline        = nullptr;
         bool                                    _hasEmissiveMaps         = false;
+        std::unique_ptr<RHI::ITexture>          _reflectionTarget        = nullptr; // Half resolution scene of the previous frame.
+        bool                                    _hasReflectiveMaterials  = false;
 
         static constexpr int DOF_PASS_COUNT   = 4;
         static constexpr int DOF_TARGET_COUNT = 3;
@@ -485,6 +487,7 @@ namespace TEN::Renderer::Next
         bool  CreateGlowResources();
         bool  EnsureGlowTargets(int width, int height);
         void  RenderGlow(RHI::ICommandBuffer& commandBuffer);
+        void  DownscaleTexture(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* source, RHI::ITexture* target, const char* name);
         float GetAmbientOcclusionExponent() const;
         void  RenderDepthPrepass(RHI::ICommandBuffer& commandBuffer, const RenderView& view);
         void  RenderSSAO(RHI::ICommandBuffer& commandBuffer, const Matrix& projection);
