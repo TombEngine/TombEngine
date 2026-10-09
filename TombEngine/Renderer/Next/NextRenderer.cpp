@@ -36,6 +36,7 @@ using TEN::Renderer::Graphics::Vertices::Vertex;
 namespace TEN::Renderer::Next
 {
     constexpr auto INITIAL_INSTANCE_CAPACITY = 4096;
+    constexpr auto UPLOAD_RING_INITIAL_SIZE  = 4 * 1024 * 1024;
 
     NextRenderer g_NextRenderer;
 
@@ -54,6 +55,7 @@ namespace TEN::Renderer::Next
         _windowWidth = width;
         _windowHeight = height;
 
+        _uploadRing.Initialize(*_device, UPLOAD_RING_INITIAL_SIZE);
         if (!CreatePipelines())
         {
             TENLog("Next renderer: pipeline creation failed.", LogLevel::Error);
@@ -71,6 +73,7 @@ namespace TEN::Renderer::Next
             return;
 
         _device->WaitIdle();
+        _readback.Poll(*_device, true);
         _roomTextures.clear();
         _animatedTextures.clear();
         _staticTextures.clear();
@@ -145,7 +148,7 @@ namespace TEN::Renderer::Next
         _emissiveTarget = nullptr;
         _reflectionTarget = nullptr;
         _videoTexture = nullptr;
-        _videoTransferBuffer = nullptr;
+        _uploadRing.Release();
         _skyReflectionTarget = nullptr;
         _atmosphericSkyPipeline = nullptr;
         _overlayPipeline = nullptr;
@@ -1466,7 +1469,7 @@ namespace TEN::Renderer::Next
         }
     }
 
-    void NextRenderer::UploadFrameStorage(ICopyPass& copyPass, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name)
+    void NextRenderer::UploadFrameStorage(FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name)
     {
         // Storage buffers cannot be empty, so the smallest buffer holds one element.
         int dataSize = std::max((int)data.size(), stride);
@@ -1474,36 +1477,29 @@ namespace TEN::Renderer::Next
         {
             storage.Capacity = std::max(dataSize * 2, stride * INITIAL_INSTANCE_CAPACITY);
             storage.Buffer = _device->CreateBuffer(BufferDesc{ storage.Capacity, stride, usage, name });
-            storage.Transfer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, storage.Capacity);
         }
 
-        if (data.empty())
-            return;
-
-        // Cycling renames buffers still in use by previous frames instead of stalling.
-        memcpy(_device->MapTransferBuffer(storage.Transfer.get(), true), data.data(), data.size());
-        _device->UnmapTransferBuffer(storage.Transfer.get());
-
-        copyPass.UploadToBuffer(storage.Transfer.get(), 0, storage.Buffer.get(), 0, (int)data.size(), true);
+        _uploadRing.UploadToBuffer(storage.Buffer.get(), 0, data.data(), (int)data.size());
     }
 
     // All per-frame data goes to the GPU in a single copy pass before the scene pass.
     void NextRenderer::UploadFrameData(ICommandBuffer& commandBuffer, const FrameEnvironment& environment)
     {
         commandBuffer.PushDebugGroup("Upload frame data");
-        auto* copyPass = commandBuffer.BeginCopyPass();
+        _uploadRing.Begin(*commandBuffer.BeginCopyPass());
 
-        UploadFrameStorage(*copyPass, _instanceBuffer, _instanceData, (int)sizeof(GpuObjectInstance), BufferUsage::GraphicsStorageRead, "Frame.Instances");
-        UploadFrameStorage(*copyPass, _lightBuffer, _lightData, (int)sizeof(GpuLight), BufferUsage::GraphicsStorageRead, "Frame.Lights");
-        UploadFrameStorage(*copyPass, _boneBuffer, _boneData, (int)sizeof(Matrix), BufferUsage::GraphicsStorageRead, "Frame.Bones");
-        UploadFrameStorage(*copyPass, _sortedIndexBuffer, _sortedIndexData, (int)sizeof(int), BufferUsage::Index, "Frame.SortedIndices");
-        UploadFrameStorage(*copyPass, _spriteBuffer, _spriteData, (int)sizeof(GpuSprite), BufferUsage::GraphicsStorageRead, "Frame.Sprites");
-        UploadFrameStorage(*copyPass, _materialBuffer, _materialData, (int)sizeof(GpuMaterial), BufferUsage::GraphicsStorageRead, "Frame.Materials");
-        UploadFrameStorage(*copyPass, _decalBuffer, _decalData, (int)sizeof(GpuDecal), BufferUsage::GraphicsStorageRead, "Frame.Decals");
-        UploadFrameStorage(*copyPass, _debrisVertexBuffer, _debrisVertexData, (int)sizeof(Vertex), BufferUsage::Vertex, "Frame.DebrisVertices");
-        UploadFrameStorage(*copyPass, _debrisInstanceBuffer, _debrisInstanceData, (int)sizeof(unsigned int), BufferUsage::Vertex, "Frame.DebrisInstances");
-        UploadVideoFrame(*copyPass, environment.VideoFrame, environment.VideoWidth, environment.VideoHeight);
+        UploadFrameStorage(_instanceBuffer, _instanceData, (int)sizeof(GpuObjectInstance), BufferUsage::GraphicsStorageRead, "Frame.Instances");
+        UploadFrameStorage(_lightBuffer, _lightData, (int)sizeof(GpuLight), BufferUsage::GraphicsStorageRead, "Frame.Lights");
+        UploadFrameStorage(_boneBuffer, _boneData, (int)sizeof(Matrix), BufferUsage::GraphicsStorageRead, "Frame.Bones");
+        UploadFrameStorage(_sortedIndexBuffer, _sortedIndexData, (int)sizeof(int), BufferUsage::Index, "Frame.SortedIndices");
+        UploadFrameStorage(_spriteBuffer, _spriteData, (int)sizeof(GpuSprite), BufferUsage::GraphicsStorageRead, "Frame.Sprites");
+        UploadFrameStorage(_materialBuffer, _materialData, (int)sizeof(GpuMaterial), BufferUsage::GraphicsStorageRead, "Frame.Materials");
+        UploadFrameStorage(_decalBuffer, _decalData, (int)sizeof(GpuDecal), BufferUsage::GraphicsStorageRead, "Frame.Decals");
+        UploadFrameStorage(_debrisVertexBuffer, _debrisVertexData, (int)sizeof(Vertex), BufferUsage::Vertex, "Frame.DebrisVertices");
+        UploadFrameStorage(_debrisInstanceBuffer, _debrisInstanceData, (int)sizeof(unsigned int), BufferUsage::Vertex, "Frame.DebrisInstances");
+        UploadVideoFrame(environment.VideoFrame, environment.VideoWidth, environment.VideoHeight);
 
+        _uploadRing.End();
         commandBuffer.EndCopyPass();
         commandBuffer.PopDebugGroup();
     }
@@ -2300,14 +2296,15 @@ namespace TEN::Renderer::Next
         _isFramePending = false;
 
         commandBuffer->PushDebugGroup("Finish frame");
-        auto* copyPass = commandBuffer->BeginCopyPass();
+        _uploadRing.Begin(*commandBuffer->BeginCopyPass());
 
         // Frames without a scene, such as exclusive video playback, upload the video frame before the overlay uses it.
         if (!hasScene)
-            UploadVideoFrame(*copyPass, ui.VideoFrame, ui.VideoWidth, ui.VideoHeight);
+            UploadVideoFrame(ui.VideoFrame, ui.VideoWidth, ui.VideoHeight);
 
         CollectOverlay(ui);
-        UploadOverlayData(*copyPass, hasScene);
+        UploadOverlayData(hasScene);
+        _uploadRing.End();
         commandBuffer->EndCopyPass();
 
         RenderOverlay(*commandBuffer, ui);
@@ -2320,18 +2317,19 @@ namespace TEN::Renderer::Next
                 commandBuffer->BlitTexture(_finalTarget.get(), swapchainTexture);
         }
 
+        if (!_screenshotPath.empty())
+        {
+            _readback.Record(*_device, *commandBuffer->BeginCopyPass(), _finalTarget.get(), _screenshotPath);
+            commandBuffer->EndCopyPass();
+            _screenshotPath.clear();
+        }
+
         commandBuffer->PopDebugGroup();
 
         // Submit is excluded: on DX11 it also presents and may wait for vsync.
         _frameStats.CpuTime += std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - startTime).count();
-        commandBuffer->Submit();
-
-        if (!_screenshotPath.empty())
-        {
-            bool saved = SaveTextureToPng(*_device, _finalTarget.get(), _screenshotPath);
-            TENLog("Next renderer screenshot " + _screenshotPath + (saved ? " saved." : " failed."), LogLevel::Info);
-            _screenshotPath.clear();
-        }
+        _readback.Submit(*commandBuffer);
+        _readback.Poll(*_device, false);
 
         if (_device->RequiresWindowThreadPresent())
             _isFrameReady = true;

@@ -3,30 +3,25 @@
 
 namespace TEN::Renderer::RHI
 {
-    bool SaveTextureToPng(IDevice& device, ITexture* texture, const std::string& path, int layer)
+    static std::unique_ptr<ITransferBuffer> RecordDownload(IDevice& device, ICopyPass& copyPass, ITexture* texture, int layer)
     {
         const auto& desc = texture->GetDesc();
         int size = GetTextureDataSize(desc.Format, desc.Width, desc.Height, 1);
         auto transferBuffer = device.CreateTransferBuffer(TransferBufferUsage::Download, size);
         if (transferBuffer == nullptr)
-            return false;
-
-        auto* commandBuffer = device.AcquireCommandBuffer();
-        auto* copyPass = commandBuffer->BeginCopyPass();
+            return nullptr;
 
         auto region = TextureRegion{};
         region.Texture = texture;
         region.Layer = layer;
         region.Width = desc.Width;
         region.Height = desc.Height;
-        copyPass->DownloadFromTexture(region, TextureTransferInfo{ transferBuffer.get(), 0, 0, 0 });
+        copyPass.DownloadFromTexture(region, TextureTransferInfo{ transferBuffer.get(), 0, 0, 0 });
+        return transferBuffer;
+    }
 
-        commandBuffer->EndCopyPass();
-        commandBuffer->Submit();
-        device.WaitIdle();
-
-        auto* data = (unsigned char*)device.MapTransferBuffer(transferBuffer.get(), false);
-
+    static bool WritePng(const TextureDesc& desc, const unsigned char* data, const std::string& path)
+    {
         // Single channel targets are saved as grayscale.
         auto expanded = std::vector<unsigned char>{};
         if (desc.Format == PixelFormat::R8Unorm || desc.Format == PixelFormat::R32Float)
@@ -45,11 +40,88 @@ namespace TEN::Renderer::RHI
 
         auto* pixels = expanded.empty() ? data : expanded.data();
         auto pixelFormat = (desc.Format == PixelFormat::BGRA8Unorm) ? SDL_PIXELFORMAT_BGRA32 : SDL_PIXELFORMAT_RGBA32;
-        auto* surface = SDL_CreateSurfaceFrom(desc.Width, desc.Height, pixelFormat, pixels, desc.Width * 4);
+        auto* surface = SDL_CreateSurfaceFrom(desc.Width, desc.Height, pixelFormat, (void*)pixels, desc.Width * 4);
         bool result = (surface != nullptr) && SDL_SavePNG(surface, path.c_str());
         SDL_DestroySurface(surface);
-        device.UnmapTransferBuffer(transferBuffer.get());
-
         return result;
+    }
+
+    bool SaveTextureToPng(IDevice& device, ITexture* texture, const std::string& path, int layer)
+    {
+        auto* commandBuffer = device.AcquireCommandBuffer();
+        auto transferBuffer = RecordDownload(device, *commandBuffer->BeginCopyPass(), texture, layer);
+        commandBuffer->EndCopyPass();
+        commandBuffer->Submit();
+        if (transferBuffer == nullptr)
+            return false;
+
+        device.WaitIdle();
+
+        bool result = WritePng(texture->GetDesc(), (const unsigned char*)device.MapTransferBuffer(transferBuffer.get(), false), path);
+        device.UnmapTransferBuffer(transferBuffer.get());
+        return result;
+    }
+
+    bool TextureReadback::HasUnsubmittedRequests() const
+    {
+        for (const auto& request : _requests)
+        {
+            if (request.Fence == nullptr)
+                return true;
+        }
+
+        return false;
+    }
+
+    void TextureReadback::Record(IDevice& device, ICopyPass& copyPass, ITexture* texture, const std::string& path)
+    {
+        auto request = Request{};
+        request.Buffer = RecordDownload(device, copyPass, texture, 0);
+        request.Desc = texture->GetDesc();
+        request.Path = path;
+        if (request.Buffer != nullptr)
+            _requests.push_back(std::move(request));
+    }
+
+    void TextureReadback::Submit(ICommandBuffer& commandBuffer)
+    {
+        if (!HasUnsubmittedRequests())
+        {
+            commandBuffer.Submit();
+            return;
+        }
+
+        auto fence = std::shared_ptr<IFence>(commandBuffer.SubmitWithFence());
+        for (auto& request : _requests)
+        {
+            if (request.Fence == nullptr)
+                request.Fence = fence;
+        }
+    }
+
+    // With wait set, every submitted download is completed first, as at shutdown.
+    void TextureReadback::Poll(IDevice& device, bool wait)
+    {
+        if (_requests.empty())
+            return;
+
+        if (wait)
+            device.WaitIdle();
+
+        for (int i = 0; i < (int)_requests.size(); )
+        {
+            auto& request = _requests[i];
+            if (request.Fence == nullptr || !device.IsFenceSignaled(request.Fence.get()))
+            {
+                i++;
+                continue;
+            }
+
+            bool saved = WritePng(request.Desc, (const unsigned char*)device.MapTransferBuffer(request.Buffer.get(), false), request.Path);
+            device.UnmapTransferBuffer(request.Buffer.get());
+            TENLog("Screenshot " + request.Path + (saved ? " saved." : " failed."), saved ? LogLevel::Info : LogLevel::Warning);
+
+            _requests.erase(_requests.begin() + i);
+        }
     }
 }

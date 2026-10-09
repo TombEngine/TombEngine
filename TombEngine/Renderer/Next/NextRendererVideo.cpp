@@ -37,7 +37,7 @@ namespace TEN::Renderer::Next
 
     // The background video frame decoded by the legacy video handler is uploaded once per frame, cycling the
     // texture so frames still in flight keep the previous one.
-    void NextRenderer::UploadVideoFrame(ICopyPass& copyPass, const unsigned char* frame, int width, int height)
+    void NextRenderer::UploadVideoFrame(const unsigned char* frame, int width, int height)
     {
         _isVideoActive = false;
         if (frame == nullptr || width <= 0 || height <= 0)
@@ -52,19 +52,15 @@ namespace TEN::Renderer::Next
             desc.Format = PixelFormat::BGRA8Unorm;
             desc.Name = "Video";
             _videoTexture = _device->CreateTexture(desc);
-            _videoTransferBuffer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, size);
-            if (_videoTexture == nullptr || _videoTransferBuffer == nullptr)
+            if (_videoTexture == nullptr)
                 return;
         }
-
-        memcpy(_device->MapTransferBuffer(_videoTransferBuffer.get(), true), frame, size);
-        _device->UnmapTransferBuffer(_videoTransferBuffer.get());
 
         auto region = TextureRegion{};
         region.Texture = _videoTexture.get();
         region.Width = width;
         region.Height = height;
-        copyPass.UploadToTexture(TextureTransferInfo{ _videoTransferBuffer.get(), 0, 0, 0 }, region, true);
+        _uploadRing.UploadToTexture(region, frame, size);
         _isVideoActive = true;
     }
 

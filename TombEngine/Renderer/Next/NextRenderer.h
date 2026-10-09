@@ -7,6 +7,8 @@
 #include "Renderer/Next/GpuTypes.h"
 #include "Renderer/Next/OverlayTypes.h"
 #include "Renderer/RHI/RHIDevice.h"
+#include "Renderer/RHI/TextureCapture.h"
+#include "Renderer/RHI/UploadRing.h"
 
 struct TEXTURE;
 
@@ -208,12 +210,11 @@ namespace TEN::Renderer::Next
             int                               AnimatedSetOverride = NO_VALUE; // Legacy waterfall scrolling.
         };
 
-        // GPU buffer rewritten every frame from CPU data through a cycled transfer buffer.
+        // GPU buffer rewritten every frame from CPU data through the upload ring.
         struct FrameStorageBuffer
         {
-            std::unique_ptr<RHI::IBuffer>         Buffer   = nullptr;
-            std::unique_ptr<RHI::ITransferBuffer> Transfer = nullptr;
-            int                                   Capacity = 0;
+            std::unique_ptr<RHI::IBuffer> Buffer   = nullptr;
+            int                           Capacity = 0;
         };
 
         enum class SceneShader
@@ -483,10 +484,11 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IBuffer> _animatedSetsBuffer   = nullptr;
         std::unordered_map<int, int>  _waterfallSets        = {}; // Object ID to animated set.
         std::unordered_map<int, int>  _videoSets            = {}; // Video animated set to its normalized UV set.
-        std::unique_ptr<RHI::ITexture>        _videoTexture        = nullptr;
-        std::unique_ptr<RHI::ITransferBuffer> _videoTransferBuffer = nullptr;
-        bool                                  _isVideoActive       = false;
-        const Structures::RendererSprite*     _videoSprite         = nullptr;
+        std::unique_ptr<RHI::ITexture>    _videoTexture  = nullptr;
+        bool                              _isVideoActive = false;
+        const Structures::RendererSprite* _videoSprite   = nullptr;
+        RHI::UploadRing                   _uploadRing    = {}; // Per-frame uploads of every copy pass.
+        RHI::TextureReadback              _readback      = {}; // Screenshots, written when the GPU has rendered them.
 
         GeometryBuffers               _staticGeometry   = {};
         GeometryBuffers               _moveableGeometry = {};
@@ -603,7 +605,7 @@ namespace TEN::Renderer::Next
         void DrawDebris(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, DebrisPass pass);
         int  AddLights(const std::vector<Structures::RendererLight*>& lights, float interpolationFactor, int roomNumber, int prevRoomNumber, float fade, int& lightOffset);
         static GpuLight ToGpuLight(const Structures::RendererLight& light, float interpolationFactor, float fade);
-        void UploadFrameStorage(RHI::ICopyPass& copyPass, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name);
+        void UploadFrameStorage(FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name);
         void UploadFrameData(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
         void CollectSortedFaces(const RenderView& view, float interpolationFactor);
         int  GetSortedObjectInstance(const Structures::RendererSortableObject& object, float interpolationFactor);
@@ -626,7 +628,7 @@ namespace TEN::Renderer::Next
         void AddOverlayText(const OverlayText& text, const Vector2& scale);
         void AddOverlayBar(const OverlayBar& bar);
         void AddOverlayObjects(const UiFrame& ui, const OverlayLayer& layer);
-        void UploadOverlayData(RHI::ICopyPass& copyPass, bool hasScene);
+        void UploadOverlayData(bool hasScene);
         int  DrawOverlayQuads(RHI::ICommandBuffer& commandBuffer, int firstDraw, bool isFirstPass);
         void DrawOverlayObjects(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui, const OverlayDraw& draw, bool isFirstPass, bool isFirstObjectPass);
         void RenderOverlay(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui);
@@ -662,7 +664,7 @@ namespace TEN::Renderer::Next
         static bool IsDOFActive(const FrameEnvironment& environment);
         void  RenderDOF(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
         void  AddVideoSets(const LegacyLevelGeometry& geometry, std::vector<GpuAnimatedFrame>& frames, std::vector<GpuAnimatedSet>& sets);
-        void  UploadVideoFrame(RHI::ICopyPass& copyPass, const unsigned char* frame, int width, int height);
+        void  UploadVideoFrame(const unsigned char* frame, int width, int height);
         int   GetVideoSet(const Structures::RendererBucket& bucket) const;
         bool  CreateGlowResources();
         bool  EnsureGlowTargets(int width, int height);

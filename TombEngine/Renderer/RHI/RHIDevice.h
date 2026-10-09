@@ -35,6 +35,7 @@ namespace TEN::Renderer::RHI
 
     class IGraphicsPipeline : public IResource {};
     class IComputePipeline : public IResource {};
+    class IFence : public IResource {};
 
     class ITransferBuffer : public IResource
     {
@@ -124,6 +125,9 @@ namespace TEN::Renderer::RHI
         virtual void InsertDebugLabel(const char* name) = 0;
 
         virtual void Submit() = 0;
+
+        // Submits and returns a fence signaled when the GPU has executed this command buffer.
+        virtual std::unique_ptr<IFence> SubmitWithFence() = 0;
     };
 
     class IDevice
@@ -155,6 +159,7 @@ namespace TEN::Renderer::RHI
         virtual void        SetPresentMode(PresentMode mode) = 0;
         virtual void        ResizeSwapchain(int width, int height) = 0;
         virtual void        WaitIdle() = 0;
+        virtual bool        IsFenceSignaled(IFence* fence) = 0;
 
         virtual bool SupportsTextureFormat(PixelFormat format, TextureType type, unsigned int usage) const = 0;
 

@@ -540,27 +540,27 @@ namespace TEN::Renderer::Next
     }
 
     // Object draws read the material, light and decal buffers of the scene; frames without a scene fill them here.
-    void NextRenderer::UploadOverlayData(ICopyPass& copyPass, bool hasScene)
+    void NextRenderer::UploadOverlayData(bool hasScene)
     {
-        UploadFrameStorage(copyPass, _overlayVertexBuffer, _overlayVertexData, (int)sizeof(OverlayVertex), BufferUsage::Vertex, "Frame.OverlayVertices");
+        UploadFrameStorage(_overlayVertexBuffer, _overlayVertexData, (int)sizeof(OverlayVertex), BufferUsage::Vertex, "Frame.OverlayVertices");
         if (_overlayObjectDraws.empty())
             return;
 
-        UploadFrameStorage(copyPass, _overlayInstanceBuffer, _overlayInstanceData, (int)sizeof(GpuObjectInstance), BufferUsage::GraphicsStorageRead, "Frame.OverlayInstances");
-        UploadFrameStorage(copyPass, _overlayBoneBuffer, _overlayBoneData, (int)sizeof(Matrix), BufferUsage::GraphicsStorageRead, "Frame.OverlayBones");
+        UploadFrameStorage(_overlayInstanceBuffer, _overlayInstanceData, (int)sizeof(GpuObjectInstance), BufferUsage::GraphicsStorageRead, "Frame.OverlayInstances");
+        UploadFrameStorage(_overlayBoneBuffer, _overlayBoneData, (int)sizeof(Matrix), BufferUsage::GraphicsStorageRead, "Frame.OverlayBones");
         if (hasScene)
             return;
 
         CollectMaterials(0.0f);
-        UploadFrameStorage(copyPass, _materialBuffer, _materialData, (int)sizeof(GpuMaterial), BufferUsage::GraphicsStorageRead, "Frame.Materials");
+        UploadFrameStorage(_materialBuffer, _materialData, (int)sizeof(GpuMaterial), BufferUsage::GraphicsStorageRead, "Frame.Materials");
 
         // Created empty if no scene was rendered yet.
         auto noData = std::vector<unsigned char>{};
         if (_lightBuffer.Buffer == nullptr)
-            UploadFrameStorage(copyPass, _lightBuffer, noData, (int)sizeof(GpuLight), BufferUsage::GraphicsStorageRead, "Frame.Lights");
+            UploadFrameStorage(_lightBuffer, noData, (int)sizeof(GpuLight), BufferUsage::GraphicsStorageRead, "Frame.Lights");
 
         if (_decalBuffer.Buffer == nullptr)
-            UploadFrameStorage(copyPass, _decalBuffer, noData, (int)sizeof(GpuDecal), BufferUsage::GraphicsStorageRead, "Frame.Decals");
+            UploadFrameStorage(_decalBuffer, noData, (int)sizeof(GpuDecal), BufferUsage::GraphicsStorageRead, "Frame.Decals");
     }
 
     // Quad runs up to the next object range, in one pass; returns the index of the first draw not drawn.

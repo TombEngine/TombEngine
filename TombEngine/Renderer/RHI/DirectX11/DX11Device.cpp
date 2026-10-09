@@ -271,13 +271,24 @@ namespace TEN::Renderer::RHI::DirectX11
         int                         StorageBufferBase = 0;
     };
 
-    // DX11 copies upload data at call time, so a transfer buffer is plain CPU memory.
+    // DX11 copies upload data at call time, so a transfer buffer is plain CPU memory. A download lands in a staging
+    // texture first and is copied into the memory when the buffer is mapped, so it does not wait for the GPU earlier.
     class DX11TransferBuffer : public ITransferBuffer
     {
     public:
-        std::vector<unsigned char> Data = {};
+        std::vector<unsigned char> Data           = {};
+        ComPtr<ID3D11Texture2D>    Staging        = nullptr;
+        int                        StagingOffset  = 0;
+        int                        StagingHeight  = 0;
+        int                        StagingRowSize = 0;
 
         int GetSize() const override { return (int)Data.size(); }
+    };
+
+    class DX11Fence : public IFence
+    {
+    public:
+        ComPtr<ID3D11Query> Query = nullptr;
     };
 
     static ID3D11ShaderResourceView* GetSrv(ITexture* texture)
@@ -622,7 +633,7 @@ namespace TEN::Renderer::RHI::DirectX11
         {
             auto* texture = (DX11Texture*)source.Texture;
             const auto& desc = texture->Desc;
-            auto& data = ((DX11TransferBuffer*)destination.TransferBuffer)->Data;
+            auto* transferBuffer = (DX11TransferBuffer*)destination.TransferBuffer;
 
             auto stagingDesc = D3D11_TEXTURE2D_DESC{};
             stagingDesc.Width = source.Width;
@@ -645,21 +656,10 @@ namespace TEN::Renderer::RHI::DirectX11
             auto box = D3D11_BOX{ (UINT)source.X, (UINT)source.Y, 0, (UINT)(source.X + source.Width), (UINT)(source.Y + source.Height), 1 };
             Context->CopySubresourceRegion(staging.Get(), 0, 0, 0, 0, texture->Handle.Get(), subresource, &box);
 
-            auto mapped = D3D11_MAPPED_SUBRESOURCE{};
-            if (FAILED(Context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)))
-                return;
-
-            int rowSize = GetTextureDataSize(desc.Format, source.Width, 1, 1);
-            for (int y = 0; y < source.Height; y++)
-            {
-                int offset = destination.Offset + (y * rowSize);
-                if (offset + rowSize > (int)data.size())
-                    break;
-
-                memcpy(data.data() + offset, (unsigned char*)mapped.pData + (y * mapped.RowPitch), rowSize);
-            }
-
-            Context->Unmap(staging.Get(), 0);
+            transferBuffer->Staging = staging;
+            transferBuffer->StagingOffset = destination.Offset;
+            transferBuffer->StagingHeight = source.Height;
+            transferBuffer->StagingRowSize = GetTextureDataSize(desc.Format, source.Width, 1, 1);
         }
     };
 
@@ -719,12 +719,14 @@ namespace TEN::Renderer::RHI::DirectX11
         DX11CopyPass                         CopyPass    = {};
         DX11ComputePass                      ComputePass = {};
         bool                                 HasSwapchainTexture = false;
+        bool                                 IsRenderPassOpen    = false; // SDL GPU rules: no copy or compute pass inside a render pass.
         int                                  NumComputeUavs = 0;
         int                                  DebugGroupDepth = 0;
         DX11GpuProfiler                      Profiler = {};
 
         ITexture* AcquireSwapchainTexture() override;
         void      Submit() override;
+        std::unique_ptr<IFence> SubmitWithFence() override;
 
         IRenderPass* BeginRenderPass(const ColorTargetInfo* colorTargets, int colorTargetCount, const DepthTargetInfo* depthTarget) override
         {
@@ -772,6 +774,7 @@ namespace TEN::Renderer::RHI::DirectX11
             Context->RSSetViewports(1, &viewport);
             Context->RSSetScissorRects(1, &scissor);
 
+            IsRenderPassOpen = true;
             RenderPass.Context = Context;
             RenderPass.Pipeline = nullptr;
             return &RenderPass;
@@ -779,12 +782,16 @@ namespace TEN::Renderer::RHI::DirectX11
 
         void EndRenderPass() override
         {
+            IsRenderPassOpen = false;
             Context->OMSetRenderTargets(0, nullptr, nullptr);
             RenderPass.Pipeline = nullptr;
         }
 
         ICopyPass* BeginCopyPass() override
         {
+            if (IsRenderPassOpen)
+                TENLog("DX11: copy pass begun inside a render pass.", LogLevel::Error);
+
             CopyPass.Device = Device;
             CopyPass.Context = Context;
             return &CopyPass;
@@ -794,6 +801,9 @@ namespace TEN::Renderer::RHI::DirectX11
 
         IComputePass* BeginComputePass(const ComputePassDesc& desc) override
         {
+            if (IsRenderPassOpen)
+                TENLog("DX11: compute pass begun inside a render pass.", LogLevel::Error);
+
             ID3D11UnorderedAccessView* uavs[MAX_STORAGE_SLOTS * 2] = {};
             int count = 0;
 
@@ -1398,7 +1408,34 @@ namespace TEN::Renderer::RHI::DirectX11
 
         void* MapTransferBuffer(ITransferBuffer* buffer, bool cycle) override
         {
-            return ((DX11TransferBuffer*)buffer)->Data.data();
+            auto* transferBuffer = (DX11TransferBuffer*)buffer;
+            if (transferBuffer->Staging != nullptr)
+                ReadStaging(*transferBuffer);
+
+            return transferBuffer->Data.data();
+        }
+
+        // Waits for the download only if it has not completed yet.
+        void ReadStaging(DX11TransferBuffer& transferBuffer)
+        {
+            auto mapped = D3D11_MAPPED_SUBRESOURCE{};
+            if (SUCCEEDED(_context->Map(transferBuffer.Staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)))
+            {
+                auto& data = transferBuffer.Data;
+                int rowSize = transferBuffer.StagingRowSize;
+                for (int y = 0; y < transferBuffer.StagingHeight; y++)
+                {
+                    int offset = transferBuffer.StagingOffset + (y * rowSize);
+                    if (offset + rowSize > (int)data.size())
+                        break;
+
+                    memcpy(data.data() + offset, (unsigned char*)mapped.pData + (y * mapped.RowPitch), rowSize);
+                }
+
+                _context->Unmap(transferBuffer.Staging.Get(), 0);
+            }
+
+            transferBuffer.Staging = nullptr;
         }
 
         void UnmapTransferBuffer(ITransferBuffer* buffer) override {}
@@ -1442,6 +1479,11 @@ namespace TEN::Renderer::RHI::DirectX11
             _context->Flush();
         }
 
+        bool IsFenceSignaled(IFence* fence) override
+        {
+            return (fence == nullptr) || (_context->GetData(((DX11Fence*)fence)->Query.Get(), nullptr, 0, 0) == S_OK);
+        }
+
         bool SupportsTextureFormat(PixelFormat format, TextureType type, unsigned int usage) const override
         {
             UINT support = 0;
@@ -1480,6 +1522,19 @@ namespace TEN::Renderer::RHI::DirectX11
             Owner->Present();
 
         HasSwapchainTexture = false;
+    }
+
+    std::unique_ptr<IFence> DX11CommandBuffer::SubmitWithFence()
+    {
+        Submit();
+
+        auto fence = std::make_unique<DX11Fence>();
+        auto desc = D3D11_QUERY_DESC{ D3D11_QUERY_EVENT, 0 };
+        if (FAILED(Device->CreateQuery(&desc, fence->Query.GetAddressOf())))
+            return nullptr;
+
+        Context->End(fence->Query.Get());
+        return fence;
     }
 
     // Same policy as SDL GPU: the high performance adapter on hybrid graphics systems unless low power is requested;

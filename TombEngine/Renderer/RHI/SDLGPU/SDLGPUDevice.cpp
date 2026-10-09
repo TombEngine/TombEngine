@@ -296,6 +296,15 @@ namespace TEN::Renderer::RHI::SDLGPU
         int GetSize() const override { return Size; }
     };
 
+    class SDLGPUFence : public IFence
+    {
+    public:
+        SDL_GPUDevice* Device = nullptr;
+        SDL_GPUFence*  Handle = nullptr;
+
+        ~SDLGPUFence() override { SDL_ReleaseGPUFence(Device, Handle); }
+    };
+
     static SDL_GPUBuffer* GetHandle(IBuffer* buffer)
     {
         return (buffer != nullptr) ? ((SDLGPUBuffer*)buffer)->Handle : nullptr;
@@ -661,6 +670,23 @@ namespace TEN::Renderer::RHI::SDLGPU
 
             Handle = nullptr;
             IsInUse = false;
+        }
+
+        std::unique_ptr<IFence> SubmitWithFence() override
+        {
+            auto* handle = SDL_SubmitGPUCommandBufferAndAcquireFence(Handle);
+            Handle = nullptr;
+            IsInUse = false;
+            if (handle == nullptr)
+            {
+                TENLog(std::string("SDL GPU: command buffer submission failed: ") + SDL_GetError(), LogLevel::Error);
+                return nullptr;
+            }
+
+            auto fence = std::make_unique<SDLGPUFence>();
+            fence->Device = Device;
+            fence->Handle = handle;
+            return fence;
         }
     };
 
@@ -1055,6 +1081,11 @@ namespace TEN::Renderer::RHI::SDLGPU
         void WaitIdle() override
         {
             SDL_WaitForGPUIdle(_device);
+        }
+
+        bool IsFenceSignaled(IFence* fence) override
+        {
+            return (fence == nullptr) || SDL_QueryGPUFence(_device, ((SDLGPUFence*)fence)->Handle);
         }
 
         bool SupportsTextureFormat(PixelFormat format, TextureType type, unsigned int usage) const override
