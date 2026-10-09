@@ -46,13 +46,16 @@ namespace TEN::Renderer::Graphics
         PostProcess,
         Hud,
         Scene,
+        Collect, // CPU only: mirrors, rooms, animations and lights.
+        Prepare, // CPU only: effect and sprite preparation.
 
         Count
     };
 
     constexpr const char* GPU_TIMING_SCOPE_NAMES[(int)GpuTimingScope::Count] =
     {
-        "frame", "shadows", "sky_reflections", "sky", "god_rays", "gbuffer", "ssao", "opaque", "transparent", "dust_storm", "post_process", "hud", "scene"
+        "frame", "shadows", "sky_reflections", "sky", "god_rays", "gbuffer", "ssao", "opaque", "transparent", "dust_storm", "post_process", "hud", "scene",
+        "collect", "prepare"
     };
 
 	class IGraphicsDevice
@@ -61,6 +64,7 @@ namespace TEN::Renderer::Graphics
         virtual void BeginGpuTiming(GpuTimingScope scope) {}
         virtual void EndGpuTiming(GpuTimingScope scope) {}
         virtual float GetGpuTime(GpuTimingScope scope) { return -1.0f; }
+        virtual float GetCpuTime(GpuTimingScope scope) { return -1.0f; } // CPU milliseconds of the scope in the last frame.
 
 		virtual std::unique_ptr<IVertexBuffer> CreateVertexBuffer(int numVertices, int vertexSize, void* data) = 0;
 		virtual void UpdateVertexBuffer(IVertexBuffer* vertexBuffer, int startVertex, int count, void* data) = 0;

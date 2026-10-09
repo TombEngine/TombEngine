@@ -42,6 +42,8 @@ namespace TEN::Renderer::Native::DirectX11
 
     void DX11GraphicsDevice::BeginGpuTiming(GpuTimingScope scope)
     {
+        _cpuScopeStarts[(int)scope] = std::chrono::steady_clock::now();
+
         if (scope == GpuTimingScope::Frame)
             _gpuTimer.BeginFrame(_device.Get(), _context.Get());
 
@@ -50,6 +52,7 @@ namespace TEN::Renderer::Native::DirectX11
 
     void DX11GraphicsDevice::EndGpuTiming(GpuTimingScope scope)
     {
+        _cpuScopeTimes[(int)scope] = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - _cpuScopeStarts[(int)scope]).count();
         _gpuTimer.EndScope(_context.Get(), (int)scope);
 
         if (scope == GpuTimingScope::Frame)
@@ -59,6 +62,11 @@ namespace TEN::Renderer::Native::DirectX11
     float DX11GraphicsDevice::GetGpuTime(GpuTimingScope scope)
     {
         return (float)_gpuTimer.GetMilliseconds((int)scope);
+    }
+
+    float DX11GraphicsDevice::GetCpuTime(GpuTimingScope scope)
+    {
+        return _cpuScopeTimes[(int)scope];
     }
 
 	std::unique_ptr<IVertexBuffer> DX11GraphicsDevice::CreateVertexBuffer(int numVertices, int vertexSize, void* data)

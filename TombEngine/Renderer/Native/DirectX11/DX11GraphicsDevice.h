@@ -36,6 +36,8 @@ namespace TEN::Renderer::Native::DirectX11
 	{
 	private:
         DX11GpuTimer _gpuTimer;
+        std::chrono::steady_clock::time_point _cpuScopeStarts[(int)GpuTimingScope::Count] = {};
+        float                                 _cpuScopeTimes[(int)GpuTimingScope::Count]  = {};
 
 		ComPtr<ID3D11Device> _device = nullptr;
 		ComPtr<ID3D11DeviceContext> _context = nullptr;
@@ -120,6 +122,7 @@ namespace TEN::Renderer::Native::DirectX11
         void BeginGpuTiming(GpuTimingScope scope) override;
         void EndGpuTiming(GpuTimingScope scope) override;
         float GetGpuTime(GpuTimingScope scope) override;
+        float GetCpuTime(GpuTimingScope scope) override;
 
 		std::unique_ptr<IRenderSurface2D> CreateRenderSurface2D(int width, int height, SurfaceFormat colorFormat, bool isTypeless, DepthFormat depthFormat) override;
 		std::unique_ptr<IRenderSurface2D> CreateRenderSurface2D(int width, int height, int arraySize, SurfaceFormat colorFormat, DepthFormat depthFormat) override;

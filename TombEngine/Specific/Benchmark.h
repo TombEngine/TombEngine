@@ -11,6 +11,7 @@ namespace TEN::Benchmark
         float PresentTime        = 0.0f; // Milliseconds blocked in present (vsync, frame pacing, GPU).
         // GPU milliseconds per pass, a few frames late; negative when unavailable. Names come from the renderer.
         float              GpuPassTimes[BENCHMARK_GPU_PASSES_MAX] = {};
+        float              CpuPassTimes[BENCHMARK_GPU_PASSES_MAX] = {}; // CPU milliseconds of the same scopes.
         const char* const* GpuPassNames                           = nullptr;
         int                GpuPassCount                           = 0;
         float SortedCollectTime  = 0.0f;

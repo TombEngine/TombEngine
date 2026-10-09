@@ -75,6 +75,9 @@ namespace TEN::Benchmark
         for (int i = 0; i < stats.GpuPassCount; i++)
             _file << ",gpu_" << stats.GpuPassNames[i] << "_ms";
 
+        for (int i = 0; i < stats.GpuPassCount; i++)
+            _file << ",cpuscope_" << stats.GpuPassNames[i] << "_ms";
+
         _file << '\n';
     }
 
@@ -200,6 +203,9 @@ namespace TEN::Benchmark
 
         for (int i = 0; i < stats.GpuPassCount; i++)
             _file << ',' << stats.GpuPassTimes[i];
+
+        for (int i = 0; i < stats.GpuPassCount; i++)
+            _file << ',' << stats.CpuPassTimes[i];
 
         _file << '\n';
 

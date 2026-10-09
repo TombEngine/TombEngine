@@ -1995,6 +1995,7 @@ namespace TEN::Renderer
 
 		// Prepare scene to draw.
 		auto time1 = std::chrono::high_resolution_clock::now();
+		_graphicsDevice->BeginGpuTiming(GpuTimingScope::Collect);
 		CollectMirrors(view);
 		CollectRooms(view, false);
 		auto time = std::chrono::high_resolution_clock::now();
@@ -2008,11 +2009,14 @@ namespace TEN::Renderer
 		_stPerDraw.AlphaThreshold = NO_VALUE;
 
 		CollectLightsForCamera();
+		_graphicsDevice->EndGpuTiming(GpuTimingScope::Collect);
+
 		_graphicsDevice->BeginGpuTiming(GpuTimingScope::Shadows);
 		RenderItemShadows(view);
 		_graphicsDevice->EndGpuTiming(GpuTimingScope::Shadows);
 
 		// Prepare all sprites for later.
+		_graphicsDevice->BeginGpuTiming(GpuTimingScope::Prepare);
 		PrepareFires(view);
 		PrepareSmokes(view);
 		PrepareSmokeParticles(view);
@@ -2040,6 +2044,7 @@ namespace TEN::Renderer
 
 		// Sprites grouped in buckets for instancing. Non-commutative sprites are collected at a later stage.
 		SortAndPrepareSprites(view);
+		_graphicsDevice->EndGpuTiming(GpuTimingScope::Prepare);
 
 		auto time2 = std::chrono::high_resolution_clock::now();
 		_timeUpdate = (std::chrono::duration_cast<ns>(time2 - time1)).count() / 1000000;

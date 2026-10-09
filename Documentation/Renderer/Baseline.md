@@ -60,8 +60,18 @@ With `3cd8e79f4` both renderers run on the RTX 3050. Legacy renderer alone, GPU 
 | karnak | 3.27 ms | 0.92 ms | 0.72 ms | 0.38 ms | 0.71 ms | 0.19 ms | 0.12 ms | 3.0 ms | 5674 |
 | tut1_water | 3.51 ms | 0.92 ms | 0.71 ms | 0.41 ms | 0.78 ms | 0.31 ms | 0.12 ms | 3.6 ms | 5388 |
 
-On the discrete GPU the legacy renderer is CPU bound: about 3 ms of CPU per frame, of which the sorted faces
-(collect, sort, draw) take about 0.3 ms.
+On the discrete GPU the legacy renderer is mostly CPU limited: about 3 ms of CPU per frame with the GPU at about 80%
+utilization; the sorted faces (collect, sort, draw) take about 0.3 ms. CPU time per scope (`cpuscope_<scope>_ms`
+columns; DX11 calls can also wait for the GPU inside a scope):
+
+| Level | Collect | Prepare | Sky reflections | GBuffer | Opaque | Transparent | Post-process | Frame |
+|---|---|---|---|---|---|---|---|---|
+| coastal | 0.02 ms | 0.06 ms | 0.06 ms | 0.77 ms | 1.26 ms | 0.70 ms | 0.03 ms | 2.98 ms |
+| karnak | 0.02 ms | 0.04 ms | 0.77 ms | 0.03 ms | 2.18 ms | 0.05 ms | 0.01 ms | 3.36 ms |
+| tut1_water | 0.02 ms | 0.04 ms | 0.51 ms | 0.03 ms | 2.39 ms | 0.05 ms | 0.01 ms | 3.26 ms |
+
+Culling and preparation are cheap; the cost is in the submission of the opaque pass (per draw constant buffer
+updates and state changes) and in the sky reflection pass, which the next renderer replaces with instanced draws.
 
 Next renderer preview on DX11 (`preview dx11`, GPU time from the DX11 RHI timestamps, logged at exit). It has rooms,
 objects, player, sky, sprites, sorted faces, materials and SSAO, but no shadows or post-process yet:
