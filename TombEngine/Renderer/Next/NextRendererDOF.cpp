@@ -70,8 +70,9 @@ namespace TEN::Renderer::Next
     }
 
     // Same passes as the legacy ApplyDOF. The near blur ends in _dofTargets[0], the far blur in _dofTargets[1].
-    void NextRenderer::RenderDOF(ICommandBuffer& commandBuffer, const FrameEnvironment& environment)
+    void NextRenderer::RenderDOF(ICommandBuffer& commandBuffer)
     {
+        const auto& environment = *_frameEnvironment;
         const auto& targetDesc = _dofTargets[0]->GetDesc();
         const auto& sceneDesc = _sceneTarget->GetDesc();
 
@@ -86,21 +87,21 @@ namespace TEN::Renderer::Next
         uniforms.FarPlane = _farPlane;
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
 
-        auto drawPass = [&](int pass, int target, ITexture* source, const char* name)
+        auto drawPass = [&](int pass, ITexture* target, ITexture* source, const char* name)
         {
             TextureSamplerBinding bindings[2] =
             {
                 { source, _linearClampSampler.get() },
                 { _sceneDepthCopy.get(), _pointClampSampler.get() }
             };
-            RenderFullscreenPass(commandBuffer, _dofPipelines[pass].get(), _dofTargets[target].get(), bindings, (pass == 0) ? 2 : 1, name);
+            RenderFullscreenPass(commandBuffer, _dofPipelines[pass].get(), target, bindings, (pass == 0) ? 2 : 1, name);
         };
 
-        commandBuffer.PushDebugGroup("DOF");
-        drawPass(0, 0, _sceneTarget.get(), "Downsample");
-        drawPass(1, 1, _dofTargets[0].get(), "Far blur");
-        drawPass(2, 2, _dofTargets[0].get(), "Near dilate");
-        drawPass(3, 0, _dofTargets[2].get(), "Near blur");
-        commandBuffer.PopDebugGroup();
+        auto* dilatedTarget = _targetPool.Acquire(targetDesc);
+        drawPass(0, _dofTargets[0].get(), _sceneTarget.get(), "Downsample");
+        drawPass(1, _dofTargets[1].get(), _dofTargets[0].get(), "Far blur");
+        drawPass(2, dilatedTarget, _dofTargets[0].get(), "Near dilate");
+        drawPass(3, _dofTargets[0].get(), dilatedTarget, "Near blur");
+        _targetPool.Release(dilatedTarget);
     }
 }

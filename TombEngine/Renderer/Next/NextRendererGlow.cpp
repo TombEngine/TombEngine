@@ -39,13 +39,10 @@ namespace TEN::Renderer::Next
         desc.Format = PixelFormat::RGBA8Unorm;
         desc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
 
-        for (int i = 0; i < 2; i++)
-        {
-            desc.Name = "Glow[" + std::to_string(i) + "]";
-            _glowTargets[i] = _device->CreateTexture(desc);
-            if (_glowTargets[i] == nullptr)
-                return false;
-        }
+        desc.Name = "Glow";
+        _glowTarget = _device->CreateTexture(desc);
+        if (_glowTarget == nullptr)
+            return false;
 
         desc.Width = std::max(width / 2, 1);
         desc.Height = std::max(height / 2, 1);
@@ -67,10 +64,10 @@ namespace TEN::Renderer::Next
         RenderFullscreenPass(commandBuffer, _glowDownscalePipeline.get(), target, &binding, 1, name);
     }
 
-    // Emissive prepass output, downscaled and blurred into _glowTargets[0]. Levels without emissive maps skip it.
+    // Emissive prepass output, downscaled and blurred into _glowTarget. Levels without emissive maps skip it.
     void NextRenderer::RenderGlow(ICommandBuffer& commandBuffer)
     {
-        const auto& targetDesc = _glowTargets[0]->GetDesc();
+        const auto& targetDesc = _glowTarget->GetDesc();
 
         auto uniforms = GlowUniforms{};
         uniforms.TexelSize = Vector2(1.0f / targetDesc.Width, 1.0f / targetDesc.Height);
@@ -84,10 +81,16 @@ namespace TEN::Renderer::Next
             RenderFullscreenPass(commandBuffer, pipeline, target, &binding, 1, name);
         };
 
-        commandBuffer.PushDebugGroup("Glow");
-        DownscaleTexture(commandBuffer, _emissiveTarget.get(), _glowTargets[0].get(), "Downscale");
-        drawPass(_glowBlurPipeline.get(), _glowTargets[1].get(), _glowTargets[0].get(), Vector2::UnitX, "Blur horizontal");
-        drawPass(_glowBlurPipeline.get(), _glowTargets[0].get(), _glowTargets[1].get(), Vector2::UnitY, "Blur vertical");
-        commandBuffer.PopDebugGroup();
+        auto* blurTarget = _targetPool.Acquire(targetDesc);
+        DownscaleTexture(commandBuffer, _emissiveTarget.get(), _glowTarget.get(), "Downscale");
+        drawPass(_glowBlurPipeline.get(), blurTarget, _glowTarget.get(), Vector2::UnitX, "Blur horizontal");
+        drawPass(_glowBlurPipeline.get(), _glowTarget.get(), blurTarget, Vector2::UnitY, "Blur vertical");
+        _targetPool.Release(blurTarget);
+    }
+
+    // Reflective materials sample a half resolution copy of the scene, read by the next frame.
+    void NextRenderer::CopyReflectionSource(ICommandBuffer& commandBuffer)
+    {
+        DownscaleTexture(commandBuffer, _sceneTarget.get(), _reflectionTarget.get(), "Downscale");
     }
 }

@@ -7,6 +7,7 @@
 #include "Renderer/Next/GpuTypes.h"
 #include "Renderer/Next/OverlayTypes.h"
 #include "Renderer/RHI/RHIDevice.h"
+#include "Renderer/RHI/RenderTargetPool.h"
 #include "Renderer/RHI/TextureCapture.h"
 #include "Renderer/RHI/UploadRing.h"
 
@@ -310,7 +311,7 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::ITexture>          _sceneDepthCopy          = nullptr; // R32 float copy of the prepass depth.
         std::unique_ptr<RHI::ITexture>          _distortionTarget        = nullptr;
         std::unique_ptr<RHI::ITexture>          _emissiveTarget          = nullptr; // Prepass emissive, source of the glow.
-        std::unique_ptr<RHI::ITexture>          _glowTargets[2]          = {};
+        std::unique_ptr<RHI::ITexture>          _glowTarget              = nullptr; // Blurred emissive read by the post-process.
         std::unique_ptr<RHI::IShader>           _glowVertexShader        = nullptr;
         std::unique_ptr<RHI::IShader>           _glowDownscaleShader     = nullptr;
         std::unique_ptr<RHI::IShader>           _glowBlurShader          = nullptr;
@@ -325,12 +326,12 @@ namespace TEN::Renderer::Next
         bool                                    _hasSkyReflectiveMaterials = false;
 
         static constexpr int DOF_PASS_COUNT   = 4;
-        static constexpr int DOF_TARGET_COUNT = 3;
+        static constexpr int DOF_TARGET_COUNT = 2;
 
         std::unique_ptr<RHI::IShader>           _dofVertexShader                   = nullptr;
         std::unique_ptr<RHI::IShader>           _dofPixelShaders[DOF_PASS_COUNT]   = {};
         std::unique_ptr<RHI::IGraphicsPipeline> _dofPipelines[DOF_PASS_COUNT]      = {};
-        std::unique_ptr<RHI::ITexture>          _dofTargets[DOF_TARGET_COUNT]      = {}; // Near blur, far blur, dilated.
+        std::unique_ptr<RHI::ITexture>          _dofTargets[DOF_TARGET_COUNT]      = {}; // Near blur and far blur.
         bool                                    _isDofActive                       = false;
 
         static constexpr int SMAA_PRESET_COUNT = 2; // Medium and ultra.
@@ -346,9 +347,23 @@ namespace TEN::Renderer::Next
         SmaaPreset                              _smaaPresets[SMAA_PRESET_COUNT] = {};
         std::unique_ptr<RHI::ITexture>          _smaaAreaTexture                = nullptr;
         std::unique_ptr<RHI::ITexture>          _smaaSearchTexture              = nullptr;
-        std::unique_ptr<RHI::ITexture>          _smaaEdgesTarget                = nullptr;
-        std::unique_ptr<RHI::ITexture>          _smaaWeightsTarget              = nullptr;
         bool                                    _hasDistortion           = false;
+
+        // Fixed pass order of a scene frame. Each pass runs in its own debug group; a pass with a flag is skipped while the flag is false.
+        struct FramePass
+        {
+            const char*          Name      = nullptr;
+            bool NextRenderer::* IsEnabled = nullptr;
+            void (NextRenderer::* Execute)(RHI::ICommandBuffer&) = nullptr;
+        };
+
+        static const FramePass FRAME_PASSES[];
+
+        RHI::RenderTargetPool   _targetPool          = {}; // Intermediate targets of the screen space passes.
+        const RenderView*       _frameView           = nullptr;
+        const FrameEnvironment* _frameEnvironment    = nullptr;
+        FrameVertexUniforms     _frameVertexUniforms = {};
+
         float                                   _nearPlane               = 1.0f;
         float                                   _farPlane                = 1.0f;
         float                                   _time                    = 0.0f;
@@ -464,7 +479,6 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::ITexture>          _ssaoNoiseTexture           = nullptr;
         std::unique_ptr<RHI::ITexture>          _normalTarget               = nullptr;
         std::unique_ptr<RHI::ITexture>          _ssaoTarget                 = nullptr;
-        std::unique_ptr<RHI::ITexture>          _ssaoBlurTarget             = nullptr;
         std::unique_ptr<RHI::ISampler>          _pointClampSampler          = nullptr;
         std::unique_ptr<RHI::ISampler>          _pointWrapSampler           = nullptr;
         Vector4                                 _ssaoKernel[SSAO_KERNEL_SIZE] = {};
@@ -510,6 +524,11 @@ namespace TEN::Renderer::Next
         FrameStorageBuffer            _decalBuffer         = {};
         FrameStorageBuffer            _debrisVertexBuffer   = {};
         FrameStorageBuffer            _overlayVertexBuffer  = {};
+        FrameStorageBuffer            _imGuiVertexBuffer    = {};
+        FrameStorageBuffer            _imGuiIndexBuffer     = {};
+        std::vector<unsigned char>    _imGuiVertexData      = {};
+        std::vector<unsigned char>    _imGuiIndexData       = {};
+        std::unique_ptr<RHI::ITexture> _imGuiFontTexture    = nullptr;
         FrameStorageBuffer            _overlayInstanceBuffer = {};
         FrameStorageBuffer            _overlayBoneBuffer    = {};
         FrameStorageBuffer            _debrisInstanceBuffer = {};
@@ -633,8 +652,14 @@ namespace TEN::Renderer::Next
         void DrawOverlayObjects(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui, const OverlayDraw& draw, bool isFirstPass, bool isFirstObjectPass);
         void RenderOverlay(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui);
         void RenderMenuPostProcess(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui);
+
+        // ImGui debug overlay (NextRendererImGui.cpp).
+        bool EnsureImGuiFontTexture();
+        void UploadImGuiData(const UiFrame& ui);
+        void DrawImGui(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui);
+
         void DrawAtmosphericSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
-        void RenderSkyReflections(RHI::ICommandBuffer& commandBuffer, const RenderView& view, float interpolationFactor);
+        void RenderSkyReflections(RHI::ICommandBuffer& commandBuffer);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
         static BlendMode GetPassBlendMode(ScenePass pass);
         static bool IsBucketInPass(const Structures::RendererBucket& bucket, ScenePass pass);
@@ -642,10 +667,10 @@ namespace TEN::Renderer::Next
         // Post-process (NextRendererPostProcess.cpp).
         std::unique_ptr<RHI::IGraphicsPipeline> CreateFullscreenPipeline(RHI::IShader* vertexShader, RHI::IShader* pixelShader, RHI::PixelFormat format, const char* name);
         bool CreatePostProcessResources();
-        void RenderPostProcess(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
+        void RenderPostProcess(RHI::ICommandBuffer& commandBuffer);
         void CopySceneDepth(RHI::ICommandBuffer& commandBuffer);
         bool HasDistortionDraws(const RenderView& view) const;
-        void RenderDistortion(RHI::ICommandBuffer& commandBuffer, const RenderView& view);
+        void RenderDistortion(RHI::ICommandBuffer& commandBuffer);
 
         // Shadow map (NextRendererShadows.cpp).
         bool         CreateShadowResources();
@@ -654,7 +679,7 @@ namespace TEN::Renderer::Next
         unsigned int GetShadowReceiverMask(int objectID) const;
         void         MarkShadowCasterDraws(int firstDraw);
         void         PrepareShadows(const FrameEnvironment& environment, float interpolationFactor);
-        void         RenderShadowMap(RHI::ICommandBuffer& commandBuffer, const FrameVertexUniforms& cameraUniforms);
+        void         RenderShadowMap(RHI::ICommandBuffer& commandBuffer);
 
         // Prepass and ambient occlusion (NextRendererSSAO.cpp).
         bool  CreateSSAOResources();
@@ -662,24 +687,24 @@ namespace TEN::Renderer::Next
         bool  CreateDOFResources();
         bool  EnsureDOFTargets(int width, int height);
         static bool IsDOFActive(const FrameEnvironment& environment);
-        void  RenderDOF(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
+        void  RenderDOF(RHI::ICommandBuffer& commandBuffer);
         void  AddVideoSets(const LegacyLevelGeometry& geometry, std::vector<GpuAnimatedFrame>& frames, std::vector<GpuAnimatedSet>& sets);
         void  UploadVideoFrame(const unsigned char* frame, int width, int height);
         int   GetVideoSet(const Structures::RendererBucket& bucket) const;
         bool  CreateGlowResources();
         bool  EnsureGlowTargets(int width, int height);
         void  RenderGlow(RHI::ICommandBuffer& commandBuffer);
+        void  CopyReflectionSource(RHI::ICommandBuffer& commandBuffer);
         void  ClearSampledTargets();
         void  DownscaleTexture(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* source, RHI::ITexture* target, const char* name);
         float GetAmbientOcclusionExponent() const;
-        void  RenderDepthPrepass(RHI::ICommandBuffer& commandBuffer, const RenderView& view);
-        void  RenderSSAO(RHI::ICommandBuffer& commandBuffer, const Matrix& projection);
+        void  RenderDepthPrepass(RHI::ICommandBuffer& commandBuffer);
+        void  RenderSSAO(RHI::ICommandBuffer& commandBuffer);
         void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target, RHI::ITexture* source,
                                    RHI::ISampler* sourceSampler, const char* name);
         void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target,
                                    const RHI::TextureSamplerBinding* bindings, int bindingCount, const char* name, RHI::LoadOp load = RHI::LoadOp::DontCare);
         bool  CreateSMAAResources();
-        bool  EnsureSMAATargets(int width, int height);
         void  RenderAntialiasing(RHI::ICommandBuffer& commandBuffer, int antialiasingMode, RHI::ITexture* target);
 
         // Sprites (NextRendererSprites.cpp).
@@ -690,6 +715,7 @@ namespace TEN::Renderer::Next
         void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture);
         void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
         void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, ScenePass pass);
+        void RenderScenePass(RHI::ICommandBuffer& commandBuffer);
 
     public:
         bool Initialize(SDL_Window* window, RHI::Backend backend, const std::string& gameDirectory, bool preferLowPowerGpu);

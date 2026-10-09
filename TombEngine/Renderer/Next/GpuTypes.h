@@ -205,4 +205,11 @@ namespace TEN::Renderer::Next
     };
 
     static_assert(sizeof(GpuSprite) == 96, "GpuSprite must match SpriteInstance in Sprites.hlsl.");
+
+    // Same layout as OverlayUniforms in Shaders/RHI/Overlay.hlsl.
+    struct OverlayUniforms
+    {
+        Vector2 InverseTargetSize = Vector2::Zero;
+        Vector2 Padding           = Vector2::Zero;
+    };
 }

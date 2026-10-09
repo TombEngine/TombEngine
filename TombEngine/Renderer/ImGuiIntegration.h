@@ -2,6 +2,8 @@
 
 #include <SDL3/SDL.h>
 
+struct ImDrawData;
+
 // ============================================================================
 // ImGuiIntegration.h — Cross-platform ImGui wrapper for TombEngine.
 //
@@ -36,4 +38,7 @@ namespace TEN::Renderer
 
 	void ImGuiToggleOverlay();
 	bool ImGuiIsOverlayVisible();
+
+	// Draw data of the last ImGuiRenderFrame, for renderers that draw the overlay themselves; null when hidden.
+	const ImDrawData* ImGuiGetDrawData();
 }

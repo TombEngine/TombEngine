@@ -131,4 +131,13 @@ namespace TEN::Renderer
 
 	void ImGuiToggleOverlay() { s_OverlayVisible = !s_OverlayVisible; }
 	bool ImGuiIsOverlayVisible() { return s_OverlayVisible; }
+
+	const ImDrawData* ImGuiGetDrawData()
+	{
+		if (!s_Initialized || !s_OverlayVisible)
+			return nullptr;
+
+		const auto* drawData = ImGui::GetDrawData();
+		return (drawData != nullptr && drawData->Valid) ? drawData : nullptr;
+	}
 }

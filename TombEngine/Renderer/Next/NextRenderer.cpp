@@ -56,6 +56,7 @@ namespace TEN::Renderer::Next
         _windowHeight = height;
 
         _uploadRing.Initialize(*_device, UPLOAD_RING_INITIAL_SIZE);
+        _targetPool.Initialize(*_device);
         if (!CreatePipelines())
         {
             TENLog("Next renderer: pipeline creation failed.", LogLevel::Error);
@@ -149,6 +150,9 @@ namespace TEN::Renderer::Next
         _reflectionTarget = nullptr;
         _videoTexture = nullptr;
         _uploadRing.Release();
+        _imGuiFontTexture = nullptr;
+        _imGuiVertexBuffer = {};
+        _imGuiIndexBuffer = {};
         _skyReflectionTarget = nullptr;
         _atmosphericSkyPipeline = nullptr;
         _overlayPipeline = nullptr;
@@ -171,8 +175,7 @@ namespace TEN::Renderer::Next
         _font = {};
         _atmosphericSkyVertexShader = nullptr;
         _atmosphericSkyPixelShader = nullptr;
-        _glowTargets[0] = nullptr;
-        _glowTargets[1] = nullptr;
+        _glowTarget = nullptr;
         _glowDownscalePipeline = nullptr;
         _glowBlurPipeline = nullptr;
         _glowVertexShader = nullptr;
@@ -195,9 +198,7 @@ namespace TEN::Renderer::Next
 
         _smaaAreaTexture = nullptr;
         _smaaSearchTexture = nullptr;
-        _smaaEdgesTarget = nullptr;
-        _smaaWeightsTarget = nullptr;
-        _ssaoBlurTarget = nullptr;
+        _targetPool.Clear();
         _pointClampSampler = nullptr;
         _pointWrapSampler = nullptr;
         _spritesVertexShader = nullptr;
@@ -487,8 +488,7 @@ namespace TEN::Renderer::Next
     {
         ITexture* targets[] =
         {
-            _distortionTarget.get(), _emissiveTarget.get(), _glowTargets[0].get(), _glowTargets[1].get(), _reflectionTarget.get(),
-            _dofTargets[0].get(), _dofTargets[1].get(), _dofTargets[2].get(), _smaaEdgesTarget.get(), _smaaWeightsTarget.get(),
+            _distortionTarget.get(), _emissiveTarget.get(), _glowTarget.get(), _reflectionTarget.get(), _dofTargets[0].get(), _dofTargets[1].get(),
             _antialiasingSource.get(), _colorTarget.get(), _skyReflectionTarget.get()
         };
 
@@ -519,6 +519,8 @@ namespace TEN::Renderer::Next
     {
         if (_colorTarget != nullptr && _colorTarget->GetDesc().Width == width && _colorTarget->GetDesc().Height == height)
             return true;
+
+        _targetPool.Clear();
 
         auto colorDesc = TextureDesc{};
         colorDesc.Width = width;
@@ -557,7 +559,7 @@ namespace TEN::Renderer::Next
         depthDesc.Name = "Scene.Depth";
         _depthTarget = _device->CreateTexture(depthDesc);
 
-        bool isCreated = (_colorTarget != nullptr && _finalTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _distortionTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height) && EnsureGlowTargets(width, height) && EnsureDOFTargets(width, height) && EnsureSMAATargets(width, height));
+        bool isCreated = (_colorTarget != nullptr && _finalTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _distortionTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height) && EnsureGlowTargets(width, height) && EnsureDOFTargets(width, height));
         if (isCreated)
             ClearSampledTargets();
 
@@ -2082,6 +2084,67 @@ namespace TEN::Renderer::Next
         return _frameStats;
     }
 
+    // The prepass always runs: the scene pass reuses its depth, and soft particles read a copy of it.
+    // Reflective materials sample the scene of the previous frame, as in the legacy renderer.
+    const NextRenderer::FramePass NextRenderer::FRAME_PASSES[] =
+    {
+        { "Shadow map", nullptr, &NextRenderer::RenderShadowMap },
+        { "Depth and normals prepass", nullptr, &NextRenderer::RenderDepthPrepass },
+        { "Depth copy", nullptr, &NextRenderer::CopySceneDepth },
+        { "SSAO", &NextRenderer::_isAmbientOcclusionActive, &NextRenderer::RenderSSAO },
+        { "Sky reflections", &NextRenderer::_hasSkyReflectiveMaterials, &NextRenderer::RenderSkyReflections },
+        { "Distortion", &NextRenderer::_hasDistortion, &NextRenderer::RenderDistortion },
+        { "Scene", nullptr, &NextRenderer::RenderScenePass },
+        { "DOF", &NextRenderer::_isDofActive, &NextRenderer::RenderDOF },
+        { "Reflections", &NextRenderer::_hasReflectiveMaterials, &NextRenderer::CopyReflectionSource },
+        { "Glow", &NextRenderer::_hasEmissiveMaps, &NextRenderer::RenderGlow },
+        { "Post-process", nullptr, &NextRenderer::RenderPostProcess }
+    };
+
+    void NextRenderer::RenderScenePass(ICommandBuffer& commandBuffer)
+    {
+        const auto& view = *_frameView;
+        const auto& environment = *_frameEnvironment;
+
+        auto colorTarget = ColorTargetInfo{};
+        colorTarget.Texture = _sceneTarget.get();
+        colorTarget.ClearColor[0] = environment.FogColor.x;
+        colorTarget.ClearColor[1] = environment.FogColor.y;
+        colorTarget.ClearColor[2] = environment.FogColor.z;
+        colorTarget.ClearColor[3] = 1.0f;
+
+        auto depthTarget = DepthTargetInfo{};
+        depthTarget.Texture = _depthTarget.get();
+        depthTarget.Load = LoadOp::Load;
+        depthTarget.Store = StoreOp::DontCare;
+
+        auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, &depthTarget);
+        DrawSky(commandBuffer, *renderPass, view, environment.InterpolationFactor);
+
+        // The sky color uses pixel slot 2 too: restore the shadow uniforms read by rooms and objects.
+        commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
+        DrawRooms(commandBuffer, *renderPass, view, ScenePass::Opaque);
+        DrawObjects(commandBuffer, *renderPass, ScenePass::Opaque);
+        DrawObjects(commandBuffer, *renderPass, ScenePass::Opaque, true);
+        DrawDebris(commandBuffer, *renderPass, DebrisPass::Opaque);
+        DrawRooms(commandBuffer, *renderPass, view, ScenePass::AlphaEdges);
+        DrawObjects(commandBuffer, *renderPass, ScenePass::AlphaEdges);
+        DrawObjects(commandBuffer, *renderPass, ScenePass::AlphaEdges, true);
+        DrawSprites(commandBuffer, *renderPass, ScenePass::Opaque);
+        DrawSprites(commandBuffer, *renderPass, ScenePass::Opaque, true);
+        DrawRooms(commandBuffer, *renderPass, view, ScenePass::Additive);
+        DrawObjects(commandBuffer, *renderPass, ScenePass::Additive);
+        DrawObjects(commandBuffer, *renderPass, ScenePass::Additive, true);
+        DrawDebris(commandBuffer, *renderPass, DebrisPass::Additive);
+        DrawSprites(commandBuffer, *renderPass, ScenePass::Additive);
+        DrawSprites(commandBuffer, *renderPass, ScenePass::Additive, true);
+        DrawSortedFaces(commandBuffer, *renderPass);
+        DrawSortedFaces(commandBuffer, *renderPass, true);
+        DrawDebris(commandBuffer, *renderPass, DebrisPass::Blended);
+        DrawGunFlashes(commandBuffer, *renderPass);
+        commandBuffer.EndRenderPass();
+    }
+
     void NextRenderer::RenderFrame(const RenderView& view, const FrameEnvironment& environment)
     {
         if (_device == nullptr || !_isLevelLoaded)
@@ -2163,80 +2226,28 @@ namespace TEN::Renderer::Next
         UploadFrameData(*commandBuffer, environment);
 
         PrepareShadows(environment, environment.InterpolationFactor);
+        _hasDistortion = HasDistortionDraws(view);
+        _isDofActive = IsDOFActive(environment);
 
         // The shadow uniforms are the largest block of pixel slot 2, so they also cover the passes before the scene.
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
-        RenderShadowMap(*commandBuffer, frameVertexUniforms);
 
-        // The prepass always runs: the scene pass reuses its depth, and soft particles read a copy of it.
-        RenderDepthPrepass(*commandBuffer, view);
-        CopySceneDepth(*commandBuffer);
-        if (_isAmbientOcclusionActive)
-            RenderSSAO(*commandBuffer, projection);
+        _frameView = &view;
+        _frameEnvironment = &environment;
+        _frameVertexUniforms = frameVertexUniforms;
 
-        auto colorTarget = ColorTargetInfo{};
-        colorTarget.Texture = _sceneTarget.get();
-        colorTarget.ClearColor[0] = environment.FogColor.x;
-        colorTarget.ClearColor[1] = environment.FogColor.y;
-        colorTarget.ClearColor[2] = environment.FogColor.z;
-        colorTarget.ClearColor[3] = 1.0f;
+        for (const auto& pass : FRAME_PASSES)
+        {
+            if (pass.IsEnabled != nullptr && !(this->*pass.IsEnabled))
+                continue;
 
-        auto depthTarget = DepthTargetInfo{};
-        depthTarget.Texture = _depthTarget.get();
-        depthTarget.Load = LoadOp::Load;
-        depthTarget.Store = StoreOp::DontCare;
+            commandBuffer->PushDebugGroup(pass.Name);
+            (this->*pass.Execute)(*commandBuffer);
+            commandBuffer->PopDebugGroup();
+        }
 
-        if (_hasSkyReflectiveMaterials)
-            RenderSkyReflections(*commandBuffer, view, environment.InterpolationFactor);
-
-        // Slot 2 is shared with the screen space and sky passes, so the shadow uniforms are pushed right before the scene.
-        commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
-
-        _hasDistortion = HasDistortionDraws(view);
-        if (_hasDistortion)
-            RenderDistortion(*commandBuffer, view);
-
-        commandBuffer->PushDebugGroup("Scene");
-        auto* renderPass = commandBuffer->BeginRenderPass(&colorTarget, 1, &depthTarget);
-        DrawSky(*commandBuffer, *renderPass, view, environment.InterpolationFactor);
-
-        // The sky color uses pixel slot 2 too: restore the shadow uniforms read by rooms and objects.
-        commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
-        DrawRooms(*commandBuffer, *renderPass, view, ScenePass::Opaque);
-        DrawObjects(*commandBuffer, *renderPass, ScenePass::Opaque);
-        DrawObjects(*commandBuffer, *renderPass, ScenePass::Opaque, true);
-        DrawDebris(*commandBuffer, *renderPass, DebrisPass::Opaque);
-        DrawRooms(*commandBuffer, *renderPass, view, ScenePass::AlphaEdges);
-        DrawObjects(*commandBuffer, *renderPass, ScenePass::AlphaEdges);
-        DrawObjects(*commandBuffer, *renderPass, ScenePass::AlphaEdges, true);
-        DrawSprites(*commandBuffer, *renderPass, ScenePass::Opaque);
-        DrawSprites(*commandBuffer, *renderPass, ScenePass::Opaque, true);
-        DrawRooms(*commandBuffer, *renderPass, view, ScenePass::Additive);
-        DrawObjects(*commandBuffer, *renderPass, ScenePass::Additive);
-        DrawObjects(*commandBuffer, *renderPass, ScenePass::Additive, true);
-        DrawDebris(*commandBuffer, *renderPass, DebrisPass::Additive);
-        DrawSprites(*commandBuffer, *renderPass, ScenePass::Additive);
-        DrawSprites(*commandBuffer, *renderPass, ScenePass::Additive, true);
-        DrawSortedFaces(*commandBuffer, *renderPass);
-        DrawSortedFaces(*commandBuffer, *renderPass, true);
-        DrawDebris(*commandBuffer, *renderPass, DebrisPass::Blended);
-        DrawGunFlashes(*commandBuffer, *renderPass);
-        commandBuffer->EndRenderPass();
-        commandBuffer->PopDebugGroup();
-
-        _isDofActive = IsDOFActive(environment);
-        if (_isDofActive)
-            RenderDOF(*commandBuffer, environment);
-
-        // Reflective materials sample the scene of the previous frame, as in the legacy renderer.
-        if (_hasReflectiveMaterials)
-            DownscaleTexture(*commandBuffer, _sceneTarget.get(), _reflectionTarget.get(), "Reflections");
-
-        if (_hasEmissiveMaps)
-            RenderGlow(*commandBuffer);
-
-        RenderPostProcess(*commandBuffer, environment);
-
+        _frameView = nullptr;
+        _frameEnvironment = nullptr;
         commandBuffer->PopDebugGroup();
         _frameStats.CpuTime = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - startTime).count();
         commandBuffer->Submit();
@@ -2304,11 +2315,13 @@ namespace TEN::Renderer::Next
 
         CollectOverlay(ui);
         UploadOverlayData(hasScene);
+        UploadImGuiData(ui);
         _uploadRing.End();
         commandBuffer->EndCopyPass();
 
         RenderOverlay(*commandBuffer, ui);
         RenderMenuPostProcess(*commandBuffer, ui);
+        DrawImGui(*commandBuffer, ui);
 
         if (!_device->RequiresWindowThreadPresent())
         {

@@ -58,24 +58,6 @@ namespace TEN::Renderer::Next
         return true;
     }
 
-    bool NextRenderer::EnsureSMAATargets(int width, int height)
-    {
-        auto desc = TextureDesc{};
-        desc.Width = width;
-        desc.Height = height;
-        desc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
-
-        desc.Format = PixelFormat::RG8Unorm;
-        desc.Name = "SMAA.Edges";
-        _smaaEdgesTarget = _device->CreateTexture(desc);
-
-        desc.Format = PixelFormat::RGBA8Unorm;
-        desc.Name = "SMAA.Weights";
-        _smaaWeightsTarget = _device->CreateTexture(desc);
-
-        return (_smaaEdgesTarget != nullptr && _smaaWeightsTarget != nullptr);
-    }
-
     // FXAA for the low antialiasing mode, SMAA 1x with the medium or ultra preset for the medium and high modes,
     // from the post-processed image to the target.
     void NextRenderer::RenderAntialiasing(ICommandBuffer& commandBuffer, int antialiasingMode, ITexture* target)
@@ -92,16 +74,30 @@ namespace TEN::Renderer::Next
         auto metrics = Vector4(1.0f / desc.Width, 1.0f / desc.Height, (float)desc.Width, (float)desc.Height);
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &metrics, sizeof(metrics));
 
+        auto edgesDesc = TextureDesc{};
+        edgesDesc.Width = desc.Width;
+        edgesDesc.Height = desc.Height;
+        edgesDesc.Format = PixelFormat::RG8Unorm;
+        edgesDesc.Usage = TextureUsage::ColorTarget | TextureUsage::Sampler;
+
+        auto weightsDesc = edgesDesc;
+        weightsDesc.Format = PixelFormat::RGBA8Unorm;
+
+        auto* edgesTarget = _targetPool.Acquire(edgesDesc);
+        auto* weightsTarget = _targetPool.Acquire(weightsDesc);
+
         // Edge detection discards texels without edges, so its target and the weights target are cleared.
         auto* linear = _linearClampSampler.get();
         TextureSamplerBinding edgeBindings[1] = { { _antialiasingSource.get(), _pointClampSampler.get() } };
-        TextureSamplerBinding weightBindings[3] = { { _smaaEdgesTarget.get(), linear }, { _smaaAreaTexture.get(), linear }, { _smaaSearchTexture.get(), linear } };
-        TextureSamplerBinding blendBindings[2] = { { _antialiasingSource.get(), linear }, { _smaaWeightsTarget.get(), linear } };
+        TextureSamplerBinding weightBindings[3] = { { edgesTarget, linear }, { _smaaAreaTexture.get(), linear }, { _smaaSearchTexture.get(), linear } };
+        TextureSamplerBinding blendBindings[2] = { { _antialiasingSource.get(), linear }, { weightsTarget, linear } };
 
         commandBuffer.PushDebugGroup("SMAA");
-        RenderFullscreenPass(commandBuffer, resources.Pipelines[0].get(), _smaaEdgesTarget.get(), edgeBindings, 1, "Edge detection", LoadOp::Clear);
-        RenderFullscreenPass(commandBuffer, resources.Pipelines[1].get(), _smaaWeightsTarget.get(), weightBindings, 3, "Blending weights", LoadOp::Clear);
+        RenderFullscreenPass(commandBuffer, resources.Pipelines[0].get(), edgesTarget, edgeBindings, 1, "Edge detection", LoadOp::Clear);
+        RenderFullscreenPass(commandBuffer, resources.Pipelines[1].get(), weightsTarget, weightBindings, 3, "Blending weights", LoadOp::Clear);
         RenderFullscreenPass(commandBuffer, resources.Pipelines[2].get(), target, blendBindings, 2, "Neighborhood blending");
+        _targetPool.Release(edgesTarget);
+        _targetPool.Release(weightsTarget);
         commandBuffer.PopDebugGroup();
     }
 }

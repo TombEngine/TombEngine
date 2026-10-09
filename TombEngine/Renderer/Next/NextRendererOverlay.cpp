@@ -12,13 +12,6 @@ using namespace TEN::Renderer::Structures;
 
 namespace TEN::Renderer::Next
 {
-    // Same layout as OverlayUniforms in Shaders/RHI/Overlay.hlsl.
-    struct OverlayUniforms
-    {
-        Vector2 InverseTargetSize = Vector2::Zero;
-        Vector2 Padding           = Vector2::Zero;
-    };
-
     // Legacy 2D and 3D space object draws blend alpha tested buckets, and every bucket of a fading object.
     static BlendMode GetOverlayObjectBlendMode(BlendMode blendMode, float alpha)
     {
@@ -743,9 +736,11 @@ namespace TEN::Renderer::Next
 
         if (isGlowActive)
         {
+            commandBuffer.PushDebugGroup("Glow");
             RenderGlow(commandBuffer);
+            commandBuffer.PopDebugGroup();
 
-            TextureSamplerBinding bindings[2] = { { _finalTarget.get(), _linearClampSampler.get() }, { _glowTargets[0].get(), _linearClampSampler.get() } };
+            TextureSamplerBinding bindings[2] = { { _finalTarget.get(), _linearClampSampler.get() }, { _glowTarget.get(), _linearClampSampler.get() } };
             RenderFullscreenPass(commandBuffer, _glowCombinePipeline.get(), _antialiasingSource.get(), bindings, 2, "Glow combine");
         }
         else

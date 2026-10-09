@@ -136,10 +136,10 @@ Principi:
 - [x] **ComputePipelineDesc** (SM 5.0, CS 5.0): solo per il post-process (blur separabili, riduzioni).
 - [x] **CommandBuffer**: `BeginRenderPass` (attachment con load op Clear/Load/DontCare e store op Store/DontCare), `BeginCopyPass`, `BeginComputePass`, `Submit`. Dentro i pass: `BindPipeline`, `BindVertexBuffers`, `BindIndexBuffer`, `BindSamplers`, `BindStorageBuffers`, `PushUniforms(stage, slot, data, size)`, `SetViewport`, `SetScissor`, `Draw`, `DrawIndexed`, `Dispatch`.
 - [x] **Debug fin dal primo giorno**: `PushDebugGroup` / `PopDebugGroup` / `InsertDebugLabel` sul command buffer, `SetName` su tutte le risorse e pipeline. Helper `TEN_GPU_SCOPE("Nome")` gratuito nelle build release.
-- [ ] **Ring di upload per frame** (N frame in volo): allocatore lineare che restituisce `{puntatore CPU, buffer, offset}`. Un solo copy pass per frame trasferisce tutto prima dei render pass.
-- [ ] **Modello di threading:** SDL GPU vuole che lo swapchain sia acquisito dal thread che ha creato la finestra, mentre TEN renderizza sul thread di gioco. Il thread di gioco disegna in una texture offscreen; il thread principale la copia sullo swapchain e presenta (un blit per frame).
+- [x] **Ring di upload per frame** (N frame in volo): allocatore lineare che restituisce `{puntatore CPU, buffer, offset}`. Un solo copy pass per frame trasferisce tutto prima dei render pass. *(`RHI::UploadRing`: un transfer buffer ciclato per copy pass, copie registrate a fine pass; anche il frame video)*
+- [x] **Modello di threading:** SDL GPU vuole che lo swapchain sia acquisito dal thread che ha creato la finestra, mentre TEN renderizza sul thread di gioco. Il thread di gioco disegna in una texture offscreen; il thread principale la copia sullo swapchain e presenta (un blit per frame). *(`FinishFrame` sul thread di gioco, `PresentOnWindowThread` sul thread principale)*
 - [x] **Test di validazione dei backend** (`rhitest <vulkan|dx11|d3d12>`): scena deterministica, screenshot in `Logs/RHITest_<backend>.png`. Vulkan e DX11 producono immagini identiche al pixel.
-- [ ] Vincoli di SDL GPU applicati anche a DX11, cosi' il renderer e' portabile per costruzione:
+- [x] Vincoli di SDL GPU applicati anche a DX11, cosi' il renderer e' portabile per costruzione: *(il device DX11 segnala copy e compute pass aperti dentro un render pass)*
   - niente upload dentro un render pass;
   - massimo 4 uniform buffer per stage (usati come push);
   - niente geometry shader;
@@ -150,7 +150,7 @@ Principi:
 - [x] Device: `SDL_CreateGPUDevice(SPIRV | DXIL, debug, "vulkan")`, con fallback a `"direct3d12"` e poi al backend DX11 se la creazione fallisce. `SDL_ClaimWindowForGPUDevice`.
 - [x] Swapchain: `SDL_WaitAndAcquireGPUSwapchainTexture`, `SDL_SetGPUSwapchainParameters` (VSYNC / MAILBOX / IMMEDIATE), `SDL_SetGPUAllowedFramesInFlight`, resize. *(manca il resize esplicito: SDL lo gestisce all'acquisizione)*
 - [x] Mappatura 1:1 del RHI: render pass, copy pass (`SDL_UploadToGPUBuffer`, `SDL_UploadToGPUTexture`, transfer buffer con `cycle`), compute pass, `SDL_GenerateMipmapsForGPUTexture`, `SDL_BlitGPUTexture`.
-- [ ] Readback asincrono (occlusione delle nuvole, screenshot) con `SDL_DownloadFromGPUTexture` + fence, consumato N frame dopo.
+- [x] Readback asincrono (occlusione delle nuvole, screenshot) con `SDL_DownloadFromGPUTexture` + fence, consumato N frame dopo. *(`IFence` nel RHI, `TextureReadback` per gli screenshot; le nuvole non sono ancora portate)*
 - [x] Debug: `SDL_PushGPUDebugGroup`, `SDL_PopGPUDebugGroup`, `SDL_InsertGPUDebugLabel`, `SDL_SetGPUBufferName`, `SDL_SetGPUTextureName`. Validation layer Vulkan attivo nelle build debug.
 
 ### 5.3 Backend DX11 (stessa RHI)
@@ -165,16 +165,16 @@ Principi:
 ### 5.4 Lista dei pass (render graph minimale)
 Un render graph completo (dipendenze automatiche, aliasing, pass culling) non serve: l'ordine dei pass di TEN e' fisso. Serve solo una struttura che dia ordine, nomi e risorse condivise.
 
-- [ ] `RenderPassList`: elenco ordinato di pass con nome, attachment, load/store op e una funzione di esecuzione. Ogni pass apre e chiude il suo debug group automaticamente.
-- [ ] Pool di render target transienti per descrizione (formato, dimensione relativa alla risoluzione): i pass di post-process prendono e restituiscono i target invece di possederli.
-- [ ] Pass disattivati (effetti spenti) saltati con un flag, senza logica di grafo.
+- [x] `RenderPassList`: elenco ordinato di pass con nome, attachment, load/store op e una funzione di esecuzione. Ogni pass apre e chiude il suo debug group automaticamente. *(`FRAME_PASSES`: nome, flag e funzione; le attachment restano nelle funzioni dei pass)*
+- [x] Pool di render target transienti per descrizione (formato, dimensione relativa alla risoluzione): i pass di post-process prendono e restituiscono i target invece di possederli. *(`RHI::RenderTargetPool` per i target intermedi: blur di SSAO e glow, dilatazione del DOF, edge e weight di SMAA)*
+- [x] Pass disattivati (effetti spenti) saltati con un flag, senza logica di grafo.
 
 ### 5.5 Dipendenze
 - [ ] Rimuovere DirectXTK salvo la matematica (SimpleMath e' portabile):
   - loader di texture proprio: parser DDS (BC con mip) + `SDL_LoadPNG` per i PNG del formato attuale;
   - `SpriteBatch`, `SpriteFont` e `PrimitiveBatch` riscritti sul RHI (quad instanziati, font atlas);
   - screenshot con download + `SDL_SavePNG`.
-- [ ] ImGui con `imgui_impl_sdlgpu3` (aggiornare imgui in `Libs/imgui` se manca) e un backend RHI per DX11.
+- [x] ImGui con `imgui_impl_sdlgpu3` (aggiornare imgui in `Libs/imgui` se manca) e un backend RHI per DX11. *(backend ImGui sul RHI, senza file nuovi da imgui: riusa la pipeline del layer 2D su Vulkan e DX11)*
 
 ---
 

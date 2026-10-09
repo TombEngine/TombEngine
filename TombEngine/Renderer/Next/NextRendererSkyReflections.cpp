@@ -25,10 +25,8 @@ namespace TEN::Renderer::Next
 
     // Legacy DrawHorizonAndSkyForReflections: sky layers and horizons into both hemispheres of the dual
     // paraboloid map, refreshed every frame while skybox reflective materials are in use.
-    void NextRenderer::RenderSkyReflections(ICommandBuffer& commandBuffer, const RenderView& view, float interpolationFactor)
+    void NextRenderer::RenderSkyReflections(ICommandBuffer& commandBuffer)
     {
-        commandBuffer.PushDebugGroup("Sky reflections");
-
         for (int layer = 0; layer < 2; layer++)
         {
             auto colorTarget = ColorTargetInfo{};
@@ -37,10 +35,8 @@ namespace TEN::Renderer::Next
             colorTarget.ClearColor[3] = 1.0f;
 
             auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
-            DrawSky(commandBuffer, *renderPass, view, interpolationFactor, (layer == 0) ? -1 : 1);
+            DrawSky(commandBuffer, *renderPass, *_frameView, _frameEnvironment->InterpolationFactor, (layer == 0) ? -1 : 1);
             commandBuffer.EndRenderPass();
         }
-
-        commandBuffer.PopDebugGroup();
     }
 }

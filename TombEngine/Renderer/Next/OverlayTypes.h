@@ -4,6 +4,8 @@
 
 // 2D layer data that the legacy renderer resolves and the next renderer draws.
 
+struct ImDrawData;
+
 namespace TEN::Renderer::Structures
 {
     struct RendererMesh;
@@ -119,6 +121,8 @@ namespace TEN::Renderer::Next
         // Menu frames get the glow of the object emissive and antialiasing over the whole image, as the legacy menu target.
         bool IsMenu           = false;
         int  AntialiasingMode = 0;
+
+        const ImDrawData* DebugDrawData = nullptr; // ImGui debug overlay rendered this frame, null when hidden.
 
         // Video frame of the legacy video handler (BGRA8), null when no video plays.
         const unsigned char* VideoFrame  = nullptr;

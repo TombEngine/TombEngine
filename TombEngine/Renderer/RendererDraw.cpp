@@ -3868,6 +3868,7 @@ namespace TEN::Renderer
 			TEN::Sky::DrawSkyDebugWindow();
 		}
 		ImGuiRenderFrame();
+		_nextUi.DebugDrawData = ImGuiGetDrawData();
 
 		_graphicsDevice->EndGpuTiming(GpuTimingScope::Frame);
 
@@ -3965,6 +3966,7 @@ namespace TEN::Renderer
 		_nextUi.ObjectBones.clear();
 		_nextUi.VideoFrame = nullptr;
 		_nextUi.IsMenu = false;
+		_nextUi.DebugDrawData = nullptr;
 		_nextUi.FlashColor = Vector3::Zero;
 		_nextUi.OpticSprite = nullptr;
 		_nextUi.IsLaserSight = false;

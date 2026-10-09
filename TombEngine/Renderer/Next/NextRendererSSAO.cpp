@@ -116,15 +116,14 @@ namespace TEN::Renderer::Next
         ssaoDesc.Name = "SSAO.Occlusion";
         _ssaoTarget = _device->CreateTexture(ssaoDesc);
 
-        ssaoDesc.Name = "SSAO.Blur";
-        _ssaoBlurTarget = _device->CreateTexture(ssaoDesc);
-
-        return (_normalTarget != nullptr && _emissiveTarget != nullptr && _ssaoTarget != nullptr && _ssaoBlurTarget != nullptr);
+        return (_normalTarget != nullptr && _emissiveTarget != nullptr && _ssaoTarget != nullptr);
     }
 
     // Opaque geometry writes depth and view space normals; the scene pass reuses the depth.
-    void NextRenderer::RenderDepthPrepass(ICommandBuffer& commandBuffer, const RenderView& view)
+    void NextRenderer::RenderDepthPrepass(ICommandBuffer& commandBuffer)
     {
+        const auto& view = *_frameView;
+
         ColorTargetInfo colorTargets[2] = {};
         colorTargets[0].Texture = _normalTarget.get();
         colorTargets[1].Texture = _emissiveTarget.get();
@@ -132,12 +131,10 @@ namespace TEN::Renderer::Next
         auto depthTarget = DepthTargetInfo{};
         depthTarget.Texture = _depthTarget.get();
 
-        commandBuffer.PushDebugGroup("Depth and normals prepass");
         auto* renderPass = commandBuffer.BeginRenderPass(colorTargets, 2, &depthTarget);
         DrawRooms(commandBuffer, *renderPass, view, ScenePass::Prepass);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Prepass);
         commandBuffer.EndRenderPass();
-        commandBuffer.PopDebugGroup();
     }
 
     void NextRenderer::RenderFullscreenPass(ICommandBuffer& commandBuffer, IGraphicsPipeline* pipeline, ITexture* target, ITexture* source, ISampler* sourceSampler, const char* name)
@@ -170,8 +167,9 @@ namespace TEN::Renderer::Next
     }
 
     // Occlusion at half resolution, then a separable bilateral blur. The result ends in _ssaoTarget.
-    void NextRenderer::RenderSSAO(ICommandBuffer& commandBuffer, const Matrix& projection)
+    void NextRenderer::RenderSSAO(ICommandBuffer& commandBuffer)
     {
+        const auto& projection = _projection;
         const auto& targetDesc = _ssaoTarget->GetDesc();
 
         auto uniforms = SsaoUniforms{};
@@ -182,10 +180,10 @@ namespace TEN::Renderer::Next
         memcpy(uniforms.Kernel, _ssaoKernel, sizeof(_ssaoKernel));
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
 
-        commandBuffer.PushDebugGroup("SSAO");
+        auto* blurTarget = _targetPool.Acquire(targetDesc);
         RenderFullscreenPass(commandBuffer, _ssaoPipeline.get(), _ssaoTarget.get(), _depthTarget.get(), _pointClampSampler.get(), "Occlusion");
-        RenderFullscreenPass(commandBuffer, _ssaoBlurHorizontalPipeline.get(), _ssaoBlurTarget.get(), _ssaoTarget.get(), _pointClampSampler.get(), "Blur horizontal");
-        RenderFullscreenPass(commandBuffer, _ssaoBlurVerticalPipeline.get(), _ssaoTarget.get(), _ssaoBlurTarget.get(), _pointClampSampler.get(), "Blur vertical");
-        commandBuffer.PopDebugGroup();
+        RenderFullscreenPass(commandBuffer, _ssaoBlurHorizontalPipeline.get(), blurTarget, _ssaoTarget.get(), _pointClampSampler.get(), "Blur horizontal");
+        RenderFullscreenPass(commandBuffer, _ssaoBlurVerticalPipeline.get(), _ssaoTarget.get(), blurTarget, _pointClampSampler.get(), "Blur vertical");
+        _targetPool.Release(blurTarget);
     }
 }

@@ -128,12 +128,12 @@ namespace TEN::Renderer::Next
     }
 
     // Six depth only passes, one per cube face, with the instanced draws of the shadow casters.
-    void NextRenderer::RenderShadowMap(ICommandBuffer& commandBuffer, const FrameVertexUniforms& cameraUniforms)
+    void NextRenderer::RenderShadowMap(ICommandBuffer& commandBuffer)
     {
         if (!_shadowUniforms.CastShadows)
             return;
 
-        commandBuffer.PushDebugGroup("Shadow map");
+        const auto& cameraUniforms = _frameVertexUniforms;
         _isRenderingShadowMap = true;
 
         auto* pipeline = GetScenePipeline(SceneShader::ObjectsShadow, BlendMode::Opaque);
@@ -188,6 +188,5 @@ namespace TEN::Renderer::Next
 
         commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 0, &cameraUniforms, sizeof(cameraUniforms));
         _isRenderingShadowMap = false;
-        commandBuffer.PopDebugGroup();
     }
 }

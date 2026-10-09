@@ -101,19 +101,22 @@ namespace TEN::Renderer::Next
     }
 
     // Distortion surfaces and sprites accumulate their payload in the half resolution distortion target.
-    void NextRenderer::RenderDistortion(ICommandBuffer& commandBuffer, const RenderView& view)
+    void NextRenderer::RenderDistortion(ICommandBuffer& commandBuffer)
     {
+        const auto& view = *_frameView;
+
+        // Slot 2 is shared with the screen space and sky passes: room and object shaders read the shadow uniforms.
+        commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
+
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = _distortionTarget.get();
 
-        commandBuffer.PushDebugGroup("Distortion");
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
         DrawRooms(commandBuffer, *renderPass, view, ScenePass::Distortion);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Distortion);
         DrawSprites(commandBuffer, *renderPass, ScenePass::Distortion);
         DrawSprites(commandBuffer, *renderPass, ScenePass::Distortion, true);
         commandBuffer.EndRenderPass();
-        commandBuffer.PopDebugGroup();
     }
 
     // The scene pass keeps the prepass depth as its target, so effects reading the depth (soft particles) use a copy.
@@ -123,7 +126,6 @@ namespace TEN::Renderer::Next
         colorTarget.Texture = _sceneDepthCopy.get();
         colorTarget.Load = LoadOp::DontCare;
 
-        commandBuffer.PushDebugGroup("Depth copy");
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
         renderPass->BindPipeline(_depthCopyPipeline.get());
 
@@ -133,12 +135,13 @@ namespace TEN::Renderer::Next
         _frameStats.DrawCalls++;
         renderPass->Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
-        commandBuffer.PopDebugGroup();
     }
 
     // Single fullscreen pass from the scene target to the frame target.
-    void NextRenderer::RenderPostProcess(ICommandBuffer& commandBuffer, const FrameEnvironment& environment)
+    void NextRenderer::RenderPostProcess(ICommandBuffer& commandBuffer)
     {
+        const auto& environment = *_frameEnvironment;
+
         auto uniforms = PostProcessUniforms{};
         uniforms.Tint = environment.Tint;
         uniforms.Gamma = std::max(environment.Gamma, 0.01f);
@@ -174,7 +177,6 @@ namespace TEN::Renderer::Next
         colorTarget.Texture = isAntialiased ? _antialiasingSource.get() : _colorTarget.get();
         colorTarget.Load = LoadOp::DontCare;
 
-        commandBuffer.PushDebugGroup("Post-process");
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
         renderPass->BindPipeline(_postProcessPipeline.get());
 
@@ -183,7 +185,7 @@ namespace TEN::Renderer::Next
             { _sceneTarget.get(), _linearClampSampler.get() },
             { _distortionTarget.get(), _linearClampSampler.get() },
             { _sceneDepthCopy.get(), _pointClampSampler.get() },
-            { _glowTargets[0].get(), _linearClampSampler.get() },
+            { _glowTarget.get(), _linearClampSampler.get() },
             { _dofTargets[0].get(), _linearClampSampler.get() },
             { _dofTargets[1].get(), _linearClampSampler.get() }
         };
@@ -192,8 +194,6 @@ namespace TEN::Renderer::Next
         _frameStats.DrawCalls++;
         renderPass->Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
-
-        commandBuffer.PopDebugGroup();
 
         if (isAntialiased)
             RenderAntialiasing(commandBuffer, environment.AntialiasingMode, _colorTarget.get());
