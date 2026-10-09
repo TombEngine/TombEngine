@@ -871,6 +871,16 @@ namespace TEN::Renderer::Next
         }
     }
 
+    // The material table is uploaded at load and again only when scripts change material properties or types.
+    void NextRenderer::UploadMaterials()
+    {
+        if (_materialBuffer.Buffer != nullptr && _materialData == _uploadedMaterialData)
+            return;
+
+        UploadFrameStorage(_materialBuffer, _materialData, (int)sizeof(GpuMaterial), BufferUsage::GraphicsStorageRead, "Materials");
+        _uploadedMaterialData = _materialData;
+    }
+
     void NextRenderer::BindScenePixelStorage(IRenderPass& renderPass)
     {
         IBuffer* buffers[3] = { _lightBuffer.Buffer.get(), _materialBuffer.Buffer.get(), _decalBuffer.Buffer.get() };
@@ -1557,7 +1567,7 @@ namespace TEN::Renderer::Next
         UploadFrameStorage(_boneBuffer, _boneData, (int)sizeof(Matrix), BufferUsage::GraphicsStorageRead, "Frame.Bones");
         UploadFrameStorage(_sortedIndexBuffer, _sortedIndexData, (int)sizeof(int), BufferUsage::Index, "Frame.SortedIndices");
         UploadFrameStorage(_spriteBuffer, _spriteData, (int)sizeof(GpuSprite), BufferUsage::GraphicsStorageRead, "Frame.Sprites");
-        UploadFrameStorage(_materialBuffer, _materialData, (int)sizeof(GpuMaterial), BufferUsage::GraphicsStorageRead, "Frame.Materials");
+        UploadMaterials();
         UploadFrameStorage(_decalBuffer, _decalData, (int)sizeof(GpuDecal), BufferUsage::GraphicsStorageRead, "Frame.Decals");
         UploadFrameStorage(_debrisVertexBuffer, _debrisVertexData, (int)sizeof(Vertex), BufferUsage::Vertex, "Frame.DebrisVertices");
         UploadFrameStorage(_debrisInstanceBuffer, _debrisInstanceData, (int)sizeof(unsigned int), BufferUsage::Vertex, "Frame.DebrisInstances");

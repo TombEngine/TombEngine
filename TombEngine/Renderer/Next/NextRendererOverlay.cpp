@@ -545,7 +545,7 @@ namespace TEN::Renderer::Next
             return;
 
         CollectMaterials(0.0f);
-        UploadFrameStorage(_materialBuffer, _materialData, (int)sizeof(GpuMaterial), BufferUsage::GraphicsStorageRead, "Frame.Materials");
+        UploadMaterials();
 
         // Created empty if no scene was rendered yet.
         auto noData = std::vector<unsigned char>{};

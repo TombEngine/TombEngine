@@ -614,6 +614,7 @@ namespace TEN::Renderer::Next
         std::array<int, 2>            _hairInstances       = { NO_VALUE, NO_VALUE }; // Primary and secondary hair unit instances.
         FrameStorageBuffer            _materialBuffer      = {};
         std::vector<unsigned char>    _materialData        = {};
+        std::vector<unsigned char>    _uploadedMaterialData = {}; // Content of the material buffer.
         FrameStorageBuffer            _spriteBuffer        = {};
         std::vector<unsigned char>    _spriteData          = {};
         std::vector<SpriteDraw>       _spriteDraws         = {};
@@ -705,6 +706,7 @@ namespace TEN::Renderer::Next
         void DrawDebris(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, DebrisPass pass);
         int  AddLights(const std::vector<Structures::RendererLight*>& lights, float interpolationFactor, int roomNumber, int prevRoomNumber, float fade, int& lightOffset);
         static GpuLight ToGpuLight(const Structures::RendererLight& light, float interpolationFactor, float fade);
+        void UploadMaterials();
         void UploadFrameStorage(FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name);
         void UploadFrameData(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
         void CollectSortedFaces(const RenderView& view, float interpolationFactor);

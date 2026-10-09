@@ -220,8 +220,8 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 - [x] **Texture array per categoria** (stanze, moveable, statiche, animate, sprite) costruiti al caricamento: le pagine dello stesso formato e della stessa dimensione diventano layer di un unico `Texture2DArray`. Le pagine di dimensione diversa vanno in array separati (uno per dimensione), oppure con padding se l'array risultante non spreca troppa memoria. Il materiale contiene array e layer. *(fatto per stanze, statiche, moveable, animate e cielo, raggruppando le pagine per dimensione e formato di tutte le mappe anche tra categorie diverse: coastal 18 pagine in 5 gruppi; il layer arriva con un uniform per draw e un cambio di pagina nello stesso gruppo non ricollega texture. Gli sprite restano texture singole perche' li campiona anche il layer 2D)*
 
 ### 7.3 Dati persistenti in GPU
-- [ ] Tabelle in storage buffer create al caricamento: `Meshes[]` (range di indici per bucket), `Materials[]` (array e layer di texture, blend mode, parametri del materiale, flag di animazione), `StaticInstances[]`, `Rooms[]` (ambient, flag, AABB).
-- [ ] Per frame solo: `DynamicInstances[]` (oggetti animati), `Bones[]` (pool unico con offset per oggetto), `Lights[]` e liste di indici di luci per stanza e per oggetto, sprite e particelle.
+- [x] Tabelle in storage buffer create al caricamento: `Meshes[]` (range di indici per bucket), `Materials[]` (array e layer di texture, blend mode, parametri del materiale, flag di animazione), `StaticInstances[]`, `Rooms[]` (ambient, flag, AABB). *(fatto per i materiali, caricati al caricamento e poi solo quando gli script li cambiano; i range di indici per mesh sono le sezioni della geometria; le istanze delle statiche restano per frame perche' contengono la fetta di luci del frame, e misurate valgono 1,5-1,8 KB per frame)*
+- [x] Per frame solo: `DynamicInstances[]` (oggetti animati), `Bones[]` (pool unico con offset per oggetto), `Lights[]` e liste di indici di luci per stanza e per oggetto, sprite e particelle. *(misurato sui benchmark: 52-130 KB per frame in tutto, luci 1,3-2 KB e istanze 1,5-1,8 KB; il resto sono ossa, sprite e indici ordinati)*
 - [x] Texture animate: frame in storage buffer (gia' cosi' oggi tramite `AnimatedFrames`), selezione nel VS.
 
 ---
@@ -239,7 +239,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 - [x] Culling per bucket dentro le stanze grandi (AABB del bucket contro il frustum), gratis con i dati calcolati al caricamento. *(con il frustum della proiezione dell'anteprima e un margine per gli effetti di vertice; coastal da 482 a 470 draw call)*
 
 ### 8.3 Illuminazione (semplice)
-- [ ] Un `Lights[]` unico per frame e **liste di indici di luci** per stanza e per oggetto, calcolate sulla CPU in Prepare (come oggi in sostanza, ma una volta per frame e senza copie). Lo shader legge le luci tramite indice.
+- [x] Un `Lights[]` unico per frame e **liste di indici di luci** per stanza e per oggetto, calcolate sulla CPU in Prepare (come oggi in sostanza, ma una volta per frame e senza copie). Lo shader legge le luci tramite indice. *(un solo buffer di luci per frame con fette per oggetto e per stanza; le liste di indici non sono state adottate: la stessa luce cambia valore tra oggetti per la dissolvenza tra stanze, e le luci copiate valgono 1,3-2 KB per frame)*
 - [x] Stesso modello di luce legacy (attenuazioni, spot, shadow mode per oggetto): stessa immagine, costo diverso. *(`ToGpuLight` come `BindLight`, `Lighting.hlsli`)*
 - [x] Fog bulb raccolti una volta per frame, non per stanza.
 - [ ] Illuminazione clustered (Forward+) **non** prevista: si valuta solo se le misure mostrano un collo di bottiglia nelle liste di luci.
