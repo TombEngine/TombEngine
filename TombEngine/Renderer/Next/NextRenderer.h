@@ -528,6 +528,7 @@ namespace TEN::Renderer::Next
         std::vector<SpriteDraw>       _skySpriteDraws      = {};
         std::vector<const Structures::RendererSpriteToDraw*> _spriteSources = {}; // One per frame sprite.
         std::unordered_map<const void*, int> _sortedInstances = {};
+        std::array<int, 2>            _hairInstances       = { NO_VALUE, NO_VALUE }; // Primary and secondary hair unit instances.
         FrameStorageBuffer            _materialBuffer      = {};
         std::vector<unsigned char>    _materialData        = {};
         FrameStorageBuffer            _spriteBuffer        = {};

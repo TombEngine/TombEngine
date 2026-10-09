@@ -1322,9 +1322,11 @@ namespace TEN::Renderer::Next
 
     // Player meshes are skinned in the vertex shader against the animation bone palette, as in the
     // legacy DrawLara: rigid parts and classic joints blend per-vertex bone indices, the full skin uses
-    // bind pose corrected bones. Hair is ported in a later milestone.
+    // bind pose corrected bones. Hair units follow the player.
     void NextRenderer::CollectPlayer(float interpolationFactor)
     {
+        _hairInstances.fill(NO_VALUE);
+
         if (LaraItem == nullptr || Lara.Control.Look.OpticRange != 0)
             return;
 
@@ -1446,6 +1448,9 @@ namespace TEN::Renderer::Next
             int boneOffset = AddBones(bones, boneCount);
             int instance = AddInstance(Matrix::Identity, item.Color, ambientLight, LightMode::Dynamic, lightOffset, lightCount, boneOffset,
                 isSkinned ? SKINNING_FULL : SKINNING_RIGID);
+
+            if (unitIndex < (int)_hairInstances.size())
+                _hairInstances[unitIndex] = instance;
 
             if (isSkinned)
             {
@@ -1663,6 +1668,7 @@ namespace TEN::Renderer::Next
 
             const std::vector<int>* sourceIndices = nullptr;
             auto source = MeshSource::Moveables;
+            int hairInstance = NO_VALUE;
             switch (object.ObjectType)
             {
             case RendererObjectType::Room:
@@ -1680,11 +1686,20 @@ namespace TEN::Renderer::Next
                 sourceIndices = _legacyGeometry.MoveableIndices;
                 break;
 
+            // Hair faces reuse the hair unit instance built with the player.
+            case RendererObjectType::HairPrimary:
+            case RendererObjectType::HairSecondary:
+                hairInstance = _hairInstances[(object.ObjectType == RendererObjectType::HairPrimary) ? 0 : 1];
+                if (hairInstance != NO_VALUE)
+                    sourceIndices = _legacyGeometry.MoveableIndices;
+
+                break;
+
             default:
                 break;
             }
 
-            // Sprites and hair are ported in a later milestone; skip their whole run.
+            // Skip runs without geometry to draw.
             if (sourceIndices == nullptr)
             {
                 int groupIndex = object.GroupIndex;
@@ -1717,7 +1732,10 @@ namespace TEN::Renderer::Next
             draw.BlendMode = object.BlendMode;
             draw.FirstIndex = firstIndex;
             draw.IndexCount = (int)(_sortedIndexData.size() / sizeof(int)) - firstIndex;
-            draw.Instance = draw.IsRoom ? 0 : GetSortedObjectInstance(object, interpolationFactor);
+            if (hairInstance != NO_VALUE)
+                draw.Instance = hairInstance;
+            else
+                draw.Instance = draw.IsRoom ? 0 : GetSortedObjectInstance(object, interpolationFactor);
             _sortedDraws.push_back(draw);
         }
     }
