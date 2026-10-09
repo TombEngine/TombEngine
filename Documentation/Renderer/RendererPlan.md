@@ -248,7 +248,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 - [x] **Depth + normali** (stanze, statiche, moveable; alpha test con una permutazione dedicata) per SSAO ed early-z: sostituisce il GBuffer a 4 MRT con il minimo indispensabile. *(una sola uscita: normali in view space; la depth del prepass e' riusata dal pass di scena con LessOrEqual)*
 - [x] **Opaque** con `DepthCompare=Equal` e senza depth write: nessun overdraw di pixel shading. *(stanze e oggetti opachi, che sono gli stessi draw del prepass; specchi, detriti e sprite opachi scrivono ancora la depth perche' non sono nel prepass)*
 - [x] Additive e Distortion con draw packet propri, senza riattraversare la scena.
-- [ ] **Instancing ovunque**: statiche (tutte le mesh, senza limite di 100), moveable non skinned con lo stesso oggetto, sciami, bossoli, debris.
+- [x] **Instancing ovunque**: statiche (tutte le mesh, senza limite di 100), moveable non skinned con lo stesso oggetto, sciami, bossoli, debris. *(le mesh rigide degli oggetti semplici vanno nella stessa coda di effetti e sciami, raggruppate per mesh tra oggetti identici; restano a parte pelle completa, cascate, dissolvenze e oggetti che proiettano ombra. Draw call: karnak e tut1 da circa 340 a 230, coastal da 470 a 355)*
 - [ ] Sprite e particelle: istanze compatte da 16-32 B (posizione, dimensione, rotazione, colore, frame) in storage buffer, billboarding nel VS, una sola preparazione per frame.
 
 ### 8.5 Ombre

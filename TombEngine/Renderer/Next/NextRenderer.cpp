@@ -1374,8 +1374,15 @@ namespace TEN::Renderer::Next
 
                 int firstDraw = (int)_objectDraws.size();
 
-                // Full skin: the skin mesh with bind pose corrected bones, and only the rigid meshes not hidden by it.
                 bool isFullSkin = (item->SkinIndex != NO_VALUE);
+                auto waterfallSet = _waterfallSets.find(item->ObjectID);
+                bool isShadowCaster = IsShadowCaster(item->ObjectID);
+
+                // Rigid meshes of plain items are grouped by mesh with those of identical items. Skinned, scrolling, fading and
+                // shadow casting items keep their own draws, which per item steps below adjust.
+                bool isGrouped = !isFullSkin && waterfallSet == _waterfallSets.end() && item->Color.w >= ALPHA_BLEND_THRESHOLD && !isShadowCaster;
+
+                // Full skin: the skin mesh with bind pose corrected bones, and only the rigid meshes not hidden by it.
                 if (isFullSkin)
                 {
                     Matrix skinBones[BONE_COUNT_MAX];
@@ -1399,18 +1406,23 @@ namespace TEN::Renderer::Next
 
                     const auto* mesh = (*_legacyGeometry.Meshes)[item->MeshIndex[meshIndex]];
                     auto world = item->InterpolatedAnimationTransforms[meshIndex] * item->InterpolatedWorld;
+                    if (isGrouped)
+                    {
+                        QueueMeshInstance(*mesh, world, item->Color, item->AmbientLight, mesh->LightMode, lightOffset, lightCount, item->RoomNumber, isReflectable);
+                        continue;
+                    }
+
                     int instance = AddInstance(world, item->Color, item->AmbientLight, mesh->LightMode, lightOffset, lightCount, 0, SKINNING_NONE);
                     AddMeshDraws(*mesh, instance);
                 }
 
-                auto waterfallSet = _waterfallSets.find(item->ObjectID);
                 if (waterfallSet != _waterfallSets.end())
                 {
                     for (int i = firstDraw; i < (int)_objectDraws.size(); i++)
                         _objectDraws[i].AnimatedSetOverride = waterfallSet->second;
                 }
 
-                if (IsShadowCaster(item->ObjectID))
+                if (isShadowCaster)
                     MarkShadowCasterDraws(firstDraw, GetItemBounds(*item, 0.0f));
 
                 RemoveFadedDraws(firstDraw, item->Color.w);

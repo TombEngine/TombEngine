@@ -182,9 +182,10 @@ namespace TEN::Renderer::Next
         // Instance waiting to be grouped with the other instances of its mesh.
         struct QueuedMeshInstance
         {
-            const Structures::RendererMesh* Mesh       = nullptr;
-            GpuObjectInstance               Instance   = {};
-            int                             RoomNumber = NO_VALUE;
+            const Structures::RendererMesh* Mesh          = nullptr;
+            GpuObjectInstance               Instance      = {};
+            int                             RoomNumber    = NO_VALUE;
+            bool                            IsReflectable = true; // Legacy mirrors skip items with cleared bodies.
         };
 
         enum class DebrisPass
@@ -706,7 +707,7 @@ namespace TEN::Renderer::Next
         // Mesh effects, gun shells and swarms (NextRendererEffects.cpp).
         void GetRoomLightSlice(int roomNumber, float interpolationFactor, int& lightOffset, int& lightCount);
         void QueueMeshInstance(const Structures::RendererMesh& mesh, const Matrix& world, const Vector4& color, const Vector4& ambientLight,
-                               LightMode lightMode, int lightOffset, int lightCount, int roomNumber);
+                               LightMode lightMode, int lightOffset, int lightCount, int roomNumber, bool isReflectable = true);
         void FlushMeshInstances();
         void CollectEffectMeshes(const RenderView& view, float interpolationFactor);
         static bool IsMirrored(const InstanceOrigin& origin, const Structures::RendererMirror& mirror);

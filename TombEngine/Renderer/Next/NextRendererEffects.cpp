@@ -54,11 +54,12 @@ namespace TEN::Renderer::Next
     }
 
     void NextRenderer::QueueMeshInstance(const RendererMesh& mesh, const Matrix& world, const Vector4& color, const Vector4& ambientLight,
-                                         LightMode lightMode, int lightOffset, int lightCount, int roomNumber)
+                                         LightMode lightMode, int lightOffset, int lightCount, int roomNumber, bool isReflectable)
     {
         auto queued = QueuedMeshInstance{};
         queued.Mesh = &mesh;
         queued.RoomNumber = roomNumber;
+        queued.IsReflectable = isReflectable;
         queued.Instance.World = world;
         queued.Instance.Color = color;
         queued.Instance.AmbientLight = ambientLight;
@@ -68,7 +69,8 @@ namespace TEN::Renderer::Next
         _queuedMeshInstances.push_back(queued);
     }
 
-    // Queued instances are grouped by mesh, so every mesh bucket becomes a single instanced draw.
+    // Queued instances are grouped by mesh, so every mesh bucket becomes a single instanced draw: effects, swarms and
+    // the rigid meshes of items, so identical items share their draws.
     void NextRenderer::FlushMeshInstances()
     {
         std::sort(_queuedMeshInstances.begin(), _queuedMeshInstances.end(),
@@ -88,8 +90,8 @@ namespace TEN::Renderer::Next
                 const auto* bytes = (const unsigned char*)&queued.Instance;
                 _instanceData.insert(_instanceData.end(), bytes, bytes + sizeof(GpuObjectInstance));
 
-                // Legacy mirrors reflect these effects with the moveables of the mirror room.
-                _instanceOrigins.push_back(InstanceOrigin{ queued.RoomNumber, InstanceCategory::Moveable });
+                // Legacy mirrors reflect these instances with the moveables of the mirror room.
+                _instanceOrigins.push_back(InstanceOrigin{ queued.RoomNumber, queued.IsReflectable ? InstanceCategory::Moveable : InstanceCategory::None });
                 runEnd++;
             }
 
