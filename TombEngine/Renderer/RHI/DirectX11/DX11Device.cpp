@@ -469,6 +469,18 @@ namespace TEN::Renderer::RHI::DirectX11
         ID3D11DeviceContext*  Context  = nullptr;
         DX11GraphicsPipeline* Pipeline = nullptr;
 
+        // Strides belong to the pipeline: as on SDL GPU, vertex buffers may be bound before it, so they are kept
+        // and bound again with the strides of each new pipeline.
+        ID3D11Buffer* VertexBuffers[MAX_VERTEX_BUFFERS]       = {};
+        UINT          VertexBufferOffsets[MAX_VERTEX_BUFFERS] = {};
+        int           VertexBufferCount                       = 0;
+
+        void Reset()
+        {
+            Pipeline = nullptr;
+            VertexBufferCount = 0;
+        }
+
         void BindPipeline(IGraphicsPipeline* pipeline) override
         {
             auto* dxPipeline = (DX11GraphicsPipeline*)pipeline;
@@ -483,6 +495,7 @@ namespace TEN::Renderer::RHI::DirectX11
             Context->OMSetBlendState(dxPipeline->BlendState.Get(), nullptr, 0xFFFFFFFF);
             Context->OMSetDepthStencilState(dxPipeline->DepthStencil.Get(), 0);
             Context->RSSetState(dxPipeline->Rasterizer.Get());
+            ApplyVertexBuffers(0, VertexBufferCount);
         }
 
         void SetViewport(const Viewport& viewport) override
@@ -499,18 +512,26 @@ namespace TEN::Renderer::RHI::DirectX11
 
         void BindVertexBuffers(int firstSlot, const BufferBinding* bindings, int count) override
         {
-            ID3D11Buffer* buffers[MAX_VERTEX_BUFFERS] = {};
-            UINT strides[MAX_VERTEX_BUFFERS] = {};
-            UINT offsets[MAX_VERTEX_BUFFERS] = {};
-
             for (int i = 0; i < count; i++)
             {
-                buffers[i] = ((DX11Buffer*)bindings[i].Buffer)->Handle.Get();
-                strides[i] = (Pipeline != nullptr) ? Pipeline->VertexStrides[firstSlot + i] : 0;
-                offsets[i] = bindings[i].Offset;
+                VertexBuffers[firstSlot + i] = ((DX11Buffer*)bindings[i].Buffer)->Handle.Get();
+                VertexBufferOffsets[firstSlot + i] = bindings[i].Offset;
             }
 
-            Context->IASetVertexBuffers(firstSlot, count, buffers, strides, offsets);
+            VertexBufferCount = std::max(VertexBufferCount, firstSlot + count);
+            ApplyVertexBuffers(firstSlot, count);
+        }
+
+        void ApplyVertexBuffers(int firstSlot, int count)
+        {
+            if (count <= 0)
+                return;
+
+            UINT strides[MAX_VERTEX_BUFFERS] = {};
+            for (int i = 0; i < count; i++)
+                strides[i] = (Pipeline != nullptr) ? Pipeline->VertexStrides[firstSlot + i] : 0;
+
+            Context->IASetVertexBuffers(firstSlot, count, &VertexBuffers[firstSlot], strides, &VertexBufferOffsets[firstSlot]);
         }
 
         void BindIndexBuffer(const BufferBinding& binding, IndexSize indexSize) override
@@ -777,7 +798,7 @@ namespace TEN::Renderer::RHI::DirectX11
 
             IsRenderPassOpen = true;
             RenderPass.Context = Context;
-            RenderPass.Pipeline = nullptr;
+            RenderPass.Reset();
             return &RenderPass;
         }
 
@@ -785,7 +806,7 @@ namespace TEN::Renderer::RHI::DirectX11
         {
             IsRenderPassOpen = false;
             Context->OMSetRenderTargets(0, nullptr, nullptr);
-            RenderPass.Pipeline = nullptr;
+            RenderPass.Reset();
         }
 
         ICopyPass* BeginCopyPass() override
