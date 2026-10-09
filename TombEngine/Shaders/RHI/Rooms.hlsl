@@ -1,11 +1,11 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=4
-// TEN_SHADER: Pixel PS samplers=6 storage_textures=0 storage_buffers=2 uniform_buffers=3
-// TEN_SHADER: Pixel PSDepthNormal samplers=6 storage_textures=0 storage_buffers=2 uniform_buffers=3
+// TEN_SHADER: Pixel PS samplers=7 storage_textures=0 storage_buffers=2 uniform_buffers=3
+// TEN_SHADER: Pixel PSDepthNormal samplers=7 storage_textures=0 storage_buffers=2 uniform_buffers=3
 
 // Room geometry: baked vertex lighting plus the room's dynamic lights with specular, material maps (normal,
 // ORSH, emissive, parallax), animated textures, vertex effects, water refraction and distance fog.
 // Screen space ambient occlusion comes from the prepass (PSDepthNormal); shadows from the cube shadow map and
-// blob spheres; fog bulbs per vertex. Reflections, caustics and decals are ported later.
+// blob spheres; fog bulbs per vertex; caustics in water rooms. Reflections and decals are ported later.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -18,7 +18,7 @@
 TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
 TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
 
-TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 6);
+TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 7);
 
 struct VertexInput
 {
@@ -92,6 +92,22 @@ PixelInput VS(VertexInput input)
     return output;
 }
 
+// Triplanar projection of the animated caustics texture, brighter on upward facing surfaces.
+float3 GetCaustics(float3 position, float3 normal)
+{
+    float attenuation = saturate(dot(float3(0.0f, -1.0f, 0.0f), normal));
+
+    float3 blending = normalize(max(abs(normal), 0.00001f));
+    blending /= blending.x + blending.y + blending.z;
+
+    float3 p = frac(position / 2048.0f);
+    float3 xAxis = CausticsMap.SampleLevel(CausticsMapSampler, CausticsStartUV + p.zy * CausticsSize, 0.0f).rgb;
+    float3 yAxis = CausticsMap.SampleLevel(CausticsMapSampler, CausticsStartUV + p.zx * CausticsSize, 0.0f).rgb;
+    float3 zAxis = CausticsMap.SampleLevel(CausticsMapSampler, CausticsStartUV + p.yx * CausticsSize, 0.0f).rgb;
+
+    return (xAxis * blending.x + yAxis * blending.y + zAxis * blending.z) * attenuation * 2.0f;
+}
+
 // Legacy quirk kept for parity: with mixed light types, point lights get the spot specular term.
 float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface)
 {
@@ -118,6 +134,9 @@ float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface)
             lighting += saturate(diffuse) * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF + specular * COLOR_MODULATION_SCALE * ROOM_LIGHT_COEFF;
         }
     }
+
+    if (IsCausticsRoom)
+        lighting += GetCaustics(position, surface.Normal);
 
     return lighting + surface.Emissive;
 }

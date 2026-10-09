@@ -19,9 +19,11 @@
 #include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererRoom.h"
 #include "Renderer/Structures/RendererSortableObject.h"
+#include "Renderer/Structures/RendererSprite.h"
 #include "Renderer/Structures/RendererSpriteToDraw.h"
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Scripting/Include/ScriptInterfaceLevel.h"
+#include "Specific/configuration.h"
 #include "Specific/level.h"
 #include "Specific/Structures/MaterialData.h"
 
@@ -656,26 +658,29 @@ namespace TEN::Renderer::Next
         auto* sampler = _anisotropicSampler.get();
         auto* ambientOcclusion = _isAmbientOcclusionActive ? _ssaoTarget.get() : _whiteTexture.get();
         auto* shadowMap = _isRenderingShadowMap ? _dummyShadowMap.get() : _shadowMap.get();
-        TextureSamplerBinding bindings[6] =
+        auto* caustics = (_causticsTexture != nullptr) ? _causticsTexture : _whiteTexture.get();
+        TextureSamplerBinding bindings[7] =
         {
             { getMap(page ? &page->ColorMap : nullptr, _whiteTexture.get()), sampler },
             { getMap(page ? &page->NormalMap : nullptr, _flatNormalTexture.get()), sampler },
             { getMap(page ? &page->ORSHMap : nullptr, _defaultORSHTexture.get()), sampler },
             { getMap(page ? &page->EmissiveMap : nullptr, _blackTexture.get()), sampler },
             { ambientOcclusion, _linearClampSampler.get() },
-            { shadowMap, _pointClampSampler.get() }
+            { shadowMap, _pointClampSampler.get() },
+            { caustics, sampler }
         };
-        renderPass.BindPixelSamplers(0, bindings, 6);
+        renderPass.BindPixelSamplers(0, bindings, 7);
     }
 
     void NextRenderer::BindBucket(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RendererBucket& bucket, const std::vector<RoomTexture>& pages,
-                                  BlendMode blendMode, unsigned int lightCount, unsigned int isWaterRoom, BucketBindState& state)
+                                  BlendMode blendMode, unsigned int lightCount, unsigned int isWaterRoom, BucketBindState& state, unsigned int isCausticsRoom)
     {
         auto pixelUniforms = DrawPixelUniforms{};
         pixelUniforms.AlphaThreshold = (bucket.BlendMode == BlendMode::AlphaTest) ? ALPHA_TEST_THRESHOLD : 0.0f;
         pixelUniforms.BlendMode = (unsigned int)blendMode;
         pixelUniforms.LightCount = lightCount;
         pixelUniforms.MaterialIndex = (bucket.MaterialIndex >= 0 && bucket.MaterialIndex < (int)g_Level.Materials.size()) ? (unsigned int)bucket.MaterialIndex : 0;
+        pixelUniforms.IsCausticsRoom = isCausticsRoom;
         if (memcmp(&pixelUniforms, &state.PixelUniforms, sizeof(pixelUniforms)) != 0)
         {
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &pixelUniforms, sizeof(pixelUniforms));
@@ -726,6 +731,7 @@ namespace TEN::Renderer::Next
         {
             const auto* room = view.RoomsToDraw[additive ? (roomCount - 1 - roomIndex) : roomIndex];
             unsigned int isWaterRoom = (g_Level.Rooms[room->RoomNumber].flags & ENV_FLAG_WATER) ? 1 : 0;
+            unsigned int isCausticsRoom = IsCausticsRoom(room->RoomNumber) ? 1 : 0;
 
             for (const auto& bucket : room->Buckets)
             {
@@ -737,7 +743,7 @@ namespace TEN::Renderer::Next
                 if ((additive && !isAdditive) || (!additive && !isOpaque))
                     continue;
 
-                BindBucket(commandBuffer, renderPass, bucket, _roomTextures, bucket.BlendMode, (unsigned int)_roomLightCount, isWaterRoom, state);
+                BindBucket(commandBuffer, renderPass, bucket, _roomTextures, bucket.BlendMode, (unsigned int)_roomLightCount, isWaterRoom, state, isCausticsRoom);
 
                 _frameStats.DrawCalls++;
                 renderPass.DrawIndexed(bucket.NumIndices, 1, bucket.StartIndex, 0, 0);
@@ -1314,6 +1320,7 @@ namespace TEN::Renderer::Next
             draw.Source = source;
             draw.IsRoom = (object.ObjectType == RendererObjectType::Room);
             draw.IsWaterRoom = draw.IsRoom && (g_Level.Rooms[object.Room->RoomNumber].flags & ENV_FLAG_WATER);
+            draw.IsCausticsRoom = draw.IsRoom && IsCausticsRoom(object.Room->RoomNumber);
             draw.Bucket = object.Bucket;
             draw.BlendMode = object.BlendMode;
             draw.FirstIndex = firstIndex;
@@ -1383,7 +1390,7 @@ namespace TEN::Renderer::Next
 
             const auto& pages = draw.IsRoom ? _roomTextures : ((draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures);
             BindBucket(commandBuffer, renderPass, bucket, pages, draw.BlendMode, draw.IsRoom ? (unsigned int)_roomLightCount : 0,
-                       draw.IsWaterRoom ? 1 : 0, state);
+                       draw.IsWaterRoom ? 1 : 0, state, draw.IsCausticsRoom ? 1 : 0);
 
             _frameStats.DrawCalls++;
             renderPass.DrawIndexed(draw.IndexCount, 1, draw.FirstIndex, 0, draw.Instance);
@@ -1575,6 +1582,35 @@ namespace TEN::Renderer::Next
         TENLog(message + fmt::format(" ({} frames)", timings.front().Samples), LogLevel::Info);
     }
 
+    bool NextRenderer::IsCausticsRoom(int roomNumber) const
+    {
+        int flags = g_Level.Rooms[roomNumber].flags;
+        return (g_Configuration.EnableCaustics && (flags & ENV_FLAG_WATER) && !(flags & ENV_FLAG_NOCAUSTICS));
+    }
+
+    // Current frame of the caustics sprite sequence, as in the legacy room pass.
+    void NextRenderer::PrepareCaustics(FramePixelUniforms& uniforms)
+    {
+        _causticsTexture = nullptr;
+
+        const auto& object = Objects[ID_CAUSTIC_TEXTURES];
+        if (!object.loaded || object.nmeshes >= 0 || _legacyGeometry.Sprites == nullptr)
+            return;
+
+        int spriteIndex = object.meshIndex + (GlobalCounter % -object.nmeshes);
+        if (spriteIndex < 0 || spriteIndex >= (int)_legacyGeometry.Sprites->size())
+            return;
+
+        const auto& sprite = (*_legacyGeometry.Sprites)[spriteIndex];
+        _causticsTexture = GetSpriteTexture(&sprite);
+        if (_causticsTexture == nullptr)
+            return;
+
+        const auto& pageDesc = _causticsTexture->GetDesc();
+        uniforms.CausticsStartUV = sprite.UV[0];
+        uniforms.CausticsSize = Vector2((float)sprite.Width / pageDesc.Width, (float)sprite.Height / pageDesc.Height);
+    }
+
     // Same values as the legacy camera constant buffer.
     FogBulbUniforms NextRenderer::GetFogBulbUniforms(const RenderView& view)
     {
@@ -1647,6 +1683,7 @@ namespace TEN::Renderer::Next
         framePixelUniforms.AmbientOcclusionExponent = GetAmbientOcclusionExponent();
         framePixelUniforms.View = view.Camera.View;
         framePixelUniforms.InverseViewportSize = Vector2(1.0f / width, 1.0f / height);
+        PrepareCaustics(framePixelUniforms);
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 0, &framePixelUniforms, sizeof(framePixelUniforms));
 
         auto fogBulbUniforms = GetFogBulbUniforms(view);

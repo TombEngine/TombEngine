@@ -3,8 +3,8 @@
 
 // Surface sampling of the legacy material system (Shaders/Materials.hlsli): color, normal, ORSH and emissive
 // maps of an atlas page, parallax occlusion mapping and per-material properties from a frame storage buffer.
-// Pixel textures use slots 0-3, slot 4 is the screen space ambient occlusion and slot 5 the shadow map
-// (Shadows.hlsli); storage buffers follow at index 6 (lights) and 7 (materials).
+// Pixel textures use slots 0-3, slot 4 is the screen space ambient occlusion, slot 5 the shadow map
+// (Shadows.hlsli) and slot 6 the caustics; storage buffers follow at index 7 (lights) and 8 (materials).
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -40,7 +40,8 @@ TEN_PS_TEXTURE(Texture2D, NormalMap, 1);
 TEN_PS_TEXTURE(Texture2D, ORSHMap, 2);
 TEN_PS_TEXTURE(Texture2D, EmissiveMap, 3);
 TEN_PS_TEXTURE(Texture2D, AmbientOcclusionMap, 4);
-TEN_PS_STORAGE_BUFFER(GpuMaterial, Materials, 7);
+TEN_PS_TEXTURE(Texture2D, CausticsMap, 6);
+TEN_PS_STORAGE_BUFFER(GpuMaterial, Materials, 8);
 
 struct Surface
 {

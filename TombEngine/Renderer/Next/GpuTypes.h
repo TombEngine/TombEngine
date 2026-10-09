@@ -41,10 +41,12 @@ namespace TEN::Renderer::Next
         float   Padding0                 = 0.0f;
         Matrix  View                     = Matrix::Identity;
         Vector2 InverseViewportSize      = Vector2::Zero;
+        Vector2 CausticsStartUV          = Vector2::Zero;
+        Vector2 CausticsSize             = Vector2::Zero;
         Vector2 Padding1                 = Vector2::Zero;
     };
 
-    static_assert(sizeof(FramePixelUniforms) == 128, "FramePixelUniforms must match FrameUniforms.hlsli.");
+    static_assert(sizeof(FramePixelUniforms) == 144, "FramePixelUniforms must match FrameUniforms.hlsli.");
 
     struct DrawPixelUniforms
     {
@@ -53,7 +55,8 @@ namespace TEN::Renderer::Next
         unsigned int LightOffset    = 0;
         unsigned int LightCount     = 0;
         unsigned int MaterialIndex  = 0;
-        unsigned int Padding[3]     = {};
+        unsigned int IsCausticsRoom = 0;
+        unsigned int Padding[2]     = {};
     };
 
     // Same layout as GpuFogBulb in FogBulbs.hlsli.

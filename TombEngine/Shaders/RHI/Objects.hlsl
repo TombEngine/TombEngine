@@ -1,7 +1,7 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=4
-// TEN_SHADER: Pixel PS samplers=6 storage_textures=0 storage_buffers=2 uniform_buffers=3
-// TEN_SHADER: Pixel PSDepthNormal samplers=6 storage_textures=0 storage_buffers=2 uniform_buffers=3
-// TEN_SHADER: Pixel PSShadow samplers=6 storage_textures=0 storage_buffers=2 uniform_buffers=3
+// TEN_SHADER: Pixel PS samplers=7 storage_textures=0 storage_buffers=2 uniform_buffers=3
+// TEN_SHADER: Pixel PSDepthNormal samplers=7 storage_textures=0 storage_buffers=2 uniform_buffers=3
+// TEN_SHADER: Pixel PSShadow samplers=7 storage_textures=0 storage_buffers=2 uniform_buffers=3
 
 // Static meshes and rigid moveable meshes. Every draw is instanced: the instance index stream
 // selects the per-instance world matrix, colors and light mode from a storage buffer.
@@ -21,7 +21,7 @@ TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
 TEN_VS_STORAGE_BUFFER(ObjectInstance, Instances, 2);
 TEN_VS_STORAGE_BUFFER(BoneTransform, Bones, 3);
 
-TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 6);
+TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 7);
 
 struct VertexInput
 {

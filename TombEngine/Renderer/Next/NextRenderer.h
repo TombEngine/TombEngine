@@ -175,6 +175,7 @@ namespace TEN::Renderer::Next
             bool                              IsRoom     = false;
             bool                              IsSprite   = false;
             bool                              IsWaterRoom = false;
+            bool                              IsCausticsRoom = false;
             const Structures::RendererBucket* Bucket     = nullptr;
             BlendMode                         BlendMode  = BlendMode::AlphaBlend;
             int                               FirstIndex = 0;
@@ -224,6 +225,7 @@ namespace TEN::Renderer::Next
         bool                                    _isShadowMapActive        = false;
         bool                                    _isPlayerShadowOnly       = false;
         bool                                    _isRenderingShadowMap     = false;
+        RHI::ITexture*                          _causticsTexture          = nullptr; // Atlas page of the current caustics frame.
 
         // Depth and normals prepass and screen space ambient occlusion (NextRendererSSAO.cpp).
         std::unique_ptr<RHI::IShader>           _roomsPrepassPixelShader    = nullptr;
@@ -306,7 +308,9 @@ namespace TEN::Renderer::Next
         void CollectMaterials(float interpolationFactor);
         void BindTexturePage(RHI::IRenderPass& renderPass, const RoomTexture* page);
         void BindBucket(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const Structures::RendererBucket& bucket, const std::vector<RoomTexture>& pages,
-                        BlendMode blendMode, unsigned int lightCount, unsigned int isWaterRoom, BucketBindState& state);
+                        BlendMode blendMode, unsigned int lightCount, unsigned int isWaterRoom, BucketBindState& state, unsigned int isCausticsRoom = 0);
+        bool IsCausticsRoom(int roomNumber) const;
+        void PrepareCaustics(FramePixelUniforms& uniforms);
         void BindScenePixelStorage(RHI::IRenderPass& renderPass);
         void UploadBuffer(RHI::IBuffer* buffer, const void* data, int size);
         void LoadAnimatedTextures(const LegacyLevelGeometry& geometry);
