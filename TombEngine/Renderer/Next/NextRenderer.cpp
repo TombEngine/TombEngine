@@ -1906,8 +1906,38 @@ namespace TEN::Renderer::Next
                 draw.Instance = hairInstance;
             else
                 draw.Instance = draw.IsRoom ? 0 : GetSortedObjectInstance(object, interpolationFactor);
-            _sortedDraws.push_back(draw);
+
+            if (!_sortedDraws.empty() && CanMergeSortedRoomRuns(_sortedDraws.back(), draw))
+                _sortedDraws.back().IndexCount += draw.IndexCount;
+            else
+                _sortedDraws.push_back(draw);
         }
+    }
+
+    // Consecutive room runs with the same draw state and portal rectangle draw as one: their indices are contiguous,
+    // so the order of the faces is kept.
+    bool NextRenderer::CanMergeSortedRoomRuns(const SortedDraw& previous, const SortedDraw& next) const
+    {
+        if (!previous.IsRoom || !next.IsRoom || previous.IsSprite || previous.FirstIndex + previous.IndexCount != next.FirstIndex)
+            return false;
+
+        const auto& previousBucket = *previous.Bucket;
+        const auto& nextBucket = *next.Bucket;
+        if (previous.BlendMode != next.BlendMode || previousBucket.BlendMode != nextBucket.BlendMode || previousBucket.Texture != nextBucket.Texture ||
+            previousBucket.Animated != nextBucket.Animated || previousBucket.MaterialIndex != nextBucket.MaterialIndex ||
+            previous.IsWaterRoom != next.IsWaterRoom || previous.IsCausticsRoom != next.IsCausticsRoom)
+        {
+            return false;
+        }
+
+        if (previous.Room == next.Room)
+            return true;
+
+        const auto& targetDesc = _sceneTarget->GetDesc();
+        auto previousScissor = GetRoomScissor(*previous.Room, targetDesc.Width, targetDesc.Height);
+        auto nextScissor = GetRoomScissor(*next.Room, targetDesc.Width, targetDesc.Height);
+        return (previousScissor.X == nextScissor.X && previousScissor.Y == nextScissor.Y &&
+                previousScissor.Width == nextScissor.Width && previousScissor.Height == nextScissor.Height);
     }
 
     void NextRenderer::DrawSortedFaces(ICommandBuffer& commandBuffer, IRenderPass& renderPass, bool isMirrored)

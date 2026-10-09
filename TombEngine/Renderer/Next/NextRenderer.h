@@ -729,6 +729,7 @@ namespace TEN::Renderer::Next
         void UploadFrameStorage(FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name);
         void UploadFrameData(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
         void CollectSortedFaces(const RenderView& view, float interpolationFactor);
+        bool CanMergeSortedRoomRuns(const SortedDraw& previous, const SortedDraw& next) const;
         int  GetSortedObjectInstance(const Structures::RendererSortableObject& object, float interpolationFactor);
         void DrawSortedFaces(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool isMirrored = false);
         void LogGpuTimings();
