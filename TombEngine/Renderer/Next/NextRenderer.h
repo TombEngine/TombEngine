@@ -52,6 +52,15 @@ namespace TEN::Renderer::Next
     };
 
     // Per-frame values owned by the game and the legacy renderer.
+    // Resolved string of the legacy 2D layer: legacy screen position (interpolated), premultiplied color and scale.
+    struct OverlayText
+    {
+        std::string Text     = {};
+        Vector2     Position = Vector2::Zero;
+        Vector4     Color    = Vector4::Zero;
+        float       Scale    = 1.0f;
+    };
+
     struct FrameEnvironment
     {
         Vector3      CameraPosition    = Vector3::Zero;
@@ -82,6 +91,11 @@ namespace TEN::Renderer::Next
         // Uniform block of the legacy atmospheric sky dome (CAtmosphericSkyBuffer), null when the dome is disabled.
         const void*  AtmosphericSkyUniforms     = nullptr;
         int          AtmosphericSkyUniformsSize = 0;
+
+        // 2D layer of the legacy renderer, in its screen resolution.
+        int                             ScreenWidth  = 0;
+        int                             ScreenHeight = 0;
+        const std::vector<OverlayText>* Texts        = nullptr;
 
         // Stars, meteors and sun sprite of the classic sky, drawn additively between the sky layers and horizons.
         const std::vector<Structures::RendererSpriteToDraw>* SkySprites = nullptr;
@@ -349,6 +363,48 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IShader>           _atmosphericSkyPixelShader  = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _atmosphericSkyPipeline     = nullptr;
         const void*                             _atmosphericSkyUniforms     = nullptr;
+
+        // Same layout as the glyphs of a DirectXTK .spritefont file.
+        struct FontGlyph
+        {
+            unsigned int Character = 0;
+            int          Left      = 0;
+            int          Top       = 0;
+            int          Right     = 0;
+            int          Bottom    = 0;
+            float        XOffset   = 0.0f;
+            float        YOffset   = 0.0f;
+            float        XAdvance  = 0.0f;
+        };
+
+        struct FontData
+        {
+            std::unordered_map<unsigned int, FontGlyph> Glyphs           = {};
+            float                                        LineSpacing      = 0.0f;
+            unsigned int                                 DefaultCharacter = 0;
+            std::unique_ptr<RHI::ITexture>               Texture          = nullptr;
+        };
+
+        struct OverlayVertex
+        {
+            Vector2      Position = Vector2::Zero; // Pixels from the top left corner of the target.
+            Vector2      UV       = Vector2::Zero;
+            unsigned int Color    = 0;
+        };
+
+        struct OverlayDraw
+        {
+            RHI::ITexture* Texture     = nullptr;
+            int            FirstVertex = 0;
+            int            VertexCount = 0;
+        };
+
+        FontData                                _font                       = {};
+        std::unique_ptr<RHI::IShader>           _overlayVertexShader        = nullptr;
+        std::unique_ptr<RHI::IShader>           _overlayPixelShader         = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _overlayPipeline            = nullptr;
+        std::vector<unsigned char>              _overlayVertexData          = {};
+        std::vector<OverlayDraw>                _overlayDraws               = {};
         int                                     _atmosphericSkyUniformsSize = 0;
 
         // Shadow map (NextRendererShadows.cpp).
@@ -420,6 +476,7 @@ namespace TEN::Renderer::Next
         std::vector<QueuedMeshInstance> _queuedMeshInstances = {};
         FrameStorageBuffer            _decalBuffer         = {};
         FrameStorageBuffer            _debrisVertexBuffer   = {};
+        FrameStorageBuffer            _overlayVertexBuffer  = {};
         FrameStorageBuffer            _debrisInstanceBuffer = {};
         std::vector<unsigned char>    _debrisVertexData     = {};
         std::vector<unsigned char>    _debrisInstanceData   = {};
@@ -517,6 +574,12 @@ namespace TEN::Renderer::Next
         void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere = 0);
         bool CreateSkyReflectionResources();
         bool CreateAtmosphereResources();
+        bool LoadFont(const std::string& path);
+        bool CreateOverlayResources(const std::string& fontPath);
+        void AddOverlayQuad(RHI::ITexture* texture, const Vector2& position, const Vector2& size, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color);
+        void AddOverlayText(const OverlayText& text, const Vector2& scale);
+        void CollectOverlay(const FrameEnvironment& environment);
+        void RenderOverlay(RHI::ICommandBuffer& commandBuffer);
         void DrawAtmosphericSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
         void RenderSkyReflections(RHI::ICommandBuffer& commandBuffer, const RenderView& view, float interpolationFactor);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);

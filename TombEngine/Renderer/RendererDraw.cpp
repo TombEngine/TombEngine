@@ -2356,6 +2356,16 @@ namespace TEN::Renderer
 
 			environment.SkySprites = &_nextSkySprites;
 
+			// The title level draws its strings in the menu pass, as in the legacy renderer.
+			auto overlayTexts = std::vector<Next::OverlayText>{};
+			if (CurrentLevel != 0)
+				GetResolvedStrings(overlayTexts);
+
+			auto screenResolution = GetScreenResolution();
+			environment.ScreenWidth = screenResolution.x;
+			environment.ScreenHeight = screenResolution.y;
+			environment.Texts = &overlayTexts;
+
 			if (_atmosphericSkySettings.Enabled)
 			{
 				environment.AtmosphericSkyUniforms = &_stAtmosphericSky;

@@ -11,6 +11,7 @@
 #include "Objects/game_object_ids.h"
 #include "Renderer/Next/GpuTypes.h"
 #include "Renderer/Next/TextureLoader.h"
+#include "Renderer/RendererUtils.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/RHI/ShaderLibrary.h"
 #include "Renderer/RHI/TextureCapture.h"
@@ -146,6 +147,11 @@ namespace TEN::Renderer::Next
         _videoTransferBuffer = nullptr;
         _skyReflectionTarget = nullptr;
         _atmosphericSkyPipeline = nullptr;
+        _overlayPipeline = nullptr;
+        _overlayVertexShader = nullptr;
+        _overlayPixelShader = nullptr;
+        _overlayVertexBuffer = {};
+        _font = {};
         _atmosphericSkyVertexShader = nullptr;
         _atmosphericSkyPixelShader = nullptr;
         _glowTargets[0] = nullptr;
@@ -208,7 +214,7 @@ namespace TEN::Renderer::Next
             return false;
 
         if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources() ||
-            !CreateSkyReflectionResources() || !CreateAtmosphereResources())
+            !CreateSkyReflectionResources() || !CreateAtmosphereResources() || !CreateOverlayResources(TEN::Renderer::Utils::GetAssetPath("Textures/Font.spritefont")))
             return false;
 
         if (GetScenePipeline(SceneShader::Rooms, BlendMode::Opaque) == nullptr ||
@@ -1435,6 +1441,7 @@ namespace TEN::Renderer::Next
         UploadFrameStorage(*copyPass, _debrisVertexBuffer, _debrisVertexData, (int)sizeof(Vertex), BufferUsage::Vertex, "Frame.DebrisVertices");
         UploadFrameStorage(*copyPass, _debrisInstanceBuffer, _debrisInstanceData, (int)sizeof(unsigned int), BufferUsage::Vertex, "Frame.DebrisInstances");
         UploadVideoFrame(*copyPass, environment);
+        UploadFrameStorage(*copyPass, _overlayVertexBuffer, _overlayVertexData, (int)sizeof(OverlayVertex), BufferUsage::Vertex, "Frame.OverlayVertices");
 
         commandBuffer.EndCopyPass();
         commandBuffer.PopDebugGroup();
@@ -2078,6 +2085,7 @@ namespace TEN::Renderer::Next
         CollectObjects(view, environment.InterpolationFactor);
         CollectSprites(view);
         CollectSkySprites(view, environment);
+        CollectOverlay(environment);
         CollectSortedFaces(view, environment.InterpolationFactor);
         CollectMirroredSorted(view);
 
@@ -2155,6 +2163,8 @@ namespace TEN::Renderer::Next
             RenderGlow(*commandBuffer);
 
         RenderPostProcess(*commandBuffer, environment);
+
+        RenderOverlay(*commandBuffer);
 
         if (!_device->RequiresWindowThreadPresent())
         {

@@ -1,6 +1,8 @@
 #include "framework.h"
 #include "Renderer/Renderer.h"
 
+#include "Renderer/Next/NextRenderer.h"
+
 #include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 #include "Specific/trutils.h"
 
@@ -188,6 +190,25 @@ namespace TEN::Renderer
 		catch (std::exception& ex)
 		{
 			TENLog(std::string("Unable to process string: '") + string + "'. Exception: " + std::string(ex.what()), LogLevel::Error);
+		}
+	}
+
+	// Strings as DrawAllStrings draws them: interpolated position, outline shadow first, premultiplied faded color.
+	void Renderer::GetResolvedStrings(std::vector<Next::OverlayText>& texts)
+	{
+		float shadowOffset = 1.5f / (REFERENCE_FONT_SIZE / _gameFont->GetLineSpacing());
+		auto shadowColor = (Vector4)g_GameFlow->GetSettings()->UI.ShadowTextColor;
+
+		for (const auto& rString : _stringsToDraw)
+		{
+			auto drawPos = Vector2::Lerp(rString.PrevPosition, rString.Position, GetInterpolationFactor(true));
+			if (rString.Flags & (int)PrintStringFlags::Outline)
+			{
+				texts.push_back(Next::OverlayText{ rString.String, drawPos + Vector2(shadowOffset * rString.Scale),
+					(shadowColor * rString.Color.w * shadowColor.w) * ScreenFadeCurrent, rString.Scale });
+			}
+
+			texts.push_back(Next::OverlayText{ rString.String, drawPos, (rString.Color * rString.Color.w) * ScreenFadeCurrent, rString.Scale });
 		}
 	}
 

@@ -75,6 +75,11 @@ class EulerAngles;
 struct AnimFrameInterpData;
 struct CAMERA_INFO;
 
+namespace TEN::Renderer::Next
+{
+	struct OverlayText;
+}
+
 namespace TEN::Effects::Environment
 {
 	struct StarParticle;
@@ -474,6 +479,7 @@ namespace TEN::Renderer
 		void InitializeMenuBars(int y);
 		void InitializeSky();
 		void DrawAllStrings();
+		void GetResolvedStrings(std::vector<Next::OverlayText>& texts);
 		void PrepareDynamicLight(RendererLight& light);
 		void PrepareLaserBarriers(RenderView& view);
 		void PrepareSingleLaserBeam(RenderView& view);
