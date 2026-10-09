@@ -77,18 +77,18 @@ namespace TEN::Renderer::Next
     }
 
     // FXAA for the low antialiasing mode, SMAA 1x with the medium or ultra preset for the medium and high modes,
-    // from the post-processed image to the frame target.
-    void NextRenderer::RenderAntialiasing(ICommandBuffer& commandBuffer, int antialiasingMode)
+    // from the post-processed image to the target.
+    void NextRenderer::RenderAntialiasing(ICommandBuffer& commandBuffer, int antialiasingMode, ITexture* target)
     {
         if (antialiasingMode == ANTIALIASING_MODE_LOW)
         {
             auto binding = TextureSamplerBinding{ _antialiasingSource.get(), _linearClampSampler.get() };
-            RenderFullscreenPass(commandBuffer, _fxaaPipeline.get(), _colorTarget.get(), &binding, 1, "FXAA");
+            RenderFullscreenPass(commandBuffer, _fxaaPipeline.get(), target, &binding, 1, "FXAA");
             return;
         }
 
         const auto& resources = _smaaPresets[(antialiasingMode == ANTIALIASING_MODE_MEDIUM) ? 0 : 1];
-        const auto& desc = _colorTarget->GetDesc();
+        const auto& desc = target->GetDesc();
         auto metrics = Vector4(1.0f / desc.Width, 1.0f / desc.Height, (float)desc.Width, (float)desc.Height);
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &metrics, sizeof(metrics));
 
@@ -101,7 +101,7 @@ namespace TEN::Renderer::Next
         commandBuffer.PushDebugGroup("SMAA");
         RenderFullscreenPass(commandBuffer, resources.Pipelines[0].get(), _smaaEdgesTarget.get(), edgeBindings, 1, "Edge detection", LoadOp::Clear);
         RenderFullscreenPass(commandBuffer, resources.Pipelines[1].get(), _smaaWeightsTarget.get(), weightBindings, 3, "Blending weights", LoadOp::Clear);
-        RenderFullscreenPass(commandBuffer, resources.Pipelines[2].get(), _colorTarget.get(), blendBindings, 2, "Neighborhood blending");
+        RenderFullscreenPass(commandBuffer, resources.Pipelines[2].get(), target, blendBindings, 2, "Neighborhood blending");
         commandBuffer.PopDebugGroup();
     }
 }

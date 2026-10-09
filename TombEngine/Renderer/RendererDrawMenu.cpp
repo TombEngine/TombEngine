@@ -1406,6 +1406,7 @@ namespace TEN::Renderer
 	{
 		_graphicsDevice->BindSamplers(g_GameFlow->IsPointFilterEnabled());
 		_nextUi.BackgroundFade = (background != nullptr) ? backgroundFade : 0.0f;
+		_nextUi.IsMenu = true;
 
 		// Set basic render states
 		SetBlendMode(BlendMode::Opaque, true);
@@ -1576,6 +1577,7 @@ namespace TEN::Renderer
 			ApplyGlow(_renderTarget.get(), _gameCamera);
 			ApplyAntialiasing(_renderTarget.get(), _gameCamera);
 			CopyRenderTarget(_renderTarget.get(), _backBuffer.get(), _gameCamera);
+			_nextUi.IsMenu = true;
 		}
 
 		ClearScene();

@@ -334,7 +334,7 @@ Il renderer nuovo gira in una seconda finestra accanto a quello vecchio, sugli s
 - [x] Oggetti 3D dell'HUD (riepilogo raccolti, DrawItems), dell'inventario e dell'esamina con lo shader Inventory, in un pass con depth dentro il layer 2D.
 - [x] Inventario, title screen, menu, schermate di caricamento e video esclusivi: ogni present del legacy registra il layer 2D (`UiFrame`) che il renderer nuovo compone sull'ultima scena.
 - [x] Facce ordinate dei capelli (HairPrimary e HairSecondary): riusano l'istanza dell'unita' di capelli creata con il giocatore.
-- [ ] Glow e antialiasing sugli oggetti dell'inventario (il legacy li applica al target del menu).
+- [x] Glow e antialiasing dei menu: il layer 2D dei menu riceve il glow dell'emissive degli oggetti e l'antialiasing su tutta l'immagine, come il target del menu legacy.
 
 ## 12. Decisioni prese
 

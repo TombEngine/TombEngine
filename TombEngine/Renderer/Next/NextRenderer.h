@@ -315,6 +315,8 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IShader>           _glowBlurShader          = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _glowDownscalePipeline   = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _glowBlurPipeline        = nullptr;
+        std::unique_ptr<RHI::IShader>           _glowCombineShader       = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _glowCombinePipeline     = nullptr; // Menu frames only.
         bool                                    _hasEmissiveMaps         = false;
         std::unique_ptr<RHI::ITexture>          _reflectionTarget        = nullptr; // Half resolution scene of the previous frame.
         bool                                    _hasReflectiveMaterials  = false;
@@ -626,8 +628,9 @@ namespace TEN::Renderer::Next
         void AddOverlayObjects(const UiFrame& ui, const OverlayLayer& layer);
         void UploadOverlayData(RHI::ICopyPass& copyPass, bool hasScene);
         int  DrawOverlayQuads(RHI::ICommandBuffer& commandBuffer, int firstDraw, bool isFirstPass);
-        void DrawOverlayObjects(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui, const OverlayDraw& draw, bool isFirstPass);
+        void DrawOverlayObjects(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui, const OverlayDraw& draw, bool isFirstPass, bool isFirstObjectPass);
         void RenderOverlay(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui);
+        void RenderMenuPostProcess(RHI::ICommandBuffer& commandBuffer, const UiFrame& ui);
         void DrawAtmosphericSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
         void RenderSkyReflections(RHI::ICommandBuffer& commandBuffer, const RenderView& view, float interpolationFactor);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
@@ -675,7 +678,7 @@ namespace TEN::Renderer::Next
                                    const RHI::TextureSamplerBinding* bindings, int bindingCount, const char* name, RHI::LoadOp load = RHI::LoadOp::DontCare);
         bool  CreateSMAAResources();
         bool  EnsureSMAATargets(int width, int height);
-        void  RenderAntialiasing(RHI::ICommandBuffer& commandBuffer, int antialiasingMode);
+        void  RenderAntialiasing(RHI::ICommandBuffer& commandBuffer, int antialiasingMode, RHI::ITexture* target);
 
         // Sprites (NextRendererSprites.cpp).
         bool           CreateSpriteResources();

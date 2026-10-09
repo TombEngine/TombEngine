@@ -116,6 +116,10 @@ namespace TEN::Renderer::Next
         std::vector<Matrix>            ObjectBones  = {};
         float                          Gamma        = 1.0f; // Gamma of the overlay objects.
 
+        // Menu frames get the glow of the object emissive and antialiasing over the whole image, as the legacy menu target.
+        bool IsMenu           = false;
+        int  AntialiasingMode = 0;
+
         // Video frame of the legacy video handler (BGRA8), null when no video plays.
         const unsigned char* VideoFrame  = nullptr;
         int                  VideoWidth  = 0;

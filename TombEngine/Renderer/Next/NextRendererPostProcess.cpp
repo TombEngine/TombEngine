@@ -196,6 +196,6 @@ namespace TEN::Renderer::Next
         commandBuffer.PopDebugGroup();
 
         if (isAntialiased)
-            RenderAntialiasing(commandBuffer, environment.AntialiasingMode);
+            RenderAntialiasing(commandBuffer, environment.AntialiasingMode, _colorTarget.get());
     }
 }

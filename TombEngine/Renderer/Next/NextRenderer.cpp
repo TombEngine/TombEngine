@@ -175,6 +175,8 @@ namespace TEN::Renderer::Next
         _glowVertexShader = nullptr;
         _glowDownscaleShader = nullptr;
         _glowBlurShader = nullptr;
+        _glowCombinePipeline = nullptr;
+        _glowCombineShader = nullptr;
         for (int i = 0; i < DOF_PASS_COUNT; i++)
         {
             _dofPipelines[i] = nullptr;
@@ -456,8 +458,8 @@ namespace TEN::Renderer::Next
             desc.Layout.NumAttributes = 8;
         }
 
-        // The prepass writes view normals and emissive.
-        desc.NumColorTargets = isPrepass ? 2 : 1;
+        // The prepass writes view normals and emissive, the inventory color and emissive.
+        desc.NumColorTargets = (isPrepass || isInventory) ? 2 : 1;
         desc.ColorTargets[0].Format = (isPrepass || isParaboloid) ? PixelFormat::RGBA8Unorm : (isShadow ? PixelFormat::R32Float : _device->GetSwapchainFormat());
         desc.ColorTargets[0].Blend = GetBlendState((isPrepass || isShadow) ? BlendMode::Opaque : (BlendMode)modeIndex);
         desc.ColorTargets[1].Format = PixelFormat::RGBA8Unorm;
@@ -2309,6 +2311,7 @@ namespace TEN::Renderer::Next
         commandBuffer->EndCopyPass();
 
         RenderOverlay(*commandBuffer, ui);
+        RenderMenuPostProcess(*commandBuffer, ui);
 
         if (!_device->RequiresWindowThreadPresent())
         {

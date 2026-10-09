@@ -202,7 +202,13 @@ PixelInput VSInventory(VertexInput input)
     return output;
 }
 
-float4 PSInventory(PixelInput input) : SV_TARGET
+struct InventoryOutput
+{
+    float4 Color    : SV_Target0;
+    float4 Emissive : SV_Target1; // Source of the menu glow.
+};
+
+InventoryOutput PSInventory(PixelInput input)
 {
     float2 uv = ApplyUVScroll(input.UV, input.UVScroll);
     float4 texel = ColorMap.Sample(ColorMapSampler, uv);
@@ -223,7 +229,11 @@ float4 PSInventory(PixelInput input) : SV_TARGET
     float3 lighting = DoDirectionalLight(normal, light) + DoSpecularSun(normal, CameraDirection, light, input.Sheen, orsh.z, orsh.y) + emissive;
     color.rgb = saturate(color.rgb + lighting * color.a);
     color.rgb = saturate(pow(color.rgb, 1.0f / max(Gamma, 0.01f)));
-    return color;
+
+    InventoryOutput output;
+    output.Color = color;
+    output.Emissive = float4(emissive, 1.0f);
+    return output;
 }
 
 // Shadow map pass: writes the light space depth; the alpha test keeps cut-out geometry out of the shadow.

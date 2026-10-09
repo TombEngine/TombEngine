@@ -3941,6 +3941,7 @@ namespace TEN::Renderer
 			_nextUi.ScreenWidth = screenResolution.x;
 			_nextUi.ScreenHeight = screenResolution.y;
 			_nextUi.Gamma = g_Configuration.Gamma;
+			_nextUi.AntialiasingMode = (int)g_Configuration.AntialiasingMode;
 			if (_videoSprite.Texture != nullptr && _videoSprite.Texture->IsValid())
 			{
 				auto videoSize = TEN::Video::g_VideoPlayer.GetFrameSize();
@@ -3963,6 +3964,7 @@ namespace TEN::Renderer
 		_nextUi.ObjectMeshes.clear();
 		_nextUi.ObjectBones.clear();
 		_nextUi.VideoFrame = nullptr;
+		_nextUi.IsMenu = false;
 		_nextUi.FlashColor = Vector3::Zero;
 		_nextUi.OpticSprite = nullptr;
 		_nextUi.IsLaserSight = false;

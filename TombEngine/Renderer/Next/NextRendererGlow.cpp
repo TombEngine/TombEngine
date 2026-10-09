@@ -21,12 +21,14 @@ namespace TEN::Renderer::Next
         _glowVertexShader = LoadShader(*_device, _shaderDirectory, "Glow", "VS");
         _glowDownscaleShader = LoadShader(*_device, _shaderDirectory, "Glow", "PSDownscale");
         _glowBlurShader = LoadShader(*_device, _shaderDirectory, "Glow", "PSBlur");
-        if (_glowVertexShader == nullptr || _glowDownscaleShader == nullptr || _glowBlurShader == nullptr)
+        _glowCombineShader = LoadShader(*_device, _shaderDirectory, "Glow", "PSCombine");
+        if (_glowVertexShader == nullptr || _glowDownscaleShader == nullptr || _glowBlurShader == nullptr || _glowCombineShader == nullptr)
             return false;
 
         _glowDownscalePipeline = CreateFullscreenPipeline(_glowVertexShader.get(), _glowDownscaleShader.get(), PixelFormat::RGBA8Unorm, "Glow.Downscale");
         _glowBlurPipeline = CreateFullscreenPipeline(_glowVertexShader.get(), _glowBlurShader.get(), PixelFormat::RGBA8Unorm, "Glow.Blur");
-        return (_glowDownscalePipeline != nullptr && _glowBlurPipeline != nullptr);
+        _glowCombinePipeline = CreateFullscreenPipeline(_glowVertexShader.get(), _glowCombineShader.get(), _device->GetSwapchainFormat(), "Glow.Combine");
+        return (_glowDownscalePipeline != nullptr && _glowBlurPipeline != nullptr && _glowCombinePipeline != nullptr);
     }
 
     bool NextRenderer::EnsureGlowTargets(int width, int height)

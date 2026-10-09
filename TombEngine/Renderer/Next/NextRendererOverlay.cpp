@@ -610,7 +610,8 @@ namespace TEN::Renderer::Next
     }
 
     // Object range in its own pass over the final target, with the scene depth target reused as a cleared depth buffer.
-    void NextRenderer::DrawOverlayObjects(ICommandBuffer& commandBuffer, const UiFrame& ui, const OverlayDraw& draw, bool isFirstPass)
+    // The emissive output goes to the prepass emissive target, already consumed by the scene glow, for the menu glow.
+    void NextRenderer::DrawOverlayObjects(ICommandBuffer& commandBuffer, const UiFrame& ui, const OverlayDraw& draw, bool isFirstPass, bool isFirstObjectPass)
     {
         const auto& desc = _finalTarget->GetDesc();
 
@@ -630,10 +631,12 @@ namespace TEN::Renderer::Next
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &drawPixelUniforms, sizeof(drawPixelUniforms));
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
 
-        auto colorTarget = ColorTargetInfo{};
-        colorTarget.Texture = _finalTarget.get();
-        colorTarget.Load = isFirstPass ? LoadOp::Clear : LoadOp::Load;
-        colorTarget.ClearColor[3] = 1.0f;
+        ColorTargetInfo colorTargets[2] = {};
+        colorTargets[0].Texture = _finalTarget.get();
+        colorTargets[0].Load = isFirstPass ? LoadOp::Clear : LoadOp::Load;
+        colorTargets[0].ClearColor[3] = 1.0f;
+        colorTargets[1].Texture = _emissiveTarget.get();
+        colorTargets[1].Load = isFirstObjectPass ? LoadOp::Clear : LoadOp::Load;
 
         auto depthTarget = DepthTargetInfo{};
         depthTarget.Texture = _depthTarget.get();
@@ -642,7 +645,7 @@ namespace TEN::Renderer::Next
         depthTarget.ClearDepth = 1.0f;
 
         commandBuffer.PushDebugGroup("Overlay objects");
-        auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, &depthTarget);
+        auto* renderPass = commandBuffer.BeginRenderPass(colorTargets, 2, &depthTarget);
 
         IBuffer* storageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _overlayInstanceBuffer.Buffer.get(), _overlayBoneBuffer.Buffer.get() };
         BufferBinding vertexBindings[2] = { { _moveableGeometry.Vertices.get(), 0 }, { _instanceIndexBuffer.get(), 0 } };
@@ -700,11 +703,13 @@ namespace TEN::Renderer::Next
 
         int drawIndex = 0;
         bool isFirstPass = true;
+        bool isFirstObjectPass = true;
         do
         {
             if (drawIndex < (int)_overlayDraws.size() && _overlayDraws[drawIndex].IsObjects)
             {
-                DrawOverlayObjects(commandBuffer, ui, _overlayDraws[drawIndex], isFirstPass);
+                DrawOverlayObjects(commandBuffer, ui, _overlayDraws[drawIndex], isFirstPass, isFirstObjectPass);
+                isFirstObjectPass = false;
                 drawIndex++;
             }
             else
@@ -715,6 +720,43 @@ namespace TEN::Renderer::Next
             isFirstPass = false;
         }
         while (drawIndex < (int)_overlayDraws.size());
+
+        commandBuffer.PopDebugGroup();
+    }
+
+    // Legacy menus apply glow and antialiasing to the whole menu image. The glow comes from the object emissive
+    // only, so menus without objects skip it.
+    void NextRenderer::RenderMenuPostProcess(ICommandBuffer& commandBuffer, const UiFrame& ui)
+    {
+        bool isGlowActive = (_hasEmissiveMaps && !_overlayObjectDraws.empty());
+        if (!ui.IsMenu || (!isGlowActive && ui.AntialiasingMode == 0))
+            return;
+
+        commandBuffer.PushDebugGroup("Menu post-process");
+
+        // Every uniform slot of the fullscreen shaders holds data before their draws, as in RenderFrame.
+        auto framePixelUniforms = FramePixelUniforms{};
+        auto drawPixelUniforms = DrawPixelUniforms{};
+        commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 0, &framePixelUniforms, sizeof(framePixelUniforms));
+        commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &drawPixelUniforms, sizeof(drawPixelUniforms));
+        commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
+
+        if (isGlowActive)
+        {
+            RenderGlow(commandBuffer);
+
+            TextureSamplerBinding bindings[2] = { { _finalTarget.get(), _linearClampSampler.get() }, { _glowTargets[0].get(), _linearClampSampler.get() } };
+            RenderFullscreenPass(commandBuffer, _glowCombinePipeline.get(), _antialiasingSource.get(), bindings, 2, "Glow combine");
+        }
+        else
+        {
+            commandBuffer.BlitTexture(_finalTarget.get(), _antialiasingSource.get());
+        }
+
+        if (ui.AntialiasingMode != 0)
+            RenderAntialiasing(commandBuffer, ui.AntialiasingMode, _finalTarget.get());
+        else
+            commandBuffer.BlitTexture(_antialiasingSource.get(), _finalTarget.get());
 
         commandBuffer.PopDebugGroup();
     }

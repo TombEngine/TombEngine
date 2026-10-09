@@ -1,6 +1,7 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
 // TEN_SHADER: Pixel PSDownscale samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 // TEN_SHADER: Pixel PSBlur samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
+// TEN_SHADER: Pixel PSCombine samplers=2 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
 // Glow of the legacy renderer (Renderer::ApplyGlow): the prepass emissive target is downscaled and blurred
 // with a separable gaussian, then the post-process adds it with a soft add.
@@ -18,6 +19,7 @@ TEN_PS_UNIFORMS(GlowUniforms, 2)
 };
 
 TEN_PS_TEXTURE(Texture2D, SourceMap, 0);
+TEN_PS_TEXTURE(Texture2D, GlowMap, 1);
 
 FullscreenPixelInput VS(uint vertexId : SV_VertexID)
 {
@@ -61,4 +63,12 @@ float4 PSBlur(FullscreenPixelInput input) : SV_Target
     }
 
     return float4(color / weightSum, 1.0f);
+}
+
+// Legacy PSGlowCombine with soft add, for menu frames whose glow is not part of the scene post-process.
+float4 PSCombine(FullscreenPixelInput input) : SV_Target
+{
+    float3 color = SampleSource(input.UV);
+    float3 glow = GlowMap.SampleLevel(GlowMapSampler, input.UV, 0.0f).rgb;
+    return float4(1.0f - (1.0f - color) * (1.0f - glow), 1.0f);
 }
