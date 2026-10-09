@@ -73,6 +73,12 @@ namespace TEN::Renderer::Next
         float        CinematicBarsHeight = 0.0f;
         int          AntialiasingMode    = 0; // Legacy AntialiasingMode: FXAA for low, SMAA for medium and high.
 
+        // Background video of the legacy video handler: BGRA8 frame, null when no background video plays.
+        const unsigned char*                 VideoFrame  = nullptr;
+        int                                  VideoWidth  = 0;
+        int                                  VideoHeight = 0;
+        const Structures::RendererSprite*    VideoSprite = nullptr; // Legacy sprite of particles showing the video.
+
         // Depth of field of the legacy renderer (DOFState).
         int          DofMode             = 0;
         float        DofDistance         = 0.0f;
@@ -375,6 +381,11 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IBuffer> _animatedFramesBuffer = nullptr;
         std::unique_ptr<RHI::IBuffer> _animatedSetsBuffer   = nullptr;
         std::unordered_map<int, int>  _waterfallSets        = {}; // Object ID to animated set.
+        std::unordered_map<int, int>  _videoSets            = {}; // Video animated set to its normalized UV set.
+        std::unique_ptr<RHI::ITexture>        _videoTexture        = nullptr;
+        std::unique_ptr<RHI::ITransferBuffer> _videoTransferBuffer = nullptr;
+        bool                                  _isVideoActive       = false;
+        const Structures::RendererSprite*     _videoSprite         = nullptr;
 
         GeometryBuffers               _staticGeometry   = {};
         GeometryBuffers               _moveableGeometry = {};
@@ -438,7 +449,7 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::ITexture> CreateSolidTexture(const unsigned char color[4], const std::string& name);
         void UploadTexture(RHI::ITexture* texture, const void* data, int size);
         void CollectMaterials(float interpolationFactor);
-        void BindTexturePage(RHI::IRenderPass& renderPass, const RoomTexture* page);
+        void BindTexturePage(RHI::IRenderPass& renderPass, const RoomTexture* page, RHI::ITexture* colorOverride = nullptr, RHI::ITexture* emissiveOverride = nullptr);
         void BindBucket(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const Structures::RendererBucket& bucket, const std::vector<RoomTexture>& pages,
                         BlendMode blendMode, unsigned int lightCount, const BucketDrawInfo& room, BucketBindState& state);
         BucketDrawInfo GetBucketDrawInfo(int roomNumber, bool hasDecals);
@@ -480,7 +491,7 @@ namespace TEN::Renderer::Next
         int  AddLights(const std::vector<Structures::RendererLight*>& lights, float interpolationFactor, int roomNumber, int prevRoomNumber, float fade, int& lightOffset);
         static GpuLight ToGpuLight(const Structures::RendererLight& light, float interpolationFactor, float fade);
         void UploadFrameStorage(RHI::ICopyPass& copyPass, FrameStorageBuffer& storage, const std::vector<unsigned char>& data, int stride, unsigned int usage, const char* name);
-        void UploadFrameData(RHI::ICommandBuffer& commandBuffer);
+        void UploadFrameData(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
         void CollectSortedFaces(const RenderView& view, float interpolationFactor);
         int  GetSortedObjectInstance(const Structures::RendererSortableObject& object, float interpolationFactor);
         void DrawSortedFaces(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool isMirrored = false);
@@ -518,6 +529,9 @@ namespace TEN::Renderer::Next
         bool  EnsureDOFTargets(int width, int height);
         static bool IsDOFActive(const FrameEnvironment& environment);
         void  RenderDOF(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
+        void  AddVideoSets(const LegacyLevelGeometry& geometry, std::vector<GpuAnimatedFrame>& frames, std::vector<GpuAnimatedSet>& sets);
+        void  UploadVideoFrame(RHI::ICopyPass& copyPass, const FrameEnvironment& environment);
+        int   GetVideoSet(const Structures::RendererBucket& bucket) const;
         bool  CreateGlowResources();
         bool  EnsureGlowTargets(int width, int height);
         void  RenderGlow(RHI::ICommandBuffer& commandBuffer);

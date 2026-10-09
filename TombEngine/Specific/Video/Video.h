@@ -56,6 +56,8 @@ namespace TEN::Video
 		float		GetNormalizedPosition() const;
 		std::string GetFileName() const;
 		Color		GetDominantColor() const;
+		const char* GetFrameData() const;
+		Vector2i	GetFrameSize() const;
 		bool		GetSilent() const;
 		bool		GetLooped() const;
 

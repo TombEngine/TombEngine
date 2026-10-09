@@ -38,6 +38,7 @@
 #include "Specific/configuration.h"
 #include "Specific/level.h"
 #include "Specific/trutils.h"
+#include "Specific/Video/Video.h"
 
 using namespace TEN::Animation;
 using namespace TEN::Effects::Hair;
@@ -2326,6 +2327,16 @@ namespace TEN::Renderer
 			environment.ScreenFade = ScreenFadeCurrent;
 			environment.CinematicBarsHeight = CinematicBarsHeight;
 			environment.AntialiasingMode = (int)g_Configuration.AntialiasingMode;
+
+			// Background video, shown by video animated sets and sprites while it plays.
+			environment.VideoSprite = &_videoSprite;
+			if (_videoSprite.Texture != nullptr && _videoSprite.Texture->IsValid())
+			{
+				auto videoSize = TEN::Video::g_VideoPlayer.GetFrameSize();
+				environment.VideoFrame = (const unsigned char*)TEN::Video::g_VideoPlayer.GetFrameData();
+				environment.VideoWidth = videoSize.x;
+				environment.VideoHeight = videoSize.y;
+			}
 
 			environment.DofMode = (int)_currentDOF.Mode;
 			environment.DofDistance = _currentDOF.Distance;

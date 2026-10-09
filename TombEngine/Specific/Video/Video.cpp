@@ -47,6 +47,16 @@ namespace TEN::Video
 		return _fileName;
 	}
 
+	const char* VideoHandler::GetFrameData() const
+	{
+		return (_player != nullptr && !_frameBuffer.empty()) ? _frameBuffer.data() : nullptr;
+	}
+
+	Vector2i VideoHandler::GetFrameSize() const
+	{
+		return _size;
+	}
+
 	Color VideoHandler::GetDominantColor() const
 	{
 		if (_player == nullptr || _frameBuffer.size() == 0)

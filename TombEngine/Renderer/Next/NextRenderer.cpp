@@ -142,6 +142,8 @@ namespace TEN::Renderer::Next
         _ssaoTarget = nullptr;
         _emissiveTarget = nullptr;
         _reflectionTarget = nullptr;
+        _videoTexture = nullptr;
+        _videoTransferBuffer = nullptr;
         _skyReflectionTarget = nullptr;
         _glowTargets[0] = nullptr;
         _glowTargets[1] = nullptr;
@@ -725,6 +727,7 @@ namespace TEN::Renderer::Next
         }
 
         AddWaterfallSets(geometry, frames, sets);
+        AddVideoSets(geometry, frames, sets);
 
         // Storage buffers cannot be empty, keep one placeholder entry.
         if (frames.empty())
@@ -860,7 +863,7 @@ namespace TEN::Renderer::Next
         }
     }
 
-    void NextRenderer::BindTexturePage(IRenderPass& renderPass, const RoomTexture* page)
+    void NextRenderer::BindTexturePage(IRenderPass& renderPass, const RoomTexture* page, ITexture* colorOverride, ITexture* emissiveOverride)
     {
         auto getMap = [&](const std::unique_ptr<ITexture>* map, ITexture* fallback)
         {
@@ -875,10 +878,10 @@ namespace TEN::Renderer::Next
         auto* skyReflections = _hasSkyReflectiveMaterials ? _skyReflectionTarget.get() : _dummyShadowMap.get();
         TextureSamplerBinding bindings[9] =
         {
-            { getMap(page ? &page->ColorMap : nullptr, _whiteTexture.get()), sampler },
+            { (colorOverride != nullptr) ? colorOverride : getMap(page ? &page->ColorMap : nullptr, _whiteTexture.get()), sampler },
             { getMap(page ? &page->NormalMap : nullptr, _flatNormalTexture.get()), sampler },
             { getMap(page ? &page->ORSHMap : nullptr, _defaultORSHTexture.get()), sampler },
-            { getMap(page ? &page->EmissiveMap : nullptr, _blackTexture.get()), sampler },
+            { (emissiveOverride != nullptr) ? emissiveOverride : getMap(page ? &page->EmissiveMap : nullptr, _blackTexture.get()), sampler },
             { ambientOcclusion, _linearClampSampler.get() },
             { shadowMap, _pointClampSampler.get() },
             { caustics, sampler },
@@ -913,7 +916,12 @@ namespace TEN::Renderer::Next
             state.PixelUniforms = pixelUniforms;
         }
 
+        // While a background video plays, video sets show the whole frame, also as emissive if the material has one.
+        int videoSet = GetVideoSet(bucket);
         int animatedSet = (room.AnimatedSetOverride != NO_VALUE) ? room.AnimatedSetOverride : (bucket.Animated ? bucket.Texture : NO_VALUE);
+        if (videoSet != NO_VALUE)
+            animatedSet = videoSet;
+
         auto vertexUniforms = DrawVertexUniforms{ animatedSet, room.IsWaterRoom };
         if (vertexUniforms.AnimatedSetIndex != state.VertexUniforms.AnimatedSetIndex || vertexUniforms.IsWaterRoom != state.VertexUniforms.IsWaterRoom)
         {
@@ -923,7 +931,13 @@ namespace TEN::Renderer::Next
 
         const auto& sourcePages = bucket.Animated ? _animatedTextures : pages;
         const auto* page = (bucket.Texture >= 0 && bucket.Texture < (int)sourcePages.size()) ? &sourcePages[bucket.Texture] : nullptr;
-        if (!state.IsPageBound || page != state.Page)
+        if (videoSet != NO_VALUE)
+        {
+            bool hasEmissive = (pixelUniforms.MaterialIndex < g_Level.Materials.size()) && g_Level.Materials[pixelUniforms.MaterialIndex].HasEmissiveMap;
+            BindTexturePage(renderPass, page, _videoTexture.get(), hasEmissive ? _videoTexture.get() : nullptr);
+            state.IsPageBound = false;
+        }
+        else if (!state.IsPageBound || page != state.Page)
         {
             BindTexturePage(renderPass, page);
             state.Page = page;
@@ -1403,7 +1417,7 @@ namespace TEN::Renderer::Next
     }
 
     // All per-frame data goes to the GPU in a single copy pass before the scene pass.
-    void NextRenderer::UploadFrameData(ICommandBuffer& commandBuffer)
+    void NextRenderer::UploadFrameData(ICommandBuffer& commandBuffer, const FrameEnvironment& environment)
     {
         commandBuffer.PushDebugGroup("Upload frame data");
         auto* copyPass = commandBuffer.BeginCopyPass();
@@ -1417,6 +1431,7 @@ namespace TEN::Renderer::Next
         UploadFrameStorage(*copyPass, _decalBuffer, _decalData, (int)sizeof(GpuDecal), BufferUsage::GraphicsStorageRead, "Frame.Decals");
         UploadFrameStorage(*copyPass, _debrisVertexBuffer, _debrisVertexData, (int)sizeof(Vertex), BufferUsage::Vertex, "Frame.DebrisVertices");
         UploadFrameStorage(*copyPass, _debrisInstanceBuffer, _debrisInstanceData, (int)sizeof(unsigned int), BufferUsage::Vertex, "Frame.DebrisInstances");
+        UploadVideoFrame(*copyPass, environment);
 
         commandBuffer.EndCopyPass();
         commandBuffer.PopDebugGroup();
@@ -2000,6 +2015,7 @@ namespace TEN::Renderer::Next
         _time = (float)environment.Frame;
         _isShadowMapActive = environment.IsShadowMapEnabled && (environment.ShadowLight != nullptr);
         _isPlayerShadowOnly = environment.IsPlayerShadowOnly;
+        _videoSprite = environment.VideoSprite;
 
         auto frameVertexUniforms = FrameVertexUniforms{};
         frameVertexUniforms.ViewProjection = view.Camera.View * projection;
@@ -2041,7 +2057,7 @@ namespace TEN::Renderer::Next
         CollectSortedFaces(view, environment.InterpolationFactor);
         CollectMirroredSorted(view);
 
-        UploadFrameData(*commandBuffer);
+        UploadFrameData(*commandBuffer, environment);
 
         PrepareShadows(environment, environment.InterpolationFactor);
 

@@ -90,6 +90,10 @@ namespace TEN::Renderer::Next
         if (sprite == nullptr || _legacyGeometry.Sprites == nullptr)
             return nullptr;
 
+        // Particles with the video sprite ID show the background video, with whole frame UVs.
+        if (sprite == _videoSprite)
+            return _isVideoActive ? _videoTexture.get() : nullptr;
+
         int spriteIndex = (int)(sprite - _legacyGeometry.Sprites->data());
         if (spriteIndex < 0 || spriteIndex >= (int)g_Level.Sprites.size())
             return nullptr;
