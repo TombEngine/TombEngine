@@ -112,7 +112,7 @@ namespace TEN::Renderer::Next
         colorTarget.Texture = _distortionTarget.get();
 
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
-        DrawRooms(commandBuffer, *renderPass, view, ScenePass::Distortion);
+        DrawRooms(commandBuffer, *renderPass, ScenePass::Distortion);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Distortion);
         DrawSprites(commandBuffer, *renderPass, ScenePass::Distortion);
         DrawSprites(commandBuffer, *renderPass, ScenePass::Distortion, true);

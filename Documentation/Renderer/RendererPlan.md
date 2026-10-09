@@ -229,8 +229,8 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 ## 8. Fase 4 - Pipeline di rendering
 
 ### 8.1 Frame
-- [ ] **Un solo attraversamento** della scena produce i draw packet per tutti i pass e per tutte le viste (camera, specchi, ombre).
-- [ ] Draw packet con **sort key a 64 bit** (vista | pass | pipeline | materiale | profondita'), radix sort, poi submit con eliminazione dei cambi ridondanti.
+- [x] **Un solo attraversamento** della scena produce i draw packet per tutti i pass e per tutte le viste (camera, specchi, ombre). *(stanze e oggetti sono raccolti una volta per frame in liste usate da tutti i pass, ombre e specchi compresi; il culling e la vista restano del legacy finche' il renderer nuovo non e' indipendente)*
+- [x] Draw packet con **sort key a 64 bit** (vista | pass | pipeline | materiale | profondita'), radix sort, poi submit con eliminazione dei cambi ridondanti. *(chiave: variante alpha test, gruppo di texture array, layer, materiale, sorgente; radix sort stabile a cifre di 8 bit. Opaco, additivo e distorsione disegnano in ordine di stato, prepass e bordi alpha test nell'ordine dei portali)*
 - [ ] Specchi come viste separate (camera riflessa + clip), non come ridisegno dentro ogni pass.
 
 ### 8.2 Culling (CPU)
@@ -247,7 +247,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 ### 8.4 Pass principali
 - [x] **Depth + normali** (stanze, statiche, moveable; alpha test con una permutazione dedicata) per SSAO ed early-z: sostituisce il GBuffer a 4 MRT con il minimo indispensabile. *(una sola uscita: normali in view space; la depth del prepass e' riusata dal pass di scena con LessOrEqual)*
 - [x] **Opaque** con `DepthCompare=Equal` e senza depth write: nessun overdraw di pixel shading. *(stanze e oggetti opachi, che sono gli stessi draw del prepass; specchi, detriti e sprite opachi scrivono ancora la depth perche' non sono nel prepass)*
-- [ ] Additive e Distortion con draw packet propri, senza riattraversare la scena.
+- [x] Additive e Distortion con draw packet propri, senza riattraversare la scena.
 - [ ] **Instancing ovunque**: statiche (tutte le mesh, senza limite di 100), moveable non skinned con lo stesso oggetto, sciami, bossoli, debris.
 - [ ] Sprite e particelle: istanze compatte da 16-32 B (posizione, dimensione, rotazione, colore, frame) in storage buffer, billboarding nel VS, una sola preparazione per frame.
 

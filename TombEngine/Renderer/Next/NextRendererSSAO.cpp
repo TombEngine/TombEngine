@@ -132,7 +132,7 @@ namespace TEN::Renderer::Next
         depthTarget.Texture = _depthTarget.get();
 
         auto* renderPass = commandBuffer.BeginRenderPass(colorTargets, 2, &depthTarget);
-        DrawRooms(commandBuffer, *renderPass, view, ScenePass::Prepass);
+        DrawRooms(commandBuffer, *renderPass, ScenePass::Prepass);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Prepass);
         commandBuffer.EndRenderPass();
     }

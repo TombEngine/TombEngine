@@ -223,6 +223,8 @@ namespace TEN::Renderer::Next
             group->Maps[map] = _device->CreateTexture(desc);
         }
 
+        group->Index = groupIndex;
+
         return group;
     }
 

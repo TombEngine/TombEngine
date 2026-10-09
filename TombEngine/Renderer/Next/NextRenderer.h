@@ -5,6 +5,7 @@
 #include "Objects/game_object_ids.h"
 #include "Renderer/Frustum.h"
 #include "Renderer/Graphics/Vertices/Vertex.h"
+#include "Renderer/Next/DrawSort.h"
 #include "Renderer/Next/GpuTypes.h"
 #include "Renderer/Next/OverlayTypes.h"
 #include "Renderer/RHI/RHIDevice.h"
@@ -152,6 +153,7 @@ namespace TEN::Renderer::Next
         struct TextureArrayGroup
         {
             std::unique_ptr<RHI::ITexture> Maps[(int)MaterialMap::Count] = {};
+            int                            Index = 0; // Position in the group list, part of the draw sort keys.
         };
 
         // Layer of a level texture page in its array group; the layer is selected with a per draw uniform.
@@ -320,6 +322,13 @@ namespace TEN::Renderer::Next
             int                               Instance   = 0;
             const Structures::RendererRoom*   Room       = nullptr; // Room faces only, for the portal scissor.
             SpriteDraw                        Sprites    = {};
+        };
+
+        // Visible room bucket of the frame.
+        struct RoomDraw
+        {
+            const Structures::RendererRoom*   Room   = nullptr;
+            const Structures::RendererBucket* Bucket = nullptr;
         };
 
         struct GeometryBuffers
@@ -584,6 +593,10 @@ namespace TEN::Renderer::Next
         std::vector<unsigned char>    _instanceData        = {};
         std::vector<unsigned char>    _lightData           = {};
         std::vector<ObjectDraw>       _objectDraws         = {};
+        std::vector<DrawSortKey>      _objectDrawOrder     = {}; // Object draws by draw state, for the passes whose order does not matter.
+        std::vector<RoomDraw>         _roomDraws           = {}; // Portal order, front to back.
+        std::vector<DrawSortKey>      _roomDrawOrder       = {};
+        std::vector<DrawSortKey>      _drawSortScratch     = {};
         std::vector<QueuedMeshInstance> _queuedMeshInstances = {};
         FrameStorageBuffer            _decalBuffer         = {};
         FrameStorageBuffer            _debrisVertexBuffer   = {};
@@ -806,8 +819,13 @@ namespace TEN::Renderer::Next
         void           CollectSprites(const RenderView& view);
         void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture);
         void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
-        void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, ScenePass pass);
-        void DrawRoomBuckets(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, ScenePass pass, bool isAlphaTested);
+        void CollectRoomDraws(const RenderView& view);
+        void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass);
+        void DrawRoomBuckets(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isAlphaTested);
+        static bool IsStateSortedPass(ScenePass pass);
+        const std::vector<TexturePage>& GetSourcePages(MeshSource source) const;
+        unsigned long long GetBucketSortKey(MeshSource source, const Structures::RendererBucket& bucket) const;
+        void SortObjectDraws();
         void RenderScenePass(RHI::ICommandBuffer& commandBuffer);
 
     public:

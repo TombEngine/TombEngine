@@ -1098,8 +1098,78 @@ namespace TEN::Renderer::Next
         return (isAlphaTested == (pass == ScenePass::AlphaEdges));
     }
 
+    const std::vector<NextRenderer::TexturePage>& NextRenderer::GetSourcePages(MeshSource source) const
+    {
+        switch (source)
+        {
+        case MeshSource::Rooms:
+            return _roomTextures;
+
+        case MeshSource::Statics:
+            return _staticTextures;
+
+        default:
+            return _moveableTextures;
+        }
+    }
+
+    // Draw state of a bucket, most expensive change first: alpha test variant, texture group, layer, material, source.
+    unsigned long long NextRenderer::GetBucketSortKey(MeshSource source, const RendererBucket& bucket) const
+    {
+        const auto& pages = bucket.Animated ? _animatedTextures : GetSourcePages(source);
+        const auto* page = (bucket.Texture >= 0 && bucket.Texture < (int)pages.size()) ? &pages[bucket.Texture] : nullptr;
+
+        auto isAlphaTested = (unsigned long long)(bucket.BlendMode == BlendMode::AlphaTest);
+        auto group = (unsigned long long)((page != nullptr && page->Group != nullptr) ? (page->Group->Index + 1) : 0);
+        auto layer = (unsigned long long)((page != nullptr) ? page->Layer : 0);
+        auto material = (unsigned long long)std::clamp(bucket.MaterialIndex, 0, (int)USHRT_MAX);
+        return (isAlphaTested << 60) | ((group & 0xFFF) << 44) | ((layer & 0xFFF) << 32) | (material << 16) | (unsigned long long)source;
+    }
+
+    void NextRenderer::SortObjectDraws()
+    {
+        _objectDrawOrder.clear();
+        for (int i = 0; i < (int)_objectDraws.size(); i++)
+            _objectDrawOrder.push_back(DrawSortKey{ GetBucketSortKey(_objectDraws[i].Source, *_objectDraws[i].Bucket), i });
+
+        SortDrawKeys(_objectDrawOrder, _drawSortScratch);
+    }
+
+    // Visible room buckets are listed once per frame in portal order, front to back, and sorted by draw state for
+    // the passes whose order does not matter.
+    void NextRenderer::CollectRoomDraws(const RenderView& view)
+    {
+        _roomDraws.clear();
+        _roomDrawOrder.clear();
+
+        const auto& targetDesc = _sceneTarget->GetDesc();
+        for (const auto* room : view.RoomsToDraw)
+        {
+            auto scissor = GetRoomScissor(*room, targetDesc.Width, targetDesc.Height);
+            if (scissor.Width == 0 || scissor.Height == 0)
+                continue;
+
+            for (const auto& bucket : room->Buckets)
+            {
+                if (bucket.NumIndices == 0 || !IsRoomBucketVisible(bucket))
+                    continue;
+
+                _roomDrawOrder.push_back(DrawSortKey{ GetBucketSortKey(MeshSource::Rooms, bucket), (int)_roomDraws.size() });
+                _roomDraws.push_back(RoomDraw{ room, &bucket });
+            }
+        }
+
+        SortDrawKeys(_roomDrawOrder, _drawSortScratch);
+    }
+
+    // Opaque, additive and distortion draws do not depend on their order: they are drawn sorted by state.
+    bool NextRenderer::IsStateSortedPass(ScenePass pass)
+    {
+        return (pass == ScenePass::Opaque || pass == ScenePass::Additive || pass == ScenePass::Distortion);
+    }
+
     // Buckets without alpha test are drawn first, with the pixel shader without clip.
-    void NextRenderer::DrawRooms(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, ScenePass pass)
+    void NextRenderer::DrawRooms(ICommandBuffer& commandBuffer, IRenderPass& renderPass, ScenePass pass)
     {
         constexpr const char* GROUP_NAMES[] = { "Rooms prepass", "Rooms opaque", "Rooms alpha edges", "Rooms additive", "Rooms distortion" };
 
@@ -1108,17 +1178,14 @@ namespace TEN::Renderer::Next
         for (int variant = 0; variant < 2; variant++)
         {
             if (IsAlphaTestVariantInPass(pass, variant == 1))
-                DrawRoomBuckets(commandBuffer, renderPass, view, pass, variant == 1);
+                DrawRoomBuckets(commandBuffer, renderPass, pass, variant == 1);
         }
 
         commandBuffer.PopDebugGroup();
     }
 
-    void NextRenderer::DrawRoomBuckets(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, ScenePass pass, bool isAlphaTested)
+    void NextRenderer::DrawRoomBuckets(ICommandBuffer& commandBuffer, IRenderPass& renderPass, ScenePass pass, bool isAlphaTested)
     {
-        bool additive = (pass == ScenePass::Additive);
-        bool isAlphaEdges = (pass == ScenePass::AlphaEdges);
-
         auto shader = (pass == ScenePass::Prepass) ? SceneShader::RoomsPrepass : SceneShader::Rooms;
         renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass), isAlphaTested));
 
@@ -1132,35 +1199,30 @@ namespace TEN::Renderer::Next
 
         // Rooms are clipped to their portal rectangle, as in the legacy renderer. Distortion uses a half resolution target.
         const auto& targetDesc = ((pass == ScenePass::Distortion) ? _distortionTarget : _sceneTarget)->GetDesc();
+        bool isSorted = IsStateSortedPass(pass);
 
-        // Opaque rooms are drawn front to back (portal traversal order) for early depth rejection,
-        // additive rooms back to front.
-        int roomCount = (int)view.RoomsToDraw.size();
-        for (int roomIndex = 0; roomIndex < roomCount; roomIndex++)
+        const RendererRoom* lastRoom = nullptr;
+        auto roomInfo = BucketDrawInfo{};
+        for (int i = 0; i < (int)_roomDraws.size(); i++)
         {
-            const auto* room = view.RoomsToDraw[additive ? (roomCount - 1 - roomIndex) : roomIndex];
-            auto scissor = GetRoomScissor(*room, targetDesc.Width, targetDesc.Height);
-            if (scissor.Width == 0 || scissor.Height == 0)
+            const auto& draw = _roomDraws[isSorted ? _roomDrawOrder[i].Index : i];
+            const auto& bucket = *draw.Bucket;
+            if (!IsBucketInPass(bucket, pass))
                 continue;
 
-            renderPass.SetScissor(scissor);
-            auto roomInfo = GetBucketDrawInfo(room->RoomNumber, pass != ScenePass::Prepass);
-            roomInfo.IsAlphaEdgePass = isAlphaEdges;
-
-            for (const auto& bucket : room->Buckets)
+            if (draw.Room != lastRoom)
             {
-                if (bucket.NumIndices == 0)
-                    continue;
-
-                if (!IsBucketInPass(bucket, pass) || (GetAlphaThreshold(bucket, roomInfo) != 0.0f) != isAlphaTested)
-                    continue;
-
-                if (!IsRoomBucketVisible(bucket))
-                    continue;
-
-                BindBucket(commandBuffer, renderPass, bucket, _roomTextures, bucket.BlendMode, (unsigned int)_roomLightCount, roomInfo, state);
-                DrawBucket(renderPass, MeshSource::Rooms, bucket, 1, 0);
+                roomInfo = GetBucketDrawInfo(draw.Room->RoomNumber, pass != ScenePass::Prepass);
+                roomInfo.IsAlphaEdgePass = (pass == ScenePass::AlphaEdges);
+                renderPass.SetScissor(GetRoomScissor(*draw.Room, targetDesc.Width, targetDesc.Height));
+                lastRoom = draw.Room;
             }
+
+            if ((GetAlphaThreshold(bucket, roomInfo) != 0.0f) != isAlphaTested)
+                continue;
+
+            BindBucket(commandBuffer, renderPass, bucket, _roomTextures, bucket.BlendMode, (unsigned int)_roomLightCount, roomInfo, state);
+            DrawBucket(renderPass, MeshSource::Rooms, bucket, 1, 0);
         }
 
         renderPass.SetScissor(ScissorRect{ 0, 0, targetDesc.Width, targetDesc.Height });
@@ -1633,8 +1695,10 @@ namespace TEN::Renderer::Next
 
         auto state = BucketBindState{};
 
-        for (const auto& draw : draws)
+        bool isSorted = !isMirrored && IsStateSortedPass(pass);
+        for (int i = 0; i < (int)draws.size(); i++)
         {
+            const auto& draw = draws[isSorted ? _objectDrawOrder[i].Index : i];
             const auto& bucket = *draw.Bucket;
             auto drawInfo = BucketDrawInfo{};
             drawInfo.AnimatedSetOverride = draw.AnimatedSetOverride;
@@ -2228,16 +2292,16 @@ namespace TEN::Renderer::Next
 
         // The sky color uses pixel slot 2 too: restore the shadow uniforms read by rooms and objects.
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
-        DrawRooms(commandBuffer, *renderPass, view, ScenePass::Opaque);
+        DrawRooms(commandBuffer, *renderPass, ScenePass::Opaque);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Opaque);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Opaque, true);
         DrawDebris(commandBuffer, *renderPass, DebrisPass::Opaque);
-        DrawRooms(commandBuffer, *renderPass, view, ScenePass::AlphaEdges);
+        DrawRooms(commandBuffer, *renderPass, ScenePass::AlphaEdges);
         DrawObjects(commandBuffer, *renderPass, ScenePass::AlphaEdges);
         DrawObjects(commandBuffer, *renderPass, ScenePass::AlphaEdges, true);
         DrawSprites(commandBuffer, *renderPass, ScenePass::Opaque);
         DrawSprites(commandBuffer, *renderPass, ScenePass::Opaque, true);
-        DrawRooms(commandBuffer, *renderPass, view, ScenePass::Additive);
+        DrawRooms(commandBuffer, *renderPass, ScenePass::Additive);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Additive);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Additive, true);
         DrawDebris(commandBuffer, *renderPass, DebrisPass::Additive);
@@ -2325,6 +2389,8 @@ namespace TEN::Renderer::Next
         CollectMaterials(environment.InterpolationFactor);
         CollectDecals(view);
         CollectObjects(view, environment.InterpolationFactor);
+        SortObjectDraws();
+        CollectRoomDraws(view);
         CollectSprites(view);
         CollectSkySprites(view, environment);
         CollectSortedFaces(view, environment.InterpolationFactor);
