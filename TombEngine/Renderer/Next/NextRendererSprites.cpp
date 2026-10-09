@@ -190,24 +190,37 @@ namespace TEN::Renderer::Next
     void NextRenderer::CollectSkySprites(const RenderView& view, const FrameEnvironment& environment)
     {
         _skySpriteDraws.clear();
-        if (environment.SkySprites == nullptr)
-            return;
+        _skySunDraws.clear();
 
-        for (const auto& sprite : *environment.SkySprites)
+        if (environment.SkySprites != nullptr)
         {
-            auto* texture = GetSpriteTexture(sprite.Sprite);
-            if (texture == nullptr)
-                continue;
-
-            int spriteIndex = (int)(_spriteData.size() / sizeof(GpuSprite));
-            if (!AddSprite(sprite, view))
-                break;
-
-            if (_skySpriteDraws.empty() || _skySpriteDraws.back().Texture != texture)
-                _skySpriteDraws.push_back(SpriteDraw{ texture, BlendMode::Additive, spriteIndex, 0 });
-
-            _skySpriteDraws.back().SpriteCount++;
+            for (const auto& sprite : *environment.SkySprites)
+            {
+                if (!AddSkySprite(sprite, view, _skySpriteDraws))
+                    break;
+            }
         }
+
+        if (environment.SkySunSprite != nullptr)
+            AddSkySprite(*environment.SkySunSprite, view, _skySunDraws);
+    }
+
+    // Returns false when the sprite buffer is full.
+    bool NextRenderer::AddSkySprite(const RendererSpriteToDraw& sprite, const RenderView& view, std::vector<SpriteDraw>& draws)
+    {
+        auto* texture = GetSpriteTexture(sprite.Sprite);
+        if (texture == nullptr)
+            return true;
+
+        int spriteIndex = (int)(_spriteData.size() / sizeof(GpuSprite));
+        if (!AddSprite(sprite, view))
+            return false;
+
+        if (draws.empty() || draws.back().Texture != texture)
+            draws.push_back(SpriteDraw{ texture, BlendMode::Additive, spriteIndex, 0 });
+
+        draws.back().SpriteCount++;
+        return true;
     }
 
     void NextRenderer::DrawSpriteRun(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const SpriteDraw& draw,

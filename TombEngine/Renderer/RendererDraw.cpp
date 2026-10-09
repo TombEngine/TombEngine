@@ -2350,9 +2350,8 @@ namespace TEN::Renderer
 					_nextSkySprites.push_back(GetMeteorSprite(meteor, view, starfieldAlphaScale));
 			}
 
-			auto sunSprite = RendererSpriteToDraw{};
-			if (GetSunSprite(view, sunSprite))
-				_nextSkySprites.push_back(sunSprite);
+			if (GetSunSprite(view, _nextSunSprite))
+				environment.SkySunSprite = &_nextSunSprite;
 
 			environment.SkySprites = &_nextSkySprites;
 

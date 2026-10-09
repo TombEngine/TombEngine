@@ -2088,38 +2088,47 @@ namespace TEN::Renderer::Next
     // without fog bulbs and regardless of outside rooms, as the legacy reflection pass.
     void NextRenderer::DrawSky(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere)
     {
-        using namespace TEN::Effects::Environment;
-
-        constexpr auto PARABOLOID_NEAR = 32.0f;
-
-        bool isParaboloid = (hemisphere != 0);
-        auto shader = isParaboloid ? SceneShader::SkyParaboloid : SceneShader::Sky;
-        auto paraboloidView = Matrix::CreateLookAt(view.Camera.WorldPosition, view.Camera.WorldPosition + Vector3(0.0f, -BLOCK(1), 0.0f), Vector3::UnitX);
-        auto getUniforms = [&](const Matrix& world, bool isFogBulbsEnabled)
-        {
-            auto uniforms = SkyVertexUniforms{ world, (isFogBulbsEnabled && !isParaboloid) ? 1u : 0u };
-            uniforms.IsParaboloid = isParaboloid ? 1u : 0u;
-            uniforms.Hemisphere = (float)hemisphere;
-            uniforms.ParaboloidView = paraboloidView;
-            uniforms.ParaboloidNear = PARABOLOID_NEAR;
-            uniforms.ParaboloidFar = DEFAULT_FAR_VIEW;
-            return uniforms;
-        };
-
-        bool isAnyRoomOutside = isParaboloid;
-        for (const auto* room : view.RoomsToDraw)
-        {
-            if (g_Level.Rooms[room->RoomNumber].flags & ENV_FLAG_SKYBOX)
-            {
-                isAnyRoomOutside = true;
-                break;
-            }
-        }
-
-        if (!isAnyRoomOutside)
+        if (hemisphere == 0 && !IsSkyVisible(view))
             return;
 
         commandBuffer.PushDebugGroup("Sky");
+        DrawSkyBackground(commandBuffer, renderPass, view, hemisphere);
+        DrawSkyHorizons(commandBuffer, renderPass, view, interpolationFactor, hemisphere);
+        commandBuffer.PopDebugGroup();
+    }
+
+    bool NextRenderer::IsSkyVisible(const RenderView& view) const
+    {
+        for (const auto* room : view.RoomsToDraw)
+        {
+            if (g_Level.Rooms[room->RoomNumber].flags & ENV_FLAG_SKYBOX)
+                return true;
+        }
+
+        return false;
+    }
+
+    SkyVertexUniforms NextRenderer::GetSkyVertexUniforms(const Matrix& world, bool isFogBulbsEnabled, const RenderView& view, int hemisphere) const
+    {
+        constexpr auto PARABOLOID_NEAR = 32.0f;
+
+        bool isParaboloid = (hemisphere != 0);
+        auto uniforms = SkyVertexUniforms{ world, (isFogBulbsEnabled && !isParaboloid) ? 1u : 0u };
+        uniforms.IsParaboloid = isParaboloid ? 1u : 0u;
+        uniforms.Hemisphere = (float)hemisphere;
+        uniforms.ParaboloidView = Matrix::CreateLookAt(view.Camera.WorldPosition, view.Camera.WorldPosition + Vector3(0.0f, -BLOCK(1), 0.0f), Vector3::UnitX);
+        uniforms.ParaboloidNear = PARABOLOID_NEAR;
+        uniforms.ParaboloidFar = DEFAULT_FAR_VIEW;
+        return uniforms;
+    }
+
+    // Atmospheric dome, classic layers, stars and meteors: what the legacy renderer draws before the clouds.
+    void NextRenderer::DrawSkyBackground(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, int hemisphere)
+    {
+        using namespace TEN::Effects::Environment;
+
+        bool isParaboloid = (hemisphere != 0);
+        auto shader = isParaboloid ? SceneShader::SkyParaboloid : SceneShader::Sky;
 
         // Atmospheric dome first, as an opaque background; the reflection map keeps the classic sky only.
         if (!isParaboloid)
@@ -2157,24 +2166,41 @@ namespace TEN::Renderer::Next
 
                 auto world = rotation * translation;
                 // Fog bulbs affect the first layer only, as in the legacy renderer.
-                auto skyUniforms = getUniforms(world, layer == 0);
+                auto skyUniforms = GetSkyVertexUniforms(world, layer == 0, view, hemisphere);
                 commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &skyUniforms, sizeof(skyUniforms));
                 _frameStats.DrawCalls++;
                 renderPass.DrawIndexed(SKY_INDICES_COUNT, 1, 0, 0, 0);
             }
         }
 
-        // Stars, meteors and sun sprite, between the layers and the horizons as in the legacy renderer.
-        if (!isParaboloid && !_skySpriteDraws.empty())
-        {
-            const IGraphicsPipeline* lastPipeline = nullptr;
-            const ITexture* lastTexture = nullptr;
-            for (const auto& draw : _skySpriteDraws)
-                DrawSpriteRun(commandBuffer, renderPass, draw, lastPipeline, lastTexture);
+        // Stars and meteors, after the layers as in the legacy renderer.
+        if (!isParaboloid)
+            DrawSkySprites(commandBuffer, renderPass, _skySpriteDraws);
+    }
 
-            auto noAnimation = DrawVertexUniforms{ NO_VALUE };
-            commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &noAnimation, sizeof(noAnimation));
-        }
+    void NextRenderer::DrawSkySprites(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const std::vector<SpriteDraw>& draws)
+    {
+        if (draws.empty())
+            return;
+
+        const IGraphicsPipeline* lastPipeline = nullptr;
+        const ITexture* lastTexture = nullptr;
+        for (const auto& draw : draws)
+            DrawSpriteRun(commandBuffer, renderPass, draw, lastPipeline, lastTexture);
+
+        auto noAnimation = DrawVertexUniforms{ NO_VALUE };
+        commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &noAnimation, sizeof(noAnimation));
+    }
+
+    // Sun sprite and horizon meshes: what the legacy renderer draws after the clouds, sun and moon discs and aurora.
+    void NextRenderer::DrawSkyHorizons(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere)
+    {
+        bool isParaboloid = (hemisphere != 0);
+        auto shader = isParaboloid ? SceneShader::SkyParaboloid : SceneShader::Sky;
+        IBuffer* storageBuffers[2] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get() };
+
+        if (!isParaboloid)
+            DrawSkySprites(commandBuffer, renderPass, _skySunDraws);
 
         // Horizon meshes.
         auto* level = g_GameFlow->GetLevel(CurrentLevel);
@@ -2193,7 +2219,7 @@ namespace TEN::Renderer::Next
             auto world = orientation.ToRotationMatrix() * Matrix::CreateTranslation(position) * Matrix::CreateTranslation(view.Camera.WorldPosition);
             auto color = Vector4(1.0f, 1.0f, 1.0f, alpha);
 
-            auto skyUniforms = getUniforms(world, true);
+            auto skyUniforms = GetSkyVertexUniforms(world, true, view, hemisphere);
             commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &skyUniforms, sizeof(skyUniforms));
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &color, sizeof(color));
 
@@ -2226,8 +2252,6 @@ namespace TEN::Renderer::Next
                 }
             }
         }
-
-        commandBuffer.PopDebugGroup();
     }
 
     void NextRenderer::LogGpuTimings()
@@ -2312,6 +2336,7 @@ namespace TEN::Renderer::Next
         { "SSAO", &NextRenderer::_isAmbientOcclusionActive, &NextRenderer::RenderSSAO },
         { "Sky reflections", &NextRenderer::_hasSkyReflectiveMaterials, &NextRenderer::RenderSkyReflections },
         { "Distortion", &NextRenderer::_hasDistortion, &NextRenderer::RenderDistortion },
+        { "Sky", nullptr, &NextRenderer::RenderSkyPass },
         { "Scene", nullptr, &NextRenderer::RenderScenePass },
         { "DOF", &NextRenderer::_isDofActive, &NextRenderer::RenderDOF },
         { "Reflections", &NextRenderer::_hasReflectiveMaterials, &NextRenderer::CopyReflectionSource },
@@ -2324,12 +2349,10 @@ namespace TEN::Renderer::Next
         const auto& view = *_frameView;
         const auto& environment = *_frameEnvironment;
 
+        // The sky pass cleared the target and drew the sky.
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = _sceneTarget.get();
-        colorTarget.ClearColor[0] = environment.FogColor.x;
-        colorTarget.ClearColor[1] = environment.FogColor.y;
-        colorTarget.ClearColor[2] = environment.FogColor.z;
-        colorTarget.ClearColor[3] = 1.0f;
+        colorTarget.Load = LoadOp::Load;
 
         auto depthTarget = DepthTargetInfo{};
         depthTarget.Texture = _depthTarget.get();
@@ -2337,9 +2360,8 @@ namespace TEN::Renderer::Next
         depthTarget.Store = StoreOp::DontCare;
 
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, &depthTarget);
-        DrawSky(commandBuffer, *renderPass, view, environment.InterpolationFactor);
 
-        // The sky color uses pixel slot 2 too: restore the shadow uniforms read by rooms and objects.
+        // The sky passes use pixel slot 2 too: restore the shadow uniforms read by rooms and objects.
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
         DrawRooms(commandBuffer, *renderPass, ScenePass::Opaque);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Opaque);

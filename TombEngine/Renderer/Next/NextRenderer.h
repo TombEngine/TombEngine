@@ -94,8 +94,9 @@ namespace TEN::Renderer::Next
         const void*  AtmosphericSkyUniforms     = nullptr;
         int          AtmosphericSkyUniformsSize = 0;
 
-        // Stars, meteors and sun sprite of the classic sky, drawn additively between the sky layers and horizons.
+        // Stars and meteors of the classic sky, drawn additively after the sky layers.
         const std::vector<Structures::RendererSpriteToDraw>* SkySprites = nullptr;
+        const Structures::RendererSpriteToDraw*              SkySunSprite = nullptr; // Classic sun sprite, drawn after the clouds.
 
         // Depth of field of the legacy renderer (DOFState).
         int          DofMode             = 0;
@@ -648,6 +649,7 @@ namespace TEN::Renderer::Next
         std::vector<SortedDraw>       _mirrorSortedDraws   = {};
         std::vector<SpriteDraw>       _mirrorSpriteDraws   = {};
         std::vector<SpriteDraw>       _skySpriteDraws      = {};
+        std::vector<SpriteDraw>       _skySunDraws         = {};
         std::vector<const Structures::RendererSpriteToDraw*> _spriteSources = {}; // One per frame sprite.
         std::unordered_map<const void*, int> _sortedInstances = {};
         std::array<int, 2>            _hairInstances       = { NO_VALUE, NO_VALUE }; // Primary and secondary hair unit instances.
@@ -735,6 +737,7 @@ namespace TEN::Renderer::Next
         int  AddMirroredInstance(int instanceIndex, const Structures::RendererMirror& mirror);
         void CollectMirrors(const RenderView& view);
         void CollectSkySprites(const RenderView& view, const FrameEnvironment& environment);
+        bool AddSkySprite(const Structures::RendererSpriteToDraw& sprite, const RenderView& view, std::vector<SpriteDraw>& draws);
         int  AddMirroredSprites(int firstSprite, int count, const Structures::RendererMirror& mirror, const RenderView& view);
         void CollectMirroredSorted(const RenderView& view);
         void AddGunFlash(GAME_OBJECT_ID flashObjectID, const Matrix& world, const Vector4& color, const Vector4& ambientLight);
@@ -762,6 +765,15 @@ namespace TEN::Renderer::Next
         static FogBulbUniforms GetFogBulbUniforms(const RenderView& view);
         bool CreateSkyGeometry();
         void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere = 0);
+        bool IsSkyVisible(const RenderView& view) const;
+        SkyVertexUniforms GetSkyVertexUniforms(const Matrix& world, bool isFogBulbsEnabled, const RenderView& view, int hemisphere) const;
+        void DrawSkyBackground(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, int hemisphere);
+        void DrawSkySprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const std::vector<SpriteDraw>& draws);
+        void DrawSkyHorizons(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere);
+
+        // Sky pass (NextRendererSky.cpp).
+        RHI::IRenderPass* BeginSkyRenderPass(RHI::ICommandBuffer& commandBuffer, RHI::LoadOp load);
+        void RenderSkyPass(RHI::ICommandBuffer& commandBuffer);
         bool CreateSkyReflectionResources();
         bool CreateAtmosphereResources();
         bool LoadFont(const std::string& path);

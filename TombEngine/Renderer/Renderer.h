@@ -303,6 +303,7 @@ namespace TEN::Renderer
 		std::vector<std::unique_ptr<ITexture2D>>			   _spritesTextures;
 		RendererSprite										   _videoSprite; // Video texture is an unique case
 		std::vector<RendererSpriteToDraw>					   _nextSkySprites = {}; // Sky sprites passed to the next renderer.
+		RendererSpriteToDraw								   _nextSunSprite  = {}; // Classic sun sprite passed to the next renderer.
 
 		Matrix _playerWorldMatrix;
 
