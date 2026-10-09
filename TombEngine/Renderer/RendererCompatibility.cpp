@@ -1269,6 +1269,9 @@ namespace TEN::Renderer
 
 		// Re-upload modified vertex data to the GPU.
 		_graphicsDevice->UpdateVertexBuffer(_moveablesVertexBuffer.get(), 0, (int)_moveablesVertices.size(), _moveablesVertices.data());
+
+		if (Next::g_NextRenderer.IsActive())
+			Next::g_NextRenderer.UpdateMoveableVertices(_moveablesVertices);
 	}
 
 	void Renderer::BackupObjectVertices(GAME_OBJECT_ID objectID)

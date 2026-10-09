@@ -346,9 +346,7 @@ namespace TEN::Renderer::Next
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 4);
         BindScenePixelStorage(renderPass);
 
-        BufferBinding vertexBindings[2] = { { _moveableGeometry.Vertices.get(), 0 }, { _instanceIndexBuffer.get(), 0 } };
-        renderPass.BindVertexBuffers(0, vertexBindings, 2);
-        renderPass.BindIndexBuffer(BufferBinding{ _moveableGeometry.Indices.get(), 0 }, IndexSize::Bits32);
+        BindLevelGeometry(renderPass, true);
 
         auto state = BucketBindState{};
         auto drawInfo = BucketDrawInfo{};
@@ -356,9 +354,7 @@ namespace TEN::Renderer::Next
         for (const auto& draw : _gunFlashDraws)
         {
             BindBucket(commandBuffer, renderPass, *draw.Bucket, _moveableTextures, BlendMode::Additive, 0, drawInfo, state);
-
-            _frameStats.DrawCalls++;
-            renderPass.DrawIndexed(draw.Bucket->NumIndices, 1, draw.Bucket->StartIndex, 0, draw.FirstInstance);
+            DrawBucket(renderPass, MeshSource::Moveables, *draw.Bucket, 1, draw.FirstInstance);
         }
 
         commandBuffer.PopDebugGroup();

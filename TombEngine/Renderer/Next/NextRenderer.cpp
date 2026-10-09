@@ -79,8 +79,10 @@ namespace TEN::Renderer::Next
         _animatedTextures.clear();
         _staticTextures.clear();
         _moveableTextures.clear();
-        _staticGeometry = {};
-        _moveableGeometry = {};
+        _geometry = {};
+        for (auto& section : _geometrySections)
+            section = {};
+
         _instanceBuffer = {};
         _lightBuffer = {};
         _boneBuffer = {};
@@ -97,8 +99,6 @@ namespace TEN::Renderer::Next
         _sortedIndexBuffer = {};
         _objectsVertexShader = nullptr;
         _objectsPixelShader = nullptr;
-        _roomVertexBuffer = nullptr;
-        _roomIndexBuffer = nullptr;
         _colorTarget = nullptr;
         _finalTarget = nullptr;
         _depthTarget = nullptr;
@@ -664,7 +664,7 @@ namespace TEN::Renderer::Next
         return isCreated;
     }
 
-    void NextRenderer::UploadBuffer(IBuffer* buffer, const void* data, int size)
+    void NextRenderer::UploadBuffer(IBuffer* buffer, const void* data, int size, int offset)
     {
         auto transferBuffer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, size);
         memcpy(_device->MapTransferBuffer(transferBuffer.get(), false), data, size);
@@ -672,7 +672,7 @@ namespace TEN::Renderer::Next
 
         auto* commandBuffer = _device->AcquireCommandBuffer();
         auto* copyPass = commandBuffer->BeginCopyPass();
-        copyPass->UploadToBuffer(transferBuffer.get(), 0, buffer, 0, size, false);
+        copyPass->UploadToBuffer(transferBuffer.get(), 0, buffer, offset, size, false);
         commandBuffer->EndCopyPass();
         commandBuffer->Submit();
         _device->WaitIdle();
@@ -747,15 +747,8 @@ namespace TEN::Renderer::Next
         _staticTextures.clear();
         _moveableTextures.clear();
 
-        int vertexDataSize = (int)(geometry.RoomVertices->size() * sizeof(Vertex));
-        int indexDataSize = (int)(geometry.RoomIndices->size() * sizeof(int));
-        if (vertexDataSize == 0 || indexDataSize == 0)
+        if (!CreateLevelGeometry(geometry))
             return;
-
-        _roomVertexBuffer = _device->CreateBuffer(BufferDesc{ vertexDataSize, 0, BufferUsage::Vertex, "Rooms.Vertices" });
-        _roomIndexBuffer = _device->CreateBuffer(BufferDesc{ indexDataSize, 0, BufferUsage::Index, "Rooms.Indices" });
-        UploadBuffer(_roomVertexBuffer.get(), geometry.RoomVertices->data(), vertexDataSize);
-        UploadBuffer(_roomIndexBuffer.get(), geometry.RoomIndices->data(), indexDataSize);
 
         _hasEmissiveMaps = false;
         LoadTextureSet(g_Level.RoomTextures, _roomTextures, "RoomAtlas");
@@ -765,8 +758,6 @@ namespace TEN::Renderer::Next
         LoadAnimatedTextures(geometry);
         _skyTexture = CreateLevelTexture(g_Level.SkyTexture.colorMapData, "Sky");
 
-        CreateGeometryBuffers(_staticGeometry, *geometry.StaticVertices, *geometry.StaticIndices, "Statics");
-        CreateGeometryBuffers(_moveableGeometry, *geometry.MoveableVertices, *geometry.MoveableIndices, "Moveables");
         _legacyGeometry = geometry;
 
         _isLevelLoaded = true;
@@ -818,22 +809,6 @@ namespace TEN::Renderer::Next
 
             destination.push_back(std::move(texture));
         }
-    }
-
-    void NextRenderer::CreateGeometryBuffers(GeometryBuffers& buffers, const std::vector<Vertex>& vertices, const std::vector<int>& indices, const std::string& name)
-    {
-        buffers.Vertices = nullptr;
-        buffers.Indices = nullptr;
-
-        int vertexDataSize = (int)(vertices.size() * sizeof(Vertex));
-        int indexDataSize = (int)(indices.size() * sizeof(int));
-        if (vertexDataSize == 0 || indexDataSize == 0)
-            return;
-
-        buffers.Vertices = _device->CreateBuffer(BufferDesc{ vertexDataSize, 0, BufferUsage::Vertex, name + ".Vertices" });
-        buffers.Indices = _device->CreateBuffer(BufferDesc{ indexDataSize, 0, BufferUsage::Index, name + ".Indices" });
-        UploadBuffer(buffers.Vertices.get(), vertices.data(), vertexDataSize);
-        UploadBuffer(buffers.Indices.get(), indices.data(), indexDataSize);
     }
 
     // All animated texture sets live in two static storage buffers, so drawing an animated bucket only
@@ -1164,9 +1139,7 @@ namespace TEN::Renderer::Next
         auto shader = (pass == ScenePass::Prepass) ? SceneShader::RoomsPrepass : SceneShader::Rooms;
         renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass), isAlphaTested));
 
-        auto vertexBinding = BufferBinding{ _roomVertexBuffer.get(), 0 };
-        renderPass.BindVertexBuffers(0, &vertexBinding, 1);
-        renderPass.BindIndexBuffer(BufferBinding{ _roomIndexBuffer.get(), 0 }, IndexSize::Bits32);
+        BindLevelGeometry(renderPass, false);
 
         IBuffer* storageBuffers[2] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get() };
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 2);
@@ -1192,9 +1165,7 @@ namespace TEN::Renderer::Next
                     continue;
 
                 BindBucket(commandBuffer, renderPass, bucket, _roomTextures, bucket.BlendMode, (unsigned int)_roomLightCount, roomInfo, state);
-
-                _frameStats.DrawCalls++;
-                renderPass.DrawIndexed(bucket.NumIndices, 1, bucket.StartIndex, 0, 0);
+                DrawBucket(renderPass, MeshSource::Rooms, bucket, 1, 0);
             }
         }
     }
@@ -1661,8 +1632,8 @@ namespace TEN::Renderer::Next
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 4);
 
         BindScenePixelStorage(renderPass);
+        BindLevelGeometry(renderPass, true);
 
-        auto lastSource = (MeshSource)-1;
         auto state = BucketBindState{};
 
         for (const auto& draw : draws)
@@ -1674,20 +1645,9 @@ namespace TEN::Renderer::Next
             if (!IsBucketInPass(bucket, pass) || (GetAlphaThreshold(bucket, drawInfo) != 0.0f) != isAlphaTested)
                 continue;
 
-            if (draw.Source != lastSource)
-            {
-                const auto& geometry = (draw.Source == MeshSource::Statics) ? _staticGeometry : _moveableGeometry;
-                BufferBinding vertexBindings[2] = { { geometry.Vertices.get(), 0 }, { _instanceIndexBuffer.get(), 0 } };
-                renderPass.BindVertexBuffers(0, vertexBindings, 2);
-                renderPass.BindIndexBuffer(BufferBinding{ geometry.Indices.get(), 0 }, IndexSize::Bits32);
-                lastSource = draw.Source;
-            }
-
             const auto& pages = (draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures;
             BindBucket(commandBuffer, renderPass, bucket, pages, bucket.BlendMode, 0, drawInfo, state);
-
-            _frameStats.DrawCalls++;
-            renderPass.DrawIndexed(bucket.NumIndices, draw.InstanceCount, bucket.StartIndex, 0, draw.FirstInstance);
+            DrawBucket(renderPass, draw.Source, bucket, draw.InstanceCount, draw.FirstInstance);
         }
     }
 
@@ -1807,18 +1767,19 @@ namespace TEN::Renderer::Next
             switch (object.ObjectType)
             {
             case RendererObjectType::Room:
-                sourceIndices = _legacyGeometry.RoomIndices;
+                source = MeshSource::Rooms;
+                sourceIndices = _geometrySections[(int)source].Indices;
                 break;
 
             case RendererObjectType::Static:
-                sourceIndices = _legacyGeometry.StaticIndices;
                 source = MeshSource::Statics;
+                sourceIndices = _geometrySections[(int)source].Indices;
                 break;
 
             case RendererObjectType::Moveable:
             case RendererObjectType::MoveableAsStatic:
             case RendererObjectType::Effect:
-                sourceIndices = _legacyGeometry.MoveableIndices;
+                sourceIndices = _geometrySections[(int)source].Indices;
                 break;
 
             // Hair faces reuse the hair unit instance built with the player.
@@ -1826,7 +1787,7 @@ namespace TEN::Renderer::Next
             case RendererObjectType::HairSecondary:
                 hairInstance = _hairInstances[(object.ObjectType == RendererObjectType::HairPrimary) ? 0 : 1];
                 if (hairInstance != NO_VALUE)
-                    sourceIndices = _legacyGeometry.MoveableIndices;
+                    sourceIndices = _geometrySections[(int)source].Indices;
 
                 break;
 
@@ -1890,11 +1851,8 @@ namespace TEN::Renderer::Next
 
         const IGraphicsPipeline* lastPipeline = nullptr;
         const ITexture* lastSpriteTexture = nullptr;
-        // Vertex source of the last bound geometry: a mesh source, rooms, or nothing after a pipeline change.
-        constexpr auto ROOM_SOURCE    = (int)MeshSource::Moveables + 1;
-        constexpr auto UNBOUND_SOURCE = INT_MIN;
-
-        int lastSource = UNBOUND_SOURCE;
+        // Vertex streams bound: the level vertices, plus the instance indices for objects; none after a pipeline change.
+        int lastStreamCount = 0;
         auto state = BucketBindState{};
 
         for (const auto& draw : draws)
@@ -1903,7 +1861,7 @@ namespace TEN::Renderer::Next
             if (draw.IsSprite)
             {
                 DrawSpriteRun(commandBuffer, renderPass, draw.Sprites, lastPipeline, lastSpriteTexture);
-                lastSource = UNBOUND_SOURCE;
+                lastStreamCount = 0;
                 state = BucketBindState{};
                 continue;
             }
@@ -1918,20 +1876,17 @@ namespace TEN::Renderer::Next
                 renderPass.BindVertexStorageBuffers(0, objectStorageBuffers, draw.IsRoom ? 2 : 4);
                 BindScenePixelStorage(renderPass);
                 lastPipeline = pipeline;
-                lastSource = UNBOUND_SOURCE;
+                lastStreamCount = 0;
                 lastSpriteTexture = nullptr;
                 state = BucketBindState{};
             }
 
-            int source = draw.IsRoom ? ROOM_SOURCE : (int)draw.Source;
-            if (source != lastSource)
+            int streamCount = draw.IsRoom ? 1 : 2;
+            if (streamCount != lastStreamCount)
             {
-                auto* vertices = draw.IsRoom ? _roomVertexBuffer.get() :
-                    ((draw.Source == MeshSource::Statics) ? _staticGeometry.Vertices.get() : _moveableGeometry.Vertices.get());
-
-                BufferBinding vertexBindings[2] = { { vertices, 0 }, { _instanceIndexBuffer.get(), 0 } };
-                renderPass.BindVertexBuffers(0, vertexBindings, draw.IsRoom ? 1 : 2);
-                lastSource = source;
+                BufferBinding vertexBindings[2] = { { _geometry.Vertices.get(), 0 }, { _instanceIndexBuffer.get(), 0 } };
+                renderPass.BindVertexBuffers(0, vertexBindings, streamCount);
+                lastStreamCount = streamCount;
             }
 
             const auto& pages = draw.IsRoom ? _roomTextures : ((draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures);
@@ -1941,7 +1896,7 @@ namespace TEN::Renderer::Next
             BindBucket(commandBuffer, renderPass, bucket, pages, draw.BlendMode, draw.IsRoom ? (unsigned int)_roomLightCount : 0, roomInfo, state);
 
             _frameStats.DrawCalls++;
-            renderPass.DrawIndexed(draw.IndexCount, 1, draw.FirstIndex, 0, draw.Instance);
+            renderPass.DrawIndexed(draw.IndexCount, 1, draw.FirstIndex, _geometrySections[(int)draw.Source].BaseVertex, draw.Instance);
         }
 
         commandBuffer.PopDebugGroup();
@@ -2107,9 +2062,7 @@ namespace TEN::Renderer::Next
             commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &skyUniforms, sizeof(skyUniforms));
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &color, sizeof(color));
 
-            auto moveableVertexBinding = BufferBinding{ _moveableGeometry.Vertices.get(), 0 };
-            renderPass.BindVertexBuffers(0, &moveableVertexBinding, 1);
-            renderPass.BindIndexBuffer(BufferBinding{ _moveableGeometry.Indices.get(), 0 }, IndexSize::Bits32);
+            BindLevelGeometry(renderPass, false);
 
             int lastAnimatedSet = INT_MIN;
             for (const auto* mesh : horizonObject->ObjectMeshes)
@@ -2138,8 +2091,7 @@ namespace TEN::Renderer::Next
 
                     auto binding = TextureSamplerBinding{ texture, _anisotropicSampler.get() };
                     renderPass.BindPixelSamplers(0, &binding, 1);
-                    _frameStats.DrawCalls++;
-                    renderPass.DrawIndexed(bucket.NumIndices, 1, bucket.StartIndex, 0, 0);
+                    DrawBucket(renderPass, MeshSource::Moveables, bucket, 1, 0);
                 }
             }
         }

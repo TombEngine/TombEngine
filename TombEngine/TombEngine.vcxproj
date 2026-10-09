@@ -1524,6 +1524,7 @@ if not exist "%ScriptsDir%\Strings.lua" xcopy /Y "$(SolutionDir)Scripts\Strings.
     <ClCompile Include="Renderer\Next\NextRendererOverlay.cpp" />
     <ClCompile Include="Renderer\Next\NextRendererSkyReflections.cpp" />
     <ClCompile Include="Renderer\Next\NextRendererSMAA.cpp" />
+    <ClCompile Include="Renderer\Next\NextRendererGeometry.cpp" />
     <ClCompile Include="Renderer\Next\NextRendererImGui.cpp" />
     <ClCompile Include="Renderer\Next\NextRendererVideo.cpp" />
     <ClCompile Include="Renderer\Next\NextRendererEffects.cpp" />

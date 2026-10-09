@@ -641,7 +641,6 @@ namespace TEN::Renderer::Next
         auto* renderPass = commandBuffer.BeginRenderPass(colorTargets, 2, &depthTarget);
 
         IBuffer* storageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _overlayInstanceBuffer.Buffer.get(), _overlayBoneBuffer.Buffer.get() };
-        BufferBinding vertexBindings[2] = { { _moveableGeometry.Vertices.get(), 0 }, { _instanceIndexBuffer.get(), 0 } };
 
         const IGraphicsPipeline* lastPipeline = nullptr;
         int lastObject = NO_VALUE;
@@ -661,8 +660,7 @@ namespace TEN::Renderer::Next
                 renderPass->BindPipeline(pipeline);
                 renderPass->BindVertexStorageBuffers(0, storageBuffers, 4);
                 BindScenePixelStorage(*renderPass);
-                renderPass->BindVertexBuffers(0, vertexBindings, 2);
-                renderPass->BindIndexBuffer(BufferBinding{ _moveableGeometry.Indices.get(), 0 }, IndexSize::Bits32);
+                BindLevelGeometry(*renderPass, true);
                 lastPipeline = pipeline;
                 state = BucketBindState{};
             }
@@ -680,9 +678,7 @@ namespace TEN::Renderer::Next
             auto drawInfo = BucketDrawInfo{};
             drawInfo.IsAlphaTestDisabled = !objectDraw.IsAlphaTested;
             BindBucket(commandBuffer, *renderPass, *objectDraw.Bucket, _moveableTextures, objectDraw.BlendMode, 0, drawInfo, state);
-
-            _frameStats.DrawCalls++;
-            renderPass->DrawIndexed(objectDraw.Bucket->NumIndices, 1, objectDraw.Bucket->StartIndex, 0, objectDraw.Instance);
+            DrawBucket(*renderPass, MeshSource::Moveables, *objectDraw.Bucket, 1, objectDraw.Instance);
         }
 
         commandBuffer.EndRenderPass();

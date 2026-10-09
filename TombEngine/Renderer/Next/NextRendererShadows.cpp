@@ -158,8 +158,8 @@ namespace TEN::Renderer::Next
             renderPass->BindPipeline(pipeline);
             renderPass->BindVertexStorageBuffers(0, storageBuffers, 4);
             BindScenePixelStorage(*renderPass);
+            BindLevelGeometry(*renderPass, true);
 
-            auto lastSource = (MeshSource)-1;
             auto state = BucketBindState{};
             for (const auto& draw : _shadowDraws)
             {
@@ -167,20 +167,9 @@ namespace TEN::Renderer::Next
                 if (bucket.BlendMode != BlendMode::Opaque && bucket.BlendMode != BlendMode::AlphaTest)
                     continue;
 
-                if (draw.Source != lastSource)
-                {
-                    const auto& geometry = (draw.Source == MeshSource::Statics) ? _staticGeometry : _moveableGeometry;
-                    BufferBinding vertexBindings[2] = { { geometry.Vertices.get(), 0 }, { _instanceIndexBuffer.get(), 0 } };
-                    renderPass->BindVertexBuffers(0, vertexBindings, 2);
-                    renderPass->BindIndexBuffer(BufferBinding{ geometry.Indices.get(), 0 }, IndexSize::Bits32);
-                    lastSource = draw.Source;
-                }
-
                 const auto& pages = (draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures;
                 BindBucket(commandBuffer, *renderPass, bucket, pages, bucket.BlendMode, 0, BucketDrawInfo{}, state);
-
-                _frameStats.DrawCalls++;
-                renderPass->DrawIndexed(bucket.NumIndices, draw.InstanceCount, bucket.StartIndex, 0, draw.FirstInstance);
+                DrawBucket(*renderPass, draw.Source, bucket, draw.InstanceCount, draw.FirstInstance);
             }
 
             commandBuffer.EndRenderPass();

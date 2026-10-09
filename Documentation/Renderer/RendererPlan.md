@@ -200,7 +200,7 @@ Un render graph completo (dipendenze automatiche, aliasing, pass culling) non se
 Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al caricamento, in parallelo dove possibile, e il costo aggiunto deve essere compensato dal lavoro inutile che si toglie.
 
 ### 7.1 Geometria
-- [ ] **Vertici indicizzati davvero**: i poligoni del formato attuale hanno gia' gli indici; si deduplica per (posizione, UV, colore, normale, tangente, effetti) invece di creare un vertice per angolo. Meno vertici e meno banda.
+- [x] **Vertici indicizzati davvero**: i poligoni del formato attuale hanno gia' gli indici; si deduplica per (posizione, UV, colore, normale, tangente, effetti) invece di creare un vertice per angolo. Meno vertici e meno banda. *(misurato: anche ignorando i dati per angolo che servono solo ai bucket animati, i vertici identici sono meno dell' 1%: gli angoli differiscono per UV, normale di faccia, colore e tangente; la ricerca raddoppiava il caricamento ed e' stata tolta)*
 - [ ] **Vertice compresso** (da 52 B a circa 28-32 B) costruito al caricamento:
   - posizione float3;
   - UV half2 o unorm16x2;
@@ -208,7 +208,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
   - colore RGBA8;
   - effetti + indice nel poligono + frame animato + hash impacchettati.
   La normale di faccia, oggi nel vertice, va in un buffer per poligono letto con `SV_PrimitiveID`, oppure resta nel vertice se serve a pochi shader (da misurare).
-- [ ] **Un unico VB e un unico IB** per tutta la geometria del livello (stanze, statiche, moveable), in memoria GPU-only. Solo i vertici di pelle e capelli di Lara restano in un buffer aggiornabile.
+- [x] **Un unico VB e un unico IB** per tutta la geometria del livello (stanze, statiche, moveable), in memoria GPU-only. Solo i vertici di pelle e capelli di Lara restano in un buffer aggiornabile. *(sezioni stanze, statiche e moveable con base vertex e base index; i vertici moveable si ricaricano quando cambia la pelle del giocatore, prima il renderer nuovo li ignorava)*
 - [ ] Per bucket: range di indici, AABB e bounding sphere calcolati una volta.
 - [x] Centri dei poligoni trasparenti calcolati una volta (in world space per le stanze, in object space per le mesh), riusati dal sort a ogni frame. *(nel caricamento legacy, riusati dal sort)*
 - [ ] Saldature di pelle e capelli di Lara: algoritmo con griglia spaziale o hash delle posizioni invece di O(n^2), cosi' il costo di caricamento scende senza cambiare il formato.

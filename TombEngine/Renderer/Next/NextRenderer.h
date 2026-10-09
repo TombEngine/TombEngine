@@ -183,7 +183,10 @@ namespace TEN::Renderer::Next
         enum class MeshSource
         {
             Statics,
-            Moveables
+            Moveables,
+            Rooms,
+
+            Count
         };
 
         // Instanced draw of one mesh bucket; instances are contiguous in the frame instance buffer.
@@ -277,6 +280,15 @@ namespace TEN::Renderer::Next
         {
             std::unique_ptr<RHI::IBuffer> Vertices = nullptr;
             std::unique_ptr<RHI::IBuffer> Indices  = nullptr;
+        };
+
+        // Range of one mesh source in the level buffers. Indices are relative to the base vertex; the legacy CPU indices feed the sorted faces.
+        struct GeometrySection
+        {
+            int                     BaseVertex  = 0;
+            int                     BaseIndex   = 0;
+            int                     VertexCount = 0;
+            const std::vector<int>* Indices     = nullptr;
         };
 
         std::unique_ptr<RHI::IDevice> _device = nullptr;
@@ -491,8 +503,8 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::ITexture>          _defaultORSHTexture  = nullptr;
         std::unique_ptr<RHI::ITexture>          _blackTexture        = nullptr;
 
-        std::unique_ptr<RHI::IBuffer> _roomVertexBuffer = nullptr;
-        std::unique_ptr<RHI::IBuffer> _roomIndexBuffer  = nullptr;
+        GeometryBuffers               _geometry         = {}; // Rooms, statics and moveables.
+        GeometrySection               _geometrySections[(int)MeshSource::Count] = {};
         std::vector<RoomTexture>      _roomTextures     = {};
         std::vector<RoomTexture>      _animatedTextures = {};
         std::unique_ptr<RHI::IBuffer> _animatedFramesBuffer = nullptr;
@@ -505,8 +517,6 @@ namespace TEN::Renderer::Next
         RHI::UploadRing                   _uploadRing    = {}; // Per-frame uploads of every copy pass.
         RHI::TextureReadback              _readback      = {}; // Screenshots, written when the GPU has rendered them.
 
-        GeometryBuffers               _staticGeometry   = {};
-        GeometryBuffers               _moveableGeometry = {};
         std::vector<RoomTexture>      _staticTextures   = {};
         std::vector<RoomTexture>      _moveableTextures = {};
         std::vector<RoomTexture>      _spriteTextures   = {};
@@ -591,14 +601,19 @@ namespace TEN::Renderer::Next
         bool IsCausticsRoom(int roomNumber) const;
         void PrepareCaustics(FramePixelUniforms& uniforms);
         void BindScenePixelStorage(RHI::IRenderPass& renderPass);
-        void UploadBuffer(RHI::IBuffer* buffer, const void* data, int size);
+        void UploadBuffer(RHI::IBuffer* buffer, const void* data, int size, int offset = 0);
         void LoadAnimatedTextures(const LegacyLevelGeometry& geometry);
         void AddWaterfallSets(const LegacyLevelGeometry& geometry, std::vector<GpuAnimatedFrame>& frames, std::vector<GpuAnimatedSet>& sets);
         bool LoadNoAlphaTestShaders();
         RHI::IGraphicsPipeline* GetScenePipeline(SceneShader shader, BlendMode blendMode, bool isAlphaTested = true);
         void ClearPipelineCaches();
         void LoadTextureSet(const std::vector<::TEXTURE>& source, std::vector<RoomTexture>& destination, const std::string& name);
-        void CreateGeometryBuffers(GeometryBuffers& buffers, const std::vector<Graphics::Vertices::Vertex>& vertices, const std::vector<int>& indices, const std::string& name);
+        // Level geometry (NextRendererGeometry.cpp).
+        void AddGeometrySection(MeshSource source, const std::vector<Graphics::Vertices::Vertex>& sourceVertices, const std::vector<int>& sourceIndices,
+                                std::vector<Graphics::Vertices::Vertex>& vertices);
+        bool CreateLevelGeometry(const LegacyLevelGeometry& geometry);
+        void BindLevelGeometry(RHI::IRenderPass& renderPass, bool hasInstanceStream);
+        void DrawBucket(RHI::IRenderPass& renderPass, MeshSource source, const Structures::RendererBucket& bucket, int instanceCount, int firstInstance);
         void CollectObjects(const RenderView& view, float interpolationFactor);
         void CollectPlayer(float interpolationFactor);
         void CollectPlayerHair(const Structures::RendererItem& item, const Vector4& ambientLight, int lightOffset, int lightCount, float interpolationFactor);
@@ -736,6 +751,7 @@ namespace TEN::Renderer::Next
         void PresentOnWindowThread();
         void RequestScreenshot(const std::string& path);
         void ReloadShaders();
+        void UpdateMoveableVertices(const std::vector<Graphics::Vertices::Vertex>& vertices);
 
         const NextFrameStats& GetFrameStats() const;
     };
