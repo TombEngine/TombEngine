@@ -535,12 +535,20 @@ namespace TEN::Renderer
 
 	std::vector<BoundingSphere> Renderer::GetSpheres(int itemNumber)
 	{
+		BoundingSphere spheres[BONE_COUNT_MAX];
+		int count = GetSpheres(itemNumber, spheres, BONE_COUNT_MAX);
+		return std::vector<BoundingSphere>(spheres, spheres + count);
+	}
+
+	// Writes up to maxCount mesh spheres of an item at its current pose without allocating, and returns their count.
+	int Renderer::GetSpheres(int itemNumber, BoundingSphere* spheres, int maxCount)
+	{
 		auto& itemToDraw = _items[itemNumber];
 		itemToDraw.ItemNumber = itemNumber;
 
 		const auto* nativeItem = &g_Level.Items[itemNumber];
 		if (nativeItem == nullptr)
-			return {};
+			return 0;
 
 		if (!itemToDraw.DoneAnimations)
 		{
@@ -557,37 +565,20 @@ namespace TEN::Renderer
 		const auto& moveable = GetRendererObject(nativeItem->ObjectNumber);
 		auto worldMatrix = GetWorldMatrixForMoveable(*nativeItem);
 
-		// Collect spheres.
-		auto spheres = std::vector<BoundingSphere>{};
-		if (moveable.ObjectMeshes.empty())
+		// Virtual objects (e.g. ID_BODY_PART) have no object meshes; each instance borrows its
+		// mesh per-instance, so derive the bounding spheres from the item's own mesh list.
+		bool isVirtual = moveable.ObjectMeshes.empty();
+		int meshCount = std::min(isVirtual ? (int)itemToDraw.MeshIndex.size() : (int)moveable.ObjectMeshes.size(), maxCount);
+		for (int i = 0; i < meshCount; i++)
 		{
-			// Virtual objects (e.g. ID_BODY_PART) have no object meshes; each instance borrows its
-			// mesh per-instance, so derive the bounding spheres from the item's own mesh list.
-			for (int i = 0; i < itemToDraw.MeshIndex.size(); i++)
-			{
-				const auto& mesh = *GetMesh(itemToDraw.MeshIndex[i]);
+			const auto& mesh = isVirtual ? *GetMesh(itemToDraw.MeshIndex[i]) : *moveable.ObjectMeshes[i];
 
-				const auto& animationTransform = itemToDraw.AnimationTransforms[i];
-				auto pos = Vector3::Transform(mesh.Sphere.Center, animationTransform * worldMatrix);
-
-				spheres.push_back(BoundingSphere(pos, mesh.Sphere.Radius));
-			}
-		}
-		else
-		{
-			for (int i = 0; i < moveable.ObjectMeshes.size(); i++)
-			{
-				const auto& mesh = *moveable.ObjectMeshes[i];
-
-				const auto& animationTransform = itemToDraw.AnimationTransforms[i];
-				auto pos = Vector3::Transform(mesh.Sphere.Center, animationTransform * worldMatrix);
-
-				auto sphere = BoundingSphere(pos, mesh.Sphere.Radius);
-				spheres.push_back(sphere);
-			}
+			const auto& animationTransform = itemToDraw.AnimationTransforms[i];
+			auto pos = Vector3::Transform(mesh.Sphere.Center, animationTransform * worldMatrix);
+			spheres[i] = BoundingSphere(pos, mesh.Sphere.Radius);
 		}
 
-		return spheres;
+		return meshCount;
 	}
 
 	void Renderer::GetBoneMatrix(short itemNumber, int jointIndex, Matrix* outMatrix)

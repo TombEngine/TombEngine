@@ -471,9 +471,10 @@ namespace TEN::Renderer
 				inFrustum = false;
 
 				// Get all spheres and check if frustum intersects any of them.
-				auto spheres = GetSpheres(itemNumber);
+				BoundingSphere spheres[BONE_COUNT_MAX];
+				int sphereCount = GetSpheres(itemNumber, spheres, BONE_COUNT_MAX);
 
-				for (int i = 0; !inFrustum && i < spheres.size(); i++)
+				for (int i = 0; !inFrustum && i < sphereCount; i++)
 				{
 					if (renderView.Camera.Frustum.SphereInFrustum(spheres[i].Center, spheres[i].Radius * 1.5f))
 						inFrustum = true;
