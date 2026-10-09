@@ -308,6 +308,7 @@ namespace TEN::Renderer
 		std::vector<Next::CloudLayerDraw>					   _nextCloudDraws = {}; // Cloud layer draws of the frame, replayed by the next renderer.
 		Next::SkyEffectFlags								   _nextSkyEffects = {}; // Atmospheric sky passes of the frame, replayed by the next renderer.
 		Next::GodRayDraw									   _nextGodRays    = {}; // God rays of the frame, replayed by the next renderer.
+		std::array<Next::HorizonLayerDraw, 2>				   _nextHorizonLayers = {}; // Horizon layers of the frame, replayed by the next renderer.
 
 		Matrix _playerWorldMatrix;
 

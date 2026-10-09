@@ -104,6 +104,7 @@ namespace TEN::Renderer::Next
         CloudNoiseData                     CloudNoise = {};
         SkyEffectFlags                     SkyEffects = {};
         GodRayDraw                         GodRays    = {};
+        std::array<HorizonLayerDraw, 2>    HorizonLayers = {};
 
         // Depth of field of the legacy renderer (DOFState).
         int          DofMode             = 0;
@@ -806,6 +807,7 @@ namespace TEN::Renderer::Next
         void DrawSkySprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const std::vector<SpriteDraw>& draws);
         void DrawSkyHorizons(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere);
         void DrawHorizonMeshes(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere, bool isMask);
+        SkyPixelUniforms GetHorizonPixelUniforms(int layer, float alpha, int hemisphere, bool isMask) const;
 
         // Sky pass (NextRendererSky.cpp).
         bool CreateCloudResources();

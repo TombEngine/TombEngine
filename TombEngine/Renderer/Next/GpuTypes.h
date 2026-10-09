@@ -63,6 +63,7 @@ namespace TEN::Renderer::Next
     struct FrameVertexUniforms { TEN_FRAME_VERTEX_UNIFORMS };
     struct DrawVertexUniforms  { TEN_DRAW_VERTEX_UNIFORMS };
     struct SkyVertexUniforms   { TEN_SKY_VERTEX_UNIFORMS };
+    struct SkyPixelUniforms    { TEN_SKY_PIXEL_UNIFORMS };
     struct FogBulbUniforms     { TEN_FOG_BULB_UNIFORMS };
     struct FramePixelUniforms  { TEN_FRAME_PIXEL_UNIFORMS };
     struct DrawPixelUniforms   { TEN_DRAW_PIXEL_UNIFORMS };
@@ -82,6 +83,7 @@ namespace TEN::Renderer::Next
     static_assert(sizeof(FrameVertexUniforms) == 96, "FrameVertexUniforms size.");
     static_assert(sizeof(DrawVertexUniforms) == 16, "DrawVertexUniforms size.");
     static_assert(sizeof(SkyVertexUniforms) == 160, "SkyVertexUniforms size.");
+    static_assert(sizeof(SkyPixelUniforms) == 32, "SkyPixelUniforms size.");
     static_assert(sizeof(FogBulbUniforms) == 2064, "FogBulbUniforms size.");
     static_assert(sizeof(FramePixelUniforms) == 144, "FramePixelUniforms size.");
     static_assert(sizeof(DrawPixelUniforms) == 48, "DrawPixelUniforms size.");

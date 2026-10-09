@@ -18,7 +18,7 @@ TEN_VS_UNIFORMS(SkyVertexUniforms, 2)
 
 TEN_PS_UNIFORMS(SkyPixelUniforms, 2)
 {
-    float4 SkyColor;
+    TEN_SKY_PIXEL_UNIFORMS
 };
 
 TEN_VS_STORAGE_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
@@ -44,6 +44,7 @@ struct PixelInput
     nointerpolation float3 UVScroll : TEXCOORD1;
     float4 FogBulbs                 : TEXCOORD2;
     float  ClipDepth                : TEXCOORD3; // Negative behind the paraboloid hemisphere.
+    float  RelativeY                : TEXCOORD4; // World Y relative to the camera, for the horizon gradients.
 };
 
 PixelInput VS(VertexInput input)
@@ -53,6 +54,7 @@ PixelInput VS(VertexInput input)
     PixelInput output;
     output.Position = mul(float4(worldPosition, 1.0f), ViewProjection);
     output.ClipDepth = 1.0f;
+    output.RelativeY = worldPosition.y - CameraPosition.y;
 
     if (IsParaboloid)
     {
@@ -87,13 +89,38 @@ PixelInput VS(VertexInput input)
     return output;
 }
 
+// Legacy horizon gradient: alpha ramp over the mesh height, t being 0 where the mesh is fully hidden.
+float GetHorizonGradient(float t, float amount)
+{
+    float fadeExtent = max(amount * 0.75f, 0.001f);
+    float gradientAlpha = smoothstep(0.0f, 1.0f, pow(saturate(t / fadeExtent), 2.2f));
+    return lerp(1.0f, gradientAlpha, saturate(amount * 2.0f));
+}
+
+// Fade hides the horizon mesh from its top down, rise from its bottom up (TEN Y points down).
+float GetHorizonGradientAlpha(float relativeY)
+{
+    if (MeshWorldYRange <= 0.0f)
+        return 1.0f;
+
+    float t = saturate((relativeY - MeshWorldYMin) / MeshWorldYRange);
+    float alpha = 1.0f;
+    if (HorizonGradientFade > 0.0f)
+        alpha *= GetHorizonGradient(t, HorizonGradientFade);
+
+    if (HorizonGradientRise > 0.0f)
+        alpha *= GetHorizonGradient(1.0f - t, HorizonGradientRise);
+
+    return alpha;
+}
+
 float4 PS(PixelInput input) : SV_TARGET
 {
     clip(input.ClipDepth);
 
     float4 color = ColorMap.Sample(ColorMapSampler, float3(ApplyUVScroll(input.UV, input.UVScroll), TextureLayer));
     float3 light = saturate(SkyColor.rgb - input.FogBulbs.w * 1.4f);
-    return float4(color.rgb * light + saturate(input.FogBulbs.rgb), color.a * SkyColor.a);
+    return float4(color.rgb * light + saturate(input.FogBulbs.rgb), color.a * SkyColor.a * GetHorizonGradientAlpha(input.RelativeY));
 }
 
 // Horizon silhouette for the god rays, as the legacy PSHorizonMask: white where the texel passes the alpha test.

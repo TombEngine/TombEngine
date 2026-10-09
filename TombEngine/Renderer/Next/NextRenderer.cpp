@@ -2186,7 +2186,9 @@ namespace TEN::Renderer::Next
             if (Vector3(color) == Vector3::Zero)
                 continue;
 
-            commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &color, sizeof(color));
+            auto pixelUniforms = SkyPixelUniforms{};
+            pixelUniforms.SkyColor = color;
+            commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &pixelUniforms, sizeof(pixelUniforms));
 
             for (int tile = 0; tile < 2; tile++)
             {
@@ -2232,6 +2234,37 @@ namespace TEN::Renderer::Next
         DrawHorizonMeshes(commandBuffer, renderPass, view, interpolationFactor, hemisphere, false);
     }
 
+    // Legacy horizon blend mode: alpha test buckets blend as alpha, and opaque buckets blend once the horizon fades, as
+    // GetBlendModeFromAlpha. The cloud presets cap the alpha below 1 so that their gradients blend.
+    static BlendMode GetHorizonBlendMode(BlendMode blendMode, float alpha)
+    {
+        if (blendMode == BlendMode::AlphaTest)
+            return BlendMode::AlphaBlend;
+
+        if (alpha < ALPHA_BLEND_THRESHOLD && (blendMode == BlendMode::Opaque || blendMode == BlendMode::FastAlphaBlend))
+            return BlendMode::AlphaBlend;
+
+        return blendMode;
+    }
+
+    // The view uses the alpha and gradients of the legacy draw; reflections and the god ray mask keep the plain mesh.
+    SkyPixelUniforms NextRenderer::GetHorizonPixelUniforms(int layer, float alpha, int hemisphere, bool isMask) const
+    {
+        auto uniforms = SkyPixelUniforms{};
+        uniforms.SkyColor = Vector4(1.0f, 1.0f, 1.0f, isMask ? 1.0f : alpha);
+
+        const auto& legacyLayer = _frameEnvironment->HorizonLayers[layer];
+        if (hemisphere != 0 || isMask || !legacyLayer.IsDrawn)
+            return uniforms;
+
+        uniforms.SkyColor.w = legacyLayer.Alpha;
+        uniforms.HorizonGradientFade = legacyLayer.GradientFade;
+        uniforms.HorizonGradientRise = legacyLayer.GradientRise;
+        uniforms.MeshWorldYMin = legacyLayer.MeshWorldYMin;
+        uniforms.MeshWorldYRange = legacyLayer.MeshWorldYRange;
+        return uniforms;
+    }
+
     // Horizon meshes of the level. The god ray mask draws them opaque and without fog bulbs, as a silhouette.
     void NextRenderer::DrawHorizonMeshes(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere, bool isMask)
     {
@@ -2252,11 +2285,12 @@ namespace TEN::Renderer::Next
             auto position = Vector3::Lerp(level->GetHorizonPrevPosition(layer), level->GetHorizonPosition(layer), interpolationFactor);
             auto orientation = EulerAngles::Lerp(level->GetHorizonPrevOrientation(layer), level->GetHorizonOrientation(layer), interpolationFactor);
             auto world = orientation.ToRotationMatrix() * Matrix::CreateTranslation(position) * Matrix::CreateTranslation(view.Camera.WorldPosition);
-            auto color = Vector4(1.0f, 1.0f, 1.0f, isMask ? 1.0f : alpha);
+            auto pixelUniforms = GetHorizonPixelUniforms(layer, alpha, hemisphere, isMask);
+            alpha = pixelUniforms.SkyColor.w;
 
             auto skyUniforms = GetSkyVertexUniforms(world, !isMask, view, hemisphere);
             commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &skyUniforms, sizeof(skyUniforms));
-            commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &color, sizeof(color));
+            commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &pixelUniforms, sizeof(pixelUniforms));
 
             BindLevelGeometry(renderPass, MeshSource::Moveables, false);
 
@@ -2268,9 +2302,7 @@ namespace TEN::Renderer::Next
                     if (bucket.NumIndices == 0)
                         continue;
 
-                    // Horizons always blend; alpha test buckets blend as alpha.
-                    auto blendMode = (bucket.BlendMode == BlendMode::AlphaTest || bucket.BlendMode == BlendMode::Opaque) ? BlendMode::AlphaBlend : bucket.BlendMode;
-                    renderPass.BindPipeline(GetScenePipeline(shader, isMask ? BlendMode::Opaque : blendMode));
+                    renderPass.BindPipeline(GetScenePipeline(shader, isMask ? BlendMode::Opaque : GetHorizonBlendMode(bucket.BlendMode, alpha)));
                     renderPass.BindVertexStorageBuffers(0, storageBuffers, 2);
 
                     int animatedSet = bucket.Animated ? bucket.Texture : NO_VALUE;

@@ -145,6 +145,14 @@ struct GpuFogBulb
     float    SkyPadding1       TEN_DEFAULT(0.0f); \
     float    SkyPadding2       TEN_DEFAULT(0.0f);
 
+// Pixel slot 2 of the sky shaders: layer or horizon color, and the gradient fades of the legacy horizons.
+#define TEN_SKY_PIXEL_UNIFORMS \
+    float4 SkyColor            TEN_DEFAULT(Vector4::One); \
+    float  HorizonGradientFade TEN_DEFAULT(0.0f); \
+    float  HorizonGradientRise TEN_DEFAULT(0.0f); \
+    float  MeshWorldYMin       TEN_DEFAULT(0.0f); \
+    float  MeshWorldYRange     TEN_DEFAULT(1.0f);
+
 // Vertex slot 3.
 #define TEN_FOG_BULB_UNIFORMS \
     int        FogBulbCount    TEN_DEFAULT(0); \

@@ -37,6 +37,17 @@ namespace TEN::Renderer::Next
         ConstantBuffers::CGodRayBuffer Uniforms = {};
     };
 
+    // Horizon layer of the legacy DrawHorizonAndSky, with the alpha and gradients the cloud presets gave it.
+    struct HorizonLayerDraw
+    {
+        bool  IsDrawn         = false;
+        float Alpha           = 1.0f;
+        float GradientFade    = 0.0f;
+        float GradientRise    = 0.0f;
+        float MeshWorldYMin   = 0.0f; // Camera relative top of the mesh.
+        float MeshWorldYRange = 1.0f;
+    };
+
     // Tileable cloud noise generated once by the legacy renderer: 3D RGBA8 noise and 2D RG8 Worley noise.
     struct CloudNoiseData
     {

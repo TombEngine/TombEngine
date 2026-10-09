@@ -2359,6 +2359,7 @@ namespace TEN::Renderer
 
 			environment.SkyEffects = _nextSkyEffects;
 			environment.GodRays = _nextGodRays;
+			environment.HorizonLayers = _nextHorizonLayers;
 			if (_nextSkyEffects.IsDomeDrawn || _nextSkyEffects.IsSunMoonDiscDrawn || _nextSkyEffects.IsAuroraDrawn)
 			{
 				environment.AtmosphericSkyUniforms = &_stAtmosphericSky;
@@ -3265,6 +3266,7 @@ namespace TEN::Renderer
 			_nextCloudDraws.clear();
 			_nextSkyEffects = {};
 			_nextGodRays = {};
+			_nextHorizonLayers = {};
 		}
 
 		bool anyOutsideRooms = false;
@@ -3654,6 +3656,9 @@ namespace TEN::Renderer
 			}
 
 			UpdateConstantBuffer(&_stSky, _cbSky.get());
+
+			if (!reflectionPass)
+				_nextHorizonLayers[layer] = Next::HorizonLayerDraw{ true, alpha, _stSky.HorizonGradientFade, _stSky.HorizonGradientRise, _stSky.MeshWorldYMin, _stSky.MeshWorldYRange };
 
 			const auto& moveableObj = *_moveableObjects[levelPtr->GetHorizonObjectID(layer)];
 			for (auto* mesh : moveableObj.ObjectMeshes)
