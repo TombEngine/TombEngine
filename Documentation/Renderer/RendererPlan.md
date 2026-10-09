@@ -121,7 +121,7 @@ Principi:
 - [x] Correggere i bug del punto 2.6 (un commit ciascuno).
 - [x] Benchmark ripetibile: 3-4 livelli (interno denso, esterno con cielo e nuvole, molti trasparenti, molti item) con un percorso di camera scriptato tramite l'harness headless (`.prj2` compilato con TombLib + script Lua). Output CSV: CPU ms per fase, GPU ms per pass (timestamp DX11), draw call, byte caricati, tempo di caricamento del livello. *(modalita' `benchmark <secondi>`, livelli tut1_water, Karnak e Coastal; vedi `Baseline.md`)*
 - [x] Salvare la baseline in `Documentation/Renderer/Baseline.md`. Ogni fase successiva si confronta con questa.
-- [ ] Congelare il renderer attuale: solo bug fix fino alla sostituzione.
+- [x] Congelare il renderer attuale: solo bug fix fino alla sostituzione. *(in vigore: il legacy riceve solo gli agganci per il renderer nuovo e le correzioni condivise del frontend)*
 
 ---
 
@@ -345,9 +345,9 @@ Il renderer nuovo gira in una seconda finestra accanto a quello vecchio, sugli s
 ## 13. Decisioni ancora aperte
 
 - [x] Texture array con pagine di dimensioni diverse: array separati per dimensione o padding (dipende dai livelli reali, da misurare). *(scelto: array separati per dimensione e formato)*
-- [ ] Normale di faccia nel vertice o in un buffer per poligono.
+- [x] Normale di faccia nel vertice o in un buffer per poligono. *(scelto: resta nel vertice, il vertice compresso e' 40 B per le stanze e 48 B per gli oggetti; un buffer per poligono richiede `SV_PrimitiveID` e un indice per draw, per 4 B per vertice)*
 - [ ] Coordinamento con Tomo sul porting di cielo e nuvole.
-- [ ] Dipendenze nuove (DXC dal Vulkan SDK, solo per la build): licenze e dimensione della distribuzione.
+- [x] Dipendenze nuove (DXC dal Vulkan SDK, solo per la build): licenze e dimensione della distribuzione. *(DXC serve solo alla build per lo SPIR-V, licenza NCSA/MIT; la distribuzione contiene solo i binari degli shader. Da decidere invece un decoder JPEG per le schermate di caricamento: oggi il renderer nuovo legge solo PNG e DDS)*
 
 ---
 
