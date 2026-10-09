@@ -34,6 +34,12 @@ namespace TEN::Renderer::VolumetricCloud
 		std::unique_ptr<ITexture3D> Noise3D;
 		std::unique_ptr<ITexture2D> Worley2D;
 
+		// Generated texels, kept for the next renderer.
+		std::vector<unsigned char> Noise3DData        = {};
+		std::vector<unsigned char> Worley2DData       = {};
+		int                        Noise3DResolution  = 0;
+		int                        Worley2DResolution = 0;
+
 		// Generate textures via the abstract device. Called once from
 		// Renderer::InitializeVolumetricClouds().
 		void Initialize(IGraphicsDevice* device);

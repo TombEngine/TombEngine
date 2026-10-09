@@ -2354,6 +2354,8 @@ namespace TEN::Renderer
 				environment.SkySunSprite = &_nextSunSprite;
 
 			environment.SkySprites = &_nextSkySprites;
+			environment.CloudDraws = &_nextCloudDraws;
+			environment.CloudNoise = Next::CloudNoiseData{ _cloudNoiseTextures.Noise3DData.data(), _cloudNoiseTextures.Noise3DResolution, _cloudNoiseTextures.Worley2DData.data(), _cloudNoiseTextures.Worley2DResolution };
 
 			if (_atmosphericSkySettings.Enabled)
 			{
@@ -3255,6 +3257,9 @@ namespace TEN::Renderer
 	void Renderer::DrawHorizonAndSky(IDepthTarget* depthTarget, RenderView& renderView, int arrayIndex, bool reflectionPass)
 	{
 		auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
+
+		if (!reflectionPass)
+			_nextCloudDraws.clear();
 
 		bool anyOutsideRooms = false;
 		for (int k = 0; k < renderView.RoomsToDraw.size(); k++)

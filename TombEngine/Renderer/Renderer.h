@@ -39,6 +39,7 @@
 #include "Renderer/Graphics/IGraphicsDevice.h"
 #include "Renderer/Graphics/Vertices/PostProcessVertex.h"
 #include "Renderer/Next/OverlayTypes.h"
+#include "Renderer/Next/SkyTypes.h"
 #include "Renderer/RendererEnums.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/ShaderManager/ShaderManager.h"
@@ -304,6 +305,7 @@ namespace TEN::Renderer
 		RendererSprite										   _videoSprite; // Video texture is an unique case
 		std::vector<RendererSpriteToDraw>					   _nextSkySprites = {}; // Sky sprites passed to the next renderer.
 		RendererSpriteToDraw								   _nextSunSprite  = {}; // Classic sun sprite passed to the next renderer.
+		std::vector<Next::CloudLayerDraw>					   _nextCloudDraws = {}; // Cloud layer draws of the frame, replayed by the next renderer.
 
 		Matrix _playerWorldMatrix;
 

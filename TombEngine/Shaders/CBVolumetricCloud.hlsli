@@ -1,7 +1,11 @@
 // CBVolumetricCloud.hlsli — Constant buffer for volumetric cloud rendering.
 // Bound to register b9 (first free register after b8=Sky).
 
+#ifdef TEN_VOLUMETRIC_CLOUD_UNIFORMS
+TEN_VOLUMETRIC_CLOUD_UNIFORMS
+#else
 cbuffer CBVolumetricCloud : register(b9)
+#endif
 {
     // Row 0
     float CloudBottomHeight;

@@ -116,6 +116,7 @@ namespace TEN::Renderer
 		else
 		{
 			_graphicsDevice->ClearRenderTarget2D(_cloudRenderTarget->GetRenderTarget(), Colors::Transparent);
+			_nextCloudDraws.push_back(Next::CloudLayerDraw{ 0, true });
 
 			// Reset temporal state so when the layer becomes active again it starts with
 			// fresh history (TemporalEnabled = warmup) rather than stale old-preset data.
@@ -133,6 +134,7 @@ namespace TEN::Renderer
 		else
 		{
 			_graphicsDevice->ClearRenderTarget2D(_cloudRenderTargetB->GetRenderTarget(), Colors::Transparent);
+			_nextCloudDraws.push_back(Next::CloudLayerDraw{ 1, true });
 
 			// Reset temporal state so when the layer becomes active again it starts with
 			// fresh history (TemporalEnabled = warmup) rather than stale old-preset data.
@@ -184,10 +186,12 @@ namespace TEN::Renderer
 		// noise (visible as flickering and horizontal march-plane banding).
 		// Keep the history alive — it stays valid because the on-screen result is a
 		// smooth blend of the same source clouds plus a gradually-forming target.
+		bool isHistoryReset = false;
 		if (state.PrevCloudType >= 0
 			&& state.PrevCloudType != settings.CloudType
 			&& settings.MorphActive <= 0.5f)
 		{
+			isHistoryReset = true;
 			state.FrameCounter = 0;
 			if (prevFrameRT)
 			{
@@ -245,6 +249,15 @@ namespace TEN::Renderer
 
 		// Fill constant buffer.
 		UpdateVolumetricCloudBuffer(settings, state, renderView);
+
+		// Recorded for the next renderer; only the bleed overlay draws without a history target.
+		auto& nextDraw = _nextCloudDraws.emplace_back();
+		nextDraw.Layer = (renderTarget == _cloudRenderTarget.get()) ? 0 : 1;
+		nextDraw.IsHistoryReset = isHistoryReset;
+		nextDraw.IsRaymarched = !skipRaymarch;
+		nextDraw.IsHistoryUsed = (prevFrameRT != nullptr && state.ActiveQuality.TemporalReprojection);
+		nextDraw.IsAfterHorizons = (prevFrameRT == nullptr);
+		nextDraw.Uniforms = _stVolumetricCloud;
 
 		// Store current values for next frame's temporal reprojection.
 		// (Must be AFTER UpdateVolumetricCloudBuffer which reads the Prev* values.)

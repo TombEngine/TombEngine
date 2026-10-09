@@ -114,6 +114,20 @@ namespace TEN::Renderer::Next
         _debrisVertexBuffer = {};
         _debrisInstanceBuffer = {};
         _debugVertexBuffer = {};
+        _cloudRaymarchPipeline = nullptr;
+        _cloudCompositePipeline = nullptr;
+        _cloudVertexShader = nullptr;
+        _cloudRaymarchPixelShader = nullptr;
+        _cloudCompositePixelShader = nullptr;
+        _linearWrapSampler = nullptr;
+        _cloudNoise3D = nullptr;
+        _cloudWorley2D = nullptr;
+        for (int layer = 0; layer < CLOUD_LAYER_COUNT; layer++)
+        {
+            _cloudTargets[layer] = nullptr;
+            _cloudHistoryTargets[layer] = nullptr;
+        }
+
         _debugLinePipeline = nullptr;
         _debugTrianglePipeline = nullptr;
         _debugVertexShader = nullptr;
@@ -343,7 +357,7 @@ namespace TEN::Renderer::Next
 
         if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources() ||
             !CreateSkyReflectionResources() || !CreateAtmosphereResources() || !CreateOverlayResources(TEN::Renderer::Utils::GetAssetPath("Textures/Font.spritefont")) ||
-            !CreateDebugPrimitiveResources())
+            !CreateDebugPrimitiveResources() || !CreateCloudResources())
             return false;
 
         if (!LoadNoAlphaTestShaders())
@@ -420,6 +434,7 @@ namespace TEN::Renderer::Next
         region.Texture = texture;
         region.Width = texture->GetDesc().Width;
         region.Height = texture->GetDesc().Height;
+        region.Depth = (texture->GetDesc().Type == TextureType::Texture3D) ? texture->GetDesc().DepthOrLayers : 1;
         copyPass->UploadToTexture(TextureTransferInfo{ transferBuffer.get(), 0, 0, 0 }, region, false);
         commandBuffer->EndCopyPass();
         commandBuffer->Submit();
@@ -2399,6 +2414,8 @@ namespace TEN::Renderer::Next
         auto lock = std::lock_guard<std::mutex>(_frameMutex);
         if (!EnsureRenderTargets(width, height))
             return;
+
+        EnsureCloudNoise(environment.CloudNoise);
 
         auto startTime = std::chrono::steady_clock::now();
         _frameStats.DrawCalls = 0;

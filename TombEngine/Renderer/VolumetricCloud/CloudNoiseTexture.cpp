@@ -221,7 +221,9 @@ namespace TEN::Renderer::VolumetricCloud
 		const float invRes = (float)tile3 / (float)res3;
 		const float curlEps = 0.5f;
 
-		std::vector<uint8_t> data3D(res3 * res3 * res3 * 4);
+		Noise3DResolution = res3;
+		Noise3DData.assign(res3 * res3 * res3 * 4, 0);
+		auto& data3D = Noise3DData;
 
 		for (int iz = 0; iz < res3; iz++)
 		for (int iy = 0; iy < res3; iy++)
@@ -259,7 +261,9 @@ namespace TEN::Renderer::VolumetricCloud
 		const int tile2    = WORLEY_TILE;
 		const float invRes2 = (float)tile2 / (float)res2;
 
-		std::vector<uint8_t> data2D(res2 * res2 * 2);
+		Worley2DResolution = res2;
+		Worley2DData.assign(res2 * res2 * 2, 0);
+		auto& data2D = Worley2DData;
 
 		for (int iy = 0; iy < res2; iy++)
 		for (int ix = 0; ix < res2; ix++)

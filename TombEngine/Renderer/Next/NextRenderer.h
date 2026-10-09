@@ -8,6 +8,7 @@
 #include "Renderer/Next/DrawSort.h"
 #include "Renderer/Next/GpuTypes.h"
 #include "Renderer/Next/OverlayTypes.h"
+#include "Renderer/Next/SkyTypes.h"
 #include "Renderer/RHI/RHIDevice.h"
 #include "Renderer/RHI/RenderTargetPool.h"
 #include "Renderer/RHI/TextureCapture.h"
@@ -97,6 +98,10 @@ namespace TEN::Renderer::Next
         // Stars and meteors of the classic sky, drawn additively after the sky layers.
         const std::vector<Structures::RendererSpriteToDraw>* SkySprites = nullptr;
         const Structures::RendererSpriteToDraw*              SkySunSprite = nullptr; // Classic sun sprite, drawn after the clouds.
+
+        // Volumetric cloud draws of the legacy renderer in draw order, and the cloud noise it generated.
+        const std::vector<CloudLayerDraw>* CloudDraws = nullptr;
+        CloudNoiseData                     CloudNoise = {};
 
         // Depth of field of the legacy renderer (DOFState).
         int          DofMode             = 0;
@@ -650,6 +655,20 @@ namespace TEN::Renderer::Next
         std::vector<SpriteDraw>       _mirrorSpriteDraws   = {};
         std::vector<SpriteDraw>       _skySpriteDraws      = {};
         std::vector<SpriteDraw>       _skySunDraws         = {};
+
+        // Volumetric cloud layers replayed from the legacy draws.
+        static constexpr auto CLOUD_LAYER_COUNT = 2;
+
+        std::unique_ptr<RHI::IShader>           _cloudVertexShader                     = nullptr;
+        std::unique_ptr<RHI::IShader>           _cloudRaymarchPixelShader              = nullptr;
+        std::unique_ptr<RHI::IShader>           _cloudCompositePixelShader             = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _cloudRaymarchPipeline                 = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _cloudCompositePipeline                = nullptr;
+        std::unique_ptr<RHI::ISampler>          _linearWrapSampler                     = nullptr;
+        std::unique_ptr<RHI::ITexture>          _cloudNoise3D                          = nullptr;
+        std::unique_ptr<RHI::ITexture>          _cloudWorley2D                         = nullptr;
+        std::unique_ptr<RHI::ITexture>          _cloudTargets[CLOUD_LAYER_COUNT]        = {};
+        std::unique_ptr<RHI::ITexture>          _cloudHistoryTargets[CLOUD_LAYER_COUNT] = {};
         std::vector<const Structures::RendererSpriteToDraw*> _spriteSources = {}; // One per frame sprite.
         std::unordered_map<const void*, int> _sortedInstances = {};
         std::array<int, 2>            _hairInstances       = { NO_VALUE, NO_VALUE }; // Primary and secondary hair unit instances.
@@ -772,6 +791,14 @@ namespace TEN::Renderer::Next
         void DrawSkyHorizons(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere);
 
         // Sky pass (NextRendererSky.cpp).
+        bool CreateCloudResources();
+        void EnsureCloudNoise(const CloudNoiseData& noise);
+        bool EnsureCloudTargets(RHI::ICommandBuffer& commandBuffer, int width, int height);
+        void ClearColorTarget(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* texture);
+        bool HasCloudDraws(bool isAfterHorizons) const;
+        void DrawCloudLayers(RHI::ICommandBuffer& commandBuffer, bool isAfterHorizons);
+        void RaymarchCloudLayer(RHI::ICommandBuffer& commandBuffer, const CloudLayerDraw& draw);
+        void CompositeCloudLayer(RHI::ICommandBuffer& commandBuffer, int layer);
         RHI::IRenderPass* BeginSkyRenderPass(RHI::ICommandBuffer& commandBuffer, RHI::LoadOp load);
         void RenderSkyPass(RHI::ICommandBuffer& commandBuffer);
         bool CreateSkyReflectionResources();
