@@ -242,7 +242,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 - [x] Un `Lights[]` unico per frame e **liste di indici di luci** per stanza e per oggetto, calcolate sulla CPU in Prepare (come oggi in sostanza, ma una volta per frame e senza copie). Lo shader legge le luci tramite indice. *(un solo buffer di luci per frame con fette per oggetto e per stanza; le liste di indici non sono state adottate: la stessa luce cambia valore tra oggetti per la dissolvenza tra stanze, e le luci copiate valgono 1,3-2 KB per frame)*
 - [x] Stesso modello di luce legacy (attenuazioni, spot, shadow mode per oggetto): stessa immagine, costo diverso. *(`ToGpuLight` come `BindLight`, `Lighting.hlsli`)*
 - [x] Fog bulb raccolti una volta per frame, non per stanza.
-- [ ] Illuminazione clustered (Forward+) **non** prevista: si valuta solo se le misure mostrano un collo di bottiglia nelle liste di luci.
+- [x] ~~Illuminazione clustered (Forward+) **non** prevista: si valuta solo se le misure mostrano un collo di bottiglia nelle liste di luci.~~ *(le liste di luci costano 1,3-2 KB per frame)*
 
 ### 8.4 Pass principali
 - [x] **Depth + normali** (stanze, statiche, moveable; alpha test con una permutazione dedicata) per SSAO ed early-z: sostituisce il GBuffer a 4 MRT con il minimo indispensabile. *(una sola uscita: normali in view space; la depth del prepass e' riusata dal pass di scena con LessOrEqual)*
@@ -261,7 +261,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 - [x] Post-process come pass della lista con target transienti condivisi: distortion, DOF, glow, color grading, lens flare, SMAA/FXAA. *(`FRAME_PASSES` e `RenderTargetPool`)*
 - [x] Effetti a bassa frequenza a mezza o un quarto di risoluzione con upsample bilaterale (SSAO, glow, nuvole, aurora, god ray) dove la qualita' regge. *(SSAO fatta: mezza risoluzione, blur bilaterale H/V, upsample bilineare; 0,15-0,33 ms contro 0,9-1,1 ms del legacy sulla RTX 3050)* *(nuvole, aurora e god ray non sono ancora portati: Tomo)*
 - [x] ~~Compute shader (CS 5.0) solo per i blur separabili e le riduzioni, dove battono il pixel shader.~~ *(non adottato: i blur sono gia' a risoluzione ridotta e costano 0,1-0,2 ms; nessun guadagno misurabile)*
-- [ ] HDR lineare (`RGBA16F` + tonemapping) **non** previsto ora: cambia il look e aggiunge rischio. Da valutare dopo la parita'.
+- [x] ~~HDR lineare (`RGBA16F` + tonemapping) **non** previsto ora: cambia il look e aggiunge rischio. Da valutare dopo la parita'.~~
 
 ---
 
