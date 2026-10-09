@@ -41,13 +41,17 @@ struct GpuAnimatedSet
     float Padding1          TEN_DEFAULT(0.0f);
 };
 
+// Instances of outdoor rooms write the outdoor mask of the dust storm in the prepass.
+#define INSTANCE_LIGHT_MODE_MASK 0xFF
+#define INSTANCE_OUTDOOR_FLAG    0x100
+
 // Per-instance data of statics and moveable meshes, read through the instance index stream.
 struct GpuObjectInstance
 {
     float4x4 World        TEN_DEFAULT(Matrix::Identity);
     float4   Color        TEN_DEFAULT(Vector4::One);
     float4   AmbientLight TEN_DEFAULT(Vector4::One);
-    uint     LightMode    TEN_DEFAULT(0);
+    uint     LightMode    TEN_DEFAULT(0); // Light mode in the low 8 bits, INSTANCE_OUTDOOR_FLAG for outdoor rooms.
     uint     LightOffset  TEN_DEFAULT(0);
     uint     LightCount   TEN_DEFAULT(0); // Light count in the low 16 bits, light type mask in the high bits.
     uint     Skinning     TEN_DEFAULT(0); // Bone palette offset in the low 24 bits, skinning mode in the high 8 bits.
@@ -189,7 +193,7 @@ struct GpuFogBulb
     uint  DecalOffset       TEN_DEFAULT(0); \
     uint  DecalCount        TEN_DEFAULT(0); \
     uint  TextureLayer      TEN_DEFAULT(0); \
-    uint  DrawPixelPadding0 TEN_DEFAULT(0); \
+    uint  IsOutdoorRoom     TEN_DEFAULT(0); \
     uint  DrawPixelPadding1 TEN_DEFAULT(0); \
     uint  DrawPixelPadding2 TEN_DEFAULT(0);
 

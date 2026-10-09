@@ -114,6 +114,9 @@ namespace TEN::Renderer::Next
         _debrisVertexBuffer = {};
         _debrisInstanceBuffer = {};
         _debugVertexBuffer = {};
+        _dustStormPipeline = nullptr;
+        _dustStormVertexShader = nullptr;
+        _dustStormPixelShader = nullptr;
         _godRayPipeline = nullptr;
         _godRayCompositePipeline = nullptr;
         _godRayVertexShader = nullptr;
@@ -371,7 +374,7 @@ namespace TEN::Renderer::Next
 
         if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources() ||
             !CreateSkyReflectionResources() || !CreateAtmosphereResources() || !CreateOverlayResources(TEN::Renderer::Utils::GetAssetPath("Textures/Font.spritefont")) ||
-            !CreateDebugPrimitiveResources() || !CreateCloudResources() || !CreateGodRayResources())
+            !CreateDebugPrimitiveResources() || !CreateCloudResources() || !CreateGodRayResources() || !CreateDustStormResources())
             return false;
 
         if (!LoadNoAlphaTestShaders())
@@ -938,6 +941,7 @@ namespace TEN::Renderer::Next
         auto info = BucketDrawInfo{};
         info.IsWaterRoom = (g_Level.Rooms[roomNumber].flags & ENV_FLAG_WATER) ? 1 : 0;
         info.IsCausticsRoom = IsCausticsRoom(roomNumber) ? 1 : 0;
+        info.IsOutdoorRoom = (g_Level.Rooms[roomNumber].flags & ENV_FLAG_SKYBOX) ? 1 : 0;
 
         auto it = _roomDecalSlices.find(roomNumber);
         if (hasDecals && it != _roomDecalSlices.end())
@@ -1047,6 +1051,7 @@ namespace TEN::Renderer::Next
         pixelUniforms.LightCount = lightCount;
         pixelUniforms.MaterialIndex = (bucket.MaterialIndex >= 0 && bucket.MaterialIndex < (int)g_Level.Materials.size()) ? (unsigned int)bucket.MaterialIndex : 0;
         pixelUniforms.IsCausticsRoom = room.IsCausticsRoom;
+        pixelUniforms.IsOutdoorRoom = room.IsOutdoorRoom;
         pixelUniforms.DecalOffset = room.DecalOffset;
         pixelUniforms.DecalCount = bucket.Animated ? 0 : room.DecalCount;
         pixelUniforms.TextureLayer = (page != nullptr) ? (unsigned int)page->Layer : 0;
@@ -1490,10 +1495,20 @@ namespace TEN::Renderer::Next
         instance.Skinning = ((unsigned int)boneOffset & 0xFFFFFF) | ((unsigned int)skinningMode << 24);
 
         int index = (int)(_instanceData.size() / sizeof(GpuObjectInstance));
-        const auto* bytes = (const unsigned char*)&instance;
-        _instanceData.insert(_instanceData.end(), bytes, bytes + sizeof(instance));
-        _instanceOrigins.push_back(_currentOrigin);
+        AppendInstance(instance, _currentOrigin);
         return index;
+    }
+
+    // Instances of outdoor rooms are flagged for the outdoor mask of the prepass.
+    void NextRenderer::AppendInstance(const GpuObjectInstance& instance, const InstanceOrigin& origin)
+    {
+        auto flaggedInstance = instance;
+        if (origin.RoomNumber != NO_VALUE && (g_Level.Rooms[origin.RoomNumber].flags & ENV_FLAG_SKYBOX))
+            flaggedInstance.LightMode |= INSTANCE_OUTDOOR_FLAG;
+
+        const auto* bytes = (const unsigned char*)&flaggedInstance;
+        _instanceData.insert(_instanceData.end(), bytes, bytes + sizeof(flaggedInstance));
+        _instanceOrigins.push_back(origin);
     }
 
     int NextRenderer::AddBones(const Matrix* bones, int count)
@@ -2449,6 +2464,7 @@ namespace TEN::Renderer::Next
         DrawSortedFaces(commandBuffer, *renderPass, true);
         DrawDebris(commandBuffer, *renderPass, DebrisPass::Blended);
         DrawGunFlashes(commandBuffer, *renderPass);
+        DrawDustStorm(commandBuffer, *renderPass);
         DrawDebugPrimitives(commandBuffer, *renderPass);
         commandBuffer.EndRenderPass();
     }

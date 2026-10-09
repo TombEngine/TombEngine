@@ -164,7 +164,7 @@ float4 PS(PixelInput input) : SV_TARGET
                                          surface.Specular, View, InverseViewportSize.y / InverseViewportSize.x);
 
     float3 vertexLight = input.Color.rgb * COLOR_MODULATION_SCALE;
-    float3 color = (input.LightMode == LIGHT_MODE_DYNAMIC) ?
+    float3 color = ((input.LightMode & INSTANCE_LIGHT_MODE_MASK) == LIGHT_MODE_DYNAMIC) ?
         CombineLights(input.AmbientLight * COLOR_MODULATION_SCALE, vertexLight, input.WorldPosition, surface, input.Sheen, input.LightSlice, input.FogBulbs.w) :
         saturate(surface.Color.rgb * vertexLight + surface.Emissive - input.FogBulbs.w);
 
@@ -190,7 +190,7 @@ PrepassOutput PSDepthNormal(PixelInput input)
     float3 emissive;
     float3 normal = SampleSurfaceNormal(Materials[MaterialIndex], ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition,
                                         PixelCameraPosition, input.Normal, input.Tangent, input.Binormal, input.FaceNormal, emissive);
-    return GetPrepassOutput(EncodeViewNormal(normal, View), emissive, input.Fog);
+    return GetPrepassOutput(EncodeViewNormal(normal, View), emissive, input.Fog, (input.LightMode & INSTANCE_OUTDOOR_FLAG) != 0);
 }
 
 // Objects of the 2D layer (inventory, pickups, display items), as the legacy Inventory shader: the instance color

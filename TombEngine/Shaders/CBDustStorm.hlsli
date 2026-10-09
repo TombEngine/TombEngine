@@ -6,7 +6,11 @@
 #ifndef CB_DUST_STORM_HLSLI
 #define CB_DUST_STORM_HLSLI
 
+#ifdef TEN_DUST_STORM_BLOCK
+TEN_DUST_STORM_BLOCK
+#else
 cbuffer CBDustStorm : register(b10)
+#endif
 {
     // Row 0
     float3 DustColor;

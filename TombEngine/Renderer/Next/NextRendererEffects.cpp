@@ -87,11 +87,8 @@ namespace TEN::Renderer::Next
             while (runEnd < count && _queuedMeshInstances[runEnd].Mesh == mesh)
             {
                 const auto& queued = _queuedMeshInstances[runEnd];
-                const auto* bytes = (const unsigned char*)&queued.Instance;
-                _instanceData.insert(_instanceData.end(), bytes, bytes + sizeof(GpuObjectInstance));
-
                 // Legacy mirrors reflect these instances with the moveables of the mirror room.
-                _instanceOrigins.push_back(InstanceOrigin{ queued.RoomNumber, queued.IsReflectable ? InstanceCategory::Moveable : InstanceCategory::None });
+                AppendInstance(queued.Instance, InstanceOrigin{ queued.RoomNumber, queued.IsReflectable ? InstanceCategory::Moveable : InstanceCategory::None });
                 runEnd++;
             }
 

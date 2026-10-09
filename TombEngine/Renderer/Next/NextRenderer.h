@@ -105,6 +105,7 @@ namespace TEN::Renderer::Next
         SkyEffectFlags                     SkyEffects = {};
         GodRayDraw                         GodRays    = {};
         std::array<HorizonLayerDraw, 2>    HorizonLayers = {};
+        DustStormDraw                      DustStorm     = {};
 
         // Depth of field of the legacy renderer (DOFState).
         int          DofMode             = 0;
@@ -225,6 +226,7 @@ namespace TEN::Renderer::Next
         {
             unsigned int IsWaterRoom         = 0;
             unsigned int IsCausticsRoom      = 0;
+            unsigned int IsOutdoorRoom       = 0;
             unsigned int DecalOffset         = 0;
             unsigned int DecalCount          = 0;
             int          AnimatedSetOverride = NO_VALUE;
@@ -686,6 +688,9 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IShader>           _godRayCompositePixelShader            = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _godRayPipeline                        = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _godRayCompositePipeline               = nullptr;
+        std::unique_ptr<RHI::IShader>           _dustStormVertexShader                 = nullptr;
+        std::unique_ptr<RHI::IShader>           _dustStormPixelShader                  = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _dustStormPipeline                     = nullptr;
         std::vector<const Structures::RendererSpriteToDraw*> _spriteSources = {}; // One per frame sprite.
         std::unordered_map<const void*, int> _sortedInstances = {};
         std::array<int, 2>            _hairInstances       = { NO_VALUE, NO_VALUE }; // Primary and secondary hair unit instances.
@@ -727,6 +732,7 @@ namespace TEN::Renderer::Next
         BucketDrawInfo GetBucketDrawInfo(int roomNumber, bool hasDecals);
         void CollectDecals(const RenderView& view);
         bool IsCausticsRoom(int roomNumber) const;
+        void AppendInstance(const GpuObjectInstance& instance, const InstanceOrigin& origin);
         void PrepareCaustics(FramePixelUniforms& uniforms);
         void BindScenePixelStorage(RHI::IRenderPass& renderPass);
         void UploadBuffer(RHI::IBuffer* buffer, const void* data, int size, int offset = 0);
@@ -820,6 +826,8 @@ namespace TEN::Renderer::Next
         void CompositeCloudLayer(RHI::ICommandBuffer& commandBuffer, int layer);
         bool CreateGodRayResources();
         void DrawGodRays(RHI::ICommandBuffer& commandBuffer);
+        bool CreateDustStormResources();
+        void DrawDustStorm(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
         RHI::IRenderPass* BeginSkyRenderPass(RHI::ICommandBuffer& commandBuffer, RHI::LoadOp load);
         void RenderSkyPass(RHI::ICommandBuffer& commandBuffer);
         bool CreateSkyReflectionResources();

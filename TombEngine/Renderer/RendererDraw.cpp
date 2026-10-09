@@ -2360,6 +2360,7 @@ namespace TEN::Renderer
 			environment.SkyEffects = _nextSkyEffects;
 			environment.GodRays = _nextGodRays;
 			environment.HorizonLayers = _nextHorizonLayers;
+			environment.DustStorm = _nextDustStorm;
 			if (_nextSkyEffects.IsDomeDrawn || _nextSkyEffects.IsSunMoonDiscDrawn || _nextSkyEffects.IsAuroraDrawn)
 			{
 				environment.AtmosphericSkyUniforms = &_stAtmosphericSky;

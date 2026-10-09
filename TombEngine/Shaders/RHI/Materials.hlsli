@@ -260,11 +260,12 @@ struct PrepassOutput
     float4 Emissive : SV_Target1;
 };
 
-// Distance fog fades the emissive as in the legacy GBuffer pass.
-PrepassOutput GetPrepassOutput(float3 viewNormal, float3 emissive, float fog)
+// Distance fog fades the emissive as in the legacy GBuffer pass. The normal alpha is the outdoor mask of the legacy
+// GBuffer, read by the dust storm.
+PrepassOutput GetPrepassOutput(float3 viewNormal, float3 emissive, float fog, bool isOutdoor)
 {
     PrepassOutput output;
-    output.Normal = float4(viewNormal, 1.0f);
+    output.Normal = float4(viewNormal, isOutdoor ? 1.0f : 0.0f);
     output.Emissive = float4(emissive * (1.0f - fog * fog), 1.0f);
     return output;
 }

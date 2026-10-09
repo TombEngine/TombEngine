@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Renderer/ConstantBuffers/DustStormBuffer.h"
 #include "Renderer/ConstantBuffers/GodRayBuffer.h"
 #include "Renderer/ConstantBuffers/VolumetricCloudBuffer.h"
 
@@ -46,6 +47,13 @@ namespace TEN::Renderer::Next
         float GradientRise    = 0.0f;
         float MeshWorldYMin   = 0.0f; // Camera relative top of the mesh.
         float MeshWorldYRange = 1.0f;
+    };
+
+    // Dust storm of the legacy DrawDustStorm, drawn over the scene when IsDrawn is set.
+    struct DustStormDraw
+    {
+        bool                              IsDrawn  = false;
+        ConstantBuffers::CDustStormBuffer Uniforms = {};
     };
 
     // Tileable cloud noise generated once by the legacy renderer: 3D RGBA8 noise and 2D RG8 Worley noise.

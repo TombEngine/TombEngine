@@ -321,6 +321,55 @@ namespace TEN::Renderer::Next
         _targetPool.Release(sceneCopy);
     }
 
+    bool NextRenderer::CreateDustStormResources()
+    {
+        _dustStormVertexShader = LoadShader(*_device, _shaderDirectory, "DustStorm", "VS");
+        _dustStormPixelShader = LoadShader(*_device, _shaderDirectory, "DustStorm", "PSDustStorm");
+        if (_dustStormVertexShader == nullptr || _dustStormPixelShader == nullptr)
+            return false;
+
+        // Drawn inside the scene pass, without depth test, as the legacy dust storm.
+        auto desc = GraphicsPipelineDesc{};
+        desc.VertexShader = _dustStormVertexShader.get();
+        desc.PixelShader = _dustStormPixelShader.get();
+        desc.Rasterizer.Cull = RHI::CullMode::None;
+        desc.DepthStencil.EnableDepthTest = false;
+        desc.DepthStencil.EnableDepthWrite = false;
+        desc.DepthFormat = PixelFormat::D32Float;
+        desc.NumColorTargets = 1;
+        desc.ColorTargets[0].Format = _device->GetSwapchainFormat();
+        desc.ColorTargets[0].Blend = GetBlendState(BlendMode::AlphaBlend);
+        desc.Name = "DustStorm";
+        _dustStormPipeline = _device->CreateGraphicsPipeline(desc);
+        return (_dustStormPipeline != nullptr);
+    }
+
+    // Legacy DrawDustStorm: a fullscreen raymarch over the transparent geometry, clamped by the prepass depth and
+    // limited to outdoor rooms by the outdoor mask in the alpha of the prepass normals.
+    void NextRenderer::DrawDustStorm(ICommandBuffer& commandBuffer, IRenderPass& renderPass)
+    {
+        const auto& dustStorm = _frameEnvironment->DustStorm;
+        if (!dustStorm.IsDrawn)
+            return;
+
+        commandBuffer.PushDebugGroup("Dust storm");
+        commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &dustStorm.Uniforms, sizeof(dustStorm.Uniforms));
+        renderPass.BindPipeline(_dustStormPipeline.get());
+
+        TextureSamplerBinding bindings[2] =
+        {
+            { _sceneDepthCopy.get(), _pointClampSampler.get() },
+            { _normalTarget.get(), _pointClampSampler.get() }
+        };
+        renderPass.BindPixelSamplers(0, bindings, 2);
+        _frameStats.DrawCalls++;
+        renderPass.Draw(3, 1, 0, 0);
+
+        // Later scene draws read the shadow uniforms from the same slot.
+        commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
+        commandBuffer.PopDebugGroup();
+    }
+
     // Scene target with the depth of the prepass, which the sky pipelines neither test nor write.
     IRenderPass* NextRenderer::BeginSkyRenderPass(ICommandBuffer& commandBuffer, LoadOp load)
     {
