@@ -114,6 +114,7 @@ namespace TEN::Renderer::Next
             unsigned int DecalOffset         = 0;
             unsigned int DecalCount          = 0;
             int          AnimatedSetOverride = NO_VALUE;
+            bool         IsAlphaEdgePass     = false;
         };
 
         // Draw state of consecutive bucket draws; pushes and binds are skipped when unchanged.
@@ -166,6 +167,7 @@ namespace TEN::Renderer::Next
         {
             Prepass,
             Opaque,
+            AlphaEdges, // Legacy second pass of alpha tested buckets: blended texels below the threshold.
             Additive
         };
 
@@ -360,6 +362,7 @@ namespace TEN::Renderer::Next
         bool CreateSkyGeometry();
         void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass);
+        static bool IsBucketInPass(const Structures::RendererBucket& bucket, ScenePass pass);
 
         // Post-process (NextRendererPostProcess.cpp).
         std::unique_ptr<RHI::IGraphicsPipeline> CreateFullscreenPipeline(RHI::IShader* vertexShader, RHI::IShader* pixelShader, RHI::PixelFormat format, const char* name);

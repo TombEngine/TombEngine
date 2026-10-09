@@ -764,6 +764,11 @@ namespace TEN::Renderer::Next
         auto pixelUniforms = DrawPixelUniforms{};
         pixelUniforms.AlphaThreshold = (bucket.BlendMode == BlendMode::AlphaTest) ? ALPHA_TEST_THRESHOLD : 0.0f;
         pixelUniforms.BlendMode = (unsigned int)blendMode;
+        if (room.IsAlphaEdgePass)
+        {
+            pixelUniforms.AlphaThreshold = -ALPHA_TEST_THRESHOLD;
+            pixelUniforms.BlendMode = (unsigned int)BlendMode::AlphaBlend;
+        }
         pixelUniforms.LightCount = lightCount;
         pixelUniforms.MaterialIndex = (bucket.MaterialIndex >= 0 && bucket.MaterialIndex < (int)g_Level.Materials.size()) ? (unsigned int)bucket.MaterialIndex : 0;
         pixelUniforms.IsCausticsRoom = room.IsCausticsRoom;
@@ -793,15 +798,35 @@ namespace TEN::Renderer::Next
         }
     }
 
+    bool NextRenderer::IsBucketInPass(const RendererBucket& bucket, ScenePass pass)
+    {
+        switch (pass)
+        {
+        case ScenePass::Prepass:
+        case ScenePass::Opaque:
+            return (bucket.BlendMode == BlendMode::Opaque || bucket.BlendMode == BlendMode::AlphaTest);
+
+        case ScenePass::AlphaEdges:
+            return (bucket.BlendMode == BlendMode::AlphaTest);
+
+        case ScenePass::Additive:
+            return (bucket.BlendMode == BlendMode::Additive);
+
+        default:
+            return false;
+        }
+    }
+
     void NextRenderer::DrawRooms(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, ScenePass pass)
     {
-        constexpr const char* GROUP_NAMES[] = { "Rooms prepass", "Rooms opaque", "Rooms additive" };
+        constexpr const char* GROUP_NAMES[] = { "Rooms prepass", "Rooms opaque", "Rooms alpha edges", "Rooms additive" };
 
         bool additive = (pass == ScenePass::Additive);
+        bool isAlphaEdges = (pass == ScenePass::AlphaEdges);
         commandBuffer.PushDebugGroup(GROUP_NAMES[(int)pass]);
 
         auto shader = (pass == ScenePass::Prepass) ? SceneShader::RoomsPrepass : SceneShader::Rooms;
-        renderPass.BindPipeline(GetScenePipeline(shader, additive ? BlendMode::Additive : BlendMode::Opaque));
+        renderPass.BindPipeline(GetScenePipeline(shader, additive ? BlendMode::Additive : (isAlphaEdges ? BlendMode::AlphaBlend : BlendMode::Opaque)));
 
         auto vertexBinding = BufferBinding{ _roomVertexBuffer.get(), 0 };
         renderPass.BindVertexBuffers(0, &vertexBinding, 1);
@@ -820,15 +845,14 @@ namespace TEN::Renderer::Next
         {
             const auto* room = view.RoomsToDraw[additive ? (roomCount - 1 - roomIndex) : roomIndex];
             auto roomInfo = GetBucketDrawInfo(room->RoomNumber, pass != ScenePass::Prepass);
+            roomInfo.IsAlphaEdgePass = isAlphaEdges;
 
             for (const auto& bucket : room->Buckets)
             {
                 if (bucket.NumIndices == 0)
                     continue;
 
-                bool isAdditive = (bucket.BlendMode == BlendMode::Additive);
-                bool isOpaque = (bucket.BlendMode == BlendMode::Opaque || bucket.BlendMode == BlendMode::AlphaTest);
-                if ((additive && !isAdditive) || (!additive && !isOpaque))
+                if (!IsBucketInPass(bucket, pass))
                     continue;
 
                 BindBucket(commandBuffer, renderPass, bucket, _roomTextures, bucket.BlendMode, (unsigned int)_roomLightCount, roomInfo, state);
@@ -1228,16 +1252,17 @@ namespace TEN::Renderer::Next
 
     void NextRenderer::DrawObjects(ICommandBuffer& commandBuffer, IRenderPass& renderPass, ScenePass pass)
     {
-        constexpr const char* GROUP_NAMES[] = { "Objects prepass", "Objects opaque", "Objects additive" };
+        constexpr const char* GROUP_NAMES[] = { "Objects prepass", "Objects opaque", "Objects alpha edges", "Objects additive" };
 
         if (_objectDraws.empty() || _instanceBuffer.Buffer == nullptr)
             return;
 
         bool additive = (pass == ScenePass::Additive);
+        bool isAlphaEdges = (pass == ScenePass::AlphaEdges);
         commandBuffer.PushDebugGroup(GROUP_NAMES[(int)pass]);
 
         auto shader = (pass == ScenePass::Prepass) ? SceneShader::ObjectsPrepass : SceneShader::Objects;
-        renderPass.BindPipeline(GetScenePipeline(shader, additive ? BlendMode::Additive : BlendMode::Opaque));
+        renderPass.BindPipeline(GetScenePipeline(shader, additive ? BlendMode::Additive : (isAlphaEdges ? BlendMode::AlphaBlend : BlendMode::Opaque)));
 
         IBuffer* storageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get(), _boneBuffer.Buffer.get() };
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 4);
@@ -1250,9 +1275,7 @@ namespace TEN::Renderer::Next
         for (const auto& draw : _objectDraws)
         {
             const auto& bucket = *draw.Bucket;
-            bool isAdditive = (bucket.BlendMode == BlendMode::Additive);
-            bool isOpaque = (bucket.BlendMode == BlendMode::Opaque || bucket.BlendMode == BlendMode::AlphaTest);
-            if ((additive && !isAdditive) || (!additive && !isOpaque))
+            if (!IsBucketInPass(bucket, pass))
                 continue;
 
             if (draw.Source != lastSource)
@@ -1267,6 +1290,7 @@ namespace TEN::Renderer::Next
             const auto& pages = (draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures;
             auto drawInfo = BucketDrawInfo{};
             drawInfo.AnimatedSetOverride = draw.AnimatedSetOverride;
+            drawInfo.IsAlphaEdgePass = isAlphaEdges;
             BindBucket(commandBuffer, renderPass, bucket, pages, bucket.BlendMode, 0, drawInfo, state);
 
             _frameStats.DrawCalls++;
@@ -1841,6 +1865,8 @@ namespace TEN::Renderer::Next
         DrawSky(*commandBuffer, *renderPass, view, environment.InterpolationFactor);
         DrawRooms(*commandBuffer, *renderPass, view, ScenePass::Opaque);
         DrawObjects(*commandBuffer, *renderPass, ScenePass::Opaque);
+        DrawRooms(*commandBuffer, *renderPass, view, ScenePass::AlphaEdges);
+        DrawObjects(*commandBuffer, *renderPass, ScenePass::AlphaEdges);
         DrawRooms(*commandBuffer, *renderPass, view, ScenePass::Additive);
         DrawObjects(*commandBuffer, *renderPass, ScenePass::Additive);
         DrawSprites(*commandBuffer, *renderPass);

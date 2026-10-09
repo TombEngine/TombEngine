@@ -54,6 +54,12 @@ struct Surface
     float  Specular;
 };
 
+// A negative threshold keeps only the texels below its magnitude: the soft edge pass of alpha tested buckets.
+void ApplyAlphaTest(float alpha, float alphaThreshold)
+{
+    clip((alphaThreshold >= 0.0f) ? (alpha - alphaThreshold) : (-alphaThreshold - alpha - 0.0001f));
+}
+
 float3 UnpackNormalMap(float4 n)
 {
     n = n * 2.0f - 1.0f;
@@ -140,7 +146,7 @@ Surface SampleSurface(GpuMaterial material, float2 uv, float alphaThreshold, flo
 
     Surface surface;
     surface.Color = ColorMap.Sample(ColorMapSampler, uv);
-    clip(surface.Color.a - alphaThreshold);
+    ApplyAlphaTest(surface.Color.a, alphaThreshold);
 
     float4 orsh = ORSHMap.Sample(ORSHMapSampler, uv);
     surface.Occlusion = orsh.x;
