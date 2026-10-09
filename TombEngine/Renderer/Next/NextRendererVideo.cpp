@@ -52,14 +52,21 @@ namespace TEN::Renderer::Next
             desc.Format = PixelFormat::BGRA8Unorm;
             desc.Name = "Video";
             _videoTexture = _device->CreateTexture(desc);
-            if (_videoTexture == nullptr)
+
+            desc.Type = TextureType::Texture2DArray;
+            desc.Name = "Video.Array";
+            _videoArrayTexture = _device->CreateTexture(desc);
+            if (_videoTexture == nullptr || _videoArrayTexture == nullptr)
                 return;
         }
 
+        // Sprites sample the frame as a texture, animated buckets as a one layer array in place of their page.
         auto region = TextureRegion{};
-        region.Texture = _videoTexture.get();
         region.Width = width;
         region.Height = height;
+        region.Texture = _videoTexture.get();
+        _uploadRing.UploadToTexture(region, frame, size);
+        region.Texture = _videoArrayTexture.get();
         _uploadRing.UploadToTexture(region, frame, size);
         _isVideoActive = true;
     }

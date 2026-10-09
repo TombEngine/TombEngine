@@ -84,7 +84,7 @@ namespace TEN::Renderer::Next
     static_assert(sizeof(SkyVertexUniforms) == 160, "SkyVertexUniforms size.");
     static_assert(sizeof(FogBulbUniforms) == 2064, "FogBulbUniforms size.");
     static_assert(sizeof(FramePixelUniforms) == 144, "FramePixelUniforms size.");
-    static_assert(sizeof(DrawPixelUniforms) == 32, "DrawPixelUniforms size.");
+    static_assert(sizeof(DrawPixelUniforms) == 48, "DrawPixelUniforms size.");
     static_assert(sizeof(GpuShadowUniforms) == 720, "GpuShadowUniforms size.");
     static_assert(sizeof(OverlayUniforms) == 16, "OverlayUniforms size.");
 

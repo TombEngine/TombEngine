@@ -83,34 +83,50 @@ namespace TEN::Renderer::Next
         return PixelFormat::Unknown;
     }
 
-    static bool DecodeDDS(const std::vector<unsigned char>& encodedData, DecodedImage& image)
+    // Returns the offset of the pixel data, or NO_VALUE for unsupported files.
+    static int ReadDDSHeader(const std::vector<unsigned char>& encodedData, ImageInfo& info)
     {
         if (encodedData.size() < DDS_MAGIC_SIZE + DDS_HEADER_SIZE)
-            return false;
+            return NO_VALUE;
 
         const auto* header = encodedData.data() + DDS_MAGIC_SIZE;
-        image.Height = (int)ReadUInt(header, 8);
-        image.Width = (int)ReadUInt(header, 12);
-        image.MipLevels = std::max(1, (int)ReadUInt(header, 24));
+        info.Height = (int)ReadUInt(header, 8);
+        info.Width = (int)ReadUInt(header, 12);
+        info.MipLevels = std::max(1, (int)ReadUInt(header, 24));
 
         bool hasDX10Header = false;
-        image.Format = GetDDSPixelFormat(header, hasDX10Header);
+        info.Format = GetDDSPixelFormat(header, hasDX10Header);
 
         int dataOffset = DDS_MAGIC_SIZE + DDS_HEADER_SIZE;
         if (hasDX10Header)
         {
             if ((int)encodedData.size() < dataOffset + DDS_DX10_SIZE)
-                return false;
+                return NO_VALUE;
 
-            image.Format = GetDXGIPixelFormat(ReadUInt(encodedData.data(), dataOffset));
+            info.Format = GetDXGIPixelFormat(ReadUInt(encodedData.data(), dataOffset));
             dataOffset += DDS_DX10_SIZE;
         }
 
-        if (image.Format == PixelFormat::Unknown)
+        if (info.Format == PixelFormat::Unknown)
         {
             TENLog("Unsupported DDS pixel format in level texture.", LogLevel::Warning);
-            return false;
+            return NO_VALUE;
         }
+
+        return dataOffset;
+    }
+
+    static bool DecodeDDS(const std::vector<unsigned char>& encodedData, DecodedImage& image)
+    {
+        auto info = ImageInfo{};
+        int dataOffset = ReadDDSHeader(encodedData, info);
+        if (dataOffset == NO_VALUE)
+            return false;
+
+        image.Width = info.Width;
+        image.Height = info.Height;
+        image.Format = info.Format;
+        image.MipLevels = info.MipLevels;
 
         int totalSize = 0;
         for (int mip = 0; mip < image.MipLevels; mip++)
@@ -151,9 +167,39 @@ namespace TEN::Renderer::Next
         return true;
     }
 
+    static bool IsDDS(const std::vector<unsigned char>& encodedData)
+    {
+        return (encodedData.size() >= DDS_MAGIC_SIZE && memcmp(encodedData.data(), "DDS ", DDS_MAGIC_SIZE) == 0);
+    }
+
+    // PNG: 8 byte signature, then the IHDR chunk with big endian width and height.
+    bool ReadImageInfo(const std::vector<unsigned char>& encodedData, ImageInfo& info)
+    {
+        constexpr auto PNG_WIDTH_OFFSET = 16;
+        constexpr auto PNG_HEADER_SIZE  = 24;
+
+        if (IsDDS(encodedData))
+            return (ReadDDSHeader(encodedData, info) != NO_VALUE);
+
+        if (encodedData.size() < PNG_HEADER_SIZE)
+            return false;
+
+        auto readBigEndian = [&](int offset)
+        {
+            const auto* bytes = encodedData.data() + offset;
+            return (int)(((unsigned int)bytes[0] << 24) | ((unsigned int)bytes[1] << 16) | ((unsigned int)bytes[2] << 8) | bytes[3]);
+        };
+
+        info.Width = readBigEndian(PNG_WIDTH_OFFSET);
+        info.Height = readBigEndian(PNG_WIDTH_OFFSET + 4);
+        info.Format = PixelFormat::RGBA8Unorm;
+        info.MipLevels = 1;
+        return (info.Width > 0 && info.Height > 0);
+    }
+
     bool DecodeImage(const std::vector<unsigned char>& encodedData, DecodedImage& image)
     {
-        if (encodedData.size() >= DDS_MAGIC_SIZE && memcmp(encodedData.data(), "DDS ", DDS_MAGIC_SIZE) == 0)
+        if (IsDDS(encodedData))
             return DecodeDDS(encodedData, image);
 
         return DecodePNG(encodedData, image);

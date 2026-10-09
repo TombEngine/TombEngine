@@ -37,6 +37,7 @@ namespace TEN::Renderer::Structures
 namespace TEN::Renderer::Next
 {
     struct DecodedImage;
+    struct ArrayGroupKey;
 
     // Level geometry shared with the legacy renderer during the migration. The new renderer reads the
     // already prepared vertex and index arrays, so both renderers draw exactly the same data.
@@ -136,6 +137,38 @@ namespace TEN::Renderer::Next
             std::unique_ptr<RHI::ITexture> EmissiveMap = nullptr;
         };
 
+        // Material maps of a level texture page, in the order of the pixel shader texture slots.
+        enum class MaterialMap
+        {
+            Color,
+            Normal,
+            ORSH,
+            Emissive,
+
+            Count
+        };
+
+        // Texture arrays of level pages sharing size and format, one per material map; pages without a map use the default array.
+        struct TextureArrayGroup
+        {
+            std::unique_ptr<RHI::ITexture> Maps[(int)MaterialMap::Count] = {};
+        };
+
+        // Layer of a level texture page in its array group; the layer is selected with a per draw uniform.
+        struct TexturePage
+        {
+            const TextureArrayGroup* Group = nullptr;
+            int                      Layer = 0;
+        };
+
+        // Level page waiting for its array layer.
+        struct ArrayPageSource
+        {
+            const ::TEXTURE* Texture     = nullptr;
+            bool             IsColorOnly = false;
+            TexturePage*     Target      = nullptr;
+        };
+
         // Level texture waiting to be decoded and uploaded with the others.
         struct LevelTextureRequest
         {
@@ -162,7 +195,7 @@ namespace TEN::Renderer::Next
         // Debris triangles sharing texture page and blend mode.
         struct DebrisDraw
         {
-            const std::vector<RoomTexture>* Pages       = nullptr;
+            const std::vector<TexturePage>* Pages       = nullptr;
             int                             Page        = 0;
             BlendMode                       BlendMode   = BlendMode::Opaque;
             int                             FirstVertex = 0;
@@ -185,10 +218,10 @@ namespace TEN::Renderer::Next
         // Draw state of consecutive bucket draws; pushes and binds are skipped when unchanged.
         struct BucketBindState
         {
-            DrawPixelUniforms  PixelUniforms  = { -1.0f };
-            DrawVertexUniforms VertexUniforms = { INT_MIN };
-            const RoomTexture* Page           = nullptr;
-            bool               IsPageBound    = false;
+            DrawPixelUniforms        PixelUniforms  = { -1.0f };
+            DrawVertexUniforms       VertexUniforms = { INT_MIN };
+            const TextureArrayGroup* Group          = nullptr;
+            bool                     IsGroupBound   = false;
         };
 
         enum class MeshSource
@@ -317,7 +350,7 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IShader>           _skyPixelShader      = nullptr;
         std::unique_ptr<RHI::IBuffer>           _skyVertexBuffer     = nullptr;
         std::unique_ptr<RHI::IBuffer>           _skyIndexBuffer      = nullptr;
-        std::unique_ptr<RHI::ITexture>          _skyTexture          = nullptr;
+        TexturePage                             _skyPage             = {};
         std::unique_ptr<RHI::IShader>           _spritesVertexShader = nullptr;
         std::unique_ptr<RHI::IShader>           _spritesPixelShader  = nullptr;
         std::unique_ptr<RHI::IBuffer>           _spriteCornerBuffer  = nullptr;
@@ -518,21 +551,24 @@ namespace TEN::Renderer::Next
 
         GeometryBuffers               _geometry         = {}; // Rooms, statics and moveables.
         GeometrySection               _geometrySections[(int)MeshSource::Count] = {};
-        std::vector<RoomTexture>      _roomTextures     = {};
-        std::vector<RoomTexture>      _animatedTextures = {};
+        std::vector<TexturePage>      _roomTextures     = {};
+        std::vector<TexturePage>      _animatedTextures = {};
         std::unique_ptr<RHI::IBuffer> _animatedFramesBuffer = nullptr;
         std::unique_ptr<RHI::IBuffer> _animatedSetsBuffer   = nullptr;
         std::unordered_map<int, int>  _waterfallSets        = {}; // Object ID to animated set.
         std::unordered_map<int, int>  _videoSets            = {}; // Video animated set to its normalized UV set.
         std::unique_ptr<RHI::ITexture>    _videoTexture  = nullptr;
+        std::unique_ptr<RHI::ITexture>    _videoArrayTexture = nullptr; // Copy of the video frame as a one layer array, bound in place of animated pages.
         bool                              _isVideoActive = false;
         const Structures::RendererSprite* _videoSprite   = nullptr;
         RHI::UploadRing                   _uploadRing    = {}; // Per-frame uploads of every copy pass.
         RHI::TextureReadback              _readback      = {}; // Screenshots, written when the GPU has rendered them.
 
-        std::vector<RoomTexture>      _staticTextures   = {};
-        std::vector<RoomTexture>      _moveableTextures = {};
+        std::vector<TexturePage>      _staticTextures   = {};
+        std::vector<TexturePage>      _moveableTextures = {};
         std::vector<RoomTexture>      _spriteTextures   = {};
+        std::vector<std::unique_ptr<TextureArrayGroup>> _textureArrayGroups = {};
+        std::unique_ptr<RHI::ITexture> _defaultMapArrays[(int)MaterialMap::Count] = {}; // One layer arrays: white, flat normal, default ORSH, black.
         LegacyLevelGeometry           _legacyGeometry   = {};
 
         // Frame instance data: collected on the CPU, uploaded once per frame before the scene pass.
@@ -602,12 +638,13 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::ITexture> CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name, bool allowMips = true);
         void LoadOverlayImages(const UiFrame& ui);
         RHI::ITexture* GetOverlayImageTexture(const std::string& path) const;
-        std::unique_ptr<RHI::ITexture> CreateSolidTexture(const unsigned char color[4], const std::string& name);
+        std::unique_ptr<RHI::ITexture> CreateSolidTexture(const unsigned char color[4], const std::string& name, RHI::TextureType type = RHI::TextureType::Texture2D);
         void UploadTexture(RHI::ITexture* texture, const void* data, int size);
         void CollectMaterials(float interpolationFactor);
-        void BindTexturePage(RHI::IRenderPass& renderPass, const RoomTexture* page, RHI::ITexture* colorOverride = nullptr, RHI::ITexture* emissiveOverride = nullptr);
+        void BindPageColorMap(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const TexturePage* page);
+        void BindTexturePage(RHI::IRenderPass& renderPass, const TexturePage* page, RHI::ITexture* colorOverride = nullptr, RHI::ITexture* emissiveOverride = nullptr);
         static float GetAlphaThreshold(const Structures::RendererBucket& bucket, const BucketDrawInfo& info);
-        void BindBucket(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const Structures::RendererBucket& bucket, const std::vector<RoomTexture>& pages,
+        void BindBucket(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const Structures::RendererBucket& bucket, const std::vector<TexturePage>& pages,
                         BlendMode blendMode, unsigned int lightCount, const BucketDrawInfo& room, BucketBindState& state);
         BucketDrawInfo GetBucketDrawInfo(int roomNumber, bool hasDecals);
         void CollectDecals(const RenderView& view);
@@ -626,8 +663,12 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::ITexture> RecordTextureUpload(RHI::ICopyPass& copyPass, const DecodedImage& image, const std::string& name, bool allowMips,
                                                            std::vector<std::unique_ptr<RHI::ITransferBuffer>>& transferBuffers);
         void CreateLevelTextures(const std::vector<LevelTextureRequest>& requests, bool allowMips);
-        void AddTextureSetRequests(const std::vector<::TEXTURE>& source, std::vector<RoomTexture>& destination, const std::string& name,
-                                   bool isColorOnly, std::vector<LevelTextureRequest>& requests);
+        void RecordImageUpload(RHI::ICopyPass& copyPass, const DecodedImage& image, RHI::ITexture* texture, int layer,
+                               std::vector<std::unique_ptr<RHI::ITransferBuffer>>& transferBuffers);
+        void AddArrayPages(const std::vector<::TEXTURE>& source, std::vector<TexturePage>& destination, bool isColorOnly, std::vector<ArrayPageSource>& pages);
+        std::unique_ptr<TextureArrayGroup> CreateTextureArrayGroup(const ArrayGroupKey& key, int layerCount, int groupIndex);
+        void LoadTextureArrays(const std::vector<ArrayPageSource>& pages);
+        void UploadTextureArrayLayers(const std::vector<ArrayPageSource>& pages, const std::vector<ArrayGroupKey>& pageKeys);
         void LoadLevelTextures();
         // Level geometry (NextRendererGeometry.cpp).
         void SetGeometrySection(MeshSource source, int regionOffset, int baseVertex, int vertexCount, const std::vector<int>& indices);

@@ -113,7 +113,12 @@ namespace TEN::Renderer::Next
         _decalBuffer = {};
         _debrisVertexBuffer = {};
         _debrisInstanceBuffer = {};
-        _skyTexture = nullptr;
+        _skyPage = {};
+        _textureArrayGroups.clear();
+        for (auto& map : _defaultMapArrays)
+            map = nullptr;
+
+        _videoArrayTexture = nullptr;
         _skyVertexBuffer = nullptr;
         _skyIndexBuffer = nullptr;
         _skyVertexShader = nullptr;
@@ -371,13 +376,23 @@ namespace TEN::Renderer::Next
         _defaultORSHTexture = CreateSolidTexture(ORSH_PIXEL, "DefaultORSH");
         _blackTexture = CreateSolidTexture(BLACK_PIXEL, "Black");
 
+        // The same defaults as one layer arrays, for the material map slots of level pages.
+        const unsigned char* DEFAULT_MAP_PIXELS[(int)MaterialMap::Count] = { WHITE_PIXEL, FLAT_NORMAL_PIXEL, ORSH_PIXEL, BLACK_PIXEL };
+        for (int map = 0; map < (int)MaterialMap::Count; map++)
+        {
+            _defaultMapArrays[map] = CreateSolidTexture(DEFAULT_MAP_PIXELS[map], "DefaultMap[" + std::to_string(map) + "]", TextureType::Texture2DArray);
+            if (_defaultMapArrays[map] == nullptr)
+                return false;
+        }
+
         return (_anisotropicSampler != nullptr && _whiteTexture != nullptr && _flatNormalTexture != nullptr &&
                 _defaultORSHTexture != nullptr && _blackTexture != nullptr);
     }
 
-    std::unique_ptr<ITexture> NextRenderer::CreateSolidTexture(const unsigned char color[4], const std::string& name)
+    std::unique_ptr<ITexture> NextRenderer::CreateSolidTexture(const unsigned char color[4], const std::string& name, TextureType type)
     {
         auto desc = TextureDesc{};
+        desc.Type = type;
         desc.Name = name;
         auto texture = _device->CreateTexture(desc);
         if (texture != nullptr)
@@ -906,11 +921,26 @@ namespace TEN::Renderer::Next
         }
     }
 
-    void NextRenderer::BindTexturePage(IRenderPass& renderPass, const RoomTexture* page, ITexture* colorOverride, ITexture* emissiveOverride)
+    // Color map array of a page and its layer, for the sky shader.
+    void NextRenderer::BindPageColorMap(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const TexturePage* page)
     {
-        auto getMap = [&](const std::unique_ptr<ITexture>* map, ITexture* fallback)
+        const auto* group = (page != nullptr) ? page->Group : nullptr;
+        auto* colorMap = (group != nullptr && group->Maps[(int)MaterialMap::Color] != nullptr) ? group->Maps[(int)MaterialMap::Color].get() : _defaultMapArrays[(int)MaterialMap::Color].get();
+        auto binding = TextureSamplerBinding{ colorMap, _anisotropicSampler.get() };
+        renderPass.BindPixelSamplers(0, &binding, 1);
+
+        auto pixelUniforms = DrawPixelUniforms{};
+        pixelUniforms.TextureLayer = (page != nullptr) ? (unsigned int)page->Layer : 0;
+        commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &pixelUniforms, sizeof(pixelUniforms));
+    }
+
+    // Binds the texture arrays of the page group; the layer is selected by the draw uniforms.
+    void NextRenderer::BindTexturePage(IRenderPass& renderPass, const TexturePage* page, ITexture* colorOverride, ITexture* emissiveOverride)
+    {
+        auto getMap = [&](MaterialMap map)
         {
-            return (page != nullptr && *map != nullptr) ? map->get() : fallback;
+            const auto* group = (page != nullptr) ? page->Group : nullptr;
+            return (group != nullptr && group->Maps[(int)map] != nullptr) ? group->Maps[(int)map].get() : _defaultMapArrays[(int)map].get();
         };
 
         auto* sampler = _anisotropicSampler.get();
@@ -921,10 +951,10 @@ namespace TEN::Renderer::Next
         auto* skyReflections = _hasSkyReflectiveMaterials ? _skyReflectionTarget.get() : _dummyShadowMap.get();
         TextureSamplerBinding bindings[9] =
         {
-            { (colorOverride != nullptr) ? colorOverride : getMap(page ? &page->ColorMap : nullptr, _whiteTexture.get()), sampler },
-            { getMap(page ? &page->NormalMap : nullptr, _flatNormalTexture.get()), sampler },
-            { getMap(page ? &page->ORSHMap : nullptr, _defaultORSHTexture.get()), sampler },
-            { (emissiveOverride != nullptr) ? emissiveOverride : getMap(page ? &page->EmissiveMap : nullptr, _blackTexture.get()), sampler },
+            { (colorOverride != nullptr) ? colorOverride : getMap(MaterialMap::Color), sampler },
+            { getMap(MaterialMap::Normal), sampler },
+            { getMap(MaterialMap::ORSH), sampler },
+            { (emissiveOverride != nullptr) ? emissiveOverride : getMap(MaterialMap::Emissive), sampler },
             { ambientOcclusion, _linearClampSampler.get() },
             { shadowMap, _pointClampSampler.get() },
             { caustics, sampler },
@@ -949,9 +979,12 @@ namespace TEN::Renderer::Next
         return (bucket.BlendMode == BlendMode::AlphaTest) ? ALPHA_TEST_THRESHOLD : 0.0f;
     }
 
-    void NextRenderer::BindBucket(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RendererBucket& bucket, const std::vector<RoomTexture>& pages,
+    void NextRenderer::BindBucket(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RendererBucket& bucket, const std::vector<TexturePage>& pages,
                                   BlendMode blendMode, unsigned int lightCount, const BucketDrawInfo& room, BucketBindState& state)
     {
+        const auto& sourcePages = bucket.Animated ? _animatedTextures : pages;
+        const auto* page = (bucket.Texture >= 0 && bucket.Texture < (int)sourcePages.size()) ? &sourcePages[bucket.Texture] : nullptr;
+
         auto pixelUniforms = DrawPixelUniforms{};
         pixelUniforms.AlphaThreshold = GetAlphaThreshold(bucket, room);
         pixelUniforms.BlendMode = (unsigned int)(room.IsAlphaEdgePass ? BlendMode::AlphaBlend : blendMode);
@@ -960,6 +993,7 @@ namespace TEN::Renderer::Next
         pixelUniforms.IsCausticsRoom = room.IsCausticsRoom;
         pixelUniforms.DecalOffset = room.DecalOffset;
         pixelUniforms.DecalCount = bucket.Animated ? 0 : room.DecalCount;
+        pixelUniforms.TextureLayer = (page != nullptr) ? (unsigned int)page->Layer : 0;
         if (memcmp(&pixelUniforms, &state.PixelUniforms, sizeof(pixelUniforms)) != 0)
         {
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &pixelUniforms, sizeof(pixelUniforms));
@@ -979,19 +1013,19 @@ namespace TEN::Renderer::Next
             state.VertexUniforms = vertexUniforms;
         }
 
-        const auto& sourcePages = bucket.Animated ? _animatedTextures : pages;
-        const auto* page = (bucket.Texture >= 0 && bucket.Texture < (int)sourcePages.size()) ? &sourcePages[bucket.Texture] : nullptr;
+        // Pages of the same group share their texture arrays: only the layer uniform changes between them.
+        const auto* group = (page != nullptr) ? page->Group : nullptr;
         if (videoSet != NO_VALUE)
         {
             bool hasEmissive = (pixelUniforms.MaterialIndex < g_Level.Materials.size()) && g_Level.Materials[pixelUniforms.MaterialIndex].HasEmissiveMap;
-            BindTexturePage(renderPass, page, _videoTexture.get(), hasEmissive ? _videoTexture.get() : nullptr);
-            state.IsPageBound = false;
+            BindTexturePage(renderPass, page, _videoArrayTexture.get(), hasEmissive ? _videoArrayTexture.get() : nullptr);
+            state.IsGroupBound = false;
         }
-        else if (!state.IsPageBound || page != state.Page)
+        else if (!state.IsGroupBound || group != state.Group)
         {
             BindTexturePage(renderPass, page);
-            state.Page = page;
-            state.IsPageBound = true;
+            state.Group = group;
+            state.IsGroupBound = true;
         }
     }
 
@@ -1935,8 +1969,7 @@ namespace TEN::Renderer::Next
         renderPass.BindVertexBuffers(0, &skyVertexBinding, 1);
         renderPass.BindIndexBuffer(BufferBinding{ _skyIndexBuffer.get(), 0 }, IndexSize::Bits32);
 
-        auto skyTextureBinding = TextureSamplerBinding{ (_skyTexture != nullptr) ? _skyTexture.get() : _whiteTexture.get(), _anisotropicSampler.get() };
-        renderPass.BindPixelSamplers(0, &skyTextureBinding, 1);
+        BindPageColorMap(commandBuffer, renderPass, &_skyPage);
 
         auto rotation = Matrix::CreateRotationX(PI);
         for (int layer = 0; layer < 2; layer++)
@@ -2019,12 +2052,8 @@ namespace TEN::Renderer::Next
                         lastAnimatedSet = animatedSet;
                     }
 
-                    const auto& textures = bucket.Animated ? _animatedTextures : _moveableTextures;
-                    auto* texture = (bucket.Texture >= 0 && bucket.Texture < (int)textures.size() && textures[bucket.Texture].ColorMap != nullptr) ?
-                        textures[bucket.Texture].ColorMap.get() : _whiteTexture.get();
-
-                    auto binding = TextureSamplerBinding{ texture, _anisotropicSampler.get() };
-                    renderPass.BindPixelSamplers(0, &binding, 1);
+                    const auto& pages = bucket.Animated ? _animatedTextures : _moveableTextures;
+                    BindPageColorMap(commandBuffer, renderPass, (bucket.Texture >= 0 && bucket.Texture < (int)pages.size()) ? &pages[bucket.Texture] : nullptr);
                     DrawBucket(renderPass, MeshSource::Moveables, bucket, 1, 0);
                 }
             }

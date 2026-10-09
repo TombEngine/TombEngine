@@ -9,6 +9,7 @@
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
+#include "./FrameUniforms.hlsli"
 
 #define MATERIAL_DEFAULT           0
 #define MATERIAL_REFLECTIVE        1
@@ -27,15 +28,36 @@
 #define POM_MIN_ANGLE      0.4f
 #define POM_HEIGHT_SCALE   0.0035f
 
-TEN_PS_TEXTURE(Texture2D, ColorMap, 0);
-TEN_PS_TEXTURE(Texture2D, NormalMap, 1);
-TEN_PS_TEXTURE(Texture2D, ORSHMap, 2);
-TEN_PS_TEXTURE(Texture2D, EmissiveMap, 3);
+// Material maps are texture arrays shared by the pages of the same size and format; TextureLayer selects the page.
+TEN_PS_TEXTURE(Texture2DArray, ColorMap, 0);
+TEN_PS_TEXTURE(Texture2DArray, NormalMap, 1);
+TEN_PS_TEXTURE(Texture2DArray, ORSHMap, 2);
+TEN_PS_TEXTURE(Texture2DArray, EmissiveMap, 3);
 TEN_PS_TEXTURE(Texture2D, AmbientOcclusionMap, 4);
 TEN_PS_TEXTURE(Texture2D, CausticsMap, 6);
 TEN_PS_TEXTURE(Texture2D, ReflectionMap, 7); // Previous frame, half resolution.
 TEN_PS_TEXTURE(Texture2DArray, SkyReflectionMap, 8); // Dual paraboloid sky, one hemisphere per layer.
 TEN_PS_STORAGE_BUFFER(GpuMaterial, Materials, 10);
+
+float4 SampleColorMap(float2 uv)
+{
+    return ColorMap.Sample(ColorMapSampler, float3(uv, TextureLayer));
+}
+
+float4 SampleNormalMap(float2 uv)
+{
+    return NormalMap.Sample(NormalMapSampler, float3(uv, TextureLayer));
+}
+
+float4 SampleORSHMap(float2 uv)
+{
+    return ORSHMap.Sample(ORSHMapSampler, float3(uv, TextureLayer));
+}
+
+float4 SampleEmissiveMap(float2 uv)
+{
+    return EmissiveMap.Sample(EmissiveMapSampler, float3(uv, TextureLayer));
+}
 
 struct Surface
 {
@@ -80,7 +102,7 @@ float GetEmissiveIntensity(GpuMaterial material)
 
 float SampleHeight(float2 uv)
 {
-    return 1.0f - ORSHMap.Sample(ORSHMapSampler, frac(uv)).w;
+    return 1.0f - SampleORSHMap(frac(uv)).w;
 }
 
 float2 ParallaxOcclusionMapping(GpuMaterial material, float3 tangent, float3 binormal, float3 faceNormal, float3 position, float3 cameraPosition, float2 baseUV)
@@ -141,17 +163,17 @@ Surface SampleSurface(GpuMaterial material, float2 uv, float alphaThreshold, flo
     uv = ParallaxOcclusionMapping(material, tangent, binormal, faceNormal, position, cameraPosition, uv);
 
     Surface surface;
-    surface.Color = ColorMap.Sample(ColorMapSampler, uv);
+    surface.Color = SampleColorMap(uv);
     ApplyAlphaTest(surface.Color.a, alphaThreshold);
 
-    float4 orsh = ORSHMap.Sample(ORSHMapSampler, uv);
+    float4 orsh = SampleORSHMap(uv);
     surface.Occlusion = orsh.x;
     surface.Roughness = orsh.y;
     surface.Specular = orsh.z;
-    surface.Emissive = EmissiveMap.Sample(EmissiveMapSampler, uv).rgb * GetEmissiveIntensity(material);
+    surface.Emissive = SampleEmissiveMap(uv).rgb * GetEmissiveIntensity(material);
 
     float3x3 tangentFrame = float3x3(tangent, binormal, normal);
-    surface.Normal = EnsureNormal(mul(UnpackNormalMap(NormalMap.Sample(NormalMapSampler, uv)), tangentFrame), position, cameraPosition);
+    surface.Normal = EnsureNormal(mul(UnpackNormalMap(SampleNormalMap(uv)), tangentFrame), position, cameraPosition);
     return surface;
 }
 
@@ -160,12 +182,12 @@ float3 SampleSurfaceNormal(GpuMaterial material, float2 uv, float alphaThreshold
                            float3 normal, float3 tangent, float3 binormal, float3 faceNormal, out float3 emissive)
 {
     uv = ParallaxOcclusionMapping(material, tangent, binormal, faceNormal, position, cameraPosition, uv);
-    ApplyAlphaTest(ColorMap.Sample(ColorMapSampler, uv).a, alphaThreshold);
+    ApplyAlphaTest(SampleColorMap(uv).a, alphaThreshold);
 
-    emissive = EmissiveMap.Sample(EmissiveMapSampler, uv).rgb * GetEmissiveIntensity(material);
+    emissive = SampleEmissiveMap(uv).rgb * GetEmissiveIntensity(material);
 
     float3x3 tangentFrame = float3x3(tangent, binormal, normal);
-    return EnsureNormal(mul(UnpackNormalMap(NormalMap.Sample(NormalMapSampler, uv)), tangentFrame), position, cameraPosition);
+    return EnsureNormal(mul(UnpackNormalMap(SampleNormalMap(uv)), tangentFrame), position, cameraPosition);
 }
 
 // Legacy CalculateOcclusion: blended surfaces fade the occlusion with their alpha, parallax surfaces skip it.

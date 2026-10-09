@@ -211,14 +211,14 @@ struct InventoryOutput
 InventoryOutput PSInventory(PixelInput input)
 {
     float2 uv = ApplyUVScroll(input.UV, input.UVScroll);
-    float4 texel = ColorMap.Sample(ColorMapSampler, uv);
+    float4 texel = SampleColorMap(uv);
     float4 color = float4(texel.rgb * input.Color.rgb * COLOR_MODULATION_SCALE, texel.a * input.Color.a);
     ApplyAlphaTest(color.a, AlphaThreshold);
 
-    float4 orsh = ORSHMap.Sample(ORSHMapSampler, uv);
-    float3 emissive = EmissiveMap.Sample(EmissiveMapSampler, uv).rgb * GetEmissiveIntensity(Materials[MaterialIndex]);
+    float4 orsh = SampleORSHMap(uv);
+    float3 emissive = SampleEmissiveMap(uv).rgb * GetEmissiveIntensity(Materials[MaterialIndex]);
     float3x3 tangentFrame = float3x3(input.Tangent, input.Binormal, input.Normal);
-    float3 normal = normalize(mul(UnpackNormalMap(NormalMap.Sample(NormalMapSampler, uv)), tangentFrame));
+    float3 normal = normalize(mul(UnpackNormalMap(SampleNormalMap(uv)), tangentFrame));
 
     GpuLight light = (GpuLight)0;
     light.Type = LT_SUN;
@@ -239,6 +239,6 @@ InventoryOutput PSInventory(PixelInput input)
 // Shadow map pass: writes the light space depth; the alpha test keeps cut-out geometry out of the shadow.
 float PSShadow(PixelInput input) : SV_TARGET
 {
-    clip(ColorMap.Sample(ColorMapSampler, ApplyUVScroll(input.UV, input.UVScroll)).a - AlphaThreshold);
+    clip(SampleColorMap(ApplyUVScroll(input.UV, input.UVScroll)).a - AlphaThreshold);
     return input.Position.z;
 }

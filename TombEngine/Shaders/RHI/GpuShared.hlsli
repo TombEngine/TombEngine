@@ -169,16 +169,21 @@ struct GpuFogBulb
     float2   FramePixelPadding1       TEN_DEFAULT(Vector2::Zero);
 
 // Pixel slot 1, per draw. Light and decal slices and the caustics flag apply to rooms only.
+// TextureLayer selects the page in the texture arrays of the bound material maps.
 // LightCount: light count in the low 16 bits, light type mask in the high bits.
 #define TEN_DRAW_PIXEL_UNIFORMS \
-    float AlphaThreshold TEN_DEFAULT(0.0f); \
-    uint  BlendMode      TEN_DEFAULT(0); \
-    uint  LightOffset    TEN_DEFAULT(0); \
-    uint  LightCount     TEN_DEFAULT(0); \
-    uint  MaterialIndex  TEN_DEFAULT(0); \
-    uint  IsCausticsRoom TEN_DEFAULT(0); \
-    uint  DecalOffset    TEN_DEFAULT(0); \
-    uint  DecalCount     TEN_DEFAULT(0);
+    float AlphaThreshold    TEN_DEFAULT(0.0f); \
+    uint  BlendMode         TEN_DEFAULT(0); \
+    uint  LightOffset       TEN_DEFAULT(0); \
+    uint  LightCount        TEN_DEFAULT(0); \
+    uint  MaterialIndex     TEN_DEFAULT(0); \
+    uint  IsCausticsRoom    TEN_DEFAULT(0); \
+    uint  DecalOffset       TEN_DEFAULT(0); \
+    uint  DecalCount        TEN_DEFAULT(0); \
+    uint  TextureLayer      TEN_DEFAULT(0); \
+    uint  DrawPixelPadding0 TEN_DEFAULT(0); \
+    uint  DrawPixelPadding1 TEN_DEFAULT(0); \
+    uint  DrawPixelPadding2 TEN_DEFAULT(0);
 
 // Pixel slot 2 of the scene shaders. Spheres: xyz center, w radius.
 #define TEN_SHADOW_UNIFORMS \

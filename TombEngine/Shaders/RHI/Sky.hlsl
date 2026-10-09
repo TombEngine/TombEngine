@@ -23,7 +23,7 @@ TEN_PS_UNIFORMS(SkyPixelUniforms, 2)
 TEN_VS_STORAGE_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
 TEN_VS_STORAGE_BUFFER(GpuAnimatedSet, AnimatedSets, 1);
 
-TEN_PS_TEXTURE(Texture2D, ColorMap, 0);
+TEN_PS_TEXTURE(Texture2DArray, ColorMap, 0); // Sky texture or horizon page; TextureLayer selects the layer.
 
 struct VertexInput
 {
@@ -88,7 +88,7 @@ float4 PS(PixelInput input) : SV_TARGET
 {
     clip(input.ClipDepth);
 
-    float4 color = ColorMap.Sample(ColorMapSampler, ApplyUVScroll(input.UV, input.UVScroll));
+    float4 color = ColorMap.Sample(ColorMapSampler, float3(ApplyUVScroll(input.UV, input.UVScroll), TextureLayer));
     float3 light = saturate(SkyColor.rgb - input.FogBulbs.w * 1.4f);
     return float4(color.rgb * light + saturate(input.FogBulbs.rgb), color.a * SkyColor.a);
 }

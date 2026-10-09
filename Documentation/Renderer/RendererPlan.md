@@ -217,7 +217,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 ### 7.2 Texture
 - [x] DDS (gia' supportato dal formato attuale) caricato cosi' com'e', con i suoi mip e la sua compressione BC. *(`DecodeDDS` tiene formato BC e mip)*
 - [x] PNG: decode con `SDL_LoadPNG` di SDL 3.4 (in parallelo per atlas) e mip generati in GPU (`SDL_GenerateMipmapsForGPUTexture` / `GenerateMips`). Nessuna compressione a runtime: costa troppo al caricamento. *(blocchi di 8 pagine decodificati con `g_Parallel` e caricati con un solo submit e una sola attesa per blocco; i livelli di benchmark hanno poche pagine e non mostrano differenze)*
-- [ ] **Texture array per categoria** (stanze, moveable, statiche, animate, sprite) costruiti al caricamento: le pagine dello stesso formato e della stessa dimensione diventano layer di un unico `Texture2DArray`. Le pagine di dimensione diversa vanno in array separati (uno per dimensione), oppure con padding se l'array risultante non spreca troppa memoria. Il materiale contiene array e layer.
+- [x] **Texture array per categoria** (stanze, moveable, statiche, animate, sprite) costruiti al caricamento: le pagine dello stesso formato e della stessa dimensione diventano layer di un unico `Texture2DArray`. Le pagine di dimensione diversa vanno in array separati (uno per dimensione), oppure con padding se l'array risultante non spreca troppa memoria. Il materiale contiene array e layer. *(fatto per stanze, statiche, moveable, animate e cielo, raggruppando le pagine per dimensione e formato di tutte le mappe anche tra categorie diverse: coastal 18 pagine in 5 gruppi; il layer arriva con un uniform per draw e un cambio di pagina nello stesso gruppo non ricollega texture. Gli sprite restano texture singole perche' li campiona anche il layer 2D)*
 
 ### 7.3 Dati persistenti in GPU
 - [ ] Tabelle in storage buffer create al caricamento: `Meshes[]` (range di indici per bucket), `Materials[]` (array e layer di texture, blend mode, parametri del materiale, flag di animazione), `StaticInstances[]`, `Rooms[]` (ambient, flag, AABB).
@@ -344,7 +344,7 @@ Il renderer nuovo gira in una seconda finestra accanto a quello vecchio, sugli s
 
 ## 13. Decisioni ancora aperte
 
-- [ ] Texture array con pagine di dimensioni diverse: array separati per dimensione o padding (dipende dai livelli reali, da misurare).
+- [x] Texture array con pagine di dimensioni diverse: array separati per dimensione o padding (dipende dai livelli reali, da misurare). *(scelto: array separati per dimensione e formato)*
 - [ ] Normale di faccia nel vertice o in un buffer per poligono.
 - [ ] Coordinamento con Tomo sul porting di cielo e nuvole.
 - [ ] Dipendenze nuove (DXC dal Vulkan SDK, solo per la build): licenze e dimensione della distribuzione.
