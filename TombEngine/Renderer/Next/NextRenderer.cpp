@@ -121,6 +121,9 @@ namespace TEN::Renderer::Next
         _postProcessVertexShader = nullptr;
         _postProcessPixelShader = nullptr;
         _sceneTarget = nullptr;
+        _sceneDepthCopy = nullptr;
+        _depthCopyPipeline = nullptr;
+        _depthCopyPixelShader = nullptr;
         _ssaoPipeline = nullptr;
         _ssaoBlurHorizontalPipeline = nullptr;
         _ssaoBlurVerticalPipeline = nullptr;
@@ -405,6 +408,10 @@ namespace TEN::Renderer::Next
         colorDesc.Name = "Scene.Color";
         _sceneTarget = _device->CreateTexture(colorDesc);
 
+        colorDesc.Format = PixelFormat::R32Float;
+        colorDesc.Name = "Scene.DepthCopy";
+        _sceneDepthCopy = _device->CreateTexture(colorDesc);
+
         auto depthDesc = TextureDesc{};
         depthDesc.Width = width;
         depthDesc.Height = height;
@@ -413,7 +420,7 @@ namespace TEN::Renderer::Next
         depthDesc.Name = "Scene.Depth";
         _depthTarget = _device->CreateTexture(depthDesc);
 
-        return (_colorTarget != nullptr && _sceneTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height));
+        return (_colorTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height));
     }
 
     void NextRenderer::UploadBuffer(IBuffer* buffer, const void* data, int size)
@@ -1405,6 +1412,8 @@ namespace TEN::Renderer::Next
                 draw.IsSprite = true;
                 draw.Sprites.Texture = GetSpriteTexture(object.Sprite->Sprite);
                 draw.Sprites.BlendMode = object.Sprite->BlendMode;
+                draw.Sprites.IsSoftParticle = object.Sprite->SoftParticle;
+                draw.Sprites.RenderType = (int)object.Sprite->renderType;
                 draw.Sprites.FirstSprite = (int)(_spriteData.size() / sizeof(GpuSprite));
 
                 while (i < sortedCount && objects[polygons[sortKeys[i].Index].ObjectIndex].GroupIndex == object.GroupIndex)
@@ -1815,6 +1824,9 @@ namespace TEN::Renderer::Next
         // Projection is rebuilt for the preview window aspect ratio; position and orientation follow the game camera.
         auto projection = Matrix::CreatePerspectiveFieldOfView(view.Camera.FOV, (float)width / (float)height, view.Camera.NearPlane, view.Camera.FarPlane);
         _isAmbientOcclusionActive = environment.IsAmbientOcclusionEnabled;
+        _nearPlane = view.Camera.NearPlane;
+        _farPlane = view.Camera.FarPlane;
+        _time = (float)environment.Frame;
         _isShadowMapActive = environment.IsShadowMapEnabled && (environment.ShadowLight != nullptr);
         _isPlayerShadowOnly = environment.IsPlayerShadowOnly;
 
@@ -1852,11 +1864,11 @@ namespace TEN::Renderer::Next
         PrepareShadows(environment, environment.InterpolationFactor);
         RenderShadowMap(*commandBuffer, frameVertexUniforms);
 
+        // The prepass always runs: the scene pass reuses its depth, and soft particles read a copy of it.
+        RenderDepthPrepass(*commandBuffer, view);
+        CopySceneDepth(*commandBuffer);
         if (_isAmbientOcclusionActive)
-        {
-            RenderDepthPrepass(*commandBuffer, view);
             RenderSSAO(*commandBuffer, projection);
-        }
 
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = _sceneTarget.get();
@@ -1867,7 +1879,7 @@ namespace TEN::Renderer::Next
 
         auto depthTarget = DepthTargetInfo{};
         depthTarget.Texture = _depthTarget.get();
-        depthTarget.Load = _isAmbientOcclusionActive ? LoadOp::Load : LoadOp::Clear;
+        depthTarget.Load = LoadOp::Load;
         depthTarget.Store = StoreOp::DontCare;
 
         // Slot 2 is shared with the screen space passes, so the shadow uniforms are pushed right before the scene.

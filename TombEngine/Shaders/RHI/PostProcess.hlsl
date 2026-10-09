@@ -1,5 +1,6 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
 // TEN_SHADER: Pixel PS samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
+// TEN_SHADER: Pixel PSDepthCopy samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
 // Color scheme, screen fade, cinematic bars, tint and gamma of the legacy post-process chain
 // (Shaders/PostProcess.hlsl PSMonochrome, PSNegative, PSExclusion and PSFinalPass) in a single pass.
@@ -58,4 +59,10 @@ float4 PS(FullscreenPixelInput input) : SV_Target
     // Neutral tint is 0.5, compensated by the color modulation scale as in the legacy final pass.
     color = saturate(pow(saturate(color * Tint * COLOR_MODULATION_SCALE), 1.0f / Gamma));
     return float4(color, 1.0f);
+}
+
+// Copies the depth buffer into a color texture that the scene pass can sample while the depth is its target.
+float PSDepthCopy(FullscreenPixelInput input) : SV_Target
+{
+    return SceneMap.SampleLevel(SceneMapSampler, input.UV, 0.0f).x;
 }

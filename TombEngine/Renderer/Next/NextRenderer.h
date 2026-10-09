@@ -194,10 +194,12 @@ namespace TEN::Renderer::Next
         // Instanced draw of consecutive sprites sharing texture and blend mode.
         struct SpriteDraw
         {
-            RHI::ITexture* Texture     = nullptr;
-            BlendMode      BlendMode   = BlendMode::Additive;
-            int            FirstSprite = 0;
-            int            SpriteCount = 0;
+            RHI::ITexture* Texture        = nullptr;
+            BlendMode      BlendMode      = BlendMode::Additive;
+            int            FirstSprite    = 0;
+            int            SpriteCount    = 0;
+            bool           IsSoftParticle = false;
+            int            RenderType     = 0;
         };
 
         // Run of consecutive sorted polygons sharing one draw group, drawn with one call. Sprite runs
@@ -247,6 +249,12 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IShader>           _postProcessPixelShader  = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _postProcessPipeline     = nullptr;
         std::unique_ptr<RHI::ITexture>          _sceneTarget             = nullptr;
+        std::unique_ptr<RHI::IShader>           _depthCopyPixelShader    = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _depthCopyPipeline       = nullptr;
+        std::unique_ptr<RHI::ITexture>          _sceneDepthCopy          = nullptr; // R32 float copy of the prepass depth.
+        float                                   _nearPlane               = 1.0f;
+        float                                   _farPlane                = 1.0f;
+        float                                   _time                    = 0.0f;
 
         // Shadow map (NextRendererShadows.cpp).
         std::unique_ptr<RHI::IShader>           _objectsShadowPixelShader = nullptr;
@@ -401,6 +409,7 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IGraphicsPipeline> CreateFullscreenPipeline(RHI::IShader* vertexShader, RHI::IShader* pixelShader, RHI::PixelFormat format, const char* name);
         bool CreatePostProcessResources();
         void RenderPostProcess(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
+        void CopySceneDepth(RHI::ICommandBuffer& commandBuffer);
 
         // Shadow map (NextRendererShadows.cpp).
         bool         CreateShadowResources();

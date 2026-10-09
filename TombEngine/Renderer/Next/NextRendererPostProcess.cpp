@@ -45,7 +45,33 @@ namespace TEN::Renderer::Next
             return false;
 
         _postProcessPipeline = CreateFullscreenPipeline(_postProcessVertexShader.get(), _postProcessPixelShader.get(), _device->GetSwapchainFormat(), "PostProcess");
-        return (_postProcessPipeline != nullptr);
+
+        _depthCopyPixelShader = LoadShader(*_device, _shaderDirectory, "PostProcess", "PSDepthCopy");
+        if (_depthCopyPixelShader == nullptr)
+            return false;
+
+        _depthCopyPipeline = CreateFullscreenPipeline(_postProcessVertexShader.get(), _depthCopyPixelShader.get(), PixelFormat::R32Float, "DepthCopy");
+        return (_postProcessPipeline != nullptr && _depthCopyPipeline != nullptr);
+    }
+
+    // The scene pass keeps the prepass depth as its target, so effects reading the depth (soft particles) use a copy.
+    void NextRenderer::CopySceneDepth(ICommandBuffer& commandBuffer)
+    {
+        auto colorTarget = ColorTargetInfo{};
+        colorTarget.Texture = _sceneDepthCopy.get();
+        colorTarget.Load = LoadOp::DontCare;
+
+        commandBuffer.PushDebugGroup("Depth copy");
+        auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
+        renderPass->BindPipeline(_depthCopyPipeline.get());
+
+        auto binding = TextureSamplerBinding{ _depthTarget.get(), _pointClampSampler.get() };
+        renderPass->BindPixelSamplers(0, &binding, 1);
+
+        _frameStats.DrawCalls++;
+        renderPass->Draw(3, 1, 0, 0);
+        commandBuffer.EndRenderPass();
+        commandBuffer.PopDebugGroup();
     }
 
     // Single fullscreen pass from the scene target to the frame target.

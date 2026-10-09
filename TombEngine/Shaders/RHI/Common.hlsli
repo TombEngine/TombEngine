@@ -53,6 +53,11 @@ struct ObjectInstance
     uint     Skinning;   // Bone palette offset in the low 24 bits, skinning mode in the high 8 bits.
 };
 
+float LinearizeDepth(float depth, float nearPlane, float farPlane)
+{
+    return (nearPlane * 2.0f) / (farPlane + nearPlane - depth * (farPlane - nearPlane));
+}
+
 float Luma(float3 color)
 {
     return (color.x * 0.2126f) + (color.y * 0.7152f) + (color.z * 0.0722f);

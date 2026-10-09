@@ -14,6 +14,17 @@ using namespace TEN::Renderer::Structures;
 
 namespace TEN::Renderer::Next
 {
+    // Same layout as SpriteUniforms in Sprites.hlsl.
+    struct SpriteUniforms
+    {
+        unsigned int IsSoftParticle = 0;
+        unsigned int RenderType     = 0;
+        float        NearPlane      = 1.0f;
+        float        FarPlane       = 1.0f;
+        float        Time           = 0.0f;
+        float        Padding[3]     = {};
+    };
+
     // Corner order of the legacy sprite quads: top left, top right, bottom right, bottom left.
     constexpr unsigned int SPRITE_CORNER_INDICES[6] = { 0, 1, 3, 2, 3, 1 };
 
@@ -147,8 +158,12 @@ namespace TEN::Renderer::Next
             if (!AddSprite(sprite, view))
                 break;
 
-            if (_spriteDraws.empty() || _spriteDraws.back().Texture != texture || _spriteDraws.back().BlendMode != sprite.BlendMode)
-                _spriteDraws.push_back(SpriteDraw{ texture, sprite.BlendMode, spriteIndex, 0 });
+            const auto* last = _spriteDraws.empty() ? nullptr : &_spriteDraws.back();
+            if (last == nullptr || last->Texture != texture || last->BlendMode != sprite.BlendMode ||
+                last->IsSoftParticle != sprite.SoftParticle || last->RenderType != (int)sprite.renderType)
+            {
+                _spriteDraws.push_back(SpriteDraw{ texture, sprite.BlendMode, spriteIndex, 0, sprite.SoftParticle, (int)sprite.renderType });
+            }
 
             _spriteDraws.back().SpriteCount++;
         }
@@ -180,10 +195,17 @@ namespace TEN::Renderer::Next
 
         if (draw.Texture != lastTexture)
         {
-            auto binding = TextureSamplerBinding{ draw.Texture, _linearClampSampler.get() };
-            renderPass.BindPixelSamplers(0, &binding, 1);
+            TextureSamplerBinding bindings[2] =
+            {
+                { draw.Texture, _linearClampSampler.get() },
+                { _sceneDepthCopy.get(), _pointClampSampler.get() }
+            };
+            renderPass.BindPixelSamplers(0, bindings, 2);
             lastTexture = draw.Texture;
         }
+
+        auto spriteUniforms = SpriteUniforms{ draw.IsSoftParticle ? 1u : 0u, (unsigned int)draw.RenderType, _nearPlane, _farPlane, _time };
+        commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 3, &spriteUniforms, sizeof(spriteUniforms));
 
         _frameStats.DrawCalls++;
         renderPass.Draw(6, draw.SpriteCount, 0, draw.FirstSprite);
