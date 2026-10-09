@@ -407,6 +407,9 @@ namespace TEN::Renderer::Next
         FrameStorageBuffer            _sortedIndexBuffer   = {};
         std::vector<unsigned char>    _sortedIndexData     = {};
         std::vector<SortedDraw>       _sortedDraws         = {};
+        std::vector<SortedDraw>       _mirrorSortedDraws   = {};
+        std::vector<SpriteDraw>       _mirrorSpriteDraws   = {};
+        std::vector<const Structures::RendererSpriteToDraw*> _spriteSources = {}; // One per frame sprite.
         std::unordered_map<const void*, int> _sortedInstances = {};
         FrameStorageBuffer            _materialBuffer      = {};
         std::vector<unsigned char>    _materialData        = {};
@@ -462,6 +465,8 @@ namespace TEN::Renderer::Next
         static bool IsMirrored(const InstanceOrigin& origin, const Structures::RendererMirror& mirror);
         int  AddMirroredInstance(int instanceIndex, const Structures::RendererMirror& mirror);
         void CollectMirrors(const RenderView& view);
+        int  AddMirroredSprites(int firstSprite, int count, const Structures::RendererMirror& mirror, const RenderView& view);
+        void CollectMirroredSorted(const RenderView& view);
         void AddGunFlash(GAME_OBJECT_ID flashObjectID, const Matrix& world, const Vector4& color, const Vector4& ambientLight);
         void CollectGunFlashes(const RenderView& view);
         void DrawGunFlashes(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
@@ -475,7 +480,7 @@ namespace TEN::Renderer::Next
         void UploadFrameData(RHI::ICommandBuffer& commandBuffer);
         void CollectSortedFaces(const RenderView& view, float interpolationFactor);
         int  GetSortedObjectInstance(const Structures::RendererSortableObject& object, float interpolationFactor);
-        void DrawSortedFaces(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
+        void DrawSortedFaces(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool isMirrored = false);
         void LogGpuTimings();
         static FogBulbUniforms GetFogBulbUniforms(const RenderView& view);
         bool CreateSkyGeometry();
@@ -526,10 +531,10 @@ namespace TEN::Renderer::Next
         // Sprites (NextRendererSprites.cpp).
         bool           CreateSpriteResources();
         RHI::ITexture* GetSpriteTexture(const Structures::RendererSprite* sprite) const;
-        bool           AddSprite(const Structures::RendererSpriteToDraw& sprite, const RenderView& view);
+        bool           AddSprite(const Structures::RendererSpriteToDraw& sprite, const RenderView& view, const Structures::RendererMirror* mirror = nullptr);
         void           CollectSprites(const RenderView& view);
         void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture);
-        void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool isDistortion);
+        void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, bool isDistortion, bool isMirrored = false);
         void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, ScenePass pass);
 
     public:

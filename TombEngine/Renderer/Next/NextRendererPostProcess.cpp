@@ -111,6 +111,7 @@ namespace TEN::Renderer::Next
         DrawRooms(commandBuffer, *renderPass, view, ScenePass::Distortion);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Distortion);
         DrawSprites(commandBuffer, *renderPass, true);
+        DrawSprites(commandBuffer, *renderPass, true, true);
         commandBuffer.EndRenderPass();
         commandBuffer.PopDebugGroup();
     }

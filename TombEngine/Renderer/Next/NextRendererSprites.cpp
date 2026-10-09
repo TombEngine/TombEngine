@@ -34,8 +34,8 @@ namespace TEN::Renderer::Next
         return toByte(color.x) | (toByte(color.y) << 8) | (toByte(color.z) << 16) | (toByte(color.w) << 24);
     }
 
-    // Port of the legacy GetWorldMatrixForSprite without mirror reflection.
-    static Matrix GetSpriteWorldMatrix(const RendererSpriteToDraw& sprite, const RenderView& view)
+    // Port of the legacy GetWorldMatrixForSprite; mirrors pass the reflected sprite position.
+    static Matrix GetSpriteWorldMatrix(const RendererSpriteToDraw& sprite, const Vector3& position, const RenderView& view)
     {
         auto scaleMatrix = Matrix::CreateScale(sprite.Width * sprite.Scale, sprite.Height * sprite.Scale, sprite.Scale);
 
@@ -44,19 +44,19 @@ namespace TEN::Renderer::Next
         case SpriteType::Billboard:
         {
             auto cameraUp = Vector3(view.Camera.View._12, view.Camera.View._22, view.Camera.View._32);
-            return scaleMatrix * Matrix::CreateRotationZ(sprite.Rotation) * Matrix::CreateBillboard(sprite.pos, Camera.pos.ToVector3(), cameraUp);
+            return scaleMatrix * Matrix::CreateRotationZ(sprite.Rotation) * Matrix::CreateBillboard(position, Camera.pos.ToVector3(), cameraUp);
         }
 
         case SpriteType::CustomBillboard:
         {
             auto quadForward = Vector3(0.0f, 0.0f, 1.0f);
-            return scaleMatrix * Matrix::CreateConstrainedBillboard(sprite.pos, Camera.pos.ToVector3(), sprite.ConstrainAxis, nullptr, &quadForward);
+            return scaleMatrix * Matrix::CreateConstrainedBillboard(position, Camera.pos.ToVector3(), sprite.ConstrainAxis, nullptr, &quadForward);
         }
 
         case SpriteType::LookAtBillboard:
         {
             auto rotation = Matrix::CreateRotationZ(sprite.Rotation) * Matrix::CreateLookAt(Vector3::Zero, sprite.LookAtAxis, Vector3::UnitZ);
-            return scaleMatrix * rotation * Matrix::CreateTranslation(sprite.pos);
+            return scaleMatrix * rotation * Matrix::CreateTranslation(position);
         }
 
         default:
@@ -101,7 +101,9 @@ namespace TEN::Renderer::Next
         return _spriteTextures[page].ColorMap.get();
     }
 
-    bool NextRenderer::AddSprite(const RendererSpriteToDraw& sprite, const RenderView& view)
+    // As in the legacy renderer, a mirror reflects the corners of 3D sprites, and the position of billboards,
+    // which still face the camera.
+    bool NextRenderer::AddSprite(const RendererSpriteToDraw& sprite, const RenderView& view, const RendererMirror* mirror)
     {
         if ((int)(_spriteData.size() / sizeof(GpuSprite)) >= INSTANCE_INDEX_COUNT)
             return false;
@@ -113,10 +115,16 @@ namespace TEN::Renderer::Next
             corners[1] = sprite.vtx2;
             corners[2] = sprite.vtx3;
             corners[3] = sprite.vtx4;
+            if (mirror != nullptr)
+            {
+                for (auto& corner : corners)
+                    corner = Vector3::Transform(corner, mirror->ReflectionMatrix);
+            }
         }
         else
         {
-            auto world = GetSpriteWorldMatrix(sprite, view);
+            auto position = (mirror != nullptr) ? Vector3::Transform(sprite.pos, mirror->ReflectionMatrix) : sprite.pos;
+            auto world = GetSpriteWorldMatrix(sprite, position, view);
             corners[0] = Vector3::Transform(Vector3(-0.5f, 0.5f, 0.0f), world);
             corners[1] = Vector3::Transform(Vector3(0.5f, 0.5f, 0.0f), world);
             corners[2] = Vector3::Transform(Vector3(0.5f, -0.5f, 0.0f), world);
@@ -135,6 +143,7 @@ namespace TEN::Renderer::Next
 
         const auto* bytes = (const unsigned char*)&gpuSprite;
         _spriteData.insert(_spriteData.end(), bytes, bytes + sizeof(gpuSprite));
+        _spriteSources.push_back(&sprite);
         return true;
     }
 
@@ -143,6 +152,7 @@ namespace TEN::Renderer::Next
     void NextRenderer::CollectSprites(const RenderView& view)
     {
         _spriteData.clear();
+        _spriteSources.clear();
         _spriteDraws.clear();
 
         for (const auto& sprite : view.SpritesToDraw)
@@ -214,16 +224,17 @@ namespace TEN::Renderer::Next
         renderPass.Draw(6, draw.SpriteCount, 0, draw.FirstSprite);
     }
 
-    void NextRenderer::DrawSprites(ICommandBuffer& commandBuffer, IRenderPass& renderPass, bool isDistortion)
+    void NextRenderer::DrawSprites(ICommandBuffer& commandBuffer, IRenderPass& renderPass, bool isDistortion, bool isMirrored)
     {
-        if (_spriteDraws.empty())
+        const auto& draws = isMirrored ? _mirrorSpriteDraws : _spriteDraws;
+        if (draws.empty())
             return;
 
         commandBuffer.PushDebugGroup(isDistortion ? "Distortion sprites" : "Sprites");
 
         const IGraphicsPipeline* lastPipeline = nullptr;
         const ITexture* lastTexture = nullptr;
-        for (const auto& draw : _spriteDraws)
+        for (const auto& draw : draws)
         {
             if ((draw.BlendMode == BlendMode::Distortion) == isDistortion)
                 DrawSpriteRun(commandBuffer, renderPass, draw, lastPipeline, lastTexture);

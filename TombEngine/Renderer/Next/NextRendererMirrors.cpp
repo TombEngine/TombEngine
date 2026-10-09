@@ -62,6 +62,69 @@ namespace TEN::Renderer::Next
         return index;
     }
 
+    // Reflected copies of a run of sprites, or NO_VALUE when the frame sprite capacity is exhausted.
+    int NextRenderer::AddMirroredSprites(int firstSprite, int count, const RendererMirror& mirror, const RenderView& view)
+    {
+        int first = (int)(_spriteData.size() / sizeof(GpuSprite));
+        if (first + count > INSTANCE_INDEX_COUNT)
+            return NO_VALUE;
+
+        for (int i = 0; i < count; i++)
+            AddSprite(*_spriteSources[firstSprite + i], view, &mirror);
+
+        return first;
+    }
+
+    // As in the legacy renderer, unsorted sprites are reflected when the mirror asks for it, and the sorted faces
+    // of every object and sprite in view are reflected unconditionally; sorted room faces are not.
+    void NextRenderer::CollectMirroredSorted(const RenderView& view)
+    {
+        _mirrorSpriteDraws.clear();
+        _mirrorSortedDraws.clear();
+
+        for (const auto& mirror : view.Mirrors)
+        {
+            if (mirror.ReflectSprites)
+            {
+                for (const auto& draw : _spriteDraws)
+                {
+                    int first = AddMirroredSprites(draw.FirstSprite, draw.SpriteCount, mirror, view);
+                    if (first == NO_VALUE)
+                        break;
+
+                    auto mirrorDraw = draw;
+                    mirrorDraw.FirstSprite = first;
+                    _mirrorSpriteDraws.push_back(mirrorDraw);
+                }
+            }
+
+            auto reflectedInstances = std::unordered_map<int, int>{};
+            for (const auto& draw : _sortedDraws)
+            {
+                if (draw.IsRoom)
+                    continue;
+
+                auto mirrorDraw = draw;
+                if (draw.IsSprite)
+                {
+                    mirrorDraw.Sprites.FirstSprite = AddMirroredSprites(draw.Sprites.FirstSprite, draw.Sprites.SpriteCount, mirror, view);
+                    if (mirrorDraw.Sprites.FirstSprite == NO_VALUE)
+                        continue;
+                }
+                else
+                {
+                    auto it = reflectedInstances.find(draw.Instance);
+                    if (it == reflectedInstances.end())
+                        it = reflectedInstances.emplace(draw.Instance, AddMirroredInstance(draw.Instance, mirror)).first;
+
+                    mirrorDraw.Instance = it->second;
+                }
+
+                _mirrorSortedDraws.push_back(mirrorDraw);
+            }
+        }
+    }
+
     // Legacy mirrors draw the player, moveables and statics of the mirror room a second time, reflected by the
     // mirror plane with inverted culling. Reflected copies of their instances form a separate draw list; buckets
     // sharing an instance range share its reflected range.

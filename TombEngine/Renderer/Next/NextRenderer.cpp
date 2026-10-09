@@ -1589,12 +1589,13 @@ namespace TEN::Renderer::Next
         }
     }
 
-    void NextRenderer::DrawSortedFaces(ICommandBuffer& commandBuffer, IRenderPass& renderPass)
+    void NextRenderer::DrawSortedFaces(ICommandBuffer& commandBuffer, IRenderPass& renderPass, bool isMirrored)
     {
-        if (_sortedDraws.empty())
+        const auto& draws = isMirrored ? _mirrorSortedDraws : _sortedDraws;
+        if (draws.empty())
             return;
 
-        commandBuffer.PushDebugGroup("Sorted transparent faces");
+        commandBuffer.PushDebugGroup(isMirrored ? "Mirrored sorted faces" : "Sorted transparent faces");
 
         if (!_sortedIndexData.empty())
             renderPass.BindIndexBuffer(BufferBinding{ _sortedIndexBuffer.Buffer.get(), 0 }, IndexSize::Bits32);
@@ -1610,7 +1611,7 @@ namespace TEN::Renderer::Next
         int lastSource = UNBOUND_SOURCE;
         auto state = BucketBindState{};
 
-        for (const auto& draw : _sortedDraws)
+        for (const auto& draw : draws)
         {
             // Sprite runs overwrite the sampler and pixel uniform slots used by bucket draws.
             if (draw.IsSprite)
@@ -1622,7 +1623,7 @@ namespace TEN::Renderer::Next
             }
 
             const auto& bucket = *draw.Bucket;
-            auto shader = draw.IsRoom ? SceneShader::Rooms : SceneShader::Objects;
+            auto shader = draw.IsRoom ? SceneShader::Rooms : (isMirrored ? SceneShader::ObjectsMirrored : SceneShader::Objects);
 
             auto* pipeline = GetScenePipeline(shader, draw.BlendMode);
             if (pipeline != lastPipeline)
@@ -1958,6 +1959,7 @@ namespace TEN::Renderer::Next
         CollectObjects(view, environment.InterpolationFactor);
         CollectSprites(view);
         CollectSortedFaces(view, environment.InterpolationFactor);
+        CollectMirroredSorted(view);
 
         UploadFrameData(*commandBuffer);
 
@@ -2004,7 +2006,9 @@ namespace TEN::Renderer::Next
         DrawObjects(*commandBuffer, *renderPass, ScenePass::Additive, true);
         DrawDebris(*commandBuffer, *renderPass, DebrisPass::Additive);
         DrawSprites(*commandBuffer, *renderPass, false);
+        DrawSprites(*commandBuffer, *renderPass, false, true);
         DrawSortedFaces(*commandBuffer, *renderPass);
+        DrawSortedFaces(*commandBuffer, *renderPass, true);
         DrawDebris(*commandBuffer, *renderPass, DebrisPass::Blended);
         DrawGunFlashes(*commandBuffer, *renderPass);
         commandBuffer->EndRenderPass();
