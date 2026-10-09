@@ -71,7 +71,7 @@ float4 GetFogBulbs(float3 position, float3 cameraPosition, bool isSky)
 {
     float4 fog = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
-    for (int i = 0; i < FogBulbCount; i++)
+    for (int i = 0; i < min(FogBulbCount, FOG_BULBS_MAX); i++)
     {
         float density = GetFogBulbDensity(position, cameraPosition, FogBulbs[i], isSky);
         fog.xyz += FogBulbs[i].Color * COLOR_MODULATION_SCALE * density;

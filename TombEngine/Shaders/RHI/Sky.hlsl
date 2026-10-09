@@ -1,7 +1,9 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=4
 // TEN_SHADER: Pixel PS samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
-// Classic sky layers and horizon meshes: texture tinted by the layer color, no lighting or depth.
+// Classic sky layers and horizon meshes: texture tinted by the layer color, no lighting or depth. The paraboloid
+// mode draws them into one hemisphere of the dual paraboloid map of skybox reflective materials (legacy VSSky in
+// RoomAmbient.hlsl).
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -12,9 +14,14 @@ TEN_VS_UNIFORMS(SkyVertexUniforms, 2)
 {
     float4x4 World;
     uint     IsFogBulbsEnabled;
-    uint     SkyPadding0;
-    uint     SkyPadding1;
-    uint     SkyPadding2;
+    uint     IsParaboloid;
+    float    Hemisphere; // -1 front, 1 back.
+    float    SkyPadding0;
+    float4x4 ParaboloidView;
+    float    ParaboloidNear;
+    float    ParaboloidFar;
+    float    SkyPadding1;
+    float    SkyPadding2;
 };
 
 TEN_PS_UNIFORMS(SkyPixelUniforms, 2)
@@ -42,6 +49,7 @@ struct PixelInput
     float2 UV                       : TEXCOORD0;
     nointerpolation float3 UVScroll : TEXCOORD1;
     float4 FogBulbs                 : TEXCOORD2;
+    float  ClipDepth                : TEXCOORD3; // Negative behind the paraboloid hemisphere.
 };
 
 PixelInput VS(VertexInput input)
@@ -50,6 +58,20 @@ PixelInput VS(VertexInput input)
 
     PixelInput output;
     output.Position = mul(float4(worldPosition, 1.0f), ViewProjection);
+    output.ClipDepth = 1.0f;
+
+    if (IsParaboloid)
+    {
+        float4 position = mul(float4(worldPosition, 1.0f), ParaboloidView);
+        position.z *= Hemisphere;
+
+        // Denominators are clamped: infinite or NaN positions, harmless on DX11, can lose the Vulkan device.
+        float distance = max(length(position.xyz), 1e-4f);
+        position.xyz /= distance;
+        output.ClipDepth = position.z;
+        output.Position = float4(position.xy / max(position.z + 1.0f, 1e-4f), (distance - ParaboloidNear) / (ParaboloidFar - ParaboloidNear), 1.0f);
+    }
+
     output.FogBulbs = IsFogBulbsEnabled ? GetFogBulbs(worldPosition, CameraPosition, true) : float4(0.0f, 0.0f, 0.0f, 0.0f);
     output.UV = input.UV;
     output.UVScroll = float3(0.0f, 0.0f, 0.0f);
@@ -73,6 +95,8 @@ PixelInput VS(VertexInput input)
 
 float4 PS(PixelInput input) : SV_TARGET
 {
+    clip(input.ClipDepth);
+
     float4 color = ColorMap.Sample(ColorMapSampler, ApplyUVScroll(input.UV, input.UVScroll));
     float3 light = saturate(SkyColor.rgb - input.FogBulbs.w * 1.4f);
     return float4(color.rgb * light + saturate(input.FogBulbs.rgb), color.a * SkyColor.a);

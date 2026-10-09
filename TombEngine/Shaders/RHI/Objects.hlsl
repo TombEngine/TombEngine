@@ -1,7 +1,7 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=4
-// TEN_SHADER: Pixel PS samplers=8 storage_textures=0 storage_buffers=3 uniform_buffers=3
-// TEN_SHADER: Pixel PSDepthNormal samplers=8 storage_textures=0 storage_buffers=3 uniform_buffers=3
-// TEN_SHADER: Pixel PSShadow samplers=8 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Pixel PSDepthNormal samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Pixel PSShadow samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
 
 // Static meshes and rigid moveable meshes. Every draw is instanced: the instance index stream
 // selects the per-instance world matrix, colors and light mode from a storage buffer.
@@ -22,7 +22,7 @@ TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
 TEN_VS_STORAGE_BUFFER(ObjectInstance, Instances, 2);
 TEN_VS_STORAGE_BUFFER(BoneTransform, Bones, 3);
 
-TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 8);
+TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 9);
 
 struct VertexInput
 {
@@ -65,7 +65,7 @@ float3 CombineLights(float3 ambient, float3 vertexLight, float3 position, Surfac
     float3 specular = 0.0f;
 
     float3 normal = surface.Normal;
-    uint count = lightSlice.y & LT_MASK;
+    uint count = min(lightSlice.y & LT_MASK, LIGHTS_PER_DRAW_MAX);
     for (uint i = 0; i < count; i++)
     {
         GpuLight light = Lights[lightSlice.x + i];

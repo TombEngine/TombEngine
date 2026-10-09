@@ -1,6 +1,6 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=4
-// TEN_SHADER: Pixel PS samplers=8 storage_textures=0 storage_buffers=3 uniform_buffers=3
-// TEN_SHADER: Pixel PSDepthNormal samplers=8 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Pixel PSDepthNormal samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
 
 // Room geometry: baked vertex lighting plus the room's dynamic lights with specular, material maps (normal,
 // ORSH, emissive, parallax), animated textures, vertex effects, water refraction and distance fog.
@@ -19,7 +19,7 @@
 TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
 TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
 
-TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 8);
+TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 9);
 
 struct VertexInput
 {
@@ -116,7 +116,7 @@ float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface, flo
     lighting = DoShadow(position, surface.Normal, lighting, -2.5f, BlendMode);
     lighting = DoBlobShadows(position, lighting);
 
-    uint count = LightCount & LT_MASK;
+    uint count = min(LightCount & LT_MASK, LIGHTS_PER_DRAW_MAX);
     bool onlyPointLights = (LightCount & ~LT_MASK) == LT_MASK_POINT;
 
     for (uint i = 0; i < count; i++)

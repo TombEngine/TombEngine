@@ -100,8 +100,16 @@ namespace TEN::Renderer::Next
     {
         Matrix       World             = Matrix::Identity;
         unsigned int IsFogBulbsEnabled = 0;
-        unsigned int Padding[3]        = {};
+        unsigned int IsParaboloid      = 0;
+        float        Hemisphere        = 0.0f;
+        float        Padding0          = 0.0f;
+        Matrix       ParaboloidView    = Matrix::Identity;
+        float        ParaboloidNear    = 1.0f;
+        float        ParaboloidFar     = 1.0f;
+        float        Padding1[2]       = {};
     };
+
+    static_assert(sizeof(SkyVertexUniforms) == 160, "SkyVertexUniforms must match Sky.hlsl.");
 
     // Same layout as GpuMaterial in Materials.hlsli; properties are interpolated every frame.
     struct GpuMaterial

@@ -33,7 +33,7 @@ float3 DoBlobShadows(float3 position, float3 lighting)
 {
     float shadowFactor = 1.0f;
 
-    for (int i = 0; i < SphereCount; i++)
+    for (int i = 0; i < min(SphereCount, SHADOW_SPHERES_MAX); i++)
     {
         float distanceToCenter = distance(position, Spheres[i].xyz);
         float inside = 1.0f - step(Spheres[i].w, distanceToCenter);

@@ -209,6 +209,7 @@ namespace TEN::Renderer::Next
             ObjectsShadow,
             ObjectsDebris,
             ObjectsMirrored, // Reflected by a mirror plane: inverted culling.
+            SkyParaboloid,   // Sky into the dual paraboloid map of skybox reflective materials.
 
             Count
         };
@@ -297,6 +298,8 @@ namespace TEN::Renderer::Next
         bool                                    _hasEmissiveMaps         = false;
         std::unique_ptr<RHI::ITexture>          _reflectionTarget        = nullptr; // Half resolution scene of the previous frame.
         bool                                    _hasReflectiveMaterials  = false;
+        std::unique_ptr<RHI::ITexture>          _skyReflectionTarget     = nullptr; // Dual paraboloid sky, one hemisphere per layer.
+        bool                                    _hasSkyReflectiveMaterials = false;
 
         static constexpr int DOF_PASS_COUNT   = 4;
         static constexpr int DOF_TARGET_COUNT = 3;
@@ -484,7 +487,9 @@ namespace TEN::Renderer::Next
         void LogGpuTimings();
         static FogBulbUniforms GetFogBulbUniforms(const RenderView& view);
         bool CreateSkyGeometry();
-        void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor);
+        void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere = 0);
+        bool CreateSkyReflectionResources();
+        void RenderSkyReflections(RHI::ICommandBuffer& commandBuffer, const RenderView& view, float interpolationFactor);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
         static BlendMode GetPassBlendMode(ScenePass pass);
         static bool IsBucketInPass(const Structures::RendererBucket& bucket, ScenePass pass);
@@ -516,6 +521,7 @@ namespace TEN::Renderer::Next
         bool  CreateGlowResources();
         bool  EnsureGlowTargets(int width, int height);
         void  RenderGlow(RHI::ICommandBuffer& commandBuffer);
+        void  ClearSampledTargets();
         void  DownscaleTexture(RHI::ICommandBuffer& commandBuffer, RHI::ITexture* source, RHI::ITexture* target, const char* name);
         float GetAmbientOcclusionExponent() const;
         void  RenderDepthPrepass(RHI::ICommandBuffer& commandBuffer, const RenderView& view);

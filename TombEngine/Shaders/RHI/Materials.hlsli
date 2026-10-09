@@ -4,8 +4,8 @@
 // Surface sampling of the legacy material system (Shaders/Materials.hlsli): color, normal, ORSH and emissive
 // maps of an atlas page, parallax occlusion mapping and per-material properties from a frame storage buffer.
 // Pixel textures use slots 0-3, slot 4 is the screen space ambient occlusion, slot 5 the shadow map
-// (Shadows.hlsli), slot 6 the caustics and slot 7 the reflections; storage buffers follow at index 8 (lights),
-// 9 (materials) and 10 (decals, Decals.hlsli).
+// (Shadows.hlsli), slot 6 the caustics, slot 7 the previous frame reflections and slot 8 the sky reflections;
+// storage buffers follow at index 9 (lights), 10 (materials) and 11 (decals, Decals.hlsli).
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -43,7 +43,8 @@ TEN_PS_TEXTURE(Texture2D, EmissiveMap, 3);
 TEN_PS_TEXTURE(Texture2D, AmbientOcclusionMap, 4);
 TEN_PS_TEXTURE(Texture2D, CausticsMap, 6);
 TEN_PS_TEXTURE(Texture2D, ReflectionMap, 7); // Previous frame, half resolution.
-TEN_PS_STORAGE_BUFFER(GpuMaterial, Materials, 9);
+TEN_PS_TEXTURE(Texture2DArray, SkyReflectionMap, 8); // Dual paraboloid sky, one hemisphere per layer.
+TEN_PS_STORAGE_BUFFER(GpuMaterial, Materials, 10);
 
 struct Surface
 {
@@ -109,7 +110,8 @@ float2 ParallaxOcclusionMapping(GpuMaterial material, float3 tangent, float3 bin
     viewTangent.y = -viewTangent.y;
 
     float factor = saturate((viewTangent.z - POM_MIN_ANGLE) / (1.0f - POM_MIN_ANGLE));
-    int sampleCount = max(1, (int)ceil(lerp((float)POM_MAX_STEPS, (float)POM_MIN_STEPS, factor)));
+    // Clamped after the conversion: a NaN view vector would otherwise give an unbounded loop.
+    int sampleCount = clamp((int)ceil(lerp((float)POM_MAX_STEPS, (float)POM_MIN_STEPS, factor)), POM_MIN_STEPS, POM_MAX_STEPS);
     viewTangent.z = clamp(viewTangent.z, POM_MIN_ANGLE, 1.0f);
 
     float layerDepth = 1.0f / sampleCount;
@@ -183,14 +185,24 @@ float GetAmbientOcclusion(GpuMaterial material, float2 screenUV, float exponent,
     return (blendMode == BLENDMODE_ALPHABLEND) ? lerp(occlusion, 1.0f, alpha) : occlusion;
 }
 
-// Legacy CalculateLegacyReflections: the view space reflection vector picks a texel of the previous frame,
-// cropped to its central square. Skybox reflections are not ported yet.
-float3 ApplyReflections(GpuMaterial material, float3 color, float3 position, float3 cameraPosition, float3 normal, float specular,
-                        float4x4 view, float aspectRatio)
+// Legacy CalculateSkyBoxReflections: the exaggerated reflection vector picks a texel of the dual paraboloid sky.
+// The legacy paraboloid view looks down -Y with X up, which maps a direction to (z, x, y).
+float3 SampleSkyReflection(float3 position, float3 cameraPosition, float3 normal)
 {
-    if ((material.TypeAndFlags & MATERIAL_TYPE_MASK) != MATERIAL_REFLECTIVE)
-        return color;
+    float3 viewVector = normalize(cameraPosition - position);
+    float3 reflection = normalize(lerp(viewVector, reflect(-viewVector, normal), 1.5f));
+    float3 direction = normalize(reflection.zxy);
 
+    float2 uv = (direction.xy / max(1.0f + abs(direction.z), 1e-6f)) * 0.5f + 0.5f;
+    uv = clamp(0.5f + (uv - 0.5f) * 0.985f, 1e-6f, 1.0f - 1e-6f); // Crop hemisphere edges.
+    uv.y = 1.0f - uv.y;
+    return SkyReflectionMap.Sample(SkyReflectionMapSampler, float3(uv, (direction.z <= 0.0f) ? 0.0f : 1.0f)).rgb;
+}
+
+// Legacy CalculateLegacyReflections: the view space reflection vector picks a texel of the previous frame,
+// cropped to its central square.
+float3 SampleScreenReflection(float3 position, float3 cameraPosition, float3 normal, float4x4 view, float aspectRatio)
+{
     float3 viewNormal = normalize(mul(float4(normal, 0.0f), view).xyz);
     float3 viewVector = normalize(mul(float4(cameraPosition - position, 0.0f), view).xyz);
     float3 reflection = reflect(-viewVector, viewNormal);
@@ -202,7 +214,20 @@ float3 ApplyReflections(GpuMaterial material, float3 color, float3 position, flo
     else
         uv.y = uv.y * aspectRatio + (0.5f - 0.5f * aspectRatio);
 
-    float3 reflectedColor = ReflectionMap.Sample(ReflectionMapSampler, uv).rgb * saturate(material.Properties[0].rgb);
+    return ReflectionMap.Sample(ReflectionMapSampler, uv).rgb;
+}
+
+float3 ApplyReflections(GpuMaterial material, float3 color, float3 position, float3 cameraPosition, float3 normal, float specular,
+                        float4x4 view, float aspectRatio)
+{
+    uint type = material.TypeAndFlags & MATERIAL_TYPE_MASK;
+    if (type != MATERIAL_REFLECTIVE && type != MATERIAL_SKYBOX_REFLECTIVE)
+        return color;
+
+    float3 reflectedColor = (type == MATERIAL_SKYBOX_REFLECTIVE) ?
+        SampleSkyReflection(position, cameraPosition, normal) :
+        SampleScreenReflection(position, cameraPosition, normal, view, aspectRatio);
+    reflectedColor *= saturate(material.Properties[0].rgb);
 
     // Vertical mask: offset in Properties[1].x, signed feather in Properties[2].x.
     float mask = 1.0f;

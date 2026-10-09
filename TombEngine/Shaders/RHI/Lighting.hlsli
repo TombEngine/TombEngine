@@ -13,6 +13,7 @@
 #define LT_SHADOW 3
 
 #define LT_MASK        0xFFFF
+#define LIGHTS_PER_DRAW_MAX 256 // Loop bound: a corrupted count must not hang the GPU (Vulkan loses the device).
 #define LT_MASK_SUN    (1 << (31 - LT_SUN))
 #define LT_MASK_POINT  (1 << (31 - LT_POINT))
 #define LT_MASK_SPOT   (1 << (31 - LT_SPOT))

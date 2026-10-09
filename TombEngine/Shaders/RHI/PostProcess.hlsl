@@ -211,7 +211,7 @@ float3 ApplyLensFlares(float3 color, float2 uv)
     float2 position = float2(uv.x * 2.0f - 1.0f, 1.0f - uv.y * 2.0f);
     float3 totalColor = 0.0f;
 
-    for (uint i = 0; i < LensFlareCount; i++)
+    for (uint i = 0; i < min(LensFlareCount, LENS_FLARES_MAX); i++)
     {
         // Visibility is the same for every pixel, so occluded flares skip the flare math coherently.
         float visibility = GetLensFlareVisibility(LensFlarePositions[i].xy);

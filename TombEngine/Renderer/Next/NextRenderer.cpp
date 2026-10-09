@@ -142,6 +142,7 @@ namespace TEN::Renderer::Next
         _ssaoTarget = nullptr;
         _emissiveTarget = nullptr;
         _reflectionTarget = nullptr;
+        _skyReflectionTarget = nullptr;
         _glowTargets[0] = nullptr;
         _glowTargets[1] = nullptr;
         _glowDownscalePipeline = nullptr;
@@ -201,7 +202,8 @@ namespace TEN::Renderer::Next
         if (_skyVertexShader == nullptr || _skyPixelShader == nullptr || !CreateSkyGeometry())
             return false;
 
-        if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources())
+        if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources() ||
+            !CreateSkyReflectionResources())
             return false;
 
         if (GetScenePipeline(SceneShader::Rooms, BlendMode::Opaque) == nullptr ||
@@ -347,7 +349,8 @@ namespace TEN::Renderer::Next
             return pipeline.get();
 
         bool isObjects = (shader == SceneShader::Objects || shader == SceneShader::ObjectsPrepass);
-        bool isSky = (shader == SceneShader::Sky);
+        bool isParaboloid = (shader == SceneShader::SkyParaboloid);
+        bool isSky = (shader == SceneShader::Sky) || isParaboloid;
         bool isSprites = (shader == SceneShader::Sprites);
         bool isPrepass = (shader == SceneShader::RoomsPrepass || shader == SceneShader::ObjectsPrepass);
         bool isShadow = (shader == SceneShader::ObjectsShadow);
@@ -358,14 +361,19 @@ namespace TEN::Renderer::Next
         IShader* vertexShaders[(int)SceneShader::Count] =
         {
             _roomsVertexShader.get(), _objectsVertexShader.get(), _skyVertexShader.get(), _spritesVertexShader.get(),
-            _roomsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get()
+            _roomsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(),
+            _skyVertexShader.get()
         };
         IShader* pixelShaders[(int)SceneShader::Count] =
         {
             _roomsPixelShader.get(), _objectsPixelShader.get(), _skyPixelShader.get(), _spritesPixelShader.get(),
-            _roomsPrepassPixelShader.get(), _objectsPrepassPixelShader.get(), _objectsShadowPixelShader.get(), _objectsPixelShader.get(), _objectsPixelShader.get()
+            _roomsPrepassPixelShader.get(), _objectsPrepassPixelShader.get(), _objectsShadowPixelShader.get(), _objectsPixelShader.get(), _objectsPixelShader.get(),
+            _skyPixelShader.get()
         };
-        const char* names[(int)SceneShader::Count] = { "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow", "ObjectsDebris", "ObjectsMirrored" };
+        const char* names[(int)SceneShader::Count] =
+        {
+            "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow", "ObjectsDebris", "ObjectsMirrored", "SkyParaboloid"
+        };
 
         auto desc = GraphicsPipelineDesc{};
         desc.VertexShader = vertexShaders[(int)shader];
@@ -378,6 +386,8 @@ namespace TEN::Renderer::Next
             desc.Rasterizer.Cull = RHI::CullMode::None;
         else if (isMirrored)
             desc.Rasterizer.Cull = RHI::CullMode::Front;
+        else if (isParaboloid)
+            desc.Rasterizer.Cull = RHI::CullMode::None;
 
         auto& attributes = desc.Layout.Attributes;
         attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::Float3, (int)offsetof(Vertex, Position) };
@@ -417,7 +427,7 @@ namespace TEN::Renderer::Next
 
         // The prepass writes view normals and emissive.
         desc.NumColorTargets = isPrepass ? 2 : 1;
-        desc.ColorTargets[0].Format = isPrepass ? PixelFormat::RGBA8Unorm : (isShadow ? PixelFormat::R32Float : _device->GetSwapchainFormat());
+        desc.ColorTargets[0].Format = (isPrepass || isParaboloid) ? PixelFormat::RGBA8Unorm : (isShadow ? PixelFormat::R32Float : _device->GetSwapchainFormat());
         desc.ColorTargets[0].Blend = GetBlendState((isPrepass || isShadow) ? BlendMode::Opaque : (BlendMode)modeIndex);
         desc.ColorTargets[1].Format = PixelFormat::RGBA8Unorm;
         desc.ColorTargets[1].Blend = GetBlendState(BlendMode::Opaque);
@@ -425,7 +435,7 @@ namespace TEN::Renderer::Next
         bool isDistortion = (modeIndex == (int)BlendMode::Distortion);
         desc.DepthStencil.EnableDepthWrite = (modeIndex == (int)BlendMode::Opaque) && !isSky && !isSprites;
         desc.DepthStencil.EnableDepthTest = !isSky && !isDistortion;
-        desc.DepthFormat = isDistortion ? PixelFormat::Unknown : PixelFormat::D32Float;
+        desc.DepthFormat = (isDistortion || isParaboloid) ? PixelFormat::Unknown : PixelFormat::D32Float;
         desc.Name = std::string(names[(int)shader]) + ".BlendMode" + std::to_string(modeIndex);
 
         pipeline = _device->CreateGraphicsPipeline(desc);
@@ -433,6 +443,40 @@ namespace TEN::Renderer::Next
             TENLog("Next renderer: cannot create pipeline " + desc.Name, LogLevel::Error);
 
         return pipeline.get();
+    }
+
+    // Targets sampled by later passes are cleared once at creation: some are written only when their feature is
+    // active, and sampling a texture never written leaves it in an undefined layout on Vulkan.
+    void NextRenderer::ClearSampledTargets()
+    {
+        ITexture* targets[] =
+        {
+            _distortionTarget.get(), _emissiveTarget.get(), _glowTargets[0].get(), _glowTargets[1].get(), _reflectionTarget.get(),
+            _dofTargets[0].get(), _dofTargets[1].get(), _dofTargets[2].get(), _smaaEdgesTarget.get(), _smaaWeightsTarget.get(),
+            _antialiasingSource.get(), _colorTarget.get(), _skyReflectionTarget.get()
+        };
+
+        auto* commandBuffer = _device->AcquireCommandBuffer();
+        if (commandBuffer == nullptr)
+            return;
+
+        for (auto* target : targets)
+        {
+            if (target == nullptr)
+                continue;
+
+            int layerCount = (target->GetDesc().Type == TextureType::Texture2DArray) ? target->GetDesc().DepthOrLayers : 1;
+            for (int layer = 0; layer < layerCount; layer++)
+            {
+                auto colorTarget = ColorTargetInfo{};
+                colorTarget.Texture = target;
+                colorTarget.Layer = layer;
+                commandBuffer->BeginRenderPass(&colorTarget, 1, nullptr);
+                commandBuffer->EndRenderPass();
+            }
+        }
+
+        commandBuffer->Submit();
     }
 
     bool NextRenderer::EnsureRenderTargets(int width, int height)
@@ -473,7 +517,11 @@ namespace TEN::Renderer::Next
         depthDesc.Name = "Scene.Depth";
         _depthTarget = _device->CreateTexture(depthDesc);
 
-        return (_colorTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _distortionTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height) && EnsureGlowTargets(width, height) && EnsureDOFTargets(width, height) && EnsureSMAATargets(width, height));
+        bool isCreated = (_colorTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _distortionTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height) && EnsureGlowTargets(width, height) && EnsureDOFTargets(width, height) && EnsureSMAATargets(width, height));
+        if (isCreated)
+            ClearSampledTargets();
+
+        return isCreated;
     }
 
     void NextRenderer::UploadBuffer(IBuffer* buffer, const void* data, int size)
@@ -737,6 +785,7 @@ namespace TEN::Renderer::Next
         _materialData.resize(g_Level.Materials.size() * sizeof(GpuMaterial));
         auto* materials = (GpuMaterial*)_materialData.data();
         _hasReflectiveMaterials = false;
+        _hasSkyReflectiveMaterials = false;
 
         for (int i = 0; i < (int)g_Level.Materials.size(); i++)
         {
@@ -751,6 +800,8 @@ namespace TEN::Renderer::Next
             // Scripts can change material types at runtime.
             if (material.Type == TextureMaterialType::Reflective)
                 _hasReflectiveMaterials = true;
+            else if (material.Type == TextureMaterialType::SkyboxReflective)
+                _hasSkyReflectiveMaterials = true;
 
             gpuMaterial.TypeAndFlags = (unsigned int)material.Type |
                                        ((unsigned int)material.HasHeightMap << 8) |
@@ -821,7 +872,8 @@ namespace TEN::Renderer::Next
         auto* shadowMap = _isRenderingShadowMap ? _dummyShadowMap.get() : _shadowMap.get();
         auto* caustics = (_causticsTexture != nullptr) ? _causticsTexture : _whiteTexture.get();
         auto* reflections = _hasReflectiveMaterials ? _reflectionTarget.get() : _blackTexture.get();
-        TextureSamplerBinding bindings[8] =
+        auto* skyReflections = _hasSkyReflectiveMaterials ? _skyReflectionTarget.get() : _dummyShadowMap.get();
+        TextureSamplerBinding bindings[9] =
         {
             { getMap(page ? &page->ColorMap : nullptr, _whiteTexture.get()), sampler },
             { getMap(page ? &page->NormalMap : nullptr, _flatNormalTexture.get()), sampler },
@@ -830,9 +882,10 @@ namespace TEN::Renderer::Next
             { ambientOcclusion, _linearClampSampler.get() },
             { shadowMap, _pointClampSampler.get() },
             { caustics, sampler },
-            { reflections, _linearClampSampler.get() }
+            { reflections, _linearClampSampler.get() },
+            { skyReflections, _linearClampSampler.get() }
         };
-        renderPass.BindPixelSamplers(0, bindings, 8);
+        renderPass.BindPixelSamplers(0, bindings, 9);
     }
 
     void NextRenderer::BindBucket(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RendererBucket& bucket, const std::vector<RoomTexture>& pages,
@@ -1706,11 +1759,29 @@ namespace TEN::Renderer::Next
 
     // Classic sky: two scrolling layers (additive) and up to two horizon meshes (alpha blended) around the
     // camera, drawn without depth before the rooms, as in the legacy DrawHorizonAndSky.
-    void NextRenderer::DrawSky(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, float interpolationFactor)
+    // Hemisphere 0 draws the sky of the view; -1 and 1 draw a hemisphere of the dual paraboloid sky reflections,
+    // without fog bulbs and regardless of outside rooms, as the legacy reflection pass.
+    void NextRenderer::DrawSky(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere)
     {
         using namespace TEN::Effects::Environment;
 
-        bool isAnyRoomOutside = false;
+        constexpr auto PARABOLOID_NEAR = 32.0f;
+
+        bool isParaboloid = (hemisphere != 0);
+        auto shader = isParaboloid ? SceneShader::SkyParaboloid : SceneShader::Sky;
+        auto paraboloidView = Matrix::CreateLookAt(view.Camera.WorldPosition, view.Camera.WorldPosition + Vector3(0.0f, -BLOCK(1), 0.0f), Vector3::UnitX);
+        auto getUniforms = [&](const Matrix& world, bool isFogBulbsEnabled)
+        {
+            auto uniforms = SkyVertexUniforms{ world, (isFogBulbsEnabled && !isParaboloid) ? 1u : 0u };
+            uniforms.IsParaboloid = isParaboloid ? 1u : 0u;
+            uniforms.Hemisphere = (float)hemisphere;
+            uniforms.ParaboloidView = paraboloidView;
+            uniforms.ParaboloidNear = PARABOLOID_NEAR;
+            uniforms.ParaboloidFar = DEFAULT_FAR_VIEW;
+            return uniforms;
+        };
+
+        bool isAnyRoomOutside = isParaboloid;
         for (const auto* room : view.RoomsToDraw)
         {
             if (g_Level.Rooms[room->RoomNumber].flags & ENV_FLAG_SKYBOX)
@@ -1730,7 +1801,7 @@ namespace TEN::Renderer::Next
         commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &drawUniforms, sizeof(drawUniforms));
 
         // Layers.
-        renderPass.BindPipeline(GetScenePipeline(SceneShader::Sky, BlendMode::Additive));
+        renderPass.BindPipeline(GetScenePipeline(shader, BlendMode::Additive));
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 2);
 
         auto skyVertexBinding = BufferBinding{ _skyVertexBuffer.get(), 0 };
@@ -1758,7 +1829,7 @@ namespace TEN::Renderer::Next
 
                 auto world = rotation * translation;
                 // Fog bulbs affect the first layer only, as in the legacy renderer.
-                auto skyUniforms = SkyVertexUniforms{ world, (layer == 0) ? 1u : 0u };
+                auto skyUniforms = getUniforms(world, layer == 0);
                 commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &skyUniforms, sizeof(skyUniforms));
                 _frameStats.DrawCalls++;
                 renderPass.DrawIndexed(SKY_INDICES_COUNT, 1, 0, 0, 0);
@@ -1782,7 +1853,7 @@ namespace TEN::Renderer::Next
             auto world = orientation.ToRotationMatrix() * Matrix::CreateTranslation(position) * Matrix::CreateTranslation(view.Camera.WorldPosition);
             auto color = Vector4(1.0f, 1.0f, 1.0f, alpha);
 
-            auto skyUniforms = SkyVertexUniforms{ world, 1u };
+            auto skyUniforms = getUniforms(world, true);
             commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &skyUniforms, sizeof(skyUniforms));
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &color, sizeof(color));
 
@@ -1800,7 +1871,7 @@ namespace TEN::Renderer::Next
 
                     // Horizons always blend; alpha test buckets blend as alpha.
                     auto blendMode = (bucket.BlendMode == BlendMode::AlphaTest || bucket.BlendMode == BlendMode::Opaque) ? BlendMode::AlphaBlend : bucket.BlendMode;
-                    renderPass.BindPipeline(GetScenePipeline(SceneShader::Sky, blendMode));
+                    renderPass.BindPipeline(GetScenePipeline(shader, blendMode));
                     renderPass.BindVertexStorageBuffers(0, storageBuffers, 2);
 
                     int animatedSet = bucket.Animated ? bucket.Texture : NO_VALUE;
@@ -1954,6 +2025,15 @@ namespace TEN::Renderer::Next
         auto fogBulbUniforms = GetFogBulbUniforms(view);
         commandBuffer->PushUniforms(RHI::ShaderStage::Vertex, 3, &fogBulbUniforms, sizeof(fogBulbUniforms));
 
+        // Every uniform slot a shader declares must hold data of at least its size before the first draw of the
+        // command buffer: SDL GPU on Vulkan otherwise binds a stale or undersized buffer, which can lose the device.
+        auto defaultDrawVertexUniforms = DrawVertexUniforms{ NO_VALUE };
+        auto defaultSkyVertexUniforms = SkyVertexUniforms{};
+        auto defaultDrawPixelUniforms = DrawPixelUniforms{};
+        commandBuffer->PushUniforms(RHI::ShaderStage::Vertex, 1, &defaultDrawVertexUniforms, sizeof(defaultDrawVertexUniforms));
+        commandBuffer->PushUniforms(RHI::ShaderStage::Vertex, 2, &defaultSkyVertexUniforms, sizeof(defaultSkyVertexUniforms));
+        commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 1, &defaultDrawPixelUniforms, sizeof(defaultDrawPixelUniforms));
+
         CollectMaterials(environment.InterpolationFactor);
         CollectDecals(view);
         CollectObjects(view, environment.InterpolationFactor);
@@ -1964,6 +2044,9 @@ namespace TEN::Renderer::Next
         UploadFrameData(*commandBuffer);
 
         PrepareShadows(environment, environment.InterpolationFactor);
+
+        // The shadow uniforms are the largest block of pixel slot 2, so they also cover the passes before the scene.
+        commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
         RenderShadowMap(*commandBuffer, frameVertexUniforms);
 
         // The prepass always runs: the scene pass reuses its depth, and soft particles read a copy of it.
@@ -1984,7 +2067,10 @@ namespace TEN::Renderer::Next
         depthTarget.Load = LoadOp::Load;
         depthTarget.Store = StoreOp::DontCare;
 
-        // Slot 2 is shared with the screen space passes, so the shadow uniforms are pushed right before the scene.
+        if (_hasSkyReflectiveMaterials)
+            RenderSkyReflections(*commandBuffer, view, environment.InterpolationFactor);
+
+        // Slot 2 is shared with the screen space and sky passes, so the shadow uniforms are pushed right before the scene.
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
 
         _hasDistortion = HasDistortionDraws(view);
@@ -1994,6 +2080,9 @@ namespace TEN::Renderer::Next
         commandBuffer->PushDebugGroup("Scene");
         auto* renderPass = commandBuffer->BeginRenderPass(&colorTarget, 1, &depthTarget);
         DrawSky(*commandBuffer, *renderPass, view, environment.InterpolationFactor);
+
+        // The sky color uses pixel slot 2 too: restore the shadow uniforms read by rooms and objects.
+        commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 2, &_shadowUniforms, sizeof(_shadowUniforms));
         DrawRooms(*commandBuffer, *renderPass, view, ScenePass::Opaque);
         DrawObjects(*commandBuffer, *renderPass, ScenePass::Opaque);
         DrawObjects(*commandBuffer, *renderPass, ScenePass::Opaque, true);
@@ -2092,12 +2181,15 @@ namespace TEN::Renderer::Next
         if (commandBuffer == nullptr)
             return;
 
-        // Acquisition may wait for vsync, so the frame lock is taken only around the blit.
+        // Acquisition may wait for vsync, so the frame lock is taken after it. Submission stays inside the lock:
+        // a frame submitted by the game thread between this blit's recording and submission would execute out of
+        // the recorded order, with stale texture layouts, which loses the Vulkan device.
         commandBuffer->PushDebugGroup("Present");
         auto* swapchainTexture = commandBuffer->AcquireSwapchainTexture();
+
+        auto lock = std::lock_guard<std::mutex>(_frameMutex);
         if (swapchainTexture != nullptr)
         {
-            auto lock = std::lock_guard<std::mutex>(_frameMutex);
             if (_colorTarget != nullptr)
                 commandBuffer->BlitTexture(_colorTarget.get(), swapchainTexture);
 
