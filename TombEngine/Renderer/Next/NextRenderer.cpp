@@ -606,6 +606,8 @@ namespace TEN::Renderer::Next
                 frames.push_back(GpuAnimatedFrame{ { texture.UV[0], texture.UV[1], texture.UV[2], texture.UV[3] } });
         }
 
+        AddWaterfallSets(geometry, frames, sets);
+
         // Storage buffers cannot be empty, keep one placeholder entry.
         if (frames.empty())
             frames.push_back(GpuAnimatedFrame{});
@@ -619,6 +621,44 @@ namespace TEN::Renderer::Next
         _animatedSetsBuffer = _device->CreateBuffer(BufferDesc{ setsSize, (int)sizeof(GpuAnimatedSet), BufferUsage::GraphicsStorageRead, "AnimatedTextures.Sets" });
         UploadBuffer(_animatedFramesBuffer.get(), frames.data(), framesSize);
         UploadBuffer(_animatedSetsBuffer.get(), sets.data(), setsSize);
+    }
+
+    // Legacy DrawWaterfalls scrolls waterfall objects vertically within the V range of their first triangle at a fixed
+    // speed. That range only depends on the object, so each waterfall object gets a set with a single frame.
+    void NextRenderer::AddWaterfallSets(const LegacyLevelGeometry& geometry, std::vector<GpuAnimatedFrame>& frames, std::vector<GpuAnimatedSet>& sets)
+    {
+        constexpr auto WATERFALL_SPEED = 10;
+
+        _waterfallSets.clear();
+        for (int objectID = ID_WATERFALL1; objectID <= ID_WATERFALLSS2; objectID++)
+        {
+            const auto& object = (*geometry.MoveableObjects)[objectID];
+            if (!object.has_value() || object->ObjectMeshes.empty() || object->ObjectMeshes[0]->Buckets.empty())
+                continue;
+
+            const auto& bucket = object->ObjectMeshes[0]->Buckets[0];
+            if (bucket.StartVertex + 3 > (int)geometry.MoveableVertices->size())
+                continue;
+
+            float minV = FLT_MAX;
+            float maxV = -FLT_MAX;
+            for (int i = 0; i < 3; i++)
+            {
+                float v = (*geometry.MoveableVertices)[bucket.StartVertex + i].UV.y;
+                minV = std::min(minV, v);
+                maxV = std::max(maxV, v);
+            }
+
+            auto set = GpuAnimatedSet{};
+            set.FirstFrame = (unsigned int)frames.size();
+            set.NumFrames = 1;
+            set.Fps = WATERFALL_SPEED;
+            set.Type = ANIM_TYPE_LEGACY_WATERFALL;
+
+            _waterfallSets[objectID] = (int)sets.size();
+            sets.push_back(set);
+            frames.push_back(GpuAnimatedFrame{ { Vector2(0.0f, minV), Vector2(1.0f, minV), Vector2(1.0f, maxV), Vector2(0.0f, maxV) } });
+        }
     }
 
     // Material properties can be animated by scripts, so the whole table is rebuilt every frame.
@@ -650,9 +690,9 @@ namespace TEN::Renderer::Next
         renderPass.BindPixelStorageBuffers(0, buffers, 3);
     }
 
-    NextRenderer::RoomDrawInfo NextRenderer::GetRoomDrawInfo(int roomNumber, bool hasDecals)
+    NextRenderer::BucketDrawInfo NextRenderer::GetBucketDrawInfo(int roomNumber, bool hasDecals)
     {
-        auto info = RoomDrawInfo{};
+        auto info = BucketDrawInfo{};
         info.IsWaterRoom = (g_Level.Rooms[roomNumber].flags & ENV_FLAG_WATER) ? 1 : 0;
         info.IsCausticsRoom = IsCausticsRoom(roomNumber) ? 1 : 0;
 
@@ -719,7 +759,7 @@ namespace TEN::Renderer::Next
     }
 
     void NextRenderer::BindBucket(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RendererBucket& bucket, const std::vector<RoomTexture>& pages,
-                                  BlendMode blendMode, unsigned int lightCount, const RoomDrawInfo& room, BucketBindState& state)
+                                  BlendMode blendMode, unsigned int lightCount, const BucketDrawInfo& room, BucketBindState& state)
     {
         auto pixelUniforms = DrawPixelUniforms{};
         pixelUniforms.AlphaThreshold = (bucket.BlendMode == BlendMode::AlphaTest) ? ALPHA_TEST_THRESHOLD : 0.0f;
@@ -735,7 +775,8 @@ namespace TEN::Renderer::Next
             state.PixelUniforms = pixelUniforms;
         }
 
-        auto vertexUniforms = DrawVertexUniforms{ bucket.Animated ? bucket.Texture : NO_VALUE, room.IsWaterRoom };
+        int animatedSet = (room.AnimatedSetOverride != NO_VALUE) ? room.AnimatedSetOverride : (bucket.Animated ? bucket.Texture : NO_VALUE);
+        auto vertexUniforms = DrawVertexUniforms{ animatedSet, room.IsWaterRoom };
         if (vertexUniforms.AnimatedSetIndex != state.VertexUniforms.AnimatedSetIndex || vertexUniforms.IsWaterRoom != state.VertexUniforms.IsWaterRoom)
         {
             commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &vertexUniforms, sizeof(vertexUniforms));
@@ -778,7 +819,7 @@ namespace TEN::Renderer::Next
         for (int roomIndex = 0; roomIndex < roomCount; roomIndex++)
         {
             const auto* room = view.RoomsToDraw[additive ? (roomCount - 1 - roomIndex) : roomIndex];
-            auto roomInfo = GetRoomDrawInfo(room->RoomNumber, pass != ScenePass::Prepass);
+            auto roomInfo = GetBucketDrawInfo(room->RoomNumber, pass != ScenePass::Prepass);
 
             for (const auto& bucket : room->Buckets)
             {
@@ -914,8 +955,8 @@ namespace TEN::Renderer::Next
         {
             for (const auto* item : room->ItemsToDraw)
             {
-                // The player has its own path; waterfalls are ported in a later milestone.
-                if (item->ObjectID == ID_LARA || (item->ObjectID >= ID_WATERFALL1 && item->ObjectID <= ID_WATERFALLSS2))
+                // The player has its own path.
+                if (item->ObjectID == ID_LARA)
                     continue;
 
                 const auto& object = (*_legacyGeometry.MoveableObjects)[item->ObjectID];
@@ -957,6 +998,13 @@ namespace TEN::Renderer::Next
                     auto world = item->InterpolatedAnimationTransforms[meshIndex] * item->InterpolatedWorld;
                     int instance = AddInstance(world, item->Color, item->AmbientLight, mesh->LightMode, lightOffset, lightCount, 0, SKINNING_NONE);
                     AddMeshDraws(*mesh, instance);
+                }
+
+                auto waterfallSet = _waterfallSets.find(item->ObjectID);
+                if (waterfallSet != _waterfallSets.end())
+                {
+                    for (int i = firstDraw; i < (int)_objectDraws.size(); i++)
+                        _objectDraws[i].AnimatedSetOverride = waterfallSet->second;
                 }
 
                 if (IsShadowCaster(item->ObjectID))
@@ -1217,7 +1265,9 @@ namespace TEN::Renderer::Next
             }
 
             const auto& pages = (draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures;
-            BindBucket(commandBuffer, renderPass, bucket, pages, bucket.BlendMode, 0, RoomDrawInfo{}, state);
+            auto drawInfo = BucketDrawInfo{};
+            drawInfo.AnimatedSetOverride = draw.AnimatedSetOverride;
+            BindBucket(commandBuffer, renderPass, bucket, pages, bucket.BlendMode, 0, drawInfo, state);
 
             _frameStats.DrawCalls++;
             renderPass.DrawIndexed(bucket.NumIndices, draw.InstanceCount, bucket.StartIndex, 0, draw.FirstInstance);
@@ -1454,7 +1504,7 @@ namespace TEN::Renderer::Next
 
             const auto& pages = draw.IsRoom ? _roomTextures : ((draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures);
             // Decals are not drawn on sorted faces, as in the legacy renderer.
-            auto roomInfo = RoomDrawInfo{ draw.IsWaterRoom ? 1u : 0u, draw.IsCausticsRoom ? 1u : 0u };
+            auto roomInfo = BucketDrawInfo{ draw.IsWaterRoom ? 1u : 0u, draw.IsCausticsRoom ? 1u : 0u };
             BindBucket(commandBuffer, renderPass, bucket, pages, draw.BlendMode, draw.IsRoom ? (unsigned int)_roomLightCount : 0, roomInfo, state);
 
             _frameStats.DrawCalls++;

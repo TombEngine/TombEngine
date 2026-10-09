@@ -11,6 +11,7 @@ namespace TEN::Renderer::Next
     constexpr auto SSAO_KERNEL_SIZE     = 32;
     constexpr auto SHADOW_SPHERES_MAX   = 16;
     constexpr auto FOG_BULBS_MAX        = 32;
+    constexpr auto ANIM_TYPE_LEGACY_WATERFALL = 100; // Matches Common.hlsli.
     constexpr auto SHADOWABLE_MASK      = 1u << 16; // Light count flag of instances receiving shadows.
 
     // Uniform layouts mirror the cbuffers in Shaders/RHI/Rooms.hlsl.

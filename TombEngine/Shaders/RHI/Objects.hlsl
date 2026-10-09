@@ -117,7 +117,16 @@ PixelInput VS(VertexInput input)
     if (AnimatedSetIndex >= 0)
     {
         AnimatedSet set = AnimatedSets[AnimatedSetIndex];
-        if (set.Type == ANIM_TYPE_UVROTATE)
+        if (set.Type == ANIM_TYPE_LEGACY_WATERFALL)
+        {
+            // Legacy CalculateUVRotateForLegacyWaterfalls, affine in V so it is evaluated per vertex.
+            AnimatedFrameUV frame = AnimatedFrames[set.FirstFrame];
+            float top = frame.TopLeft.y;
+            float height = (frame.BottomLeft.y - top) / 2.0f;
+            float relative = 1.0f - fmod(InterpolatedFrame, (float)set.Fps) / (float)set.Fps;
+            output.UV.y = top + (input.UV.y - top) / 2.0f + height * relative;
+        }
+        else if (set.Type == ANIM_TYPE_UVROTATE)
         {
             output.UVScroll = GetUVRotateScroll(AnimatedFrames[set.FirstFrame], set, InterpolatedFrame);
         }

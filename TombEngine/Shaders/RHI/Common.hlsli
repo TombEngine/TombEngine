@@ -17,6 +17,7 @@
 #define ANIM_TYPE_FRAMES   0
 #define ANIM_TYPE_UVROTATE 1
 #define ANIM_TYPE_VIDEO    2
+#define ANIM_TYPE_LEGACY_WATERFALL 100 // Waterfall objects, see NextRenderer::AddWaterfallSets.
 
 struct AnimatedFrameUV
 {

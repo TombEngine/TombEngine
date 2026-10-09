@@ -106,13 +106,14 @@ namespace TEN::Renderer::Next
             GpuObjectInstance               Instance = {};
         };
 
-        // Per room values of room bucket draws.
-        struct RoomDrawInfo
+        // Per draw values of bucket draws: room state for room buckets, animated set override for objects.
+        struct BucketDrawInfo
         {
-            unsigned int IsWaterRoom    = 0;
-            unsigned int IsCausticsRoom = 0;
-            unsigned int DecalOffset    = 0;
-            unsigned int DecalCount     = 0;
+            unsigned int IsWaterRoom         = 0;
+            unsigned int IsCausticsRoom      = 0;
+            unsigned int DecalOffset         = 0;
+            unsigned int DecalCount          = 0;
+            int          AnimatedSetOverride = NO_VALUE;
         };
 
         // Draw state of consecutive bucket draws; pushes and binds are skipped when unchanged.
@@ -137,6 +138,7 @@ namespace TEN::Renderer::Next
             const Structures::RendererBucket* Bucket        = nullptr;
             int                               FirstInstance = 0;
             int                               InstanceCount = 0;
+            int                               AnimatedSetOverride = NO_VALUE; // Legacy waterfall scrolling.
         };
 
         // GPU buffer rewritten every frame from CPU data through a cycled transfer buffer.
@@ -267,6 +269,7 @@ namespace TEN::Renderer::Next
         std::vector<RoomTexture>      _animatedTextures = {};
         std::unique_ptr<RHI::IBuffer> _animatedFramesBuffer = nullptr;
         std::unique_ptr<RHI::IBuffer> _animatedSetsBuffer   = nullptr;
+        std::unordered_map<int, int>  _waterfallSets        = {}; // Object ID to animated set.
 
         GeometryBuffers               _staticGeometry   = {};
         GeometryBuffers               _moveableGeometry = {};
@@ -320,14 +323,15 @@ namespace TEN::Renderer::Next
         void CollectMaterials(float interpolationFactor);
         void BindTexturePage(RHI::IRenderPass& renderPass, const RoomTexture* page);
         void BindBucket(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const Structures::RendererBucket& bucket, const std::vector<RoomTexture>& pages,
-                        BlendMode blendMode, unsigned int lightCount, const RoomDrawInfo& room, BucketBindState& state);
-        RoomDrawInfo GetRoomDrawInfo(int roomNumber, bool hasDecals);
+                        BlendMode blendMode, unsigned int lightCount, const BucketDrawInfo& room, BucketBindState& state);
+        BucketDrawInfo GetBucketDrawInfo(int roomNumber, bool hasDecals);
         void CollectDecals(const RenderView& view);
         bool IsCausticsRoom(int roomNumber) const;
         void PrepareCaustics(FramePixelUniforms& uniforms);
         void BindScenePixelStorage(RHI::IRenderPass& renderPass);
         void UploadBuffer(RHI::IBuffer* buffer, const void* data, int size);
         void LoadAnimatedTextures(const LegacyLevelGeometry& geometry);
+        void AddWaterfallSets(const LegacyLevelGeometry& geometry, std::vector<GpuAnimatedFrame>& frames, std::vector<GpuAnimatedSet>& sets);
         RHI::IGraphicsPipeline* GetScenePipeline(SceneShader shader, BlendMode blendMode);
         void LoadTextureSet(const std::vector<::TEXTURE>& source, std::vector<RoomTexture>& destination, const std::string& name);
         void CreateGeometryBuffers(GeometryBuffers& buffers, const std::vector<Graphics::Vertices::Vertex>& vertices, const std::vector<int>& indices, const std::string& name);
