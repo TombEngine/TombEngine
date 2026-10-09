@@ -315,7 +315,9 @@ Il renderer nuovo gira in una seconda finestra accanto a quello vecchio, sugli s
 - [x] Effetti di vertice (Move/Glow/Wibble) e rifrazione delle stanze d'acqua.
 - [x] Soft particle, sprite laser, detriti, vampate delle armi, oggetti skinned diversi dal giocatore.
 - [x] Specchi: giocatore, moveable, statiche, effetti mesh, sprite e facce ordinate riflessi con culling invertito.
-- [ ] Cielo atmosferico, nuvole, aurora, sole e stelle (Tomo).
+- [x] Stelle, meteore e sprite del sole del cielo classico (helper condivisi col legacy).
+- [x] Cupola del cielo atmosferico (stesso blocco uniform del legacy). Il legacy non la disegna nel test di benchmark: da verificare.
+- [ ] Nuvole volumetriche, aurora, disco di sole e luna, god rays, tempesta di sabbia, cielo subacqueo (Tomo).
 - [x] Materiali: normal map, ORSH, emissive, parallax, specular e sheen.
 - [x] SSAO a mezza risoluzione con prepass depth + normali.
 - [x] Ombre (cubemap della luce ombreggiante in 6 layer R32F, PCF 5x5) e ombre blob.
@@ -326,7 +328,9 @@ Il renderer nuovo gira in una seconda finestra accanto a quello vecchio, sugli s
 - [x] Riflessi: materiali riflettenti (frame precedente a mezza risoluzione) e riflessi del cielo (doppio paraboloide 512x512).
 - [x] Video in background su set animati di tipo video e sugli sprite video.
 - [ ] Sprite alpha test anche nel prepass (il legacy li scrive nel GBuffer, quindi entrano nell'AO).
-- [ ] HUD, 2D, inventario e menu.
+- [x] Pass 2D: testo (font DirectXTK letto dal file, layout delle stringhe del legacy), barre di stato, display sprite, lampo e ottiche (binocolo, mirino laser).
+- [ ] Oggetti 3D dell'HUD (riepilogo raccolti, DrawItems) con lo shader Inventory.
+- [ ] Inventario, title screen, menu e schermate di caricamento: oggi passano da percorsi legacy separati che non alimentano il renderer nuovo.
 
 ## 12. Decisioni prese
 
