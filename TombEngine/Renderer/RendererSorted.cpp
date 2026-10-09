@@ -241,6 +241,16 @@ namespace TEN::Renderer
 		bounds.w = std::max(bounds.w, maxY);
 	}
 
+	static void ExpandScreenBoundsWithBox(Vector4& bounds, const Matrix& viewProjection, const Matrix& world, const Vector3& boxMin, const Vector3& boxMax)
+	{
+		for (int corner = 0; corner < 8; corner++)
+		{
+			auto point = Vector3((corner & 1) ? boxMax.x : boxMin.x, (corner & 2) ? boxMax.y : boxMin.y, (corner & 4) ? boxMax.z : boxMin.z);
+			point = Vector3::Transform(point, world);
+			ExpandScreenBounds(bounds, viewProjection, point.x, point.y, point.z);
+		}
+	}
+
 	// Joins object groups that overlap both in depth and on screen: only there can polygon order
 	// across objects change the image. Candidates are swept by near depth, so each group is only
 	// tested against the groups that start before it ends.
@@ -524,6 +534,9 @@ namespace TEN::Renderer
 		int maxDistance = 0;
 		auto screenBounds = Vector4(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX);
 
+		// Screen bounds come from the bucket box, as polygon centres miss the extent of large polygons.
+		bool hasBox = (object.Bucket->BoundsMin.x <= object.Bucket->BoundsMax.x);
+
 		for (int i = 0; i < polygonCount; i++)
 		{
 			const auto& centre = sourcePolygons[i].Centre;
@@ -542,8 +555,13 @@ namespace TEN::Renderer
 
 			minDistance = std::min(minDistance, distance);
 			maxDistance = std::max(maxDistance, distance);
-			ExpandScreenBounds(screenBounds, viewProjection, worldX, worldY, worldZ);
+
+			if (!hasBox)
+				ExpandScreenBounds(screenBounds, viewProjection, worldX, worldY, worldZ);
 		}
+
+		if (hasBox)
+			ExpandScreenBoundsWithBox(screenBounds, viewProjection, matrix, object.Bucket->BoundsMin, object.Bucket->BoundsMax);
 
 		auto& storedObject = view.TransparentObjectsToDraw[objectIndex];
 		storedObject.MinDistance = minDistance;

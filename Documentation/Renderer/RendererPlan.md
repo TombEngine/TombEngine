@@ -269,14 +269,14 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 
 L'algoritmo di develop_performance (bucket come unita', entry compatte, radix sort, cluster per gli oggetti sovrapposti) e' gia' buono e **si porta nel renderer nuovo**. Cambia come si disegna.
 
-- [ ] Raccolta dentro Prepare, in parallelo per oggetto con buffer per thread; centri dei poligoni calcolati al caricamento (7.1).
+- [x] ~~Raccolta dentro Prepare, in parallelo per oggetto con buffer per thread; centri dei poligoni calcolati al caricamento (7.1).~~ *(misurato: la raccolta costa 0,05 ms per frame e l'ordinamento 0,15 ms sui benchmark, il parallelismo non darebbe guadagni; i centri sono gia' calcolati al caricamento)*
 - [x] Profondita' sempre dalla camera della vista.
 - [x] ~~**Blend mode commutativi fuori dal sort**: Additive, Lighten (MAX), Subtractive e Screen danno lo stesso risultato in qualunque ordine e vanno disegnati in batch non ordinati. Restano ordinati solo AlphaBlend e Premultiplied (ed Exclude, da verificare).~~ *(provato e tolto: ogni modo e' commutativo solo con se stesso (Additive con Subtractive), ma Screen e Lighten non commutano tra loro ne' con Additive, quindi mescolandoli l'ordine cambia il risultato; restano nel sort, come nel legacy. Additive e Distortion erano gia' fuori)*
 - [x] **Cambio di oggetto gratuito**: ogni run ordinato e' un draw con indice d'istanza; dati dell'oggetto, ossa e luci dai buffer persistenti e per frame. Nessun upload per run. *(renderer nuovo: un'istanza per oggetto per frame, anche se i cluster lo spezzano in piu' run)*
 - [x] **Un solo upload per frame** degli indici ordinati (ring), ogni run usa `firstIndex`. *(indici copiati dagli array CPU del livello in un index buffer per frame con transfer buffer ciclato)*
 - [ ] Run di stanze fusi per {pipeline, array e layer di texture}: con le liste di luci indicizzate la stanza non e' piu' parte della chiave.
 - [x] Sprite dentro i cluster (particelle viste attraverso il vetro), disegnati come istanze in ordine di profondita'.
-- [ ] Rettangoli dei cluster dai bounding box invece che dai centri dei poligoni.
+- [x] Rettangoli dei cluster dai bounding box invece che dai centri dei poligoni. *(otto angoli del box del bucket invece di una proiezione per poligono: piu' preciso e piu' economico; vale per entrambi i renderer)*
 - [ ] Debris, bossoli e ragni inclusi nella raccolta.
 - [ ] Weighted Blended OIT: solo come eventuale opzione futura per le particelle, non in questo piano.
 
