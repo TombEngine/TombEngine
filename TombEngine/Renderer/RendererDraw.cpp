@@ -2326,6 +2326,14 @@ namespace TEN::Renderer
 			environment.ScreenFade = ScreenFadeCurrent;
 			environment.CinematicBarsHeight = CinematicBarsHeight;
 			environment.AntialiasingMode = (int)g_Configuration.AntialiasingMode;
+
+			float cloudOcclusion = GetLensFlareCloudOcclusion();
+			environment.LensFlareCount = std::min((int)view.LensFlaresToDraw.size(), Next::LENS_FLARES_MAX);
+			for (int i = 0; i < environment.LensFlareCount; i++)
+			{
+				environment.LensFlarePositions[i] = view.LensFlaresToDraw[i].Position;
+				environment.LensFlareColors[i] = GetLensFlareColor(view.LensFlaresToDraw[i], cloudOcclusion);
+			}
 			environment.ShadowLight = _shadowLight;
 			environment.IsShadowMapEnabled = (g_Configuration.ShadowType != ShadowMode::None);
 			environment.IsPlayerShadowOnly = (g_Configuration.ShadowType == ShadowMode::Player);

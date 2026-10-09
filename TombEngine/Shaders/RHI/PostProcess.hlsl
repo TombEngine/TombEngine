@@ -16,6 +16,8 @@
 #define COLOR_SCHEME_NEGATIVE   2
 #define COLOR_SCHEME_EXCLUSION  3
 
+#define LENS_FLARES_MAX 8
+
 TEN_PS_UNIFORMS(PostProcessUniforms, 2)
 {
     float3 Tint;
@@ -30,8 +32,10 @@ TEN_PS_UNIFORMS(PostProcessUniforms, 2)
     float  FarPlane;
     uint   IsDistortionActive;
     float  Time;
+    uint   LensFlareCount;
     float  PostProcessPadding0;
-    float  PostProcessPadding1;
+    float4 LensFlarePositions[LENS_FLARES_MAX]; // Normalized device xy, depth.
+    float4 LensFlareColors[LENS_FLARES_MAX];
 };
 
 TEN_PS_TEXTURE(Texture2D, SceneMap, 0);
@@ -124,6 +128,95 @@ float3 ApplyColorScheme(float3 color)
     return lerp(color, schemeColor, ColorSchemeStrength);
 }
 
+// Lens flare of the legacy PSLensFlare (Shaders/PostProcess.hlsl), in normalized device coordinates.
+float3 GetLensFlare(float2 uv, float2 position)
+{
+    float2 main = uv - position;
+    float2 uvd = uv * length(uv);
+
+    float angle = atan2(main.y, main.x);
+    float distance = pow(length(main), 0.1f);
+
+    // Starburst.
+    float f0 = pow(1.0f / (length(uv - position) * 35.0f + 1.0f), 1.5f);
+    float rotationOffset = dot(position, float2(0.5f, 0.5f)) * (PI / 2.0f);
+    f0 += f0 * (sin((angle + rotationOffset + 1.0f / 18.0f) * 8.0f) * 0.2f + distance * 0.1f + 0.2f);
+
+    // Glow.
+    float f2  = max(1.0f / (1.0f + 32.0f * length(uvd + 0.8f  * position)), 0.0f) * 0.25f;
+    float f22 = max(1.0f / (1.0f + 32.0f * length(uvd + 0.85f * position)), 0.0f) * 0.23f;
+    float f23 = max(1.0f / (1.0f + 32.0f * length(uvd + 0.9f  * position)), 0.0f) * 0.21f;
+
+    // Circular, smaller and symmetric lens artifacts.
+    float2 uvx = lerp(uv, uvd, -0.5f);
+    float f4  = max(0.01f - pow(length(uvx + 0.4f  * position), 2.4f), 0.0f) * 9.0f;
+    float f42 = max(0.01f - pow(length(uvx + 0.45f * position), 2.4f), 0.0f) * 7.0f;
+    float f43 = max(0.01f - pow(length(uvx + 0.5f  * position), 2.4f), 0.0f) * 6.0f;
+
+    uvx = lerp(uv, uvd, -0.4f);
+    float f5  = max(0.01f - pow(length(uvx + 0.2f * position), 5.5f), 0.0f) * 2.0f;
+    float f52 = max(0.01f - pow(length(uvx + 0.4f * position), 5.5f), 0.0f) * 2.0f;
+    float f53 = max(0.01f - pow(length(uvx + 0.6f * position), 5.5f), 0.0f) * 2.0f;
+
+    uvx = lerp(uv, uvd, -0.5f);
+    float f6  = max(0.01f - pow(length(uvx - 0.3f   * position), 1.6f), 0.0f) * 9.0f;
+    float f62 = max(0.01f - pow(length(uvx - 0.325f * position), 1.6f), 0.0f) * 6.0f;
+    float f63 = max(0.01f - pow(length(uvx - 0.35f  * position), 1.6f), 0.0f) * 7.0f;
+
+    float3 lensFlare = float3(f2 + f4 + f5 + f6, f22 + f42 + f52 + f62, f23 + f43 + f53 + f63);
+
+    // Subtle anamorphic glare.
+    float glare = exp(-pow(main.x * 1.2f, 2.0f) - pow(main.y * 35.0f, 2.0f));
+    float3 anamorphicGlare = float3(0.6f, 0.5f, 1.0f) * glare * 0.05f;
+
+    float3 color = saturate(f0) * 0.5f + lensFlare + anamorphicGlare;
+    return color * 1.3f - length(uvd) * 0.05f;
+}
+
+// Soft visibility of a flare from 9 depth taps around it: sky texels (cleared depth) are visible.
+float GetLensFlareVisibility(float2 position)
+{
+    if (abs(position.x) > 1.0f || abs(position.y) > 1.0f)
+        return 1.0f;
+
+    const float2 KERNEL_RADIUS = float2(0.012f, 0.018f);
+
+    float2 flareUV = float2(position.x * 0.5f + 0.5f, 0.5f - position.y * 0.5f);
+    float visibility = 0.0f;
+
+    [unroll]
+    for (int y = -1; y <= 1; y++)
+    {
+        [unroll]
+        for (int x = -1; x <= 1; x++)
+        {
+            float depth = DepthMap.SampleLevel(DepthMapSampler, saturate(flareUV + float2(x, y) * KERNEL_RADIUS), 0.0f).x;
+            visibility += (depth >= 0.9999f) ? 1.0f : 0.0f;
+        }
+    }
+
+    return visibility / 9.0f;
+}
+
+float3 ApplyLensFlares(float3 color, float2 uv)
+{
+    float2 position = float2(uv.x * 2.0f - 1.0f, 1.0f - uv.y * 2.0f);
+    float3 totalColor = 0.0f;
+
+    for (uint i = 0; i < LensFlareCount; i++)
+    {
+        float3 flareColor = max(0.0f, LensFlareColors[i].rgb * 4.5f * GetLensFlare(position, LensFlarePositions[i].xy));
+
+        // Legacy LensFlareColorCorrection.
+        float weight = flareColor.r + flareColor.g + flareColor.b;
+        flareColor = lerp(flareColor, weight * 0.5f, weight * 0.1f);
+
+        totalColor += flareColor * GetLensFlareVisibility(LensFlarePositions[i].xy);
+    }
+
+    return lerp(color, color + totalColor, saturate(dot(totalColor, 0.5f)));
+}
+
 float4 PS(FullscreenPixelInput input) : SV_Target
 {
     float y = input.Position.y / ViewportHeight;
@@ -131,7 +224,11 @@ float4 PS(FullscreenPixelInput input) : SV_Target
         return float4(0.0f, 0.0f, 0.0f, 1.0f);
 
     float2 uv = IsDistortionActive ? GetDistortedUV(input.UV) : input.UV;
-    float3 color = ApplyColorScheme(SceneMap.SampleLevel(SceneMapSampler, uv, 0.0f).rgb) * ScreenFade;
+    float3 color = SceneMap.SampleLevel(SceneMapSampler, uv, 0.0f).rgb;
+    if (LensFlareCount > 0)
+        color = ApplyLensFlares(color, input.UV);
+
+    color = ApplyColorScheme(color) * ScreenFade;
 
     // Neutral tint is 0.5, compensated by the color modulation scale as in the legacy final pass.
     color = saturate(pow(saturate(color * Tint * COLOR_MODULATION_SCALE), 1.0f / Gamma));

@@ -28,6 +28,15 @@ LevelFuncs.OnLoop = function()
 		TEN.Effects.EmitParticle(pos + offset, Vec3(0, -4, 0), 0, 2, 30, TEN.Color(255, 160, 64), TEN.Color(64, 64, 255), blend, 64, 16, 3)
 	end
 
+	-- A global lens flare slightly above the camera direction exercises the lens flare post-process.
+	local cameraPos = TEN.View.GetCameraPosition()
+	local cameraTarget = TEN.View.GetCameraTarget()
+	local flare = TEN.Flow.GetCurrentLevel().lensFlare
+	flare.enabled = true
+	flare.pitch = 0
+	flare.color = TEN.Color(255, 255, 255)
+	flare.yaw = math.deg(math.atan(cameraTarget.x - cameraPos.x, cameraTarget.z - cameraPos.z)) + 15
+
 	-- A large distortion particle in front of the player exercises the distortion pass.
 	TEN.Effects.EmitParticle(pos + Vec3(0, -640, 0), Vec3(0, 0, 0), 0, 0, 0, TEN.Color(255, 255, 255), TEN.Color(255, 255, 255), TEN.Effects.BlendID.DISTORTION, 512, 512, 2)
 end

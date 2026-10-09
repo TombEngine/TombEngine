@@ -27,10 +27,13 @@ namespace TEN::Renderer::Next
         float        FarPlane            = 1.0f;
         unsigned int IsDistortionActive  = 0;
         float        Time                = 0.0f;
-        float        Padding[2]          = {};
+        unsigned int LensFlareCount      = 0;
+        float        Padding             = 0.0f;
+        Vector4      LensFlarePositions[LENS_FLARES_MAX] = {}; // Normalized device xy, depth.
+        Vector4      LensFlareColors[LENS_FLARES_MAX]    = {};
     };
 
-    static_assert(sizeof(PostProcessUniforms) == 64, "PostProcessUniforms must match PostProcess.hlsl.");
+    static_assert(sizeof(PostProcessUniforms) == 320, "PostProcessUniforms must match PostProcess.hlsl.");
 
     std::unique_ptr<IGraphicsPipeline> NextRenderer::CreateFullscreenPipeline(IShader* vertexShader, IShader* pixelShader, PixelFormat format, const char* name)
     {
@@ -151,6 +154,18 @@ namespace TEN::Renderer::Next
         uniforms.FarPlane = _farPlane;
         uniforms.IsDistortionActive = _hasDistortion ? 1 : 0;
         uniforms.Time = _time;
+
+        // Flares are projected here; the legacy collection already dropped those behind the camera.
+        for (int i = 0; i < environment.LensFlareCount; i++)
+        {
+            auto clipPosition = Vector4::Transform(Vector4(environment.LensFlarePositions[i].x, environment.LensFlarePositions[i].y, environment.LensFlarePositions[i].z, 1.0f), _viewProjection);
+            if (clipPosition.w <= EPSILON)
+                continue;
+
+            uniforms.LensFlarePositions[uniforms.LensFlareCount] = Vector4(clipPosition.x / clipPosition.w, clipPosition.y / clipPosition.w, clipPosition.z / clipPosition.w, 0.0f);
+            uniforms.LensFlareColors[uniforms.LensFlareCount] = Vector4(environment.LensFlareColors[i].x, environment.LensFlareColors[i].y, environment.LensFlareColors[i].z, 0.0f);
+            uniforms.LensFlareCount++;
+        }
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
 
         bool isAntialiased = (environment.AntialiasingMode != 0);

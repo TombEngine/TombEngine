@@ -1868,6 +1868,7 @@ namespace TEN::Renderer::Next
 
         auto frameVertexUniforms = FrameVertexUniforms{};
         frameVertexUniforms.ViewProjection = view.Camera.View * projection;
+        _viewProjection = frameVertexUniforms.ViewProjection;
         frameVertexUniforms.CameraPosition = environment.CameraPosition;
         frameVertexUniforms.FogMinDistance = environment.FogMinDistance;
         frameVertexUniforms.FogMaxDistance = environment.FogMaxDistance;

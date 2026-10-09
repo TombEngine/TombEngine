@@ -3,6 +3,7 @@
 
 // Shared constants, vertex data decoding, animated textures and fog for the RHI shaders.
 
+#define PI                     3.14159265f
 #define COLOR_MODULATION_SCALE 2.0f
 
 #define BLENDMODE_OPAQUE     0

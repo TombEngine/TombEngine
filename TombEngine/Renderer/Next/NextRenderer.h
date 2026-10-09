@@ -72,6 +72,11 @@ namespace TEN::Renderer::Next
         float        CinematicBarsHeight = 0.0f;
         int          AntialiasingMode    = 0; // Legacy AntialiasingMode; SMAA levels use FXAA for now.
 
+        // Lens flares of the legacy renderer, with colors already attenuated by clouds and horizon.
+        Vector3      LensFlarePositions[LENS_FLARES_MAX] = {};
+        Vector3      LensFlareColors[LENS_FLARES_MAX]    = {};
+        int          LensFlareCount      = 0;
+
         // Shadows of the legacy renderer: shadow casting light (null when none) and blob spheres.
         const Structures::RendererLight* ShadowLight = nullptr;
         bool         IsShadowMapEnabled  = false;
@@ -262,6 +267,7 @@ namespace TEN::Renderer::Next
         float                                   _nearPlane               = 1.0f;
         float                                   _farPlane                = 1.0f;
         float                                   _time                    = 0.0f;
+        Matrix                                  _viewProjection          = Matrix::Identity;
 
         // Shadow map (NextRendererShadows.cpp).
         std::unique_ptr<RHI::IShader>           _objectsShadowPixelShader = nullptr;

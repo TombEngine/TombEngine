@@ -531,6 +531,8 @@ namespace TEN::Renderer
 		const VolumetricCloud::CloudRenderSettings* GetActiveVolumetricCloudSettings() const;
 	public:
 		float GetCloudLensFlareOcclusion() const;
+		float GetLensFlareCloudOcclusion() const;
+		Vector3 GetLensFlareColor(const RendererLensFlare& lensFlare, float cloudOcclusion) const;
 
 		// Diagnostic getters — used by the ImGui debug overlay to display live CB values.
 		const ConstantBuffers::CVolumetricCloudBuffer& GetVolumetricCloudCB() const { return _stVolumetricCloud; }

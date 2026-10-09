@@ -10,6 +10,7 @@ namespace TEN::Renderer::Next
     constexpr auto INSTANCE_INDEX_COUNT = 65536;
     constexpr auto SSAO_KERNEL_SIZE     = 32;
     constexpr auto SHADOW_SPHERES_MAX   = 16;
+    constexpr auto LENS_FLARES_MAX = 8;
     constexpr auto FOG_BULBS_MAX        = 32;
     constexpr auto ANIM_TYPE_LEGACY_WATERFALL = 100; // Matches Common.hlsli.
     constexpr auto SHADOWABLE_MASK      = 1u << 16; // Light count flag of instances receiving shadows.

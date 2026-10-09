@@ -82,6 +82,38 @@ namespace TEN::Renderer
 		DrawTriangles(3, 0);
 	}
 
+	float Renderer::GetLensFlareCloudOcclusion() const
+	{
+		// Dual-layer occlusion is updated inside DrawDualVolumetricClouds(), the legacy single layer one by UpdateCloudLensFlareOcclusion().
+		if (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
+			return g_SkyCloudSystem.GetCombinedCloudTransmittance();
+
+		return GetCloudLensFlareOcclusion();
+	}
+
+	Vector3 Renderer::GetLensFlareColor(const RendererLensFlare& lensFlare, float cloudOcclusion) const
+	{
+		// Suppress procedural starburst spike and ghost lens artifacts when the scripted lens flare disabled them
+		// (e.g. moon-only night levels).
+		if (!lensFlare.EffectsEnabled)
+			return Vector3::Zero;
+
+		auto flareColor = lensFlare.Color.ToVector3();
+		if (!lensFlare.IsGlobal)
+			return flareColor;
+
+		// Hide global lens flares while the underwater sky preset is active: the sun is below the surface.
+		if (g_SkyCloudSystem.IsUnderwaterSkyPresetActive())
+			return Vector3::Zero;
+
+		// Attenuate by cloud transmittance and fade below the horizon regardless of atmospheric sky state.
+		// Direction.y = -sin(pitch) in TEN Y-down, so elevation = -Direction.y.
+		float sunElevation = -lensFlare.Direction.y;
+		float sunBelowFade = std::clamp(1.0f + sunElevation * 8.0f, 0.0f, 1.0f);
+		sunBelowFade = sunBelowFade * sunBelowFade * (3.0f - 2.0f * sunBelowFade);
+		return flareColor * cloudOcclusion * sunBelowFade;
+	}
+
 	void Renderer::ApplyDistortion(IRenderSurface2D* renderTarget, RenderView& view)
 	{
 		if (!_hasDistortionMask)
@@ -191,9 +223,7 @@ namespace TEN::Renderer
 			{
 				UpdateCloudLensFlareOcclusion(view);
 			}
-			float cloudOcclusion = (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
-				? g_SkyCloudSystem.GetCombinedCloudTransmittance()
-				: GetCloudLensFlareOcclusion();
+			float cloudOcclusion = GetLensFlareCloudOcclusion();
 
 			_graphicsDevice->ClearRenderTarget2D(_postProcessRenderTarget[destRenderTarget]->GetRenderTarget(), Colors::Transparent);
 			_graphicsDevice->BindRenderTarget(_postProcessRenderTarget[destRenderTarget]->GetRenderTarget(), nullptr);
@@ -204,34 +234,7 @@ namespace TEN::Renderer
 			for (int i = 0; i < view.LensFlaresToDraw.size(); i++)
 			{
 				_stPostProcessBuffer.LensFlares[i].Position = view.LensFlaresToDraw[i].Position;
-
-				// Attenuate flare color by cloud transmittance: 1.0 = fully visible, 0.0 = fully occluded.
-				auto flareColor = view.LensFlaresToDraw[i].Color.ToVector3();
-				if (view.LensFlaresToDraw[i].IsGlobal)
-				{
-					flareColor *= cloudOcclusion;
-
-					// Fade the lens flare glow below the horizon unconditionally so the sun
-					// cannot be seen below the horizon regardless of atmospheric sky state.
-					// Direction.y = -sin(pitch) in TEN Y-down, so elevation = -Direction.y.
-					float sunElevation = -view.LensFlaresToDraw[i].Direction.y;
-					float sunBelowFade = std::clamp(1.0f + sunElevation * 8.0f, 0.0f, 1.0f);
-					sunBelowFade = sunBelowFade * sunBelowFade * (3.0f - 2.0f * sunBelowFade);
-					flareColor *= sunBelowFade;
-				}
-
-				// Suppress procedural starburst spike + ghost lens artifacts when the
-				// scripted lens flare disabled them (e.g. moon-only night levels).
-				if (!view.LensFlaresToDraw[i].EffectsEnabled)
-					flareColor = Vector3::Zero;
-
-				// Hide all global lens flare effects while the underwater sky
-				// preset is active — the sun is below the surface from the
-				// player's perspective and must not bleed sun/star flare through.
-				if (view.LensFlaresToDraw[i].IsGlobal && g_SkyCloudSystem.IsUnderwaterSkyPresetActive())
-					flareColor = Vector3::Zero;
-
-				_stPostProcessBuffer.LensFlares[i].Color = flareColor;
+				_stPostProcessBuffer.LensFlares[i].Color = GetLensFlareColor(view.LensFlaresToDraw[i], cloudOcclusion);
 			}
 			_stPostProcessBuffer.NumLensFlares = (int)view.LensFlaresToDraw.size();
 			UpdateConstantBuffer(&_stPostProcessBuffer, _cbPostProcessBuffer.get());
