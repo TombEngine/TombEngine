@@ -79,6 +79,10 @@ namespace TEN::Renderer::Next
         int                                  VideoHeight = 0;
         const Structures::RendererSprite*    VideoSprite = nullptr; // Legacy sprite of particles showing the video.
 
+        // Uniform block of the legacy atmospheric sky dome (CAtmosphericSkyBuffer), null when the dome is disabled.
+        const void*  AtmosphericSkyUniforms     = nullptr;
+        int          AtmosphericSkyUniformsSize = 0;
+
         // Stars, meteors and sun sprite of the classic sky, drawn additively between the sky layers and horizons.
         const std::vector<Structures::RendererSpriteToDraw>* SkySprites = nullptr;
 
@@ -339,6 +343,13 @@ namespace TEN::Renderer::Next
         float                                   _farPlane                = 1.0f;
         float                                   _time                    = 0.0f;
         Matrix                                  _viewProjection          = Matrix::Identity;
+        Matrix                                  _view                    = Matrix::Identity;
+        Matrix                                  _projection              = Matrix::Identity;
+        std::unique_ptr<RHI::IShader>           _atmosphericSkyVertexShader = nullptr;
+        std::unique_ptr<RHI::IShader>           _atmosphericSkyPixelShader  = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _atmosphericSkyPipeline     = nullptr;
+        const void*                             _atmosphericSkyUniforms     = nullptr;
+        int                                     _atmosphericSkyUniformsSize = 0;
 
         // Shadow map (NextRendererShadows.cpp).
         std::unique_ptr<RHI::IShader>           _objectsShadowPixelShader = nullptr;
@@ -505,6 +516,8 @@ namespace TEN::Renderer::Next
         bool CreateSkyGeometry();
         void DrawSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere = 0);
         bool CreateSkyReflectionResources();
+        bool CreateAtmosphereResources();
+        void DrawAtmosphericSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
         void RenderSkyReflections(RHI::ICommandBuffer& commandBuffer, const RenderView& view, float interpolationFactor);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
         static BlendMode GetPassBlendMode(ScenePass pass);

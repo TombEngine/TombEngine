@@ -2356,6 +2356,12 @@ namespace TEN::Renderer
 
 			environment.SkySprites = &_nextSkySprites;
 
+			if (_atmosphericSkySettings.Enabled)
+			{
+				environment.AtmosphericSkyUniforms = &_stAtmosphericSky;
+				environment.AtmosphericSkyUniformsSize = (int)sizeof(_stAtmosphericSky);
+			}
+
 			environment.DofMode = (int)_currentDOF.Mode;
 			environment.DofDistance = _currentDOF.Distance;
 			environment.DofRange = _currentDOF.Range;

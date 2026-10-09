@@ -145,6 +145,9 @@ namespace TEN::Renderer::Next
         _videoTexture = nullptr;
         _videoTransferBuffer = nullptr;
         _skyReflectionTarget = nullptr;
+        _atmosphericSkyPipeline = nullptr;
+        _atmosphericSkyVertexShader = nullptr;
+        _atmosphericSkyPixelShader = nullptr;
         _glowTargets[0] = nullptr;
         _glowTargets[1] = nullptr;
         _glowDownscalePipeline = nullptr;
@@ -205,7 +208,7 @@ namespace TEN::Renderer::Next
             return false;
 
         if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources() ||
-            !CreateSkyReflectionResources())
+            !CreateSkyReflectionResources() || !CreateAtmosphereResources())
             return false;
 
         if (GetScenePipeline(SceneShader::Rooms, BlendMode::Opaque) == nullptr ||
@@ -1811,6 +1814,10 @@ namespace TEN::Renderer::Next
 
         commandBuffer.PushDebugGroup("Sky");
 
+        // Atmospheric dome first, as an opaque background; the reflection map keeps the classic sky only.
+        if (!isParaboloid)
+            DrawAtmosphericSky(commandBuffer, renderPass);
+
         IBuffer* storageBuffers[2] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get() };
         auto drawUniforms = DrawVertexUniforms{ NO_VALUE };
         commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &drawUniforms, sizeof(drawUniforms));
@@ -2032,6 +2039,10 @@ namespace TEN::Renderer::Next
         auto frameVertexUniforms = FrameVertexUniforms{};
         frameVertexUniforms.ViewProjection = view.Camera.View * projection;
         _viewProjection = frameVertexUniforms.ViewProjection;
+        _view = view.Camera.View;
+        _projection = projection;
+        _atmosphericSkyUniforms = environment.AtmosphericSkyUniforms;
+        _atmosphericSkyUniformsSize = environment.AtmosphericSkyUniformsSize;
         frameVertexUniforms.CameraPosition = environment.CameraPosition;
         frameVertexUniforms.FogMinDistance = environment.FogMinDistance;
         frameVertexUniforms.FogMaxDistance = environment.FogMaxDistance;
