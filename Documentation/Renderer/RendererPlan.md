@@ -271,7 +271,7 @@ L'algoritmo di develop_performance (bucket come unita', entry compatte, radix so
 
 - [ ] Raccolta dentro Prepare, in parallelo per oggetto con buffer per thread; centri dei poligoni calcolati al caricamento (7.1).
 - [x] Profondita' sempre dalla camera della vista.
-- [ ] **Blend mode commutativi fuori dal sort**: Additive, Lighten (MAX), Subtractive e Screen danno lo stesso risultato in qualunque ordine e vanno disegnati in batch non ordinati. Restano ordinati solo AlphaBlend e Premultiplied (ed Exclude, da verificare).
+- [x] ~~**Blend mode commutativi fuori dal sort**: Additive, Lighten (MAX), Subtractive e Screen danno lo stesso risultato in qualunque ordine e vanno disegnati in batch non ordinati. Restano ordinati solo AlphaBlend e Premultiplied (ed Exclude, da verificare).~~ *(provato e tolto: ogni modo e' commutativo solo con se stesso (Additive con Subtractive), ma Screen e Lighten non commutano tra loro ne' con Additive, quindi mescolandoli l'ordine cambia il risultato; restano nel sort, come nel legacy. Additive e Distortion erano gia' fuori)*
 - [x] **Cambio di oggetto gratuito**: ogni run ordinato e' un draw con indice d'istanza; dati dell'oggetto, ossa e luci dai buffer persistenti e per frame. Nessun upload per run. *(renderer nuovo: un'istanza per oggetto per frame, anche se i cluster lo spezzano in piu' run)*
 - [x] **Un solo upload per frame** degli indici ordinati (ring), ogni run usa `firstIndex`. *(indici copiati dagli array CPU del livello in un index buffer per frame con transfer buffer ciclato)*
 - [ ] Run di stanze fusi per {pipeline, array e layer di texture}: con le liste di luci indicizzate la stanza non e' piu' parte della chiave.
