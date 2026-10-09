@@ -1,4 +1,4 @@
-﻿# TombEngine Renderer - Piano per il nuovo renderer
+# TombEngine Renderer - Piano per il nuovo renderer
 
 ## Priorita' e vincoli
 
