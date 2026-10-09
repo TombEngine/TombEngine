@@ -2,6 +2,7 @@
 #include "Renderer/Next/NextRenderer.h"
 
 #include "Renderer/Structures/RendererBucket.h"
+#include "Renderer/Structures/RendererRoom.h"
 
 using namespace TEN::Renderer::RHI;
 using namespace TEN::Renderer::Structures;
@@ -154,6 +155,22 @@ namespace TEN::Renderer::Next
 
         auto margin = Vector3(VERTEX_EFFECT_MARGIN);
         return _frustum.AABBInFrustum(bucket.BoundsMin - margin, bucket.BoundsMax + margin);
+    }
+
+    // Portal rectangle of a room, as the legacy ClipBounds scissor. The legacy computes it in its own normalized device
+    // coordinates; the preview projection may have another aspect ratio, which scales the horizontal axis.
+    ScissorRect NextRenderer::GetRoomScissor(const RendererRoom& room, int targetWidth, int targetHeight) const
+    {
+        float left = (room.ViewPort.x * _roomClipScaleX + 1.0f) * 0.5f * targetWidth;
+        float right = (room.ViewPort.z * _roomClipScaleX + 1.0f) * 0.5f * targetWidth;
+        float top = (1.0f - room.ViewPort.w) * 0.5f * targetHeight;
+        float bottom = (1.0f - room.ViewPort.y) * 0.5f * targetHeight;
+
+        int x = std::clamp((int)std::floor(left), 0, targetWidth);
+        int y = std::clamp((int)std::floor(top), 0, targetHeight);
+        int width = std::clamp((int)std::ceil(right), 0, targetWidth) - x;
+        int height = std::clamp((int)std::ceil(bottom), 0, targetHeight) - y;
+        return ScissorRect{ x, y, std::max(width, 0), std::max(height, 0) };
     }
 
     void NextRenderer::DrawBucket(IRenderPass& renderPass, MeshSource source, const RendererBucket& bucket, int instanceCount, int firstInstance)

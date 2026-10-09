@@ -234,7 +234,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 - [ ] Specchi come viste separate (camera riflessa + clip), non come ridisegno dentro ogni pass.
 
 ### 8.2 Culling (CPU)
-- [ ] Portal culling come oggi, con clip rect per stanza.
+- [x] Portal culling come oggi, con clip rect per stanza. *(il legacy applicava gia' il rettangolo del portale come scissor alle stanze e alle facce ordinate delle stanze; ora anche il renderer nuovo, convertendo l'asse orizzontale quando l'anteprima ha un altro rapporto d'aspetto)*
 - [ ] Frustum culling per istanza (sfera o AABB) senza allocazioni, vettorizzabile; correggere il bug della virgola (2.6).
 - [x] Culling per bucket dentro le stanze grandi (AABB del bucket contro il frustum), gratis con i dati calcolati al caricamento. *(con il frustum della proiezione dell'anteprima e un margine per gli effetti di vertice; coastal da 482 a 470 draw call)*
 

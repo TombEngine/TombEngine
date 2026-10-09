@@ -1130,12 +1130,20 @@ namespace TEN::Renderer::Next
         BindScenePixelStorage(renderPass);
         auto state = BucketBindState{};
 
+        // Rooms are clipped to their portal rectangle, as in the legacy renderer. Distortion uses a half resolution target.
+        const auto& targetDesc = ((pass == ScenePass::Distortion) ? _distortionTarget : _sceneTarget)->GetDesc();
+
         // Opaque rooms are drawn front to back (portal traversal order) for early depth rejection,
         // additive rooms back to front.
         int roomCount = (int)view.RoomsToDraw.size();
         for (int roomIndex = 0; roomIndex < roomCount; roomIndex++)
         {
             const auto* room = view.RoomsToDraw[additive ? (roomCount - 1 - roomIndex) : roomIndex];
+            auto scissor = GetRoomScissor(*room, targetDesc.Width, targetDesc.Height);
+            if (scissor.Width == 0 || scissor.Height == 0)
+                continue;
+
+            renderPass.SetScissor(scissor);
             auto roomInfo = GetBucketDrawInfo(room->RoomNumber, pass != ScenePass::Prepass);
             roomInfo.IsAlphaEdgePass = isAlphaEdges;
 
@@ -1154,6 +1162,8 @@ namespace TEN::Renderer::Next
                 DrawBucket(renderPass, MeshSource::Rooms, bucket, 1, 0);
             }
         }
+
+        renderPass.SetScissor(ScissorRect{ 0, 0, targetDesc.Width, targetDesc.Height });
     }
 
     // Same conversion as the legacy BindLight: interpolated positions and spot ranges as cosines.
@@ -1808,6 +1818,7 @@ namespace TEN::Renderer::Next
             auto draw = SortedDraw{};
             draw.Source = source;
             draw.IsRoom = (object.ObjectType == RendererObjectType::Room);
+            draw.Room = draw.IsRoom ? object.Room : nullptr;
             draw.IsWaterRoom = draw.IsRoom && (g_Level.Rooms[object.Room->RoomNumber].flags & ENV_FLAG_WATER);
             draw.IsCausticsRoom = draw.IsRoom && IsCausticsRoom(object.Room->RoomNumber);
             draw.IsForcedAlphaTest = (object.ObjectType == RendererObjectType::MoveableAsStatic);
@@ -1842,15 +1853,36 @@ namespace TEN::Renderer::Next
         int lastStreamCount = 0;
         auto state = BucketBindState{};
 
+        // Room faces are clipped to their portal rectangle, as in the legacy DrawRoomSorted; other faces use the whole target.
+        const auto& targetDesc = _sceneTarget->GetDesc();
+        auto fullScissor = ScissorRect{ 0, 0, targetDesc.Width, targetDesc.Height };
+        const RendererRoom* scissorRoom = nullptr;
+
         for (const auto& draw : draws)
         {
             // Sprite runs overwrite the sampler and pixel uniform slots used by bucket draws.
             if (draw.IsSprite)
             {
+                if (scissorRoom != nullptr)
+                {
+                    renderPass.SetScissor(fullScissor);
+                    scissorRoom = nullptr;
+                }
+
                 DrawSpriteRun(commandBuffer, renderPass, draw.Sprites, lastPipeline, lastSpriteTexture);
                 lastStreamCount = 0;
                 state = BucketBindState{};
                 continue;
+            }
+
+            if (draw.Room != scissorRoom)
+            {
+                auto scissor = (draw.Room != nullptr) ? GetRoomScissor(*draw.Room, targetDesc.Width, targetDesc.Height) : fullScissor;
+                if (scissor.Width == 0 || scissor.Height == 0)
+                    continue;
+
+                renderPass.SetScissor(scissor);
+                scissorRoom = draw.Room;
             }
 
             const auto& bucket = *draw.Bucket;
@@ -1885,6 +1917,9 @@ namespace TEN::Renderer::Next
             _frameStats.DrawCalls++;
             renderPass.DrawIndexed(draw.IndexCount, 1, draw.FirstIndex, _geometrySections[(int)draw.Source].BaseVertex, draw.Instance);
         }
+
+        if (scissorRoom != nullptr)
+            renderPass.SetScissor(fullScissor);
 
         commandBuffer.PopDebugGroup();
     }
@@ -2254,6 +2289,7 @@ namespace TEN::Renderer::Next
         _view = view.Camera.View;
         _projection = projection;
         _frustum.Update(view.Camera.View, projection);
+        _roomClipScaleX = (view.Camera.Projection._11 != 0.0f) ? (projection._11 / view.Camera.Projection._11) : 1.0f;
         _atmosphericSkyUniforms = environment.AtmosphericSkyUniforms;
         _atmosphericSkyUniformsSize = environment.AtmosphericSkyUniformsSize;
         frameVertexUniforms.CameraPosition = environment.CameraPosition;

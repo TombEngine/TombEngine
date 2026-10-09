@@ -318,6 +318,7 @@ namespace TEN::Renderer::Next
             int                               FirstIndex = 0;
             int                               IndexCount = 0;
             int                               Instance   = 0;
+            const Structures::RendererRoom*   Room       = nullptr; // Room faces only, for the portal scissor.
             SpriteDraw                        Sprites    = {};
         };
 
@@ -430,6 +431,7 @@ namespace TEN::Renderer::Next
         Matrix                                  _view                    = Matrix::Identity;
         Matrix                                  _projection              = Matrix::Identity;
         Frustum                                 _frustum                 = {}; // Of the preview projection, which may differ in aspect from the legacy one.
+        float                                   _roomClipScaleX          = 1.0f; // Legacy to preview horizontal NDC scale of the room portal rectangles.
         std::unique_ptr<RHI::IShader>           _atmosphericSkyVertexShader = nullptr;
         std::unique_ptr<RHI::IShader>           _atmosphericSkyPixelShader  = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _atmosphericSkyPipeline     = nullptr;
@@ -679,6 +681,7 @@ namespace TEN::Renderer::Next
         void BindLevelGeometry(RHI::IRenderPass& renderPass, MeshSource source, bool hasInstanceStream);
         void DrawBucket(RHI::IRenderPass& renderPass, MeshSource source, const Structures::RendererBucket& bucket, int instanceCount, int firstInstance);
         bool IsRoomBucketVisible(const Structures::RendererBucket& bucket) const;
+        RHI::ScissorRect GetRoomScissor(const Structures::RendererRoom& room, int targetWidth, int targetHeight) const;
         void CollectObjects(const RenderView& view, float interpolationFactor);
         void CollectPlayer(float interpolationFactor);
         void CollectPlayerHair(const Structures::RendererItem& item, const Vector4& ambientLight, int lightOffset, int lightCount, float interpolationFactor);
