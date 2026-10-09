@@ -210,19 +210,19 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
   La normale di faccia, oggi nel vertice, va in un buffer per poligono letto con `SV_PrimitiveID`, oppure resta nel vertice se serve a pochi shader (da misurare).
 - [ ] **Un unico VB e un unico IB** per tutta la geometria del livello (stanze, statiche, moveable), in memoria GPU-only. Solo i vertici di pelle e capelli di Lara restano in un buffer aggiornabile.
 - [ ] Per bucket: range di indici, AABB e bounding sphere calcolati una volta.
-- [ ] Centri dei poligoni trasparenti calcolati una volta (in world space per le stanze, in object space per le mesh), riusati dal sort a ogni frame.
+- [x] Centri dei poligoni trasparenti calcolati una volta (in world space per le stanze, in object space per le mesh), riusati dal sort a ogni frame. *(nel caricamento legacy, riusati dal sort)*
 - [ ] Saldature di pelle e capelli di Lara: algoritmo con griglia spaziale o hash delle posizioni invece di O(n^2), cosi' il costo di caricamento scende senza cambiare il formato.
 - [ ] Lettura del file in blocco (`ReadBytes`) invece che per elemento in `LoadStaticRoomData`; scartare le binormali senza salvarle.
 
 ### 7.2 Texture
-- [ ] DDS (gia' supportato dal formato attuale) caricato cosi' com'e', con i suoi mip e la sua compressione BC.
+- [x] DDS (gia' supportato dal formato attuale) caricato cosi' com'e', con i suoi mip e la sua compressione BC. *(`DecodeDDS` tiene formato BC e mip)*
 - [ ] PNG: decode con `SDL_LoadPNG` di SDL 3.4 (in parallelo per atlas) e mip generati in GPU (`SDL_GenerateMipmapsForGPUTexture` / `GenerateMips`). Nessuna compressione a runtime: costa troppo al caricamento.
 - [ ] **Texture array per categoria** (stanze, moveable, statiche, animate, sprite) costruiti al caricamento: le pagine dello stesso formato e della stessa dimensione diventano layer di un unico `Texture2DArray`. Le pagine di dimensione diversa vanno in array separati (uno per dimensione), oppure con padding se l'array risultante non spreca troppa memoria. Il materiale contiene array e layer.
 
 ### 7.3 Dati persistenti in GPU
 - [ ] Tabelle in storage buffer create al caricamento: `Meshes[]` (range di indici per bucket), `Materials[]` (array e layer di texture, blend mode, parametri del materiale, flag di animazione), `StaticInstances[]`, `Rooms[]` (ambient, flag, AABB).
 - [ ] Per frame solo: `DynamicInstances[]` (oggetti animati), `Bones[]` (pool unico con offset per oggetto), `Lights[]` e liste di indici di luci per stanza e per oggetto, sprite e particelle.
-- [ ] Texture animate: frame in storage buffer (gia' cosi' oggi tramite `AnimatedFrames`), selezione nel VS.
+- [x] Texture animate: frame in storage buffer (gia' cosi' oggi tramite `AnimatedFrames`), selezione nel VS.
 
 ---
 
@@ -240,8 +240,8 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 
 ### 8.3 Illuminazione (semplice)
 - [ ] Un `Lights[]` unico per frame e **liste di indici di luci** per stanza e per oggetto, calcolate sulla CPU in Prepare (come oggi in sostanza, ma una volta per frame e senza copie). Lo shader legge le luci tramite indice.
-- [ ] Stesso modello di luce legacy (attenuazioni, spot, shadow mode per oggetto): stessa immagine, costo diverso.
-- [ ] Fog bulb raccolti una volta per frame, non per stanza.
+- [x] Stesso modello di luce legacy (attenuazioni, spot, shadow mode per oggetto): stessa immagine, costo diverso. *(`ToGpuLight` come `BindLight`, `Lighting.hlsli`)*
+- [x] Fog bulb raccolti una volta per frame, non per stanza.
 - [ ] Illuminazione clustered (Forward+) **non** prevista: si valuta solo se le misure mostrano un collo di bottiglia nelle liste di luci.
 
 ### 8.4 Pass principali
@@ -253,8 +253,8 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 
 ### 8.5 Ombre
 - [ ] Culling per faccia del cube; facce fuori dal frustum della camera saltate.
-- [ ] Rispetto di `MeshBits` e dei flag d'ombra per oggetto.
-- [ ] Draw delle ombre tramite gli stessi draw packet (indice d'istanza), senza upload per faccia.
+- [x] Rispetto di `MeshBits` e dei flag d'ombra per oggetto.
+- [x] Draw delle ombre tramite gli stessi draw packet (indice d'istanza), senza upload per faccia. *(le ombre riusano i draw degli oggetti; per faccia solo la view-projection)*
 - [ ] Caching delle shadow map statiche: solo se le misure lo richiedono.
 
 ### 8.6 Post-process
@@ -270,12 +270,12 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 L'algoritmo di develop_performance (bucket come unita', entry compatte, radix sort, cluster per gli oggetti sovrapposti) e' gia' buono e **si porta nel renderer nuovo**. Cambia come si disegna.
 
 - [ ] Raccolta dentro Prepare, in parallelo per oggetto con buffer per thread; centri dei poligoni calcolati al caricamento (7.1).
-- [ ] Profondita' sempre dalla camera della vista.
+- [x] Profondita' sempre dalla camera della vista.
 - [ ] **Blend mode commutativi fuori dal sort**: Additive, Lighten (MAX), Subtractive e Screen danno lo stesso risultato in qualunque ordine e vanno disegnati in batch non ordinati. Restano ordinati solo AlphaBlend e Premultiplied (ed Exclude, da verificare).
 - [x] **Cambio di oggetto gratuito**: ogni run ordinato e' un draw con indice d'istanza; dati dell'oggetto, ossa e luci dai buffer persistenti e per frame. Nessun upload per run. *(renderer nuovo: un'istanza per oggetto per frame, anche se i cluster lo spezzano in piu' run)*
 - [x] **Un solo upload per frame** degli indici ordinati (ring), ogni run usa `firstIndex`. *(indici copiati dagli array CPU del livello in un index buffer per frame con transfer buffer ciclato)*
 - [ ] Run di stanze fusi per {pipeline, array e layer di texture}: con le liste di luci indicizzate la stanza non e' piu' parte della chiave.
-- [ ] Sprite dentro i cluster (particelle viste attraverso il vetro), disegnati come istanze in ordine di profondita'.
+- [x] Sprite dentro i cluster (particelle viste attraverso il vetro), disegnati come istanze in ordine di profondita'.
 - [ ] Rettangoli dei cluster dai bounding box invece che dai centri dei poligoni.
 - [ ] Debris, bossoli e ragni inclusi nella raccolta.
 - [ ] Weighted Blended OIT: solo come eventuale opzione futura per le particelle, non in questo piano.
