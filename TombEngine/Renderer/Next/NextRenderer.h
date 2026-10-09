@@ -2,6 +2,7 @@
 
 #include <mutex>
 
+#include "Objects/game_object_ids.h"
 #include "Renderer/Graphics/Vertices/Vertex.h"
 #include "Renderer/Next/GpuTypes.h"
 #include "Renderer/RHI/RHIDevice.h"
@@ -132,6 +133,7 @@ namespace TEN::Renderer::Next
             unsigned int DecalCount          = 0;
             int          AnimatedSetOverride = NO_VALUE;
             bool         IsAlphaEdgePass     = false;
+            bool         IsForcedAlphaTest   = false;
         };
 
         // Draw state of consecutive bucket draws; pushes and binds are skipped when unchanged.
@@ -314,6 +316,7 @@ namespace TEN::Renderer::Next
         std::vector<unsigned char>    _debrisVertexData     = {};
         std::vector<unsigned char>    _debrisInstanceData   = {};
         std::vector<DebrisDraw>       _debrisDraws          = {};
+        std::vector<ObjectDraw>       _gunFlashDraws        = {};
         std::vector<unsigned char>    _decalData           = {};
         std::unordered_map<int, std::pair<int, int>> _roomDecalSlices = {};
         std::vector<std::pair<int, int>> _roomLightSlices    = {};
@@ -373,6 +376,9 @@ namespace TEN::Renderer::Next
                                LightMode lightMode, int lightOffset, int lightCount);
         void FlushMeshInstances();
         void CollectEffectMeshes(const RenderView& view, float interpolationFactor);
+        void AddGunFlash(GAME_OBJECT_ID flashObjectID, const Matrix& world, const Vector4& color, const Vector4& ambientLight);
+        void CollectGunFlashes(const RenderView& view);
+        void DrawGunFlashes(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
 
         // Debris (NextRendererDebris.cpp).
         void CollectDebris(float interpolationFactor);

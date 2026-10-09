@@ -770,6 +770,9 @@ namespace TEN::Renderer::Next
         auto pixelUniforms = DrawPixelUniforms{};
         pixelUniforms.AlphaThreshold = (bucket.BlendMode == BlendMode::AlphaTest) ? ALPHA_TEST_THRESHOLD : 0.0f;
         pixelUniforms.BlendMode = (unsigned int)blendMode;
+        if (room.IsForcedAlphaTest)
+            pixelUniforms.AlphaThreshold = ALPHA_TEST_THRESHOLD;
+
         if (room.IsAlphaEdgePass)
         {
             pixelUniforms.AlphaThreshold = -ALPHA_TEST_THRESHOLD;
@@ -1045,6 +1048,7 @@ namespace TEN::Renderer::Next
         CollectPlayer(interpolationFactor);
         CollectEffectMeshes(view, interpolationFactor);
         CollectDebris(interpolationFactor);
+        CollectGunFlashes(view);
     }
 
     int NextRenderer::AddInstance(const Matrix& world, const Vector4& color, const Vector4& ambientLight, LightMode lightMode, int lightOffset, int lightCount, int boneOffset, int skinningMode)
@@ -1883,6 +1887,7 @@ namespace TEN::Renderer::Next
         DrawSprites(*commandBuffer, *renderPass);
         DrawSortedFaces(*commandBuffer, *renderPass);
         DrawDebris(*commandBuffer, *renderPass, DebrisPass::Blended);
+        DrawGunFlashes(*commandBuffer, *renderPass);
         commandBuffer->EndRenderPass();
         commandBuffer->PopDebugGroup();
 

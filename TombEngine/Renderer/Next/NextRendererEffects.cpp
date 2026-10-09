@@ -5,7 +5,9 @@
 #include "Game/effects/effects.h"
 #include "Game/effects/ParticleGroup.h"
 #include "Game/effects/tomb4fx.h"
+#include "Game/itemdata/creature_info.h"
 #include "Game/Lara/lara.h"
+#include "Game/misc.h"
 #include "Game/Setup.h"
 #include "Objects/TR3/Entity/FishSwarm.h"
 #include "Objects/TR4/Entity/Locust.h"
@@ -19,9 +21,11 @@
 #include "Renderer/Structures/RendererMesh.h"
 #include "Renderer/Structures/RendererObject.h"
 #include "Renderer/Structures/RendererRoom.h"
+#include "Scripting/Include/Flow/ScriptInterfaceFlowHandler.h"
 
 using namespace TEN::Effects::ParticleGroups;
 using namespace TEN::Entities::Creatures::TR3;
+using namespace TEN::Renderer::RHI;
 using namespace TEN::Renderer::Structures;
 
 namespace TEN::Renderer::Next
@@ -236,5 +240,121 @@ namespace TEN::Renderer::Next
         }
 
         FlushMeshInstances();
+    }
+
+    // Additive, alpha tested buckets of a gun flash mesh, drawn after the sorted faces as in the legacy GunFlashes pass.
+    void NextRenderer::AddGunFlash(GAME_OBJECT_ID flashObjectID, const Matrix& world, const Vector4& color, const Vector4& ambientLight)
+    {
+        const auto& flashObject = (*_legacyGeometry.MoveableObjects)[flashObjectID];
+        if (!Objects[flashObjectID].loaded || !flashObject.has_value() || flashObject->ObjectMeshes.empty())
+            return;
+
+        int instance = AddInstance(world, color, ambientLight, LightMode::Static, 0, 0, 0, SKINNING_NONE);
+        for (const auto& bucket : flashObject->ObjectMeshes[0]->Buckets)
+        {
+            if (bucket.BlendMode != BlendMode::Opaque && !bucket.Polygons.empty() && bucket.NumIndices > 0)
+                _gunFlashDraws.push_back(ObjectDraw{ MeshSource::Moveables, &bucket, instance, 1 });
+        }
+    }
+
+    // Player and creature muzzle flashes, with the transforms of the legacy DrawGunFlashes and DrawBaddyGunflashes.
+    void NextRenderer::CollectGunFlashes(const RenderView& view)
+    {
+        _gunFlashDraws.clear();
+
+        const auto& rooms = *_legacyGeometry.Rooms;
+
+        if (LaraItem != nullptr && _legacyGeometry.Items != nullptr && Lara.Control.Look.OpticRange <= 0)
+        {
+            const auto& player = (*_legacyGeometry.Items)[LaraItem->Index];
+            const auto& playerRoom = rooms[LaraItem->RoomNumber];
+
+            auto addArmFlash = [&](const ArmInfo& arm, bool isLeft)
+            {
+                if (!arm.GunFlash || arm.GunFlashType == LaraWeaponType::None || arm.GunFlashType == LaraWeaponType::Flare)
+                    return;
+
+                const auto& settings = g_GameFlow->GetSettings()->Weapons[(int)arm.GunFlashType - 1];
+                if (!settings.MuzzleFlash)
+                    return;
+
+                auto flashObjectID = (arm.GunFlashType == LaraWeaponType::HK && Objects[ID_GUN_FLASH2].loaded) ? ID_GUN_FLASH2 : ID_GUN_FLASH;
+                if (!Objects[flashObjectID].loaded)
+                    return;
+
+                auto rootOffset = Objects[flashObjectID].Animations.front().Frames.front().RootPosition;
+                auto offset = settings.MuzzleOffset + Vector3(rootOffset.x, rootOffset.z, rootOffset.y); // Bone orientation swaps axes.
+                offset.x = isLeft ? -offset.x : offset.x;
+
+                float zRotation = (flashObjectID == ID_GUN_FLASH2) ? 0.0f : TO_RAD((short)std::hash<int>()(GlobalCounter));
+                auto xRotation = Matrix::CreateRotationX(TO_RAD(arm.GunFlashType == LaraWeaponType::Pistol ? ANGLE(268) : ANGLE(280)));
+                auto world = player.InterpolatedAnimationTransforms[isLeft ? LM_LHAND : LM_RHAND] * player.InterpolatedWorld;
+                world = Matrix::CreateRotationZ(zRotation) * xRotation * Matrix::CreateTranslation(offset) * world;
+
+                AddGunFlash(flashObjectID, world, settings.ColorizeMuzzleFlash ? settings.FlashColor : NEUTRAL_COLOR, playerRoom.AmbientLight);
+            };
+
+            addArmFlash(Lara.LeftArm, true);
+            addArmFlash(Lara.RightArm, false);
+        }
+
+        for (const auto* room : view.RoomsToDraw)
+        {
+            for (const auto* item : room->ItemsToDraw)
+            {
+                auto& nativeItem = g_Level.Items[item->ItemNumber];
+                if (!nativeItem.IsCreature())
+                    continue;
+
+                const auto& creature = *GetCreatureInfo(&nativeItem);
+                for (const auto& flash : creature.MuzzleFlash)
+                {
+                    if (flash.Delay == 0 || flash.Bite.BoneID == NO_VALUE)
+                        continue;
+
+                    auto flashObjectID = (flash.SwitchToMuzzle2 && (*_legacyGeometry.MoveableObjects)[ID_GUN_FLASH2].has_value()) ? ID_GUN_FLASH2 : ID_GUN_FLASH;
+                    float zRotation = flash.SwitchToMuzzle2 ? 0.0f : TO_RAD((short)std::hash<int>()(GlobalCounter));
+
+                    auto world = Matrix::CreateTranslation(flash.Bite.Position) * item->InterpolatedAnimationTransforms[flash.Bite.BoneID] * item->InterpolatedWorld;
+                    if (flash.ApplyXRotation)
+                        world = Matrix::CreateRotationX(TO_RAD(ANGLE(270.0f))) * world;
+
+                    if (flash.ApplyZRotation)
+                        world = Matrix::CreateRotationZ(zRotation) * world;
+
+                    AddGunFlash(flashObjectID, world, CREATURE_GUNFLASH_COLOR, rooms[nativeItem.RoomNumber].AmbientLight);
+                }
+            }
+        }
+    }
+
+    void NextRenderer::DrawGunFlashes(ICommandBuffer& commandBuffer, IRenderPass& renderPass)
+    {
+        if (_gunFlashDraws.empty())
+            return;
+
+        commandBuffer.PushDebugGroup("Gun flashes");
+        renderPass.BindPipeline(GetScenePipeline(SceneShader::Objects, BlendMode::Additive));
+
+        IBuffer* storageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get(), _boneBuffer.Buffer.get() };
+        renderPass.BindVertexStorageBuffers(0, storageBuffers, 4);
+        BindScenePixelStorage(renderPass);
+
+        BufferBinding vertexBindings[2] = { { _moveableGeometry.Vertices.get(), 0 }, { _instanceIndexBuffer.get(), 0 } };
+        renderPass.BindVertexBuffers(0, vertexBindings, 2);
+        renderPass.BindIndexBuffer(BufferBinding{ _moveableGeometry.Indices.get(), 0 }, IndexSize::Bits32);
+
+        auto state = BucketBindState{};
+        auto drawInfo = BucketDrawInfo{};
+        drawInfo.IsForcedAlphaTest = true;
+        for (const auto& draw : _gunFlashDraws)
+        {
+            BindBucket(commandBuffer, renderPass, *draw.Bucket, _moveableTextures, BlendMode::Additive, 0, drawInfo, state);
+
+            _frameStats.DrawCalls++;
+            renderPass.DrawIndexed(draw.Bucket->NumIndices, 1, draw.Bucket->StartIndex, 0, draw.FirstInstance);
+        }
+
+        commandBuffer.PopDebugGroup();
     }
 }
