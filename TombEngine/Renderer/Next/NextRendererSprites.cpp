@@ -186,6 +186,30 @@ namespace TEN::Renderer::Next
         }
     }
 
+    // Additive runs of the classic sky sprites; they never belong to mirrors or sorted draws.
+    void NextRenderer::CollectSkySprites(const RenderView& view, const FrameEnvironment& environment)
+    {
+        _skySpriteDraws.clear();
+        if (environment.SkySprites == nullptr)
+            return;
+
+        for (const auto& sprite : *environment.SkySprites)
+        {
+            auto* texture = GetSpriteTexture(sprite.Sprite);
+            if (texture == nullptr)
+                continue;
+
+            int spriteIndex = (int)(_spriteData.size() / sizeof(GpuSprite));
+            if (!AddSprite(sprite, view))
+                break;
+
+            if (_skySpriteDraws.empty() || _skySpriteDraws.back().Texture != texture)
+                _skySpriteDraws.push_back(SpriteDraw{ texture, BlendMode::Additive, spriteIndex, 0 });
+
+            _skySpriteDraws.back().SpriteCount++;
+        }
+    }
+
     void NextRenderer::DrawSpriteRun(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const SpriteDraw& draw,
                                      const IGraphicsPipeline*& lastPipeline, const ITexture*& lastTexture)
     {

@@ -79,6 +79,9 @@ namespace TEN::Renderer::Next
         int                                  VideoHeight = 0;
         const Structures::RendererSprite*    VideoSprite = nullptr; // Legacy sprite of particles showing the video.
 
+        // Stars, meteors and sun sprite of the classic sky, drawn additively between the sky layers and horizons.
+        const std::vector<Structures::RendererSpriteToDraw>* SkySprites = nullptr;
+
         // Depth of field of the legacy renderer (DOFState).
         int          DofMode             = 0;
         float        DofDistance         = 0.0f;
@@ -423,6 +426,7 @@ namespace TEN::Renderer::Next
         std::vector<SortedDraw>       _sortedDraws         = {};
         std::vector<SortedDraw>       _mirrorSortedDraws   = {};
         std::vector<SpriteDraw>       _mirrorSpriteDraws   = {};
+        std::vector<SpriteDraw>       _skySpriteDraws      = {};
         std::vector<const Structures::RendererSpriteToDraw*> _spriteSources = {}; // One per frame sprite.
         std::unordered_map<const void*, int> _sortedInstances = {};
         FrameStorageBuffer            _materialBuffer      = {};
@@ -479,6 +483,7 @@ namespace TEN::Renderer::Next
         static bool IsMirrored(const InstanceOrigin& origin, const Structures::RendererMirror& mirror);
         int  AddMirroredInstance(int instanceIndex, const Structures::RendererMirror& mirror);
         void CollectMirrors(const RenderView& view);
+        void CollectSkySprites(const RenderView& view, const FrameEnvironment& environment);
         int  AddMirroredSprites(int firstSprite, int count, const Structures::RendererMirror& mirror, const RenderView& view);
         void CollectMirroredSorted(const RenderView& view);
         void AddGunFlash(GAME_OBJECT_ID flashObjectID, const Matrix& world, const Vector4& color, const Vector4& ambientLight);

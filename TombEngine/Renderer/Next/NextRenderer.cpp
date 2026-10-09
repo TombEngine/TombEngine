@@ -1851,6 +1851,18 @@ namespace TEN::Renderer::Next
             }
         }
 
+        // Stars, meteors and sun sprite, between the layers and the horizons as in the legacy renderer.
+        if (!isParaboloid && !_skySpriteDraws.empty())
+        {
+            const IGraphicsPipeline* lastPipeline = nullptr;
+            const ITexture* lastTexture = nullptr;
+            for (const auto& draw : _skySpriteDraws)
+                DrawSpriteRun(commandBuffer, renderPass, draw, lastPipeline, lastTexture);
+
+            auto noAnimation = DrawVertexUniforms{ NO_VALUE };
+            commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &noAnimation, sizeof(noAnimation));
+        }
+
         // Horizon meshes.
         auto* level = g_GameFlow->GetLevel(CurrentLevel);
         for (int layer = 0; layer < 2; layer++)
@@ -2054,6 +2066,7 @@ namespace TEN::Renderer::Next
         CollectDecals(view);
         CollectObjects(view, environment.InterpolationFactor);
         CollectSprites(view);
+        CollectSkySprites(view, environment);
         CollectSortedFaces(view, environment.InterpolationFactor);
         CollectMirroredSorted(view);
 

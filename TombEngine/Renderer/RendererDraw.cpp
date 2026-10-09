@@ -2338,6 +2338,24 @@ namespace TEN::Renderer
 				environment.VideoHeight = videoSize.y;
 			}
 
+			// Stars, meteors and the sun sprite, built as for the legacy sky.
+			_nextSkySprites.clear();
+			float starfieldAlphaScale = GetStarfieldAlphaScale();
+			for (const auto& star : Weather.GetStars())
+				_nextSkySprites.push_back(GetStarSprite(star, view, starfieldAlphaScale));
+
+			for (const auto& meteor : Weather.GetMeteors())
+			{
+				if (meteor.Active)
+					_nextSkySprites.push_back(GetMeteorSprite(meteor, view, starfieldAlphaScale));
+			}
+
+			auto sunSprite = RendererSpriteToDraw{};
+			if (GetSunSprite(view, sunSprite))
+				_nextSkySprites.push_back(sunSprite);
+
+			environment.SkySprites = &_nextSkySprites;
+
 			environment.DofMode = (int)_currentDOF.Mode;
 			environment.DofDistance = _currentDOF.Distance;
 			environment.DofRange = _currentDOF.Range;
@@ -3130,11 +3148,104 @@ namespace TEN::Renderer
 		SetCullMode(CullMode::CounterClockwise);
 	}
 
-	void Renderer::DrawHorizonAndSky(IDepthTarget* depthTarget, RenderView& renderView, int arrayIndex, bool reflectionPass)
+	// When the atmospheric sky dome is active, star and meteor visibility follows the day/night factor.
+	float Renderer::GetStarfieldAlphaScale() const
+	{
+		constexpr auto SHORT_TO_RAD = DirectX::XM_2PI / 65536.0f;
+
+		auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
+		if (!_atmosphericSkySettings.Enabled || !levelPtr->GetLensFlareEnabled())
+			return 1.0f;
+
+		float pitch = (float)levelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
+		return ComputeStarfieldVisibility(std::sin(pitch));
+	}
+
+	RendererSpriteToDraw Renderer::GetStarSprite(const StarParticle& star, const RenderView& renderView, float alphaScale)
 	{
 		constexpr auto STAR_SIZE = 2;
+
+		auto sprite = RendererSpriteToDraw{};
+		sprite.Sprite = &_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LENS_FLARE_3];
+		sprite.Type = SpriteType::Billboard;
+		sprite.pos = renderView.Camera.WorldPosition + star.Direction * BLOCK(1);
+		sprite.Rotation = 0;
+		sprite.Scale = 1;
+		sprite.Width = STAR_SIZE * star.Scale;
+		sprite.Height = STAR_SIZE * star.Scale;
+
+		// Underwater sky occlusion: stars below the water-line are fully hidden.
+		// TEN Y-down: star.Direction.y < 0 means the star is above the horizon.
+		float underwaterStarMask = 1.0f;
+		if (_underwaterSkySettings.Enabled && _stAtmosphericSky.UnderwaterSkyVisibility > 0.001f)
+		{
+			float upY = -star.Direction.y;
+			float layerH = std::max(_underwaterSkySettings.LayerHeight, 0.05f);
+			float soft   = std::max(_underwaterSkySettings.HorizonSoftness, 0.005f);
+			float t = std::clamp((upY - (layerH - soft)) / (2.0f * soft), 0.0f, 1.0f);
+			float aboveFactor = t * t * (3.0f - 2.0f * t);
+			underwaterStarMask = Lerp(1.0f, aboveFactor * 0.3f, _stAtmosphericSky.UnderwaterSkyVisibility);
+		}
+
+		sprite.color = Vector4(star.Color.x, star.Color.y, star.Color.z, star.Blinking * star.Extinction * alphaScale * underwaterStarMask);
+		sprite.c1 = sprite.c2 = sprite.c3 = sprite.c4 = sprite.color;
+		return sprite;
+	}
+
+	RendererSpriteToDraw Renderer::GetMeteorSprite(const MeteorParticle& meteor, const RenderView& renderView, float alphaScale)
+	{
+		auto sprite = RendererSpriteToDraw{};
+		sprite.Sprite = &_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LENS_FLARE_3];
+		sprite.Type = SpriteType::CustomBillboard;
+		sprite.pos = renderView.Camera.WorldPosition + Vector3::Lerp(meteor.PrevPosition, meteor.Position, GetInterpolationFactor());
+		sprite.Rotation = 0;
+		sprite.Scale = 1;
+		sprite.Width = 2;
+		sprite.Height = 192;
+		sprite.ConstrainAxis = meteor.Direction;
+		sprite.color = Vector4(meteor.Color.x, meteor.Color.y, meteor.Color.z, Lerp(meteor.PrevFade, meteor.Fade, GetInterpolationFactor()) * alphaScale);
+		sprite.c1 = sprite.c2 = sprite.c3 = sprite.c4 = sprite.color;
+		return sprite;
+	}
+
+	// Sun sprite of the global lens flare, drawn when the atmospheric sky dome (which has its own sun) is off.
+	bool Renderer::GetSunSprite(const RenderView& renderView, RendererSpriteToDraw& sprite)
+	{
 		constexpr auto SUN_SIZE = 64;
 
+		if (renderView.LensFlaresToDraw.empty() || !renderView.LensFlaresToDraw[0].IsGlobal || _atmosphericSkySettings.Enabled)
+			return false;
+
+		const auto& lensFlare = renderView.LensFlaresToDraw[0];
+
+		// Attenuate sun sprite by volumetric cloud transmittance, as the lens flare halo.
+		float sunCloudOcclusion = GetLensFlareCloudOcclusion();
+		auto sunColor = Color(lensFlare.Color.x * sunCloudOcclusion, lensFlare.Color.y * sunCloudOcclusion, lensFlare.Color.z * sunCloudOcclusion, lensFlare.Color.w);
+
+		// Scale sun sprite larger near horizon. TombEngine uses Y-down: Direction.y is -1 at zenith, ~0 at horizon.
+		float sunElevation = -lensFlare.Direction.y;
+		float sunSizeScale = 1.0f + (1.0f - std::clamp(sunElevation, 0.0f, 1.0f)) * 0.8f;
+
+		// Fade the sun sprite below the horizon: full at elevation 0, gone by about -7 degrees.
+		float sunHorizonFade = std::clamp(1.0f + sunElevation * 8.0f, 0.0f, 1.0f);
+		sunHorizonFade = sunHorizonFade * sunHorizonFade * (3.0f - 2.0f * sunHorizonFade);
+		sunColor = Color(sunColor.x * sunHorizonFade, sunColor.y * sunHorizonFade, sunColor.z * sunHorizonFade, sunColor.w);
+
+		sprite = RendererSpriteToDraw{};
+		sprite.Sprite = &_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + lensFlare.SpriteID];
+		sprite.Type = SpriteType::Billboard;
+		sprite.pos = renderView.Camera.WorldPosition + lensFlare.Direction * BLOCK(1);
+		sprite.Rotation = 0.0f;
+		sprite.Scale = 1.0f;
+		sprite.Width = SUN_SIZE * sunSizeScale;
+		sprite.Height = SUN_SIZE * sunSizeScale;
+		sprite.color = sunColor;
+		sprite.c1 = sprite.c2 = sprite.c3 = sprite.c4 = sprite.color;
+		return true;
+	}
+
+	void Renderer::DrawHorizonAndSky(IDepthTarget* depthTarget, RenderView& renderView, int arrayIndex, bool reflectionPass)
+	{
 		auto* levelPtr = g_GameFlow->GetLevel(CurrentLevel);
 
 		bool anyOutsideRooms = false;
@@ -3205,20 +3316,7 @@ namespace TEN::Renderer
 
 		if (Weather.GetStars().size() > 0 && !reflectionPass)
 		{
-			// When the atmospheric sky dome is active, modulate star visibility
-			// by the computed starfield visibility factor (day=0, night=1).
-			float starfieldAlphaScale = 1.0f;
-			if (_atmosphericSkySettings.Enabled)
-			{
-				auto* starLevelPtr = g_GameFlow->GetLevel(CurrentLevel);
-				if (starLevelPtr->GetLensFlareEnabled())
-				{
-					constexpr float SHORT_TO_RAD = (DirectX::XM_2PI / 65536.0f);
-					float pitch = (float)starLevelPtr->GetLensFlarePitch() * SHORT_TO_RAD;
-					float sunElev = std::sin(pitch);
-					starfieldAlphaScale = ComputeStarfieldVisibility(sunElev);
-				}
-			}
+			float starfieldAlphaScale = GetStarfieldAlphaScale();
 
 			SetDepthState(DepthState::Read);
 			SetBlendMode(BlendMode::Additive);
@@ -3264,37 +3362,10 @@ namespace TEN::Renderer
 
 				for (int i = 0; i < starsToDraw; i++)
 				{
-					auto& star = Weather.GetStars()[drawnStars + i];
-
-					RendererSpriteToDraw rDrawSprite;
-					rDrawSprite.Sprite = &_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + SPR_LENS_FLARE_3];
-
-					rDrawSprite.Type = SpriteType::Billboard;
-					rDrawSprite.pos = renderView.Camera.WorldPosition + star.Direction * BLOCK(1);
-					rDrawSprite.Rotation = 0;
-					rDrawSprite.Scale = 1;
-					rDrawSprite.Width = STAR_SIZE * star.Scale;
-					rDrawSprite.Height = STAR_SIZE * star.Scale;
-
-					// Underwater sky occlusion: stars below the water-line are fully hidden.
-					// TEN Y-down: star.Direction.y < 0 means the star is above the horizon.
-					float underwaterStarMask = 1.0f;
-					if (_underwaterSkySettings.Enabled && _stAtmosphericSky.UnderwaterSkyVisibility > 0.001f)
-					{
-						float upY = -star.Direction.y;
-						float layerH = std::max(_underwaterSkySettings.LayerHeight, 0.05f);
-						float soft   = std::max(_underwaterSkySettings.HorizonSoftness, 0.005f);
-						float t = std::clamp((upY - (layerH - soft)) / (2.0f * soft), 0.0f, 1.0f);
-						float aboveFactor = t * t * (3.0f - 2.0f * t);
-						underwaterStarMask = Lerp(1.0f, aboveFactor * 0.3f, _stAtmosphericSky.UnderwaterSkyVisibility);
-					}
+					auto rDrawSprite = GetStarSprite(Weather.GetStars()[drawnStars + i], renderView, starfieldAlphaScale);
 
 					_stInstancedSpriteBuffer.Sprites[i].World = GetWorldMatrixForSprite(rDrawSprite, renderView);
-					_stInstancedSpriteBuffer.Sprites[i].Color = Vector4(
-						star.Color.x,
-						star.Color.y,
-						star.Color.z,
-						star.Blinking * star.Extinction * starfieldAlphaScale * underwaterStarMask);
+					_stInstancedSpriteBuffer.Sprites[i].Color = rDrawSprite.color;
 					_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1;
 					_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = 0;
 					_stInstancedSpriteBuffer.Sprites[i].RenderType = 3;
@@ -3344,22 +3415,10 @@ namespace TEN::Renderer
 						if (meteor.Active == false)
 							continue;
 
-						rDrawSprite.Type = SpriteType::CustomBillboard;
-						rDrawSprite.pos =
-							renderView.Camera.WorldPosition +
-							Vector3::Lerp(meteor.PrevPosition, meteor.Position, GetInterpolationFactor());
-						rDrawSprite.Rotation = 0;
-						rDrawSprite.Scale = 1;
-						rDrawSprite.Width = 2;
-						rDrawSprite.Height = 192;
-						rDrawSprite.ConstrainAxis = meteor.Direction;
+						rDrawSprite = GetMeteorSprite(meteor, renderView, starfieldAlphaScale);
 
 						_stInstancedSpriteBuffer.Sprites[i].World = GetWorldMatrixForSprite(rDrawSprite, renderView);
-						_stInstancedSpriteBuffer.Sprites[i].Color = Vector4(
-							meteor.Color.x,
-							meteor.Color.y,
-							meteor.Color.z,
-							Lerp(meteor.PrevFade, meteor.Fade, GetInterpolationFactor()) * starfieldAlphaScale);
+						_stInstancedSpriteBuffer.Sprites[i].Color = rDrawSprite.color;
 						_stInstancedSpriteBuffer.Sprites[i].IsBillboard = 1;
 						_stInstancedSpriteBuffer.Sprites[i].IsSoftParticle = 0;
 						_stInstancedSpriteBuffer.Sprites[i].RenderType = 3;
@@ -3438,8 +3497,8 @@ namespace TEN::Renderer
 		// via painter's algorithm — no depth push or depth test needed.
 		// Skipped when the atmospheric sky is active: the sky shader renders its own
 		// sun disk that correctly fades behind the horizon darkening band.
-		if (!renderView.LensFlaresToDraw.empty() && renderView.LensFlaresToDraw[0].IsGlobal && !reflectionPass
-			&& !_atmosphericSkySettings.Enabled)
+		auto sunSprite = RendererSpriteToDraw{};
+		if (!reflectionPass && GetSunSprite(renderView, sunSprite))
 		{
 			SetDepthState(DepthState::None);
 			SetBlendMode(BlendMode::Additive);
@@ -3452,49 +3511,8 @@ namespace TEN::Renderer
 			// Set up vertex buffer and parameters.
 			_graphicsDevice->BindVertexBuffer(_quadVertexBuffer.get());
 
-			// Attenuate sun sprite by volumetric cloud transmittance.
-			// Uses the same smoothed value already computed for lens flare halo occlusion
-			// (previous frame, one-frame lag is invisible due to temporal smoothing).
-			float sunCloudOcclusion = (g_SkyCloudSystem.IsCloudAActive() || g_SkyCloudSystem.IsCloudBActive())
-				? g_SkyCloudSystem.GetCombinedCloudTransmittance()
-				: GetCloudLensFlareOcclusion();
-
-			auto& rawSunColor = renderView.LensFlaresToDraw[0].Color;
-			auto  sunColor = Color(
-				rawSunColor.x * sunCloudOcclusion,
-				rawSunColor.y * sunCloudOcclusion,
-				rawSunColor.z * sunCloudOcclusion,
-				rawSunColor.w);
-
-			auto rDrawSprite = RendererSpriteToDraw{};
-			rDrawSprite.Sprite = &_sprites[Objects[ID_DEFAULT_SPRITES].meshIndex + renderView.LensFlaresToDraw[0].SpriteID];
-
-			// Scale sun sprite larger near horizon.
-			// TombEngine uses Y-down: Direction.y is -1 at zenith, ~0 at horizon.
-			float sunElevation = -renderView.LensFlaresToDraw[0].Direction.y;
-			float sunElevClamped = std::clamp(sunElevation, 0.0f, 1.0f);
-			float sunSizeScale = 1.0f + (1.0f - sunElevClamped) * 0.8f; // 1.0x zenith -> 1.8x horizon
-
-			// Fade the sun sprite using sunBelowFade: full at horizon (elevation=0), gone by ~-7 degrees.
-			// Applied unconditionally so the sun cannot be seen below the horizon
-			// regardless of whether the atmospheric sky dome is enabled.
-			{
-				float sunHorizonFade = std::clamp(1.0f + sunElevation * 8.0f, 0.0f, 1.0f);
-				sunHorizonFade = sunHorizonFade * sunHorizonFade * (3.0f - 2.0f * sunHorizonFade);
-				sunColor = Color(
-					sunColor.x * sunHorizonFade,
-					sunColor.y * sunHorizonFade,
-					sunColor.z * sunHorizonFade,
-					sunColor.w);
-			}
-
-			rDrawSprite.Type = SpriteType::Billboard;
-			rDrawSprite.pos = renderView.Camera.WorldPosition + renderView.LensFlaresToDraw[0].Direction * BLOCK(1);
-			rDrawSprite.Rotation = 0.0f;
-			rDrawSprite.Scale = 1.0f;
-			rDrawSprite.Width = SUN_SIZE * sunSizeScale;
-			rDrawSprite.Height = SUN_SIZE * sunSizeScale;
-			rDrawSprite.color = sunColor;
+			auto& rDrawSprite = sunSprite;
+			auto sunColor = rDrawSprite.color;
 
 			_stInstancedSpriteBuffer.Sprites[0].World = GetWorldMatrixForSprite(rDrawSprite, renderView);
 			_stInstancedSpriteBuffer.Sprites[0].Color = sunColor;

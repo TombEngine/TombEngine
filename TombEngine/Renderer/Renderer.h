@@ -75,6 +75,12 @@ class EulerAngles;
 struct AnimFrameInterpData;
 struct CAMERA_INFO;
 
+namespace TEN::Effects::Environment
+{
+	struct StarParticle;
+	struct MeteorParticle;
+}
+
 namespace TEN::Renderer
 {
 	using namespace TEN::Effects::Electricity;
@@ -293,6 +299,7 @@ namespace TEN::Renderer
 		std::vector<AtlasTexturesSet>						   _staticTextures;
 		std::vector<std::unique_ptr<ITexture2D>>			   _spritesTextures;
 		RendererSprite										   _videoSprite; // Video texture is an unique case
+		std::vector<RendererSpriteToDraw>					   _nextSkySprites = {}; // Sky sprites passed to the next renderer.
 
 		Matrix _playerWorldMatrix;
 
@@ -472,6 +479,10 @@ namespace TEN::Renderer
 		void PrepareSingleLaserBeam(RenderView& view);
 		void DrawHorizonAndSky(IDepthTarget* depthTarget, RenderView& renderView, int arrayIndex = 0, bool reflectionPass = false);
 		void DrawHorizonAndSkyForReflections(RenderView& renderView);
+		float GetStarfieldAlphaScale() const;
+		RendererSpriteToDraw GetStarSprite(const TEN::Effects::Environment::StarParticle& star, const RenderView& renderView, float alphaScale);
+		RendererSpriteToDraw GetMeteorSprite(const TEN::Effects::Environment::MeteorParticle& meteor, const RenderView& renderView, float alphaScale);
+		bool GetSunSprite(const RenderView& renderView, RendererSpriteToDraw& sprite);
 		void DrawHorizonDepth(RenderView& renderView);
 		void DrawHorizonMask(RenderView& renderView);
 		void RenderHorizonMeshLayers(RenderView& renderView);
