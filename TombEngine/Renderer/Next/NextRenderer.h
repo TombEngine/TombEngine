@@ -256,6 +256,7 @@ namespace TEN::Renderer::Next
             int                               FirstInstance = 0;
             int                               InstanceCount = 0;
             int                               AnimatedSetOverride = NO_VALUE; // Legacy waterfall scrolling.
+            Vector4                           Bounds        = Vector4(0.0f, 0.0f, 0.0f, -1.0f); // World sphere of shadow casters, unknown when negative.
         };
 
         // GPU buffer rewritten every frame from CPU data through the upload ring.
@@ -520,6 +521,7 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::ITexture>          _shadowDepth              = nullptr;
         std::vector<ObjectDraw>                 _shadowDraws              = {};
         GpuShadowUniforms                       _shadowUniforms           = {};
+        Frustum                                 _shadowFaceFrustums[6]    = {};
         bool                                    _isShadowMapActive        = false;
         bool                                    _isPlayerShadowOnly       = false;
         bool                                    _isRenderingShadowMap     = false;
@@ -763,7 +765,8 @@ namespace TEN::Renderer::Next
         bool         EnsureShadowMap(int size);
         bool         IsShadowCaster(int objectID) const;
         unsigned int GetShadowReceiverMask(int objectID) const;
-        void         MarkShadowCasterDraws(int firstDraw);
+        void         MarkShadowCasterDraws(int firstDraw, const Vector4& bounds);
+        Vector4      GetItemBounds(const Structures::RendererItem& item, float margin) const;
         void         PrepareShadows(const FrameEnvironment& environment, float interpolationFactor);
         void         RenderShadowMap(RHI::ICommandBuffer& commandBuffer);
 

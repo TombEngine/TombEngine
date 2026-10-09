@@ -252,7 +252,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 - [ ] Sprite e particelle: istanze compatte da 16-32 B (posizione, dimensione, rotazione, colore, frame) in storage buffer, billboarding nel VS, una sola preparazione per frame.
 
 ### 8.5 Ombre
-- [ ] Culling per faccia del cube; facce fuori dal frustum della camera saltate.
+- [x] Culling per faccia del cube; facce fuori dal frustum della camera saltate. *(fatto per oggetto: sfera dalle mesh alla posa interpolata contro il frustum di ogni faccia, che scarta anche gli oggetti oltre il raggio della luce. Nota: i 5,6 ms delle ombre misurati su DX11 in debug erano il GPU in attesa della CPU: senza draw passano al pass successivo)*
 - [x] Rispetto di `MeshBits` e dei flag d'ombra per oggetto.
 - [x] Draw delle ombre tramite gli stessi draw packet (indice d'istanza), senza upload per faccia. *(le ombre riusano i draw degli oggetti; per faccia solo la view-projection)*
 - [ ] Caching delle shadow map statiche: solo se le misure lo richiedono.

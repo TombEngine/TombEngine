@@ -5,6 +5,7 @@
 #include "Renderer/RHI/ShaderLibrary.h"
 #include "Renderer/Structures/RendererItem.h"
 #include "Renderer/Structures/RendererLight.h"
+#include "Renderer/Structures/RendererMesh.h"
 #include "Renderer/Structures/RendererObject.h"
 #include "Specific/configuration.h"
 #include "Specific/level.h"
@@ -84,9 +85,30 @@ namespace TEN::Renderer::Next
         return (object.has_value() && object->ShadowType == ShadowMode::None) ? SHADOWABLE_MASK : 0;
     }
 
-    void NextRenderer::MarkShadowCasterDraws(int firstDraw)
+    void NextRenderer::MarkShadowCasterDraws(int firstDraw, const Vector4& bounds)
     {
+        int firstShadowDraw = (int)_shadowDraws.size();
         _shadowDraws.insert(_shadowDraws.end(), _objectDraws.begin() + firstDraw, _objectDraws.end());
+        for (int i = firstShadowDraw; i < (int)_shadowDraws.size(); i++)
+            _shadowDraws[i].Bounds = bounds;
+    }
+
+    // Sphere enclosing the meshes of an item at its interpolated pose, for the culling of the shadow map faces.
+    Vector4 NextRenderer::GetItemBounds(const RendererItem& item, float margin) const
+    {
+        const auto& world = item.InterpolatedWorld;
+        float scale = std::max({ world.Right().Length(), world.Up().Length(), world.Backward().Length() });
+
+        auto bounds = BoundingSphere(world.Translation(), 0.0f);
+        int meshCount = std::min((int)item.MeshIndex.size(), (int)BONE_COUNT_MAX);
+        for (int i = 0; i < meshCount; i++)
+        {
+            const auto& sphere = (*_legacyGeometry.Meshes)[item.MeshIndex[i]]->Sphere;
+            auto meshSphere = BoundingSphere(Vector3::Transform(sphere.Center, item.InterpolatedAnimationTransforms[i] * world), sphere.Radius * scale);
+            BoundingSphere::CreateMerged(bounds, bounds, meshSphere);
+        }
+
+        return Vector4(bounds.Center.x, bounds.Center.y, bounds.Center.z, bounds.Radius + margin);
     }
 
     // Cube face view projections as in the legacy renderer, and the uniforms read by the scene shaders.
@@ -124,6 +146,7 @@ namespace TEN::Renderer::Next
         {
             auto view = Matrix::CreateLookAt(position, position + FORWARD_VECTORS[face] * BLOCK(10), UP_VECTORS[face]);
             _shadowUniforms.LightViewProjections[face] = view * projection;
+            _shadowFaceFrustums[face].Update(view, projection);
         }
     }
 
@@ -165,6 +188,10 @@ namespace TEN::Renderer::Next
             {
                 const auto& bucket = *draw.Bucket;
                 if (bucket.BlendMode != BlendMode::Opaque && bucket.BlendMode != BlendMode::AlphaTest)
+                    continue;
+
+                // Casters outside the face frustum, including those beyond the light range, are skipped.
+                if (draw.Bounds.w >= 0.0f && !_shadowFaceFrustums[face].SphereInFrustum(Vector3(draw.Bounds), draw.Bounds.w))
                     continue;
 
                 const auto& pages = (draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures;

@@ -1330,7 +1330,7 @@ namespace TEN::Renderer::Next
                 }
 
                 if (IsShadowCaster(item->ObjectID))
-                    MarkShadowCasterDraws(firstDraw);
+                    MarkShadowCasterDraws(firstDraw, GetItemBounds(*item, 0.0f));
 
                 RemoveFadedDraws(firstDraw, item->Color.w);
             }
@@ -1480,8 +1480,9 @@ namespace TEN::Renderer::Next
 
         CollectPlayerHair(*item, item->AmbientLight, lightOffset, lightCount, interpolationFactor);
 
+        // Hair hangs outside the meshes of the player.
         if (IsShadowCaster(ID_LARA))
-            MarkShadowCasterDraws(firstDraw);
+            MarkShadowCasterDraws(firstDraw, GetItemBounds(*item, CLICK(2)));
 
         RemoveFadedDraws(firstDraw, item->Color.w);
     }
