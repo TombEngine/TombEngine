@@ -172,8 +172,9 @@ float3 GetLensFlare(float2 uv, float2 position)
 
     float3 lensFlare = float3(f2 + f4 + f5 + f6, f22 + f42 + f52 + f62, f23 + f43 + f53 + f63);
 
-    // Subtle anamorphic glare.
-    float glare = exp(-pow(main.x * 1.2f, 2.0f) - pow(main.y * 35.0f, 2.0f));
+    // Subtle anamorphic glare. Squares are products: pow of a negative base is NaN, which SPIR-V max does not filter.
+    float2 glareOffset = main * float2(1.2f, 35.0f);
+    float glare = exp(-dot(glareOffset, glareOffset));
     float3 anamorphicGlare = float3(0.6f, 0.5f, 1.0f) * glare * 0.05f;
 
     float3 color = saturate(f0) * 0.5f + lensFlare + anamorphicGlare;
