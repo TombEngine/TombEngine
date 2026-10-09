@@ -28,7 +28,7 @@ namespace TEN::Renderer::Next
         unsigned int IsDistortionActive  = 0;
         float        Time                = 0.0f;
         unsigned int LensFlareCount      = 0;
-        float        Padding             = 0.0f;
+        unsigned int IsGlowActive        = 0;
         Vector4      LensFlarePositions[LENS_FLARES_MAX] = {}; // Normalized device xy, depth.
         Vector4      LensFlareColors[LENS_FLARES_MAX]    = {};
     };
@@ -98,19 +98,14 @@ namespace TEN::Renderer::Next
         return false;
     }
 
-    // Distortion surfaces and sprites accumulate their payload against the prepass depth, before the scene pass.
+    // Distortion surfaces and sprites accumulate their payload in the half resolution distortion target.
     void NextRenderer::RenderDistortion(ICommandBuffer& commandBuffer, const RenderView& view)
     {
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = _distortionTarget.get();
 
-        auto depthTarget = DepthTargetInfo{};
-        depthTarget.Texture = _depthTarget.get();
-        depthTarget.Load = LoadOp::Load;
-        depthTarget.Store = StoreOp::Store;
-
         commandBuffer.PushDebugGroup("Distortion");
-        auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, &depthTarget);
+        auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
         DrawRooms(commandBuffer, *renderPass, view, ScenePass::Distortion);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Distortion);
         DrawSprites(commandBuffer, *renderPass, true);
@@ -154,6 +149,7 @@ namespace TEN::Renderer::Next
         uniforms.FarPlane = _farPlane;
         uniforms.IsDistortionActive = _hasDistortion ? 1 : 0;
         uniforms.Time = _time;
+        uniforms.IsGlowActive = _hasEmissiveMaps ? 1 : 0;
 
         // Flares are projected here; the legacy collection already dropped those behind the camera.
         for (int i = 0; i < environment.LensFlareCount; i++)
@@ -178,13 +174,14 @@ namespace TEN::Renderer::Next
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
         renderPass->BindPipeline(_postProcessPipeline.get());
 
-        TextureSamplerBinding bindings[3] =
+        TextureSamplerBinding bindings[4] =
         {
             { _sceneTarget.get(), _linearClampSampler.get() },
             { _distortionTarget.get(), _linearClampSampler.get() },
-            { _sceneDepthCopy.get(), _pointClampSampler.get() }
+            { _sceneDepthCopy.get(), _pointClampSampler.get() },
+            { _glowTargets[0].get(), _linearClampSampler.get() }
         };
-        renderPass->BindPixelSamplers(0, bindings, 3);
+        renderPass->BindPixelSamplers(0, bindings, 4);
 
         _frameStats.DrawCalls++;
         renderPass->Draw(3, 1, 0, 0);

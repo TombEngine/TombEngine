@@ -181,11 +181,12 @@ float4 PS(PixelInput input) : SV_TARGET
     return result;
 }
 
-float4 PSDepthNormal(PixelInput input) : SV_TARGET
+PrepassOutput PSDepthNormal(PixelInput input)
 {
+    float3 emissive;
     float3 normal = SampleSurfaceNormal(Materials[MaterialIndex], ApplyUVScroll(input.UV, input.UVScroll), AlphaThreshold, input.WorldPosition,
-                                        PixelCameraPosition, input.Normal, input.Tangent, input.Binormal, input.FaceNormal);
-    return float4(EncodeViewNormal(normal, View), 1.0f);
+                                        PixelCameraPosition, input.Normal, input.Tangent, input.Binormal, input.FaceNormal, emissive);
+    return GetPrepassOutput(EncodeViewNormal(normal, View), emissive, input.Fog);
 }
 
 // Shadow map pass: writes the light space depth; the alpha test keeps cut-out geometry out of the shadow.

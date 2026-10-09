@@ -263,6 +263,14 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IGraphicsPipeline> _depthCopyPipeline       = nullptr;
         std::unique_ptr<RHI::ITexture>          _sceneDepthCopy          = nullptr; // R32 float copy of the prepass depth.
         std::unique_ptr<RHI::ITexture>          _distortionTarget        = nullptr;
+        std::unique_ptr<RHI::ITexture>          _emissiveTarget          = nullptr; // Prepass emissive, source of the glow.
+        std::unique_ptr<RHI::ITexture>          _glowTargets[2]          = {};
+        std::unique_ptr<RHI::IShader>           _glowVertexShader        = nullptr;
+        std::unique_ptr<RHI::IShader>           _glowDownscaleShader     = nullptr;
+        std::unique_ptr<RHI::IShader>           _glowBlurShader          = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _glowDownscalePipeline   = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _glowBlurPipeline        = nullptr;
+        bool                                    _hasEmissiveMaps         = false;
         bool                                    _hasDistortion           = false;
         float                                   _nearPlane               = 1.0f;
         float                                   _farPlane                = 1.0f;
@@ -439,11 +447,16 @@ namespace TEN::Renderer::Next
         // Prepass and ambient occlusion (NextRendererSSAO.cpp).
         bool  CreateSSAOResources();
         bool  EnsureSSAOTargets(int width, int height);
+        bool  CreateGlowResources();
+        bool  EnsureGlowTargets(int width, int height);
+        void  RenderGlow(RHI::ICommandBuffer& commandBuffer);
         float GetAmbientOcclusionExponent() const;
         void  RenderDepthPrepass(RHI::ICommandBuffer& commandBuffer, const RenderView& view);
         void  RenderSSAO(RHI::ICommandBuffer& commandBuffer, const Matrix& projection);
         void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target, RHI::ITexture* source,
                                    RHI::ISampler* sourceSampler, const char* name);
+        void  RenderFullscreenPass(RHI::ICommandBuffer& commandBuffer, RHI::IGraphicsPipeline* pipeline, RHI::ITexture* target,
+                                   const RHI::TextureSamplerBinding* bindings, int bindingCount, const char* name);
 
         // Sprites (NextRendererSprites.cpp).
         bool           CreateSpriteResources();

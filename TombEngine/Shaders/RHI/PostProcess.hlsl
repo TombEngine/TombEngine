@@ -1,5 +1,5 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=0 uniform_buffers=0
-// TEN_SHADER: Pixel PS samplers=3 storage_textures=0 storage_buffers=0 uniform_buffers=3
+// TEN_SHADER: Pixel PS samplers=4 storage_textures=0 storage_buffers=0 uniform_buffers=3
 // TEN_SHADER: Pixel PSDepthCopy samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 // TEN_SHADER: Pixel PSFXAA samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=3
 
@@ -33,7 +33,7 @@ TEN_PS_UNIFORMS(PostProcessUniforms, 2)
     uint   IsDistortionActive;
     float  Time;
     uint   LensFlareCount;
-    float  PostProcessPadding0;
+    uint   IsGlowActive;
     float4 LensFlarePositions[LENS_FLARES_MAX]; // Normalized device xy, depth.
     float4 LensFlareColors[LENS_FLARES_MAX];
 };
@@ -41,6 +41,7 @@ TEN_PS_UNIFORMS(PostProcessUniforms, 2)
 TEN_PS_TEXTURE(Texture2D, SceneMap, 0);
 TEN_PS_TEXTURE(Texture2D, DistortionMap, 1);
 TEN_PS_TEXTURE(Texture2D, DepthMap, 2);
+TEN_PS_TEXTURE(Texture2D, GlowMap, 3);
 
 // Distortion constants of the legacy PSDistortion (Shaders/PostProcess.hlsl).
 #define DISTORTION_MIN_WEIGHT                       0.001f
@@ -225,6 +226,11 @@ float4 PS(FullscreenPixelInput input) : SV_Target
 
     float2 uv = IsDistortionActive ? GetDistortedUV(input.UV) : input.UV;
     float3 color = SceneMap.SampleLevel(SceneMapSampler, uv, 0.0f).rgb;
+
+    // Legacy PSGlowCombine with soft add.
+    if (IsGlowActive)
+        color = 1.0f - (1.0f - color) * (1.0f - GlowMap.SampleLevel(GlowMapSampler, input.UV, 0.0f).rgb);
+
     if (LensFlareCount > 0)
         color = ApplyLensFlares(color, input.UV);
 

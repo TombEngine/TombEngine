@@ -140,6 +140,14 @@ namespace TEN::Renderer::Next
         _ssaoNoiseTexture = nullptr;
         _normalTarget = nullptr;
         _ssaoTarget = nullptr;
+        _emissiveTarget = nullptr;
+        _glowTargets[0] = nullptr;
+        _glowTargets[1] = nullptr;
+        _glowDownscalePipeline = nullptr;
+        _glowBlurPipeline = nullptr;
+        _glowVertexShader = nullptr;
+        _glowDownscaleShader = nullptr;
+        _glowBlurShader = nullptr;
         _ssaoBlurTarget = nullptr;
         _pointClampSampler = nullptr;
         _pointWrapSampler = nullptr;
@@ -175,7 +183,7 @@ namespace TEN::Renderer::Next
         if (_skyVertexShader == nullptr || _skyPixelShader == nullptr || !CreateSkyGeometry())
             return false;
 
-        if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources())
+        if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources())
             return false;
 
         if (GetScenePipeline(SceneShader::Rooms, BlendMode::Opaque) == nullptr ||
@@ -386,12 +394,17 @@ namespace TEN::Renderer::Next
             desc.Layout.NumAttributes = 8;
         }
 
-        desc.NumColorTargets = 1;
+        // The prepass writes view normals and emissive.
+        desc.NumColorTargets = isPrepass ? 2 : 1;
         desc.ColorTargets[0].Format = isPrepass ? PixelFormat::RGBA8Unorm : (isShadow ? PixelFormat::R32Float : _device->GetSwapchainFormat());
         desc.ColorTargets[0].Blend = GetBlendState((isPrepass || isShadow) ? BlendMode::Opaque : (BlendMode)modeIndex);
+        desc.ColorTargets[1].Format = PixelFormat::RGBA8Unorm;
+        desc.ColorTargets[1].Blend = GetBlendState(BlendMode::Opaque);
+        // Distortion accumulates in a half resolution target without depth; the post-process rejects occluded texels.
+        bool isDistortion = (modeIndex == (int)BlendMode::Distortion);
         desc.DepthStencil.EnableDepthWrite = (modeIndex == (int)BlendMode::Opaque) && !isSky && !isSprites;
-        desc.DepthStencil.EnableDepthTest = !isSky;
-        desc.DepthFormat = PixelFormat::D32Float;
+        desc.DepthStencil.EnableDepthTest = !isSky && !isDistortion;
+        desc.DepthFormat = isDistortion ? PixelFormat::Unknown : PixelFormat::D32Float;
         desc.Name = std::string(names[(int)shader]) + ".BlendMode" + std::to_string(modeIndex);
 
         pipeline = _device->CreateGraphicsPipeline(desc);
@@ -417,8 +430,12 @@ namespace TEN::Renderer::Next
         colorDesc.Name = "Scene.Color";
         _sceneTarget = _device->CreateTexture(colorDesc);
 
-        colorDesc.Name = "Scene.Distortion";
-        _distortionTarget = _device->CreateTexture(colorDesc);
+        // Distortion is low frequency: half resolution and no depth, as the legacy distortion target.
+        auto distortionDesc = colorDesc;
+        distortionDesc.Width = std::max(width / 2, 1);
+        distortionDesc.Height = std::max(height / 2, 1);
+        distortionDesc.Name = "Scene.Distortion";
+        _distortionTarget = _device->CreateTexture(distortionDesc);
 
         colorDesc.Name = "PostProcess.Result";
         _antialiasingSource = _device->CreateTexture(colorDesc);
@@ -435,7 +452,7 @@ namespace TEN::Renderer::Next
         depthDesc.Name = "Scene.Depth";
         _depthTarget = _device->CreateTexture(depthDesc);
 
-        return (_colorTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _distortionTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height));
+        return (_colorTarget != nullptr && _sceneTarget != nullptr && _sceneDepthCopy != nullptr && _distortionTarget != nullptr && _depthTarget != nullptr && EnsureSSAOTargets(width, height) && EnsureGlowTargets(width, height));
     }
 
     void NextRenderer::UploadBuffer(IBuffer* buffer, const void* data, int size)
@@ -531,6 +548,7 @@ namespace TEN::Renderer::Next
         UploadBuffer(_roomVertexBuffer.get(), geometry.RoomVertices->data(), vertexDataSize);
         UploadBuffer(_roomIndexBuffer.get(), geometry.RoomIndices->data(), indexDataSize);
 
+        _hasEmissiveMaps = false;
         LoadTextureSet(g_Level.RoomTextures, _roomTextures, "RoomAtlas");
         LoadTextureSet(g_Level.StaticsTextures, _staticTextures, "StaticAtlas");
         LoadTextureSet(g_Level.MoveablesTextures, _moveableTextures, "MoveableAtlas");
@@ -564,8 +582,8 @@ namespace TEN::Renderer::Next
         TENLog("Next renderer: room buckets by blend mode:" + bucketSummary, LogLevel::Info);
 
         float elapsed = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - startTime).count();
-        TENLog(fmt::format("Next renderer: level data uploaded in {:.1f} ms ({} room vertices, {} room textures).",
-            elapsed, geometry.RoomVertices->size(), _roomTextures.size()), LogLevel::Info);
+        TENLog(fmt::format("Next renderer: level data uploaded in {:.1f} ms ({} room vertices, {} room textures, emissive maps: {}).",
+            elapsed, geometry.RoomVertices->size(), _roomTextures.size(), _hasEmissiveMaps ? "yes" : "no"), LogLevel::Info);
     }
 
     void NextRenderer::LoadTextureSet(const std::vector<::TEXTURE>& source, std::vector<RoomTexture>& destination, const std::string& name)
@@ -584,7 +602,10 @@ namespace TEN::Renderer::Next
                 texture.ORSHMap = CreateLevelTexture(source[i].ORSHMapData, pageName + ".ORSH");
 
             if (!source[i].emissiveMapData.empty())
+            {
                 texture.EmissiveMap = CreateLevelTexture(source[i].emissiveMapData, pageName + ".Emissive");
+                _hasEmissiveMaps = true;
+            }
 
             destination.push_back(std::move(texture));
         }
@@ -1943,6 +1964,9 @@ namespace TEN::Renderer::Next
         DrawGunFlashes(*commandBuffer, *renderPass);
         commandBuffer->EndRenderPass();
         commandBuffer->PopDebugGroup();
+
+        if (_hasEmissiveMaps)
+            RenderGlow(*commandBuffer);
 
         RenderPostProcess(*commandBuffer, environment);
 

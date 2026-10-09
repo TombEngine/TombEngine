@@ -104,6 +104,9 @@ namespace TEN::Renderer::Next
         normalDesc.Name = "Prepass.Normals";
         _normalTarget = _device->CreateTexture(normalDesc);
 
+        normalDesc.Name = "Prepass.Emissive";
+        _emissiveTarget = _device->CreateTexture(normalDesc);
+
         // Occlusion is low frequency: half resolution, upsampled by bilinear filtering in the scene pass.
         auto ssaoDesc = TextureDesc{};
         ssaoDesc.Width = std::max(width / 2, 1);
@@ -116,20 +119,21 @@ namespace TEN::Renderer::Next
         ssaoDesc.Name = "SSAO.Blur";
         _ssaoBlurTarget = _device->CreateTexture(ssaoDesc);
 
-        return (_normalTarget != nullptr && _ssaoTarget != nullptr && _ssaoBlurTarget != nullptr);
+        return (_normalTarget != nullptr && _emissiveTarget != nullptr && _ssaoTarget != nullptr && _ssaoBlurTarget != nullptr);
     }
 
     // Opaque geometry writes depth and view space normals; the scene pass reuses the depth.
     void NextRenderer::RenderDepthPrepass(ICommandBuffer& commandBuffer, const RenderView& view)
     {
-        auto normalTarget = ColorTargetInfo{};
-        normalTarget.Texture = _normalTarget.get();
+        ColorTargetInfo colorTargets[2] = {};
+        colorTargets[0].Texture = _normalTarget.get();
+        colorTargets[1].Texture = _emissiveTarget.get();
 
         auto depthTarget = DepthTargetInfo{};
         depthTarget.Texture = _depthTarget.get();
 
         commandBuffer.PushDebugGroup("Depth and normals prepass");
-        auto* renderPass = commandBuffer.BeginRenderPass(&normalTarget, 1, &depthTarget);
+        auto* renderPass = commandBuffer.BeginRenderPass(colorTargets, 2, &depthTarget);
         DrawRooms(commandBuffer, *renderPass, view, ScenePass::Prepass);
         DrawObjects(commandBuffer, *renderPass, ScenePass::Prepass);
         commandBuffer.EndRenderPass();
@@ -138,6 +142,17 @@ namespace TEN::Renderer::Next
 
     void NextRenderer::RenderFullscreenPass(ICommandBuffer& commandBuffer, IGraphicsPipeline* pipeline, ITexture* target, ITexture* source, ISampler* sourceSampler, const char* name)
     {
+        TextureSamplerBinding bindings[3] =
+        {
+            { source, sourceSampler },
+            { _normalTarget.get(), _pointClampSampler.get() },
+            { _ssaoNoiseTexture.get(), _pointWrapSampler.get() }
+        };
+        RenderFullscreenPass(commandBuffer, pipeline, target, bindings, 3, name);
+    }
+
+    void NextRenderer::RenderFullscreenPass(ICommandBuffer& commandBuffer, IGraphicsPipeline* pipeline, ITexture* target, const TextureSamplerBinding* bindings, int bindingCount, const char* name)
+    {
         auto colorTarget = ColorTargetInfo{};
         colorTarget.Texture = target;
         colorTarget.Load = LoadOp::DontCare;
@@ -145,14 +160,7 @@ namespace TEN::Renderer::Next
         commandBuffer.PushDebugGroup(name);
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
         renderPass->BindPipeline(pipeline);
-
-        TextureSamplerBinding bindings[3] =
-        {
-            { source, sourceSampler },
-            { _normalTarget.get(), _pointClampSampler.get() },
-            { _ssaoNoiseTexture.get(), _pointWrapSampler.get() }
-        };
-        renderPass->BindPixelSamplers(0, bindings, 3);
+        renderPass->BindPixelSamplers(0, bindings, bindingCount);
 
         _frameStats.DrawCalls++;
         renderPass->Draw(3, 1, 0, 0);

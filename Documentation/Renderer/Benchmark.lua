@@ -38,5 +38,5 @@ LevelFuncs.OnLoop = function()
 	flare.yaw = math.deg(math.atan(cameraTarget.x - cameraPos.x, cameraTarget.z - cameraPos.z)) + 15
 
 	-- A large distortion particle in front of the player exercises the distortion pass.
-	TEN.Effects.EmitParticle(pos + Vec3(0, -640, 0), Vec3(0, 0, 0), 0, 0, 0, TEN.Color(255, 255, 255), TEN.Color(255, 255, 255), TEN.Effects.BlendID.DISTORTION, 512, 512, 2)
+	TEN.Effects.EmitParticle(pos + Vec3(0, -640, 0), Vec3(0, 0, 0), 0, 0, 0, TEN.Color(255, 255, 255), TEN.Color(255, 255, 255), TEN.Effects.BlendID.DISTORTION, 256, 256, 1)
 end

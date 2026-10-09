@@ -160,11 +160,14 @@ Surface SampleSurface(GpuMaterial material, float2 uv, float alphaThreshold, flo
 }
 
 // Color alpha test and perturbed normal only, for the depth and normals prepass.
+// Prepass surface: normal and emissive, the latter feeding the glow as the legacy GBuffer emissive target.
 float3 SampleSurfaceNormal(GpuMaterial material, float2 uv, float alphaThreshold, float3 position, float3 cameraPosition,
-                           float3 normal, float3 tangent, float3 binormal, float3 faceNormal)
+                           float3 normal, float3 tangent, float3 binormal, float3 faceNormal, out float3 emissive)
 {
     uv = ParallaxOcclusionMapping(material, tangent, binormal, faceNormal, position, cameraPosition, uv);
     clip(ColorMap.Sample(ColorMapSampler, uv).a - alphaThreshold);
+
+    emissive = EmissiveMap.Sample(EmissiveMapSampler, uv).rgb * GetEmissiveIntensity(material);
 
     float3x3 tangentFrame = float3x3(tangent, binormal, normal);
     return EnsureNormal(mul(UnpackNormalMap(NormalMap.Sample(NormalMapSampler, uv)), tangentFrame), position, cameraPosition);
@@ -179,6 +182,21 @@ float GetAmbientOcclusion(GpuMaterial material, float2 screenUV, float exponent,
 
     float occlusion = pow(AmbientOcclusionMap.Sample(AmbientOcclusionMapSampler, screenUV).x, exponent);
     return (blendMode == BLENDMODE_ALPHABLEND) ? lerp(occlusion, 1.0f, alpha) : occlusion;
+}
+
+struct PrepassOutput
+{
+    float4 Normal   : SV_Target0;
+    float4 Emissive : SV_Target1;
+};
+
+// Distance fog fades the emissive as in the legacy GBuffer pass.
+PrepassOutput GetPrepassOutput(float3 viewNormal, float3 emissive, float fog)
+{
+    PrepassOutput output;
+    output.Normal = float4(viewNormal, 1.0f);
+    output.Emissive = float4(emissive * (1.0f - fog * fog), 1.0f);
+    return output;
 }
 
 float3 EncodeViewNormal(float3 normal, float4x4 view)
