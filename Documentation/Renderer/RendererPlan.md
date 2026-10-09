@@ -313,16 +313,20 @@ Il renderer nuovo gira in una seconda finestra accanto a quello vecchio, sugli s
 - [x] Cielo classico (due strati) e orizzonte.
 - [x] Sprite istanziati e ordinati (un'istanza da 96 B per sprite, un draw per run).
 - [x] Effetti di vertice (Move/Glow/Wibble) e rifrazione delle stanze d'acqua.
-- [ ] Soft particle, sprite laser, detriti, vampate delle armi, oggetti skinned diversi dal giocatore, specchi.
+- [x] Soft particle, sprite laser, detriti, vampate delle armi, oggetti skinned diversi dal giocatore.
+- [x] Specchi: giocatore, moveable, statiche, effetti mesh, sprite e facce ordinate riflessi con culling invertito.
 - [ ] Cielo atmosferico, nuvole, aurora, sole e stelle (Tomo).
 - [x] Materiali: normal map, ORSH, emissive, parallax, specular e sheen.
 - [x] SSAO a mezza risoluzione con prepass depth + normali.
 - [x] Ombre (cubemap della luce ombreggiante in 6 layer R32F, PCF 5x5) e ombre blob.
 - [x] Fog bulb per vertice, caustiche nelle stanze d'acqua, decal delle stanze.
 - [x] Post-process in un solo pass: schemi colore, dissolvenza, bande cinematiche, tinta, gamma.
-- [x] Zero errori di validazione Vulkan sui livelli di benchmark (layout std140 degli uniform corretti).
-- [ ] Riflessi (materiali riflettenti), alpha test a due passate del legacy, lens flare, distorsione, glow/DOF, FXAA/SMAA.
-- [ ] Post-process, HUD, 2D, inventario e menu.
+- [x] Zero errori di validazione Vulkan e nessun device lost sui livelli di benchmark, con DOF attivo e spento.
+- [x] Alpha test a due passate del legacy (bordi sfumati), lens flare, distorsione (mezza risoluzione), glow, DOF, FXAA, SMAA medium/ultra.
+- [x] Riflessi: materiali riflettenti (frame precedente a mezza risoluzione) e riflessi del cielo (doppio paraboloide 512x512).
+- [x] Video in background su set animati di tipo video e sugli sprite video.
+- [ ] Sprite alpha test anche nel prepass (il legacy li scrive nel GBuffer, quindi entrano nell'AO).
+- [ ] HUD, 2D, inventario e menu.
 
 ## 12. Decisioni prese
 
