@@ -38,6 +38,7 @@
 #include "Renderer/Frustum.h"
 #include "Renderer/Graphics/IGraphicsDevice.h"
 #include "Renderer/Graphics/Vertices/PostProcessVertex.h"
+#include "Renderer/Next/OverlayTypes.h"
 #include "Renderer/RendererEnums.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/ShaderManager/ShaderManager.h"
@@ -74,11 +75,6 @@ enum class SphereSpaceType;
 class EulerAngles;
 struct AnimFrameInterpData;
 struct CAMERA_INFO;
-
-namespace TEN::Renderer::Next
-{
-	struct OverlayText;
-}
 
 namespace TEN::Effects::Environment
 {
@@ -480,6 +476,7 @@ namespace TEN::Renderer
 		void InitializeSky();
 		void DrawAllStrings();
 		void GetResolvedStrings(std::vector<Next::OverlayText>& texts);
+		std::vector<Next::OverlayBar> _nextBars = {}; // Bars drawn this frame, for the next renderer.
 		void PrepareDynamicLight(RendererLight& light);
 		void PrepareLaserBarriers(RenderView& view);
 		void PrepareSingleLaserBeam(RenderView& view);

@@ -148,6 +148,8 @@ namespace TEN::Renderer::Next
         _skyReflectionTarget = nullptr;
         _atmosphericSkyPipeline = nullptr;
         _overlayPipeline = nullptr;
+        _overlayBarPipeline = nullptr;
+        _overlayBarPixelShader = nullptr;
         _overlayVertexShader = nullptr;
         _overlayPixelShader = nullptr;
         _overlayVertexBuffer = {};

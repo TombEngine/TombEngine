@@ -2,9 +2,11 @@
 #include "Renderer/Next/NextRenderer.h"
 
 #include "Renderer/RHI/ShaderLibrary.h"
+#include "Renderer/Structures/RendererSprite.h"
 #include "Specific/trutils.h"
 
 using namespace TEN::Renderer::RHI;
+using namespace TEN::Renderer::Structures;
 
 namespace TEN::Renderer::Next
 {
@@ -93,7 +95,8 @@ namespace TEN::Renderer::Next
     {
         _overlayVertexShader = LoadShader(*_device, _shaderDirectory, "Overlay", "VS");
         _overlayPixelShader = LoadShader(*_device, _shaderDirectory, "Overlay", "PS");
-        if (_overlayVertexShader == nullptr || _overlayPixelShader == nullptr)
+        _overlayBarPixelShader = LoadShader(*_device, _shaderDirectory, "Overlay", "PSBar");
+        if (_overlayVertexShader == nullptr || _overlayPixelShader == nullptr || _overlayBarPixelShader == nullptr)
             return false;
 
         auto desc = GraphicsPipelineDesc{};
@@ -119,7 +122,13 @@ namespace TEN::Renderer::Next
         desc.Name = "Overlay";
         _overlayPipeline = _device->CreateGraphicsPipeline(desc);
 
-        return (_overlayPipeline != nullptr && LoadFont(fontPath));
+        // Bars are opaque, as in the legacy renderer.
+        desc.PixelShader = _overlayBarPixelShader.get();
+        desc.ColorTargets[0].Blend = BlendState{};
+        desc.Name = "Overlay.Bar";
+        _overlayBarPipeline = _device->CreateGraphicsPipeline(desc);
+
+        return (_overlayPipeline != nullptr && _overlayBarPipeline != nullptr && LoadFont(fontPath));
     }
 
     // Quad in target pixels with texture coordinates, merged into the previous run when the texture matches.
@@ -142,7 +151,7 @@ namespace TEN::Renderer::Next
             _overlayVertexData.insert(_overlayVertexData.end(), bytes, bytes + sizeof(OverlayVertex));
         }
 
-        if (_overlayDraws.empty() || _overlayDraws.back().Texture != texture)
+        if (_overlayDraws.empty() || _overlayDraws.back().Texture != texture || _overlayDraws.back().IsBar)
             _overlayDraws.push_back(OverlayDraw{ texture, firstVertex, 0 });
 
         _overlayDraws.back().VertexCount += 6;
@@ -197,6 +206,84 @@ namespace TEN::Renderer::Next
         }
     }
 
+    // Legacy DrawBar: a 9 slice border from the border sprite and the inner sprite clipped at the percentage. The
+    // display space layout of RendererHudBar and GetHudBarTransform is rebuilt here for this target's aspect.
+    void NextRenderer::AddOverlayBar(const OverlayBar& bar)
+    {
+        constexpr auto DISPLAY_WIDTH = 800.0f;
+        constexpr auto DISPLAY_HEIGHT = 600.0f;
+        constexpr auto DISPLAY_ASPECT = DISPLAY_WIDTH / DISPLAY_HEIGHT;
+        constexpr auto BORDER_SIZE = 1.0f;
+
+        auto* borderTexture = GetSpriteTexture(bar.Border);
+        auto* innerTexture = GetSpriteTexture(bar.Inner);
+        if (borderTexture == nullptr || innerTexture == nullptr)
+            return;
+
+        const auto& desc = _colorTarget->GetDesc();
+        float aspect = (float)desc.Width / (float)desc.Height;
+        auto scale = Vector2::One;
+        auto sourcePivot = bar.Position;
+        auto targetPivot = bar.Position;
+        if (aspect >= 1.0f)
+        {
+            scale.y = aspect / DISPLAY_ASPECT;
+        }
+        else
+        {
+            scale.x = DISPLAY_ASPECT / aspect;
+            sourcePivot = Vector2(bar.Position.x + bar.Size.x * 0.5f, bar.Position.y);
+            targetPivot = bar.VerticalPosition;
+        }
+
+        auto toTarget = [&](float x, float y)
+        {
+            auto point = (Vector2(x, y) - sourcePivot) * scale + targetPivot;
+            return Vector2(point.x * desc.Width / DISPLAY_WIDTH, point.y * desc.Height / DISPLAY_HEIGHT);
+        };
+
+        auto getSpriteUniforms = [](const RendererSprite& sprite, ITexture& texture, bool isInner)
+        {
+            auto uniforms = OverlayBarUniforms{};
+            uniforms.BarStartUV = sprite.UV[0];
+            uniforms.BarScale = Vector2(sprite.Width / (float)texture.GetDesc().Width, sprite.Height / (float)texture.GetDesc().Height);
+            uniforms.IsInner = isInner ? 1 : 0;
+            return uniforms;
+        };
+
+        auto addQuad = [&](ITexture* texture, const OverlayBarUniforms& uniforms, const Vector2& min, const Vector2& max, const Vector2& uvMin, const Vector2& uvMax)
+        {
+            int firstVertex = (int)(_overlayVertexData.size() / sizeof(OverlayVertex));
+            auto topLeft = toTarget(min.x, min.y);
+            AddOverlayQuad(texture, topLeft, toTarget(max.x, max.y) - topLeft, uvMin, uvMax, Vector4::One);
+
+            // Each bar part is its own draw with its uniforms.
+            _overlayDraws.back() = OverlayDraw{ texture, firstVertex, 6, true, uniforms };
+        };
+
+        // Border: 9 slices with the UV split of RendererHudBar.
+        auto border = Vector2(BORDER_SIZE * DISPLAY_ASPECT, BORDER_SIZE);
+        float xs[4] = { bar.Position.x - border.x, bar.Position.x, bar.Position.x + bar.Size.x, bar.Position.x + bar.Size.x + border.x };
+        float ys[4] = { bar.Position.y - border.y, bar.Position.y, bar.Position.y + bar.Size.y, bar.Position.y + bar.Size.y + border.y };
+        const float uvs[4] = { 0.0f, 0.25f, 0.75f, 1.0f };
+
+        auto borderUniforms = getSpriteUniforms(*bar.Border, *borderTexture, false);
+        for (int row = 0; row < 3; row++)
+        {
+            for (int column = 0; column < 3; column++)
+            {
+                addQuad(borderTexture, borderUniforms, Vector2(xs[column], ys[row]), Vector2(xs[column + 1], ys[row + 1]),
+                    Vector2(uvs[column], uvs[row]), Vector2(uvs[column + 1], uvs[row + 1]));
+            }
+        }
+
+        // Inner bar, clipped in the shader at the percentage.
+        auto innerUniforms = getSpriteUniforms(*bar.Inner, *innerTexture, true);
+        innerUniforms.Percent = bar.Percent;
+        innerUniforms.PoisonFactor = bar.IsPoisoned ? (std::sin((bar.Frame % 30) / 30.0f * PI_MUL_2) * 0.5f + 0.5f) : 0.0f;
+        addQuad(innerTexture, innerUniforms, bar.Position, bar.Position + bar.Size, Vector2::Zero, Vector2::One);
+    }
+
     // 2D layer of the frame. Legacy coordinates are in its own screen resolution and are scaled to this target.
     void NextRenderer::CollectOverlay(const FrameEnvironment& environment)
     {
@@ -205,6 +292,13 @@ namespace TEN::Renderer::Next
 
         if (environment.Texts == nullptr || environment.ScreenWidth <= 0 || environment.ScreenHeight <= 0 || _colorTarget == nullptr)
             return;
+
+        // Bars are drawn before the strings, as in the legacy HUD.
+        if (environment.Bars != nullptr)
+        {
+            for (const auto& bar : *environment.Bars)
+                AddOverlayBar(bar);
+        }
 
         const auto& desc = _colorTarget->GetDesc();
         auto scale = Vector2((float)desc.Width / environment.ScreenWidth, (float)desc.Height / environment.ScreenHeight);
@@ -227,13 +321,22 @@ namespace TEN::Renderer::Next
 
         commandBuffer.PushDebugGroup("Overlay");
         auto* renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
-        renderPass->BindPipeline(_overlayPipeline.get());
-
         auto vertexBinding = BufferBinding{ _overlayVertexBuffer.Buffer.get(), 0 };
-        renderPass->BindVertexBuffers(0, &vertexBinding, 1);
 
+        const IGraphicsPipeline* lastPipeline = nullptr;
         for (const auto& draw : _overlayDraws)
         {
+            auto* pipeline = draw.IsBar ? _overlayBarPipeline.get() : _overlayPipeline.get();
+            if (pipeline != lastPipeline)
+            {
+                renderPass->BindPipeline(pipeline);
+                renderPass->BindVertexBuffers(0, &vertexBinding, 1);
+                lastPipeline = pipeline;
+            }
+
+            if (draw.IsBar)
+                commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 0, &draw.Bar, sizeof(draw.Bar));
+
             auto binding = TextureSamplerBinding{ draw.Texture, _linearClampSampler.get() };
             renderPass->BindPixelSamplers(0, &binding, 1);
 

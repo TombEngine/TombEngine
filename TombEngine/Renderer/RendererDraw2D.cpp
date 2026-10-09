@@ -152,6 +152,9 @@ namespace TEN::Renderer
 		if (!CheckIfSlotExists(ID_BAR_BORDER_GRAPHICS, "Bar rendering"))
 			return;
 
+		_nextBars.push_back(Next::OverlayBar{ bar.Position, bar.VerticalPosition, bar.Size, percent, &_sprites[Objects[ID_BAR_BORDER_GRAPHICS].meshIndex],
+			&_sprites[Objects[textureSlot].meshIndex], isPoisoned, frame });
+
 		_graphicsDevice->ClearDepthStencil(_backBuffer->GetDepthTarget(), DepthStencilClearFlags::DepthAndStencil, 0.0f, 0xFF);
 		
 		_graphicsDevice->SetInputLayout(_vertexInputLayout.get());

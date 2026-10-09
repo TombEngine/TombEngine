@@ -5,6 +5,7 @@
 #include "Objects/game_object_ids.h"
 #include "Renderer/Graphics/Vertices/Vertex.h"
 #include "Renderer/Next/GpuTypes.h"
+#include "Renderer/Next/OverlayTypes.h"
 #include "Renderer/RHI/RHIDevice.h"
 
 struct TEXTURE;
@@ -52,15 +53,6 @@ namespace TEN::Renderer::Next
     };
 
     // Per-frame values owned by the game and the legacy renderer.
-    // Resolved string of the legacy 2D layer: legacy screen position (interpolated), premultiplied color and scale.
-    struct OverlayText
-    {
-        std::string Text     = {};
-        Vector2     Position = Vector2::Zero;
-        Vector4     Color    = Vector4::Zero;
-        float       Scale    = 1.0f;
-    };
-
     struct FrameEnvironment
     {
         Vector3      CameraPosition    = Vector3::Zero;
@@ -96,6 +88,7 @@ namespace TEN::Renderer::Next
         int                             ScreenWidth  = 0;
         int                             ScreenHeight = 0;
         const std::vector<OverlayText>* Texts        = nullptr;
+        const std::vector<OverlayBar>*  Bars         = nullptr;
 
         // Stars, meteors and sun sprite of the classic sky, drawn additively between the sky layers and horizons.
         const std::vector<Structures::RendererSpriteToDraw>* SkySprites = nullptr;
@@ -392,17 +385,32 @@ namespace TEN::Renderer::Next
             unsigned int Color    = 0;
         };
 
+        // Same layout as BarUniforms in Overlay.hlsl.
+        struct OverlayBarUniforms
+        {
+            Vector2      BarStartUV   = Vector2::Zero;
+            Vector2      BarScale     = Vector2::One;
+            float        Percent      = 1.0f;
+            float        PoisonFactor = 0.0f;
+            unsigned int IsInner      = 0;
+            float        Padding      = 0.0f;
+        };
+
         struct OverlayDraw
         {
-            RHI::ITexture* Texture     = nullptr;
-            int            FirstVertex = 0;
-            int            VertexCount = 0;
+            RHI::ITexture*     Texture     = nullptr;
+            int                FirstVertex = 0;
+            int                VertexCount = 0;
+            bool               IsBar       = false;
+            OverlayBarUniforms Bar         = {};
         };
 
         FontData                                _font                       = {};
         std::unique_ptr<RHI::IShader>           _overlayVertexShader        = nullptr;
         std::unique_ptr<RHI::IShader>           _overlayPixelShader         = nullptr;
         std::unique_ptr<RHI::IGraphicsPipeline> _overlayPipeline            = nullptr;
+        std::unique_ptr<RHI::IShader>           _overlayBarPixelShader      = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _overlayBarPipeline         = nullptr;
         std::vector<unsigned char>              _overlayVertexData          = {};
         std::vector<OverlayDraw>                _overlayDraws               = {};
         int                                     _atmosphericSkyUniformsSize = 0;
@@ -578,6 +586,7 @@ namespace TEN::Renderer::Next
         bool CreateOverlayResources(const std::string& fontPath);
         void AddOverlayQuad(RHI::ITexture* texture, const Vector2& position, const Vector2& size, const Vector2& uvMin, const Vector2& uvMax, const Vector4& color);
         void AddOverlayText(const OverlayText& text, const Vector2& scale);
+        void AddOverlayBar(const OverlayBar& bar);
         void CollectOverlay(const FrameEnvironment& environment);
         void RenderOverlay(RHI::ICommandBuffer& commandBuffer);
         void DrawAtmosphericSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);

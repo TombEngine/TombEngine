@@ -1948,6 +1948,7 @@ namespace TEN::Renderer
 		_lines3DToDraw.clear();
 		_triangles3DToDraw.clear();
 		_stringsToDraw.clear();
+		_nextBars.clear();
 
 		_currentCausticsFrame++;
 		_currentCausticsFrame %= 32;
@@ -2365,6 +2366,7 @@ namespace TEN::Renderer
 			environment.ScreenWidth = screenResolution.x;
 			environment.ScreenHeight = screenResolution.y;
 			environment.Texts = &overlayTexts;
+			environment.Bars = &_nextBars;
 
 			if (_atmosphericSkySettings.Enabled)
 			{
