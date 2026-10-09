@@ -64,6 +64,7 @@ namespace TEN::Renderer::RHI::SDLGPU
         case VertexElementFormat::UByte4Norm: return SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
         case VertexElementFormat::Byte4Norm:  return SDL_GPU_VERTEXELEMENTFORMAT_BYTE4_NORM;
         case VertexElementFormat::Short2Norm: return SDL_GPU_VERTEXELEMENTFORMAT_SHORT2_NORM;
+        case VertexElementFormat::UShort2Norm: return SDL_GPU_VERTEXELEMENTFORMAT_USHORT2_NORM;
         case VertexElementFormat::Short4Norm: return SDL_GPU_VERTEXELEMENTFORMAT_SHORT4_NORM;
         case VertexElementFormat::Half2:      return SDL_GPU_VERTEXELEMENTFORMAT_HALF2;
         case VertexElementFormat::Half4:      return SDL_GPU_VERTEXELEMENTFORMAT_HALF4;

@@ -201,7 +201,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 
 ### 7.1 Geometria
 - [x] **Vertici indicizzati davvero**: i poligoni del formato attuale hanno gia' gli indici; si deduplica per (posizione, UV, colore, normale, tangente, effetti) invece di creare un vertice per angolo. Meno vertici e meno banda. *(misurato: anche ignorando i dati per angolo che servono solo ai bucket animati, i vertici identici sono meno dell' 1%: gli angoli differiscono per UV, normale di faccia, colore e tangente; la ricerca raddoppiava il caricamento ed e' stata tolta)*
-- [ ] **Vertice compresso** (da 52 B a circa 28-32 B) costruito al caricamento:
+- [x] **Vertice compresso** (da 52 B a circa 28-32 B) costruito al caricamento: *(fatto: stanze 40 B, statiche e moveable 48 B con UV unorm16; per scendere a 28-32 B serve togliere la normale di faccia dal vertice, decisione ancora aperta in 13; i detriti restano a 52 B perche' ricostruiti ogni frame)*
   - posizione float3;
   - UV half2 o unorm16x2;
   - normale e tangente ottaedriche (snorm16x2);

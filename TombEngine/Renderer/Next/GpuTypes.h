@@ -29,6 +29,37 @@ namespace TEN::Renderer::Next
     constexpr auto SKINNING_CLASSIC = 3;
     constexpr auto SKINNING_FULL    = 2;
 
+    // Level vertices packed at load from the legacy 52 byte vertex: room vertices take 40 bytes, object vertices add the
+    // bone indices and weights. UVs are unorm16 atlas coordinates. Field names follow the legacy vertex.
+    struct GpuRoomVertex
+    {
+        Vector3        Position                      = Vector3::Zero;
+        unsigned int   Normal                        = 0;
+        unsigned short UV[2]                         = {};
+        unsigned int   Color                         = 0;
+        unsigned int   Tangent                       = 0;
+        unsigned int   FaceNormal                    = 0;
+        unsigned int   Effects                       = 0;
+        unsigned int   AnimationFrameOffsetIndexHash = 0;
+    };
+
+    struct GpuObjectVertex
+    {
+        Vector3        Position                      = Vector3::Zero;
+        unsigned int   Normal                        = 0;
+        unsigned short UV[2]                         = {};
+        unsigned int   Color                         = 0;
+        unsigned int   Tangent                       = 0;
+        unsigned int   FaceNormal                    = 0;
+        unsigned int   Effects                       = 0;
+        unsigned int   AnimationFrameOffsetIndexHash = 0;
+        unsigned char  BoneIndex[4]                  = {};
+        unsigned char  BoneWeight[4]                 = {};
+    };
+
+    static_assert(sizeof(GpuRoomVertex) == 40, "GpuRoomVertex size.");
+    static_assert(sizeof(GpuObjectVertex) == 48, "GpuObjectVertex size.");
+
     struct FrameVertexUniforms { TEN_FRAME_VERTEX_UNIFORMS };
     struct DrawVertexUniforms  { TEN_DRAW_VERTEX_UNIFORMS };
     struct SkyVertexUniforms   { TEN_SKY_VERTEX_UNIFORMS };

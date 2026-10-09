@@ -81,6 +81,7 @@ namespace TEN::Renderer::RHI
         UByte4Norm,
         Byte4Norm,
         Short2Norm,
+        UShort2Norm,
         Short4Norm,
         Half2,
         Half4,

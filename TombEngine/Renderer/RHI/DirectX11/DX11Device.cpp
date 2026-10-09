@@ -86,6 +86,7 @@ namespace TEN::Renderer::RHI::DirectX11
         case VertexElementFormat::UByte4Norm: return DXGI_FORMAT_R8G8B8A8_UNORM;
         case VertexElementFormat::Byte4Norm:  return DXGI_FORMAT_R8G8B8A8_SNORM;
         case VertexElementFormat::Short2Norm: return DXGI_FORMAT_R16G16_SNORM;
+        case VertexElementFormat::UShort2Norm: return DXGI_FORMAT_R16G16_UNORM;
         case VertexElementFormat::Short4Norm: return DXGI_FORMAT_R16G16B16A16_SNORM;
         case VertexElementFormat::Half2:      return DXGI_FORMAT_R16G16_FLOAT;
         case VertexElementFormat::Half4:      return DXGI_FORMAT_R16G16B16A16_FLOAT;

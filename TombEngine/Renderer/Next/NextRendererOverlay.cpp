@@ -660,7 +660,7 @@ namespace TEN::Renderer::Next
                 renderPass->BindPipeline(pipeline);
                 renderPass->BindVertexStorageBuffers(0, storageBuffers, 4);
                 BindScenePixelStorage(*renderPass);
-                BindLevelGeometry(*renderPass, true);
+                BindLevelGeometry(*renderPass, MeshSource::Moveables, true);
                 lastPipeline = pipeline;
                 state = BucketBindState{};
             }

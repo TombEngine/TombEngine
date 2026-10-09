@@ -472,6 +472,33 @@ namespace TEN::Renderer::Next
         return state;
     }
 
+    // Attributes 0-4, read by every level geometry shader.
+    template <typename TVertex>
+    static void SetCommonVertexLayout(VertexLayout& layout, VertexElementFormat uvFormat)
+    {
+        layout.Buffers[0] = VertexBufferLayout{ 0, (int)sizeof(TVertex), VertexInputRate::Vertex };
+        layout.Attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::Float3, (int)offsetof(TVertex, Position) };
+        layout.Attributes[1] = VertexAttribute{ 1, 0, uvFormat, (int)offsetof(TVertex, UV) };
+        layout.Attributes[2] = VertexAttribute{ 2, 0, VertexElementFormat::UByte4Norm, (int)offsetof(TVertex, Color) };
+        layout.Attributes[3] = VertexAttribute{ 3, 0, VertexElementFormat::UInt, (int)offsetof(TVertex, Effects) };
+        layout.Attributes[4] = VertexAttribute{ 4, 0, VertexElementFormat::UInt, (int)offsetof(TVertex, AnimationFrameOffsetIndexHash) };
+        layout.NumAttributes = 5;
+    }
+
+    // Object shaders add the instance index stream and the skinning data.
+    template <typename TVertex>
+    static void SetObjectVertexLayout(VertexLayout& layout, VertexElementFormat uvFormat)
+    {
+        SetCommonVertexLayout<TVertex>(layout, uvFormat);
+        layout.Attributes[5] = VertexAttribute{ 5, 1, VertexElementFormat::UInt, 0 };
+        layout.Attributes[6] = VertexAttribute{ 6, 0, VertexElementFormat::Byte4Norm, (int)offsetof(TVertex, Normal) };
+        layout.Attributes[7] = VertexAttribute{ 7, 0, VertexElementFormat::UByte4, (int)offsetof(TVertex, BoneIndex) };
+        layout.Attributes[8] = VertexAttribute{ 8, 0, VertexElementFormat::UByte4Norm, (int)offsetof(TVertex, BoneWeight) };
+        layout.Attributes[9] = VertexAttribute{ 9, 0, VertexElementFormat::Byte4Norm, (int)offsetof(TVertex, Tangent) };
+        layout.Attributes[10] = VertexAttribute{ 10, 0, VertexElementFormat::Byte4Norm, (int)offsetof(TVertex, FaceNormal) };
+        layout.NumAttributes = 11;
+    }
+
     // Pipelines are created on first use per shader, blend mode and alpha test; opaque and alpha test blending share one.
     // Shaders without a NO_ALPHA_TEST permutation always use their alpha tested pixel shader.
     IGraphicsPipeline* NextRenderer::GetScenePipeline(SceneShader shader, BlendMode blendMode, bool isAlphaTested)
@@ -514,7 +541,6 @@ namespace TEN::Renderer::Next
         desc.VertexShader = vertexShaders[(int)shader];
         desc.PixelShader = (variant == 0) ? _noAlphaTestPixelShaders[(int)shader].get() : pixelShaders[(int)shader];
         desc.Layout.NumBuffers = (isObjects || isSprites) ? 2 : 1;
-        desc.Layout.Buffers[0] = VertexBufferLayout{ 0, isSprites ? (int)sizeof(unsigned int) : (int)sizeof(Vertex), VertexInputRate::Vertex };
         // Debris has one instance per triangle, so its instance index comes from a per vertex stream.
         desc.Layout.Buffers[1] = VertexBufferLayout{ 1, (int)sizeof(unsigned int), isDebris ? VertexInputRate::Vertex : VertexInputRate::Instance };
         if (isDebris)
@@ -524,39 +550,33 @@ namespace TEN::Renderer::Next
         else if (isParaboloid)
             desc.Rasterizer.Cull = RHI::CullMode::None;
 
-        auto& attributes = desc.Layout.Attributes;
-        attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::Float3, (int)offsetof(Vertex, Position) };
-        attributes[1] = VertexAttribute{ 1, 0, VertexElementFormat::Float2, (int)offsetof(Vertex, UV) };
-        attributes[2] = VertexAttribute{ 2, 0, VertexElementFormat::UByte4Norm, (int)offsetof(Vertex, Color) };
-        attributes[3] = VertexAttribute{ 3, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, Effects) };
-        attributes[4] = VertexAttribute{ 4, 0, VertexElementFormat::UInt, (int)offsetof(Vertex, AnimationFrameOffsetIndexHash) };
-
+        // Debris is built every frame from legacy vertices; level geometry and the sky use the packed vertices.
         if (isSprites)
         {
-            attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::UInt, 0 };
-            attributes[1] = VertexAttribute{ 1, 1, VertexElementFormat::UInt, 0 };
+            desc.Layout.Buffers[0] = VertexBufferLayout{ 0, (int)sizeof(unsigned int), VertexInputRate::Vertex };
+            desc.Layout.Attributes[0] = VertexAttribute{ 0, 0, VertexElementFormat::UInt, 0 };
+            desc.Layout.Attributes[1] = VertexAttribute{ 1, 1, VertexElementFormat::UInt, 0 };
             desc.Layout.NumAttributes = 2;
             desc.Rasterizer.Cull = RHI::CullMode::None;
         }
+        else if (isDebris)
+        {
+            SetObjectVertexLayout<Vertex>(desc.Layout, VertexElementFormat::Float2);
+        }
         else if (isObjects)
         {
-            attributes[5] = VertexAttribute{ 5, 1, VertexElementFormat::UInt, 0 };
-            attributes[6] = VertexAttribute{ 6, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Normal) };
-            attributes[7] = VertexAttribute{ 7, 0, VertexElementFormat::UByte4, (int)offsetof(Vertex, BoneIndex) };
-            attributes[8] = VertexAttribute{ 8, 0, VertexElementFormat::UByte4Norm, (int)offsetof(Vertex, BoneWeight) };
-            attributes[9] = VertexAttribute{ 9, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Tangent) };
-            attributes[10] = VertexAttribute{ 10, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, FaceNormal) };
-            desc.Layout.NumAttributes = 11;
+            SetObjectVertexLayout<GpuObjectVertex>(desc.Layout, VertexElementFormat::UShort2Norm);
         }
         else if (isSky)
         {
-            desc.Layout.NumAttributes = 5;
+            SetCommonVertexLayout<GpuObjectVertex>(desc.Layout, VertexElementFormat::UShort2Norm);
         }
         else
         {
-            attributes[5] = VertexAttribute{ 5, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Normal) };
-            attributes[6] = VertexAttribute{ 6, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, Tangent) };
-            attributes[7] = VertexAttribute{ 7, 0, VertexElementFormat::Byte4Norm, (int)offsetof(Vertex, FaceNormal) };
+            SetCommonVertexLayout<GpuRoomVertex>(desc.Layout, VertexElementFormat::UShort2Norm);
+            desc.Layout.Attributes[5] = VertexAttribute{ 5, 0, VertexElementFormat::Byte4Norm, (int)offsetof(GpuRoomVertex, Normal) };
+            desc.Layout.Attributes[6] = VertexAttribute{ 6, 0, VertexElementFormat::Byte4Norm, (int)offsetof(GpuRoomVertex, Tangent) };
+            desc.Layout.Attributes[7] = VertexAttribute{ 7, 0, VertexElementFormat::Byte4Norm, (int)offsetof(GpuRoomVertex, FaceNormal) };
             desc.Layout.NumAttributes = 8;
         }
 
@@ -1139,7 +1159,7 @@ namespace TEN::Renderer::Next
         auto shader = (pass == ScenePass::Prepass) ? SceneShader::RoomsPrepass : SceneShader::Rooms;
         renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass), isAlphaTested));
 
-        BindLevelGeometry(renderPass, false);
+        BindLevelGeometry(renderPass, MeshSource::Rooms, false);
 
         IBuffer* storageBuffers[2] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get() };
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 2);
@@ -1632,7 +1652,7 @@ namespace TEN::Renderer::Next
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 4);
 
         BindScenePixelStorage(renderPass);
-        BindLevelGeometry(renderPass, true);
+        BindLevelGeometry(renderPass, MeshSource::Moveables, true);
 
         auto state = BucketBindState{};
 
@@ -1851,7 +1871,7 @@ namespace TEN::Renderer::Next
 
         const IGraphicsPipeline* lastPipeline = nullptr;
         const ITexture* lastSpriteTexture = nullptr;
-        // Vertex streams bound: the level vertices, plus the instance indices for objects; none after a pipeline change.
+        // Vertex streams bound: the room vertex region, or the object region plus the instance indices; none after a pipeline change.
         int lastStreamCount = 0;
         auto state = BucketBindState{};
 
@@ -1884,7 +1904,7 @@ namespace TEN::Renderer::Next
             int streamCount = draw.IsRoom ? 1 : 2;
             if (streamCount != lastStreamCount)
             {
-                BufferBinding vertexBindings[2] = { { _geometry.Vertices.get(), 0 }, { _instanceIndexBuffer.get(), 0 } };
+                BufferBinding vertexBindings[2] = { { _geometry.Vertices.get(), _geometrySections[(int)draw.Source].RegionOffset }, { _instanceIndexBuffer.get(), 0 } };
                 renderPass.BindVertexBuffers(0, vertexBindings, streamCount);
                 lastStreamCount = streamCount;
             }
@@ -1905,16 +1925,17 @@ namespace TEN::Renderer::Next
     // Same grid as the legacy InitializeSky: 20x20 tiles of 512 units in the XZ plane.
     bool NextRenderer::CreateSkyGeometry()
     {
-        auto vertices = std::vector<Vertex>{};
+        auto vertices = std::vector<GpuObjectVertex>{};
         auto indices = std::vector<int>{};
         vertices.reserve(SKY_VERTICES_COUNT);
         indices.reserve(SKY_INDICES_COUNT);
 
         auto addVertex = [&](int x, int z)
         {
-            auto vertex = Vertex{};
+            auto vertex = GpuObjectVertex{};
             vertex.Position = Vector3(-SKY_SIZE / 2.0f + x * 512.0f, 0.0f, -SKY_SIZE / 2.0f + z * 512.0f);
-            vertex.UV = Vector2(x / 20.0f, z / 20.0f);
+            vertex.UV[0] = (unsigned short)((x * USHRT_MAX) / SKY_TILES_COUNT);
+            vertex.UV[1] = (unsigned short)((z * USHRT_MAX) / SKY_TILES_COUNT);
             vertex.Color = 0xFFFFFFFF;
             vertices.push_back(vertex);
         };
@@ -1934,7 +1955,7 @@ namespace TEN::Renderer::Next
             }
         }
 
-        int vertexSize = (int)(vertices.size() * sizeof(Vertex));
+        int vertexSize = (int)(vertices.size() * sizeof(GpuObjectVertex));
         int indexSize = (int)(indices.size() * sizeof(int));
         _skyVertexBuffer = _device->CreateBuffer(BufferDesc{ vertexSize, 0, BufferUsage::Vertex, "Sky.Vertices" });
         _skyIndexBuffer = _device->CreateBuffer(BufferDesc{ indexSize, 0, BufferUsage::Index, "Sky.Indices" });
@@ -2062,7 +2083,7 @@ namespace TEN::Renderer::Next
             commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &skyUniforms, sizeof(skyUniforms));
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &color, sizeof(color));
 
-            BindLevelGeometry(renderPass, false);
+            BindLevelGeometry(renderPass, MeshSource::Moveables, false);
 
             int lastAnimatedSet = INT_MIN;
             for (const auto* mesh : horizonObject->ObjectMeshes)

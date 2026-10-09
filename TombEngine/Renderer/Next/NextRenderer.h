@@ -285,10 +285,11 @@ namespace TEN::Renderer::Next
         // Range of one mesh source in the level buffers. Indices are relative to the base vertex; the legacy CPU indices feed the sorted faces.
         struct GeometrySection
         {
-            int                     BaseVertex  = 0;
-            int                     BaseIndex   = 0;
-            int                     VertexCount = 0;
-            const std::vector<int>* Indices     = nullptr;
+            int                     RegionOffset = 0; // Byte offset of the vertex region: rooms, or statics and moveables.
+            int                     BaseVertex   = 0;
+            int                     BaseIndex    = 0;
+            int                     VertexCount  = 0;
+            const std::vector<int>* Indices      = nullptr;
         };
 
         std::unique_ptr<RHI::IDevice> _device = nullptr;
@@ -609,10 +610,9 @@ namespace TEN::Renderer::Next
         void ClearPipelineCaches();
         void LoadTextureSet(const std::vector<::TEXTURE>& source, std::vector<RoomTexture>& destination, const std::string& name);
         // Level geometry (NextRendererGeometry.cpp).
-        void AddGeometrySection(MeshSource source, const std::vector<Graphics::Vertices::Vertex>& sourceVertices, const std::vector<int>& sourceIndices,
-                                std::vector<Graphics::Vertices::Vertex>& vertices);
+        void SetGeometrySection(MeshSource source, int regionOffset, int baseVertex, int vertexCount, const std::vector<int>& indices);
         bool CreateLevelGeometry(const LegacyLevelGeometry& geometry);
-        void BindLevelGeometry(RHI::IRenderPass& renderPass, bool hasInstanceStream);
+        void BindLevelGeometry(RHI::IRenderPass& renderPass, MeshSource source, bool hasInstanceStream);
         void DrawBucket(RHI::IRenderPass& renderPass, MeshSource source, const Structures::RendererBucket& bucket, int instanceCount, int firstInstance);
         void CollectObjects(const RenderView& view, float interpolationFactor);
         void CollectPlayer(float interpolationFactor);
