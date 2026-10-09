@@ -2,6 +2,7 @@
 #include "Renderer/Next/NextRenderer.h"
 
 #include "Game/camera.h"
+#include "Renderer/ConstantBuffers/AtmosphericSkyBuffer.h"
 #include "Renderer/Next/GpuTypes.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/RHI/ShaderLibrary.h"
@@ -21,8 +22,12 @@ namespace TEN::Renderer::Next
         unsigned int RenderType     = 0;
         float        NearPlane      = 1.0f;
         float        FarPlane       = 1.0f;
-        float        Time           = 0.0f;
-        float        Padding[3]     = {};
+        float        Time              = 0.0f;
+        float        MoonDiskCosRadius = 2.0f; // Above 1: no moon disc hides the sky sprites.
+        float        Padding0          = 0.0f;
+        float        Padding1          = 0.0f;
+        Vector3      MoonDirection     = Vector3::Zero;
+        float        Padding2          = 0.0f;
     };
 
     // Corner order of the legacy sprite quads: top left, top right, bottom right, bottom left.
@@ -68,7 +73,8 @@ namespace TEN::Renderer::Next
     {
         _spritesVertexShader = LoadShader(*_device, _shaderDirectory, "Sprites", "VS");
         _spritesPixelShader = LoadShader(*_device, _shaderDirectory, "Sprites", "PS");
-        if (_spritesVertexShader == nullptr || _spritesPixelShader == nullptr)
+        _skySpritesPixelShader = LoadShader(*_device, _shaderDirectory, "Sprites", "PSSky");
+        if (_spritesVertexShader == nullptr || _spritesPixelShader == nullptr || _skySpritesPixelShader == nullptr)
             return false;
 
         _spriteCornerBuffer = _device->CreateBuffer(BufferDesc{ (int)sizeof(SPRITE_CORNER_INDICES), 0, BufferUsage::Vertex, "Sprite.Corners" });
@@ -223,10 +229,25 @@ namespace TEN::Renderer::Next
         return true;
     }
 
-    void NextRenderer::DrawSpriteRun(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const SpriteDraw& draw,
-                                     const IGraphicsPipeline*& lastPipeline, const ITexture*& lastTexture)
+    // Legacy RenderType 3: the moon disc of the atmospheric sky hides the stars and meteors behind it.
+    void NextRenderer::SetSkySpriteMoon(Vector3& direction, float& diskCosRadius) const
     {
-        auto* pipeline = GetScenePipeline(SceneShader::Sprites, draw.BlendMode);
+        if (_atmosphericSkyUniforms == nullptr || !_frameEnvironment->SkyEffects.IsDomeDrawn)
+            return;
+
+        const auto& sky = *(const ConstantBuffers::CAtmosphericSkyBuffer*)_atmosphericSkyUniforms;
+        if (sky.MoonEnabled <= 0.5f || sky.MoonVisibility <= 0.01f)
+            return;
+
+        direction = sky.MoonDirection;
+        direction.Normalize();
+        diskCosRadius = sky.MoonDiskCosRadius;
+    }
+
+    void NextRenderer::DrawSpriteRun(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const SpriteDraw& draw,
+                                     const IGraphicsPipeline*& lastPipeline, const ITexture*& lastTexture, bool isSky)
+    {
+        auto* pipeline = GetScenePipeline(isSky ? SceneShader::SkySprites : SceneShader::Sprites, draw.BlendMode);
         if (pipeline != lastPipeline)
         {
             renderPass.BindPipeline(pipeline);
@@ -249,16 +270,24 @@ namespace TEN::Renderer::Next
 
         if (draw.Texture != lastTexture)
         {
-            TextureSamplerBinding bindings[2] =
+            // Sky sprites read the cloud layers of the previous frame, transparent before the first layer draw.
+            auto* cloudLayerA = (_cloudTargets[0] != nullptr) ? _cloudTargets[0].get() : _blackTexture.get();
+            auto* cloudLayerB = (_cloudTargets[1] != nullptr) ? _cloudTargets[1].get() : _blackTexture.get();
+            TextureSamplerBinding bindings[4] =
             {
                 { draw.Texture, _linearClampSampler.get() },
-                { _sceneDepthCopy.get(), _pointClampSampler.get() }
+                { _sceneDepthCopy.get(), _pointClampSampler.get() },
+                { cloudLayerA, _linearClampSampler.get() },
+                { cloudLayerB, _linearClampSampler.get() }
             };
-            renderPass.BindPixelSamplers(0, bindings, 2);
+            renderPass.BindPixelSamplers(0, bindings, isSky ? 4 : 2);
             lastTexture = draw.Texture;
         }
 
         auto spriteUniforms = SpriteUniforms{ draw.IsSoftParticle ? 1u : 0u, (unsigned int)draw.RenderType, _nearPlane, _farPlane, _time };
+        if (isSky)
+            SetSkySpriteMoon(spriteUniforms.MoonDirection, spriteUniforms.MoonDiskCosRadius);
+
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 3, &spriteUniforms, sizeof(spriteUniforms));
 
         _frameStats.DrawCalls++;

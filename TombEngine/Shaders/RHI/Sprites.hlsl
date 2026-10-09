@@ -1,5 +1,6 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=1 uniform_buffers=4
 // TEN_SHADER: Pixel PS samplers=2 storage_textures=0 storage_buffers=0 uniform_buffers=4
+// TEN_SHADER: Pixel PSSky samplers=4 storage_textures=0 storage_buffers=0 uniform_buffers=4
 
 // Billboards and 3D quads share one path: corners are expanded to world space on the CPU, each sprite
 // is one instance of six vertices, and the corner index comes from a static vertex stream.
@@ -23,8 +24,10 @@ TEN_PS_UNIFORMS(SpriteUniforms, 3)
     float NearPlane;
     float FarPlane;
     float Time;
+    float MoonDiskCosRadius; // Above 1 when no moon hides the stars.
     float SpritePadding0;
     float SpritePadding1;
+    float3 MoonDirection;
     float SpritePadding2;
 };
 
@@ -32,6 +35,10 @@ TEN_VS_STORAGE_BUFFER(GpuSprite, Sprites, 0);
 
 TEN_PS_TEXTURE(Texture2D, ColorMap, 0);
 TEN_PS_TEXTURE(Texture2D, SceneDepthMap, 1); // Hardware depth of the opaque geometry, copied after the prepass.
+
+// Cloud layers of the previous frame, which hide the stars and meteors as in the legacy renderer.
+TEN_PS_TEXTURE(Texture2D, CloudLayerA, 2);
+TEN_PS_TEXTURE(Texture2D, CloudLayerB, 3);
 
 struct VertexInput
 {
@@ -47,6 +54,7 @@ struct PixelInput
     float  Fog      : TEXCOORD2;
     float3 FogBulbs : TEXCOORD3;
     float4 ClipPosition : TEXCOORD4;
+    float3 WorldDirection : TEXCOORD5; // From the camera, for the moon disc of the sky sprites.
 };
 
 float4 UnpackColor(uint packedColor)
@@ -62,6 +70,7 @@ PixelInput VS(VertexInput input)
     PixelInput output;
     output.Position = mul(float4(corner.Position, 1.0f), ViewProjection);
     output.ClipPosition = output.Position;
+    output.WorldDirection = corner.Position - CameraPosition;
     output.UV = float2(sprite.UVX[input.Corner], sprite.UVY[input.Corner]);
     output.Color = UnpackColor(corner.Color);
     output.Fog = GetDistanceFog(corner.Position, CameraPosition, FogMinDistance, FogMaxDistance);
@@ -69,11 +78,12 @@ PixelInput VS(VertexInput input)
     return output;
 }
 
-float4 PS(PixelInput input) : SV_TARGET
+float4 ShadeSprite(PixelInput input, float alphaScale)
 {
     float4 texel = ColorMap.Sample(ColorMapSampler, input.UV) * input.Color;
     float4 color = texel;
     clip(color.a - AlphaThreshold);
+    color.a *= alphaScale;
 
     // Soft particles fade where they meet the opaque geometry, as in the legacy InstancedSprites shader.
     if (IsSoftParticle)
@@ -99,4 +109,21 @@ float4 PS(PixelInput input) : SV_TARGET
         return EncodeDistortionPayload(color, input.ClipPosition.w, 0.0f);
 
     return color;
+}
+
+float4 PS(PixelInput input) : SV_TARGET
+{
+    return ShadeSprite(input, 1.0f);
+}
+
+// Stars and meteors (legacy RenderType 3): hidden inside the moon disc and faded by the cloud coverage.
+float4 PSSky(PixelInput input) : SV_TARGET
+{
+    if (dot(normalize(input.WorldDirection), MoonDirection) > MoonDiskCosRadius)
+        discard;
+
+    float2 screenUV = input.ClipPosition.xy / input.ClipPosition.w * float2(0.5f, -0.5f) + 0.5f;
+    float coverageA = CloudLayerA.Sample(CloudLayerASampler, screenUV).a;
+    float coverageB = CloudLayerB.Sample(CloudLayerBSampler, screenUV).a;
+    return ShadeSprite(input, 1.0f - saturate(coverageA + coverageB - coverageA * coverageB));
 }

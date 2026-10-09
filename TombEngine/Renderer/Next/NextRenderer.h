@@ -300,6 +300,7 @@ namespace TEN::Renderer::Next
             SkyParaboloid,   // Sky into the dual paraboloid map of skybox reflective materials.
             Inventory,       // Objects of the 2D layer: depth written by every blend mode, as in the legacy menus.
             SkyHorizonMask,  // Horizon silhouette of the god rays.
+            SkySprites,      // Stars and meteors, hidden by the moon disc and the clouds.
 
             Count
         };
@@ -384,6 +385,7 @@ namespace TEN::Renderer::Next
         TexturePage                             _skyPage             = {};
         std::unique_ptr<RHI::IShader>           _spritesVertexShader = nullptr;
         std::unique_ptr<RHI::IShader>           _spritesPixelShader  = nullptr;
+        std::unique_ptr<RHI::IShader>           _skySpritesPixelShader = nullptr;
         std::unique_ptr<RHI::IBuffer>           _spriteCornerBuffer  = nullptr;
         std::unique_ptr<RHI::ISampler>          _linearClampSampler  = nullptr;
 
@@ -810,7 +812,7 @@ namespace TEN::Renderer::Next
         bool IsSkyVisible(const RenderView& view) const;
         SkyVertexUniforms GetSkyVertexUniforms(const Matrix& world, bool isFogBulbsEnabled, const RenderView& view, int hemisphere) const;
         void DrawSkyBackground(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, int hemisphere);
-        void DrawSkySprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const std::vector<SpriteDraw>& draws);
+        void DrawSkySprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const std::vector<SpriteDraw>& draws, bool isOccluded);
         void DrawSkyHorizons(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere);
         void DrawHorizonMeshes(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere, bool isMask);
         SkyPixelUniforms GetHorizonPixelUniforms(int layer, float alpha, int hemisphere, bool isMask) const;
@@ -918,7 +920,8 @@ namespace TEN::Renderer::Next
         RHI::ITexture* GetSpriteTexture(const Structures::RendererSprite* sprite) const;
         bool           AddSprite(const Structures::RendererSpriteToDraw& sprite, const RenderView& view, const Structures::RendererMirror* mirror = nullptr);
         void           CollectSprites(const RenderView& view);
-        void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture);
+        void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture, bool isSky = false);
+        void           SetSkySpriteMoon(Vector3& direction, float& diskCosRadius) const;
         void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
         void CollectRoomDraws(const RenderView& view);
         void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass);

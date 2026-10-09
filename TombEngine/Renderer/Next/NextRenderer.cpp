@@ -239,6 +239,7 @@ namespace TEN::Renderer::Next
         _pointWrapSampler = nullptr;
         _spritesVertexShader = nullptr;
         _spritesPixelShader = nullptr;
+        _skySpritesPixelShader = nullptr;
         _spriteCornerBuffer = nullptr;
         _linearClampSampler = nullptr;
         _spriteBuffer = {};
@@ -566,7 +567,7 @@ namespace TEN::Renderer::Next
         bool isHorizonMask = (shader == SceneShader::SkyHorizonMask);
         bool isParaboloid = (shader == SceneShader::SkyParaboloid);
         bool isSky = (shader == SceneShader::Sky) || isParaboloid || isHorizonMask;
-        bool isSprites = (shader == SceneShader::Sprites);
+        bool isSprites = (shader == SceneShader::Sprites || shader == SceneShader::SkySprites);
         bool isPrepass = (shader == SceneShader::RoomsPrepass || shader == SceneShader::ObjectsPrepass);
         bool isShadow = (shader == SceneShader::ObjectsShadow);
         bool isDebris = (shader == SceneShader::ObjectsDebris);
@@ -578,17 +579,17 @@ namespace TEN::Renderer::Next
         {
             _roomsVertexShader.get(), _objectsVertexShader.get(), _skyVertexShader.get(), _spritesVertexShader.get(),
             _roomsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(), _objectsVertexShader.get(),
-            _skyVertexShader.get(), _inventoryVertexShader.get(), _skyVertexShader.get()
+            _skyVertexShader.get(), _inventoryVertexShader.get(), _skyVertexShader.get(), _spritesVertexShader.get()
         };
         IShader* pixelShaders[(int)SceneShader::Count] =
         {
             _roomsPixelShader.get(), _objectsPixelShader.get(), _skyPixelShader.get(), _spritesPixelShader.get(),
             _roomsPrepassPixelShader.get(), _objectsPrepassPixelShader.get(), _objectsShadowPixelShader.get(), _objectsPixelShader.get(), _objectsPixelShader.get(),
-            _skyPixelShader.get(), _inventoryPixelShader.get(), _horizonMaskPixelShader.get()
+            _skyPixelShader.get(), _inventoryPixelShader.get(), _horizonMaskPixelShader.get(), _skySpritesPixelShader.get()
         };
         const char* names[(int)SceneShader::Count] =
         {
-            "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow", "ObjectsDebris", "ObjectsMirrored", "SkyParaboloid", "Inventory", "SkyHorizonMask"
+            "Rooms", "Objects", "Sky", "Sprites", "RoomsPrepass", "ObjectsPrepass", "ObjectsShadow", "ObjectsDebris", "ObjectsMirrored", "SkyParaboloid", "Inventory", "SkyHorizonMask", "SkySprites"
         };
 
         auto desc = GraphicsPipelineDesc{};
@@ -2223,10 +2224,11 @@ namespace TEN::Renderer::Next
 
         // Stars and meteors, after the layers as in the legacy renderer.
         if (!isParaboloid)
-            DrawSkySprites(commandBuffer, renderPass, _skySpriteDraws);
+            DrawSkySprites(commandBuffer, renderPass, _skySpriteDraws, true);
     }
 
-    void NextRenderer::DrawSkySprites(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const std::vector<SpriteDraw>& draws)
+    // Stars and meteors are occluded by the moon disc and the clouds; the sun sprite is not, as in the legacy renderer.
+    void NextRenderer::DrawSkySprites(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const std::vector<SpriteDraw>& draws, bool isOccluded)
     {
         if (draws.empty())
             return;
@@ -2234,7 +2236,7 @@ namespace TEN::Renderer::Next
         const IGraphicsPipeline* lastPipeline = nullptr;
         const ITexture* lastTexture = nullptr;
         for (const auto& draw : draws)
-            DrawSpriteRun(commandBuffer, renderPass, draw, lastPipeline, lastTexture);
+            DrawSpriteRun(commandBuffer, renderPass, draw, lastPipeline, lastTexture, isOccluded);
 
         auto noAnimation = DrawVertexUniforms{ NO_VALUE };
         commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &noAnimation, sizeof(noAnimation));
@@ -2244,7 +2246,7 @@ namespace TEN::Renderer::Next
     void NextRenderer::DrawSkyHorizons(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, float interpolationFactor, int hemisphere)
     {
         if (hemisphere == 0)
-            DrawSkySprites(commandBuffer, renderPass, _skySunDraws);
+            DrawSkySprites(commandBuffer, renderPass, _skySunDraws, false);
 
         DrawHorizonMeshes(commandBuffer, renderPass, view, interpolationFactor, hemisphere, false);
     }
