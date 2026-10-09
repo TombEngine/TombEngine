@@ -28,22 +28,7 @@ TEN_PS_UNIFORMS(SpriteUniforms, 3)
     float SpritePadding2;
 };
 
-// Colors are real uint fields: integer bits stored in float components can be altered by drivers
-// that canonicalize NaN patterns (opaque RGBA8 colors are NaN when read as float).
-struct SpriteCorner
-{
-    float3 Position;
-    uint   Color; // Packed RGBA8.
-};
-
-struct SpriteInstance
-{
-    SpriteCorner Corners[4];
-    float4       UVX;
-    float4       UVY;
-};
-
-TEN_VS_STORAGE_BUFFER(SpriteInstance, Sprites, 0);
+TEN_VS_STORAGE_BUFFER(GpuSprite, Sprites, 0);
 
 TEN_PS_TEXTURE(Texture2D, ColorMap, 0);
 TEN_PS_TEXTURE(Texture2D, SceneDepthMap, 1); // Hardware depth of the opaque geometry, copied after the prepass.
@@ -71,8 +56,8 @@ float4 UnpackColor(uint packedColor)
 
 PixelInput VS(VertexInput input)
 {
-    SpriteInstance sprite = Sprites[input.InstanceIndex];
-    SpriteCorner corner = sprite.Corners[input.Corner];
+    GpuSprite sprite = Sprites[input.InstanceIndex];
+    GpuSpriteCorner corner = sprite.Corners[input.Corner];
 
     PixelInput output;
     output.Position = mul(float4(corner.Position, 1.0f), ViewProjection);

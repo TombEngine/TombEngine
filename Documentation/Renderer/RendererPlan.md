@@ -187,10 +187,10 @@ Un render graph completo (dipendenze automatiche, aliasing, pass culling) non se
 - [x] Header `ShaderInterop.hlsli` con macro di binding per backend:
   - SDL GPU: vertex shader in space0 (risorse) e space1 (uniform), pixel shader in space2 e space3;
   - DX11: registri classici.
-- [ ] Header condivisi C++/HLSL per le struct GPU (`GpuInstance`, `GpuMaterial`, `GpuLight`, ...) con `static_assert` su dimensioni e offset; packing esplicito (niente `float3` seguito da campi impliciti), `-fvk-use-dx-layout`, `-Zpr` per row-major.
-- [ ] **Permutazioni a compile-time** (alpha test, skinned, animato, blend mode) invece dei branch a runtime sul CB. L'elenco delle permutazioni genera anche l'elenco delle pipeline da pre-creare. Tenere il numero di permutazioni basso: solo dove il branch costa davvero.
-- [ ] SMAA riscritto senza sintassi effect e senza `technique10`; metriche di risoluzione in uniform, non in define.
-- [ ] Hot-reload degli shader solo nelle build dev, con dipendenze dagli include tracciate.
+- [x] Header condivisi C++/HLSL per le struct GPU (`GpuInstance`, `GpuMaterial`, `GpuLight`, ...) con `static_assert` su dimensioni e offset; packing esplicito (niente `float3` seguito da campi impliciti), `-fvk-use-dx-layout`, `-Zpr` per row-major. *(`Shaders/RHI/GpuShared.hlsli`, incluso anche da `GpuTypes.h`: struct dei buffer e liste di campi dei blocchi uniform; `static_assert` su dimensioni e offset dei registri)*
+- [x] **Permutazioni a compile-time** (alpha test, skinned, animato, blend mode) invece dei branch a runtime sul CB. L'elenco delle permutazioni genera anche l'elenco delle pipeline da pre-creare. Tenere il numero di permutazioni basso: solo dove il branch costa davvero. *(`permutations=` nelle righe `TEN_SHADER`; per ora solo `NO_ALPHA_TEST` di stanze e oggetti, che senza `clip` tengono l'early-z: i bucket senza alpha test sono disegnati prima con quella variante)*
+- [x] SMAA riscritto senza sintassi effect e senza `technique10`; metriche di risoluzione in uniform, non in define. *(`SMAACommon.hlsli` con metriche in uniform)*
+- [x] Hot-reload degli shader solo nelle build dev, con dipendenze dagli include tracciate. *(F9 nelle build debug ricompila con lo script, che ora segue gli include di ogni file, e ricrea shader e pipeline)*
 - [x] Informazioni di debug negli shader delle build dev (FXC `/Zi /Od`, DXC `-Zi -Qembed_debug`, `-fspv-debug=vulkan-with-source`): RenderDoc mostra il sorgente HLSL. *(DXC: `-fspv-debug=vulkan-with-source` fallisce sulle macro, si usa `-Zi`)*
 
 ---

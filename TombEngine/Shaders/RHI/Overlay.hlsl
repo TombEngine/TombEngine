@@ -4,12 +4,12 @@
 
 // Screen space quads of the HUD and 2D layer (text, bars, display sprites), with premultiplied colors.
 
+#include "./GpuShared.hlsli"
 #include "./ShaderInterop.hlsli"
 
 TEN_VS_UNIFORMS(OverlayUniforms, 0)
 {
-    float2 InverseTargetSize;
-    float2 OverlayPadding;
+    TEN_OVERLAY_UNIFORMS
 };
 
 TEN_PS_UNIFORMS(BarUniforms, 0)

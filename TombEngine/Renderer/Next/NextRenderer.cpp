@@ -89,11 +89,10 @@ namespace TEN::Renderer::Next
         _animatedSetsBuffer = nullptr;
         LogGpuTimings();
 
-        for (auto& shaderPipelines : _scenePipelines)
-        {
-            for (auto& pipeline : shaderPipelines)
-                pipeline = nullptr;
-        }
+        ClearPipelineCaches();
+
+        for (auto& shader : _noAlphaTestPixelShaders)
+            shader = nullptr;
 
         _sortedIndexBuffer = {};
         _objectsVertexShader = nullptr;
@@ -157,9 +156,6 @@ namespace TEN::Renderer::Next
         _atmosphericSkyPipeline = nullptr;
         _overlayPipeline = nullptr;
         _overlayBarPipeline = nullptr;
-        for (auto& pipeline : _overlayPipelines)
-            pipeline = nullptr;
-
         _overlayBarPixelShader = nullptr;
         _overlayVertexShader = nullptr;
         _overlayPixelShader = nullptr;
@@ -215,6 +211,103 @@ namespace TEN::Renderer::Next
         return (_device != nullptr);
     }
 
+    // Pipelines created on first use.
+    void NextRenderer::ClearPipelineCaches()
+    {
+        for (auto& shaderPipelines : _scenePipelines)
+        {
+            for (auto& variants : shaderPipelines)
+            {
+                variants[0] = nullptr;
+                variants[1] = nullptr;
+            }
+        }
+
+        for (auto& pipeline : _overlayPipelines)
+            pipeline = nullptr;
+    }
+
+    // Shader sources of a development checkout, searched from the executable directory upwards.
+    static std::filesystem::path FindShaderSourceDirectory()
+    {
+        constexpr auto SEARCH_DEPTH_MAX = 6;
+
+        const char* basePath = SDL_GetBasePath();
+        if (basePath == nullptr)
+            return {};
+
+        auto directory = std::filesystem::path(basePath);
+        for (int i = 0; i < SEARCH_DEPTH_MAX && !directory.empty(); i++)
+        {
+            auto candidate = directory / "TombEngine" / "Shaders" / "RHI";
+            if (std::filesystem::exists(candidate / "CompileShaders.ps1"))
+                return candidate;
+
+            directory = directory.parent_path();
+        }
+
+        return {};
+    }
+
+    // Development builds only: recompiles the changed shader sources with the build script, then recreates every
+    // shader and pipeline. The previous shaders stay in use when compilation fails.
+    void NextRenderer::ReloadShaders()
+    {
+        if (!DEBUG_BUILD || _device == nullptr)
+            return;
+
+        auto sourceDirectory = FindShaderSourceDirectory();
+        if (sourceDirectory.empty())
+        {
+            TENLog("Next renderer: shader sources not found, reload skipped.", LogLevel::Warning);
+            return;
+        }
+
+        auto command = "powershell -ExecutionPolicy Bypass -File \"" + (sourceDirectory / "CompileShaders.ps1").string() +
+                       "\" -OutputDir \"" + _shaderDirectory + "\" -DebugInfo";
+        if (std::system(command.c_str()) != 0)
+        {
+            TENLog("Next renderer: shader compilation failed, previous shaders kept.", LogLevel::Error);
+            return;
+        }
+
+        auto lock = std::lock_guard<std::mutex>(_frameMutex);
+        _device->WaitIdle();
+        ClearPipelineCaches();
+
+        bool isReloaded = CreatePipelines();
+        TENLog(isReloaded ? "Next renderer: shaders reloaded." : "Next renderer: shader reload failed.", isReloaded ? LogLevel::Info : LogLevel::Error);
+    }
+
+    // Room and object draws without alpha test use pixel shaders without clip, which keep early depth testing.
+    bool NextRenderer::LoadNoAlphaTestShaders()
+    {
+        struct NoAlphaTestShader
+        {
+            SceneShader Shader     = SceneShader::Rooms;
+            const char* File       = nullptr;
+            const char* EntryPoint = nullptr;
+        };
+
+        constexpr NoAlphaTestShader NO_ALPHA_TEST_SHADERS[] =
+        {
+            { SceneShader::Rooms, "Rooms", "PS" },
+            { SceneShader::RoomsPrepass, "Rooms", "PSDepthNormal" },
+            { SceneShader::Objects, "Objects", "PS" },
+            { SceneShader::ObjectsMirrored, "Objects", "PS" },
+            { SceneShader::ObjectsPrepass, "Objects", "PSDepthNormal" }
+        };
+
+        for (const auto& entry : NO_ALPHA_TEST_SHADERS)
+        {
+            _noAlphaTestPixelShaders[(int)entry.Shader] = LoadShader(*_device, _shaderDirectory, entry.File, entry.EntryPoint, "NO_ALPHA_TEST");
+            if (_noAlphaTestPixelShaders[(int)entry.Shader] == nullptr)
+                return false;
+        }
+
+        return true;
+    }
+
     bool NextRenderer::CreatePipelines()
     {
         _roomsVertexShader = LoadShader(*_device, _shaderDirectory, "Rooms", "VS");
@@ -240,6 +333,9 @@ namespace TEN::Renderer::Next
 
         if (!CreateSpriteResources() || !CreateSSAOResources() || !CreatePostProcessResources() || !CreateShadowResources() || !CreateGlowResources() || !CreateDOFResources() || !CreateSMAAResources() ||
             !CreateSkyReflectionResources() || !CreateAtmosphereResources() || !CreateOverlayResources(TEN::Renderer::Utils::GetAssetPath("Textures/Font.spritefont")))
+            return false;
+
+        if (!LoadNoAlphaTestShaders())
             return false;
 
         if (GetScenePipeline(SceneShader::Rooms, BlendMode::Opaque) == nullptr ||
@@ -376,11 +472,13 @@ namespace TEN::Renderer::Next
         return state;
     }
 
-    // Pipelines are created on first use per shader and blend mode; opaque and alpha test share one.
-    IGraphicsPipeline* NextRenderer::GetScenePipeline(SceneShader shader, BlendMode blendMode)
+    // Pipelines are created on first use per shader, blend mode and alpha test; opaque and alpha test blending share one.
+    // Shaders without a NO_ALPHA_TEST permutation always use their alpha tested pixel shader.
+    IGraphicsPipeline* NextRenderer::GetScenePipeline(SceneShader shader, BlendMode blendMode, bool isAlphaTested)
     {
         int modeIndex = (blendMode == BlendMode::AlphaTest) ? (int)BlendMode::Opaque : std::clamp((int)blendMode, 0, 15);
-        auto& pipeline = _scenePipelines[(int)shader][modeIndex];
+        int variant = (isAlphaTested || _noAlphaTestPixelShaders[(int)shader] == nullptr) ? 1 : 0;
+        auto& pipeline = _scenePipelines[(int)shader][modeIndex][variant];
         if (pipeline != nullptr)
             return pipeline.get();
 
@@ -414,7 +512,7 @@ namespace TEN::Renderer::Next
 
         auto desc = GraphicsPipelineDesc{};
         desc.VertexShader = vertexShaders[(int)shader];
-        desc.PixelShader = pixelShaders[(int)shader];
+        desc.PixelShader = (variant == 0) ? _noAlphaTestPixelShaders[(int)shader].get() : pixelShaders[(int)shader];
         desc.Layout.NumBuffers = (isObjects || isSprites) ? 2 : 1;
         desc.Layout.Buffers[0] = VertexBufferLayout{ 0, isSprites ? (int)sizeof(unsigned int) : (int)sizeof(Vertex), VertexInputRate::Vertex };
         // Debris has one instance per triangle, so its instance index comes from a per vertex stream.
@@ -473,7 +571,7 @@ namespace TEN::Renderer::Next
         desc.DepthStencil.EnableDepthWrite = ((modeIndex == (int)BlendMode::Opaque) && !isSky) || isInventory;
         desc.DepthStencil.EnableDepthTest = !isSky && !isDistortion;
         desc.DepthFormat = (isDistortion || isParaboloid) ? PixelFormat::Unknown : PixelFormat::D32Float;
-        desc.Name = std::string(names[(int)shader]) + ".BlendMode" + std::to_string(modeIndex);
+        desc.Name = std::string(names[(int)shader]) + ".BlendMode" + std::to_string(modeIndex) + ((variant == 0) ? ".NoAlphaTest" : "");
 
         pipeline = _device->CreateGraphicsPipeline(desc);
         if (pipeline == nullptr)
@@ -763,7 +861,7 @@ namespace TEN::Renderer::Next
             sets.push_back(gpuSet);
 
             for (const auto& texture : set.Textures)
-                frames.push_back(GpuAnimatedFrame{ { texture.UV[0], texture.UV[1], texture.UV[2], texture.UV[3] } });
+                frames.push_back(GpuAnimatedFrame{ texture.UV[0], texture.UV[1], texture.UV[2], texture.UV[3] });
         }
 
         AddWaterfallSets(geometry, frames, sets);
@@ -818,7 +916,7 @@ namespace TEN::Renderer::Next
 
             _waterfallSets[objectID] = (int)sets.size();
             sets.push_back(set);
-            frames.push_back(GpuAnimatedFrame{ { Vector2(0.0f, minV), Vector2(1.0f, minV), Vector2(1.0f, maxV), Vector2(0.0f, maxV) } });
+            frames.push_back(GpuAnimatedFrame{ Vector2(0.0f, minV), Vector2(1.0f, minV), Vector2(1.0f, maxV), Vector2(0.0f, maxV) });
         }
     }
 
@@ -931,22 +1029,27 @@ namespace TEN::Renderer::Next
         renderPass.BindPixelSamplers(0, bindings, 9);
     }
 
+    // Positive for alpha test, negative for the soft edge pass (texels below the threshold), zero for none.
+    float NextRenderer::GetAlphaThreshold(const RendererBucket& bucket, const BucketDrawInfo& info)
+    {
+        if (info.IsAlphaEdgePass)
+            return -ALPHA_TEST_THRESHOLD;
+
+        if (info.IsForcedAlphaTest)
+            return ALPHA_TEST_THRESHOLD;
+
+        if (info.IsAlphaTestDisabled)
+            return 0.0f;
+
+        return (bucket.BlendMode == BlendMode::AlphaTest) ? ALPHA_TEST_THRESHOLD : 0.0f;
+    }
+
     void NextRenderer::BindBucket(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RendererBucket& bucket, const std::vector<RoomTexture>& pages,
                                   BlendMode blendMode, unsigned int lightCount, const BucketDrawInfo& room, BucketBindState& state)
     {
         auto pixelUniforms = DrawPixelUniforms{};
-        pixelUniforms.AlphaThreshold = (bucket.BlendMode == BlendMode::AlphaTest) ? ALPHA_TEST_THRESHOLD : 0.0f;
-        pixelUniforms.BlendMode = (unsigned int)blendMode;
-        if (room.IsForcedAlphaTest)
-            pixelUniforms.AlphaThreshold = ALPHA_TEST_THRESHOLD;
-        else if (room.IsAlphaTestDisabled)
-            pixelUniforms.AlphaThreshold = 0.0f;
-
-        if (room.IsAlphaEdgePass)
-        {
-            pixelUniforms.AlphaThreshold = -ALPHA_TEST_THRESHOLD;
-            pixelUniforms.BlendMode = (unsigned int)BlendMode::AlphaBlend;
-        }
+        pixelUniforms.AlphaThreshold = GetAlphaThreshold(bucket, room);
+        pixelUniforms.BlendMode = (unsigned int)(room.IsAlphaEdgePass ? BlendMode::AlphaBlend : blendMode);
         pixelUniforms.LightCount = lightCount;
         pixelUniforms.MaterialIndex = (bucket.MaterialIndex >= 0 && bucket.MaterialIndex < (int)g_Level.Materials.size()) ? (unsigned int)bucket.MaterialIndex : 0;
         pixelUniforms.IsCausticsRoom = room.IsCausticsRoom;
@@ -1027,16 +1130,39 @@ namespace TEN::Renderer::Next
         }
     }
 
+    // Prepass and opaque passes hold buckets with and without alpha test, the alpha edge pass only alpha tested ones,
+    // the others none.
+    bool NextRenderer::IsAlphaTestVariantInPass(ScenePass pass, bool isAlphaTested)
+    {
+        if (pass == ScenePass::Prepass || pass == ScenePass::Opaque)
+            return true;
+
+        return (isAlphaTested == (pass == ScenePass::AlphaEdges));
+    }
+
+    // Buckets without alpha test are drawn first, with the pixel shader without clip.
     void NextRenderer::DrawRooms(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, ScenePass pass)
     {
         constexpr const char* GROUP_NAMES[] = { "Rooms prepass", "Rooms opaque", "Rooms alpha edges", "Rooms additive", "Rooms distortion" };
 
-        bool additive = (pass == ScenePass::Additive);
-        bool isAlphaEdges = (pass == ScenePass::AlphaEdges);
         commandBuffer.PushDebugGroup(GROUP_NAMES[(int)pass]);
 
+        for (int variant = 0; variant < 2; variant++)
+        {
+            if (IsAlphaTestVariantInPass(pass, variant == 1))
+                DrawRoomBuckets(commandBuffer, renderPass, view, pass, variant == 1);
+        }
+
+        commandBuffer.PopDebugGroup();
+    }
+
+    void NextRenderer::DrawRoomBuckets(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RenderView& view, ScenePass pass, bool isAlphaTested)
+    {
+        bool additive = (pass == ScenePass::Additive);
+        bool isAlphaEdges = (pass == ScenePass::AlphaEdges);
+
         auto shader = (pass == ScenePass::Prepass) ? SceneShader::RoomsPrepass : SceneShader::Rooms;
-        renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass)));
+        renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass), isAlphaTested));
 
         auto vertexBinding = BufferBinding{ _roomVertexBuffer.get(), 0 };
         renderPass.BindVertexBuffers(0, &vertexBinding, 1);
@@ -1062,7 +1188,7 @@ namespace TEN::Renderer::Next
                 if (bucket.NumIndices == 0)
                     continue;
 
-                if (!IsBucketInPass(bucket, pass))
+                if (!IsBucketInPass(bucket, pass) || (GetAlphaThreshold(bucket, roomInfo) != 0.0f) != isAlphaTested)
                     continue;
 
                 BindBucket(commandBuffer, renderPass, bucket, _roomTextures, bucket.BlendMode, (unsigned int)_roomLightCount, roomInfo, state);
@@ -1071,8 +1197,6 @@ namespace TEN::Renderer::Next
                 renderPass.DrawIndexed(bucket.NumIndices, 1, bucket.StartIndex, 0, 0);
             }
         }
-
-        commandBuffer.PopDebugGroup();
     }
 
     // Same conversion as the legacy BindLight: interpolated positions and spot ranges as cosines.
@@ -1514,11 +1638,24 @@ namespace TEN::Renderer::Next
         if (draws.empty() || _instanceBuffer.Buffer == nullptr)
             return;
 
-        bool isAlphaEdges = (pass == ScenePass::AlphaEdges);
         commandBuffer.PushDebugGroup(isMirrored ? "Mirrored objects" : GROUP_NAMES[(int)pass]);
 
+        for (int variant = 0; variant < 2; variant++)
+        {
+            if (IsAlphaTestVariantInPass(pass, variant == 1))
+                DrawObjectBuckets(commandBuffer, renderPass, draws, pass, isMirrored, variant == 1);
+        }
+
+        commandBuffer.PopDebugGroup();
+    }
+
+    void NextRenderer::DrawObjectBuckets(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const std::vector<ObjectDraw>& draws, ScenePass pass,
+                                         bool isMirrored, bool isAlphaTested)
+    {
+        bool isAlphaEdges = (pass == ScenePass::AlphaEdges);
+
         auto shader = (pass == ScenePass::Prepass) ? SceneShader::ObjectsPrepass : (isMirrored ? SceneShader::ObjectsMirrored : SceneShader::Objects);
-        renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass)));
+        renderPass.BindPipeline(GetScenePipeline(shader, GetPassBlendMode(pass), isAlphaTested));
 
         IBuffer* storageBuffers[4] = { _animatedFramesBuffer.get(), _animatedSetsBuffer.get(), _instanceBuffer.Buffer.get(), _boneBuffer.Buffer.get() };
         renderPass.BindVertexStorageBuffers(0, storageBuffers, 4);
@@ -1531,7 +1668,10 @@ namespace TEN::Renderer::Next
         for (const auto& draw : draws)
         {
             const auto& bucket = *draw.Bucket;
-            if (!IsBucketInPass(bucket, pass))
+            auto drawInfo = BucketDrawInfo{};
+            drawInfo.AnimatedSetOverride = draw.AnimatedSetOverride;
+            drawInfo.IsAlphaEdgePass = isAlphaEdges;
+            if (!IsBucketInPass(bucket, pass) || (GetAlphaThreshold(bucket, drawInfo) != 0.0f) != isAlphaTested)
                 continue;
 
             if (draw.Source != lastSource)
@@ -1544,16 +1684,11 @@ namespace TEN::Renderer::Next
             }
 
             const auto& pages = (draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures;
-            auto drawInfo = BucketDrawInfo{};
-            drawInfo.AnimatedSetOverride = draw.AnimatedSetOverride;
-            drawInfo.IsAlphaEdgePass = isAlphaEdges;
             BindBucket(commandBuffer, renderPass, bucket, pages, bucket.BlendMode, 0, drawInfo, state);
 
             _frameStats.DrawCalls++;
             renderPass.DrawIndexed(bucket.NumIndices, draw.InstanceCount, bucket.StartIndex, 0, draw.FirstInstance);
         }
-
-        commandBuffer.PopDebugGroup();
     }
 
     // Instance of a sorted object, created once per frame even when interleaved clusters split the object
@@ -2062,9 +2197,9 @@ namespace TEN::Renderer::Next
     FogBulbUniforms NextRenderer::GetFogBulbUniforms(const RenderView& view)
     {
         auto uniforms = FogBulbUniforms{};
-        uniforms.Count = std::min((int)view.FogBulbsToDraw.size(), FOG_BULBS_MAX);
+        uniforms.FogBulbCount = std::min((int)view.FogBulbsToDraw.size(), FOG_BULBS_MAX);
 
-        for (int i = 0; i < uniforms.Count; i++)
+        for (int i = 0; i < uniforms.FogBulbCount; i++)
         {
             const auto& bulb = view.FogBulbsToDraw[i];
             auto& gpuBulb = uniforms.FogBulbs[i];
@@ -2195,7 +2330,7 @@ namespace TEN::Renderer::Next
 
         auto framePixelUniforms = FramePixelUniforms{};
         framePixelUniforms.FogColor = environment.FogColor;
-        framePixelUniforms.CameraPosition = environment.CameraPosition;
+        framePixelUniforms.PixelCameraPosition = environment.CameraPosition;
         framePixelUniforms.CameraDirection = view.Camera.WorldDirection;
         framePixelUniforms.AmbientOcclusionExponent = GetAmbientOcclusionExponent();
         framePixelUniforms.View = view.Camera.View;

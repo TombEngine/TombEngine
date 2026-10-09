@@ -49,9 +49,10 @@ namespace TEN::Renderer::RHI
         return ShaderStage::Vertex;
     }
 
-    std::unique_ptr<IShader> LoadShader(IDevice& device, const std::string& binaryDirectory, const std::string& name, const std::string& entryPoint)
+    std::unique_ptr<IShader> LoadShader(IDevice& device, const std::string& binaryDirectory, const std::string& name, const std::string& entryPoint,
+                                        const std::string& permutation)
     {
-        auto baseName = name + "." + entryPoint;
+        auto baseName = name + "." + entryPoint + (permutation.empty() ? "" : "." + permutation);
         auto directory = std::filesystem::path(binaryDirectory);
 
         auto formatDirectory = std::string();

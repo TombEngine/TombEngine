@@ -3,6 +3,8 @@
 
 // Shared constants, vertex data decoding, animated textures and fog for the RHI shaders.
 
+#include "./GpuShared.hlsli"
+
 #define PI                     3.14159265f
 #define COLOR_MODULATION_SCALE 2.0f
 
@@ -21,39 +23,8 @@
 #define ANIM_TYPE_VIDEO    2
 #define ANIM_TYPE_LEGACY_WATERFALL 100 // Waterfall objects, see NextRenderer::AddWaterfallSets.
 
-struct AnimatedFrameUV
-{
-    float2 TopLeft;
-    float2 TopRight;
-    float2 BottomRight;
-    float2 BottomLeft;
-};
-
-struct AnimatedSet
-{
-    uint   FirstFrame;
-    uint   NumFrames;
-    uint   Fps;
-    uint   Type;
-    float  UVRotateDirection;
-    float  UVRotateSpeed;
-    float2 Padding;
-};
-
 #define LIGHT_MODE_DYNAMIC 0
 #define LIGHT_MODE_STATIC  1
-
-// Per-instance data of statics and moveable meshes, read through the instance index stream.
-struct ObjectInstance
-{
-    float4x4 World;
-    float4   Color;
-    float4   AmbientLight;
-    uint     LightMode;
-    uint     LightOffset;
-    uint     LightCount; // Light count in the low 16 bits, light type mask in the high bits.
-    uint     Skinning;   // Bone palette offset in the low 24 bits, skinning mode in the high 8 bits.
-};
 
 float LinearizeDepth(float depth, float nearPlane, float farPlane)
 {
@@ -123,13 +94,13 @@ float3 Move(float3 position, uint effects, float wibble)
     return position + float3(0.0f, offset, 0.0f);
 }
 
-uint GetAnimatedFrameIndex(AnimatedSet set, uint frame, uint frameOffset)
+uint GetAnimatedFrameIndex(GpuAnimatedSet set, uint frame, uint frameOffset)
 {
     float speed = (float)set.Fps / 30.0f;
     return set.FirstFrame + ((int)(frame * speed + frameOffset) % max(set.NumFrames, 1));
 }
 
-float2 GetFrameCorner(AnimatedFrameUV frame, uint indexInPoly)
+float2 GetFrameCorner(GpuAnimatedFrame frame, uint indexInPoly)
 {
     switch (indexInPoly)
     {
@@ -149,7 +120,7 @@ float2 GetFrameCorner(AnimatedFrameUV frame, uint indexInPoly)
 
 // UV rotation scrolls the texture over time inside the frame bounds. The offset is constant per draw,
 // so it is computed per vertex and applied with frac() per pixel.
-float3 GetUVRotateScroll(AnimatedFrameUV frame, AnimatedSet set, float interpolatedFrame)
+float3 GetUVRotateScroll(GpuAnimatedFrame frame, GpuAnimatedSet set, float interpolatedFrame)
 {
     if (set.UVRotateSpeed <= 0.0f)
         return float3(0.0f, 0.0f, 0.0f);

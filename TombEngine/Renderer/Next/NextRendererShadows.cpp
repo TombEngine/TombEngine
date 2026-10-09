@@ -114,11 +114,11 @@ namespace TEN::Renderer::Next
             return;
         }
 
-        _shadowUniforms.Light = ToGpuLight(*light, interpolationFactor, 1.0f);
+        _shadowUniforms.ShadowLight = ToGpuLight(*light, interpolationFactor, 1.0f);
         _shadowUniforms.CastShadows = 1;
         _shadowUniforms.ShadowMapSize = _shadowMap->GetDesc().Width;
 
-        auto position = _shadowUniforms.Light.Position;
+        auto position = _shadowUniforms.ShadowLight.Position;
         auto projection = Matrix::CreatePerspectiveFieldOfView(PI / 2.0f, 1.0f, SHADOW_NEAR_PLANE, light->Out);
         for (int face = 0; face < 6; face++)
         {

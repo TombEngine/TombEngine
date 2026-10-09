@@ -4,6 +4,7 @@
 #include "Game/camera.h"
 #include "Game/effects/tomb4fx.h"
 #include "Math/Math.h"
+#include "Renderer/Next/NextRenderer.h"
 #include "Renderer/Structures/RendererRectangle.h"
 #include "Renderer/RenderView.h"
 #include "Renderer/RendererUtils.h"
@@ -101,6 +102,9 @@ namespace TEN::Renderer
 		try
 		{
 			_shaders.LoadShaders(_graphicsDevice->GetScreenWidth(), _graphicsDevice->GetScreenHeight(), recompileAAShaders);
+
+			if (Next::g_NextRenderer.IsActive())
+				Next::g_NextRenderer.ReloadShaders();
 		}
 		catch (const std::exception& e)
 		{

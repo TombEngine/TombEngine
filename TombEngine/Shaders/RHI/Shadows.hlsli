@@ -11,20 +11,13 @@
 
 #define SHADOW_INTENSITY 0.6f
 #define SHADOW_BLUR      2.0f
-#define SHADOW_SPHERES_MAX 16
 
 // Instances receiving shadows have this bit in their light count.
 #define SHADOWABLE_MASK (1 << 16)
 
 TEN_PS_UNIFORMS(ShadowUniforms, 2)
 {
-    GpuLight ShadowLight;
-    float4x4 LightViewProjections[6];
-    int      CastShadows;
-    int      SphereCount;
-    int      ShadowMapSize;
-    int      ShadowPadding;
-    float4   Spheres[SHADOW_SPHERES_MAX]; // xyz = center, w = radius.
+    TEN_SHADOW_UNIFORMS
 };
 
 TEN_PS_TEXTURE(Texture2DArray, ShadowMap, 5);

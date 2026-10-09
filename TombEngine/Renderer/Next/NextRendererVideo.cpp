@@ -31,7 +31,7 @@ namespace TEN::Renderer::Next
             sets.push_back(videoSet);
 
             const auto* uv = set.Textures[0].NormalizedUV;
-            frames.push_back(GpuAnimatedFrame{ { uv[0], uv[1], uv[2], uv[3] } });
+            frames.push_back(GpuAnimatedFrame{ uv[0], uv[1], uv[2], uv[3] });
         }
     }
 

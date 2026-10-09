@@ -2,52 +2,29 @@
 #define TEN_FRAME_UNIFORMS
 
 // Uniform blocks shared by the scene shaders. Slot 0 is pushed once per frame, slot 1 per draw.
-// Layouts are mirrored by the C++ structs in Renderer/Next/NextRenderer.cpp.
+// Layouts are defined in GpuShared.hlsli.
 
+#include "./GpuShared.hlsli"
 #include "./ShaderInterop.hlsli"
 
 TEN_VS_UNIFORMS(FrameVertexUniforms, 0)
 {
-    float4x4 ViewProjection;
-    float3   CameraPosition;
-    float    FogMinDistance;
-    float    FogMaxDistance;
-    uint     Frame;
-    float    InterpolatedFrame;
-    uint     CameraUnderwater;
+    TEN_FRAME_VERTEX_UNIFORMS
 };
 
 TEN_VS_UNIFORMS(DrawVertexUniforms, 1)
 {
-    int    AnimatedSetIndex;
-    uint   IsWaterRoom; // Rooms only: water rooms seen from outside the water are refracted.
-    float2 DrawPadding;
+    TEN_DRAW_VERTEX_UNIFORMS
 };
 
 TEN_PS_UNIFORMS(FramePixelUniforms, 0)
 {
-    float4   FogColor;
-    float3   PixelCameraPosition;
-    float    AmbientOcclusionExponent; // Zero when ambient occlusion is disabled.
-    float3   CameraDirection;
-    float    Gamma; // Overlay objects only: the scene applies gamma in the post-process.
-    float4x4 View;
-    float2   InverseViewportSize;
-    float2   CausticsStartUV;      // Current caustics frame in its sprite atlas page.
-    float2   CausticsSize;
-    float2   FramePixelPadding1;
+    TEN_FRAME_PIXEL_UNIFORMS
 };
 
 TEN_PS_UNIFORMS(DrawPixelUniforms, 1)
 {
-    float AlphaThreshold;
-    uint  BlendMode;
-    uint  LightOffset; // Rooms only: slice of the frame light buffer.
-    uint  LightCount;  // Light count in the low 16 bits, light type mask in the high bits.
-    uint  MaterialIndex;
-    uint  IsCausticsRoom; // Rooms only.
-    uint  DecalOffset;    // Rooms only: slice of the frame decal buffer.
-    uint  DecalCount;
+    TEN_DRAW_PIXEL_UNIFORMS
 };
 
 #endif // TEN_FRAME_UNIFORMS

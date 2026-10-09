@@ -1,6 +1,6 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=4
-// TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
-// TEN_SHADER: Pixel PSDepthNormal samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Pixel PS samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 permutations=NO_ALPHA_TEST
+// TEN_SHADER: Pixel PSDepthNormal samplers=9 storage_textures=0 storage_buffers=3 uniform_buffers=3 permutations=NO_ALPHA_TEST
 
 // Room geometry: baked vertex lighting plus the room's dynamic lights with specular, material maps (normal,
 // ORSH, emissive, parallax), animated textures, vertex effects, water refraction and distance fog.
@@ -16,8 +16,8 @@
 #include "./FogBulbs.hlsli"
 #include "./Decals.hlsli"
 
-TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
-TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
+TEN_VS_STORAGE_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
+TEN_VS_STORAGE_BUFFER(GpuAnimatedSet, AnimatedSets, 1);
 
 TEN_PS_STORAGE_BUFFER(GpuLight, Lights, 9);
 
@@ -70,7 +70,7 @@ PixelInput VS(VertexInput input)
 
     if (AnimatedSetIndex >= 0)
     {
-        AnimatedSet set = AnimatedSets[AnimatedSetIndex];
+        GpuAnimatedSet set = AnimatedSets[AnimatedSetIndex];
         if (set.Type == ANIM_TYPE_UVROTATE)
         {
             output.UVScroll = GetUVRotateScroll(AnimatedFrames[set.FirstFrame], set, InterpolatedFrame);

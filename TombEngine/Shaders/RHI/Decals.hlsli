@@ -4,17 +4,9 @@
 // Room decals of the legacy renderer (Shaders/Rooms.hlsl): noisy blood stains darkening the lighting around
 // each decal center. Decals of the visible rooms live in a frame storage buffer; rooms draw a slice of it.
 
+#include "./GpuShared.hlsli"
 #include "./ShaderInterop.hlsli"
 #include "./Noise.hlsli"
-
-struct GpuDecal
-{
-    float3 Position;
-    float  Radius;
-    float  Opacity;
-    int    Pattern;
-    float2 Padding;
-};
 
 TEN_PS_STORAGE_BUFFER(GpuDecal, Decals, 11);
 

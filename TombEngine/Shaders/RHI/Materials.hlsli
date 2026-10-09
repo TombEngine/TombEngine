@@ -27,15 +27,6 @@
 #define POM_MIN_ANGLE      0.4f
 #define POM_HEIGHT_SCALE   0.0035f
 
-struct GpuMaterial
-{
-    float4 Properties[4];
-    uint   TypeAndFlags;
-    uint   Padding0; // Scalars: a uint3 at offset 68 breaks the Vulkan buffer layout rules.
-    uint   Padding1;
-    uint   Padding2;
-};
-
 TEN_PS_TEXTURE(Texture2D, ColorMap, 0);
 TEN_PS_TEXTURE(Texture2D, NormalMap, 1);
 TEN_PS_TEXTURE(Texture2D, ORSHMap, 2);
@@ -57,9 +48,12 @@ struct Surface
 };
 
 // A negative threshold keeps only the texels below its magnitude: the soft edge pass of alpha tested buckets.
+// The NO_ALPHA_TEST permutation has no clip, so draws without alpha test keep early depth testing.
 void ApplyAlphaTest(float alpha, float alphaThreshold)
 {
+#ifndef NO_ALPHA_TEST
     clip((alphaThreshold >= 0.0f) ? (alpha - alphaThreshold) : (-alphaThreshold - alpha - 0.0001f));
+#endif
 }
 
 float3 UnpackNormalMap(float4 n)
@@ -166,7 +160,7 @@ float3 SampleSurfaceNormal(GpuMaterial material, float2 uv, float alphaThreshold
                            float3 normal, float3 tangent, float3 binormal, float3 faceNormal, out float3 emissive)
 {
     uv = ParallaxOcclusionMapping(material, tangent, binormal, faceNormal, position, cameraPosition, uv);
-    clip(ColorMap.Sample(ColorMapSampler, uv).a - alphaThreshold);
+    ApplyAlphaTest(ColorMap.Sample(ColorMapSampler, uv).a, alphaThreshold);
 
     emissive = EmissiveMap.Sample(EmissiveMapSampler, uv).rgb * GetEmissiveIntensity(material);
 

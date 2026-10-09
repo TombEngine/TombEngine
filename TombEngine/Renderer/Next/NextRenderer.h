@@ -285,7 +285,8 @@ namespace TEN::Renderer::Next
 
         std::unique_ptr<RHI::IShader>           _roomsVertexShader   = nullptr;
         std::unique_ptr<RHI::IShader>           _roomsPixelShader    = nullptr;
-        std::unique_ptr<RHI::IGraphicsPipeline> _scenePipelines[(int)SceneShader::Count][16] = {};
+        std::unique_ptr<RHI::IGraphicsPipeline> _scenePipelines[(int)SceneShader::Count][16][2] = {}; // Last index: alpha test variant.
+        std::unique_ptr<RHI::IShader>           _noAlphaTestPixelShaders[(int)SceneShader::Count] = {}; // NO_ALPHA_TEST permutations.
         std::unique_ptr<RHI::IShader>           _objectsVertexShader = nullptr;
         std::unique_ptr<RHI::IShader>           _objectsPixelShader  = nullptr;
         std::unique_ptr<RHI::IShader>           _skyVertexShader     = nullptr;
@@ -582,6 +583,7 @@ namespace TEN::Renderer::Next
         void UploadTexture(RHI::ITexture* texture, const void* data, int size);
         void CollectMaterials(float interpolationFactor);
         void BindTexturePage(RHI::IRenderPass& renderPass, const RoomTexture* page, RHI::ITexture* colorOverride = nullptr, RHI::ITexture* emissiveOverride = nullptr);
+        static float GetAlphaThreshold(const Structures::RendererBucket& bucket, const BucketDrawInfo& info);
         void BindBucket(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const Structures::RendererBucket& bucket, const std::vector<RoomTexture>& pages,
                         BlendMode blendMode, unsigned int lightCount, const BucketDrawInfo& room, BucketBindState& state);
         BucketDrawInfo GetBucketDrawInfo(int roomNumber, bool hasDecals);
@@ -592,7 +594,9 @@ namespace TEN::Renderer::Next
         void UploadBuffer(RHI::IBuffer* buffer, const void* data, int size);
         void LoadAnimatedTextures(const LegacyLevelGeometry& geometry);
         void AddWaterfallSets(const LegacyLevelGeometry& geometry, std::vector<GpuAnimatedFrame>& frames, std::vector<GpuAnimatedSet>& sets);
-        RHI::IGraphicsPipeline* GetScenePipeline(SceneShader shader, BlendMode blendMode);
+        bool LoadNoAlphaTestShaders();
+        RHI::IGraphicsPipeline* GetScenePipeline(SceneShader shader, BlendMode blendMode, bool isAlphaTested = true);
+        void ClearPipelineCaches();
         void LoadTextureSet(const std::vector<::TEXTURE>& source, std::vector<RoomTexture>& destination, const std::string& name);
         void CreateGeometryBuffers(GeometryBuffers& buffers, const std::vector<Graphics::Vertices::Vertex>& vertices, const std::vector<int>& indices, const std::string& name);
         void CollectObjects(const RenderView& view, float interpolationFactor);
@@ -661,8 +665,11 @@ namespace TEN::Renderer::Next
         void DrawAtmosphericSky(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass);
         void RenderSkyReflections(RHI::ICommandBuffer& commandBuffer);
         void DrawObjects(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
+        void DrawObjectBuckets(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const std::vector<ObjectDraw>& draws, ScenePass pass,
+                               bool isMirrored, bool isAlphaTested);
         static BlendMode GetPassBlendMode(ScenePass pass);
         static bool IsBucketInPass(const Structures::RendererBucket& bucket, ScenePass pass);
+        static bool IsAlphaTestVariantInPass(ScenePass pass, bool isAlphaTested);
 
         // Post-process (NextRendererPostProcess.cpp).
         std::unique_ptr<RHI::IGraphicsPipeline> CreateFullscreenPipeline(RHI::IShader* vertexShader, RHI::IShader* pixelShader, RHI::PixelFormat format, const char* name);
@@ -715,6 +722,7 @@ namespace TEN::Renderer::Next
         void           DrawSpriteRun(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const SpriteDraw& draw, const RHI::IGraphicsPipeline*& lastPipeline, const RHI::ITexture*& lastTexture);
         void           DrawSprites(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, ScenePass pass, bool isMirrored = false);
         void DrawRooms(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, ScenePass pass);
+        void DrawRoomBuckets(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const RenderView& view, ScenePass pass, bool isAlphaTested);
         void RenderScenePass(RHI::ICommandBuffer& commandBuffer);
 
     public:
@@ -727,6 +735,7 @@ namespace TEN::Renderer::Next
         void FinishFrame(const UiFrame& ui);
         void PresentOnWindowThread();
         void RequestScreenshot(const std::string& path);
+        void ReloadShaders();
 
         const NextFrameStats& GetFrameStats() const;
     };

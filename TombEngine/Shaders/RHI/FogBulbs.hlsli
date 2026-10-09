@@ -7,26 +7,9 @@
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
 
-#define FOG_BULBS_MAX 32
-
-struct GpuFogBulb
-{
-    float3 Position;
-    float  Density;
-    float3 Color;
-    float  SquaredRadius;
-    float3 FogBulbToCameraVector;
-    float  SquaredCameraToFogBulbDistance;
-    float4 Padding;
-};
-
 TEN_VS_UNIFORMS(FogBulbUniforms, 3)
 {
-    int        FogBulbCount;
-    int        FogBulbPadding0;
-    int        FogBulbPadding1;
-    int        FogBulbPadding2;
-    GpuFogBulb FogBulbs[FOG_BULBS_MAX];
+    TEN_FOG_BULB_UNIFORMS
 };
 
 // Length of the camera ray segment inside the bulb; isSky treats the position as always outside the bulb.

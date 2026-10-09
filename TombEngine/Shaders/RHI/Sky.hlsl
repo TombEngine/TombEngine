@@ -12,16 +12,7 @@
 
 TEN_VS_UNIFORMS(SkyVertexUniforms, 2)
 {
-    float4x4 World;
-    uint     IsFogBulbsEnabled;
-    uint     IsParaboloid;
-    float    Hemisphere; // -1 front, 1 back.
-    float    SkyPadding0;
-    float4x4 ParaboloidView;
-    float    ParaboloidNear;
-    float    ParaboloidFar;
-    float    SkyPadding1;
-    float    SkyPadding2;
+    TEN_SKY_VERTEX_UNIFORMS
 };
 
 TEN_PS_UNIFORMS(SkyPixelUniforms, 2)
@@ -29,8 +20,8 @@ TEN_PS_UNIFORMS(SkyPixelUniforms, 2)
     float4 SkyColor;
 };
 
-TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
-TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
+TEN_VS_STORAGE_BUFFER(GpuAnimatedFrame, AnimatedFrames, 0);
+TEN_VS_STORAGE_BUFFER(GpuAnimatedSet, AnimatedSets, 1);
 
 TEN_PS_TEXTURE(Texture2D, ColorMap, 0);
 
@@ -78,7 +69,7 @@ PixelInput VS(VertexInput input)
 
     if (AnimatedSetIndex >= 0)
     {
-        AnimatedSet set = AnimatedSets[AnimatedSetIndex];
+        GpuAnimatedSet set = AnimatedSets[AnimatedSetIndex];
         if (set.Type == ANIM_TYPE_UVROTATE)
         {
             output.UVScroll = GetUVRotateScroll(AnimatedFrames[set.FirstFrame], set, InterpolatedFrame);

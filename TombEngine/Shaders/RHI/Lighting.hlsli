@@ -22,21 +22,6 @@
 #define ROOM_LIGHT_COEFF 0.7f
 #define SPEC_FACTOR      64.0f
 
-// Same layout as ShaderLight in the legacy renderer; spot ranges are stored as cosines.
-struct GpuLight
-{
-    float3 Position;
-    uint   Type;
-    float3 Color;
-    float  Intensity;
-    float3 Direction;
-    float  In;
-    float  Out;
-    float  InRange;
-    float  OutRange;
-    float  Padding;
-};
-
 float3 DoPointLight(float3 position, float3 normal, GpuLight light)
 {
     float3 lightVector = light.Position - position;
