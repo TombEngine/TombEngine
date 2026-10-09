@@ -327,10 +327,14 @@ Il renderer nuovo gira in una seconda finestra accanto a quello vecchio, sugli s
 - [x] Alpha test a due passate del legacy (bordi sfumati), lens flare, distorsione (mezza risoluzione), glow, DOF, FXAA, SMAA medium/ultra.
 - [x] Riflessi: materiali riflettenti (frame precedente a mezza risoluzione) e riflessi del cielo (doppio paraboloide 512x512).
 - [x] Video in background su set animati di tipo video e sugli sprite video.
-- [ ] Sprite alpha test anche nel prepass (il legacy li scrive nel GBuffer, quindi entrano nell'AO).
+- [x] Sprite alpha test nel prepass: non serve. Il legacy li disegna nel GBuffer senza scrivere la depth lineare e con un solo output, quindi il loro colore finisce nel target delle normali: e' un artefatto, non un contributo voluto all'AO.
+- [x] Sprite opachi e alpha test nel pass opaco con scrittura della depth, come nel legacy (`SetBlendMode` riattiva la depth per Opaque e AlphaTest).
+- [x] Oggetti in dissolvenza (alpha < 1): bucket opachi solo tra le facce ordinate, come `GetBlendModeFromAlpha`; facce ordinate degli sciami con alpha test 0.5 come `DrawMoveableAsStaticSorted`.
 - [x] Pass 2D: testo (font DirectXTK letto dal file, layout delle stringhe del legacy), barre di stato, display sprite, lampo e ottiche (binocolo, mirino laser).
-- [ ] Oggetti 3D dell'HUD (riepilogo raccolti, DrawItems) con lo shader Inventory.
-- [ ] Inventario, title screen, menu e schermate di caricamento: oggi passano da percorsi legacy separati che non alimentano il renderer nuovo.
+- [x] Oggetti 3D dell'HUD (riepilogo raccolti, DrawItems), dell'inventario e dell'esamina con lo shader Inventory, in un pass con depth dentro il layer 2D.
+- [x] Inventario, title screen, menu, schermate di caricamento e video esclusivi: ogni present del legacy registra il layer 2D (`UiFrame`) che il renderer nuovo compone sull'ultima scena.
+- [ ] Facce ordinate dei capelli (HairPrimary e HairSecondary): ancora saltate.
+- [ ] Glow e antialiasing sugli oggetti dell'inventario (il legacy li applica al target del menu).
 
 ## 12. Decisioni prese
 
