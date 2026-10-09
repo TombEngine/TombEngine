@@ -46,8 +46,8 @@ TEN_PS_UNIFORMS(DrawPixelUniforms, 1)
     uint  LightCount;  // Light count in the low 16 bits, light type mask in the high bits.
     uint  MaterialIndex;
     uint  IsCausticsRoom; // Rooms only.
-    uint  DrawPixelPadding1;
-    uint  DrawPixelPadding2;
+    uint  DecalOffset;    // Rooms only: slice of the frame decal buffer.
+    uint  DecalCount;
 };
 
 #endif // TEN_FRAME_UNIFORMS

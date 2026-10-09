@@ -177,7 +177,7 @@ namespace TEN::Renderer::Next
                 }
 
                 const auto& pages = (draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures;
-                BindBucket(commandBuffer, *renderPass, bucket, pages, bucket.BlendMode, 0, 0, state);
+                BindBucket(commandBuffer, *renderPass, bucket, pages, bucket.BlendMode, 0, RoomDrawInfo{}, state);
 
                 _frameStats.DrawCalls++;
                 renderPass->DrawIndexed(bucket.NumIndices, draw.InstanceCount, bucket.StartIndex, 0, draw.FirstInstance);

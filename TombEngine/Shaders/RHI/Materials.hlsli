@@ -4,7 +4,8 @@
 // Surface sampling of the legacy material system (Shaders/Materials.hlsli): color, normal, ORSH and emissive
 // maps of an atlas page, parallax occlusion mapping and per-material properties from a frame storage buffer.
 // Pixel textures use slots 0-3, slot 4 is the screen space ambient occlusion, slot 5 the shadow map
-// (Shadows.hlsli) and slot 6 the caustics; storage buffers follow at index 7 (lights) and 8 (materials).
+// (Shadows.hlsli) and slot 6 the caustics; storage buffers follow at index 7 (lights), 8 (materials) and
+// 9 (decals, Decals.hlsli).
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"

@@ -1,7 +1,7 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=4
-// TEN_SHADER: Pixel PS samplers=7 storage_textures=0 storage_buffers=2 uniform_buffers=3
-// TEN_SHADER: Pixel PSDepthNormal samplers=7 storage_textures=0 storage_buffers=2 uniform_buffers=3
-// TEN_SHADER: Pixel PSShadow samplers=7 storage_textures=0 storage_buffers=2 uniform_buffers=3
+// TEN_SHADER: Pixel PS samplers=7 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Pixel PSDepthNormal samplers=7 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Pixel PSShadow samplers=7 storage_textures=0 storage_buffers=3 uniform_buffers=3
 
 // Static meshes and rigid moveable meshes. Every draw is instanced: the instance index stream
 // selects the per-instance world matrix, colors and light mode from a storage buffer.
@@ -14,6 +14,7 @@
 #include "./Materials.hlsli"
 #include "./Shadows.hlsli"
 #include "./FogBulbs.hlsli"
+#include "./Decals.hlsli"
 #include "./Skinning.hlsli"
 
 TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);

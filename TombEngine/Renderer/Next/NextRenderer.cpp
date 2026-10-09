@@ -4,6 +4,7 @@
 #include "Game/Animation/Animation.h"
 #include "Game/control/control.h"
 #include "Game/effects/hair.h"
+#include "Game/effects/Decal.h"
 #include "Game/effects/weather.h"
 #include "Game/Lara/lara.h"
 #include "Game/Setup.h"
@@ -104,6 +105,7 @@ namespace TEN::Renderer::Next
         _defaultORSHTexture = nullptr;
         _blackTexture = nullptr;
         _materialBuffer = {};
+        _decalBuffer = {};
         _skyTexture = nullptr;
         _skyVertexBuffer = nullptr;
         _skyIndexBuffer = nullptr;
@@ -644,8 +646,52 @@ namespace TEN::Renderer::Next
 
     void NextRenderer::BindScenePixelStorage(IRenderPass& renderPass)
     {
-        IBuffer* buffers[2] = { _lightBuffer.Buffer.get(), _materialBuffer.Buffer.get() };
-        renderPass.BindPixelStorageBuffers(0, buffers, 2);
+        IBuffer* buffers[3] = { _lightBuffer.Buffer.get(), _materialBuffer.Buffer.get(), _decalBuffer.Buffer.get() };
+        renderPass.BindPixelStorageBuffers(0, buffers, 3);
+    }
+
+    NextRenderer::RoomDrawInfo NextRenderer::GetRoomDrawInfo(int roomNumber, bool hasDecals)
+    {
+        auto info = RoomDrawInfo{};
+        info.IsWaterRoom = (g_Level.Rooms[roomNumber].flags & ENV_FLAG_WATER) ? 1 : 0;
+        info.IsCausticsRoom = IsCausticsRoom(roomNumber) ? 1 : 0;
+
+        auto it = _roomDecalSlices.find(roomNumber);
+        if (hasDecals && it != _roomDecalSlices.end())
+        {
+            info.DecalOffset = (unsigned int)it->second.first;
+            info.DecalCount = (unsigned int)it->second.second;
+        }
+
+        return info;
+    }
+
+    // Decals of the visible rooms, as in the legacy BindRoomDecals.
+    void NextRenderer::CollectDecals(const RenderView& view)
+    {
+        _decalData.clear();
+        _roomDecalSlices.clear();
+        if (!g_Configuration.EnableDecals)
+            return;
+
+        for (const auto* room : view.RoomsToDraw)
+        {
+            if (room->Decals.empty())
+                continue;
+
+            int offset = (int)(_decalData.size() / sizeof(GpuDecal));
+            int count = std::min((int)room->Decals.size(), (int)TEN::Effects::Decal::Decal::COUNT_MAX);
+            for (int i = 0; i < count; i++)
+            {
+                const auto& decal = room->Decals[i];
+                auto gpuDecal = GpuDecal{ decal.Position, decal.Radius, decal.Opacity, decal.Pattern };
+
+                const auto* bytes = (const unsigned char*)&gpuDecal;
+                _decalData.insert(_decalData.end(), bytes, bytes + sizeof(gpuDecal));
+            }
+
+            _roomDecalSlices[room->RoomNumber] = std::pair<int, int>(offset, count);
+        }
     }
 
     void NextRenderer::BindTexturePage(IRenderPass& renderPass, const RoomTexture* page)
@@ -673,21 +719,23 @@ namespace TEN::Renderer::Next
     }
 
     void NextRenderer::BindBucket(ICommandBuffer& commandBuffer, IRenderPass& renderPass, const RendererBucket& bucket, const std::vector<RoomTexture>& pages,
-                                  BlendMode blendMode, unsigned int lightCount, unsigned int isWaterRoom, BucketBindState& state, unsigned int isCausticsRoom)
+                                  BlendMode blendMode, unsigned int lightCount, const RoomDrawInfo& room, BucketBindState& state)
     {
         auto pixelUniforms = DrawPixelUniforms{};
         pixelUniforms.AlphaThreshold = (bucket.BlendMode == BlendMode::AlphaTest) ? ALPHA_TEST_THRESHOLD : 0.0f;
         pixelUniforms.BlendMode = (unsigned int)blendMode;
         pixelUniforms.LightCount = lightCount;
         pixelUniforms.MaterialIndex = (bucket.MaterialIndex >= 0 && bucket.MaterialIndex < (int)g_Level.Materials.size()) ? (unsigned int)bucket.MaterialIndex : 0;
-        pixelUniforms.IsCausticsRoom = isCausticsRoom;
+        pixelUniforms.IsCausticsRoom = room.IsCausticsRoom;
+        pixelUniforms.DecalOffset = room.DecalOffset;
+        pixelUniforms.DecalCount = bucket.Animated ? 0 : room.DecalCount;
         if (memcmp(&pixelUniforms, &state.PixelUniforms, sizeof(pixelUniforms)) != 0)
         {
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 1, &pixelUniforms, sizeof(pixelUniforms));
             state.PixelUniforms = pixelUniforms;
         }
 
-        auto vertexUniforms = DrawVertexUniforms{ bucket.Animated ? bucket.Texture : NO_VALUE, isWaterRoom };
+        auto vertexUniforms = DrawVertexUniforms{ bucket.Animated ? bucket.Texture : NO_VALUE, room.IsWaterRoom };
         if (vertexUniforms.AnimatedSetIndex != state.VertexUniforms.AnimatedSetIndex || vertexUniforms.IsWaterRoom != state.VertexUniforms.IsWaterRoom)
         {
             commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 1, &vertexUniforms, sizeof(vertexUniforms));
@@ -730,8 +778,7 @@ namespace TEN::Renderer::Next
         for (int roomIndex = 0; roomIndex < roomCount; roomIndex++)
         {
             const auto* room = view.RoomsToDraw[additive ? (roomCount - 1 - roomIndex) : roomIndex];
-            unsigned int isWaterRoom = (g_Level.Rooms[room->RoomNumber].flags & ENV_FLAG_WATER) ? 1 : 0;
-            unsigned int isCausticsRoom = IsCausticsRoom(room->RoomNumber) ? 1 : 0;
+            auto roomInfo = GetRoomDrawInfo(room->RoomNumber, pass != ScenePass::Prepass);
 
             for (const auto& bucket : room->Buckets)
             {
@@ -743,7 +790,7 @@ namespace TEN::Renderer::Next
                 if ((additive && !isAdditive) || (!additive && !isOpaque))
                     continue;
 
-                BindBucket(commandBuffer, renderPass, bucket, _roomTextures, bucket.BlendMode, (unsigned int)_roomLightCount, isWaterRoom, state, isCausticsRoom);
+                BindBucket(commandBuffer, renderPass, bucket, _roomTextures, bucket.BlendMode, (unsigned int)_roomLightCount, roomInfo, state);
 
                 _frameStats.DrawCalls++;
                 renderPass.DrawIndexed(bucket.NumIndices, 1, bucket.StartIndex, 0, 0);
@@ -1109,6 +1156,7 @@ namespace TEN::Renderer::Next
         UploadFrameStorage(*copyPass, _sortedIndexBuffer, _sortedIndexData, (int)sizeof(int), BufferUsage::Index, "Frame.SortedIndices");
         UploadFrameStorage(*copyPass, _spriteBuffer, _spriteData, (int)sizeof(GpuSprite), BufferUsage::GraphicsStorageRead, "Frame.Sprites");
         UploadFrameStorage(*copyPass, _materialBuffer, _materialData, (int)sizeof(GpuMaterial), BufferUsage::GraphicsStorageRead, "Frame.Materials");
+        UploadFrameStorage(*copyPass, _decalBuffer, _decalData, (int)sizeof(GpuDecal), BufferUsage::GraphicsStorageRead, "Frame.Decals");
 
         commandBuffer.EndCopyPass();
         commandBuffer.PopDebugGroup();
@@ -1153,7 +1201,7 @@ namespace TEN::Renderer::Next
             }
 
             const auto& pages = (draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures;
-            BindBucket(commandBuffer, renderPass, bucket, pages, bucket.BlendMode, 0, 0, state);
+            BindBucket(commandBuffer, renderPass, bucket, pages, bucket.BlendMode, 0, RoomDrawInfo{}, state);
 
             _frameStats.DrawCalls++;
             renderPass.DrawIndexed(bucket.NumIndices, draw.InstanceCount, bucket.StartIndex, 0, draw.FirstInstance);
@@ -1389,8 +1437,9 @@ namespace TEN::Renderer::Next
             }
 
             const auto& pages = draw.IsRoom ? _roomTextures : ((draw.Source == MeshSource::Statics) ? _staticTextures : _moveableTextures);
-            BindBucket(commandBuffer, renderPass, bucket, pages, draw.BlendMode, draw.IsRoom ? (unsigned int)_roomLightCount : 0,
-                       draw.IsWaterRoom ? 1 : 0, state, draw.IsCausticsRoom ? 1 : 0);
+            // Decals are not drawn on sorted faces, as in the legacy renderer.
+            auto roomInfo = RoomDrawInfo{ draw.IsWaterRoom ? 1u : 0u, draw.IsCausticsRoom ? 1u : 0u };
+            BindBucket(commandBuffer, renderPass, bucket, pages, draw.BlendMode, draw.IsRoom ? (unsigned int)_roomLightCount : 0, roomInfo, state);
 
             _frameStats.DrawCalls++;
             renderPass.DrawIndexed(draw.IndexCount, 1, draw.FirstIndex, 0, draw.Instance);
@@ -1690,6 +1739,7 @@ namespace TEN::Renderer::Next
         commandBuffer->PushUniforms(RHI::ShaderStage::Vertex, 3, &fogBulbUniforms, sizeof(fogBulbUniforms));
 
         CollectMaterials(environment.InterpolationFactor);
+        CollectDecals(view);
         CollectObjects(view, environment.InterpolationFactor);
         CollectSprites(view);
         CollectSortedFaces(view, environment.InterpolationFactor);

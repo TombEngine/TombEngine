@@ -56,8 +56,21 @@ namespace TEN::Renderer::Next
         unsigned int LightCount     = 0;
         unsigned int MaterialIndex  = 0;
         unsigned int IsCausticsRoom = 0;
-        unsigned int Padding[2]     = {};
+        unsigned int DecalOffset    = 0;
+        unsigned int DecalCount     = 0;
     };
+
+    // Same layout as GpuDecal in Decals.hlsli.
+    struct GpuDecal
+    {
+        Vector3 Position   = Vector3::Zero;
+        float   Radius     = 0.0f;
+        float   Opacity    = 0.0f;
+        int     Pattern    = 0;
+        Vector2 Padding    = Vector2::Zero;
+    };
+
+    static_assert(sizeof(GpuDecal) == 32, "GpuDecal must match Decals.hlsli.");
 
     // Same layout as GpuFogBulb in FogBulbs.hlsli.
     struct GpuFogBulb

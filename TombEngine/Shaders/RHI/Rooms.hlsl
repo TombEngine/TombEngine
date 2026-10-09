@@ -1,11 +1,11 @@
 // TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=4
-// TEN_SHADER: Pixel PS samplers=7 storage_textures=0 storage_buffers=2 uniform_buffers=3
-// TEN_SHADER: Pixel PSDepthNormal samplers=7 storage_textures=0 storage_buffers=2 uniform_buffers=3
+// TEN_SHADER: Pixel PS samplers=7 storage_textures=0 storage_buffers=3 uniform_buffers=3
+// TEN_SHADER: Pixel PSDepthNormal samplers=7 storage_textures=0 storage_buffers=3 uniform_buffers=3
 
 // Room geometry: baked vertex lighting plus the room's dynamic lights with specular, material maps (normal,
 // ORSH, emissive, parallax), animated textures, vertex effects, water refraction and distance fog.
 // Screen space ambient occlusion comes from the prepass (PSDepthNormal); shadows from the cube shadow map and
-// blob spheres; fog bulbs per vertex; caustics in water rooms. Reflections and decals are ported later.
+// blob spheres; fog bulbs per vertex; caustics in water rooms; decals. Reflections are ported later.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -14,6 +14,7 @@
 #include "./Materials.hlsli"
 #include "./Shadows.hlsli"
 #include "./FogBulbs.hlsli"
+#include "./Decals.hlsli"
 
 TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
 TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
@@ -109,7 +110,7 @@ float3 GetCaustics(float3 position, float3 normal)
 }
 
 // Legacy quirk kept for parity: with mixed light types, point lights get the spot specular term.
-float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface)
+float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface, float3 tangent, float3 binormal)
 {
     float3 lighting = vertexColor * COLOR_MODULATION_SCALE;
     lighting = DoShadow(position, surface.Normal, lighting, -2.5f, BlendMode);
@@ -135,6 +136,9 @@ float3 GetRoomLighting(float3 vertexColor, float3 position, Surface surface)
         }
     }
 
+    if (DecalCount > 0)
+        lighting *= 1.0f - GetDecalMask(position, tangent, binormal, DecalOffset, DecalCount);
+
     if (IsCausticsRoom)
         lighting += GetCaustics(position, surface.Normal);
 
@@ -148,7 +152,7 @@ float4 PS(PixelInput input) : SV_TARGET
                                     input.Normal, input.Tangent, input.Binormal, input.FaceNormal);
 
     float occlusion = surface.Occlusion * GetAmbientOcclusion(material, input.Position.xy * InverseViewportSize, AmbientOcclusionExponent, BlendMode, surface.Color.a);
-    float3 lighting = GetRoomLighting(input.Color.rgb, input.WorldPosition, surface) - input.FogBulbs.w;
+    float3 lighting = GetRoomLighting(input.Color.rgb, input.WorldPosition, surface, input.Tangent, input.Binormal) - input.FogBulbs.w;
     float4 color = float4(saturate(surface.Color.rgb * lighting * occlusion), surface.Color.a);
     color = ApplyFogBulbs(color, input.FogBulbs.rgb, BlendMode);
     return ApplyDistanceFog(color, FogColor, input.Fog, BlendMode);

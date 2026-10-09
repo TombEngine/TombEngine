@@ -106,6 +106,15 @@ namespace TEN::Renderer::Next
             GpuObjectInstance               Instance = {};
         };
 
+        // Per room values of room bucket draws.
+        struct RoomDrawInfo
+        {
+            unsigned int IsWaterRoom    = 0;
+            unsigned int IsCausticsRoom = 0;
+            unsigned int DecalOffset    = 0;
+            unsigned int DecalCount     = 0;
+        };
+
         // Draw state of consecutive bucket draws; pushes and binds are skipped when unchanged.
         struct BucketBindState
         {
@@ -276,6 +285,9 @@ namespace TEN::Renderer::Next
         std::vector<unsigned char>    _lightData           = {};
         std::vector<ObjectDraw>       _objectDraws         = {};
         std::vector<QueuedMeshInstance> _queuedMeshInstances = {};
+        FrameStorageBuffer            _decalBuffer         = {};
+        std::vector<unsigned char>    _decalData           = {};
+        std::unordered_map<int, std::pair<int, int>> _roomDecalSlices = {};
         std::vector<std::pair<int, int>> _roomLightSlices    = {};
         std::vector<int>              _roomLightSliceList  = {};
         FrameStorageBuffer            _sortedIndexBuffer   = {};
@@ -308,7 +320,9 @@ namespace TEN::Renderer::Next
         void CollectMaterials(float interpolationFactor);
         void BindTexturePage(RHI::IRenderPass& renderPass, const RoomTexture* page);
         void BindBucket(RHI::ICommandBuffer& commandBuffer, RHI::IRenderPass& renderPass, const Structures::RendererBucket& bucket, const std::vector<RoomTexture>& pages,
-                        BlendMode blendMode, unsigned int lightCount, unsigned int isWaterRoom, BucketBindState& state, unsigned int isCausticsRoom = 0);
+                        BlendMode blendMode, unsigned int lightCount, const RoomDrawInfo& room, BucketBindState& state);
+        RoomDrawInfo GetRoomDrawInfo(int roomNumber, bool hasDecals);
+        void CollectDecals(const RenderView& view);
         bool IsCausticsRoom(int roomNumber) const;
         void PrepareCaustics(FramePixelUniforms& uniforms);
         void BindScenePixelStorage(RHI::IRenderPass& renderPass);
