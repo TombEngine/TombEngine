@@ -42,6 +42,9 @@ namespace TEN::Renderer::Next
         BlendMode                         BlendMode  = BlendMode::AlphaBlend;
     };
 
+    // Image path of the background video frame, drawn full screen in exclusive video playback.
+    constexpr auto OVERLAY_VIDEO_PATH = "<video>";
+
     // Image file drawn by the legacy 2D layer (title logo, loading screen, intro image), in normalized screen space.
     struct OverlayImage
     {
@@ -83,6 +86,11 @@ namespace TEN::Renderer::Next
         std::vector<OverlaySprite> Sprites = {};
         std::vector<OverlayImage>  Images  = {};
         std::vector<OverlayLayer>  Layers  = {};
+
+        // Video frame of the legacy video handler (BGRA8), null when no video plays.
+        const unsigned char* VideoFrame  = nullptr;
+        int                  VideoWidth  = 0;
+        int                  VideoHeight = 0;
 
         // Screen overlays of the legacy DrawOverlays: lightning flash and binocular or laser sight sprite.
         Vector3                           FlashColor   = Vector3::Zero;

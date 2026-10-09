@@ -3916,6 +3916,14 @@ namespace TEN::Renderer
 			auto screenResolution = GetScreenResolution();
 			_nextUi.ScreenWidth = screenResolution.x;
 			_nextUi.ScreenHeight = screenResolution.y;
+			if (_videoSprite.Texture != nullptr && _videoSprite.Texture->IsValid())
+			{
+				auto videoSize = TEN::Video::g_VideoPlayer.GetFrameSize();
+				_nextUi.VideoFrame = (const unsigned char*)TEN::Video::g_VideoPlayer.GetFrameData();
+				_nextUi.VideoWidth = videoSize.x;
+				_nextUi.VideoHeight = videoSize.y;
+			}
+
 			Next::g_NextRenderer.FinishFrame(_nextUi);
 		}
 
@@ -3926,6 +3934,7 @@ namespace TEN::Renderer
 		_nextUi.Sprites.clear();
 		_nextUi.Images.clear();
 		_nextUi.Layers.clear();
+		_nextUi.VideoFrame = nullptr;
 		_nextUi.FlashColor = Vector3::Zero;
 		_nextUi.OpticSprite = nullptr;
 		_nextUi.IsLaserSight = false;

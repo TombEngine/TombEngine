@@ -87,10 +87,12 @@ namespace TEN::Renderer
 		_videoSprite.UV[2] = Vector2(1,1);
 		_videoSprite.UV[3] = Vector2(0,1);
 		_videoSprite.Texture = texture;
+		_nextImagePaths[texture] = Next::OVERLAY_VIDEO_PATH;
 	}
 
 	void Renderer::ClearVideoTexture()
 	{
+		_nextImagePaths.erase(_videoSprite.Texture);
 		_videoSprite = {};
 	}
 

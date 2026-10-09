@@ -531,6 +531,7 @@ namespace TEN::Renderer::Next
         bool EnsureRenderTargets(int width, int height);
         std::unique_ptr<RHI::ITexture> CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name, bool allowMips = true);
         void LoadOverlayImages(const UiFrame& ui);
+        RHI::ITexture* GetOverlayImageTexture(const std::string& path) const;
         std::unique_ptr<RHI::ITexture> CreateSolidTexture(const unsigned char color[4], const std::string& name);
         void UploadTexture(RHI::ITexture* texture, const void* data, int size);
         void CollectMaterials(float interpolationFactor);
@@ -630,7 +631,7 @@ namespace TEN::Renderer::Next
         static bool IsDOFActive(const FrameEnvironment& environment);
         void  RenderDOF(RHI::ICommandBuffer& commandBuffer, const FrameEnvironment& environment);
         void  AddVideoSets(const LegacyLevelGeometry& geometry, std::vector<GpuAnimatedFrame>& frames, std::vector<GpuAnimatedSet>& sets);
-        void  UploadVideoFrame(RHI::ICopyPass& copyPass, const FrameEnvironment& environment);
+        void  UploadVideoFrame(RHI::ICopyPass& copyPass, const unsigned char* frame, int width, int height);
         int   GetVideoSet(const Structures::RendererBucket& bucket) const;
         bool  CreateGlowResources();
         bool  EnsureGlowTargets(int width, int height);

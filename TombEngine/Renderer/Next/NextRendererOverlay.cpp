@@ -373,7 +373,7 @@ namespace TEN::Renderer::Next
     {
         for (const auto& image : ui.Images)
         {
-            if (_overlayImages.find(image.Path) != _overlayImages.end())
+            if (image.Path == OVERLAY_VIDEO_PATH || _overlayImages.find(image.Path) != _overlayImages.end())
                 continue;
 
             auto file = std::ifstream(image.Path, std::ios::binary);
@@ -385,6 +385,15 @@ namespace TEN::Renderer::Next
 
             _overlayImages[image.Path] = std::move(texture);
         }
+    }
+
+    ITexture* NextRenderer::GetOverlayImageTexture(const std::string& path) const
+    {
+        if (path == OVERLAY_VIDEO_PATH)
+            return (_isVideoActive ? _videoTexture.get() : nullptr);
+
+        auto it = _overlayImages.find(path);
+        return ((it != _overlayImages.end()) ? it->second.get() : nullptr);
     }
 
     // Presented frame: the last scene faded as the legacy menu backgrounds, then the 2D layer in the legacy draw
@@ -433,9 +442,9 @@ namespace TEN::Renderer::Next
                 for (int i = layer.First; i < end && i < (int)ui.Images.size(); i++)
                 {
                     const auto& image = ui.Images[i];
-                    auto it = _overlayImages.find(image.Path);
-                    if (it != _overlayImages.end() && it->second != nullptr)
-                        AddOverlayQuad(it->second.get(), image.Min * targetSize, (image.Max - image.Min) * targetSize, image.UVMin, image.UVMax, image.Color, image.BlendMode);
+                    auto* texture = GetOverlayImageTexture(image.Path);
+                    if (texture != nullptr)
+                        AddOverlayQuad(texture, image.Min * targetSize, (image.Max - image.Min) * targetSize, image.UVMin, image.UVMax, image.Color, image.BlendMode);
                 }
 
                 break;

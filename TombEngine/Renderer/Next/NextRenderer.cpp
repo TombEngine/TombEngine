@@ -1451,7 +1451,7 @@ namespace TEN::Renderer::Next
         UploadFrameStorage(*copyPass, _decalBuffer, _decalData, (int)sizeof(GpuDecal), BufferUsage::GraphicsStorageRead, "Frame.Decals");
         UploadFrameStorage(*copyPass, _debrisVertexBuffer, _debrisVertexData, (int)sizeof(Vertex), BufferUsage::Vertex, "Frame.DebrisVertices");
         UploadFrameStorage(*copyPass, _debrisInstanceBuffer, _debrisInstanceData, (int)sizeof(unsigned int), BufferUsage::Vertex, "Frame.DebrisInstances");
-        UploadVideoFrame(*copyPass, environment);
+        UploadVideoFrame(*copyPass, environment.VideoFrame, environment.VideoWidth, environment.VideoHeight);
 
         commandBuffer.EndCopyPass();
         commandBuffer.PopDebugGroup();
@@ -2225,15 +2225,20 @@ namespace TEN::Renderer::Next
         if (commandBuffer == nullptr)
             return;
 
-        if (!_isFramePending)
+        bool hasScene = _isFramePending;
+        if (!hasScene)
             _frameStats = NextFrameStats{};
 
         _isFramePending = false;
 
         commandBuffer->PushDebugGroup("Finish frame");
-        CollectOverlay(ui);
-
         auto* copyPass = commandBuffer->BeginCopyPass();
+
+        // Frames without a scene, such as exclusive video playback, upload the video frame before the overlay uses it.
+        if (!hasScene)
+            UploadVideoFrame(*copyPass, ui.VideoFrame, ui.VideoWidth, ui.VideoHeight);
+
+        CollectOverlay(ui);
         UploadFrameStorage(*copyPass, _overlayVertexBuffer, _overlayVertexData, (int)sizeof(OverlayVertex), BufferUsage::Vertex, "Frame.OverlayVertices");
         commandBuffer->EndCopyPass();
 

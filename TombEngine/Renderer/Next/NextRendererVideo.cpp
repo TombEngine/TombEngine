@@ -37,18 +37,18 @@ namespace TEN::Renderer::Next
 
     // The background video frame decoded by the legacy video handler is uploaded once per frame, cycling the
     // texture so frames still in flight keep the previous one.
-    void NextRenderer::UploadVideoFrame(ICopyPass& copyPass, const FrameEnvironment& environment)
+    void NextRenderer::UploadVideoFrame(ICopyPass& copyPass, const unsigned char* frame, int width, int height)
     {
         _isVideoActive = false;
-        if (environment.VideoFrame == nullptr || environment.VideoWidth <= 0 || environment.VideoHeight <= 0)
+        if (frame == nullptr || width <= 0 || height <= 0)
             return;
 
-        int size = environment.VideoWidth * environment.VideoHeight * 4;
-        if (_videoTexture == nullptr || _videoTexture->GetDesc().Width != environment.VideoWidth || _videoTexture->GetDesc().Height != environment.VideoHeight)
+        int size = width * height * 4;
+        if (_videoTexture == nullptr || _videoTexture->GetDesc().Width != width || _videoTexture->GetDesc().Height != height)
         {
             auto desc = TextureDesc{};
-            desc.Width = environment.VideoWidth;
-            desc.Height = environment.VideoHeight;
+            desc.Width = width;
+            desc.Height = height;
             desc.Format = PixelFormat::BGRA8Unorm;
             desc.Name = "Video";
             _videoTexture = _device->CreateTexture(desc);
@@ -57,13 +57,13 @@ namespace TEN::Renderer::Next
                 return;
         }
 
-        memcpy(_device->MapTransferBuffer(_videoTransferBuffer.get(), true), environment.VideoFrame, size);
+        memcpy(_device->MapTransferBuffer(_videoTransferBuffer.get(), true), frame, size);
         _device->UnmapTransferBuffer(_videoTransferBuffer.get());
 
         auto region = TextureRegion{};
         region.Texture = _videoTexture.get();
-        region.Width = environment.VideoWidth;
-        region.Height = environment.VideoHeight;
+        region.Width = width;
+        region.Height = height;
         copyPass.UploadToTexture(TextureTransferInfo{ _videoTransferBuffer.get(), 0, 0, 0 }, region, true);
         _isVideoActive = true;
     }
