@@ -7,6 +7,7 @@
 #include "Game/items.h"
 #include "Game/savegame.h"
 #include "Math/Math.h"
+#include "Renderer/Next/NextRenderer.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererEnums.h"
 #include "Sound/sound.h"
@@ -686,7 +687,12 @@ namespace TEN::Input
 		// Reload shaders.
 		static bool dbReloadShaders = true;
 		if (KeyMap[SDL_SCANCODE_F9] && dbReloadShaders)
+		{
 			g_Renderer.ReloadShaders();
+			if (TEN::Renderer::Next::g_NextRenderer.IsActive())
+				TEN::Renderer::Next::g_NextRenderer.ReloadShaders();
+		}
+
 		dbReloadShaders = !KeyMap[SDL_SCANCODE_F9];
 	}
 

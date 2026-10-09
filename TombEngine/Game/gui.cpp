@@ -530,6 +530,7 @@ namespace TEN::Gui
 			HighFramerate,
 			Gamma,
 			SkyQuality,
+			RendererBackend,
 			Save,
 			Cancel,
 
@@ -633,6 +634,13 @@ namespace TEN::Gui
 				}
 				break;
 
+			// Applied at the next start.
+			case DisplaySettingsOption::RendererBackend:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.GraphicsBackend =
+					(GraphicsBackend)(((int)CurrentSettings.Configuration.GraphicsBackend + (int)GraphicsBackend::Count - 1) % (int)GraphicsBackend::Count);
+				break;
+
 			}
 		}
 
@@ -718,6 +726,12 @@ namespace TEN::Gui
 					g_Configuration.AtmosphericSkyQuality = CurrentSettings.Configuration.AtmosphericSkyQuality;
 					SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
 				}
+				break;
+
+			case DisplaySettingsOption::RendererBackend:
+				SoundEffect(SFX_TR4_MENU_CHOOSE, nullptr, SoundEnvironment::Always);
+				CurrentSettings.Configuration.GraphicsBackend =
+					(GraphicsBackend)(((int)CurrentSettings.Configuration.GraphicsBackend + 1) % (int)GraphicsBackend::Count);
 				break;
 			}
 		}

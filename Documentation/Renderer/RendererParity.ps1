@@ -21,6 +21,11 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# With -File, lists arrive as one comma separated string.
+$Levels = @($Levels | ForEach-Object { $_ -split "," } | Where-Object { $_ })
+$Backends = @($Backends | ForEach-Object { $_ -split "," } | Where-Object { $_ })
+
 Add-Type -AssemblyName System.Drawing
 
 $repository = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path

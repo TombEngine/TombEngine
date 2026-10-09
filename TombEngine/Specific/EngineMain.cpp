@@ -75,6 +75,24 @@ TEN::Renderer::RHI::Backend ParseRHIBackend(const std::string& name)
 	return TEN::Renderer::RHI::Backend::Vulkan;
 }
 
+// Tries the requested next renderer backend, then the others in order. Returns false when none starts.
+bool StartNextRenderer(SDL_Window* window, const std::string& requestedBackend, bool preferLowPowerGpu)
+{
+	const std::string backends[] = { requestedBackend, "vulkan", "dx11" };
+	for (int i = 0; i < 3; i++)
+	{
+		if (std::find(backends, backends + i, backends[i]) != backends + i)
+			continue;
+
+		if (TEN::Renderer::Next::g_NextRenderer.Initialize(window, ParseRHIBackend(backends[i]), GameDirectory, preferLowPowerGpu))
+			return true;
+
+		TENLog("Next renderer could not start on the " + backends[i] + " backend.", LogLevel::Warning);
+	}
+
+	return false;
+}
+
 Vector2i GetScreenResolution()
 {
 	auto screenRes = Vector2i::Zero;
@@ -431,6 +449,10 @@ int main(int argc, char* argv[])
 		SetAudioConfiguration(g_Configuration);
 	}
 
+	// The configured renderer applies when the command line does not choose one.
+	if (nextBackend.empty() && previewBackend.empty() && g_Configuration.GraphicsBackend != GraphicsBackend::Legacy)
+		nextBackend = (g_Configuration.GraphicsBackend == GraphicsBackend::DX11) ? "dx11" : "vulkan";
+
 	// Initialize main window.
 	int width = g_Configuration.ScreenWidth;
 	int height = g_Configuration.ScreenHeight;
@@ -475,6 +497,13 @@ int main(int argc, char* argv[])
 		Sound_Init(GameDirectory);
 
 		// Initialize renderer.
+		// The next renderer starts first: when no backend works, the legacy renderer draws the main window.
+		if (!nextBackend.empty() && !StartNextRenderer(sdlWindow, nextBackend, isPreviewOnLowPowerGpu))
+		{
+			TENLog("Next renderer could not start, the legacy renderer draws the main window.", LogLevel::Error);
+			nextBackend.clear();
+		}
+
 		if (!nextBackend.empty())
 		{
 			legacyWindow = SDL_CreateWindow("TombEngine - legacy renderer", width, height, SDL_WINDOW_HIDDEN);
@@ -494,9 +523,6 @@ int main(int argc, char* argv[])
 
 		SDL_ShowWindow(sdlWindow);
 		SDL_RaiseWindow(sdlWindow);
-
-		if (!nextBackend.empty() && !TEN::Renderer::Next::g_NextRenderer.Initialize(sdlWindow, ParseRHIBackend(nextBackend), GameDirectory, isPreviewOnLowPowerGpu))
-			throw std::runtime_error("The next renderer could not be started on the " + nextBackend + " backend.");
 
 		// New renderer preview: a second window rendered by the RHI renderer from the same game state.
 		if (!previewBackend.empty())

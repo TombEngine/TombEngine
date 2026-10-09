@@ -39,6 +39,7 @@ table Configuration {
 	bindings: [Binding];
 
 	atmospheric_sky_quality: int32 = 1;
+	graphics_backend: int32 = 0;
 }
 
 root_type Configuration;

@@ -17,6 +17,16 @@ enum class MenuOptionLoopingMode
 	Disabled
 };
 
+// Renderer drawing the main window; the next renderer backends fall back to each other, then to the legacy renderer.
+enum class GraphicsBackend
+{
+	Legacy,
+	Vulkan,
+	DX11,
+
+	Count
+};
+
 struct GameConfiguration
 {
 	static constexpr auto DEFAULT_SHADOW_MAP_SIZE	= 1024;
@@ -38,6 +48,7 @@ struct GameConfiguration
 	bool	   EnableHighFramerate    = true;
 	AntialiasingMode AntialiasingMode = AntialiasingMode::None;
 	AtmosphericSkyQuality AtmosphericSkyQuality = AtmosphericSkyQuality::Medium;
+	GraphicsBackend GraphicsBackend = GraphicsBackend::Legacy; // Applied at startup.
 
 	// Sound
 

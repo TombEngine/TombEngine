@@ -120,6 +120,7 @@ static bool LoadConfigurationBuffer(const std::vector<unsigned char>& fileData)
 	g_Configuration.EnableAmbientOcclusion = config->enable_ambient_occlusion();
 	g_Configuration.EnableHighFramerate = config->enable_high_framerate();
 	g_Configuration.AtmosphericSkyQuality = (AtmosphericSkyQuality)std::clamp(config->atmospheric_sky_quality(), (int)AtmosphericSkyQuality::Low, (int)AtmosphericSkyQuality::High);
+	g_Configuration.GraphicsBackend = (GraphicsBackend)std::clamp(config->graphics_backend(), 0, (int)GraphicsBackend::Count - 1);
 
 	if (config->adapter_name() != nullptr)
 		g_Configuration.AdapterName = config->adapter_name()->str();
@@ -181,6 +182,7 @@ void InitDefaultConfiguration()
 	g_Configuration.EnableHighFramerate = true;
 	g_Configuration.Gamma = 1.0f;
 	g_Configuration.AtmosphericSkyQuality = AtmosphericSkyQuality::Medium;
+	g_Configuration.GraphicsBackend = GraphicsBackend::Legacy;
 
 	g_Configuration.SoundDevice = 1;
 	g_Configuration.EnableSound = true;
@@ -255,6 +257,7 @@ static std::vector<unsigned char> BuildConfigurationBuffer()
 	builder.add_enable_ambient_occlusion(g_Configuration.EnableAmbientOcclusion);
 	builder.add_enable_high_framerate(g_Configuration.EnableHighFramerate);
 	builder.add_atmospheric_sky_quality((int)g_Configuration.AtmosphericSkyQuality);
+	builder.add_graphics_backend((int)g_Configuration.GraphicsBackend);
 	builder.add_adapter_name(adapterNameOffset);
 	builder.add_sound_device(g_Configuration.SoundDevice);
 	builder.add_enable_reverb(g_Configuration.EnableReverb);

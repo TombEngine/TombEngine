@@ -118,6 +118,7 @@ struct ConfigurationT : public flatbuffers::NativeTable {
   int32_t last_gamepad_type = 0;
   std::vector<std::unique_ptr<TEN::Serialization::Config::BindingT>> bindings{};
   int32_t atmospheric_sky_quality = 1;
+  int32_t graphics_backend = 0;
 };
 
 struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -153,7 +154,8 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_MENU_OPTION_LOOPING_MODE = 54,
     VT_LAST_GAMEPAD_TYPE = 56,
     VT_BINDINGS = 58,
-    VT_ATMOSPHERIC_SKY_QUALITY = 60
+    VT_ATMOSPHERIC_SKY_QUALITY = 60,
+    VT_GRAPHICS_BACKEND = 62
   };
   int32_t screen_width() const {
     return GetField<int32_t>(VT_SCREEN_WIDTH, 0);
@@ -242,6 +244,9 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   int32_t atmospheric_sky_quality() const {
     return GetField<int32_t>(VT_ATMOSPHERIC_SKY_QUALITY, 1);
   }
+  int32_t graphics_backend() const {
+    return GetField<int32_t>(VT_GRAPHICS_BACKEND, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int32_t>(verifier, VT_SCREEN_WIDTH) &&
@@ -276,6 +281,7 @@ struct Configuration FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.VerifyVector(bindings()) &&
            verifier.VerifyVectorOfTables(bindings()) &&
            VerifyField<int32_t>(verifier, VT_ATMOSPHERIC_SKY_QUALITY) &&
+           VerifyField<int32_t>(verifier, VT_GRAPHICS_BACKEND) &&
            verifier.EndTable();
   }
   ConfigurationT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -374,6 +380,9 @@ struct ConfigurationBuilder {
   void add_atmospheric_sky_quality(int32_t atmospheric_sky_quality) {
     fbb_.AddElement<int32_t>(Configuration::VT_ATMOSPHERIC_SKY_QUALITY, atmospheric_sky_quality, 1);
   }
+  void add_graphics_backend(int32_t graphics_backend) {
+    fbb_.AddElement<int32_t>(Configuration::VT_GRAPHICS_BACKEND, graphics_backend, 0);
+  }
   explicit ConfigurationBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -415,8 +424,10 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(
     int32_t menu_option_looping_mode = 0,
     int32_t last_gamepad_type = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>> bindings = 0,
-    int32_t atmospheric_sky_quality = 1) {
+    int32_t atmospheric_sky_quality = 1,
+    int32_t graphics_backend = 0) {
   ConfigurationBuilder builder_(_fbb);
+  builder_.add_graphics_backend(graphics_backend);
   builder_.add_atmospheric_sky_quality(atmospheric_sky_quality);
   builder_.add_bindings(bindings);
   builder_.add_last_gamepad_type(last_gamepad_type);
@@ -484,7 +495,8 @@ inline flatbuffers::Offset<Configuration> CreateConfigurationDirect(
     int32_t menu_option_looping_mode = 0,
     int32_t last_gamepad_type = 0,
     const std::vector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> *bindings = nullptr,
-    int32_t atmospheric_sky_quality = 1) {
+    int32_t atmospheric_sky_quality = 1,
+    int32_t graphics_backend = 0) {
   auto adapter_name__ = adapter_name ? _fbb.CreateString(adapter_name) : 0;
   auto bindings__ = bindings ? _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>>(*bindings) : 0;
   return TEN::Serialization::Config::CreateConfiguration(
@@ -517,7 +529,8 @@ inline flatbuffers::Offset<Configuration> CreateConfigurationDirect(
       menu_option_looping_mode,
       last_gamepad_type,
       bindings__,
-      atmospheric_sky_quality);
+      atmospheric_sky_quality,
+      graphics_backend);
 }
 
 flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatBufferBuilder &_fbb, const ConfigurationT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -589,6 +602,7 @@ inline void Configuration::UnPackTo(ConfigurationT *_o, const flatbuffers::resol
   { auto _e = last_gamepad_type(); _o->last_gamepad_type = _e; }
   { auto _e = bindings(); if (_e) { _o->bindings.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->bindings[_i] = std::unique_ptr<TEN::Serialization::Config::BindingT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = atmospheric_sky_quality(); _o->atmospheric_sky_quality = _e; }
+  { auto _e = graphics_backend(); _o->graphics_backend = _e; }
 }
 
 inline flatbuffers::Offset<Configuration> Configuration::Pack(flatbuffers::FlatBufferBuilder &_fbb, const ConfigurationT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -628,6 +642,7 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatB
   auto _last_gamepad_type = _o->last_gamepad_type;
   auto _bindings = _fbb.CreateVector<flatbuffers::Offset<TEN::Serialization::Config::Binding>> (_o->bindings.size(), [](size_t i, _VectorArgs *__va) { return CreateBinding(*__va->__fbb, __va->__o->bindings[i].get(), __va->__rehasher); }, &_va );
   auto _atmospheric_sky_quality = _o->atmospheric_sky_quality;
+  auto _graphics_backend = _o->graphics_backend;
   return TEN::Serialization::Config::CreateConfiguration(
       _fbb,
       _screen_width,
@@ -658,7 +673,8 @@ inline flatbuffers::Offset<Configuration> CreateConfiguration(flatbuffers::FlatB
       _menu_option_looping_mode,
       _last_gamepad_type,
       _bindings,
-      _atmospheric_sky_quality);
+      _atmospheric_sky_quality,
+      _graphics_backend);
 }
 
 inline const TEN::Serialization::Config::Configuration *GetConfiguration(const void *buf) {

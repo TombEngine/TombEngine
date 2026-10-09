@@ -60,7 +60,7 @@ namespace TEN::Renderer::Next
         if (!CreatePipelines())
         {
             TENLog("Next renderer: pipeline creation failed.", LogLevel::Error);
-            _device = nullptr;
+            Shutdown();
             return false;
         }
 
