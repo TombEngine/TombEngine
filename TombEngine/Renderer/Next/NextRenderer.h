@@ -36,6 +36,8 @@ namespace TEN::Renderer::Structures
 
 namespace TEN::Renderer::Next
 {
+    struct DecodedImage;
+
     // Level geometry shared with the legacy renderer during the migration. The new renderer reads the
     // already prepared vertex and index arrays, so both renderers draw exactly the same data.
     struct LegacyLevelGeometry
@@ -132,6 +134,14 @@ namespace TEN::Renderer::Next
             std::unique_ptr<RHI::ITexture> NormalMap   = nullptr;
             std::unique_ptr<RHI::ITexture> ORSHMap     = nullptr;
             std::unique_ptr<RHI::ITexture> EmissiveMap = nullptr;
+        };
+
+        // Level texture waiting to be decoded and uploaded with the others.
+        struct LevelTextureRequest
+        {
+            const std::vector<unsigned char>* EncodedData = nullptr;
+            std::string                       Name        = {};
+            std::unique_ptr<RHI::ITexture>*   Target      = nullptr;
         };
 
         // Instance waiting to be grouped with the other instances of its mesh.
@@ -610,7 +620,15 @@ namespace TEN::Renderer::Next
         bool LoadNoAlphaTestShaders();
         RHI::IGraphicsPipeline* GetScenePipeline(SceneShader shader, BlendMode blendMode, bool isAlphaTested = true);
         void ClearPipelineCaches();
-        void LoadTextureSet(const std::vector<::TEXTURE>& source, std::vector<RoomTexture>& destination, const std::string& name);
+        // Level textures (NextRendererTextures.cpp).
+        static void AddTextureRequest(std::vector<LevelTextureRequest>& requests, const std::vector<unsigned char>& encodedData, const std::string& name,
+                                      std::unique_ptr<RHI::ITexture>& target);
+        std::unique_ptr<RHI::ITexture> RecordTextureUpload(RHI::ICopyPass& copyPass, const DecodedImage& image, const std::string& name, bool allowMips,
+                                                           std::vector<std::unique_ptr<RHI::ITransferBuffer>>& transferBuffers);
+        void CreateLevelTextures(const std::vector<LevelTextureRequest>& requests, bool allowMips);
+        void AddTextureSetRequests(const std::vector<::TEXTURE>& source, std::vector<RoomTexture>& destination, const std::string& name,
+                                   bool isColorOnly, std::vector<LevelTextureRequest>& requests);
+        void LoadLevelTextures();
         // Level geometry (NextRendererGeometry.cpp).
         void SetGeometrySection(MeshSource source, int regionOffset, int baseVertex, int vertexCount, const std::vector<int>& indices);
         bool CreateLevelGeometry(const LegacyLevelGeometry& geometry);

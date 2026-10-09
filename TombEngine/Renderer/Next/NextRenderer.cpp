@@ -698,60 +698,6 @@ namespace TEN::Renderer::Next
         _device->WaitIdle();
     }
 
-    std::unique_ptr<ITexture> NextRenderer::CreateLevelTexture(const std::vector<unsigned char>& encodedData, const std::string& name, bool allowMips)
-    {
-        auto image = DecodedImage{};
-        if (encodedData.empty() || !DecodeImage(encodedData, image))
-            return nullptr;
-
-        // Single-level images get their mip chain generated on the GPU, which needs a color target.
-        bool generateMips = (image.MipLevels == 1 && allowMips);
-
-        auto desc = TextureDesc{};
-        desc.Width = image.Width;
-        desc.Height = image.Height;
-        desc.Format = image.Format;
-        desc.MipLevels = generateMips ? GetMipLevelCount(image.Width, image.Height) : image.MipLevels;
-        desc.Usage = TextureUsage::Sampler | (generateMips ? TextureUsage::ColorTarget : 0);
-        desc.Name = name;
-
-        auto texture = _device->CreateTexture(desc);
-        if (texture == nullptr)
-            return nullptr;
-
-        auto transferBuffer = _device->CreateTransferBuffer(TransferBufferUsage::Upload, (int)image.Data.size());
-        memcpy(_device->MapTransferBuffer(transferBuffer.get(), false), image.Data.data(), image.Data.size());
-        _device->UnmapTransferBuffer(transferBuffer.get());
-
-        auto* commandBuffer = _device->AcquireCommandBuffer();
-        auto* copyPass = commandBuffer->BeginCopyPass();
-
-        int offset = 0;
-        for (int mip = 0; mip < image.MipLevels; mip++)
-        {
-            int mipWidth = std::max(1, image.Width >> mip);
-            int mipHeight = std::max(1, image.Height >> mip);
-
-            auto region = TextureRegion{};
-            region.Texture = texture.get();
-            region.MipLevel = mip;
-            region.Width = mipWidth;
-            region.Height = mipHeight;
-            copyPass->UploadToTexture(TextureTransferInfo{ transferBuffer.get(), offset, 0, 0 }, region, false);
-
-            offset += GetTextureDataSize(image.Format, mipWidth, mipHeight, 1);
-        }
-
-        commandBuffer->EndCopyPass();
-
-        if (generateMips)
-            _device->GenerateMipmaps(commandBuffer, texture.get());
-
-        commandBuffer->Submit();
-        _device->WaitIdle();
-        return texture;
-    }
-
     void NextRenderer::LoadLevel(const LegacyLevelGeometry& geometry)
     {
         if (_device == nullptr)
@@ -771,12 +717,8 @@ namespace TEN::Renderer::Next
             return;
 
         _hasEmissiveMaps = false;
-        LoadTextureSet(g_Level.RoomTextures, _roomTextures, "RoomAtlas");
-        LoadTextureSet(g_Level.StaticsTextures, _staticTextures, "StaticAtlas");
-        LoadTextureSet(g_Level.MoveablesTextures, _moveableTextures, "MoveableAtlas");
-        LoadTextureSet(g_Level.SpritesTextures, _spriteTextures, "SpriteAtlas");
+        LoadLevelTextures();
         LoadAnimatedTextures(geometry);
-        _skyTexture = CreateLevelTexture(g_Level.SkyTexture.colorMapData, "Sky");
 
         _legacyGeometry = geometry;
 
@@ -806,42 +748,10 @@ namespace TEN::Renderer::Next
             elapsed, geometry.RoomVertices->size(), _roomTextures.size(), _hasEmissiveMaps ? "yes" : "no"), LogLevel::Info);
     }
 
-    void NextRenderer::LoadTextureSet(const std::vector<::TEXTURE>& source, std::vector<RoomTexture>& destination, const std::string& name)
-    {
-        destination.clear();
-        for (int i = 0; i < (int)source.size(); i++)
-        {
-            auto pageName = name + "[" + std::to_string(i) + "]";
-
-            auto texture = RoomTexture{};
-            texture.ColorMap = CreateLevelTexture(source[i].colorMapData, pageName + ".Color");
-            if (!source[i].normalMapData.empty())
-                texture.NormalMap = CreateLevelTexture(source[i].normalMapData, pageName + ".Normal");
-
-            if (!source[i].ORSHMapData.empty())
-                texture.ORSHMap = CreateLevelTexture(source[i].ORSHMapData, pageName + ".ORSH");
-
-            if (!source[i].emissiveMapData.empty())
-            {
-                texture.EmissiveMap = CreateLevelTexture(source[i].emissiveMapData, pageName + ".Emissive");
-                _hasEmissiveMaps = true;
-            }
-
-            destination.push_back(std::move(texture));
-        }
-    }
-
     // All animated texture sets live in two static storage buffers, so drawing an animated bucket only
     // pushes its set index; frames are selected in the vertex shader.
     void NextRenderer::LoadAnimatedTextures(const LegacyLevelGeometry& geometry)
     {
-        for (int i = 0; i < (int)g_Level.AnimatedTextures.size(); i++)
-        {
-            auto animatedTexture = RoomTexture{};
-            animatedTexture.ColorMap = CreateLevelTexture(g_Level.AnimatedTextures[i].colorMapData, "AnimatedAtlas[" + std::to_string(i) + "].Color");
-            _animatedTextures.push_back(std::move(animatedTexture));
-        }
-
         auto frames = std::vector<GpuAnimatedFrame>{};
         auto sets = std::vector<GpuAnimatedSet>{};
         for (const auto& set : *geometry.AnimatedTextureSets)

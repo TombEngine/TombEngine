@@ -216,7 +216,7 @@ Il formato del livello non cambia. Tutto quello che serve alla GPU si ricava al 
 
 ### 7.2 Texture
 - [x] DDS (gia' supportato dal formato attuale) caricato cosi' com'e', con i suoi mip e la sua compressione BC. *(`DecodeDDS` tiene formato BC e mip)*
-- [ ] PNG: decode con `SDL_LoadPNG` di SDL 3.4 (in parallelo per atlas) e mip generati in GPU (`SDL_GenerateMipmapsForGPUTexture` / `GenerateMips`). Nessuna compressione a runtime: costa troppo al caricamento.
+- [x] PNG: decode con `SDL_LoadPNG` di SDL 3.4 (in parallelo per atlas) e mip generati in GPU (`SDL_GenerateMipmapsForGPUTexture` / `GenerateMips`). Nessuna compressione a runtime: costa troppo al caricamento. *(blocchi di 8 pagine decodificati con `g_Parallel` e caricati con un solo submit e una sola attesa per blocco; i livelli di benchmark hanno poche pagine e non mostrano differenze)*
 - [ ] **Texture array per categoria** (stanze, moveable, statiche, animate, sprite) costruiti al caricamento: le pagine dello stesso formato e della stessa dimensione diventano layer di un unico `Texture2DArray`. Le pagine di dimensione diversa vanno in array separati (uno per dimensione), oppure con padding se l'array risultante non spreca troppa memoria. Il materiale contiene array e layer.
 
 ### 7.3 Dati persistenti in GPU
