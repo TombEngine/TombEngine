@@ -1,4 +1,4 @@
-// TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=2
+// TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=4 uniform_buffers=4
 // TEN_SHADER: Pixel PS samplers=6 storage_textures=0 storage_buffers=2 uniform_buffers=3
 // TEN_SHADER: Pixel PSDepthNormal samplers=6 storage_textures=0 storage_buffers=2 uniform_buffers=3
 // TEN_SHADER: Pixel PSShadow samplers=6 storage_textures=0 storage_buffers=2 uniform_buffers=3
@@ -13,6 +13,7 @@
 #include "./Lighting.hlsli"
 #include "./Materials.hlsli"
 #include "./Shadows.hlsli"
+#include "./FogBulbs.hlsli"
 #include "./Skinning.hlsli"
 
 TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
@@ -53,9 +54,10 @@ struct PixelInput
     float3 Binormal                     : TEXCOORD10;
     float3 FaceNormal                   : TEXCOORD11;
     float  Sheen                        : TEXCOORD12;
+    float4 FogBulbs                     : TEXCOORD13;
 };
 
-float3 CombineLights(float3 ambient, float3 vertexLight, float3 position, Surface surface, float sheen, uint2 lightSlice)
+float3 CombineLights(float3 ambient, float3 vertexLight, float3 position, Surface surface, float sheen, uint2 lightSlice, float fogDensity)
 {
     float3 diffuse = 0.0f;
     float3 shadow = 0.0f;
@@ -91,7 +93,7 @@ float3 CombineLights(float3 ambient, float3 vertexLight, float3 position, Surfac
     shadow = saturate(shadow * COLOR_MODULATION_SCALE);
     float3 texel = surface.Color.rgb;
     float3 combined = (ambient - shadow) * texel + diffuse * COLOR_MODULATION_SCALE * texel + specular * COLOR_MODULATION_SCALE + surface.Emissive;
-    return saturate(combined * vertexLight);
+    return saturate((combined - fogDensity) * vertexLight);
 }
 
 PixelInput VS(VertexInput input)
@@ -136,6 +138,7 @@ PixelInput VS(VertexInput input)
     output.Binormal *= rsqrt(max(dot(output.Binormal, output.Binormal), 1e-8f));
     output.FaceNormal = normalize(mul(input.FaceNormal.xyz, (float3x3)world));
     output.Sheen = DecodeSheen(input.Effects);
+    output.FogBulbs = GetFogBulbs(worldPosition.xyz, CameraPosition, false);
     output.Fog = GetDistanceFog(worldPosition.xyz, CameraPosition, FogMinDistance, FogMaxDistance);
     return output;
 }
@@ -148,8 +151,8 @@ float4 PS(PixelInput input) : SV_TARGET
 
     float3 vertexLight = input.Color.rgb * COLOR_MODULATION_SCALE;
     float3 color = (input.LightMode == LIGHT_MODE_DYNAMIC) ?
-        CombineLights(input.AmbientLight * COLOR_MODULATION_SCALE, vertexLight, input.WorldPosition, surface, input.Sheen, input.LightSlice) :
-        saturate(surface.Color.rgb * vertexLight + surface.Emissive);
+        CombineLights(input.AmbientLight * COLOR_MODULATION_SCALE, vertexLight, input.WorldPosition, surface, input.Sheen, input.LightSlice, input.FogBulbs.w) :
+        saturate(surface.Color.rgb * vertexLight + surface.Emissive - input.FogBulbs.w);
 
     // Only instances that do not cast shadows receive them, as in the legacy renderer.
     if (input.LightSlice.y & SHADOWABLE_MASK)
@@ -159,7 +162,8 @@ float4 PS(PixelInput input) : SV_TARGET
     }
 
     float occlusion = surface.Occlusion * GetAmbientOcclusion(material, input.Position.xy * InverseViewportSize, AmbientOcclusionExponent, BlendMode, surface.Color.a);
-    float4 result = ApplyDistanceFog(float4(saturate(color * occlusion), surface.Color.a), FogColor, input.Fog, BlendMode);
+    float4 result = ApplyFogBulbs(float4(saturate(color * occlusion), surface.Color.a), input.FogBulbs.rgb, BlendMode);
+    result = ApplyDistanceFog(result, FogColor, input.Fog, BlendMode);
     result.a *= input.Color.a;
     return result;
 }

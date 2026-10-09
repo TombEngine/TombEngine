@@ -1489,7 +1489,9 @@ namespace TEN::Renderer::Next
                     view.Camera.WorldPosition.z);
 
                 auto world = rotation * translation;
-                commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &world, sizeof(world));
+                // Fog bulbs affect the first layer only, as in the legacy renderer.
+                auto skyUniforms = SkyVertexUniforms{ world, (layer == 0) ? 1u : 0u };
+                commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &skyUniforms, sizeof(skyUniforms));
                 _frameStats.DrawCalls++;
                 renderPass.DrawIndexed(SKY_INDICES_COUNT, 1, 0, 0, 0);
             }
@@ -1512,7 +1514,8 @@ namespace TEN::Renderer::Next
             auto world = orientation.ToRotationMatrix() * Matrix::CreateTranslation(position) * Matrix::CreateTranslation(view.Camera.WorldPosition);
             auto color = Vector4(1.0f, 1.0f, 1.0f, alpha);
 
-            commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &world, sizeof(world));
+            auto skyUniforms = SkyVertexUniforms{ world, 1u };
+            commandBuffer.PushUniforms(RHI::ShaderStage::Vertex, 2, &skyUniforms, sizeof(skyUniforms));
             commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &color, sizeof(color));
 
             auto moveableVertexBinding = BufferBinding{ _moveableGeometry.Vertices.get(), 0 };
@@ -1572,6 +1575,27 @@ namespace TEN::Renderer::Next
         TENLog(message + fmt::format(" ({} frames)", timings.front().Samples), LogLevel::Info);
     }
 
+    // Same values as the legacy camera constant buffer.
+    FogBulbUniforms NextRenderer::GetFogBulbUniforms(const RenderView& view)
+    {
+        auto uniforms = FogBulbUniforms{};
+        uniforms.Count = std::min((int)view.FogBulbsToDraw.size(), FOG_BULBS_MAX);
+
+        for (int i = 0; i < uniforms.Count; i++)
+        {
+            const auto& bulb = view.FogBulbsToDraw[i];
+            auto& gpuBulb = uniforms.FogBulbs[i];
+            gpuBulb.Position = bulb.Position;
+            gpuBulb.Density = bulb.Density * (CLICK(1) / bulb.Radius);
+            gpuBulb.SquaredRadius = SQUARE(bulb.Radius);
+            gpuBulb.Color = bulb.Color;
+            gpuBulb.SquaredCameraToFogBulbDistance = SQUARE(bulb.Distance);
+            gpuBulb.FogBulbToCameraVector = bulb.FogBulbToCameraVector;
+        }
+
+        return uniforms;
+    }
+
     const NextFrameStats& NextRenderer::GetFrameStats() const
     {
         return _frameStats;
@@ -1624,6 +1648,9 @@ namespace TEN::Renderer::Next
         framePixelUniforms.View = view.Camera.View;
         framePixelUniforms.InverseViewportSize = Vector2(1.0f / width, 1.0f / height);
         commandBuffer->PushUniforms(RHI::ShaderStage::Pixel, 0, &framePixelUniforms, sizeof(framePixelUniforms));
+
+        auto fogBulbUniforms = GetFogBulbUniforms(view);
+        commandBuffer->PushUniforms(RHI::ShaderStage::Vertex, 3, &fogBulbUniforms, sizeof(fogBulbUniforms));
 
         CollectMaterials(environment.InterpolationFactor);
         CollectObjects(view, environment.InterpolationFactor);

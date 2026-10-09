@@ -10,6 +10,7 @@ namespace TEN::Renderer::Next
     constexpr auto INSTANCE_INDEX_COUNT = 65536;
     constexpr auto SSAO_KERNEL_SIZE     = 32;
     constexpr auto SHADOW_SPHERES_MAX   = 16;
+    constexpr auto FOG_BULBS_MAX        = 32;
     constexpr auto SHADOWABLE_MASK      = 1u << 16; // Light count flag of instances receiving shadows.
 
     // Uniform layouts mirror the cbuffers in Shaders/RHI/Rooms.hlsl.
@@ -53,6 +54,35 @@ namespace TEN::Renderer::Next
         unsigned int LightCount     = 0;
         unsigned int MaterialIndex  = 0;
         unsigned int Padding[3]     = {};
+    };
+
+    // Same layout as GpuFogBulb in FogBulbs.hlsli.
+    struct GpuFogBulb
+    {
+        Vector3 Position                       = Vector3::Zero;
+        float   Density                        = 0.0f;
+        Vector3 Color                          = Vector3::Zero;
+        float   SquaredRadius                  = 0.0f;
+        Vector3 FogBulbToCameraVector          = Vector3::Zero;
+        float   SquaredCameraToFogBulbDistance = 0.0f;
+        Vector4 Padding                        = Vector4::Zero;
+    };
+
+    struct FogBulbUniforms
+    {
+        int        Count      = 0;
+        int        Padding[3] = {};
+        GpuFogBulb FogBulbs[FOG_BULBS_MAX] = {};
+    };
+
+    static_assert(sizeof(FogBulbUniforms) == 2064, "FogBulbUniforms must match FogBulbs.hlsli.");
+
+    // Same layout as SkyVertexUniforms in Sky.hlsl.
+    struct SkyVertexUniforms
+    {
+        Matrix       World             = Matrix::Identity;
+        unsigned int IsFogBulbsEnabled = 0;
+        unsigned int Padding[3]        = {};
     };
 
     // Same layout as GpuMaterial in Materials.hlsli; properties are interpolated every frame.

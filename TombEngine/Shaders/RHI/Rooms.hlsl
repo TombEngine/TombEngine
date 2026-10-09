@@ -1,11 +1,11 @@
-// TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=2
+// TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=2 uniform_buffers=4
 // TEN_SHADER: Pixel PS samplers=6 storage_textures=0 storage_buffers=2 uniform_buffers=3
 // TEN_SHADER: Pixel PSDepthNormal samplers=6 storage_textures=0 storage_buffers=2 uniform_buffers=3
 
 // Room geometry: baked vertex lighting plus the room's dynamic lights with specular, material maps (normal,
 // ORSH, emissive, parallax), animated textures, vertex effects, water refraction and distance fog.
 // Screen space ambient occlusion comes from the prepass (PSDepthNormal); shadows from the cube shadow map and
-// blob spheres. Reflections, caustics, decals and fog bulbs are ported later.
+// blob spheres; fog bulbs per vertex. Reflections, caustics and decals are ported later.
 
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
@@ -13,6 +13,7 @@
 #include "./Lighting.hlsli"
 #include "./Materials.hlsli"
 #include "./Shadows.hlsli"
+#include "./FogBulbs.hlsli"
 
 TEN_VS_STORAGE_BUFFER(AnimatedFrameUV, AnimatedFrames, 0);
 TEN_VS_STORAGE_BUFFER(AnimatedSet, AnimatedSets, 1);
@@ -43,6 +44,7 @@ struct PixelInput
     float3 Tangent                  : TEXCOORD6;
     float3 Binormal                 : TEXCOORD7;
     float3 FaceNormal               : TEXCOORD8;
+    float4 FogBulbs                 : TEXCOORD9;
 };
 
 PixelInput VS(VertexInput input)
@@ -85,6 +87,7 @@ PixelInput VS(VertexInput input)
     output.Tangent = input.Tangent.xyz;
     output.Binormal = cross(input.Normal.xyz, input.Tangent.xyz);
     output.FaceNormal = input.FaceNormal.xyz;
+    output.FogBulbs = GetFogBulbs(position, CameraPosition, false);
     output.Fog = GetDistanceFog(position, CameraPosition, FogMinDistance, FogMaxDistance);
     return output;
 }
@@ -126,8 +129,9 @@ float4 PS(PixelInput input) : SV_TARGET
                                     input.Normal, input.Tangent, input.Binormal, input.FaceNormal);
 
     float occlusion = surface.Occlusion * GetAmbientOcclusion(material, input.Position.xy * InverseViewportSize, AmbientOcclusionExponent, BlendMode, surface.Color.a);
-    float3 lighting = GetRoomLighting(input.Color.rgb, input.WorldPosition, surface);
+    float3 lighting = GetRoomLighting(input.Color.rgb, input.WorldPosition, surface) - input.FogBulbs.w;
     float4 color = float4(saturate(surface.Color.rgb * lighting * occlusion), surface.Color.a);
+    color = ApplyFogBulbs(color, input.FogBulbs.rgb, BlendMode);
     return ApplyDistanceFog(color, FogColor, input.Fog, BlendMode);
 }
 

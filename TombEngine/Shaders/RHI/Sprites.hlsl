@@ -1,4 +1,4 @@
-// TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=1 uniform_buffers=2
+// TEN_SHADER: Vertex VS samplers=0 storage_textures=0 storage_buffers=1 uniform_buffers=4
 // TEN_SHADER: Pixel PS samplers=1 storage_textures=0 storage_buffers=0 uniform_buffers=2
 
 // Billboards and 3D quads share one path: corners are expanded to world space on the CPU, each sprite
@@ -7,6 +7,7 @@
 #include "./ShaderInterop.hlsli"
 #include "./Common.hlsli"
 #include "./FrameUniforms.hlsli"
+#include "./FogBulbs.hlsli"
 
 // Colors are real uint fields: integer bits stored in float components can be altered by drivers
 // that canonicalize NaN patterns (opaque RGBA8 colors are NaN when read as float).
@@ -39,6 +40,7 @@ struct PixelInput
     float2 UV       : TEXCOORD0;
     float4 Color    : TEXCOORD1;
     float  Fog      : TEXCOORD2;
+    float3 FogBulbs : TEXCOORD3;
 };
 
 float4 UnpackColor(uint packedColor)
@@ -56,6 +58,7 @@ PixelInput VS(VertexInput input)
     output.UV = float2(sprite.UVX[input.Corner], sprite.UVY[input.Corner]);
     output.Color = UnpackColor(corner.Color);
     output.Fog = GetDistanceFog(corner.Position, CameraPosition, FogMinDistance, FogMaxDistance);
+    output.FogBulbs = GetFogBulbs(corner.Position, CameraPosition, false).rgb;
     return output;
 }
 
@@ -64,6 +67,6 @@ float4 PS(PixelInput input) : SV_TARGET
     float4 color = ColorMap.Sample(ColorMapSampler, input.UV) * input.Color;
     clip(color.a - AlphaThreshold);
 
-    color.rgb = saturate(color.rgb);
+    color.rgb = saturate(color.rgb * (1.0f - Luma(input.FogBulbs)));
     return ApplyDistanceFog(color, float4(0.0f, 0.0f, 0.0f, 0.0f), input.Fog, BlendMode);
 }

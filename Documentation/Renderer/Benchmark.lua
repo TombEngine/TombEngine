@@ -16,6 +16,9 @@ LevelFuncs.OnLoop = function()
 	-- A shadow casting light near the player exercises the shadow map.
 	TEN.Effects.EmitLight(TEN.View.GetCameraPosition() + Vec3(0, -768, 0), TEN.Color(255, 230, 200), 24, true, "BenchmarkShadowLight")
 
+	-- A colored fog bulb in front of the player exercises per vertex fog.
+	TEN.Effects.EmitFogBulb(Lara:GetPosition() + Vec3(0, -512, 0), 6, 40, TEN.Color(255, 80, 40), "BenchmarkFogBulb")
+
 	-- Particles exercise the sprite paths: additive (instanced) and alpha blended (sorted).
 	local pos = Lara:GetPosition()
 	for i = 0, 3 do
