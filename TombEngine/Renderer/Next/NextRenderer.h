@@ -70,6 +70,7 @@ namespace TEN::Renderer::Next
         float        ColorSchemeStrength = 1.0f;
         float        ScreenFade          = 1.0f;
         float        CinematicBarsHeight = 0.0f;
+        int          AntialiasingMode    = 0; // Legacy AntialiasingMode; SMAA levels use FXAA for now.
 
         // Shadows of the legacy renderer: shadow casting light (null when none) and blob spheres.
         const Structures::RendererLight* ShadowLight = nullptr;
@@ -250,6 +251,9 @@ namespace TEN::Renderer::Next
         std::unique_ptr<RHI::IGraphicsPipeline> _postProcessPipeline     = nullptr;
         std::unique_ptr<RHI::ITexture>          _sceneTarget             = nullptr;
         std::unique_ptr<RHI::IShader>           _depthCopyPixelShader    = nullptr;
+        std::unique_ptr<RHI::IShader>           _fxaaPixelShader         = nullptr;
+        std::unique_ptr<RHI::IGraphicsPipeline> _fxaaPipeline            = nullptr;
+        std::unique_ptr<RHI::ITexture>          _antialiasingSource      = nullptr; // Post-processed image before FXAA.
         std::unique_ptr<RHI::IGraphicsPipeline> _depthCopyPipeline       = nullptr;
         std::unique_ptr<RHI::ITexture>          _sceneDepthCopy          = nullptr; // R32 float copy of the prepass depth.
         float                                   _nearPlane               = 1.0f;

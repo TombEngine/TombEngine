@@ -2325,6 +2325,7 @@ namespace TEN::Renderer
 			environment.ColorSchemeStrength = _postProcessStrength;
 			environment.ScreenFade = ScreenFadeCurrent;
 			environment.CinematicBarsHeight = CinematicBarsHeight;
+			environment.AntialiasingMode = (int)g_Configuration.AntialiasingMode;
 			environment.ShadowLight = _shadowLight;
 			environment.IsShadowMapEnabled = (g_Configuration.ShadowType != ShadowMode::None);
 			environment.IsPlayerShadowOnly = (g_Configuration.ShadowType == ShadowMode::Player);

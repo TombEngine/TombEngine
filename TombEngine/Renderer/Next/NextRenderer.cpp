@@ -122,6 +122,9 @@ namespace TEN::Renderer::Next
         _postProcessPixelShader = nullptr;
         _sceneTarget = nullptr;
         _sceneDepthCopy = nullptr;
+        _antialiasingSource = nullptr;
+        _fxaaPipeline = nullptr;
+        _fxaaPixelShader = nullptr;
         _depthCopyPipeline = nullptr;
         _depthCopyPixelShader = nullptr;
         _ssaoPipeline = nullptr;
@@ -407,6 +410,9 @@ namespace TEN::Renderer::Next
 
         colorDesc.Name = "Scene.Color";
         _sceneTarget = _device->CreateTexture(colorDesc);
+
+        colorDesc.Name = "PostProcess.Result";
+        _antialiasingSource = _device->CreateTexture(colorDesc);
 
         colorDesc.Format = PixelFormat::R32Float;
         colorDesc.Name = "Scene.DepthCopy";

@@ -51,7 +51,13 @@ namespace TEN::Renderer::Next
             return false;
 
         _depthCopyPipeline = CreateFullscreenPipeline(_postProcessVertexShader.get(), _depthCopyPixelShader.get(), PixelFormat::R32Float, "DepthCopy");
-        return (_postProcessPipeline != nullptr && _depthCopyPipeline != nullptr);
+
+        _fxaaPixelShader = LoadShader(*_device, _shaderDirectory, "PostProcess", "PSFXAA");
+        if (_fxaaPixelShader == nullptr)
+            return false;
+
+        _fxaaPipeline = CreateFullscreenPipeline(_postProcessVertexShader.get(), _fxaaPixelShader.get(), _device->GetSwapchainFormat(), "FXAA");
+        return (_postProcessPipeline != nullptr && _depthCopyPipeline != nullptr && _fxaaPipeline != nullptr);
     }
 
     // The scene pass keeps the prepass depth as its target, so effects reading the depth (soft particles) use a copy.
@@ -87,8 +93,10 @@ namespace TEN::Renderer::Next
         uniforms.ViewportHeight = (float)_colorTarget->GetDesc().Height;
         commandBuffer.PushUniforms(RHI::ShaderStage::Pixel, 2, &uniforms, sizeof(uniforms));
 
+        bool isAntialiased = (environment.AntialiasingMode != 0);
+
         auto colorTarget = ColorTargetInfo{};
-        colorTarget.Texture = _colorTarget.get();
+        colorTarget.Texture = isAntialiased ? _antialiasingSource.get() : _colorTarget.get();
         colorTarget.Load = LoadOp::DontCare;
 
         commandBuffer.PushDebugGroup("Post-process");
@@ -101,6 +109,21 @@ namespace TEN::Renderer::Next
         _frameStats.DrawCalls++;
         renderPass->Draw(3, 1, 0, 0);
         commandBuffer.EndRenderPass();
+
+        if (isAntialiased)
+        {
+            colorTarget.Texture = _colorTarget.get();
+            renderPass = commandBuffer.BeginRenderPass(&colorTarget, 1, nullptr);
+            renderPass->BindPipeline(_fxaaPipeline.get());
+
+            binding = TextureSamplerBinding{ _antialiasingSource.get(), _linearClampSampler.get() };
+            renderPass->BindPixelSamplers(0, &binding, 1);
+
+            _frameStats.DrawCalls++;
+            renderPass->Draw(3, 1, 0, 0);
+            commandBuffer.EndRenderPass();
+        }
+
         commandBuffer.PopDebugGroup();
     }
 }
