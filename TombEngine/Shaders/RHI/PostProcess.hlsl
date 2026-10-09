@@ -206,13 +206,18 @@ float3 ApplyLensFlares(float3 color, float2 uv)
 
     for (uint i = 0; i < LensFlareCount; i++)
     {
+        // Visibility is the same for every pixel, so occluded flares skip the flare math coherently.
+        float visibility = GetLensFlareVisibility(LensFlarePositions[i].xy);
+        if (visibility <= 0.0f)
+            continue;
+
         float3 flareColor = max(0.0f, LensFlareColors[i].rgb * 4.5f * GetLensFlare(position, LensFlarePositions[i].xy));
 
         // Legacy LensFlareColorCorrection.
         float weight = flareColor.r + flareColor.g + flareColor.b;
         flareColor = lerp(flareColor, weight * 0.5f, weight * 0.1f);
 
-        totalColor += flareColor * GetLensFlareVisibility(LensFlarePositions[i].xy);
+        totalColor += flareColor * visibility;
     }
 
     return lerp(color, color + totalColor, saturate(dot(totalColor, 0.5f)));
